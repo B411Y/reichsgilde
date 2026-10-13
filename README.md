@@ -9,7 +9,7 @@ Schauplatz ist ein düster-bodenständiges Heiliges Römisches Reich des Spätmi
 
 ## Aktueller Stand
 
-**Phase 0 – Fundament.** Die Spielzeit läuft: 1 Runde = 1 Spieltag = 1 Spieljahr (Standard: 15 Minuten Echtzeit, einstellbar), mit Jahreszeiten, Tagesphasen, Pause und Tempostufen. Partie-Einstellungen (Aktionspunkte, Rundendauer, wählbare Siegbedingung) sind im Simulationskern angelegt.
+**Phase 2 – Simulationskern.** Die Spielzeit läuft (1 Runde = 1 Spieltag = 1 Spieljahr, Standard 15 Minuten), mit Pause, Tempo und wählbarer Siegbedingung. Die **Wirtschaft** ist eingebaut: Marktpreise nach Angebot und Nachfrage, Gießerei und Mine produzieren während der Arbeitszeit, Löhne, Pacht und Steuern laufen in die Jahresrechnung, und das Fron- und Sklavenstatut bestimmt, wer wo arbeiten darf. Das Kontor im Spiel zeigt Vermögen, Jahresrechnung und Marktpreise.
 
 ## Projektstruktur
 
@@ -19,11 +19,13 @@ reichsgilde/
 ├── game/                           Das Godot-Projekt (Darstellung, Szenen, Eingabe)
 │   ├── project.godot
 │   ├── Reichsgilde.csproj
+│   ├── data/wirtschaft.json        Alle Zahlen des Wirtschaftsmodells (aus dem Balancing-Rechner)
 │   ├── scenes/                     Szenen (.tscn)
 │   └── scripts/                    C#-Skripte, die an Szenen hängen
 ├── src/Reichsgilde.Core/           Simulationskern – die reine Spiellogik, OHNE Godot
 │   ├── Simulation.cs
 │   ├── Partie/                     Partie-Einstellungen, Siegbedingung, Aktionspunkte
+│   ├── Wirtschaft/                 Markt, Betriebe, Konten, Fronstatut, Datenlader
 │   └── Zeit/                       Spielzeit, Taktgeber, Kalender
 ├── tests/Reichsgilde.Core.Tests/   Automatische Tests für den Simulationskern
 ├── docs/                           Erklärungen und Entscheidungen

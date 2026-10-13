@@ -51,6 +51,20 @@ Godot: _Process(delta)
   └─▶ Anzeige aktualisieren
 ```
 
+## Die Wirtschaft
+
+Alle Zahlen stehen in **`game/data/wirtschaft.json`**, nicht im Code. So lässt sich das Spiel ausbalancieren, ohne zu programmieren.
+
+| Baustein | Aufgabe |
+|---|---|
+| `Wirtschaftsdaten` | Liest die JSON-Datei und prüft sie. Fehler werden gesammelt und verständlich gemeldet. |
+| `Markt` / `Marktstand` | Preis = Grundpreis × (Nachfrage ÷ Angebot)^Elastizität. Das Angebot umfasst die Grundversorgung durch Händler, die keine Spieler sind, plus die Verkäufe der Spieler in den letzten 24 Spielstunden (= 1 Jahr). |
+| `Betrieb` | Gießerei oder Mine. Arbeitet von 08:00 bis 20:00 Uhr. Ein Verwalter kauft die Zutaten und verkauft jedes fertige Stück sofort. |
+| `Konto` | Vermögen und Jahresrechnung (Umsatz, Zutaten, Löhne, Fixkosten, Steuer, Schäden). |
+| `Stadtwirtschaft` | Hält alles zusammen, kennt das geltende Fron- und Sklavenstatut und würfelt Ausbrüche und Aufstände. |
+
+**Zufall mit festem Startwert:** Alle Zufallsereignisse kommen aus einem einzigen Zufallsgenerator mit festem Startwert (`Partieeinstellungen.Zufallsstartwert`). Gleicher Startwert und gleiche Eingaben ergeben exakt denselben Spielverlauf. Das ist die Voraussetzung für den Multiplayer, bei dem alle Rechner dasselbe sehen müssen, und für Tests, die sich wiederholen lassen.
+
 ## Namenskonventionen
 
 - Fachbegriffe im Code sind **deutsch** (`Spielzeit`, `Jahreszeit`, `Zunftglocke`), passend zum Setting.
