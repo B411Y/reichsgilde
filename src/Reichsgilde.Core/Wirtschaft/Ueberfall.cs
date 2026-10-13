@@ -43,7 +43,7 @@ internal static class Ueberfall
         }
     }
 
-    private static BandeDaten BandeWaehlen(IReadOnlyList<BandeDaten> banden, Random zufall)
+    private static BandeDaten BandeWaehlen(IReadOnlyList<BandeDaten> banden, Zufallsquelle zufall)
     {
         var summe = banden.Sum(b => b.Gewicht);
         var wurf = zufall.NextDouble() * summe;

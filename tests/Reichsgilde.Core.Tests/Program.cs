@@ -225,6 +225,7 @@ tests.AddRange(KiTests.Alle());
 tests.AddRange(BefehlTests.Alle());
 tests.AddRange(StandTests.Alle());
 tests.AddRange(LiegenschaftTests.Alle());
+tests.AddRange(SpeicherTests.Alle());
 
 // ── Testlauf ────────────────────────────────────────────────────────────────
 var fehler = 0;

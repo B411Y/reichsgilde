@@ -1,5 +1,6 @@
 using Godot;
 using Reichsgilde.Core;
+using Reichsgilde.Core.Partie;
 using Reichsgilde.Core.Wirtschaft;
 using Reichsgilde.Core.Zeit;
 
@@ -191,60 +192,66 @@ public partial class Hauptszene : Node
     /// </summary>
     private Simulation SimulationAufbauen(Dictionary<string, string> optionen)
     {
-        Wirtschaftsdaten? daten = null;
+        var daten = WirtschaftsdatenLaden();
+        if (daten is null)
+        {
+            _kontor.Hide();
+            return new Simulation(); // ohne Daten läuft nur die Uhr
+        }
+
+        Spielzeit? start = null;
+        if (optionen.TryGetValue("startstunde", out var s) && int.TryParse(s, out var stunde))
+            start = new Spielzeit(((stunde - 6 + 24) % 24) * 60L);
+        double? startvermoegen = optionen.TryGetValue("vermoegen", out var v) && double.TryParse(v, out var betrag) ? betrag : null;
+
+        var (simulation, spieler) = Partieaufbau.Erstellen(Partieeinstellungen.Standard, daten, new NeuePartie(Startvermoegen: startvermoegen), start);
+        SimulationVerbinden(simulation, spieler);
+        return simulation;
+    }
+
+    /// <summary>Liest game/data/wirtschaft.json. Bei Fehlern: Meldung ins Protokoll und null.</summary>
+    private Wirtschaftsdaten? WirtschaftsdatenLaden()
+    {
         try
         {
             // Godot.FileAccess liest auch aus dem exportierten Spiel (res:// = Projektordner).
             var json = Godot.FileAccess.GetFileAsString(WirtschaftsdatenPfad);
-            if (string.IsNullOrEmpty(json))
-                Protokollieren($"Fehler: {WirtschaftsdatenPfad} wurde nicht gefunden.");
-            else
-                daten = Wirtschaftsdaten.AusJson(json);
+            if (!string.IsNullOrEmpty(json))
+                return Wirtschaftsdaten.AusJson(json);
+            Protokollieren($"Fehler: {WirtschaftsdatenPfad} wurde nicht gefunden.");
         }
         catch (WirtschaftsdatenFehler fehler)
         {
             Protokollieren(fehler.Message);
             GD.PushError(fehler.Message);
         }
+        return null;
+    }
 
-        Spielzeit? start = null;
-        if (optionen.TryGetValue("startstunde", out var s) && int.TryParse(s, out var stunde))
-            start = new Spielzeit(((stunde - 6 + 24) % 24) * 60L);
-
-        var simulation = new Simulation(zeit: start, wirtschaftsdaten: daten);
-        if (simulation.Wirtschaft is not { } w)
-        {
-            _kontor.Hide();
-            return simulation;
-        }
-
-        double? startvermoegen = optionen.TryGetValue("vermoegen", out var v) && double.TryParse(v, out var betrag) ? betrag : null;
-        var spieler = w.KontoEroeffnen("Familie Hammerschmid", startvermoegen: startvermoegen);
+    /// <summary>
+    /// Verbindet eine (neue oder geladene) Partie mit Stadtansicht, Kontor und Bedienfeld
+    /// und abonniert ihre Ereignisse.
+    /// </summary>
+    private void SimulationVerbinden(Simulation simulation, Konto spieler)
+    {
+        var w = simulation.Wirtschaft!;
         _spieler = spieler;
+        _eigeneGiesserei = w.Betriebe.FirstOrDefault(b => b.Konto == spieler && b.Art == Betriebsart.Giesserei);
+
         // Bankrott des Spielers beendet die Partie; ein bankrotter Rivale scheidet nur aus.
         w.Bankrott += konto =>
         {
             if (konto == spieler)
                 simulation.Beenden($"{spieler.Inhaber} konnte die Schulden nicht begleichen.");
         };
-        var giesserei = w.BetriebEroeffnen("Gießerei am Weinmarkt", Betriebsart.Giesserei, spieler);
-        giesserei.Produkt = "Silberring";
-        w.Einstellen(giesserei, "Geselle", 2);
-
-        var rivale = w.KontoEroeffnen("Haus Eisenbart");
-        var rivalenGiesserei = w.BetriebEroeffnen("Gießerei Eisenbart", Betriebsart.Giesserei, rivale);
-        rivalenGiesserei.Produkt = "Rapier";
-        w.Einstellen(rivalenGiesserei, "Geselle", 2);
-        var grube = w.BetriebEroeffnen("Grube Eisenbart", Betriebsart.Mine, rivale);
-        w.Einstellen(grube, "Ork", 3);
-
         w.Meldung += Protokollieren;
-        _eigeneGiesserei = giesserei;
+        // Die ersten Züge der KI fielen schon beim Aufstellen – ins Protokoll nachtragen (älteste zuerst).
+        foreach (var rivale in w.Rivalen)
+            foreach (var zug in rivale.Entscheidungen.Reverse())
+                Protokollieren(zug);
 
-        // Ab jetzt führt die KI Haus Eisenbart: Produkt, Förderung, Personal, Eskorten und Karren.
-        // Ihre Entscheidungen erscheinen im Protokoll und im Kontor.
-        w.KiAnmelden(rivale);
-        _kontor.Verbinden(simulation, spieler, rivale);
+        var rivalenKonto = w.Konten.FirstOrDefault(k => k != spieler);
+        _kontor.Verbinden(simulation, spieler, rivalenKonto);
         _verwaltung.Verbinden(simulation, spieler);
         // Die Stadtansicht stellt jeden Betrieb an seinen Platz im Stadtplan und zeigt die freien Plätze.
         _stadt.Verbinden(simulation, spieler);
@@ -255,7 +262,6 @@ public partial class Hauptszene : Node
             if (_auswahlKennung == Stadtansicht.LiegenschaftKennung(betrieb.Name))
                 _auswahlKennung = Stadtansicht.BetriebsKennung(betrieb);
         };
-        return simulation;
     }
 
     public override void _Process(double delta)

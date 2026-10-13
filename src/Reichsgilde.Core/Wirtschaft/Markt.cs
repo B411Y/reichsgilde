@@ -1,3 +1,4 @@
+using Reichsgilde.Core.Speichern;
 namespace Reichsgilde.Core.Wirtschaft;
 
 /// <summary>
@@ -88,6 +89,22 @@ public sealed class Marktstand
 
     /// <summary>Eine Spielminute ist vergangen (für die anteilige Gewichtung des ältesten Fachs).</summary>
     internal void NeueMinute() => _minuteInStunde = Math.Min(_minuteInStunde + 1, 59);
+
+    internal MarktstandStand Sichern() => new()
+    {
+        VerkaufteStueckProStunde = (double[])_verkaufteStueckProStunde.Clone(),
+        AktuellesFach = _aktuellesFach,
+        MinuteInStunde = _minuteInStunde,
+    };
+
+    internal void Wiederherstellen(MarktstandStand s)
+    {
+        if (s.VerkaufteStueckProStunde.Length != _verkaufteStueckProStunde.Length)
+            throw new InvalidDataException($"Marktstand {Ware}: falsche Anzahl Stundenfächer im Spielstand.");
+        Array.Copy(s.VerkaufteStueckProStunde, _verkaufteStueckProStunde, _verkaufteStueckProStunde.Length);
+        _aktuellesFach = s.AktuellesFach;
+        _minuteInStunde = s.MinuteInStunde;
+    }
 }
 
 /// <summary>Der Marktplatz der Stadt: ein Marktstand je Ware.</summary>

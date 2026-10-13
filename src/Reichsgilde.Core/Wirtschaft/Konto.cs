@@ -1,3 +1,4 @@
+using Reichsgilde.Core.Speichern;
 namespace Reichsgilde.Core.Wirtschaft;
 
 /// <summary>
@@ -78,6 +79,43 @@ public sealed class Konto
 
     internal void Hergestellt(string ware, int stueck = 1) =>
         Laufend.Hergestellt[ware] = Laufend.Hergestellt.GetValueOrDefault(ware) + stueck;
+
+    // ── Speichern ───────────────────────────────────────────────────────────
+
+    internal KontoStand Sichern() => new()
+    {
+        Inhaber = Inhaber, Vermoegen = Vermoegen, Stand = Stand, Schuldenjahre = Schuldenjahre, IstBankrott = IstBankrott,
+        Laufend = BilanzSichern(Laufend), Vorjahr = Vorjahr is null ? null : BilanzSichern(Vorjahr),
+    };
+
+    internal static Konto Wiederherstellen(KontoStand s)
+    {
+        var konto = new Konto(s.Inhaber, s.Vermoegen, s.Laufend.Jahr)
+        {
+            Stand = s.Stand, Schuldenjahre = s.Schuldenjahre, IstBankrott = s.IstBankrott,
+            Laufend = BilanzLaden(s.Laufend), Vorjahr = s.Vorjahr is null ? null : BilanzLaden(s.Vorjahr),
+        };
+        return konto;
+    }
+
+    private static BilanzStand BilanzSichern(Jahresbilanz b) => new()
+    {
+        Jahr = b.Jahr, Umsatz = b.Umsatz, Zutaten = b.Zutaten, Personal = b.Personal, Fixkosten = b.Fixkosten,
+        Steuer = b.Steuer, Schaden = b.Schaden, Transport = b.Transport, Raubwert = b.Raubwert,
+        Investitionen = b.Investitionen, Standesgebuehren = b.Standesgebuehren, Hergestellt = new(b.Hergestellt),
+    };
+
+    private static Jahresbilanz BilanzLaden(BilanzStand s)
+    {
+        var b = new Jahresbilanz
+        {
+            Jahr = s.Jahr, Umsatz = s.Umsatz, Zutaten = s.Zutaten, Personal = s.Personal, Fixkosten = s.Fixkosten,
+            Steuer = s.Steuer, Schaden = s.Schaden, Transport = s.Transport, Raubwert = s.Raubwert,
+            Investitionen = s.Investitionen, Standesgebuehren = s.Standesgebuehren,
+        };
+        foreach (var (ware, stueck) in s.Hergestellt) b.Hergestellt[ware] = stueck;
+        return b;
+    }
 
     /// <summary>Schließt das Jahr ab: Die laufende Rechnung wird zum Vorjahr.</summary>
     internal void JahrAbschliessen(int neuesJahr)

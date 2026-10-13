@@ -1,3 +1,4 @@
+using Reichsgilde.Core.Speichern;
 using Reichsgilde.Core.Ki;
 using Reichsgilde.Core.Zeit;
 
@@ -20,13 +21,13 @@ public sealed class Stadtwirtschaft
 {
     private readonly List<Betrieb> _betriebe = new();
     private readonly List<Konto> _konten = new();
-    private readonly Random _zufall;
-    private readonly Random _reihenfolge;
+    private Zufallsquelle _zufall;
+    private Zufallsquelle _reihenfolge;
     private readonly List<Karren> _alleKarren = new();
     private readonly List<KiRivale> _rivalen = new();
 
     /// <summary>Der eine Zufallsgenerator der Wirtschaft (nur intern, damit niemand die Reihenfolge stört).</summary>
-    internal Random Zufall => _zufall;
+    internal Zufallsquelle Zufall => _zufall;
 
     internal void Melden(string meldung) => Meldung?.Invoke(meldung);
 
@@ -83,10 +84,10 @@ public sealed class Stadtwirtschaft
         Daten = daten;
         Statut = statut;
         Markt = new Markt(daten);
-        _zufall = new Random(zufallsstartwert);
+        _zufall = new Zufallsquelle(zufallsstartwert);
         // Eigener Generator nur für die Reihenfolge – so bleiben die Ereignis-Würfel unabhängig
         // davon, wie viele Karren es gibt.
-        _reihenfolge = new Random(unchecked(zufallsstartwert * 31 + 7));
+        _reihenfolge = new Zufallsquelle(unchecked(zufallsstartwert * 31 + 7));
     }
 
     /// <summary>Legt ein Konto an – mit dem Startvermögen aus den Daten oder einem eigenen (z. B. Schwierigkeitsgrad).</summary>
@@ -383,6 +384,52 @@ public sealed class Stadtwirtschaft
         var karren = betrieb.Karren[befehl.Karren];
         karren.NachtsFahren = befehl.Erlaubt;
         return Befehlsergebnis.Ok($"{karren.Name} von {betrieb.Name} fährt {(befehl.Erlaubt ? "nun auch" : "nicht mehr")} nachts.");
+    }
+
+    // ═════════════════════════════════════════════════════════════════════════
+    //  Speichern
+    // ═════════════════════════════════════════════════════════════════════════
+
+    internal WirtschaftStand Sichern() => new()
+    {
+        Statut = Statut,
+        ZufallWuerfe = _zufall.Wuerfe,
+        ReihenfolgeWuerfe = _reihenfolge.Wuerfe,
+        Konten = _konten.Select(k => k.Sichern()).ToList(),
+        Betriebe = _betriebe.Select(b => b.Sichern(_konten.IndexOf(b.Konto))).ToList(),
+        Markt = Markt.Staende.ToDictionary(s => s.Ware, s => s.Sichern()),
+        Rivalen = _rivalen.Select(r => r.Sichern(_konten.IndexOf(r.Konto))).ToList(),
+    };
+
+    /// <summary>
+    /// Stellt den gespeicherten Zustand her. Wird direkt nach dem Erzeugen aufgerufen,
+    /// solange die Stadtwirtschaft noch leer ist. Die Reihenfolge der Listen bleibt erhalten –
+    /// sie bestimmt z. B., in welcher Reihenfolge die Karren gemischt werden.
+    /// </summary>
+    internal void Wiederherstellen(WirtschaftStand s)
+    {
+        if (_konten.Count > 0 || _betriebe.Count > 0)
+            throw new InvalidOperationException("Wiederherstellen geht nur in eine leere Stadtwirtschaft.");
+
+        Statut = s.Statut;
+        _zufall = new Zufallsquelle(_zufall.Startwert, s.ZufallWuerfe);
+        _reihenfolge = new Zufallsquelle(_reihenfolge.Startwert, s.ReihenfolgeWuerfe);
+
+        _konten.AddRange(s.Konten.Select(Konto.Wiederherstellen));
+        foreach (var bs in s.Betriebe)
+        {
+            var betrieb = new Betrieb(bs.Name, bs.Art, _konten[bs.Konto], Daten);
+            betrieb.Wiederherstellen(bs);
+            _betriebe.Add(betrieb);
+        }
+        foreach (var (ware, stand) in s.Markt)
+            Markt[ware].Wiederherstellen(stand);
+        foreach (var rs in s.Rivalen)
+        {
+            var rivale = new KiRivale(_konten[rs.Konto], rs.Profil, this);
+            rivale.Wiederherstellen(rs);
+            _rivalen.Add(rivale);
+        }
     }
 
     public double HoechstesVermoegen => _konten.Count == 0 ? 0 : _konten.Max(k => k.Vermoegen);
