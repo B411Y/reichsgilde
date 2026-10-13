@@ -224,6 +224,7 @@ tests.AddRange(LogistikTests.Alle());
 tests.AddRange(KiTests.Alle());
 tests.AddRange(BefehlTests.Alle());
 tests.AddRange(StandTests.Alle());
+tests.AddRange(LiegenschaftTests.Alle());
 
 // ── Testlauf ────────────────────────────────────────────────────────────────
 var fehler = 0;

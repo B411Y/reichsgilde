@@ -22,6 +22,12 @@ public abstract record BetriebsBefehl(string Betrieb) : Befehl;
 /// </summary>
 public sealed record StandErwerben : Befehl;
 
+/// <summary>
+/// Eine freie Werkstatt kaufen oder eine Grube pachten (Name aus "liegenschaften").
+/// Voraussetzungen: Mindeststand erreicht, Kaufpreis und die Kosten des ersten Jahres bezahlbar.
+/// </summary>
+public sealed record LiegenschaftErwerben(string Name) : Befehl;
+
 /// <summary>Die Gießerei stellt ab sofort diese Ware her.</summary>
 public sealed record ProduktWaehlen(string Betrieb, string Ware) : BetriebsBefehl(Betrieb);
 

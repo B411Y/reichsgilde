@@ -53,6 +53,25 @@ public static class Kalkulation
         return l.Eskorten[eskorte].KostenJeFahrt + verlust * vorsicht;
     }
 
+    /// <summary>
+    /// Erwarteter Jahresgewinn eines NEUEN Betriebs dieser Art bei voller Belegung mit der besten
+    /// erlaubten Arbeitskraft und dem einträglichsten Produkt – zu heutigen Preisen.
+    /// Grundlage für „Lohnt sich der Kauf?" (Spieler-Anzeige und KI).
+    /// </summary>
+    public static double ErwarteterJahresgewinn(Stadtwirtschaft w, Betriebsart art)
+    {
+        var ort = art == Betriebsart.Mine ? Arbeitsort.Umland : Arbeitsort.Werkstatt;
+        var wertJeMinute = art == Betriebsart.Mine
+            ? Math.Max(GewinnJeArbeitsminute(w, "Eisen"), GewinnJeArbeitsminute(w, "Silber"))
+            : w.Daten.Waren.Where(x => x.Value.Zutaten.Count > 0).Max(x => GewinnJeArbeitsminute(w, x.Key));
+        var besterKopf = w.Daten.Arbeitskraefte.Values
+            .Where(k => k.IstErlaubt(w.Statut, ort))
+            .Select(k => k.TempoAm(ort) * w.Daten.Allgemein.Arbeitsminuten * wertJeMinute - k.Kosten - k.Risiko * k.Schaden)
+            .DefaultIfEmpty(0)
+            .Max();
+        return Math.Max(0, besterKopf) * w.Daten.Plaetze(art) - w.Daten.Fixkosten(art);
+    }
+
     /// <summary>Was eine volle Ladung dieses Karrens ungefähr wert ist (mit den Waren, die der Betrieb verkauft).</summary>
     public static double Ladungswert(Stadtwirtschaft w, Karren karren)
     {

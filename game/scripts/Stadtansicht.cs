@@ -144,6 +144,34 @@ public partial class Stadtansicht : Node3D
     public static readonly Vector3 Marktplatz = Vector3.Zero;
     public static readonly Vector3 Osttor = new(36, 0, 0);
 
+    /// <summary>Ende der Landstraße vor dem Osttor.</summary>
+    private static readonly Vector3 Landstrasse = new(56, 0, -2);
+
+    /// <summary>
+    /// Der Stadtplan: Wo steht welcher Betrieb (Mitte des Grundstücks)? Die Namen sind dieselben wie in
+    /// der Simulation und in wirtschaft.json („liegenschaften"). Ein neuer Bauplatz braucht hier einen Eintrag.
+    /// </summary>
+    public static readonly Dictionary<string, Vector3> Stadtplan = new()
+    {
+        ["Gießerei am Weinmarkt"] = new(-20, 0, 14),
+        ["Gießerei Eisenbart"] = new(18, 0, 16),
+        ["Gießerei an der Südgasse"] = new(2, 0, 20),
+        ["Grube Eisenbart"] = new(68, 0, -12),
+        ["Grube am Silberberg"] = new(66, 0, 32),
+        ["Grube im Tannenwald"] = new(48, 0, -52),
+    };
+
+    /// <summary>Gruben liegen vor der Stadt: Hier zweigt ihr Weg von der Straße ab, die zum Osttor führt.</summary>
+    private static readonly Dictionary<string, Vector3> Abzweige = new()
+    {
+        ["Grube Eisenbart"] = new(56, 0, -2),
+        ["Grube am Silberberg"] = new(52, 0, 18),
+        ["Grube im Tannenwald"] = new(46, 0, -26),
+    };
+
+    /// <summary>Freie Bauplätze und Gruben, die noch niemandem gehören: Name → ihre Darstellung.</summary>
+    private readonly Dictionary<string, Node3D> _freiePlaetze = new();
+
     // ═════════════════════════════════════════════════════════════════════════
     //  Aufbau
     // ═════════════════════════════════════════════════════════════════════════
@@ -166,7 +194,7 @@ public partial class Stadtansicht : Node3D
 
         // Wege: Ostgasse zum Tor und hinaus zur Grube
         WegZiehen(Marktplatz, Osttor, 5);
-        WegZiehen(Osttor, new Vector3(56, 0, -2), 4);
+        WegZiehen(Osttor, Landstrasse, 4);
     }
 
     private void UmgebungUndLicht()
@@ -290,7 +318,7 @@ public partial class Stadtansicht : Node3D
             var winkel = zufall.NextDouble() * Math.Tau;
             var abstand = 48 + zufall.NextDouble() * 50;
             var p = new Vector3((float)(Math.Cos(winkel) * abstand) + 10, 0, (float)(Math.Sin(winkel) * abstand));
-            if (p.DistanceTo(new Vector3(74, 0, -14)) < 22 || Mathf.Abs(p.Z) < 6 && p.X > 30) continue; // Grube und Straße frei lassen
+            if (ImWegFuerWald(p)) continue; // Gruben und Straßen frei lassen
             var hoehe = 6 + (float)zufall.NextDouble() * 5;
             var baum = new MeshInstance3D
             {
@@ -302,26 +330,119 @@ public partial class Stadtansicht : Node3D
         }
     }
 
+    /// <summary>Liegt dieser Punkt auf einer Grube oder einem Weg? Dort wachsen keine Bäume.</summary>
+    private static bool ImWegFuerWald(Vector3 p)
+    {
+        if (Mathf.Abs(p.Z) < 6 && p.X > 30) return true; // Straße vom Osttor
+        foreach (var (name, abzweig) in Abzweige)
+        {
+            var grube = Stadtplan[name];
+            if (p.DistanceTo(grube + new Vector3(10, 0, -4)) < 22) return true;
+            if (AbstandZurStrecke(p, Osttor, abzweig) < 5 || AbstandZurStrecke(p, abzweig, grube) < 5) return true;
+        }
+        return false;
+    }
+
+    private static float AbstandZurStrecke(Vector3 p, Vector3 a, Vector3 b)
+    {
+        var ab = b - a;
+        var t = Mathf.Clamp((p - a).Dot(ab) / ab.LengthSquared(), 0f, 1f);
+        return p.DistanceTo(a + ab * t);
+    }
+
     // ═════════════════════════════════════════════════════════════════════════
     //  Verbindung zur Simulation
     // ═════════════════════════════════════════════════════════════════════════
 
     /// <summary>
-    /// Stellt die Betriebe der Simulation in die Stadt.
+    /// Stellt die Betriebe der Simulation in die Stadt – jeden an seinen Platz laut <see cref="Stadtplan"/>.
+    /// Freie Liegenschaften werden als Bauplatz bzw. leere Grube mit Schild gezeigt.
     /// </summary>
-    /// <param name="plaetze">Betrieb → Grundstück (Mittelpunkt) und ob er dem Spieler gehört.</param>
-    public void Verbinden(Simulation simulation, IEnumerable<(Betrieb Betrieb, Vector3 Grundstueck, bool Spieler)> plaetze)
+    public void Verbinden(Simulation simulation, Konto spieler)
     {
         _simulation = simulation;
-        foreach (var (betrieb, platz, spieler) in plaetze)
+        _spielerKonto = spieler;
+        if (simulation.Wirtschaft is not { } w) return;
+        foreach (var betrieb in w.Betriebe)
+            BetriebHinzufuegen(betrieb);
+        foreach (var frei in w.FreieLiegenschaften)
+            FreienPlatzZeigen(frei);
+    }
+
+    private Konto? _spielerKonto;
+
+    /// <summary>Baut einen Betrieb an seinem Platz – auch mitten im Spiel, wenn er gerade erworben wurde.</summary>
+    public void BetriebHinzufuegen(Betrieb betrieb)
+    {
+        if (_betriebe.ContainsKey(betrieb)) return;
+        if (!Stadtplan.TryGetValue(betrieb.Name, out var platz))
         {
-            var farbe = spieler ? Spieler : Rivale;
-            var ansicht = betrieb.Art == Betriebsart.Mine
-                ? MineBauen(betrieb, platz, farbe)
-                : GiessereiBauen(betrieb, platz, farbe);
-            ansicht.Spieler = spieler;
-            _betriebe[betrieb] = ansicht;
+            GD.PushWarning($"Für „{betrieb.Name}“ gibt es keinen Platz im Stadtplan – er wird nicht gezeigt.");
+            return;
         }
+        // Stand hier ein freier Platz (Bauplatz oder leere Grube), weicht er dem neuen Betrieb.
+        if (_freiePlaetze.Remove(betrieb.Name, out var alt))
+            KnotenEntfernen(alt);
+
+        var spieler = betrieb.Konto == _spielerKonto;
+        var farbe = spieler ? Spieler : Rivale;
+        var ansicht = betrieb.Art == Betriebsart.Mine
+            ? MineBauen(betrieb, platz, farbe, Abzweige.GetValueOrDefault(betrieb.Name, Osttor + new Vector3(20, 0, 0)))
+            : GiessereiBauen(betrieb, platz, farbe);
+        ansicht.Spieler = spieler;
+        _betriebe[betrieb] = ansicht;
+    }
+
+    /// <summary>Kennung eines freien Platzes für Mausklicks.</summary>
+    public static string LiegenschaftKennung(string name) => "liegenschaft:" + name;
+
+    /// <summary>
+    /// Ein freier Platz: in der Stadt ein eingezäuntes Grundstück, vor der Stadt eine Grube ohne Schuppen.
+    /// Alles hängt an einem Knoten, damit es beim Erwerb in einem Zug verschwindet.
+    /// </summary>
+    private void FreienPlatzZeigen(LiegenschaftDaten frei)
+    {
+        if (!Stadtplan.TryGetValue(frei.Name, out var p)) return;
+        var gruppe = new Node3D { Name = "Frei_" + frei.Name.Replace(" ", "_") };
+        AddChild(gruppe);
+        var holz = Material(Holz);
+
+        if (frei.Art == Betriebsart.Mine)
+        {
+            BergBauen(p, gruppe);
+            Quader(p + new Vector3(2, 2, 0), new Vector3(3, 4, 4), Material(new Color(0.08f, 0.07f, 0.07f)), gruppe); // verlassener Stollen
+            WegZiehen(Abzweige[frei.Name], p + new Vector3(-2, 0, 0), 4, gruppe);
+            WegZiehen(Osttor, Abzweige[frei.Name], 4, gruppe);
+        }
+        else
+        {
+            // Zaun um das Grundstück (10 × 8 m) und ein Haufen Bauholz
+            foreach (var (mitte, groesse) in new[]
+            {
+                (new Vector3(0, 0.5f, -4), new Vector3(10, 1, 0.15f)), (new Vector3(0, 0.5f, 4), new Vector3(10, 1, 0.15f)),
+                (new Vector3(-5, 0.5f, 0), new Vector3(0.15f, 1, 8)), (new Vector3(5, 0.5f, 0), new Vector3(0.15f, 1, 8)),
+            })
+                Quader(p + mitte, groesse, holz, gruppe);
+            Quader(p + new Vector3(-2, 0.3f, 1), new Vector3(3, 0.6f, 1.2f), holz, gruppe);
+            var gasse = new Vector3(p.X * 0.45f, 0, p.Z * 0.45f);
+            WegZiehen(p, gasse, 3.5f, gruppe);
+            WegZiehen(gasse, Marktplatz, 3.5f, gruppe);
+        }
+
+        // Schild am Pfosten
+        Quader(p + new Vector3(-4, 1.2f, 4.6f), new Vector3(0.15f, 2.4f, 0.15f), holz, gruppe);
+        Quader(p + new Vector3(-4, 2.3f, 4.7f), new Vector3(1.6f, 0.8f, 0.08f), Material(new Color(0.85f, 0.78f, 0.6f)), gruppe);
+
+        Klickflaeche(LiegenschaftKennung(frei.Name), p + new Vector3(0, 2, 0), frei.Art == Betriebsart.Mine ? new Vector3(16, 8, 14) : new Vector3(10, 4, 8), gruppe);
+        Beschriftung($"{frei.Name}\n{(frei.IstPacht ? "zu verpachten" : "zu verkaufen")}", p + new Vector3(0, frei.Art == Betriebsart.Mine ? 9 : 6, 0), 36, gruppe);
+        _freiePlaetze[frei.Name] = gruppe;
+    }
+
+    /// <summary>Entfernt einen Knoten samt Kindern – und vergisst seine Beschriftungen, die sonst ins Leere zeigen.</summary>
+    private void KnotenEntfernen(Node3D knoten)
+    {
+        _beschriftungen.RemoveAll(label => label == knoten || knoten.IsAncestorOf(label));
+        knoten.QueueFree();
     }
 
     private BetriebsAnsicht GiessereiBauen(Betrieb betrieb, Vector3 p, Color besitzer)
@@ -469,9 +590,9 @@ public partial class Stadtansicht : Node3D
         innen.AddChild(new OmniLight3D { LightColor = new Color(1f, 0.85f, 0.6f), OmniRange = 9, LightEnergy = 0.4f, Position = p + new Vector3(-1, 4.5f, 0) });
     }
 
-    private BetriebsAnsicht MineBauen(Betrieb betrieb, Vector3 p, Color besitzer)
+    /// <summary>Berg aus zwei abgeflachten Kugeln.</summary>
+    private void BergBauen(Vector3 p, Node3D? eltern = null)
     {
-        // Berg aus zwei abgeflachten Kugeln
         foreach (var (versatz, radius) in new[] { (new Vector3(10, 0, -8), 18f), (new Vector3(20, 0, 4), 13f) })
         {
             var berg = new MeshInstance3D
@@ -480,8 +601,13 @@ public partial class Stadtansicht : Node3D
                 MaterialOverride = Material(Fels),
                 Position = p + versatz,
             };
-            AddChild(berg);
+            (eltern ?? this).AddChild(berg);
         }
+    }
+
+    private BetriebsAnsicht MineBauen(Betrieb betrieb, Vector3 p, Color besitzer, Vector3 abzweig)
+    {
+        BergBauen(p);
         Quader(p + new Vector3(2, 2, 0), new Vector3(3, 4, 4), Material(new Color(0.08f, 0.07f, 0.07f))); // Stolleneingang
         Haus(p + new Vector3(-6, 0, 6), new Vector3(6, 4, 5), Holz, Schiefer, quer: true);                // Schuppen
         Quader(p + new Vector3(-9.2f, 3.5f, 6), new Vector3(0.2f, 3, 2), Material(besitzer));
@@ -490,13 +616,15 @@ public partial class Stadtansicht : Node3D
         var schild = Beschriftung(betrieb.Name, p + new Vector3(2, 9, 0), 44);
 
         var hof = p + new Vector3(-2, 0, 0);
-        WegZiehen(new Vector3(56, 0, -2), hof, 4);
+        WegZiehen(abzweig, hof, 4);
+        if (AbstandZurStrecke(abzweig, Osttor, Landstrasse) > 1) // nicht an der Landstraße? Dann eigene Verbindung zum Tor
+            WegZiehen(Osttor, abzweig, 4);
         return new BetriebsAnsicht
         {
             Betrieb = betrieb,
             Mitte = p,
             Hof = hof,
-            WegZumMarkt = new[] { hof, new Vector3(56, 0, -2), Osttor, Marktplatz },
+            WegZumMarkt = new[] { hof, abzweig, Osttor, Marktplatz },
             Schild = schild,
         };
     }
@@ -1066,7 +1194,7 @@ public partial class Stadtansicht : Node3D
     }
 
     /// <summary>Ein flacher Weg zwischen zwei Punkten.</summary>
-    private void WegZiehen(Vector3 von, Vector3 bis, float breite)
+    private void WegZiehen(Vector3 von, Vector3 bis, float breite, Node3D? eltern = null)
     {
         var mitte = (von + bis) / 2;
         var laenge = von.DistanceTo(bis);
@@ -1077,16 +1205,16 @@ public partial class Stadtansicht : Node3D
             Position = new Vector3(mitte.X, 0.04f, mitte.Z),
             Rotation = new Vector3(0, Mathf.Atan2(bis.X - von.X, bis.Z - von.Z), 0),
         };
-        AddChild(weg);
+        (eltern ?? this).AddChild(weg);
     }
 
     /// <summary>Unsichtbarer Körper, damit Mausklicks das Gebäude treffen.</summary>
-    private void Klickflaeche(string kennung, Vector3 mitte, Vector3 groesse)
+    private void Klickflaeche(string kennung, Vector3 mitte, Vector3 groesse, Node3D? eltern = null)
     {
         var koerper = new StaticBody3D { Position = mitte };
         koerper.SetMeta("kennung", kennung);
         koerper.AddChild(new CollisionShape3D { Shape = new BoxShape3D { Size = groesse } });
-        AddChild(koerper);
+        (eltern ?? this).AddChild(koerper);
     }
 
     private Label3D Beschriftung(string text, Vector3 position, int groesse, Node3D? eltern = null)

@@ -12,13 +12,17 @@ namespace Reichsgilde.Core.Ki;
 /// <param name="Vorsicht">1 = rechnet nüchtern; 2 = fürchtet Raubverluste doppelt so stark (nimmt eher Eskorte).</param>
 /// <param name="MaxKarrenJeBetrieb">Mehr Karren kauft die KI für einen Betrieb nicht.</param>
 /// <param name="StillstandFuerKarrenkauf">Ab diesem Anteil Stillstand an der Arbeitszeit (0,2 = 20 %) kauft sie einen Karren.</param>
+/// <param name="MaxBetriebe">Mehr Betriebe erwirbt die KI nicht – sonst bliebe für Mitspieler nichts übrig.</param>
+/// <param name="MaxAmortisationJahre">Ein Kauf muss sich in so vielen Jahren aus dem erwarteten Gewinn bezahlt machen.</param>
 public sealed record KiProfil(
     double Reserve = 1500,
     double Wechselschwelle = 0.15,
     int MindestStundenJeProdukt = 6,
     double Vorsicht = 1.0,
     int MaxKarrenJeBetrieb = 3,
-    double StillstandFuerKarrenkauf = 0.2)
+    double StillstandFuerKarrenkauf = 0.2,
+    int MaxBetriebe = 3,
+    double MaxAmortisationJahre = 6)
 {
     public static KiProfil Standard { get; } = new();
 }
@@ -70,6 +74,7 @@ public sealed class KiRivale
     {
         if (Konto.IstBankrott) return;
         StandPruefen();
+        Expandieren();
         foreach (var betrieb in Betriebe.ToList())
         {
             _stundenSeitWechsel[betrieb] = _stundenSeitWechsel.GetValueOrDefault(betrieb, int.MaxValue / 2) + 1;
@@ -225,6 +230,40 @@ public sealed class KiRivale
         if (Konto.Vermoegen < neu.Schwelle || Konto.Vermoegen - neu.Gebuehr < Profil.Reserve) return;
         Befehlen(new StandErwerben(),
             $"steigt in den Stand {neu.Name} auf ({Zahlenformat.Ganz(neu.Gebuehr)} {_w.Daten.Allgemein.Waehrung} Gebühr).");
+    }
+
+    /// <summary>
+    /// Eine freie Werkstatt kaufen oder Grube pachten, wenn sie sich rechnet:
+    ///   • erwarteter Jahresgewinn positiv und Kaufpreis in höchstens <see cref="KiProfil.MaxAmortisationJahre"/> Jahren verdient,
+    ///   • nach Kaufpreis, einem Jahr Unterhalt/Pacht und den Löhnen bleibt die Reserve übrig.
+    /// Unter mehreren Kandidaten gewinnt der höchste Gewinn nach Abzug der anteiligen Kaufkosten.
+    /// </summary>
+    private void Expandieren()
+    {
+        if (Betriebe.Count() >= Profil.MaxBetriebe) return;
+
+        var daten = _w.Daten;
+        var wahl = _w.FreieLiegenschaften
+            .Where(l => Konto.Stand >= daten.StandStufe(l.MindestStand))
+            .Select(l => (Liegenschaft: l, Gewinn: Kalkulation.ErwarteterJahresgewinn(_w, l.Art)))
+            .Where(x => x.Gewinn > 0 && x.Liegenschaft.Kaufpreis <= x.Gewinn * Profil.MaxAmortisationJahre)
+            .Where(x => Konto.Vermoegen - x.Liegenschaft.Kaufpreis - daten.Fixkosten(x.Liegenschaft.Art)
+                        - daten.Plaetze(x.Liegenschaft.Art) * HoechsterLohn(x.Liegenschaft.Art) >= Profil.Reserve)
+            .OrderByDescending(x => x.Gewinn - x.Liegenschaft.Kaufpreis / Profil.MaxAmortisationJahre)
+            .ThenBy(x => x.Liegenschaft.Name, StringComparer.Ordinal)
+            .FirstOrDefault();
+        if (wahl.Liegenschaft is null) return;
+
+        var l = wahl.Liegenschaft;
+        Befehlen(new LiegenschaftErwerben(l.Name),
+            $"{(l.IstPacht ? "pachtet" : "kauft")} {l.Name} (erwarteter Gewinn ≈ {Zahlenformat.Ganz(wahl.Gewinn)} {daten.Allgemein.Waehrung} im Jahr).");
+    }
+
+    /// <summary>Vorsichtige Schätzung der Löhne: der teuerste Lohn, den eine erlaubte Arbeitskraft dort kostet.</summary>
+    private double HoechsterLohn(Betriebsart art)
+    {
+        var ort = art == Betriebsart.Mine ? Arbeitsort.Umland : Arbeitsort.Werkstatt;
+        return _w.Daten.Arbeitskraefte.Values.Where(k => k.IstErlaubt(_w.Statut, ort)).Select(k => k.Kosten).DefaultIfEmpty(0).Max();
     }
 
     private void KarrenNachkaufen(Betrieb betrieb)

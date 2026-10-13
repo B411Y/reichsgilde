@@ -1,5 +1,5 @@
 {
-  "version": 3,
+  "version": 4,
   "allgemein": {
     "waehrung": "Gulden",
     "arbeitsminuten": 720,
@@ -318,5 +318,25 @@
   ],
   "schulden": {
     "jahreBisBankrott": 3
-  }
+  },
+  "liegenschaften": [
+    {
+      "name": "Gießerei an der Südgasse",
+      "art": "Giesserei",
+      "kaufpreis": 3500,
+      "mindestStand": "Bürger"
+    },
+    {
+      "name": "Grube am Silberberg",
+      "art": "Mine",
+      "kaufpreis": 0,
+      "mindestStand": "Bürger"
+    },
+    {
+      "name": "Grube im Tannenwald",
+      "art": "Mine",
+      "kaufpreis": 0,
+      "mindestStand": "Bürger"
+    }
+  ]
 }
