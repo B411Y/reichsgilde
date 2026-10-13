@@ -23,3 +23,15 @@ mono_crash.*.json
 *.exe
 # Uncomment if your project does not version PCK files as runtime dependencies.
 # *.pck
+
+# .NET Build-Ausgaben (Simulationskern und Tests)
+bin/
+obj/
+*.user
+
+# IDE-Dateien
+.vs/
+.idea/
+
+# Exportierte Spiel-Builds
+build/

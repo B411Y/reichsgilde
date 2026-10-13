@@ -1,0 +1,16 @@
+<Project Sdk="Godot.NET.Sdk/4.7.2">
+  <!--
+    Das Godot-Spielprojekt: Darstellung, Eingabe, Szenen.
+    Die Spiellogik kommt aus Reichsgilde.Core (siehe ProjectReference unten).
+  -->
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+    <EnableDynamicLoading>true</EnableDynamicLoading>
+    <RootNamespace>Reichsgilde</RootNamespace>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\src\Reichsgilde.Core\Reichsgilde.Core.csproj" />
+  </ItemGroup>
+</Project>

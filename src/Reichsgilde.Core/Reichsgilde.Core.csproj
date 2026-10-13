@@ -1,0 +1,14 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <!--
+    Simulationskern von Reichsgilde.
+    WICHTIG: Dieses Projekt kennt Godot NICHT. Hier steckt die reine Spiellogik
+    (Zeit, Wirtschaft, Bürger, Gesetze ...). So kann sie später unverändert auf
+    einem Server laufen und lässt sich ohne Grafik testen.
+  -->
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <RootNamespace>Reichsgilde.Core</RootNamespace>
+  </PropertyGroup>
+</Project>
