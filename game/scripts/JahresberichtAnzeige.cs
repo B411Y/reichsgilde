@@ -31,7 +31,7 @@ public partial class JahresberichtAnzeige : PanelContainer
         // und ihre Beschriftungen durch den Bericht.
         AddThemeStyleboxOverride("panel", new StyleBoxFlat
         {
-            BgColor = new Color(0.12f, 0.11f, 0.10f, 0.97f),
+            BgColor = new Color(0.12f, 0.11f, 0.10f, 1f),
             BorderColor = Gold * new Color(1, 1, 1, 0.8f),
             BorderWidthLeft = 2, BorderWidthTop = 2, BorderWidthRight = 2, BorderWidthBottom = 2,
             CornerRadiusTopLeft = 6, CornerRadiusTopRight = 6, CornerRadiusBottomLeft = 6, CornerRadiusBottomRight = 6,
@@ -91,6 +91,8 @@ public partial class JahresberichtAnzeige : PanelContainer
             var nebenbei = new List<string>();
             if (bilanz.Investitionen > 0) nebenbei.Add($"Anschaffungen {Zahlenformat.Ganz(bilanz.Investitionen)}");
             if (bilanz.Standesgebuehren > 0) nebenbei.Add($"Standesgebühren {Zahlenformat.Ganz(bilanz.Standesgebuehren)}");
+            if (bilanz.Amtseinkommen > 0) nebenbei.Add($"Amtseinkommen +{Zahlenformat.Ganz(bilanz.Amtseinkommen)}");
+            if (bilanz.Geschenke > 0) nebenbei.Add($"Geschenke an Ratsherren {Zahlenformat.Ganz(bilanz.Geschenke)}");
             if (bilanz.Raubwert > 0) nebenbei.Add($"von Banditen geraubt: Waren für {Zahlenformat.Ganz(bilanz.Raubwert)}");
             if (nebenbei.Count > 0) Text("Außerdem: " + string.Join(" · ", nebenbei), 13, Grau);
         }
@@ -115,6 +117,15 @@ public partial class JahresberichtAnzeige : PanelContainer
             _inhalt.AddChild(balken);
             if (spieler.Vermoegen >= naechster.Schwelle)
                 Text($"Ihr könnt im Rathaus aufsteigen (Gebühr {Zahlenformat.Ganz(naechster.Gebuehr)} {waehrung}).", 14, Gold);
+        }
+
+        // ── Ratssitzung ──
+        if (w.Rat.LetzteSitzung.Count > 0 && endgrund is null)
+        {
+            _inhalt.AddChild(new HSeparator());
+            Text("Ratssitzung", 16);
+            foreach (var eintrag in w.Rat.LetzteSitzung)
+                Text("• " + eintrag, 13);
         }
 
         // ── Rangliste ──

@@ -28,6 +28,15 @@ public sealed record StandErwerben : Befehl;
 /// </summary>
 public sealed record LiegenschaftErwerben(string Name) : Befehl;
 
+/// <summary>Bewerbung um ein Amt im Stadtrat (eine pro Jahr, gewählt wird am Jahresende).</summary>
+public sealed record AmtBewerben(string Amt) : Befehl;
+
+/// <summary>Ein Geschenk an einen Ratsherrn – kostet Gulden, bringt seine Gunst.</summary>
+public sealed record Schenken(string Ratsherr, double Betrag) : Befehl;
+
+/// <summary>Antrag im Rat, das Fron- und Sklavenstatut zu ändern (nur für Ratsmitglieder, einer pro Jahr).</summary>
+public sealed record StatutBeantragen(Fronstatut Statut) : Befehl;
+
 /// <summary>Die Gießerei stellt ab sofort diese Ware her.</summary>
 public sealed record ProduktWaehlen(string Betrieb, string Ware) : BetriebsBefehl(Betrieb);
 

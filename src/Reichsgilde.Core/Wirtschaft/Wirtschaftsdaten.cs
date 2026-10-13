@@ -154,6 +154,9 @@ public sealed class Wirtschaftsdaten
     /// <summary>Wann Schulden zum Bankrott führen (ab Datenversion 3).</summary>
     public SchuldenDaten Schulden { get; init; } = new();
 
+    /// <summary>Ämter, Ratsherren und Gunst-Regeln (ab Datenversion 5). Leer = ohne Stadtrat.</summary>
+    public Politik.PolitikDaten Politik { get; init; } = new();
+
     /// <summary>Freie Werkstätten und Gruben, die man erwerben kann (ab Datenversion 4).</summary>
     public List<LiegenschaftDaten> Liegenschaften { get; init; } = new();
 
@@ -268,6 +271,8 @@ public sealed class Wirtschaftsdaten
         }
         foreach (var doppelt in Liegenschaften.GroupBy(l => l.Name).Where(g => g.Count() > 1))
             f.Add($"Liegenschaft „{doppelt.Key}“ ist doppelt eingetragen.");
+
+        Politik.Pruefen(f, StandStufe);
         return f;
     }
 

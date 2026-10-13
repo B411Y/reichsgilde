@@ -25,6 +25,7 @@ namespace Reichsgilde;
 ///   --verwalten=1      das Bedienfeld der eigenen Gießerei gleich öffnen
 ///   --vermoegen=12000  Startvermögen des Spielers setzen (zum Ausprobieren des Aufstiegs)
 ///   --bericht=1        gleich zu Beginn einen Jahresbericht zeigen (zum Testen der Anzeige)
+///   --rat=1            gleich zu Beginn die Ratskammer öffnen
 /// </summary>
 public partial class Hauptszene : Node
 {
@@ -47,6 +48,8 @@ public partial class Hauptszene : Node
     private Button _aktionKnopf = null!;
     private Func<Befehl>? _aktion;
     private JahresberichtAnzeige _jahresbericht = null!;
+    private RatAnzeige _ratskammer = null!;
+    private Button _ratKnopf = null!;
     private Konto? _spieler;
 
     /// <summary>
@@ -82,6 +85,11 @@ public partial class Hauptszene : Node
         _verwaltung = GetNode<BetriebsVerwaltung>("%Verwaltung");
         _aktionKnopf = GetNode<Button>("%AktionKnopf");
         _jahresbericht = GetNode<JahresberichtAnzeige>("%Jahresbericht");
+        _ratKnopf = GetNode<Button>("%RatKnopf");
+        _ratskammer = new RatAnzeige();
+        var ratMitte = Hauptmenue.Mitte();
+        GetNode<CanvasLayer>("Oberflaeche").AddChild(ratMitte);
+        ratMitte.AddChild(_ratskammer);
         // Der Bericht sitzt in einem CenterContainer: Der hält ihn mittig, egal wie hoch er wird.
         var berichtMitte = Hauptmenue.Mitte();
         GetNode<CanvasLayer>("Oberflaeche").AddChild(berichtMitte);
@@ -112,6 +120,8 @@ public partial class Hauptszene : Node
         var optionen = Startoptionen();
         _simulation = SimulationAufbauen(optionen);
         SpielmenueBauen();
+        _ratKnopf.Pressed += _ratskammer.Oeffnen;
+        _ratskammer.Gemeldet += Protokollieren;
 
         _pauseKnopf.Pressed += PauseUmschalten;
         foreach (var tempo in Taktgeber.AlleTempostufen /* TESTTEMPO */)
@@ -140,6 +150,7 @@ public partial class Hauptszene : Node
         _simulation.JahrBeendet += jahr =>
         {
             Protokollieren($"Jahresabrechnung {jahr} abgeschlossen. Es ist nun {_simulation.Zeit.DatumText}.");
+            if (_ratskammer.Visible) _ratskammer.Aufbauen(); // neue Ämter, verblasste Gunst
             if (_spieler is null || _simulation.IstBeendet) return;
             // Automatisch speichern – überschreibt jedes Jahr denselben Spielstand.
             var (pfad, meldung) = Spielstaende.Speichern(_simulation, _spieler, Spielstaende.AutoDatei);
@@ -185,6 +196,8 @@ public partial class Hauptszene : Node
             _stadt.Drehen(drehung, sofort: true);
         if (optionen.TryGetValue("verwalten", out var verwalten) && verwalten == "1" && _eigeneGiesserei is not null)
             _auswahlKennung = Stadtansicht.BetriebsKennung(_eigeneGiesserei);
+        if (optionen.TryGetValue("rat", out var rat) && rat == "1")
+            _ratskammer.Oeffnen();
         if (optionen.TryGetValue("bericht", out var bericht) && bericht == "1" && _spieler is not null)
             _jahresbericht.Zeigen(_simulation, _spieler);
         if (optionen.TryGetValue("innen", out var innen) && innen == "1" && _eigeneGiesserei is not null)
@@ -361,6 +374,7 @@ public partial class Hauptszene : Node
 
         var rivalenKonto = w.Konten.FirstOrDefault(k => k != spieler);
         _kontor.Verbinden(simulation, spieler, rivalenKonto);
+        _ratskammer.Verbinden(simulation, spieler);
         _verwaltung.Verbinden(simulation, spieler);
         // Die Stadtansicht stellt jeden Betrieb an seinen Platz im Stadtplan und zeigt die freien Plätze.
         _stadt.Verbinden(simulation, spieler);
@@ -388,6 +402,8 @@ public partial class Hauptszene : Node
         {
             // Esc geht einen Schritt zurück: Innenansicht verlassen → Auswahl schließen → Spielmenü auf/zu.
             if (_jahresbericht.Visible) { /* der Bericht wird mit „Weiter" geschlossen */ }
+            else if (_ratskammer.Visible)
+                _ratskammer.Hide();
             else if (_spielmenue.Visible)
                 SpielmenueSchliessen();
             else if (_stadt.InnenBetrieb is not null)
@@ -498,6 +514,8 @@ public partial class Hauptszene : Node
             _ => _auswahlKennung,
         };
         AktionKnopfAnzeigen(w, frei);
+        var ratSichtbar = _auswahlKennung == "Rathaus" && w.Rat.IstAktiv;
+        if (_ratKnopf.Visible != ratSichtbar) _ratKnopf.Visible = ratSichtbar; // nur bei Änderung setzen (siehe AktionKnopfAnzeigen)
         _auswahl.Show();
     }
 
@@ -527,19 +545,14 @@ public partial class Hauptszene : Node
         var zeilen = new List<string> { "Rathaus", "" };
         if (_spieler is not null)
         {
-            zeilen.Add($"Euer Stand: {w.StandVon(_spieler).Name}");
+            zeilen.Add($"Euer Stand: {w.StandVon(_spieler).Name}" + (w.Rat.AmtVon(_spieler) is { } amt ? $" · Amt: {amt.Name}" : ""));
             if (w.NaechsterStand(_spieler) is { } neu)
-                zeilen.Add($"Nächster Stand: {neu.Name} ab {Zahlenformat.Ganz(neu.Schwelle)} {waehrung} Vermögen, Gebühr {Zahlenformat.Ganz(neu.Gebuehr)}\n  ({neu.Privilegien})");
-            zeilen.Add("");
+                zeilen.Add($"Nächster Stand: {neu.Name}\n  ab {Zahlenformat.Ganz(neu.Schwelle)} {waehrung} Vermögen, Gebühr {Zahlenformat.Ganz(neu.Gebuehr)}\n  {neu.Privilegien}");
         }
-        zeilen.Add("Rangliste:");
-        var platz = 1;
-        foreach (var konto in w.Rangliste)
-            zeilen.Add(konto.IstBankrott
-                ? $"  –  {konto.Inhaber} (bankrott)"
-                : $"  {platz++}. {konto.Inhaber} · {w.StandVon(konto).Name} · {Zahlenformat.Ganz(konto.Vermoegen)} {waehrung}");
-        zeilen.Add("");
-        zeilen.Add($"Geltendes Fron- und Sklavenstatut: {w.Statut.Kuerzel()} – {w.Statut.Name()}. Ämter und Wahlen folgen später.");
+        zeilen.Add($"Geltendes Fron- und Sklavenstatut: {w.Statut.Kuerzel()} – {w.Statut.Name()}");
+        if (w.Rat.IstAktiv)
+            zeilen.Add($"Bürgermeister: {w.Rat.Aemter.First().Inhaber}" + (w.Rat.Antrag is { } antrag
+                ? $" · Antrag liegt vor: Statut {antrag.Statut.Kuerzel()} ({antrag.Antragsteller.Inhaber})" : ""));
         return string.Join("\n", zeilen);
     }
 

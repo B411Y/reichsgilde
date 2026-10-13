@@ -1,5 +1,5 @@
 {
-  "version": 4,
+  "version": 5,
   "allgemein": {
     "waehrung": "Gulden",
     "arbeitsminuten": 720,
@@ -338,5 +338,158 @@
       "kaufpreis": 0,
       "mindestStand": "Bürger"
     }
-  ]
+  ],
+  "politik": {
+    "kammer": "Stadtrat",
+    "aemter": [
+      {
+        "name": "Bürgermeister",
+        "stufe": 4,
+        "vorgesetzt": null,
+        "einkommen": 800,
+        "mindestStand": "Patrizier",
+        "befugnis": "Leitet den Rat und entscheidet bei Stimmengleichheit."
+      },
+      {
+        "name": "Stadtrichter",
+        "stufe": 3,
+        "vorgesetzt": "Bürgermeister",
+        "einkommen": 500,
+        "mindestStand": "Patrizier",
+        "befugnis": "Führt den Vorsitz im Gericht (folgt mit dem Gericht)."
+      },
+      {
+        "name": "Kämmerer",
+        "stufe": 3,
+        "vorgesetzt": "Bürgermeister",
+        "einkommen": 500,
+        "mindestStand": "Patrizier",
+        "befugnis": "Verwaltet die Stadtkasse (Steuern folgen später)."
+      },
+      {
+        "name": "Stadthauptmann",
+        "stufe": 2,
+        "vorgesetzt": "Stadtrichter",
+        "einkommen": 300,
+        "mindestStand": "Bürger",
+        "befugnis": "Befehligt die Stadtwache (Patrouillen folgen später)."
+      },
+      {
+        "name": "Marktmeister",
+        "stufe": 2,
+        "vorgesetzt": "Kämmerer",
+        "einkommen": 300,
+        "mindestStand": "Bürger",
+        "befugnis": "Wacht über den Markt (Zölle folgen später)."
+      },
+      {
+        "name": "Gefängniswärter",
+        "stufe": 1,
+        "vorgesetzt": "Stadthauptmann",
+        "einkommen": 150,
+        "mindestStand": "Bürger",
+        "befugnis": "Verwahrt die Gefangenen."
+      },
+      {
+        "name": "Zöllner",
+        "stufe": 1,
+        "vorgesetzt": "Marktmeister",
+        "einkommen": 150,
+        "mindestStand": "Bürger",
+        "befugnis": "Erhebt den Zoll am Osttor."
+      }
+    ],
+    "ratsherren": [
+      {
+        "name": "Ulrich Wendelstein",
+        "volk": "Mensch",
+        "haltung": "FreieStadt",
+        "amt": "Bürgermeister"
+      },
+      {
+        "name": "Aelindra vom Silberhain",
+        "volk": "Elb",
+        "haltung": "FreieStadt",
+        "amt": "Stadtrichter"
+      },
+      {
+        "name": "Thorgrim Erzhammer",
+        "volk": "Zwerg",
+        "haltung": "Bestienfron",
+        "amt": "Kämmerer"
+      },
+      {
+        "name": "Konrad Eisenfaust",
+        "volk": "Mensch",
+        "haltung": "Bestienfron",
+        "amt": "Stadthauptmann"
+      },
+      {
+        "name": "Bertram Kesselflick",
+        "volk": "Halbling",
+        "haltung": "FreieStadt",
+        "amt": "Marktmeister"
+      },
+      {
+        "name": "Dorla Kupferbart",
+        "volk": "Zwerg",
+        "haltung": "Leibeigenschaft",
+        "amt": "Gefängniswärter"
+      },
+      {
+        "name": "Hinnerk Tannenkamp",
+        "volk": "Mensch",
+        "haltung": "Bestienfron",
+        "amt": "Zöllner"
+      },
+      {
+        "name": "Margarethe Lindwurm",
+        "volk": "Mensch",
+        "haltung": "FreieStadt",
+        "amt": null
+      },
+      {
+        "name": "Balin Steinbrecher",
+        "volk": "Zwerg",
+        "haltung": "Bestienfron",
+        "amt": null
+      },
+      {
+        "name": "Fenwick Distelbach",
+        "volk": "Halbling",
+        "haltung": "FreieStadt",
+        "amt": null
+      },
+      {
+        "name": "Ilvaris Mondtau",
+        "volk": "Elb",
+        "haltung": "FreieStadt",
+        "amt": null
+      },
+      {
+        "name": "Gerold Pfefferkorn",
+        "volk": "Mensch",
+        "haltung": "Leibeigenschaft",
+        "amt": null
+      },
+      {
+        "name": "Rosalind Apfelgrund",
+        "volk": "Halbling",
+        "haltung": "Bestienfron",
+        "amt": null
+      }
+    ],
+    "gunst": {
+      "jeGulden": 0.05,
+      "verfallJeJahr": 0.3,
+      "hoechstwert": 100,
+      "schwelleNachbarstatut": 25,
+      "ansehenJeStand": 8,
+      "ansehenJe1000Gulden": 0.4,
+      "ansehenHoechstwert": 40,
+      "amtsbonus": 5,
+      "ansehenRatsherr": 10,
+      "ansehenRatsherrJeStufe": 6
+    }
+  }
 }

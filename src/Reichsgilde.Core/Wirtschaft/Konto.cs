@@ -26,6 +26,12 @@ public sealed class Jahresbilanz
     /// <summary>Gebühren für den Aufstieg in einen höheren Stand. Zählen ebenfalls nicht als laufende Kosten.</summary>
     public double Standesgebuehren { get; internal set; }
 
+    /// <summary>Einkommen aus einem Amt im Stadtrat (nicht Teil des Betriebsgewinns).</summary>
+    public double Amtseinkommen { get; internal set; }
+
+    /// <summary>Geschenke an Ratsherren (nicht Teil des Betriebsgewinns).</summary>
+    public double Geschenke { get; internal set; }
+
     /// <summary>Hergestellte Stück je Ware.</summary>
     public Dictionary<string, int> Hergestellt { get; } = new();
 
@@ -75,6 +81,8 @@ public sealed class Konto
     internal void Transport(double betrag) { Vermoegen -= betrag; Laufend.Transport += betrag; }
     internal void Investition(double betrag) { Vermoegen -= betrag; Laufend.Investitionen += betrag; }
     internal void Standesgebuehr(double betrag) { Vermoegen -= betrag; Laufend.Standesgebuehren += betrag; }
+    internal void Amtseinkommen(double betrag) { Vermoegen += betrag; Laufend.Amtseinkommen += betrag; }
+    internal void Geschenk(double betrag) { Vermoegen -= betrag; Laufend.Geschenke += betrag; }
     internal void Raub(double warenwert) => Laufend.Raubwert += warenwert;
 
     internal void Hergestellt(string ware, int stueck = 1) =>
@@ -103,6 +111,7 @@ public sealed class Konto
         Jahr = b.Jahr, Umsatz = b.Umsatz, Zutaten = b.Zutaten, Personal = b.Personal, Fixkosten = b.Fixkosten,
         Steuer = b.Steuer, Schaden = b.Schaden, Transport = b.Transport, Raubwert = b.Raubwert,
         Investitionen = b.Investitionen, Standesgebuehren = b.Standesgebuehren, Hergestellt = new(b.Hergestellt),
+        Amtseinkommen = b.Amtseinkommen, Geschenke = b.Geschenke,
     };
 
     private static Jahresbilanz BilanzLaden(BilanzStand s)
@@ -112,6 +121,7 @@ public sealed class Konto
             Jahr = s.Jahr, Umsatz = s.Umsatz, Zutaten = s.Zutaten, Personal = s.Personal, Fixkosten = s.Fixkosten,
             Steuer = s.Steuer, Schaden = s.Schaden, Transport = s.Transport, Raubwert = s.Raubwert,
             Investitionen = s.Investitionen, Standesgebuehren = s.Standesgebuehren,
+            Amtseinkommen = s.Amtseinkommen, Geschenke = s.Geschenke,
         };
         foreach (var (ware, stueck) in s.Hergestellt) b.Hergestellt[ware] = stueck;
         return b;

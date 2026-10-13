@@ -122,7 +122,8 @@ public partial class KontorAnzeige : PanelContainer
             return;
 
         var waehrung = w.Daten.Allgemein.Waehrung;
-        _titel.Text = $"Kontor · {_spieler.Inhaber} · {w.StandVon(_spieler).Name}";
+        _titel.Text = $"Kontor · {_spieler.Inhaber} · {w.StandVon(_spieler).Name}"
+                      + (w.Rat.AmtVon(_spieler) is { } amt ? $" · {amt.Name}" : "");
         _vermoegen.Text = $"{Zahlenformat.Ganz(_spieler.Vermoegen)} {waehrung}";
         _vermoegen.AddThemeColorOverride("font_color", _spieler.Vermoegen < 0 ? new Color(0.95f, 0.45f, 0.4f) : new Color(1, 1, 1));
         _standZeile.Text = _spieler.IstBankrott ? "Bankrott"
