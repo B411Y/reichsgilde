@@ -42,6 +42,32 @@ public sealed class Stadtwirtschaft
     /// <summary>Meldungen für den Spieler (Ausbrüche, Entlassungen …).</summary>
     public event Action<string>? Meldung;
 
+    /// <summary>Ein Konto ist bankrott gegangen (nach der Jahresabrechnung).</summary>
+    public event Action<Konto>? Bankrott;
+
+    /// <summary>Ein Konto ist in einen höheren Stand aufgestiegen.</summary>
+    public event Action<Konto, StandDaten>? Aufgestiegen;
+
+    // ── Stände ──────────────────────────────────────────────────────────────
+
+    /// <summary>Der aktuelle Stand eines Kontos.</summary>
+    public StandDaten StandVon(Konto konto) => Daten.Staende[Math.Clamp(konto.Stand, 0, Daten.Staende.Count - 1)];
+
+    /// <summary>Der nächsthöhere Stand oder null, wenn das Konto ganz oben ist.</summary>
+    public StandDaten? NaechsterStand(Konto konto) =>
+        konto.Stand + 1 < Daten.Staende.Count ? Daten.Staende[konto.Stand + 1] : null;
+
+    /// <summary>
+    /// Rangliste: höherer Stand vor niedrigerem, innerhalb eines Standes nach Vermögen.
+    /// Bankrotte Konten stehen am Ende.
+    /// </summary>
+    public IReadOnlyList<Konto> Rangliste => _konten
+        .OrderBy(k => k.IstBankrott)
+        .ThenByDescending(k => k.Stand)
+        .ThenByDescending(k => k.Vermoegen)
+        .ThenBy(k => k.Inhaber, StringComparer.Ordinal)
+        .ToList();
+
     /// <summary>Arbeitsbeginn in Minuten nach Mitternacht (08:00).</summary>
     public const int Arbeitsbeginn = 8 * 60;
 
@@ -56,10 +82,10 @@ public sealed class Stadtwirtschaft
         _reihenfolge = new Random(unchecked(zufallsstartwert * 31 + 7));
     }
 
-    /// <summary>Legt ein Konto mit dem Startvermögen aus den Daten an.</summary>
-    public Konto KontoEroeffnen(string inhaber, int startjahr = Spielzeit.StartJahr)
+    /// <summary>Legt ein Konto an – mit dem Startvermögen aus den Daten oder einem eigenen (z. B. Schwierigkeitsgrad).</summary>
+    public Konto KontoEroeffnen(string inhaber, int startjahr = Spielzeit.StartJahr, double? startvermoegen = null)
     {
-        var konto = new Konto(inhaber, Daten.Allgemein.Startvermoegen, startjahr);
+        var konto = new Konto(inhaber, startvermoegen ?? Daten.Allgemein.Startvermoegen, startjahr);
         _konten.Add(konto);
         return konto;
     }
@@ -119,7 +145,7 @@ public sealed class Stadtwirtschaft
         // Die KI überlegt jede volle Stunde – mit den Marktpreisen dieser Stunde.
         if (zeit.MinuteImTag % 60 == 0 && zeit.VergangeneMinuten > 0)
             foreach (var rivale in _rivalen)
-                rivale.Stunde();
+                rivale.Stunde(); // bankrotte Rivalen tun nichts mehr
 
         if (IstArbeitszeit(zeit))
             foreach (var betrieb in _betriebe)
@@ -128,7 +154,7 @@ public sealed class Stadtwirtschaft
         // Fairness: Wer in derselben Minute am Markt ankommt, ist in zufälliger Reihenfolge dran.
         // Sonst hätte immer der zuerst eröffnete Betrieb den besseren Preis (im Multiplayer: wer zuerst beitritt).
         _alleKarren.Clear();
-        foreach (var betrieb in _betriebe)
+        foreach (var betrieb in _betriebe.Where(b => !b.Konto.IstBankrott)) // Bankrotte Häuser fahren nicht mehr
             _alleKarren.AddRange(betrieb.Karren);
         for (var i = _alleKarren.Count - 1; i > 0; i--)
         {
@@ -142,12 +168,41 @@ public sealed class Stadtwirtschaft
     /// <summary>Jahresende für alle Betriebe und Konten.</summary>
     internal void Jahresabrechnung(int neuesJahr)
     {
-        foreach (var betrieb in _betriebe)
+        foreach (var betrieb in _betriebe.Where(b => !b.Konto.IstBankrott))
             betrieb.Jahresabrechnung(_zufall, m => Meldung?.Invoke(m));
         foreach (var konto in _konten)
             konto.JahrAbschliessen(neuesJahr);
-        foreach (var rivale in _rivalen)
+        SchuldenPruefen();
+        foreach (var rivale in _rivalen.Where(r => !r.Konto.IstBankrott))
             rivale.Jahresende();
+    }
+
+    /// <summary>
+    /// Schulden haben Folgen: Beim ersten Jahresabschluss im Minus warnt der Kämmerer,
+    /// nach <see cref="SchuldenDaten.JahreBisBankrott"/> Jahren in Folge ist das Konto bankrott.
+    /// Ein bankrotter Betrieb entlässt alle Arbeitskräfte und nimmt keine Befehle mehr an.
+    /// </summary>
+    private void SchuldenPruefen()
+    {
+        var grenze = Daten.Schulden.JahreBisBankrott;
+        foreach (var konto in _konten.Where(k => !k.IstBankrott && k.Schuldenjahre > 0))
+        {
+            if (konto.Schuldenjahre >= grenze)
+            {
+                konto.IstBankrott = true;
+                foreach (var betrieb in _betriebe.Where(b => b.Konto == konto))
+                    foreach (var kraft in betrieb.Belegung.Keys.ToList())
+                        betrieb.Einstellen(kraft, 0, Statut);
+                Melden($"{konto.Inhaber} ist bankrott! Die Gläubiger lassen die Betriebe schließen.");
+                Bankrott?.Invoke(konto);
+            }
+            else
+            {
+                var rest = grenze - konto.Schuldenjahre;
+                Melden($"Der Kämmerer mahnt {konto.Inhaber}: {Zahlenformat.Ganz(-konto.Vermoegen)} {Daten.Allgemein.Waehrung} Schulden. " +
+                       $"Noch {rest} {(rest == 1 ? "Jahresabschluss" : "Jahresabschlüsse")} im Minus, dann droht der Bankrott.");
+            }
+        }
     }
 
     /// <summary>
@@ -179,9 +234,16 @@ public sealed class Stadtwirtschaft
     /// <param name="absender">Wessen Befehl ist es? Nur eigene Betriebe dürfen verändert werden.</param>
     public Befehlsergebnis Ausfuehren(Konto absender, Befehl befehl)
     {
-        var betrieb = _betriebe.FirstOrDefault(b => b.Name == befehl.Betrieb);
+        if (absender.IstBankrott)
+            return Befehlsergebnis.Abgelehnt($"{absender.Inhaber} ist bankrott und kann nichts mehr unternehmen.");
+        if (befehl is StandErwerben)
+            return StandErwerbenAusfuehren(absender);
+        if (befehl is not BetriebsBefehl betriebsBefehl)
+            return Befehlsergebnis.Abgelehnt($"Unbekannter Befehl: {befehl.GetType().Name}");
+
+        var betrieb = _betriebe.FirstOrDefault(b => b.Name == betriebsBefehl.Betrieb);
         if (betrieb is null)
-            return Befehlsergebnis.Abgelehnt($"Einen Betrieb „{befehl.Betrieb}“ gibt es nicht.");
+            return Befehlsergebnis.Abgelehnt($"Einen Betrieb „{betriebsBefehl.Betrieb}“ gibt es nicht.");
         if (betrieb.Konto != absender)
             return Befehlsergebnis.Abgelehnt($"{betrieb.Name} gehört nicht {absender.Inhaber}, sondern {betrieb.Konto.Inhaber}.");
 
@@ -203,6 +265,24 @@ public sealed class Stadtwirtschaft
             // Die Regeln selbst stehen in Betrieb (z. B. Statut und Arbeitsplätze) – hier wird nur übersetzt.
             return Befehlsergebnis.Abgelehnt(fehler.Message);
         }
+    }
+
+    private Befehlsergebnis StandErwerbenAusfuehren(Konto konto)
+    {
+        var neu = NaechsterStand(konto);
+        var waehrung = Daten.Allgemein.Waehrung;
+        if (neu is null)
+            return Befehlsergebnis.Abgelehnt($"{konto.Inhaber} steht bereits im höchsten Stand ({StandVon(konto).Name}).");
+        if (konto.Vermoegen < neu.Schwelle)
+            return Befehlsergebnis.Abgelehnt(
+                $"Für den Stand {neu.Name} braucht es {Zahlenformat.Ganz(neu.Schwelle)} {waehrung} Vermögen – " +
+                $"es fehlen noch {Zahlenformat.Ganz(neu.Schwelle - konto.Vermoegen)} {waehrung}.");
+
+        konto.Standesgebuehr(neu.Gebuehr);
+        konto.Stand++;
+        Melden($"{konto.Inhaber} ist nun {neu.Name}! (Gebühr {Zahlenformat.Ganz(neu.Gebuehr)} {waehrung})");
+        Aufgestiegen?.Invoke(konto, neu);
+        return Befehlsergebnis.Ok($"{konto.Inhaber} steigt in den Stand {neu.Name} auf.");
     }
 
     private Befehlsergebnis ProduktWaehlenAusfuehren(Betrieb betrieb, ProduktWaehlen befehl)

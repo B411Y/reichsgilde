@@ -68,6 +68,8 @@ public sealed class KiRivale
     /// <summary>Stündliche Überlegungen.</summary>
     internal void Stunde()
     {
+        if (Konto.IstBankrott) return;
+        StandPruefen();
         foreach (var betrieb in Betriebe.ToList())
         {
             _stundenSeitWechsel[betrieb] = _stundenSeitWechsel.GetValueOrDefault(betrieb, int.MaxValue / 2) + 1;
@@ -214,6 +216,15 @@ public sealed class KiRivale
             Befehlen(new EskorteWaehlen(betrieb.Name, nummer, beste),
                 $"{karren.Name} von {betrieb.Name} fährt nun mit Eskorte „{beste}“ statt „{karren.Eskorte}“.");
         }
+    }
+
+    /// <summary>Aufsteigen, sobald Schwelle erreicht ist und nach der Gebühr die Reserve bleibt.</summary>
+    private void StandPruefen()
+    {
+        if (_w.NaechsterStand(Konto) is not { } neu) return;
+        if (Konto.Vermoegen < neu.Schwelle || Konto.Vermoegen - neu.Gebuehr < Profil.Reserve) return;
+        Befehlen(new StandErwerben(),
+            $"steigt in den Stand {neu.Name} auf ({Zahlenformat.Ganz(neu.Gebuehr)} {_w.Daten.Allgemein.Waehrung} Gebühr).");
     }
 
     private void KarrenNachkaufen(Betrieb betrieb)
