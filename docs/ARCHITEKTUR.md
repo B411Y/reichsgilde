@@ -129,3 +129,16 @@ Oberfläche / KI ──Befehl──▶ Ausfuehren ──prüft──▶ Betrieb 
 - Ein neuer Bauplatz braucht also zwei Einträge: einen in `wirtschaft.json` und einen im `Stadtplan`.
 
 **Lehrstück aus diesem Schritt (Godot):** Ein Knopf darf nicht in jedem Bild kurz unsichtbar und wieder sichtbar geschaltet werden. Godot bricht beim Ausblenden einen laufenden Klick ab, und ein Klick, dessen Drücken und Loslassen in verschiedene Bilder fallen, geht verloren. Deshalb erst alles ausrechnen und dann jede Eigenschaft einmal setzen.
+
+## Speichern und Laden
+
+Ein Spielstand ist eine lesbare JSON-Datei (`src/Reichsgilde.Core/Speichern/`).
+
+- **Datenpakete:** Jede Klasse liefert ihren Zustand mit `Sichern()` als reines Datenpaket und kann ihn mit `Wiederherstellen()` übernehmen. Private Felder bleiben privat, und das Dateiformat hängt nicht an den Klassen.
+- **Verweise:** Statt Objektverweisen stehen Nummern oder Namen in der Datei, zum Beispiel „Betrieb gehört Konto Nr. 0“.
+- **Wirtschaftsdaten:** Sie werden mitgespeichert. Eine alte Partie läuft also mit ihren Zahlen weiter, auch wenn `wirtschaft.json` inzwischen geändert wurde.
+- **Zufall:** Der .NET-Zufallsgenerator lässt sich nicht speichern. `Zufallsquelle` zählt deshalb nur die Würfe. Beim Laden würfelt ein frischer Generator mit gleichem Startwert genauso oft „leer“ und ist danach im selben Zustand.
+- **Prüfung:** Der Gleichlauf-Test speichert eine Partie nach 3½ Jahren, lädt sie und lässt Original und Kopie 5 Jahre weiterlaufen. Beide müssen danach Zeichen für Zeichen denselben Spielstand ergeben. Vergisst das Speichern ein Feld, schlägt der Test fehl (gegengeprüft).
+- **Formatversion:** Die Datei trägt ein Format. Eine neuere Datei lehnt eine ältere Programmversion mit verständlicher Meldung ab.
+
+Die Startaufstellung einer neuen Partie steht in `Partie/Partieaufbau.cs`. Hauptmenü, Tests und Startoptionen benutzen dieselbe Aufstellung.

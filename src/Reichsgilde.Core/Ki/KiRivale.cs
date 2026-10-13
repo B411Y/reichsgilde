@@ -1,3 +1,4 @@
+using Reichsgilde.Core.Speichern;
 using Reichsgilde.Core.Wirtschaft;
 
 namespace Reichsgilde.Core.Ki;
@@ -63,6 +64,22 @@ public sealed class KiRivale
         Konto = konto;
         Profil = profil;
         _w = w;
+    }
+
+    internal RivaleStand Sichern(int kontoNummer) => new()
+    {
+        Konto = kontoNummer,
+        Profil = Profil,
+        StundenSeitWechsel = _stundenSeitWechsel.ToDictionary(x => x.Key.Name, x => x.Value),
+        Entscheidungen = new(_entscheidungen),
+    };
+
+    internal void Wiederherstellen(RivaleStand s)
+    {
+        foreach (var (name, stunden) in s.StundenSeitWechsel)
+            if (_w.Betriebe.FirstOrDefault(b => b.Name == name) is { } betrieb)
+                _stundenSeitWechsel[betrieb] = stunden;
+        _entscheidungen.AddRange(s.Entscheidungen);
     }
 
     // ═════════════════════════════════════════════════════════════════════════

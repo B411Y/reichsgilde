@@ -1,3 +1,4 @@
+using Reichsgilde.Core.Speichern;
 namespace Reichsgilde.Core.Wirtschaft;
 
 public enum Betriebsart
@@ -255,10 +256,45 @@ public sealed class Betrieb
         Konto.Steuer(erloes * _daten.Allgemein.Umsatzsteuer);
     }
 
+    // ── Speichern ───────────────────────────────────────────────────────────
+
+    internal BetriebStand Sichern(int kontoNummer) => new()
+    {
+        Name = Name, Art = Art, Konto = kontoNummer,
+        Belegung = new(_belegung), Lager = new(_lager), Produkt = _produkt, Silberanteil = _silberanteil,
+        Fortschritt = _fortschritt, FortschrittEisen = _fortschrittEisen, FortschrittSilber = _fortschrittSilber,
+        Stillstand = Stillstand, LetzterStillstand = _letzterStillstand,
+        StillstandMinuten = StillstandMinuten, StillstandMinutenVorjahr = StillstandMinutenVorjahr,
+        Karren = _karren.Select(k => k.Sichern()).ToList(),
+    };
+
+    internal void Wiederherstellen(BetriebStand s)
+    {
+        foreach (var (kraft, anzahl) in s.Belegung) _belegung[kraft] = anzahl;
+        foreach (var (ware, stueck) in s.Lager) _lager[ware] = stueck;
+        _produkt = s.Produkt;
+        _silberanteil = s.Silberanteil;
+        _fortschritt = s.Fortschritt;
+        _fortschrittEisen = s.FortschrittEisen;
+        _fortschrittSilber = s.FortschrittSilber;
+        Stillstand = s.Stillstand;
+        _letzterStillstand = s.LetzterStillstand;
+        StillstandMinuten = s.StillstandMinuten;
+        StillstandMinutenVorjahr = s.StillstandMinutenVorjahr;
+        foreach (var karrenStand in s.Karren)
+        {
+            if (!_daten.Logistik.Karren.TryGetValue(karrenStand.Typ, out var daten))
+                throw new InvalidDataException($"Den Karrentyp „{karrenStand.Typ}“ gibt es in den Daten nicht.");
+            var karren = new Karren(karrenStand.Name, karrenStand.Typ, daten, this);
+            karren.Wiederherstellen(karrenStand);
+            _karren.Add(karren);
+        }
+    }
+
     // ── Jahresende ──────────────────────────────────────────────────────────
 
     /// <summary>Löhne, Unterhalt bzw. Pacht und zufällige Ausbrüche oder Aufstände.</summary>
-    internal void Jahresabrechnung(Random zufall, Action<string> melden)
+    internal void Jahresabrechnung(Zufallsquelle zufall, Action<string> melden)
     {
         foreach (var (name, anzahl) in _belegung)
         {

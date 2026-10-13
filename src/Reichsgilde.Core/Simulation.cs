@@ -119,6 +119,13 @@ public sealed class Simulation
         ? w.Konten.Count(k => !k.IstBankrott)
         : PlatzhalterLebendeDynastien;
 
+    /// <summary>Für das Laden eines Spielstands: Ende der Partie übernehmen, ohne das Ereignis auszulösen.</summary>
+    internal void EndeWiederherstellen(bool istBeendet, string? endgrund)
+    {
+        IstBeendet = istBeendet;
+        Endgrund = endgrund;
+    }
+
     /// <summary>Beendet die Partie sofort, z. B. wenn der Spieler bankrott ist. Löst <see cref="PartieBeendet"/> einmal aus.</summary>
     public void Beenden(string grund)
     {

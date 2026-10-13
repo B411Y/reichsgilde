@@ -1,3 +1,4 @@
+using Reichsgilde.Core.Speichern;
 using Reichsgilde.Core.Zeit;
 
 namespace Reichsgilde.Core.Wirtschaft;
@@ -205,6 +206,25 @@ public sealed class Karren
             Heimat.Konto.Zutaten(w.Markt[knappste.Zutat].Kaufen(menge));
             _ladung[knappste.Zutat] = _ladung.GetValueOrDefault(knappste.Zutat) + menge;
         }
+    }
+
+    // ── Speichern ───────────────────────────────────────────────────────────
+
+    internal KarrenStand Sichern() => new()
+    {
+        Name = Name, Typ = Typ, Zustand = Zustand, Ankunft = Ankunft, Ladung = new(_ladung),
+        Eskorte = Eskorte, NachtsFahren = NachtsFahren, WareWartetSeit = _wareWartetSeit,
+    };
+
+    internal void Wiederherstellen(KarrenStand s)
+    {
+        Zustand = s.Zustand;
+        Ankunft = s.Ankunft;
+        _ladung.Clear();
+        foreach (var (ware, stueck) in s.Ladung) _ladung[ware] = stueck;
+        Eskorte = s.Eskorte;
+        NachtsFahren = s.NachtsFahren;
+        _wareWartetSeit = s.WareWartetSeit;
     }
 
     /// <summary>Die Ladung geht verloren (Überfall).</summary>
