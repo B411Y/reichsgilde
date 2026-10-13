@@ -91,7 +91,7 @@ public partial class Hauptszene : Node
         _simulation = SimulationAufbauen(optionen);
 
         _pauseKnopf.Pressed += PauseUmschalten;
-        foreach (var tempo in Taktgeber.Tempostufen)
+        foreach (var tempo in Taktgeber.AlleTempostufen /* TESTTEMPO */)
         {
             var knopf = new Button
             {
@@ -101,6 +101,11 @@ public partial class Hauptszene : Node
                 CustomMinimumSize = new Vector2(46, 0),
             };
             knopf.Pressed += () => TempoSetzen(tempo);
+            if (!Taktgeber.Tempostufen.Contains(tempo)) // TESTTEMPO: Teststufen orange und mit Hinweis
+            {
+                knopf.AddThemeColorOverride("font_color", new Color(1f, 0.6f, 0.25f));
+                knopf.TooltipText = "Nur zum Testen – wird vor der Veröffentlichung entfernt";
+            }
             _tempoleiste.AddChild(knopf);
             _tempoKnoepfe.Add(knopf);
         }
@@ -131,7 +136,7 @@ public partial class Hauptszene : Node
 
         var minuten = _simulation.Takt.RundenDauerSekunden / 60;
         _hinweis.Text = $"1 Spieljahr = {minuten:0} Min. · {_simulation.Einstellungen.SiegbedingungText}\n"
-                      + "Leertaste Pause · 1–4 Tempo · Mausrad Zoom\nRechte Maustaste/WASD verschieben · Q/E drehen\n"
+                      + "Leertaste Pause · 1–4 Tempo (5–6 Test) · Mausrad Zoom\nRechte Maustaste/WASD verschieben · Q/E drehen\n"
                       + "Doppelklick auf eine Gießerei = Innenansicht · Esc zurück";
 
         _stadt.GebaeudeAngeklickt += kennung => { _auswahlKennung = kennung; AuswahlAnzeigen(); };
@@ -248,7 +253,7 @@ public partial class Hauptszene : Node
         if (_auswahlKennung is not null) AuswahlAnzeigen();
     }
 
-    /// <summary>Tastatur: Leertaste = Pause, 1–4 = Tempostufen. (Kamera: siehe Stadtansicht)</summary>
+    /// <summary>Tastatur: Leertaste = Pause, 1–4 = Tempostufen, 5–6 = Testtempo 16×/32×. (Kamera: siehe Stadtansicht)</summary>
     public override void _UnhandledInput(InputEvent eingabe)
     {
         if (eingabe is InputEventKey { Pressed: true, Echo: false, Keycode: Key.Escape })
@@ -275,8 +280,8 @@ public partial class Hauptszene : Node
                 break;
             case >= Key.Key1 and <= Key.Key9:
                 var stufe = (int)(taste.Keycode - Key.Key1);
-                if (stufe < Taktgeber.Tempostufen.Count)
-                    TempoSetzen(Taktgeber.Tempostufen[stufe]);
+                if (stufe < Taktgeber.AlleTempostufen /* TESTTEMPO */.Count)
+                    TempoSetzen(Taktgeber.AlleTempostufen /* TESTTEMPO */[stufe]);
                 break;
             default:
                 return;
@@ -311,7 +316,7 @@ public partial class Hauptszene : Node
         _pauseKnopf.Disabled = _simulation.IstBeendet;
 
         for (var i = 0; i < _tempoKnoepfe.Count; i++)
-            _tempoKnoepfe[i].SetPressedNoSignal(!takt.IstPausiert && Taktgeber.Tempostufen[i] == takt.Tempo);
+            _tempoKnoepfe[i].SetPressedNoSignal(!takt.IstPausiert && Taktgeber.AlleTempostufen /* TESTTEMPO */[i] == takt.Tempo);
 
         _kontor.Aktualisieren();
         _verwaltung.Aktualisieren();

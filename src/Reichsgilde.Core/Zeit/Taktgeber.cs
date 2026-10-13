@@ -22,6 +22,14 @@ public sealed class Taktgeber
     /// <summary>Erlaubte Tempostufen (Faktor auf die normale Geschwindigkeit).</summary>
     public static readonly IReadOnlyList<double> Tempostufen = new[] { 1.0, 2.0, 4.0, 8.0 };
 
+    // TESTTEMPO – nur für die Entwicklung, damit man schneller testen kann.
+    // Vor der Veröffentlichung entfernen: diese Zeile löschen und in der Hauptszene
+    // „AlleTempostufen" wieder durch „Tempostufen" ersetzen (Suche nach TESTTEMPO).
+    public static readonly IReadOnlyList<double> TestTempostufen = new[] { 16.0, 32.0 };
+
+    /// <summary>Normale Stufen und – während der Entwicklung – die Teststufen.</summary>
+    public static IReadOnlyList<double> AlleTempostufen => Tempostufen.Concat(TestTempostufen).ToList(); // TESTTEMPO
+
     /// <summary>
     /// Schutz gegen Ruckler: Pro Aufruf werden höchstens so viele Ticks ausgegeben.
     /// (Hängt das Spiel kurz, holt die Simulation nicht schlagartig eine ganze Stunde nach.)
