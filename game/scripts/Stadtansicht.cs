@@ -840,30 +840,47 @@ public partial class Stadtansicht : Node3D
 
     // ── Tag und Nacht ───────────────────────────────────────────────────────
 
+    /// <summary>
+    /// Sonne bei Tag, Mond bei Nacht – beide werfen Schatten.
+    ///
+    /// Wann ist ein Schatten sichtbar? Ein Schatten ist die Stelle, an der nur noch das
+    /// Umgebungslicht ankommt. Sichtbar wird er erst, wenn das gerichtete Licht (Sonne oder Mond)
+    /// deutlich heller ist als das Umgebungslicht. Deshalb ist die Nacht hier nicht einfach „alles
+    /// dunkler", sondern: wenig blaues Umgebungslicht + ein klarer, kühler Mond.
+    ///
+    /// Beide Gestirne wandern in einem Bogen von Osten (+X) über Süden nach Westen. Ihre Stärke
+    /// hängt an der Höhe über dem Horizont – so blenden sie in der Dämmerung weich über.
+    /// </summary>
     private void LichtNachUhrzeit(int uhrzeitInMinuten)
     {
         var stunde = uhrzeitInMinuten / 60f;
-        var tag = Mathf.Clamp(Mathf.Sin((stunde - 6f) / 12f * Mathf.Pi), 0f, 1f); // 0 nachts, 1 mittags
+        var sonnenhoehe = Mathf.Sin((stunde - 6f) / 12f * Mathf.Pi);          // > 0 zwischen 06 und 18 Uhr
+        var mondhoehe = Mathf.Sin(((stunde + 6f) % 24f) / 12f * Mathf.Pi);      // > 0 zwischen 18 und 06 Uhr
+        var tag = Mathf.Clamp(sonnenhoehe, 0f, 1f);
 
-        if (stunde is >= 6 and <= 18)
+        if (sonnenhoehe >= mondhoehe)
         {
-            // Sonne wandert von Osten (+X) über Süden nach Westen.
-            _sonne.RotationDegrees = new Vector3(-(8 + 52 * tag), 90 - (stunde - 6) / 12f * 180, 0);
-            _sonne.LightColor = new Color(1f, 0.82f, 0.62f).Lerp(new Color(1f, 0.97f, 0.9f), tag);
-            _sonne.LightEnergy = 0.35f + 0.85f * tag;
+            var fortschritt = (stunde - 6f) / 12f; // 0 = Aufgang im Osten, 1 = Untergang im Westen
+            _sonne.RotationDegrees = new Vector3(-(8 + 52 * tag), 90 - fortschritt * 180, 0);
+            _sonne.LightColor = new Color(1f, 0.78f, 0.55f).Lerp(new Color(1f, 0.97f, 0.9f), tag);
+            _sonne.LightEnergy = 1.2f * Mathf.Sqrt(tag);
+            _sonne.ShadowOpacity = 1f;
         }
         else
         {
-            // Mondlicht
-            _sonne.RotationDegrees = new Vector3(-45, 20, 0);
-            _sonne.LightColor = new Color(0.55f, 0.62f, 0.85f);
-            _sonne.LightEnergy = 0.18f;
+            var nacht = Mathf.Clamp(mondhoehe, 0f, 1f);
+            var fortschritt = ((stunde + 6f) % 24f) / 12f; // 0 = Aufgang (18 Uhr), 1 = Untergang (06 Uhr)
+            _sonne.RotationDegrees = new Vector3(-(10 + 45 * nacht), 90 - fortschritt * 180, 0);
+            _sonne.LightColor = new Color(0.62f, 0.72f, 1f);
+            _sonne.LightEnergy = 0.55f * Mathf.Sqrt(nacht);
+            _sonne.ShadowOpacity = 0.85f; // Mondschatten sind etwas weicher und weniger tief
         }
 
         var umgebung = _umgebung.Environment;
         umgebung.BackgroundColor = Himmelsfarbe(uhrzeitInMinuten);
-        umgebung.AmbientLightColor = new Color(0.35f, 0.38f, 0.55f).Lerp(new Color(0.85f, 0.83f, 0.78f), tag);
-        umgebung.AmbientLightEnergy = 0.35f + 0.35f * tag;
+        // Nachts wenig, dafür bläuliches Umgebungslicht – so heben sich Mondschatten und die warme Glut der Essen ab.
+        umgebung.AmbientLightColor = new Color(0.30f, 0.36f, 0.58f).Lerp(new Color(0.85f, 0.83f, 0.78f), tag);
+        umgebung.AmbientLightEnergy = 0.18f + 0.52f * tag;
     }
 
     // Stützpunkte für den Himmel: (Uhrzeit in Minuten, Farbe).

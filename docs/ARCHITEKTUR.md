@@ -101,3 +101,17 @@ Ein KI-Rivale (`src/Reichsgilde.Core/Ki/KiRivale.cs`) führt ein Konto und alle 
 | Jahresende | Karren kaufen | Wenn der Betrieb im Vorjahr mehr als 20 % der Arbeitszeit stillstand und die Reserve es erlaubt |
 
 Das **Profil** (`KiProfil`) gibt jedem Rivalen einen Charakter: Geldreserve, Wechselschwelle, Vorsicht (wie stark er Raub fürchtet) und Höchstzahl an Karren. Über 20 Jahre verdient der Rivale mit KI rund 9 % mehr als ohne. Für den Spieler wird es entsprechend enger, weil die KI in seine Märkte drängt.
+
+## Befehle: der einzige Weg, etwas zu ändern
+
+Spieler und KI ändern ihre Betriebe nicht direkt, sondern schicken **Befehle** (`src/Reichsgilde.Core/Wirtschaft/Befehle.cs`) an `Stadtwirtschaft.Ausfuehren(absender, befehl)`:
+
+```
+Oberfläche / KI ──Befehl──▶ Ausfuehren ──prüft──▶ Betrieb ändert sich
+                ◀──Befehlsergebnis (Erfolg + Satz für den Spieler)──
+```
+
+- **Eine Stelle prüft alles:** Gehört der Betrieb dem Absender? Reicht das Geld? Erlaubt das Statut die Arbeitskraft? Ist ein Platz frei?
+- **Befehle tragen nur Namen und Zahlen** (z. B. `PersonalSetzen("Gießerei am Weinmarkt", "Geselle", 2)`), keine Objekte. Im Multiplayer schickt der Client genau diese Datensätze an den Server.
+- **Die KI benutzt denselben Weg.** Damit ist „die KI schummelt nicht“ technisch gesichert.
+- **Gemeinsame Rechnungen:** `Kalkulation` liefert Gewinn je Arbeitsminute, Jahresertrag je Arbeitskraft und erwartete Fahrtkosten. Die KI entscheidet danach, und das Bedienfeld zeigt dieselben Zahlen an.

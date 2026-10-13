@@ -24,6 +24,9 @@ public partial class KontorAnzeige : PanelContainer
     private Label _lager = null!;
     private Label _karren = null!;
     private Label _rivaleZeile = null!;
+
+    /// <summary>Der Spieler möchte seinen Betrieb verwalten (Knopf im Kontor).</summary>
+    public event Action<Betrieb>? VerwaltenGewuenscht;
     private GridContainer _preise = null!;
     private readonly Dictionary<string, Label> _preisLabels = new();
 
@@ -41,6 +44,9 @@ public partial class KontorAnzeige : PanelContainer
         _titel = NeuesLabel(spalte, 22);
         _vermoegen = NeuesLabel(spalte, 26);
         _betriebZeile = NeuesLabel(spalte, 15);
+        var verwalten = new Button { Text = "⚒ Betrieb verwalten", FocusMode = FocusModeEnum.None, SizeFlagsHorizontal = SizeFlags.ShrinkBegin };
+        verwalten.Pressed += () => { if (_betrieb is not null) VerwaltenGewuenscht?.Invoke(_betrieb); };
+        spalte.AddChild(verwalten);
         _lager = NeuesLabel(spalte, 14);
         _karren = NeuesLabel(spalte, 14);
         _diesesJahr = NeuesLabel(spalte, 15);
@@ -66,7 +72,6 @@ public partial class KontorAnzeige : PanelContainer
         return label;
     }
 
-    /// <summary>Verbindet die Anzeige mit der Simulation. Wird von der Hauptszene aufgerufen.</summary>
     /// <summary>Der letzte Zug der KI, ohne den Namen davor (der steht schon in der Zeile).</summary>
     private string RivalenZug(Konto rivale)
     {
@@ -75,6 +80,7 @@ public partial class KontorAnzeige : PanelContainer
         return "\nLetzter Zug: " + ki.Entscheidungen[0].Replace($"{rivale.Inhaber}: ", "");
     }
 
+    /// <summary>Verbindet die Anzeige mit der Simulation. Wird von der Hauptszene aufgerufen.</summary>
     public void Verbinden(Simulation simulation, Konto spieler, Betrieb betrieb, Konto? rivale)
     {
         _simulation = simulation;
