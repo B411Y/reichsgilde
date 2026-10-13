@@ -1,5 +1,5 @@
 {
-  "version": 1,
+  "version": 2,
   "allgemein": {
     "waehrung": "Gulden",
     "arbeitsminuten": 720,
@@ -151,5 +151,131 @@
         ]
       }
     }
+  },
+  "logistik": {
+    "fahrzeiten": {
+      "Werkstatt": 30,
+      "Umland": 120
+    },
+    "lagerJeWare": 40,
+    "abfahrtAbFuellgrad": 0.75,
+    "nachkaufUnterStueck": 5,
+    "maxWartezeitMinuten": 240,
+    "karren": {
+      "Handkarren": {
+        "sorten": 1,
+        "kapazitaetJeSorte": 15,
+        "preis": 150
+      },
+      "Ochsenkarren": {
+        "sorten": 2,
+        "kapazitaetJeSorte": 20,
+        "preis": 400
+      },
+      "Kriegskarren": {
+        "sorten": 3,
+        "kapazitaetJeSorte": 25,
+        "preis": 900
+      }
+    },
+    "eskorten": {
+      "Keine": {
+        "kostenJeFahrt": 0,
+        "schutz": 0
+      },
+      "Normal": {
+        "kostenJeFahrt": 10,
+        "schutz": 0.6
+      },
+      "Schwer": {
+        "kostenJeFahrt": 30,
+        "schutz": 0.85
+      }
+    },
+    "ueberfall": {
+      "chanceTag": 0.08,
+      "faktorNacht": 2
+    },
+    "banden": [
+      {
+        "name": "Wegelagerer",
+        "voelker": {
+          "Mensch": 4
+        },
+        "staerke": 0.8,
+        "gewicht": 3,
+        "wild": false
+      },
+      {
+        "name": "Gemischte Räuberbande",
+        "voelker": {
+          "Mensch": 2,
+          "Halbling": 1,
+          "Ork": 1
+        },
+        "staerke": 1.0,
+        "gewicht": 3,
+        "wild": false
+      },
+      {
+        "name": "Halblingsdiebe",
+        "voelker": {
+          "Halbling": 3
+        },
+        "staerke": 0.6,
+        "gewicht": 2,
+        "wild": false
+      },
+      {
+        "name": "Fahnenflüchtige Zwerge",
+        "voelker": {
+          "Zwerg": 3
+        },
+        "staerke": 1.1,
+        "gewicht": 1,
+        "wild": false
+      },
+      {
+        "name": "Elbische Schmuggler",
+        "voelker": {
+          "Elb": 2,
+          "Mensch": 1
+        },
+        "staerke": 0.9,
+        "gewicht": 1,
+        "wild": false
+      },
+      {
+        "name": "Raubritter-Haufen",
+        "voelker": {
+          "Mensch": 1,
+          "Zwerg": 1,
+          "Elb": 1,
+          "Ork": 2
+        },
+        "staerke": 1.2,
+        "gewicht": 1,
+        "wild": false
+      },
+      {
+        "name": "Ork-Rotte",
+        "voelker": {
+          "Ork": 5
+        },
+        "staerke": 1.2,
+        "gewicht": 2,
+        "wild": true
+      },
+      {
+        "name": "Ogerhorde",
+        "voelker": {
+          "Oger": 1,
+          "Ork": 2
+        },
+        "staerke": 1.4,
+        "gewicht": 1,
+        "wild": true
+      }
+    ]
   }
 }

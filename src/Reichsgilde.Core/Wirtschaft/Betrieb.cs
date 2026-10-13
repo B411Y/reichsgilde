@@ -10,21 +10,26 @@ public enum Betriebsart
 }
 
 /// <summary>
-/// Ein Betrieb mit Arbeitskräften, der während der Arbeitszeit produziert.
+/// Ein Betrieb mit Arbeitskräften, Lager und Karren.
 ///
-/// Vereinfachung für den Vertical Slice: Ein „Verwalter" kauft die Zutaten genau dann
-/// auf dem Markt, wenn ein Stück fertig wird, und verkauft das Stück sofort.
-/// Lager, Karren und Transportwege kommen in einem späteren Schritt.
+/// Ablauf:
+///   • Während der Arbeitszeit produzieren die Arbeitskräfte. Zutaten kommen aus dem Lager,
+///     fertige Waren gehen ins Lager.
+///   • Fehlen Zutaten oder ist das Lager voll, steht die Produktion still.
+///   • Die Karren bringen Waren zum Markt und Zutaten zurück (siehe <see cref="Karren"/>).
 /// </summary>
 public sealed class Betrieb
 {
     private readonly Wirtschaftsdaten _daten;
     private readonly Dictionary<string, int> _belegung = new();
+    private readonly Dictionary<string, int> _lager = new();
+    private readonly List<Karren> _karren = new();
     private double _fortschritt;        // Gießerei: Arbeitsminuten am aktuellen Stück
     private double _fortschrittEisen;   // Mine
     private double _fortschrittSilber;  // Mine
     private string _produkt = "Silberring";
     private double _silberanteil = 0.5;
+    private string? _letzterStillstand;
 
     public string Name { get; }
     public Betriebsart Art { get; }
@@ -35,8 +40,16 @@ public sealed class Betrieb
     public int Plaetze => Art == Betriebsart.Mine ? _daten.Allgemein.PlaetzeMine : _daten.Allgemein.PlaetzeGiesserei;
 
     public IReadOnlyDictionary<string, int> Belegung => _belegung;
-
     public int Belegt => _belegung.Values.Sum();
+
+    public IReadOnlyDictionary<string, int> Lager => _lager;
+    public int LagerKapazitaetJeWare => _daten.Logistik.LagerJeWare;
+    public int ImLager(string ware) => _lager.GetValueOrDefault(ware);
+
+    public IReadOnlyList<Karren> Karren => _karren;
+
+    /// <summary>Warum die Produktion gerade stillsteht (null = sie läuft).</summary>
+    public string? Stillstand { get; private set; }
 
     /// <summary>Was die Gießerei herstellt. Nur Waren mit Zutaten (Beschlag, Rapier, Silberring).</summary>
     public string Produkt
@@ -60,6 +73,14 @@ public sealed class Betrieb
         set => _silberanteil = Math.Clamp(value, 0, 1);
     }
 
+    /// <summary>Waren, die dieser Betrieb als Zutaten braucht (nur Gießerei).</summary>
+    public IReadOnlyDictionary<string, int> Zutaten =>
+        Art == Betriebsart.Giesserei ? _daten.Waren[_produkt].Zutaten : new Dictionary<string, int>();
+
+    /// <summary>Für wie viele Stück die Zutaten im Lager noch reichen (Mine: unendlich).</summary>
+    public int ZutatenReichweite =>
+        Zutaten.Count == 0 ? int.MaxValue : Zutaten.Min(z => ImLager(z.Key) / z.Value);
+
     internal Betrieb(string name, Betriebsart art, Konto konto, Wirtschaftsdaten daten)
     {
         Name = name;
@@ -67,6 +88,8 @@ public sealed class Betrieb
         Konto = konto;
         _daten = daten;
     }
+
+    // ── Personal ────────────────────────────────────────────────────────────
 
     /// <summary>
     /// Legt fest, wie viele Arbeitskräfte einer Art hier arbeiten.
@@ -92,7 +115,6 @@ public sealed class Betrieb
     }
 
     /// <summary>Entlässt alle Arbeitskräfte, die unter dem Statut nicht erlaubt sind.</summary>
-    /// <returns>Die Namen und Anzahlen der Entlassenen.</returns>
     internal List<(string Kraft, int Anzahl)> UnerlaubteEntlassen(Fronstatut statut)
     {
         var entlassen = _belegung
@@ -104,64 +126,131 @@ public sealed class Betrieb
         return entlassen;
     }
 
+    // ── Karren ──────────────────────────────────────────────────────────────
+
+    /// <summary>Stellt einen Karren in Dienst, ohne ihn zu bezahlen (Startausstattung).</summary>
+    internal Karren KarrenHinzufuegen(string typ)
+    {
+        if (!_daten.Logistik.Karren.TryGetValue(typ, out var daten))
+            throw new ArgumentException($"Den Karrentyp „{typ}“ gibt es nicht.");
+        var karren = new Karren($"{typ} {_karren.Count + 1}", typ, daten, this);
+        _karren.Add(karren);
+        return karren;
+    }
+
+    /// <summary>Kauft einen neuen Karren. Der Preis wird als Investition verbucht.</summary>
+    public Karren KarrenKaufen(string typ)
+    {
+        var karren = KarrenHinzufuegen(typ);
+        Konto.Investition(karren.Daten.Preis);
+        return karren;
+    }
+
+    // ── Lager ───────────────────────────────────────────────────────────────
+
+    internal void Einlagern(string ware, int stueck) => _lager[ware] = ImLager(ware) + stueck;
+
+    internal int Auslagern(string ware, int hoechstens)
+    {
+        var menge = Math.Min(hoechstens, ImLager(ware));
+        if (menge <= 0) return 0;
+        _lager[ware] = ImLager(ware) - menge;
+        if (_lager[ware] == 0) _lager.Remove(ware);
+        return menge;
+    }
+
+    /// <summary>Waren im Lager, die zum Verkauf bestimmt sind (alles außer den eigenen Zutaten).</summary>
+    internal IEnumerable<(string Ware, int Stueck)> Verkaufsware() =>
+        _lager.Where(l => !Zutaten.ContainsKey(l.Key) && l.Value > 0).Select(l => (l.Key, l.Value));
+
+    // ── Produktion ──────────────────────────────────────────────────────────
+
     /// <summary>Arbeitsminuten, die die Belegschaft in einer Spielminute schafft.</summary>
     public double LeistungProMinute =>
         _belegung.Sum(b => b.Value * _daten.Arbeitskraefte[b.Key].TempoAm(Ort));
 
     /// <summary>Eine Spielminute Arbeit. Wird nur während der Arbeitszeit aufgerufen.</summary>
-    internal void Arbeitsminute(Markt markt)
+    internal void Arbeitsminute(Action<string> melden)
     {
         var leistung = LeistungProMinute;
         if (leistung <= 0) return;
 
+        string? stillstand = null;
         if (Art == Betriebsart.Giesserei)
         {
-            _fortschritt += leistung;
             var zeit = _daten.Waren[_produkt].Zeit;
+            _fortschritt += leistung;
             while (_fortschritt >= zeit)
             {
+                stillstand = KannHerstellen(_produkt);
+                if (stillstand is not null)
+                {
+                    _fortschritt = zeit; // wartet, statt Arbeit „anzusparen"
+                    break;
+                }
+                foreach (var (zutat, menge) in Zutaten)
+                    Auslagern(zutat, menge);
+                Einlagern(_produkt, 1);
+                Konto.Hergestellt(_produkt);
                 _fortschritt -= zeit;
-                StueckFertig(_produkt, markt);
             }
         }
         else
         {
             _fortschrittEisen += leistung * (1 - _silberanteil);
             _fortschrittSilber += leistung * _silberanteil;
-            Foerdern("Eisen", ref _fortschrittEisen, markt);
-            Foerdern("Silber", ref _fortschrittSilber, markt);
+            // Beide Waren getrennt fördern: Ist das Eisenlager voll, geht die Silberförderung weiter.
+            var eisen = Foerdern("Eisen", ref _fortschrittEisen);
+            var silber = Foerdern("Silber", ref _fortschrittSilber);
+            stillstand = eisen ?? silber;
         }
+
+        // Stillstand nur einmal melden, nicht jede Minute.
+        if (stillstand is not null && stillstand != _letzterStillstand)
+            melden($"{Name}: {stillstand}");
+        _letzterStillstand = stillstand;
+        Stillstand = stillstand;
     }
 
-    private void StueckFertig(string ware, Markt markt)
+    private string? KannHerstellen(string ware)
     {
-        // Verwalter: Zutaten einkaufen ...
+        if (ImLager(ware) >= LagerKapazitaetJeWare)
+            return $"Das Lager für {ware} ist voll – die Arbeit ruht.";
         foreach (var (zutat, menge) in _daten.Waren[ware].Zutaten)
-            Konto.Zutaten(markt[zutat].Kaufen(menge));
-
-        // ... und das fertige Stück verkaufen.
-        Verkaufen(ware, markt);
+            if (ImLager(zutat) < menge)
+                return $"Es fehlt {zutat} – die Arbeit ruht.";
+        return null;
     }
 
-    private void Foerdern(string ware, ref double fortschritt, Markt markt)
+    private string? Foerdern(string ware, ref double fortschritt)
     {
         var zeit = _daten.Waren[ware].Zeit;
         while (fortschritt >= zeit)
         {
+            if (ImLager(ware) >= LagerKapazitaetJeWare)
+            {
+                fortschritt = zeit;
+                return $"Das Lager für {ware} ist voll – die Arbeit ruht.";
+            }
+            Einlagern(ware, 1);
+            Konto.Hergestellt(ware);
             fortschritt -= zeit;
-            Verkaufen(ware, markt);
         }
+        return null;
     }
 
-    private void Verkaufen(string ware, Markt markt)
+    /// <summary>Verkauft ein Stück auf dem Markt und verbucht Umsatz und Steuer.</summary>
+    internal void Verkaufen(string ware, int stueck, Markt markt)
     {
-        var erloes = markt[ware].Verkaufen(1);
+        if (stueck <= 0) return;
+        var erloes = markt[ware].Verkaufen(stueck);
         Konto.Umsatz(erloes);
         Konto.Steuer(erloes * _daten.Allgemein.Umsatzsteuer);
-        Konto.Hergestellt(ware);
     }
 
-    /// <summary>Jahresende: Löhne, Unterhalt bzw. Pacht und zufällige Ausbrüche oder Aufstände.</summary>
+    // ── Jahresende ──────────────────────────────────────────────────────────
+
+    /// <summary>Löhne, Unterhalt bzw. Pacht und zufällige Ausbrüche oder Aufstände.</summary>
     internal void Jahresabrechnung(Random zufall, Action<string> melden)
     {
         foreach (var (name, anzahl) in _belegung)

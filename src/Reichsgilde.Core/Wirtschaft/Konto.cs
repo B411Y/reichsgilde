@@ -13,10 +13,20 @@ public sealed class Jahresbilanz
     public double Steuer { get; internal set; }
     public double Schaden { get; internal set; }
 
+    /// <summary>Eskorten für beladene Fahrten.</summary>
+    public double Transport { get; internal set; }
+
+    /// <summary>Marktwert der Ware, die Banditen erbeutet haben (nur zur Information – das Geld floss nie).</summary>
+    public double Raubwert { get; internal set; }
+
+    /// <summary>Anschaffungen wie Karren. Mindern das Vermögen, zählen aber nicht als laufende Kosten.</summary>
+    public double Investitionen { get; internal set; }
+
     /// <summary>Hergestellte Stück je Ware.</summary>
     public Dictionary<string, int> Hergestellt { get; } = new();
 
-    public double Gewinn => Umsatz - Zutaten - Personal - Fixkosten - Steuer - Schaden;
+    /// <summary>Betriebsgewinn: Umsatz minus alle laufenden Kosten (ohne Investitionen).</summary>
+    public double Gewinn => Umsatz - Zutaten - Personal - Fixkosten - Steuer - Schaden - Transport;
 }
 
 /// <summary>
@@ -49,6 +59,9 @@ public sealed class Konto
     internal void Fixkosten(double betrag) { Vermoegen -= betrag; Laufend.Fixkosten += betrag; }
     internal void Steuer(double betrag) { Vermoegen -= betrag; Laufend.Steuer += betrag; }
     internal void Schaden(double betrag) { Vermoegen -= betrag; Laufend.Schaden += betrag; }
+    internal void Transport(double betrag) { Vermoegen -= betrag; Laufend.Transport += betrag; }
+    internal void Investition(double betrag) { Vermoegen -= betrag; Laufend.Investitionen += betrag; }
+    internal void Raub(double warenwert) => Laufend.Raubwert += warenwert;
 
     internal void Hergestellt(string ware, int stueck = 1) =>
         Laufend.Hergestellt[ware] = Laufend.Hergestellt.GetValueOrDefault(ware) + stueck;

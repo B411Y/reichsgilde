@@ -140,6 +140,9 @@ public sealed class Wirtschaftsdaten
     public Dictionary<string, WareDaten> Waren { get; init; } = new();
     public Dictionary<string, ArbeitskraftDaten> Arbeitskraefte { get; init; } = new();
 
+    /// <summary>Karren, Fahrzeiten, Eskorten und Banden (ab Datenversion 2).</summary>
+    public LogistikDaten Logistik { get; init; } = new();
+
     private static readonly JsonSerializerOptions Optionen = new()
     {
         PropertyNameCaseInsensitive = true,
@@ -215,6 +218,7 @@ public sealed class Wirtschaftsdaten
             }
         }
 
+        Logistik.Pruefen(f);
         return f;
     }
 

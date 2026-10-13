@@ -5,7 +5,7 @@ using Reichsgilde.Core.Wirtschaft;
 namespace Reichsgilde;
 
 /// <summary>
-/// Das Kontor: zeigt Vermögen, Betrieb, Jahresrechnung und Marktpreise an.
+/// Das Kontor: zeigt Vermögen, Betrieb, Lager, Karren, Jahresrechnung und Marktpreise an.
 /// Reine Anzeige – alle Zahlen kommen aus dem Simulationskern.
 /// Die Bedienelemente werden hier im Code erzeugt, damit die Szene übersichtlich bleibt.
 /// </summary>
@@ -21,6 +21,8 @@ public partial class KontorAnzeige : PanelContainer
     private Label _betriebZeile = null!;
     private Label _diesesJahr = null!;
     private Label _vorjahr = null!;
+    private Label _lager = null!;
+    private Label _karren = null!;
     private Label _rivaleZeile = null!;
     private GridContainer _preise = null!;
     private readonly Dictionary<string, Label> _preisLabels = new();
@@ -39,6 +41,8 @@ public partial class KontorAnzeige : PanelContainer
         _titel = NeuesLabel(spalte, 22);
         _vermoegen = NeuesLabel(spalte, 26);
         _betriebZeile = NeuesLabel(spalte, 15);
+        _lager = NeuesLabel(spalte, 14);
+        _karren = NeuesLabel(spalte, 14);
         _diesesJahr = NeuesLabel(spalte, 15);
         _vorjahr = NeuesLabel(spalte, 15);
         _rivaleZeile = NeuesLabel(spalte, 14, new Color(0.75f, 0.75f, 0.75f));
@@ -93,12 +97,22 @@ public partial class KontorAnzeige : PanelContainer
         _betriebZeile.Text = $"{_betrieb.Name}: {_betrieb.Produkt} · {belegung}\nStatut {w.Statut.Kuerzel()} – {w.Statut.Name()}"
                            + (w.IstArbeitszeit(_simulation.Zeit) ? " · es wird gearbeitet" : " · Feierabend");
 
+        var lager = string.Join(" · ", _betrieb.Lager.OrderBy(l => l.Key).Select(l => $"{l.Value} {l.Key}"));
+        _lager.Text = $"Lager: {(lager == "" ? "leer" : lager)}"
+                    + (_betrieb.Stillstand is { } still ? $"\n⚠ {still}" : "");
+        _karren.Text = string.Join("\n", _betrieb.Karren.Select(k =>
+        {
+            var ladung = string.Join(" + ", k.Ladung.Select(l => $"{l.Value} {l.Key}"));
+            return $"{k.Name}: {k.ZustandText(_simulation.Zeit)}{(ladung == "" ? "" : $" · Ladung {ladung}")}";
+        }));
+
         var laufend = _spieler.Laufend;
         var stueck = laufend.Hergestellt.GetValueOrDefault(_betrieb.Produkt);
         _diesesJahr.Text = $"Dieses Jahr: {stueck} {_betrieb.Produkt} · Umsatz {Zahlenformat.Ganz(laufend.Umsatz)}";
 
         _vorjahr.Text = _spieler.Vorjahr is { } v
             ? $"Jahresrechnung {v.Jahr}: Gewinn {Zahlenformat.MitVorzeichen(v.Gewinn)} {waehrung}"
+              + (v.Raubwert > 0 ? $" · geraubt: {Zahlenformat.Ganz(v.Raubwert)}" : "")
             : "Jahresrechnung: erst nach dem ersten Jahr";
 
         _rivaleZeile.Text = _rivale is null ? "" : $"Rivale {_rivale.Inhaber}: {Zahlenformat.Ganz(_rivale.Vermoegen)} {waehrung}";
