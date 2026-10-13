@@ -1,0 +1,11 @@
+[gd_scene format=3]
+
+[ext_resource type="Script" path="res://scripts/Hauptmenue.cs" id="1_menue"]
+[ext_resource type="Script" path="res://scripts/Stadtansicht.cs" id="2_stadt"]
+
+[node name="Hauptmenue" type="Node"]
+script = ExtResource("1_menue")
+
+[node name="Stadt" type="Node3D" parent="."]
+unique_name_in_owner = true
+script = ExtResource("2_stadt")

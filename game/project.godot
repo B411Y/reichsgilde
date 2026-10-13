@@ -12,7 +12,7 @@ config_version=5
 
 config/name="Reichsgilde"
 config/description="Wirtschaftssimulation im spätmittelalterlichen Heiligen Römischen Reich – im Stil von „Die Gilde“."
-run/main_scene="res://scenes/Hauptszene.tscn"
+run/main_scene="res://scenes/Hauptmenue.tscn"
 config/features=PackedStringArray("4.7", "C#", "Forward Plus")
 
 [display]

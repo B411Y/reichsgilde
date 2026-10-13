@@ -1,6 +1,7 @@
 using Godot;
 using Reichsgilde.Core;
 using Reichsgilde.Core.Partie;
+using Reichsgilde.Core.Speichern;
 using Reichsgilde.Core.Wirtschaft;
 using Reichsgilde.Core.Zeit;
 
@@ -63,6 +64,13 @@ public partial class Hauptszene : Node
     private Label _hinweis = null!;
     private Label _protokollLabel = null!;
 
+    // Spielmenü (Esc): Weiter, Speichern, Laden, Hauptmenü, Beenden
+    private PanelContainer _spielmenue = null!;
+    private VBoxContainer _menueKnoepfe = null!;
+    private SpielstandListe _menueListe = null!;
+    private Label _menueMeldung = null!;
+    private bool _warPausiertVorMenue;
+
     public override void _Ready()
     {
         _stadt = GetNode<Stadtansicht>("%Stadt");
@@ -99,6 +107,7 @@ public partial class Hauptszene : Node
 
         var optionen = Startoptionen();
         _simulation = SimulationAufbauen(optionen);
+        SpielmenueBauen();
 
         _pauseKnopf.Pressed += PauseUmschalten;
         foreach (var tempo in Taktgeber.AlleTempostufen /* TESTTEMPO */)
@@ -128,6 +137,9 @@ public partial class Hauptszene : Node
         {
             Protokollieren($"Jahresabrechnung {jahr} abgeschlossen. Es ist nun {_simulation.Zeit.DatumText}.");
             if (_spieler is null || _simulation.IstBeendet) return;
+            // Automatisch speichern – überschreibt jedes Jahr denselben Spielstand.
+            var (pfad, meldung) = Spielstaende.Speichern(_simulation, _spieler, Spielstaende.AutoDatei);
+            if (pfad is null) Protokollieren(meldung);
             _jahresbericht.Zeigen(_simulation, _spieler);
             if (BeiJahresberichtPausieren) _simulation.Takt.IstPausiert = true;
         };
@@ -136,7 +148,11 @@ public partial class Hauptszene : Node
             Protokollieren($"Die Partie ist zu Ende: {_simulation.Endgrund}");
             if (_spieler is not null) _jahresbericht.Zeigen(_simulation, _spieler, _simulation.Endgrund);
         };
-        _jahresbericht.Geschlossen += () => { if (!_simulation.IstBeendet) _simulation.Takt.IstPausiert = false; };
+        _jahresbericht.Geschlossen += () =>
+        {
+            if (_simulation.IstBeendet) SpielmenueOeffnen(); // Partie vorbei: Laden, Hauptmenü oder Beenden
+            else _simulation.Takt.IstPausiert = false;
+        };
         _aktionKnopf.Pressed += () =>
         {
             if (_simulation.Wirtschaft is not { } wirtschaft || _spieler is null || _aktion is null) return;
@@ -148,7 +164,7 @@ public partial class Hauptszene : Node
         var minuten = _simulation.Takt.RundenDauerSekunden / 60;
         _hinweis.Text = $"1 Spieljahr = {minuten:0} Min. · {_simulation.Einstellungen.SiegbedingungText}\n"
                       + "Leertaste Pause · 1–4 Tempo (5–6 Test) · Mausrad Zoom\nRechte Maustaste/WASD verschieben · Q/E drehen\n"
-                      + "Doppelklick auf eine Gießerei = Innenansicht · Esc zurück";
+                      + "Doppelklick auf eine Gießerei = Innenansicht · Esc zurück bzw. Spielmenü";
 
         _stadt.GebaeudeAngeklickt += kennung => { _auswahlKennung = kennung; AuswahlAnzeigen(); };
         _stadt.InnenansichtGewechselt += betrieb =>
@@ -170,7 +186,8 @@ public partial class Hauptszene : Node
         if (optionen.TryGetValue("innen", out var innen) && innen == "1" && _eigeneGiesserei is not null)
             _stadt.InnenansichtBetreten(_eigeneGiesserei);
 
-        Protokollieren($"Die Zunftglocke läutet. {_simulation.Zeit.DatumText} beginnt.");
+        if (_simulation.Zeit.VergangeneMinuten == 0) // nur bei einer neuen Partie, nicht nach dem Laden
+            Protokollieren($"Die Zunftglocke läutet. {_simulation.Zeit.DatumText} beginnt.");
         Anzeigen();
     }
 
@@ -192,6 +209,29 @@ public partial class Hauptszene : Node
     /// </summary>
     private Simulation SimulationAufbauen(Dictionary<string, string> optionen)
     {
+        // 1. Kommt die Szene aus dem Hauptmenü? Dann liegt dort ein Auftrag: laden oder neue Partie.
+        var (einstellungen, neu, ladePfad) = Partiewahl.Abholen();
+        if (ladePfad is not null)
+        {
+            try
+            {
+                var (geladen, spielerKonto) = Spielstaende.Laden(ladePfad);
+                if (spielerKonto is not null && geladen.Wirtschaft is not null)
+                {
+                    SimulationVerbinden(geladen, spielerKonto);
+                    Protokollieren($"Spielstand geladen: {geladen.Zeit.DatumText}, {geladen.Zeit.UhrzeitText}. Die Zeit steht – Leertaste zum Weiterspielen.");
+                    return geladen;
+                }
+                Protokollieren("Der Spielstand enthält keinen Spieler.");
+            }
+            catch (SpielstandFehler fehler)
+            {
+                Protokollieren(fehler.Message);
+                GD.PushError(fehler.Message);
+            }
+        }
+
+        // 2. Neue Partie – mit den Einstellungen aus dem Menü oder (Startoptionen/Test) den Standardwerten.
         var daten = WirtschaftsdatenLaden();
         if (daten is null)
         {
@@ -204,9 +244,74 @@ public partial class Hauptszene : Node
             start = new Spielzeit(((stunde - 6 + 24) % 24) * 60L);
         double? startvermoegen = optionen.TryGetValue("vermoegen", out var v) && double.TryParse(v, out var betrag) ? betrag : null;
 
-        var (simulation, spieler) = Partieaufbau.Erstellen(Partieeinstellungen.Standard, daten, new NeuePartie(Startvermoegen: startvermoegen), start);
+        var (simulation, spieler) = Partieaufbau.Erstellen(einstellungen ?? Partieeinstellungen.Standard, daten,
+            neu ?? new NeuePartie(Startvermoegen: startvermoegen), start);
         SimulationVerbinden(simulation, spieler);
         return simulation;
+    }
+
+    // ═════════════════════════════════════════════════════════════════════════
+    //  Spielmenü (Esc)
+    // ═════════════════════════════════════════════════════════════════════════
+
+    private void SpielmenueBauen()
+    {
+        var (tafel, spalte) = Hauptmenue.Tafel(420);
+        _spielmenue = tafel;
+        var mitte = Hauptmenue.Mitte();
+        GetNode<CanvasLayer>("Oberflaeche").AddChild(mitte);
+        mitte.AddChild(tafel);
+        Hauptmenue.Text(spalte, "Spielmenü", 26, new Color(0.95f, 0.82f, 0.45f), zentriert: true);
+
+        _menueKnoepfe = new VBoxContainer();
+        _menueKnoepfe.AddThemeConstantOverride("separation", 10);
+        spalte.AddChild(_menueKnoepfe);
+        Hauptmenue.Knopf(_menueKnoepfe, "Weiterspielen", SpielmenueSchliessen);
+        Hauptmenue.Knopf(_menueKnoepfe, "Speichern", () =>
+        {
+            var (_, meldung) = Spielstaende.Speichern(_simulation, _spieler);
+            _menueMeldung.Text = meldung;
+            Protokollieren(meldung);
+        });
+        Hauptmenue.Knopf(_menueKnoepfe, "Laden", () =>
+        {
+            _menueListe.Auffrischen();
+            _menueListe.Visible = !_menueListe.Visible;
+        });
+        Hauptmenue.Knopf(_menueKnoepfe, "Zum Hauptmenü", () => GetTree().ChangeSceneToFile("res://scenes/Hauptmenue.tscn"));
+        Hauptmenue.Knopf(_menueKnoepfe, "Spiel beenden", () => GetTree().Quit());
+
+        _menueListe = new SpielstandListe { Visible = false };
+        spalte.AddChild(_menueListe);
+        _menueListe.Gewaehlt += pfad =>
+        {
+            try
+            {
+                Spielstaende.Laden(pfad); // vorab prüfen
+                Partiewahl.LadenWaehlen(pfad);
+                GetTree().ChangeSceneToFile("res://scenes/Hauptszene.tscn"); // Szene neu aufbauen
+            }
+            catch (SpielstandFehler fehler)
+            {
+                _menueMeldung.Text = fehler.Message;
+            }
+        };
+        _menueMeldung = Hauptmenue.Text(spalte, "Ungespeicherter Fortschritt geht beim Laden oder im Hauptmenü verloren.", 12, new Color(0.7f, 0.7f, 0.7f), umbruchBreite: 360);
+        tafel.Hide();
+    }
+
+    private void SpielmenueOeffnen()
+    {
+        _warPausiertVorMenue = _simulation.Takt.IstPausiert;
+        _simulation.Takt.IstPausiert = true;
+        _menueListe.Visible = false;
+        _spielmenue.Show();
+    }
+
+    private void SpielmenueSchliessen()
+    {
+        _spielmenue.Hide();
+        if (!_simulation.IstBeendet) _simulation.Takt.IstPausiert = _warPausiertVorMenue;
     }
 
     /// <summary>Liest game/data/wirtschaft.json. Bei Fehlern: Meldung ins Protokoll und null.</summary>
@@ -277,15 +382,20 @@ public partial class Hauptszene : Node
     {
         if (eingabe is InputEventKey { Pressed: true, Echo: false, Keycode: Key.Escape })
         {
-            // Esc geht einen Schritt zurück: erst aus der Innenansicht, dann Auswahl schließen.
-            if (_stadt.InnenBetrieb is not null)
+            // Esc geht einen Schritt zurück: Innenansicht verlassen → Auswahl schließen → Spielmenü auf/zu.
+            if (_jahresbericht.Visible) { /* der Bericht wird mit „Weiter" geschlossen */ }
+            else if (_spielmenue.Visible)
+                SpielmenueSchliessen();
+            else if (_stadt.InnenBetrieb is not null)
                 _stadt.InnenansichtVerlassen();
-            else
+            else if (_auswahl.Visible)
             {
                 _auswahlKennung = null;
                 _auswahl.Hide();
                 _verwaltung.Zeigen(null);
             }
+            else
+                SpielmenueOeffnen();
             GetViewport().SetInputAsHandled();
             return;
         }
