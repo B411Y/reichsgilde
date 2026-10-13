@@ -74,3 +74,14 @@ Alle Zahlen stehen in **`game/data/wirtschaft.json`**, nicht im Code. So lässt 
 - Fachbegriffe im Code sind **deutsch** (`Spielzeit`, `Jahreszeit`, `Zunftglocke`), passend zum Setting.
 - Umlaute werden in Bezeichnern umschrieben (`Fruehling`), in Texten für Spieler bleiben sie erhalten.
 - Kommentare sind deutsch und erklären das **Warum**, nicht nur das Was.
+
+## Darstellung: 2,5D aus echten 3D-Modellen
+
+Die Welt besteht aus 3D-Objekten, wirkt aber wie ein gezeichnetes 2,5D-Spiel. Das leisten vier Regeln:
+
+1. **Orthografische Kamera** – keine Perspektive, keine Fluchtpunkte. Ein Haus ist vorne genauso groß wie hinten.
+2. **Feste Neigung** – die Kamera schaut immer 40° schräg von oben.
+3. **Feste Blickrichtungen** – diagonal zu den Himmelsrichtungen (Nordosten, Nordwesten, Südwesten, Südosten), gedreht wird nur in 90°-Schritten (Q/E). So sieht man an jedem Gebäude zwei Seiten und das Dach.
+4. **Gespielt wird auf einer Ebene** – Höhen sind nur Kulisse.
+
+**Diorama-Innenansicht:** Gebäude mit Innenraum (bisher die Gießerei) bestehen aus einzelnen Wänden, einem Dach und einem Knoten „Innen“ mit der Einrichtung. Beim Betreten wird das Dach ausgeblendet und jede Wand, deren Außenseite zur Kamera zeigt (Skalarprodukt > 0,5 – beim diagonalen Blick genau zwei). Dinge zwischen Kamera und Gebäude werden ebenfalls ausgeblendet. Was innen zu sehen ist (Kisten, Arbeiter, Glut), liest die Ansicht nur aus der Simulation – sie verändert nichts.

@@ -18,6 +18,8 @@ namespace Reichsgilde;
 ///   --startstunde=11   Partie beginnt um 11 Uhr statt um 06 Uhr
 ///   --tempo=8          Anfangstempo
 ///   --auswahl=Dom      Gebäude vorauswählen (Kennung wie beim Anklicken)
+///   --drehung=1        Kamera um 1–3 Vierteldrehungen gedreht starten (0 = Blick nach Nordosten)
+///   --innen=1          direkt in der Innenansicht der eigenen Gießerei starten
 /// </summary>
 public partial class Hauptszene : Node
 {
@@ -34,6 +36,9 @@ public partial class Hauptszene : Node
     private PanelContainer _tafel = null!;
     private PanelContainer _auswahl = null!;
     private Label _auswahlText = null!;
+    private Button _innenKnopf = null!;
+    private Label _blick = null!;
+    private Betrieb? _eigeneGiesserei;
     private Label _datum = null!;
     private Label _uhrzeit = null!;
     private ProgressBar _tagesfortschritt = null!;
@@ -49,6 +54,8 @@ public partial class Hauptszene : Node
         _tafel = GetNode<PanelContainer>("%Tafel");
         _auswahl = GetNode<PanelContainer>("%Auswahl");
         _auswahlText = GetNode<Label>("%AuswahlText");
+        _innenKnopf = GetNode<Button>("%InnenKnopf");
+        _blick = GetNode<Label>("%Blick");
         _datum = GetNode<Label>("%Datum");
         _uhrzeit = GetNode<Label>("%Uhrzeit");
         _tagesfortschritt = GetNode<ProgressBar>("%Tagesfortschritt");
@@ -93,11 +100,22 @@ public partial class Hauptszene : Node
 
         var minuten = _simulation.Takt.RundenDauerSekunden / 60;
         _hinweis.Text = $"1 Spieljahr = {minuten:0} Min. · {_simulation.Einstellungen.SiegbedingungText}\n"
-                      + "Leertaste Pause · 1–4 Tempo · Mausrad Zoom\nRechte Maustaste/WASD verschieben · Q/E drehen";
+                      + "Leertaste Pause · 1–4 Tempo · Mausrad Zoom\nRechte Maustaste/WASD verschieben · Q/E drehen\n"
+                      + "Doppelklick auf eine Gießerei = Innenansicht · Esc zurück";
 
         _stadt.GebaeudeAngeklickt += kennung => { _auswahlKennung = kennung; AuswahlAnzeigen(); };
+        _stadt.InnenansichtGewechselt += betrieb =>
+        {
+            if (betrieb is not null) _auswahlKennung = Stadtansicht.BetriebsKennung(betrieb);
+            Protokollieren(betrieb is null ? "Zurück in den Gassen der Stadt." : $"Ihr betretet die {betrieb.Name}.");
+        };
+        _innenKnopf.Pressed += InnenKnopfGedrueckt;
         if (optionen.TryGetValue("auswahl", out var vorauswahl))
             _auswahlKennung = vorauswahl;
+        if (optionen.TryGetValue("drehung", out var d) && int.TryParse(d, out var drehung))
+            _stadt.Drehen(drehung, sofort: true);
+        if (optionen.TryGetValue("innen", out var innen) && innen == "1" && _eigeneGiesserei is not null)
+            _stadt.InnenansichtBetreten(_eigeneGiesserei);
 
         Protokollieren($"Die Zunftglocke läutet. {_simulation.Zeit.DatumText} beginnt.");
         Anzeigen();
@@ -162,6 +180,7 @@ public partial class Hauptszene : Node
         grube.Karren[0].Eskorte = "Normal"; // Der Rivale lässt seine Erzfuhren begleiten.
 
         w.Meldung += Protokollieren;
+        _eigeneGiesserei = giesserei;
         _kontor.Verbinden(simulation, spieler, giesserei, rivale);
         _stadt.Verbinden(simulation, new[]
         {
@@ -185,8 +204,14 @@ public partial class Hauptszene : Node
     {
         if (eingabe is InputEventKey { Pressed: true, Echo: false, Keycode: Key.Escape })
         {
-            _auswahlKennung = null;
-            _auswahl.Hide();
+            // Esc geht einen Schritt zurück: erst aus der Innenansicht, dann Auswahl schließen.
+            if (_stadt.InnenBetrieb is not null)
+                _stadt.InnenansichtVerlassen();
+            else
+            {
+                _auswahlKennung = null;
+                _auswahl.Hide();
+            }
             GetViewport().SetInputAsHandled();
             return;
         }
@@ -239,7 +264,22 @@ public partial class Hauptszene : Node
             _tempoKnoepfe[i].SetPressedNoSignal(!takt.IstPausiert && Taktgeber.Tempostufen[i] == takt.Tempo);
 
         _kontor.Aktualisieren();
+        _blick.Text = _stadt.InnenBetrieb is { } innen
+            ? $"Blick nach {_stadt.Blickrichtung} · Innenansicht {innen.Name}"
+            : $"Blick nach {_stadt.Blickrichtung}";
     }
+
+    private void InnenKnopfGedrueckt()
+    {
+        if (_stadt.InnenBetrieb is not null)
+            _stadt.InnenansichtVerlassen();
+        else if (AusgewaehlterBetrieb() is { } betrieb)
+            _stadt.InnenansichtBetreten(betrieb);
+        AuswahlAnzeigen();
+    }
+
+    private Betrieb? AusgewaehlterBetrieb() =>
+        _simulation.Wirtschaft?.Betriebe.FirstOrDefault(b => Stadtansicht.BetriebsKennung(b) == _auswahlKennung);
 
     /// <summary>Zeigt Informationen zum angeklickten Gebäude.</summary>
     private void AuswahlAnzeigen()
@@ -247,7 +287,9 @@ public partial class Hauptszene : Node
         if (_auswahlKennung is null || _simulation.Wirtschaft is not { } w)
             return;
 
-        var betrieb = w.Betriebe.FirstOrDefault(b => Stadtansicht.BetriebsKennung(b) == _auswahlKennung);
+        var betrieb = AusgewaehlterBetrieb();
+        _innenKnopf.Visible = betrieb is not null && _stadt.HatInnenansicht(betrieb);
+        _innenKnopf.Text = _stadt.InnenBetrieb == betrieb && betrieb is not null ? "Zurück zur Stadt (Esc)" : "Innenansicht betreten";
         _auswahlText.Text = betrieb is not null ? BetriebsText(betrieb, w) : _auswahlKennung switch
         {
             "Marktplatz" => "Marktplatz\n\n" + string.Join("\n", w.Markt.Staende.Select(s =>

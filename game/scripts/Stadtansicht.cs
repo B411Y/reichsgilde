@@ -16,9 +16,15 @@ namespace Reichsgilde;
 ///   • Sonne, Himmel und Licht folgen der Spieluhr
 ///   • Die Esse einer Gießerei glüht, solange dort gearbeitet wird
 ///   • Gebäude lassen sich anklicken (Ereignis <see cref="GebaeudeAngeklickt"/>)
+///   • Gießereien lassen sich als „Diorama" betreten: Dach und Vorderwand werden ausgeblendet,
+///     innen sieht man Esse, Amboss, Werkbank, das Lager als Kistenstapel und die Arbeiter.
+///
+/// Blickrichtungen: Die Kamera schaut schräg von oben und diagonal zu den Himmelsrichtungen –
+/// nach Nordosten, Nordwesten, Südwesten oder Südosten (Entscheidung vom 13.10.2026).
+/// Norden ist −Z, Osten ist +X. Dadurch zeigen immer zwei Gebäudeseiten zur Kamera.
 ///
 /// Steuerung: Mausrad = Zoom, rechte Maustaste ziehen oder WASD/Pfeiltasten = verschieben,
-/// Q/E = um 90° drehen, Linksklick = Gebäude auswählen.
+/// Q/E = um 90° drehen, Linksklick = Gebäude auswählen, Doppelklick auf eine Gießerei = Innenansicht.
 /// </summary>
 public partial class Stadtansicht : Node3D
 {
@@ -40,14 +46,28 @@ public partial class Stadtansicht : Node3D
 
     private const float KameraMinZoom = 25f;
     private const float KameraMaxZoom = 140f;
+    private const float InnenZoom = 15f;
+    private const float InnenMinZoom = 10f;
+    private const float InnenMaxZoom = 40f;
+    private const int MaxKistenJeWare = 8;   // 8 Kisten × 5 Stück = Lager voll (40)
+    private const int StueckJeKiste = 5;
+    private const int MaxWarenplaetze = 6;
 
     private Simulation? _simulation;
     private Node3D _kameraDrehung = null!;
     private Camera3D _kamera = null!;
     private DirectionalLight3D _sonne = null!;
     private WorldEnvironment _umgebung = null!;
-    private float _zielDrehung = 45f;
+    private float _zielDrehung = -45f; // −45° = Blick nach Nordosten; jede Vierteldrehung ±90°
     private bool _ziehen;
+    private double _animationszeit;
+
+    // Innenansicht: welcher Betrieb gerade „aufgeschnitten" ist, und wohin die Kamera danach zurückkehrt.
+    private BetriebsAnsicht? _innen;
+    private Vector3 _vorherPosition;
+    private float _vorherZoom;
+    private Tween? _kamerafahrt;
+    private readonly List<Node3D> _kulisseAusgeblendet = new();
 
     private readonly Dictionary<Betrieb, BetriebsAnsicht> _betriebe = new();
     private readonly Dictionary<Karren, Node3D> _karren = new();
@@ -57,8 +77,68 @@ public partial class Stadtansicht : Node3D
     /// <summary>Wird ausgelöst, wenn ein Gebäude angeklickt wird. Übergeben wird seine Kennung.</summary>
     public event Action<string>? GebaeudeAngeklickt;
 
-    /// <summary>Darstellung eines Betriebs: Grundstück, Wegstrecke zum Markt und Esse.</summary>
-    private sealed record BetriebsAnsicht(Vector3 Hof, Vector3[] WegZumMarkt, OmniLight3D? Glut, StandardMaterial3D? Esse, bool Spieler);
+    /// <summary>Wird ausgelöst, wenn die Innenansicht betreten (Betrieb) oder verlassen (null) wird.</summary>
+    public event Action<Betrieb?>? InnenansichtGewechselt;
+
+    /// <summary>Der Betrieb, dessen Innenansicht gerade gezeigt wird, sonst null.</summary>
+    public Betrieb? InnenBetrieb => _innen?.Betrieb;
+
+    /// <summary>Ob dieser Betrieb eine Innenansicht hat (bisher nur Gießereien).</summary>
+    public bool HatInnenansicht(Betrieb betrieb) => _betriebe.TryGetValue(betrieb, out var a) && a.HatInnenraum;
+
+    /// <summary>In welche Himmelsrichtung die Kamera gerade blickt.</summary>
+    public string Blickrichtung
+    {
+        get
+        {
+            // Drehung −45° → Kamera steht im Südwesten und blickt nach Nordosten;
+            // jede +90° wandert die Kamera eine Ecke weiter (gegen den Uhrzeigersinn, von oben gesehen).
+            var schritt = ((int)Mathf.Round((_zielDrehung + 45f) / 90f) % 4 + 4) % 4;
+            return schritt switch { 0 => "Nordosten", 1 => "Nordwesten", 2 => "Südwesten", _ => "Südosten" };
+        }
+    }
+
+    /// <summary>Richtung von einem Gebäude zur Kamera (waagerecht), für das Ausblenden der Vorderwand.</summary>
+    private Vector3 RichtungZurKamera
+    {
+        get
+        {
+            var winkel = Mathf.DegToRad(_kameraDrehung.RotationDegrees.Y);
+            return new Vector3(Mathf.Sin(winkel), 0, Mathf.Cos(winkel));
+        }
+    }
+
+    /// <summary>
+    /// Darstellung eines Betriebs: Grundstück, Wegstrecke zum Markt und Esse.
+    /// Bei der Gießerei sind Wände, Dach und Einrichtung einzelne Teile – so lässt sich das
+    /// Gebäude wie ein Puppenhaus aufschneiden (Diorama-Innenansicht).
+    /// </summary>
+    private sealed class BetriebsAnsicht
+    {
+        public required Betrieb Betrieb { get; init; }
+        public required Vector3 Mitte { get; init; }
+        public required Vector3 Hof { get; init; }
+        public required Vector3[] WegZumMarkt { get; init; }
+        public bool Spieler { get; set; }
+        public OmniLight3D? Glut { get; init; }
+        public StandardMaterial3D? Esse { get; init; }
+        public Label3D? Schild { get; init; }
+
+        // ── nur bei Gebäuden mit Innenraum ──
+        /// <summary>Jede Wand mit ihrer Außenrichtung (zeigt vom Gebäude weg).</summary>
+        public List<(Node3D Wand, Vector3 Aussen)> Waende { get; } = new();
+        public Node3D? Dach { get; set; }
+        public Node3D? Innen { get; set; }
+        public OmniLight3D? InnenGlut { get; set; }
+        public StandardMaterial3D? InnenEsse { get; set; }
+        public Dictionary<string, (MeshInstance3D[] Kisten, Label3D Schild)> Kisten { get; } = new();
+        public List<Arbeiterfigur> Arbeiter { get; } = new();
+        public string Belegungsstand { get; set; } = "";
+        public bool HatInnenraum => Innen is not null;
+    }
+
+    /// <summary>Eine Arbeiterfigur: Körper und der Arm, der den Hammer schwingt.</summary>
+    private sealed record Arbeiterfigur(Node3D Koerper, Node3D Arm, float Takt);
 
     // Feste Punkte der Stadt (Meter). Der Marktplatz liegt im Ursprung.
     public static readonly Vector3 Marktplatz = Vector3.Zero;
@@ -109,10 +189,10 @@ public partial class Stadtansicht : Node3D
 
     private void KameraAufbauen()
     {
-        // Drehung (um die Hochachse) → Neigung (35° schräg von oben) → Kamera mit Abstand.
+        // Drehung (um die Hochachse) → Neigung (40° schräg von oben) → Kamera mit Abstand.
         _kameraDrehung = new Node3D { Name = "Kamerafuehrung", RotationDegrees = new Vector3(0, _zielDrehung, 0) };
         AddChild(_kameraDrehung);
-        var neigung = new Node3D { RotationDegrees = new Vector3(-35, 0, 0) };
+        var neigung = new Node3D { RotationDegrees = new Vector3(-40, 0, 0) };
         _kameraDrehung.AddChild(neigung);
         _kamera = new Camera3D
         {
@@ -239,33 +319,154 @@ public partial class Stadtansicht : Node3D
             var ansicht = betrieb.Art == Betriebsart.Mine
                 ? MineBauen(betrieb, platz, farbe)
                 : GiessereiBauen(betrieb, platz, farbe);
-            _betriebe[betrieb] = ansicht with { Spieler = spieler };
+            ansicht.Spieler = spieler;
+            _betriebe[betrieb] = ansicht;
         }
     }
 
     private BetriebsAnsicht GiessereiBauen(Betrieb betrieb, Vector3 p, Color besitzer)
     {
-        Haus(p, new Vector3(10, 6, 8), Fachwerk, Ziegel, quer: true);
-        // Wappenfahne in der Besitzerfarbe
-        Quader(p + new Vector3(-5.6f, 5, 0), new Vector3(0.2f, 3, 2), Material(besitzer));
-        // Esse mit Glut
+        // Maße: 10 m (West–Ost) × 8 m (Nord–Süd), Wände 6 m hoch und 0,4 m dick.
+        const float breite = 10, tiefe = 8, hoehe = 6, dicke = 0.4f;
+
+        // ── Außenhülle: vier einzelne Wände, damit jede für sich ausgeblendet werden kann ──
+        var wandFarbe = Material(Fachwerk);
+        var waende = new (string Name, Vector3 Mitte, Vector3 Groesse, Vector3 Aussen)[]
+        {
+            ("Nordwand", new(0, hoehe / 2, -tiefe / 2 + dicke / 2), new(breite, hoehe, dicke), Vector3.Forward),
+            ("Suedwand", new(0, hoehe / 2, tiefe / 2 - dicke / 2), new(breite, hoehe, dicke), Vector3.Back),
+            ("Westwand", new(-breite / 2 + dicke / 2, hoehe / 2, 0), new(dicke, hoehe, tiefe - 2 * dicke), Vector3.Left),
+            ("Ostwand", new(breite / 2 - dicke / 2, hoehe / 2, 0), new(dicke, hoehe, tiefe - 2 * dicke), Vector3.Right),
+        };
+        var gebaeude = new List<(Node3D, Vector3)>();
+        foreach (var (name, mitte, groesse, aussen) in waende)
+        {
+            var wand = Quader(p + mitte, groesse, wandFarbe);
+            wand.Name = name;
+            // Balken des Fachwerks: dunkle Leisten oben und unten auf der Außenseite
+            var leiste = Material(Holz);
+            var laenge = Mathf.Max(groesse.X, groesse.Z) + 0.1f;
+            var leistenGroesse = aussen.X != 0 ? new Vector3(0.12f, 0.3f, laenge) : new Vector3(laenge, 0.3f, 0.12f);
+            foreach (var y in new[] { -hoehe / 2 + 0.15f, 0.2f, hoehe / 2 - 0.15f })
+                Quader(aussen * (dicke / 2 + 0.06f) + new Vector3(0, y, 0), leistenGroesse, leiste, wand);
+            gebaeude.Add((wand, aussen));
+        }
+        var suedwand = gebaeude[1].Item1;
+        Quader(new Vector3(-2, -hoehe / 2 + 1.5f, dicke / 2 + 0.07f), new Vector3(1.8f, 3, 0.1f), Material(new Color(0.24f, 0.16f, 0.10f)), suedwand); // Tor
+        var westwand = gebaeude[2].Item1;
+        Quader(new Vector3(-0.35f, 2, 0), new Vector3(0.2f, 3, 2), Material(besitzer), westwand); // Wappenfahne in der Besitzerfarbe
+
+        // ── Dach mit Schornstein: eine Gruppe, die in der Innenansicht verschwindet ──
+        var dach = new Node3D { Name = "Dach" };
+        AddChild(dach);
+        Dach(p + new Vector3(0, hoehe, 0), new Vector3(breite + 0.6f, 4.8f, tiefe + 0.6f), Material(Ziegel), quer: true, eltern: dach);
         var esse = Material(new Color(0.3f, 0.28f, 0.27f));
         esse.EmissionEnabled = true;
         esse.Emission = new Color(1f, 0.45f, 0.1f);
         esse.EmissionEnergyMultiplier = 0;
-        Quader(p + new Vector3(3.5f, 6, 2.5f), new Vector3(1.6f, 12, 1.6f), Material(Mauerstein));
-        Quader(p + new Vector3(3.5f, 12.3f, 2.5f), new Vector3(1.8f, 0.6f, 1.8f), esse);
-        var glut = new OmniLight3D { LightColor = new Color(1f, 0.55f, 0.2f), OmniRange = 12, LightEnergy = 0, Position = p + new Vector3(3.5f, 13.5f, 2.5f) };
-        AddChild(glut);
+        Quader(p + new Vector3(3.6f, 10.5f, 0.2f), new Vector3(1.4f, 5, 1.4f), Material(Mauerstein), dach);
+        Quader(p + new Vector3(3.6f, 13.3f, 0.2f), new Vector3(1.6f, 0.6f, 1.6f), esse, dach);
+        var glut = new OmniLight3D { LightColor = new Color(1f, 0.55f, 0.2f), OmniRange = 12, LightEnergy = 0, Position = p + new Vector3(3.6f, 14.5f, 0.2f) };
+        dach.AddChild(glut);
 
-        Klickflaeche(BetriebsKennung(betrieb), p + new Vector3(0, 4, 0), new Vector3(10, 8, 8));
-        Beschriftung(betrieb.Name, p + new Vector3(0, 11, 0), 44);
+        Klickflaeche(BetriebsKennung(betrieb), p + new Vector3(0, 4, 0), new Vector3(breite, 8, tiefe));
+        var schild = Beschriftung(betrieb.Name, p + new Vector3(0, 13, 0), 44);
 
         // Weg zur nächsten Gasse und dann zum Markt
+        var hof = p + new Vector3(0, 0, 5.5f);
         var gasse = new Vector3(p.X * 0.45f, 0, p.Z * 0.45f);
         WegZiehen(p, gasse, 3.5f);
         WegZiehen(gasse, Marktplatz, 3.5f);
-        return new BetriebsAnsicht(p + new Vector3(0, 0, 5.5f), new[] { p + new Vector3(0, 0, 5.5f), gasse, Marktplatz }, glut, esse, false);
+
+        var ansicht = new BetriebsAnsicht
+        {
+            Betrieb = betrieb,
+            Mitte = p,
+            Hof = hof,
+            WegZumMarkt = new[] { hof, gasse, Marktplatz },
+            Glut = glut,
+            Esse = esse,
+            Schild = schild,
+            Dach = dach,
+        };
+        ansicht.Waende.AddRange(gebaeude);
+        Innenraum(ansicht, breite, tiefe, dicke);
+        return ansicht;
+    }
+
+    /// <summary>
+    /// Die Einrichtung der Gießerei. Alles hängt an einem eigenen Knoten „Innen", der nur in der
+    /// Innenansicht sichtbar ist. Grundriss (Blick nach Norden):
+    ///   hinten (Nordwand): Kistenstapel – das Lager, je Ware eine Spalte
+    ///   rechts (Ostwand):  Esse mit Rauchfang und Blasebalg
+    ///   Mitte:             Amboss
+    ///   links (Westwand):  Werkbank
+    /// </summary>
+    private void Innenraum(BetriebsAnsicht ansicht, float breite, float tiefe, float dicke)
+    {
+        var p = ansicht.Mitte;
+        var innen = new Node3D { Name = "Innen", Visible = false };
+        AddChild(innen);
+        ansicht.Innen = innen;
+
+        var stein = Material(Mauerstein);
+        var holz = Material(Holz);
+        var eisen = Material(new Color(0.22f, 0.22f, 0.24f));
+        eisen.Metallic = 0.6f;
+        eisen.Roughness = 0.45f;
+
+        // Boden aus gestampftem Lehm
+        Quader(p + new Vector3(0, 0.05f, 0), new Vector3(breite - 2 * dicke, 0.1f, tiefe - 2 * dicke), Material(new Color(0.34f, 0.29f, 0.24f)), innen);
+
+        // Esse: gemauerter Herd, glühendes Kohlebett, Rauchfang bis unters Dach, Blasebalg
+        var o = p + new Vector3(3.6f, 0, 0.2f);
+        Quader(o + new Vector3(0, 0.6f, 0), new Vector3(1.8f, 1.2f, 2.2f), stein, innen);
+        var kohle = Material(new Color(0.15f, 0.08f, 0.05f));
+        kohle.EmissionEnabled = true;
+        kohle.Emission = new Color(1f, 0.4f, 0.08f);
+        kohle.EmissionEnergyMultiplier = 0;
+        Quader(o + new Vector3(0, 1.23f, 0), new Vector3(1.3f, 0.08f, 1.6f), kohle, innen);
+        ansicht.InnenEsse = kohle;
+        // Der Rauchfang hängt an der Ostwand: Blickt man von Osten hinein, verschwindet er mit ihr
+        // und gibt den Blick auf die Arbeiter frei.
+        var ostwand = ansicht.Waende.First(x => x.Aussen == Vector3.Right).Wand;
+        var rauchfang = new MeshInstance3D
+        {
+            Mesh = new CylinderMesh { TopRadius = 0.55f, BottomRadius = 1.35f, Height = 2.4f, RadialSegments = 4 },
+            MaterialOverride = stein,
+            Position = o + new Vector3(0, 3.4f, 0) - ostwand.Position,
+            RotationDegrees = new Vector3(0, 45, 0),
+        };
+        ostwand.AddChild(rauchfang);
+        Quader(o + new Vector3(0, 5.3f, 0) - ostwand.Position, new Vector3(0.9f, 1.4f, 0.9f), stein, ostwand);
+        Quader(o + new Vector3(0.1f, 0.45f, 1.7f), new Vector3(0.9f, 0.5f, 1.0f), Material(new Color(0.42f, 0.30f, 0.20f)), innen); // Blasebalg
+        ansicht.InnenGlut = new OmniLight3D
+        {
+            LightColor = new Color(1f, 0.5f, 0.18f),
+            OmniRange = 8,
+            LightEnergy = 0,
+            ShadowEnabled = true,
+            Position = o + new Vector3(-0.6f, 2f, 0),
+        };
+        innen.AddChild(ansicht.InnenGlut);
+
+        // Amboss auf einem Holzklotz
+        var a = p + new Vector3(0.8f, 0, -0.2f);
+        Quader(a + new Vector3(0, 0.35f, 0), new Vector3(0.7f, 0.7f, 0.7f), holz, innen);
+        Quader(a + new Vector3(0, 0.85f, 0), new Vector3(1.1f, 0.3f, 0.45f), eisen, innen);
+
+        // Wassertrog zum Abschrecken
+        Quader(p + new Vector3(2.0f, 0.35f, 2.6f), new Vector3(1.6f, 0.7f, 0.8f), holz, innen);
+        Quader(p + new Vector3(2.0f, 0.66f, 2.6f), new Vector3(1.4f, 0.04f, 0.6f), Material(new Color(0.2f, 0.3f, 0.36f)), innen);
+
+        // Werkbank mit Werkzeug und Gussformen
+        var w = p + new Vector3(-3.9f, 0, 0.4f);
+        Quader(w + new Vector3(0, 0.5f, 0), new Vector3(1.0f, 1.0f, 3.0f), holz, innen);
+        Quader(w + new Vector3(0.1f, 1.06f, -0.8f), new Vector3(0.5f, 0.12f, 0.7f), eisen, innen);
+        Quader(w + new Vector3(0.1f, 1.08f, 0.5f), new Vector3(0.6f, 0.16f, 0.4f), Material(new Color(0.55f, 0.45f, 0.35f)), innen);
+
+        // Laterne unter dem Dachbalken – damit man auch nachts etwas sieht
+        innen.AddChild(new OmniLight3D { LightColor = new Color(1f, 0.85f, 0.6f), OmniRange = 9, LightEnergy = 0.4f, Position = p + new Vector3(-1, 4.5f, 0) });
     }
 
     private BetriebsAnsicht MineBauen(Betrieb betrieb, Vector3 p, Color besitzer)
@@ -286,11 +487,18 @@ public partial class Stadtansicht : Node3D
         Quader(p + new Vector3(-9.2f, 3.5f, 6), new Vector3(0.2f, 3, 2), Material(besitzer));
 
         Klickflaeche(BetriebsKennung(betrieb), p + new Vector3(2, 4, 0), new Vector3(16, 8, 14));
-        Beschriftung(betrieb.Name, p + new Vector3(2, 9, 0), 44);
+        var schild = Beschriftung(betrieb.Name, p + new Vector3(2, 9, 0), 44);
 
         var hof = p + new Vector3(-2, 0, 0);
         WegZiehen(new Vector3(56, 0, -2), hof, 4);
-        return new BetriebsAnsicht(hof, new[] { hof, new Vector3(56, 0, -2), Osttor, Marktplatz }, null, null, false);
+        return new BetriebsAnsicht
+        {
+            Betrieb = betrieb,
+            Mitte = p,
+            Hof = hof,
+            WegZumMarkt = new[] { hof, new Vector3(56, 0, -2), Osttor, Marktplatz },
+            Schild = schild,
+        };
     }
 
     public static string BetriebsKennung(Betrieb b) => "betrieb:" + b.Name;
@@ -304,12 +512,20 @@ public partial class Stadtansicht : Node3D
 
         if (_simulation.Wirtschaft is not { } w) return;
         var arbeitszeit = w.IstArbeitszeit(zeit);
+        if (!_simulation.Takt.IstPausiert) _animationszeit += delta;
 
         foreach (var (betrieb, ansicht) in _betriebe)
         {
             var arbeitet = arbeitszeit && betrieb.Belegt > 0 && betrieb.Stillstand is null;
             if (ansicht.Glut is not null) ansicht.Glut.LightEnergy = arbeitet ? 3f : 0f;
             if (ansicht.Esse is not null) ansicht.Esse.EmissionEnergyMultiplier = arbeitet ? 2.5f : 0f;
+            if (ansicht == _innen)
+            {
+                if (ansicht.InnenGlut is not null) ansicht.InnenGlut.LightEnergy = arbeitet ? 2.5f : 0.3f;
+                if (ansicht.InnenEsse is not null) ansicht.InnenEsse.EmissionEnergyMultiplier = arbeitet ? 1.6f : 0.3f;
+                KistenAktualisieren(ansicht);
+                ArbeiterAktualisieren(ansicht, arbeitszeit, arbeitet);
+            }
 
             var fahrzeit = w.Daten.Logistik.FahrzeitAb(betrieb.Ort);
             for (var i = 0; i < betrieb.Karren.Count; i++)
@@ -387,6 +603,241 @@ public partial class Stadtansicht : Node3D
         return karren;
     }
 
+    // ── Innenansicht: Lager und Arbeiter ────────────────────────────────────
+
+    // Farben der Kisten je Ware – so erkennt man auf einen Blick, was im Lager liegt.
+    private static Color Warenfarbe(string ware) => ware switch
+    {
+        "Eisen" => new Color(0.45f, 0.40f, 0.36f),
+        "Silber" => new Color(0.78f, 0.80f, 0.84f),
+        "Beschlag" => new Color(0.52f, 0.36f, 0.22f),
+        "Rapier" => new Color(0.40f, 0.48f, 0.60f),
+        "Silberring" => new Color(0.85f, 0.72f, 0.35f),
+        _ => new Color(0.6f, 0.5f, 0.4f),
+    };
+
+    /// <summary>
+    /// Das Lager als Kistenstapel an der Nordwand: je Ware eine Spalte, eine Kiste je angefangene
+    /// 5 Stück (höchstens 8 = volles Lager). Erst Zutaten, dann das Produkt.
+    /// </summary>
+    private void KistenAktualisieren(BetriebsAnsicht ansicht)
+    {
+        var betrieb = ansicht.Betrieb;
+        var waren = betrieb.Zutaten.Keys.Append(betrieb.Produkt).Concat(betrieb.Lager.Keys).Distinct();
+        foreach (var ware in waren)
+        {
+            if (!ansicht.Kisten.TryGetValue(ware, out var spalte))
+            {
+                if (ansicht.Kisten.Count >= MaxWarenplaetze) continue;
+                spalte = KistenspalteBauen(ansicht, ware, ansicht.Kisten.Count);
+                ansicht.Kisten[ware] = spalte;
+            }
+            var menge = betrieb.ImLager(ware);
+            var anzahl = Math.Min(MaxKistenJeWare, (menge + StueckJeKiste - 1) / StueckJeKiste);
+            for (var i = 0; i < spalte.Kisten.Length; i++)
+                spalte.Kisten[i].Visible = i < anzahl;
+            spalte.Schild.Text = $"{ware} {menge}";
+            // Schilder abwechselnd hoch und tief, damit sich Nachbarn nicht überdecken
+            var versatz = ansicht.Kisten.Keys.ToList().IndexOf(ware) % 2 * 0.9f;
+            spalte.Schild.Position = spalte.Schild.Position with { Y = 1.2f + Math.Max(1, (anzahl + 1) / 2) * 0.76f + versatz };
+        }
+    }
+
+    private (MeshInstance3D[] Kisten, Label3D Schild) KistenspalteBauen(BetriebsAnsicht ansicht, string ware, int platz)
+    {
+        var material = Material(Warenfarbe(ware));
+        var basis = ansicht.Mitte + new Vector3(-3.9f + platz * 1.25f, 0, -2.75f);
+        var kisten = new MeshInstance3D[MaxKistenJeWare];
+        for (var i = 0; i < kisten.Length; i++)
+        {
+            // Zwei Reihen tief, bis zu vier Kisten hoch
+            var reihe = i % 2;
+            var lage = i / 2;
+            kisten[i] = Quader(basis + new Vector3(0, 0.1f + 0.36f + lage * 0.76f, reihe * 0.85f - 0.42f),
+                               new Vector3(1.05f, 0.72f, 0.8f), material, ansicht.Innen);
+        }
+        var schild = Beschriftung(ware, basis + new Vector3(0, 2, 0), 34, ansicht.Innen);
+        return (kisten, schild);
+    }
+
+    /// <summary>
+    /// Die Belegschaft als Figuren. Sie sind nur während der Arbeitszeit in der Werkstatt und
+    /// schwingen den Hammer, solange auch wirklich gearbeitet wird (kein Stillstand).
+    /// </summary>
+    private void ArbeiterAktualisieren(BetriebsAnsicht ansicht, bool arbeitszeit, bool arbeitet)
+    {
+        var betrieb = ansicht.Betrieb;
+        var stand = string.Join(",", betrieb.Belegung.OrderBy(x => x.Key).Select(x => $"{x.Key}:{x.Value}"));
+        if (stand != ansicht.Belegungsstand)
+        {
+            foreach (var figur in ansicht.Arbeiter) figur.Koerper.QueueFree();
+            ansicht.Arbeiter.Clear();
+            var nummer = 0;
+            foreach (var (kraft, anzahl) in betrieb.Belegung.OrderBy(x => x.Key))
+                for (var i = 0; i < anzahl && nummer < Arbeitsplaetze.Length; i++, nummer++)
+                    ansicht.Arbeiter.Add(ArbeiterBauen(ansicht, kraft, nummer));
+            ansicht.Belegungsstand = stand;
+        }
+
+        foreach (var figur in ansicht.Arbeiter)
+        {
+            figur.Koerper.Visible = arbeitszeit;
+            // Hammerschlag: schnell hoch, kräftig runter (Betrag des Sinus gibt den „Aufprall")
+            var winkel = arbeitet ? -0.45f + 1.3f * Mathf.Abs(Mathf.Sin((float)_animationszeit * 4.5f + figur.Takt)) : -0.9f;
+            figur.Arm.Rotation = new Vector3(winkel, 0, 0);
+        }
+    }
+
+    // Arbeitsplätze in der Gießerei (relativ zur Mitte) und die Blickrichtung (Drehung um die Hochachse).
+    private static readonly (Vector3 Ort, float Drehung)[] Arbeitsplaetze =
+    {
+        (new Vector3(0.8f, 0, 0.55f), 0f),               // am Amboss, Blick nach Norden
+        (new Vector3(2.2f, 0, 0.2f), -Mathf.Pi / 2),     // an der Esse, Blick nach Osten
+        (new Vector3(-2.9f, 0, 0.4f), Mathf.Pi / 2),     // an der Werkbank, Blick nach Westen
+    };
+
+    private Arbeiterfigur ArbeiterBauen(BetriebsAnsicht ansicht, string kraft, int nummer)
+    {
+        // Volk und Stand sieht man an Größe, Kleidung und Haut.
+        var (kleidung, haut, groesse) = kraft switch
+        {
+            "Lehrling" => (new Color(0.58f, 0.52f, 0.36f), new Color(0.86f, 0.70f, 0.57f), 0.85f),
+            "Geselle" => (new Color(0.42f, 0.30f, 0.20f), new Color(0.84f, 0.67f, 0.54f), 1.0f),
+            "Ork" => (new Color(0.30f, 0.27f, 0.22f), new Color(0.36f, 0.50f, 0.28f), 1.2f),
+            "Leibeigener" => (new Color(0.45f, 0.43f, 0.39f), new Color(0.80f, 0.64f, 0.52f), 0.95f),
+            _ => (new Color(0.36f, 0.32f, 0.27f), new Color(0.84f, 0.67f, 0.54f), 1.0f),
+        };
+        var (ort, drehung) = Arbeitsplaetze[nummer];
+        var koerper = new Node3D { Name = $"Arbeiter{nummer}", Position = ansicht.Mitte + ort, Rotation = new Vector3(0, drehung, 0), Scale = Vector3.One * groesse };
+        ansicht.Innen!.AddChild(koerper);
+
+        koerper.AddChild(new MeshInstance3D { Mesh = new CapsuleMesh { Radius = 0.28f, Height = 1.3f }, MaterialOverride = Material(kleidung), Position = new Vector3(0, 0.65f, 0) });
+        koerper.AddChild(new MeshInstance3D { Mesh = new SphereMesh { Radius = 0.2f, Height = 0.4f }, MaterialOverride = Material(haut), Position = new Vector3(0, 1.5f, 0) });
+        koerper.AddChild(new MeshInstance3D { Mesh = new BoxMesh { Size = new Vector3(0.5f, 0.7f, 0.06f) }, MaterialOverride = Material(new Color(0.30f, 0.20f, 0.13f)), Position = new Vector3(0, 0.75f, -0.27f) }); // Lederschürze
+
+        // Arm mit Hammer: dreht sich um die Schulter. Ruhestellung zeigt nach unten.
+        var arm = new Node3D { Position = new Vector3(0.32f, 1.15f, 0) };
+        koerper.AddChild(arm);
+        arm.AddChild(new MeshInstance3D { Mesh = new BoxMesh { Size = new Vector3(0.12f, 0.12f, 0.6f) }, MaterialOverride = Material(haut), Position = new Vector3(0, 0, -0.3f) });
+        arm.AddChild(new MeshInstance3D { Mesh = new BoxMesh { Size = new Vector3(0.05f, 0.05f, 0.35f) }, MaterialOverride = Material(Holz), Position = new Vector3(0, 0, -0.7f) });
+        arm.AddChild(new MeshInstance3D { Mesh = new BoxMesh { Size = new Vector3(0.16f, 0.26f, 0.16f) }, MaterialOverride = Material(new Color(0.25f, 0.25f, 0.27f)), Position = new Vector3(0, 0.05f, -0.86f) });
+        return new Arbeiterfigur(koerper, arm, nummer * 1.3f);
+    }
+
+    // ── Innenansicht betreten und verlassen ─────────────────────────────────
+
+    /// <summary>Fährt mit der Kamera in den Betrieb und schneidet ihn auf. Gibt false zurück, wenn er keinen Innenraum hat.</summary>
+    public bool InnenansichtBetreten(Betrieb betrieb)
+    {
+        if (!_betriebe.TryGetValue(betrieb, out var ansicht) || !ansicht.HatInnenraum) return false;
+        if (_innen == ansicht) return true;
+        if (_innen is null)
+        {
+            _vorherPosition = _kameraDrehung.Position;
+            _vorherZoom = _kamera.Size;
+        }
+        else InnenraumZeigen(_innen, false);
+
+        _innen = ansicht;
+        InnenraumZeigen(ansicht, true);
+        Kamerafahrt(ansicht.Mitte, InnenZoom);
+        InnenansichtGewechselt?.Invoke(betrieb);
+        return true;
+    }
+
+    /// <summary>Zurück in die Stadt: Gebäude wieder schließen, Kamera an die alte Stelle.</summary>
+    public void InnenansichtVerlassen()
+    {
+        if (_innen is null) return;
+        InnenraumZeigen(_innen, false);
+        _innen = null;
+        Kamerafahrt(_vorherPosition, _vorherZoom);
+        InnenansichtGewechselt?.Invoke(null);
+    }
+
+    private void InnenraumZeigen(BetriebsAnsicht ansicht, bool innen)
+    {
+        ansicht.Innen!.Visible = innen;
+        if (ansicht.Dach is not null) ansicht.Dach.Visible = !innen;
+        if (ansicht.Schild is not null) ansicht.Schild.Visible = !innen;
+        foreach (var (wand, _) in ansicht.Waende) wand.Visible = true;
+        KulisseZeigen();
+        if (!innen) return;
+        // Beim Betreten sofort einmal auffüllen, damit nichts „nachploppt".
+        KistenAktualisieren(ansicht);
+        Aufschneiden(ansicht);
+    }
+
+    /// <summary>
+    /// Der Diorama-Schnitt: Jede Wand, deren Außenseite zur Kamera zeigt, wird ausgeblendet.
+    /// Beim diagonalen Blick sind das genau zwei Wände – man schaut über die offene Ecke hinein.
+    /// Das Skalarprodukt (Dot) misst, wie sehr zwei Richtungen übereinstimmen: 1 = gleich, 0 = quer, −1 = entgegen.
+    /// </summary>
+    private void Aufschneiden(BetriebsAnsicht ansicht)
+    {
+        var zurKamera = RichtungZurKamera;
+        foreach (var (wand, aussen) in ansicht.Waende)
+            wand.Visible = aussen.Dot(zurKamera) <= 0.5f;
+        KulisseAusblenden(ansicht, zurKamera);
+    }
+
+    /// <summary>
+    /// Blendet Nachbarhäuser, Bäume und Mauerstücke aus, die zwischen Kamera und Werkstatt stehen.
+    /// „Davor" heißt: ein Stück in Richtung Kamera (vorne) und nicht zu weit seitlich daneben.
+    /// Flaches (Boden, Wege) und bewegliche Dinge (Karren) bleiben immer sichtbar.
+    /// </summary>
+    private void KulisseAusblenden(BetriebsAnsicht ansicht, Vector3 zurKamera)
+    {
+        KulisseZeigen();
+        var eigene = new HashSet<Node>(ansicht.Waende.Select(x => (Node)x.Wand));
+        foreach (var kind in GetChildren())
+        {
+            if (kind is not MeshInstance3D teil || eigene.Contains(teil) || teil.Mesh is PlaneMesh || teil.Position.Y < 0.2f)
+                continue;
+            var abstand = teil.Position - ansicht.Mitte;
+            abstand.Y = 0;
+            var vorne = abstand.Dot(zurKamera);
+            var seitlich = (abstand - zurKamera * vorne).Length();
+            if (vorne is > 4.5f and < 28f && seitlich < 11f && teil.Visible)
+            {
+                teil.Visible = false;
+                _kulisseAusgeblendet.Add(teil);
+            }
+        }
+        // Dächer anderer Gießereien sind eigene Gruppen – die gleichen Regeln gelten.
+        foreach (var andere in _betriebe.Values.Where(x => x != ansicht && x.Dach is not null))
+        {
+            var abstand = andere.Mitte - ansicht.Mitte;
+            var vorne = abstand.Dot(zurKamera);
+            if (vorne is > 4.5f and < 28f && (abstand - zurKamera * vorne).Length() < 11f && andere.Dach!.Visible)
+            {
+                andere.Dach.Visible = false;
+                _kulisseAusgeblendet.Add(andere.Dach);
+            }
+        }
+    }
+
+    private void KulisseZeigen()
+    {
+        foreach (var teil in _kulisseAusgeblendet) teil.Visible = true;
+        _kulisseAusgeblendet.Clear();
+    }
+
+    private void Kamerafahrt(Vector3 ziel, float zoom)
+    {
+        _kamerafahrt?.Kill();
+        _kamerafahrt = CreateTween().SetParallel().SetTrans(Tween.TransitionType.Sine).SetEase(Tween.EaseType.InOut);
+        _kamerafahrt.TweenProperty(_kameraDrehung, "position", ziel, 0.6);
+        _kamerafahrt.TweenProperty(_kamera, "size", zoom, 0.6);
+    }
+
+    /// <summary>Dreht die Kamera um ganze Vierteldrehungen (+1 = 90° gegen den Uhrzeigersinn von oben).</summary>
+    public void Drehen(int vierteldrehungen, bool sofort = false)
+    {
+        _zielDrehung += 90f * vierteldrehungen;
+        if (sofort) _kameraDrehung.RotationDegrees = new Vector3(0, _zielDrehung, 0);
+    }
+
     // ── Tag und Nacht ───────────────────────────────────────────────────────
 
     private void LichtNachUhrzeit(int uhrzeitInMinuten)
@@ -454,6 +905,7 @@ public partial class Stadtansicht : Node3D
         // Sanft auf die Zieldrehung zudrehen (Q/E)
         var aktuell = _kameraDrehung.RotationDegrees.Y;
         _kameraDrehung.RotationDegrees = new Vector3(0, Mathf.LerpAngle(Mathf.DegToRad(aktuell), Mathf.DegToRad(_zielDrehung), (float)Math.Min(1, delta * 8)) * 180 / Mathf.Pi, 0);
+        if (_innen is not null) Aufschneiden(_innen);
 
         // Verschieben mit Tastatur
         var richtung = Vector2.Zero;
@@ -471,6 +923,13 @@ public partial class Stadtansicht : Node3D
         var rechts = new Vector3(basis.X.X, 0, basis.X.Z).Normalized();
         var vor = new Vector3(basis.Z.X, 0, basis.Z.Z).Normalized();
         var neu = _kameraDrehung.Position + rechts * bildschirm.X + vor * bildschirm.Y;
+        if (_innen is not null)
+        {
+            // In der Innenansicht nur ein Stück um das Gebäude herum verschieben.
+            var m = _innen.Mitte;
+            _kameraDrehung.Position = new Vector3(Mathf.Clamp(neu.X, m.X - 8, m.X + 8), 0, Mathf.Clamp(neu.Z, m.Z - 8, m.Z + 8));
+            return;
+        }
         _kameraDrehung.Position = new Vector3(Mathf.Clamp(neu.X, -70, 110), 0, Mathf.Clamp(neu.Z, -80, 80));
     }
 
@@ -479,10 +938,10 @@ public partial class Stadtansicht : Node3D
         switch (eingabe)
         {
             case InputEventMouseButton { Pressed: true, ButtonIndex: MouseButton.WheelUp }:
-                _kamera.Size = Mathf.Clamp(_kamera.Size * 0.9f, KameraMinZoom, KameraMaxZoom);
+                Zoomen(0.9f);
                 break;
             case InputEventMouseButton { Pressed: true, ButtonIndex: MouseButton.WheelDown }:
-                _kamera.Size = Mathf.Clamp(_kamera.Size * 1.1f, KameraMinZoom, KameraMaxZoom);
+                Zoomen(1.1f);
                 break;
             case InputEventMouseButton { ButtonIndex: MouseButton.Right } rechts:
                 _ziehen = rechts.Pressed;
@@ -493,7 +952,7 @@ public partial class Stadtansicht : Node3D
                 Verschieben(-bewegung.Relative * meterJePixel);
                 break;
             case InputEventMouseButton { Pressed: true, ButtonIndex: MouseButton.Left } klick:
-                Auswaehlen(klick.Position);
+                Auswaehlen(klick.Position, klick.DoubleClick);
                 break;
             case InputEventKey { Pressed: true, Echo: false, Keycode: Key.Q }:
                 _zielDrehung -= 90;
@@ -507,13 +966,24 @@ public partial class Stadtansicht : Node3D
         GetViewport().SetInputAsHandled();
     }
 
-    private void Auswaehlen(Vector2 mausposition)
+    private void Zoomen(float faktor)
+    {
+        _kamerafahrt?.Kill(); // Mausrad unterbricht eine laufende Kamerafahrt
+        var (min, max) = _innen is null ? (KameraMinZoom, KameraMaxZoom) : (InnenMinZoom, InnenMaxZoom);
+        _kamera.Size = Mathf.Clamp(_kamera.Size * faktor, min, max);
+    }
+
+    private void Auswaehlen(Vector2 mausposition, bool doppelklick)
     {
         var von = _kamera.ProjectRayOrigin(mausposition);
         var bis = von + _kamera.ProjectRayNormal(mausposition) * 500;
         var treffer = GetWorld3D().DirectSpaceState.IntersectRay(PhysicsRayQueryParameters3D.Create(von, bis));
-        if (treffer.Count > 0 && treffer["collider"].As<Node>() is { } koerper && koerper.HasMeta("kennung"))
-            GebaeudeAngeklickt?.Invoke(koerper.GetMeta("kennung").AsString());
+        if (treffer.Count == 0 || treffer["collider"].As<Node>() is not { } koerper || !koerper.HasMeta("kennung"))
+            return;
+        var kennung = koerper.GetMeta("kennung").AsString();
+        GebaeudeAngeklickt?.Invoke(kennung);
+        if (doppelklick && _betriebe.Keys.FirstOrDefault(b => BetriebsKennung(b) == kennung) is { } betrieb)
+            InnenansichtBetreten(betrieb);
     }
 
     // ═════════════════════════════════════════════════════════════════════════
@@ -522,9 +992,13 @@ public partial class Stadtansicht : Node3D
 
     private static StandardMaterial3D Material(Color farbe) => new() { AlbedoColor = farbe, Roughness = 0.95f };
 
-    private void Quader(Vector3 mitte, Vector3 groesse, StandardMaterial3D material)
+    /// <summary>Ein Quader. Ohne <paramref name="eltern"/> hängt er direkt an der Stadt,
+    /// sonst an einem anderen Knoten (dann ist <paramref name="mitte"/> relativ zu diesem).</summary>
+    private MeshInstance3D Quader(Vector3 mitte, Vector3 groesse, StandardMaterial3D material, Node3D? eltern = null)
     {
-        AddChild(new MeshInstance3D { Mesh = new BoxMesh { Size = groesse }, MaterialOverride = material, Position = mitte });
+        var quader = new MeshInstance3D { Mesh = new BoxMesh { Size = groesse }, MaterialOverride = material, Position = mitte };
+        (eltern ?? this).AddChild(quader);
+        return quader;
     }
 
     private void Flaeche(Vector3 mitte, Vector2 groesse, Color farbe, float hoehe)
@@ -533,7 +1007,7 @@ public partial class Stadtansicht : Node3D
     }
 
     /// <summary>Satteldach: ein Prisma, dessen First entlang Z (quer = entlang X) läuft.</summary>
-    private void Dach(Vector3 unterkante, Vector3 groesse, StandardMaterial3D material, bool quer)
+    private void Dach(Vector3 unterkante, Vector3 groesse, StandardMaterial3D material, bool quer, Node3D? eltern = null)
     {
         var dach = new MeshInstance3D
         {
@@ -542,7 +1016,7 @@ public partial class Stadtansicht : Node3D
             Position = unterkante + new Vector3(0, groesse.Y / 2, 0),
         };
         if (quer) dach.RotationDegrees = new Vector3(0, 90, 0);
-        AddChild(dach);
+        (eltern ?? this).AddChild(dach);
     }
 
     /// <summary>Ein Haus: Wandquader plus Satteldach.</summary>
@@ -598,7 +1072,7 @@ public partial class Stadtansicht : Node3D
         AddChild(koerper);
     }
 
-    private void Beschriftung(string text, Vector3 position, int groesse)
+    private Label3D Beschriftung(string text, Vector3 position, int groesse, Node3D? eltern = null)
     {
         var label = new Label3D
         {
@@ -613,6 +1087,7 @@ public partial class Stadtansicht : Node3D
             PixelSize = 0.04f,
         };
         _beschriftungen.Add(label);
-        AddChild(label);
+        (eltern ?? this).AddChild(label);
+        return label;
     }
 }

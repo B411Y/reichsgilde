@@ -9,7 +9,9 @@ Schauplatz ist ein düster-bodenständiges Heiliges Römisches Reich des Spätmi
 
 ## Aktueller Stand
 
-**Phase 3 – 2,5D-Stadtansicht (Greybox).** Die Reichsstadt ist als begehbare Schrägansicht zu sehen: Mauer, Osttor, Markt, Rathaus, Dom, Gießereien und die Grube vor der Stadt – noch aus einfachen Grundformen. Karren fahren sichtbar zum Markt, Licht und Himmel folgen der Spieluhr, die Esse glüht bei Arbeit, Gebäude lassen sich anklicken.
+**Phase 3 – 2,5D-Stadtansicht (Greybox).** Die Reichsstadt ist als begehbare Schrägansicht zu sehen: Mauer, Osttor, Markt, Rathaus, Dom, Gießereien und die Grube vor der Stadt – noch aus einfachen Grundformen. Die orthografische Kamera blickt diagonal (nach Nordosten, Nordwesten, Südwesten oder Südosten) und dreht in 90°-Schritten. Karren fahren sichtbar zum Markt, Licht und Himmel folgen der Spieluhr, die Esse glüht bei Arbeit, Gebäude lassen sich anklicken.
+
+**Diorama-Innenansicht.** Ein Doppelklick auf eine Gießerei schneidet sie wie ein Puppenhaus auf: Dach und die beiden Wände zur Kamera verschwinden, Nachbarhäuser davor werden ausgeblendet. Innen sieht man Esse, Amboss und Werkbank, das Lager als Kistenstapel (eine Kiste je 5 Stück) und die Arbeiter, die während der Arbeitszeit hämmern – alles direkt aus der Simulation.
 
 **Phase 2 – Simulationskern.** Die Spielzeit läuft (1 Runde = 1 Spieltag = 1 Spieljahr, Standard 15 Minuten), mit Pause, Tempo und wählbarer Siegbedingung. Die **Wirtschaft** ist eingebaut: Marktpreise nach Angebot und Nachfrage, Gießerei und Mine produzieren während der Arbeitszeit, Löhne, Pacht und Steuern laufen in die Jahresrechnung, und das Fron- und Sklavenstatut bestimmt, wer wo arbeiten darf. **Lager und Karren** bringen die Waren zum Markt; auf Umland-Wegen lauern **Banditen aller Völker**, gegen die Eskorten helfen. Das Kontor im Spiel zeigt Vermögen, Lager, Karren, Jahresrechnung und Marktpreise.
 
@@ -50,7 +52,8 @@ Warum diese Aufteilung? → [docs/ARCHITEKTUR.md](docs/ARCHITEKTUR.md)
 Steuerung:
 - **Leertaste** = Pause · **1–4** = Tempo 1×/2×/4×/8×
 - **Mausrad** = Zoom · **rechte Maustaste ziehen** oder **WASD/Pfeiltasten** = verschieben · **Q/E** = drehen
-- **Linksklick** auf ein Gebäude = Informationen · **Esc** = Auswahl schließen
+- **Linksklick** auf ein Gebäude = Informationen · **Doppelklick** auf eine Gießerei = Innenansicht
+- **Esc** = Innenansicht verlassen bzw. Auswahl schließen
 
 ### Tests ausführen
 Im Terminal (in VS Code: *Terminal → Neues Terminal*) im Ordner `reichsgilde`:
