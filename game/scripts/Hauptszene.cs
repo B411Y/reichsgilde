@@ -64,9 +64,12 @@ public partial class Hauptszene : Control
             Protokollieren($"{_simulation.Zeit.UhrzeitText} – {KalenderTexte.Name(phase)} beginnt.");
         _simulation.JahrBeendet += jahr =>
             Protokollieren($"Jahresabrechnung {jahr} abgeschlossen. Es ist nun {_simulation.Zeit.DatumText}.");
+        _simulation.PartieBeendet += () =>
+            Protokollieren($"Die Partie ist zu Ende ({_simulation.Einstellungen.SiegbedingungText}).");
 
         var minuten = _simulation.Takt.RundenDauerSekunden / 60;
-        _hinweis.Text = $"1 Spieljahr = {minuten:0} Min. · Leertaste = Pause · Tasten 1–4 = Tempo";
+        _hinweis.Text = $"1 Spieljahr = {minuten:0} Min. · {_simulation.Einstellungen.SiegbedingungText}\n"
+                      + "Leertaste = Pause · Tasten 1–4 = Tempo";
 
         Protokollieren($"Die Zunftglocke läutet. {_simulation.Zeit.DatumText} beginnt.");
         Anzeigen();
@@ -123,7 +126,9 @@ public partial class Hauptszene : Control
         _datum.Text = $"{zeit.DatumText}  ·  Runde {zeit.Runde}";
         _uhrzeit.Text = $"{zeit.UhrzeitText}  ·  {KalenderTexte.Name(zeit.Tagesphase)}";
         _tagesfortschritt.Value = zeit.MinuteImTag;
-        _pauseKnopf.Text = takt.IstPausiert ? "▶ Weiter" : "❚❚ Pause";
+        _pauseKnopf.Text = _simulation.IstBeendet ? "Partie beendet"
+                         : takt.IstPausiert ? "▶ Weiter" : "❚❚ Pause";
+        _pauseKnopf.Disabled = _simulation.IstBeendet;
 
         for (var i = 0; i < _tempoKnoepfe.Count; i++)
             _tempoKnoepfe[i].SetPressedNoSignal(!takt.IstPausiert && Taktgeber.Tempostufen[i] == takt.Tempo);

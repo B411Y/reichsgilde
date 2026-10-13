@@ -32,3 +32,6 @@ obj/
 # IDE-Dateien
 .vs/
 .idea/
+
+# Exportierte Spiel-Builds
+build/

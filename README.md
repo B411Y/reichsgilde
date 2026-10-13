@@ -3,11 +3,13 @@
 *Arbeitstitel* – eine Wirtschaftssimulation und Dynastie-Sandbox im 2,5D-Stil, inspiriert von **„Die Gilde“ (Europa 1400)**.
 Schauplatz ist ein düster-bodenständiges Heiliges Römisches Reich des Spätmittelalters, in dem Menschen, Zwerge, Elben und Halblinge als Bürger leben und Orks und Oger als Bestien vor den Toren lauern.
 
-> Hobby- und Lernprojekt · Open Source (MIT) · Godot 4.7 + C#
+> Hobby- und Lernprojekt · Open Source (MIT) · Godot 4.7 + C# · **Windows & Linux**
+
+[![Build, Tests & Export](https://github.com/B411Y/reichsgilde/actions/workflows/build.yml/badge.svg)](https://github.com/B411Y/reichsgilde/actions/workflows/build.yml)
 
 ## Aktueller Stand
 
-**Phase 0 – Fundament.** Die Spielzeit läuft: 1 Runde = 1 Spieltag = 1 Spieljahr (Standard: 15 Minuten Echtzeit, einstellbar), mit Jahreszeiten, Tagesphasen, Pause und Tempostufen.
+**Phase 0 – Fundament.** Die Spielzeit läuft: 1 Runde = 1 Spieltag = 1 Spieljahr (Standard: 15 Minuten Echtzeit, einstellbar), mit Jahreszeiten, Tagesphasen, Pause und Tempostufen. Partie-Einstellungen (Aktionspunkte, Rundendauer, wählbare Siegbedingung) sind im Simulationskern angelegt.
 
 ## Projektstruktur
 
@@ -21,9 +23,11 @@ reichsgilde/
 │   └── scripts/                    C#-Skripte, die an Szenen hängen
 ├── src/Reichsgilde.Core/           Simulationskern – die reine Spiellogik, OHNE Godot
 │   ├── Simulation.cs
+│   ├── Partie/                     Partie-Einstellungen, Siegbedingung, Aktionspunkte
 │   └── Zeit/                       Spielzeit, Taktgeber, Kalender
 ├── tests/Reichsgilde.Core.Tests/   Automatische Tests für den Simulationskern
-└── docs/                           Erklärungen und Entscheidungen
+├── docs/                           Erklärungen und Entscheidungen
+└── .github/workflows/              Automatische Prüfung auf Windows und Linux
 ```
 
 Warum diese Aufteilung? → [docs/ARCHITEKTUR.md](docs/ARCHITEKTUR.md)
@@ -49,6 +53,21 @@ dotnet run --project tests/Reichsgilde.Core.Tests
 ```
 
 Am Ende muss stehen: `Alle … Tests bestanden.`
+
+### Spiel exportieren (Windows / Linux)
+1. Einmalig in Godot: **Editor → Exportvorlagen verwalten → Herunterladen und installieren**
+2. **Projekt → Exportieren…** → Vorlage **Windows** oder **Linux** wählen → **Projekt exportieren**
+3. Das fertige Spiel landet im Ordner `build/` (wird nicht ins Repository übernommen)
+
+## Plattformen und automatische Prüfung
+
+Reichsgilde läuft auf **Windows und Linux**. Bei jedem Pull Request prüft GitHub automatisch:
+
+1. Bauen und Tests – auf Windows **und** Linux
+2. Export für beide Systeme und ein kurzer Startversuch des Linux-Builds
+
+Die fertigen Builds kann man unter **Actions → jeweiliger Lauf → Artifacts** herunterladen.
+Die Konfiguration steht in [`.github/workflows/build.yml`](.github/workflows/build.yml).
 
 ## Lizenz
 

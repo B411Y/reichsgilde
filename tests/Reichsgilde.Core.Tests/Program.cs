@@ -1,4 +1,5 @@
 using Reichsgilde.Core;
+using Reichsgilde.Core.Partie;
 using Reichsgilde.Core.Zeit;
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -124,6 +125,88 @@ var tests = new List<(string Name, Action Pruefung)>
 
         Pruefe.Gleich("HoherMittag,Vesper,DunkleNacht,Zunftglocke", string.Join(",", phasen));
     }),
+
+    // ── Partie-Einstellungen ────────────────────────────────────────────────
+    ("Standard-Einstellungen: 4 AP, 15 Minuten, Endjahr 1600 – und gültig", () =>
+    {
+        var e = Partieeinstellungen.Standard;
+        Pruefe.Gleich(4, e.AktionspunkteProRunde);
+        Pruefe.Gleich(15.0, e.RundenDauerMinuten);
+        Pruefe.Gleich(Siegbedingung.Endjahr, e.Siegbedingung);
+        Pruefe.Gleich(1600, e.Endjahr);
+        Pruefe.Gleich(0, e.Pruefen().Count);
+    }),
+
+    ("Ungültige Einstellungen werden mit Meldung abgelehnt", () =>
+    {
+        var e = Partieeinstellungen.Standard with { AktionspunkteProRunde = 0, Endjahr = 1399 };
+        Pruefe.Gleich(2, e.Pruefen().Count);
+        Pruefe.Wirft(() => new Simulation(e));
+    }),
+
+    ("Rundendauer aus den Einstellungen wird an den Taktgeber übergeben", () =>
+    {
+        var sim = new Simulation(Partieeinstellungen.Standard with { RundenDauerMinuten = 5 });
+        Pruefe.Gleich(300.0, sim.Takt.RundenDauerSekunden);
+    }),
+
+    // ── Spielende ───────────────────────────────────────────────────────────
+    ("Siegbedingung Endjahr: Partie endet mit Beginn des Endjahres", () =>
+    {
+        var sim = new Simulation(Partieeinstellungen.Standard with { Endjahr = 1402 });
+        var beendet = 0;
+        sim.PartieBeendet += () => beendet++;
+
+        for (var i = 0; i < 5 * Spielzeit.MinutenProTag; i++)
+            sim.Tick();
+
+        Pruefe.Gleich(true, sim.IstBeendet);
+        Pruefe.Gleich(1, beendet);
+        Pruefe.Gleich(1402, sim.Zeit.Jahr);
+        Pruefe.Gleich("06:00", sim.Zeit.UhrzeitText); // danach läuft keine Zeit mehr
+        Pruefe.Gleich(0, sim.Aktualisieren(60));
+    }),
+
+    ("Siegbedingungen entscheiden richtig", () =>
+    {
+        var basis = Partieeinstellungen.Standard;
+        var stand = new Spielstand(Jahr: 1450, LebendeDynastien: 3, HoechstesVermoegen: 150_000);
+
+        Pruefe.Gleich(false, Spielende.IstErreicht(basis, stand));
+        Pruefe.Gleich(true, Spielende.IstErreicht(basis with { Endjahr = 1450 }, stand));
+        Pruefe.Gleich(false, Spielende.IstErreicht(basis with { Siegbedingung = Siegbedingung.Zielvermoegen }, stand));
+        Pruefe.Gleich(true, Spielende.IstErreicht(basis with { Siegbedingung = Siegbedingung.Zielvermoegen, Zielvermoegen = 100_000 }, stand));
+        Pruefe.Gleich(false, Spielende.IstErreicht(basis with { Siegbedingung = Siegbedingung.LetzteDynastie }, stand));
+        Pruefe.Gleich(true, Spielende.IstErreicht(basis with { Siegbedingung = Siegbedingung.LetzteDynastie }, stand with { LebendeDynastien = 1 }));
+        Pruefe.Gleich(false, Spielende.IstErreicht(basis with { Siegbedingung = Siegbedingung.Endlos }, stand with { Jahr = 9999 }));
+    }),
+
+    ("Endloses Spiel läuft über 1600 hinaus", () =>
+    {
+        var sim = new Simulation(Partieeinstellungen.Standard with { Siegbedingung = Siegbedingung.Endlos },
+                                 new Spielzeit(199L * Spielzeit.MinutenProTag)); // Frühjahr 1599
+        for (var i = 0; i < 2 * Spielzeit.MinutenProTag; i++)
+            sim.Tick();
+        Pruefe.Gleich(false, sim.IstBeendet);
+        Pruefe.Gleich(1601, sim.Zeit.Jahr);
+    }),
+
+    // ── Aktionspunkte ───────────────────────────────────────────────────────
+    ("Aktionspunkte: neue Runde addiert, Rest wird übertragen", () =>
+    {
+        var ap = new Aktionspunkte();
+        ap.NeueRunde(4);
+        Pruefe.Gleich(true, ap.Ausgeben(3));
+        ap.NeueRunde(4, bonus: 1);   // z. B. 6. Meistergrad
+        Pruefe.Gleich(6, ap.Vorrat); // 1 Rest + 4 + 1 Bonus
+    }),
+
+    ("Aktionspunkte: zu teure Maßnahme wird abgelehnt und kostet nichts", () =>
+    {
+        var ap = new Aktionspunkte(startVorrat: 3);
+        Pruefe.Gleich(false, ap.Ausgeben(8)); // z. B. Berufswechsel
+        Pruefe.Gleich(3, ap.Vorrat);
+    }),
 };
 
 // ── Testlauf ────────────────────────────────────────────────────────────────
@@ -165,5 +248,12 @@ static class Pruefe
     {
         if (!EqualityComparer<T>.Default.Equals(erwartet, tatsaechlich))
             throw new Exception($"{(hinweis is null ? "" : hinweis + ": ")}erwartet {erwartet}, war aber {tatsaechlich}");
+    }
+
+    public static void Wirft(Action aktion)
+    {
+        try { aktion(); }
+        catch { return; }
+        throw new Exception("Es wurde ein Fehler erwartet, aber keiner ausgelöst.");
     }
 }

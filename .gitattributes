@@ -1,0 +1,15 @@
+# Einheitliche Zeilenenden für Windows und Linux.
+# Git speichert Textdateien immer mit LF (Linux-Stil). So entstehen keine
+# Schein-Änderungen, nur weil jemand unter Windows (CRLF) arbeitet.
+* text=auto eol=lf
+
+# Windows-Projektmappen erwartet Visual Studio mit CRLF.
+*.sln text eol=crlf
+
+# Binärdateien nie verändern.
+*.png binary
+*.jpg binary
+*.ogg binary
+*.wav binary
+*.glb binary
+*.ttf binary
