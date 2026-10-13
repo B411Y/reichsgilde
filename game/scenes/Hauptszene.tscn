@@ -1,6 +1,7 @@
 [gd_scene format=3]
 
 [ext_resource type="Script" path="res://scripts/Hauptszene.cs" id="1_skript"]
+[ext_resource type="Script" path="res://scripts/KontorAnzeige.cs" id="2_kontor"]
 
 [node name="Hauptszene" type="Control"]
 layout_mode = 3
@@ -31,42 +32,46 @@ grow_horizontal = 2
 grow_vertical = 2
 mouse_filter = 2
 
-[node name="Tafel" type="PanelContainer" parent="Mitte"]
+[node name="Spalten" type="HBoxContainer" parent="Mitte"]
+layout_mode = 2
+theme_override_constants/separation = 24
+
+[node name="Tafel" type="PanelContainer" parent="Mitte/Spalten"]
 custom_minimum_size = Vector2(560, 0)
 layout_mode = 2
 
-[node name="Rand" type="MarginContainer" parent="Mitte/Tafel"]
+[node name="Rand" type="MarginContainer" parent="Mitte/Spalten/Tafel"]
 layout_mode = 2
 theme_override_constants/margin_left = 28
 theme_override_constants/margin_top = 22
 theme_override_constants/margin_right = 28
 theme_override_constants/margin_bottom = 22
 
-[node name="Inhalt" type="VBoxContainer" parent="Mitte/Tafel/Rand"]
+[node name="Inhalt" type="VBoxContainer" parent="Mitte/Spalten/Tafel/Rand"]
 layout_mode = 2
 theme_override_constants/separation = 10
 
-[node name="Titel" type="Label" parent="Mitte/Tafel/Rand/Inhalt"]
+[node name="Titel" type="Label" parent="Mitte/Spalten/Tafel/Rand/Inhalt"]
 layout_mode = 2
 theme_override_font_sizes/font_size = 34
 text = "Reichsgilde"
 horizontal_alignment = 1
 
-[node name="Datum" type="Label" parent="Mitte/Tafel/Rand/Inhalt"]
+[node name="Datum" type="Label" parent="Mitte/Spalten/Tafel/Rand/Inhalt"]
 unique_name_in_owner = true
 layout_mode = 2
 theme_override_font_sizes/font_size = 26
 text = "Frühling 1400"
 horizontal_alignment = 1
 
-[node name="Uhrzeit" type="Label" parent="Mitte/Tafel/Rand/Inhalt"]
+[node name="Uhrzeit" type="Label" parent="Mitte/Spalten/Tafel/Rand/Inhalt"]
 unique_name_in_owner = true
 layout_mode = 2
 theme_override_font_sizes/font_size = 22
 text = "06:00 · Frühe Zunftglocke"
 horizontal_alignment = 1
 
-[node name="Tagesfortschritt" type="ProgressBar" parent="Mitte/Tafel/Rand/Inhalt"]
+[node name="Tagesfortschritt" type="ProgressBar" parent="Mitte/Spalten/Tafel/Rand/Inhalt"]
 unique_name_in_owner = true
 custom_minimum_size = Vector2(0, 14)
 layout_mode = 2
@@ -74,33 +79,39 @@ max_value = 1440.0
 step = 1.0
 show_percentage = false
 
-[node name="Knoepfe" type="HBoxContainer" parent="Mitte/Tafel/Rand/Inhalt"]
+[node name="Knoepfe" type="HBoxContainer" parent="Mitte/Spalten/Tafel/Rand/Inhalt"]
 layout_mode = 2
 theme_override_constants/separation = 8
 alignment = 1
 
-[node name="PauseKnopf" type="Button" parent="Mitte/Tafel/Rand/Inhalt/Knoepfe"]
+[node name="PauseKnopf" type="Button" parent="Mitte/Spalten/Tafel/Rand/Inhalt/Knoepfe"]
 unique_name_in_owner = true
 custom_minimum_size = Vector2(120, 0)
 layout_mode = 2
 focus_mode = 0
 text = "Pause"
 
-[node name="Tempoleiste" type="HBoxContainer" parent="Mitte/Tafel/Rand/Inhalt/Knoepfe"]
+[node name="Tempoleiste" type="HBoxContainer" parent="Mitte/Spalten/Tafel/Rand/Inhalt/Knoepfe"]
 unique_name_in_owner = true
 layout_mode = 2
 theme_override_constants/separation = 4
 
-[node name="Hinweis" type="Label" parent="Mitte/Tafel/Rand/Inhalt"]
+[node name="Hinweis" type="Label" parent="Mitte/Spalten/Tafel/Rand/Inhalt"]
 unique_name_in_owner = true
 layout_mode = 2
 theme_override_colors/font_color = Color(0.75, 0.75, 0.75, 1)
 text = "Leertaste = Pause · Tasten 1–4 = Tempo"
 horizontal_alignment = 1
 
-[node name="Protokoll" type="Label" parent="Mitte/Tafel/Rand/Inhalt"]
+[node name="Protokoll" type="Label" parent="Mitte/Spalten/Tafel/Rand/Inhalt"]
 unique_name_in_owner = true
 custom_minimum_size = Vector2(0, 110)
 layout_mode = 2
 theme_override_font_sizes/font_size = 14
 text = ""
+
+[node name="Kontor" type="PanelContainer" parent="Mitte/Spalten"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(420, 0)
+layout_mode = 2
+script = ExtResource("2_kontor")

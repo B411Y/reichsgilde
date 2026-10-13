@@ -1,3 +1,4 @@
+using Reichsgilde.Core.Wirtschaft;
 using Reichsgilde.Core.Zeit;
 
 namespace Reichsgilde.Core.Partie;
@@ -49,6 +50,15 @@ public sealed record Partieeinstellungen
     /// <summary>Nur für <see cref="Siegbedingung.Zielvermoegen"/>: benötigtes Gesamtvermögen in Gulden.</summary>
     public long Zielvermoegen { get; init; } = 200_000;
 
+    /// <summary>Fron- und Sklavenstatut zu Spielbeginn. Standard B (Bestienfron) laut Design-Dossier.</summary>
+    public Fronstatut StartStatut { get; init; } = Fronstatut.Bestienfron;
+
+    /// <summary>
+    /// Startwert für alle Zufallsereignisse. Gleicher Wert = gleicher Spielverlauf
+    /// (wichtig für Multiplayer und Tests). Für jede neue Partie wird später ein neuer Wert gewürfelt.
+    /// </summary>
+    public int Zufallsstartwert { get; init; } = 1400;
+
     /// <summary>
     /// Prüft die Einstellungen und liefert eine Liste verständlicher Fehlermeldungen.
     /// Leere Liste = alles in Ordnung.
@@ -77,7 +87,7 @@ public sealed record Partieeinstellungen
     public string SiegbedingungText => Siegbedingung switch
     {
         Siegbedingung.Endjahr => $"Partie endet {Endjahr}",
-        Siegbedingung.Zielvermoegen => $"Ziel: {Zielvermoegen:N0} Gulden Vermögen",
+        Siegbedingung.Zielvermoegen => $"Ziel: {Zahlenformat.Ganz(Zielvermoegen)} Gulden Vermögen",
         Siegbedingung.LetzteDynastie => "Die letzte Dynastie gewinnt",
         Siegbedingung.Endlos => "Endloses Spiel",
         _ => Siegbedingung.ToString(),

@@ -1,0 +1,155 @@
+{
+  "version": 1,
+  "allgemein": {
+    "waehrung": "Gulden",
+    "arbeitsminuten": 720,
+    "elastizitaet": 0.5,
+    "preisMin": 0.5,
+    "preisMax": 2,
+    "umsatzsteuer": 0.05,
+    "unterhaltGiesserei": 80,
+    "pachtMine": 400,
+    "startvermoegen": 4000,
+    "schwelleBuerger": 10000,
+    "plaetzeGiesserei": 2,
+    "plaetzeMine": 3
+  },
+  "waren": {
+    "Eisen": {
+      "typ": "Rohstoff",
+      "grundpreis": 12,
+      "zeit": 12,
+      "zutaten": {},
+      "nachfrage": 600,
+      "npcAnteil": 0.9
+    },
+    "Silber": {
+      "typ": "Rohstoff",
+      "grundpreis": 30,
+      "zeit": 30,
+      "zutaten": {},
+      "nachfrage": 200,
+      "npcAnteil": 0.9
+    },
+    "Beschlag": {
+      "typ": "Zwischenprodukt",
+      "grundpreis": 48,
+      "zeit": 35,
+      "zutaten": {
+        "Eisen": 2
+      },
+      "nachfrage": 150,
+      "npcAnteil": 0.7
+    },
+    "Rapier": {
+      "typ": "Fertigprodukt",
+      "grundpreis": 110,
+      "zeit": 60,
+      "zutaten": {
+        "Eisen": 1,
+        "Beschlag": 1
+      },
+      "nachfrage": 120,
+      "npcAnteil": 0.7
+    },
+    "Silberring": {
+      "typ": "Fertigprodukt",
+      "grundpreis": 90,
+      "zeit": 50,
+      "zutaten": {
+        "Eisen": 1,
+        "Silber": 1
+      },
+      "nachfrage": 150,
+      "npcAnteil": 0.7
+    }
+  },
+  "arbeitskraefte": {
+    "Lehrling": {
+      "kosten": 120,
+      "tempo": 0.67,
+      "tempoWerkstatt": 0.67,
+      "risiko": 0,
+      "schaden": 0,
+      "erlaubt": {
+        "A": [
+          "Werkstatt"
+        ],
+        "B": [
+          "Werkstatt"
+        ],
+        "C": [
+          "Werkstatt"
+        ]
+      }
+    },
+    "Geselle": {
+      "kosten": 220,
+      "tempo": 1,
+      "tempoWerkstatt": 1,
+      "risiko": 0,
+      "schaden": 0,
+      "erlaubt": {
+        "A": [
+          "Werkstatt"
+        ],
+        "B": [
+          "Werkstatt"
+        ],
+        "C": [
+          "Werkstatt"
+        ]
+      }
+    },
+    "Bergmann": {
+      "kosten": 150,
+      "tempo": 1,
+      "tempoWerkstatt": 0.5,
+      "risiko": 0,
+      "schaden": 0,
+      "erlaubt": {
+        "A": [
+          "Umland"
+        ],
+        "B": [
+          "Umland"
+        ],
+        "C": [
+          "Umland"
+        ]
+      }
+    },
+    "Ork": {
+      "kosten": 110,
+      "tempo": 1.25,
+      "tempoWerkstatt": 0.6,
+      "risiko": 0.04,
+      "schaden": 800,
+      "erlaubt": {
+        "A": [],
+        "B": [
+          "Umland"
+        ],
+        "C": [
+          "Umland",
+          "Werkstatt"
+        ]
+      }
+    },
+    "Leibeigener": {
+      "kosten": 50,
+      "tempo": 0.85,
+      "tempoWerkstatt": 0.85,
+      "risiko": 0.06,
+      "schaden": 600,
+      "erlaubt": {
+        "A": [],
+        "B": [],
+        "C": [
+          "Umland",
+          "Werkstatt"
+        ]
+      }
+    }
+  }
+}
