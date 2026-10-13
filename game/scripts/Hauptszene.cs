@@ -6,26 +6,34 @@ using Reichsgilde.Core.Zeit;
 namespace Reichsgilde;
 
 /// <summary>
-/// Die erste Szene des Spiels: zeigt die laufende Spielzeit und das Kontor an und erlaubt Pause und Tempo.
+/// Die Hauptszene: hält die Simulation und verbindet sie mit der Stadtansicht (3D)
+/// und der Oberfläche (Zeittafel, Kontor, Auswahl).
 ///
 /// Aufgabenteilung:
 ///   • Die SIMULATION (Reichsgilde.Core) entscheidet, was passiert.
-///   • Diese Szene ZEIGT es nur an und leitet Eingaben weiter.
+///   • Stadtansicht und Oberfläche ZEIGEN es nur an und leiten Eingaben weiter.
 /// Diese Trennung ist die wichtigste Architekturregel des Projekts.
+///
+/// Startoptionen zum Testen (nach "--" an Godot anhängen):
+///   --startstunde=11   Partie beginnt um 11 Uhr statt um 06 Uhr
+///   --tempo=8          Anfangstempo
+///   --auswahl=Dom      Gebäude vorauswählen (Kennung wie beim Anklicken)
 /// </summary>
-public partial class Hauptszene : Control
+public partial class Hauptszene : Node
 {
     private const int MaxProtokollZeilen = 5;
-
     private const string WirtschaftsdatenPfad = "res://data/wirtschaft.json";
 
     private Simulation _simulation = null!;
-    private KontorAnzeige _kontor = null!;
     private readonly List<string> _protokoll = new();
     private readonly List<Button> _tempoKnoepfe = new();
+    private string? _auswahlKennung;
 
-    // Verweise auf die Knoten aus Hauptszene.tscn (das "%" sucht nach eindeutigen Namen).
-    private ColorRect _himmel = null!;
+    private Stadtansicht _stadt = null!;
+    private KontorAnzeige _kontor = null!;
+    private PanelContainer _tafel = null!;
+    private PanelContainer _auswahl = null!;
+    private Label _auswahlText = null!;
     private Label _datum = null!;
     private Label _uhrzeit = null!;
     private ProgressBar _tagesfortschritt = null!;
@@ -34,10 +42,13 @@ public partial class Hauptszene : Control
     private Label _hinweis = null!;
     private Label _protokollLabel = null!;
 
-    /// <summary>Wird von Godot einmal aufgerufen, sobald die Szene geladen ist.</summary>
     public override void _Ready()
     {
-        _himmel = GetNode<ColorRect>("%Himmel");
+        _stadt = GetNode<Stadtansicht>("%Stadt");
+        _kontor = GetNode<KontorAnzeige>("%Kontor");
+        _tafel = GetNode<PanelContainer>("%Tafel");
+        _auswahl = GetNode<PanelContainer>("%Auswahl");
+        _auswahlText = GetNode<Label>("%AuswahlText");
         _datum = GetNode<Label>("%Datum");
         _uhrzeit = GetNode<Label>("%Uhrzeit");
         _tagesfortschritt = GetNode<ProgressBar>("%Tagesfortschritt");
@@ -45,28 +56,34 @@ public partial class Hauptszene : Control
         _tempoleiste = GetNode<HBoxContainer>("%Tempoleiste");
         _hinweis = GetNode<Label>("%Hinweis");
         _protokollLabel = GetNode<Label>("%Protokoll");
-        _kontor = GetNode<KontorAnzeige>("%Kontor");
 
-        _simulation = SimulationAufbauen();
+        // Tafeln an die Bildschirmecken heften (passt sich jeder Fenstergröße an).
+        _tafel.SetAnchorsAndOffsetsPreset(Control.LayoutPreset.TopLeft, Control.LayoutPresetMode.Minsize, 16);
+        _kontor.SetAnchorsAndOffsetsPreset(Control.LayoutPreset.TopRight, Control.LayoutPresetMode.Minsize, 16);
+        _kontor.GrowHorizontal = Control.GrowDirection.Begin; // wächst nach links ins Bild
+        _auswahl.SetAnchorsAndOffsetsPreset(Control.LayoutPreset.BottomLeft, Control.LayoutPresetMode.Minsize, 16);
+        _auswahl.GrowVertical = Control.GrowDirection.Begin; // wächst nach oben
+
+        var optionen = Startoptionen();
+        _simulation = SimulationAufbauen(optionen);
 
         _pauseKnopf.Pressed += PauseUmschalten;
-
-        // Für jede Tempostufe aus dem Simulationskern einen Knopf erzeugen.
         foreach (var tempo in Taktgeber.Tempostufen)
         {
             var knopf = new Button
             {
                 Text = $"{tempo}×",
                 ToggleMode = true,
-                FocusMode = FocusModeEnum.None,
-                CustomMinimumSize = new Vector2(52, 0),
+                FocusMode = Control.FocusModeEnum.None,
+                CustomMinimumSize = new Vector2(46, 0),
             };
             knopf.Pressed += () => TempoSetzen(tempo);
             _tempoleiste.AddChild(knopf);
             _tempoKnoepfe.Add(knopf);
         }
+        if (optionen.TryGetValue("tempo", out var t) && double.TryParse(t, System.Globalization.CultureInfo.InvariantCulture, out var tempoWert))
+            TempoSetzen(tempoWert);
 
-        // Auf Ereignisse der Simulation reagieren.
         _simulation.PhaseBegonnen += phase =>
             Protokollieren($"{_simulation.Zeit.UhrzeitText} – {KalenderTexte.Name(phase)} beginnt.");
         _simulation.JahrBeendet += jahr =>
@@ -76,18 +93,33 @@ public partial class Hauptszene : Control
 
         var minuten = _simulation.Takt.RundenDauerSekunden / 60;
         _hinweis.Text = $"1 Spieljahr = {minuten:0} Min. · {_simulation.Einstellungen.SiegbedingungText}\n"
-                      + "Leertaste = Pause · Tasten 1–4 = Tempo";
+                      + "Leertaste Pause · 1–4 Tempo · Mausrad Zoom\nRechte Maustaste/WASD verschieben · Q/E drehen";
+
+        _stadt.GebaeudeAngeklickt += kennung => { _auswahlKennung = kennung; AuswahlAnzeigen(); };
+        if (optionen.TryGetValue("auswahl", out var vorauswahl))
+            _auswahlKennung = vorauswahl;
 
         Protokollieren($"Die Zunftglocke läutet. {_simulation.Zeit.DatumText} beginnt.");
         Anzeigen();
     }
 
+    /// <summary>Liest Startoptionen wie "--startstunde=11" (nach "--" auf der Kommandozeile).</summary>
+    private static Dictionary<string, string> Startoptionen()
+    {
+        var optionen = new Dictionary<string, string>();
+        foreach (var arg in OS.GetCmdlineUserArgs())
+        {
+            var teile = arg.TrimStart('-').Split('=', 2);
+            if (teile.Length == 2) optionen[teile[0]] = teile[1];
+        }
+        return optionen;
+    }
+
     /// <summary>
     /// Lädt die Wirtschaftsdaten und stellt die Startaufstellung des Vertical Slice auf:
     /// der Spieler mit einer Gießerei, ein Rivale mit Gießerei und Mine.
-    /// Ohne gültige Datendatei läuft nur die Zeit (mit Fehlermeldung im Protokoll).
     /// </summary>
-    private Simulation SimulationAufbauen()
+    private Simulation SimulationAufbauen(Dictionary<string, string> optionen)
     {
         Wirtschaftsdaten? daten = null;
         try
@@ -105,7 +137,11 @@ public partial class Hauptszene : Control
             GD.PushError(fehler.Message);
         }
 
-        var simulation = new Simulation(wirtschaftsdaten: daten);
+        Spielzeit? start = null;
+        if (optionen.TryGetValue("startstunde", out var s) && int.TryParse(s, out var stunde))
+            start = new Spielzeit(((stunde - 6 + 24) % 24) * 60L);
+
+        var simulation = new Simulation(zeit: start, wirtschaftsdaten: daten);
         if (simulation.Wirtschaft is not { } w)
         {
             _kontor.Hide();
@@ -127,19 +163,33 @@ public partial class Hauptszene : Control
 
         w.Meldung += Protokollieren;
         _kontor.Verbinden(simulation, spieler, giesserei, rivale);
+        _stadt.Verbinden(simulation, new[]
+        {
+            (giesserei, new Vector3(-20, 0, 14), true),
+            (rivalenGiesserei, new Vector3(18, 0, 16), false),
+            (grube, new Vector3(68, 0, -12), false),
+        });
         return simulation;
     }
 
-    /// <summary>Wird von Godot jedes Bild aufgerufen. "delta" = Sekunden seit dem letzten Bild.</summary>
     public override void _Process(double delta)
     {
         _simulation.Aktualisieren(delta);
         Anzeigen();
+        _stadt.Aktualisieren(delta);
+        if (_auswahlKennung is not null) AuswahlAnzeigen();
     }
 
-    /// <summary>Tastatur: Leertaste = Pause, 1–4 = Tempostufen.</summary>
+    /// <summary>Tastatur: Leertaste = Pause, 1–4 = Tempostufen. (Kamera: siehe Stadtansicht)</summary>
     public override void _UnhandledInput(InputEvent eingabe)
     {
+        if (eingabe is InputEventKey { Pressed: true, Echo: false, Keycode: Key.Escape })
+        {
+            _auswahlKennung = null;
+            _auswahl.Hide();
+            GetViewport().SetInputAsHandled();
+            return;
+        }
         if (eingabe is not InputEventKey { Pressed: true, Echo: false } taste)
             return;
 
@@ -156,7 +206,6 @@ public partial class Hauptszene : Control
             default:
                 return;
         }
-
         GetViewport().SetInputAsHandled();
     }
 
@@ -168,11 +217,12 @@ public partial class Hauptszene : Control
 
     private void TempoSetzen(double tempo)
     {
+        if (tempo <= 0) return;
         _simulation.Takt.Tempo = tempo;
         _simulation.Takt.IstPausiert = false;
     }
 
-    /// <summary>Überträgt den Zustand der Simulation auf die Anzeige.</summary>
+    /// <summary>Überträgt den Zustand der Simulation auf die Zeittafel und das Kontor.</summary>
     private void Anzeigen()
     {
         var zeit = _simulation.Zeit;
@@ -188,8 +238,48 @@ public partial class Hauptszene : Control
         for (var i = 0; i < _tempoKnoepfe.Count; i++)
             _tempoKnoepfe[i].SetPressedNoSignal(!takt.IstPausiert && Taktgeber.Tempostufen[i] == takt.Tempo);
 
-        _himmel.Color = Himmelsfarbe(zeit.UhrzeitInMinuten);
         _kontor.Aktualisieren();
+    }
+
+    /// <summary>Zeigt Informationen zum angeklickten Gebäude.</summary>
+    private void AuswahlAnzeigen()
+    {
+        if (_auswahlKennung is null || _simulation.Wirtschaft is not { } w)
+            return;
+
+        var betrieb = w.Betriebe.FirstOrDefault(b => Stadtansicht.BetriebsKennung(b) == _auswahlKennung);
+        _auswahlText.Text = betrieb is not null ? BetriebsText(betrieb, w) : _auswahlKennung switch
+        {
+            "Marktplatz" => "Marktplatz\n\n" + string.Join("\n", w.Markt.Staende.Select(s =>
+                $"{s.Ware}: {Zahlenformat.Kommazahl(s.Preis)} {w.Daten.Allgemein.Waehrung} (Grundpreis {Zahlenformat.Ganz(s.Grundpreis)})")),
+            "Rathaus" => $"Rathaus\n\nHier tagt der Rat der Reichsstadt. Geltendes Fron- und Sklavenstatut: "
+                         + $"{w.Statut.Kuerzel()} – {w.Statut.Name()}.\n\nÄmter, Wahlen und Gesetze folgen in einer späteren Phase.",
+            "Dom" => "Dom\n\nKatholische und evangelische Gläubige aller vier Kulturvölker. "
+                     + "Für die Kirche sind Orks und Oger Heiden.\n\nPredigten, Ablass und Kirchenbann folgen später.",
+            "Osttor" => "Osttor\n\nHier endet der Schutz der Mauern. Auf dem Weg ins Umland lauern Banditen aller Völker, "
+                        + "wilde Ork-Rotten und Ogerhorden – nachts doppelt so häufig.",
+            _ => _auswahlKennung,
+        };
+        _auswahl.Show();
+    }
+
+    private string BetriebsText(Betrieb b, Stadtwirtschaft w)
+    {
+        var zeilen = new List<string>
+        {
+            b.Name,
+            $"Besitzer: {b.Konto.Inhaber}",
+            $"Belegung: {(b.Belegt == 0 ? "niemand" : string.Join(", ", b.Belegung.Select(x => $"{x.Value}× {x.Key}")))} ({b.Belegt}/{b.Plaetze} Plätze)",
+        };
+        if (b.Art == Betriebsart.Giesserei) zeilen.Add($"Produkt: {b.Produkt}");
+        zeilen.Add("Lager: " + (b.Lager.Count == 0 ? "leer" : string.Join(" · ", b.Lager.OrderBy(l => l.Key).Select(l => $"{l.Value} {l.Key}"))));
+        if (b.Stillstand is { } still) zeilen.Add($"⚠ {still}");
+        foreach (var k in b.Karren)
+        {
+            var ladung = string.Join(" + ", k.Ladung.Select(l => $"{l.Value} {l.Key}"));
+            zeilen.Add($"{k.Name} ({k.Eskorte} Eskorte): {k.ZustandText(_simulation.Zeit)}{(ladung == "" ? "" : $" · {ladung}")}");
+        }
+        return string.Join("\n", zeilen);
     }
 
     private void Protokollieren(string meldung)
@@ -198,31 +288,5 @@ public partial class Hauptszene : Control
         if (_protokoll.Count > MaxProtokollZeilen)
             _protokoll.RemoveAt(_protokoll.Count - 1);
         _protokollLabel.Text = string.Join("\n", _protokoll);
-    }
-
-    // Stützpunkte für den Tag-Nacht-Farbverlauf: (Uhrzeit in Minuten, Farbe).
-    private static readonly (int Minute, Color Farbe)[] HimmelsVerlauf =
-    {
-        (0 * 60,  new Color(0.04f, 0.05f, 0.10f)), // Mitternacht
-        (5 * 60,  new Color(0.10f, 0.10f, 0.18f)), // vor dem Morgengrauen
-        (6 * 60,  new Color(0.55f, 0.42f, 0.35f)), // Morgengrauen – Zunftglocke
-        (9 * 60,  new Color(0.47f, 0.60f, 0.72f)), // Vormittag
-        (14 * 60, new Color(0.50f, 0.64f, 0.78f)), // Nachmittag
-        (18 * 60, new Color(0.62f, 0.40f, 0.26f)), // Abendrot – Vesper
-        (21 * 60, new Color(0.14f, 0.12f, 0.20f)), // Zwielicht
-        (24 * 60, new Color(0.04f, 0.05f, 0.10f)), // wieder Mitternacht
-    };
-
-    /// <summary>Berechnet die Himmelsfarbe, indem zwischen zwei Stützpunkten überblendet wird.</summary>
-    private static Color Himmelsfarbe(int uhrzeitInMinuten)
-    {
-        for (var i = 0; i < HimmelsVerlauf.Length - 1; i++)
-        {
-            var (von, farbeVon) = HimmelsVerlauf[i];
-            var (bis, farbeBis) = HimmelsVerlauf[i + 1];
-            if (uhrzeitInMinuten < bis)
-                return farbeVon.Lerp(farbeBis, (float)(uhrzeitInMinuten - von) / (bis - von));
-        }
-        return HimmelsVerlauf[0].Farbe;
     }
 }

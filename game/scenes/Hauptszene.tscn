@@ -2,117 +2,116 @@
 
 [ext_resource type="Script" path="res://scripts/Hauptszene.cs" id="1_skript"]
 [ext_resource type="Script" path="res://scripts/KontorAnzeige.cs" id="2_kontor"]
+[ext_resource type="Script" path="res://scripts/Stadtansicht.cs" id="3_stadt"]
 
-[node name="Hauptszene" type="Control"]
-layout_mode = 3
-anchors_preset = 15
-anchor_right = 1.0
-anchor_bottom = 1.0
-grow_horizontal = 2
-grow_vertical = 2
+[node name="Hauptszene" type="Node"]
 script = ExtResource("1_skript")
 
-[node name="Himmel" type="ColorRect" parent="."]
+[node name="Stadt" type="Node3D" parent="."]
 unique_name_in_owner = true
-layout_mode = 1
-anchors_preset = 15
-anchor_right = 1.0
-anchor_bottom = 1.0
-grow_horizontal = 2
-grow_vertical = 2
-mouse_filter = 2
-color = Color(0.55, 0.42, 0.35, 1)
+script = ExtResource("3_stadt")
 
-[node name="Mitte" type="CenterContainer" parent="."]
-layout_mode = 1
-anchors_preset = 15
-anchor_right = 1.0
-anchor_bottom = 1.0
-grow_horizontal = 2
-grow_vertical = 2
-mouse_filter = 2
+[node name="Oberflaeche" type="CanvasLayer" parent="."]
 
-[node name="Spalten" type="HBoxContainer" parent="Mitte"]
+[node name="Tafel" type="PanelContainer" parent="Oberflaeche"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(380, 0)
+offset_left = 16.0
+offset_top = 16.0
+offset_right = 396.0
+offset_bottom = 300.0
+
+[node name="Rand" type="MarginContainer" parent="Oberflaeche/Tafel"]
 layout_mode = 2
-theme_override_constants/separation = 24
+theme_override_constants/margin_left = 18
+theme_override_constants/margin_top = 14
+theme_override_constants/margin_right = 18
+theme_override_constants/margin_bottom = 14
 
-[node name="Tafel" type="PanelContainer" parent="Mitte/Spalten"]
-custom_minimum_size = Vector2(560, 0)
+[node name="Inhalt" type="VBoxContainer" parent="Oberflaeche/Tafel/Rand"]
 layout_mode = 2
+theme_override_constants/separation = 6
 
-[node name="Rand" type="MarginContainer" parent="Mitte/Spalten/Tafel"]
+[node name="Titel" type="Label" parent="Oberflaeche/Tafel/Rand/Inhalt"]
 layout_mode = 2
-theme_override_constants/margin_left = 28
-theme_override_constants/margin_top = 22
-theme_override_constants/margin_right = 28
-theme_override_constants/margin_bottom = 22
-
-[node name="Inhalt" type="VBoxContainer" parent="Mitte/Spalten/Tafel/Rand"]
-layout_mode = 2
-theme_override_constants/separation = 10
-
-[node name="Titel" type="Label" parent="Mitte/Spalten/Tafel/Rand/Inhalt"]
-layout_mode = 2
-theme_override_font_sizes/font_size = 34
+theme_override_font_sizes/font_size = 24
 text = "Reichsgilde"
 horizontal_alignment = 1
 
-[node name="Datum" type="Label" parent="Mitte/Spalten/Tafel/Rand/Inhalt"]
+[node name="Datum" type="Label" parent="Oberflaeche/Tafel/Rand/Inhalt"]
 unique_name_in_owner = true
 layout_mode = 2
-theme_override_font_sizes/font_size = 26
+theme_override_font_sizes/font_size = 19
 text = "Frühling 1400"
 horizontal_alignment = 1
 
-[node name="Uhrzeit" type="Label" parent="Mitte/Spalten/Tafel/Rand/Inhalt"]
+[node name="Uhrzeit" type="Label" parent="Oberflaeche/Tafel/Rand/Inhalt"]
 unique_name_in_owner = true
 layout_mode = 2
-theme_override_font_sizes/font_size = 22
+theme_override_font_sizes/font_size = 17
 text = "06:00 · Frühe Zunftglocke"
 horizontal_alignment = 1
 
-[node name="Tagesfortschritt" type="ProgressBar" parent="Mitte/Spalten/Tafel/Rand/Inhalt"]
+[node name="Tagesfortschritt" type="ProgressBar" parent="Oberflaeche/Tafel/Rand/Inhalt"]
 unique_name_in_owner = true
-custom_minimum_size = Vector2(0, 14)
+custom_minimum_size = Vector2(0, 10)
 layout_mode = 2
 max_value = 1440.0
 step = 1.0
 show_percentage = false
 
-[node name="Knoepfe" type="HBoxContainer" parent="Mitte/Spalten/Tafel/Rand/Inhalt"]
+[node name="Knoepfe" type="HBoxContainer" parent="Oberflaeche/Tafel/Rand/Inhalt"]
 layout_mode = 2
-theme_override_constants/separation = 8
+theme_override_constants/separation = 6
 alignment = 1
 
-[node name="PauseKnopf" type="Button" parent="Mitte/Spalten/Tafel/Rand/Inhalt/Knoepfe"]
+[node name="PauseKnopf" type="Button" parent="Oberflaeche/Tafel/Rand/Inhalt/Knoepfe"]
 unique_name_in_owner = true
-custom_minimum_size = Vector2(120, 0)
+custom_minimum_size = Vector2(110, 0)
 layout_mode = 2
 focus_mode = 0
 text = "Pause"
 
-[node name="Tempoleiste" type="HBoxContainer" parent="Mitte/Spalten/Tafel/Rand/Inhalt/Knoepfe"]
+[node name="Tempoleiste" type="HBoxContainer" parent="Oberflaeche/Tafel/Rand/Inhalt/Knoepfe"]
 unique_name_in_owner = true
 layout_mode = 2
 theme_override_constants/separation = 4
 
-[node name="Hinweis" type="Label" parent="Mitte/Spalten/Tafel/Rand/Inhalt"]
+[node name="Hinweis" type="Label" parent="Oberflaeche/Tafel/Rand/Inhalt"]
 unique_name_in_owner = true
 layout_mode = 2
 theme_override_colors/font_color = Color(0.75, 0.75, 0.75, 1)
+theme_override_font_sizes/font_size = 13
 text = "Leertaste = Pause · Tasten 1–4 = Tempo"
 horizontal_alignment = 1
 
-[node name="Protokoll" type="Label" parent="Mitte/Spalten/Tafel/Rand/Inhalt"]
+[node name="Protokoll" type="Label" parent="Oberflaeche/Tafel/Rand/Inhalt"]
 unique_name_in_owner = true
-custom_minimum_size = Vector2(0, 110)
+custom_minimum_size = Vector2(344, 96)
+layout_mode = 2
+theme_override_font_sizes/font_size = 13
 autowrap_mode = 3
+
+[node name="Kontor" type="PanelContainer" parent="Oberflaeche"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(400, 0)
+script = ExtResource("2_kontor")
+
+[node name="Auswahl" type="PanelContainer" parent="Oberflaeche"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(380, 0)
+visible = false
+
+[node name="Rand" type="MarginContainer" parent="Oberflaeche/Auswahl"]
+layout_mode = 2
+theme_override_constants/margin_left = 18
+theme_override_constants/margin_top = 14
+theme_override_constants/margin_right = 18
+theme_override_constants/margin_bottom = 14
+
+[node name="AuswahlText" type="Label" parent="Oberflaeche/Auswahl/Rand"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(344, 0)
 layout_mode = 2
 theme_override_font_sizes/font_size = 14
-text = ""
-
-[node name="Kontor" type="PanelContainer" parent="Mitte/Spalten"]
-unique_name_in_owner = true
-custom_minimum_size = Vector2(420, 0)
-layout_mode = 2
-script = ExtResource("2_kontor")
+autowrap_mode = 3
