@@ -31,7 +31,7 @@ public partial class SpielstandListe : VBoxContainer
     /// <summary>Liest den Ordner neu ein.</summary>
     public void Auffrischen()
     {
-        foreach (var kind in _eintraege.GetChildren()) kind.QueueFree();
+        UiHilfe.KinderEntfernen(_eintraege);
         var liste = Spielstaende.Liste();
         if (liste.Count == 0)
         {
