@@ -73,6 +73,9 @@ public sealed class Stadtwirtschaft
     {
         if (!_konten.Contains(konto))
             throw new ArgumentException("Das Konto gehört nicht zu dieser Stadtwirtschaft.", nameof(konto));
+        // Befehle nennen Betriebe beim Namen – deshalb muss er eindeutig sein.
+        if (_betriebe.Any(b => b.Name == name))
+            throw new ArgumentException($"Einen Betrieb „{name}“ gibt es schon.", nameof(name));
         var betrieb = new Betrieb(name, art, konto, Daten);
         _betriebe.Add(betrieb);
 
@@ -164,6 +167,107 @@ public sealed class Stadtwirtschaft
     /// <summary>Hilfsfunktion: Einstellen unter dem aktuell geltenden Statut.</summary>
     public void Einstellen(Betrieb betrieb, string arbeitskraft, int anzahl) =>
         betrieb.Einstellen(arbeitskraft, anzahl, Statut);
+
+    // ═════════════════════════════════════════════════════════════════════════
+    //  Befehle
+    // ═════════════════════════════════════════════════════════════════════════
+
+    /// <summary>
+    /// Prüft einen Befehl und führt ihn aus. Wirft nie – Fehler kommen als abgelehntes Ergebnis
+    /// mit verständlicher Begründung zurück, damit die Oberfläche sie einfach anzeigen kann.
+    /// </summary>
+    /// <param name="absender">Wessen Befehl ist es? Nur eigene Betriebe dürfen verändert werden.</param>
+    public Befehlsergebnis Ausfuehren(Konto absender, Befehl befehl)
+    {
+        var betrieb = _betriebe.FirstOrDefault(b => b.Name == befehl.Betrieb);
+        if (betrieb is null)
+            return Befehlsergebnis.Abgelehnt($"Einen Betrieb „{befehl.Betrieb}“ gibt es nicht.");
+        if (betrieb.Konto != absender)
+            return Befehlsergebnis.Abgelehnt($"{betrieb.Name} gehört nicht {absender.Inhaber}, sondern {betrieb.Konto.Inhaber}.");
+
+        try
+        {
+            return befehl switch
+            {
+                ProduktWaehlen p => ProduktWaehlenAusfuehren(betrieb, p),
+                FoerderungAufteilen f => FoerderungAusfuehren(betrieb, f),
+                PersonalSetzen p => PersonalAusfuehren(betrieb, p),
+                KarrenKaufen k => KarrenKaufenAusfuehren(betrieb, k),
+                EskorteWaehlen e => EskorteAusfuehren(betrieb, e),
+                NachtfahrtErlauben n => NachtfahrtAusfuehren(betrieb, n),
+                _ => Befehlsergebnis.Abgelehnt($"Unbekannter Befehl: {befehl.GetType().Name}"),
+            };
+        }
+        catch (Exception fehler) when (fehler is ArgumentException or InvalidOperationException)
+        {
+            // Die Regeln selbst stehen in Betrieb (z. B. Statut und Arbeitsplätze) – hier wird nur übersetzt.
+            return Befehlsergebnis.Abgelehnt(fehler.Message);
+        }
+    }
+
+    private Befehlsergebnis ProduktWaehlenAusfuehren(Betrieb betrieb, ProduktWaehlen befehl)
+    {
+        if (betrieb.Art != Betriebsart.Giesserei)
+            return Befehlsergebnis.Abgelehnt($"{betrieb.Name} ist keine Werkstatt und stellt nichts her.");
+        if (betrieb.Produkt == befehl.Ware)
+            return Befehlsergebnis.Ok($"{betrieb.Name} stellt bereits {befehl.Ware} her.");
+        betrieb.Produkt = befehl.Ware;
+        return Befehlsergebnis.Ok($"{betrieb.Name} stellt nun {befehl.Ware} her.");
+    }
+
+    private Befehlsergebnis FoerderungAusfuehren(Betrieb betrieb, FoerderungAufteilen befehl)
+    {
+        if (betrieb.Art != Betriebsart.Mine)
+            return Befehlsergebnis.Abgelehnt($"{betrieb.Name} ist keine Mine.");
+        if (befehl.Silberanteil is < 0 or > 1 || double.IsNaN(befehl.Silberanteil))
+            return Befehlsergebnis.Abgelehnt("Der Silberanteil muss zwischen 0 % und 100 % liegen.");
+        betrieb.Silberanteil = befehl.Silberanteil;
+        return Befehlsergebnis.Ok($"{betrieb.Name} fördert nun zu {Zahlenformat.Ganz(befehl.Silberanteil * 100)} % Silber.");
+    }
+
+    private Befehlsergebnis PersonalAusfuehren(Betrieb betrieb, PersonalSetzen befehl)
+    {
+        var vorher = betrieb.Belegung.GetValueOrDefault(befehl.Arbeitskraft);
+        betrieb.Einstellen(befehl.Arbeitskraft, befehl.Anzahl, Statut); // prüft Statut, Plätze und Namen
+        var diff = befehl.Anzahl - vorher;
+        return Befehlsergebnis.Ok(diff switch
+        {
+            > 0 => $"{betrieb.Name}: {diff}× {befehl.Arbeitskraft} eingestellt.",
+            < 0 => $"{betrieb.Name}: {-diff}× {befehl.Arbeitskraft} entlassen.",
+            _ => $"{betrieb.Name}: Belegung unverändert.",
+        });
+    }
+
+    private Befehlsergebnis KarrenKaufenAusfuehren(Betrieb betrieb, KarrenKaufen befehl)
+    {
+        if (!Daten.Logistik.Karren.TryGetValue(befehl.Typ, out var daten))
+            return Befehlsergebnis.Abgelehnt($"Den Karrentyp „{befehl.Typ}“ gibt es nicht.");
+        if (betrieb.Konto.Vermoegen < daten.Preis)
+            return Befehlsergebnis.Abgelehnt(
+                $"Für einen {befehl.Typ} fehlen {Zahlenformat.Ganz(daten.Preis - betrieb.Konto.Vermoegen)} {Daten.Allgemein.Waehrung}.");
+        var karren = betrieb.KarrenKaufen(befehl.Typ);
+        return Befehlsergebnis.Ok($"{karren.Name} für {betrieb.Name} gekauft ({Zahlenformat.Ganz(daten.Preis)} {Daten.Allgemein.Waehrung}).");
+    }
+
+    private Befehlsergebnis EskorteAusfuehren(Betrieb betrieb, EskorteWaehlen befehl)
+    {
+        if (befehl.Karren < 0 || befehl.Karren >= betrieb.Karren.Count)
+            return Befehlsergebnis.Abgelehnt($"{betrieb.Name} hat keinen Karren Nr. {befehl.Karren + 1}.");
+        if (!Daten.Logistik.Eskorten.ContainsKey(befehl.Eskorte))
+            return Befehlsergebnis.Abgelehnt($"Die Eskorte „{befehl.Eskorte}“ gibt es nicht.");
+        var karren = betrieb.Karren[befehl.Karren];
+        karren.Eskorte = befehl.Eskorte;
+        return Befehlsergebnis.Ok($"{karren.Name} von {betrieb.Name} fährt nun mit Eskorte „{befehl.Eskorte}“.");
+    }
+
+    private Befehlsergebnis NachtfahrtAusfuehren(Betrieb betrieb, NachtfahrtErlauben befehl)
+    {
+        if (befehl.Karren < 0 || befehl.Karren >= betrieb.Karren.Count)
+            return Befehlsergebnis.Abgelehnt($"{betrieb.Name} hat keinen Karren Nr. {befehl.Karren + 1}.");
+        var karren = betrieb.Karren[befehl.Karren];
+        karren.NachtsFahren = befehl.Erlaubt;
+        return Befehlsergebnis.Ok($"{karren.Name} von {betrieb.Name} fährt {(befehl.Erlaubt ? "nun auch" : "nicht mehr")} nachts.");
+    }
 
     public double HoechstesVermoegen => _konten.Count == 0 ? 0 : _konten.Max(k => k.Vermoegen);
 }

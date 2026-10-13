@@ -20,6 +20,7 @@ namespace Reichsgilde;
 ///   --auswahl=Dom      Gebäude vorauswählen (Kennung wie beim Anklicken)
 ///   --drehung=1        Kamera um 1–3 Vierteldrehungen gedreht starten (0 = Blick nach Nordosten)
 ///   --innen=1          direkt in der Innenansicht der eigenen Gießerei starten
+///   --verwalten=1      das Bedienfeld der eigenen Gießerei gleich öffnen
 /// </summary>
 public partial class Hauptszene : Node
 {
@@ -37,6 +38,7 @@ public partial class Hauptszene : Node
     private PanelContainer _auswahl = null!;
     private Label _auswahlText = null!;
     private Button _innenKnopf = null!;
+    private BetriebsVerwaltung _verwaltung = null!;
     private Label _blick = null!;
     private Betrieb? _eigeneGiesserei;
     private Label _datum = null!;
@@ -55,6 +57,7 @@ public partial class Hauptszene : Node
         _auswahl = GetNode<PanelContainer>("%Auswahl");
         _auswahlText = GetNode<Label>("%AuswahlText");
         _innenKnopf = GetNode<Button>("%InnenKnopf");
+        _verwaltung = GetNode<BetriebsVerwaltung>("%Verwaltung");
         _blick = GetNode<Label>("%Blick");
         _datum = GetNode<Label>("%Datum");
         _uhrzeit = GetNode<Label>("%Uhrzeit");
@@ -110,10 +113,14 @@ public partial class Hauptszene : Node
             Protokollieren(betrieb is null ? "Zurück in den Gassen der Stadt." : $"Ihr betretet die {betrieb.Name}.");
         };
         _innenKnopf.Pressed += InnenKnopfGedrueckt;
+        _verwaltung.Gemeldet += Protokollieren;
+        _kontor.VerwaltenGewuenscht += betrieb => { _auswahlKennung = Stadtansicht.BetriebsKennung(betrieb); AuswahlAnzeigen(); };
         if (optionen.TryGetValue("auswahl", out var vorauswahl))
             _auswahlKennung = vorauswahl;
         if (optionen.TryGetValue("drehung", out var d) && int.TryParse(d, out var drehung))
             _stadt.Drehen(drehung, sofort: true);
+        if (optionen.TryGetValue("verwalten", out var verwalten) && verwalten == "1" && _eigeneGiesserei is not null)
+            _auswahlKennung = Stadtansicht.BetriebsKennung(_eigeneGiesserei);
         if (optionen.TryGetValue("innen", out var innen) && innen == "1" && _eigeneGiesserei is not null)
             _stadt.InnenansichtBetreten(_eigeneGiesserei);
 
@@ -185,6 +192,7 @@ public partial class Hauptszene : Node
         // Ihre Entscheidungen erscheinen im Protokoll und im Kontor.
         w.KiAnmelden(rivale);
         _kontor.Verbinden(simulation, spieler, giesserei, rivale);
+        _verwaltung.Verbinden(simulation, spieler);
         _stadt.Verbinden(simulation, new[]
         {
             (giesserei, new Vector3(-20, 0, 14), true),
@@ -214,6 +222,7 @@ public partial class Hauptszene : Node
             {
                 _auswahlKennung = null;
                 _auswahl.Hide();
+                _verwaltung.Zeigen(null);
             }
             GetViewport().SetInputAsHandled();
             return;
@@ -267,6 +276,8 @@ public partial class Hauptszene : Node
             _tempoKnoepfe[i].SetPressedNoSignal(!takt.IstPausiert && Taktgeber.Tempostufen[i] == takt.Tempo);
 
         _kontor.Aktualisieren();
+        _verwaltung.Aktualisieren();
+        PlatzMachen();
         _blick.Text = _stadt.InnenBetrieb is { } innen
             ? $"Blick nach {_stadt.Blickrichtung} · Innenansicht {innen.Name}"
             : $"Blick nach {_stadt.Blickrichtung}";
@@ -291,6 +302,7 @@ public partial class Hauptszene : Node
             return;
 
         var betrieb = AusgewaehlterBetrieb();
+        _verwaltung.Zeigen(betrieb); // nur bei eigenen Betrieben sichtbar
         _innenKnopf.Visible = betrieb is not null && _stadt.HatInnenansicht(betrieb);
         _innenKnopf.Text = _stadt.InnenBetrieb == betrieb && betrieb is not null ? "Zurück zur Stadt (Esc)" : "Innenansicht betreten";
         _auswahlText.Text = betrieb is not null ? BetriebsText(betrieb, w) : _auswahlKennung switch
@@ -308,8 +320,17 @@ public partial class Hauptszene : Node
         _auswahl.Show();
     }
 
+    /// <summary>Die Tafel oben links macht Platz, solange unten links eine Auswahl offen ist.</summary>
+    private void PlatzMachen() => _hinweis.Visible = !_auswahl.Visible;
+
     private string BetriebsText(Betrieb b, Stadtwirtschaft w)
     {
+        // Eigener Betrieb: kurz halten – Lager steht im Kontor, Personal und Karren im Bedienfeld darunter.
+        if (b.Konto == _verwaltung.Spieler)
+            // Immer zwei Zeilen: Sonst wächst und schrumpft das Feld mit der Warnung, und die Knöpfe
+            // darunter springen dem Spieler unter der Maus weg.
+            return $"{b.Name} (Euer Betrieb)\n" + (b.Stillstand is { } eigenerStillstand ? $"⚠ {eigenerStillstand}" : "✔ Die Arbeit läuft.");
+
         var zeilen = new List<string>
         {
             b.Name,

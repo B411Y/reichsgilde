@@ -222,6 +222,7 @@ var tests = new List<(string Name, Action Pruefung)>
 tests.AddRange(WirtschaftTests.Alle());
 tests.AddRange(LogistikTests.Alle());
 tests.AddRange(KiTests.Alle());
+tests.AddRange(BefehlTests.Alle());
 
 // ── Testlauf ────────────────────────────────────────────────────────────────
 var fehler = 0;

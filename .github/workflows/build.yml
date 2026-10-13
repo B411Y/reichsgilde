@@ -102,8 +102,11 @@ jobs:
         run: |
           set -o pipefail   # ein Absturz des Spiels soll den Schritt fehlschlagen lassen
           chmod +x build/linux/Reichsgilde.x86_64
+          # 1. normaler Start   2. mit Bedienfeld, Innenansicht und hohem Tempo (mehr Code wird durchlaufen)
           build/linux/Reichsgilde.x86_64 --headless --quit-after 300 2>&1 | tee start.log
-          if grep -E "ERROR|Unhandled exception" start.log; then
+          build/linux/Reichsgilde.x86_64 --headless --quit-after 600 -- --verwalten=1 --innen=1 --tempo=8 --startstunde=10 2>&1 | tee -a start.log
+          # „leaked" fängt Speicherlecks beim Beenden (z. B. Knoten, die nie in den Szenenbaum kamen)
+          if grep -E "ERROR|Unhandled exception|leaked" start.log; then
             echo "::error::Das exportierte Spiel meldet Fehler beim Start"
             exit 1
           fi

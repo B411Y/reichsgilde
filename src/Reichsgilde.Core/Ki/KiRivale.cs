@@ -84,7 +84,7 @@ public sealed class KiRivale
     internal void Jahresende()
     {
         foreach (var betrieb in Betriebe.ToList())
-            KarrenKaufen(betrieb);
+            KarrenNachkaufen(betrieb);
     }
 
     private static string Prozent(double anteil) => $"{Zahlenformat.Ganz(anteil * 100)} %";
@@ -102,59 +102,23 @@ public sealed class KiRivale
     //  Rechnungen – öffentlich, damit Tests und später die Oberfläche sie zeigen können
     // ═════════════════════════════════════════════════════════════════════════
 
-    /// <summary>
-    /// Gewinn je Arbeitsminute, wenn man diese Ware jetzt herstellt und verkauft:
-    /// (Verkaufspreis nach Steuer − Zutaten zum Marktpreis) ÷ Herstellungszeit.
-    /// Für Rohstoffe (keine Zutaten) ist das einfach Preis nach Steuer ÷ Förderzeit.
-    /// </summary>
-    public double GewinnJeArbeitsminute(string ware)
-    {
-        var daten = _w.Daten.Waren[ware];
-        var erloes = _w.Markt[ware].Preis * (1 - _w.Daten.Allgemein.Umsatzsteuer);
-        var zutaten = daten.Zutaten.Sum(z => _w.Markt[z.Key].Preis * z.Value);
-        return (erloes - zutaten) / daten.Zeit;
-    }
-
-    /// <summary>Wert einer Arbeitsminute in diesem Betrieb bei der aktuellen Ausrichtung.</summary>
-    public double WertJeArbeitsminute(Betrieb betrieb) => betrieb.Art == Betriebsart.Giesserei
-        ? GewinnJeArbeitsminute(betrieb.Produkt)
-        : (1 - betrieb.Silberanteil) * GewinnJeArbeitsminute("Eisen") + betrieb.Silberanteil * GewinnJeArbeitsminute("Silber");
+    // Die Rechnungen stehen in Kalkulation – dieselben, die der Spieler im Bedienfeld sieht.
+    public double GewinnJeArbeitsminute(string ware) => Kalkulation.GewinnJeArbeitsminute(_w, ware);
+    public double WertJeArbeitsminute(Betrieb betrieb) => Kalkulation.WertJeArbeitsminute(_w, betrieb);
+    public double Jahresertrag(Betrieb betrieb, string arbeitskraft) => Kalkulation.Jahresertrag(_w, betrieb, arbeitskraft);
+    public double ErwarteteFahrtkosten(string eskorte, double ladungswert) =>
+        Kalkulation.ErwarteteFahrtkosten(_w, eskorte, ladungswert, Profil.Vorsicht);
+    public double Ladungswert(Karren karren) => Kalkulation.Ladungswert(_w, karren);
 
     /// <summary>
-    /// Erwarteter Jahresertrag einer Arbeitskraft in diesem Betrieb:
-    /// Leistung × Arbeitsminuten × Wert je Minute − Lohn − Risiko × Schaden.
+    /// Die KI ändert nichts direkt, sondern schickt Befehle – genau wie der Spieler.
+    /// Wird ein Befehl abgelehnt, war die Überlegung falsch; das wird gemeldet statt verschwiegen.
     /// </summary>
-    public double Jahresertrag(Betrieb betrieb, string arbeitskraft)
+    private bool Befehlen(Befehl befehl, string begruendung)
     {
-        var kraft = _w.Daten.Arbeitskraefte[arbeitskraft];
-        return kraft.TempoAm(betrieb.Ort) * _w.Daten.Allgemein.Arbeitsminuten * WertJeArbeitsminute(betrieb)
-               - kraft.Kosten
-               - kraft.Risiko * kraft.Schaden;
-    }
-
-    /// <summary>
-    /// Erwartete Kosten einer beladenen Fahrt mit dieser Eskorte:
-    /// Eskortenlohn + Chance auf Überfall × Erfolgschance der Banden × Wert der Ladung × Vorsicht.
-    /// Die KI rechnet mit der Tageschance, weil ihre Karren nachts nicht ins Umland fahren.
-    /// </summary>
-    public double ErwarteteFahrtkosten(string eskorte, double ladungswert)
-    {
-        var l = _w.Daten.Logistik;
-        var schutz = l.Eskorten[eskorte].Schutz;
-        var gewichte = l.Banden.Sum(b => b.Gewicht);
-        var erfolg = gewichte <= 0 ? 0 : l.Banden.Sum(b => b.Gewicht * Math.Min(1, b.Staerke * (1 - schutz))) / gewichte;
-        var verlust = Math.Min(1, l.Ueberfall.ChanceTag) * erfolg * ladungswert;
-        return l.Eskorten[eskorte].KostenJeFahrt + verlust * Profil.Vorsicht;
-    }
-
-    /// <summary>Was eine volle Ladung dieses Karrens ungefähr wert ist (mit den Waren, die der Betrieb verkauft).</summary>
-    public double Ladungswert(Karren karren)
-    {
-        var betrieb = karren.Heimat;
-        double preis = betrieb.Art == Betriebsart.Giesserei
-            ? _w.Markt[betrieb.Produkt].Preis
-            : (1 - betrieb.Silberanteil) * _w.Markt["Eisen"].Preis + betrieb.Silberanteil * _w.Markt["Silber"].Preis;
-        return karren.Daten.Gesamtkapazitaet * preis;
+        var ergebnis = _w.Ausfuehren(Konto, befehl);
+        Entscheiden(ergebnis.Erfolg ? begruendung : $"wollte, durfte aber nicht: {ergebnis.Meldung}");
+        return ergebnis.Erfolg;
     }
 
     // ═════════════════════════════════════════════════════════════════════════
@@ -178,11 +142,10 @@ public sealed class KiRivale
         if (bestes == betrieb.Produkt || wert <= aktuell + Math.Abs(aktuell) * Profil.Wechselschwelle)
             return;
 
-        var alt = betrieb.Produkt;
-        betrieb.Produkt = bestes;
         _stundenSeitWechsel[betrieb] = 0;
-        Entscheiden($"{betrieb.Name} stellt von {alt} auf {bestes} um " +
-                    $"({Zahlenformat.Kommazahl(aktuell)} → {Zahlenformat.Kommazahl(wert)} {_w.Daten.Allgemein.Waehrung} je Arbeitsminute).");
+        Befehlen(new ProduktWaehlen(betrieb.Name, bestes),
+            $"{betrieb.Name} stellt von {betrieb.Produkt} auf {bestes} um " +
+            $"({Zahlenformat.Kommazahl(aktuell)} → {Zahlenformat.Kommazahl(wert)} {_w.Daten.Allgemein.Waehrung} je Arbeitsminute).");
     }
 
     private void FoerderungAufteilen(Betrieb betrieb)
@@ -204,9 +167,9 @@ public sealed class KiRivale
         };
         if (Math.Abs(anteil - betrieb.Silberanteil) < 0.01)
             return;
-        betrieb.Silberanteil = anteil;
         _stundenSeitWechsel[betrieb] = 0;
-        Entscheiden($"{betrieb.Name} fördert nun zu {Prozent(anteil)} Silber und {Prozent(1 - anteil)} Eisen.");
+        Befehlen(new FoerderungAufteilen(betrieb.Name, anteil),
+            $"{betrieb.Name} fördert nun zu {Prozent(anteil)} Silber und {Prozent(1 - anteil)} Eisen.");
     }
 
     private void PersonalBesetzen(Betrieb betrieb)
@@ -229,15 +192,16 @@ public sealed class KiRivale
         var anzahl = Math.Min(frei, bezahlbar);
         if (anzahl <= 0) return;
 
-        _w.Einstellen(betrieb, beste.Kraft, betrieb.Belegung.GetValueOrDefault(beste.Kraft) + anzahl);
-        Entscheiden($"{betrieb.Name} stellt {anzahl}× {beste.Kraft} ein " +
-                    $"(erwarteter Ertrag {Zahlenformat.Ganz(beste.Ertrag)} {_w.Daten.Allgemein.Waehrung} je Kopf und Jahr).");
+        Befehlen(new PersonalSetzen(betrieb.Name, beste.Kraft, betrieb.Belegung.GetValueOrDefault(beste.Kraft) + anzahl),
+            $"{betrieb.Name} stellt {anzahl}× {beste.Kraft} ein " +
+            $"(erwarteter Ertrag {Zahlenformat.Ganz(beste.Ertrag)} {_w.Daten.Allgemein.Waehrung} je Kopf und Jahr).");
     }
 
     private void EskorteWaehlen(Betrieb betrieb)
     {
-        foreach (var karren in betrieb.Karren)
+        for (var nummer = 0; nummer < betrieb.Karren.Count; nummer++)
         {
+            var karren = betrieb.Karren[nummer];
             // In der Stadt gibt es keine Überfälle – Eskorte wäre verschenktes Geld.
             var beste = betrieb.Ort == Arbeitsort.Werkstatt
                 ? "Keine"
@@ -247,13 +211,12 @@ public sealed class KiRivale
                     .First();
             if (!_w.Daten.Logistik.Eskorten.ContainsKey(beste) || beste == karren.Eskorte)
                 continue;
-            var alt = karren.Eskorte;
-            karren.Eskorte = beste;
-            Entscheiden($"{karren.Name} von {betrieb.Name} fährt nun mit Eskorte „{beste}“ statt „{alt}“.");
+            Befehlen(new EskorteWaehlen(betrieb.Name, nummer, beste),
+                $"{karren.Name} von {betrieb.Name} fährt nun mit Eskorte „{beste}“ statt „{karren.Eskorte}“.");
         }
     }
 
-    private void KarrenKaufen(Betrieb betrieb)
+    private void KarrenNachkaufen(Betrieb betrieb)
     {
         if (betrieb.Belegt == 0 || betrieb.Karren.Count >= Profil.MaxKarrenJeBetrieb)
             return;
@@ -269,9 +232,9 @@ public sealed class KiRivale
         if (Konto.Vermoegen - daten.Preis < Profil.Reserve)
             return;
 
-        var karren = betrieb.KarrenKaufen(typ);
-        Entscheiden($"{betrieb.Name} stand {Prozent(anteil)} der Arbeitszeit still – {karren.Name} gekauft " +
-                    $"({Zahlenformat.Ganz(daten.Preis)} {_w.Daten.Allgemein.Waehrung}).");
-        EskorteWaehlen(betrieb);
+        if (Befehlen(new KarrenKaufen(betrieb.Name, typ),
+                $"{betrieb.Name} stand {Prozent(anteil)} der Arbeitszeit still – {typ} gekauft " +
+                $"({Zahlenformat.Ganz(daten.Preis)} {_w.Daten.Allgemein.Waehrung})."))
+            EskorteWaehlen(betrieb);
     }
 }
