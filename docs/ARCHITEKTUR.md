@@ -121,3 +121,11 @@ Oberfläche / KI ──Befehl──▶ Ausfuehren ──prüft──▶ Betrieb 
 - Die Stände stehen als Liste in `wirtschaft.json` (Abschnitt `staende`, von unten nach oben). Jedes Konto merkt sich nur seine **Stufe** (`Konto.Stand`), die Stadtwirtschaft liefert Name, Schwelle und Gebühr dazu.
 - Aufsteigen ist ein Befehl (`StandErwerben`) und kein Betriebsbefehl. Deshalb gibt es zwei Arten von Befehlen: `BetriebsBefehl` (braucht einen eigenen Betrieb) und Befehle an das Konto selbst.
 - Schulden prüft die Stadtwirtschaft nach jeder Jahresabrechnung. Ein Bankrott löst das Ereignis `Bankrott` aus. Ob die Partie damit endet, entscheidet die Oberfläche, denn nur sie weiß, welches Konto der Mensch spielt. Sie ruft dann `Simulation.Beenden(grund)` auf.
+
+## Liegenschaften und Stadtplan
+
+- **Was es zu erwerben gibt**, steht in `wirtschaft.json` (Abschnitt `liegenschaften`: Name, Art, Kaufpreis, Mindeststand). Erworben wird mit dem Befehl `LiegenschaftErwerben(name)`. Die Stadtwirtschaft eröffnet dann einen Betrieb mit genau diesem Namen.
+- **Wo etwas steht**, weiß nur die Darstellung: Der `Stadtplan` in `Stadtansicht.cs` ordnet jedem Betriebsnamen einen Platz zu. Der Simulationskern kennt keine Koordinaten. So bleibt er unabhängig von der Grafik und läuft im Multiplayer genauso auf dem Server.
+- Ein neuer Bauplatz braucht also zwei Einträge: einen in `wirtschaft.json` und einen im `Stadtplan`.
+
+**Lehrstück aus diesem Schritt (Godot):** Ein Knopf darf nicht in jedem Bild kurz unsichtbar und wieder sichtbar geschaltet werden. Godot bricht beim Ausblenden einen laufenden Klick ab, und ein Klick, dessen Drücken und Loslassen in verschiedene Bilder fallen, geht verloren. Deshalb erst alles ausrechnen und dann jede Eigenschaft einmal setzen.

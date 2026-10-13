@@ -31,3 +31,21 @@ public sealed class SchuldenDaten
     /// </summary>
     public int JahreBisBankrott { get; init; } = 3;
 }
+
+/// <summary>
+/// Ein freier Betrieb, den man erwerben kann (Abschnitt "liegenschaften").
+///   • Werkstätten werden gekauft (<see cref="Kaufpreis"/>), danach fällt jährlich Unterhalt an.
+///   • Gruben werden gepachtet (Kaufpreis 0), die Pacht wird jährlich fällig.
+/// Wer zuerst kommt, mahlt zuerst: Jede Liegenschaft gibt es nur einmal.
+/// </summary>
+public sealed class LiegenschaftDaten
+{
+    public string Name { get; init; } = "";
+    public Betriebsart Art { get; init; }
+    public double Kaufpreis { get; init; }
+
+    /// <summary>Ab welchem Stand man sie erwerben darf (Name aus "staende").</summary>
+    public string MindestStand { get; init; } = "Bürger";
+
+    public bool IstPacht => Art == Betriebsart.Mine;
+}

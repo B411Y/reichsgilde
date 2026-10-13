@@ -137,12 +137,12 @@ layout_mode = 2
 focus_mode = 0
 text = "Innenansicht betreten"
 
-[node name="StandKnopf" type="Button" parent="Oberflaeche/Auswahl/Rand/Spalte"]
+[node name="AktionKnopf" type="Button" parent="Oberflaeche/Auswahl/Rand/Spalte"]
 unique_name_in_owner = true
 visible = false
 layout_mode = 2
 focus_mode = 0
-text = "Bürgerrecht erwerben"
+text = "Aktion"
 
 [node name="Verwaltung" type="VBoxContainer" parent="Oberflaeche/Auswahl/Rand/Spalte"]
 unique_name_in_owner = true

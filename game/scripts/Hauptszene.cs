@@ -41,7 +41,9 @@ public partial class Hauptszene : Node
     private Label _auswahlText = null!;
     private Button _innenKnopf = null!;
     private BetriebsVerwaltung _verwaltung = null!;
-    private Button _standKnopf = null!;
+    /// <summary>Ein Knopf für die Hauptaktion des ausgewählten Ortes (Aufsteigen, Kaufen, Pachten).</summary>
+    private Button _aktionKnopf = null!;
+    private Func<Befehl>? _aktion;
     private JahresberichtAnzeige _jahresbericht = null!;
     private Konto? _spieler;
 
@@ -69,7 +71,7 @@ public partial class Hauptszene : Node
         _auswahlText = GetNode<Label>("%AuswahlText");
         _innenKnopf = GetNode<Button>("%InnenKnopf");
         _verwaltung = GetNode<BetriebsVerwaltung>("%Verwaltung");
-        _standKnopf = GetNode<Button>("%StandKnopf");
+        _aktionKnopf = GetNode<Button>("%AktionKnopf");
         _jahresbericht = GetNode<JahresberichtAnzeige>("%Jahresbericht");
         _blick = GetNode<Label>("%Blick");
         _datum = GetNode<Label>("%Datum");
@@ -81,6 +83,13 @@ public partial class Hauptszene : Node
         _protokollLabel = GetNode<Label>("%Protokoll");
 
         // Tafeln an die Bildschirmecken heften (passt sich jeder Fenstergröße an).
+        // Deckende Tafeln: Beschriftungen der Stadt sollen nicht durch die Oberfläche scheinen.
+        foreach (var tafel in new[] { _tafel, _kontor, _auswahl })
+            tafel.AddThemeStyleboxOverride("panel", new StyleBoxFlat
+            {
+                BgColor = new Color(0.16f, 0.15f, 0.13f, 0.97f),
+                CornerRadiusTopLeft = 4, CornerRadiusTopRight = 4, CornerRadiusBottomLeft = 4, CornerRadiusBottomRight = 4,
+            });
         _tafel.SetAnchorsAndOffsetsPreset(Control.LayoutPreset.TopLeft, Control.LayoutPresetMode.Minsize, 16);
         _kontor.SetAnchorsAndOffsetsPreset(Control.LayoutPreset.TopRight, Control.LayoutPresetMode.Minsize, 16);
         _kontor.GrowHorizontal = Control.GrowDirection.Begin; // wächst nach links ins Bild
@@ -127,11 +136,12 @@ public partial class Hauptszene : Node
             if (_spieler is not null) _jahresbericht.Zeigen(_simulation, _spieler, _simulation.Endgrund);
         };
         _jahresbericht.Geschlossen += () => { if (!_simulation.IstBeendet) _simulation.Takt.IstPausiert = false; };
-        _standKnopf.Pressed += () =>
+        _aktionKnopf.Pressed += () =>
         {
-            if (_simulation.Wirtschaft is not { } wirtschaft || _spieler is null) return;
-            var ergebnis = wirtschaft.Ausfuehren(_spieler, new StandErwerben());
-            if (!ergebnis.Erfolg) Protokollieren("✗ " + ergebnis.Meldung); // Erfolg meldet die Stadt selbst
+            if (_simulation.Wirtschaft is not { } wirtschaft || _spieler is null || _aktion is null) return;
+            var ergebnis = wirtschaft.Ausfuehren(_spieler, _aktion());
+            if (!ergebnis.Erfolg) Protokollieren("✗ " + ergebnis.Meldung); // Erfolge meldet die Stadt selbst
+            AuswahlAnzeigen();
         };
 
         var minuten = _simulation.Takt.RundenDauerSekunden / 60;
@@ -234,14 +244,17 @@ public partial class Hauptszene : Node
         // Ab jetzt führt die KI Haus Eisenbart: Produkt, Förderung, Personal, Eskorten und Karren.
         // Ihre Entscheidungen erscheinen im Protokoll und im Kontor.
         w.KiAnmelden(rivale);
-        _kontor.Verbinden(simulation, spieler, giesserei, rivale);
+        _kontor.Verbinden(simulation, spieler, rivale);
         _verwaltung.Verbinden(simulation, spieler);
-        _stadt.Verbinden(simulation, new[]
+        // Die Stadtansicht stellt jeden Betrieb an seinen Platz im Stadtplan und zeigt die freien Plätze.
+        _stadt.Verbinden(simulation, spieler);
+        w.BetriebErworben += betrieb =>
         {
-            (giesserei, new Vector3(-20, 0, 14), true),
-            (rivalenGiesserei, new Vector3(18, 0, 16), false),
-            (grube, new Vector3(68, 0, -12), false),
-        });
+            _stadt.BetriebHinzufuegen(betrieb);
+            // Hat der Spieler gerade den ausgewählten Platz erworben, wechselt die Auswahl auf den neuen Betrieb.
+            if (_auswahlKennung == Stadtansicht.LiegenschaftKennung(betrieb.Name))
+                _auswahlKennung = Stadtansicht.BetriebsKennung(betrieb);
+        };
         return simulation;
     }
 
@@ -348,7 +361,12 @@ public partial class Hauptszene : Node
         _verwaltung.Zeigen(betrieb); // nur bei eigenen Betrieben sichtbar
         _innenKnopf.Visible = betrieb is not null && _stadt.HatInnenansicht(betrieb);
         _innenKnopf.Text = _stadt.InnenBetrieb == betrieb && betrieb is not null ? "Zurück zur Stadt (Esc)" : "Innenansicht betreten";
-        _auswahlText.Text = betrieb is not null ? BetriebsText(betrieb, w) : _auswahlKennung switch
+        var frei = _auswahlKennung.StartsWith("liegenschaft:")
+            ? w.FreieLiegenschaften.FirstOrDefault(l => Stadtansicht.LiegenschaftKennung(l.Name) == _auswahlKennung)
+            : null;
+        _auswahlText.Text = betrieb is not null ? BetriebsText(betrieb, w)
+            : frei is not null ? LiegenschaftText(frei, w)
+            : _auswahlKennung switch
         {
             "Marktplatz" => "Marktplatz\n\n" + string.Join("\n", w.Markt.Staende.Select(s =>
                 $"{s.Ware}: {Zahlenformat.Kommazahl(s.Preis)} {w.Daten.Allgemein.Waehrung} (Grundpreis {Zahlenformat.Ganz(s.Grundpreis)})")),
@@ -359,8 +377,27 @@ public partial class Hauptszene : Node
                         + "wilde Ork-Rotten und Ogerhorden – nachts doppelt so häufig.",
             _ => _auswahlKennung,
         };
-        StandKnopfAnzeigen(w);
+        AktionKnopfAnzeigen(w, frei);
         _auswahl.Show();
+    }
+
+    /// <summary>Ein freier Platz: was er kostet, ab welchem Stand und was er voraussichtlich einbringt.</summary>
+    private string LiegenschaftText(LiegenschaftDaten l, Stadtwirtschaft w)
+    {
+        var waehrung = w.Daten.Allgemein.Waehrung;
+        var art = l.Art == Betriebsart.Mine ? "Grube (Eisen und Silber)" : "Gießerei";
+        var zeilen = new List<string>
+        {
+            $"{l.Name} – {(l.IstPacht ? "zu verpachten" : "zu verkaufen")}",
+            "",
+            $"{art} mit {w.Daten.Plaetze(l.Art)} Arbeitsplätzen",
+            l.IstPacht
+                ? $"Pacht: {Zahlenformat.Ganz(w.Daten.Fixkosten(l.Art))} {waehrung} im Jahr"
+                : $"Kaufpreis: {Zahlenformat.Ganz(l.Kaufpreis)} {waehrung}, Unterhalt {Zahlenformat.Ganz(w.Daten.Fixkosten(l.Art))} im Jahr",
+            $"Zu haben ab dem Stand: {l.MindestStand}",
+            $"Erwarteter Gewinn bei voller Belegung: ≈ {Zahlenformat.MitVorzeichen(Kalkulation.ErwarteterJahresgewinn(w, l.Art))} {waehrung} im Jahr (zu heutigen Preisen)",
+        };
+        return string.Join("\n", zeilen);
     }
 
     /// <summary>Im Rathaus: Ständeordnung, Rangliste und das geltende Statut.</summary>
@@ -386,17 +423,47 @@ public partial class Hauptszene : Node
         return string.Join("\n", zeilen);
     }
 
-    /// <summary>Der Aufstiegsknopf erscheint nur im Rathaus und ist gesperrt, solange das Vermögen nicht reicht.</summary>
-    private void StandKnopfAnzeigen(Stadtwirtschaft w)
+    /// <summary>
+    /// Der Aktionsknopf: im Rathaus „Aufsteigen", an einem freien Platz „Kaufen" bzw. „Pachten".
+    /// Ist die Aktion (noch) nicht möglich, ist er gesperrt und nennt den Grund.
+    /// </summary>
+    private void AktionKnopfAnzeigen(Stadtwirtschaft w, LiegenschaftDaten? frei)
     {
-        var naechster = _spieler is null ? null : w.NaechsterStand(_spieler);
-        _standKnopf.Visible = _auswahlKennung == "Rathaus" && naechster is not null;
-        if (naechster is null || _spieler is null) return;
+        // Erst ausrechnen, dann EINMAL zuweisen. Wichtig: Würde der Knopf in jedem Bild kurz unsichtbar
+        // und wieder sichtbar geschaltet, vergäße Godot, dass er gerade gedrückt wird – ein Klick, dessen
+        // Drücken und Loslassen in verschiedene Bilder fallen, ginge verloren.
+        var (sichtbar, gesperrt, text, aktion) = AktionBestimmen(w, frei);
+        _aktion = aktion;
+        _aktionKnopf.Visible = sichtbar;
+        if (!sichtbar) return;
+        _aktionKnopf.Disabled = gesperrt;
+        if (_aktionKnopf.Text != text) _aktionKnopf.Text = text;
+    }
+
+    private (bool Sichtbar, bool Gesperrt, string Text, Func<Befehl>? Aktion) AktionBestimmen(Stadtwirtschaft w, LiegenschaftDaten? frei)
+    {
+        if (_spieler is null) return (false, true, "", null);
+        var waehrung = w.Daten.Allgemein.Waehrung;
+
+        if (frei is not null)
+        {
+            var kosten = frei.Kaufpreis + w.Daten.Fixkosten(frei.Art);
+            var standOk = _spieler.Stand >= w.Daten.StandStufe(frei.MindestStand);
+            var geldOk = _spieler.Vermoegen >= kosten;
+            var text = !standOk ? $"Erst ab dem Stand {frei.MindestStand}"
+                : !geldOk ? $"Es fehlen {Zahlenformat.Ganz(kosten - _spieler.Vermoegen)} {waehrung}"
+                : frei.IstPacht ? $"Pachten ({Zahlenformat.Ganz(w.Daten.Fixkosten(frei.Art))} {waehrung} im Jahr)"
+                : $"Kaufen ({Zahlenformat.Ganz(frei.Kaufpreis)} {waehrung})";
+            return (true, !standOk || !geldOk || _spieler.IstBankrott, text, () => new LiegenschaftErwerben(frei.Name));
+        }
+
+        if (_auswahlKennung != "Rathaus" || w.NaechsterStand(_spieler) is not { } naechster)
+            return (false, true, "", null);
         var reicht = _spieler.Vermoegen >= naechster.Schwelle;
-        _standKnopf.Disabled = !reicht || _spieler.IstBankrott;
-        _standKnopf.Text = reicht
-            ? $"Aufsteigen zum {naechster.Name} ({Zahlenformat.Ganz(naechster.Gebuehr)} {w.Daten.Allgemein.Waehrung})"
-            : $"{naechster.Name} ab {Zahlenformat.Ganz(naechster.Schwelle)} {w.Daten.Allgemein.Waehrung} – es fehlen {Zahlenformat.Ganz(naechster.Schwelle - _spieler.Vermoegen)}";
+        var standText = reicht
+            ? $"Aufsteigen zum {naechster.Name} ({Zahlenformat.Ganz(naechster.Gebuehr)} {waehrung})"
+            : $"{naechster.Name} ab {Zahlenformat.Ganz(naechster.Schwelle)} {waehrung} – es fehlen {Zahlenformat.Ganz(naechster.Schwelle - _spieler.Vermoegen)}";
+        return (true, !reicht || _spieler.IstBankrott, standText, () => new StandErwerben());
     }
 
     /// <summary>Die Tafel oben links macht Platz, solange unten links eine Auswahl offen ist.</summary>
@@ -408,7 +475,8 @@ public partial class Hauptszene : Node
         if (b.Konto == _verwaltung.Spieler)
             // Immer zwei Zeilen: Sonst wächst und schrumpft das Feld mit der Warnung, und die Knöpfe
             // darunter springen dem Spieler unter der Maus weg.
-            return $"{b.Name} (Euer Betrieb)\n" + (b.Stillstand is { } eigenerStillstand ? $"⚠ {eigenerStillstand}" : "✔ Die Arbeit läuft.");
+            return $"{b.Name} (Euer Betrieb)\n" + (b.Belegt == 0 ? "⚠ Kein Personal – stellt unten Arbeitskräfte ein."
+                : b.Stillstand is { } eigenerStillstand ? $"⚠ {eigenerStillstand}" : "✔ Die Arbeit läuft.");
 
         var zeilen = new List<string>
         {

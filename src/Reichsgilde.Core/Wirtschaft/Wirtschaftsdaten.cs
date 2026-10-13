@@ -1,4 +1,5 @@
 using System.Text.Json;
+using System.Text.Json.Serialization;
 
 namespace Reichsgilde.Core.Wirtschaft;
 
@@ -153,11 +154,24 @@ public sealed class Wirtschaftsdaten
     /// <summary>Wann Schulden zum Bankrott führen (ab Datenversion 3).</summary>
     public SchuldenDaten Schulden { get; init; } = new();
 
+    /// <summary>Freie Werkstätten und Gruben, die man erwerben kann (ab Datenversion 4).</summary>
+    public List<LiegenschaftDaten> Liegenschaften { get; init; } = new();
+
+    /// <summary>Stufe eines Standes nach Namen (−1, wenn es ihn nicht gibt).</summary>
+    public int StandStufe(string name) => Staende.FindIndex(st => st.Name == name);
+
+    /// <summary>Jährliche Fixkosten einer Betriebsart (Unterhalt der Werkstatt bzw. Pacht der Grube).</summary>
+    public double Fixkosten(Betriebsart art) => art == Betriebsart.Mine ? Allgemein.PachtMine : Allgemein.UnterhaltGiesserei;
+
+    /// <summary>Arbeitsplätze einer Betriebsart.</summary>
+    public int Plaetze(Betriebsart art) => art == Betriebsart.Mine ? Allgemein.PlaetzeMine : Allgemein.PlaetzeGiesserei;
+
     private static readonly JsonSerializerOptions Optionen = new()
     {
         PropertyNameCaseInsensitive = true,
         ReadCommentHandling = JsonCommentHandling.Skip,
         AllowTrailingCommas = true,
+        Converters = { new JsonStringEnumConverter() }, // "art": "Mine" → Betriebsart.Mine
     };
 
     /// <summary>Liest die Daten aus einem JSON-Text und prüft sie.</summary>
@@ -244,6 +258,16 @@ public sealed class Wirtschaftsdaten
         if (buerger is not null && buerger.Schwelle != a.SchwelleBuerger)
             f.Add($"Stand Bürger: schwelle ({buerger.Schwelle}) passt nicht zu allgemein.schwelleBuerger ({a.SchwelleBuerger}).");
         if (Schulden.JahreBisBankrott < 1) f.Add("schulden.jahreBisBankrott muss mindestens 1 sein.");
+
+        foreach (var l in Liegenschaften)
+        {
+            if (string.IsNullOrWhiteSpace(l.Name)) f.Add("liegenschaften: name fehlt.");
+            if (l.Kaufpreis < 0) f.Add($"Liegenschaft {l.Name}: kaufpreis darf nicht negativ sein.");
+            if (StandStufe(l.MindestStand) < 0) f.Add($"Liegenschaft {l.Name}: mindestStand „{l.MindestStand}“ gibt es nicht.");
+            if (!Enum.IsDefined(l.Art)) f.Add($"Liegenschaft {l.Name}: unbekannte art.");
+        }
+        foreach (var doppelt in Liegenschaften.GroupBy(l => l.Name).Where(g => g.Count() > 1))
+            f.Add($"Liegenschaft „{doppelt.Key}“ ist doppelt eingetragen.");
         return f;
     }
 
