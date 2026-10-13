@@ -85,3 +85,19 @@ Die Welt besteht aus 3D-Objekten, wirkt aber wie ein gezeichnetes 2,5D-Spiel. Da
 4. **Gespielt wird auf einer Ebene** – Höhen sind nur Kulisse.
 
 **Diorama-Innenansicht:** Gebäude mit Innenraum (bisher die Gießerei) bestehen aus einzelnen Wänden, einem Dach und einem Knoten „Innen“ mit der Einrichtung. Beim Betreten wird das Dach ausgeblendet und jede Wand, deren Außenseite zur Kamera zeigt (Skalarprodukt > 0,5 – beim diagonalen Blick genau zwei). Dinge zwischen Kamera und Gebäude werden ebenfalls ausgeblendet. Was innen zu sehen ist (Kisten, Arbeiter, Glut), liest die Ansicht nur aus der Simulation – sie verändert nichts.
+
+## KI-Rivalen
+
+Ein KI-Rivale (`src/Reichsgilde.Core/Ki/KiRivale.cs`) führt ein Konto und alle Betriebe, die dazu gehören. Er gehört zum Simulationskern, läuft also im Multiplayer später auf dem Server und ist ohne Godot testbar.
+
+**Grundsatz: keine Schummelei.** Die KI sieht nur, was auch der Spieler sieht: Marktpreise, die Spieldaten und ihr eigenes Konto. Sie kennt weder Zufallswürfe noch die Zukunft und nutzt dieselben Methoden wie der Spieler (`Einstellen`, `KarrenKaufen`, `Produkt`, `Eskorte`).
+
+| Wann | Entscheidung | Rechnung |
+|---|---|---|
+| jede volle Stunde | Produkt der Gießerei | Gewinn je Arbeitsminute = (Preis × (1 − Steuer) − Zutaten zum Marktpreis) ÷ Zeit. Wechsel erst ab 15 % Vorsprung und frühestens nach 6 Stunden. |
+| jede volle Stunde | Förderung der Mine | Silberanteil in Stufen 20/35/50/65/80 % nach dem Preisvorsprung von Silber gegenüber Eisen |
+| jede volle Stunde | Personal | Freie Plätze mit der erlaubten Arbeitskraft mit dem höchsten Jahresertrag besetzen: Tempo × 720 Min. × Wert je Minute − Lohn − Risiko × Schaden |
+| jede volle Stunde | Eskorte | Geringste erwartete Kosten: Eskortenlohn + Überfallchance × Erfolgschance der Banden × Ladungswert × Vorsicht |
+| Jahresende | Karren kaufen | Wenn der Betrieb im Vorjahr mehr als 20 % der Arbeitszeit stillstand und die Reserve es erlaubt |
+
+Das **Profil** (`KiProfil`) gibt jedem Rivalen einen Charakter: Geldreserve, Wechselschwelle, Vorsicht (wie stark er Raub fürchtet) und Höchstzahl an Karren. Über 20 Jahre verdient der Rivale mit KI rund 9 % mehr als ohne. Für den Spieler wird es entsprechend enger, weil die KI in seine Märkte drängt.

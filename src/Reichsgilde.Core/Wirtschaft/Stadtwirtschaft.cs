@@ -1,3 +1,4 @@
+using Reichsgilde.Core.Ki;
 using Reichsgilde.Core.Zeit;
 
 namespace Reichsgilde.Core.Wirtschaft;
@@ -22,6 +23,7 @@ public sealed class Stadtwirtschaft
     private readonly Random _zufall;
     private readonly Random _reihenfolge;
     private readonly List<Karren> _alleKarren = new();
+    private readonly List<KiRivale> _rivalen = new();
 
     /// <summary>Der eine Zufallsgenerator der Wirtschaft (nur intern, damit niemand die Reihenfolge stört).</summary>
     internal Random Zufall => _zufall;
@@ -33,6 +35,9 @@ public sealed class Stadtwirtschaft
     public Fronstatut Statut { get; private set; }
     public IReadOnlyList<Betrieb> Betriebe => _betriebe;
     public IReadOnlyList<Konto> Konten => _konten;
+
+    /// <summary>Konten, die von der KI geführt werden.</summary>
+    public IReadOnlyList<KiRivale> Rivalen => _rivalen;
 
     /// <summary>Meldungen für den Spieler (Ausbrüche, Entlassungen …).</summary>
     public event Action<string>? Meldung;
@@ -77,6 +82,22 @@ public sealed class Stadtwirtschaft
         return betrieb;
     }
 
+    /// <summary>
+    /// Übergibt ein Konto samt seinen Betrieben an die KI. Sie trifft sofort erste Entscheidungen
+    /// und danach jede volle Stunde sowie zum Jahresende.
+    /// </summary>
+    public KiRivale KiAnmelden(Konto konto, KiProfil? profil = null)
+    {
+        if (!_konten.Contains(konto))
+            throw new ArgumentException("Das Konto gehört nicht zu dieser Stadtwirtschaft.", nameof(konto));
+        if (_rivalen.Any(r => r.Konto == konto))
+            throw new InvalidOperationException($"{konto.Inhaber} wird bereits von der KI geführt.");
+        var rivale = new KiRivale(konto, profil ?? KiProfil.Standard, this);
+        _rivalen.Add(rivale);
+        rivale.Stunde();
+        return rivale;
+    }
+
     /// <summary>Ist zu dieser Uhrzeit Arbeitszeit?</summary>
     public bool IstArbeitszeit(Spielzeit zeit)
     {
@@ -91,6 +112,11 @@ public sealed class Stadtwirtschaft
             Markt.NeueStunde();
         else if (zeit.VergangeneMinuten > 0)
             Markt.NeueMinute();
+
+        // Die KI überlegt jede volle Stunde – mit den Marktpreisen dieser Stunde.
+        if (zeit.MinuteImTag % 60 == 0 && zeit.VergangeneMinuten > 0)
+            foreach (var rivale in _rivalen)
+                rivale.Stunde();
 
         if (IstArbeitszeit(zeit))
             foreach (var betrieb in _betriebe)
@@ -117,6 +143,8 @@ public sealed class Stadtwirtschaft
             betrieb.Jahresabrechnung(_zufall, m => Meldung?.Invoke(m));
         foreach (var konto in _konten)
             konto.JahrAbschliessen(neuesJahr);
+        foreach (var rivale in _rivalen)
+            rivale.Jahresende();
     }
 
     /// <summary>

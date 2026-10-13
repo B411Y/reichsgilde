@@ -135,7 +135,7 @@ public partial class Hauptszene : Node
 
     /// <summary>
     /// Lädt die Wirtschaftsdaten und stellt die Startaufstellung des Vertical Slice auf:
-    /// der Spieler mit einer Gießerei, ein Rivale mit Gießerei und Mine.
+    /// der Spieler mit einer Gießerei, ein KI-Rivale mit Gießerei und Mine.
     /// </summary>
     private Simulation SimulationAufbauen(Dictionary<string, string> optionen)
     {
@@ -177,10 +177,13 @@ public partial class Hauptszene : Node
         w.Einstellen(rivalenGiesserei, "Geselle", 2);
         var grube = w.BetriebEroeffnen("Grube Eisenbart", Betriebsart.Mine, rivale);
         w.Einstellen(grube, "Ork", 3);
-        grube.Karren[0].Eskorte = "Normal"; // Der Rivale lässt seine Erzfuhren begleiten.
 
         w.Meldung += Protokollieren;
         _eigeneGiesserei = giesserei;
+
+        // Ab jetzt führt die KI Haus Eisenbart: Produkt, Förderung, Personal, Eskorten und Karren.
+        // Ihre Entscheidungen erscheinen im Protokoll und im Kontor.
+        w.KiAnmelden(rivale);
         _kontor.Verbinden(simulation, spieler, giesserei, rivale);
         _stadt.Verbinden(simulation, new[]
         {
