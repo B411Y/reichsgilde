@@ -28,8 +28,11 @@ public sealed class Simulation
     /// <summary>Markt, Betriebe und Konten. Null, wenn die Simulation ohne Wirtschaftsdaten läuft.</summary>
     public Stadtwirtschaft? Wirtschaft { get; }
 
-    /// <summary>Ist die Partie laut Siegbedingung vorbei? Dann läuft keine Zeit mehr.</summary>
+    /// <summary>Ist die Partie vorbei (Siegbedingung oder <see cref="Beenden"/>)? Dann läuft keine Zeit mehr.</summary>
     public bool IstBeendet { get; private set; }
+
+    /// <summary>Warum die Partie endete (null, solange sie läuft).</summary>
+    public string? Endgrund { get; private set; }
 
     /// <summary>Wird ausgelöst, wenn eine neue Tagesphase beginnt (z. B. Vesper).</summary>
     public event Action<Tagesphase>? PhaseBegonnen;
@@ -103,11 +106,25 @@ public sealed class Simulation
         JahrBeendet?.Invoke(beendetesJahr);
 
         var vermoegen = (long)Math.Floor(Wirtschaft?.HoechstesVermoegen ?? 0);
-        var stand = new Spielstand(Zeit.Jahr, PlatzhalterLebendeDynastien, vermoegen);
-        if (Spielende.IstErreicht(Einstellungen, stand))
-        {
-            IstBeendet = true;
-            PartieBeendet?.Invoke();
-        }
+        var stand = new Spielstand(Zeit.Jahr, LebendeDynastien, vermoegen);
+        if (!IstBeendet && Spielende.IstErreicht(Einstellungen, stand))
+            Beenden(Einstellungen.SiegbedingungText);
+    }
+
+    /// <summary>
+    /// Noch nicht bankrotte Konten. Solange es weniger als zwei Konten gibt (Tests, Sandbox),
+    /// zählt der Platzhalter – sonst wäre „Letzte Dynastie gewinnt" sofort erfüllt.
+    /// </summary>
+    private int LebendeDynastien => Wirtschaft is { Konten.Count: >= 2 } w
+        ? w.Konten.Count(k => !k.IstBankrott)
+        : PlatzhalterLebendeDynastien;
+
+    /// <summary>Beendet die Partie sofort, z. B. wenn der Spieler bankrott ist. Löst <see cref="PartieBeendet"/> einmal aus.</summary>
+    public void Beenden(string grund)
+    {
+        if (IstBeendet) return;
+        IstBeendet = true;
+        Endgrund = grund;
+        PartieBeendet?.Invoke();
     }
 }

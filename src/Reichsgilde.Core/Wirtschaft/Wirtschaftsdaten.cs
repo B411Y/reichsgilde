@@ -143,6 +143,16 @@ public sealed class Wirtschaftsdaten
     /// <summary>Karren, Fahrzeiten, Eskorten und Banden (ab Datenversion 2).</summary>
     public LogistikDaten Logistik { get; init; } = new();
 
+    /// <summary>Die Stände von unten nach oben (ab Datenversion 3). Der erste ist der Startstand.</summary>
+    public List<StandDaten> Staende { get; init; } = new()
+    {
+        new() { Name = "Gemeiner" },
+        new() { Name = "Bürger", Schwelle = 10000, Gebuehr = 1000 },
+    };
+
+    /// <summary>Wann Schulden zum Bankrott führen (ab Datenversion 3).</summary>
+    public SchuldenDaten Schulden { get; init; } = new();
+
     private static readonly JsonSerializerOptions Optionen = new()
     {
         PropertyNameCaseInsensitive = true,
@@ -219,6 +229,21 @@ public sealed class Wirtschaftsdaten
         }
 
         Logistik.Pruefen(f);
+
+        if (Staende.Count == 0) f.Add("Es sind keine Stände definiert.");
+        for (var i = 0; i < Staende.Count; i++)
+        {
+            var st = Staende[i];
+            if (string.IsNullOrWhiteSpace(st.Name)) f.Add($"staende[{i}]: name fehlt.");
+            if (st.Schwelle < 0 || st.Gebuehr < 0) f.Add($"Stand {st.Name}: schwelle und gebuehr dürfen nicht negativ sein.");
+            if (st.Gebuehr > st.Schwelle) f.Add($"Stand {st.Name}: gebuehr darf nicht höher als die schwelle sein.");
+            if (i > 0 && st.Schwelle <= Staende[i - 1].Schwelle) f.Add($"Stand {st.Name}: schwelle muss höher sein als beim Stand darunter.");
+        }
+        if (Staende.Count > 0 && Staende[0].Schwelle != 0) f.Add($"Der erste Stand ({Staende[0].Name}) ist der Startstand und braucht schwelle 0.");
+        var buerger = Staende.FirstOrDefault(st => st.Name == "Bürger");
+        if (buerger is not null && buerger.Schwelle != a.SchwelleBuerger)
+            f.Add($"Stand Bürger: schwelle ({buerger.Schwelle}) passt nicht zu allgemein.schwelleBuerger ({a.SchwelleBuerger}).");
+        if (Schulden.JahreBisBankrott < 1) f.Add("schulden.jahreBisBankrott muss mindestens 1 sein.");
         return f;
     }
 

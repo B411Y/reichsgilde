@@ -4,6 +4,7 @@
 [ext_resource type="Script" path="res://scripts/KontorAnzeige.cs" id="2_kontor"]
 [ext_resource type="Script" path="res://scripts/Stadtansicht.cs" id="3_stadt"]
 [ext_resource type="Script" path="res://scripts/BetriebsVerwaltung.cs" id="4_verwaltung"]
+[ext_resource type="Script" path="res://scripts/JahresberichtAnzeige.cs" id="5_bericht"]
 
 [node name="Hauptszene" type="Node"]
 script = ExtResource("1_skript")
@@ -136,7 +137,19 @@ layout_mode = 2
 focus_mode = 0
 text = "Innenansicht betreten"
 
+[node name="StandKnopf" type="Button" parent="Oberflaeche/Auswahl/Rand/Spalte"]
+unique_name_in_owner = true
+visible = false
+layout_mode = 2
+focus_mode = 0
+text = "Bürgerrecht erwerben"
+
 [node name="Verwaltung" type="VBoxContainer" parent="Oberflaeche/Auswahl/Rand/Spalte"]
 unique_name_in_owner = true
 layout_mode = 2
 script = ExtResource("4_verwaltung")
+
+[node name="Jahresbericht" type="PanelContainer" parent="Oberflaeche"]
+unique_name_in_owner = true
+visible = false
+script = ExtResource("5_bericht")

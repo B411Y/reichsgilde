@@ -22,6 +22,9 @@ public sealed class Jahresbilanz
     /// <summary>Anschaffungen wie Karren. Mindern das Vermögen, zählen aber nicht als laufende Kosten.</summary>
     public double Investitionen { get; internal set; }
 
+    /// <summary>Gebühren für den Aufstieg in einen höheren Stand. Zählen ebenfalls nicht als laufende Kosten.</summary>
+    public double Standesgebuehren { get; internal set; }
+
     /// <summary>Hergestellte Stück je Ware.</summary>
     public Dictionary<string, int> Hergestellt { get; } = new();
 
@@ -46,6 +49,15 @@ public sealed class Konto
     /// <summary>Die abgeschlossene Rechnung des Vorjahres (null im ersten Jahr).</summary>
     public Jahresbilanz? Vorjahr { get; private set; }
 
+    /// <summary>Stufe in der Ständeordnung: 0 = unterster Stand der Daten (Gemeiner).</summary>
+    public int Stand { get; internal set; }
+
+    /// <summary>Wie viele Jahresabschlüsse in Folge das Vermögen negativ war.</summary>
+    public int Schuldenjahre { get; private set; }
+
+    /// <summary>Bankrott: Das Konto ist aus dem Spiel, seine Betriebe stehen still.</summary>
+    public bool IstBankrott { get; internal set; }
+
     public Konto(string inhaber, double startvermoegen, int startjahr)
     {
         Inhaber = inhaber;
@@ -61,6 +73,7 @@ public sealed class Konto
     internal void Schaden(double betrag) { Vermoegen -= betrag; Laufend.Schaden += betrag; }
     internal void Transport(double betrag) { Vermoegen -= betrag; Laufend.Transport += betrag; }
     internal void Investition(double betrag) { Vermoegen -= betrag; Laufend.Investitionen += betrag; }
+    internal void Standesgebuehr(double betrag) { Vermoegen -= betrag; Laufend.Standesgebuehren += betrag; }
     internal void Raub(double warenwert) => Laufend.Raubwert += warenwert;
 
     internal void Hergestellt(string ware, int stueck = 1) =>
@@ -69,6 +82,7 @@ public sealed class Konto
     /// <summary>Schließt das Jahr ab: Die laufende Rechnung wird zum Vorjahr.</summary>
     internal void JahrAbschliessen(int neuesJahr)
     {
+        Schuldenjahre = Vermoegen < 0 ? Schuldenjahre + 1 : 0;
         Vorjahr = Laufend;
         Laufend = new Jahresbilanz { Jahr = neuesJahr };
     }

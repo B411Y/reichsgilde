@@ -1,5 +1,5 @@
 {
-  "version": 2,
+  "version": 3,
   "allgemein": {
     "waehrung": "Gulden",
     "arbeitsminuten": 720,
@@ -277,5 +277,46 @@
         "wild": true
       }
     ]
+  },
+  "staende": [
+    {
+      "name": "Gemeiner",
+      "schwelle": 0,
+      "gebuehr": 0,
+      "privilegien": "Betrieb führen, Handel treiben"
+    },
+    {
+      "name": "Bürger",
+      "schwelle": 10000,
+      "gebuehr": 1000,
+      "privilegien": "Bürgerrecht: Klage vor Gericht, Schöffen wählen, Bewerbung auf niedere Ämter"
+    },
+    {
+      "name": "Patrizier",
+      "schwelle": 20000,
+      "gebuehr": 2500,
+      "privilegien": "Wählbar in den Stadtrat, Steinhaus bauen"
+    },
+    {
+      "name": "Edler",
+      "schwelle": 50000,
+      "gebuehr": 6000,
+      "privilegien": "Eigene Söldner, Fehde erklären"
+    },
+    {
+      "name": "Freiherr",
+      "schwelle": 100000,
+      "gebuehr": 12000,
+      "privilegien": "Kaiserliche Privilegien beanspruchen"
+    },
+    {
+      "name": "Reichsgraf",
+      "schwelle": 200000,
+      "gebuehr": 25000,
+      "privilegien": "Höchster Stand der Reichsstadt"
+    }
+  ],
+  "schulden": {
+    "jahreBisBankrott": 2
   }
 }

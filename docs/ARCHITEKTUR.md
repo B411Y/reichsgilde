@@ -115,3 +115,9 @@ Oberfläche / KI ──Befehl──▶ Ausfuehren ──prüft──▶ Betrieb 
 - **Befehle tragen nur Namen und Zahlen** (z. B. `PersonalSetzen("Gießerei am Weinmarkt", "Geselle", 2)`), keine Objekte. Im Multiplayer schickt der Client genau diese Datensätze an den Server.
 - **Die KI benutzt denselben Weg.** Damit ist „die KI schummelt nicht“ technisch gesichert.
 - **Gemeinsame Rechnungen:** `Kalkulation` liefert Gewinn je Arbeitsminute, Jahresertrag je Arbeitskraft und erwartete Fahrtkosten. Die KI entscheidet danach, und das Bedienfeld zeigt dieselben Zahlen an.
+
+## Stände und Bankrott
+
+- Die Stände stehen als Liste in `wirtschaft.json` (Abschnitt `staende`, von unten nach oben). Jedes Konto merkt sich nur seine **Stufe** (`Konto.Stand`), die Stadtwirtschaft liefert Name, Schwelle und Gebühr dazu.
+- Aufsteigen ist ein Befehl (`StandErwerben`) und kein Betriebsbefehl. Deshalb gibt es zwei Arten von Befehlen: `BetriebsBefehl` (braucht einen eigenen Betrieb) und Befehle an das Konto selbst.
+- Schulden prüft die Stadtwirtschaft nach jeder Jahresabrechnung. Ein Bankrott löst das Ereignis `Bankrott` aus. Ob die Partie damit endet, entscheidet die Oberfläche, denn nur sie weiß, welches Konto der Mensch spielt. Sie ruft dann `Simulation.Beenden(grund)` auf.

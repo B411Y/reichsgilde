@@ -18,6 +18,7 @@ public partial class KontorAnzeige : PanelContainer
 
     private Label _titel = null!;
     private Label _vermoegen = null!;
+    private Label _standZeile = null!;
     private Label _betriebZeile = null!;
     private Label _diesesJahr = null!;
     private Label _vorjahr = null!;
@@ -43,6 +44,7 @@ public partial class KontorAnzeige : PanelContainer
 
         _titel = NeuesLabel(spalte, 22);
         _vermoegen = NeuesLabel(spalte, 26);
+        _standZeile = NeuesLabel(spalte, 14, new Color(0.95f, 0.82f, 0.45f));
         _betriebZeile = NeuesLabel(spalte, 15);
         var verwalten = new Button { Text = "⚒ Betrieb verwalten", FocusMode = FocusModeEnum.None, SizeFlagsHorizontal = SizeFlags.ShrinkBegin };
         verwalten.Pressed += () => { if (_betrieb is not null) VerwaltenGewuenscht?.Invoke(_betrieb); };
@@ -106,8 +108,13 @@ public partial class KontorAnzeige : PanelContainer
             return;
 
         var waehrung = w.Daten.Allgemein.Waehrung;
-        _titel.Text = $"Kontor · {_spieler.Inhaber}";
+        _titel.Text = $"Kontor · {_spieler.Inhaber} · {w.StandVon(_spieler).Name}";
         _vermoegen.Text = $"{Zahlenformat.Ganz(_spieler.Vermoegen)} {waehrung}";
+        _vermoegen.AddThemeColorOverride("font_color", _spieler.Vermoegen < 0 ? new Color(0.95f, 0.45f, 0.4f) : new Color(1, 1, 1));
+        _standZeile.Text = _spieler.IstBankrott ? "Bankrott"
+            : w.NaechsterStand(_spieler) is not { } neu ? "Höchster Stand erreicht"
+            : _spieler.Vermoegen >= neu.Schwelle ? $"Aufstieg zum {neu.Name} im Rathaus möglich!"
+            : $"Nächster Stand: {neu.Name} ab {Zahlenformat.Ganz(neu.Schwelle)} {waehrung} (noch {Zahlenformat.Ganz(neu.Schwelle - Math.Max(0, _spieler.Vermoegen))})";
 
         var belegung = string.Join(", ", _betrieb.Belegung.Select(b => $"{b.Value}× {b.Key}"));
         _betriebZeile.Text = $"{_betrieb.Name}: {_betrieb.Produkt} · {belegung}\nStatut {w.Statut.Kuerzel()} – {w.Statut.Name()}"

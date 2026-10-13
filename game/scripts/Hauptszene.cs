@@ -21,6 +21,8 @@ namespace Reichsgilde;
 ///   --drehung=1        Kamera um 1–3 Vierteldrehungen gedreht starten (0 = Blick nach Nordosten)
 ///   --innen=1          direkt in der Innenansicht der eigenen Gießerei starten
 ///   --verwalten=1      das Bedienfeld der eigenen Gießerei gleich öffnen
+///   --vermoegen=12000  Startvermögen des Spielers setzen (zum Ausprobieren des Aufstiegs)
+///   --bericht=1        gleich zu Beginn einen Jahresbericht zeigen (zum Testen der Anzeige)
 /// </summary>
 public partial class Hauptszene : Node
 {
@@ -39,6 +41,15 @@ public partial class Hauptszene : Node
     private Label _auswahlText = null!;
     private Button _innenKnopf = null!;
     private BetriebsVerwaltung _verwaltung = null!;
+    private Button _standKnopf = null!;
+    private JahresberichtAnzeige _jahresbericht = null!;
+    private Konto? _spieler;
+
+    /// <summary>
+    /// Nach jeder Jahresabrechnung hält das Spiel an, bis der Bericht geschlossen wird (wie im Original).
+    /// Im Multiplayer wird das später eine Einstellung der Partie.
+    /// </summary>
+    private const bool BeiJahresberichtPausieren = true;
     private Label _blick = null!;
     private Betrieb? _eigeneGiesserei;
     private Label _datum = null!;
@@ -58,6 +69,8 @@ public partial class Hauptszene : Node
         _auswahlText = GetNode<Label>("%AuswahlText");
         _innenKnopf = GetNode<Button>("%InnenKnopf");
         _verwaltung = GetNode<BetriebsVerwaltung>("%Verwaltung");
+        _standKnopf = GetNode<Button>("%StandKnopf");
+        _jahresbericht = GetNode<JahresberichtAnzeige>("%Jahresbericht");
         _blick = GetNode<Label>("%Blick");
         _datum = GetNode<Label>("%Datum");
         _uhrzeit = GetNode<Label>("%Uhrzeit");
@@ -97,9 +110,24 @@ public partial class Hauptszene : Node
         _simulation.PhaseBegonnen += phase =>
             Protokollieren($"{_simulation.Zeit.UhrzeitText} – {KalenderTexte.Name(phase)} beginnt.");
         _simulation.JahrBeendet += jahr =>
+        {
             Protokollieren($"Jahresabrechnung {jahr} abgeschlossen. Es ist nun {_simulation.Zeit.DatumText}.");
+            if (_spieler is null || _simulation.IstBeendet) return;
+            _jahresbericht.Zeigen(_simulation, _spieler);
+            if (BeiJahresberichtPausieren) _simulation.Takt.IstPausiert = true;
+        };
         _simulation.PartieBeendet += () =>
-            Protokollieren($"Die Partie ist zu Ende ({_simulation.Einstellungen.SiegbedingungText}).");
+        {
+            Protokollieren($"Die Partie ist zu Ende: {_simulation.Endgrund}");
+            if (_spieler is not null) _jahresbericht.Zeigen(_simulation, _spieler, _simulation.Endgrund);
+        };
+        _jahresbericht.Geschlossen += () => { if (!_simulation.IstBeendet) _simulation.Takt.IstPausiert = false; };
+        _standKnopf.Pressed += () =>
+        {
+            if (_simulation.Wirtschaft is not { } wirtschaft || _spieler is null) return;
+            var ergebnis = wirtschaft.Ausfuehren(_spieler, new StandErwerben());
+            if (!ergebnis.Erfolg) Protokollieren("✗ " + ergebnis.Meldung); // Erfolg meldet die Stadt selbst
+        };
 
         var minuten = _simulation.Takt.RundenDauerSekunden / 60;
         _hinweis.Text = $"1 Spieljahr = {minuten:0} Min. · {_simulation.Einstellungen.SiegbedingungText}\n"
@@ -121,6 +149,8 @@ public partial class Hauptszene : Node
             _stadt.Drehen(drehung, sofort: true);
         if (optionen.TryGetValue("verwalten", out var verwalten) && verwalten == "1" && _eigeneGiesserei is not null)
             _auswahlKennung = Stadtansicht.BetriebsKennung(_eigeneGiesserei);
+        if (optionen.TryGetValue("bericht", out var bericht) && bericht == "1" && _spieler is not null)
+            _jahresbericht.Zeigen(_simulation, _spieler);
         if (optionen.TryGetValue("innen", out var innen) && innen == "1" && _eigeneGiesserei is not null)
             _stadt.InnenansichtBetreten(_eigeneGiesserei);
 
@@ -173,7 +203,15 @@ public partial class Hauptszene : Node
             return simulation;
         }
 
-        var spieler = w.KontoEroeffnen("Familie Hammerschmid");
+        double? startvermoegen = optionen.TryGetValue("vermoegen", out var v) && double.TryParse(v, out var betrag) ? betrag : null;
+        var spieler = w.KontoEroeffnen("Familie Hammerschmid", startvermoegen: startvermoegen);
+        _spieler = spieler;
+        // Bankrott des Spielers beendet die Partie; ein bankrotter Rivale scheidet nur aus.
+        w.Bankrott += konto =>
+        {
+            if (konto == spieler)
+                simulation.Beenden($"{spieler.Inhaber} konnte die Schulden nicht begleichen.");
+        };
         var giesserei = w.BetriebEroeffnen("Gießerei am Weinmarkt", Betriebsart.Giesserei, spieler);
         giesserei.Produkt = "Silberring";
         w.Einstellen(giesserei, "Geselle", 2);
@@ -309,15 +347,51 @@ public partial class Hauptszene : Node
         {
             "Marktplatz" => "Marktplatz\n\n" + string.Join("\n", w.Markt.Staende.Select(s =>
                 $"{s.Ware}: {Zahlenformat.Kommazahl(s.Preis)} {w.Daten.Allgemein.Waehrung} (Grundpreis {Zahlenformat.Ganz(s.Grundpreis)})")),
-            "Rathaus" => $"Rathaus\n\nHier tagt der Rat der Reichsstadt. Geltendes Fron- und Sklavenstatut: "
-                         + $"{w.Statut.Kuerzel()} – {w.Statut.Name()}.\n\nÄmter, Wahlen und Gesetze folgen in einer späteren Phase.",
+            "Rathaus" => RathausText(w),
             "Dom" => "Dom\n\nKatholische und evangelische Gläubige aller vier Kulturvölker. "
                      + "Für die Kirche sind Orks und Oger Heiden.\n\nPredigten, Ablass und Kirchenbann folgen später.",
             "Osttor" => "Osttor\n\nHier endet der Schutz der Mauern. Auf dem Weg ins Umland lauern Banditen aller Völker, "
                         + "wilde Ork-Rotten und Ogerhorden – nachts doppelt so häufig.",
             _ => _auswahlKennung,
         };
+        StandKnopfAnzeigen(w);
         _auswahl.Show();
+    }
+
+    /// <summary>Im Rathaus: Ständeordnung, Rangliste und das geltende Statut.</summary>
+    private string RathausText(Stadtwirtschaft w)
+    {
+        var waehrung = w.Daten.Allgemein.Waehrung;
+        var zeilen = new List<string> { "Rathaus", "" };
+        if (_spieler is not null)
+        {
+            zeilen.Add($"Euer Stand: {w.StandVon(_spieler).Name}");
+            if (w.NaechsterStand(_spieler) is { } neu)
+                zeilen.Add($"Nächster Stand: {neu.Name} ab {Zahlenformat.Ganz(neu.Schwelle)} {waehrung} Vermögen, Gebühr {Zahlenformat.Ganz(neu.Gebuehr)}\n  ({neu.Privilegien})");
+            zeilen.Add("");
+        }
+        zeilen.Add("Rangliste:");
+        var platz = 1;
+        foreach (var konto in w.Rangliste)
+            zeilen.Add(konto.IstBankrott
+                ? $"  –  {konto.Inhaber} (bankrott)"
+                : $"  {platz++}. {konto.Inhaber} · {w.StandVon(konto).Name} · {Zahlenformat.Ganz(konto.Vermoegen)} {waehrung}");
+        zeilen.Add("");
+        zeilen.Add($"Geltendes Fron- und Sklavenstatut: {w.Statut.Kuerzel()} – {w.Statut.Name()}. Ämter und Wahlen folgen später.");
+        return string.Join("\n", zeilen);
+    }
+
+    /// <summary>Der Aufstiegsknopf erscheint nur im Rathaus und ist gesperrt, solange das Vermögen nicht reicht.</summary>
+    private void StandKnopfAnzeigen(Stadtwirtschaft w)
+    {
+        var naechster = _spieler is null ? null : w.NaechsterStand(_spieler);
+        _standKnopf.Visible = _auswahlKennung == "Rathaus" && naechster is not null;
+        if (naechster is null || _spieler is null) return;
+        var reicht = _spieler.Vermoegen >= naechster.Schwelle;
+        _standKnopf.Disabled = !reicht || _spieler.IstBankrott;
+        _standKnopf.Text = reicht
+            ? $"Aufsteigen zum {naechster.Name} ({Zahlenformat.Ganz(naechster.Gebuehr)} {w.Daten.Allgemein.Waehrung})"
+            : $"{naechster.Name} ab {Zahlenformat.Ganz(naechster.Schwelle)} {w.Daten.Allgemein.Waehrung} – es fehlen {Zahlenformat.Ganz(naechster.Schwelle - _spieler.Vermoegen)}";
     }
 
     /// <summary>Die Tafel oben links macht Platz, solange unten links eine Auswahl offen ist.</summary>

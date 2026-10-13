@@ -11,25 +11,34 @@ namespace Reichsgilde.Core.Wirtschaft;
 ///
 /// Ein „record" ist in C# eine Klasse, die nur Daten trägt: Zwei Befehle mit gleichen Werten sind gleich.
 /// </summary>
-public abstract record Befehl(string Betrieb);
+public abstract record Befehl;
+
+/// <summary>Ein Befehl an einen bestimmten Betrieb – der Absender muss ihn besitzen.</summary>
+public abstract record BetriebsBefehl(string Betrieb) : Befehl;
+
+/// <summary>
+/// Im Rathaus den Aufstieg in den nächsthöheren Stand beantragen.
+/// Voraussetzung: Vermögen mindestens die Schwelle des neuen Standes; die Gebühr wird sofort fällig.
+/// </summary>
+public sealed record StandErwerben : Befehl;
 
 /// <summary>Die Gießerei stellt ab sofort diese Ware her.</summary>
-public sealed record ProduktWaehlen(string Betrieb, string Ware) : Befehl(Betrieb);
+public sealed record ProduktWaehlen(string Betrieb, string Ware) : BetriebsBefehl(Betrieb);
 
 /// <summary>Die Mine teilt ihre Arbeitszeit so auf (0 = nur Eisen, 1 = nur Silber).</summary>
-public sealed record FoerderungAufteilen(string Betrieb, double Silberanteil) : Befehl(Betrieb);
+public sealed record FoerderungAufteilen(string Betrieb, double Silberanteil) : BetriebsBefehl(Betrieb);
 
 /// <summary>Setzt die Zahl einer Arbeitskraft-Art auf <paramref name="Anzahl"/> (0 = alle entlassen).</summary>
-public sealed record PersonalSetzen(string Betrieb, string Arbeitskraft, int Anzahl) : Befehl(Betrieb);
+public sealed record PersonalSetzen(string Betrieb, string Arbeitskraft, int Anzahl) : BetriebsBefehl(Betrieb);
 
 /// <summary>Kauft einen Karren dieses Typs für den Betrieb.</summary>
-public sealed record KarrenKaufen(string Betrieb, string Typ) : Befehl(Betrieb);
+public sealed record KarrenKaufen(string Betrieb, string Typ) : BetriebsBefehl(Betrieb);
 
 /// <summary>Der Karren mit dieser Nummer (ab 0) fährt künftig mit dieser Eskorte.</summary>
-public sealed record EskorteWaehlen(string Betrieb, int Karren, string Eskorte) : Befehl(Betrieb);
+public sealed record EskorteWaehlen(string Betrieb, int Karren, string Eskorte) : BetriebsBefehl(Betrieb);
 
 /// <summary>Darf der Karren mit dieser Nummer nachts ins Umland fahren?</summary>
-public sealed record NachtfahrtErlauben(string Betrieb, int Karren, bool Erlaubt) : Befehl(Betrieb);
+public sealed record NachtfahrtErlauben(string Betrieb, int Karren, bool Erlaubt) : BetriebsBefehl(Betrieb);
 
 /// <summary>Antwort auf einen Befehl: ausgeführt oder abgelehnt – immer mit einem Satz für den Spieler.</summary>
 public sealed record Befehlsergebnis(bool Erfolg, string Meldung)
