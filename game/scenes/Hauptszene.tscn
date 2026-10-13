@@ -77,6 +77,14 @@ unique_name_in_owner = true
 layout_mode = 2
 theme_override_constants/separation = 4
 
+[node name="Blick" type="Label" parent="Oberflaeche/Tafel/Rand/Inhalt"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_colors/font_color = Color(0.95, 0.85, 0.6, 1)
+theme_override_font_sizes/font_size = 14
+text = "Blick nach Norden"
+horizontal_alignment = 1
+
 [node name="Hinweis" type="Label" parent="Oberflaeche/Tafel/Rand/Inhalt"]
 unique_name_in_owner = true
 layout_mode = 2
@@ -109,9 +117,20 @@ theme_override_constants/margin_top = 14
 theme_override_constants/margin_right = 18
 theme_override_constants/margin_bottom = 14
 
-[node name="AuswahlText" type="Label" parent="Oberflaeche/Auswahl/Rand"]
+[node name="Spalte" type="VBoxContainer" parent="Oberflaeche/Auswahl/Rand"]
+layout_mode = 2
+theme_override_constants/separation = 10
+
+[node name="AuswahlText" type="Label" parent="Oberflaeche/Auswahl/Rand/Spalte"]
 unique_name_in_owner = true
 custom_minimum_size = Vector2(344, 0)
 layout_mode = 2
 theme_override_font_sizes/font_size = 14
 autowrap_mode = 3
+
+[node name="InnenKnopf" type="Button" parent="Oberflaeche/Auswahl/Rand/Spalte"]
+unique_name_in_owner = true
+visible = false
+layout_mode = 2
+focus_mode = 0
+text = "Innenansicht betreten"
