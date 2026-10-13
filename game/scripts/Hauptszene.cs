@@ -121,7 +121,9 @@ public partial class Hauptszene : Control
         var rivalenGiesserei = w.BetriebEroeffnen("Gießerei Eisenbart", Betriebsart.Giesserei, rivale);
         rivalenGiesserei.Produkt = "Rapier";
         w.Einstellen(rivalenGiesserei, "Geselle", 2);
-        w.Einstellen(w.BetriebEroeffnen("Grube Eisenbart", Betriebsart.Mine, rivale), "Ork", 3);
+        var grube = w.BetriebEroeffnen("Grube Eisenbart", Betriebsart.Mine, rivale);
+        w.Einstellen(grube, "Ork", 3);
+        grube.Karren[0].Eskorte = "Normal"; // Der Rivale lässt seine Erzfuhren begleiten.
 
         w.Meldung += Protokollieren;
         _kontor.Verbinden(simulation, spieler, giesserei, rivale);

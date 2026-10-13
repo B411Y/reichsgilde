@@ -220,6 +220,7 @@ var tests = new List<(string Name, Action Pruefung)>
 };
 
 tests.AddRange(WirtschaftTests.Alle());
+tests.AddRange(LogistikTests.Alle());
 
 // ── Testlauf ────────────────────────────────────────────────────────────────
 var fehler = 0;
