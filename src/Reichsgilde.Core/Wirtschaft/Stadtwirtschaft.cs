@@ -7,6 +7,7 @@ namespace Reichsgilde.Core.Wirtschaft;
 ///
 /// Ablauf:
 ///   • jede Spielminute während der Arbeitszeit (Standard 08:00–20:00) arbeiten alle Betriebe,
+///   • jede Spielminute fahren die Karren (auch nachts – ins Umland aber nur, wenn erlaubt),
 ///   • jede volle Spielstunde rückt das Markt-Fenster weiter,
 ///   • am Jahresende werden Löhne, Unterhalt und Pacht fällig, und Unfreie können ausbrechen.
 ///
@@ -19,6 +20,13 @@ public sealed class Stadtwirtschaft
     private readonly List<Betrieb> _betriebe = new();
     private readonly List<Konto> _konten = new();
     private readonly Random _zufall;
+    private readonly Random _reihenfolge;
+    private readonly List<Karren> _alleKarren = new();
+
+    /// <summary>Der eine Zufallsgenerator der Wirtschaft (nur intern, damit niemand die Reihenfolge stört).</summary>
+    internal Random Zufall => _zufall;
+
+    internal void Melden(string meldung) => Meldung?.Invoke(meldung);
 
     public Wirtschaftsdaten Daten { get; }
     public Markt Markt { get; }
@@ -38,6 +46,9 @@ public sealed class Stadtwirtschaft
         Statut = statut;
         Markt = new Markt(daten);
         _zufall = new Random(zufallsstartwert);
+        // Eigener Generator nur für die Reihenfolge – so bleiben die Ereignis-Würfel unabhängig
+        // davon, wie viele Karren es gibt.
+        _reihenfolge = new Random(unchecked(zufallsstartwert * 31 + 7));
     }
 
     /// <summary>Legt ein Konto mit dem Startvermögen aus den Daten an.</summary>
@@ -48,12 +59,21 @@ public sealed class Stadtwirtschaft
         return konto;
     }
 
-    public Betrieb BetriebEroeffnen(string name, Betriebsart art, Konto konto)
+    /// <summary>
+    /// Eröffnet einen Betrieb mit Startausstattung: Eine Gießerei bekommt einen Handkarren,
+    /// eine Mine einen Ochsenkarren (mit einem Handkarren käme sie mit dem Abtransport nicht nach).
+    /// </summary>
+    /// <param name="startkarren">Anderer Karrentyp als Startausstattung oder "" für keinen.</param>
+    public Betrieb BetriebEroeffnen(string name, Betriebsart art, Konto konto, string? startkarren = null)
     {
         if (!_konten.Contains(konto))
             throw new ArgumentException("Das Konto gehört nicht zu dieser Stadtwirtschaft.", nameof(konto));
         var betrieb = new Betrieb(name, art, konto, Daten);
         _betriebe.Add(betrieb);
+
+        startkarren ??= art == Betriebsart.Mine ? "Ochsenkarren" : "Handkarren";
+        if (startkarren != "")
+            betrieb.KarrenHinzufuegen(startkarren);
         return betrieb;
     }
 
@@ -74,7 +94,20 @@ public sealed class Stadtwirtschaft
 
         if (IstArbeitszeit(zeit))
             foreach (var betrieb in _betriebe)
-                betrieb.Arbeitsminute(Markt);
+                betrieb.Arbeitsminute(Melden);
+
+        // Fairness: Wer in derselben Minute am Markt ankommt, ist in zufälliger Reihenfolge dran.
+        // Sonst hätte immer der zuerst eröffnete Betrieb den besseren Preis (im Multiplayer: wer zuerst beitritt).
+        _alleKarren.Clear();
+        foreach (var betrieb in _betriebe)
+            _alleKarren.AddRange(betrieb.Karren);
+        for (var i = _alleKarren.Count - 1; i > 0; i--)
+        {
+            var j = _reihenfolge.Next(i + 1);
+            (_alleKarren[i], _alleKarren[j]) = (_alleKarren[j], _alleKarren[i]);
+        }
+        foreach (var karren in _alleKarren)
+            karren.Tick(zeit, this);
     }
 
     /// <summary>Jahresende für alle Betriebe und Konten.</summary>

@@ -59,9 +59,13 @@ Alle Zahlen stehen in **`game/data/wirtschaft.json`**, nicht im Code. So lässt 
 |---|---|
 | `Wirtschaftsdaten` | Liest die JSON-Datei und prüft sie. Fehler werden gesammelt und verständlich gemeldet. |
 | `Markt` / `Marktstand` | Preis = Grundpreis × (Nachfrage ÷ Angebot)^Elastizität. Das Angebot umfasst die Grundversorgung durch Händler, die keine Spieler sind, plus die Verkäufe der Spieler in den letzten 24 Spielstunden (= 1 Jahr). |
-| `Betrieb` | Gießerei oder Mine. Arbeitet von 08:00 bis 20:00 Uhr. Ein Verwalter kauft die Zutaten und verkauft jedes fertige Stück sofort. |
+| `Betrieb` | Gießerei oder Mine mit Lager (40 je Ware). Arbeitet von 08:00 bis 20:00 Uhr. Fehlen Zutaten oder ist das Lager voll, ruht die Arbeit. |
+| `Karren` | Pendelt automatisch zwischen Betrieb und Markt. Er fährt los, wenn genug Ware da ist, Zutaten knapp werden oder Ware 4 Stunden wartet. Am Markt verkauft er und kauft knappe Zutaten ein. Der Karren ist ein **Zustandsautomat**: am Betrieb → zum Markt → zurück. |
+| `Ueberfall` | Beladene Umland-Fahrten können überfallen werden, nachts doppelt so oft. Die Täter sind Banden aus allen Völkern, oft gemischt, dazu wilde Ork-Rotten und Ogerhorden. Eine Eskorte senkt die Erfolgschance. |
 | `Konto` | Vermögen und Jahresrechnung (Umsatz, Zutaten, Löhne, Fixkosten, Steuer, Schäden). |
 | `Stadtwirtschaft` | Hält alles zusammen, kennt das geltende Fron- und Sklavenstatut und würfelt Ausbrüche und Aufstände. |
+
+**Fairness:** Kommen mehrere Karren in derselben Minute am Markt an, ist die Reihenfolge jede Minute neu ausgelost. Sonst hätte immer der zuerst eröffnete Betrieb den besseren Preis, im Multiplayer also derjenige, der zuerst beitritt.
 
 **Zufall mit festem Startwert:** Alle Zufallsereignisse kommen aus einem einzigen Zufallsgenerator mit festem Startwert (`Partieeinstellungen.Zufallsstartwert`). Gleicher Startwert und gleiche Eingaben ergeben exakt denselben Spielverlauf. Das ist die Voraussetzung für den Multiplayer, bei dem alle Rechner dasselbe sehen müssen, und für Tests, die sich wiederholen lassen.
 
