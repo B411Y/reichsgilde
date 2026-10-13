@@ -100,6 +100,7 @@ jobs:
 
       - name: Linux-Build kurz starten (Rauchtest)
         run: |
+          set -o pipefail   # ein Absturz des Spiels soll den Schritt fehlschlagen lassen
           chmod +x build/linux/Reichsgilde.x86_64
           build/linux/Reichsgilde.x86_64 --headless --quit-after 300 2>&1 | tee start.log
           if grep -E "ERROR|Unhandled exception" start.log; then
