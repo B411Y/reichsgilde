@@ -191,6 +191,16 @@ var tests = new List<(string Name, Action Pruefung)>
         Pruefe.Gleich(1601, sim.Zeit.Jahr);
     }),
 
+    // ── Zahlenformat ────────────────────────────────────────────────────────
+    ("Zahlenformat: deutsch und unabhängig von der Systemeinstellung", () =>
+    {
+        Pruefe.Gleich("4.000", Zahlenformat.Ganz(4000));
+        Pruefe.Gleich("1.234.567", Zahlenformat.Ganz(1234567.4));
+        Pruefe.Gleich("12,6", Zahlenformat.Kommazahl(12.63));
+        Pruefe.Gleich("+627", Zahlenformat.MitVorzeichen(627));
+        Pruefe.Gleich("−1.120", Zahlenformat.MitVorzeichen(-1120));
+    }),
+
     // ── Aktionspunkte ───────────────────────────────────────────────────────
     ("Aktionspunkte: neue Runde addiert, Rest wird übertragen", () =>
     {
@@ -208,6 +218,8 @@ var tests = new List<(string Name, Action Pruefung)>
         Pruefe.Gleich(3, ap.Vorrat);
     }),
 };
+
+tests.AddRange(WirtschaftTests.Alle());
 
 // ── Testlauf ────────────────────────────────────────────────────────────────
 var fehler = 0;
@@ -248,6 +260,27 @@ static class Pruefe
     {
         if (!EqualityComparer<T>.Default.Equals(erwartet, tatsaechlich))
             throw new Exception($"{(hinweis is null ? "" : hinweis + ": ")}erwartet {erwartet}, war aber {tatsaechlich}");
+    }
+
+    /// <summary>Prüft Kommazahlen mit erlaubter relativer Abweichung (0,05 = ±5 %).</summary>
+    public static void Ungefaehr(double erwartet, double tatsaechlich, double toleranz)
+    {
+        var abweichung = Math.Abs(tatsaechlich - erwartet) / Math.Max(Math.Abs(erwartet), 1e-9);
+        if (abweichung > toleranz)
+            throw new Exception($"erwartet ≈ {erwartet:N1} (±{toleranz:P0}), war aber {tatsaechlich:N1} (Abweichung {abweichung:P1})");
+    }
+
+    /// <summary>Erwartet einen Fehler, dessen Meldung den Text enthält.</summary>
+    public static void WirftMitMeldung(Action aktion, string textInMeldung)
+    {
+        try { aktion(); }
+        catch (Exception ex)
+        {
+            if (!ex.Message.Contains(textInMeldung))
+                throw new Exception($"Fehlermeldung enthält nicht „{textInMeldung}“: {ex.Message}");
+            return;
+        }
+        throw new Exception("Es wurde ein Fehler erwartet, aber keiner ausgelöst.");
     }
 
     public static void Wirft(Action aktion)

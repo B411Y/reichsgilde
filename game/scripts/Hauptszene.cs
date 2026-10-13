@@ -1,11 +1,12 @@
 using Godot;
 using Reichsgilde.Core;
+using Reichsgilde.Core.Wirtschaft;
 using Reichsgilde.Core.Zeit;
 
 namespace Reichsgilde;
 
 /// <summary>
-/// Die erste Szene des Spiels: zeigt die laufende Spielzeit an und erlaubt Pause und Tempo.
+/// Die erste Szene des Spiels: zeigt die laufende Spielzeit und das Kontor an und erlaubt Pause und Tempo.
 ///
 /// Aufgabenteilung:
 ///   • Die SIMULATION (Reichsgilde.Core) entscheidet, was passiert.
@@ -16,7 +17,10 @@ public partial class Hauptszene : Control
 {
     private const int MaxProtokollZeilen = 5;
 
-    private readonly Simulation _simulation = new();
+    private const string WirtschaftsdatenPfad = "res://data/wirtschaft.json";
+
+    private Simulation _simulation = null!;
+    private KontorAnzeige _kontor = null!;
     private readonly List<string> _protokoll = new();
     private readonly List<Button> _tempoKnoepfe = new();
 
@@ -41,6 +45,9 @@ public partial class Hauptszene : Control
         _tempoleiste = GetNode<HBoxContainer>("%Tempoleiste");
         _hinweis = GetNode<Label>("%Hinweis");
         _protokollLabel = GetNode<Label>("%Protokoll");
+        _kontor = GetNode<KontorAnzeige>("%Kontor");
+
+        _simulation = SimulationAufbauen();
 
         _pauseKnopf.Pressed += PauseUmschalten;
 
@@ -73,6 +80,52 @@ public partial class Hauptszene : Control
 
         Protokollieren($"Die Zunftglocke läutet. {_simulation.Zeit.DatumText} beginnt.");
         Anzeigen();
+    }
+
+    /// <summary>
+    /// Lädt die Wirtschaftsdaten und stellt die Startaufstellung des Vertical Slice auf:
+    /// der Spieler mit einer Gießerei, ein Rivale mit Gießerei und Mine.
+    /// Ohne gültige Datendatei läuft nur die Zeit (mit Fehlermeldung im Protokoll).
+    /// </summary>
+    private Simulation SimulationAufbauen()
+    {
+        Wirtschaftsdaten? daten = null;
+        try
+        {
+            // Godot.FileAccess liest auch aus dem exportierten Spiel (res:// = Projektordner).
+            var json = Godot.FileAccess.GetFileAsString(WirtschaftsdatenPfad);
+            if (string.IsNullOrEmpty(json))
+                Protokollieren($"Fehler: {WirtschaftsdatenPfad} wurde nicht gefunden.");
+            else
+                daten = Wirtschaftsdaten.AusJson(json);
+        }
+        catch (WirtschaftsdatenFehler fehler)
+        {
+            Protokollieren(fehler.Message);
+            GD.PushError(fehler.Message);
+        }
+
+        var simulation = new Simulation(wirtschaftsdaten: daten);
+        if (simulation.Wirtschaft is not { } w)
+        {
+            _kontor.Hide();
+            return simulation;
+        }
+
+        var spieler = w.KontoEroeffnen("Familie Hammerschmid");
+        var giesserei = w.BetriebEroeffnen("Gießerei am Weinmarkt", Betriebsart.Giesserei, spieler);
+        giesserei.Produkt = "Silberring";
+        w.Einstellen(giesserei, "Geselle", 2);
+
+        var rivale = w.KontoEroeffnen("Haus Eisenbart");
+        var rivalenGiesserei = w.BetriebEroeffnen("Gießerei Eisenbart", Betriebsart.Giesserei, rivale);
+        rivalenGiesserei.Produkt = "Rapier";
+        w.Einstellen(rivalenGiesserei, "Geselle", 2);
+        w.Einstellen(w.BetriebEroeffnen("Grube Eisenbart", Betriebsart.Mine, rivale), "Ork", 3);
+
+        w.Meldung += Protokollieren;
+        _kontor.Verbinden(simulation, spieler, giesserei, rivale);
+        return simulation;
     }
 
     /// <summary>Wird von Godot jedes Bild aufgerufen. "delta" = Sekunden seit dem letzten Bild.</summary>
@@ -134,6 +187,7 @@ public partial class Hauptszene : Control
             _tempoKnoepfe[i].SetPressedNoSignal(!takt.IstPausiert && Taktgeber.Tempostufen[i] == takt.Tempo);
 
         _himmel.Color = Himmelsfarbe(zeit.UhrzeitInMinuten);
+        _kontor.Aktualisieren();
     }
 
     private void Protokollieren(string meldung)

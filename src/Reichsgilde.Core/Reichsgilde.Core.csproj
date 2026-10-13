@@ -11,4 +11,8 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <RootNamespace>Reichsgilde.Core</RootNamespace>
   </PropertyGroup>
+  <ItemGroup>
+    <!-- Die Tests dürfen auch interne Teile prüfen (z. B. Markt.NeueStunde). -->
+    <InternalsVisibleTo Include="Reichsgilde.Core.Tests" />
+  </ItemGroup>
 </Project>
