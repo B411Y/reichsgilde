@@ -1,0 +1,21 @@
+; Godot-Projektdatei für Reichsgilde.
+; Öffnen: Godot starten → "Importieren" → diese Datei auswählen.
+
+config_version=5
+
+[application]
+
+config/name="Reichsgilde"
+config/description="Wirtschaftssimulation im spätmittelalterlichen Heiligen Römischen Reich – im Stil von „Die Gilde“."
+run/main_scene="res://scenes/Hauptszene.tscn"
+config/features=PackedStringArray("4.7", "C#", "Forward Plus")
+
+[display]
+
+window/size/viewport_width=1280
+window/size/viewport_height=720
+
+[dotnet]
+
+project/assembly_name="Reichsgilde"
+project/solution_directory="../"

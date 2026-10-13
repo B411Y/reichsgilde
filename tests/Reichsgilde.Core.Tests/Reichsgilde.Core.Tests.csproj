@@ -1,0 +1,16 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <!--
+    Automatische Tests für den Simulationskern.
+    Bewusst ohne Test-Framework: ein kleines Konsolenprogramm, das jede
+    Prüfung ausführt und das Ergebnis anzeigt. Start im Terminal (Ordner reichsgilde): dotnet run mit Projekt tests/Reichsgilde.Core.Tests (siehe README)
+  -->
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net8.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\Reichsgilde.Core\Reichsgilde.Core.csproj" />
+  </ItemGroup>
+</Project>

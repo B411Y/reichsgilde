@@ -1,0 +1,38 @@
+
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 17
+VisualStudioVersion = 17.0.31903.59
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Reichsgilde", "game\Reichsgilde.csproj", "{4AB12A19-3CB9-4E44-A4FC-AED789E51F8E}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Reichsgilde.Core", "src\Reichsgilde.Core\Reichsgilde.Core.csproj", "{E752F39E-7763-42CE-B6C0-EFC35AD6881C}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Reichsgilde.Core.Tests", "tests\Reichsgilde.Core.Tests\Reichsgilde.Core.Tests.csproj", "{703764BE-E1C7-4E25-96DF-7C9D47B1413E}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		ExportDebug|Any CPU = ExportDebug|Any CPU
+		ExportRelease|Any CPU = ExportRelease|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{4AB12A19-3CB9-4E44-A4FC-AED789E51F8E}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{4AB12A19-3CB9-4E44-A4FC-AED789E51F8E}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{4AB12A19-3CB9-4E44-A4FC-AED789E51F8E}.ExportDebug|Any CPU.ActiveCfg = ExportDebug|Any CPU
+		{4AB12A19-3CB9-4E44-A4FC-AED789E51F8E}.ExportDebug|Any CPU.Build.0 = ExportDebug|Any CPU
+		{4AB12A19-3CB9-4E44-A4FC-AED789E51F8E}.ExportRelease|Any CPU.ActiveCfg = ExportRelease|Any CPU
+		{4AB12A19-3CB9-4E44-A4FC-AED789E51F8E}.ExportRelease|Any CPU.Build.0 = ExportRelease|Any CPU
+		{E752F39E-7763-42CE-B6C0-EFC35AD6881C}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{E752F39E-7763-42CE-B6C0-EFC35AD6881C}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{E752F39E-7763-42CE-B6C0-EFC35AD6881C}.ExportDebug|Any CPU.ActiveCfg = Debug|Any CPU
+		{E752F39E-7763-42CE-B6C0-EFC35AD6881C}.ExportDebug|Any CPU.Build.0 = Debug|Any CPU
+		{E752F39E-7763-42CE-B6C0-EFC35AD6881C}.ExportRelease|Any CPU.ActiveCfg = Release|Any CPU
+		{E752F39E-7763-42CE-B6C0-EFC35AD6881C}.ExportRelease|Any CPU.Build.0 = Release|Any CPU
+		{703764BE-E1C7-4E25-96DF-7C9D47B1413E}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{703764BE-E1C7-4E25-96DF-7C9D47B1413E}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{703764BE-E1C7-4E25-96DF-7C9D47B1413E}.ExportDebug|Any CPU.ActiveCfg = Debug|Any CPU
+		{703764BE-E1C7-4E25-96DF-7C9D47B1413E}.ExportDebug|Any CPU.Build.0 = Debug|Any CPU
+		{703764BE-E1C7-4E25-96DF-7C9D47B1413E}.ExportRelease|Any CPU.ActiveCfg = Release|Any CPU
+		{703764BE-E1C7-4E25-96DF-7C9D47B1413E}.ExportRelease|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+EndGlobal
