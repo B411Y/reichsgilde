@@ -46,6 +46,8 @@ public partial class KontorAnzeige : PanelContainer
         _diesesJahr = NeuesLabel(spalte, 15);
         _vorjahr = NeuesLabel(spalte, 15);
         _rivaleZeile = NeuesLabel(spalte, 14, new Color(0.75f, 0.75f, 0.75f));
+        _rivaleZeile.AutowrapMode = TextServer.AutowrapMode.WordSmart; // lange KI-Züge umbrechen statt das Kontor zu verbreitern
+        _rivaleZeile.CustomMinimumSize = new Vector2(360, 0);
 
         spalte.AddChild(new HSeparator());
         NeuesLabel(spalte, 15).Text = "Marktplatz";
@@ -65,6 +67,14 @@ public partial class KontorAnzeige : PanelContainer
     }
 
     /// <summary>Verbindet die Anzeige mit der Simulation. Wird von der Hauptszene aufgerufen.</summary>
+    /// <summary>Der letzte Zug der KI, ohne den Namen davor (der steht schon in der Zeile).</summary>
+    private string RivalenZug(Konto rivale)
+    {
+        var ki = _simulation?.Wirtschaft?.Rivalen.FirstOrDefault(r => r.Konto == rivale);
+        if (ki is null || ki.Entscheidungen.Count == 0) return "";
+        return "\nLetzter Zug: " + ki.Entscheidungen[0].Replace($"{rivale.Inhaber}: ", "");
+    }
+
     public void Verbinden(Simulation simulation, Konto spieler, Betrieb betrieb, Konto? rivale)
     {
         _simulation = simulation;
@@ -115,7 +125,8 @@ public partial class KontorAnzeige : PanelContainer
               + (v.Raubwert > 0 ? $" · geraubt: {Zahlenformat.Ganz(v.Raubwert)}" : "")
             : "Jahresrechnung: erst nach dem ersten Jahr";
 
-        _rivaleZeile.Text = _rivale is null ? "" : $"Rivale {_rivale.Inhaber}: {Zahlenformat.Ganz(_rivale.Vermoegen)} {waehrung}";
+        _rivaleZeile.Text = _rivale is null ? "" : $"Rivale {_rivale.Inhaber}: {Zahlenformat.Ganz(_rivale.Vermoegen)} {waehrung}"
+            + RivalenZug(_rivale);
 
         foreach (var (ware, label) in _preisLabels)
             label.Text = Zahlenformat.Kommazahl(w.Markt[ware].Preis);

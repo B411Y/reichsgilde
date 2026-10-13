@@ -221,6 +221,7 @@ var tests = new List<(string Name, Action Pruefung)>
 
 tests.AddRange(WirtschaftTests.Alle());
 tests.AddRange(LogistikTests.Alle());
+tests.AddRange(KiTests.Alle());
 
 // ── Testlauf ────────────────────────────────────────────────────────────────
 var fehler = 0;
@@ -282,6 +283,13 @@ static class Pruefe
             return;
         }
         throw new Exception("Es wurde ein Fehler erwartet, aber keiner ausgelöst.");
+    }
+
+    /// <summary>Prüft eine Bedingung; die Meldung erklärt, was stattdessen der Fall war.</summary>
+    public static void Wahr(bool bedingung, string meldung)
+    {
+        if (!bedingung)
+            throw new Exception(meldung);
     }
 
     public static void Wirft(Action aktion)

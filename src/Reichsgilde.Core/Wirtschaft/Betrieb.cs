@@ -51,6 +51,12 @@ public sealed class Betrieb
     /// <summary>Warum die Produktion gerade stillsteht (null = sie läuft).</summary>
     public string? Stillstand { get; private set; }
 
+    /// <summary>Arbeitsminuten mit Stillstand im laufenden Jahr.</summary>
+    public int StillstandMinuten { get; private set; }
+
+    /// <summary>Arbeitsminuten mit Stillstand im Vorjahr – zeigt, ob Karren oder Lager zu knapp sind.</summary>
+    public int StillstandMinutenVorjahr { get; private set; }
+
     /// <summary>Was die Gießerei herstellt. Nur Waren mit Zutaten (Beschlag, Rapier, Silberring).</summary>
     public string Produkt
     {
@@ -210,6 +216,7 @@ public sealed class Betrieb
             melden($"{Name}: {stillstand}");
         _letzterStillstand = stillstand;
         Stillstand = stillstand;
+        if (stillstand is not null) StillstandMinuten++;
     }
 
     private string? KannHerstellen(string ware)
@@ -272,5 +279,8 @@ public sealed class Betrieb
         }
 
         Konto.Fixkosten(Art == Betriebsart.Mine ? _daten.Allgemein.PachtMine : _daten.Allgemein.UnterhaltGiesserei);
+
+        StillstandMinutenVorjahr = StillstandMinuten;
+        StillstandMinuten = 0;
     }
 }
