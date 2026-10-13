@@ -80,7 +80,7 @@ static class StandTests
             Pruefe.Gleich("A,B,C", string.Join(",", w.Rangliste.Select(k => k.Inhaber)));
         }),
 
-        ("Schulden: erst eine Mahnung, im zweiten Jahr der Bankrott", () =>
+        ("Schulden: erst Mahnungen, im dritten Jahr der Bankrott", () =>
         {
             var sim = NeueSimulation();
             var w = sim.Wirtschaft!;
@@ -98,6 +98,8 @@ static class StandTests
             Pruefe.Wahr(meldungen.Any(m => m.Contains("Kämmerer mahnt Spieler")), "keine Mahnung");
             Pruefe.Gleich(false, k.IstBankrott);
 
+            JahreTicken(sim, 1);
+            Pruefe.Gleich(false, k.IstBankrott); // zweite Mahnung
             JahreTicken(sim, 1);
             Pruefe.Gleich(true, k.IstBankrott);
             Pruefe.Gleich(k, bankrott);
@@ -126,7 +128,7 @@ static class StandTests
             w.KontoEroeffnen("Spieler");
             var rivale = w.KontoEroeffnen("Rivale");
             VermoegenSetzen(rivale, -50000);
-            JahreTicken(sim, 1);
+            JahreTicken(sim, 2);
             Pruefe.Gleich(false, sim.IstBeendet);
             JahreTicken(sim, 1);
             Pruefe.Gleich(true, sim.IstBeendet);

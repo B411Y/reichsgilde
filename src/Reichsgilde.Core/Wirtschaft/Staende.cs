@@ -29,5 +29,5 @@ public sealed class SchuldenDaten
     /// So viele Jahresabschlüsse in Folge mit negativem Vermögen führen zum Bankrott.
     /// Beim ersten gibt es eine Warnung.
     /// </summary>
-    public int JahreBisBankrott { get; init; } = 2;
+    public int JahreBisBankrott { get; init; } = 3;
 }

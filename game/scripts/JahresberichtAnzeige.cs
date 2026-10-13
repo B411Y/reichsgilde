@@ -99,7 +99,10 @@ public partial class JahresberichtAnzeige : PanelContainer
         _inhalt.AddChild(new HSeparator());
         Text($"Vermögen: {Zahlenformat.Ganz(spieler.Vermoegen)} {waehrung}", 18, spieler.Vermoegen >= 0 ? null : Rot);
         if (spieler.Schuldenjahre > 0 && !spieler.IstBankrott)
-            Text($"⚠ Ihr steht in der Kreide! Noch {w.Daten.Schulden.JahreBisBankrott - spieler.Schuldenjahre} Jahresabschluss im Minus, dann droht der Bankrott.", 14, Rot);
+            {
+            var rest = w.Daten.Schulden.JahreBisBankrott - spieler.Schuldenjahre;
+            Text($"⚠ Ihr steht in der Kreide! Noch {rest} {(rest == 1 ? "Jahresabschluss" : "Jahresabschlüsse")} im Minus, dann droht der Bankrott.", 14, Rot);
+        }
 
         if (w.NaechsterStand(spieler) is { } naechster)
         {
