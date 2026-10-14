@@ -66,6 +66,51 @@ public sealed record WirtschaftStand
 
     /// <summary>Das Stadtgericht (null in Spielständen von vor dem Gericht).</summary>
     public JustizStand? Justiz { get; init; }
+
+    /// <summary>Die Unterwelt (null in Spielständen von vor den Gaunern).</summary>
+    public UnterweltStand? Gauner { get; init; }
+}
+
+public sealed record UnterweltStand
+{
+    public long ZufallWuerfe { get; init; }
+    public List<AuftragStand> Auftraege { get; init; } = new();
+    public List<HinterhaltStand> Hinterhalte { get; init; } = new();
+    public List<ForderungStand> Forderungen { get; init; } = new();
+    public List<NachtereignisStand> DiesesJahr { get; init; } = new();
+    public List<NachtereignisStand> LetztesJahr { get; init; } = new();
+
+    /// <summary>Betriebsname → Jahr des letzten Angriffs.</summary>
+    public Dictionary<string, int> LetzterAngriff { get; init; } = new();
+}
+
+public sealed record AuftragStand
+{
+    public int Auftraggeber { get; init; }
+    public int Ziel { get; init; }
+    public Gauner.Gaunerstueck Art { get; init; }
+    public string? Betrieb { get; init; }
+}
+
+public sealed record HinterhaltStand
+{
+    public int Auftraggeber { get; init; }
+    public int Ziel { get; init; }
+    public long BisMinute { get; init; }
+}
+
+public sealed record ForderungStand
+{
+    public int Erpresser { get; init; }
+    public int Opfer { get; init; }
+    public double Betrag { get; init; }
+    public int Jahr { get; init; }
+}
+
+public sealed record NachtereignisStand
+{
+    public int? Fuer { get; init; }
+    public string Text { get; init; } = "";
 }
 
 public sealed record JustizStand
@@ -79,6 +124,9 @@ public sealed record JustizStand
 
     /// <summary>Kontonummer (als Text) → bis zu welchem Jahr das Haus am Pranger steht.</summary>
     public Dictionary<string, int> PrangerBis { get; init; } = new();
+
+    /// <summary>Kontonummer (als Text) → bis zu welchem Jahr das Oberhaupt im Kerker sitzt.</summary>
+    public Dictionary<string, int> KerkerBis { get; init; } = new();
     public List<string> LetzterGerichtstag { get; init; } = new();
 
     /// <summary>Häuser, über die am letzten Gerichtstag ein Spitzel berichtet hat (Kontonummern).</summary>
@@ -246,6 +294,7 @@ public sealed record BilanzStand
     public double Geschenke { get; init; }
     public double Familie { get; init; }
     public double Gericht { get; init; }
+    public double Gaunerei { get; init; }
     public Dictionary<string, int> Hergestellt { get; init; } = new();
 }
 
@@ -269,6 +318,8 @@ public sealed record BetriebStand
     public int StillstandMinuten { get; init; }
     public int StillstandMinutenVorjahr { get; init; }
     public List<KarrenStand> Karren { get; init; } = new();
+    public bool Waechter { get; init; }
+    public int SabotageMinuten { get; init; }
 }
 
 public sealed record KarrenStand
@@ -300,4 +351,5 @@ public sealed record RivaleStand
 
     public List<string> Entscheidungen { get; init; } = new();
     public int StundenImJahr { get; init; }
+    public int GaunereienImJahr { get; init; }
 }

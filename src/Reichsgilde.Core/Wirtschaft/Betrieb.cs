@@ -31,6 +31,7 @@ public sealed class Betrieb
     private string _produkt = "Silberring";
     private double _silberanteil = 0.5;
     private string? _letzterStillstand;
+    private int _sabotageMinuten;
 
     public string Name { get; }
     public Betriebsart Art { get; }
@@ -48,6 +49,12 @@ public sealed class Betrieb
     public int ImLager(string ware) => _lager.GetValueOrDefault(ware);
 
     public IReadOnlyList<Karren> Karren => _karren;
+
+    /// <summary>Ein Wächter halbiert die Erfolgschance von Diebstahl und Sabotage und sieht öfter, wer es war.</summary>
+    public bool Waechter { get; internal set; }
+
+    /// <summary>Arbeitsminuten, die nach einer Sabotage noch repariert werden muss (0 = alles heil).</summary>
+    public int SabotageMinuten => _sabotageMinuten;
 
     /// <summary>Warum die Produktion gerade stillsteht (null = sie läuft).</summary>
     public string? Stillstand { get; private set; }
@@ -179,6 +186,19 @@ public sealed class Betrieb
     /// <summary>Eine Spielminute Arbeit. Wird nur während der Arbeitszeit aufgerufen.</summary>
     internal void Arbeitsminute(Action<string> melden)
     {
+        if (_sabotageMinuten > 0)
+        {
+            // Nach einem Anschlag wird repariert statt gearbeitet.
+            _sabotageMinuten--;
+            if (LeistungProMinute <= 0) return;
+            const string grund = "Nach dem Anschlag wird repariert – die Arbeit ruht.";
+            if (_letzterStillstand != grund) melden($"{Name}: {grund}");
+            _letzterStillstand = grund;
+            Stillstand = grund;
+            StillstandMinuten++;
+            return;
+        }
+
         var leistung = LeistungProMinute;
         if (leistung <= 0) return;
 
@@ -247,6 +267,9 @@ public sealed class Betrieb
         return null;
     }
 
+    /// <summary>Sabotage: So viele Arbeitsminuten muss repariert werden (zwei Anschläge addieren sich).</summary>
+    internal void Sabotieren(int arbeitsminuten) => _sabotageMinuten += arbeitsminuten;
+
     /// <summary>Verkauft ein Stück auf dem Markt und verbucht Umsatz und Steuer.</summary>
     internal void Verkaufen(string ware, int stueck, Markt markt)
     {
@@ -266,6 +289,7 @@ public sealed class Betrieb
         Stillstand = Stillstand, LetzterStillstand = _letzterStillstand,
         StillstandMinuten = StillstandMinuten, StillstandMinutenVorjahr = StillstandMinutenVorjahr,
         Karren = _karren.Select(k => k.Sichern()).ToList(),
+        Waechter = Waechter, SabotageMinuten = _sabotageMinuten,
     };
 
     internal void Wiederherstellen(BetriebStand s)
@@ -281,6 +305,8 @@ public sealed class Betrieb
         _letzterStillstand = s.LetzterStillstand;
         StillstandMinuten = s.StillstandMinuten;
         StillstandMinutenVorjahr = s.StillstandMinutenVorjahr;
+        Waechter = s.Waechter;
+        _sabotageMinuten = s.SabotageMinuten;
         foreach (var karrenStand in s.Karren)
         {
             if (!_daten.Logistik.Karren.TryGetValue(karrenStand.Typ, out var daten))
@@ -315,6 +341,8 @@ public sealed class Betrieb
         }
 
         Konto.Fixkosten(Art == Betriebsart.Mine ? _daten.Allgemein.PachtMine : _daten.Allgemein.UnterhaltGiesserei);
+        if (Waechter && _daten.Gauner is { } gauner)
+            Konto.Personal(gauner.WaechterKosten);
 
         StillstandMinutenVorjahr = StillstandMinuten;
         StillstandMinuten = 0;

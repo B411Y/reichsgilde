@@ -50,6 +50,15 @@ public sealed class JustizDaten
     /// <summary>Verurteilte Amtsträger verlieren ihr Amt.</summary>
     public bool Amtsverlust { get; init; } = true;
 
+    /// <summary>
+    /// So viele Jahre sitzt ein Oberhaupt im Kerker, wenn ein schweres Vergehen bewiesen ist.
+    /// Im Kerker: kein Rat, keine Brautschau, kein Gericht, kein Hinterzimmer – die Betriebe laufen weiter.
+    /// </summary>
+    public int KerkerJahre { get; init; } = 1;
+
+    /// <summary>Welche Vergehen in den Kerker führen.</summary>
+    public List<Vergehen> KerkerFuer { get; init; } = new() { Vergehen.Raub, Vergehen.Erpressung };
+
     internal void Pruefen(List<string> f)
     {
         if (VerjaehrungJahre < 1) f.Add("justiz.verjaehrungJahre muss mindestens 1 sein.");
@@ -57,5 +66,6 @@ public sealed class JustizDaten
         if (SpitzelKosten < 0 || Gerichtsgebuehr < 0 || Mindestbusse < 0 || Entschaedigung < 0) f.Add("justiz: Kosten dürfen nicht negativ sein.");
         if (BeweiskraftJeBeweis <= 0 || SchuldSchwelle <= 0) f.Add("justiz: beweiskraftJeBeweis und schuldSchwelle müssen größer als 0 sein.");
         if (PrangerJahre < 0 || PrangerAnsehen < 0) f.Add("justiz: prangerJahre und prangerAnsehen dürfen nicht negativ sein.");
+        if (KerkerJahre < 0) f.Add("justiz.kerkerJahre darf nicht negativ sein.");
     }
 }

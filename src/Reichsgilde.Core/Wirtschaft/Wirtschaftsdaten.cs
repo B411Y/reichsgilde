@@ -163,6 +163,9 @@ public sealed class Wirtschaftsdaten
     /// <summary>Das Stadtgericht (ab Datenversion 7). Fehlt der Abschnitt, gibt es kein Gericht.</summary>
     public Justiz.JustizDaten? Justiz { get; init; }
 
+    /// <summary>Die Unterwelt (ab Datenversion 8). Fehlt der Abschnitt, gibt es kein Hinterzimmer.</summary>
+    public Gauner.GaunerDaten? Gauner { get; init; }
+
     /// <summary>Freie Werkstätten und Gruben, die man erwerben kann (ab Datenversion 4).</summary>
     public List<LiegenschaftDaten> Liegenschaften { get; init; } = new();
 
@@ -281,6 +284,7 @@ public sealed class Wirtschaftsdaten
         Politik.Pruefen(f, StandStufe);
         Dynastie.Pruefen(f, StandStufe);
         Justiz?.Pruefen(f);
+        Gauner?.Pruefen(f);
         return f;
     }
 
