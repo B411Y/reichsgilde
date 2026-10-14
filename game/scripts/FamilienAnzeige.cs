@@ -115,7 +115,7 @@ public partial class FamilienAnzeige : PanelContainer
             var talente = Text(_inhalt, "Talente: " + TalentText(o) + "   ⓘ", 14, Gold);
             talente.TooltipText = Talentwirkung(w, buch);
             talente.MouseFilter = MouseFilterEnum.Stop;
-            if (w.ApKosten(new TalentTrainieren(Talent.Handwerk)) > 0 && !_spieler!.IstErloschen)
+            if (w.HatAktionspunkte && !_spieler!.IstErloschen)
                 UebenZeile(w, buch);
         }
         if (f.Ehepartner is { } e)
@@ -215,7 +215,7 @@ public partial class FamilienAnzeige : PanelContainer
                 knopf.TooltipText = grund;
             }
             else
-                knopf.TooltipText = $"{t.Name()} üben: +{schritt} Stern (einmal im Jahr je Talent).";
+                knopf.TooltipText = $"{t.Name()} üben: +{schritt} Stern (einmal im Jahr je Talent). Je höher das Talent, desto mehr Aktionspunkte kostet es.";
             knopf.Pressed += () => Befehlen(new TalentTrainieren(talent));
             UiHilfe.ApKosten(knopf, w, _spieler!, new TalentTrainieren(t));
             zeile.AddChild(knopf);

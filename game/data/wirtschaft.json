@@ -3,12 +3,12 @@
   "aktionspunkte": {
     "hoechstens": 12,
     "trainingSchritt": 0.5,
+    "trainingKosten": [ { "bis": 3, "ap": 2 }, { "bis": 5, "ap": 4 }, { "bis": 6, "ap": 6 } ],
     "kosten": {
       "Werben": 1, "Heiraten": 1,
       "Schenken": 1, "AmtBewerben": 1, "StatutBeantragen": 2,
       "SpitzelAnsetzen": 1, "Anklagen": 2,
-      "Beauftragen": 1, "Erpressen": 2,
-      "TalentTrainieren": 2
+      "Beauftragen": 1, "Erpressen": 2
     }
   },
   "allgemein": {

@@ -28,7 +28,7 @@ public static class UiHilfe
     public static void ApKosten(Button knopf, Reichsgilde.Core.Wirtschaft.Stadtwirtschaft w, Reichsgilde.Core.Wirtschaft.Konto konto,
         Reichsgilde.Core.Wirtschaft.Befehl befehl)
     {
-        var kosten = w.ApKosten(befehl);
+        var kosten = w.ApKosten(konto, befehl);
         if (kosten <= 0) return;
         knopf.Text += $" · {kosten} AP";
         if (konto.Aktionspunkte.Reicht(kosten) || knopf.Disabled) return;

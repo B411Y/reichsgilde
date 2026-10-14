@@ -131,11 +131,20 @@ public sealed class Stadtwirtschaft
     /// <summary>Neue AP je Runde (= je Spieljahr) – aus den Partie-Einstellungen, von der Simulation gesetzt.</summary>
     public int AktionspunkteJeRunde { get; set; } = 4;
 
-    /// <summary>Was ein Befehl an Aktionspunkten kostet (0 = frei).</summary>
+    /// <summary>Was ein Befehl an Aktionspunkten kostet (0 = frei) – ohne Ansehen des Hauses.</summary>
     public int ApKosten(Befehl befehl) => Daten.Aktionspunkte?.KostenFuer(befehl) ?? 0;
 
+    /// <summary>
+    /// Was ein Befehl dieses Haus kostet. Fast immer wie <see cref="ApKosten(Befehl)"/>; nur das Üben hängt
+    /// davon ab, wie gut das Oberhaupt das Talent schon beherrscht.
+    /// </summary>
+    public int ApKosten(Konto konto, Befehl befehl) =>
+        befehl is TalentTrainieren t && Daten.Aktionspunkte is { } d && Familien.Von(konto) is { } f
+            ? Familien.TrainingVerboten(konto, t.Talent) is null ? d.TrainingKostenFuer(f.Oberhaupt.Talent(t.Talent)) : 0 // abgelehnt wird es ohnehin – mit dem richtigen Grund
+            : ApKosten(befehl);
+
     /// <summary>Kann das Haus sich diesen Befehl an Aktionspunkten leisten?</summary>
-    public bool ApReichen(Konto konto, Befehl befehl) => konto.Aktionspunkte.Reicht(ApKosten(befehl));
+    public bool ApReichen(Konto konto, Befehl befehl) => konto.Aktionspunkte.Reicht(ApKosten(konto, befehl));
 
     /// <summary>Neue Runde: Jedes Haus bekommt seine AP, höchstens bis zum Vorrat aus den Daten – der Rest verfällt.</summary>
     private void AktionspunkteVerteilen()
@@ -309,7 +318,7 @@ public sealed class Stadtwirtschaft
     public Befehlsergebnis Ausfuehren(Konto absender, Befehl befehl)
     {
         // Aktionspunkte: erst prüfen, nur bei Erfolg abbuchen – ein abgelehnter Befehl kostet nichts.
-        var kosten = ApKosten(befehl);
+        var kosten = ApKosten(absender, befehl);
         if (kosten > 0 && absender.IstAktiv && !absender.Aktionspunkte.Reicht(kosten)
             && !(Justiz.IstAktiv && Justiz.ImKerker(absender)))
             return Befehlsergebnis.Abgelehnt($"Nicht genug Aktionspunkte: Das kostet {kosten} AP, {absender.Inhaber} hat noch {absender.Aktionspunkte.Vorrat}.");
