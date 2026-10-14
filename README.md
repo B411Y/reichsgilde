@@ -94,6 +94,7 @@ Steuerung:
 - **Linksklick** auf ein Gebäude = Informationen (bei eigenen Betrieben mit Bedienfeld) · **Doppelklick** auf eine Gießerei = Innenansicht
 - **Esc** = Innenansicht verlassen → Auswahl schließen → Spielmenü (Speichern, Laden, Hauptmenü)
 - **F11** = Vollbild ein/aus (auch im Haupt- und Spielmenü; wird gespeichert). Das Fenster lässt sich frei ziehen: Ein größeres Fenster zeigt mehr Stadt, Tafeln, die nicht hineinpassen, bekommen Scrollbalken (Mausrad über der Tafel rollt sie).
+  Hinweis: Startet man das Spiel im Godot-Editor, läuft es im Reiter „Game“ eingebettet. Dort bestimmt der Editor die Fenstergröße, und Vollbild ist nicht möglich. Zum Testen im eigenen Fenster das Einbetten im Reiter „Game“ ausschalten.
 
 ### Tests ausführen
 Im Terminal (in VS Code: *Terminal → Neues Terminal*) im Ordner `reichsgilde`:
