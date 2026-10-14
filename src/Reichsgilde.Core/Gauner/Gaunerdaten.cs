@@ -9,6 +9,8 @@ public enum Gaunerstueck
     Sabotage,
     /// <summary>Hinterhalt auf die nächste beladene Umlandfahrt eines Hauses.</summary>
     Ueberfall,
+    /// <summary>Krötenschleim ins Essen: Das Oberhaupt eines Hauses erkrankt.</summary>
+    Kroetenschleim,
 }
 
 public static class GaunerstueckTexte
@@ -16,6 +18,7 @@ public static class GaunerstueckTexte
     public static string Name(this Gaunerstueck g) => g switch
     {
         Gaunerstueck.Ueberfall => "Überfall",
+        Gaunerstueck.Kroetenschleim => "Krötenschleim",
         _ => g.ToString(),
     };
 }
@@ -39,6 +42,14 @@ public sealed class SabotageDaten
 
     /// <summary>Reparaturkosten für das Opfer.</summary>
     public double Reparatur { get; init; } = 150;
+}
+
+public sealed class KroetenschleimDaten
+{
+    public double Kosten { get; init; } = 200;
+
+    /// <summary>Chance, dass der Schleim ins Essen gelangt (Wächter helfen nicht – es trifft die Person, nicht den Betrieb).</summary>
+    public double Chance { get; init; } = 0.6;
 }
 
 public sealed class UeberfallDaten
@@ -78,6 +89,7 @@ public sealed class GaunerDaten
     public DiebstahlDaten Diebstahl { get; init; } = new();
     public SabotageDaten Sabotage { get; init; } = new();
     public UeberfallDaten Ueberfall { get; init; } = new();
+    public KroetenschleimDaten Kroetenschleim { get; init; } = new();
 
     /// <summary>Ab so vielen Beweisen kann man Schweigegeld verlangen.</summary>
     public int ErpressungMindestBeweise { get; init; } = 3;
@@ -86,15 +98,17 @@ public sealed class GaunerDaten
     {
         Gaunerstueck.Diebstahl => Diebstahl.Kosten,
         Gaunerstueck.Sabotage => Sabotage.Kosten,
+        Gaunerstueck.Kroetenschleim => Kroetenschleim.Kosten,
         _ => Ueberfall.Kosten,
     };
 
     internal void Pruefen(List<string> f)
     {
         foreach (var (name, wert) in new[] { ("hehlerAnteil", HehlerAnteil), ("zeugenChance", ZeugenChance), ("zeugenChanceWaechter", ZeugenChanceWaechter),
-                     ("waechterSchutz", WaechterSchutz), ("diebstahl.chance", Diebstahl.Chance), ("sabotage.chance", Sabotage.Chance), ("ueberfall.staerke", Ueberfall.Staerke) })
+                     ("waechterSchutz", WaechterSchutz), ("diebstahl.chance", Diebstahl.Chance), ("sabotage.chance", Sabotage.Chance), ("ueberfall.staerke", Ueberfall.Staerke),
+                     ("kroetenschleim.chance", Kroetenschleim.Chance) })
             if (wert is < 0 or > 1) f.Add($"gauner.{name} muss zwischen 0 und 1 liegen.");
-        if (WaechterKosten < 0 || Diebstahl.Kosten < 0 || Sabotage.Kosten < 0 || Ueberfall.Kosten < 0 || Sabotage.Reparatur < 0)
+        if (WaechterKosten < 0 || Diebstahl.Kosten < 0 || Sabotage.Kosten < 0 || Ueberfall.Kosten < 0 || Sabotage.Reparatur < 0 || Kroetenschleim.Kosten < 0)
             f.Add("gauner: Kosten dürfen nicht negativ sein.");
         if (Diebstahl.HoechstensStueck < 1 || Sabotage.StillstandMinuten < 0 || Ueberfall.GueltigMinuten < 1)
             f.Add("gauner: hoechstensStueck und gueltigMinuten müssen mindestens 1 sein, stillstandMinuten mindestens 0.");

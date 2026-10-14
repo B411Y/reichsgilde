@@ -109,7 +109,8 @@ public partial class FamilienAnzeige : PanelContainer
             Hauptmenue.Text(_inhalt, "Das Haus ist erloschen.", 18, Rot, zentriert: true);
 
         // ── Oberhaupt und Ehe ──
-        Text(_inhalt, $"{o.OberhauptTitel}: {o.Name}, {o.Volk.Einzahl()}, {o.Alter(jahr)} Jahre – {buch.Verfassung(o)}", 16);
+        Text(_inhalt, $"{o.OberhauptTitel}: {o.Name}, {o.Volk.Einzahl()}, {o.Alter(jahr)} Jahre – {buch.Verfassung(o)}" +
+                      (o.Krankheit is { } krank ? $" · krank ({krank.Name})" : ""), 16);
         if (buch.HatTalente)
         {
             var talente = Text(_inhalt, "Talente: " + TalentText(o) + "   ⓘ", 14, Gold);
@@ -133,6 +134,7 @@ public partial class FamilienAnzeige : PanelContainer
         var ausbildung = buch.Ausbildungskosten(f);
         Text(_inhalt, $"Haushalt und Unterhalt: {Zahlenformat.Ganz(buch.Haushaltskosten(f))} {waehrung} im Jahr" +
                       (ausbildung > 0 ? $" · Ausbildung: {Zahlenformat.Ganz(ausbildung)} {waehrung}" : ""), 13, Grau);
+        GesundheitAbschnitt(w, f, waehrung);
 
         // ── Kinder ──
         var kinder = f.Kinder.ToList();
@@ -193,6 +195,64 @@ public partial class FamilienAnzeige : PanelContainer
             Text(_inhalt, "Familienchronik", 16);
             foreach (var eintrag in chronik.Take(6))
                 Text(_inhalt, "• " + eintrag, 13, null, umbrechen: true);
+        }
+    }
+
+    /// <summary>Hausapotheke und alle Kranken im Haus – mit Medicus und Kräuterschnaps.</summary>
+    private void GesundheitAbschnitt(Stadtwirtschaft w, Familie f, string waehrung)
+    {
+        var g = w.Gesundheit;
+        if (!g.IstAktiv || _spieler!.IstErloschen) return;
+        _inhalt.AddChild(new HSeparator());
+        Text(_inhalt, g.IstPestjahr ? "Gesundheit – die Pest ist in der Stadt!" : "Gesundheit", 16, g.IstPestjahr ? Rot : null);
+
+        var schnaps = g.Daten.Schnaps;
+        var apotheke = new HBoxContainer();
+        apotheke.AddThemeConstantOverride("separation", 8);
+        _inhalt.AddChild(apotheke);
+        Text(apotheke, $"Hausapotheke: {g.Apotheke(_spieler)} × {schnaps}", 14);
+        foreach (var stueck in new[] { 1, 3 })
+        {
+            var anzahl = stueck;
+            var kaufen = new Button { Text = $"{anzahl} kaufen ({Zahlenformat.Ganz(g.SchnapsPreis * anzahl)} {waehrung})", FocusMode = FocusModeEnum.None };
+            kaufen.TooltipText = $"{schnaps} vom Markt: heilt leichte Krankheiten (Husten, Angst im Dunkeln, Lachanfälle) und senkt bei der Pest das Sterberisiko.";
+            kaufen.Pressed += () => Befehlen(new SchnapsKaufen(anzahl));
+            apotheke.AddChild(kaufen);
+        }
+
+        var kranke = f.Lebende.Where(p => p.Krankheit is not null).ToList();
+        if (kranke.Count == 0)
+        {
+            Text(_inhalt, "Alle im Haus sind gesund.", 13, Grau);
+            return;
+        }
+        foreach (var p in kranke)
+        {
+            var k = p.Krankheit!;
+            var zeile = new HBoxContainer();
+            zeile.AddThemeConstantOverride("separation", 8);
+            _inhalt.AddChild(zeile);
+            var risiko = g.Sterberisiko(k);
+            var bis = k.Bis <= w.Familien.Jahr ? "bis Jahresende" : $"bis Ende {k.Bis}";
+            Text(zeile, $"{p.Vorname}: {k.Beschreibung} – {bis}{(risiko > 0 ? $" · {Zahlenformat.Ganz(risiko * 100)} % tödlich" : "")}", 14,
+                risiko > 0 ? Rot : null);
+
+            var person = p.Nummer;
+            var medicus = new Button { Text = $"Medicus ({Zahlenformat.Ganz(g.MedicusKosten(k))} {waehrung})", FocusMode = FocusModeEnum.None };
+            medicus.Disabled = k.IstPest && k.Medicus;
+            medicus.TooltipText = medicus.Disabled ? "Der Medicus pflegt schon." :
+                k.IstPest ? "Halbiert das Sterberisiko an der Pest." : "Heilt die Krankheit sofort.";
+            medicus.Pressed += () => Befehlen(new MedicusRufen(person));
+            zeile.AddChild(medicus);
+
+            var geben = new Button { Text = schnaps, FocusMode = FocusModeEnum.None };
+            string? gesperrt = g.Apotheke(_spieler) <= 0 ? "Die Hausapotheke ist leer."
+                : k.IstPest ? (k.Schnaps ? "Hat schon Kräuterschnaps bekommen." : null)
+                : !k.Schnapsheilbar ? $"Gegen {k.Name} hilft nur der Medicus." : null;
+            geben.Disabled = gesperrt is not null;
+            geben.TooltipText = gesperrt ?? (k.IstPest ? "Senkt das Sterberisiko an der Pest etwas." : "Heilt die Krankheit sofort.");
+            geben.Pressed += () => Befehlen(new SchnapsGeben(person));
+            zeile.AddChild(geben);
         }
     }
 

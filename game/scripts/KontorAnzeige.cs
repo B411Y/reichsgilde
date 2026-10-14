@@ -117,10 +117,12 @@ public partial class KontorAnzeige : PanelContainer
         var o = f.Oberhaupt;
         var kinder = f.Kinder.Count(k => k.Lebt);
         var erbe = buch.Erbe(f);
-        return $"{o.Vorname} ({o.Alter(buch.Jahr)}, {buch.Verfassung(o)})"
+        var kranke = f.Lebende.Count(p => p.Krankheit is not null);
+        return $"{o.Vorname} ({o.Alter(buch.Jahr)}, {(o.Krankheit is { } k ? $"krank: {k.Name}" : buch.Verfassung(o))})"
                + (f.Ehepartner is { } e ? $" · verheiratet mit {e.Vorname}" : " · ledig")
                + (kinder > 0 ? $" · {kinder} {(kinder == 1 ? "Kind" : "Kinder")}" : "")
-               + (erbe is null ? " · ohne Erben!" : erbe == f.Ehepartner ? "" : $" · Erbe: {erbe.Vorname}");
+               + (erbe is null ? " · ohne Erben!" : erbe == f.Ehepartner ? "" : $" · Erbe: {erbe.Vorname}")
+               + (kranke > 0 && o.Krankheit is null ? $" · {kranke} krank" : "");
     }
 
     /// <summary>Der letzte Zug der KI, ohne den Namen davor (der steht schon in der Zeile).</summary>
@@ -178,7 +180,8 @@ public partial class KontorAnzeige : PanelContainer
         }
 
         _statutZeile.Text = $"Statut {w.Statut.Kuerzel()} – {w.Statut.Name()}"
-                          + (w.IstArbeitszeit(_simulation.Zeit) ? " · es wird gearbeitet" : " · Feierabend");
+                          + (w.IstArbeitszeit(_simulation.Zeit) ? " · es wird gearbeitet" : " · Feierabend")
+                          + (w.Gesundheit.IstPestjahr ? $" · PEST: {Zahlenformat.Ganz(w.Gesundheit.Krankenstand * 100)} % der Arbeitskräfte fehlen" : "");
 
         var eigene = w.Betriebe.Where(x => x.Konto == _spieler).ToList();
         if (eigene.Count != _betriebsZeilen.Count)

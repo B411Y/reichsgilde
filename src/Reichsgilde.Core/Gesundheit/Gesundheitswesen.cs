@@ -71,7 +71,7 @@ public sealed class Gesundheitswesen
     public GesundheitDaten Daten => _d ?? throw new InvalidOperationException("Es gibt keine Krankheiten (gesundheit fehlt in den Daten).");
 
     /// <summary>In diesem Jahr bricht die nächste Pest aus (0 = nie).</summary>
-    public int NaechstePest { get; private set; }
+    public int NaechstePest { get; internal set; }
 
     /// <summary>Wütet in diesem Jahr die Pest?</summary>
     public bool IstPestjahr { get; private set; }

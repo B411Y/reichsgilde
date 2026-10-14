@@ -30,6 +30,8 @@ static class Messung
         int verheiratet = 0, erloschen = 0, buergermeister = 0;
         double heiratsjahre = 0, kinder = 0, erbfaelle = 0, bmJahre = 0, kostenSpieler = 0, vermoegen = 0;
         double talentOberhaupt = 0, ausgebildet = 0;
+        int pestjahre = 0, krankheitstote = 0, pesttote = 0, krankJahre = 0;
+        double familienKi = 0;
         var abschluesse = new SortedDictionary<string, int>();
         for (var s = 1; s <= startwerte; s++)
         {
@@ -61,6 +63,9 @@ static class Messung
                 gaunerBilanz -= rivale.Vorjahr?.Gaunerei ?? 0;
                 schadenSpieler += (spieler.Vorjahr?.Raubwert ?? 0) + (spieler.Vorjahr?.Schaden ?? 0);
                 if (w.Justiz.IstAktiv && w.Justiz.ImKerker(rivale)) kerker++;
+                if (w.Gesundheit.IstPestjahr) pestjahre++;
+                if (w.Familien.Von(rivale)?.Oberhaupt.Krankheit is not null) krankJahre++;
+                familienKi += rivale.Vorjahr?.Familie ?? 0;
                 foreach (var u in w.Justiz.LetzteUrteile.Where(u => u.Beklagter == rivale))
                 {
                     if (u.Schuldig) urteileSchuldig++; else urteileFrei++;
@@ -76,6 +81,9 @@ static class Messung
             erbfaelle += f.Ahnen.Count;
             vermoegen += rivale.Vermoegen;
             talentOberhaupt += f.Oberhaupt.TalentSumme;
+            var gestorben = f.Mitglieder.Concat(f.Ahnen).Distinct().Where(p => p.Todesursache is not null).ToList();
+            krankheitstote += gestorben.Count;
+            pesttote += gestorben.Count(p => p.Todesursache == "an der Pest");
             ausgebildet += f.Mitglieder.Count(p => p.Abschluss is not null);
             foreach (var p in f.Mitglieder.Where(p => p.Abschluss is not null))
                 abschluesse[p.Abschluss!] = abschluesse.GetValueOrDefault(p.Abschluss!) + 1;
@@ -95,6 +103,8 @@ static class Messung
                           $"Raub und Schäden beim Spieler Ø {Zahlenformat.Ganz(schadenSpieler / startwerte)}; Kerkerjahre der KI {kerker}");
         Console.WriteLine($"  Talente des Oberhaupts am Ende Ø {talentOberhaupt / startwerte:N1} Sterne (Summe aller fünf); ausgebildete Nachkommen Ø {ausgebildet / startwerte:N1} " +
                           $"({string.Join(", ", abschluesse.Select(x => $"{x.Key} {x.Value}"))})");
+        Console.WriteLine($"  Gesundheit: {pestjahre} Pestjahre in {startwerte} Partien; Krankheitstote im Haus Eisenbart {krankheitstote} (davon Pest {pesttote}); " +
+                          $"Oberhaupt zum Jahresbeginn krank in {krankJahre} von {startwerte * jahre} Jahren; Familienkosten der KI Ø {Zahlenformat.Ganz(familienKi / startwerte / jahre)} im Jahr");
         if (gericht)
             Console.WriteLine($"  vor Gericht: {urteileSchuldig} Schuldsprüche, {urteileFrei} Freisprüche, davon {amtVerloren} mit Amtsverlust (Summe über alle Startwerte)");
         return 0;
@@ -128,7 +138,10 @@ static class Messung
     }
 
     /// <summary>Spielstand mit verheiratetem Oberhaupt und Kindern im Ausbildungsalter – für Klicktests der Familientafel.</summary>
-    public static int FamilienSpielstand(string datei)
+    public static int FamilienSpielstand(string datei) => FamilienSpielstand(datei, pest: false);
+
+    /// <summary>Wie <see cref="FamilienSpielstand(string)"/>, aber im Pestjahr – mit kranken Familienmitgliedern (Klicktest Gesundheit).</summary>
+    public static int FamilienSpielstand(string datei, bool pest)
     {
         var daten = Wirtschaftsdaten.AusDatei(Datenpfad.Wirtschaft());
         var (sim, spieler) = Partieaufbau.Erstellen(
@@ -150,6 +163,15 @@ static class Messung
         }
         for (var jahr = 0; jahr < 40 && !f.Lebende.Any(p => p.Vater is not null && p.Alter(buch.Jahr) >= buch.AusbildungAb(p.Volk)); jahr++)
             Jahr();
+        if (pest)
+        {
+            w.Gesundheit.NaechstePest = buch.Jahr + 1;
+            Jahr();
+            w.Gesundheit.Erkranken(spieler, f.Oberhaupt, "Lungenentzündung");
+            foreach (var kind in f.Lebende.Where(p => p.Vater is not null && p.Krankheit is null).Take(1))
+                w.Gesundheit.Erkranken(spieler, kind, "Husten");
+            w.Ausfuehren(spieler, new SchnapsKaufen(1));
+        }
         File.WriteAllText(datei, Speicherung.Speichern(sim, spieler));
         Console.WriteLine($"{sim.Zeit.DatumText}: {f.Oberhaupt.Name}, Kinder: {string.Join(", ", f.Lebende.Where(p => p.Vater is not null).Select(p => $"{p.Vorname} ({p.Alter(buch.Jahr)})"))}");
         Console.WriteLine($"gespeichert: {datei}");

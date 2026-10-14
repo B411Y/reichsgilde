@@ -645,6 +645,7 @@
     "diebstahl": { "kosten": 150, "chance": 0.7, "hoechstensStueck": 12 },
     "sabotage": { "kosten": 250, "chance": 0.6, "stillstandMinuten": 360, "reparatur": 150 },
     "ueberfall": { "kosten": 300, "staerke": 0.8, "gueltigMinuten": 1440 },
+    "kroetenschleim": { "kosten": 200, "chance": 0.6 },
     "erpressungMindestBeweise": 3
   }
 }

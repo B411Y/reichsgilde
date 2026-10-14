@@ -122,6 +122,7 @@ public sealed class KiRivale
         if (_stundenImJahr == Politikstunde)
         {
             Unterweltschutz(); // Erpresserbriefe beantworten, Wächter einstellen – kostet keine Aktionspunkte
+            Gesundheitspolitik(); // Medicus und Kräuterschnaps – auch aus dem Kerker (der Verwalter sorgt für die Familie)
             if (frei)
             {
                 // Die Aktionspunkte reichen nicht für alles: Familie und Verteidigung zuerst, dann nach Charakter –
@@ -437,6 +438,53 @@ public sealed class KiRivale
         if (f.Testament is { Lebt: true } alt && buch.IstVolljaehrig(alt) && Math.Round(alt.TalentSumme, 6) >= Math.Round(bester.TalentSumme, 6)) return;
         Befehlen(new ErbenBestimmen(bester.Nummer),
             $"setzt {bester.Vorname} als Erben ein ({TalentTexte.Sterne(bester.TalentSumme)} Sterne in allen Talenten).");
+    }
+
+    // ═════════════════════════════════════════════════════════════════════════
+    //  Gesundheit
+    // ═════════════════════════════════════════════════════════════════════════
+
+    /// <summary>So viele Flaschen Kräuterschnaps hält die KI in der Hausapotheke vorrätig.</summary>
+    private const int SchnapsVorrat = 2;
+
+    /// <summary>
+    /// Einmal im Jahr, früh: Kranke versorgen und die Hausapotheke auffüllen.
+    ///   • Pest: Schnaps für jeden Kranken, Medicus für alle, solange die halbe Reserve bleibt.
+    ///   • Lebensgefahr (Ruhr, Lungenentzündung): Medicus.
+    ///   • Leichte Krankheiten: Schnaps aus der Hausapotheke.
+    ///   • Was dem Oberhaupt Talente oder Ansehen kostet und Schnaps nicht heilt: Medicus, wenn die volle Reserve bleibt.
+    /// </summary>
+    private void Gesundheitspolitik()
+    {
+        var g = _w.Gesundheit;
+        if (!g.IstAktiv || _w.Familien.Von(Konto) is not { } f) return;
+        var schnapsPreis = g.SchnapsPreis;
+        var fehlt = SchnapsVorrat - g.Apotheke(Konto);
+        if (fehlt > 0 && Konto.Vermoegen - fehlt * schnapsPreis >= Profil.Reserve)
+            Befehlen(new SchnapsKaufen(fehlt), $"füllt die Hausapotheke auf ({fehlt} × {g.Daten.Schnaps}).");
+
+        foreach (var p in f.Lebende.Where(p => p.Krankheit is not null).OrderBy(p => p == f.Oberhaupt ? 0 : 1).ThenBy(p => p.Nummer).ToList())
+        {
+            var k = p.Krankheit!;
+            var medicus = g.MedicusKosten(k);
+            if (k.IstPest)
+            {
+                if (!k.Schnaps && g.Apotheke(Konto) > 0)
+                    Befehlen(new SchnapsGeben(p.Nummer), $"gibt {p.Vorname} gegen die Pest Kräuterschnaps.");
+                if (!p.Krankheit!.Medicus && Konto.Vermoegen - medicus >= Profil.Reserve / 2)
+                    Befehlen(new MedicusRufen(p.Nummer), $"holt den Medicus zu {p.Vorname} (Pest).");
+                continue;
+            }
+            if (k.Schnapsheilbar && g.Apotheke(Konto) > 0)
+            {
+                Befehlen(new SchnapsGeben(p.Nummer), $"kuriert {p.Vorname} mit Kräuterschnaps ({k.Name}).");
+                continue;
+            }
+            var lebensgefahr = k.SterbeChance > 0;
+            var hindert = p == f.Oberhaupt && (k.AnsehenAbzug > 0 || k.Talentabzug.Values.Any(v => v > 0));
+            if ((lebensgefahr && Konto.Vermoegen - medicus >= Profil.Reserve / 2) || (hindert && Konto.Vermoegen - medicus >= Profil.Reserve))
+                Befehlen(new MedicusRufen(p.Nummer), $"holt den Medicus zu {p.Vorname} ({k.Name}).");
+        }
     }
 
     // ═════════════════════════════════════════════════════════════════════════

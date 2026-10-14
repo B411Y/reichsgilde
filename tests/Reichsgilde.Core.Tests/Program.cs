@@ -18,6 +18,8 @@ if (args.Length > 2 && args[0] == "spielstand" && args[1] == "gericht")
     return Messung.GerichtsSpielstand(args[2]);
 if (args.Length > 2 && args[0] == "spielstand" && args[1] == "familie")
     return Messung.FamilienSpielstand(args[2]);
+if (args.Length > 2 && args[0] == "spielstand" && args[1] == "gesundheit")
+    return Messung.FamilienSpielstand(args[2], pest: true);
 
 var tests = new List<(string Name, Action Pruefung)>
 {
@@ -241,6 +243,7 @@ tests.AddRange(GerichtTests.Alle());
 tests.AddRange(GaunerTests.Alle());
 tests.AddRange(TalenteTests.Alle());
 tests.AddRange(AktionspunkteTests.Alle());
+tests.AddRange(GesundheitTests.Alle());
 
 // ── Testlauf ────────────────────────────────────────────────────────────────
 var fehler = 0;
