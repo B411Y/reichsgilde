@@ -245,6 +245,7 @@ tests.AddRange(TalenteTests.Alle());
 tests.AddRange(AktionspunkteTests.Alle());
 tests.AddRange(GesundheitTests.Alle());
 tests.AddRange(TischlerTests.Alle());
+tests.AddRange(MeistergradeTests.Alle());
 
 // ── Testlauf ────────────────────────────────────────────────────────────────
 var fehler = 0;

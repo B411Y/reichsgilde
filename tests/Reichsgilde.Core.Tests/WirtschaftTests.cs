@@ -75,7 +75,7 @@ static class WirtschaftTests
         ("Wirtschaftsdaten: game/data/wirtschaft.json wird geladen und ist gültig", () =>
         {
             var d = Daten.Value;
-            Pruefe.Gleich(10, d.Waren.Count); // 5 Schmied, 4 Tischler, Kräuterschnaps (nur Handel, ohne Hersteller)
+            Pruefe.Gleich(19, d.Waren.Count); // 9 Schmied, 8 Tischler, Gold und Kräuterschnaps (nur Handel, ohne Hersteller)
             Pruefe.Gleich(5, d.Arbeitskraefte.Count);
             Pruefe.Gleich(90.0, d.Waren["Silberring"].Grundpreis);
             Pruefe.Gleich(42.0, d.ZutatenZumGrundpreis("Silberring"));

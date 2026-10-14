@@ -14,6 +14,18 @@ public enum Betriebsart
 
     /// <summary>Umlandbetrieb des Tischlers (gepachtet). Schlägt Holz.</summary>
     Holzfaellerei,
+
+    /// <summary>Werkstatt des Schmieds, Stufe 2 (Ausbau der Gießerei ab Meistergrad 3).</summary>
+    Schmiede,
+
+    /// <summary>Werkstatt des Schmieds, Stufe 3 (Ausbau der Schmiede ab Meistergrad 5).</summary>
+    Goldschmiede,
+
+    /// <summary>Werkstatt des Tischlers, Stufe 2.</summary>
+    Drechslerei,
+
+    /// <summary>Werkstatt des Tischlers, Stufe 3.</summary>
+    Saegewerk,
 }
 
 /// <summary>
@@ -28,7 +40,7 @@ public enum Betriebsart
 public sealed class Betrieb
 {
     private readonly Wirtschaftsdaten _daten;
-    private readonly BetriebsartDaten _art;
+    private BetriebsartDaten _art;
     private readonly Dictionary<string, int> _belegung = new();
     private readonly Dictionary<string, int> _lager = new();
     private readonly List<Karren> _karren = new();
@@ -39,13 +51,22 @@ public sealed class Betrieb
     private double _silberanteil = 0.5;
     private string? _letzterStillstand;
     private int _sabotageMinuten;
+    private int _umbauMinuten;
 
     public string Name { get; }
-    public Betriebsart Art { get; }
+
+    /// <summary>Die Art – ändert sich nur durch Ausbau (Gießerei → Schmiede → Goldschmiede).</summary>
+    public Betriebsart Art { get; private set; }
     public Konto Konto { get; }
 
     /// <summary>Was diese Betriebsart ist und kann (aus den Daten).</summary>
     public BetriebsartDaten Artdaten => _art;
+
+    /// <summary>Gebäudestufe 1–3.</summary>
+    public int Stufe => _art.Stufe;
+
+    /// <summary>Arbeitsminuten, die der Umbau zur neuen Stufe noch dauert (0 = fertig).</summary>
+    public int UmbauMinuten => _umbauMinuten;
 
     public Arbeitsort Ort => _art.Ort;
 
@@ -210,16 +231,26 @@ public sealed class Betrieb
     /// <param name="leistungsFaktor">Handwerkskunst des Oberhaupts: 1,09 = die Arbeitskräfte schaffen 9 % mehr.</param>
     internal void Arbeitsminute(Action<string> melden, double leistungsFaktor = 1)
     {
-        if (_sabotageMinuten > 0)
+        if (_umbauMinuten > 0 || _sabotageMinuten > 0)
         {
-            // Nach einem Anschlag wird repariert statt gearbeitet.
-            _sabotageMinuten--;
+            // Während des Umbaus bzw. nach einem Anschlag wird gebaut statt gearbeitet.
+            string grund;
+            var umbau = _umbauMinuten > 0;
+            if (umbau)
+            {
+                _umbauMinuten--;
+                grund = $"Umbau (Stufe {_art.Stufe}: {_art.Name}) – die Arbeit ruht.";
+            }
+            else
+            {
+                _sabotageMinuten--;
+                grund = "Nach dem Anschlag wird repariert – die Arbeit ruht.";
+            }
             if (LeistungProMinute <= 0) return;
-            const string grund = "Nach dem Anschlag wird repariert – die Arbeit ruht.";
             if (_letzterStillstand != grund) melden($"{Name}: {grund}");
             _letzterStillstand = grund;
             Stillstand = grund;
-            StillstandMinuten++;
+            if (!umbau) StillstandMinuten++; // ein gewollter Umbau sagt nichts über zu knappe Karren oder Lager
             return;
         }
 
@@ -243,6 +274,7 @@ public sealed class Betrieb
                     Auslagern(zutat, menge);
                 Einlagern(_produkt, 1);
                 Konto.Hergestellt(_produkt);
+                Konto.ErfahrungSammeln(_art.Beruf, zeit / 60);
                 _fortschritt -= zeit;
             }
         }
@@ -291,9 +323,23 @@ public sealed class Betrieb
             }
             Einlagern(ware, 1);
             Konto.Hergestellt(ware);
+            Konto.ErfahrungSammeln(_art.Beruf, zeit / 60);
             fortschritt -= zeit;
         }
         return null;
+    }
+
+    /// <summary>
+    /// Ausbau am Platz zur nächsten Stufe: Ab sofort gelten Plätze, Produkte und Unterhalt der neuen Art;
+    /// das Produkt bleibt (die höhere Stufe kann alles, was die niedrigere konnte). Bis der Umbau fertig ist, ruht die Arbeit.
+    /// </summary>
+    internal void Ausbauen(Betriebsart neu, int umbauMinuten)
+    {
+        Art = neu;
+        _art = _daten.Art(neu);
+        _umbauMinuten += umbauMinuten;
+        if (!_art.Produkte.Contains(_produkt))
+            _produkt = _art.Standardprodukt ?? _art.Produkte.Last();
     }
 
     /// <summary>Sabotage: So viele Arbeitsminuten muss repariert werden (zwei Anschläge addieren sich).</summary>
@@ -319,7 +365,7 @@ public sealed class Betrieb
         Stillstand = Stillstand, LetzterStillstand = _letzterStillstand,
         StillstandMinuten = StillstandMinuten, StillstandMinutenVorjahr = StillstandMinutenVorjahr,
         Karren = _karren.Select(k => k.Sichern()).ToList(),
-        Waechter = Waechter, SabotageMinuten = _sabotageMinuten,
+        Waechter = Waechter, SabotageMinuten = _sabotageMinuten, UmbauMinuten = _umbauMinuten,
     };
 
     internal void Wiederherstellen(BetriebStand s)
@@ -337,6 +383,7 @@ public sealed class Betrieb
         StillstandMinutenVorjahr = s.StillstandMinutenVorjahr;
         Waechter = s.Waechter;
         _sabotageMinuten = s.SabotageMinuten;
+        _umbauMinuten = s.UmbauMinuten;
         foreach (var karrenStand in s.Karren)
         {
             if (!_daten.Logistik.Karren.TryGetValue(karrenStand.Typ, out var daten))

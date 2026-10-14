@@ -310,6 +310,12 @@ public sealed record KontoStand
 
     /// <summary>Beherrschte Handwerke (null in alten Spielständen – dann die Berufe der eigenen Betriebe).</summary>
     public List<string>? Berufe { get; init; }
+
+    /// <summary>Meistergrad je Beruf (fehlt in alten Spielständen – dann Grad 1).</summary>
+    public Dictionary<string, int>? Meistergrade { get; init; }
+
+    /// <summary>Gesammelte Erfahrungsstunden je Beruf.</summary>
+    public Dictionary<string, double>? Erfahrung { get; init; }
     public BilanzStand Laufend { get; init; } = new();
     public BilanzStand? Vorjahr { get; init; }
 }
@@ -357,6 +363,7 @@ public sealed record BetriebStand
     public List<KarrenStand> Karren { get; init; } = new();
     public bool Waechter { get; init; }
     public int SabotageMinuten { get; init; }
+    public int UmbauMinuten { get; init; }
 }
 
 public sealed record KarrenStand

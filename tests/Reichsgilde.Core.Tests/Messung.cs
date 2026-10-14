@@ -37,6 +37,9 @@ static class Messung
         var eichwaldWaren = new SortedDictionary<string, int>();
         var eisenbartWaren = new SortedDictionary<string, int>();
         var abschluesse = new SortedDictionary<string, int>();
+        // Meistergrade und Gebäudestufen der KI-Häuser: Summe der Jahre, in denen ein Ziel erreicht wurde, und wie oft
+        var meisterJahre = new SortedDictionary<string, (double Jahre, int Anzahl)>(StringComparer.Ordinal);
+        void Erreicht(string ziel, int jahr) { var (j, n) = meisterJahre.GetValueOrDefault(ziel); meisterJahre[ziel] = (j + jahr, n + 1); }
         for (var s = 1; s <= startwerte; s++)
         {
             var (sim, spieler) = Partieaufbau.Erstellen(
@@ -46,6 +49,7 @@ static class Messung
             var w = sim.Wirtschaft!;
             var rivale = w.Konten.First(k => k != spieler);
             int? heirat = null, bm = null;
+            var erreicht = new HashSet<string>();
             for (var j = 1; j <= jahre; j++)
             {
                 if (gericht && spieler.IstAktiv)
@@ -70,6 +74,15 @@ static class Messung
                 if (w.Gesundheit.IstPestjahr) pestjahre++;
                 if (w.Familien.Von(rivale)?.Oberhaupt.Krankheit is not null) krankJahre++;
                 familienKi += rivale.Vorjahr?.Familie ?? 0;
+                foreach (var ki in w.Rivalen.Select(r => r.Konto))
+                {
+                    var name = ki.Inhaber.Replace("Haus ", "");
+                    var stufe = w.Betriebe.Where(x => x.Konto == ki && x.IstWerkstatt).Select(x => x.Stufe).DefaultIfEmpty(0).Max();
+                    foreach (var ziel in new[] { (3, $"{name} Grad 3"), (5, $"{name} Grad 5"), (6, $"{name} Grad 6") })
+                        if (ki.HoechsterMeistergrad >= ziel.Item1 && erreicht.Add(ziel.Item2)) Erreicht(ziel.Item2, j);
+                    foreach (var ziel in new[] { (2, $"{name} Stufe 2"), (3, $"{name} Stufe 3") })
+                        if (stufe >= ziel.Item1 && erreicht.Add(ziel.Item2)) Erreicht(ziel.Item2, j);
+                }
                 foreach (var u in w.Justiz.LetzteUrteile.Where(u => u.Beklagter == rivale))
                 {
                     if (u.Schuldig) urteileSchuldig++; else urteileFrei++;
@@ -126,6 +139,8 @@ static class Messung
             Console.WriteLine($"  Haus Eichwald (Tischler): Vermögen Ø {Zahlenformat.Ganz(eichwaldVermoegen / partienMitEichwald)}, Gewinn im letzten Jahr Ø {Zahlenformat.Ganz(eichwaldGewinn / partienMitEichwald)}, " +
                               $"am Ende Bürgermeister in {eichwaldBm}/{partienMitEichwald}, erloschen {eichwaldErloschen}; hergestellt im letzten Jahr Ø " +
                               string.Join(", ", eichwaldWaren.Select(x => $"{x.Key} {x.Value / partienMitEichwald}")));
+        Console.WriteLine("  Meistergrade/Stufen der KI (erreicht in n Partien, Ø Jahr): " +
+                          string.Join(", ", meisterJahre.Select(x => $"{x.Key} {x.Value.Anzahl}× ab {x.Value.Jahre / x.Value.Anzahl:N1}")));
         if (gericht)
             Console.WriteLine($"  vor Gericht: {urteileSchuldig} Schuldsprüche, {urteileFrei} Freisprüche, davon {amtVerloren} mit Amtsverlust (Summe über alle Startwerte)");
         return 0;

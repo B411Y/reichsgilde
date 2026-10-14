@@ -106,3 +106,9 @@ public sealed record SchnapsGeben(int Person) : Befehl;
 
 /// <summary>Ein weiteres Handwerk erlernen (Lehrgeld und Aktionspunkte) – erst dann darf man dessen Werkstätten erwerben.</summary>
 public sealed record BerufErlernen(string Beruf) : Befehl;
+
+/// <summary>Die Meisterprüfung für den nächsten Grad in diesem Beruf ablegen (genug Erfahrung, Gebühr und Aktionspunkte).</summary>
+public sealed record MeisterpruefungAblegen(string Beruf) : Befehl;
+
+/// <summary>Die Werkstatt am Platz zur nächsten Stufe ausbauen (Gulden, Meistergrad; ein halber Tag Umbau).</summary>
+public sealed record BetriebAusbauen(string Betrieb) : BetriebsBefehl(Betrieb);

@@ -143,10 +143,14 @@ public sealed class Stadtwirtschaft
     /// Was ein Befehl dieses Haus kostet. Fast immer wie <see cref="ApKosten(Befehl)"/>; nur das Üben hängt
     /// davon ab, wie gut das Oberhaupt das Talent schon beherrscht.
     /// </summary>
-    public int ApKosten(Konto konto, Befehl befehl) =>
-        befehl is TalentTrainieren t && Daten.Aktionspunkte is { } d && Familien.Von(konto) is { } f
-            ? Familien.TrainingVerboten(konto, t.Talent) is null ? d.TrainingKostenFuer(f.Oberhaupt.Talent(t.Talent)) : 0 // abgelehnt wird es ohnehin – mit dem richtigen Grund
-            : ApKosten(befehl);
+    public int ApKosten(Konto konto, Befehl befehl)
+    {
+        if (befehl is TalentTrainieren t && Daten.Aktionspunkte is { } d && Familien.Von(konto) is { } f)
+            return Familien.TrainingVerboten(konto, t.Talent) is null ? d.TrainingKostenFuer(f.Oberhaupt.Talent(t.Talent)) : 0; // abgelehnt wird es ohnehin – mit dem richtigen Grund
+        if (befehl is MeisterpruefungAblegen m)
+            return HatAktionspunkte && MeisterpruefungVerboten(konto, m.Beruf) is null ? NaechstePruefung(konto, m.Beruf)!.Ap : 0;
+        return ApKosten(befehl);
+    }
 
     /// <summary>Kann das Haus sich diesen Befehl an Aktionspunkten leisten?</summary>
     public bool ApReichen(Konto konto, Befehl befehl) => konto.Aktionspunkte.Reicht(ApKosten(konto, befehl));
@@ -156,7 +160,51 @@ public sealed class Stadtwirtschaft
     {
         if (Daten.Aktionspunkte is not { } d) return;
         foreach (var konto in _konten.Where(k => k.IstAktiv))
-            konto.Aktionspunkte.NeueRunde(AktionspunkteJeRunde, hoechstens: d.Hoechstens);
+            konto.Aktionspunkte.NeueRunde(AktionspunkteJeRunde, ApBonus(konto), d.Hoechstens);
+    }
+
+    /// <summary>Zusätzliche AP je Runde – ein Meister des höchsten Grades hat mehr Zeit für Persönliches.</summary>
+    public int ApBonus(Konto konto) =>
+        Daten.Meistergrade is { } m && konto.HoechsterMeistergrad >= m.ApBonusAbGrad ? m.ApBonus : 0;
+
+    // ── Meistergrade und Gebäudestufen ───────────────────────────────────────
+
+    /// <summary>Die Prüfung zum nächsten Grad in diesem Beruf (null = höchster Grad erreicht, Beruf unbekannt oder keine Meistergrade).</summary>
+    public Meisterpruefung? NaechstePruefung(Konto konto, string beruf) =>
+        Daten.Meistergrade?.PruefungFuer(konto.Meistergrad(beruf) + 1);
+
+    /// <summary>Warum das Haus die nächste Meisterprüfung nicht ablegen darf (null = es darf).</summary>
+    public string? MeisterpruefungVerboten(Konto konto, string beruf)
+    {
+        if (Daten.Meistergrade is not { } m) return "In dieser Stadt gibt es keine Meisterprüfungen.";
+        if (!Daten.Berufe.ContainsKey(beruf)) return $"Einen Beruf „{beruf}“ gibt es nicht.";
+        if (!konto.Beherrscht(beruf)) return $"{konto.Inhaber} beherrscht das Handwerk der {beruf} nicht.";
+        var grad = konto.Meistergrad(beruf);
+        if (m.PruefungFuer(grad + 1) is not { } p) return $"{konto.Inhaber} ist bereits {beruf} im höchsten Meistergrad ({grad}).";
+        var erfahrung = konto.Erfahrung(beruf);
+        if (erfahrung < p.Erfahrung)
+            return $"Für den {grad + 1}. Meistergrad braucht es {Zahlenformat.Ganz(p.Erfahrung)} Stunden Erfahrung als {beruf} – " +
+                   $"es sind erst {Zahlenformat.Ganz(Math.Floor(erfahrung))}.";
+        if (konto.Vermoegen < p.Gebuehr)
+            return $"Die Prüfungsgebühr beträgt {Zahlenformat.Ganz(p.Gebuehr)} {Daten.Allgemein.Waehrung}.";
+        return null;
+    }
+
+    /// <summary>Warum dieser Betrieb (noch) nicht ausgebaut werden kann (null = es geht).</summary>
+    public string? AusbauVerboten(Konto konto, Betrieb betrieb)
+    {
+        if (Daten.Meistergrade is not { } m) return "In dieser Stadt gibt es keine Gebäudestufen.";
+        if (betrieb.Artdaten.Ausbau is not { } ziel) return $"{betrieb.Name} ist schon auf der höchsten Stufe.";
+        if (betrieb.UmbauMinuten > 0) return $"{betrieb.Name} wird gerade umgebaut.";
+        var neu = Daten.Art(ziel);
+        var beruf = betrieb.Artdaten.Beruf;
+        var noetig = m.GradFuerStufe(neu.Stufe);
+        if (konto.Meistergrad(beruf) < noetig)
+            return $"Für Stufe {neu.Stufe} ({neu.Name}) braucht es {beruf} im {noetig}. Meistergrad – {konto.Inhaber} ist im {konto.Meistergrad(beruf)}.";
+        if (konto.Vermoegen < betrieb.Artdaten.AusbauKosten + neu.Fixkosten)
+            return $"Der Ausbau ({neu.Name}) kostet {Zahlenformat.Ganz(betrieb.Artdaten.AusbauKosten)} {Daten.Allgemein.Waehrung}, " +
+                   $"dazu ein Jahr Unterhalt ({Zahlenformat.Ganz(neu.Fixkosten)}).";
+        return null;
     }
 
     /// <summary>
@@ -353,6 +401,8 @@ public sealed class Stadtwirtschaft
             return LiegenschaftErwerbenAusfuehren(absender, liegenschaft.Name);
         if (befehl is BerufErlernen lehre)
             return BerufErlernenAusfuehren(absender, lehre.Beruf);
+        if (befehl is MeisterpruefungAblegen pruefung)
+            return MeisterpruefungAusfuehren(absender, pruefung.Beruf);
         if (befehl is AmtBewerben or Schenken or StatutBeantragen && !Rat.IstAktiv)
             return Befehlsergebnis.Abgelehnt("In dieser Stadt gibt es keinen Stadtrat.");
         if (befehl is AmtBewerben bewerbung)
@@ -423,6 +473,7 @@ public sealed class Stadtwirtschaft
                 EskorteWaehlen e => EskorteAusfuehren(betrieb, e),
                 NachtfahrtErlauben n => NachtfahrtAusfuehren(betrieb, n),
                 WaechterSetzen s => WaechterAusfuehren(betrieb, s),
+                BetriebAusbauen => AusbauenAusfuehren(betrieb),
                 _ => Befehlsergebnis.Abgelehnt($"Unbekannter Befehl: {befehl.GetType().Name}"),
             };
         }
@@ -495,6 +546,42 @@ public sealed class Stadtwirtschaft
         Melden($"{konto.Inhaber} erlernt das Handwerk der {beruf}.");
         return Befehlsergebnis.Ok($"{konto.Inhaber} beherrscht jetzt das Handwerk der {beruf} ({Zahlenformat.Ganz(b.Lehrgeld)} {waehrung} Lehrgeld). " +
                                   $"Werkstätten dieses Berufs lassen sich nun erwerben.");
+    }
+
+    private Befehlsergebnis MeisterpruefungAusfuehren(Konto konto, string beruf)
+    {
+        if (MeisterpruefungVerboten(konto, beruf) is { } grund)
+            return Befehlsergebnis.Abgelehnt(grund);
+        var grad = konto.Meistergrad(beruf) + 1;
+        var p = Daten.Meistergrade!.PruefungFuer(grad)!;
+        konto.Investition(p.Gebuehr); // wie das Lehrgeld: kein laufender Betriebsaufwand
+        konto.GradSetzen(beruf, grad);
+        var m = Daten.Meistergrade;
+        var freigeschaltet = Daten.Betriebsarten.Values.FirstOrDefault(a => a.Beruf == beruf && m.GradFuerStufe(a.Stufe) == grad && a.Stufe > 1);
+        var zusatz = freigeschaltet is not null ? $" Nun dürfen die Werkstätten auf Stufe {freigeschaltet.Stufe} ausgebaut werden ({freigeschaltet.Name})."
+                   : grad == m.ApBonusAbGrad ? $" Höchster Meister: {m.ApBonus} Aktionspunkt mehr je Runde." : "";
+        Melden($"{konto.Inhaber} legt die Meisterprüfung ab: {beruf} im {grad}. Grad.");
+        return Befehlsergebnis.Ok($"{konto.Inhaber} ist nun {beruf} im {grad}. Meistergrad ({Zahlenformat.Ganz(p.Gebuehr)} {Daten.Allgemein.Waehrung} Gebühr).{zusatz}");
+    }
+
+    private Befehlsergebnis AusbauenAusfuehren(Betrieb betrieb)
+    {
+        if (AusbauVerboten(betrieb.Konto, betrieb) is { } grund)
+            return Befehlsergebnis.Abgelehnt(grund);
+        var kosten = betrieb.Artdaten.AusbauKosten;
+        var neu = Daten.Art(betrieb.Artdaten.Ausbau!.Value);
+        betrieb.Konto.Investition(kosten);
+        betrieb.Ausbauen(betrieb.Artdaten.Ausbau.Value, Daten.Meistergrade!.UmbauMinuten);
+        Melden($"{betrieb.Konto.Inhaber} baut {betrieb.Name} aus: Stufe {neu.Stufe}, {neu.Name}.");
+        return Befehlsergebnis.Ok($"{betrieb.Name} wird ausgebaut – Stufe {neu.Stufe}, {neu.Name} ({Zahlenformat.Ganz(kosten)} {Daten.Allgemein.Waehrung}): " +
+                                  $"{neu.Plaetze} Arbeitsplätze, neue Waren: {string.Join(", ", NeueWaren(betrieb))}.");
+    }
+
+    /// <summary>Was eine Werkstatt nach dem Ausbau zusätzlich herstellen kann (bzw. gerade dazubekommen hat).</summary>
+    private IEnumerable<string> NeueWaren(Betrieb betrieb)
+    {
+        var vorher = Daten.Betriebsarten.Values.FirstOrDefault(a => a.Ausbau == betrieb.Art)?.Produkte ?? new List<string>();
+        return betrieb.Artdaten.Produkte.Where(p => !vorher.Contains(p));
     }
 
     private Befehlsergebnis ProduktWaehlenAusfuehren(Betrieb betrieb, ProduktWaehlen befehl)
