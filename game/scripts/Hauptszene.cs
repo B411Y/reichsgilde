@@ -216,6 +216,7 @@ public partial class Hauptszene : Node
         };
         _innenKnopf.Pressed += InnenKnopfGedrueckt;
         _verwaltung.Gemeldet += Protokollieren;
+        _kontor.Gemeldet += Protokollieren;
         _kontor.VerwaltenGewuenscht += betrieb => { _auswahlKennung = Stadtansicht.BetriebsKennung(betrieb); AuswahlAnzeigen(); };
         if (optionen.TryGetValue("auswahl", out var vorauswahl))
             _auswahlKennung = vorauswahl;
@@ -403,7 +404,7 @@ public partial class Hauptszene : Node
     {
         var w = simulation.Wirtschaft!;
         _spieler = spieler;
-        _eigeneGiesserei = w.Betriebe.FirstOrDefault(b => b.Konto == spieler && b.Art == Betriebsart.Giesserei);
+        _eigeneGiesserei = w.Betriebe.FirstOrDefault(b => b.Konto == spieler && b.IstWerkstatt); // erste eigene Werkstatt
 
         // Bankrott des Spielers beendet die Partie; ein bankrotter Rivale scheidet nur aus.
         w.Bankrott += konto =>
@@ -587,7 +588,8 @@ public partial class Hauptszene : Node
     private string LiegenschaftText(LiegenschaftDaten l, Stadtwirtschaft w)
     {
         var waehrung = w.Daten.Allgemein.Waehrung;
-        var art = l.Art == Betriebsart.Mine ? "Grube (Eisen und Silber)" : "Gießerei";
+        var d = w.Daten.Art(l.Art);
+        var art = $"{d.Name} ({string.Join(", ", d.IstWerkstatt ? d.Produkte : d.Rohstoffe)})";
         var zeilen = new List<string>
         {
             $"{l.Name} – {(l.IstPacht ? "zu verpachten" : "zu verkaufen")}",
@@ -597,6 +599,9 @@ public partial class Hauptszene : Node
                 ? $"Pacht: {Zahlenformat.Ganz(w.Daten.Fixkosten(l.Art))} {waehrung} im Jahr"
                 : $"Kaufpreis: {Zahlenformat.Ganz(l.Kaufpreis)} {waehrung}, Unterhalt {Zahlenformat.Ganz(w.Daten.Fixkosten(l.Art))} im Jahr",
             $"Zu haben ab dem Stand: {l.MindestStand}",
+            _spieler is { Berufe.Count: > 0 } sp && w.Daten.Berufe.Count > 0 && !sp.Beherrscht(d.Beruf)
+                ? $"Handwerk: {d.Beruf} – beherrscht ihr nicht; erst im Kontor erlernen"
+                : $"Handwerk: {d.Beruf}",
             $"Erwarteter Gewinn bei voller Belegung: ≈ {Zahlenformat.MitVorzeichen(Kalkulation.ErwarteterJahresgewinn(w, l.Art))} {waehrung} im Jahr (zu heutigen Preisen)",
         };
         return string.Join("\n", zeilen);
@@ -685,7 +690,7 @@ public partial class Hauptszene : Node
             $"Besitzer: {b.Konto.Inhaber}",
             $"Belegung: {(b.Belegt == 0 ? "niemand" : string.Join(", ", b.Belegung.Select(x => $"{x.Value}× {x.Key}")))} ({b.Belegt}/{b.Plaetze} Plätze)",
         };
-        if (b.Art == Betriebsart.Giesserei) zeilen.Add($"Produkt: {b.Produkt}");
+        if (b.IstWerkstatt) zeilen.Add($"Produkt: {b.Produkt}");
         zeilen.Add("Lager: " + (b.Lager.Count == 0 ? "leer" : string.Join(" · ", b.Lager.OrderBy(l => l.Key).Select(l => $"{l.Value} {l.Key}"))));
         if (b.Stillstand is { } still) zeilen.Add($"⚠ {still}");
         foreach (var k in b.Karren)

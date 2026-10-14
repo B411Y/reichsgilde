@@ -40,6 +40,8 @@ public partial class Hauptmenue : Node
     private OptionButton _statut = null!;
     private SpinBox _startvermoegen = null!;
     private SpinBox _aktionspunkte = null!;
+    private OptionButton _beruf = null!;
+    private OptionButton _rivalen = null!;
     private OptionButton _rivale = null!;
     private SpinBox _startwert = null!;
     private Label _fehler = null!;
@@ -136,6 +138,11 @@ public partial class Hauptmenue : Node
         _vorname = new LineEdit { PlaceholderText = "Vorname (zufällig)", SizeFlagsHorizontal = Control.SizeFlags.ExpandFill };
         oberhaupt.AddChild(_vorname);
         Zeile(raster, "Oberhaupt", oberhaupt);
+
+        _beruf = new OptionButton { FocusMode = Control.FocusModeEnum.None };
+        _beruf.AddItem("Schmied (Gießerei: Beschlag, Rapier, Silberring)");
+        _beruf.AddItem("Tischler (Tischlerei: Holzzapfen, Schemel, Truhe)");
+        Zeile(raster, "Startberuf", _beruf);
         VolkHinweisZeigen();
 
         _sieg = new OptionButton { FocusMode = Control.FocusModeEnum.None };
@@ -171,7 +178,13 @@ public partial class Hauptmenue : Node
         _rivale.AddItem("Ausgewogen", (int)KiCharakter.Ausgewogen);
         _rivale.AddItem("Wagemutig (schwerer)", (int)KiCharakter.Wagemutig);
         _rivale.Select(1);
-        Zeile(raster, "Haus Eisenbart spielt", _rivale);
+        Zeile(raster, "Die KI-Häuser spielen", _rivale);
+
+        _rivalen = new OptionButton { FocusMode = Control.FocusModeEnum.None };
+        _rivalen.AddItem("Haus Eisenbart (Schmiede)", 1);
+        _rivalen.AddItem("Eisenbart und Eichwald (Tischler)", 2);
+        _rivalen.Select(1);
+        Zeile(raster, "Rivalen", _rivalen);
 
         var startwertZeile = new HBoxContainer();
         _startwert = Zahl(0, 999_999, 1, 1400);
@@ -232,8 +245,8 @@ public partial class Hauptmenue : Node
             Zufallsstartwert = (int)_startwert.Value,
         };
         var fehler = einstellungen.Pruefen().ToList();
-        if (_familie.Text.Trim() == Partieaufbau.Rivalenname)
-            fehler.Add($"„{Partieaufbau.Rivalenname}“ ist der Name des Rivalen – wählt bitte einen anderen.");
+        if (_familie.Text.Trim() is Partieaufbau.Rivalenname or Partieaufbau.ZweiterRivale)
+            fehler.Add($"„{_familie.Text.Trim()}“ ist der Name eines Rivalen – wählt bitte einen anderen.");
         if (fehler.Count > 0)
         {
             _fehler.Text = string.Join("\n", fehler);
@@ -243,7 +256,9 @@ public partial class Hauptmenue : Node
         Partiewahl.NeuePartieWaehlen(einstellungen,
             new NeuePartie(_familie.Text, _startvermoegen.Value, (KiCharakter)_rivale.GetSelectedId(),
                 (Volk)_volk.GetSelectedId(), (Geschlecht)_geschlecht.GetSelectedId(),
-                string.IsNullOrWhiteSpace(_vorname.Text) ? null : _vorname.Text.Trim()));
+                string.IsNullOrWhiteSpace(_vorname.Text) ? null : _vorname.Text.Trim(),
+                Beruf: _beruf.Selected == 1 ? "Tischler" : "Schmied",
+                Rivalen: _rivalen.GetSelectedId()));
         SpielStarten();
     }
 

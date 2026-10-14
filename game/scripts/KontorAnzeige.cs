@@ -35,6 +35,14 @@ public partial class KontorAnzeige : PanelContainer
 
     /// <summary>Der Spieler möchte ins Hinterzimmer.</summary>
     public event Action? HinterzimmerGewuenscht;
+
+    /// <summary>Ergebnis eines Befehls aus dem Kontor (Beruf erlernen) – für das Protokoll.</summary>
+    public event Action<string>? Gemeldet;
+
+    private HBoxContainer _berufZeile = null!;
+    private Label _berufText = null!;
+    private Button _lernenKnopf = null!;
+    private string? _lernbarerBeruf;
     private GridContainer _preise = null!;
     private readonly Dictionary<string, Label> _preisLabels = new();
 
@@ -55,6 +63,14 @@ public partial class KontorAnzeige : PanelContainer
         _statutZeile = NeuesLabel(spalte, 13, new Color(0.75f, 0.75f, 0.75f));
         _apZeile = NeuesLabel(spalte, 14, new Color(0.95f, 0.82f, 0.45f));
         _apZeile.MouseFilter = MouseFilterEnum.Stop; // für den Tooltip
+        _berufZeile = new HBoxContainer();
+        _berufZeile.AddThemeConstantOverride("separation", 8);
+        spalte.AddChild(_berufZeile);
+        _berufText = NeuesLabel(_berufZeile, 14);
+        _lernenKnopf = new Button { FocusMode = FocusModeEnum.None };
+        _lernenKnopf.AddThemeFontSizeOverride("font_size", 13);
+        _lernenKnopf.Pressed += BerufLernen;
+        _berufZeile.AddChild(_lernenKnopf);
         var familie = new HBoxContainer();
         spalte.AddChild(familie);
         var familienKnopf = new Button { Text = "Familie", FocusMode = FocusModeEnum.None, TooltipText = "Familie, Brautschau und Testament" };
@@ -110,6 +126,34 @@ public partial class KontorAnzeige : PanelContainer
     }
 
     /// <summary>„Jakob (31, rüstig) · verheiratet · 2 Kinder · Erbe: Agnes".</summary>
+    /// <summary>„Handwerk: Schmied" und ein Knopf, um den nächsten Beruf zu erlernen.</summary>
+    private void BerufZeileAktualisieren(Stadtwirtschaft w)
+    {
+        _berufZeile.Visible = w.Daten.Berufe.Count > 1 && !_spieler!.IstErloschen;
+        if (!_berufZeile.Visible) return;
+        _berufText.Text = $"Handwerk: {string.Join(", ", _spieler!.Berufe)}";
+        _lernbarerBeruf = w.Daten.Berufe.Keys.OrderBy(b => b, StringComparer.Ordinal).FirstOrDefault(b => !_spieler.Beherrscht(b));
+        _lernenKnopf.Visible = _lernbarerBeruf is not null;
+        if (_lernbarerBeruf is not { } beruf) return;
+        var befehl = new BerufErlernen(beruf);
+        var daten = w.Daten.Berufe[beruf];
+        var ap = w.ApKosten(_spieler, befehl);
+        var text = $"{beruf} erlernen ({Zahlenformat.Ganz(daten.Lehrgeld)} {w.Daten.Allgemein.Waehrung}{(ap > 0 ? $" · {ap} AP" : "")})";
+        if (_lernenKnopf.Text != text) _lernenKnopf.Text = text;
+        var fehlt = _spieler.Vermoegen < daten.Lehrgeld ? "Für das Lehrgeld fehlt Geld."
+            : !w.ApReichen(_spieler, befehl) ? $"Nicht genug Aktionspunkte ({_spieler.Aktionspunkte.Vorrat} von {ap})." : null;
+        _lernenKnopf.Disabled = fehlt is not null;
+        var tipp = fehlt ?? $"{daten.Beschreibung}\nDanach dürft ihr Werkstätten und Umlandbetriebe dieses Handwerks erwerben.";
+        if (_lernenKnopf.TooltipText != tipp) _lernenKnopf.TooltipText = tipp;
+    }
+
+    private void BerufLernen()
+    {
+        if (_simulation?.Wirtschaft is not { } w || _spieler is null || _lernbarerBeruf is null) return;
+        var e = w.Ausfuehren(_spieler, new BerufErlernen(_lernbarerBeruf));
+        Gemeldet?.Invoke(e.Erfolg ? e.Meldung : "✗ " + e.Meldung);
+    }
+
     private string FamilienText(Stadtwirtschaft w)
     {
         var buch = w.Familien;
@@ -169,6 +213,7 @@ public partial class KontorAnzeige : PanelContainer
             : $"Nächster Stand: {neu.Name} ab {Zahlenformat.Ganz(neu.Schwelle)} {waehrung} (noch {Zahlenformat.Ganz(neu.Schwelle - Math.Max(0, _spieler.Vermoegen))})";
 
         _familienZeile.Text = FamilienText(w);
+        BerufZeileAktualisieren(w);
 
         _apZeile.Visible = w.HatAktionspunkte;
         if (w.Daten.Aktionspunkte is { } ap)
@@ -189,7 +234,9 @@ public partial class KontorAnzeige : PanelContainer
         foreach (var (betrieb, kopf, zustand) in _betriebsZeilen)
         {
             var belegung = betrieb.Belegt == 0 ? "kein Personal" : string.Join(", ", betrieb.Belegung.Select(x => $"{x.Value}× {x.Key}"));
-            var was = betrieb.Art == Betriebsart.Giesserei ? betrieb.Produkt : $"{Zahlenformat.Ganz(betrieb.Silberanteil * 100)} % Silber";
+            var was = betrieb.IstWerkstatt ? betrieb.Produkt
+                : betrieb.Rohstoffe.Count == 1 ? betrieb.Rohstoffe[0]
+                : $"{Zahlenformat.Ganz(betrieb.Silberanteil * 100)} % {betrieb.Rohstoffe[1]}";
             kopf.Text = $"{betrieb.Name}: {was} · {belegung}";
             var lager = string.Join(" · ", betrieb.Lager.OrderBy(l => l.Key).Select(l => $"{l.Value} {l.Key}"));
             var unterwegs = betrieb.Karren.Count(k => k.Zustand != KarrenZustand.AmBetrieb);
@@ -206,8 +253,14 @@ public partial class KontorAnzeige : PanelContainer
               + (v.Raubwert > 0 ? $" · geraubt: {Zahlenformat.Ganz(v.Raubwert)}" : "")
             : "Jahresrechnung: erst nach dem ersten Jahr";
 
-        _rivaleZeile.Text = _rivale is null ? "" : $"Rivale {_rivale.Inhaber}: {Zahlenformat.Ganz(_rivale.Vermoegen)} {waehrung}"
-            + RivalenZug(_rivale);
+        var rivalen = w.Rivalen.Select(r => r.Konto).ToList();
+        _rivaleZeile.Text = rivalen.Count switch
+        {
+            0 => "",
+            1 => $"Rivale {rivalen[0].Inhaber}: {Zahlenformat.Ganz(rivalen[0].Vermoegen)} {waehrung}" + RivalenZug(rivalen[0]),
+            _ => "Rivalen: " + string.Join(" · ", rivalen.Select(r => $"{r.Inhaber} {(r.IstAktiv ? Zahlenformat.Ganz(r.Vermoegen) : r.IstBankrott ? "bankrott" : "erloschen")}"))
+                 + (_rivale is not null ? RivalenZug(_rivale) : ""),
+        };
 
         foreach (var (ware, label) in _preisLabels)
             label.Text = Zahlenformat.Kommazahl(w.Markt[ware].Preis);
