@@ -184,7 +184,8 @@ public sealed class Betrieb
         _belegung.Sum(b => b.Value * _daten.Arbeitskraefte[b.Key].TempoAm(Ort));
 
     /// <summary>Eine Spielminute Arbeit. Wird nur während der Arbeitszeit aufgerufen.</summary>
-    internal void Arbeitsminute(Action<string> melden)
+    /// <param name="leistungsFaktor">Handwerkskunst des Oberhaupts: 1,09 = die Arbeitskräfte schaffen 9 % mehr.</param>
+    internal void Arbeitsminute(Action<string> melden, double leistungsFaktor = 1)
     {
         if (_sabotageMinuten > 0)
         {
@@ -199,7 +200,7 @@ public sealed class Betrieb
             return;
         }
 
-        var leistung = LeistungProMinute;
+        var leistung = LeistungProMinute * leistungsFaktor;
         if (leistung <= 0) return;
 
         string? stillstand = null;
@@ -271,10 +272,11 @@ public sealed class Betrieb
     internal void Sabotieren(int arbeitsminuten) => _sabotageMinuten += arbeitsminuten;
 
     /// <summary>Verkauft ein Stück auf dem Markt und verbucht Umsatz und Steuer.</summary>
-    internal void Verkaufen(string ware, int stueck, Markt markt)
+    /// <param name="verkaufsFaktor">Verhandlungsgeschick des Oberhaupts: 1,03 = 3 % mehr Erlös.</param>
+    internal void Verkaufen(string ware, int stueck, Markt markt, double verkaufsFaktor = 1)
     {
         if (stueck <= 0) return;
-        var erloes = markt[ware].Verkaufen(stueck);
+        var erloes = markt[ware].Verkaufen(stueck) * verkaufsFaktor;
         Konto.Umsatz(erloes);
         Konto.Steuer(erloes * _daten.Allgemein.Umsatzsteuer);
     }

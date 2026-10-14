@@ -419,8 +419,10 @@ public sealed class KiRivale
             foreach (var s in stimmen.Where(s => s.Schuldig && s.Richter.Ratsherr is not null))
             {
                 var r = s.Richter.Ratsherr!;
-                var differenz = _w.Rat.Gunst(r, v.Anklaeger) - _w.Rat.Gunst(r, Konto); // Gunstwirkung = Faktor × Differenz
-                var fehlt = differenz - ziel / d.GunstFaktor;                         // so viel Gunst muss die KI gewinnen
+                // Gunstwirkung = Faktor × Gunstdifferenz + Plädoyer (Rhetorik), gedeckelt
+                var differenz = _w.Rat.Gunst(r, v.Anklaeger) - _w.Rat.Gunst(r, Konto);
+                var plaedoyer = _w.Familien.Plaedoyer(v.Anklaeger, Konto);
+                var fehlt = differenz - (ziel - plaedoyer) / d.GunstFaktor;           // so viel Gunst muss die KI gewinnen
                 var gulden = Math.Ceiling(fehlt / g.JeGulden / 10) * 10;
                 if (gulden > 0 && _w.Rat.Gunst(r, Konto) + gulden * g.JeGulden <= g.Hoechstwert)
                     kosten.Add((r, gulden));
@@ -496,11 +498,11 @@ public sealed class KiRivale
         var moeglich = new List<(Gaunerstueck Art, string? Betrieb, double Wert)>();
         foreach (var b in _w.Betriebe.Where(b => b.Konto == ziel))
         {
-            moeglich.Add((Gaunerstueck.Diebstahl, b.Name, unterwelt.ErwarteterGewinn(b)));
-            moeglich.Add((Gaunerstueck.Sabotage, b.Name, unterwelt.ErwarteterSchaden(b) * 0.5 - g.Sabotage.Kosten));
+            moeglich.Add((Gaunerstueck.Diebstahl, b.Name, unterwelt.ErwarteterGewinn(b, Konto)));
+            moeglich.Add((Gaunerstueck.Sabotage, b.Name, unterwelt.ErwarteterSchaden(b, Konto) * 0.5 - g.Sabotage.Kosten));
             if (Profil.Gaunerei >= 2 && b.Ort == Arbeitsort.Umland && b.Karren.Count > 0)
                 moeglich.Add((Gaunerstueck.Ueberfall, null,
-                    unterwelt.MoeglicheBeute(b).Sum(x => x.Wert) * g.HehlerAnteil * g.Ueberfall.Staerke * 0.6 - g.Ueberfall.Kosten));
+                    unterwelt.MoeglicheBeute(b).Sum(x => x.Wert) * g.HehlerAnteil * unterwelt.Staerke(Konto) * 0.6 - g.Ueberfall.Kosten));
         }
         var beste = moeglich.Where(m => m.Wert > 0).OrderByDescending(m => m.Wert).ThenBy(m => m.Art).FirstOrDefault();
         if (beste.Wert <= 0 || Konto.Vermoegen - g.Kosten(beste.Art) < Profil.Reserve) return;

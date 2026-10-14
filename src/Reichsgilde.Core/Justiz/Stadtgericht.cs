@@ -197,11 +197,15 @@ public sealed class Stadtgericht
         return kraft + Gunstwirkung(r, anklaeger, beklagter);
     }
 
-    /// <summary>Wie stark die Gunst eines Ratsherrn sein Urteil verschiebt – gedeckelt auf ± GunstHoechstwirkung.</summary>
+    /// <summary>
+    /// Wie stark Gunst (Geschenke) und Plädoyer (Rhetorik) das Urteil eines Ratsherrn verschieben –
+    /// zusammen gedeckelt auf ± GunstHoechstwirkung. So bleiben 3 Beweise ein sicherer Schuldspruch.
+    /// </summary>
     public double Gunstwirkung(Ratsherr r, Konto anklaeger, Konto beklagter)
     {
         var d = Daten;
-        return Math.Clamp(d.GunstFaktor * (_w.Rat.Gunst(r, anklaeger) - _w.Rat.Gunst(r, beklagter)), -d.GunstHoechstwirkung, d.GunstHoechstwirkung);
+        var einfluss = d.GunstFaktor * (_w.Rat.Gunst(r, anklaeger) - _w.Rat.Gunst(r, beklagter)) + _w.Familien.Plaedoyer(anklaeger, beklagter);
+        return Math.Clamp(einfluss, -d.GunstHoechstwirkung, d.GunstHoechstwirkung);
     }
 
     /// <summary>Welche Buße bei einem Schuldspruch fällig würde (nach den Beweisen, die der Ankläger heute hat).</summary>

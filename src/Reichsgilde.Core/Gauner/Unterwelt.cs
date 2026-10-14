@@ -92,26 +92,37 @@ public sealed class Unterwelt
         return beute;
     }
 
-    /// <summary>Erfolgschance eines Gaunerstücks gegen diesen Betrieb (Wächter halbieren sie).</summary>
-    public double Erfolgschance(Gaunerstueck art, Betrieb? b)
+    /// <summary>
+    /// Erfolgschance eines Gaunerstücks gegen diesen Betrieb. Wächter halbieren sie; das Talent
+    /// „Bei Nacht und Nebel" des Auftraggebers hebt sie (Überfall: sein Kampf stärkt die Wegelagerer).
+    /// </summary>
+    public double Erfolgschance(Gaunerstueck art, Betrieb? b, Konto? auftraggeber = null)
     {
         var d = Daten;
         var schutz = b?.Waechter == true ? d.WaechterSchutz : 1;
+        var nacht = auftraggeber is null ? 0 : _w.Familien.NachtBonus(auftraggeber);
         return art switch
         {
-            Gaunerstueck.Diebstahl => d.Diebstahl.Chance * schutz,
-            Gaunerstueck.Sabotage => d.Sabotage.Chance * schutz,
-            _ => d.Ueberfall.Staerke, // vor der Eskorte des jeweiligen Karrens
+            Gaunerstueck.Diebstahl => Math.Min(0.95, d.Diebstahl.Chance * schutz + nacht),
+            Gaunerstueck.Sabotage => Math.Min(0.95, d.Sabotage.Chance * schutz + nacht),
+            _ => Staerke(auftraggeber), // vor der Eskorte des jeweiligen Karrens
         };
     }
 
+    /// <summary>Stärke angeheuerter Wegelagerer – der Kampf des Auftraggebers macht sie gefährlicher.</summary>
+    public double Staerke(Konto? auftraggeber) =>
+        Math.Min(1, Daten.Ueberfall.Staerke + (auftraggeber is null ? 0 : _w.Familien.KampfUeberfall(auftraggeber)));
+
     /// <summary>Was ein Diebstahl im Mittel einbringt: Hehlerpreis × Chance − Kosten.</summary>
-    public double ErwarteterGewinn(Betrieb b) =>
-        MoeglicheBeute(b).Sum(x => x.Wert) * Daten.HehlerAnteil * Erfolgschance(Gaunerstueck.Diebstahl, b) - Daten.Diebstahl.Kosten;
+    public double ErwarteterGewinn(Betrieb b, Konto? auftraggeber = null) =>
+        MoeglicheBeute(b).Sum(x => x.Wert) * Daten.HehlerAnteil * Erfolgschance(Gaunerstueck.Diebstahl, b, auftraggeber) - Daten.Diebstahl.Kosten;
 
     /// <summary>Was eine Sabotage dem Opfer im Mittel kostet: entgangene Arbeit + Reparatur.</summary>
-    public double ErwarteterSchaden(Betrieb b) =>
-        Erfolgschance(Gaunerstueck.Sabotage, b) * SabotageSchaden(b);
+    public double ErwarteterSchaden(Betrieb b, Konto? auftraggeber = null) =>
+        Erfolgschance(Gaunerstueck.Sabotage, b, auftraggeber) * SabotageSchaden(b);
+
+    /// <summary>Schaden einer gelungenen Sabotage (für die Anzeige).</summary>
+    public double Sabotageschaden(Betrieb b) => SabotageSchaden(b);
 
     private double SabotageSchaden(Betrieb b) =>
         Daten.Sabotage.Reparatur + Daten.Sabotage.StillstandMinuten * Math.Max(0, Kalkulation.WertJeArbeitsminute(_w, b));
@@ -119,10 +130,12 @@ public sealed class Unterwelt
     /// <summary>Betriebe im Umland, deren beladene Karren man überfallen könnte.</summary>
     public bool HatUmlandfahrten(Konto ziel) => _w.Betriebe.Any(b => b.Konto == ziel && b.Ort == Arbeitsort.Umland && b.Karren.Count > 0);
 
-    public double Zeugenchance(Betrieb? b, bool erfolgreich)
+    /// <summary>Chance auf einen Zeugen – Wächter sehen mehr, wer „Bei Nacht und Nebel" kann, wird seltener gesehen.</summary>
+    public double Zeugenchance(Betrieb? b, bool erfolgreich, Konto? auftraggeber = null)
     {
         var d = Daten;
         var chance = b?.Waechter == true ? d.ZeugenChanceWaechter : d.ZeugenChance;
+        if (auftraggeber is not null) chance *= _w.Familien.ZeugenFaktor(auftraggeber);
         return Math.Min(1, erfolgreich ? chance : chance * d.ZeugenFaktorMisserfolg);
     }
 
@@ -248,7 +261,7 @@ public sealed class Unterwelt
     {
         var d = Daten;
         var b = _w.Betriebe.First(x => x.Name == a.Betrieb);
-        var erfolg = _zufall.NextDouble() < Erfolgschance(Gaunerstueck.Diebstahl, b);
+        var erfolg = _zufall.NextDouble() < Erfolgschance(Gaunerstueck.Diebstahl, b, a.Auftraggeber);
         double wert = 0;
         string oeffentlich;
         if (erfolg)
@@ -276,7 +289,7 @@ public sealed class Unterwelt
     {
         var d = Daten;
         var b = _w.Betriebe.First(x => x.Name == a.Betrieb);
-        var erfolg = _zufall.NextDouble() < Erfolgschance(Gaunerstueck.Sabotage, b);
+        var erfolg = _zufall.NextDouble() < Erfolgschance(Gaunerstueck.Sabotage, b, a.Auftraggeber);
         double schaden = 0;
         string oeffentlich;
         if (erfolg)
@@ -305,7 +318,8 @@ public sealed class Unterwelt
         _hinterhalte.Remove(h);
 
         var d = Daten;
-        var erfolg = _zufall.NextDouble() < d.Ueberfall.Staerke * (1 - eskorte.Schutz);
+        var schutz = Math.Min(0.95, eskorte.Schutz + _w.Familien.KampfSchutz(karren.Heimat.Konto));
+        var erfolg = _zufall.NextDouble() < Staerke(h.Auftraggeber) * (1 - schutz);
         double wert = 0;
         string oeffentlich;
         if (erfolg)
@@ -329,7 +343,7 @@ public sealed class Unterwelt
     {
         _letzterAngriff[betroffener] = _w.Jahr;
         var spur = _w.Justiz.TatMelden(a.Auftraggeber, vergehen, betroffener, betrag);
-        var zeuge = _zufall.NextDouble() < Zeugenchance(b, erfolg);
+        var zeuge = _zufall.NextDouble() < Zeugenchance(b, erfolg, a.Auftraggeber);
         if (zeuge && spur is not null)
         {
             _w.Justiz.BeweisGeben(a.Ziel, spur);

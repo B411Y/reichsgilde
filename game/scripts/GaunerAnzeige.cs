@@ -159,9 +159,9 @@ public partial class GaunerAnzeige : PanelContainer
                 if (sabotage) Text(zeile, "· Sabotage bestellt", 13, Gold);
                 else Knopf(zeile, $"Sabotage ({Zahlenformat.Ganz(g.Sabotage.Kosten)})", () => Befehlen(new Beauftragen(haus.Inhaber, Gaunerstueck.Sabotage, name)),
                     gesperrt: imKerker, hinweis: "Feuer in der Werkstatt: Stillstand und Reparaturkosten.");
-                Text(_inhalt, $"   Diebstahl: Chance {Prozent(unterwelt.Erfolgschance(Gaunerstueck.Diebstahl, b))}, im Lager liegt " +
+                Text(_inhalt, $"   Diebstahl: Chance {Prozent(unterwelt.Erfolgschance(Gaunerstueck.Diebstahl, b, _spieler))}, im Lager liegt " +
                               (beute.Count == 0 ? "nichts zu holen" : $"{string.Join(", ", beute.Select(x => $"{x.Stueck} {x.Ware}"))} (Hehler ≈ {Zahlenformat.Ganz(beute.Sum(x => x.Wert) * g.HehlerAnteil)})") +
-                              $" · Sabotage: Chance {Prozent(unterwelt.Erfolgschance(Gaunerstueck.Sabotage, b))}, Schaden beim Gegner ≈ {Zahlenformat.Ganz(unterwelt.ErwarteterSchaden(b) / Math.Max(0.01, unterwelt.Erfolgschance(Gaunerstueck.Sabotage, b)))}",
+                              $" · Sabotage: Chance {Prozent(unterwelt.Erfolgschance(Gaunerstueck.Sabotage, b, _spieler))}, Schaden beim Gegner ≈ {Zahlenformat.Ganz(unterwelt.Sabotageschaden(b))}",
                     12, Grau, umbrechen: true);
             }
 
@@ -177,7 +177,7 @@ public partial class GaunerAnzeige : PanelContainer
                     Text(zeile, "· Überfall bestellt (heute Nacht)", 13, Gold);
                 else
                     Knopf(zeile, $"Überfall ({Zahlenformat.Ganz(g.Ueberfall.Kosten)})", () => Befehlen(new Beauftragen(haus.Inhaber, Gaunerstueck.Ueberfall)), gesperrt: imKerker);
-                Text(_inhalt, $"   Wegelagerer (Stärke {Zahlenformat.Kommazahl(g.Ueberfall.Staerke)}) lauern bis zur nächsten Nacht der nächsten beladenen Fahrt auf. " +
+                Text(_inhalt, $"   Wegelagerer (Stärke {Zahlenformat.Kommazahl(unterwelt.Staerke(_spieler))}) lauern bis zur nächsten Nacht der nächsten beladenen Fahrt auf. " +
                               "Erfolg = Stärke × (1 − Schutz der Eskorte). Ein Überfall ist ein schweres Vergehen: Vor Gericht droht Kerker.", 12, Grau, umbrechen: true);
             }
 

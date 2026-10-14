@@ -121,6 +121,7 @@ public sealed class Stadtrat
         if (kandidat is null) // der bisherige Ratsherr im Amt
             return g.AnsehenRatsherr + amt.Stufe * g.AnsehenRatsherrJeStufe + (amt.Ratsherr is not null ? g.Amtsbonus : 0);
         return Ansehen(kandidat) + Gunst(waehler, kandidat) + _w.Familien.Volksnaehe(waehler.Daten.Volk, kandidat)
+               + _w.Familien.RhetorikPunkte(kandidat)
                + (amt.Konto == kandidat ? g.Amtsbonus : 0);
     }
 
