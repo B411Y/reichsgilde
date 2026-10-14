@@ -249,6 +249,7 @@ tests.AddRange(GesundheitTests.Alle());
 tests.AddRange(TischlerTests.Alle());
 tests.AddRange(MeistergradeTests.Alle());
 tests.AddRange(SteinmetzTests.Alle());
+tests.AddRange(AlchimistTests.Alle());
 
 // ── Testlauf ────────────────────────────────────────────────────────────────
 var fehler = 0;

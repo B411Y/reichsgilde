@@ -306,32 +306,66 @@ public sealed class KiRivale
             $"steigt in den Stand {neu.Name} auf ({Zahlenformat.Ganz(neu.Gebuehr)} {_w.Daten.Allgemein.Waehrung} Gebühr).");
     }
 
+    /// <summary>Mehr Handwerke als dieses erlernt die KI nicht.</summary>
+    private const int MaxBerufe = 2;
+
+    /// <summary>Ab diesem Stand führt ein KI-Haus einen Betrieb mehr als <see cref="KiProfil.MaxBetriebe"/>.</summary>
+    private const string ReichAbStand = "Patrizier";
+
+    /// <summary>Wie viele Betriebe das Haus führen darf – ein reiches Haus (Patrizier) einen mehr.</summary>
+    public int BetriebeHoechstens => Profil.MaxBetriebe + (IstReich ? 1 : 0);
+
+    /// <summary>Ein reiches Haus (Patrizier) darf einen Betrieb mehr führen und ein zweites Handwerk erlernen.</summary>
+    private bool IstReich
+    {
+        get
+        {
+            var reich = _w.Daten.StandStufe(ReichAbStand);
+            return reich >= 0 && Konto.Stand >= reich;
+        }
+    }
+
+    /// <summary>Müsste das Haus für diese Liegenschaft erst ein Handwerk erlernen (und darf es das)?</summary>
+    private bool NeuerBeruf(string beruf) =>
+        _w.Daten.Berufe.Count > 0 && Konto.Berufe.Count > 0 && !Konto.Beherrscht(beruf);
+
+    private bool DarfBerufLernen(string beruf) =>
+        IstReich && Konto.Berufe.Count < MaxBerufe && _w.Daten.Berufe.ContainsKey(beruf) && _w.ApReichen(Konto, new BerufErlernen(beruf));
+
     /// <summary>
-    /// Eine freie Werkstatt kaufen oder Grube pachten, wenn sie sich rechnet:
-    ///   • erwarteter Jahresgewinn positiv und Kaufpreis in höchstens <see cref="KiProfil.MaxAmortisationJahre"/> Jahren verdient,
-    ///   • nach Kaufpreis, einem Jahr Unterhalt/Pacht und den Löhnen bleibt die Reserve übrig.
-    /// Unter mehreren Kandidaten gewinnt der höchste Gewinn nach Abzug der anteiligen Kaufkosten.
+    /// Eine freie Werkstatt kaufen oder einen Umlandbetrieb pachten, wenn es sich rechnet:
+    ///   • erwarteter Jahresgewinn positiv; Kaufpreis plus Lehrgeld in höchstens <see cref="KiProfil.MaxAmortisationJahre"/> Jahren verdient,
+    ///   • nach Kaufpreis, Lehrgeld, einem Jahr Unterhalt/Pacht und den Löhnen bleibt die Reserve übrig.
+    /// Gehört der Betrieb zu einem fremden Handwerk, lernt die KI es vorher (Lehrgeld und AP) – höchstens ein zweites, und erst als Patrizier.
+    /// Unter mehreren Kandidaten gewinnt der höchste Gewinn nach Abzug der anteiligen Kosten; das eigene Handwerk
+    /// ist damit im Vorteil, weil kein Lehrgeld anfällt.
     /// </summary>
     private void Expandieren()
     {
-        if (Betriebe.Count() >= Profil.MaxBetriebe) return;
+        if (Betriebe.Count() >= BetriebeHoechstens) return;
 
         var daten = _w.Daten;
         var wahl = _w.FreieLiegenschaften
             .Where(l => Konto.Stand >= daten.StandStufe(l.MindestStand))
-            .Where(l => daten.Berufe.Count == 0 || Konto.Berufe.Count == 0 || Konto.Beherrscht(daten.Art(l.Art).Beruf)) // nur das eigene Handwerk
-            .Select(l => (Liegenschaft: l, Gewinn: Kalkulation.ErwarteterJahresgewinn(_w, l.Art)))
-            .Where(x => x.Gewinn > 0 && x.Liegenschaft.Kaufpreis <= x.Gewinn * Profil.MaxAmortisationJahre)
-            .Where(x => Konto.Vermoegen - x.Liegenschaft.Kaufpreis - daten.Fixkosten(x.Liegenschaft.Art)
+            .Select(l => (Liegenschaft: l, Beruf: daten.Art(l.Art).Beruf, Gewinn: Kalkulation.ErwarteterJahresgewinn(_w, l.Art)))
+            .Select(x => (x.Liegenschaft, x.Beruf, x.Gewinn, Lehrgeld: NeuerBeruf(x.Beruf) ? daten.Berufe[x.Beruf].Lehrgeld : -1))
+            .Where(x => x.Lehrgeld < 0 || DarfBerufLernen(x.Beruf))
+            .Select(x => (x.Liegenschaft, x.Beruf, x.Gewinn, Lehrgeld: Math.Max(0, x.Lehrgeld), Neu: x.Lehrgeld >= 0))
+            .Where(x => x.Gewinn > 0 && x.Liegenschaft.Kaufpreis + x.Lehrgeld <= x.Gewinn * Profil.MaxAmortisationJahre)
+            .Where(x => Konto.Vermoegen - x.Liegenschaft.Kaufpreis - x.Lehrgeld - daten.Fixkosten(x.Liegenschaft.Art)
                         - daten.Plaetze(x.Liegenschaft.Art) * HoechsterLohn(x.Liegenschaft.Art) >= Profil.Reserve)
-            .OrderByDescending(x => x.Gewinn - x.Liegenschaft.Kaufpreis / Profil.MaxAmortisationJahre)
+            .OrderByDescending(x => x.Gewinn - (x.Liegenschaft.Kaufpreis + x.Lehrgeld) / Profil.MaxAmortisationJahre)
             .ThenBy(x => x.Liegenschaft.Name, StringComparer.Ordinal)
             .FirstOrDefault();
         if (wahl.Liegenschaft is null) return;
 
         var l = wahl.Liegenschaft;
+        var waehrung = daten.Allgemein.Waehrung;
+        if (wahl.Neu && !Befehlen(new BerufErlernen(wahl.Beruf),
+                $"erlernt das Handwerk der {wahl.Beruf} ({Zahlenformat.Ganz(wahl.Lehrgeld)} {waehrung} Lehrgeld), um {l.Name} zu übernehmen."))
+            return;
         Befehlen(new LiegenschaftErwerben(l.Name),
-            $"{(l.IstPacht ? "pachtet" : "kauft")} {l.Name} (erwarteter Gewinn ≈ {Zahlenformat.Ganz(wahl.Gewinn)} {daten.Allgemein.Waehrung} im Jahr).");
+            $"{(l.IstPacht ? "pachtet" : "kauft")} {l.Name} (erwarteter Gewinn ≈ {Zahlenformat.Ganz(wahl.Gewinn)} {waehrung} im Jahr).");
     }
 
     /// <summary>

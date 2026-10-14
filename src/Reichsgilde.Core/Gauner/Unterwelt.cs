@@ -105,10 +105,19 @@ public sealed class Unterwelt
         {
             Gaunerstueck.Diebstahl => Math.Min(0.95, d.Diebstahl.Chance * schutz + nacht),
             Gaunerstueck.Sabotage => Math.Min(0.95, d.Sabotage.Chance * schutz + nacht),
-            Gaunerstueck.Kroetenschleim => Math.Min(0.95, d.Kroetenschleim.Chance + nacht), // Wächter schützen Betriebe, nicht die Tafel
+            // Wächter schützen Betriebe, nicht die Tafel; ein Alchimist mischt selbst – sicherer
+            Gaunerstueck.Kroetenschleim => Math.Min(0.95, d.Kroetenschleim.Chance + nacht + (MischtSelbst(auftraggeber) ? d.Kroetenschleim.BerufBonus : 0)),
             _ => Staerke(auftraggeber), // vor der Eskorte des jeweiligen Karrens
         };
     }
+
+    /// <summary>Beherrscht das Haus das Handwerk, mit dem man Krötenschleim selbst mischt (Alchimist)?</summary>
+    public bool MischtSelbst(Konto? auftraggeber) =>
+        auftraggeber is not null && Daten.Kroetenschleim.Beruf != "" && auftraggeber.Beherrscht(Daten.Kroetenschleim.Beruf);
+
+    /// <summary>Was ein Gaunerstück dieses Haus kostet – Alchimisten zahlen für Krötenschleim weniger.</summary>
+    public double Kosten(Gaunerstueck art, Konto? auftraggeber) =>
+        Daten.Kosten(art) * (art == Gaunerstueck.Kroetenschleim && MischtSelbst(auftraggeber) ? Daten.Kroetenschleim.BerufKostenFaktor : 1);
 
     /// <summary>Stärke angeheuerter Wegelagerer – der Kampf des Auftraggebers macht sie gefährlicher.</summary>
     public double Staerke(Konto? auftraggeber) =>
@@ -179,7 +188,7 @@ public sealed class Unterwelt
                 return Befehlsergebnis.Abgelehnt($"{ziel.Inhaber} hat keinen Betrieb „{betriebName}“.");
         }
 
-        var kosten = d.Kosten(art);
+        var kosten = Kosten(art, auftraggeber);
         if (auftraggeber.Vermoegen < kosten)
             return Befehlsergebnis.Abgelehnt($"Die Bande will {Zahlenformat.Ganz(kosten)} {waehrung} im Voraus.");
         auftraggeber.Gaunerkosten(kosten);

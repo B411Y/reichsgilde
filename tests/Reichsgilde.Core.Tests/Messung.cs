@@ -40,6 +40,7 @@ static class Messung
         var abschluesse = new SortedDictionary<string, int>();
         // Meistergrade und Gebäudestufen der KI-Häuser: Summe der Jahre, in denen ein Ziel erreicht wurde, und wie oft
         var meisterJahre = new SortedDictionary<string, (double Jahre, int Anzahl)>(StringComparer.Ordinal);
+        var gelernt = new SortedDictionary<string, int>(StringComparer.Ordinal); // „Eisenbart → Alchimist" je Partie
         void Erreicht(string ziel, int jahr) { var (j, n) = meisterJahre.GetValueOrDefault(ziel); meisterJahre[ziel] = (j + jahr, n + 1); }
         for (var s = 1; s <= startwerte; s++)
         {
@@ -105,6 +106,9 @@ static class Messung
                     x.Waren[ware] = x.Waren.GetValueOrDefault(ware) + stueck;
                 weitere[hausName] = x;
             }
+            foreach (var ki in w.Rivalen.Select(r => r.Konto))
+                foreach (var beruf in ki.Berufe.Skip(0).Where(b => !w.Betriebe.Any(x => x.Konto == ki && x.Artdaten.Beruf == b && x.Name.Contains(ki.Inhaber.Replace("Haus ", "")))))
+                    gelernt[$"{ki.Inhaber.Replace("Haus ", "")} → {beruf}"] = gelernt.GetValueOrDefault($"{ki.Inhaber.Replace("Haus ", "")} → {beruf}") + 1;
             var f = w.Familien.Von(rivale)!;
             var nachkommen = f.Mitglieder.Count(p => p.Vater is not null);
             if (heirat is { } h) { verheiratet++; heiratsjahre += h; }
@@ -147,6 +151,7 @@ static class Messung
                               $"am Ende Bürgermeister in {x.Bm}/{x.Partien}, erloschen {x.Erloschen}; hergestellt im letzten Jahr Ø " +
                               string.Join(", ", x.Waren.Select(w => $"{w.Key} {w.Value / x.Partien}")));
         }
+        Console.WriteLine("  Von der KI erlernte Berufe (in n Partien): " + (gelernt.Count == 0 ? "keine" : string.Join(", ", gelernt.Select(x => $"{x.Key} {x.Value}×"))));
         Console.WriteLine("  Meistergrade/Stufen der KI (erreicht in n Partien, Ø Jahr): " +
                           string.Join(", ", meisterJahre.Select(x => $"{x.Key} {x.Value.Anzahl}× ab {x.Value.Jahre / x.Value.Anzahl:N1}")));
         if (gericht)

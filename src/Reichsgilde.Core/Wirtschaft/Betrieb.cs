@@ -38,6 +38,18 @@ public enum Betriebsart
 
     /// <summary>Umlandbetrieb des Steinmetzes (gepachtet). Bricht Bruchstein und Granit.</summary>
     Steinbruch,
+
+    /// <summary>Werkstatt des Alchimisten, Stufe 1. Stellt Farbe, Kräuterschnaps und Heilsalbe her.</summary>
+    Tinkturei,
+
+    /// <summary>Werkstatt des Alchimisten, Stufe 2.</summary>
+    Kraeuterladen,
+
+    /// <summary>Werkstatt des Alchimisten, Stufe 3.</summary>
+    Alchimistenstube,
+
+    /// <summary>Umlandbetrieb des Alchimisten (gepachtet). Zieht Kräuter und fängt Kröten.</summary>
+    Kraeutergarten,
 }
 
 /// <summary>
