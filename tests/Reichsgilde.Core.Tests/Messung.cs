@@ -1,3 +1,4 @@
+using Reichsgilde.Core.Zeit;
 using Reichsgilde.Core;
 using Reichsgilde.Core.Partie;
 using Reichsgilde.Core.Speichern;
@@ -174,6 +175,29 @@ static class Messung
     }
 
     /// <summary>Spielstand mit verheiratetem Oberhaupt und Kindern im Ausbildungsalter – für Klicktests der Familientafel.</summary>
+    /// <summary>
+    /// Spielstand für Klicktests der Meistergrade: Der Spieler hat Gießerei und Grube voll belegt und
+    /// arbeitet, bis seine Erfahrung für den 3. Meistergrad reicht – Prüfungen und Ausbau liegen beim Spieler.
+    /// Mit <paramref name="mindestJahre"/> läuft die Partie länger (die KI-Häuser bauen bis Stufe 3 aus).
+    /// </summary>
+    public static int MeisterSpielstand(string datei, int mindestJahre = 0)
+    {
+        var daten = Wirtschaftsdaten.AusDatei(Datenpfad.Wirtschaft());
+        var (sim, spieler) = Partieaufbau.Erstellen(
+            Partieeinstellungen.Standard with { Zufallsstartwert = 404, Siegbedingung = Siegbedingung.Endlos },
+            daten, new NeuePartie(Startvermoegen: 20_000));
+        var w = sim.Wirtschaft!;
+        foreach (var b in w.Betriebe.Where(b => b.Konto == spieler))
+            w.Ausfuehren(spieler, new PersonalSetzen(b.Name, b.IstWerkstatt ? "Geselle" : "Bergmann", b.Plaetze));
+        var p3 = w.Daten.Meistergrade!.PruefungFuer(3)!.Erfahrung;
+        while (spieler.Erfahrung("Schmied") < p3 || sim.Zeit.Jahr - Spielzeit.StartJahr < mindestJahre) { var j = sim.Zeit.Jahr; while (sim.Zeit.Jahr == j) sim.Tick(); }
+        File.WriteAllText(datei, Speicherung.Speichern(sim, spieler));
+        Console.WriteLine($"{sim.Zeit.DatumText}: Erfahrung {spieler.Erfahrung("Schmied"):N0} Std., Grad {spieler.Meistergrad("Schmied")}, " +
+                          $"{spieler.Vermoegen:N0} Gulden, {spieler.Aktionspunkte.Vorrat} AP");
+        Console.WriteLine($"gespeichert: {datei}");
+        return 0;
+    }
+
     public static int FamilienSpielstand(string datei) => FamilienSpielstand(datei, pest: false);
 
     /// <summary>Wie <see cref="FamilienSpielstand(string)"/>, aber im Pestjahr – mit kranken Familienmitgliedern (Klicktest Gesundheit).</summary>
