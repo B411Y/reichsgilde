@@ -55,6 +55,7 @@ public partial class GaunerAnzeige : PanelContainer
         _meldung = Hauptmenue.Text(spalte, "", 13, Grau, umbruchBreite: Breite - 50);
         var schliessen = Hauptmenue.Knopf(spalte, "Schließen", Hide);
         schliessen.SizeFlagsHorizontal = SizeFlags.ShrinkCenter;
+        Rollbereich.Einhuellen(this);
         Hide();
     }
 

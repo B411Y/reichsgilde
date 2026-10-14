@@ -53,6 +53,7 @@ public partial class JahresberichtAnzeige : PanelContainer
         _weiter = new Button { Text = "Weiter", FocusMode = FocusModeEnum.None, CustomMinimumSize = new Vector2(160, 0), SizeFlagsHorizontal = SizeFlags.ShrinkCenter };
         _weiter.Pressed += () => { Hide(); Geschlossen?.Invoke(); };
         spalte.AddChild(_weiter);
+        Rollbereich.Einhuellen(this);
         Hide();
     }
 

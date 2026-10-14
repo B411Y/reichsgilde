@@ -131,6 +131,9 @@ public partial class Hauptszene : Node
         _kontor.GrowHorizontal = Control.GrowDirection.Begin; // wächst nach links ins Bild
         _auswahl.SetAnchorsAndOffsetsPreset(Control.LayoutPreset.BottomLeft, Control.LayoutPresetMode.Minsize, 16);
         _auswahl.GrowVertical = Control.GrowDirection.Begin; // wächst nach oben
+        // Passt eine Tafel nicht ins Fenster, wird sie gerollt (Fenstergröße ist frei wählbar).
+        foreach (var tafel in new[] { _tafel, _kontor, _auswahl })
+            Rollbereich.Einhuellen(tafel);
 
         var optionen = Startoptionen();
         _simulation = SimulationAufbauen(optionen);
@@ -336,6 +339,7 @@ public partial class Hauptszene : Node
             _menueListe.Auffrischen();
             _menueListe.Visible = !_menueListe.Visible;
         });
+        Hauptmenue.Knopf(_menueKnoepfe, "Vollbild / Fenster (F11)", Fenster.Umschalten);
         Hauptmenue.Knopf(_menueKnoepfe, "Zum Hauptmenü", () => GetTree().ChangeSceneToFile("res://scenes/Hauptmenue.tscn"));
         Hauptmenue.Knopf(_menueKnoepfe, "Spiel beenden", () => GetTree().Quit());
 
