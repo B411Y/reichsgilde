@@ -790,7 +790,11 @@ public sealed class KiRivale
         var wunsch = Profil.Gaunerei >= 2
             ? new[] { Talent.Kampf, Talent.NachtUndNebel, Talent.Handwerk, Talent.Verhandeln, Talent.Rhetorik }
             : new[] { Talent.Handwerk, Talent.Verhandeln, Talent.Rhetorik };
-        foreach (var talent in wunsch)
+        // Üben wird mit jedem Stern teurer – die KI nimmt das billigste Wunschtalent zuerst.
+        var reihe = wunsch.Select((t, i) => (Talent: t, Rang: i))
+            .OrderBy(x => _w.ApKosten(Konto, new TalentTrainieren(x.Talent))).ThenBy(x => x.Rang)
+            .Select(x => x.Talent).ToList();
+        foreach (var talent in reihe)
         {
             var ap = Konto.Aktionspunkte.Vorrat;
             if (ap + _w.AktionspunkteJeRunde <= d.Hoechstens) return; // nichts verfiele

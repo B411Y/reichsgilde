@@ -79,7 +79,7 @@ static class AktionspunkteTests
             Pruefe.Gleich(12, k.Aktionspunkte.Vorrat);
         }),
 
-        ("Training: 2 AP für ½ Stern, je Talent einmal im Jahr, höchstens 6 Sterne", () =>
+        ("Training: ½ Stern je Übung, je Talent einmal im Jahr, höchstens 6 – 2 AP unter 3 Sternen, 4 unter 5, darüber 6", () =>
         {
             var sim = NeueSimulation();
             var w = sim.Wirtschaft!;
@@ -95,12 +95,24 @@ static class AktionspunkteTests
 
             o.TalentSetzen(Talent.Kampf, 6);
             Pruefe.Wahr(w.Ausfuehren(k, new TalentTrainieren(Talent.Kampf)).Meldung.Contains("meisterhaft"), "Höchstwert");
+
+            // Gestaffelte Kosten
+            o.TalentSetzen(Talent.Verhandeln, 3);
             o.TalentSetzen(Talent.Handwerk, 5.75);
+            Pruefe.Gleich(4, w.ApKosten(k, new TalentTrainieren(Talent.Verhandeln)));
+            Pruefe.Gleich(6, w.ApKosten(k, new TalentTrainieren(Talent.Handwerk)));
+            Pruefe.Gleich(2, w.ApKosten(k, new TalentTrainieren(Talent.NachtUndNebel)));
+            var e2 = w.Ausfuehren(k, new TalentTrainieren(Talent.Handwerk));
+            Pruefe.Wahr(!e2.Erfolg && e2.Meldung.Contains("Nicht genug Aktionspunkte"), e2.Meldung);
+            k.Aktionspunkte.Setzen(10);
             Pruefe.Wahr(w.Ausfuehren(k, new TalentTrainieren(Talent.Handwerk)).Erfolg, "Handwerk");
             Pruefe.Gleich(6, o.Talent(Talent.Handwerk)); // gedeckelt
+            Pruefe.Gleich(4, k.Aktionspunkte.Vorrat);
+            Pruefe.Wahr(w.Ausfuehren(k, new TalentTrainieren(Talent.Verhandeln)).Erfolg, "Verhandeln");
             Pruefe.Gleich(0, k.Aktionspunkte.Vorrat);
 
             JahrBeenden(sim);
+            Pruefe.Gleich(4, k.Aktionspunkte.Vorrat);
             Pruefe.Wahr(w.Ausfuehren(k, new TalentTrainieren(Talent.Rhetorik)).Erfolg, "neues Jahr – wieder üben");
             Pruefe.Gleich(3, o.Talent(Talent.Rhetorik));
         }),

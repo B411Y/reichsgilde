@@ -55,6 +55,18 @@ public sealed class AktionspunkteDaten
     /// <summary>Um so viele Sterne steigt ein Talent beim Üben (höchstens einmal je Talent und Jahr).</summary>
     public double TrainingSchritt { get; init; } = 0.5;
 
+    /// <summary>
+    /// Üben wird teurer, je höher das Talent schon ist: Jede Stufe gilt für Talente unter „bis" Sternen
+    /// (Standard: 2 AP unter 3 Sternen, 4 AP unter 5, 6 AP darüber). Leer = Kosten aus <see cref="Kosten"/>.
+    /// </summary>
+    public List<TrainingStufe> TrainingKosten { get; init; } = new();
+
+    /// <summary>Was das Üben eines Talents mit <paramref name="sterne"/> Sternen kostet.</summary>
+    public int TrainingKostenFuer(double sterne) =>
+        TrainingKosten.Count == 0
+            ? Kosten.GetValueOrDefault(nameof(TalentTrainieren))
+            : (TrainingKosten.FirstOrDefault(s => sterne < s.Bis - 1e-9) ?? TrainingKosten[^1]).Ap;
+
     /// <summary>Kosten je Befehl, Schlüssel = Name des Befehls (z. B. „Werben"). Fehlt ein Befehl, ist er frei.</summary>
     public Dictionary<string, int> Kosten { get; init; } = new();
 
@@ -64,6 +76,12 @@ public sealed class AktionspunkteDaten
     {
         if (Hoechstens < 1) f.Add("aktionspunkte.hoechstens muss mindestens 1 sein.");
         if (TrainingSchritt <= 0) f.Add("aktionspunkte.trainingSchritt muss größer als 0 sein.");
+        for (var i = 0; i < TrainingKosten.Count; i++)
+        {
+            var s = TrainingKosten[i];
+            if (s.Ap < 0 || s.Ap > Hoechstens) f.Add($"aktionspunkte.trainingKosten: {s.Ap} AP liegt nicht zwischen 0 und dem höchsten Vorrat ({Hoechstens}).");
+            if (i > 0 && s.Bis <= TrainingKosten[i - 1].Bis) f.Add("aktionspunkte.trainingKosten: Die Stufen müssen nach „bis“ aufsteigend sortiert sein.");
+        }
         // Tippfehler fallen sofort auf: Jeder Schlüssel muss ein echter Befehl sein.
         var befehle = typeof(Befehl).Assembly.GetTypes().Where(t => t.IsSubclassOf(typeof(Befehl)) && !t.IsAbstract).Select(t => t.Name).ToHashSet();
         foreach (var (name, kosten) in Kosten)
@@ -73,5 +91,12 @@ public sealed class AktionspunkteDaten
             if (kosten > Hoechstens) f.Add($"aktionspunkte.kosten.{name} ist teurer als der höchste Vorrat ({Hoechstens}).");
         }
     }
+}
+
+/// <summary>Eine Kostenstufe fürs Üben: unter <see cref="Bis"/> Sternen kostet es <see cref="Ap"/> Aktionspunkte.</summary>
+public sealed record TrainingStufe
+{
+    public double Bis { get; init; }
+    public int Ap { get; init; }
 }
 
