@@ -94,7 +94,7 @@ public partial class RatAnzeige : PanelContainer
         var geschenkZeile = new HBoxContainer();
         _inhalt.AddChild(geschenkZeile);
         Hauptmenue.Text(geschenkZeile, "Geschenk je Klick:", 14);
-        var geschenk = new SpinBox { MinValue = 10, MaxValue = 5000, Step = 10, Value = _geschenkBetrag, Suffix = waehrung, CustomMinimumSize = new Vector2(150, 0) };
+        var geschenk = new Zahlfeld { MinValue = 10, MaxValue = 5000, Step = 10, Value = _geschenkBetrag, Suffix = waehrung, CustomMinimumSize = new Vector2(150, 0) };
         geschenkZeile.AddChild(geschenk);
         string Hinweis() => $"   (+{Zahlenformat.Ganz(_geschenkBetrag * rat.Daten.Gunst.JeGulden)} Gunst, verblasst um {Zahlenformat.Ganz(rat.Daten.Gunst.VerfallJeJahr * 100)} % im Jahr)";
         var hinweis = Hauptmenue.Text(geschenkZeile, Hinweis(), 12, Grau);
