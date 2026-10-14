@@ -525,11 +525,12 @@ public sealed class KiRivale
         var plan = kosten.OrderBy(k => k.Gulden).ThenBy(k => k.Ratsherr.Name, StringComparer.Ordinal).Take(noetig).ToList();
         var summe = plan.Sum(p => p.Gulden);
         if (summe > Politikbudget) return;
-        if (summe * Bestechungsrisiko > nutzen)
+        // Ohne Spitzel im Nacken zählt nur das Budget – untere Ämter sind Sprossen auf der Leiter, nicht nur Einkommen.
+        // Unter Beobachtung wägt die KI ab: Kosten samt erwarteter Buße gegen den Nutzen einiger Jahre.
+        if (Bestechungsrisiko > 1 && summe * Bestechungsrisiko > nutzen)
         {
-            if (Bestechungsrisiko > 1)
-                Entscheiden($"verzichtet auf Geschenke {zweck} – unter den Augen der Spitzel zu riskant " +
-                            $"({Zahlenformat.Ganz(summe)} {_w.Daten.Allgemein.Waehrung} plus erwartete Buße gegen {Zahlenformat.Ganz(nutzen)} Nutzen).");
+            Entscheiden($"verzichtet auf Geschenke {zweck} – unter den Augen der Spitzel zu riskant " +
+                        $"({Zahlenformat.Ganz(summe)} {_w.Daten.Allgemein.Waehrung} plus erwartete Buße gegen {Zahlenformat.Ganz(nutzen)} Nutzen).");
             return;
         }
         foreach (var (ratsherr, gulden) in plan)

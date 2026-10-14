@@ -216,7 +216,9 @@ static class GerichtTests
             var w = sim.Wirtschaft!;
             var klaeger = Haus(w, "Familie Klage");
             var ki = Haus(w, "Haus Angeklagt", vermoegen: 20_000);
-            BeweiseSammeln(sim, klaeger, ki, 2);
+            // Hohe Bestechung → hohe drohende Buße (2400). Dann lohnt die Verteidigung auch unter Beobachtung:
+            // ≈ 440 Gulden für zwei Richter × Risiko 4 (Spitzel findet in diesen Testdaten jede Spur) < 2400.
+            BeweiseSammeln(sim, klaeger, ki, 2, 400);
             Pruefe.Wahr(w.Ausfuehren(klaeger, new Anklagen(ki.Inhaber)).Erfolg, "Anklage");
             var v = w.Justiz.VerfahrenGegen(klaeger, ki)!;
             Pruefe.Wahr(Stadtgericht.IstSchuldig(w.Justiz.Prognose(v)) || v.Richter.Skip(1).Any(r => w.Rat.Gunst(r.Ratsherr!, ki) > 0),

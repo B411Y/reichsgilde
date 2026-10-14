@@ -1,5 +1,6 @@
 using Reichsgilde.Core;
 using Reichsgilde.Core.Partie;
+using Reichsgilde.Core.Speichern;
 using Reichsgilde.Core.Wirtschaft;
 
 /// <summary>
@@ -18,7 +19,7 @@ static class Messung
         var volk = args.Length > 2 ? Enum.Parse<Volk>(args[2]) : Volk.Mensch;
         var gericht = args.Length > 3 && args[3] == "gericht";
         int urteileSchuldig = 0, urteileFrei = 0, amtVerloren = 0;
-        double bestechung = 0, verteidigung = 0;
+        double bestechung = 0;
 
         int verheiratet = 0, erloschen = 0, buergermeister = 0;
         double heiratsjahre = 0, kinder = 0, erbfaelle = 0, bmJahre = 0, kostenSpieler = 0, vermoegen = 0;
@@ -74,6 +75,33 @@ static class Messung
         Console.WriteLine($"  Geschenke an Ratsherren (Bestechung) Ø {Zahlenformat.Ganz(bestechung / startwerte)} Gulden über {jahre} Jahre");
         if (gericht)
             Console.WriteLine($"  vor Gericht: {urteileSchuldig} Schuldsprüche, {urteileFrei} Freisprüche, davon {amtVerloren} mit Amtsverlust (Summe über alle Startwerte)");
+        return 0;
+    }
+
+    /// <summary>
+    /// Spielstand für Klicktests des Gerichtssaals: Der Spieler (Bürger) bespitzelt Haus Eisenbart Jahr für Jahr,
+    /// bis er Beweise hat, und erhebt Anklage. Gespeichert wird mitten im Jahr – das Verfahren läuft.
+    /// </summary>
+    public static int GerichtsSpielstand(string datei)
+    {
+        var daten = Wirtschaftsdaten.AusDatei(Datenpfad.Wirtschaft());
+        var (sim, spieler) = Partieaufbau.Erstellen(
+            Partieeinstellungen.Standard with { Zufallsstartwert = 202, Siegbedingung = Siegbedingung.Endlos },
+            daten, new NeuePartie(Startvermoegen: 20_000));
+        var w = sim.Wirtschaft!;
+        var rivale = w.Konten.First(k => k != spieler);
+        w.Ausfuehren(spieler, new StandErwerben());
+        for (var jahr = 0; jahr < 25 && w.Justiz.Beweise(spieler, rivale).Count() < 3; jahr++)
+        {
+            w.Ausfuehren(spieler, new SpitzelAnsetzen(rivale.Inhaber));
+            var j = sim.Zeit.Jahr;
+            while (sim.Zeit.Jahr == j) sim.Tick();
+        }
+        for (var i = 0; i < 3 * 60; i++) sim.Tick();
+        var e = w.Ausfuehren(spieler, new Anklagen(rivale.Inhaber));
+        File.WriteAllText(datei, Speicherung.Speichern(sim, spieler));
+        Console.WriteLine($"{sim.Zeit.DatumText}: {w.Justiz.Beweise(spieler, rivale).Count()} Beweise, Anklage: {e.Meldung}");
+        Console.WriteLine($"gespeichert: {datei}");
         return 0;
     }
 }

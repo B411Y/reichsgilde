@@ -293,7 +293,7 @@ public sealed class Stadtgericht
             var beweise = Beweise(v.Anklaeger, v.Beklagter).ToList();
             var stimmen = Prognose(v);
             var schuldig = IstSchuldig(stimmen);
-            var zaehlung = $"{stimmen.Count(s => s.Schuldig)} von {stimmen.Count} Richtern: schuldig";
+            var zaehlung = $"Anklage: {v.Anklaeger.Inhaber}; {stimmen.Count(s => s.Schuldig)} von {stimmen.Count} Richtern: schuldig";
             string text;
             if (schuldig)
             {
