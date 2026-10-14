@@ -448,6 +448,8 @@ public partial class Hauptszene : Node
     }
 
     /// <summary>Tastatur: Leertaste = Pause, 1–4 = Tempostufen, 5–6 = Testtempo 16×/32×. (Kamera: siehe Stadtansicht)</summary>
+    public override void _Input(InputEvent eingabe) => UiHilfe.ZahlBeiKlickUebernehmen(GetViewport(), eingabe);
+
     public override void _UnhandledInput(InputEvent eingabe)
     {
         if (eingabe is InputEventKey { Pressed: true, Echo: false, Keycode: Key.Escape })

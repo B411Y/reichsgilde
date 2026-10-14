@@ -45,6 +45,8 @@ public partial class Hauptmenue : Node
     private Control _endjahrZeile = null!;
     private Control _zielZeile = null!;
 
+    public override void _Input(InputEvent eingabe) => UiHilfe.ZahlBeiKlickUebernehmen(GetViewport(), eingabe);
+
     public override void _Ready()
     {
         if (OS.GetCmdlineUserArgs().Length > 0)
