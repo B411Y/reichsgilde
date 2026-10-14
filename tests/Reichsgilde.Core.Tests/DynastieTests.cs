@@ -162,20 +162,26 @@ static class DynastieTests
             Pruefe.Wahr(w.Ausfuehren(konto, new Heiraten(k.Person.Nummer)).Erfolg, "Heirat im zweiten Jahr");
         }),
 
-        ("Kinder: Ein junges Paar bekommt über die Jahre Kinder seines Hauses; Unterhalt steht in der Jahresrechnung", () =>
+        ("Kinder: Junge Paare bekommen über die Jahre Kinder ihres Hauses; Unterhalt steht in der Jahresrechnung", () =>
         {
-            // Startwert so gewählt, dass beide überleben (das Grundrisiko trifft auch Junge: 0,6 % im Jahr).
-            var sim = NeueSimulation(startwert: 8);
-            var w = sim.Wirtschaft!;
-            var (konto, f) = Haus(w, "Familie Kinderreich", alter: 20);
-            Verheiraten(sim, konto, Volk.Mensch);
-            Pruefe.Wahr(w.Familien.Geburtschance(f) > 0.2, $"Geburtschance {w.Familien.Geburtschance(f):P0}");
-            for (var i = 0; i < 12; i++) JahrBeenden(sim);
-            var kinder = f.Kinder.ToList();
-            Pruefe.Wahr(kinder.Count >= 2, $"nach 12 Jahren nur {kinder.Count} Kinder");
-            Pruefe.Wahr(kinder.All(k => k.Volk == Volk.Mensch && k.Familienname == "Kinderreich" && k.IstKindVon(f.Ehepartner ?? f.Oberhaupt)), "Kinder gehören zum Haus");
-            Pruefe.Ungefaehr(w.Familien.Haushaltskosten(f), konto.Vorjahr!.Familie, 0.5);
-            Pruefe.Wahr(konto.Vorjahr!.Familie >= 100, $"Familienkosten {konto.Vorjahr.Familie}");
+            // Über mehrere Startwerte, damit kein einzelner Glücks- oder Pechwurf entscheidet:
+            // Erwartet werden je Paar etwa 3 Kinder in 12 Jahren.
+            var kinderGesamt = 0;
+            foreach (var startwert in new[] { 1, 2, 3, 4, 5, 6 })
+            {
+                var sim = NeueSimulation(startwert: startwert);
+                var w = sim.Wirtschaft!;
+                var (konto, f) = Haus(w, "Familie Kinderreich", alter: 20);
+                var partner = Verheiraten(sim, konto, Volk.Mensch);
+                Pruefe.Wahr(w.Familien.Geburtschance(f) > 0.2, $"Geburtschance {w.Familien.Geburtschance(f):P0}");
+                for (var i = 0; i < 12; i++) JahrBeenden(sim);
+                var kinder = f.KinderVon(partner).ToList();
+                kinderGesamt += kinder.Count;
+                Pruefe.Wahr(kinder.All(k => k.Volk == Volk.Mensch && k.Familienname == "Kinderreich"), "Kinder gehören zum Haus");
+                // Gezahlt wird vor dem Jahreswechsel – danach kann sich die Familie schon verändert haben.
+                Pruefe.Wahr(konto.Vorjahr!.Familie >= 50, $"Familienkosten {konto.Vorjahr.Familie}");
+            }
+            Pruefe.Wahr(kinderGesamt >= 8, $"6 Paare haben in 12 Jahren nur {kinderGesamt} Kinder");
         }),
 
         ("Ehe zwischen Völkern: erlaubt, Kinder gehören dem Haus-Volk, aber deutlich weniger fruchtbar", () =>
@@ -283,10 +289,11 @@ static class DynastieTests
             Pruefe.Ungefaehr(w.Rat.Ansehen(konto) + w.Rat.Gunst(zwergRatsherr, konto), w.Rat.Punkte(zwergRatsherr, amt, konto), 1e-9);
         }),
 
-        ("KI: Haus Eisenbart wirbt, heiratet in den ersten Jahren und bekommt meist Kinder", () =>
+        ("KI: Haus Eisenbart wirbt und heiratet in den ersten Jahren; Zwerge bekommen langsam Kinder", () =>
         {
-            var mitKindern = 0;
-            foreach (var startwert in new[] { 101, 202, 303, 404, 505 })
+            // Erwartet: etwa 1,5 Nachkommen je Zwergenhaus nach 20 Jahren (Messung, siehe Wirtschaftsmodell).
+            var kinder = 0;
+            foreach (var startwert in new[] { 101, 202, 303, 404, 505, 606, 707, 808, 909, 1010 })
             {
                 var (sim, _) = Partieaufbau.Erstellen(Partieeinstellungen.Standard with { Siegbedingung = Siegbedingung.Endlos, Zufallsstartwert = startwert },
                     Daten.Value, new NeuePartie());
@@ -297,9 +304,9 @@ static class DynastieTests
                 Pruefe.Wahr(f.Ehepartner is not null || f.Ahnen.Count > 0, $"Startwert {startwert}: nach 6 Jahren nicht verheiratet");
                 Pruefe.Wahr(rivale.Vorjahr!.Familie > 0, "Familienkosten fehlen");
                 for (var i = 0; i < 14; i++) JahrBeenden(sim);
-                if (f.Mitglieder.Any(p => p.Vater is not null)) mitKindern++;
+                kinder += f.Mitglieder.Count(p => p.Vater is not null);
             }
-            Pruefe.Wahr(mitKindern >= 3, $"nur {mitKindern} von 5 Häusern haben nach 20 Jahren Kinder");
+            Pruefe.Wahr(kinder >= 8, $"10 Zwergenhäuser haben in 20 Jahren nur {kinder} Nachkommen");
         }),
 
         ("Speichern: Familien, Brautschau, Zuneigung und Chronik überstehen Speichern und Laden", () =>

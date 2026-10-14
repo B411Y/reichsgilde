@@ -75,11 +75,12 @@ public sealed class Familienbuch
     public bool IstVolljaehrig(Person p) => p.Alter(Jahr) >= _d.Volk(p.Volk).Volljaehrig;
 
     /// <summary>Wie wahrscheinlich die Person dieses Jahr stirbt (Gompertz, siehe <see cref="VolkDaten"/>).</summary>
-    public double Sterberisiko(Person p)
+    public double Sterberisiko(Person p) => p.Lebt ? Sterberisiko(p.Volk, p.Alter(Jahr)) : 0;
+
+    /// <summary>Sterberisiko für ein Jahr in diesem Alter.</summary>
+    public double Sterberisiko(Volk volk, int alter)
     {
-        if (!p.Lebt) return 0;
-        var v = _d.Volk(p.Volk);
-        var alter = p.Alter(Jahr);
+        var v = _d.Volk(volk);
         double H(double x) => Math.Exp((x - v.Sterbealter) / v.Streuung);
         var grund = alter < v.Volljaehrig ? _d.Kinderrisiko : _d.Grundrisiko;
         return 1 - Math.Exp(-(grund + H(alter + 1) - H(alter)));
@@ -121,7 +122,11 @@ public sealed class Familienbuch
         return Geburtenrate(frau, mann) * Math.Pow(_d.KinderAbnahme, kinder);
     }
 
-    /// <summary>Wie viele Kinder ein Paar aus Oberhaupt und diesem Partner ab jetzt erwarten lässt (für Brautschau und KI).</summary>
+    /// <summary>
+    /// Wie viele Kinder ein Paar aus Oberhaupt und diesem Partner ab jetzt erwarten lässt (für Brautschau und KI).
+    /// Gerechnet wird Jahr für Jahr: Geburtenrate × Chance, dass bis dahin noch beide leben.
+    /// Eine junge Elbin nützt einem Menschen wenig – er erlebt ihre fruchtbaren Jahre nicht.
+    /// </summary>
     public double ErwarteteKinder(Familie f, Person partner)
     {
         if (!Paar(f.Oberhaupt, partner, out var frau, out var mann)) return 0;
@@ -129,9 +134,14 @@ public sealed class Familienbuch
         var rate = Geburtenrate(frau, mann);
         var kinder = (double)f.KinderVon(frau).Count(k => k.Lebt);
         var start = kinder;
-        for (var alter = frau.Alter(Jahr); alter <= v.FruchtbarBis; alter++)
+        var beideLeben = 1.0;
+        var alterMann = mann.Alter(Jahr);
+        for (var alter = frau.Alter(Jahr); alter <= v.FruchtbarBis && beideLeben > 0.01; alter++, alterMann++)
+        {
             if (alter >= v.FruchtbarVon)
-                kinder += rate * Math.Pow(_d.KinderAbnahme, kinder);
+                kinder += beideLeben * rate * Math.Pow(_d.KinderAbnahme, kinder);
+            beideLeben *= (1 - Sterberisiko(frau.Volk, alter)) * (1 - Sterberisiko(mann.Volk, alterMann));
+        }
         return kinder - start;
     }
 
@@ -258,10 +268,22 @@ public sealed class Familienbuch
 
         var spanne = Math.Max(1, (v.FruchtbarBis - v.Volljaehrig) * 2 / 3);
         var alter = v.Volljaehrig + _zufall.Next(spanne);
-        var name = v.Familiennamen[_zufall.Next(v.Familiennamen.Count)];
-        var person = new Person(_naechsteNummer++, Vorname(v, geschlecht), name, volk, geschlecht, Jahr - alter);
+        // Zwei lebende Personen mit gleichem Namen verwirren nur – höchstens zehn Versuche, dann eben doch.
+        string vorname, name;
+        var versuche = 0;
+        do
+        {
+            vorname = Vorname(v, geschlecht);
+            name = v.Familiennamen[_zufall.Next(v.Familiennamen.Count)];
+        } while (NameVergeben(vorname, name) && ++versuche < 10);
+        var person = new Person(_naechsteNummer++, vorname, name, volk, geschlecht, Jahr - alter);
         return new Kandidat(person, stand);
     }
+
+    /// <summary>Unter den Kandidaten kein Vorname doppelt, in den Familien kein ganzer Name.</summary>
+    private bool NameVergeben(string vorname, string nachname) =>
+        _kandidaten.Any(k => k.Person.Vorname == vorname)
+        || _familien.Values.Any(f => f.Lebende.Any(p => p.Vorname == vorname && p.Familienname == nachname));
 
     private T Gewichtet<T>(List<(T Wert, double Gewicht)> liste)
     {
@@ -323,7 +345,7 @@ public sealed class Familienbuch
         return Befehlsergebnis.Ok($"{k.Person.Name} freut sich über das Geschenk ({Zahlenformat.Ganz(kosten)} {_w.Daten.Allgemein.Waehrung}). " +
                                   (bereit >= schwelle
                                       ? "Einer Heirat steht nichts mehr im Weg!"
-                                      : $"Zuneigung und Ansehen: {Zahlenformat.Ganz(bereit)} von {Zahlenformat.Ganz(schwelle)}."));
+                                      : $"Zuneigung und Ansehen: {Zahlenformat.Kommazahl(bereit)} von {Zahlenformat.Ganz(schwelle)}."));
     }
 
     internal Befehlsergebnis Heiraten(Konto konto, int nummer)
@@ -335,7 +357,7 @@ public sealed class Familienbuch
         var bereit = Bereitschaft(konto, k);
         var schwelle = Heiratsschwelle(k);
         if (bereit < schwelle - 1e-9)
-            return Befehlsergebnis.Abgelehnt($"{k.Person.Name} zögert noch: Zuneigung und Ansehen {Zahlenformat.Ganz(bereit)}, nötig sind {Zahlenformat.Ganz(schwelle)}.");
+            return Befehlsergebnis.Abgelehnt($"{k.Person.Name} zögert noch: Zuneigung und Ansehen {Zahlenformat.Kommazahl(bereit)}, nötig sind {Zahlenformat.Ganz(schwelle)}.");
         var kosten = Hochzeitskosten(k);
         if (konto.Vermoegen < kosten)
             return Befehlsergebnis.Abgelehnt($"Die Hochzeit kostet {Zahlenformat.Ganz(kosten)} {_w.Daten.Allgemein.Waehrung} – so viel hat {konto.Inhaber} nicht.");

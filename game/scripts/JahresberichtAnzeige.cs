@@ -68,8 +68,10 @@ public partial class JahresberichtAnzeige : PanelContainer
         // ── Überschrift ──
         var titel = endgrund is null
             ? bilanz is null ? "Jahresrechnung" : $"Jahresrechnung {bilanz.Jahr}"
-            : spieler.IstBankrott ? "Bankrott – die Partie ist verloren" : "Die Partie ist zu Ende";
-        Text(titel, 24, endgrund is not null && spieler.IstBankrott ? Rot : Gold, zentriert: true);
+            : spieler.IstBankrott ? "Bankrott – die Partie ist verloren"
+            : spieler.IstErloschen ? "Das Haus ist erloschen – die Partie ist verloren"
+            : "Die Partie ist zu Ende";
+        Text(titel, 24, endgrund is not null && !spieler.IstAktiv ? Rot : Gold, zentriert: true);
         if (endgrund is not null)
             Text(endgrund, 15, Grau, zentriert: true);
         Text($"{spieler.Inhaber} · {w.StandVon(spieler).Name}", 16, null, zentriert: true);
@@ -93,6 +95,7 @@ public partial class JahresberichtAnzeige : PanelContainer
             if (bilanz.Standesgebuehren > 0) nebenbei.Add($"Standesgebühren {Zahlenformat.Ganz(bilanz.Standesgebuehren)}");
             if (bilanz.Amtseinkommen > 0) nebenbei.Add($"Amtseinkommen +{Zahlenformat.Ganz(bilanz.Amtseinkommen)}");
             if (bilanz.Geschenke > 0) nebenbei.Add($"Geschenke an Ratsherren {Zahlenformat.Ganz(bilanz.Geschenke)}");
+            if (bilanz.Familie > 0) nebenbei.Add($"Haushalt, Brautwerbung und Hochzeit {Zahlenformat.Ganz(bilanz.Familie)}");
             if (bilanz.Raubwert > 0) nebenbei.Add($"von Banditen geraubt: Waren für {Zahlenformat.Ganz(bilanz.Raubwert)}");
             if (nebenbei.Count > 0) Text("Außerdem: " + string.Join(" · ", nebenbei), 13, Grau);
         }
@@ -119,6 +122,16 @@ public partial class JahresberichtAnzeige : PanelContainer
                 Text($"Ihr könnt im Rathaus aufsteigen (Gebühr {Zahlenformat.Ganz(naechster.Gebuehr)} {waehrung}).", 14, Gold);
         }
 
+        // ── Familie: zuerst das eigene Haus, dann was man in der Stadt über die anderen hört ──
+        var familie = w.Familien.LetztesJahr.OrderBy(e => e.Konto == spieler ? 0 : 1).Select(e => (e.Konto == spieler, e.Text)).ToList();
+        if (familie.Count > 0)
+        {
+            _inhalt.AddChild(new HSeparator());
+            Text("Familie", 16);
+            foreach (var (eigenes, eintrag) in familie.Take(6))
+                Text("• " + eintrag, 13, eigenes ? null : Grau);
+        }
+
         // ── Ratssitzung ──
         if (w.Rat.LetzteSitzung.Count > 0 && endgrund is null)
         {
@@ -138,9 +151,9 @@ public partial class JahresberichtAnzeige : PanelContainer
         foreach (var konto in w.Rangliste)
         {
             var farbe = konto == spieler ? Gold : (Color?)null;
-            Label(rang, konto.IstBankrott ? "–" : $"{platz++}.", 14, farbe);
+            Label(rang, !konto.IstAktiv ? "–" : $"{platz++}.", 14, farbe);
             Label(rang, konto.Inhaber, 14, farbe);
-            Label(rang, konto.IstBankrott ? "bankrott" : w.StandVon(konto).Name, 14, konto.IstBankrott ? Rot : farbe);
+            Label(rang, konto.IstBankrott ? "bankrott" : konto.IstErloschen ? "erloschen" : w.StandVon(konto).Name, 14, !konto.IstAktiv ? Rot : farbe);
             Label(rang, Zahlenformat.Ganz(konto.Vermoegen), 14, farbe);
         }
 

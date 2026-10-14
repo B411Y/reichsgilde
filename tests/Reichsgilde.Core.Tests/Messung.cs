@@ -43,7 +43,7 @@ static class Messung
             erbfaelle += f.Ahnen.Count;
             vermoegen += rivale.Vermoegen;
             Console.WriteLine($"Startwert {s * 101,5}: {f.Oberhaupt.Name} ({f.Oberhaupt.Alter(w.Familien.Jahr)} J.), " +
-                              $"Heirat im Jahr {heirat?.ToString() ?? "–"}, Nachkommen {nachkommen} (lebend {f.Lebende.Count(p => p.Vater is not null)}), " +
+                              $"Heirat im Jahr {heirat?.ToString() ?? "–"}{(f.Mitglieder.FirstOrDefault(p => p.Geburtsname != f.Nachname) is { } partner ? $" mit {partner.Volk.Einzahl()}" : "")}, Nachkommen {nachkommen} (lebend {f.Lebende.Count(p => p.Vater is not null)}), " +
                               $"Erbfälle {f.Ahnen.Count}{(rivale.IstErloschen ? ", ERLOSCHEN" : "")}, {w.StandVon(rivale).Name}, " +
                               $"{Zahlenformat.Ganz(rivale.Vermoegen)} Gulden, Bürgermeister ab Jahr {bm?.ToString() ?? "–"}");
         }

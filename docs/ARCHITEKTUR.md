@@ -158,6 +158,38 @@ Gunst                    = Geschenk in Gulden × 0,05          (höchstens 100, 
 
 **Bewusst offen:** Häuser im Rat stimmen bei Wahlen für den bisherigen Inhaber. Sitzt Haus Eisenbart einmal auf dem Bürgermeisterstuhl, kommt man dort schwer heran. Gegenmittel wie Bestechung, Erpressung und das Gericht folgen später. Bei fremden Anträgen enthält sich der Spieler noch; das Abstimmen über die Oberfläche kommt ebenfalls später.
 
+## Dynastie
+
+Das Familienbuch (`src/Reichsgilde.Core/Dynastie/Familienbuch.cs`) gehört zur Stadtwirtschaft (`Stadtwirtschaft.Familien`). Alle Zahlen und Namen stehen in `wirtschaft.json` im Abschnitt `dynastie`.
+
+- **Konto und Familie sind getrennt.** Das Konto (Vermögen, Betriebe, Stand) gehört dem *Haus*, die Familie liefert das Oberhaupt. Beim Erbfall wechselt nur das Oberhaupt, das Konto bleibt. Ein Konto ohne Familie (alte Spielstände, Tests) altert nicht und erlischt nie.
+- **Personen haben Nummern.** Befehle wie `Werben(17, 200)` oder `ErbenBestimmen(23)` und der Spielstand verweisen über die Nummer auf eine Person, nicht über den Namen.
+- **Sterben nach Gompertz.** Das Sterberisiko wächst exponentiell mit dem Alter:
+
+  ```
+  Risiko im Jahr = 1 − e^−(Grundrisiko + H(Alter+1) − H(Alter)),   H(x) = e^((x − Sterbealter) / Streuung)
+  ```
+
+  Ein Mensch (Sterbealter 64, Streuung 8) stirbt im Jahr mit 25 Jahren zu etwa 0,7 %, mit 50 zu 3 %, mit 60 zu 8 % und mit 70 zu 25 %. Die Oberfläche zeigt nur eine grobe Verfassung („rüstig“, „betagt“ …), denn niemand kennt sein Todesjahr.
+- **Erwartete Kinder** rechnet `ErwarteteKinder` Jahr für Jahr aus: Geburtenrate × Chance, dass beide Partner noch leben. Brautschau-Anzeige und KI benutzen dieselbe Rechnung.
+- **Eigener Zufallsgenerator.** Leben und Tod würfelt ein eigener Generator. So verändert die Familie nicht die Würfe der Wirtschaft (Überfälle, Ausbrüche), und frühere Messungen bleiben vergleichbar.
+
+**Ablauf am Jahresende** (in `Stadtwirtschaft.Jahresabrechnung`):
+
+1. `Rat.EinkommenZahlen()` und `Familien.UnterhaltZahlen()`, noch im alten Jahr verbucht
+2. Konten abschließen, Schulden prüfen
+3. `Familien.Jahreswechsel()`: Todesfälle, Erbfall, Geburten, Brautschau, verblassende Zuneigung
+4. `Rat.Sitzung()`: Ein Amt, das durch einen Erbfall frei wurde, wird gleich neu besetzt.
+5. KI-Rivalen planen das neue Jahr.
+
+**Erbfolge:** Testament → ältestes volljähriges Kind → Witwenrecht (Ehepartner, abschaltbar) → das Haus erlischt. Der Erbe behält Vermögen, Betriebe und Stand. Amt und Gunst im Rat beginnen von vorn (`Stadtrat.Neuanfang`).
+
+**Volksnähe im Rat:** Ratsherren geben einem Haus, dessen Oberhaupt ihrem Volk angehört, 5 Punkte mehr. Eine Ehe zwischen Völkern kostet 5 Punkte beim eigenen Volk und bringt 3 Punkte beim Volk des Ehepartners.
+
+**Lehrstück aus diesem Schritt (Anzeige und Rundung):** 29,6 sieht gerundet aus wie 30. Steht dann „30 / 30“ da, aber die Heirat geht nicht, wirkt das Spiel kaputt. Fortschritt zu einer Schwelle wird deshalb abgerundet angezeigt.
+
+**Lehrstück aus diesem Schritt (Zufall in Tests):** Ein Test mit einem einzigen Startwert prüft eher Glück als Regeln. Ein 20-jähriger Ehemann starb im Test gleich im ersten Jahr, bei 0,6 % Risiko. Eine Gegenprobe über 2000 Startwerte ergab genau die erwarteten 13 Todesfälle. Tests, die vom Zufall abhängen, laufen deshalb über mehrere Startwerte und prüfen eine Summe.
+
 ## Speichern und Laden
 
 Ein Spielstand ist eine lesbare JSON-Datei (`src/Reichsgilde.Core/Speichern/`).

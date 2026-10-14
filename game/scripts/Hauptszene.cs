@@ -26,6 +26,7 @@ namespace Reichsgilde;
 ///   --vermoegen=12000  Startvermögen des Spielers setzen (zum Ausprobieren des Aufstiegs)
 ///   --bericht=1        gleich zu Beginn einen Jahresbericht zeigen (zum Testen der Anzeige)
 ///   --rat=1            gleich zu Beginn die Ratskammer öffnen
+///   --familie=1        gleich zu Beginn die Familientafel öffnen
 /// </summary>
 public partial class Hauptszene : Node
 {
@@ -49,6 +50,7 @@ public partial class Hauptszene : Node
     private Func<Befehl>? _aktion;
     private JahresberichtAnzeige _jahresbericht = null!;
     private RatAnzeige _ratskammer = null!;
+    private FamilienAnzeige _familientafel = null!;
     private Button _ratKnopf = null!;
     private Konto? _spieler;
 
@@ -90,6 +92,8 @@ public partial class Hauptszene : Node
         var ratMitte = Hauptmenue.Mitte();
         GetNode<CanvasLayer>("Oberflaeche").AddChild(ratMitte);
         ratMitte.AddChild(_ratskammer);
+        _familientafel = new FamilienAnzeige();
+        ratMitte.AddChild(_familientafel); // gleiche Mitte: es ist immer nur eine Tafel offen
         // Der Bericht sitzt in einem CenterContainer: Der hält ihn mittig, egal wie hoch er wird.
         var berichtMitte = Hauptmenue.Mitte();
         GetNode<CanvasLayer>("Oberflaeche").AddChild(berichtMitte);
@@ -120,8 +124,10 @@ public partial class Hauptszene : Node
         var optionen = Startoptionen();
         _simulation = SimulationAufbauen(optionen);
         SpielmenueBauen();
-        _ratKnopf.Pressed += _ratskammer.Oeffnen;
+        _ratKnopf.Pressed += () => { _familientafel.Hide(); _ratskammer.Oeffnen(); };
         _ratskammer.Gemeldet += Protokollieren;
+        _kontor.FamilieGewuenscht += () => { _ratskammer.Hide(); _familientafel.Oeffnen(); };
+        _familientafel.Gemeldet += Protokollieren;
 
         _pauseKnopf.Pressed += PauseUmschalten;
         foreach (var tempo in Taktgeber.AlleTempostufen /* TESTTEMPO */)
@@ -151,6 +157,7 @@ public partial class Hauptszene : Node
         {
             Protokollieren($"Jahresabrechnung {jahr} abgeschlossen. Es ist nun {_simulation.Zeit.DatumText}.");
             if (_ratskammer.Visible) _ratskammer.Aufbauen(); // neue Ämter, verblasste Gunst
+            if (_familientafel.Visible) _familientafel.Aufbauen(); // ein Jahr älter, Geburten, Todesfälle
             if (_spieler is null || _simulation.IstBeendet) return;
             // Automatisch speichern – überschreibt jedes Jahr denselben Spielstand.
             var (pfad, meldung) = Spielstaende.Speichern(_simulation, _spieler, Spielstaende.AutoDatei);
@@ -198,6 +205,8 @@ public partial class Hauptszene : Node
             _auswahlKennung = Stadtansicht.BetriebsKennung(_eigeneGiesserei);
         if (optionen.TryGetValue("rat", out var rat) && rat == "1")
             _ratskammer.Oeffnen();
+        if (optionen.TryGetValue("familie", out var familie) && familie == "1")
+            _familientafel.Oeffnen();
         if (optionen.TryGetValue("bericht", out var bericht) && bericht == "1" && _spieler is not null)
             _jahresbericht.Zeigen(_simulation, _spieler);
         if (optionen.TryGetValue("innen", out var innen) && innen == "1" && _eigeneGiesserei is not null)
@@ -366,6 +375,12 @@ public partial class Hauptszene : Node
             if (konto == spieler)
                 simulation.Beenden($"{spieler.Inhaber} konnte die Schulden nicht begleichen.");
         };
+        // Stirbt das Haus des Spielers aus, ist die Partie vorbei (später: Zuschauer-Modus).
+        w.Familien.Erloschen += konto =>
+        {
+            if (konto == spieler)
+                simulation.Beenden($"Das Haus {w.Familien.Von(spieler)?.Nachname ?? spieler.Inhaber} ist ohne Erben erloschen.");
+        };
         w.Meldung += Protokollieren;
         // Die ersten Züge der KI fielen schon beim Aufstellen – ins Protokoll nachtragen (älteste zuerst).
         foreach (var rivale in w.Rivalen)
@@ -375,6 +390,7 @@ public partial class Hauptszene : Node
         var rivalenKonto = w.Konten.FirstOrDefault(k => k != spieler);
         _kontor.Verbinden(simulation, spieler, rivalenKonto);
         _ratskammer.Verbinden(simulation, spieler);
+        _familientafel.Verbinden(simulation, spieler);
         _verwaltung.Verbinden(simulation, spieler);
         // Die Stadtansicht stellt jeden Betrieb an seinen Platz im Stadtplan und zeigt die freien Plätze.
         _stadt.Verbinden(simulation, spieler);
@@ -404,6 +420,8 @@ public partial class Hauptszene : Node
             if (_jahresbericht.Visible) { /* der Bericht wird mit „Weiter" geschlossen */ }
             else if (_ratskammer.Visible)
                 _ratskammer.Hide();
+            else if (_familientafel.Visible)
+                _familientafel.Hide();
             else if (_spielmenue.Visible)
                 SpielmenueSchliessen();
             else if (_stadt.InnenBetrieb is not null)
@@ -587,7 +605,7 @@ public partial class Hauptszene : Node
                 : !geldOk ? $"Es fehlen {Zahlenformat.Ganz(kosten - _spieler.Vermoegen)} {waehrung}"
                 : frei.IstPacht ? $"Pachten ({Zahlenformat.Ganz(w.Daten.Fixkosten(frei.Art))} {waehrung} im Jahr)"
                 : $"Kaufen ({Zahlenformat.Ganz(frei.Kaufpreis)} {waehrung})";
-            return (true, !standOk || !geldOk || _spieler.IstBankrott, text, () => new LiegenschaftErwerben(frei.Name));
+            return (true, !standOk || !geldOk || !_spieler.IstAktiv, text, () => new LiegenschaftErwerben(frei.Name));
         }
 
         if (_auswahlKennung != "Rathaus" || w.NaechsterStand(_spieler) is not { } naechster)
@@ -596,7 +614,7 @@ public partial class Hauptszene : Node
         var standText = reicht
             ? $"Aufsteigen zum {naechster.Name} ({Zahlenformat.Ganz(naechster.Gebuehr)} {waehrung})"
             : $"{naechster.Name} ab {Zahlenformat.Ganz(naechster.Schwelle)} {waehrung} – es fehlen {Zahlenformat.Ganz(naechster.Schwelle - _spieler.Vermoegen)}";
-        return (true, !reicht || _spieler.IstBankrott, standText, () => new StandErwerben());
+        return (true, !reicht || !_spieler.IstAktiv, standText, () => new StandErwerben());
     }
 
     /// <summary>Die Tafel oben links macht Platz, solange unten links eine Auswahl offen ist.</summary>
