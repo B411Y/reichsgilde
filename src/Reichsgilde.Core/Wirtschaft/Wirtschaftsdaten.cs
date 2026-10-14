@@ -166,6 +166,9 @@ public sealed class Wirtschaftsdaten
     /// <summary>Die Unterwelt (ab Datenversion 8). Fehlt der Abschnitt, gibt es kein Hinterzimmer.</summary>
     public Gauner.GaunerDaten? Gauner { get; init; }
 
+    /// <summary>Krankheiten, Pest und Heilmittel (ab Datenversion 11). Fehlt der Abschnitt, wird niemand krank.</summary>
+    public Reichsgilde.Core.Gesundheit.GesundheitDaten? Gesundheit { get; init; }
+
     /// <summary>Kosten persönlicher Handlungen in Aktionspunkten (ab Datenversion 10). Fehlt der Abschnitt, ist alles frei.</summary>
     public Partie.AktionspunkteDaten? Aktionspunkte { get; init; }
 
@@ -257,6 +260,7 @@ public sealed class Wirtschaftsdaten
             }
         }
 
+        Gesundheit?.Pruefen(f, Waren);
         Aktionspunkte?.Pruefen(f);
         Logistik.Pruefen(f);
 

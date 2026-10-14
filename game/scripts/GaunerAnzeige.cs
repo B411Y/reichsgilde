@@ -184,6 +184,24 @@ public partial class GaunerAnzeige : PanelContainer
                               "Erfolg = Stärke × (1 − Schutz der Eskorte). Ein Überfall ist ein schweres Vergehen: Vor Gericht droht Kerker.", 12, Grau, umbrechen: true);
             }
 
+            // Krötenschleim – gegen das Oberhaupt
+            if (w.Gesundheit.IstAktiv && w.Familien.Von(haus) is { } fremd)
+            {
+                var zeile = new HBoxContainer();
+                zeile.AddThemeConstantOverride("separation", 10);
+                _inhalt.AddChild(zeile);
+                var o = fremd.Oberhaupt;
+                Text(zeile, $"{o.OberhauptTitel} {o.Vorname}{(o.Krankheit is { } k ? $" (krank: {k.Name})" : "")}", 14);
+                if (bestellt.Any(a => a.Art == Gaunerstueck.Kroetenschleim))
+                    Text(zeile, "· Krötenschleim bestellt (heute Nacht)", 13, Gold);
+                else
+                    Knopf(zeile, $"Krötenschleim ({Zahlenformat.Ganz(g.Kroetenschleim.Kosten)})", () => Befehlen(new Beauftragen(haus.Inhaber, Gaunerstueck.Kroetenschleim)),
+                        gesperrt: imKerker, hinweis: "Ins Essen gemischt: Das Oberhaupt erkrankt (Ruhr, Lungenentzündung, Haarausfall …). Vergehen: Giftmischerei.",
+                        ap: new Beauftragen("", Gaunerstueck.Kroetenschleim));
+                Text(_inhalt, $"   Chance {Prozent(unterwelt.Erfolgschance(Gaunerstueck.Kroetenschleim, null, _spieler))} – Wächter helfen nicht. " +
+                              "Wer schon krank ist, merkt nichts davon.", 12, Grau, umbrechen: true);
+            }
+
             // Erpressung
             if (gericht.IstAktiv)
             {

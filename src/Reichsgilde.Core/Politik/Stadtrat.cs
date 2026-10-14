@@ -98,7 +98,8 @@ public sealed class Stadtrat
     {
         var g = _daten.Gunst;
         return Math.Min(g.AnsehenHoechstwert, konto.Stand * g.AnsehenJeStand + Math.Max(0, konto.Vermoegen) / 1000 * g.AnsehenJe1000Gulden)
-               - _w.Justiz.Schande(konto); // wer am Pranger stand, verliert Ansehen
+               - _w.Justiz.Schande(konto)               // wer am Pranger stand, verliert Ansehen
+               - _w.Gesundheit.AnsehenAbzug(konto);     // Haarausfall, Lachanfälle des Oberhaupts
     }
 
     /// <summary>Auf welche Ämter sich ein Haus jetzt bewerben darf: genau eine Stufe über seinem Amt, Stand erfüllt.</summary>

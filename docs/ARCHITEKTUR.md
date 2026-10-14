@@ -240,6 +240,16 @@ Das Stadtgericht (`src/Reichsgilde.Core/Justiz/Stadtgericht.cs`) gehört zur Sta
 
 **Lehrstück aus diesem Schritt (Godot-Knoten nicht über einen Neuaufbau retten):** Familientafel und Ratskammer hängten ein einziges Zahlenfeld bei jedem Aufbau um. Wurde die Brautschau einmal nicht aufgebaut, blieb das Feld in einer alten Zeile stecken und wurde mit ihr gelöscht. Später griff die Tafel ins Leere und stürzte ab. Seitdem merkt sich die Tafel nur den Wert, und das Feld entsteht jedes Mal neu.
 
+## Gesundheit
+
+- **Teilsystem `Gesundheitswesen`** (`Gesundheit/`, Abschnitt `gesundheit` in wirtschaft.json, eigener Zufallsgenerator `startwert*41+19`). Fehlt der Abschnitt, wird niemand krank.
+- **Krankheit an der Person:** `Person.Krankheit` (eine `Erkrankung` mit Talentabzug, Ansehensabzug, Sterbechance). `Person.Talent(t)` liefert den **wirksamen** Wert (mit Abzug), `Person.Anlage(t)` den Grundwert. Üben, Ausbildung, Vererbung und Speichern arbeiten mit der Anlage, alle Wirkungen (Markt, Rat, Gericht …) automatisch mit dem wirksamen Wert.
+- **Jahreslauf** in der Jahresabrechnung: `Gesundheit.Jahresende()` (Tod durch Krankheit, Genesung) → `Familien.Jahreswechsel()` → `Gesundheit.NeuesJahr()` (Pest, neue Krankheiten). Tod durch Krankheit geht über `Familienbuch.AnKrankheitSterben` – mit Erbfolge und Todesursache in der Chronik.
+- **Pest:** `NaechstePest` wird gewürfelt (25–40 Jahre). Im Pestjahr steckt sie Familien und Brautschau an; `Krankenstand` (30 %) verlangsamt jede Arbeitsminute.
+- **Befehle:** `MedicusRufen`, `SchnapsKaufen` (Marktware „Kräuterschnaps“, Posten Familie), `SchnapsGeben` – frei, keine AP, auch aus dem Kerker.
+- **Krötenschleim:** neues `Gaunerstueck`, Vergehen `Giftmischerei`; trifft das Oberhaupt um 21 Uhr mit einer Krankheit aus `gesundheit.kroetenschleim`.
+- **KI:** `Gesundheitspolitik` zur Politikstunde (Schnapsvorrat 2, Medicus bei Lebensgefahr und Pest, bei Talentverlust des Oberhaupts nur mit voller Reserve). Krötenschleim setzt sie (noch) nicht ein.
+
 ## Aktionspunkte
 
 - **Vorrat je Haus:** `Konto.Aktionspunkte` (Klasse `Partie/Aktionspunkte.cs`). Wie viele AP je Runde (= Spieljahr) dazukommen, steht in den Partie-Einstellungen; die Simulation reicht den Wert an `Stadtwirtschaft.AktionspunkteJeRunde` weiter. Aufgefüllt wird in der Jahresabrechnung **vor** den Überlegungen der KI, höchstens bis `aktionspunkte.hoechstens`.

@@ -17,6 +17,8 @@ public enum Vergehen
     Raub,
     /// <summary>Schweigegeld gegen Beweise verlangen.</summary>
     Erpressung,
+    /// <summary>Krötenschleim ins Essen eines fremden Oberhaupts (Hinterzimmer).</summary>
+    Giftmischerei,
 }
 
 public static class VergehenTexte

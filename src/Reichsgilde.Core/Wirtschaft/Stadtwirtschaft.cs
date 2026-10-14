@@ -1,5 +1,6 @@
 using Reichsgilde.Core.Dynastie;
 using Reichsgilde.Core.Gauner;
+using Reichsgilde.Core.Gesundheit;
 using Reichsgilde.Core.Justiz;
 using Reichsgilde.Core.Politik;
 using Reichsgilde.Core.Speichern;
@@ -52,6 +53,9 @@ public sealed class Stadtwirtschaft
 
     /// <summary>Die Unterwelt: Hinterzimmer, Hinterhalte, Erpresserbriefe.</summary>
     public Unterwelt Gauner { get; }
+
+    /// <summary>Krankheiten, Pest, Medicus und Hausapotheke.</summary>
+    public Gesundheitswesen Gesundheit { get; }
 
     /// <summary>Das laufende Spieljahr (das Jahr der laufenden Jahresrechnung).</summary>
     public int Jahr => _konten.Count > 0 ? _konten[0].Laufend.Jahr : Spielzeit.StartJahr;
@@ -111,6 +115,7 @@ public sealed class Stadtwirtschaft
         Familien = new Familienbuch(this, daten.Dynastie, zufallsstartwert);
         Justiz = new Stadtgericht(this, daten.Justiz, zufallsstartwert);
         Gauner = new Unterwelt(this, daten.Gauner, zufallsstartwert);
+        Gesundheit = new Gesundheitswesen(this, daten.Gesundheit, zufallsstartwert);
     }
 
     /// <summary>Legt ein Konto an – mit dem Startvermögen aus den Daten oder einem eigenen (z. B. Schwierigkeitsgrad).</summary>
@@ -213,7 +218,8 @@ public sealed class Stadtwirtschaft
 
         if (IstArbeitszeit(zeit))
             foreach (var betrieb in _betriebe)
-                betrieb.Arbeitsminute(Melden, Familien.LeistungsFaktor(betrieb.Konto)); // Handwerkskunst des Oberhaupts
+                // Handwerkskunst des Oberhaupts; im Pestjahr fehlt ein Teil der Arbeitskräfte
+                betrieb.Arbeitsminute(Melden, Familien.LeistungsFaktor(betrieb.Konto) * (1 - Gesundheit.Krankenstand));
 
         // Bei Nacht und Nebel: Die Banden aus dem Hinterzimmer ziehen los.
         if (zeit.MinuteImTag == Unterwelt.Nachtstunde)
@@ -245,7 +251,9 @@ public sealed class Stadtwirtschaft
         foreach (var konto in _konten)
             konto.JahrAbschliessen(neuesJahr);
         SchuldenPruefen();
+        Gesundheit.Jahresende();  // Kranke sterben oder genesen – mit dem alten Jahr
         Familien.Jahreswechsel(); // Tod und Erbfall vor der Ratssitzung: Ein verwaistes Amt wird gleich neu besetzt
+        Gesundheit.NeuesJahr();   // Pest und neue Krankheiten
         Rat.Sitzung(_zufall, neuesJahr - 1);
         Gauner.Jahresende();
         AktionspunkteVerteilen(); // die neue Runde beginnt
@@ -334,7 +342,8 @@ public sealed class Stadtwirtschaft
             return Befehlsergebnis.Abgelehnt($"{absender.Inhaber} ist bankrott und kann nichts mehr unternehmen.");
         if (absender.IstErloschen)
             return Befehlsergebnis.Abgelehnt($"Das Haus {absender.Inhaber} ist erloschen.");
-        if (Justiz.IstAktiv && Justiz.ImKerker(absender) && befehl is not (BetriebsBefehl or ErbenBestimmen or ErpressungBeantworten or AusbildungWaehlen))
+        if (Justiz.IstAktiv && Justiz.ImKerker(absender) && befehl is not (BetriebsBefehl or ErbenBestimmen or ErpressungBeantworten or AusbildungWaehlen
+                                                                     or MedicusRufen or SchnapsKaufen or SchnapsGeben))
             return Befehlsergebnis.Abgelehnt($"Das Oberhaupt von {absender.Inhaber} sitzt bis Ende {Justiz.KerkerBis(absender)} im Kerker. " +
                                              "Nur die Betriebe laufen weiter.");
         if (befehl is StandErwerben)
@@ -377,6 +386,12 @@ public sealed class Stadtwirtschaft
             return Familien.AusbildungWaehlen(absender, ausbildung.Kind, ausbildung.Weg);
         if (befehl is TalentTrainieren training)
             return Familien.TalentTrainieren(absender, training.Talent);
+        if (befehl is MedicusRufen medicus)
+            return Gesundheit.MedicusRufen(absender, medicus.Person);
+        if (befehl is SchnapsKaufen kauf)
+            return Gesundheit.SchnapsKaufen(absender, kauf.Stueck);
+        if (befehl is SchnapsGeben gabe)
+            return Gesundheit.SchnapsGeben(absender, gabe.Person);
         if (befehl is Werben or Heiraten or ErbenBestimmen && Familien.Von(absender) is null)
             return Befehlsergebnis.Abgelehnt($"{absender.Inhaber} hat keine Familie.");
         if (befehl is Werben werben)
@@ -553,6 +568,7 @@ public sealed class Stadtwirtschaft
         Familien = Familien.IstAktiv ? Familien.Sichern(k => _konten.IndexOf(k)) : null,
         Justiz = Justiz.IstAktiv ? Justiz.Sichern(k => _konten.IndexOf(k)) : null,
         Gauner = Gauner.IstAktiv ? Gauner.Sichern(k => _konten.IndexOf(k)) : null,
+        Gesundheit = Gesundheit.IstAktiv ? Gesundheit.Sichern(k => _konten.IndexOf(k)) : null,
     };
 
     /// <summary>
@@ -592,6 +608,8 @@ public sealed class Stadtwirtschaft
             Justiz.Wiederherstellen(justiz, _konten);
         if (s.Gauner is { } gauner && Gauner.IstAktiv)
             Gauner.Wiederherstellen(gauner, _konten);
+        if (s.Gesundheit is { } gesundheit && Gesundheit.IstAktiv)
+            Gesundheit.Wiederherstellen(gesundheit, _konten);
     }
 
     public double HoechstesVermoegen => _konten.Count == 0 ? 0 : _konten.Max(k => k.Vermoegen);

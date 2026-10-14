@@ -105,6 +105,7 @@ public sealed class Unterwelt
         {
             Gaunerstueck.Diebstahl => Math.Min(0.95, d.Diebstahl.Chance * schutz + nacht),
             Gaunerstueck.Sabotage => Math.Min(0.95, d.Sabotage.Chance * schutz + nacht),
+            Gaunerstueck.Kroetenschleim => Math.Min(0.95, d.Kroetenschleim.Chance + nacht), // Wächter schützen Betriebe, nicht die Tafel
             _ => Staerke(auftraggeber), // vor der Eskorte des jeweiligen Karrens
         };
     }
@@ -157,7 +158,13 @@ public sealed class Unterwelt
         if (_auftraege.Any(a => a.Auftraggeber == auftraggeber && a.Ziel == ziel && a.Art == art))
             return Befehlsergebnis.Abgelehnt($"Für heute Nacht ist gegen {ziel.Inhaber} schon ein {art.Name()} bestellt.");
 
-        if (art == Gaunerstueck.Ueberfall)
+        if (art == Gaunerstueck.Kroetenschleim)
+        {
+            if (!_w.Gesundheit.IstAktiv || _w.Familien.Von(ziel) is null)
+                return Befehlsergebnis.Abgelehnt("Krötenschleim braucht ein Oberhaupt, das krank werden kann.");
+            betriebName = null;
+        }
+        else if (art == Gaunerstueck.Ueberfall)
         {
             if (!HatUmlandfahrten(ziel))
                 return Befehlsergebnis.Abgelehnt($"{ziel.Inhaber} hat keine Karren auf Umlandwegen – in der Stadt lauert keine Bande.");
@@ -179,6 +186,7 @@ public sealed class Unterwelt
         _auftraege.Add(new Gaunerauftrag(auftraggeber, ziel, art, betriebName));
         return Befehlsergebnis.Ok($"Die Bande nimmt das Geld ({Zahlenformat.Ganz(kosten)} {waehrung}). " +
                                   (art == Gaunerstueck.Ueberfall ? $"Heute Nacht legen sich Wegelagerer gegen {ziel.Inhaber} auf die Lauer."
+                                      : art == Gaunerstueck.Kroetenschleim ? $"Heute Nacht gelangt Krötenschleim in die Küche von {ziel.Inhaber}."
                                       : $"{art.Name()} in {betriebName} – heute Nacht um 21 Uhr."));
     }
 
@@ -241,6 +249,7 @@ public sealed class Unterwelt
             {
                 case Gaunerstueck.Diebstahl: Stehlen(a); break;
                 case Gaunerstueck.Sabotage: Sabotieren(a); break;
+                case Gaunerstueck.Kroetenschleim: Vergiften(a); break;
                 default:
                     _hinterhalte.Add(new Hinterhalt(a.Auftraggeber, a.Ziel, zeit.VergangeneMinuten + Daten.Ueberfall.GueltigMinuten));
                     Ereignis(a.Auftraggeber, $"Eure Wegelagerer legen sich gegen {a.Ziel.Inhaber} auf die Lauer – bis morgen Nacht.");
@@ -303,6 +312,26 @@ public sealed class Unterwelt
         else
             oeffentlich = $"Anschlag auf {b.Name} vereitelt{(b.Waechter ? " – der Wächter hat das Feuer bemerkt" : "")}.";
         Spur(a, Vergehen.Sabotage, b.Name, schaden, b, erfolg, oeffentlich);
+    }
+
+    private void Vergiften(Gaunerauftrag a)
+    {
+        if (_w.Familien.Von(a.Ziel) is not { } f) return;
+        var o = f.Oberhaupt;
+        var erfolg = _zufall.NextDouble() < Erfolgschance(Gaunerstueck.Kroetenschleim, null, a.Auftraggeber);
+        string oeffentlich;
+        if (erfolg && o.Krankheit is null && _w.Gesundheit.KroetenschleimKrankheit() is { } krankheit
+            && _w.Gesundheit.Erkranken(a.Ziel, o, krankheit))
+        {
+            oeffentlich = $"Gift im Haus {f.Nachname}: Jemand hat {o.Vorname} Krötenschleim ins Essen gemischt – {o.Krankheit!.Beschreibung}.";
+            Ereignis(a.Auftraggeber, $"Der Krötenschleim wirkt: {o.Name} liegt mit {krankheit} darnieder.");
+        }
+        else if (erfolg)
+            oeffentlich = $"Krötenschleim im Essen von {o.Name} – doch {o.Vorname} ist ohnehin krank und merkt nichts.";
+        else
+            oeffentlich = $"Im Haus {f.Nachname} wurde ein Fremder in der Küche ertappt – das Essen blieb unberührt.";
+        // Bußgrundlage: was ein Medicus gekostet hätte
+        Spur(a, Vergehen.Giftmischerei, a.Ziel.Inhaber, _w.Gesundheit.IstAktiv ? _w.Gesundheit.Daten.MedicusKosten : 0, null, erfolg, oeffentlich);
     }
 
     /// <summary>
