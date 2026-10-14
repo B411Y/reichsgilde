@@ -159,7 +159,7 @@ public partial class GerichtAnzeige : PanelContainer
             var geschenkZeile = new HBoxContainer();
             _inhalt.AddChild(geschenkZeile);
             Text(geschenkZeile, "Geschenk je Klick:", 13);
-            var geschenk = new SpinBox { MinValue = 10, MaxValue = 5000, Step = 10, Value = _geschenkBetrag, Suffix = waehrung, CustomMinimumSize = new Vector2(150, 0) };
+            var geschenk = new Zahlfeld { MinValue = 10, MaxValue = 5000, Step = 10, Value = _geschenkBetrag, Suffix = waehrung, CustomMinimumSize = new Vector2(150, 0) };
             geschenk.ValueChanged += wert => _geschenkBetrag = wert;
             geschenkZeile.AddChild(geschenk);
             Text(geschenkZeile, "   (Geschenke an Richter sind Bestechung – mit neuer Spur)", 12, Grau);

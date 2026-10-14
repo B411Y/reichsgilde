@@ -195,7 +195,7 @@ public partial class GaunerAnzeige : PanelContainer
                 {
                     var vorschlag = Math.Round(gericht.DrohendeBusse(_spieler, haus) * 0.6 / 50) * 50;
                     var schluessel = haus.Inhaber;
-                    var feld = new SpinBox { MinValue = 50, MaxValue = 50_000, Step = 50, Value = _schweigegeld.GetValueOrDefault(schluessel, vorschlag), Suffix = waehrung, CustomMinimumSize = new Vector2(150, 0) };
+                    var feld = new Zahlfeld { MinValue = 50, MaxValue = 50_000, Step = 50, Value = _schweigegeld.GetValueOrDefault(schluessel, vorschlag), Suffix = waehrung, CustomMinimumSize = new Vector2(150, 0) };
                     feld.ValueChanged += wert => _schweigegeld[schluessel] = wert;
                     zeile.AddChild(feld);
                     Knopf(zeile, "Brief schicken", () => Befehlen(new Erpressen(haus.Inhaber, _schweigegeld.GetValueOrDefault(schluessel, vorschlag))),

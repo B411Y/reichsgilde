@@ -344,5 +344,5 @@ public partial class Hauptmenue : Node
     }
 
     private static SpinBox Zahl(double min, double max, double schritt, double wert, string einheit = "") =>
-        new() { MinValue = min, MaxValue = max, Step = schritt, Value = wert, Suffix = einheit.Trim(), Rounded = true };
+        new Zahlfeld { MinValue = min, MaxValue = max, Step = schritt, Value = wert, Suffix = einheit.Trim(), Rounded = true };
 }

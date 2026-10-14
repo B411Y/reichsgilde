@@ -185,7 +185,7 @@ public partial class FamilienAnzeige : PanelContainer
         var geschenkZeile = new HBoxContainer();
         _inhalt.AddChild(geschenkZeile);
         Text(geschenkZeile, "Geschenk je Klick:", 14);
-        var geschenk = new SpinBox { MinValue = 10, MaxValue = 5000, Step = 10, Value = _geschenkBetrag, Suffix = waehrung, CustomMinimumSize = new Vector2(150, 0) };
+        var geschenk = new Zahlfeld { MinValue = 10, MaxValue = 5000, Step = 10, Value = _geschenkBetrag, Suffix = waehrung, CustomMinimumSize = new Vector2(150, 0) };
         geschenkZeile.AddChild(geschenk);
         var jeZuneigung = buch.GuldenJeZuneigung(_spieler!);
         string Hinweis() => $"   (+{Zahlenformat.Ganz(_geschenkBetrag / jeZuneigung)} Zuneigung, höchstens {Zahlenformat.Ganz(d.ZuneigungJeJahr)} im Jahr)";
