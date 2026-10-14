@@ -143,6 +143,7 @@ public partial class Hauptmenue : Node
         _beruf.AddItem("Schmied (Gießerei: Beschlag, Rapier, Silberring)");
         _beruf.AddItem("Tischler (Tischlerei: Holzzapfen, Schemel, Truhe)");
         _beruf.AddItem("Steinmetz (Maurerei: Schleifziegel, Grabstein, Mühlstein)");
+        _beruf.AddItem("Alchimist (Tinkturei: Farbe, Kräuterschnaps, Heilsalbe)");
         Zeile(raster, "Startberuf", _beruf);
         VolkHinweisZeigen();
 
@@ -259,7 +260,7 @@ public partial class Hauptmenue : Node
             new NeuePartie(_familie.Text, _startvermoegen.Value, (KiCharakter)_rivale.GetSelectedId(),
                 (Volk)_volk.GetSelectedId(), (Geschlecht)_geschlecht.GetSelectedId(),
                 string.IsNullOrWhiteSpace(_vorname.Text) ? null : _vorname.Text.Trim(),
-                Beruf: _beruf.Selected switch { 1 => "Tischler", 2 => "Steinmetz", _ => "Schmied" },
+                Beruf: _beruf.Selected switch { 1 => "Tischler", 2 => "Steinmetz", 3 => "Alchimist", _ => "Schmied" },
                 Rivalen: _rivalen.GetSelectedId()));
         SpielStarten();
     }
