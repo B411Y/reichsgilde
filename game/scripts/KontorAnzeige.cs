@@ -5,7 +5,7 @@ using Reichsgilde.Core.Wirtschaft;
 namespace Reichsgilde;
 
 /// <summary>
-/// Das Kontor: zeigt Vermögen, Stand, alle eigenen Betriebe, Jahresrechnung und Marktpreise an.
+/// Das Kontor: zeigt Vermögen, Stand, alle eigenen Betriebe und die Jahresrechnung an (die Preise stehen im Marktfenster).
 /// Reine Anzeige – alle Zahlen kommen aus dem Simulationskern.
 /// Die Bedienelemente werden hier im Code erzeugt, damit die Szene übersichtlich bleibt.
 /// </summary>
@@ -36,6 +36,9 @@ public partial class KontorAnzeige : PanelContainer
     /// <summary>Der Spieler möchte ins Hinterzimmer.</summary>
     public event Action? HinterzimmerGewuenscht;
 
+    /// <summary>Der Spieler möchte das Marktfenster sehen.</summary>
+    public event Action? MarktGewuenscht;
+
     /// <summary>Ergebnis eines Befehls aus dem Kontor (Beruf erlernen) – für das Protokoll.</summary>
     public event Action<string>? Gemeldet;
 
@@ -47,8 +50,6 @@ public partial class KontorAnzeige : PanelContainer
     private string? _lernbarerBeruf => _berufWahl.Selected >= 0 && _berufWahl.Selected < _lernbar.Count ? _lernbar[_berufWahl.Selected] : null;
     private VBoxContainer _meisterListe = null!;
     private readonly List<(string Beruf, Label Text, Button Pruefung)> _meisterZeilen = new();
-    private GridContainer _preise = null!;
-    private readonly Dictionary<string, Label> _preisLabels = new();
 
     public override void _Ready()
     {
@@ -90,6 +91,10 @@ public partial class KontorAnzeige : PanelContainer
         hinterzimmer.Pressed += () => HinterzimmerGewuenscht?.Invoke();
         familie.AddChild(hinterzimmer);
         familie.MoveChild(hinterzimmer, 1);
+        var markt = new Button { Text = "Marktplatz", FocusMode = FocusModeEnum.None, TooltipText = "Alle Waren mit Preisen" };
+        markt.Pressed += () => MarktGewuenscht?.Invoke();
+        familie.AddChild(markt);
+        familie.MoveChild(markt, 2);
         _familienZeile = NeuesLabel(familie, 14);
         // Je Betrieb zwei Zeilen und ein ⚒-Knopf – neu gebaut, sobald ein Betrieb dazukommt.
         _betriebsliste = new VBoxContainer();
@@ -101,12 +106,6 @@ public partial class KontorAnzeige : PanelContainer
         _rivaleZeile.AutowrapMode = TextServer.AutowrapMode.WordSmart; // lange KI-Züge umbrechen statt das Kontor zu verbreitern
         _rivaleZeile.CustomMinimumSize = new Vector2(360, 0);
 
-        spalte.AddChild(new HSeparator());
-        NeuesLabel(spalte, 15).Text = "Marktplatz";
-
-        _preise = new GridContainer { Columns = 3 };
-        _preise.AddThemeConstantOverride("h_separation", 18);
-        spalte.AddChild(_preise);
     }
 
     private static Label NeuesLabel(Container eltern, int groesse, Color? farbe = null)
@@ -260,16 +259,6 @@ public partial class KontorAnzeige : PanelContainer
         _simulation = simulation;
         _spieler = spieler;
         _rivale = rivale;
-
-        // Kopfzeile der Preistabelle und eine Zeile je Ware.
-        foreach (var kopf in new[] { "Ware", "Preis", "Grundpreis" })
-            NeuesLabel(_preise, 13, new Color(0.7f, 0.7f, 0.7f)).Text = kopf;
-        foreach (var stand in simulation.Wirtschaft!.Markt.Staende)
-        {
-            NeuesLabel(_preise, 14).Text = stand.Ware;
-            _preisLabels[stand.Ware] = NeuesLabel(_preise, 14);
-            NeuesLabel(_preise, 14, new Color(0.7f, 0.7f, 0.7f)).Text = Zahlenformat.Ganz(stand.Grundpreis);
-        }
     }
 
     /// <summary>Überträgt die aktuellen Zahlen auf die Anzeige.</summary>
@@ -343,7 +332,5 @@ public partial class KontorAnzeige : PanelContainer
                  + (_rivale is not null ? RivalenZug(_rivale) : ""),
         };
 
-        foreach (var (ware, label) in _preisLabels)
-            label.Text = Zahlenformat.Kommazahl(w.Markt[ware].Preis);
     }
 }

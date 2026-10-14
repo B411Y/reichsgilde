@@ -27,6 +27,8 @@ Schauplatz ist ein düster-bodenständiges Heiliges Römisches Reich des Spätmi
 
 **Berufe: Schmied, Tischler, Steinmetz und Alchimist.** Im Hauptmenü wählt man den Startberuf. Der **Schmied** fördert in der Grube Eisen und Silber und macht in der Gießerei Beschläge, Rapiere und Silberringe. Der **Tischler** schlägt im Holzschlag Holz und macht in der Tischlerei Holzzapfen, Schemel und Truhen – für eine Truhe braucht er einen Beschlag vom Schmied. Der **Steinmetz** bricht im Steinbruch Bruchstein und Granit und macht in der Maurerei Schleifziegel, Grabsteine und Mühlsteine; seine Schleifziegel braucht die Goldschmiede für das Prunkschwert, er selbst braucht in der Steinmetzhütte Werkzeug vom Schmied. Der **Alchimist** zieht im Kräutergarten Kräuter und fängt Kröten und macht in der Tinkturei Farbe, Kräuterschnaps und Heilsalbe; seine Farbe braucht der Tischler für den Schrank. Wer das Handwerk beherrscht, mischt Krötenschleim im Hinterzimmer selbst (halber Preis, höhere Chance). Einen weiteren Beruf erlernt man im Kontor (500 Gulden Lehrgeld, 4 AP); erst dann darf man dessen Werkstätten und Umlandbetriebe erwerben. Neben Haus Eisenbart (Zwerge, Schmiede) spielen **Haus Eichwald** (Elben, Tischler) und **Haus Kieselbach** (Halblinge, Steinmetze) mit; im Hauptmenü lassen sich 1–3 Rivalen wählen. Ist ein KI-Haus Patrizier geworden, darf es einen Betrieb mehr führen und dafür ein zweites Handwerk erlernen. Werkstätten sind in `wirtschaft.json` unter `betriebsarten` und `berufe` beschrieben – ein weiterer Beruf ist vor allem ein Dateneintrag plus ein Platz in der Stadt.
 
+**Marktplatz.** Ein Klick auf den Marktplatz in der Stadt (oder der Knopf „Marktplatz“ im Kontor) öffnet das Marktfenster: alle Waren als Kacheln mit Pixel-Icon und Preis, nach Rohstoffen, Zwischenwaren und Fertigwaren geordnet. Grün ▲ heißt über dem Grundpreis, rot ▼ darunter; die gelbe Zahl im Icon ist der eigene Lagerbestand, der Tooltip zeigt Herkunft, Nachfrage, Zutaten und Gewinn je Arbeitsminute. Neue Icons: Zeichenfunktion in `tools/icons/waren_icons.py` ergänzen und `python3 tools/icons/waren_icons.py` ausführen.
+
 **Meistergrade und Gebäudestufen.** Jedes Stück, das die Betriebe eines Hauses herstellen oder fördern, bringt Erfahrung im Beruf. Reicht sie, legt man im Kontor die Meisterprüfung ab (Gebühr und 2–4 AP) – bis zum 6. Grad. Ab dem 3. Grad lässt sich die Werkstatt am Platz zur Stufe 2 ausbauen (Schmiede bzw. Drechslerei, 3 Plätze), ab dem 5. Grad zur Stufe 3 (Goldschmiede bzw. Sägewerk, 4 Plätze); der Umbau kostet Gulden und einen halben Arbeitstag. Höhere Stufen stellen wertvollere Waren her: Werkzeug, Silberkette, Goldkette, Prunkschwert; Gehstock, Armbrust, Schrank, Prunktruhe; Säule, Taufbecken, Steinfigur, Grabmal; Rosenwasser, Gegengift, Theriak, Zinnober (Gold gibt es nur auf dem Markt). Der Steinmetz baut zur Steinschneiderei und Steinmetzhütte aus. Der 6. Grad bringt einen Aktionspunkt mehr je Jahr. Grad und Erfahrung gehören dem Haus und gehen beim Erbfall nicht verloren.
 
 **Gesundheit und Krankheiten.** Jedes Jahr erkrankt etwa jede siebte Person: Husten, Ruhr, Lungenentzündung, Knochenbruch, Vergesslichkeit, Angst im Dunkeln, Haarausfall oder Lachanfälle. Krankheiten kosten Talente oder Ansehen, Ruhr und Lungenentzündung können tödlich sein. Alle 25–40 Jahre kommt die **Pest**: Viele erkranken, ein Teil stirbt (Zwerge und Elben sind weniger anfällig), und alle Betriebe arbeiten ein Jahr lang 30 % langsamer. Ein **Medicus** (Gulden) heilt sofort bzw. halbiert das Pestrisiko; **Kräuterschnaps** vom Markt kommt in die Hausapotheke und heilt leichte Krankheiten. Im Hinterzimmer lässt sich einem fremden Oberhaupt **Krötenschleim** ins Essen mischen – das Vergehen heißt Giftmischerei.
@@ -63,6 +65,7 @@ reichsgilde/
 │   ├── project.godot
 │   ├── Reichsgilde.csproj
 │   ├── data/wirtschaft.json        Alle Zahlen des Wirtschaftsmodells (aus dem Balancing-Rechner)
+│   ├── assets/waren/               Pixel-Icons der Waren (32 × 32, erzeugt von tools/icons)
 │   ├── scenes/                     Szenen (.tscn)
 │   └── scripts/                    C#-Skripte, die an Szenen hängen
 ├── src/Reichsgilde.Core/           Simulationskern – die reine Spiellogik, OHNE Godot
@@ -77,6 +80,7 @@ reichsgilde/
 │   ├── Wirtschaft/                 Markt, Betriebe, Lager, Karren, Überfälle, Konten, Fronstatut
 │   └── Zeit/                       Spielzeit, Taktgeber, Kalender
 ├── tests/Reichsgilde.Core.Tests/   Automatische Tests für den Simulationskern
+├── tools/icons/waren_icons.py      Zeichnet die Waren-Icons (Python + Pillow)
 ├── docs/                           Erklärungen und Entscheidungen
 └── .github/workflows/              Automatische Prüfung auf Windows und Linux
 ```
@@ -130,4 +134,4 @@ Die Konfiguration steht in [`.github/workflows/build.yml`](.github/workflows/bui
 
 ## Lizenz
 
-Code: [MIT](LICENSE). Dieses Projekt verwendet **keine** Grafiken, Sounds, Texte oder sonstigen Inhalte aus „Die Gilde“ – das Original dient nur als Vorbild für Spielmechaniken.
+Code: [MIT](LICENSE). Die Waren-Icons sind selbst gezeichnet (`tools/icons/waren_icons.py`) und stehen unter derselben Lizenz. Dieses Projekt verwendet **keine** Grafiken, Sounds, Texte oder sonstigen Inhalte aus „Die Gilde“ – das Original dient nur als Vorbild für Spielmechaniken.

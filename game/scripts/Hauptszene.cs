@@ -30,6 +30,7 @@ namespace Reichsgilde;
 ///   --familie=1        gleich zu Beginn die Familientafel öffnen
 ///   --gericht=1        gleich zu Beginn den Gerichtssaal öffnen
 ///   --hinterzimmer=1   gleich zu Beginn das Hinterzimmer öffnen
+///   --markt=1          gleich zu Beginn das Marktfenster öffnen
 ///   --laden=datei.json einen Spielstand aus dem Spielstand-Ordner laden
 /// </summary>
 public partial class Hauptszene : Node
@@ -57,6 +58,7 @@ public partial class Hauptszene : Node
     private FamilienAnzeige _familientafel = null!;
     private GerichtAnzeige _gerichtssaal = null!;
     private GaunerAnzeige _hinterzimmer = null!;
+    private MarktAnzeige _markt = null!;
     private Button _gerichtKnopf = null!;
     private Button _ratKnopf = null!;
     private Konto? _spieler;
@@ -105,6 +107,8 @@ public partial class Hauptszene : Node
         ratMitte.AddChild(_gerichtssaal);
         _hinterzimmer = new GaunerAnzeige();
         ratMitte.AddChild(_hinterzimmer);
+        _markt = new MarktAnzeige();
+        ratMitte.AddChild(_markt);
         _gerichtKnopf = GetNode<Button>("%GerichtKnopf");
         // Der Bericht sitzt in einem CenterContainer: Der hält ihn mittig, egal wie hoch er wird.
         var berichtMitte = Hauptmenue.Mitte();
@@ -147,6 +151,7 @@ public partial class Hauptszene : Node
         _gerichtssaal.Gemeldet += Protokollieren;
         _kontor.HinterzimmerGewuenscht += () => { TafelnSchliessen(); _hinterzimmer.Oeffnen(); };
         _hinterzimmer.Gemeldet += Protokollieren;
+        _kontor.MarktGewuenscht += MarktOeffnen;
 
         _pauseKnopf.Pressed += PauseUmschalten;
         foreach (var tempo in Taktgeber.AlleTempostufen /* TESTTEMPO */)
@@ -209,7 +214,12 @@ public partial class Hauptszene : Node
                       + "Leertaste Pause · 1–4 Tempo (5–6 Test) · Mausrad Zoom\nRechte Maustaste/WASD verschieben · Q/E drehen\n"
                       + "Doppelklick auf eine Gießerei = Innenansicht · Esc zurück bzw. Spielmenü";
 
-        _stadt.GebaeudeAngeklickt += kennung => { _auswahlKennung = kennung; AuswahlAnzeigen(); };
+        _stadt.GebaeudeAngeklickt += kennung =>
+        {
+            _auswahlKennung = kennung;
+            AuswahlAnzeigen();
+            if (kennung == "Marktplatz") MarktOeffnen(); // wie im Original: ein Klick auf den Markt öffnet die Preistafel
+        };
         _stadt.InnenansichtGewechselt += betrieb =>
         {
             if (betrieb is not null) _auswahlKennung = Stadtansicht.BetriebsKennung(betrieb);
@@ -233,6 +243,8 @@ public partial class Hauptszene : Node
             _gerichtssaal.Oeffnen();
         if (optionen.TryGetValue("hinterzimmer", out var hinterzimmer) && hinterzimmer == "1")
             _hinterzimmer.Oeffnen();
+        if (optionen.TryGetValue("markt", out var markt) && markt == "1")
+            _markt.Oeffnen();
         if (optionen.TryGetValue("bericht", out var bericht) && bericht == "1" && _spieler is not null)
             _jahresbericht.Zeigen(_simulation, _spieler);
         if (optionen.TryGetValue("innen", out var innen) && innen == "1" && _eigeneGiesserei is not null)
@@ -250,6 +262,13 @@ public partial class Hauptszene : Node
         _familientafel.Hide();
         _gerichtssaal.Hide();
         _hinterzimmer.Hide();
+        _markt.Hide();
+    }
+
+    private void MarktOeffnen()
+    {
+        TafelnSchliessen();
+        _markt.Oeffnen();
     }
 
     /// <summary>Liest Startoptionen wie "--startstunde=11" (nach "--" auf der Kommandozeile).</summary>
@@ -431,6 +450,7 @@ public partial class Hauptszene : Node
         _familientafel.Verbinden(simulation, spieler);
         _gerichtssaal.Verbinden(simulation, spieler);
         _hinterzimmer.Verbinden(simulation, spieler);
+        _markt.Verbinden(simulation, spieler);
         // Um 21 Uhr schlagen die Banden zu – ein offenes Hinterzimmer zeigt sofort, was geschah.
         w.Gauner.NachtVorbei += () => { if (_hinterzimmer.Visible) _hinterzimmer.Aufbauen(); };
         _verwaltung.Verbinden(simulation, spieler);
@@ -468,6 +488,8 @@ public partial class Hauptszene : Node
                 _gerichtssaal.Hide();
             else if (_hinterzimmer.Visible)
                 _hinterzimmer.Hide();
+            else if (_markt.Visible)
+                _markt.Hide();
             else if (_spielmenue.Visible)
                 SpielmenueSchliessen();
             else if (_stadt.InnenBetrieb is not null)
@@ -568,8 +590,7 @@ public partial class Hauptszene : Node
             : frei is not null ? LiegenschaftText(frei, w)
             : _auswahlKennung switch
         {
-            "Marktplatz" => "Marktplatz\n\n" + string.Join("\n", w.Markt.Staende.Select(s =>
-                $"{s.Ware}: {Zahlenformat.Kommazahl(s.Preis)} {w.Daten.Allgemein.Waehrung} (Grundpreis {Zahlenformat.Ganz(s.Grundpreis)})")),
+            "Marktplatz" => $"Marktplatz\n\n{w.Markt.Staende.Count()} Waren – Preise und Einzelheiten im Marktfenster.",
             "Rathaus" => RathausText(w),
             "Dom" => "Dom\n\nKatholische und evangelische Gläubige aller vier Kulturvölker. "
                      + "Für die Kirche sind Orks und Oger Heiden.\n\nPredigten, Ablass und Kirchenbann folgen später.",
