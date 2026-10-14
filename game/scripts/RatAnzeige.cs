@@ -21,7 +21,8 @@ public partial class RatAnzeige : PanelContainer
     private Simulation? _simulation;
     private Konto? _spieler;
     private VBoxContainer _inhalt = null!;
-    private SpinBox _geschenk = null!;
+    /// <summary>Nur der Betrag wird gemerkt – das Zahlenfeld entsteht bei jedem Aufbau neu (siehe FamilienAnzeige).</summary>
+    private double _geschenkBetrag = 200;
     private Label _meldung = null!;
 
     /// <summary>Ergebnis eines Befehls – für das Protokoll.</summary>
@@ -93,10 +94,11 @@ public partial class RatAnzeige : PanelContainer
         var geschenkZeile = new HBoxContainer();
         _inhalt.AddChild(geschenkZeile);
         Hauptmenue.Text(geschenkZeile, "Geschenk je Klick:", 14);
-        _geschenk ??= new SpinBox { MinValue = 10, MaxValue = 5000, Step = 10, Value = 200, Suffix = waehrung, CustomMinimumSize = new Vector2(150, 0) };
-        if (_geschenk.GetParent() is { } altesEltern) altesEltern.RemoveChild(_geschenk);
-        geschenkZeile.AddChild(_geschenk);
-        Hauptmenue.Text(geschenkZeile, $"   (+{Zahlenformat.Ganz(_geschenk.Value * rat.Daten.Gunst.JeGulden)} Gunst, verblasst um {Zahlenformat.Ganz(rat.Daten.Gunst.VerfallJeJahr * 100)} % im Jahr)", 12, Grau);
+        var geschenk = new SpinBox { MinValue = 10, MaxValue = 5000, Step = 10, Value = _geschenkBetrag, Suffix = waehrung, CustomMinimumSize = new Vector2(150, 0) };
+        geschenkZeile.AddChild(geschenk);
+        string Hinweis() => $"   (+{Zahlenformat.Ganz(_geschenkBetrag * rat.Daten.Gunst.JeGulden)} Gunst, verblasst um {Zahlenformat.Ganz(rat.Daten.Gunst.VerfallJeJahr * 100)} % im Jahr)";
+        var hinweis = Hauptmenue.Text(geschenkZeile, Hinweis(), 12, Grau);
+        geschenk.ValueChanged += wert => { _geschenkBetrag = wert; hinweis.Text = Hinweis(); };
 
         var raster = new GridContainer { Columns = 6 };
         raster.AddThemeConstantOverride("h_separation", 14);
@@ -116,7 +118,7 @@ public partial class RatAnzeige : PanelContainer
                 Hauptmenue.Text(raster, $"{ratsherr.Haltung.Kuerzel()} – {ratsherr.Haltung.Name()}", 13);
                 Hauptmenue.Text(raster, Zahlenformat.Ganz(rat.Gunst(ratsherr, _spieler)), 14);
                 var knopf = new Button { Text = "Beschenken", FocusMode = FocusModeEnum.None };
-                knopf.Pressed += () => Befehlen(new Schenken(ratsherr.Name, _geschenk.Value));
+                knopf.Pressed += () => Befehlen(new Schenken(ratsherr.Name, _geschenkBetrag));
                 raster.AddChild(knopf);
             }
             else

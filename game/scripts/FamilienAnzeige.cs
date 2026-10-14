@@ -22,7 +22,12 @@ public partial class FamilienAnzeige : PanelContainer
     private Simulation? _simulation;
     private Konto? _spieler;
     private VBoxContainer _inhalt = null!;
-    private SpinBox _geschenk = null!;
+    /// <summary>
+    /// Nur der Betrag wird gemerkt – das Zahlenfeld entsteht bei jedem Aufbau neu.
+    /// Früher wurde EIN Feld umgehängt. War der Spieler verheiratet, blieb es in einer alten Zeile stecken,
+    /// wurde mit ihr gelöscht, und nach dem Tod des Ehepartners griff die Brautschau ins Leere (Absturz).
+    /// </summary>
+    private double _geschenkBetrag = 200;
     private Label _meldung = null!;
 
     /// <summary>Ergebnis eines Befehls – für das Protokoll.</summary>
@@ -180,10 +185,12 @@ public partial class FamilienAnzeige : PanelContainer
         var geschenkZeile = new HBoxContainer();
         _inhalt.AddChild(geschenkZeile);
         Text(geschenkZeile, "Geschenk je Klick:", 14);
-        _geschenk ??= new SpinBox { MinValue = 10, MaxValue = 5000, Step = 10, Value = 200, Suffix = waehrung, CustomMinimumSize = new Vector2(150, 0) };
-        if (_geschenk.GetParent() is { } altesEltern) altesEltern.RemoveChild(_geschenk);
-        geschenkZeile.AddChild(_geschenk);
-        Text(geschenkZeile, $"   (+{Zahlenformat.Ganz(_geschenk.Value / buch.GuldenJeZuneigung(_spieler!))} Zuneigung, höchstens {Zahlenformat.Ganz(d.ZuneigungJeJahr)} im Jahr)", 12, Grau);
+        var geschenk = new SpinBox { MinValue = 10, MaxValue = 5000, Step = 10, Value = _geschenkBetrag, Suffix = waehrung, CustomMinimumSize = new Vector2(150, 0) };
+        geschenkZeile.AddChild(geschenk);
+        var jeZuneigung = buch.GuldenJeZuneigung(_spieler!);
+        string Hinweis() => $"   (+{Zahlenformat.Ganz(_geschenkBetrag / jeZuneigung)} Zuneigung, höchstens {Zahlenformat.Ganz(d.ZuneigungJeJahr)} im Jahr)";
+        var betragHinweis = Text(geschenkZeile, Hinweis(), 12, Grau);
+        geschenk.ValueChanged += wert => { _geschenkBetrag = wert; betragHinweis.Text = Hinweis(); };
 
         var raster = new GridContainer { Columns = 7 };
         raster.AddThemeConstantOverride("h_separation", 12);
@@ -231,7 +238,7 @@ public partial class FamilienAnzeige : PanelContainer
             {
                 var werben = new Button { Text = "Werben", FocusMode = FocusModeEnum.None, Disabled = buch.ZuneigungRest(_spieler!, k) <= 0.001 };
                 werben.TooltipText = werben.Disabled ? $"{p.Vorname} braucht Zeit – im nächsten Jahr geht es weiter." : "";
-                werben.Pressed += () => Befehlen(new Werben(p.Nummer, _geschenk.Value));
+                werben.Pressed += () => Befehlen(new Werben(p.Nummer, _geschenkBetrag));
                 knoepfe.AddChild(werben);
             }
         }
