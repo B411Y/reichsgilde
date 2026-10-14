@@ -1,5 +1,5 @@
 {
-  "version": 14,
+  "version": 15,
   "gesundheit": {
     "medicusKosten": 120,
     "medicusKostenPest": 300,
@@ -190,7 +190,7 @@
       "typ": "Fertigprodukt",
       "grundpreis": 310,
       "zeit": 100,
-      "zutaten": { "Holz": 4, "Holzzapfen": 2, "Beschlag": 1 },
+      "zutaten": { "Holz": 4, "Holzzapfen": 1, "Farbe": 1, "Beschlag": 1 },
       "nachfrage": 50,
       "npcAnteil": 0.7
     },
@@ -274,11 +274,75 @@
       "nachfrage": 50,
       "npcAnteil": 0.7
     },
+    "Kräuter": {
+      "typ": "Rohstoff",
+      "grundpreis": 10,
+      "zeit": 10,
+      "zutaten": {},
+      "nachfrage": 600,
+      "npcAnteil": 0.9
+    },
+    "Kröte": {
+      "typ": "Rohstoff",
+      "grundpreis": 25,
+      "zeit": 25,
+      "zutaten": {},
+      "nachfrage": 200,
+      "npcAnteil": 0.9
+    },
+    "Farbe": {
+      "typ": "Zwischenprodukt",
+      "grundpreis": 40,
+      "zeit": 30,
+      "zutaten": { "Kräuter": 2 },
+      "nachfrage": 150,
+      "npcAnteil": 0.7
+    },
+    "Heilsalbe": {
+      "typ": "Fertigprodukt",
+      "grundpreis": 95,
+      "zeit": 50,
+      "zutaten": { "Kräuter": 2, "Kröte": 1 },
+      "nachfrage": 150,
+      "npcAnteil": 0.7
+    },
+    "Rosenwasser": {
+      "typ": "Fertigprodukt",
+      "grundpreis": 100,
+      "zeit": 50,
+      "zutaten": { "Kräuter": 4 },
+      "nachfrage": 100,
+      "npcAnteil": 0.7
+    },
+    "Gegengift": {
+      "typ": "Fertigprodukt",
+      "grundpreis": 185,
+      "zeit": 70,
+      "zutaten": { "Kräuter": 2, "Kröte": 2, "Silber": 1 },
+      "nachfrage": 100,
+      "npcAnteil": 0.7
+    },
+    "Theriak": {
+      "typ": "Fertigprodukt",
+      "grundpreis": 280,
+      "zeit": 100,
+      "zutaten": { "Kräuter": 3, "Kröte": 2, "Gold": 1 },
+      "nachfrage": 50,
+      "npcAnteil": 0.7
+    },
+    "Zinnober": {
+      "typ": "Fertigprodukt",
+      "grundpreis": 315,
+      "zeit": 100,
+      "zutaten": { "Farbe": 2, "Silber": 1, "Schleifziegel": 1 },
+      "nachfrage": 50,
+      "npcAnteil": 0.7
+    },
     "Kräuterschnaps": {
       "typ": "Heilmittel",
       "grundpreis": 25,
-      "zeit": 20,
-      "zutaten": {},
+      "zeit": 15,
+      "zutaten": { "Kräuter": 1 },
       "nachfrage": 80,
       "npcAnteil": 0.95
     }
@@ -541,7 +605,8 @@
   "berufe": {
     "Schmied":  { "werkstatt": "Giesserei",  "umland": "Mine",          "lehrgeld": 500, "beschreibung": "Eisen und Silber aus der Grube, in der Gießerei zu Beschlägen, Rapieren und Silberringen; als Meister in Schmiede und Goldschmiede auch Werkzeug, Ketten und Prunkschwerter (Gold vom Markt, Schleifziegel vom Steinmetz)." },
     "Tischler": { "werkstatt": "Tischlerei", "umland": "Holzfaellerei", "lehrgeld": 500, "beschreibung": "Holz aus dem Wald, in der Tischlerei zu Holzzapfen, Schemeln und Truhen (mit Beschlag vom Schmied); als Meister in Drechslerei und Sägewerk auch Gehstöcke, Armbrüste, Schränke und Prunktruhen." },
-    "Steinmetz": { "werkstatt": "Maurerei", "umland": "Steinbruch", "lehrgeld": 500, "beschreibung": "Bruchstein und Granit aus dem Steinbruch, in der Maurerei zu Schleifziegeln, Grabsteinen und Mühlsteinen; als Meister in Steinschneiderei und Steinmetzhütte auch Säulen, Taufbecken, Steinfiguren (mit Werkzeug vom Schmied) und Grabmäler." }
+    "Steinmetz": { "werkstatt": "Maurerei", "umland": "Steinbruch", "lehrgeld": 500, "beschreibung": "Bruchstein und Granit aus dem Steinbruch, in der Maurerei zu Schleifziegeln, Grabsteinen und Mühlsteinen; als Meister in Steinschneiderei und Steinmetzhütte auch Säulen, Taufbecken, Steinfiguren (mit Werkzeug vom Schmied) und Grabmäler." },
+    "Alchimist": { "werkstatt": "Tinkturei", "umland": "Kraeutergarten", "lehrgeld": 500, "beschreibung": "Kräuter und Kröten aus dem Kräutergarten, in der Tinkturei zu Farbe, Kräuterschnaps und Heilsalbe; als Meister in Kräuterladen und Alchimistenstube auch Rosenwasser, Gegengift, Theriak und Zinnober (mit Silber vom Schmied und Schleifziegeln vom Steinmetz). Wer das Handwerk beherrscht, mischt Krötenschleim selbst." }
   },
   "betriebsarten": {
     "Giesserei":     { "name": "Gießerei",     "beruf": "Schmied",  "ort": "Werkstatt", "stufe": 1, "plaetze": 2, "fixkosten": 80,  "produkte": [ "Beschlag", "Rapier", "Silberring" ], "standardprodukt": "Silberring", "startkarren": "Handkarren", "ausbau": "Schmiede", "ausbauKosten": 2500 },
@@ -555,7 +620,11 @@
     "Maurerei":         { "name": "Maurerei",         "beruf": "Steinmetz", "ort": "Werkstatt", "stufe": 1, "plaetze": 2, "fixkosten": 80,  "produkte": [ "Schleifziegel", "Grabstein", "Mühlstein" ], "standardprodukt": "Grabstein", "startkarren": "Handkarren", "ausbau": "Steinschneiderei", "ausbauKosten": 2500 },
     "Steinschneiderei": { "name": "Steinschneiderei", "beruf": "Steinmetz", "ort": "Werkstatt", "stufe": 2, "plaetze": 3, "fixkosten": 120, "produkte": [ "Schleifziegel", "Grabstein", "Mühlstein", "Säule", "Taufbecken" ], "standardprodukt": "Taufbecken", "startkarren": "Handkarren", "ausbau": "Steinmetzhuette", "ausbauKosten": 5000 },
     "Steinmetzhuette":  { "name": "Steinmetzhütte",   "beruf": "Steinmetz", "ort": "Werkstatt", "stufe": 3, "plaetze": 4, "fixkosten": 180, "produkte": [ "Schleifziegel", "Grabstein", "Mühlstein", "Säule", "Taufbecken", "Steinfigur", "Grabmal" ], "standardprodukt": "Steinfigur", "startkarren": "Handkarren" },
-    "Steinbruch":       { "name": "Steinbruch",       "beruf": "Steinmetz", "ort": "Umland",    "plaetze": 3, "fixkosten": 400, "rohstoffe": [ "Bruchstein", "Granit" ], "startkarren": "Ochsenkarren" }
+    "Steinbruch":       { "name": "Steinbruch",       "beruf": "Steinmetz", "ort": "Umland",    "plaetze": 3, "fixkosten": 400, "rohstoffe": [ "Bruchstein", "Granit" ], "startkarren": "Ochsenkarren" },
+    "Tinkturei":        { "name": "Tinkturei",        "beruf": "Alchimist", "ort": "Werkstatt", "stufe": 1, "plaetze": 2, "fixkosten": 80,  "produkte": [ "Farbe", "Kräuterschnaps", "Heilsalbe" ], "standardprodukt": "Heilsalbe", "startkarren": "Handkarren", "ausbau": "Kraeuterladen", "ausbauKosten": 2500 },
+    "Kraeuterladen":    { "name": "Kräuterladen",     "beruf": "Alchimist", "ort": "Werkstatt", "stufe": 2, "plaetze": 3, "fixkosten": 120, "produkte": [ "Farbe", "Kräuterschnaps", "Heilsalbe", "Rosenwasser", "Gegengift" ], "standardprodukt": "Gegengift", "startkarren": "Handkarren", "ausbau": "Alchimistenstube", "ausbauKosten": 5000 },
+    "Alchimistenstube": { "name": "Alchimistenstube", "beruf": "Alchimist", "ort": "Werkstatt", "stufe": 3, "plaetze": 4, "fixkosten": 180, "produkte": [ "Farbe", "Kräuterschnaps", "Heilsalbe", "Rosenwasser", "Gegengift", "Theriak", "Zinnober" ], "standardprodukt": "Theriak", "startkarren": "Handkarren" },
+    "Kraeutergarten":   { "name": "Kräutergarten",    "beruf": "Alchimist", "ort": "Umland",    "plaetze": 3, "fixkosten": 400, "rohstoffe": [ "Kräuter", "Kröte" ], "startkarren": "Ochsenkarren" }
   },
   "meistergrade": {
     "pruefungen": [
@@ -610,6 +679,18 @@
     {
       "name": "Steinbruch am Felsenhang",
       "art": "Steinbruch",
+      "kaufpreis": 0,
+      "mindestStand": "Bürger"
+    },
+    {
+      "name": "Tinkturei am Domplatz",
+      "art": "Tinkturei",
+      "kaufpreis": 3500,
+      "mindestStand": "Bürger"
+    },
+    {
+      "name": "Kräutergarten am Bach",
+      "art": "Kraeutergarten",
       "kaufpreis": 0,
       "mindestStand": "Bürger"
     }
@@ -878,7 +959,7 @@
     "diebstahl": { "kosten": 150, "chance": 0.7, "hoechstensStueck": 12 },
     "sabotage": { "kosten": 250, "chance": 0.6, "stillstandMinuten": 360, "reparatur": 150 },
     "ueberfall": { "kosten": 300, "staerke": 0.8, "gueltigMinuten": 1440 },
-    "kroetenschleim": { "kosten": 200, "chance": 0.6 },
+    "kroetenschleim": { "kosten": 200, "chance": 0.6, "beruf": "Alchimist", "berufKostenFaktor": 0.5, "berufBonus": 0.15 },
     "erpressungMindestBeweise": 3
   }
 }

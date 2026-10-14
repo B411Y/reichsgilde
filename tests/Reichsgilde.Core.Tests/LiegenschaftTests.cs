@@ -23,10 +23,10 @@ static class LiegenschaftTests
 
     public static IEnumerable<(string, Action)> Alle() => new (string, Action)[]
     {
-        ("Liegenschaften: sieben sind frei (je Beruf eine Werkstatt und Umland, dazu eine Grube), erst ab Bürger zu haben", () =>
+        ("Liegenschaften: neun sind frei (je Beruf eine Werkstatt und Umland, dazu eine Grube), erst ab Bürger zu haben", () =>
         {
             var w = NeueSimulation().Wirtschaft!;
-            Pruefe.Gleich(7, w.FreieLiegenschaften.Count());
+            Pruefe.Gleich(9, w.FreieLiegenschaften.Count());
             var gemeiner = w.KontoEroeffnen("Gemeiner", startvermoegen: 50000);
             var e = w.Ausfuehren(gemeiner, new LiegenschaftErwerben("Gießerei an der Südgasse"));
             Pruefe.Wahr(!e.Erfolg && e.Meldung.Contains("erst ab dem Stand Bürger"), e.Meldung);
@@ -90,7 +90,7 @@ static class LiegenschaftTests
         {
             var sim = NeueSimulation();
             var w = sim.Wirtschaft!;
-            var k = Buerger(w, "Rivale", 30000);
+            var k = Buerger(w, "Rivale", 19000); // unter der Patrizier-Schwelle – sonst dürfte die KI einen Betrieb mehr führen
             w.KiAnmelden(k, KiProfil.Standard with { MaxBetriebe = 2 });
             Pruefe.Gleich(1, w.Betriebe.Count(b => b.Konto == k)); // höchstens ein Erwerb pro Stunde
             for (var i = 0; i < 3 * 60; i++) sim.Tick();

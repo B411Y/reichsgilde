@@ -195,7 +195,7 @@ public partial class GaunerAnzeige : PanelContainer
                 if (bestellt.Any(a => a.Art == Gaunerstueck.Kroetenschleim))
                     Text(zeile, "· Krötenschleim bestellt (heute Nacht)", 13, Gold);
                 else
-                    Knopf(zeile, $"Krötenschleim ({Zahlenformat.Ganz(g.Kroetenschleim.Kosten)})", () => Befehlen(new Beauftragen(haus.Inhaber, Gaunerstueck.Kroetenschleim)),
+                    Knopf(zeile, $"Krötenschleim ({Zahlenformat.Ganz(unterwelt.Kosten(Gaunerstueck.Kroetenschleim, _spieler))}{(unterwelt.MischtSelbst(_spieler) ? ", selbst gemischt" : "")})", () => Befehlen(new Beauftragen(haus.Inhaber, Gaunerstueck.Kroetenschleim)),
                         gesperrt: imKerker, hinweis: "Ins Essen gemischt: Das Oberhaupt erkrankt (Ruhr, Lungenentzündung, Haarausfall …). Vergehen: Giftmischerei.",
                         ap: new Beauftragen("", Gaunerstueck.Kroetenschleim));
                 Text(_inhalt, $"   Chance {Prozent(unterwelt.Erfolgschance(Gaunerstueck.Kroetenschleim, null, _spieler))} – Wächter helfen nicht. " +

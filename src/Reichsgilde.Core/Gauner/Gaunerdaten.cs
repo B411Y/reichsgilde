@@ -50,6 +50,15 @@ public sealed class KroetenschleimDaten
 
     /// <summary>Chance, dass der Schleim ins Essen gelangt (Wächter helfen nicht – es trifft die Person, nicht den Betrieb).</summary>
     public double Chance { get; init; } = 0.6;
+
+    /// <summary>Wer dieses Handwerk beherrscht, mischt den Schleim selbst (ab Datenversion 15; leer = kein Vorteil).</summary>
+    public string Beruf { get; init; } = "";
+
+    /// <summary>Kostenfaktor für Häuser mit diesem Beruf (0,5 = halber Preis).</summary>
+    public double BerufKostenFaktor { get; init; } = 1;
+
+    /// <summary>So viel höher ist ihre Erfolgschance.</summary>
+    public double BerufBonus { get; init; }
 }
 
 public sealed class UeberfallDaten
@@ -106,7 +115,8 @@ public sealed class GaunerDaten
     {
         foreach (var (name, wert) in new[] { ("hehlerAnteil", HehlerAnteil), ("zeugenChance", ZeugenChance), ("zeugenChanceWaechter", ZeugenChanceWaechter),
                      ("waechterSchutz", WaechterSchutz), ("diebstahl.chance", Diebstahl.Chance), ("sabotage.chance", Sabotage.Chance), ("ueberfall.staerke", Ueberfall.Staerke),
-                     ("kroetenschleim.chance", Kroetenschleim.Chance) })
+                     ("kroetenschleim.chance", Kroetenschleim.Chance), ("kroetenschleim.berufKostenFaktor", Kroetenschleim.BerufKostenFaktor),
+                     ("kroetenschleim.berufBonus", Kroetenschleim.BerufBonus) })
             if (wert is < 0 or > 1) f.Add($"gauner.{name} muss zwischen 0 und 1 liegen.");
         if (WaechterKosten < 0 || Diebstahl.Kosten < 0 || Sabotage.Kosten < 0 || Ueberfall.Kosten < 0 || Sabotage.Reparatur < 0 || Kroetenschleim.Kosten < 0)
             f.Add("gauner: Kosten dürfen nicht negativ sein.");

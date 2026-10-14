@@ -14,7 +14,7 @@ static class GesundheitTests
 
     /// <summary>Krötenschleim gelingt immer – so hängt der Test nicht am Zufall.</summary>
     static readonly Lazy<Wirtschaftsdaten> SichererSchleim = new(() => Wirtschaftsdaten.AusJson(File.ReadAllText(Datenpfad.Wirtschaft())
-        .Replace("\"kroetenschleim\": { \"kosten\": 200, \"chance\": 0.6 }", "\"kroetenschleim\": { \"kosten\": 200, \"chance\": 1.0 }")
+        .Replace("\"kroetenschleim\": { \"kosten\": 200, \"chance\": 0.6,", "\"kroetenschleim\": { \"kosten\": 200, \"chance\": 1.0,")
         .Replace("\"zeugenChance\": 0.25", "\"zeugenChance\": 0")));
 
     static Simulation NeueSimulation(int startwert = 1400, Wirtschaftsdaten? daten = null) =>

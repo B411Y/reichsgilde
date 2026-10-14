@@ -42,7 +42,9 @@ public partial class KontorAnzeige : PanelContainer
     private HBoxContainer _berufZeile = null!;
     private Label _berufText = null!;
     private Button _lernenKnopf = null!;
-    private string? _lernbarerBeruf;
+    private OptionButton _berufWahl = null!;
+    private readonly List<string> _lernbar = new();
+    private string? _lernbarerBeruf => _berufWahl.Selected >= 0 && _berufWahl.Selected < _lernbar.Count ? _lernbar[_berufWahl.Selected] : null;
     private VBoxContainer _meisterListe = null!;
     private readonly List<(string Beruf, Label Text, Button Pruefung)> _meisterZeilen = new();
     private GridContainer _preise = null!;
@@ -69,6 +71,9 @@ public partial class KontorAnzeige : PanelContainer
         _berufZeile.AddThemeConstantOverride("separation", 8);
         spalte.AddChild(_berufZeile);
         _berufText = NeuesLabel(_berufZeile, 14);
+        _berufWahl = new OptionButton { FocusMode = FocusModeEnum.None, TooltipText = "Welches Handwerk soll das Haus als Nächstes lernen?" };
+        _berufWahl.AddThemeFontSizeOverride("font_size", 13);
+        _berufZeile.AddChild(_berufWahl);
         _lernenKnopf = new Button { FocusMode = FocusModeEnum.None };
         _lernenKnopf.AddThemeFontSizeOverride("font_size", 13);
         _lernenKnopf.Pressed += BerufLernen;
@@ -131,19 +136,28 @@ public partial class KontorAnzeige : PanelContainer
     }
 
     /// <summary>„Jakob (31, rüstig) · verheiratet · 2 Kinder · Erbe: Agnes".</summary>
-    /// <summary>„Handwerk: Schmied" und ein Knopf, um den nächsten Beruf zu erlernen.</summary>
+    /// <summary>„Handwerk: Schmied", eine Auswahl der noch fremden Berufe und ein Knopf, um den gewählten zu erlernen.</summary>
     private void BerufZeileAktualisieren(Stadtwirtschaft w)
     {
         _berufZeile.Visible = w.Daten.Berufe.Count > 1 && !_spieler!.IstErloschen;
         if (!_berufZeile.Visible) return;
         _berufText.Text = $"Handwerk: {string.Join(", ", _spieler!.Berufe)}";
-        _lernbarerBeruf = w.Daten.Berufe.Keys.OrderBy(b => b, StringComparer.Ordinal).FirstOrDefault(b => !_spieler.Beherrscht(b));
-        _lernenKnopf.Visible = _lernbarerBeruf is not null;
+        var lernbar = w.Daten.Berufe.Keys.Where(b => !_spieler.Beherrscht(b)).OrderBy(b => b, StringComparer.Ordinal).ToList();
+        if (!lernbar.SequenceEqual(_lernbar))
+        {
+            var vorher = _lernbarerBeruf;
+            _lernbar.Clear();
+            _lernbar.AddRange(lernbar);
+            _berufWahl.Clear();
+            foreach (var b in lernbar) _berufWahl.AddItem(b);
+            if (lernbar.Count > 0) _berufWahl.Select(Math.Max(0, vorher is null ? 0 : lernbar.IndexOf(vorher)));
+        }
+        _berufWahl.Visible = _lernenKnopf.Visible = _lernbarerBeruf is not null;
         if (_lernbarerBeruf is not { } beruf) return;
         var befehl = new BerufErlernen(beruf);
         var daten = w.Daten.Berufe[beruf];
         var ap = w.ApKosten(_spieler, befehl);
-        var text = $"{beruf} erlernen ({Zahlenformat.Ganz(daten.Lehrgeld)} {w.Daten.Allgemein.Waehrung}{(ap > 0 ? $" · {ap} AP" : "")})";
+        var text = $"erlernen ({Zahlenformat.Ganz(daten.Lehrgeld)} {w.Daten.Allgemein.Waehrung}{(ap > 0 ? $" · {ap} AP" : "")})";
         if (_lernenKnopf.Text != text) _lernenKnopf.Text = text;
         var fehlt = _spieler.Vermoegen < daten.Lehrgeld ? "Für das Lehrgeld fehlt Geld."
             : !w.ApReichen(_spieler, befehl) ? $"Nicht genug Aktionspunkte ({_spieler.Aktionspunkte.Vorrat} von {ap})." : null;
