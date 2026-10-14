@@ -45,6 +45,8 @@ public partial class Stadtansicht : Node3D
     private static readonly Color Spieler = new(0.20f, 0.42f, 0.72f);
     private static readonly Color Rivale = new(0.70f, 0.20f, 0.16f);
     private static readonly Color ZweiterRivale = new(0.22f, 0.55f, 0.28f);
+    private static readonly Color DritterRivale = new(0.85f, 0.68f, 0.18f);
+    private static readonly Color Bruchstein = new(0.68f, 0.65f, 0.60f);
 
     private const float KameraMinZoom = 25f;
     private const float KameraMaxZoom = 140f;
@@ -170,12 +172,28 @@ public partial class Stadtansicht : Node3D
         ["Gießerei an der Südgasse"] = new(2, 0, 20),
         ["Tischlerei Eichwald"] = new(-14, 0, 27),
         ["Tischlerei am Holzmarkt"] = new(18, 0, -7),
+        ["Maurerei am Weinmarkt"] = new(-20, 0, 14),    // derselbe Platz – je nach Startberuf
+        ["Maurerei Kieselbach"] = new(25, 0, -29),
+        ["Maurerei an der Stadtmauer"] = new(21, 0, 29),
+        ["Steinbruch Kieselbach"] = new(40, 0, 52),
+        ["Steinbruch am Felsenhang"] = new(-6, 0, -66),
         ["Grube Eisenbart"] = new(68, 0, -12),
         ["Grube am Silberberg"] = new(66, 0, 32),
         ["Grube im Tannenwald"] = new(48, 0, -52),
         ["Holzschlag Eichwald"] = new(20, 0, -62),
         ["Holzschlag im Eichenforst"] = new(14, 0, 66),
     };
+
+    /// <summary>
+    /// Werkstätten erreichen den Markt über eine Gasse – meist auf knapp halbem Weg zur Mitte. Wo dieser gerade Weg
+    /// durch ein Nachbarhaus führte, steht hier ein eigener Knick.
+    /// </summary>
+    private static readonly Dictionary<string, Vector3> Gassen = new()
+    {
+        ["Maurerei an der Stadtmauer"] = new(11, 0, 24), // zwischen Südgasse und Gießerei Eisenbart hindurch
+    };
+
+    private static Vector3 Gasse(string name, Vector3 p) => Gassen.GetValueOrDefault(name, new Vector3(p.X * 0.45f, 0, p.Z * 0.45f));
 
     /// <summary>Gruben liegen vor der Stadt: Hier zweigt ihr Weg von der Straße ab, die zum Osttor führt.</summary>
     private static readonly Dictionary<string, Vector3> Abzweige = new()
@@ -185,6 +203,8 @@ public partial class Stadtansicht : Node3D
         ["Grube im Tannenwald"] = new(46, 0, -26),
         ["Holzschlag Eichwald"] = new(42, 0, -20),
         ["Holzschlag im Eichenforst"] = new(46, 0, 26),
+        ["Steinbruch Kieselbach"] = new(46, 0, 26),
+        ["Steinbruch am Felsenhang"] = new(42, 0, -20),
     };
 
     /// <summary>Freie Bauplätze und Gruben, die noch niemandem gehören: Name → ihre Darstellung.</summary>
@@ -312,8 +332,8 @@ public partial class Stadtansicht : Node3D
         // Feste Liste – jede Partie sieht gleich aus. Später erzeugt der Stadtplan die Häuser.
         var haeuser = new (float X, float Z, bool Quer)[]
         {
-            (-29, -29, true), (-20, -29, true), (-11, -29, true), (10, -29, true), (19, -29, true), (28, -29, true),
-            (-29, 29, true), (-4, 29, true), (5, 29, true), (29, 29, true),
+            (-29, -29, true), (-20, -29, true), (-11, -29, true), (10, -29, true), // (19|−29) und (28|−29): Platz der Maurerei Kieselbach
+            (-29, 29, true), (-4, 29, true), (5, 29, true), // (29|29): Platz der Maurerei an der Stadtmauer
             (-29, 6, false), (-29, -6, false), (29, -12, false), (29, 10, false),
             (14, -18, false), (-29, 18, false),
         };
@@ -405,21 +425,24 @@ public partial class Stadtansicht : Node3D
         var spieler = betrieb.Konto == _spielerKonto;
         var farbe = Besitzerfarbe(betrieb.Konto);
         var abzweig = Abzweige.GetValueOrDefault(betrieb.Name, Osttor + new Vector3(20, 0, 0));
-        var ansicht = betrieb.Art switch
-        {
-            Betriebsart.Mine => MineBauen(betrieb, platz, farbe, abzweig),
-            Betriebsart.Holzfaellerei => HolzschlagBauen(betrieb, platz, farbe, abzweig),
-            Betriebsart.Tischlerei => GiessereiBauen(betrieb, platz, farbe, tischlerei: true),
-            _ => GiessereiBauen(betrieb, platz, farbe),
-        };
+        // Werkstätten nach Beruf (eine ausgebaute Drechslerei bleibt eine Tischlerwerkstatt), Umland nach Art
+        var ansicht = betrieb.IstWerkstatt
+            ? GiessereiBauen(betrieb, platz, farbe, betrieb.Artdaten.Beruf switch { "Tischler" => Werkstil.Tischlerei, "Steinmetz" => Werkstil.Maurerei, _ => Werkstil.Giesserei })
+            : betrieb.Art switch
+            {
+                Betriebsart.Holzfaellerei => HolzschlagBauen(betrieb, platz, farbe, abzweig),
+                Betriebsart.Steinbruch => SteinbruchBauen(betrieb, platz, farbe, abzweig),
+                _ => MineBauen(betrieb, platz, farbe, abzweig),
+            };
         ansicht.Spieler = spieler;
         ansicht.Farbe = farbe;
         _betriebe[betrieb] = ansicht;
     }
 
-    /// <summary>Farbe der Fahnen und Karren: Spieler blau, Haus Eisenbart rot, Haus Eichwald grün.</summary>
+    /// <summary>Farbe der Fahnen und Karren: Spieler blau, Haus Eisenbart rot, Haus Eichwald grün, Haus Kieselbach ocker.</summary>
     private Color Besitzerfarbe(Konto konto) =>
-        konto == _spielerKonto ? Spieler : konto.Inhaber == Partieaufbau.ZweiterRivale ? ZweiterRivale : Rivale;
+        konto == _spielerKonto ? Spieler : konto.Inhaber == Partieaufbau.ZweiterRivale ? ZweiterRivale
+        : konto.Inhaber == Partieaufbau.DritterRivale ? DritterRivale : Rivale;
 
     /// <summary>Kennung eines freien Platzes für Mausklicks.</summary>
     public static string LiegenschaftKennung(string name) => "liegenschaft:" + name;
@@ -444,6 +467,12 @@ public partial class Stadtansicht : Node3D
             WegZiehen(Abzweige[frei.Name], p + new Vector3(-2, 0, 0), 4, gruppe);
             WegZiehen(Osttor, Abzweige[frei.Name], 4, gruppe);
         }
+        else if (frei.Art == Betriebsart.Steinbruch)
+        {
+            FelsenBauen(p, gruppe);
+            WegZiehen(Abzweige[frei.Name], p + new Vector3(-2, 0, 0), 4, gruppe);
+            WegZiehen(Osttor, Abzweige[frei.Name], 4, gruppe);
+        }
         else if (frei.Art == Betriebsart.Mine)
         {
             BergBauen(p, gruppe);
@@ -461,7 +490,7 @@ public partial class Stadtansicht : Node3D
             })
                 Quader(p + mitte, groesse, holz, gruppe);
             Quader(p + new Vector3(-2, 0.3f, 1), new Vector3(3, 0.6f, 1.2f), holz, gruppe);
-            var gasse = new Vector3(p.X * 0.45f, 0, p.Z * 0.45f);
+            var gasse = Gasse(frei.Name, p);
             WegZiehen(p, gasse, 3.5f, gruppe);
             WegZiehen(gasse, Marktplatz, 3.5f, gruppe);
         }
@@ -486,13 +515,16 @@ public partial class Stadtansicht : Node3D
     /// Werkstatt in Fachwerk. Die Gießerei hat eine glühende Esse und einen Innenraum (Diorama);
     /// die Tischlerei (<paramref name="tischlerei"/>) ein Schieferdach und Holzstapel vor der Tür – ihr Innenraum folgt später.
     /// </summary>
-    private BetriebsAnsicht GiessereiBauen(Betrieb betrieb, Vector3 p, Color besitzer, bool tischlerei = false)
+    private enum Werkstil { Giesserei, Tischlerei, Maurerei }
+
+    private BetriebsAnsicht GiessereiBauen(Betrieb betrieb, Vector3 p, Color besitzer, Werkstil stil = Werkstil.Giesserei)
     {
+        var tischlerei = stil != Werkstil.Giesserei; // ohne Esse und (noch) ohne Innenraum
         // Maße: 10 m (West–Ost) × 8 m (Nord–Süd), Wände 6 m hoch und 0,4 m dick.
         const float breite = 10, tiefe = 8, hoehe = 6, dicke = 0.4f;
 
         // ── Außenhülle: vier einzelne Wände, damit jede für sich ausgeblendet werden kann ──
-        var wandFarbe = Material(Fachwerk);
+        var wandFarbe = Material(stil == Werkstil.Maurerei ? Mauerstein : Fachwerk); // der Steinmetz baut massiv
         var waende = new (string Name, Vector3 Mitte, Vector3 Groesse, Vector3 Aussen)[]
         {
             ("Nordwand", new(0, hoehe / 2, -tiefe / 2 + dicke / 2), new(breite, hoehe, dicke), Vector3.Forward),
@@ -521,8 +553,16 @@ public partial class Stadtansicht : Node3D
         // ── Dach mit Schornstein: eine Gruppe, die in der Innenansicht verschwindet ──
         var dach = new Node3D { Name = "Dach" };
         AddChild(dach);
-        Dach(p + new Vector3(0, hoehe, 0), new Vector3(breite + 0.6f, 4.8f, tiefe + 0.6f), Material(tischlerei ? Schiefer : Ziegel), quer: true, eltern: dach);
-        if (tischlerei)
+        Dach(p + new Vector3(0, hoehe, 0), new Vector3(breite + 0.6f, 4.8f, tiefe + 0.6f), Material(stil == Werkstil.Tischlerei ? Schiefer : Ziegel), quer: true, eltern: dach);
+        if (stil == Werkstil.Maurerei)
+        {
+            // Quader und Bruchsteine an der Ostseite, ein Werkblock vor dem Tor
+            var stein = Material(Bruchstein);
+            for (var i = 0; i < 3; i++)
+                Quader(p + new Vector3(breite / 2 + 1.3f, 0.5f + i * 1.0f, -2 + i * 1.2f), new Vector3(1.8f, 1f, 2.6f - i * 0.6f), stein);
+            Quader(p + new Vector3(2, 0.45f, tiefe / 2 + 1.4f), new Vector3(1.4f, 0.9f, 1.4f), stein);
+        }
+        else if (tischlerei)
         {
             // Holzstapel an der Ostseite, ein Sägebock vor dem Tor
             var stamm = Material(Holz);
@@ -544,7 +584,7 @@ public partial class Stadtansicht : Node3D
 
         // Weg zur nächsten Gasse und dann zum Markt
         var hof = p + new Vector3(0, 0, 5.5f);
-        var gasse = new Vector3(p.X * 0.45f, 0, p.Z * 0.45f);
+        var gasse = Gasse(betrieb.Name, p);
         WegZiehen(p, gasse, 3.5f);
         WegZiehen(gasse, Marktplatz, 3.5f);
 
@@ -567,7 +607,7 @@ public partial class Stadtansicht : Node3D
 
     /// <summary>
     /// Die Gebäudestufe von außen: ab Stufe 2 eine Dachgaube über dem Tor, ab Stufe 3 ein Dachreiter auf dem First
-    /// (golden beim Schmied, kupfergrün beim Tischler). Während des Umbaus steht ein Gerüst vor der Südwand.
+    /// (golden beim Schmied, kupfergrün beim Tischler, schiefergrau beim Steinmetz). Während des Umbaus steht ein Gerüst vor der Südwand.
     /// Die Grundfläche bleibt gleich – die Nachbarn rücken nicht zusammen.
     /// </summary>
     private void StufeZeigen(BetriebsAnsicht a)
@@ -587,16 +627,21 @@ public partial class Stadtansicht : Node3D
         {
             // Dachgaube auf der Südseite des Dachs, mit Fenster und eigenem Satteldach
             var gaube = p + new Vector3(-2.5f, 0, 2.6f);
-            Quader(gaube + new Vector3(0, hoehe + 1.6f, 0), new Vector3(2.4f, 2.0f, 2.0f), Material(Fachwerk), gruppe);
+            Quader(gaube + new Vector3(0, hoehe + 1.6f, 0), new Vector3(2.4f, 2.0f, 2.0f), Material(b.Artdaten.Beruf == "Steinmetz" ? Mauerstein : Fachwerk), gruppe);
             Quader(gaube + new Vector3(0, hoehe + 1.7f, 1.02f), new Vector3(1.1f, 1.0f, 0.06f), Material(new Color(0.12f, 0.1f, 0.08f)), gruppe);
-            Dach(gaube + new Vector3(0, hoehe + 2.6f, 0), new Vector3(2.9f, 1.2f, 2.4f), Material(a.Glut is null ? Schiefer : Ziegel), quer: false, eltern: gruppe);
+            Dach(gaube + new Vector3(0, hoehe + 2.6f, 0), new Vector3(2.9f, 1.2f, 2.4f), Material(b.Artdaten.Beruf == "Tischler" ? Schiefer : Ziegel), quer: false, eltern: gruppe);
         }
         if (b.Stufe >= 3)
         {
             // Dachreiter: kleiner Turm auf dem First mit vierseitiger Spitze
             var first = p + new Vector3(-1, hoehe + 4.8f, 0);
-            Quader(first + new Vector3(0, 0.9f, 0), new Vector3(1.6f, 2.2f, 1.6f), Material(Fachwerk), gruppe);
-            var spitze = Material(b.Artdaten.Beruf == "Tischler" ? new Color(0.35f, 0.55f, 0.45f) : new Color(0.85f, 0.68f, 0.25f));
+            Quader(first + new Vector3(0, 0.9f, 0), new Vector3(1.6f, 2.2f, 1.6f), Material(b.Artdaten.Beruf == "Steinmetz" ? Mauerstein : Fachwerk), gruppe);
+            var spitze = Material(b.Artdaten.Beruf switch
+            {
+                "Tischler" => new Color(0.35f, 0.55f, 0.45f),   // kupfergrün
+                "Steinmetz" => new Color(0.30f, 0.33f, 0.40f),  // Schiefer
+                _ => new Color(0.85f, 0.68f, 0.25f),            // golden
+            });
             spitze.Metallic = 0.5f;
             spitze.Roughness = 0.4f;
             gruppe.AddChild(new MeshInstance3D
@@ -723,6 +768,48 @@ public partial class Stadtansicht : Node3D
         var hof = p + new Vector3(-2, 0, 0);
         WegZiehen(abzweig, hof, 4);
         if (AbstandZurStrecke(abzweig, Osttor, Landstrasse) > 1) // nicht an der Landstraße? Dann eigene Verbindung zum Tor
+            WegZiehen(Osttor, abzweig, 4);
+        return new BetriebsAnsicht
+        {
+            Betrieb = betrieb,
+            Mitte = p,
+            Hof = hof,
+            WegZumMarkt = new[] { hof, abzweig, Osttor, Marktplatz },
+            Schild = schild,
+        };
+    }
+
+    /// <summary>Ein Felsen mit abgetreppter Bruchkante – kleiner als der Berg einer Grube.</summary>
+    private void FelsenBauen(Vector3 p, Node3D? eltern = null)
+    {
+        foreach (var (versatz, radius) in new[] { (new Vector3(8, 0, -7), 9f), (new Vector3(14, 0, 1), 6f) })
+            (eltern ?? this).AddChild(new MeshInstance3D
+            {
+                Mesh = new SphereMesh { Radius = radius, Height = radius * 1.4f, RadialSegments = 10, Rings = 5 },
+                MaterialOverride = Material(Fels),
+                Position = p + versatz,
+            });
+        // Abgetreppte, hell angeschnittene Bruchkante vor dem Felsen
+        var schnitt = Material(Bruchstein);
+        for (var stufe = 0; stufe < 3; stufe++)
+            Quader(p + new Vector3(3 + stufe * 1.6f, 1 + stufe * 2, -2 - stufe * 1.2f), new Vector3(6, 2, 4), schnitt, eltern);
+    }
+
+    /// <summary>Steinbruch: Felsen mit Bruchkante, Steinquader zum Abtransport und ein Schuppen.</summary>
+    private BetriebsAnsicht SteinbruchBauen(Betrieb betrieb, Vector3 p, Color besitzer, Vector3 abzweig)
+    {
+        FelsenBauen(p);
+        var stein = Material(Bruchstein);
+        foreach (var (dx, dz, h) in new[] { (0f, 4f, 1.2f), (1.6f, 4.2f, 0.8f), (0.8f, 5.6f, 1f), (3.5f, 6f, 1.2f) })
+            Quader(p + new Vector3(dx, h / 2, dz), new Vector3(1.4f, h, 1.4f), stein);
+        Haus(p + new Vector3(-6, 0, 6), new Vector3(6, 4, 5), Holz, Schiefer, quer: true);
+        Quader(p + new Vector3(-9.2f, 3.5f, 6), new Vector3(0.2f, 3, 2), Material(besitzer));
+
+        Klickflaeche(BetriebsKennung(betrieb), p + new Vector3(2, 4, 0), new Vector3(16, 8, 14));
+        var schild = Beschriftung(betrieb.Name, p + new Vector3(2, 9, 0), 44);
+        var hof = p + new Vector3(-2, 0, 0);
+        WegZiehen(abzweig, hof, 4);
+        if (AbstandZurStrecke(abzweig, Osttor, Landstrasse) > 1)
             WegZiehen(Osttor, abzweig, 4);
         return new BetriebsAnsicht
         {

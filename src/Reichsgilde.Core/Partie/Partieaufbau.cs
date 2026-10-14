@@ -12,8 +12,9 @@ namespace Reichsgilde.Core.Partie;
 /// <param name="Volk">Volk des eigenen Hauses.</param>
 /// <param name="Geschlecht">Patriarch oder Matriarchin.</param>
 /// <param name="Vorname">Vorname des Oberhaupts; null = ein zufälliger Name des Volkes.</param>
-/// <param name="Beruf">Startberuf: bestimmt die erste Werkstatt (Schmied → Gießerei, Tischler → Tischlerei).</param>
-/// <param name="Rivalen">Wie viele KI-Häuser mitspielen: 1 = Haus Eisenbart (Schmied), 2 = dazu Haus Eichwald (Tischler).</param>
+/// <param name="Beruf">Startberuf: bestimmt die erste Werkstatt (Schmied → Gießerei, Tischler → Tischlerei, Steinmetz → Maurerei).</param>
+/// <param name="Rivalen">Wie viele KI-Häuser mitspielen: 1 = Haus Eisenbart (Schmied), 2 = dazu Haus Eichwald (Tischler),
+/// 3 = dazu Haus Kieselbach (Steinmetz).</param>
 public sealed record NeuePartie(
     string Familienname = "Familie Hammerschmid",
     double? Startvermoegen = null,
@@ -22,7 +23,7 @@ public sealed record NeuePartie(
     Geschlecht Geschlecht = Geschlecht.Mann,
     string? Vorname = null,
     string Beruf = "Schmied",
-    int Rivalen = 2);
+    int Rivalen = 3);
 
 /// <summary>Wie der KI-Rivale spielt – im Menü als Schwierigkeit wählbar.</summary>
 public enum KiCharakter
@@ -36,8 +37,9 @@ public enum KiCharakter
 
 /// <summary>
 /// Stellt eine neue Partie auf: das Haus des Spielers mit der Werkstatt seines Startberufs, Haus Eisenbart
-/// (Zwerge, Schmiede: Gießerei und Grube) und – bei zwei Rivalen – Haus Eichwald (Elben, Tischler: Tischlerei
-/// und Holzschlag), beide von der KI geführt. Alle Oberhäupter beginnen ledig.
+/// (Zwerge, Schmiede: Gießerei und Grube) und – je nach Zahl der Rivalen – Haus Eichwald (Elben, Tischler:
+/// Tischlerei und Holzschlag) und Haus Kieselbach (Halblinge, Steinmetze: Maurerei und Steinbruch),
+/// alle von der KI geführt. Alle Oberhäupter beginnen ledig.
 /// </summary>
 public static class Partieaufbau
 {
@@ -47,6 +49,13 @@ public static class Partieaufbau
     public const string ZweiterRivale = "Haus Eichwald";
     public const Volk ZweiterRivaleVolk = Volk.Elb;
     public const Volk RivalenVolk = Volk.Zwerg;
+
+    /// <summary>Der dritte KI-Rivale: ein Halblingshaus von Steinmetzen.</summary>
+    public const string DritterRivale = "Haus Kieselbach";
+    public const Volk DritterRivaleVolk = Volk.Halbling;
+
+    /// <summary>Alle Namen, die schon ein Rivale trägt.</summary>
+    public static readonly IReadOnlyList<string> Rivalennamen = new[] { Rivalenname, ZweiterRivale, DritterRivale };
 
     public static KiProfil ProfilFuer(KiCharakter charakter) => charakter switch
     {
@@ -61,10 +70,10 @@ public static class Partieaufbau
         Spielzeit? startzeit = null)
     {
         var name = string.IsNullOrWhiteSpace(neu.Familienname) ? "Familie Hammerschmid" : neu.Familienname.Trim();
-        if (name is Rivalenname or ZweiterRivale)
+        if (Rivalennamen.Contains(name))
             throw new ArgumentException($"„{name}“ ist schon der Name eines Rivalen.");
-        if (neu.Rivalen is < 1 or > 2)
-            throw new ArgumentException("Es spielen ein oder zwei KI-Häuser mit.");
+        if (neu.Rivalen is < 1 or > 3)
+            throw new ArgumentException("Es spielen ein bis drei KI-Häuser mit.");
 
         var simulation = new Simulation(einstellungen, startzeit, daten);
         var w = simulation.Wirtschaft!;
@@ -95,18 +104,27 @@ public static class Partieaufbau
         // Ab jetzt führt die KI Haus Eisenbart: Produkt, Förderung, Personal, Eskorten, Karren, Stand, Expansion.
         w.KiAnmelden(rivale, ProfilFuer(neu.Rivale));
 
-        // Haus Eichwald: Elben, Tischler – mit Tischlerei und Holzschlag, ebenfalls von der KI geführt.
-        if (neu.Rivalen >= 2 && daten.Berufe.TryGetValue("Tischler", out var tischler))
-        {
-            var eichwald = w.KontoEroeffnen(ZweiterRivale);
-            if (w.Familien.IstAktiv)
-                w.Familien.Gruenden(eichwald, ZweiterRivaleVolk, Geschlecht.Frau);
-            var tischlerei = w.BetriebEroeffnen("Tischlerei Eichwald", tischler.Werkstatt, eichwald);
-            w.Einstellen(tischlerei, "Geselle", 2);
-            var holzschlag = w.BetriebEroeffnen("Holzschlag Eichwald", tischler.Umland, eichwald);
-            w.Einstellen(holzschlag, bergleute, 3);
-            w.KiAnmelden(eichwald, ProfilFuer(neu.Rivale));
-        }
+        // Haus Eichwald (Elben, Tischler) und Haus Kieselbach (Halblinge, Steinmetze) – ebenfalls von der KI geführt.
+        if (neu.Rivalen >= 2)
+            HausAufstellen(w, daten, ZweiterRivale, ZweiterRivaleVolk, Geschlecht.Frau, "Tischler", "Eichwald", bergleute, neu.Rivale);
+        if (neu.Rivalen >= 3)
+            HausAufstellen(w, daten, DritterRivale, DritterRivaleVolk, Geschlecht.Mann, "Steinmetz", "Kieselbach", bergleute, neu.Rivale);
         return (simulation, spieler);
+    }
+
+    /// <summary>Ein KI-Haus mit Werkstatt und Umlandbetrieb seines Berufs („Tischlerei Eichwald", „Holzschlag Eichwald").
+    /// Fehlt der Beruf in den Daten (alte Daten), spielt das Haus nicht mit.</summary>
+    private static void HausAufstellen(Stadtwirtschaft w, Wirtschaftsdaten daten, string name, Volk volk, Geschlecht geschlecht,
+        string beruf, string kurzname, string umlandKraft, KiCharakter charakter)
+    {
+        if (!daten.Berufe.TryGetValue(beruf, out var b)) return;
+        var konto = w.KontoEroeffnen(name);
+        if (w.Familien.IstAktiv)
+            w.Familien.Gruenden(konto, volk, geschlecht);
+        var werkstatt = w.BetriebEroeffnen($"{daten.Art(b.Werkstatt).Name} {kurzname}", b.Werkstatt, konto);
+        w.Einstellen(werkstatt, "Geselle", 2);
+        var umland = w.BetriebEroeffnen($"{daten.Art(b.Umland).Name} {kurzname}", b.Umland, konto);
+        w.Einstellen(umland, umlandKraft, 3);
+        w.KiAnmelden(konto, ProfilFuer(charakter));
     }
 }

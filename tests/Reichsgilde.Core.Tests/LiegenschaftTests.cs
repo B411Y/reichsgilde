@@ -23,10 +23,10 @@ static class LiegenschaftTests
 
     public static IEnumerable<(string, Action)> Alle() => new (string, Action)[]
     {
-        ("Liegenschaften: fünf sind frei (je Beruf eine Werkstatt und Umland), erst ab Bürger zu haben", () =>
+        ("Liegenschaften: sieben sind frei (je Beruf eine Werkstatt und Umland, dazu eine Grube), erst ab Bürger zu haben", () =>
         {
             var w = NeueSimulation().Wirtschaft!;
-            Pruefe.Gleich(5, w.FreieLiegenschaften.Count());
+            Pruefe.Gleich(7, w.FreieLiegenschaften.Count());
             var gemeiner = w.KontoEroeffnen("Gemeiner", startvermoegen: 50000);
             var e = w.Ausfuehren(gemeiner, new LiegenschaftErwerben("Gießerei an der Südgasse"));
             Pruefe.Wahr(!e.Erfolg && e.Meldung.Contains("erst ab dem Stand Bürger"), e.Meldung);

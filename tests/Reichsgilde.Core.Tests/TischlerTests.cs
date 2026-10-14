@@ -20,11 +20,11 @@ static class TischlerTests
 
     public static IEnumerable<(string, Action)> Alle() => new (string, Action)[]
     {
-        ("Daten: acht Betriebsarten, zwei Berufe – der Tischler macht aus Holz Holzzapfen, Schemel und Truhen", () =>
+        ("Daten: zwölf Betriebsarten, drei Berufe – der Tischler macht aus Holz Holzzapfen, Schemel und Truhen", () =>
         {
             var d = Daten.Value;
-            Pruefe.Gleich(8, d.Betriebsarten.Count);
-            Pruefe.Gleich(2, d.Berufe.Count);
+            Pruefe.Gleich(12, d.Betriebsarten.Count);
+            Pruefe.Gleich(3, d.Berufe.Count);
             var t = d.Art(Betriebsart.Tischlerei);
             Pruefe.Gleich("Tischler", t.Beruf);
             Pruefe.Wahr(t.Produkte.SequenceEqual(new[] { "Holzzapfen", "Schemel", "Truhe" }), string.Join(",", t.Produkte));
@@ -87,14 +87,14 @@ static class TischlerTests
             Pruefe.Wahr(w.Ausfuehren(spieler, new LiegenschaftErwerben("Tischlerei am Holzmarkt")).Erfolg, "kaufen");
         }),
 
-        ("Partieaufbau: Startberuf Tischler – Tischlerei am Weinmarkt; zwei Rivalen, Haus Eichwald sind Elben und Tischler", () =>
+        ("Partieaufbau: Startberuf Tischler – Tischlerei am Weinmarkt; drei Rivalen, Haus Eichwald sind Elben und Tischler", () =>
         {
             var (sim, spieler) = Partieaufbau.Erstellen(Partieeinstellungen.Standard, Daten.Value, new NeuePartie(Beruf: "Tischler"));
             var w = sim.Wirtschaft!;
             var eigene = w.Betriebe.Single(b => b.Konto == spieler);
             Pruefe.Gleich("Tischlerei am Weinmarkt", eigene.Name);
             Pruefe.Gleich(Betriebsart.Tischlerei, eigene.Art);
-            Pruefe.Gleich(2, w.Rivalen.Count);
+            Pruefe.Gleich(3, w.Rivalen.Count);
             var eichwald = w.Konten.Single(k => k.Inhaber == Partieaufbau.ZweiterRivale);
             Pruefe.Gleich(Partieaufbau.ZweiterRivaleVolk, w.Familien.Von(eichwald)!.Volk);
             Pruefe.Wahr(w.Betriebe.Where(b => b.Konto == eichwald).Select(b => b.Art).OrderBy(a => a)

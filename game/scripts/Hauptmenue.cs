@@ -142,6 +142,7 @@ public partial class Hauptmenue : Node
         _beruf = new OptionButton { FocusMode = Control.FocusModeEnum.None };
         _beruf.AddItem("Schmied (Gießerei: Beschlag, Rapier, Silberring)");
         _beruf.AddItem("Tischler (Tischlerei: Holzzapfen, Schemel, Truhe)");
+        _beruf.AddItem("Steinmetz (Maurerei: Schleifziegel, Grabstein, Mühlstein)");
         Zeile(raster, "Startberuf", _beruf);
         VolkHinweisZeigen();
 
@@ -183,7 +184,8 @@ public partial class Hauptmenue : Node
         _rivalen = new OptionButton { FocusMode = Control.FocusModeEnum.None };
         _rivalen.AddItem("Haus Eisenbart (Schmiede)", 1);
         _rivalen.AddItem("Eisenbart und Eichwald (Tischler)", 2);
-        _rivalen.Select(1);
+        _rivalen.AddItem("Eisenbart, Eichwald und Kieselbach (Steinmetz)", 3);
+        _rivalen.Select(2);
         Zeile(raster, "Rivalen", _rivalen);
 
         var startwertZeile = new HBoxContainer();
@@ -245,7 +247,7 @@ public partial class Hauptmenue : Node
             Zufallsstartwert = (int)_startwert.Value,
         };
         var fehler = einstellungen.Pruefen().ToList();
-        if (_familie.Text.Trim() is Partieaufbau.Rivalenname or Partieaufbau.ZweiterRivale)
+        if (Partieaufbau.Rivalennamen.Contains(_familie.Text.Trim()))
             fehler.Add($"„{_familie.Text.Trim()}“ ist der Name eines Rivalen – wählt bitte einen anderen.");
         if (fehler.Count > 0)
         {
@@ -257,7 +259,7 @@ public partial class Hauptmenue : Node
             new NeuePartie(_familie.Text, _startvermoegen.Value, (KiCharakter)_rivale.GetSelectedId(),
                 (Volk)_volk.GetSelectedId(), (Geschlecht)_geschlecht.GetSelectedId(),
                 string.IsNullOrWhiteSpace(_vorname.Text) ? null : _vorname.Text.Trim(),
-                Beruf: _beruf.Selected == 1 ? "Tischler" : "Schmied",
+                Beruf: _beruf.Selected switch { 1 => "Tischler", 2 => "Steinmetz", _ => "Schmied" },
                 Rivalen: _rivalen.GetSelectedId()));
         SpielStarten();
     }
