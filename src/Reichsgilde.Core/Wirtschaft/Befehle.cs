@@ -94,3 +94,12 @@ public sealed record Befehlsergebnis(bool Erfolg, string Meldung)
     public static Befehlsergebnis Ok(string meldung) => new(true, meldung);
     public static Befehlsergebnis Abgelehnt(string grund) => new(false, grund);
 }
+
+/// <summary>Einen Medicus rufen (kostet Gulden): heilt eine gewöhnliche Krankheit sofort, senkt bei der Pest das Sterberisiko.</summary>
+public sealed record MedicusRufen(int Person) : Befehl;
+
+/// <summary>Kräuterschnaps vom Markt in die Hausapotheke kaufen.</summary>
+public sealed record SchnapsKaufen(int Stueck) : Befehl;
+
+/// <summary>Einem Familienmitglied Kräuterschnaps aus der Hausapotheke geben: heilt leichte Krankheiten, lindert die Pest.</summary>
+public sealed record SchnapsGeben(int Person) : Befehl;

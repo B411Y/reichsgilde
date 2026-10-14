@@ -1,5 +1,28 @@
 {
-  "version": 10,
+  "version": 11,
+  "gesundheit": {
+    "medicusKosten": 120,
+    "medicusKostenPest": 300,
+    "schnaps": "Kräuterschnaps",
+    "kroetenschleim": [ "Ruhr", "Lungenentzündung", "Haarausfall", "Lachanfälle", "Vergesslichkeit" ],
+    "krankheiten": {
+      "Husten":           { "chance": 0.05, "talente": { "Rhetorik": 1 }, "schnaps": true },
+      "Ruhr":             { "chance": 0.02, "talente": { "Verhandeln": 1, "Rhetorik": 1 }, "sterben": 0.04 },
+      "Lungenentzündung": { "chance": 0.02, "talente": { "Handwerk": 1, "Kampf": 1 }, "sterben": 0.08 },
+      "Knochenbruch":     { "chance": 0.02, "talente": { "NachtUndNebel": 1, "Kampf": 1.5 } },
+      "Vergesslichkeit":  { "chance": 0.01, "alterAb": 50, "dauer": 2, "talente": { "Verhandeln": 1, "Handwerk": 1 } },
+      "Angst im Dunkeln": { "chance": 0.01, "talente": { "NachtUndNebel": 2 }, "schnaps": true },
+      "Haarausfall":      { "chance": 0.01, "dauer": 2, "ansehen": 3 },
+      "Lachanfälle":      { "chance": 0.01, "ansehen": 3, "schnaps": true }
+    },
+    "pest": {
+      "abstandMin": 25, "abstandMax": 40,
+      "ansteckung": 0.35, "sterben": 0.4,
+      "medicusFaktor": 0.5, "schnapsFaktor": 0.8,
+      "krankenstand": 0.3, "talentAbzug": 2,
+      "voelker": { "Mensch": 1, "Halbling": 1, "Zwerg": 0.6, "Elb": 0.5 }
+    }
+  },
   "aktionspunkte": {
     "hoechstens": 12,
     "trainingSchritt": 0.5,
@@ -73,6 +96,14 @@
       },
       "nachfrage": 150,
       "npcAnteil": 0.7
+    },
+    "Kräuterschnaps": {
+      "typ": "Heilmittel",
+      "grundpreis": 25,
+      "zeit": 20,
+      "zutaten": {},
+      "nachfrage": 80,
+      "npcAnteil": 0.95
     }
   },
   "arbeitskraefte": {

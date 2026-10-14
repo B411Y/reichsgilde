@@ -69,6 +69,9 @@ public sealed record WirtschaftStand
 
     /// <summary>Die Unterwelt (null in Spielständen von vor den Gaunern).</summary>
     public UnterweltStand? Gauner { get; init; }
+
+    /// <summary>Krankheiten und Pest (null in Spielständen von vor der Gesundheit).</summary>
+    public GesundheitStand? Gesundheit { get; init; }
 }
 
 public sealed record UnterweltStand
@@ -214,6 +217,27 @@ public sealed record PersonStand
 
     /// <summary>Jahr, in dem jedes Talent zuletzt geübt wurde (0 = nie; null in alten Spielständen).</summary>
     public List<int>? Geuebt { get; init; }
+
+    public ErkrankungStand? Krankheit { get; init; }
+    public string? Todesursache { get; init; }
+}
+
+public sealed record ErkrankungStand
+{
+    public string Name { get; init; } = "";
+    public int Bis { get; init; }
+    public bool Medicus { get; init; }
+    public bool Schnaps { get; init; }
+}
+
+public sealed record GesundheitStand
+{
+    public long ZufallWuerfe { get; init; }
+    public int NaechstePest { get; init; }
+    public bool Pestjahr { get; init; }
+
+    /// <summary>Kräuterschnaps in der Hausapotheke, je Konto (Index).</summary>
+    public Dictionary<int, int> Apotheke { get; init; } = new();
 }
 
 public sealed record FamilieStand

@@ -126,7 +126,7 @@ public sealed class Familienbuch
         var td = _d.Talente;
         foreach (var t in TalentTexte.Alle)
         {
-            var eltern = (mutter.Talent(t) + vater.Talent(t)) / 2;
+            var eltern = (mutter.Anlage(t) + vater.Anlage(t)) / 2;
             kind.TalentSetzen(t, Runden(td.Vererbung * eltern + (1 - td.Vererbung) * td.Grundwert(kind.Volk, t) + Streuen(td.Streuung / 2)));
         }
     }
@@ -401,7 +401,7 @@ public sealed class Familienbuch
         }
     }
 
-    private void Ereignis(Konto konto, string text)
+    internal void Ereignis(Konto konto, string text)
     {
         _laufend.Add(new FamilienEreignis(konto, text));
         _w.Melden(text);
@@ -513,7 +513,7 @@ public sealed class Familienbuch
             {
                 var faktor = Ausbildungsfaktor(p.Volk);
                 foreach (var (t, zuwachs) in a.Talente)
-                    p.TalentSetzen(t, Math.Min(_d.Talente.Hoechstwert, p.Talent(t) + zuwachs * faktor));
+                    p.TalentSetzen(t, Math.Min(_d.Talente.Hoechstwert, p.Anlage(t) + zuwachs * faktor));
             }
             // Wird das Kind im neuen Jahr volljährig, ist die Ausbildung abgeschlossen.
             if (p.Alter(Jahr + 1) >= _d.Volk(p.Volk).Volljaehrig)
@@ -552,8 +552,8 @@ public sealed class Familienbuch
         if (!HatTalente) return "In dieser Stadt gibt es keine Talente.";
         if (Von(konto) is not { } f) return $"{konto.Inhaber} hat keine Familie.";
         var o = f.Oberhaupt;
-        if (o.Talent(talent) >= _d.Talente.Hoechstwert - 1e-9)
-            return $"{o.Vorname} beherrscht {talent.Name()} schon meisterhaft ({TalentTexte.Sterne(o.Talent(talent))} Sterne).";
+        if (o.Anlage(talent) >= _d.Talente.Hoechstwert - 1e-9)
+            return $"{o.Vorname} beherrscht {talent.Name()} schon meisterhaft ({TalentTexte.Sterne(o.Anlage(talent))} Sterne).";
         if (o.GeuebtIm(talent) == Jahr)
             return $"{o.Vorname} hat {talent.Name()} dieses Jahr schon geübt.";
         return null;
@@ -565,9 +565,9 @@ public sealed class Familienbuch
         if (TrainingVerboten(konto, talent) is { } grund) return Befehlsergebnis.Abgelehnt(grund);
         var o = Von(konto)!.Oberhaupt;
         var schritt = _w.Daten.Aktionspunkte?.TrainingSchritt ?? 0.5;
-        o.TalentSetzen(talent, Math.Min(_d.Talente.Hoechstwert, o.Talent(talent) + schritt));
+        o.TalentSetzen(talent, Math.Min(_d.Talente.Hoechstwert, o.Anlage(talent) + schritt));
         o.GeuebtSetzen(talent, Jahr);
-        return Befehlsergebnis.Ok($"{o.Vorname} übt {talent.Name()}: jetzt {TalentTexte.Sterne(o.Talent(talent))} Sterne.");
+        return Befehlsergebnis.Ok($"{o.Vorname} übt {talent.Name()}: jetzt {TalentTexte.Sterne(o.Anlage(talent))} Sterne.");
     }
 
     /// <summary>Todesfälle, Erbfälle, Geburten und die Brautschau des neuen Jahres.</summary>
@@ -614,15 +614,39 @@ public sealed class Familienbuch
     private void Sterben(Familie f, Person p)
     {
         p.Todesjahr = Jahr;
+        p.Krankheit = null;
         var alter = p.Alter(Jahr);
+        var woran = p.Todesursache is { } u ? $" {u}" : "";
         if (p == f.Ehepartner)
         {
             f.Ehepartner = null;
-            Ereignis(f.Konto, $"Trauer im Haus {f.Nachname}: {p.Vorname}, {p.Ehepartnertitel} von {f.Oberhaupt.Vorname}, ist mit {alter} Jahren gestorben.");
+            Ereignis(f.Konto, $"Trauer im Haus {f.Nachname}: {p.Vorname}, {p.Ehepartnertitel} von {f.Oberhaupt.Vorname}, ist mit {alter} Jahren{woran} gestorben.");
         }
         else if (p != f.Oberhaupt)
-            Ereignis(f.Konto, $"Trauer im Haus {f.Nachname}: {p.Vorname} ist mit {alter} Jahren gestorben.");
+            Ereignis(f.Konto, $"Trauer im Haus {f.Nachname}: {p.Vorname} ist mit {alter} Jahren{woran} gestorben.");
         if (f.Testament == p) f.Testament = null;
+    }
+
+    /// <summary>Eine Person stirbt an einer Krankheit (vom Gesundheitswesen) – mit Erbfolge, wenn es das Oberhaupt traf.</summary>
+    internal void AnKrankheitSterben(Person p, string ursache)
+    {
+        if (!p.Lebt) return;
+        p.Todesursache = ursache;
+        var kandidat = _kandidaten.FirstOrDefault(k => k.Person == p);
+        if (kandidat is not null)
+        {
+            p.Todesjahr = Jahr;
+            p.Krankheit = null;
+            _kandidaten.Remove(kandidat);
+            foreach (var konto in _w.Konten.Where(x => Zuneigung(x, kandidat) > 0.5))
+                Ereignis(konto, $"{p.Name}, um {(p.Geschlecht == Geschlecht.Frau ? "die" : "den")} {konto.Inhaber} geworben hat, ist {ursache} gestorben.");
+            ZuneigungEntfernen(s => s.Item2 == p.Nummer);
+            return;
+        }
+        if (_familien.Values.FirstOrDefault(f => f.Konto.IstAktiv && f.Lebende.Contains(p)) is not { } familie) return;
+        Sterben(familie, p);
+        if (!familie.Oberhaupt.Lebt)
+            Nachfolge(familie);
     }
 
     /// <summary>Das Oberhaupt ist tot: Testament, ältestes volljähriges Kind, Witwenrecht – oder das Haus erlischt.</summary>
@@ -635,7 +659,7 @@ public sealed class Familienbuch
 
         if (erbe is null)
         {
-            Ereignis(f.Konto, $"{tot.OberhauptTitel} {tot.Name} ist mit {tot.Alter(Jahr)} Jahren gestorben – ohne Erben. " +
+            Ereignis(f.Konto, $"{tot.OberhauptTitel} {tot.Name} ist mit {tot.Alter(Jahr)} Jahren{(tot.Todesursache is { } u1 ? " " + u1 : "")} gestorben – ohne Erben. " +
                               $"Das Haus {f.Nachname} ist erloschen{(waisen > 0 ? $"; {waisen} unmündige Kinder bleiben zurück" : "")}.");
             f.Konto.IstErloschen = true;
             _w.Stilllegen(f.Konto);
@@ -651,7 +675,7 @@ public sealed class Familienbuch
         f.Testament = null;
         ZuneigungEntfernen(s => s.Item1 == f.Konto);
         _w.Rat.Neuanfang(f.Konto);
-        Ereignis(f.Konto, $"{tot.OberhauptTitel} {tot.Name} ist mit {tot.Alter(Jahr)} Jahren gestorben. {wieErbe} ({erbe.Alter(Jahr)} Jahre). " +
+        Ereignis(f.Konto, $"{tot.OberhauptTitel} {tot.Name} ist mit {tot.Alter(Jahr)} Jahren{(tot.Todesursache is { } u2 ? " " + u2 : "")} gestorben. {wieErbe} ({erbe.Alter(Jahr)} Jahre). " +
                           "Ämter und Gunst im Rat beginnen von vorn.");
         Erbfall?.Invoke(f, tot, erbe);
     }
@@ -679,7 +703,9 @@ public sealed class Familienbuch
                 Nummer = p.Nummer, Vorname = p.Vorname, Familienname = p.Familienname, Geburtsname = p.Geburtsname,
                 Volk = p.Volk, Geschlecht = p.Geschlecht, Geburtsjahr = p.Geburtsjahr, Todesjahr = p.Todesjahr,
                 Vater = p.Vater, Mutter = p.Mutter,
-                Talente = HatTalente ? TalentTexte.Alle.Select(p.Talent).ToList() : null,
+                Talente = HatTalente ? TalentTexte.Alle.Select(p.Anlage).ToList() : null,
+                Krankheit = p.Krankheit is { } k ? new ErkrankungStand { Name = k.Name, Bis = k.Bis, Medicus = k.Medicus, Schnaps = k.Schnaps } : null,
+                Todesursache = p.Todesursache,
                 Ausbildung = p.Ausbildung, Abschluss = p.Abschluss,
                 Geuebt = TalentTexte.Alle.Any(t => p.GeuebtIm(t) != 0) ? TalentTexte.Alle.Select(p.GeuebtIm).ToList() : null,
             }).ToList();
@@ -719,7 +745,8 @@ public sealed class Familienbuch
         {
             var person = new Person(p.Nummer, p.Vorname, p.Familienname, p.Volk, p.Geschlecht, p.Geburtsjahr, p.Vater, p.Mutter, p.Geburtsname, p.Todesjahr)
             {
-                Ausbildung = p.Ausbildung, Abschluss = p.Abschluss,
+                Ausbildung = p.Ausbildung, Abschluss = p.Abschluss, Todesursache = p.Todesursache,
+                Krankheit = p.Krankheit is { } k && _w.Daten.Gesundheit is { } g ? Gesundheit.Erkrankung.Aus(g, k.Name, k.Bis) with { Medicus = k.Medicus, Schnaps = k.Schnaps } : null,
             };
             foreach (var t in TalentTexte.Alle) // alte Spielstände ohne Talente: Grundwerte des Volkes
                 person.TalentSetzen(t, p.Talente is { } werte && (int)t < werte.Count ? werte[(int)t] : HatTalente ? _d.Talente.Grundwert(p.Volk, t) : 0);

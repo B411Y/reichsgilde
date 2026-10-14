@@ -36,9 +36,21 @@ public sealed class Person
 
     private readonly double[] _talente = new double[TalentTexte.Alle.Length];
 
-    /// <summary>Sterne in einem Talent (0 bis 6, halbe Sterne möglich).</summary>
-    public double Talent(Talent t) => _talente[(int)t];
+    /// <summary>
+    /// Sterne, die gerade wirken (0 bis 6, halbe Sterne möglich) – eine Krankheit zieht etwas ab.
+    /// Für Anlage, Üben, Vererben und Speichern zählt <see cref="Anlage"/>.
+    /// </summary>
+    public double Talent(Talent t) => Math.Max(0, _talente[(int)t] - (Krankheit?.Abzug(t) ?? 0));
+
+    /// <summary>Sterne ohne Krankheit – das, was die Person eigentlich kann.</summary>
+    public double Anlage(Talent t) => _talente[(int)t];
     internal void TalentSetzen(Talent t, double wert) => _talente[(int)t] = wert;
+
+    /// <summary>Die Krankheit, an der die Person gerade leidet (oder null).</summary>
+    public Gesundheit.Erkrankung? Krankheit { get; internal set; }
+
+    /// <summary>Woran die Person gestorben ist („an der Pest") – nur, wenn es eine Krankheit war.</summary>
+    public string? Todesursache { get; internal set; }
 
     private readonly int[] _geuebt = new int[TalentTexte.Alle.Length];
 
@@ -49,7 +61,7 @@ public sealed class Person
 
     /// <summary>Die beste Begabung, z. B. für die Brautschau.</summary>
     public IEnumerable<(Talent Talent, double Wert)> Staerken =>
-        TalentTexte.Alle.Select(t => (t, Talent(t))).OrderByDescending(x => x.Item2).ThenBy(x => x.t);
+        TalentTexte.Alle.Select(t => (t, Anlage(t))).OrderByDescending(x => x.Item2).ThenBy(x => x.t);
 
     /// <summary>Laufende Ausbildung eines Kindes (Name aus "ausbildungen") oder null.</summary>
     public string? Ausbildung { get; internal set; }
