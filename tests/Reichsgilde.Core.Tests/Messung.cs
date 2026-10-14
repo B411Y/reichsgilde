@@ -32,6 +32,10 @@ static class Messung
         double talentOberhaupt = 0, ausgebildet = 0;
         int pestjahre = 0, krankheitstote = 0, pesttote = 0, krankJahre = 0;
         double familienKi = 0;
+        double eichwaldVermoegen = 0, eichwaldGewinn = 0, spielerTischlerGewinn = 0;
+        int eichwaldBm = 0, eichwaldErloschen = 0, partienMitEichwald = 0;
+        var eichwaldWaren = new SortedDictionary<string, int>();
+        var eisenbartWaren = new SortedDictionary<string, int>();
         var abschluesse = new SortedDictionary<string, int>();
         for (var s = 1; s <= startwerte; s++)
         {
@@ -72,6 +76,18 @@ static class Messung
                     if (u.Schuldig && hatteAmt && u.Text.Contains("Verlust des Amtes")) amtVerloren++;
                 }
             }
+            foreach (var (ware, stueck) in rivale.Vorjahr?.Hergestellt ?? new())
+                eisenbartWaren[ware] = eisenbartWaren.GetValueOrDefault(ware) + stueck;
+            if (w.Konten.FirstOrDefault(k => k.Inhaber == Partieaufbau.ZweiterRivale) is { } eichwald)
+            {
+                partienMitEichwald++;
+                eichwaldVermoegen += eichwald.Vermoegen;
+                eichwaldGewinn += eichwald.Vorjahr?.Gewinn ?? 0;
+                if (eichwald.IstErloschen) eichwaldErloschen++;
+                if (w.Rat.AmtNamens("Bürgermeister")?.Konto == eichwald) eichwaldBm++;
+                foreach (var (ware, stueck) in eichwald.Vorjahr?.Hergestellt ?? new())
+                    eichwaldWaren[ware] = eichwaldWaren.GetValueOrDefault(ware) + stueck;
+            }
             var f = w.Familien.Von(rivale)!;
             var nachkommen = f.Mitglieder.Count(p => p.Vater is not null);
             if (heirat is { } h) { verheiratet++; heiratsjahre += h; }
@@ -105,6 +121,11 @@ static class Messung
                           $"({string.Join(", ", abschluesse.Select(x => $"{x.Key} {x.Value}"))})");
         Console.WriteLine($"  Gesundheit: {pestjahre} Pestjahre in {startwerte} Partien; Krankheitstote im Haus Eisenbart {krankheitstote} (davon Pest {pesttote}); " +
                           $"Oberhaupt zum Jahresbeginn krank in {krankJahre} von {startwerte * jahre} Jahren; Familienkosten der KI Ø {Zahlenformat.Ganz(familienKi / startwerte / jahre)} im Jahr");
+        Console.WriteLine("  Haus Eisenbart hergestellt im letzten Jahr Ø " + string.Join(", ", eisenbartWaren.Select(x => $"{x.Key} {x.Value / startwerte}")));
+        if (partienMitEichwald > 0)
+            Console.WriteLine($"  Haus Eichwald (Tischler): Vermögen Ø {Zahlenformat.Ganz(eichwaldVermoegen / partienMitEichwald)}, Gewinn im letzten Jahr Ø {Zahlenformat.Ganz(eichwaldGewinn / partienMitEichwald)}, " +
+                              $"am Ende Bürgermeister in {eichwaldBm}/{partienMitEichwald}, erloschen {eichwaldErloschen}; hergestellt im letzten Jahr Ø " +
+                              string.Join(", ", eichwaldWaren.Select(x => $"{x.Key} {x.Value / partienMitEichwald}")));
         if (gericht)
             Console.WriteLine($"  vor Gericht: {urteileSchuldig} Schuldsprüche, {urteileFrei} Freisprüche, davon {amtVerloren} mit Amtsverlust (Summe über alle Startwerte)");
         return 0;

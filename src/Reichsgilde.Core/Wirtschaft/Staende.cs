@@ -47,5 +47,6 @@ public sealed class LiegenschaftDaten
     /// <summary>Ab welchem Stand man sie erwerben darf (Name aus "staende").</summary>
     public string MindestStand { get; init; } = "Bürger";
 
-    public bool IstPacht => Art == Betriebsart.Mine;
+    /// <summary>Ohne Kaufpreis wird gepachtet (Umland): Man zahlt nur die Jahrespacht.</summary>
+    public bool IstPacht => Kaufpreis <= 0;
 }

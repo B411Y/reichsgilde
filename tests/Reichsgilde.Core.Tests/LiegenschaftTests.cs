@@ -23,10 +23,10 @@ static class LiegenschaftTests
 
     public static IEnumerable<(string, Action)> Alle() => new (string, Action)[]
     {
-        ("Liegenschaften: drei sind frei, erst ab Bürger zu haben", () =>
+        ("Liegenschaften: fünf sind frei (je Beruf eine Werkstatt und Umland), erst ab Bürger zu haben", () =>
         {
             var w = NeueSimulation().Wirtschaft!;
-            Pruefe.Gleich(3, w.FreieLiegenschaften.Count());
+            Pruefe.Gleich(5, w.FreieLiegenschaften.Count());
             var gemeiner = w.KontoEroeffnen("Gemeiner", startvermoegen: 50000);
             var e = w.Ausfuehren(gemeiner, new LiegenschaftErwerben("Gießerei an der Südgasse"));
             Pruefe.Wahr(!e.Erfolg && e.Meldung.Contains("erst ab dem Stand Bürger"), e.Meldung);
@@ -46,7 +46,7 @@ static class LiegenschaftTests
             Pruefe.Gleich(k, erworben.Konto);
             Pruefe.Gleich("Handkarren", erworben.Karren.Single().Typ);
             Pruefe.Gleich(0, erworben.Belegt);
-            Pruefe.Gleich(2, w.FreieLiegenschaften.Count());
+            Pruefe.Gleich(w.Daten.Liegenschaften.Count - 1, w.FreieLiegenschaften.Count());
         }),
 
         ("Grube pachten: kein Kaufpreis, aber die erste Jahrespacht muss gedeckt sein", () =>
@@ -96,7 +96,9 @@ static class LiegenschaftTests
             for (var i = 0; i < 3 * 60; i++) sim.Tick();
             Pruefe.Gleich(2, w.Betriebe.Count(b => b.Konto == k));
             Pruefe.Wahr(w.Betriebe.Where(b => b.Konto == k).All(b => b.Belegt > 0), "neue Betriebe ohne Personal");
-            Pruefe.Gleich(1, w.FreieLiegenschaften.Count());
+            Pruefe.Gleich(w.Daten.Liegenschaften.Count - 2, w.FreieLiegenschaften.Count());
+            // Mit dem ersten Erwerb hat die KI ihr Handwerk – der zweite gehört zum selben Beruf.
+            Pruefe.Gleich(1, w.Betriebe.Where(b => b.Konto == k).Select(b => b.Artdaten.Beruf).Distinct().Count());
         }),
 
         ("Daten: Mindeststand muss es geben", () =>

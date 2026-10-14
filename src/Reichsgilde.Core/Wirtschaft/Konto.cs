@@ -80,6 +80,13 @@ public sealed class Konto
     /// <summary>Noch im Spiel: weder bankrott noch erloschen.</summary>
     public bool IstAktiv => !IstBankrott && !IstErloschen;
 
+    private readonly SortedSet<string> _berufe = new(StringComparer.Ordinal);
+
+    /// <summary>Die Handwerke, die das Haus beherrscht (Startberuf und erlernte).</summary>
+    public IReadOnlyCollection<string> Berufe => _berufe;
+    public bool Beherrscht(string beruf) => _berufe.Contains(beruf);
+    internal void BerufLernen(string beruf) { if (beruf != "") _berufe.Add(beruf); }
+
     /// <summary>Aktionspunkte des Hauses für persönliche Handlungen (Werben, Rat, Gericht, Hinterzimmer, Training).</summary>
     public Partie.Aktionspunkte Aktionspunkte { get; } = new();
 
@@ -115,6 +122,7 @@ public sealed class Konto
     {
         Inhaber = Inhaber, Vermoegen = Vermoegen, Stand = Stand, Schuldenjahre = Schuldenjahre, IstBankrott = IstBankrott, IstErloschen = IstErloschen,
         Aktionspunkte = Aktionspunkte.Vorrat,
+        Berufe = _berufe.ToList(),
         Laufend = BilanzSichern(Laufend), Vorjahr = Vorjahr is null ? null : BilanzSichern(Vorjahr),
     };
 
@@ -126,6 +134,8 @@ public sealed class Konto
             Laufend = BilanzLaden(s.Laufend), Vorjahr = s.Vorjahr is null ? null : BilanzLaden(s.Vorjahr),
         };
         konto.Aktionspunkte.Setzen(s.Aktionspunkte);
+        foreach (var beruf in s.Berufe ?? new List<string>())
+            konto.BerufLernen(beruf);
         return konto;
     }
 

@@ -172,7 +172,7 @@ static class RatTests
         ("KI: stimmt für ein Statut nur bei deutlichem Vorteil – Orks in der Grube: gegen A", () =>
         {
             var (sim, _) = Partieaufbau.Erstellen(Partieeinstellungen.Standard, Daten.Value, new NeuePartie());
-            var ki = sim.Wirtschaft!.Rivalen.Single();
+            var ki = sim.Wirtschaft!.Rivalen.First(r => r.Konto.Inhaber == Partieaufbau.Rivalenname); // Haus Eisenbart mit Grube
             Pruefe.Wahr(ki.ErwartungUnter(Fronstatut.Bestienfron) > ki.ErwartungUnter(Fronstatut.FreieStadt), "Orks sollten unter B mehr bringen");
             Pruefe.Gleich(false, ki.StimmtFuerStatut(Fronstatut.FreieStadt));
         }),

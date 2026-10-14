@@ -1,5 +1,6 @@
 using Godot;
 using Reichsgilde.Core;
+using Reichsgilde.Core.Partie;
 using Reichsgilde.Core.Wirtschaft;
 using Reichsgilde.Core.Zeit;
 
@@ -43,6 +44,7 @@ public partial class Stadtansicht : Node3D
     private static readonly Color Holz = new(0.36f, 0.25f, 0.16f);
     private static readonly Color Spieler = new(0.20f, 0.42f, 0.72f);
     private static readonly Color Rivale = new(0.70f, 0.20f, 0.16f);
+    private static readonly Color ZweiterRivale = new(0.22f, 0.55f, 0.28f);
 
     private const float KameraMinZoom = 25f;
     private const float KameraMaxZoom = 140f;
@@ -120,6 +122,9 @@ public partial class Stadtansicht : Node3D
         public required Vector3 Hof { get; init; }
         public required Vector3[] WegZumMarkt { get; init; }
         public bool Spieler { get; set; }
+
+        /// <summary>Farbe des Besitzers (Fahne, Karren).</summary>
+        public Color Farbe { get; set; }
         public OmniLight3D? Glut { get; init; }
         public StandardMaterial3D? Esse { get; init; }
         public Label3D? Schild { get; init; }
@@ -154,11 +159,16 @@ public partial class Stadtansicht : Node3D
     public static readonly Dictionary<string, Vector3> Stadtplan = new()
     {
         ["Gießerei am Weinmarkt"] = new(-20, 0, 14),
+        ["Tischlerei am Weinmarkt"] = new(-20, 0, 14), // derselbe Platz – je nach Startberuf
         ["Gießerei Eisenbart"] = new(18, 0, 16),
         ["Gießerei an der Südgasse"] = new(2, 0, 20),
+        ["Tischlerei Eichwald"] = new(-14, 0, 27),
+        ["Tischlerei am Holzmarkt"] = new(18, 0, -7),
         ["Grube Eisenbart"] = new(68, 0, -12),
         ["Grube am Silberberg"] = new(66, 0, 32),
         ["Grube im Tannenwald"] = new(48, 0, -52),
+        ["Holzschlag Eichwald"] = new(20, 0, -62),
+        ["Holzschlag im Eichenforst"] = new(14, 0, 66),
     };
 
     /// <summary>Gruben liegen vor der Stadt: Hier zweigt ihr Weg von der Straße ab, die zum Osttor führt.</summary>
@@ -167,6 +177,8 @@ public partial class Stadtansicht : Node3D
         ["Grube Eisenbart"] = new(56, 0, -2),
         ["Grube am Silberberg"] = new(52, 0, 18),
         ["Grube im Tannenwald"] = new(46, 0, -26),
+        ["Holzschlag Eichwald"] = new(42, 0, -20),
+        ["Holzschlag im Eichenforst"] = new(46, 0, 26),
     };
 
     /// <summary>Freie Bauplätze und Gruben, die noch niemandem gehören: Name → ihre Darstellung.</summary>
@@ -385,13 +397,23 @@ public partial class Stadtansicht : Node3D
             KnotenEntfernen(alt);
 
         var spieler = betrieb.Konto == _spielerKonto;
-        var farbe = spieler ? Spieler : Rivale;
-        var ansicht = betrieb.Art == Betriebsart.Mine
-            ? MineBauen(betrieb, platz, farbe, Abzweige.GetValueOrDefault(betrieb.Name, Osttor + new Vector3(20, 0, 0)))
-            : GiessereiBauen(betrieb, platz, farbe);
+        var farbe = Besitzerfarbe(betrieb.Konto);
+        var abzweig = Abzweige.GetValueOrDefault(betrieb.Name, Osttor + new Vector3(20, 0, 0));
+        var ansicht = betrieb.Art switch
+        {
+            Betriebsart.Mine => MineBauen(betrieb, platz, farbe, abzweig),
+            Betriebsart.Holzfaellerei => HolzschlagBauen(betrieb, platz, farbe, abzweig),
+            Betriebsart.Tischlerei => GiessereiBauen(betrieb, platz, farbe, tischlerei: true),
+            _ => GiessereiBauen(betrieb, platz, farbe),
+        };
         ansicht.Spieler = spieler;
+        ansicht.Farbe = farbe;
         _betriebe[betrieb] = ansicht;
     }
+
+    /// <summary>Farbe der Fahnen und Karren: Spieler blau, Haus Eisenbart rot, Haus Eichwald grün.</summary>
+    private Color Besitzerfarbe(Konto konto) =>
+        konto == _spielerKonto ? Spieler : konto.Inhaber == Partieaufbau.ZweiterRivale ? ZweiterRivale : Rivale;
 
     /// <summary>Kennung eines freien Platzes für Mausklicks.</summary>
     public static string LiegenschaftKennung(string name) => "liegenschaft:" + name;
@@ -407,7 +429,16 @@ public partial class Stadtansicht : Node3D
         AddChild(gruppe);
         var holz = Material(Holz);
 
-        if (frei.Art == Betriebsart.Mine)
+        var umland = _simulation?.Wirtschaft?.Daten.Art(frei.Art).Ort == Arbeitsort.Umland;
+        if (frei.Art == Betriebsart.Holzfaellerei)
+        {
+            // Ein Kahlschlag mit Baumstümpfen
+            foreach (var (dx, dz) in new[] { (-4f, -3f), (3f, -4f), (5f, 3f), (-2f, 4f), (0f, 0f) })
+                Quader(p + new Vector3(dx, 0.4f, dz), new Vector3(1.2f, 0.8f, 1.2f), holz, gruppe);
+            WegZiehen(Abzweige[frei.Name], p + new Vector3(-2, 0, 0), 4, gruppe);
+            WegZiehen(Osttor, Abzweige[frei.Name], 4, gruppe);
+        }
+        else if (frei.Art == Betriebsart.Mine)
         {
             BergBauen(p, gruppe);
             Quader(p + new Vector3(2, 2, 0), new Vector3(3, 4, 4), Material(new Color(0.08f, 0.07f, 0.07f)), gruppe); // verlassener Stollen
@@ -433,7 +464,7 @@ public partial class Stadtansicht : Node3D
         Quader(p + new Vector3(-4, 1.2f, 4.6f), new Vector3(0.15f, 2.4f, 0.15f), holz, gruppe);
         Quader(p + new Vector3(-4, 2.3f, 4.7f), new Vector3(1.6f, 0.8f, 0.08f), Material(new Color(0.85f, 0.78f, 0.6f)), gruppe);
 
-        Klickflaeche(LiegenschaftKennung(frei.Name), p + new Vector3(0, 2, 0), frei.Art == Betriebsart.Mine ? new Vector3(16, 8, 14) : new Vector3(10, 4, 8), gruppe);
+        Klickflaeche(LiegenschaftKennung(frei.Name), p + new Vector3(0, 2, 0), umland ? new Vector3(16, 8, 14) : new Vector3(10, 4, 8), gruppe);
         Beschriftung($"{frei.Name}\n{(frei.IstPacht ? "zu verpachten" : "zu verkaufen")}", p + new Vector3(0, frei.Art == Betriebsart.Mine ? 9 : 6, 0), 36, gruppe);
         _freiePlaetze[frei.Name] = gruppe;
     }
@@ -445,7 +476,11 @@ public partial class Stadtansicht : Node3D
         knoten.QueueFree();
     }
 
-    private BetriebsAnsicht GiessereiBauen(Betrieb betrieb, Vector3 p, Color besitzer)
+    /// <summary>
+    /// Werkstatt in Fachwerk. Die Gießerei hat eine glühende Esse und einen Innenraum (Diorama);
+    /// die Tischlerei (<paramref name="tischlerei"/>) ein Schieferdach und Holzstapel vor der Tür – ihr Innenraum folgt später.
+    /// </summary>
+    private BetriebsAnsicht GiessereiBauen(Betrieb betrieb, Vector3 p, Color besitzer, bool tischlerei = false)
     {
         // Maße: 10 m (West–Ost) × 8 m (Nord–Süd), Wände 6 m hoch und 0,4 m dick.
         const float breite = 10, tiefe = 8, hoehe = 6, dicke = 0.4f;
@@ -480,7 +515,15 @@ public partial class Stadtansicht : Node3D
         // ── Dach mit Schornstein: eine Gruppe, die in der Innenansicht verschwindet ──
         var dach = new Node3D { Name = "Dach" };
         AddChild(dach);
-        Dach(p + new Vector3(0, hoehe, 0), new Vector3(breite + 0.6f, 4.8f, tiefe + 0.6f), Material(Ziegel), quer: true, eltern: dach);
+        Dach(p + new Vector3(0, hoehe, 0), new Vector3(breite + 0.6f, 4.8f, tiefe + 0.6f), Material(tischlerei ? Schiefer : Ziegel), quer: true, eltern: dach);
+        if (tischlerei)
+        {
+            // Holzstapel an der Ostseite, ein Sägebock vor dem Tor
+            var stamm = Material(Holz);
+            for (var lage = 0; lage < 3; lage++)
+                Quader(p + new Vector3(breite / 2 + 1.2f, 0.4f + lage * 0.8f, 0), new Vector3(1.8f, 0.7f, tiefe - 1 - lage), stamm);
+            Quader(p + new Vector3(2, 0.5f, tiefe / 2 + 1.4f), new Vector3(2.2f, 1f, 0.6f), stamm);
+        }
         var esse = Material(new Color(0.3f, 0.28f, 0.27f));
         esse.EmissionEnabled = true;
         esse.Emission = new Color(1f, 0.45f, 0.1f);
@@ -505,13 +548,13 @@ public partial class Stadtansicht : Node3D
             Mitte = p,
             Hof = hof,
             WegZumMarkt = new[] { hof, gasse, Marktplatz },
-            Glut = glut,
-            Esse = esse,
+            Glut = tischlerei ? null : glut,
+            Esse = tischlerei ? null : esse,
             Schild = schild,
             Dach = dach,
         };
         ansicht.Waende.AddRange(gebaeude);
-        Innenraum(ansicht, breite, tiefe, dicke);
+        if (!tischlerei) Innenraum(ansicht, breite, tiefe, dicke);
         return ansicht;
     }
 
@@ -629,6 +672,34 @@ public partial class Stadtansicht : Node3D
         };
     }
 
+    /// <summary>Holzschlag: Blockhütte, gestapelte Stämme und Stümpfe – im Wald vor der Stadt.</summary>
+    private BetriebsAnsicht HolzschlagBauen(Betrieb betrieb, Vector3 p, Color besitzer, Vector3 abzweig)
+    {
+        var stamm = Material(Holz);
+        Haus(p + new Vector3(-6, 0, 6), new Vector3(6, 4, 5), Holz, Schiefer, quer: true);           // Hütte
+        Quader(p + new Vector3(-9.2f, 3.5f, 6), new Vector3(0.2f, 3, 2), Material(besitzer));        // Fahne
+        for (var reihe = 0; reihe < 3; reihe++)                                                       // Stämme
+            for (var lage = 0; lage < 3 - reihe; lage++)
+                Quader(p + new Vector3(2 + reihe * 2.5f, 0.45f + lage * 0.9f, -2), new Vector3(0.8f, 0.8f, 7), stamm);
+        foreach (var (dx, dz) in new[] { (6f, 5f), (9f, 1f), (3f, 7f), (10f, -6f) })                  // Stümpfe
+            Quader(p + new Vector3(dx, 0.4f, dz), new Vector3(1.1f, 0.8f, 1.1f), stamm);
+
+        Klickflaeche(BetriebsKennung(betrieb), p + new Vector3(2, 4, 0), new Vector3(16, 8, 14));
+        var schild = Beschriftung(betrieb.Name, p + new Vector3(2, 8, 0), 44);
+        var hof = p + new Vector3(-2, 0, 0);
+        WegZiehen(abzweig, hof, 4);
+        if (AbstandZurStrecke(abzweig, Osttor, Landstrasse) > 1)
+            WegZiehen(Osttor, abzweig, 4);
+        return new BetriebsAnsicht
+        {
+            Betrieb = betrieb,
+            Mitte = p,
+            Hof = hof,
+            WegZumMarkt = new[] { hof, abzweig, Osttor, Marktplatz },
+            Schild = schild,
+        };
+    }
+
     public static string BetriebsKennung(Betrieb b) => "betrieb:" + b.Name;
 
     /// <summary>Jedes Bild: Licht nach Uhrzeit, Esse, Karren.</summary>
@@ -665,7 +736,7 @@ public partial class Stadtansicht : Node3D
     {
         if (!_karren.TryGetValue(karren, out var knoten))
         {
-            knoten = KarrenModell(spieler ? Spieler : Rivale);
+            knoten = KarrenModell(ansicht.Farbe);
             knoten.Position = ansicht.Hof;
             _karren[karren] = knoten;
         }

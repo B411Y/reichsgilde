@@ -307,6 +307,9 @@ public sealed record KontoStand
     public bool IstBankrott { get; init; }
     public bool IstErloschen { get; init; }
     public int Aktionspunkte { get; init; }
+
+    /// <summary>Beherrschte Handwerke (null in alten Spielständen – dann die Berufe der eigenen Betriebe).</summary>
+    public List<string>? Berufe { get; init; }
     public BilanzStand Laufend { get; init; } = new();
     public BilanzStand? Vorjahr { get; init; }
 }

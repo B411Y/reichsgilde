@@ -22,9 +22,17 @@ public static class Kalkulation
     }
 
     /// <summary>Wert einer Arbeitsminute in diesem Betrieb bei der aktuellen Ausrichtung.</summary>
-    public static double WertJeArbeitsminute(Stadtwirtschaft w, Betrieb betrieb) => betrieb.Art == Betriebsart.Giesserei
+    public static double WertJeArbeitsminute(Stadtwirtschaft w, Betrieb betrieb) => betrieb.IstWerkstatt
         ? GewinnJeArbeitsminute(w, betrieb.Produkt)
-        : (1 - betrieb.Silberanteil) * GewinnJeArbeitsminute(w, "Eisen") + betrieb.Silberanteil * GewinnJeArbeitsminute(w, "Silber");
+        : Gemischt(betrieb, ware => GewinnJeArbeitsminute(w, ware));
+
+    /// <summary>Umland: Wert der Förderung – bei zwei Rohstoffen nach der Aufteilung der Arbeitszeit gewichtet.</summary>
+    private static double Gemischt(Betrieb b, Func<string, double> wert) => b.Rohstoffe.Count switch
+    {
+        0 => 0,
+        1 => wert(b.Rohstoffe[0]),
+        _ => (1 - b.Silberanteil) * wert(b.Rohstoffe[0]) + b.Silberanteil * wert(b.Rohstoffe[1]),
+    };
 
     /// <summary>
     /// Erwarteter Jahresertrag einer Arbeitskraft in diesem Betrieb:
@@ -62,10 +70,9 @@ public static class Kalkulation
     public static double ErwarteterJahresgewinn(Stadtwirtschaft w, Betriebsart art, Fronstatut? statut = null)
     {
         var geltend = statut ?? w.Statut;
-        var ort = art == Betriebsart.Mine ? Arbeitsort.Umland : Arbeitsort.Werkstatt;
-        var wertJeMinute = art == Betriebsart.Mine
-            ? Math.Max(GewinnJeArbeitsminute(w, "Eisen"), GewinnJeArbeitsminute(w, "Silber"))
-            : w.Daten.Waren.Where(x => x.Value.Zutaten.Count > 0).Max(x => GewinnJeArbeitsminute(w, x.Key));
+        var d = w.Daten.Art(art);
+        var ort = d.Ort;
+        var wertJeMinute = (d.IstWerkstatt ? d.Produkte : d.Rohstoffe).Max(ware => GewinnJeArbeitsminute(w, ware));
         var besterKopf = w.Daten.Arbeitskraefte.Values
             .Where(k => k.IstErlaubt(geltend, ort))
             .Select(k => k.TempoAm(ort) * w.Daten.Allgemein.Arbeitsminuten * wertJeMinute - k.Kosten - k.Risiko * k.Schaden)
@@ -78,9 +85,7 @@ public static class Kalkulation
     public static double Ladungswert(Stadtwirtschaft w, Karren karren)
     {
         var betrieb = karren.Heimat;
-        var preis = betrieb.Art == Betriebsart.Giesserei
-            ? w.Markt[betrieb.Produkt].Preis
-            : (1 - betrieb.Silberanteil) * w.Markt["Eisen"].Preis + betrieb.Silberanteil * w.Markt["Silber"].Preis;
+        var preis = betrieb.IstWerkstatt ? w.Markt[betrieb.Produkt].Preis : Gemischt(betrieb, ware => w.Markt[ware].Preis);
         return karren.Daten.Gesamtkapazitaet * preis;
     }
 }

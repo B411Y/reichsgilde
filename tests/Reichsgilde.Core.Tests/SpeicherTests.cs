@@ -83,7 +83,7 @@ static class SpeicherTests
             var json = Speicherung.Speichern(sim, spieler);
             var (geladen, _) = Speicherung.Laden(json);
             Pruefe.Ungefaehr(Daten.Value.Allgemein.PachtMine, geladen.Wirtschaft!.Daten.Allgemein.PachtMine, 1e-9);
-            Pruefe.Gleich(3, geladen.Wirtschaft.Daten.Liegenschaften.Count);
+            Pruefe.Gleich(Daten.Value.Liegenschaften.Count, geladen.Wirtschaft.Daten.Liegenschaften.Count);
         }),
 
         ("Laden: verständliche Fehler bei kaputten oder zu neuen Dateien", () =>
@@ -116,7 +116,7 @@ static class SpeicherTests
             Pruefe.Gleich("Haus Glockengießer", spieler.Inhaber);
             Pruefe.Ungefaehr(6000, spieler.Vermoegen, 1e-9);
             Pruefe.WirftMitMeldung(() => Partieaufbau.Erstellen(Partieeinstellungen.Standard, Daten.Value,
-                new NeuePartie(Partieaufbau.Rivalenname)), "Name des Rivalen");
+                new NeuePartie(Partieaufbau.Rivalenname)), "Name eines Rivalen");
         }),
     };
 }

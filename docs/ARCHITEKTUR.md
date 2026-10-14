@@ -240,6 +240,14 @@ Das Stadtgericht (`src/Reichsgilde.Core/Justiz/Stadtgericht.cs`) gehört zur Sta
 
 **Lehrstück aus diesem Schritt (Godot-Knoten nicht über einen Neuaufbau retten):** Familientafel und Ratskammer hängten ein einziges Zahlenfeld bei jedem Aufbau um. Wurde die Brautschau einmal nicht aufgebaut, blieb das Feld in einer alten Zeile stecken und wurde mit ihr gelöscht. Später griff die Tafel ins Leere und stürzte ab. Seitdem merkt sich die Tafel nur den Wert, und das Feld entsteht jedes Mal neu.
 
+## Berufe und Betriebsarten
+
+- **Daten statt Code:** `betriebsarten` beschreibt jede Art (Name, Beruf, Ort, Plätze, Fixkosten, `produkte` für Werkstätten bzw. `rohstoffe` für Umlandbetriebe, Startkarren), `berufe` ordnet jedem Beruf seine Werkstatt und seinen Umlandbetrieb zu. `Wirtschaftsdaten.Art(art)` liefert den Eintrag. Ältere Daten ohne den Abschnitt (alte Spielstände bringen ihre Daten mit) bekommen Gießerei und Grube aus `allgemein` gebaut, damit alles weiterläuft.
+- **Betrieb:** `IstWerkstatt` stellt das gewählte Produkt her, sonst werden die `Rohstoffe` gefördert. Bei zwei Rohstoffen teilt `Silberanteil` die Arbeitszeit (Name aus alten Spielständen; gemeint ist der zweite Rohstoff). Kalkulation, KI und Oberfläche fragen nur noch `IstWerkstatt`, `Artdaten.Produkte` und `Rohstoffe`, statt die Betriebsart zu prüfen.
+- **Berufe am Konto:** `Konto.Berufe`. Wer einen Betrieb eröffnet, beherrscht dessen Handwerk. `BerufErlernen` (Lehrgeld + AP) schaltet weitere frei. `LiegenschaftErwerben` verlangt das Handwerk – außer bei einem Haus, das noch gar keines hat. Alte Spielstände leiten die Berufe aus den eigenen Betrieben ab.
+- **Haus Eichwald:** zweiter KI-Rivale (`NeuePartie.Rivalen = 2`), Elben, Tischlerei und Holzschlag. Die KI erweitert sich nur im eigenen Handwerk.
+- **Darstellung:** Der Stadtplan ordnet Namen festen Plätzen zu. Die Tischlerei nutzt das Werkstattmodell ohne Esse und ohne Innenraum (der folgt später), der Holzschlag hat ein eigenes Modell. Farben: Spieler blau, Eisenbart rot, Eichwald grün.
+
 ## Gesundheit
 
 - **Teilsystem `Gesundheitswesen`** (`Gesundheit/`, Abschnitt `gesundheit` in wirtschaft.json, eigener Zufallsgenerator `startwert*41+19`). Fehlt der Abschnitt, wird niemand krank.

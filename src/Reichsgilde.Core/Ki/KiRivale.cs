@@ -147,9 +147,9 @@ public sealed class KiRivale
         foreach (var betrieb in Betriebe.ToList())
         {
             _stundenSeitWechsel[betrieb] = _stundenSeitWechsel.GetValueOrDefault(betrieb, int.MaxValue / 2) + 1;
-            if (betrieb.Art == Betriebsart.Giesserei)
+            if (betrieb.IstWerkstatt)
                 ProduktWaehlen(betrieb);
-            else
+            else if (betrieb.Rohstoffe.Count >= 2)
                 FoerderungAufteilen(betrieb);
             PersonalBesetzen(betrieb);
             EskorteWaehlen(betrieb);
@@ -210,9 +210,8 @@ public sealed class KiRivale
             return;
 
         var aktuell = GewinnJeArbeitsminute(betrieb.Produkt);
-        var (bestes, wert) = _w.Daten.Waren
-            .Where(x => x.Value.Zutaten.Count > 0)
-            .Select(x => (Ware: x.Key, Wert: GewinnJeArbeitsminute(x.Key)))
+        var (bestes, wert) = betrieb.Artdaten.Produkte
+            .Select(x => (Ware: x, Wert: GewinnJeArbeitsminute(x)))
             .OrderByDescending(x => x.Wert)
             .ThenBy(x => x.Ware, StringComparer.Ordinal)
             .First();
@@ -232,11 +231,12 @@ public sealed class KiRivale
         if (_stundenSeitWechsel[betrieb] < Profil.MindestStundenJeProdukt)
             return;
 
-        // Eisen und Silber bringen je Arbeitsminute ähnlich viel; die Preise entscheiden.
-        // Drei feste Stufen statt einer gleitenden Zahl – so pendelt die Mine nicht bei jeder kleinen Preisbewegung.
+        // Beide Rohstoffe (Grube: Eisen und Silber) bringen je Arbeitsminute ähnlich viel; die Preise entscheiden.
+        // Drei feste Stufen statt einer gleitenden Zahl – so pendelt die Grube nicht bei jeder kleinen Preisbewegung.
         // Nie ganz auf eine Ware setzen: Ein volles Lager würde die Förderung sonst stoppen.
-        var eisen = Math.Max(0.01, GewinnJeArbeitsminute("Eisen"));
-        var silber = Math.Max(0.01, GewinnJeArbeitsminute("Silber"));
+        var (ersterName, zweiterName) = (betrieb.Rohstoffe[0], betrieb.Rohstoffe[1]);
+        var eisen = Math.Max(0.01, GewinnJeArbeitsminute(ersterName));
+        var silber = Math.Max(0.01, GewinnJeArbeitsminute(zweiterName));
         var vorsprung = (silber - eisen) / (silber + eisen); // −1 … +1
         var anteil = Math.Abs(vorsprung) switch
         {
@@ -248,7 +248,7 @@ public sealed class KiRivale
             return;
         _stundenSeitWechsel[betrieb] = 0;
         Befehlen(new FoerderungAufteilen(betrieb.Name, anteil),
-            $"{betrieb.Name} fördert nun zu {Prozent(anteil)} Silber und {Prozent(1 - anteil)} Eisen.");
+            $"{betrieb.Name} fördert nun zu {Prozent(anteil)} {zweiterName} und {Prozent(1 - anteil)} {ersterName}.");
     }
 
     private void PersonalBesetzen(Betrieb betrieb)
@@ -317,6 +317,7 @@ public sealed class KiRivale
         var daten = _w.Daten;
         var wahl = _w.FreieLiegenschaften
             .Where(l => Konto.Stand >= daten.StandStufe(l.MindestStand))
+            .Where(l => daten.Berufe.Count == 0 || Konto.Berufe.Count == 0 || Konto.Beherrscht(daten.Art(l.Art).Beruf)) // nur das eigene Handwerk
             .Select(l => (Liegenschaft: l, Gewinn: Kalkulation.ErwarteterJahresgewinn(_w, l.Art)))
             .Where(x => x.Gewinn > 0 && x.Liegenschaft.Kaufpreis <= x.Gewinn * Profil.MaxAmortisationJahre)
             .Where(x => Konto.Vermoegen - x.Liegenschaft.Kaufpreis - daten.Fixkosten(x.Liegenschaft.Art)
@@ -854,7 +855,7 @@ public sealed class KiRivale
     /// <summary>Vorsichtige Schätzung der Löhne: der teuerste Lohn, den eine erlaubte Arbeitskraft dort kostet.</summary>
     private double HoechsterLohn(Betriebsart art)
     {
-        var ort = art == Betriebsart.Mine ? Arbeitsort.Umland : Arbeitsort.Werkstatt;
+        var ort = _w.Daten.Art(art).Ort;
         return _w.Daten.Arbeitskraefte.Values.Where(k => k.IstErlaubt(_w.Statut, ort)).Select(k => k.Kosten).DefaultIfEmpty(0).Max();
     }
 

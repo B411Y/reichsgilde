@@ -38,6 +38,7 @@ public partial class BetriebsVerwaltung : VBoxContainer
     private HSlider _silberRegler = null!;
     private Label _silberText = null!;
     private Label _personalKopf = null!;
+    private Label _foerderName = null!;
     private VBoxContainer _personal = null!;
     private VBoxContainer _karren = null!;
     private OptionButton _karrenTyp = null!;
@@ -67,7 +68,8 @@ public partial class BetriebsVerwaltung : VBoxContainer
 
         // Förderung (nur Mine)
         _foerderZeile = Zeile(this);
-        NeuesLabel(_foerderZeile, 14).Text = "Silber:";
+        _foerderName = NeuesLabel(_foerderZeile, 14);
+        _foerderName.Text = "Silber:";
         _silberRegler = new HSlider { MinValue = 0, MaxValue = 100, Step = 5, FocusMode = FocusModeEnum.None, SizeFlagsHorizontal = SizeFlags.ExpandFill };
         _silberRegler.DragEnded += geaendert => { if (geaendert) Befehlen(new FoerderungAufteilen(_betrieb!.Name, _silberRegler.Value / 100)); };
         _foerderZeile.AddChild(_silberRegler);
@@ -103,7 +105,15 @@ public partial class BetriebsVerwaltung : VBoxContainer
             _karrenTypen.Add(typ);
             _karrenTyp.AddItem($"{typ}: {daten.Sorten} × {daten.KapazitaetJeSorte} Stück, {Zahlenformat.Ganz(daten.Preis)} {w.Daten.Allgemein.Waehrung}");
         }
-        foreach (var (ware, daten) in w.Daten.Waren.Where(x => x.Value.Zutaten.Count > 0))
+    }
+
+    /// <summary>Die Auswahlliste zeigt genau die Produkte dieser Werkstatt (Gießerei und Tischlerei haben verschiedene).</summary>
+    private void ProdukteAngleichen(Betrieb b)
+    {
+        if (_produkte.SequenceEqual(b.Artdaten.Produkte)) return;
+        _produkte.Clear();
+        _produktWahl.Clear();
+        foreach (var ware in b.Artdaten.Produkte)
         {
             _produkte.Add(ware);
             _produktWahl.AddItem(ware);
@@ -146,19 +156,21 @@ public partial class BetriebsVerwaltung : VBoxContainer
         }
 
         // Produkt: Auswahl angleichen (Select löst KEIN ItemSelected aus) und Gewinn je Minute zeigen
-        _produktZeile.Visible = b.Art == Betriebsart.Giesserei;
+        _produktZeile.Visible = b.IstWerkstatt;
         if (_produktZeile.Visible)
         {
+            ProdukteAngleichen(b);
             for (var i = 0; i < _produkte.Count; i++)
                 _produktWahl.SetItemText(i, $"{_produkte[i]} · {Zahlenformat.Kommazahl(Kalkulation.GewinnJeArbeitsminute(w, _produkte[i]))} {waehrung}/Min.");
             _produktWahl.Select(_produkte.IndexOf(b.Produkt));
         }
 
-        _foerderZeile.Visible = b.Art == Betriebsart.Mine;
+        _foerderZeile.Visible = b.Rohstoffe.Count >= 2; // nur, wer zwei Rohstoffe fördert, teilt auf (Grube: Eisen/Silber)
         if (_foerderZeile.Visible)
         {
             if (!_silberRegler.HasFocus()) _silberRegler.SetValueNoSignal(b.Silberanteil * 100);
-            _silberText.Text = $"{Zahlenformat.Ganz(b.Silberanteil * 100)} % Silber";
+            _foerderName.Text = $"{b.Rohstoffe[1]}:";
+            _silberText.Text = $"{Zahlenformat.Ganz(b.Silberanteil * 100)} % {b.Rohstoffe[1]}";
         }
 
         // Personal

@@ -1,5 +1,5 @@
 {
-  "version": 11,
+  "version": 12,
   "gesundheit": {
     "medicusKosten": 120,
     "medicusKostenPest": 300,
@@ -31,7 +31,8 @@
       "Werben": 1, "Heiraten": 1,
       "Schenken": 1, "AmtBewerben": 1, "StatutBeantragen": 2,
       "SpitzelAnsetzen": 1, "Anklagen": 2,
-      "Beauftragen": 1, "Erpressen": 2
+      "Beauftragen": 1, "Erpressen": 2,
+      "BerufErlernen": 4
     }
   },
   "allgemein": {
@@ -95,6 +96,38 @@
         "Silber": 1
       },
       "nachfrage": 150,
+      "npcAnteil": 0.7
+    },
+    "Holz": {
+      "typ": "Rohstoff",
+      "grundpreis": 10,
+      "zeit": 10,
+      "zutaten": {},
+      "nachfrage": 600,
+      "npcAnteil": 0.9
+    },
+    "Holzzapfen": {
+      "typ": "Zwischenprodukt",
+      "grundpreis": 40,
+      "zeit": 30,
+      "zutaten": { "Holz": 2 },
+      "nachfrage": 150,
+      "npcAnteil": 0.7
+    },
+    "Schemel": {
+      "typ": "Fertigprodukt",
+      "grundpreis": 95,
+      "zeit": 45,
+      "zutaten": { "Holz": 2, "Holzzapfen": 1 },
+      "nachfrage": 150,
+      "npcAnteil": 0.7
+    },
+    "Truhe": {
+      "typ": "Fertigprodukt",
+      "grundpreis": 140,
+      "zeit": 75,
+      "zutaten": { "Holz": 2, "Beschlag": 1 },
+      "nachfrage": 120,
       "npcAnteil": 0.7
     },
     "Kräuterschnaps": {
@@ -361,6 +394,16 @@
   "schulden": {
     "jahreBisBankrott": 3
   },
+  "berufe": {
+    "Schmied":  { "werkstatt": "Giesserei",  "umland": "Mine",          "lehrgeld": 500, "beschreibung": "Eisen und Silber aus der Grube, in der Gießerei zu Beschlägen, Rapieren und Silberringen." },
+    "Tischler": { "werkstatt": "Tischlerei", "umland": "Holzfaellerei", "lehrgeld": 500, "beschreibung": "Holz aus dem Wald, in der Tischlerei zu Holzzapfen, Schemeln und Truhen (mit Beschlag vom Schmied)." }
+  },
+  "betriebsarten": {
+    "Giesserei":     { "name": "Gießerei",   "beruf": "Schmied",  "ort": "Werkstatt", "plaetze": 2, "fixkosten": 80,  "produkte": [ "Beschlag", "Rapier", "Silberring" ], "standardprodukt": "Silberring", "startkarren": "Handkarren" },
+    "Mine":          { "name": "Grube",      "beruf": "Schmied",  "ort": "Umland",    "plaetze": 3, "fixkosten": 400, "rohstoffe": [ "Eisen", "Silber" ], "startkarren": "Ochsenkarren" },
+    "Tischlerei":    { "name": "Tischlerei", "beruf": "Tischler", "ort": "Werkstatt", "plaetze": 2, "fixkosten": 80,  "produkte": [ "Holzzapfen", "Schemel", "Truhe" ], "standardprodukt": "Schemel", "startkarren": "Handkarren" },
+    "Holzfaellerei": { "name": "Holzschlag", "beruf": "Tischler", "ort": "Umland",    "plaetze": 3, "fixkosten": 400, "rohstoffe": [ "Holz" ], "startkarren": "Ochsenkarren" }
+  },
   "liegenschaften": [
     {
       "name": "Gießerei an der Südgasse",
@@ -377,6 +420,18 @@
     {
       "name": "Grube im Tannenwald",
       "art": "Mine",
+      "kaufpreis": 0,
+      "mindestStand": "Bürger"
+    },
+    {
+      "name": "Tischlerei am Holzmarkt",
+      "art": "Tischlerei",
+      "kaufpreis": 3500,
+      "mindestStand": "Bürger"
+    },
+    {
+      "name": "Holzschlag im Eichenforst",
+      "art": "Holzfaellerei",
       "kaufpreis": 0,
       "mindestStand": "Bürger"
     }
