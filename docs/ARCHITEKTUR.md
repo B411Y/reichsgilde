@@ -225,6 +225,34 @@ Das Stadtgericht (`src/Reichsgilde.Core/Justiz/Stadtgericht.cs`) gehört zur Sta
 
 **Lehrstück aus diesem Schritt (Godot-Knoten nicht über einen Neuaufbau retten):** Familientafel und Ratskammer hängten ein einziges Zahlenfeld bei jedem Aufbau um. Wurde die Brautschau einmal nicht aufgebaut, blieb das Feld in einer alten Zeile stecken und wurde mit ihr gelöscht. Später griff die Tafel ins Leere und stürzte ab. Seitdem merkt sich die Tafel nur den Wert, und das Feld entsteht jedes Mal neu.
 
+## Unterwelt
+
+Die Unterwelt (`src/Reichsgilde.Core/Gauner/Unterwelt.cs`) gehört zur Stadtwirtschaft (`Stadtwirtschaft.Gauner`). Alle Zahlen stehen in `wirtschaft.json` im Abschnitt `gauner`.
+
+- **Bestellen und Ausführen sind getrennt.**
+  - `Beauftragen` bezahlt die Bande sofort.
+  - Ausgeführt wird in `Unterwelt.Nacht`, die die Stadtwirtschaft um 21:00 aufruft (`Unterwelt.Nachtstunde`).
+  - Danach meldet `NachtVorbei`, dass offene Tafeln sich neu aufbauen sollen.
+- **Überfall als Hinterhalt:**
+  - Die Wegelagerer warten bis zur nächsten Nacht. `Karren.Losfahren` fragt bei jeder beladenen Umlandfahrt `HinterhaltAusloesen`.
+  - Lauert ein Hinterhalt, greift er statt der zufälligen Banden an.
+  - Der Schutz der Eskorte gilt wie bisher: Erfolg = Stärke × (1 − Schutz).
+- **Spuren:** Jedes Gaunerstück meldet eine Tat ans Gericht (`TatMelden`, Vergehen Diebstahl, Sabotage, Raub). Mit der Zeugenchance gibt `BeweisGeben` dem Opfer sofort einen Beweis.
+- **Öffentlich oder geheim:** Ein `Nachtereignis` ist entweder öffentlich (`Fuer = null`) oder nur für ein Haus bestimmt, etwa der Hehlerbericht. `NachrichtenFuer` liefert jedem Haus genau das, was es wissen kann.
+- **Erpressung:**
+  - Der Brief ist eine `Forderung` und zugleich eine Spur „Erpressung“, deren Beweis das Opfer sofort hat.
+  - Zahlt das Opfer, verbrennt `BeweiseVerbrennen` die Beweise des Erpressers.
+  - Briefe gelten bis zum Ende des Folgejahres, danach heißt Schweigen Nein.
+- **Kerker:** Das Gericht führt `KerkerBis` wie den Pranger. `Stadtwirtschaft.Ausfuehren` lehnt im Kerker alle persönlichen Befehle ab. Erlaubt bleiben `BetriebsBefehl`, `ErbenBestimmen` und `ErpressungBeantworten`.
+- **Eigener Zufallsgenerator**, wie bei Familie und Gericht.
+
+**KI in der Unterwelt** (Profilwert `Gaunerei`: vorsichtig 0, ausgewogen 1, wagemutig 2):
+- Erpresserbriefe beantwortet sie mit `DrohendeStrafe`: Buße + Pranger + Amt + Kerker, grob in Gulden geschätzt.
+- Nach einem Angriff (`LetzterAngriff`, öffentlich) stellt sie einen Wächter ein.
+- Selbst heuert sie Banden nur an, wenn der erwartete Vorteil die Kosten übersteigt. Unter den Augen der Spitzel hält die Ausgewogene still, die Wagemutige macht weiter.
+
+**Lehrstück aus diesem Schritt (Anzeige und Zeitpunkt):** Im Klicktest zeigte die Tafel nach 21 Uhr noch „Sabotage bestellt“. Der Kern war richtig: Die Tafel war um 20:45 aufgebaut worden und wusste nichts von der Nacht. Eine Anzeige muss erfahren, wann sich ihre Daten ändern. Dafür gibt es jetzt das Ereignis `NachtVorbei`. Das Phasen-Ereignis „Dunkle Nacht“ wäre eine Spielminute zu früh gekommen.
+
 ## Speichern und Laden
 
 Ein Spielstand ist eine lesbare JSON-Datei (`src/Reichsgilde.Core/Speichern/`).

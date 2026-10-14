@@ -58,6 +58,9 @@ public sealed class Unterwelt
     public IReadOnlyList<Nachtereignis> DiesesJahr => _diesesJahr;
     public IReadOnlyList<Nachtereignis> LetztesJahr => _letztesJahr;
 
+    /// <summary>Die Banden haben ihre Aufträge ausgeführt (für Oberflächen, die sich dann neu aufbauen).</summary>
+    public event Action? NachtVorbei;
+
     /// <summary>Was dieses Haus über die Nächte weiß: alles Öffentliche und seine eigenen Berichte.</summary>
     public IEnumerable<string> NachrichtenFuer(Konto konto, bool letztesJahr) =>
         (letztesJahr ? _letztesJahr : _diesesJahr).Where(e => e.Fuer is null || e.Fuer == konto).Select(e => e.Text);
@@ -238,6 +241,7 @@ public sealed class Unterwelt
             _hinterhalte.Remove(h);
             Ereignis(h.Auftraggeber, $"Eure Wegelagerer haben vergeblich auf einen Karren von {h.Ziel.Inhaber} gewartet und ziehen ab.");
         }
+        NachtVorbei?.Invoke();
     }
 
     private void Stehlen(Gaunerauftrag a)

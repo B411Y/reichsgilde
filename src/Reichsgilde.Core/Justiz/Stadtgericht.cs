@@ -204,6 +204,14 @@ public sealed class Stadtgericht
         return Math.Clamp(d.GunstFaktor * (_w.Rat.Gunst(r, anklaeger) - _w.Rat.Gunst(r, beklagter)), -d.GunstHoechstwirkung, d.GunstHoechstwirkung);
     }
 
+    /// <summary>Welche Buße bei einem Schuldspruch fällig würde (nach den Beweisen, die der Ankläger heute hat).</summary>
+    public double DrohendeBusse(Konto anklaeger, Konto beklagter) =>
+        Math.Max(Daten.Mindestbusse, Daten.BusseFaktor * Beweise(anklaeger, beklagter).Sum(b => b.Betrag));
+
+    /// <summary>Führten die Beweise in den Kerker?</summary>
+    public bool DrohtKerker(Konto anklaeger, Konto beklagter) =>
+        Daten.KerkerJahre > 0 && Beweise(anklaeger, beklagter).Any(b => Daten.KerkerFuer.Contains(b.Art));
+
     /// <summary>Wie das Urteil heute ausfiele – dieselbe Rechnung wie am Gerichtstag.</summary>
     public IReadOnlyList<Stimme> Prognose(Verfahren v) => v.Richter
         .Select(r => { var u = Ueberzeugung(r, v.Anklaeger, v.Beklagter); return new Stimme(r, u, u >= Daten.SchuldSchwelle - 1e-9); })

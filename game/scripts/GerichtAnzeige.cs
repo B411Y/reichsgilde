@@ -136,7 +136,7 @@ public partial class GerichtAnzeige : PanelContainer
                     gesperrt: beweise.Count == 0, hinweis: beweise.Count == 0 ? "Ohne Beweise nimmt das Gericht keine Anklage an." : null);
 
             foreach (var b in beweise.TakeLast(5))
-                Text(_inhalt, "   • Bestechung " + b.Beschreibung, 12, Grau);
+                Text(_inhalt, "   • " + b.Beschreibung, 12, Grau);
             if (beweise.Count > 5)
                 Text(_inhalt, $"   … und {beweise.Count - 5} ältere", 12, Grau);
             if (beweise.Count > 0 && gericht.VerfahrenGegen(_spieler, haus) is null)
@@ -169,7 +169,7 @@ public partial class GerichtAnzeige : PanelContainer
                 var beteiligt = v.Anklaeger == _spieler || v.Beklagter == _spieler;
                 var stimmen = gericht.Prognose(v);
                 var schuldig = Stadtgericht.IstSchuldig(stimmen);
-                Text(_inhalt, $"{v.Anklaeger.Inhaber} gegen {v.Beklagter.Inhaber} wegen Bestechung – " +
+                Text(_inhalt, $"{v.Anklaeger.Inhaber} gegen {v.Beklagter.Inhaber} wegen {VergehenTexte.Aufzaehlung(gericht.Beweise(v.Anklaeger, v.Beklagter).Select(b => b.Art))} – " +
                               $"Stand heute: {(schuldig ? "SCHULDIG" : "Freispruch")} ({stimmen.Count(s => s.Schuldig)} von {stimmen.Count})", 14,
                     !beteiligt ? Grau : (schuldig == (v.Anklaeger == _spieler)) ? Gruen : Rot, umbrechen: true);
                 var raster = new GridContainer { Columns = 4 };
@@ -194,7 +194,7 @@ public partial class GerichtAnzeige : PanelContainer
         var spuren = gericht.SpurenVon(_spieler).ToList();
         Text(_inhalt, spuren.Count == 0
                 ? "Ihr habt keine Spuren hinterlassen."
-                : $"Ihr habt {spuren.Count} {(spuren.Count == 1 ? "Bestechung" : "Bestechungen")} begangen, die noch nicht verjährt " +
+                : $"Ihr habt {spuren.Count} {(spuren.Count == 1 ? "Tat" : "Taten")} begangen ({VergehenTexte.Aufzaehlung(spuren.Select(s => s.Art))}), die noch nicht verjährt " +
                   $"{(spuren.Count == 1 ? "ist" : "sind")} (zusammen {Zahlenformat.Ganz(spuren.Sum(s => s.Betrag))} {waehrung}). " +
                   $"Verjährung nach {d.VerjaehrungJahre} Jahren.", 13, spuren.Count == 0 ? Grau : null, umbrechen: true);
         if (gericht.WurdeBeobachtet(_spieler))
