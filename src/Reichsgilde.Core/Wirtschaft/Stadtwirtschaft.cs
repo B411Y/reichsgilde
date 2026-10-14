@@ -117,8 +117,32 @@ public sealed class Stadtwirtschaft
     public Konto KontoEroeffnen(string inhaber, int startjahr = Spielzeit.StartJahr, double? startvermoegen = null)
     {
         var konto = new Konto(inhaber, startvermoegen ?? Daten.Allgemein.Startvermoegen, startjahr);
+        if (HatAktionspunkte)
+            konto.Aktionspunkte.NeueRunde(AktionspunkteJeRunde, hoechstens: Daten.Aktionspunkte!.Hoechstens);
         _konten.Add(konto);
         return konto;
+    }
+
+    // ── Aktionspunkte ────────────────────────────────────────────────────────
+
+    /// <summary>Gibt es in dieser Stadt Aktionspunkte? (Abschnitt „aktionspunkte" in wirtschaft.json)</summary>
+    public bool HatAktionspunkte => Daten.Aktionspunkte is not null;
+
+    /// <summary>Neue AP je Runde (= je Spieljahr) – aus den Partie-Einstellungen, von der Simulation gesetzt.</summary>
+    public int AktionspunkteJeRunde { get; set; } = 4;
+
+    /// <summary>Was ein Befehl an Aktionspunkten kostet (0 = frei).</summary>
+    public int ApKosten(Befehl befehl) => Daten.Aktionspunkte?.KostenFuer(befehl) ?? 0;
+
+    /// <summary>Kann das Haus sich diesen Befehl an Aktionspunkten leisten?</summary>
+    public bool ApReichen(Konto konto, Befehl befehl) => konto.Aktionspunkte.Reicht(ApKosten(befehl));
+
+    /// <summary>Neue Runde: Jedes Haus bekommt seine AP, höchstens bis zum Vorrat aus den Daten – der Rest verfällt.</summary>
+    private void AktionspunkteVerteilen()
+    {
+        if (Daten.Aktionspunkte is not { } d) return;
+        foreach (var konto in _konten.Where(k => k.IstAktiv))
+            konto.Aktionspunkte.NeueRunde(AktionspunkteJeRunde, hoechstens: d.Hoechstens);
     }
 
     /// <summary>
@@ -215,6 +239,7 @@ public sealed class Stadtwirtschaft
         Familien.Jahreswechsel(); // Tod und Erbfall vor der Ratssitzung: Ein verwaistes Amt wird gleich neu besetzt
         Rat.Sitzung(_zufall, neuesJahr - 1);
         Gauner.Jahresende();
+        AktionspunkteVerteilen(); // die neue Runde beginnt
         foreach (var rivale in _rivalen.Where(r => r.Konto.IstAktiv))
             rivale.Jahresende();
     }
@@ -283,6 +308,19 @@ public sealed class Stadtwirtschaft
     /// <param name="absender">Wessen Befehl ist es? Nur eigene Betriebe dürfen verändert werden.</param>
     public Befehlsergebnis Ausfuehren(Konto absender, Befehl befehl)
     {
+        // Aktionspunkte: erst prüfen, nur bei Erfolg abbuchen – ein abgelehnter Befehl kostet nichts.
+        var kosten = ApKosten(befehl);
+        if (kosten > 0 && absender.IstAktiv && !absender.Aktionspunkte.Reicht(kosten)
+            && !(Justiz.IstAktiv && Justiz.ImKerker(absender)))
+            return Befehlsergebnis.Abgelehnt($"Nicht genug Aktionspunkte: Das kostet {kosten} AP, {absender.Inhaber} hat noch {absender.Aktionspunkte.Vorrat}.");
+        var ergebnis = Bearbeiten(absender, befehl);
+        if (ergebnis.Erfolg && kosten > 0)
+            absender.Aktionspunkte.Ausgeben(kosten);
+        return ergebnis;
+    }
+
+    private Befehlsergebnis Bearbeiten(Konto absender, Befehl befehl)
+    {
         if (absender.IstBankrott)
             return Befehlsergebnis.Abgelehnt($"{absender.Inhaber} ist bankrott und kann nichts mehr unternehmen.");
         if (absender.IstErloschen)
@@ -328,6 +366,8 @@ public sealed class Stadtwirtschaft
         }
         if (befehl is AusbildungWaehlen ausbildung)
             return Familien.AusbildungWaehlen(absender, ausbildung.Kind, ausbildung.Weg);
+        if (befehl is TalentTrainieren training)
+            return Familien.TalentTrainieren(absender, training.Talent);
         if (befehl is Werben or Heiraten or ErbenBestimmen && Familien.Von(absender) is null)
             return Befehlsergebnis.Abgelehnt($"{absender.Inhaber} hat keine Familie.");
         if (befehl is Werben werben)

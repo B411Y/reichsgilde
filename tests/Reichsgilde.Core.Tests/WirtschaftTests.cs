@@ -21,6 +21,18 @@ static class Datenpfad
         }
         throw new FileNotFoundException("game/data/wirtschaft.json wurde nicht gefunden.");
     }
+
+    /// <summary>
+    /// Die echten Daten ohne Aktionspunkte – für Tests, die eine Mechanik (Rat, Gericht …) mit vielen Zügen
+    /// im selben Jahr prüfen. Die AP-Regeln selbst prüfen die AktionspunkteTests.
+    /// </summary>
+    public static string OhneAktionspunkte(string? json = null)
+    {
+        var knoten = System.Text.Json.Nodes.JsonNode.Parse(json ?? File.ReadAllText(Wirtschaft()),
+            documentOptions: new System.Text.Json.JsonDocumentOptions { CommentHandling = System.Text.Json.JsonCommentHandling.Skip, AllowTrailingCommas = true })!;
+        knoten.AsObject().Remove("aktionspunkte");
+        return knoten.ToJsonString();
+    }
 }
 
 static class WirtschaftTests

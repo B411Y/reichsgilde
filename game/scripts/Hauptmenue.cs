@@ -39,6 +39,7 @@ public partial class Hauptmenue : Node
     private SpinBox _dauer = null!;
     private OptionButton _statut = null!;
     private SpinBox _startvermoegen = null!;
+    private SpinBox _aktionspunkte = null!;
     private OptionButton _rivale = null!;
     private SpinBox _startwert = null!;
     private Label _fehler = null!;
@@ -161,6 +162,10 @@ public partial class Hauptmenue : Node
         _startvermoegen = Zahl(1000, 50_000, 500, 4000, " Gulden");
         Zeile(raster, "Startvermögen", _startvermoegen);
 
+        _aktionspunkte = Zahl(Partieeinstellungen.MinAktionspunkte, Partieeinstellungen.MaxAktionspunkte, 1, Partieeinstellungen.Standard.AktionspunkteProRunde, " AP");
+        _aktionspunkte.TooltipText = "So viele Aktionspunkte bekommt jedes Haus zum Jahreswechsel – für Werben, Rat, Gericht, Hinterzimmer und Üben.";
+        Zeile(raster, "Aktionspunkte je Jahr", _aktionspunkte);
+
         _rivale = new OptionButton { FocusMode = Control.FocusModeEnum.None };
         _rivale.AddItem("Vorsichtig (leichter)", (int)KiCharakter.Vorsichtig);
         _rivale.AddItem("Ausgewogen", (int)KiCharakter.Ausgewogen);
@@ -222,6 +227,7 @@ public partial class Hauptmenue : Node
             Endjahr = (int)_endjahr.Value,
             Zielvermoegen = (long)_zielvermoegen.Value,
             RundenDauerMinuten = _dauer.Value,
+            AktionspunkteProRunde = (int)_aktionspunkte.Value,
             StartStatut = (Fronstatut)_statut.GetSelectedId(),
             Zufallsstartwert = (int)_startwert.Value,
         };

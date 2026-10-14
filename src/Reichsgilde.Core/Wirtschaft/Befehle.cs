@@ -67,6 +67,9 @@ public sealed record WaechterSetzen(string Betrieb, bool Angestellt) : BetriebsB
 /// <summary>Ausbildung für ein Kind des Hauses wählen (Name aus "ausbildungen"); null bricht sie ab.</summary>
 public sealed record AusbildungWaehlen(int Kind, string? Weg) : Befehl;
 
+/// <summary>Das Oberhaupt übt ein Talent: +½ Stern, höchstens einmal je Talent und Jahr (kostet Aktionspunkte).</summary>
+public sealed record TalentTrainieren(Dynastie.Talent Talent) : Befehl;
+
 /// <summary>Die Gießerei stellt ab sofort diese Ware her.</summary>
 public sealed record ProduktWaehlen(string Betrieb, string Ware) : BetriebsBefehl(Betrieb);
 

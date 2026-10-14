@@ -240,6 +240,15 @@ Das Stadtgericht (`src/Reichsgilde.Core/Justiz/Stadtgericht.cs`) gehört zur Sta
 
 **Lehrstück aus diesem Schritt (Godot-Knoten nicht über einen Neuaufbau retten):** Familientafel und Ratskammer hängten ein einziges Zahlenfeld bei jedem Aufbau um. Wurde die Brautschau einmal nicht aufgebaut, blieb das Feld in einer alten Zeile stecken und wurde mit ihr gelöscht. Später griff die Tafel ins Leere und stürzte ab. Seitdem merkt sich die Tafel nur den Wert, und das Feld entsteht jedes Mal neu.
 
+## Aktionspunkte
+
+- **Vorrat je Haus:** `Konto.Aktionspunkte` (Klasse `Partie/Aktionspunkte.cs`). Wie viele AP je Runde (= Spieljahr) dazukommen, steht in den Partie-Einstellungen; die Simulation reicht den Wert an `Stadtwirtschaft.AktionspunkteJeRunde` weiter. Aufgefüllt wird in der Jahresabrechnung **vor** den Überlegungen der KI, höchstens bis `aktionspunkte.hoechstens`.
+- **Kosten** stehen in `wirtschaft.json` unter dem **Namen des Befehls** (`"Werben": 1`). Beim Laden prüft `AktionspunkteDaten.Pruefen` per Reflection, dass es jeden genannten Befehl gibt – ein Tippfehler fällt sofort auf. Fehlt ein Befehl, ist er frei.
+- **Abbuchen an einer Stelle:** `Stadtwirtschaft.Ausfuehren` prüft vor dem Befehl, ob der Vorrat reicht, und bucht **nur bei Erfolg** ab. Kein Teilsystem (Rat, Gericht, Familienbuch …) kennt AP.
+- **Training:** Befehl `TalentTrainieren` → `Familienbuch.TalentTrainieren` (+`trainingSchritt` Sterne, einmal je Talent und Jahr, gemerkt als `Person.GeuebtIm`).
+- **KI:** `Befehlen` verzichtet still, wenn die AP nicht reichen. Zur Politikstunde gilt die Reihenfolge Familie → Verteidigung → (Wagemutig: Hinterzimmer → Rat → Anklage; sonst Rat → Anklage → Hinterzimmer) → Training. Bewerben nur, wenn die AP auch für die Wahlgeschenke reichen; Geschenke nur alle oder keine. Geübt wird nur, was sonst beim Auffüllen verfiele.
+- **Tests:** Mechanik-Tests von Rat und Gericht laden die Daten ohne AP-Abschnitt (`Datenpfad.OhneAktionspunkte`), damit sie viele Züge im selben Jahr prüfen können; die AP-Regeln prüfen die `AktionspunkteTests`.
+
 ## Unterwelt
 
 Die Unterwelt (`src/Reichsgilde.Core/Gauner/Unterwelt.cs`) gehört zur Stadtwirtschaft (`Stadtwirtschaft.Gauner`). Alle Zahlen stehen in `wirtschaft.json` im Abschnitt `gauner`.

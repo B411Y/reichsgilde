@@ -20,4 +20,20 @@ public static class UiHilfe
             kind.QueueFree();
         }
     }
+
+    /// <summary>
+    /// Hängt die Aktionspunkte-Kosten an einen Knopf („Werben · 1 AP") und sperrt ihn, wenn der Vorrat nicht reicht.
+    /// Die Kosten hängen nur von der Art des Befehls ab – Betrag oder Ziel spielen keine Rolle.
+    /// </summary>
+    public static void ApKosten(Button knopf, Reichsgilde.Core.Wirtschaft.Stadtwirtschaft w, Reichsgilde.Core.Wirtschaft.Konto konto,
+        Reichsgilde.Core.Wirtschaft.Befehl befehl)
+    {
+        var kosten = w.ApKosten(befehl);
+        if (kosten <= 0) return;
+        knopf.Text += $" · {kosten} AP";
+        if (konto.Aktionspunkte.Reicht(kosten) || knopf.Disabled) return;
+        knopf.Disabled = true;
+        knopf.TooltipText = $"Nicht genug Aktionspunkte: {kosten} nötig, {konto.Aktionspunkte.Vorrat} übrig. " +
+                            $"Zum Jahreswechsel kommen {w.AktionspunkteJeRunde} dazu.";
+    }
 }

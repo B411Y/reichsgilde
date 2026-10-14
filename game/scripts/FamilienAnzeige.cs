@@ -115,6 +115,8 @@ public partial class FamilienAnzeige : PanelContainer
             var talente = Text(_inhalt, "Talente: " + TalentText(o) + "   ⓘ", 14, Gold);
             talente.TooltipText = Talentwirkung(w, buch);
             talente.MouseFilter = MouseFilterEnum.Stop;
+            if (w.ApKosten(new TalentTrainieren(Talent.Handwerk)) > 0 && !_spieler!.IstErloschen)
+                UebenZeile(w, buch);
         }
         if (f.Ehepartner is { } e)
         {
@@ -191,6 +193,32 @@ public partial class FamilienAnzeige : PanelContainer
             Text(_inhalt, "Familienchronik", 16);
             foreach (var eintrag in chronik.Take(6))
                 Text(_inhalt, "• " + eintrag, 13, null, umbrechen: true);
+        }
+    }
+
+    /// <summary>Je Talent ein Knopf „üben" – ½ Stern für Aktionspunkte, einmal je Talent und Jahr.</summary>
+    private void UebenZeile(Stadtwirtschaft w, Familienbuch buch)
+    {
+        var zeile = new HBoxContainer();
+        zeile.AddThemeConstantOverride("separation", 6);
+        _inhalt.AddChild(zeile);
+        var schritt = TalentTexte.Sterne(w.Daten.Aktionspunkte?.TrainingSchritt ?? 0.5);
+        Text(zeile, $"Üben (+{schritt} Stern):", 13, Grau);
+        foreach (var t in TalentTexte.Alle)
+        {
+            var talent = t;
+            var knopf = new Button { Text = t.Kurz(), FocusMode = FocusModeEnum.None };
+            knopf.AddThemeFontSizeOverride("font_size", 13);
+            if (buch.TrainingVerboten(_spieler!, t) is { } grund)
+            {
+                knopf.Disabled = true;
+                knopf.TooltipText = grund;
+            }
+            else
+                knopf.TooltipText = $"{t.Name()} üben: +{schritt} Stern (einmal im Jahr je Talent).";
+            knopf.Pressed += () => Befehlen(new TalentTrainieren(talent));
+            UiHilfe.ApKosten(knopf, w, _spieler!, new TalentTrainieren(t));
+            zeile.AddChild(knopf);
         }
     }
 
@@ -321,6 +349,7 @@ public partial class FamilienAnzeige : PanelContainer
             {
                 var heiraten = new Button { Text = "Heiraten", FocusMode = FocusModeEnum.None };
                 heiraten.Pressed += () => Befehlen(new Heiraten(p.Nummer));
+                UiHilfe.ApKosten(heiraten, w, _spieler!, new Heiraten(0));
                 knoepfe.AddChild(heiraten);
             }
             else
@@ -328,6 +357,7 @@ public partial class FamilienAnzeige : PanelContainer
                 var werben = new Button { Text = "Werben", FocusMode = FocusModeEnum.None, Disabled = buch.ZuneigungRest(_spieler!, k) <= 0.001 };
                 werben.TooltipText = werben.Disabled ? $"{p.Vorname} braucht Zeit – im nächsten Jahr geht es weiter." : "";
                 werben.Pressed += () => Befehlen(new Werben(p.Nummer, _geschenkBetrag));
+                UiHilfe.ApKosten(werben, w, _spieler!, new Werben(0, 0));
                 knoepfe.AddChild(werben);
             }
         }

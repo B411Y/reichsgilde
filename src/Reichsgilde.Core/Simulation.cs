@@ -62,7 +62,10 @@ public sealed class Simulation
         Takt.RundenDauerSekunden = Einstellungen.RundenDauerMinuten * 60;
 
         if (wirtschaftsdaten is not null)
-            Wirtschaft = new Stadtwirtschaft(wirtschaftsdaten, Einstellungen.StartStatut, Einstellungen.Zufallsstartwert);
+            Wirtschaft = new Stadtwirtschaft(wirtschaftsdaten, Einstellungen.StartStatut, Einstellungen.Zufallsstartwert)
+            {
+                AktionspunkteJeRunde = Einstellungen.AktionspunkteProRunde,
+            };
     }
 
     /// <summary>Echtzeit verarbeiten: so viele Ticks ausführen, wie der Taktgeber erlaubt.</summary>

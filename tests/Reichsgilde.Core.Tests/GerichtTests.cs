@@ -7,11 +7,11 @@ using Reichsgilde.Core.Wirtschaft;
 /// <summary>Tests für das Stadtgericht: Spuren, Spitzel, Anklage, Urteil, Strafen und die KI vor Gericht.</summary>
 static class GerichtTests
 {
-    static readonly Lazy<Wirtschaftsdaten> Daten = new(() => Wirtschaftsdaten.AusDatei(Datenpfad.Wirtschaft()));
+    static readonly Lazy<Wirtschaftsdaten> Daten = new(() => Wirtschaftsdaten.AusJson(Datenpfad.OhneAktionspunkte()));
 
     /// <summary>Wie die echten Daten, aber der Spitzel findet jede Spur – so hängen die Tests nicht am Zufall.</summary>
     static readonly Lazy<Wirtschaftsdaten> SichererSpitzel = new(() =>
-        Wirtschaftsdaten.AusJson(File.ReadAllText(Datenpfad.Wirtschaft()).Replace("\"spitzelChance\": 0.5", "\"spitzelChance\": 1.0")));
+        Wirtschaftsdaten.AusJson(Datenpfad.OhneAktionspunkte(File.ReadAllText(Datenpfad.Wirtschaft()).Replace("\"spitzelChance\": 0.5", "\"spitzelChance\": 1.0"))));
 
     static Simulation NeueSimulation(Wirtschaftsdaten? daten = null, int startwert = 1400) =>
         new(Partieeinstellungen.Standard with { Siegbedingung = Siegbedingung.Endlos, Zufallsstartwert = startwert },

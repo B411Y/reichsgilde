@@ -80,6 +80,9 @@ public sealed class Konto
     /// <summary>Noch im Spiel: weder bankrott noch erloschen.</summary>
     public bool IstAktiv => !IstBankrott && !IstErloschen;
 
+    /// <summary>Aktionspunkte des Hauses für persönliche Handlungen (Werben, Rat, Gericht, Hinterzimmer, Training).</summary>
+    public Partie.Aktionspunkte Aktionspunkte { get; } = new();
+
     public Konto(string inhaber, double startvermoegen, int startjahr)
     {
         Inhaber = inhaber;
@@ -111,6 +114,7 @@ public sealed class Konto
     internal KontoStand Sichern() => new()
     {
         Inhaber = Inhaber, Vermoegen = Vermoegen, Stand = Stand, Schuldenjahre = Schuldenjahre, IstBankrott = IstBankrott, IstErloschen = IstErloschen,
+        Aktionspunkte = Aktionspunkte.Vorrat,
         Laufend = BilanzSichern(Laufend), Vorjahr = Vorjahr is null ? null : BilanzSichern(Vorjahr),
     };
 
@@ -121,6 +125,7 @@ public sealed class Konto
             Stand = s.Stand, Schuldenjahre = s.Schuldenjahre, IstBankrott = s.IstBankrott, IstErloschen = s.IstErloschen,
             Laufend = BilanzLaden(s.Laufend), Vorjahr = s.Vorjahr is null ? null : BilanzLaden(s.Vorjahr),
         };
+        konto.Aktionspunkte.Setzen(s.Aktionspunkte);
         return konto;
     }
 

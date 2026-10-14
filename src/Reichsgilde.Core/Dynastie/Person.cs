@@ -39,6 +39,12 @@ public sealed class Person
     /// <summary>Sterne in einem Talent (0 bis 6, halbe Sterne möglich).</summary>
     public double Talent(Talent t) => _talente[(int)t];
     internal void TalentSetzen(Talent t, double wert) => _talente[(int)t] = wert;
+
+    private readonly int[] _geuebt = new int[TalentTexte.Alle.Length];
+
+    /// <summary>Jahr, in dem das Talent zuletzt geübt wurde (0 = nie).</summary>
+    public int GeuebtIm(Talent t) => _geuebt[(int)t];
+    internal void GeuebtSetzen(Talent t, int jahr) => _geuebt[(int)t] = jahr;
     public double TalentSumme => _talente.Sum();
 
     /// <summary>Die beste Begabung, z. B. für die Brautschau.</summary>

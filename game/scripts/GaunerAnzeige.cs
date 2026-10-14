@@ -85,10 +85,11 @@ public partial class GaunerAnzeige : PanelContainer
     private Label Text(Container eltern, string text, int groesse, Color? farbe = null, bool umbrechen = false) =>
         Hauptmenue.Text(eltern, text, groesse, farbe, umbruchBreite: umbrechen ? Breite - 50 : 0);
 
-    private void Knopf(Container eltern, string text, Action aktion, bool gesperrt = false, string? hinweis = null)
+    private void Knopf(Container eltern, string text, Action aktion, bool gesperrt = false, string? hinweis = null, Befehl? ap = null)
     {
         var knopf = new Button { Text = text, FocusMode = FocusModeEnum.None, Disabled = gesperrt, TooltipText = hinweis ?? "" };
         knopf.Pressed += aktion;
+        if (ap is not null && _simulation?.Wirtschaft is { } w && _spieler is not null) UiHilfe.ApKosten(knopf, w, _spieler, ap);
         eltern.AddChild(knopf);
     }
 
@@ -156,10 +157,10 @@ public partial class GaunerAnzeige : PanelContainer
                 var name = b.Name;
                 if (diebstahl) Text(zeile, "· Diebstahl bestellt", 13, Gold);
                 else Knopf(zeile, $"Diebstahl ({Zahlenformat.Ganz(g.Diebstahl.Kosten)})", () => Befehlen(new Beauftragen(haus.Inhaber, Gaunerstueck.Diebstahl, name)),
-                    gesperrt: imKerker, hinweis: "Die Bande holt die wertvollste Ware aus dem Lager.");
+                    gesperrt: imKerker, hinweis: "Die Bande holt die wertvollste Ware aus dem Lager.", ap: new Beauftragen("", Gaunerstueck.Diebstahl));
                 if (sabotage) Text(zeile, "· Sabotage bestellt", 13, Gold);
                 else Knopf(zeile, $"Sabotage ({Zahlenformat.Ganz(g.Sabotage.Kosten)})", () => Befehlen(new Beauftragen(haus.Inhaber, Gaunerstueck.Sabotage, name)),
-                    gesperrt: imKerker, hinweis: "Feuer in der Werkstatt: Stillstand und Reparaturkosten.");
+                    gesperrt: imKerker, hinweis: "Feuer in der Werkstatt: Stillstand und Reparaturkosten.", ap: new Beauftragen("", Gaunerstueck.Sabotage));
                 Text(_inhalt, $"   Diebstahl: Chance {Prozent(unterwelt.Erfolgschance(Gaunerstueck.Diebstahl, b, _spieler))}, im Lager liegt " +
                               (beute.Count == 0 ? "nichts zu holen" : $"{string.Join(", ", beute.Select(x => $"{x.Stueck} {x.Ware}"))} (Hehler ≈ {Zahlenformat.Ganz(beute.Sum(x => x.Wert) * g.HehlerAnteil)})") +
                               $" · Sabotage: Chance {Prozent(unterwelt.Erfolgschance(Gaunerstueck.Sabotage, b, _spieler))}, Schaden beim Gegner ≈ {Zahlenformat.Ganz(unterwelt.Sabotageschaden(b))}",
@@ -177,7 +178,8 @@ public partial class GaunerAnzeige : PanelContainer
                 else if (bestellt.Any(a => a.Art == Gaunerstueck.Ueberfall))
                     Text(zeile, "· Überfall bestellt (heute Nacht)", 13, Gold);
                 else
-                    Knopf(zeile, $"Überfall ({Zahlenformat.Ganz(g.Ueberfall.Kosten)})", () => Befehlen(new Beauftragen(haus.Inhaber, Gaunerstueck.Ueberfall)), gesperrt: imKerker);
+                    Knopf(zeile, $"Überfall ({Zahlenformat.Ganz(g.Ueberfall.Kosten)})", () => Befehlen(new Beauftragen(haus.Inhaber, Gaunerstueck.Ueberfall)), gesperrt: imKerker,
+                        ap: new Beauftragen("", Gaunerstueck.Ueberfall));
                 Text(_inhalt, $"   Wegelagerer (Stärke {Zahlenformat.Kommazahl(unterwelt.Staerke(_spieler))}) lauern bis zur nächsten Nacht der nächsten beladenen Fahrt auf. " +
                               "Erfolg = Stärke × (1 − Schutz der Eskorte). Ein Überfall ist ein schweres Vergehen: Vor Gericht droht Kerker.", 12, Grau, umbrechen: true);
             }
@@ -200,7 +202,7 @@ public partial class GaunerAnzeige : PanelContainer
                     feld.ValueChanged += wert => _schweigegeld[schluessel] = wert;
                     zeile.AddChild(feld);
                     Knopf(zeile, "Brief schicken", () => Befehlen(new Erpressen(haus.Inhaber, _schweigegeld.GetValueOrDefault(schluessel, vorschlag))),
-                        gesperrt: imKerker, hinweis: "Der Brief selbst ist ein Beweis gegen euch.");
+                        gesperrt: imKerker, hinweis: "Der Brief selbst ist ein Beweis gegen euch.", ap: new Erpressen("", 0));
                     Text(_inhalt, $"   Ein Schuldspruch kostete {haus.Inhaber} heute {Zahlenformat.Ganz(gericht.DrohendeBusse(_spieler, haus))} {waehrung} Buße – " +
                                   "wer weniger verlangt, wird eher bezahlt. Zahlt das Haus, verbrennen eure Beweise; zahlt es nicht, könnt ihr klagen.",
                         12, Grau, umbrechen: true);

@@ -19,6 +19,7 @@ public partial class KontorAnzeige : PanelContainer
     private Label _vermoegen = null!;
     private Label _standZeile = null!;
     private Label _statutZeile = null!;
+    private Label _apZeile = null!;
     private Label _familienZeile = null!;
     private VBoxContainer _betriebsliste = null!;
     private readonly List<(Betrieb Betrieb, Label Kopf, Label Zustand)> _betriebsZeilen = new();
@@ -52,6 +53,8 @@ public partial class KontorAnzeige : PanelContainer
         _vermoegen = NeuesLabel(spalte, 26);
         _standZeile = NeuesLabel(spalte, 14, new Color(0.95f, 0.82f, 0.45f));
         _statutZeile = NeuesLabel(spalte, 13, new Color(0.75f, 0.75f, 0.75f));
+        _apZeile = NeuesLabel(spalte, 14, new Color(0.95f, 0.82f, 0.45f));
+        _apZeile.MouseFilter = MouseFilterEnum.Stop; // für den Tooltip
         var familie = new HBoxContainer();
         spalte.AddChild(familie);
         var familienKnopf = new Button { Text = "Familie", FocusMode = FocusModeEnum.None, TooltipText = "Familie, Brautschau und Testament" };
@@ -164,6 +167,15 @@ public partial class KontorAnzeige : PanelContainer
             : $"Nächster Stand: {neu.Name} ab {Zahlenformat.Ganz(neu.Schwelle)} {waehrung} (noch {Zahlenformat.Ganz(neu.Schwelle - Math.Max(0, _spieler.Vermoegen))})";
 
         _familienZeile.Text = FamilienText(w);
+
+        _apZeile.Visible = w.HatAktionspunkte;
+        if (w.Daten.Aktionspunkte is { } ap)
+        {
+            _apZeile.Text = $"Aktionspunkte: {_spieler.Aktionspunkte.Vorrat} von höchstens {ap.Hoechstens} · +{w.AktionspunkteJeRunde} zum Jahreswechsel";
+            _apZeile.TooltipText = "Persönliche Handlungen kosten Aktionspunkte: Werben und Heiraten, Ratsherren beschenken, sich bewerben (je 1), " +
+                                   "Statut-Antrag (2), Spitzel (1), Anklage (2), Bande anheuern (1), Erpresserbrief (2), Talent üben (2).\n" +
+                                   "Betriebe, Personal, Karren, Wächter, Stand und Liegenschaften sind frei. Nicht verbrauchte AP bleiben – bis zur Obergrenze.";
+        }
 
         _statutZeile.Text = $"Statut {w.Statut.Kuerzel()} – {w.Statut.Name()}"
                           + (w.IstArbeitszeit(_simulation.Zeit) ? " · es wird gearbeitet" : " · Feierabend");
