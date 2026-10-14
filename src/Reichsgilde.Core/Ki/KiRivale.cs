@@ -1,4 +1,5 @@
 using Reichsgilde.Core.Dynastie;
+using Reichsgilde.Core.Justiz;
 using Reichsgilde.Core.Politik;
 using Reichsgilde.Core.Speichern;
 using Reichsgilde.Core.Wirtschaft;
@@ -45,7 +46,7 @@ public sealed record KiProfil(
 ///                       • Mine: Aufteilung der Förderung zwischen Eisen und Silber
 ///                       • freie Arbeitsplätze mit der ertragreichsten erlaubten Arbeitskraft besetzen
 ///                       • Eskorte je Karren nach erwartetem Verlust wählen
-///   einmal am Tag       • Politik im Rat, Brautschau für ein lediges Oberhaupt
+///   einmal am Tag       • Politik im Rat, Brautschau, Gericht (Spitzel, Anklage, Verteidigung)
 ///   zum Jahresende      • Karren kaufen, wenn ein Betrieb zu oft stillstand
 ///
 /// Jede Entscheidung wird als Meldung ausgegeben, damit der Spieler sie nachvollziehen kann.
@@ -109,6 +110,7 @@ public sealed class KiRivale
         if (_stundenImJahr == Politikstunde)
         {
             Familienpolitik();
+            Justizpolitik(); // zuerst verteidigen – das Geld für Geschenke ist begrenzt
             Politik();
         }
         foreach (var betrieb in Betriebe.ToList())
@@ -349,6 +351,70 @@ public sealed class KiRivale
     }
 
     // ═════════════════════════════════════════════════════════════════════════
+    //  Gericht
+    // ═════════════════════════════════════════════════════════════════════════
+
+    /// <summary>
+    /// Einmal am Tag:
+    ///   • Verteidigen: Droht in einem Verfahren gegen die KI ein Schuldspruch, beschenkt sie die billigsten
+    ///     Richter (Ratsherren), bis eine Mehrheit freispräche – aber nur, wenn das Budget dafür reicht.
+    ///   • Anklagen: erst, wenn die Beweise so stark sind, dass auch bestochene Richter schuldig sprächen.
+    ///   • Spitzel: auf das stärkste andere Haus, das politisch mitspielt (ab Bürger), einmal im Jahr.
+    /// </summary>
+    private void Justizpolitik()
+    {
+        var gericht = _w.Justiz;
+        if (!gericht.IstAktiv) return;
+        var d = gericht.Daten;
+
+        foreach (var v in gericht.Verfahren.Where(v => v.Beklagter == Konto).ToList())
+            Verteidigen(v);
+
+        foreach (var gegner in _w.Konten.Where(k => k != Konto && k.IstAktiv).ToList())
+        {
+            if (gericht.VerfahrenGegen(Konto, gegner) is not null) continue;
+            if (gericht.Beweiskraft(Konto, gegner) < d.SichereBeweiskraft - 1e-9
+                || Konto.Vermoegen - d.Gerichtsgebuehr - d.Entschaedigung < Profil.Reserve) continue;
+            Befehlen(new Anklagen(gegner.Inhaber),
+                $"klagt {gegner.Inhaber} wegen Bestechung an ({gericht.Beweise(Konto, gegner).Count()} Beweise – genug für einen sicheren Schuldspruch).");
+        }
+
+        var ziel = _w.Rangliste.FirstOrDefault(k => k != Konto && k.IstAktiv && k.Stand >= 1 && !gericht.HatSpitzel(Konto, k));
+        if (ziel is not null && Konto.Vermoegen - d.SpitzelKosten >= Profil.Reserve)
+            Befehlen(new SpitzelAnsetzen(ziel.Inhaber), $"setzt einen Spitzel auf {ziel.Inhaber} an ({Zahlenformat.Ganz(d.SpitzelKosten)} {_w.Daten.Allgemein.Waehrung}).");
+    }
+
+    private void Verteidigen(Verfahren v)
+    {
+        var gericht = _w.Justiz;
+        var d = gericht.Daten;
+        var g = _w.Rat.Daten.Gunst;
+        var stimmen = gericht.Prognose(v);
+        if (!Stadtgericht.IstSchuldig(stimmen) || d.GunstFaktor <= 0 || g.JeGulden <= 0) return;
+
+        // Wie viel Gunst fehlt einem Richter, bis er freispricht? Die Gunstwirkung muss unter (Schwelle − Beweiskraft) sinken –
+        // geht das wegen der Höchstwirkung nicht, ist dieser Richter nicht umzustimmen.
+        var kraft = gericht.Beweiskraft(v.Anklaeger, Konto);
+        var ziel = d.SchuldSchwelle - kraft - 0.5; // gewünschte Gunstwirkung, etwas unter der Schwelle
+        var kosten = new List<(Ratsherr, double)>();
+        if (ziel > -d.GunstHoechstwirkung)
+            foreach (var s in stimmen.Where(s => s.Schuldig && s.Richter.Ratsherr is not null))
+            {
+                var r = s.Richter.Ratsherr!;
+                var differenz = _w.Rat.Gunst(r, v.Anklaeger) - _w.Rat.Gunst(r, Konto); // Gunstwirkung = Faktor × Differenz
+                var fehlt = differenz - ziel / d.GunstFaktor;                         // so viel Gunst muss die KI gewinnen
+                var gulden = Math.Ceiling(fehlt / g.JeGulden / 10) * 10;
+                if (gulden > 0 && _w.Rat.Gunst(r, Konto) + gulden * g.JeGulden <= g.Hoechstwert)
+                    kosten.Add((r, gulden));
+            }
+        var freisprechen = stimmen.Count(s => !s.Schuldig);
+        // Ein Freispruch erspart die Buße (auf die schon bekannten Taten) und das Amt.
+        var nutzen = Math.Max(d.Mindestbusse, d.BusseFaktor * gericht.Beweise(v.Anklaeger, Konto).Sum(b => b.Betrag))
+                     + (_w.Rat.AmtVon(Konto) is { } amt ? amt.Daten.Einkommen * NutzenJahre : 0);
+        Schenkplan(kosten, stimmen.Count / 2 + 1 - freisprechen, $"vor dem Gerichtstag (angeklagt von {v.Anklaeger.Inhaber})", nutzen);
+    }
+
+    // ═════════════════════════════════════════════════════════════════════════
     //  Politik
     // ═════════════════════════════════════════════════════════════════════════
 
@@ -417,7 +483,7 @@ public sealed class KiRivale
             if (fehlt <= 0) sicher++;
             else kosten.Add((r, Math.Ceiling(fehlt / g.JeGulden / 10) * 10));
         }
-        Schenkplan(kosten, waehler.Count / 2 + 1 - sicher, $"für die Wahl zum {amt.Name}");
+        Schenkplan(kosten, waehler.Count / 2 + 1 - sicher, $"für die Wahl zum {amt.Name}", amt.Daten.Einkommen * NutzenJahre);
     }
 
     /// <summary>Geschenke für den eigenen Statut-Antrag: Ratsherren eine Stufe neben dem Ziel über die Gunst-Schwelle heben.</summary>
@@ -431,15 +497,41 @@ public sealed class KiRivale
             .Where(a => a.Ratsherr is { } r && !rat.StimmtZu(r, statut, Konto) && Math.Abs((int)statut - (int)r.Haltung) == 1)
             .Select(a => (a.Ratsherr!, Math.Ceiling((g.SchwelleNachbarstatut - rat.Gunst(a.Ratsherr!, Konto)) / g.JeGulden / 10) * 10))
             .ToList();
-        Schenkplan(kosten, besetzt.Count / 2 + 1 - ja, $"für das Statut {statut.Kuerzel()}");
+        Schenkplan(kosten, besetzt.Count / 2 + 1 - ja, $"für das Statut {statut.Kuerzel()}",
+            (ErwartungUnter(statut) - ErwartungUnter(_w.Statut)) * NutzenJahre);
     }
 
-    private void Schenkplan(List<(Ratsherr Ratsherr, double Gulden)> kosten, int noetig, string zweck)
+    /// <summary>So viele Jahre Nutzen setzt die KI gegen die Kosten einer Bestechung.</summary>
+    private const double NutzenJahre = 3;
+
+    /// <summary>
+    /// Wie teuer eine Bestechung wirklich ist. Nur öffentliches Wissen zählt: Wurde die KI am letzten Gerichtstag
+    /// bespitzelt oder steht sie am Pranger, rechnet sie mit Entdeckung – jeder Gulden kostet dann im Mittel
+    /// zusätzlich Bußfaktor × Spitzelchance Gulden Buße.
+    /// </summary>
+    public double Bestechungsrisiko
+    {
+        get
+        {
+            var gericht = _w.Justiz;
+            if (!gericht.IstAktiv || !gericht.WurdeBeobachtet(Konto) && gericht.Schande(Konto) <= 0) return 1;
+            return 1 + gericht.Daten.BusseFaktor * gericht.Daten.SpitzelChance;
+        }
+    }
+
+    private void Schenkplan(List<(Ratsherr Ratsherr, double Gulden)> kosten, int noetig, string zweck, double nutzen)
     {
         if (noetig <= 0 || kosten.Count < noetig) return;
         var plan = kosten.OrderBy(k => k.Gulden).ThenBy(k => k.Ratsherr.Name, StringComparer.Ordinal).Take(noetig).ToList();
         var summe = plan.Sum(p => p.Gulden);
         if (summe > Politikbudget) return;
+        if (summe * Bestechungsrisiko > nutzen)
+        {
+            if (Bestechungsrisiko > 1)
+                Entscheiden($"verzichtet auf Geschenke {zweck} – unter den Augen der Spitzel zu riskant " +
+                            $"({Zahlenformat.Ganz(summe)} {_w.Daten.Allgemein.Waehrung} plus erwartete Buße gegen {Zahlenformat.Ganz(nutzen)} Nutzen).");
+            return;
+        }
         foreach (var (ratsherr, gulden) in plan)
             Befehlen(new Schenken(ratsherr.Name, gulden),
                 $"beschenkt {ratsherr.Name} mit {Zahlenformat.Ganz(gulden)} Gulden {zweck}.");
