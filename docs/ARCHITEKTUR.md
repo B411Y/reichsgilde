@@ -130,6 +130,34 @@ Oberfläche / KI ──Befehl──▶ Ausfuehren ──prüft──▶ Betrieb 
 
 **Lehrstück aus diesem Schritt (Godot):** Ein Knopf darf nicht in jedem Bild kurz unsichtbar und wieder sichtbar geschaltet werden. Godot bricht beim Ausblenden einen laufenden Klick ab, und ein Klick, dessen Drücken und Loslassen in verschiedene Bilder fallen, geht verloren. Deshalb erst alles ausrechnen und dann jede Eigenschaft einmal setzen.
 
+## Stadtrat
+
+Der Stadtrat (`src/Reichsgilde.Core/Politik/Stadtrat.cs`) gehört zur Stadtwirtschaft (`Stadtwirtschaft.Rat`). Ämter, Ratsherren und alle Zahlen stehen in `wirtschaft.json` im Abschnitt `politik`.
+
+**Wer wen wählt.** Jeder Ratsherr gibt jedem Kandidaten Punkte und stimmt für den mit den meisten:
+
+```
+Punkte = Ansehen des Kandidaten + Gunst des Ratsherrn für ihn (+ Amtsbonus für den bisherigen Inhaber)
+Ansehen eines Hauses     = Stand × 8 + Vermögen/1000 × 0,4   (höchstens 40)
+Ansehen eines Ratsherrn  = 10 + Stufe seines Amtes × 6        (ein Bürgermeister ist schwer zu stürzen)
+Gunst                    = Geschenk in Gulden × 0,05          (höchstens 100, verblasst um 30 % im Jahr)
+```
+
+Über ein Amt stimmen die Inhaber der höheren Ämter ab, beim Bürgermeister alle übrigen. Kandidaten stimmen nicht mit, bei Gleichstand entscheidet das Los.
+
+**Anträge.** Ein Ratsherr stimmt einem Statut zu, das seiner Haltung entspricht. Ein Statut eine Stufe daneben unterstützt er erst ab einer Gunst von 25 für den Antragsteller. Es gilt die einfache Mehrheit; bei Gleichstand entscheidet der Bürgermeister.
+
+**Ablauf am Jahresende** (in `Stadtwirtschaft.Jahresabrechnung`):
+
+1. `Rat.EinkommenZahlen()` – Amtseinkommen, noch im alten Jahr verbucht
+2. Konten abschließen, Schulden prüfen (ein bankrottes Haus verliert sein Amt)
+3. `Rat.Sitzung()` – Abstimmung über den Antrag, dann Wahlen von oben nach unten, dann Verfall der Gunst
+4. KI-Rivalen planen das neue Jahr
+
+**Prognosen statt Geheimwissen.** `WahlPrognose` und `AbstimmungsPrognose` rechnen mit denselben Regeln wie die Sitzung. Die Ratskammer zeigt sie dem Spieler an, und die KI entscheidet danach. Sie verschenkt nur dann Gulden, wenn ihr Budget für eine Mehrheit reicht, und beantragt ein Statut nur, wenn es ihren erwarteten Jahresgewinn um mehr als `StatutVorteil` (200 Gulden) erhöht.
+
+**Bewusst offen:** Häuser im Rat stimmen bei Wahlen für den bisherigen Inhaber. Sitzt Haus Eisenbart einmal auf dem Bürgermeisterstuhl, kommt man dort schwer heran. Gegenmittel wie Bestechung, Erpressung und das Gericht folgen später. Bei fremden Anträgen enthält sich der Spieler noch; das Abstimmen über die Oberfläche kommt ebenfalls später.
+
 ## Speichern und Laden
 
 Ein Spielstand ist eine lesbare JSON-Datei (`src/Reichsgilde.Core/Speichern/`).

@@ -56,6 +56,35 @@ public sealed record WirtschaftStand
     public List<BetriebStand> Betriebe { get; init; } = new();
     public Dictionary<string, MarktstandStand> Markt { get; init; } = new();
     public List<RivaleStand> Rivalen { get; init; } = new();
+
+    /// <summary>Der Stadtrat (null in Spielständen von vor dem Rat – dann beginnt er wie bei Spielstart).</summary>
+    public RatStand? Rat { get; init; }
+}
+
+public sealed record RatStand
+{
+    /// <summary>Amt → wer es hält.</summary>
+    public Dictionary<string, SitzStand> Aemter { get; init; } = new();
+    public List<GunstStand> Gunst { get; init; } = new();
+
+    /// <summary>Kontonummer (als Text) → Amt, um das sich das Haus bewirbt.</summary>
+    public Dictionary<string, string> Bewerbungen { get; init; } = new();
+    public int? AntragKonto { get; init; }
+    public Fronstatut? AntragStatut { get; init; }
+    public List<string> LetzteSitzung { get; init; } = new();
+}
+
+public sealed record SitzStand
+{
+    public string? Ratsherr { get; init; }
+    public int? Konto { get; init; }
+}
+
+public sealed record GunstStand
+{
+    public string Ratsherr { get; init; } = "";
+    public int Konto { get; init; }
+    public double Wert { get; init; }
 }
 
 public sealed record KontoStand
@@ -82,6 +111,8 @@ public sealed record BilanzStand
     public double Raubwert { get; init; }
     public double Investitionen { get; init; }
     public double Standesgebuehren { get; init; }
+    public double Amtseinkommen { get; init; }
+    public double Geschenke { get; init; }
     public Dictionary<string, int> Hergestellt { get; init; } = new();
 }
 
@@ -135,4 +166,5 @@ public sealed record RivaleStand
     public Dictionary<string, int> StundenSeitWechsel { get; init; } = new();
 
     public List<string> Entscheidungen { get; init; } = new();
+    public int StundenImJahr { get; init; }
 }

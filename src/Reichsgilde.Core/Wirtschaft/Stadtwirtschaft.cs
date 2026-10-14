@@ -1,3 +1,4 @@
+using Reichsgilde.Core.Politik;
 using Reichsgilde.Core.Speichern;
 using Reichsgilde.Core.Ki;
 using Reichsgilde.Core.Zeit;
@@ -36,6 +37,9 @@ public sealed class Stadtwirtschaft
     public Fronstatut Statut { get; private set; }
     public IReadOnlyList<Betrieb> Betriebe => _betriebe;
     public IReadOnlyList<Konto> Konten => _konten;
+
+    /// <summary>Der Stadtrat mit Ämtern, Wahlen und Abstimmungen.</summary>
+    public Stadtrat Rat { get; }
 
     /// <summary>Konten, die von der KI geführt werden.</summary>
     public IReadOnlyList<KiRivale> Rivalen => _rivalen;
@@ -88,6 +92,7 @@ public sealed class Stadtwirtschaft
         // Eigener Generator nur für die Reihenfolge – so bleiben die Ereignis-Würfel unabhängig
         // davon, wie viele Karren es gibt.
         _reihenfolge = new Zufallsquelle(unchecked(zufallsstartwert * 31 + 7));
+        Rat = new Stadtrat(this, daten.Politik);
     }
 
     /// <summary>Legt ein Konto an – mit dem Startvermögen aus den Daten oder einem eigenen (z. B. Schwierigkeitsgrad).</summary>
@@ -178,9 +183,11 @@ public sealed class Stadtwirtschaft
     {
         foreach (var betrieb in _betriebe.Where(b => !b.Konto.IstBankrott))
             betrieb.Jahresabrechnung(_zufall, m => Meldung?.Invoke(m));
+        Rat.EinkommenZahlen();
         foreach (var konto in _konten)
             konto.JahrAbschliessen(neuesJahr);
         SchuldenPruefen();
+        Rat.Sitzung(_zufall, neuesJahr - 1);
         foreach (var rivale in _rivalen.Where(r => !r.Konto.IstBankrott))
             rivale.Jahresende();
     }
@@ -201,6 +208,7 @@ public sealed class Stadtwirtschaft
                 foreach (var betrieb in _betriebe.Where(b => b.Konto == konto))
                     foreach (var kraft in betrieb.Belegung.Keys.ToList())
                         betrieb.Einstellen(kraft, 0, Statut);
+                Rat.Ausscheiden(konto);
                 Melden($"{konto.Inhaber} ist bankrott! Die Gläubiger lassen die Betriebe schließen.");
                 Bankrott?.Invoke(konto);
             }
@@ -248,6 +256,14 @@ public sealed class Stadtwirtschaft
             return StandErwerbenAusfuehren(absender);
         if (befehl is LiegenschaftErwerben liegenschaft)
             return LiegenschaftErwerbenAusfuehren(absender, liegenschaft.Name);
+        if (befehl is AmtBewerben or Schenken or StatutBeantragen && !Rat.IstAktiv)
+            return Befehlsergebnis.Abgelehnt("In dieser Stadt gibt es keinen Stadtrat.");
+        if (befehl is AmtBewerben bewerbung)
+            return Rat.Bewerben(absender, bewerbung.Amt);
+        if (befehl is Schenken geschenk)
+            return Rat.Schenken(absender, geschenk.Ratsherr, geschenk.Betrag);
+        if (befehl is StatutBeantragen antrag)
+            return Rat.Beantragen(absender, antrag.Statut);
         if (befehl is not BetriebsBefehl betriebsBefehl)
             return Befehlsergebnis.Abgelehnt($"Unbekannter Befehl: {befehl.GetType().Name}");
 
@@ -399,6 +415,7 @@ public sealed class Stadtwirtschaft
         Betriebe = _betriebe.Select(b => b.Sichern(_konten.IndexOf(b.Konto))).ToList(),
         Markt = Markt.Staende.ToDictionary(s => s.Ware, s => s.Sichern()),
         Rivalen = _rivalen.Select(r => r.Sichern(_konten.IndexOf(r.Konto))).ToList(),
+        Rat = Rat.Sichern(k => _konten.IndexOf(k)),
     };
 
     /// <summary>
@@ -430,6 +447,8 @@ public sealed class Stadtwirtschaft
             rivale.Wiederherstellen(rs);
             _rivalen.Add(rivale);
         }
+        if (s.Rat is { } rat)
+            Rat.Wiederherstellen(rat, _konten);
     }
 
     public double HoechstesVermoegen => _konten.Count == 0 ? 0 : _konten.Max(k => k.Vermoegen);

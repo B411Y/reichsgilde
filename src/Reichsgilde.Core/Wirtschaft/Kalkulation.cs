@@ -58,14 +58,16 @@ public static class Kalkulation
     /// erlaubten Arbeitskraft und dem einträglichsten Produkt – zu heutigen Preisen.
     /// Grundlage für „Lohnt sich der Kauf?" (Spieler-Anzeige und KI).
     /// </summary>
-    public static double ErwarteterJahresgewinn(Stadtwirtschaft w, Betriebsart art)
+    /// <param name="statut">Unter welchem Statut gerechnet wird (ohne Angabe: das geltende) – für „Was brächte Statut C?".</param>
+    public static double ErwarteterJahresgewinn(Stadtwirtschaft w, Betriebsart art, Fronstatut? statut = null)
     {
+        var geltend = statut ?? w.Statut;
         var ort = art == Betriebsart.Mine ? Arbeitsort.Umland : Arbeitsort.Werkstatt;
         var wertJeMinute = art == Betriebsart.Mine
             ? Math.Max(GewinnJeArbeitsminute(w, "Eisen"), GewinnJeArbeitsminute(w, "Silber"))
             : w.Daten.Waren.Where(x => x.Value.Zutaten.Count > 0).Max(x => GewinnJeArbeitsminute(w, x.Key));
         var besterKopf = w.Daten.Arbeitskraefte.Values
-            .Where(k => k.IstErlaubt(w.Statut, ort))
+            .Where(k => k.IstErlaubt(geltend, ort))
             .Select(k => k.TempoAm(ort) * w.Daten.Allgemein.Arbeitsminuten * wertJeMinute - k.Kosten - k.Risiko * k.Schaden)
             .DefaultIfEmpty(0)
             .Max();
