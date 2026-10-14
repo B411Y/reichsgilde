@@ -53,6 +53,7 @@ public partial class RatAnzeige : PanelContainer
         _meldung = Hauptmenue.Text(spalte, "", 13, Grau, umbruchBreite: 670);
         var schliessen = Hauptmenue.Knopf(spalte, "Schließen", Hide);
         schliessen.SizeFlagsHorizontal = SizeFlags.ShrinkCenter;
+        Rollbereich.Einhuellen(this);
         Hide();
     }
 

@@ -92,6 +92,7 @@ public partial class Hauptmenue : Node
 
         Knopf(spalte, "Neue Partie", () => Zeigen(_neu));
         Knopf(spalte, "Partie laden", () => { _liste.Auffrischen(); _ladeFehler.Text = ""; Zeigen(_laden); });
+        Knopf(spalte, "Vollbild / Fenster (F11)", Fenster.Umschalten);
         Knopf(spalte, "Beenden", () => GetTree().Quit());
 
         Text(spalte, "Hobby- und Lernprojekt · Open Source (MIT) · Greybox-Grafik", 11, new Color(0.6f, 0.6f, 0.6f), zentriert: true);
@@ -303,6 +304,7 @@ public partial class Hauptmenue : Node
         var spalte = new VBoxContainer();
         spalte.AddThemeConstantOverride("separation", 12);
         rand.AddChild(spalte);
+        Rollbereich.Einhuellen(tafel);
         return (tafel, spalte);
     }
 

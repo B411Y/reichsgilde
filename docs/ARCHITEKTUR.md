@@ -86,6 +86,14 @@ Die Welt besteht aus 3D-Objekten, wirkt aber wie ein gezeichnetes 2,5D-Spiel. Da
 
 **Diorama-Innenansicht:** Gebäude mit Innenraum (bisher die Gießerei) bestehen aus einzelnen Wänden, einem Dach und einem Knoten „Innen“ mit der Einrichtung. Beim Betreten wird das Dach ausgeblendet und jede Wand, deren Außenseite zur Kamera zeigt (Skalarprodukt > 0,5 – beim diagonalen Blick genau zwei). Dinge zwischen Kamera und Gebäude werden ebenfalls ausgeblendet. Was innen zu sehen ist (Kisten, Arbeiter, Glut), liest die Ansicht nur aus der Simulation – sie verändert nichts.
 
+## Oberfläche und Fenstergröße
+
+- **Feste Pixelgröße** (kein `stretch`-Modus): Die Oberfläche skaliert nicht mit. Ein größeres Fenster zeigt mehr von der Stadt, Schrift und Tafeln bleiben gleich groß. Eine Mindestgröße gibt es nicht.
+- **`Rollbereich`** (`game/scripts/Rollbereich.cs`) liegt in jeder Tafel zwischen Rahmen und Inhalt (`Rollbereich.Einhuellen(tafel)` am Ende des Aufbaus). Er misst jedes Bild den Inhalt und setzt seine Mindestgröße auf min(Inhalt, Fenster − Rand). Passt alles, sieht die Tafel aus wie vorher; sonst erscheinen Balken, auch waagrecht. Eine feste Breite der Tafel wandert dabei auf den Inhalt, sonst könnte die Tafel nie schmaler werden.
+- **Lehrstück 1:** Ecktafeln (Kontor, Auswahl) hängen an Ankern, nicht in einem Container. Godot lässt sie wachsen, aber nie schrumpfen. Der Rollbereich setzt ihre Größe deshalb selbst und hält die angeheftete Ecke fest (`GrowDirection.Begin`).
+- **Lehrstück 2:** Container lassen Mausereignisse standardmäßig durch (`MouseFilter.Pass`). Ein Mausrad über einer Tafel landete deshalb in `_UnhandledInput` der Stadtansicht und zoomte die Kamera. Tafel und Rollbereich stehen jetzt auf `Stop`.
+- **Vollbild:** Autoload `Fenster` (`project.godot` → `[autoload]`) schaltet mit F11 um und speichert die Wahl in `user://einstellungen.cfg`.
+
 ## KI-Rivalen
 
 Ein KI-Rivale (`src/Reichsgilde.Core/Ki/KiRivale.cs`) führt ein Konto und alle Betriebe, die dazu gehören. Er gehört zum Simulationskern, läuft also im Multiplayer später auf dem Server und ist ohne Godot testbar.

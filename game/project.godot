@@ -15,6 +15,10 @@ config/description="Wirtschaftssimulation im spätmittelalterlichen Heiligen Rö
 run/main_scene="res://scenes/Hauptmenue.tscn"
 config/features=PackedStringArray("4.7", "C#", "Forward Plus")
 
+[autoload]
+
+Fenster="*res://scripts/Fenster.cs"
+
 [display]
 
 window/size/viewport_width=1600
