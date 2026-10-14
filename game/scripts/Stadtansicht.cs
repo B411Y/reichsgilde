@@ -140,6 +140,12 @@ public partial class Stadtansicht : Node3D
         public List<Arbeiterfigur> Arbeiter { get; } = new();
         public string Belegungsstand { get; set; } = "";
         public bool HatInnenraum => Innen is not null;
+
+        // ── Gebäudestufe (nur Werkstätten) ──
+        /// <summary>Dachgaube, Dachreiter und Gerüst – hängt am Dach, verschwindet also in der Innenansicht mit.</summary>
+        public Node3D? Ausbau { get; set; }
+        public int GezeigteStufe { get; set; } = 1;
+        public bool GezeigterUmbau { get; set; }
     }
 
     /// <summary>Eine Arbeiterfigur: Körper und der Arm, der den Hammer schwingt.</summary>
@@ -555,7 +561,63 @@ public partial class Stadtansicht : Node3D
         };
         ansicht.Waende.AddRange(gebaeude);
         if (!tischlerei) Innenraum(ansicht, breite, tiefe, dicke);
+        if (betrieb.Stufe > 1 || betrieb.UmbauMinuten > 0) StufeZeigen(ansicht);
         return ansicht;
+    }
+
+    /// <summary>
+    /// Die Gebäudestufe von außen: ab Stufe 2 eine Dachgaube über dem Tor, ab Stufe 3 ein Dachreiter auf dem First
+    /// (golden beim Schmied, kupfergrün beim Tischler). Während des Umbaus steht ein Gerüst vor der Südwand.
+    /// Die Grundfläche bleibt gleich – die Nachbarn rücken nicht zusammen.
+    /// </summary>
+    private void StufeZeigen(BetriebsAnsicht a)
+    {
+        const float hoehe = 6, tiefe = 8;
+        var b = a.Betrieb;
+        a.GezeigteStufe = b.Stufe;
+        a.GezeigterUmbau = b.UmbauMinuten > 0;
+        if (a.Ausbau is not null) KnotenEntfernen(a.Ausbau);
+        var gruppe = new Node3D { Name = "Ausbau" };
+        (a.Dach ?? (Node3D)this).AddChild(gruppe);
+        a.Ausbau = gruppe;
+        var p = a.Mitte;
+        var holz = Material(Holz);
+
+        if (b.Stufe >= 2)
+        {
+            // Dachgaube auf der Südseite des Dachs, mit Fenster und eigenem Satteldach
+            var gaube = p + new Vector3(-2.5f, 0, 2.6f);
+            Quader(gaube + new Vector3(0, hoehe + 1.6f, 0), new Vector3(2.4f, 2.0f, 2.0f), Material(Fachwerk), gruppe);
+            Quader(gaube + new Vector3(0, hoehe + 1.7f, 1.02f), new Vector3(1.1f, 1.0f, 0.06f), Material(new Color(0.12f, 0.1f, 0.08f)), gruppe);
+            Dach(gaube + new Vector3(0, hoehe + 2.6f, 0), new Vector3(2.9f, 1.2f, 2.4f), Material(a.Glut is null ? Schiefer : Ziegel), quer: false, eltern: gruppe);
+        }
+        if (b.Stufe >= 3)
+        {
+            // Dachreiter: kleiner Turm auf dem First mit vierseitiger Spitze
+            var first = p + new Vector3(-1, hoehe + 4.8f, 0);
+            Quader(first + new Vector3(0, 0.9f, 0), new Vector3(1.6f, 2.2f, 1.6f), Material(Fachwerk), gruppe);
+            var spitze = Material(b.Artdaten.Beruf == "Tischler" ? new Color(0.35f, 0.55f, 0.45f) : new Color(0.85f, 0.68f, 0.25f));
+            spitze.Metallic = 0.5f;
+            spitze.Roughness = 0.4f;
+            gruppe.AddChild(new MeshInstance3D
+            {
+                Mesh = new CylinderMesh { TopRadius = 0, BottomRadius = 1.3f, Height = 3, RadialSegments = 4 },
+                MaterialOverride = spitze,
+                Position = first + new Vector3(0, 3.5f, 0),
+                RotationDegrees = new Vector3(0, 45, 0),
+            });
+        }
+        if (b.UmbauMinuten > 0)
+        {
+            // Gerüst vor der Südwand: Stangen und zwei Laufbretter
+            var sued = p + new Vector3(0, 0, tiefe / 2 + 0.7f);
+            foreach (var x in new[] { -4.5f, -1.5f, 1.5f, 4.5f })
+                Quader(sued + new Vector3(x, 3.6f, 0), new Vector3(0.15f, 7.2f, 0.15f), holz, gruppe);
+            foreach (var y in new[] { 2.6f, 5.2f })
+                Quader(sued + new Vector3(0, y, 0), new Vector3(9.6f, 0.12f, 0.9f), holz, gruppe);
+        }
+        if (a.Schild is not null)
+            a.Schild.Text = b.Name + (b.UmbauMinuten > 0 ? " (Umbau)" : ""); // die Stufe zeigen Gaube und Dachreiter – eine zweite Zeile überdeckte die Nachbarn
     }
 
     /// <summary>
@@ -715,6 +777,8 @@ public partial class Stadtansicht : Node3D
 
         foreach (var (betrieb, ansicht) in _betriebe)
         {
+            if (betrieb.IstWerkstatt && (betrieb.Stufe != ansicht.GezeigteStufe || (betrieb.UmbauMinuten > 0) != ansicht.GezeigterUmbau))
+                StufeZeigen(ansicht);
             var arbeitet = arbeitszeit && betrieb.Belegt > 0 && betrieb.Stillstand is null;
             if (ansicht.Glut is not null) ansicht.Glut.LightEnergy = arbeitet ? 3f : 0f;
             if (ansicht.Esse is not null) ansicht.Esse.EmissionEnergyMultiplier = arbeitet ? 2.5f : 0f;

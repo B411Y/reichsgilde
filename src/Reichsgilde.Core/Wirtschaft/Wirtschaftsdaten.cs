@@ -184,6 +184,9 @@ public sealed class Wirtschaftsdaten
     /// <summary>Berufe (ab Datenversion 12). Fehlt der Abschnitt, ist jeder Schmied.</summary>
     public Dictionary<string, BerufDaten> Berufe { get; init; } = new();
 
+    /// <summary>Meisterprüfungen und Gebäudestufen (ab Datenversion 13). Fehlt der Abschnitt, bleibt jedes Haus auf Grad 1.</summary>
+    public MeistergradDaten? Meistergrade { get; init; }
+
     private readonly Dictionary<Betriebsart, BetriebsartDaten> _alteArten = new();
 
     /// <summary>
@@ -312,13 +315,30 @@ public sealed class Wirtschaftsdaten
             foreach (var w in d.Rohstoffe)
                 if (!Waren.TryGetValue(w, out var ware) || ware.Zutaten.Count > 0) f.Add($"betriebsarten.{art}: „{w}“ ist kein Rohstoff.");
             if (d.Standardprodukt is { } sp && !d.Produkte.Contains(sp)) f.Add($"betriebsarten.{art}: Das Standardprodukt „{sp}“ steht nicht unter produkte.");
+            if (d.Stufe is < 1 or > 3) f.Add($"betriebsarten.{art}.stufe muss zwischen 1 und 3 liegen.");
+            if (d.Ausbau is { } ziel)
+            {
+                if (!Betriebsarten.TryGetValue(ziel, out var z)) f.Add($"betriebsarten.{art}: Die Ausbaustufe {ziel} fehlt unter „betriebsarten“.");
+                else
+                {
+                    if (z.Beruf != d.Beruf || z.Stufe != d.Stufe + 1 || !z.IstWerkstatt || !d.IstWerkstatt)
+                        f.Add($"betriebsarten.{art}: Der Ausbau zu {ziel} muss eine Werkstatt desselben Berufs eine Stufe höher sein.");
+                    foreach (var p in d.Produkte.Where(p => !z.Produkte.Contains(p)))
+                        f.Add($"betriebsarten.{art}: Nach dem Ausbau zu {ziel} ginge „{p}“ verloren – die höhere Stufe muss alles können.");
+                }
+                if (d.AusbauKosten < 0) f.Add($"betriebsarten.{art}.ausbauKosten darf nicht negativ sein.");
+            }
         }
         foreach (var (name, b) in Berufe)
         {
             if (!KenntArt(b.Werkstatt) || !KenntArt(b.Umland)) f.Add($"berufe.{name}: Werkstatt oder Umlandbetrieb fehlt unter „betriebsarten“.");
             else if (Art(b.Werkstatt).Beruf != name || Art(b.Umland).Beruf != name) f.Add($"berufe.{name}: Werkstatt und Umlandbetrieb müssen zum Beruf gehören.");
             if (b.Lehrgeld < 0) f.Add($"berufe.{name}.lehrgeld darf nicht negativ sein.");
+            if (KenntArt(b.Werkstatt) && Art(b.Werkstatt).Stufe != 1) f.Add($"berufe.{name}: Die Werkstatt muss Stufe 1 sein.");
         }
+        foreach (var l in Liegenschaften.Where(l => KenntArt(l.Art) && Art(l.Art).Stufe != 1))
+            f.Add($"Liegenschaft {l.Name}: Zu kaufen gibt es nur Werkstätten der Stufe 1 – höhere entstehen durch Ausbau.");
+        Meistergrade?.Pruefen(f, Aktionspunkte?.Hoechstens ?? int.MaxValue);
         foreach (var l in Liegenschaften.Where(l => !KenntArt(l.Art)))
             f.Add($"Liegenschaft {l.Name}: Die Betriebsart {l.Art} fehlt unter „betriebsarten“.");
         Gesundheit?.Pruefen(f, Waren);

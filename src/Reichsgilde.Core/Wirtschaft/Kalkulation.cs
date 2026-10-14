@@ -81,6 +81,15 @@ public static class Kalkulation
         return Math.Max(0, besterKopf) * w.Daten.Plaetze(art) - w.Daten.Fixkosten(art);
     }
 
+    /// <summary>
+    /// Was der Ausbau zur nächsten Stufe im Jahr mehr bringt (voll belegt, bestes Produkt, heutige Preise) –
+    /// 0, wenn es keine nächste Stufe gibt.
+    /// </summary>
+    public static double AusbauMehrgewinn(Stadtwirtschaft w, Betrieb betrieb) =>
+        betrieb.Artdaten.Ausbau is { } neu
+            ? ErwarteterJahresgewinn(w, neu) - ErwarteterJahresgewinn(w, betrieb.Art)
+            : 0;
+
     /// <summary>Was eine volle Ladung dieses Karrens ungefähr wert ist (mit den Waren, die der Betrieb verkauft).</summary>
     public static double Ladungswert(Stadtwirtschaft w, Karren karren)
     {

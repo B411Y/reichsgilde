@@ -687,7 +687,8 @@ public partial class Hauptszene : Node
         var zeilen = new List<string>
         {
             b.Name,
-            $"Besitzer: {b.Konto.Inhaber}",
+            $"Besitzer: {b.Konto.Inhaber}" + (b.IstWerkstatt && b.Konto.Meistergrad(b.Artdaten.Beruf) > 0
+                ? $" · {b.Artdaten.Beruf} im {b.Konto.Meistergrad(b.Artdaten.Beruf)}. Grad · Stufe {b.Stufe}: {b.Artdaten.Name}" : ""),
             $"Belegung: {(b.Belegt == 0 ? "niemand" : string.Join(", ", b.Belegung.Select(x => $"{x.Value}× {x.Key}")))} ({b.Belegt}/{b.Plaetze} Plätze)",
         };
         if (b.IstWerkstatt) zeilen.Add($"Produkt: {b.Produkt}");

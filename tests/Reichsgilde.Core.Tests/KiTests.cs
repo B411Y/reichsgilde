@@ -183,7 +183,13 @@ static class KiTests
             var (mit, _, rivaleMit) = Startaufstellung(mitKi: true);
             var entscheidungen = 0;
             double gebuehren = 0;
-            mit.Wirtschaft!.Meldung += m => { if (m.StartsWith("Rivale:")) entscheidungen++; };
+            var wechsel = 0;
+            mit.Wirtschaft!.Meldung += m =>
+            {
+                if (!m.StartsWith("Rivale:")) return;
+                entscheidungen++;
+                if (m.Contains(" stellt von ")) wechsel++;
+            };
             mit.Wirtschaft!.Aufgestiegen += (_, stand) => gebuehren += stand.Gebuehr;
             Ticken(ohne, 20 * Spielzeit.MinutenProTag);
             Ticken(mit, 20 * Spielzeit.MinutenProTag);
@@ -191,8 +197,10 @@ static class KiTests
             Pruefe.Wahr(rivaleMit.Vermoegen + gebuehren > 1.05 * rivaleOhne.Vermoegen,
                 $"mit KI {rivaleMit.Vermoegen:0} + {gebuehren:0} Gebühren, ohne KI {rivaleOhne.Vermoegen:0}");
             Pruefe.Wahr(rivaleMit.Stand >= 2, "Die KI sollte nach 20 Jahren mindestens Patrizier sein");
-            // Kein hektisches Hin und Her: im Schnitt höchstens 2 Entscheidungen pro Jahr.
-            Pruefe.Wahr(entscheidungen <= 40, $"{entscheidungen} Entscheidungen in 20 Jahren");
+            // Kein hektisches Hin und Her: im Schnitt höchstens 2 Produktwechsel und 4 Entscheidungen pro Jahr
+            // (mit Meisterprüfungen, Ausbau, Ständen und Rat kommen über 20 Jahre einige dazu).
+            Pruefe.Wahr(wechsel <= 40, $"{wechsel} Produktwechsel in 20 Jahren");
+            Pruefe.Wahr(entscheidungen <= 80, $"{entscheidungen} Entscheidungen in 20 Jahren");
         }),
     };
 }

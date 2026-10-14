@@ -248,6 +248,17 @@ Das Stadtgericht (`src/Reichsgilde.Core/Justiz/Stadtgericht.cs`) gehört zur Sta
 - **Haus Eichwald:** zweiter KI-Rivale (`NeuePartie.Rivalen = 2`), Elben, Tischlerei und Holzschlag. Die KI erweitert sich nur im eigenen Handwerk.
 - **Darstellung:** Der Stadtplan ordnet Namen festen Plätzen zu. Die Tischlerei nutzt das Werkstattmodell ohne Esse und ohne Innenraum (der folgt später), der Holzschlag hat ein eigenes Modell. Farben: Spieler blau, Eisenbart rot, Eichwald grün.
 
+## Meistergrade und Gebäudestufen
+
+- **Daten** (ab Version 13): `meistergrade.pruefungen` (Erfahrung, Gebühr, AP für Grad 2–6), `stufeAbGrad` (1, 3, 5), `apBonusAbGrad`/`apBonus`, `umbauMinuten`. Werkstätten haben `stufe`, `ausbau` (nächste Art) und `ausbauKosten`; die Prüfung verlangt, dass die höhere Stufe alle Produkte der niedrigeren kann. Liegenschaften gibt es nur auf Stufe 1. Fehlt der Abschnitt, bleibt alles auf Grad 1 und Stufe 1.
+- **Erfahrung und Grad am Konto** (gehören dem Haus, überstehen den Erbfall): `Konto.Erfahrung(beruf)` wächst mit jedem hergestellten oder geförderten Stück um dessen Gesellenzeit in Stunden (`Betrieb.Arbeitsminute`). `Konto.Meistergrad(beruf)` ist 0 ohne Beruf, sonst 1–6. Alte Spielstände beginnen mit Grad 1 und ohne Erfahrung.
+- **Befehle:** `MeisterpruefungAblegen(beruf)` (Gebühr als Investition, AP aus den Meistergrad-Daten – `ApKosten(konto, befehl)` kennt den Sonderfall wie beim Üben), `BetriebAusbauen(betrieb)` (Betriebsbefehl, frei). Gründe für Ablehnungen liefern `MeisterpruefungVerboten` und `AusbauVerboten` – dieselben Texte nutzt die Oberfläche für gesperrte Knöpfe.
+- **Ausbau am Platz:** `Betrieb.Ausbauen` wechselt `Art` und `Artdaten` sofort (Plätze, Produkte, Unterhalt), das Produkt bleibt. Danach ruht die Arbeit `UmbauMinuten` lang; diese Minuten zählen nicht als Stillstand (sonst kaufte die KI Karren).
+- **Grad 6:** `ApBonus(konto)` gibt in `AktionspunkteVerteilen` einen AP mehr je Runde.
+- **Gold** ist eine reine Marktware (wie Kräuterschnaps), gebraucht für Goldkette, Prunkschwert und Prunktruhe.
+- **KI:** `Meisterpruefung` zur Politikstunde (nach Familie und Verteidigung), sobald Erfahrung und Reserve reichen; `Ausbauen` stündlich vor `Expandieren`, wenn `Kalkulation.AusbauMehrgewinn` die Kosten in `MaxAmortisationJahre` einspielt. Werkstätten ab Stufe 2 kaufen Ochsenkarren nach (mehr Zutatensorten).
+- **Darstellung:** `Stadtansicht.StufeZeigen` setzt ab Stufe 2 eine Dachgaube, ab Stufe 3 einen Dachreiter (golden beim Schmied, kupfergrün beim Tischler) auf das Dach, während des Umbaus ein Gerüst. Die Grundfläche bleibt gleich. Kontor: Grad, Erfahrung und Prüfungsknopf je Beruf; Betriebsverwaltung: Stufe und Ausbauknopf mit erwartetem Mehrgewinn.
+
 ## Gesundheit
 
 - **Teilsystem `Gesundheitswesen`** (`Gesundheit/`, Abschnitt `gesundheit` in wirtschaft.json, eigener Zufallsgenerator `startwert*41+19`). Fehlt der Abschnitt, wird niemand krank.

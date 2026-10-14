@@ -117,6 +117,7 @@ public sealed class KiRivale
         if (frei)
         {
             StandPruefen();
+            Ausbauen();
             Expandieren();
         }
         if (_stundenImJahr == Politikstunde)
@@ -129,6 +130,7 @@ public sealed class KiRivale
                 // der Wagemutige geht ins Hinterzimmer, bevor er Ratsherren beschenkt; die anderen umgekehrt.
                 Familienpolitik();
                 Verteidigung();
+                Meisterpruefung();
                 if (Profil.Gaunerei >= 2)
                 {
                     Gaunerei();
@@ -330,6 +332,52 @@ public sealed class KiRivale
         var l = wahl.Liegenschaft;
         Befehlen(new LiegenschaftErwerben(l.Name),
             $"{(l.IstPacht ? "pachtet" : "kauft")} {l.Name} (erwarteter Gewinn ≈ {Zahlenformat.Ganz(wahl.Gewinn)} {daten.Allgemein.Waehrung} im Jahr).");
+    }
+
+    /// <summary>
+    /// Eine eigene Werkstatt zur nächsten Stufe ausbauen, wenn der Meistergrad reicht und es sich rechnet:
+    /// Mehrgewinn (volle Belegung, bestes Produkt, heutige Preise) zahlt die Kosten in höchstens
+    /// <see cref="KiProfil.MaxAmortisationJahre"/> Jahren zurück, und nach Umbau, Unterhalt und Löhnen bleibt die Reserve.
+    /// Ausbauen geht vor Expandieren: Ein Umbau ist billiger als eine zweite Werkstatt.
+    /// </summary>
+    private void Ausbauen()
+    {
+        var waehrung = _w.Daten.Allgemein.Waehrung;
+        foreach (var b in Betriebe.Where(b => b.IstWerkstatt).OrderBy(b => b.Name, StringComparer.Ordinal).ToList())
+        {
+            if (_w.AusbauVerboten(Konto, b) is not null) continue;
+            var neu = _w.Daten.Art(b.Artdaten.Ausbau!.Value);
+            var kosten = b.Artdaten.AusbauKosten;
+            var mehr = Kalkulation.AusbauMehrgewinn(_w, b);
+            if (mehr <= 0 || kosten > mehr * Profil.MaxAmortisationJahre) continue;
+            var zusatzLohn = (neu.Plaetze - b.Plaetze) * HoechsterLohn(b.Art);
+            if (Konto.Vermoegen - kosten - neu.Fixkosten - zusatzLohn < Profil.Reserve) continue;
+            Befehlen(new BetriebAusbauen(b.Name),
+                $"baut {b.Name} aus – Stufe {neu.Stufe}, {neu.Name} ({Zahlenformat.Ganz(kosten)} {waehrung}, " +
+                $"erwartet ≈ {Zahlenformat.Ganz(mehr)} {waehrung} mehr im Jahr).");
+            return; // höchstens ein Umbau je Stunde
+        }
+    }
+
+    /// <summary>
+    /// Einmal am Tag: die nächste Meisterprüfung ablegen, sobald die Erfahrung reicht und die Gebühr die Reserve nicht angreift.
+    /// Zuerst im Beruf mit den meisten eigenen Werkstätten – dort bringt der Grad am meisten.
+    /// </summary>
+    private void Meisterpruefung()
+    {
+        var reihe = Konto.Berufe
+            .OrderByDescending(beruf => Betriebe.Count(b => b.IstWerkstatt && b.Artdaten.Beruf == beruf))
+            .ThenBy(beruf => beruf, StringComparer.Ordinal)
+            .ToList();
+        foreach (var beruf in reihe)
+        {
+            if (_w.MeisterpruefungVerboten(Konto, beruf) is not null) continue;
+            var p = _w.NaechstePruefung(Konto, beruf)!;
+            if (Konto.Vermoegen - p.Gebuehr < Profil.Reserve) continue;
+            Befehlen(new MeisterpruefungAblegen(beruf),
+                $"legt die Meisterprüfung ab: {beruf} im {Konto.Meistergrad(beruf) + 1}. Grad " +
+                $"({Zahlenformat.Ganz(p.Gebuehr)} {_w.Daten.Allgemein.Waehrung}).");
+        }
     }
 
     // ═════════════════════════════════════════════════════════════════════════
@@ -869,7 +917,8 @@ public sealed class KiRivale
             return;
 
         // Kurze Stadtwege: kleiner, billiger Karren. Lange, gefährliche Umlandwege: viel Ladung je Fahrt.
-        var typ = betrieb.Ort == Arbeitsort.Werkstatt ? "Handkarren" : "Ochsenkarren";
+        // Ab Stufe 2 braucht die Werkstatt mehr Zutaten-Sorten auf einmal – dann lohnt der Ochsenkarren mit zwei Ladeflächen.
+        var typ = betrieb.Ort == Arbeitsort.Werkstatt && betrieb.Stufe < 2 ? "Handkarren" : "Ochsenkarren";
         if (!_w.Daten.Logistik.Karren.TryGetValue(typ, out var daten))
             return;
         if (Konto.Vermoegen - daten.Preis < Profil.Reserve)

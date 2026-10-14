@@ -43,6 +43,8 @@ public partial class KontorAnzeige : PanelContainer
     private Label _berufText = null!;
     private Button _lernenKnopf = null!;
     private string? _lernbarerBeruf;
+    private VBoxContainer _meisterListe = null!;
+    private readonly List<(string Beruf, Label Text, Button Pruefung)> _meisterZeilen = new();
     private GridContainer _preise = null!;
     private readonly Dictionary<string, Label> _preisLabels = new();
 
@@ -71,6 +73,9 @@ public partial class KontorAnzeige : PanelContainer
         _lernenKnopf.AddThemeFontSizeOverride("font_size", 13);
         _lernenKnopf.Pressed += BerufLernen;
         _berufZeile.AddChild(_lernenKnopf);
+        _meisterListe = new VBoxContainer();
+        _meisterListe.AddThemeConstantOverride("separation", 2);
+        spalte.AddChild(_meisterListe);
         var familie = new HBoxContainer();
         spalte.AddChild(familie);
         var familienKnopf = new Button { Text = "Familie", FocusMode = FocusModeEnum.None, TooltipText = "Familie, Brautschau und Testament" };
@@ -147,6 +152,64 @@ public partial class KontorAnzeige : PanelContainer
         if (_lernenKnopf.TooltipText != tipp) _lernenKnopf.TooltipText = tipp;
     }
 
+    /// <summary>Je beherrschtem Beruf: Meistergrad, Erfahrung bis zur nächsten Prüfung und der Knopf dafür.</summary>
+    private void MeisterAktualisieren(Stadtwirtschaft w)
+    {
+        _meisterListe.Visible = w.Daten.Meistergrade is not null && !_spieler!.IstErloschen;
+        if (!_meisterListe.Visible) return;
+        var berufe = _spieler!.Berufe.ToList();
+        if (!berufe.SequenceEqual(_meisterZeilen.Select(z => z.Beruf)))
+        {
+            UiHilfe.KinderEntfernen(_meisterListe);
+            _meisterZeilen.Clear();
+            foreach (var beruf in berufe)
+            {
+                var zeile = new HBoxContainer();
+                zeile.AddThemeConstantOverride("separation", 8);
+                _meisterListe.AddChild(zeile);
+                var text = NeuesLabel(zeile, 13, new Color(0.85f, 0.85f, 0.85f));
+                var knopf = new Button { FocusMode = FocusModeEnum.None };
+                knopf.AddThemeFontSizeOverride("font_size", 13);
+                knopf.Pressed += () => Pruefen(beruf);
+                zeile.AddChild(knopf);
+                _meisterZeilen.Add((beruf, text, knopf));
+            }
+        }
+        var waehrung = w.Daten.Allgemein.Waehrung;
+        foreach (var (beruf, text, knopf) in _meisterZeilen)
+        {
+            var grad = _spieler.Meistergrad(beruf);
+            var erfahrung = Zahlenformat.Ganz(Math.Floor(_spieler.Erfahrung(beruf)));
+            var p = w.NaechstePruefung(_spieler, beruf);
+            var zeile = $"{beruf}: {grad}. Meistergrad · Erfahrung {erfahrung}" + (p is not null ? $" / {Zahlenformat.Ganz(p.Erfahrung)} Std." : " Std. · höchster Grad");
+            if (text.Text != zeile) text.Text = zeile;
+            knopf.Visible = p is not null;
+            if (p is null) continue;
+            var befehl = new MeisterpruefungAblegen(beruf);
+            var ap = w.ApKosten(_spieler, befehl);
+            var beschriftung = $"Prüfung zum {grad + 1}. Grad ({Zahlenformat.Ganz(p.Gebuehr)} {waehrung}{(p.Ap > 0 && w.HatAktionspunkte ? $" · {p.Ap} AP" : "")})";
+            if (knopf.Text != beschriftung) knopf.Text = beschriftung;
+            var grund = w.MeisterpruefungVerboten(_spieler, beruf)
+                        ?? (!w.ApReichen(_spieler, befehl) ? $"Nicht genug Aktionspunkte ({_spieler.Aktionspunkte.Vorrat} von {ap})." : null);
+            knopf.Disabled = grund is not null;
+            var m = w.Daten.Meistergrade!;
+            var nutzen = Enumerable.Range(1, 3).FirstOrDefault(st => m.GradFuerStufe(st) == grad + 1) is var stufe and > 1
+                ? $"Mit dem {grad + 1}. Grad dürft ihr eure Werkstätten auf Stufe {stufe} ausbauen."
+                : grad + 1 == m.ApBonusAbGrad ? $"Der {grad + 1}. Grad bringt {m.ApBonus} Aktionspunkt mehr je Jahr."
+                : "Ein Schritt auf dem Weg zur nächsten Gebäudestufe.";
+            var tipp = (grund is not null ? grund + "\n\n" : "") + "Erfahrung sammelt das Haus mit jedem Stück, das seine Betriebe herstellen oder fördern " +
+                       "(Arbeitsstunden eines Gesellen). " + nutzen;
+            if (knopf.TooltipText != tipp) knopf.TooltipText = tipp;
+        }
+    }
+
+    private void Pruefen(string beruf)
+    {
+        if (_simulation?.Wirtschaft is not { } w || _spieler is null) return;
+        var e = w.Ausfuehren(_spieler, new MeisterpruefungAblegen(beruf));
+        Gemeldet?.Invoke(e.Erfolg ? e.Meldung : "✗ " + e.Meldung);
+    }
+
     private void BerufLernen()
     {
         if (_simulation?.Wirtschaft is not { } w || _spieler is null || _lernbarerBeruf is null) return;
@@ -214,13 +277,16 @@ public partial class KontorAnzeige : PanelContainer
 
         _familienZeile.Text = FamilienText(w);
         BerufZeileAktualisieren(w);
+        MeisterAktualisieren(w);
 
         _apZeile.Visible = w.HatAktionspunkte;
         if (w.Daten.Aktionspunkte is { } ap)
         {
-            _apZeile.Text = $"Aktionspunkte: {_spieler.Aktionspunkte.Vorrat} von höchstens {ap.Hoechstens} · +{w.AktionspunkteJeRunde} zum Jahreswechsel";
+            var bonus = w.ApBonus(_spieler);
+            _apZeile.Text = $"Aktionspunkte: {_spieler.Aktionspunkte.Vorrat} von höchstens {ap.Hoechstens} · +{w.AktionspunkteJeRunde + bonus} zum Jahreswechsel"
+                            + (bonus > 0 ? $" (davon {bonus} als Meister)" : "");
             _apZeile.TooltipText = "Persönliche Handlungen kosten Aktionspunkte: Werben und Heiraten, Ratsherren beschenken, sich bewerben (je 1), " +
-                                   "Statut-Antrag (2), Spitzel (1), Anklage (2), Bande anheuern (1), Erpresserbrief (2), Talent üben (2).\n" +
+                                   "Statut-Antrag (2), Spitzel (1), Anklage (2), Bande anheuern (1), Erpresserbrief (2), Talent üben (2–6), Beruf erlernen (4), Meisterprüfung (2–4).\n" +
                                    "Betriebe, Personal, Karren, Wächter, Stand und Liegenschaften sind frei. Nicht verbrauchte AP bleiben – bis zur Obergrenze.";
         }
 
@@ -237,7 +303,8 @@ public partial class KontorAnzeige : PanelContainer
             var was = betrieb.IstWerkstatt ? betrieb.Produkt
                 : betrieb.Rohstoffe.Count == 1 ? betrieb.Rohstoffe[0]
                 : $"{Zahlenformat.Ganz(betrieb.Silberanteil * 100)} % {betrieb.Rohstoffe[1]}";
-            kopf.Text = $"{betrieb.Name}: {was} · {belegung}";
+            var stufe = betrieb.IstWerkstatt && w.Daten.Meistergrade is not null && betrieb.Stufe > 1 ? $" ({betrieb.Artdaten.Name})" : "";
+            kopf.Text = $"{betrieb.Name}{stufe}: {was} · {belegung}";
             var lager = string.Join(" · ", betrieb.Lager.OrderBy(l => l.Key).Select(l => $"{l.Value} {l.Key}"));
             var unterwegs = betrieb.Karren.Count(k => k.Zustand != KarrenZustand.AmBetrieb);
             zustand.Text = $"Lager: {(lager == "" ? "leer" : lager)} · Karren {unterwegs}/{betrieb.Karren.Count} unterwegs"

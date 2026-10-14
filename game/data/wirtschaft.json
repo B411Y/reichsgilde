@@ -1,5 +1,5 @@
 {
-  "version": 12,
+  "version": 13,
   "gesundheit": {
     "medicusKosten": 120,
     "medicusKostenPest": 300,
@@ -128,6 +128,78 @@
       "zeit": 75,
       "zutaten": { "Holz": 2, "Beschlag": 1 },
       "nachfrage": 120,
+      "npcAnteil": 0.7
+    },
+    "Gold": {
+      "typ": "Rohstoff",
+      "grundpreis": 60,
+      "zeit": 60,
+      "zutaten": {},
+      "nachfrage": 200,
+      "npcAnteil": 0.95
+    },
+    "Werkzeug": {
+      "typ": "Fertigprodukt",
+      "grundpreis": 125,
+      "zeit": 50,
+      "zutaten": { "Eisen": 2, "Holzzapfen": 1 },
+      "nachfrage": 100,
+      "npcAnteil": 0.7
+    },
+    "Silberkette": {
+      "typ": "Fertigprodukt",
+      "grundpreis": 195,
+      "zeit": 60,
+      "zutaten": { "Silber": 2, "Eisen": 1, "Beschlag": 1 },
+      "nachfrage": 100,
+      "npcAnteil": 0.7
+    },
+    "Goldkette": {
+      "typ": "Fertigprodukt",
+      "grundpreis": 265,
+      "zeit": 80,
+      "zutaten": { "Gold": 2, "Silber": 1 },
+      "nachfrage": 60,
+      "npcAnteil": 0.7
+    },
+    "Prunkschwert": {
+      "typ": "Fertigprodukt",
+      "grundpreis": 320,
+      "zeit": 100,
+      "zutaten": { "Eisen": 2, "Gold": 1, "Beschlag": 2 },
+      "nachfrage": 50,
+      "npcAnteil": 0.7
+    },
+    "Gehstock": {
+      "typ": "Fertigprodukt",
+      "grundpreis": 75,
+      "zeit": 40,
+      "zutaten": { "Holz": 3 },
+      "nachfrage": 120,
+      "npcAnteil": 0.7
+    },
+    "Armbrust": {
+      "typ": "Fertigprodukt",
+      "grundpreis": 195,
+      "zeit": 70,
+      "zutaten": { "Holz": 2, "Holzzapfen": 1, "Beschlag": 1 },
+      "nachfrage": 80,
+      "npcAnteil": 0.7
+    },
+    "Schrank": {
+      "typ": "Fertigprodukt",
+      "grundpreis": 310,
+      "zeit": 100,
+      "zutaten": { "Holz": 4, "Holzzapfen": 2, "Beschlag": 1 },
+      "nachfrage": 50,
+      "npcAnteil": 0.7
+    },
+    "Prunktruhe": {
+      "typ": "Fertigprodukt",
+      "grundpreis": 330,
+      "zeit": 100,
+      "zutaten": { "Holz": 3, "Beschlag": 2, "Gold": 1 },
+      "nachfrage": 50,
       "npcAnteil": 0.7
     },
     "Kräuterschnaps": {
@@ -395,14 +467,31 @@
     "jahreBisBankrott": 3
   },
   "berufe": {
-    "Schmied":  { "werkstatt": "Giesserei",  "umland": "Mine",          "lehrgeld": 500, "beschreibung": "Eisen und Silber aus der Grube, in der Gießerei zu Beschlägen, Rapieren und Silberringen." },
-    "Tischler": { "werkstatt": "Tischlerei", "umland": "Holzfaellerei", "lehrgeld": 500, "beschreibung": "Holz aus dem Wald, in der Tischlerei zu Holzzapfen, Schemeln und Truhen (mit Beschlag vom Schmied)." }
+    "Schmied":  { "werkstatt": "Giesserei",  "umland": "Mine",          "lehrgeld": 500, "beschreibung": "Eisen und Silber aus der Grube, in der Gießerei zu Beschlägen, Rapieren und Silberringen; als Meister in Schmiede und Goldschmiede auch Werkzeug, Ketten und Prunkschwerter (Gold vom Markt)." },
+    "Tischler": { "werkstatt": "Tischlerei", "umland": "Holzfaellerei", "lehrgeld": 500, "beschreibung": "Holz aus dem Wald, in der Tischlerei zu Holzzapfen, Schemeln und Truhen (mit Beschlag vom Schmied); als Meister in Drechslerei und Sägewerk auch Gehstöcke, Armbrüste, Schränke und Prunktruhen." }
   },
   "betriebsarten": {
-    "Giesserei":     { "name": "Gießerei",   "beruf": "Schmied",  "ort": "Werkstatt", "plaetze": 2, "fixkosten": 80,  "produkte": [ "Beschlag", "Rapier", "Silberring" ], "standardprodukt": "Silberring", "startkarren": "Handkarren" },
-    "Mine":          { "name": "Grube",      "beruf": "Schmied",  "ort": "Umland",    "plaetze": 3, "fixkosten": 400, "rohstoffe": [ "Eisen", "Silber" ], "startkarren": "Ochsenkarren" },
-    "Tischlerei":    { "name": "Tischlerei", "beruf": "Tischler", "ort": "Werkstatt", "plaetze": 2, "fixkosten": 80,  "produkte": [ "Holzzapfen", "Schemel", "Truhe" ], "standardprodukt": "Schemel", "startkarren": "Handkarren" },
-    "Holzfaellerei": { "name": "Holzschlag", "beruf": "Tischler", "ort": "Umland",    "plaetze": 3, "fixkosten": 400, "rohstoffe": [ "Holz" ], "startkarren": "Ochsenkarren" }
+    "Giesserei":     { "name": "Gießerei",     "beruf": "Schmied",  "ort": "Werkstatt", "stufe": 1, "plaetze": 2, "fixkosten": 80,  "produkte": [ "Beschlag", "Rapier", "Silberring" ], "standardprodukt": "Silberring", "startkarren": "Handkarren", "ausbau": "Schmiede", "ausbauKosten": 2500 },
+    "Schmiede":      { "name": "Schmiede",     "beruf": "Schmied",  "ort": "Werkstatt", "stufe": 2, "plaetze": 3, "fixkosten": 120, "produkte": [ "Beschlag", "Rapier", "Silberring", "Werkzeug", "Silberkette" ], "standardprodukt": "Silberkette", "startkarren": "Handkarren", "ausbau": "Goldschmiede", "ausbauKosten": 5000 },
+    "Goldschmiede":  { "name": "Goldschmiede", "beruf": "Schmied",  "ort": "Werkstatt", "stufe": 3, "plaetze": 4, "fixkosten": 180, "produkte": [ "Beschlag", "Rapier", "Silberring", "Werkzeug", "Silberkette", "Goldkette", "Prunkschwert" ], "standardprodukt": "Goldkette", "startkarren": "Handkarren" },
+    "Mine":          { "name": "Grube",        "beruf": "Schmied",  "ort": "Umland",    "plaetze": 3, "fixkosten": 400, "rohstoffe": [ "Eisen", "Silber" ], "startkarren": "Ochsenkarren" },
+    "Tischlerei":    { "name": "Tischlerei",   "beruf": "Tischler", "ort": "Werkstatt", "stufe": 1, "plaetze": 2, "fixkosten": 80,  "produkte": [ "Holzzapfen", "Schemel", "Truhe" ], "standardprodukt": "Schemel", "startkarren": "Handkarren", "ausbau": "Drechslerei", "ausbauKosten": 2500 },
+    "Drechslerei":   { "name": "Drechslerei",  "beruf": "Tischler", "ort": "Werkstatt", "stufe": 2, "plaetze": 3, "fixkosten": 120, "produkte": [ "Holzzapfen", "Schemel", "Truhe", "Gehstock", "Armbrust" ], "standardprodukt": "Armbrust", "startkarren": "Handkarren", "ausbau": "Saegewerk", "ausbauKosten": 5000 },
+    "Saegewerk":     { "name": "Sägewerk",     "beruf": "Tischler", "ort": "Werkstatt", "stufe": 3, "plaetze": 4, "fixkosten": 180, "produkte": [ "Holzzapfen", "Schemel", "Truhe", "Gehstock", "Armbrust", "Schrank", "Prunktruhe" ], "standardprodukt": "Schrank", "startkarren": "Handkarren" },
+    "Holzfaellerei": { "name": "Holzschlag",   "beruf": "Tischler", "ort": "Umland",    "plaetze": 3, "fixkosten": 400, "rohstoffe": [ "Holz" ], "startkarren": "Ochsenkarren" }
+  },
+  "meistergrade": {
+    "pruefungen": [
+      { "erfahrung": 60,   "gebuehr": 200,  "ap": 2 },
+      { "erfahrung": 250,  "gebuehr": 600,  "ap": 2 },
+      { "erfahrung": 650,  "gebuehr": 1200, "ap": 3 },
+      { "erfahrung": 1300, "gebuehr": 2000, "ap": 3 },
+      { "erfahrung": 2300, "gebuehr": 3000, "ap": 4 }
+    ],
+    "stufeAbGrad": [ 1, 3, 5 ],
+    "apBonusAbGrad": 6,
+    "apBonus": 1,
+    "umbauMinuten": 360
   },
   "liegenschaften": [
     {

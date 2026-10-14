@@ -38,6 +38,9 @@ public partial class BetriebsVerwaltung : VBoxContainer
     private HSlider _silberRegler = null!;
     private Label _silberText = null!;
     private Label _personalKopf = null!;
+    private HBoxContainer _ausbauZeile = null!;
+    private Label _ausbauText = null!;
+    private Button _ausbauKnopf = null!;
     private Label _foerderName = null!;
     private VBoxContainer _personal = null!;
     private VBoxContainer _karren = null!;
@@ -65,6 +68,18 @@ public partial class BetriebsVerwaltung : VBoxContainer
         _produktWahl = new OptionButton { FocusMode = FocusModeEnum.None, SizeFlagsHorizontal = SizeFlags.ExpandFill };
         _produktWahl.ItemSelected += index => Befehlen(new ProduktWaehlen(_betrieb!.Name, _produkte[(int)index]));
         _produktZeile.AddChild(_produktWahl);
+
+        // Gebäudestufe und Ausbau (nur Werkstätten, wenn es Meistergrade gibt)
+        _ausbauZeile = Zeile(this);
+        _ausbauText = NeuesLabel(_ausbauZeile, 13, Grau);
+        _ausbauText.SizeFlagsHorizontal = SizeFlags.ExpandFill;
+        _ausbauText.AutowrapMode = TextServer.AutowrapMode.WordSmart;
+        _ausbauText.CustomMinimumSize = new Vector2(220, 0);
+        _ausbauText.MouseFilter = MouseFilterEnum.Stop; // für den Tooltip
+        _ausbauKnopf = new Button { FocusMode = FocusModeEnum.None };
+        _ausbauKnopf.AddThemeFontSizeOverride("font_size", 13);
+        _ausbauKnopf.Pressed += () => Befehlen(new BetriebAusbauen(_betrieb!.Name));
+        _ausbauZeile.AddChild(_ausbauKnopf);
 
         // Förderung (nur Mine)
         _foerderZeile = Zeile(this);
@@ -165,6 +180,8 @@ public partial class BetriebsVerwaltung : VBoxContainer
             _produktWahl.Select(_produkte.IndexOf(b.Produkt));
         }
 
+        AusbauAktualisieren(b, w);
+
         _foerderZeile.Visible = b.Rohstoffe.Count >= 2; // nur, wer zwei Rohstoffe fördert, teilt auf (Grube: Eisen/Silber)
         if (_foerderZeile.Visible)
         {
@@ -203,6 +220,35 @@ public partial class BetriebsVerwaltung : VBoxContainer
             info.Text = karren.ZustandText(_simulation.Zeit);
         }
         _kaufenKnopf.Disabled = b.Konto.Vermoegen < w.Daten.Logistik.Karren[_karrenTypen[Math.Max(0, _karrenTyp.Selected)]].Preis;
+    }
+
+    /// <summary>„Stufe 1: Gießerei" und der Knopf zum Ausbau – gesperrt mit Begründung, solange Grad oder Geld fehlen.</summary>
+    private void AusbauAktualisieren(Betrieb b, Stadtwirtschaft w)
+    {
+        _ausbauZeile.Visible = b.IstWerkstatt && w.Daten.Meistergrade is not null;
+        if (!_ausbauZeile.Visible) return;
+        var waehrung = w.Daten.Allgemein.Waehrung;
+        var beruf = b.Artdaten.Beruf;
+        var text = $"Stufe {b.Stufe}: {b.Artdaten.Name} · {beruf} im {_spieler!.Meistergrad(beruf)}. Grad";
+        if (b.UmbauMinuten > 0) text += $" · Umbau noch {Zahlenformat.Ganz(b.UmbauMinuten / 60.0)} Std.";
+        _ausbauKnopf.Visible = b.Artdaten.Ausbau is not null;
+        if (b.Artdaten.Ausbau is { } ziel)
+        {
+            var neu = w.Daten.Art(ziel);
+            var knopf = $"Ausbau: {neu.Name} ({Zahlenformat.Ganz(b.Artdaten.AusbauKosten)} {waehrung})";
+            if (_ausbauKnopf.Text != knopf) _ausbauKnopf.Text = knopf;
+            var grund = w.AusbauVerboten(_spieler, b);
+            _ausbauKnopf.Disabled = grund is not null;
+            var neueWaren = neu.Produkte.Where(p => !b.Artdaten.Produkte.Contains(p));
+            var tipp = (grund is not null ? grund + "\n\n" : "")
+                       + $"Stufe {neu.Stufe}, ab {w.Daten.Meistergrade!.GradFuerStufe(neu.Stufe)}. Meistergrad: {neu.Plaetze} Arbeitsplätze, "
+                       + $"neue Waren {string.Join(", ", neueWaren)}; Unterhalt {Zahlenformat.Ganz(neu.Fixkosten)} {waehrung} im Jahr.\n"
+                       + $"Erwarteter Mehrgewinn bei voller Belegung ≈ {Zahlenformat.MitVorzeichen(Kalkulation.AusbauMehrgewinn(w, b))} {waehrung} im Jahr. "
+                       + "Der Umbau dauert einen halben Arbeitstag.";
+            if (_ausbauKnopf.TooltipText != tipp) { _ausbauKnopf.TooltipText = tipp; _ausbauText.TooltipText = tipp; }
+        }
+        else text += " · höchste Stufe";
+        _ausbauText.Text = text;
     }
 
     private void ZeilenNeuBauen(Betrieb b, Stadtwirtschaft w)

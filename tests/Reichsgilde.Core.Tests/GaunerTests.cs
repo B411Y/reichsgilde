@@ -271,7 +271,7 @@ static class GaunerTests
             Pruefe.Wahr(auftraege > 0, "Der wagemutige Rivale sollte in 6 Jahren Banden angeheuert haben");
 
             // Der Spieler bricht beim Rivalen ein – danach stellt die KI einen Wächter ein.
-            var giesserei = w.Betriebe.First(b => b.Konto == rivale && b.Art == Betriebsart.Giesserei);
+            var giesserei = w.Betriebe.First(b => b.Konto == rivale && b.IstWerkstatt);
             w.Ausfuehren(spieler, new Beauftragen(rivale.Inhaber, Gaunerstueck.Diebstahl, giesserei.Name));
             JahrBeenden(sim);
             JahrBeenden(sim);

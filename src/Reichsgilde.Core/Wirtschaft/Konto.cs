@@ -87,6 +87,25 @@ public sealed class Konto
     public bool Beherrscht(string beruf) => _berufe.Contains(beruf);
     internal void BerufLernen(string beruf) { if (beruf != "") _berufe.Add(beruf); }
 
+    private readonly SortedDictionary<string, int> _grade = new(StringComparer.Ordinal);
+    private readonly SortedDictionary<string, double> _erfahrung = new(StringComparer.Ordinal);
+
+    /// <summary>Meistergrad des Hauses in diesem Beruf: 0 = beherrscht ihn nicht, sonst 1–6.</summary>
+    public int Meistergrad(string beruf) => Beherrscht(beruf) ? Math.Max(1, _grade.GetValueOrDefault(beruf)) : 0;
+
+    /// <summary>Der höchste Meistergrad in irgendeinem Beruf (Grad 6 bringt einen AP mehr je Runde).</summary>
+    public int HoechsterMeistergrad => _berufe.Select(Meistergrad).DefaultIfEmpty(0).Max();
+
+    /// <summary>Gesammelte Erfahrung in diesem Beruf – Arbeitsstunden eines Gesellen für alles, was die Betriebe des Hauses hergestellt haben.</summary>
+    public double Erfahrung(string beruf) => _erfahrung.GetValueOrDefault(beruf);
+
+    internal void ErfahrungSammeln(string beruf, double stunden)
+    {
+        if (beruf != "") _erfahrung[beruf] = _erfahrung.GetValueOrDefault(beruf) + stunden;
+    }
+
+    internal void GradSetzen(string beruf, int grad) => _grade[beruf] = grad;
+
     /// <summary>Aktionspunkte des Hauses für persönliche Handlungen (Werben, Rat, Gericht, Hinterzimmer, Training).</summary>
     public Partie.Aktionspunkte Aktionspunkte { get; } = new();
 
@@ -123,6 +142,8 @@ public sealed class Konto
         Inhaber = Inhaber, Vermoegen = Vermoegen, Stand = Stand, Schuldenjahre = Schuldenjahre, IstBankrott = IstBankrott, IstErloschen = IstErloschen,
         Aktionspunkte = Aktionspunkte.Vorrat,
         Berufe = _berufe.ToList(),
+        Meistergrade = _grade.ToDictionary(x => x.Key, x => x.Value),
+        Erfahrung = _erfahrung.ToDictionary(x => x.Key, x => x.Value),
         Laufend = BilanzSichern(Laufend), Vorjahr = Vorjahr is null ? null : BilanzSichern(Vorjahr),
     };
 
@@ -136,6 +157,10 @@ public sealed class Konto
         konto.Aktionspunkte.Setzen(s.Aktionspunkte);
         foreach (var beruf in s.Berufe ?? new List<string>())
             konto.BerufLernen(beruf);
+        foreach (var (beruf, grad) in s.Meistergrade ?? new Dictionary<string, int>())
+            konto._grade[beruf] = grad;
+        foreach (var (beruf, stunden) in s.Erfahrung ?? new Dictionary<string, double>())
+            konto._erfahrung[beruf] = stunden;
         return konto;
     }
 
