@@ -64,6 +64,9 @@ public sealed record ErpressungBeantworten(string Erpresser, bool Zahlen) : Befe
 /// <summary>Einen Wächter für den Betrieb anstellen oder entlassen (Lohn am Jahresende).</summary>
 public sealed record WaechterSetzen(string Betrieb, bool Angestellt) : BetriebsBefehl(Betrieb);
 
+/// <summary>Ausbildung für ein Kind des Hauses wählen (Name aus "ausbildungen"); null bricht sie ab.</summary>
+public sealed record AusbildungWaehlen(int Kind, string? Weg) : Befehl;
+
 /// <summary>Die Gießerei stellt ab sofort diese Ware her.</summary>
 public sealed record ProduktWaehlen(string Betrieb, string Ware) : BetriebsBefehl(Betrieb);
 

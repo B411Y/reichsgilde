@@ -27,6 +27,7 @@ public sealed class Familienbuch
     private readonly Stadtwirtschaft _w;
     private readonly DynastieDaten _d;
     private Zufallsquelle _zufall;
+    private Zufallsquelle _talentZufall;
     private readonly Dictionary<Konto, Familie> _familien = new();
     private readonly List<Kandidat> _kandidaten = new();
     private readonly Dictionary<(Konto, int), double> _zuneigung = new();
@@ -60,6 +61,95 @@ public sealed class Familienbuch
         _w = w;
         _d = daten;
         _zufall = new Zufallsquelle(unchecked(zufallsstartwert * 17 + 3));
+        // Eigener Generator für Talente: So bleiben Geburten, Todesfälle und Kandidaten wie vor den Talenten.
+        _talentZufall = new Zufallsquelle(unchecked(zufallsstartwert * 37 + 13));
+    }
+
+    // ═════════════════════════════════════════════════════════════════════════
+    //  Talente
+    // ═════════════════════════════════════════════════════════════════════════
+
+    public TalentDaten TalentDaten => _d.Talente;
+    public bool HatTalente => _d.Talente.IstAktiv;
+
+    /// <summary>Das Talent des Oberhaupts – es führt das Haus (0 ohne Familie oder ohne Talentdaten).</summary>
+    public double Talent(Konto konto, Talent t) => HatTalente && Von(konto) is { } f ? f.Oberhaupt.Talent(t) : 0;
+
+    private TalentWirkung W => _d.Talente.Wirkung;
+
+    /// <summary>Faktor auf die Markterlöse (Verhandeln).</summary>
+    public double VerkaufsFaktor(Konto k) => 1 + Talent(k, Dynastie.Talent.Verhandeln) * W.Verhandeln;
+
+    /// <summary>Faktor auf die Leistung aller Arbeitskräfte (Handwerkskunst).</summary>
+    public double LeistungsFaktor(Konto k) => 1 + Talent(k, Dynastie.Talent.Handwerk) * W.Handwerk;
+
+    /// <summary>Zusätzliche Punkte bei Ratswahlen (Rhetorik).</summary>
+    public double RhetorikPunkte(Konto k) => Talent(k, Dynastie.Talent.Rhetorik) * W.RhetorikRat;
+
+    /// <summary>Plädoyer vor Gericht: positiv hilft dem Ankläger, negativ dem Beklagten.</summary>
+    public double Plaedoyer(Konto anklaeger, Konto beklagter) =>
+        (Talent(anklaeger, Dynastie.Talent.Rhetorik) - Talent(beklagter, Dynastie.Talent.Rhetorik)) * W.RhetorikGericht;
+
+    /// <summary>Zusätzliche Erfolgschance im Hinterzimmer (Bei Nacht und Nebel).</summary>
+    public double NachtBonus(Konto k) => Talent(k, Dynastie.Talent.NachtUndNebel) * W.NachtErfolg;
+
+    /// <summary>Faktor auf die Zeugenchance (Bei Nacht und Nebel – wer geschickt ist, wird seltener gesehen).</summary>
+    public double ZeugenFaktor(Konto k) => Math.Max(0, 1 - Talent(k, Dynastie.Talent.NachtUndNebel) * W.NachtZeugen);
+
+    /// <summary>Zusätzliche Stärke angeheuerter Wegelagerer (Kampf des Auftraggebers).</summary>
+    public double KampfUeberfall(Konto k) => Talent(k, Dynastie.Talent.Kampf) * W.KampfUeberfall;
+
+    /// <summary>Zusätzlicher Schutz der eigenen Karren (Kampf).</summary>
+    public double KampfSchutz(Konto k) => Talent(k, Dynastie.Talent.Kampf) * W.KampfSchutz;
+
+    private double Runden(double wert) => Math.Clamp(Math.Round(wert * 2) / 2, 0, _d.Talente.Hoechstwert);
+
+    /// <summary>Würfelt ± streuung in halben Schritten.</summary>
+    private double Streuen(double streuung)
+    {
+        var schritte = (int)Math.Round(streuung * 2);
+        return schritte <= 0 ? 0 : (_talentZufall.Next(2 * schritte + 1) - schritte) / 2.0;
+    }
+
+    /// <summary>Talente für einen Erwachsenen, der neu ins Spiel kommt: Grundwert des Volkes ± Streuung.</summary>
+    private void TalenteWuerfeln(Person p)
+    {
+        if (!HatTalente) return;
+        foreach (var t in TalentTexte.Alle)
+            p.TalentSetzen(t, Runden(_d.Talente.Grundwert(p.Volk, t) + Streuen(_d.Talente.Streuung)));
+    }
+
+    /// <summary>Talente eines Neugeborenen: halb von den Eltern, halb vom Volk, dazu etwas Zufall.</summary>
+    private void TalenteVererben(Person kind, Person mutter, Person vater)
+    {
+        if (!HatTalente) return;
+        var td = _d.Talente;
+        foreach (var t in TalentTexte.Alle)
+        {
+            var eltern = (mutter.Talent(t) + vater.Talent(t)) / 2;
+            kind.TalentSetzen(t, Runden(td.Vererbung * eltern + (1 - td.Vererbung) * td.Grundwert(kind.Volk, t) + Streuen(td.Streuung / 2)));
+        }
+    }
+
+    /// <summary>Ab welchem Alter Kinder dieses Volkes ausgebildet werden.</summary>
+    public int AusbildungAb(Volk volk) => (int)Math.Ceiling(_d.Volk(volk).Volljaehrig * _d.Talente.AusbildungAb);
+
+    public bool IstInAusbildungsalter(Person p) =>
+        p.Lebt && !IstVolljaehrig(p) && p.Alter(Jahr) >= AusbildungAb(p.Volk);
+
+    /// <summary>Zuwachs je Ausbildungsjahr – umgerechnet, damit jedes Volk am Ende gleich viel lernt.</summary>
+    public double Ausbildungsfaktor(Volk volk)
+    {
+        var jahre = _d.Volk(volk).Volljaehrig - AusbildungAb(volk);
+        return jahre <= 0 ? 0 : _d.Talente.ReferenzJahre / jahre;
+    }
+
+    /// <summary>Welche Wege einem Kind dieses Hauses offenstehen (null = ja, sonst der Grund).</summary>
+    public string? AusbildungVerboten(Konto konto, string weg)
+    {
+        if (!_d.Talente.Ausbildungen.TryGetValue(weg, out var a)) return $"Eine Ausbildung „{weg}“ gibt es nicht.";
+        if (a.MindestStand is { } st && konto.Stand < _w.Daten.StandStufe(st)) return $"{weg} steht erst Häusern ab dem Stand {st} offen.";
+        return null;
     }
 
     // ═════════════════════════════════════════════════════════════════════════
@@ -169,7 +259,9 @@ public sealed class Familienbuch
 
     /// <summary>Gulden für einen Punkt Zuneigung, wenn dieses Haus wirbt (das Volk des Oberhaupts wirbt verschieden gut).</summary>
     public double GuldenJeZuneigung(Konto konto) =>
-        Von(konto) is { } f ? 1 / (_d.ZuneigungJeGulden * _d.Volk(f.Oberhaupt.Volk).Werbefaktor) : 1 / _d.ZuneigungJeGulden;
+        Von(konto) is { } f
+            ? 1 / (_d.ZuneigungJeGulden * _d.Volk(f.Oberhaupt.Volk).Werbefaktor * (1 + Talent(konto, Dynastie.Talent.Rhetorik) * W.RhetorikWerben))
+            : 1 / _d.ZuneigungJeGulden;
 
     /// <summary>Darf dieses Haus um den Kandidaten werben? (null = ja, sonst der Grund)</summary>
     public string? WerbenVerboten(Konto konto, Kandidat k)
@@ -231,6 +323,7 @@ public sealed class Familienbuch
         var nachname = Familie.NachnameAus(konto.Inhaber);
         vorname = string.IsNullOrWhiteSpace(vorname) ? Vorname(v, geschlecht) : vorname.Trim();
         var oberhaupt = new Person(_naechsteNummer++, vorname, nachname, volk, geschlecht, Jahr - (alter ?? v.Startalter));
+        TalenteWuerfeln(oberhaupt);
         var familie = new Familie(konto, volk, nachname, oberhaupt);
         _familien[konto] = familie;
         KandidatenAuffuellen();
@@ -277,6 +370,7 @@ public sealed class Familienbuch
             name = v.Familiennamen[_zufall.Next(v.Familiennamen.Count)];
         } while (NameVergeben(vorname, name) && ++versuche < 10);
         var person = new Person(_naechsteNummer++, vorname, name, volk, geschlecht, Jahr - alter);
+        TalenteWuerfeln(person);
         return new Kandidat(person, stand);
     }
 
@@ -400,7 +494,56 @@ public sealed class Familienbuch
     {
         foreach (var konto in _w.Konten.Where(k => k.IstAktiv))
             if (Von(konto) is { } f)
-                konto.Familienkosten(Haushaltskosten(f));
+                konto.Familienkosten(Haushaltskosten(f) + Ausbildungskosten(f));
+    }
+
+    /// <summary>Was die laufenden Ausbildungen dieses Jahr kosten (nur Kinder im Ausbildungsalter).</summary>
+    public double Ausbildungskosten(Familie f) => !HatTalente ? 0 : f.Lebende
+        .Where(p => p.Ausbildung is { } weg && IstInAusbildungsalter(p) && _d.Talente.Ausbildungen.ContainsKey(weg))
+        .Sum(p => _d.Talente.Ausbildungen[p.Ausbildung!].Kosten);
+
+    /// <summary>Ein Jahr Ausbildung: Zuwachs in den Talenten; wer volljährig wird, schließt ab.</summary>
+    private void Ausbilden(Familie f)
+    {
+        if (!HatTalente) return;
+        foreach (var p in f.Lebende.Where(p => p.Ausbildung is not null).ToList())
+        {
+            if (!_d.Talente.Ausbildungen.TryGetValue(p.Ausbildung!, out var a)) { p.Ausbildung = null; continue; }
+            if (IstInAusbildungsalter(p))
+            {
+                var faktor = Ausbildungsfaktor(p.Volk);
+                foreach (var (t, zuwachs) in a.Talente)
+                    p.TalentSetzen(t, Math.Min(_d.Talente.Hoechstwert, p.Talent(t) + zuwachs * faktor));
+            }
+            // Wird das Kind im neuen Jahr volljährig, ist die Ausbildung abgeschlossen.
+            if (p.Alter(Jahr + 1) >= _d.Volk(p.Volk).Volljaehrig)
+            {
+                p.Abschluss = p.Ausbildung;
+                p.Ausbildung = null;
+                Ereignis(f.Konto, $"{p.Vorname} {f.Nachname} hat die Ausbildung abgeschlossen ({p.Abschluss}) und ist nun volljährig. " +
+                                  $"Stärken: {string.Join(", ", p.Staerken.Take(2).Select(x => $"{x.Talent.Name()} {TalentTexte.Sterne(x.Wert)}"))}.");
+            }
+        }
+    }
+
+    internal Befehlsergebnis AusbildungWaehlen(Konto konto, int nummer, string? weg)
+    {
+        if (!HatTalente) return Befehlsergebnis.Abgelehnt("In dieser Stadt gibt es keine Ausbildungen.");
+        if (Von(konto) is not { } f) return Befehlsergebnis.Abgelehnt($"{konto.Inhaber} hat keine Familie.");
+        var kind = f.Lebende.FirstOrDefault(p => p.Nummer == nummer);
+        if (kind is null) return Befehlsergebnis.Abgelehnt("Dieses Kind gibt es im Haus nicht.");
+        if (IstVolljaehrig(kind)) return Befehlsergebnis.Abgelehnt($"{kind.Vorname} ist schon volljährig – die Ausbildung ist vorbei.");
+        if (weg is null)
+        {
+            kind.Ausbildung = null;
+            return Befehlsergebnis.Ok($"{kind.Vorname} wird nicht mehr ausgebildet.");
+        }
+        if (AusbildungVerboten(konto, weg) is { } grund) return Befehlsergebnis.Abgelehnt(grund);
+        kind.Ausbildung = weg;
+        var ab = AusbildungAb(kind.Volk);
+        var a = _d.Talente.Ausbildungen[weg];
+        return Befehlsergebnis.Ok($"{kind.Vorname}: {weg} ({Zahlenformat.Ganz(a.Kosten)} {_w.Daten.Allgemein.Waehrung} im Jahr)" +
+                                  (kind.Alter(Jahr) < ab ? $" – beginnt mit {ab} Jahren." : "."));
     }
 
     /// <summary>Todesfälle, Erbfälle, Geburten und die Brautschau des neuen Jahres.</summary>
@@ -420,6 +563,7 @@ public sealed class Familienbuch
 
             if (_zufall.NextDouble() < Geburtschance(f))
                 Geburt(f);
+            Ausbilden(f);
         }
 
         // Die Brautschau: Manche heiraten anderweitig, Neue kommen dazu.
@@ -494,6 +638,7 @@ public sealed class Familienbuch
         var geschlecht = _zufall.Next(2) == 0 ? Geschlecht.Frau : Geschlecht.Mann;
         var v = _d.Volk(f.Volk);
         var kind = new Person(_naechsteNummer++, Vorname(v, geschlecht), f.Nachname, f.Volk, geschlecht, Jahr + 1, vater.Nummer, mutter.Nummer);
+        TalenteVererben(kind, mutter, vater);
         f.MitgliederListe.Add(kind);
         Ereignis(f.Konto, $"Freude im Haus {f.Nachname}: {mutter.Vorname} und {vater.Vorname} bekommen {(geschlecht == Geschlecht.Frau ? "eine Tochter" : "einen Sohn")}, {kind.Vorname}.");
     }
@@ -510,11 +655,14 @@ public sealed class Familienbuch
                 Nummer = p.Nummer, Vorname = p.Vorname, Familienname = p.Familienname, Geburtsname = p.Geburtsname,
                 Volk = p.Volk, Geschlecht = p.Geschlecht, Geburtsjahr = p.Geburtsjahr, Todesjahr = p.Todesjahr,
                 Vater = p.Vater, Mutter = p.Mutter,
+                Talente = HatTalente ? TalentTexte.Alle.Select(p.Talent).ToList() : null,
+                Ausbildung = p.Ausbildung, Abschluss = p.Abschluss,
             }).ToList();
         return new FamilienbuchStand
         {
             Jahr = Jahr,
             ZufallWuerfe = _zufall.Wuerfe,
+            TalentWuerfe = _talentZufall.Wuerfe,
             NaechsteNummer = _naechsteNummer,
             Personen = personen,
             Familien = _w.Konten.Where(_familien.ContainsKey).Select(k => _familien[k]).Select(f => new FamilieStand
@@ -541,8 +689,17 @@ public sealed class Familienbuch
         Jahr = s.Jahr;
         _zufall = new Zufallsquelle(_zufall.Startwert, s.ZufallWuerfe);
         _naechsteNummer = s.NaechsteNummer;
-        var personen = s.Personen.ToDictionary(p => p.Nummer, p => new Person(p.Nummer, p.Vorname, p.Familienname, p.Volk,
-            p.Geschlecht, p.Geburtsjahr, p.Vater, p.Mutter, p.Geburtsname, p.Todesjahr));
+        _talentZufall = new Zufallsquelle(_talentZufall.Startwert, s.TalentWuerfe);
+        var personen = s.Personen.ToDictionary(p => p.Nummer, p =>
+        {
+            var person = new Person(p.Nummer, p.Vorname, p.Familienname, p.Volk, p.Geschlecht, p.Geburtsjahr, p.Vater, p.Mutter, p.Geburtsname, p.Todesjahr)
+            {
+                Ausbildung = p.Ausbildung, Abschluss = p.Abschluss,
+            };
+            foreach (var t in TalentTexte.Alle) // alte Spielstände ohne Talente: Grundwerte des Volkes
+                person.TalentSetzen(t, p.Talente is { } werte && (int)t < werte.Count ? werte[(int)t] : HatTalente ? _d.Talente.Grundwert(p.Volk, t) : 0);
+            return person;
+        });
 
         _familien.Clear();
         foreach (var fs in s.Familien)

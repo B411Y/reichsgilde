@@ -110,6 +110,9 @@ public sealed class DynastieDaten
 
     public Dictionary<Volk, VolkDaten> Voelker { get; init; } = new();
 
+    /// <summary>Talente und Ausbildung (leer = ohne Talente).</summary>
+    public TalentDaten Talente { get; init; } = new();
+
     /// <summary>Ohne Völker-Daten gibt es keine Dynastien (ältere Daten, Tests).</summary>
     public bool IstAktiv => Voelker.Count > 0;
 
@@ -130,6 +133,7 @@ public sealed class DynastieDaten
         foreach (var stand in KandidatenStaende.Keys.Where(s => standStufe(s) < 0))
             f.Add($"dynastie.kandidatenStaende: Stand „{stand}“ gibt es nicht.");
 
+        Talente.Pruefen(f, standStufe);
         foreach (var volk in new[] { Reichsgilde.Core.Volk.Mensch, Reichsgilde.Core.Volk.Zwerg, Reichsgilde.Core.Volk.Elb, Reichsgilde.Core.Volk.Halbling })
             if (!Voelker.ContainsKey(volk)) f.Add($"dynastie.voelker: {volk} fehlt.");
         foreach (var (volk, v) in Voelker)

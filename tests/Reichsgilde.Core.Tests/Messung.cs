@@ -29,6 +29,8 @@ static class Messung
 
         int verheiratet = 0, erloschen = 0, buergermeister = 0;
         double heiratsjahre = 0, kinder = 0, erbfaelle = 0, bmJahre = 0, kostenSpieler = 0, vermoegen = 0;
+        double talentOberhaupt = 0, ausgebildet = 0;
+        var abschluesse = new SortedDictionary<string, int>();
         for (var s = 1; s <= startwerte; s++)
         {
             var (sim, spieler) = Partieaufbau.Erstellen(
@@ -73,6 +75,10 @@ static class Messung
             kinder += nachkommen;
             erbfaelle += f.Ahnen.Count;
             vermoegen += rivale.Vermoegen;
+            talentOberhaupt += f.Oberhaupt.TalentSumme;
+            ausgebildet += f.Mitglieder.Count(p => p.Abschluss is not null);
+            foreach (var p in f.Mitglieder.Where(p => p.Abschluss is not null))
+                abschluesse[p.Abschluss!] = abschluesse.GetValueOrDefault(p.Abschluss!) + 1;
             Console.WriteLine($"Startwert {s * 101,5}: {f.Oberhaupt.Name} ({f.Oberhaupt.Alter(w.Familien.Jahr)} J.), " +
                               $"Heirat im Jahr {heirat?.ToString() ?? "–"}{(f.Mitglieder.FirstOrDefault(p => p.Geburtsname != f.Nachname) is { } partner ? $" mit {partner.Volk.Einzahl()}" : "")}, Nachkommen {nachkommen} (lebend {f.Lebende.Count(p => p.Vater is not null)}), " +
                               $"Erbfälle {f.Ahnen.Count}{(rivale.IstErloschen ? ", ERLOSCHEN" : "")}, {w.StandVon(rivale).Name}, " +
@@ -87,6 +93,8 @@ static class Messung
         Console.WriteLine($"  Geschenke an Ratsherren (Bestechung) Ø {Zahlenformat.Ganz(bestechung / startwerte)} Gulden über {jahre} Jahre");
         Console.WriteLine($"  Gaunerstücke der KI ({charakter}): {gaunerstuecke} in {startwerte} Partien, Bilanz Hinterzimmer {Zahlenformat.Ganz(gaunerBilanz / startwerte)} je Partie; " +
                           $"Raub und Schäden beim Spieler Ø {Zahlenformat.Ganz(schadenSpieler / startwerte)}; Kerkerjahre der KI {kerker}");
+        Console.WriteLine($"  Talente des Oberhaupts am Ende Ø {talentOberhaupt / startwerte:N1} Sterne (Summe aller fünf); ausgebildete Nachkommen Ø {ausgebildet / startwerte:N1} " +
+                          $"({string.Join(", ", abschluesse.Select(x => $"{x.Key} {x.Value}"))})");
         if (gericht)
             Console.WriteLine($"  vor Gericht: {urteileSchuldig} Schuldsprüche, {urteileFrei} Freisprüche, davon {amtVerloren} mit Amtsverlust (Summe über alle Startwerte)");
         return 0;
@@ -115,6 +123,35 @@ static class Messung
         var e = w.Ausfuehren(spieler, new Anklagen(rivale.Inhaber));
         File.WriteAllText(datei, Speicherung.Speichern(sim, spieler));
         Console.WriteLine($"{sim.Zeit.DatumText}: {w.Justiz.Beweise(spieler, rivale).Count()} Beweise, Anklage: {e.Meldung}");
+        Console.WriteLine($"gespeichert: {datei}");
+        return 0;
+    }
+
+    /// <summary>Spielstand mit verheiratetem Oberhaupt und Kindern im Ausbildungsalter – für Klicktests der Familientafel.</summary>
+    public static int FamilienSpielstand(string datei)
+    {
+        var daten = Wirtschaftsdaten.AusDatei(Datenpfad.Wirtschaft());
+        var (sim, spieler) = Partieaufbau.Erstellen(
+            Partieeinstellungen.Standard with { Zufallsstartwert = 303, Siegbedingung = Siegbedingung.Endlos },
+            daten, new NeuePartie(Startvermoegen: 20_000));
+        var w = sim.Wirtschaft!;
+        var buch = w.Familien;
+        var f = buch.Von(spieler)!;
+        void Jahr() { var j = sim.Zeit.Jahr; while (sim.Zeit.Jahr == j) sim.Tick(); }
+        for (var jahr = 0; jahr < 6 && f.Ehepartner is null; jahr++)
+        {
+            var k = buch.Kandidaten.FirstOrDefault(x => buch.WerbenVerboten(spieler, x) is null);
+            if (k is null) { Jahr(); continue; }
+            w.Ausfuehren(spieler, new Werben(k.Person.Nummer, 1000));
+            if (buch.Bereitschaft(spieler, k) >= buch.Heiratsschwelle(k))
+                w.Ausfuehren(spieler, new Heiraten(k.Person.Nummer));
+            else
+                Jahr();
+        }
+        for (var jahr = 0; jahr < 40 && !f.Lebende.Any(p => p.Vater is not null && p.Alter(buch.Jahr) >= buch.AusbildungAb(p.Volk)); jahr++)
+            Jahr();
+        File.WriteAllText(datei, Speicherung.Speichern(sim, spieler));
+        Console.WriteLine($"{sim.Zeit.DatumText}: {f.Oberhaupt.Name}, Kinder: {string.Join(", ", f.Lebende.Where(p => p.Vater is not null).Select(p => $"{p.Vorname} ({p.Alter(buch.Jahr)})"))}");
         Console.WriteLine($"gespeichert: {datei}");
         return 0;
     }

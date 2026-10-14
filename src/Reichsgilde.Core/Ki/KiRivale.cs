@@ -339,7 +339,10 @@ public sealed class KiRivale
     private void Familienpolitik()
     {
         var buch = _w.Familien;
-        if (buch.Von(Konto) is not { } f || f.Ehepartner is not null) return;
+        if (buch.Von(Konto) is not { } f) return;
+        Erziehung(f);
+        Testament(f);
+        if (f.Ehepartner is not null) return;
 
         var wahl = buch.Kandidaten
             .Where(k => buch.WerbenVerboten(Konto, k) is null)
@@ -365,6 +368,60 @@ public sealed class KiRivale
         if (buch.Bereitschaft(Konto, k) >= buch.Heiratsschwelle(k) && Konto.Vermoegen - hochzeit >= Profil.Reserve / 2)
             Befehlen(new Heiraten(p.Nummer),
                 $"{f.Oberhaupt.Vorname} heiratet {p.Name} (erwartet ≈ {Zahlenformat.Kommazahl(wahl.Kinder)} Kinder).");
+    }
+
+    /// <summary>So viele Jahreskosten muss die KI über der Reserve haben, bevor sie ein Kind auf die Universität schickt.</summary>
+    private const double UniversitaetPolster = 5;
+
+    /// <summary>
+    /// Ausbildung der Kinder – eine feste Hausregel, die sich nicht täglich umentscheidet:
+    ///   • Das älteste Kind (der wahrscheinliche Erbe) geht auf die Universität, wenn das Haus Bürger ist und
+    ///     sie sich leisten kann – sonst in die Klosterschule (Rhetorik hilft im Rat und vor Gericht).
+    ///   • Ein wagemutiges Haus schickt sein jüngstes Kind (ab dem zweiten) auf die Gasse.
+    ///   • Alle anderen lernen in der Zunft – Handwerk hebt die Leistung der Betriebe.
+    /// Gewählt wird nur für Kinder ohne Ausbildung; einzige Ausnahme ist der Aufstieg von Klosterschule zur Universität.
+    /// </summary>
+    private void Erziehung(Familie f)
+    {
+        var buch = _w.Familien;
+        if (!buch.HatTalente) return;
+        var kinder = f.Kinder.Where(p => p.Lebt && !buch.IstVolljaehrig(p)).ToList();
+        var aeltestes = f.Kinder.FirstOrDefault(p => p.Lebt);
+        for (var i = 0; i < kinder.Count; i++)
+        {
+            var kind = kinder[i];
+            string wunsch;
+            if (kind == aeltestes)
+                wunsch = buch.AusbildungVerboten(Konto, "Universität") is null
+                         && Konto.Vermoegen - Profil.Reserve >= UniversitaetPolster * Ausbildungskosten("Universität")
+                    ? "Universität" : "Klosterschule";
+            else if (Profil.Gaunerei >= 2 && i == kinder.Count - 1)
+                wunsch = "Gasse";
+            else
+                wunsch = "Zunftlehre";
+
+            var aufstieg = kind.Ausbildung == "Klosterschule" && wunsch == "Universität";
+            if (kind.Ausbildung is not null && !aufstieg) continue;
+            if (buch.AusbildungVerboten(Konto, wunsch) is not null) continue; // Weg fehlt in den Daten
+            Befehlen(new AusbildungWaehlen(kind.Nummer, wunsch), $"schickt {kind.Vorname} ({kind.Alter(buch.Jahr)} Jahre) in die Ausbildung: {wunsch}.");
+        }
+    }
+
+    private double Ausbildungskosten(string weg) =>
+        _w.Daten.Dynastie.Talente.Ausbildungen.TryGetValue(weg, out var a) ? a.Kosten : 0;
+
+    /// <summary>Testament: Das begabteste volljährige Kind soll erben (bei Gleichstand das ältere).</summary>
+    private void Testament(Familie f)
+    {
+        var buch = _w.Familien;
+        if (!buch.HatTalente) return;
+        var bester = f.Kinder.Where(p => p.Lebt && buch.IstVolljaehrig(p))
+            .OrderByDescending(p => Math.Round(p.TalentSumme, 6))
+            .FirstOrDefault();
+        if (bester is null || f.Testament == bester) return;
+        if (f.Testament is { Lebt: true } alt && buch.IstVolljaehrig(alt) && Math.Round(alt.TalentSumme, 6) >= Math.Round(bester.TalentSumme, 6)) return;
+        Befehlen(new ErbenBestimmen(bester.Nummer),
+            $"setzt {bester.Vorname} als Erben ein ({TalentTexte.Sterne(bester.TalentSumme)} Sterne in allen Talenten).");
     }
 
     // ═════════════════════════════════════════════════════════════════════════
@@ -419,8 +476,10 @@ public sealed class KiRivale
             foreach (var s in stimmen.Where(s => s.Schuldig && s.Richter.Ratsherr is not null))
             {
                 var r = s.Richter.Ratsherr!;
-                var differenz = _w.Rat.Gunst(r, v.Anklaeger) - _w.Rat.Gunst(r, Konto); // Gunstwirkung = Faktor × Differenz
-                var fehlt = differenz - ziel / d.GunstFaktor;                         // so viel Gunst muss die KI gewinnen
+                // Gunstwirkung = Faktor × Gunstdifferenz + Plädoyer (Rhetorik), gedeckelt
+                var differenz = _w.Rat.Gunst(r, v.Anklaeger) - _w.Rat.Gunst(r, Konto);
+                var plaedoyer = _w.Familien.Plaedoyer(v.Anklaeger, Konto);
+                var fehlt = differenz - (ziel - plaedoyer) / d.GunstFaktor;           // so viel Gunst muss die KI gewinnen
                 var gulden = Math.Ceiling(fehlt / g.JeGulden / 10) * 10;
                 if (gulden > 0 && _w.Rat.Gunst(r, Konto) + gulden * g.JeGulden <= g.Hoechstwert)
                     kosten.Add((r, gulden));
@@ -496,11 +555,11 @@ public sealed class KiRivale
         var moeglich = new List<(Gaunerstueck Art, string? Betrieb, double Wert)>();
         foreach (var b in _w.Betriebe.Where(b => b.Konto == ziel))
         {
-            moeglich.Add((Gaunerstueck.Diebstahl, b.Name, unterwelt.ErwarteterGewinn(b)));
-            moeglich.Add((Gaunerstueck.Sabotage, b.Name, unterwelt.ErwarteterSchaden(b) * 0.5 - g.Sabotage.Kosten));
+            moeglich.Add((Gaunerstueck.Diebstahl, b.Name, unterwelt.ErwarteterGewinn(b, Konto)));
+            moeglich.Add((Gaunerstueck.Sabotage, b.Name, unterwelt.ErwarteterSchaden(b, Konto) * 0.5 - g.Sabotage.Kosten));
             if (Profil.Gaunerei >= 2 && b.Ort == Arbeitsort.Umland && b.Karren.Count > 0)
                 moeglich.Add((Gaunerstueck.Ueberfall, null,
-                    unterwelt.MoeglicheBeute(b).Sum(x => x.Wert) * g.HehlerAnteil * g.Ueberfall.Staerke * 0.6 - g.Ueberfall.Kosten));
+                    unterwelt.MoeglicheBeute(b).Sum(x => x.Wert) * g.HehlerAnteil * unterwelt.Staerke(Konto) * 0.6 - g.Ueberfall.Kosten));
         }
         var beste = moeglich.Where(m => m.Wert > 0).OrderByDescending(m => m.Wert).ThenBy(m => m.Art).FirstOrDefault();
         if (beste.Wert <= 0 || Konto.Vermoegen - g.Kosten(beste.Art) < Profil.Reserve) return;

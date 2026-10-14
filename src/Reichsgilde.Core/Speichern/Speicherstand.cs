@@ -185,6 +185,7 @@ public sealed record FamilienbuchStand
     public int Jahr { get; init; }
     public long ZufallWuerfe { get; init; }
     public int NaechsteNummer { get; init; }
+    public long TalentWuerfe { get; init; }
     public List<PersonStand> Personen { get; init; } = new();
     public List<FamilieStand> Familien { get; init; } = new();
     public List<KandidatStand> Kandidaten { get; init; } = new();
@@ -205,6 +206,11 @@ public sealed record PersonStand
     public int? Todesjahr { get; init; }
     public int? Vater { get; init; }
     public int? Mutter { get; init; }
+
+    /// <summary>Sterne je Talent in der Reihenfolge des Talent-Enums (null in alten Spielständen – dann Grundwerte des Volkes).</summary>
+    public List<double>? Talente { get; init; }
+    public string? Ausbildung { get; init; }
+    public string? Abschluss { get; init; }
 }
 
 public sealed record FamilieStand

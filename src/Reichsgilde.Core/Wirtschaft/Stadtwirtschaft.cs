@@ -180,7 +180,7 @@ public sealed class Stadtwirtschaft
 
         if (IstArbeitszeit(zeit))
             foreach (var betrieb in _betriebe)
-                betrieb.Arbeitsminute(Melden);
+                betrieb.Arbeitsminute(Melden, Familien.LeistungsFaktor(betrieb.Konto)); // Handwerkskunst des Oberhaupts
 
         // Bei Nacht und Nebel: Die Banden aus dem Hinterzimmer ziehen los.
         if (zeit.MinuteImTag == Unterwelt.Nachtstunde)
@@ -287,7 +287,7 @@ public sealed class Stadtwirtschaft
             return Befehlsergebnis.Abgelehnt($"{absender.Inhaber} ist bankrott und kann nichts mehr unternehmen.");
         if (absender.IstErloschen)
             return Befehlsergebnis.Abgelehnt($"Das Haus {absender.Inhaber} ist erloschen.");
-        if (Justiz.IstAktiv && Justiz.ImKerker(absender) && befehl is not (BetriebsBefehl or ErbenBestimmen or ErpressungBeantworten))
+        if (Justiz.IstAktiv && Justiz.ImKerker(absender) && befehl is not (BetriebsBefehl or ErbenBestimmen or ErpressungBeantworten or AusbildungWaehlen))
             return Befehlsergebnis.Abgelehnt($"Das Oberhaupt von {absender.Inhaber} sitzt bis Ende {Justiz.KerkerBis(absender)} im Kerker. " +
                                              "Nur die Betriebe laufen weiter.");
         if (befehl is StandErwerben)
@@ -326,6 +326,8 @@ public sealed class Stadtwirtschaft
                 _ => Befehlsergebnis.Abgelehnt("Unbekannter Befehl."),
             };
         }
+        if (befehl is AusbildungWaehlen ausbildung)
+            return Familien.AusbildungWaehlen(absender, ausbildung.Kind, ausbildung.Weg);
         if (befehl is Werben or Heiraten or ErbenBestimmen && Familien.Von(absender) is null)
             return Befehlsergebnis.Abgelehnt($"{absender.Inhaber} hat keine Familie.");
         if (befehl is Werben werben)

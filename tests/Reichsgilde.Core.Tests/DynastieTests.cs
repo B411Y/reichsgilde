@@ -126,8 +126,10 @@ static class DynastieTests
             var vorher = konto.Vermoegen;
             Pruefe.Wahr(w.Ausfuehren(konto, new Werben(k.Person.Nummer, 5000)).Erfolg, "Werben");
             Pruefe.Ungefaehr(20, buch.Zuneigung(konto, k), 0.001);
-            Pruefe.Ungefaehr(400, vorher - konto.Vermoegen, 0.001); // bezahlt wird nur, was wirkt
-            Pruefe.Ungefaehr(400, konto.Laufend.Familie, 0.001);
+            var preis = 20 * buch.GuldenJeZuneigung(konto); // 400 ohne Rhetorik, je Stern Rhetorik 5 % billiger
+            Pruefe.Wahr(preis < 400, $"Rhetorik macht das Werben günstiger ({preis:0})");
+            Pruefe.Ungefaehr(preis, vorher - konto.Vermoegen, 0.001); // bezahlt wird nur, was wirkt
+            Pruefe.Ungefaehr(preis, konto.Laufend.Familie, 0.001);
             e = w.Ausfuehren(konto, new Werben(k.Person.Nummer, 100));
             Pruefe.Wahr(!e.Erfolg && e.Meldung.Contains("braucht Zeit"), e.Meldung);
 
@@ -286,7 +288,7 @@ static class DynastieTests
             Pruefe.Gleich(3.0, buch.Volksnaehe(Volk.Mensch, konto));
             var zwergRatsherr = w.Rat.Ratsherren.First(r => r.Daten.Volk == Volk.Zwerg);
             var amt = w.Rat.Aemter.First(a => a.Stufe == 1);
-            Pruefe.Ungefaehr(w.Rat.Ansehen(konto) + w.Rat.Gunst(zwergRatsherr, konto), w.Rat.Punkte(zwergRatsherr, amt, konto), 1e-9);
+            Pruefe.Ungefaehr(w.Rat.Ansehen(konto) + w.Rat.Gunst(zwergRatsherr, konto) + buch.RhetorikPunkte(konto), w.Rat.Punkte(zwergRatsherr, amt, konto), 1e-9);
         }),
 
         ("KI: Haus Eisenbart wirbt und heiratet in den ersten Jahren; Zwerge bekommen langsam Kinder", () =>

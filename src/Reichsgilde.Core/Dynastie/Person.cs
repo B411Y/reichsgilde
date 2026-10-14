@@ -33,6 +33,23 @@ public sealed class Person
     public int? Mutter { get; }
 
     public bool Lebt => Todesjahr is null;
+
+    private readonly double[] _talente = new double[TalentTexte.Alle.Length];
+
+    /// <summary>Sterne in einem Talent (0 bis 6, halbe Sterne möglich).</summary>
+    public double Talent(Talent t) => _talente[(int)t];
+    internal void TalentSetzen(Talent t, double wert) => _talente[(int)t] = wert;
+    public double TalentSumme => _talente.Sum();
+
+    /// <summary>Die beste Begabung, z. B. für die Brautschau.</summary>
+    public IEnumerable<(Talent Talent, double Wert)> Staerken =>
+        TalentTexte.Alle.Select(t => (t, Talent(t))).OrderByDescending(x => x.Item2).ThenBy(x => x.t);
+
+    /// <summary>Laufende Ausbildung eines Kindes (Name aus "ausbildungen") oder null.</summary>
+    public string? Ausbildung { get; internal set; }
+
+    /// <summary>Abgeschlossene Ausbildung (nach der Volljährigkeit).</summary>
+    public string? Abschluss { get; internal set; }
     public string Name => $"{Vorname} {Familienname}";
 
     /// <summary>„Agnes Hammerschmid, geb. Weber" – der Geburtsname nur, wenn er anders ist.</summary>
