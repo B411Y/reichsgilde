@@ -82,6 +82,10 @@ public partial class Hauptszene : Node
         _verwaltung = GetNode<BetriebsVerwaltung>("%Verwaltung");
         _aktionKnopf = GetNode<Button>("%AktionKnopf");
         _jahresbericht = GetNode<JahresberichtAnzeige>("%Jahresbericht");
+        // Der Bericht sitzt in einem CenterContainer: Der hält ihn mittig, egal wie hoch er wird.
+        var berichtMitte = Hauptmenue.Mitte();
+        GetNode<CanvasLayer>("Oberflaeche").AddChild(berichtMitte);
+        _jahresbericht.Reparent(berichtMitte);
         _blick = GetNode<Label>("%Blick");
         _datum = GetNode<Label>("%Datum");
         _uhrzeit = GetNode<Label>("%Uhrzeit");

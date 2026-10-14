@@ -74,7 +74,7 @@ public partial class KontorAnzeige : PanelContainer
 
     private void BetriebsZeilenBauen(List<Betrieb> eigene)
     {
-        foreach (var kind in _betriebsliste.GetChildren()) kind.QueueFree();
+        UiHilfe.KinderEntfernen(_betriebsliste);
         _betriebsZeilen.Clear();
         foreach (var betrieb in eigene)
         {

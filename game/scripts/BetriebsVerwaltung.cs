@@ -195,8 +195,8 @@ public partial class BetriebsVerwaltung : VBoxContainer
 
     private void ZeilenNeuBauen(Betrieb b, Stadtwirtschaft w)
     {
-        foreach (var kind in _personal.GetChildren()) kind.QueueFree();
-        foreach (var kind in _karren.GetChildren()) kind.QueueFree();
+        UiHilfe.KinderEntfernen(_personal);
+        UiHilfe.KinderEntfernen(_karren);
         _personalZeilen.Clear();
         _karrenZeilen.Clear();
 

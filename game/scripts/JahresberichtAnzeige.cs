@@ -61,7 +61,7 @@ public partial class JahresberichtAnzeige : PanelContainer
     public void Zeigen(Simulation simulation, Konto spieler, string? endgrund = null)
     {
         if (simulation.Wirtschaft is not { } w) return;
-        foreach (var kind in _inhalt.GetChildren()) kind.QueueFree();
+        UiHilfe.KinderEntfernen(_inhalt);
         var waehrung = w.Daten.Allgemein.Waehrung;
         var bilanz = spieler.Vorjahr;
 
@@ -135,10 +135,7 @@ public partial class JahresberichtAnzeige : PanelContainer
 
         _weiter.Text = endgrund is null ? "Weiter" : "Schließen";
         Show();
-        // Mittig ins Bild – nach dem Aufbau, wenn die Größe feststeht.
-        SetAnchorsAndOffsetsPreset(LayoutPreset.Center, LayoutPresetMode.Minsize);
-        GrowHorizontal = GrowDirection.Both;
-        GrowVertical = GrowDirection.Both;
+
     }
 
     // ── Bausteine ───────────────────────────────────────────────────────────
