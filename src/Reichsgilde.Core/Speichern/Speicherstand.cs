@@ -211,6 +211,9 @@ public sealed record PersonStand
     public List<double>? Talente { get; init; }
     public string? Ausbildung { get; init; }
     public string? Abschluss { get; init; }
+
+    /// <summary>Jahr, in dem jedes Talent zuletzt geübt wurde (0 = nie; null in alten Spielständen).</summary>
+    public List<int>? Geuebt { get; init; }
 }
 
 public sealed record FamilieStand
@@ -279,6 +282,7 @@ public sealed record KontoStand
     public int Schuldenjahre { get; init; }
     public bool IstBankrott { get; init; }
     public bool IstErloschen { get; init; }
+    public int Aktionspunkte { get; init; }
     public BilanzStand Laufend { get; init; } = new();
     public BilanzStand? Vorjahr { get; init; }
 }

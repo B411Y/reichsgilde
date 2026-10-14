@@ -546,6 +546,30 @@ public sealed class Familienbuch
                                   (kind.Alter(Jahr) < ab ? $" – beginnt mit {ab} Jahren." : "."));
     }
 
+    /// <summary>Warum das Oberhaupt dieses Talent jetzt nicht üben kann – oder null.</summary>
+    public string? TrainingVerboten(Konto konto, Talent talent)
+    {
+        if (!HatTalente) return "In dieser Stadt gibt es keine Talente.";
+        if (Von(konto) is not { } f) return $"{konto.Inhaber} hat keine Familie.";
+        var o = f.Oberhaupt;
+        if (o.Talent(talent) >= _d.Talente.Hoechstwert - 1e-9)
+            return $"{o.Vorname} beherrscht {talent.Name()} schon meisterhaft ({TalentTexte.Sterne(o.Talent(talent))} Sterne).";
+        if (o.GeuebtIm(talent) == Jahr)
+            return $"{o.Vorname} hat {talent.Name()} dieses Jahr schon geübt.";
+        return null;
+    }
+
+    /// <summary>Das Oberhaupt übt ein Talent (die Aktionspunkte bucht die Stadtwirtschaft ab).</summary>
+    internal Befehlsergebnis TalentTrainieren(Konto konto, Talent talent)
+    {
+        if (TrainingVerboten(konto, talent) is { } grund) return Befehlsergebnis.Abgelehnt(grund);
+        var o = Von(konto)!.Oberhaupt;
+        var schritt = _w.Daten.Aktionspunkte?.TrainingSchritt ?? 0.5;
+        o.TalentSetzen(talent, Math.Min(_d.Talente.Hoechstwert, o.Talent(talent) + schritt));
+        o.GeuebtSetzen(talent, Jahr);
+        return Befehlsergebnis.Ok($"{o.Vorname} übt {talent.Name()}: jetzt {TalentTexte.Sterne(o.Talent(talent))} Sterne.");
+    }
+
     /// <summary>Todesfälle, Erbfälle, Geburten und die Brautschau des neuen Jahres.</summary>
     internal void Jahreswechsel()
     {
@@ -657,6 +681,7 @@ public sealed class Familienbuch
                 Vater = p.Vater, Mutter = p.Mutter,
                 Talente = HatTalente ? TalentTexte.Alle.Select(p.Talent).ToList() : null,
                 Ausbildung = p.Ausbildung, Abschluss = p.Abschluss,
+                Geuebt = TalentTexte.Alle.Any(t => p.GeuebtIm(t) != 0) ? TalentTexte.Alle.Select(p.GeuebtIm).ToList() : null,
             }).ToList();
         return new FamilienbuchStand
         {
@@ -698,6 +723,9 @@ public sealed class Familienbuch
             };
             foreach (var t in TalentTexte.Alle) // alte Spielstände ohne Talente: Grundwerte des Volkes
                 person.TalentSetzen(t, p.Talente is { } werte && (int)t < werte.Count ? werte[(int)t] : HatTalente ? _d.Talente.Grundwert(p.Volk, t) : 0);
+            if (p.Geuebt is { } geuebt)
+                foreach (var t in TalentTexte.Alle.Where(t => (int)t < geuebt.Count))
+                    person.GeuebtSetzen(t, geuebt[(int)t]);
             return person;
         });
 

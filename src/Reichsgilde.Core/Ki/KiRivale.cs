@@ -121,12 +121,26 @@ public sealed class KiRivale
         }
         if (_stundenImJahr == Politikstunde)
         {
-            Unterweltpolitik(frei); // Erpresserbriefe beantworten, Wächter, eigene Gaunerstücke
+            Unterweltschutz(); // Erpresserbriefe beantworten, Wächter einstellen – kostet keine Aktionspunkte
             if (frei)
             {
+                // Die Aktionspunkte reichen nicht für alles: Familie und Verteidigung zuerst, dann nach Charakter –
+                // der Wagemutige geht ins Hinterzimmer, bevor er Ratsherren beschenkt; die anderen umgekehrt.
                 Familienpolitik();
-                Justizpolitik(); // zuerst verteidigen – das Geld für Geschenke ist begrenzt
-                Politik();
+                Verteidigung();
+                if (Profil.Gaunerei >= 2)
+                {
+                    Gaunerei();
+                    Politik();
+                    Anklagen();
+                }
+                else
+                {
+                    Politik();
+                    Anklagen();
+                    Gaunerei();
+                }
+                Trainieren();
             }
         }
         foreach (var betrieb in Betriebe.ToList())
@@ -179,6 +193,7 @@ public sealed class KiRivale
     /// </summary>
     private bool Befehlen(Befehl befehl, string begruendung)
     {
+        if (!_w.ApReichen(Konto, befehl)) return false; // keine Aktionspunkte mehr – still verzichten statt Fehlversuch
         var ergebnis = _w.Ausfuehren(Konto, befehl);
         Entscheiden(ergebnis.Erfolg ? begruendung : $"wollte, durfte aber nicht: {ergebnis.Meldung}");
         return ergebnis.Erfolg;
@@ -435,14 +450,18 @@ public sealed class KiRivale
     ///   • Anklagen: erst, wenn die Beweise so stark sind, dass auch bestochene Richter schuldig sprächen.
     ///   • Spitzel: auf das stärkste andere Haus, das politisch mitspielt (ab Bürger), einmal im Jahr.
     /// </summary>
-    private void Justizpolitik()
+    private void Verteidigung()
+    {
+        if (!_w.Justiz.IstAktiv) return;
+        foreach (var v in _w.Justiz.Verfahren.Where(v => v.Beklagter == Konto).ToList())
+            Verteidigen(v);
+    }
+
+    private void Anklagen()
     {
         var gericht = _w.Justiz;
         if (!gericht.IstAktiv) return;
         var d = gericht.Daten;
-
-        foreach (var v in gericht.Verfahren.Where(v => v.Beklagter == Konto).ToList())
-            Verteidigen(v);
 
         foreach (var gegner in _w.Konten.Where(k => k != Konto && k.IstAktiv).ToList())
         {
@@ -516,8 +535,8 @@ public sealed class KiRivale
     private const double PrangerWert = 500;
     private const double KerkerWert = 1500;
 
-    /// <summary>Einmal am Tag: Erpresserbriefe beantworten, Wächter einstellen, selbst Banden anheuern.</summary>
-    private void Unterweltpolitik(bool frei)
+    /// <summary>Einmal am Tag: Erpresserbriefe beantworten, Wächter einstellen (auch aus dem Kerker – der Verwalter handelt).</summary>
+    private void Unterweltschutz()
     {
         var unterwelt = _w.Gauner;
         if (!unterwelt.IstAktiv) return;
@@ -537,10 +556,18 @@ public sealed class KiRivale
         foreach (var b in Betriebe.Where(b => !b.Waechter && unterwelt.LetzterAngriff(b.Name) >= _w.Jahr - 1).ToList())
             if (Konto.Vermoegen - g.WaechterKosten >= Profil.Reserve)
                 Befehlen(new WaechterSetzen(b.Name, true), $"stellt nach dem Angriff einen Wächter für {b.Name} ein.");
+    }
 
-        // 3. Selbst Banden anheuern – nur, wer es seinem Charakter nach tut. Unter den Augen der Spitzel hält
-        //    der Ausgewogene still; der Wagemutige macht weiter und riskiert Gericht und Kerker.
-        if (!frei || Profil.Gaunerei <= 0 || _gaunereienImJahr >= Profil.Gaunerei) return;
+    /// <summary>
+    /// Selbst Banden anheuern – nur, wer es seinem Charakter nach tut. Unter den Augen der Spitzel hält
+    /// der Ausgewogene still; der Wagemutige macht weiter und riskiert Gericht und Kerker.
+    /// </summary>
+    private void Gaunerei()
+    {
+        var unterwelt = _w.Gauner;
+        if (!unterwelt.IstAktiv) return;
+        var g = unterwelt.Daten;
+        if (Profil.Gaunerei <= 0 || _gaunereienImJahr >= Profil.Gaunerei) return;
         if (Bestechungsrisiko > 1 && Profil.Gaunerei < 2) return;
         var rangliste = _w.Rangliste.Where(k => k.IstAktiv).ToList();
         var eigenerRang = rangliste.IndexOf(Konto);
@@ -618,7 +645,14 @@ public sealed class KiRivale
 
         if (!rat.Bewerbungen.ContainsKey(Konto) && Konto.Vermoegen > Profil.Reserve
             && rat.WaehlbareAemter(Konto).OrderByDescending(a => a.Daten.Einkommen).ThenBy(a => a.Name, StringComparer.Ordinal).FirstOrDefault() is { } ziel)
-            Befehlen(new AmtBewerben(ziel.Name), $"bewirbt sich um das Amt {ziel.Name} ({Zahlenformat.Ganz(ziel.Daten.Einkommen)} Gulden im Jahr).");
+        {
+            // Bewerben lohnt nur, wenn die Aktionspunkte auch für die Geschenke reichen, die die Mehrheit bringen –
+            // sonst spart die KI lieber (der Vorrat wächst bis zur Obergrenze).
+            var bewerbung = new AmtBewerben(ziel.Name);
+            var geschenke = WahlPlan(ziel)?.Count ?? 0;
+            if (Konto.Aktionspunkte.Reicht(_w.ApKosten(bewerbung) + geschenke * _w.ApKosten(new Schenken("", 0))))
+                Befehlen(bewerbung, $"bewirbt sich um das Amt {ziel.Name} ({Zahlenformat.Ganz(ziel.Daten.Einkommen)} Gulden im Jahr).");
+        }
 
         if (rat.Bewerbungen.TryGetValue(Konto, out var amtName) && rat.AmtNamens(amtName) is { } amt)
             FuerWahlWerben(amt);
@@ -641,11 +675,21 @@ public sealed class KiRivale
     /// </summary>
     private void FuerWahlWerben(Amt amt)
     {
+        if (WahlKosten(amt) is { } w)
+            Schenkplan(w.Kosten, w.Noetig, $"für die Wahl zum {amt.Name}", amt.Daten.Einkommen * NutzenJahre);
+    }
+
+    /// <summary>Die Geschenke, mit denen die KI die Wahl gewänne – null, wenn das nicht geht oder sich nicht lohnt.</summary>
+    private List<(Ratsherr Ratsherr, double Gulden)>? WahlPlan(Amt amt) =>
+        WahlKosten(amt) is { } w ? Schenkplanen(w.Kosten, w.Noetig, "", amt.Daten.Einkommen * NutzenJahre, melden: false) : null;
+
+    private (List<(Ratsherr Ratsherr, double Gulden)> Kosten, int Noetig)? WahlKosten(Amt amt)
+    {
         var rat = _w.Rat;
         var g = rat.Daten.Gunst;
         var mitbewerber = rat.Bewerbungen.Where(b => b.Value == amt.Name && b.Key != Konto).Select(b => b.Key).ToList();
         var waehler = rat.Waehler(amt).Where(w => w.Konto != Konto && !mitbewerber.Contains(w.Konto!)).ToList();
-        if (waehler.Count == 0 || g.JeGulden <= 0) return;
+        if (waehler.Count == 0 || g.JeGulden <= 0) return null;
 
         var kosten = new List<(Ratsherr Ratsherr, double Gulden)>();
         var sicher = 0;
@@ -658,7 +702,7 @@ public sealed class KiRivale
             if (fehlt <= 0) sicher++;
             else kosten.Add((r, Math.Ceiling(fehlt / g.JeGulden / 10) * 10));
         }
-        Schenkplan(kosten, waehler.Count / 2 + 1 - sicher, $"für die Wahl zum {amt.Name}", amt.Daten.Einkommen * NutzenJahre);
+        return (kosten, waehler.Count / 2 + 1 - sicher);
     }
 
     /// <summary>Geschenke für den eigenen Statut-Antrag: Ratsherren eine Stufe neben dem Ziel über die Gunst-Schwelle heben.</summary>
@@ -696,21 +740,63 @@ public sealed class KiRivale
 
     private void Schenkplan(List<(Ratsherr Ratsherr, double Gulden)> kosten, int noetig, string zweck, double nutzen)
     {
-        if (noetig <= 0 || kosten.Count < noetig) return;
-        var plan = kosten.OrderBy(k => k.Gulden).ThenBy(k => k.Ratsherr.Name, StringComparer.Ordinal).Take(noetig).ToList();
-        var summe = plan.Sum(p => p.Gulden);
-        if (summe > Politikbudget) return;
-        // Ohne Spitzel im Nacken zählt nur das Budget – untere Ämter sind Sprossen auf der Leiter, nicht nur Einkommen.
-        // Unter Beobachtung wägt die KI ab: Kosten samt erwarteter Buße gegen den Nutzen einiger Jahre.
-        if (Bestechungsrisiko > 1 && summe * Bestechungsrisiko > nutzen)
+        if (Schenkplanen(kosten, noetig, zweck, nutzen, melden: true) is not { Count: > 0 } plan) return;
+        // Halbe Bestechung ist rausgeworfenes Geld – reichen die Aktionspunkte nicht für alle Geschenke, gar keine.
+        var ap = plan.Count * _w.ApKosten(new Schenken("", 0));
+        if (!Konto.Aktionspunkte.Reicht(ap))
         {
-            Entscheiden($"verzichtet auf Geschenke {zweck} – unter den Augen der Spitzel zu riskant " +
-                        $"({Zahlenformat.Ganz(summe)} {_w.Daten.Allgemein.Waehrung} plus erwartete Buße gegen {Zahlenformat.Ganz(nutzen)} Nutzen).");
+            Entscheiden($"spart Aktionspunkte: Geschenke {zweck} bräuchten {ap} AP, es sind nur {Konto.Aktionspunkte.Vorrat}.");
             return;
         }
         foreach (var (ratsherr, gulden) in plan)
             Befehlen(new Schenken(ratsherr.Name, gulden),
                 $"beschenkt {ratsherr.Name} mit {Zahlenformat.Ganz(gulden)} Gulden {zweck}.");
+    }
+
+    /// <summary>Die billigsten Geschenke für eine Mehrheit – leer, wenn keine nötig sind; null, wenn es nicht geht oder sich nicht lohnt.</summary>
+    private List<(Ratsherr Ratsherr, double Gulden)>? Schenkplanen(List<(Ratsherr Ratsherr, double Gulden)> kosten, int noetig, string zweck,
+        double nutzen, bool melden)
+    {
+        if (noetig <= 0) return new();
+        if (kosten.Count < noetig) return null;
+        var plan = kosten.OrderBy(k => k.Gulden).ThenBy(k => k.Ratsherr.Name, StringComparer.Ordinal).Take(noetig).ToList();
+        var summe = plan.Sum(p => p.Gulden);
+        if (summe > Politikbudget) return null;
+        // Ohne Spitzel im Nacken zählt nur das Budget – untere Ämter sind Sprossen auf der Leiter, nicht nur Einkommen.
+        // Unter Beobachtung wägt die KI ab: Kosten samt erwarteter Buße gegen den Nutzen einiger Jahre.
+        if (Bestechungsrisiko > 1 && summe * Bestechungsrisiko > nutzen)
+        {
+            if (melden)
+                Entscheiden($"verzichtet auf Geschenke {zweck} – unter den Augen der Spitzel zu riskant " +
+                            $"({Zahlenformat.Ganz(summe)} {_w.Daten.Allgemein.Waehrung} plus erwartete Buße gegen {Zahlenformat.Ganz(nutzen)} Nutzen).");
+            return null;
+        }
+        return plan;
+    }
+
+    // ═════════════════════════════════════════════════════════════════════════
+    //  Training
+    // ═════════════════════════════════════════════════════════════════════════
+
+    /// <summary>
+    /// Aktionspunkte, die bei der nächsten Runde verfielen, steckt die KI ins Üben. Sonst spart sie –
+    /// Wahlen und Anklagen brauchen mehrere AP auf einmal.
+    /// Reihenfolge: Handwerk (Leistung der Betriebe), Verhandeln (Erlöse), Rhetorik (Rat, Gericht);
+    /// ein wagemutiges Haus übt zuerst Kampf und Bei Nacht und Nebel.
+    /// </summary>
+    private void Trainieren()
+    {
+        if (_w.Daten.Aktionspunkte is not { } d || !_w.Familien.HatTalente) return;
+        var wunsch = Profil.Gaunerei >= 2
+            ? new[] { Talent.Kampf, Talent.NachtUndNebel, Talent.Handwerk, Talent.Verhandeln, Talent.Rhetorik }
+            : new[] { Talent.Handwerk, Talent.Verhandeln, Talent.Rhetorik };
+        foreach (var talent in wunsch)
+        {
+            var ap = Konto.Aktionspunkte.Vorrat;
+            if (ap + _w.AktionspunkteJeRunde <= d.Hoechstens) return; // nichts verfiele
+            if (_w.Familien.TrainingVerboten(Konto, talent) is not null) continue;
+            Befehlen(new TalentTrainieren(talent), $"übt {talent.Name()} (sonst verfielen Aktionspunkte).");
+        }
     }
 
     /// <summary>Vorsichtige Schätzung der Löhne: der teuerste Lohn, den eine erlaubte Arbeitskraft dort kostet.</summary>

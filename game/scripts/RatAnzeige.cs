@@ -120,6 +120,7 @@ public partial class RatAnzeige : PanelContainer
                 Hauptmenue.Text(raster, Zahlenformat.Ganz(rat.Gunst(ratsherr, _spieler)), 14);
                 var knopf = new Button { Text = "Beschenken", FocusMode = FocusModeEnum.None };
                 knopf.Pressed += () => Befehlen(new Schenken(ratsherr.Name, _geschenkBetrag));
+                UiHilfe.ApKosten(knopf, w, _spieler, new Schenken("", 0));
                 raster.AddChild(knopf);
             }
             else
@@ -159,6 +160,7 @@ public partial class RatAnzeige : PanelContainer
                 zeile.AddChild(auswahl);
                 var bewerben = new Button { Text = "Bewerben", FocusMode = FocusModeEnum.None };
                 bewerben.Pressed += () => Befehlen(new AmtBewerben(waehlbar[auswahl.Selected].Name));
+                UiHilfe.ApKosten(bewerben, w, _spieler, new AmtBewerben(""));
                 zeile.AddChild(bewerben);
                 foreach (var a in waehlbar) PrognoseZeigen(rat, a, $"{a.Name}: ");
             }
@@ -192,6 +194,7 @@ public partial class RatAnzeige : PanelContainer
             zeile.AddChild(auswahl);
             var stellen = new Button { Text = "Antrag stellen", FocusMode = FocusModeEnum.None };
             stellen.Pressed += () => Befehlen(new StatutBeantragen(statuten[auswahl.Selected]));
+            UiHilfe.ApKosten(stellen, w, _spieler, new StatutBeantragen(default));
             zeile.AddChild(stellen);
         }
         Hauptmenue.Text(_inhalt, "Ratsherren stimmen ihrer Haltung zu – einem Nachbarstatut nur, wenn eure Gunst bei ihnen " +

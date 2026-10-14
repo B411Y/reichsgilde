@@ -86,10 +86,11 @@ public partial class GerichtAnzeige : PanelContainer
     private Label Text(Container eltern, string text, int groesse, Color? farbe = null, bool umbrechen = false) =>
         Hauptmenue.Text(eltern, text, groesse, farbe, umbruchBreite: umbrechen ? Breite - 50 : 0);
 
-    private Button Knopf(Container eltern, string text, Action aktion, bool gesperrt = false, string? hinweis = null)
+    private Button Knopf(Container eltern, string text, Action aktion, bool gesperrt = false, string? hinweis = null, Befehl? ap = null)
     {
         var knopf = new Button { Text = text, FocusMode = FocusModeEnum.None, Disabled = gesperrt, TooltipText = hinweis ?? "" };
         knopf.Pressed += aktion;
+        if (ap is not null && _simulation?.Wirtschaft is { } w && _spieler is not null) UiHilfe.ApKosten(knopf, w, _spieler, ap);
         eltern.AddChild(knopf);
         return knopf;
     }
@@ -131,10 +132,12 @@ public partial class GerichtAnzeige : PanelContainer
             if (gericht.HatSpitzel(_spieler, haus))
                 Text(zeile, "· Spitzel ist angesetzt", 13, Grau);
             else
-                Knopf(zeile, $"Spitzel ansetzen ({Zahlenformat.Ganz(d.SpitzelKosten)} {waehrung})", () => Befehlen(new SpitzelAnsetzen(haus.Inhaber)));
+                Knopf(zeile, $"Spitzel ansetzen ({Zahlenformat.Ganz(d.SpitzelKosten)} {waehrung})", () => Befehlen(new SpitzelAnsetzen(haus.Inhaber)),
+                    ap: new SpitzelAnsetzen(""));
             if (gericht.VerfahrenGegen(_spieler, haus) is null)
                 Knopf(zeile, $"Anklage erheben ({Zahlenformat.Ganz(d.Gerichtsgebuehr)} {waehrung})", () => Befehlen(new Anklagen(haus.Inhaber)),
-                    gesperrt: beweise.Count == 0, hinweis: beweise.Count == 0 ? "Ohne Beweise nimmt das Gericht keine Anklage an." : null);
+                    gesperrt: beweise.Count == 0, hinweis: beweise.Count == 0 ? "Ohne Beweise nimmt das Gericht keine Anklage an." : null,
+                    ap: new Anklagen(""));
 
             foreach (var b in beweise.TakeLast(5))
                 Text(_inhalt, "   • " + b.Beschreibung, 12, Grau);
@@ -182,7 +185,7 @@ public partial class GerichtAnzeige : PanelContainer
                     Text(raster, s.Richter.Rolle, 12, Grau);
                     Text(raster, $"{Zahlenformat.Kommazahl(s.Ueberzeugung)} → {(s.Schuldig ? "schuldig" : "nicht schuldig")}", 13);
                     if (beteiligt && s.Richter.Ratsherr is { } r)
-                        Knopf(raster, "Beschenken", () => Befehlen(new Schenken(r.Name, _geschenkBetrag)));
+                        Knopf(raster, "Beschenken", () => Befehlen(new Schenken(r.Name, _geschenkBetrag)), ap: new Schenken("", 0));
                     else
                         Text(raster, "", 12);
                 }

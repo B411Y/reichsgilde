@@ -8,7 +8,7 @@ using Reichsgilde.Core.Zeit;
 /// <summary>Tests für den Stadtrat: Laufbahn, Wahlen, Gunst, Amtseinkommen und Abstimmungen über das Statut.</summary>
 static class RatTests
 {
-    static readonly Lazy<Wirtschaftsdaten> Daten = new(() => Wirtschaftsdaten.AusDatei(Datenpfad.Wirtschaft()));
+    static readonly Lazy<Wirtschaftsdaten> Daten = new(() => Wirtschaftsdaten.AusJson(Datenpfad.OhneAktionspunkte()));
 
     static Simulation NeueSimulation() =>
         new(Partieeinstellungen.Standard with { Siegbedingung = Siegbedingung.Endlos }, wirtschaftsdaten: Daten.Value);

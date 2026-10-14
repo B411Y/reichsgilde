@@ -166,6 +166,9 @@ public sealed class Wirtschaftsdaten
     /// <summary>Die Unterwelt (ab Datenversion 8). Fehlt der Abschnitt, gibt es kein Hinterzimmer.</summary>
     public Gauner.GaunerDaten? Gauner { get; init; }
 
+    /// <summary>Kosten persönlicher Handlungen in Aktionspunkten (ab Datenversion 10). Fehlt der Abschnitt, ist alles frei.</summary>
+    public Partie.AktionspunkteDaten? Aktionspunkte { get; init; }
+
     /// <summary>Freie Werkstätten und Gruben, die man erwerben kann (ab Datenversion 4).</summary>
     public List<LiegenschaftDaten> Liegenschaften { get; init; } = new();
 
@@ -254,6 +257,7 @@ public sealed class Wirtschaftsdaten
             }
         }
 
+        Aktionspunkte?.Pruefen(f);
         Logistik.Pruefen(f);
 
         if (Staende.Count == 0) f.Add("Es sind keine Stände definiert.");
