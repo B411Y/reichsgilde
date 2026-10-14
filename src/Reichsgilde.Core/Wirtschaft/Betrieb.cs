@@ -8,6 +8,12 @@ public enum Betriebsart
 
     /// <summary>Umlandbetrieb (gepachtet). Fördert Eisen und Silber.</summary>
     Mine,
+
+    /// <summary>Werkstatt des Tischlers, Stufe 1. Stellt Holzzapfen, Schemel und Truhen her.</summary>
+    Tischlerei,
+
+    /// <summary>Umlandbetrieb des Tischlers (gepachtet). Schlägt Holz.</summary>
+    Holzfaellerei,
 }
 
 /// <summary>
@@ -22,13 +28,14 @@ public enum Betriebsart
 public sealed class Betrieb
 {
     private readonly Wirtschaftsdaten _daten;
+    private readonly BetriebsartDaten _art;
     private readonly Dictionary<string, int> _belegung = new();
     private readonly Dictionary<string, int> _lager = new();
     private readonly List<Karren> _karren = new();
-    private double _fortschritt;        // Gießerei: Arbeitsminuten am aktuellen Stück
-    private double _fortschrittEisen;   // Mine
-    private double _fortschrittSilber;  // Mine
-    private string _produkt = "Silberring";
+    private double _fortschritt;        // Werkstatt: Arbeitsminuten am aktuellen Stück
+    private double _fortschrittEisen;   // Umland: erster Rohstoff (Name aus alten Spielständen)
+    private double _fortschrittSilber;  // Umland: zweiter Rohstoff
+    private string _produkt;
     private double _silberanteil = 0.5;
     private string? _letzterStillstand;
     private int _sabotageMinuten;
@@ -37,9 +44,18 @@ public sealed class Betrieb
     public Betriebsart Art { get; }
     public Konto Konto { get; }
 
-    public Arbeitsort Ort => Art == Betriebsart.Mine ? Arbeitsort.Umland : Arbeitsort.Werkstatt;
+    /// <summary>Was diese Betriebsart ist und kann (aus den Daten).</summary>
+    public BetriebsartDaten Artdaten => _art;
 
-    public int Plaetze => Art == Betriebsart.Mine ? _daten.Allgemein.PlaetzeMine : _daten.Allgemein.PlaetzeGiesserei;
+    public Arbeitsort Ort => _art.Ort;
+
+    public int Plaetze => _art.Plaetze;
+
+    /// <summary>Werkstatt (stellt Produkte her) – sonst Umlandbetrieb (fördert Rohstoffe).</summary>
+    public bool IstWerkstatt => _art.IstWerkstatt;
+
+    /// <summary>Umland: die geförderten Rohstoffe (eine oder zwei Waren).</summary>
+    public IReadOnlyList<string> Rohstoffe => _art.Rohstoffe;
 
     public IReadOnlyDictionary<string, int> Belegung => _belegung;
     public int Belegt => _belegung.Values.Sum();
@@ -65,31 +81,36 @@ public sealed class Betrieb
     /// <summary>Arbeitsminuten mit Stillstand im Vorjahr – zeigt, ob Karren oder Lager zu knapp sind.</summary>
     public int StillstandMinutenVorjahr { get; private set; }
 
-    /// <summary>Was die Gießerei herstellt. Nur Waren mit Zutaten (Beschlag, Rapier, Silberring).</summary>
+    /// <summary>Was die Werkstatt herstellt – eines ihrer <see cref="BetriebsartDaten.Produkte"/>.</summary>
     public string Produkt
     {
         get => _produkt;
         set
         {
-            if (Art != Betriebsart.Giesserei)
-                throw new InvalidOperationException("Nur eine Gießerei hat ein Produkt.");
-            if (!_daten.Waren.TryGetValue(value, out var ware) || ware.Zutaten.Count == 0)
-                throw new ArgumentException($"„{value}“ kann eine Gießerei nicht herstellen.");
+            if (!IstWerkstatt)
+                throw new InvalidOperationException($"Eine {_art.Name} stellt nichts her, sie fördert.");
+            if (!_art.Produkte.Contains(value) || !_daten.Waren.ContainsKey(value))
+                throw new ArgumentException($"„{value}“ kann eine {_art.Name} nicht herstellen.");
             if (value != _produkt) _fortschritt = 0;
             _produkt = value;
         }
     }
 
-    /// <summary>Mine: Anteil der Arbeitszeit für Silber (0 = nur Eisen, 1 = nur Silber).</summary>
+    /// <summary>
+    /// Umland mit zwei Rohstoffen: Anteil der Arbeitszeit für den zweiten (Grube: 0 = nur Eisen, 1 = nur Silber).
+    /// Bei nur einem Rohstoff ohne Bedeutung.
+    /// </summary>
     public double Silberanteil
     {
         get => _silberanteil;
         set => _silberanteil = Math.Clamp(value, 0, 1);
     }
 
-    /// <summary>Waren, die dieser Betrieb als Zutaten braucht (nur Gießerei).</summary>
+    /// <summary>Waren, die dieser Betrieb als Zutaten braucht (nur Werkstätten).</summary>
     public IReadOnlyDictionary<string, int> Zutaten =>
-        Art == Betriebsart.Giesserei ? _daten.Waren[_produkt].Zutaten : new Dictionary<string, int>();
+        IstWerkstatt ? _daten.Waren[_produkt].Zutaten : KeineZutaten;
+
+    private static readonly Dictionary<string, int> KeineZutaten = new();
 
     /// <summary>Für wie viele Stück die Zutaten im Lager noch reichen (Mine: unendlich).</summary>
     public int ZutatenReichweite =>
@@ -101,6 +122,8 @@ public sealed class Betrieb
         Art = art;
         Konto = konto;
         _daten = daten;
+        _art = daten.Art(art);
+        _produkt = _art.Standardprodukt ?? _art.Produkte.LastOrDefault() ?? "";
     }
 
     // ── Personal ────────────────────────────────────────────────────────────
@@ -204,7 +227,7 @@ public sealed class Betrieb
         if (leistung <= 0) return;
 
         string? stillstand = null;
-        if (Art == Betriebsart.Giesserei)
+        if (IstWerkstatt)
         {
             var zeit = _daten.Waren[_produkt].Zeit;
             _fortschritt += leistung;
@@ -223,14 +246,19 @@ public sealed class Betrieb
                 _fortschritt -= zeit;
             }
         }
-        else
+        else if (Rohstoffe.Count == 1)
+        {
+            _fortschrittEisen += leistung;
+            stillstand = Foerdern(Rohstoffe[0], ref _fortschrittEisen);
+        }
+        else if (Rohstoffe.Count >= 2)
         {
             _fortschrittEisen += leistung * (1 - _silberanteil);
             _fortschrittSilber += leistung * _silberanteil;
-            // Beide Waren getrennt fördern: Ist das Eisenlager voll, geht die Silberförderung weiter.
-            var eisen = Foerdern("Eisen", ref _fortschrittEisen);
-            var silber = Foerdern("Silber", ref _fortschrittSilber);
-            stillstand = eisen ?? silber;
+            // Beide Waren getrennt fördern: Ist das eine Lager voll, geht die Förderung des anderen weiter.
+            var erster = Foerdern(Rohstoffe[0], ref _fortschrittEisen);
+            var zweiter = Foerdern(Rohstoffe[1], ref _fortschrittSilber);
+            stillstand = erster ?? zweiter;
         }
 
         // Stillstand nur einmal melden, nicht jede Minute.
@@ -335,14 +363,14 @@ public sealed class Betrieb
                 if (kraft.Risiko > 0 && zufall.NextDouble() < kraft.Risiko)
                 {
                     Konto.Schaden(kraft.Schaden);
-                    melden(Art == Betriebsart.Mine
+                    melden(Ort == Arbeitsort.Umland
                         ? $"Ausbruch in {Name}: Ein {name} hat sich losgerissen. Schaden: {Zahlenformat.Ganz(kraft.Schaden)} {_daten.Allgemein.Waehrung}."
                         : $"Aufstand in {Name}: Ein {name} hat sich erhoben. Schaden: {Zahlenformat.Ganz(kraft.Schaden)} {_daten.Allgemein.Waehrung}.");
                 }
             }
         }
 
-        Konto.Fixkosten(Art == Betriebsart.Mine ? _daten.Allgemein.PachtMine : _daten.Allgemein.UnterhaltGiesserei);
+        Konto.Fixkosten(_art.Fixkosten);
         if (Waechter && _daten.Gauner is { } gauner)
             Konto.Personal(gauner.WaechterKosten);
 

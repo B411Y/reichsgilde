@@ -103,3 +103,6 @@ public sealed record SchnapsKaufen(int Stueck) : Befehl;
 
 /// <summary>Einem Familienmitglied Kräuterschnaps aus der Hausapotheke geben: heilt leichte Krankheiten, lindert die Pest.</summary>
 public sealed record SchnapsGeben(int Person) : Befehl;
+
+/// <summary>Ein weiteres Handwerk erlernen (Lehrgeld und Aktionspunkte) – erst dann darf man dessen Werkstätten erwerben.</summary>
+public sealed record BerufErlernen(string Beruf) : Befehl;

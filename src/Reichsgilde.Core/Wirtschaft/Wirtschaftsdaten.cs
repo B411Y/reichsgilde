@@ -178,11 +178,49 @@ public sealed class Wirtschaftsdaten
     /// <summary>Stufe eines Standes nach Namen (−1, wenn es ihn nicht gibt).</summary>
     public int StandStufe(string name) => Staende.FindIndex(st => st.Name == name);
 
-    /// <summary>Jährliche Fixkosten einer Betriebsart (Unterhalt der Werkstatt bzw. Pacht der Grube).</summary>
-    public double Fixkosten(Betriebsart art) => art == Betriebsart.Mine ? Allgemein.PachtMine : Allgemein.UnterhaltGiesserei;
+    /// <summary>Betriebsarten (ab Datenversion 12). Fehlt der Abschnitt, gibt es nur Gießerei und Grube wie früher.</summary>
+    public Dictionary<Betriebsart, BetriebsartDaten> Betriebsarten { get; init; } = new();
+
+    /// <summary>Berufe (ab Datenversion 12). Fehlt der Abschnitt, ist jeder Schmied.</summary>
+    public Dictionary<string, BerufDaten> Berufe { get; init; } = new();
+
+    private readonly Dictionary<Betriebsart, BetriebsartDaten> _alteArten = new();
+
+    /// <summary>
+    /// Was eine Betriebsart ist und kann. Ältere Daten (vor Version 12) kennen nur Gießerei und Grube –
+    /// für sie wird der Eintrag aus „allgemein" gebaut, damit alte Spielstände unverändert weiterlaufen.
+    /// </summary>
+    public BetriebsartDaten Art(Betriebsart art)
+    {
+        if (Betriebsarten.TryGetValue(art, out var d)) return d;
+        if (_alteArten.TryGetValue(art, out d)) return d;
+        d = art switch
+        {
+            Betriebsart.Giesserei => new BetriebsartDaten
+            {
+                Name = "Gießerei", Beruf = "Schmied", Ort = Arbeitsort.Werkstatt, Plaetze = Allgemein.PlaetzeGiesserei,
+                Fixkosten = Allgemein.UnterhaltGiesserei, Standardprodukt = "Silberring", Startkarren = "Handkarren",
+                Produkte = Waren.Where(x => x.Value.Zutaten.Count > 0).Select(x => x.Key).ToList(),
+            },
+            Betriebsart.Mine => new BetriebsartDaten
+            {
+                Name = "Grube", Beruf = "Schmied", Ort = Arbeitsort.Umland, Plaetze = Allgemein.PlaetzeMine,
+                Fixkosten = Allgemein.PachtMine, Startkarren = "Ochsenkarren", Rohstoffe = new() { "Eisen", "Silber" },
+            },
+            _ => throw new InvalidOperationException($"Die Betriebsart {art} fehlt in den Daten („betriebsarten“)."),
+        };
+        _alteArten[art] = d;
+        return d;
+    }
+
+    /// <summary>Gibt es diese Betriebsart in den Daten (oder als alte Standardart)?</summary>
+    public bool KenntArt(Betriebsart art) => Betriebsarten.ContainsKey(art) || art is Betriebsart.Giesserei or Betriebsart.Mine;
+
+    /// <summary>Jährliche Fixkosten einer Betriebsart (Unterhalt der Werkstatt bzw. Pacht im Umland).</summary>
+    public double Fixkosten(Betriebsart art) => Art(art).Fixkosten;
 
     /// <summary>Arbeitsplätze einer Betriebsart.</summary>
-    public int Plaetze(Betriebsart art) => art == Betriebsart.Mine ? Allgemein.PlaetzeMine : Allgemein.PlaetzeGiesserei;
+    public int Plaetze(Betriebsart art) => Art(art).Plaetze;
 
     private static readonly JsonSerializerOptions Optionen = new()
     {
@@ -260,6 +298,29 @@ public sealed class Wirtschaftsdaten
             }
         }
 
+        foreach (var (art, d) in Betriebsarten)
+        {
+            if (d.Plaetze < 1) f.Add($"betriebsarten.{art}.plaetze muss mindestens 1 sein.");
+            if (d.Fixkosten < 0) f.Add($"betriebsarten.{art}.fixkosten darf nicht negativ sein.");
+            if (Berufe.Count > 0 && !Berufe.ContainsKey(d.Beruf)) f.Add($"betriebsarten.{art}: Den Beruf „{d.Beruf}“ gibt es nicht.");
+            if (!Logistik.Karren.ContainsKey(d.Startkarren)) f.Add($"betriebsarten.{art}: Den Karren „{d.Startkarren}“ gibt es nicht.");
+            if (d.Produkte.Count > 0 == d.Rohstoffe.Count > 0) f.Add($"betriebsarten.{art}: entweder produkte (Werkstatt) oder rohstoffe (Umland).");
+            if (d.Rohstoffe.Count > 2) f.Add($"betriebsarten.{art}: höchstens zwei Rohstoffe.");
+            if ((d.Ort == Arbeitsort.Umland) != (d.Rohstoffe.Count > 0)) f.Add($"betriebsarten.{art}: Umlandbetriebe fördern Rohstoffe, Werkstätten stellen Produkte her.");
+            foreach (var w in d.Produkte)
+                if (!Waren.TryGetValue(w, out var ware) || ware.Zutaten.Count == 0) f.Add($"betriebsarten.{art}: „{w}“ ist keine Ware mit Zutaten.");
+            foreach (var w in d.Rohstoffe)
+                if (!Waren.TryGetValue(w, out var ware) || ware.Zutaten.Count > 0) f.Add($"betriebsarten.{art}: „{w}“ ist kein Rohstoff.");
+            if (d.Standardprodukt is { } sp && !d.Produkte.Contains(sp)) f.Add($"betriebsarten.{art}: Das Standardprodukt „{sp}“ steht nicht unter produkte.");
+        }
+        foreach (var (name, b) in Berufe)
+        {
+            if (!KenntArt(b.Werkstatt) || !KenntArt(b.Umland)) f.Add($"berufe.{name}: Werkstatt oder Umlandbetrieb fehlt unter „betriebsarten“.");
+            else if (Art(b.Werkstatt).Beruf != name || Art(b.Umland).Beruf != name) f.Add($"berufe.{name}: Werkstatt und Umlandbetrieb müssen zum Beruf gehören.");
+            if (b.Lehrgeld < 0) f.Add($"berufe.{name}.lehrgeld darf nicht negativ sein.");
+        }
+        foreach (var l in Liegenschaften.Where(l => !KenntArt(l.Art)))
+            f.Add($"Liegenschaft {l.Name}: Die Betriebsart {l.Art} fehlt unter „betriebsarten“.");
         Gesundheit?.Pruefen(f, Waren);
         Aktionspunkte?.Pruefen(f);
         Logistik.Pruefen(f);

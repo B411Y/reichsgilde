@@ -173,8 +173,9 @@ public sealed class Stadtwirtschaft
             throw new ArgumentException($"Einen Betrieb „{name}“ gibt es schon.", nameof(name));
         var betrieb = new Betrieb(name, art, konto, Daten);
         _betriebe.Add(betrieb);
+        konto.BerufLernen(betrieb.Artdaten.Beruf); // wer einen Betrieb führt, beherrscht sein Handwerk
 
-        startkarren ??= art == Betriebsart.Mine ? "Ochsenkarren" : "Handkarren";
+        startkarren ??= betrieb.Artdaten.Startkarren;
         if (startkarren != "")
             betrieb.KarrenHinzufuegen(startkarren);
         return betrieb;
@@ -350,6 +351,8 @@ public sealed class Stadtwirtschaft
             return StandErwerbenAusfuehren(absender);
         if (befehl is LiegenschaftErwerben liegenschaft)
             return LiegenschaftErwerbenAusfuehren(absender, liegenschaft.Name);
+        if (befehl is BerufErlernen lehre)
+            return BerufErlernenAusfuehren(absender, lehre.Beruf);
         if (befehl is AmtBewerben or Schenken or StatutBeantragen && !Rat.IstAktiv)
             return Befehlsergebnis.Abgelehnt("In dieser Stadt gibt es keinen Stadtrat.");
         if (befehl is AmtBewerben bewerbung)
@@ -458,6 +461,9 @@ public sealed class Stadtwirtschaft
             return Befehlsergebnis.Abgelehnt($"{name} gehört bereits {vergeben.Konto.Inhaber}.");
         if (konto.Stand < Daten.StandStufe(l.MindestStand))
             return Befehlsergebnis.Abgelehnt($"{name} ist erst ab dem Stand {l.MindestStand} zu haben – {konto.Inhaber} ist {StandVon(konto).Name}.");
+        var beruf = Daten.Art(l.Art).Beruf;
+        if (Daten.Berufe.Count > 0 && konto.Berufe.Count > 0 && !konto.Beherrscht(beruf)) // ohne jedes Handwerk darf man mit jedem anfangen
+            return Befehlsergebnis.Abgelehnt($"{name} ist ein Betrieb der {beruf}. {konto.Inhaber} beherrscht dieses Handwerk nicht – erst erlernen.");
 
         // Kaufpreis plus die Kosten des ersten Jahres müssen gedeckt sein – sonst droht sofort die Schuldenfalle.
         var fixkosten = Daten.Fixkosten(l.Art);
@@ -475,10 +481,28 @@ public sealed class Stadtwirtschaft
         return Befehlsergebnis.Ok($"{name} gehört nun {konto.Inhaber}. Jetzt Personal einstellen!");
     }
 
+    private Befehlsergebnis BerufErlernenAusfuehren(Konto konto, string beruf)
+    {
+        if (!Daten.Berufe.TryGetValue(beruf, out var b))
+            return Befehlsergebnis.Abgelehnt($"Einen Beruf „{beruf}“ gibt es nicht.");
+        if (konto.Beherrscht(beruf))
+            return Befehlsergebnis.Abgelehnt($"{konto.Inhaber} beherrscht das Handwerk der {beruf} schon.");
+        var waehrung = Daten.Allgemein.Waehrung;
+        if (konto.Vermoegen < b.Lehrgeld)
+            return Befehlsergebnis.Abgelehnt($"Lehrgeld und Werkzeug kosten {Zahlenformat.Ganz(b.Lehrgeld)} {waehrung}.");
+        konto.Investition(b.Lehrgeld);
+        konto.BerufLernen(beruf);
+        Melden($"{konto.Inhaber} erlernt das Handwerk der {beruf}.");
+        return Befehlsergebnis.Ok($"{konto.Inhaber} beherrscht jetzt das Handwerk der {beruf} ({Zahlenformat.Ganz(b.Lehrgeld)} {waehrung} Lehrgeld). " +
+                                  $"Werkstätten dieses Berufs lassen sich nun erwerben.");
+    }
+
     private Befehlsergebnis ProduktWaehlenAusfuehren(Betrieb betrieb, ProduktWaehlen befehl)
     {
-        if (betrieb.Art != Betriebsart.Giesserei)
+        if (!betrieb.IstWerkstatt)
             return Befehlsergebnis.Abgelehnt($"{betrieb.Name} ist keine Werkstatt und stellt nichts her.");
+        if (!betrieb.Artdaten.Produkte.Contains(befehl.Ware))
+            return Befehlsergebnis.Abgelehnt($"{befehl.Ware} kann eine {betrieb.Artdaten.Name} nicht herstellen.");
         if (betrieb.Produkt == befehl.Ware)
             return Befehlsergebnis.Ok($"{betrieb.Name} stellt bereits {befehl.Ware} her.");
         betrieb.Produkt = befehl.Ware;
@@ -487,12 +511,13 @@ public sealed class Stadtwirtschaft
 
     private Befehlsergebnis FoerderungAusfuehren(Betrieb betrieb, FoerderungAufteilen befehl)
     {
-        if (betrieb.Art != Betriebsart.Mine)
-            return Befehlsergebnis.Abgelehnt($"{betrieb.Name} ist keine Mine.");
+        if (betrieb.Rohstoffe.Count < 2)
+            return Befehlsergebnis.Abgelehnt($"{betrieb.Name} fördert nur eine Ware – da gibt es nichts aufzuteilen.");
+        var zweiter = betrieb.Rohstoffe[1];
         if (befehl.Silberanteil is < 0 or > 1 || double.IsNaN(befehl.Silberanteil))
-            return Befehlsergebnis.Abgelehnt("Der Silberanteil muss zwischen 0 % und 100 % liegen.");
+            return Befehlsergebnis.Abgelehnt($"Der Anteil für {zweiter} muss zwischen 0 % und 100 % liegen.");
         betrieb.Silberanteil = befehl.Silberanteil;
-        return Befehlsergebnis.Ok($"{betrieb.Name} fördert nun zu {Zahlenformat.Ganz(befehl.Silberanteil * 100)} % Silber.");
+        return Befehlsergebnis.Ok($"{betrieb.Name} fördert nun zu {Zahlenformat.Ganz(befehl.Silberanteil * 100)} % {zweiter}.");
     }
 
     private Befehlsergebnis PersonalAusfuehren(Betrieb betrieb, PersonalSetzen befehl)
@@ -593,7 +618,10 @@ public sealed class Stadtwirtschaft
             _betriebe.Add(betrieb);
         }
         foreach (var (ware, stand) in s.Markt)
-            Markt[ware].Wiederherstellen(stand);
+            if (Markt.Staende.Any(x => x.Ware == ware))
+                Markt[ware].Wiederherstellen(stand);
+        foreach (var b in _betriebe) // alte Spielstände kennen keine Berufe: Wer einen Betrieb hat, beherrscht ihn
+            b.Konto.BerufLernen(b.Artdaten.Beruf);
         foreach (var rs in s.Rivalen)
         {
             var rivale = new KiRivale(_konten[rs.Konto], rs.Profil, this);
