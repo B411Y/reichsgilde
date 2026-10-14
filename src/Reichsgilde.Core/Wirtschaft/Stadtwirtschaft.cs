@@ -1,3 +1,4 @@
+using Reichsgilde.Core.Dynastie;
 using Reichsgilde.Core.Politik;
 using Reichsgilde.Core.Speichern;
 using Reichsgilde.Core.Ki;
@@ -41,6 +42,9 @@ public sealed class Stadtwirtschaft
     /// <summary>Der Stadtrat mit Ämtern, Wahlen und Abstimmungen.</summary>
     public Stadtrat Rat { get; }
 
+    /// <summary>Familien der Häuser und die Heiratskandidaten der Stadt.</summary>
+    public Familienbuch Familien { get; }
+
     /// <summary>Konten, die von der KI geführt werden.</summary>
     public IReadOnlyList<KiRivale> Rivalen => _rivalen;
 
@@ -71,10 +75,10 @@ public sealed class Stadtwirtschaft
 
     /// <summary>
     /// Rangliste: höherer Stand vor niedrigerem, innerhalb eines Standes nach Vermögen.
-    /// Bankrotte Konten stehen am Ende.
+    /// Bankrotte und erloschene Häuser stehen am Ende.
     /// </summary>
     public IReadOnlyList<Konto> Rangliste => _konten
-        .OrderBy(k => k.IstBankrott)
+        .OrderBy(k => !k.IstAktiv)
         .ThenByDescending(k => k.Stand)
         .ThenByDescending(k => k.Vermoegen)
         .ThenBy(k => k.Inhaber, StringComparer.Ordinal)
@@ -93,6 +97,7 @@ public sealed class Stadtwirtschaft
         // davon, wie viele Karren es gibt.
         _reihenfolge = new Zufallsquelle(unchecked(zufallsstartwert * 31 + 7));
         Rat = new Stadtrat(this, daten.Politik);
+        Familien = new Familienbuch(this, daten.Dynastie, zufallsstartwert);
     }
 
     /// <summary>Legt ein Konto an – mit dem Startvermögen aus den Daten oder einem eigenen (z. B. Schwierigkeitsgrad).</summary>
@@ -167,7 +172,7 @@ public sealed class Stadtwirtschaft
         // Fairness: Wer in derselben Minute am Markt ankommt, ist in zufälliger Reihenfolge dran.
         // Sonst hätte immer der zuerst eröffnete Betrieb den besseren Preis (im Multiplayer: wer zuerst beitritt).
         _alleKarren.Clear();
-        foreach (var betrieb in _betriebe.Where(b => !b.Konto.IstBankrott)) // Bankrotte Häuser fahren nicht mehr
+        foreach (var betrieb in _betriebe.Where(b => b.Konto.IstAktiv)) // Bankrotte und erloschene Häuser fahren nicht mehr
             _alleKarren.AddRange(betrieb.Karren);
         for (var i = _alleKarren.Count - 1; i > 0; i--)
         {
@@ -181,14 +186,16 @@ public sealed class Stadtwirtschaft
     /// <summary>Jahresende für alle Betriebe und Konten.</summary>
     internal void Jahresabrechnung(int neuesJahr)
     {
-        foreach (var betrieb in _betriebe.Where(b => !b.Konto.IstBankrott))
+        foreach (var betrieb in _betriebe.Where(b => b.Konto.IstAktiv))
             betrieb.Jahresabrechnung(_zufall, m => Meldung?.Invoke(m));
         Rat.EinkommenZahlen();
+        Familien.UnterhaltZahlen();
         foreach (var konto in _konten)
             konto.JahrAbschliessen(neuesJahr);
         SchuldenPruefen();
+        Familien.Jahreswechsel(); // Tod und Erbfall vor der Ratssitzung: Ein verwaistes Amt wird gleich neu besetzt
         Rat.Sitzung(_zufall, neuesJahr - 1);
-        foreach (var rivale in _rivalen.Where(r => !r.Konto.IstBankrott))
+        foreach (var rivale in _rivalen.Where(r => r.Konto.IstAktiv))
             rivale.Jahresende();
     }
 
@@ -200,15 +207,12 @@ public sealed class Stadtwirtschaft
     private void SchuldenPruefen()
     {
         var grenze = Daten.Schulden.JahreBisBankrott;
-        foreach (var konto in _konten.Where(k => !k.IstBankrott && k.Schuldenjahre > 0))
+        foreach (var konto in _konten.Where(k => k.IstAktiv && k.Schuldenjahre > 0))
         {
             if (konto.Schuldenjahre >= grenze)
             {
                 konto.IstBankrott = true;
-                foreach (var betrieb in _betriebe.Where(b => b.Konto == konto))
-                    foreach (var kraft in betrieb.Belegung.Keys.ToList())
-                        betrieb.Einstellen(kraft, 0, Statut);
-                Rat.Ausscheiden(konto);
+                Stilllegen(konto);
                 Melden($"{konto.Inhaber} ist bankrott! Die Gläubiger lassen die Betriebe schließen.");
                 Bankrott?.Invoke(konto);
             }
@@ -219,6 +223,15 @@ public sealed class Stadtwirtschaft
                        $"Noch {rest} {(rest == 1 ? "Jahresabschluss" : "Jahresabschlüsse")} im Minus, dann droht der Bankrott.");
             }
         }
+    }
+
+    /// <summary>Ein Haus scheidet aus (bankrott oder erloschen): Alle Arbeitskräfte gehen, Amt und Bewerbung sind verloren.</summary>
+    internal void Stilllegen(Konto konto)
+    {
+        foreach (var betrieb in _betriebe.Where(b => b.Konto == konto))
+            foreach (var kraft in betrieb.Belegung.Keys.ToList())
+                betrieb.Einstellen(kraft, 0, Statut);
+        Rat.Ausscheiden(konto);
     }
 
     /// <summary>
@@ -252,6 +265,8 @@ public sealed class Stadtwirtschaft
     {
         if (absender.IstBankrott)
             return Befehlsergebnis.Abgelehnt($"{absender.Inhaber} ist bankrott und kann nichts mehr unternehmen.");
+        if (absender.IstErloschen)
+            return Befehlsergebnis.Abgelehnt($"Das Haus {absender.Inhaber} ist erloschen.");
         if (befehl is StandErwerben)
             return StandErwerbenAusfuehren(absender);
         if (befehl is LiegenschaftErwerben liegenschaft)
@@ -264,6 +279,14 @@ public sealed class Stadtwirtschaft
             return Rat.Schenken(absender, geschenk.Ratsherr, geschenk.Betrag);
         if (befehl is StatutBeantragen antrag)
             return Rat.Beantragen(absender, antrag.Statut);
+        if (befehl is Werben or Heiraten or ErbenBestimmen && Familien.Von(absender) is null)
+            return Befehlsergebnis.Abgelehnt($"{absender.Inhaber} hat keine Familie.");
+        if (befehl is Werben werben)
+            return Familien.Werben(absender, werben.Kandidat, werben.Betrag);
+        if (befehl is Heiraten heirat)
+            return Familien.Heiraten(absender, heirat.Kandidat);
+        if (befehl is ErbenBestimmen testament)
+            return Familien.ErbenBestimmen(absender, testament.Person);
         if (befehl is not BetriebsBefehl betriebsBefehl)
             return Befehlsergebnis.Abgelehnt($"Unbekannter Befehl: {befehl.GetType().Name}");
 
@@ -416,6 +439,7 @@ public sealed class Stadtwirtschaft
         Markt = Markt.Staende.ToDictionary(s => s.Ware, s => s.Sichern()),
         Rivalen = _rivalen.Select(r => r.Sichern(_konten.IndexOf(r.Konto))).ToList(),
         Rat = Rat.Sichern(k => _konten.IndexOf(k)),
+        Familien = Familien.IstAktiv ? Familien.Sichern(k => _konten.IndexOf(k)) : null,
     };
 
     /// <summary>
@@ -449,6 +473,8 @@ public sealed class Stadtwirtschaft
         }
         if (s.Rat is { } rat)
             Rat.Wiederherstellen(rat, _konten);
+        if (s.Familien is { } familien && Familien.IstAktiv)
+            Familien.Wiederherstellen(familien, _konten);
     }
 
     public double HoechstesVermoegen => _konten.Count == 0 ? 0 : _konten.Max(k => k.Vermoegen);

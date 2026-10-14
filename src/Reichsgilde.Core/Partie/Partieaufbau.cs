@@ -1,3 +1,4 @@
+using Reichsgilde.Core.Dynastie;
 using Reichsgilde.Core.Ki;
 using Reichsgilde.Core.Wirtschaft;
 using Reichsgilde.Core.Zeit;
@@ -8,10 +9,16 @@ namespace Reichsgilde.Core.Partie;
 /// <param name="Familienname">Name des eigenen Hauses.</param>
 /// <param name="Startvermoegen">Gulden zu Beginn; null = Wert aus wirtschaft.json.</param>
 /// <param name="Rivale">Charakter des KI-Rivalen.</param>
+/// <param name="Volk">Volk des eigenen Hauses.</param>
+/// <param name="Geschlecht">Patriarch oder Matriarchin.</param>
+/// <param name="Vorname">Vorname des Oberhaupts; null = ein zufälliger Name des Volkes.</param>
 public sealed record NeuePartie(
     string Familienname = "Familie Hammerschmid",
     double? Startvermoegen = null,
-    KiCharakter Rivale = KiCharakter.Ausgewogen);
+    KiCharakter Rivale = KiCharakter.Ausgewogen,
+    Volk Volk = Volk.Mensch,
+    Geschlecht Geschlecht = Geschlecht.Mann,
+    string? Vorname = null);
 
 /// <summary>Wie der KI-Rivale spielt – im Menü als Schwierigkeit wählbar.</summary>
 public enum KiCharakter
@@ -24,12 +31,14 @@ public enum KiCharakter
 }
 
 /// <summary>
-/// Stellt eine neue Partie auf: das Haus des Spielers mit einer Gießerei und Haus Eisenbart
-/// mit Gießerei und Grube, geführt von der KI. (Später: mehrere Städte, Berufe und Rivalen.)
+/// Stellt eine neue Partie auf: das Haus des Spielers mit einer Gießerei und Haus Eisenbart, ein Zwergenhaus
+/// mit Gießerei und Grube, geführt von der KI. Beide Oberhäupter beginnen ledig.
+/// (Später: mehrere Städte, Berufe und Rivalen.)
 /// </summary>
 public static class Partieaufbau
 {
     public const string Rivalenname = "Haus Eisenbart";
+    public const Volk RivalenVolk = Volk.Zwerg;
 
     public static KiProfil ProfilFuer(KiCharakter charakter) => charakter switch
     {
@@ -50,12 +59,19 @@ public static class Partieaufbau
         var simulation = new Simulation(einstellungen, startzeit, daten);
         var w = simulation.Wirtschaft!;
 
+        if (neu.Volk is Volk.Ork or Volk.Oger)
+            throw new ArgumentException("Orks und Oger sind nicht spielbar.");
         var spieler = w.KontoEroeffnen(name, startvermoegen: neu.Startvermoegen);
         var giesserei = w.BetriebEroeffnen("Gießerei am Weinmarkt", Betriebsart.Giesserei, spieler);
         giesserei.Produkt = "Silberring";
         w.Einstellen(giesserei, "Geselle", 2);
 
         var rivale = w.KontoEroeffnen(Rivalenname);
+        if (w.Familien.IstAktiv)
+        {
+            w.Familien.Gruenden(spieler, neu.Volk, neu.Geschlecht, neu.Vorname);
+            w.Familien.Gruenden(rivale, RivalenVolk, Geschlecht.Mann);
+        }
         var rivalenGiesserei = w.BetriebEroeffnen("Gießerei Eisenbart", Betriebsart.Giesserei, rivale);
         rivalenGiesserei.Produkt = "Rapier";
         w.Einstellen(rivalenGiesserei, "Geselle", 2);

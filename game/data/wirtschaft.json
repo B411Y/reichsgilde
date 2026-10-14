@@ -1,5 +1,5 @@
 {
-  "version": 5,
+  "version": 6,
   "allgemein": {
     "waehrung": "Gulden",
     "arbeitsminuten": 720,
@@ -489,7 +489,58 @@
       "ansehenHoechstwert": 40,
       "amtsbonus": 5,
       "ansehenRatsherr": 10,
-      "ansehenRatsherrJeStufe": 6
+      "ansehenRatsherrJeStufe": 6,
+      "volksnaehe": 5
+    }
+  },
+  "dynastie": {
+    "witwenrecht": true,
+    "grundrisiko": 0.006,
+    "kinderrisiko": 0.02,
+    "kinderAbnahme": 0.85,
+    "kandidaten": 10,
+    "kandidatGehtJeJahr": 0.15,
+    "kandidatenStaende": { "Gemeiner": 0.6, "Bürger": 0.3, "Patrizier": 0.1 },
+    "zuneigungJeGulden": 0.05,
+    "zuneigungJeJahr": 20,
+    "zuneigungVerfall": 0.3,
+    "heiratsschwelle": 30,
+    "heiratsschwelleJeStand": 10,
+    "hochzeitJeStand": 0.5,
+    "mischehe": { "fruchtbarkeit": 0.5, "ansehenEigenesVolk": -5, "ansehenPartnervolk": 3 },
+    "voelker": {
+      "Mensch": {
+        "startalter": 24, "sterbealter": 64, "streuung": 8, "volljaehrig": 16,
+        "fruchtbarVon": 16, "fruchtbarBis": 40, "geburtenrate": 0.30,
+        "haushalt": 50, "unterhalt": 40, "hochzeit": 300, "werbefaktor": 1.0, "kandidatenanteil": 5,
+        "vornamenMann": ["Konrad", "Heinrich", "Ulrich", "Jakob", "Hans", "Albrecht", "Lienhard", "Wolfram", "Dietrich", "Gottfried", "Matthias", "Peter", "Bertold", "Ruprecht"],
+        "vornamenFrau": ["Agnes", "Margarethe", "Elisabeth", "Katharina", "Anna", "Gertrud", "Barbara", "Adelheid", "Ursula", "Kunigunde", "Hedwig", "Dorothea", "Mechthild", "Walburga"],
+        "familiennamen": ["Weber", "Färber", "Rosenthal", "Kesselring", "Hagedorn", "Lindner", "Brenner", "Steinacker", "Wolfhart", "Gerlach", "Kürschner", "Zimmermann"]
+      },
+      "Halbling": {
+        "startalter": 24, "sterbealter": 60, "streuung": 7, "volljaehrig": 18,
+        "fruchtbarVon": 18, "fruchtbarBis": 42, "geburtenrate": 0.36,
+        "haushalt": 40, "unterhalt": 30, "hochzeit": 250, "werbefaktor": 1.0, "kandidatenanteil": 2,
+        "vornamenMann": ["Fridolin", "Bartel", "Kunz", "Hennig", "Tewes", "Wigand", "Jockel", "Nickel", "Seppel", "Gundolf"],
+        "vornamenFrau": ["Rosalie", "Gundel", "Trudel", "Liese", "Grete", "Bärbel", "Minna", "Hanne", "Fenja", "Melisse"],
+        "familiennamen": ["Haferkorn", "Butterblum", "Krautacker", "Honigtopf", "Kümmelstein", "Mehlsack", "Brombeerhag", "Teigmann", "Schmalzhuber", "Rübenfeld"]
+      },
+      "Zwerg": {
+        "startalter": 35, "sterbealter": 105, "streuung": 12, "volljaehrig": 30,
+        "fruchtbarVon": 28, "fruchtbarBis": 80, "geburtenrate": 0.13,
+        "haushalt": 60, "unterhalt": 50, "hochzeit": 900, "werbefaktor": 0.9, "kandidatenanteil": 2,
+        "vornamenMann": ["Haldor", "Grimwald", "Ulfgar", "Bodvar", "Kalbrand", "Torvik", "Egil", "Rurik", "Starkad", "Hrolf"],
+        "vornamenFrau": ["Hilde", "Brunhild", "Sigrun", "Thora", "Gunhild", "Ragna", "Dagny", "Hjördis", "Ingrun", "Alfdis"],
+        "familiennamen": ["Felsgrund", "Kohlenbart", "Ambossfaust", "Grauschmied", "Tiefstollen", "Eisenglut", "Kupferhand", "Schlackenfeld", "Zinnbrecher", "Basaltfaust"]
+      },
+      "Elb": {
+        "startalter": 55, "sterbealter": 170, "streuung": 18, "volljaehrig": 45,
+        "fruchtbarVon": 40, "fruchtbarBis": 220, "geburtenrate": 0.045,
+        "haushalt": 150, "unterhalt": 120, "hochzeit": 600, "werbefaktor": 1.3, "kandidatenanteil": 1,
+        "vornamenMann": ["Elaryon", "Caelvar", "Ilvanor", "Saevir", "Aethril", "Lorvanis", "Thalendir", "Miravel"],
+        "vornamenFrau": ["Maerith", "Siliane", "Aelwen", "Ithrel", "Vaeleth", "Lunaria", "Ysolde", "Caerwyn"],
+        "familiennamen": ["vom Eschenhain", "Sternquell", "Morgenreif", "vom Lindengrund", "Nebelfarn", "Tauwinde", "vom Weidenbach", "Abendglanz"]
+      }
     }
   }
 }

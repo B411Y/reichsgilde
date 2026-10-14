@@ -157,6 +157,9 @@ public sealed class Wirtschaftsdaten
     /// <summary>Ämter, Ratsherren und Gunst-Regeln (ab Datenversion 5). Leer = ohne Stadtrat.</summary>
     public Politik.PolitikDaten Politik { get; init; } = new();
 
+    /// <summary>Völker, Leben, Heirat, Kinder und Erbe (ab Datenversion 6). Leer = ohne Dynastien.</summary>
+    public Dynastie.DynastieDaten Dynastie { get; init; } = new();
+
     /// <summary>Freie Werkstätten und Gruben, die man erwerben kann (ab Datenversion 4).</summary>
     public List<LiegenschaftDaten> Liegenschaften { get; init; } = new();
 
@@ -273,6 +276,7 @@ public sealed class Wirtschaftsdaten
             f.Add($"Liegenschaft „{doppelt.Key}“ ist doppelt eingetragen.");
 
         Politik.Pruefen(f, StandStufe);
+        Dynastie.Pruefen(f, StandStufe);
         return f;
     }
 

@@ -10,6 +10,10 @@ using Reichsgilde.Core.Zeit;
 //  wird eine Ausnahme geworfen und der Test als FEHLER gemeldet.
 // ─────────────────────────────────────────────────────────────────────────────
 
+// Balance-Messungen statt Tests:  dotnet run --project tests/Reichsgilde.Core.Tests -- messen [Jahre] [Startwerte] [Volk]
+if (args.Length > 0 && args[0] == "messen")
+    return Messung.Dynastie(args[1..]);
+
 var tests = new List<(string Name, Action Pruefung)>
 {
     // ── Spielzeit ───────────────────────────────────────────────────────────
@@ -227,6 +231,7 @@ tests.AddRange(StandTests.Alle());
 tests.AddRange(LiegenschaftTests.Alle());
 tests.AddRange(SpeicherTests.Alle());
 tests.AddRange(RatTests.Alle());
+tests.AddRange(DynastieTests.Alle());
 
 // ── Testlauf ────────────────────────────────────────────────────────────────
 var fehler = 0;
