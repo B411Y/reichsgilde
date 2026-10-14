@@ -253,6 +253,14 @@ Das Stadtgericht (`src/Reichsgilde.Core/Justiz/Stadtgericht.cs`) gehört zur Sta
 - **Steinmetz** (Daten Version 14): Steinbruch (Bruchstein, Granit), Maurerei → Steinschneiderei → Steinmetzhütte. Verflochten: Die Steinfigur braucht Werkzeug (Schmied, Stufe 2), das Prunkschwert Schleifziegel (Steinmetz).
 - **Darstellung:** Der Stadtplan ordnet Namen festen Plätzen zu; `Gassen` gibt einzelnen Werkstätten einen eigenen Weg zum Markt, wo der gerade Weg durch ein Nachbarhaus führte. Das Werkstattmodell wird nach dem **Beruf** gewählt (`Werkstil`: Gießerei mit Esse und Innenraum, Tischlerei mit Schieferdach und Holzstapel, Maurerei aus Stein mit Quadern, Tinkturei verputzt mit Fässern und Kräuterbündeln), damit ausgebaute Werkstätten ihr Aussehen behalten. Holzschlag, Steinbruch (Felsen mit Bruchkante) und Kräutergarten (Beete, Teich) haben eigene Modelle. Farben: Spieler blau, Eisenbart rot, Eichwald grün, Kieselbach ocker.
 
+## Gastwirtschaft (Wirt)
+
+- **Teilsystem `Gastwirtschaft`** (`Wirtschaft/Gastwirtschaft.cs`, Abschnitt `gastwirtschaft`, ab Datenversion 16). Fehlt der Abschnitt, kehrt niemand ein.
+- **Gäste ohne Zufall:** Jede volle Stunde (`Stunde`, aus `Stadtwirtschaft.Tick`) kommen `gaesteJeJahr × Gewicht(Stunde) / ΣGewicht` Gäste; sie teilen sich nach `Anziehung` (Stufe × (1 + Ansehen × Faktor)) auf alle besetzten Schänken auf. Bruchteile sammelt `_offen` je Schänke, bis ein ganzer Gast da ist. Ein Barde multipliziert die Abendgäste der eigenen Schänke (zusätzliche Gäste, keine abgeworbenen).
+- **Bewirten:** Der Gast nimmt die Ausschankware mit dem größten Lagerbestand, zahlt Grundpreis × Aufschlag (Umsatz + Steuer, kein Karren). Nichts da → `Abgewiesen`. `Betrieb.FuerGaeste(ware)` hält `vorrat` Stück zurück; `Verkaufsware` gibt nur den Rest an den Karren. Die Karrenregel „Lager fast voll“ misst deshalb den ganzen Lagerplatz (`ImLager`), nicht nur die verkäufliche Ware.
+- **Extras:** `BardeEinladen` und `WuerfeltischAufstellen` sind Betriebsbefehle (frei, auch aus dem Kerker). Würfeltisch → `Stadtrat.Ansehen` minus `Gastwirtschaft.AnsehenAbzug`. Stammtisch in `Gastwirtschaft.Jahresende` **vor** `Rat.Sitzung` über `Stadtrat.GunstHinzufuegen` (keine Spur). Dunkle Ecke im `Stadtgericht.Gerichtstag` nach den Spitzeln, mit dem Zufall des Gerichts.
+- **KI:** `Gastwirtschaftspolitik` zur Politikstunde: Barde, wenn `BardeNutzen` die Kosten deckt oder ein Stammtisch da ist; Würfeltisch nur bei `Gaunerei ≥ 2`. Den Beruf lernt die KI wie jeden anderen (als Patrizier).
+
 ## Meistergrade und Gebäudestufen
 
 - **Daten** (ab Version 13): `meistergrade.pruefungen` (Erfahrung, Gebühr, AP für Grad 2–6), `stufeAbGrad` (1, 3, 5), `apBonusAbGrad`/`apBonus`, `umbauMinuten`. Werkstätten haben `stufe`, `ausbau` (nächste Art) und `ausbauKosten`; die Prüfung verlangt, dass die höhere Stufe alle Produkte der niedrigeren kann. Liegenschaften gibt es nur auf Stufe 1. Fehlt der Abschnitt, bleibt alles auf Grad 1 und Stufe 1.

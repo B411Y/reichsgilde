@@ -110,5 +110,11 @@ public sealed record BerufErlernen(string Beruf) : Befehl;
 /// <summary>Die Meisterprüfung für den nächsten Grad in diesem Beruf ablegen (genug Erfahrung, Gebühr und Aktionspunkte).</summary>
 public sealed record MeisterpruefungAblegen(string Beruf) : Befehl;
 
+/// <summary>Für heute Abend einen Barden in die Schänke holen (Gulden, keine AP): mehr Gäste, höhere Zeche, doppelte Stammtisch-Gunst.</summary>
+public sealed record BardeEinladen(string Betrieb) : BetriebsBefehl(Betrieb);
+
+/// <summary>Einen Würfeltisch im Wirtshaus aufstellen oder abbauen (ab Stufe 2): Geld je Gast, aber weniger Ansehen.</summary>
+public sealed record WuerfeltischAufstellen(string Betrieb, bool Aufstellen) : BetriebsBefehl(Betrieb);
+
 /// <summary>Die Werkstatt am Platz zur nächsten Stufe ausbauen (Gulden, Meistergrad; ein halber Tag Umbau).</summary>
 public sealed record BetriebAusbauen(string Betrieb) : BetriebsBefehl(Betrieb);

@@ -109,7 +109,8 @@ public sealed class Karren
 
         var ladbar = LadePlan(ware).Values.Sum();
         var genugFuerFahrt = ladbar >= Math.Ceiling(Daten.Gesamtkapazitaet * l.AbfahrtAbFuellgrad);
-        var lagerFastVoll = ware.Max(x => x.Stueck) >= Heimat.LagerKapazitaetJeWare * l.AbfahrtAbFuellgrad;
+        // Am ganzen Lagerplatz gemessen – eine Schänke behält einen Vorrat für ihre Gäste zurück, der zählt mit.
+        var lagerFastVoll = ware.Max(x => Heimat.ImLager(x.Ware)) >= Heimat.LagerKapazitaetJeWare * l.AbfahrtAbFuellgrad;
         var wartetZuLange = zeit.VergangeneMinuten - _wareWartetSeit >= l.MaxWartezeitMinuten;
         return genugFuerFahrt || lagerFastVoll || wartetZuLange;
     }

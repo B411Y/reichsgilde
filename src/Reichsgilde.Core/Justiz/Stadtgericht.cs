@@ -418,6 +418,25 @@ public sealed class Stadtgericht
         }
         _spitzel.Clear();
 
+        // Die dunkle Ecke der Schänken: Wer ausschenkt, hört Gerüchte über alle anderen Häuser.
+        if (_w.Gastwirtschaft.IstAktiv)
+        {
+            var chance = _w.Gastwirtschaft.Daten.DunkleEcke.Chance;
+            foreach (var (lauscher, schaenke) in _w.Gastwirtschaft.DunkleEcken().ToList())
+            {
+                var gefunden = 0;
+                foreach (var spur in _spuren.Where(s => s.Taeter != lauscher && !_beweise.Contains((lauscher, s.Nummer))).ToList())
+                    if (_zufall.NextDouble() < chance)
+                    {
+                        _beweise.Add((lauscher, spur.Nummer));
+                        gefunden++;
+                    }
+                if (gefunden > 0)
+                    Eintrag($"In der dunklen Ecke von {schaenke.Name} hört {lauscher.Inhaber} Gerüchte: " +
+                            $"{gefunden} {(gefunden == 1 ? "neuer Beweis" : "neue Beweise")}.");
+            }
+        }
+
         // Verjährung: Eine Tat aus dem Jahr J verfällt nach dem Gerichtstag des Jahres J + Verjährung − 1.
         SpurenEntfernen(s => s.Jahr <= jahr + 1 - d.VerjaehrungJahre);
         foreach (var k in _prangerBis.Where(p => p.Value <= jahr).Select(p => p.Key).ToList())

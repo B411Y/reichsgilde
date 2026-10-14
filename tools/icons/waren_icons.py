@@ -462,6 +462,94 @@ def heilsalbe(b):
     b.rect(10, 18, 21, 21, (190, 60, 50))  # Etikett
 
 
+# ── Wirt ─────────────────────────────────────────────────────────────────────
+KORN = (214, 178, 80)
+KORN_D = (168, 128, 52)
+ROGGEN = (176, 140, 74)
+
+
+def aehren(b, farbe, dunkel, grannen):
+    for x1 in (8, 16, 24):
+        b.linie(16, 29, x1, 15, (150, 130, 60))
+    for cx in (8, 16, 24):
+        b.ellipse(cx, 10, 3, 6, dunkel)           # die Ähre als Ganzes
+        for i in range(4):                        # Körner versetzt darauf
+            b.ellipse(cx - 1 + (i % 2) * 2, 6 + i * 2.6, 1.6, 1.4, farbe)
+        if grannen:
+            b.linie(cx - 2, 5, cx - 4, 1, dunkel)
+            b.linie(cx + 2, 5, cx + 4, 1, dunkel)
+            b.linie(cx, 4, cx, 0, dunkel)
+    b.rect(13, 22, 19, 24, (150, 110, 60))  # Bindfaden
+
+
+def gerste(b):
+    aehren(b, KORN, KORN_D, True)
+
+
+def roggen(b):
+    aehren(b, ROGGEN, (130, 98, 52), False)
+
+
+def weingeist(b):
+    flasche(b, (210, 230, 236), breit=6)
+    b.px(18, 20, (255, 255, 255))
+
+
+def koernermahlzeit(b):
+    b.ellipse(16, 18, 12, 4, (220, 196, 140))  # Brei
+    b.vieleck([(4, 18), (28, 18), (24, 26), (8, 26)], HOLZ)  # Schüssel
+    for x, y in ((11, 17), (15, 16), (19, 17), (22, 18), (13, 19)):
+        b.px(x, y, (180, 150, 90))  # Körner
+    b.linie(20, 17, 27, 6, HOLZ_H, 2)  # Löffel
+
+
+def humpen(b, koerper, band, schaum, inhalt):
+    b.rect(8, 10, 21, 27, koerper)
+    b.ring(23, 18, 4.5, 5, 1.6, koerper)
+    for y in (13, 23):
+        b.rect(8, y, 21, y, band)
+    b.ellipse(14.5, 9, 7.5, 3, schaum)
+    b.ellipse(11, 7, 3, 2.5, schaum)
+    b.ellipse(17, 7, 3, 2.5, schaum)
+    b.rect(9, 11, 10, 22, inhalt)  # durchscheinendes Bier am Rand
+
+
+def duennbier(b):
+    humpen(b, HOLZ, EISEN, (244, 238, 220), (220, 180, 70))
+
+
+def starkbier(b):
+    humpen(b, TON, (110, 70, 40), (236, 226, 200), (120, 70, 30))
+
+
+def kraeuterlikoer(b):
+    flasche(b, (70, 140, 60), hals=(90, 150, 80), korken=HOLZ_D, breit=6)
+    b.rect(12, 19, 19, 23, (230, 220, 180))  # Etikett
+    b.ellipse(15.5, 21, 1.6, 1.4, KRAUT)
+
+
+def festbier(b):
+    b.ellipse(16, 17, 11, 11, HOLZ)  # Fass von vorn
+    for x in (9, 16, 23):
+        b.linie(x, 7, x, 27, HOLZ_D)
+    for y in (10, 24):
+        b.rect(6, y, 26, y + 1, EISEN)
+    b.rect(14, 18, 18, 20, EISEN_D)  # Zapfhahn
+    b.rect(16, 20, 17, 23, EISEN_D)
+
+
+def schaedelbrand(b):
+    b.ellipse(16, 21, 7, 7, (60, 40, 40))  # dunkle Flasche
+    b.rect(14, 6, 17, 15, (60, 40, 40))
+    b.rect(13, 3, 18, 6, ROT)
+    # Totenkopf auf dem Etikett
+    b.ellipse(16, 20, 3.4, 3, WEISS)
+    b.rect(14, 22, 18, 24, WEISS)
+    b.px(15, 20, KONTUR)
+    b.px(17, 20, KONTUR)
+    b.px(16, 23, KONTUR)
+
+
 WAREN = {
     "Eisen": eisen, "Silber": silber, "Gold": gold, "Holz": holz, "Bruchstein": bruchstein, "Granit": granit,
     "Kräuter": kraeuter, "Kröte": kroete,
@@ -473,6 +561,8 @@ WAREN = {
     "Grabmal": grabmal,
     "Heilsalbe": heilsalbe, "Rosenwasser": rosenwasser, "Gegengift": gegengift, "Theriak": theriak, "Zinnober": zinnober,
     "Kräuterschnaps": kraeuterschnaps,
+    "Gerste": gerste, "Roggen": roggen, "Weingeist": weingeist, "Körnermahlzeit": koernermahlzeit, "Dünnbier": duennbier,
+    "Starkbier": starkbier, "Kräuterlikör": kraeuterlikoer, "Festbier": festbier, "Schädelbrand": schaedelbrand,
 }
 
 

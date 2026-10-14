@@ -72,6 +72,18 @@ public sealed record WirtschaftStand
 
     /// <summary>Krankheiten und Pest (null in Spielständen von vor der Gesundheit).</summary>
     public GesundheitStand? Gesundheit { get; init; }
+
+    /// <summary>Gästebücher, Barden und Würfeltische (null in Spielständen von vor dem Wirt).</summary>
+    public GastwirtschaftStand? Gastwirtschaft { get; init; }
+}
+
+public sealed record GastwirtschaftStand
+{
+    public Dictionary<string, double> Offen { get; init; } = new();
+    public Dictionary<string, Wirtschaft.Gaestebuch> DiesesJahr { get; init; } = new();
+    public Dictionary<string, Wirtschaft.Gaestebuch> Vorjahr { get; init; } = new();
+    public List<string> Barde { get; init; } = new();
+    public List<string> Wuerfeltisch { get; init; } = new();
 }
 
 public sealed record UnterweltStand

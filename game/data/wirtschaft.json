@@ -1,5 +1,5 @@
 {
-  "version": 15,
+  "version": 16,
   "gesundheit": {
     "medicusKosten": 120,
     "medicusKostenPest": 300,
@@ -338,6 +338,78 @@
       "nachfrage": 50,
       "npcAnteil": 0.7
     },
+    "Gerste": {
+      "typ": "Rohstoff",
+      "grundpreis": 10,
+      "zeit": 10,
+      "zutaten": {},
+      "nachfrage": 600,
+      "npcAnteil": 0.9
+    },
+    "Roggen": {
+      "typ": "Rohstoff",
+      "grundpreis": 12,
+      "zeit": 12,
+      "zutaten": {},
+      "nachfrage": 500,
+      "npcAnteil": 0.9
+    },
+    "Weingeist": {
+      "typ": "Zwischenprodukt",
+      "grundpreis": 43,
+      "zeit": 30,
+      "zutaten": { "Gerste": 1, "Roggen": 1 },
+      "nachfrage": 150,
+      "npcAnteil": 0.7
+    },
+    "Körnermahlzeit": {
+      "typ": "Fertigprodukt",
+      "grundpreis": 50,
+      "zeit": 30,
+      "zutaten": { "Gerste": 1, "Roggen": 1 },
+      "nachfrage": 150,
+      "npcAnteil": 0.7
+    },
+    "Dünnbier": {
+      "typ": "Fertigprodukt",
+      "grundpreis": 85,
+      "zeit": 35,
+      "zutaten": { "Gerste": 1, "Weingeist": 1 },
+      "nachfrage": 150,
+      "npcAnteil": 0.7
+    },
+    "Starkbier": {
+      "typ": "Fertigprodukt",
+      "grundpreis": 138,
+      "zeit": 50,
+      "zutaten": { "Gerste": 2, "Roggen": 1, "Weingeist": 1 },
+      "nachfrage": 100,
+      "npcAnteil": 0.7
+    },
+    "Kräuterlikör": {
+      "typ": "Fertigprodukt",
+      "grundpreis": 170,
+      "zeit": 60,
+      "zutaten": { "Weingeist": 2, "Kräuter": 1 },
+      "nachfrage": 100,
+      "npcAnteil": 0.7
+    },
+    "Festbier": {
+      "typ": "Fertigprodukt",
+      "grundpreis": 225,
+      "zeit": 80,
+      "zutaten": { "Gerste": 3, "Weingeist": 1, "Holzzapfen": 1 },
+      "nachfrage": 50,
+      "npcAnteil": 0.7
+    },
+    "Schädelbrand": {
+      "typ": "Fertigprodukt",
+      "grundpreis": 375,
+      "zeit": 100,
+      "zutaten": { "Roggen": 1, "Weingeist": 3, "Beschlag": 1, "Holzzapfen": 1 },
+      "nachfrage": 50,
+      "npcAnteil": 0.7
+    },
     "Kräuterschnaps": {
       "typ": "Heilmittel",
       "grundpreis": 25,
@@ -606,7 +678,8 @@
     "Schmied":  { "werkstatt": "Giesserei",  "umland": "Mine",          "lehrgeld": 500, "beschreibung": "Eisen und Silber aus der Grube, in der Gießerei zu Beschlägen, Rapieren und Silberringen; als Meister in Schmiede und Goldschmiede auch Werkzeug, Ketten und Prunkschwerter (Gold vom Markt, Schleifziegel vom Steinmetz)." },
     "Tischler": { "werkstatt": "Tischlerei", "umland": "Holzfaellerei", "lehrgeld": 500, "beschreibung": "Holz aus dem Wald, in der Tischlerei zu Holzzapfen, Schemeln und Truhen (mit Beschlag vom Schmied); als Meister in Drechslerei und Sägewerk auch Gehstöcke, Armbrüste, Schränke und Prunktruhen." },
     "Steinmetz": { "werkstatt": "Maurerei", "umland": "Steinbruch", "lehrgeld": 500, "beschreibung": "Bruchstein und Granit aus dem Steinbruch, in der Maurerei zu Schleifziegeln, Grabsteinen und Mühlsteinen; als Meister in Steinschneiderei und Steinmetzhütte auch Säulen, Taufbecken, Steinfiguren (mit Werkzeug vom Schmied) und Grabmäler." },
-    "Alchimist": { "werkstatt": "Tinkturei", "umland": "Kraeutergarten", "lehrgeld": 500, "beschreibung": "Kräuter und Kröten aus dem Kräutergarten, in der Tinkturei zu Farbe, Kräuterschnaps und Heilsalbe; als Meister in Kräuterladen und Alchimistenstube auch Rosenwasser, Gegengift, Theriak und Zinnober (mit Silber vom Schmied und Schleifziegeln vom Steinmetz). Wer das Handwerk beherrscht, mischt Krötenschleim selbst." }
+    "Alchimist": { "werkstatt": "Tinkturei", "umland": "Kraeutergarten", "lehrgeld": 500, "beschreibung": "Kräuter und Kröten aus dem Kräutergarten, in der Tinkturei zu Farbe, Kräuterschnaps und Heilsalbe; als Meister in Kräuterladen und Alchimistenstube auch Rosenwasser, Gegengift, Theriak und Zinnober (mit Silber vom Schmied und Schleifziegeln vom Steinmetz). Wer das Handwerk beherrscht, mischt Krötenschleim selbst." },
+    "Wirt": { "werkstatt": "Schaenke", "umland": "Bauernhof", "lehrgeld": 500, "beschreibung": "Gerste und Roggen vom Bauernhof, in der Schänke zu Weingeist, Körnermahlzeit und Dünnbier – ausgeschenkt an Gäste im Haus, der Rest geht zum Markt. Die dunkle Ecke hört Gerüchte, das Wirtshaus hat einen Würfeltisch, das Gasthaus einen Stammtisch der Ratsherren." }
   },
   "betriebsarten": {
     "Giesserei":     { "name": "Gießerei",     "beruf": "Schmied",  "ort": "Werkstatt", "stufe": 1, "plaetze": 2, "fixkosten": 80,  "produkte": [ "Beschlag", "Rapier", "Silberring" ], "standardprodukt": "Silberring", "startkarren": "Handkarren", "ausbau": "Schmiede", "ausbauKosten": 2500 },
@@ -624,7 +697,27 @@
     "Tinkturei":        { "name": "Tinkturei",        "beruf": "Alchimist", "ort": "Werkstatt", "stufe": 1, "plaetze": 2, "fixkosten": 80,  "produkte": [ "Farbe", "Kräuterschnaps", "Heilsalbe" ], "standardprodukt": "Heilsalbe", "startkarren": "Handkarren", "ausbau": "Kraeuterladen", "ausbauKosten": 2500 },
     "Kraeuterladen":    { "name": "Kräuterladen",     "beruf": "Alchimist", "ort": "Werkstatt", "stufe": 2, "plaetze": 3, "fixkosten": 120, "produkte": [ "Farbe", "Kräuterschnaps", "Heilsalbe", "Rosenwasser", "Gegengift" ], "standardprodukt": "Gegengift", "startkarren": "Handkarren", "ausbau": "Alchimistenstube", "ausbauKosten": 5000 },
     "Alchimistenstube": { "name": "Alchimistenstube", "beruf": "Alchimist", "ort": "Werkstatt", "stufe": 3, "plaetze": 4, "fixkosten": 180, "produkte": [ "Farbe", "Kräuterschnaps", "Heilsalbe", "Rosenwasser", "Gegengift", "Theriak", "Zinnober" ], "standardprodukt": "Theriak", "startkarren": "Handkarren" },
-    "Kraeutergarten":   { "name": "Kräutergarten",    "beruf": "Alchimist", "ort": "Umland",    "plaetze": 3, "fixkosten": 400, "rohstoffe": [ "Kräuter", "Kröte" ], "startkarren": "Ochsenkarren" }
+    "Kraeutergarten":   { "name": "Kräutergarten",    "beruf": "Alchimist", "ort": "Umland",    "plaetze": 3, "fixkosten": 400, "rohstoffe": [ "Kräuter", "Kröte" ], "startkarren": "Ochsenkarren" },
+    "Schaenke":         { "name": "Schänke",          "beruf": "Wirt",      "ort": "Werkstatt", "stufe": 1, "plaetze": 2, "fixkosten": 80,  "produkte": [ "Weingeist", "Körnermahlzeit", "Dünnbier" ], "standardprodukt": "Körnermahlzeit", "startkarren": "Handkarren", "ausbau": "Wirtshaus", "ausbauKosten": 2500 },
+    "Wirtshaus":        { "name": "Wirtshaus",        "beruf": "Wirt",      "ort": "Werkstatt", "stufe": 2, "plaetze": 3, "fixkosten": 120, "produkte": [ "Weingeist", "Körnermahlzeit", "Dünnbier", "Starkbier", "Kräuterlikör" ], "standardprodukt": "Starkbier", "startkarren": "Handkarren", "ausbau": "Gasthaus", "ausbauKosten": 5000 },
+    "Gasthaus":         { "name": "Gasthaus",         "beruf": "Wirt",      "ort": "Werkstatt", "stufe": 3, "plaetze": 4, "fixkosten": 180, "produkte": [ "Weingeist", "Körnermahlzeit", "Dünnbier", "Starkbier", "Kräuterlikör", "Festbier", "Schädelbrand" ], "standardprodukt": "Festbier", "startkarren": "Handkarren" },
+    "Bauernhof":        { "name": "Bauernhof",        "beruf": "Wirt",      "ort": "Umland",    "plaetze": 3, "fixkosten": 400, "rohstoffe": [ "Gerste", "Roggen" ], "startkarren": "Ochsenkarren" }
+  },
+  "gastwirtschaft": {
+    "beruf": "Wirt",
+    "ausschank": [ "Körnermahlzeit", "Dünnbier", "Starkbier", "Kräuterlikör", "Festbier", "Schädelbrand" ],
+    "aufschlag": 1.25,
+    "gaesteJeJahr": 120,
+    "oeffnetUm": 12,
+    "abendAb": 18,
+    "abendGewicht": 2,
+    "vorrat": 15,
+    "anziehungJeStufe": [ 1, 1.5, 2 ],
+    "anziehungJeAnsehen": 0.0125,
+    "dunkleEcke": { "chance": 0.2 },
+    "wuerfeltisch": { "abStufe": 2, "einsatzJeGast": 4, "ansehen": 2 },
+    "stammtisch": { "abStufe": 3, "gunst": 4 },
+    "barde": { "kosten": 120, "gaeste": 0.5, "zeche": 0.1, "stammtisch": 2 }
   },
   "meistergrade": {
     "pruefungen": [
@@ -691,6 +784,18 @@
     {
       "name": "Kräutergarten am Bach",
       "art": "Kraeutergarten",
+      "kaufpreis": 0,
+      "mindestStand": "Bürger"
+    },
+    {
+      "name": "Schänke am Fischmarkt",
+      "art": "Schaenke",
+      "kaufpreis": 3500,
+      "mindestStand": "Bürger"
+    },
+    {
+      "name": "Bauernhof an der Mühle",
+      "art": "Bauernhof",
       "kaufpreis": 0,
       "mindestStand": "Bürger"
     }

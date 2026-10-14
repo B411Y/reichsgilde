@@ -57,6 +57,9 @@ public sealed class Stadtwirtschaft
     /// <summary>Krankheiten, Pest, Medicus und Hausapotheke.</summary>
     public Gesundheitswesen Gesundheit { get; }
 
+    /// <summary>Gäste und Ausschank der Wirtshäuser, Barde, Würfeltisch, Stammtisch.</summary>
+    public Gastwirtschaft Gastwirtschaft { get; }
+
     /// <summary>Das laufende Spieljahr (das Jahr der laufenden Jahresrechnung).</summary>
     public int Jahr => _konten.Count > 0 ? _konten[0].Laufend.Jahr : Spielzeit.StartJahr;
 
@@ -116,6 +119,7 @@ public sealed class Stadtwirtschaft
         Justiz = new Stadtgericht(this, daten.Justiz, zufallsstartwert);
         Gauner = new Unterwelt(this, daten.Gauner, zufallsstartwert);
         Gesundheit = new Gesundheitswesen(this, daten.Gesundheit, zufallsstartwert);
+        Gastwirtschaft = new Gastwirtschaft(this, daten.Gastwirtschaft);
     }
 
     /// <summary>Legt ein Konto an – mit dem Startvermögen aus den Daten oder einem eigenen (z. B. Schwierigkeitsgrad).</summary>
@@ -260,6 +264,10 @@ public sealed class Stadtwirtschaft
         else if (zeit.VergangeneMinuten > 0)
             Markt.NeueMinute();
 
+        // Gäste der vergangenen Stunde kehren in die Schänken ein.
+        if (zeit.MinuteImTag % 60 == 0 && zeit.VergangeneMinuten > 0)
+            Gastwirtschaft.Stunde(zeit);
+
         // Die KI überlegt jede volle Stunde – mit den Marktpreisen dieser Stunde.
         if (zeit.MinuteImTag % 60 == 0 && zeit.VergangeneMinuten > 0)
             foreach (var rivale in _rivalen)
@@ -303,6 +311,7 @@ public sealed class Stadtwirtschaft
         Gesundheit.Jahresende();  // Kranke sterben oder genesen – mit dem alten Jahr
         Familien.Jahreswechsel(); // Tod und Erbfall vor der Ratssitzung: Ein verwaistes Amt wird gleich neu besetzt
         Gesundheit.NeuesJahr();   // Pest und neue Krankheiten
+        Gastwirtschaft.Jahresende(); // Stammtisch-Gunst vor der Ratssitzung (Wahlen)
         Rat.Sitzung(_zufall, neuesJahr - 1);
         Gauner.Jahresende();
         AktionspunkteVerteilen(); // die neue Runde beginnt
@@ -474,6 +483,8 @@ public sealed class Stadtwirtschaft
                 NachtfahrtErlauben n => NachtfahrtAusfuehren(betrieb, n),
                 WaechterSetzen s => WaechterAusfuehren(betrieb, s),
                 BetriebAusbauen => AusbauenAusfuehren(betrieb),
+                BardeEinladen => Gastwirtschaft.BardeEinladen(betrieb),
+                WuerfeltischAufstellen t => Gastwirtschaft.WuerfeltischAufstellen(betrieb, t.Aufstellen),
                 _ => Befehlsergebnis.Abgelehnt($"Unbekannter Befehl: {befehl.GetType().Name}"),
             };
         }
@@ -681,6 +692,7 @@ public sealed class Stadtwirtschaft
         Justiz = Justiz.IstAktiv ? Justiz.Sichern(k => _konten.IndexOf(k)) : null,
         Gauner = Gauner.IstAktiv ? Gauner.Sichern(k => _konten.IndexOf(k)) : null,
         Gesundheit = Gesundheit.IstAktiv ? Gesundheit.Sichern(k => _konten.IndexOf(k)) : null,
+        Gastwirtschaft = Gastwirtschaft.IstAktiv ? Gastwirtschaft.Sichern() : null,
     };
 
     /// <summary>
@@ -725,6 +737,8 @@ public sealed class Stadtwirtschaft
             Gauner.Wiederherstellen(gauner, _konten);
         if (s.Gesundheit is { } gesundheit && Gesundheit.IstAktiv)
             Gesundheit.Wiederherstellen(gesundheit, _konten);
+        if (s.Gastwirtschaft is { } gast && Gastwirtschaft.IstAktiv)
+            Gastwirtschaft.Wiederherstellen(gast);
     }
 
     public double HoechstesVermoegen => _konten.Count == 0 ? 0 : _konten.Max(k => k.Vermoegen);

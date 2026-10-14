@@ -124,6 +124,7 @@ public sealed class KiRivale
         {
             Unterweltschutz(); // Erpresserbriefe beantworten, Wächter einstellen – kostet keine Aktionspunkte
             Gesundheitspolitik(); // Medicus und Kräuterschnaps – auch aus dem Kerker (der Verwalter sorgt für die Familie)
+            Gastwirtschaftspolitik(); // Barden und Würfeltische – Betriebssache, keine AP
             if (frei)
             {
                 // Die Aktionspunkte reichen nicht für alles: Familie und Verteidigung zuerst, dann nach Charakter –
@@ -390,6 +391,32 @@ public sealed class KiRivale
                 $"baut {b.Name} aus – Stufe {neu.Stufe}, {neu.Name} ({Zahlenformat.Ganz(kosten)} {waehrung}, " +
                 $"erwartet ≈ {Zahlenformat.Ganz(mehr)} {waehrung} mehr im Jahr).");
             return; // höchstens ein Umbau je Stunde
+        }
+    }
+
+    /// <summary>
+    /// Einmal am Tag, für jede eigene Schänke:
+    ///   • einen Barden holen, wenn er mehr einbringt, als er kostet – oder wenn er die Stammtisch-Gunst verdoppelt
+    ///     (Ratsherren sind der KI viel wert); nur mit voller Reserve,
+    ///   • ein Würfeltisch steht nur bei einem wagemutigen Haus – die anderen fürchten um ihr Ansehen.
+    /// </summary>
+    private void Gastwirtschaftspolitik()
+    {
+        var g = _w.Gastwirtschaft;
+        if (!g.IstAktiv) return;
+        var d = g.Daten;
+        foreach (var b in Betriebe.Where(b => b.IstSchaenke).OrderBy(b => b.Name, StringComparer.Ordinal).ToList())
+        {
+            var tisch = Profil.Gaunerei >= 2 && b.Stufe >= d.Wuerfeltisch.AbStufe;
+            if (tisch != g.HatWuerfeltisch(b))
+                Befehlen(new WuerfeltischAufstellen(b.Name, tisch),
+                    tisch ? $"stellt in {b.Name} einen Würfeltisch auf." : $"baut den Würfeltisch in {b.Name} ab.");
+
+            if (g.BardeGebucht(b) || b.Belegt == 0) continue;
+            var lohnt = g.BardeNutzen(b) >= d.Barde.Kosten || (g.HatStammtisch(b) && _w.Rat.IstAktiv);
+            if (lohnt && Konto.Vermoegen - d.Barde.Kosten >= Profil.Reserve)
+                Befehlen(new BardeEinladen(b.Name),
+                    $"holt einen Barden nach {b.Name} ({Zahlenformat.Ganz(d.Barde.Kosten)} {_w.Daten.Allgemein.Waehrung}).");
         }
     }
 

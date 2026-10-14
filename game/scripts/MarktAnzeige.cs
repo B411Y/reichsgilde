@@ -213,6 +213,8 @@ public partial class MarktAnzeige : PanelContainer
             if (daten.Zutaten.Count > 0)
                 zeilen.Add($"Zutaten: {string.Join(", ", daten.Zutaten.Select(z => $"{z.Value} {z.Key}"))} · " +
                            $"Gewinn je Arbeitsminute {Zahlenformat.Kommazahl(Kalkulation.GewinnJeArbeitsminute(w, ware))} {waehrung}");
+            if (w.Gastwirtschaft.IstAktiv && w.Gastwirtschaft.Daten.Ausschank.Contains(ware))
+                zeilen.Add($"Wird in Schänken ausgeschenkt: {Zahlenformat.Kommazahl(w.Gastwirtschaft.Ausschankpreis(ware))} {waehrung} je Gast");
             if (bestand > 0)
                 zeilen.Add($"In euren Lagern: {bestand}");
             var tipp = string.Join("\n", zeilen);
