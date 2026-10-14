@@ -186,6 +186,13 @@ Das Familienbuch (`src/Reichsgilde.Core/Dynastie/Familienbuch.cs`) gehört zur S
 
 **Volksnähe im Rat:** Ratsherren geben einem Haus, dessen Oberhaupt ihrem Volk angehört, 5 Punkte mehr. Eine Ehe zwischen Völkern kostet 5 Punkte beim eigenen Volk und bringt 3 Punkte beim Volk des Ehepartners.
 
+**Talente** (`Dynastie/Talente.cs`, Abschnitt `dynastie.talente`):
+- Jede `Person` trägt fünf Talente (0–6 Sterne, halbe Schritte). Es wirkt immer das Talent des **Oberhaupts**. Die Wirkung fragen die anderen Teile beim Familienbuch ab (`VerkaufsFaktor`, `LeistungsFaktor`, `RhetorikPunkte`, `Plaedoyer`, `NachtBonus`, `ZeugenFaktor`, `KampfUeberfall`, `KampfSchutz`). Ohne Familie oder ohne Talentdaten liefern sie neutrale Werte.
+- **Woher:** Erwachsene, die neu ins Spiel kommen: Grundwert des Volkes ± 1. Kinder: ½ × Mittel der Eltern + ½ × Grundwert ± ½. Dazu kommt die Ausbildung.
+- **Ausbildung:** ab der Hälfte der Volljährigkeit (Mensch: 8 bis 16). Der Zuwachs ist auf 8 Ausbildungsjahre ausgelegt und wird je Volk umgerechnet (`Ausbildungsfaktor`), damit jedes Volk am Ende gleich viel gelernt hat. Kosten fallen nur im Ausbildungsalter an und stehen unter „Familie“ in der Jahresrechnung.
+- **Eigener Zufallsgenerator** für Talente: So bleiben Geburten, Todesfälle und Kandidaten genau wie vor den Talenten, und frühere Messungen bleiben vergleichbar.
+- **KI:** Das älteste Kind geht auf die Universität, wenn das Haus Bürger ist und sie bezahlen kann, sonst in die Klosterschule. Die anderen gehen in die Zunftlehre, und ein wagemutiges Haus schickt das jüngste auf die Gasse. Erbe wird das begabteste volljährige Kind.
+
 **Lehrstück aus diesem Schritt (Anzeige und Rundung):** 29,6 sieht gerundet aus wie 30. Steht dann „30 / 30“ da, aber die Heirat geht nicht, wirkt das Spiel kaputt. Fortschritt zu einer Schwelle wird deshalb abgerundet angezeigt.
 
 **Lehrstück aus diesem Schritt (Zufall in Tests):** Ein Test mit einem einzigen Startwert prüft eher Glück als Regeln. Ein 20-jähriger Ehemann starb im Test gleich im ersten Jahr, bei 0,6 % Risiko. Eine Gegenprobe über 2000 Startwerte ergab genau die erwarteten 13 Todesfälle. Tests, die vom Zufall abhängen, laufen deshalb über mehrere Startwerte und prüfen eine Summe.
@@ -243,7 +250,7 @@ Die Unterwelt (`src/Reichsgilde.Core/Gauner/Unterwelt.cs`) gehört zur Stadtwirt
   - Der Brief ist eine `Forderung` und zugleich eine Spur „Erpressung“, deren Beweis das Opfer sofort hat.
   - Zahlt das Opfer, verbrennt `BeweiseVerbrennen` die Beweise des Erpressers.
   - Briefe gelten bis zum Ende des Folgejahres, danach heißt Schweigen Nein.
-- **Kerker:** Das Gericht führt `KerkerBis` wie den Pranger. `Stadtwirtschaft.Ausfuehren` lehnt im Kerker alle persönlichen Befehle ab. Erlaubt bleiben `BetriebsBefehl`, `ErbenBestimmen` und `ErpressungBeantworten`.
+- **Kerker:** Das Gericht führt `KerkerBis` wie den Pranger. `Stadtwirtschaft.Ausfuehren` lehnt im Kerker alle persönlichen Befehle ab. Erlaubt bleiben `BetriebsBefehl`, `ErbenBestimmen`, `AusbildungWaehlen` und `ErpressungBeantworten`.
 - **Eigener Zufallsgenerator**, wie bei Familie und Gericht.
 
 **KI in der Unterwelt** (Profilwert `Gaunerei`: vorsichtig 0, ausgewogen 1, wagemutig 2):

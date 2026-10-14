@@ -17,7 +17,7 @@ public partial class FamilienAnzeige : PanelContainer
     private static readonly Color Grau = new(0.72f, 0.72f, 0.72f);
     private static readonly Color Gruen = new(0.55f, 0.85f, 0.5f);
     private static readonly Color Rot = new(0.95f, 0.45f, 0.4f);
-    private const int Breite = 760;
+    private const int Breite = 900;
 
     private Simulation? _simulation;
     private Konto? _spieler;
@@ -109,16 +109,27 @@ public partial class FamilienAnzeige : PanelContainer
 
         // ── Oberhaupt und Ehe ──
         Text(_inhalt, $"{o.OberhauptTitel}: {o.Name}, {o.Volk.Einzahl()}, {o.Alter(jahr)} Jahre – {buch.Verfassung(o)}", 16);
+        if (buch.HatTalente)
+        {
+            var talente = Text(_inhalt, "Talente: " + TalentText(o) + "   ⓘ", 14, Gold);
+            talente.TooltipText = Talentwirkung(w, buch);
+            talente.MouseFilter = MouseFilterEnum.Stop;
+        }
         if (f.Ehepartner is { } e)
         {
             Text(_inhalt, $"{e.Ehepartnertitel}: {e.NameMitHerkunft}, {e.Volk.Einzahl()}, {e.Alter(jahr)} Jahre – {buch.Verfassung(e)}", 15);
+            if (buch.HatTalente)
+                Text(_inhalt, $"Talente: {TalentText(e)} – zählen erst, wenn {(e.Geschlecht == Geschlecht.Frau ? "sie" : "er")} das Haus führt; die Kinder erben davon.",
+                    12, Grau, umbrechen: true);
             var chance = buch.Geburtschance(f);
             Text(_inhalt, chance > 0 ? $"Chance auf ein Kind in diesem Jahr: {Zahlenformat.Ganz(chance * 100)} %"
                 : "In diesem Alter sind keine Kinder mehr zu erwarten.", 13, Grau);
         }
         else
             Text(_inhalt, f.Ahnen.Count > 0 || f.Mitglieder.Any(p => !p.Lebt && p != o) ? "Ledig oder verwitwet – unten in der Brautschau findet sich eine Partie." : "Noch ledig – unten in der Brautschau findet sich eine Partie.", 14, Grau);
-        Text(_inhalt, $"Haushalt und Unterhalt: {Zahlenformat.Ganz(buch.Haushaltskosten(f))} {waehrung} im Jahr", 13, Grau);
+        var ausbildung = buch.Ausbildungskosten(f);
+        Text(_inhalt, $"Haushalt und Unterhalt: {Zahlenformat.Ganz(buch.Haushaltskosten(f))} {waehrung} im Jahr" +
+                      (ausbildung > 0 ? $" · Ausbildung: {Zahlenformat.Ganz(ausbildung)} {waehrung}" : ""), 13, Grau);
 
         // ── Kinder ──
         var kinder = f.Kinder.ToList();
@@ -126,8 +137,8 @@ public partial class FamilienAnzeige : PanelContainer
         {
             _inhalt.AddChild(new HSeparator());
             Text(_inhalt, "Kinder", 16);
-            var raster = new GridContainer { Columns = 4 };
-            raster.AddThemeConstantOverride("h_separation", 16);
+            var raster = new GridContainer { Columns = buch.HatTalente ? 6 : 4 };
+            raster.AddThemeConstantOverride("h_separation", 14);
             raster.AddThemeConstantOverride("v_separation", 2);
             _inhalt.AddChild(raster);
             foreach (var k in kinder)
@@ -137,6 +148,13 @@ public partial class FamilienAnzeige : PanelContainer
                 Text(raster, $"{k.Vorname} ({k.SohnOderTochter})", 14, farbe);
                 Text(raster, k.Lebt ? $"{k.Alter(jahr)} Jahre" : $"† {k.Todesjahr} mit {k.Alter(jahr)}", 14, farbe);
                 Text(raster, !k.Lebt ? "" : buch.IstVolljaehrig(k) ? "volljährig" : $"mündig mit {buch.VolkDaten(k.Volk).Volljaehrig}", 13, farbe ?? Grau);
+                if (buch.HatTalente)
+                {
+                    var staerken = Text(raster, k.Lebt ? StaerkenText(k) : "", 13, farbe ?? Grau);
+                    staerken.TooltipText = k.Lebt ? TalentText(k) : "";
+                    staerken.MouseFilter = MouseFilterEnum.Stop;
+                    AusbildungZelle(raster, w, buch, k, farbe);
+                }
                 if (k.Lebt && !istErbe && !_spieler.IstErloschen)
                 {
                     var knopf = new Button { Text = "Als Erben einsetzen", FocusMode = FocusModeEnum.None };
@@ -175,6 +193,67 @@ public partial class FamilienAnzeige : PanelContainer
         }
     }
 
+    /// <summary>„Verhandeln 2 · Handwerk 1½ · Nacht ½ · Kampf 1½ · Rhetorik 2"</summary>
+    private static string TalentText(Person p) =>
+        string.Join(" · ", TalentTexte.Alle.Select(t => $"{t.Kurz()} {TalentTexte.Sterne(p.Talent(t))}"));
+
+    /// <summary>Die zwei besten Talente – für enge Spalten.</summary>
+    private static string StaerkenText(Person p) =>
+        string.Join(", ", p.Staerken.Take(2).Select(x => $"{x.Talent.Kurz()} {TalentTexte.Sterne(x.Wert)}"));
+
+    private static string Talentwirkung(Stadtwirtschaft w, Familienbuch buch)
+    {
+        var m = buch.TalentDaten.Wirkung;
+        string P(double x) => Zahlenformat.Kommazahl(x * 100);
+        return "Es zählen die Talente des Oberhaupts – je Stern:\n" +
+               $"• Verhandeln: +{P(m.Verhandeln)} % Erlös auf dem Markt\n" +
+               $"• Handwerkskunst: +{P(m.Handwerk)} % Leistung aller Arbeitskräfte\n" +
+               $"• Bei Nacht und Nebel: +{P(m.NachtErfolg)} Prozentpunkte Erfolg im Hinterzimmer, −{P(m.NachtZeugen)} % Zeugen\n" +
+               $"• Kampf: +{P(m.KampfUeberfall)} Prozentpunkte Stärke angeheuerter Wegelagerer, +{P(m.KampfSchutz)} Prozentpunkte Schutz der eigenen Karren\n" +
+               $"• Rhetorik: +{Zahlenformat.Kommazahl(m.RhetorikRat)} Punkte bei Ratswahlen, {Zahlenformat.Kommazahl(m.RhetorikGericht)} Punkt Plädoyer vor Gericht, +{P(m.RhetorikWerben)} % Wirkung der Brautgeschenke\n" +
+               $"Höchstens {Zahlenformat.Kommazahl(buch.TalentDaten.Hoechstwert)} Sterne. Kinder erben die Hälfte vom Mittel der Eltern, den Rest vom Volk – und lernen in der Ausbildung dazu.";
+    }
+
+    /// <summary>
+    /// Ausbildung eines Kindes: Auswahl für Unmündige, Abschluss für Volljährige.
+    /// Die Liste zeigt alle Wege; verschlossene (Stand) sind ausgegraut.
+    /// </summary>
+    private void AusbildungZelle(GridContainer raster, Stadtwirtschaft w, Familienbuch buch, Person k, Color? farbe)
+    {
+        if (!k.Lebt || buch.IstVolljaehrig(k) || _spieler!.IstErloschen)
+        {
+            Text(raster, k.Lebt && k.Abschluss is { } abschluss ? abschluss : "", 13, farbe ?? Grau);
+            return;
+        }
+        var waehrung = w.Daten.Allgemein.Waehrung;
+        var auswahl = new OptionButton { FocusMode = FocusModeEnum.None };
+        auswahl.AddItem("keine Ausbildung", 0);
+        var wege = buch.TalentDaten.Ausbildungen.ToList();
+        for (var i = 0; i < wege.Count; i++)
+        {
+            var (name, a) = wege[i];
+            auswahl.AddItem($"{name} ({Zahlenformat.Ganz(a.Kosten)} {waehrung}/Jahr)", i + 1);
+            var index = auswahl.ItemCount - 1;
+            var zuwachs = string.Join(", ", a.Talente.Select(x => $"{x.Key.Kurz()} +{Zahlenformat.Kommazahl(x.Value * buch.Ausbildungsfaktor(k.Volk))}"));
+            auswahl.SetItemTooltip(index, $"{a.Beschreibung}\nJe Jahr: {zuwachs}");
+            if (buch.AusbildungVerboten(_spieler!, name) is { } grund)
+            {
+                auswahl.SetItemDisabled(index, true);
+                auswahl.SetItemTooltip(index, grund);
+            }
+            if (k.Ausbildung == name) auswahl.Select(index);
+        }
+        if (k.Ausbildung is null) auswahl.Select(0);
+        var ab = buch.AusbildungAb(k.Volk);
+        auswahl.TooltipText = k.Alter(buch.Jahr) < ab ? $"Die Ausbildung beginnt mit {ab} Jahren – vorher kostet sie nichts." : "Läuft bis zur Volljährigkeit.";
+        auswahl.ItemSelected += index =>
+        {
+            var id = auswahl.GetItemId((int)index);
+            Befehlen(new AusbildungWaehlen(k.Nummer, id == 0 ? null : wege[id - 1].Key));
+        };
+        raster.AddChild(auswahl);
+    }
+
     private void BrautschauAufbauen(Stadtwirtschaft w, Familienbuch buch, Familie f)
     {
         var waehrung = w.Daten.Allgemein.Waehrung;
@@ -192,11 +271,14 @@ public partial class FamilienAnzeige : PanelContainer
         var betragHinweis = Text(geschenkZeile, Hinweis(), 12, Grau);
         geschenk.ValueChanged += wert => { _geschenkBetrag = wert; betragHinweis.Text = Hinweis(); };
 
-        var raster = new GridContainer { Columns = 7 };
+        var mitTalenten = buch.HatTalente;
+        var raster = new GridContainer { Columns = mitTalenten ? 8 : 7 };
         raster.AddThemeConstantOverride("h_separation", 12);
         raster.AddThemeConstantOverride("v_separation", 3);
         _inhalt.AddChild(raster);
-        foreach (var kopf in new[] { "Name", "Volk, Alter", "Stand", "Kinder ≈", "Hochzeit", "Bereit", "" })
+        foreach (var kopf in mitTalenten
+                     ? new[] { "Name", "Volk, Alter", "Stand", "Stärken", "Kinder ≈", "Hochzeit", "Bereit", "" }
+                     : new[] { "Name", "Volk, Alter", "Stand", "Kinder ≈", "Hochzeit", "Bereit", "" })
             Text(raster, kopf, 12, Grau);
 
         var passende = buch.Kandidaten.Where(k => k.Person.Geschlecht != f.Oberhaupt.Geschlecht)
@@ -213,6 +295,12 @@ public partial class FamilienAnzeige : PanelContainer
             if (rivalen.Count > 0) { name.TooltipText = $"Auch {string.Join(", ", rivalen)} wirbt um {p.Vorname}."; name.MouseFilter = MouseFilterEnum.Stop; }
             Text(raster, $"{p.Volk.Einzahl()}, {p.Alter(buch.Jahr)}", 14, farbe);
             Text(raster, w.Daten.Staende[k.Stand].Name, 14, farbe);
+            if (mitTalenten)
+            {
+                var staerken = Text(raster, StaerkenText(p), 13, farbe ?? Grau);
+                staerken.TooltipText = TalentText(p);
+                staerken.MouseFilter = MouseFilterEnum.Stop;
+            }
             Text(raster, Zahlenformat.Kommazahl(buch.ErwarteteKinder(f, p)), 14, farbe);
             Text(raster, $"{Zahlenformat.Ganz(buch.Hochzeitskosten(k))}", 14, farbe);
             // Abrunden: 29,6 darf nicht als „30 / 30" erscheinen, solange die Heirat noch nicht geht.

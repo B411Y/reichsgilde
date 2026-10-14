@@ -237,6 +237,7 @@ tests.AddRange(RatTests.Alle());
 tests.AddRange(DynastieTests.Alle());
 tests.AddRange(GerichtTests.Alle());
 tests.AddRange(GaunerTests.Alle());
+tests.AddRange(TalenteTests.Alle());
 
 // ── Testlauf ────────────────────────────────────────────────────────────────
 var fehler = 0;

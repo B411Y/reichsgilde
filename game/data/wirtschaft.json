@@ -1,5 +1,5 @@
 {
-  "version": 8,
+  "version": 9,
   "allgemein": {
     "waehrung": "Gulden",
     "arbeitsminuten": 720,
@@ -508,6 +508,38 @@
     "heiratsschwelleJeStand": 10,
     "hochzeitJeStand": 0.5,
     "mischehe": { "fruchtbarkeit": 0.5, "ansehenEigenesVolk": -5, "ansehenPartnervolk": 3 },
+    "talente": {
+      "hoechstwert": 6,
+      "streuung": 1,
+      "vererbung": 0.5,
+      "ausbildungAb": 0.5,
+      "referenzJahre": 8,
+      "wirkung": {
+        "verhandeln": 0.015,
+        "handwerk": 0.03,
+        "rhetorikRat": 2,
+        "rhetorikGericht": 1,
+        "rhetorikWerben": 0.05,
+        "nachtErfolg": 0.04,
+        "nachtZeugen": 0.08,
+        "kampfUeberfall": 0.04,
+        "kampfSchutz": 0.03
+      },
+      "voelker": {
+        "Mensch":   { "Verhandeln": 2,   "Handwerk": 1.5, "NachtUndNebel": 1,   "Kampf": 1.5, "Rhetorik": 2 },
+        "Zwerg":    { "Verhandeln": 1.5, "Handwerk": 3,   "NachtUndNebel": 0.5, "Kampf": 2.5, "Rhetorik": 1 },
+        "Elb":      { "Verhandeln": 2,   "Handwerk": 2,   "NachtUndNebel": 1,   "Kampf": 1,   "Rhetorik": 3 },
+        "Halbling": { "Verhandeln": 2,   "Handwerk": 1.5, "NachtUndNebel": 3,   "Kampf": 0.5, "Rhetorik": 1.5 }
+      },
+      "ausbildungen": {
+        "Zunftlehre":    { "kosten": 60,  "talente": { "Handwerk": 0.5, "Kampf": 0.25 }, "beschreibung": "Lehre in einer Werkstatt – Handwerkskunst und kräftige Arme." },
+        "Kontorlehre":   { "kosten": 30,  "talente": { "Verhandeln": 0.5 }, "beschreibung": "Schreibstube eines Handelshauses – Rechnen, Feilschen, Briefe." },
+        "Klosterschule": { "kosten": 40,  "talente": { "Rhetorik": 0.5 }, "beschreibung": "Latein, Schrift und Predigt bei den Mönchen." },
+        "Universität":   { "kosten": 200, "mindestStand": "Bürger", "talente": { "Rhetorik": 0.5, "Verhandeln": 0.5 }, "beschreibung": "Rechte und Artes liberales – nur für Häuser ab dem Bürgerstand." },
+        "Fechtmeister":  { "kosten": 120, "talente": { "Kampf": 0.5, "Rhetorik": 0.25 }, "beschreibung": "Fechtboden und höfisches Auftreten." },
+        "Gasse":         { "kosten": 0,   "talente": { "NachtUndNebel": 0.5, "Kampf": 0.25 }, "beschreibung": "Das Kind treibt sich bei Dieben und Hehlern herum – kostet nichts." }
+      }
+    },
     "voelker": {
       "Mensch": {
         "startalter": 24, "sterbealter": 64, "streuung": 8, "volljaehrig": 16,
