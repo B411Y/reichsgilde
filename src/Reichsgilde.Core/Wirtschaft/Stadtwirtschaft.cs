@@ -1,4 +1,5 @@
 using Reichsgilde.Core.Dynastie;
+using Reichsgilde.Core.Gauner;
 using Reichsgilde.Core.Justiz;
 using Reichsgilde.Core.Politik;
 using Reichsgilde.Core.Speichern;
@@ -48,6 +49,9 @@ public sealed class Stadtwirtschaft
 
     /// <summary>Das Stadtgericht: Spuren, Spitzel, Beweise und Anklagen.</summary>
     public Stadtgericht Justiz { get; }
+
+    /// <summary>Die Unterwelt: Hinterzimmer, Hinterhalte, Erpresserbriefe.</summary>
+    public Unterwelt Gauner { get; }
 
     /// <summary>Das laufende Spieljahr (das Jahr der laufenden Jahresrechnung).</summary>
     public int Jahr => _konten.Count > 0 ? _konten[0].Laufend.Jahr : Spielzeit.StartJahr;
@@ -106,6 +110,7 @@ public sealed class Stadtwirtschaft
         Rat = new Stadtrat(this, daten.Politik);
         Familien = new Familienbuch(this, daten.Dynastie, zufallsstartwert);
         Justiz = new Stadtgericht(this, daten.Justiz, zufallsstartwert);
+        Gauner = new Unterwelt(this, daten.Gauner, zufallsstartwert);
     }
 
     /// <summary>Legt ein Konto an – mit dem Startvermögen aus den Daten oder einem eigenen (z. B. Schwierigkeitsgrad).</summary>
@@ -177,6 +182,10 @@ public sealed class Stadtwirtschaft
             foreach (var betrieb in _betriebe)
                 betrieb.Arbeitsminute(Melden);
 
+        // Bei Nacht und Nebel: Die Banden aus dem Hinterzimmer ziehen los.
+        if (zeit.MinuteImTag == Unterwelt.Nachtstunde)
+            Gauner.Nacht(zeit);
+
         // Fairness: Wer in derselben Minute am Markt ankommt, ist in zufälliger Reihenfolge dran.
         // Sonst hätte immer der zuerst eröffnete Betrieb den besseren Preis (im Multiplayer: wer zuerst beitritt).
         _alleKarren.Clear();
@@ -205,6 +214,7 @@ public sealed class Stadtwirtschaft
         SchuldenPruefen();
         Familien.Jahreswechsel(); // Tod und Erbfall vor der Ratssitzung: Ein verwaistes Amt wird gleich neu besetzt
         Rat.Sitzung(_zufall, neuesJahr - 1);
+        Gauner.Jahresende();
         foreach (var rivale in _rivalen.Where(r => r.Konto.IstAktiv))
             rivale.Jahresende();
     }
@@ -277,6 +287,9 @@ public sealed class Stadtwirtschaft
             return Befehlsergebnis.Abgelehnt($"{absender.Inhaber} ist bankrott und kann nichts mehr unternehmen.");
         if (absender.IstErloschen)
             return Befehlsergebnis.Abgelehnt($"Das Haus {absender.Inhaber} ist erloschen.");
+        if (Justiz.IstAktiv && Justiz.ImKerker(absender) && befehl is not (BetriebsBefehl or ErbenBestimmen or ErpressungBeantworten))
+            return Befehlsergebnis.Abgelehnt($"Das Oberhaupt von {absender.Inhaber} sitzt bis Ende {Justiz.KerkerBis(absender)} im Kerker. " +
+                                             "Nur die Betriebe laufen weiter.");
         if (befehl is StandErwerben)
             return StandErwerbenAusfuehren(absender);
         if (befehl is LiegenschaftErwerben liegenschaft)
@@ -297,6 +310,21 @@ public sealed class Stadtwirtschaft
             if (_konten.FirstOrDefault(k => k.Inhaber == haus) is not { } ziel)
                 return Befehlsergebnis.Abgelehnt($"Ein Haus „{haus}“ gibt es nicht.");
             return befehl is SpitzelAnsetzen ? Justiz.SpitzelAnsetzen(absender, ziel) : Justiz.Anklagen(absender, ziel);
+        }
+        if (befehl is Beauftragen or Erpressen or ErpressungBeantworten)
+        {
+            if (!Gauner.IstAktiv)
+                return Befehlsergebnis.Abgelehnt("In dieser Stadt gibt es keine Unterwelt.");
+            var hausName = befehl switch { Beauftragen b => b.Haus, Erpressen e => e.Haus, ErpressungBeantworten a => a.Erpresser, _ => "" };
+            if (_konten.FirstOrDefault(k => k.Inhaber == hausName) is not { } haus)
+                return Befehlsergebnis.Abgelehnt($"Ein Haus „{hausName}“ gibt es nicht.");
+            return befehl switch
+            {
+                Beauftragen b => Gauner.Beauftragen(absender, haus, b.Art, b.Betrieb),
+                Erpressen e => Gauner.Erpressen(absender, haus, e.Betrag),
+                ErpressungBeantworten a => Gauner.ErpressungBeantworten(absender, haus, a.Zahlen),
+                _ => Befehlsergebnis.Abgelehnt("Unbekannter Befehl."),
+            };
         }
         if (befehl is Werben or Heiraten or ErbenBestimmen && Familien.Von(absender) is null)
             return Befehlsergebnis.Abgelehnt($"{absender.Inhaber} hat keine Familie.");
@@ -325,6 +353,7 @@ public sealed class Stadtwirtschaft
                 KarrenKaufen k => KarrenKaufenAusfuehren(betrieb, k),
                 EskorteWaehlen e => EskorteAusfuehren(betrieb, e),
                 NachtfahrtErlauben n => NachtfahrtAusfuehren(betrieb, n),
+                WaechterSetzen s => WaechterAusfuehren(betrieb, s),
                 _ => Befehlsergebnis.Abgelehnt($"Unbekannter Befehl: {befehl.GetType().Name}"),
             };
         }
@@ -435,6 +464,18 @@ public sealed class Stadtwirtschaft
         return Befehlsergebnis.Ok($"{karren.Name} von {betrieb.Name} fährt nun mit Eskorte „{befehl.Eskorte}“.");
     }
 
+    private Befehlsergebnis WaechterAusfuehren(Betrieb betrieb, WaechterSetzen befehl)
+    {
+        if (Daten.Gauner is not { } g)
+            return Befehlsergebnis.Abgelehnt("Ohne Unterwelt braucht es keine Wächter.");
+        if (betrieb.Waechter == befehl.Angestellt)
+            return Befehlsergebnis.Ok($"{betrieb.Name} hat {(befehl.Angestellt ? "schon einen" : "keinen")} Wächter.");
+        betrieb.Waechter = befehl.Angestellt;
+        return Befehlsergebnis.Ok(befehl.Angestellt
+            ? $"{betrieb.Name} stellt einen Wächter ein ({Zahlenformat.Ganz(g.WaechterKosten)} {Daten.Allgemein.Waehrung} im Jahr)."
+            : $"{betrieb.Name} entlässt den Wächter.");
+    }
+
     private Befehlsergebnis NachtfahrtAusfuehren(Betrieb betrieb, NachtfahrtErlauben befehl)
     {
         if (befehl.Karren < 0 || befehl.Karren >= betrieb.Karren.Count)
@@ -460,6 +501,7 @@ public sealed class Stadtwirtschaft
         Rat = Rat.Sichern(k => _konten.IndexOf(k)),
         Familien = Familien.IstAktiv ? Familien.Sichern(k => _konten.IndexOf(k)) : null,
         Justiz = Justiz.IstAktiv ? Justiz.Sichern(k => _konten.IndexOf(k)) : null,
+        Gauner = Gauner.IstAktiv ? Gauner.Sichern(k => _konten.IndexOf(k)) : null,
     };
 
     /// <summary>
@@ -497,6 +539,8 @@ public sealed class Stadtwirtschaft
             Familien.Wiederherstellen(familien, _konten);
         if (s.Justiz is { } justiz && Justiz.IstAktiv)
             Justiz.Wiederherstellen(justiz, _konten);
+        if (s.Gauner is { } gauner && Gauner.IstAktiv)
+            Gauner.Wiederherstellen(gauner, _konten);
     }
 
     public double HoechstesVermoegen => _konten.Count == 0 ? 0 : _konten.Max(k => k.Vermoegen);

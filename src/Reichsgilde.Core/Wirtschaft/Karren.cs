@@ -158,7 +158,8 @@ public sealed class Karren
         if (eskorte.KostenJeFahrt > 0)
             Heimat.Konto.Transport(eskorte.KostenJeFahrt);
 
-        if (Heimat.Ort == Arbeitsort.Umland)
+        // Ein bestellter Hinterhalt geht vor; sonst würfeln die gewöhnlichen Banden.
+        if (Heimat.Ort == Arbeitsort.Umland && !w.Gauner.HinterhaltAusloesen(this, eskorte, zeit))
             Ueberfall.Wuerfeln(this, eskorte, zeit, w);
     }
 

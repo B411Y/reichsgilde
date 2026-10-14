@@ -1,4 +1,5 @@
 using Reichsgilde.Core.Dynastie;
+using Reichsgilde.Core.Gauner;
 using Reichsgilde.Core.Justiz;
 using Reichsgilde.Core.Politik;
 using Reichsgilde.Core.Speichern;
@@ -20,6 +21,8 @@ namespace Reichsgilde.Core.Ki;
 /// <param name="MaxAmortisationJahre">Ein Kauf muss sich in so vielen Jahren aus dem erwarteten Gewinn bezahlt machen.</param>
 /// <param name="PolitikAnteil">Höchstens dieser Anteil des Vermögens geht pro Tag in Geschenke an Ratsherren.</param>
 /// <param name="StatutVorteil">So viele Gulden im Jahr muss ein anderes Statut mehr bringen, damit die KI es beantragt oder dafür stimmt.</param>
+/// <param name="Gaunerei">0 = nie; 1 = selten (ein Diebstahl oder eine Sabotage im Jahr, nur gegen Häuser vor ihr);
+/// 2 = oft (zwei Gaunerstücke im Jahr, auch Überfälle und Erpressung, gegen jeden).</param>
 public sealed record KiProfil(
     double Reserve = 1500,
     double Wechselschwelle = 0.15,
@@ -30,7 +33,8 @@ public sealed record KiProfil(
     int MaxBetriebe = 3,
     double MaxAmortisationJahre = 6,
     double PolitikAnteil = 0.15,
-    double StatutVorteil = 200)
+    double StatutVorteil = 200,
+    int Gaunerei = 1)
 {
     public static KiProfil Standard { get; } = new();
 }
@@ -57,6 +61,7 @@ public sealed class KiRivale
     private readonly Dictionary<Betrieb, int> _stundenSeitWechsel = new();
     private readonly List<string> _entscheidungen = new();
     private int _stundenImJahr;
+    private int _gaunereienImJahr;
 
     /// <summary>Zu dieser Stunde des Spieltags kümmert sich die KI um die Politik (mittags, einmal am Tag).</summary>
     private const int Politikstunde = 6;
@@ -85,6 +90,7 @@ public sealed class KiRivale
         StundenSeitWechsel = _stundenSeitWechsel.ToDictionary(x => x.Key.Name, x => x.Value),
         Entscheidungen = new(_entscheidungen),
         StundenImJahr = _stundenImJahr,
+        GaunereienImJahr = _gaunereienImJahr,
     };
 
     internal void Wiederherstellen(RivaleStand s)
@@ -94,6 +100,7 @@ public sealed class KiRivale
                 _stundenSeitWechsel[betrieb] = stunden;
         _entscheidungen.AddRange(s.Entscheidungen);
         _stundenImJahr = s.StundenImJahr;
+        _gaunereienImJahr = s.GaunereienImJahr;
     }
 
     // ═════════════════════════════════════════════════════════════════════════
@@ -105,13 +112,22 @@ public sealed class KiRivale
     {
         if (!Konto.IstAktiv) return;
         _stundenImJahr++;
-        StandPruefen();
-        Expandieren();
+        // Im Kerker führt nur der Verwalter die Betriebe – alles Persönliche ruht.
+        var frei = !(_w.Justiz.IstAktiv && _w.Justiz.ImKerker(Konto));
+        if (frei)
+        {
+            StandPruefen();
+            Expandieren();
+        }
         if (_stundenImJahr == Politikstunde)
         {
-            Familienpolitik();
-            Justizpolitik(); // zuerst verteidigen – das Geld für Geschenke ist begrenzt
-            Politik();
+            Unterweltpolitik(frei); // Erpresserbriefe beantworten, Wächter, eigene Gaunerstücke
+            if (frei)
+            {
+                Familienpolitik();
+                Justizpolitik(); // zuerst verteidigen – das Geld für Geschenke ist begrenzt
+                Politik();
+            }
         }
         foreach (var betrieb in Betriebe.ToList())
         {
@@ -129,6 +145,7 @@ public sealed class KiRivale
     internal void Jahresende()
     {
         _stundenImJahr = 0;
+        _gaunereienImJahr = 0;
         foreach (var betrieb in Betriebe.ToList())
             KarrenNachkaufen(betrieb);
     }
@@ -373,6 +390,7 @@ public sealed class KiRivale
         foreach (var gegner in _w.Konten.Where(k => k != Konto && k.IstAktiv).ToList())
         {
             if (gericht.VerfahrenGegen(Konto, gegner) is not null) continue;
+            if (_w.Gauner.IstAktiv && _w.Gauner.ForderungAn(gegner, Konto) is not null) continue; // erst die Antwort auf den Brief abwarten
             if (gericht.Beweiskraft(Konto, gegner) < d.SichereBeweiskraft - 1e-9
                 || Konto.Vermoegen - d.Gerichtsgebuehr - d.Entschaedigung < Profil.Reserve) continue;
             Befehlen(new Anklagen(gegner.Inhaber),
@@ -412,6 +430,104 @@ public sealed class KiRivale
         var nutzen = Math.Max(d.Mindestbusse, d.BusseFaktor * gericht.Beweise(v.Anklaeger, Konto).Sum(b => b.Betrag))
                      + (_w.Rat.AmtVon(Konto) is { } amt ? amt.Daten.Einkommen * NutzenJahre : 0);
         Schenkplan(kosten, stimmen.Count / 2 + 1 - freisprechen, $"vor dem Gerichtstag (angeklagt von {v.Anklaeger.Inhaber})", nutzen);
+    }
+
+    // ═════════════════════════════════════════════════════════════════════════
+    //  Unterwelt
+    // ═════════════════════════════════════════════════════════════════════════
+
+    /// <summary>
+    /// Was eine Verurteilung kosten würde, wenn <paramref name="anklaeger"/> mit seinen Beweisen klagt:
+    /// Buße, drei Jahre Amtseinkommen, Pranger und Kerker (grob in Gulden geschätzt).
+    /// </summary>
+    public double DrohendeStrafe(Konto anklaeger)
+    {
+        var gericht = _w.Justiz;
+        if (!gericht.IstAktiv) return 0;
+        var d = gericht.Daten;
+        var beweise = gericht.Beweise(anklaeger, Konto).ToList();
+        if (beweise.Count * d.BeweiskraftJeBeweis < d.SchuldSchwelle) return 0; // reicht nicht für einen Schuldspruch
+        var strafe = Math.Max(d.Mindestbusse, d.BusseFaktor * beweise.Sum(b => b.Betrag)) + PrangerWert;
+        if (_w.Rat.AmtVon(Konto) is { } amt) strafe += amt.Daten.Einkommen * NutzenJahre;
+        if (beweise.Any(b => d.KerkerFuer.Contains(b.Art))) strafe += KerkerWert;
+        return strafe;
+    }
+
+    /// <summary>Grobe Schätzungen in Gulden: Was kosten drei Jahre Pranger, was ein Jahr Kerker?</summary>
+    private const double PrangerWert = 500;
+    private const double KerkerWert = 1500;
+
+    /// <summary>Einmal am Tag: Erpresserbriefe beantworten, Wächter einstellen, selbst Banden anheuern.</summary>
+    private void Unterweltpolitik(bool frei)
+    {
+        var unterwelt = _w.Gauner;
+        if (!unterwelt.IstAktiv) return;
+        var g = unterwelt.Daten;
+
+        // 1. Erpresserbriefe: zahlen, wenn das Schweigegeld billiger ist als die drohende Strafe.
+        foreach (var f in unterwelt.Forderungen.Where(f => f.Opfer == Konto).ToList())
+        {
+            var strafe = DrohendeStrafe(f.Erpresser);
+            var zahlen = f.Betrag <= strafe && Konto.Vermoegen - f.Betrag >= Profil.Reserve / 2;
+            Befehlen(new ErpressungBeantworten(f.Erpresser.Inhaber, zahlen), zahlen
+                ? $"zahlt {f.Erpresser.Inhaber} {Zahlenformat.Ganz(f.Betrag)} Schweigegeld (eine Verurteilung kostete ≈ {Zahlenformat.Ganz(strafe)})."
+                : $"weist den Erpresserbrief von {f.Erpresser.Inhaber} zurück ({Zahlenformat.Ganz(f.Betrag)} verlangt, die Strafe wäre ≈ {Zahlenformat.Ganz(strafe)}).");
+        }
+
+        // 2. Wächter für Betriebe, die in den letzten zwei Jahren angegriffen wurden.
+        foreach (var b in Betriebe.Where(b => !b.Waechter && unterwelt.LetzterAngriff(b.Name) >= _w.Jahr - 1).ToList())
+            if (Konto.Vermoegen - g.WaechterKosten >= Profil.Reserve)
+                Befehlen(new WaechterSetzen(b.Name, true), $"stellt nach dem Angriff einen Wächter für {b.Name} ein.");
+
+        // 3. Selbst Banden anheuern – nur, wer es seinem Charakter nach tut. Unter den Augen der Spitzel hält
+        //    der Ausgewogene still; der Wagemutige macht weiter und riskiert Gericht und Kerker.
+        if (!frei || Profil.Gaunerei <= 0 || _gaunereienImJahr >= Profil.Gaunerei) return;
+        if (Bestechungsrisiko > 1 && Profil.Gaunerei < 2) return;
+        var rangliste = _w.Rangliste.Where(k => k.IstAktiv).ToList();
+        var eigenerRang = rangliste.IndexOf(Konto);
+        var ziele = rangliste.Where(k => k != Konto && (Profil.Gaunerei >= 2 || rangliste.IndexOf(k) < eigenerRang)).ToList();
+        if (ziele.Count == 0) return;
+        var ziel = ziele[0];
+
+        if (Profil.Gaunerei >= 2 && Erpressen(ziel)) return;
+
+        // Wert je Gaunerstück: Diebstahl = erwarteter Hehlererlös; Sabotage = halber Schaden beim Gegner (er ist Konkurrent);
+        // Überfall = erwartete Beute aus der Ware, die auf Abtransport wartet. Jeweils abzüglich der Kosten.
+        var moeglich = new List<(Gaunerstueck Art, string? Betrieb, double Wert)>();
+        foreach (var b in _w.Betriebe.Where(b => b.Konto == ziel))
+        {
+            moeglich.Add((Gaunerstueck.Diebstahl, b.Name, unterwelt.ErwarteterGewinn(b)));
+            moeglich.Add((Gaunerstueck.Sabotage, b.Name, unterwelt.ErwarteterSchaden(b) * 0.5 - g.Sabotage.Kosten));
+            if (Profil.Gaunerei >= 2 && b.Ort == Arbeitsort.Umland && b.Karren.Count > 0)
+                moeglich.Add((Gaunerstueck.Ueberfall, null,
+                    unterwelt.MoeglicheBeute(b).Sum(x => x.Wert) * g.HehlerAnteil * g.Ueberfall.Staerke * 0.6 - g.Ueberfall.Kosten));
+        }
+        var beste = moeglich.Where(m => m.Wert > 0).OrderByDescending(m => m.Wert).ThenBy(m => m.Art).FirstOrDefault();
+        if (beste.Wert <= 0 || Konto.Vermoegen - g.Kosten(beste.Art) < Profil.Reserve) return;
+        if (Befehlen(new Beauftragen(ziel.Inhaber, beste.Art, beste.Betrieb),
+                $"heuert im Hinterzimmer eine Bande an: {beste.Art.Name()} gegen {ziel.Inhaber}" +
+                $"{(beste.Betrieb is null ? "" : $" ({beste.Betrieb})")} – erwarteter Vorteil ≈ {Zahlenformat.Ganz(beste.Wert)}."))
+            _gaunereienImJahr++;
+    }
+
+    /// <summary>Wagemutig: Mit genug Beweisen Schweigegeld verlangen – 60 % dessen, was den Gegner eine Verurteilung kostete.</summary>
+    private bool Erpressen(Konto ziel)
+    {
+        var unterwelt = _w.Gauner;
+        var gericht = _w.Justiz;
+        if (!gericht.IstAktiv || gericht.Beweise(Konto, ziel).Count() < unterwelt.Daten.ErpressungMindestBeweise
+            || unterwelt.ForderungAn(ziel, Konto) is not null || gericht.VerfahrenGegen(Konto, ziel) is not null) return false;
+        var d = gericht.Daten;
+        var beweise = gericht.Beweise(Konto, ziel).ToList();
+        var strafe = Math.Max(d.Mindestbusse, d.BusseFaktor * beweise.Sum(b => b.Betrag)) + PrangerWert
+                     + (_w.Rat.AmtVon(ziel) is { } amt ? amt.Daten.Einkommen * NutzenJahre : 0);
+        var betrag = Math.Round(strafe * 0.6 / 50) * 50;
+        if (Befehlen(new Erpressen(ziel.Inhaber, betrag), $"schickt {ziel.Inhaber} einen Erpresserbrief: {Zahlenformat.Ganz(betrag)} Schweigegeld."))
+        {
+            _gaunereienImJahr++;
+            return true;
+        }
+        return false;
     }
 
     // ═════════════════════════════════════════════════════════════════════════

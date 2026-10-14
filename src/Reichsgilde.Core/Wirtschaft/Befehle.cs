@@ -52,6 +52,18 @@ public sealed record SpitzelAnsetzen(string Haus) : Befehl;
 /// <summary>Anklage gegen ein Haus erheben – mit allen Beweisen, die man gegen es hat. Verhandelt wird am Jahresende.</summary>
 public sealed record Anklagen(string Haus) : Befehl;
 
+/// <summary>Hinterzimmer: eine Bande anheuern. Betrieb nur bei Diebstahl und Sabotage (ein Überfall gilt dem ganzen Haus).</summary>
+public sealed record Beauftragen(string Haus, Gauner.Gaunerstueck Art, string? Betrieb = null) : Befehl;
+
+/// <summary>Schweigegeld verlangen – nur mit genug Beweisen gegen das Haus.</summary>
+public sealed record Erpressen(string Haus, double Betrag) : Befehl;
+
+/// <summary>Auf einen Erpresserbrief antworten: zahlen (die Beweise verbrennen) oder nicht.</summary>
+public sealed record ErpressungBeantworten(string Erpresser, bool Zahlen) : Befehl;
+
+/// <summary>Einen Wächter für den Betrieb anstellen oder entlassen (Lohn am Jahresende).</summary>
+public sealed record WaechterSetzen(string Betrieb, bool Angestellt) : BetriebsBefehl(Betrieb);
+
 /// <summary>Die Gießerei stellt ab sofort diese Ware her.</summary>
 public sealed record ProduktWaehlen(string Betrieb, string Ware) : BetriebsBefehl(Betrieb);
 

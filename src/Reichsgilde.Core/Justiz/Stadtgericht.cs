@@ -4,10 +4,35 @@ using Reichsgilde.Core.Wirtschaft;
 
 namespace Reichsgilde.Core.Justiz;
 
-/// <summary>Was vor Gericht kommen kann. Weitere Vergehen folgen mit den Gaunern (Diebstahl, Sabotage …).</summary>
+/// <summary>Was vor Gericht kommen kann.</summary>
 public enum Vergehen
 {
+    /// <summary>Geschenke an Ratsherren.</summary>
     Bestechung,
+    /// <summary>Einbruch in ein fremdes Lager (Hinterzimmer).</summary>
+    Diebstahl,
+    /// <summary>Anschlag auf eine fremde Werkstatt (Hinterzimmer).</summary>
+    Sabotage,
+    /// <summary>Angeheuerte Wegelagerer überfallen einen fremden Karren (Hinterzimmer).</summary>
+    Raub,
+    /// <summary>Schweigegeld gegen Beweise verlangen.</summary>
+    Erpressung,
+}
+
+public static class VergehenTexte
+{
+    public static string Name(this Vergehen v) => v switch
+    {
+        Vergehen.Raub => "Überfall",
+        _ => v.ToString(),
+    };
+
+    /// <summary>„Bestechung und Diebstahl" – für Anklage und Urteil.</summary>
+    public static string Aufzaehlung(IEnumerable<Vergehen> vergehen)
+    {
+        var namen = vergehen.Distinct().OrderBy(v => v).Select(v => v.Name()).ToList();
+        return namen.Count <= 1 ? namen.FirstOrDefault() ?? "—" : string.Join(", ", namen.Take(namen.Count - 1)) + " und " + namen[^1];
+    }
 }
 
 /// <summary>
@@ -37,8 +62,12 @@ public sealed class Spur
 
     public string Beschreibung => Art switch
     {
-        Vergehen.Bestechung => $"{Jahr}: {Zahlenformat.Ganz(Betrag)} Gulden an {Betroffener}",
-        _ => $"{Jahr}: {Art}",
+        Vergehen.Bestechung => $"{Jahr}: Bestechung – {Zahlenformat.Ganz(Betrag)} Gulden an {Betroffener}",
+        Vergehen.Diebstahl => $"{Jahr}: Diebstahl in {Betroffener} – Ware für {Zahlenformat.Ganz(Betrag)} Gulden",
+        Vergehen.Sabotage => $"{Jahr}: Sabotage in {Betroffener} – Schaden {Zahlenformat.Ganz(Betrag)} Gulden",
+        Vergehen.Raub => $"{Jahr}: Überfall auf {Betroffener} – Beute für {Zahlenformat.Ganz(Betrag)} Gulden",
+        Vergehen.Erpressung => $"{Jahr}: Erpressung von {Betroffener} – {Zahlenformat.Ganz(Betrag)} Gulden verlangt",
+        _ => $"{Jahr}: {Art.Name()}",
     };
 }
 
@@ -77,7 +106,7 @@ public sealed record Urteil(Konto Anklaeger, Konto Beklagter, bool Schuldig, int
 /// Das Stadtgericht: Spuren, Spitzel, Beweise, Anklagen und der Gerichtstag am Jahresende.
 ///
 /// Über das Jahr:
-///   • Jede Tat hinterlässt eine Spur (bisher: jedes Geschenk an einen Ratsherrn ist Bestechung).
+///   • Jede Tat hinterlässt eine Spur: jedes Geschenk an einen Ratsherrn (Bestechung) und jedes Gaunerstück.
 ///   • Ein Haus setzt einen Spitzel auf ein anderes an (Befehl SpitzelAnsetzen, gilt bis Jahresende).
 ///   • Wer Beweise hat, erhebt Anklage (Befehl Anklagen). Zwei Schöffen werden sofort ausgelost.
 ///
@@ -99,6 +128,7 @@ public sealed class Stadtgericht
     private readonly List<(Konto Auftraggeber, Konto Ziel)> _spitzel = new();
     private readonly List<Verfahren> _verfahren = new();
     private readonly Dictionary<Konto, int> _prangerBis = new();
+    private readonly Dictionary<Konto, int> _kerkerBis = new();
     private readonly List<Urteil> _letzteUrteile = new();
     private readonly List<string> _letzterGerichtstag = new();
     private readonly List<Konto> _beobachtet = new();
@@ -149,6 +179,11 @@ public sealed class Stadtgericht
 
     public int? PrangerBis(Konto konto) => Schande(konto) > 0 ? _prangerBis[konto] : null;
 
+    /// <summary>Sitzt das Oberhaupt im Kerker? Dann sind persönliche Befehle gesperrt (siehe Stadtwirtschaft.Ausfuehren).</summary>
+    public bool ImKerker(Konto konto) => _kerkerBis.TryGetValue(konto, out var bis) && _w.Jahr <= bis;
+
+    public int? KerkerBis(Konto konto) => ImKerker(konto) ? _kerkerBis[konto] : null;
+
     public double Beweiskraft(Konto anklaeger, Konto beklagter) => Beweise(anklaeger, beklagter).Count() * Daten.BeweiskraftJeBeweis;
 
     /// <summary>
@@ -168,6 +203,14 @@ public sealed class Stadtgericht
         var d = Daten;
         return Math.Clamp(d.GunstFaktor * (_w.Rat.Gunst(r, anklaeger) - _w.Rat.Gunst(r, beklagter)), -d.GunstHoechstwirkung, d.GunstHoechstwirkung);
     }
+
+    /// <summary>Welche Buße bei einem Schuldspruch fällig würde (nach den Beweisen, die der Ankläger heute hat).</summary>
+    public double DrohendeBusse(Konto anklaeger, Konto beklagter) =>
+        Math.Max(Daten.Mindestbusse, Daten.BusseFaktor * Beweise(anklaeger, beklagter).Sum(b => b.Betrag));
+
+    /// <summary>Führten die Beweise in den Kerker?</summary>
+    public bool DrohtKerker(Konto anklaeger, Konto beklagter) =>
+        Daten.KerkerJahre > 0 && Beweise(anklaeger, beklagter).Any(b => Daten.KerkerFuer.Contains(b.Art));
 
     /// <summary>Wie das Urteil heute ausfiele – dieselbe Rechnung wie am Gerichtstag.</summary>
     public IReadOnlyList<Stimme> Prognose(Verfahren v) => v.Richter
@@ -209,11 +252,23 @@ public sealed class Stadtgericht
     // ═════════════════════════════════════════════════════════════════════════
 
     /// <summary>Eine Tat hinterlässt eine Spur (aufgerufen z. B. vom Stadtrat beim Geschenk).</summary>
-    internal void TatMelden(Konto taeter, Vergehen art, string betroffener, double betrag)
+    internal Spur? TatMelden(Konto taeter, Vergehen art, string betroffener, double betrag)
     {
-        if (!IstAktiv) return;
-        _spuren.Add(new Spur(_naechsteSpur++, taeter, art, betroffener, betrag, _w.Jahr));
+        if (!IstAktiv) return null;
+        var spur = new Spur(_naechsteSpur++, taeter, art, betroffener, betrag, _w.Jahr);
+        _spuren.Add(spur);
+        return spur;
     }
+
+    /// <summary>Ein Zeuge (oder ein Erpresserbrief): <paramref name="inhaber"/> hat sofort einen Beweis für diese Spur.</summary>
+    internal void BeweisGeben(Konto inhaber, Spur spur)
+    {
+        if (inhaber != spur.Taeter) _beweise.Add((inhaber, spur.Nummer));
+    }
+
+    /// <summary>Ein Erpresser hält Wort: Seine Beweise gegen das Opfer verbrennen.</summary>
+    internal void BeweiseVerbrennen(Konto inhaber, Konto gegen) =>
+        _beweise.RemoveWhere(b => b.Inhaber == inhaber && _spuren.Any(s => s.Nummer == b.Spur && s.Taeter == gegen));
 
     internal Befehlsergebnis SpitzelAnsetzen(Konto auftraggeber, Konto ziel)
     {
@@ -247,7 +302,8 @@ public sealed class Stadtgericht
         richter.AddRange(SchoeffenAuslosen(vorsitz).Select(r => new Richter("Schöffe", r, null)));
         var v = new Verfahren(anklaeger, beklagter, _w.Jahr, richter);
         _verfahren.Add(v);
-        _w.Melden($"{anklaeger.Inhaber} klagt {beklagter.Inhaber} wegen Bestechung an ({beweise} {(beweise == 1 ? "Beweis" : "Beweise")}). " +
+        _w.Melden($"{anklaeger.Inhaber} klagt {beklagter.Inhaber} wegen {VergehenTexte.Aufzaehlung(Beweise(anklaeger, beklagter).Select(b => b.Art))} an " +
+                  $"({beweise} {(beweise == 1 ? "Beweis" : "Beweise")}). " +
                   $"Es richten {string.Join(", ", richter.Select(r => r.Name))}. Gerichtstag ist am Jahresende.");
         return Befehlsergebnis.Ok($"Anklage gegen {beklagter.Inhaber} erhoben. Schöffen: {string.Join(" und ", richter.Skip(1).Select(r => r.Name))}.");
     }
@@ -310,11 +366,16 @@ public sealed class Stadtgericht
                     _prangerBis[v.Beklagter] = jahr + d.PrangerJahre;
                     folgen.Add($"{d.PrangerJahre} Jahre am Pranger");
                 }
+                if (d.KerkerJahre > 0 && beweise.Any(b => d.KerkerFuer.Contains(b.Art)))
+                {
+                    _kerkerBis[v.Beklagter] = jahr + d.KerkerJahre;
+                    folgen.Add($"{d.KerkerJahre} {(d.KerkerJahre == 1 ? "Jahr" : "Jahre")} Kerker");
+                }
                 // Die bestochenen Ratsherren rücken öffentlich ab.
                 foreach (var b in beweise.Where(b => b.Art == Vergehen.Bestechung))
                     if (_w.Rat.RatsherrNamens(b.Betroffener) is { } r)
                         _w.Rat.GunstEntziehen(r, v.Beklagter);
-                text = $"Gerichtstag {jahr}: {v.Beklagter.Inhaber} ist der Bestechung SCHULDIG ({zaehlung}) – {string.Join(", ", folgen)}.";
+                text = $"Gerichtstag {jahr}: {v.Beklagter.Inhaber} ist {VergehenTexte.Aufzaehlung(beweise.Select(b => b.Art))} SCHULDIG ({zaehlung}) – {string.Join(", ", folgen)}.";
             }
             else
             {
@@ -355,6 +416,8 @@ public sealed class Stadtgericht
         SpurenEntfernen(s => s.Jahr <= jahr + 1 - d.VerjaehrungJahre);
         foreach (var k in _prangerBis.Where(p => p.Value <= jahr).Select(p => p.Key).ToList())
             _prangerBis.Remove(k);
+        foreach (var k in _kerkerBis.Where(p => p.Value <= jahr).Select(p => p.Key).ToList())
+            _kerkerBis.Remove(k);
     }
 
     private void Eintrag(string text)
@@ -392,6 +455,7 @@ public sealed class Stadtgericht
             Richter = v.Richter.Select(r => new RichterStand { Rolle = r.Rolle, Ratsherr = r.Ratsherr?.Name, Konto = r.Konto is null ? null : nr(r.Konto) }).ToList(),
         }).ToList(),
         PrangerBis = _prangerBis.OrderBy(p => nr(p.Key)).ToDictionary(p => nr(p.Key).ToString(), p => p.Value),
+        KerkerBis = _kerkerBis.OrderBy(p => nr(p.Key)).ToDictionary(p => nr(p.Key).ToString(), p => p.Value),
         LetzterGerichtstag = new(_letzterGerichtstag),
         Beobachtet = _beobachtet.Select(nr).ToList(),
         LetzteUrteile = _letzteUrteile.Select(u => new UrteilStand
@@ -415,6 +479,8 @@ public sealed class Stadtgericht
             v.Richter.Select(r => new Richter(r.Rolle, r.Ratsherr is { } n ? _w.Rat.RatsherrNamens(n) : null, r.Konto is int k ? konten[k] : null)).ToList())));
         _prangerBis.Clear();
         foreach (var (nummer, bis) in s.PrangerBis) _prangerBis[konten[int.Parse(nummer)]] = bis;
+        _kerkerBis.Clear();
+        foreach (var (nummer, bis) in s.KerkerBis) _kerkerBis[konten[int.Parse(nummer)]] = bis;
         _letzterGerichtstag.Clear();
         _letzterGerichtstag.AddRange(s.LetzterGerichtstag);
         _beobachtet.Clear();

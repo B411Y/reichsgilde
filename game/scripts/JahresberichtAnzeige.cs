@@ -96,6 +96,8 @@ public partial class JahresberichtAnzeige : PanelContainer
             if (bilanz.Amtseinkommen > 0) nebenbei.Add($"Amtseinkommen +{Zahlenformat.Ganz(bilanz.Amtseinkommen)}");
             if (bilanz.Geschenke > 0) nebenbei.Add($"Geschenke an Ratsherren {Zahlenformat.Ganz(bilanz.Geschenke)}");
             if (bilanz.Familie > 0) nebenbei.Add($"Haushalt, Brautwerbung und Hochzeit {Zahlenformat.Ganz(bilanz.Familie)}");
+            if (Math.Abs(bilanz.Gaunerei) > 0.5)
+                nebenbei.Add(bilanz.Gaunerei > 0 ? $"Hinterzimmer {Zahlenformat.Ganz(bilanz.Gaunerei)}" : $"Hinterzimmer +{Zahlenformat.Ganz(-bilanz.Gaunerei)}");
             if (Math.Abs(bilanz.Gericht) > 0.5)
                 nebenbei.Add(bilanz.Gericht > 0 ? $"Gericht und Spitzel {Zahlenformat.Ganz(bilanz.Gericht)}" : $"Entschädigung vom Gericht +{Zahlenformat.Ganz(-bilanz.Gericht)}");
             if (bilanz.Raubwert > 0) nebenbei.Add($"von Banditen geraubt: Waren für {Zahlenformat.Ganz(bilanz.Raubwert)}");
@@ -132,6 +134,15 @@ public partial class JahresberichtAnzeige : PanelContainer
             Text("Familie", 16);
             foreach (var (eigenes, eintrag) in familie.Take(6))
                 Text("• " + eintrag, 13, eigenes ? null : Grau);
+        }
+
+        // ── Nachtgeschehen: was die Stadt weiß, und was die eigenen Banden berichten ──
+        if (w.Gauner.IstAktiv && w.Gauner.NachrichtenFuer(spieler, true).ToList() is { Count: > 0 } nacht)
+        {
+            _inhalt.AddChild(new HSeparator());
+            Text("Nachtgeschehen", 16);
+            foreach (var eintrag in nacht.TakeLast(6))
+                Text("• " + eintrag, 13, eintrag.Contains(spieler.Inhaber) || w.Betriebe.Any(b => b.Konto == spieler && eintrag.Contains(b.Name)) ? null : Grau);
         }
 
         // ── Gericht ──

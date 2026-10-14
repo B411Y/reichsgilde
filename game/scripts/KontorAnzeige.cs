@@ -31,6 +31,9 @@ public partial class KontorAnzeige : PanelContainer
 
     /// <summary>Der Spieler möchte die Familientafel öffnen.</summary>
     public event Action? FamilieGewuenscht;
+
+    /// <summary>Der Spieler möchte ins Hinterzimmer.</summary>
+    public event Action? HinterzimmerGewuenscht;
     private GridContainer _preise = null!;
     private readonly Dictionary<string, Label> _preisLabels = new();
 
@@ -54,6 +57,10 @@ public partial class KontorAnzeige : PanelContainer
         var familienKnopf = new Button { Text = "Familie", FocusMode = FocusModeEnum.None, TooltipText = "Familie, Brautschau und Testament" };
         familienKnopf.Pressed += () => FamilieGewuenscht?.Invoke();
         familie.AddChild(familienKnopf);
+        var hinterzimmer = new Button { Text = "Hinterzimmer", FocusMode = FocusModeEnum.None, TooltipText = "Banden, Erpresserbriefe und Wächter" };
+        hinterzimmer.Pressed += () => HinterzimmerGewuenscht?.Invoke();
+        familie.AddChild(hinterzimmer);
+        familie.MoveChild(hinterzimmer, 1);
         _familienZeile = NeuesLabel(familie, 14);
         // Je Betrieb zwei Zeilen und ein ⚒-Knopf – neu gebaut, sobald ein Betrieb dazukommt.
         _betriebsliste = new VBoxContainer();
@@ -151,6 +158,7 @@ public partial class KontorAnzeige : PanelContainer
         _vermoegen.Text = $"{Zahlenformat.Ganz(_spieler.Vermoegen)} {waehrung}";
         _vermoegen.AddThemeColorOverride("font_color", _spieler.Vermoegen < 0 ? new Color(0.95f, 0.45f, 0.4f) : new Color(1, 1, 1));
         _standZeile.Text = _spieler.IstBankrott ? "Bankrott" : _spieler.IstErloschen ? "Das Haus ist erloschen"
+            : w.Justiz.IstAktiv && w.Justiz.KerkerBis(_spieler) is int kerker ? $"Das Oberhaupt sitzt bis Ende {kerker} im Kerker"
             : w.NaechsterStand(_spieler) is not { } neu ? "Höchster Stand erreicht"
             : _spieler.Vermoegen >= neu.Schwelle ? $"Aufstieg zum {neu.Name} im Rathaus möglich!"
             : $"Nächster Stand: {neu.Name} ab {Zahlenformat.Ganz(neu.Schwelle)} {waehrung} (noch {Zahlenformat.Ganz(neu.Schwelle - Math.Max(0, _spieler.Vermoegen))})";

@@ -1,5 +1,5 @@
 {
-  "version": 7,
+  "version": 8,
   "allgemein": {
     "waehrung": "Gulden",
     "arbeitsminuten": 720,
@@ -557,6 +557,20 @@
     "prangerJahre": 3,
     "prangerAnsehen": 10,
     "entschaedigung": 200,
-    "amtsverlust": true
+    "amtsverlust": true,
+    "kerkerJahre": 1,
+    "kerkerFuer": ["Raub", "Erpressung"]
+  },
+  "gauner": {
+    "hehlerAnteil": 0.5,
+    "zeugenChance": 0.25,
+    "zeugenChanceWaechter": 0.6,
+    "zeugenFaktorMisserfolg": 2,
+    "waechterKosten": 150,
+    "waechterSchutz": 0.5,
+    "diebstahl": { "kosten": 150, "chance": 0.7, "hoechstensStueck": 12 },
+    "sabotage": { "kosten": 250, "chance": 0.6, "stillstandMinuten": 360, "reparatur": 150 },
+    "ueberfall": { "kosten": 300, "staerke": 0.8, "gueltigMinuten": 1440 },
+    "erpressungMindestBeweise": 3
   }
 }

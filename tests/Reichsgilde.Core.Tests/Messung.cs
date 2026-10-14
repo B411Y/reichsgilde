@@ -8,9 +8,12 @@ using Reichsgilde.Core.Wirtschaft;
 /// was in den Familien geschieht. Der Spieler bleibt dabei passiv (ledig, nur die Startgießerei).
 /// Aufruf:  dotnet run --project tests/Reichsgilde.Core.Tests -- messen 40 20 Zwerg
 ///          … -- messen 30 20 Mensch gericht   (der Spieler setzt jedes Jahr einen Spitzel auf den Rivalen und klagt, sobald es reicht)
+///          … -- messen 30 20 Mensch - Wagemutig   (fünftes Argument: Charakter des Rivalen)
 /// </summary>
 static class Messung
 {
+    static Stadtwirtschaft? w0(Simulation sim) => sim.Wirtschaft;
+
     public static int Dynastie(string[] args)
     {
         var daten = Wirtschaftsdaten.AusDatei(Datenpfad.Wirtschaft());
@@ -18,6 +21,9 @@ static class Messung
         var startwerte = args.Length > 1 ? int.Parse(args[1]) : 10;
         var volk = args.Length > 2 ? Enum.Parse<Volk>(args[2]) : Volk.Mensch;
         var gericht = args.Length > 3 && args[3] == "gericht";
+        var charakter = args.Length > 4 ? Enum.Parse<KiCharakter>(args[4]) : KiCharakter.Ausgewogen;
+        int gaunerstuecke = 0, kerker = 0;
+        double gaunerBilanz = 0, schadenSpieler = 0;
         int urteileSchuldig = 0, urteileFrei = 0, amtVerloren = 0;
         double bestechung = 0;
 
@@ -27,7 +33,8 @@ static class Messung
         {
             var (sim, spieler) = Partieaufbau.Erstellen(
                 Partieeinstellungen.Standard with { Zufallsstartwert = s * 101, Siegbedingung = Siegbedingung.Endlos },
-                daten, new NeuePartie(Volk: volk));
+                daten, new NeuePartie(Volk: volk, Rivale: charakter));
+            if (w0(sim) is { } w1) w1.Meldung += m => { if (m.Contains("heuert im Hinterzimmer") || m.Contains("Erpresserbrief:")) gaunerstuecke++; };
             var w = sim.Wirtschaft!;
             var rivale = w.Konten.First(k => k != spieler);
             int? heirat = null, bm = null;
@@ -39,6 +46,8 @@ static class Messung
                         w.Ausfuehren(spieler, new Anklagen(rivale.Inhaber));
                     if (spieler.Vermoegen > 1500)
                         w.Ausfuehren(spieler, new SpitzelAnsetzen(rivale.Inhaber));
+                    foreach (var eigener in w.Betriebe.Where(x => x.Konto == spieler && !x.Waechter && w.Gauner.LetzterAngriff(x.Name) is not null).ToList())
+                        w.Ausfuehren(spieler, new WaechterSetzen(eigener.Name, true));
                 }
                 var hatteAmt = w.Rat.AmtVon(rivale) is not null;
                 var jahr = sim.Zeit.Jahr;
@@ -47,6 +56,9 @@ static class Messung
                 bm ??= w.Rat.AmtNamens("Bürgermeister")?.Konto == rivale ? j : null;
                 kostenSpieler += spieler.Vorjahr?.Familie ?? 0;
                 bestechung += rivale.Vorjahr?.Geschenke ?? 0;
+                gaunerBilanz -= rivale.Vorjahr?.Gaunerei ?? 0;
+                schadenSpieler += (spieler.Vorjahr?.Raubwert ?? 0) + (spieler.Vorjahr?.Schaden ?? 0);
+                if (w.Justiz.IstAktiv && w.Justiz.ImKerker(rivale)) kerker++;
                 foreach (var u in w.Justiz.LetzteUrteile.Where(u => u.Beklagter == rivale))
                 {
                     if (u.Schuldig) urteileSchuldig++; else urteileFrei++;
@@ -73,6 +85,8 @@ static class Messung
         Console.WriteLine($"  Bürgermeister {buergermeister}/{startwerte}, im Schnitt ab Jahr {(buergermeister > 0 ? bmJahre / buergermeister : 0):N1}");
         Console.WriteLine($"  Vermögen Ø {Zahlenformat.Ganz(vermoegen / startwerte)} Gulden; Familienkosten des Spielers Ø {Zahlenformat.Ganz(kostenSpieler / startwerte / jahre)} Gulden im Jahr");
         Console.WriteLine($"  Geschenke an Ratsherren (Bestechung) Ø {Zahlenformat.Ganz(bestechung / startwerte)} Gulden über {jahre} Jahre");
+        Console.WriteLine($"  Gaunerstücke der KI ({charakter}): {gaunerstuecke} in {startwerte} Partien, Bilanz Hinterzimmer {Zahlenformat.Ganz(gaunerBilanz / startwerte)} je Partie; " +
+                          $"Raub und Schäden beim Spieler Ø {Zahlenformat.Ganz(schadenSpieler / startwerte)}; Kerkerjahre der KI {kerker}");
         if (gericht)
             Console.WriteLine($"  vor Gericht: {urteileSchuldig} Schuldsprüche, {urteileFrei} Freisprüche, davon {amtVerloren} mit Amtsverlust (Summe über alle Startwerte)");
         return 0;
