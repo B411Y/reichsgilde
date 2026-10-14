@@ -119,7 +119,8 @@ public sealed class Stadtrat
         var g = _daten.Gunst;
         if (kandidat is null) // der bisherige Ratsherr im Amt
             return g.AnsehenRatsherr + amt.Stufe * g.AnsehenRatsherrJeStufe + (amt.Ratsherr is not null ? g.Amtsbonus : 0);
-        return Ansehen(kandidat) + Gunst(waehler, kandidat) + (amt.Konto == kandidat ? g.Amtsbonus : 0);
+        return Ansehen(kandidat) + Gunst(waehler, kandidat) + _w.Familien.Volksnaehe(waehler.Daten.Volk, kandidat)
+               + (amt.Konto == kandidat ? g.Amtsbonus : 0);
     }
 
     /// <summary>Würde dieser Ratsherr dem Statut zustimmen, das dieses Haus beantragt?</summary>
@@ -239,6 +240,14 @@ public sealed class Stadtrat
         if (Antrag?.Antragsteller == konto) Antrag = null;
     }
 
+    /// <summary>Erbfall: Das neue Oberhaupt beginnt im Rat von vorn – ohne Amt, ohne Bewerbung, ohne Gunst.</summary>
+    internal void Neuanfang(Konto konto)
+    {
+        Ausscheiden(konto);
+        foreach (var schluessel in _gunst.Keys.Where(s => s.Item2 == konto).ToList())
+            _gunst.Remove(schluessel);
+    }
+
     // ═════════════════════════════════════════════════════════════════════════
     //  Ratssitzung am Jahresende
     // ═════════════════════════════════════════════════════════════════════════
@@ -285,7 +294,7 @@ public sealed class Stadtrat
     private void Waehlen(Amt amt, Zufallsquelle zufall, int jahr)
     {
         var bewerber = _bewerbungen.Where(b => b.Value == amt.Name).Select(b => b.Key)
-            .Where(k => !k.IstBankrott && k.Stand >= _w.Daten.StandStufe(amt.Daten.MindestStand))
+            .Where(k => k.IstAktiv && k.Stand >= _w.Daten.StandStufe(amt.Daten.MindestStand))
             .OrderBy(k => k.Inhaber, StringComparer.Ordinal)
             .ToList();
         if (bewerber.Count == 0) return;
@@ -360,7 +369,7 @@ public sealed class Stadtrat
             Ratsherr = a.Ratsherr?.Name,
             Konto = a.Konto is null ? null : kontoNummer(a.Konto),
         }),
-        Gunst = _gunst.Select(g => new GunstStand { Ratsherr = g.Key.Item1.Name, Konto = kontoNummer(g.Key.Item2), Wert = g.Value }).ToList(),
+        Gunst = _gunst.OrderBy(g => kontoNummer(g.Key.Item2)).ThenBy(g => g.Key.Item1.Name, StringComparer.Ordinal).Select(g => new GunstStand { Ratsherr = g.Key.Item1.Name, Konto = kontoNummer(g.Key.Item2), Wert = g.Value }).ToList(),
         Bewerbungen = _bewerbungen.ToDictionary(b => kontoNummer(b.Key).ToString(), b => b.Value),
         AntragKonto = Antrag is { } a1 ? kontoNummer(a1.Antragsteller) : null,
         AntragStatut = Antrag?.Statut,

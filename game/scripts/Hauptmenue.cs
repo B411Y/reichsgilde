@@ -1,5 +1,6 @@
 using Godot;
 using Reichsgilde.Core;
+using Reichsgilde.Core.Dynastie;
 using Reichsgilde.Core.Partie;
 using Reichsgilde.Core.Speichern;
 using Reichsgilde.Core.Wirtschaft;
@@ -28,6 +29,10 @@ public partial class Hauptmenue : Node
 
     // Felder des Dialogs „Neue Partie"
     private LineEdit _familie = null!;
+    private OptionButton _volk = null!;
+    private Label _volkHinweis = null!;
+    private OptionButton _geschlecht = null!;
+    private LineEdit _vorname = null!;
     private OptionButton _sieg = null!;
     private SpinBox _endjahr = null!;
     private SpinBox _zielvermoegen = null!;
@@ -110,6 +115,27 @@ public partial class Hauptmenue : Node
         _familie = new LineEdit { Text = "Familie Hammerschmid", CustomMinimumSize = new Vector2(280, 0) };
         Zeile(raster, "Name eures Hauses", _familie);
 
+        _volk = new OptionButton { FocusMode = Control.FocusModeEnum.None };
+        foreach (var volk in Spielbare)
+            _volk.AddItem(volk.Mehrzahl(), (int)volk);
+        _volk.ItemSelected += _ => VolkHinweisZeigen();
+        Zeile(raster, "Volk", _volk);
+        _volkHinweis = new Label { CustomMinimumSize = new Vector2(280, 0), AutowrapMode = TextServer.AutowrapMode.WordSmart };
+        _volkHinweis.AddThemeFontSizeOverride("font_size", 12);
+        _volkHinweis.AddThemeColorOverride("font_color", new Color(0.72f, 0.72f, 0.72f));
+        Zeile(raster, "", _volkHinweis);
+
+        var oberhaupt = new HBoxContainer();
+        oberhaupt.AddThemeConstantOverride("separation", 8);
+        _geschlecht = new OptionButton { FocusMode = Control.FocusModeEnum.None };
+        _geschlecht.AddItem("Patriarch", (int)Geschlecht.Mann);
+        _geschlecht.AddItem("Matriarchin", (int)Geschlecht.Frau);
+        oberhaupt.AddChild(_geschlecht);
+        _vorname = new LineEdit { PlaceholderText = "Vorname (zufällig)", SizeFlagsHorizontal = Control.SizeFlags.ExpandFill };
+        oberhaupt.AddChild(_vorname);
+        Zeile(raster, "Oberhaupt", oberhaupt);
+        VolkHinweisZeigen();
+
         _sieg = new OptionButton { FocusMode = Control.FocusModeEnum.None };
         foreach (var (text, wert) in new[] { ("Partie endet in einem Jahr", Siegbedingung.Endjahr), ("Zielvermögen erreichen", Siegbedingung.Zielvermoegen),
                                              ("Letzte Dynastie gewinnt", Siegbedingung.LetzteDynastie), ("Endlos spielen", Siegbedingung.Endlos) })
@@ -162,6 +188,17 @@ public partial class Hauptmenue : Node
         return tafel;
     }
 
+    private static readonly Volk[] Spielbare = { Volk.Mensch, Volk.Zwerg, Volk.Elb, Volk.Halbling };
+
+    /// <summary>Was die Wahl des Volkes für die Dynastie bedeutet (die Zahlen stehen in wirtschaft.json).</summary>
+    private void VolkHinweisZeigen() => _volkHinweis.Text = (Volk)_volk.GetSelectedId() switch
+    {
+        Volk.Zwerg => "Leben lange und bekommen selten Kinder, die erst mit 30 mündig sind. Hochzeiten mit Zwergen sind teuer. Haus Eisenbart sind Zwerge.",
+        Volk.Elb => "Leben sehr lange, bekommen aber nur selten Kinder, die erst mit 45 mündig sind. Ihr Haushalt ist teuer, doch sie werben geschickt.",
+        Volk.Halbling => "Bekommen schnell Kinder, leben aber etwas kürzer. Ihr Haushalt ist günstig.",
+        _ => "Bekommen schnell Kinder und leben durchschnittlich lang. Sie stellen die Mehrheit in Stadt und Rat.",
+    };
+
     /// <summary>Endjahr bzw. Zielvermögen nur zeigen, wenn die gewählte Siegbedingung sie braucht.</summary>
     private void SiegFelderZeigen()
     {
@@ -197,7 +234,9 @@ public partial class Hauptmenue : Node
         }
 
         Partiewahl.NeuePartieWaehlen(einstellungen,
-            new NeuePartie(_familie.Text, _startvermoegen.Value, (KiCharakter)_rivale.GetSelectedId()));
+            new NeuePartie(_familie.Text, _startvermoegen.Value, (KiCharakter)_rivale.GetSelectedId(),
+                (Volk)_volk.GetSelectedId(), (Geschlecht)_geschlecht.GetSelectedId(),
+                string.IsNullOrWhiteSpace(_vorname.Text) ? null : _vorname.Text.Trim()));
         SpielStarten();
     }
 

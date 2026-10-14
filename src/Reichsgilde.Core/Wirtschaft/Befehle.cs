@@ -37,6 +37,15 @@ public sealed record Schenken(string Ratsherr, double Betrag) : Befehl;
 /// <summary>Antrag im Rat, das Fron- und Sklavenstatut zu ändern (nur für Ratsmitglieder, einer pro Jahr).</summary>
 public sealed record StatutBeantragen(Fronstatut Statut) : Befehl;
 
+/// <summary>Ein Geschenk an einen Heiratskandidaten (Nummer der Person) – bringt Zuneigung, höchstens bis zur Jahresgrenze.</summary>
+public sealed record Werben(int Kandidat, double Betrag) : Befehl;
+
+/// <summary>Heiraten: Zuneigung und Ansehen müssen reichen, die Hochzeit wird sofort bezahlt.</summary>
+public sealed record Heiraten(int Kandidat) : Befehl;
+
+/// <summary>Testament: Dieses Kind (Nummer der Person) soll das Haus erben.</summary>
+public sealed record ErbenBestimmen(int Person) : Befehl;
+
 /// <summary>Die Gießerei stellt ab sofort diese Ware her.</summary>
 public sealed record ProduktWaehlen(string Betrieb, string Ware) : BetriebsBefehl(Betrieb);
 

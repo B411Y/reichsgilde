@@ -1,3 +1,4 @@
+using Reichsgilde.Core.Dynastie;
 using Reichsgilde.Core.Politik;
 using Reichsgilde.Core.Speichern;
 using Reichsgilde.Core.Wirtschaft;
@@ -44,6 +45,7 @@ public sealed record KiProfil(
 ///                       • Mine: Aufteilung der Förderung zwischen Eisen und Silber
 ///                       • freie Arbeitsplätze mit der ertragreichsten erlaubten Arbeitskraft besetzen
 ///                       • Eskorte je Karren nach erwartetem Verlust wählen
+///   einmal am Tag       • Politik im Rat, Brautschau für ein lediges Oberhaupt
 ///   zum Jahresende      • Karren kaufen, wenn ein Betrieb zu oft stillstand
 ///
 /// Jede Entscheidung wird als Meldung ausgegeben, damit der Spieler sie nachvollziehen kann.
@@ -100,12 +102,15 @@ public sealed class KiRivale
     /// <summary>Stündliche Überlegungen.</summary>
     internal void Stunde()
     {
-        if (Konto.IstBankrott) return;
+        if (!Konto.IstAktiv) return;
         _stundenImJahr++;
         StandPruefen();
         Expandieren();
         if (_stundenImJahr == Politikstunde)
+        {
+            Familienpolitik();
             Politik();
+        }
         foreach (var betrieb in Betriebe.ToList())
         {
             _stundenSeitWechsel[betrieb] = _stundenSeitWechsel.GetValueOrDefault(betrieb, int.MaxValue / 2) + 1;
@@ -289,6 +294,58 @@ public sealed class KiRivale
         var l = wahl.Liegenschaft;
         Befehlen(new LiegenschaftErwerben(l.Name),
             $"{(l.IstPacht ? "pachtet" : "kauft")} {l.Name} (erwarteter Gewinn ≈ {Zahlenformat.Ganz(wahl.Gewinn)} {daten.Allgemein.Waehrung} im Jahr).");
+    }
+
+    // ═════════════════════════════════════════════════════════════════════════
+    //  Familie
+    // ═════════════════════════════════════════════════════════════════════════
+
+    /// <summary>Unter so vielen erwarteten Kindern lohnt eine Ehe für die KI nicht.</summary>
+    private const double MindestKinder = 0.5;
+
+    /// <summary>Was die Ehe mit diesem Kandidaten noch kostet: Hochzeit plus die Geschenke, die bis zur Schwelle fehlen.</summary>
+    public double Heiratskosten(Kandidat k)
+    {
+        var buch = _w.Familien;
+        var fehlt = Math.Max(0, buch.Heiratsschwelle(k) - buch.Bereitschaft(Konto, k));
+        return buch.Hochzeitskosten(k) + fehlt * buch.GuldenJeZuneigung(Konto);
+    }
+
+    /// <summary>
+    /// Einmal am Tag: Ein lediges Oberhaupt sucht eine Ehe, die Kinder verspricht.
+    /// Jeder erlaubte Kandidat wird bewertet mit „erwartete Kinder je Gulden" – dieselbe Rechnung,
+    /// die der Spieler in der Familientafel sieht. Geworben wird nur so viel, wie dieses Jahr wirkt,
+    /// und nur, wenn danach Hochzeit und Reserve bezahlbar bleiben.
+    /// </summary>
+    private void Familienpolitik()
+    {
+        var buch = _w.Familien;
+        if (buch.Von(Konto) is not { } f || f.Ehepartner is not null) return;
+
+        var wahl = buch.Kandidaten
+            .Where(k => buch.WerbenVerboten(Konto, k) is null)
+            .Select(k => (Kandidat: k, Kinder: buch.ErwarteteKinder(f, k.Person), Kosten: Heiratskosten(k)))
+            .Where(x => x.Kinder >= MindestKinder)
+            .OrderByDescending(x => x.Kinder / Math.Max(1, x.Kosten))
+            .ThenBy(x => x.Kandidat.Person.Nummer)
+            .FirstOrDefault();
+        if (wahl.Kandidat is not { } k) return;
+
+        var p = k.Person;
+        var hochzeit = buch.Hochzeitskosten(k);
+        var fehlt = buch.Heiratsschwelle(k) - buch.Bereitschaft(Konto, k);
+        var wirkung = Math.Min(fehlt, buch.ZuneigungRest(Konto, k));
+        if (fehlt > 0 && wirkung > 0.001)
+        {
+            var gulden = Math.Ceiling(wirkung * buch.GuldenJeZuneigung(Konto) / 10) * 10;
+            if (Konto.Vermoegen - gulden - hochzeit < Profil.Reserve) return;
+            Befehlen(new Werben(p.Nummer, gulden),
+                $"wirbt um {p.Name} ({p.Volk.Einzahl()}, {p.Alter(buch.Jahr)} Jahre) mit Geschenken für {Zahlenformat.Ganz(gulden)} {_w.Daten.Allgemein.Waehrung}.");
+        }
+
+        if (buch.Bereitschaft(Konto, k) >= buch.Heiratsschwelle(k) && Konto.Vermoegen - hochzeit >= Profil.Reserve / 2)
+            Befehlen(new Heiraten(p.Nummer),
+                $"{f.Oberhaupt.Vorname} heiratet {p.Name} (erwartet ≈ {Zahlenformat.Kommazahl(wahl.Kinder)} Kinder).");
     }
 
     // ═════════════════════════════════════════════════════════════════════════

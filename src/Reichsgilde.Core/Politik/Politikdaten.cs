@@ -61,6 +61,9 @@ public sealed class GunstDaten
     public double Amtsbonus { get; init; } = 5;
     public double AnsehenRatsherr { get; init; } = 10;
     public double AnsehenRatsherrJeStufe { get; init; } = 6;
+
+    /// <summary>Ein Ratsherr gibt einem Haus mit einem Oberhaupt seines eigenen Volkes so viele Punkte mehr.</summary>
+    public double Volksnaehe { get; init; } = 5;
 }
 
 /// <summary>Alle Zahlen zur Stadtpolitik (Abschnitt "politik" in wirtschaft.json).</summary>

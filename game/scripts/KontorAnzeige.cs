@@ -19,6 +19,7 @@ public partial class KontorAnzeige : PanelContainer
     private Label _vermoegen = null!;
     private Label _standZeile = null!;
     private Label _statutZeile = null!;
+    private Label _familienZeile = null!;
     private VBoxContainer _betriebsliste = null!;
     private readonly List<(Betrieb Betrieb, Label Kopf, Label Zustand)> _betriebsZeilen = new();
     private Label _diesesJahr = null!;
@@ -27,6 +28,9 @@ public partial class KontorAnzeige : PanelContainer
 
     /// <summary>Der Spieler möchte einen seiner Betriebe verwalten (⚒-Knopf im Kontor).</summary>
     public event Action<Betrieb>? VerwaltenGewuenscht;
+
+    /// <summary>Der Spieler möchte die Familientafel öffnen.</summary>
+    public event Action? FamilieGewuenscht;
     private GridContainer _preise = null!;
     private readonly Dictionary<string, Label> _preisLabels = new();
 
@@ -45,6 +49,12 @@ public partial class KontorAnzeige : PanelContainer
         _vermoegen = NeuesLabel(spalte, 26);
         _standZeile = NeuesLabel(spalte, 14, new Color(0.95f, 0.82f, 0.45f));
         _statutZeile = NeuesLabel(spalte, 13, new Color(0.75f, 0.75f, 0.75f));
+        var familie = new HBoxContainer();
+        spalte.AddChild(familie);
+        var familienKnopf = new Button { Text = "Familie", FocusMode = FocusModeEnum.None, TooltipText = "Familie, Brautschau und Testament" };
+        familienKnopf.Pressed += () => FamilieGewuenscht?.Invoke();
+        familie.AddChild(familienKnopf);
+        _familienZeile = NeuesLabel(familie, 14);
         // Je Betrieb zwei Zeilen und ein ⚒-Knopf – neu gebaut, sobald ein Betrieb dazukommt.
         _betriebsliste = new VBoxContainer();
         _betriebsliste.AddThemeConstantOverride("separation", 2);
@@ -89,6 +99,20 @@ public partial class KontorAnzeige : PanelContainer
         }
     }
 
+    /// <summary>„Jakob (31, rüstig) · verheiratet · 2 Kinder · Erbe: Agnes".</summary>
+    private string FamilienText(Stadtwirtschaft w)
+    {
+        var buch = w.Familien;
+        if (_spieler is null || buch.Von(_spieler) is not { } f) return "";
+        var o = f.Oberhaupt;
+        var kinder = f.Kinder.Count(k => k.Lebt);
+        var erbe = buch.Erbe(f);
+        return $"{o.Vorname} ({o.Alter(buch.Jahr)}, {buch.Verfassung(o)})"
+               + (f.Ehepartner is { } e ? $" · verheiratet mit {e.Vorname}" : " · ledig")
+               + (kinder > 0 ? $" · {kinder} {(kinder == 1 ? "Kind" : "Kinder")}" : "")
+               + (erbe is null ? " · ohne Erben!" : erbe == f.Ehepartner ? "" : $" · Erbe: {erbe.Vorname}");
+    }
+
     /// <summary>Der letzte Zug der KI, ohne den Namen davor (der steht schon in der Zeile).</summary>
     private string RivalenZug(Konto rivale)
     {
@@ -126,10 +150,12 @@ public partial class KontorAnzeige : PanelContainer
                       + (w.Rat.AmtVon(_spieler) is { } amt ? $" · {amt.Name}" : "");
         _vermoegen.Text = $"{Zahlenformat.Ganz(_spieler.Vermoegen)} {waehrung}";
         _vermoegen.AddThemeColorOverride("font_color", _spieler.Vermoegen < 0 ? new Color(0.95f, 0.45f, 0.4f) : new Color(1, 1, 1));
-        _standZeile.Text = _spieler.IstBankrott ? "Bankrott"
+        _standZeile.Text = _spieler.IstBankrott ? "Bankrott" : _spieler.IstErloschen ? "Das Haus ist erloschen"
             : w.NaechsterStand(_spieler) is not { } neu ? "Höchster Stand erreicht"
             : _spieler.Vermoegen >= neu.Schwelle ? $"Aufstieg zum {neu.Name} im Rathaus möglich!"
             : $"Nächster Stand: {neu.Name} ab {Zahlenformat.Ganz(neu.Schwelle)} {waehrung} (noch {Zahlenformat.Ganz(neu.Schwelle - Math.Max(0, _spieler.Vermoegen))})";
+
+        _familienZeile.Text = FamilienText(w);
 
         _statutZeile.Text = $"Statut {w.Statut.Kuerzel()} – {w.Statut.Name()}"
                           + (w.IstArbeitszeit(_simulation.Zeit) ? " · es wird gearbeitet" : " · Feierabend");

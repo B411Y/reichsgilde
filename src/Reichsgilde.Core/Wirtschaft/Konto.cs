@@ -32,6 +32,9 @@ public sealed class Jahresbilanz
     /// <summary>Geschenke an Ratsherren (nicht Teil des Betriebsgewinns).</summary>
     public double Geschenke { get; internal set; }
 
+    /// <summary>Haushalt, Unterhalt der Kinder, Brautgeschenke und Hochzeiten (nicht Teil des Betriebsgewinns).</summary>
+    public double Familie { get; internal set; }
+
     /// <summary>Hergestellte Stück je Ware.</summary>
     public Dictionary<string, int> Hergestellt { get; } = new();
 
@@ -65,6 +68,12 @@ public sealed class Konto
     /// <summary>Bankrott: Das Konto ist aus dem Spiel, seine Betriebe stehen still.</summary>
     public bool IstBankrott { get; internal set; }
 
+    /// <summary>Das Haus ist ausgestorben: Das Oberhaupt starb ohne Erben.</summary>
+    public bool IstErloschen { get; internal set; }
+
+    /// <summary>Noch im Spiel: weder bankrott noch erloschen.</summary>
+    public bool IstAktiv => !IstBankrott && !IstErloschen;
+
     public Konto(string inhaber, double startvermoegen, int startjahr)
     {
         Inhaber = inhaber;
@@ -83,6 +92,7 @@ public sealed class Konto
     internal void Standesgebuehr(double betrag) { Vermoegen -= betrag; Laufend.Standesgebuehren += betrag; }
     internal void Amtseinkommen(double betrag) { Vermoegen += betrag; Laufend.Amtseinkommen += betrag; }
     internal void Geschenk(double betrag) { Vermoegen -= betrag; Laufend.Geschenke += betrag; }
+    internal void Familienkosten(double betrag) { Vermoegen -= betrag; Laufend.Familie += betrag; }
     internal void Raub(double warenwert) => Laufend.Raubwert += warenwert;
 
     internal void Hergestellt(string ware, int stueck = 1) =>
@@ -92,7 +102,7 @@ public sealed class Konto
 
     internal KontoStand Sichern() => new()
     {
-        Inhaber = Inhaber, Vermoegen = Vermoegen, Stand = Stand, Schuldenjahre = Schuldenjahre, IstBankrott = IstBankrott,
+        Inhaber = Inhaber, Vermoegen = Vermoegen, Stand = Stand, Schuldenjahre = Schuldenjahre, IstBankrott = IstBankrott, IstErloschen = IstErloschen,
         Laufend = BilanzSichern(Laufend), Vorjahr = Vorjahr is null ? null : BilanzSichern(Vorjahr),
     };
 
@@ -100,7 +110,7 @@ public sealed class Konto
     {
         var konto = new Konto(s.Inhaber, s.Vermoegen, s.Laufend.Jahr)
         {
-            Stand = s.Stand, Schuldenjahre = s.Schuldenjahre, IstBankrott = s.IstBankrott,
+            Stand = s.Stand, Schuldenjahre = s.Schuldenjahre, IstBankrott = s.IstBankrott, IstErloschen = s.IstErloschen,
             Laufend = BilanzLaden(s.Laufend), Vorjahr = s.Vorjahr is null ? null : BilanzLaden(s.Vorjahr),
         };
         return konto;
@@ -111,7 +121,7 @@ public sealed class Konto
         Jahr = b.Jahr, Umsatz = b.Umsatz, Zutaten = b.Zutaten, Personal = b.Personal, Fixkosten = b.Fixkosten,
         Steuer = b.Steuer, Schaden = b.Schaden, Transport = b.Transport, Raubwert = b.Raubwert,
         Investitionen = b.Investitionen, Standesgebuehren = b.Standesgebuehren, Hergestellt = new(b.Hergestellt),
-        Amtseinkommen = b.Amtseinkommen, Geschenke = b.Geschenke,
+        Amtseinkommen = b.Amtseinkommen, Geschenke = b.Geschenke, Familie = b.Familie,
     };
 
     private static Jahresbilanz BilanzLaden(BilanzStand s)
@@ -121,7 +131,7 @@ public sealed class Konto
             Jahr = s.Jahr, Umsatz = s.Umsatz, Zutaten = s.Zutaten, Personal = s.Personal, Fixkosten = s.Fixkosten,
             Steuer = s.Steuer, Schaden = s.Schaden, Transport = s.Transport, Raubwert = s.Raubwert,
             Investitionen = s.Investitionen, Standesgebuehren = s.Standesgebuehren,
-            Amtseinkommen = s.Amtseinkommen, Geschenke = s.Geschenke,
+            Amtseinkommen = s.Amtseinkommen, Geschenke = s.Geschenke, Familie = s.Familie,
         };
         foreach (var (ware, stueck) in s.Hergestellt) b.Hergestellt[ware] = stueck;
         return b;

@@ -112,11 +112,11 @@ public sealed class Simulation
     }
 
     /// <summary>
-    /// Noch nicht bankrotte Konten. Solange es weniger als zwei Konten gibt (Tests, Sandbox),
+    /// Häuser, die noch im Spiel sind (weder bankrott noch erloschen). Solange es weniger als zwei Konten gibt (Tests, Sandbox),
     /// zählt der Platzhalter – sonst wäre „Letzte Dynastie gewinnt" sofort erfüllt.
     /// </summary>
     private int LebendeDynastien => Wirtschaft is { Konten.Count: >= 2 } w
-        ? w.Konten.Count(k => !k.IstBankrott)
+        ? w.Konten.Count(k => k.IstAktiv)
         : PlatzhalterLebendeDynastien;
 
     /// <summary>Für das Laden eines Spielstands: Ende der Partie übernehmen, ohne das Ereignis auszulösen.</summary>

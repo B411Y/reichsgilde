@@ -1,3 +1,4 @@
+using Reichsgilde.Core.Dynastie;
 using Reichsgilde.Core.Ki;
 using Reichsgilde.Core.Partie;
 using Reichsgilde.Core.Wirtschaft;
@@ -59,6 +60,68 @@ public sealed record WirtschaftStand
 
     /// <summary>Der Stadtrat (null in Spielständen von vor dem Rat – dann beginnt er wie bei Spielstart).</summary>
     public RatStand? Rat { get; init; }
+
+    /// <summary>Familien und Brautschau (null in Spielständen von vor der Dynastie – dann ohne Familien weiter).</summary>
+    public FamilienbuchStand? Familien { get; init; }
+}
+
+public sealed record FamilienbuchStand
+{
+    public int Jahr { get; init; }
+    public long ZufallWuerfe { get; init; }
+    public int NaechsteNummer { get; init; }
+    public List<PersonStand> Personen { get; init; } = new();
+    public List<FamilieStand> Familien { get; init; } = new();
+    public List<KandidatStand> Kandidaten { get; init; } = new();
+    public List<ZuneigungStand> Zuneigung { get; init; } = new();
+    public List<EreignisStand> DiesesJahr { get; init; } = new();
+    public List<EreignisStand> LetztesJahr { get; init; } = new();
+}
+
+public sealed record PersonStand
+{
+    public int Nummer { get; init; }
+    public string Vorname { get; init; } = "";
+    public string Familienname { get; init; } = "";
+    public string Geburtsname { get; init; } = "";
+    public Volk Volk { get; init; }
+    public Geschlecht Geschlecht { get; init; }
+    public int Geburtsjahr { get; init; }
+    public int? Todesjahr { get; init; }
+    public int? Vater { get; init; }
+    public int? Mutter { get; init; }
+}
+
+public sealed record FamilieStand
+{
+    public int Konto { get; init; }
+    public Volk Volk { get; init; }
+    public string Nachname { get; init; } = "";
+    public int Oberhaupt { get; init; }
+    public int? Ehepartner { get; init; }
+    public int? Testament { get; init; }
+    public List<int> Mitglieder { get; init; } = new();
+    public List<int> Ahnen { get; init; } = new();
+}
+
+public sealed record KandidatStand
+{
+    public int Person { get; init; }
+    public int Stand { get; init; }
+}
+
+public sealed record ZuneigungStand
+{
+    public int Konto { get; init; }
+    public int Kandidat { get; init; }
+    public double Wert { get; init; }
+    public double DiesesJahr { get; init; }
+}
+
+public sealed record EreignisStand
+{
+    public int Konto { get; init; }
+    public string Text { get; init; } = "";
 }
 
 public sealed record RatStand
@@ -94,6 +157,7 @@ public sealed record KontoStand
     public int Stand { get; init; }
     public int Schuldenjahre { get; init; }
     public bool IstBankrott { get; init; }
+    public bool IstErloschen { get; init; }
     public BilanzStand Laufend { get; init; } = new();
     public BilanzStand? Vorjahr { get; init; }
 }
@@ -113,6 +177,7 @@ public sealed record BilanzStand
     public double Standesgebuehren { get; init; }
     public double Amtseinkommen { get; init; }
     public double Geschenke { get; init; }
+    public double Familie { get; init; }
     public Dictionary<string, int> Hergestellt { get; init; } = new();
 }
 
