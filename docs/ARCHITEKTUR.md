@@ -190,6 +190,41 @@ Das Familienbuch (`src/Reichsgilde.Core/Dynastie/Familienbuch.cs`) gehört zur S
 
 **Lehrstück aus diesem Schritt (Zufall in Tests):** Ein Test mit einem einzigen Startwert prüft eher Glück als Regeln. Ein 20-jähriger Ehemann starb im Test gleich im ersten Jahr, bei 0,6 % Risiko. Eine Gegenprobe über 2000 Startwerte ergab genau die erwarteten 13 Todesfälle. Tests, die vom Zufall abhängen, laufen deshalb über mehrere Startwerte und prüfen eine Summe.
 
+## Stadtgericht
+
+Das Stadtgericht (`src/Reichsgilde.Core/Justiz/Stadtgericht.cs`) gehört zur Stadtwirtschaft (`Stadtwirtschaft.Justiz`). Alle Zahlen stehen in `wirtschaft.json` im Abschnitt `justiz`.
+
+- **Spur → Beweis → Anklage → Urteil.**
+  - Eine Tat (bisher nur Bestechung: jedes `Schenken` an einen Ratsherrn) erzeugt eine **Spur**, die zunächst niemand kennt.
+  - Ein Spitzel (`SpitzelAnsetzen`) deckt am Jahresende jede unbekannte Spur des beobachteten Hauses mit 50 % Chance auf. Aus der Spur wird ein **Beweis** im Beweisbuch des Auftraggebers.
+  - `Anklagen` verwendet alle Beweise gegen das Haus.
+- **Urteil:** Jeder der drei Richter (Vorsitz + zwei ausgeloste Schöffen) rechnet
+
+  ```
+  Überzeugung = 10 × Beweise + Gunstwirkung,   Gunstwirkung = ½ × (Gunst für den Ankläger − Gunst für den Beklagten), höchstens ±10
+  schuldig ab 15, die Mehrheit entscheidet
+  ```
+
+  Für die Gunst gibt es kein eigenes System, sie kommt aus dem Rat. Geschenke an Richter wirken also, sind aber selbst Bestechung. Die **Höchstwirkung** sorgt dafür, dass Bestechung nur knappe Fälle kippt: Ab Beweiskraft 25 (3 Beweise) ist ein Schuldspruch sicher. Ist der Stadtrichter selbst Partei, führt der Bürgermeister den Vorsitz.
+- **Gerichtstag** zu Beginn der Jahresabrechnung, vor Amtseinkommen und Ratssitzung:
+  1. Urteile (Buße, Amtsverlust, Pranger bzw. Entschädigung)
+  2. Spitzelberichte
+  3. Verjährung nach 5 Jahren
+
+  Wer verurteilt wird, bekommt also kein Amtseinkommen mehr, und sein Amt wird in derselben Nacht neu besetzt.
+- **Kein Doppelverfahren:** Verhandelte Taten sind erledigt, egal ob schuldig oder nicht.
+- **Pranger:** `Stadtrat.Ansehen` zieht die Schande ab. Das wirkt auf Wahlen und Brautschau gleichermaßen.
+- **Eigener Zufallsgenerator** für Spitzel und Schöffen, wie bei der Familie.
+
+**KI vor Gericht:** Die KI nutzt nur öffentliches Wissen.
+- Ob am letzten Gerichtstag ein Spitzel über sie berichtet hat, „spricht sich herum“ (`WurdeBeobachtet`). Dann rechnet sie jede Bestechung mit erwarteter Buße: Kosten × (1 + Bußfaktor × Spitzelchance). Sie besticht nur, wenn drei Jahre Nutzen das übersteigen.
+- Sie klagt erst bei sicherer Beweiskraft.
+- Ist sie angeklagt, beschenkt sie die billigsten Richter, wenn eine Mehrheit erreichbar ist und sich die Verteidigung lohnt.
+
+**Lehrstück aus diesem Schritt (Balance messen statt raten):** Die erste Fassung ergab 62 Freisprüche zu 1 Schuldspruch, weil die reiche KI sich jedes Mal freikaufte. Die zweite ergab 97 Schuldsprüche, weil die KI stur weiter bestach. Erst die Höchstwirkung der Gunst und die vorsichtige KI ergaben ein Gericht, das wirkt, ohne alles zu beherrschen. Messen lässt sich das mit `dotnet run --project tests/Reichsgilde.Core.Tests -- messen 30 20 Mensch gericht`.
+
+**Lehrstück aus diesem Schritt (Godot-Knoten nicht über einen Neuaufbau retten):** Familientafel und Ratskammer hängten ein einziges Zahlenfeld bei jedem Aufbau um. Wurde die Brautschau einmal nicht aufgebaut, blieb das Feld in einer alten Zeile stecken und wurde mit ihr gelöscht. Später griff die Tafel ins Leere und stürzte ab. Seitdem merkt sich die Tafel nur den Wert, und das Feld entsteht jedes Mal neu.
+
 ## Speichern und Laden
 
 Ein Spielstand ist eine lesbare JSON-Datei (`src/Reichsgilde.Core/Speichern/`).

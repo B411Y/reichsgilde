@@ -27,6 +27,8 @@ namespace Reichsgilde;
 ///   --bericht=1        gleich zu Beginn einen Jahresbericht zeigen (zum Testen der Anzeige)
 ///   --rat=1            gleich zu Beginn die Ratskammer öffnen
 ///   --familie=1        gleich zu Beginn die Familientafel öffnen
+///   --gericht=1        gleich zu Beginn den Gerichtssaal öffnen
+///   --laden=datei.json einen Spielstand aus dem Spielstand-Ordner laden
 /// </summary>
 public partial class Hauptszene : Node
 {
@@ -51,6 +53,8 @@ public partial class Hauptszene : Node
     private JahresberichtAnzeige _jahresbericht = null!;
     private RatAnzeige _ratskammer = null!;
     private FamilienAnzeige _familientafel = null!;
+    private GerichtAnzeige _gerichtssaal = null!;
+    private Button _gerichtKnopf = null!;
     private Button _ratKnopf = null!;
     private Konto? _spieler;
 
@@ -94,6 +98,9 @@ public partial class Hauptszene : Node
         ratMitte.AddChild(_ratskammer);
         _familientafel = new FamilienAnzeige();
         ratMitte.AddChild(_familientafel); // gleiche Mitte: es ist immer nur eine Tafel offen
+        _gerichtssaal = new GerichtAnzeige();
+        ratMitte.AddChild(_gerichtssaal);
+        _gerichtKnopf = GetNode<Button>("%GerichtKnopf");
         // Der Bericht sitzt in einem CenterContainer: Der hält ihn mittig, egal wie hoch er wird.
         var berichtMitte = Hauptmenue.Mitte();
         GetNode<CanvasLayer>("Oberflaeche").AddChild(berichtMitte);
@@ -124,10 +131,12 @@ public partial class Hauptszene : Node
         var optionen = Startoptionen();
         _simulation = SimulationAufbauen(optionen);
         SpielmenueBauen();
-        _ratKnopf.Pressed += () => { _familientafel.Hide(); _ratskammer.Oeffnen(); };
+        _ratKnopf.Pressed += () => { TafelnSchliessen(); _ratskammer.Oeffnen(); };
         _ratskammer.Gemeldet += Protokollieren;
-        _kontor.FamilieGewuenscht += () => { _ratskammer.Hide(); _familientafel.Oeffnen(); };
+        _kontor.FamilieGewuenscht += () => { TafelnSchliessen(); _familientafel.Oeffnen(); };
         _familientafel.Gemeldet += Protokollieren;
+        _gerichtKnopf.Pressed += () => { TafelnSchliessen(); _gerichtssaal.Oeffnen(); };
+        _gerichtssaal.Gemeldet += Protokollieren;
 
         _pauseKnopf.Pressed += PauseUmschalten;
         foreach (var tempo in Taktgeber.AlleTempostufen /* TESTTEMPO */)
@@ -158,6 +167,7 @@ public partial class Hauptszene : Node
             Protokollieren($"Jahresabrechnung {jahr} abgeschlossen. Es ist nun {_simulation.Zeit.DatumText}.");
             if (_ratskammer.Visible) _ratskammer.Aufbauen(); // neue Ämter, verblasste Gunst
             if (_familientafel.Visible) _familientafel.Aufbauen(); // ein Jahr älter, Geburten, Todesfälle
+            if (_gerichtssaal.Visible) _gerichtssaal.Aufbauen(); // Urteile und Spitzelberichte
             if (_spieler is null || _simulation.IstBeendet) return;
             // Automatisch speichern – überschreibt jedes Jahr denselben Spielstand.
             var (pfad, meldung) = Spielstaende.Speichern(_simulation, _spieler, Spielstaende.AutoDatei);
@@ -207,6 +217,8 @@ public partial class Hauptszene : Node
             _ratskammer.Oeffnen();
         if (optionen.TryGetValue("familie", out var familie) && familie == "1")
             _familientafel.Oeffnen();
+        if (optionen.TryGetValue("gericht", out var gericht) && gericht == "1")
+            _gerichtssaal.Oeffnen();
         if (optionen.TryGetValue("bericht", out var bericht) && bericht == "1" && _spieler is not null)
             _jahresbericht.Zeigen(_simulation, _spieler);
         if (optionen.TryGetValue("innen", out var innen) && innen == "1" && _eigeneGiesserei is not null)
@@ -215,6 +227,14 @@ public partial class Hauptszene : Node
         if (_simulation.Zeit.VergangeneMinuten == 0) // nur bei einer neuen Partie, nicht nach dem Laden
             Protokollieren($"Die Zunftglocke läutet. {_simulation.Zeit.DatumText} beginnt.");
         Anzeigen();
+    }
+
+    /// <summary>Es ist immer nur eine Tafel in der Bildmitte offen.</summary>
+    private void TafelnSchliessen()
+    {
+        _ratskammer.Hide();
+        _familientafel.Hide();
+        _gerichtssaal.Hide();
     }
 
     /// <summary>Liest Startoptionen wie "--startstunde=11" (nach "--" auf der Kommandozeile).</summary>
@@ -237,6 +257,8 @@ public partial class Hauptszene : Node
     {
         // 1. Kommt die Szene aus dem Hauptmenü? Dann liegt dort ein Auftrag: laden oder neue Partie.
         var (einstellungen, neu, ladePfad) = Partiewahl.Abholen();
+        if (optionen.TryGetValue("laden", out var datei)) // Startoption für Tests: Spielstand direkt laden
+            ladePfad = $"{Spielstaende.Ordner}/{datei}";
         if (ladePfad is not null)
         {
             try
@@ -391,6 +413,7 @@ public partial class Hauptszene : Node
         _kontor.Verbinden(simulation, spieler, rivalenKonto);
         _ratskammer.Verbinden(simulation, spieler);
         _familientafel.Verbinden(simulation, spieler);
+        _gerichtssaal.Verbinden(simulation, spieler);
         _verwaltung.Verbinden(simulation, spieler);
         // Die Stadtansicht stellt jeden Betrieb an seinen Platz im Stadtplan und zeigt die freien Plätze.
         _stadt.Verbinden(simulation, spieler);
@@ -422,6 +445,8 @@ public partial class Hauptszene : Node
                 _ratskammer.Hide();
             else if (_familientafel.Visible)
                 _familientafel.Hide();
+            else if (_gerichtssaal.Visible)
+                _gerichtssaal.Hide();
             else if (_spielmenue.Visible)
                 SpielmenueSchliessen();
             else if (_stadt.InnenBetrieb is not null)
@@ -534,6 +559,8 @@ public partial class Hauptszene : Node
         AktionKnopfAnzeigen(w, frei);
         var ratSichtbar = _auswahlKennung == "Rathaus" && w.Rat.IstAktiv;
         if (_ratKnopf.Visible != ratSichtbar) _ratKnopf.Visible = ratSichtbar; // nur bei Änderung setzen (siehe AktionKnopfAnzeigen)
+        var gerichtSichtbar = _auswahlKennung == "Rathaus" && w.Justiz.IstAktiv;
+        if (_gerichtKnopf.Visible != gerichtSichtbar) _gerichtKnopf.Visible = gerichtSichtbar;
         _auswahl.Show();
     }
 
@@ -568,6 +595,8 @@ public partial class Hauptszene : Node
                 zeilen.Add($"Nächster Stand: {neu.Name}\n  ab {Zahlenformat.Ganz(neu.Schwelle)} {waehrung} Vermögen, Gebühr {Zahlenformat.Ganz(neu.Gebuehr)}\n  {neu.Privilegien}");
         }
         zeilen.Add($"Geltendes Fron- und Sklavenstatut: {w.Statut.Kuerzel()} – {w.Statut.Name()}");
+        if (_spieler is not null && w.Justiz.IstAktiv && w.Justiz.PrangerBis(_spieler) is int pranger)
+            zeilen.Add($"Ihr steht bis {pranger} am Pranger (−{Zahlenformat.Ganz(w.Justiz.Daten.PrangerAnsehen)} Ansehen).");
         if (w.Rat.IstAktiv)
             zeilen.Add($"Bürgermeister: {w.Rat.Aemter.First().Inhaber}" + (w.Rat.Antrag is { } antrag
                 ? $" · Antrag liegt vor: Statut {antrag.Statut.Kuerzel()} ({antrag.Antragsteller.Inhaber})" : ""));

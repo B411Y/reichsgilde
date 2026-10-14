@@ -151,6 +151,13 @@ layout_mode = 2
 focus_mode = 0
 text = "Ratskammer öffnen"
 
+[node name="GerichtKnopf" type="Button" parent="Oberflaeche/Auswahl/Rand/Spalte"]
+unique_name_in_owner = true
+visible = false
+layout_mode = 2
+focus_mode = 0
+text = "Gerichtssaal öffnen"
+
 [node name="Verwaltung" type="VBoxContainer" parent="Oberflaeche/Auswahl/Rand/Spalte"]
 unique_name_in_owner = true
 layout_mode = 2

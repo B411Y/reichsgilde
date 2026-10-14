@@ -46,6 +46,12 @@ public sealed record Heiraten(int Kandidat) : Befehl;
 /// <summary>Testament: Dieses Kind (Nummer der Person) soll das Haus erben.</summary>
 public sealed record ErbenBestimmen(int Person) : Befehl;
 
+/// <summary>Einen Spitzel auf ein anderes Haus ansetzen (bis Jahresende; Bericht am Gerichtstag).</summary>
+public sealed record SpitzelAnsetzen(string Haus) : Befehl;
+
+/// <summary>Anklage gegen ein Haus erheben – mit allen Beweisen, die man gegen es hat. Verhandelt wird am Jahresende.</summary>
+public sealed record Anklagen(string Haus) : Befehl;
+
 /// <summary>Die Gießerei stellt ab sofort diese Ware her.</summary>
 public sealed record ProduktWaehlen(string Betrieb, string Ware) : BetriebsBefehl(Betrieb);
 

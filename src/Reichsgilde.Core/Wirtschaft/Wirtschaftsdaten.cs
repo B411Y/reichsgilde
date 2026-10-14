@@ -160,6 +160,9 @@ public sealed class Wirtschaftsdaten
     /// <summary>Völker, Leben, Heirat, Kinder und Erbe (ab Datenversion 6). Leer = ohne Dynastien.</summary>
     public Dynastie.DynastieDaten Dynastie { get; init; } = new();
 
+    /// <summary>Das Stadtgericht (ab Datenversion 7). Fehlt der Abschnitt, gibt es kein Gericht.</summary>
+    public Justiz.JustizDaten? Justiz { get; init; }
+
     /// <summary>Freie Werkstätten und Gruben, die man erwerben kann (ab Datenversion 4).</summary>
     public List<LiegenschaftDaten> Liegenschaften { get; init; } = new();
 
@@ -277,6 +280,7 @@ public sealed class Wirtschaftsdaten
 
         Politik.Pruefen(f, StandStufe);
         Dynastie.Pruefen(f, StandStufe);
+        Justiz?.Pruefen(f);
         return f;
     }
 

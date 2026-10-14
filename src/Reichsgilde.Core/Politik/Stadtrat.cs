@@ -93,11 +93,12 @@ public sealed class Stadtrat
 
     public double Gunst(Ratsherr ratsherr, Konto konto) => _gunst.GetValueOrDefault((ratsherr, konto));
 
-    /// <summary>Ansehen eines Hauses: Stand und Vermögen, gedeckelt.</summary>
+    /// <summary>Ansehen eines Hauses: Stand und Vermögen, gedeckelt – minus Schande, solange es am Pranger steht.</summary>
     public double Ansehen(Konto konto)
     {
         var g = _daten.Gunst;
-        return Math.Min(g.AnsehenHoechstwert, konto.Stand * g.AnsehenJeStand + Math.Max(0, konto.Vermoegen) / 1000 * g.AnsehenJe1000Gulden);
+        return Math.Min(g.AnsehenHoechstwert, konto.Stand * g.AnsehenJeStand + Math.Max(0, konto.Vermoegen) / 1000 * g.AnsehenJe1000Gulden)
+               - _w.Justiz.Schande(konto); // wer am Pranger stand, verliert Ansehen
     }
 
     /// <summary>Auf welche Ämter sich ein Haus jetzt bewerben darf: genau eine Stufe über seinem Amt, Stand erfüllt.</summary>
@@ -213,6 +214,7 @@ public sealed class Stadtrat
         konto.Geschenk(betrag);
         var neu = Math.Min(_daten.Gunst.Hoechstwert, Gunst(ratsherr, konto) + betrag * _daten.Gunst.JeGulden);
         _gunst[(ratsherr, konto)] = neu;
+        _w.Justiz.TatMelden(konto, Justiz.Vergehen.Bestechung, ratsherr.Name, betrag); // jedes Geschenk ist Bestechung
         return Befehlsergebnis.Ok($"{ratsherr.Name} nimmt das Geschenk an. Gunst für {konto.Inhaber}: {Zahlenformat.Ganz(neu)}.");
     }
 
@@ -240,6 +242,13 @@ public sealed class Stadtrat
         if (Antrag?.Antragsteller == konto) Antrag = null;
     }
 
+    /// <summary>Nach einer Verurteilung rückt der bestochene Ratsherr öffentlich vom Haus ab.</summary>
+    internal void GunstEntziehen(Ratsherr ratsherr, Konto konto) => _gunst.Remove((ratsherr, konto));
+
+    /// <summary>Zu Beginn der Jahresabrechnung: Das Protokoll der Ratssitzung beginnt leer.
+    /// (Früher leerte erst die Sitzung selbst – dabei gingen Nachrücker aus Bankrott und Urteil verloren.)</summary>
+    internal void ProtokollBeginnen() => _letzteSitzung.Clear();
+
     /// <summary>Erbfall: Das neue Oberhaupt beginnt im Rat von vorn – ohne Amt, ohne Bewerbung, ohne Gunst.</summary>
     internal void Neuanfang(Konto konto)
     {
@@ -263,7 +272,6 @@ public sealed class Stadtrat
     internal void Sitzung(Zufallsquelle zufall, int jahr)
     {
         if (!IstAktiv) return;
-        _letzteSitzung.Clear();
 
         if (Antrag is { } antrag)
             Abstimmen(antrag.Antragsteller, antrag.Statut, jahr);

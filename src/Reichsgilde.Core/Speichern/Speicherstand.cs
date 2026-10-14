@@ -63,6 +63,73 @@ public sealed record WirtschaftStand
 
     /// <summary>Familien und Brautschau (null in Spielständen von vor der Dynastie – dann ohne Familien weiter).</summary>
     public FamilienbuchStand? Familien { get; init; }
+
+    /// <summary>Das Stadtgericht (null in Spielständen von vor dem Gericht).</summary>
+    public JustizStand? Justiz { get; init; }
+}
+
+public sealed record JustizStand
+{
+    public long ZufallWuerfe { get; init; }
+    public int NaechsteSpur { get; init; }
+    public List<SpurStand> Spuren { get; init; } = new();
+    public List<BeweisStand> Beweise { get; init; } = new();
+    public List<SpitzelStand> Spitzel { get; init; } = new();
+    public List<VerfahrenStand> Verfahren { get; init; } = new();
+
+    /// <summary>Kontonummer (als Text) → bis zu welchem Jahr das Haus am Pranger steht.</summary>
+    public Dictionary<string, int> PrangerBis { get; init; } = new();
+    public List<string> LetzterGerichtstag { get; init; } = new();
+
+    /// <summary>Häuser, über die am letzten Gerichtstag ein Spitzel berichtet hat (Kontonummern).</summary>
+    public List<int> Beobachtet { get; init; } = new();
+    public List<UrteilStand> LetzteUrteile { get; init; } = new();
+}
+
+public sealed record SpurStand
+{
+    public int Nummer { get; init; }
+    public int Taeter { get; init; }
+    public Justiz.Vergehen Art { get; init; }
+    public string Betroffener { get; init; } = "";
+    public double Betrag { get; init; }
+    public int Jahr { get; init; }
+}
+
+public sealed record BeweisStand
+{
+    public int Inhaber { get; init; }
+    public int Spur { get; init; }
+}
+
+public sealed record SpitzelStand
+{
+    public int Auftraggeber { get; init; }
+    public int Ziel { get; init; }
+}
+
+public sealed record VerfahrenStand
+{
+    public int Anklaeger { get; init; }
+    public int Beklagter { get; init; }
+    public int Jahr { get; init; }
+    public List<RichterStand> Richter { get; init; } = new();
+}
+
+public sealed record RichterStand
+{
+    public string Rolle { get; init; } = "";
+    public string? Ratsherr { get; init; }
+    public int? Konto { get; init; }
+}
+
+public sealed record UrteilStand
+{
+    public int Anklaeger { get; init; }
+    public int Beklagter { get; init; }
+    public bool Schuldig { get; init; }
+    public int Schuldstimmen { get; init; }
+    public string Text { get; init; } = "";
 }
 
 public sealed record FamilienbuchStand
@@ -178,6 +245,7 @@ public sealed record BilanzStand
     public double Amtseinkommen { get; init; }
     public double Geschenke { get; init; }
     public double Familie { get; init; }
+    public double Gericht { get; init; }
     public Dictionary<string, int> Hergestellt { get; init; } = new();
 }
 

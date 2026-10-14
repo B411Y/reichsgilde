@@ -13,6 +13,9 @@ using Reichsgilde.Core.Zeit;
 // Balance-Messungen statt Tests:  dotnet run --project tests/Reichsgilde.Core.Tests -- messen [Jahre] [Startwerte] [Volk]
 if (args.Length > 0 && args[0] == "messen")
     return Messung.Dynastie(args[1..]);
+// Spielstand für Klicktests:  dotnet run --project tests/Reichsgilde.Core.Tests -- spielstand gericht <Datei>
+if (args.Length > 2 && args[0] == "spielstand" && args[1] == "gericht")
+    return Messung.GerichtsSpielstand(args[2]);
 
 var tests = new List<(string Name, Action Pruefung)>
 {
@@ -232,6 +235,7 @@ tests.AddRange(LiegenschaftTests.Alle());
 tests.AddRange(SpeicherTests.Alle());
 tests.AddRange(RatTests.Alle());
 tests.AddRange(DynastieTests.Alle());
+tests.AddRange(GerichtTests.Alle());
 
 // ── Testlauf ────────────────────────────────────────────────────────────────
 var fehler = 0;

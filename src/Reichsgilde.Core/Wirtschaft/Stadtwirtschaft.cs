@@ -1,4 +1,5 @@
 using Reichsgilde.Core.Dynastie;
+using Reichsgilde.Core.Justiz;
 using Reichsgilde.Core.Politik;
 using Reichsgilde.Core.Speichern;
 using Reichsgilde.Core.Ki;
@@ -44,6 +45,12 @@ public sealed class Stadtwirtschaft
 
     /// <summary>Familien der Häuser und die Heiratskandidaten der Stadt.</summary>
     public Familienbuch Familien { get; }
+
+    /// <summary>Das Stadtgericht: Spuren, Spitzel, Beweise und Anklagen.</summary>
+    public Stadtgericht Justiz { get; }
+
+    /// <summary>Das laufende Spieljahr (das Jahr der laufenden Jahresrechnung).</summary>
+    public int Jahr => _konten.Count > 0 ? _konten[0].Laufend.Jahr : Spielzeit.StartJahr;
 
     /// <summary>Konten, die von der KI geführt werden.</summary>
     public IReadOnlyList<KiRivale> Rivalen => _rivalen;
@@ -98,6 +105,7 @@ public sealed class Stadtwirtschaft
         _reihenfolge = new Zufallsquelle(unchecked(zufallsstartwert * 31 + 7));
         Rat = new Stadtrat(this, daten.Politik);
         Familien = new Familienbuch(this, daten.Dynastie, zufallsstartwert);
+        Justiz = new Stadtgericht(this, daten.Justiz, zufallsstartwert);
     }
 
     /// <summary>Legt ein Konto an – mit dem Startvermögen aus den Daten oder einem eigenen (z. B. Schwierigkeitsgrad).</summary>
@@ -188,6 +196,8 @@ public sealed class Stadtwirtschaft
     {
         foreach (var betrieb in _betriebe.Where(b => b.Konto.IstAktiv))
             betrieb.Jahresabrechnung(_zufall, m => Meldung?.Invoke(m));
+        Rat.ProtokollBeginnen();
+        Justiz.Gerichtstag(); // vor dem Amtseinkommen: Wer verurteilt wird, verliert Amt und Einkommen
         Rat.EinkommenZahlen();
         Familien.UnterhaltZahlen();
         foreach (var konto in _konten)
@@ -279,6 +289,15 @@ public sealed class Stadtwirtschaft
             return Rat.Schenken(absender, geschenk.Ratsherr, geschenk.Betrag);
         if (befehl is StatutBeantragen antrag)
             return Rat.Beantragen(absender, antrag.Statut);
+        if (befehl is SpitzelAnsetzen or Anklagen)
+        {
+            if (!Justiz.IstAktiv)
+                return Befehlsergebnis.Abgelehnt("In dieser Stadt gibt es kein Gericht.");
+            var haus = befehl is SpitzelAnsetzen s ? s.Haus : ((Anklagen)befehl).Haus;
+            if (_konten.FirstOrDefault(k => k.Inhaber == haus) is not { } ziel)
+                return Befehlsergebnis.Abgelehnt($"Ein Haus „{haus}“ gibt es nicht.");
+            return befehl is SpitzelAnsetzen ? Justiz.SpitzelAnsetzen(absender, ziel) : Justiz.Anklagen(absender, ziel);
+        }
         if (befehl is Werben or Heiraten or ErbenBestimmen && Familien.Von(absender) is null)
             return Befehlsergebnis.Abgelehnt($"{absender.Inhaber} hat keine Familie.");
         if (befehl is Werben werben)
@@ -440,6 +459,7 @@ public sealed class Stadtwirtschaft
         Rivalen = _rivalen.Select(r => r.Sichern(_konten.IndexOf(r.Konto))).ToList(),
         Rat = Rat.Sichern(k => _konten.IndexOf(k)),
         Familien = Familien.IstAktiv ? Familien.Sichern(k => _konten.IndexOf(k)) : null,
+        Justiz = Justiz.IstAktiv ? Justiz.Sichern(k => _konten.IndexOf(k)) : null,
     };
 
     /// <summary>
@@ -475,6 +495,8 @@ public sealed class Stadtwirtschaft
             Rat.Wiederherstellen(rat, _konten);
         if (s.Familien is { } familien && Familien.IstAktiv)
             Familien.Wiederherstellen(familien, _konten);
+        if (s.Justiz is { } justiz && Justiz.IstAktiv)
+            Justiz.Wiederherstellen(justiz, _konten);
     }
 
     public double HoechstesVermoegen => _konten.Count == 0 ? 0 : _konten.Max(k => k.Vermoegen);

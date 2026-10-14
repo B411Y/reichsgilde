@@ -96,6 +96,8 @@ public partial class JahresberichtAnzeige : PanelContainer
             if (bilanz.Amtseinkommen > 0) nebenbei.Add($"Amtseinkommen +{Zahlenformat.Ganz(bilanz.Amtseinkommen)}");
             if (bilanz.Geschenke > 0) nebenbei.Add($"Geschenke an Ratsherren {Zahlenformat.Ganz(bilanz.Geschenke)}");
             if (bilanz.Familie > 0) nebenbei.Add($"Haushalt, Brautwerbung und Hochzeit {Zahlenformat.Ganz(bilanz.Familie)}");
+            if (Math.Abs(bilanz.Gericht) > 0.5)
+                nebenbei.Add(bilanz.Gericht > 0 ? $"Gericht und Spitzel {Zahlenformat.Ganz(bilanz.Gericht)}" : $"Entschädigung vom Gericht +{Zahlenformat.Ganz(-bilanz.Gericht)}");
             if (bilanz.Raubwert > 0) nebenbei.Add($"von Banditen geraubt: Waren für {Zahlenformat.Ganz(bilanz.Raubwert)}");
             if (nebenbei.Count > 0) Text("Außerdem: " + string.Join(" · ", nebenbei), 13, Grau);
         }
@@ -130,6 +132,15 @@ public partial class JahresberichtAnzeige : PanelContainer
             Text("Familie", 16);
             foreach (var (eigenes, eintrag) in familie.Take(6))
                 Text("• " + eintrag, 13, eigenes ? null : Grau);
+        }
+
+        // ── Gericht ──
+        if (w.Justiz.IstAktiv && w.Justiz.LetzterGerichtstag.Count > 0)
+        {
+            _inhalt.AddChild(new HSeparator());
+            Text("Gerichtstag", 16);
+            foreach (var eintrag in w.Justiz.LetzterGerichtstag.Take(6))
+                Text("• " + eintrag, 13, eintrag.Contains(spieler.Inhaber) ? null : Grau);
         }
 
         // ── Ratssitzung ──
