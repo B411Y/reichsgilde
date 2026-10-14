@@ -126,4 +126,33 @@ static class Messung
         Console.WriteLine($"gespeichert: {datei}");
         return 0;
     }
+
+    /// <summary>Spielstand mit verheiratetem Oberhaupt und Kindern im Ausbildungsalter – für Klicktests der Familientafel.</summary>
+    public static int FamilienSpielstand(string datei)
+    {
+        var daten = Wirtschaftsdaten.AusDatei(Datenpfad.Wirtschaft());
+        var (sim, spieler) = Partieaufbau.Erstellen(
+            Partieeinstellungen.Standard with { Zufallsstartwert = 303, Siegbedingung = Siegbedingung.Endlos },
+            daten, new NeuePartie(Startvermoegen: 20_000));
+        var w = sim.Wirtschaft!;
+        var buch = w.Familien;
+        var f = buch.Von(spieler)!;
+        void Jahr() { var j = sim.Zeit.Jahr; while (sim.Zeit.Jahr == j) sim.Tick(); }
+        for (var jahr = 0; jahr < 6 && f.Ehepartner is null; jahr++)
+        {
+            var k = buch.Kandidaten.FirstOrDefault(x => buch.WerbenVerboten(spieler, x) is null);
+            if (k is null) { Jahr(); continue; }
+            w.Ausfuehren(spieler, new Werben(k.Person.Nummer, 1000));
+            if (buch.Bereitschaft(spieler, k) >= buch.Heiratsschwelle(k))
+                w.Ausfuehren(spieler, new Heiraten(k.Person.Nummer));
+            else
+                Jahr();
+        }
+        for (var jahr = 0; jahr < 40 && !f.Lebende.Any(p => p.Vater is not null && p.Alter(buch.Jahr) >= buch.AusbildungAb(p.Volk)); jahr++)
+            Jahr();
+        File.WriteAllText(datei, Speicherung.Speichern(sim, spieler));
+        Console.WriteLine($"{sim.Zeit.DatumText}: {f.Oberhaupt.Name}, Kinder: {string.Join(", ", f.Lebende.Where(p => p.Vater is not null).Select(p => $"{p.Vorname} ({p.Alter(buch.Jahr)})"))}");
+        Console.WriteLine($"gespeichert: {datei}");
+        return 0;
+    }
 }
