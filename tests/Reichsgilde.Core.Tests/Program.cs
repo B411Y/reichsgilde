@@ -248,6 +248,7 @@ tests.AddRange(AktionspunkteTests.Alle());
 tests.AddRange(GesundheitTests.Alle());
 tests.AddRange(TischlerTests.Alle());
 tests.AddRange(MeistergradeTests.Alle());
+tests.AddRange(SteinmetzTests.Alle());
 
 // ── Testlauf ────────────────────────────────────────────────────────────────
 var fehler = 0;

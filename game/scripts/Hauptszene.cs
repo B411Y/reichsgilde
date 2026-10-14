@@ -24,6 +24,7 @@ namespace Reichsgilde;
 ///   --innen=1          direkt in der Innenansicht der eigenen Gießerei starten
 ///   --verwalten=1      das Bedienfeld der eigenen Gießerei gleich öffnen
 ///   --vermoegen=12000  Startvermögen des Spielers setzen (zum Ausprobieren des Aufstiegs)
+///   --beruf=Steinmetz  Startberuf der Testpartie (Schmied, Tischler, Steinmetz)
 ///   --bericht=1        gleich zu Beginn einen Jahresbericht zeigen (zum Testen der Anzeige)
 ///   --rat=1            gleich zu Beginn die Ratskammer öffnen
 ///   --familie=1        gleich zu Beginn die Familientafel öffnen
@@ -307,7 +308,7 @@ public partial class Hauptszene : Node
         double? startvermoegen = optionen.TryGetValue("vermoegen", out var v) && double.TryParse(v, out var betrag) ? betrag : null;
 
         var (simulation, spieler) = Partieaufbau.Erstellen(einstellungen ?? Partieeinstellungen.Standard, daten,
-            neu ?? new NeuePartie(Startvermoegen: startvermoegen), start);
+            neu ?? new NeuePartie(Startvermoegen: startvermoegen, Beruf: optionen.GetValueOrDefault("beruf", "Schmied")), start);
         SimulationVerbinden(simulation, spieler);
         return simulation;
     }

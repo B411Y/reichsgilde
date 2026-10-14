@@ -26,6 +26,18 @@ public enum Betriebsart
 
     /// <summary>Werkstatt des Tischlers, Stufe 3.</summary>
     Saegewerk,
+
+    /// <summary>Werkstatt des Steinmetzes, Stufe 1. Stellt Schleifziegel, Grabsteine und Mühlsteine her.</summary>
+    Maurerei,
+
+    /// <summary>Werkstatt des Steinmetzes, Stufe 2.</summary>
+    Steinschneiderei,
+
+    /// <summary>Werkstatt des Steinmetzes, Stufe 3.</summary>
+    Steinmetzhuette,
+
+    /// <summary>Umlandbetrieb des Steinmetzes (gepachtet). Bricht Bruchstein und Granit.</summary>
+    Steinbruch,
 }
 
 /// <summary>

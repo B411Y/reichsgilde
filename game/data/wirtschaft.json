@@ -1,5 +1,5 @@
 {
-  "version": 13,
+  "version": 14,
   "gesundheit": {
     "medicusKosten": 120,
     "medicusKostenPest": 300,
@@ -164,9 +164,9 @@
     },
     "Prunkschwert": {
       "typ": "Fertigprodukt",
-      "grundpreis": 320,
+      "grundpreis": 340,
       "zeit": 100,
-      "zutaten": { "Eisen": 2, "Gold": 1, "Beschlag": 2 },
+      "zutaten": { "Eisen": 2, "Gold": 1, "Beschlag": 1, "Schleifziegel": 1 },
       "nachfrage": 50,
       "npcAnteil": 0.7
     },
@@ -199,6 +199,78 @@
       "grundpreis": 330,
       "zeit": 100,
       "zutaten": { "Holz": 3, "Beschlag": 2, "Gold": 1 },
+      "nachfrage": 50,
+      "npcAnteil": 0.7
+    },
+    "Bruchstein": {
+      "typ": "Rohstoff",
+      "grundpreis": 12,
+      "zeit": 12,
+      "zutaten": {},
+      "nachfrage": 600,
+      "npcAnteil": 0.9
+    },
+    "Granit": {
+      "typ": "Rohstoff",
+      "grundpreis": 28,
+      "zeit": 28,
+      "zutaten": {},
+      "nachfrage": 200,
+      "npcAnteil": 0.9
+    },
+    "Schleifziegel": {
+      "typ": "Zwischenprodukt",
+      "grundpreis": 65,
+      "zeit": 35,
+      "zutaten": { "Bruchstein": 1, "Granit": 1 },
+      "nachfrage": 150,
+      "npcAnteil": 0.7
+    },
+    "Grabstein": {
+      "typ": "Fertigprodukt",
+      "grundpreis": 105,
+      "zeit": 50,
+      "zutaten": { "Granit": 2 },
+      "nachfrage": 150,
+      "npcAnteil": 0.7
+    },
+    "Mühlstein": {
+      "typ": "Fertigprodukt",
+      "grundpreis": 140,
+      "zeit": 60,
+      "zutaten": { "Bruchstein": 2, "Schleifziegel": 1 },
+      "nachfrage": 120,
+      "npcAnteil": 0.7
+    },
+    "Säule": {
+      "typ": "Fertigprodukt",
+      "grundpreis": 190,
+      "zeit": 60,
+      "zutaten": { "Bruchstein": 4, "Schleifziegel": 1 },
+      "nachfrage": 100,
+      "npcAnteil": 0.7
+    },
+    "Taufbecken": {
+      "typ": "Fertigprodukt",
+      "grundpreis": 240,
+      "zeit": 70,
+      "zutaten": { "Granit": 3, "Schleifziegel": 1 },
+      "nachfrage": 100,
+      "npcAnteil": 0.7
+    },
+    "Steinfigur": {
+      "typ": "Fertigprodukt",
+      "grundpreis": 420,
+      "zeit": 100,
+      "zutaten": { "Granit": 3, "Schleifziegel": 1, "Werkzeug": 1 },
+      "nachfrage": 50,
+      "npcAnteil": 0.7
+    },
+    "Grabmal": {
+      "typ": "Fertigprodukt",
+      "grundpreis": 450,
+      "zeit": 100,
+      "zutaten": { "Granit": 4, "Schleifziegel": 2, "Gold": 1 },
       "nachfrage": 50,
       "npcAnteil": 0.7
     },
@@ -467,8 +539,9 @@
     "jahreBisBankrott": 3
   },
   "berufe": {
-    "Schmied":  { "werkstatt": "Giesserei",  "umland": "Mine",          "lehrgeld": 500, "beschreibung": "Eisen und Silber aus der Grube, in der Gießerei zu Beschlägen, Rapieren und Silberringen; als Meister in Schmiede und Goldschmiede auch Werkzeug, Ketten und Prunkschwerter (Gold vom Markt)." },
-    "Tischler": { "werkstatt": "Tischlerei", "umland": "Holzfaellerei", "lehrgeld": 500, "beschreibung": "Holz aus dem Wald, in der Tischlerei zu Holzzapfen, Schemeln und Truhen (mit Beschlag vom Schmied); als Meister in Drechslerei und Sägewerk auch Gehstöcke, Armbrüste, Schränke und Prunktruhen." }
+    "Schmied":  { "werkstatt": "Giesserei",  "umland": "Mine",          "lehrgeld": 500, "beschreibung": "Eisen und Silber aus der Grube, in der Gießerei zu Beschlägen, Rapieren und Silberringen; als Meister in Schmiede und Goldschmiede auch Werkzeug, Ketten und Prunkschwerter (Gold vom Markt, Schleifziegel vom Steinmetz)." },
+    "Tischler": { "werkstatt": "Tischlerei", "umland": "Holzfaellerei", "lehrgeld": 500, "beschreibung": "Holz aus dem Wald, in der Tischlerei zu Holzzapfen, Schemeln und Truhen (mit Beschlag vom Schmied); als Meister in Drechslerei und Sägewerk auch Gehstöcke, Armbrüste, Schränke und Prunktruhen." },
+    "Steinmetz": { "werkstatt": "Maurerei", "umland": "Steinbruch", "lehrgeld": 500, "beschreibung": "Bruchstein und Granit aus dem Steinbruch, in der Maurerei zu Schleifziegeln, Grabsteinen und Mühlsteinen; als Meister in Steinschneiderei und Steinmetzhütte auch Säulen, Taufbecken, Steinfiguren (mit Werkzeug vom Schmied) und Grabmäler." }
   },
   "betriebsarten": {
     "Giesserei":     { "name": "Gießerei",     "beruf": "Schmied",  "ort": "Werkstatt", "stufe": 1, "plaetze": 2, "fixkosten": 80,  "produkte": [ "Beschlag", "Rapier", "Silberring" ], "standardprodukt": "Silberring", "startkarren": "Handkarren", "ausbau": "Schmiede", "ausbauKosten": 2500 },
@@ -478,7 +551,11 @@
     "Tischlerei":    { "name": "Tischlerei",   "beruf": "Tischler", "ort": "Werkstatt", "stufe": 1, "plaetze": 2, "fixkosten": 80,  "produkte": [ "Holzzapfen", "Schemel", "Truhe" ], "standardprodukt": "Schemel", "startkarren": "Handkarren", "ausbau": "Drechslerei", "ausbauKosten": 2500 },
     "Drechslerei":   { "name": "Drechslerei",  "beruf": "Tischler", "ort": "Werkstatt", "stufe": 2, "plaetze": 3, "fixkosten": 120, "produkte": [ "Holzzapfen", "Schemel", "Truhe", "Gehstock", "Armbrust" ], "standardprodukt": "Armbrust", "startkarren": "Handkarren", "ausbau": "Saegewerk", "ausbauKosten": 5000 },
     "Saegewerk":     { "name": "Sägewerk",     "beruf": "Tischler", "ort": "Werkstatt", "stufe": 3, "plaetze": 4, "fixkosten": 180, "produkte": [ "Holzzapfen", "Schemel", "Truhe", "Gehstock", "Armbrust", "Schrank", "Prunktruhe" ], "standardprodukt": "Schrank", "startkarren": "Handkarren" },
-    "Holzfaellerei": { "name": "Holzschlag",   "beruf": "Tischler", "ort": "Umland",    "plaetze": 3, "fixkosten": 400, "rohstoffe": [ "Holz" ], "startkarren": "Ochsenkarren" }
+    "Holzfaellerei": { "name": "Holzschlag",   "beruf": "Tischler", "ort": "Umland",    "plaetze": 3, "fixkosten": 400, "rohstoffe": [ "Holz" ], "startkarren": "Ochsenkarren" },
+    "Maurerei":         { "name": "Maurerei",         "beruf": "Steinmetz", "ort": "Werkstatt", "stufe": 1, "plaetze": 2, "fixkosten": 80,  "produkte": [ "Schleifziegel", "Grabstein", "Mühlstein" ], "standardprodukt": "Grabstein", "startkarren": "Handkarren", "ausbau": "Steinschneiderei", "ausbauKosten": 2500 },
+    "Steinschneiderei": { "name": "Steinschneiderei", "beruf": "Steinmetz", "ort": "Werkstatt", "stufe": 2, "plaetze": 3, "fixkosten": 120, "produkte": [ "Schleifziegel", "Grabstein", "Mühlstein", "Säule", "Taufbecken" ], "standardprodukt": "Taufbecken", "startkarren": "Handkarren", "ausbau": "Steinmetzhuette", "ausbauKosten": 5000 },
+    "Steinmetzhuette":  { "name": "Steinmetzhütte",   "beruf": "Steinmetz", "ort": "Werkstatt", "stufe": 3, "plaetze": 4, "fixkosten": 180, "produkte": [ "Schleifziegel", "Grabstein", "Mühlstein", "Säule", "Taufbecken", "Steinfigur", "Grabmal" ], "standardprodukt": "Steinfigur", "startkarren": "Handkarren" },
+    "Steinbruch":       { "name": "Steinbruch",       "beruf": "Steinmetz", "ort": "Umland",    "plaetze": 3, "fixkosten": 400, "rohstoffe": [ "Bruchstein", "Granit" ], "startkarren": "Ochsenkarren" }
   },
   "meistergrade": {
     "pruefungen": [
@@ -521,6 +598,18 @@
     {
       "name": "Holzschlag im Eichenforst",
       "art": "Holzfaellerei",
+      "kaufpreis": 0,
+      "mindestStand": "Bürger"
+    },
+    {
+      "name": "Maurerei an der Stadtmauer",
+      "art": "Maurerei",
+      "kaufpreis": 3500,
+      "mindestStand": "Bürger"
+    },
+    {
+      "name": "Steinbruch am Felsenhang",
+      "art": "Steinbruch",
       "kaufpreis": 0,
       "mindestStand": "Bürger"
     }

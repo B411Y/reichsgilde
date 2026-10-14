@@ -33,9 +33,9 @@ static class Messung
         double talentOberhaupt = 0, ausgebildet = 0;
         int pestjahre = 0, krankheitstote = 0, pesttote = 0, krankJahre = 0;
         double familienKi = 0;
-        double eichwaldVermoegen = 0, eichwaldGewinn = 0, spielerTischlerGewinn = 0;
-        int eichwaldBm = 0, eichwaldErloschen = 0, partienMitEichwald = 0;
-        var eichwaldWaren = new SortedDictionary<string, int>();
+        // Die weiteren KI-Häuser (Eichwald, Kieselbach): Vermögen, Gewinn, Bürgermeister, erloschen, Partien, Waren
+        var haeuser = new[] { (Partieaufbau.ZweiterRivale, "Tischler"), (Partieaufbau.DritterRivale, "Steinmetz") };
+        var weitere = haeuser.ToDictionary(h => h.Item1, _ => (Vermoegen: 0.0, Gewinn: 0.0, Bm: 0, Erloschen: 0, Partien: 0, Waren: new SortedDictionary<string, int>()));
         var eisenbartWaren = new SortedDictionary<string, int>();
         var abschluesse = new SortedDictionary<string, int>();
         // Meistergrade und Gebäudestufen der KI-Häuser: Summe der Jahre, in denen ein Ziel erreicht wurde, und wie oft
@@ -92,15 +92,18 @@ static class Messung
             }
             foreach (var (ware, stueck) in rivale.Vorjahr?.Hergestellt ?? new())
                 eisenbartWaren[ware] = eisenbartWaren.GetValueOrDefault(ware) + stueck;
-            if (w.Konten.FirstOrDefault(k => k.Inhaber == Partieaufbau.ZweiterRivale) is { } eichwald)
+            foreach (var (hausName, _) in haeuser)
             {
-                partienMitEichwald++;
-                eichwaldVermoegen += eichwald.Vermoegen;
-                eichwaldGewinn += eichwald.Vorjahr?.Gewinn ?? 0;
-                if (eichwald.IstErloschen) eichwaldErloschen++;
-                if (w.Rat.AmtNamens("Bürgermeister")?.Konto == eichwald) eichwaldBm++;
-                foreach (var (ware, stueck) in eichwald.Vorjahr?.Hergestellt ?? new())
-                    eichwaldWaren[ware] = eichwaldWaren.GetValueOrDefault(ware) + stueck;
+                if (w.Konten.FirstOrDefault(k => k.Inhaber == hausName) is not { } haus) continue;
+                var x = weitere[hausName];
+                x.Partien++;
+                x.Vermoegen += haus.Vermoegen;
+                x.Gewinn += haus.Vorjahr?.Gewinn ?? 0;
+                if (haus.IstErloschen) x.Erloschen++;
+                if (w.Rat.AmtNamens("Bürgermeister")?.Konto == haus) x.Bm++;
+                foreach (var (ware, stueck) in haus.Vorjahr?.Hergestellt ?? new())
+                    x.Waren[ware] = x.Waren.GetValueOrDefault(ware) + stueck;
+                weitere[hausName] = x;
             }
             var f = w.Familien.Von(rivale)!;
             var nachkommen = f.Mitglieder.Count(p => p.Vater is not null);
@@ -136,10 +139,14 @@ static class Messung
         Console.WriteLine($"  Gesundheit: {pestjahre} Pestjahre in {startwerte} Partien; Krankheitstote im Haus Eisenbart {krankheitstote} (davon Pest {pesttote}); " +
                           $"Oberhaupt zum Jahresbeginn krank in {krankJahre} von {startwerte * jahre} Jahren; Familienkosten der KI Ø {Zahlenformat.Ganz(familienKi / startwerte / jahre)} im Jahr");
         Console.WriteLine("  Haus Eisenbart hergestellt im letzten Jahr Ø " + string.Join(", ", eisenbartWaren.Select(x => $"{x.Key} {x.Value / startwerte}")));
-        if (partienMitEichwald > 0)
-            Console.WriteLine($"  Haus Eichwald (Tischler): Vermögen Ø {Zahlenformat.Ganz(eichwaldVermoegen / partienMitEichwald)}, Gewinn im letzten Jahr Ø {Zahlenformat.Ganz(eichwaldGewinn / partienMitEichwald)}, " +
-                              $"am Ende Bürgermeister in {eichwaldBm}/{partienMitEichwald}, erloschen {eichwaldErloschen}; hergestellt im letzten Jahr Ø " +
-                              string.Join(", ", eichwaldWaren.Select(x => $"{x.Key} {x.Value / partienMitEichwald}")));
+        foreach (var (hausName, beruf) in haeuser)
+        {
+            var x = weitere[hausName];
+            if (x.Partien == 0) continue;
+            Console.WriteLine($"  {hausName} ({beruf}): Vermögen Ø {Zahlenformat.Ganz(x.Vermoegen / x.Partien)}, Gewinn im letzten Jahr Ø {Zahlenformat.Ganz(x.Gewinn / x.Partien)}, " +
+                              $"am Ende Bürgermeister in {x.Bm}/{x.Partien}, erloschen {x.Erloschen}; hergestellt im letzten Jahr Ø " +
+                              string.Join(", ", x.Waren.Select(w => $"{w.Key} {w.Value / x.Partien}")));
+        }
         Console.WriteLine("  Meistergrade/Stufen der KI (erreicht in n Partien, Ø Jahr): " +
                           string.Join(", ", meisterJahre.Select(x => $"{x.Key} {x.Value.Anzahl}× ab {x.Value.Jahre / x.Value.Anzahl:N1}")));
         if (gericht)
