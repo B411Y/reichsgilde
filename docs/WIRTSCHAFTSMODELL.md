@@ -841,3 +841,11 @@ Eisenbart (Zwerg, Schmied – der einzige Startberuf mit Bonus) gewinnt am meist
 Keine Balance-Änderung: Das Wappen ist reine Anzeige, und der Hausname „Haus Hammerschmid“ statt „Familie Hammerschmid“ ändert keine Würfe.
 
 **Messung** (gemessen auf main `cfdb823` + PR #48, 20 Startwerte, 30 Jahre, Spieler Mensch): Eisenbart Ø 139.150, Eichwald Ø 95.155, Kieselbach Ø 132.085 Gulden – identisch mit §32/§33.
+
+## 35. Bürger-KI, Schritt 1: Einwohner ohne Wirkung (PR #54)
+
+Keine Balance-Änderung: Die Einwohner (25 je Haus, dazu 13 Ratsherren und 10 Kandidaten – bei 4 Häusern 123) lesen den Kern nur und würfeln mit eigenem Generator. Werte im Abschnitt `buerger` von `wirtschaft.json`.
+
+**Messung** (gemessen auf main `c7ebbf5` + PR #54, 20 Startwerte, 30 Jahre, Spieler Mensch, KI ausgewogen und wagemutig): Ausgabe **zeichengleich** mit main. Rechenzeit 15 s / 17 s gegen 16 s / 16 s ohne Einwohner – im Rauschen der Messung, Budget +25 %.
+
+**Tagesprofil** (Startwert 1400, 4 Häuser, ohne Schänke; Anteil der 123 Einwohner): 05 Uhr alle zu Hause · 06 Uhr Frühmesse (~75 %) · 08 Uhr Markt (~65 %) · 09–19 Uhr Arbeit 45–80 %, dazu Markt, Beten, Ruhen · ab 20 Uhr alle zu Hause (mit Schänke: ein Teil kehrt ab 12 Uhr und abends ein).

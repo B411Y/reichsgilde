@@ -225,11 +225,12 @@ Format: `- PR #Nummer (Phase) – Inhalt`
 - PR #51 (3) – Namen in der Stadt nur bei Hover, Auswahl oder Alt; Schild an freien Plätzen; Schriften Germania One und Alegreya
 - PR #52 (3) – Raumansicht: Werkstätten (Werkraum, Lager, Kontor, Wohnstube) und Rathaus (Ratssaal, Gericht, Amtsstube, Kerker) betreten, feste Ansicht je Raum
 - PR #53 (–) – Vierter Chat „Spiel-KI“: Bereich Ki/ und Buerger/, Andockstellen im Kern
+- PR #54 (2) – Bürger-KI Schritt 1: Einwohner mit Tagesablauf nach Bedürfnissen, noch ohne Wirkung auf die Wirtschaft
 
 ### 6b. Offen (eine Zeile je Punkt; erledigt → Zeile löschen und unter 6a eintragen)
 
 - (3) Raumansicht für den Dom und Feinschliff der Werkstatträume je Beruf (zweiter Teil von PR #52)
-- (2) Bürger-KI
+- (2) Bürger-KI: Kopplung an Schänke → Kirche → Markt → Taschendiebe (Einwohner und Tagesablauf: PR #54)
 - (5) Orks und Oger spielbar machen
 - (5) Bauplätze und Sanierung (siehe Abschnitt 7, Punkt 8)
 - (5) Gaunerberuf, Schmuggel und Schwarzarbeit unter dem Statut
@@ -316,3 +317,17 @@ Format: `- PR #Nummer (Phase) – Inhalt`
 | Vierter Chat | **Spiel-KI** übernimmt die Bürger-KI (Phase 2, neu in `src/Reichsgilde.Core/Buerger/`) und die KI-Häuser (`Ki/`, `KiRivale.cs`, bisher Kern). Der Kern behält Wirtschaft, Regeln und Daten. | 15.10.2026 |
 | Andocken | Der Spiel-KI-Chat darf kleine, im PR genannte Andockstellen in `Stadtwirtschaft.cs`, `wirtschaft.json` (eigener Abschnitt) und `Speicherstand.cs` (eigene Felder) ergänzen. Bestehende Werte und Regeln bleiben beim Kern. | 15.10.2026 |
 | Messungen | Spiel-KI misst seine eigenen Änderungen selbst (mit main-Commit), wie der Kern. | 15.10.2026 |
+
+## 15. Bürger-KI (PR #54)
+
+| Thema | Entscheidung | Datum |
+|---|---|---|
+| Einwohner | **Einzelpersonen, wenige:** 25 je Haus (Spieler und KI), beim Spielstart festgelegt; bleibt gleich, wenn ein Haus erlischt. Kein eigener Betrieb, nur oberflächlich simuliert, damit die Stadt lebt. | 15.10.2026 |
+| Völker | Mensch 5, Halbling 2, Zwerg 2, Elb 1 (wie die Brautschau). **Orks und Oger nicht** (kein Bürgerrecht; Fronarbeiter bleiben Personal der Häuser). Bedürfnisse je Volk leicht gewichtet (±20 %): Halblinge mehr Vergnügen, Zwerge mehr Auskommen, Elben mehr Glaube. | 15.10.2026 |
+| Ratsherren und Kandidaten | **Von Anfang an Einwohner** mit eigenem Tagesablauf. Wahl, Gunst, Heirat und Weggang regeln weiter Rat und Familienbuch; die Bürger-KI gleicht nur ab. | 15.10.2026 |
+| Lebenslauf | Gewöhnliche Einwohner altern und sterben nach den Regeln ihres Volkes; für jeden zieht ein neuer zu. Keine eigenen Familien. | 15.10.2026 |
+| Rollen | Eigene Stadtrollen ohne Bezug zum Personal der Häuser: Tagelöhner, Knecht/Magd, Krämer, Hirte, Bote, Bettler, Mönch/Nonne, Witwer/Witwe; dazu Ratsherr und Bürgersohn/-tochter (Kandidaten ab Stand Bürger). | 15.10.2026 |
+| Bedürfnisse | **Fünf:** Auskommen, Versorgung, Vergnügen, Glaube, Ruhe. Gesundheit und Sicherheit später. | 15.10.2026 |
+| Kopplung | **Erst Kulisse (keine Wirkung), dann als Stellvertreter:** Das Verhalten der Einwohner wirkt als **Faktor um 1,0** auf die bestehenden Zahlen (Gäste, Gläubige, Nachfrage, Beute), damit die Balance im Mittel bleibt. Reihenfolge **Schänke → Kirche → Markt → Taschendiebe**, je ein PR mit Messung. | 15.10.2026 |
+| Zufall | Fast deterministisch: eigener Generator ×71+53, Rauschen ±20 % auf den Nutzen, Streuung beim Aufwachen; Stammschänke und Stammkirche fest nach der Nummer. | 15.10.2026 |
+| Rechenzeit | Höchstens **+25 %** auf `messen 30 20` (Ausgangswert 16 s je Charakter). | 15.10.2026 |
