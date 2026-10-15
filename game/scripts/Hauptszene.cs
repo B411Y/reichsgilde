@@ -21,7 +21,7 @@ namespace Reichsgilde;
 ///   --tempo=8          Anfangstempo
 ///   --auswahl=Dom      Gebäude vorauswählen (Kennung wie beim Anklicken)
 ///   --drehung=1        Kamera um 1–3 Vierteldrehungen gedreht starten (0 = Blick nach Nordosten)
-///   --innen=1          direkt in der Innenansicht der eigenen Werkstatt starten
+///   --innen=1          direkt in der Innenansicht der eigenen Werkstatt starten (--innen=Rathaus bzw. --innen=Dom: dort)
 ///   --verwalten=1      das Bedienfeld der eigenen Gießerei gleich öffnen
 ///   --vermoegen=12000  Startvermögen des Spielers setzen (zum Ausprobieren des Aufstiegs)
 ///   --beruf=Steinmetz  Startberuf der Testpartie (Schmied, Tischler, Steinmetz, Alchimist, Wirt, Prediger, Dieb, Gardist)
@@ -215,18 +215,21 @@ public partial class Hauptszene : Node
         var minuten = _simulation.Takt.RundenDauerSekunden / 60;
         _hinweis.Text = $"1 Spieljahr = {minuten:0} Min. · {_simulation.Einstellungen.SiegbedingungText}\n"
                       + "Leertaste Pause · 1–4 Tempo (5–6 Test) · Mausrad Zoom\nRechte Maustaste/WASD verschieben · Q/E drehen\n"
-                      + "Doppelklick auf eine Gießerei = Innenansicht · Esc zurück bzw. Spielmenü";
+                      + "Doppelklick auf Werkstatt, Rathaus oder Dom = Innenansicht · Esc zurück bzw. Spielmenü";
 
         _stadt.GebaeudeAngeklickt += kennung =>
         {
+            if (RaumImRathausOeffnen(kennung)) return;
             _auswahlKennung = kennung;
             AuswahlAnzeigen();
             if (kennung == "Marktplatz") MarktOeffnen(); // wie im Original: ein Klick auf den Markt öffnet die Preistafel
         };
-        _stadt.InnenansichtGewechselt += betrieb =>
+        _stadt.InnenansichtGewechselt += kennung =>
         {
-            if (betrieb is not null) _auswahlKennung = Stadtansicht.BetriebsKennung(betrieb);
-            Protokollieren(betrieb is null ? "Zurück in den Gassen der Stadt." : $"Ihr betretet die {betrieb.Name}.");
+            if (kennung is not null) _auswahlKennung = kennung;
+            Protokollieren(kennung is null ? "Zurück in den Gassen der Stadt."
+                : kennung is "Rathaus" ? "Ihr betretet das Rathaus. Ein Klick auf einen Raum öffnet seine Tafel."
+                : $"Ihr betretet {(kennung is "Dom" ? "den" : "die")} {_stadt.InnenName}.");
         };
         _innenKnopf.Pressed += InnenKnopfGedrueckt;
         _verwaltung.Gemeldet += Protokollieren;
@@ -252,8 +255,11 @@ public partial class Hauptszene : Node
             _markt.Oeffnen();
         if (optionen.TryGetValue("bericht", out var bericht) && bericht == "1" && _spieler is not null)
             _jahresbericht.Zeigen(_simulation, _spieler);
-        if (optionen.TryGetValue("innen", out var innen) && innen == "1" && _eigeneGiesserei is not null)
-            _stadt.InnenansichtBetreten(_eigeneGiesserei);
+        if (optionen.TryGetValue("innen", out var innen))
+        {
+            if (innen == "1" && _eigeneGiesserei is not null) _stadt.InnenansichtBetreten(_eigeneGiesserei);
+            else if (innen != "1") _stadt.InnenansichtBetreten(innen); // Rathaus oder Dom
+        }
 
         if (_simulation.Zeit.VergangeneMinuten == 0) // nur bei einer neuen Partie, nicht nach dem Laden
             Protokollieren($"Die Zunftglocke läutet. {_simulation.Zeit.DatumText} beginnt.");
@@ -498,7 +504,7 @@ public partial class Hauptszene : Node
                 _markt.Hide();
             else if (_spielmenue.Visible)
                 SpielmenueSchliessen();
-            else if (_stadt.InnenBetrieb is not null)
+            else if (_stadt.InnenKennung is not null)
                 _stadt.InnenansichtVerlassen();
             else if (_auswahl.Visible)
             {
@@ -562,18 +568,34 @@ public partial class Hauptszene : Node
         _kontor.Aktualisieren();
         _verwaltung.Aktualisieren();
         PlatzMachen();
-        _blick.Text = _stadt.InnenBetrieb is { } innen
-            ? $"Blick nach {_stadt.Blickrichtung} · Innenansicht {innen.Name}"
+        _blick.Text = _stadt.InnenName is { } innen
+            ? $"Blick nach {_stadt.Blickrichtung} · Innenansicht {innen}"
             : $"Blick nach {_stadt.Blickrichtung}";
     }
 
     private void InnenKnopfGedrueckt()
     {
-        if (_stadt.InnenBetrieb is not null)
+        if (_stadt.InnenKennung is not null)
             _stadt.InnenansichtVerlassen();
-        else if (AusgewaehlterBetrieb() is { } betrieb)
-            _stadt.InnenansichtBetreten(betrieb);
+        else if (_auswahlKennung is { } kennung)
+            _stadt.InnenansichtBetreten(kennung);
         AuswahlAnzeigen();
+    }
+
+    /// <summary>
+    /// Ein Raum im Rathaus wurde angeklickt (nur in der Innenansicht möglich): Ratssaal → Ratskammer,
+    /// Gerichtssaal → Gerichtssaal, Amtsstube → Auswahl „Rathaus" mit dem Knopf zum Aufsteigen. Gibt false zurück,
+    /// wenn die Kennung kein Raum ist.
+    /// </summary>
+    private bool RaumImRathausOeffnen(string kennung)
+    {
+        if (kennung is not (Stadtansicht.RaumRat or Stadtansicht.RaumGericht or Stadtansicht.RaumAmt)) return false;
+        _auswahlKennung = "Rathaus";
+        AuswahlAnzeigen();
+        var w = _simulation.Wirtschaft;
+        if (kennung == Stadtansicht.RaumRat && w?.Rat.IstAktiv == true) { TafelnSchliessen(); _ratskammer.Oeffnen(); }
+        else if (kennung == Stadtansicht.RaumGericht && w?.Justiz.IstAktiv == true) { TafelnSchliessen(); _gerichtssaal.Oeffnen(); }
+        return true;
     }
 
     private Betrieb? AusgewaehlterBetrieb() =>
@@ -608,8 +630,8 @@ public partial class Hauptszene : Node
 
         var betrieb = AusgewaehlterBetrieb();
         _verwaltung.Zeigen(betrieb); // nur bei eigenen Betrieben sichtbar
-        _innenKnopf.Visible = betrieb is not null && _stadt.HatInnenansicht(betrieb);
-        _innenKnopf.Text = _stadt.InnenBetrieb == betrieb && betrieb is not null ? "Zurück zur Stadt (Esc)" : "Innenansicht betreten";
+        _innenKnopf.Visible = _stadt.HatInnenansicht(_auswahlKennung);
+        _innenKnopf.Text = _stadt.InnenKennung == _auswahlKennung ? "Zurück zur Stadt (Esc)" : "Innenansicht betreten";
         var frei = _auswahlKennung.StartsWith("liegenschaft:")
             ? w.FreieLiegenschaften.FirstOrDefault(l => Stadtansicht.LiegenschaftKennung(l.Name) == _auswahlKennung)
             : null;

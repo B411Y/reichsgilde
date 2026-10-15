@@ -72,7 +72,7 @@ public partial class Stadtansicht : Node3D
     private double _animationszeit;
 
     // Innenansicht: welcher Betrieb gerade „aufgeschnitten" ist, und wohin die Kamera danach zurückkehrt.
-    private BetriebsAnsicht? _innen;
+    private InnenAnsicht? _innen;
     private Vector3 _vorherPosition;
     private float _vorherZoom;
     private Tween? _kamerafahrt;
@@ -86,14 +86,29 @@ public partial class Stadtansicht : Node3D
     /// <summary>Wird ausgelöst, wenn ein Gebäude angeklickt wird. Übergeben wird seine Kennung.</summary>
     public event Action<string>? GebaeudeAngeklickt;
 
-    /// <summary>Wird ausgelöst, wenn die Innenansicht betreten (Betrieb) oder verlassen (null) wird.</summary>
-    public event Action<Betrieb?>? InnenansichtGewechselt;
+    /// <summary>Wird ausgelöst, wenn eine Innenansicht betreten (Kennung des Gebäudes) oder verlassen (null) wird.</summary>
+    public event Action<string?>? InnenansichtGewechselt;
 
-    /// <summary>Der Betrieb, dessen Innenansicht gerade gezeigt wird, sonst null.</summary>
-    public Betrieb? InnenBetrieb => _innen?.Betrieb;
+    /// <summary>Kennung des Gebäudes, dessen Innenansicht gerade gezeigt wird („betrieb:…", „Rathaus", „Dom"), sonst null.</summary>
+    public string? InnenKennung => _innen?.Kennung;
+
+    /// <summary>Name des betretenen Gebäudes, sonst null.</summary>
+    public string? InnenName => _innen?.Name;
+
+    /// <summary>Der Betrieb, dessen Innenansicht gerade gezeigt wird, sonst null (auch im Rathaus und im Dom).</summary>
+    public Betrieb? InnenBetrieb => (_innen as BetriebsAnsicht)?.Betrieb;
 
     /// <summary>Ob dieser Betrieb eine Innenansicht hat (alle Werkstätten in der Stadt).</summary>
     public bool HatInnenansicht(Betrieb betrieb) => _betriebe.TryGetValue(betrieb, out var a) && a.HatInnenraum;
+
+    /// <summary>Ob das Gebäude mit dieser Kennung eine Innenansicht hat (Werkstätten, Rathaus, Dom).</summary>
+    public bool HatInnenansicht(string? kennung) => kennung is not null && AnsichtZu(kennung) is { HatInnenraum: true };
+
+    /// <summary>Rathaus und Dom: Gebäude mit Innenraum, die kein Betrieb sind.</summary>
+    private readonly Dictionary<string, SonderbauAnsicht> _sonderbauten = new();
+
+    private InnenAnsicht? AnsichtZu(string kennung) =>
+        _sonderbauten.TryGetValue(kennung, out var s) ? s : _betriebe.Values.FirstOrDefault(b => b.Kennung == kennung);
 
     /// <summary>In welche Himmelsrichtung die Kamera gerade blickt.</summary>
     public string Blickrichtung
@@ -118,37 +133,31 @@ public partial class Stadtansicht : Node3D
     }
 
     /// <summary>
-    /// Darstellung eines Betriebs: Grundstück, Wegstrecke zum Markt und Esse.
-    /// Bei Werkstätten sind Wände, Dach und Einrichtung einzelne Teile – so lässt sich das
-    /// Gebäude wie ein Puppenhaus aufschneiden (Diorama-Innenansicht).
+    /// Alles, was ein Gebäude zum Aufschneiden braucht (Diorama-Innenansicht): einzelne Wände, ein Dach als
+    /// eigene Gruppe und der Knoten „Innen" mit der Einrichtung. Werkstätten (<see cref="BetriebsAnsicht"/>) und
+    /// die Sonderbauten Rathaus und Dom (<see cref="SonderbauAnsicht"/>) teilen sich dieses Gerüst.
     /// </summary>
-    private sealed class BetriebsAnsicht
+    private abstract class InnenAnsicht
     {
-        public required Betrieb Betrieb { get; init; }
         public required Vector3 Mitte { get; init; }
-        public required Vector3 Hof { get; init; }
-        public required Vector3[] WegZumMarkt { get; init; }
-        public bool Spieler { get; set; }
-
-        /// <summary>Farbe des Besitzers (Fahne, Karren).</summary>
-        public Color Farbe { get; set; }
-        public OmniLight3D? Glut { get; init; }
-        public StandardMaterial3D? Esse { get; init; }
+        /// <summary>Kennung wie beim Anklicken („betrieb:…", „Rathaus", „Dom").</summary>
+        public abstract string Kennung { get; }
+        public abstract string Name { get; }
         public Label3D? Schild { get; init; }
 
-        // ── nur bei Gebäuden mit Innenraum ──
         /// <summary>Jede Wand mit ihrer Außenrichtung (zeigt vom Gebäude weg).</summary>
         public List<(Node3D Wand, Vector3 Aussen)> Waende { get; } = new();
         public Node3D? Dach { get; set; }
         public Node3D? Innen { get; set; }
-        public Werkstil Stil { get; set; }
-        public Dictionary<string, (MeshInstance3D[] Kisten, Label3D Schild)> Kisten { get; } = new();
-        public List<Arbeiterfigur> Arbeiter { get; } = new();
-        public string Belegungsstand { get; set; } = "";
         public bool HatInnenraum => Innen is not null;
+        /// <summary>Zoom beim Betreten und wie weit man die Kamera im Innern verschieben darf.</summary>
+        public float Zoom { get; init; } = InnenZoom;
+        public float Reichweite { get; init; } = 8;
+        /// <summary>Klickfläche des ganzen Gebäudes – in der Innenansicht aus, damit die Räume erreichbar sind.</summary>
+        public CollisionShape3D? Aussenklick { get; set; }
+        /// <summary>Klickflächen der Räume (Rathaus) – nur in der Innenansicht an.</summary>
+        public List<CollisionShape3D> Raumklicks { get; } = new();
 
-        /// <summary>Arbeitsplätze der Reihe nach: die ersten für Stufe 1, dahinter die an den Stücken späterer Stufen.</summary>
-        public List<Arbeitsplatz> Plaetze { get; } = new();
         /// <summary>Glut und Flammen, die bei der Arbeit (oder zu ihrer eigenen Zeit) hell leuchten.</summary>
         public List<Feuerstelle> Feuer { get; } = new();
         /// <summary>Teile, die sich bei der Arbeit drehen oder auf und ab gehen.</summary>
@@ -157,14 +166,52 @@ public partial class Stadtansicht : Node3D
         public List<(Node3D Teil, int AbStufe)> Stufenteile { get; } = new();
         /// <summary>Figuren, die keine Arbeiter sind: Gäste, Gläubige, Kunden, Gefangene.</summary>
         public List<Arbeiterfigur> Besucher { get; } = new();
-        /// <summary>Werkstück auf der Werkbank – sichtbar, solange gearbeitet wird, gefärbt nach dem Produkt.</summary>
-        public MeshInstance3D? Werkstueck { get; set; }
-        /// <summary>Materialien, die die Farbe des Produkts annehmen (Sud im Kessel, Duft in der Vorlage).</summary>
-        public List<StandardMaterial3D> Produktfarben { get; } = new();
         /// <summary>Kleine Tafel im Raum für Zahlen aus der Simulation (Gäste, Kasse, Aufträge …).</summary>
         public Label3D? Infotafel { get; set; }
         /// <summary>Zeigt Zustände aus der Simulation (Uhrzeit, Arbeitszeit, wird gearbeitet).</summary>
         public Action<Spielzeit, bool, bool>? Zustand { get; set; }
+    }
+
+    /// <summary>Rathaus oder Dom: kein Betrieb, aber mit Innenraum.</summary>
+    private sealed class SonderbauAnsicht : InnenAnsicht
+    {
+        public required string Schluessel { get; init; }
+        public required string Titel { get; init; }
+        public override string Kennung => Schluessel;
+        public override string Name => Titel;
+    }
+
+    /// <summary>
+    /// Darstellung eines Betriebs: Grundstück, Wegstrecke zum Markt und Esse.
+    /// Bei Werkstätten sind Wände, Dach und Einrichtung einzelne Teile – so lässt sich das
+    /// Gebäude wie ein Puppenhaus aufschneiden (Diorama-Innenansicht).
+    /// </summary>
+    private sealed class BetriebsAnsicht : InnenAnsicht
+    {
+        public required Betrieb Betrieb { get; init; }
+        public required Vector3 Hof { get; init; }
+        public required Vector3[] WegZumMarkt { get; init; }
+        public bool Spieler { get; set; }
+        public override string Kennung => BetriebsKennung(Betrieb);
+        public override string Name => Betrieb.Name;
+
+        /// <summary>Farbe des Besitzers (Fahne, Karren).</summary>
+        public Color Farbe { get; set; }
+        public OmniLight3D? Glut { get; init; }
+        public StandardMaterial3D? Esse { get; init; }
+
+        // ── nur bei Werkstätten mit Innenraum ──
+        public Werkstil Stil { get; set; }
+        public Dictionary<string, (MeshInstance3D[] Kisten, Label3D Schild)> Kisten { get; } = new();
+        public List<Arbeiterfigur> Arbeiter { get; } = new();
+        public string Belegungsstand { get; set; } = "";
+
+        /// <summary>Arbeitsplätze der Reihe nach: die ersten für Stufe 1, dahinter die an den Stücken späterer Stufen.</summary>
+        public List<Arbeitsplatz> Plaetze { get; } = new();
+        /// <summary>Werkstück auf der Werkbank – sichtbar, solange gearbeitet wird, gefärbt nach dem Produkt.</summary>
+        public MeshInstance3D? Werkstueck { get; set; }
+        /// <summary>Materialien, die die Farbe des Produkts annehmen (Sud im Kessel, Duft in der Vorlage).</summary>
+        public List<StandardMaterial3D> Produktfarben { get; } = new();
 
         // ── Gebäudestufe (nur Werkstätten) ──
         /// <summary>Dachgaube, Dachreiter und Gerüst – hängt am Dach, verschwindet also in der Innenansicht mit.</summary>
@@ -297,8 +344,8 @@ public partial class Stadtansicht : Node3D
 
         Stadtmauer();
         Marktstaende();
-        Rathaus(new Vector3(0, 0, -20));
-        Dom(new Vector3(-20, 0, -14));
+        RathausBauen(new Vector3(0, 0, -20)); // Rathaus und Dom mit Innenraum: Stadtansicht.Sonderbauten.cs
+        DomBauen(new Vector3(-20, 0, -14));
         Wohnhaeuser();
         Wald();
 
@@ -383,21 +430,6 @@ public partial class Stadtansicht : Node3D
         Beschriftung("Marktplatz", new Vector3(0, 6, 0), 56);
     }
 
-    private void Rathaus(Vector3 p)
-    {
-        Haus(p, new Vector3(16, 9, 10), Putz, Schiefer, quer: true);
-        Turm(p + new Vector3(7, 0, 3), 2.2f, 20, Schiefer, eckig: true);
-        Klickflaeche("Rathaus", p + new Vector3(0, 5, 0), new Vector3(16, 10, 10));
-        Beschriftung("Rathaus", p + new Vector3(0, 18, 0), 56);
-    }
-
-    private void Dom(Vector3 p)
-    {
-        Haus(p, new Vector3(10, 12, 22), Mauerstein, Schiefer, quer: false);
-        Turm(p + new Vector3(0, 0, 13), 3.4f, 30, Schiefer, eckig: true);
-        Klickflaeche("Dom", p + new Vector3(0, 6, 2), new Vector3(10, 12, 26));
-        Beschriftung("Dom", p + new Vector3(0, 34, 13), 56);
-    }
 
     private void Wohnhaeuser()
     {
@@ -1315,14 +1347,14 @@ public partial class Stadtansicht : Node3D
             if (ansicht.Glut is not null) ansicht.Glut.LightEnergy = arbeitet ? 3f : 0f;
             if (ansicht.Esse is not null) ansicht.Esse.EmissionEnergyMultiplier = arbeitet ? 2.5f : 0f;
             if (ansicht == _innen)
-            {
                 InnenAktualisieren(ansicht, zeit, arbeitszeit, arbeitet, delta);
-            }
 
             var fahrzeit = w.Daten.Logistik.FahrzeitAb(betrieb.Ort);
             for (var i = 0; i < betrieb.Karren.Count; i++)
                 KarrenBewegen(betrieb.Karren[i], i, ansicht, fahrzeit, zeit, delta, ansicht.Spieler);
         }
+        if (_innen is SonderbauAnsicht sonderbau)
+            SonderbauAktualisieren(sonderbau, zeit, arbeitszeit, delta);
     }
 
     private void KarrenBewegen(Karren karren, int nummer, BetriebsAnsicht ansicht, int fahrzeit, Spielzeit zeit, double delta, bool spieler)
@@ -1398,9 +1430,15 @@ public partial class Stadtansicht : Node3D
     // ── Innenansicht betreten und verlassen ─────────────────────────────────
 
     /// <summary>Fährt mit der Kamera in den Betrieb und schneidet ihn auf. Gibt false zurück, wenn er keinen Innenraum hat.</summary>
-    public bool InnenansichtBetreten(Betrieb betrieb)
+    public bool InnenansichtBetreten(Betrieb betrieb) =>
+        _betriebe.TryGetValue(betrieb, out var ansicht) && Betreten(ansicht);
+
+    /// <summary>Betritt das Gebäude mit dieser Kennung („Rathaus", „Dom" oder „betrieb:…").</summary>
+    public bool InnenansichtBetreten(string kennung) => AnsichtZu(kennung) is { } ansicht && Betreten(ansicht);
+
+    private bool Betreten(InnenAnsicht ansicht)
     {
-        if (!_betriebe.TryGetValue(betrieb, out var ansicht) || !ansicht.HatInnenraum) return false;
+        if (!ansicht.HatInnenraum) return false;
         if (_innen == ansicht) return true;
         if (_innen is null)
         {
@@ -1411,8 +1449,8 @@ public partial class Stadtansicht : Node3D
 
         _innen = ansicht;
         InnenraumZeigen(ansicht, true);
-        Kamerafahrt(ansicht.Mitte, InnenZoom);
-        InnenansichtGewechselt?.Invoke(betrieb);
+        Kamerafahrt(ansicht.Mitte, ansicht.Zoom);
+        InnenansichtGewechselt?.Invoke(ansicht.Kennung);
         return true;
     }
 
@@ -1426,12 +1464,15 @@ public partial class Stadtansicht : Node3D
         InnenansichtGewechselt?.Invoke(null);
     }
 
-    private void InnenraumZeigen(BetriebsAnsicht ansicht, bool innen)
+    private void InnenraumZeigen(InnenAnsicht ansicht, bool innen)
     {
         ansicht.Innen!.Visible = innen;
         if (ansicht.Dach is not null) ansicht.Dach.Visible = !innen;
         if (ansicht.Schild is not null) ansicht.Schild.Visible = !innen;
         foreach (var (wand, _) in ansicht.Waende) wand.Visible = true;
+        // Drinnen treffen Klicks die Räume, draußen das ganze Gebäude.
+        if (ansicht.Aussenklick is not null) ansicht.Aussenklick.Disabled = innen;
+        foreach (var raum in ansicht.Raumklicks) raum.Disabled = !innen;
         KulisseZeigen();
         if (!innen) return;
         // Beim Betreten sofort einmal auffüllen, damit nichts „nachploppt".
@@ -1439,7 +1480,10 @@ public partial class Stadtansicht : Node3D
         {
             var zeit = _simulation.Zeit;
             var arbeitszeit = w.IstArbeitszeit(zeit);
-            InnenAktualisieren(ansicht, zeit, arbeitszeit, arbeitszeit && ansicht.Betrieb.Belegt > 0 && ansicht.Betrieb.Stillstand is null, 0);
+            if (ansicht is BetriebsAnsicht b)
+                InnenAktualisieren(b, zeit, arbeitszeit, arbeitszeit && b.Betrieb.Belegt > 0 && b.Betrieb.Stillstand is null, 0);
+            else if (ansicht is SonderbauAnsicht s)
+                SonderbauAktualisieren(s, zeit, arbeitszeit, 0);
         }
         Aufschneiden(ansicht);
     }
@@ -1449,7 +1493,7 @@ public partial class Stadtansicht : Node3D
     /// Beim diagonalen Blick sind das genau zwei Wände – man schaut über die offene Ecke hinein.
     /// Das Skalarprodukt (Dot) misst, wie sehr zwei Richtungen übereinstimmen: 1 = gleich, 0 = quer, −1 = entgegen.
     /// </summary>
-    private void Aufschneiden(BetriebsAnsicht ansicht)
+    private void Aufschneiden(InnenAnsicht ansicht)
     {
         var zurKamera = RichtungZurKamera;
         foreach (var (wand, aussen) in ansicht.Waende)
@@ -1462,7 +1506,7 @@ public partial class Stadtansicht : Node3D
     /// „Davor" heißt: ein Stück in Richtung Kamera (vorne) und nicht zu weit seitlich daneben.
     /// Flaches (Boden, Wege) und bewegliche Dinge (Karren) bleiben immer sichtbar.
     /// </summary>
-    private void KulisseAusblenden(BetriebsAnsicht ansicht, Vector3 zurKamera)
+    private void KulisseAusblenden(InnenAnsicht ansicht, Vector3 zurKamera)
     {
         KulisseZeigen();
         var eigene = new HashSet<Node>(ansicht.Waende.Select(x => (Node)x.Wand));
@@ -1480,8 +1524,8 @@ public partial class Stadtansicht : Node3D
                 _kulisseAusgeblendet.Add(teil);
             }
         }
-        // Dächer anderer Gießereien sind eigene Gruppen – die gleichen Regeln gelten.
-        foreach (var andere in _betriebe.Values.Where(x => x != ansicht && x.Dach is not null))
+        // Dächer anderer Werkstätten, des Rathauses und des Doms sind eigene Gruppen – die gleichen Regeln gelten.
+        foreach (var andere in _betriebe.Values.Cast<InnenAnsicht>().Concat(_sonderbauten.Values).Where(x => x != ansicht && x.Dach is not null))
         {
             var abstand = andere.Mitte - ansicht.Mitte;
             var vorne = abstand.Dot(zurKamera);
@@ -1624,7 +1668,8 @@ public partial class Stadtansicht : Node3D
         {
             // In der Innenansicht nur ein Stück um das Gebäude herum verschieben.
             var m = _innen.Mitte;
-            _kameraDrehung.Position = new Vector3(Mathf.Clamp(neu.X, m.X - 8, m.X + 8), 0, Mathf.Clamp(neu.Z, m.Z - 8, m.Z + 8));
+            var r = _innen.Reichweite;
+            _kameraDrehung.Position = new Vector3(Mathf.Clamp(neu.X, m.X - r, m.X + r), 0, Mathf.Clamp(neu.Z, m.Z - r, m.Z + r));
             return;
         }
         _kameraDrehung.Position = new Vector3(Mathf.Clamp(neu.X, -70, 110), 0, Mathf.Clamp(neu.Z, -80, 80));
@@ -1679,8 +1724,8 @@ public partial class Stadtansicht : Node3D
             return;
         var kennung = koerper.GetMeta("kennung").AsString();
         GebaeudeAngeklickt?.Invoke(kennung);
-        if (doppelklick && _betriebe.Keys.FirstOrDefault(b => BetriebsKennung(b) == kennung) is { } betrieb)
-            InnenansichtBetreten(betrieb);
+        if (doppelklick && AnsichtZu(kennung) is { } ansicht)
+            Betreten(ansicht);
     }
 
     // ═════════════════════════════════════════════════════════════════════════
@@ -1725,7 +1770,7 @@ public partial class Stadtansicht : Node3D
     }
 
     /// <summary>Ein Turm mit spitzem Dach (rund oder eckig).</summary>
-    private void Turm(Vector3 grund, float radius, float hoehe, Color dach, bool eckig = false)
+    private void Turm(Vector3 grund, float radius, float hoehe, Color dach, bool eckig = false, Node3D? eltern = null)
     {
         var segmente = eckig ? 4 : 10;
         var schaft = new MeshInstance3D
@@ -1741,8 +1786,8 @@ public partial class Stadtansicht : Node3D
             Position = grund + new Vector3(0, hoehe + radius * 1.3f, 0),
         };
         if (eckig) { schaft.RotationDegrees = new Vector3(0, 45, 0); spitze.RotationDegrees = new Vector3(0, 45, 0); }
-        AddChild(schaft);
-        AddChild(spitze);
+        (eltern ?? this).AddChild(schaft);
+        (eltern ?? this).AddChild(spitze);
     }
 
     /// <summary>Ein flacher Weg zwischen zwei Punkten.</summary>
@@ -1760,13 +1805,15 @@ public partial class Stadtansicht : Node3D
         (eltern ?? this).AddChild(weg);
     }
 
-    /// <summary>Unsichtbarer Körper, damit Mausklicks das Gebäude treffen.</summary>
-    private void Klickflaeche(string kennung, Vector3 mitte, Vector3 groesse, Node3D? eltern = null)
+    /// <summary>Unsichtbarer Körper, damit Mausklicks das Gebäude treffen. Die Form lässt sich abschalten (Innenansicht).</summary>
+    private CollisionShape3D Klickflaeche(string kennung, Vector3 mitte, Vector3 groesse, Node3D? eltern = null)
     {
         var koerper = new StaticBody3D { Position = mitte };
         koerper.SetMeta("kennung", kennung);
-        koerper.AddChild(new CollisionShape3D { Shape = new BoxShape3D { Size = groesse } });
+        var form = new CollisionShape3D { Shape = new BoxShape3D { Size = groesse } };
+        koerper.AddChild(form);
         (eltern ?? this).AddChild(koerper);
+        return form;
     }
 
     private Label3D Beschriftung(string text, Vector3 position, int groesse, Node3D? eltern = null)
