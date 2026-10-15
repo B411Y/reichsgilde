@@ -60,10 +60,14 @@ public sealed class Stadtwirtschaft
     /// <summary>Sold, Patrouille, Wachturm, Razzia, Kopfgeld und Geleitschutz – die Wache des Gardisten.</summary>
     public Ordnung.Wachwesen Wache { get; }
 
+    /// <summary>Kasse, Wechsel und Kredite der Geldleiher.</summary>
+    public Bank.Bankwesen Bank { get; }
+
     /// <summary>Was eine Arbeitsminute in einem Betrieb ohne Ware wert ist (Dieb: Beute, Gardist: Sold nach Steuer).</summary>
     public double WertOhneWare(BetriebsartDaten d) =>
         Diebe.IstAktiv && d.Beruf == Diebe.Daten.Beruf ? Diebe.WertJeMinute(d.Stufe)
         : Wache.IstAktiv && d.Beruf == Wache.Daten.Beruf ? Wache.WertJeMinute(d.Stufe)
+        : Bank.IstAktiv && d.Beruf == Bank.Daten.Beruf ? Bank.WertJeMinute(d.Stufe)
         : 0;
 
     /// <summary>Krankheiten, Pest, Medicus und Hausapotheke.</summary>
@@ -107,13 +111,13 @@ public sealed class Stadtwirtschaft
         konto.Stand + 1 < Daten.Staende.Count ? Daten.Staende[konto.Stand + 1] : null;
 
     /// <summary>
-    /// Rangliste: höherer Stand vor niedrigerem, innerhalb eines Standes nach Vermögen.
+    /// Rangliste: höherer Stand vor niedrigerem, innerhalb eines Standes nach Reinvermögen.
     /// Bankrotte und erloschene Häuser stehen am Ende.
     /// </summary>
     public IReadOnlyList<Konto> Rangliste => _konten
         .OrderBy(k => !k.IstAktiv)
         .ThenByDescending(k => k.Stand)
-        .ThenByDescending(k => k.Vermoegen)
+        .ThenByDescending(k => k.Reinvermoegen)
         .ThenBy(k => k.Inhaber, StringComparer.Ordinal)
         .ToList();
 
@@ -135,6 +139,7 @@ public sealed class Stadtwirtschaft
         Gauner = new Unterwelt(this, daten.Gauner, zufallsstartwert);
         Diebe = new Diebeswesen(this, daten.Dieb, zufallsstartwert);
         Wache = new Ordnung.Wachwesen(this, daten.Wache, zufallsstartwert);
+        Bank = new Bank.Bankwesen(this, daten.Geldleiher, zufallsstartwert);
         Gesundheit = new Gesundheitswesen(this, daten.Gesundheit, zufallsstartwert);
         Gastwirtschaft = new Gastwirtschaft(this, daten.Gastwirtschaft);
         Kirchenwesen = new Kirche.Kirchenwesen(this, daten.Kirche, zufallsstartwert);
@@ -187,7 +192,7 @@ public sealed class Stadtwirtschaft
 
     /// <summary>Zusätzliche AP je Runde – ein Meister des höchsten Grades hat mehr Zeit für Persönliches.</summary>
     public int ApBonus(Konto konto) =>
-        Daten.Meistergrade is { } m && konto.HoechsterMeistergrad >= m.ApBonusAbGrad ? m.ApBonus : 0;
+        (Daten.Meistergrade is { } m && konto.HoechsterMeistergrad >= m.ApBonusAbGrad ? m.ApBonus : 0) + Bank.ApBonus(konto);
 
     // ── Meistergrade und Gebäudestufen ───────────────────────────────────────
 
@@ -289,6 +294,7 @@ public sealed class Stadtwirtschaft
             Kirchenwesen.Stunde(zeit); // zur Messe wird gespendet
             Diebe.Stunde(zeit);        // die Taschendiebe der vergangenen Stunde
             Wache.Stunde(zeit);        // Sold für die Wachleute
+            Bank.Stunde(zeit);         // Zinsen der Stadtkunden, Wechsel; Kreditzinsen laufen auf
         }
 
         // Die KI überlegt jede volle Stunde – mit den Marktpreisen dieser Stunde.
@@ -331,6 +337,7 @@ public sealed class Stadtwirtschaft
         Justiz.Gerichtstag(); // vor dem Amtseinkommen: Wer verurteilt wird, verliert Amt und Einkommen
         Rat.EinkommenZahlen();
         Familien.UnterhaltZahlen();
+        Bank.Jahresende(); // Ausfälle, Zins und Rate der Kredite – noch in die alte Jahresrechnung
         foreach (var konto in _konten)
             konto.JahrAbschliessen(neuesJahr);
         SchuldenPruefen();
@@ -368,7 +375,7 @@ public sealed class Stadtwirtschaft
             else
             {
                 var rest = grenze - konto.Schuldenjahre;
-                Melden($"Der Kämmerer mahnt {konto.Inhaber}: {Zahlenformat.Ganz(-konto.Vermoegen)} {Daten.Allgemein.Waehrung} Schulden. " +
+                Melden($"Der Kämmerer mahnt {konto.Inhaber}: {Zahlenformat.Ganz(-konto.Reinvermoegen)} {Daten.Allgemein.Waehrung} Schulden. " +
                        $"Noch {rest} {(rest == 1 ? "Jahresabschluss" : "Jahresabschlüsse")} im Minus, dann droht der Bankrott.");
             }
         }
@@ -429,7 +436,7 @@ public sealed class Stadtwirtschaft
             return Befehlsergebnis.Abgelehnt($"{absender.Inhaber} ist bankrott und kann nichts mehr unternehmen.");
         if (absender.IstErloschen)
             return Befehlsergebnis.Abgelehnt($"Das Haus {absender.Inhaber} ist erloschen.");
-        if (Justiz.IstAktiv && Justiz.ImKerker(absender) && befehl is not (BetriebsBefehl or ErbenBestimmen or ErpressungBeantworten or DiebesforderungBeantworten or AusbildungWaehlen
+        if (Justiz.IstAktiv && Justiz.ImKerker(absender) && befehl is not (BetriebsBefehl or ErbenBestimmen or ErpressungBeantworten or DiebesforderungBeantworten or AusbildungWaehlen or KreditTilgen
                                                                      or MedicusRufen or SchnapsKaufen or SchnapsGeben))
             return Befehlsergebnis.Abgelehnt($"Das Oberhaupt von {absender.Inhaber} sitzt bis Ende {Justiz.KerkerBis(absender)} im Kerker. " +
                                              "Nur die Betriebe laufen weiter.");
@@ -489,6 +496,12 @@ public sealed class Stadtwirtschaft
                 _ => Befehlsergebnis.Abgelehnt("Unbekannter Befehl."),
             };
         }
+        if (befehl is KreditAufnehmen kredit)
+            return _konten.FirstOrDefault(k => k.Inhaber == kredit.Geldleiher) is { } geber
+                ? Bank.KreditAufnehmen(absender, geber, kredit.Betrag, kredit.Jahre)
+                : Befehlsergebnis.Abgelehnt($"Ein Haus „{kredit.Geldleiher}“ gibt es nicht.");
+        if (befehl is KreditTilgen)
+            return Bank.IstAktiv ? Bank.KreditTilgen(absender) : Befehlsergebnis.Abgelehnt("In dieser Stadt gibt es keine Geldleiher.");
         if (befehl is Razzia razzia)
             return _konten.FirstOrDefault(k => k.Inhaber == razzia.Haus) is { } durchsucht
                 ? Wache.Razzia(absender, durchsucht)
@@ -555,6 +568,9 @@ public sealed class Stadtwirtschaft
                 BetriebAusbauen => AusbauenAusfuehren(betrieb),
                 BardeEinladen => Gastwirtschaft.BardeEinladen(betrieb),
                 WuerfeltischAufstellen t => Gastwirtschaft.WuerfeltischAufstellen(betrieb, t.Aufstellen),
+                KasseEinlegen e => Bank.KasseEinlegen(betrieb, e.Betrag),
+                KasseAbheben a => Bank.KasseAbheben(betrieb, a.Betrag),
+                ZinsSetzen z => Bank.ZinsSetzen(betrieb, z.Satz),
                 _ => Befehlsergebnis.Abgelehnt($"Unbekannter Befehl: {befehl.GetType().Name}"),
             };
         }
@@ -571,10 +587,10 @@ public sealed class Stadtwirtschaft
         var waehrung = Daten.Allgemein.Waehrung;
         if (neu is null)
             return Befehlsergebnis.Abgelehnt($"{konto.Inhaber} steht bereits im höchsten Stand ({StandVon(konto).Name}).");
-        if (konto.Vermoegen < neu.Schwelle)
+        if (konto.Reinvermoegen < neu.Schwelle)
             return Befehlsergebnis.Abgelehnt(
                 $"Für den Stand {neu.Name} braucht es {Zahlenformat.Ganz(neu.Schwelle)} {waehrung} Vermögen – " +
-                $"es fehlen noch {Zahlenformat.Ganz(neu.Schwelle - konto.Vermoegen)} {waehrung}.");
+                $"es fehlen noch {Zahlenformat.Ganz(neu.Schwelle - konto.Reinvermoegen)} {waehrung}.");
 
         konto.Standesgebuehr(neu.Gebuehr);
         konto.Stand++;
@@ -768,6 +784,7 @@ public sealed class Stadtwirtschaft
         Kirche = Kirchenwesen.IstAktiv ? Kirchenwesen.Sichern(k => _konten.IndexOf(k)) : null,
         Diebe = Diebe.IstAktiv ? Diebe.Sichern(k => _konten.IndexOf(k)) : null,
         Wache = Wache.IstAktiv ? Wache.Sichern(k => _konten.IndexOf(k)) : null,
+        Bank = Bank.IstAktiv ? Bank.Sichern(k => _konten.IndexOf(k)) : null,
     };
 
     /// <summary>
@@ -820,7 +837,9 @@ public sealed class Stadtwirtschaft
             Diebe.Wiederherstellen(diebeStand, _konten);
         if (s.Wache is { } wacheStand && Wache.IstAktiv)
             Wache.Wiederherstellen(wacheStand, _konten);
+        if (s.Bank is { } bankStand && Bank.IstAktiv)
+            Bank.Wiederherstellen(bankStand, _konten);
     }
 
-    public double HoechstesVermoegen => _konten.Count == 0 ? 0 : _konten.Max(k => k.Vermoegen);
+    public double HoechstesVermoegen => _konten.Count == 0 ? 0 : _konten.Max(k => k.Reinvermoegen);
 }

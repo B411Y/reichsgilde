@@ -125,6 +125,7 @@ public sealed class KiRivale
             Unterweltschutz(); // Erpresserbriefe beantworten, Wächter einstellen – kostet keine Aktionspunkte
             Gesundheitspolitik(); // Medicus und Kräuterschnaps – auch aus dem Kerker (der Verwalter sorgt für die Familie)
             Gastwirtschaftspolitik(); // Barden und Würfeltische – Betriebssache, keine AP
+            Bankpolitik(); // Kasse füllen, Zins setzen – Betriebssache, keine AP
             if (frei)
             {
                 // Die Aktionspunkte reichen nicht für alles: Familie und Verteidigung zuerst, dann nach Charakter –
@@ -305,7 +306,7 @@ public sealed class KiRivale
     private void StandPruefen()
     {
         if (_w.NaechsterStand(Konto) is not { } neu) return;
-        if (Konto.Vermoegen < neu.Schwelle || Konto.Vermoegen - neu.Gebuehr < Profil.Reserve) return;
+        if (Konto.Reinvermoegen < neu.Schwelle || Konto.Vermoegen - neu.Gebuehr < Profil.Reserve) return;
         Befehlen(new StandErwerben(),
             $"steigt in den Stand {neu.Name} auf ({Zahlenformat.Ganz(neu.Gebuehr)} {_w.Daten.Allgemein.Waehrung} Gebühr).");
     }
@@ -389,6 +390,34 @@ public sealed class KiRivale
             return;
         Befehlen(new LiegenschaftErwerben(l.Name),
             $"{(l.IstPacht ? "pachtet" : "kauft")} {l.Name} (erwarteter Gewinn ≈ {Zahlenformat.Ganz(wahl.Gewinn)} {waehrung} im Jahr).");
+    }
+
+    /// <summary>
+    /// Einmal am Tag, für jede eigene Geldleihe:
+    ///   • den Zins für Häuser nach Charakter setzen – vorsichtig 10 %, ausgewogen 14 %, wagemutig 25 % (Wucher),
+    ///   • die Kasse bis zum Rahmen bei voller Besetzung füllen, solange das Doppelte der Reserve als Bargeld bleibt,
+    ///   • wird das Bargeld knapp (unter der halben Reserve), Geld aus der Kasse nehmen.
+    /// </summary>
+    private void Bankpolitik()
+    {
+        if (!_w.Bank.IstAktiv) return;
+        var waehrung = _w.Daten.Allgemein.Waehrung;
+        var zins = Profil.Gaunerei >= 2 ? 0.25 : Profil.Gaunerei >= 1 ? 0.14 : 0.10;
+        foreach (var b in Betriebe.Where(_w.Bank.IstBankbetrieb).OrderBy(b => b.Name, StringComparer.Ordinal).ToList())
+        {
+            if (Math.Abs(_w.Bank.Zinssatz(Konto) - zins) > 1e-9)
+                Befehlen(new ZinsSetzen(b.Name, zins), $"verleiht Geld an Häuser zu {Prozent(zins)}.");
+            var kasse = _w.Bank.Kasse(b);
+            if (Konto.Vermoegen < Profil.Reserve / 2 && kasse > 0)
+            {
+                var betrag = Math.Min(kasse, Profil.Reserve - Konto.Vermoegen);
+                Befehlen(new KasseAbheben(b.Name, betrag), $"nimmt {Zahlenformat.Ganz(betrag)} {waehrung} aus der Kasse von {b.Name}.");
+                continue;
+            }
+            var fehlt = Math.Min(_w.Bank.RahmenVoll(b) - kasse, Konto.Vermoegen - 2 * Profil.Reserve);
+            if (fehlt >= 100)
+                Befehlen(new KasseEinlegen(b.Name, Math.Floor(fehlt)), $"legt {Zahlenformat.Ganz(fehlt)} {waehrung} in die Kasse von {b.Name}.");
+        }
     }
 
     /// <summary>

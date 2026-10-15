@@ -97,13 +97,14 @@ public sealed class Stadtrat
     public double Ansehen(Konto konto)
     {
         var g = _daten.Gunst;
-        return Math.Min(g.AnsehenHoechstwert, konto.Stand * g.AnsehenJeStand + Math.Max(0, konto.Vermoegen) / 1000 * g.AnsehenJe1000Gulden)
+        return Math.Min(g.AnsehenHoechstwert, konto.Stand * g.AnsehenJeStand + Math.Max(0, konto.Reinvermoegen) / 1000 * g.AnsehenJe1000Gulden)
                - _w.Justiz.Schande(konto)               // wer am Pranger stand, verliert Ansehen
                - _w.Gesundheit.AnsehenAbzug(konto)      // Haarausfall, Lachanfälle des Oberhaupts
                - _w.Gastwirtschaft.AnsehenAbzug(konto)  // ein Würfeltisch im eigenen Wirtshaus
                - _w.Kirchenwesen.AnsehenAbzug(konto)    // eine Hetzschrift gegen das Haus
                - _w.Diebe.AnsehenAbzug(konto)           // ein Haus von Dieben
-               + _w.Wache.AnsehenBonus(konto);          // ein Haus der Wache
+               + _w.Wache.AnsehenBonus(konto)           // ein Haus der Wache
+               - _w.Bank.AnsehenAbzug(konto);           // ein Wucherkredit läuft
     }
 
     /// <summary>Auf welche Ämter sich ein Haus jetzt bewerben darf: genau eine Stufe über seinem Amt, Stand erfüllt.</summary>
