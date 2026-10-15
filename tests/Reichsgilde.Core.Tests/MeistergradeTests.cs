@@ -94,6 +94,24 @@ static class MeistergradeTests
             Pruefe.Wahr(!e2.Erfolg && e2.Meldung.Contains("höchsten Meistergrad"), e2.Meldung);
         }),
 
+        ("Ausbau ohne Ware: Schmugglerloch, Wachhaus und Wechselstube lassen sich ausbauen, ohne nach einem Produkt zu suchen", () =>
+        {
+            var sim = NeueSimulation();
+            var w = sim.Wirtschaft!;
+            foreach (var (art, beruf, neu) in new[] { (Betriebsart.Schmugglerloch, "Dieb", Betriebsart.Unterschlupf),
+                         (Betriebsart.Wachhaus, "Gardist", Betriebsart.Stadtwache), (Betriebsart.Wechselstube, "Geldleiher", Betriebsart.Geldleihe) })
+            {
+                var k = w.KontoEroeffnen($"Familie {beruf}", startvermoegen: 30_000);
+                var b = w.BetriebEroeffnen($"{beruf} Probe", art, k, startkarren: "");
+                k.GradSetzen(beruf, 3);
+                var e = w.Ausfuehren(k, new BetriebAusbauen(b.Name));
+                Pruefe.Wahr(e.Erfolg, e.Meldung);
+                Pruefe.Gleich(neu, b.Art);
+                Pruefe.Gleich(2, b.Stufe);
+                Pruefe.Gleich("", b.Produkt);
+            }
+        }),
+
         ("Ausbau: ab Grad 3 zur Schmiede – 3 Plätze, neue Waren, ein halber Tag Umbau; Stufe 3 erst ab Grad 5", () =>
         {
             var sim = NeueSimulation();

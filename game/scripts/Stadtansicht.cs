@@ -17,15 +17,16 @@ namespace Reichsgilde;
 ///   • Sonne, Himmel und Licht folgen der Spieluhr
 ///   • Die Esse einer Gießerei glüht, solange dort gearbeitet wird
 ///   • Gebäude lassen sich anklicken (Ereignis <see cref="GebaeudeAngeklickt"/>)
-///   • Gießereien lassen sich als „Diorama" betreten: Dach und Vorderwand werden ausgeblendet,
-///     innen sieht man Esse, Amboss, Werkbank, das Lager als Kistenstapel und die Arbeiter.
+///   • Werkstätten lassen sich als „Diorama" betreten: Dach und Vorderwand werden ausgeblendet,
+///     innen sieht man die Einrichtung des Berufs, das Lager als Kistenstapel und die Arbeiter
+///     (Einrichtung und Zustände: Stadtansicht.Innenraeume.cs).
 ///
 /// Blickrichtungen: Die Kamera schaut schräg von oben und diagonal zu den Himmelsrichtungen –
 /// nach Nordosten, Nordwesten, Südwesten oder Südosten (Entscheidung vom 13.10.2026).
 /// Norden ist −Z, Osten ist +X. Dadurch zeigen immer zwei Gebäudeseiten zur Kamera.
 ///
 /// Steuerung: Mausrad = Zoom, rechte Maustaste ziehen oder WASD/Pfeiltasten = verschieben,
-/// Q/E = um 90° drehen, Linksklick = Gebäude auswählen, Doppelklick auf eine Gießerei = Innenansicht.
+/// Q/E = um 90° drehen, Linksklick = Gebäude auswählen, Doppelklick auf eine Werkstatt = Innenansicht.
 /// </summary>
 public partial class Stadtansicht : Node3D
 {
@@ -91,7 +92,7 @@ public partial class Stadtansicht : Node3D
     /// <summary>Der Betrieb, dessen Innenansicht gerade gezeigt wird, sonst null.</summary>
     public Betrieb? InnenBetrieb => _innen?.Betrieb;
 
-    /// <summary>Ob dieser Betrieb eine Innenansicht hat (bisher nur Gießereien).</summary>
+    /// <summary>Ob dieser Betrieb eine Innenansicht hat (alle Werkstätten in der Stadt).</summary>
     public bool HatInnenansicht(Betrieb betrieb) => _betriebe.TryGetValue(betrieb, out var a) && a.HatInnenraum;
 
     /// <summary>In welche Himmelsrichtung die Kamera gerade blickt.</summary>
@@ -118,7 +119,7 @@ public partial class Stadtansicht : Node3D
 
     /// <summary>
     /// Darstellung eines Betriebs: Grundstück, Wegstrecke zum Markt und Esse.
-    /// Bei der Gießerei sind Wände, Dach und Einrichtung einzelne Teile – so lässt sich das
+    /// Bei Werkstätten sind Wände, Dach und Einrichtung einzelne Teile – so lässt sich das
     /// Gebäude wie ein Puppenhaus aufschneiden (Diorama-Innenansicht).
     /// </summary>
     private sealed class BetriebsAnsicht
@@ -140,12 +141,30 @@ public partial class Stadtansicht : Node3D
         public List<(Node3D Wand, Vector3 Aussen)> Waende { get; } = new();
         public Node3D? Dach { get; set; }
         public Node3D? Innen { get; set; }
-        public OmniLight3D? InnenGlut { get; set; }
-        public StandardMaterial3D? InnenEsse { get; set; }
+        public Werkstil Stil { get; set; }
         public Dictionary<string, (MeshInstance3D[] Kisten, Label3D Schild)> Kisten { get; } = new();
         public List<Arbeiterfigur> Arbeiter { get; } = new();
         public string Belegungsstand { get; set; } = "";
         public bool HatInnenraum => Innen is not null;
+
+        /// <summary>Arbeitsplätze der Reihe nach: die ersten für Stufe 1, dahinter die an den Stücken späterer Stufen.</summary>
+        public List<Arbeitsplatz> Plaetze { get; } = new();
+        /// <summary>Glut und Flammen, die bei der Arbeit (oder zu ihrer eigenen Zeit) hell leuchten.</summary>
+        public List<Feuerstelle> Feuer { get; } = new();
+        /// <summary>Teile, die sich bei der Arbeit drehen oder auf und ab gehen.</summary>
+        public List<Bewegtteil> Bewegt { get; } = new();
+        /// <summary>Einrichtung, die erst ab einer Gebäudestufe dasteht.</summary>
+        public List<(Node3D Teil, int AbStufe)> Stufenteile { get; } = new();
+        /// <summary>Figuren, die keine Arbeiter sind: Gäste, Gläubige, Kunden, Gefangene.</summary>
+        public List<Arbeiterfigur> Besucher { get; } = new();
+        /// <summary>Werkstück auf der Werkbank – sichtbar, solange gearbeitet wird, gefärbt nach dem Produkt.</summary>
+        public MeshInstance3D? Werkstueck { get; set; }
+        /// <summary>Materialien, die die Farbe des Produkts annehmen (Sud im Kessel, Duft in der Vorlage).</summary>
+        public List<StandardMaterial3D> Produktfarben { get; } = new();
+        /// <summary>Kleine Tafel im Raum für Zahlen aus der Simulation (Gäste, Kasse, Aufträge …).</summary>
+        public Label3D? Infotafel { get; set; }
+        /// <summary>Zeigt Zustände aus der Simulation (Uhrzeit, Arbeitszeit, wird gearbeitet).</summary>
+        public Action<Spielzeit, bool, bool>? Zustand { get; set; }
 
         // ── Gebäudestufe (nur Werkstätten) ──
         /// <summary>Dachgaube, Dachreiter und Gerüst – hängt am Dach, verschwindet also in der Innenansicht mit.</summary>
@@ -154,8 +173,8 @@ public partial class Stadtansicht : Node3D
         public bool GezeigterUmbau { get; set; }
     }
 
-    /// <summary>Eine Arbeiterfigur: Körper und der Arm, der den Hammer schwingt.</summary>
-    private sealed record Arbeiterfigur(Node3D Koerper, Node3D Arm, float Takt);
+    /// <summary>Eine Figur: Körper, der bewegliche Arm (mit Werkzeug), ihr Takt, was sie tut und wo der Arm ruht.</summary>
+    private sealed record Arbeiterfigur(Node3D Koerper, Node3D Arm, float Takt, Bewegung Art, Vector3 ArmRuhe);
 
     // Feste Punkte der Stadt (Meter). Der Marktplatz liegt im Ursprung.
     public static readonly Vector3 Marktplatz = Vector3.Zero;
@@ -602,14 +621,14 @@ public partial class Stadtansicht : Node3D
     }
 
     /// <summary>
-    /// Werkstatt in Fachwerk. Die Gießerei hat eine glühende Esse und einen Innenraum (Diorama);
-    /// die Tischlerei (<paramref name="tischlerei"/>) ein Schieferdach und Holzstapel vor der Tür – ihr Innenraum folgt später.
+    /// Werkstatt in Fachwerk, Stein, Putz oder morschem Holz – je nach Beruf (<see cref="Werkstil"/>).
+    /// Die Gießerei hat eine glühende Esse; jede Werkstatt hat einen Innenraum (Diorama).
     /// </summary>
     private enum Werkstil { Giesserei, Tischlerei, Maurerei, Tinkturei, Schaenke, Kirche, Diebesnest, Wache, Bank, Siederei }
 
     private BetriebsAnsicht GiessereiBauen(Betrieb betrieb, Vector3 p, Color besitzer, Werkstil stil = Werkstil.Giesserei)
     {
-        var tischlerei = stil != Werkstil.Giesserei; // ohne Esse und (noch) ohne Innenraum
+        var tischlerei = stil != Werkstil.Giesserei; // ohne glühende Esse auf dem Dach
         // Maße: 10 m (West–Ost) × 8 m (Nord–Süd), Wände 6 m hoch und 0,4 m dick.
         const float breite = 10, tiefe = 8, hoehe = 6, dicke = 0.4f;
 
@@ -645,6 +664,7 @@ public partial class Stadtansicht : Node3D
         Quader(new Vector3(-2, -hoehe / 2 + 1.5f, dicke / 2 + 0.07f), new Vector3(1.8f, 3, 0.1f), Material(new Color(0.24f, 0.16f, 0.10f)), suedwand); // Tor
         var westwand = gebaeude[2].Item1;
         Quader(new Vector3(-0.35f, 2, 0), new Vector3(0.2f, 3, 2), Material(besitzer), westwand); // Wappenfahne in der Besitzerfarbe
+        var vorDemSchmuck = GetChildCount(); // ab hier: Schmuck des Berufs (siehe WandschmuckAnDieWand)
 
         // ── Dach mit Schornstein: eine Gruppe, die in der Innenansicht verschwindet ──
         var dach = new Node3D { Name = "Dach" };
@@ -815,6 +835,7 @@ public partial class Stadtansicht : Node3D
                 Quader(p + new Vector3(breite / 2 + 1.2f, 0.4f + lage * 0.8f, 0), new Vector3(1.8f, 0.7f, tiefe - 1 - lage), stamm);
             Quader(p + new Vector3(2, 0.5f, tiefe / 2 + 1.4f), new Vector3(2.2f, 1f, 0.6f), stamm);
         }
+        WandschmuckAnDieWand(p, tiefe, suedwand, vorDemSchmuck);
         var esse = Material(new Color(0.3f, 0.28f, 0.27f));
         esse.EmissionEnabled = true;
         esse.Emission = new Color(1f, 0.45f, 0.1f);
@@ -844,9 +865,30 @@ public partial class Stadtansicht : Node3D
             Dach = dach,
         };
         ansicht.Waende.AddRange(gebaeude);
-        if (!tischlerei) Innenraum(ansicht, breite, tiefe, dicke);
+        Innenraum(ansicht, stil, breite, tiefe, dicke);
         if (betrieb.Stufe > 1 || betrieb.UmbauMinuten > 0) StufeZeigen(ansicht);
         return ansicht;
+    }
+
+    /// <summary>
+    /// Was an der Südwand hängt (Wappenschild, Fenstergitter, Blumenkästen, Fensterläden, Laterne, Münzschild), wird ein
+    /// Kind der Wand. So verschwindet es mit ihr, wenn die Werkstatt in der Innenansicht aufgeschnitten wird – sonst
+    /// schwebte es mitten im Raum. Freistehendes vor der Tür (Tische, Speergestell, Fässer) bleibt stehen.
+    /// Erkannt wird Wandschmuck an seiner Lage: dicht vor der Wand (bis 0,4 m) und höher als 1,5 m,
+    /// oder bis 0,65 m davor und höher als 3,5 m (Schilder an einem kurzen Arm).
+    /// </summary>
+    private void WandschmuckAnDieWand(Vector3 p, float tiefe, Node3D suedwand, int abKind)
+    {
+        foreach (var kind in GetChildren().Skip(abKind).OfType<MeshInstance3D>().ToList())
+        {
+            var vorDerWand = kind.Position.Z - (p.Z + tiefe / 2);
+            var hoehe = kind.Position.Y - p.Y;
+            if (vorDerWand is < -0.1f or > 0.65f || !(vorDerWand <= 0.4f && hoehe > 1.5f || hoehe > 3.5f)) continue;
+            var lage = kind.GlobalTransform;
+            RemoveChild(kind);
+            suedwand.AddChild(kind);
+            kind.GlobalTransform = lage;
+        }
     }
 
     /// <summary>
@@ -914,81 +956,6 @@ public partial class Stadtansicht : Node3D
         }
         if (a.Schild is not null)
             a.Schild.Text = b.Name + (b.UmbauMinuten > 0 ? " (Umbau)" : ""); // die Stufe zeigen Gaube und Dachreiter – eine zweite Zeile überdeckte die Nachbarn
-    }
-
-    /// <summary>
-    /// Die Einrichtung der Gießerei. Alles hängt an einem eigenen Knoten „Innen", der nur in der
-    /// Innenansicht sichtbar ist. Grundriss (Blick nach Norden):
-    ///   hinten (Nordwand): Kistenstapel – das Lager, je Ware eine Spalte
-    ///   rechts (Ostwand):  Esse mit Rauchfang und Blasebalg
-    ///   Mitte:             Amboss
-    ///   links (Westwand):  Werkbank
-    /// </summary>
-    private void Innenraum(BetriebsAnsicht ansicht, float breite, float tiefe, float dicke)
-    {
-        var p = ansicht.Mitte;
-        var innen = new Node3D { Name = "Innen", Visible = false };
-        AddChild(innen);
-        ansicht.Innen = innen;
-
-        var stein = Material(Mauerstein);
-        var holz = Material(Holz);
-        var eisen = Material(new Color(0.22f, 0.22f, 0.24f));
-        eisen.Metallic = 0.6f;
-        eisen.Roughness = 0.45f;
-
-        // Boden aus gestampftem Lehm
-        Quader(p + new Vector3(0, 0.05f, 0), new Vector3(breite - 2 * dicke, 0.1f, tiefe - 2 * dicke), Material(new Color(0.34f, 0.29f, 0.24f)), innen);
-
-        // Esse: gemauerter Herd, glühendes Kohlebett, Rauchfang bis unters Dach, Blasebalg
-        var o = p + new Vector3(3.6f, 0, 0.2f);
-        Quader(o + new Vector3(0, 0.6f, 0), new Vector3(1.8f, 1.2f, 2.2f), stein, innen);
-        var kohle = Material(new Color(0.15f, 0.08f, 0.05f));
-        kohle.EmissionEnabled = true;
-        kohle.Emission = new Color(1f, 0.4f, 0.08f);
-        kohle.EmissionEnergyMultiplier = 0;
-        Quader(o + new Vector3(0, 1.23f, 0), new Vector3(1.3f, 0.08f, 1.6f), kohle, innen);
-        ansicht.InnenEsse = kohle;
-        // Der Rauchfang hängt an der Ostwand: Blickt man von Osten hinein, verschwindet er mit ihr
-        // und gibt den Blick auf die Arbeiter frei.
-        var ostwand = ansicht.Waende.First(x => x.Aussen == Vector3.Right).Wand;
-        var rauchfang = new MeshInstance3D
-        {
-            Mesh = new CylinderMesh { TopRadius = 0.55f, BottomRadius = 1.35f, Height = 2.4f, RadialSegments = 4 },
-            MaterialOverride = stein,
-            Position = o + new Vector3(0, 3.4f, 0) - ostwand.Position,
-            RotationDegrees = new Vector3(0, 45, 0),
-        };
-        ostwand.AddChild(rauchfang);
-        Quader(o + new Vector3(0, 5.3f, 0) - ostwand.Position, new Vector3(0.9f, 1.4f, 0.9f), stein, ostwand);
-        Quader(o + new Vector3(0.1f, 0.45f, 1.7f), new Vector3(0.9f, 0.5f, 1.0f), Material(new Color(0.42f, 0.30f, 0.20f)), innen); // Blasebalg
-        ansicht.InnenGlut = new OmniLight3D
-        {
-            LightColor = new Color(1f, 0.5f, 0.18f),
-            OmniRange = 8,
-            LightEnergy = 0,
-            ShadowEnabled = true,
-            Position = o + new Vector3(-0.6f, 2f, 0),
-        };
-        innen.AddChild(ansicht.InnenGlut);
-
-        // Amboss auf einem Holzklotz
-        var a = p + new Vector3(0.8f, 0, -0.2f);
-        Quader(a + new Vector3(0, 0.35f, 0), new Vector3(0.7f, 0.7f, 0.7f), holz, innen);
-        Quader(a + new Vector3(0, 0.85f, 0), new Vector3(1.1f, 0.3f, 0.45f), eisen, innen);
-
-        // Wassertrog zum Abschrecken
-        Quader(p + new Vector3(2.0f, 0.35f, 2.6f), new Vector3(1.6f, 0.7f, 0.8f), holz, innen);
-        Quader(p + new Vector3(2.0f, 0.66f, 2.6f), new Vector3(1.4f, 0.04f, 0.6f), Material(new Color(0.2f, 0.3f, 0.36f)), innen);
-
-        // Werkbank mit Werkzeug und Gussformen
-        var w = p + new Vector3(-3.9f, 0, 0.4f);
-        Quader(w + new Vector3(0, 0.5f, 0), new Vector3(1.0f, 1.0f, 3.0f), holz, innen);
-        Quader(w + new Vector3(0.1f, 1.06f, -0.8f), new Vector3(0.5f, 0.12f, 0.7f), eisen, innen);
-        Quader(w + new Vector3(0.1f, 1.08f, 0.5f), new Vector3(0.6f, 0.16f, 0.4f), Material(new Color(0.55f, 0.45f, 0.35f)), innen);
-
-        // Laterne unter dem Dachbalken – damit man auch nachts etwas sieht
-        innen.AddChild(new OmniLight3D { LightColor = new Color(1f, 0.85f, 0.6f), OmniRange = 9, LightEnergy = 0.4f, Position = p + new Vector3(-1, 4.5f, 0) });
     }
 
     /// <summary>Berg aus zwei abgeflachten Kugeln.</summary>
@@ -1349,10 +1316,7 @@ public partial class Stadtansicht : Node3D
             if (ansicht.Esse is not null) ansicht.Esse.EmissionEnergyMultiplier = arbeitet ? 2.5f : 0f;
             if (ansicht == _innen)
             {
-                if (ansicht.InnenGlut is not null) ansicht.InnenGlut.LightEnergy = arbeitet ? 2.5f : 0.3f;
-                if (ansicht.InnenEsse is not null) ansicht.InnenEsse.EmissionEnergyMultiplier = arbeitet ? 1.6f : 0.3f;
-                KistenAktualisieren(ansicht);
-                ArbeiterAktualisieren(ansicht, arbeitszeit, arbeitet);
+                InnenAktualisieren(ansicht, zeit, arbeitszeit, arbeitet, delta);
             }
 
             var fahrzeit = w.Daten.Logistik.FahrzeitAb(betrieb.Ort);
@@ -1431,127 +1395,6 @@ public partial class Stadtansicht : Node3D
         return karren;
     }
 
-    // ── Innenansicht: Lager und Arbeiter ────────────────────────────────────
-
-    // Farben der Kisten je Ware – so erkennt man auf einen Blick, was im Lager liegt.
-    private static Color Warenfarbe(string ware) => ware switch
-    {
-        "Eisen" => new Color(0.45f, 0.40f, 0.36f),
-        "Silber" => new Color(0.78f, 0.80f, 0.84f),
-        "Beschlag" => new Color(0.52f, 0.36f, 0.22f),
-        "Rapier" => new Color(0.40f, 0.48f, 0.60f),
-        "Silberring" => new Color(0.85f, 0.72f, 0.35f),
-        _ => new Color(0.6f, 0.5f, 0.4f),
-    };
-
-    /// <summary>
-    /// Das Lager als Kistenstapel an der Nordwand: je Ware eine Spalte, eine Kiste je angefangene
-    /// 5 Stück (höchstens 8 = volles Lager). Erst Zutaten, dann das Produkt.
-    /// </summary>
-    private void KistenAktualisieren(BetriebsAnsicht ansicht)
-    {
-        var betrieb = ansicht.Betrieb;
-        var waren = betrieb.Zutaten.Keys.Append(betrieb.Produkt).Concat(betrieb.Lager.Keys).Distinct();
-        foreach (var ware in waren)
-        {
-            if (!ansicht.Kisten.TryGetValue(ware, out var spalte))
-            {
-                if (ansicht.Kisten.Count >= MaxWarenplaetze) continue;
-                spalte = KistenspalteBauen(ansicht, ware, ansicht.Kisten.Count);
-                ansicht.Kisten[ware] = spalte;
-            }
-            var menge = betrieb.ImLager(ware);
-            var anzahl = Math.Min(MaxKistenJeWare, (menge + StueckJeKiste - 1) / StueckJeKiste);
-            for (var i = 0; i < spalte.Kisten.Length; i++)
-                spalte.Kisten[i].Visible = i < anzahl;
-            spalte.Schild.Text = $"{ware} {menge}";
-            // Schilder abwechselnd hoch und tief, damit sich Nachbarn nicht überdecken
-            var versatz = ansicht.Kisten.Keys.ToList().IndexOf(ware) % 2 * 0.9f;
-            spalte.Schild.Position = spalte.Schild.Position with { Y = 1.2f + Math.Max(1, (anzahl + 1) / 2) * 0.76f + versatz };
-        }
-    }
-
-    private (MeshInstance3D[] Kisten, Label3D Schild) KistenspalteBauen(BetriebsAnsicht ansicht, string ware, int platz)
-    {
-        var material = Material(Warenfarbe(ware));
-        var basis = ansicht.Mitte + new Vector3(-3.9f + platz * 1.25f, 0, -2.75f);
-        var kisten = new MeshInstance3D[MaxKistenJeWare];
-        for (var i = 0; i < kisten.Length; i++)
-        {
-            // Zwei Reihen tief, bis zu vier Kisten hoch
-            var reihe = i % 2;
-            var lage = i / 2;
-            kisten[i] = Quader(basis + new Vector3(0, 0.1f + 0.36f + lage * 0.76f, reihe * 0.85f - 0.42f),
-                               new Vector3(1.05f, 0.72f, 0.8f), material, ansicht.Innen);
-        }
-        var schild = Beschriftung(ware, basis + new Vector3(0, 2, 0), 34, ansicht.Innen);
-        return (kisten, schild);
-    }
-
-    /// <summary>
-    /// Die Belegschaft als Figuren. Sie sind nur während der Arbeitszeit in der Werkstatt und
-    /// schwingen den Hammer, solange auch wirklich gearbeitet wird (kein Stillstand).
-    /// </summary>
-    private void ArbeiterAktualisieren(BetriebsAnsicht ansicht, bool arbeitszeit, bool arbeitet)
-    {
-        var betrieb = ansicht.Betrieb;
-        var stand = string.Join(",", betrieb.Belegung.OrderBy(x => x.Key).Select(x => $"{x.Key}:{x.Value}"));
-        if (stand != ansicht.Belegungsstand)
-        {
-            foreach (var figur in ansicht.Arbeiter) figur.Koerper.QueueFree();
-            ansicht.Arbeiter.Clear();
-            var nummer = 0;
-            foreach (var (kraft, anzahl) in betrieb.Belegung.OrderBy(x => x.Key))
-                for (var i = 0; i < anzahl && nummer < Arbeitsplaetze.Length; i++, nummer++)
-                    ansicht.Arbeiter.Add(ArbeiterBauen(ansicht, kraft, nummer));
-            ansicht.Belegungsstand = stand;
-        }
-
-        foreach (var figur in ansicht.Arbeiter)
-        {
-            figur.Koerper.Visible = arbeitszeit;
-            // Hammerschlag: schnell hoch, kräftig runter (Betrag des Sinus gibt den „Aufprall")
-            var winkel = arbeitet ? -0.45f + 1.3f * Mathf.Abs(Mathf.Sin((float)_animationszeit * 4.5f + figur.Takt)) : -0.9f;
-            figur.Arm.Rotation = new Vector3(winkel, 0, 0);
-        }
-    }
-
-    // Arbeitsplätze in der Gießerei (relativ zur Mitte) und die Blickrichtung (Drehung um die Hochachse).
-    private static readonly (Vector3 Ort, float Drehung)[] Arbeitsplaetze =
-    {
-        (new Vector3(0.8f, 0, 0.55f), 0f),               // am Amboss, Blick nach Norden
-        (new Vector3(2.2f, 0, 0.2f), -Mathf.Pi / 2),     // an der Esse, Blick nach Osten
-        (new Vector3(-2.9f, 0, 0.4f), Mathf.Pi / 2),     // an der Werkbank, Blick nach Westen
-    };
-
-    private Arbeiterfigur ArbeiterBauen(BetriebsAnsicht ansicht, string kraft, int nummer)
-    {
-        // Volk und Stand sieht man an Größe, Kleidung und Haut.
-        var (kleidung, haut, groesse) = kraft switch
-        {
-            "Lehrling" => (new Color(0.58f, 0.52f, 0.36f), new Color(0.86f, 0.70f, 0.57f), 0.85f),
-            "Geselle" => (new Color(0.42f, 0.30f, 0.20f), new Color(0.84f, 0.67f, 0.54f), 1.0f),
-            "Ork" => (new Color(0.30f, 0.27f, 0.22f), new Color(0.36f, 0.50f, 0.28f), 1.2f),
-            "Leibeigener" => (new Color(0.45f, 0.43f, 0.39f), new Color(0.80f, 0.64f, 0.52f), 0.95f),
-            _ => (new Color(0.36f, 0.32f, 0.27f), new Color(0.84f, 0.67f, 0.54f), 1.0f),
-        };
-        var (ort, drehung) = Arbeitsplaetze[nummer];
-        var koerper = new Node3D { Name = $"Arbeiter{nummer}", Position = ansicht.Mitte + ort, Rotation = new Vector3(0, drehung, 0), Scale = Vector3.One * groesse };
-        ansicht.Innen!.AddChild(koerper);
-
-        koerper.AddChild(new MeshInstance3D { Mesh = new CapsuleMesh { Radius = 0.28f, Height = 1.3f }, MaterialOverride = Material(kleidung), Position = new Vector3(0, 0.65f, 0) });
-        koerper.AddChild(new MeshInstance3D { Mesh = new SphereMesh { Radius = 0.2f, Height = 0.4f }, MaterialOverride = Material(haut), Position = new Vector3(0, 1.5f, 0) });
-        koerper.AddChild(new MeshInstance3D { Mesh = new BoxMesh { Size = new Vector3(0.5f, 0.7f, 0.06f) }, MaterialOverride = Material(new Color(0.30f, 0.20f, 0.13f)), Position = new Vector3(0, 0.75f, -0.27f) }); // Lederschürze
-
-        // Arm mit Hammer: dreht sich um die Schulter. Ruhestellung zeigt nach unten.
-        var arm = new Node3D { Position = new Vector3(0.32f, 1.15f, 0) };
-        koerper.AddChild(arm);
-        arm.AddChild(new MeshInstance3D { Mesh = new BoxMesh { Size = new Vector3(0.12f, 0.12f, 0.6f) }, MaterialOverride = Material(haut), Position = new Vector3(0, 0, -0.3f) });
-        arm.AddChild(new MeshInstance3D { Mesh = new BoxMesh { Size = new Vector3(0.05f, 0.05f, 0.35f) }, MaterialOverride = Material(Holz), Position = new Vector3(0, 0, -0.7f) });
-        arm.AddChild(new MeshInstance3D { Mesh = new BoxMesh { Size = new Vector3(0.16f, 0.26f, 0.16f) }, MaterialOverride = Material(new Color(0.25f, 0.25f, 0.27f)), Position = new Vector3(0, 0.05f, -0.86f) });
-        return new Arbeiterfigur(koerper, arm, nummer * 1.3f);
-    }
-
     // ── Innenansicht betreten und verlassen ─────────────────────────────────
 
     /// <summary>Fährt mit der Kamera in den Betrieb und schneidet ihn auf. Gibt false zurück, wenn er keinen Innenraum hat.</summary>
@@ -1592,7 +1435,12 @@ public partial class Stadtansicht : Node3D
         KulisseZeigen();
         if (!innen) return;
         // Beim Betreten sofort einmal auffüllen, damit nichts „nachploppt".
-        KistenAktualisieren(ansicht);
+        if (_simulation?.Wirtschaft is { } w)
+        {
+            var zeit = _simulation.Zeit;
+            var arbeitszeit = w.IstArbeitszeit(zeit);
+            InnenAktualisieren(ansicht, zeit, arbeitszeit, arbeitszeit && ansicht.Betrieb.Belegt > 0 && ansicht.Betrieb.Stillstand is null, 0);
+        }
         Aufschneiden(ansicht);
     }
 
