@@ -24,7 +24,7 @@ namespace Reichsgilde;
 ///   --innen=1          direkt in der Innenansicht der eigenen Gießerei starten
 ///   --verwalten=1      das Bedienfeld der eigenen Gießerei gleich öffnen
 ///   --vermoegen=12000  Startvermögen des Spielers setzen (zum Ausprobieren des Aufstiegs)
-///   --beruf=Steinmetz  Startberuf der Testpartie (Schmied, Tischler, Steinmetz, Alchimist, Wirt, Prediger)
+///   --beruf=Steinmetz  Startberuf der Testpartie (Schmied, Tischler, Steinmetz, Alchimist, Wirt, Prediger, Dieb)
 ///   --bericht=1        gleich zu Beginn einen Jahresbericht zeigen (zum Testen der Anzeige)
 ///   --rat=1            gleich zu Beginn die Ratskammer öffnen
 ///   --familie=1        gleich zu Beginn die Familientafel öffnen
@@ -424,7 +424,7 @@ public partial class Hauptszene : Node
     {
         var w = simulation.Wirtschaft!;
         _spieler = spieler;
-        _eigeneGiesserei = w.Betriebe.FirstOrDefault(b => b.Konto == spieler && b.IstWerkstatt); // erste eigene Werkstatt
+        _eigeneGiesserei = w.Betriebe.FirstOrDefault(b => b.Konto == spieler && b.InDerStadt); // erste eigene Werkstatt (oder Schmugglerloch)
 
         // Bankrott des Spielers beendet die Partie; ein bankrotter Rivale scheidet nur aus.
         w.Bankrott += konto =>
@@ -611,7 +611,7 @@ public partial class Hauptszene : Node
     {
         var waehrung = w.Daten.Allgemein.Waehrung;
         var d = w.Daten.Art(l.Art);
-        var art = $"{d.Name} ({string.Join(", ", d.IstWerkstatt ? d.Produkte : d.Rohstoffe)})";
+        var art = $"{d.Name} ({(d.OhneProduktion ? "Taschendiebe" : string.Join(", ", d.IstWerkstatt ? d.Produkte : d.Rohstoffe))})";
         var zeilen = new List<string>
         {
             $"{l.Name} – {(l.IstPacht ? "zu verpachten" : "zu verkaufen")}",
@@ -709,7 +709,7 @@ public partial class Hauptszene : Node
         var zeilen = new List<string>
         {
             b.Name,
-            $"Besitzer: {b.Konto.Inhaber}" + (b.IstWerkstatt && b.Konto.Meistergrad(b.Artdaten.Beruf) > 0
+            $"Besitzer: {b.Konto.Inhaber}" + (b.InDerStadt && b.Konto.Meistergrad(b.Artdaten.Beruf) > 0
                 ? $" · {b.Artdaten.Beruf} im {b.Konto.Meistergrad(b.Artdaten.Beruf)}. Grad · Stufe {b.Stufe}: {b.Artdaten.Name}" : ""),
             $"Belegung: {(b.Belegt == 0 ? "niemand" : string.Join(", ", b.Belegung.Select(x => $"{x.Value}× {x.Key}")))} ({b.Belegt}/{b.Plaetze} Plätze)",
         };

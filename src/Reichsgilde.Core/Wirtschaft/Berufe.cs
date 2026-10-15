@@ -35,6 +35,12 @@ public sealed class BetriebsartDaten
 
     public bool IstWerkstatt => Produkte.Count > 0;
 
+    /// <summary>Weder Produkte noch Rohstoffe (Schmugglerloch des Diebes): Die Leute verdienen anders – siehe Diebeswesen.</summary>
+    public bool OhneProduktion => Produkte.Count == 0 && Rohstoffe.Count == 0;
+
+    /// <summary>Ein Gebäude in der Stadt (mit Gebäudestufen) – Werkstatt oder Betrieb ohne Ware.</summary>
+    public bool InDerStadt => Ort == Arbeitsort.Werkstatt;
+
     /// <summary>Gebäudestufe 1–3 (Gießerei → Schmiede → Goldschmiede). Umlandbetriebe bleiben auf Stufe 1.</summary>
     public int Stufe { get; init; } = 1;
 
@@ -108,8 +114,8 @@ public sealed class BerufDaten
     /// <summary>Die Werkstatt des Berufs (Stufe 1) – mit ihr beginnt, wer den Beruf als Startberuf wählt.</summary>
     public Betriebsart Werkstatt { get; init; }
 
-    /// <summary>Der Umlandbetrieb, der die Rohstoffe liefert.</summary>
-    public Betriebsart Umland { get; init; }
+    /// <summary>Der Umlandbetrieb, der die Rohstoffe liefert (null: der Beruf hat keinen, z. B. der Dieb).</summary>
+    public Betriebsart? Umland { get; init; }
 
     /// <summary>Gulden für Lehrgeld und Werkzeug, wenn man den Beruf später erlernt (die AP stehen bei „aktionspunkte").</summary>
     public double Lehrgeld { get; init; } = 500;

@@ -125,6 +125,8 @@ public partial class FamilienAnzeige : PanelContainer
         if (f.Ehepartner is { } e)
         {
             Text(_inhalt, $"{e.Ehepartnertitel}: {e.NameMitHerkunft}, {e.Volk.Einzahl()}, {e.Alter(jahr)} Jahre – {buch.Verfassung(e)}", 15);
+            if (w.Diebe.IstGeisel(e))
+                Text(_inhalt, $"{e.Vorname} ist als Geisel verschleppt – Lösegeld im Hinterzimmer.", 14, new Color(0.95f, 0.45f, 0.4f));
             if (buch.HatTalente)
                 Text(_inhalt, $"Talente: {TalentText(e)} – zählen erst, wenn {(e.Geschlecht == Geschlecht.Frau ? "sie" : "er")} das Haus führt; die Kinder erben davon.",
                     12, Grau, umbrechen: true);
@@ -155,7 +157,9 @@ public partial class FamilienAnzeige : PanelContainer
                 var farbe = !k.Lebt ? Grau : istErbe ? Gold : (Color?)null;
                 Text(raster, $"{k.Vorname} ({k.SohnOderTochter})", 14, farbe);
                 Text(raster, k.Lebt ? $"{k.Alter(jahr)} Jahre" : $"† {k.Todesjahr} mit {k.Alter(jahr)}", 14, farbe);
-                Text(raster, !k.Lebt ? "" : buch.IstVolljaehrig(k) ? "volljährig" : $"mündig mit {buch.VolkDaten(k.Volk).Volljaehrig}", 13, farbe ?? Grau);
+                Text(raster, !k.Lebt ? (k.Todesursache == "in die Fremde verschleppt" ? "verschleppt" : "")
+                    : w.Diebe.IstGeisel(k) ? "Geisel!" : buch.IstVolljaehrig(k) ? "volljährig" : $"mündig mit {buch.VolkDaten(k.Volk).Volljaehrig}", 13,
+                    k.Lebt && w.Diebe.IstGeisel(k) ? new Color(0.95f, 0.45f, 0.4f) : farbe ?? Grau);
                 if (buch.HatTalente)
                 {
                     var staerken = Text(raster, k.Lebt ? StaerkenText(k) : "", 13, farbe ?? Grau);

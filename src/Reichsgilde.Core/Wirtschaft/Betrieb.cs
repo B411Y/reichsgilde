@@ -74,6 +74,9 @@ public enum Betriebsart
 
     /// <summary>Umlandbetrieb des Predigers (gepachtet). Sammelt Lumpen und Bienenwachs.</summary>
     Klosterhof,
+    Schmugglerloch,
+    Unterschlupf,
+    Diebesgilde,
 }
 
 /// <summary>
@@ -120,8 +123,25 @@ public sealed class Betrieb
 
     public int Plaetze => _art.Plaetze;
 
-    /// <summary>Werkstatt (stellt Produkte her) – sonst Umlandbetrieb (fördert Rohstoffe).</summary>
+    /// <summary>Werkstatt (stellt Produkte her) – sonst Umlandbetrieb (fördert Rohstoffe) oder ein Betrieb ohne Ware.</summary>
     public bool IstWerkstatt => _art.IstWerkstatt;
+
+    /// <summary>Ein Gebäude in der Stadt (Werkstatt oder ein Betrieb ohne Ware wie das Schmugglerloch) – mit Gebäudestufen.</summary>
+    public bool InDerStadt => _art.InDerStadt;
+
+    /// <summary>Stellt nichts her und fördert nichts (Dieb): Die Arbeitsminuten sammeln sich in <see cref="Fortschritt"/>.</summary>
+    public bool OhneProduktion => _art.OhneProduktion;
+
+    /// <summary>Ohne Produktion: gesammelte Arbeitsminuten (Leistung) seit der letzten vollen Stunde.</summary>
+    public double Fortschritt => _fortschritt;
+
+    /// <summary>Holt die gesammelten Arbeitsminuten ab (für das Teilsystem, das sie verwertet).</summary>
+    internal double ArbeitsminutenAbholen()
+    {
+        var minuten = _fortschritt;
+        _fortschritt = 0;
+        return minuten;
+    }
 
     /// <summary>Umland: die geförderten Rohstoffe (eine oder zwei Waren).</summary>
     public IReadOnlyList<string> Rohstoffe => _art.Rohstoffe;
@@ -316,6 +336,16 @@ public sealed class Betrieb
 
         var leistung = LeistungProMinute * leistungsFaktor;
         if (leistung <= 0) return;
+
+        if (OhneProduktion)
+        {
+            // Diebe verdienen nicht nach Handwerkskunst – gezählt wird die reine Arbeitszeit der Leute.
+            _fortschritt += LeistungProMinute;
+            Konto.ErfahrungSammeln(_art.Beruf, LeistungProMinute / 60);
+            Stillstand = null;
+            _letzterStillstand = null;
+            return;
+        }
 
         string? stillstand = null;
         if (IstWerkstatt)

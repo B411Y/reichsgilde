@@ -122,6 +122,21 @@ public sealed record LehrschriftLesen(Dynastie.Talent Talent) : Befehl;
 /// <summary>Eine Hetzschrift gegen ein Haus verbreiten: dessen Ansehen sinkt bis Ende nächsten Jahres – Vergehen Verleumdung.</summary>
 public sealed record HetzschriftVerbreiten(string Haus) : Befehl;
 
+/// <summary>Die eigenen Diebe steigen heute Nacht in diesen Betrieb ein (Beute ins eigene Lager).</summary>
+public sealed record Einbrechen(string Haus, string Betrieb) : Befehl;
+
+/// <summary>Die eigenen Diebe spähen heute Nacht dieses Haus aus: Beweise für seine Taten.</summary>
+public sealed record Auskundschaften(string Haus) : Befehl;
+
+/// <summary>Schutzgeld von einem Haus verlangen (ab Unterschlupf) – wer nicht zahlt, dem brennt ein Betrieb.</summary>
+public sealed record SchutzgeldFordern(string Haus, double Betrag) : Befehl;
+
+/// <summary>Heute Nacht einen Angehörigen (Nummer der Person) verschleppen und Lösegeld fordern (ab Diebesgilde).</summary>
+public sealed record Entfuehren(string Haus, int Person, double Betrag) : Befehl;
+
+/// <summary>Auf eine Forderung von Dieben antworten: Schutzgeld oder Lösegeld zahlen – oder nicht.</summary>
+public sealed record DiebesforderungBeantworten(string Dieb, Gauner.Diebesbriefart Art, bool Zahlen) : Befehl;
+
 /// <summary>Für heute Abend einen Barden in die Schänke holen (Gulden, keine AP): mehr Gäste, höhere Zeche, doppelte Stammtisch-Gunst.</summary>
 public sealed record BardeEinladen(string Betrieb) : BetriebsBefehl(Betrieb);
 

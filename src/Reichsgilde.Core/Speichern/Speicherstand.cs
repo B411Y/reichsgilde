@@ -78,6 +78,40 @@ public sealed record WirtschaftStand
 
     /// <summary>Kirchenbücher, Beichtwissen, gelesene und verbreitete Schriften (null in Spielständen von vor dem Prediger).</summary>
     public KirchenStand? Kirche { get; init; }
+
+    /// <summary>Aufträge der Diebe, Schutzgeld- und Lösegeldforderungen, Diebesbücher (null in Spielständen von vor dem Dieb).</summary>
+    public DiebeStand? Diebe { get; init; }
+}
+
+public sealed record DiebeStand
+{
+    public long ZufallWuerfe { get; init; }
+    public List<DiebesauftragStand> Auftraege { get; init; } = new();
+    public List<DiebesbriefStand> Briefe { get; init; } = new();
+
+    /// <summary>Konto-Nummer → Beute und Fänge der Taschendiebe.</summary>
+    public Dictionary<string, Gauner.Diebesbuch> DiesesJahr { get; init; } = new();
+    public Dictionary<string, Gauner.Diebesbuch> Vorjahr { get; init; } = new();
+}
+
+public sealed record DiebesauftragStand
+{
+    public int Dieb { get; init; }
+    public int Ziel { get; init; }
+    public Gauner.Diebesstueck Art { get; init; }
+    public string? Betrieb { get; init; }
+    public int? Person { get; init; }
+    public double Betrag { get; init; }
+}
+
+public sealed record DiebesbriefStand
+{
+    public Gauner.Diebesbriefart Art { get; init; }
+    public int Dieb { get; init; }
+    public int Opfer { get; init; }
+    public double Betrag { get; init; }
+    public int Jahr { get; init; }
+    public int? Geisel { get; init; }
 }
 
 public sealed record KirchenStand

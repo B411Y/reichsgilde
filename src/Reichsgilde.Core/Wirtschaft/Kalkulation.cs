@@ -22,8 +22,9 @@ public static class Kalkulation
     }
 
     /// <summary>Wert einer Arbeitsminute in diesem Betrieb bei der aktuellen Ausrichtung.</summary>
-    public static double WertJeArbeitsminute(Stadtwirtschaft w, Betrieb betrieb) => betrieb.IstWerkstatt
-        ? GewinnJeArbeitsminute(w, betrieb.Produkt)
+    public static double WertJeArbeitsminute(Stadtwirtschaft w, Betrieb betrieb) =>
+        betrieb.OhneProduktion ? w.Diebe.WertJeMinute(betrieb.Stufe)
+        : betrieb.IstWerkstatt ? GewinnJeArbeitsminute(w, betrieb.Produkt)
         : Gemischt(betrieb, ware => GewinnJeArbeitsminute(w, ware));
 
     /// <summary>Umland: Wert der Förderung – bei zwei Rohstoffen nach der Aufteilung der Arbeitszeit gewichtet.</summary>
@@ -72,7 +73,8 @@ public static class Kalkulation
         var geltend = statut ?? w.Statut;
         var d = w.Daten.Art(art);
         var ort = d.Ort;
-        var wertJeMinute = (d.IstWerkstatt ? d.Produkte : d.Rohstoffe).Max(ware => GewinnJeArbeitsminute(w, ware));
+        var wertJeMinute = d.OhneProduktion ? w.Diebe.WertJeMinute(d.Stufe)
+            : (d.IstWerkstatt ? d.Produkte : d.Rohstoffe).Max(ware => GewinnJeArbeitsminute(w, ware));
         var besterKopf = w.Daten.Arbeitskraefte.Values
             .Where(k => k.IstErlaubt(geltend, ort))
             .Select(k => k.TempoAm(ort) * w.Daten.Allgemein.Arbeitsminuten * wertJeMinute - k.Kosten - k.Risiko * k.Schaden)
@@ -94,7 +96,8 @@ public static class Kalkulation
     public static double Ladungswert(Stadtwirtschaft w, Karren karren)
     {
         var betrieb = karren.Heimat;
-        var preis = betrieb.IstWerkstatt ? w.Markt[betrieb.Produkt].Preis : Gemischt(betrieb, ware => w.Markt[ware].Preis);
+        var preis = betrieb.OhneProduktion ? betrieb.Lager.Keys.Select(ware => w.Markt[ware].Preis).DefaultIfEmpty(0).Max() // Diebesgut
+            : betrieb.IstWerkstatt ? w.Markt[betrieb.Produkt].Preis : Gemischt(betrieb, ware => w.Markt[ware].Preis);
         return karren.Daten.Gesamtkapazitaet * preis;
     }
 }

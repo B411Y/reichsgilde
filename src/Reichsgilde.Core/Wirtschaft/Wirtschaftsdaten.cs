@@ -184,6 +184,9 @@ public sealed class Wirtschaftsdaten
     /// <summary>Berufe (ab Datenversion 12). Fehlt der Abschnitt, ist jeder Schmied.</summary>
     public Dictionary<string, BerufDaten> Berufe { get; init; } = new();
 
+    /// <summary>Taschendiebe, Einbruch, Auskundschaften, Schutzgeld und Entführung (ab Datenversion 18). Fehlt der Abschnitt, gibt es keine Diebe.</summary>
+    public Gauner.DiebDaten? Dieb { get; init; }
+
     /// <summary>Messe, Ablass, Beichte und Schriften des Predigers (ab Datenversion 17). Fehlt der Abschnitt, gibt es keine Kirchen.</summary>
     public Reichsgilde.Core.Kirche.KirchenDaten? Kirche { get; init; }
 
@@ -313,9 +316,11 @@ public sealed class Wirtschaftsdaten
             if (d.Fixkosten < 0) f.Add($"betriebsarten.{art}.fixkosten darf nicht negativ sein.");
             if (Berufe.Count > 0 && !Berufe.ContainsKey(d.Beruf)) f.Add($"betriebsarten.{art}: Den Beruf „{d.Beruf}“ gibt es nicht.");
             if (!Logistik.Karren.ContainsKey(d.Startkarren)) f.Add($"betriebsarten.{art}: Den Karren „{d.Startkarren}“ gibt es nicht.");
-            if (d.Produkte.Count > 0 == d.Rohstoffe.Count > 0) f.Add($"betriebsarten.{art}: entweder produkte (Werkstatt) oder rohstoffe (Umland).");
+            if (d.Produkte.Count > 0 && d.Rohstoffe.Count > 0) f.Add($"betriebsarten.{art}: entweder produkte (Werkstatt) oder rohstoffe (Umland).");
+            if (d.OhneProduktion && (d.Ort != Arbeitsort.Werkstatt || Dieb is null || d.Beruf != Dieb.Beruf))
+                f.Add($"betriebsarten.{art}: Ohne produkte und rohstoffe geht nur ein Betrieb des Diebes (Abschnitt „dieb“) in der Stadt.");
             if (d.Rohstoffe.Count > 2) f.Add($"betriebsarten.{art}: höchstens zwei Rohstoffe.");
-            if ((d.Ort == Arbeitsort.Umland) != (d.Rohstoffe.Count > 0)) f.Add($"betriebsarten.{art}: Umlandbetriebe fördern Rohstoffe, Werkstätten stellen Produkte her.");
+            if (!d.OhneProduktion && (d.Ort == Arbeitsort.Umland) != (d.Rohstoffe.Count > 0)) f.Add($"betriebsarten.{art}: Umlandbetriebe fördern Rohstoffe, Werkstätten stellen Produkte her.");
             foreach (var w in d.Produkte)
                 if (!Waren.TryGetValue(w, out var ware) || ware.Zutaten.Count == 0) f.Add($"betriebsarten.{art}: „{w}“ ist keine Ware mit Zutaten.");
             foreach (var w in d.Rohstoffe)
@@ -327,7 +332,7 @@ public sealed class Wirtschaftsdaten
                 if (!Betriebsarten.TryGetValue(ziel, out var z)) f.Add($"betriebsarten.{art}: Die Ausbaustufe {ziel} fehlt unter „betriebsarten“.");
                 else
                 {
-                    if (z.Beruf != d.Beruf || z.Stufe != d.Stufe + 1 || !z.IstWerkstatt || !d.IstWerkstatt)
+                    if (z.Beruf != d.Beruf || z.Stufe != d.Stufe + 1 || !z.InDerStadt || !d.InDerStadt || z.OhneProduktion != d.OhneProduktion)
                         f.Add($"betriebsarten.{art}: Der Ausbau zu {ziel} muss eine Werkstatt desselben Berufs eine Stufe höher sein.");
                     foreach (var p in d.Produkte.Where(p => !z.Produkte.Contains(p)))
                         f.Add($"betriebsarten.{art}: Nach dem Ausbau zu {ziel} ginge „{p}“ verloren – die höhere Stufe muss alles können.");
@@ -337,8 +342,9 @@ public sealed class Wirtschaftsdaten
         }
         foreach (var (name, b) in Berufe)
         {
-            if (!KenntArt(b.Werkstatt) || !KenntArt(b.Umland)) f.Add($"berufe.{name}: Werkstatt oder Umlandbetrieb fehlt unter „betriebsarten“.");
-            else if (Art(b.Werkstatt).Beruf != name || Art(b.Umland).Beruf != name) f.Add($"berufe.{name}: Werkstatt und Umlandbetrieb müssen zum Beruf gehören.");
+            if (!KenntArt(b.Werkstatt) || b.Umland is { } u0 && !KenntArt(u0)) f.Add($"berufe.{name}: Werkstatt oder Umlandbetrieb fehlt unter „betriebsarten“.");
+            else if (Art(b.Werkstatt).Beruf != name || b.Umland is { } u1 && Art(u1).Beruf != name) f.Add($"berufe.{name}: Werkstatt und Umlandbetrieb müssen zum Beruf gehören.");
+            if (b.Umland is null && Dieb?.Beruf != name) f.Add($"berufe.{name}: Ohne Umlandbetrieb kommt nur der Dieb aus.");
             if (b.Lehrgeld < 0) f.Add($"berufe.{name}.lehrgeld darf nicht negativ sein.");
             if (KenntArt(b.Werkstatt) && Art(b.Werkstatt).Stufe != 1) f.Add($"berufe.{name}: Die Werkstatt muss Stufe 1 sein.");
         }
@@ -347,6 +353,7 @@ public sealed class Wirtschaftsdaten
         Meistergrade?.Pruefen(f, Aktionspunkte?.Hoechstens ?? int.MaxValue);
         Gastwirtschaft?.Pruefen(f, Waren, Berufe);
         Kirche?.Pruefen(f, Waren, Berufe);
+        Dieb?.Pruefen(f, Berufe);
         foreach (var l in Liegenschaften.Where(l => !KenntArt(l.Art)))
             f.Add($"Liegenschaft {l.Name}: Die Betriebsart {l.Art} fehlt unter „betriebsarten“.");
         Gesundheit?.Pruefen(f, Waren);

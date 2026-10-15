@@ -303,10 +303,11 @@ public partial class KontorAnzeige : PanelContainer
         foreach (var (betrieb, kopf, zustand) in _betriebsZeilen)
         {
             var belegung = betrieb.Belegt == 0 ? "kein Personal" : string.Join(", ", betrieb.Belegung.Select(x => $"{x.Value}× {x.Key}"));
-            var was = betrieb.IstWerkstatt ? betrieb.Produkt
+            var was = betrieb.OhneProduktion ? "Taschendiebe"
+                : betrieb.IstWerkstatt ? betrieb.Produkt
                 : betrieb.Rohstoffe.Count == 1 ? betrieb.Rohstoffe[0]
                 : $"{Zahlenformat.Ganz(betrieb.Silberanteil * 100)} % {betrieb.Rohstoffe[1]}";
-            var stufe = betrieb.IstWerkstatt && w.Daten.Meistergrade is not null && betrieb.Stufe > 1 ? $" ({betrieb.Artdaten.Name})" : "";
+            var stufe = betrieb.InDerStadt && w.Daten.Meistergrade is not null && betrieb.Stufe > 1 ? $" ({betrieb.Artdaten.Name})" : "";
             kopf.Text = $"{betrieb.Name}{stufe}: {was} · {belegung}";
             var lager = string.Join(" · ", betrieb.Lager.OrderBy(l => l.Key).Select(l => $"{l.Value} {l.Key}"));
             var unterwegs = betrieb.Karren.Count(k => k.Zustand != KarrenZustand.AmBetrieb);

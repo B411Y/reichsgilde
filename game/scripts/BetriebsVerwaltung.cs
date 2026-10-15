@@ -42,6 +42,7 @@ public partial class BetriebsVerwaltung : VBoxContainer
     private Label _gaesteText = null!;
     private Button _bardeKnopf = null!;
     private CheckBox _wuerfeltisch = null!;
+    private Label _diebesText = null!;
     private VBoxContainer _kirchenstube = null!;
     private Label _kirchenText = null!;
     private VBoxContainer _beichtKnoepfe = null!;
@@ -97,6 +98,11 @@ public partial class BetriebsVerwaltung : VBoxContainer
         _gaesteText.AutowrapMode = TextServer.AutowrapMode.WordSmart;
         _gaesteText.CustomMinimumSize = new Vector2(380, 0);
         var gastZeile = Zeile(_gaststube);
+
+        // Versteck des Diebes: Taschendiebe, Fänge, was die Stufe erlaubt
+        _diebesText = NeuesLabel(this, 13, Grau);
+        _diebesText.AutowrapMode = TextServer.AutowrapMode.WordSmart;
+        _diebesText.CustomMinimumSize = new Vector2(380, 0);
 
         // Kirche (nur Kirchen des Predigers): Messe, Kollekte, Ablass, Beichtwissen
         _kirchenstube = new VBoxContainer();
@@ -218,6 +224,7 @@ public partial class BetriebsVerwaltung : VBoxContainer
         AusbauAktualisieren(b, w);
         GaststubeAktualisieren(b, w);
         KirchenstubeAktualisieren(b, w);
+        DiebesstubeAktualisieren(b, w);
 
         _foerderZeile.Visible = b.Rohstoffe.Count >= 2; // nur, wer zwei Rohstoffe fördert, teilt auf (Grube: Eisen/Silber)
         if (_foerderZeile.Visible)
@@ -302,6 +309,30 @@ public partial class BetriebsVerwaltung : VBoxContainer
             : $"{Zahlenformat.Ganz(d.Wuerfeltisch.EinsatzJeGast)} {waehrung} je Gast fürs Haus – aber {Zahlenformat.Ganz(d.Wuerfeltisch.Ansehen)} Ansehen weniger, solange er steht.";
     }
 
+    /// <summary>Taschendiebe (Beute, Fänge, Fangchance) und was diese Stufe an nächtlichen Aufträgen erlaubt.</summary>
+    private void DiebesstubeAktualisieren(Betrieb b, Stadtwirtschaft w)
+    {
+        var diebe = w.Diebe;
+        _diebesText.Visible = diebe.IstDiebesbetrieb(b);
+        if (!_diebesText.Visible) return;
+        var d = diebe.Daten;
+        var waehrung = w.Daten.Allgemein.Waehrung;
+        string Buch(Reichsgilde.Core.Gauner.Diebesbuch x) => $"{Zahlenformat.Ganz(x.Beute)} {waehrung} erbeutet, {x.Faenge} erwischt";
+        var jahr = Zahlenformat.Ganz(diebe.WertJeMinute(b.Stufe) * w.Daten.Allgemein.Arbeitsminuten);
+        var zeilen = new List<string>
+        {
+            $"Taschendiebe – tagsüber am Markt, steuerfrei: ≈ {jahr} {waehrung} je Geselle und Jahr. Dieses Jahr: {Buch(diebe.DiesesJahr(b.Konto))}",
+        };
+        if (diebe.Vorjahr(b.Konto) is { } vorjahr) zeilen.Add($"Vorjahr: {Buch(vorjahr)}");
+        zeilen.Add($"Fangchance ≈ {Zahlenformat.Kommazahl(diebe.Fangchance(b.Konto, b.Stufe) * 100)} % je Dieb und Stunde – wer erwischt wird, kommt in den Turm, " +
+                   "und ein anderes Haus erfährt, wem er diente.");
+        zeilen.Add($"Nachts {d.AuftraegeJeStufe[b.Stufe - 1]} {(d.AuftraegeJeStufe[b.Stufe - 1] == 1 ? "Auftrag" : "Aufträge")} (im Hinterzimmer): Einbruch, Auskundschaften" +
+                   (b.Stufe >= d.Schutzgeld.AbStufe ? ", Schutzgeld" : "") + (b.Stufe >= d.Entfuehrung.AbStufe ? ", Entführung" : "") + ".");
+        zeilen.Add($"Ein Haus von Dieben: {Zahlenformat.Ganz(d.Ansehen)} Ansehen weniger.");
+        var text = string.Join("\n", zeilen);
+        if (_diebesText.Text != text) _diebesText.Text = text;
+    }
+
     /// <summary>Messe und Kollekte, Ablässe, Anziehung und – je Haus – das Beichtwissen mit dem Knopf, es preiszugeben.</summary>
     private void KirchenstubeAktualisieren(Betrieb b, Stadtwirtschaft w)
     {
@@ -351,7 +382,7 @@ public partial class BetriebsVerwaltung : VBoxContainer
     /// <summary>„Stufe 1: Gießerei" und der Knopf zum Ausbau – gesperrt mit Begründung, solange Grad oder Geld fehlen.</summary>
     private void AusbauAktualisieren(Betrieb b, Stadtwirtschaft w)
     {
-        _ausbauZeile.Visible = b.IstWerkstatt && w.Daten.Meistergrade is not null;
+        _ausbauZeile.Visible = b.InDerStadt && w.Daten.Meistergrade is not null;
         if (!_ausbauZeile.Visible) return;
         var waehrung = w.Daten.Allgemein.Waehrung;
         var beruf = b.Artdaten.Beruf;
