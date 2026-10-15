@@ -114,11 +114,17 @@ reichsgilde/
 │   └── Zeit/                       Spielzeit, Taktgeber, Kalender
 ├── tests/Reichsgilde.Core.Tests/   Automatische Tests für den Simulationskern
 ├── tools/icons/waren_icons.py      Zeichnet die Waren-Icons (Python + Pillow)
-├── docs/                           Erklärungen und Entscheidungen
-└── .github/workflows/              Automatische Prüfung auf Windows und Linux
+├── docs/
+│   ├── ARCHITEKTUR.md              Wie der Code aufgebaut ist und warum
+│   ├── ENTSCHEIDUNGEN.md           Alle Grundsatzentscheidungen, Phasenplan, offene Punkte
+│   └── WIRTSCHAFTSMODELL.md        Zahlen und Messungen je Beruf und Balance-Änderung
+├── CLAUDE.md                       Arbeitsregeln für die Claude-Chats, die am Projekt arbeiten
+└── .github/                        Automatische Prüfung auf Windows und Linux, Vorlage für PR-Texte
 ```
 
-Warum diese Aufteilung? → [docs/ARCHITEKTUR.md](docs/ARCHITEKTUR.md)
+Warum diese Aufteilung? → [docs/ARCHITEKTUR.md](docs/ARCHITEKTUR.md) · Was wann entschieden wurde → [docs/ENTSCHEIDUNGEN.md](docs/ENTSCHEIDUNGEN.md)
+
+**Mitarbeit mehrerer Claude-Chats:** Jeder Chat arbeitet auf einem eigenen Branch, öffnet nach dem ersten Commit einen Entwurfs-PR (Aufgabe, Bereich, angefasste Dateien) und pflegt die Protokolle in `docs/` im selben PR. Die Regeln stehen in [CLAUDE.md](CLAUDE.md).
 
 ## Loslegen
 
