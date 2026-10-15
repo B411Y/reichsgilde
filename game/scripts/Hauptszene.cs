@@ -22,6 +22,7 @@ namespace Reichsgilde;
 ///   --auswahl=Dom      Gebäude vorauswählen (Kennung wie beim Anklicken)
 ///   --drehung=1        Kamera um 1–3 Vierteldrehungen gedreht starten (0 = Blick nach Nordosten)
 ///   --innen=1          direkt in der Innenansicht der eigenen Werkstatt starten (--innen=Rathaus bzw. --innen=Dom: dort)
+///   --raum=2           mit --innen: gleich im zweiten Raum der Raumleiste (Werkstatt: 1 Werkraum, 2 Lager, 3 Kontor, 4 Wohnstube)
 ///   --verwalten=1      das Bedienfeld der eigenen Gießerei gleich öffnen
 ///   --vermoegen=12000  Startvermögen des Spielers setzen (zum Ausprobieren des Aufstiegs)
 ///   --beruf=Steinmetz  Startberuf der Testpartie (Schmied, Tischler, Steinmetz, Alchimist, Wirt, Prediger, Dieb, Gardist)
@@ -78,6 +79,8 @@ public partial class Hauptszene : Node
     private HBoxContainer _tempoleiste = null!;
     private Label _hinweis = null!;
     private Label _protokollLabel = null!;
+    private PanelContainer _raumleiste = null!;
+    private HBoxContainer _raumknoepfe = null!;
 
     // Spielmenü (Esc): Weiter, Speichern, Laden, Hauptmenü, Beenden
     private PanelContainer _spielmenue = null!;
@@ -142,6 +145,7 @@ public partial class Hauptszene : Node
         // Passt eine Tafel nicht ins Fenster, wird sie gerollt (Fenstergröße ist frei wählbar).
         foreach (var tafel in new[] { _tafel, _kontor, _auswahl })
             Rollbereich.Einhuellen(tafel);
+        RaumleisteBauen();
 
         var optionen = Startoptionen();
         _simulation = SimulationAufbauen(optionen);
@@ -215,11 +219,11 @@ public partial class Hauptszene : Node
         var minuten = _simulation.Takt.RundenDauerSekunden / 60;
         _hinweis.Text = $"1 Spieljahr = {minuten:0} Min. · {_simulation.Einstellungen.SiegbedingungText}\n"
                       + "Leertaste Pause · 1–4 Tempo (5–6 Test) · Mausrad Zoom\nRechte Maustaste/WASD verschieben · Q/E drehen · Alt: alle Namen\n"
-                      + "Doppelklick auf Werkstatt, Rathaus oder Dom = Innenansicht · Esc zurück bzw. Spielmenü";
+                      + "Doppelklick auf Werkstatt, Rathaus oder Dom = hineingehen · Esc zurück bzw. Spielmenü";
 
         _stadt.GebaeudeAngeklickt += kennung =>
         {
-            if (RaumImRathausOeffnen(kennung)) return;
+            if (RaumAngeklickt(kennung)) return;
             _auswahlKennung = kennung;
             AuswahlAnzeigen();
             if (kennung == "Marktplatz") MarktOeffnen(); // wie im Original: ein Klick auf den Markt öffnet die Preistafel
@@ -228,9 +232,11 @@ public partial class Hauptszene : Node
         {
             if (kennung is not null) _auswahlKennung = kennung;
             Protokollieren(kennung is null ? "Zurück in den Gassen der Stadt."
-                : kennung is "Rathaus" ? "Ihr betretet das Rathaus. Ein Klick auf einen Raum öffnet seine Tafel."
+                : _stadt.RaumKennung is not null ? $"Ihr betretet {(kennung is "Rathaus" ? "das Rathaus" : _stadt.InnenName)}. Räume wechseln: Leiste unten oder Q/E · ein Klick in den Raum öffnet seine Tafel."
                 : $"Ihr betretet {(kennung is "Dom" ? "den" : "die")} {_stadt.InnenName}.");
+            RaumleisteAufbauen();
         };
+        _stadt.RaumGewechselt += _ => RaumleisteAufbauen();
         _innenKnopf.Pressed += InnenKnopfGedrueckt;
         _verwaltung.Gemeldet += Protokollieren;
         _verwaltung.HandelGewuenscht += b => { TafelnSchliessen(); _markt.Oeffnen(b); };
@@ -259,6 +265,8 @@ public partial class Hauptszene : Node
         {
             if (innen == "1" && _eigeneGiesserei is not null) _stadt.InnenansichtBetreten(_eigeneGiesserei);
             else if (innen != "1") _stadt.InnenansichtBetreten(innen); // Rathaus oder Dom
+            if (optionen.TryGetValue("raum", out var raum) && int.TryParse(raum, out var raumNummer))
+                _stadt.RaumWaehlen(raumNummer - 1); // --raum=2: zweiter Raum der Leiste
         }
 
         if (_simulation.Zeit.VergangeneMinuten == 0) // nur bei einer neuen Partie, nicht nach dem Laden
@@ -569,7 +577,8 @@ public partial class Hauptszene : Node
         _kontor.Aktualisieren();
         _verwaltung.Aktualisieren();
         PlatzMachen();
-        _blick.Text = _stadt.InnenName is { } innen
+        _blick.Text = _stadt.RaumName is { } raum ? $"{_stadt.InnenName} · {raum}"
+            : _stadt.InnenName is { } innen
             ? $"Blick nach {_stadt.Blickrichtung} · Innenansicht {innen}"
             : $"Blick nach {_stadt.Blickrichtung}";
     }
@@ -584,19 +593,77 @@ public partial class Hauptszene : Node
     }
 
     /// <summary>
-    /// Ein Raum im Rathaus wurde angeklickt (nur in der Innenansicht möglich): Ratssaal → Ratskammer,
-    /// Gerichtssaal → Gerichtssaal, Amtsstube → Auswahl „Rathaus" mit dem Knopf zum Aufsteigen. Gibt false zurück,
-    /// wenn die Kennung kein Raum ist.
+    /// Ein Raum wurde angeklickt (nur in der Raumansicht möglich) und öffnet seine Tafel: Ratssaal → Stadtrat,
+    /// Gerichtssaal und Kerker → Stadtgericht, Wohnstube → Familie. Amtsstube und Kontor zeigen ihr Fenster ohnehin
+    /// (siehe <see cref="AuswahlImRaum"/>). Gibt false zurück, wenn die Kennung kein Raum ist.
     /// </summary>
-    private bool RaumImRathausOeffnen(string kennung)
+    private bool RaumAngeklickt(string kennung)
     {
-        if (kennung is not (Stadtansicht.RaumRat or Stadtansicht.RaumGericht or Stadtansicht.RaumAmt)) return false;
-        _auswahlKennung = "Rathaus";
-        AuswahlAnzeigen();
         var w = _simulation.Wirtschaft;
-        if (kennung == Stadtansicht.RaumRat && w?.Rat.IstAktiv == true) { TafelnSchliessen(); _ratskammer.Oeffnen(); }
-        else if (kennung == Stadtansicht.RaumGericht && w?.Justiz.IstAktiv == true) { TafelnSchliessen(); _gerichtssaal.Oeffnen(); }
-        return true;
+        switch (kennung)
+        {
+            case Stadtansicht.RaumRat:
+                if (w?.Rat.IstAktiv == true) { TafelnSchliessen(); _ratskammer.Oeffnen(); }
+                return true;
+            case Stadtansicht.RaumGericht or Stadtansicht.RaumKerker:
+                if (w?.Justiz.IstAktiv == true) { TafelnSchliessen(); _gerichtssaal.Oeffnen(); }
+                return true;
+            case Stadtansicht.RaumWohnstube:
+                TafelnSchliessen();
+                _familientafel.Oeffnen();
+                return true;
+            case Stadtansicht.RaumAmt or Stadtansicht.RaumKontor or Stadtansicht.RaumWerk or Stadtansicht.RaumLager:
+                return true;
+            default:
+                return false;
+        }
+    }
+
+    /// <summary>
+    /// In der Raumansicht bleibt das Bild frei: Das Gebäudefenster erscheint nur in Kontor und Amtsstube,
+    /// das Kontor des Hauses (rechts oben) nur im Kontor. Draußen und im Dom (noch Diorama) wie bisher.
+    /// </summary>
+    private bool AuswahlImRaum => _stadt.RaumKennung is null or Stadtansicht.RaumKontor or Stadtansicht.RaumAmt;
+
+    /// <summary>Leiste unten rechts (dort ist in jedem Raum Platz): ein Knopf je Raum, der gezeigte ist gedrückt, dazu „Zur Stadt".</summary>
+    private void RaumleisteBauen()
+    {
+        _raumleiste = new PanelContainer { Visible = false };
+        _raumleiste.AddThemeStyleboxOverride("panel", new StyleBoxFlat
+        {
+            BgColor = new Color(0.16f, 0.15f, 0.13f, 0.97f),
+            CornerRadiusTopLeft = 4, CornerRadiusTopRight = 4, CornerRadiusBottomLeft = 4, CornerRadiusBottomRight = 4,
+            ContentMarginLeft = 10, ContentMarginRight = 10, ContentMarginTop = 8, ContentMarginBottom = 8,
+        });
+        _raumknoepfe = new HBoxContainer();
+        _raumknoepfe.AddThemeConstantOverride("separation", 8);
+        _raumleiste.AddChild(_raumknoepfe);
+        GetNode<CanvasLayer>("Oberflaeche").AddChild(_raumleiste);
+        _raumleiste.GrowHorizontal = Control.GrowDirection.Begin;
+        _raumleiste.GrowVertical = Control.GrowDirection.Begin;
+    }
+
+    private void RaumleisteAufbauen()
+    {
+        foreach (var knopf in _raumknoepfe.GetChildren())
+        {
+            _raumknoepfe.RemoveChild(knopf); // sofort heraus, sonst zählt die alte Breite beim Messen noch mit
+            knopf.QueueFree();
+        }
+        _raumleiste.Visible = _stadt.RaumKennung is not null;
+        if (!_raumleiste.Visible) return;
+        foreach (var (kennung, name) in _stadt.InnenRaeume)
+        {
+            var knopf = new Button { Text = name, ToggleMode = true, ButtonPressed = kennung == _stadt.RaumKennung, FocusMode = Control.FocusModeEnum.None, CustomMinimumSize = new Vector2(90, 0) };
+            knopf.Pressed += () => _stadt.RaumWaehlen(kennung);
+            _raumknoepfe.AddChild(knopf);
+        }
+        var zurueck = new Button { Text = "Zur Stadt (Esc)", FocusMode = Control.FocusModeEnum.None };
+        zurueck.Pressed += _stadt.InnenansichtVerlassen;
+        _raumknoepfe.AddChild(zurueck);
+        // Breite neu messen, dann wieder in die Ecke setzen
+        _raumleiste.ResetSize();
+        _raumleiste.SetAnchorsAndOffsetsPreset(Control.LayoutPreset.BottomRight, Control.LayoutPresetMode.Minsize, 16);
     }
 
     private Betrieb? AusgewaehlterBetrieb() =>
@@ -655,7 +722,7 @@ public partial class Hauptszene : Node
         if (_ratKnopf.Visible != ratSichtbar) _ratKnopf.Visible = ratSichtbar; // nur bei Änderung setzen (siehe AktionKnopfAnzeigen)
         var gerichtSichtbar = _auswahlKennung == "Rathaus" && w.Justiz.IstAktiv;
         if (_gerichtKnopf.Visible != gerichtSichtbar) _gerichtKnopf.Visible = gerichtSichtbar;
-        _auswahl.Show();
+        if (_auswahl.Visible != AuswahlImRaum) _auswahl.Visible = AuswahlImRaum;
     }
 
     /// <summary>Ein freier Platz: was er kostet, ab welchem Stand und was er voraussichtlich einbringt.</summary>
@@ -747,7 +814,12 @@ public partial class Hauptszene : Node
     }
 
     /// <summary>Die Tafel oben links macht Platz, solange unten links eine Auswahl offen ist.</summary>
-    private void PlatzMachen() => _hinweis.Visible = !_auswahl.Visible;
+    private void PlatzMachen()
+    {
+        _hinweis.Visible = !_auswahl.Visible && _stadt.RaumKennung is null;
+        var kontorSichtbar = _stadt.RaumKennung is null or Stadtansicht.RaumKontor;
+        if (_kontor.Visible != kontorSichtbar) _kontor.Visible = kontorSichtbar;
+    }
 
     private string BetriebsText(Betrieb b, Stadtwirtschaft w)
     {

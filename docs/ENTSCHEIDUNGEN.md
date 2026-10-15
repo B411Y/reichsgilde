@@ -30,7 +30,7 @@ Seit 15.10.2026 im Repository (vorher im Claude-Projekt). Änderungen laufen wie
 | Grafikansatz | **3D-Modelle mit orthografischer Schrägkamera** (40° Neigung). Blick **diagonal zu den Himmelsrichtungen**: Nordosten, Nordwesten, Südwesten, Südosten; Drehung nur in 90°-Schritten. (Kurz erprobt und verworfen: Blick genau nach N/O/S/W.) | 13.10.2026 |
 | Nachtlicht | Mond wirft Schatten (kühl, etwas weicher), wenig blaues Umgebungslicht, weicher Übergang in der Dämmerung. Idee für später: Mondphasen je Jahr (Neumond = mehr Überfälle). | 13.10.2026 |
 | Fenster und Oberfläche | Fenster **frei ziehbar ohne Mindestgröße**, Oberfläche in **fester Pixelgröße** (größeres Fenster = mehr Stadt, nicht größere Schrift). Tafeln, die nicht passen, **rollen** (senkrecht und waagrecht). **Vollbild per F11** und im Haupt- und Spielmenü, Wahl wird gespeichert. | 14.10.2026 |
-| Innenansicht | **Diorama**: Gebäude wird aufgeschnitten – Dach und die zwei Wände zur Kamera ausgeblendet, Nachbarhäuser davor ebenfalls. Betreten per Doppelklick oder Knopf, Esc zurück. | 13.10.2026 |
+| Innenansicht | ~~Diorama~~ → ersetzt durch die **Raumansicht** (Abschnitt 13); nur der Dom ist noch ein Diorama. Früher: **Diorama**: Gebäude wird aufgeschnitten – Dach und die zwei Wände zur Kamera ausgeblendet, Nachbarhäuser davor ebenfalls. Betreten per Doppelklick oder Knopf, Esc zurück. | 13.10.2026 |
 
 ## 3. Spielzeit & Pause
 
@@ -223,9 +223,11 @@ Format: `- PR #Nummer (Phase) – Inhalt`
 - PR #49 (3) – Innenräume für Rathaus (Ratssaal, Gerichtssaal, Amtsstube, Kerker) und Dom nach dem Stadtglauben
 - PR #50 (–) – Flüssige Bewegung von Sonne, Schatten und Karren zwischen den Spielminuten
 - PR #51 (3) – Namen in der Stadt nur bei Hover, Auswahl oder Alt; Schild an freien Plätzen; Schriften Germania One und Alegreya
+- PR #52 (3) – Raumansicht: Werkstätten (Werkraum, Lager, Kontor, Wohnstube) und Rathaus (Ratssaal, Gericht, Amtsstube, Kerker) betreten, feste Ansicht je Raum
 
 ### 6b. Offen (eine Zeile je Punkt; erledigt → Zeile löschen und unter 6a eintragen)
 
+- (3) Raumansicht für den Dom und Feinschliff der Werkstatträume je Beruf (zweiter Teil von PR #52)
 - (2) Bürger-KI
 - (5) Orks und Oger spielbar machen
 - (5) Bauplätze und Sanierung (siehe Abschnitt 7, Punkt 8)
@@ -294,3 +296,14 @@ Format: `- PR #Nummer (Phase) – Inhalt`
 | Freie Plätze | **Schild am Pfosten ohne Text**: ocker = zu verkaufen, grün = zu verpachten, leicht leuchtend für die Nacht. Name und „zu verkaufen/verpachten“ beim Hover. | 15.10.2026 |
 | Schrift Überschriften | **Germania One** (gebrochen, kantig; SIL OFL) für Überschriften ab 20 px und die Namen in der Stadt. Aus 10 Mustern gewählt (u. a. Grenze Gotisch, Pirata One, UnifrakturMaguntia, Almendra, Cinzel). | 15.10.2026 |
 | Schrift Text | **Alegreya** (Buchschrift; SIL OFL) für allen übrigen Text, mit Normalziffern gleicher Breite (`lnum`, `tnum`), 1 px größer als vorher. | 15.10.2026 |
+
+## 13. Raumansicht statt Diorama (PR #52)
+
+| Thema | Entscheidung | Datum |
+|---|---|---|
+| Grundsatz | **Gebäude betritt man wie im Vorbild**: eigene Ansicht je Raum, zwischen den Räumen wechseln. Das **Diorama wird ersetzt** (nicht beides pflegen). | 15.10.2026 |
+| Kamera | **Feste Ansicht je Raum**: Die Kamera steht vor der offenen Vorderseite und blickt leicht von oben hinein, kein Zoomen, Drehen oder Verschieben. Q/E wechseln im Gebäude den Raum. | 15.10.2026 |
+| Räume | **Räume mit Tafeln**: Werkstatt = Werkraum, Lager, Kontor (nur eigene; zeigt die Verwaltung), Wohnstube (nur Stammhaus; öffnet die Familie). Rathaus = Ratssaal, Gerichtssaal, Amtsstube, Kerker. Dom später: Kirchenschiff, Sakristei. | 15.10.2026 |
+| Umfang | **Erst Prototyp**: dieser PR baut Werkstätten und Rathaus; Dom und der Feinschliff je Beruf folgen im zweiten PR. | 15.10.2026 |
+| Stammhaus | Die Familie wohnt in der **ersten eigenen Werkstatt in der Stadt**; dort gibt es die Wohnstube, das Oberhaupt sitzt tagsüber im Kontor, abends am Tisch. | 15.10.2026 |
+| Bildschirm | Im Raum bleibt das Bild frei: Gebäudefenster und Kontor des Hauses erscheinen nur in Kontor und Amtsstube. Die Raumleiste steht unten rechts. | 15.10.2026 |

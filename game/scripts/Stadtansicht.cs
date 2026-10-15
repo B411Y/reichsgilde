@@ -17,16 +17,16 @@ namespace Reichsgilde;
 ///   • Sonne, Himmel und Licht folgen der Spieluhr
 ///   • Die Esse einer Gießerei glüht, solange dort gearbeitet wird
 ///   • Gebäude lassen sich anklicken (Ereignis <see cref="GebaeudeAngeklickt"/>)
-///   • Werkstätten lassen sich als „Diorama" betreten: Dach und Vorderwand werden ausgeblendet,
-///     innen sieht man die Einrichtung des Berufs, das Lager als Kistenstapel und die Arbeiter
-///     (Einrichtung und Zustände: Stadtansicht.Innenraeume.cs).
+///   • Werkstätten und Rathaus lassen sich betreten: Eine eigene Kamera blickt fest in je einen Raum
+///     (Raumansicht, Stadtansicht.Raeume.cs; Einrichtung des Werkraums: Stadtansicht.Innenraeume.cs).
+///     Der Dom ist noch ein „Diorama": Dach und Vorderwände werden in der Stadt ausgeblendet.
 ///
 /// Blickrichtungen: Die Kamera schaut schräg von oben und diagonal zu den Himmelsrichtungen –
 /// nach Nordosten, Nordwesten, Südwesten oder Südosten (Entscheidung vom 13.10.2026).
 /// Norden ist −Z, Osten ist +X. Dadurch zeigen immer zwei Gebäudeseiten zur Kamera.
 ///
 /// Steuerung: Mausrad = Zoom, rechte Maustaste ziehen oder WASD/Pfeiltasten = verschieben,
-/// Q/E = um 90° drehen, Linksklick = Gebäude auswählen, Doppelklick auf eine Werkstatt = Innenansicht.
+/// Q/E = um 90° drehen, Linksklick = Gebäude auswählen, Doppelklick = hineingehen. Im Gebäude: Q/E = Raum wechseln.
 /// </summary>
 public partial class Stadtansicht : Node3D
 {
@@ -78,6 +78,10 @@ public partial class Stadtansicht : Node3D
     private Tween? _kamerafahrt;
     private readonly List<Node3D> _kulisseAusgeblendet = new();
 
+    // Raumansicht: eigene Kamera mit Perspektive, die fest in den gerade gezeigten Raum blickt (Stadtansicht.Raeume.cs).
+    private Camera3D _raumKamera = null!;
+    private Raum? _raum;
+
     private readonly Dictionary<Betrieb, BetriebsAnsicht> _betriebe = new();
     private readonly Dictionary<Karren, Node3D> _karren = new();
     private readonly List<Label3D> _beschriftungen = new();
@@ -88,6 +92,19 @@ public partial class Stadtansicht : Node3D
 
     /// <summary>Wird ausgelöst, wenn eine Innenansicht betreten (Kennung des Gebäudes) oder verlassen (null) wird.</summary>
     public event Action<string?>? InnenansichtGewechselt;
+
+    /// <summary>Wird ausgelöst, wenn in der Raumansicht ein anderer Raum gezeigt wird (Kennung des Raums, null beim Verlassen).</summary>
+    public event Action<string?>? RaumGewechselt;
+
+    /// <summary>Kennung des gezeigten Raums („raum:werk", „rathaus:rat" …), sonst null – auch im Dom, der noch ein Diorama ist.</summary>
+    public string? RaumKennung => _raum?.Kennung;
+
+    /// <summary>Name des gezeigten Raums, sonst null.</summary>
+    public string? RaumName => _raum?.Name;
+
+    /// <summary>Die Räume des betretenen Gebäudes, die man gerade betreten darf (für die Raumleiste).</summary>
+    public IReadOnlyList<(string Kennung, string Name)> InnenRaeume =>
+        _innen is null ? Array.Empty<(string, string)>() : Zugaengliche(_innen).Select(r => (r.Kennung, r.Name)).ToList();
 
     /// <summary>Kennung des Gebäudes, dessen Innenansicht gerade gezeigt wird („betrieb:…", „Rathaus", „Dom"), sonst null.</summary>
     public string? InnenKennung => _innen?.Kennung;
@@ -170,6 +187,12 @@ public partial class Stadtansicht : Node3D
         public Label3D? Infotafel { get; set; }
         /// <summary>Zeigt Zustände aus der Simulation (Uhrzeit, Arbeitszeit, wird gearbeitet).</summary>
         public Action<Spielzeit, bool, bool>? Zustand { get; set; }
+
+        /// <summary>Räume der Raumansicht in ihrer Reihenfolge. Leer = Diorama (Gebäude wird aufgeschnitten).</summary>
+        public List<Raum> Raeume { get; } = new();
+        public bool Raumansicht => Raeume.Count > 0;
+        /// <summary>Weitere Zustände einzelner Räume (Kontor, Wohnstube), jedes Bild nach <see cref="Zustand"/>.</summary>
+        public List<Action<Spielzeit, bool>> Raumzustaende { get; } = new();
     }
 
     /// <summary>Rathaus oder Dom: kein Betrieb, aber mit Innenraum.</summary>
@@ -388,6 +411,7 @@ public partial class Stadtansicht : Node3D
         };
         neigung.AddChild(_kamera);
         _kameraDrehung.Position = new Vector3(24, 0, -6); // Stadt und Grube im Blick
+        RaumKameraAufbauen();
     }
 
     private void Stadtmauer()
@@ -1459,8 +1483,10 @@ public partial class Stadtansicht : Node3D
 
         _innen = ansicht;
         InnenraumZeigen(ansicht, true);
-        Kamerafahrt(ansicht.Mitte, ansicht.Zoom);
+        if (ansicht.Raumansicht) RaumZeigen(ansicht.Raeume[0], melden: false);
+        else Kamerafahrt(ansicht.Mitte, ansicht.Zoom);
         InnenansichtGewechselt?.Invoke(ansicht.Kennung);
+        if (_raum is not null) RaumGewechselt?.Invoke(_raum.Kennung);
         return true;
     }
 
@@ -1468,14 +1494,22 @@ public partial class Stadtansicht : Node3D
     public void InnenansichtVerlassen()
     {
         if (_innen is null) return;
+        var raumansicht = _innen.Raumansicht;
         InnenraumZeigen(_innen, false);
         _innen = null;
-        Kamerafahrt(_vorherPosition, _vorherZoom);
+        if (!raumansicht) Kamerafahrt(_vorherPosition, _vorherZoom);
         InnenansichtGewechselt?.Invoke(null);
+        if (raumansicht) RaumGewechselt?.Invoke(null);
     }
 
     private void InnenraumZeigen(InnenAnsicht ansicht, bool innen)
     {
+        if (ansicht.Raumansicht)
+        {
+            RaumansichtUmschalten(ansicht, innen);
+            if (innen) InnenAuffuellen(ansicht);
+            return;
+        }
         ansicht.Innen!.Visible = innen;
         if (ansicht.Dach is not null) ansicht.Dach.Visible = !innen;
         if (ansicht.Schild is not null) ansicht.Schild.Visible = !innen;
@@ -1485,7 +1519,13 @@ public partial class Stadtansicht : Node3D
         foreach (var raum in ansicht.Raumklicks) raum.Disabled = !innen;
         KulisseZeigen();
         if (!innen) return;
-        // Beim Betreten sofort einmal auffüllen, damit nichts „nachploppt".
+        InnenAuffuellen(ansicht);
+        Aufschneiden(ansicht);
+    }
+
+    /// <summary>Beim Betreten sofort einmal auffüllen, damit nichts „nachploppt".</summary>
+    private void InnenAuffuellen(InnenAnsicht ansicht)
+    {
         if (_simulation?.Wirtschaft is { } w)
         {
             var zeit = _simulation.Zeit;
@@ -1495,7 +1535,6 @@ public partial class Stadtansicht : Node3D
             else if (ansicht is SonderbauAnsicht s)
                 SonderbauAktualisieren(s, zeit, arbeitszeit, 0);
         }
-        Aufschneiden(ansicht);
     }
 
     /// <summary>
@@ -1615,6 +1654,7 @@ public partial class Stadtansicht : Node3D
         var hell = Mathf.Clamp(Mathf.Sin((stunde - 4f) / 17f * Mathf.Pi), 0f, 1f);
         umgebung.AmbientLightColor = new Color(0.30f, 0.36f, 0.58f).Lerp(new Color(0.85f, 0.83f, 0.78f), hell);
         umgebung.AmbientLightEnergy = 0.18f + 0.52f * hell;
+        RaumlichtNachUhrzeit(uhrzeitInMinuten, hell);
     }
 
     // Stützpunkte für den Himmel: (Uhrzeit in Minuten, Farbe).
@@ -1649,7 +1689,7 @@ public partial class Stadtansicht : Node3D
     public override void _Process(double delta)
     {
         // Beschriftungen mitskalieren, damit sie bei jedem Zoom gleich groß wirken.
-        var massstab = _kamera.Size / BezugsZoom;
+        var massstab = _raum is not null ? RaumSchildMassstab : _kamera.Size / BezugsZoom;
         foreach (var label in _beschriftungen)
             label.Scale = Vector3.One * massstab;
         BeschriftungenZeigen();
@@ -1657,7 +1697,8 @@ public partial class Stadtansicht : Node3D
         // Sanft auf die Zieldrehung zudrehen (Q/E)
         var aktuell = _kameraDrehung.RotationDegrees.Y;
         _kameraDrehung.RotationDegrees = new Vector3(0, Mathf.LerpAngle(Mathf.DegToRad(aktuell), Mathf.DegToRad(_zielDrehung), (float)Math.Min(1, delta * 8)) * 180 / Mathf.Pi, 0);
-        if (_innen is not null) Aufschneiden(_innen);
+        if (_innen is { Raumansicht: false }) Aufschneiden(_innen);
+        if (_raum is not null) return; // feste Ansicht: im Raum wird nicht verschoben
 
         // Verschieben mit Tastatur
         var richtung = Vector2.Zero;
@@ -1688,6 +1729,11 @@ public partial class Stadtansicht : Node3D
 
     public override void _UnhandledInput(InputEvent eingabe)
     {
+        if (_raum is not null)
+        {
+            RaumEingabe(eingabe);
+            return;
+        }
         switch (eingabe)
         {
             case InputEventMouseButton { Pressed: true, ButtonIndex: MouseButton.WheelUp }:
@@ -1753,8 +1799,9 @@ public partial class Stadtansicht : Node3D
     /// <summary>Welches Gebäude liegt an dieser Bildschirmstelle? (Strahl aus der Kamera, trifft die Klickflächen)</summary>
     private string? KennungBei(Vector2 bildschirm)
     {
-        var von = _kamera.ProjectRayOrigin(bildschirm);
-        var bis = von + _kamera.ProjectRayNormal(bildschirm) * 500;
+        var kamera = _raum is not null ? _raumKamera : _kamera;
+        var von = kamera.ProjectRayOrigin(bildschirm);
+        var bis = von + kamera.ProjectRayNormal(bildschirm) * 500;
         var treffer = GetWorld3D().DirectSpaceState.IntersectRay(PhysicsRayQueryParameters3D.Create(von, bis));
         return treffer.Count > 0 && treffer["collider"].As<Node>() is { } koerper && koerper.HasMeta("kennung")
             ? koerper.GetMeta("kennung").AsString() : null;
