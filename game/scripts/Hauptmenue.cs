@@ -25,6 +25,7 @@ public partial class Hauptmenue : Node
     private PanelContainer _start = null!;
     private PanelContainer _neu = null!;
     private PanelContainer _laden = null!;
+    private EinstellungenAnzeige _einstellungen = null!;
     private SpielstandListe _liste = null!;
     private Label _ladeFehler = null!;
 
@@ -77,7 +78,8 @@ public partial class Hauptmenue : Node
         _start = StartTafel();
         _neu = NeuTafel();
         _laden = LadeTafel();
-        foreach (var tafel in new[] { _start, _neu, _laden })
+        _einstellungen = new EinstellungenAnzeige(() => Zeigen(_start));
+        foreach (var tafel in new[] { _start, _neu, _laden, _einstellungen.Tafel })
             mitte.AddChild(tafel);
         Zeigen(_start);
     }
@@ -86,7 +88,7 @@ public partial class Hauptmenue : Node
 
     private void Zeigen(PanelContainer tafel)
     {
-        foreach (var t in new[] { _start, _neu, _laden })
+        foreach (var t in new[] { _start, _neu, _laden, _einstellungen.Tafel })
             t.Visible = t == tafel;
     }
 
@@ -103,7 +105,7 @@ public partial class Hauptmenue : Node
 
         Knopf(spalte, "Neue Partie", () => Zeigen(_neu));
         Knopf(spalte, "Partie laden", () => { _liste.Auffrischen(); _ladeFehler.Text = ""; Zeigen(_laden); });
-        Knopf(spalte, "Vollbild / Fenster (F11)", Fenster.Umschalten);
+        Knopf(spalte, "Einstellungen", () => { _einstellungen.Auffrischen(); Zeigen(_einstellungen.Tafel); });
         Knopf(spalte, "Beenden", () => GetTree().Quit());
 
         Text(spalte, "Hobby- und Lernprojekt · Open Source (MIT) · Greybox-Grafik", 11, new Color(0.6f, 0.6f, 0.6f), zentriert: true);
