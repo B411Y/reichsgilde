@@ -221,27 +221,16 @@ public static class WappenFormen
             .Append(Kreis(Vector2.Zero, 0.12f))
             .Concat(Enumerable.Range(0, 6).Select(i => GedrehtesRechteck(Vector2.Zero, 0.06f, 0.44f, i * MathF.PI / 3)))
             .ToList(),
-        Core.Dynastie.Figur.Aehre => Enumerable.Range(0, 4)
-            .SelectMany(i => new[]
-            {
-                Ellipse(new(-0.12f, -0.42f + i * 0.17f), 0.075f, 0.15f, 0.5f),
-                Ellipse(new(0.12f, -0.42f + i * 0.17f), 0.075f, 0.15f, -0.5f),
-            })
-            .Prepend(Ellipse(new(0, -0.6f), 0.07f, 0.14f, 0))
-            .Prepend(Rechteck(-0.03f, -0.4f, 0.03f, 0.66f))
-            .Append(Ellipse(new(-0.16f, 0.36f), 0.05f, 0.16f, 0.9f))
-            .ToList(),
-        Core.Dynastie.Figur.Lilie => new()
-        {
-            new Vector2[] { new(0, -0.66f), new(0.13f, -0.48f), new(0.15f, -0.25f), new(0.08f, 0.02f), new(-0.08f, 0.02f), new(-0.15f, -0.25f), new(-0.13f, -0.48f) },
-            new Vector2[] { new(-0.08f, 0.04f), new(-0.32f, -0.02f), new(-0.5f, -0.2f), new(-0.5f, -0.38f), new(-0.4f, -0.44f), new(-0.42f, -0.3f), new(-0.32f, -0.18f), new(-0.12f, -0.12f) },
-            new Vector2[] { new(0.08f, 0.04f), new(0.12f, -0.12f), new(0.32f, -0.18f), new(0.42f, -0.3f), new(0.4f, -0.44f), new(0.5f, -0.38f), new(0.5f, -0.2f), new(0.32f, -0.02f) },
-            Rechteck(-0.3f, 0.02f, 0.3f, 0.14f),
-            new Vector2[] { new(-0.07f, 0.14f), new(0.07f, 0.14f), new(0.26f, 0.48f), new(0.1f, 0.38f), new(0, 0.56f), new(-0.1f, 0.38f), new(-0.26f, 0.48f) },
-        },
+        Core.Dynastie.Figur.Aehre => Aehre(),
+        Core.Dynastie.Figur.Lilie => Lilie(),
         Core.Dynastie.Figur.Rose => Enumerable.Range(0, 5)
-            .Select(i => Kreis(Vector2.FromAngle(-MathF.PI / 2 + i * 2 * MathF.PI / 5) * 0.3f, 0.24f))
-            .Append(Kreis(Vector2.Zero, 0.26f))
+            .Select(i => Kreis(Vector2.FromAngle(-MathF.PI / 2 + i * MathF.Tau / 5) * 0.32f, 0.2f))
+            .Concat(Enumerable.Range(0, 5).Select(i =>
+            {
+                var w = -MathF.PI / 2 + (i + 0.5f) * MathF.Tau / 5; // Kelchblatt zwischen zwei Blüten
+                return new[] { Vector2.FromAngle(w - 0.22f) * 0.3f, Vector2.FromAngle(w) * 0.62f, Vector2.FromAngle(w + 0.22f) * 0.3f };
+            }))
+            .Append(Kreis(Vector2.Zero, 0.2f))
             .ToList(),
         Core.Dynastie.Figur.Fisch => new()
         {
@@ -265,6 +254,50 @@ public static class WappenFormen
         },
         _ => new() { Mond() },
     };
+
+    /// <summary>Getreideähre: Halm, Körner schräg nach außen in zwei Reihen, je eine Granne, zwei Blätter am Fuß.</summary>
+    private static List<Vector2[]> Aehre()
+    {
+        var teile = new List<Vector2[]> { Rechteck(-0.025f, -0.36f, 0.025f, 0.66f) };
+        // Ein Korn samt Granne. Drehung θ: Ein positiver Winkel kippt die Spitze nach rechts (y zeigt nach unten).
+        void Korn(Vector2 m, float theta)
+        {
+            teile.Add(Ellipse(m, 0.062f, 0.115f, theta));
+            var spitze = m + new Vector2(0, -0.1f).Rotated(theta);
+            teile.Add(GedrehtesRechteck(spitze, 0.013f, 0.2f, theta + MathF.PI)); // „nach unten“ um 180° gedreht = nach oben
+        }
+        Korn(new(0, -0.5f), 0);
+        for (var reihe = 0; reihe < 4; reihe++)
+        {
+            var y = -0.32f + reihe * 0.17f;
+            Korn(new(-0.11f, y), -0.5f);
+            Korn(new(0.11f, y), 0.5f);
+        }
+        teile.Add(Ellipse(new(-0.13f, 0.44f), 0.045f, 0.17f, -0.75f));
+        teile.Add(Ellipse(new(0.13f, 0.48f), 0.045f, 0.17f, 0.75f));
+        return teile;
+    }
+
+    /// <summary>Lilie: hohes Mittelblatt, zwei nach außen gebogene Seitenblätter, Band, kurzer Fuß.</summary>
+    private static List<Vector2[]> Lilie()
+    {
+        var seite = new Vector2[]
+        {
+            new(0.06f, 0.02f), new(0.12f, -0.12f), new(0.26f, -0.26f), new(0.42f, -0.3f), new(0.54f, -0.22f), new(0.56f, -0.08f),
+            new(0.5f, 0.04f), new(0.44f, -0.04f), new(0.45f, -0.14f), new(0.38f, -0.18f), new(0.28f, -0.12f), new(0.2f, 0.02f),
+        };
+        var fuss = new Vector2[] { new(0.06f, 0.12f), new(0.22f, 0.12f), new(0.3f, 0.2f), new(0.28f, 0.32f), new(0.2f, 0.28f), new(0.16f, 0.2f), new(0.08f, 0.18f) };
+        return new()
+        {
+            new Vector2[] { new(0, -0.68f), new(0.1f, -0.55f), new(0.16f, -0.35f), new(0.14f, -0.15f), new(0.07f, 0.02f), new(-0.07f, 0.02f), new(-0.14f, -0.15f), new(-0.16f, -0.35f), new(-0.1f, -0.55f) },
+            seite, Gespiegelt(seite),
+            Rechteck(-0.3f, 0, 0.3f, 0.12f),
+            new Vector2[] { new(-0.06f, 0.1f), new(0.06f, 0.1f), new(0.04f, 0.3f), new(0, 0.4f), new(-0.04f, 0.3f) },
+            fuss, Gespiegelt(fuss),
+        };
+    }
+
+    private static Vector2[] Gespiegelt(Vector2[] punkte) => punkte.Reverse().Select(p => new Vector2(-p.X, p.Y)).ToArray();
 
     // ── Grundformen ──────────────────────────────────────────────────────────
 
