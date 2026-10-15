@@ -24,7 +24,7 @@ static class AlchimistTests
             Pruefe.Gleich(1, d.Waren["Schrank"].Zutaten["Farbe"]);           // der Tischler braucht Farbe …
             Pruefe.Gleich(1, d.Waren["Zinnober"].Zutaten["Schleifziegel"]);  // … der Alchimist Schleifziegel und Silber
             Pruefe.Gleich(1, d.Waren["Zinnober"].Zutaten["Silber"]);
-            Pruefe.Gleich(4, d.Berufe.Count);
+            Pruefe.Wahr(d.Berufe.ContainsKey("Alchimist"), "Alchimist fehlt");
         }),
 
         ("Tinkturei: Kräuterschnaps aus einem Bund Kräuter – das Haus sammelt Erfahrung als Alchimist", () =>

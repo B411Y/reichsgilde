@@ -1,0 +1,195 @@
+using Reichsgilde.Core;
+using Reichsgilde.Core.Dynastie;
+using Reichsgilde.Core.Ki;
+using Reichsgilde.Core.Partie;
+using Reichsgilde.Core.Speichern;
+using Reichsgilde.Core.Wirtschaft;
+
+/// <summary>Tests für den Wirt: Gäste und Ausschank, Vorrat, Barde, Würfeltisch, Stammtisch, dunkle Ecke.</summary>
+static class WirtTests
+{
+    static readonly Lazy<Wirtschaftsdaten> Daten = new(() => Wirtschaftsdaten.AusDatei(Datenpfad.Wirtschaft()));
+
+    /// <summary>Daten, in denen die dunkle Ecke jedes Gerücht hört – damit der Test nicht vom Zufall abhängt.</summary>
+    static readonly Lazy<Wirtschaftsdaten> HellhoerigeEcke = new(() => Wirtschaftsdaten.AusJson(File.ReadAllText(Datenpfad.Wirtschaft())
+        .Replace("\"dunkleEcke\": { \"chance\": 0.2 }", "\"dunkleEcke\": { \"chance\": 1.0 }")));
+
+    static Simulation NeueSimulation(Wirtschaftsdaten? daten = null) =>
+        new(Partieeinstellungen.Standard with { Siegbedingung = Siegbedingung.Endlos, Zufallsstartwert = 1400 }, wirtschaftsdaten: daten ?? Daten.Value);
+
+    static void JahrBeenden(Simulation sim)
+    {
+        var jahr = sim.Zeit.Jahr;
+        while (sim.Zeit.Jahr == jahr) sim.Tick();
+    }
+
+    /// <summary>Bis Mitternacht: Die Partie beginnt um 6 Uhr, die Schänken öffnen um 12.</summary>
+    static void BisMitternacht(Simulation sim)
+    {
+        for (var i = 0; i < 18 * 60 + 1; i++) sim.Tick();
+    }
+
+    /// <summary>Eine Schänke der gewünschten Art mit Personal und Bier im Lager, ohne Karren.</summary>
+    static (Stadtwirtschaft W, Konto K, Betrieb S) Wirt(Simulation sim, Betriebsart art = Betriebsart.Schaenke, int bier = 200, string name = "Familie Krug")
+    {
+        var w = sim.Wirtschaft!;
+        var k = w.KontoEroeffnen(name, startvermoegen: 10_000);
+        var s = w.BetriebEroeffnen($"Schänke {name}", art, k, startkarren: "");
+        w.Einstellen(s, "Geselle", 1);
+        s.Einlagern("Dünnbier", bier);
+        return (w, k, s);
+    }
+
+    public static IEnumerable<(string, Action)> Alle() => new (string, Action)[]
+    {
+        ("Daten: Bauernhof baut Gerste und Roggen an; Schänke → Wirtshaus → Gasthaus; Schädelbrand braucht Schmied und Tischler", () =>
+        {
+            var d = Daten.Value;
+            Pruefe.Wahr(d.Art(Betriebsart.Bauernhof).Rohstoffe.SequenceEqual(new[] { "Gerste", "Roggen" }), "Bauernhof");
+            Pruefe.Wahr(d.Art(Betriebsart.Schaenke).Produkte.SequenceEqual(new[] { "Weingeist", "Körnermahlzeit", "Dünnbier" }), "Schänke");
+            Pruefe.Gleich(Betriebsart.Gasthaus, d.Art(Betriebsart.Wirtshaus).Ausbau);
+            Pruefe.Gleich(1, d.Waren["Schädelbrand"].Zutaten["Beschlag"]);
+            Pruefe.Gleich(1, d.Waren["Schädelbrand"].Zutaten["Holzzapfen"]);
+            Pruefe.Gleich(1, d.Waren["Kräuterlikör"].Zutaten["Kräuter"]);
+            Pruefe.Wahr(!d.Gastwirtschaft!.Ausschank.Contains("Weingeist"), "Weingeist ist Zwischenware, kein Ausschank");
+            var json = File.ReadAllText(Datenpfad.Wirtschaft()).Replace("\"ausschank\": [ \"Körnermahlzeit\"", "\"ausschank\": [ \"Bratwurst\"");
+            Pruefe.WirftMitMeldung(() => Wirtschaftsdaten.AusJson(json), "„Bratwurst“ gibt es nicht");
+        }),
+
+        ("Gäste: kommen ab 12 Uhr, abends doppelt so viele – eine Schänke allein bewirtet alle 120 Gäste des Jahres zum Ausschankpreis", () =>
+        {
+            var sim = NeueSimulation();
+            var (w, k, s) = Wirt(sim);
+            var g = w.Gastwirtschaft;
+            for (var i = 0; i < 7 * 60 + 1; i++) sim.Tick(); // bis 13 Uhr: die erste Stunde ist vorbei
+            Pruefe.Wahr(g.DiesesJahr(s).Bewirtet is >= 5 and <= 6, $"nach der ersten Stunde {g.DiesesJahr(s).Bewirtet}"); // 120 × 1/18
+            var vorher = k.Laufend.Umsatz;
+            for (var i = 0; i < 11 * 60; i++) sim.Tick(); // bis Mitternacht
+            var buch = g.DiesesJahr(s);
+            Pruefe.Wahr(buch.Bewirtet is >= 119 and <= 120, $"bewirtet {buch.Bewirtet}");
+            Pruefe.Ungefaehr(buch.Bewirtet * 85 * 1.25, buch.Einnahmen, 1e-9);
+            Pruefe.Wahr(k.Laufend.Umsatz > vorher, "kein Umsatz");
+            Pruefe.Gleich(0, buch.Abgewiesen);
+        }),
+
+        ("Gäste: Ist nichts mehr da, gehen sie wieder; der Karren lässt 15 Stück je Ausschankware für die Gäste im Lager", () =>
+        {
+            var sim = NeueSimulation();
+            var (w, _, s) = Wirt(sim, bier: 10);
+            BisMitternacht(sim);
+            var buch = w.Gastwirtschaft.DiesesJahr(s);
+            Pruefe.Gleich(10, buch.Bewirtet);
+            Pruefe.Wahr(buch.Abgewiesen >= 109, $"abgewiesen {buch.Abgewiesen}");
+
+            s.Einlagern("Dünnbier", 20);
+            s.Einlagern("Weingeist", 20);
+            Pruefe.Gleich(15, s.FuerGaeste("Dünnbier"));
+            Pruefe.Gleich(0, s.FuerGaeste("Weingeist"));
+        }),
+
+        ("Konkurrenz: Gäste verteilen sich nach Anziehung – ein Wirtshaus (Stufe 2) zieht anderthalbmal so viele wie eine Schänke", () =>
+        {
+            var sim = NeueSimulation();
+            var (w, _, schaenke) = Wirt(sim, name: "Familie Krug");
+            var (_, _, wirtshaus) = Wirt(sim, Betriebsart.Wirtshaus, name: "Familie Humpen");
+            BisMitternacht(sim);
+            var g = w.Gastwirtschaft;
+            var a = g.DiesesJahr(schaenke).Bewirtet;
+            var b = g.DiesesJahr(wirtshaus).Bewirtet;
+            Pruefe.Wahr(a + b is >= 118 and <= 120, $"{a} + {b}");
+            Pruefe.Ungefaehr(1.5, b / (double)a, 0.05);
+        }),
+
+        ("Barde: abends 50 % mehr Gäste, jeder zahlt 10 % mehr; einmal je Jahr, 120 Gulden Lohn", () =>
+        {
+            var sim = NeueSimulation();
+            var (w, k, s) = Wirt(sim);
+            var vorher = k.Vermoegen;
+            Pruefe.Wahr(w.Ausfuehren(k, new BardeEinladen(s.Name)).Erfolg, "Barde");
+            Pruefe.Ungefaehr(vorher - 120, k.Vermoegen, 1e-9);
+            Pruefe.Wahr(!w.Ausfuehren(k, new BardeEinladen(s.Name)).Erfolg, "zweimal");
+            BisMitternacht(sim);
+            var buch = w.Gastwirtschaft.DiesesJahr(s);
+            Pruefe.Wahr(buch.Bewirtet is >= 159 and <= 160, $"bewirtet {buch.Bewirtet}"); // 40 nachmittags + 80 × 1,5 abends
+            Pruefe.Wahr(buch.Einnahmen > buch.Bewirtet * 85 * 1.25, "keine höhere Zeche");
+            JahrBeenden(sim);
+            Pruefe.Wahr(!w.Gastwirtschaft.BardeGebucht(s), "Der Barde zieht zum Jahresende weiter");
+            Pruefe.Wahr(w.Gastwirtschaft.Vorjahr(s)?.Bewirtet >= 159, "Gästebuch des Vorjahrs");
+        }),
+
+        ("Würfeltisch: erst im Wirtshaus; bringt 4 Gulden je Gast, kostet 2 Ansehen", () =>
+        {
+            var sim = NeueSimulation();
+            var (w, k, s) = Wirt(sim);
+            var e = w.Ausfuehren(k, new WuerfeltischAufstellen(s.Name, true));
+            Pruefe.Wahr(!e.Erfolg && e.Meldung.Contains("Stufe 2"), e.Meldung);
+            var (_, k2, wirtshaus) = Wirt(sim, Betriebsart.Wirtshaus, name: "Familie Humpen");
+            var ansehen = w.Rat.Ansehen(k2);
+            Pruefe.Wahr(w.Ausfuehren(k2, new WuerfeltischAufstellen(wirtshaus.Name, true)).Erfolg, "Würfeltisch");
+            Pruefe.Ungefaehr(ansehen - 2, w.Rat.Ansehen(k2), 1e-9);
+            BisMitternacht(sim);
+            var buch = w.Gastwirtschaft.DiesesJahr(wirtshaus);
+            Pruefe.Ungefaehr(buch.Bewirtet * 4.0, buch.Wuerfelgeld, 1e-9);
+            Pruefe.Gleich(0.0, w.Gastwirtschaft.DiesesJahr(s).Wuerfelgeld);
+        }),
+
+        ("Stammtisch: Ein Gasthaus bringt am Jahresende Gunst bei jedem Ratsherrn – mit Barde doppelt, ohne Bestechungsspur", () =>
+        {
+            var sim = NeueSimulation();
+            var (w, k, s) = Wirt(sim, Betriebsart.Gasthaus);
+            var (_, k2, _) = Wirt(sim, Betriebsart.Wirtshaus, name: "Familie Humpen");
+            Pruefe.Wahr(w.Ausfuehren(k, new BardeEinladen(s.Name)).Erfolg, "Barde");
+            var ratsherr = w.Rat.Ratsherren[0];
+            JahrBeenden(sim);
+            // Gunst verfällt in der Ratssitzung um 30 % – der Stammtisch kommt vorher: 4 × 2 × 0,7
+            Pruefe.Ungefaehr(4 * 2 * 0.7, w.Rat.Gunst(ratsherr, k), 1e-9);
+            Pruefe.Gleich(0.0, w.Rat.Gunst(ratsherr, k2)); // ein Wirtshaus hat keinen Stammtisch
+            Pruefe.Gleich(0, w.Justiz.SpurenVon(k).Count());
+        }),
+
+        ("Dunkle Ecke: Wer eine Schänke führt, hört am Gerichtstag Gerüchte über die Taten anderer Häuser", () =>
+        {
+            var sim = NeueSimulation(HellhoerigeEcke.Value);
+            var (w, wirt, _) = Wirt(sim);
+            var fremd = w.KontoEroeffnen("Haus Eisenbart", startvermoegen: 5_000);
+            var ohneSchaenke = w.KontoEroeffnen("Familie Fuchs", startvermoegen: 5_000);
+            Pruefe.Wahr(w.Ausfuehren(fremd, new Schenken(w.Rat.Ratsherren[0].Name, 100)).Erfolg, "Bestechung");
+            JahrBeenden(sim);
+            Pruefe.Gleich(1, w.Justiz.Beweise(wirt, fremd).Count());
+            Pruefe.Gleich(0, w.Justiz.Beweise(ohneSchaenke, fremd).Count());
+        }),
+
+        ("KI: holt für ihr Gasthaus einen Barden; ein wagemutiges Haus stellt im Wirtshaus einen Würfeltisch auf", () =>
+        {
+            var sim = NeueSimulation();
+            var w = sim.Wirtschaft!;
+            var (_, k1, gasthaus) = Wirt(sim, Betriebsart.Gasthaus, name: "Haus Krug");
+            var (_, k2, wirtshaus) = Wirt(sim, Betriebsart.Wirtshaus, name: "Haus Humpen");
+            w.KiAnmelden(k1, KiProfil.Standard);
+            w.KiAnmelden(k2, Partieaufbau.ProfilFuer(KiCharakter.Wagemutig));
+            for (var i = 0; i < 7 * 60; i++) sim.Tick(); // über die Politikstunde (12 Uhr)
+            Pruefe.Wahr(w.Gastwirtschaft.BardeGebucht(gasthaus), "kein Barde im Gasthaus");
+            Pruefe.Wahr(w.Gastwirtschaft.HatWuerfeltisch(wirtshaus), "kein Würfeltisch beim Wagemutigen");
+            Pruefe.Wahr(!w.Gastwirtschaft.HatWuerfeltisch(gasthaus), "Würfeltisch beim Ausgewogenen");
+        }),
+
+        ("Speichern: Gästebuch, Barde, Würfeltisch und angefangene Gäste überstehen Speichern und Laden; Startberuf Wirt", () =>
+        {
+            var (sim, spieler) = Partieaufbau.Erstellen(Partieeinstellungen.Standard with { Siegbedingung = Siegbedingung.Endlos },
+                Daten.Value, new NeuePartie(Beruf: "Wirt", Startvermoegen: 10_000));
+            var w = sim.Wirtschaft!;
+            var s = w.Betriebe.Single(b => b.Konto == spieler);
+            Pruefe.Gleich("Schänke am Weinmarkt", s.Name);
+            s.Einlagern("Körnermahlzeit", 30);
+            Pruefe.Wahr(w.Ausfuehren(spieler, new BardeEinladen(s.Name)).Erfolg, "Barde");
+            for (var i = 0; i < 9 * 60 + 30; i++) sim.Tick(); // 15:30 – Gäste waren schon da
+            var (kopie, kopieSpieler) = Speicherung.Laden(Speicherung.Speichern(sim, spieler));
+            var ks = kopie.Wirtschaft!.Betriebe.Single(b => b.Konto == kopieSpieler);
+            var g = kopie.Wirtschaft.Gastwirtschaft;
+            Pruefe.Gleich(w.Gastwirtschaft.DiesesJahr(s), g.DiesesJahr(ks));
+            Pruefe.Wahr(g.BardeGebucht(ks), "Barde vergessen");
+            for (var i = 0; i < 60; i++) { sim.Tick(); kopie.Tick(); }
+            Pruefe.Gleich(w.Gastwirtschaft.DiesesJahr(s), g.DiesesJahr(ks)); // gleicher Verlauf
+        }),
+    };
+}

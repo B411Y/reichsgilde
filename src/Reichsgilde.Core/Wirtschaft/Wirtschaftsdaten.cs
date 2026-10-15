@@ -184,6 +184,9 @@ public sealed class Wirtschaftsdaten
     /// <summary>Berufe (ab Datenversion 12). Fehlt der Abschnitt, ist jeder Schmied.</summary>
     public Dictionary<string, BerufDaten> Berufe { get; init; } = new();
 
+    /// <summary>Gäste, Ausschank, Barde, Würfeltisch und Stammtisch des Wirts (ab Datenversion 16). Fehlt der Abschnitt, kehrt niemand ein.</summary>
+    public GastwirtschaftDaten? Gastwirtschaft { get; init; }
+
     /// <summary>Meisterprüfungen und Gebäudestufen (ab Datenversion 13). Fehlt der Abschnitt, bleibt jedes Haus auf Grad 1.</summary>
     public MeistergradDaten? Meistergrade { get; init; }
 
@@ -339,6 +342,7 @@ public sealed class Wirtschaftsdaten
         foreach (var l in Liegenschaften.Where(l => KenntArt(l.Art) && Art(l.Art).Stufe != 1))
             f.Add($"Liegenschaft {l.Name}: Zu kaufen gibt es nur Werkstätten der Stufe 1 – höhere entstehen durch Ausbau.");
         Meistergrade?.Pruefen(f, Aktionspunkte?.Hoechstens ?? int.MaxValue);
+        Gastwirtschaft?.Pruefen(f, Waren, Berufe);
         foreach (var l in Liegenschaften.Where(l => !KenntArt(l.Art)))
             f.Add($"Liegenschaft {l.Name}: Die Betriebsart {l.Art} fehlt unter „betriebsarten“.");
         Gesundheit?.Pruefen(f, Waren);

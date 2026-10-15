@@ -50,6 +50,18 @@ public enum Betriebsart
 
     /// <summary>Umlandbetrieb des Alchimisten (gepachtet). Zieht Kräuter und fängt Kröten.</summary>
     Kraeutergarten,
+
+    /// <summary>Werkstatt des Wirts, Stufe 1: Schänke – bewirtet Gäste, dunkle Ecke.</summary>
+    Schaenke,
+
+    /// <summary>Werkstatt des Wirts, Stufe 2: Wirtshaus – mit Würfeltisch.</summary>
+    Wirtshaus,
+
+    /// <summary>Werkstatt des Wirts, Stufe 3: Gasthaus – mit Stammtisch der Ratsherren.</summary>
+    Gasthaus,
+
+    /// <summary>Umlandbetrieb des Wirts (gepachtet). Baut Gerste und Roggen an.</summary>
+    Bauernhof,
 }
 
 /// <summary>
@@ -241,9 +253,21 @@ public sealed class Betrieb
         return menge;
     }
 
-    /// <summary>Waren im Lager, die zum Verkauf bestimmt sind (alles außer den eigenen Zutaten).</summary>
+    /// <summary>
+    /// Waren im Lager, die zum Markt dürfen: alles außer den eigenen Zutaten – und in einer Schänke
+    /// ohne den Vorrat, den der Wirt für seine Gäste zurückbehält.
+    /// </summary>
     internal IEnumerable<(string Ware, int Stueck)> Verkaufsware() =>
-        _lager.Where(l => !Zutaten.ContainsKey(l.Key) && l.Value > 0).Select(l => (l.Key, l.Value));
+        _lager.Where(l => !Zutaten.ContainsKey(l.Key))
+            .Select(l => (l.Key, l.Value - FuerGaeste(l.Key)))
+            .Where(x => x.Item2 > 0);
+
+    /// <summary>Wie viel von dieser Ware die Schänke für ihre Gäste im Lager behält (0 bei allen anderen Betrieben).</summary>
+    public int FuerGaeste(string ware) =>
+        IstSchaenke && _daten.Gastwirtschaft!.Ausschank.Contains(ware) ? _daten.Gastwirtschaft.Vorrat : 0;
+
+    /// <summary>Eine Werkstatt des Wirts (Schänke, Wirtshaus, Gasthaus): Hier kehren Gäste ein.</summary>
+    public bool IstSchaenke => IstWerkstatt && _daten.Gastwirtschaft is { } g && _art.Beruf == g.Beruf;
 
     // ── Produktion ──────────────────────────────────────────────────────────
 

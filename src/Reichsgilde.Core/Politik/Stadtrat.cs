@@ -99,7 +99,8 @@ public sealed class Stadtrat
         var g = _daten.Gunst;
         return Math.Min(g.AnsehenHoechstwert, konto.Stand * g.AnsehenJeStand + Math.Max(0, konto.Vermoegen) / 1000 * g.AnsehenJe1000Gulden)
                - _w.Justiz.Schande(konto)               // wer am Pranger stand, verliert Ansehen
-               - _w.Gesundheit.AnsehenAbzug(konto);     // Haarausfall, Lachanfälle des Oberhaupts
+               - _w.Gesundheit.AnsehenAbzug(konto)      // Haarausfall, Lachanfälle des Oberhaupts
+               - _w.Gastwirtschaft.AnsehenAbzug(konto); // ein Würfeltisch im eigenen Wirtshaus
     }
 
     /// <summary>Auf welche Ämter sich ein Haus jetzt bewerben darf: genau eine Stufe über seinem Amt, Stand erfüllt.</summary>
@@ -204,6 +205,10 @@ public sealed class Stadtrat
         _bewerbungen[konto] = amt.Name;
         return Befehlsergebnis.Ok($"{konto.Inhaber} bewirbt sich um das Amt {amt.Name}. Gewählt wird am Jahresende.");
     }
+
+    /// <summary>Gunst ohne Geschenk (Stammtisch im Gasthaus) – hinterlässt keine Spur.</summary>
+    internal void GunstHinzufuegen(Ratsherr ratsherr, Konto konto, double wert) =>
+        _gunst[(ratsherr, konto)] = Math.Min(_daten.Gunst.Hoechstwert, Gunst(ratsherr, konto) + wert);
 
     internal Befehlsergebnis Schenken(Konto konto, string ratsherrName, double betrag)
     {

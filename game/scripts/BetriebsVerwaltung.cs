@@ -38,6 +38,10 @@ public partial class BetriebsVerwaltung : VBoxContainer
     private HSlider _silberRegler = null!;
     private Label _silberText = null!;
     private Label _personalKopf = null!;
+    private VBoxContainer _gaststube = null!;
+    private Label _gaesteText = null!;
+    private Button _bardeKnopf = null!;
+    private CheckBox _wuerfeltisch = null!;
     private HBoxContainer _ausbauZeile = null!;
     private Label _ausbauText = null!;
     private Button _ausbauKnopf = null!;
@@ -80,6 +84,23 @@ public partial class BetriebsVerwaltung : VBoxContainer
         _ausbauKnopf.AddThemeFontSizeOverride("font_size", 13);
         _ausbauKnopf.Pressed += () => Befehlen(new BetriebAusbauen(_betrieb!.Name));
         _ausbauZeile.AddChild(_ausbauKnopf);
+
+        // Gaststube (nur Schänken des Wirts)
+        _gaststube = new VBoxContainer();
+        _gaststube.AddThemeConstantOverride("separation", 4);
+        AddChild(_gaststube);
+        _gaesteText = NeuesLabel(_gaststube, 13, Grau);
+        _gaesteText.AutowrapMode = TextServer.AutowrapMode.WordSmart;
+        _gaesteText.CustomMinimumSize = new Vector2(380, 0);
+        var gastZeile = Zeile(_gaststube);
+        _bardeKnopf = new Button { FocusMode = FocusModeEnum.None };
+        _bardeKnopf.AddThemeFontSizeOverride("font_size", 13);
+        _bardeKnopf.Pressed += () => Befehlen(new BardeEinladen(_betrieb!.Name));
+        gastZeile.AddChild(_bardeKnopf);
+        _wuerfeltisch = new CheckBox { Text = "Würfeltisch", FocusMode = FocusModeEnum.None };
+        _wuerfeltisch.AddThemeFontSizeOverride("font_size", 13);
+        _wuerfeltisch.Toggled += an => Befehlen(new WuerfeltischAufstellen(_betrieb!.Name, an));
+        gastZeile.AddChild(_wuerfeltisch);
 
         // Förderung (nur Mine)
         _foerderZeile = Zeile(this);
@@ -181,6 +202,7 @@ public partial class BetriebsVerwaltung : VBoxContainer
         }
 
         AusbauAktualisieren(b, w);
+        GaststubeAktualisieren(b, w);
 
         _foerderZeile.Visible = b.Rohstoffe.Count >= 2; // nur, wer zwei Rohstoffe fördert, teilt auf (Grube: Eisen/Silber)
         if (_foerderZeile.Visible)
@@ -220,6 +242,49 @@ public partial class BetriebsVerwaltung : VBoxContainer
             info.Text = karren.ZustandText(_simulation.Zeit);
         }
         _kaufenKnopf.Disabled = b.Konto.Vermoegen < w.Daten.Logistik.Karren[_karrenTypen[Math.Max(0, _karrenTyp.Selected)]].Preis;
+    }
+
+    /// <summary>Gästebuch, Ausschank-Vorrat, Barde, Würfeltisch, Stammtisch und dunkle Ecke einer Schänke.</summary>
+    private void GaststubeAktualisieren(Betrieb b, Stadtwirtschaft w)
+    {
+        var g = w.Gastwirtschaft;
+        _gaststube.Visible = b.IstSchaenke && g.IstAktiv;
+        if (!_gaststube.Visible) return;
+        var d = g.Daten;
+        var waehrung = w.Daten.Allgemein.Waehrung;
+        var jetzt = g.DiesesJahr(b);
+        string Buch(Gaestebuch x) => $"{x.Bewirtet} bewirtet" + (x.Abgewiesen > 0 ? $", {x.Abgewiesen} gingen leer aus" : "")
+                                     + $" · {Zahlenformat.Ganz(x.Einnahmen)} {waehrung}" + (x.Wuerfelgeld > 0 ? $" + {Zahlenformat.Ganz(x.Wuerfelgeld)} am Würfeltisch" : "");
+        var ausschank = d.Ausschank.Where(b.Artdaten.Produkte.Contains)
+            .Select(x => $"{x} {b.ImLager(x)} ({Zahlenformat.Ganz(g.Ausschankpreis(x))} {waehrung})");
+        var zeilen = new List<string>
+        {
+            $"Gaststube – Gäste ab {d.OeffnetUm} Uhr, abends mehr. Dieses Jahr: {Buch(jetzt)}",
+        };
+        if (g.Vorjahr(b) is { } vorjahr) zeilen.Add($"Vorjahr: {Buch(vorjahr)}");
+        zeilen.Add($"Ausschank (je {d.Vorrat} bleiben für die Gäste im Lager): {string.Join(" · ", ausschank)}");
+        zeilen.Add($"Erwartet ≈ {Zahlenformat.Ganz(g.ErwarteteGaeste(b))} Gäste im Jahr bei der heutigen Konkurrenz.");
+        zeilen.Add(g.HatStammtisch(b)
+            ? $"Stammtisch: Am Jahresende +{Zahlenformat.Ganz(d.Stammtisch.Gunst)} Gunst bei jedem Ratsherrn (mit Barde ×{Zahlenformat.Ganz(d.Barde.Stammtisch)}) – ohne Bestechung."
+            : $"Stammtisch ab Stufe {d.Stammtisch.AbStufe} (Gasthaus).");
+        zeilen.Add($"Dunkle Ecke: Am Gerichtstag hört ihr Gerüchte über andere Häuser ({Zahlenformat.Ganz(d.DunkleEcke.Chance * 100)} % je Tat).");
+        var text = string.Join("\n", zeilen);
+        if (_gaesteText.Text != text) _gaesteText.Text = text;
+
+        var gebucht = g.BardeGebucht(b);
+        var knopf = gebucht ? "Barde spielt heute Abend ♪" : $"Barde einladen ({Zahlenformat.Ganz(d.Barde.Kosten)} {waehrung})";
+        if (_bardeKnopf.Text != knopf) _bardeKnopf.Text = knopf;
+        _bardeKnopf.Disabled = gebucht || b.Konto.Vermoegen < d.Barde.Kosten;
+        var tipp = $"Ab {d.AbendAb} Uhr {Zahlenformat.Ganz(d.Barde.Gaeste * 100)} % mehr Gäste, jeder zahlt {Zahlenformat.Ganz(d.Barde.Zeche * 100)} % mehr; " +
+                   $"der Stammtisch bringt ×{Zahlenformat.Ganz(d.Barde.Stammtisch)} Gunst. Einmal je Jahr.\n" +
+                   $"Erwarteter Mehrerlös ≈ {Zahlenformat.Ganz(g.BardeNutzen(b))} {waehrung} (wenn genug im Lager ist).";
+        if (_bardeKnopf.TooltipText != tipp) _bardeKnopf.TooltipText = tipp;
+
+        _wuerfeltisch.SetPressedNoSignal(g.HatWuerfeltisch(b));
+        _wuerfeltisch.Disabled = b.Stufe < d.Wuerfeltisch.AbStufe;
+        _wuerfeltisch.TooltipText = b.Stufe < d.Wuerfeltisch.AbStufe
+            ? $"Einen Würfeltisch gibt es erst ab Stufe {d.Wuerfeltisch.AbStufe} (Wirtshaus)."
+            : $"{Zahlenformat.Ganz(d.Wuerfeltisch.EinsatzJeGast)} {waehrung} je Gast fürs Haus – aber {Zahlenformat.Ganz(d.Wuerfeltisch.Ansehen)} Ansehen weniger, solange er steht.";
     }
 
     /// <summary>„Stufe 1: Gießerei" und der Knopf zum Ausbau – gesperrt mit Begründung, solange Grad oder Geld fehlen.</summary>
