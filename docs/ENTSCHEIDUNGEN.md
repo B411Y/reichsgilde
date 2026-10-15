@@ -226,6 +226,7 @@ Format: `- PR #Nummer (Phase) – Inhalt`
 - PR #51 (3) – Namen in der Stadt nur bei Hover, Auswahl oder Alt; Schild an freien Plätzen; Schriften Germania One und Alegreya
 - PR #52 (3) – Raumansicht: Werkstätten (Werkraum, Lager, Kontor, Wohnstube) und Rathaus (Ratssaal, Gericht, Amtsstube, Kerker) betreten, feste Ansicht je Raum
 - PR #53 (–) – Vierter Chat „Spiel-KI“: Bereich Ki/ und Buerger/, Andockstellen im Kern
+- PR #55 (3) – Schattenkanten ohne Treppen: Schattenkarte 8192, Filter Ultra, leichte Weichzeichnung
 
 ### 6b. Offen (eine Zeile je Punkt; erledigt → Zeile löschen und unter 6a eintragen)
 
