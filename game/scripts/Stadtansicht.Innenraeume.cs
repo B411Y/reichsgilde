@@ -39,7 +39,7 @@ public partial class Stadtansicht
     private enum Werkzeug { Keins, Hammer, Saege, Meissel, Kelle, Feder, Krug, Speer, Schwert, Beutel, Laute }
 
     /// <summary>Kopfbedeckung – Tracht des Berufs.</summary>
-    private enum Kopfputz { Keiner, Helm, Kapuze, Barett, Kappe }
+    private enum Kopfputz { Keiner, Helm, Kapuze, Barett, Kappe, Mitra }
 
     /// <summary>Ein Platz im Raum: Ort relativ zur Mitte, Blickrichtung, Tätigkeit, Werkzeug, sitzend oder stehend.</summary>
     private sealed record Arbeitsplatz(Vector3 Ort, float Drehung, Bewegung Art, Werkzeug Werkzeug, bool Sitzt = false);
@@ -123,11 +123,11 @@ public partial class Stadtansicht
 
     // ── Bausteine (Orte relativ zur Mitte der Werkstatt) ────────────────────
 
-    private MeshInstance3D Teil(BetriebsAnsicht a, Vector3 ort, Vector3 groesse, StandardMaterial3D m, Node3D? eltern = null) =>
+    private MeshInstance3D Teil(InnenAnsicht a, Vector3 ort, Vector3 groesse, StandardMaterial3D m, Node3D? eltern = null) =>
         Quader(a.Mitte + ort, groesse, m, eltern ?? a.Innen);
 
     /// <summary>Zylinder oder Kegelstumpf; <paramref name="drehung"/> in Grad (z. B. (0, 0, 90) = liegend entlang X).</summary>
-    private MeshInstance3D Rund(BetriebsAnsicht a, Vector3 ort, float radius, float hoehe, StandardMaterial3D m, Node3D? eltern = null,
+    private MeshInstance3D Rund(InnenAnsicht a, Vector3 ort, float radius, float hoehe, StandardMaterial3D m, Node3D? eltern = null,
         float? obenRadius = null, Vector3? drehung = null, int segmente = 14)
     {
         var teil = new MeshInstance3D
@@ -141,7 +141,7 @@ public partial class Stadtansicht
         return teil;
     }
 
-    private MeshInstance3D Kugel(BetriebsAnsicht a, Vector3 ort, float radius, StandardMaterial3D m, Node3D? eltern = null, float? hoehe = null)
+    private MeshInstance3D Kugel(InnenAnsicht a, Vector3 ort, float radius, StandardMaterial3D m, Node3D? eltern = null, float? hoehe = null)
     {
         var teil = new MeshInstance3D
         {
@@ -154,7 +154,7 @@ public partial class Stadtansicht
     }
 
     /// <summary>Ein Balken von einem Punkt zum anderen (Beine eines Dreibeins, schräge Streben).</summary>
-    private MeshInstance3D Stab(BetriebsAnsicht a, Vector3 von, Vector3 bis, float dicke, StandardMaterial3D m, Node3D? eltern = null)
+    private MeshInstance3D Stab(InnenAnsicht a, Vector3 von, Vector3 bis, float dicke, StandardMaterial3D m, Node3D? eltern = null)
     {
         var richtung = bis - von;
         var teil = new MeshInstance3D
@@ -170,7 +170,7 @@ public partial class Stadtansicht
     }
 
     /// <summary>Gruppe für Einrichtung, die erst ab einer Gebäudestufe dasteht.</summary>
-    private Node3D Stufenteil(BetriebsAnsicht a, int abStufe)
+    private Node3D Stufenteil(InnenAnsicht a, int abStufe)
     {
         var gruppe = new Node3D { Name = $"AbStufe{abStufe}", Visible = false };
         a.Innen!.AddChild(gruppe);
@@ -196,7 +196,7 @@ public partial class Stadtansicht
     }
 
     /// <summary>Ein Licht für eine Glut: hell bei der Arbeit (oder wenn <paramref name="an"/> gilt), sonst schwach.</summary>
-    private void FeuerAnlegen(BetriebsAnsicht a, Vector3 ort, StandardMaterial3D? glut, float lichtAn, float lichtAus = 0.2f,
+    private void FeuerAnlegen(InnenAnsicht a, Vector3 ort, StandardMaterial3D? glut, float lichtAn, float lichtAus = 0.2f,
         float glutAn = 1.6f, float glutAus = 0.25f, Func<bool>? an = null, float reichweite = 7, bool schatten = false)
     {
         var licht = new OmniLight3D { LightColor = new Color(1f, 0.55f, 0.22f), OmniRange = reichweite, LightEnergy = 0, ShadowEnabled = schatten, Position = a.Mitte + ort };
@@ -204,7 +204,7 @@ public partial class Stadtansicht
         a.Feuer.Add(new Feuerstelle(licht, glut, lichtAn, lichtAus, glutAn, glutAus, an));
     }
 
-    private void Infotafel(BetriebsAnsicht a, Vector3 ort) => a.Infotafel = Beschriftung("", a.Mitte + ort, 30, a.Innen);
+    private void Infotafel(InnenAnsicht a, Vector3 ort) => a.Infotafel = Beschriftung("", a.Mitte + ort, 30, a.Innen);
 
     private void Plaetze(BetriebsAnsicht a, params Arbeitsplatz[] plaetze) => a.Plaetze.AddRange(plaetze);
 
@@ -1106,7 +1106,7 @@ public partial class Stadtansicht
     }
 
     /// <summary>Gast, Gläubiger, Kunde oder Gefangener – Volk und Gewand ergeben sich aus der Nummer (jede Partie gleich).</summary>
-    private Arbeiterfigur GastBauen(BetriebsAnsicht a, Arbeitsplatz platz, int nummer)
+    private Arbeiterfigur GastBauen(InnenAnsicht a, Arbeitsplatz platz, int nummer)
     {
         var (groesse, breite, bart) = Voelker[nummer % Voelker.Length];
         var kleidung = Gewandfarben[nummer * 3 % Gewandfarben.Length];
@@ -1136,6 +1136,7 @@ public partial class Stadtansicht
             Kopfputz.Kapuze => new MeshInstance3D { Mesh = new SphereMesh { Radius = 0.24f, Height = 0.5f }, MaterialOverride = Material(kleidung), Position = new Vector3(0, 1.55f, 0.07f) },
             Kopfputz.Barett => new MeshInstance3D { Mesh = new CylinderMesh { TopRadius = 0.24f, BottomRadius = 0.2f, Height = 0.08f }, MaterialOverride = Material(new Color(0.12f, 0.10f, 0.10f)), Position = new Vector3(0, 1.7f, 0) },
             Kopfputz.Kappe => new MeshInstance3D { Mesh = new CylinderMesh { TopRadius = 0.18f, BottomRadius = 0.21f, Height = 0.12f }, MaterialOverride = Material(Leinen), Position = new Vector3(0, 1.66f, 0) },
+            Kopfputz.Mitra => new MeshInstance3D { Mesh = new CylinderMesh { TopRadius = 0.04f, BottomRadius = 0.2f, Height = 0.45f, RadialSegments = 4 }, MaterialOverride = Material(Leinen), Position = new Vector3(0, 1.85f, 0) },
             _ => null,
         };
         if (kopfteil is not null) koerper.AddChild(kopfteil);
@@ -1202,20 +1203,7 @@ public partial class Stadtansicht
     private void InnenAktualisieren(BetriebsAnsicht a, Spielzeit zeit, bool arbeitszeit, bool arbeitet, double delta)
     {
         var b = a.Betrieb;
-        foreach (var (teil, ab) in a.Stufenteile) teil.Visible = b.Stufe >= ab;
-        a.Zustand?.Invoke(zeit, arbeitszeit, arbeitet); // vor dem Feuer: setzt z. B., ob gerade Messe ist
-        foreach (var f in a.Feuer)
-        {
-            var an = f.An?.Invoke() ?? arbeitet;
-            if (f.Licht is not null) f.Licht.LightEnergy = an ? f.LichtAn : f.LichtAus;
-            if (f.Glut is not null) f.Glut.EmissionEnergyMultiplier = an ? f.GlutAn : f.GlutAus;
-        }
-        if (arbeitet)
-            foreach (var t in a.Bewegt)
-            {
-                if (t.Hub == Vector3.Zero) t.Knoten.RotateObjectLocal(t.Achse, t.Tempo * (float)delta);
-                else t.Knoten.Position = t.Ruhe + t.Hub * Mathf.Sin((float)_animationszeit * t.Tempo);
-            }
+        GemeinsamAktualisieren(a, zeit, arbeitszeit, arbeitet, delta, b.Stufe);
         if (b.IstWerkstatt)
         {
             var farbe = Warenfarbe(b.Produkt);
@@ -1232,6 +1220,34 @@ public partial class Stadtansicht
         }
         KistenAktualisieren(a);
         ArbeiterAktualisieren(a, zeit, arbeitszeit, arbeitet);
+        BesucherBewegen(a);
+    }
+
+    /// <summary>
+    /// Was jeder Innenraum braucht – Werkstatt, Rathaus oder Dom: Stufenteile, Zustand aus der Simulation,
+    /// Feuer und bewegte Teile. <paramref name="aktiv"/> heißt „es wird gearbeitet" (bzw. Amtsgeschäfte laufen).
+    /// </summary>
+    private void GemeinsamAktualisieren(InnenAnsicht a, Spielzeit zeit, bool arbeitszeit, bool aktiv, double delta, int stufe)
+    {
+        foreach (var (teil, ab) in a.Stufenteile) teil.Visible = stufe >= ab;
+        a.Zustand?.Invoke(zeit, arbeitszeit, aktiv); // vor dem Feuer: setzt z. B., ob gerade Messe ist
+        foreach (var f in a.Feuer)
+        {
+            var an = f.An?.Invoke() ?? aktiv;
+            if (f.Licht is not null) f.Licht.LightEnergy = an ? f.LichtAn : f.LichtAus;
+            if (f.Glut is not null) f.Glut.EmissionEnergyMultiplier = an ? f.GlutAn : f.GlutAus;
+        }
+        if (aktiv)
+            foreach (var t in a.Bewegt)
+            {
+                if (t.Hub == Vector3.Zero) t.Knoten.RotateObjectLocal(t.Achse, t.Tempo * (float)delta);
+                else t.Knoten.Position = t.Ruhe + t.Hub * Mathf.Sin((float)_animationszeit * t.Tempo);
+            }
+    }
+
+    /// <summary>Gäste, Gläubige, Kunden: sichtbare Besucher bewegen den Arm nach ihrer Tätigkeit.</summary>
+    private void BesucherBewegen(InnenAnsicht a)
+    {
         foreach (var gast in a.Besucher)
             if (gast.Koerper.Visible) ArmBewegen(gast, true);
     }
