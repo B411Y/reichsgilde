@@ -26,6 +26,10 @@ Schauplatz ist ein düster-bodenständiges Heiliges Römisches Reich des Spätmi
 | Wechselstube | Wechseltisch mit Waage, Geldtruhe, Schreibpult, Regal (zweites Pult / Tresor) | Münzstapel nach der Kasse, Schuldscheine je Kredit, Kunden |
 | Siederei | Kupferkessel mit Kühlfass, Trockengestell, Mischtisch (Spindelpresse / Duftorgel) | Duft in der Farbe der Ware, Ofenglut |
 
+**Rathaus und Dom von innen.** Auch Rathaus und Dom lassen sich per Doppelklick betreten.
+- **Rathaus:** drei Räume nebeneinander – **Ratssaal** (U-Tisch, die Ratsherren sitzen nach Rang, Häuser in ihrer Farbe mit Namensschild, der Bürgermeister trägt die Amtskette, eine Rolle liegt aus, solange ein Antrag läuft), **Gerichtssaal** (Richterpodest; bei einem Verfahren drei Richter, Ankläger und Beklagter, sonst schreibt der Stadtrichter; daneben die **Kerkergrube** mit Gitter, in der einsitzende Oberhäupter stehen) und **Amtsstube** (Stadtschreiber, Stadtkasse, Ständetafel mit eurem Stand). Besetzt ist das Rathaus von 8 bis 20 Uhr. Ein **Klick auf den Raum** öffnet seine Tafel: Ratssaal → Stadtrat, Gerichtssaal → Stadtgericht.
+- **Dom:** Hauptkirche des Stadtglaubens – **katholisch** prunkvoll (Hochaltar mit goldenem Flügelretabel, Marienfigur, Weihrauchfass, Bischof mit Mitra), **evangelisch** schlicht (Abendmahlstisch, Holzkreuz, Pfarrer auf der Kanzel), bei **Glaubensfreiheit** Simultankirche mit Seil im Mittelgang (Katholiken links, Evangelische rechts). Zur Messe um 10 Uhr sitzen die Gläubigen ohne Kirche eines Hauses in den Bänken (eine Figur je fünf Gläubige).
+
 **Spieltag wie im Original: 05:00 bis 22:00 Uhr.** Ein Spieltag ist ein Spieljahr. Er beginnt um 5 Uhr mit der Zunftglocke, gearbeitet wird von 8 bis 20 Uhr, von 20 bis 22 Uhr ist Dunkle Nacht (die Gauner ziehen um 20 Uhr los), um 22 Uhr kommt die Jahresrechnung, und das nächste Jahr beginnt wieder um 5 Uhr. Ein Jahr dauert weiter 15 Minuten Echtzeit (eine Spielstunde ≈ 53 Sekunden). Spielstände aus der Zeit des 24-Stunden-Tags lassen sich nicht mehr laden.
 
 **Hauptmenü, Speichern und Laden.**
@@ -146,7 +150,7 @@ Spielstände liegen unter `%APPDATA%\Godot\app_userdata\Reichsgilde\spielstaende
 Steuerung:
 - **Leertaste** = Pause · **1–4** = Tempo 1×/2×/4×/8× · **5–6** = Testtempo 16×/32× (nur während der Entwicklung)
 - **Mausrad** = Zoom · **rechte Maustaste ziehen** oder **WASD/Pfeiltasten** = verschieben · **Q/E** = drehen
-- **Linksklick** auf ein Gebäude = Informationen (bei eigenen Betrieben mit Bedienfeld) · **Doppelklick** auf eine Werkstatt = Innenansicht
+- **Linksklick** auf ein Gebäude = Informationen (bei eigenen Betrieben mit Bedienfeld) · **Doppelklick** auf eine Werkstatt, das Rathaus oder den Dom = Innenansicht · im Rathaus öffnet ein Klick auf einen Raum dessen Tafel
 - **Esc** = Innenansicht verlassen → Auswahl schließen → Spielmenü (Speichern, Laden, Hauptmenü)
 - **F11** = Vollbild ein/aus (auch im Haupt- und Spielmenü; wird gespeichert). Das Fenster lässt sich frei ziehen: Ein größeres Fenster zeigt mehr Stadt, Tafeln, die nicht hineinpassen, bekommen Scrollbalken (Mausrad über der Tafel rollt sie).
   Hinweis: Startet man das Spiel im Godot-Editor, läuft es im Reiter „Game“ eingebettet. Dort bestimmt der Editor die Fenstergröße, und Vollbild ist nicht möglich. Zum Testen im eigenen Fenster das Einbetten im Reiter „Game“ ausschalten.

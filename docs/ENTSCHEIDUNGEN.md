@@ -220,6 +220,7 @@ Format: `- PR #Nummer (Phase) – Inhalt`
 - PR #45 (5) – Handel von Hand per Karrenauftrag
 - PR #47 (–) – Phasenplan als Liste, Tests automatisch finden, Regeln für Messungen
 - PR #48 (5) – Wappen für jedes Haus (Wahl im Hauptmenü, Anzeige in den Tafeln), Hausname ohne „Familie“
+- PR #49 (3) – Innenräume für Rathaus (Ratssaal, Gerichtssaal, Amtsstube, Kerker) und Dom nach dem Stadtglauben
 - PR #50 (–) – Flüssige Bewegung von Sonne, Schatten und Karren zwischen den Spielminuten
 
 ### 6b. Offen (eine Zeile je Punkt; erledigt → Zeile löschen und unter 6a eintragen)
@@ -274,3 +275,12 @@ Format: `- PR #Nummer (Phase) – Inhalt`
 | Wappen: Aufbau | Teilung (10: ohne, geteilt, gespalten, schräg, geviert, Schildhaupt, Balken, Pfahl, Sparren, Bord) × zwei Tinkturen (Gold, Silber, Rot, Blau, Grün, Schwarz, Purpur) × Figur (16). Die Figur steht in Farbe 2 und wechselt über Farbe 2 in Farbe 1 („verwechselte Farben“). Selbst gezeichnete Vektorformen, nichts aus dem Original. | 15.10.2026 |
 | Wappen: KI-Häuser | Feste, nicht wählbare Wappen: Eisenbart – in Schwarz ein goldener Amboss; Eichwald – in Grün mit silbernem Bord ein silberner Baum; Kieselbach – in Blau unter silbernem Schildhaupt ein silberner Wellenbalken. | 15.10.2026 |
 | Wappen: Anzeige | Kontor (eigenes Haus), Rangliste im Jahresbericht, Amtsinhaber im Rat, Beweisbuch im Gericht, Gebäudefenster (Besitzer). Fahnen an Gebäuden in der Stadt wären später Sache der Darstellung. | 15.10.2026 |
+
+## 11. Innenräume für Rathaus und Dom (PR #49)
+
+| Thema | Entscheidung | Datum |
+|---|---|---|
+| Rathaus | **Drei Räume nebeneinander** im Diorama: Ratssaal, Gerichtssaal, Amtsstube; dazu der **Kerker als Gittergrube** im Gerichtssaal. | 15.10.2026 |
+| Belebung | **Tagsüber Amtsgeschäfte** (8–20 Uhr): Ratsherren an ihren Sitzen, Richter und Parteien bei einem Verfahren, Stadtschreiber in der Amtsstube. Nachts ist das Rathaus leer. | 15.10.2026 |
+| Bedienung | **Raum anklicken öffnet seine Tafel** (Ratssaal → Stadtrat, Gerichtssaal → Stadtgericht). | 15.10.2026 |
+| Dom | **Hauptkirche des Stadtglaubens:** katholisch prunkvoll, evangelisch schlicht, bei Glaubensfreiheit Simultankirche. Gläubige ohne Kirche eines Hauses besuchen hier die Messe. | 15.10.2026 |
