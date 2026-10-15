@@ -439,7 +439,7 @@ public sealed class Betrieb
         Art = neu;
         _art = _daten.Art(neu);
         _umbauMinuten += umbauMinuten;
-        if (!_art.Produkte.Contains(_produkt))
+        if (_art.IstWerkstatt && !_art.Produkte.Contains(_produkt)) // Betriebe ohne Ware (Dieb, Wache, Geldleiher) haben kein Produkt
             _produkt = _art.Standardprodukt ?? _art.Produkte.Last();
     }
 
