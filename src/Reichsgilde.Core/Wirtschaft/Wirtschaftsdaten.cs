@@ -359,6 +359,8 @@ public sealed class Wirtschaftsdaten
             else if (Art(b.Werkstatt).Beruf != name || b.Umland is { } u1 && Art(u1).Beruf != name) f.Add($"berufe.{name}: Werkstatt und Umlandbetrieb müssen zum Beruf gehören.");
             if (b.Umland is null && Dieb?.Beruf != name && Geldleiher?.Beruf != name) f.Add($"berufe.{name}: Ohne Umlandbetrieb kommen nur Dieb und Geldleiher aus.");
             if (b.Lehrgeld < 0) f.Add($"berufe.{name}.lehrgeld darf nicht negativ sein.");
+            foreach (var (volk, bonus) in b.Voelker.Where(x => x.Value is <= -0.5 or >= 0.5))
+                f.Add($"berufe.{name}.voelker.{volk}: Ein Völkerbonus liegt zwischen −0,5 und +0,5 (war {bonus}).");
             if (KenntArt(b.Werkstatt) && Art(b.Werkstatt).Stufe != 1) f.Add($"berufe.{name}: Die Werkstatt muss Stufe 1 sein.");
         }
         foreach (var l in Liegenschaften.Where(l => KenntArt(l.Art) && Art(l.Art).Stufe != 1))

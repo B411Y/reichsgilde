@@ -374,7 +374,9 @@ public sealed class KiRivale
         var daten = _w.Daten;
         var wahl = _w.FreieLiegenschaften
             .Where(l => Konto.Stand >= daten.StandStufe(l.MindestStand))
-            .Select(l => (Liegenschaft: l, Beruf: daten.Art(l.Art).Beruf, Gewinn: Kalkulation.ErwarteterJahresgewinn(_w, l.Art) * DiebesZuschlag(l.Art)))
+            // Mit dem Völkerbonus: Ein Zwergenhaus sucht eher eine Werkstatt, in der Zwerge gut sind.
+            .Select(l => (Liegenschaft: l, Beruf: daten.Art(l.Art).Beruf,
+                          Gewinn: Kalkulation.ErwarteterJahresgewinn(_w, l.Art, leistung: _w.VolksFaktor(Konto, daten.Art(l.Art).Beruf)) * DiebesZuschlag(l.Art)))
             .Select(x => (x.Liegenschaft, x.Beruf, x.Gewinn, Lehrgeld: NeuerBeruf(x.Beruf) ? daten.Berufe[x.Beruf].Lehrgeld : -1))
             .Where(x => x.Lehrgeld < 0 || DarfBerufLernen(x.Beruf))
             .Select(x => (x.Liegenschaft, x.Beruf, x.Gewinn, Lehrgeld: Math.Max(0, x.Lehrgeld), Neu: x.Lehrgeld >= 0))

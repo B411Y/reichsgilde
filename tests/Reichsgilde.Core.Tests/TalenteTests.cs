@@ -197,9 +197,10 @@ static class TalenteTests
                 AlleTalente(w.Familien.Von(spieler)!.Oberhaupt, 0);
                 w.Familien.Von(spieler)!.Oberhaupt.TalentSetzen(Talent.Handwerk, handwerk);
                 for (var i = 0; i < 600; i++) sim.Tick();
-                return w.Betriebe.First(b => b.Konto == spieler).Lager.Values.Sum() + spieler.Laufend.Umsatz;
+                // Gezählt werden die Stücke – Umsatz schwankt mit Preisen und Fuhren und verdeckte die Wirkung.
+                return spieler.Laufend.Hergestellt.Values.Sum() + w.Betriebe.First(b => b.Konto == spieler).Fortschritt / 1000;
             }
-            Pruefe.Wahr(Gefertigt(5) > Gefertigt(0), "Handwerk 5 soll mehr schaffen als 0");
+            Pruefe.Wahr(Gefertigt(5) > Gefertigt(0), $"Handwerk 5 soll mehr schaffen als 0 ({Gefertigt(5)} / {Gefertigt(0)})");
         }),
 
         ("Wirkung: Bei Nacht und Nebel hebt die Erfolgschance und senkt die Zeugenchance; Kampf stärkt Wegelagerer", () =>

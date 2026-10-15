@@ -181,9 +181,9 @@ static class ParfumeurTests
             var (w, ki, _) = Haus(sim, "Haus Rabe", geld: 6_000);
             w.KiAnmelden(ki, Partieaufbau.ProfilFuer(KiCharakter.Wagemutig));
             var (_, reich, f) = Haus(sim, "Haus Gold", geld: 80_000);
-            w.KiAnmelden(reich, KiProfil.Standard);
+            w.KiAnmelden(reich, KiProfil.Standard with { Reserve = 78_000 }); // kauft keine Werkstatt – sonst lohnte eine Bande mehr als das Gift
             for (var i = 0; i < 7 * 60; i++) sim.Tick(); // über die Politikstunde
-            Pruefe.Gleich(1, w.Duft.AnschlaegeDiesesJahr(ki));
+            Pruefe.Gleich(1, w.Duft.AnschlaegeDiesesJahr(ki), string.Join(" | ", w.Rivalen.Single(r => r.Konto == ki).Entscheidungen));
             Pruefe.Gleich(reich, w.Duft.Auftraege.Single().Ziel);
             BisNacht(sim);
             Pruefe.Wahr(f.Oberhaupt.Krankheit?.NurGegengift == true, "vergiftet");

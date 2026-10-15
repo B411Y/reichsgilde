@@ -219,12 +219,12 @@ static class GlaubeTests
             w.KiAnmelden(ratsKi, KiProfil.Standard);
             InDenRat(w, ratsKi);
             var (prediger, _) = Prediger(sim, "Familie Rom", Konfession.Katholisch);
-            w.KiAnmelden(prediger, KiProfil.Standard);
+            w.KiAnmelden(prediger, KiProfil.Standard with { Reserve = 19_000 }); // kein Aufstieg, keine Käufe, kaum Werben – die AP bleiben übrig
             var anteil = w.Glaube.Anteil(Konfession.Katholisch);
             for (var i = 0; i < 7 * 60; i++) sim.Tick(); // über die Politikstunde
             Pruefe.Gleich((Konfession?)Konfession.Katholisch, w.Glaube.GlaubeVon(zwerg));
             Pruefe.Wahr(w.Glaube.Antrag is null, "Katholisch gilt schon – kein Antrag");
-            Pruefe.Wahr(w.Glaube.Anteil(Konfession.Katholisch) > anteil, "keine Bekehrungspredigt");
+            Pruefe.Wahr(w.Glaube.Anteil(Konfession.Katholisch) > anteil, "keine Bekehrungspredigt: " + string.Join(" | ", w.Rivalen.Single(r => r.Konto == prediger).Entscheidungen));
 
             w.Glaube.Stadtglaube = null;
             JahrBeenden(sim);
