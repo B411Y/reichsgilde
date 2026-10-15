@@ -1,3 +1,4 @@
+using Reichsgilde.Core.Glaube;
 using Reichsgilde.Core.Wirtschaft;
 
 namespace Reichsgilde.Core.Dynastie;
@@ -27,6 +28,14 @@ public sealed class Person
     public Geschlecht Geschlecht { get; }
     public int Geburtsjahr { get; }
     public int? Todesjahr { get; internal set; }
+
+    /// <summary>Der Glaube heute (ein Haus folgt dem Glauben seines Oberhaupts).</summary>
+    public Konfession Glaube { get; internal set; }
+
+    /// <summary>Der Glaube, mit dem die Person aufwuchs – wer übertritt, behält ihn hier (Mischehe).</summary>
+    public Konfession Herkunftsglaube { get; internal set; }
+
+    internal void GlaubeSetzen(Konfession glaube) { Glaube = glaube; Herkunftsglaube = glaube; }
 
     /// <summary>Nummern der Eltern (null bei Personen, die zu Spielbeginn schon leben oder von außen kommen).</summary>
     public int? Vater { get; }

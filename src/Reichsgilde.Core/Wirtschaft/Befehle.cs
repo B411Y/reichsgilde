@@ -181,3 +181,12 @@ public sealed record Giftanschlag(string Haus, string Dolch) : Befehl;
 
 /// <summary>Einer vergifteten Person Gegengift geben (aus dem eigenen Lager oder vom Markt).</summary>
 public sealed record GegengiftGeben(int Person) : Befehl;
+
+/// <summary>Das ganze Haus wechselt die Konfession (für Heiden: die Taufe). Kostet eine Gebühr und für eine Weile Ansehen.</summary>
+public sealed record Konvertieren(Glaube.Konfession Ziel) : Befehl;
+
+/// <summary>Prediger: eine Bekehrungspredigt in der eigenen Kirche – mehr Gläubige der eigenen Konfession, Gunst bei Glaubensbrüdern im Rat.</summary>
+public sealed record Bekehrungspredigt : Befehl;
+
+/// <summary>Im Rat einen Stadtglauben beantragen (null = Glaubensfreiheit).</summary>
+public sealed record StadtglaubeBeantragen(Reichsgilde.Core.Glaube.Konfession? Glaube) : Befehl;

@@ -66,6 +66,9 @@ public sealed class Stadtwirtschaft
     /// <summary>Düfte mit Wirkung (Moschus, Zwietracht, Heiligenduft) und Giftdolche – Waren des Parfumeurs.</summary>
     public Duft.Duftwesen Duft { get; }
 
+    /// <summary>Konfessionen, Glaubensnähe im Rat, Bekehrung und Stadtglaube.</summary>
+    public Glaube.Glaubenswesen Glaube { get; }
+
     /// <summary>Was eine Arbeitsminute in einem Betrieb ohne Ware wert ist (Dieb: Beute, Gardist: Sold nach Steuer).</summary>
     public double WertOhneWare(BetriebsartDaten d) =>
         Diebe.IstAktiv && d.Beruf == Diebe.Daten.Beruf ? Diebe.WertJeMinute(d.Stufe)
@@ -144,6 +147,7 @@ public sealed class Stadtwirtschaft
         Wache = new Ordnung.Wachwesen(this, daten.Wache, zufallsstartwert);
         Bank = new Bank.Bankwesen(this, daten.Geldleiher, zufallsstartwert);
         Duft = new Duft.Duftwesen(this, daten.Parfum, zufallsstartwert);
+        Glaube = new Glaube.Glaubenswesen(this, daten.Glaube, zufallsstartwert);
         Gesundheit = new Gesundheitswesen(this, daten.Gesundheit, zufallsstartwert);
         Gastwirtschaft = new Gastwirtschaft(this, daten.Gastwirtschaft);
         Kirchenwesen = new Kirche.Kirchenwesen(this, daten.Kirche, zufallsstartwert);
@@ -348,6 +352,7 @@ public sealed class Stadtwirtschaft
         Justiz.Gerichtstag(); // vor dem Amtseinkommen: Wer verurteilt wird, verliert Amt und Einkommen
         Rat.EinkommenZahlen();
         Familien.UnterhaltZahlen();
+        Glaube.AbgabenZahlen(); // Glaubenszins der Andersgläubigen – noch ins alte Jahr
         Bank.Jahresende(); // Ausfälle, Zins und Rate der Kredite – noch in die alte Jahresrechnung
         foreach (var konto in _konten)
             konto.JahrAbschliessen(neuesJahr);
@@ -356,6 +361,7 @@ public sealed class Stadtwirtschaft
         Familien.Jahreswechsel(); // Tod und Erbfall vor der Ratssitzung: Ein verwaistes Amt wird gleich neu besetzt
         Gesundheit.NeuesJahr();   // Pest und neue Krankheiten
         Gastwirtschaft.Jahresende(); // Stammtisch-Gunst vor der Ratssitzung (Wahlen)
+        Glaube.Jahresende();        // Ketzerkirchen (mit dem Kirchenbuch des Jahres), Anteile kehren zurück
         Kirchenwesen.Jahresende();  // die Beichten des Jahres, neues Kirchenbuch
         Rat.Sitzung(_zufall, neuesJahr - 1);
         Gauner.Jahresende();
@@ -530,6 +536,12 @@ public sealed class Stadtwirtschaft
             return _konten.FirstOrDefault(k => k.Inhaber == gift.Haus) is { } giftZiel
                 ? Duft.Giftanschlag(absender, giftZiel, gift.Dolch)
                 : Befehlsergebnis.Abgelehnt($"Ein Haus „{gift.Haus}“ gibt es nicht.");
+        if (befehl is Konvertieren konvertieren)
+            return Glaube.Konvertieren(absender, konvertieren.Ziel);
+        if (befehl is Bekehrungspredigt)
+            return Glaube.Bekehrungspredigt(absender);
+        if (befehl is StadtglaubeBeantragen glaubensantrag)
+            return Glaube.Beantragen(absender, glaubensantrag.Glaube);
         if (befehl is GegengiftGeben gegengift)
             return Gesundheit.IstAktiv ? Gesundheit.GegengiftGeben(absender, gegengift.Person) : Befehlsergebnis.Abgelehnt("In dieser Stadt wird niemand krank.");
         if (befehl is Razzia razzia)
@@ -816,6 +828,7 @@ public sealed class Stadtwirtschaft
         Wache = Wache.IstAktiv ? Wache.Sichern(k => _konten.IndexOf(k)) : null,
         Bank = Bank.IstAktiv ? Bank.Sichern(k => _konten.IndexOf(k)) : null,
         Parfum = Duft.IstAktiv ? Duft.Sichern(k => _konten.IndexOf(k)) : null,
+        Glaube = Glaube.IstAktiv ? Glaube.Sichern(k => _konten.IndexOf(k)) : null,
     };
 
     /// <summary>
@@ -872,6 +885,8 @@ public sealed class Stadtwirtschaft
             Bank.Wiederherstellen(bankStand, _konten);
         if (s.Parfum is { } parfumStand && Duft.IstAktiv)
             Duft.Wiederherstellen(parfumStand, _konten);
+        if (s.Glaube is { } glaubeStand && Glaube.IstAktiv)
+            Glaube.Wiederherstellen(glaubeStand, _konten);
     }
 
     public double HoechstesVermoegen => _konten.Count == 0 ? 0 : _konten.Max(k => k.Reinvermoegen);
