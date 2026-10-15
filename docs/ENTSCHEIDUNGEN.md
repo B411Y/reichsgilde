@@ -41,6 +41,7 @@ Seit 15.10.2026 im Repository (vorher im Claude-Projekt). Änderungen laufen wie
 | Tagesphasen | Zunftglocke 05–10, Hoher Mittag 10–15, Vesper 15–20, Dunkle Nacht 20–22 (vorher 06–11 / 11–16 / 16–21 / 21–06) | 15.10.2026 |
 | Spieltag (Wunsch des Nutzers, wie im Original) | **Gespielt wird von 05:00 bis 22:00 Uhr**, dann kommt die Jahresrechnung, das neue Jahr beginnt wieder um 05:00. 1020 statt 1440 Ticks. **15 Minuten Echtzeit je Jahr bleiben** (Spielstunde ≈ 53 s). **Arbeitszeit bleibt 8–20 Uhr.** Gauner ziehen um **20 Uhr** los. Spielstände mit 24-Stunden-Tag lassen sich nicht mehr laden (Speicherformat 2). | 15.10.2026 |
 | Rundendauer in Echtzeit | **15 Minuten** (im Original bei Standard-Tempo gemessen). **Als Spieloption einstellbar** (1–120 Min.). Umgesetzt im `Taktgeber`. | 13.10.2026 |
+| Flüssige Darstellung zwischen den Ticks | Die Simulation rechnet nur in ganzen Spielminuten. **Die Darstellung (Sonne, Schatten, Himmel, Karren) rechnet mit „Minute + angebrochener Bruchteil“** (`Taktgeber.AngebrocheneMinute`), damit sich nichts einmal pro Sekunde ruckartig bewegt. Neue bewegte Darstellungen nutzen denselben Wert. | 15.10.2026 |
 | Tempo | Stufen 1× / 2× / 4× / 8×, Tasten 1–4, Pause mit der Leertaste. **Während der Entwicklung zusätzlich 16× / 32× (Tasten 5–6)** – im Code mit `TESTTEMPO` markiert, vor der Veröffentlichung entfernen. | 13.10.2026 |
 
 ## 3a. Spielregeln (Entscheidungen zum Mechanik-Katalog)
@@ -220,6 +221,7 @@ Format: `- PR #Nummer (Phase) – Inhalt`
 - PR #47 (–) – Phasenplan als Liste, Tests automatisch finden, Regeln für Messungen
 - PR #48 (5) – Wappen für jedes Haus (Wahl im Hauptmenü, Anzeige in den Tafeln), Hausname ohne „Familie“
 - PR #49 (3) – Innenräume für Rathaus (Ratssaal, Gerichtssaal, Amtsstube, Kerker) und Dom nach dem Stadtglauben
+- PR #50 (–) – Flüssige Bewegung von Sonne, Schatten und Karren zwischen den Spielminuten
 
 ### 6b. Offen (eine Zeile je Punkt; erledigt → Zeile löschen und unter 6a eintragen)
 

@@ -1333,7 +1333,11 @@ public partial class Stadtansicht : Node3D
     {
         if (_simulation is null) return;
         var zeit = _simulation.Zeit;
-        LichtNachUhrzeit(zeit.UhrzeitInMinuten);
+        // Die Simulation zählt nur ganze Minuten (bei Tempo 1 etwa eine pro Sekunde). Für die Darstellung
+        // nehmen wir den Bruchteil der angebrochenen Minute dazu – sonst springen Sonne, Schatten und Karren
+        // einmal pro Sekunde, statt sich jedes Bild ein Stückchen weiterzubewegen.
+        var bruchteil = _simulation.Takt.AngebrocheneMinute;
+        LichtNachUhrzeit(zeit.UhrzeitInMinuten + (float)bruchteil);
 
         if (_simulation.Wirtschaft is not { } w) return;
         var arbeitszeit = w.IstArbeitszeit(zeit);
@@ -1351,13 +1355,13 @@ public partial class Stadtansicht : Node3D
 
             var fahrzeit = w.Daten.Logistik.FahrzeitAb(betrieb.Ort);
             for (var i = 0; i < betrieb.Karren.Count; i++)
-                KarrenBewegen(betrieb.Karren[i], i, ansicht, fahrzeit, zeit, delta, ansicht.Spieler);
+                KarrenBewegen(betrieb.Karren[i], i, ansicht, fahrzeit, zeit.VergangeneMinuten + bruchteil, delta, ansicht.Spieler);
         }
         if (_innen is SonderbauAnsicht sonderbau)
             SonderbauAktualisieren(sonderbau, zeit, arbeitszeit, delta);
     }
 
-    private void KarrenBewegen(Karren karren, int nummer, BetriebsAnsicht ansicht, int fahrzeit, Spielzeit zeit, double delta, bool spieler)
+    private void KarrenBewegen(Karren karren, int nummer, BetriebsAnsicht ansicht, int fahrzeit, double jetztGenau, double delta, bool spieler)
     {
         if (!_karren.TryGetValue(karren, out var knoten))
         {
@@ -1375,15 +1379,16 @@ public partial class Stadtansicht : Node3D
         }
         else
         {
-            var rest = Math.Clamp((karren.Ankunft - zeit.VergangeneMinuten) / (double)fahrzeit, 0, 1);
+            var rest = Math.Clamp((karren.Ankunft - jetztGenau) / fahrzeit, 0, 1);
             var anteil = karren.Zustand == KarrenZustand.ZumMarkt ? 1 - rest : rest;
             ziel = PunktAufWeg(ansicht.WegZumMarkt, (float)anteil);
             var weiter = PunktAufWeg(ansicht.WegZumMarkt, (float)Math.Clamp(anteil + (karren.Zustand == KarrenZustand.ZumMarkt ? 0.02 : -0.02), 0, 1));
             blick = weiter;
         }
 
-        // Weich hinterhergleiten, damit Minutensprünge nicht ruckeln.
-        knoten.Position = knoten.Position.Lerp(ziel, (float)Math.Min(1, delta * 6));
+        // Das Ziel wandert dank des Minuten-Bruchteils schon stetig. Das kurze Hinterhergleiten
+        // fängt nur noch echte Sprünge ab (Abfahrt vom Hof, Ankunft, Tempowechsel).
+        knoten.Position = knoten.Position.Lerp(ziel, (float)Math.Min(1, delta * 10));
         var richtung = blick - knoten.Position;
         richtung.Y = 0;
         if (richtung.LengthSquared() > 0.01f)
@@ -1571,7 +1576,7 @@ public partial class Stadtansicht : Node3D
     /// Beide Gestirne wandern in einem Bogen von Osten (+X) über Süden nach Westen. Ihre Stärke
     /// hängt an der Höhe über dem Horizont – so blenden sie in der Dämmerung weich über.
     /// </summary>
-    private void LichtNachUhrzeit(int uhrzeitInMinuten)
+    private void LichtNachUhrzeit(float uhrzeitInMinuten)
     {
         var stunde = uhrzeitInMinuten / 60f;
         // Gespielt wird von 05 bis 22 Uhr: Die Sonne steht von 05 bis 20 Uhr am Himmel, danach zwei Stunden Mondnacht.
@@ -1620,14 +1625,14 @@ public partial class Stadtansicht : Node3D
         (24 * 60, new Color(0.04f, 0.05f, 0.10f)),
     };
 
-    public static Color Himmelsfarbe(int uhrzeitInMinuten)
+    public static Color Himmelsfarbe(float uhrzeitInMinuten)
     {
         for (var i = 0; i < HimmelsVerlauf.Length - 1; i++)
         {
             var (von, farbeVon) = HimmelsVerlauf[i];
             var (bis, farbeBis) = HimmelsVerlauf[i + 1];
             if (uhrzeitInMinuten < bis)
-                return farbeVon.Lerp(farbeBis, (float)(uhrzeitInMinuten - von) / (bis - von));
+                return farbeVon.Lerp(farbeBis, (uhrzeitInMinuten - von) / (bis - von));
         }
         return HimmelsVerlauf[0].Farbe;
     }

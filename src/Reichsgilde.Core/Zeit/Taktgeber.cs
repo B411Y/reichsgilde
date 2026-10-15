@@ -68,6 +68,14 @@ public sealed class Taktgeber
     public double TicksProSekunde => Spielzeit.MinutenProTag / RundenDauerSekunden * Tempo;
 
     /// <summary>
+    /// Wie weit die nächste Spielminute schon angebrochen ist (0 bis knapp unter 1).
+    /// Nur für die Darstellung: Sonne, Schatten und Karren rechnen mit „Minute + Bruchteil"
+    /// und bewegen sich so jedes Bild ein Stückchen statt einmal pro Minute zu springen.
+    /// Die Simulation selbst rechnet weiter nur in ganzen Minuten.
+    /// </summary>
+    public double AngebrocheneMinute => Math.Clamp(_angesammelteTicks, 0, 0.999);
+
+    /// <summary>
     /// Meldet, wie viele Ticks für die vergangene Echtzeit fällig sind.
     /// </summary>
     /// <param name="echtzeitSekunden">Vergangene Echtzeit seit dem letzten Aufruf (in Godot: „delta").</param>

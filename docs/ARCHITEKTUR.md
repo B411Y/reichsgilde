@@ -34,7 +34,7 @@ Dieses Dokument erklärt die Grundidee hinter dem Code. Es wächst mit dem Proje
 | **Spieltag = Runde = Spieljahr** | 1020 Ticks: gespielt wird von 05:00 bis 22:00 Uhr (wie im Original „Die Gilde“), dann kommt die Jahresrechnung. `Spielzeit.TagesbeginnMinute`, `TagesendeMinute`, `MinutenProTag` (1020), `StundenProTag` (17). |
 | **Jahreszeit** | Wechselt von Jahr zu Jahr: Frühling 1400 → Sommer 1401 → Herbst 1402 → Winter 1403 → … |
 | **Tagesphase** | Zunftglocke (05–10), Hoher Mittag (10–15), Vesper (15–20), Dunkle Nacht (20–22) |
-| **Taktgeber** | Rechnet Echtzeit in Ticks um. Hier sitzen Rundendauer, Tempo und Pause. |
+| **Taktgeber** | Rechnet Echtzeit in Ticks um. Hier sitzen Rundendauer, Tempo und Pause. `AngebrocheneMinute` (0 bis < 1) verrät der Darstellung, wie weit die nächste Minute schon läuft – Sonne, Schatten, Himmel und Karren rechnen mit „Minute + Bruchteil“ und bewegen sich so jedes Bild ein Stück statt einmal pro Minute zu springen. Die Simulation nutzt den Wert nicht. |
 
 **Stundenende und Jahreswechsel.** Alles, was je volle Stunde läuft (Gäste, Messe, Taschendiebe, Sold, Zinsen und Wechsel, die Überlegungen der KI), steckt in `Stadtwirtschaft.StundeVorbei`. Es läuft zu Beginn jeder vollen Stunde im Tag – die letzte Stunde (21–22 Uhr) aber rechnet `Jahresabrechnung` ab, bevor das Jahr schließt. So zählen die Abendgäste noch zum alten Jahr. `Spielzeit.StundeDieEndete` liefert dafür 21. Der Taktgeber teilt die 15 Minuten Echtzeit auf `MinutenProTag` auf. Spielstände haben seit dem Wechsel Format 2; ältere (24-Stunden-Tag) werden mit einer Meldung abgelehnt.
 
