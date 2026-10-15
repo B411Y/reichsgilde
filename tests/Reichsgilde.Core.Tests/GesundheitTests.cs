@@ -35,10 +35,12 @@ static class GesundheitTests
 
     public static IEnumerable<(string, Action)> Alle() => new (string, Action)[]
     {
-        ("Gesundheit-Daten: acht Krankheiten, die Pest und Kräuterschnaps als Marktware", () =>
+        ("Gesundheit-Daten: acht Krankheiten und zwei Vergiftungen, die Pest, Kräuterschnaps und Gegengift als Marktware", () =>
         {
             var g = Daten.Value.Gesundheit!;
-            Pruefe.Gleich(8, g.Krankheiten.Count);
+            Pruefe.Gleich(10, g.Krankheiten.Count);
+            Pruefe.Gleich(2, g.Krankheiten.Values.Count(k => k.Gegengift && k.Chance == 0)); // Vergiftungen kommen nur vom Dolch
+            Pruefe.Wahr(Daten.Value.Waren.ContainsKey(g.Gegengift), "Gegengift fehlt auf dem Markt");
             Pruefe.Wahr(g.Pest is not null, "keine Pest");
             Pruefe.Wahr(Daten.Value.Waren.ContainsKey(g.Schnaps), "Schnaps fehlt auf dem Markt");
             Pruefe.Wahr(g.Pest!.Anfaelligkeit(Volk.Elb) < g.Pest.Anfaelligkeit(Volk.Mensch), "Elben sind weniger anfällig");

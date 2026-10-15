@@ -25,6 +25,9 @@ public sealed class KrankheitDaten
 
     /// <summary>Ab diesem Alter dreimal so häufig (0 = immer gleich) – z. B. Vergesslichkeit.</summary>
     public int AlterAb { get; init; }
+
+    /// <summary>Eine Vergiftung (Giftdolch des Parfumeurs): Weder Medicus noch Kräuterschnaps helfen – nur Gegengift (ab Datenversion 21).</summary>
+    public bool Gegengift { get; init; }
 }
 
 /// <summary>Die Pest: eine Seuche, die alle paar Jahrzehnte die ganze Stadt trifft.</summary>
@@ -69,6 +72,9 @@ public sealed class GesundheitDaten
     /// <summary>Name der Ware auf dem Markt, die als Heilmittel taugt.</summary>
     public string Schnaps { get; init; } = "Kräuterschnaps";
 
+    /// <summary>Ware, die eine Vergiftung heilt (aus dem eigenen Lager oder vom Markt; leer = keine).</summary>
+    public string Gegengift { get; init; } = "";
+
     /// <summary>Krötenschleim im Hinterzimmer: Diese Krankheiten kann er auslösen (leer = alle gewöhnlichen).</summary>
     public List<string> Kroetenschleim { get; init; } = new();
 
@@ -91,6 +97,8 @@ public sealed class GesundheitDaten
         }
         if (MedicusKosten < 0 || MedicusKostenPest < 0) f.Add("gesundheit.medicusKosten dürfen nicht negativ sein.");
         if (!waren.ContainsKey(Schnaps)) f.Add($"gesundheit.schnaps: Die Ware „{Schnaps}“ fehlt unter „waren“.");
+        if (Gegengift != "" && !waren.ContainsKey(Gegengift)) f.Add($"gesundheit.gegengift: Die Ware „{Gegengift}“ fehlt unter „waren“.");
+        if (Gegengift == "" && Krankheiten.Values.Any(k => k.Gegengift)) f.Add("gesundheit: Eine Vergiftung braucht „gegengift“ – sonst heilt sie nichts.");
         foreach (var name in Kroetenschleim.Where(n => !Krankheiten.ContainsKey(n)))
             f.Add($"gesundheit.kroetenschleim: Die Krankheit „{name}“ gibt es nicht.");
     }

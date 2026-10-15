@@ -190,6 +190,9 @@ public sealed class Wirtschaftsdaten
     /// <summary>Kasse, Wechsel, Kredite und Wucher des Geldleihers (ab Datenversion 20). Fehlt der Abschnitt, gibt es keine Geldleiher.</summary>
     public Bank.GeldleiherDaten? Geldleiher { get; init; }
 
+    /// <summary>Düfte und Dolche des Parfumeurs (ab Datenversion 21). Fehlt der Abschnitt, wirken Düfte nicht.</summary>
+    public Duft.ParfumDaten? Parfum { get; init; }
+
     /// <summary>Taschendiebe, Einbruch, Auskundschaften, Schutzgeld und Entführung (ab Datenversion 18). Fehlt der Abschnitt, gibt es keine Diebe.</summary>
     public Gauner.DiebDaten? Dieb { get; init; }
 
@@ -362,6 +365,7 @@ public sealed class Wirtschaftsdaten
         Dieb?.Pruefen(f, Berufe);
         Wache?.Pruefen(f, Berufe, Logistik.Eskorten);
         Geldleiher?.Pruefen(f, Berufe);
+        Parfum?.Pruefen(f, Waren, Berufe, Gesundheit);
         if (Wache is null && Logistik.Eskorten.Values.Any(e => e.Wache)) f.Add("logistik.eskorten: Eine Eskorte der Wache braucht den Abschnitt „wache“.");
         foreach (var l in Liegenschaften.Where(l => !KenntArt(l.Art)))
             f.Add($"Liegenschaft {l.Name}: Die Betriebsart {l.Art} fehlt unter „betriebsarten“.");

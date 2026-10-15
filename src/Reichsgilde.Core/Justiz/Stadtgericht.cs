@@ -31,6 +31,10 @@ public enum Vergehen
     Entfuehrung,
     /// <summary>Ein Geldleiher verleiht Geld an ein Haus zu einem Zins über der Wuchergrenze.</summary>
     Wucher,
+    /// <summary>Ein Giftdolch gegen das Oberhaupt eines anderen Hauses (Parfumeur).</summary>
+    Giftanschlag,
+    /// <summary>Die Blume der Zwietracht: einen Ratsherrn gegen ein Haus aufbringen.</summary>
+    Intrige,
 }
 
 public static class VergehenTexte
@@ -89,6 +93,8 @@ public sealed class Spur
         Vergehen.Schutzgeld => $"{Jahr}: Schutzgeld von {Betroffener} verlangt – {Zahlenformat.Ganz(Betrag)} Gulden",
         Vergehen.Entfuehrung => $"{Jahr}: Entführung bei {Betroffener} – {Zahlenformat.Ganz(Betrag)} Gulden Lösegeld",
         Vergehen.Wucher => $"{Jahr}: Wucherzins von {Betroffener} – {Zahlenformat.Ganz(Betrag)} Gulden über dem erlaubten Zins",
+        Vergehen.Giftanschlag => $"{Jahr}: Giftanschlag auf {Betroffener}",
+        Vergehen.Intrige => $"{Jahr}: Zwietracht gesät – {Betroffener}",
         _ => $"{Jahr}: {Art.Name()}",
     };
 }

@@ -1,9 +1,10 @@
 {
-  "version": 20,
+  "version": 21,
   "gesundheit": {
     "medicusKosten": 120,
     "medicusKostenPest": 300,
     "schnaps": "Kräuterschnaps",
+    "gegengift": "Gegengift",
     "kroetenschleim": [ "Ruhr", "Lungenentzündung", "Haarausfall", "Lachanfälle", "Vergesslichkeit" ],
     "krankheiten": {
       "Husten":           { "chance": 0.05, "talente": { "Rhetorik": 1 }, "schnaps": true },
@@ -13,7 +14,9 @@
       "Vergesslichkeit":  { "chance": 0.01, "alterAb": 50, "dauer": 2, "talente": { "Verhandeln": 1, "Handwerk": 1 } },
       "Angst im Dunkeln": { "chance": 0.01, "talente": { "NachtUndNebel": 2 }, "schnaps": true },
       "Haarausfall":      { "chance": 0.01, "dauer": 2, "ansehen": 3 },
-      "Lachanfälle":      { "chance": 0.01, "ansehen": 3, "schnaps": true }
+      "Lachanfälle":      { "chance": 0.01, "ansehen": 3, "schnaps": true },
+      "Vergiftung":       { "chance": 0, "talente": { "Handwerk": 1, "Kampf": 1 }, "sterben": 0.2, "gegengift": true },
+      "Schwere Vergiftung": { "chance": 0, "talente": { "Handwerk": 1, "Kampf": 2, "Verhandeln": 1 }, "sterben": 0.45, "gegengift": true }
     },
     "pest": {
       "abstandMin": 25, "abstandMax": 40,
@@ -36,6 +39,7 @@
       "Einbrechen": 1, "Auskundschaften": 1, "SchutzgeldFordern": 1, "Entfuehren": 2,
       "Razzia": 2,
       "KreditAufnehmen": 1,
+      "MoschusSchenken": 1, "MoschusRatsherr": 1, "ZwietrachtSaeen": 1, "HeiligenduftStiften": 1, "Giftanschlag": 2,
       "BerufErlernen": 4
     }
   },
@@ -160,9 +164,9 @@
     },
     "Goldkette": {
       "typ": "Fertigprodukt",
-      "grundpreis": 265,
+      "grundpreis": 321,
       "zeit": 80,
-      "zutaten": { "Gold": 2, "Silber": 1 },
+      "zutaten": { "Gold": 2, "Silber": 1, "Politur": 1 },
       "nachfrage": 60,
       "npcAnteil": 0.7
     },
@@ -200,9 +204,9 @@
     },
     "Prunktruhe": {
       "typ": "Fertigprodukt",
-      "grundpreis": 330,
+      "grundpreis": 386,
       "zeit": 100,
-      "zutaten": { "Holz": 3, "Beschlag": 2, "Gold": 1 },
+      "zutaten": { "Holz": 3, "Beschlag": 2, "Gold": 1, "Politur": 1 },
       "nachfrage": 50,
       "npcAnteil": 0.7
     },
@@ -493,6 +497,78 @@
       "zutaten": { "Kräuter": 1 },
       "nachfrage": 80,
       "npcAnteil": 0.95
+    },
+    "Lavendel": {
+      "typ": "Rohstoff",
+      "grundpreis": 10,
+      "zeit": 10,
+      "zutaten": {},
+      "nachfrage": 600,
+      "npcAnteil": 0.9
+    },
+    "Jasmin": {
+      "typ": "Rohstoff",
+      "grundpreis": 25,
+      "zeit": 25,
+      "zutaten": {},
+      "nachfrage": 200,
+      "npcAnteil": 0.9
+    },
+    "Politur": {
+      "typ": "Zwischenprodukt",
+      "grundpreis": 56,
+      "zeit": 30,
+      "zutaten": { "Lavendel": 1, "Jasmin": 1 },
+      "nachfrage": 150,
+      "npcAnteil": 0.7
+    },
+    "Blume der Zwietracht": {
+      "typ": "Fertigprodukt",
+      "grundpreis": 95,
+      "zeit": 50,
+      "zutaten": { "Lavendel": 2, "Jasmin": 1 },
+      "nachfrage": 150,
+      "npcAnteil": 0.7
+    },
+    "Giftdolch": {
+      "typ": "Fertigprodukt",
+      "grundpreis": 118,
+      "zeit": 50,
+      "zutaten": { "Eisen": 1, "Politur": 1 },
+      "nachfrage": 150,
+      "npcAnteil": 0.7
+    },
+    "Moschusduft": {
+      "typ": "Fertigprodukt",
+      "grundpreis": 185,
+      "zeit": 70,
+      "zutaten": { "Jasmin": 2, "Lavendel": 1, "Weingeist": 1 },
+      "nachfrage": 100,
+      "npcAnteil": 0.7
+    },
+    "Fechterduft": {
+      "typ": "Fertigprodukt",
+      "grundpreis": 176,
+      "zeit": 60,
+      "zutaten": { "Jasmin": 2, "Politur": 1 },
+      "nachfrage": 100,
+      "npcAnteil": 0.7
+    },
+    "Heiligenduft": {
+      "typ": "Fertigprodukt",
+      "grundpreis": 315,
+      "zeit": 100,
+      "zutaten": { "Lavendel": 2, "Jasmin": 2, "Politur": 1, "Weingeist": 1 },
+      "nachfrage": 50,
+      "npcAnteil": 0.7
+    },
+    "Schattendolch": {
+      "typ": "Fertigprodukt",
+      "grundpreis": 320,
+      "zeit": 100,
+      "zutaten": { "Eisen": 2, "Beschlag": 2, "Politur": 1 },
+      "nachfrage": 50,
+      "npcAnteil": 0.7
     }
   },
   "arbeitskraefte": {
@@ -763,6 +839,7 @@
     "Wirt": { "werkstatt": "Schaenke", "umland": "Bauernhof", "lehrgeld": 500, "beschreibung": "Gerste und Roggen vom Bauernhof, in der Schänke zu Weingeist, Körnermahlzeit und Dünnbier – ausgeschenkt an Gäste im Haus, der Rest geht zum Markt. Die dunkle Ecke hört Gerüchte, das Wirtshaus hat einen Würfeltisch, das Gasthaus einen Stammtisch der Ratsherren." },
     "Prediger": { "werkstatt": "Kirche", "umland": "Klosterhof", "lehrgeld": 500, "beschreibung": "Lumpen und Bienenwachs vom Klosterhof, in der Kirche zu Papier, Kerzen und Lehrschriften. Jeden Tag kommen Gläubige zur Messe und spenden; andere Häuser kaufen Ablass für ihre Taten, und was in der Beichte gesagt wird, weiß der Prediger. Als Meister in Dom und Kathedrale auch Hetzschriften, Psalter, Stundenbücher und Reliquiare." },
     "Dieb": { "werkstatt": "Schmugglerloch", "lehrgeld": 500, "beschreibung": "Kein Handwerk, keine Ware: Die Diebe im Schmugglerloch ziehen tagsüber als Taschendiebe über den Markt – wer erwischt wird, verrät sein Haus. Nachts brechen sie in fremde Lager ein und spähen andere Häuser aus; im Unterschlupf erpressen sie Schutzgeld, in der Diebesgilde entführen sie sogar Angehörige. Ehrbare Bürger meiden ein Haus von Dieben." },
+    "Parfumeur": { "werkstatt": "Siederei", "umland": "Duftgarten", "lehrgeld": 500, "beschreibung": "Lavendel und Jasmin aus dem Duftgarten, in der Siederei zu Politur (für Goldketten und Prunktruhen), der Blume der Zwietracht und Giftdolchen; als Meister in Duftwerkstatt und Parfumerie auch Moschusduft, Fechterduft, Heiligenduft und Schattendolch. Moschus macht Bräute und Ratsherren gewogen, die Blume säht Zwietracht im Rat, Heiligenduft hebt das Ansehen – und ein Giftdolch vergiftet das Oberhaupt eines anderen Hauses." },
     "Geldleiher": { "werkstatt": "Wechselstube", "lehrgeld": 500, "beschreibung": "Kein Handwerk, keine Ware: Die Schreiber verleihen das Geld in der Kasse an Bürger der Stadt und wechseln die Münzen auswärtiger Kaufleute. Andere Häuser leihen beim Geldleiher – zu seinem Zins; wer nicht zahlt, dem pfändet der Büttel die Ware. Ein Zins über einem Fünftel ist Wucher. Geldleihe und Bankhaus verschaffen mehr Zeit für Persönliches (Aktionspunkte)." },
     "Gardist": { "werkstatt": "Wachhaus", "umland": "Wachturm", "lehrgeld": 500, "beschreibung": "Kein Handwerk, keine Ware: Die Stadt zahlt den Wachleuten Sold. Nachts gehen sie Streife – Einbrüche und Brandanschläge misslingen öfter, Zeugen sehen mehr. Razzien bringen Beweise und Diebesgut, verurteilte Täter Kopfgeld; gegen Lohn begleitet die Stadtwache Karren ins Umland, und ein Wachturm hält die Landstraße sicherer. Ein Haus der Wache ist überall gern gesehen." }
   },
@@ -783,6 +860,10 @@
     "Kraeuterladen":    { "name": "Kräuterladen",     "beruf": "Alchimist", "ort": "Werkstatt", "stufe": 2, "plaetze": 3, "fixkosten": 120, "produkte": [ "Farbe", "Kräuterschnaps", "Heilsalbe", "Rosenwasser", "Gegengift" ], "standardprodukt": "Gegengift", "startkarren": "Handkarren", "ausbau": "Alchimistenstube", "ausbauKosten": 5000 },
     "Alchimistenstube": { "name": "Alchimistenstube", "beruf": "Alchimist", "ort": "Werkstatt", "stufe": 3, "plaetze": 4, "fixkosten": 180, "produkte": [ "Farbe", "Kräuterschnaps", "Heilsalbe", "Rosenwasser", "Gegengift", "Theriak", "Zinnober" ], "standardprodukt": "Theriak", "startkarren": "Handkarren" },
     "Kraeutergarten":   { "name": "Kräutergarten",    "beruf": "Alchimist", "ort": "Umland",    "plaetze": 3, "fixkosten": 400, "rohstoffe": [ "Kräuter", "Kröte" ], "startkarren": "Ochsenkarren" },
+    "Siederei":         { "name": "Siederei",         "beruf": "Parfumeur", "ort": "Werkstatt", "stufe": 1, "plaetze": 2, "fixkosten": 80,  "produkte": [ "Politur", "Blume der Zwietracht", "Giftdolch" ], "standardprodukt": "Giftdolch", "startkarren": "Handkarren", "ausbau": "Duftwerkstatt", "ausbauKosten": 2500 },
+    "Duftwerkstatt":    { "name": "Duftwerkstatt",    "beruf": "Parfumeur", "ort": "Werkstatt", "stufe": 2, "plaetze": 3, "fixkosten": 120, "produkte": [ "Politur", "Blume der Zwietracht", "Giftdolch", "Moschusduft", "Fechterduft" ], "standardprodukt": "Moschusduft", "startkarren": "Handkarren", "ausbau": "Parfumerie", "ausbauKosten": 5000 },
+    "Parfumerie":       { "name": "Parfumerie",       "beruf": "Parfumeur", "ort": "Werkstatt", "stufe": 3, "plaetze": 4, "fixkosten": 180, "produkte": [ "Politur", "Blume der Zwietracht", "Giftdolch", "Moschusduft", "Fechterduft", "Heiligenduft", "Schattendolch" ], "standardprodukt": "Heiligenduft", "startkarren": "Handkarren" },
+    "Duftgarten":       { "name": "Duftgarten",       "beruf": "Parfumeur", "ort": "Umland",    "plaetze": 3, "fixkosten": 400, "rohstoffe": [ "Lavendel", "Jasmin" ], "startkarren": "Ochsenkarren" },
     "Schaenke":         { "name": "Schänke",          "beruf": "Wirt",      "ort": "Werkstatt", "stufe": 1, "plaetze": 2, "fixkosten": 80,  "produkte": [ "Weingeist", "Körnermahlzeit", "Dünnbier" ], "standardprodukt": "Körnermahlzeit", "startkarren": "Handkarren", "ausbau": "Wirtshaus", "ausbauKosten": 2500 },
     "Wirtshaus":        { "name": "Wirtshaus",        "beruf": "Wirt",      "ort": "Werkstatt", "stufe": 2, "plaetze": 3, "fixkosten": 120, "produkte": [ "Weingeist", "Körnermahlzeit", "Dünnbier", "Starkbier", "Kräuterlikör" ], "standardprodukt": "Starkbier", "startkarren": "Handkarren", "ausbau": "Gasthaus", "ausbauKosten": 5000 },
     "Gasthaus":         { "name": "Gasthaus",         "beruf": "Wirt",      "ort": "Werkstatt", "stufe": 3, "plaetze": 4, "fixkosten": 180, "produkte": [ "Weingeist", "Körnermahlzeit", "Dünnbier", "Starkbier", "Kräuterlikör", "Festbier", "Schädelbrand" ], "standardprodukt": "Festbier", "startkarren": "Handkarren" },
@@ -851,6 +932,19 @@
     "kredit": { "zinsStandard": 0.12, "zinsMindestens": 0.04, "zinsHoechstens": 0.5, "hoechstJeStufe": [ 3000, 6000, 12000 ], "kreditwuerdigAnteil": 0.5, "laufzeitHoechstens": 5, "pfandAnteil": 0.75 },
     "wucher": { "ab": 0.2, "ansehen": 5 },
     "apJeStufe": [ 0, 1, 2 ]
+  },
+  "parfum": {
+    "beruf": "Parfumeur",
+    "moschus": { "ware": "Moschusduft", "zuneigung": 10, "gunst": 12 },
+    "zwietracht": { "ware": "Blume der Zwietracht", "gunst": 15 },
+    "heiligenduft": { "ware": "Heiligenduft", "ansehen": 4 },
+    "gift": {
+      "betrag": 400,
+      "dolche": {
+        "Giftdolch": { "chance": 0.6, "krankheit": "Vergiftung" },
+        "Schattendolch": { "chance": 0.8, "krankheit": "Schwere Vergiftung" }
+      }
+    }
   },
   "dieb": {
     "beruf": "Dieb",
@@ -927,6 +1021,18 @@
     {
       "name": "Kräutergarten am Bach",
       "art": "Kraeutergarten",
+      "kaufpreis": 0,
+      "mindestStand": "Bürger"
+    },
+    {
+      "name": "Siederei an der Seifengasse",
+      "art": "Siederei",
+      "kaufpreis": 3500,
+      "mindestStand": "Bürger"
+    },
+    {
+      "name": "Duftgarten am Lavendelhang",
+      "art": "Duftgarten",
       "kaufpreis": 0,
       "mindestStand": "Bürger"
     },
@@ -1232,7 +1338,7 @@
     "entschaedigung": 200,
     "amtsverlust": true,
     "kerkerJahre": 1,
-    "kerkerFuer": ["Raub", "Erpressung", "Entfuehrung"]
+    "kerkerFuer": ["Raub", "Erpressung", "Entfuehrung", "Giftanschlag"]
   },
   "gauner": {
     "hehlerAnteil": 0.5,

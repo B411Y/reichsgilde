@@ -11,7 +11,7 @@ namespace Reichsgilde.Core.Gesundheit;
 /// </summary>
 /// <param name="Bis">Letztes Jahr der Krankheit: Am Ende dieses Jahres ist sie überstanden (wenn man sie überlebt).</param>
 public sealed record Erkrankung(string Name, int Bis, IReadOnlyDictionary<Talent, double> Talentabzug, double AnsehenAbzug,
-    double SterbeChance, bool Schnapsheilbar, bool IstPest)
+    double SterbeChance, bool Schnapsheilbar, bool IstPest, bool NurGegengift = false)
 {
     public const string PestName = "Pest";
 
@@ -44,7 +44,7 @@ public sealed record Erkrankung(string Name, int Bis, IReadOnlyDictionary<Talent
         }
         if (!d.Krankheiten.TryGetValue(name, out var k))
             throw new InvalidDataException($"Die Krankheit „{name}“ gibt es in den Daten nicht.");
-        return new Erkrankung(name, bis, new Dictionary<Talent, double>(k.Talente), k.Ansehen, k.Sterben, k.Schnaps, false);
+        return new Erkrankung(name, bis, new Dictionary<Talent, double>(k.Talente), k.Ansehen, k.Sterben, k.Schnaps && !k.Gegengift, false, k.Gegengift);
     }
 }
 
@@ -228,6 +228,7 @@ public sealed class Gesundheitswesen
     {
         if (Kranker(konto, nummer, out var p, out var k) is { } fehler) return fehler;
         if (k.IstPest && k.Medicus) return Befehlsergebnis.Abgelehnt($"Der Medicus pflegt {p.Vorname} schon.");
+        if (k.NurGegengift) return Befehlsergebnis.Abgelehnt($"Gegen {k.Name} weiß der Medicus nichts – da hilft nur {Daten.Gegengift}.");
         var kosten = MedicusKosten(k);
         var waehrung = _w.Daten.Allgemein.Waehrung;
         if (konto.Vermoegen < kosten)
@@ -271,6 +272,29 @@ public sealed class Gesundheitswesen
         p.Krankheit = null;
         _apotheke[konto]--;
         return Befehlsergebnis.Ok($"{p.Vorname} trinkt {Daten.Schnaps}: {k.Name} ist geheilt.");
+    }
+
+    /// <summary>Was ein Gegengift dieses Haus kostet: 0 aus dem eigenen Lager, sonst der Marktpreis.</summary>
+    public double GegengiftPreis(Konto konto) =>
+        !IstAktiv || Daten.Gegengift == "" ? 0
+        : _w.Betriebe.Any(b => b.Konto == konto && b.ImLager(Daten.Gegengift) > 0) ? 0
+        : _w.Markt[Daten.Gegengift].Preis;
+
+    /// <summary>Eine Vergiftung heilen – mit Gegengift aus dem eigenen Lager oder vom Markt (Familienkosten).</summary>
+    internal Befehlsergebnis GegengiftGeben(Konto konto, int nummer)
+    {
+        if (Kranker(konto, nummer, out var p, out var k) is { } fehler) return fehler;
+        if (Daten.Gegengift == "") return Befehlsergebnis.Abgelehnt("In dieser Stadt gibt es kein Gegengift.");
+        if (!k.NurGegengift) return Befehlsergebnis.Abgelehnt($"{p.Vorname} ist nicht vergiftet – gegen {k.Name} hilft {Daten.Gegengift} nicht.");
+        var waehrung = _w.Daten.Allgemein.Waehrung;
+        var preis = GegengiftPreis(konto);
+        if (konto.Vermoegen < preis)
+            return Befehlsergebnis.Abgelehnt($"{Daten.Gegengift} kostet am Markt {Zahlenformat.Ganz(preis)} {waehrung} – so viel habt ihr nicht.");
+        if (preis > 0) konto.Familienkosten(_w.Markt[Daten.Gegengift].Kaufen(1));
+        else _w.Betriebe.First(b => b.Konto == konto && b.ImLager(Daten.Gegengift) > 0).Auslagern(Daten.Gegengift, 1);
+        p.Krankheit = null;
+        return Befehlsergebnis.Ok($"{p.Vorname} trinkt {Daten.Gegengift} ({(preis > 0 ? $"{Zahlenformat.Ganz(preis)} {waehrung} am Markt" : "aus dem eigenen Lager")}): " +
+                                  $"Die {k.Name} ist überstanden.");
     }
 
     // ═════════════════════════════════════════════════════════════════════════
