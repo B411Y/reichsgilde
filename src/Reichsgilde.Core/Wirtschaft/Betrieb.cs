@@ -77,6 +77,10 @@ public enum Betriebsart
     Schmugglerloch,
     Unterschlupf,
     Diebesgilde,
+    Wachhaus,
+    Stadtwache,
+    Garnison,
+    Wachturm,
 }
 
 /// <summary>

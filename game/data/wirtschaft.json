@@ -1,5 +1,5 @@
 {
-  "version": 18,
+  "version": 19,
   "gesundheit": {
     "medicusKosten": 120,
     "medicusKostenPest": 300,
@@ -34,6 +34,7 @@
       "Beauftragen": 1, "Erpressen": 2,
       "AblassKaufen": 1, "BeichtgeheimnisBrechen": 2, "HetzschriftVerbreiten": 1, "LehrschriftLesen": 1,
       "Einbrechen": 1, "Auskundschaften": 1, "SchutzgeldFordern": 1, "Entfuehren": 2,
+      "Razzia": 2,
       "BerufErlernen": 4
     }
   },
@@ -619,6 +620,11 @@
       "Schwer": {
         "kostenJeFahrt": 30,
         "schutz": 0.85
+      },
+      "Stadtwache": {
+        "kostenJeFahrt": 20,
+        "schutz": 0.8,
+        "wache": true
       }
     },
     "ueberfall": {
@@ -755,7 +761,8 @@
     "Alchimist": { "werkstatt": "Tinkturei", "umland": "Kraeutergarten", "lehrgeld": 500, "beschreibung": "Kräuter und Kröten aus dem Kräutergarten, in der Tinkturei zu Farbe, Kräuterschnaps und Heilsalbe; als Meister in Kräuterladen und Alchimistenstube auch Rosenwasser, Gegengift, Theriak und Zinnober (mit Silber vom Schmied und Schleifziegeln vom Steinmetz). Wer das Handwerk beherrscht, mischt Krötenschleim selbst." },
     "Wirt": { "werkstatt": "Schaenke", "umland": "Bauernhof", "lehrgeld": 500, "beschreibung": "Gerste und Roggen vom Bauernhof, in der Schänke zu Weingeist, Körnermahlzeit und Dünnbier – ausgeschenkt an Gäste im Haus, der Rest geht zum Markt. Die dunkle Ecke hört Gerüchte, das Wirtshaus hat einen Würfeltisch, das Gasthaus einen Stammtisch der Ratsherren." },
     "Prediger": { "werkstatt": "Kirche", "umland": "Klosterhof", "lehrgeld": 500, "beschreibung": "Lumpen und Bienenwachs vom Klosterhof, in der Kirche zu Papier, Kerzen und Lehrschriften. Jeden Tag kommen Gläubige zur Messe und spenden; andere Häuser kaufen Ablass für ihre Taten, und was in der Beichte gesagt wird, weiß der Prediger. Als Meister in Dom und Kathedrale auch Hetzschriften, Psalter, Stundenbücher und Reliquiare." },
-    "Dieb": { "werkstatt": "Schmugglerloch", "lehrgeld": 500, "beschreibung": "Kein Handwerk, keine Ware: Die Diebe im Schmugglerloch ziehen tagsüber als Taschendiebe über den Markt – wer erwischt wird, verrät sein Haus. Nachts brechen sie in fremde Lager ein und spähen andere Häuser aus; im Unterschlupf erpressen sie Schutzgeld, in der Diebesgilde entführen sie sogar Angehörige. Ehrbare Bürger meiden ein Haus von Dieben." }
+    "Dieb": { "werkstatt": "Schmugglerloch", "lehrgeld": 500, "beschreibung": "Kein Handwerk, keine Ware: Die Diebe im Schmugglerloch ziehen tagsüber als Taschendiebe über den Markt – wer erwischt wird, verrät sein Haus. Nachts brechen sie in fremde Lager ein und spähen andere Häuser aus; im Unterschlupf erpressen sie Schutzgeld, in der Diebesgilde entführen sie sogar Angehörige. Ehrbare Bürger meiden ein Haus von Dieben." },
+    "Gardist": { "werkstatt": "Wachhaus", "umland": "Wachturm", "lehrgeld": 500, "beschreibung": "Kein Handwerk, keine Ware: Die Stadt zahlt den Wachleuten Sold. Nachts gehen sie Streife – Einbrüche und Brandanschläge misslingen öfter, Zeugen sehen mehr. Razzien bringen Beweise und Diebesgut, verurteilte Täter Kopfgeld; gegen Lohn begleitet die Stadtwache Karren ins Umland, und ein Wachturm hält die Landstraße sicherer. Ein Haus der Wache ist überall gern gesehen." }
   },
   "betriebsarten": {
     "Giesserei":     { "name": "Gießerei",     "beruf": "Schmied",  "ort": "Werkstatt", "stufe": 1, "plaetze": 2, "fixkosten": 80,  "produkte": [ "Beschlag", "Rapier", "Silberring" ], "standardprodukt": "Silberring", "startkarren": "Handkarren", "ausbau": "Schmiede", "ausbauKosten": 2500 },
@@ -784,7 +791,11 @@
     "Klosterhof":       { "name": "Klosterhof",       "beruf": "Prediger",  "ort": "Umland",    "plaetze": 3, "fixkosten": 400, "rohstoffe": [ "Lumpen", "Wachs" ], "startkarren": "Ochsenkarren" },
     "Schmugglerloch":   { "name": "Schmugglerloch",   "beruf": "Dieb",      "ort": "Werkstatt", "stufe": 1, "plaetze": 4, "fixkosten": 80,  "startkarren": "Handkarren", "ausbau": "Unterschlupf", "ausbauKosten": 2500 },
     "Unterschlupf":     { "name": "Unterschlupf",     "beruf": "Dieb",      "ort": "Werkstatt", "stufe": 2, "plaetze": 6, "fixkosten": 120, "startkarren": "Handkarren", "ausbau": "Diebesgilde", "ausbauKosten": 5000 },
-    "Diebesgilde":      { "name": "Diebesgilde",      "beruf": "Dieb",      "ort": "Werkstatt", "stufe": 3, "plaetze": 8, "fixkosten": 180, "startkarren": "Handkarren" }
+    "Diebesgilde":      { "name": "Diebesgilde",      "beruf": "Dieb",      "ort": "Werkstatt", "stufe": 3, "plaetze": 8, "fixkosten": 180, "startkarren": "Handkarren" },
+    "Wachhaus":         { "name": "Wachhaus",         "beruf": "Gardist",   "ort": "Werkstatt", "stufe": 1, "plaetze": 4, "fixkosten": 80,  "startkarren": "", "ausbau": "Stadtwache", "ausbauKosten": 2500 },
+    "Stadtwache":       { "name": "Stadtwache",       "beruf": "Gardist",   "ort": "Werkstatt", "stufe": 2, "plaetze": 6, "fixkosten": 120, "startkarren": "", "ausbau": "Garnison", "ausbauKosten": 5000 },
+    "Garnison":         { "name": "Garnison",         "beruf": "Gardist",   "ort": "Werkstatt", "stufe": 3, "plaetze": 8, "fixkosten": 180, "startkarren": "" },
+    "Wachturm":         { "name": "Wachturm",         "beruf": "Gardist",   "ort": "Umland",    "plaetze": 3, "fixkosten": 400, "startkarren": "" }
   },
   "gastwirtschaft": {
     "beruf": "Wirt",
@@ -815,6 +826,16 @@
     "lehrschrift": "Lehrschrift",
     "lehrschriftBis": 3,
     "hetzschrift": { "ware": "Hetzschrift", "ansehen": 5 }
+  },
+  "wache": {
+    "beruf": "Gardist",
+    "ansehen": 3,
+    "sold": { "jeMinute": 0.75, "jeStufe": [ 1, 1.1, 1.3 ] },
+    "patrouille": { "schutzJeWachmann": 0.025, "hoechstens": 0.4, "zeugenAnteil": 0.5 },
+    "wachturm": { "schutz": 0.3, "hoechstens": 0.6 },
+    "razzia": { "jeStufe": [ 1, 2, 3 ], "chance": 0.5, "chanceJeStufe": 0.1 },
+    "kopfgeld": { "anteilBusse": 0.25, "taschendieb": 50 },
+    "geleit": { "eskorte": "Stadtwache", "abStufe": 1 }
   },
   "dieb": {
     "beruf": "Dieb",
@@ -915,6 +936,18 @@
     {
       "name": "Klosterhof am Osthang",
       "art": "Klosterhof",
+      "kaufpreis": 0,
+      "mindestStand": "Bürger"
+    },
+    {
+      "name": "Wachhaus am Rathaus",
+      "art": "Wachhaus",
+      "kaufpreis": 3500,
+      "mindestStand": "Bürger"
+    },
+    {
+      "name": "Wachturm an der Landstraße",
+      "art": "Wachturm",
       "kaufpreis": 0,
       "mindestStand": "Bürger"
     },

@@ -246,7 +246,7 @@ public sealed class Diebeswesen
     {
         var g = _w.Gauner.Daten;
         var schutz = b.Waechter ? g.WaechterSchutz : 1;
-        return Math.Min(0.95, (g.Diebstahl.Chance + Daten.Einbruch.ChanceBonus) * schutz + _w.Familien.NachtBonus(dieb));
+        return Math.Min(0.95, (g.Diebstahl.Chance + Daten.Einbruch.ChanceBonus) * schutz + _w.Familien.NachtBonus(dieb)) * _w.Wache.Patrouillefaktor(b);
     }
 
     /// <summary>Die wertvollste Ware im Lager – so viel, wie die eigenen Leute tragen.</summary>
@@ -276,14 +276,14 @@ public sealed class Diebeswesen
     {
         var g = _w.Gauner.Daten;
         var schutz = b.Waechter ? g.WaechterSchutz : 1;
-        return Math.Min(0.95, (g.Sabotage.Chance + Daten.Schutzgeld.SabotageBonus) * schutz + _w.Familien.NachtBonus(dieb));
+        return Math.Min(0.95, (g.Sabotage.Chance + Daten.Schutzgeld.SabotageBonus) * schutz + _w.Familien.NachtBonus(dieb)) * _w.Wache.Patrouillefaktor(b);
     }
 
     /// <summary>Was ein verweigertes Schutzgeld das Opfer im Mittel kostet (für die Abwägung der KI und die Anzeige).</summary>
     public double DrohenderBrand(Konto opfer, Konto dieb) =>
         Brandziel(opfer) is { } b ? Brandchance(b, dieb) * _w.Gauner.Sabotageschaden(b) : 0;
 
-    public double Entfuehrungschance(Konto dieb) => Math.Min(0.95, Daten.Entfuehrung.Chance + _w.Familien.NachtBonus(dieb));
+    public double Entfuehrungschance(Konto dieb) => Math.Min(0.95, Daten.Entfuehrung.Chance + _w.Familien.NachtBonus(dieb)) * _w.Wache.Patrouillefaktor(null);
 
     // ── Taschendiebe (jede volle Stunde) ────────────────────────────────────
 
@@ -308,12 +308,15 @@ public sealed class Diebeswesen
                 : b.Belegung.OrderByDescending(x => x.Value).ThenBy(x => x.Key, StringComparer.Ordinal).First().Key;
             b.Einstellen(kraft, b.Belegung[kraft] - 1, _w.Statut);
             _diesesJahr[k] = DiesesJahr(k) with { Faenge = DiesesJahr(k).Faenge + 1 };
+            // Gibt es eine Wache, hat sie ihn gefasst (Kopfgeld) – sonst erkennt ihn ein Bürger und erzählt es einem Haus.
+            var wache = _w.Wache.TaschendiebGefasst(k);
             var zeugen = _w.Konten.Where(x => x != k && x.IstAktiv).ToList();
-            var wisser = zeugen.Count > 0 ? zeugen[_zufall.Next(zeugen.Count)] : null;
+            var wisser = wache ?? (zeugen.Count > 0 ? zeugen[_zufall.Next(zeugen.Count)] : null);
             if (_w.Justiz.IstAktiv && _w.Justiz.TatMelden(k, Vergehen.Taschendiebstahl, "Bürger am Markt", beute) is { } spur && wisser is not null)
                 _w.Justiz.BeweisGeben(wisser, spur);
             _w.Gauner.Melden(null, $"Am Markt wird ein Taschendieb erwischt – ein {kraft} aus {b.Name}." +
-                                   (wisser is null ? "" : $" Ein Bürger hat ihn erkannt und erzählt es {wisser.Inhaber}."));
+                                   (wache is not null ? $" Die Wache von {wache.Inhaber} hat ihn gefasst."
+                                       : wisser is null ? "" : $" Ein Bürger hat ihn erkannt und erzählt es {wisser.Inhaber}."));
         }
     }
 

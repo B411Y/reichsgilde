@@ -81,6 +81,16 @@ public sealed record WirtschaftStand
 
     /// <summary>Aufträge der Diebe, Schutzgeld- und Lösegeldforderungen, Diebesbücher (null in Spielständen von vor dem Dieb).</summary>
     public DiebeStand? Diebe { get; init; }
+
+    /// <summary>Sold, Kopfgeld, Geleitgeld und Razzien je Haus (null in Spielständen von vor dem Gardisten).</summary>
+    public WacheStand? Wache { get; init; }
+}
+
+public sealed record WacheStand
+{
+    public long ZufallWuerfe { get; init; }
+    public Dictionary<string, Ordnung.Wachbuch> DiesesJahr { get; init; } = new();
+    public Dictionary<string, Ordnung.Wachbuch> Vorjahr { get; init; } = new();
 }
 
 public sealed record DiebeStand

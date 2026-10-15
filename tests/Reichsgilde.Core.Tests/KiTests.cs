@@ -121,7 +121,7 @@ static class KiTests
             Pruefe.Gleich("Keine", g.Karren[0].Eskorte);
 
             var wert = ki.Ladungswert(mine.Karren[0]);
-            var guenstigste = w.Daten.Logistik.Eskorten.Keys.OrderBy(e => ki.ErwarteteFahrtkosten(e, wert)).First();
+            var guenstigste = w.Daten.Logistik.Eskorten.Keys.Where(w.Wache.EskorteVerfuegbar).OrderBy(e => ki.ErwarteteFahrtkosten(e, wert)).First(); // die Stadtwache nur mit Gardist
             Pruefe.Gleich(guenstigste, mine.Karren[0].Eskorte);
             Pruefe.Gleich("Normal", guenstigste); // passt zur Langzeitmessung aus Phase 2 (Normal lohnt sich am meisten)
         }),

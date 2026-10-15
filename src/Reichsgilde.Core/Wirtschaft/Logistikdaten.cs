@@ -26,6 +26,9 @@ public sealed class EskorteDaten
 
     /// <summary>Schutz von 0 (keiner) bis 1 (vollständig). Senkt die Erfolgschance einer Bande.</summary>
     public double Schutz { get; init; }
+
+    /// <summary>Stellt die Wache (Gardist): nur verfügbar, wenn ein Haus der Wache Geleitschutz gibt – der Lohn geht an dieses Haus.</summary>
+    public bool Wache { get; init; }
 }
 
 /// <summary>

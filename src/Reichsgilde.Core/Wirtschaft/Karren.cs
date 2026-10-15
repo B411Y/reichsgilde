@@ -155,9 +155,13 @@ public sealed class Karren
         if (_ladung.Count == 0)
             return; // Leere Karren kosten nichts und lohnen keinen Überfall.
 
-        var eskorte = w.Daten.Logistik.Eskorten.GetValueOrDefault(Eskorte) ?? new EskorteDaten();
+        // Die Eskorte der Wache gibt es nur, solange ein Haus sie stellt – sonst fährt der Karren ohne.
+        var eskorte = w.Wache.EskorteVerfuegbar(Eskorte) ? w.Daten.Logistik.Eskorten[Eskorte] : new EskorteDaten();
         if (eskorte.KostenJeFahrt > 0)
-            Heimat.Konto.Transport(eskorte.KostenJeFahrt);
+        {
+            if (eskorte.Wache) w.Wache.GeleitBezahlen(Heimat.Konto, eskorte.KostenJeFahrt);
+            else Heimat.Konto.Transport(eskorte.KostenJeFahrt);
+        }
 
         // Ein bestellter Hinterhalt geht vor; sonst würfeln die gewöhnlichen Banden.
         if (Heimat.Ort == Arbeitsort.Umland && !w.Gauner.HinterhaltAusloesen(this, eskorte, zeit))

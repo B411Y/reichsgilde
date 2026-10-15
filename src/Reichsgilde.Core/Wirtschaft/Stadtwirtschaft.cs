@@ -57,6 +57,15 @@ public sealed class Stadtwirtschaft
     /// <summary>Taschendiebe, Einbruch, Auskundschaften, Schutzgeld und Entführung – die Leute des Diebes.</summary>
     public Diebeswesen Diebe { get; }
 
+    /// <summary>Sold, Patrouille, Wachturm, Razzia, Kopfgeld und Geleitschutz – die Wache des Gardisten.</summary>
+    public Ordnung.Wachwesen Wache { get; }
+
+    /// <summary>Was eine Arbeitsminute in einem Betrieb ohne Ware wert ist (Dieb: Beute, Gardist: Sold nach Steuer).</summary>
+    public double WertOhneWare(BetriebsartDaten d) =>
+        Diebe.IstAktiv && d.Beruf == Diebe.Daten.Beruf ? Diebe.WertJeMinute(d.Stufe)
+        : Wache.IstAktiv && d.Beruf == Wache.Daten.Beruf ? Wache.WertJeMinute(d.Stufe)
+        : 0;
+
     /// <summary>Krankheiten, Pest, Medicus und Hausapotheke.</summary>
     public Gesundheitswesen Gesundheit { get; }
 
@@ -125,6 +134,7 @@ public sealed class Stadtwirtschaft
         Justiz = new Stadtgericht(this, daten.Justiz, zufallsstartwert);
         Gauner = new Unterwelt(this, daten.Gauner, zufallsstartwert);
         Diebe = new Diebeswesen(this, daten.Dieb, zufallsstartwert);
+        Wache = new Ordnung.Wachwesen(this, daten.Wache, zufallsstartwert);
         Gesundheit = new Gesundheitswesen(this, daten.Gesundheit, zufallsstartwert);
         Gastwirtschaft = new Gastwirtschaft(this, daten.Gastwirtschaft);
         Kirchenwesen = new Kirche.Kirchenwesen(this, daten.Kirche, zufallsstartwert);
@@ -278,6 +288,7 @@ public sealed class Stadtwirtschaft
             Gastwirtschaft.Stunde(zeit);
             Kirchenwesen.Stunde(zeit); // zur Messe wird gespendet
             Diebe.Stunde(zeit);        // die Taschendiebe der vergangenen Stunde
+            Wache.Stunde(zeit);        // Sold für die Wachleute
         }
 
         // Die KI überlegt jede volle Stunde – mit den Marktpreisen dieser Stunde.
@@ -331,6 +342,7 @@ public sealed class Stadtwirtschaft
         Rat.Sitzung(_zufall, neuesJahr - 1);
         Gauner.Jahresende();
         Diebe.Jahresende(); // unbeantwortete Forderungen: Feuer oder die Geisel wird verkauft
+        Wache.Jahresende();
         AktionspunkteVerteilen(); // die neue Runde beginnt
         foreach (var rivale in _rivalen.Where(r => r.Konto.IstAktiv))
             rivale.Jahresende();
@@ -477,6 +489,10 @@ public sealed class Stadtwirtschaft
                 _ => Befehlsergebnis.Abgelehnt("Unbekannter Befehl."),
             };
         }
+        if (befehl is Razzia razzia)
+            return _konten.FirstOrDefault(k => k.Inhaber == razzia.Haus) is { } durchsucht
+                ? Wache.Razzia(absender, durchsucht)
+                : Befehlsergebnis.Abgelehnt($"Ein Haus „{razzia.Haus}“ gibt es nicht.");
         if (befehl is Einbrechen or Auskundschaften or SchutzgeldFordern or Entfuehren or DiebesforderungBeantworten)
         {
             if (!Diebe.IstAktiv)
@@ -702,6 +718,8 @@ public sealed class Stadtwirtschaft
             return Befehlsergebnis.Abgelehnt($"{betrieb.Name} hat keinen Karren Nr. {befehl.Karren + 1}.");
         if (!Daten.Logistik.Eskorten.ContainsKey(befehl.Eskorte))
             return Befehlsergebnis.Abgelehnt($"Die Eskorte „{befehl.Eskorte}“ gibt es nicht.");
+        if (!Wache.EskorteVerfuegbar(befehl.Eskorte))
+            return Befehlsergebnis.Abgelehnt($"Die {befehl.Eskorte} gibt Geleitschutz erst, wenn ein Haus ein Wachhaus mit Leuten führt.");
         var karren = betrieb.Karren[befehl.Karren];
         karren.Eskorte = befehl.Eskorte;
         return Befehlsergebnis.Ok($"{karren.Name} von {betrieb.Name} fährt nun mit Eskorte „{befehl.Eskorte}“.");
@@ -749,6 +767,7 @@ public sealed class Stadtwirtschaft
         Gastwirtschaft = Gastwirtschaft.IstAktiv ? Gastwirtschaft.Sichern() : null,
         Kirche = Kirchenwesen.IstAktiv ? Kirchenwesen.Sichern(k => _konten.IndexOf(k)) : null,
         Diebe = Diebe.IstAktiv ? Diebe.Sichern(k => _konten.IndexOf(k)) : null,
+        Wache = Wache.IstAktiv ? Wache.Sichern(k => _konten.IndexOf(k)) : null,
     };
 
     /// <summary>
@@ -799,6 +818,8 @@ public sealed class Stadtwirtschaft
             Kirchenwesen.Wiederherstellen(kirchenStand, _konten);
         if (s.Diebe is { } diebeStand && Diebe.IstAktiv)
             Diebe.Wiederherstellen(diebeStand, _konten);
+        if (s.Wache is { } wacheStand && Wache.IstAktiv)
+            Wache.Wiederherstellen(wacheStand, _konten);
     }
 
     public double HoechstesVermoegen => _konten.Count == 0 ? 0 : _konten.Max(k => k.Vermoegen);

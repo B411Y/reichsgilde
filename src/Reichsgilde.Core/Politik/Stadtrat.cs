@@ -102,7 +102,8 @@ public sealed class Stadtrat
                - _w.Gesundheit.AnsehenAbzug(konto)      // Haarausfall, Lachanfälle des Oberhaupts
                - _w.Gastwirtschaft.AnsehenAbzug(konto)  // ein Würfeltisch im eigenen Wirtshaus
                - _w.Kirchenwesen.AnsehenAbzug(konto)    // eine Hetzschrift gegen das Haus
-               - _w.Diebe.AnsehenAbzug(konto);          // ein Haus von Dieben
+               - _w.Diebe.AnsehenAbzug(konto)           // ein Haus von Dieben
+               + _w.Wache.AnsehenBonus(konto);          // ein Haus der Wache
     }
 
     /// <summary>Auf welche Ämter sich ein Haus jetzt bewerben darf: genau eine Stufe über seinem Amt, Stand erfüllt.</summary>

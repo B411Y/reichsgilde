@@ -23,7 +23,7 @@ public static class Kalkulation
 
     /// <summary>Wert einer Arbeitsminute in diesem Betrieb bei der aktuellen Ausrichtung.</summary>
     public static double WertJeArbeitsminute(Stadtwirtschaft w, Betrieb betrieb) =>
-        betrieb.OhneProduktion ? w.Diebe.WertJeMinute(betrieb.Stufe)
+        betrieb.OhneProduktion ? w.WertOhneWare(betrieb.Artdaten)
         : betrieb.IstWerkstatt ? GewinnJeArbeitsminute(w, betrieb.Produkt)
         : Gemischt(betrieb, ware => GewinnJeArbeitsminute(w, ware));
 
@@ -73,7 +73,7 @@ public static class Kalkulation
         var geltend = statut ?? w.Statut;
         var d = w.Daten.Art(art);
         var ort = d.Ort;
-        var wertJeMinute = d.OhneProduktion ? w.Diebe.WertJeMinute(d.Stufe)
+        var wertJeMinute = d.OhneProduktion ? w.WertOhneWare(d)
             : (d.IstWerkstatt ? d.Produkte : d.Rohstoffe).Max(ware => GewinnJeArbeitsminute(w, ware));
         var besterKopf = w.Daten.Arbeitskraefte.Values
             .Where(k => k.IstErlaubt(geltend, ort))
