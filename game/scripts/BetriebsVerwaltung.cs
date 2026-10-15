@@ -562,6 +562,8 @@ public partial class BetriebsVerwaltung : VBoxContainer
         var waehrung = w.Daten.Allgemein.Waehrung;
         var beruf = b.Artdaten.Beruf;
         var text = $"Stufe {b.Stufe}: {b.Artdaten.Name} · {beruf} im {_spieler!.Meistergrad(beruf)}. Grad";
+        if (UiHilfe.VolksZusatz(w, _spieler, beruf) is { Length: > 0 } volk)
+            text += $" · Volk{volk}";
         if (b.UmbauMinuten > 0) text += $" · Umbau noch {Zahlenformat.Ganz(b.UmbauMinuten / 60.0)} Std.";
         _ausbauKnopf.Visible = b.Artdaten.Ausbau is not null;
         if (b.Artdaten.Ausbau is { } ziel)

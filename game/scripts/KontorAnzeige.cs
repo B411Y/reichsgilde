@@ -172,7 +172,8 @@ public partial class KontorAnzeige : PanelContainer
     {
         _berufZeile.Visible = w.Daten.Berufe.Count > 1 && !_spieler!.IstErloschen;
         if (!_berufZeile.Visible) return;
-        _berufText.Text = $"Handwerk: {string.Join(", ", _spieler!.Berufe)}";
+        var handwerk = $"Handwerk: {string.Join(", ", _spieler!.Berufe.Select(b => b + UiHilfe.VolksZusatz(w, _spieler, b)))}";
+        if (_berufText.Text != handwerk) _berufText.Text = handwerk;
         var lernbar = w.Daten.Berufe.Keys.Where(b => !_spieler.Beherrscht(b)).OrderBy(b => b, StringComparer.Ordinal).ToList();
         if (!lernbar.SequenceEqual(_lernbar))
         {
@@ -180,7 +181,7 @@ public partial class KontorAnzeige : PanelContainer
             _lernbar.Clear();
             _lernbar.AddRange(lernbar);
             _berufWahl.Clear();
-            foreach (var b in lernbar) _berufWahl.AddItem(b);
+            foreach (var b in lernbar) _berufWahl.AddItem(b + UiHilfe.VolksZusatz(w, _spieler, b));
             if (lernbar.Count > 0) _berufWahl.Select(Math.Max(0, vorher is null ? 0 : lernbar.IndexOf(vorher)));
         }
         _berufWahl.Visible = _lernenKnopf.Visible = _lernbarerBeruf is not null;
@@ -193,7 +194,9 @@ public partial class KontorAnzeige : PanelContainer
         var fehlt = _spieler.Vermoegen < daten.Lehrgeld ? "Für das Lehrgeld fehlt Geld."
             : !w.ApReichen(_spieler, befehl) ? $"Nicht genug Aktionspunkte ({_spieler.Aktionspunkte.Vorrat} von {ap})." : null;
         _lernenKnopf.Disabled = fehlt is not null;
-        var tipp = fehlt ?? $"{daten.Beschreibung}\nDanach dürft ihr Werkstätten und Umlandbetriebe dieses Handwerks erwerben.";
+        var volk = UiHilfe.VolksZusatz(w, _spieler, beruf);
+        var tipp = fehlt ?? $"{daten.Beschreibung}\nDanach dürft ihr Werkstätten und Umlandbetriebe dieses Handwerks erwerben." +
+                   (volk == "" ? "" : $"\nEuer Volk{volk}: So viel leisten eure Betriebe in diesem Handwerk mehr oder weniger.");
         if (_lernenKnopf.TooltipText != tipp) _lernenKnopf.TooltipText = tipp;
     }
 

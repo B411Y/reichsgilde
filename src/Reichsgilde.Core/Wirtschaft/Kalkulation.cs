@@ -37,12 +37,13 @@ public static class Kalkulation
 
     /// <summary>
     /// Erwarteter Jahresertrag einer Arbeitskraft in diesem Betrieb:
-    /// Leistung × Arbeitsminuten × Wert je Minute − Lohn − Risiko × Schaden.
+    /// Leistung (× Völkerbonus) × Arbeitsminuten × Wert je Minute − Lohn − Risiko × Schaden.
     /// </summary>
     public static double Jahresertrag(Stadtwirtschaft w, Betrieb betrieb, string arbeitskraft)
     {
         var kraft = w.Daten.Arbeitskraefte[arbeitskraft];
-        return kraft.TempoAm(betrieb.Ort) * w.Daten.Allgemein.Arbeitsminuten * WertJeArbeitsminute(w, betrieb)
+        return kraft.TempoAm(betrieb.Ort) * w.VolksFaktor(betrieb.Konto, betrieb.Artdaten.Beruf) // Völkerbonus des Hauses
+               * w.Daten.Allgemein.Arbeitsminuten * WertJeArbeitsminute(w, betrieb)
                - kraft.Kosten
                - kraft.Risiko * kraft.Schaden;
     }

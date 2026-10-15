@@ -238,7 +238,14 @@ public partial class Hauptmenue : Node
             Volk.Halbling => "Bekommen schnell Kinder, leben aber etwas kürzer. Ihr Haushalt ist günstig.",
             _ => "Bekommen schnell Kinder und leben durchschnittlich lang. Sie stellen die Mehrheit in Stadt und Rat.",
         };
-        // Der Startglaube steht in wirtschaft.json (Abschnitt „glaube") – hier nur als Hinweis.
+        // Völkerboni und Startglaube stehen in wirtschaft.json („berufe…voelker", „glaube") – hier nur als Hinweis.
+        text += " " + volk switch
+        {
+            Volk.Zwerg => "Berufe: Schmied, Steinmetz, Geldleiher +5 %; Dieb, Parfumeur −5 %.",
+            Volk.Elb => "Berufe: Alchimist, Prediger, Parfumeur +5 %; Steinmetz, Gardist −5 %.",
+            Volk.Halbling => "Berufe: Wirt, Dieb +5 %; Schmied, Gardist −5 %.",
+            _ => "Berufe: Tischler, Gardist +5 %, keine Schwächen.",
+        };
         var glaube = volk is Volk.Zwerg or Volk.Halbling ? "meist evangelisch" : "meist katholisch";
         _volkHinweis.Text = $"{text} Glaube: {glaube} – im Rat schätzen Ratsherren Glaubensbrüder (7 katholisch, 6 evangelisch).";
     }
