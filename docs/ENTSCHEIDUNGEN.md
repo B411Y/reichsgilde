@@ -162,13 +162,71 @@ Seit 15.10.2026 im Repository (vorher im Claude-Projekt). Änderungen laufen wie
 
 | Phase | Inhalt | Ergebnis | Status |
 |---|---|---|---|
-| 0 – Fundament | Entscheidungen, Entwicklungsumgebung, GitHub-Repo, Mechanik-Katalog | Dieses Dokument, Katalog, Godot-Grundgerüst mit Zeitsystem | **fertig** ✔ (PR #1 gemergt) |
+| 0 – Fundament | Entscheidungen, Entwicklungsumgebung, GitHub-Repo, Mechanik-Katalog | Dieses Dokument, Katalog, Godot-Grundgerüst mit Zeitsystem | **fertig** ✔ |
 | 1 – Wirtschaftsmodell | Warenketten, Preise, Löhne je Statut A/B/C | Balancing-Rechner + Modell-Dokument | **fertig** ✔ (Werte freigegeben) |
-| 2 – Simulationskern | Tick, Markt, Betriebe, Bürger-KI, ohne Grafik, mit automatischen Tests | Testbare Simulation | Zeitsystem ✔, Wirtschaft ✔ (PR #3), Lager/Karren/Banditen ✔ (PR #4), KI-Rivale mit Entscheidungen ✔ (PR #7). Offen: Bürger-KI |
-| 3 – 2,5D-Prototyp | Isometrische Stadt, Gebäude anklicken, Diorama-Innenansicht (Greybox) | Klickbarer Prototyp | **in Arbeit**: Greybox-Stadt mit Schrägkamera, fahrenden Karren, Tag/Nacht und Gebäudeauswahl ✔ (PR #5). Diagonale Kamera + Diorama-Innenansicht der Gießerei ✔ (PR #6). Innenansichten aller Werkstätten ✔ (PR #42) |
-| 4 – Vertical Slice | 1 Stadt, 1 Beruf (Schmied, Gießerei), 1 KI-Rivale, 1 Jahreszyklus | Erstes spielbares Spiel | **begonnen**: Befehle + Bedienfeld für eigene Betriebe ✔ (PR #8), Stände, Bankrott, Jahresbericht ✔ (PR #9), Expansion: Werkstatt kaufen / Grube pachten ✔ (PR #11), Speichern/Laden ✔ (PR #12), Hauptmenü ✔ (PR #13), Jahresbericht-Fix ✔ (PR #14) |
-| 5+ – Säulen | Dynastie → Stände → Rat → Gericht → Gauner | Spieltiefe | **begonnen**: Stadtrat mit Ämtern, Wahlen, Gunst und Statut-Anträgen ✔ (PR #15), Dynastie Teil 1: Völker, Brautschau, Kinder, Erbfolge ✔ (PR #16), Fix Familientafel ✔ (PR #17), Gericht Teil 1: Bestechung, Spitzel, Anklage, Urteil ✔ (PR #18), Gauner Teil 1: Diebstahl, Sabotage, Überfall, Erpressung, Wächter, Kerker ✔ (PR #19), Fix Zahlenfelder ✔ (PR #20), Dynastie Teil 2: Talente und Ausbildung ✔ (PR #22), Fenster frei ziehbar, Scrollbalken, Vollbild ✔ (PR #23), Aktionspunkte mit Training ✔ (PR #25), gestaffelte Übungskosten ✔ (PR #26), Gesundheit: Krankheiten, Pest, Medicus, Kräuterschnaps, Krötenschleim ✔ (PR #27), zweiter Beruf Tischler, Berufe erlernen, Haus Eichwald ✔ (PR #28), Meistergrade und Gebäudestufen ✔ (PR #29), dritter Beruf Steinmetz, Haus Kieselbach ✔ (PR #30), vierter Beruf Alchimist, KI erlernt Berufe ✔ (PR #31), Marktfenster mit Waren-Icons ✔ (PR #32), Wirt mit Gästen, Barde, Würfeltisch, Stammtisch, dunkler Ecke ✔ (PR #33), Prediger mit Messe, Ablass, Beichte, Lehr- und Hetzschrift ✔ (PR #34), Dieb mit Taschendieben, Einbruch, Auskundschaften, Schutzgeld, Entführung ✔ (PR #35). Fix Erpressungsspirale: Buße höchstens das halbe Vermögen ✔ (PR #36), Gardist mit Sold, Patrouille, Wachturm, Razzia, Kopfgeld, Geleitschutz ✔ (PR #37), Geldleiher mit Kasse, Wechsel, Krediten, Pfändung, Wucher, Reinvermögen ✔ (PR #38), Parfumeur mit Politur, Moschus, Zwietracht, Heiligenduft, Giftdolch und Gegengift ✔ (PR #39), Spieltag 05–22 Uhr wie im Original ✔ (PR #40), Glaube und Konfessionen: Rat, Messe, Konvertieren, Bekehrung, Mischehe, Stadtglaube ✔ (PR #41), Innenansichten aller Werkstätten mit Zuständen aus der Simulation, Fix Ausbau ohne Ware ✔ (PR #42), Völkerboni je Beruf ✔ (PR #43), Handel von Hand per Karrenauftrag ✔ (PR #45). Offen: Berufe mit eigener Mechanik (Händler …), Orks und Oger spielbar machen, Bauplätze und Sanierung, Zuschauer-Modus, Gaunerberuf, Schmuggel und Schwarzarbeit unter dem Statut |
+| 2 – Simulationskern | Tick, Markt, Betriebe, Bürger-KI, ohne Grafik, mit automatischen Tests | Testbare Simulation | **weitgehend fertig** (offen: Bürger-KI) |
+| 3 – 2,5D-Prototyp | Isometrische Stadt, Gebäude anklicken, Diorama-Innenansicht (Greybox) | Klickbarer Prototyp | **in Arbeit** |
+| 4 – Vertical Slice | 1 Stadt, 1 Beruf (Schmied, Gießerei), 1 KI-Rivale, 1 Jahreszyklus | Erstes spielbares Spiel | **weitgehend fertig** |
+| 5+ – Säulen | Dynastie → Stände → Rat → Gericht → Gauner | Spieltiefe | **in Arbeit** |
 | 6 – Multiplayer | 8 Spieler, Timer, Pausenregeln, Zuschauer-Modus | Netzwerkpartie | |
+
+Was erledigt und was offen ist, steht in den beiden Listen darunter – **eine Zeile je PR bzw. Punkt**. So ändern zwei Chats nie dieselbe Zeile, und ihre PRs lassen sich ohne Konflikt mergen.
+
+### 6a. Erledigt (je gemergtem PR eine Zeile, neue Zeilen unten anhängen)
+
+Format: `- PR #Nummer (Phase) – Inhalt`
+
+- PR #1 (0) – Grundgerüst, Zeitsystem, Partie-Einstellungen, Windows + Linux
+- PR #3 (2) – Wirtschaft im Simulationskern: Markt, Gießerei, Mine, Fronstatut
+- PR #4 (2) – Lager, Karren, Eskorten, Banditen
+- PR #5 (3) – Greybox-Stadt mit Schrägkamera, fahrenden Karren, Tag/Nacht, Gebäudeauswahl
+- PR #6 (3) – Diagonale Kamera, Diorama-Innenansicht der Gießerei
+- PR #7 (2) – KI-Rivale mit eigenen Entscheidungen
+- PR #8 (4) – Befehle und Bedienfeld für eigene Betriebe
+- PR #9 (4) – Stände, Rangliste, Bankrott, Jahresbericht
+- PR #11 (4) – Expansion: Werkstatt kaufen, Grube pachten
+- PR #12 (4) – Speichern und Laden
+- PR #13 (4) – Hauptmenü, Spielmenü, automatisches Speichern
+- PR #14 (4) – Fix Jahresbericht
+- PR #15 (5) – Stadtrat mit Ämtern, Wahlen, Gunst, Statut-Anträgen
+- PR #16 (5) – Dynastie Teil 1: Völker, Brautschau, Kinder, Erbfolge
+- PR #17 (5) – Fix Familientafel
+- PR #18 (5) – Gericht Teil 1: Bestechung, Spitzel, Anklage, Urteil
+- PR #19 (5) – Gauner Teil 1: Diebstahl, Sabotage, Überfall, Erpressung, Wächter, Kerker
+- PR #20 (5) – Fix Zahlenfelder
+- PR #22 (5) – Dynastie Teil 2: Talente und Ausbildung
+- PR #23 (5) – Fenster frei ziehbar, Scrollbalken, Vollbild
+- PR #25 (5) – Aktionspunkte mit Training
+- PR #26 (5) – Gestaffelte Übungskosten
+- PR #27 (5) – Gesundheit: Krankheiten, Pest, Medicus, Kräuterschnaps, Krötenschleim
+- PR #28 (5) – Zweiter Beruf Tischler, Berufe erlernen, Haus Eichwald
+- PR #29 (5) – Meistergrade und Gebäudestufen
+- PR #30 (5) – Dritter Beruf Steinmetz, Haus Kieselbach
+- PR #31 (5) – Vierter Beruf Alchimist, KI erlernt Berufe
+- PR #32 (5) – Marktfenster mit Waren-Icons
+- PR #33 (5) – Wirt mit Gästen, Barde, Würfeltisch, Stammtisch, dunkler Ecke
+- PR #34 (5) – Prediger mit Messe, Ablass, Beichte, Lehr- und Hetzschrift
+- PR #35 (5) – Dieb mit Taschendieben, Einbruch, Auskundschaften, Schutzgeld, Entführung
+- PR #36 (5) – Fix Erpressungsspirale: Buße höchstens das halbe Vermögen
+- PR #37 (5) – Gardist mit Sold, Patrouille, Wachturm, Razzia, Kopfgeld, Geleitschutz
+- PR #38 (5) – Geldleiher mit Kasse, Wechsel, Krediten, Pfändung, Wucher, Reinvermögen
+- PR #39 (5) – Parfumeur mit Politur, Moschus, Zwietracht, Heiligenduft, Giftdolch, Gegengift
+- PR #40 (5) – Spieltag 05–22 Uhr wie im Original
+- PR #41 (5) – Glaube und Konfessionen: Rat, Messe, Konvertieren, Bekehrung, Mischehe, Stadtglaube
+- PR #42 (3) – Innenansichten aller Werkstätten mit Zuständen aus der Simulation, Fix Ausbau ohne Ware
+- PR #43 (5) – Völkerboni je Beruf
+- PR #44 (–) – Zusammenarbeit: CLAUDE.md, Entwurfs-PRs, Protokolle im Repo
+- PR #45 (5) – Handel von Hand per Karrenauftrag
+- PR #47 (–) – Phasenplan als Liste, Tests automatisch finden, Regeln für Messungen
+
+### 6b. Offen (eine Zeile je Punkt; erledigt → Zeile löschen und unter 6a eintragen)
+
+- (2) Bürger-KI
+- (5) Berufe mit eigener Mechanik (Händler mit Lagerhaus und Fernhandel …)
+- (5) Orks und Oger spielbar machen
+- (5) Bauplätze und Sanierung (siehe Abschnitt 7, Punkt 8)
+- (5) Gaunerberuf, Schmuggel und Schwarzarbeit unter dem Statut
+- (6) Multiplayer, Zuschauer-Modus
 
 ## 7. Offene Punkte
 
@@ -200,3 +258,6 @@ Seit 15.10.2026 im Repository (vorher im Claude-Projekt). Änderungen laufen wie
 | Laufende Arbeit | **Kein eigenes Änderungsregister.** Erledigtes zeigt Git (`main`, PRs). Laufendes zeigt ein **Entwurfs-PR**, den jeder Chat gleich nach dem ersten Commit öffnet (Aufgabe, Bereich, angefasste Dateien; Vorlage `.github/pull_request_template.md`). | 15.10.2026 |
 | Protokolle | **Entscheidungsprotokoll und Wirtschaftsmodell liegen öffentlich im Repository** (`docs/ENTSCHEIDUNGEN.md`, `docs/WIRTSCHAFTSMODELL.md`) und werden im selben PR wie die Änderung gepflegt. Grund: Im Claude-Projekt schrieb jeder Chat die ganze Datei neu, gleichzeitige Einträge hätten sich still überschrieben; im Repo zeigt Git einen Konflikt. Mechanik-Katalog und Design-Dossier bleiben privat im Claude-Projekt. | 15.10.2026 |
 | Bereiche | Zwei Chats: **Hauptchat (Kern)** und ein Chat für Darstellung/Aufgaben je Prompt. Später voraussichtlich mehr (Darstellung, Sound, Spiel-KI …), je mit eigenem Bereich; die Tabelle in `CLAUDE.md` wird dann ergänzt. | 15.10.2026 |
+| Phasenplan | **Als Liste statt Tabellenzelle** (Abschnitt 6a/6b): je PR eine Zeile unten anhängen, offene Punkte je eine Zeile. Vorher wuchs eine einzige Tabellenzelle, die jeder PR änderte – sicherer Merge-Konflikt. | 15.10.2026 |
+| Tests | **Testklassen werden automatisch gefunden** (jede statische Klasse mit `Alle()`), keine Liste mehr in `Program.cs`. | 15.10.2026 |
+| Messungen | **Nur der Kern-Chat misst.** Jede Messung nennt den `main`-Commit, gegen den gemessen wurde – so lassen sich Messungen aus verschiedenen PRs vergleichen. | 15.10.2026 |
