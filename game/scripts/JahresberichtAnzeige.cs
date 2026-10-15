@@ -101,13 +101,17 @@ public partial class JahresberichtAnzeige : PanelContainer
                 nebenbei.Add(bilanz.Gaunerei > 0 ? $"Hinterzimmer {Zahlenformat.Ganz(bilanz.Gaunerei)}" : $"Hinterzimmer +{Zahlenformat.Ganz(-bilanz.Gaunerei)}");
             if (Math.Abs(bilanz.Gericht) > 0.5)
                 nebenbei.Add(bilanz.Gericht > 0 ? $"Gericht und Spitzel {Zahlenformat.Ganz(bilanz.Gericht)}" : $"Entschädigung vom Gericht +{Zahlenformat.Ganz(-bilanz.Gericht)}");
+            if (bilanz.Zinsen > 0) nebenbei.Add($"Kreditzinsen {Zahlenformat.Ganz(bilanz.Zinsen)}");
             if (bilanz.Raubwert > 0) nebenbei.Add($"von Banditen geraubt: Waren für {Zahlenformat.Ganz(bilanz.Raubwert)}");
             if (nebenbei.Count > 0) Text("Außerdem: " + string.Join(" · ", nebenbei), 13, Grau);
         }
 
         // ── Vermögen, Schulden, Stand ──
         _inhalt.AddChild(new HSeparator());
-        Text($"Vermögen: {Zahlenformat.Ganz(spieler.Vermoegen)} {waehrung}", 18, spieler.Vermoegen >= 0 ? null : Rot);
+        var verliehen = Math.Abs(spieler.Forderungen) > 0.5 || Math.Abs(spieler.Schulden) > 0.5;
+        Text($"Vermögen: {Zahlenformat.Ganz(spieler.Reinvermoegen)} {waehrung}"
+             + (verliehen ? $" (bar {Zahlenformat.Ganz(spieler.Vermoegen)} + verliehen {Zahlenformat.Ganz(spieler.Forderungen)} − Schulden {Zahlenformat.Ganz(spieler.Schulden)})" : ""),
+             18, spieler.Reinvermoegen >= 0 ? null : Rot);
         if (spieler.Schuldenjahre > 0 && !spieler.IstBankrott)
             {
             var rest = w.Daten.Schulden.JahreBisBankrott - spieler.Schuldenjahre;
@@ -118,12 +122,12 @@ public partial class JahresberichtAnzeige : PanelContainer
         {
             var balken = new ProgressBar
             {
-                MinValue = 0, MaxValue = naechster.Schwelle, Value = Math.Max(0, spieler.Vermoegen),
+                MinValue = 0, MaxValue = naechster.Schwelle, Value = Math.Max(0, spieler.Reinvermoegen),
                 ShowPercentage = false, CustomMinimumSize = new Vector2(0, 12),
             };
             Text($"Nächster Stand: {naechster.Name} ab {Zahlenformat.Ganz(naechster.Schwelle)} {waehrung}", 14);
             _inhalt.AddChild(balken);
-            if (spieler.Vermoegen >= naechster.Schwelle)
+            if (spieler.Reinvermoegen >= naechster.Schwelle)
                 Text($"Ihr könnt im Rathaus aufsteigen (Gebühr {Zahlenformat.Ganz(naechster.Gebuehr)} {waehrung}).", 14, Gold);
         }
 
@@ -177,7 +181,7 @@ public partial class JahresberichtAnzeige : PanelContainer
             Label(rang, !konto.IstAktiv ? "–" : $"{platz++}.", 14, farbe);
             Label(rang, konto.Inhaber, 14, farbe);
             Label(rang, konto.IstBankrott ? "bankrott" : konto.IstErloschen ? "erloschen" : w.StandVon(konto).Name, 14, !konto.IstAktiv ? Rot : farbe);
-            Label(rang, Zahlenformat.Ganz(konto.Vermoegen), 14, farbe);
+            Label(rang, Zahlenformat.Ganz(konto.Reinvermoegen), 14, farbe);
         }
 
         _weiter.Text = endgrund is null ? "Weiter" : "Schließen";

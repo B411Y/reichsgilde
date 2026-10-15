@@ -44,6 +44,13 @@ public partial class BetriebsVerwaltung : VBoxContainer
     private CheckBox _wuerfeltisch = null!;
     private Label _diebesText = null!;
     private Label _wacheText = null!;
+    private VBoxContainer _bankstube = null!;
+    private Label _bankText = null!;
+    private Zahlfeld _kassenBetrag = null!;
+    private Button _kasseFuellen = null!;
+    private Zahlfeld _zinsWahl = null!;
+    private Button _zinsKnopf = null!;
+    private Betrieb? _zinsFuer;
     private VBoxContainer _kirchenstube = null!;
     private Label _kirchenText = null!;
     private VBoxContainer _beichtKnoepfe = null!;
@@ -54,6 +61,8 @@ public partial class BetriebsVerwaltung : VBoxContainer
     private Label _foerderName = null!;
     private VBoxContainer _personal = null!;
     private VBoxContainer _karren = null!;
+    private Label _karrenKopf = null!;
+    private HBoxContainer _karrenKauf = null!;
     private OptionButton _karrenTyp = null!;
     private readonly List<string> _karrenTypen = new();
     private Button _kaufenKnopf = null!;
@@ -110,6 +119,43 @@ public partial class BetriebsVerwaltung : VBoxContainer
         _wacheText.AutowrapMode = TextServer.AutowrapMode.WordSmart;
         _wacheText.CustomMinimumSize = new Vector2(380, 0);
 
+        // Geldleihe: Kasse, Rahmen, Stadtzinsen, Wechsel, Zins für Häuser, offene Kredite
+        _bankstube = new VBoxContainer();
+        _bankstube.AddThemeConstantOverride("separation", 4);
+        AddChild(_bankstube);
+        _bankText = NeuesLabel(_bankstube, 13, Grau);
+        _bankText.AutowrapMode = TextServer.AutowrapMode.WordSmart;
+        _bankText.CustomMinimumSize = new Vector2(380, 0);
+        var kassenZeile = Zeile(_bankstube);
+        NeuesLabel(kassenZeile, 13).Text = "Kasse:";
+        _kassenBetrag = new Zahlfeld { MinValue = 100, MaxValue = 1_000_000, Step = 100, Value = 1_000, CustomMinimumSize = new Vector2(120, 0) };
+        kassenZeile.AddChild(_kassenBetrag);
+        var einlegen = new Button { Text = "einlegen", FocusMode = FocusModeEnum.None };
+        einlegen.AddThemeFontSizeOverride("font_size", 13);
+        einlegen.Pressed += () => Befehlen(new KasseEinlegen(_betrieb!.Name, _kassenBetrag.Value));
+        kassenZeile.AddChild(einlegen);
+        var abheben = new Button { Text = "abheben", FocusMode = FocusModeEnum.None };
+        abheben.AddThemeFontSizeOverride("font_size", 13);
+        abheben.Pressed += () => Befehlen(new KasseAbheben(_betrieb!.Name, _kassenBetrag.Value));
+        kassenZeile.AddChild(abheben);
+        _kasseFuellen = new Button { FocusMode = FocusModeEnum.None };
+        _kasseFuellen.AddThemeFontSizeOverride("font_size", 13);
+        _kasseFuellen.Pressed += () =>
+        {
+            if (_simulation?.Wirtschaft is not { } w || _betrieb is null) return;
+            var fehlt = Math.Floor(Math.Min(w.Bank.RahmenVoll(_betrieb) - w.Bank.Kasse(_betrieb), _betrieb.Konto.Vermoegen));
+            if (fehlt > 0) Befehlen(new KasseEinlegen(_betrieb.Name, fehlt));
+        };
+        kassenZeile.AddChild(_kasseFuellen);
+        var zinsZeile = Zeile(_bankstube);
+        NeuesLabel(zinsZeile, 13).Text = "Zins für Häuser:";
+        _zinsWahl = new Zahlfeld { Step = 1, Suffix = "%", CustomMinimumSize = new Vector2(90, 0) };
+        zinsZeile.AddChild(_zinsWahl);
+        _zinsKnopf = new Button { Text = "festsetzen", FocusMode = FocusModeEnum.None };
+        _zinsKnopf.AddThemeFontSizeOverride("font_size", 13);
+        _zinsKnopf.Pressed += () => Befehlen(new ZinsSetzen(_betrieb!.Name, _zinsWahl.Value / 100));
+        zinsZeile.AddChild(_zinsKnopf);
+
         // Kirche (nur Kirchen des Predigers): Messe, Kollekte, Ablass, Beichtwissen
         _kirchenstube = new VBoxContainer();
         _kirchenstube.AddThemeConstantOverride("separation", 4);
@@ -144,10 +190,12 @@ public partial class BetriebsVerwaltung : VBoxContainer
         AddChild(_personal);
 
         // Karren
-        NeuesLabel(this, 14).Text = "Karren:";
+        _karrenKopf = NeuesLabel(this, 14);
+        _karrenKopf.Text = "Karren:";
         _karren = new VBoxContainer();
         AddChild(_karren);
         var kauf = Zeile(this);
+        _karrenKauf = kauf;
         _karrenTyp = new OptionButton { FocusMode = FocusModeEnum.None, SizeFlagsHorizontal = SizeFlags.ExpandFill };
         kauf.AddChild(_karrenTyp);
         _kaufenKnopf = new Button { Text = "Kaufen", FocusMode = FocusModeEnum.None };
@@ -232,6 +280,7 @@ public partial class BetriebsVerwaltung : VBoxContainer
         KirchenstubeAktualisieren(b, w);
         DiebesstubeAktualisieren(b, w);
         WachstubeAktualisieren(b, w);
+        BankstubeAktualisieren(b, w);
 
         _foerderZeile.Visible = b.Rohstoffe.Count >= 2; // nur, wer zwei Rohstoffe fördert, teilt auf (Grube: Eisen/Silber)
         if (_foerderZeile.Visible)
@@ -254,7 +303,9 @@ public partial class BetriebsVerwaltung : VBoxContainer
                         + (daten.Risiko > 0 ? $" · Risiko {Zahlenformat.Ganz(daten.Risiko * 100)} %" : "");
         }
 
-        // Karren
+        // Karren – Wache und Geldleihe haben nichts zu fahren (der Dieb schon: Beute aus Einbrüchen).
+        var ohneKarren = w.Wache.IstWachbetrieb(b) || w.Bank.IstBankbetrieb(b);
+        _karrenKopf.Visible = _karren.Visible = _karrenKauf.Visible = !ohneKarren || b.Karren.Count > 0;
         for (var i = 0; i < _karrenZeilen.Count && i < b.Karren.Count; i++)
         {
             var (eskorte, nachts, info) = _karrenZeilen[i];
@@ -354,6 +405,56 @@ public partial class BetriebsVerwaltung : VBoxContainer
         zeilen.Add($"Ein Haus der Wache: {Zahlenformat.Ganz(d.Ansehen)} Ansehen mehr.");
         var text = string.Join("\n", zeilen);
         if (_wacheText.Text != text) _wacheText.Text = text;
+    }
+
+    /// <summary>Kasse und Rahmen, Stadtzinsen und Wechsel, der Zins für Häuser und die offenen Kredite des Hauses.</summary>
+    private void BankstubeAktualisieren(Betrieb b, Stadtwirtschaft w)
+    {
+        var bank = w.Bank;
+        _bankstube.Visible = bank.IstBankbetrieb(b);
+        if (!_bankstube.Visible) return;
+        var d = bank.Daten;
+        var waehrung = w.Daten.Allgemein.Waehrung;
+        string Buch(Reichsgilde.Core.Bank.Bankbuch x) =>
+            $"Stadtzinsen {Zahlenformat.Ganz(x.Stadtzinsen)}, Wechsel {Zahlenformat.Ganz(x.Wechsel)}, Kreditzinsen {Zahlenformat.Ganz(x.Hauszinsen)} {waehrung}"
+            + (x.Ausfall > 0 ? $" · Ausfälle {Zahlenformat.Ganz(x.Ausfall)}" : "");
+        var kasse = bank.Kasse(b);
+        var voll = bank.RahmenVoll(b);
+        var jahr = Zahlenformat.Ganz(bank.WertJeMinute(b.Stufe) * w.Daten.Allgemein.Arbeitsminuten);
+        var zeilen = new List<string>
+        {
+            $"Geldleihe – die Schreiber verleihen das Geld der Kasse an Bürger ({Zahlenformat.Ganz(d.Stadtzins * 100)} % im Jahr) und wechseln Münzen am Markt: " +
+            $"≈ {jahr} {waehrung} je Geselle und Jahr bei voller Kasse (nach Steuer und Ausfällen).",
+            $"Kasse {Zahlenformat.Ganz(kasse)} {waehrung} · die Schreiber betreuen jetzt {Zahlenformat.Ganz(bank.Rahmen(b))}, voll besetzt {Zahlenformat.Ganz(voll)}" +
+            (kasse > voll + 0.5 ? " – was darüber liegt, bringt nichts." : kasse < voll - 0.5 ? " – füllt die Kasse, sonst bleiben Schreiber ohne Arbeit." : "."),
+            $"Dieses Jahr (ganzes Haus): {Buch(bank.DiesesJahr(b.Konto))}",
+        };
+        if (bank.Vorjahr(b.Konto) is { } vorjahr) zeilen.Add($"Vorjahr: {Buch(vorjahr)}");
+        zeilen.Add($"Jedes Jahr fallen mit {Zahlenformat.Ganz(d.Ausfall.Chance * 100)} % Kunden aus – dann sind {Zahlenformat.Ganz(d.Ausfall.Anteil * 100)} % der Kasse verloren.");
+        var kredite = bank.KrediteVon(b.Konto).ToList();
+        zeilen.Add(kredite.Count == 0
+            ? $"Kredite an Häuser: keine. Andere Häuser leihen im Kontor – höchstens {Zahlenformat.Ganz(bank.FreierKreditrahmen(b.Konto))} {waehrung} sind noch frei."
+            : "Kredite an Häuser: " + string.Join(" · ", kredite.Select(k =>
+                $"{k.Nehmer.Inhaber} {Zahlenformat.Ganz(k.Rest)} zu {Zahlenformat.Ganz(k.Satz * 100)} %, noch {k.JahreOffen} {(k.JahreOffen == 1 ? "Jahr" : "Jahre")}" + (k.IstWucher ? " (Wucher!)" : ""))));
+        zeilen.Add($"Über {Zahlenformat.Ganz(d.Wucher.Ab * 100)} % ist Wucher: eine Spur fürs Gericht, der Schuldner hat den Beweis, {Zahlenformat.Ganz(d.Wucher.Ansehen)} Ansehen weniger. " +
+                   $"Geldleihe +{d.ApJeStufe[1]} AP, Bankhaus +{d.ApJeStufe[2]} AP je Jahr.");
+        var text = string.Join("\n", zeilen);
+        if (_bankText.Text != text) _bankText.Text = text;
+
+        var fehlt = Math.Floor(Math.Min(voll - kasse, b.Konto.Vermoegen));
+        var fuellen = $"auffüllen (+{Zahlenformat.Ganz(Math.Max(0, fehlt))})";
+        if (_kasseFuellen.Text != fuellen) _kasseFuellen.Text = fuellen;
+        _kasseFuellen.Disabled = fehlt < 1;
+        if (_zinsFuer != b)
+        {
+            // Grenzen und Wert nur beim Wechsel des Betriebs setzen – sonst überschriebe jedes Bild die Eingabe.
+            _zinsWahl.MinValue = d.Kredit.ZinsMindestens * 100;
+            _zinsWahl.MaxValue = d.Kredit.ZinsHoechstens * 100;
+            _zinsWahl.SetValueNoSignal(Math.Round(bank.Zinssatz(b.Konto) * 100));
+            _zinsFuer = b;
+        }
+        var tipp = $"Gilt für neue Kredite. Jetzt: {Zahlenformat.Ganz(bank.Zinssatz(b.Konto) * 100)} %. Über {Zahlenformat.Ganz(d.Wucher.Ab * 100)} % ist Wucher.";
+        if (_zinsKnopf.TooltipText != tipp) _zinsKnopf.TooltipText = tipp;
     }
 
     /// <summary>Taschendiebe (Beute, Fänge, Fangchance) und was diese Stufe an nächtlichen Aufträgen erlaubt.</summary>

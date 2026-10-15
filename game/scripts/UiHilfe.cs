@@ -21,6 +21,14 @@ public static class UiHilfe
         }
     }
 
+    /// <summary>Was ein Betrieb ohne Ware tut – für Kontor und Liegenschaftsfenster.</summary>
+    public static string Taetigkeit(string beruf) => beruf switch
+    {
+        "Dieb" => "Taschendiebe",
+        "Geldleiher" => "Geldgeschäfte",
+        _ => "Wachdienst",
+    };
+
     /// <summary>
     /// Hängt die Aktionspunkte-Kosten an einen Knopf („Werben · 1 AP") und sperrt ihn, wenn der Vorrat nicht reicht.
     /// Die Kosten hängen nur von der Art des Befehls ab – Betrag oder Ziel spielen keine Rolle.

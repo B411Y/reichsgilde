@@ -186,6 +186,29 @@ static class Messung
         return 0;
     }
 
+    /// <summary>
+    /// Spielstand für Klicktests des Kredits: Haus Eisenbart führt die Wechselstube am Markt (ein Jahr gelaufen, die Kasse ist gefüllt),
+    /// der Spieler kann dort leihen.
+    /// </summary>
+    public static int GeldleiherSpielstand(string datei)
+    {
+        var daten = Wirtschaftsdaten.AusDatei(Datenpfad.Wirtschaft());
+        var (sim, spieler) = Partieaufbau.Erstellen(
+            Partieeinstellungen.Standard with { Zufallsstartwert = 303, Siegbedingung = Siegbedingung.Endlos },
+            daten, new NeuePartie(Startvermoegen: 10_000));
+        var w = sim.Wirtschaft!;
+        var rivale = w.Konten.First(k => k != spieler);
+        w.BetriebEroeffnen("Wechselstube am Markt", Betriebsart.Wechselstube, rivale, "");
+        var j = sim.Zeit.Jahr;
+        while (sim.Zeit.Jahr == j) sim.Tick();
+        for (var i = 0; i < 4 * 60; i++) sim.Tick();
+        File.WriteAllText(datei, Speicherung.Speichern(sim, spieler));
+        var b = w.Betriebe.First(x => x.Name == "Wechselstube am Markt");
+        Console.WriteLine($"{sim.Zeit.DatumText}: Kasse {w.Bank.Kasse(b):F0}, Zins {w.Bank.Zinssatz(rivale):P0}, Höchstkredit {w.Bank.Hoechstkredit(rivale, spieler):F0}");
+        Console.WriteLine($"gespeichert: {datei}");
+        return 0;
+    }
+
     /// <summary>Spielstand mit verheiratetem Oberhaupt und Kindern im Ausbildungsalter – für Klicktests der Familientafel.</summary>
     /// <summary>
     /// Spielstand für Klicktests der Meistergrade: Der Spieler hat Gießerei und Grube voll belegt und

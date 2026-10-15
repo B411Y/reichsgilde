@@ -50,6 +50,14 @@ public partial class KontorAnzeige : PanelContainer
     private string? _lernbarerBeruf => _berufWahl.Selected >= 0 && _berufWahl.Selected < _lernbar.Count ? _lernbar[_berufWahl.Selected] : null;
     private VBoxContainer _meisterListe = null!;
     private readonly List<(string Beruf, Label Text, Button Pruefung)> _meisterZeilen = new();
+    private HBoxContainer _kreditZeile = null!;
+    private Label _kreditText = null!;
+    private OptionButton _geberWahl = null!;
+    private readonly List<Konto> _geber = new();
+    private Zahlfeld _kreditBetrag = null!;
+    private OptionButton _kreditJahre = null!;
+    private Button _leihenKnopf = null!;
+    private Button _abloesenKnopf = null!;
 
     public override void _Ready()
     {
@@ -64,6 +72,7 @@ public partial class KontorAnzeige : PanelContainer
 
         _titel = NeuesLabel(spalte, 22);
         _vermoegen = NeuesLabel(spalte, 26);
+        _vermoegen.MouseFilter = MouseFilterEnum.Stop; // für den Tooltip (Bargeld, Kasse, Schulden)
         _standZeile = NeuesLabel(spalte, 14, new Color(0.95f, 0.82f, 0.45f));
         _statutZeile = NeuesLabel(spalte, 13, new Color(0.75f, 0.75f, 0.75f));
         _apZeile = NeuesLabel(spalte, 14, new Color(0.95f, 0.82f, 0.45f));
@@ -82,6 +91,29 @@ public partial class KontorAnzeige : PanelContainer
         _meisterListe = new VBoxContainer();
         _meisterListe.AddThemeConstantOverride("separation", 2);
         spalte.AddChild(_meisterListe);
+
+        // Kredit beim Geldleiher: leihen oder den laufenden Kredit ablösen
+        _kreditZeile = new HBoxContainer();
+        _kreditZeile.AddThemeConstantOverride("separation", 8);
+        spalte.AddChild(_kreditZeile);
+        _kreditText = NeuesLabel(_kreditZeile, 13, new Color(0.85f, 0.85f, 0.85f));
+        _kreditText.MouseFilter = MouseFilterEnum.Stop; // für den Tooltip
+        _geberWahl = new OptionButton { FocusMode = FocusModeEnum.None, TooltipText = "Bei welchem Geldleiher?" };
+        _geberWahl.AddThemeFontSizeOverride("font_size", 13);
+        _kreditZeile.AddChild(_geberWahl);
+        _kreditBetrag = new Zahlfeld { MinValue = 100, MaxValue = 1_000_000, Step = 100, Value = 1_000, CustomMinimumSize = new Vector2(120, 0) };
+        _kreditZeile.AddChild(_kreditBetrag);
+        _kreditJahre = new OptionButton { FocusMode = FocusModeEnum.None, TooltipText = "Laufzeit: Jedes Jahresende sind Zinsen und eine gleiche Rate fällig." };
+        _kreditJahre.AddThemeFontSizeOverride("font_size", 13);
+        _kreditZeile.AddChild(_kreditJahre);
+        _leihenKnopf = new Button { FocusMode = FocusModeEnum.None };
+        _leihenKnopf.AddThemeFontSizeOverride("font_size", 13);
+        _leihenKnopf.Pressed += Leihen;
+        _kreditZeile.AddChild(_leihenKnopf);
+        _abloesenKnopf = new Button { FocusMode = FocusModeEnum.None };
+        _abloesenKnopf.AddThemeFontSizeOverride("font_size", 13);
+        _abloesenKnopf.Pressed += () => Senden(new KreditTilgen());
+        _kreditZeile.AddChild(_abloesenKnopf);
         var familie = new HBoxContainer();
         spalte.AddChild(familie);
         var familienKnopf = new Button { Text = "Familie", FocusMode = FocusModeEnum.None, TooltipText = "Familie, Brautschau und Testament" };
@@ -223,6 +255,88 @@ public partial class KontorAnzeige : PanelContainer
         Gemeldet?.Invoke(e.Erfolg ? e.Meldung : "✗ " + e.Meldung);
     }
 
+    private void Senden(Befehl befehl)
+    {
+        if (_simulation?.Wirtschaft is not { } w || _spieler is null) return;
+        var e = w.Ausfuehren(_spieler, befehl);
+        Gemeldet?.Invoke(e.Erfolg ? e.Meldung : "✗ " + e.Meldung);
+    }
+
+    private void Leihen()
+    {
+        if (_geberWahl.Selected < 0 || _geberWahl.Selected >= _geber.Count) return;
+        Senden(new KreditAufnehmen(_geber[_geberWahl.Selected].Inhaber, _kreditBetrag.Value, _kreditJahre.Selected + 1));
+    }
+
+    /// <summary>
+    /// Läuft ein Kredit: Rest, Zins, nächste Rate und der Knopf zum Ablösen.
+    /// Sonst: die Geldleiher der Stadt mit Zins und Höchstbetrag, Betrag, Laufzeit und „leihen".
+    /// </summary>
+    private void KreditAktualisieren(Stadtwirtschaft w)
+    {
+        var bank = w.Bank;
+        _kreditZeile.Visible = bank.IstAktiv && _spieler!.IstAktiv;
+        if (!_kreditZeile.Visible) return;
+        var waehrung = w.Daten.Allgemein.Waehrung;
+        if (bank.KreditVon(_spieler!) is { } k)
+        {
+            _geberWahl.Visible = _kreditBetrag.Visible = _kreditJahre.Visible = _leihenKnopf.Visible = false;
+            _abloesenKnopf.Visible = true;
+            var text = $"Kredit bei {k.Geber.Inhaber}: noch {Zahlenformat.Ganz(k.Rest)} {waehrung} zu {Zahlenformat.Ganz(k.Satz * 100)} % · " +
+                       $"Jahresende: Rate {Zahlenformat.Ganz(k.Tilgungsrate)} + Zinsen ≈ {Zahlenformat.Ganz(k.Aufgelaufen)}";
+            if (_kreditText.Text != text) _kreditText.Text = text;
+            var abloesung = bank.Abloesung(k);
+            var knopf = $"ablösen ({Zahlenformat.Ganz(abloesung)})";
+            if (_abloesenKnopf.Text != knopf) _abloesenKnopf.Text = knopf;
+            _abloesenKnopf.Disabled = _spieler!.Vermoegen < abloesung;
+            _kreditText.TooltipText = "Fehlt am Jahresende das Bargeld, pfändet der Büttel Lagerware zu " +
+                                      $"{Zahlenformat.Ganz(bank.Daten.Kredit.PfandAnteil * 100)} % des Marktpreises.";
+            return;
+        }
+        _abloesenKnopf.Visible = false;
+        var geber = bank.Geldleiher.Where(g => g != _spieler).OrderBy(g => g.Inhaber, StringComparer.Ordinal).ToList();
+        if (!geber.SequenceEqual(_geber))
+        {
+            var vorher = _geberWahl.Selected >= 0 && _geberWahl.Selected < _geber.Count ? _geber[_geberWahl.Selected] : null;
+            _geber.Clear();
+            _geber.AddRange(geber);
+            _geberWahl.Clear();
+            foreach (var g in geber) _geberWahl.AddItem(g.Inhaber);
+            if (geber.Count > 0) _geberWahl.Select(Math.Max(0, vorher is null ? 0 : geber.IndexOf(vorher)));
+        }
+        if (_kreditJahre.ItemCount != bank.Daten.Kredit.LaufzeitHoechstens)
+        {
+            _kreditJahre.Clear();
+            for (var j = 1; j <= bank.Daten.Kredit.LaufzeitHoechstens; j++) _kreditJahre.AddItem(j == 1 ? "1 Jahr" : $"{j} Jahre");
+            _kreditJahre.Select(Math.Min(1, _kreditJahre.ItemCount - 1));
+        }
+        _geberWahl.Visible = _kreditBetrag.Visible = _kreditJahre.Visible = _leihenKnopf.Visible = geber.Count > 0;
+        if (geber.Count == 0)
+        {
+            const string keiner = "Kredit: In der Stadt verleiht noch niemand Geld.";
+            if (_kreditText.Text != keiner) _kreditText.Text = keiner;
+            return;
+        }
+        for (var i = 0; i < geber.Count; i++)
+            _geberWahl.SetItemText(i, $"{geber[i].Inhaber} · {Zahlenformat.Ganz(bank.Zinssatz(geber[i]) * 100)} % · bis {Zahlenformat.Ganz(bank.Hoechstkredit(geber[i], _spieler!))}");
+        const string kopf = "Kredit:";
+        if (_kreditText.Text != kopf) _kreditText.Text = kopf;
+        var befehl = new KreditAufnehmen("", 0, 1);
+        var ap = w.ApKosten(_spieler!, befehl);
+        var beschriftung = $"leihen{(ap > 0 ? $" ({ap} AP)" : "")}";
+        if (_leihenKnopf.Text != beschriftung) _leihenKnopf.Text = beschriftung;
+        var g0 = _geber[Math.Clamp(_geberWahl.Selected, 0, _geber.Count - 1)];
+        var grund = bank.KreditVerboten(g0, _spieler!, _kreditBetrag.Value, _kreditJahre.Selected + 1)
+                    ?? (!w.ApReichen(_spieler!, befehl) ? $"Nicht genug Aktionspunkte ({_spieler!.Aktionspunkte.Vorrat} von {ap})." : null);
+        _leihenKnopf.Disabled = grund is not null;
+        var satz = bank.Zinssatz(g0);
+        var tipp = (grund is not null ? grund + "\n\n" : "") +
+                   $"Zinsen laufen stündlich auf ({Zahlenformat.Ganz(satz * 100)} % im Jahr); am Jahresende sind Zinsen und eine gleiche Rate fällig. " +
+                   $"Höchstens {Zahlenformat.Ganz(bank.Daten.Kredit.KreditwuerdigAnteil * 100)} % eures Reinvermögens. Geliehenes Geld zählt nicht zum Vermögen." +
+                   (bank.IstWucher(satz) ? "\nDieser Zins ist Wucher – euer Schuldschein wäre ein Beweis gegen den Geldleiher." : "");
+        if (_leihenKnopf.TooltipText != tipp) _leihenKnopf.TooltipText = tipp;
+    }
+
     private void BerufLernen()
     {
         if (_simulation?.Wirtschaft is not { } w || _spieler is null || _lernbarerBeruf is null) return;
@@ -270,24 +384,32 @@ public partial class KontorAnzeige : PanelContainer
         var waehrung = w.Daten.Allgemein.Waehrung;
         _titel.Text = $"Kontor · {_spieler.Inhaber} · {w.StandVon(_spieler).Name}"
                       + (w.Rat.AmtVon(_spieler) is { } amt ? $" · {amt.Name}" : "");
-        _vermoegen.Text = $"{Zahlenformat.Ganz(_spieler.Vermoegen)} {waehrung}";
-        _vermoegen.AddThemeColorOverride("font_color", _spieler.Vermoegen < 0 ? new Color(0.95f, 0.45f, 0.4f) : new Color(1, 1, 1));
+        // Mit Kasse oder Kredit: Bargeld groß, darunter klein, was dem Haus wirklich gehört.
+        var verliehen = Math.Abs(_spieler.Forderungen) > 0.5 || Math.Abs(_spieler.Schulden) > 0.5;
+        _vermoegen.Text = $"{Zahlenformat.Ganz(_spieler.Vermoegen)} {waehrung}"
+                          + (verliehen ? $" bar · Reinvermögen {Zahlenformat.Ganz(_spieler.Reinvermoegen)}" : "");
+        _vermoegen.AddThemeColorOverride("font_color", _spieler.Reinvermoegen < 0 ? new Color(0.95f, 0.45f, 0.4f) : new Color(1, 1, 1));
+        _vermoegen.TooltipText = verliehen
+            ? $"Bargeld {Zahlenformat.Ganz(_spieler.Vermoegen)} + verliehen {Zahlenformat.Ganz(_spieler.Forderungen)} − Schulden {Zahlenformat.Ganz(_spieler.Schulden)} {waehrung}.\n" +
+              "Stand, Rangliste und Ansehen richten sich nach dem Reinvermögen; bezahlt wird mit Bargeld."
+            : "";
         _standZeile.Text = _spieler.IstBankrott ? "Bankrott" : _spieler.IstErloschen ? "Das Haus ist erloschen"
             : w.Justiz.IstAktiv && w.Justiz.KerkerBis(_spieler) is int kerker ? $"Das Oberhaupt sitzt bis Ende {kerker} im Kerker"
             : w.NaechsterStand(_spieler) is not { } neu ? "Höchster Stand erreicht"
-            : _spieler.Vermoegen >= neu.Schwelle ? $"Aufstieg zum {neu.Name} im Rathaus möglich!"
-            : $"Nächster Stand: {neu.Name} ab {Zahlenformat.Ganz(neu.Schwelle)} {waehrung} (noch {Zahlenformat.Ganz(neu.Schwelle - Math.Max(0, _spieler.Vermoegen))})";
+            : _spieler.Reinvermoegen >= neu.Schwelle ? $"Aufstieg zum {neu.Name} im Rathaus möglich!"
+            : $"Nächster Stand: {neu.Name} ab {Zahlenformat.Ganz(neu.Schwelle)} {waehrung} (noch {Zahlenformat.Ganz(neu.Schwelle - Math.Max(0, _spieler.Reinvermoegen))})";
 
         _familienZeile.Text = FamilienText(w);
         BerufZeileAktualisieren(w);
         MeisterAktualisieren(w);
+        KreditAktualisieren(w);
 
         _apZeile.Visible = w.HatAktionspunkte;
         if (w.Daten.Aktionspunkte is { } ap)
         {
             var bonus = w.ApBonus(_spieler);
             _apZeile.Text = $"Aktionspunkte: {_spieler.Aktionspunkte.Vorrat} von höchstens {ap.Hoechstens} · +{w.AktionspunkteJeRunde + bonus} zum Jahreswechsel"
-                            + (bonus > 0 ? $" (davon {bonus} als Meister)" : "");
+                            + (bonus > 0 ? $" (davon {bonus} als Meister oder Geldleiher)" : "");
             _apZeile.TooltipText = "Persönliche Handlungen kosten Aktionspunkte: Werben und Heiraten, Ratsherren beschenken, sich bewerben (je 1), " +
                                    "Statut-Antrag (2), Spitzel (1), Anklage (2), Bande anheuern (1), Erpresserbrief (2), Talent üben (2–6), Beruf erlernen (4), Meisterprüfung (2–4).\n" +
                                    "Betriebe, Personal, Karren, Wächter, Stand und Liegenschaften sind frei. Nicht verbrauchte AP bleiben – bis zur Obergrenze.";
@@ -303,7 +425,7 @@ public partial class KontorAnzeige : PanelContainer
         foreach (var (betrieb, kopf, zustand) in _betriebsZeilen)
         {
             var belegung = betrieb.Belegt == 0 ? "kein Personal" : string.Join(", ", betrieb.Belegung.Select(x => $"{x.Value}× {x.Key}"));
-            var was = betrieb.OhneProduktion ? (betrieb.Artdaten.Beruf == "Dieb" ? "Taschendiebe" : "Wachdienst")
+            var was = betrieb.OhneProduktion ? UiHilfe.Taetigkeit(betrieb.Artdaten.Beruf)
                 : betrieb.IstWerkstatt ? betrieb.Produkt
                 : betrieb.Rohstoffe.Count == 1 ? betrieb.Rohstoffe[0]
                 : $"{Zahlenformat.Ganz(betrieb.Silberanteil * 100)} % {betrieb.Rohstoffe[1]}";
@@ -328,8 +450,8 @@ public partial class KontorAnzeige : PanelContainer
         _rivaleZeile.Text = rivalen.Count switch
         {
             0 => "",
-            1 => $"Rivale {rivalen[0].Inhaber}: {Zahlenformat.Ganz(rivalen[0].Vermoegen)} {waehrung}" + RivalenZug(rivalen[0]),
-            _ => "Rivalen: " + string.Join(" · ", rivalen.Select(r => $"{r.Inhaber} {(r.IstAktiv ? Zahlenformat.Ganz(r.Vermoegen) : r.IstBankrott ? "bankrott" : "erloschen")}"))
+            1 => $"Rivale {rivalen[0].Inhaber}: {Zahlenformat.Ganz(rivalen[0].Reinvermoegen)} {waehrung}" + RivalenZug(rivalen[0]),
+            _ => "Rivalen: " + string.Join(" · ", rivalen.Select(r => $"{r.Inhaber} {(r.IstAktiv ? Zahlenformat.Ganz(r.Reinvermoegen) : r.IstBankrott ? "bankrott" : "erloschen")}"))
                  + (_rivale is not null ? RivalenZug(_rivale) : ""),
         };
 

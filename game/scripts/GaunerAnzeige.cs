@@ -268,7 +268,7 @@ public partial class GaunerAnzeige : PanelContainer
         foreach (var haus in w.Konten.Where(k => k != _spieler && k.IstAktiv))
         {
             _inhalt.AddChild(new HSeparator());
-            Text(_inhalt, $"{haus.Inhaber} · {w.StandVon(haus).Name} · {Zahlenformat.Ganz(haus.Vermoegen)} {waehrung}", 16);
+            Text(_inhalt, $"{haus.Inhaber} · {w.StandVon(haus).Name} · {Zahlenformat.Ganz(haus.Reinvermoegen)} {waehrung}", 16);
             var bestellt = unterwelt.Auftraege.Where(a => a.Auftraggeber == _spieler && a.Ziel == haus).ToList();
             foreach (var b in w.Betriebe.Where(b => b.Konto == haus))
             {
