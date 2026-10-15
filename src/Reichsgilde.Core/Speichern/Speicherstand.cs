@@ -84,6 +84,33 @@ public sealed record WirtschaftStand
 
     /// <summary>Sold, Kopfgeld, Geleitgeld und Razzien je Haus (null in Spielständen von vor dem Gardisten).</summary>
     public WacheStand? Wache { get; init; }
+
+    /// <summary>Kassen, Kredite und Bankbuch der Geldleiher (null in Spielständen von vor dem Geldleiher).</summary>
+    public BankStand? Bank { get; init; }
+}
+
+public sealed record BankStand
+{
+    public long ZufallWuerfe { get; init; }
+    public int NaechsterKredit { get; init; }
+    public Dictionary<string, double> Kassen { get; init; } = new();
+    public Dictionary<string, double> Zinssaetze { get; init; } = new();
+    public List<KreditStand> Kredite { get; init; } = new();
+    public Dictionary<string, Bank.Bankbuch> DiesesJahr { get; init; } = new();
+    public Dictionary<string, Bank.Bankbuch> Vorjahr { get; init; } = new();
+}
+
+public sealed record KreditStand
+{
+    public int Nummer { get; init; }
+    public int Geber { get; init; }
+    public int Nehmer { get; init; }
+    public double Betrag { get; init; }
+    public double Rest { get; init; }
+    public double Satz { get; init; }
+    public int JahreOffen { get; init; }
+    public double Aufgelaufen { get; init; }
+    public int Jahr { get; init; }
 }
 
 public sealed record WacheStand
@@ -377,6 +404,10 @@ public sealed record KontoStand
 {
     public string Inhaber { get; init; } = "";
     public double Vermoegen { get; init; }
+
+    /// <summary>Verliehenes Geld und offene Kredite (fehlen in Spielständen von vor dem Geldleiher – dann 0).</summary>
+    public double Forderungen { get; init; }
+    public double Schulden { get; init; }
     public int Stand { get; init; }
     public int Schuldenjahre { get; init; }
     public bool IstBankrott { get; init; }
@@ -413,6 +444,7 @@ public sealed record BilanzStand
     public double Familie { get; init; }
     public double Gericht { get; init; }
     public double Gaunerei { get; init; }
+    public double Zinsen { get; init; }
     public Dictionary<string, int> Hergestellt { get; init; } = new();
 }
 

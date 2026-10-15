@@ -148,3 +148,18 @@ public sealed record WuerfeltischAufstellen(string Betrieb, bool Aufstellen) : B
 
 /// <summary>Die Werkstatt am Platz zur nächsten Stufe ausbauen (Gulden, Meistergrad; ein halber Tag Umbau).</summary>
 public sealed record BetriebAusbauen(string Betrieb) : BetriebsBefehl(Betrieb);
+
+/// <summary>Geldleiher: Bargeld in die Kasse legen – die Schreiber verleihen es an Stadtkunden.</summary>
+public sealed record KasseEinlegen(string Betrieb, double Betrag) : BetriebsBefehl(Betrieb);
+
+/// <summary>Geldleiher: Geld aus der Kasse zurück ins Bargeld nehmen.</summary>
+public sealed record KasseAbheben(string Betrieb, double Betrag) : BetriebsBefehl(Betrieb);
+
+/// <summary>Geldleiher: Zins je Jahr für Kredite an Häuser (gilt für neue Kredite).</summary>
+public sealed record ZinsSetzen(string Betrieb, double Satz) : BetriebsBefehl(Betrieb);
+
+/// <summary>Bei einem Geldleiher Geld leihen.</summary>
+public sealed record KreditAufnehmen(string Geldleiher, double Betrag, int Jahre) : Befehl;
+
+/// <summary>Den eigenen Kredit ganz zurückzahlen (Rest und aufgelaufene Zinsen).</summary>
+public sealed record KreditTilgen : Befehl;

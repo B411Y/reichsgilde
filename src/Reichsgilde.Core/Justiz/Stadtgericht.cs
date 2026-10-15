@@ -29,6 +29,8 @@ public enum Vergehen
     Schutzgeld,
     /// <summary>Einen Angehörigen eines anderen Hauses verschleppen und Lösegeld fordern.</summary>
     Entfuehrung,
+    /// <summary>Ein Geldleiher verleiht Geld an ein Haus zu einem Zins über der Wuchergrenze.</summary>
+    Wucher,
 }
 
 public static class VergehenTexte
@@ -86,6 +88,7 @@ public sealed class Spur
         Vergehen.Taschendiebstahl => $"{Jahr}: Taschendiebstahl am Markt – {Zahlenformat.Ganz(Betrag)} Gulden",
         Vergehen.Schutzgeld => $"{Jahr}: Schutzgeld von {Betroffener} verlangt – {Zahlenformat.Ganz(Betrag)} Gulden",
         Vergehen.Entfuehrung => $"{Jahr}: Entführung bei {Betroffener} – {Zahlenformat.Ganz(Betrag)} Gulden Lösegeld",
+        Vergehen.Wucher => $"{Jahr}: Wucherzins von {Betroffener} – {Zahlenformat.Ganz(Betrag)} Gulden über dem erlaubten Zins",
         _ => $"{Jahr}: {Art.Name()}",
     };
 }
@@ -238,7 +241,7 @@ public sealed class Stadtgericht
     {
         var d = Daten;
         var busse = Math.Max(d.Mindestbusse, d.BusseFaktor * taten.Sum(b => b.Betrag));
-        return d.BusseHoechstensAnteil > 0 ? Math.Min(busse, Math.Max(d.Mindestbusse, d.BusseHoechstensAnteil * Math.Max(0, beklagter.Vermoegen))) : busse;
+        return d.BusseHoechstensAnteil > 0 ? Math.Min(busse, Math.Max(d.Mindestbusse, d.BusseHoechstensAnteil * Math.Max(0, beklagter.Reinvermoegen))) : busse;
     }
 
     /// <summary>Führten die Beweise in den Kerker?</summary>

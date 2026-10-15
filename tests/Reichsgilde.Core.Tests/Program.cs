@@ -20,6 +20,8 @@ if (args.Length > 2 && args[0] == "spielstand" && args[1] == "familie")
     return Messung.FamilienSpielstand(args[2]);
 if (args.Length > 2 && args[0] == "spielstand" && args[1] == "meister")
     return Messung.MeisterSpielstand(args[2], args.Length > 3 ? int.Parse(args[3]) : 0);
+if (args.Length > 2 && args[0] == "spielstand" && args[1] == "geldleiher")
+    return Messung.GeldleiherSpielstand(args[2]);
 if (args.Length > 2 && args[0] == "spielstand" && args[1] == "gesundheit")
     return Messung.FamilienSpielstand(args[2], pest: true);
 
@@ -254,6 +256,7 @@ tests.AddRange(WirtTests.Alle());
 tests.AddRange(PredigerTests.Alle());
 tests.AddRange(DiebTests.Alle());
 tests.AddRange(GardistTests.Alle());
+tests.AddRange(GeldleiherTests.Alle());
 
 // ── Testlauf ────────────────────────────────────────────────────────────────
 var fehler = 0;

@@ -81,6 +81,9 @@ public enum Betriebsart
     Stadtwache,
     Garnison,
     Wachturm,
+    Wechselstube,
+    Geldleihe,
+    Bankhaus,
 }
 
 /// <summary>

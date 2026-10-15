@@ -1,5 +1,5 @@
 {
-  "version": 19,
+  "version": 20,
   "gesundheit": {
     "medicusKosten": 120,
     "medicusKostenPest": 300,
@@ -35,6 +35,7 @@
       "AblassKaufen": 1, "BeichtgeheimnisBrechen": 2, "HetzschriftVerbreiten": 1, "LehrschriftLesen": 1,
       "Einbrechen": 1, "Auskundschaften": 1, "SchutzgeldFordern": 1, "Entfuehren": 2,
       "Razzia": 2,
+      "KreditAufnehmen": 1,
       "BerufErlernen": 4
     }
   },
@@ -762,6 +763,7 @@
     "Wirt": { "werkstatt": "Schaenke", "umland": "Bauernhof", "lehrgeld": 500, "beschreibung": "Gerste und Roggen vom Bauernhof, in der Schänke zu Weingeist, Körnermahlzeit und Dünnbier – ausgeschenkt an Gäste im Haus, der Rest geht zum Markt. Die dunkle Ecke hört Gerüchte, das Wirtshaus hat einen Würfeltisch, das Gasthaus einen Stammtisch der Ratsherren." },
     "Prediger": { "werkstatt": "Kirche", "umland": "Klosterhof", "lehrgeld": 500, "beschreibung": "Lumpen und Bienenwachs vom Klosterhof, in der Kirche zu Papier, Kerzen und Lehrschriften. Jeden Tag kommen Gläubige zur Messe und spenden; andere Häuser kaufen Ablass für ihre Taten, und was in der Beichte gesagt wird, weiß der Prediger. Als Meister in Dom und Kathedrale auch Hetzschriften, Psalter, Stundenbücher und Reliquiare." },
     "Dieb": { "werkstatt": "Schmugglerloch", "lehrgeld": 500, "beschreibung": "Kein Handwerk, keine Ware: Die Diebe im Schmugglerloch ziehen tagsüber als Taschendiebe über den Markt – wer erwischt wird, verrät sein Haus. Nachts brechen sie in fremde Lager ein und spähen andere Häuser aus; im Unterschlupf erpressen sie Schutzgeld, in der Diebesgilde entführen sie sogar Angehörige. Ehrbare Bürger meiden ein Haus von Dieben." },
+    "Geldleiher": { "werkstatt": "Wechselstube", "lehrgeld": 500, "beschreibung": "Kein Handwerk, keine Ware: Die Schreiber verleihen das Geld in der Kasse an Bürger der Stadt und wechseln die Münzen auswärtiger Kaufleute. Andere Häuser leihen beim Geldleiher – zu seinem Zins; wer nicht zahlt, dem pfändet der Büttel die Ware. Ein Zins über einem Fünftel ist Wucher. Geldleihe und Bankhaus verschaffen mehr Zeit für Persönliches (Aktionspunkte)." },
     "Gardist": { "werkstatt": "Wachhaus", "umland": "Wachturm", "lehrgeld": 500, "beschreibung": "Kein Handwerk, keine Ware: Die Stadt zahlt den Wachleuten Sold. Nachts gehen sie Streife – Einbrüche und Brandanschläge misslingen öfter, Zeugen sehen mehr. Razzien bringen Beweise und Diebesgut, verurteilte Täter Kopfgeld; gegen Lohn begleitet die Stadtwache Karren ins Umland, und ein Wachturm hält die Landstraße sicherer. Ein Haus der Wache ist überall gern gesehen." }
   },
   "betriebsarten": {
@@ -795,7 +797,10 @@
     "Wachhaus":         { "name": "Wachhaus",         "beruf": "Gardist",   "ort": "Werkstatt", "stufe": 1, "plaetze": 4, "fixkosten": 80,  "startkarren": "", "ausbau": "Stadtwache", "ausbauKosten": 2500 },
     "Stadtwache":       { "name": "Stadtwache",       "beruf": "Gardist",   "ort": "Werkstatt", "stufe": 2, "plaetze": 6, "fixkosten": 120, "startkarren": "", "ausbau": "Garnison", "ausbauKosten": 5000 },
     "Garnison":         { "name": "Garnison",         "beruf": "Gardist",   "ort": "Werkstatt", "stufe": 3, "plaetze": 8, "fixkosten": 180, "startkarren": "" },
-    "Wachturm":         { "name": "Wachturm",         "beruf": "Gardist",   "ort": "Umland",    "plaetze": 3, "fixkosten": 400, "startkarren": "" }
+    "Wachturm":         { "name": "Wachturm",         "beruf": "Gardist",   "ort": "Umland",    "plaetze": 3, "fixkosten": 400, "startkarren": "" },
+    "Wechselstube":     { "name": "Wechselstube",     "beruf": "Geldleiher", "ort": "Werkstatt", "stufe": 1, "plaetze": 2, "fixkosten": 80,  "startkarren": "", "ausbau": "Geldleihe", "ausbauKosten": 2500 },
+    "Geldleihe":        { "name": "Geldleihe",        "beruf": "Geldleiher", "ort": "Werkstatt", "stufe": 2, "plaetze": 3, "fixkosten": 120, "startkarren": "", "ausbau": "Bankhaus", "ausbauKosten": 5000 },
+    "Bankhaus":         { "name": "Bankhaus",         "beruf": "Geldleiher", "ort": "Werkstatt", "stufe": 3, "plaetze": 4, "fixkosten": 180, "startkarren": "" }
   },
   "gastwirtschaft": {
     "beruf": "Wirt",
@@ -836,6 +841,16 @@
     "razzia": { "jeStufe": [ 1, 2, 3 ], "chance": 0.5, "chanceJeStufe": 0.1 },
     "kopfgeld": { "anteilBusse": 0.25, "taschendieb": 50 },
     "geleit": { "eskorte": "Stadtwache", "abStufe": 1 }
+  },
+  "geldleiher": {
+    "beruf": "Geldleiher",
+    "stadtzins": 0.12,
+    "rahmen": { "jeSchreiber": 2000, "jeStufe": [ 1, 1.25, 1.5 ] },
+    "ausfall": { "chance": 0.2, "anteil": 0.1 },
+    "wechsel": { "gebuehr": 0.007, "bedarfSchreiber": 6, "jeStufe": [ 1, 1.2, 1.4 ] },
+    "kredit": { "zinsStandard": 0.12, "zinsMindestens": 0.04, "zinsHoechstens": 0.5, "hoechstJeStufe": [ 3000, 6000, 12000 ], "kreditwuerdigAnteil": 0.5, "laufzeitHoechstens": 5, "pfandAnteil": 0.75 },
+    "wucher": { "ab": 0.2, "ansehen": 5 },
+    "apJeStufe": [ 0, 1, 2 ]
   },
   "dieb": {
     "beruf": "Dieb",
@@ -955,6 +970,12 @@
       "name": "Schmugglerloch am Osttor",
       "art": "Schmugglerloch",
       "kaufpreis": 3000,
+      "mindestStand": "Bürger"
+    },
+    {
+      "name": "Wechselstube am Markt",
+      "art": "Wechselstube",
+      "kaufpreis": 3500,
       "mindestStand": "Bürger"
     }
   ],

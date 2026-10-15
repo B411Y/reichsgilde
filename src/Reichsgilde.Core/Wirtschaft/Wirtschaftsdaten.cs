@@ -187,6 +187,9 @@ public sealed class Wirtschaftsdaten
     /// <summary>Sold, Patrouille, Wachturm, Razzia, Kopfgeld und Geleitschutz des Gardisten (ab Datenversion 19). Fehlt der Abschnitt, gibt es keine Wache.</summary>
     public Ordnung.WacheDaten? Wache { get; init; }
 
+    /// <summary>Kasse, Wechsel, Kredite und Wucher des Geldleihers (ab Datenversion 20). Fehlt der Abschnitt, gibt es keine Geldleiher.</summary>
+    public Bank.GeldleiherDaten? Geldleiher { get; init; }
+
     /// <summary>Taschendiebe, Einbruch, Auskundschaften, Schutzgeld und Entführung (ab Datenversion 18). Fehlt der Abschnitt, gibt es keine Diebe.</summary>
     public Gauner.DiebDaten? Dieb { get; init; }
 
@@ -320,8 +323,8 @@ public sealed class Wirtschaftsdaten
             if (Berufe.Count > 0 && !Berufe.ContainsKey(d.Beruf)) f.Add($"betriebsarten.{art}: Den Beruf „{d.Beruf}“ gibt es nicht.");
             if (d.Startkarren != "" && !Logistik.Karren.ContainsKey(d.Startkarren)) f.Add($"betriebsarten.{art}: Den Karren „{d.Startkarren}“ gibt es nicht.");
             if (d.Produkte.Count > 0 && d.Rohstoffe.Count > 0) f.Add($"betriebsarten.{art}: entweder produkte (Werkstatt) oder rohstoffe (Umland).");
-            if (d.OhneProduktion && !(Dieb?.Beruf == d.Beruf && d.Ort == Arbeitsort.Werkstatt) && Wache?.Beruf != d.Beruf)
-                f.Add($"betriebsarten.{art}: Ohne produkte und rohstoffe geht nur ein Betrieb des Diebes (in der Stadt) oder der Wache.");
+            if (d.OhneProduktion && !((Dieb?.Beruf == d.Beruf || Geldleiher?.Beruf == d.Beruf) && d.Ort == Arbeitsort.Werkstatt) && Wache?.Beruf != d.Beruf)
+                f.Add($"betriebsarten.{art}: Ohne produkte und rohstoffe geht nur ein Betrieb des Diebes oder Geldleihers (in der Stadt) oder der Wache.");
             if (d.Rohstoffe.Count > 2) f.Add($"betriebsarten.{art}: höchstens zwei Rohstoffe.");
             if (!d.OhneProduktion && (d.Ort == Arbeitsort.Umland) != (d.Rohstoffe.Count > 0)) f.Add($"betriebsarten.{art}: Umlandbetriebe fördern Rohstoffe, Werkstätten stellen Produkte her.");
             foreach (var w in d.Produkte)
@@ -347,7 +350,7 @@ public sealed class Wirtschaftsdaten
         {
             if (!KenntArt(b.Werkstatt) || b.Umland is { } u0 && !KenntArt(u0)) f.Add($"berufe.{name}: Werkstatt oder Umlandbetrieb fehlt unter „betriebsarten“.");
             else if (Art(b.Werkstatt).Beruf != name || b.Umland is { } u1 && Art(u1).Beruf != name) f.Add($"berufe.{name}: Werkstatt und Umlandbetrieb müssen zum Beruf gehören.");
-            if (b.Umland is null && Dieb?.Beruf != name) f.Add($"berufe.{name}: Ohne Umlandbetrieb kommt nur der Dieb aus.");
+            if (b.Umland is null && Dieb?.Beruf != name && Geldleiher?.Beruf != name) f.Add($"berufe.{name}: Ohne Umlandbetrieb kommen nur Dieb und Geldleiher aus.");
             if (b.Lehrgeld < 0) f.Add($"berufe.{name}.lehrgeld darf nicht negativ sein.");
             if (KenntArt(b.Werkstatt) && Art(b.Werkstatt).Stufe != 1) f.Add($"berufe.{name}: Die Werkstatt muss Stufe 1 sein.");
         }
@@ -358,6 +361,7 @@ public sealed class Wirtschaftsdaten
         Kirche?.Pruefen(f, Waren, Berufe);
         Dieb?.Pruefen(f, Berufe);
         Wache?.Pruefen(f, Berufe, Logistik.Eskorten);
+        Geldleiher?.Pruefen(f, Berufe);
         if (Wache is null && Logistik.Eskorten.Values.Any(e => e.Wache)) f.Add("logistik.eskorten: Eine Eskorte der Wache braucht den Abschnitt „wache“.");
         foreach (var l in Liegenschaften.Where(l => !KenntArt(l.Art)))
             f.Add($"Liegenschaft {l.Name}: Die Betriebsart {l.Art} fehlt unter „betriebsarten“.");

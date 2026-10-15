@@ -41,6 +41,9 @@ public sealed class Jahresbilanz
     /// <summary>Hinterzimmer: Banden, Hehlererlöse, Schweigegeld (negativ = Einnahme; nicht Teil des Betriebsgewinns).</summary>
     public double Gaunerei { get; internal set; }
 
+    /// <summary>Zinsen für Kredite bei einem Geldleiher (nicht Teil des Betriebsgewinns).</summary>
+    public double Zinsen { get; internal set; }
+
     /// <summary>Hergestellte Stück je Ware.</summary>
     public Dictionary<string, int> Hergestellt { get; } = new();
 
@@ -56,8 +59,23 @@ public sealed class Konto
 {
     public string Inhaber { get; }
 
-    /// <summary>Aktuelles Vermögen in Gulden. Darf negativ werden (Schulden).</summary>
+    /// <summary>
+    /// Bargeld in Gulden – damit wird bezahlt. Darf negativ werden (Schulden bei der Stadt).
+    /// Was das Haus wirklich besitzt, zeigt <see cref="Reinvermoegen"/>.
+    /// </summary>
     public double Vermoegen { get; private set; }
+
+    /// <summary>Verliehenes Geld: die Kasse der Geldleiher und offene Kredite an andere Häuser.</summary>
+    public double Forderungen { get; private set; }
+
+    /// <summary>Offene Kredite bei einem Geldleiher.</summary>
+    public double Schulden { get; private set; }
+
+    /// <summary>
+    /// Bargeld + Forderungen − Schulden. Danach richten sich Stand, Rangliste, Ansehen, Bußdeckel, Bankrott und Sieg –
+    /// wer sich Geld leiht, wird dadurch nicht reicher. Ohne Kredite ist es genau das Bargeld.
+    /// </summary>
+    public double Reinvermoegen => Vermoegen + Forderungen - Schulden;
 
     /// <summary>Die Rechnung des laufenden Jahres.</summary>
     public Jahresbilanz Laufend { get; private set; }
@@ -132,6 +150,15 @@ public sealed class Konto
     internal void Gaunerkosten(double betrag) { Vermoegen -= betrag; Laufend.Gaunerei += betrag; }
     internal void Raub(double warenwert) => Laufend.Raubwert += warenwert;
 
+    // ── Kredite (Geldleiher) ────────────────────────────────────────────────
+    internal void Verleihen(double betrag) { Vermoegen -= betrag; Forderungen += betrag; }
+    internal void Zurueckerhalten(double betrag) { Vermoegen += betrag; Forderungen -= betrag; }
+    /// <summary>Ein Schuldner fällt aus: Die Forderung ist verloren (Schaden), das Bargeld bleibt.</summary>
+    internal void ForderungAbschreiben(double betrag) { Forderungen -= betrag; Laufend.Schaden += betrag; }
+    internal void KreditErhalten(double betrag) { Vermoegen += betrag; Schulden += betrag; }
+    internal void KreditTilgen(double betrag) { Vermoegen -= betrag; Schulden -= betrag; }
+    internal void Zinsen(double betrag) { Vermoegen -= betrag; Laufend.Zinsen += betrag; }
+
     internal void Hergestellt(string ware, int stueck = 1) =>
         Laufend.Hergestellt[ware] = Laufend.Hergestellt.GetValueOrDefault(ware) + stueck;
 
@@ -139,7 +166,7 @@ public sealed class Konto
 
     internal KontoStand Sichern() => new()
     {
-        Inhaber = Inhaber, Vermoegen = Vermoegen, Stand = Stand, Schuldenjahre = Schuldenjahre, IstBankrott = IstBankrott, IstErloschen = IstErloschen,
+        Inhaber = Inhaber, Vermoegen = Vermoegen, Forderungen = Forderungen, Schulden = Schulden, Stand = Stand, Schuldenjahre = Schuldenjahre, IstBankrott = IstBankrott, IstErloschen = IstErloschen,
         Aktionspunkte = Aktionspunkte.Vorrat,
         Berufe = _berufe.ToList(),
         Meistergrade = _grade.ToDictionary(x => x.Key, x => x.Value),
@@ -151,6 +178,7 @@ public sealed class Konto
     {
         var konto = new Konto(s.Inhaber, s.Vermoegen, s.Laufend.Jahr)
         {
+            Forderungen = s.Forderungen, Schulden = s.Schulden,
             Stand = s.Stand, Schuldenjahre = s.Schuldenjahre, IstBankrott = s.IstBankrott, IstErloschen = s.IstErloschen,
             Laufend = BilanzLaden(s.Laufend), Vorjahr = s.Vorjahr is null ? null : BilanzLaden(s.Vorjahr),
         };
@@ -170,6 +198,7 @@ public sealed class Konto
         Steuer = b.Steuer, Schaden = b.Schaden, Transport = b.Transport, Raubwert = b.Raubwert,
         Investitionen = b.Investitionen, Standesgebuehren = b.Standesgebuehren, Hergestellt = new(b.Hergestellt),
         Amtseinkommen = b.Amtseinkommen, Geschenke = b.Geschenke, Familie = b.Familie, Gericht = b.Gericht, Gaunerei = b.Gaunerei,
+        Zinsen = b.Zinsen,
     };
 
     private static Jahresbilanz BilanzLaden(BilanzStand s)
@@ -180,6 +209,7 @@ public sealed class Konto
             Steuer = s.Steuer, Schaden = s.Schaden, Transport = s.Transport, Raubwert = s.Raubwert,
             Investitionen = s.Investitionen, Standesgebuehren = s.Standesgebuehren,
             Amtseinkommen = s.Amtseinkommen, Geschenke = s.Geschenke, Familie = s.Familie, Gericht = s.Gericht, Gaunerei = s.Gaunerei,
+            Zinsen = s.Zinsen,
         };
         foreach (var (ware, stueck) in s.Hergestellt) b.Hergestellt[ware] = stueck;
         return b;
@@ -188,7 +218,7 @@ public sealed class Konto
     /// <summary>Schließt das Jahr ab: Die laufende Rechnung wird zum Vorjahr.</summary>
     internal void JahrAbschliessen(int neuesJahr)
     {
-        Schuldenjahre = Vermoegen < 0 ? Schuldenjahre + 1 : 0;
+        Schuldenjahre = Reinvermoegen < 0 ? Schuldenjahre + 1 : 0;
         Vorjahr = Laufend;
         Laufend = new Jahresbilanz { Jahr = neuesJahr };
     }

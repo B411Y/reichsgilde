@@ -611,7 +611,7 @@ public partial class Hauptszene : Node
     {
         var waehrung = w.Daten.Allgemein.Waehrung;
         var d = w.Daten.Art(l.Art);
-        var art = $"{d.Name} ({(d.OhneProduktion ? (d.Beruf == "Dieb" ? "Taschendiebe" : "Wachdienst") : string.Join(", ", d.IstWerkstatt ? d.Produkte : d.Rohstoffe))})";
+        var art = $"{d.Name} ({(d.OhneProduktion ? UiHilfe.Taetigkeit(d.Beruf) : string.Join(", ", d.IstWerkstatt ? d.Produkte : d.Rohstoffe))})";
         var zeilen = new List<string>
         {
             $"{l.Name} – {(l.IstPacht ? "zu verpachten" : "zu verkaufen")}",
@@ -687,10 +687,10 @@ public partial class Hauptszene : Node
 
         if (_auswahlKennung != "Rathaus" || w.NaechsterStand(_spieler) is not { } naechster)
             return (false, true, "", null);
-        var reicht = _spieler.Vermoegen >= naechster.Schwelle;
+        var reicht = _spieler.Reinvermoegen >= naechster.Schwelle;
         var standText = reicht
             ? $"Aufsteigen zum {naechster.Name} ({Zahlenformat.Ganz(naechster.Gebuehr)} {waehrung})"
-            : $"{naechster.Name} ab {Zahlenformat.Ganz(naechster.Schwelle)} {waehrung} – es fehlen {Zahlenformat.Ganz(naechster.Schwelle - _spieler.Vermoegen)}";
+            : $"{naechster.Name} ab {Zahlenformat.Ganz(naechster.Schwelle)} {waehrung} – es fehlen {Zahlenformat.Ganz(naechster.Schwelle - _spieler.Reinvermoegen)}";
         return (true, !reicht || !_spieler.IstAktiv, standText, () => new StandErwerben());
     }
 
@@ -726,6 +726,8 @@ public partial class Hauptszene : Node
 
     private void Protokollieren(string meldung)
     {
+        // Ein Befehl meldet sein Ergebnis, die Stadt dieselbe Nachricht für alle – nur einmal zeigen.
+        if (_protokoll.Count > 0 && _protokoll[0] == meldung) return;
         _protokoll.Insert(0, meldung);
         if (_protokoll.Count > MaxProtokollZeilen)
             _protokoll.RemoveAt(_protokoll.Count - 1);

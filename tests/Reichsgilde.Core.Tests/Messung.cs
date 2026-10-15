@@ -98,7 +98,7 @@ static class Messung
                 if (w.Konten.FirstOrDefault(k => k.Inhaber == hausName) is not { } haus) continue;
                 var x = weitere[hausName];
                 x.Partien++;
-                x.Vermoegen += haus.Vermoegen;
+                x.Vermoegen += haus.Reinvermoegen;
                 x.Gewinn += haus.Vorjahr?.Gewinn ?? 0;
                 if (haus.IstErloschen) x.Erloschen++;
                 if (w.Rat.AmtNamens("Bürgermeister")?.Konto == haus) x.Bm++;
@@ -116,7 +116,7 @@ static class Messung
             if (rivale.IstErloschen) erloschen++;
             kinder += nachkommen;
             erbfaelle += f.Ahnen.Count;
-            vermoegen += rivale.Vermoegen;
+            vermoegen += rivale.Reinvermoegen;
             talentOberhaupt += f.Oberhaupt.TalentSumme;
             var gestorben = f.Mitglieder.Concat(f.Ahnen).Distinct().Where(p => p.Todesursache is not null).ToList();
             krankheitstote += gestorben.Count;
@@ -127,7 +127,7 @@ static class Messung
             Console.WriteLine($"Startwert {s * 101,5}: {f.Oberhaupt.Name} ({f.Oberhaupt.Alter(w.Familien.Jahr)} J.), " +
                               $"Heirat im Jahr {heirat?.ToString() ?? "–"}{(f.Mitglieder.FirstOrDefault(p => p.Geburtsname != f.Nachname) is { } partner ? $" mit {partner.Volk.Einzahl()}" : "")}, Nachkommen {nachkommen} (lebend {f.Lebende.Count(p => p.Vater is not null)}), " +
                               $"Erbfälle {f.Ahnen.Count}{(rivale.IstErloschen ? ", ERLOSCHEN" : "")}, {w.StandVon(rivale).Name}, " +
-                              $"{Zahlenformat.Ganz(rivale.Vermoegen)} Gulden, Bürgermeister ab Jahr {bm?.ToString() ?? "–"}");
+                              $"{Zahlenformat.Ganz(rivale.Reinvermoegen)} Gulden, Bürgermeister ab Jahr {bm?.ToString() ?? "–"}");
         }
         Console.WriteLine();
         Console.WriteLine($"Haus Eisenbart über {jahre} Jahre, {startwerte} Startwerte (Spieler: {volk.Mehrzahl()}, passiv):");
@@ -182,6 +182,29 @@ static class Messung
         var e = w.Ausfuehren(spieler, new Anklagen(rivale.Inhaber));
         File.WriteAllText(datei, Speicherung.Speichern(sim, spieler));
         Console.WriteLine($"{sim.Zeit.DatumText}: {w.Justiz.Beweise(spieler, rivale).Count()} Beweise, Anklage: {e.Meldung}");
+        Console.WriteLine($"gespeichert: {datei}");
+        return 0;
+    }
+
+    /// <summary>
+    /// Spielstand für Klicktests des Kredits: Haus Eisenbart führt die Wechselstube am Markt (ein Jahr gelaufen, die Kasse ist gefüllt),
+    /// der Spieler kann dort leihen.
+    /// </summary>
+    public static int GeldleiherSpielstand(string datei)
+    {
+        var daten = Wirtschaftsdaten.AusDatei(Datenpfad.Wirtschaft());
+        var (sim, spieler) = Partieaufbau.Erstellen(
+            Partieeinstellungen.Standard with { Zufallsstartwert = 303, Siegbedingung = Siegbedingung.Endlos },
+            daten, new NeuePartie(Startvermoegen: 10_000));
+        var w = sim.Wirtschaft!;
+        var rivale = w.Konten.First(k => k != spieler);
+        w.BetriebEroeffnen("Wechselstube am Markt", Betriebsart.Wechselstube, rivale, "");
+        var j = sim.Zeit.Jahr;
+        while (sim.Zeit.Jahr == j) sim.Tick();
+        for (var i = 0; i < 4 * 60; i++) sim.Tick();
+        File.WriteAllText(datei, Speicherung.Speichern(sim, spieler));
+        var b = w.Betriebe.First(x => x.Name == "Wechselstube am Markt");
+        Console.WriteLine($"{sim.Zeit.DatumText}: Kasse {w.Bank.Kasse(b):F0}, Zins {w.Bank.Zinssatz(rivale):P0}, Höchstkredit {w.Bank.Hoechstkredit(rivale, spieler):F0}");
         Console.WriteLine($"gespeichert: {datei}");
         return 0;
     }
