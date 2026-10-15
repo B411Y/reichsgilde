@@ -228,8 +228,18 @@ public sealed class Stadtgericht
     }
 
     /// <summary>Welche Buße bei einem Schuldspruch fällig würde (nach den Beweisen, die der Ankläger heute hat).</summary>
-    public double DrohendeBusse(Konto anklaeger, Konto beklagter) =>
-        Math.Max(Daten.Mindestbusse, Daten.BusseFaktor * Beweise(anklaeger, beklagter).Sum(b => b.Betrag));
+    public double DrohendeBusse(Konto anklaeger, Konto beklagter) => Busse(beklagter, Beweise(anklaeger, beklagter));
+
+    /// <summary>
+    /// Buße für diese Taten: Faktor × Summe, mindestens die Mindestbuße – und höchstens der festgelegte Anteil
+    /// am Vermögen des Verurteilten (sonst zahlten Häuser für eskalierende Erpressungen Bußen, die sie nie aufbringen).
+    /// </summary>
+    public double Busse(Konto beklagter, IEnumerable<Spur> taten)
+    {
+        var d = Daten;
+        var busse = Math.Max(d.Mindestbusse, d.BusseFaktor * taten.Sum(b => b.Betrag));
+        return d.BusseHoechstensAnteil > 0 ? Math.Min(busse, Math.Max(d.Mindestbusse, d.BusseHoechstensAnteil * Math.Max(0, beklagter.Vermoegen))) : busse;
+    }
 
     /// <summary>Führten die Beweise in den Kerker?</summary>
     public bool DrohtKerker(Konto anklaeger, Konto beklagter) =>
@@ -385,7 +395,7 @@ public sealed class Stadtgericht
             string text;
             if (schuldig)
             {
-                var busse = Math.Max(d.Mindestbusse, d.BusseFaktor * beweise.Sum(b => b.Betrag));
+                var busse = Busse(v.Beklagter, beweise);
                 v.Beklagter.Gerichtskosten(busse);
                 var folgen = new List<string> { $"Buße {Zahlenformat.Ganz(busse)} {waehrung}" };
                 if (d.Amtsverlust && _w.Rat.AmtVon(v.Beklagter) is { } amt)
