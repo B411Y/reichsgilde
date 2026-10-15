@@ -24,6 +24,7 @@ public partial class Fenster : Node
     public override void _Ready()
     {
         _instanz = this;
+        Schriften.Einrichten(GetTree());
         var einstellungen = new ConfigFile();
         if (einstellungen.Load(Datei) == Error.Ok && einstellungen.GetValue("anzeige", "vollbild", false).AsBool())
             Setzen(true, speichern: false);

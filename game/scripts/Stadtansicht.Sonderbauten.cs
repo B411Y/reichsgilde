@@ -58,7 +58,7 @@ public partial class Stadtansicht
             Mitte = p,
             Schluessel = kennung,
             Titel = titel,
-            Schild = Beschriftung(titel, p + schildOrt, 56),
+            Schild = Beschriftung(titel, p + schildOrt, 56, kennung: kennung),
             Zoom = zoom,
             Reichweite = reichweite,
         };
