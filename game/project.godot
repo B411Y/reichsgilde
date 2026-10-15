@@ -28,3 +28,8 @@ window/size/viewport_height=900
 
 project/assembly_name="Reichsgilde"
 project/solution_directory="../"
+
+[rendering]
+
+lights_and_shadows/directional_shadow/size=8192
+lights_and_shadows/directional_shadow/soft_shadow_filter_quality=5

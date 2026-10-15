@@ -390,7 +390,9 @@ public partial class Stadtansicht : Node3D
         _umgebung = new WorldEnvironment { Environment = umgebung };
         AddChild(_umgebung);
 
-        _sonne = new DirectionalLight3D { ShadowEnabled = true, LightEnergy = 1.1f };
+        // ShadowBlur weicht die Schattenkante leicht auf. Gegen die „Treppen“ an der Kante helfen vor allem
+        // die Schattenkarte mit 8192 Pixeln und der Filter „Ultra“ (beides in project.godot, Abschnitt rendering).
+        _sonne = new DirectionalLight3D { ShadowEnabled = true, LightEnergy = 1.1f, ShadowBlur = 1.5f };
         _sonne.RotationDegrees = new Vector3(-50, 30, 0);
         AddChild(_sonne);
     }
