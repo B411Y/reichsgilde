@@ -408,6 +408,14 @@ Die Unterwelt (`src/Reichsgilde.Core/Gauner/Unterwelt.cs`) gehört zur Stadtwirt
 
 **Lehrstück aus diesem Schritt (Anzeige und Zeitpunkt):** Im Klicktest zeigte die Tafel nach 21 Uhr noch „Sabotage bestellt“. Der Kern war richtig: Die Tafel war um 20:45 aufgebaut worden und wusste nichts von der Nacht. Eine Anzeige muss erfahren, wann sich ihre Daten ändern. Dafür gibt es jetzt das Ereignis `NachtVorbei`. Das Phasen-Ereignis „Dunkle Nacht“ wäre eine Spielminute zu früh gekommen.
 
+## Wappen und Hausnamen
+
+- **Kern:** `Dynastie/Wappen.cs` beschreibt ein Wappen als Datensatz `Wappen(Teilung, Farbe1, Farbe2, Figur)` – nur Aufzählungen, keine Grafik. Dazu die zwölf `Vorlagen`, die festen Wappen der KI-Häuser (`Rivalenwappen`), `Zufall` (je ein Metall und eine Farbe, nie ein Rivalenwappen) und `Beschreibung()` in der Sprache der Herolde mit dem richtigen Geschlecht der Figur („eine goldene Krone“, „ein silbernes Rad“).
+- **Konto:** `Konto.Wappen` gehört zum Haus. Ohne Wahl würfelt `Wappen.AusName` eines aus dem Namen – mit eigener Prüfsumme (FNV-1a), denn `string.GetHashCode` liefert in .NET bei jedem Programmstart andere Zahlen. So bekommen alte Spielstände ohne Wappen immer dasselbe.
+- **Partieaufbau:** `Partieaufbau.Hausname` macht aus „Hammerschmid“, „Familie Hammerschmid“ und „Haus Hammerschmid“ einheitlich „Haus Hammerschmid“. Ein Wappen mit zwei gleichen Farben oder das Wappen eines KI-Hauses lehnt er ab.
+- **Zeichnen:** `game/scripts/WappenBild.cs` zeichnet in `_Draw()` aus Vielecken: Schild in Farbe 1 → Teilung in Farbe 2 (mit dem Schild verschnitten über `Geometry2D.IntersectPolygons`) → Figur in Farbe 2 → die Stücke der Figur, die über Farbe 2 liegen, noch einmal in Farbe 1. Eine Figur besteht aus mehreren einfachen Vielecken ohne Löcher (ein Rad aus 24 Kranzstücken), weil verschnittene Löcher sich nicht einfach füllen lassen. Keine Bilddateien: scharf in jeder Größe, und eine neue Figur ist ein paar Zeilen Koordinaten in `WappenFormen`.
+- **Anzeige:** `UiHilfe.MitWappen` setzt ein kleines Wappen vor einen Hausnamen; ohne Wappen (Ratsherren ohne Haus) bleibt der Platz frei, damit die Spalte bündig bleibt.
+
 ## Speichern und Laden
 
 Ein Spielstand ist eine lesbare JSON-Datei (`src/Reichsgilde.Core/Speichern/`).

@@ -21,6 +21,21 @@ public static class UiHilfe
         }
     }
 
+    /// <summary>
+    /// Ein Hausname mit kleinem Wappen davor (Rangliste, Rat, Gericht). Ohne Wappen bleibt der Platz frei,
+    /// damit die Namen in einer Spalte bündig stehen. Gibt das Label zurück (z. B. für einen Tooltip).
+    /// </summary>
+    public static Label MitWappen(Container eltern, Core.Dynastie.Wappen? wappen, string text, int groesse, Color? farbe = null)
+    {
+        var zeile = new HBoxContainer();
+        zeile.AddThemeConstantOverride("separation", 6);
+        eltern.AddChild(zeile);
+        zeile.AddChild(WappenBild.Neu(wappen, (int)MathF.Round(groesse * 1.6f)));
+        var label = Hauptmenue.Text(zeile, text, groesse, farbe);
+        label.VerticalAlignment = VerticalAlignment.Center;
+        return label;
+    }
+
     /// <summary>Was ein Betrieb ohne Ware tut – für Kontor und Liegenschaftsfenster.</summary>
     public static string Taetigkeit(string beruf) => beruf switch
     {

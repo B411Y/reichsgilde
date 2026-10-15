@@ -48,6 +48,7 @@ public partial class Hauptszene : Node
     private PanelContainer _tafel = null!;
     private PanelContainer _auswahl = null!;
     private Label _auswahlText = null!;
+    private WappenBild _auswahlWappen = null!;
     private Button _innenKnopf = null!;
     private BetriebsVerwaltung _verwaltung = null!;
     /// <summary>Ein Knopf für die Hauptaktion des ausgewählten Ortes (Aufsteigen, Kaufen, Pachten).</summary>
@@ -92,6 +93,7 @@ public partial class Hauptszene : Node
         _tafel = GetNode<PanelContainer>("%Tafel");
         _auswahl = GetNode<PanelContainer>("%Auswahl");
         _auswahlText = GetNode<Label>("%AuswahlText");
+        AuswahlWappenEinbauen();
         _innenKnopf = GetNode<Button>("%InnenKnopf");
         _verwaltung = GetNode<BetriebsVerwaltung>("%Verwaltung");
         _aktionKnopf = GetNode<Button>("%AktionKnopf");
@@ -599,6 +601,27 @@ public partial class Hauptszene : Node
     private Betrieb? AusgewaehlterBetrieb() =>
         _simulation.Wirtschaft?.Betriebe.FirstOrDefault(b => Stadtansicht.BetriebsKennung(b) == _auswahlKennung);
 
+    /// <summary>
+    /// Setzt rechts neben den Text des Gebäudefensters das Wappen des Besitzers. Der Text steht in der Szene;
+    /// hier kommt er samt Wappen in eine Zeile (HBox) an dieselbe Stelle.
+    /// </summary>
+    private void AuswahlWappenEinbauen()
+    {
+        var spalte = _auswahlText.GetParent();
+        var stelle = _auswahlText.GetIndex();
+        var zeile = new HBoxContainer();
+        zeile.AddThemeConstantOverride("separation", 10);
+        spalte.RemoveChild(_auswahlText);
+        zeile.AddChild(_auswahlText);
+        _auswahlText.SizeFlagsHorizontal = Control.SizeFlags.ExpandFill;
+        _auswahlWappen = WappenBild.Neu(null, 56);
+        _auswahlWappen.SizeFlagsVertical = Control.SizeFlags.ShrinkBegin;
+        _auswahlWappen.Visible = false;
+        zeile.AddChild(_auswahlWappen);
+        spalte.AddChild(zeile);
+        spalte.MoveChild(zeile, stelle);
+    }
+
     /// <summary>Zeigt Informationen zum angeklickten Gebäude.</summary>
     private void AuswahlAnzeigen()
     {
@@ -612,6 +635,8 @@ public partial class Hauptszene : Node
         var frei = _auswahlKennung.StartsWith("liegenschaft:")
             ? w.FreieLiegenschaften.FirstOrDefault(l => Stadtansicht.LiegenschaftKennung(l.Name) == _auswahlKennung)
             : null;
+        _auswahlWappen.Wappen = betrieb?.Konto.Wappen;
+        if (_auswahlWappen.Visible != betrieb is not null) _auswahlWappen.Visible = betrieb is not null;
         _auswahlText.Text = betrieb is not null ? BetriebsText(betrieb, w)
             : frei is not null ? LiegenschaftText(frei, w)
             : _auswahlKennung switch

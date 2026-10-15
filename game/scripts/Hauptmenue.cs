@@ -30,6 +30,12 @@ public partial class Hauptmenue : Node
 
     // Felder des Dialogs „Neue Partie"
     private LineEdit _familie = null!;
+    private Wappen _wappen = Wappen.Vorlagen[0];
+    private WappenBild _wappenVorschau = null!;
+    private Label _wappenText = null!;
+    private OptionButton _farbe1 = null!;
+    private OptionButton _farbe2 = null!;
+    private readonly List<Button> _vorlagenKnoepfe = new();
     private OptionButton _volk = null!;
     private Label _volkHinweis = null!;
     private OptionButton _glaube = null!;
@@ -112,14 +118,22 @@ public partial class Hauptmenue : Node
     {
         var (tafel, spalte) = Tafel(560);
         Text(spalte, "Neue Partie", 26, Gold, zentriert: true);
+        spalte.AddChild(WappenWahl());
+        spalte.AddChild(new HSeparator());
 
         var raster = new GridContainer { Columns = 2 };
         raster.AddThemeConstantOverride("h_separation", 16);
         raster.AddThemeConstantOverride("v_separation", 8);
         spalte.AddChild(raster);
 
-        _familie = new LineEdit { Text = "Familie Hammerschmid", CustomMinimumSize = new Vector2(280, 0) };
-        Zeile(raster, "Name eures Hauses", _familie);
+        // Nur der Name – das Spiel schreibt überall „Haus …“ davor, wie bei den KI-Häusern.
+        var hausname = new HBoxContainer();
+        hausname.AddThemeConstantOverride("separation", 6);
+        hausname.AddChild(new Label { Text = "Haus" });
+        _familie = new LineEdit { Text = "Hammerschmid", PlaceholderText = "Hammerschmid", SizeFlagsHorizontal = Control.SizeFlags.ExpandFill };
+        hausname.AddChild(_familie);
+        hausname.CustomMinimumSize = new Vector2(280, 0);
+        Zeile(raster, "Name eures Hauses", hausname);
 
         _volk = new OptionButton { FocusMode = Control.FocusModeEnum.None };
         foreach (var volk in Spielbare)
@@ -225,6 +239,106 @@ public partial class Hauptmenue : Node
         return tafel;
     }
 
+    // ═════════════════════════════════════════════════════════════════════════
+    //  Wappen
+    // ═════════════════════════════════════════════════════════════════════════
+
+    /// <summary>Vorschau links, rechts die Vorlagen, darunter die beiden Farben und „Würfeln“.</summary>
+    private Control WappenWahl()
+    {
+        var zeile = new HBoxContainer();
+        zeile.AddThemeConstantOverride("separation", 14);
+        _wappenVorschau = WappenBild.Neu(_wappen, 110);
+        zeile.AddChild(_wappenVorschau);
+
+        var rechts = new VBoxContainer { SizeFlagsHorizontal = Control.SizeFlags.ExpandFill };
+        rechts.AddThemeConstantOverride("separation", 6);
+        zeile.AddChild(rechts);
+
+        var raster = new GridContainer { Columns = 6 };
+        raster.AddThemeConstantOverride("h_separation", 4);
+        raster.AddThemeConstantOverride("v_separation", 4);
+        rechts.AddChild(raster);
+        var gruppe = new ButtonGroup();
+        foreach (var vorlage in Wappen.Vorlagen)
+        {
+            var knopf = new Button
+            {
+                ToggleMode = true, ButtonGroup = gruppe, FocusMode = Control.FocusModeEnum.None,
+                CustomMinimumSize = new Vector2(46, 50), TooltipText = vorlage.Beschreibung(),
+                ButtonPressed = vorlage == _wappen,
+            };
+            var bild = WappenBild.Neu(vorlage, 40);
+            bild.MouseFilter = Control.MouseFilterEnum.Ignore;
+            bild.CustomMinimumSize = Vector2.Zero;
+            knopf.AddChild(bild);
+            bild.SetAnchorsAndOffsetsPreset(Control.LayoutPreset.FullRect, Control.LayoutPresetMode.KeepSize, 3);
+            knopf.Pressed += () => { _wappen = vorlage; WappenZeigen(); };
+            raster.AddChild(knopf);
+            _vorlagenKnoepfe.Add(knopf);
+        }
+
+        var farben = new HBoxContainer();
+        farben.AddThemeConstantOverride("separation", 6);
+        rechts.AddChild(farben);
+        farben.AddChild(new Label { Text = "Grund" });
+        _farbe1 = Farbwahl(t => _wappen = _wappen with { Farbe1 = t });
+        farben.AddChild(_farbe1);
+        farben.AddChild(new Label { Text = "Figur" });
+        _farbe2 = Farbwahl(t => _wappen = _wappen with { Farbe2 = t });
+        farben.AddChild(_farbe2);
+        var wuerfeln = new Button { Text = "Würfeln", FocusMode = Control.FocusModeEnum.None, TooltipText = "Ein zufälliges Wappen" };
+        wuerfeln.Pressed += () =>
+        {
+            _wappen = Wappen.Zufall(new Random());
+            for (var i = 0; i < _vorlagenKnoepfe.Count; i++)
+                _vorlagenKnoepfe[i].SetPressedNoSignal(Wappen.Vorlagen[i] == _wappen);
+            WappenZeigen();
+        };
+        farben.AddChild(wuerfeln);
+
+        _wappenText = new Label { AutowrapMode = TextServer.AutowrapMode.WordSmart, CustomMinimumSize = new Vector2(300, 0) };
+        _wappenText.AddThemeFontSizeOverride("font_size", 12);
+        rechts.AddChild(_wappenText);
+        WappenZeigen();
+        return zeile;
+    }
+
+    /// <summary>Auswahl einer Tinktur mit Farbfeld davor.</summary>
+    private OptionButton Farbwahl(Action<Tinktur> gewaehlt)
+    {
+        var wahl = new OptionButton { FocusMode = Control.FocusModeEnum.None };
+        foreach (var t in Enum.GetValues<Tinktur>())
+        {
+            var bild = Image.CreateEmpty(14, 14, false, Image.Format.Rgb8);
+            bild.Fill(WappenBild.Farbe(t));
+            wahl.AddIconItem(ImageTexture.CreateFromImage(bild), Wappen.Name(t), (int)t);
+        }
+        wahl.ItemSelected += index => { gewaehlt((Tinktur)wahl.GetItemId((int)index)); WappenZeigen(); };
+        return wahl;
+    }
+
+    private void WappenZeigen()
+    {
+        _wappenVorschau.Wappen = _wappen;
+        _farbe1.Select(_farbe1.GetItemIndex((int)_wappen.Farbe1));
+        _farbe2.Select(_farbe2.GetItemIndex((int)_wappen.Farbe2));
+        var problem = WappenProblem();
+        var tipp = problem is null && Wappen.IstMetall(_wappen.Farbe1) == Wappen.IstMetall(_wappen.Farbe2)
+            ? " Tipp der Herolde: Metall (Gold, Silber) auf Farbe ist von weitem besser zu erkennen." : "";
+        _wappenText.Text = problem ?? _wappen.Beschreibung() + tipp;
+        _wappenText.AddThemeColorOverride("font_color", problem is null ? new Color(0.75f, 0.72f, 0.65f) : Rot);
+    }
+
+    /// <summary>Warum dieses Wappen nicht geht – oder null.</summary>
+    private string? WappenProblem()
+    {
+        if (_wappen.Fehler() is { } fehler) return fehler;
+        if (Wappen.Rivalenwappen.Contains(_wappen))
+            return "Dieses Wappen führt schon ein KI-Haus – ändert eine Farbe.";
+        return null;
+    }
+
     private static readonly Volk[] Spielbare = { Volk.Mensch, Volk.Zwerg, Volk.Elb, Volk.Halbling };
 
     /// <summary>Was die Wahl des Volkes für die Dynastie bedeutet (die Zahlen stehen in wirtschaft.json).</summary>
@@ -277,8 +391,11 @@ public partial class Hauptmenue : Node
             Zufallsstartwert = (int)_startwert.Value,
         };
         var fehler = einstellungen.Pruefen().ToList();
-        if (Partieaufbau.Rivalennamen.Contains(_familie.Text.Trim()))
-            fehler.Add($"„{_familie.Text.Trim()}“ ist der Name eines Rivalen – wählt bitte einen anderen.");
+        var hausname = Partieaufbau.Hausname(_familie.Text);
+        if (Partieaufbau.Rivalennamen.Contains(hausname))
+            fehler.Add($"„{hausname}“ ist der Name eines Rivalen – wählt bitte einen anderen.");
+        if (WappenProblem() is { } wappenFehler)
+            fehler.Add(wappenFehler);
         if (fehler.Count > 0)
         {
             _fehler.Text = string.Join("\n", fehler);
@@ -291,7 +408,8 @@ public partial class Hauptmenue : Node
                 string.IsNullOrWhiteSpace(_vorname.Text) ? null : _vorname.Text.Trim(),
                 Beruf: _beruf.Selected switch { 1 => "Tischler", 2 => "Steinmetz", 3 => "Alchimist", 4 => "Wirt", 5 => "Prediger", 6 => "Dieb", 7 => "Gardist", 8 => "Geldleiher", 9 => "Parfumeur", _ => "Schmied" },
                 Rivalen: _rivalen.GetSelectedId(),
-                Glaube: _glaube.GetSelectedId() < 0 ? null : (Konfession)_glaube.GetSelectedId()));
+                Glaube: _glaube.GetSelectedId() < 0 ? null : (Konfession)_glaube.GetSelectedId(),
+                Wappen: _wappen));
         SpielStarten();
     }
 

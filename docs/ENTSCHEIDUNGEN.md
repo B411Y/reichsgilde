@@ -218,12 +218,12 @@ Format: `- PR #Nummer (Phase) – Inhalt`
 - PR #44 (–) – Zusammenarbeit: CLAUDE.md, Entwurfs-PRs, Protokolle im Repo
 - PR #45 (5) – Handel von Hand per Karrenauftrag
 - PR #47 (–) – Phasenplan als Liste, Tests automatisch finden, Regeln für Messungen
+- PR #48 (5) – Wappen für jedes Haus (Wahl im Hauptmenü, Anzeige in den Tafeln), Hausname ohne „Familie“
 - PR #49 (3) – Innenräume für Rathaus (Ratssaal, Gerichtssaal, Amtsstube, Kerker) und Dom nach dem Stadtglauben
 
 ### 6b. Offen (eine Zeile je Punkt; erledigt → Zeile löschen und unter 6a eintragen)
 
 - (2) Bürger-KI
-- (5) Berufe mit eigener Mechanik (Händler mit Lagerhaus und Fernhandel …)
 - (5) Orks und Oger spielbar machen
 - (5) Bauplätze und Sanierung (siehe Abschnitt 7, Punkt 8)
 - (5) Gaunerberuf, Schmuggel und Schwarzarbeit unter dem Statut
@@ -263,7 +263,18 @@ Format: `- PR #Nummer (Phase) – Inhalt`
 | Tests | **Testklassen werden automatisch gefunden** (jede statische Klasse mit `Alle()`), keine Liste mehr in `Program.cs`. | 15.10.2026 |
 | Messungen | **Nur der Kern-Chat misst.** Jede Messung nennt den `main`-Commit, gegen den gemessen wurde – so lassen sich Messungen aus verschiedenen PRs vergleichen. | 15.10.2026 |
 
-## 10. Innenräume für Rathaus und Dom (PR #49)
+## 10. Wappen, Hausnamen, Berufe
+
+| Thema | Entscheidung | Datum |
+|---|---|---|
+| Berufe | **Zehn Berufe reichen vorerst** (Schmied, Tischler, Steinmetz, Alchimist, Wirt, Prediger, Dieb, Gardist, Geldleiher, Parfumeur). Kein Händler als eigener Beruf; Handel läuft über den Handel von Hand (PR #45). | 15.10.2026 |
+| Hausname | Eingabe **nur der Name** („Hammerschmid“); das Spiel nennt jedes Haus einheitlich **„Haus …“**, wie die KI-Häuser. „Familie …“ entfällt. | 15.10.2026 |
+| Wappen: Wahl | Unter „Neue Partie“ ganz oben: **zwölf Vorlagen + Farben für Grund und Figur + Würfeln**, mit Vorschau und Wappenbeschreibung. Kein voller Baukasten (Teilung und Figur kommen über Vorlagen oder Würfeln). | 15.10.2026 |
+| Wappen: Aufbau | Teilung (10: ohne, geteilt, gespalten, schräg, geviert, Schildhaupt, Balken, Pfahl, Sparren, Bord) × zwei Tinkturen (Gold, Silber, Rot, Blau, Grün, Schwarz, Purpur) × Figur (16). Die Figur steht in Farbe 2 und wechselt über Farbe 2 in Farbe 1 („verwechselte Farben“). Selbst gezeichnete Vektorformen, nichts aus dem Original. | 15.10.2026 |
+| Wappen: KI-Häuser | Feste, nicht wählbare Wappen: Eisenbart – in Schwarz ein goldener Amboss; Eichwald – in Grün mit silbernem Bord ein silberner Baum; Kieselbach – in Blau unter silbernem Schildhaupt ein silberner Wellenbalken. | 15.10.2026 |
+| Wappen: Anzeige | Kontor (eigenes Haus), Rangliste im Jahresbericht, Amtsinhaber im Rat, Beweisbuch im Gericht, Gebäudefenster (Besitzer). Fahnen an Gebäuden in der Stadt wären später Sache der Darstellung. | 15.10.2026 |
+
+## 11. Innenräume für Rathaus und Dom (PR #49)
 
 | Thema | Entscheidung | Datum |
 |---|---|---|
