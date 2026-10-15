@@ -120,6 +120,7 @@ public partial class FamilienAnzeige : PanelContainer
             {
                 UebenZeile(w, buch);
                 LesenZeile(w);
+                HeiligenduftZeile(w);
             }
         }
         if (f.Ehepartner is { } e)
@@ -245,6 +246,20 @@ public partial class FamilienAnzeige : PanelContainer
                 risiko > 0 ? Rot : null);
 
             var person = p.Nummer;
+            if (k.NurGegengift)
+            {
+                // Gift: Weder Medicus noch Kräuterschnaps helfen – nur Gegengift.
+                var preis = g.GegengiftPreis(_spieler!);
+                var gegengift = new Button
+                {
+                    Text = $"{g.Daten.Gegengift} ({(preis > 0 ? $"{Zahlenformat.Ganz(preis)} {waehrung}" : "aus dem Lager")})",
+                    FocusMode = FocusModeEnum.None, Disabled = _spieler!.Vermoegen < preis,
+                    TooltipText = "Heilt die Vergiftung sofort. Medicus und Kräuterschnaps helfen gegen Gift nicht.",
+                };
+                gegengift.Pressed += () => Befehlen(new GegengiftGeben(person));
+                zeile.AddChild(gegengift);
+                continue;
+            }
             var medicus = new Button { Text = $"Medicus ({Zahlenformat.Ganz(g.MedicusKosten(k))} {waehrung})", FocusMode = FocusModeEnum.None };
             medicus.Disabled = k.IstPest && k.Medicus;
             medicus.TooltipText = medicus.Disabled ? "Der Medicus pflegt schon." :
@@ -316,6 +331,29 @@ public partial class FamilienAnzeige : PanelContainer
             UiHilfe.ApKosten(knopf, w, _spieler!, new LehrschriftLesen(t));
             zeile.AddChild(knopf);
         }
+    }
+
+    /// <summary>Heiligenduft in der Kirche stiften – mehr Ansehen bis Ende des nächsten Jahres.</summary>
+    private void HeiligenduftZeile(Stadtwirtschaft w)
+    {
+        var duft = w.Duft;
+        if (!duft.IstAktiv) return;
+        var zeile = new HBoxContainer();
+        zeile.AddThemeConstantOverride("separation", 6);
+        _inhalt.AddChild(zeile);
+        var d = duft.Daten.Heiligenduft;
+        var preis = duft.Preis(_spieler!, d.Ware);
+        Text(zeile, $"{d.Ware} ({(preis > 0 ? $"{Zahlenformat.Ganz(preis)} {w.Daten.Allgemein.Waehrung} am Markt" : "aus dem Lager")}):", 13, Grau);
+        var knopf = new Button { Text = "in der Kirche stiften", FocusMode = FocusModeEnum.None };
+        knopf.AddThemeFontSizeOverride("font_size", 13);
+        var grund = duft.HeiligenduftVerboten(_spieler!);
+        knopf.Disabled = grund is not null;
+        knopf.TooltipText = grund ?? $"+{Zahlenformat.Ganz(d.Ansehen)} Ansehen bis Ende des nächsten Jahres (Wahl, Brautschau, Kirche).";
+        knopf.Pressed += () => Befehlen(new HeiligenduftStiften());
+        UiHilfe.ApKosten(knopf, w, _spieler!, new HeiligenduftStiften());
+        zeile.AddChild(knopf);
+        if (duft.HeiligBis(_spieler!) is int bis)
+            Text(zeile, $"· wirkt bis Ende {bis} (+{Zahlenformat.Ganz(d.Ansehen)} Ansehen)", 13, Gold);
     }
 
     /// <summary>„Verhandeln 2 · Handwerk 1½ · Nacht ½ · Kampf 1½ · Rhetorik 2"</summary>
@@ -455,6 +493,19 @@ public partial class FamilienAnzeige : PanelContainer
                 werben.Pressed += () => Befehlen(new Werben(p.Nummer, _geschenkBetrag));
                 UiHilfe.ApKosten(werben, w, _spieler!, new Werben(0, 0));
                 knoepfe.AddChild(werben);
+                if (w.Duft.IstAktiv)
+                {
+                    var duft = w.Duft;
+                    var moschus = new Button { Text = "Moschus", FocusMode = FocusModeEnum.None };
+                    var grund = duft.MoschusVerboten(_spieler!, p.Nummer);
+                    var preis = duft.Preis(_spieler!, duft.Daten.Moschus.Ware);
+                    moschus.Disabled = grund is not null;
+                    moschus.TooltipText = grund ?? $"{duft.Daten.Moschus.Ware} schenken ({(preis > 0 ? $"{Zahlenformat.Ganz(preis)} {w.Daten.Allgemein.Waehrung} am Markt" : "aus dem Lager")}): " +
+                                                   $"+{Zahlenformat.Ganz(duft.Daten.Moschus.Zuneigung)} Zuneigung – zusätzlich zu den Geschenken des Jahres. Einmal im Jahr.";
+                    moschus.Pressed += () => Befehlen(new MoschusSchenken(p.Nummer));
+                    UiHilfe.ApKosten(moschus, w, _spieler!, new MoschusSchenken(0));
+                    knoepfe.AddChild(moschus);
+                }
             }
         }
         Text(_inhalt, $"„Bereit“ = Zuneigung + Ansehen eures Hauses ({Zahlenformat.Kommazahl(w.Rat.Ansehen(_spieler!))}, aus Stand und Vermögen). " +

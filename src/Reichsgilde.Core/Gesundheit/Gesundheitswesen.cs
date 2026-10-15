@@ -133,6 +133,8 @@ public sealed class Gesundheitswesen
         foreach (var (konto, p) in Personen().ToList())
         {
             if (p.Krankheit is not { } k || !p.Lebt) continue;
+            // Gift wirkt langsam: Tödlich wird es erst am Ende seines letzten Jahres – bis dahin hilft Gegengift.
+            if (k.NurGegengift && k.Bis > jahr) continue;
             if (_zufall.NextDouble() < Sterberisiko(k))
             {
                 _w.Familien.AnKrankheitSterben(p, k.IstPest ? "an der Pest" : $"an {k.Name}");

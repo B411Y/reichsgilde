@@ -15,8 +15,8 @@
       "Angst im Dunkeln": { "chance": 0.01, "talente": { "NachtUndNebel": 2 }, "schnaps": true },
       "Haarausfall":      { "chance": 0.01, "dauer": 2, "ansehen": 3 },
       "Lachanfälle":      { "chance": 0.01, "ansehen": 3, "schnaps": true },
-      "Vergiftung":       { "chance": 0, "talente": { "Handwerk": 1, "Kampf": 1 }, "sterben": 0.2, "gegengift": true },
-      "Schwere Vergiftung": { "chance": 0, "talente": { "Handwerk": 1, "Kampf": 2, "Verhandeln": 1 }, "sterben": 0.45, "gegengift": true }
+      "Vergiftung":       { "chance": 0, "dauer": 2, "talente": { "Handwerk": 1, "Kampf": 1 }, "sterben": 0.2, "gegengift": true },
+      "Schwere Vergiftung": { "chance": 0, "dauer": 2, "talente": { "Handwerk": 1, "Kampf": 2, "Verhandeln": 1 }, "sterben": 0.45, "gegengift": true }
     },
     "pest": {
       "abstandMin": 25, "abstandMax": 40,

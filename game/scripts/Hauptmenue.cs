@@ -149,6 +149,7 @@ public partial class Hauptmenue : Node
         _beruf.AddItem("Dieb (Schmugglerloch: Taschendiebe, Einbruch, Schutzgeld)");
         _beruf.AddItem("Gardist (Wachhaus: Sold, Streife, Razzia, Kopfgeld)");
         _beruf.AddItem("Geldleiher (Wechselstube: Kasse, Wechsel, Kredite an Häuser)");
+        _beruf.AddItem("Parfumeur (Siederei: Politur, Blume der Zwietracht, Giftdolch)");
         Zeile(raster, "Startberuf", _beruf);
         VolkHinweisZeigen();
 
@@ -265,7 +266,7 @@ public partial class Hauptmenue : Node
             new NeuePartie(_familie.Text, _startvermoegen.Value, (KiCharakter)_rivale.GetSelectedId(),
                 (Volk)_volk.GetSelectedId(), (Geschlecht)_geschlecht.GetSelectedId(),
                 string.IsNullOrWhiteSpace(_vorname.Text) ? null : _vorname.Text.Trim(),
-                Beruf: _beruf.Selected switch { 1 => "Tischler", 2 => "Steinmetz", 3 => "Alchimist", 4 => "Wirt", 5 => "Prediger", 6 => "Dieb", 7 => "Gardist", 8 => "Geldleiher", _ => "Schmied" },
+                Beruf: _beruf.Selected switch { 1 => "Tischler", 2 => "Steinmetz", 3 => "Alchimist", 4 => "Wirt", 5 => "Prediger", 6 => "Dieb", 7 => "Gardist", 8 => "Geldleiher", 9 => "Parfumeur", _ => "Schmied" },
                 Rivalen: _rivalen.GetSelectedId()));
         SpielStarten();
     }

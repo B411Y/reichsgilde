@@ -187,8 +187,9 @@ static class ParfumeurTests
             BisNacht(sim);
             Pruefe.Wahr(f.Oberhaupt.Krankheit?.NurGegengift == true, "vergiftet");
             JahrBeenden(sim);
+            Pruefe.Wahr(f.Oberhaupt.Lebt && f.Oberhaupt.Krankheit?.NurGegengift == true, "im ersten Jahr stirbt niemand am Gift");
             for (var i = 0; i < 7 * 60; i++) sim.Tick(); // die Politikstunde des neuen Jahres
-            Pruefe.Wahr(f.Oberhaupt.Krankheit is null || !f.Oberhaupt.Lebt, "Gegengift genommen (oder schon gestorben)");
+            Pruefe.Wahr(f.Oberhaupt.Krankheit is null, "Gegengift genommen");
         }),
 
         ("Speichern: Giftanschlag der Nacht, Moschus des Jahres und Heiligenduft überstehen Speichern und Laden; Startberuf Parfumeur", () =>

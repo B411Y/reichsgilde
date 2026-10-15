@@ -193,6 +193,9 @@ public partial class Stadtansicht : Node3D
         ["Wachhaus an der Torstraße"] = new(29, 0, 10),
         ["Wechselstube am Weinmarkt"] = new(-20, 0, 14), // derselbe Platz – je nach Startberuf
         ["Wechselstube am Markt"] = new(14, 0, -18),
+        ["Siederei am Weinmarkt"] = new(-20, 0, 14),     // derselbe Platz – je nach Startberuf
+        ["Siederei an der Seifengasse"] = new(-24.5f, 0, -29),
+        ["Duftgarten am Lavendelhang"] = new(90, 0, 8),
         ["Wachturm an der Landstraße"] = new(46, 0, -10),
         ["Schmugglerloch am Osttor"] = new(29, 0, -12),
         ["Kirche an der Westmauer"] = new(-30, 0, -4),
@@ -241,6 +244,7 @@ public partial class Stadtansicht : Node3D
         ["Bauernhof an der Mühle"] = new(46, 0, -26),
         ["Klosterhof am Osthang"] = new(64, 0, 43),      // auf dem Weg zum Kräutergarten
         ["Wachturm an der Landstraße"] = new(46, 0, -1), // direkt an der Landstraße
+        ["Duftgarten am Lavendelhang"] = Landstrasse,      // am Ende der Landstraße weiter nach Osten
     };
 
     /// <summary>Höhe der Beschriftung über einem freien Platz, wo die übliche (6 m) eine Nachbarbeschriftung verdeckte.</summary>
@@ -381,7 +385,7 @@ public partial class Stadtansicht : Node3D
         // Feste Liste – jede Partie sieht gleich aus. Später erzeugt der Stadtplan die Häuser.
         var haeuser = new (float X, float Z, bool Quer)[]
         {
-            (-29, -29, true), (-20, -29, true), (10, -29, true), // (−11|−29): Tinkturei am Domplatz; (19|−29), (28|−29): Maurerei Kieselbach
+            (10, -29, true), // (−11|−29): Tinkturei am Domplatz; (−24,5|−29): Siederei an der Seifengasse; (19|−29), (28|−29): Maurerei Kieselbach
             (-4, 29, true), (5, 29, true), // (−29|29): Schänke am Fischmarkt; (29|29): Maurerei an der Stadtmauer
             // (−29|±6): Kirche an der Westmauer; (29|−12): Schmugglerloch am Osttor; (29|10): Wachhaus an der Torstraße;
             // (14|−18): Wechselstube am Markt
@@ -480,7 +484,7 @@ public partial class Stadtansicht : Node3D
             ? GiessereiBauen(betrieb, platz, farbe, betrieb.Artdaten.Beruf switch
             {
                 "Tischler" => Werkstil.Tischlerei, "Steinmetz" => Werkstil.Maurerei, "Alchimist" => Werkstil.Tinkturei, "Wirt" => Werkstil.Schaenke,
-                "Prediger" => Werkstil.Kirche, "Dieb" => Werkstil.Diebesnest, "Gardist" => Werkstil.Wache, "Geldleiher" => Werkstil.Bank, _ => Werkstil.Giesserei,
+                "Prediger" => Werkstil.Kirche, "Dieb" => Werkstil.Diebesnest, "Gardist" => Werkstil.Wache, "Geldleiher" => Werkstil.Bank, "Parfumeur" => Werkstil.Siederei, _ => Werkstil.Giesserei,
             })
             : betrieb.Art switch
             {
@@ -490,6 +494,7 @@ public partial class Stadtansicht : Node3D
                 Betriebsart.Bauernhof => BauernhofBauen(betrieb, platz, farbe, abzweig),
                 Betriebsart.Klosterhof => KlosterhofBauen(betrieb, platz, farbe, abzweig),
                 Betriebsart.Wachturm => WachturmBauen(betrieb, platz, farbe, abzweig),
+                Betriebsart.Duftgarten => DuftgartenBauen(betrieb, platz, farbe, abzweig),
                 _ => MineBauen(betrieb, platz, farbe, abzweig),
             };
         ansicht.Spieler = spieler;
@@ -541,6 +546,11 @@ public partial class Stadtansicht : Node3D
             Klostergarten(p, gruppe);
             WegZiehen(Abzweige[frei.Name], p + new Vector3(-2, 0, 0), 4, gruppe);
             WegZiehen(Osttor, Abzweige[frei.Name], 4, gruppe);
+        }
+        else if (frei.Art == Betriebsart.Duftgarten)
+        {
+            Duftbeete(p, gruppe);
+            WegZiehen(Abzweige[frei.Name], p + new Vector3(-2, 0, 0), 4, gruppe);
         }
         else if (frei.Art == Betriebsart.Kraeutergarten)
         {
@@ -595,7 +605,7 @@ public partial class Stadtansicht : Node3D
     /// Werkstatt in Fachwerk. Die Gießerei hat eine glühende Esse und einen Innenraum (Diorama);
     /// die Tischlerei (<paramref name="tischlerei"/>) ein Schieferdach und Holzstapel vor der Tür – ihr Innenraum folgt später.
     /// </summary>
-    private enum Werkstil { Giesserei, Tischlerei, Maurerei, Tinkturei, Schaenke, Kirche, Diebesnest, Wache, Bank }
+    private enum Werkstil { Giesserei, Tischlerei, Maurerei, Tinkturei, Schaenke, Kirche, Diebesnest, Wache, Bank, Siederei }
 
     private BetriebsAnsicht GiessereiBauen(Betrieb betrieb, Vector3 p, Color besitzer, Werkstil stil = Werkstil.Giesserei)
     {
@@ -755,6 +765,30 @@ public partial class Stadtansicht : Node3D
             Quader(p + new Vector3(2.5f, 0.45f, tiefe / 2 + 1.3f), new Vector3(2.6f, 0.1f, 0.35f), holz);  // Bank
             Quader(p + new Vector3(2.5f, 0.45f, tiefe / 2 + 3.1f), new Vector3(2.6f, 0.1f, 0.35f), holz);  // Bank
         }
+        else if (stil == Werkstil.Siederei)
+        {
+            // Kupferkessel mit Destillierhelm an der Ostseite, Blumenkästen mit Lavendel und Jasmin, lila Fensterläden
+            var kupfer = Material(new Color(0.78f, 0.45f, 0.25f));
+            kupfer.Metallic = 0.6f;
+            kupfer.Roughness = 0.35f;
+            var kessel = p + new Vector3(breite / 2 + 1.4f, 0, -1);
+            Quader(kessel + new Vector3(0, 0.4f, 0), new Vector3(1.8f, 0.8f, 1.8f), Material(Mauerstein)); // Feuerstelle
+            AddChild(new MeshInstance3D { Mesh = new SphereMesh { Radius = 0.9f, Height = 1.6f }, MaterialOverride = kupfer, Position = kessel + new Vector3(0, 1.5f, 0) });
+            AddChild(new MeshInstance3D { Mesh = new CylinderMesh { TopRadius = 0.15f, BottomRadius = 0.4f, Height = 1.0f }, MaterialOverride = kupfer, Position = kessel + new Vector3(0, 2.6f, 0) });
+            Quader(kessel + new Vector3(0, 3.0f, 0.9f), new Vector3(0.12f, 0.12f, 1.8f), kupfer);                          // Kühlrohr
+            Quader(kessel + new Vector3(0, 1.7f, 1.8f), new Vector3(0.12f, 2.6f, 0.12f), kupfer);
+            var lavendel = Material(new Color(0.55f, 0.43f, 0.78f));
+            var jasmin = Material(new Color(0.96f, 0.95f, 0.88f));
+            var laden = Material(new Color(0.42f, 0.30f, 0.58f));
+            foreach (var x in new[] { 1.5f, 3.4f })
+            {
+                Quader(p + new Vector3(x, 2.4f, tiefe / 2 + 0.35f), new Vector3(1.4f, 0.35f, 0.5f), Material(Holz));          // Blumenkasten
+                for (var i = 0; i < 3; i++)
+                    Quader(p + new Vector3(x - 0.45f + i * 0.45f, 2.75f, tiefe / 2 + 0.35f), new Vector3(0.35f, 0.4f, 0.35f), i % 2 == 0 ? lavendel : jasmin);
+                foreach (var dx in new[] { -0.85f, 0.85f })
+                    Quader(p + new Vector3(x + dx, 3.4f, tiefe / 2 + 0.08f), new Vector3(0.3f, 1.2f, 0.06f), laden);           // Fensterläden
+            }
+        }
         else if (stil == Werkstil.Tinkturei)
         {
             // Fässer mit Kräuterauszügen an der Ostseite, ein Trockengestell mit Kräuterbündeln vor dem Tor
@@ -856,6 +890,7 @@ public partial class Stadtansicht : Node3D
                 "Dieb" => new Color(0.16f, 0.18f, 0.30f),       // nachtblau
                 "Gardist" => new Color(0.72f, 0.12f, 0.12f),    // stadtrot
                 "Geldleiher" => new Color(0.15f, 0.28f, 0.55f), // königsblau
+                "Parfumeur" => new Color(0.62f, 0.45f, 0.78f),  // lavendel
                 _ => new Color(0.85f, 0.68f, 0.25f),            // golden
             });
             spitze.Metallic = 0.5f;
@@ -1185,6 +1220,60 @@ public partial class Stadtansicht : Node3D
             MaterialOverride = Material(Wasser),
             Position = p + new Vector3(6, 0.05f, 6),
         });
+    }
+
+    /// <summary>Lavendel- und Jasminbeete im Wechsel, dazu ein Trockengestell.</summary>
+    private void Duftbeete(Vector3 p, Node3D? eltern = null)
+    {
+        var erde = Material(new Color(0.40f, 0.30f, 0.20f));
+        var lavendel = Material(new Color(0.55f, 0.43f, 0.78f));
+        var jasmin = Material(new Color(0.96f, 0.95f, 0.88f));
+        var blatt = Material(Kraut);
+        for (var reihe = 0; reihe < 5; reihe++)
+        {
+            var x = 0 + reihe * 2.2f;
+            Quader(p + new Vector3(x, 0.15f, -1), new Vector3(1.4f, 0.3f, 10), erde, eltern);
+            for (var i = 0; i < 5; i++)
+            {
+                var z = -5 + i * 2;
+                if (reihe % 2 == 0)
+                    Quader(p + new Vector3(x, 0.6f, z), new Vector3(0.9f, 0.7f, 1.2f), lavendel, eltern);
+                else
+                {
+                    Quader(p + new Vector3(x, 0.55f, z), new Vector3(1.0f, 0.6f, 1.0f), blatt, eltern);
+                    Quader(p + new Vector3(x, 0.95f, z), new Vector3(0.6f, 0.25f, 0.6f), jasmin, eltern);
+                }
+            }
+        }
+        var holz = Material(Holz);
+        Quader(p + new Vector3(4.4f, 1.6f, 6), new Vector3(6, 0.12f, 0.12f), holz, eltern);                  // Trockengestell
+        foreach (var dx in new[] { 1.6f, 7.2f })
+            Quader(p + new Vector3(dx, 0.8f, 6), new Vector3(0.15f, 1.6f, 0.15f), holz, eltern);
+        foreach (var dx in new[] { 2.6f, 3.6f, 4.6f, 5.6f, 6.6f })
+            Quader(p + new Vector3(dx, 1.25f, 6), new Vector3(0.3f, 0.6f, 0.3f), lavendel, eltern);
+    }
+
+    /// <summary>Duftgarten: Lavendel- und Jasminbeete, Trockengestell, Gärtnerhütte – östlich am Ende der Landstraße.</summary>
+    private BetriebsAnsicht DuftgartenBauen(Betrieb betrieb, Vector3 p, Color besitzer, Vector3 abzweig)
+    {
+        Duftbeete(p);
+        Haus(p + new Vector3(-6, 0, 6), new Vector3(6, 4, 5), Holz, Ziegel, quer: true);
+        Quader(p + new Vector3(-9.2f, 3.5f, 6), new Vector3(0.2f, 3, 2), Material(besitzer));
+
+        Klickflaeche(BetriebsKennung(betrieb), p + new Vector3(2, 3, 0), new Vector3(16, 6, 14));
+        var schild = Beschriftung(betrieb.Name, p + new Vector3(2, 7, 0), 44);
+        var hof = p + new Vector3(-2, 0, 0);
+        WegZiehen(abzweig, hof, 4);
+        if (AbstandZurStrecke(abzweig, Osttor, Landstrasse) > 1)
+            WegZiehen(Osttor, abzweig, 4);
+        return new BetriebsAnsicht
+        {
+            Betrieb = betrieb,
+            Mitte = p,
+            Hof = hof,
+            WegZumMarkt = new[] { hof, abzweig, Osttor, Marktplatz },
+            Schild = schild,
+        };
     }
 
     /// <summary>Kräutergarten: Beete, Teich, Gärtnerhütte – vor der Stadt am Bach.</summary>

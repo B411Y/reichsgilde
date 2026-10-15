@@ -26,7 +26,10 @@ public sealed class KrankheitDaten
     /// <summary>Ab diesem Alter dreimal so häufig (0 = immer gleich) – z. B. Vergesslichkeit.</summary>
     public int AlterAb { get; init; }
 
-    /// <summary>Eine Vergiftung (Giftdolch des Parfumeurs): Weder Medicus noch Kräuterschnaps helfen – nur Gegengift (ab Datenversion 21).</summary>
+    /// <summary>
+    /// Eine Vergiftung (Giftdolch des Parfumeurs): Weder Medicus noch Kräuterschnaps helfen – nur Gegengift (ab Datenversion 21).
+    /// Gestorben wird nur am Ende des letzten Jahres (<see cref="Dauer"/>) – bis dahin bleibt Zeit für das Gegengift.
+    /// </summary>
     public bool Gegengift { get; init; }
 }
 
