@@ -224,6 +224,7 @@ Format: `- PR #Nummer (Phase) – Inhalt`
 - PR #50 (–) – Flüssige Bewegung von Sonne, Schatten und Karren zwischen den Spielminuten
 - PR #51 (3) – Namen in der Stadt nur bei Hover, Auswahl oder Alt; Schild an freien Plätzen; Schriften Germania One und Alegreya
 - PR #52 (3) – Raumansicht: Werkstätten (Werkraum, Lager, Kontor, Wohnstube) und Rathaus (Ratssaal, Gericht, Amtsstube, Kerker) betreten, feste Ansicht je Raum
+- PR #53 (–) – Vierter Chat „Spiel-KI“: Bereich Ki/ und Buerger/, Andockstellen im Kern
 
 ### 6b. Offen (eine Zeile je Punkt; erledigt → Zeile löschen und unter 6a eintragen)
 
@@ -307,3 +308,11 @@ Format: `- PR #Nummer (Phase) – Inhalt`
 | Umfang | **Erst Prototyp**: dieser PR baut Werkstätten und Rathaus; Dom und der Feinschliff je Beruf folgen im zweiten PR. | 15.10.2026 |
 | Stammhaus | Die Familie wohnt in der **ersten eigenen Werkstatt in der Stadt**; dort gibt es die Wohnstube, das Oberhaupt sitzt tagsüber im Kontor, abends am Tisch. | 15.10.2026 |
 | Bildschirm | Im Raum bleibt das Bild frei: Gebäudefenster und Kontor des Hauses erscheinen nur in Kontor und Amtsstube. Die Raumleiste steht unten rechts. | 15.10.2026 |
+
+## 14. Chat für die Spiel-KI
+
+| Thema | Entscheidung | Datum |
+|---|---|---|
+| Vierter Chat | **Spiel-KI** übernimmt die Bürger-KI (Phase 2, neu in `src/Reichsgilde.Core/Buerger/`) und die KI-Häuser (`Ki/`, `KiRivale.cs`, bisher Kern). Der Kern behält Wirtschaft, Regeln und Daten. | 15.10.2026 |
+| Andocken | Der Spiel-KI-Chat darf kleine, im PR genannte Andockstellen in `Stadtwirtschaft.cs`, `wirtschaft.json` (eigener Abschnitt) und `Speicherstand.cs` (eigene Felder) ergänzen. Bestehende Werte und Regeln bleiben beim Kern. | 15.10.2026 |
+| Messungen | Spiel-KI misst seine eigenen Änderungen selbst (mit main-Commit), wie der Kern. | 15.10.2026 |
