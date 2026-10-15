@@ -390,6 +390,12 @@ public sealed class Unterwelt
         Ereignis(null, oeffentlich);
     }
 
+    /// <summary>Ein Betrieb wurde angegriffen (auch von Dieben) – die Stadt redet davon, die KI stellt Wächter ein.</summary>
+    internal void AngriffMerken(string betrieb) => _letzterAngriff[betrieb] = _w.Jahr;
+
+    /// <summary>Nachricht aus der Unterwelt (auch von den Dieben) – erscheint im Hinterzimmer und im Protokoll.</summary>
+    internal void Melden(Konto? fuer, string text) => Ereignis(fuer, text);
+
     private void Ereignis(Konto? fuer, string text)
     {
         _diesesJahr.Add(new Nachtereignis(fuer, text));

@@ -54,6 +54,9 @@ public sealed class Stadtwirtschaft
     /// <summary>Die Unterwelt: Hinterzimmer, Hinterhalte, Erpresserbriefe.</summary>
     public Unterwelt Gauner { get; }
 
+    /// <summary>Taschendiebe, Einbruch, Auskundschaften, Schutzgeld und Entführung – die Leute des Diebes.</summary>
+    public Diebeswesen Diebe { get; }
+
     /// <summary>Krankheiten, Pest, Medicus und Hausapotheke.</summary>
     public Gesundheitswesen Gesundheit { get; }
 
@@ -121,6 +124,7 @@ public sealed class Stadtwirtschaft
         Familien = new Familienbuch(this, daten.Dynastie, zufallsstartwert);
         Justiz = new Stadtgericht(this, daten.Justiz, zufallsstartwert);
         Gauner = new Unterwelt(this, daten.Gauner, zufallsstartwert);
+        Diebe = new Diebeswesen(this, daten.Dieb, zufallsstartwert);
         Gesundheit = new Gesundheitswesen(this, daten.Gesundheit, zufallsstartwert);
         Gastwirtschaft = new Gastwirtschaft(this, daten.Gastwirtschaft);
         Kirchenwesen = new Kirche.Kirchenwesen(this, daten.Kirche, zufallsstartwert);
@@ -273,6 +277,7 @@ public sealed class Stadtwirtschaft
         {
             Gastwirtschaft.Stunde(zeit);
             Kirchenwesen.Stunde(zeit); // zur Messe wird gespendet
+            Diebe.Stunde(zeit);        // die Taschendiebe der vergangenen Stunde
         }
 
         // Die KI überlegt jede volle Stunde – mit den Marktpreisen dieser Stunde.
@@ -287,7 +292,10 @@ public sealed class Stadtwirtschaft
 
         // Bei Nacht und Nebel: Die Banden aus dem Hinterzimmer ziehen los.
         if (zeit.MinuteImTag == Unterwelt.Nachtstunde)
+        {
             Gauner.Nacht(zeit);
+            Diebe.Nacht(); // die eigenen Leute der Diebe nach den angeheuerten Banden
+        }
 
         // Fairness: Wer in derselben Minute am Markt ankommt, ist in zufälliger Reihenfolge dran.
         // Sonst hätte immer der zuerst eröffnete Betrieb den besseren Preis (im Multiplayer: wer zuerst beitritt).
@@ -322,6 +330,7 @@ public sealed class Stadtwirtschaft
         Kirchenwesen.Jahresende();  // die Beichten des Jahres, neues Kirchenbuch
         Rat.Sitzung(_zufall, neuesJahr - 1);
         Gauner.Jahresende();
+        Diebe.Jahresende(); // unbeantwortete Forderungen: Feuer oder die Geisel wird verkauft
         AktionspunkteVerteilen(); // die neue Runde beginnt
         foreach (var rivale in _rivalen.Where(r => r.Konto.IstAktiv))
             rivale.Jahresende();
@@ -408,7 +417,7 @@ public sealed class Stadtwirtschaft
             return Befehlsergebnis.Abgelehnt($"{absender.Inhaber} ist bankrott und kann nichts mehr unternehmen.");
         if (absender.IstErloschen)
             return Befehlsergebnis.Abgelehnt($"Das Haus {absender.Inhaber} ist erloschen.");
-        if (Justiz.IstAktiv && Justiz.ImKerker(absender) && befehl is not (BetriebsBefehl or ErbenBestimmen or ErpressungBeantworten or AusbildungWaehlen
+        if (Justiz.IstAktiv && Justiz.ImKerker(absender) && befehl is not (BetriebsBefehl or ErbenBestimmen or ErpressungBeantworten or DiebesforderungBeantworten or AusbildungWaehlen
                                                                      or MedicusRufen or SchnapsKaufen or SchnapsGeben))
             return Befehlsergebnis.Abgelehnt($"Das Oberhaupt von {absender.Inhaber} sitzt bis Ende {Justiz.KerkerBis(absender)} im Kerker. " +
                                              "Nur die Betriebe laufen weiter.");
@@ -465,6 +474,27 @@ public sealed class Stadtwirtschaft
                 Beauftragen b => Gauner.Beauftragen(absender, haus, b.Art, b.Betrieb),
                 Erpressen e => Gauner.Erpressen(absender, haus, e.Betrag),
                 ErpressungBeantworten a => Gauner.ErpressungBeantworten(absender, haus, a.Zahlen),
+                _ => Befehlsergebnis.Abgelehnt("Unbekannter Befehl."),
+            };
+        }
+        if (befehl is Einbrechen or Auskundschaften or SchutzgeldFordern or Entfuehren or DiebesforderungBeantworten)
+        {
+            if (!Diebe.IstAktiv)
+                return Befehlsergebnis.Abgelehnt("In dieser Stadt gibt es keine Diebe.");
+            var hausName = befehl switch
+            {
+                Einbrechen e => e.Haus, Auskundschaften a => a.Haus, SchutzgeldFordern s => s.Haus, Entfuehren e => e.Haus,
+                DiebesforderungBeantworten d => d.Dieb, _ => "",
+            };
+            if (_konten.FirstOrDefault(k => k.Inhaber == hausName) is not { } haus)
+                return Befehlsergebnis.Abgelehnt($"Ein Haus „{hausName}“ gibt es nicht.");
+            return befehl switch
+            {
+                Einbrechen e => Diebe.Einbrechen(absender, haus, e.Betrieb),
+                Auskundschaften => Diebe.Auskundschaften(absender, haus),
+                SchutzgeldFordern s => Diebe.SchutzgeldFordern(absender, haus, s.Betrag),
+                Entfuehren e => Diebe.Entfuehren(absender, haus, e.Person, e.Betrag),
+                DiebesforderungBeantworten d => Diebe.Beantworten(absender, haus, d.Art, d.Zahlen),
                 _ => Befehlsergebnis.Abgelehnt("Unbekannter Befehl."),
             };
         }
@@ -718,6 +748,7 @@ public sealed class Stadtwirtschaft
         Gesundheit = Gesundheit.IstAktiv ? Gesundheit.Sichern(k => _konten.IndexOf(k)) : null,
         Gastwirtschaft = Gastwirtschaft.IstAktiv ? Gastwirtschaft.Sichern() : null,
         Kirche = Kirchenwesen.IstAktiv ? Kirchenwesen.Sichern(k => _konten.IndexOf(k)) : null,
+        Diebe = Diebe.IstAktiv ? Diebe.Sichern(k => _konten.IndexOf(k)) : null,
     };
 
     /// <summary>
@@ -766,6 +797,8 @@ public sealed class Stadtwirtschaft
             Gastwirtschaft.Wiederherstellen(gast);
         if (s.Kirche is { } kirchenStand && Kirchenwesen.IstAktiv)
             Kirchenwesen.Wiederherstellen(kirchenStand, _konten);
+        if (s.Diebe is { } diebeStand && Diebe.IstAktiv)
+            Diebe.Wiederherstellen(diebeStand, _konten);
     }
 
     public double HoechstesVermoegen => _konten.Count == 0 ? 0 : _konten.Max(k => k.Vermoegen);

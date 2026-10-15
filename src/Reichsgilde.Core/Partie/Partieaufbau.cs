@@ -123,8 +123,11 @@ public static class Partieaufbau
             w.Familien.Gruenden(konto, volk, geschlecht);
         var werkstatt = w.BetriebEroeffnen($"{daten.Art(b.Werkstatt).Name} {kurzname}", b.Werkstatt, konto);
         w.Einstellen(werkstatt, "Geselle", 2);
-        var umland = w.BetriebEroeffnen($"{daten.Art(b.Umland).Name} {kurzname}", b.Umland, konto);
-        w.Einstellen(umland, umlandKraft, 3);
+        if (b.Umland is { } umlandArt)
+        {
+            var umland = w.BetriebEroeffnen($"{daten.Art(umlandArt).Name} {kurzname}", umlandArt, konto);
+            w.Einstellen(umland, umlandKraft, 3);
+        }
         w.KiAnmelden(konto, ProfilFuer(charakter));
     }
 }

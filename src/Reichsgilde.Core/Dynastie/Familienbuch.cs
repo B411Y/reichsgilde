@@ -193,17 +193,18 @@ public sealed class Familienbuch
     /// <summary>Wer erben würde, wenn das Oberhaupt jetzt stürbe (null = niemand, das Haus erlischt).</summary>
     public Person? Erbe(Familie f)
     {
-        if (f.Testament is { Lebt: true } t && t.IstKindVon(f.Oberhaupt) && IstVolljaehrig(t))
+        // Wer als Geisel bei Dieben sitzt, kann das Haus nicht führen.
+        if (f.Testament is { Lebt: true } t && t.IstKindVon(f.Oberhaupt) && IstVolljaehrig(t) && !_w.Diebe.IstGeisel(t))
             return t;
-        if (f.Kinder.FirstOrDefault(k => k.Lebt && IstVolljaehrig(k)) is { } aeltestes)
+        if (f.Kinder.FirstOrDefault(k => k.Lebt && IstVolljaehrig(k) && !_w.Diebe.IstGeisel(k)) is { } aeltestes)
             return aeltestes;
-        return _d.Witwenrecht ? f.Ehepartner : null;
+        return _d.Witwenrecht && f.Ehepartner is { } witwe && !_w.Diebe.IstGeisel(witwe) ? witwe : null;
     }
 
     /// <summary>Chance auf ein Kind in diesem Jahr.</summary>
     public double Geburtschance(Familie f)
     {
-        if (f.Ehepartner is not { } partner) return 0;
+        if (f.Ehepartner is not { } partner || _w.Diebe.IstGeisel(partner)) return 0;
         if (!Paar(f.Oberhaupt, partner, out var frau, out var mann)) return 0;
         var v = _d.Volk(frau.Volk);
         var alter = frau.Alter(Jahr);
@@ -649,6 +650,21 @@ public sealed class Familienbuch
             Nachfolge(familie);
     }
 
+    /// <summary>
+    /// Eine Geisel, für die kein Lösegeld kam, wird in die Fremde verkauft: Sie gehört nicht mehr zum Haus
+    /// (zählt wie verstorben – kein Erbe, kein Unterhalt). Das Oberhaupt selbst wird nie entführt.
+    /// </summary>
+    internal void Verschwinden(Konto konto, Person p, string text)
+    {
+        if (Von(konto) is not { } f || p == f.Oberhaupt || !p.Lebt) return;
+        p.Todesjahr = Jahr;
+        p.Todesursache = "in die Fremde verschleppt";
+        p.Krankheit = null;
+        if (p == f.Ehepartner) f.Ehepartner = null;
+        if (f.Testament == p) f.Testament = null;
+        Ereignis(f.Konto, text);
+    }
+
     /// <summary>Das Oberhaupt ist tot: Testament, ältestes volljähriges Kind, Witwenrecht – oder das Haus erlischt.</summary>
     private void Nachfolge(Familie f)
     {
@@ -678,6 +694,17 @@ public sealed class Familienbuch
         Ereignis(f.Konto, $"{tot.OberhauptTitel} {tot.Name} ist mit {tot.Alter(Jahr)} Jahren{(tot.Todesursache is { } u2 ? " " + u2 : "")} gestorben. {wieErbe} ({erbe.Alter(Jahr)} Jahre). " +
                           "Ämter und Gunst im Rat beginnen von vorn.");
         Erbfall?.Invoke(f, tot, erbe);
+    }
+
+    /// <summary>Für Tests und Szenarien: ein Kind des Oberhaupts (etwa aus einer früheren Ehe) mit diesem Alter.</summary>
+    internal Person KindAufnehmen(Konto konto, int alter, Geschlecht geschlecht = Geschlecht.Frau)
+    {
+        var f = _familien[konto];
+        var o = f.Oberhaupt;
+        var kind = new Person(_naechsteNummer++, Vorname(_d.Volk(f.Volk), geschlecht), f.Nachname, f.Volk, geschlecht, Jahr - alter,
+            o.Geschlecht == Geschlecht.Mann ? o.Nummer : null, o.Geschlecht == Geschlecht.Frau ? o.Nummer : null);
+        f.MitgliederListe.Add(kind);
+        return kind;
     }
 
     private void Geburt(Familie f)

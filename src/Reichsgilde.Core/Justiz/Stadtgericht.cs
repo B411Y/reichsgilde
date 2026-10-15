@@ -23,6 +23,12 @@ public enum Vergehen
     Beichtbruch,
     /// <summary>Eine Hetzschrift gegen ein anderes Haus verbreiten.</summary>
     Verleumdung,
+    /// <summary>Ein Dieb des Hauses wird am Markt beim Taschendiebstahl erwischt.</summary>
+    Taschendiebstahl,
+    /// <summary>Schutzgeld von einem anderen Haus verlangen (Diebe im Unterschlupf).</summary>
+    Schutzgeld,
+    /// <summary>Einen Angehörigen eines anderen Hauses verschleppen und Lösegeld fordern.</summary>
+    Entfuehrung,
 }
 
 public static class VergehenTexte
@@ -30,6 +36,8 @@ public static class VergehenTexte
     public static string Name(this Vergehen v) => v switch
     {
         Vergehen.Raub => "Überfall",
+        Vergehen.Schutzgeld => "Schutzgelderpressung",
+        Vergehen.Entfuehrung => "Entführung",
         _ => v.ToString(),
     };
 
@@ -75,6 +83,9 @@ public sealed class Spur
         Vergehen.Erpressung => $"{Jahr}: Erpressung von {Betroffener} – {Zahlenformat.Ganz(Betrag)} Gulden verlangt",
         Vergehen.Beichtbruch => $"{Jahr}: Beichtgeheimnis gebrochen – gegen {Betroffener}",
         Vergehen.Verleumdung => $"{Jahr}: Hetzschrift gegen {Betroffener}",
+        Vergehen.Taschendiebstahl => $"{Jahr}: Taschendiebstahl am Markt – {Zahlenformat.Ganz(Betrag)} Gulden",
+        Vergehen.Schutzgeld => $"{Jahr}: Schutzgeld von {Betroffener} verlangt – {Zahlenformat.Ganz(Betrag)} Gulden",
+        Vergehen.Entfuehrung => $"{Jahr}: Entführung bei {Betroffener} – {Zahlenformat.Ganz(Betrag)} Gulden Lösegeld",
         _ => $"{Jahr}: {Art.Name()}",
     };
 }

@@ -135,6 +135,7 @@ public sealed class KiRivale
                 Meisterpruefung();
                 if (Profil.Gaunerei >= 2)
                 {
+                    Diebeszuege(); // die eigenen Leute zuerst – sie kosten kein Geld
                     Gaunerei();
                     Politik();
                     Anklagen();
@@ -331,8 +332,12 @@ public sealed class KiRivale
     private bool NeuerBeruf(string beruf) =>
         _w.Daten.Berufe.Count > 0 && Konto.Berufe.Count > 0 && !Konto.Beherrscht(beruf);
 
+    /// <summary>Den Dieb erlernt nur ein wagemutiges Haus – die anderen fürchten um Ansehen und Ehre.</summary>
+    public bool DiebErlaubt => Profil.Gaunerei >= 2;
+
     private bool DarfBerufLernen(string beruf) =>
-        IstReich && Konto.Berufe.Count < MaxBerufe && _w.Daten.Berufe.ContainsKey(beruf) && _w.ApReichen(Konto, new BerufErlernen(beruf));
+        (!_w.Diebe.IstAktiv || beruf != _w.Diebe.Daten.Beruf || DiebErlaubt)
+        && IstReich && Konto.Berufe.Count < MaxBerufe && _w.Daten.Berufe.ContainsKey(beruf) && _w.ApReichen(Konto, new BerufErlernen(beruf));
 
     /// <summary>
     /// Eine freie Werkstatt kaufen oder einen Umlandbetrieb pachten, wenn es sich rechnet:
@@ -379,7 +384,7 @@ public sealed class KiRivale
     private void Ausbauen()
     {
         var waehrung = _w.Daten.Allgemein.Waehrung;
-        foreach (var b in Betriebe.Where(b => b.IstWerkstatt).OrderBy(b => b.Name, StringComparer.Ordinal).ToList())
+        foreach (var b in Betriebe.Where(b => b.InDerStadt).OrderBy(b => b.Name, StringComparer.Ordinal).ToList())
         {
             if (_w.AusbauVerboten(Konto, b) is not null) continue;
             var neu = _w.Daten.Art(b.Artdaten.Ausbau!.Value);
@@ -460,7 +465,7 @@ public sealed class KiRivale
     private void Meisterpruefung()
     {
         var reihe = Konto.Berufe
-            .OrderByDescending(beruf => Betriebe.Count(b => b.IstWerkstatt && b.Artdaten.Beruf == beruf))
+            .OrderByDescending(beruf => Betriebe.Count(b => b.InDerStadt && b.Artdaten.Beruf == beruf))
             .ThenBy(beruf => beruf, StringComparer.Ordinal)
             .ToList();
         foreach (var beruf in reihe)
@@ -743,7 +748,29 @@ public sealed class KiRivale
                 : $"weist den Erpresserbrief von {f.Erpresser.Inhaber} zurück ({Zahlenformat.Ganz(f.Betrag)} verlangt, die Strafe wäre ≈ {Zahlenformat.Ganz(strafe)}).");
         }
 
-        // 2. Wächter für Betriebe, die in den letzten zwei Jahren angegriffen wurden.
+        // 2. Forderungen von Dieben: Lösegeld zahlt jede KI, sobald sie kann (die Familie geht vor);
+        //    Schutzgeld nur, wenn es billiger ist als der drohende Brand – sonst ein Wächter für das Brandziel.
+        var diebe = _w.Diebe;
+        if (diebe.IstAktiv)
+            foreach (var brief in diebe.Briefe.Where(b => b.Opfer == Konto).ToList())
+            {
+                if (brief.Art == Diebesbriefart.Loesegeld)
+                {
+                    if (Konto.Vermoegen - brief.Betrag >= Profil.Reserve / 4)
+                        Befehlen(new DiebesforderungBeantworten(brief.Dieb.Inhaber, brief.Art, true),
+                            $"zahlt {brief.Dieb.Inhaber} {Zahlenformat.Ganz(brief.Betrag)} Lösegeld – die Familie geht vor.");
+                    continue;
+                }
+                var brand = diebe.DrohenderBrand(Konto, brief.Dieb);
+                var zahlen = brief.Betrag <= brand && Konto.Vermoegen - brief.Betrag >= Profil.Reserve / 2;
+                if (!zahlen && diebe.Brandziel(Konto) is { Waechter: false } ziel && Konto.Vermoegen - g.WaechterKosten >= Profil.Reserve / 2)
+                    Befehlen(new WaechterSetzen(ziel.Name, true), $"stellt gegen die Drohung von {brief.Dieb.Inhaber} einen Wächter für {ziel.Name} ein.");
+                Befehlen(new DiebesforderungBeantworten(brief.Dieb.Inhaber, brief.Art, zahlen), zahlen
+                    ? $"zahlt {brief.Dieb.Inhaber} {Zahlenformat.Ganz(brief.Betrag)} Schutzgeld (ein Brand kostete ≈ {Zahlenformat.Ganz(brand)})."
+                    : $"weist die Schutzgeldforderung von {brief.Dieb.Inhaber} zurück ({Zahlenformat.Ganz(brief.Betrag)} verlangt, ein Brand kostete ≈ {Zahlenformat.Ganz(brand)}).");
+            }
+
+        // 3. Wächter für Betriebe, die in den letzten zwei Jahren angegriffen wurden.
         foreach (var b in Betriebe.Where(b => !b.Waechter && unterwelt.LetzterAngriff(b.Name) >= _w.Jahr - 1).ToList())
             if (Konto.Vermoegen - g.WaechterKosten >= Profil.Reserve)
                 Befehlen(new WaechterSetzen(b.Name, true), $"stellt nach dem Angriff einen Wächter für {b.Name} ein.");
@@ -785,6 +812,52 @@ public sealed class KiRivale
                 $"heuert im Hinterzimmer eine Bande an: {beste.Art.Name()} gegen {ziel.Inhaber}" +
                 $"{(beste.Betrieb is null ? "" : $" ({beste.Betrieb})")} – erwarteter Vorteil ≈ {Zahlenformat.Ganz(beste.Wert)}."))
             _gaunereienImJahr++;
+    }
+
+    /// <summary>
+    /// Ein wagemutiges Haus mit eigenen Dieben (Schmugglerloch, Unterschlupf, Diebesgilde), einmal am Tag:
+    ///   • Einbruch in den Betrieb, der im Mittel am meisten bringt,
+    ///   • Auskundschaften beim führenden Haus (Beweise für eine spätere Erpressung oder Anklage),
+    ///   • ab Unterschlupf Schutzgeld vom reichsten Haus – 80 % dessen, was ein Brand dort kostete,
+    ///   • in der Diebesgilde eine Entführung beim reichsten Haus mit Angehörigen (10 % seines Vermögens, 500–3.000).
+    /// Die Zahl der Aufträge je Nacht begrenzt die Stufe, die Aktionspunkte tun ihr Übriges.
+    /// </summary>
+    private void Diebeszuege()
+    {
+        var diebe = _w.Diebe;
+        if (!diebe.IstAktiv || diebe.Versteck(Konto) is not { } versteck) return;
+        var waehrung = _w.Daten.Allgemein.Waehrung;
+        var rangliste = _w.Rangliste.Where(k => k != Konto && k.IstAktiv).ToList();
+
+        if (diebe.Verboten(Konto, Diebesstueck.Einbruch) is null)
+        {
+            var ziel = _w.Betriebe.Where(b => b.Konto != Konto && b.Konto.IstAktiv)
+                .Select(b => (Betrieb: b, Wert: diebe.ErwarteterEinbruch(b, Konto)))
+                .Where(x => x.Wert > 150)
+                .OrderByDescending(x => x.Wert).ThenBy(x => x.Betrieb.Name, StringComparer.Ordinal).FirstOrDefault();
+            if (ziel.Betrieb is not null)
+                Befehlen(new Einbrechen(ziel.Betrieb.Konto.Inhaber, ziel.Betrieb.Name),
+                    $"schickt seine Leute aus {versteck.Name} zum Einbruch in {ziel.Betrieb.Name} (erwartet ≈ {Zahlenformat.Ganz(ziel.Wert)} {waehrung}).");
+        }
+
+        var reichstes = rangliste.OrderByDescending(k => k.Vermoegen).ThenBy(k => k.Inhaber, StringComparer.Ordinal).FirstOrDefault();
+        if (reichstes is not null && versteck.Stufe >= diebe.Daten.Schutzgeld.AbStufe && diebe.BriefAn(reichstes, Konto, Diebesbriefart.Schutzgeld) is null)
+        {
+            var betrag = Math.Max(100, Math.Round(diebe.DrohenderBrand(reichstes, Konto) * 0.8 / 50) * 50);
+            Befehlen(new SchutzgeldFordern(reichstes.Inhaber, betrag), $"verlangt von {reichstes.Inhaber} {Zahlenformat.Ganz(betrag)} {waehrung} Schutzgeld.");
+        }
+
+        if (diebe.Verboten(Konto, Diebesstueck.Entfuehrung) is null && !diebe.Briefe.Any(b => b.Dieb == Konto && b.Art == Diebesbriefart.Loesegeld)
+            && rangliste.Where(k => diebe.Entfuehrbar(k).Any()).OrderByDescending(k => k.Vermoegen).ThenBy(k => k.Inhaber, StringComparer.Ordinal).FirstOrDefault() is { } opfer)
+        {
+            var person = diebe.Entfuehrbar(opfer).OrderBy(p => p.Geburtsjahr).ThenBy(p => p.Nummer).First();
+            var loesegeld = Math.Clamp(Math.Round(opfer.Vermoegen * 0.1 / 100) * 100, 500, 3000);
+            Befehlen(new Entfuehren(opfer.Inhaber, person.Nummer, loesegeld),
+                $"lässt heute Nacht {person.Vorname} aus dem Haus {opfer.Inhaber} entführen ({Zahlenformat.Ganz(loesegeld)} {waehrung} Lösegeld).");
+        }
+
+        if (diebe.Verboten(Konto, Diebesstueck.Auskundschaften) is null && rangliste.FirstOrDefault() is { } fuehrend)
+            Befehlen(new Auskundschaften(fuehrend.Inhaber), $"lässt {fuehrend.Inhaber} ausspähen.");
     }
 
     /// <summary>Wagemutig: Mit genug Beweisen Schweigegeld verlangen – 60 % dessen, was den Gegner eine Verurteilung kostete.</summary>
