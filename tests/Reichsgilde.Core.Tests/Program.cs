@@ -251,6 +251,7 @@ tests.AddRange(MeistergradeTests.Alle());
 tests.AddRange(SteinmetzTests.Alle());
 tests.AddRange(AlchimistTests.Alle());
 tests.AddRange(WirtTests.Alle());
+tests.AddRange(PredigerTests.Alle());
 
 // ── Testlauf ────────────────────────────────────────────────────────────────
 var fehler = 0;

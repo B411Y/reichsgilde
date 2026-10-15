@@ -1,5 +1,5 @@
 {
-  "version": 16,
+  "version": 17,
   "gesundheit": {
     "medicusKosten": 120,
     "medicusKostenPest": 300,
@@ -32,6 +32,7 @@
       "Schenken": 1, "AmtBewerben": 1, "StatutBeantragen": 2,
       "SpitzelAnsetzen": 1, "Anklagen": 2,
       "Beauftragen": 1, "Erpressen": 2,
+      "AblassKaufen": 1, "BeichtgeheimnisBrechen": 2, "HetzschriftVerbreiten": 1, "LehrschriftLesen": 1,
       "BerufErlernen": 4
     }
   },
@@ -410,6 +411,78 @@
       "nachfrage": 50,
       "npcAnteil": 0.7
     },
+    "Lumpen": {
+      "typ": "Rohstoff",
+      "grundpreis": 8,
+      "zeit": 8,
+      "zutaten": {},
+      "nachfrage": 600,
+      "npcAnteil": 0.9
+    },
+    "Wachs": {
+      "typ": "Rohstoff",
+      "grundpreis": 20,
+      "zeit": 20,
+      "zutaten": {},
+      "nachfrage": 300,
+      "npcAnteil": 0.9
+    },
+    "Papier": {
+      "typ": "Zwischenprodukt",
+      "grundpreis": 36,
+      "zeit": 30,
+      "zutaten": { "Lumpen": 2 },
+      "nachfrage": 150,
+      "npcAnteil": 0.7
+    },
+    "Kerze": {
+      "typ": "Fertigprodukt",
+      "grundpreis": 78,
+      "zeit": 40,
+      "zutaten": { "Wachs": 2 },
+      "nachfrage": 150,
+      "npcAnteil": 0.7
+    },
+    "Lehrschrift": {
+      "typ": "Fertigprodukt",
+      "grundpreis": 168,
+      "zeit": 60,
+      "zutaten": { "Papier": 3 },
+      "nachfrage": 80,
+      "npcAnteil": 0.7
+    },
+    "Hetzschrift": {
+      "typ": "Fertigprodukt",
+      "grundpreis": 176,
+      "zeit": 50,
+      "zutaten": { "Papier": 2, "Farbe": 1 },
+      "nachfrage": 60,
+      "npcAnteil": 0.7
+    },
+    "Psalter": {
+      "typ": "Fertigprodukt",
+      "grundpreis": 285,
+      "zeit": 70,
+      "zutaten": { "Papier": 4, "Beschlag": 1 },
+      "nachfrage": 80,
+      "npcAnteil": 0.7
+    },
+    "Stundenbuch": {
+      "typ": "Fertigprodukt",
+      "grundpreis": 470,
+      "zeit": 100,
+      "zutaten": { "Papier": 5, "Gold": 1, "Farbe": 2 },
+      "nachfrage": 40,
+      "npcAnteil": 0.7
+    },
+    "Reliquiar": {
+      "typ": "Fertigprodukt",
+      "grundpreis": 275,
+      "zeit": 80,
+      "zutaten": { "Silber": 2, "Gold": 1, "Holzzapfen": 1 },
+      "nachfrage": 50,
+      "npcAnteil": 0.7
+    },
     "Kräuterschnaps": {
       "typ": "Heilmittel",
       "grundpreis": 25,
@@ -679,7 +752,8 @@
     "Tischler": { "werkstatt": "Tischlerei", "umland": "Holzfaellerei", "lehrgeld": 500, "beschreibung": "Holz aus dem Wald, in der Tischlerei zu Holzzapfen, Schemeln und Truhen (mit Beschlag vom Schmied); als Meister in Drechslerei und Sägewerk auch Gehstöcke, Armbrüste, Schränke und Prunktruhen." },
     "Steinmetz": { "werkstatt": "Maurerei", "umland": "Steinbruch", "lehrgeld": 500, "beschreibung": "Bruchstein und Granit aus dem Steinbruch, in der Maurerei zu Schleifziegeln, Grabsteinen und Mühlsteinen; als Meister in Steinschneiderei und Steinmetzhütte auch Säulen, Taufbecken, Steinfiguren (mit Werkzeug vom Schmied) und Grabmäler." },
     "Alchimist": { "werkstatt": "Tinkturei", "umland": "Kraeutergarten", "lehrgeld": 500, "beschreibung": "Kräuter und Kröten aus dem Kräutergarten, in der Tinkturei zu Farbe, Kräuterschnaps und Heilsalbe; als Meister in Kräuterladen und Alchimistenstube auch Rosenwasser, Gegengift, Theriak und Zinnober (mit Silber vom Schmied und Schleifziegeln vom Steinmetz). Wer das Handwerk beherrscht, mischt Krötenschleim selbst." },
-    "Wirt": { "werkstatt": "Schaenke", "umland": "Bauernhof", "lehrgeld": 500, "beschreibung": "Gerste und Roggen vom Bauernhof, in der Schänke zu Weingeist, Körnermahlzeit und Dünnbier – ausgeschenkt an Gäste im Haus, der Rest geht zum Markt. Die dunkle Ecke hört Gerüchte, das Wirtshaus hat einen Würfeltisch, das Gasthaus einen Stammtisch der Ratsherren." }
+    "Wirt": { "werkstatt": "Schaenke", "umland": "Bauernhof", "lehrgeld": 500, "beschreibung": "Gerste und Roggen vom Bauernhof, in der Schänke zu Weingeist, Körnermahlzeit und Dünnbier – ausgeschenkt an Gäste im Haus, der Rest geht zum Markt. Die dunkle Ecke hört Gerüchte, das Wirtshaus hat einen Würfeltisch, das Gasthaus einen Stammtisch der Ratsherren." },
+    "Prediger": { "werkstatt": "Kirche", "umland": "Klosterhof", "lehrgeld": 500, "beschreibung": "Lumpen und Bienenwachs vom Klosterhof, in der Kirche zu Papier, Kerzen und Lehrschriften. Jeden Tag kommen Gläubige zur Messe und spenden; andere Häuser kaufen Ablass für ihre Taten, und was in der Beichte gesagt wird, weiß der Prediger. Als Meister in Dom und Kathedrale auch Hetzschriften, Psalter, Stundenbücher und Reliquiare." }
   },
   "betriebsarten": {
     "Giesserei":     { "name": "Gießerei",     "beruf": "Schmied",  "ort": "Werkstatt", "stufe": 1, "plaetze": 2, "fixkosten": 80,  "produkte": [ "Beschlag", "Rapier", "Silberring" ], "standardprodukt": "Silberring", "startkarren": "Handkarren", "ausbau": "Schmiede", "ausbauKosten": 2500 },
@@ -701,7 +775,11 @@
     "Schaenke":         { "name": "Schänke",          "beruf": "Wirt",      "ort": "Werkstatt", "stufe": 1, "plaetze": 2, "fixkosten": 80,  "produkte": [ "Weingeist", "Körnermahlzeit", "Dünnbier" ], "standardprodukt": "Körnermahlzeit", "startkarren": "Handkarren", "ausbau": "Wirtshaus", "ausbauKosten": 2500 },
     "Wirtshaus":        { "name": "Wirtshaus",        "beruf": "Wirt",      "ort": "Werkstatt", "stufe": 2, "plaetze": 3, "fixkosten": 120, "produkte": [ "Weingeist", "Körnermahlzeit", "Dünnbier", "Starkbier", "Kräuterlikör" ], "standardprodukt": "Starkbier", "startkarren": "Handkarren", "ausbau": "Gasthaus", "ausbauKosten": 5000 },
     "Gasthaus":         { "name": "Gasthaus",         "beruf": "Wirt",      "ort": "Werkstatt", "stufe": 3, "plaetze": 4, "fixkosten": 180, "produkte": [ "Weingeist", "Körnermahlzeit", "Dünnbier", "Starkbier", "Kräuterlikör", "Festbier", "Schädelbrand" ], "standardprodukt": "Festbier", "startkarren": "Handkarren" },
-    "Bauernhof":        { "name": "Bauernhof",        "beruf": "Wirt",      "ort": "Umland",    "plaetze": 3, "fixkosten": 400, "rohstoffe": [ "Gerste", "Roggen" ], "startkarren": "Ochsenkarren" }
+    "Bauernhof":        { "name": "Bauernhof",        "beruf": "Wirt",      "ort": "Umland",    "plaetze": 3, "fixkosten": 400, "rohstoffe": [ "Gerste", "Roggen" ], "startkarren": "Ochsenkarren" },
+    "Kirche":           { "name": "Kirche",           "beruf": "Prediger",  "ort": "Werkstatt", "stufe": 1, "plaetze": 2, "fixkosten": 80,  "produkte": [ "Papier", "Kerze", "Lehrschrift" ], "standardprodukt": "Kerze", "startkarren": "Handkarren", "ausbau": "Dom", "ausbauKosten": 2500 },
+    "Dom":              { "name": "Dom",              "beruf": "Prediger",  "ort": "Werkstatt", "stufe": 2, "plaetze": 3, "fixkosten": 120, "produkte": [ "Papier", "Kerze", "Lehrschrift", "Hetzschrift", "Psalter" ], "standardprodukt": "Psalter", "startkarren": "Handkarren", "ausbau": "Kathedrale", "ausbauKosten": 5000 },
+    "Kathedrale":       { "name": "Kathedrale",       "beruf": "Prediger",  "ort": "Werkstatt", "stufe": 3, "plaetze": 4, "fixkosten": 180, "produkte": [ "Papier", "Kerze", "Lehrschrift", "Hetzschrift", "Psalter", "Stundenbuch", "Reliquiar" ], "standardprodukt": "Stundenbuch", "startkarren": "Handkarren" },
+    "Klosterhof":       { "name": "Klosterhof",       "beruf": "Prediger",  "ort": "Umland",    "plaetze": 3, "fixkosten": 400, "rohstoffe": [ "Lumpen", "Wachs" ], "startkarren": "Ochsenkarren" }
   },
   "gastwirtschaft": {
     "beruf": "Wirt",
@@ -718,6 +796,20 @@
     "wuerfeltisch": { "abStufe": 2, "einsatzJeGast": 4, "ansehen": 2 },
     "stammtisch": { "abStufe": 3, "gunst": 4 },
     "barde": { "kosten": 120, "gaeste": 0.5, "zeche": 0.1, "stammtisch": 2 }
+  },
+  "kirche": {
+    "beruf": "Prediger",
+    "messeUm": 10,
+    "glaeubigeJeJahr": 200,
+    "spendeJeGlaeubigem": 2.5,
+    "anziehungJeStufe": [ 1, 1.5, 2 ],
+    "anziehungJeAnsehen": 0.0125,
+    "anziehungJeRhetorik": 0.1,
+    "ablass": { "grundpreis": 250, "anteilTat": 0.5 },
+    "beichte": { "chance": 0.25, "betrag": 200 },
+    "lehrschrift": "Lehrschrift",
+    "lehrschriftBis": 3,
+    "hetzschrift": { "ware": "Hetzschrift", "ansehen": 5 }
   },
   "meistergrade": {
     "pruefungen": [
@@ -796,6 +888,18 @@
     {
       "name": "Bauernhof an der Mühle",
       "art": "Bauernhof",
+      "kaufpreis": 0,
+      "mindestStand": "Bürger"
+    },
+    {
+      "name": "Kirche an der Westmauer",
+      "art": "Kirche",
+      "kaufpreis": 3500,
+      "mindestStand": "Bürger"
+    },
+    {
+      "name": "Klosterhof am Osthang",
+      "art": "Klosterhof",
       "kaufpreis": 0,
       "mindestStand": "Bürger"
     }

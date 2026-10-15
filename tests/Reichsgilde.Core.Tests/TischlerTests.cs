@@ -20,11 +20,11 @@ static class TischlerTests
 
     public static IEnumerable<(string, Action)> Alle() => new (string, Action)[]
     {
-        ("Daten: zwanzig Betriebsarten, fünf Berufe – der Tischler macht aus Holz Holzzapfen, Schemel und Truhen", () =>
+        ("Daten: vierundzwanzig Betriebsarten, sechs Berufe – der Tischler macht aus Holz Holzzapfen, Schemel und Truhen", () =>
         {
             var d = Daten.Value;
-            Pruefe.Gleich(20, d.Betriebsarten.Count);
-            Pruefe.Gleich(5, d.Berufe.Count);
+            Pruefe.Gleich(24, d.Betriebsarten.Count);
+            Pruefe.Gleich(6, d.Berufe.Count);
             var t = d.Art(Betriebsart.Tischlerei);
             Pruefe.Gleich("Tischler", t.Beruf);
             Pruefe.Wahr(t.Produkte.SequenceEqual(new[] { "Holzzapfen", "Schemel", "Truhe" }), string.Join(",", t.Produkte));

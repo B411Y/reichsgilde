@@ -110,6 +110,18 @@ public sealed record BerufErlernen(string Beruf) : Befehl;
 /// <summary>Die Meisterprüfung für den nächsten Grad in diesem Beruf ablegen (genug Erfahrung, Gebühr und Aktionspunkte).</summary>
 public sealed record MeisterpruefungAblegen(string Beruf) : Befehl;
 
+/// <summary>In einer fremden Kirche Ablass kaufen: Eine eigene Tat verfällt sofort, mit allen Beweisen dafür.</summary>
+public sealed record AblassKaufen(string Kirche) : Befehl;
+
+/// <summary>Der Prediger verrät, was er in der Beichte über dieses Haus gehört hat: Beweise – aber selbst ein Vergehen.</summary>
+public sealed record BeichtgeheimnisBrechen(string Haus) : Befehl;
+
+/// <summary>Das Oberhaupt liest eine Lehrschrift (aus dem Lager oder vom Markt): +½ Stern bis 3 Sterne, einmal je Jahr, 1 AP.</summary>
+public sealed record LehrschriftLesen(Dynastie.Talent Talent) : Befehl;
+
+/// <summary>Eine Hetzschrift gegen ein Haus verbreiten: dessen Ansehen sinkt bis Ende nächsten Jahres – Vergehen Verleumdung.</summary>
+public sealed record HetzschriftVerbreiten(string Haus) : Befehl;
+
 /// <summary>Für heute Abend einen Barden in die Schänke holen (Gulden, keine AP): mehr Gäste, höhere Zeche, doppelte Stammtisch-Gunst.</summary>
 public sealed record BardeEinladen(string Betrieb) : BetriebsBefehl(Betrieb);
 

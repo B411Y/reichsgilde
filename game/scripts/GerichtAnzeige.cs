@@ -201,6 +201,25 @@ public partial class GerichtAnzeige : PanelContainer
                 : $"Ihr habt {spuren.Count} {(spuren.Count == 1 ? "Tat" : "Taten")} begangen ({VergehenTexte.Aufzaehlung(spuren.Select(s => s.Art))}), die noch nicht verjährt " +
                   $"{(spuren.Count == 1 ? "ist" : "sind")} (zusammen {Zahlenformat.Ganz(spuren.Sum(s => s.Betrag))} {waehrung}). " +
                   $"Verjährung nach {d.VerjaehrungJahre} Jahren.", 13, spuren.Count == 0 ? Grau : null, umbrechen: true);
+        // Ablass: eine Tat in einer fremden Kirche freikaufen
+        var kw = w.Kirchenwesen;
+        if (kw.IstAktiv && kw.AblassFuer(_spieler) is { } tat)
+        {
+            var preis = kw.Ablasspreis(tat);
+            var kirchen = kw.Kirchen.Where(b => b.Konto != _spieler).OrderBy(b => b.Name, StringComparer.Ordinal).ToList();
+            var zeile = new HBoxContainer();
+            zeile.AddThemeConstantOverride("separation", 10);
+            _inhalt.AddChild(zeile);
+            var bekannt = gericht.BeweiseFuer(tat);
+            Text(zeile, $"Ablass für „{tat.Beschreibung}“ ({(bekannt > 0 ? $"{bekannt}× bekannt" : "niemand weiß davon")}): {Zahlenformat.Ganz(preis)} {waehrung}", 13);
+            if (kirchen.Count == 0)
+                Text(zeile, "· keine fremde Kirche in der Stadt", 13, Grau);
+            else
+                foreach (var kirche in kirchen)
+                    Knopf(zeile, $"in {kirche.Name}", () => Befehlen(new AblassKaufen(kirche.Name)), gesperrt: _spieler.Vermoegen < preis,
+                        hinweis: $"Die Tat verfällt sofort – mit allen Beweisen, die andere dafür haben. Das Geld geht an {kirche.Konto.Inhaber}.",
+                        ap: new AblassKaufen(""));
+        }
         if (gericht.WurdeBeobachtet(_spieler))
             Text(_inhalt, "Am letzten Gerichtstag hat ein Spitzel über euch berichtet. Man hat ein Auge auf euch!", 13, Rot, umbrechen: true);
         if (gericht.PrangerBis(_spieler) is int bis)

@@ -19,6 +19,10 @@ public enum Vergehen
     Erpressung,
     /// <summary>Krötenschleim ins Essen eines fremden Oberhaupts (Hinterzimmer).</summary>
     Giftmischerei,
+    /// <summary>Ein Prediger verrät, was ihm in der Beichte anvertraut wurde.</summary>
+    Beichtbruch,
+    /// <summary>Eine Hetzschrift gegen ein anderes Haus verbreiten.</summary>
+    Verleumdung,
 }
 
 public static class VergehenTexte
@@ -69,6 +73,8 @@ public sealed class Spur
         Vergehen.Sabotage => $"{Jahr}: Sabotage in {Betroffener} – Schaden {Zahlenformat.Ganz(Betrag)} Gulden",
         Vergehen.Raub => $"{Jahr}: Überfall auf {Betroffener} – Beute für {Zahlenformat.Ganz(Betrag)} Gulden",
         Vergehen.Erpressung => $"{Jahr}: Erpressung von {Betroffener} – {Zahlenformat.Ganz(Betrag)} Gulden verlangt",
+        Vergehen.Beichtbruch => $"{Jahr}: Beichtgeheimnis gebrochen – gegen {Betroffener}",
+        Vergehen.Verleumdung => $"{Jahr}: Hetzschrift gegen {Betroffener}",
         _ => $"{Jahr}: {Art.Name()}",
     };
 }
@@ -265,6 +271,15 @@ public sealed class Stadtgericht
         _spuren.Add(spur);
         return spur;
     }
+
+    /// <summary>Ablass: Die Spur verfällt sofort – mit allen Beweisen, die andere dafür hatten.</summary>
+    internal void Lossprechen(Spur spur) => SpurenEntfernen(s => s.Nummer == spur.Nummer);
+
+    /// <summary>Wer gegen dieses Haus Beweise für diese Spur hat (ohne den Täter selbst).</summary>
+    public int BeweiseFuer(Spur spur) => _beweise.Count(b => b.Spur == spur.Nummer);
+
+    /// <summary>Hat <paramref name="inhaber"/> schon einen Beweis für diese Spur?</summary>
+    public bool KenntSpur(Konto inhaber, Spur spur) => _beweise.Contains((inhaber, spur.Nummer));
 
     /// <summary>Ein Zeuge (oder ein Erpresserbrief): <paramref name="inhaber"/> hat sofort einen Beweis für diese Spur.</summary>
     internal void BeweisGeben(Konto inhaber, Spur spur)

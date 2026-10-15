@@ -550,6 +550,113 @@ def schaedelbrand(b):
     b.px(16, 23, KONTUR)
 
 
+# ── Prediger ─────────────────────────────────────────────────────────────────
+PERGAMENT = (232, 218, 176)
+PERGAMENT_D = (196, 176, 128)
+WACHS = (236, 206, 112)
+
+
+def lumpen(b):
+    # Ein Bündel alter Stofffetzen, mit Schnur zusammengebunden
+    b.vieleck([(4, 20), (10, 11), (17, 14), (13, 25), (6, 26)], (150, 130, 110))
+    b.vieleck([(12, 12), (22, 8), (28, 17), (21, 24), (14, 21)], (120, 120, 150))
+    b.vieleck([(9, 19), (20, 18), (27, 25), (17, 28), (8, 27)], (170, 150, 120))
+    b.linie(6, 22, 26, 19, (90, 70, 50), 1)
+    for x, y in ((14, 16), (20, 13), (12, 25), (22, 24)):
+        b.px(x, y, (200, 190, 170))
+
+
+def wachs(b):
+    # Wabe: zwei Reihen goldener Sechsecke
+    for cx, cy in ((10, 11), (19, 11), (5.5, 18), (14.5, 18), (23.5, 18), (10, 25), (19, 25)):
+        b.vieleck([(cx - 4, cy), (cx - 2, cy - 3.5), (cx + 2, cy - 3.5), (cx + 4, cy), (cx + 2, cy + 3.5), (cx - 2, cy + 3.5)], WACHS)
+        b.ellipse(cx, cy, 1.6, 1.6, (200, 150, 50))
+
+
+def papier(b):
+    # Ein Stapel Bögen, der oberste leicht verdreht
+    b.vieleck([(5, 15), (23, 11), (27, 23), (9, 27)], PERGAMENT_D)
+    b.vieleck([(4, 12), (22, 9), (26, 21), (8, 24)], PERGAMENT)
+    for y in (14, 17, 20):
+        b.linie(9, y + 0, 21, y - 2, (205, 190, 150))
+
+
+def kerze(b):
+    b.ellipse(16, 27, 9, 2.5, EISEN)  # Leuchter
+    b.rect(14, 23, 18, 26, EISEN_D)
+    b.rect(12, 9, 20, 23, (240, 228, 196))  # Kerze
+    b.rect(12, 9, 13, 14, (220, 200, 160))  # Wachstropfen
+    b.linie(16, 6, 16, 8, KONTUR)
+    b.ellipse(16, 4.5, 1.8, 2.8, (255, 196, 70))  # Flamme
+    b.px(16, 4, (255, 245, 200))
+
+
+def buch(b, deckel, schnitt, zier):
+    b.vieleck([(6, 6), (24, 4), (27, 25), (9, 28)], deckel)
+    b.vieleck([(24, 4), (27, 6), (29, 26), (27, 25)], schnitt)
+    b.linie(9, 28, 27, 25, schnitt)
+    zier(b)
+
+
+def lehrschrift(b):
+    # Aufgerollte Schriftrolle mit Zeilen
+    b.rect(7, 8, 25, 24, PERGAMENT)
+    b.ellipse(7, 16, 2.5, 9, PERGAMENT_D)
+    b.ellipse(25, 16, 2.5, 9, PERGAMENT_D)
+    for y in range(11, 23, 3):
+        b.linie(11, y, 21, y, (90, 70, 50))
+    b.rect(11, 22, 13, 25, ROT)  # Siegel
+    b.ellipse(12, 26, 1.8, 1.4, ROT)
+
+
+def hetzschrift(b):
+    # Flugblatt mit roter Fratze, an einen Pfahl genagelt
+    b.rect(14, 3, 17, 29, HOLZ)
+    b.vieleck([(5, 6), (26, 5), (25, 24), (6, 25)], PERGAMENT)
+    b.ellipse(15.5, 13, 5, 5, ROT)
+    b.px(13, 12, KONTUR)
+    b.px(18, 12, KONTUR)
+    b.linie(12, 9, 14, 11, KONTUR)  # böse Brauen
+    b.linie(19, 9, 17, 11, KONTUR)
+    b.linie(14, 15, 17, 15, KONTUR)  # Mundwinkel nach unten
+    b.px(13, 16, KONTUR)
+    b.px(18, 16, KONTUR)
+    for y in (20, 22):
+        b.linie(9, y, 22, y, (90, 70, 50))
+    b.px(15, 6, EISEN_D)
+
+
+def psalter(b):
+    def zier(b):
+        b.rect(12, 9, 20, 22, (150, 40, 34))  # Lederfeld
+        b.rect(15, 11, 17, 20, GOLD)  # Kreuz
+        b.rect(13, 13, 19, 14, GOLD)
+        for x, y in ((8, 7), (22, 5), (10, 25), (24, 23)):
+            b.ellipse(x + 0.5, y + 0.5, 1.4, 1.4, EISEN)  # Buchbeschläge
+    buch(b, LEDER, PERGAMENT, zier)
+
+
+def stundenbuch(b):
+    def zier(b):
+        b.rect(11, 9, 22, 22, (40, 70, 140))  # blaues Feld
+        b.ellipse(16.5, 15.5, 3.6, 3.6, GOLD)  # goldene Rosette
+        b.ellipse(16.5, 15.5, 1.5, 1.5, ROT)
+        for x, y in ((8, 7), (22, 5), (10, 25), (24, 23)):
+            b.ellipse(x + 0.5, y + 0.5, 1.6, 1.6, GOLD)
+    buch(b, (110, 40, 60), (240, 220, 150), zier)
+
+
+def reliquiar(b):
+    # Kleiner goldener Schrein mit Satteldach und Silberkreuz
+    b.rect(6, 15, 26, 27, GOLD)
+    b.vieleck([(5, 15), (16, 7), (27, 15)], GOLD_D)
+    b.rect(10, 18, 14, 24, EDELSTEIN)
+    b.rect(18, 18, 22, 24, ROT)
+    b.rect(15, 2, 16, 8, SILBER)
+    b.rect(13, 4, 18, 5, SILBER)
+    b.rect(6, 27, 26, 28, GOLD_D)
+
+
 WAREN = {
     "Eisen": eisen, "Silber": silber, "Gold": gold, "Holz": holz, "Bruchstein": bruchstein, "Granit": granit,
     "Kräuter": kraeuter, "Kröte": kroete,
@@ -563,6 +670,8 @@ WAREN = {
     "Kräuterschnaps": kraeuterschnaps,
     "Gerste": gerste, "Roggen": roggen, "Weingeist": weingeist, "Körnermahlzeit": koernermahlzeit, "Dünnbier": duennbier,
     "Starkbier": starkbier, "Kräuterlikör": kraeuterlikoer, "Festbier": festbier, "Schädelbrand": schaedelbrand,
+    "Lumpen": lumpen, "Wachs": wachs, "Papier": papier, "Kerze": kerze, "Lehrschrift": lehrschrift, "Hetzschrift": hetzschrift,
+    "Psalter": psalter, "Stundenbuch": stundenbuch, "Reliquiar": reliquiar,
 }
 
 

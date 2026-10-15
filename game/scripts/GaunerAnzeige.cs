@@ -202,6 +202,26 @@ public partial class GaunerAnzeige : PanelContainer
                               "Wer schon krank ist, merkt nichts davon.", 12, Grau, umbrechen: true);
             }
 
+            // Hetzschrift – gegen das Ansehen des Hauses
+            if (w.Kirchenwesen is { IstAktiv: true } kw)
+            {
+                var zeile = new HBoxContainer();
+                zeile.AddThemeConstantOverride("separation", 10);
+                _inhalt.AddChild(zeile);
+                var hetze = kw.Daten.Hetzschrift;
+                Text(zeile, $"Ansehen {Zahlenformat.Ganz(w.Rat.Ansehen(haus))}", 14);
+                if (kw.GehetztBis(haus) is int bis)
+                    Text(zeile, $"· eine Hetzschrift geht um (bis Ende {bis})", 13, Gold);
+                else
+                {
+                    var preis = kw.Schriftpreis(_spieler, hetze.Ware);
+                    Knopf(zeile, $"Hetzschrift ({(preis > 0 ? Zahlenformat.Ganz(preis) : "aus dem Lager")})", () => Befehlen(new HetzschriftVerbreiten(haus.Inhaber)),
+                        gesperrt: imKerker || _spieler.Vermoegen < preis,
+                        hinweis: $"{Zahlenformat.Ganz(hetze.Ansehen)} Ansehen weniger bis Ende nächsten Jahres (Wahl, Brautschau, Kirche). Vergehen: Verleumdung.",
+                        ap: new HetzschriftVerbreiten(""));
+                }
+            }
+
             // Erpressung
             if (gericht.IstAktiv)
             {
