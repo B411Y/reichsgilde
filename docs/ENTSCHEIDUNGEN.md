@@ -223,7 +223,7 @@ Format: `- PR #Nummer (Phase) – Inhalt`
 - PR #49 (3) – Innenräume für Rathaus (Ratssaal, Gerichtssaal, Amtsstube, Kerker) und Dom nach dem Stadtglauben
 - PR #50 (–) – Flüssige Bewegung von Sonne, Schatten und Karren zwischen den Spielminuten
 - PR #51 (3) – Namen in der Stadt nur bei Hover, Auswahl oder Alt; Schild an freien Plätzen; Schriften Germania One und Alegreya
-- PR #52 (–) – Vierter Chat „Spiel-KI“: Bereich Ki/ und Buerger/, Andockstellen im Kern
+- PR #53 (–) – Vierter Chat „Spiel-KI“: Bereich Ki/ und Buerger/, Andockstellen im Kern
 
 ### 6b. Offen (eine Zeile je Punkt; erledigt → Zeile löschen und unter 6a eintragen)
 
