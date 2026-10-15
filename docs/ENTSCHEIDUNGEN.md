@@ -30,6 +30,7 @@ Seit 15.10.2026 im Repository (vorher im Claude-Projekt). Änderungen laufen wie
 | Grafikansatz | **3D-Modelle mit orthografischer Schrägkamera** (40° Neigung). Blick **diagonal zu den Himmelsrichtungen**: Nordosten, Nordwesten, Südwesten, Südosten; Drehung nur in 90°-Schritten. (Kurz erprobt und verworfen: Blick genau nach N/O/S/W.) | 13.10.2026 |
 | Nachtlicht | Mond wirft Schatten (kühl, etwas weicher), wenig blaues Umgebungslicht, weicher Übergang in der Dämmerung. Idee für später: Mondphasen je Jahr (Neumond = mehr Überfälle). | 13.10.2026 |
 | Schattenqualität | Gegen Treppenstufen an den Schattenkanten (vor allem bei flachem Mondlicht): **Schattenkarte der Sonne 8192 statt 4096 Pixel, Filter „Ultra“** (`project.godot`, Abschnitt `rendering`) und **leichte Weichzeichnung** (`ShadowBlur = 1,5`). Kostet mehr Grafikspeicher (ca. 128 MB) und etwas Rechenzeit; wird später zur Grafikoption, falls schwächere Rechner ruckeln. | 15.10.2026 |
+| Kantenglättung und Einstellungen | **Einstellungen-Fenster** im Haupt- und Spielmenü; Vollbild zieht dorthin um (F11 bleibt). Kantenglättung wählbar: Aus, FXAA, **SMAA (Standard)**, TAA, MSAA 2×/4×/8×. DLSS gibt es in Godot nicht (geschlossene Nvidia-Bibliothek); AMDs FSR 2.2 ist eingebaut und kommt später als Leistungsoption für schwache Rechner (Hochrechnen aus kleinerer Auflösung). | 15.10.2026 |
 | Fenster und Oberfläche | Fenster **frei ziehbar ohne Mindestgröße**, Oberfläche in **fester Pixelgröße** (größeres Fenster = mehr Stadt, nicht größere Schrift). Tafeln, die nicht passen, **rollen** (senkrecht und waagrecht). **Vollbild per F11** und im Haupt- und Spielmenü, Wahl wird gespeichert. | 14.10.2026 |
 | Innenansicht | ~~Diorama~~ → ersetzt durch die **Raumansicht** (Abschnitt 13); nur der Dom ist noch ein Diorama. Früher: **Diorama**: Gebäude wird aufgeschnitten – Dach und die zwei Wände zur Kamera ausgeblendet, Nachbarhäuser davor ebenfalls. Betreten per Doppelklick oder Knopf, Esc zurück. | 13.10.2026 |
 
@@ -228,6 +229,7 @@ Format: `- PR #Nummer (Phase) – Inhalt`
 - PR #53 (–) – Vierter Chat „Spiel-KI“: Bereich Ki/ und Buerger/, Andockstellen im Kern
 - PR #54 (2) – Bürger-KI Schritt 1: Einwohner mit Tagesablauf nach Bedürfnissen, noch ohne Wirkung auf die Wirtschaft
 - PR #55 (3) – Schattenkanten ohne Treppen: Schattenkarte 8192, Filter Ultra, leichte Weichzeichnung
+- PR #56 (3) – Einstellungen-Fenster: Kantenglättung wählbar (Standard SMAA), Vollbild
 
 ### 6b. Offen (eine Zeile je Punkt; erledigt → Zeile löschen und unter 6a eintragen)
 

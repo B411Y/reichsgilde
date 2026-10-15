@@ -3,7 +3,9 @@ using Godot;
 namespace Reichsgilde;
 
 /// <summary>
-/// Fenster oder Vollbild – umschaltbar mit F11 (überall) und im Spielmenü; die Wahl wird gespeichert.
+/// Anzeige-Einstellungen: Fenster oder Vollbild (auch F11, überall) und die Kantenglättung.
+/// Geändert werden sie im Fenster „Einstellungen“ (<see cref="EinstellungenAnzeige"/>), gespeichert in
+/// <c>user://einstellungen.cfg</c> und beim Start wieder angewendet.
 ///
 /// Läuft als Autoload (project.godot → [autoload]): Godot legt den Knoten beim Start einmal an und behält
 /// ihn über alle Szenenwechsel. So gilt F11 im Hauptmenü wie im Spiel, und die Einstellung wird nur einmal geladen.
@@ -26,9 +28,57 @@ public partial class Fenster : Node
         _instanz = this;
         Schriften.Einrichten(GetTree());
         var einstellungen = new ConfigFile();
-        if (einstellungen.Load(Datei) == Error.Ok && einstellungen.GetValue("anzeige", "vollbild", false).AsBool())
+        var geladen = einstellungen.Load(Datei) == Error.Ok;
+        if (geladen && einstellungen.GetValue("anzeige", "vollbild", false).AsBool())
             Setzen(true, speichern: false);
+        var kanten = geladen ? einstellungen.GetValue("anzeige", "kantenglaettung", "").AsString() : "";
+        KantenglaettungSetzen(Enum.TryParse<Kantenglaettung>(kanten, out var k) ? k : StandardKantenglaettung, speichern: false);
     }
+
+    // ── Kantenglättung ──────────────────────────────────────────────────────
+
+    /// <summary>Ohne gespeicherte Wahl: SMAA – glättet unsere klaren Kanten gut und kostet kaum Leistung.</summary>
+    public const Kantenglaettung StandardKantenglaettung = Kantenglaettung.Smaa;
+
+    public static Kantenglaettung AktuelleKantenglaettung { get; private set; } = StandardKantenglaettung;
+
+    /// <summary>
+    /// Stellt die Kantenglättung am Hauptfenster um. Alle 3D-Ansichten zeichnen in dieses Fenster,
+    /// darum gilt die Wahl sofort für Stadt, Innenräume und Hauptmenü.
+    /// Es ist immer genau ein Verfahren aktiv: Mehrere zugleich kosten nur Leistung und machen das Bild weicher.
+    /// </summary>
+    public static void KantenglaettungSetzen(Kantenglaettung art, bool speichern = true)
+    {
+        AktuelleKantenglaettung = art;
+        if (_instanz?.GetTree().Root is { } fenster)
+        {
+            fenster.Msaa3D = art switch
+            {
+                Kantenglaettung.Msaa2 => Viewport.Msaa.Msaa2X,
+                Kantenglaettung.Msaa4 => Viewport.Msaa.Msaa4X,
+                Kantenglaettung.Msaa8 => Viewport.Msaa.Msaa8X,
+                _ => Viewport.Msaa.Disabled,
+            };
+            fenster.ScreenSpaceAA = art switch
+            {
+                Kantenglaettung.Fxaa => Viewport.ScreenSpaceAAEnum.Fxaa,
+                Kantenglaettung.Smaa => Viewport.ScreenSpaceAAEnum.Smaa,
+                _ => Viewport.ScreenSpaceAAEnum.Disabled,
+            };
+            fenster.UseTaa = art == Kantenglaettung.Taa;
+        }
+        if (speichern) Speichern("kantenglaettung", art.ToString());
+    }
+
+    private static void Speichern(string schluessel, Variant wert)
+    {
+        var einstellungen = new ConfigFile();
+        einstellungen.Load(Datei); // andere Einstellungen behalten (fehlt die Datei, bleibt sie leer)
+        einstellungen.SetValue("anzeige", schluessel, wert);
+        einstellungen.Save(Datei);
+    }
+
+    // ── Vollbild ────────────────────────────────────────────────────────────
 
     public override void _Input(InputEvent eingabe)
     {
@@ -40,6 +90,8 @@ public partial class Fenster : Node
     }
 
     public static void Umschalten() => Setzen(!IstVollbild);
+
+    public static void VollbildSetzen(bool vollbild) => Setzen(vollbild);
 
     private static void Setzen(bool vollbild, bool speichern = true)
     {
@@ -54,13 +106,7 @@ public partial class Fenster : Node
             return;
         }
         DisplayServer.WindowSetMode(vollbild ? DisplayServer.WindowMode.Fullscreen : DisplayServer.WindowMode.Windowed);
-        if (speichern)
-        {
-            var einstellungen = new ConfigFile();
-            einstellungen.Load(Datei); // andere Einstellungen behalten (fehlt die Datei, bleibt sie leer)
-            einstellungen.SetValue("anzeige", "vollbild", vollbild);
-            einstellungen.Save(Datei);
-        }
+        if (speichern) Speichern("vollbild", vollbild);
     }
 
     /// <summary>Kurzer Hinweis oben in der Mitte, verschwindet nach fünf Sekunden – in Menü und Spiel.</summary>
@@ -91,3 +137,6 @@ public partial class Fenster : Node
         GetTree().CreateTimer(5).Timeout += () => { if (nummer == _hinweisNummer) _hinweis?.Hide(); };
     }
 }
+
+/// <summary>Die Verfahren zur Kantenglättung, die Godot 4.7 mitbringt (Beschreibung: <see cref="EinstellungenAnzeige"/>).</summary>
+public enum Kantenglaettung { Aus, Fxaa, Smaa, Taa, Msaa2, Msaa4, Msaa8 }

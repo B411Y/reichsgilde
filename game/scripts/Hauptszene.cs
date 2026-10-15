@@ -32,6 +32,8 @@ namespace Reichsgilde;
 ///   --gericht=1        gleich zu Beginn den Gerichtssaal öffnen
 ///   --hinterzimmer=1   gleich zu Beginn das Hinterzimmer öffnen
 ///   --markt=1          gleich zu Beginn das Marktfenster öffnen
+///   --einstellungen=1  gleich zu Beginn das Fenster „Einstellungen“ öffnen
+///   --kanten=<Art>     Kantenglättung nur für diesen Start (Aus, Fxaa, Smaa, Taa, Msaa2, Msaa4, Msaa8)
 ///   --laden=datei.json einen Spielstand aus dem Spielstand-Ordner laden
 /// </summary>
 public partial class Hauptszene : Node
@@ -84,6 +86,7 @@ public partial class Hauptszene : Node
 
     // Spielmenü (Esc): Weiter, Speichern, Laden, Hauptmenü, Beenden
     private PanelContainer _spielmenue = null!;
+    private EinstellungenAnzeige _einstellungen = null!;
     private VBoxContainer _menueKnoepfe = null!;
     private SpielstandListe _menueListe = null!;
     private Label _menueMeldung = null!;
@@ -259,6 +262,13 @@ public partial class Hauptszene : Node
             _hinterzimmer.Oeffnen();
         if (optionen.TryGetValue("markt", out var markt) && markt == "1")
             _markt.Oeffnen();
+        if (optionen.TryGetValue("einstellungen", out var einstellungen) && einstellungen == "1")
+        {
+            SpielmenueOeffnen();
+            EinstellungenOeffnen();
+        }
+        if (optionen.TryGetValue("kanten", out var kanten) && Enum.TryParse<Kantenglaettung>(kanten, true, out var art))
+            Fenster.KantenglaettungSetzen(art, speichern: false); // für Vergleichsbilder, ändert die gespeicherte Wahl nicht
         if (optionen.TryGetValue("bericht", out var bericht) && bericht == "1" && _spieler is not null)
             _jahresbericht.Zeigen(_simulation, _spieler);
         if (optionen.TryGetValue("innen", out var innen))
@@ -380,7 +390,7 @@ public partial class Hauptszene : Node
             _menueListe.Auffrischen();
             _menueListe.Visible = !_menueListe.Visible;
         });
-        Hauptmenue.Knopf(_menueKnoepfe, "Vollbild / Fenster (F11)", Fenster.Umschalten);
+        Hauptmenue.Knopf(_menueKnoepfe, "Einstellungen", EinstellungenOeffnen);
         Hauptmenue.Knopf(_menueKnoepfe, "Zum Hauptmenü", () => GetTree().ChangeSceneToFile("res://scenes/Hauptmenue.tscn"));
         Hauptmenue.Knopf(_menueKnoepfe, "Spiel beenden", () => GetTree().Quit());
 
@@ -399,8 +409,26 @@ public partial class Hauptszene : Node
                 _menueMeldung.Text = fehler.Message;
             }
         };
+        _einstellungen = new EinstellungenAnzeige(EinstellungenSchliessen);
+        mitte.AddChild(_einstellungen.Tafel);
+        _einstellungen.Tafel.Hide();
+
         _menueMeldung = Hauptmenue.Text(spalte, "Ungespeicherter Fortschritt geht beim Laden oder im Hauptmenü verloren.", 12, new Color(0.7f, 0.7f, 0.7f), umbruchBreite: 360);
         tafel.Hide();
+    }
+
+    // Die Einstellungen liegen an der Stelle des Spielmenüs; das Spiel bleibt dabei pausiert.
+    private void EinstellungenOeffnen()
+    {
+        _einstellungen.Auffrischen();
+        _spielmenue.Hide();
+        _einstellungen.Tafel.Show();
+    }
+
+    private void EinstellungenSchliessen()
+    {
+        _einstellungen.Tafel.Hide();
+        _spielmenue.Show();
     }
 
     private void SpielmenueOeffnen()
@@ -511,6 +539,8 @@ public partial class Hauptszene : Node
                 _hinterzimmer.Hide();
             else if (_markt.Visible)
                 _markt.Hide();
+            else if (_einstellungen.Tafel.Visible)
+                EinstellungenSchliessen();
             else if (_spielmenue.Visible)
                 SpielmenueSchliessen();
             else if (_stadt.InnenKennung is not null)
