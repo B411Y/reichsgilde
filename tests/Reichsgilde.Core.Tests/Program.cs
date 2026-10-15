@@ -1,3 +1,4 @@
+using System.Reflection;
 using Reichsgilde.Core;
 using Reichsgilde.Core.Partie;
 using Reichsgilde.Core.Zeit;
@@ -237,33 +238,17 @@ var tests = new List<(string Name, Action Pruefung)>
     }),
 };
 
-tests.AddRange(WirtschaftTests.Alle());
-tests.AddRange(LogistikTests.Alle());
-tests.AddRange(KiTests.Alle());
-tests.AddRange(BefehlTests.Alle());
-tests.AddRange(StandTests.Alle());
-tests.AddRange(LiegenschaftTests.Alle());
-tests.AddRange(SpeicherTests.Alle());
-tests.AddRange(RatTests.Alle());
-tests.AddRange(DynastieTests.Alle());
-tests.AddRange(GerichtTests.Alle());
-tests.AddRange(GaunerTests.Alle());
-tests.AddRange(TalenteTests.Alle());
-tests.AddRange(AktionspunkteTests.Alle());
-tests.AddRange(GesundheitTests.Alle());
-tests.AddRange(TischlerTests.Alle());
-tests.AddRange(MeistergradeTests.Alle());
-tests.AddRange(SteinmetzTests.Alle());
-tests.AddRange(AlchimistTests.Alle());
-tests.AddRange(WirtTests.Alle());
-tests.AddRange(PredigerTests.Alle());
-tests.AddRange(DiebTests.Alle());
-tests.AddRange(GardistTests.Alle());
-tests.AddRange(GeldleiherTests.Alle());
-tests.AddRange(ParfumeurTests.Alle());
-tests.AddRange(GlaubeTests.Alle());
-tests.AddRange(VoelkerboniTests.Alle());
-tests.AddRange(HandelTests.Alle());
+// Alle Testklassen werden automatisch gefunden: jede statische Klasse mit
+//   public static IEnumerable<(string, Action)> Alle()
+// Eine neue Testdatei anzulegen genügt – hier muss nichts eingetragen werden. Früher stand hier eine Liste,
+// die jeder Chat an derselben Stelle ergänzte; zwei PRs gleichzeitig ergaben dann sicher einen Merge-Konflikt.
+// Reihenfolge: nach Klassenname (fest, damit jeder Lauf gleich abläuft).
+foreach (var klasse in typeof(Pruefe).Assembly.GetTypes()
+             .Where(t => t is { IsClass: true, IsAbstract: true, IsSealed: true }) // = statische Klasse
+             .OrderBy(t => t.Name, StringComparer.Ordinal))
+    if (klasse.GetMethod("Alle", BindingFlags.Public | BindingFlags.Static, Type.EmptyTypes)?.Invoke(null, null)
+        is IEnumerable<(string, Action)> liste)
+        tests.AddRange(liste);
 
 // ── Testlauf ────────────────────────────────────────────────────────────────
 var fehler = 0;
