@@ -27,6 +27,11 @@ public partial class GaunerAnzeige : PanelContainer
     /// <summary>Gewünschtes Schweigegeld je Haus – nur der Wert wird gemerkt, das Feld entsteht bei jedem Aufbau neu.</summary>
     private readonly Dictionary<string, double> _schweigegeld = new();
 
+    /// <summary>Gewünschtes Schutzgeld und Lösegeld je Haus, gewählte Geisel je Haus (Nummer der Person).</summary>
+    private readonly Dictionary<string, double> _schutzgeld = new();
+    private readonly Dictionary<string, double> _loesegeld = new();
+    private readonly Dictionary<string, int> _geisel = new();
+
     /// <summary>Ergebnis eines Befehls – für das Protokoll.</summary>
     public event Action<string>? Gemeldet;
 
@@ -95,6 +100,77 @@ public partial class GaunerAnzeige : PanelContainer
 
     private static string Prozent(double anteil) => $"{Zahlenformat.Ganz(anteil * 100)} %";
 
+    private static string StufenName(Stadtwirtschaft w, int stufe) =>
+        w.Daten.Betriebsarten.Values.FirstOrDefault(a => a.Beruf == w.Diebe.Daten.Beruf && a.Stufe == stufe)?.Name ?? $"Stufe {stufe}";
+
+    /// <summary>Was die eigenen Diebe gegen dieses Haus tun können: ausspähen, Schutzgeld verlangen, jemanden entführen.</summary>
+    private void EigeneLeute(Stadtwirtschaft w, Konto haus, bool imKerker)
+    {
+        var diebe = w.Diebe;
+        var waehrung = w.Daten.Allgemein.Waehrung;
+        var schluessel = haus.Inhaber;
+
+        var zeile = new HBoxContainer();
+        zeile.AddThemeConstantOverride("separation", 10);
+        _inhalt.AddChild(zeile);
+        Text(zeile, "Eure Leute", 14);
+        if (diebe.Auftraege.Any(a => a.Dieb == _spieler && a.Ziel == haus && a.Art == Diebesstueck.Auskundschaften))
+            Text(zeile, "· spähen heute Nacht aus", 13, Gold);
+        else
+        {
+            var grund = diebe.Verboten(_spieler!, Diebesstueck.Auskundschaften);
+            Knopf(zeile, "Auskundschaften", () => Befehlen(new Auskundschaften(haus.Inhaber)), gesperrt: imKerker || grund is not null,
+                hinweis: grund ?? $"Je unbekannte Tat {Prozent(diebe.Daten.Auskundschaften.Chance)} Chance auf einen Beweis – Grundlage für Erpressung und Anklage. Keine Spur.",
+                ap: new Auskundschaften(""));
+        }
+
+        // Schutzgeld
+        var versteck = diebe.Versteck(_spieler!)!;
+        if (versteck.Stufe >= diebe.Daten.Schutzgeld.AbStufe)
+        {
+            var schutz = new HBoxContainer();
+            schutz.AddThemeConstantOverride("separation", 10);
+            _inhalt.AddChild(schutz);
+            Text(schutz, "Schutzgeld", 14);
+            if (diebe.BriefAn(haus, _spieler!, Diebesbriefart.Schutzgeld) is { } offen)
+                Text(schutz, $"· {Zahlenformat.Ganz(offen.Betrag)} verlangt – wartet auf Antwort", 13, Gold);
+            else
+            {
+                var vorschlag = Math.Max(100, Math.Round(diebe.DrohenderBrand(haus, _spieler!) * 0.8 / 50) * 50);
+                var feld = new Zahlfeld { MinValue = 50, MaxValue = 20_000, Step = 50, Value = _schutzgeld.GetValueOrDefault(schluessel, vorschlag), Suffix = waehrung, CustomMinimumSize = new Vector2(150, 0) };
+                feld.ValueChanged += wert => _schutzgeld[schluessel] = wert;
+                schutz.AddChild(feld);
+                Knopf(schutz, "Fordern", () => Befehlen(new SchutzgeldFordern(haus.Inhaber, _schutzgeld.GetValueOrDefault(schluessel, vorschlag))), gesperrt: imKerker,
+                    hinweis: $"Zahlt das Haus nicht, brennt nachts sein wertvollster Betrieb (erwarteter Schaden ≈ {Zahlenformat.Ganz(diebe.DrohenderBrand(haus, _spieler!))}). " +
+                             "Die Forderung ist ein Beweis gegen euch.", ap: new SchutzgeldFordern("", 0));
+            }
+        }
+
+        // Entführung
+        if (versteck.Stufe >= diebe.Daten.Entfuehrung.AbStufe && diebe.Entfuehrbar(haus).ToList() is { Count: > 0 } personen)
+        {
+            var entf = new HBoxContainer();
+            entf.AddThemeConstantOverride("separation", 10);
+            _inhalt.AddChild(entf);
+            Text(entf, "Entführung", 14);
+            var wahl = new OptionButton { FocusMode = FocusModeEnum.None };
+            foreach (var p in personen) wahl.AddItem($"{p.Vorname} ({p.Alter(w.Familien.Jahr)})");
+            var gewaehlt = Math.Max(0, personen.FindIndex(p => p.Nummer == _geisel.GetValueOrDefault(schluessel)));
+            wahl.Select(gewaehlt);
+            wahl.ItemSelected += i => _geisel[schluessel] = personen[(int)i].Nummer;
+            entf.AddChild(wahl);
+            var vorschlag = Math.Clamp(Math.Round(haus.Vermoegen * 0.1 / 100) * 100, 500, 5_000);
+            var feld = new Zahlfeld { MinValue = 100, MaxValue = 50_000, Step = 100, Value = _loesegeld.GetValueOrDefault(schluessel, vorschlag), Suffix = waehrung, CustomMinimumSize = new Vector2(150, 0) };
+            feld.ValueChanged += wert => _loesegeld[schluessel] = wert;
+            entf.AddChild(feld);
+            var grund = diebe.Verboten(_spieler!, Diebesstueck.Entfuehrung);
+            Knopf(entf, "Verschleppen", () => Befehlen(new Entfuehren(haus.Inhaber, personen[Math.Max(0, personen.FindIndex(p => p.Nummer == _geisel.GetValueOrDefault(schluessel)))].Nummer,
+                    _loesegeld.GetValueOrDefault(schluessel, vorschlag))), gesperrt: imKerker || grund is not null,
+                hinweis: grund ?? $"Chance {Prozent(diebe.Entfuehrungschance(_spieler!))}. Zahlt das Haus nicht bis Ende nächsten Jahres, wird die Geisel in die Fremde verkauft. " +
+                                  "Schweres Vergehen – vor Gericht droht der Kerker.", ap: new Entfuehren("", 0, 0));
+        }
+    }
+
     /// <summary>Baut den Inhalt neu auf – beim Öffnen, nach jedem Befehl und zum Jahreswechsel.</summary>
     public void Aufbauen()
     {
@@ -139,6 +215,55 @@ public partial class GaunerAnzeige : PanelContainer
             Knopf(zeile, "Ablehnen", () => Befehlen(new ErpressungBeantworten(erpresser, false)));
         }
 
+        // ── Forderungen von Dieben an euch ──
+        var diebe = w.Diebe;
+        if (diebe.IstAktiv)
+            foreach (var brief in diebe.Briefe.Where(b => b.Opfer == _spieler))
+            {
+                _inhalt.AddChild(new HSeparator());
+                var dieb = brief.Dieb.Inhaber;
+                if (brief.Art == Diebesbriefart.Loesegeld)
+                {
+                    var geisel = w.Familien.Von(_spieler)?.Lebende.FirstOrDefault(p => p.Nummer == brief.Geisel);
+                    Text(_inhalt, $"Lösegeldbrief von {dieb}: {geisel?.Vorname ?? "Eine Angehörige"} ist in ihrer Gewalt – {Zahlenformat.Ganz(brief.Betrag)} {waehrung}.", 15, Rot, umbrechen: true);
+                    Text(_inhalt, $"Zahlt ihr nicht bis Ende {brief.Jahr + 1}, wird {geisel?.Vorname ?? "die Geisel"} in die Fremde verkauft. " +
+                                  "Solange erbt die Geisel nicht. Der Brief liegt als Beweis gegen den Entführer in eurem Beweisbuch – Entführung bringt Kerker.", 13, null, umbrechen: true);
+                }
+                else
+                {
+                    Text(_inhalt, $"Schutzgeld für {dieb}: {Zahlenformat.Ganz(brief.Betrag)} {waehrung}, sonst brennt es.", 15, Rot, umbrechen: true);
+                    var ziel = diebe.Brandziel(_spieler);
+                    Text(_inhalt, $"Zahlt ihr nicht, legen seine Leute Feuer in {ziel?.Name ?? "einem eurer Betriebe"} " +
+                                  $"(Chance {Prozent(ziel is null ? 0 : diebe.Brandchance(ziel, brief.Dieb))}, Schaden ≈ {Zahlenformat.Ganz(ziel is null ? 0 : w.Gauner.Sabotageschaden(ziel))}). " +
+                                  "Ein Wächter halbiert die Chance. Die Forderung liegt als Beweis in eurem Beweisbuch.", 13, null, umbrechen: true);
+                }
+                var zeile = new HBoxContainer();
+                zeile.AddThemeConstantOverride("separation", 10);
+                _inhalt.AddChild(zeile);
+                var art = brief.Art;
+                Knopf(zeile, $"Zahlen ({Zahlenformat.Ganz(brief.Betrag)} {waehrung})", () => Befehlen(new DiebesforderungBeantworten(dieb, art, true)),
+                    gesperrt: _spieler.Vermoegen < brief.Betrag);
+                Knopf(zeile, "Ablehnen", () => Befehlen(new DiebesforderungBeantworten(dieb, art, false)));
+            }
+
+        // ── Eure Leute (Dieb) ──
+        var versteck = diebe.IstAktiv ? diebe.Versteck(_spieler) : null;
+        if (versteck is not null)
+        {
+            _inhalt.AddChild(new HSeparator());
+            var dd = diebe.Daten;
+            Text(_inhalt, $"Eure Leute · {versteck.Name} ({versteck.Artdaten.Name}, {versteck.Belegt} Diebe)", 16, Gold);
+            var buch = diebe.DiesesJahr(_spieler);
+            Text(_inhalt, $"Noch {diebe.FreieAuftraege(_spieler)} von {dd.AuftraegeJeStufe[versteck.Stufe - 1]} Aufträgen heute Nacht frei – sie kosten kein Geld, nur Aktionspunkte. " +
+                          $"Einbruch: bis zu {diebe.EinbruchStueck(_spieler)} Stück ins eigene Lager · Auskundschaften: {Prozent(dd.Auskundschaften.Chance)} je Tat · " +
+                          $"Schutzgeld ab {StufenName(w, dd.Schutzgeld.AbStufe)} · Entführung ab {StufenName(w, dd.Entfuehrung.AbStufe)}. " +
+                          $"Taschendiebe dieses Jahr: {Zahlenformat.Ganz(buch.Beute)} {waehrung}, {buch.Faenge} erwischt.", 12, Grau, umbrechen: true);
+            foreach (var a in diebe.Auftraege.Where(a => a.Dieb == _spieler))
+                Text(_inhalt, $"• heute Nacht: {a.Art.Name()} bei {a.Ziel.Inhaber}{(a.Betrieb is { } bn ? $" ({bn})" : "")}", 13, Gold);
+            foreach (var b in diebe.Briefe.Where(b => b.Dieb == _spieler))
+                Text(_inhalt, $"• {b.Art.Name()}forderung an {b.Opfer.Inhaber}: {Zahlenformat.Ganz(b.Betrag)} {waehrung} – wartet auf Antwort (bis Ende {b.Jahr + 1})", 13, Gold);
+        }
+
         // ── Gegen andere Häuser ──
         foreach (var haus in w.Konten.Where(k => k != _spieler && k.IstAktiv))
         {
@@ -161,6 +286,18 @@ public partial class GaunerAnzeige : PanelContainer
                 if (sabotage) Text(zeile, "· Sabotage bestellt", 13, Gold);
                 else Knopf(zeile, $"Sabotage ({Zahlenformat.Ganz(g.Sabotage.Kosten)})", () => Befehlen(new Beauftragen(haus.Inhaber, Gaunerstueck.Sabotage, name)),
                     gesperrt: imKerker, hinweis: "Feuer in der Werkstatt: Stillstand und Reparaturkosten.", ap: new Beauftragen("", Gaunerstueck.Sabotage));
+                if (versteck is not null)
+                {
+                    if (diebe.Auftraege.Any(a => a.Dieb == _spieler && a.Art == Diebesstueck.Einbruch && a.Betrieb == name))
+                        Text(zeile, "· eure Leute steigen ein", 13, Gold);
+                    else
+                    {
+                        var grund = diebe.Verboten(_spieler, Diebesstueck.Einbruch);
+                        Knopf(zeile, "Einbruch (eigene Leute)", () => Befehlen(new Einbrechen(haus.Inhaber, name)), gesperrt: imKerker || grund is not null,
+                            hinweis: grund ?? $"Chance {Prozent(diebe.Einbruchchance(b, _spieler))}, Beute ≈ {Zahlenformat.Ganz(diebe.MoeglicheBeute(b, _spieler).Sum(x => x.Wert))} ins eigene Lager – kein Hehler, keine Bande.",
+                            ap: new Einbrechen("", ""));
+                    }
+                }
                 Text(_inhalt, $"   Diebstahl: Chance {Prozent(unterwelt.Erfolgschance(Gaunerstueck.Diebstahl, b, _spieler))}, im Lager liegt " +
                               (beute.Count == 0 ? "nichts zu holen" : $"{string.Join(", ", beute.Select(x => $"{x.Stueck} {x.Ware}"))} (Hehler ≈ {Zahlenformat.Ganz(beute.Sum(x => x.Wert) * g.HehlerAnteil)})") +
                               $" · Sabotage: Chance {Prozent(unterwelt.Erfolgschance(Gaunerstueck.Sabotage, b, _spieler))}, Schaden beim Gegner ≈ {Zahlenformat.Ganz(unterwelt.Sabotageschaden(b))}",
@@ -221,6 +358,10 @@ public partial class GaunerAnzeige : PanelContainer
                         ap: new HetzschriftVerbreiten(""));
                 }
             }
+
+            // Eigene Diebe: Auskundschaften, Schutzgeld, Entführung
+            if (versteck is not null)
+                EigeneLeute(w, haus, imKerker);
 
             // Erpressung
             if (gericht.IstAktiv)

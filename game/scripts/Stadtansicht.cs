@@ -50,6 +50,7 @@ public partial class Stadtansicht : Node3D
     private static readonly Color Kraut = new(0.30f, 0.52f, 0.25f);
     private static readonly Color Wasser = new(0.25f, 0.42f, 0.55f);
     private static readonly Color Korn = new(0.80f, 0.68f, 0.30f);
+    private static readonly Color Morsch = new(0.33f, 0.29f, 0.25f);
 
     private const float KameraMinZoom = 25f;
     private const float KameraMaxZoom = 140f;
@@ -187,6 +188,8 @@ public partial class Stadtansicht : Node3D
         ["Schänke am Fischmarkt"] = new(-27, 0, 28),
         ["Bauernhof an der Mühle"] = new(90, 0, -48),
         ["Kirche am Weinmarkt"] = new(-20, 0, 14),      // derselbe Platz – je nach Startberuf
+        ["Schmugglerloch am Weinmarkt"] = new(-20, 0, 14), // derselbe Platz – je nach Startberuf
+        ["Schmugglerloch am Osttor"] = new(29, 0, -12),
         ["Kirche an der Westmauer"] = new(-30, 0, -4),
         ["Klosterhof am Osthang"] = new(100, 0, 66),     // südöstlich hinter dem Kräutergarten – vor keinem Berg versteckt
         ["Grube Eisenbart"] = new(68, 0, -12),
@@ -206,6 +209,7 @@ public partial class Stadtansicht : Node3D
         ["Tinkturei am Domplatz"] = new Vector3[] { new(-11, 0, -4) },                        // zwischen Dom und Rathaus nach Süden
         ["Schänke am Fischmarkt"] = new Vector3[] { new(-20.5f, 0, 22), new(-8, 0, 21.5f) },  // an Weinmarkt und Eichwald vorbei
         ["Kirche an der Westmauer"] = new Vector3[] { new(-22, 0, 5), new(-12, 0, 6) },      // nördlich am Domturm vorbei
+        ["Schmugglerloch am Osttor"] = new Vector3[] { new(26, 0, -1) },                     // auf die Torstraße, an der Tischlerei am Holzmarkt vorbei
     };
 
     private static Vector3[] Gasse(string name, Vector3 p) => Gassen.GetValueOrDefault(name) ?? new[] { new Vector3(p.X * 0.45f, 0, p.Z * 0.45f) };
@@ -360,7 +364,7 @@ public partial class Stadtansicht : Node3D
         {
             (-29, -29, true), (-20, -29, true), (10, -29, true), // (−11|−29): Tinkturei am Domplatz; (19|−29), (28|−29): Maurerei Kieselbach
             (-4, 29, true), (5, 29, true), // (−29|29): Schänke am Fischmarkt; (29|29): Maurerei an der Stadtmauer
-            (29, -12, false), (29, 10, false), // (−29|±6): Kirche an der Westmauer
+            (29, 10, false), // (−29|±6): Kirche an der Westmauer; (29|−12): Schmugglerloch am Osttor
             (14, -18, false), (-29, 18, false),
         };
         var i = 0;
@@ -452,11 +456,11 @@ public partial class Stadtansicht : Node3D
         var farbe = Besitzerfarbe(betrieb.Konto);
         var abzweig = Abzweige.GetValueOrDefault(betrieb.Name, Osttor + new Vector3(20, 0, 0));
         // Werkstätten nach Beruf (eine ausgebaute Drechslerei bleibt eine Tischlerwerkstatt), Umland nach Art
-        var ansicht = betrieb.IstWerkstatt
+        var ansicht = betrieb.InDerStadt
             ? GiessereiBauen(betrieb, platz, farbe, betrieb.Artdaten.Beruf switch
             {
                 "Tischler" => Werkstil.Tischlerei, "Steinmetz" => Werkstil.Maurerei, "Alchimist" => Werkstil.Tinkturei, "Wirt" => Werkstil.Schaenke,
-                "Prediger" => Werkstil.Kirche, _ => Werkstil.Giesserei,
+                "Prediger" => Werkstil.Kirche, "Dieb" => Werkstil.Diebesnest, _ => Werkstil.Giesserei,
             })
             : betrieb.Art switch
             {
@@ -564,7 +568,7 @@ public partial class Stadtansicht : Node3D
     /// Werkstatt in Fachwerk. Die Gießerei hat eine glühende Esse und einen Innenraum (Diorama);
     /// die Tischlerei (<paramref name="tischlerei"/>) ein Schieferdach und Holzstapel vor der Tür – ihr Innenraum folgt später.
     /// </summary>
-    private enum Werkstil { Giesserei, Tischlerei, Maurerei, Tinkturei, Schaenke, Kirche }
+    private enum Werkstil { Giesserei, Tischlerei, Maurerei, Tinkturei, Schaenke, Kirche, Diebesnest }
 
     private BetriebsAnsicht GiessereiBauen(Betrieb betrieb, Vector3 p, Color besitzer, Werkstil stil = Werkstil.Giesserei)
     {
@@ -573,7 +577,13 @@ public partial class Stadtansicht : Node3D
         const float breite = 10, tiefe = 8, hoehe = 6, dicke = 0.4f;
 
         // ── Außenhülle: vier einzelne Wände, damit jede für sich ausgeblendet werden kann ──
-        var wandFarbe = Material(stil switch { Werkstil.Maurerei or Werkstil.Kirche => Mauerstein, Werkstil.Tinkturei => Putz, _ => Fachwerk }); // Steinmetz und Kirche bauen massiv
+        var wandFarbe = Material(stil switch
+        {
+            Werkstil.Maurerei or Werkstil.Kirche => Mauerstein, // Steinmetz und Kirche bauen massiv
+            Werkstil.Tinkturei => Putz,
+            Werkstil.Diebesnest => Morsch,                      // verwittertes Holz, schief geflickt
+            _ => Fachwerk,
+        });
         var waende = new (string Name, Vector3 Mitte, Vector3 Groesse, Vector3 Aussen)[]
         {
             ("Nordwand", new(0, hoehe / 2, -tiefe / 2 + dicke / 2), new(breite, hoehe, dicke), Vector3.Forward),
@@ -602,8 +612,32 @@ public partial class Stadtansicht : Node3D
         // ── Dach mit Schornstein: eine Gruppe, die in der Innenansicht verschwindet ──
         var dach = new Node3D { Name = "Dach" };
         AddChild(dach);
-        Dach(p + new Vector3(0, hoehe, 0), new Vector3(breite + 0.6f, 4.8f, tiefe + 0.6f), Material(stil is Werkstil.Tischlerei or Werkstil.Tinkturei or Werkstil.Kirche ? Schiefer : Ziegel), quer: true, eltern: dach);
-        if (stil == Werkstil.Kirche)
+        Dach(p + new Vector3(0, hoehe, 0), new Vector3(breite + 0.6f, 4.8f, tiefe + 0.6f), Material(stil switch
+        {
+            Werkstil.Tischlerei or Werkstil.Tinkturei or Werkstil.Kirche => Schiefer,
+            Werkstil.Diebesnest => Morsch,
+            _ => Ziegel,
+        }), quer: true, eltern: dach);
+        if (stil == Werkstil.Diebesnest)
+        {
+            // Vernagelte Fenster, eine trübe Laterne über dem Tor, Kisten und ein Fass mit Diebesgut, eine Falltür im Hof
+            var bretter = Material(Holz);
+            foreach (var x in new[] { 1.5f, 3.4f })
+            {
+                Quader(p + new Vector3(x, 3.4f, tiefe / 2 + 0.08f), new Vector3(1.4f, 0.18f, 0.06f), bretter);
+                Quader(p + new Vector3(x, 3.0f, tiefe / 2 + 0.08f), new Vector3(1.4f, 0.18f, 0.06f), bretter);
+            }
+            var laterne = Material(new Color(0.95f, 0.75f, 0.35f));
+            laterne.EmissionEnabled = true;
+            laterne.Emission = new Color(1f, 0.65f, 0.25f);
+            laterne.EmissionEnergyMultiplier = 0.8f;
+            Quader(p + new Vector3(-2, 4.1f, tiefe / 2 + 0.5f), new Vector3(0.35f, 0.45f, 0.35f), laterne);
+            Quader(p + new Vector3(-2, 4.5f, tiefe / 2 + 0.3f), new Vector3(0.1f, 0.1f, 0.6f), bretter);
+            foreach (var (dx, dz, h) in new[] { (breite / 2 + 1.0f, -2.4f, 1.0f), (breite / 2 + 1.1f, -1.1f, 0.8f), (breite / 2 + 1.0f, -1.8f, 1.8f) })
+                Quader(p + new Vector3(dx, h / 2 + (h > 1.5f ? 0.5f : 0), dz), new Vector3(1.0f, h > 1.5f ? 0.8f : h, 1.0f), bretter);
+            Quader(p + new Vector3(2.6f, 0.03f, tiefe / 2 + 1.6f), new Vector3(1.4f, 0.06f, 1.4f), Material(new Color(0.22f, 0.15f, 0.10f))); // Falltür
+        }
+        else if (stil == Werkstil.Kirche)
         {
             // Glockenturm an der Ostseite mit Schallöffnungen und spitzem Helm, ein Kreuz darauf; Opferstock vor dem Tor
             var stein = Material(Mauerstein);
@@ -718,7 +752,7 @@ public partial class Stadtansicht : Node3D
         {
             // Dachgaube auf der Südseite des Dachs, mit Fenster und eigenem Satteldach
             var gaube = p + new Vector3(-2.5f, 0, 2.6f);
-            Quader(gaube + new Vector3(0, hoehe + 1.6f, 0), new Vector3(2.4f, 2.0f, 2.0f), Material(b.Artdaten.Beruf switch { "Steinmetz" or "Prediger" => Mauerstein, "Alchimist" => Putz, _ => Fachwerk }), gruppe);
+            Quader(gaube + new Vector3(0, hoehe + 1.6f, 0), new Vector3(2.4f, 2.0f, 2.0f), Material(b.Artdaten.Beruf switch { "Steinmetz" or "Prediger" => Mauerstein, "Alchimist" => Putz, "Dieb" => Morsch, _ => Fachwerk }), gruppe);
             Quader(gaube + new Vector3(0, hoehe + 1.7f, 1.02f), new Vector3(1.1f, 1.0f, 0.06f), Material(new Color(0.12f, 0.1f, 0.08f)), gruppe);
             Dach(gaube + new Vector3(0, hoehe + 2.6f, 0), new Vector3(2.9f, 1.2f, 2.4f), Material(b.Artdaten.Beruf is "Tischler" or "Alchimist" or "Prediger" ? Schiefer : Ziegel), quer: false, eltern: gruppe);
         }
@@ -726,7 +760,7 @@ public partial class Stadtansicht : Node3D
         {
             // Dachreiter: kleiner Turm auf dem First mit vierseitiger Spitze
             var first = p + new Vector3(-1, hoehe + 4.8f, 0);
-            Quader(first + new Vector3(0, 0.9f, 0), new Vector3(1.6f, 2.2f, 1.6f), Material(b.Artdaten.Beruf switch { "Steinmetz" or "Prediger" => Mauerstein, "Alchimist" => Putz, _ => Fachwerk }), gruppe);
+            Quader(first + new Vector3(0, 0.9f, 0), new Vector3(1.6f, 2.2f, 1.6f), Material(b.Artdaten.Beruf switch { "Steinmetz" or "Prediger" => Mauerstein, "Alchimist" => Putz, "Dieb" => Morsch, _ => Fachwerk }), gruppe);
             var spitze = Material(b.Artdaten.Beruf switch
             {
                 "Tischler" => new Color(0.35f, 0.55f, 0.45f),   // kupfergrün
@@ -734,6 +768,7 @@ public partial class Stadtansicht : Node3D
                 "Alchimist" => new Color(0.45f, 0.30f, 0.55f),  // violett
                 "Wirt" => new Color(0.60f, 0.25f, 0.20f),       // weinrot
                 "Prediger" => new Color(0.82f, 0.82f, 0.86f),   // silbern
+                "Dieb" => new Color(0.16f, 0.18f, 0.30f),       // nachtblau
                 _ => new Color(0.85f, 0.68f, 0.25f),            // golden
             });
             spitze.Metallic = 0.5f;
@@ -1093,7 +1128,7 @@ public partial class Stadtansicht : Node3D
 
         foreach (var (betrieb, ansicht) in _betriebe)
         {
-            if (betrieb.IstWerkstatt && (betrieb.Stufe != ansicht.GezeigteStufe || (betrieb.UmbauMinuten > 0) != ansicht.GezeigterUmbau))
+            if (betrieb.InDerStadt && (betrieb.Stufe != ansicht.GezeigteStufe || (betrieb.UmbauMinuten > 0) != ansicht.GezeigterUmbau))
                 StufeZeigen(ansicht);
             var arbeitet = arbeitszeit && betrieb.Belegt > 0 && betrieb.Stillstand is null;
             if (ansicht.Glut is not null) ansicht.Glut.LightEnergy = arbeitet ? 3f : 0f;
