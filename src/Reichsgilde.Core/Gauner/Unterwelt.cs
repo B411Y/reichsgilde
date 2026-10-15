@@ -103,8 +103,9 @@ public sealed class Unterwelt
         var nacht = auftraggeber is null ? 0 : _w.Familien.NachtBonus(auftraggeber);
         return art switch
         {
-            Gaunerstueck.Diebstahl => Math.Min(0.95, d.Diebstahl.Chance * schutz + nacht),
-            Gaunerstueck.Sabotage => Math.Min(0.95, d.Sabotage.Chance * schutz + nacht),
+            // Die Streife der Wache macht nächtliche Taten in der Stadt schwerer.
+            Gaunerstueck.Diebstahl => Math.Min(0.95, d.Diebstahl.Chance * schutz + nacht) * _w.Wache.Patrouillefaktor(b),
+            Gaunerstueck.Sabotage => Math.Min(0.95, d.Sabotage.Chance * schutz + nacht) * _w.Wache.Patrouillefaktor(b),
             // Wächter schützen Betriebe, nicht die Tafel; ein Alchimist mischt selbst – sicherer
             Gaunerstueck.Kroetenschleim => Math.Min(0.95, d.Kroetenschleim.Chance + nacht + (MischtSelbst(auftraggeber) ? d.Kroetenschleim.BerufBonus : 0)),
             _ => Staerke(auftraggeber), // vor der Eskorte des jeweiligen Karrens
@@ -144,7 +145,7 @@ public sealed class Unterwelt
     public double Zeugenchance(Betrieb? b, bool erfolgreich, Konto? auftraggeber = null)
     {
         var d = Daten;
-        var chance = b?.Waechter == true ? d.ZeugenChanceWaechter : d.ZeugenChance;
+        var chance = (b?.Waechter == true ? d.ZeugenChanceWaechter : d.ZeugenChance) + _w.Wache.ZeugenBonus(b);
         if (auftraggeber is not null) chance *= _w.Familien.ZeugenFaktor(auftraggeber);
         return Math.Min(1, erfolgreich ? chance : chance * d.ZeugenFaktorMisserfolg);
     }

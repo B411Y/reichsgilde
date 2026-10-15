@@ -137,6 +137,9 @@ public sealed record Entfuehren(string Haus, int Person, double Betrag) : Befehl
 /// <summary>Auf eine Forderung von Dieben antworten: Schutzgeld oder Lösegeld zahlen – oder nicht.</summary>
 public sealed record DiebesforderungBeantworten(string Dieb, Gauner.Diebesbriefart Art, bool Zahlen) : Befehl;
 
+/// <summary>Die eigene Wache durchsucht dieses Haus: Beweise für seine Taten, Diebesgut wird beschlagnahmt.</summary>
+public sealed record Razzia(string Haus) : Befehl;
+
 /// <summary>Für heute Abend einen Barden in die Schänke holen (Gulden, keine AP): mehr Gäste, höhere Zeche, doppelte Stammtisch-Gunst.</summary>
 public sealed record BardeEinladen(string Betrieb) : BetriebsBefehl(Betrieb);
 

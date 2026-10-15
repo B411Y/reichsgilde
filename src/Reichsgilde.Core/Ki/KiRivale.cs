@@ -132,6 +132,7 @@ public sealed class KiRivale
                 Familienpolitik();
                 Verteidigung();
                 Kirchenpolitik(); // Ablass ist Verteidigung
+                Wachdienst();     // Razzien der eigenen Wache
                 Meisterpruefung();
                 if (Profil.Gaunerei >= 2)
                 {
@@ -289,7 +290,7 @@ public sealed class KiRivale
             // In der Stadt gibt es keine Überfälle – Eskorte wäre verschenktes Geld.
             var beste = betrieb.Ort == Arbeitsort.Werkstatt
                 ? "Keine"
-                : _w.Daten.Logistik.Eskorten.Keys
+                : _w.Daten.Logistik.Eskorten.Keys.Where(_w.Wache.EskorteVerfuegbar)
                     .OrderBy(e => ErwarteteFahrtkosten(e, Ladungswert(karren)))
                     .ThenBy(e => _w.Daten.Logistik.Eskorten[e].KostenJeFahrt)
                     .First();
@@ -340,10 +341,18 @@ public sealed class KiRivale
     /// Die Taschendiebe allein sind nur ein Teil dessen, was das Schmugglerloch bringt.
     /// </summary>
     private double DiebesZuschlag(Betriebsart art) =>
-        DiebErlaubt && _w.Diebe.IstAktiv && _w.Daten.Art(art) is { OhneProduktion: true } d && d.Beruf == _w.Diebe.Daten.Beruf ? 1.5 : 1;
+        _w.Daten.Art(art) is not { OhneProduktion: true } d ? 1
+        : DiebErlaubt && _w.Diebe.IstAktiv && d.Beruf == _w.Diebe.Daten.Beruf ? 1.5
+        // Ein ehrbares Haus schätzt an der Wache auch Ansehen, Kopfgeld und Geleitgeld – nicht nur den Sold.
+        : WacheErlaubt && _w.Wache.IstAktiv && d.Beruf == _w.Wache.Daten.Beruf ? 1.5
+        : 1;
+
+    /// <summary>Den Gardisten erlernen nur ehrbare Häuser (vorsichtig, ausgewogen) – ein wagemutiges nie.</summary>
+    public bool WacheErlaubt => Profil.Gaunerei <= 1;
 
     private bool DarfBerufLernen(string beruf) =>
         (!_w.Diebe.IstAktiv || beruf != _w.Diebe.Daten.Beruf || DiebErlaubt)
+        && (!_w.Wache.IstAktiv || beruf != _w.Wache.Daten.Beruf || WacheErlaubt)
         && IstReich && Konto.Berufe.Count < MaxBerufe && _w.Daten.Berufe.ContainsKey(beruf) && _w.ApReichen(Konto, new BerufErlernen(beruf));
 
     /// <summary>
@@ -819,6 +828,27 @@ public sealed class KiRivale
                 $"heuert im Hinterzimmer eine Bande an: {beste.Art.Name()} gegen {ziel.Inhaber}" +
                 $"{(beste.Betrieb is null ? "" : $" ({beste.Betrieb})")} – erwarteter Vorteil ≈ {Zahlenformat.Ganz(beste.Wert)}."))
             _gaunereienImJahr++;
+    }
+
+    /// <summary>
+    /// Ein Haus mit eigener Wache macht seine Razzien (2 AP): zuerst bei Häusern mit Dieben, sonst beim Haus,
+    /// über dessen Taten die Stadt am meisten weiß (öffentlich bekannte Spuren). Gegen Unbescholtene keine.
+    /// </summary>
+    private void Wachdienst()
+    {
+        var wache = _w.Wache;
+        if (!wache.IstAktiv || wache.Wachstube(Konto) is null) return;
+        var kandidaten = _w.Konten.Where(k => k != Konto && k.IstAktiv)
+            .Select(k => (Haus: k, Diebe: _w.Betriebe.Any(b => b.Konto == k && _w.Diebe.IstDiebesbetrieb(b)), Bekannt: _w.Justiz.IstAktiv ? _w.Justiz.BekannteSpuren(k) : 0))
+            .Where(x => x.Diebe || x.Bekannt > 0)
+            .OrderByDescending(x => x.Diebe).ThenByDescending(x => x.Bekannt).ThenBy(x => x.Haus.Inhaber, StringComparer.Ordinal)
+            .ToList();
+        foreach (var (haus, diebe, bekannt) in kandidaten)
+        {
+            if (wache.RazziaVerboten(Konto, haus) is not null) break;
+            if (!Befehlen(new Razzia(haus.Inhaber), $"lässt seine Wache bei {haus.Inhaber} eine Razzia machen{(diebe ? " (ein Haus von Dieben)" : $" ({bekannt} bekannte Taten)")}."))
+                break;
+        }
     }
 
     /// <summary>

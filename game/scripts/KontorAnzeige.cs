@@ -303,7 +303,7 @@ public partial class KontorAnzeige : PanelContainer
         foreach (var (betrieb, kopf, zustand) in _betriebsZeilen)
         {
             var belegung = betrieb.Belegt == 0 ? "kein Personal" : string.Join(", ", betrieb.Belegung.Select(x => $"{x.Value}× {x.Key}"));
-            var was = betrieb.OhneProduktion ? "Taschendiebe"
+            var was = betrieb.OhneProduktion ? (betrieb.Artdaten.Beruf == "Dieb" ? "Taschendiebe" : "Wachdienst")
                 : betrieb.IstWerkstatt ? betrieb.Produkt
                 : betrieb.Rohstoffe.Count == 1 ? betrieb.Rohstoffe[0]
                 : $"{Zahlenformat.Ganz(betrieb.Silberanteil * 100)} % {betrieb.Rohstoffe[1]}";

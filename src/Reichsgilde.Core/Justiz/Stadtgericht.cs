@@ -398,6 +398,8 @@ public sealed class Stadtgericht
                 var busse = Busse(v.Beklagter, beweise);
                 v.Beklagter.Gerichtskosten(busse);
                 var folgen = new List<string> { $"Buße {Zahlenformat.Ganz(busse)} {waehrung}" };
+                if (_w.Wache.KopfgeldNachUrteil(v.Anklaeger, busse) is var kopfgeld and > 0)
+                    folgen.Add($"Kopfgeld {Zahlenformat.Ganz(kopfgeld)} {waehrung} für die Wache von {v.Anklaeger.Inhaber}");
                 if (d.Amtsverlust && _w.Rat.AmtVon(v.Beklagter) is { } amt)
                 {
                     _w.Rat.Ausscheiden(v.Beklagter);

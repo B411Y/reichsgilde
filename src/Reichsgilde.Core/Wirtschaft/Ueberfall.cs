@@ -17,7 +17,7 @@ internal static class Ueberfall
     internal static void Wuerfeln(Karren karren, EskorteDaten eskorte, Spielzeit zeit, Stadtwirtschaft w)
     {
         var daten = w.Daten.Logistik;
-        var chance = daten.Ueberfall.ChanceTag;
+        var chance = daten.Ueberfall.ChanceTag * w.Wache.Landstrassenfaktor; // Wachtürme halten die Landstraße sicherer
         if (zeit.Tagesphase == Tagesphase.DunkleNacht)
             chance *= daten.Ueberfall.FaktorNacht;
 

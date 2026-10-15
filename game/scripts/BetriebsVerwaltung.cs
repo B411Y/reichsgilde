@@ -43,6 +43,7 @@ public partial class BetriebsVerwaltung : VBoxContainer
     private Button _bardeKnopf = null!;
     private CheckBox _wuerfeltisch = null!;
     private Label _diebesText = null!;
+    private Label _wacheText = null!;
     private VBoxContainer _kirchenstube = null!;
     private Label _kirchenText = null!;
     private VBoxContainer _beichtKnoepfe = null!;
@@ -103,6 +104,11 @@ public partial class BetriebsVerwaltung : VBoxContainer
         _diebesText = NeuesLabel(this, 13, Grau);
         _diebesText.AutowrapMode = TextServer.AutowrapMode.WordSmart;
         _diebesText.CustomMinimumSize = new Vector2(380, 0);
+
+        // Wache des Gardisten: Sold, Patrouille, Kopfgeld, Geleit, Razzien
+        _wacheText = NeuesLabel(this, 13, Grau);
+        _wacheText.AutowrapMode = TextServer.AutowrapMode.WordSmart;
+        _wacheText.CustomMinimumSize = new Vector2(380, 0);
 
         // Kirche (nur Kirchen des Predigers): Messe, Kollekte, Ablass, Beichtwissen
         _kirchenstube = new VBoxContainer();
@@ -225,6 +231,7 @@ public partial class BetriebsVerwaltung : VBoxContainer
         GaststubeAktualisieren(b, w);
         KirchenstubeAktualisieren(b, w);
         DiebesstubeAktualisieren(b, w);
+        WachstubeAktualisieren(b, w);
 
         _foerderZeile.Visible = b.Rohstoffe.Count >= 2; // nur, wer zwei Rohstoffe fördert, teilt auf (Grube: Eisen/Silber)
         if (_foerderZeile.Visible)
@@ -257,7 +264,14 @@ public partial class BetriebsVerwaltung : VBoxContainer
                 var namen = w.Daten.Logistik.Eskorten.Keys.ToList();
                 var wert = Kalkulation.Ladungswert(w, karren);
                 for (var e = 0; e < namen.Count; e++)
-                    eskorte.SetItemText(e, $"{namen[e]} · ≈ {Zahlenformat.Ganz(Kalkulation.ErwarteteFahrtkosten(w, namen[e], wert))} {waehrung}/Fahrt");
+                {
+                    // Die Stadtwache gibt Geleit nur, solange ein Haus ein Wachhaus mit Leuten führt.
+                    var frei = w.Wache.EskorteVerfuegbar(namen[e]);
+                    eskorte.SetItemDisabled(e, !frei);
+                    eskorte.SetItemText(e, frei
+                        ? $"{namen[e]} · ≈ {Zahlenformat.Ganz(Kalkulation.ErwarteteFahrtkosten(w, namen[e], wert))} {waehrung}/Fahrt"
+                        : $"{namen[e]} · nur mit einem Wachhaus in der Stadt");
+                }
                 eskorte.Select(namen.IndexOf(karren.Eskorte));
                 nachts.SetPressedNoSignal(karren.NachtsFahren);
             }
@@ -307,6 +321,39 @@ public partial class BetriebsVerwaltung : VBoxContainer
         _wuerfeltisch.TooltipText = b.Stufe < d.Wuerfeltisch.AbStufe
             ? $"Einen Würfeltisch gibt es erst ab Stufe {d.Wuerfeltisch.AbStufe} (Wirtshaus)."
             : $"{Zahlenformat.Ganz(d.Wuerfeltisch.EinsatzJeGast)} {waehrung} je Gast fürs Haus – aber {Zahlenformat.Ganz(d.Wuerfeltisch.Ansehen)} Ansehen weniger, solange er steht.";
+    }
+
+    /// <summary>Sold, Patrouille (Stadt) bzw. Schutz der Landstraße (Wachturm), Kopfgeld, Geleitgeld und Razzien.</summary>
+    private void WachstubeAktualisieren(Betrieb b, Stadtwirtschaft w)
+    {
+        var wache = w.Wache;
+        _wacheText.Visible = wache.IstWachbetrieb(b);
+        if (!_wacheText.Visible) return;
+        var d = wache.Daten;
+        var waehrung = w.Daten.Allgemein.Waehrung;
+        string Buch(Reichsgilde.Core.Ordnung.Wachbuch x) =>
+            $"Sold {Zahlenformat.Ganz(x.Sold)}, Kopfgeld {Zahlenformat.Ganz(x.Kopfgeld)}, Geleit {Zahlenformat.Ganz(x.Geleitgeld)} {waehrung}, {x.Razzien} {(x.Razzien == 1 ? "Razzia" : "Razzien")}";
+        var jahr = Zahlenformat.Ganz(wache.WertJeMinute(b.Stufe) * w.Daten.Allgemein.Arbeitsminuten);
+        var zeilen = new List<string>
+        {
+            $"Wache – die Stadt zahlt Sold: ≈ {jahr} {waehrung} je Geselle und Jahr (nach Steuer). Dieses Jahr (ganzes Haus): {Buch(wache.DiesesJahr(b.Konto))}",
+        };
+        if (wache.Vorjahr(b.Konto) is { } vorjahr) zeilen.Add($"Vorjahr: {Buch(vorjahr)}");
+        if (b.InDerStadt)
+        {
+            zeilen.Add($"Streife: Nachts gelingen Diebstahl, Sabotage, Einbruch und Brand in der Stadt {Zahlenformat.Ganz(wache.Patrouilleschutz * 100)} % seltener " +
+                       $"(alle Wachen zusammen, höchstens {Zahlenformat.Ganz(d.Patrouille.Hoechstens * 100)} %), Zeugen sehen mehr.");
+            zeilen.Add($"Razzien (im Gerichtssaal): noch {wache.FreieRazzien(b.Konto)} dieses Jahr, {Zahlenformat.Ganz(wache.Razziachance(b.Konto) * 100)} % je Tat. " +
+                       $"Kopfgeld: {Zahlenformat.Ganz(d.Kopfgeld.AnteilBusse * 100)} % der Buße, wenn ihr eine Anklage gewinnt; {Zahlenformat.Ganz(d.Kopfgeld.Taschendieb)} {waehrung} je gefasstem Taschendieb.");
+            zeilen.Add(b.Stufe >= d.Geleit.AbStufe
+                ? $"Geleitschutz: Karren aller Häuser können mit der „{d.Geleit.Eskorte}“ fahren – der Lohn geht an das Haus mit der größten Wache."
+                : $"Geleitschutz ab Stufe {d.Geleit.AbStufe}.");
+        }
+        else
+            zeilen.Add($"Landstraße: Banden überfallen Karren auf allen Umlandwegen {Zahlenformat.Ganz((1 - wache.Landstrassenfaktor) * 100)} % seltener.");
+        zeilen.Add($"Ein Haus der Wache: {Zahlenformat.Ganz(d.Ansehen)} Ansehen mehr.");
+        var text = string.Join("\n", zeilen);
+        if (_wacheText.Text != text) _wacheText.Text = text;
     }
 
     /// <summary>Taschendiebe (Beute, Fänge, Fangchance) und was diese Stufe an nächtlichen Aufträgen erlaubt.</summary>

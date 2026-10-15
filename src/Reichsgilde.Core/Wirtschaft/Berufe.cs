@@ -35,7 +35,7 @@ public sealed class BetriebsartDaten
 
     public bool IstWerkstatt => Produkte.Count > 0;
 
-    /// <summary>Weder Produkte noch Rohstoffe (Schmugglerloch des Diebes): Die Leute verdienen anders – siehe Diebeswesen.</summary>
+    /// <summary>Weder Produkte noch Rohstoffe (Dieb, Gardist): Die Leute verdienen anders – siehe Diebeswesen und Wachwesen.</summary>
     public bool OhneProduktion => Produkte.Count == 0 && Rohstoffe.Count == 0;
 
     /// <summary>Ein Gebäude in der Stadt (mit Gebäudestufen) – Werkstatt oder Betrieb ohne Ware.</summary>
