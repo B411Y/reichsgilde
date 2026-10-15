@@ -328,7 +328,8 @@ public partial class Hauptszene : Node
         double? startvermoegen = optionen.TryGetValue("vermoegen", out var v) && double.TryParse(v, out var betrag) ? betrag : null;
 
         var (simulation, spieler) = Partieaufbau.Erstellen(einstellungen ?? Partieeinstellungen.Standard, daten,
-            neu ?? new NeuePartie(Startvermoegen: startvermoegen, Beruf: optionen.GetValueOrDefault("beruf", "Schmied")), start);
+            neu ?? new NeuePartie(Startvermoegen: startvermoegen, Beruf: optionen.GetValueOrDefault("beruf", "Schmied"),
+                Glaube: optionen.TryGetValue("glaube", out var g) && Enum.TryParse<Reichsgilde.Core.Glaube.Konfession>(g, true, out var konfession) ? konfession : null), start);
         SimulationVerbinden(simulation, spieler);
         return simulation;
     }

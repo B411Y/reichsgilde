@@ -1,5 +1,6 @@
 using Godot;
 using Reichsgilde.Core;
+using Reichsgilde.Core.Glaube;
 using Reichsgilde.Core.Politik;
 using Reichsgilde.Core.Wirtschaft;
 
@@ -90,6 +91,10 @@ public partial class RatAnzeige : PanelContainer
 
         Hauptmenue.Text(_inhalt, rat.Daten.Kammer, 26, Gold, zentriert: true);
         Hauptmenue.Text(_inhalt, $"Geltendes Fron- und Sklavenstatut: {w.Statut.Kuerzel()} – {w.Statut.Name()}", 15, null, zentriert: true);
+        if (w.Glaube.IstAktiv)
+            Hauptmenue.Text(_inhalt, $"Stadtglaube: {KonfessionTexte.StadtglaubeText(w.Glaube.Stadtglaube)}" +
+                                     (w.Glaube.Stadtglaube is null ? "" : $" – Andersgläubige zahlen {Zahlenformat.Ganz(w.Glaube.Daten.Stadtglaube.Abgabe)} {waehrung} Glaubenszins im Jahr"),
+                15, null, zentriert: true);
 
         // ── Die Ämter ──
         var geschenkZeile = new HBoxContainer();
@@ -113,7 +118,15 @@ public partial class RatAnzeige : PanelContainer
             var farbe = eigenes ? Gold : (Color?)null;
             Hauptmenue.Text(raster, amt.Stufe.ToString(), 14, farbe);
             Hauptmenue.Text(raster, $"{amt.Name} ({Zahlenformat.Ganz(amt.Daten.Einkommen)} {waehrung}/Jahr)", 14, farbe);
-            Hauptmenue.Text(raster, amt.Ratsherr is { } r ? $"{r.Name}, {r.Daten.Volk.Einzahl()}" : amt.Inhaber, 14, farbe);
+            var glaube = !w.Glaube.IstAktiv ? null : amt.Ratsherr is { } rg ? w.Glaube.GlaubeVon(rg) : amt.Konto is { } hk ? w.Glaube.GlaubeVon(hk) : null;
+            var kurz = glaube switch { Konfession.Katholisch => ", kath.", Konfession.Evangelisch => ", ev.", Konfession.Naturglaube => ", Heide", _ => "" };
+            var inhaber = Hauptmenue.Text(raster, (amt.Ratsherr is { } r ? $"{r.Name}, {r.Daten.Volk.Einzahl()}" : amt.Inhaber) + kurz, 14, farbe);
+            if (amt.Ratsherr is { } rn && w.Glaube.IstAktiv)
+            {
+                var naehe = w.Glaube.Naehe(rn, _spieler);
+                inhaber.TooltipText = $"{rn.Name} ist {w.Glaube.GlaubeVon(rn).Name()} – euer Glaube bringt bei ihm {Zahlenformat.MitVorzeichen(naehe)} Punkte in der Wahl.";
+                inhaber.MouseFilter = MouseFilterEnum.Stop;
+            }
             if (amt.Ratsherr is { } ratsherr)
             {
                 Hauptmenue.Text(raster, $"{ratsherr.Haltung.Kuerzel()} – {ratsherr.Haltung.Name()}", 13);
@@ -216,6 +229,9 @@ public partial class RatAnzeige : PanelContainer
         Hauptmenue.Text(_inhalt, "Ratsherren stimmen ihrer Haltung zu – einem Nachbarstatut nur, wenn eure Gunst bei ihnen " +
                                  $"mindestens {Zahlenformat.Ganz(rat.Daten.Gunst.SchwelleNachbarstatut)} beträgt.", 12, Grau, umbruchBreite: 670);
 
+        if (w.Glaube.IstAktiv)
+            StadtglaubeAbschnitt(w, eigenesAmt);
+
         // ── Letzte Sitzung ──
         if (rat.LetzteSitzung.Count > 0)
         {
@@ -224,6 +240,46 @@ public partial class RatAnzeige : PanelContainer
             foreach (var eintrag in rat.LetzteSitzung)
                 Hauptmenue.Text(_inhalt, "• " + eintrag, 13, null, umbruchBreite: 670);
         }
+    }
+
+    /// <summary>Antrag zum Stadtglauben – wie das Statut, aber Ratsherren stimmen nach ihrem Glauben.</summary>
+    private void StadtglaubeAbschnitt(Stadtwirtschaft w, Amt? eigenesAmt)
+    {
+        var gw = w.Glaube;
+        _inhalt.AddChild(new HSeparator());
+        Hauptmenue.Text(_inhalt, "Antrag zum Stadtglauben", 16);
+        if (gw.Antrag is { } antrag)
+        {
+            var (ja, nein, enthaltung, bm) = gw.AbstimmungsPrognose(antrag.Antragsteller, antrag.Glaube);
+            var durch = Stadtrat.IstAngenommen(ja, nein, bm);
+            Hauptmenue.Text(_inhalt, $"{antrag.Antragsteller.Inhaber} beantragt: {KonfessionTexte.StadtglaubeText(antrag.Glaube)}. " +
+                                     $"Stand heute: {ja} dafür, {nein} dagegen{(enthaltung > 0 ? $", {enthaltung} Enthaltung" : "")} → {(durch ? "würde angenommen" : "würde abgelehnt")}.",
+                14, durch ? Gruen : Rot, umbruchBreite: 670);
+        }
+        else if (eigenesAmt is null)
+            Hauptmenue.Text(_inhalt, "Anträge stellen nur Mitglieder des Rates.", 14, Grau);
+        else
+        {
+            var zeile = new HBoxContainer();
+            zeile.AddThemeConstantOverride("separation", 10);
+            _inhalt.AddChild(zeile);
+            var ziele = new Konfession?[] { Konfession.Katholisch, Konfession.Evangelisch, null }.Where(k => k != gw.Stadtglaube).ToList();
+            var auswahl = new OptionButton { FocusMode = FocusModeEnum.None };
+            foreach (var z in ziele)
+            {
+                var (ja, nein, _, bm) = gw.AbstimmungsPrognose(_spieler!, z);
+                auswahl.AddItem($"{KonfessionTexte.StadtglaubeText(z)} (heute {ja}:{nein}{(Stadtrat.IstAngenommen(ja, nein, bm) ? ", angenommen" : "")})");
+            }
+            zeile.AddChild(auswahl);
+            var stellen = new Button { Text = "Antrag stellen", FocusMode = FocusModeEnum.None };
+            stellen.Pressed += () => Befehlen(new StadtglaubeBeantragen(ziele[auswahl.Selected]));
+            UiHilfe.ApKosten(stellen, w, _spieler!, new StadtglaubeBeantragen(null));
+            zeile.AddChild(stellen);
+        }
+        var d = gw.Daten.Stadtglaube;
+        Hauptmenue.Text(_inhalt, "Ratsherren stimmen für ihren eigenen Glauben; für Glaubensfreiheit, wenn ein fremder gilt (sonst ab " +
+                                 $"{Zahlenformat.Ganz(d.SchwelleFrei)} Gunst); für einen fremden Glauben erst ab {Zahlenformat.Ganz(d.SchwelleFremd)} Gunst. " +
+                                 "Gilt ein Stadtglaube, ist jede Messe und Bekehrungspredigt anderen Glaubens Ketzerei.", 12, Grau, umbruchBreite: 670);
     }
 
     private void PrognoseZeigen(Stadtrat rat, Amt amt, string vorsatz = "")

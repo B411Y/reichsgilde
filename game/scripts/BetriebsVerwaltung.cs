@@ -1,5 +1,6 @@
 using Godot;
 using Reichsgilde.Core;
+using Reichsgilde.Core.Glaube;
 using Reichsgilde.Core.Wirtschaft;
 
 namespace Reichsgilde;
@@ -54,6 +55,7 @@ public partial class BetriebsVerwaltung : VBoxContainer
     private VBoxContainer _kirchenstube = null!;
     private Label _kirchenText = null!;
     private VBoxContainer _beichtKnoepfe = null!;
+    private Button _bekehrenKnopf = null!;
     private string _beichtPlan = "";
     private HBoxContainer _ausbauZeile = null!;
     private Label _ausbauText = null!;
@@ -163,6 +165,10 @@ public partial class BetriebsVerwaltung : VBoxContainer
         _kirchenText = NeuesLabel(_kirchenstube, 13, Grau);
         _kirchenText.AutowrapMode = TextServer.AutowrapMode.WordSmart;
         _kirchenText.CustomMinimumSize = new Vector2(380, 0);
+        _bekehrenKnopf = new Button { FocusMode = FocusModeEnum.None, SizeFlagsHorizontal = SizeFlags.ShrinkBegin };
+        _bekehrenKnopf.AddThemeFontSizeOverride("font_size", 13);
+        _bekehrenKnopf.Pressed += () => Befehlen(new Bekehrungspredigt());
+        _kirchenstube.AddChild(_bekehrenKnopf);
         _beichtKnoepfe = new VBoxContainer();
         _kirchenstube.AddChild(_beichtKnoepfe);
         _bardeKnopf = new Button { FocusMode = FocusModeEnum.None };
@@ -497,7 +503,16 @@ public partial class BetriebsVerwaltung : VBoxContainer
             $"Kirche – Messe um {d.MesseUm} Uhr, die Gläubigen spenden (steuerfrei). Dieses Jahr: {Buch(kw.DiesesJahr(b))}",
         };
         if (kw.Vorjahr(b) is { } vorjahr) zeilen.Add($"Vorjahr: {Buch(vorjahr)}");
-        zeilen.Add($"Erwartet ≈ {Zahlenformat.Ganz(kw.ErwarteteGlaeubige(b))} Gläubige im Jahr (Stufe, Ansehen und Rhetorik ziehen an).");
+        var gw = w.Glaube;
+        if (gw.IstAktiv && gw.KonfessionVon(b) is { } konfession)
+        {
+            var anteile = string.Join(", ", gw.Anteile.OrderBy(x => x.Key).Select(x => $"{x.Key.Gemeinde()} {Zahlenformat.Ganz(x.Value * 100)} %"));
+            zeilen.Add($"Eure Kirche ist {konfession.Name()}. In der Stadt: {anteile} – jede Gemeinde geht in ihre Kirche; " +
+                       $"ohne eigene Kirche kommen Andersgläubige auch hierher, spenden aber nur {Zahlenformat.Ganz(gw.Daten.FremdeKirche * 100)} %.");
+            if (gw.IstKetzerkirche(b))
+                zeilen.Add($"Stadtglaube ist {gw.Stadtglaube!.Value.Name()} – eure Messe ist Ketzerei: Am Jahresende eine Spur, die {gw.Stadtglaube.Value.Gemeinde()} haben sie gesehen.");
+        }
+        zeilen.Add($"Erwartet ≈ {Zahlenformat.Ganz(kw.ErwarteteGlaeubige(b))} Gläubige und {Zahlenformat.Ganz(kw.ErwarteteKollekte(b))} {waehrung} Kollekte im Jahr (Stufe, Ansehen und Rhetorik ziehen an).");
         zeilen.Add($"Ablass: Andere Häuser kaufen hier ihre Taten frei – ab {Zahlenformat.Ganz(d.Ablass.Grundpreis)} {waehrung}, das Geld geht an euch.");
         var wissen = w.Konten.Where(k => k != b.Konto && k.IstAktiv)
             .Select(k => (Haus: k, Taten: kw.Beichtwissen(b.Konto, k).Count())).Where(x => x.Taten > 0).ToList();
@@ -506,6 +521,18 @@ public partial class BetriebsVerwaltung : VBoxContainer
             : "Beichte – was ihr wisst (preisgeben macht Beweise daraus, ist aber selbst ein Vergehen):");
         var text = string.Join("\n", zeilen);
         if (_kirchenText.Text != text) _kirchenText.Text = text;
+
+        _bekehrenKnopf.Visible = gw.IstAktiv && b.Konto == _spieler && w.HatAktionspunkte;
+        if (_bekehrenKnopf.Visible)
+        {
+            var grund = gw.BekehrenVerboten(_spieler!);
+            _bekehrenKnopf.Text = "Bekehrungspredigt";
+            _bekehrenKnopf.Disabled = grund is not null;
+            _bekehrenKnopf.TooltipText = grund ?? $"+{Zahlenformat.Kommazahl(gw.Bekehrungskraft(_spieler!) * 100)} Prozentpunkte für eure Gemeinde (Rhetorik hilft), " +
+                                                  $"+{Zahlenformat.Ganz(gw.Daten.Bekehrung.Gunst)} Gunst bei jedem Ratsherrn eures Glaubens. Einmal im Jahr." +
+                                                  (gw.Stadtglaube is { } sg && sg != gw.GlaubeVon(_spieler!) ? " Gegen den Stadtglauben ist das Ketzerei!" : "");
+            UiHilfe.ApKosten(_bekehrenKnopf, w, _spieler!, new Bekehrungspredigt());
+        }
 
         var plan = string.Join("|", wissen.Select(x => $"{x.Haus.Inhaber}:{x.Taten}"));
         if (plan == _beichtPlan) return;

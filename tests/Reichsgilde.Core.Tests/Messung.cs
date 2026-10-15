@@ -41,6 +41,8 @@ static class Messung
         // Meistergrade und Gebäudestufen der KI-Häuser: Summe der Jahre, in denen ein Ziel erreicht wurde, und wie oft
         var meisterJahre = new SortedDictionary<string, (double Jahre, int Anzahl)>(StringComparer.Ordinal);
         var gelernt = new SortedDictionary<string, int>(StringComparer.Ordinal); // „Eisenbart → Alchimist" je Partie
+        var glaube = new SortedDictionary<string, int>(StringComparer.Ordinal); // „Stadtglaube katholisch", „Eisenbart katholisch" am Ende
+        double katholikenAnteil = 0;
         void Erreicht(string ziel, int jahr) { var (j, n) = meisterJahre.GetValueOrDefault(ziel); meisterJahre[ziel] = (j + jahr, n + 1); }
         for (var s = 1; s <= startwerte; s++)
         {
@@ -109,6 +111,14 @@ static class Messung
             foreach (var ki in w.Rivalen.Select(r => r.Konto))
                 foreach (var beruf in ki.Berufe.Skip(0).Where(b => !w.Betriebe.Any(x => x.Konto == ki && x.Artdaten.Beruf == b && x.Name.Contains(ki.Inhaber.Replace("Haus ", "")))))
                     gelernt[$"{ki.Inhaber.Replace("Haus ", "")} → {beruf}"] = gelernt.GetValueOrDefault($"{ki.Inhaber.Replace("Haus ", "")} → {beruf}") + 1;
+            if (w.Glaube.IstAktiv)
+            {
+                void Zaehlen(string schluessel) => glaube[schluessel] = glaube.GetValueOrDefault(schluessel) + 1;
+                Zaehlen($"Stadtglaube {Reichsgilde.Core.Glaube.KonfessionTexte.StadtglaubeText(w.Glaube.Stadtglaube)}");
+                foreach (var ki in w.Rivalen.Select(r => r.Konto))
+                    Zaehlen($"{ki.Inhaber.Replace("Haus ", "")} {w.Glaube.GlaubeVon(ki)?.ToString().ToLowerInvariant()}");
+                katholikenAnteil += w.Glaube.Anteil(Reichsgilde.Core.Glaube.Konfession.Katholisch);
+            }
             var f = w.Familien.Von(rivale)!;
             var nachkommen = f.Mitglieder.Count(p => p.Vater is not null);
             if (heirat is { } h) { verheiratet++; heiratsjahre += h; }
@@ -151,6 +161,8 @@ static class Messung
                               $"am Ende Bürgermeister in {x.Bm}/{x.Partien}, erloschen {x.Erloschen}; hergestellt im letzten Jahr Ø " +
                               string.Join(", ", x.Waren.Select(w => $"{w.Key} {w.Value / x.Partien}")));
         }
+        if (glaube.Count > 0)
+            Console.WriteLine($"  Glaube am Ende (in n Partien): {string.Join(", ", glaube.Select(x => $"{x.Key} {x.Value}×"))}; Katholiken Ø {katholikenAnteil / startwerte * 100:0} %");
         Console.WriteLine("  Von der KI erlernte Berufe (in n Partien): " + (gelernt.Count == 0 ? "keine" : string.Join(", ", gelernt.Select(x => $"{x.Key} {x.Value}×"))));
         Console.WriteLine("  Meistergrade/Stufen der KI (erreicht in n Partien, Ø Jahr): " +
                           string.Join(", ", meisterJahre.Select(x => $"{x.Key} {x.Value.Anzahl}× ab {x.Value.Jahre / x.Value.Anzahl:N1}")));
