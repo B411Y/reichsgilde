@@ -98,7 +98,7 @@ static class Messung
                 if (w.Konten.FirstOrDefault(k => k.Inhaber == hausName) is not { } haus) continue;
                 var x = weitere[hausName];
                 x.Partien++;
-                x.Vermoegen += haus.Vermoegen;
+                x.Vermoegen += haus.Reinvermoegen;
                 x.Gewinn += haus.Vorjahr?.Gewinn ?? 0;
                 if (haus.IstErloschen) x.Erloschen++;
                 if (w.Rat.AmtNamens("Bürgermeister")?.Konto == haus) x.Bm++;
@@ -116,7 +116,7 @@ static class Messung
             if (rivale.IstErloschen) erloschen++;
             kinder += nachkommen;
             erbfaelle += f.Ahnen.Count;
-            vermoegen += rivale.Vermoegen;
+            vermoegen += rivale.Reinvermoegen;
             talentOberhaupt += f.Oberhaupt.TalentSumme;
             var gestorben = f.Mitglieder.Concat(f.Ahnen).Distinct().Where(p => p.Todesursache is not null).ToList();
             krankheitstote += gestorben.Count;
@@ -127,7 +127,7 @@ static class Messung
             Console.WriteLine($"Startwert {s * 101,5}: {f.Oberhaupt.Name} ({f.Oberhaupt.Alter(w.Familien.Jahr)} J.), " +
                               $"Heirat im Jahr {heirat?.ToString() ?? "–"}{(f.Mitglieder.FirstOrDefault(p => p.Geburtsname != f.Nachname) is { } partner ? $" mit {partner.Volk.Einzahl()}" : "")}, Nachkommen {nachkommen} (lebend {f.Lebende.Count(p => p.Vater is not null)}), " +
                               $"Erbfälle {f.Ahnen.Count}{(rivale.IstErloschen ? ", ERLOSCHEN" : "")}, {w.StandVon(rivale).Name}, " +
-                              $"{Zahlenformat.Ganz(rivale.Vermoegen)} Gulden, Bürgermeister ab Jahr {bm?.ToString() ?? "–"}");
+                              $"{Zahlenformat.Ganz(rivale.Reinvermoegen)} Gulden, Bürgermeister ab Jahr {bm?.ToString() ?? "–"}");
         }
         Console.WriteLine();
         Console.WriteLine($"Haus Eisenbart über {jahre} Jahre, {startwerte} Startwerte (Spieler: {volk.Mehrzahl()}, passiv):");
