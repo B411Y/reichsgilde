@@ -22,7 +22,7 @@ An diesem Projekt arbeiten **mehrere Chats gleichzeitig**. Die meisten Regeln un
 - **Nach dem ersten Commit sofort einen Entwurfs-PR öffnen** (Vorlage: `.github/pull_request_template.md`): Aufgabe, Bereich, angefasste Dateien. So sehen die anderen Chats, was läuft. Den Text aktuell halten, wenn weitere Dateien dazukommen.
 - Kleine, sinnvolle Commits. Commit- und PR-Texte auf Deutsch.
 - **Vor dem Fertigmelden** `origin/main` in den Branch mergen (nicht rebasen), bauen, testen, dann den PR auf „bereit“ stellen und die CI abwarten (Linux, Windows, Export).
-- **Doku im selben PR**: README und `docs/ARCHITEKTUR.md` ergänzen; neue Grundsatzentscheidungen als Tabellenzeile in `docs/ENTSCHEIDUNGEN.md` (Abschnitt 3a oder ein eigener Abschnitt am Ende), den Phasenplan dort abhaken; Werte und Messungen eines neuen Berufs oder einer Balance-Änderung als neuer Abschnitt in `docs/WIRTSCHAFTSMODELL.md`.
+- **Doku im selben PR**: README und `docs/ARCHITEKTUR.md` ergänzen; neue Grundsatzentscheidungen als Tabellenzeile in `docs/ENTSCHEIDUNGEN.md` (Abschnitt 3a oder ein eigener Abschnitt am Ende), im Phasenplan dort eine Zeile `- PR #… (Phase) – Inhalt` unten an Liste 6a anhängen und den erledigten Punkt aus 6b löschen; Werte und Messungen eines neuen Berufs oder einer Balance-Änderung als neuer Abschnitt in `docs/WIRTSCHAFTSMODELL.md`.
 - **Lieber anhängen als umschreiben**: In den beiden Protokollen nur neue Zeilen und Abschnitte hinzufügen oder einzelne Zeilen ändern. Dann lassen sich die PRs zweier Chats konfliktfrei mergen. Gibt es doch einen Konflikt, beide Einträge behalten.
 - Vorher fragen: Designfragen mit Auswahl (je eine empfohlene Option), bevor gebaut wird. Was sich nicht zurücknehmen lässt, immer erst fragen.
 
@@ -47,6 +47,8 @@ Die Darstellung **liest den Kern nur** (öffentliche Abfragen). Fehlt eine Abfra
 - Spieltag 05:00–22:00 Uhr (1020 Ticks = 1 Spieljahr), Arbeitszeit 8–20 Uhr, Gauner ab 20 Uhr.
 - Code-Bezeichner deutsch, Umlaute umschrieben (`Waehrung`), deutsche Kommentare. Antworten an den Nutzer auf Deutsch, kurz, ohne Emojis.
 - Tests müssen grün bleiben. Nie einen Test abschalten, um grün zu werden.
+- **Neue Tests**: eine neue Datei mit einer statischen Klasse und `public static IEnumerable<(string, Action)> Alle()` anlegen – sie wird automatisch gefunden. `Program.cs` nicht anfassen.
+- **Messungen** (`messen`) macht nur der Kern-Chat. Jede Messung in `docs/WIRTSCHAFTSMODELL.md` nennt den `main`-Commit, gegen den gemessen wurde (`git rev-parse --short origin/main` nach dem Einmergen), z. B. „gemessen auf main 0ed29e9 + dieser PR“.
 
 ## Bauen, testen, ausprobieren
 

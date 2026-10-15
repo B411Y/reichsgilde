@@ -23,7 +23,7 @@ Dieses Dokument erklärt die Grundidee hinter dem Code. Es wächst mit dem Proje
 **Warum?**
 
 1. **Multiplayer:** Später läuft der Simulationskern auf einem Server, die Spieler sehen nur die Darstellung. Weil der Kern Godot nicht kennt, können wir ihn dort unverändert einsetzen.
-2. **Testbarkeit:** Spiellogik lässt sich in Sekunden prüfen, ohne das Spiel zu starten (z. B. „Ergeben 15 Minuten wirklich genau ein Jahr?“).
+2. **Testbarkeit:** Spiellogik lässt sich in Sekunden prüfen, ohne das Spiel zu starten (z. B. „Ergeben 15 Minuten wirklich genau ein Jahr?“). Der Testlauf (`tests/Reichsgilde.Core.Tests/Program.cs`) findet alle Testklassen selbst: jede statische Klasse mit `public static IEnumerable<(string, Action)> Alle()` – per Reflection, nach Klassenname sortiert. Eine neue Testdatei genügt.
 3. **Übersicht:** Wer eine Spielregel sucht, schaut in `src/`. Wer wissen will, wie etwas aussieht, schaut in `game/`.
 
 ## Das Zeitsystem
