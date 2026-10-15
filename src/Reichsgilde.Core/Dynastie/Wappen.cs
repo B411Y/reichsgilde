@@ -35,12 +35,12 @@ public sealed record Wappen(Teilung Teilung, Tinktur Farbe1, Tinktur Farbe2, Fig
         new(Teilung.Ohne, Tinktur.Blau, Tinktur.Silber, Figur.Turm),
         new(Teilung.Schraeg, Tinktur.Gold, Tinktur.Schwarz, Figur.Rad),
         new(Teilung.Ohne, Tinktur.Purpur, Tinktur.Gold, Figur.Krone),
-        new(Teilung.Balken, Tinktur.Gruen, Tinktur.Gold, Figur.Aehre),
+        new(Teilung.Ohne, Tinktur.Gruen, Tinktur.Gold, Figur.Aehre),
         new(Teilung.Ohne, Tinktur.Blau, Tinktur.Gold, Figur.Lilie),
         new(Teilung.Geviert, Tinktur.Silber, Tinktur.Rot, Figur.Rose),
         new(Teilung.Pfahl, Tinktur.Rot, Tinktur.Silber, Figur.Schwert),
-        new(Teilung.Sparren, Tinktur.Schwarz, Tinktur.Silber, Figur.Fisch),
-        new(Teilung.Ohne, Tinktur.Rot, Tinktur.Gold, Figur.Kelch),
+        new(Teilung.Sparren, Tinktur.Schwarz, Tinktur.Silber, Figur.Mond),
+        new(Teilung.Balken, Tinktur.Blau, Tinktur.Silber, Figur.Fisch),
     };
 
     public static bool IstMetall(Tinktur t) => t is Tinktur.Gold or Tinktur.Silber;

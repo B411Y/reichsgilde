@@ -179,7 +179,7 @@ public partial class JahresberichtAnzeige : PanelContainer
         {
             var farbe = konto == spieler ? Gold : (Color?)null;
             Label(rang, !konto.IstAktiv ? "–" : $"{platz++}.", 14, farbe);
-            Label(rang, konto.Inhaber, 14, farbe);
+            UiHilfe.MitWappen(rang, konto.Wappen, konto.Inhaber, 14, farbe);
             Label(rang, konto.IstBankrott ? "bankrott" : konto.IstErloschen ? "erloschen" : w.StandVon(konto).Name, 14, !konto.IstAktiv ? Rot : farbe);
             Label(rang, Zahlenformat.Ganz(konto.Reinvermoegen), 14, farbe);
         }

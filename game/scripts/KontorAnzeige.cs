@@ -16,6 +16,7 @@ public partial class KontorAnzeige : PanelContainer
     private Konto? _rivale;
 
     private Label _titel = null!;
+    private WappenBild _titelWappen = null!;
     private Label _vermoegen = null!;
     private Label _standZeile = null!;
     private Label _statutZeile = null!;
@@ -70,7 +71,14 @@ public partial class KontorAnzeige : PanelContainer
         spalte.AddThemeConstantOverride("separation", 6);
         rand.AddChild(spalte);
 
-        _titel = NeuesLabel(spalte, 22);
+        // Kopf: Wappen des Hauses und Titel
+        var kopf = new HBoxContainer();
+        kopf.AddThemeConstantOverride("separation", 10);
+        spalte.AddChild(kopf);
+        _titelWappen = WappenBild.Neu(null, 40);
+        kopf.AddChild(_titelWappen);
+        _titel = NeuesLabel(kopf, 22);
+        _titel.VerticalAlignment = VerticalAlignment.Center;
         _vermoegen = NeuesLabel(spalte, 26);
         _vermoegen.MouseFilter = MouseFilterEnum.Stop; // für den Tooltip (Bargeld, Kasse, Schulden)
         _standZeile = NeuesLabel(spalte, 14, new Color(0.95f, 0.82f, 0.45f));
@@ -385,6 +393,7 @@ public partial class KontorAnzeige : PanelContainer
             return;
 
         var waehrung = w.Daten.Allgemein.Waehrung;
+        _titelWappen.Wappen = _spieler.Wappen;
         _titel.Text = $"Kontor · {_spieler.Inhaber} · {w.StandVon(_spieler).Name}"
                       + (w.Rat.AmtVon(_spieler) is { } amt ? $" · {amt.Name}" : "");
         // Mit Kasse oder Kredit: Bargeld groß, darunter klein, was dem Haus wirklich gehört.
