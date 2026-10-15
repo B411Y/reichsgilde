@@ -223,6 +223,7 @@ Format: `- PR #Nummer (Phase) – Inhalt`
 - PR #49 (3) – Innenräume für Rathaus (Ratssaal, Gerichtssaal, Amtsstube, Kerker) und Dom nach dem Stadtglauben
 - PR #50 (–) – Flüssige Bewegung von Sonne, Schatten und Karren zwischen den Spielminuten
 - PR #51 (3) – Namen in der Stadt nur bei Hover, Auswahl oder Alt; Schild an freien Plätzen; Schriften Germania One und Alegreya
+- PR #52 (–) – Vierter Chat „Spiel-KI“: Bereich Ki/ und Buerger/, Andockstellen im Kern
 
 ### 6b. Offen (eine Zeile je Punkt; erledigt → Zeile löschen und unter 6a eintragen)
 
@@ -294,3 +295,11 @@ Format: `- PR #Nummer (Phase) – Inhalt`
 | Freie Plätze | **Schild am Pfosten ohne Text**: ocker = zu verkaufen, grün = zu verpachten, leicht leuchtend für die Nacht. Name und „zu verkaufen/verpachten“ beim Hover. | 15.10.2026 |
 | Schrift Überschriften | **Germania One** (gebrochen, kantig; SIL OFL) für Überschriften ab 20 px und die Namen in der Stadt. Aus 10 Mustern gewählt (u. a. Grenze Gotisch, Pirata One, UnifrakturMaguntia, Almendra, Cinzel). | 15.10.2026 |
 | Schrift Text | **Alegreya** (Buchschrift; SIL OFL) für allen übrigen Text, mit Normalziffern gleicher Breite (`lnum`, `tnum`), 1 px größer als vorher. | 15.10.2026 |
+
+## 13. Chat für die Spiel-KI
+
+| Thema | Entscheidung | Datum |
+|---|---|---|
+| Vierter Chat | **Spiel-KI** übernimmt die Bürger-KI (Phase 2, neu in `src/Reichsgilde.Core/Buerger/`) und die KI-Häuser (`Ki/`, `KiRivale.cs`, bisher Kern). Der Kern behält Wirtschaft, Regeln und Daten. | 15.10.2026 |
+| Andocken | Der Spiel-KI-Chat darf kleine, im PR genannte Andockstellen in `Stadtwirtschaft.cs`, `wirtschaft.json` (eigener Abschnitt) und `Speicherstand.cs` (eigene Felder) ergänzen. Bestehende Werte und Regeln bleiben beim Kern. | 15.10.2026 |
+| Messungen | Spiel-KI misst seine eigenen Änderungen selbst (mit main-Commit), wie der Kern. | 15.10.2026 |

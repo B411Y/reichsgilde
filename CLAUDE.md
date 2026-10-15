@@ -32,12 +32,14 @@ Jeder Chat bekommt im Prompt einen Bereich. Dateien außerhalb des eigenen Berei
 
 | Bereich | Dateien |
 |---|---|
-| **Kern** (Hauptchat) | `src/Reichsgilde.Core/**`, `tests/**`, `game/data/wirtschaft.json` |
+| **Kern** (Hauptchat) | `src/Reichsgilde.Core/**` (außer Ki/ und Buerger/), `tests/**`, `game/data/wirtschaft.json` |
+| **Spiel-KI** | `src/Reichsgilde.Core/Ki/**` (KI-Häuser, `KiRivale.cs`), `src/Reichsgilde.Core/Buerger/**` (Bürger-KI), eigene Testdateien (`Ki*Tests.cs`, `Buerger*Tests.cs`) |
 | **Darstellung** | `game/scripts/Stadtansicht*.cs`, Szenen, Modelle, Licht, Kamera |
 | **Oberfläche** | Tafeln und Fenster in `game/scripts/*Anzeige.cs`, `Hauptmenue.cs`, `Hauptszene.cs` |
-| später z. B. Sound, Spiel-KI | wird hier ergänzt, sobald es den Chat gibt |
+| später z. B. Sound | wird hier ergänzt, sobald es den Chat gibt |
 
-Nur der Kern-Chat ändert: `game/data/wirtschaft.json`, `Stadtwirtschaft.cs`, `Speicherstand.cs`, `KiRivale.cs`. Braucht ein anderer Bereich dort etwas: im PR-Text beschreiben und den Nutzer fragen.
+Nur der Kern-Chat ändert: `game/data/wirtschaft.json`, `Stadtwirtschaft.cs`, `Speicherstand.cs`. Braucht ein anderer Bereich dort etwas: im PR-Text beschreiben und den Nutzer fragen.
+**Ausnahme Spiel-KI:** Der Spiel-KI-Chat darf dort kleine Andockstellen ergänzen und nennt jede im PR-Text: einen Aufruf in `Stadtwirtschaft` (Takt, Jahreswechsel, öffentliche Abfrage), einen **eigenen** Abschnitt in `wirtschaft.json` (Datenversion erhöhen), eigene Felder im `Speicherstand` (alte Spielstände müssen weiter laden). Bestehende Werte und Regeln ändert nur der Kern.
 Die Darstellung **liest den Kern nur** (öffentliche Abfragen). Fehlt eine Abfrage, kleine Ergänzung im Kern mit Test – im PR nennen.
 
 ## Feste Regeln
@@ -48,7 +50,7 @@ Die Darstellung **liest den Kern nur** (öffentliche Abfragen). Fehlt eine Abfra
 - Code-Bezeichner deutsch, Umlaute umschrieben (`Waehrung`), deutsche Kommentare. Antworten an den Nutzer auf Deutsch, kurz, ohne Emojis.
 - Tests müssen grün bleiben. Nie einen Test abschalten, um grün zu werden.
 - **Neue Tests**: eine neue Datei mit einer statischen Klasse und `public static IEnumerable<(string, Action)> Alle()` anlegen – sie wird automatisch gefunden. `Program.cs` nicht anfassen.
-- **Messungen** (`messen`) macht nur der Kern-Chat. Jede Messung in `docs/WIRTSCHAFTSMODELL.md` nennt den `main`-Commit, gegen den gemessen wurde (`git rev-parse --short origin/main` nach dem Einmergen), z. B. „gemessen auf main 0ed29e9 + dieser PR“.
+- **Messungen** (`messen`) machen nur der Kern-Chat und der Spiel-KI-Chat (für eigene Änderungen an KI-Häusern oder Bürgern). Jede Messung in `docs/WIRTSCHAFTSMODELL.md` nennt den `main`-Commit, gegen den gemessen wurde (`git rev-parse --short origin/main` nach dem Einmergen), z. B. „gemessen auf main 0ed29e9 + dieser PR“.
 
 ## Bauen, testen, ausprobieren
 
