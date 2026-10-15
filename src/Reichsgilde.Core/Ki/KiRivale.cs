@@ -131,6 +131,7 @@ public sealed class KiRivale
                 // der Wagemutige geht ins Hinterzimmer, bevor er Ratsherren beschenkt; die anderen umgekehrt.
                 Familienpolitik();
                 Verteidigung();
+                Kirchenpolitik(); // Ablass ist Verteidigung; Lehrschrift kostet keine AP
                 Meisterpruefung();
                 if (Profil.Gaunerei >= 2)
                 {
@@ -418,6 +419,54 @@ public sealed class KiRivale
                 Befehlen(new BardeEinladen(b.Name),
                     $"holt einen Barden nach {b.Name} ({Zahlenformat.Ganz(d.Barde.Kosten)} {_w.Daten.Allgemein.Waehrung}).");
         }
+    }
+
+    /// <summary>
+    /// Einmal am Tag, rund um die Kirche:
+    ///   • Ablass: Haben andere Beweise für eine eigene Tat, kauft die KI sie in einer fremden Kirche frei – solange die halbe Reserve hält.
+    ///   • Lehrschrift: einmal im Jahr lesen (keine AP) – aus dem eigenen Lager oder, mit doppelter Reserve, vom Markt.
+    ///   • Wagemutig als Prediger: das Beichtgeheimnis gegen das stärkste Haus brechen, über das er etwas weiß;
+    ///     eine Hetzschrift gegen das führende Haus, wenn gerade keine gegen es umgeht.
+    /// </summary>
+    private void Kirchenpolitik()
+    {
+        var kw = _w.Kirchenwesen;
+        if (!kw.IstAktiv) return;
+        var waehrung = _w.Daten.Allgemein.Waehrung;
+
+        if (_w.Justiz.IstAktiv)
+        {
+            var kirche = kw.Kirchen.Where(b => b.Konto != Konto).OrderBy(b => b.Name, StringComparer.Ordinal).FirstOrDefault();
+            while (kirche is not null && kw.AblassFuer(Konto) is { } spur && _w.Justiz.BeweiseFuer(spur) > 0
+                   && Konto.Vermoegen - kw.Ablasspreis(spur) >= Profil.Reserve / 2)
+                if (!Befehlen(new AblassKaufen(kirche.Name),
+                        $"kauft in {kirche.Name} Ablass für „{spur.Beschreibung}“ ({Zahlenformat.Ganz(kw.Ablasspreis(spur))} {waehrung}) – andere hatten Beweise."))
+                    break;
+        }
+
+        if (_w.Familien.HatTalente)
+        {
+            var wunsch = Profil.Gaunerei >= 2
+                ? new[] { Talent.Kampf, Talent.NachtUndNebel, Talent.Handwerk, Talent.Verhandeln, Talent.Rhetorik }
+                : new[] { Talent.Handwerk, Talent.Verhandeln, Talent.Rhetorik };
+            var preis = kw.Schriftpreis(Konto, kw.Daten.Lehrschrift);
+            if (preis == 0 || Konto.Vermoegen - preis >= 2 * Profil.Reserve) // vom Markt erst, wenn für Hochzeit und Werkstatt genug bleibt
+                foreach (var talent in wunsch)
+                    if (kw.LesenVerboten(Konto, talent) is null)
+                    {
+                        Befehlen(new LehrschriftLesen(talent), $"liest eine Lehrschrift über {talent.Name()}.");
+                        break;
+                    }
+        }
+
+        if (Profil.Gaunerei < 2) return;
+        var rangliste = _w.Rangliste.Where(k => k != Konto && k.IstAktiv).ToList();
+        if (_w.Justiz.IstAktiv && rangliste.FirstOrDefault(k => kw.Beichtwissen(Konto, k).Any()) is { } beichtZiel)
+            Befehlen(new BeichtgeheimnisBrechen(beichtZiel.Inhaber),
+                $"bricht das Beichtgeheimnis: {kw.Beichtwissen(Konto, beichtZiel).Count()} Beweise gegen {beichtZiel.Inhaber}.");
+        if (rangliste.FirstOrDefault() is { } fuehrender && kw.GehetztBis(fuehrender) is null
+            && Konto.Vermoegen - kw.Schriftpreis(Konto, kw.Daten.Hetzschrift.Ware) >= Profil.Reserve)
+            Befehlen(new HetzschriftVerbreiten(fuehrender.Inhaber), $"lässt eine Hetzschrift gegen {fuehrender.Inhaber} verbreiten.");
     }
 
     /// <summary>

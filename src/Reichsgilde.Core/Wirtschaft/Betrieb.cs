@@ -62,6 +62,18 @@ public enum Betriebsart
 
     /// <summary>Umlandbetrieb des Wirts (gepachtet). Baut Gerste und Roggen an.</summary>
     Bauernhof,
+
+    /// <summary>Werkstatt des Predigers, Stufe 1: Kirche – Messe mit Kollekte, Ablass, Beichte.</summary>
+    Kirche,
+
+    /// <summary>Werkstatt des Predigers, Stufe 2.</summary>
+    Dom,
+
+    /// <summary>Werkstatt des Predigers, Stufe 3.</summary>
+    Kathedrale,
+
+    /// <summary>Umlandbetrieb des Predigers (gepachtet). Sammelt Lumpen und Bienenwachs.</summary>
+    Klosterhof,
 }
 
 /// <summary>
@@ -78,7 +90,7 @@ public sealed class Betrieb
     private readonly Wirtschaftsdaten _daten;
     private BetriebsartDaten _art;
     private readonly Dictionary<string, int> _belegung = new();
-    private readonly Dictionary<string, int> _lager = new();
+    private readonly SortedDictionary<string, int> _lager = new(StringComparer.Ordinal); // sortiert: gleiche Reihenfolge nach Entnehmen und nach dem Laden
     private readonly List<Karren> _karren = new();
     private double _fortschritt;        // Werkstatt: Arbeitsminuten am aktuellen Stück
     private double _fortschrittEisen;   // Umland: erster Rohstoff (Name aus alten Spielständen)

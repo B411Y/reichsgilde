@@ -60,6 +60,9 @@ public sealed class Stadtwirtschaft
     /// <summary>Gäste und Ausschank der Wirtshäuser, Barde, Würfeltisch, Stammtisch.</summary>
     public Gastwirtschaft Gastwirtschaft { get; }
 
+    /// <summary>Messe und Kollekte, Ablass, Beichte, Lehr- und Hetzschriften.</summary>
+    public Kirche.Kirchenwesen Kirchenwesen { get; }
+
     /// <summary>Das laufende Spieljahr (das Jahr der laufenden Jahresrechnung).</summary>
     public int Jahr => _konten.Count > 0 ? _konten[0].Laufend.Jahr : Spielzeit.StartJahr;
 
@@ -120,6 +123,7 @@ public sealed class Stadtwirtschaft
         Gauner = new Unterwelt(this, daten.Gauner, zufallsstartwert);
         Gesundheit = new Gesundheitswesen(this, daten.Gesundheit, zufallsstartwert);
         Gastwirtschaft = new Gastwirtschaft(this, daten.Gastwirtschaft);
+        Kirchenwesen = new Kirche.Kirchenwesen(this, daten.Kirche, zufallsstartwert);
     }
 
     /// <summary>Legt ein Konto an – mit dem Startvermögen aus den Daten oder einem eigenen (z. B. Schwierigkeitsgrad).</summary>
@@ -266,7 +270,10 @@ public sealed class Stadtwirtschaft
 
         // Gäste der vergangenen Stunde kehren in die Schänken ein.
         if (zeit.MinuteImTag % 60 == 0 && zeit.VergangeneMinuten > 0)
+        {
             Gastwirtschaft.Stunde(zeit);
+            Kirchenwesen.Stunde(zeit); // zur Messe wird gespendet
+        }
 
         // Die KI überlegt jede volle Stunde – mit den Marktpreisen dieser Stunde.
         if (zeit.MinuteImTag % 60 == 0 && zeit.VergangeneMinuten > 0)
@@ -312,6 +319,7 @@ public sealed class Stadtwirtschaft
         Familien.Jahreswechsel(); // Tod und Erbfall vor der Ratssitzung: Ein verwaistes Amt wird gleich neu besetzt
         Gesundheit.NeuesJahr();   // Pest und neue Krankheiten
         Gastwirtschaft.Jahresende(); // Stammtisch-Gunst vor der Ratssitzung (Wahlen)
+        Kirchenwesen.Jahresende();  // die Beichten des Jahres, neues Kirchenbuch
         Rat.Sitzung(_zufall, neuesJahr - 1);
         Gauner.Jahresende();
         AktionspunkteVerteilen(); // die neue Runde beginnt
@@ -408,6 +416,22 @@ public sealed class Stadtwirtschaft
             return StandErwerbenAusfuehren(absender);
         if (befehl is LiegenschaftErwerben liegenschaft)
             return LiegenschaftErwerbenAusfuehren(absender, liegenschaft.Name);
+        if (befehl is AblassKaufen or BeichtgeheimnisBrechen or LehrschriftLesen or HetzschriftVerbreiten && !Kirchenwesen.IstAktiv)
+            return Befehlsergebnis.Abgelehnt("In dieser Stadt gibt es keine Kirchen.");
+        if (befehl is AblassKaufen ablass)
+            return _betriebe.FirstOrDefault(b => b.Name == ablass.Kirche) is { } kirche
+                ? Kirchenwesen.AblassKaufen(absender, kirche)
+                : Befehlsergebnis.Abgelehnt($"Eine Kirche „{ablass.Kirche}“ gibt es nicht.");
+        if (befehl is BeichtgeheimnisBrechen beichte)
+            return _konten.FirstOrDefault(k => k.Inhaber == beichte.Haus) is { } beichtHaus
+                ? Kirchenwesen.BeichtgeheimnisBrechen(absender, beichtHaus)
+                : Befehlsergebnis.Abgelehnt($"Ein Haus „{beichte.Haus}“ gibt es nicht.");
+        if (befehl is LehrschriftLesen lesen)
+            return Kirchenwesen.LehrschriftLesen(absender, lesen.Talent);
+        if (befehl is HetzschriftVerbreiten hetze)
+            return _konten.FirstOrDefault(k => k.Inhaber == hetze.Haus) is { } hetzZiel
+                ? Kirchenwesen.HetzschriftVerbreiten(absender, hetzZiel)
+                : Befehlsergebnis.Abgelehnt($"Ein Haus „{hetze.Haus}“ gibt es nicht.");
         if (befehl is BerufErlernen lehre)
             return BerufErlernenAusfuehren(absender, lehre.Beruf);
         if (befehl is MeisterpruefungAblegen pruefung)
@@ -693,6 +717,7 @@ public sealed class Stadtwirtschaft
         Gauner = Gauner.IstAktiv ? Gauner.Sichern(k => _konten.IndexOf(k)) : null,
         Gesundheit = Gesundheit.IstAktiv ? Gesundheit.Sichern(k => _konten.IndexOf(k)) : null,
         Gastwirtschaft = Gastwirtschaft.IstAktiv ? Gastwirtschaft.Sichern() : null,
+        Kirche = Kirchenwesen.IstAktiv ? Kirchenwesen.Sichern(k => _konten.IndexOf(k)) : null,
     };
 
     /// <summary>
@@ -739,6 +764,8 @@ public sealed class Stadtwirtschaft
             Gesundheit.Wiederherstellen(gesundheit, _konten);
         if (s.Gastwirtschaft is { } gast && Gastwirtschaft.IstAktiv)
             Gastwirtschaft.Wiederherstellen(gast);
+        if (s.Kirche is { } kirchenStand && Kirchenwesen.IstAktiv)
+            Kirchenwesen.Wiederherstellen(kirchenStand, _konten);
     }
 
     public double HoechstesVermoegen => _konten.Count == 0 ? 0 : _konten.Max(k => k.Vermoegen);

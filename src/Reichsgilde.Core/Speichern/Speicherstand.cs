@@ -75,6 +75,25 @@ public sealed record WirtschaftStand
 
     /// <summary>Gästebücher, Barden und Würfeltische (null in Spielständen von vor dem Wirt).</summary>
     public GastwirtschaftStand? Gastwirtschaft { get; init; }
+
+    /// <summary>Kirchenbücher, Beichtwissen, gelesene und verbreitete Schriften (null in Spielständen von vor dem Prediger).</summary>
+    public KirchenStand? Kirche { get; init; }
+}
+
+public sealed record KirchenStand
+{
+    public long ZufallWuerfe { get; init; }
+    public Dictionary<string, Kirche.Kirchenbuch> DiesesJahr { get; init; } = new();
+    public Dictionary<string, Kirche.Kirchenbuch> Vorjahr { get; init; } = new();
+
+    /// <summary>[Konto des Predigers, Nummer der Spur]</summary>
+    public List<int[]> Beichtwissen { get; init; } = new();
+
+    /// <summary>Konto-Nummer → Jahr, in dem das Oberhaupt eine Lehrschrift las.</summary>
+    public Dictionary<string, int> Gelesen { get; init; } = new();
+
+    /// <summary>Konto-Nummer → bis zu diesem Jahr wirkt eine Hetzschrift.</summary>
+    public Dictionary<string, int> GehetztBis { get; init; } = new();
 }
 
 public sealed record GastwirtschaftStand
