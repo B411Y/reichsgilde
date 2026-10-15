@@ -116,7 +116,7 @@ public sealed record AblassKaufen(string Kirche) : Befehl;
 /// <summary>Der Prediger verrät, was er in der Beichte über dieses Haus gehört hat: Beweise – aber selbst ein Vergehen.</summary>
 public sealed record BeichtgeheimnisBrechen(string Haus) : Befehl;
 
-/// <summary>Das Oberhaupt liest eine Lehrschrift (aus dem Lager oder vom Markt): +½ Stern, einmal je Jahr, keine AP.</summary>
+/// <summary>Das Oberhaupt liest eine Lehrschrift (aus dem Lager oder vom Markt): +½ Stern bis 3 Sterne, einmal je Jahr, 1 AP.</summary>
 public sealed record LehrschriftLesen(Dynastie.Talent Talent) : Befehl;
 
 /// <summary>Eine Hetzschrift gegen ein Haus verbreiten: dessen Ansehen sinkt bis Ende nächsten Jahres – Vergehen Verleumdung.</summary>

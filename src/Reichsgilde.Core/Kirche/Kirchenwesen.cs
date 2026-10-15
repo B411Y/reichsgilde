@@ -64,6 +64,9 @@ public sealed class KirchenDaten
     /// <summary>Wer sie liest, gewinnt ein halbes Talent (einmal je Jahr, keine AP).</summary>
     public string Lehrschrift { get; init; } = "Lehrschrift";
 
+    /// <summary>Eine Lehrschrift bringt ein Talent höchstens bis zu so vielen Sternen – darüber hilft nur Üben.</summary>
+    public double LehrschriftBis { get; init; } = 3;
+
     public HetzschriftDaten Hetzschrift { get; init; } = new();
 
     public void Pruefen(List<string> f, IReadOnlyDictionary<string, WareDaten> waren, IReadOnlyDictionary<string, BerufDaten> berufe)
@@ -75,6 +78,7 @@ public sealed class KirchenDaten
         if (GlaeubigeJeJahr < 0 || SpendeJeGlaeubigem < 0) f.Add("kirche: glaeubigeJeJahr und spendeJeGlaeubigem dürfen nicht negativ sein.");
         if (AnziehungJeStufe.Count == 0 || AnziehungJeStufe.Any(a => a <= 0)) f.Add("kirche.anziehungJeStufe: Werte größer als 0.");
         if (Beichte.Chance is < 0 or > 1) f.Add("kirche.beichte.chance muss zwischen 0 und 1 liegen.");
+        if (LehrschriftBis <= 0) f.Add("kirche.lehrschriftBis muss größer als 0 sein.");
         if (Ablass.Grundpreis < 0 || Ablass.AnteilTat < 0 || Hetzschrift.Ansehen < 0) f.Add("kirche: Preise und Ansehen dürfen nicht negativ sein.");
     }
 }
@@ -93,7 +97,7 @@ public sealed record Kirchenbuch(double Glaeubige, double Kollekte, int Ablaesse
 ///   • Ablass: Ein anderes Haus zahlt, eine seiner Taten verfällt sofort (mit allen Beweisen dafür).
 ///   • Beichte: Am Jahresende hört der Prediger von den Taten anderer Häuser. Bricht er das Beichtgeheimnis,
 ///     werden daraus Beweise – und er begeht selbst ein Vergehen.
-///   • Lehrschrift (½ Talent, einmal im Jahr) und Hetzschrift (fremdes Ansehen −5, Vergehen Verleumdung) –
+///   • Lehrschrift (½ Talent bis 3 Sterne, einmal im Jahr) und Hetzschrift (fremdes Ansehen −5, Vergehen Verleumdung) –
 ///     aus dem eigenen Lager oder vom Markt.
 /// </summary>
 public sealed class Kirchenwesen
@@ -243,8 +247,8 @@ public sealed class Kirchenwesen
         if (!IstAktiv) return "In dieser Stadt gibt es keine Schriften.";
         if (!_w.Familien.HatTalente || _w.Familien.Von(konto) is not { } f) return $"{konto.Inhaber} hat keine Familie, die lesen könnte.";
         if (_gelesen.GetValueOrDefault(konto) == Jahr) return $"{f.Oberhaupt.Vorname} hat dieses Jahr schon eine Lehrschrift gelesen.";
-        if (f.Oberhaupt.Anlage(talent) >= _w.Familien.Daten.Talente.Hoechstwert - 1e-9)
-            return $"{f.Oberhaupt.Vorname} beherrscht {talent.Name()} schon meisterhaft.";
+        if (f.Oberhaupt.Anlage(talent) >= Math.Min(Daten.LehrschriftBis, _w.Familien.Daten.Talente.Hoechstwert) - 1e-9)
+            return $"Über {talent.Name()} kann {f.Oberhaupt.Vorname} aus Lehrschriften nichts mehr lernen (bis {TalentTexte.Sterne(Daten.LehrschriftBis)} Sterne).";
         if (Schriftpreis(konto, Daten.Lehrschrift) > konto.Vermoegen) return "Für eine Lehrschrift fehlt das Geld.";
         return null;
     }
@@ -255,7 +259,7 @@ public sealed class Kirchenwesen
         var preis = Beschaffen(konto, Daten.Lehrschrift, konto.Familienkosten)!.Value;
         var o = _w.Familien.Von(konto)!.Oberhaupt;
         var schritt = _w.Daten.Aktionspunkte?.TrainingSchritt ?? 0.5;
-        o.TalentSetzen(talent, Math.Min(_w.Familien.Daten.Talente.Hoechstwert, o.Anlage(talent) + schritt));
+        o.TalentSetzen(talent, Math.Min(Math.Min(Daten.LehrschriftBis, _w.Familien.Daten.Talente.Hoechstwert), o.Anlage(talent) + schritt));
         _gelesen[konto] = Jahr;
         return Befehlsergebnis.Ok($"{o.Vorname} liest eine Lehrschrift ({(preis > 0 ? $"{Zahlenformat.Ganz(preis)} {_w.Daten.Allgemein.Waehrung} am Markt" : "aus dem eigenen Lager")}): " +
                                   $"{talent.Name()} jetzt {TalentTexte.Sterne(o.Anlage(talent))} Sterne.");

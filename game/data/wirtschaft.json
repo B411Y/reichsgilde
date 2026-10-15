@@ -32,7 +32,7 @@
       "Schenken": 1, "AmtBewerben": 1, "StatutBeantragen": 2,
       "SpitzelAnsetzen": 1, "Anklagen": 2,
       "Beauftragen": 1, "Erpressen": 2,
-      "AblassKaufen": 1, "BeichtgeheimnisBrechen": 2, "HetzschriftVerbreiten": 1,
+      "AblassKaufen": 1, "BeichtgeheimnisBrechen": 2, "HetzschriftVerbreiten": 1, "LehrschriftLesen": 1,
       "BerufErlernen": 4
     }
   },
@@ -808,6 +808,7 @@
     "ablass": { "grundpreis": 250, "anteilTat": 0.5 },
     "beichte": { "chance": 0.25, "betrag": 200 },
     "lehrschrift": "Lehrschrift",
+    "lehrschriftBis": 3,
     "hetzschrift": { "ware": "Hetzschrift", "ansehen": 5 }
   },
   "meistergrade": {

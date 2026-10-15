@@ -131,7 +131,7 @@ public sealed class KiRivale
                 // der Wagemutige geht ins Hinterzimmer, bevor er Ratsherren beschenkt; die anderen umgekehrt.
                 Familienpolitik();
                 Verteidigung();
-                Kirchenpolitik(); // Ablass ist Verteidigung; Lehrschrift kostet keine AP
+                Kirchenpolitik(); // Ablass ist Verteidigung
                 Meisterpruefung();
                 if (Profil.Gaunerei >= 2)
                 {
@@ -424,8 +424,7 @@ public sealed class KiRivale
     /// <summary>
     /// Einmal am Tag, rund um die Kirche:
     ///   • Ablass: Haben andere Beweise für eine eigene Tat, kauft die KI sie in einer fremden Kirche frei – solange die halbe Reserve hält.
-    ///   • Lehrschrift: einmal im Jahr lesen (keine AP) – aus dem eigenen Lager oder, mit doppelter Reserve, vom Markt.
-    ///   • Wagemutig als Prediger: das Beichtgeheimnis gegen das stärkste Haus brechen, über das er etwas weiß;
+        ///   • Wagemutig als Prediger: das Beichtgeheimnis gegen das stärkste Haus brechen, über das er etwas weiß;
     ///     eine Hetzschrift gegen das führende Haus, wenn gerade keine gegen es umgeht.
     /// </summary>
     private void Kirchenpolitik()
@@ -442,21 +441,6 @@ public sealed class KiRivale
                 if (!Befehlen(new AblassKaufen(kirche.Name),
                         $"kauft in {kirche.Name} Ablass für „{spur.Beschreibung}“ ({Zahlenformat.Ganz(kw.Ablasspreis(spur))} {waehrung}) – andere hatten Beweise."))
                     break;
-        }
-
-        if (_w.Familien.HatTalente)
-        {
-            var wunsch = Profil.Gaunerei >= 2
-                ? new[] { Talent.Kampf, Talent.NachtUndNebel, Talent.Handwerk, Talent.Verhandeln, Talent.Rhetorik }
-                : new[] { Talent.Handwerk, Talent.Verhandeln, Talent.Rhetorik };
-            var preis = kw.Schriftpreis(Konto, kw.Daten.Lehrschrift);
-            if (preis == 0 || Konto.Vermoegen - preis >= 2 * Profil.Reserve) // vom Markt erst, wenn für Hochzeit und Werkstatt genug bleibt
-                foreach (var talent in wunsch)
-                    if (kw.LesenVerboten(Konto, talent) is null)
-                    {
-                        Befehlen(new LehrschriftLesen(talent), $"liest eine Lehrschrift über {talent.Name()}.");
-                        break;
-                    }
         }
 
         if (Profil.Gaunerei < 2) return;
@@ -1001,6 +985,19 @@ public sealed class KiRivale
         var reihe = wunsch.Select((t, i) => (Talent: t, Rang: i))
             .OrderBy(x => _w.ApKosten(Konto, new TalentTrainieren(x.Talent))).ThenBy(x => x.Rang)
             .Select(x => x.Talent).ToList();
+        // Erst eine Lehrschrift (1 AP, bis 3 Sterne) – billiger als Üben; aus dem Lager oder, mit doppelter Reserve, vom Markt.
+        if (_w.Kirchenwesen.IstAktiv && Konto.Aktionspunkte.Vorrat + _w.AktionspunkteJeRunde > d.Hoechstens)
+        {
+            var kw = _w.Kirchenwesen;
+            var preis = kw.Schriftpreis(Konto, kw.Daten.Lehrschrift);
+            if (preis == 0 || Konto.Vermoegen - preis >= 2 * Profil.Reserve)
+                foreach (var talent in wunsch)
+                    if (kw.LesenVerboten(Konto, talent) is null)
+                    {
+                        Befehlen(new LehrschriftLesen(talent), $"liest eine Lehrschrift über {talent.Name()} (sonst verfielen Aktionspunkte).");
+                        break;
+                    }
+        }
         foreach (var talent in reihe)
         {
             var ap = Konto.Aktionspunkte.Vorrat;

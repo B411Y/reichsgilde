@@ -148,20 +148,21 @@ static class PredigerTests
             Pruefe.Gleich(Vergehen.Beichtbruch, w.Justiz.SpurenVon(prediger).Single().Art);
         }),
 
-        ("Lehrschrift: vom Markt oder aus dem eigenen Lager, +½ Stern, einmal je Jahr, keine Aktionspunkte", () =>
+        ("Lehrschrift: vom Markt oder aus dem eigenen Lager, +½ Stern bis höchstens 3 Sterne, einmal je Jahr, 1 Aktionspunkt", () =>
         {
             var sim = NeueSimulation();
             var (w, k, b) = Prediger(sim);
             var f = w.Familien.Gruenden(k, Volk.Mensch, Geschlecht.Mann, alter: 30);
-            var talent = f.Oberhaupt.Anlage(Talent.Rhetorik);
+            f.Oberhaupt.TalentSetzen(Talent.Rhetorik, 1);
+            f.Oberhaupt.TalentSetzen(Talent.Handwerk, 2.75);
             var ap = k.Aktionspunkte.Vorrat;
             var vorher = k.Vermoegen;
             var preis = w.Markt["Lehrschrift"].Preis;
             var e = w.Ausfuehren(k, new LehrschriftLesen(Talent.Rhetorik));
             Pruefe.Wahr(e.Erfolg, e.Meldung);
-            Pruefe.Ungefaehr(talent + 0.5, f.Oberhaupt.Anlage(Talent.Rhetorik), 1e-9);
+            Pruefe.Ungefaehr(1.5, f.Oberhaupt.Anlage(Talent.Rhetorik), 1e-9);
             Pruefe.Ungefaehr(vorher - preis, k.Vermoegen, 1);
-            Pruefe.Gleich(ap, k.Aktionspunkte.Vorrat);
+            Pruefe.Gleich(ap - 1, k.Aktionspunkte.Vorrat);
             Pruefe.Wahr(!w.Ausfuehren(k, new LehrschriftLesen(Talent.Handwerk)).Erfolg, "zweimal im Jahr");
             JahrBeenden(sim);
             b.Einlagern("Lehrschrift", 1);
@@ -169,6 +170,10 @@ static class PredigerTests
             Pruefe.Wahr(w.Ausfuehren(k, new LehrschriftLesen(Talent.Handwerk)).Erfolg, "im neuen Jahr");
             Pruefe.Ungefaehr(vorher, k.Vermoegen, 1e-9);
             Pruefe.Gleich(0, b.ImLager("Lehrschrift"));
+            Pruefe.Ungefaehr(3, f.Oberhaupt.Anlage(Talent.Handwerk), 1e-9); // nur bis 3 Sterne
+            JahrBeenden(sim);
+            var e2 = w.Ausfuehren(k, new LehrschriftLesen(Talent.Handwerk));
+            Pruefe.Wahr(!e2.Erfolg && e2.Meldung.Contains("nichts mehr lernen"), e2.Meldung);
         }),
 
         ("Hetzschrift: 5 Ansehen weniger bis Ende nächsten Jahres; der Verfasser begeht eine Verleumdung", () =>
@@ -227,7 +232,7 @@ static class PredigerTests
             var kr = kw.Konten.Single(k => k.Inhaber == rivale.Inhaber);
             Pruefe.Gleich(w.Kirchenwesen.DiesesJahr(kirche), kw.Kirchenwesen.DiesesJahr(kk));
             Pruefe.Gleich(w.Kirchenwesen.Vorjahr(kirche), kw.Kirchenwesen.Vorjahr(kk));
-            Pruefe.Gleich(w.Kirchenwesen.Beichtwissen(spieler, rivale).Count(), kw.Kirchenwesen.Beichtwissen(kopieSpieler, kr).Count());
+            Pruefe.Gleich(w.Kirchenwesen.Beichtwissen(spieler, rivale).Count(), kw.Kirchenwesen.Beichtwissen(kopieSpieler!, kr).Count());
             Pruefe.Gleich(w.Kirchenwesen.GehetztBis(rivale), kw.Kirchenwesen.GehetztBis(kr));
         }),
     };
