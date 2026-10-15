@@ -9,7 +9,9 @@ namespace Reichsgilde;
 /// Original. Der Preis ist grün, wenn er über dem Grundpreis liegt (gut zum Verkaufen), rot darunter (gut zum Einkaufen).
 /// Einzelheiten (Nachfrage, Zutaten, Gewinn je Minute, eigener Bestand) stehen im Tooltip.
 ///
-/// Reine Anzeige: Gehandelt wird (noch) über die Karren der Betriebe.
+/// Handel von Hand: Oben wählt man Betrieb und Karren, klickt eine Ware an und setzt sie mit Menge auf den
+/// Auftrag (verkaufen aus dem Lager / kaufen ins Lager). Der Karren fährt los, handelt bei Ankunft und bringt die
+/// Einkäufe heim – die Regeln prüft der Kern (<see cref="Stadtwirtschaft.HandelsauftragVerboten"/>).
 /// </summary>
 public partial class MarktAnzeige : PanelContainer
 {
@@ -30,6 +32,22 @@ public partial class MarktAnzeige : PanelContainer
     private VBoxContainer _inhalt = null!;
     private readonly List<(string Ware, Label Preis, Label Bestand, Control Kachel)> _kacheln = new();
     private double _seitAktualisierung;
+
+    // Handel von Hand
+    private readonly List<Betrieb> _handelsbetriebe = new();
+    private OptionButton? _betriebWahl;
+    private OptionButton? _karrenWahl;
+    private Label? _handelInfo, _wareText, _auftragText, _meldung;
+    private Zahlfeld? _menge;
+    private Button? _verkaufKnopf, _kaufKnopf, _losKnopf, _leerenKnopf, _verwerfenKnopf;
+    private CheckBox? _halten;
+    private string? _ware;
+    private readonly Dictionary<string, int> _verkauf = new();
+    private readonly Dictionary<string, int> _kauf = new();
+    private Betrieb? _vorwahl;
+
+    /// <summary>Ein Handelsauftrag wurde abgeschickt (für das Protokoll).</summary>
+    public event Action<string>? Gemeldet;
 
     public override void _Ready()
     {
@@ -62,8 +80,12 @@ public partial class MarktAnzeige : PanelContainer
         _spieler = spieler;
     }
 
-    public void Oeffnen()
+    public void Oeffnen() => Oeffnen(null);
+
+    /// <summary>Öffnet den Markt – mit diesem Betrieb für den Handelsauftrag vorgewählt.</summary>
+    public void Oeffnen(Betrieb? betrieb)
     {
+        _vorwahl = betrieb;
         Aufbauen();
         Show();
     }
@@ -102,6 +124,9 @@ public partial class MarktAnzeige : PanelContainer
         Hauptmenue.Text(_inhalt, "Die Preise bilden sich aus Nachfrage und Angebot des letzten Jahres. " +
                                  "Grün ▲ über dem Grundpreis – gut zum Verkaufen; rot ▼ darunter – gut zum Einkaufen. " +
                                  "Die gelbe Zahl im Bild: so viel liegt in euren Lagern. Einzelheiten zeigt der Mauszeiger.", 12, Grau, umbruchBreite: Spalten * (Kachelbreite + 6));
+
+        if (w.Daten.Handel is not null && _spieler is not null)
+            HandelAufbauen(w);
 
         var d = w.Daten;
         var gruppen = d.Waren
@@ -157,6 +182,11 @@ public partial class MarktAnzeige : PanelContainer
         name.ClipText = true;
         var preis = Zeile(spalte, "", 14, Hell);
         _kacheln.Add((ware, preis, bestand, kachel));
+        kachel.GuiInput += ereignis =>
+        {
+            if (ereignis is InputEventMouseButton { Pressed: true, ButtonIndex: MouseButton.Left } && _betriebWahl is not null)
+                WareWaehlen(ware);
+        };
         return kachel;
     }
 
@@ -182,6 +212,7 @@ public partial class MarktAnzeige : PanelContainer
     private void Aktualisieren()
     {
         if (_simulation?.Wirtschaft is not { } w || _spieler is null) return;
+        HandelAktualisieren(w);
         var d = w.Daten;
         var waehrung = d.Allgemein.Waehrung;
         var eigene = w.Betriebe.Where(b => b.Konto == _spieler).ToList();
@@ -220,5 +251,194 @@ public partial class MarktAnzeige : PanelContainer
             var tipp = string.Join("\n", zeilen);
             if (kachel.TooltipText != tipp) kachel.TooltipText = tipp;
         }
+    }
+
+    // ═════════════════════════════════════════════════════════════════════════
+    //  Handel von Hand
+    // ═════════════════════════════════════════════════════════════════════════
+
+    private Betrieb? GewaehlterBetrieb => _betriebWahl is { } o && o.Selected >= 0 && o.Selected < _handelsbetriebe.Count ? _handelsbetriebe[o.Selected] : null;
+    private int GewaehlterKarren => Math.Max(0, _karrenWahl?.Selected ?? 0);
+
+    private void HandelAufbauen(Stadtwirtschaft w)
+    {
+        _handelsbetriebe.Clear();
+        _handelsbetriebe.AddRange(w.Betriebe.Where(b => b.Konto == _spieler && b.Karren.Count > 0));
+        var rahmen = new PanelContainer();
+        rahmen.AddThemeStyleboxOverride("panel", new StyleBoxFlat
+        {
+            BgColor = new Color(0.18f, 0.15f, 0.11f), BorderColor = new Color(0.50f, 0.40f, 0.26f),
+            BorderWidthLeft = 1, BorderWidthTop = 1, BorderWidthRight = 1, BorderWidthBottom = 1,
+            ContentMarginLeft = 10, ContentMarginRight = 10, ContentMarginTop = 8, ContentMarginBottom = 8,
+        });
+        _inhalt.AddChild(rahmen);
+        var box = new VBoxContainer();
+        box.AddThemeConstantOverride("separation", 6);
+        rahmen.AddChild(box);
+        Hauptmenue.Text(box, "Handelsauftrag", 16, Gold);
+        if (_handelsbetriebe.Count == 0)
+        {
+            Hauptmenue.Text(box, "Ihr habt keinen Betrieb mit Karren.", 13, Grau);
+            _betriebWahl = null;
+            return;
+        }
+
+        var zeile1 = new HBoxContainer();
+        zeile1.AddThemeConstantOverride("separation", 8);
+        box.AddChild(zeile1);
+        Hauptmenue.Text(zeile1, "Betrieb:", 13, Hell);
+        _betriebWahl = new OptionButton { FocusMode = FocusModeEnum.None };
+        foreach (var b in _handelsbetriebe) _betriebWahl.AddItem(b.Name);
+        _betriebWahl.Select(_vorwahl is not null && _handelsbetriebe.Contains(_vorwahl) ? _handelsbetriebe.IndexOf(_vorwahl) : 0);
+        _betriebWahl.ItemSelected += _ => { KarrenListeFuellen(); AuftragLeeren(); };
+        zeile1.AddChild(_betriebWahl);
+        Hauptmenue.Text(zeile1, "Karren:", 13, Hell);
+        _karrenWahl = new OptionButton { FocusMode = FocusModeEnum.None };
+        zeile1.AddChild(_karrenWahl);
+        _handelInfo = Hauptmenue.Text(zeile1, "", 12, Grau);
+        _handelInfo.AutowrapMode = TextServer.AutowrapMode.WordSmart; // „Zuletzt: …“ kann lang werden – das Fenster soll nicht wachsen
+        _handelInfo.SizeFlagsHorizontal = SizeFlags.ExpandFill;
+        _handelInfo.CustomMinimumSize = new Vector2(420, 0);
+        KarrenListeFuellen();
+
+        var zeile2 = new HBoxContainer();
+        zeile2.AddThemeConstantOverride("separation", 8);
+        box.AddChild(zeile2);
+        _wareText = Hauptmenue.Text(zeile2, "Ware anklicken, um sie auf den Auftrag zu setzen.", 13, Hell);
+        _menge = new Zahlfeld { MinValue = 1, MaxValue = 75, Step = 1, Value = 10, CustomMinimumSize = new Vector2(90, 0) };
+        zeile2.AddChild(_menge);
+        _verkaufKnopf = Knopf(zeile2, "verkaufen", () => Setzen(_verkauf));
+        _kaufKnopf = Knopf(zeile2, "kaufen", () => Setzen(_kauf));
+        _halten = new CheckBox { Text = "zurückhalten", FocusMode = FocusModeEnum.None, TooltipText = "Der Karren verkauft diese Ware nicht von selbst (zum Horten und späteren Verkauf von Hand)." };
+        _halten.AddThemeFontSizeOverride("font_size", 13);
+        _halten.Toggled += an =>
+        {
+            if (GewaehlterBetrieb is { } b && _ware is { } ware) Befehlen(new WareZurueckhalten(b.Name, ware, an));
+        };
+        zeile2.AddChild(_halten);
+
+        var zeile3 = new HBoxContainer();
+        zeile3.AddThemeConstantOverride("separation", 8);
+        box.AddChild(zeile3);
+        _auftragText = Hauptmenue.Text(zeile3, "", 13, Hell);
+        _auftragText.AutowrapMode = TextServer.AutowrapMode.WordSmart;
+        _auftragText.CustomMinimumSize = new Vector2(620, 0);
+        _leerenKnopf = Knopf(zeile3, "leeren", AuftragLeeren);
+        _losKnopf = Knopf(zeile3, "Karren losschicken", Losschicken);
+        _verwerfenKnopf = Knopf(zeile3, "Vormerkung verwerfen", () =>
+        {
+            if (GewaehlterBetrieb is { } b) Befehlen(new HandelsauftragVerwerfen(b.Name, GewaehlterKarren));
+        });
+        _meldung = Hauptmenue.Text(box, "", 13, Grau);
+        _meldung.AutowrapMode = TextServer.AutowrapMode.WordSmart;
+        _meldung.CustomMinimumSize = new Vector2(Spalten * (Kachelbreite + 6) - 40, 0);
+        if (_ware is not null && !w.Daten.Waren.ContainsKey(_ware)) _ware = null;
+    }
+
+    private static Button Knopf(Container eltern, string text, Action klick)
+    {
+        var knopf = new Button { Text = text, FocusMode = FocusModeEnum.None };
+        knopf.AddThemeFontSizeOverride("font_size", 13);
+        knopf.Pressed += klick;
+        eltern.AddChild(knopf);
+        return knopf;
+    }
+
+    private void KarrenListeFuellen()
+    {
+        if (_karrenWahl is null || GewaehlterBetrieb is not { } b) return;
+        _karrenWahl.Clear();
+        foreach (var k in b.Karren) _karrenWahl.AddItem($"{k.Name} ({k.Daten.Sorten} × {k.Daten.KapazitaetJeSorte})");
+        _karrenWahl.Select(0);
+    }
+
+    private void WareWaehlen(string ware)
+    {
+        _ware = ware;
+        foreach (var (w2, _, _, kachel) in _kacheln)
+            kachel.Modulate = w2 == ware ? new Color(1.15f, 1.1f, 0.9f) : Colors.White;
+        if (_simulation?.Wirtschaft is { } w) HandelAktualisieren(w);
+    }
+
+    private void Setzen(Dictionary<string, int> liste)
+    {
+        if (_ware is null || _menge is null) return;
+        _menge.Apply();
+        var menge = (int)_menge.Value;
+        liste[_ware] = liste.GetValueOrDefault(_ware) + menge;
+        (liste == _verkauf ? _kauf : _verkauf).Remove(_ware); // eine Ware entweder verkaufen oder kaufen
+        if (_simulation?.Wirtschaft is { } w) HandelAktualisieren(w);
+    }
+
+    private void AuftragLeeren()
+    {
+        _verkauf.Clear();
+        _kauf.Clear();
+        if (_simulation?.Wirtschaft is { } w) HandelAktualisieren(w);
+    }
+
+    private void Losschicken()
+    {
+        if (GewaehlterBetrieb is not { } b) return;
+        if (Befehlen(new Handelsauftrag(b.Name, GewaehlterKarren, new Dictionary<string, int>(_verkauf), new Dictionary<string, int>(_kauf))))
+            AuftragLeeren();
+    }
+
+    private bool Befehlen(Befehl befehl)
+    {
+        if (_simulation?.Wirtschaft is not { } w || _spieler is null || _meldung is null) return false;
+        var e = w.Ausfuehren(_spieler, befehl);
+        _meldung.Text = e.Erfolg ? e.Meldung : "✗ " + e.Meldung;
+        _meldung.AddThemeColorOverride("font_color", e.Erfolg ? Gruen : Rot);
+        Gemeldet?.Invoke(_meldung.Text);
+        HandelAktualisieren(w);
+        return e.Erfolg;
+    }
+
+    /// <summary>Texte, Schätzungen und Knöpfe des Handelsauftrags angleichen.</summary>
+    private void HandelAktualisieren(Stadtwirtschaft w)
+    {
+        if (_betriebWahl is null || GewaehlterBetrieb is not { } b || _spieler is null) return;
+        var waehrung = w.Daten.Allgemein.Waehrung;
+        var h = w.Daten.Handel!;
+        var karren = b.Karren[Math.Min(GewaehlterKarren, b.Karren.Count - 1)];
+        var ankunft = w.AnkunftAmMarkt(b);
+        string Kurz(IReadOnlyDictionary<string, int> l) => string.Join(", ", l.Where(x => x.Value > 0).Select(x => $"{x.Value} {x.Key}"));
+        var unterwegs = karren.Zustand != KarrenZustand.AmBetrieb;
+        var info = $"{karren.ZustandText(_simulation!.Zeit)} · Markt {h.MarktVon}–{h.MarktBis} Uhr" +
+                   (unterwegs ? "" : $", Ankunft {ankunft / 60:00}:{ankunft % 60:00}") +
+                   (karren.Vormerkung is { } v
+                       ? $"\nVorgemerkt: {(v.Verkauf.Any(x => x.Value > 0) ? "verkaufen " + Kurz(v.Verkauf) : "")}{(v.Verkauf.Any(x => x.Value > 0) && v.Kauf.Any(x => x.Value > 0) ? "; " : "")}{(v.Kauf.Any(x => x.Value > 0) ? "kaufen " + Kurz(v.Kauf) : "")}"
+                       : "") +
+                   (karren.LetzterHandel is { } letzt ? $"\nZuletzt: {letzt}" : "");
+        if (_handelInfo!.Text != info) _handelInfo.Text = info;
+
+        if (_ware is { } ware)
+        {
+            var stand = w.Markt[ware];
+            var text = $"{ware}: im Lager {b.ImLager(ware)} · verkaufen ≈ {Zahlenformat.Kommazahl(stand.Preis * w.Familien.VerkaufsFaktor(_spieler))} · " +
+                       $"kaufen ≈ {Zahlenformat.Kommazahl(w.HandKaufpreis(_spieler, ware, 1))} {waehrung} je Stück";
+            if (_wareText!.Text != text) _wareText.Text = text;
+            _halten!.SetPressedNoSignal(b.HaeltZurueck(ware));
+        }
+        _verkaufKnopf!.Disabled = _kaufKnopf!.Disabled = _halten!.Disabled = _ware is null;
+
+        string Liste(Dictionary<string, int> l, Func<string, int, double> wert) =>
+            string.Join(", ", l.Select(x => $"{x.Value} {x.Key} (≈ {Zahlenformat.Ganz(wert(x.Key, x.Value))})"));
+        var teile = new List<string>();
+        if (_verkauf.Count > 0)
+            teile.Add("Verkaufen: " + Liste(_verkauf, (ware, n) => w.Markt[ware].Preis * n * w.Familien.VerkaufsFaktor(_spieler)));
+        if (_kauf.Count > 0)
+            teile.Add("Kaufen: " + Liste(_kauf, (ware, n) => w.HandKaufpreis(_spieler, ware, n)));
+        var grund = w.HandelsauftragVerboten(b, GewaehlterKarren, _verkauf, _kauf, vormerken: unterwegs);
+        var auftrag = teile.Count == 0 ? "Auftrag: noch leer." : "Auftrag – " + string.Join(" · ", teile) + $" {waehrung}" + (grund is null ? "" : $"\n✗ {grund}");
+        if (_auftragText!.Text != auftrag) _auftragText.Text = auftrag;
+        _losKnopf!.Text = unterwegs ? "vormerken" : "Karren losschicken";
+        _losKnopf.Disabled = grund is not null;
+        _losKnopf.TooltipText = grund ?? (unterwegs
+            ? "Der Karren ist unterwegs – der Auftrag startet, sobald er zurück ist (vor dem Verwalter)."
+            : "Der Karren lädt die Verkaufsware, fährt zum Markt, handelt und bringt die Einkäufe heim.");
+        _verwerfenKnopf!.Visible = karren.Vormerkung is not null;
+        _leerenKnopf!.Disabled = teile.Count == 0;
     }
 }

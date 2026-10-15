@@ -48,6 +48,9 @@ public sealed class Karren
     /// <summary>Ein Handelsauftrag von Hand: Was der Karren am Markt kaufen soll (null: er fährt nach Verwalterregel).</summary>
     public Handelsplan? Auftrag { get; private set; }
 
+    /// <summary>Ein Handelsauftrag, der startet, sobald der Karren zurück ist (null: keiner).</summary>
+    public Vormerkung? Vormerkung { get; internal set; }
+
     /// <summary>Was der letzte Handelsauftrag am Markt gebracht hat (für die Anzeige; nicht gespeichert).</summary>
     public string? LetzterHandel { get; private set; }
 
@@ -85,6 +88,13 @@ public sealed class Karren
             if (zeit.VergangeneMinuten >= Ankunft)
                 Ankommen(zeit, w);
             return;
+        }
+
+        // Ein vorgemerkter Handelsauftrag geht dem Verwalter vor.
+        if (Vormerkung is { } v)
+        {
+            Vormerkung = null;
+            if (w.VorgemerktenAuftragStarten(this, v)) return;
         }
 
         if (SollLosfahren(zeit, w.Daten.Logistik))
@@ -276,6 +286,8 @@ public sealed class Karren
         Name = Name, Typ = Typ, Zustand = Zustand, Ankunft = Ankunft, Ladung = new(_ladung),
         Eskorte = Eskorte, NachtsFahren = NachtsFahren, WareWartetSeit = _wareWartetSeit,
         Auftrag = Auftrag is null ? null : new(Auftrag.Kauf),
+        VormerkungVerkauf = Vormerkung is null ? null : new(Vormerkung.Verkauf),
+        VormerkungKauf = Vormerkung is null ? null : new(Vormerkung.Kauf),
     };
 
     internal void Wiederherstellen(KarrenStand s)
@@ -288,6 +300,8 @@ public sealed class Karren
         NachtsFahren = s.NachtsFahren;
         _wareWartetSeit = s.WareWartetSeit;
         Auftrag = s.Auftrag is null ? null : new Handelsplan(new Dictionary<string, int>(s.Auftrag));
+        Vormerkung = s.VormerkungVerkauf is null || s.VormerkungKauf is null ? null
+            : new Vormerkung(new Dictionary<string, int>(s.VormerkungVerkauf), new Dictionary<string, int>(s.VormerkungKauf));
     }
 
     /// <summary>Die Ladung geht verloren (Überfall).</summary>

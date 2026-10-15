@@ -149,12 +149,14 @@ public sealed class Stadtwirtschaft
     public int AnkunftAmMarkt(Betrieb betrieb) => Uhr.UhrzeitInMinuten + Daten.Logistik.FahrzeitAb(betrieb.Ort);
 
     /// <summary>Warum dieser Handelsauftrag nicht geht – oder null.</summary>
-    public string? HandelsauftragVerboten(Betrieb betrieb, int karrenNr, IReadOnlyDictionary<string, int> verkauf, IReadOnlyDictionary<string, int> kauf)
+    /// <param name="vormerken">Für einen Karren, der unterwegs ist: Zustand und Marktzeit werden erst beim Start geprüft.</param>
+    public string? HandelsauftragVerboten(Betrieb betrieb, int karrenNr, IReadOnlyDictionary<string, int> verkauf, IReadOnlyDictionary<string, int> kauf,
+        bool vormerken = false)
     {
         if (Daten.Handel is not { } h) return "In dieser Stadt wird nicht von Hand gehandelt.";
         if (karrenNr < 0 || karrenNr >= betrieb.Karren.Count) return $"{betrieb.Name} hat keinen Karren Nr. {karrenNr + 1}.";
         var karren = betrieb.Karren[karrenNr];
-        if (karren.Zustand != KarrenZustand.AmBetrieb) return $"{karren.Name} ist unterwegs – erst wenn er wieder am Betrieb steht.";
+        if (karren.Zustand != KarrenZustand.AmBetrieb && !vormerken) return $"{karren.Name} ist unterwegs – erst wenn er wieder am Betrieb steht.";
         var verkaufen = verkauf.Where(x => x.Value > 0).ToList();
         var kaufen = kauf.Where(x => x.Value > 0).ToList();
         if (verkaufen.Count == 0 && kaufen.Count == 0) return "Der Auftrag ist leer.";
@@ -174,7 +176,7 @@ public sealed class Stadtwirtschaft
                 return $"Das Lager fasst nur {betrieb.LagerKapazitaetJeWare} {ware} – danach wären es {danach}.";
         }
         var ankunft = AnkunftAmMarkt(betrieb);
-        if (ankunft < h.MarktVon * 60 || ankunft > h.MarktBis * 60)
+        if (!vormerken && (ankunft < h.MarktVon * 60 || ankunft > h.MarktBis * 60))
             return $"Der Markt hat von {h.MarktVon} bis {h.MarktBis} Uhr offen – der Karren käme um {ankunft / 60:00}:{ankunft % 60:00} an.";
         var kosten = kaufen.Sum(x => HandKaufpreis(betrieb.Konto, x.Key, x.Value));
         if (kosten > betrieb.Konto.Vermoegen + verkaufen.Sum(x => Markt[x.Key].Preis * x.Value))
@@ -184,15 +186,45 @@ public sealed class Stadtwirtschaft
 
     private Befehlsergebnis HandelsauftragAusfuehren(Betrieb betrieb, Handelsauftrag befehl)
     {
-        if (HandelsauftragVerboten(betrieb, befehl.Karren, befehl.Verkauf, befehl.Kauf) is { } grund)
+        // Ist der Karren unterwegs, wird der Auftrag vorgemerkt: Er startet, sobald der Karren zurück ist.
+        var unterwegs = befehl.Karren >= 0 && befehl.Karren < betrieb.Karren.Count && betrieb.Karren[befehl.Karren].Zustand != KarrenZustand.AmBetrieb;
+        if (HandelsauftragVerboten(betrieb, befehl.Karren, befehl.Verkauf, befehl.Kauf, vormerken: unterwegs) is { } grund)
             return Befehlsergebnis.Abgelehnt(grund);
         var karren = betrieb.Karren[befehl.Karren];
+        if (unterwegs)
+        {
+            var zurueck = karren.Zustand == KarrenZustand.ZumBetrieb ? karren.Ankunft
+                : karren.Ankunft + Daten.Logistik.FahrzeitAb(betrieb.Ort);
+            var um = Uhr.UhrzeitInMinuten + (int)(zurueck - Uhr.VergangeneMinuten);
+            karren.Vormerkung = new Vormerkung(new Dictionary<string, int>(befehl.Verkauf), new Dictionary<string, int>(befehl.Kauf));
+            return Befehlsergebnis.Ok($"{karren.Name} ist unterwegs – der Auftrag ist vorgemerkt und startet, sobald er zurück ist (etwa {um / 60:00}:{um % 60:00}).");
+        }
+        return HandelsauftragStarten(betrieb, karren, befehl.Verkauf, befehl.Kauf);
+    }
+
+    /// <summary>Der Karren ist zurück: den vorgemerkten Auftrag starten – oder melden, warum er verfällt.</summary>
+    internal bool VorgemerktenAuftragStarten(Karren karren, Vormerkung v)
+    {
+        var betrieb = karren.Heimat;
+        var nr = betrieb.Karren.ToList().IndexOf(karren);
+        if (!betrieb.Konto.IstAktiv) return false;
+        if (HandelsauftragVerboten(betrieb, nr, v.Verkauf, v.Kauf) is { } grund)
+        {
+            Melden($"{karren.Name} ({betrieb.Name}): Der vorgemerkte Handelsauftrag verfällt – {grund}");
+            return false;
+        }
+        Melden(HandelsauftragStarten(betrieb, karren, v.Verkauf, v.Kauf).Meldung);
+        return true;
+    }
+
+    private Befehlsergebnis HandelsauftragStarten(Betrieb betrieb, Karren karren, IReadOnlyDictionary<string, int> verkauf, IReadOnlyDictionary<string, int> kauf)
+    {
         var waehrung = Daten.Allgemein.Waehrung;
         // Was man kauft und nicht selbst verarbeitet, soll der Karren nicht gleich wieder verkaufen.
-        var gehalten = befehl.Kauf.Where(x => x.Value > 0 && !betrieb.Zutaten.ContainsKey(x.Key) && !betrieb.HaeltZurueck(x.Key)).Select(x => x.Key).ToList();
+        var gehalten = kauf.Where(x => x.Value > 0 && !betrieb.Zutaten.ContainsKey(x.Key) && !betrieb.HaeltZurueck(x.Key)).Select(x => x.Key).ToList();
         foreach (var ware in gehalten) betrieb.Zurueckhalten(ware, true);
-        var schaetzung = befehl.Kauf.Where(x => x.Value > 0).Sum(x => HandKaufpreis(betrieb.Konto, x.Key, x.Value));
-        karren.AuftragAnnehmen(befehl.Verkauf, befehl.Kauf, Uhr, this);
+        var schaetzung = kauf.Where(x => x.Value > 0).Sum(x => HandKaufpreis(betrieb.Konto, x.Key, x.Value));
+        karren.AuftragAnnehmen(verkauf, kauf, Uhr, this);
         var ankunft = Uhr.UhrzeitInMinuten + (int)(karren.Ankunft - Uhr.VergangeneMinuten);
         return Befehlsergebnis.Ok($"{karren.Name} fährt mit dem Auftrag zum Markt (an {ankunft / 60:00}:{ankunft % 60:00})." +
                                   (schaetzung > 0 ? $" Einkauf heute etwa {Zahlenformat.Ganz(schaetzung)} {waehrung}." : "") +
@@ -690,6 +722,7 @@ public sealed class Stadtwirtschaft
                 ZinsSetzen z => Bank.ZinsSetzen(betrieb, z.Satz),
                 Handelsauftrag h => HandelsauftragAusfuehren(betrieb, h),
                 WareZurueckhalten z => ZurueckhaltenAusfuehren(betrieb, z),
+                HandelsauftragVerwerfen v => VormerkungVerwerfen(betrieb, v.Karren),
                 _ => Befehlsergebnis.Abgelehnt($"Unbekannter Befehl: {befehl.GetType().Name}"),
             };
         }
@@ -845,6 +878,15 @@ public sealed class Stadtwirtschaft
                 $"Für einen {befehl.Typ} fehlen {Zahlenformat.Ganz(daten.Preis - betrieb.Konto.Vermoegen)} {Daten.Allgemein.Waehrung}.");
         var karren = betrieb.KarrenKaufen(befehl.Typ);
         return Befehlsergebnis.Ok($"{karren.Name} für {betrieb.Name} gekauft ({Zahlenformat.Ganz(daten.Preis)} {Daten.Allgemein.Waehrung}).");
+    }
+
+    private static Befehlsergebnis VormerkungVerwerfen(Betrieb betrieb, int nr)
+    {
+        if (nr < 0 || nr >= betrieb.Karren.Count) return Befehlsergebnis.Abgelehnt($"{betrieb.Name} hat keinen Karren Nr. {nr + 1}.");
+        var karren = betrieb.Karren[nr];
+        if (karren.Vormerkung is null) return Befehlsergebnis.Abgelehnt($"Für {karren.Name} ist nichts vorgemerkt.");
+        karren.Vormerkung = null;
+        return Befehlsergebnis.Ok($"Der vorgemerkte Auftrag für {karren.Name} ist verworfen.");
     }
 
     private static Befehlsergebnis ZurueckhaltenAusfuehren(Betrieb betrieb, WareZurueckhalten befehl)

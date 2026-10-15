@@ -199,5 +199,8 @@ public sealed record StadtglaubeBeantragen(Reichsgilde.Core.Glaube.Konfession? G
 public sealed record Handelsauftrag(string Betrieb, int Karren, IReadOnlyDictionary<string, int> Verkauf, IReadOnlyDictionary<string, int> Kauf)
     : BetriebsBefehl(Betrieb);
 
+/// <summary>Den vorgemerkten Handelsauftrag eines Karrens verwerfen (frei).</summary>
+public sealed record HandelsauftragVerwerfen(string Betrieb, int Karren) : BetriebsBefehl(Betrieb);
+
 /// <summary>Eine Ware im Lager zurückhalten: Der Karren verkauft sie nicht von selbst (frei).</summary>
 public sealed record WareZurueckhalten(string Betrieb, string Ware, bool Zurueckhalten) : BetriebsBefehl(Betrieb);

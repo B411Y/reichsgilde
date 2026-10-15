@@ -131,6 +131,26 @@ static class HandelTests
             Pruefe.Wahr(!b.HaeltZurueck("Silberring"), "freigegeben");
         }),
 
+        ("Vormerkung: Ist der Karren unterwegs, startet der Auftrag, sobald er zurück ist – vor dem Verwalter; verwerfen geht auch", () =>
+        {
+            var sim = Um(9);
+            var (w, k, b) = Haus(sim);
+            var karren = b.Karren[0];
+            Pruefe.Wahr(w.Ausfuehren(k, new Handelsauftrag(b.Name, 0, D(("Silberring", 5)), Nichts)).Erfolg, "erster Auftrag");
+            var e = w.Ausfuehren(k, new Handelsauftrag(b.Name, 0, D(("Silberring", 5)), D(("Gold", 2))));
+            Pruefe.Wahr(e.Erfolg && e.Meldung.Contains("vorgemerkt"), e.Meldung);
+            Pruefe.Wahr(w.Ausfuehren(k, new HandelsauftragVerwerfen(b.Name, 0)).Erfolg, "verwerfen");
+            Pruefe.Wahr(karren.Vormerkung is null, "verworfen");
+            Pruefe.Wahr(w.Ausfuehren(k, new Handelsauftrag(b.Name, 0, D(("Silberring", 5)), D(("Gold", 2)))).Erfolg, "neu vormerken");
+            while (karren.Zustand != KarrenZustand.AmBetrieb) sim.Tick();
+            sim.Tick(); // die Minute, in der er wieder am Betrieb steht
+            Pruefe.Gleich(KarrenZustand.ZumMarkt, karren.Zustand);
+            Pruefe.Gleich(2, karren.Auftrag!.Kauf["Gold"]);
+            Pruefe.Gleich(0, b.ImLager("Silberring"));
+            while (karren.Zustand != KarrenZustand.AmBetrieb) sim.Tick();
+            Pruefe.Gleich(2, b.ImLager("Gold"));
+        }),
+
         ("Speichern: Auftrag unterwegs und zurückgehaltene Waren überstehen Speichern und Laden", () =>
         {
             var (sim, spieler) = Partieaufbau.Erstellen(Partieeinstellungen.Standard with { Siegbedingung = Siegbedingung.Endlos },
@@ -139,8 +159,10 @@ static class HandelTests
             var b = w.Betriebe.First(x => x.Konto == spieler);
             b.Einlagern("Silberring", 5);
             Pruefe.Wahr(w.Ausfuehren(spieler, new Handelsauftrag(b.Name, 0, D(("Silberring", 5)), D(("Gold", 3)))).Erfolg, "Auftrag");
+            b.Karren[0].Vormerkung = new Vormerkung(D(("Silberring", 1)), Nichts);
             var (kopie, kopieSpieler) = Speicherung.Laden(Speicherung.Speichern(sim, spieler));
             var kb = kopie.Wirtschaft!.Betriebe.First(x => x.Konto == kopieSpieler);
+            Pruefe.Gleich(1, kb.Karren[0].Vormerkung!.Verkauf["Silberring"]);
             Pruefe.Gleich(3, kb.Karren[0].Auftrag!.Kauf["Gold"]);
             Pruefe.Wahr(kb.HaeltZurueck("Gold"), "Zurückhalten gespeichert");
             Minuten(sim, 70); Minuten(kopie, 70);

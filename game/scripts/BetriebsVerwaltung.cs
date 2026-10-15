@@ -76,6 +76,10 @@ public partial class BetriebsVerwaltung : VBoxContainer
     /// <summary>Ergebnis eines Befehls (Erfolg oder Ablehnung) – für das Protokoll.</summary>
     public event Action<string>? Gemeldet;
 
+    /// <summary>Der Spieler will mit diesem Betrieb am Markt handeln (öffnet das Marktfenster).</summary>
+    public event Action<Betrieb>? HandelGewuenscht;
+    private Button _handelKnopf = null!;
+
     public override void _Ready()
     {
         AddThemeConstantOverride("separation", 6);
@@ -207,6 +211,10 @@ public partial class BetriebsVerwaltung : VBoxContainer
         _kaufenKnopf = new Button { Text = "Kaufen", FocusMode = FocusModeEnum.None };
         _kaufenKnopf.Pressed += () => Befehlen(new KarrenKaufen(_betrieb!.Name, _karrenTypen[_karrenTyp.Selected]));
         kauf.AddChild(_kaufenKnopf);
+        _handelKnopf = new Button { Text = "Handel am Markt …", FocusMode = FocusModeEnum.None,
+                                    TooltipText = "Einen Karren mit einem Auftrag zum Markt schicken: verkaufen, einkaufen, Waren zurückhalten." };
+        _handelKnopf.Pressed += () => { if (_betrieb is not null) HandelGewuenscht?.Invoke(_betrieb); };
+        kauf.AddChild(_handelKnopf);
 
         Visible = false;
     }
@@ -335,6 +343,7 @@ public partial class BetriebsVerwaltung : VBoxContainer
             info.Text = karren.ZustandText(_simulation.Zeit);
         }
         _kaufenKnopf.Disabled = b.Konto.Vermoegen < w.Daten.Logistik.Karren[_karrenTypen[Math.Max(0, _karrenTyp.Selected)]].Preis;
+        _handelKnopf.Visible = w.Daten.Handel is not null && b.Karren.Count > 0;
     }
 
     /// <summary>Gästebuch, Ausschank-Vorrat, Barde, Würfeltisch, Stammtisch und dunkle Ecke einer Schänke.</summary>

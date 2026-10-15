@@ -24,3 +24,6 @@ public sealed class HandelDaten
 
 /// <summary>Was ein Karren auf dem Markt kaufen soll (die Verkaufsware hat er schon geladen).</summary>
 public sealed record Handelsplan(IReadOnlyDictionary<string, int> Kauf);
+
+/// <summary>Ein Auftrag für einen Karren, der gerade unterwegs ist: Er startet, sobald der Karren wieder am Betrieb steht.</summary>
+public sealed record Vormerkung(IReadOnlyDictionary<string, int> Verkauf, IReadOnlyDictionary<string, int> Kauf);

@@ -529,6 +529,10 @@ public sealed record KarrenStand
 
     /// <summary>Einkäufe eines Handelsauftrags, solange der Karren zum Markt unterwegs ist (null: kein Auftrag).</summary>
     public Dictionary<string, int>? Auftrag { get; init; }
+
+    /// <summary>Vorgemerkter Handelsauftrag (null: keiner).</summary>
+    public Dictionary<string, int>? VormerkungVerkauf { get; init; }
+    public Dictionary<string, int>? VormerkungKauf { get; init; }
 }
 
 public sealed record MarktstandStand
