@@ -117,7 +117,10 @@ public partial class FamilienAnzeige : PanelContainer
             talente.TooltipText = Talentwirkung(w, buch);
             talente.MouseFilter = MouseFilterEnum.Stop;
             if (w.HatAktionspunkte && !_spieler!.IstErloschen)
+            {
                 UebenZeile(w, buch);
+                LesenZeile(w);
+            }
         }
         if (f.Ehepartner is { } e)
         {
@@ -278,6 +281,35 @@ public partial class FamilienAnzeige : PanelContainer
                 knopf.TooltipText = $"{t.Name()} üben: +{schritt} Stern (einmal im Jahr je Talent). Je höher das Talent, desto mehr Aktionspunkte kostet es.";
             knopf.Pressed += () => Befehlen(new TalentTrainieren(talent));
             UiHilfe.ApKosten(knopf, w, _spieler!, new TalentTrainieren(t));
+            zeile.AddChild(knopf);
+        }
+    }
+
+    /// <summary>Je Talent ein Knopf „Lehrschrift lesen" – ½ Stern bis 3 Sterne, einmal im Jahr (aus dem Lager oder vom Markt).</summary>
+    private void LesenZeile(Stadtwirtschaft w)
+    {
+        var kw = w.Kirchenwesen;
+        if (!kw.IstAktiv) return;
+        var zeile = new HBoxContainer();
+        zeile.AddThemeConstantOverride("separation", 6);
+        _inhalt.AddChild(zeile);
+        var preis = kw.Schriftpreis(_spieler!, kw.Daten.Lehrschrift);
+        var herkunft = preis > 0 ? $"{Zahlenformat.Ganz(preis)} {w.Daten.Allgemein.Waehrung} am Markt" : "aus dem Lager";
+        Text(zeile, $"Lehrschrift ({herkunft}):", 13, Grau);
+        foreach (var t in TalentTexte.Alle)
+        {
+            var talent = t;
+            var knopf = new Button { Text = t.Kurz(), FocusMode = FocusModeEnum.None };
+            knopf.AddThemeFontSizeOverride("font_size", 13);
+            if (kw.LesenVerboten(_spieler!, t) is { } grund)
+            {
+                knopf.Disabled = true;
+                knopf.TooltipText = grund;
+            }
+            else
+                knopf.TooltipText = $"Eine Lehrschrift über {t.Name()} lesen: +½ Stern, aber nur bis {TalentTexte.Sterne(kw.Daten.LehrschriftBis)} Sterne. Einmal im Jahr.";
+            knopf.Pressed += () => Befehlen(new LehrschriftLesen(talent));
+            UiHilfe.ApKosten(knopf, w, _spieler!, new LehrschriftLesen(t));
             zeile.AddChild(knopf);
         }
     }

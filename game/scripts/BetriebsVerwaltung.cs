@@ -42,6 +42,10 @@ public partial class BetriebsVerwaltung : VBoxContainer
     private Label _gaesteText = null!;
     private Button _bardeKnopf = null!;
     private CheckBox _wuerfeltisch = null!;
+    private VBoxContainer _kirchenstube = null!;
+    private Label _kirchenText = null!;
+    private VBoxContainer _beichtKnoepfe = null!;
+    private string _beichtPlan = "";
     private HBoxContainer _ausbauZeile = null!;
     private Label _ausbauText = null!;
     private Button _ausbauKnopf = null!;
@@ -93,6 +97,16 @@ public partial class BetriebsVerwaltung : VBoxContainer
         _gaesteText.AutowrapMode = TextServer.AutowrapMode.WordSmart;
         _gaesteText.CustomMinimumSize = new Vector2(380, 0);
         var gastZeile = Zeile(_gaststube);
+
+        // Kirche (nur Kirchen des Predigers): Messe, Kollekte, Ablass, Beichtwissen
+        _kirchenstube = new VBoxContainer();
+        _kirchenstube.AddThemeConstantOverride("separation", 4);
+        AddChild(_kirchenstube);
+        _kirchenText = NeuesLabel(_kirchenstube, 13, Grau);
+        _kirchenText.AutowrapMode = TextServer.AutowrapMode.WordSmart;
+        _kirchenText.CustomMinimumSize = new Vector2(380, 0);
+        _beichtKnoepfe = new VBoxContainer();
+        _kirchenstube.AddChild(_beichtKnoepfe);
         _bardeKnopf = new Button { FocusMode = FocusModeEnum.None };
         _bardeKnopf.AddThemeFontSizeOverride("font_size", 13);
         _bardeKnopf.Pressed += () => Befehlen(new BardeEinladen(_betrieb!.Name));
@@ -203,6 +217,7 @@ public partial class BetriebsVerwaltung : VBoxContainer
 
         AusbauAktualisieren(b, w);
         GaststubeAktualisieren(b, w);
+        KirchenstubeAktualisieren(b, w);
 
         _foerderZeile.Visible = b.Rohstoffe.Count >= 2; // nur, wer zwei Rohstoffe fördert, teilt auf (Grube: Eisen/Silber)
         if (_foerderZeile.Visible)
@@ -285,6 +300,52 @@ public partial class BetriebsVerwaltung : VBoxContainer
         _wuerfeltisch.TooltipText = b.Stufe < d.Wuerfeltisch.AbStufe
             ? $"Einen Würfeltisch gibt es erst ab Stufe {d.Wuerfeltisch.AbStufe} (Wirtshaus)."
             : $"{Zahlenformat.Ganz(d.Wuerfeltisch.EinsatzJeGast)} {waehrung} je Gast fürs Haus – aber {Zahlenformat.Ganz(d.Wuerfeltisch.Ansehen)} Ansehen weniger, solange er steht.";
+    }
+
+    /// <summary>Messe und Kollekte, Ablässe, Anziehung und – je Haus – das Beichtwissen mit dem Knopf, es preiszugeben.</summary>
+    private void KirchenstubeAktualisieren(Betrieb b, Stadtwirtschaft w)
+    {
+        var kw = w.Kirchenwesen;
+        _kirchenstube.Visible = kw.IstKirche(b);
+        if (!_kirchenstube.Visible) return;
+        var d = kw.Daten;
+        var waehrung = w.Daten.Allgemein.Waehrung;
+        string Buch(Reichsgilde.Core.Kirche.Kirchenbuch x) =>
+            $"{Zahlenformat.Ganz(x.Glaeubige)} Gläubige, Kollekte {Zahlenformat.Ganz(x.Kollekte)} {waehrung}"
+            + (x.Ablaesse > 0 ? $" · {x.Ablaesse} {(x.Ablaesse == 1 ? "Ablass" : "Ablässe")} für {Zahlenformat.Ganz(x.Ablassgeld)} {waehrung}" : "");
+        var zeilen = new List<string>
+        {
+            $"Kirche – Messe um {d.MesseUm} Uhr, die Gläubigen spenden (steuerfrei). Dieses Jahr: {Buch(kw.DiesesJahr(b))}",
+        };
+        if (kw.Vorjahr(b) is { } vorjahr) zeilen.Add($"Vorjahr: {Buch(vorjahr)}");
+        zeilen.Add($"Erwartet ≈ {Zahlenformat.Ganz(kw.ErwarteteGlaeubige(b))} Gläubige im Jahr (Stufe, Ansehen und Rhetorik ziehen an).");
+        zeilen.Add($"Ablass: Andere Häuser kaufen hier ihre Taten frei – ab {Zahlenformat.Ganz(d.Ablass.Grundpreis)} {waehrung}, das Geld geht an euch.");
+        var wissen = w.Konten.Where(k => k != b.Konto && k.IstAktiv)
+            .Select(k => (Haus: k, Taten: kw.Beichtwissen(b.Konto, k).Count())).Where(x => x.Taten > 0).ToList();
+        zeilen.Add(wissen.Count == 0
+            ? $"Beichte: Am Jahresende hört ihr von fremden Taten ({Zahlenformat.Ganz(d.Beichte.Chance * 100)} % je Tat) – noch wisst ihr nichts."
+            : "Beichte – was ihr wisst (preisgeben macht Beweise daraus, ist aber selbst ein Vergehen):");
+        var text = string.Join("\n", zeilen);
+        if (_kirchenText.Text != text) _kirchenText.Text = text;
+
+        var plan = string.Join("|", wissen.Select(x => $"{x.Haus.Inhaber}:{x.Taten}"));
+        if (plan == _beichtPlan) return;
+        _beichtPlan = plan;
+        foreach (var kind in _beichtKnoepfe.GetChildren()) kind.QueueFree();
+        var ap = w.ApKosten(_spieler!, new BeichtgeheimnisBrechen(""));
+        foreach (var (haus, taten) in wissen)
+        {
+            var knopf = new Button
+            {
+                Text = $"{haus.Inhaber}: {taten} {(taten == 1 ? "Tat" : "Taten")} – Beichtgeheimnis brechen ({ap} AP)",
+                FocusMode = FocusModeEnum.None,
+                TooltipText = "Wird daraus ein Beweis gegen das Haus – und gegen euch die Tat „Bruch des Beichtgeheimnisses“.",
+            };
+            knopf.AddThemeFontSizeOverride("font_size", 13);
+            var name = haus.Inhaber;
+            knopf.Pressed += () => Befehlen(new BeichtgeheimnisBrechen(name));
+            _beichtKnoepfe.AddChild(knopf);
+        }
     }
 
     /// <summary>„Stufe 1: Gießerei" und der Knopf zum Ausbau – gesperrt mit Begründung, solange Grad oder Geld fehlen.</summary>
