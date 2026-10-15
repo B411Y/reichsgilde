@@ -69,6 +69,13 @@ public sealed class Stadtwirtschaft
     /// <summary>Konfessionen, Glaubensnähe im Rat, Bekehrung und Stadtglaube.</summary>
     public Glaube.Glaubenswesen Glaube { get; }
 
+    /// <summary>Völkerbonus als Faktor auf die Leistung: 1 + Bonus des Berufs für das Volk des Oberhaupts (1 ohne Familie).</summary>
+    public double VolksFaktor(Konto konto, string beruf) => 1 + VolksBonus(konto, beruf);
+
+    /// <summary>Völkerbonus (0,05 = +5 %) für das Volk des Oberhaupts in diesem Beruf.</summary>
+    public double VolksBonus(Konto konto, string beruf) =>
+        Familien.Von(konto) is { } f && Daten.Berufe.TryGetValue(beruf, out var b) ? b.Voelker.GetValueOrDefault(f.Oberhaupt.Volk) : 0;
+
     /// <summary>Was eine Arbeitsminute in einem Betrieb ohne Ware wert ist (Dieb: Beute, Gardist: Sold nach Steuer).</summary>
     public double WertOhneWare(BetriebsartDaten d) =>
         Diebe.IstAktiv && d.Beruf == Diebe.Daten.Beruf ? Diebe.WertJeMinute(d.Stufe)
@@ -302,7 +309,10 @@ public sealed class Stadtwirtschaft
         if (IstArbeitszeit(zeit))
             foreach (var betrieb in _betriebe)
                 // Handwerkskunst des Oberhaupts; im Pestjahr fehlt ein Teil der Arbeitskräfte
-                betrieb.Arbeitsminute(Melden, Familien.LeistungsFaktor(betrieb.Konto) * (1 - Gesundheit.Krankenstand));
+            {
+                var volk = VolksFaktor(betrieb.Konto, betrieb.Artdaten.Beruf); // Zwerge schmieden besser, Elben predigen besser …
+                betrieb.Arbeitsminute(Melden, Familien.LeistungsFaktor(betrieb.Konto) * volk * (1 - Gesundheit.Krankenstand), volk);
+            }
 
         // Bei Nacht und Nebel: Die Banden aus dem Hinterzimmer ziehen los.
         if (zeit.MinuteImTag == Unterwelt.Nachtstunde)

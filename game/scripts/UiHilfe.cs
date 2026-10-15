@@ -33,6 +33,13 @@ public static class UiHilfe
     /// Hängt die Aktionspunkte-Kosten an einen Knopf („Werben · 1 AP") und sperrt ihn, wenn der Vorrat nicht reicht.
     /// Die Kosten hängen nur von der Art des Befehls ab – Betrag oder Ziel spielen keine Rolle.
     /// </summary>
+    /// <summary>Völkerbonus als Zusatz für Berufsnamen: „ (+5 %)", „ (−5 %)" oder leer.</summary>
+    public static string VolksZusatz(Reichsgilde.Core.Wirtschaft.Stadtwirtschaft w, Reichsgilde.Core.Wirtschaft.Konto konto, string beruf)
+    {
+        var bonus = w.VolksBonus(konto, beruf);
+        return Math.Abs(bonus) < 1e-9 ? "" : $" ({(bonus > 0 ? "+" : "−")}{Reichsgilde.Core.Zahlenformat.Ganz(Math.Abs(bonus) * 100)} %)";
+    }
+
     public static void ApKosten(Button knopf, Reichsgilde.Core.Wirtschaft.Stadtwirtschaft w, Reichsgilde.Core.Wirtschaft.Konto konto,
         Reichsgilde.Core.Wirtschaft.Befehl befehl)
     {

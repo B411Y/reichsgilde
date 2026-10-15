@@ -262,6 +262,7 @@ tests.AddRange(GardistTests.Alle());
 tests.AddRange(GeldleiherTests.Alle());
 tests.AddRange(ParfumeurTests.Alle());
 tests.AddRange(GlaubeTests.Alle());
+tests.AddRange(VoelkerboniTests.Alle());
 
 // ── Testlauf ────────────────────────────────────────────────────────────────
 var fehler = 0;

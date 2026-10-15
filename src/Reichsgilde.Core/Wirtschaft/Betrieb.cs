@@ -320,7 +320,9 @@ public sealed class Betrieb
 
     /// <summary>Eine Spielminute Arbeit. Wird nur während der Arbeitszeit aufgerufen.</summary>
     /// <param name="leistungsFaktor">Handwerkskunst des Oberhaupts: 1,09 = die Arbeitskräfte schaffen 9 % mehr.</param>
-    internal void Arbeitsminute(Action<string> melden, double leistungsFaktor = 1)
+    /// <param name="leistungsFaktor">Handwerkskunst des Oberhaupts, Krankenstand, Völkerbonus – gilt für Betriebe mit Ware.</param>
+    /// <param name="volksFaktor">Nur der Völkerbonus – gilt auch für Betriebe ohne Ware (Diebe, Wache, Schreiber).</param>
+    internal void Arbeitsminute(Action<string> melden, double leistungsFaktor = 1, double volksFaktor = 1)
     {
         if (_umbauMinuten > 0 || _sabotageMinuten > 0)
         {
@@ -350,9 +352,9 @@ public sealed class Betrieb
 
         if (OhneProduktion)
         {
-            // Diebe verdienen nicht nach Handwerkskunst – gezählt wird die reine Arbeitszeit der Leute.
-            _fortschritt += LeistungProMinute;
-            Konto.ErfahrungSammeln(_art.Beruf, LeistungProMinute / 60);
+            // Diebe verdienen nicht nach Handwerkskunst – gezählt wird die Arbeitszeit der Leute, mit dem Geschick ihres Volkes.
+            _fortschritt += LeistungProMinute * volksFaktor;
+            Konto.ErfahrungSammeln(_art.Beruf, LeistungProMinute * volksFaktor / 60);
             Stillstand = null;
             _letzterStillstand = null;
             return;

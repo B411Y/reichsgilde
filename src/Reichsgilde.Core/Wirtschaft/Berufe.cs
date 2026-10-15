@@ -121,4 +121,10 @@ public sealed class BerufDaten
     public double Lehrgeld { get; init; } = 500;
 
     public string Beschreibung { get; init; } = "";
+
+    /// <summary>
+    /// Völkerboni (ab Datenversion 23): So viel mehr (oder weniger) leisten die Betriebe dieses Berufs, wenn das
+    /// Oberhaupt des Hauses diesem Volk angehört (0,05 = +5 %). Fehlt ein Volk, gilt 0.
+    /// </summary>
+    public Dictionary<Volk, double> Voelker { get; init; } = new();
 }
