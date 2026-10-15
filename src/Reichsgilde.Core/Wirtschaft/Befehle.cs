@@ -190,3 +190,14 @@ public sealed record Bekehrungspredigt : Befehl;
 
 /// <summary>Im Rat einen Stadtglauben beantragen (null = Glaubensfreiheit).</summary>
 public sealed record StadtglaubeBeantragen(Reichsgilde.Core.Glaube.Konfession? Glaube) : Befehl;
+
+/// <summary>
+/// Handel von Hand: Der Karren Nr. <paramref name="Karren"/> (0 = erster) lädt die Verkaufsware aus dem Lager, fährt zum Markt,
+/// verkauft sie und kauft die Einkäufe (Marktpreis + Händlerspanne, jedes Stück hebt den Preis). Nur wenn er am Betrieb
+/// wartet und der Markt bei seiner Ankunft offen hat.
+/// </summary>
+public sealed record Handelsauftrag(string Betrieb, int Karren, IReadOnlyDictionary<string, int> Verkauf, IReadOnlyDictionary<string, int> Kauf)
+    : BetriebsBefehl(Betrieb);
+
+/// <summary>Eine Ware im Lager zurückhalten: Der Karren verkauft sie nicht von selbst (frei).</summary>
+public sealed record WareZurueckhalten(string Betrieb, string Ware, bool Zurueckhalten) : BetriebsBefehl(Betrieb);

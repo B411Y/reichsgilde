@@ -45,6 +45,12 @@ public sealed class Karren
 
     public IReadOnlyDictionary<string, int> Ladung => _ladung;
 
+    /// <summary>Ein Handelsauftrag von Hand: Was der Karren am Markt kaufen soll (null: er fährt nach Verwalterregel).</summary>
+    public Handelsplan? Auftrag { get; private set; }
+
+    /// <summary>Was der letzte Handelsauftrag am Markt gebracht hat (für die Anzeige; nicht gespeichert).</summary>
+    public string? LetzterHandel { get; private set; }
+
     /// <summary>Eskortenstufe, z. B. "Keine", "Normal", "Schwer".</summary>
     public string Eskorte { get; set; } = "Keine";
 
@@ -66,7 +72,7 @@ public sealed class Karren
     public string ZustandText(Spielzeit zeit) => Zustand switch
     {
         KarrenZustand.AmBetrieb => "wartet am Betrieb",
-        KarrenZustand.ZumMarkt => $"unterwegs zum Markt (noch {Math.Max(0, Ankunft - zeit.VergangeneMinuten)} Min.)",
+        KarrenZustand.ZumMarkt => $"{(Auftrag is null ? "unterwegs zum Markt" : "mit Handelsauftrag zum Markt")} (noch {Math.Max(0, Ankunft - zeit.VergangeneMinuten)} Min.)",
         KarrenZustand.ZumBetrieb => $"auf dem Rückweg (noch {Math.Max(0, Ankunft - zeit.VergangeneMinuten)} Min.)",
         _ => Zustand.ToString(),
     };
@@ -168,10 +174,59 @@ public sealed class Karren
             Ueberfall.Wuerfeln(this, eskorte, zeit, w);
     }
 
+    /// <summary>
+    /// Handel von Hand: Verkaufsware laden und mit dem Einkaufszettel zum Markt fahren.
+    /// Geprüft hat die Stadtwirtschaft (Zustand, Ladeflächen, Lager, Marktzeit).
+    /// </summary>
+    internal void AuftragAnnehmen(IReadOnlyDictionary<string, int> verkauf, IReadOnlyDictionary<string, int> kauf, Spielzeit zeit, Stadtwirtschaft w)
+    {
+        foreach (var (ware, stueck) in verkauf.Where(x => x.Value > 0))
+            _ladung[ware] = _ladung.GetValueOrDefault(ware) + Heimat.Auslagern(ware, stueck);
+        Auftrag = new Handelsplan(kauf.Where(x => x.Value > 0).ToDictionary(x => x.Key, x => x.Value));
+        _wareWartetSeit = null;
+        Losfahren(KarrenZustand.ZumMarkt, zeit, w);
+    }
+
+    /// <summary>Am Markt: den Einkaufszettel abarbeiten – so viel, wie das Geld reicht.</summary>
+    private void AuftragEinkaufen(Stadtwirtschaft w, double erloes)
+    {
+        var plan = Auftrag!;
+        Auftrag = null;
+        var faktor = (1 + w.Daten.Handel!.Aufschlag) * w.Familien.EinkaufsFaktor(Heimat.Konto);
+        var gekauft = new List<string>();
+        foreach (var (ware, wunsch) in plan.Kauf.OrderBy(x => x.Key, StringComparer.Ordinal))
+        {
+            var stand = w.Markt[ware];
+            var stueck = wunsch;
+            while (stueck > 0 && stand.HandKaufpreis(stueck, faktor) > Heimat.Konto.Vermoegen) stueck--;
+            if (stueck <= 0) { gekauft.Add($"{ware}: kein Geld"); continue; }
+            var kosten = stand.HandKaufen(stueck, faktor);
+            Heimat.Konto.Zutaten(kosten);
+            _ladung[ware] = _ladung.GetValueOrDefault(ware) + stueck;
+            gekauft.Add($"{stueck} {ware} für {Zahlenformat.Ganz(kosten)}");
+        }
+        var waehrung = w.Daten.Allgemein.Waehrung;
+        LetzterHandel = $"{Name} ({Heimat.Name}) am Markt: " +
+                        (erloes > 0 ? $"verkauft für {Zahlenformat.Ganz(erloes)} {waehrung}" : "nichts verkauft") +
+                        (gekauft.Count > 0 ? $"; gekauft {string.Join(", ", gekauft)} {waehrung}" : "") + ".";
+        w.Melden(LetzterHandel);
+    }
+
     private void Ankommen(Spielzeit zeit, Stadtwirtschaft w)
     {
         if (Zustand == KarrenZustand.ZumMarkt)
         {
+            if (Auftrag is not null)
+            {
+                var vorher = Heimat.Konto.Laufend.Umsatz;
+                foreach (var (ware, stueck) in _ladung)
+                    Heimat.Verkaufen(ware, stueck, w.Markt, w.Familien.VerkaufsFaktor(Heimat.Konto));
+                _ladung.Clear();
+                AuftragEinkaufen(w, Heimat.Konto.Laufend.Umsatz - vorher);
+                Losfahren(KarrenZustand.ZumBetrieb, zeit, w);
+                return;
+            }
+
             // Alles verkaufen ...
             foreach (var (ware, stueck) in _ladung)
                 Heimat.Verkaufen(ware, stueck, w.Markt, w.Familien.VerkaufsFaktor(Heimat.Konto));
@@ -220,6 +275,7 @@ public sealed class Karren
     {
         Name = Name, Typ = Typ, Zustand = Zustand, Ankunft = Ankunft, Ladung = new(_ladung),
         Eskorte = Eskorte, NachtsFahren = NachtsFahren, WareWartetSeit = _wareWartetSeit,
+        Auftrag = Auftrag is null ? null : new(Auftrag.Kauf),
     };
 
     internal void Wiederherstellen(KarrenStand s)
@@ -231,6 +287,7 @@ public sealed class Karren
         Eskorte = s.Eskorte;
         NachtsFahren = s.NachtsFahren;
         _wareWartetSeit = s.WareWartetSeit;
+        Auftrag = s.Auftrag is null ? null : new Handelsplan(new Dictionary<string, int>(s.Auftrag));
     }
 
     /// <summary>Die Ladung geht verloren (Überfall).</summary>

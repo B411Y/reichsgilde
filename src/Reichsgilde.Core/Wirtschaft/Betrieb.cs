@@ -287,6 +287,19 @@ public sealed class Betrieb
 
     internal void Einlagern(string ware, int stueck) => _lager[ware] = ImLager(ware) + stueck;
 
+    private readonly SortedSet<string> _zurueckgehalten = new(StringComparer.Ordinal);
+
+    /// <summary>Waren, die der Karren nicht von selbst verkauft (Handel von Hand: horten, später verkaufen).</summary>
+    public IReadOnlyCollection<string> Zurueckgehalten => _zurueckgehalten;
+
+    public bool HaeltZurueck(string ware) => _zurueckgehalten.Contains(ware);
+
+    internal void Zurueckhalten(string ware, bool an)
+    {
+        if (an) _zurueckgehalten.Add(ware);
+        else _zurueckgehalten.Remove(ware);
+    }
+
     internal int Auslagern(string ware, int hoechstens)
     {
         var menge = Math.Min(hoechstens, ImLager(ware));
@@ -301,7 +314,7 @@ public sealed class Betrieb
     /// ohne den Vorrat, den der Wirt für seine Gäste zurückbehält.
     /// </summary>
     internal IEnumerable<(string Ware, int Stueck)> Verkaufsware() =>
-        _lager.Where(l => !Zutaten.ContainsKey(l.Key))
+        _lager.Where(l => !Zutaten.ContainsKey(l.Key) && !_zurueckgehalten.Contains(l.Key))
             .Select(l => (l.Key, l.Value - FuerGaeste(l.Key)))
             .Where(x => x.Item2 > 0);
 
@@ -468,6 +481,7 @@ public sealed class Betrieb
         Stillstand = Stillstand, LetzterStillstand = _letzterStillstand,
         StillstandMinuten = StillstandMinuten, StillstandMinutenVorjahr = StillstandMinutenVorjahr,
         Karren = _karren.Select(k => k.Sichern()).ToList(),
+        Zurueckgehalten = _zurueckgehalten.Count > 0 ? _zurueckgehalten.ToList() : null,
         Waechter = Waechter, SabotageMinuten = _sabotageMinuten, UmbauMinuten = _umbauMinuten,
     };
 
@@ -487,6 +501,7 @@ public sealed class Betrieb
         Waechter = s.Waechter;
         _sabotageMinuten = s.SabotageMinuten;
         _umbauMinuten = s.UmbauMinuten;
+        foreach (var ware in s.Zurueckgehalten ?? new()) _zurueckgehalten.Add(ware);
         foreach (var karrenStand in s.Karren)
         {
             if (!_daten.Logistik.Karren.TryGetValue(karrenStand.Typ, out var daten))

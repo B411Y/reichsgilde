@@ -134,6 +134,71 @@ public sealed class Stadtwirtschaft
         .ThenBy(k => k.Inhaber, StringComparer.Ordinal)
         .ToList();
 
+    /// <summary>Die Uhr der Simulation (für Befehle, die von der Uhrzeit abhängen – etwa die Marktzeiten).</summary>
+    public Spielzeit Uhr { get; internal set; } = new();
+
+    // ── Handel von Hand ─────────────────────────────────────────────────────
+
+    /// <summary>Faktor auf den Marktpreis beim Einkauf von Hand: Händlerspanne × Verhandeln.</summary>
+    public double HandKaufFaktor(Konto konto) => (1 + (Daten.Handel?.Aufschlag ?? 0)) * Familien.EinkaufsFaktor(konto);
+
+    /// <summary>Was ein Einkauf von Hand jetzt kosten würde (jedes Stück hebt den Preis).</summary>
+    public double HandKaufpreis(Konto konto, string ware, int stueck) => Markt[ware].HandKaufpreis(stueck, HandKaufFaktor(konto));
+
+    /// <summary>Wann käme ein Karren dieses Betriebs am Markt an, wenn er jetzt losführe? (Uhrzeit in Minuten nach Mitternacht)</summary>
+    public int AnkunftAmMarkt(Betrieb betrieb) => Uhr.UhrzeitInMinuten + Daten.Logistik.FahrzeitAb(betrieb.Ort);
+
+    /// <summary>Warum dieser Handelsauftrag nicht geht – oder null.</summary>
+    public string? HandelsauftragVerboten(Betrieb betrieb, int karrenNr, IReadOnlyDictionary<string, int> verkauf, IReadOnlyDictionary<string, int> kauf)
+    {
+        if (Daten.Handel is not { } h) return "In dieser Stadt wird nicht von Hand gehandelt.";
+        if (karrenNr < 0 || karrenNr >= betrieb.Karren.Count) return $"{betrieb.Name} hat keinen Karren Nr. {karrenNr + 1}.";
+        var karren = betrieb.Karren[karrenNr];
+        if (karren.Zustand != KarrenZustand.AmBetrieb) return $"{karren.Name} ist unterwegs – erst wenn er wieder am Betrieb steht.";
+        var verkaufen = verkauf.Where(x => x.Value > 0).ToList();
+        var kaufen = kauf.Where(x => x.Value > 0).ToList();
+        if (verkaufen.Count == 0 && kaufen.Count == 0) return "Der Auftrag ist leer.";
+        if (verkauf.Concat(kauf).Any(x => x.Value < 0)) return "Mengen dürfen nicht negativ sein.";
+        foreach (var (ware, stueck) in verkaufen)
+            if (betrieb.ImLager(ware) < stueck) return $"Im Lager liegen nur {betrieb.ImLager(ware)} {ware}.";
+        foreach (var (ware, _) in kaufen)
+            if (Markt.Staende.All(s => s.Ware != ware)) return $"Auf dem Markt gibt es keine Ware „{ware}“.";
+        int Flaechen(IEnumerable<KeyValuePair<string, int>> teil) => teil.Sum(x => (x.Value + karren.Daten.KapazitaetJeSorte - 1) / karren.Daten.KapazitaetJeSorte);
+        var fasst = $"{karren.Name} fasst {karren.Daten.Sorten} × {karren.Daten.KapazitaetJeSorte} Stück (je Ladefläche eine Ware).";
+        if (Flaechen(verkaufen) > karren.Daten.Sorten) return "Zu viel zum Verkaufen: " + fasst;
+        if (Flaechen(kaufen) > karren.Daten.Sorten) return "Zu viel zum Einkaufen: " + fasst;
+        foreach (var (ware, stueck) in kaufen)
+        {
+            var danach = betrieb.ImLager(ware) - verkauf.GetValueOrDefault(ware) + stueck;
+            if (danach > betrieb.LagerKapazitaetJeWare)
+                return $"Das Lager fasst nur {betrieb.LagerKapazitaetJeWare} {ware} – danach wären es {danach}.";
+        }
+        var ankunft = AnkunftAmMarkt(betrieb);
+        if (ankunft < h.MarktVon * 60 || ankunft > h.MarktBis * 60)
+            return $"Der Markt hat von {h.MarktVon} bis {h.MarktBis} Uhr offen – der Karren käme um {ankunft / 60:00}:{ankunft % 60:00} an.";
+        var kosten = kaufen.Sum(x => HandKaufpreis(betrieb.Konto, x.Key, x.Value));
+        if (kosten > betrieb.Konto.Vermoegen + verkaufen.Sum(x => Markt[x.Key].Preis * x.Value))
+            return $"Die Einkäufe kosten etwa {Zahlenformat.Ganz(kosten)} {Daten.Allgemein.Waehrung} – so viel habt ihr nicht.";
+        return null;
+    }
+
+    private Befehlsergebnis HandelsauftragAusfuehren(Betrieb betrieb, Handelsauftrag befehl)
+    {
+        if (HandelsauftragVerboten(betrieb, befehl.Karren, befehl.Verkauf, befehl.Kauf) is { } grund)
+            return Befehlsergebnis.Abgelehnt(grund);
+        var karren = betrieb.Karren[befehl.Karren];
+        var waehrung = Daten.Allgemein.Waehrung;
+        // Was man kauft und nicht selbst verarbeitet, soll der Karren nicht gleich wieder verkaufen.
+        var gehalten = befehl.Kauf.Where(x => x.Value > 0 && !betrieb.Zutaten.ContainsKey(x.Key) && !betrieb.HaeltZurueck(x.Key)).Select(x => x.Key).ToList();
+        foreach (var ware in gehalten) betrieb.Zurueckhalten(ware, true);
+        var schaetzung = befehl.Kauf.Where(x => x.Value > 0).Sum(x => HandKaufpreis(betrieb.Konto, x.Key, x.Value));
+        karren.AuftragAnnehmen(befehl.Verkauf, befehl.Kauf, Uhr, this);
+        var ankunft = Uhr.UhrzeitInMinuten + (int)(karren.Ankunft - Uhr.VergangeneMinuten);
+        return Befehlsergebnis.Ok($"{karren.Name} fährt mit dem Auftrag zum Markt (an {ankunft / 60:00}:{ankunft % 60:00})." +
+                                  (schaetzung > 0 ? $" Einkauf heute etwa {Zahlenformat.Ganz(schaetzung)} {waehrung}." : "") +
+                                  (gehalten.Count > 0 ? $" {string.Join(", ", gehalten)} wird im Lager zurückgehalten." : ""));
+    }
+
     /// <summary>Arbeitsbeginn in Minuten nach Mitternacht (08:00).</summary>
     public const int Arbeitsbeginn = 8 * 60;
 
@@ -623,6 +688,8 @@ public sealed class Stadtwirtschaft
                 KasseEinlegen e => Bank.KasseEinlegen(betrieb, e.Betrag),
                 KasseAbheben a => Bank.KasseAbheben(betrieb, a.Betrag),
                 ZinsSetzen z => Bank.ZinsSetzen(betrieb, z.Satz),
+                Handelsauftrag h => HandelsauftragAusfuehren(betrieb, h),
+                WareZurueckhalten z => ZurueckhaltenAusfuehren(betrieb, z),
                 _ => Befehlsergebnis.Abgelehnt($"Unbekannter Befehl: {befehl.GetType().Name}"),
             };
         }
@@ -778,6 +845,14 @@ public sealed class Stadtwirtschaft
                 $"Für einen {befehl.Typ} fehlen {Zahlenformat.Ganz(daten.Preis - betrieb.Konto.Vermoegen)} {Daten.Allgemein.Waehrung}.");
         var karren = betrieb.KarrenKaufen(befehl.Typ);
         return Befehlsergebnis.Ok($"{karren.Name} für {betrieb.Name} gekauft ({Zahlenformat.Ganz(daten.Preis)} {Daten.Allgemein.Waehrung}).");
+    }
+
+    private static Befehlsergebnis ZurueckhaltenAusfuehren(Betrieb betrieb, WareZurueckhalten befehl)
+    {
+        betrieb.Zurueckhalten(befehl.Ware, befehl.Zurueckhalten);
+        return Befehlsergebnis.Ok(befehl.Zurueckhalten
+            ? $"{befehl.Ware} bleibt im Lager von {betrieb.Name} – der Karren verkauft es nicht mehr von selbst."
+            : $"{befehl.Ware} darf wieder zum Markt.");
     }
 
     private Befehlsergebnis EskorteAusfuehren(Betrieb betrieb, EskorteWaehlen befehl)
