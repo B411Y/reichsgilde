@@ -92,6 +92,9 @@ public sealed class Stadtwirtschaft
     /// <summary>Messe und Kollekte, Ablass, Beichte, Lehr- und Hetzschriften.</summary>
     public Kirche.Kirchenwesen Kirchenwesen { get; }
 
+    /// <summary>Die Einwohner der Stadt – Bürger-KI (Bereich Spiel-KI). Ohne Abschnitt „buerger" leer.</summary>
+    public Buerger.Einwohnerschaft Einwohnerschaft { get; }
+
     /// <summary>Das laufende Spieljahr (das Jahr der laufenden Jahresrechnung).</summary>
     public int Jahr => _konten.Count > 0 ? _konten[0].Laufend.Jahr : Spielzeit.StartJahr;
 
@@ -255,6 +258,7 @@ public sealed class Stadtwirtschaft
         Gesundheit = new Gesundheitswesen(this, daten.Gesundheit, zufallsstartwert);
         Gastwirtschaft = new Gastwirtschaft(this, daten.Gastwirtschaft);
         Kirchenwesen = new Kirche.Kirchenwesen(this, daten.Kirche, zufallsstartwert);
+        Einwohnerschaft = new Buerger.Einwohnerschaft(this, daten.Buerger, zufallsstartwert);
     }
 
     /// <summary>Legt ein Konto an – mit dem Startvermögen aus den Daten oder einem eigenen (z. B. Schwierigkeitsgrad).</summary>
@@ -431,6 +435,9 @@ public sealed class Stadtwirtschaft
         }
         foreach (var karren in _alleKarren)
             karren.Tick(zeit, this);
+
+        // Bürger-KI: Die Einwohner planen jede volle Stunde ihren Tag (lesen nur, eigener Zufall).
+        Einwohnerschaft.Minute(zeit);
     }
 
     /// <summary>
@@ -478,6 +485,7 @@ public sealed class Stadtwirtschaft
         AktionspunkteVerteilen(); // die neue Runde beginnt
         foreach (var rivale in _rivalen.Where(r => r.Konto.IstAktiv))
             rivale.Jahresende();
+        Einwohnerschaft.Jahresende(neuesJahr); // Bürger-KI: altern, sterben, zuziehen, ausschlafen
     }
 
     /// <summary>
@@ -956,6 +964,7 @@ public sealed class Stadtwirtschaft
         Bank = Bank.IstAktiv ? Bank.Sichern(k => _konten.IndexOf(k)) : null,
         Parfum = Duft.IstAktiv ? Duft.Sichern(k => _konten.IndexOf(k)) : null,
         Glaube = Glaube.IstAktiv ? Glaube.Sichern(k => _konten.IndexOf(k)) : null,
+        Einwohner = Einwohnerschaft.IstAktiv ? Einwohnerschaft.Sichern() : null,
     };
 
     /// <summary>
@@ -1014,6 +1023,8 @@ public sealed class Stadtwirtschaft
             Duft.Wiederherstellen(parfumStand, _konten);
         if (s.Glaube is { } glaubeStand && Glaube.IstAktiv)
             Glaube.Wiederherstellen(glaubeStand, _konten);
+        if (s.Einwohner is { } einwohnerStand && Einwohnerschaft.IstAktiv)
+            Einwohnerschaft.Wiederherstellen(einwohnerStand);
     }
 
     public double HoechstesVermoegen => _konten.Count == 0 ? 0 : _konten.Max(k => k.Reinvermoegen);

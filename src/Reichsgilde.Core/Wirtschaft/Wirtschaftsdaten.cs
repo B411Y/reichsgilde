@@ -208,6 +208,9 @@ public sealed class Wirtschaftsdaten
     /// <summary>Gäste, Ausschank, Barde, Würfeltisch und Stammtisch des Wirts (ab Datenversion 16). Fehlt der Abschnitt, kehrt niemand ein.</summary>
     public GastwirtschaftDaten? Gastwirtschaft { get; init; }
 
+    /// <summary>Einwohner der Stadt mit Tagesablauf – Bürger-KI (ab Datenversion 25). Fehlt der Abschnitt, gibt es keine Einwohner.</summary>
+    public Reichsgilde.Core.Buerger.BuergerDaten? Buerger { get; init; }
+
     /// <summary>Meisterprüfungen und Gebäudestufen (ab Datenversion 13). Fehlt der Abschnitt, bleibt jedes Haus auf Grad 1.</summary>
     public MeistergradDaten? Meistergrade { get; init; }
 
@@ -370,6 +373,10 @@ public sealed class Wirtschaftsdaten
             f.Add($"Liegenschaft {l.Name}: Zu kaufen gibt es nur Werkstätten der Stufe 1 – höhere entstehen durch Ausbau.");
         Meistergrade?.Pruefen(f, Aktionspunkte?.Hoechstens ?? int.MaxValue);
         Gastwirtschaft?.Pruefen(f, Waren, Berufe);
+        Buerger?.Pruefen(f);
+        if (Buerger is { } bg && Dynastie.IstAktiv)
+            foreach (var volk in bg.Voelker.Keys.Where(v => !Dynastie.Voelker.ContainsKey(v)))
+                f.Add($"buerger.voelker: Für {volk.Mehrzahl()} fehlen Dynastie-Daten (Namen, Lebensalter).");
         Kirche?.Pruefen(f, Waren, Berufe);
         Dieb?.Pruefen(f, Berufe);
         Wache?.Pruefen(f, Berufe, Logistik.Eskorten);

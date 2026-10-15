@@ -1,5 +1,5 @@
 {
-  "version": 24,
+  "version": 25,
   "gesundheit": {
     "medicusKosten": 120,
     "medicusKostenPest": 300,
@@ -1366,6 +1366,50 @@
     "ueberfall": { "kosten": 300, "staerke": 0.8, "gueltigMinuten": 1020 },
     "kroetenschleim": { "kosten": 200, "chance": 0.6, "beruf": "Alchimist", "berufKostenFaktor": 0.5, "berufBonus": 0.15 },
     "erpressungMindestBeweise": 3
+  },
+  "buerger": {
+    "jeHaus": 25,
+    "mitRatsherren": true,
+    "mitKandidaten": true,
+    "voelker": { "Mensch": 5, "Halbling": 2, "Zwerg": 2, "Elb": 1 },
+    "rollen": {
+      "Tagelöhner": { "gewicht": 4, "arbeitsort": "Markt", "frau": "Tagelöhnerin" },
+      "Knecht": { "gewicht": 3, "arbeitsort": "Heim", "frau": "Magd" },
+      "Krämer": { "gewicht": 2, "arbeitsort": "Markt", "frau": "Krämerin" },
+      "Hirte": { "gewicht": 2, "arbeitsort": "Umland", "frau": "Hirtin" },
+      "Bote": { "gewicht": 1, "arbeitsort": "Tor", "frau": "Botin" },
+      "Bettler": { "gewicht": 1, "arbeitsort": "Gasse", "frau": "Bettlerin", "ledig": false },
+      "Mönch": { "gewicht": 1, "arbeitsort": "Kirche", "frau": "Nonne", "ledig": false },
+      "Witwer": { "gewicht": 1, "arbeitsort": "Heim", "frau": "Witwe", "ledig": false },
+      "Ratsherr": { "gewicht": 0, "arbeitsort": "Rathaus", "frau": "Ratsfrau", "ledig": false },
+      "Bürgersohn": { "gewicht": 0, "arbeitsort": "Heim", "frau": "Bürgertochter" }
+    },
+    "rolleRatsherr": "Ratsherr",
+    "rolleKandidatAbBuerger": "Bürgersohn",
+    "beduerfnisse": {
+      "Auskommen": { "start": 50, "anstieg": 12 },
+      "Versorgung": { "start": 20, "anstieg": 3 },
+      "Vergnuegen": { "start": 0, "anstieg": 5 },
+      "Glaube": { "start": 15, "anstieg": 3 },
+      "Ruhe": { "start": 0, "anstieg": 6 }
+    },
+    "handlungen": {
+      "Ruhen": { "von": 5, "bis": 22, "stillt": { "Ruhe": 30 } },
+      "Arbeiten": { "von": 8, "bis": 20, "stillt": { "Auskommen": 25 } },
+      "Einkaufen": { "von": 8, "bis": 20, "stillt": { "Versorgung": 40 } },
+      "Einkehren": { "von": 12, "bis": 22, "stillt": { "Vergnuegen": 40, "Ruhe": 5 } },
+      "Beten": { "von": 6, "bis": 20, "stillt": { "Glaube": 30 } },
+      "Flanieren": { "von": 6, "bis": 20, "stillt": { "Vergnuegen": 15 } }
+    },
+    "gewichte": {
+      "Halbling": { "Vergnuegen": 1.2, "Auskommen": 0.9 },
+      "Zwerg": { "Auskommen": 1.2, "Vergnuegen": 0.9 },
+      "Elb": { "Glaube": 1.2, "Versorgung": 0.9 }
+    },
+    "startStreuung": 15,
+    "rauschen": 0.2,
+    "beharrung": 5,
+    "messe": 2
   },
   "handel": { "aufschlag": 0.10, "marktVon": 8, "marktBis": 20 },
   "glaube": {
