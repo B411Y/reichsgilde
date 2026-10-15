@@ -11,7 +11,20 @@ Schauplatz ist ein düster-bodenständiges Heiliges Römisches Reich des Spätmi
 
 **Phase 3 – 2,5D-Stadtansicht (Greybox).** Die Reichsstadt ist als begehbare Schrägansicht zu sehen: Mauer, Osttor, Markt, Rathaus, Dom, Gießereien und die Grube vor der Stadt – noch aus einfachen Grundformen. Die orthografische Kamera blickt diagonal (nach Nordosten, Nordwesten, Südwesten oder Südosten) und dreht in 90°-Schritten. Karren fahren sichtbar zum Markt, Licht und Himmel folgen der Spieluhr, die Esse glüht bei Arbeit, Gebäude lassen sich anklicken.
 
-**Diorama-Innenansicht.** Ein Doppelklick auf eine Gießerei schneidet sie wie ein Puppenhaus auf: Dach und die beiden Wände zur Kamera verschwinden, Nachbarhäuser davor werden ausgeblendet. Innen sieht man Esse, Amboss und Werkbank, das Lager als Kistenstapel (eine Kiste je 5 Stück) und die Arbeiter, die während der Arbeitszeit hämmern – alles direkt aus der Simulation.
+**Diorama-Innenansicht.** Ein Doppelklick auf eine Werkstatt schneidet sie wie ein Puppenhaus auf: Dach und die beiden Wände zur Kamera verschwinden, Nachbarhäuser davor werden ausgeblendet. Innen sieht man die Einrichtung des Berufs, das Lager als Kistenstapel (eine Kiste je 5 Stück) und die Arbeiter, die während der Arbeitszeit (8–20 Uhr) hämmern, sägen, rühren oder schreiben – alles direkt aus der Simulation. Jede Gebäudestufe bringt ein eigenes Stück dazu und mehr Arbeitsplätze.
+
+| Werkstatt | Einrichtung (Stufe 2 / Stufe 3) | Zustand aus der Simulation |
+|---|---|---|
+| Gießerei | Esse, Amboss, Werkbank, Wassertrog (Schleifbock / Feinwerktisch) | Glut der Esse, Schleifstein läuft |
+| Tischlerei | Sägebock, Hobelbank, Holzlager (Drechselbank / Sägegatter) | Werkstück in der Farbe der Ware, Drechselbank und Gatter laufen |
+| Maurerei | Werkbock mit Werkstein, Schleifstein, Quader (Dreibein mit Flaschenzug / Steinfigur) | Werkstein, Flaschenzug hebt und senkt |
+| Tinkturei | Kessel über dem Feuer, Flaschenregal, Mörser, Kräuterbündel (Destille / Athanor) | Sud in der Farbe der Ware, Feuer |
+| Schänke | Theke, Fässer, Herd, zwei Tische (Würfeltisch / Stammtisch) | Gäste der Stunde an den Tischen, Abgewiesene an der Tür, Barde am Abend, Würfler und Ratsherren, wenn gebucht |
+| Kirche | Altar, Kreuz, Leuchter, Bänke, Kanzel, Schreibpult (Kerzenziehgestell, Taufbecken / Reliquienschrein) | Gläubige zur Messe um 10 Uhr, Kollekte in der Schale |
+| Diebesnest | Strohlager, Kartentisch, Hehlertisch, Falltür (Fälscherpult / Geiselstuhl) | Tagsüber nur der Hehler (die anderen stehlen am Markt), Diebesgut im Lager, Nadeln für die Aufträge der Nacht, Beute, Geisel |
+| Wachhaus | Speergestell, Tisch, Zelle, Kohlebecken (Rüstungsständer / Strohpuppe) | Gefasste Taschendiebe in der Zelle, Sold, freie Razzien |
+| Wechselstube | Wechseltisch mit Waage, Geldtruhe, Schreibpult, Regal (zweites Pult / Tresor) | Münzstapel nach der Kasse, Schuldscheine je Kredit, Kunden |
+| Siederei | Kupferkessel mit Kühlfass, Trockengestell, Mischtisch (Spindelpresse / Duftorgel) | Duft in der Farbe der Ware, Ofenglut |
 
 **Spieltag wie im Original: 05:00 bis 22:00 Uhr.** Ein Spieltag ist ein Spieljahr. Er beginnt um 5 Uhr mit der Zunftglocke, gearbeitet wird von 8 bis 20 Uhr, von 20 bis 22 Uhr ist Dunkle Nacht (die Gauner ziehen um 20 Uhr los), um 22 Uhr kommt die Jahresrechnung, und das nächste Jahr beginnt wieder um 5 Uhr. Ein Jahr dauert weiter 15 Minuten Echtzeit (eine Spielstunde ≈ 53 Sekunden). Spielstände aus der Zeit des 24-Stunden-Tags lassen sich nicht mehr laden.
 
@@ -120,7 +133,7 @@ Spielstände liegen unter `%APPDATA%\Godot\app_userdata\Reichsgilde\spielstaende
 Steuerung:
 - **Leertaste** = Pause · **1–4** = Tempo 1×/2×/4×/8× · **5–6** = Testtempo 16×/32× (nur während der Entwicklung)
 - **Mausrad** = Zoom · **rechte Maustaste ziehen** oder **WASD/Pfeiltasten** = verschieben · **Q/E** = drehen
-- **Linksklick** auf ein Gebäude = Informationen (bei eigenen Betrieben mit Bedienfeld) · **Doppelklick** auf eine Gießerei = Innenansicht
+- **Linksklick** auf ein Gebäude = Informationen (bei eigenen Betrieben mit Bedienfeld) · **Doppelklick** auf eine Werkstatt = Innenansicht
 - **Esc** = Innenansicht verlassen → Auswahl schließen → Spielmenü (Speichern, Laden, Hauptmenü)
 - **F11** = Vollbild ein/aus (auch im Haupt- und Spielmenü; wird gespeichert). Das Fenster lässt sich frei ziehen: Ein größeres Fenster zeigt mehr Stadt, Tafeln, die nicht hineinpassen, bekommen Scrollbalken (Mausrad über der Tafel rollt sie).
   Hinweis: Startet man das Spiel im Godot-Editor, läuft es im Reiter „Game“ eingebettet. Dort bestimmt der Editor die Fenstergröße, und Vollbild ist nicht möglich. Zum Testen im eigenen Fenster das Einbetten im Reiter „Game“ ausschalten.

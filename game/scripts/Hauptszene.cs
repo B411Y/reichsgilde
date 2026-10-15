@@ -21,7 +21,7 @@ namespace Reichsgilde;
 ///   --tempo=8          Anfangstempo
 ///   --auswahl=Dom      Gebäude vorauswählen (Kennung wie beim Anklicken)
 ///   --drehung=1        Kamera um 1–3 Vierteldrehungen gedreht starten (0 = Blick nach Nordosten)
-///   --innen=1          direkt in der Innenansicht der eigenen Gießerei starten
+///   --innen=1          direkt in der Innenansicht der eigenen Werkstatt starten
 ///   --verwalten=1      das Bedienfeld der eigenen Gießerei gleich öffnen
 ///   --vermoegen=12000  Startvermögen des Spielers setzen (zum Ausprobieren des Aufstiegs)
 ///   --beruf=Steinmetz  Startberuf der Testpartie (Schmied, Tischler, Steinmetz, Alchimist, Wirt, Prediger, Dieb, Gardist)
