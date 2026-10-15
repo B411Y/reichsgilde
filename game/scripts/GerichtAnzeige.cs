@@ -129,6 +129,15 @@ public partial class GerichtAnzeige : PanelContainer
             _inhalt.AddChild(zeile);
             Text(zeile, $"{haus.Inhaber}: {beweise.Count} {(beweise.Count == 1 ? "Beweis" : "Beweise")} (Beweiskraft {Zahlenformat.Ganz(kraft)})", 14,
                 kraft >= d.SichereBeweiskraft ? Gruen : null);
+            if (w.Wache.IstAktiv && w.Wache.Wachstube(_spieler) is not null)
+            {
+                var name = haus.Inhaber;
+                var grund = w.Wache.RazziaVerboten(_spieler, haus);
+                Knopf(zeile, "Razzia", () => Befehlen(new Razzia(name)), gesperrt: grund is not null,
+                    hinweis: grund ?? $"Eure Wache durchsucht {name}: je Tat {Zahlenformat.Ganz(w.Wache.Razziachance(_spieler) * 100)} % Chance auf einen Beweis, " +
+                                      "Diebesgut wird beschlagnahmt. Gewinnt ihr danach die Anklage, zahlt die Stadt Kopfgeld.",
+                    ap: new Razzia(""));
+            }
             if (gericht.HatSpitzel(_spieler, haus))
                 Text(zeile, "· Spitzel ist angesetzt", 13, Grau);
             else

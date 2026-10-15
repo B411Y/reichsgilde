@@ -24,7 +24,7 @@ namespace Reichsgilde;
 ///   --innen=1          direkt in der Innenansicht der eigenen Gießerei starten
 ///   --verwalten=1      das Bedienfeld der eigenen Gießerei gleich öffnen
 ///   --vermoegen=12000  Startvermögen des Spielers setzen (zum Ausprobieren des Aufstiegs)
-///   --beruf=Steinmetz  Startberuf der Testpartie (Schmied, Tischler, Steinmetz, Alchimist, Wirt, Prediger, Dieb)
+///   --beruf=Steinmetz  Startberuf der Testpartie (Schmied, Tischler, Steinmetz, Alchimist, Wirt, Prediger, Dieb, Gardist)
 ///   --bericht=1        gleich zu Beginn einen Jahresbericht zeigen (zum Testen der Anzeige)
 ///   --rat=1            gleich zu Beginn die Ratskammer öffnen
 ///   --familie=1        gleich zu Beginn die Familientafel öffnen
@@ -611,7 +611,7 @@ public partial class Hauptszene : Node
     {
         var waehrung = w.Daten.Allgemein.Waehrung;
         var d = w.Daten.Art(l.Art);
-        var art = $"{d.Name} ({(d.OhneProduktion ? "Taschendiebe" : string.Join(", ", d.IstWerkstatt ? d.Produkte : d.Rohstoffe))})";
+        var art = $"{d.Name} ({(d.OhneProduktion ? (d.Beruf == "Dieb" ? "Taschendiebe" : "Wachdienst") : string.Join(", ", d.IstWerkstatt ? d.Produkte : d.Rohstoffe))})";
         var zeilen = new List<string>
         {
             $"{l.Name} – {(l.IstPacht ? "zu verpachten" : "zu verkaufen")}",
