@@ -91,7 +91,7 @@ static class DiebTests
             Pruefe.Ungefaehr(720 * 0.8 - 220, Kalkulation.Jahresertrag(w, b, "Geselle"), 1e-6);
         }),
 
-        ("Fang: Ein erwischter Dieb kommt in den Turm (Lehrling zuerst) – jedes andere Haus hat einen Beweis", () =>
+        ("Fang: Ein erwischter Dieb kommt in den Turm (Lehrling zuerst) – ein anderes Haus hat einen Beweis", () =>
         {
             var sim = NeueSimulation(Tolpatschig.Value);
             var (w, k, b) = Dieb(sim, leute: 3);

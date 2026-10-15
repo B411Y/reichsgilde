@@ -335,6 +335,13 @@ public sealed class KiRivale
     /// <summary>Den Dieb erlernt nur ein wagemutiges Haus – die anderen fürchten um Ansehen und Ehre.</summary>
     public bool DiebErlaubt => Profil.Gaunerei >= 2;
 
+    /// <summary>
+    /// Ein wagemutiges Haus rechnet bei einem Betrieb des Diebes die nächtlichen Züge (Einbruch, Schutzgeld) mit:
+    /// Die Taschendiebe allein sind nur ein Teil dessen, was das Schmugglerloch bringt.
+    /// </summary>
+    private double DiebesZuschlag(Betriebsart art) =>
+        DiebErlaubt && _w.Diebe.IstAktiv && _w.Daten.Art(art) is { OhneProduktion: true } d && d.Beruf == _w.Diebe.Daten.Beruf ? 1.5 : 1;
+
     private bool DarfBerufLernen(string beruf) =>
         (!_w.Diebe.IstAktiv || beruf != _w.Diebe.Daten.Beruf || DiebErlaubt)
         && IstReich && Konto.Berufe.Count < MaxBerufe && _w.Daten.Berufe.ContainsKey(beruf) && _w.ApReichen(Konto, new BerufErlernen(beruf));
@@ -354,7 +361,7 @@ public sealed class KiRivale
         var daten = _w.Daten;
         var wahl = _w.FreieLiegenschaften
             .Where(l => Konto.Stand >= daten.StandStufe(l.MindestStand))
-            .Select(l => (Liegenschaft: l, Beruf: daten.Art(l.Art).Beruf, Gewinn: Kalkulation.ErwarteterJahresgewinn(_w, l.Art)))
+            .Select(l => (Liegenschaft: l, Beruf: daten.Art(l.Art).Beruf, Gewinn: Kalkulation.ErwarteterJahresgewinn(_w, l.Art) * DiebesZuschlag(l.Art)))
             .Select(x => (x.Liegenschaft, x.Beruf, x.Gewinn, Lehrgeld: NeuerBeruf(x.Beruf) ? daten.Berufe[x.Beruf].Lehrgeld : -1))
             .Where(x => x.Lehrgeld < 0 || DarfBerufLernen(x.Beruf))
             .Select(x => (x.Liegenschaft, x.Beruf, x.Gewinn, Lehrgeld: Math.Max(0, x.Lehrgeld), Neu: x.Lehrgeld >= 0))
@@ -820,7 +827,8 @@ public sealed class KiRivale
     ///   • Auskundschaften beim führenden Haus (Beweise für eine spätere Erpressung oder Anklage),
     ///   • ab Unterschlupf Schutzgeld vom reichsten Haus – 80 % dessen, was ein Brand dort kostete,
     ///   • in der Diebesgilde eine Entführung beim reichsten Haus mit Angehörigen (10 % seines Vermögens, 500–3.000).
-    /// Die Zahl der Aufträge je Nacht begrenzt die Stufe, die Aktionspunkte tun ihr Übriges.
+    /// Einbruch, Schutzgeld und Entführung zählen wie Gaunerstücke (höchstens <see cref="KiProfil.Gaunerei"/> im Jahr);
+    /// die Zahl der Aufträge je Nacht begrenzt die Stufe, die Aktionspunkte tun ihr Übriges.
     /// </summary>
     private void Diebeszuege()
     {
@@ -828,34 +836,38 @@ public sealed class KiRivale
         if (!diebe.IstAktiv || diebe.Versteck(Konto) is not { } versteck) return;
         var waehrung = _w.Daten.Allgemein.Waehrung;
         var rangliste = _w.Rangliste.Where(k => k != Konto && k.IstAktiv).ToList();
+        bool BudgetFrei() => _gaunereienImJahr < Profil.Gaunerei; // Einbruch, Schutzgeld und Entführung zählen wie Gaunerstücke
 
-        if (diebe.Verboten(Konto, Diebesstueck.Einbruch) is null)
+        if (BudgetFrei() && diebe.Verboten(Konto, Diebesstueck.Einbruch) is null)
         {
             var ziel = _w.Betriebe.Where(b => b.Konto != Konto && b.Konto.IstAktiv)
                 .Select(b => (Betrieb: b, Wert: diebe.ErwarteterEinbruch(b, Konto)))
                 .Where(x => x.Wert > 150)
                 .OrderByDescending(x => x.Wert).ThenBy(x => x.Betrieb.Name, StringComparer.Ordinal).FirstOrDefault();
-            if (ziel.Betrieb is not null)
-                Befehlen(new Einbrechen(ziel.Betrieb.Konto.Inhaber, ziel.Betrieb.Name),
-                    $"schickt seine Leute aus {versteck.Name} zum Einbruch in {ziel.Betrieb.Name} (erwartet ≈ {Zahlenformat.Ganz(ziel.Wert)} {waehrung}).");
+            if (ziel.Betrieb is not null && Befehlen(new Einbrechen(ziel.Betrieb.Konto.Inhaber, ziel.Betrieb.Name),
+                    $"schickt seine Leute aus {versteck.Name} zum Einbruch in {ziel.Betrieb.Name} (erwartet ≈ {Zahlenformat.Ganz(ziel.Wert)} {waehrung})."))
+                _gaunereienImJahr++;
         }
 
         var reichstes = rangliste.OrderByDescending(k => k.Vermoegen).ThenBy(k => k.Inhaber, StringComparer.Ordinal).FirstOrDefault();
-        if (reichstes is not null && versteck.Stufe >= diebe.Daten.Schutzgeld.AbStufe && diebe.BriefAn(reichstes, Konto, Diebesbriefart.Schutzgeld) is null)
+        if (BudgetFrei() && reichstes is not null && versteck.Stufe >= diebe.Daten.Schutzgeld.AbStufe && diebe.BriefAn(reichstes, Konto, Diebesbriefart.Schutzgeld) is null)
         {
             var betrag = Math.Max(100, Math.Round(diebe.DrohenderBrand(reichstes, Konto) * 0.8 / 50) * 50);
-            Befehlen(new SchutzgeldFordern(reichstes.Inhaber, betrag), $"verlangt von {reichstes.Inhaber} {Zahlenformat.Ganz(betrag)} {waehrung} Schutzgeld.");
+            if (Befehlen(new SchutzgeldFordern(reichstes.Inhaber, betrag), $"verlangt von {reichstes.Inhaber} {Zahlenformat.Ganz(betrag)} {waehrung} Schutzgeld."))
+                _gaunereienImJahr++;
         }
 
-        if (diebe.Verboten(Konto, Diebesstueck.Entfuehrung) is null && !diebe.Briefe.Any(b => b.Dieb == Konto && b.Art == Diebesbriefart.Loesegeld)
+        if (BudgetFrei() && diebe.Verboten(Konto, Diebesstueck.Entfuehrung) is null && !diebe.Briefe.Any(b => b.Dieb == Konto && b.Art == Diebesbriefart.Loesegeld)
             && rangliste.Where(k => diebe.Entfuehrbar(k).Any()).OrderByDescending(k => k.Vermoegen).ThenBy(k => k.Inhaber, StringComparer.Ordinal).FirstOrDefault() is { } opfer)
         {
             var person = diebe.Entfuehrbar(opfer).OrderBy(p => p.Geburtsjahr).ThenBy(p => p.Nummer).First();
             var loesegeld = Math.Clamp(Math.Round(opfer.Vermoegen * 0.1 / 100) * 100, 500, 3000);
-            Befehlen(new Entfuehren(opfer.Inhaber, person.Nummer, loesegeld),
-                $"lässt heute Nacht {person.Vorname} aus dem Haus {opfer.Inhaber} entführen ({Zahlenformat.Ganz(loesegeld)} {waehrung} Lösegeld).");
+            if (Befehlen(new Entfuehren(opfer.Inhaber, person.Nummer, loesegeld),
+                    $"lässt heute Nacht {person.Vorname} aus dem Haus {opfer.Inhaber} entführen ({Zahlenformat.Ganz(loesegeld)} {waehrung} Lösegeld)."))
+                _gaunereienImJahr++;
         }
 
+        // Ausspähen kostet niemanden etwas – es bereitet Erpressung und Anklage vor.
         if (diebe.Verboten(Konto, Diebesstueck.Auskundschaften) is null && rangliste.FirstOrDefault() is { } fuehrend)
             Befehlen(new Auskundschaften(fuehrend.Inhaber), $"lässt {fuehrend.Inhaber} ausspähen.");
     }

@@ -144,7 +144,7 @@ public sealed record Diebesbuch(double Beute, int Faenge);
 /// Die Diebe der Stadt – ein Beruf ohne Ware:
 ///   • Tagsüber (Arbeitszeit) ziehen die Leute im Schmugglerloch als Taschendiebe über den Markt. Jede volle Stunde
 ///     bringen sie Gulden (steuerfrei); mit etwas Pech wird einer erwischt: Er landet im Turm (der Platz wird frei),
-///     und die ganze Stadt weiß, welchem Haus er diente (Spur mit einem Beweis für jedes andere Haus).
+///     und ein zufälliges anderes Haus erfährt, wem er diente (Spur mit einem Beweis für dieses Haus).
 ///   • Nachts (21 Uhr, nach den Banden aus dem Hinterzimmer) führen sie eigene Aufträge aus – je Stufe mehr:
 ///     Einbruch (besser als eine Bande, Beute ins eigene Lager), Auskundschaften (Beweise), ab Stufe 3 Entführung.
 ///   • Ab Stufe 2 verlangen sie Schutzgeld. Wer nicht zahlt, dem brennt nachts ein Betrieb.
@@ -303,15 +303,17 @@ public sealed class Diebeswesen
             var fang = 1 - Math.Pow(1 - Math.Min(1, Fangchance(k, b.Stufe)), minuten / 60);
             if (_zufall.NextDouble() >= fang) continue;
 
-            // Einer wird erwischt: Er kommt in den Turm, und die ganze Stadt weiß, für wen er stahl.
+            // Einer wird erwischt: Er kommt in den Turm – und ein Bürger, der ihn erkannt hat, erzählt einem Haus, wem er dient.
             var kraft = b.Belegung.ContainsKey("Lehrling") ? "Lehrling"
                 : b.Belegung.OrderByDescending(x => x.Value).ThenBy(x => x.Key, StringComparer.Ordinal).First().Key;
             b.Einstellen(kraft, b.Belegung[kraft] - 1, _w.Statut);
             _diesesJahr[k] = DiesesJahr(k) with { Faenge = DiesesJahr(k).Faenge + 1 };
-            if (_w.Justiz.IstAktiv && _w.Justiz.TatMelden(k, Vergehen.Taschendiebstahl, "Bürger am Markt", beute) is { } spur)
-                foreach (var andere in _w.Konten.Where(x => x != k && x.IstAktiv))
-                    _w.Justiz.BeweisGeben(andere, spur);
-            _w.Gauner.Melden(null, $"Am Markt wird ein Taschendieb erwischt – ein {kraft} aus {b.Name}. Die ganze Stadt weiß jetzt, wem er dient.");
+            var zeugen = _w.Konten.Where(x => x != k && x.IstAktiv).ToList();
+            var wisser = zeugen.Count > 0 ? zeugen[_zufall.Next(zeugen.Count)] : null;
+            if (_w.Justiz.IstAktiv && _w.Justiz.TatMelden(k, Vergehen.Taschendiebstahl, "Bürger am Markt", beute) is { } spur && wisser is not null)
+                _w.Justiz.BeweisGeben(wisser, spur);
+            _w.Gauner.Melden(null, $"Am Markt wird ein Taschendieb erwischt – ein {kraft} aus {b.Name}." +
+                                   (wisser is null ? "" : $" Ein Bürger hat ihn erkannt und erzählt es {wisser.Inhaber}."));
         }
     }
 
