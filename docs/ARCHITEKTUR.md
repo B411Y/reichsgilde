@@ -97,6 +97,12 @@ Die Welt besteht aus 3D-Objekten, wirkt aber wie ein gezeichnetes 2,5D-Spiel. Da
 - **Wandschmuck:** Was außen an der Südwand hängt (Wappenschild, Gitter, Blumenkästen, Laterne), hängt `WandschmuckAnDieWand` an die Wand, damit es beim Aufschneiden mit verschwindet und nicht im Raum schwebt.
 - **Lehrstück:** Mit Innenräumen für Dieb, Wache und Geldleiher fiel auf, dass `Betrieb.Ausbauen` bei Betrieben ohne Ware ein Produkt suchte (`Produkte.Last()` auf einer leeren Liste). Der Ausbau geschah trotzdem, der Befehl meldete aber einen Fehler. Jetzt passt der Ausbau das Produkt nur bei Werkstätten mit Ware an (Test „Ausbau ohne Ware“).
 
+**Sonderbauten** (`game/scripts/Stadtansicht.Sonderbauten.cs`, dritter Teil der `partial class`): Werkstätten und Sonderbauten teilen die abstrakte Klasse `InnenAnsicht` (Mitte, Wände, Dach, Innen, Zoom, Reichweite der Kamera, Stufenteile, Feuer, bewegte Teile, Besucher, Infotafel, Zustand). `BetriebsAnsicht` erbt davon und kennt dazu Betrieb, Lager und Arbeiter; `SonderbauAnsicht` hat nur Kennung und Titel. Die Innenansicht wird über eine **Kennung** betreten (`InnenansichtBetreten("Rathaus")`, das Ereignis `InnenansichtGewechselt` liefert die Kennung), sodass die Oberfläche Werkstätten und Sonderbauten gleich behandelt.
+- `SonderbauHuelle` baut Wände (mit Fenstern, auf Wunsch Fachwerk), Tür, Dach, Klickfläche und Boden und trägt das Gebäude ein. Die Türme hängen am Dach und verschwinden beim Betreten mit.
+- **Räume anklicken:** Außen gibt es eine Klickfläche für das ganze Gebäude, innen eine je Raum (`rathaus:rat`, `rathaus:gericht`, `rathaus:amt`). Beim Betreten wird die äußere abgeschaltet und die Raumflächen eingeschaltet, beim Verlassen umgekehrt. `Hauptszene` öffnet bei einem Raumklick die passende Tafel.
+- **Rathaus:** Die Figuren im Ratssaal und im Gericht werden nur neu gebaut, wenn sich Ämter, Verfahren oder Kerkerinsassen ändern (Vergleich über einen Text aus den Namen) – sonst würde jede Sekunde neu gebaut.
+- **Dom:** drei Gruppen (katholisch, evangelisch, simultan) werden nach `Glaubenswesen.Stadtglaube` ein- und ausgeblendet; ohne Glaubensmodul gilt katholisch. Gläubige im Dom = Gläubige des Jahres minus die Gläubigen in den Kirchen der Häuser, je fünf eine Figur.
+
 ## Oberfläche und Fenstergröße
 
 - **Feste Pixelgröße** (kein `stretch`-Modus): Die Oberfläche skaliert nicht mit. Ein größeres Fenster zeigt mehr von der Stadt, Schrift und Tafeln bleiben gleich groß. Eine Mindestgröße gibt es nicht.

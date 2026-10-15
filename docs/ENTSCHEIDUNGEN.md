@@ -218,6 +218,7 @@ Format: `- PR #Nummer (Phase) – Inhalt`
 - PR #44 (–) – Zusammenarbeit: CLAUDE.md, Entwurfs-PRs, Protokolle im Repo
 - PR #45 (5) – Handel von Hand per Karrenauftrag
 - PR #47 (–) – Phasenplan als Liste, Tests automatisch finden, Regeln für Messungen
+- PR #49 (3) – Innenräume für Rathaus (Ratssaal, Gerichtssaal, Amtsstube, Kerker) und Dom nach dem Stadtglauben
 
 ### 6b. Offen (eine Zeile je Punkt; erledigt → Zeile löschen und unter 6a eintragen)
 
@@ -261,3 +262,12 @@ Format: `- PR #Nummer (Phase) – Inhalt`
 | Phasenplan | **Als Liste statt Tabellenzelle** (Abschnitt 6a/6b): je PR eine Zeile unten anhängen, offene Punkte je eine Zeile. Vorher wuchs eine einzige Tabellenzelle, die jeder PR änderte – sicherer Merge-Konflikt. | 15.10.2026 |
 | Tests | **Testklassen werden automatisch gefunden** (jede statische Klasse mit `Alle()`), keine Liste mehr in `Program.cs`. | 15.10.2026 |
 | Messungen | **Nur der Kern-Chat misst.** Jede Messung nennt den `main`-Commit, gegen den gemessen wurde – so lassen sich Messungen aus verschiedenen PRs vergleichen. | 15.10.2026 |
+
+## 10. Innenräume für Rathaus und Dom (PR #49)
+
+| Thema | Entscheidung | Datum |
+|---|---|---|
+| Rathaus | **Drei Räume nebeneinander** im Diorama: Ratssaal, Gerichtssaal, Amtsstube; dazu der **Kerker als Gittergrube** im Gerichtssaal. | 15.10.2026 |
+| Belebung | **Tagsüber Amtsgeschäfte** (8–20 Uhr): Ratsherren an ihren Sitzen, Richter und Parteien bei einem Verfahren, Stadtschreiber in der Amtsstube. Nachts ist das Rathaus leer. | 15.10.2026 |
+| Bedienung | **Raum anklicken öffnet seine Tafel** (Ratssaal → Stadtrat, Gerichtssaal → Stadtgericht). | 15.10.2026 |
+| Dom | **Hauptkirche des Stadtglaubens:** katholisch prunkvoll, evangelisch schlicht, bei Glaubensfreiheit Simultankirche. Gläubige ohne Kirche eines Hauses besuchen hier die Messe. | 15.10.2026 |
