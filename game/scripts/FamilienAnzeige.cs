@@ -1,6 +1,7 @@
 using Godot;
 using Reichsgilde.Core;
 using Reichsgilde.Core.Dynastie;
+using Reichsgilde.Core.Glaube;
 using Reichsgilde.Core.Wirtschaft;
 
 namespace Reichsgilde;
@@ -104,7 +105,7 @@ public partial class FamilienAnzeige : PanelContainer
         var o = f.Oberhaupt;
 
         Hauptmenue.Text(_inhalt, $"Haus {f.Nachname}", 26, Gold, zentriert: true);
-        Hauptmenue.Text(_inhalt, $"{f.Volk.Mehrzahl()} · {w.StandVon(_spieler).Name} · im Jahr {jahr}", 14, Grau, zentriert: true);
+        Hauptmenue.Text(_inhalt, $"{f.Volk.Mehrzahl()}{(w.Glaube.IstAktiv ? $" · {o.Glaube.Name()}" : "")} · {w.StandVon(_spieler).Name} · im Jahr {jahr}", 14, Grau, zentriert: true);
         if (_spieler.IstErloschen)
             Hauptmenue.Text(_inhalt, "Das Haus ist erloschen.", 18, Rot, zentriert: true);
 
@@ -123,9 +124,12 @@ public partial class FamilienAnzeige : PanelContainer
                 HeiligenduftZeile(w);
             }
         }
+        if (w.Glaube.IstAktiv && w.HatAktionspunkte && !_spieler!.IstErloschen)
+            GlaubeZeile(w, o);
         if (f.Ehepartner is { } e)
         {
-            Text(_inhalt, $"{e.Ehepartnertitel}: {e.NameMitHerkunft}, {e.Volk.Einzahl()}, {e.Alter(jahr)} Jahre – {buch.Verfassung(e)}", 15);
+            Text(_inhalt, $"{e.Ehepartnertitel}: {e.NameMitHerkunft}, {e.Volk.Einzahl()}, {e.Alter(jahr)} Jahre – {buch.Verfassung(e)}" +
+                          (w.Glaube.IstAktiv && e.Herkunftsglaube != e.Glaube ? $" · übergetreten (früher {e.Herkunftsglaube.Name()})" : ""), 15);
             if (w.Diebe.IstGeisel(e))
                 Text(_inhalt, $"{e.Vorname} ist als Geisel verschleppt – Lösegeld im Hinterzimmer.", 14, new Color(0.95f, 0.45f, 0.4f));
             if (buch.HatTalente)
@@ -356,6 +360,39 @@ public partial class FamilienAnzeige : PanelContainer
             Text(zeile, $"· wirkt bis Ende {bis} (+{Zahlenformat.Ganz(d.Ansehen)} Ansehen)", 13, Gold);
     }
 
+    /// <summary>Glaube des Hauses: Konfession wechseln (Heiden: Taufe), Glaubenszins und Ansehen nach dem Wechsel.</summary>
+    private void GlaubeZeile(Stadtwirtschaft w, Person o)
+    {
+        var gw = w.Glaube;
+        var d = gw.Daten;
+        var zeile = new HBoxContainer();
+        zeile.AddThemeConstantOverride("separation", 6);
+        _inhalt.AddChild(zeile);
+        var info = Text(zeile, $"Glaube: {o.Glaube.Name()}   ⓘ", 13, Gold);
+        info.MouseFilter = MouseFilterEnum.Stop;
+        info.TooltipText = $"Im Rat: Ratsherren gleichen Glaubens +{Zahlenformat.Ganz(d.Gunst.Gleich)} Punkte, andere Konfession {Zahlenformat.Ganz(d.Gunst.Anders)}, " +
+                           $"Heiden {Zahlenformat.Ganz(d.Gunst.Heide)}. Ein übergetretener Ehepartner: {Zahlenformat.Ganz(d.Gunst.Mischehe)} bei den Ratsherren seines alten Glaubens.\n" +
+                           $"Stadtglaube: {KonfessionTexte.StadtglaubeText(gw.Stadtglaube)}" +
+                           (gw.Stadtglaube is null ? "." : $" – Andersgläubige zahlen {Zahlenformat.Ganz(d.Stadtglaube.Abgabe)} {w.Daten.Allgemein.Waehrung} Glaubenszins im Jahr.");
+        foreach (var ziel in new[] { Konfession.Katholisch, Konfession.Evangelisch }.Where(k => k != o.Glaube))
+        {
+            var konfession = ziel;
+            var knopf = new Button { Text = o.Glaube.IstKirchlich() ? $"{ziel.Name()} werden" : $"{ziel.Name()} taufen lassen", FocusMode = FocusModeEnum.None };
+            knopf.AddThemeFontSizeOverride("font_size", 13);
+            var grund = gw.KonvertierenVerboten(_spieler!, ziel);
+            knopf.Disabled = grund is not null;
+            knopf.TooltipText = grund ?? $"Das ganze Haus wechselt zum {ziel.Glaube()}: {Zahlenformat.Ganz(d.Konvertieren.Gebuehr)} {w.Daten.Allgemein.Waehrung}, " +
+                                         $"−{Zahlenformat.Ganz(d.Konvertieren.Ansehen)} Ansehen bis Ende des nächsten Jahres.";
+            knopf.Pressed += () => Befehlen(new Konvertieren(konfession));
+            UiHilfe.ApKosten(knopf, w, _spieler!, new Konvertieren(ziel));
+            zeile.AddChild(knopf);
+        }
+        if (gw.KonvertiertBis(_spieler!) is int bis)
+            Text(zeile, $"· Wendehals bis Ende {bis} (−{Zahlenformat.Ganz(d.Konvertieren.Ansehen)} Ansehen)", 13, Rot);
+        if (gw.IstAndersglaeubig(_spieler!))
+            Text(zeile, $"· Glaubenszins {Zahlenformat.Ganz(d.Stadtglaube.Abgabe)} {w.Daten.Allgemein.Waehrung} im Jahr", 13, Rot);
+    }
+
     /// <summary>„Verhandeln 2 · Handwerk 1½ · Nacht ½ · Kampf 1½ · Rhetorik 2"</summary>
     private static string TalentText(Person p) =>
         string.Join(" · ", TalentTexte.Alle.Select(t => $"{t.Kurz()} {TalentTexte.Sterne(p.Talent(t))}"));
@@ -456,7 +493,8 @@ public partial class FamilienAnzeige : PanelContainer
             var rivalen = buch.Mitbewerber(_spieler!, k).Select(x => x.Inhaber).ToList();
             var name = Text(raster, p.Name + (rivalen.Count > 0 ? " ⚔" : ""), 14, farbe);
             if (rivalen.Count > 0) { name.TooltipText = $"Auch {string.Join(", ", rivalen)} wirbt um {p.Vorname}."; name.MouseFilter = MouseFilterEnum.Stop; }
-            Text(raster, $"{p.Volk.Einzahl()}, {p.Alter(buch.Jahr)}", 14, farbe);
+            Text(raster, $"{p.Volk.Einzahl()}, {p.Alter(buch.Jahr)}" + (w.Glaube.IstAktiv ? $", {(p.Glaube == Konfession.Katholisch ? "kath." : p.Glaube == Konfession.Evangelisch ? "ev." : "Heide")}" : ""),
+                14, farbe);
             Text(raster, w.Daten.Staende[k.Stand].Name, 14, farbe);
             if (mitTalenten)
             {
@@ -511,6 +549,8 @@ public partial class FamilienAnzeige : PanelContainer
         Text(_inhalt, $"„Bereit“ = Zuneigung + Ansehen eures Hauses ({Zahlenformat.Kommazahl(w.Rat.Ansehen(_spieler!))}, aus Stand und Vermögen). " +
                       $"Ab der Schwelle willigt die Person ein. Die Zuneigung verblasst um {Zahlenformat.Ganz(d.ZuneigungVerfall * 100)} % im Jahr, " +
                       $"und jedes Jahr heiraten manche anderweitig. Ehen zwischen Völkern sind erlaubt, bringen aber weniger Kinder; " +
-                      "die Kinder gehören immer dem Volk eures Hauses an. ⚔ = ein anderes Haus wirbt mit.", 12, Grau, umbrechen: true);
+                      "die Kinder gehören immer dem Volk eures Hauses an. ⚔ = ein anderes Haus wirbt mit." +
+                      (w.Glaube.IstAktiv ? " Wer anderen Glaubens ist, tritt bei der Hochzeit zu eurem über – die Ratsherren seines alten Glaubens sehen das ungern." : ""),
+                      12, Grau, umbrechen: true);
     }
 }

@@ -38,7 +38,7 @@ public sealed class HetzschriftDaten
 
 /// <summary>
 /// Kirche und Prediger: Messe mit Kollekte, Ablass, Beichte und zwei Schriften mit Wirkung.
-/// Ohne Konfessionen – der Glaube folgt als eigener Schritt.
+/// Mit Glauben (Abschnitt „glaube") gehen die Gläubigen in Kirchen ihrer Konfession, siehe <see cref="Kirchenwesen.Verteilen"/>.
 /// </summary>
 public sealed class KirchenDaten
 {
@@ -143,24 +143,54 @@ public sealed class Kirchenwesen
         return stufe * (1 + Math.Max(0, _w.Rat.Ansehen(b.Konto)) * d.AnziehungJeAnsehen) * (1 + rhetorik * d.AnziehungJeRhetorik);
     }
 
-    /// <summary>Gläubige im Jahr für diese Kirche bei der heutigen Konkurrenz.</summary>
-    public double ErwarteteGlaeubige(Betrieb b)
+    /// <summary>
+    /// Wie sich die Gläubigen eines Jahres auf diese Kirchen verteilen: (Gläubige, Kollekte) je Kirche.
+    /// Ohne Glauben nach Anziehung. Mit Glauben bekommt jede Konfession ihren Anteil an der Stadt und verteilt ihn
+    /// auf die Kirchen ihrer Konfession; gibt es keine, gehen ihre Gläubigen in fremde Kirchen und spenden weniger.
+    /// </summary>
+    public Dictionary<Betrieb, (double Glaeubige, double Kollekte)> Verteilen(IEnumerable<Betrieb> kirchen)
     {
-        var summe = Kirchen.Append(b).Distinct().Sum(Anziehung);
-        return summe <= 0 ? 0 : Daten.GlaeubigeJeJahr * Anziehung(b) / summe;
+        var liste = kirchen.ToList();
+        var ergebnis = liste.ToDictionary(b => b, _ => (Glaeubige: 0.0, Kollekte: 0.0));
+        var gw = _w.Glaube;
+        var gruppen = gw.IstAktiv
+            ? gw.Anteile.OrderBy(x => x.Key).Select(x => (Konfession: (Glaube.Konfession?)x.Key, x.Value)).ToList()
+            : new() { (null, 1.0) };
+        foreach (var (konfession, anteil) in gruppen)
+        {
+            // Eine Kirche ohne Familie (keine Konfession) nimmt jeden auf.
+            var eigene = konfession is null ? liste : liste.Where(b => gw.KonfessionVon(b) is null || gw.KonfessionVon(b) == konfession).ToList();
+            var faktor = 1.0;
+            if (eigene.Count == 0)
+            {
+                eigene = liste;
+                faktor = gw.Daten.FremdeKirche;
+            }
+            var summe = eigene.Sum(Anziehung);
+            if (summe <= 0) continue;
+            foreach (var b in eigene)
+            {
+                var glaeubige = Daten.GlaeubigeJeJahr * anteil * Anziehung(b) / summe;
+                var (g, k) = ergebnis[b];
+                ergebnis[b] = (g + glaeubige, k + glaeubige * Daten.SpendeJeGlaeubigem * faktor);
+            }
+        }
+        return ergebnis;
     }
+
+    /// <summary>Gläubige im Jahr für diese Kirche bei der heutigen Konkurrenz.</summary>
+    public double ErwarteteGlaeubige(Betrieb b) => Verteilen(Kirchen.Append(b).Distinct())[b].Glaeubige;
+
+    /// <summary>Kollekte im Jahr für diese Kirche bei der heutigen Konkurrenz.</summary>
+    public double ErwarteteKollekte(Betrieb b) => Verteilen(Kirchen.Append(b).Distinct())[b].Kollekte;
 
     /// <summary>Jede volle Stunde – zur Messe spenden die Gläubigen.</summary>
     internal void Stunde(Spielzeit zeit)
     {
         if (!IstAktiv || zeit.UhrzeitInMinuten / 60 != Daten.MesseUm) return;
-        var kirchen = Kirchen.ToList();
-        var summe = kirchen.Sum(Anziehung);
-        if (summe <= 0) return;
-        foreach (var b in kirchen)
+        foreach (var (b, (glaeubige, kollekte)) in Verteilen(Kirchen))
         {
-            var glaeubige = Daten.GlaeubigeJeJahr * Anziehung(b) / summe;
-            var kollekte = glaeubige * Daten.SpendeJeGlaeubigem;
+            if (glaeubige <= 0) continue;
             b.Konto.Umsatz(kollekte); // Spenden sind steuerfrei
             var buch = DiesesJahr(b);
             _diesesJahr[b.Name] = buch with { Glaeubige = buch.Glaeubige + glaeubige, Kollekte = buch.Kollekte + kollekte };

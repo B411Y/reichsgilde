@@ -288,7 +288,8 @@ static class DynastieTests
             Pruefe.Gleich(3.0, buch.Volksnaehe(Volk.Mensch, konto));
             var zwergRatsherr = w.Rat.Ratsherren.First(r => r.Daten.Volk == Volk.Zwerg);
             var amt = w.Rat.Aemter.First(a => a.Stufe == 1);
-            Pruefe.Ungefaehr(w.Rat.Ansehen(konto) + w.Rat.Gunst(zwergRatsherr, konto) + buch.RhetorikPunkte(konto), w.Rat.Punkte(zwergRatsherr, amt, konto), 1e-9);
+            Pruefe.Ungefaehr(w.Rat.Ansehen(konto) + w.Rat.Gunst(zwergRatsherr, konto) + buch.RhetorikPunkte(konto) + w.Glaube.Naehe(zwergRatsherr, konto),
+                w.Rat.Punkte(zwergRatsherr, amt, konto), 1e-9);
         }),
 
         ("KI: Haus Eisenbart wirbt und heiratet in den ersten Jahren; Zwerge bekommen langsam Kinder", () =>

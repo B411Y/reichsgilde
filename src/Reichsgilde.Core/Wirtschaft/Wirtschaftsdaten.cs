@@ -193,6 +193,9 @@ public sealed class Wirtschaftsdaten
     /// <summary>Düfte und Dolche des Parfumeurs (ab Datenversion 21). Fehlt der Abschnitt, wirken Düfte nicht.</summary>
     public Duft.ParfumDaten? Parfum { get; init; }
 
+    /// <summary>Konfessionen, Glaubensnähe im Rat, Bekehrung und Stadtglaube (ab Datenversion 22). Fehlt der Abschnitt, spielt der Glaube keine Rolle.</summary>
+    public Glaube.GlaubeDaten? Glaube { get; init; }
+
     /// <summary>Taschendiebe, Einbruch, Auskundschaften, Schutzgeld und Entführung (ab Datenversion 18). Fehlt der Abschnitt, gibt es keine Diebe.</summary>
     public Gauner.DiebDaten? Dieb { get; init; }
 
@@ -400,6 +403,7 @@ public sealed class Wirtschaftsdaten
             f.Add($"Liegenschaft „{doppelt.Key}“ ist doppelt eingetragen.");
 
         Politik.Pruefen(f, StandStufe);
+        Glaube?.Pruefen(f, Politik.Ratsherren);
         Dynastie.Pruefen(f, StandStufe);
         Justiz?.Pruefen(f);
         Gauner?.Pruefen(f);

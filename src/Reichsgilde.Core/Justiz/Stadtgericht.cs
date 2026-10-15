@@ -35,6 +35,8 @@ public enum Vergehen
     Giftanschlag,
     /// <summary>Die Blume der Zwietracht: einen Ratsherrn gegen ein Haus aufbringen.</summary>
     Intrige,
+    /// <summary>Messe oder Bekehrungspredigt gegen den Stadtglauben.</summary>
+    Ketzerei,
 }
 
 public static class VergehenTexte
@@ -95,6 +97,7 @@ public sealed class Spur
         Vergehen.Wucher => $"{Jahr}: Wucherzins von {Betroffener} – {Zahlenformat.Ganz(Betrag)} Gulden über dem erlaubten Zins",
         Vergehen.Giftanschlag => $"{Jahr}: Giftanschlag auf {Betroffener}",
         Vergehen.Intrige => $"{Jahr}: Zwietracht gesät – {Betroffener}",
+        Vergehen.Ketzerei => $"{Jahr}: Ketzerei gegen den Stadtglauben",
         _ => $"{Jahr}: {Art.Name()}",
     };
 }

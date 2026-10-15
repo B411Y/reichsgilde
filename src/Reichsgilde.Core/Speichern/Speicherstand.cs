@@ -90,6 +90,21 @@ public sealed record WirtschaftStand
 
     /// <summary>Giftanschläge der Nacht, Moschus-Geschenke des Jahres, Heiligenduft (null in Spielständen von vor dem Parfumeur).</summary>
     public ParfumStand? Parfum { get; init; }
+
+    /// <summary>Anteile der Konfessionen, Stadtglaube und sein Antrag (null in Spielständen von vor dem Glauben).</summary>
+    public GlaubeStand? Glaube { get; init; }
+}
+
+public sealed record GlaubeStand
+{
+    public long ZufallWuerfe { get; init; }
+    public Dictionary<Glaube.Konfession, double> Anteile { get; init; } = new();
+    public Glaube.Konfession? Stadtglaube { get; init; }
+    public int? AntragKonto { get; init; }
+    public Glaube.Konfession? AntragGlaube { get; init; }
+    public Dictionary<string, int> KonvertiertBis { get; init; } = new();
+    public Dictionary<string, int> BekehrtIm { get; init; } = new();
+    public Dictionary<string, double> AbgabenVorjahr { get; init; } = new();
 }
 
 public sealed record ParfumStand
@@ -343,6 +358,10 @@ public sealed record PersonStand
 
     public ErkrankungStand? Krankheit { get; init; }
     public string? Todesursache { get; init; }
+
+    /// <summary>Glaube heute und Glaube der Herkunft (null in Spielständen von vor dem Glauben – dann der Startglaube des Volkes).</summary>
+    public Glaube.Konfession? Glaube { get; init; }
+    public Glaube.Konfession? Herkunftsglaube { get; init; }
 }
 
 public sealed record ErkrankungStand

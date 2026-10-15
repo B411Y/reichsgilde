@@ -1,3 +1,4 @@
+using Reichsgilde.Core.Glaube;
 using Reichsgilde.Core.Speichern;
 using Reichsgilde.Core.Wirtschaft;
 
@@ -313,8 +314,11 @@ public sealed class Familienbuch
     /// Gründet die Familie eines Hauses mit einem ledigen Oberhaupt im Startalter seines Volkes.
     /// </summary>
     /// <param name="vorname">Ohne Angabe ein zufälliger Name des Volkes.</param>
-    public Familie Gruenden(Konto konto, Volk volk, Geschlecht geschlecht, string? vorname = null, int? alter = null)
+    /// <param name="glaube">Ohne Angabe der Startglaube des Volkes.</param>
+    public Familie Gruenden(Konto konto, Volk volk, Geschlecht geschlecht, string? vorname = null, int? alter = null, Konfession? glaube = null)
     {
+        if (glaube is { } g && _w.Glaube.IstAktiv && _w.Glaube.StartglaubeVerboten(volk, g) is { } grund)
+            throw new ArgumentException(grund, nameof(glaube));
         if (!IstAktiv) throw new InvalidOperationException("Die Wirtschaftsdaten enthalten keine Dynastie-Daten.");
         if (_familien.ContainsKey(konto)) throw new InvalidOperationException($"{konto.Inhaber} hat schon eine Familie.");
         if (!_w.Konten.Contains(konto)) throw new ArgumentException("Das Konto gehört nicht zu dieser Stadt.", nameof(konto));
@@ -325,6 +329,7 @@ public sealed class Familienbuch
         vorname = string.IsNullOrWhiteSpace(vorname) ? Vorname(v, geschlecht) : vorname.Trim();
         var oberhaupt = new Person(_naechsteNummer++, vorname, nachname, volk, geschlecht, Jahr - (alter ?? v.Startalter));
         TalenteWuerfeln(oberhaupt);
+        oberhaupt.GlaubeSetzen(glaube ?? _w.Glaube.Startglaube(volk));
         var familie = new Familie(konto, volk, nachname, oberhaupt);
         _familien[konto] = familie;
         KandidatenAuffuellen();
@@ -372,6 +377,7 @@ public sealed class Familienbuch
         } while (NameVergeben(vorname, name) && ++versuche < 10);
         var person = new Person(_naechsteNummer++, vorname, name, volk, geschlecht, Jahr - alter);
         TalenteWuerfeln(person);
+        person.GlaubeSetzen(_w.Glaube.Wuerfeln(volk)); // eigener Würfel – Namen und Talente bleiben wie ohne Glauben
         return new Kandidat(person, stand);
     }
 
@@ -477,10 +483,13 @@ public sealed class Familienbuch
 
         var p = k.Person;
         p.Familienname = f.Nachname;
+        var uebertritt = _w.Glaube.IstAktiv && p.Glaube != f.Oberhaupt.Glaube;
+        if (uebertritt) p.Glaube = f.Oberhaupt.Glaube; // Mischehe: Der Partner tritt zum Glauben des Hauses über
         f.MitgliederListe.Add(p);
         f.Ehepartner = p;
         Ereignis(konto, $"Hochzeit im Haus {f.Nachname}: {f.Oberhaupt.Name} heiratet {p.Vorname}, geb. {p.Geburtsname} " +
-                        $"({p.Volk.Einzahl()}, {p.Alter(Jahr)} Jahre). Das Fest kostet {Zahlenformat.Ganz(kosten)} {_w.Daten.Allgemein.Waehrung}.");
+                        $"({p.Volk.Einzahl()}, {p.Alter(Jahr)} Jahre). Das Fest kostet {Zahlenformat.Ganz(kosten)} {_w.Daten.Allgemein.Waehrung}." +
+                        (uebertritt ? $" {p.Vorname} tritt zum {p.Glaube.Glaube()} über – die {p.Herkunftsglaube.Gemeinde()} im Rat sehen es ungern." : ""));
         return Befehlsergebnis.Ok($"{f.Oberhaupt.Vorname} und {p.Vorname} sind verheiratet.");
     }
 
@@ -716,6 +725,7 @@ public sealed class Familienbuch
         var o = f.Oberhaupt;
         var kind = new Person(_naechsteNummer++, Vorname(_d.Volk(f.Volk), geschlecht), f.Nachname, f.Volk, geschlecht, Jahr - alter,
             o.Geschlecht == Geschlecht.Mann ? o.Nummer : null, o.Geschlecht == Geschlecht.Frau ? o.Nummer : null);
+        kind.GlaubeSetzen(o.Glaube);
         f.MitgliederListe.Add(kind);
         return kind;
     }
@@ -727,6 +737,7 @@ public sealed class Familienbuch
         var v = _d.Volk(f.Volk);
         var kind = new Person(_naechsteNummer++, Vorname(v, geschlecht), f.Nachname, f.Volk, geschlecht, Jahr + 1, vater.Nummer, mutter.Nummer);
         TalenteVererben(kind, mutter, vater);
+        kind.GlaubeSetzen(f.Oberhaupt.Glaube); // getauft im Glauben des Hauses
         f.MitgliederListe.Add(kind);
         Ereignis(f.Konto, $"Freude im Haus {f.Nachname}: {mutter.Vorname} und {vater.Vorname} bekommen {(geschlecht == Geschlecht.Frau ? "eine Tochter" : "einen Sohn")}, {kind.Vorname}.");
     }
@@ -746,6 +757,7 @@ public sealed class Familienbuch
                 Talente = HatTalente ? TalentTexte.Alle.Select(p.Anlage).ToList() : null,
                 Krankheit = p.Krankheit is { } k ? new ErkrankungStand { Name = k.Name, Bis = k.Bis, Medicus = k.Medicus, Schnaps = k.Schnaps } : null,
                 Todesursache = p.Todesursache,
+                Glaube = p.Glaube, Herkunftsglaube = p.Herkunftsglaube,
                 Ausbildung = p.Ausbildung, Abschluss = p.Abschluss,
                 Geuebt = TalentTexte.Alle.Any(t => p.GeuebtIm(t) != 0) ? TalentTexte.Alle.Select(p.GeuebtIm).ToList() : null,
             }).ToList();
@@ -788,6 +800,8 @@ public sealed class Familienbuch
                 Ausbildung = p.Ausbildung, Abschluss = p.Abschluss, Todesursache = p.Todesursache,
                 Krankheit = p.Krankheit is { } k && _w.Daten.Gesundheit is { } g ? Gesundheit.Erkrankung.Aus(g, k.Name, k.Bis) with { Medicus = k.Medicus, Schnaps = k.Schnaps } : null,
             };
+            person.Glaube = p.Glaube ?? _w.Glaube.Startglaube(p.Volk); // alte Spielstände ohne Glauben: Startglaube des Volkes
+            person.Herkunftsglaube = p.Herkunftsglaube ?? person.Glaube;
             foreach (var t in TalentTexte.Alle) // alte Spielstände ohne Talente: Grundwerte des Volkes
                 person.TalentSetzen(t, p.Talente is { } werte && (int)t < werte.Count ? werte[(int)t] : HatTalente ? _d.Talente.Grundwert(p.Volk, t) : 0);
             if (p.Geuebt is { } geuebt)
