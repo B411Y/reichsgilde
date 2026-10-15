@@ -214,7 +214,7 @@ public partial class Hauptszene : Node
 
         var minuten = _simulation.Takt.RundenDauerSekunden / 60;
         _hinweis.Text = $"1 Spieljahr = {minuten:0} Min. · {_simulation.Einstellungen.SiegbedingungText}\n"
-                      + "Leertaste Pause · 1–4 Tempo (5–6 Test) · Mausrad Zoom\nRechte Maustaste/WASD verschieben · Q/E drehen\n"
+                      + "Leertaste Pause · 1–4 Tempo (5–6 Test) · Mausrad Zoom\nRechte Maustaste/WASD verschieben · Q/E drehen · Alt: alle Namen\n"
                       + "Doppelklick auf Werkstatt, Rathaus oder Dom = Innenansicht · Esc zurück bzw. Spielmenü";
 
         _stadt.GebaeudeAngeklickt += kennung =>
@@ -481,6 +481,7 @@ public partial class Hauptszene : Node
     {
         _simulation.Aktualisieren(delta);
         Anzeigen();
+        _stadt.Auswahl = _auswahl.Visible ? _auswahlKennung : null; // Name des ausgewählten Gebäudes bleibt sichtbar
         _stadt.Aktualisieren(delta);
         if (_auswahlKennung is not null) AuswahlAnzeigen();
     }

@@ -409,7 +409,7 @@ public partial class Stadtansicht : Node3D
         Turm(new Vector3(rand, 0, -5.5f), 2.6f, 11, Schiefer);
         Turm(new Vector3(rand, 0, 5.5f), 2.6f, 11, Schiefer);
         Klickflaeche("Osttor", new Vector3(rand, 5, 0), new Vector3(6, 10, 12));
-        Beschriftung("Osttor", new Vector3(rand, 15, 0), 48);
+        Beschriftung("Osttor", new Vector3(rand, 15, 0), 48, kennung: "Osttor");
     }
 
     private void Marktstaende()
@@ -427,7 +427,7 @@ public partial class Stadtansicht : Node3D
         brunnen.Position = new Vector3(0, 0.5f, 0);
         AddChild(brunnen);
         Klickflaeche("Marktplatz", new Vector3(0, 1, 0), new Vector3(22, 2, 22));
-        Beschriftung("Marktplatz", new Vector3(0, 6, 0), 56);
+        Beschriftung("Marktplatz", new Vector3(0, 6, 0), 56, kennung: "Marktplatz");
     }
 
 
@@ -635,13 +635,18 @@ public partial class Stadtansicht : Node3D
             GasseZiehen(p, Gasse(frei.Name, p), gruppe);
         }
 
-        // Schild am Pfosten
-        Quader(p + new Vector3(-4, 1.2f, 4.6f), new Vector3(0.15f, 2.4f, 0.15f), holz, gruppe);
-        Quader(p + new Vector3(-4, 2.3f, 4.7f), new Vector3(1.6f, 0.8f, 0.08f), Material(new Color(0.85f, 0.78f, 0.6f)), gruppe);
+        // Schild am Pfosten – ohne Text, die Farbe sagt es: Ocker = zu verkaufen, Grün = zu verpachten.
+        // Name und Preis zeigt die Beschriftung, sobald die Maus darüber steht.
+        var tafel = Material(frei.IstPacht ? new Color(0.35f, 0.6f, 0.32f) : new Color(0.86f, 0.66f, 0.28f));
+        tafel.EmissionEnabled = true; // leuchtet leicht, damit es auch nachts zu sehen ist
+        tafel.Emission = tafel.AlbedoColor * 0.35f;
+        Quader(p + new Vector3(-4, 1.8f, 4.6f), new Vector3(0.22f, 3.6f, 0.22f), holz, gruppe);
+        Quader(p + new Vector3(-4, 3.2f, 4.75f), new Vector3(2.6f, 1.5f, 0.12f), tafel, gruppe);
+        Quader(p + new Vector3(-4, 3.2f, 4.68f), new Vector3(2.9f, 1.8f, 0.06f), holz, gruppe); // Rahmen
 
         Klickflaeche(LiegenschaftKennung(frei.Name), p + new Vector3(0, 2, 0), umland ? new Vector3(16, 8, 14) : new Vector3(10, 4, 8), gruppe);
         Beschriftung($"{frei.Name}\n{(frei.IstPacht ? "zu verpachten" : "zu verkaufen")}",
-            p + new Vector3(0, SchildHoehe.GetValueOrDefault(frei.Name, frei.Art == Betriebsart.Mine ? 9 : 6), 0), 36, gruppe);
+            p + new Vector3(0, SchildHoehe.GetValueOrDefault(frei.Name, frei.Art == Betriebsart.Mine ? 9 : 6), 0), 36, gruppe, LiegenschaftKennung(frei.Name));
         _freiePlaetze[frei.Name] = gruppe;
     }
 
@@ -878,7 +883,7 @@ public partial class Stadtansicht : Node3D
         dach.AddChild(glut);
 
         Klickflaeche(BetriebsKennung(betrieb), p + new Vector3(0, 4, 0), new Vector3(breite, 8, tiefe));
-        var schild = Beschriftung(betrieb.Name, p + new Vector3(0, GebaeudeSchildHoehe.GetValueOrDefault(betrieb.Name, 13), 0), 44);
+        var schild = Beschriftung(betrieb.Name, p + new Vector3(0, GebaeudeSchildHoehe.GetValueOrDefault(betrieb.Name, 13), 0), 44, kennung: BetriebsKennung(betrieb));
 
         // Weg zur nächsten Gasse und dann zum Markt
         var hof = p + new Vector3(0, 0, 5.5f);
@@ -1013,7 +1018,7 @@ public partial class Stadtansicht : Node3D
         Quader(p + new Vector3(-9.2f, 3.5f, 6), new Vector3(0.2f, 3, 2), Material(besitzer));
 
         Klickflaeche(BetriebsKennung(betrieb), p + new Vector3(2, 4, 0), new Vector3(16, 8, 14));
-        var schild = Beschriftung(betrieb.Name, p + new Vector3(2, 9, 0), 44);
+        var schild = Beschriftung(betrieb.Name, p + new Vector3(2, 9, 0), 44, kennung: BetriebsKennung(betrieb));
 
         var hof = p + new Vector3(-2, 0, 0);
         WegZiehen(abzweig, hof, 4);
@@ -1056,7 +1061,7 @@ public partial class Stadtansicht : Node3D
         Quader(p + new Vector3(-9.2f, 3.5f, 6), new Vector3(0.2f, 3, 2), Material(besitzer));
 
         Klickflaeche(BetriebsKennung(betrieb), p + new Vector3(2, 4, 0), new Vector3(16, 8, 14));
-        var schild = Beschriftung(betrieb.Name, p + new Vector3(2, 9, 0), 44);
+        var schild = Beschriftung(betrieb.Name, p + new Vector3(2, 9, 0), 44, kennung: BetriebsKennung(betrieb));
         var hof = p + new Vector3(-2, 0, 0);
         WegZiehen(abzweig, hof, 4);
         if (AbstandZurStrecke(abzweig, Osttor, Landstrasse) > 1)
@@ -1100,7 +1105,7 @@ public partial class Stadtansicht : Node3D
         Quader(p + new Vector3(-9.7f, 3.5f, 6), new Vector3(0.2f, 3, 2), Material(besitzer));
 
         Klickflaeche(BetriebsKennung(betrieb), p + new Vector3(4, 3, 0), new Vector3(20, 6, 16));
-        var schild = Beschriftung(betrieb.Name, p + new Vector3(4, 9, 0), 44);
+        var schild = Beschriftung(betrieb.Name, p + new Vector3(4, 9, 0), 44, kennung: BetriebsKennung(betrieb));
         var hof = p + new Vector3(-2, 0, 0);
         WegZiehen(abzweig, hof, 4);
         if (AbstandZurStrecke(abzweig, Osttor, Landstrasse) > 1)
@@ -1123,7 +1128,7 @@ public partial class Stadtansicht : Node3D
         Quader(p + new Vector3(-9.7f, 3.5f, 6), new Vector3(0.2f, 3, 2), Material(besitzer));
 
         Klickflaeche(BetriebsKennung(betrieb), p + new Vector3(2, 3, 0), new Vector3(18, 6, 16));
-        var schild = Beschriftung(betrieb.Name, p + new Vector3(2, 9, 0), 44);
+        var schild = Beschriftung(betrieb.Name, p + new Vector3(2, 9, 0), 44, kennung: BetriebsKennung(betrieb));
         var hof = p + new Vector3(-2, 0, 0);
         WegZiehen(abzweig, hof, 4);
         if (AbstandZurStrecke(abzweig, Osttor, Landstrasse) > 1)
@@ -1161,7 +1166,7 @@ public partial class Stadtansicht : Node3D
             Quader(p + mitte, groesse, holz);
 
         Klickflaeche(BetriebsKennung(betrieb), p + new Vector3(0, 6, 0), new Vector3(10, 12, 10));
-        var schild = Beschriftung(betrieb.Name, p + new Vector3(0, 15, 0), 44);
+        var schild = Beschriftung(betrieb.Name, p + new Vector3(0, 15, 0), 44, kennung: BetriebsKennung(betrieb));
         var hof = p + new Vector3(-2, 0, 0);
         WegZiehen(abzweig, hof, 4);
         if (AbstandZurStrecke(abzweig, Osttor, Landstrasse) > 1)
@@ -1260,7 +1265,7 @@ public partial class Stadtansicht : Node3D
         Quader(p + new Vector3(-9.2f, 3.5f, 6), new Vector3(0.2f, 3, 2), Material(besitzer));
 
         Klickflaeche(BetriebsKennung(betrieb), p + new Vector3(2, 3, 0), new Vector3(16, 6, 14));
-        var schild = Beschriftung(betrieb.Name, p + new Vector3(2, 7, 0), 44);
+        var schild = Beschriftung(betrieb.Name, p + new Vector3(2, 7, 0), 44, kennung: BetriebsKennung(betrieb));
         var hof = p + new Vector3(-2, 0, 0);
         WegZiehen(abzweig, hof, 4);
         if (AbstandZurStrecke(abzweig, Osttor, Landstrasse) > 1)
@@ -1283,7 +1288,7 @@ public partial class Stadtansicht : Node3D
         Quader(p + new Vector3(-9.2f, 3.5f, 6), new Vector3(0.2f, 3, 2), Material(besitzer));
 
         Klickflaeche(BetriebsKennung(betrieb), p + new Vector3(2, 3, 0), new Vector3(16, 6, 14));
-        var schild = Beschriftung(betrieb.Name, p + new Vector3(2, 7, 0), 44);
+        var schild = Beschriftung(betrieb.Name, p + new Vector3(2, 7, 0), 44, kennung: BetriebsKennung(betrieb));
         var hof = p + new Vector3(-2, 0, 0);
         WegZiehen(abzweig, hof, 4);
         if (AbstandZurStrecke(abzweig, Osttor, Landstrasse) > 1)
@@ -1311,7 +1316,7 @@ public partial class Stadtansicht : Node3D
             Quader(p + new Vector3(dx, 0.4f, dz), new Vector3(1.1f, 0.8f, 1.1f), stamm);
 
         Klickflaeche(BetriebsKennung(betrieb), p + new Vector3(2, 4, 0), new Vector3(16, 8, 14));
-        var schild = Beschriftung(betrieb.Name, p + new Vector3(2, 8, 0), 44);
+        var schild = Beschriftung(betrieb.Name, p + new Vector3(2, 8, 0), 44, kennung: BetriebsKennung(betrieb));
         var hof = p + new Vector3(-2, 0, 0);
         WegZiehen(abzweig, hof, 4);
         if (AbstandZurStrecke(abzweig, Osttor, Landstrasse) > 1)
@@ -1647,6 +1652,7 @@ public partial class Stadtansicht : Node3D
         var massstab = _kamera.Size / BezugsZoom;
         foreach (var label in _beschriftungen)
             label.Scale = Vector3.One * massstab;
+        BeschriftungenZeigen();
 
         // Sanft auf die Zieldrehung zudrehen (Q/E)
         var aktuell = _kameraDrehung.RotationDegrees.Y;
@@ -1720,14 +1726,44 @@ public partial class Stadtansicht : Node3D
         _kamera.Size = Mathf.Clamp(_kamera.Size * faktor, min, max);
     }
 
+    /// <summary>Das ausgewählte Gebäude (setzt die Hauptszene) – sein Name bleibt sichtbar.</summary>
+    public string? Auswahl { get; set; }
+
+    /// <summary>Das Gebäude unter der Maus (null über Tafeln oder freiem Gelände).</summary>
+    private string? _unterDerMaus;
+
+    /// <summary>
+    /// Namen in der Stadt nur, wo man sie braucht: unter der Maus, beim ausgewählten Gebäude und – solange Alt
+    /// gedrückt ist – überall. Im Innenraum keine (dort zeigen Schilder und Infotafel, was los ist).
+    /// </summary>
+    private void BeschriftungenZeigen()
+    {
+        // Über einer Tafel zählt die Stadt dahinter nicht.
+        _unterDerMaus = GetViewport().GuiGetHoveredControl() is null ? KennungBei(GetViewport().GetMousePosition()) : null;
+        var alle = Input.IsKeyPressed(Key.Alt);
+        foreach (var label in _beschriftungen)
+        {
+            if (!label.HasMeta("kennung")) continue;
+            var kennung = label.GetMeta("kennung").AsString();
+            var sichtbar = _innen is null && (alle || kennung == _unterDerMaus || kennung == Auswahl);
+            if (label.Visible != sichtbar) label.Visible = sichtbar;
+        }
+    }
+
+    /// <summary>Welches Gebäude liegt an dieser Bildschirmstelle? (Strahl aus der Kamera, trifft die Klickflächen)</summary>
+    private string? KennungBei(Vector2 bildschirm)
+    {
+        var von = _kamera.ProjectRayOrigin(bildschirm);
+        var bis = von + _kamera.ProjectRayNormal(bildschirm) * 500;
+        var treffer = GetWorld3D().DirectSpaceState.IntersectRay(PhysicsRayQueryParameters3D.Create(von, bis));
+        return treffer.Count > 0 && treffer["collider"].As<Node>() is { } koerper && koerper.HasMeta("kennung")
+            ? koerper.GetMeta("kennung").AsString() : null;
+    }
+
     private void Auswaehlen(Vector2 mausposition, bool doppelklick)
     {
-        var von = _kamera.ProjectRayOrigin(mausposition);
-        var bis = von + _kamera.ProjectRayNormal(mausposition) * 500;
-        var treffer = GetWorld3D().DirectSpaceState.IntersectRay(PhysicsRayQueryParameters3D.Create(von, bis));
-        if (treffer.Count == 0 || treffer["collider"].As<Node>() is not { } koerper || !koerper.HasMeta("kennung"))
+        if (KennungBei(mausposition) is not { } kennung)
             return;
-        var kennung = koerper.GetMeta("kennung").AsString();
         GebaeudeAngeklickt?.Invoke(kennung);
         if (doppelklick && AnsichtZu(kennung) is { } ansicht)
             Betreten(ansicht);
@@ -1821,7 +1857,10 @@ public partial class Stadtansicht : Node3D
         return form;
     }
 
-    private Label3D Beschriftung(string text, Vector3 position, int groesse, Node3D? eltern = null)
+    /// <param name="kennung">Kennung des Gebäudes (wie bei der Klickfläche). Mit Kennung ist es ein Name in der Stadt:
+    /// Er erscheint nur unter der Maus, beim ausgewählten Gebäude oder mit gedrückter Alt-Taste (<see cref="BeschriftungenZeigen"/>).
+    /// Ohne Kennung (Schilder im Innenraum) ist die Beschriftung immer sichtbar.</param>
+    private Label3D Beschriftung(string text, Vector3 position, int groesse, Node3D? eltern = null, string? kennung = null)
     {
         var label = new Label3D
         {
@@ -1835,6 +1874,12 @@ public partial class Stadtansicht : Node3D
             Modulate = new Color(0.97f, 0.94f, 0.86f),
             PixelSize = 0.04f,
         };
+        if (kennung is not null)
+        {
+            label.SetMeta("kennung", kennung);
+            label.Font = Schriften.Ueberschrift;
+            label.Visible = false;
+        }
         _beschriftungen.Add(label);
         (eltern ?? this).AddChild(label);
         return label;

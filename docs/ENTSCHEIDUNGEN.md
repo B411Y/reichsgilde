@@ -284,3 +284,12 @@ Format: `- PR #Nummer (Phase) – Inhalt`
 | Belebung | **Tagsüber Amtsgeschäfte** (8–20 Uhr): Ratsherren an ihren Sitzen, Richter und Parteien bei einem Verfahren, Stadtschreiber in der Amtsstube. Nachts ist das Rathaus leer. | 15.10.2026 |
 | Bedienung | **Raum anklicken öffnet seine Tafel** (Ratssaal → Stadtrat, Gerichtssaal → Stadtgericht). | 15.10.2026 |
 | Dom | **Hauptkirche des Stadtglaubens:** katholisch prunkvoll, evangelisch schlicht, bei Glaubensfreiheit Simultankirche. Gläubige ohne Kirche eines Hauses besuchen hier die Messe. | 15.10.2026 |
+
+## 12. Schriften und Namen in der Stadt
+
+| Thema | Entscheidung | Datum |
+|---|---|---|
+| Namen in der Stadt | **Nur unter der Maus, beim ausgewählten Gebäude und mit gedrückter Alt-Taste alle.** Vorher standen alle Namen dauerhaft über der Stadt und verdeckten sich gegenseitig. | 15.10.2026 |
+| Freie Plätze | **Schild am Pfosten ohne Text**: ocker = zu verkaufen, grün = zu verpachten, leicht leuchtend für die Nacht. Name und „zu verkaufen/verpachten“ beim Hover. | 15.10.2026 |
+| Schrift Überschriften | **Germania One** (gebrochen, kantig; SIL OFL) für Überschriften ab 20 px und die Namen in der Stadt. Aus 10 Mustern gewählt (u. a. Grenze Gotisch, Pirata One, UnifrakturMaguntia, Almendra, Cinzel). | 15.10.2026 |
+| Schrift Text | **Alegreya** (Buchschrift; SIL OFL) für allen übrigen Text, mit Normalziffern gleicher Breite (`lnum`, `tnum`), 1 px größer als vorher. | 15.10.2026 |
