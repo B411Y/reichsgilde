@@ -573,6 +573,12 @@ public sealed class KiRivale
             Befehlen(new Werben(p.Nummer, gulden),
                 $"wirbt um {p.Name} ({p.Volk.Einzahl()}, {p.Alter(buch.Jahr)} Jahre) mit Geschenken für {Zahlenformat.Ganz(gulden)} {_w.Daten.Allgemein.Waehrung}.");
         }
+        // Reichen die Geschenke dieses Jahr nicht, hilft Moschusduft über das Limit hinaus.
+        var duft = _w.Duft;
+        if (duft.IstAktiv && buch.Bereitschaft(Konto, k) < buch.Heiratsschwelle(k) && buch.ZuneigungRest(Konto, k) <= 0.001
+            && duft.MoschusVerboten(Konto, p.Nummer) is null
+            && Konto.Vermoegen - duft.Preis(Konto, duft.Daten.Moschus.Ware) - hochzeit >= Profil.Reserve)
+            Befehlen(new MoschusSchenken(p.Nummer), $"schenkt {p.Name} Moschusduft.");
 
         if (buch.Bereitschaft(Konto, k) >= buch.Heiratsschwelle(k) && Konto.Vermoegen - hochzeit >= Profil.Reserve / 2)
             Befehlen(new Heiraten(p.Nummer),
@@ -666,6 +672,13 @@ public sealed class KiRivale
                     Befehlen(new SchnapsGeben(p.Nummer), $"gibt {p.Vorname} gegen die Pest Kräuterschnaps.");
                 if (!p.Krankheit!.Medicus && Konto.Vermoegen - medicus >= Profil.Reserve / 2)
                     Befehlen(new MedicusRufen(p.Nummer), $"holt den Medicus zu {p.Vorname} (Pest).");
+                continue;
+            }
+            if (k.NurGegengift)
+            {
+                // Gift: Der Medicus hilft nicht – nur Gegengift, und es geht um das Leben.
+                if (Konto.Vermoegen - g.GegengiftPreis(Konto) >= Profil.Reserve / 4)
+                    Befehlen(new GegengiftGeben(p.Nummer), $"gibt {p.Vorname} Gegengift ({k.Name}).");
                 continue;
             }
             if (k.Schnapsheilbar && g.Apotheke(Konto) > 0)
@@ -852,11 +865,35 @@ public sealed class KiRivale
                     unterwelt.MoeglicheBeute(b).Sum(x => x.Wert) * g.HehlerAnteil * unterwelt.Staerke(Konto) * 0.6 - g.Ueberfall.Kosten));
         }
         var beste = moeglich.Where(m => m.Wert > 0).OrderByDescending(m => m.Wert).ThenBy(m => m.Art).FirstOrDefault();
-        if (beste.Wert <= 0 || Konto.Vermoegen - g.Kosten(beste.Art) < Profil.Reserve) return;
+        if (beste.Wert <= 0)
+        {
+            if (Profil.Gaunerei >= 2) Vergiften(ziel); // keine Bande lohnt – dann vielleicht ein Dolch
+            return;
+        }
+        if (Konto.Vermoegen - g.Kosten(beste.Art) < Profil.Reserve) return;
         if (Befehlen(new Beauftragen(ziel.Inhaber, beste.Art, beste.Betrieb),
                 $"heuert im Hinterzimmer eine Bande an: {beste.Art.Name()} gegen {ziel.Inhaber}" +
                 $"{(beste.Betrieb is null ? "" : $" ({beste.Betrieb})")} – erwarteter Vorteil ≈ {Zahlenformat.Ganz(beste.Wert)}."))
             _gaunereienImJahr++;
+    }
+
+    /// <summary>
+    /// Wagemutig, wenn sich keine Bande lohnt, höchstens einmal im Jahr (zählt zum Gaunerei-Budget): das führende Haus vergiften,
+    /// wenn es mindestens anderthalbmal so reich ist und sein Oberhaupt gesund – mit einem Schattendolch aus dem eigenen Lager,
+    /// sonst dem billigsten Dolch vom Markt.
+    /// </summary>
+    private bool Vergiften(Konto ziel)
+    {
+        var duft = _w.Duft;
+        if (!duft.IstAktiv || duft.AnschlaegeDiesesJahr(Konto) > 0 || ziel.Reinvermoegen < 1.5 * Math.Max(1, Konto.Reinvermoegen)
+            || _w.Familien.Von(ziel)?.Oberhaupt is not { Krankheit: null }) return false;
+        var dolch = duft.Daten.Gift.Dolche.Keys.Where(d => duft.Preis(Konto, d) == 0).OrderByDescending(d => duft.Daten.Gift.Dolche[d].Chance)
+                        .ThenBy(d => d, StringComparer.Ordinal).FirstOrDefault()
+                    ?? duft.Daten.Gift.Dolche.OrderBy(d => _w.Markt[d.Key].Preis).ThenBy(d => d.Key, StringComparer.Ordinal).Select(d => d.Key).FirstOrDefault();
+        if (dolch is null || duft.GiftVerboten(Konto, ziel, dolch) is not null || Konto.Vermoegen - duft.Preis(Konto, dolch) < Profil.Reserve) return false;
+        if (!Befehlen(new Giftanschlag(ziel.Inhaber, dolch), $"lässt heute Nacht {ziel.Inhaber} mit einem {dolch} vergiften.")) return false;
+        _gaunereienImJahr++;
+        return true;
     }
 
     /// <summary>

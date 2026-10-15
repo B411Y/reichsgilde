@@ -118,10 +118,26 @@ public partial class RatAnzeige : PanelContainer
             {
                 Hauptmenue.Text(raster, $"{ratsherr.Haltung.Kuerzel()} – {ratsherr.Haltung.Name()}", 13);
                 Hauptmenue.Text(raster, Zahlenformat.Ganz(rat.Gunst(ratsherr, _spieler)), 14);
+                var knoepfe = new HBoxContainer();
+                knoepfe.AddThemeConstantOverride("separation", 4);
+                raster.AddChild(knoepfe);
                 var knopf = new Button { Text = "Beschenken", FocusMode = FocusModeEnum.None };
                 knopf.Pressed += () => Befehlen(new Schenken(ratsherr.Name, _geschenkBetrag));
                 UiHilfe.ApKosten(knopf, w, _spieler, new Schenken("", 0));
-                raster.AddChild(knopf);
+                knoepfe.AddChild(knopf);
+                if (w.Duft.IstAktiv)
+                {
+                    var duft = w.Duft;
+                    var preis = duft.Preis(_spieler, duft.Daten.Moschus.Ware);
+                    var moschus = new Button { Text = "Moschus", FocusMode = FocusModeEnum.None };
+                    var grund = duft.MoschusRatsherrVerboten(_spieler, ratsherr.Name);
+                    moschus.Disabled = grund is not null;
+                    moschus.TooltipText = grund ?? $"{duft.Daten.Moschus.Ware} schenken ({(preis > 0 ? $"{Zahlenformat.Ganz(preis)} {waehrung} am Markt" : "aus dem Lager")}): " +
+                                                   $"+{Zahlenformat.Ganz(duft.Daten.Moschus.Gunst)} Gunst – ein Duft ist keine Bestechung. Einmal im Jahr je Ratsherr.";
+                    moschus.Pressed += () => Befehlen(new MoschusRatsherr(ratsherr.Name));
+                    UiHilfe.ApKosten(moschus, w, _spieler, new MoschusRatsherr(""));
+                    knoepfe.AddChild(moschus);
+                }
             }
             else
             {

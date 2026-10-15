@@ -337,6 +337,30 @@ public partial class GaunerAnzeige : PanelContainer
                         ap: new Beauftragen("", Gaunerstueck.Kroetenschleim));
                 Text(_inhalt, $"   Chance {Prozent(unterwelt.Erfolgschance(Gaunerstueck.Kroetenschleim, null, _spieler))} – Wächter helfen nicht. " +
                               "Wer schon krank ist, merkt nichts davon.", 12, Grau, umbrechen: true);
+
+                // Giftdolch des Parfumeurs – nur Gegengift heilt
+                if (w.Duft.IstAktiv && w.Duft.Daten.Gift.Dolche.Count > 0)
+                {
+                    var duft = w.Duft;
+                    var giftZeile = new HBoxContainer();
+                    giftZeile.AddThemeConstantOverride("separation", 10);
+                    _inhalt.AddChild(giftZeile);
+                    Text(giftZeile, "Dolch:", 14);
+                    if (duft.Auftraege.Any(a => a.Auftraggeber == _spieler && a.Ziel == haus))
+                        Text(giftZeile, "· Giftanschlag geplant (heute Nacht)", 13, Gold);
+                    else
+                        foreach (var (dolch, daten) in duft.Daten.Gift.Dolche.OrderBy(x => x.Value.Chance))
+                        {
+                            var preis = duft.Preis(_spieler, dolch);
+                            var grund = duft.GiftVerboten(_spieler, haus, dolch);
+                            var krankheit = w.Gesundheit.Daten.Krankheiten.GetValueOrDefault(daten.Krankheit);
+                            Knopf(giftZeile, $"{dolch} ({(preis > 0 ? Zahlenformat.Ganz(preis) : "aus dem Lager")}, {Prozent(duft.Giftchance(_spieler, dolch))})",
+                                () => Befehlen(new Giftanschlag(haus.Inhaber, dolch)), gesperrt: imKerker || grund is not null,
+                                hinweis: grund ?? $"Heute Nacht: {daten.Krankheit} ({Prozent(krankheit?.Sterben ?? 0)} tödlich am Jahresende), nur Gegengift heilt. " +
+                                                  "Vergehen: Giftanschlag – vor Gericht droht Kerker.",
+                                ap: new Giftanschlag("", ""));
+                        }
+                }
             }
 
             // Hetzschrift – gegen das Ansehen des Hauses
@@ -357,6 +381,25 @@ public partial class GaunerAnzeige : PanelContainer
                         hinweis: $"{Zahlenformat.Ganz(hetze.Ansehen)} Ansehen weniger bis Ende nächsten Jahres (Wahl, Brautschau, Kirche). Vergehen: Verleumdung.",
                         ap: new HetzschriftVerbreiten(""));
                 }
+            }
+
+            // Blume der Zwietracht – ein Ratsherr verliert Gunst für dieses Haus
+            if (w.Duft.IstAktiv && w.Rat.IstAktiv && w.Rat.Ratsherren.Count > 0)
+            {
+                var duft = w.Duft;
+                var zeile = new HBoxContainer();
+                zeile.AddThemeConstantOverride("separation", 10);
+                _inhalt.AddChild(zeile);
+                var ware = duft.Daten.Zwietracht.Ware;
+                var preis = duft.Preis(_spieler, ware);
+                Text(zeile, $"{ware} ({(preis > 0 ? Zahlenformat.Ganz(preis) : "aus dem Lager")}) bei", 14);
+                var wahl = new OptionButton { FocusMode = FocusModeEnum.None };
+                foreach (var r in w.Rat.Ratsherren) wahl.AddItem($"{r.Name} (Gunst {Zahlenformat.Ganz(w.Rat.Gunst(r, haus))})");
+                zeile.AddChild(wahl);
+                Knopf(zeile, "säen", () => Befehlen(new ZwietrachtSaeen(w.Rat.Ratsherren[Math.Max(0, wahl.Selected)].Name, haus.Inhaber)),
+                    gesperrt: imKerker || duft.ZwietrachtVerboten(_spieler, w.Rat.Ratsherren[0].Name, haus) is not null,
+                    hinweis: $"Der Ratsherr verliert {Zahlenformat.Ganz(duft.Daten.Zwietracht.Gunst)} Gunst für {haus.Inhaber} (Wahl, Anträge, Gericht). Vergehen: Intrige.",
+                    ap: new ZwietrachtSaeen("", ""));
             }
 
             // Eigene Diebe: Auskundschaften, Schutzgeld, Entführung

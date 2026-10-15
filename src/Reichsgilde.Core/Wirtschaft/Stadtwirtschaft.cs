@@ -63,6 +63,9 @@ public sealed class Stadtwirtschaft
     /// <summary>Kasse, Wechsel und Kredite der Geldleiher.</summary>
     public Bank.Bankwesen Bank { get; }
 
+    /// <summary>Düfte mit Wirkung (Moschus, Zwietracht, Heiligenduft) und Giftdolche – Waren des Parfumeurs.</summary>
+    public Duft.Duftwesen Duft { get; }
+
     /// <summary>Was eine Arbeitsminute in einem Betrieb ohne Ware wert ist (Dieb: Beute, Gardist: Sold nach Steuer).</summary>
     public double WertOhneWare(BetriebsartDaten d) =>
         Diebe.IstAktiv && d.Beruf == Diebe.Daten.Beruf ? Diebe.WertJeMinute(d.Stufe)
@@ -140,6 +143,7 @@ public sealed class Stadtwirtschaft
         Diebe = new Diebeswesen(this, daten.Dieb, zufallsstartwert);
         Wache = new Ordnung.Wachwesen(this, daten.Wache, zufallsstartwert);
         Bank = new Bank.Bankwesen(this, daten.Geldleiher, zufallsstartwert);
+        Duft = new Duft.Duftwesen(this, daten.Parfum, zufallsstartwert);
         Gesundheit = new Gesundheitswesen(this, daten.Gesundheit, zufallsstartwert);
         Gastwirtschaft = new Gastwirtschaft(this, daten.Gastwirtschaft);
         Kirchenwesen = new Kirche.Kirchenwesen(this, daten.Kirche, zufallsstartwert);
@@ -312,6 +316,7 @@ public sealed class Stadtwirtschaft
         {
             Gauner.Nacht(zeit);
             Diebe.Nacht(); // die eigenen Leute der Diebe nach den angeheuerten Banden
+            Duft.Nacht();  // Giftanschläge
         }
 
         // Fairness: Wer in derselben Minute am Markt ankommt, ist in zufälliger Reihenfolge dran.
@@ -350,6 +355,7 @@ public sealed class Stadtwirtschaft
         Gauner.Jahresende();
         Diebe.Jahresende(); // unbeantwortete Forderungen: Feuer oder die Geisel wird verkauft
         Wache.Jahresende();
+        Duft.Jahresende();
         AktionspunkteVerteilen(); // die neue Runde beginnt
         foreach (var rivale in _rivalen.Where(r => r.Konto.IstAktiv))
             rivale.Jahresende();
@@ -437,7 +443,7 @@ public sealed class Stadtwirtschaft
         if (absender.IstErloschen)
             return Befehlsergebnis.Abgelehnt($"Das Haus {absender.Inhaber} ist erloschen.");
         if (Justiz.IstAktiv && Justiz.ImKerker(absender) && befehl is not (BetriebsBefehl or ErbenBestimmen or ErpressungBeantworten or DiebesforderungBeantworten or AusbildungWaehlen or KreditTilgen
-                                                                     or MedicusRufen or SchnapsKaufen or SchnapsGeben))
+                                                                     or MedicusRufen or SchnapsKaufen or SchnapsGeben or GegengiftGeben))
             return Befehlsergebnis.Abgelehnt($"Das Oberhaupt von {absender.Inhaber} sitzt bis Ende {Justiz.KerkerBis(absender)} im Kerker. " +
                                              "Nur die Betriebe laufen weiter.");
         if (befehl is StandErwerben)
@@ -502,6 +508,24 @@ public sealed class Stadtwirtschaft
                 : Befehlsergebnis.Abgelehnt($"Ein Haus „{kredit.Geldleiher}“ gibt es nicht.");
         if (befehl is KreditTilgen)
             return Bank.IstAktiv ? Bank.KreditTilgen(absender) : Befehlsergebnis.Abgelehnt("In dieser Stadt gibt es keine Geldleiher.");
+        if (befehl is MoschusSchenken or MoschusRatsherr or ZwietrachtSaeen or HeiligenduftStiften or Giftanschlag && !Duft.IstAktiv)
+            return Befehlsergebnis.Abgelehnt("In dieser Stadt gibt es keine Düfte.");
+        if (befehl is MoschusSchenken moschus)
+            return Duft.MoschusSchenken(absender, moschus.Kandidat);
+        if (befehl is MoschusRatsherr moschusRat)
+            return Duft.MoschusRatsherr(absender, moschusRat.Ratsherr);
+        if (befehl is HeiligenduftStiften)
+            return Duft.HeiligenduftStiften(absender);
+        if (befehl is ZwietrachtSaeen zwietracht)
+            return _konten.FirstOrDefault(k => k.Inhaber == zwietracht.Haus) is { } zwietrachtZiel
+                ? Duft.ZwietrachtSaeen(absender, zwietracht.Ratsherr, zwietrachtZiel)
+                : Befehlsergebnis.Abgelehnt($"Ein Haus „{zwietracht.Haus}“ gibt es nicht.");
+        if (befehl is Giftanschlag gift)
+            return _konten.FirstOrDefault(k => k.Inhaber == gift.Haus) is { } giftZiel
+                ? Duft.Giftanschlag(absender, giftZiel, gift.Dolch)
+                : Befehlsergebnis.Abgelehnt($"Ein Haus „{gift.Haus}“ gibt es nicht.");
+        if (befehl is GegengiftGeben gegengift)
+            return Gesundheit.IstAktiv ? Gesundheit.GegengiftGeben(absender, gegengift.Person) : Befehlsergebnis.Abgelehnt("In dieser Stadt wird niemand krank.");
         if (befehl is Razzia razzia)
             return _konten.FirstOrDefault(k => k.Inhaber == razzia.Haus) is { } durchsucht
                 ? Wache.Razzia(absender, durchsucht)
@@ -785,6 +809,7 @@ public sealed class Stadtwirtschaft
         Diebe = Diebe.IstAktiv ? Diebe.Sichern(k => _konten.IndexOf(k)) : null,
         Wache = Wache.IstAktiv ? Wache.Sichern(k => _konten.IndexOf(k)) : null,
         Bank = Bank.IstAktiv ? Bank.Sichern(k => _konten.IndexOf(k)) : null,
+        Parfum = Duft.IstAktiv ? Duft.Sichern(k => _konten.IndexOf(k)) : null,
     };
 
     /// <summary>
@@ -839,6 +864,8 @@ public sealed class Stadtwirtschaft
             Wache.Wiederherstellen(wacheStand, _konten);
         if (s.Bank is { } bankStand && Bank.IstAktiv)
             Bank.Wiederherstellen(bankStand, _konten);
+        if (s.Parfum is { } parfumStand && Duft.IstAktiv)
+            Duft.Wiederherstellen(parfumStand, _konten);
     }
 
     public double HoechstesVermoegen => _konten.Count == 0 ? 0 : _konten.Max(k => k.Reinvermoegen);

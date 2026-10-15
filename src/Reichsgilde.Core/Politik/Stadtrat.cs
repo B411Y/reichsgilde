@@ -104,7 +104,8 @@ public sealed class Stadtrat
                - _w.Kirchenwesen.AnsehenAbzug(konto)    // eine Hetzschrift gegen das Haus
                - _w.Diebe.AnsehenAbzug(konto)           // ein Haus von Dieben
                + _w.Wache.AnsehenBonus(konto)           // ein Haus der Wache
-               - _w.Bank.AnsehenAbzug(konto);           // ein Wucherkredit läuft
+               - _w.Bank.AnsehenAbzug(konto)            // ein Wucherkredit läuft
+               + _w.Duft.AnsehenBonus(konto);           // Heiligenduft in der Kirche gestiftet
     }
 
     /// <summary>Auf welche Ämter sich ein Haus jetzt bewerben darf: genau eine Stufe über seinem Amt, Stand erfüllt.</summary>
@@ -213,6 +214,10 @@ public sealed class Stadtrat
     /// <summary>Gunst ohne Geschenk (Stammtisch im Gasthaus) – hinterlässt keine Spur.</summary>
     internal void GunstHinzufuegen(Ratsherr ratsherr, Konto konto, double wert) =>
         _gunst[(ratsherr, konto)] = Math.Min(_daten.Gunst.Hoechstwert, Gunst(ratsherr, konto) + wert);
+
+    /// <summary>Gunst sinkt (Blume der Zwietracht) – höchstens bis zum negativen Höchstwert.</summary>
+    internal void GunstMindern(Ratsherr ratsherr, Konto konto, double wert) =>
+        _gunst[(ratsherr, konto)] = Math.Max(-_daten.Gunst.Hoechstwert, Gunst(ratsherr, konto) - wert);
 
     internal Befehlsergebnis Schenken(Konto konto, string ratsherrName, double betrag)
     {

@@ -84,6 +84,10 @@ public enum Betriebsart
     Wechselstube,
     Geldleihe,
     Bankhaus,
+    Siederei,
+    Duftwerkstatt,
+    Parfumerie,
+    Duftgarten,
 }
 
 /// <summary>

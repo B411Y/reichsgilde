@@ -163,3 +163,21 @@ public sealed record KreditAufnehmen(string Geldleiher, double Betrag, int Jahre
 
 /// <summary>Den eigenen Kredit ganz zurückzahlen (Rest und aufgelaufene Zinsen).</summary>
 public sealed record KreditTilgen : Befehl;
+
+/// <summary>Einem Heiratskandidaten Moschusduft schenken: Zuneigung über das Jahreslimit hinaus (einmal im Jahr je Kandidat).</summary>
+public sealed record MoschusSchenken(int Kandidat) : Befehl;
+
+/// <summary>Einem Ratsherrn Moschusduft schenken: Gunst ohne Bestechungsspur (einmal im Jahr je Ratsherr).</summary>
+public sealed record MoschusRatsherr(string Ratsherr) : Befehl;
+
+/// <summary>Die Blume der Zwietracht: Ein Ratsherr verliert Gunst für ein anderes Haus – eine Intrige.</summary>
+public sealed record ZwietrachtSaeen(string Ratsherr, string Haus) : Befehl;
+
+/// <summary>Heiligenduft in der Kirche stiften: mehr Ansehen bis Ende des nächsten Jahres.</summary>
+public sealed record HeiligenduftStiften : Befehl;
+
+/// <summary>Heute Nacht das Oberhaupt eines anderen Hauses mit einem Dolch (Giftdolch, Schattendolch) vergiften.</summary>
+public sealed record Giftanschlag(string Haus, string Dolch) : Befehl;
+
+/// <summary>Einer vergifteten Person Gegengift geben (aus dem eigenen Lager oder vom Markt).</summary>
+public sealed record GegengiftGeben(int Person) : Befehl;

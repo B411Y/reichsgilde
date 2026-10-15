@@ -657,6 +657,93 @@ def reliquiar(b):
     b.rect(6, 27, 26, 28, GOLD_D)
 
 
+
+# ── Parfumeur ────────────────────────────────────────────────────────────────
+LAVENDEL = (140, 110, 200)
+LAVENDEL_H = (176, 150, 226)
+JASMIN = (246, 244, 230)
+MOSCHUS = (150, 96, 60)
+
+
+def lavendel(b):
+    for x1 in (9, 13, 17, 21, 24):
+        b.linie(16, 28, x1, 10, KRAUT, 1)
+    for x, top in ((9, 5), (13, 3), (17, 2), (21, 3), (24, 6)):
+        for i in range(5):
+            b.ellipse(x + (0.5 if i % 2 else -0.5), top + 1.5 + i * 1.6, 1.6, 1.1, LAVENDEL_H if i % 2 else LAVENDEL)
+    b.rect(13, 22, 19, 23, (180, 150, 90))  # Bindfaden
+
+
+def jasmin(b):
+    b.linie(6, 27, 24, 11, KRAUT, 2)
+    for cx, cy in ((10, 12), (20, 20), (24, 9)):
+        for dx, dy in ((0, -3), (3, -1), (2, 3), (-2, 3), (-3, -1)):
+            b.ellipse(cx + dx, cy + dy, 2.2, 2.2, JASMIN)
+        b.ellipse(cx, cy, 1.4, 1.4, GOLD)
+    for cx, cy in ((14, 22), (7, 17)):
+        b.ellipse(cx, cy, 3, 1.6, KRAUT_H)  # Blätter
+
+
+def politur(b):
+    b.ellipse(16, 10, 10, 3, (190, 170, 120))
+    b.rect(6, 10, 26, 24, (150, 120, 70))  # Dose
+    b.ellipse(16, 24, 10, 3, (150, 120, 70))
+    b.ellipse(16, 10, 9, 2.4, (226, 200, 120))  # glänzende Paste
+    b.px(12, 9, (255, 246, 200))
+    b.px(13, 9, (255, 246, 200))
+    b.rect(6, 15, 26, 16, LAVENDEL)  # Etikett
+
+
+def blume_der_zwietracht(b):
+    b.linie(16, 28, 16, 13, (60, 90, 40), 2)
+    b.ellipse(11, 22, 3.5, 1.6, (70, 110, 50))
+    for dx, dy in ((0, -5), (5, -2), (3, 4), (-3, 4), (-5, -2)):
+        b.ellipse(16 + dx, 10 + dy, 3.4, 3.4, (110, 30, 70))
+    b.ellipse(16, 10, 2.4, 2.4, (40, 20, 30))
+    for x, y in ((22, 20), (24, 24), (9, 26)):
+        b.px(x, y, (200, 60, 100))  # Blütenstaub
+
+
+def dolch(b, klinge, griff, knauf, gift):
+    b.vieleck([(14, 4), (18, 4), (18, 18), (16, 21), (14, 18)], klinge)
+    b.linie(16, 6, 16, 17, misch(klinge, (255, 255, 255), 0.4))
+    b.rect(10, 18, 22, 20, griff)  # Parierstange
+    b.rect(14, 21, 18, 27, LEDER)
+    b.ellipse(16, 28, 2.4, 2, knauf)
+    for x, y in gift:
+        b.px(x, y, GIFTGRUEN)
+
+
+def giftdolch(b):
+    dolch(b, (200, 204, 214), EISEN_D, EISEN, ((15, 13), (17, 15), (16, 18), (17, 10)))
+
+
+def schattendolch(b):
+    dolch(b, (60, 58, 76), (40, 38, 50), EDELSTEIN, ((15, 9), (17, 12), (15, 15), (16, 18), (17, 6)))
+
+
+def duftflakon(b, inhalt, verschluss, akzent=None):
+    b.vieleck([(16, 9), (25, 17), (16, 28), (7, 17)], GLAS)  # rautenförmiges Fläschchen
+    b.vieleck([(16, 12), (22, 18), (16, 25), (10, 18)], inhalt)
+    b.rect(14, 5, 17, 9, GLAS)
+    b.ellipse(15.5, 4, 3, 2.4, verschluss)
+    b.px(11, 16, (240, 250, 255))
+    if akzent:
+        akzent(b)
+
+
+def moschusduft(b):
+    duftflakon(b, MOSCHUS, GOLD)
+
+
+def fechterduft(b):
+    duftflakon(b, (90, 130, 190), SILBER, lambda b: b.linie(4, 28, 27, 5, (210, 214, 224), 1))
+
+
+def heiligenduft(b):
+    duftflakon(b, (236, 220, 150), GOLD, lambda b: (b.ring(16, 18, 13, 13, 1, GOLD), b.rect(15, 15, 16, 21, WEISS), b.rect(13, 17, 18, 18, WEISS)))
+
+
 WAREN = {
     "Eisen": eisen, "Silber": silber, "Gold": gold, "Holz": holz, "Bruchstein": bruchstein, "Granit": granit,
     "Kräuter": kraeuter, "Kröte": kroete,
@@ -672,6 +759,9 @@ WAREN = {
     "Starkbier": starkbier, "Kräuterlikör": kraeuterlikoer, "Festbier": festbier, "Schädelbrand": schaedelbrand,
     "Lumpen": lumpen, "Wachs": wachs, "Papier": papier, "Kerze": kerze, "Lehrschrift": lehrschrift, "Hetzschrift": hetzschrift,
     "Psalter": psalter, "Stundenbuch": stundenbuch, "Reliquiar": reliquiar,
+    "Lavendel": lavendel, "Jasmin": jasmin, "Politur": politur, "Blume der Zwietracht": blume_der_zwietracht,
+    "Giftdolch": giftdolch, "Moschusduft": moschusduft, "Fechterduft": fechterduft, "Heiligenduft": heiligenduft,
+    "Schattendolch": schattendolch,
 }
 
 

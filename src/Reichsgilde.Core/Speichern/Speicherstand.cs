@@ -87,6 +87,27 @@ public sealed record WirtschaftStand
 
     /// <summary>Kassen, Kredite und Bankbuch der Geldleiher (null in Spielständen von vor dem Geldleiher).</summary>
     public BankStand? Bank { get; init; }
+
+    /// <summary>Giftanschläge der Nacht, Moschus-Geschenke des Jahres, Heiligenduft (null in Spielständen von vor dem Parfumeur).</summary>
+    public ParfumStand? Parfum { get; init; }
+}
+
+public sealed record ParfumStand
+{
+    public long ZufallWuerfe { get; init; }
+    public List<GiftauftragStand> Auftraege { get; init; } = new();
+
+    /// <summary>„Kontonummer|K:Kandidat" bzw. „Kontonummer|R:Ratsherr" – Moschus dieses Jahr schon geschenkt.</summary>
+    public List<string> Geschenkt { get; init; } = new();
+    public Dictionary<string, int> HeiligBis { get; init; } = new();
+    public Dictionary<string, int> Anschlaege { get; init; } = new();
+}
+
+public sealed record GiftauftragStand
+{
+    public int Auftraggeber { get; init; }
+    public int Ziel { get; init; }
+    public string Dolch { get; init; } = "";
 }
 
 public sealed record BankStand

@@ -443,6 +443,19 @@ public sealed class Familienbuch
                                       : $"Zuneigung und Ansehen: {Zahlenformat.Kommazahl(bereit)} von {Zahlenformat.Ganz(schwelle)}."));
     }
 
+    /// <summary>
+    /// Ein besonderes Geschenk (Moschusduft): Zuneigung, die nicht auf das Jahreslimit zählt.
+    /// Prüft nur, ob geworben werden darf – woher das Geschenk kommt, regelt der Aufrufer.
+    /// </summary>
+    internal string? ZuneigungSchenken(Konto konto, int nummer, double wert)
+    {
+        if (KandidatNummer(nummer) is not { } k) return "Diesen Heiratskandidaten gibt es nicht (mehr).";
+        if (WerbenVerboten(konto, k) is { } grund) return grund;
+        var schluessel = (konto, nummer);
+        _zuneigung[schluessel] = Zuneigung(konto, k) + wert;
+        return null;
+    }
+
     internal Befehlsergebnis Heiraten(Konto konto, int nummer)
     {
         if (KandidatNummer(nummer) is not { } k)
