@@ -127,6 +127,7 @@ public partial class GerichtAnzeige : PanelContainer
             var zeile = new HBoxContainer();
             zeile.AddThemeConstantOverride("separation", 10);
             _inhalt.AddChild(zeile);
+            zeile.AddChild(WappenBild.Neu(haus.Wappen, 22));
             Text(zeile, $"{haus.Inhaber}: {beweise.Count} {(beweise.Count == 1 ? "Beweis" : "Beweise")} (Beweiskraft {Zahlenformat.Ganz(kraft)})", 14,
                 kraft >= d.SichereBeweiskraft ? Gruen : null);
             if (w.Wache.IstAktiv && w.Wache.Wachstube(_spieler) is not null)

@@ -98,7 +98,7 @@ static class SpeicherTests
             var (sim, spieler) = NeuePartie();
             var kopf = Speicherung.Kopf(Speicherung.Speichern(sim, spieler, Zeitpunkt));
             Pruefe.Gleich(Zeitpunkt, kopf.Gespeichert);
-            Pruefe.Wahr(kopf.Titel.StartsWith("Familie Hammerschmid · Frühling 1400"), kopf.Titel);
+            Pruefe.Wahr(kopf.Titel.StartsWith("Haus Hammerschmid · Frühling 1400"), kopf.Titel);
         }),
 
         ("Partieaufbau: Unter Statut A arbeiten Bergleute statt Orks in der Grube", () =>

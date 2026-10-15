@@ -59,6 +59,9 @@ public sealed class Konto
 {
     public string Inhaber { get; }
 
+    /// <summary>Das Wappen des Hauses. Ohne eigene Wahl eines, das aus dem Namen gewürfelt ist (immer dasselbe).</summary>
+    public Dynastie.Wappen Wappen { get; internal set; }
+
     /// <summary>
     /// Bargeld in Gulden – damit wird bezahlt. Darf negativ werden (Schulden bei der Stadt).
     /// Was das Haus wirklich besitzt, zeigt <see cref="Reinvermoegen"/>.
@@ -130,6 +133,7 @@ public sealed class Konto
     public Konto(string inhaber, double startvermoegen, int startjahr)
     {
         Inhaber = inhaber;
+        Wappen = Dynastie.Wappen.AusName(inhaber);
         Vermoegen = startvermoegen;
         Laufend = new Jahresbilanz { Jahr = startjahr };
     }
@@ -166,7 +170,7 @@ public sealed class Konto
 
     internal KontoStand Sichern() => new()
     {
-        Inhaber = Inhaber, Vermoegen = Vermoegen, Forderungen = Forderungen, Schulden = Schulden, Stand = Stand, Schuldenjahre = Schuldenjahre, IstBankrott = IstBankrott, IstErloschen = IstErloschen,
+        Inhaber = Inhaber, Wappen = Wappen, Vermoegen = Vermoegen, Forderungen = Forderungen, Schulden = Schulden, Stand = Stand, Schuldenjahre = Schuldenjahre, IstBankrott = IstBankrott, IstErloschen = IstErloschen,
         Aktionspunkte = Aktionspunkte.Vorrat,
         Berufe = _berufe.ToList(),
         Meistergrade = _grade.ToDictionary(x => x.Key, x => x.Value),
@@ -182,6 +186,7 @@ public sealed class Konto
             Stand = s.Stand, Schuldenjahre = s.Schuldenjahre, IstBankrott = s.IstBankrott, IstErloschen = s.IstErloschen,
             Laufend = BilanzLaden(s.Laufend), Vorjahr = s.Vorjahr is null ? null : BilanzLaden(s.Vorjahr),
         };
+        if (s.Wappen is { } wappen) konto.Wappen = wappen;
         konto.Aktionspunkte.Setzen(s.Aktionspunkte);
         foreach (var beruf in s.Berufe ?? new List<string>())
             konto.BerufLernen(beruf);

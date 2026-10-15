@@ -835,3 +835,9 @@ Eisenbart (Zwerg, Schmied – der einzige Startberuf mit Bonus) gewinnt am meist
 **Messung** (20 Startwerte, 30 Jahre): identisch mit §32 – die KI handelt nicht von Hand, die Verwalter-Einkäufe bleiben ohne Preiswirkung.
 
 **Klicktest (Schmied, 9 Uhr):** Handkarren unterwegs (Zutaten) → 10 Gold vorgemerkt → bei Rückkehr gestartet, „gekauft 10 Gold für 675 Gulden“, Preis 61,6 → 63,2, Gold automatisch zurückgehalten. Ein Verkaufsauftrag ohne Ware im Lager wird mit Grund abgelehnt.
+
+## 34. Wappen und Hausnamen (umgesetzt)
+
+Keine Balance-Änderung: Das Wappen ist reine Anzeige, und der Hausname „Haus Hammerschmid“ statt „Familie Hammerschmid“ ändert keine Würfe.
+
+**Messung** (gemessen auf main `cfdb823` + PR #48, 20 Startwerte, 30 Jahre, Spieler Mensch): Eisenbart Ø 139.150, Eichwald Ø 95.155, Kieselbach Ø 132.085 Gulden – identisch mit §32/§33.

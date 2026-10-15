@@ -26,7 +26,7 @@ public sealed record Speicherstand
     /// <summary>Wann gespeichert wurde (nur zur Anzeige im Ladedialog).</summary>
     public DateTime Gespeichert { get; init; }
 
-    /// <summary>Kurzbeschreibung für den Ladedialog, z. B. „Familie Hammerschmid · Sommer 1405".</summary>
+    /// <summary>Kurzbeschreibung für den Ladedialog, z. B. „Haus Hammerschmid · Sommer 1405".</summary>
     public string Titel { get; init; } = "";
 
     public Partieeinstellungen Einstellungen { get; init; } = Partieeinstellungen.Standard;
@@ -443,6 +443,9 @@ public sealed record GunstStand
 public sealed record KontoStand
 {
     public string Inhaber { get; init; } = "";
+
+    /// <summary>Wappen des Hauses (null in Spielständen von vor dem Wappen – dann aus dem Namen gewürfelt).</summary>
+    public Dynastie.Wappen? Wappen { get; init; }
     public double Vermoegen { get; init; }
 
     /// <summary>Verliehenes Geld und offene Kredite (fehlen in Spielständen von vor dem Geldleiher – dann 0).</summary>
