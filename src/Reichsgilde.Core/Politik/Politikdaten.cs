@@ -1,3 +1,4 @@
+using Reichsgilde.Core.Glaube;
 using Reichsgilde.Core.Wirtschaft;
 
 namespace Reichsgilde.Core.Politik;
@@ -28,6 +29,9 @@ public sealed class RatsherrDaten
 {
     public string Name { get; init; } = "";
     public Volk Volk { get; init; } = Volk.Mensch;
+
+    /// <summary>Seine Konfession (null = der Startglaube seines Volkes, siehe Abschnitt „glaube").</summary>
+    public Konfession? Glaube { get; init; }
 
     /// <summary>Welches Fron- und Sklavenstatut er für richtig hält.</summary>
     public Fronstatut Haltung { get; init; }

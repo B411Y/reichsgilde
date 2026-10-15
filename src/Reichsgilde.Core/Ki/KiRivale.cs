@@ -1,4 +1,5 @@
 using Reichsgilde.Core.Dynastie;
+using Reichsgilde.Core.Glaube;
 using Reichsgilde.Core.Gauner;
 using Reichsgilde.Core.Justiz;
 using Reichsgilde.Core.Politik;
@@ -140,11 +141,13 @@ public sealed class KiRivale
                     Diebeszuege(); // die eigenen Leute zuerst – sie kosten kein Geld
                     Gaunerei();
                     Politik();
+                    Glaubenspolitik();
                     Anklagen();
                 }
                 else
                 {
                     Politik();
+                    Glaubenspolitik();
                     Anklagen();
                     Gaunerei();
                 }
@@ -1038,6 +1041,44 @@ public sealed class KiRivale
 
         if (rat.Antrag is { } antrag && antrag.Antragsteller == Konto)
             FuerStatutWerben(antrag.Statut);
+    }
+
+    /// <summary>
+    /// Einmal am Tag, rund um den Glauben:
+    ///   • Gilt ein fremder Stadtglaube, tritt die KI über – der Glaubenszins kostet jedes Jahr, der Übertritt einmal.
+    ///   • Im Rat beantragt sie ihren Glauben als Stadtglauben, wenn er durchginge – sonst wenigstens Glaubensfreiheit.
+    ///   • Als Prediger hält sie eine Bekehrungspredigt, wenn sonst Aktionspunkte verfielen.
+    /// </summary>
+    private void Glaubenspolitik()
+    {
+        var gw = _w.Glaube;
+        if (!gw.IstAktiv || gw.GlaubeVon(Konto) is not { } eigener) return;
+        var waehrung = _w.Daten.Allgemein.Waehrung;
+
+        if (gw.Stadtglaube is { } stadt && stadt != eigener && gw.KonvertierenVerboten(Konto, stadt) is null
+            && Konto.Vermoegen - gw.Daten.Konvertieren.Gebuehr >= Profil.Reserve)
+            if (Befehlen(new Konvertieren(stadt),
+                    $"tritt zum {stadt.Glaube()} über – der Stadtglaube kostet sonst {Zahlenformat.Ganz(gw.Daten.Stadtglaube.Abgabe)} {waehrung} Glaubenszins im Jahr."))
+                eigener = stadt;
+
+        if (_w.Rat.IstAktiv && _w.Rat.AmtVon(Konto) is not null && gw.Antrag is null && gw.Stadtglaube != eigener && eigener.IstKirchlich())
+        {
+            if (Durchsetzbar(eigener))
+                Befehlen(new StadtglaubeBeantragen(eigener), $"beantragt im Rat den {eigener.Glaube()} als Stadtglauben.");
+            else if (gw.Stadtglaube is not null && Durchsetzbar(null))
+                Befehlen(new StadtglaubeBeantragen(null), "beantragt im Rat Glaubensfreiheit.");
+        }
+
+        var d = _w.Daten.Aktionspunkte;
+        if (d is not null && Konto.Aktionspunkte.Vorrat + _w.AktionspunkteJeRunde > d.Hoechstens && gw.BekehrenVerboten(Konto) is null
+            && (gw.Stadtglaube is null || gw.Stadtglaube == eigener)) // keine Ketzerpredigt
+            Befehlen(new Bekehrungspredigt(), $"hält eine Bekehrungspredigt für den {eigener.Glaube()} (sonst verfielen Aktionspunkte).");
+
+        bool Durchsetzbar(Konfession? glaube)
+        {
+            var (ja, nein, _, bm) = gw.AbstimmungsPrognose(Konto, glaube);
+            return Stadtrat.IstAngenommen(ja, nein, bm);
+        }
     }
 
     /// <summary>

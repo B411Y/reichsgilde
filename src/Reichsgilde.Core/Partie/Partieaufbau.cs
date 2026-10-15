@@ -1,4 +1,5 @@
 using Reichsgilde.Core.Dynastie;
+using Reichsgilde.Core.Glaube;
 using Reichsgilde.Core.Ki;
 using Reichsgilde.Core.Wirtschaft;
 using Reichsgilde.Core.Zeit;
@@ -15,6 +16,7 @@ namespace Reichsgilde.Core.Partie;
 /// <param name="Beruf">Startberuf: bestimmt die erste Werkstatt (Schmied → Gießerei, Tischler → Tischlerei, Steinmetz → Maurerei).</param>
 /// <param name="Rivalen">Wie viele KI-Häuser mitspielen: 1 = Haus Eisenbart (Schmied), 2 = dazu Haus Eichwald (Tischler),
 /// 3 = dazu Haus Kieselbach (Steinmetz).</param>
+/// <param name="Glaube">Konfession des eigenen Hauses; null = Startglaube des Volkes.</param>
 public sealed record NeuePartie(
     string Familienname = "Familie Hammerschmid",
     double? Startvermoegen = null,
@@ -23,7 +25,8 @@ public sealed record NeuePartie(
     Geschlecht Geschlecht = Geschlecht.Mann,
     string? Vorname = null,
     string Beruf = "Schmied",
-    int Rivalen = 3);
+    int Rivalen = 3,
+    Konfession? Glaube = null);
 
 /// <summary>Wie der KI-Rivale spielt – im Menü als Schwierigkeit wählbar.</summary>
 public enum KiCharakter
@@ -90,7 +93,7 @@ public static class Partieaufbau
         var rivale = w.KontoEroeffnen(Rivalenname);
         if (w.Familien.IstAktiv)
         {
-            w.Familien.Gruenden(spieler, neu.Volk, neu.Geschlecht, neu.Vorname);
+            w.Familien.Gruenden(spieler, neu.Volk, neu.Geschlecht, neu.Vorname, glaube: neu.Glaube);
             w.Familien.Gruenden(rivale, RivalenVolk, Geschlecht.Mann);
         }
         var rivalenGiesserei = w.BetriebEroeffnen("Gießerei Eisenbart", Betriebsart.Giesserei, rivale);

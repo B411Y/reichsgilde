@@ -1,5 +1,5 @@
 {
-  "version": 21,
+  "version": 22,
   "gesundheit": {
     "medicusKosten": 120,
     "medicusKostenPest": 300,
@@ -40,6 +40,7 @@
       "Razzia": 2,
       "KreditAufnehmen": 1,
       "MoschusSchenken": 1, "MoschusRatsherr": 1, "ZwietrachtSaeen": 1, "HeiligenduftStiften": 1, "Giftanschlag": 2,
+      "Konvertieren": 2, "Bekehrungspredigt": 1, "StadtglaubeBeantragen": 2,
       "BerufErlernen": 4
     }
   },
@@ -1149,78 +1150,91 @@
       {
         "name": "Ulrich Wendelstein",
         "volk": "Mensch",
+        "glaube": "Katholisch",
         "haltung": "FreieStadt",
         "amt": "Bürgermeister"
       },
       {
         "name": "Aelindra vom Silberhain",
         "volk": "Elb",
+        "glaube": "Katholisch",
         "haltung": "FreieStadt",
         "amt": "Stadtrichter"
       },
       {
         "name": "Thorgrim Erzhammer",
         "volk": "Zwerg",
+        "glaube": "Evangelisch",
         "haltung": "Bestienfron",
         "amt": "Kämmerer"
       },
       {
         "name": "Konrad Eisenfaust",
         "volk": "Mensch",
+        "glaube": "Evangelisch",
         "haltung": "Bestienfron",
         "amt": "Stadthauptmann"
       },
       {
         "name": "Bertram Kesselflick",
         "volk": "Halbling",
+        "glaube": "Katholisch",
         "haltung": "FreieStadt",
         "amt": "Marktmeister"
       },
       {
         "name": "Dorla Kupferbart",
         "volk": "Zwerg",
+        "glaube": "Evangelisch",
         "haltung": "Leibeigenschaft",
         "amt": "Gefängniswärter"
       },
       {
         "name": "Hinnerk Tannenkamp",
         "volk": "Mensch",
+        "glaube": "Katholisch",
         "haltung": "Bestienfron",
         "amt": "Zöllner"
       },
       {
         "name": "Margarethe Lindwurm",
         "volk": "Mensch",
+        "glaube": "Katholisch",
         "haltung": "FreieStadt",
         "amt": null
       },
       {
         "name": "Balin Steinbrecher",
         "volk": "Zwerg",
+        "glaube": "Evangelisch",
         "haltung": "Bestienfron",
         "amt": null
       },
       {
         "name": "Fenwick Distelbach",
         "volk": "Halbling",
+        "glaube": "Evangelisch",
         "haltung": "FreieStadt",
         "amt": null
       },
       {
         "name": "Ilvaris Mondtau",
         "volk": "Elb",
+        "glaube": "Katholisch",
         "haltung": "FreieStadt",
         "amt": null
       },
       {
         "name": "Gerold Pfefferkorn",
         "volk": "Mensch",
+        "glaube": "Evangelisch",
         "haltung": "Leibeigenschaft",
         "amt": null
       },
       {
         "name": "Rosalind Apfelgrund",
         "volk": "Halbling",
+        "glaube": "Katholisch",
         "haltung": "Bestienfron",
         "amt": null
       }
@@ -1352,5 +1366,23 @@
     "ueberfall": { "kosten": 300, "staerke": 0.8, "gueltigMinuten": 1020 },
     "kroetenschleim": { "kosten": 200, "chance": 0.6, "beruf": "Alchimist", "berufKostenFaktor": 0.5, "berufBonus": 0.15 },
     "erpressungMindestBeweise": 3
+  },
+  "glaube": {
+    "voelker": {
+      "Mensch": { "Katholisch": 0.6, "Evangelisch": 0.4 },
+      "Elb": { "Katholisch": 0.7, "Evangelisch": 0.3 },
+      "Zwerg": { "Katholisch": 0.3, "Evangelisch": 0.7 },
+      "Halbling": { "Katholisch": 0.45, "Evangelisch": 0.55 },
+      "Ork": { "Naturglaube": 1 },
+      "Oger": { "Naturglaube": 1 }
+    },
+    "stadt": { "Katholisch": 0.55, "Evangelisch": 0.45 },
+    "rueckkehr": 0.1,
+    "mindestAnteil": 0.1,
+    "fremdeKirche": 0.5,
+    "gunst": { "gleich": 5, "anders": -3, "heide": -8, "mischehe": -2 },
+    "konvertieren": { "gebuehr": 300, "ansehen": 3 },
+    "bekehrung": { "anteil": 0.04, "jeRhetorik": 0.1, "gunst": 3 },
+    "stadtglaube": { "abgabe": 150, "schwelleFrei": 25, "schwelleFremd": 60, "ketzerpredigt": 200 }
   }
 }

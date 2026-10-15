@@ -105,7 +105,8 @@ public sealed class Stadtrat
                - _w.Diebe.AnsehenAbzug(konto)           // ein Haus von Dieben
                + _w.Wache.AnsehenBonus(konto)           // ein Haus der Wache
                - _w.Bank.AnsehenAbzug(konto)            // ein Wucherkredit läuft
-               + _w.Duft.AnsehenBonus(konto);           // Heiligenduft in der Kirche gestiftet
+               + _w.Duft.AnsehenBonus(konto)            // Heiligenduft in der Kirche gestiftet
+               - _w.Glaube.AnsehenAbzug(konto);         // gerade erst die Konfession gewechselt
     }
 
     /// <summary>Auf welche Ämter sich ein Haus jetzt bewerben darf: genau eine Stufe über seinem Amt, Stand erfüllt.</summary>
@@ -128,6 +129,7 @@ public sealed class Stadtrat
         if (kandidat is null) // der bisherige Ratsherr im Amt
             return g.AnsehenRatsherr + amt.Stufe * g.AnsehenRatsherrJeStufe + (amt.Ratsherr is not null ? g.Amtsbonus : 0);
         return Ansehen(kandidat) + Gunst(waehler, kandidat) + _w.Familien.Volksnaehe(waehler.Daten.Volk, kandidat)
+               + _w.Glaube.Naehe(waehler, kandidat)
                + _w.Familien.RhetorikPunkte(kandidat)
                + (amt.Konto == kandidat ? g.Amtsbonus : 0);
     }
@@ -256,6 +258,7 @@ public sealed class Stadtrat
         }
         _bewerbungen.Remove(konto);
         if (Antrag?.Antragsteller == konto) Antrag = null;
+        _w.Glaube.Ausscheiden(konto);
     }
 
     /// <summary>Nach einer Verurteilung rückt der bestochene Ratsherr öffentlich vom Haus ab.</summary>
@@ -292,6 +295,7 @@ public sealed class Stadtrat
         if (Antrag is { } antrag)
             Abstimmen(antrag.Antragsteller, antrag.Statut, jahr);
         Antrag = null;
+        _w.Glaube.Abstimmen(jahr, _letzteSitzung.Add); // der Stadtglaube nach dem Statut
 
         foreach (var amt in _aemter.OrderByDescending(a => a.Stufe).ThenBy(a => a.Name, StringComparer.Ordinal).ToList())
             Waehlen(amt, zufall, jahr);

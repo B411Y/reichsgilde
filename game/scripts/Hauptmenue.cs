@@ -1,6 +1,7 @@
 using Godot;
 using Reichsgilde.Core;
 using Reichsgilde.Core.Dynastie;
+using Reichsgilde.Core.Glaube;
 using Reichsgilde.Core.Partie;
 using Reichsgilde.Core.Speichern;
 using Reichsgilde.Core.Wirtschaft;
@@ -31,6 +32,7 @@ public partial class Hauptmenue : Node
     private LineEdit _familie = null!;
     private OptionButton _volk = null!;
     private Label _volkHinweis = null!;
+    private OptionButton _glaube = null!;
     private OptionButton _geschlecht = null!;
     private LineEdit _vorname = null!;
     private OptionButton _sieg = null!;
@@ -139,6 +141,13 @@ public partial class Hauptmenue : Node
         oberhaupt.AddChild(_vorname);
         Zeile(raster, "Oberhaupt", oberhaupt);
 
+        _glaube = new OptionButton { FocusMode = Control.FocusModeEnum.None };
+        _glaube.AddItem("wie das Volk", -1);
+        _glaube.AddItem("katholisch", (int)Konfession.Katholisch);
+        _glaube.AddItem("evangelisch", (int)Konfession.Evangelisch);
+        _glaube.ItemSelected += _ => VolkHinweisZeigen();
+        Zeile(raster, "Glaube", _glaube);
+
         _beruf = new OptionButton { FocusMode = Control.FocusModeEnum.None };
         _beruf.AddItem("Schmied (Gießerei: Beschlag, Rapier, Silberring)");
         _beruf.AddItem("Tischler (Tischlerei: Holzzapfen, Schemel, Truhe)");
@@ -219,13 +228,20 @@ public partial class Hauptmenue : Node
     private static readonly Volk[] Spielbare = { Volk.Mensch, Volk.Zwerg, Volk.Elb, Volk.Halbling };
 
     /// <summary>Was die Wahl des Volkes für die Dynastie bedeutet (die Zahlen stehen in wirtschaft.json).</summary>
-    private void VolkHinweisZeigen() => _volkHinweis.Text = (Volk)_volk.GetSelectedId() switch
+    private void VolkHinweisZeigen()
     {
-        Volk.Zwerg => "Leben lange und bekommen selten Kinder, die erst mit 30 mündig sind. Hochzeiten mit Zwergen sind teuer. Haus Eisenbart sind Zwerge.",
-        Volk.Elb => "Leben sehr lange, bekommen aber nur selten Kinder, die erst mit 45 mündig sind. Ihr Haushalt ist teuer, doch sie werben geschickt.",
-        Volk.Halbling => "Bekommen schnell Kinder, leben aber etwas kürzer. Ihr Haushalt ist günstig.",
-        _ => "Bekommen schnell Kinder und leben durchschnittlich lang. Sie stellen die Mehrheit in Stadt und Rat.",
-    };
+        var volk = (Volk)_volk.GetSelectedId();
+        var text = volk switch
+        {
+            Volk.Zwerg => "Leben lange und bekommen selten Kinder, die erst mit 30 mündig sind. Hochzeiten mit Zwergen sind teuer. Haus Eisenbart sind Zwerge.",
+            Volk.Elb => "Leben sehr lange, bekommen aber nur selten Kinder, die erst mit 45 mündig sind. Ihr Haushalt ist teuer, doch sie werben geschickt.",
+            Volk.Halbling => "Bekommen schnell Kinder, leben aber etwas kürzer. Ihr Haushalt ist günstig.",
+            _ => "Bekommen schnell Kinder und leben durchschnittlich lang. Sie stellen die Mehrheit in Stadt und Rat.",
+        };
+        // Der Startglaube steht in wirtschaft.json (Abschnitt „glaube") – hier nur als Hinweis.
+        var glaube = volk is Volk.Zwerg or Volk.Halbling ? "meist evangelisch" : "meist katholisch";
+        _volkHinweis.Text = $"{text} Glaube: {glaube} – im Rat schätzen Ratsherren Glaubensbrüder (7 katholisch, 6 evangelisch).";
+    }
 
     /// <summary>Endjahr bzw. Zielvermögen nur zeigen, wenn die gewählte Siegbedingung sie braucht.</summary>
     private void SiegFelderZeigen()
@@ -267,7 +283,8 @@ public partial class Hauptmenue : Node
                 (Volk)_volk.GetSelectedId(), (Geschlecht)_geschlecht.GetSelectedId(),
                 string.IsNullOrWhiteSpace(_vorname.Text) ? null : _vorname.Text.Trim(),
                 Beruf: _beruf.Selected switch { 1 => "Tischler", 2 => "Steinmetz", 3 => "Alchimist", 4 => "Wirt", 5 => "Prediger", 6 => "Dieb", 7 => "Gardist", 8 => "Geldleiher", 9 => "Parfumeur", _ => "Schmied" },
-                Rivalen: _rivalen.GetSelectedId()));
+                Rivalen: _rivalen.GetSelectedId(),
+                Glaube: _glaube.GetSelectedId() < 0 ? null : (Konfession)_glaube.GetSelectedId()));
         SpielStarten();
     }
 
