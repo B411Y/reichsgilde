@@ -93,6 +93,9 @@ public sealed record WirtschaftStand
 
     /// <summary>Anteile der Konfessionen, Stadtglaube und sein Antrag (null in Spielständen von vor dem Glauben).</summary>
     public GlaubeStand? Glaube { get; init; }
+
+    /// <summary>Die Einwohner der Bürger-KI (null in Spielständen von vor der Bürger-KI).</summary>
+    public Buerger.EinwohnerschaftStand? Einwohner { get; init; }
 }
 
 public sealed record GlaubeStand
