@@ -120,7 +120,7 @@ public partial class RatAnzeige : PanelContainer
             Hauptmenue.Text(raster, $"{amt.Name} ({Zahlenformat.Ganz(amt.Daten.Einkommen)} {waehrung}/Jahr)", 14, farbe);
             var glaube = !w.Glaube.IstAktiv ? null : amt.Ratsherr is { } rg ? w.Glaube.GlaubeVon(rg) : amt.Konto is { } hk ? w.Glaube.GlaubeVon(hk) : null;
             var kurz = glaube switch { Konfession.Katholisch => ", kath.", Konfession.Evangelisch => ", ev.", Konfession.Naturglaube => ", Heide", _ => "" };
-            var inhaber = Hauptmenue.Text(raster, (amt.Ratsherr is { } r ? $"{r.Name}, {r.Daten.Volk.Einzahl()}" : amt.Inhaber) + kurz, 14, farbe);
+            var inhaber = UiHilfe.MitWappen(raster, amt.Ratsherr is null ? amt.Konto?.Wappen : null, (amt.Ratsherr is { } r ? $"{r.Name}, {r.Daten.Volk.Einzahl()}" : amt.Inhaber) + kurz, 14, farbe);
             if (amt.Ratsherr is { } rn && w.Glaube.IstAktiv)
             {
                 var naehe = w.Glaube.Naehe(rn, _spieler);

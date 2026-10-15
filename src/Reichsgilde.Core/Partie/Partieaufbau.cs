@@ -7,7 +7,8 @@ using Reichsgilde.Core.Zeit;
 namespace Reichsgilde.Core.Partie;
 
 /// <summary>Was der Spieler im Menü „Neue Partie" einstellt – zusätzlich zu den <see cref="Partieeinstellungen"/>.</summary>
-/// <param name="Familienname">Name des eigenen Hauses.</param>
+/// <param name="Familienname">Name des eigenen Hauses ohne Vorsatz („Hammerschmid“) – das Spiel nennt es „Haus Hammerschmid“.
+/// „Familie …“ oder „Haus …“ davor wird abgeschnitten.</param>
 /// <param name="Startvermoegen">Gulden zu Beginn; null = Wert aus wirtschaft.json.</param>
 /// <param name="Rivale">Charakter des KI-Rivalen.</param>
 /// <param name="Volk">Volk des eigenen Hauses.</param>
@@ -17,8 +18,9 @@ namespace Reichsgilde.Core.Partie;
 /// <param name="Rivalen">Wie viele KI-Häuser mitspielen: 1 = Haus Eisenbart (Schmied), 2 = dazu Haus Eichwald (Tischler),
 /// 3 = dazu Haus Kieselbach (Steinmetz).</param>
 /// <param name="Glaube">Konfession des eigenen Hauses; null = Startglaube des Volkes.</param>
+/// <param name="Wappen">Wappen des eigenen Hauses; null = die erste Vorlage. Darf keinem KI-Haus gehören.</param>
 public sealed record NeuePartie(
-    string Familienname = "Familie Hammerschmid",
+    string Familienname = "Hammerschmid",
     double? Startvermoegen = null,
     KiCharakter Rivale = KiCharakter.Ausgewogen,
     Volk Volk = Volk.Mensch,
@@ -26,7 +28,8 @@ public sealed record NeuePartie(
     string? Vorname = null,
     string Beruf = "Schmied",
     int Rivalen = 3,
-    Konfession? Glaube = null);
+    Konfession? Glaube = null,
+    Wappen? Wappen = null);
 
 /// <summary>Wie der KI-Rivale spielt – im Menü als Schwierigkeit wählbar.</summary>
 public enum KiCharakter
@@ -60,6 +63,13 @@ public static class Partieaufbau
     /// <summary>Alle Namen, die schon ein Rivale trägt.</summary>
     public static readonly IReadOnlyList<string> Rivalennamen = new[] { Rivalenname, ZweiterRivale, DritterRivale };
 
+    /// <summary>„Hammerschmid“, „Familie Hammerschmid“ und „Haus Hammerschmid“ → „Haus Hammerschmid“ – alle Häuser heißen gleich gebaut.</summary>
+    public static string Hausname(string eingabe)
+    {
+        var nachname = Familie.NachnameAus((eingabe ?? "").Trim());
+        return "Haus " + (nachname == "" ? "Hammerschmid" : nachname);
+    }
+
     public static KiProfil ProfilFuer(KiCharakter charakter) => charakter switch
     {
         KiCharakter.Vorsichtig => KiProfil.Standard with { Reserve = 2500, Vorsicht = 2, MaxAmortisationJahre = 4, Gaunerei = 0 },
@@ -72,9 +82,14 @@ public static class Partieaufbau
     public static (Simulation Simulation, Konto Spieler) Erstellen(Partieeinstellungen einstellungen, Wirtschaftsdaten daten, NeuePartie neu,
         Spielzeit? startzeit = null)
     {
-        var name = string.IsNullOrWhiteSpace(neu.Familienname) ? "Familie Hammerschmid" : neu.Familienname.Trim();
+        var name = Hausname(neu.Familienname);
         if (Rivalennamen.Contains(name))
             throw new ArgumentException($"„{name}“ ist schon der Name eines Rivalen.");
+        var wappen = neu.Wappen ?? Wappen.Vorlagen[0];
+        if (wappen.Fehler() is { } wappenFehler)
+            throw new ArgumentException(wappenFehler);
+        if (Wappen.Rivalenwappen.Contains(wappen))
+            throw new ArgumentException("Dieses Wappen führt schon ein KI-Haus.");
         if (neu.Rivalen is < 1 or > 3)
             throw new ArgumentException("Es spielen ein bis drei KI-Häuser mit.");
 
@@ -87,10 +102,12 @@ public static class Partieaufbau
             : neu.Beruf == "Schmied" ? Betriebsart.Giesserei // ältere Daten ohne „berufe"
             : throw new ArgumentException($"Den Beruf „{neu.Beruf}“ gibt es nicht.");
         var spieler = w.KontoEroeffnen(name, startvermoegen: neu.Startvermoegen);
+        spieler.Wappen = wappen;
         var werkstatt = w.BetriebEroeffnen($"{daten.Art(startArt).Name} am Weinmarkt", startArt, spieler);
         w.Einstellen(werkstatt, "Geselle", 2);
 
         var rivale = w.KontoEroeffnen(Rivalenname);
+        rivale.Wappen = Wappen.Eisenbart;
         if (w.Familien.IstAktiv)
         {
             w.Familien.Gruenden(spieler, neu.Volk, neu.Geschlecht, neu.Vorname, glaube: neu.Glaube);
@@ -109,19 +126,20 @@ public static class Partieaufbau
 
         // Haus Eichwald (Elben, Tischler) und Haus Kieselbach (Halblinge, Steinmetze) – ebenfalls von der KI geführt.
         if (neu.Rivalen >= 2)
-            HausAufstellen(w, daten, ZweiterRivale, ZweiterRivaleVolk, Geschlecht.Frau, "Tischler", "Eichwald", bergleute, neu.Rivale);
+            HausAufstellen(w, daten, ZweiterRivale, ZweiterRivaleVolk, Geschlecht.Frau, "Tischler", "Eichwald", bergleute, neu.Rivale, Wappen.Eichwald);
         if (neu.Rivalen >= 3)
-            HausAufstellen(w, daten, DritterRivale, DritterRivaleVolk, Geschlecht.Mann, "Steinmetz", "Kieselbach", bergleute, neu.Rivale);
+            HausAufstellen(w, daten, DritterRivale, DritterRivaleVolk, Geschlecht.Mann, "Steinmetz", "Kieselbach", bergleute, neu.Rivale, Wappen.Kieselbach);
         return (simulation, spieler);
     }
 
     /// <summary>Ein KI-Haus mit Werkstatt und Umlandbetrieb seines Berufs („Tischlerei Eichwald", „Holzschlag Eichwald").
     /// Fehlt der Beruf in den Daten (alte Daten), spielt das Haus nicht mit.</summary>
     private static void HausAufstellen(Stadtwirtschaft w, Wirtschaftsdaten daten, string name, Volk volk, Geschlecht geschlecht,
-        string beruf, string kurzname, string umlandKraft, KiCharakter charakter)
+        string beruf, string kurzname, string umlandKraft, KiCharakter charakter, Wappen wappen)
     {
         if (!daten.Berufe.TryGetValue(beruf, out var b)) return;
         var konto = w.KontoEroeffnen(name);
+        konto.Wappen = wappen;
         if (w.Familien.IstAktiv)
             w.Familien.Gruenden(konto, volk, geschlecht);
         var werkstatt = w.BetriebEroeffnen($"{daten.Art(b.Werkstatt).Name} {kurzname}", b.Werkstatt, konto);
