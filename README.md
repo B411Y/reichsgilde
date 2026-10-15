@@ -9,7 +9,7 @@ Schauplatz ist ein düster-bodenständiges Heiliges Römisches Reich des Spätmi
 
 ## Aktueller Stand
 
-**Phase 3 – 2,5D-Stadtansicht (Greybox).** Die Reichsstadt ist als begehbare Schrägansicht zu sehen: Mauer, Osttor, Markt, Rathaus, Dom, Gießereien und die Grube vor der Stadt – noch aus einfachen Grundformen. Die orthografische Kamera blickt diagonal (nach Nordosten, Nordwesten, Südwesten oder Südosten) und dreht in 90°-Schritten. Karren fahren sichtbar zum Markt, Licht und Himmel folgen der Spieluhr, die Esse glüht bei Arbeit, Gebäude lassen sich anklicken.
+**Phase 3 – 2,5D-Stadtansicht (Greybox).** Die Reichsstadt ist als begehbare Schrägansicht zu sehen: Mauer, Osttor, Markt, Rathaus, Dom, Gießereien und die Grube vor der Stadt – noch aus einfachen Grundformen. Die orthografische Kamera blickt diagonal (nach Nordosten, Nordwesten, Südwesten oder Südosten) und dreht in 90°-Schritten. Karren fahren sichtbar zum Markt, Licht, Schatten und Himmel folgen der Spieluhr (flüssig, nicht minutenweise), die Esse glüht bei Arbeit, Gebäude lassen sich anklicken.
 
 **Diorama-Innenansicht.** Ein Doppelklick auf eine Werkstatt schneidet sie wie ein Puppenhaus auf: Dach und die beiden Wände zur Kamera verschwinden, Nachbarhäuser davor werden ausgeblendet. Innen sieht man die Einrichtung des Berufs, das Lager als Kistenstapel (eine Kiste je 5 Stück) und die Arbeiter, die während der Arbeitszeit (8–20 Uhr) hämmern, sägen, rühren oder schreiben – alles direkt aus der Simulation. Jede Gebäudestufe bringt ein eigenes Stück dazu und mehr Arbeitsplätze.
 
