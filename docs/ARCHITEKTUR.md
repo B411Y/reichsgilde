@@ -428,6 +428,16 @@ Die Unterwelt (`src/Reichsgilde.Core/Gauner/Unterwelt.cs`) gehört zur Stadtwirt
 - **Zeichnen:** `game/scripts/WappenBild.cs` zeichnet in `_Draw()` aus Vielecken: Schild in Farbe 1 → Teilung in Farbe 2 (mit dem Schild verschnitten über `Geometry2D.IntersectPolygons`) → Figur in Farbe 2 → die Stücke der Figur, die über Farbe 2 liegen, noch einmal in Farbe 1. Eine Figur besteht aus mehreren einfachen Vielecken ohne Löcher (ein Rad aus 24 Kranzstücken), weil verschnittene Löcher sich nicht einfach füllen lassen. Keine Bilddateien: scharf in jeder Größe, und eine neue Figur ist ein paar Zeilen Koordinaten in `WappenFormen`.
 - **Anzeige:** `UiHilfe.MitWappen` setzt ein kleines Wappen vor einen Hausnamen; ohne Wappen (Ratsherren ohne Haus) bleibt der Platz frei, damit die Spalte bündig bleibt.
 
+## Bürger-KI (Einwohner)
+
+- **Teilsystem `Einwohnerschaft`** (`Buerger/Einwohnerschaft.cs`, Bereich Spiel-KI, Abschnitt `buerger`, ab Datenversion 25, Zufall ×71+53). Fehlt der Abschnitt, gibt es keine Einwohner und kein Feld im Spielstand.
+- **Wer:** `jeHaus` (25) gewöhnliche Einwohner je Haus, beim ersten Takt mit Häusern festgelegt (`Herkunft.Stadt`); dazu die Ratsherren (`Herkunft.Ratsherr`, Quelle = Name) und die Heiratskandidaten (`Herkunft.Kandidat`, Quelle = Personennummer). Ratsherren und Kandidaten bleiben in Rat und Familienbuch; die Einwohnerschaft gleicht jede Stunde mit der Brautschau ab und ändert dort nichts.
+- **Utility-KI:** Fünf `Beduerfnis`-Werte (0–100 = Dringlichkeit) steigen jede Stunde um `anstieg × Gewicht(Volk)`. Jede mögliche `Handlung` hat einen Nutzen = Σ min(Dringlichkeit, Stillwert) × Gewicht, dazu `beharrung` für die Handlung der letzten Stunde, mal (1 ± `rauschen`). Die beste gewinnt und stillt ihre Bedürfnisse. Zur Messe-Stunde wirkt Beten `messe`-fach. Am Jahresende schlafen alle aus (`start` ± `startStreuung`).
+- **Orte:** Handlung → `Stadtort` (Ruhen → Heim, Arbeiten → Arbeitsort der Rolle, Einkaufen → Markt, Einkehren → Schänke, Beten → Kirche, Flanieren → Gasse). Schänke und Kirche fest nach der Nummer des Einwohners (Stammhaus); Kirche bevorzugt die eigene Konfession, ohne Kirche `Betrieb = null` (Stadtkirche).
+- **Takt:** `Stadtwirtschaft.Tick` ruft am Ende `Einwohnerschaft.Minute` (plant zur vollen Stunde), die Jahresabrechnung am Ende `Einwohnerschaft.Jahresende` (Gompertz-Sterben über `Familienbuch.Sterberisiko`, Zuzug an derselben Listenstelle, Ausschlafen).
+- **Keine Wirkung (Schritt 1):** Die Einwohner lesen Schänken, Kirchen, Rat und Brautschau nur und würfeln nur mit ihrem eigenen Generator. Ein Test vergleicht die Partie mit und ohne Abschnitt `buerger`.
+- **Abfragen für Darstellung und Oberfläche:** `Einwohner`, `Am(Stadtort)`, `Im(Betriebsname)`, `Nummer(n)`, `RollenName(e)`, `Stimmung`, `VerstorbenImVorjahr`/`ZugezogenImVorjahr`; je Einwohner `Handlung`, `Ort`, `Betrieb`, `Wert(Beduerfnis)`, `Stimmung`.
+
 ## Speichern und Laden
 
 Ein Spielstand ist eine lesbare JSON-Datei (`src/Reichsgilde.Core/Speichern/`).
