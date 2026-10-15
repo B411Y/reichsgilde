@@ -40,6 +40,13 @@ public sealed class JustizDaten
     public double BusseFaktor { get; init; } = 3;
     public double Mindestbusse { get; init; } = 200;
 
+    /// <summary>
+    /// Höchstens dieser Anteil des Vermögens des Verurteilten (aber mindestens die Mindestbuße). Ohne Deckel
+    /// trieben sich wagemutige Häuser mit immer höheren Erpressungen gegenseitig in Bußen über Hunderttausende.
+    /// 0 = kein Deckel.
+    /// </summary>
+    public double BusseHoechstensAnteil { get; init; } = 0.5;
+
     /// <summary>So viele Jahre steht ein Verurteilter am Pranger – mit so viel weniger Ansehen.</summary>
     public int PrangerJahre { get; init; } = 3;
     public double PrangerAnsehen { get; init; } = 10;
@@ -64,6 +71,7 @@ public sealed class JustizDaten
         if (VerjaehrungJahre < 1) f.Add("justiz.verjaehrungJahre muss mindestens 1 sein.");
         if (SpitzelChance is < 0 or > 1) f.Add("justiz.spitzelChance muss zwischen 0 und 1 liegen.");
         if (SpitzelKosten < 0 || Gerichtsgebuehr < 0 || Mindestbusse < 0 || Entschaedigung < 0) f.Add("justiz: Kosten dürfen nicht negativ sein.");
+        if (BusseHoechstensAnteil is < 0 or > 1) f.Add("justiz.busseHoechstensAnteil muss zwischen 0 und 1 liegen.");
         if (BeweiskraftJeBeweis <= 0 || SchuldSchwelle <= 0) f.Add("justiz: beweiskraftJeBeweis und schuldSchwelle müssen größer als 0 sein.");
         if (PrangerJahre < 0 || PrangerAnsehen < 0) f.Add("justiz: prangerJahre und prangerAnsehen dürfen nicht negativ sein.");
         if (KerkerJahre < 0) f.Add("justiz.kerkerJahre darf nicht negativ sein.");

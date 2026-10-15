@@ -224,7 +224,7 @@ Das Stadtgericht (`src/Reichsgilde.Core/Justiz/Stadtgericht.cs`) gehört zur Sta
 
   Für die Gunst gibt es kein eigenes System, sie kommt aus dem Rat. Geschenke an Richter wirken also, sind aber selbst Bestechung. Die **Höchstwirkung** sorgt dafür, dass Bestechung nur knappe Fälle kippt: Ab Beweiskraft 25 (3 Beweise) ist ein Schuldspruch sicher. Ist der Stadtrichter selbst Partei, führt der Bürgermeister den Vorsitz.
 - **Gerichtstag** zu Beginn der Jahresabrechnung, vor Amtseinkommen und Ratssitzung:
-  1. Urteile (Buße, Amtsverlust, Pranger bzw. Entschädigung)
+  1. Urteile (Buße, Amtsverlust, Pranger bzw. Entschädigung). Die Buße rechnet nur `Stadtgericht.Busse`: Faktor × Tatwerte, mindestens `mindestbusse`, höchstens `busseHoechstensAnteil` × Vermögen des Verurteilten. Gericht, Oberfläche und KI nutzen dieselbe Methode. Ohne den Deckel schaukelten sich wagemutige KI-Häuser mit Erpresserbriefen hoch (60 % der drohenden Strafe, die frühere Forderungen mitzählt) – bis zu Bußen über 100.000 Gulden.
   2. Spitzelberichte
   3. Verjährung nach 5 Jahren
 

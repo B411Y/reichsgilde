@@ -1172,6 +1172,7 @@
     "gunstHoechstwirkung": 10,
     "busseFaktor": 3,
     "mindestbusse": 200,
+    "busseHoechstensAnteil": 0.5,
     "prangerJahre": 3,
     "prangerAnsehen": 10,
     "entschaedigung": 200,

@@ -708,7 +708,7 @@ public sealed class KiRivale
             }
         var freisprechen = stimmen.Count(s => !s.Schuldig);
         // Ein Freispruch erspart die Buße (auf die schon bekannten Taten) und das Amt.
-        var nutzen = Math.Max(d.Mindestbusse, d.BusseFaktor * gericht.Beweise(v.Anklaeger, Konto).Sum(b => b.Betrag))
+        var nutzen = gericht.DrohendeBusse(v.Anklaeger, Konto)
                      + (_w.Rat.AmtVon(Konto) is { } amt ? amt.Daten.Einkommen * NutzenJahre : 0);
         Schenkplan(kosten, stimmen.Count / 2 + 1 - freisprechen, $"vor dem Gerichtstag (angeklagt von {v.Anklaeger.Inhaber})", nutzen);
     }
@@ -728,7 +728,7 @@ public sealed class KiRivale
         var d = gericht.Daten;
         var beweise = gericht.Beweise(anklaeger, Konto).ToList();
         if (beweise.Count * d.BeweiskraftJeBeweis < d.SchuldSchwelle) return 0; // reicht nicht für einen Schuldspruch
-        var strafe = Math.Max(d.Mindestbusse, d.BusseFaktor * beweise.Sum(b => b.Betrag)) + PrangerWert;
+        var strafe = gericht.Busse(Konto, beweise) + PrangerWert;
         if (_w.Rat.AmtVon(Konto) is { } amt) strafe += amt.Daten.Einkommen * NutzenJahre;
         if (beweise.Any(b => d.KerkerFuer.Contains(b.Art))) strafe += KerkerWert;
         return strafe;
@@ -881,7 +881,7 @@ public sealed class KiRivale
             || unterwelt.ForderungAn(ziel, Konto) is not null || gericht.VerfahrenGegen(Konto, ziel) is not null) return false;
         var d = gericht.Daten;
         var beweise = gericht.Beweise(Konto, ziel).ToList();
-        var strafe = Math.Max(d.Mindestbusse, d.BusseFaktor * beweise.Sum(b => b.Betrag)) + PrangerWert
+        var strafe = gericht.Busse(ziel, beweise) + PrangerWert
                      + (_w.Rat.AmtVon(ziel) is { } amt ? amt.Daten.Einkommen * NutzenJahre : 0);
         var betrag = Math.Round(strafe * 0.6 / 50) * 50;
         if (Befehlen(new Erpressen(ziel.Inhaber, betrag), $"schickt {ziel.Inhaber} einen Erpresserbrief: {Zahlenformat.Ganz(betrag)} Schweigegeld."))

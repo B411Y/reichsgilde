@@ -45,6 +45,18 @@ static class GerichtTests
 
     public static IEnumerable<(string, Action)> Alle() => new (string, Action)[]
     {
+        ("Buße: 3 × Tatwert, mindestens 200 – aber höchstens das halbe Vermögen des Verurteilten (keine Erpressungsspirale)", () =>
+        {
+            var w = NeueSimulation().Wirtschaft!;
+            var arm = w.KontoEroeffnen("Familie Arm", startvermoegen: 4_000);
+            var spur = w.Justiz.TatMelden(arm, Vergehen.Erpressung, "Haus Eisenbart", 18_550)!;
+            Pruefe.Ungefaehr(2_000, w.Justiz.Busse(arm, new[] { spur }), 1e-9);
+            var klein = w.Justiz.TatMelden(arm, Vergehen.Bestechung, "Ratsherr", 50)!;
+            Pruefe.Ungefaehr(200, w.Justiz.Busse(arm, new[] { klein }), 1e-9);
+            var pleite = w.KontoEroeffnen("Familie Pleite", startvermoegen: 0);
+            Pruefe.Ungefaehr(200, w.Justiz.Busse(pleite, new[] { spur }), 1e-9);
+        }),
+
         ("Gericht: Jedes Geschenk an einen Ratsherrn hinterlässt eine Spur – Brautgeschenke nicht", () =>
         {
             var sim = NeueSimulation();
