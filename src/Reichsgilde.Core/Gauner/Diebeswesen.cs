@@ -145,7 +145,7 @@ public sealed record Diebesbuch(double Beute, int Faenge);
 ///   • Tagsüber (Arbeitszeit) ziehen die Leute im Schmugglerloch als Taschendiebe über den Markt. Jede volle Stunde
 ///     bringen sie Gulden (steuerfrei); mit etwas Pech wird einer erwischt: Er landet im Turm (der Platz wird frei),
 ///     und ein zufälliges anderes Haus erfährt, wem er diente (Spur mit einem Beweis für dieses Haus).
-///   • Nachts (21 Uhr, nach den Banden aus dem Hinterzimmer) führen sie eigene Aufträge aus – je Stufe mehr:
+///   • Nachts (20 Uhr, nach den Banden aus dem Hinterzimmer) führen sie eigene Aufträge aus – je Stufe mehr:
 ///     Einbruch (besser als eine Bande, Beute ins eigene Lager), Auskundschaften (Beweise), ab Stufe 3 Entführung.
 ///   • Ab Stufe 2 verlangen sie Schutzgeld. Wer nicht zahlt, dem brennt nachts ein Betrieb.
 ///   • Lösegeld: Zahlt das Haus nicht bis zum Ende des Folgejahres, wird die Geisel in die Fremde verkauft.
@@ -331,7 +331,7 @@ public sealed class Diebeswesen
         if (_auftraege.Any(a => a.Dieb == dieb && a.Art == Diebesstueck.Einbruch && a.Betrieb == betriebName))
             return Befehlsergebnis.Abgelehnt($"In {betriebName} steigt heute Nacht schon jemand von euch ein.");
         _auftraege.Add(new Diebesauftrag(dieb, ziel, Diebesstueck.Einbruch, betriebName, null, 0));
-        return Befehlsergebnis.Ok($"Heute Nacht um 21 Uhr steigen eure Leute in {betriebName} ein (Chance {Prozent(Einbruchchance(b, dieb))}, " +
+        return Befehlsergebnis.Ok($"Heute Nacht um 20 Uhr steigen eure Leute in {betriebName} ein (Chance {Prozent(Einbruchchance(b, dieb))}, " +
                                   $"bis zu {EinbruchStueck(dieb)} Stück – die Beute kommt in euer Lager).");
     }
 
@@ -423,7 +423,7 @@ public sealed class Diebeswesen
 
     private string Geiselname(Diebesbrief brief) => Geisel(brief)?.Vorname ?? "die Geisel";
 
-    // ── Nacht (21 Uhr, nach den Banden) ─────────────────────────────────────
+    // ── Nacht (20 Uhr, nach den Banden) ─────────────────────────────────────
 
     internal void Nacht()
     {

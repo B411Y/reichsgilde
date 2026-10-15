@@ -71,9 +71,13 @@ public static class Spielstaende
     }
 
     /// <summary>Alle Spielstände, neueste zuerst – mit Titel und Zeitpunkt aus dem Dateikopf.</summary>
+    /// <summary>Wie viele Spielstände die letzte <see cref="Liste"/> übersprungen hat, weil sie aus einer älteren Version stammen.</summary>
+    public static int Veraltete { get; private set; }
+
     public static List<(string Pfad, Speicherstand Kopf)> Liste()
     {
         var liste = new List<(string, Speicherstand)>();
+        Veraltete = 0;
         using var ordner = DirAccess.Open(Ordner);
         if (ordner is null) return liste;
         foreach (var name in ordner.GetFiles().Where(n => n.EndsWith(".json")))
@@ -83,9 +87,10 @@ public static class Spielstaende
             {
                 liste.Add((pfad, Speicherung.Kopf(Godot.FileAccess.GetFileAsString(pfad))));
             }
-            catch (SpielstandFehler)
+            catch (SpielstandFehler ex)
             {
-                // Kaputte Dateien tauchen in der Liste nicht auf.
+                // Kaputte Dateien tauchen in der Liste nicht auf; veraltete werden gezählt, damit die Liste es sagen kann.
+                if (ex.Message.Contains("älteren Version")) Veraltete++;
             }
         }
         return liste.OrderByDescending(x => x.Item2.Gespeichert).ToList();

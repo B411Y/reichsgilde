@@ -1682,13 +1682,14 @@ public partial class Stadtansicht : Node3D
     private void LichtNachUhrzeit(int uhrzeitInMinuten)
     {
         var stunde = uhrzeitInMinuten / 60f;
-        var sonnenhoehe = Mathf.Sin((stunde - 6f) / 12f * Mathf.Pi);          // > 0 zwischen 06 und 18 Uhr
-        var mondhoehe = Mathf.Sin(((stunde + 6f) % 24f) / 12f * Mathf.Pi);      // > 0 zwischen 18 und 06 Uhr
+        // Gespielt wird von 05 bis 22 Uhr: Die Sonne steht von 05 bis 20 Uhr am Himmel, danach zwei Stunden Mondnacht.
+        var sonnenhoehe = Mathf.Sin((stunde - 5f) / 15f * Mathf.Pi);          // > 0 zwischen 05 und 20 Uhr
+        var mondhoehe = Mathf.Sin(((stunde + 4f) % 24f) / 9f * Mathf.Pi);       // > 0 zwischen 20 und 05 Uhr
         var tag = Mathf.Clamp(sonnenhoehe, 0f, 1f);
 
         if (sonnenhoehe >= mondhoehe)
         {
-            var fortschritt = (stunde - 6f) / 12f; // 0 = Aufgang im Osten, 1 = Untergang im Westen
+            var fortschritt = (stunde - 5f) / 15f; // 0 = Aufgang im Osten, 1 = Untergang im Westen
             _sonne.RotationDegrees = new Vector3(-(8 + 52 * tag), 90 - fortschritt * 180, 0);
             _sonne.LightColor = new Color(1f, 0.78f, 0.55f).Lerp(new Color(1f, 0.97f, 0.9f), tag);
             _sonne.LightEnergy = 0.2f + 1.0f * Mathf.Sqrt(tag); // etwas Dämmerlicht schon bei Sonnenaufgang
@@ -1697,7 +1698,7 @@ public partial class Stadtansicht : Node3D
         else
         {
             var nacht = Mathf.Clamp(mondhoehe, 0f, 1f);
-            var fortschritt = ((stunde + 6f) % 24f) / 12f; // 0 = Aufgang (18 Uhr), 1 = Untergang (06 Uhr)
+            var fortschritt = ((stunde + 4f) % 24f) / 9f; // 0 = Aufgang (20 Uhr), 1 = Untergang (05 Uhr)
             _sonne.RotationDegrees = new Vector3(-(10 + 45 * nacht), 90 - fortschritt * 180, 0);
             _sonne.LightColor = new Color(0.62f, 0.72f, 1f);
             _sonne.LightEnergy = 0.15f + 0.4f * Mathf.Sqrt(nacht);
@@ -1707,9 +1708,9 @@ public partial class Stadtansicht : Node3D
         var umgebung = _umgebung.Environment;
         umgebung.BackgroundColor = Himmelsfarbe(uhrzeitInMinuten);
         // Nachts wenig, dafür bläuliches Umgebungslicht – so heben sich Mondschatten und die warme Glut der Essen ab.
-        // Dämmerung: Das Umgebungslicht steigt schon ab 04:30 und klingt erst gegen 19:30 ab –
-        // so beginnt der Spieltag um 06:00 im Morgengrauen statt in tiefer Nacht.
-        var hell = Mathf.Clamp(Mathf.Sin((stunde - 4.5f) / 15f * Mathf.Pi), 0f, 1f);
+        // Dämmerung: Das Umgebungslicht steigt schon ab 04:00 und klingt erst gegen 21:00 ab –
+        // so beginnt der Spieltag um 05:00 im Morgengrauen statt in tiefer Nacht.
+        var hell = Mathf.Clamp(Mathf.Sin((stunde - 4f) / 17f * Mathf.Pi), 0f, 1f);
         umgebung.AmbientLightColor = new Color(0.30f, 0.36f, 0.58f).Lerp(new Color(0.85f, 0.83f, 0.78f), hell);
         umgebung.AmbientLightEnergy = 0.18f + 0.52f * hell;
     }
@@ -1718,12 +1719,12 @@ public partial class Stadtansicht : Node3D
     private static readonly (int Minute, Color Farbe)[] HimmelsVerlauf =
     {
         (0 * 60,  new Color(0.04f, 0.05f, 0.10f)),
-        (5 * 60,  new Color(0.10f, 0.10f, 0.18f)),
-        (6 * 60,  new Color(0.65f, 0.48f, 0.38f)),
-        (9 * 60,  new Color(0.52f, 0.66f, 0.78f)),
+        (4 * 60,  new Color(0.10f, 0.10f, 0.18f)),
+        (5 * 60,  new Color(0.65f, 0.48f, 0.38f)), // Morgenrot zur Zunftglocke
+        (8 * 60,  new Color(0.52f, 0.66f, 0.78f)),
         (14 * 60, new Color(0.55f, 0.69f, 0.82f)),
-        (18 * 60, new Color(0.70f, 0.45f, 0.30f)),
-        (21 * 60, new Color(0.14f, 0.12f, 0.20f)),
+        (19 * 60, new Color(0.70f, 0.45f, 0.30f)), // Abendrot
+        (20 * 60 + 30, new Color(0.14f, 0.12f, 0.20f)),
         (24 * 60, new Color(0.04f, 0.05f, 0.10f)),
     };
 

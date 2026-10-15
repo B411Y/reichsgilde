@@ -27,7 +27,7 @@ public sealed record Nachtereignis(Konto? Fuer, string Text);
 ///   • Ein Haus gibt ein Gaunerstück gegen ein anderes in Auftrag (Befehl Beauftragen) und zahlt sofort.
 ///   • Mit genug Beweisen verlangt man Schweigegeld (Befehl Erpressen), das Opfer zahlt oder nicht.
 ///
-/// Jede Nacht um 21:00 (Beginn der Dunklen Nacht):
+/// Jede Nacht um 20:00 (Beginn der Dunklen Nacht):
 ///   • Diebstahl und Sabotage werden ausgeführt, Wegelagerer legen sich auf die Lauer.
 ///   • Jedes Gaunerstück hinterlässt eine Spur fürs Gericht. Mit etwas Glück (oder dank eines Wächters)
 ///     gibt es einen Zeugen – dann hat das Opfer sofort einen Beweis.
@@ -36,8 +36,8 @@ public sealed record Nachtereignis(Konto? Fuer, string Text);
 /// </summary>
 public sealed class Unterwelt
 {
-    /// <summary>Spielminute im Tag, zu der die Gauner losziehen (21:00 = Beginn der Dunklen Nacht).</summary>
-    public const int Nachtstunde = 900;
+    /// <summary>Spielminute im Tag, zu der die Gauner losziehen (20:00 = Beginn der Dunklen Nacht).</summary>
+    public const int Nachtstunde = 20 * 60 - Spielzeit.TagesbeginnMinute;
 
     private readonly Stadtwirtschaft _w;
     private readonly GaunerDaten? _d;
@@ -197,7 +197,7 @@ public sealed class Unterwelt
         return Befehlsergebnis.Ok($"Die Bande nimmt das Geld ({Zahlenformat.Ganz(kosten)} {waehrung}). " +
                                   (art == Gaunerstueck.Ueberfall ? $"Heute Nacht legen sich Wegelagerer gegen {ziel.Inhaber} auf die Lauer."
                                       : art == Gaunerstueck.Kroetenschleim ? $"Heute Nacht gelangt Krötenschleim in die Küche von {ziel.Inhaber}."
-                                      : $"{art.Name()} in {betriebName} – heute Nacht um 21 Uhr."));
+                                      : $"{art.Name()} in {betriebName} – heute Nacht um 20 Uhr."));
     }
 
     internal Befehlsergebnis Erpressen(Konto erpresser, Konto opfer, double betrag)
@@ -248,7 +248,7 @@ public sealed class Unterwelt
     //  Nacht und Jahresende
     // ═════════════════════════════════════════════════════════════════════════
 
-    /// <summary>Um 21:00: alle Aufträge ausführen, abgelaufene Hinterhalte auflösen.</summary>
+    /// <summary>Um 20:00: alle Aufträge ausführen, abgelaufene Hinterhalte auflösen.</summary>
     internal void Nacht(Spielzeit zeit)
     {
         if (!IstAktiv) return;

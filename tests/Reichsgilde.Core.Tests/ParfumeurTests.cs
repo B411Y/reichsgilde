@@ -5,6 +5,7 @@ using Reichsgilde.Core.Ki;
 using Reichsgilde.Core.Partie;
 using Reichsgilde.Core.Speichern;
 using Reichsgilde.Core.Wirtschaft;
+using Reichsgilde.Core.Zeit;
 
 /// <summary>Tests für den Parfumeur: Waren und Politur, Moschus, Zwietracht, Heiligenduft, Giftdolch und Gegengift, KI, Speichern.</summary>
 static class ParfumeurTests
@@ -209,7 +210,7 @@ static class ParfumeurTests
             Pruefe.Gleich(1, kw.Duft.Auftraege.Count);
             Pruefe.Wahr(kw.Duft.MoschusSchonRatsherr(kopieSpieler!, r.Name), "Moschus gemerkt");
             Pruefe.Gleich(w.Duft.HeiligBis(spieler), kw.Duft.HeiligBis(kopieSpieler!));
-            for (var i = 0; i < 24 * 60; i++) { sim.Tick(); kopie.Tick(); }
+            for (var i = 0; i < Spielzeit.MinutenProTag; i++) { sim.Tick(); kopie.Tick(); }
             var o1 = w.Familien.Von(eisenbart)!.Oberhaupt;
             var o2 = kw.Familien.Von(kw.Konten.Single(k => k.Inhaber == "Haus Eisenbart"))!.Oberhaupt;
             Pruefe.Gleich(o1.Krankheit?.Name, o2.Krankheit?.Name);

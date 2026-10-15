@@ -4,7 +4,7 @@ namespace Reichsgilde.Core.Zeit;
 /// Der Taktgeber übersetzt ECHTZEIT (Sekunden auf deiner Uhr) in SPIELMINUTEN (Ticks).
 ///
 /// Beispiel mit den Standardwerten:
-///   Rundendauer 15 Minuten = 900 Sekunden für 1440 Spielminuten
+///   Rundendauer 15 Minuten = 900 Sekunden für 1020 Spielminuten (05–22 Uhr)
 ///   → 1,6 Spielminuten pro echter Sekunde bei Tempo 1.
 ///
 /// Godot ruft jedes Bild (ca. 60× pro Sekunde) <see cref="Voranschreiten"/> mit der

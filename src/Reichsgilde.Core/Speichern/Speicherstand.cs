@@ -19,7 +19,7 @@ namespace Reichsgilde.Core.Speichern;
 /// <summary>Ein kompletter Spielstand.</summary>
 public sealed record Speicherstand
 {
-    public const int AktuellesFormat = 1;
+    public const int AktuellesFormat = 2; // 2: Spieltag 05–22 Uhr (1020 Minuten) statt 24 Stunden
 
     public int Format { get; init; } = AktuellesFormat;
 

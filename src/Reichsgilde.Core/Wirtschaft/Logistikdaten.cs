@@ -62,7 +62,7 @@ public sealed class UeberfallDaten
     /// <summary>Chance, dass eine beladene Umland-Fahrt bei Tag angegriffen wird.</summary>
     public double ChanceTag { get; init; } = 0.08;
 
-    /// <summary>Faktor für Fahrten in der Dunklen Nacht (21–06 Uhr).</summary>
+    /// <summary>Faktor für Fahrten in der Dunklen Nacht (20–22 Uhr).</summary>
     public double FaktorNacht { get; init; } = 2;
 }
 

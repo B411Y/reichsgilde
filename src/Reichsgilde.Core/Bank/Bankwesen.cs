@@ -201,7 +201,7 @@ public sealed class Bankwesen
     /// <summary>Der Zins, den dieses Haus für Kredite an Häuser verlangt.</summary>
     public double Zinssatz(Konto k) => _zinssaetze.GetValueOrDefault(k, IstAktiv ? Daten.Kredit.ZinsStandard : 0);
 
-    /// <summary>Umsatz des ganzen Marktes in einem Jahr (Angebot der letzten 24 Stunden × Preis, mit den auswärtigen Händlern).</summary>
+    /// <summary>Umsatz des ganzen Marktes in einem Jahr (Angebot des letzten Spieljahres × Preis, mit den auswärtigen Händlern).</summary>
     public double Marktvolumen => _w.Markt.Staende.Sum(s => s.Gesamtangebot * s.Preis);
 
     /// <summary>Wechselgebühr je Arbeitsminute eines Schreibers (vor Steuer, Stufe 1) – solange nicht zu viele Schreiber wechseln.</summary>
@@ -398,15 +398,15 @@ public sealed class Bankwesen
             b.Konto.Steuer((zins + wechsel) * steuer);
             Buchen(b.Konto, x => x with { Stadtzinsen = x.Stadtzinsen + zins, Wechsel = x.Wechsel + wechsel });
         }
-        if (zeit.MinuteImTag != 0) // die Stunde vor Mitternacht rechnet das Jahresende ab
+        if (zeit.MinuteImTag != 0) // die letzte Stunde des Jahres rechnet das Jahresende ab
             ZinsenAuflaufen();
     }
 
-    /// <summary>Eine Stunde Zinsen auf alle Kredite – ein Spieljahr hat 24 Stunden.</summary>
+    /// <summary>Eine Stunde Zinsen auf alle Kredite – ein Spieljahr hat <see cref="Spielzeit.StundenProTag"/> Stunden.</summary>
     private void ZinsenAuflaufen()
     {
         foreach (var k in _kredite)
-            k.Aufgelaufen += k.Rest * k.Satz / 24;
+            k.Aufgelaufen += k.Rest * k.Satz / Spielzeit.StundenProTag;
     }
 
     // ── Jahresende (vor dem Abschluss der Jahresrechnung) ────────────────────

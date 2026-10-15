@@ -65,7 +65,7 @@ public static class Partieaufbau
     };
 
     /// <returns>Die Simulation und das Konto des Spielers.</returns>
-    /// <param name="startzeit">Abweichender Startzeitpunkt (zum Testen); ohne Angabe Frühling 1400, 06:00.</param>
+    /// <param name="startzeit">Abweichender Startzeitpunkt (zum Testen); ohne Angabe Frühling 1400, 05:00.</param>
     public static (Simulation Simulation, Konto Spieler) Erstellen(Partieeinstellungen einstellungen, Wirtschaftsdaten daten, NeuePartie neu,
         Spielzeit? startzeit = null)
     {

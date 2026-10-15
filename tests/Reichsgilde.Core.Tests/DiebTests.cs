@@ -37,7 +37,7 @@ static class DiebTests
         while (sim.Zeit.Jahr == jahr) sim.Tick();
     }
 
-    /// <summary>Bis 21:01 – nach Arbeitszeit (6–18 Uhr) und der Nacht der Gauner.</summary>
+    /// <summary>Bis 20:01 – nach der Arbeitszeit (8–20 Uhr) und der Nacht der Gauner.</summary>
     static void BisNachDerNacht(Simulation sim)
     {
         for (var i = 0; i < 15 * 60 + 1; i++) sim.Tick();
@@ -97,7 +97,7 @@ static class DiebTests
             var (w, k, b) = Dieb(sim, leute: 3);
             w.Einstellen(b, "Lehrling", 1);
             var anderes = w.KontoEroeffnen("Haus Eisenbart", startvermoegen: 5_000);
-            for (var i = 0; i < 3 * 60 + 1; i++) sim.Tick(); // 09:01 – die erste Arbeitsstunde (ab 8 Uhr) ist abgerechnet
+            for (var i = 0; i < 4 * 60 + 1; i++) sim.Tick(); // 09:01 – die erste Arbeitsstunde (ab 8 Uhr) ist abgerechnet
             Pruefe.Gleich(0, b.Belegung.GetValueOrDefault("Lehrling"));
             Pruefe.Gleich(3, b.Belegt);
             var spur = w.Justiz.SpurenVon(k).Single();

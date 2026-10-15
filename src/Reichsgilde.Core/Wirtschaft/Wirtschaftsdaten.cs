@@ -284,7 +284,8 @@ public sealed class Wirtschaftsdaten
         var f = new List<string>();
         var a = Allgemein;
 
-        if (a.Arbeitsminuten is <= 0 or > 1440) f.Add("allgemein.arbeitsminuten muss zwischen 1 und 1440 liegen.");
+        if (a.Arbeitsminuten <= 0 || Stadtwirtschaft.Arbeitsbeginn + a.Arbeitsminuten > Zeit.Spielzeit.TagesendeMinute)
+            f.Add($"allgemein.arbeitsminuten muss zwischen 1 und {Zeit.Spielzeit.TagesendeMinute - Stadtwirtschaft.Arbeitsbeginn} liegen – gespielt wird bis 22 Uhr.");
         if (a.Elastizitaet < 0) f.Add("allgemein.elastizitaet darf nicht negativ sein.");
         if (a.PreisMin <= 0 || a.PreisMax < a.PreisMin) f.Add("allgemein.preisMin muss > 0 und ≤ preisMax sein.");
         if (a.Umsatzsteuer is < 0 or >= 1) f.Add("allgemein.umsatzsteuer muss zwischen 0 und 1 liegen.");

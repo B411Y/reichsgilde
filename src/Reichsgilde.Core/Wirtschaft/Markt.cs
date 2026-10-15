@@ -5,20 +5,20 @@ namespace Reichsgilde.Core.Wirtschaft;
 /// Ein Marktstand für eine Ware.
 ///
 /// Preisformel (siehe Dokument „Wirtschaftsmodell", Abschnitt 3):
-///   Angebot    = Nachfrage × NPC-Anteil + Spieler-Verkäufe der letzten 24 Spielstunden
+///   Angebot    = Nachfrage × NPC-Anteil + Spieler-Verkäufe des letzten Spieljahres (17 Spielstunden)
 ///   Faktor     = (Nachfrage / Angebot) ^ Elastizität, begrenzt auf [PreisMin … PreisMax]
 ///   Marktpreis = Grundpreis × Faktor
 ///
-/// Weil ein Spieltag ein Spieljahr ist, sind „die letzten 24 Spielstunden" genau ein Jahr.
-/// Die Verkäufe werden in 25 Stunden-Fächern gesammelt: dem laufenden Fach und den
-/// 24 vorherigen. Vom ältesten Fach zählt nur der Teil, der noch in die letzten 24 Stunden
-/// fällt. So umfasst das „gleitende Fenster" zu jeder Minute exakt 24 Stunden.
+/// Weil ein Spieltag ein Spieljahr ist, sind „die letzten 17 Spielstunden" (05–22 Uhr) genau ein Jahr.
+/// Die Verkäufe werden in 18 Stunden-Fächern gesammelt: dem laufenden Fach und den
+/// 17 vorherigen. Vom ältesten Fach zählt nur der Teil, der noch in die letzten 17 Stunden
+/// fällt. So umfasst das „gleitende Fenster" zu jeder Minute genau ein Spieljahr.
 /// </summary>
 public sealed class Marktstand
 {
     private readonly WareDaten _ware;
     private readonly AllgemeineDaten _allgemein;
-    private readonly double[] _verkaufteStueckProStunde = new double[25];
+    private readonly double[] _verkaufteStueckProStunde = new double[Zeit.Spielzeit.StundenProTag + 1];
     private int _aktuellesFach;
     private int _minuteInStunde;
 
@@ -31,7 +31,7 @@ public sealed class Marktstand
         _allgemein = allgemein;
     }
 
-    /// <summary>Was Spieler und KI-Rivalen in den letzten 24 Spielstunden verkauft haben.</summary>
+    /// <summary>Was Spieler und KI-Rivalen im letzten Spieljahr (17 Spielstunden) verkauft haben.</summary>
     public double SpielerAngebotImJahr
     {
         get

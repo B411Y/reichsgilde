@@ -31,10 +31,12 @@ Dieses Dokument erklärt die Grundidee hinter dem Code. Es wächst mit dem Proje
 | Begriff | Bedeutung |
 |---|---|
 | **Tick** | Eine Spielminute. Kleinste Zeiteinheit der Simulation. |
-| **Spieltag = Runde = Spieljahr** | 1440 Ticks, beginnt um 06:00 Uhr (wie im Original „Die Gilde“). |
+| **Spieltag = Runde = Spieljahr** | 1020 Ticks: gespielt wird von 05:00 bis 22:00 Uhr (wie im Original „Die Gilde“), dann kommt die Jahresrechnung. `Spielzeit.TagesbeginnMinute`, `TagesendeMinute`, `MinutenProTag` (1020), `StundenProTag` (17). |
 | **Jahreszeit** | Wechselt von Jahr zu Jahr: Frühling 1400 → Sommer 1401 → Herbst 1402 → Winter 1403 → … |
-| **Tagesphase** | Zunftglocke (06–11), Hoher Mittag (11–16), Vesper (16–21), Dunkle Nacht (21–06) |
+| **Tagesphase** | Zunftglocke (05–10), Hoher Mittag (10–15), Vesper (15–20), Dunkle Nacht (20–22) |
 | **Taktgeber** | Rechnet Echtzeit in Ticks um. Hier sitzen Rundendauer, Tempo und Pause. |
+
+**Stundenende und Jahreswechsel.** Alles, was je volle Stunde läuft (Gäste, Messe, Taschendiebe, Sold, Zinsen und Wechsel, die Überlegungen der KI), steckt in `Stadtwirtschaft.StundeVorbei`. Es läuft zu Beginn jeder vollen Stunde im Tag – die letzte Stunde (21–22 Uhr) aber rechnet `Jahresabrechnung` ab, bevor das Jahr schließt. So zählen die Abendgäste noch zum alten Jahr. `Spielzeit.StundeDieEndete` liefert dafür 21. Der Taktgeber teilt die 15 Minuten Echtzeit auf `MinutenProTag` auf. Spielstände haben seit dem Wechsel Format 2; ältere (24-Stunden-Tag) werden mit einer Meldung abgelehnt.
 
 Die Klasse `Spielzeit` weiß **nichts** über Echtzeit. Ob eine Runde 5 oder 30 Minuten dauert, ändert nur, *wie schnell* Ticks kommen – nicht, *was* in einem Tick passiert. Dadurch läuft die Simulation bei jedem Tempo gleich ab.
 
@@ -58,7 +60,7 @@ Alle Zahlen stehen in **`game/data/wirtschaft.json`**, nicht im Code. So lässt 
 | Baustein | Aufgabe |
 |---|---|
 | `Wirtschaftsdaten` | Liest die JSON-Datei und prüft sie. Fehler werden gesammelt und verständlich gemeldet. |
-| `Markt` / `Marktstand` | Preis = Grundpreis × (Nachfrage ÷ Angebot)^Elastizität. Das Angebot umfasst die Grundversorgung durch Händler, die keine Spieler sind, plus die Verkäufe der Spieler in den letzten 24 Spielstunden (= 1 Jahr). |
+| `Markt` / `Marktstand` | Preis = Grundpreis × (Nachfrage ÷ Angebot)^Elastizität. Das Angebot umfasst die Grundversorgung durch Händler, die keine Spieler sind, plus die Verkäufe der Spieler in den letzten 17 Spielstunden (= 1 Jahr, 18 Stundenfächer). |
 | `Betrieb` | Gießerei oder Mine mit Lager (40 je Ware). Arbeitet von 08:00 bis 20:00 Uhr. Fehlen Zutaten oder ist das Lager voll, ruht die Arbeit. |
 | `Karren` | Pendelt automatisch zwischen Betrieb und Markt. Er fährt los, wenn genug Ware da ist, Zutaten knapp werden oder Ware 4 Stunden wartet. Am Markt verkauft er und kauft knappe Zutaten ein. Der Karren ist ein **Zustandsautomat**: am Betrieb → zum Markt → zurück. |
 | `Ueberfall` | Beladene Umland-Fahrten können überfallen werden, nachts doppelt so oft. Die Täter sind Banden aus allen Völkern, oft gemischt, dazu wilde Ork-Rotten und Ogerhorden. Eine Eskorte senkt die Erfolgschance. |
@@ -300,7 +302,7 @@ Das Stadtgericht (`src/Reichsgilde.Core/Justiz/Stadtgericht.cs`) gehört zur Sta
 - **Jahreslauf** in der Jahresabrechnung: `Gesundheit.Jahresende()` (Tod durch Krankheit, Genesung) → `Familien.Jahreswechsel()` → `Gesundheit.NeuesJahr()` (Pest, neue Krankheiten). Tod durch Krankheit geht über `Familienbuch.AnKrankheitSterben` – mit Erbfolge und Todesursache in der Chronik.
 - **Pest:** `NaechstePest` wird gewürfelt (25–40 Jahre). Im Pestjahr steckt sie Familien und Brautschau an; `Krankenstand` (30 %) verlangsamt jede Arbeitsminute.
 - **Befehle:** `MedicusRufen`, `SchnapsKaufen` (Marktware „Kräuterschnaps“, Posten Familie), `SchnapsGeben` – frei, keine AP, auch aus dem Kerker.
-- **Krötenschleim:** neues `Gaunerstueck`, Vergehen `Giftmischerei`; trifft das Oberhaupt um 21 Uhr mit einer Krankheit aus `gesundheit.kroetenschleim`.
+- **Krötenschleim:** neues `Gaunerstueck`, Vergehen `Giftmischerei`; trifft das Oberhaupt um 20 Uhr mit einer Krankheit aus `gesundheit.kroetenschleim`.
 - **KI:** `Gesundheitspolitik` zur Politikstunde (Schnapsvorrat 2, Medicus bei Lebensgefahr und Pest, bei Talentverlust des Oberhaupts nur mit voller Reserve). Krötenschleim setzt sie (noch) nicht ein.
 
 ## Aktionspunkte
@@ -353,7 +355,7 @@ Die Unterwelt (`src/Reichsgilde.Core/Gauner/Unterwelt.cs`) gehört zur Stadtwirt
 
 - **Bestellen und Ausführen sind getrennt.**
   - `Beauftragen` bezahlt die Bande sofort.
-  - Ausgeführt wird in `Unterwelt.Nacht`, die die Stadtwirtschaft um 21:00 aufruft (`Unterwelt.Nachtstunde`).
+  - Ausgeführt wird in `Unterwelt.Nacht`, die die Stadtwirtschaft um 20:00 aufruft (`Unterwelt.Nachtstunde`).
   - Danach meldet `NachtVorbei`, dass offene Tafeln sich neu aufbauen sollen.
 - **Überfall als Hinterhalt:**
   - Die Wegelagerer warten bis zur nächsten Nacht. `Karren.Losfahren` fragt bei jeder beladenen Umlandfahrt `HinterhaltAusloesen`.

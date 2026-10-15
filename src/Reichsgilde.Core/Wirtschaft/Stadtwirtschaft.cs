@@ -291,20 +291,9 @@ public sealed class Stadtwirtschaft
         else if (zeit.VergangeneMinuten > 0)
             Markt.NeueMinute();
 
-        // Gäste der vergangenen Stunde kehren in die Schänken ein.
-        if (zeit.MinuteImTag % 60 == 0 && zeit.VergangeneMinuten > 0)
-        {
-            Gastwirtschaft.Stunde(zeit);
-            Kirchenwesen.Stunde(zeit); // zur Messe wird gespendet
-            Diebe.Stunde(zeit);        // die Taschendiebe der vergangenen Stunde
-            Wache.Stunde(zeit);        // Sold für die Wachleute
-            Bank.Stunde(zeit);         // Zinsen der Stadtkunden, Wechsel; Kreditzinsen laufen auf
-        }
-
-        // Die KI überlegt jede volle Stunde – mit den Marktpreisen dieser Stunde.
-        if (zeit.MinuteImTag % 60 == 0 && zeit.VergangeneMinuten > 0)
-            foreach (var rivale in _rivalen)
-                rivale.Stunde(); // bankrotte Rivalen tun nichts mehr
+        // Jede volle Stunde im Tag (die letzte Stunde des Jahres rechnet die Jahresrechnung ab, bevor sie beginnt).
+        if (zeit.MinuteImTag % 60 == 0 && zeit.MinuteImTag > 0)
+            StundeVorbei(zeit);
 
         if (IstArbeitszeit(zeit))
             foreach (var betrieb in _betriebe)
@@ -333,9 +322,26 @@ public sealed class Stadtwirtschaft
             karren.Tick(zeit, this);
     }
 
-    /// <summary>Jahresende für alle Betriebe und Konten.</summary>
-    internal void Jahresabrechnung(int neuesJahr)
+    /// <summary>
+    /// Eine volle Stunde ist vorbei: Gäste, Messe, Taschendiebe, Sold, Zinsen und Wechsel dieser Stunde –
+    /// dann überlegt die KI, mit den Marktpreisen dieser Stunde.
+    /// </summary>
+    private void StundeVorbei(Spielzeit zeit)
     {
+        Gastwirtschaft.Stunde(zeit);
+        Kirchenwesen.Stunde(zeit); // zur Messe wird gespendet
+        Diebe.Stunde(zeit);        // die Taschendiebe der vergangenen Stunde
+        Wache.Stunde(zeit);        // Sold für die Wachleute
+        Bank.Stunde(zeit);         // Zinsen der Stadtkunden, Wechsel; Kreditzinsen laufen auf
+        foreach (var rivale in _rivalen)
+            rivale.Stunde(); // bankrotte Rivalen tun nichts mehr
+    }
+
+    /// <summary>Jahresende für alle Betriebe und Konten.</summary>
+    /// <param name="zeit">Die Uhr steht schon auf dem neuen Jahr (05:00) – zuerst wird noch die letzte Stunde (21–22 Uhr) abgerechnet.</param>
+    internal void Jahresabrechnung(int neuesJahr, Spielzeit zeit)
+    {
+        StundeVorbei(zeit);
         foreach (var betrieb in _betriebe.Where(b => b.Konto.IstAktiv))
             betrieb.Jahresabrechnung(_zufall, m => Meldung?.Invoke(m));
         Rat.ProtokollBeginnen();

@@ -48,7 +48,7 @@ public sealed class Simulation
     public event Action? PartieBeendet;
 
     /// <param name="einstellungen">Partie-Einstellungen; ohne Angabe die Standardwerte.</param>
-    /// <param name="zeit">Startzeitpunkt; ohne Angabe Frühling 1400, 06:00.</param>
+    /// <param name="zeit">Startzeitpunkt; ohne Angabe Frühling 1400, 05:00.</param>
     /// <param name="wirtschaftsdaten">Daten aus game/data/wirtschaft.json; ohne Angabe läuft nur die Zeit.</param>
     public Simulation(Partieeinstellungen? einstellungen = null, Spielzeit? zeit = null, Wirtschaftsdaten? wirtschaftsdaten = null)
     {
@@ -105,7 +105,7 @@ public sealed class Simulation
 
     private void Jahresabrechnung(int beendetesJahr)
     {
-        Wirtschaft?.Jahresabrechnung(Zeit.Jahr);
+        Wirtschaft?.Jahresabrechnung(Zeit.Jahr, Zeit);
         JahrBeendet?.Invoke(beendetesJahr);
 
         var vermoegen = (long)Math.Floor(Wirtschaft?.HoechstesVermoegen ?? 0);
