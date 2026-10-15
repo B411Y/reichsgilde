@@ -37,7 +37,7 @@ static class AlchimistTests
             Pruefe.Wahr(w.Ausfuehren(k, new ProduktWaehlen(t.Name, "Kräuterschnaps")).Erfolg, "Schnaps");
             t.Einlagern("Kräuter", 3);
             w.Einstellen(t, "Geselle", 2);
-            for (var i = 0; i < 600; i++) sim.Tick(); // bis 16 Uhr
+            for (var i = 0; i < 660; i++) sim.Tick(); // bis 16 Uhr
             Pruefe.Gleich(3, t.ImLager("Kräuterschnaps"));
             Pruefe.Gleich(0, t.ImLager("Kräuter"));
             Pruefe.Wahr(k.Beherrscht("Alchimist") && k.Erfahrung("Alchimist") > 0, "Erfahrung");

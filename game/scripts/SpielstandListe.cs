@@ -33,6 +33,18 @@ public partial class SpielstandListe : VBoxContainer
     {
         UiHilfe.KinderEntfernen(_eintraege);
         var liste = Spielstaende.Liste();
+        if (Spielstaende.Veraltete > 0)
+        {
+            var hinweis = new Label
+            {
+                Text = $"{Spielstaende.Veraltete} {(Spielstaende.Veraltete == 1 ? "älterer Spielstand stammt" : "ältere Spielstände stammen")} aus der Zeit des 24-Stunden-Tags " +
+                       $"und {(Spielstaende.Veraltete == 1 ? "lässt" : "lassen")} sich nicht mehr laden.",
+                AutowrapMode = TextServer.AutowrapMode.WordSmart, CustomMinimumSize = new Vector2(440, 0),
+            };
+            hinweis.AddThemeFontSizeOverride("font_size", 12);
+            hinweis.AddThemeColorOverride("font_color", new Color(0.75f, 0.75f, 0.75f));
+            _eintraege.AddChild(hinweis);
+        }
         if (liste.Count == 0)
         {
             _eintraege.AddChild(new Label { Text = "Noch keine Spielstände vorhanden." });

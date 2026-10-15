@@ -118,6 +118,7 @@ public partial class Hauptszene : Node
         _datum = GetNode<Label>("%Datum");
         _uhrzeit = GetNode<Label>("%Uhrzeit");
         _tagesfortschritt = GetNode<ProgressBar>("%Tagesfortschritt");
+        _tagesfortschritt.MaxValue = Spielzeit.MinutenProTag; // 05–22 Uhr
         _pauseKnopf = GetNode<Button>("%PauseKnopf");
         _tempoleiste = GetNode<HBoxContainer>("%Tempoleiste");
         _hinweis = GetNode<Label>("%Hinweis");
@@ -323,7 +324,7 @@ public partial class Hauptszene : Node
 
         Spielzeit? start = null;
         if (optionen.TryGetValue("startstunde", out var s) && int.TryParse(s, out var stunde))
-            start = new Spielzeit(((stunde - 6 + 24) % 24) * 60L);
+            start = new Spielzeit(Math.Clamp(stunde * 60 - Spielzeit.TagesbeginnMinute, 0, Spielzeit.MinutenProTag - 1));
         double? startvermoegen = optionen.TryGetValue("vermoegen", out var v) && double.TryParse(v, out var betrag) ? betrag : null;
 
         var (simulation, spieler) = Partieaufbau.Erstellen(einstellungen ?? Partieeinstellungen.Standard, daten,
@@ -451,7 +452,7 @@ public partial class Hauptszene : Node
         _gerichtssaal.Verbinden(simulation, spieler);
         _hinterzimmer.Verbinden(simulation, spieler);
         _markt.Verbinden(simulation, spieler);
-        // Um 21 Uhr schlagen die Banden zu – ein offenes Hinterzimmer zeigt sofort, was geschah.
+        // Um 20 Uhr schlagen die Banden zu – ein offenes Hinterzimmer zeigt sofort, was geschah.
         w.Gauner.NachtVorbei += () => { if (_hinterzimmer.Visible) _hinterzimmer.Aufbauen(); };
         _verwaltung.Verbinden(simulation, spieler);
         // Die Stadtansicht stellt jeden Betrieb an seinen Platz im Stadtplan und zeigt die freien Plätze.

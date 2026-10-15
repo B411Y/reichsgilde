@@ -188,7 +188,7 @@ public partial class GaunerAnzeige : PanelContainer
         var imKerker = gericht.IstAktiv && gericht.ImKerker(_spieler);
 
         Hauptmenue.Text(_inhalt, "Hinterzimmer", 26, Gold, zentriert: true);
-        Text(_inhalt, "Bei Nacht und Nebel: Bestellt wird jetzt, ausgeführt heute um 21 Uhr. Bezahlt wird im Voraus. " +
+        Text(_inhalt, "Bei Nacht und Nebel: Bestellt wird jetzt, ausgeführt heute um 20 Uhr. Bezahlt wird im Voraus. " +
                       $"Jedes Gaunerstück hinterlässt eine Spur fürs Gericht, und mit {Prozent(g.ZeugenChance)} Chance " +
                       $"(bei einem Wächter {Prozent(g.ZeugenChanceWaechter)}) erkennt euch ein Zeuge. Der Hehler zahlt {Prozent(g.HehlerAnteil)} des Marktwerts.",
             12, Grau, umbrechen: true);

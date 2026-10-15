@@ -117,9 +117,9 @@ static class MeistergradeTests
             var e2 = w.Ausfuehren(k, new BetriebAusbauen(g.Name));
             Pruefe.Wahr(!e2.Erfolg && e2.Meldung.Contains("umgebaut"), e2.Meldung);
 
-            // Die Partie beginnt um 6 Uhr, gearbeitet wird ab 8: 360 Arbeitsminuten Umbau bis 14 Uhr, danach wird gearbeitet
+            // Die Partie beginnt um 5 Uhr, gearbeitet wird ab 8: 360 Arbeitsminuten Umbau bis 14 Uhr, danach wird gearbeitet
             g.Einlagern("Silber", 20); g.Einlagern("Eisen", 20); g.Einlagern("Beschlag", 10);
-            for (var i = 0; i < 120 + 300; i++) sim.Tick();
+            for (var i = 0; i < 180 + 300; i++) sim.Tick();
             Pruefe.Wahr(g.Stillstand?.Contains("Umbau") == true, g.Stillstand ?? "kein Stillstand");
             for (var i = 0; i < 120; i++) sim.Tick();
             Pruefe.Gleich(0, g.UmbauMinuten);

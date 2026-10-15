@@ -102,6 +102,8 @@ public static class Speicherung
             throw new SpielstandFehler("Die Datei ist leer.");
         if (stand.Format > Speicherstand.AktuellesFormat)
             throw new SpielstandFehler($"Der Spielstand stammt aus einer neueren Version (Format {stand.Format}, dieses Programm kennt bis {Speicherstand.AktuellesFormat}).");
+        if (stand.Format < 2)
+            throw new SpielstandFehler("Der Spielstand stammt aus einer älteren Version mit 24-Stunden-Tag – seit dem Spieltag von 05 bis 22 Uhr lässt er sich nicht mehr laden. Bitte eine neue Partie beginnen.");
         return stand;
     }
 

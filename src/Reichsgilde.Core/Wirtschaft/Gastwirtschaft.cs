@@ -47,7 +47,7 @@ public sealed class BardeDaten
 }
 
 /// <summary>
-/// Gäste, Ausschank und die Extras der Wirtshäuser. Gäste kehren von <see cref="OeffnetUm"/> bis Mitternacht ein,
+/// Gäste, Ausschank und die Extras der Wirtshäuser. Gäste kehren von <see cref="OeffnetUm"/> bis 22 Uhr (Ende des Spieltags) ein,
 /// abends doppelt so viele; sie verteilen sich nach der Anziehung der Schänken (Stufe, Ansehen, Barde).
 /// </summary>
 public sealed class GastwirtschaftDaten
@@ -87,7 +87,10 @@ public sealed class GastwirtschaftDaten
         foreach (var w in Ausschank.Where(w => !waren.ContainsKey(w)))
             f.Add($"gastwirtschaft.ausschank: Die Ware „{w}“ gibt es nicht.");
         if (Aufschlag <= 0 || GaesteJeJahr < 0 || Vorrat < 0) f.Add("gastwirtschaft: aufschlag > 0, gaesteJeJahr und vorrat ≥ 0.");
-        if (OeffnetUm is < 6 or > 23 || AbendAb < OeffnetUm || AbendAb > 23) f.Add("gastwirtschaft: oeffnetUm zwischen 6 und 23, abendAb danach.");
+        var erste = Spielzeit.TagesbeginnMinute / 60;
+        var letzte = Spielzeit.TagesendeMinute / 60 - 1;
+        if (OeffnetUm < erste || OeffnetUm > letzte || AbendAb < OeffnetUm || AbendAb > letzte)
+            f.Add($"gastwirtschaft: oeffnetUm zwischen {erste} und {letzte} (gespielte Stunden), abendAb danach.");
         if (AnziehungJeStufe.Count == 0 || AnziehungJeStufe.Any(a => a <= 0)) f.Add("gastwirtschaft.anziehungJeStufe: Werte größer als 0.");
         if (DunkleEcke.Chance is < 0 or > 1) f.Add("gastwirtschaft.dunkleEcke.chance muss zwischen 0 und 1 liegen.");
         if (Barde.Kosten < 0 || Barde.Gaeste < 0 || Barde.Zeche < 0 || Barde.Stammtisch < 0) f.Add("gastwirtschaft.barde: Werte dürfen nicht negativ sein.");
@@ -155,7 +158,10 @@ public sealed class Gastwirtschaft
 
     private bool IstAbend(int stunde) => stunde >= Daten.AbendAb;
 
-    private double GewichtSumme => Enumerable.Range(0, 24).Sum(Gewicht);
+    /// <summary>Summe der Gewichte über alle gespielten Stunden (05–22 Uhr).</summary>
+    private static IEnumerable<int> Spielstunden => Enumerable.Range(Spielzeit.TagesbeginnMinute / 60, Spielzeit.StundenProTag);
+
+    private double GewichtSumme => Spielstunden.Sum(Gewicht);
 
     /// <summary>Erwartete Gäste im Jahr für diese Schänke bei der heutigen Konkurrenz (ohne Barde).</summary>
     public double ErwarteteGaeste(Betrieb b)
@@ -168,7 +174,7 @@ public sealed class Gastwirtschaft
     public double BardeNutzen(Betrieb b)
     {
         var d = Daten;
-        var abendAnteil = Enumerable.Range(d.AbendAb, 24 - d.AbendAb).Sum(Gewicht) / GewichtSumme;
+        var abendAnteil = Spielstunden.Where(s => s >= d.AbendAb).Sum(Gewicht) / GewichtSumme;
         var abendGaeste = ErwarteteGaeste(b) * abendAnteil;
         var zeche = d.Ausschank.Where(b.Artdaten.Produkte.Contains).Select(Ausschankpreis).DefaultIfEmpty(0).Average();
         return abendGaeste * d.Barde.Gaeste * zeche + abendGaeste * (1 + d.Barde.Gaeste) * zeche * d.Barde.Zeche
@@ -186,7 +192,7 @@ public sealed class Gastwirtschaft
     {
         if (!IstAktiv) return;
         var d = Daten;
-        var stunde = (zeit.UhrzeitInMinuten / 60 + 23) % 24; // die Stunde, die gerade zu Ende ging
+        var stunde = zeit.StundeDieEndete;
         var gewicht = Gewicht(stunde);
         if (gewicht <= 0) return;
         var schaenken = Schaenken.ToList();

@@ -4,6 +4,7 @@ using Reichsgilde.Core.Ki;
 using Reichsgilde.Core.Partie;
 using Reichsgilde.Core.Speichern;
 using Reichsgilde.Core.Wirtschaft;
+using Reichsgilde.Core.Zeit;
 
 /// <summary>Tests für den Geldleiher: Kasse, Stadtzinsen, Wechsel, Kredite an Häuser, Pfändung, Wucher, Ausfälle, AP, KI.</summary>
 static class GeldleiherTests
@@ -129,9 +130,9 @@ static class GeldleiherTests
             var sim = NeueSimulation();
             var (w, geber, _) = Geldleihe(sim);
             var nehmer = w.KontoEroeffnen("Haus Eisenbart", startvermoegen: 10_000);
-            w.Ausfuehren(nehmer, new KreditAufnehmen(geber.Inhaber, 3_000, 3)); // um Mitternacht, 12 %
-            for (var i = 0; i < 18 * 60 + 1; i++) sim.Tick(); // bis einschließlich der Stunde um 18:00
-            Pruefe.Ungefaehr(3_000 * 0.12 * 18 / 24, w.Bank.KreditVon(nehmer)!.Aufgelaufen, 1e-6);
+            w.Ausfuehren(nehmer, new KreditAufnehmen(geber.Inhaber, 3_000, 3)); // zur Zunftglocke (05:00), 12 %
+            for (var i = 0; i < 13 * 60 + 1; i++) sim.Tick(); // bis einschließlich der Stunde um 18:00 (13 Stunden)
+            Pruefe.Ungefaehr(3_000 * 0.12 * 13 / 17, w.Bank.KreditVon(nehmer)!.Aufgelaufen, 1e-6); // ein Jahr hat 17 Stunden
             JahrBeenden(sim);
             var zins = 3_000 * 0.12; // ein ganzes Jahr
             Pruefe.Ungefaehr(zins, nehmer.Vorjahr!.Zinsen, 1e-6);
@@ -149,12 +150,13 @@ static class GeldleiherTests
             var (w, geber, _) = Geldleihe(sim);
             var nehmer = w.KontoEroeffnen("Haus Eisenbart", startvermoegen: 10_000);
             w.Ausfuehren(nehmer, new KreditAufnehmen(geber.Inhaber, 2_400, 2));
-            for (var i = 0; i < 121; i++) sim.Tick(); // zwei volle Stunden (01:00 und 02:00)
+            for (var i = 0; i < 121; i++) sim.Tick(); // zwei volle Stunden (06:00 und 07:00)
             var kredit = w.Bank.KreditVon(nehmer)!;
-            Pruefe.Ungefaehr(2_400 * 0.12 * 2 / 24, kredit.Aufgelaufen, 1e-9);
+            var zinsen = 2_400 * 0.12 * 2 / 17;
+            Pruefe.Ungefaehr(zinsen, kredit.Aufgelaufen, 1e-9);
             Pruefe.Wahr(w.Ausfuehren(nehmer, new KreditTilgen()).Erfolg, "ablösen");
             Pruefe.Gleich<object?>(null, w.Bank.KreditVon(nehmer));
-            Pruefe.Ungefaehr(10_000 - 24, nehmer.Vermoegen, 1e-6);
+            Pruefe.Ungefaehr(10_000 - zinsen, nehmer.Vermoegen, 1e-6);
             Pruefe.Ungefaehr(0, nehmer.Schulden, 1e-9);
             Pruefe.Ungefaehr(0, geber.Forderungen, 1e-9);
         }),
@@ -254,7 +256,7 @@ static class GeldleiherTests
             var kw = kopie.Wirtschaft!;
             Pruefe.Gleich(w.Bank.DiesesJahr(spieler), kw.Bank.DiesesJahr(kopieSpieler!));
             Pruefe.Ungefaehr(0.18, kw.Bank.Zinssatz(kopieSpieler!), 1e-12);
-            for (var i = 0; i < 24 * 60; i++) { sim.Tick(); kopie.Tick(); }
+            for (var i = 0; i < Spielzeit.MinutenProTag; i++) { sim.Tick(); kopie.Tick(); }
             Pruefe.Gleich(w.Bank.Vorjahr(spieler), kw.Bank.Vorjahr(kopieSpieler!));
             Pruefe.Ungefaehr(w.Bank.Kasse(stube), kw.Bank.Kasse(kw.Betriebe.Single(b => b.Name == stube.Name)), 1e-9);
             Pruefe.Ungefaehr(w.Bank.Kredite.Single().Rest, kw.Bank.Kredite.Single().Rest, 1e-9);

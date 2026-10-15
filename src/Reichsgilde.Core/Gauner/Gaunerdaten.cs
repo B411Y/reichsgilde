@@ -68,14 +68,14 @@ public sealed class UeberfallDaten
     /// <summary>Stärke der angeheuerten Wegelagerer – Erfolg = Stärke × (1 − Schutz der Eskorte).</summary>
     public double Staerke { get; init; } = 0.8;
 
-    /// <summary>So lange (Spielminuten) liegt der Hinterhalt auf der Lauer. 1440 = ein Spieltag = ein Jahr.</summary>
-    public int GueltigMinuten { get; init; } = 1440;
+    /// <summary>So lange (Spielminuten) liegt der Hinterhalt auf der Lauer. 1020 = ein Spieltag (05–22 Uhr) = ein Jahr.</summary>
+    public int GueltigMinuten { get; init; } = 1020;
 }
 
 /// <summary>
 /// Alle Zahlen zur Unterwelt (Abschnitt "gauner" in wirtschaft.json).
 ///
-/// Ausgeführt wird bei Nacht und Nebel (21:00, Beginn der Dunklen Nacht). Jedes Gaunerstück hinterlässt
+/// Ausgeführt wird bei Nacht und Nebel (20:00, Beginn der Dunklen Nacht). Jedes Gaunerstück hinterlässt
 /// eine Spur fürs Gericht; mit <see cref="ZeugenChance"/> hat das Opfer sofort einen Beweis.
 /// Ein Wächter halbiert die Erfolgschance von Diebstahl und Sabotage und macht Zeugen wahrscheinlicher.
 /// </summary>

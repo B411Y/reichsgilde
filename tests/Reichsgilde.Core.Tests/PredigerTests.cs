@@ -27,7 +27,7 @@ static class PredigerTests
     /// <summary>Bis nach der Messe (10 Uhr; die Partie beginnt um 6).</summary>
     static void NachDerMesse(Simulation sim)
     {
-        for (var i = 0; i < 4 * 60 + 1; i++) sim.Tick();
+        for (var i = 0; i < 5 * 60 + 1; i++) sim.Tick(); // 05:00 → 10:01
     }
 
     /// <summary>Eine Kirche der gewünschten Art mit Personal, ohne Karren.</summary>
@@ -69,7 +69,7 @@ static class PredigerTests
             var sim = NeueSimulation();
             var (w, k, b) = Prediger(sim);
             var vorher = k.Laufend.Umsatz;
-            for (var i = 0; i < 3 * 60 + 59; i++) sim.Tick(); // 9:59 – noch keine Messe
+            for (var i = 0; i < 4 * 60 + 59; i++) sim.Tick(); // 9:59 – noch keine Messe
             Pruefe.Gleich(0.0, w.Kirchenwesen.DiesesJahr(b).Kollekte);
             sim.Tick(); sim.Tick();
             var buch = w.Kirchenwesen.DiesesJahr(b);

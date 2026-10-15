@@ -24,9 +24,11 @@ static class WirtTests
     }
 
     /// <summary>Bis Mitternacht: Die Partie beginnt um 6 Uhr, die Schänken öffnen um 12.</summary>
-    static void BisMitternacht(Simulation sim)
+    /// <summary>Den ganzen Spieltag bis 22 Uhr spielen – die letzte Stunde rechnet die Jahresrechnung ab, das Gästebuch steht dann im Vorjahr.</summary>
+    static void TagVorbei(Simulation sim)
     {
-        for (var i = 0; i < 18 * 60 + 1; i++) sim.Tick();
+        var jahr = sim.Zeit.Jahr;
+        while (sim.Zeit.Jahr == jahr) sim.Tick();
     }
 
     /// <summary>Eine Schänke der gewünschten Art mit Personal und Bier im Lager, ohne Karren.</summary>
@@ -61,14 +63,14 @@ static class WirtTests
             var sim = NeueSimulation();
             var (w, k, s) = Wirt(sim);
             var g = w.Gastwirtschaft;
-            for (var i = 0; i < 7 * 60 + 1; i++) sim.Tick(); // bis 13 Uhr: die erste Stunde ist vorbei
-            Pruefe.Wahr(g.DiesesJahr(s).Bewirtet is >= 5 and <= 6, $"nach der ersten Stunde {g.DiesesJahr(s).Bewirtet}"); // 120 × 1/18
+            for (var i = 0; i < 8 * 60 + 1; i++) sim.Tick(); // bis 13 Uhr: die erste Stunde ist vorbei
+            Pruefe.Wahr(g.DiesesJahr(s).Bewirtet is >= 8 and <= 9, $"nach der ersten Stunde {g.DiesesJahr(s).Bewirtet}"); // 120 × 1/14 (12–18 Uhr je 1, 18–22 Uhr je 2)
             var vorher = k.Laufend.Umsatz;
-            for (var i = 0; i < 11 * 60; i++) sim.Tick(); // bis Mitternacht
-            var buch = g.DiesesJahr(s);
+            TagVorbei(sim); // bis 22 Uhr – die Gäste der letzten Stunde zählen noch zum Jahr
+            var buch = g.Vorjahr(s)!;
             Pruefe.Wahr(buch.Bewirtet is >= 119 and <= 120, $"bewirtet {buch.Bewirtet}");
             Pruefe.Ungefaehr(buch.Bewirtet * 85 * 1.25, buch.Einnahmen, 1e-9);
-            Pruefe.Wahr(k.Laufend.Umsatz > vorher, "kein Umsatz");
+            Pruefe.Wahr(k.Vorjahr!.Umsatz > vorher, "kein Umsatz");
             Pruefe.Gleich(0, buch.Abgewiesen);
         }),
 
@@ -76,8 +78,8 @@ static class WirtTests
         {
             var sim = NeueSimulation();
             var (w, _, s) = Wirt(sim, bier: 10);
-            BisMitternacht(sim);
-            var buch = w.Gastwirtschaft.DiesesJahr(s);
+            TagVorbei(sim);
+            var buch = w.Gastwirtschaft.Vorjahr(s)!;
             Pruefe.Gleich(10, buch.Bewirtet);
             Pruefe.Wahr(buch.Abgewiesen >= 109, $"abgewiesen {buch.Abgewiesen}");
 
@@ -92,10 +94,10 @@ static class WirtTests
             var sim = NeueSimulation();
             var (w, _, schaenke) = Wirt(sim, name: "Familie Krug");
             var (_, _, wirtshaus) = Wirt(sim, Betriebsart.Wirtshaus, name: "Familie Humpen");
-            BisMitternacht(sim);
+            TagVorbei(sim);
             var g = w.Gastwirtschaft;
-            var a = g.DiesesJahr(schaenke).Bewirtet;
-            var b = g.DiesesJahr(wirtshaus).Bewirtet;
+            var a = g.Vorjahr(schaenke)!.Bewirtet;
+            var b = g.Vorjahr(wirtshaus)!.Bewirtet;
             Pruefe.Wahr(a + b is >= 118 and <= 120, $"{a} + {b}");
             Pruefe.Ungefaehr(1.5, b / (double)a, 0.05);
         }),
@@ -108,13 +110,11 @@ static class WirtTests
             Pruefe.Wahr(w.Ausfuehren(k, new BardeEinladen(s.Name)).Erfolg, "Barde");
             Pruefe.Ungefaehr(vorher - 120, k.Vermoegen, 1e-9);
             Pruefe.Wahr(!w.Ausfuehren(k, new BardeEinladen(s.Name)).Erfolg, "zweimal");
-            BisMitternacht(sim);
-            var buch = w.Gastwirtschaft.DiesesJahr(s);
-            Pruefe.Wahr(buch.Bewirtet is >= 159 and <= 160, $"bewirtet {buch.Bewirtet}"); // 40 nachmittags + 80 × 1,5 abends
+            TagVorbei(sim);
+            var buch = w.Gastwirtschaft.Vorjahr(s)!;
+            Pruefe.Wahr(buch.Bewirtet is >= 153 and <= 155, $"bewirtet {buch.Bewirtet}"); // 120 × 6/14 nachmittags + 120 × 8/14 × 1,5 abends
             Pruefe.Wahr(buch.Einnahmen > buch.Bewirtet * 85 * 1.25, "keine höhere Zeche");
-            JahrBeenden(sim);
             Pruefe.Wahr(!w.Gastwirtschaft.BardeGebucht(s), "Der Barde zieht zum Jahresende weiter");
-            Pruefe.Wahr(w.Gastwirtschaft.Vorjahr(s)?.Bewirtet >= 159, "Gästebuch des Vorjahrs");
         }),
 
         ("Würfeltisch: erst im Wirtshaus; bringt 4 Gulden je Gast, kostet 2 Ansehen", () =>
@@ -127,10 +127,10 @@ static class WirtTests
             var ansehen = w.Rat.Ansehen(k2);
             Pruefe.Wahr(w.Ausfuehren(k2, new WuerfeltischAufstellen(wirtshaus.Name, true)).Erfolg, "Würfeltisch");
             Pruefe.Ungefaehr(ansehen - 2, w.Rat.Ansehen(k2), 1e-9);
-            BisMitternacht(sim);
-            var buch = w.Gastwirtschaft.DiesesJahr(wirtshaus);
+            TagVorbei(sim);
+            var buch = w.Gastwirtschaft.Vorjahr(wirtshaus)!;
             Pruefe.Ungefaehr(buch.Bewirtet * 4.0, buch.Wuerfelgeld, 1e-9);
-            Pruefe.Gleich(0.0, w.Gastwirtschaft.DiesesJahr(s).Wuerfelgeld);
+            Pruefe.Gleich(0.0, w.Gastwirtschaft.Vorjahr(s)!.Wuerfelgeld);
         }),
 
         ("Stammtisch: Ein Gasthaus bringt am Jahresende Gunst bei jedem Ratsherrn – mit Barde doppelt, ohne Bestechungsspur", () =>
@@ -182,7 +182,7 @@ static class WirtTests
             Pruefe.Gleich("Schänke am Weinmarkt", s.Name);
             s.Einlagern("Körnermahlzeit", 30);
             Pruefe.Wahr(w.Ausfuehren(spieler, new BardeEinladen(s.Name)).Erfolg, "Barde");
-            for (var i = 0; i < 9 * 60 + 30; i++) sim.Tick(); // 15:30 – Gäste waren schon da
+            for (var i = 0; i < 9 * 60 + 30; i++) sim.Tick(); // 14:30 – Gäste waren schon da
             var (kopie, kopieSpieler) = Speicherung.Laden(Speicherung.Speichern(sim, spieler));
             var ks = kopie.Wirtschaft!.Betriebe.Single(b => b.Konto == kopieSpieler);
             var g = kopie.Wirtschaft.Gastwirtschaft;

@@ -262,13 +262,13 @@ public sealed class Duftwesen
         var preis = Beschaffen(konto, dolch, konto.Gaunerkosten);
         _auftraege.Add(new Giftauftrag(konto, ziel, dolch));
         _anschlaege[konto] = AnschlaegeDiesesJahr(konto) + 1;
-        return Befehlsergebnis.Ok($"Der {dolch} liegt bereit ({Herkunft(preis)}). Heute Nacht um 21 Uhr trifft er {ziel.Inhaber} – " +
+        return Befehlsergebnis.Ok($"Der {dolch} liegt bereit ({Herkunft(preis)}). Heute Nacht um 20 Uhr trifft er {ziel.Inhaber} – " +
                                   $"Chance {Zahlenformat.Ganz(Giftchance(konto, dolch) * 100)} %.");
     }
 
     // ── Nacht und Jahresende ────────────────────────────────────────────────
 
-    /// <summary>Um 21:00 (nach Banden und Dieben): die Giftanschläge.</summary>
+    /// <summary>Um 20:00 (nach Banden und Dieben): die Giftanschläge.</summary>
     internal void Nacht()
     {
         if (!IstAktiv || _auftraege.Count == 0) return;
