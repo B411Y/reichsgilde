@@ -83,7 +83,8 @@ public partial class Stadtansicht
     private void Innenraum(BetriebsAnsicht ansicht, Werkstil stil, float breite, float tiefe, float dicke)
     {
         var p = ansicht.Mitte;
-        var innen = new Node3D { Name = "Innen", Visible = false };
+        // Die Räume liegen unter der Stadt (Raumansicht, siehe Stadtansicht.Raeume.cs).
+        var innen = new Node3D { Name = "Innen", Visible = false, Position = new Vector3(0, RaumTiefe, 0) };
         AddChild(innen);
         ansicht.Innen = innen;
         ansicht.Stil = stil;
@@ -119,6 +120,7 @@ public partial class Stadtansicht
             case Werkstil.Siederei: SiedereiEinrichten(ansicht); break;
             default: GiessereiEinrichten(ansicht); break;
         }
+        WerkstattRaeumeAnlegen(ansicht, stil, breite - 2 * dicke, tiefe - 2 * dicke);
     }
 
     // ── Bausteine (Orte relativ zur Mitte der Werkstatt) ────────────────────
@@ -228,17 +230,15 @@ public partial class Stadtansicht
         Teil(a, o + new Vector3(0, 0.6f, 0), new Vector3(1.8f, 1.2f, 2.2f), stein);
         var kohle = Leuchtend(new Color(0.15f, 0.08f, 0.05f), new Color(1f, 0.4f, 0.08f));
         Teil(a, o + new Vector3(0, 1.23f, 0), new Vector3(1.3f, 0.08f, 1.6f), kohle);
-        // Der Rauchfang hängt an der Ostwand: Blickt man von Osten hinein, verschwindet er mit ihr
-        // und gibt den Blick auf die Arbeiter frei.
-        var ostwand = a.Waende.First(x => x.Aussen == Vector3.Right).Wand;
-        ostwand.AddChild(new MeshInstance3D
+        // Rauchfang über der Esse bis unter die Decke
+        a.Innen!.AddChild(new MeshInstance3D
         {
             Mesh = new CylinderMesh { TopRadius = 0.55f, BottomRadius = 1.35f, Height = 2.4f, RadialSegments = 4 },
             MaterialOverride = stein,
-            Position = p + o + new Vector3(0, 3.4f, 0) - ostwand.Position,
+            Position = p + o + new Vector3(0, 3.4f, 0),
             RotationDegrees = new Vector3(0, 45, 0),
         });
-        Quader(p + o + new Vector3(0, 5.3f, 0) - ostwand.Position, new Vector3(0.9f, 1.4f, 0.9f), stein, ostwand);
+        Teil(a, o + new Vector3(0, 5.3f, 0), new Vector3(0.9f, 1.4f, 0.9f), stein);
         Teil(a, o + new Vector3(0.1f, 0.45f, 1.7f), new Vector3(0.9f, 0.5f, 1.0f), Material(new Color(0.42f, 0.30f, 0.20f))); // Blasebalg
         FeuerAnlegen(a, o + new Vector3(-0.6f, 2f, 0), kohle, lichtAn: 2.5f, lichtAus: 0.3f, glutAn: 1.6f, glutAus: 0.3f, reichweite: 8, schatten: true);
 
@@ -624,10 +624,9 @@ public partial class Stadtansicht
         Rund(a, new Vector3(3.55f, 1.12f, 0), 0.22f, 0.06f, gold, obenRadius: 0.27f);
         var kollekte = Rund(a, new Vector3(3.55f, 1.17f, 0), 0.15f, 0.06f, gold, segmente: 10);
 
-        // Kreuz an der Ostwand – verschwindet mit ihr, wenn man von Osten hineinschaut
-        var ostwand = a.Waende.First(x => x.Aussen == Vector3.Right).Wand;
-        Quader(p + new Vector3(4.35f, 3.2f, 0) - ostwand.Position, new Vector3(0.08f, 1.8f, 0.16f), gold, ostwand);
-        Quader(p + new Vector3(4.35f, 3.6f, 0) - ostwand.Position, new Vector3(0.08f, 0.16f, 1.0f), gold, ostwand);
+        // Kreuz an der Ostwand über dem Altar
+        Teil(a, new Vector3(4.55f, 3.2f, 0), new Vector3(0.08f, 1.8f, 0.16f), gold);
+        Teil(a, new Vector3(4.55f, 3.6f, 0), new Vector3(0.08f, 0.16f, 1.0f), gold);
 
         // Zwei hohe Leuchter neben dem Altar
         foreach (var z in new[] { -1.6f, 1.6f })
@@ -1231,6 +1230,7 @@ public partial class Stadtansicht
     {
         foreach (var (teil, ab) in a.Stufenteile) teil.Visible = stufe >= ab;
         a.Zustand?.Invoke(zeit, arbeitszeit, aktiv); // vor dem Feuer: setzt z. B., ob gerade Messe ist
+        foreach (var raumzustand in a.Raumzustaende) raumzustand(zeit, arbeitszeit);
         foreach (var f in a.Feuer)
         {
             var an = f.An?.Invoke() ?? aktiv;
@@ -1288,7 +1288,7 @@ public partial class Stadtansicht
     }
 
     /// <summary>
-    /// Das Lager als Kistenstapel an der Nordwand: je Ware eine Spalte, eine Kiste je angefangene
+    /// Das Lager als Kistenstapel an der Rückwand des Lagerraums: je Ware eine Spalte, eine Kiste je angefangene
     /// 5 Stück (höchstens 8 = volles Lager). Erst Zutaten, dann das Produkt, dann was sonst im Lager liegt
     /// (im Diebesnest: das Diebesgut).
     /// </summary>
@@ -1318,7 +1318,8 @@ public partial class Stadtansicht
     private (MeshInstance3D[] Kisten, Label3D Schild) KistenspalteBauen(BetriebsAnsicht ansicht, string ware, int platz)
     {
         var material = Material(Warenfarbe(ware));
-        var basis = ansicht.Mitte + new Vector3(-3.9f + platz * 1.25f, 0, -2.75f);
+        // Im Lager an der Rückwand, von links nach rechts
+        var basis = ansicht.Mitte + LagerOrt + new Vector3(-3.15f + platz * 1.26f, 0, -2.2f);
         var kisten = new MeshInstance3D[MaxKistenJeWare];
         for (var i = 0; i < kisten.Length; i++)
         {

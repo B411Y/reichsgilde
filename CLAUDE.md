@@ -61,5 +61,5 @@ dotnet run -c Release --project tests/Reichsgilde.Core.Tests -- messen 30 20   #
 ```
 
 Klicktest: Godot 4.7.2 mono (Linux) von den offiziellen Godot-Releases auf GitHub laden, Projekt einmal importieren (`--headless --import --path game`), dann unter Xvfb starten (`--rendering-driver opengl3 --path game -- <Optionen>`) und Bildschirmfotos selbst ansehen.
-Startoptionen (nach `--`): `--beruf=<Beruf>`, `--startstunde=<Stunde>`, `--tempo=<1–32>`, `--innen=1` (eigene Werkstatt) oder `--innen=Rathaus|Dom`, `--verwalten=1`, `--auswahl=<Kennung>`, `--drehung=<1–3>`, `--vermoegen=<Gulden>`, `--rat=1`, `--familie=1`, `--gericht=1`, `--hinterzimmer=1`, `--markt=1`, `--bericht=1`, `--laden=<datei.json>` (aus `~/.local/share/godot/app_userdata/Reichsgilde/spielstaende`).
+Startoptionen (nach `--`): `--beruf=<Beruf>`, `--startstunde=<Stunde>`, `--tempo=<1–32>`, `--innen=1` (eigene Werkstatt) oder `--innen=Rathaus|Dom`, `--raum=<Nummer>` (mit `--innen`: Raum der Raumleiste, 1 = erster), `--verwalten=1`, `--auswahl=<Kennung>`, `--drehung=<1–3>`, `--vermoegen=<Gulden>`, `--rat=1`, `--familie=1`, `--gericht=1`, `--hinterzimmer=1`, `--markt=1`, `--bericht=1`, `--laden=<datei.json>` (aus `~/.local/share/godot/app_userdata/Reichsgilde/spielstaende`).
 Ohne Zugang zu nuget.org genügt eine NuGet-Quelle auf den Ordner `GodotSharp/Tools/nupkgs` der heruntergeladenen Godot-Version.
