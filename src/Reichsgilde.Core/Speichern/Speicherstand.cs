@@ -508,6 +508,9 @@ public sealed record BetriebStand
     public int StillstandMinuten { get; init; }
     public int StillstandMinutenVorjahr { get; init; }
     public List<KarrenStand> Karren { get; init; } = new();
+
+    /// <summary>Waren, die der Karren nicht von selbst verkauft (null: keine; alte Spielstände).</summary>
+    public List<string>? Zurueckgehalten { get; init; }
     public bool Waechter { get; init; }
     public int SabotageMinuten { get; init; }
     public int UmbauMinuten { get; init; }
@@ -523,6 +526,13 @@ public sealed record KarrenStand
     public string Eskorte { get; init; } = "Keine";
     public bool NachtsFahren { get; init; }
     public long? WareWartetSeit { get; init; }
+
+    /// <summary>Einkäufe eines Handelsauftrags, solange der Karren zum Markt unterwegs ist (null: kein Auftrag).</summary>
+    public Dictionary<string, int>? Auftrag { get; init; }
+
+    /// <summary>Vorgemerkter Handelsauftrag (null: keiner).</summary>
+    public Dictionary<string, int>? VormerkungVerkauf { get; init; }
+    public Dictionary<string, int>? VormerkungKauf { get; init; }
 }
 
 public sealed record MarktstandStand

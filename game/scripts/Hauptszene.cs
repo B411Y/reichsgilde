@@ -228,6 +228,8 @@ public partial class Hauptszene : Node
         };
         _innenKnopf.Pressed += InnenKnopfGedrueckt;
         _verwaltung.Gemeldet += Protokollieren;
+        _verwaltung.HandelGewuenscht += b => { TafelnSchliessen(); _markt.Oeffnen(b); };
+        _markt.Gemeldet += Protokollieren;
         _kontor.Gemeldet += Protokollieren;
         _kontor.VerwaltenGewuenscht += betrieb => { _auswahlKennung = Stadtansicht.BetriebsKennung(betrieb); AuswahlAnzeigen(); };
         if (optionen.TryGetValue("auswahl", out var vorauswahl))

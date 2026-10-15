@@ -1,5 +1,5 @@
 {
-  "version": 23,
+  "version": 24,
   "gesundheit": {
     "medicusKosten": 120,
     "medicusKostenPest": 300,
@@ -1367,6 +1367,7 @@
     "kroetenschleim": { "kosten": 200, "chance": 0.6, "beruf": "Alchimist", "berufKostenFaktor": 0.5, "berufBonus": 0.15 },
     "erpressungMindestBeweise": 3
   },
+  "handel": { "aufschlag": 0.10, "marktVon": 8, "marktBis": 20 },
   "glaube": {
     "voelker": {
       "Mensch": { "Katholisch": 0.6, "Evangelisch": 0.4 },

@@ -193,6 +193,9 @@ public sealed class Wirtschaftsdaten
     /// <summary>Düfte und Dolche des Parfumeurs (ab Datenversion 21). Fehlt der Abschnitt, wirken Düfte nicht.</summary>
     public Duft.ParfumDaten? Parfum { get; init; }
 
+    /// <summary>Handel von Hand per Karrenauftrag (ab Datenversion 24). Fehlt der Abschnitt, handeln nur die Verwalter.</summary>
+    public HandelDaten? Handel { get; init; }
+
     /// <summary>Konfessionen, Glaubensnähe im Rat, Bekehrung und Stadtglaube (ab Datenversion 22). Fehlt der Abschnitt, spielt der Glaube keine Rolle.</summary>
     public Glaube.GlaubeDaten? Glaube { get; init; }
 
@@ -378,6 +381,7 @@ public sealed class Wirtschaftsdaten
         Gesundheit?.Pruefen(f, Waren);
         Aktionspunkte?.Pruefen(f);
         Logistik.Pruefen(f);
+        Handel?.Pruefen(f);
 
         if (Staende.Count == 0) f.Add("Es sind keine Stände definiert.");
         for (var i = 0; i < Staende.Count; i++)

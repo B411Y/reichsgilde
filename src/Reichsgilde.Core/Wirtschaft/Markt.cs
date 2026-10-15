@@ -45,13 +45,13 @@ public sealed class Marktstand
     /// <summary>Gesamtangebot pro Jahr: NPC-Grundversorgung plus Spieler.</summary>
     public double Gesamtangebot => _ware.Nachfrage * _ware.NpcAnteil + SpielerAngebotImJahr;
 
-    public double Preisfaktor
+    public double Preisfaktor => FaktorBei(0);
+
+    /// <summary>Preisfaktor, wenn das Angebot um <paramref name="zusatz"/> Stück anders wäre (negativ = gekauft).</summary>
+    private double FaktorBei(double zusatz)
     {
-        get
-        {
-            var faktor = Math.Pow(_ware.Nachfrage / Math.Max(Gesamtangebot, 1e-9), _allgemein.Elastizitaet);
-            return Math.Clamp(faktor, _allgemein.PreisMin, _allgemein.PreisMax);
-        }
+        var faktor = Math.Pow(_ware.Nachfrage / Math.Max(Gesamtangebot + zusatz, 1e-9), _allgemein.Elastizitaet);
+        return Math.Clamp(faktor, _allgemein.PreisMin, _allgemein.PreisMax);
     }
 
     /// <summary>Aktueller Marktpreis für ein Stück.</summary>
@@ -78,6 +78,27 @@ public sealed class Marktstand
     /// </summary>
     /// <returns>Die Kosten in Gulden.</returns>
     public double Kaufen(int stueck) => Preis * stueck;
+
+    /// <summary>
+    /// Was ein Einkauf von Hand kosten würde: Jedes Stück hebt den Preis für das nächste (es fehlt im Angebot) –
+    /// anders als der Bedarf der Werkstätten, den die Nachfrage der Stadt schon enthält.
+    /// </summary>
+    /// <param name="faktor">Händlerspanne und Verhandeln, z. B. 1,1 × 0,97.</param>
+    public double HandKaufpreis(int stueck, double faktor)
+    {
+        double summe = 0;
+        for (var i = 0; i < stueck; i++)
+            summe += _ware.Grundpreis * FaktorBei(-i) * faktor;
+        return summe;
+    }
+
+    /// <summary>Kauft von Hand: wie <see cref="HandKaufpreis"/>, und das Angebot sinkt um die gekauften Stück.</summary>
+    internal double HandKaufen(int stueck, double faktor)
+    {
+        var kosten = HandKaufpreis(stueck, faktor);
+        _verkaufteStueckProStunde[_aktuellesFach] -= stueck;
+        return kosten;
+    }
 
     /// <summary>Eine Spielstunde ist vorbei: Das älteste Fach wird zum neuen, leeren laufenden Fach.</summary>
     internal void NeueStunde()

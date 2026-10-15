@@ -81,6 +81,9 @@ public sealed class Familienbuch
     /// <summary>Faktor auf die Markterlöse (Verhandeln).</summary>
     public double VerkaufsFaktor(Konto k) => 1 + Talent(k, Dynastie.Talent.Verhandeln) * W.Verhandeln;
 
+    /// <summary>Faktor auf den Einkaufspreis beim Handel von Hand (Verhandeln senkt ihn so, wie es den Erlös hebt).</summary>
+    public double EinkaufsFaktor(Konto k) => Math.Max(0.5, 1 - Talent(k, Dynastie.Talent.Verhandeln) * W.Verhandeln);
+
     /// <summary>Faktor auf die Leistung aller Arbeitskräfte (Handwerkskunst).</summary>
     public double LeistungsFaktor(Konto k) => 1 + Talent(k, Dynastie.Talent.Handwerk) * W.Handwerk;
 
