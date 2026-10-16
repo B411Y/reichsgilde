@@ -18,6 +18,7 @@ So wird eingetragen (damit sich die Chats nie an derselben Stelle treffen):
 - (6) Multiplayer, Zuschauer-Modus
 - (Nutzer) Lizenz für Grafiken und Texte (CC BY 4.0?) bestätigen
 - (Nutzer) Pausenregeln im Multiplayer
+- (5) (von Leveldesign) Wohnhaus-Ausbau: Fachwerkhaus → Bürgerhaus → Steinhaus am selben Platz; **Stadtpalais und Hof nicht am Platz**, sondern als neuer Bau oder Abriss und Neubau (Entscheidung 16.10.2026, `docs/LEVELDESIGN.md`, Gebäudegrößen) – betrifft Entwurf PR #75
 - (von Spiel-KI) Haus des Spielers im Rat: Befehl zum Abstimmen bei Wahlen und Anträgen (heute: Amtsinhaber bzw. Enthaltung); die KI-Häuser wählen seit PR #73 nach Charakter
 - (5) Gauner auch gegen das Wohnhaus (Einbruch, Brand) – die Betriebe bleiben weiterhin Ziel (Entscheidung zu PR #75)
 - (5) Werkstatt frei verkaufen: Befehl fehlt noch (Entscheidung zu PR #75)

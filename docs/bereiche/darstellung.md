@@ -14,6 +14,7 @@ So wird eingetragen (damit sich die Chats nie an derselben Stelle treffen):
 - (3) (von Kern) Karren am Stadttor zeigen: `Karren.WartetAmTor(zeit)` – Hinweg draußen vor dem Tor, Rückweg drinnen (ab PR #67)
 - (3) Passanten Schritt 4: Aussehen nach Volk und Rolle (Tracht), Klick auf eine Figur öffnet die Infotafel, Maus darüber hebt sie hervor
 - (3) Einwohner in den Innenräumen von Schänke und Kirche zeigen (später, eigener Schritt)
+- (3) (von Leveldesign) Gebäudemaße auf glatte Meter: Einwohnerhäuser 6 × 6, 7 × 7, 8 × 8 m; Werkstatt belegt 16 × 14 m und zeigt jede Stufe als sichtbaren Anbau innerhalb dieser Fläche (`docs/LEVELDESIGN.md`, Gebäudegrößen)
 - (3) (von Kern) Wohnhaus je Haus in der Stadt zeigen, Größe nach `Wohnen.Stufe(konto)` (Fachwerkhaus bis Hof), Bau läuft: `Wohnen.FertigAb(konto)`. Wohnstube und Kontor gehören ins Wohnhaus statt ins Stammhaus (ab PR #75)
 
 ## Entscheidungen
