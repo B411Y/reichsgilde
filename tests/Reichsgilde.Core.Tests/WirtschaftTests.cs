@@ -193,7 +193,8 @@ static class WirtschaftTests
             Pruefe.Ungefaehr(289, MittlererGewinn(sim, konto).Gewinn, 0.05);
         }),
 
-        ("Konkurrenz: Zwei Gießereien teilen sich den Silberring-Markt, je ≈ 611 Gulden", () =>
+        // Seit dem Warenkorb der Einwohner (PR #91) fragen sie günstige Schmiedewaren wie den Silberring rund 7 % mehr nach: 611 → 649.
+        ("Konkurrenz: Zwei Gießereien teilen sich den Silberring-Markt, je ≈ 649 Gulden", () =>
         {
             var sim = NeueSimulation();
             var w = sim.Wirtschaft!;
@@ -201,7 +202,7 @@ static class WirtschaftTests
             var rivale = w.KontoEroeffnen("Rivale");
             w.Einstellen(w.BetriebEroeffnen("Gießerei Spieler", Betriebsart.Giesserei, spieler), "Geselle", 2);
             w.Einstellen(w.BetriebEroeffnen("Gießerei Rivale", Betriebsart.Giesserei, rivale), "Geselle", 2);
-            Pruefe.Ungefaehr(611, MittlererGewinn(sim, spieler).Gewinn, 0.05);
+            Pruefe.Ungefaehr(649, MittlererGewinn(sim, spieler).Gewinn, 0.05);
             Pruefe.Ungefaehr(spieler.Vermoegen, rivale.Vermoegen, 0.05);
         }),
 

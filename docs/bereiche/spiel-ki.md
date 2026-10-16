@@ -10,7 +10,6 @@ So wird eingetragen (damit sich die Chats nie an derselben Stelle treffen):
 
 ## Offen
 
-- (2) Bürger-KI: Warenkorb je Volk und Rolle (eigener Nachfragefaktor je Warengruppe)
 - (5) (von Kern) Gaunerstücke gegen das Wohnhaus (`Gaunerstueck.Hauseinbruch`, `Brandstiftung`, ab PR #77) in die Wahl der KI-Häuser aufnehmen – Rechnungen: `Unterwelt.ErwarteterHausgewinn`, `Brandschaden`, `ErfolgschanceWohnhaus`. Den Hauswächter nach einem Anschlag stellt `KiRivale` schon ein.
 - (5) (von Kern) Seit PR #85 zählt der Hauswert zum Reinvermögen. `KiRivale.Standziel` ist deshalb wieder die Schwelle allein, und `StandPruefen` baut ohne „Schwelle + Ausbau“; `KiWohnhausTests` (zwei Tests) entsprechend angepasst. Bitte prüfen, ob das zu eurer Sparlogik passt
 - (5) KI-Häuser im Rat wählen immer den Amtsinhaber (bekannte Schwäche, Archiv §3a)
@@ -46,6 +45,16 @@ So wird eingetragen (damit sich die Chats nie an derselben Stelle treffen):
 |---|---|---|
 | Handel von Hand | Die KI-Häuser **halten keine Ware zurück und kaufen nicht von Hand ein**; Verkauf und Zutaten bleiben beim Verwalter. Zurückhalten bei niedrigem Preis wurde gebaut und gemessen: Es kostet die KI Geld (siehe Messung). Den Preis drücken meist die KI-Häuser selbst, zurückgehaltene Ware drückt ihn beim Freigeben ein zweites Mal, und gegen einen fremden Preissturz wechselt die KI schon heute stündlich das Produkt. Einkauf von Hand kostet +10 % und hebt den Preis. | 16.10.2026 |
 | Wiedervorlage | Neu prüfen, wenn sich das Preismodell ändert (Elastizität über 1, längere Erholung, mehrere Märkte) oder ein Preiskampf gegen den Spieler gewünscht ist. | 16.10.2026 |
+
+### Warenkorb je Volk und Rolle (PR #91)
+
+| Thema | Entscheidung | Datum |
+|---|---|---|
+| Gruppen | Je **Handwerk** eine Warengruppe (Beruf der herstellenden Betriebsart): Schmiedewaren, Holzwaren, Steinwaren, Arzneien (mit Kräuterschnaps), Duftwaren, Speis und Trank, Kirchenbedarf. Es zählen die Waren aus `kopplung.marktTypen`. | 16.10.2026 |
+| Wirkung | **Volk → Gruppe** (Zwerge Schmiede- und Steinwaren ×1,5; Elben Duft und Arznei ×1,5; Halblinge Speis und Trank ×1,5, Holzwaren ×1,3; Menschen Kirchenbedarf ×1,2). **Rolle → Preisklasse** (günstig unter 150, teuer ab 250 Gulden Grundpreis): Arme (Tagelöhner, Knecht, Hirte, Feldarbeiter, Holzsammler, Bettler) günstig ×1,15, teuer ×0,85; Ratsherren und Bürgersöhne günstig ×0,85, teuer ×1,3; Mönche Kirchenbedarf ×2. Halblinge-Holz und die schwächeren Preisklassen (statt ×1,5/×0,5) nach der ersten Messung, damit das Volk sichtbar bleibt. | 16.10.2026 |
+| Rechnung | Gezählt werden die Einkaufenden der letzten 17 Stunden (Ring wie beim Marktfaktor). Mittlere Neigung je Ware ÷ Maßstab, begrenzt auf **1 ± 10 %**; der Maßstab wird so gesucht, dass die Nachfrage der Stadt in Gulden (Nachfrage × Grundpreis) gleich bleibt. Faktor auf die Nachfrage = Marktfaktor × Warenkorb. | 16.10.2026 |
+| Kalibrierung | **Feste Neigung**, nicht gegen ein gelerntes Übliches: Die Standardstadt bekommt eine dauerhafte Färbung. Der Kern kalibriert nach (offener Punkt dort). | 16.10.2026 |
+| Anzeige | Öffentliche Abfragen `Warenkorbfaktor(ware)` und `Warengruppe(ware)`; Anzeige im Marktfenster als offener Punkt bei der Oberfläche. | 16.10.2026 |
 
 ## Messungen
 
@@ -92,3 +101,17 @@ Probeweise gebaut (nicht übernommen): Eigene Ware zurückhalten unter 70/80/90 
 | Wagemutig | 63.944 | 61.444 (−4 %) |
 
 Schwellen-Versuch (ausgewogen): unter 50–70 % wird nie zurückgehalten (Preis fällt nicht so tief), unter 80 % −0,7 bis −1,5 %. Preissturz durch den Spieler (6 Stunden lang je 100 Stück jeder KI-Ware, Jahr 5–7, 20 Partien): Zuwachs der KI mit und ohne Zurückhalten unter 70 % gleich (14.031), unter 80 % weniger (13.797).
+
+### Warenkorb je Volk und Rolle (PR #91)
+
+Faktoren in der Standardstadt (Startwert 101, Jahr 2), je Gruppe von günstig nach teuer: Schmiedewaren 1,07 … 0,96; Holzwaren 1,03 … 0,93; Steinwaren 1,07 … 0,96; Arzneien 1,02 … 0,92 (Kräuterschnaps 1,02); Speis und Trank 1,06 … 0,96; Kirchenbedarf 1,10 … 1,03; Duftwaren 1,02 … 0,92. Erste Fassung (Preisklassen ×1,5/×0,5) drückte alles an die Grenzen ±10 % – das Volk war nicht mehr zu sehen.
+
+`messen 30 20`, gemessen auf main `4f8cf6d` + PR #91, Vermögen Ø am Ende:
+
+| Haus | main | mit Warenkorb |
+|---|---|---|
+| Spieler Eisenbart (Schmied, passiv) | 174.720 | 170.059 (−3 %) |
+| Eichwald (Tischler, KI) | 106.067 | 96.175 (−9 %) |
+| Kieselbach (Steinmetz, KI) | 144.125 | 138.788 (−4 %) |
+
+Alle verlieren etwas, weil späte Werkstätten vor allem teure Waren herstellen und die Einkaufenden meist arm sind. Kern-Test „Zwei Gießereien teilen sich den Silberring-Markt“: 611 → 649 (+6 %, Silberring ist günstige Schmiedeware).

@@ -125,6 +125,45 @@ public sealed class KopplungDaten
     public double Glaettung { get; init; } = 0.2;
 }
 
+/// <summary>
+/// Warenkorb je Volk und Rolle (Abschnitt „buerger.warenkorb“): Wer einkauft, verschiebt die Nachfrage zwischen den
+/// Warengruppen. Eine Gruppe sind die Waren eines Handwerks (Beruf der Betriebsart, die sie herstellt).
+/// Das Volk wirkt auf die Gruppe, die Rolle auf die Preisklasse (und einzelne Gruppen, z. B. Mönche auf Kirchenbedarf).
+/// Die Nachfrage der Stadt in Gulden bleibt gleich – es wird nur umverteilt. Fehlt der Abschnitt, bleibt alles bei 1.
+/// </summary>
+public sealed class WarenkorbDaten
+{
+    /// <summary>So weit darf der Faktor einer Ware von 1 abweichen (0,1 = zwischen 0,9 und 1,1).</summary>
+    public double Spanne { get; init; } = 0.1;
+
+    /// <summary>Anzeigename je Gruppe (Schlüssel: Beruf), z. B. „Schmied“ → „Schmiedewaren“.</summary>
+    public Dictionary<string, string> Gruppen { get; init; } = new();
+
+    /// <summary>Günstig sind Waren mit Grundpreis unter diesem Wert …</summary>
+    public double GuenstigBis { get; init; } = 150;
+
+    /// <summary>… teuer ab diesem Grundpreis; dazwischen „mittel“.</summary>
+    public double TeuerAb { get; init; } = 250;
+
+    /// <summary>Neigung je Volk und Gruppe (Schlüssel: Beruf), z. B. Zwerg → Schmied 1,5. Fehlt ein Eintrag, gilt 1.</summary>
+    public Dictionary<Volk, Dictionary<string, double>> Voelker { get; init; } = new();
+
+    /// <summary>
+    /// Neigung je Rolle: Schlüssel „guenstig“, „mittel“, „teuer“ (Preisklasse) oder ein Beruf (Gruppe), z. B.
+    /// Tagelöhner → guenstig 1,5, teuer 0,5. Fehlt ein Eintrag, gilt 1.
+    /// </summary>
+    public Dictionary<string, Dictionary<string, double>> Rollen { get; init; } = new();
+
+    public void Pruefen(List<string> f, string p)
+    {
+        if (Spanne is < 0 or >= 1) f.Add($"{p}.spanne muss zwischen 0 und unter 1 liegen.");
+        if (GuenstigBis <= 0 || TeuerAb < GuenstigBis) f.Add($"{p}: guenstigBis über 0, teuerAb nicht kleiner als guenstigBis.");
+        foreach (var (wer, neigungen) in Voelker.Select(x => (x.Key.ToString(), x.Value)).Concat(Rollen.Select(x => (x.Key, x.Value))))
+            foreach (var (was, x) in neigungen)
+                if (x is <= 0 or > 3) f.Add($"{p}.{wer}.{was}: Neigung über 0 bis 3 (war {x}).");
+    }
+}
+
 /// <summary>Wie lange Wege dauern (in Spielminuten). Der Kern zählt nur die Zeit – den Weg durch die Gassen zeichnet die Darstellung.</summary>
 public sealed class WegeDaten
 {
@@ -213,6 +252,9 @@ public sealed class BuergerDaten
 
     public KopplungDaten Kopplung { get; init; } = new();
 
+    /// <summary>Warenkorb je Volk und Rolle (null = alle Waren gleich).</summary>
+    public WarenkorbDaten? Warenkorb { get; init; }
+
     /// <summary>Gewichte je Volk und Bedürfnis (1 = wie Menschen; fehlt ein Eintrag, gilt 1).</summary>
     public Dictionary<Volk, Dictionary<Beduerfnis, double>> Gewichte { get; init; } = new();
 
@@ -281,6 +323,7 @@ public sealed class BuergerDaten
         if (Kopplung.Bestohlen is < 0 or > 100) f.Add($"{p}.kopplung.bestohlen muss zwischen 0 und 100 liegen.");
         if (Kopplung.MarktSpanne is < 0 or >= 1) f.Add($"{p}.kopplung.marktSpanne muss zwischen 0 und unter 1 liegen.");
         if (Kopplung.Spanne is < 0 or >= 1 || Kopplung.Glaettung is <= 0 or > 1) f.Add($"{p}.kopplung: spanne zwischen 0 und unter 1, glaettung über 0 bis 1.");
+        Warenkorb?.Pruefen(f, $"{p}.warenkorb");
         if (HaushaltVon < 1 || HaushaltBis < HaushaltVon || HaushaltBis > 20) f.Add($"{p}: haushaltVon ≥ 1, haushaltBis ≥ haushaltVon und ≤ 20.");
         if (Buergerhaeuser < 1) f.Add($"{p}.buergerhaeuser muss mindestens 1 sein.");
         var wg = Wege;
