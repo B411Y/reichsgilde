@@ -93,6 +93,7 @@ public partial class JahresberichtAnzeige : PanelContainer
 
             var nebenbei = new List<string>();
             if (bilanz.Investitionen > 0) nebenbei.Add($"Anschaffungen {Zahlenformat.Ganz(bilanz.Investitionen)}");
+            if (bilanz.Verkaeufe > 0) nebenbei.Add($"Verkäufe +{Zahlenformat.Ganz(bilanz.Verkaeufe)}");
             if (bilanz.Standesgebuehren > 0) nebenbei.Add($"Standesgebühren {Zahlenformat.Ganz(bilanz.Standesgebuehren)}");
             if (bilanz.Amtseinkommen > 0) nebenbei.Add($"Amtseinkommen +{Zahlenformat.Ganz(bilanz.Amtseinkommen)}");
             if (bilanz.Geschenke > 0) nebenbei.Add($"Geschenke an Ratsherren {Zahlenformat.Ganz(bilanz.Geschenke)}");

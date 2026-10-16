@@ -495,7 +495,7 @@ public partial class KontorAnzeige : PanelContainer
                           + (w.Gesundheit.IstPestjahr ? $" · PEST: {Zahlenformat.Ganz(w.Gesundheit.Krankenstand * 100)} % der Arbeitskräfte fehlen" : "");
 
         var eigene = w.Betriebe.Where(x => x.Konto == _spieler).ToList();
-        if (eigene.Count != _betriebsZeilen.Count)
+        if (!eigene.SequenceEqual(_betriebsZeilen.Select(z => z.Betrieb))) // auch, wenn einer verkauft und ein anderer gekauft wurde
             BetriebsZeilenBauen(eigene);
         foreach (var (betrieb, kopf, zustand) in _betriebsZeilen)
         {

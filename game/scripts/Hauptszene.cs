@@ -32,6 +32,8 @@ namespace Reichsgilde;
 ///   --gericht=1        gleich zu Beginn den Gerichtssaal öffnen
 ///   --hinterzimmer=1   gleich zu Beginn das Hinterzimmer öffnen
 ///   --markt=1          gleich zu Beginn das Marktfenster öffnen
+///   --verkaufen=1      gleich zu Beginn die Rückfrage zum Verkauf der eigenen Werkstatt öffnen (=2: vorher eine freie
+///                      Liegenschaft dazukaufen und bis Mittag laufen lassen, damit der Verkauf erlaubt ist und Ware im Lager liegt)
 ///   --einstellungen=1  gleich zu Beginn das Fenster „Einstellungen“ öffnen
 ///   --kanten=<Art>     Kantenglättung nur für diesen Start (Aus, Fxaa, Smaa, Taa, Msaa2, Msaa4, Msaa8)
 ///   --laden=datei.json einen Spielstand aus dem Spielstand-Ordner laden
@@ -63,6 +65,7 @@ public partial class Hauptszene : Node
     private GerichtAnzeige _gerichtssaal = null!;
     private GaunerAnzeige _hinterzimmer = null!;
     private MarktAnzeige _markt = null!;
+    private VerkaufAnzeige _verkauf = null!;
     private Button _gerichtKnopf = null!;
     private Button _ratKnopf = null!;
     private Konto? _spieler;
@@ -117,6 +120,8 @@ public partial class Hauptszene : Node
         ratMitte.AddChild(_hinterzimmer);
         _markt = new MarktAnzeige();
         ratMitte.AddChild(_markt);
+        _verkauf = new VerkaufAnzeige();
+        ratMitte.AddChild(_verkauf);
         _gerichtKnopf = GetNode<Button>("%GerichtKnopf");
         // Der Bericht sitzt in einem CenterContainer: Der hält ihn mittig, egal wie hoch er wird.
         var berichtMitte = Hauptmenue.Mitte();
@@ -244,6 +249,8 @@ public partial class Hauptszene : Node
         _verwaltung.Gemeldet += Protokollieren;
         _verwaltung.HandelGewuenscht += b => { TafelnSchliessen(); _markt.Oeffnen(b); };
         _markt.Gemeldet += Protokollieren;
+        _verwaltung.VerkaufGewuenscht += b => { TafelnSchliessen(); _verkauf.Oeffnen(b); };
+        _verkauf.Gemeldet += Protokollieren;
         _kontor.Gemeldet += Protokollieren;
         _kontor.VerwaltenGewuenscht += betrieb => { _auswahlKennung = Stadtansicht.BetriebsKennung(betrieb); AuswahlAnzeigen(); };
         if (optionen.TryGetValue("auswahl", out var vorauswahl))
@@ -262,6 +269,12 @@ public partial class Hauptszene : Node
             _hinterzimmer.Oeffnen();
         if (optionen.TryGetValue("markt", out var markt) && markt == "1")
             _markt.Oeffnen();
+        if (optionen.TryGetValue("verkaufen", out var verkaufen) && verkaufen is "1" or "2" && _eigeneGiesserei is { } werkstatt)
+        {
+            if (verkaufen == "2") VerkaufVorbereiten();
+            _auswahlKennung = Stadtansicht.BetriebsKennung(werkstatt);
+            _verkauf.Oeffnen(werkstatt);
+        }
         if (optionen.TryGetValue("einstellungen", out var einstellungen) && einstellungen == "1")
         {
             SpielmenueOeffnen();
@@ -292,6 +305,31 @@ public partial class Hauptszene : Node
         _gerichtssaal.Hide();
         _hinterzimmer.Hide();
         _markt.Hide();
+        _verkauf.Hide();
+    }
+
+    /// <summary>
+    /// Nur für den Klicktest (--verkaufen=2): Der Spieler kauft die günstigste freie Liegenschaft, die er darf, dazu –
+    /// sonst wäre die Werkstatt sein letzter Betrieb –, und die Stadt läuft bis Mittag, damit Ware im Lager liegt.
+    /// Alles mit den gewöhnlichen Befehlen; reicht der Stand nicht, wird vorher das Wohnhaus ausgebaut und aufgestiegen
+    /// (dafür braucht es Geld: --vermoegen=20000).
+    /// </summary>
+    private void VerkaufVorbereiten()
+    {
+        if (_simulation.Wirtschaft is not { } w || _spieler is null) return;
+        bool Kaufen()
+        {
+            var frei = w.FreieLiegenschaften.Where(l => w.LiegenschaftErwerbVerboten(_spieler, l.Name) is null)
+                .OrderBy(l => l.Kaufpreis).FirstOrDefault();
+            return frei is not null && w.Ausfuehren(_spieler, new LiegenschaftErwerben(frei.Name)).Erfolg;
+        }
+        var gekauft = Kaufen();
+        if (!gekauft) w.Ausfuehren(_spieler, new WohnhausAusbauen()); // der Umbau dauert – aufsteigen erst danach
+        while (_simulation.Zeit.MinuteImTag < 12 * 60 - Spielzeit.TagesbeginnMinute && !_simulation.IstBeendet)
+            _simulation.Tick();
+        if (gekauft) return;
+        w.Ausfuehren(_spieler, new StandErwerben());
+        if (!Kaufen()) Protokollieren("--verkaufen=2: Keine freie Liegenschaft zu haben – mehr Vermögen mit --vermoegen=20000.");
     }
 
     private void MarktOeffnen()
@@ -499,6 +537,7 @@ public partial class Hauptszene : Node
         _gerichtssaal.Verbinden(simulation, spieler);
         _hinterzimmer.Verbinden(simulation, spieler);
         _markt.Verbinden(simulation, spieler);
+        _verkauf.Verbinden(simulation, spieler);
         // Um 20 Uhr schlagen die Banden zu – ein offenes Hinterzimmer zeigt sofort, was geschah.
         w.Gauner.NachtVorbei += () => { if (_hinterzimmer.Visible) _hinterzimmer.Aufbauen(); };
         _verwaltung.Verbinden(simulation, spieler);
@@ -511,6 +550,27 @@ public partial class Hauptszene : Node
             if (_auswahlKennung == Stadtansicht.LiegenschaftKennung(betrieb.Name))
                 _auswahlKennung = Stadtansicht.BetriebsKennung(betrieb);
         };
+        // Ein Betrieb wurde verkauft: Nichts darf mehr auf ihn zeigen. Das Haus in der Stadt baut die Stadtansicht selbst um.
+        w.BetriebAbgegeben += (betrieb, frei) =>
+        {
+            var kennung = Stadtansicht.BetriebsKennung(betrieb);
+            if (_stadt.InnenKennung == kennung) _stadt.InnenansichtVerlassen();
+            // War der Betrieb ausgewählt, zeigt die Auswahl jetzt das freie Haus mit seinem Kaufangebot (Gegenstück zu BetriebErworben).
+            if (_auswahlKennung == kennung) _auswahlKennung = Stadtansicht.LiegenschaftKennung(frei.Name);
+            if (_verkauf.Betrieb == betrieb) _verkauf.Hide();
+            if (betrieb.Konto != spieler) return;
+            if (_markt.Visible) _markt.Oeffnen(); // Auswahl der Handelsbetriebe neu aufbauen
+            if (_eigeneGiesserei == betrieb)
+                _eigeneGiesserei = w.Betriebe.FirstOrDefault(b => b.Konto == spieler && b.InDerStadt);
+        };
+    }
+
+    /// <summary>Schließt das Gebäudefenster unten links samt Bedienfeld.</summary>
+    private void AuswahlSchliessen()
+    {
+        _auswahlKennung = null;
+        _auswahl.Hide();
+        _verwaltung.Zeigen(null);
     }
 
     public override void _Process(double delta)
@@ -539,6 +599,8 @@ public partial class Hauptszene : Node
                 _hinterzimmer.Hide();
             else if (_markt.Visible)
                 _markt.Hide();
+            else if (_verkauf.Visible)
+                _verkauf.Hide();
             else if (_einstellungen.Tafel.Visible)
                 EinstellungenSchliessen();
             else if (_spielmenue.Visible)
@@ -546,11 +608,7 @@ public partial class Hauptszene : Node
             else if (_stadt.InnenKennung is not null)
                 _stadt.InnenansichtVerlassen();
             else if (_auswahl.Visible)
-            {
-                _auswahlKennung = null;
-                _auswahl.Hide();
-                _verwaltung.Zeigen(null);
-            }
+                AuswahlSchliessen();
             else
                 SpielmenueOeffnen();
             GetViewport().SetInputAsHandled();
@@ -767,16 +825,18 @@ public partial class Hauptszene : Node
         {
             $"{l.Name} – {(l.IstPacht ? "zu verpachten" : "zu verkaufen")}",
             "",
-            $"{art} mit {w.Daten.Plaetze(l.Art)} Arbeitsplätzen",
+            l.Bebaut ? $"{art}, Stufe {d.Stufe}, mit {w.Daten.Plaetze(l.Art)} Arbeitsplätzen – das Haus steht schon" : $"{art} mit {w.Daten.Plaetze(l.Art)} Arbeitsplätzen",
             l.IstPacht
                 ? $"Pacht: {Zahlenformat.Ganz(w.Daten.Fixkosten(l.Art))} {waehrung} im Jahr"
                 : $"Kaufpreis: {Zahlenformat.Ganz(l.Kaufpreis)} {waehrung}, Unterhalt {Zahlenformat.Ganz(w.Daten.Fixkosten(l.Art))} im Jahr",
-            $"Zu haben ab dem Stand: {l.MindestStand}",
+            $"Zu haben ab dem Stand: {l.MindestStand}" + (l.MindestGrad > 1 ? $" und dem {l.MindestGrad}. Meistergrad ({d.Beruf})" : ""),
             _spieler is { Berufe.Count: > 0 } sp && w.Daten.Berufe.Count > 0 && !sp.Beherrscht(d.Beruf)
                 ? $"Handwerk: {d.Beruf} – beherrscht ihr nicht; erst im Kontor erlernen"
                 : $"Handwerk: {d.Beruf}",
             $"Erwarteter Gewinn bei voller Belegung: ≈ {Zahlenformat.MitVorzeichen(Kalkulation.ErwarteterJahresgewinn(w, l.Art))} {waehrung} im Jahr (zu heutigen Preisen)",
         };
+        if (_spieler is { IstAktiv: true } && w.LiegenschaftErwerbVerboten(_spieler, l.Name) is { } grund)
+            zeilen.Add($"⚠ {grund}");
         return string.Join("\n", zeilen);
     }
 
@@ -811,39 +871,39 @@ public partial class Hauptszene : Node
         // Erst ausrechnen, dann EINMAL zuweisen. Wichtig: Würde der Knopf in jedem Bild kurz unsichtbar
         // und wieder sichtbar geschaltet, vergäße Godot, dass er gerade gedrückt wird – ein Klick, dessen
         // Drücken und Loslassen in verschiedene Bilder fallen, ginge verloren.
-        var (sichtbar, gesperrt, text, aktion) = AktionBestimmen(w, frei);
+        var (sichtbar, gesperrt, text, tipp, aktion) = AktionBestimmen(w, frei);
         _aktion = aktion;
         _aktionKnopf.Visible = sichtbar;
         if (!sichtbar) return;
         _aktionKnopf.Disabled = gesperrt;
         if (_aktionKnopf.Text != text) _aktionKnopf.Text = text;
+        if (_aktionKnopf.TooltipText != tipp) _aktionKnopf.TooltipText = tipp;
     }
 
-    private (bool Sichtbar, bool Gesperrt, string Text, Func<Befehl>? Aktion) AktionBestimmen(Stadtwirtschaft w, LiegenschaftDaten? frei)
+    private (bool Sichtbar, bool Gesperrt, string Text, string Tipp, Func<Befehl>? Aktion) AktionBestimmen(Stadtwirtschaft w, LiegenschaftDaten? frei)
     {
-        if (_spieler is null) return (false, true, "", null);
+        if (_spieler is null) return (false, true, "", "", null);
         var waehrung = w.Daten.Allgemein.Waehrung;
 
         if (frei is not null)
         {
+            // Stand, Handwerk, Meistergrad und Geld prüft der Kern; den Grund zeigt der Text darüber (⚠) und der Tooltip.
+            var grund = w.LiegenschaftErwerbVerboten(_spieler, frei.Name);
             var kosten = frei.Kaufpreis + w.Daten.Fixkosten(frei.Art);
-            var standOk = _spieler.Stand >= w.Daten.StandStufe(frei.MindestStand);
-            var geldOk = _spieler.Vermoegen >= kosten;
-            var text = !standOk ? $"Erst ab dem Stand {frei.MindestStand}"
-                : !geldOk ? $"Es fehlen {Zahlenformat.Ganz(kosten - _spieler.Vermoegen)} {waehrung}"
+            var text = _spieler.Vermoegen < kosten ? $"Es fehlen {Zahlenformat.Ganz(kosten - _spieler.Vermoegen)} {waehrung}"
                 : frei.IstPacht ? $"Pachten ({Zahlenformat.Ganz(w.Daten.Fixkosten(frei.Art))} {waehrung} im Jahr)"
                 : $"Kaufen ({Zahlenformat.Ganz(frei.Kaufpreis)} {waehrung})";
-            return (true, !standOk || !geldOk || !_spieler.IstAktiv, text, () => new LiegenschaftErwerben(frei.Name));
+            return (true, grund is not null || !_spieler.IstAktiv, text, grund ?? "", () => new LiegenschaftErwerben(frei.Name));
         }
 
         if (_auswahlKennung != "Rathaus" || w.NaechsterStand(_spieler) is not { } naechster)
-            return (false, true, "", null);
+            return (false, true, "", "", null);
         var reicht = _spieler.Reinvermoegen >= naechster.Schwelle;
         var ohneHaus = w.Wohnen.StandVerboten(_spieler, _spieler.Stand + 1); // Wohnhaus fehlt (PR #75)
         var standText = !reicht
             ? $"{naechster.Name} ab {Zahlenformat.Ganz(naechster.Schwelle)} {waehrung} – es fehlen {Zahlenformat.Ganz(naechster.Schwelle - _spieler.Reinvermoegen)}"
             : ohneHaus ?? $"Aufsteigen zum {naechster.Name} ({Zahlenformat.Ganz(naechster.Gebuehr)} {waehrung})";
-        return (true, !reicht || ohneHaus is not null || !_spieler.IstAktiv, standText, () => new StandErwerben());
+        return (true, !reicht || ohneHaus is not null || !_spieler.IstAktiv, standText, "", () => new StandErwerben());
     }
 
     /// <summary>Die Tafel oben links macht Platz, solange unten links eine Auswahl offen ist.</summary>
