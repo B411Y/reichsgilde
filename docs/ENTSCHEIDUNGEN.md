@@ -236,12 +236,14 @@ Format: `- PR #Nummer (Phase) – Inhalt`
 - PR #60 (5) – KI-Häuser holen die Werkstatt zum gelernten Handwerk nach (Schänke, Kirche, Siederei), auch über die Höchstzahl an Betrieben
 - PR #61 (2) – Bürger-KI: Gläubige und Kollekte der Messe folgen den Gebetsstunden der Einwohner; Betende verteilen sich nach Anziehung auf die Kirchen ihrer Konfession
 - PR #62 (3) – Leveldesign: fünfter Chat, Kartenregeln (`docs/LEVELDESIGN.md`), Entscheidungen zu Städten, Wohnhaus, Bauzonen, Toren, Wasser
+- PR #63 (2) – Bürger-KI: Nachfrage der Fertigwaren folgt den Einkäufen der Einwohner (Faktor 0,8–1,2, gleitend über 17 Stunden); das Übliche schwingt ohne den ersten Tag ein
 - PR #65 (–) – Andockstellen der Spiel-KI: je Teilsystem ein Faktor oder Aufruf erlaubt
 
 ### 6b. Offen (eine Zeile je Punkt; erledigt → Zeile löschen und unter 6a eintragen)
 
 - (3) Raumansicht für den Dom und Feinschliff der Werkstatträume je Beruf (zweiter Teil von PR #52)
-- (2) Bürger-KI: Kopplung an Markt → Taschendiebe (Einwohner: PR #54, Wege: PR #57, Schänke: PR #58, Kirche: PR #61)
+- (2) Bürger-KI: Kopplung an die Taschendiebe (Einwohner: PR #54, Wege: PR #57, Schänke: PR #58, Kirche: PR #61, Markt: PR #63)
+- (2) Bürger-KI: Warenkorb je Volk und Rolle (eigener Nachfragefaktor je Warengruppe)
 - (5) Orks und Oger spielbar machen
 - (5) Bauplätze und Sanierung (siehe Abschnitt 7, Punkt 8) – Regeln jetzt in Abschnitt 17 (Bauzonen)
 - (5) Eigenes Wohnhaus je Haus, Größe nach Stand (Abschnitt 17) – Kern
@@ -350,6 +352,8 @@ Format: `- PR #Nummer (Phase) – Inhalt`
 | Wohnhäuser | **Der Kern vergibt Häuser:** Haushalte zu 4–6 Personen, je Ratsherr ein eigenes Haus, Bürgerhäuser für Kandidaten aus Bürger- und Patrizierfamilien. Die Darstellung stellt die Häuser in die Stadt. | 16.10.2026 |
 | Kopplung Schänke | **Menge nach den Einwohnern, Verteilung nach Anziehung als Quote:** Gäste je Stunde × (Einkehrende ÷ üblich zu dieser Uhrzeit, 0,5–1,5). Die Einwohner verteilen sich ohne Würfel nach der Anziehung auf die Schänken – die bestehende Regel „Gäste nach Anziehung“ bleibt exakt, und das Bild in der Schänke passt zur Kasse. Kopplung voll (1,0) (PR #58). | 16.10.2026 |
 | Kopplung Kirche | **Gläubige und Kollekte × Gebetsstunden des Morgens ÷ üblich** (0,5–1,5), Verteilung bleibt beim Kirchenwesen (Konfessionen, Anziehung). Gezählt wird der ganze Morgen bis zur Messe, nicht nur eine Stunde – eine Stunde allein schwankte um ± 30 %. Kopplung voll (1,0) (PR #61). | 16.10.2026 |
+| Kopplung Markt | **Nur Fertigwaren und Heilmittel**, Nachfrage × Faktor **0,8–1,2** (Einkaufsstunden ÷ üblich), **gleitend über 17 Stunden** wie das Verkaufsfenster, **ein Faktor für alle** (Warenkorb je Volk später). Grundversorgung der Stadt bleibt fest. Vom Nutzer gewählt (PR #63). | 16.10.2026 |
+| Das Übliche | Die Bezugsgröße „üblich“ der Kopplungen **lernt nicht am ersten Tag** und mittelt die ersten Tage, bevor der gleitende Mittelwert greift. Grund: Der erste Tag lag am Markt ~20 % unter dem Dauerwert und hob die Faktoren zehn Jahre lang (PR #63). | 16.10.2026 |
 | Umland | **Stellen Weide, Feld, Wald**; neue Rollen Feldarbeiter und Holzsammler; Knechte und Mägde dienen in Bürger- und Ratsherrenhäusern. | 16.10.2026 |
 
 ## 16. KI-Häuser (Spiel-KI)

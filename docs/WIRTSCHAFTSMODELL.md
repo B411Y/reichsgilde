@@ -912,3 +912,24 @@ Die Spielerziele Z1–Z7 betreffen den Spieler und bleiben unberührt; für den 
 Mit nur der Stunde vor der Messe als Maß schwankte es um σ 57–66 (100–300, an den Grenzen) – deshalb zählt der ganze Morgen.
 
 **Messung 2** (`messen 30 20`, Mensch, gemessen auf PR #60 + diesem PR, gegen Kopplung 0): Vermögen der KI-Häuser bis auf wenige Gulden gleich (ausgewogen: Eisenbart 168.899 → 168.919, Eichwald 100.968 → 100.977; vorsichtig und wagemutig ebenso). Die Kollekte (~400 Gulden im Jahr) ist zu klein, um die Häuser spürbar zu verschieben. Rechenzeit 18 s (main ohne Bürger-KI 16 s, +12 %).
+
+## 40. Bürger-KI: Kopplung an die Marktnachfrage (PR #63)
+
+**Regel:** Für Fertigwaren und Heilmittel (42 Waren) gilt `Nachfrage = Nachfrage der Daten × Faktor`, Faktor = Einkaufsstunden der Einwohner in den letzten 17 Stunden ÷ üblich am Tag, begrenzt auf 0,8–1,2. Angebot (Grundversorgung + Verkäufe) unverändert, also `Preisfaktor = (Nachfrage × Faktor ÷ Angebot)^0,5`. Werte: `buerger.kopplung` = markt 1,0, marktSpanne 0,2, marktTypen [Fertigprodukt, Heilmittel].
+
+**Wie stark der Faktor schwankt** (10 Startwerte × 28 Jahre, Standardaufstellung, gemessen jede Stunde): Ø 1,000, σ 0,028, Spanne 0,84–1,10; Tagesmittel σ 0,019. Der Preis schwankt dadurch um etwa ± 1,5 % (σ), selten bis ± 5 %. Die Einwohner kaufen recht gleichmäßig ein – die Grenzen 0,8 und 1,2 werden fast nie erreicht.
+
+**Einschwingen:** Mit dem ersten Tag als Bezugsgröße lag der Faktor die ersten zehn Jahre bei 1,03–1,17 (der erste Tag hatte 64 statt ~79 Einkaufsstunden); die Gießerei aus Z1 verdiente 912 statt 848 (+7,5 %). Ohne den ersten Tag: Ø 0,999, Z1 wieder im Rahmen (Kern-Tests 848 / 611 ± 5 % grün).
+
+**Messung** (`messen 30 20`, Mensch, gemessen auf main `da1599e` + PR #63; Vermögen Ø am Ende):
+
+| KI-Charakter | Eisenbart | Eichwald | Kieselbach | Eisenbart Bürgermeister |
+|---|---|---|---|---|
+| vorsichtig, main | 160.597 | 136.466 | 178.019 | 6/20 |
+| vorsichtig, jetzt | 155.796 (−3,0 %) | 135.296 (−0,9 %) | 179.193 (+0,7 %) | 7/20 |
+| ausgewogen, main | 168.919 | 100.977 | 169.482 | 10/20 |
+| ausgewogen, jetzt | 168.749 (−0,1 %) | 99.042 (−1,9 %) | 158.045 (−6,7 %) | 12/20 |
+| wagemutig, main | 75.073 | 70.933 | 72.955 | 17/20 |
+| wagemutig, jetzt | 81.917 (+9,1 %) | 61.725 (−13,0 %) | 65.549 (−10,2 %) | 18/20 |
+
+Im Mittel kein Trend (Faktor Ø 1,0); die Abweichungen sind Streuung: Kleine Preisunterschiede ändern KI-Entscheidungen (Produkt, Ausbau, Gaunerei), und bei wagemutigen Häusern schaukelt sich das über Raub und Kerker auf. Die Spielerziele Z1–Z7 halten (Kern-Tests). Rechenzeit unverändert (19 s wie main auf derselben Maschine).

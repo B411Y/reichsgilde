@@ -47,10 +47,22 @@ public sealed class Marktstand
 
     public double Preisfaktor => FaktorBei(0);
 
+    /// <summary>
+    /// Bürger-KI: Faktor auf die Nachfrage der Stadt (1 = wie in den Daten). Setzt die Einwohnerschaft jede Stunde
+    /// nach den Einkäufen der Einwohner; die Grundversorgung (Nachfrage × NPC-Anteil) bleibt davon unberührt.
+    /// </summary>
+    public double NachfrageFaktor { get; internal set; } = 1;
+
+    /// <summary>Nachfrage der Stadt im Jahr – die Daten mal <see cref="NachfrageFaktor"/>.</summary>
+    public double Nachfrage => _ware.Nachfrage * NachfrageFaktor;
+
+    /// <summary>Art der Ware aus den Daten (Rohstoff, Zwischenprodukt, Fertigprodukt, Heilmittel).</summary>
+    public string Typ => _ware.Typ;
+
     /// <summary>Preisfaktor, wenn das Angebot um <paramref name="zusatz"/> Stück anders wäre (negativ = gekauft).</summary>
     private double FaktorBei(double zusatz)
     {
-        var faktor = Math.Pow(_ware.Nachfrage / Math.Max(Gesamtangebot + zusatz, 1e-9), _allgemein.Elastizitaet);
+        var faktor = Math.Pow(Nachfrage / Math.Max(Gesamtangebot + zusatz, 1e-9), _allgemein.Elastizitaet);
         return Math.Clamp(faktor, _allgemein.PreisMin, _allgemein.PreisMax);
     }
 
