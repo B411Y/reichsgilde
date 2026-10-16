@@ -13,3 +13,7 @@
 *.wav binary
 *.glb binary
 *.ttf binary
+
+# Protokolle je Bereich: Bei einem Merge-Konflikt beide Seiten behalten („union“).
+# Dort wird nur angehängt – zwei neue Einträge an derselben Stelle sollen beide stehen bleiben.
+docs/bereiche/*.md merge=union
