@@ -238,6 +238,7 @@ Format: `- PR #Nummer (Phase) – Inhalt`
 - PR #62 (3) – Leveldesign: fünfter Chat, Kartenregeln (`docs/LEVELDESIGN.md`), Entscheidungen zu Städten, Wohnhaus, Bauzonen, Toren, Wasser
 - PR #63 (2) – Bürger-KI: Nachfrage der Fertigwaren folgt den Einkäufen der Einwohner (Faktor 0,8–1,2, gleitend über 17 Stunden); das Übliche schwingt ohne den ersten Tag ein
 - PR #65 (–) – Andockstellen der Spiel-KI: je Teilsystem ein Faktor oder Aufruf erlaubt
+- PR #66 (3) – Leveldesign: Raster 2 × 2 m, Gewerbe in jeder Bauzone, Werkstätten an Karrenstraßen und Wohnhäuser auch an Gassen, feste Startgrundstücke
 
 ### 6b. Offen (eine Zeile je Punkt; erledigt → Zeile löschen und unter 6a eintragen)
 
@@ -375,6 +376,10 @@ Format: `- PR #Nummer (Phase) – Inhalt`
 | Fahrzeit | **Nur aus der Weglänge**, keine Zielzeit. Damit ist die Kartengröße ein Balancing-Wert; jede Karte braucht eine Messung durch den Kern. | 16.10.2026 |
 | Tore | **Schließen nachts** (Dunkle Nacht, 20 Uhr). Umsetzung im Kern. | 16.10.2026 |
 | Wasser | **Flüsse, Häfen und Brücken** gehören zu den Karten. Häfen werden jetzt mitgeplant, ihre Mechanik (Schiffe, Stapel) kommt später. | 16.10.2026 |
+| Raster | **Rasterfeld 2 × 2 m** für das Bauen in Bauzonen. | 16.10.2026 |
+| Gewerbe in Zonen | **Jede Werkstatt darf in jede Stadt-Bauzone**, auch laute und schmutzige Gewerbe in die Kernlage. Keine Zonen-Beschränkung nach Gewerbe. | 16.10.2026 |
+| Anschluss | **Werkstätten nur an Karrenstraßen** (Haupt-, Ring-, Wallgasse), **Wohnhäuser auch an Gassen**. Die Gassen gehören zur Karte. | 16.10.2026 |
+| Startgrundstücke | **Fest** auf jeder Karte, je Haus Wohnhaus und Werkstatt, alle gleich weit vom Markt (Fairness bei 8 Häusern). | 16.10.2026 |
 
 ## 18. Andockstellen der Spiel-KI
 
