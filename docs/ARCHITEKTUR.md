@@ -168,6 +168,15 @@ Oberfläche / KI ──Befehl──▶ Ausfuehren ──prüft──▶ Betrieb 
 - Aufsteigen ist ein Befehl (`StandErwerben`) und kein Betriebsbefehl. Deshalb gibt es zwei Arten von Befehlen: `BetriebsBefehl` (braucht einen eigenen Betrieb) und Befehle an das Konto selbst.
 - Schulden prüft die Stadtwirtschaft nach jeder Jahresabrechnung. Ein Bankrott löst das Ereignis `Bankrott` aus. Ob die Partie damit endet, entscheidet die Oberfläche, denn nur sie weiß, welches Konto der Mensch spielt. Sie ruft dann `Simulation.Beenden(grund)` auf.
 
+## Wohnhaus (Wohnungswesen)
+
+- `Wohnen/Wohnungswesen.cs`, Abschnitt `wohnen` in `wirtschaft.json` (`stufen` mit name, ausbau, unterhalt, ansehen, abStand; `bauzeitMinuten`). Fehlt der Abschnitt, gibt es keine Wohnhäuser – alles wie früher.
+- Der Zustand liegt am **Konto** (`WohnhausStufe`, `WohnhausFertigAb`), weil das Wohnhaus dem Haus gehört, nicht einem Betrieb. Gespeichert im `KontoStand`; alte Spielstände bekommen beim Laden das Haus, das ihr Stand verlangt (`AlteStaendeErgaenzen`).
+- Befehl `WohnhausAusbauen`: prüft `AusbauVerboten` (höchstens eine Stufe über dem Stand, Bargeld, kein laufender Bau), bucht den Preis als Investition, nach der Bauzeit zieht das Haus um (`Minute`, mit Meldung).
+- **Pflicht für den Stand:** `StandErwerben` fragt `Wohnen.StandVerboten(konto, neuerStand)`; dieselbe Abfrage nutzen Kontor und Rathaus-Knopf für den Grund.
+- Ansehen: `Stadtrat.Ansehen` addiert `Wohnen.AnsehenBonus`. Unterhalt: am Jahresende nach den Familienkosten (`UnterhaltZahlen` → `Konto.Familienkosten`).
+- `Wohnen.Leerstand` liefert die Häuser erloschener oder bankrotter Konten – Grundlage für späteres Kaufen und Sanieren.
+
 ## Liegenschaften und Stadtplan
 
 - **Was es zu erwerben gibt**, steht in `wirtschaft.json` (Abschnitt `liegenschaften`: Name, Art, Kaufpreis, Mindeststand). Erworben wird mit dem Befehl `LiegenschaftErwerben(name)`. Die Stadtwirtschaft eröffnet dann einen Betrieb mit genau diesem Namen.

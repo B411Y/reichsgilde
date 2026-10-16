@@ -204,6 +204,7 @@ static class PredigerTests
             w.KiAnmelden(prediger, Partieaufbau.ProfilFuer(KiCharakter.Wagemutig));
             var suender = Suender(w, "Haus Eisenbart");
             suender.Umsatz(20_000);
+            Wohnhaushilfe.MitWohnhaus(w, suender); // Wohnhaus steht: die KI steigt auf wie vor dem Wohnhaus
             w.KiAnmelden(suender, KiProfil.Standard);
             var andere = Suender(w, "Haus Krug");
             w.Justiz.BeweisGeben(prediger, w.Justiz.SpurenVon(suender).Single());

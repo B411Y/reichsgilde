@@ -74,7 +74,7 @@ static class TischlerTests
                 Daten.Value, new NeuePartie(Startvermoegen: 20_000));
             var w = sim.Wirtschaft!;
             Pruefe.Wahr(spieler.Berufe.SequenceEqual(new[] { "Schmied" }), string.Join(",", spieler.Berufe));
-            w.Ausfuehren(spieler, new StandErwerben());
+            w.Ausfuehren(Wohnhaushilfe.MitWohnhaus(w, spieler), new StandErwerben());
             var e = w.Ausfuehren(spieler, new LiegenschaftErwerben("Tischlerei am Holzmarkt"));
             Pruefe.Wahr(!e.Erfolg && e.Meldung.Contains("erst erlernen"), e.Meldung);
             spieler.Aktionspunkte.Setzen(4);

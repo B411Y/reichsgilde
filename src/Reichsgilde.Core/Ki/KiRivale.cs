@@ -310,6 +310,14 @@ public sealed class KiRivale
     {
         if (_w.NaechsterStand(Konto) is not { } neu) return;
         if (Konto.Reinvermoegen < neu.Schwelle || Konto.Vermoegen - neu.Gebuehr < Profil.Reserve) return;
+        // Wohnhaus zuerst (Kern, Wohnungswesen): Für den neuen Stand braucht es das passende Haus.
+        if (_w.Wohnen.StandVerboten(Konto, Konto.Stand + 1) is not null)
+        {
+            if (_w.Wohnen.AusbauVerboten(Konto) is null && _w.Wohnen.NaechsteStufe(Konto) is { } haus
+                && Konto.Vermoegen - haus.Ausbau - neu.Gebuehr >= Profil.Reserve)
+                Befehlen(new WohnhausAusbauen(), $"baut das Wohnhaus zum {haus.Name} aus ({Zahlenformat.Ganz(haus.Ausbau)} {_w.Daten.Allgemein.Waehrung}).");
+            return;
+        }
         Befehlen(new StandErwerben(),
             $"steigt in den Stand {neu.Name} auf ({Zahlenformat.Ganz(neu.Gebuehr)} {_w.Daten.Allgemein.Waehrung} Gebühr).");
     }

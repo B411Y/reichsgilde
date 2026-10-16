@@ -38,13 +38,13 @@ static class StandTests
         {
             var w = NeueSimulation().Wirtschaft!;
             var k = w.KontoEroeffnen("Spieler");
-            var e = w.Ausfuehren(k, new StandErwerben());
+            var e = w.Ausfuehren(Wohnhaushilfe.MitWohnhaus(w, k), new StandErwerben());
             Pruefe.Wahr(!e.Erfolg && e.Meldung.Contains("fehlen noch 6.000"), e.Meldung);
 
             VermoegenSetzen(k, 10000);
             var aufgestiegen = 0;
             w.Aufgestiegen += (_, _) => aufgestiegen++;
-            Pruefe.Wahr(w.Ausfuehren(k, new StandErwerben()).Erfolg, "Aufstieg abgelehnt");
+            Pruefe.Wahr(w.Ausfuehren(Wohnhaushilfe.MitWohnhaus(w, k), new StandErwerben()).Erfolg, "Aufstieg abgelehnt");
             Pruefe.Gleich("Bürger", w.StandVon(k).Name);
             Pruefe.Ungefaehr(9000, k.Vermoegen, 1e-9);
             Pruefe.Ungefaehr(1000, k.Laufend.Standesgebuehren, 1e-9);
@@ -58,9 +58,9 @@ static class StandTests
             var w = NeueSimulation().Wirtschaft!;
             var k = w.KontoEroeffnen("Spieler");
             VermoegenSetzen(k, 60000);
-            w.Ausfuehren(k, new StandErwerben());
+            w.Ausfuehren(Wohnhaushilfe.MitWohnhaus(w, k), new StandErwerben());
             Pruefe.Gleich("Bürger", w.StandVon(k).Name);
-            w.Ausfuehren(k, new StandErwerben());
+            w.Ausfuehren(Wohnhaushilfe.MitWohnhaus(w, k), new StandErwerben());
             Pruefe.Gleich("Patrizier", w.StandVon(k).Name);
             VermoegenSetzen(k, 100);
             Pruefe.Gleich("Patrizier", w.StandVon(k).Name);
@@ -73,7 +73,7 @@ static class StandTests
             var b = w.KontoEroeffnen("B");
             var c = w.KontoEroeffnen("C");
             VermoegenSetzen(a, 12000);
-            w.Ausfuehren(a, new StandErwerben()); // Bürger mit 11.000
+            w.Ausfuehren(Wohnhaushilfe.MitWohnhaus(w, a), new StandErwerben()); // Bürger mit 11.000
             VermoegenSetzen(b, 15000);            // Gemeiner, aber reicher
             c.IstBankrott = true;
             VermoegenSetzen(c, 99999);
@@ -149,13 +149,17 @@ static class StandTests
             Pruefe.Gleich(vorher, sim.Zeit.VergangeneMinuten);
         }),
 
-        ("KI steigt auf, sobald sie es sich leisten kann", () =>
+        ("KI steigt auf, sobald sie es sich leisten kann – erst baut sie das Bürgerhaus, dann steigt sie auf", () =>
         {
             var sim = NeueSimulation();
             var w = sim.Wirtschaft!;
             var k = w.KontoEroeffnen("Rivale");
             VermoegenSetzen(k, 12000);
             w.KiAnmelden(k);
+            Pruefe.Gleich("Gemeiner", w.StandVon(k).Name);
+            Pruefe.Wahr(k.WohnhausFertigAb is not null, "Die KI sollte das Bürgerhaus bauen");
+            for (var i = 0; i < 6 * 60; i++) sim.Tick(); // Bauzeit 4 Stunden, dann die nächste KI-Stunde
+            Pruefe.Gleich("Bürgerhaus", w.Wohnen.Stufe(k)!.Name);
             Pruefe.Gleich("Bürger", w.StandVon(k).Name);
         }),
 

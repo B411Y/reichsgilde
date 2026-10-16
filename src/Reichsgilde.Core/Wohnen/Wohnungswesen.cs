@@ -1,0 +1,179 @@
+using Reichsgilde.Core.Wirtschaft;
+using Reichsgilde.Core.Zeit;
+
+namespace Reichsgilde.Core.Wohnen;
+
+// ═════════════════════════════════════════════════════════════════════════════
+//  Daten (Abschnitt „wohnen" in wirtschaft.json, ab Datenversion 31)
+// ═════════════════════════════════════════════════════════════════════════════
+
+/// <summary>Eine Stufe des Wohnhauses, z. B. „Bürgerhaus“.</summary>
+public sealed class WohnhausStufe
+{
+    public string Name { get; init; } = "";
+
+    /// <summary>Was der Ausbau auf diese Stufe kostet (Gulden, einmalig).</summary>
+    public double Ausbau { get; init; }
+
+    /// <summary>Unterhalt im Jahr (Gulden, mit den Haushaltskosten).</summary>
+    public double Unterhalt { get; init; }
+
+    /// <summary>So viel Ansehen bringt das Haus (Rat, Brautschau, Gericht).</summary>
+    public double Ansehen { get; init; }
+
+    /// <summary>Ab diesem Stand (0 = Gemeiner) ist die Stufe Pflicht – wer in den Stand aufsteigen will, braucht sie vorher.</summary>
+    public int AbStand { get; init; }
+}
+
+public sealed class WohnenDaten
+{
+    /// <summary>Die Stufen von klein nach groß. Die erste ist das Startwohnhaus (kostenlos).</summary>
+    public List<WohnhausStufe> Stufen { get; init; } = new();
+
+    /// <summary>So lange dauert ein Ausbau (Spielminuten). Bis dahin gilt die alte Stufe.</summary>
+    public int BauzeitMinuten { get; init; } = 240;
+
+    internal void Pruefen(List<string> f, int anzahlStaende)
+    {
+        if (Stufen.Count == 0) { f.Add("wohnen.stufen darf nicht leer sein."); return; }
+        if (Stufen[0].AbStand != 0 || Stufen[0].Ausbau != 0)
+            f.Add("wohnen.stufen: Die erste Stufe ist das Startwohnhaus (abStand 0, ausbau 0).");
+        for (var i = 0; i < Stufen.Count; i++)
+        {
+            var s = Stufen[i];
+            if (string.IsNullOrWhiteSpace(s.Name)) f.Add($"wohnen.stufen[{i}] braucht einen Namen.");
+            if (s.Ausbau < 0 || s.Unterhalt < 0) f.Add($"wohnen.stufen[{i}] ({s.Name}): Ausbau und Unterhalt dürfen nicht negativ sein.");
+            if (s.AbStand < 0 || s.AbStand >= anzahlStaende) f.Add($"wohnen.stufen[{i}] ({s.Name}): abStand muss ein Stand zwischen 0 und {anzahlStaende - 1} sein.");
+            if (i > 0 && s.AbStand <= Stufen[i - 1].AbStand) f.Add($"wohnen.stufen[{i}] ({s.Name}): abStand muss größer sein als bei der Stufe davor.");
+        }
+        if (BauzeitMinuten < 0) f.Add("wohnen.bauzeitMinuten darf nicht negativ sein.");
+    }
+}
+
+// ═════════════════════════════════════════════════════════════════════════════
+//  Teilsystem
+// ═════════════════════════════════════════════════════════════════════════════
+
+/// <summary>
+/// Das Wohnhaus jedes Hauses – getrennt von den Betrieben (Entscheidung Leveldesign/Kern, 16.10.2026).
+/// Es wird am selben Ort Stufe für Stufe ausgebaut (Fachwerkhaus → Bürgerhaus → Steinhaus → Stadtpalais → Hof),
+/// bringt Ansehen, kostet Unterhalt und ist <b>Voraussetzung für den Stand</b>: Wer Bürger werden will, braucht vorher ein Bürgerhaus.
+/// Ausbauen darf man höchstens eine Stufe über dem eigenen Stand.
+///
+/// Der Zustand (Stufe, Bauende) liegt am <see cref="Konto"/>, weil das Wohnhaus dem Haus gehört.
+/// Fehlt der Abschnitt „wohnen“, gibt es keine Wohnhäuser – alles wie vorher.
+/// </summary>
+public sealed class Wohnungswesen
+{
+    private readonly Stadtwirtschaft _w;
+    public WohnenDaten? Daten { get; }
+    public bool IstAktiv => Daten is not null;
+
+    internal Wohnungswesen(Stadtwirtschaft w, WohnenDaten? daten)
+    {
+        _w = w;
+        Daten = daten;
+    }
+
+    // ── Auskunft ─────────────────────────────────────────────────────────────
+
+    /// <summary>Die Stufe, in der das Haus jetzt wohnt (null ohne Wohnhäuser).</summary>
+    public WohnhausStufe? Stufe(Konto k) => Daten?.Stufen[Math.Clamp(k.WohnhausStufe, 0, Daten.Stufen.Count - 1)];
+
+    /// <summary>Die nächste Stufe (null: schon die größte oder keine Wohnhäuser).</summary>
+    public WohnhausStufe? NaechsteStufe(Konto k) =>
+        Daten is { } d && k.WohnhausStufe + 1 < d.Stufen.Count ? d.Stufen[k.WohnhausStufe + 1] : null;
+
+    /// <summary>Wird gerade ausgebaut? Dann steht hier die Spielminute, ab der die neue Stufe gilt.</summary>
+    public long? FertigAb(Konto k) => k.WohnhausFertigAb;
+
+    /// <summary>Welche Stufe braucht ein Haus mindestens, um in diesem Stand zu sein?</summary>
+    public int NoetigeStufe(int stand)
+    {
+        if (Daten is not { } d) return 0;
+        var stufe = 0;
+        for (var i = 0; i < d.Stufen.Count; i++)
+            if (d.Stufen[i].AbStand <= stand) stufe = i;
+        return stufe;
+    }
+
+    /// <summary>Warum dieses Haus nicht in den Stand <paramref name="neuerStand"/> aufsteigen darf – oder null.</summary>
+    public string? StandVerboten(Konto k, int neuerStand)
+    {
+        if (Daten is not { } d) return null;
+        var noetig = NoetigeStufe(neuerStand);
+        if (k.WohnhausStufe >= noetig) return null;
+        var stand = _w.Daten.Staende[Math.Min(neuerStand, _w.Daten.Staende.Count - 1)].Name;
+        return k.WohnhausFertigAb is not null && k.WohnhausStufe + 1 >= noetig
+            ? $"Für den Stand {stand} braucht {k.Inhaber} ein {d.Stufen[noetig].Name} – der Ausbau läuft noch."
+            : $"Für den Stand {stand} braucht {k.Inhaber} erst ein {d.Stufen[noetig].Name} (Wohnhaus ausbauen).";
+    }
+
+    /// <summary>Ansehen aus dem Wohnhaus.</summary>
+    public double AnsehenBonus(Konto k) => Stufe(k)?.Ansehen ?? 0;
+
+    /// <summary>Unterhalt des Wohnhauses im Jahr.</summary>
+    public double Unterhalt(Konto k) => Stufe(k)?.Unterhalt ?? 0;
+
+    /// <summary>Häuser, deren Wohnhaus leer steht (erloschen oder bankrott) – später kauf- und sanierbar.</summary>
+    public IEnumerable<Konto> Leerstand => IstAktiv ? _w.Konten.Where(k => !k.IstAktiv) : Enumerable.Empty<Konto>();
+
+    /// <summary>Warum dieses Haus jetzt nicht ausbauen kann – oder null.</summary>
+    public string? AusbauVerboten(Konto k)
+    {
+        if (Daten is null) return "In dieser Stadt gibt es keine Wohnhäuser.";
+        if (!k.IstAktiv) return $"{k.Inhaber} ist nicht mehr im Spiel.";
+        if (k.WohnhausFertigAb is not null) return $"Am Wohnhaus von {k.Inhaber} wird schon gebaut.";
+        if (NaechsteStufe(k) is not { } naechste) return $"{k.Inhaber} wohnt schon im größten Haus ({Stufe(k)!.Name}).";
+        if (k.Stand < naechste.AbStand - 1)
+            return $"Ein {naechste.Name} darf erst bauen, wer mindestens {_w.Daten.Staende[naechste.AbStand - 1].Name} ist.";
+        if (k.Vermoegen < naechste.Ausbau)
+            return $"Der Ausbau zum {naechste.Name} kostet {Zahlenformat.Ganz(naechste.Ausbau)} {_w.Daten.Allgemein.Waehrung} – " +
+                   $"es fehlen {Zahlenformat.Ganz(naechste.Ausbau - k.Vermoegen)}.";
+        return null;
+    }
+
+    // ── Handeln ──────────────────────────────────────────────────────────────
+
+    /// <summary>Befehl „Wohnhaus ausbauen“: bezahlen, die Bauzeit läuft.</summary>
+    internal Befehlsergebnis Ausbauen(Konto k, Spielzeit zeit)
+    {
+        if (AusbauVerboten(k) is { } grund) return Befehlsergebnis.Abgelehnt(grund);
+        var naechste = NaechsteStufe(k)!;
+        k.Investition(naechste.Ausbau);
+        k.WohnhausFertigAb = zeit.VergangeneMinuten + Daten!.BauzeitMinuten;
+        if (Daten.BauzeitMinuten == 0) Minute(zeit);
+        var dauer = Daten.BauzeitMinuten >= 60 ? $"{Daten.BauzeitMinuten / 60.0:0.#} Stunden" : $"{Daten.BauzeitMinuten} Minuten";
+        return Befehlsergebnis.Ok($"{k.Inhaber} baut das Wohnhaus zum {naechste.Name} aus " +
+                                  $"({Zahlenformat.Ganz(naechste.Ausbau)} {_w.Daten.Allgemein.Waehrung}, fertig in {dauer}).");
+    }
+
+    /// <summary>Jede Spielminute: fertige Ausbauten übernehmen.</summary>
+    internal void Minute(Spielzeit zeit)
+    {
+        if (Daten is null) return;
+        foreach (var k in _w.Konten)
+            if (k.WohnhausFertigAb is { } ab && zeit.VergangeneMinuten >= ab)
+            {
+                k.WohnhausFertigAb = null;
+                k.WohnhausStufe++;
+                _w.Melden($"{k.Inhaber} bezieht das neue {Stufe(k)!.Name}.");
+            }
+    }
+
+    /// <summary>Jahresende: Unterhalt der Wohnhäuser (mit den Haushaltskosten).</summary>
+    internal void UnterhaltZahlen()
+    {
+        if (Daten is null) return;
+        foreach (var k in _w.Konten.Where(k => k.IstAktiv))
+            if (Unterhalt(k) is var betrag and > 0)
+                k.Familienkosten(betrag);
+    }
+
+    /// <summary>Ein Haus ohne gespeicherte Stufe (alter Spielstand): das Wohnhaus, das sein Stand verlangt.</summary>
+    internal void AlteStaendeErgaenzen(IEnumerable<Konto> ohneStufe)
+    {
+        foreach (var k in ohneStufe)
+            k.WohnhausStufe = NoetigeStufe(k.Stand);
+    }
+}

@@ -837,10 +837,11 @@ public partial class Hauptszene : Node
         if (_auswahlKennung != "Rathaus" || w.NaechsterStand(_spieler) is not { } naechster)
             return (false, true, "", null);
         var reicht = _spieler.Reinvermoegen >= naechster.Schwelle;
-        var standText = reicht
-            ? $"Aufsteigen zum {naechster.Name} ({Zahlenformat.Ganz(naechster.Gebuehr)} {waehrung})"
-            : $"{naechster.Name} ab {Zahlenformat.Ganz(naechster.Schwelle)} {waehrung} – es fehlen {Zahlenformat.Ganz(naechster.Schwelle - _spieler.Reinvermoegen)}";
-        return (true, !reicht || !_spieler.IstAktiv, standText, () => new StandErwerben());
+        var ohneHaus = w.Wohnen.StandVerboten(_spieler, _spieler.Stand + 1); // Wohnhaus fehlt (PR #75)
+        var standText = !reicht
+            ? $"{naechster.Name} ab {Zahlenformat.Ganz(naechster.Schwelle)} {waehrung} – es fehlen {Zahlenformat.Ganz(naechster.Schwelle - _spieler.Reinvermoegen)}"
+            : ohneHaus ?? $"Aufsteigen zum {naechster.Name} ({Zahlenformat.Ganz(naechster.Gebuehr)} {waehrung})";
+        return (true, !reicht || ohneHaus is not null || !_spieler.IstAktiv, standText, () => new StandErwerben());
     }
 
     /// <summary>Die Tafel oben links macht Platz, solange unten links eine Auswahl offen ist.</summary>

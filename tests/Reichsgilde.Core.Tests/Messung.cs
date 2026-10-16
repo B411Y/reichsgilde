@@ -183,7 +183,7 @@ static class Messung
             daten, new NeuePartie(Startvermoegen: 20_000));
         var w = sim.Wirtschaft!;
         var rivale = w.Konten.First(k => k != spieler);
-        w.Ausfuehren(spieler, new StandErwerben());
+        w.Ausfuehren(Wohnhaushilfe.MitWohnhaus(w, spieler), new StandErwerben());
         for (var jahr = 0; jahr < 25 && w.Justiz.Beweise(spieler, rivale).Count() < 3; jahr++)
         {
             w.Ausfuehren(spieler, new SpitzelAnsetzen(rivale.Inhaber));
