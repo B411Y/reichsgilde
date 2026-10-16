@@ -102,11 +102,33 @@ jobs:
         run: |
           set -o pipefail   # ein Absturz des Spiels soll den Schritt fehlschlagen lassen
           chmod +x build/linux/Reichsgilde.x86_64
+          # Stürzt das Spiel ab, landet ein Speicherabbild (Core-Dump) im Arbeitsordner – für die Rückverfolgung unten.
+          ulimit -c unlimited || true
+          sudo sysctl -q -w kernel.core_pattern="$PWD/kern.%p" || true
           # 1. normaler Start   2. mit Bedienfeld, Innenansicht, Jahresbericht, Ratskammer, Familientafel, Gerichtssaal, Hinterzimmer und hohem Tempo (mehr Code wird durchlaufen)
           rauchtest() {
-            build/linux/Reichsgilde.x86_64 --headless --quit-after 300 2>&1 | tee start.log
+            build/linux/Reichsgilde.x86_64 --headless --quit-after 300 2>&1 | tee start.log || return 1
             echo "=== zweiter Start (mit Tafeln) ===" | tee -a start.log
-            build/linux/Reichsgilde.x86_64 --headless --quit-after 600 -- --verwalten=1 --innen=1 --tempo=8 --startstunde=4 --bericht=1 --rat=1 --familie=1 --gericht=1 --hinterzimmer=1 2>&1 | tee -a start.log
+            build/linux/Reichsgilde.x86_64 --headless --quit-after 600 -- --verwalten=1 --innen=1 --tempo=8 --startstunde=4 --bericht=1 --rat=1 --familie=1 --gericht=1 --hinterzimmer=1 2>&1 | tee -a start.log || return 1
+          }
+          # Nach einem Absturz: Welcher Faden ist abgestürzt und wo? Ein Absturz beim Beenden kam schon ohne jede Meldung
+          # von Godot (16.10.2026) – die Fadennamen zeigen, ob es Godot selbst war oder die .NET-Laufzeit (z. B. „.NET Finalizer“).
+          # Die volle Ausgabe steht in rueckverfolgung.txt (Artefakt „Rauchtest-Protokoll“), der Anfang als Anmerkung.
+          absturz() {
+            echo "::error::Das exportierte Spiel ist abgestürzt (Rückverfolgung im Artefakt „Rauchtest-Protokoll“)"
+            local abbild
+            abbild=$(ls -t kern.* 2>/dev/null | head -1)
+            if [ -n "$abbild" ]; then
+              sudo apt-get install -y -qq gdb > /dev/null 2>&1
+              gdb -batch -ex "info threads" -ex "bt 30" -ex "thread apply all bt 15" \
+                build/linux/Reichsgilde.x86_64 "$abbild" > rueckverfolgung.txt 2>&1 || true
+              rm -f kern.*   # das Abbild ist mehrere hundert MB groß – die Rückverfolgung genügt
+              head -60 rueckverfolgung.txt | sed -e 's/%/%25/g' -e 's/\r//g' | awk 'BEGIN { ORS = "%0A" } { print }' > anmerkung.txt
+              echo "::error title=Rauchtest – Rückverfolgung des Absturzes::$(cat anmerkung.txt)"
+            else
+              echo "Kein Speicherabbild gefunden – nur start.log." | tee rueckverfolgung.txt
+            fi
+            exit 1
           }
           # „leaked" fängt Speicherlecks beim Beenden (z. B. Knoten, die nie in den Szenenbaum kamen)
           MUSTER="ERROR|Unhandled exception|leaked"
@@ -117,18 +139,31 @@ jobs:
               | sed -e 's/%/%25/g' -e 's/\r//g' | awk 'BEGIN { ORS = "%0A" } { print }' > anmerkung.txt
             echo "::$1 title=$2::$(cat anmerkung.txt)"
           }
-          rauchtest
+          rauchtest || absturz
           if grep -qE "$MUSTER" start.log; then
             # Manche Meldungen kommen nur sporadisch (z. B. ein Leck beim Beenden, je nach Zeitpunkt). Deshalb ein
             # zweiter Versuch: Erst wenn er wieder etwas findet, schlägt der Schritt fehl. Der erste Fund bleibt als Warnung sichtbar.
             anmerken warning "Rauchtest, 1. Versuch – Fundstellen (wird wiederholt)"
-            rauchtest
+            cp start.log start-1.log
+            rauchtest || absturz
             if grep -qE "$MUSTER" start.log; then
               echo "::error::Das exportierte Spiel meldet Fehler beim Start (in zwei Versuchen)"
               anmerken error "Rauchtest, 2. Versuch – Fundstellen"
               exit 1
             fi
           fi
+
+      - name: Rauchtest-Protokoll bereitstellen (nur bei Fehlern)
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: Rauchtest-Protokoll
+          path: |
+            start.log
+            start-1.log
+            rueckverfolgung.txt
+          if-no-files-found: ignore
+          retention-days: 14
 
       - name: Linux-Build bereitstellen
         uses: actions/upload-artifact@v4
