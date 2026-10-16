@@ -8,22 +8,25 @@ An diesem Projekt arbeiten **mehrere Chats gleichzeitig**. Die meisten Regeln un
 - **Reichsgilde** (Arbeitstitel): 2,5D-Wirtschaftssimulation im Stil von „Die Gilde Gold Edition“, düster-bodenständiges Heiliges Römisches Reich mit Menschen, Zwergen, Elben, Halblingen, Orks und Ogern.
 - Godot 4.7.2 (.NET) mit C#/.NET 8, MIT-Lizenz. Hobby- und Lernprojekt eines Solo-Entwicklers mit wenig Programmiererfahrung: **Erkläre umsetzbar und lehrreich.**
 - Aufbau: `src/Reichsgilde.Core` (Simulation, kennt Godot nicht) · `game/` (Godot: Darstellung und Oberfläche, liest den Kern nur) · `tests/` · `docs/` · Werte in `game/data/wirtschaft.json`.
-- Weiterlesen: `README.md` (Stand, Steuerung), `docs/ARCHITEKTUR.md` (Aufbau), `docs/ENTSCHEIDUNGEN.md` (alle Grundsatzentscheidungen und Phasenplan), `docs/WIRTSCHAFTSMODELL.md` (Zahlen, Messungen je Beruf), `docs/LEVELDESIGN.md` (Kartenregeln, Städte).
+- Weiterlesen: `README.md` (Stand, Steuerung), `docs/ARCHITEKTUR.md` (Aufbau), `docs/bereiche/<bereich>.md` (offene Punkte und neue Entscheidungen je Bereich), `docs/ENTSCHEIDUNGEN.md` (Archiv der Entscheidungen bis 16.10.2026, Phasen-Übersicht), `docs/WIRTSCHAFTSMODELL.md` (Zahlen, Messungen je Beruf), `docs/LEVELDESIGN.md` (Kartenregeln, Städte).
 
 ## Zu Beginn jeder Aufgabe (Pflicht)
 
 1. `git fetch origin` und `git log origin/main --oneline -15` – was haben die anderen Chats zuletzt gemergt?
 2. Offene PRs ansehen, auch Entwürfe: `gh api "repos/B411Y/reichsgilde/pulls?state=open" --jq '.[] | "#\(.number) \(.draft) \(.head.ref) \(.title)"'`. Der Text eines Entwurfs-PR sagt, woran gerade gearbeitet wird und welche Dateien er anfasst. Fasst deine Aufgabe dieselben Dateien an: Nutzer fragen, bevor du anfängst.
-3. Die Abschnitte in `docs/ENTSCHEIDUNGEN.md` lesen, die deine Aufgabe betreffen.
+3. Die eigene Bereichsdatei `docs/bereiche/<bereich>.md` lesen (Offen, Entscheidungen) und die Abschnitte im Archiv `docs/ENTSCHEIDUNGEN.md`, die deine Aufgabe betreffen.
+4. Auf dem eigenen Branch weiterarbeiten? Erst `git pull` – die Action „PRs aktuell halten“ kann inzwischen main eingemergt haben.
 
 ## Arbeitsweise
 
 - **Eigener Branch von `main`**: `phaseN/thema` für Neues, `fix/thema` für Fehler, `infra/thema` für Werkzeuge und Abläufe.
 - **Nach dem ersten Commit sofort einen Entwurfs-PR öffnen** (Vorlage: `.github/pull_request_template.md`): Aufgabe, Bereich, angefasste Dateien. So sehen die anderen Chats, was läuft. Den Text aktuell halten, wenn weitere Dateien dazukommen.
-- Kleine, sinnvolle Commits. Commit- und PR-Texte auf Deutsch.
+- Kleine, sinnvolle Commits. Commit- und PR-Texte auf Deutsch. **PR-Titel beginnen mit dem Bereich**: „Kern: …“, „Spiel-KI: …“, „Darstellung: …“, „Oberfläche: …“, „Leveldesign: …“.
 - **Vor dem Fertigmelden** `origin/main` in den Branch mergen (nicht rebasen), bauen, testen, dann den PR auf „bereit“ stellen und die CI abwarten (Linux, Windows, Export).
-- **Doku im selben PR**: README und `docs/ARCHITEKTUR.md` ergänzen; neue Grundsatzentscheidungen als Tabellenzeile in `docs/ENTSCHEIDUNGEN.md` (Abschnitt 3a oder ein eigener Abschnitt am Ende), im Phasenplan dort eine Zeile `- PR #… (Phase) – Inhalt` unten an Liste 6a anhängen und den erledigten Punkt aus 6b löschen; Werte und Messungen eines neuen Berufs oder einer Balance-Änderung als neuer Abschnitt in `docs/WIRTSCHAFTSMODELL.md`.
-- **Lieber anhängen als umschreiben**: In den beiden Protokollen nur neue Zeilen und Abschnitte hinzufügen oder einzelne Zeilen ändern. Dann lassen sich die PRs zweier Chats konfliktfrei mergen. Gibt es doch einen Konflikt, beide Einträge behalten.
+- **Doku im selben PR**: README und `docs/ARCHITEKTUR.md` ergänzen. Entscheidungen und offene Punkte **nur in die eigene Bereichsdatei** `docs/bereiche/<bereich>.md`: neue Entscheidung als `### Thema (PR #…)` mit Tabelle unten unter „Entscheidungen“ anhängen, erledigten Punkt aus „Offen“ löschen, neue offene Punkte unten anhängen. **Keine Nummern** (weder Abschnitte noch Paragraphen) – zwei Chats würden sonst dieselbe Nummer nehmen. Eine Liste „Erledigt“ gibt es nicht mehr: Das zeigt GitHub. Braucht ein anderer Bereich etwas, eine Zeile „(von <Bereich>) …“ unter „Offen“ in dessen Datei.
+- **Messungen**: Kern in `docs/WIRTSCHAFTSMODELL.md` (nur der Kern schreibt dort), Spiel-KI in `docs/bereiche/spiel-ki.md` unter „Messungen“.
+- **Gemeinsame Dateien**: In README, ARCHITEKTUR und CLAUDE.md nur an der Stelle ändern, die zum eigenen Thema gehört – nicht ans Dateiende anhängen, wenn es einen passenden Abschnitt gibt. `docs/ENTSCHEIDUNGEN.md` ist Archiv; nur der Kern pflegt dort die Phasen-Übersicht.
+- **Konflikte**: Die Action „PRs aktuell halten“ mergt nach jedem Merge auf main den neuen Stand in alle fertigen PRs (nicht in Entwürfe); in `docs/bereiche/*.md` behält Git dabei beide Einträge. Bleibt ein echter Konflikt, bekommt der PR das Label „Konflikt mit main“ – dann main von Hand einmergen (nicht rebasen), beide Einträge behalten.
 - Vorher fragen: Designfragen mit Auswahl (je eine empfohlene Option), bevor gebaut wird. Was sich nicht zurücknehmen lässt, immer erst fragen.
 
 ## Bereiche (wer ist wofür zuständig)
@@ -40,7 +43,7 @@ Jeder Chat bekommt im Prompt einen Bereich. Dateien außerhalb des eigenen Berei
 | später z. B. Sound | wird hier ergänzt, sobald es den Chat gibt |
 
 Nur der Kern-Chat ändert: `game/data/wirtschaft.json`, `Stadtwirtschaft.cs`, `Speicherstand.cs`. Braucht ein anderer Bereich dort etwas: im PR-Text beschreiben und den Nutzer fragen.
-**Ausnahme Spiel-KI:** Der Spiel-KI-Chat darf dort kleine Andockstellen ergänzen und nennt jede im PR-Text: einen Aufruf in `Stadtwirtschaft` (Takt, Jahreswechsel, öffentliche Abfrage), einen **eigenen** Abschnitt in `wirtschaft.json` (Datenversion erhöhen), eigene Felder im `Speicherstand` (alte Spielstände müssen weiter laden), dazu **je Teilsystem des Kerns einen Faktor oder Aufruf**, über den die Bürger wirken (z. B. `Markt.NachfrageFaktor`, ein Faktor in `Kirchenwesen` oder `Gastwirtschaft`; ohne Abschnitt `buerger` bleibt er 1). Bestehende Werte und Regeln ändert nur der Kern.
+**Ausnahme Spiel-KI:** Der Spiel-KI-Chat darf dort kleine Andockstellen ergänzen und nennt jede im PR-Text: einen Aufruf in `Stadtwirtschaft` (Takt, Jahreswechsel, öffentliche Abfrage), einen **eigenen** Abschnitt in `wirtschaft.json` (die Datenversion erhöht nur der Kern), eigene Felder im `Speicherstand` (alte Spielstände müssen weiter laden), dazu **je Teilsystem des Kerns einen Faktor oder Aufruf**, über den die Bürger wirken (z. B. `Markt.NachfrageFaktor`, ein Faktor in `Kirchenwesen` oder `Gastwirtschaft`; ohne Abschnitt `buerger` bleibt er 1). Bestehende Werte und Regeln ändert nur der Kern.
 Die Darstellung **liest den Kern nur** (öffentliche Abfragen). Fehlt eine Abfrage, kleine Ergänzung im Kern mit Test – im PR nennen.
 
 ## Feste Regeln
@@ -51,7 +54,8 @@ Die Darstellung **liest den Kern nur** (öffentliche Abfragen). Fehlt eine Abfra
 - Code-Bezeichner deutsch, Umlaute umschrieben (`Waehrung`), deutsche Kommentare. Antworten an den Nutzer auf Deutsch, kurz, ohne Emojis.
 - Tests müssen grün bleiben. Nie einen Test abschalten, um grün zu werden.
 - **Neue Tests**: eine neue Datei mit einer statischen Klasse und `public static IEnumerable<(string, Action)> Alle()` anlegen – sie wird automatisch gefunden. `Program.cs` nicht anfassen.
-- **Messungen** (`messen`) machen nur der Kern-Chat und der Spiel-KI-Chat (für eigene Änderungen an KI-Häusern oder Bürgern). Jede Messung in `docs/WIRTSCHAFTSMODELL.md` nennt den `main`-Commit, gegen den gemessen wurde (`git rev-parse --short origin/main` nach dem Einmergen), z. B. „gemessen auf main 0ed29e9 + dieser PR“.
+- **Datenversion** (`"version"` in `wirtschaft.json`) erhöht nur der Kern – sonst ändern zwei PRs dieselbe Zeile.
+- **Messungen** (`messen`) machen nur der Kern-Chat und der Spiel-KI-Chat (für eigene Änderungen an KI-Häusern oder Bürgern). Jede Messung nennt den `main`-Commit, gegen den gemessen wurde (`git rev-parse --short origin/main` nach dem Einmergen), z. B. „gemessen auf main 0ed29e9 + dieser PR“.
 
 ## Bauen, testen, ausprobieren
 

@@ -186,6 +186,8 @@ Reichsgilde läuft auf **Windows und Linux**. Bei jedem Pull Request prüft GitH
 Die fertigen Builds kann man unter **Actions → jeweiliger Lauf → Artifacts** herunterladen.
 Die Konfiguration steht in [`.github/workflows/build.yml`](.github/workflows/build.yml).
 
+Nach jedem Merge auf `main` hält die Action **„PRs aktuell halten“** ([`.github/workflows/prs-aktuell.yml`](.github/workflows/prs-aktuell.yml)) alle fertigen Pull Requests auf dem neuen Stand: Sie mergt `main` hinein und startet die Prüfung neu. Lässt sich das nicht automatisch lösen, bekommt der PR das Label **„Konflikt mit main“**. Damit das selten passiert, schreibt jeder Chat seine Entscheidungen und offenen Punkte in eine eigene Datei unter `docs/bereiche/`.
+
 ## Lizenz
 
 Code: [MIT](LICENSE). Schriften: **Alegreya** (The Alegreya Project Authors) und **Germania One** (John Vargas Beltrán), beide unter der [SIL Open Font License 1.1](game/assets/schriften/) – die Lizenztexte liegen neben den Schriftdateien. Die Waren-Icons sind selbst gezeichnet (`tools/icons/waren_icons.py`) und stehen unter derselben Lizenz. Dieses Projekt verwendet **keine** Grafiken, Sounds, Texte oder sonstigen Inhalte aus „Die Gilde“ – das Original dient nur als Vorbild für Spielmechaniken.

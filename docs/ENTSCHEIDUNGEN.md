@@ -1,7 +1,9 @@
 # Reichsgilde – Entscheidungsprotokoll
 
 Begonnen am 13.10.2026 · Lebendes Dokument: Jede Grundsatzentscheidung wird hier mit Datum und Begründung festgehalten.
-Seit 15.10.2026 im Repository (vorher im Claude-Projekt). Änderungen laufen wie Code über einen PR – so gehen gleichzeitige Einträge mehrerer Chats nicht verloren. Wie man einträgt: siehe `CLAUDE.md`.
+Seit 15.10.2026 im Repository (vorher im Claude-Projekt).
+
+> **Archiv seit 16.10.2026.** Neue Entscheidungen, offene Punkte und Messungen der Spiel-KI stehen **je Bereich** in `docs/bereiche/` (`kern.md`, `spiel-ki.md`, `darstellung.md`, `oberflaeche.md`, `leveldesign.md`). Grund: Hier schrieben alle Chats ans Dateiende und an dieselben Listen – fast jeder zweite PR hatte deshalb einen Merge-Konflikt. Diese Datei wird nur noch für die Phasen-Übersicht in Abschnitt 6 (Kern) und für Korrekturen geändert.
 
 ---
 
@@ -175,7 +177,7 @@ Seit 15.10.2026 im Repository (vorher im Claude-Projekt). Änderungen laufen wie
 
 Was erledigt und was offen ist, steht in den beiden Listen darunter – **eine Zeile je PR bzw. Punkt**. So ändern zwei Chats nie dieselbe Zeile, und ihre PRs lassen sich ohne Konflikt mergen.
 
-### 6a. Erledigt (je gemergtem PR eine Zeile, neue Zeilen unten anhängen)
+### 6a. Erledigt (bis 16.10.2026 – seitdem zeigt GitHub die gemergten PRs: Pull requests → Closed)
 
 Format: `- PR #Nummer (Phase) – Inhalt`
 
@@ -240,20 +242,13 @@ Format: `- PR #Nummer (Phase) – Inhalt`
 - PR #65 (–) – Andockstellen der Spiel-KI: je Teilsystem ein Faktor oder Aufruf erlaubt
 - PR #66 (3) – Leveldesign: Raster 2 × 2 m, Gewerbe in jeder Bauzone, Werkstätten an Karrenstraßen und Wohnhäuser auch an Gassen, feste Startgrundstücke
 
-### 6b. Offen (eine Zeile je Punkt; erledigt → Zeile löschen und unter 6a eintragen)
+### 6b. Offen
 
-- (3) Raumansicht für den Dom und Feinschliff der Werkstatträume je Beruf (zweiter Teil von PR #52)
-- (2) Bürger-KI: Kopplung an die Taschendiebe (Einwohner: PR #54, Wege: PR #57, Schänke: PR #58, Kirche: PR #61, Markt: PR #63)
-- (2) Bürger-KI: Warenkorb je Volk und Rolle (eigener Nachfragefaktor je Warengruppe)
-- (5) Orks und Oger spielbar machen
-- (5) Bauplätze und Sanierung (siehe Abschnitt 7, Punkt 8) – Regeln jetzt in Abschnitt 17 (Bauzonen)
-- (5) Eigenes Wohnhaus je Haus, Größe nach Stand (Abschnitt 17) – Kern
-- (3) Leveldesign: Kartendatei-Format und erste Karte Köln (Abschnitt 17, `docs/LEVELDESIGN.md`)
-- (–) Reichskarte zum Wechsel zwischen den Städten (Idee, später)
-- (5) Gaunerberuf, Schmuggel und Schwarzarbeit unter dem Statut
-- (6) Multiplayer, Zuschauer-Modus
+Steht seit 16.10.2026 je Bereich in `docs/bereiche/<bereich>.md` unter „Offen“.
 
 ## 7. Offene Punkte
+
+*(Archiv – die noch offenen Punkte stehen jetzt in `docs/bereiche/kern.md`.)*
 
 1. ~~Rundendauer im Original messen~~ → 15 Min. ✔
 2. Lizenz für Grafiken und Texte (CC BY 4.0?) bestätigen.
