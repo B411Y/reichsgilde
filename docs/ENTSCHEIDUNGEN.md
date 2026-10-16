@@ -233,12 +233,12 @@ Format: `- PR #Nummer (Phase) – Inhalt`
 - PR #57 (2) – Bürger-KI: Wege mit Abmarsch und Ankunft, Wohnhäuser und Haushalte, Umland (Weide, Feld, Wald), Dienst in Bürgerhäusern
 - PR #58 (2) – Bürger-KI: Gäste der Schänken folgen den einkehrenden Einwohnern (Menge als Faktor um 1, Verteilung als Quote nach Anziehung)
 - PR #59 (3) – Stadterweiterung: Mauer ±50 m, Westtor, Umland 14 m nach außen (Vorbereitung Passanten)
+- PR #60 (5) – KI-Häuser holen die Werkstatt zum gelernten Handwerk nach (Schänke, Kirche, Siederei), auch über die Höchstzahl an Betrieben
 
 ### 6b. Offen (eine Zeile je Punkt; erledigt → Zeile löschen und unter 6a eintragen)
 
 - (3) Raumansicht für den Dom und Feinschliff der Werkstatträume je Beruf (zweiter Teil von PR #52)
 - (2) Bürger-KI: Kopplung an Kirche → Markt → Taschendiebe (Einwohner: PR #54, Wege: PR #57, Schänke: PR #58)
-- (5) KI-Häuser bauen nie eine Schänke: Wer den Wirt lernt, pachtet nur den Bauernhof (gefunden bei der Messung zu PR #58)
 - (5) Orks und Oger spielbar machen
 - (5) Bauplätze und Sanierung (siehe Abschnitt 7, Punkt 8)
 - (5) Gaunerberuf, Schmuggel und Schwarzarbeit unter dem Statut
@@ -344,3 +344,9 @@ Format: `- PR #Nummer (Phase) – Inhalt`
 | Wohnhäuser | **Der Kern vergibt Häuser:** Haushalte zu 4–6 Personen, je Ratsherr ein eigenes Haus, Bürgerhäuser für Kandidaten aus Bürger- und Patrizierfamilien. Die Darstellung stellt die Häuser in die Stadt. | 16.10.2026 |
 | Kopplung Schänke | **Menge nach den Einwohnern, Verteilung nach Anziehung als Quote:** Gäste je Stunde × (Einkehrende ÷ üblich zu dieser Uhrzeit, 0,5–1,5). Die Einwohner verteilen sich ohne Würfel nach der Anziehung auf die Schänken – die bestehende Regel „Gäste nach Anziehung“ bleibt exakt, und das Bild in der Schänke passt zur Kasse. Kopplung voll (1,0) (PR #58). | 16.10.2026 |
 | Umland | **Stellen Weide, Feld, Wald**; neue Rollen Feldarbeiter und Holzsammler; Knechte und Mägde dienen in Bürger- und Ratsherrenhäusern. | 16.10.2026 |
+
+## 16. KI-Häuser (Spiel-KI)
+
+| Thema | Entscheidung | Datum |
+|---|---|---|
+| Werkstatt zum Handwerk | **Wer ein Handwerk gelernt hat, führt auch dessen Werkstatt.** Hat ein KI-Haus nur den Umlandbetrieb (Bauernhof, Klosterhof, Duftgarten), kauft es die Werkstatt (Schänke, Kirche, Siederei) dazu – **auch über die Höchstzahl an Betrieben**. Die KI-Häuser werden dadurch um 13–28 % reicher (Messung WIRTSCHAFTSMODELL §38); vom Nutzer so gewählt (Alternativen: Höchstzahl als Paar, oder erst ab Stand Edler) (PR #60). | 16.10.2026 |
