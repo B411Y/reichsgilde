@@ -23,6 +23,7 @@ So wird eingetragen (damit sich die Chats nie an derselben Stelle treffen):
 - (5) Werkstatt frei verkaufen: Befehl fehlt noch (Entscheidung zu PR #75)
 - (5) Wohnhaus kaufen statt bauen: Leerstand (`Wohnen.Leerstand`) übernehmen und sanieren – zusammen mit Bauzonen und Sanierung
 - (–) Sporadisches Leck beim Beenden im Rauchtest finden: „10 ObjectDB instances leaked“ und „10 RID allocations of type DummyTexture leaked“, im zweiten Start (mit Tafeln), nur auf GitHub, lokal nicht nachzustellen. Der Rauchtest wiederholt solche Funde seit PR #83; die Warnung „1. Versuch“ im Lauf zeigt, wie oft es vorkommt
+- (von Spiel-KI) Wohnhaus und Reinvermögen: Der Ausbau ist eine Ausgabe und zählt nicht zum Reinvermögen. Wer das Haus genau an der Schwelle baut, fällt darunter und kann nicht aufsteigen (KI vor PR #82: Startwert 606 fiel von 91.860 auf 37.583 und blieb Edler). Die KI wartet seit PR #82 auf Schwelle + Ausbau; der Spieler läuft weiter hinein. Vorschlag: Hauswert (ganz oder teilweise) zum Reinvermögen zählen oder die Tafel warnt vor dem Bau
 
 ## Entscheidungen
 
