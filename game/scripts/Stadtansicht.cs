@@ -1437,6 +1437,7 @@ public partial class Stadtansicht : Node3D
     {
         if (_simulation is null) return;
         WohnhaeuserPruefen(); // einmal, sobald der Kern die Wohnhäuser vergeben hat
+        SpielhaeuserAktualisieren(); // Wohnhäuser der Spielhäuser (Stadtansicht.Spielhaeuser.cs)
         var zeit = _simulation.Zeit;
         // Die Simulation zählt nur ganze Minuten (bei Tempo 1 etwa eine pro Sekunde). Für die Darstellung
         // nehmen wir den Bruchteil der angebrochenen Minute dazu – sonst springen Sonne, Schatten und Karren

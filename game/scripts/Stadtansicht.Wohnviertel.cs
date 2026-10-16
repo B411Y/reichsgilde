@@ -179,14 +179,17 @@ public partial class Stadtansicht
             WohnhaeuserBauen(einwohner.Wohnhaeuser);
         }
         else
+        {
             WohnhaeuserBauen(Mustermischung());
+            if (_simulation is null) SpielhaeuserMuster();
+        }
     }
 
     /// <summary>Für das Hauptmenü: so viele Häuser, wie der Ring fasst – 13 Ratsherren, 3 Bürger, der Rest einfache Häuser.</summary>
     private static List<Stadthaus> Mustermischung()
     {
         var liste = new List<Stadthaus>();
-        var plaetze = RingPlaetze().Count;
+        var plaetze = RingPlaetze().Count - 2 * 4; // vier Doppelplätze für die Muster-Spielhäuser
         for (var i = 1; i <= plaetze; i++)
             liste.Add(new Stadthaus(i, i <= 13 ? Hausart.Ratsherrenhaus : i <= 16 ? Hausart.Buergerhaus : Hausart.Wohnhaus));
         return liste;
@@ -195,7 +198,10 @@ public partial class Stadtansicht
     private void WohnhaeuserBauen(IReadOnlyList<Stadthaus> haeuser)
     {
         _wohnhaeuserGebaut = true;
-        var ring = RingPlaetze().OrderBy(p => p.Mitte.Length()).ThenBy(p => p.Mitte.X).ThenBy(p => p.Mitte.Z).ToList();
+        // Doppelplätze der Spielhäuser vorher abziehen (Stadtansicht.Spielhaeuser.cs)
+        SpielhausPlaetze(AnzahlSpielhaeuser());
+        var ring = RingPlaetze().Where(p => !BelegteRingplaetze.Contains(p))
+                                .OrderBy(p => p.Mitte.Length()).ThenBy(p => p.Mitte.X).ThenBy(p => p.Mitte.Z).ToList();
         var gross = haeuser.Where(h => h.Art != Hausart.Wohnhaus).OrderBy(h => h.Art == Hausart.Ratsherrenhaus ? 0 : 1).ThenBy(h => h.Nummer).ToList();
         var einfach = haeuser.Where(h => h.Art == Hausart.Wohnhaus).OrderBy(h => h.Nummer).ToList();
 
