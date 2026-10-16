@@ -63,6 +63,18 @@ public sealed class Karren
     /// </summary>
     public bool NachtsFahren { get; set; }
 
+    /// <summary>
+    /// Wartet der Karren am geschlossenen Stadttor, steht hier die Spielminute, zu der es wieder aufgeht (null: wartet nicht).
+    /// Auf dem Hinweg wartet er draußen und kommt dann am Markt an, auf dem Rückweg wartet er drinnen und fährt dann los.
+    /// </summary>
+    public long? TorWartenBis { get; private set; }
+
+    /// <summary>Wartet der Karren gerade am geschlossenen Tor? (für Anzeige und Darstellung)</summary>
+    public bool WartetAmTor(Spielzeit zeit) => TorWartenBis is { } bis && zeit.VergangeneMinuten < bis;
+
+    /// <summary>Der Rückweg ins Umland beginnt erst, wenn das Tor aufgeht (Überfall und Eskorte erst dann).</summary>
+    private bool _rueckfahrtWartet;
+
     internal Karren(string name, string typ, KarrenDaten daten, Betrieb heimat)
     {
         Name = name;
@@ -72,7 +84,9 @@ public sealed class Karren
     }
 
     /// <summary>Kurzer Text für die Anzeige.</summary>
-    public string ZustandText(Spielzeit zeit) => Zustand switch
+    public string ZustandText(Spielzeit zeit) => WartetAmTor(zeit)
+        ? (Zustand == KarrenZustand.ZumMarkt ? "wartet vor dem geschlossenen Stadttor bis zum Morgen" : "wartet in der Stadt, bis das Tor aufgeht")
+        : Zustand switch
     {
         KarrenZustand.AmBetrieb => "wartet am Betrieb",
         KarrenZustand.ZumMarkt => $"{(Auftrag is null ? "unterwegs zum Markt" : "mit Handelsauftrag zum Markt")} (noch {Math.Max(0, Ankunft - zeit.VergangeneMinuten)} Min.)",
@@ -85,8 +99,27 @@ public sealed class Karren
     {
         if (Zustand != KarrenZustand.AmBetrieb)
         {
+            if (_rueckfahrtWartet)
+            {
+                if (zeit.VergangeneMinuten >= TorWartenBis)
+                {
+                    _rueckfahrtWartet = false;
+                    TorWartenBis = null;
+                    Losfahren(KarrenZustand.ZumBetrieb, zeit, w);
+                }
+                return;
+            }
             if (zeit.VergangeneMinuten >= Ankunft)
+            {
+                // Vom Umland in die Stadt führt der Weg durchs Tor – kurz vor dem Markt.
+                if (Zustand == KarrenZustand.ZumMarkt && !DurchsTor(zeit, w))
+                {
+                    Ankunft = TorWartenBis!.Value;
+                    return;
+                }
+                TorWartenBis = null;
                 Ankommen(zeit, w);
+            }
             return;
         }
 
@@ -163,6 +196,36 @@ public sealed class Karren
 
     // ── Fahrten ─────────────────────────────────────────────────────────────
 
+    /// <summary>
+    /// Kommt der Karren jetzt durchs Stadttor? Nur Umlandkarren müssen hindurch. Ist es zu, zahlt ein Karren mit
+    /// Nachtfahrt-Erlaubnis das Torgeld; sonst wartet er (<see cref="TorWartenBis"/> = nächster Morgen).
+    /// </summary>
+    private bool DurchsTor(Spielzeit zeit, Stadtwirtschaft w)
+    {
+        if (Heimat.Ort != Arbeitsort.Umland || w.Daten.Logistik.Tore is not { } tore || !tore.IstZu(zeit))
+            return true;
+        if (NachtsFahren)
+        {
+            Heimat.Konto.Transport(tore.Torgeld);
+            return true;
+        }
+        TorWartenBis = (zeit.VergangeneMinuten / Spielzeit.MinutenProTag + 1) * Spielzeit.MinutenProTag;
+        return false;
+    }
+
+    /// <summary>Vom Markt zurück zum Betrieb – ins Umland erst, wenn das Tor offen ist.</summary>
+    private void Zurueckfahren(Spielzeit zeit, Stadtwirtschaft w)
+    {
+        if (DurchsTor(zeit, w))
+        {
+            Losfahren(KarrenZustand.ZumBetrieb, zeit, w);
+            return;
+        }
+        Zustand = KarrenZustand.ZumBetrieb;
+        _rueckfahrtWartet = true;
+        Ankunft = TorWartenBis!.Value + w.Daten.Logistik.FahrzeitAb(Heimat.Ort);
+    }
+
     private void Losfahren(KarrenZustand ziel, Spielzeit zeit, Stadtwirtschaft w)
     {
         Zustand = ziel;
@@ -233,7 +296,7 @@ public sealed class Karren
                     Heimat.Verkaufen(ware, stueck, w.Markt, w.Familien.VerkaufsFaktor(Heimat.Konto));
                 _ladung.Clear();
                 AuftragEinkaufen(w, Heimat.Konto.Laufend.Umsatz - vorher);
-                Losfahren(KarrenZustand.ZumBetrieb, zeit, w);
+                Zurueckfahren(zeit, w);
                 return;
             }
 
@@ -244,7 +307,7 @@ public sealed class Karren
 
             // ... und knappe Zutaten einkaufen.
             ZutatenEinkaufen(w);
-            Losfahren(KarrenZustand.ZumBetrieb, zeit, w);
+            Zurueckfahren(zeit, w);
         }
         else
         {
@@ -285,6 +348,7 @@ public sealed class Karren
     {
         Name = Name, Typ = Typ, Zustand = Zustand, Ankunft = Ankunft, Ladung = new(_ladung),
         Eskorte = Eskorte, NachtsFahren = NachtsFahren, WareWartetSeit = _wareWartetSeit,
+        TorWartenBis = TorWartenBis, RueckfahrtWartet = _rueckfahrtWartet,
         Auftrag = Auftrag is null ? null : new(Auftrag.Kauf),
         VormerkungVerkauf = Vormerkung is null ? null : new(Vormerkung.Verkauf),
         VormerkungKauf = Vormerkung is null ? null : new(Vormerkung.Kauf),
@@ -299,6 +363,8 @@ public sealed class Karren
         Eskorte = s.Eskorte;
         NachtsFahren = s.NachtsFahren;
         _wareWartetSeit = s.WareWartetSeit;
+        TorWartenBis = s.TorWartenBis;
+        _rueckfahrtWartet = s.RueckfahrtWartet;
         Auftrag = s.Auftrag is null ? null : new Handelsplan(new Dictionary<string, int>(s.Auftrag));
         Vormerkung = s.VormerkungVerkauf is null || s.VormerkungKauf is null ? null
             : new Vormerkung(new Dictionary<string, int>(s.VormerkungVerkauf), new Dictionary<string, int>(s.VormerkungKauf));

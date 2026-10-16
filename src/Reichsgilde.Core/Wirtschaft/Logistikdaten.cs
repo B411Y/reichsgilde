@@ -1,3 +1,4 @@
+using Reichsgilde.Core.Zeit;
 namespace Reichsgilde.Core.Wirtschaft;
 
 /// <summary>Ein Karrentyp (Abschnitt "logistik.karren").</summary>
@@ -66,6 +67,30 @@ public sealed class UeberfallDaten
     public double FaktorNacht { get; init; } = 2;
 }
 
+/// <summary>
+/// Die Stadttore (Abschnitt "logistik.tore", ab Datenversion 30). Ab <see cref="SchliessenUm"/> Uhr sind sie zu,
+/// mit Tagesbeginn (05:00) wieder offen. Umlandkarren kommen dann nur mit Nachtfahrt-Erlaubnis gegen
+/// <see cref="Torgeld"/> durch – sonst warten sie bis zum Morgen am Tor. Fehlt der Abschnitt, gibt es keine Tore.
+/// </summary>
+public sealed class ToreDaten
+{
+    /// <summary>Volle Stunde, ab der die Tore zu sind (Dunkle Nacht: 20).</summary>
+    public int SchliessenUm { get; init; } = 20;
+
+    /// <summary>Was die Torwache je Durchfahrt nach Torschluss verlangt (Gulden).</summary>
+    public double Torgeld { get; init; } = 15;
+
+    /// <summary>Sind die Tore zu dieser Spielzeit geschlossen?</summary>
+    public bool IstZu(Spielzeit zeit) => zeit.UhrzeitInMinuten >= SchliessenUm * 60;
+
+    internal void Pruefen(List<string> f)
+    {
+        if (SchliessenUm * 60 <= Spielzeit.TagesbeginnMinute || SchliessenUm * 60 > Spielzeit.TagesendeMinute)
+            f.Add($"logistik.tore.schliessenUm muss zwischen {Spielzeit.TagesbeginnMinute / 60 + 1} und {Spielzeit.TagesendeMinute / 60} liegen.");
+        if (Torgeld < 0) f.Add("logistik.tore.torgeld darf nicht negativ sein.");
+    }
+}
+
 /// <summary>Alle Logistik-Stellschrauben (Abschnitt "logistik").</summary>
 public sealed class LogistikDaten
 {
@@ -89,6 +114,9 @@ public sealed class LogistikDaten
     public UeberfallDaten Ueberfall { get; init; } = new();
     public List<BandeDaten> Banden { get; init; } = new();
 
+    /// <summary>Stadttore mit Torschluss (null: keine Tore, wie vor Datenversion 30).</summary>
+    public ToreDaten? Tore { get; init; }
+
     public int FahrzeitAb(Arbeitsort ort) => Fahrzeiten.GetValueOrDefault(ort.ToString(), 30);
 
     internal void Pruefen(List<string> f)
@@ -97,6 +125,7 @@ public sealed class LogistikDaten
             if (!Fahrzeiten.TryGetValue(ort, out var minuten) || minuten <= 0)
                 f.Add($"logistik.fahrzeiten.{ort} fehlt oder ist nicht größer als 0.");
         if (LagerJeWare <= 0) f.Add("logistik.lagerJeWare muss größer als 0 sein.");
+        Tore?.Pruefen(f);
         if (AbfahrtAbFuellgrad is <= 0 or > 1) f.Add("logistik.abfahrtAbFuellgrad muss zwischen 0 und 1 liegen.");
         if (MaxWartezeitMinuten <= 0) f.Add("logistik.maxWartezeitMinuten muss größer als 0 sein.");
         if (Karren.Count == 0) f.Add("logistik.karren: Es ist kein Karrentyp definiert.");
