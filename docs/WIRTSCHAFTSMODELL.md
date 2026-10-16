@@ -849,3 +849,11 @@ Keine Balance-Änderung: Die Einwohner (25 je Haus, dazu 13 Ratsherren und 10 Ka
 **Messung** (gemessen auf main `c7ebbf5` + PR #54, 20 Startwerte, 30 Jahre, Spieler Mensch, KI ausgewogen und wagemutig): Ausgabe **zeichengleich** mit main. Rechenzeit 15 s / 17 s gegen 16 s / 16 s ohne Einwohner – im Rauschen der Messung, Budget +25 %.
 
 **Tagesprofil** (Startwert 1400, 4 Häuser, ohne Schänke; Anteil der 123 Einwohner): 05 Uhr alle zu Hause · 06 Uhr Frühmesse (~75 %) · 08 Uhr Markt (~65 %) · 09–19 Uhr Arbeit 45–80 %, dazu Markt, Beten, Ruhen · ab 20 Uhr alle zu Hause (mit Schänke: ein Teil kehrt ab 12 Uhr und abends ein).
+
+## 36. Bürger-KI: Wege, Wohnhäuser, Umland (PR #57)
+
+Keine Balance-Änderung: Wege, Häuser und Umlandstellen würfeln nur mit dem Generator der Einwohner. Werte im Abschnitt `buerger` (`wege`, `haushaltVon/Bis`, `buergerhaeuser`, `umland`).
+
+**Wegzeiten:** Abmarsch 0–10 Minuten nach der vollen Stunde; in der Stadt 10 ± 5 Minuten, Tor 15, Umland 30 – spätestens 40 Minuten nach der Stunde ist jeder da. Bei 4 Häusern: ~20 Wohnhäuser, 3 Bürgerhäuser, 13 Ratsherrenhäuser.
+
+**Messung** (gemessen auf main `52c249c` + PR #57, 20 Startwerte, 30 Jahre, Spieler Mensch, KI ausgewogen und wagemutig): Ausgabe **zeichengleich** mit main. Rechenzeit 15–17 s wie ohne Einwohner.

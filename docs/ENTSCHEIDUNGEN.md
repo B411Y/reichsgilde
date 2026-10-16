@@ -230,6 +230,7 @@ Format: `- PR #Nummer (Phase) – Inhalt`
 - PR #54 (2) – Bürger-KI Schritt 1: Einwohner mit Tagesablauf nach Bedürfnissen, noch ohne Wirkung auf die Wirtschaft
 - PR #55 (3) – Schattenkanten ohne Treppen: Schattenkarte 8192, Filter Ultra, leichte Weichzeichnung
 - PR #56 (3) – Einstellungen-Fenster: Kantenglättung wählbar (Standard SMAA), Vollbild
+- PR #57 (2) – Bürger-KI: Wege mit Abmarsch und Ankunft, Wohnhäuser und Haushalte, Umland (Weide, Feld, Wald), Dienst in Bürgerhäusern
 
 ### 6b. Offen (eine Zeile je Punkt; erledigt → Zeile löschen und unter 6a eintragen)
 
@@ -335,3 +336,6 @@ Format: `- PR #Nummer (Phase) – Inhalt`
 | Kopplung | **Erst Kulisse (keine Wirkung), dann als Stellvertreter:** Das Verhalten der Einwohner wirkt als **Faktor um 1,0** auf die bestehenden Zahlen (Gäste, Gläubige, Nachfrage, Beute), damit die Balance im Mittel bleibt. Reihenfolge **Schänke → Kirche → Markt → Taschendiebe**, je ein PR mit Messung. | 15.10.2026 |
 | Zufall | Fast deterministisch: eigener Generator ×71+53, Rauschen ±20 % auf den Nutzen, Streuung beim Aufwachen; Stammschänke und Stammkirche fest nach der Nummer. | 15.10.2026 |
 | Rechenzeit | Höchstens **+25 %** auf `messen 30 20` (Ausgangswert 16 s je Charakter). | 15.10.2026 |
+| Passanten | Die Einwohner **laufen sichtbar** durch Stadt und Umland. **Der Kern legt Wege mit Zeiten fest** (Abmarsch, Ankunft), die Darstellung zeichnet die Figuren entlang der Gassen; gebaut vom Darstellungs-Chat. So passt das Bild zur Zählung (PR #57). | 16.10.2026 |
+| Wohnhäuser | **Der Kern vergibt Häuser:** Haushalte zu 4–6 Personen, je Ratsherr ein eigenes Haus, Bürgerhäuser für Kandidaten aus Bürger- und Patrizierfamilien. Die Darstellung stellt die Häuser in die Stadt. | 16.10.2026 |
+| Umland | **Stellen Weide, Feld, Wald**; neue Rollen Feldarbeiter und Holzsammler; Knechte und Mägde dienen in Bürger- und Ratsherrenhäusern. | 16.10.2026 |
