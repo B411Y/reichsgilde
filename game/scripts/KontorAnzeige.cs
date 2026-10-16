@@ -20,6 +20,9 @@ public partial class KontorAnzeige : PanelContainer
     private Label _vermoegen = null!;
     private Label _standZeile = null!;
     private Label _statutZeile = null!;
+    private HBoxContainer _wohnhausZeile = null!;
+    private Label _wohnhausText = null!;
+    private Button _ausbauKnopf = null!;
     private Label _apZeile = null!;
     private Label _familienZeile = null!;
     private VBoxContainer _betriebsliste = null!;
@@ -82,6 +85,15 @@ public partial class KontorAnzeige : PanelContainer
         _vermoegen = NeuesLabel(spalte, 26);
         _vermoegen.MouseFilter = MouseFilterEnum.Stop; // für den Tooltip (Bargeld, Kasse, Schulden)
         _standZeile = NeuesLabel(spalte, 14, new Color(0.95f, 0.82f, 0.45f));
+        _wohnhausZeile = new HBoxContainer();
+        _wohnhausZeile.AddThemeConstantOverride("separation", 8);
+        spalte.AddChild(_wohnhausZeile);
+        _wohnhausText = NeuesLabel(_wohnhausZeile, 14);
+        _wohnhausText.MouseFilter = MouseFilterEnum.Stop; // für den Tooltip
+        _ausbauKnopf = new Button { FocusMode = FocusModeEnum.None };
+        _ausbauKnopf.AddThemeFontSizeOverride("font_size", 13);
+        _ausbauKnopf.Pressed += () => Senden(new WohnhausAusbauen());
+        _wohnhausZeile.AddChild(_ausbauKnopf);
         _statutZeile = NeuesLabel(spalte, 13, new Color(0.75f, 0.75f, 0.75f));
         _apZeile = NeuesLabel(spalte, 14, new Color(0.95f, 0.82f, 0.45f));
         _apZeile.MouseFilter = MouseFilterEnum.Stop; // für den Tooltip
@@ -266,6 +278,36 @@ public partial class KontorAnzeige : PanelContainer
         Gemeldet?.Invoke(e.Erfolg ? e.Meldung : "✗ " + e.Meldung);
     }
 
+    /// <summary>Zeile „Wohnhaus: Bürgerhaus“ mit Knopf zum Ausbauen (gesperrt mit Grund aus dem Kern).</summary>
+    private void WohnhausAktualisieren(Stadtwirtschaft w, string waehrung)
+    {
+        _wohnhausZeile.Visible = w.Wohnen.IstAktiv;
+        if (!w.Wohnen.IstAktiv || _spieler is null) return;
+        var stufe = w.Wohnen.Stufe(_spieler)!;
+        var text = $"Wohnhaus: {stufe.Name}"
+                   + (stufe.Ansehen > 0 ? $" (+{Zahlenformat.Ganz(stufe.Ansehen)} Ansehen, Unterhalt {Zahlenformat.Ganz(stufe.Unterhalt)} {waehrung} im Jahr)" : "");
+        if (_wohnhausText.Text != text) _wohnhausText.Text = text;
+        _wohnhausText.TooltipText = "Das Wohnhaus gehört dem Haus, nicht einem Betrieb. Es bringt Ansehen und ist Pflicht für den Stand: " +
+                                    "Wer aufsteigen will, braucht vorher das passende Haus. Ausbauen darf man höchstens eine Stufe über dem eigenen Stand.";
+
+        var naechste = w.Wohnen.NaechsteStufe(_spieler);
+        _ausbauKnopf.Visible = naechste is not null && _spieler.IstAktiv;
+        if (naechste is null) return;
+        string knopf;
+        if (w.Wohnen.FertigAb(_spieler) is { } ab && _simulation is { } sim)
+        {
+            var rest = Math.Max(0, ab - sim.Zeit.VergangeneMinuten);
+            knopf = $"Ausbau zum {naechste.Name} läuft (noch {rest / 60}:{rest % 60:00} h)";
+        }
+        else knopf = $"Ausbauen zum {naechste.Name} ({Zahlenformat.Ganz(naechste.Ausbau)} {waehrung})";
+        if (_ausbauKnopf.Text != knopf) _ausbauKnopf.Text = knopf;
+        var grund = w.Wohnen.AusbauVerboten(_spieler);
+        _ausbauKnopf.Disabled = grund is not null;
+        var tipp = grund ?? $"Ausbau zum {naechste.Name}: +{Zahlenformat.Ganz(naechste.Ansehen)} Ansehen, Unterhalt {Zahlenformat.Ganz(naechste.Unterhalt)} {waehrung} im Jahr. " +
+                   $"Bauzeit {w.Wohnen.Daten!.BauzeitMinuten / 60.0:0.#} Stunden.";
+        if (_ausbauKnopf.TooltipText != tipp) _ausbauKnopf.TooltipText = tipp;
+    }
+
     private void Senden(Befehl befehl)
     {
         if (_simulation?.Wirtschaft is not { } w || _spieler is null) return;
@@ -408,10 +450,12 @@ public partial class KontorAnzeige : PanelContainer
         _standZeile.Text = _spieler.IstBankrott ? "Bankrott" : _spieler.IstErloschen ? "Das Haus ist erloschen"
             : w.Justiz.IstAktiv && w.Justiz.KerkerBis(_spieler) is int kerker ? $"Das Oberhaupt sitzt bis Ende {kerker} im Kerker"
             : w.NaechsterStand(_spieler) is not { } neu ? "Höchster Stand erreicht"
+            : _spieler.Reinvermoegen >= neu.Schwelle && w.Wohnen.StandVerboten(_spieler, _spieler.Stand + 1) is { } ohneHaus ? ohneHaus
             : _spieler.Reinvermoegen >= neu.Schwelle ? $"Aufstieg zum {neu.Name} im Rathaus möglich!"
             : $"Nächster Stand: {neu.Name} ab {Zahlenformat.Ganz(neu.Schwelle)} {waehrung} (noch {Zahlenformat.Ganz(neu.Schwelle - Math.Max(0, _spieler.Reinvermoegen))})";
 
         _familienZeile.Text = FamilienText(w);
+        WohnhausAktualisieren(w, waehrung);
         BerufZeileAktualisieren(w);
         MeisterAktualisieren(w);
         KreditAktualisieren(w);
