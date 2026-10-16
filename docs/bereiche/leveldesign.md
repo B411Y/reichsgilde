@@ -36,7 +36,7 @@ Die Kartenregeln selbst stehen in `docs/LEVELDESIGN.md`.
 | Wohnhaus | **Fachwerkhaus belegt die Fläche des Steinhauses (8 × 10 m, 20 Felder)** und wächst am Platz über Bürgerhaus zum Steinhaus. **Stadtpalais (12 × 10 m) und Hof (16 × 14 m)** sind ein neuer Bau an anderer Stelle oder Abriss und Neubau. | 16.10.2026 |
 | Aussehen | Gebäude behalten ihr Aussehen, Maße auf **glatte Meter** (Einwohnerhäuser 6 / 7 / 8 m). | 16.10.2026 |
 
-### Stadthof (PR #NUMMER)
+### Stadthof (PR #84)
 
 | Thema | Entscheidung | Datum |
 |---|---|---|
