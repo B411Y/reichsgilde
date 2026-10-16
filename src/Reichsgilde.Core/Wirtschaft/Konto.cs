@@ -133,6 +133,12 @@ public sealed class Konto
     /// <summary>Läuft ein Ausbau des Wohnhauses: ab dieser Spielminute gilt die nächste Stufe (sonst null).</summary>
     public long? WohnhausFertigAb { get; internal set; }
 
+    /// <summary>Nach einem Brand: Bis zu dieser Spielminute wird das Wohnhaus instand gesetzt, sein Ansehen fehlt (sonst null).</summary>
+    public long? WohnhausInstandBis { get; internal set; }
+
+    /// <summary>Bewacht ein Hauswächter das Wohnhaus (halbiert Einbruch und Brand, mehr Zeugen)?</summary>
+    public bool Hauswaechter { get; internal set; }
+
     /// <summary>Aktionspunkte des Hauses für persönliche Handlungen (Werben, Rat, Gericht, Hinterzimmer, Training).</summary>
     public Partie.Aktionspunkte Aktionspunkte { get; } = new();
 
@@ -178,7 +184,7 @@ public sealed class Konto
     {
         Inhaber = Inhaber, Wappen = Wappen, Vermoegen = Vermoegen, Forderungen = Forderungen, Schulden = Schulden, Stand = Stand, Schuldenjahre = Schuldenjahre, IstBankrott = IstBankrott, IstErloschen = IstErloschen,
         Aktionspunkte = Aktionspunkte.Vorrat,
-        WohnhausStufe = WohnhausStufe, WohnhausFertigAb = WohnhausFertigAb,
+        WohnhausStufe = WohnhausStufe, WohnhausFertigAb = WohnhausFertigAb, WohnhausInstandBis = WohnhausInstandBis, Hauswaechter = Hauswaechter,
         Berufe = _berufe.ToList(),
         Meistergrade = _grade.ToDictionary(x => x.Key, x => x.Value),
         Erfahrung = _erfahrung.ToDictionary(x => x.Key, x => x.Value),
@@ -197,6 +203,8 @@ public sealed class Konto
         konto.Aktionspunkte.Setzen(s.Aktionspunkte);
         konto.WohnhausStufe = s.WohnhausStufe ?? 0; // alte Spielstände: ergänzt die Stadtwirtschaft nach dem Laden
         konto.WohnhausFertigAb = s.WohnhausFertigAb;
+        konto.WohnhausInstandBis = s.WohnhausInstandBis;
+        konto.Hauswaechter = s.Hauswaechter;
         foreach (var beruf in s.Berufe ?? new List<string>())
             konto.BerufLernen(beruf);
         foreach (var (beruf, grad) in s.Meistergrade ?? new Dictionary<string, int>())

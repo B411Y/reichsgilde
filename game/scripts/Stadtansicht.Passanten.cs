@@ -2,6 +2,7 @@ using System.Diagnostics;
 using Godot;
 using Reichsgilde.Core.Buerger;
 using Reichsgilde.Core;
+using Reichsgilde.Core.Dynastie;
 
 namespace Reichsgilde;
 
@@ -24,6 +25,9 @@ public partial class Stadtansicht
     {
         public required Node3D Knoten { get; init; }
         public required Node3D Koerper { get; init; }
+        /// <summary>Die Teile der Figur und ihr Stoff – zum Hervorheben wird der Stoff gegen einen hellen getauscht.</summary>
+        public List<(MeshInstance3D Teil, StandardMaterial3D Stoff)> Teile { get; } = new();
+        public bool Hervorgehoben { get; set; }
         /// <summary>Der Weg, für den <see cref="Pfad"/> berechnet wurde (Vergleich über die Referenz: neuer Weg = neue Strecke).</summary>
         public Weg? FuerWeg { get; set; }
         public Vector3[] Pfad { get; set; } = Array.Empty<Vector3>();
@@ -124,6 +128,7 @@ public partial class Stadtansicht
                 _passanten.Remove(nummer);
             }
 
+        PassantenHervorheben();
         _passantenZeit += _passantenUhr.Elapsed.TotalMilliseconds;
         _passantenBilder++;
         _passantenSeitMessung += delta;
@@ -280,18 +285,224 @@ public partial class Stadtansicht
         _ => Vector3.One,
     };
 
+    // ── Tracht ──────────────────────────────────────────────────────────────
+    // Gemeinsame Formen: Rock (Frauen), Kopfbedeckungen, Lasten. Einmal angelegt, von allen Figuren benutzt.
+    private static readonly CylinderMesh Rock = new() { TopRadius = 0.2f, BottomRadius = 0.42f, Height = 0.95f, RadialSegments = 10 };
+    private static readonly CylinderMesh Strohhut = new() { TopRadius = 0.18f, BottomRadius = 0.42f, Height = 0.16f, RadialSegments = 10 };
+    private static readonly CylinderMesh Barett = new() { TopRadius = 0.25f, BottomRadius = 0.2f, Height = 0.09f, RadialSegments = 10 };
+    private static readonly SphereMesh Kapuze = new() { Radius = 0.25f, Height = 0.52f };
+    private static readonly SphereMesh Haube = new() { Radius = 0.23f, Height = 0.32f };
+    private static readonly BoxMesh Bart = new() { Size = new Vector3(0.24f, 0.24f, 0.1f) };
+    private static readonly BoxMesh Kiepe = new() { Size = new Vector3(0.45f, 0.6f, 0.3f) };
+    private static readonly BoxMesh Buendel = new() { Size = new Vector3(0.7f, 0.25f, 0.25f) };
+    private static readonly BoxMesh Tasche = new() { Size = new Vector3(0.12f, 0.3f, 0.3f) };
+    private static readonly BoxMesh Wanderstab = new() { Size = new Vector3(0.06f, 1.8f, 0.06f) };
+    private static readonly BoxMesh Schuerze = new() { Size = new Vector3(0.46f, 0.6f, 0.06f) };
+
+    private enum Kopfbedeckung { Keine, Strohhut, Barett, Kapuze, Haube, Schleier }
+    private enum Last { Keine, Kiepe, Buendel, Tasche, Stab }
+
+    /// <summary>Tracht einer Rolle: Gewandfarbe, Kopfbedeckung, was sie trägt, ob sie eine Schürze hat und gebeugt geht.</summary>
+    private sealed record PassantenTracht(Color Gewand, Kopfbedeckung Kopf, Last Last, bool Schuerze = false, bool Gebeugt = false, Color? Kopffarbe = null);
+
+    private static readonly Color Leinenfarbe = new(0.78f, 0.74f, 0.64f);
+    private static readonly Color Schwarz = new(0.12f, 0.11f, 0.12f);
+
+    /// <summary>
+    /// Die Tracht nach Rolle (Schlüssel wie im Kern, z. B. „Knecht“ auch für die Magd). Woran man jemanden erkennt:
+    /// Ratsherr roter Mantel und Barett, Mönch braune Kutte mit Kapuze (Nonne schwarz mit weißem Schleier), Bettler graue
+    /// Lumpen und gebeugt, Hirte Stab und Strohhut, Feldarbeiter Strohhut, Holzsammler Reisigbündel, Krämer Kiepe,
+    /// Bote blaues Wams mit Tasche, Knecht und Magd Schürze, Verwitwete schwarz, Bürgerkinder kräftige Farben mit Barett.
+    /// </summary>
+    private static PassantenTracht TrachtVon(Einwohner e)
+    {
+        var frau = e.Geschlecht == Geschlecht.Frau;
+        var farbe = Gewandfarben[e.Nummer * 7 % Gewandfarben.Length];
+        return e.Rolle switch
+        {
+            "Ratsherr" => new PassantenTracht(new Color(0.55f, 0.12f, 0.12f), frau ? Kopfbedeckung.Haube : Kopfbedeckung.Barett, Last.Keine, Kopffarbe: frau ? Leinenfarbe : Schwarz),
+            "Bürgersohn" => new PassantenTracht(frau ? new Color(0.45f, 0.22f, 0.50f) : new Color(0.18f, 0.30f, 0.58f), frau ? Kopfbedeckung.Haube : Kopfbedeckung.Barett, Last.Keine, Kopffarbe: frau ? Leinenfarbe : Schwarz),
+            "Mönch" => frau ? new PassantenTracht(Schwarz, Kopfbedeckung.Schleier, Last.Keine, Kopffarbe: new Color(0.92f, 0.92f, 0.88f))
+                            : new PassantenTracht(new Color(0.36f, 0.24f, 0.14f), Kopfbedeckung.Kapuze, Last.Keine),
+            "Bettler" => new PassantenTracht(new Color(0.36f, 0.35f, 0.33f), Kopfbedeckung.Keine, Last.Keine, Gebeugt: true),
+            "Witwer" => new PassantenTracht(Schwarz, frau ? Kopfbedeckung.Haube : Kopfbedeckung.Keine, Last.Keine, Kopffarbe: Schwarz),
+            "Hirte" => new PassantenTracht(new Color(0.40f, 0.36f, 0.24f), Kopfbedeckung.Strohhut, Last.Stab),
+            "Feldarbeiter" => new PassantenTracht(new Color(0.58f, 0.50f, 0.36f), Kopfbedeckung.Strohhut, Last.Keine),
+            "Holzsammler" => new PassantenTracht(new Color(0.42f, 0.30f, 0.20f), frau ? Kopfbedeckung.Haube : Kopfbedeckung.Keine, Last.Buendel, Kopffarbe: Leinenfarbe),
+            "Krämer" => new PassantenTracht(new Color(0.24f, 0.42f, 0.26f), frau ? Kopfbedeckung.Haube : Kopfbedeckung.Keine, Last.Kiepe, Kopffarbe: Leinenfarbe),
+            "Bote" => new PassantenTracht(new Color(0.20f, 0.32f, 0.62f), Kopfbedeckung.Keine, Last.Tasche),
+            "Knecht" => new PassantenTracht(farbe, frau ? Kopfbedeckung.Haube : Kopfbedeckung.Keine, Last.Keine, Schuerze: true, Kopffarbe: Leinenfarbe),
+            _ => new PassantenTracht(farbe, frau ? Kopfbedeckung.Haube : Kopfbedeckung.Keine, Last.Keine, Kopffarbe: Leinenfarbe), // Tagelöhner und neue Rollen
+        };
+    }
+
+    /// <summary>Hautfarbe: Elben etwas heller, Zwerge etwas rötlicher.</summary>
+    private static Color HautVon(Volk volk) => volk switch
+    {
+        Volk.Elb => new Color(0.92f, 0.80f, 0.70f),
+        Volk.Zwerg => new Color(0.82f, 0.60f, 0.48f),
+        _ => Hautfarbe,
+    };
+
     private Passant PassantBauen(Einwohner e)
     {
         var knoten = new Node3D { Name = $"Einwohner_{e.Nummer}", Visible = false };
         _passantenEbene!.AddChild(knoten);
-        var koerper = new Node3D { Scale = Gestalt(e.Volk) };
+        var tracht = TrachtVon(e);
+        var koerper = new Node3D { Scale = Gestalt(e.Volk), Rotation = new Vector3(tracht.Gebeugt ? 0.3f : 0, 0, 0) };
         knoten.AddChild(koerper);
-        var kleidung = Gewandfarben[e.Nummer * 7 % Gewandfarben.Length];
-        koerper.AddChild(new MeshInstance3D { Mesh = Rumpf, MaterialOverride = Stoff(kleidung), Position = new Vector3(0, 0.65f, 0) });
-        koerper.AddChild(new MeshInstance3D { Mesh = Kopf, MaterialOverride = Stoff(Hautfarbe), Position = new Vector3(0, 1.5f, 0) });
-        var versatz = ((e.Nummer * 37 % 9) - 4) * 0.22f; // −0,9 … +0,9 m
-        return new Passant { Knoten = knoten, Koerper = koerper, Versatz = versatz, Gehtempo = Gehtempo(e) };
+        var passant = new Passant { Knoten = knoten, Koerper = koerper, Versatz = ((e.Nummer * 37 % 9) - 4) * 0.22f, Gehtempo = Gehtempo(e) };
+
+        void Teil(Mesh form, Color farbe, Vector3 ort, Vector3? drehung = null)
+        {
+            var stoff = Stoff(farbe);
+            var teil = new MeshInstance3D { Mesh = form, MaterialOverride = stoff, Position = ort, Rotation = drehung ?? Vector3.Zero };
+            koerper.AddChild(teil);
+            passant.Teile.Add((teil, stoff));
+        }
+
+        // Vorne ist +Z (die Figur dreht sich in Laufrichtung, siehe PassantenAktualisieren).
+        Teil(Rumpf, tracht.Gewand, new Vector3(0, 0.65f, 0));
+        if (e.Geschlecht == Geschlecht.Frau) Teil(Rock, tracht.Gewand, new Vector3(0, 0.47f, 0));
+        Teil(Kopf, HautVon(e.Volk), new Vector3(0, 1.5f, 0));
+        if (e.Volk == Volk.Zwerg && e.Geschlecht == Geschlecht.Mann) Teil(Bart, Bartfarbe, new Vector3(0, 1.38f, 0.16f));
+        if (tracht.Schuerze) Teil(Schuerze, Leinenfarbe, new Vector3(0, 0.75f, 0.28f));
+
+        var kopffarbe = tracht.Kopffarbe ?? tracht.Gewand;
+        switch (tracht.Kopf)
+        {
+            case Kopfbedeckung.Strohhut: Teil(Strohhut, new Color(0.80f, 0.70f, 0.38f), new Vector3(0, 1.66f, 0)); break;
+            case Kopfbedeckung.Barett: Teil(Barett, kopffarbe, new Vector3(0, 1.7f, 0)); break;
+            case Kopfbedeckung.Kapuze: Teil(Kapuze, tracht.Gewand, new Vector3(0, 1.55f, -0.07f)); break;
+            case Kopfbedeckung.Haube: Teil(Haube, kopffarbe, new Vector3(0, 1.6f, -0.03f)); break;
+            case Kopfbedeckung.Schleier: Teil(Kapuze, kopffarbe, new Vector3(0, 1.56f, -0.08f)); break;
+        }
+        switch (tracht.Last)
+        {
+            case Last.Kiepe: Teil(Kiepe, Holz, new Vector3(0, 1.0f, -0.36f)); break;
+            case Last.Buendel: Teil(Buendel, new Color(0.45f, 0.36f, 0.22f), new Vector3(0, 1.2f, -0.3f)); break;
+            case Last.Tasche: Teil(Tasche, new Color(0.40f, 0.28f, 0.16f), new Vector3(0.32f, 0.7f, 0)); break;
+            case Last.Stab: Teil(Wanderstab, Holz, new Vector3(0.36f, 0.9f, 0.1f)); break;
+        }
+        return passant;
     }
+
+    // ═════════════════════════════════════════════════════════════════════════
+    //  Anklicken und Hervorheben
+    // ═════════════════════════════════════════════════════════════════════════
+
+    public static string EinwohnerKennung(Einwohner e) => "einwohner:" + e.Nummer;
+
+    /// <summary>
+    /// Welche sichtbare Figur ist an dieser Bildschirmstelle? Figuren haben keine Klickfläche (die müsste jedes Bild
+    /// mitwandern); stattdessen wird jede sichtbare Figur auf den Bildschirm projiziert und die nächste genommen,
+    /// wenn sie nah genug am Mauszeiger ist. Das kostet bei 225 Figuren nur einen Klick lang Rechenzeit.
+    /// </summary>
+    private string? PassantBei(Vector2 bildschirm)
+    {
+        if (_raum is not null || _innen is not null || _passanten.Count == 0) return null;
+        // Wie viele Pixel ist eine Figur hoch? Die Kamerahöhe in Metern ist _kamera.Size.
+        var pixelJeMeter = GetViewport().GetVisibleRect().Size.Y / _kamera.Size;
+        var fang = Mathf.Max(8, 1.1f * pixelJeMeter);
+        string? beste = null;
+        var besterAbstand = fang;
+        foreach (var (nummer, p) in _passanten)
+        {
+            if (!p.Knoten.Visible) continue;
+            var mitte = p.Knoten.GlobalPosition + new Vector3(0, 0.9f, 0);
+            if (_kamera.IsPositionBehind(mitte)) continue;
+            var abstand = _kamera.UnprojectPosition(mitte).DistanceTo(bildschirm);
+            if (abstand < besterAbstand) { besterAbstand = abstand; beste = "einwohner:" + nummer; }
+        }
+        return beste;
+    }
+
+    /// <summary>Hebt die Figur unter der Maus und die ausgewählte hell hervor (Stoff tauschen, nur bei Änderung).</summary>
+    private void PassantenHervorheben()
+    {
+        foreach (var (nummer, p) in _passanten)
+        {
+            var kennung = "einwohner:" + nummer;
+            var soll = kennung == _unterDerMaus || kennung == Auswahl;
+            if (p.Hervorgehoben == soll) continue;
+            p.Hervorgehoben = soll;
+            foreach (var (teil, stoff) in p.Teile)
+                teil.MaterialOverride = soll ? HellerStoff(stoff) : stoff;
+        }
+    }
+
+    private readonly Dictionary<StandardMaterial3D, StandardMaterial3D> _hell = new();
+
+    private StandardMaterial3D HellerStoff(StandardMaterial3D stoff)
+    {
+        if (_hell.TryGetValue(stoff, out var hell)) return hell;
+        hell = (StandardMaterial3D)stoff.Duplicate();
+        hell.AlbedoColor = stoff.AlbedoColor.Lightened(0.35f);
+        hell.EmissionEnabled = true;
+        hell.Emission = new Color(1f, 0.85f, 0.45f);
+        hell.EmissionEnergyMultiplier = 0.35f;
+        return _hell[stoff] = hell;
+    }
+
+    /// <summary>Text für die Auswahltafel: wer, was, wo, wie gestimmt. Null, wenn die Kennung kein Einwohner ist.</summary>
+    public string? EinwohnerText(string kennung)
+    {
+        if (!kennung.StartsWith("einwohner:") || !int.TryParse(kennung["einwohner:".Length..], out var nummer)) return null;
+        if (_simulation?.Wirtschaft?.Einwohnerschaft is not { IstAktiv: true } ew) return null;
+        if (ew.Nummer(nummer) is not { } e) return "Dieser Einwohner lebt nicht mehr in der Stadt.";
+        var zeit = _simulation.Zeit;
+        var volk = e.Volk switch { Volk.Zwerg => "Zwerg", Volk.Elb => "Elb", Volk.Halbling => "Halbling", Volk.Ork => "Ork", Volk.Oger => "Oger", _ => "Mensch" };
+        if (e.Geschlecht == Geschlecht.Frau) volk = e.Volk switch { Volk.Zwerg => "Zwergin", Volk.Elb => "Elbin", Volk.Halbling => "Halblingsfrau", _ => "Menschenfrau" };
+        var herkunft = e.Herkunft switch
+        {
+            Herkunft.Ratsherr => " · im Stadtrat",
+            Herkunft.Kandidat => " · in der Brautschau",
+            _ => "",
+        };
+        var minute = zeit.VergangeneMinuten + _simulation.Takt.AngebrocheneMinute;
+        var tun = e.Handlung switch
+        {
+            Handlung.Ruhen => "ruht sich aus",
+            Handlung.Arbeiten => "arbeitet",
+            Handlung.Einkaufen => "kauft ein",
+            Handlung.Einkehren => "kehrt ein",
+            Handlung.Beten => "betet",
+            Handlung.Flanieren => "geht spazieren",
+            _ => e.Handlung.ToString(),
+        };
+        string wo;
+        if (_passanten.TryGetValue(e.Nummer, out var p) && p.Stand is null && e.Weg is { } weg && minute < p.LaufEnde)
+            wo = $"unterwegs {OrtText(weg.Nach, ew, mitZu: true)} (an etwa {new Reichsgilde.Core.Zeit.Spielzeit((long)Math.Ceiling(p.LaufEnde)).UhrzeitText} Uhr)";
+        else
+            wo = OrtText(e.Aufenthalt, ew, mitZu: false);
+        var haus = ew.Wohnhaeuser.FirstOrDefault(h => h.Nummer == e.Wohnhaus) is { } stadthaus
+            ? $"Wohnt in einem {(stadthaus.Art switch { Hausart.Ratsherrenhaus => "Ratsherrenhaus", Hausart.Buergerhaus => "Bürgerhaus", _ => "einfachen Haus" })}"
+              + (_hausplaetze.TryGetValue(stadthaus.Nummer, out var platz) && !platz.Ring && !KulissePlaetze().Contains(platz) ? " in der Vorstadt" : " am Mauerring")
+            : "";
+        var stimmung = e.Stimmung switch { >= 75 => "zufrieden", >= 55 => "gut gelaunt", >= 35 => "mürrisch", _ => "unzufrieden" };
+        return string.Join("\n", new[]
+        {
+            e.Name,
+            "",
+            $"{ew.RollenName(e)} · {volk}, {e.Alter(zeit.Jahr)} Jahre{herkunft}",
+            $"{char.ToUpper(tun[0])}{tun[1..]} – {wo}.",
+            haus,
+            $"Stimmung: {stimmung} ({e.Stimmung:0} von 100)",
+        }.Where(z => z is not null));
+    }
+
+    private static string OrtText(Aufenthalt a, Einwohnerschaft ew, bool mitZu) => a.Ort switch
+    {
+        Stadtort.Heim => mitZu ? "nach Hause" : "zu Hause",
+        Stadtort.Markt => mitZu ? "zum Markt" : "am Markt",
+        Stadtort.Gasse => mitZu ? "in die Gassen" : "in den Gassen",
+        Stadtort.Schaenke => (mitZu ? "zur " : "in der ") + (a.Betrieb ?? "Schänke"),
+        Stadtort.Kirche => a.Betrieb is { } k ? (mitZu ? "zur " : "in der ") + k : (mitZu ? "zum Dom" : "im Dom"),
+        Stadtort.Rathaus => mitZu ? "zum Rathaus" : "im Rathaus",
+        Stadtort.Tor => mitZu ? "zum Osttor" : "am Osttor",
+        Stadtort.Umland => (mitZu ? "hinaus " : "draußen ") + (a.Stelle switch { "Weide" => mitZu ? "auf die Weide" : "auf der Weide", "Feld" => mitZu ? "aufs Feld" : "auf dem Feld", "Wald" => mitZu ? "in den Wald" : "im Wald", _ => "im Umland" }),
+        _ => a.Ort.ToString(),
+    };
 
     /// <summary>
     /// Gehtempo in Metern je echter Sekunde (bei Tempo 1): ein Viertel schlendert (1,5), gut die Hälfte geht normal (2,5),

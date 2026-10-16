@@ -304,6 +304,29 @@ public partial class GaunerAnzeige : PanelContainer
                     12, Grau, umbrechen: true);
             }
 
+            // Wohnhaus – Einbruch (Bargeld) und Brand (Reparatur, Ansehen fehlt bis zur Instandsetzung)
+            if (unterwelt.GegenWohnhaus && w.Wohnen.Stufe(haus) is { } hausStufe)
+            {
+                var zeile = new HBoxContainer();
+                zeile.AddThemeConstantOverride("separation", 10);
+                _inhalt.AddChild(zeile);
+                var beschaedigt = w.Wohnen.IstBeschaedigt(haus);
+                Text(zeile, $"Wohnhaus: {hausStufe.Name}{(haus.Hauswaechter ? " (Hauswächter)" : "")}{(beschaedigt ? " – abgebrannt, in Instandsetzung" : "")}", 14);
+                var wh = g.Wohnhaus!;
+                if (bestellt.Any(a => a.Art == Gaunerstueck.Hauseinbruch)) Text(zeile, "· Einbruch bestellt", 13, Gold);
+                else Knopf(zeile, $"Einbruch ({Zahlenformat.Ganz(wh.Einbruch.Kosten)})", () => Befehlen(new Beauftragen(haus.Inhaber, Gaunerstueck.Hauseinbruch)),
+                    gesperrt: imKerker, hinweis: "Die Bande holt Bargeld aus der Truhe – kein Hehler nötig.", ap: new Beauftragen("", Gaunerstueck.Hauseinbruch));
+                if (bestellt.Any(a => a.Art == Gaunerstueck.Brandstiftung)) Text(zeile, "· Brand bestellt", 13, Gold);
+                else Knopf(zeile, $"Brand ({Zahlenformat.Ganz(wh.Brand.Kosten)})", () => Befehlen(new Beauftragen(haus.Inhaber, Gaunerstueck.Brandstiftung)),
+                    gesperrt: imKerker || beschaedigt, hinweis: beschaedigt ? "Das Haus ist vom letzten Brand noch nicht instand gesetzt."
+                        : "Feuer am Wohnhaus: Reparatur, und bis zur Instandsetzung fehlt dem Haus das Ansehen. Die Stufe bleibt.",
+                    ap: new Beauftragen("", Gaunerstueck.Brandstiftung));
+                Text(_inhalt, $"   Einbruch: Chance {Prozent(unterwelt.ErfolgschanceWohnhaus(Gaunerstueck.Hauseinbruch, haus, _spieler))}, Beute ≈ {Zahlenformat.Ganz(unterwelt.Hausbeute(haus))}" +
+                              $" · Brand: Chance {Prozent(unterwelt.ErfolgschanceWohnhaus(Gaunerstueck.Brandstiftung, haus, _spieler))}, Reparatur ≈ {Zahlenformat.Ganz(unterwelt.Brandschaden(haus))}" +
+                              (hausStufe.Ansehen > 0 ? $", −{Zahlenformat.Ganz(hausStufe.Ansehen)} Ansehen für einen Tag" : ""),
+                    12, Grau, umbrechen: true);
+            }
+
             if (unterwelt.HatUmlandfahrten(haus))
             {
                 var zeile = new HBoxContainer();

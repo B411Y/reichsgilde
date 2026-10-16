@@ -1,5 +1,5 @@
 {
-  "version": 31,
+  "version": 32,
   "gesundheit": {
     "medicusKosten": 120,
     "medicusKostenPest": 300,
@@ -1379,7 +1379,11 @@
     "sabotage": { "kosten": 250, "chance": 0.6, "stillstandMinuten": 360, "reparatur": 150 },
     "ueberfall": { "kosten": 300, "staerke": 0.8, "gueltigMinuten": 1020 },
     "kroetenschleim": { "kosten": 200, "chance": 0.6, "beruf": "Alchimist", "berufKostenFaktor": 0.5, "berufBonus": 0.15 },
-    "erpressungMindestBeweise": 3
+    "erpressungMindestBeweise": 3,
+    "wohnhaus": {
+      "einbruch": { "kosten": 200, "chance": 0.6, "anteil": 0.05, "hoechstensJeStufe": 300 },
+      "brand": { "kosten": 300, "chance": 0.5, "reparaturAnteil": 0.2, "mindestReparatur": 100, "instandMinuten": 1020 }
+    }
   },
   "buerger": {
     "jeHaus": 25,

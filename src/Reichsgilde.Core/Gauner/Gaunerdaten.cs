@@ -11,6 +11,10 @@ public enum Gaunerstueck
     Ueberfall,
     /// <summary>Krötenschleim ins Essen: Das Oberhaupt eines Hauses erkrankt.</summary>
     Kroetenschleim,
+    /// <summary>Einbruch ins Wohnhaus: Die Bande holt Bargeld aus der Truhe (ab Datenversion 32).</summary>
+    Hauseinbruch,
+    /// <summary>Feuer am Wohnhaus: Reparatur, und bis zur Instandsetzung fehlt das Ansehen des Hauses (ab Datenversion 32).</summary>
+    Brandstiftung,
 }
 
 public static class GaunerstueckTexte
@@ -19,6 +23,8 @@ public static class GaunerstueckTexte
     {
         Gaunerstueck.Ueberfall => "Überfall",
         Gaunerstueck.Kroetenschleim => "Krötenschleim",
+        Gaunerstueck.Hauseinbruch => "Einbruch ins Wohnhaus",
+        Gaunerstueck.Brandstiftung => "Brandstiftung",
         _ => g.ToString(),
     };
 }
@@ -72,6 +78,42 @@ public sealed class UeberfallDaten
     public int GueltigMinuten { get; init; } = 1020;
 }
 
+/// <summary>Einbruch ins Wohnhaus: ein Anteil vom Bargeld, gedeckelt je Hausstufe.</summary>
+public sealed class HauseinbruchDaten
+{
+    public double Kosten { get; init; } = 200;
+    public double Chance { get; init; } = 0.6;
+
+    /// <summary>Anteil des Bargelds, den die Bande aus der Truhe holt (0,05 = 5 %).</summary>
+    public double Anteil { get; init; } = 0.05;
+
+    /// <summary>Höchstens so viel je Hausstufe: Fachwerkhaus 1×, Bürgerhaus 2×, … Hof 5×.</summary>
+    public double HoechstensJeStufe { get; init; } = 300;
+}
+
+/// <summary>Feuer am Wohnhaus: Reparatur und Ansehen, das bis zur Instandsetzung fehlt. Die Stufe bleibt.</summary>
+public sealed class BrandstiftungDaten
+{
+    public double Kosten { get; init; } = 300;
+    public double Chance { get; init; } = 0.5;
+
+    /// <summary>Reparatur = dieser Anteil vom Ausbaupreis der Stufe, in der das Haus wohnt …</summary>
+    public double ReparaturAnteil { get; init; } = 0.2;
+
+    /// <summary>… aber mindestens so viel (auch das Fachwerkhaus brennt).</summary>
+    public double MindestReparatur { get; init; } = 100;
+
+    /// <summary>So lange (Spielminuten) fehlt das Ansehen des Hauses. 1020 = ein Spieltag.</summary>
+    public int InstandMinuten { get; init; } = 1020;
+}
+
+/// <summary>Gaunerstücke gegen das Wohnhaus (Abschnitt gauner.wohnhaus). Fehlt er, ist nur gegen Betriebe etwas zu holen.</summary>
+public sealed class WohnhausGaunerDaten
+{
+    public HauseinbruchDaten Einbruch { get; init; } = new();
+    public BrandstiftungDaten Brand { get; init; } = new();
+}
+
 /// <summary>
 /// Alle Zahlen zur Unterwelt (Abschnitt "gauner" in wirtschaft.json).
 ///
@@ -100,6 +142,9 @@ public sealed class GaunerDaten
     public UeberfallDaten Ueberfall { get; init; } = new();
     public KroetenschleimDaten Kroetenschleim { get; init; } = new();
 
+    /// <summary>Gaunerstücke gegen das Wohnhaus (null = keine; ab Datenversion 32). Den Hauswächter bezahlt man wie einen Betriebswächter.</summary>
+    public WohnhausGaunerDaten? Wohnhaus { get; init; }
+
     /// <summary>Ab so vielen Beweisen kann man Schweigegeld verlangen.</summary>
     public int ErpressungMindestBeweise { get; init; } = 3;
 
@@ -108,6 +153,8 @@ public sealed class GaunerDaten
         Gaunerstueck.Diebstahl => Diebstahl.Kosten,
         Gaunerstueck.Sabotage => Sabotage.Kosten,
         Gaunerstueck.Kroetenschleim => Kroetenschleim.Kosten,
+        Gaunerstueck.Hauseinbruch => Wohnhaus?.Einbruch.Kosten ?? 0,
+        Gaunerstueck.Brandstiftung => Wohnhaus?.Brand.Kosten ?? 0,
         _ => Ueberfall.Kosten,
     };
 
@@ -124,5 +171,14 @@ public sealed class GaunerDaten
             f.Add("gauner: hoechstensStueck und gueltigMinuten müssen mindestens 1 sein, stillstandMinuten mindestens 0.");
         if (ErpressungMindestBeweise < 1) f.Add("gauner.erpressungMindestBeweise muss mindestens 1 sein.");
         if (ZeugenFaktorMisserfolg < 1) f.Add("gauner.zeugenFaktorMisserfolg muss mindestens 1 sein.");
+        if (Wohnhaus is { } wh)
+        {
+            foreach (var (name, wert) in new[] { ("einbruch.chance", wh.Einbruch.Chance), ("einbruch.anteil", wh.Einbruch.Anteil),
+                         ("brand.chance", wh.Brand.Chance), ("brand.reparaturAnteil", wh.Brand.ReparaturAnteil) })
+                if (wert is < 0 or > 1) f.Add($"gauner.wohnhaus.{name} muss zwischen 0 und 1 liegen.");
+            if (wh.Einbruch.Kosten < 0 || wh.Brand.Kosten < 0 || wh.Einbruch.HoechstensJeStufe < 0 || wh.Brand.MindestReparatur < 0)
+                f.Add("gauner.wohnhaus: Kosten und Beträge dürfen nicht negativ sein.");
+            if (wh.Brand.InstandMinuten < 0) f.Add("gauner.wohnhaus.brand.instandMinuten darf nicht negativ sein.");
+        }
     }
 }

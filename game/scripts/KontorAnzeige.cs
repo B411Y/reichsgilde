@@ -23,6 +23,7 @@ public partial class KontorAnzeige : PanelContainer
     private HBoxContainer _wohnhausZeile = null!;
     private Label _wohnhausText = null!;
     private Button _ausbauKnopf = null!;
+    private Button _hauswaechterKnopf = null!;
     private Label _apZeile = null!;
     private Label _familienZeile = null!;
     private VBoxContainer _betriebsliste = null!;
@@ -94,6 +95,10 @@ public partial class KontorAnzeige : PanelContainer
         _ausbauKnopf.AddThemeFontSizeOverride("font_size", 13);
         _ausbauKnopf.Pressed += () => Senden(new WohnhausAusbauen());
         _wohnhausZeile.AddChild(_ausbauKnopf);
+        _hauswaechterKnopf = new Button { FocusMode = FocusModeEnum.None };
+        _hauswaechterKnopf.AddThemeFontSizeOverride("font_size", 13);
+        _hauswaechterKnopf.Pressed += () => { if (_spieler is not null) Senden(new HauswaechterSetzen(!_spieler.Hauswaechter)); };
+        _wohnhausZeile.AddChild(_hauswaechterKnopf);
         _statutZeile = NeuesLabel(spalte, 13, new Color(0.75f, 0.75f, 0.75f));
         _apZeile = NeuesLabel(spalte, 14, new Color(0.95f, 0.82f, 0.45f));
         _apZeile.MouseFilter = MouseFilterEnum.Stop; // für den Tooltip
@@ -284,11 +289,22 @@ public partial class KontorAnzeige : PanelContainer
         _wohnhausZeile.Visible = w.Wohnen.IstAktiv;
         if (!w.Wohnen.IstAktiv || _spieler is null) return;
         var stufe = w.Wohnen.Stufe(_spieler)!;
+        var instand = _spieler.WohnhausInstandBis is { } bis && _simulation is { } s
+            ? Math.Max(0, bis - s.Zeit.VergangeneMinuten) : (long?)null;
         var text = $"Wohnhaus: {stufe.Name}"
-                   + (stufe.Ansehen > 0 ? $" (+{Zahlenformat.Ganz(stufe.Ansehen)} Ansehen, Unterhalt {Zahlenformat.Ganz(stufe.Unterhalt)} {waehrung} im Jahr)" : "");
+                   + (instand is { } rest0 ? $" – nach dem Brand in Instandsetzung (noch {rest0 / 60}:{rest0 % 60:00} h, so lange fehlt das Ansehen)"
+                      : stufe.Ansehen > 0 ? $" (+{Zahlenformat.Ganz(stufe.Ansehen)} Ansehen, Unterhalt {Zahlenformat.Ganz(stufe.Unterhalt)} {waehrung} im Jahr)" : "");
         if (_wohnhausText.Text != text) _wohnhausText.Text = text;
         _wohnhausText.TooltipText = "Das Wohnhaus gehört dem Haus, nicht einem Betrieb. Es bringt Ansehen und ist Pflicht für den Stand: " +
                                     "Wer aufsteigen will, braucht vorher das passende Haus. Ausbauen darf man höchstens eine Stufe über dem eigenen Stand.";
+
+        _hauswaechterKnopf.Visible = w.Gauner.GegenWohnhaus && _spieler.IstAktiv;
+        if (_hauswaechterKnopf.Visible)
+        {
+            var wtext = _spieler.Hauswaechter ? "Hauswächter entlassen" : $"Hauswächter ({Zahlenformat.Ganz(w.Gauner.Daten.WaechterKosten)} {waehrung}/Jahr)";
+            if (_hauswaechterKnopf.Text != wtext) _hauswaechterKnopf.Text = wtext;
+            _hauswaechterKnopf.TooltipText = "Ein Hauswächter halbiert die Chance auf Einbruch und Brand am Wohnhaus und sieht öfter, wer es war.";
+        }
 
         var naechste = w.Wohnen.NaechsteStufe(_spieler);
         _ausbauKnopf.Visible = naechste is not null && _spieler.IstAktiv;
