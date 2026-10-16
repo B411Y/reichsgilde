@@ -335,10 +335,10 @@ public partial class Stadtansicht : Node3D
         ["Grube Eisenbart"] = new(70, 0, -2),
         ["Grube am Silberberg"] = new(66, 0, 18),
         ["Grube im Tannenwald"] = new(60, 0, -26),
-        ["Holzschlag Eichwald"] = new(56, 0, -20),
-        ["Holzschlag im Eichenforst"] = new(60, 0, 26),
+        ["Holzschlag Eichwald"] = new(60, 0, -56),      // um die Nordostecke der Mauer herum
+        ["Holzschlag im Eichenforst"] = new(60, 0, 56),  // um die Südostecke der Mauer herum
         ["Steinbruch Kieselbach"] = new(60, 0, 26),
-        ["Steinbruch am Felsenhang"] = new(56, 0, -20),
+        ["Steinbruch am Felsenhang"] = new(60, 0, -56), // um die Nordostecke der Mauer herum
         ["Kräutergarten am Bach"] = new(66, 0, 18),
         ["Bauernhof an der Mühle"] = new(60, 0, -26),
         ["Klosterhof am Osthang"] = new(78, 0, 57),      // auf dem Weg zum Kräutergarten
@@ -371,7 +371,7 @@ public partial class Stadtansicht : Node3D
         UmgebungUndLicht();
         KameraAufbauen();
 
-        Flaeche(new Vector3(20, 0, 0), new Vector2(290, 250), Wiese, -0.05f);
+        Flaeche(new Vector3(20, 0, 0), new Vector2(520, 480), Wiese, -0.05f); // groß genug, dass auch ganz herausgezoomt kein Himmel am Rand zu sehen ist
         Flaeche(Vector3.Zero, new Vector2(2 * Mauerrand, 2 * Mauerrand), Pflaster, 0f);
         Flaeche(Vector3.Zero, new Vector2(24, 24), Marktpflaster, 0.02f);
 
