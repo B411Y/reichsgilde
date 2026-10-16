@@ -12,7 +12,6 @@ So wird eingetragen (damit sich die Chats nie an derselben Stelle treffen):
 
 - (3) Deutzer Mauer und Hafenkante als eigene Felder in der Kartendatei
 - (–) Reichskarte zum Wechsel zwischen den Städten (Idee, später)
-- (3) Köln: Straßenfront an Karrenstraßen ist knapp (etwa 25 Werkstätten passen, 24 gebraucht). Mehr Front schaffen: weitere Karrenstraßen durch die großen Mauerring-Blöcke oder größerer Radius – vor dem Einbau ins Spiel entscheiden
 
 ## Entscheidungen
 
@@ -42,4 +41,11 @@ Die Kartenregeln selbst stehen in `docs/LEVELDESIGN.md`.
 |---|---|---|
 | Name | Die höchste Wohnhausstufe heißt **Stadthof** statt „Hof“, damit sie nicht mit Bauernhof und Klosterhof im Umland verwechselt wird. | 16.10.2026 |
 | Lage | Der Stadthof darf in der **Kernlage und im Mauerring** stehen (vorher nur Kernlage; dort passte in Köln nur einer). | 16.10.2026 |
+
+### Straßenbreite (PR #88)
+
+| Thema | Entscheidung | Datum |
+|---|---|---|
+| Breite | **Straßen in der Stadt gut 6,5 m breit**: Bauzonen beginnen 3,3 m neben der Straßenmitte (vorher 4,6 m). Köln: 29 statt 25 Werkstätten auf leerer Karte, alle 4 Stadthöfe passen. | 16.10.2026 |
+| Keine Querstraßen | Zusätzliche Straßen durch die Mauerring-Blöcke wurden gemessen und **verworfen**: Sie zerschneiden die Blöcke, ohne mehr Platz zu bringen (begrenzend ist die Blocktiefe). | 16.10.2026 |
 

@@ -77,6 +77,8 @@ Wohnstube und weitere Räume liegen im Wohnhaus. Das Wohnhaus eines erloschenen 
 
 ## 5. Wege und Wegfindung
 
+**Straßenbreite (entschieden 16.10.2026):** Bauzonen beginnen **3,3 m neben der Straßenmitte**, Straßen in der Stadt sind also gut **6,5 m** breit – genug für zwei Karren nebeneinander, eng wie in einer mittelalterlichen Stadt.
+
 | Wegklasse | Wer | Regel |
 |---|---|---|
 | Landstraße | Karren, Fußgänger | endet an einem Tor |
@@ -147,7 +149,7 @@ python3 tools/karten/koeln.py      # Köln prüfen und neu schreiben
 
 Ändert sich das Format, steigt `format`, und der Kern und die Darstellung passen ihre Leser an. Neue Felder ohne Bedeutungsänderung brauchen keine neue Nummer.
 
-**Köln, Format 1 (16.10.2026):** Bauzonen Kernlage 6 (≈ 4.750 m², 1.187 Felder), Mauerring 12 (≈ 8.370 m², 2.091 Felder), Vorstadt Deutz 4 (≈ 3.960 m²), Umland 6 (≈ 39.700 m²); 41 Wege in einem Netz; 10 Vorkommen; Startgrundstücke 94 m vom Markt. **Kapazität (Gebäudegrößen vom 16.10.2026):** Die Pflicht passt vollständig (16 Werkstätten, 56 Einwohnerhäuser), danach sind noch 2.120 von 4.267 Feldern frei (50 %). Reserve: alle 8 Stadtpalais und 3 von 4 Stadthöfen passen (Stadthof seit 16.10.2026 auch im Mauerring). **Engpass ist die Straßenfront, nicht die Fläche:** Auf einer leeren Karte passen nur etwa 25 Werkstätten an Karrenstraßen (Bedarf 24 mit den Startwerkstätten), aber 19 Stadthöfe. Wohnhäuser suchen deshalb zuerst Plätze an Gassen und lassen die Karrenstraßen den Werkstätten.
+**Köln, Format 1 (16.10.2026):** Bauzonen Kernlage 6 (≈ 5.640 m², 1.410 Felder), Mauerring 12 (≈ 10.230 m², 2.557 Felder), Vorstadt Deutz 4 (≈ 3.960 m²), Umland 6 (≈ 39.700 m²); 41 Wege in einem Netz; 10 Vorkommen; Startgrundstücke 94 m vom Markt. **Kapazität:** Die Pflicht passt vollständig (16 Werkstätten, 56 Einwohnerhäuser), danach sind 2.691 von 4.949 Feldern frei (54 %). Reserve: alle 8 Stadtpalais und alle 4 Stadthöfe. Auf einer leeren Karte passen 29 Werkstätten (Bedarf 24 mit den Startwerkstätten). **Lehre aus der Messung:** Begrenzend ist die Blocktiefe, nicht die Länge der Straßenkante. Zusätzliche Straßen zerschneiden die Blöcke und bringen nichts (Querstraße statt Gasse: gleich viel, zusätzliche Hintergasse: weniger); schmalere Straßen machen die Blöcke tiefer.
 
 ## 10. Zuständigkeit
 
