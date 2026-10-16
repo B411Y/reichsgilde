@@ -609,6 +609,7 @@ public partial class Stadtansicht : Node3D
             BetriebHinzufuegen(betrieb);
         foreach (var frei in w.FreieLiegenschaften)
             FreienPlatzZeigen(frei);
+        WohnhausRaeumeAnlegen(); // Wohnstube und Kontor im eigenen Wohnhaus (Stadtansicht.Wohnhaus.cs)
     }
 
     private Konto? _spielerKonto;
