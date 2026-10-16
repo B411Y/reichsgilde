@@ -938,7 +938,7 @@ Im Mittel kein Trend (Faktor Ø 1,0); die Abweichungen sind Streuung: Kleine Pre
 
 **Regel:** Beute je Stunde = Diebesminuten × 0,8 × Stufenfaktor × Faktor, Faktor = Passanten der Stunde (Markt, Gassen, unterwegs) ÷ üblich zu dieser Uhrzeit, begrenzt auf 0,5–1,5. Fang und Spur wie bisher, nur mit dem Namen eines Passanten als Opfer. Werte: `buerger.kopplung` = diebe 1,0, bestohlen 20.
 
-**Messung 1** (eigener Lauf: Spieler als Dieb, passiv, 20 Startwerte × 30 Jahre, Jahr 3–30; gemessen auf main `49f5792` + PR #69):
+**Messung 1** (eigener Lauf: Spieler als Dieb, passiv, 20 Startwerte × 30 Jahre, Jahr 3–30; gemessen auf main `4894fe9` + PR #69):
 
 | Kopplung | Beute je Jahr Ø | σ (min–max) | Fänge | Vermögen Spieler Ø |
 |---|---|---|---|---|
