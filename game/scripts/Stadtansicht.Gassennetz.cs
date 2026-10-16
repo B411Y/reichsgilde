@@ -1,0 +1,251 @@
+using Godot;
+
+namespace Reichsgilde;
+
+/// <summary>
+/// Das Gassennetz der Darstellung: Knoten (Punkte auf dem Boden) und Kanten (gerade Wegstücke dazwischen).
+/// Passanten laufen nur auf diesen Kanten. Die Simulation kennt das Netz nicht – sie legt nur fest, wann
+/// jemand losgeht und ankommt; die Darstellung sucht hier den Weg und verteilt die Strecke auf diese Zeit.
+///
+/// So entsteht das Netz:
+///   • <see cref="Weg"/> legt eine Folge von Punkten als Kanten an. Liegt ein Punkt dicht (unter <see cref="Fang"/>)
+///     an einem vorhandenen Knoten, wird dieser benutzt. Kreuzt die neue Kante eine alte, entsteht dort ein
+///     gemeinsamer Knoten – so sind sich kreuzende Gassen von selbst verbunden.
+///   • <see cref="Anschliessen"/> sucht den nächsten Punkt auf dem Netz (z. B. vor einer Haustür) und teilt die
+///     Kante dort, falls nötig.
+///
+/// Der kürzeste Weg (Dijkstra) wird je Knotenpaar einmal berechnet und gemerkt.
+/// </summary>
+public sealed class Gassennetz
+{
+    /// <summary>Punkte, die näher als dieser Abstand (Meter) beieinander liegen, gelten als derselbe Knoten.</summary>
+    public const float Fang = 0.6f;
+
+    private readonly List<Vector3> _knoten = new();
+    private readonly HashSet<(int A, int B)> _kanten = new();
+    private List<(int Ziel, float Laenge)>[]? _nachbarn;
+    private readonly Dictionary<(int, int), Vector3[]> _pfade = new();
+
+    public IReadOnlyList<Vector3> Knoten => _knoten;
+    public IEnumerable<(Vector3 Von, Vector3 Bis)> Kanten => _kanten.Select(k => (_knoten[k.A], _knoten[k.B]));
+
+    /// <summary>Knoten an diesem Punkt (vorhandener in Fangweite oder neuer).</summary>
+    public int KnotenBei(Vector3 p)
+    {
+        p.Y = 0;
+        for (var i = 0; i < _knoten.Count; i++)
+            if (_knoten[i].DistanceTo(p) < Fang) return i;
+        // Liegt der Punkt auf einer vorhandenen Kante (Einmündung), wird sie dort geteilt.
+        foreach (var kante in _kanten)
+        {
+            var q = NaechsterPunkt(p, _knoten[kante.A], _knoten[kante.B]);
+            if (q.DistanceTo(p) < Fang) return Teilen(kante, q);
+        }
+        _knoten.Add(p);
+        Geaendert();
+        return _knoten.Count - 1;
+    }
+
+    /// <summary>Legt die Punkte der Reihe nach als Wegstücke an.</summary>
+    public void Weg(params Vector3[] punkte)
+    {
+        for (var i = 0; i + 1 < punkte.Length; i++)
+            KanteMitKreuzungen(KnotenBei(punkte[i]), KnotenBei(punkte[i + 1]));
+    }
+
+    /// <summary>
+    /// Der Knoten auf dem Netz, der diesem Punkt am nächsten liegt. Liegt der nächste Punkt mitten auf einer
+    /// Kante, wird sie dort geteilt. Gibt -1 zurück, wenn das Netz leer ist.
+    /// </summary>
+    public int Anschliessen(Vector3 p)
+    {
+        p.Y = 0;
+        var beste = (Kante: (-1, -1), Punkt: Vector3.Zero, Abstand: float.MaxValue);
+        foreach (var (a, b) in _kanten)
+        {
+            var q = NaechsterPunkt(p, _knoten[a], _knoten[b]);
+            var d = q.DistanceTo(p);
+            if (d < beste.Abstand) beste = ((a, b), q, d);
+        }
+        if (beste.Kante.Item1 < 0) return -1;
+        return Teilen(beste.Kante, beste.Punkt);
+    }
+
+    /// <summary>Kürzester Weg als Punktfolge (Start und Ziel eingeschlossen). Leer, wenn es keinen gibt.</summary>
+    public Vector3[] Pfad(int von, int nach)
+    {
+        if (von == nach) return new[] { _knoten[von] };
+        if (_pfade.TryGetValue((von, nach), out var gemerkt)) return gemerkt;
+
+        var nachbarn = Nachbarn();
+        var abstand = new float[_knoten.Count];
+        var vorgaenger = new int[_knoten.Count];
+        Array.Fill(abstand, float.MaxValue);
+        Array.Fill(vorgaenger, -1);
+        abstand[von] = 0;
+        var offen = new PriorityQueue<int, float>();
+        offen.Enqueue(von, 0);
+        while (offen.TryDequeue(out var k, out var d))
+        {
+            if (d > abstand[k]) continue; // veralteter Eintrag
+            if (k == nach) break;
+            foreach (var (ziel, laenge) in nachbarn[k])
+            {
+                var neu = d + laenge;
+                if (neu >= abstand[ziel]) continue;
+                abstand[ziel] = neu;
+                vorgaenger[ziel] = k;
+                offen.Enqueue(ziel, neu);
+            }
+        }
+
+        Vector3[] pfad;
+        if (vorgaenger[nach] < 0)
+            pfad = Array.Empty<Vector3>();
+        else
+        {
+            var liste = new List<Vector3>();
+            for (var k = nach; k >= 0; k = vorgaenger[k]) liste.Add(_knoten[k]);
+            liste.Reverse();
+            pfad = liste.ToArray();
+        }
+        _pfade[(von, nach)] = pfad;
+        return pfad;
+    }
+
+    /// <summary>Wie viele voneinander getrennte Teile das Netz hat (1 = alles hängt zusammen).</summary>
+    public int Teile()
+    {
+        var nachbarn = Nachbarn();
+        var teil = new int[_knoten.Count];
+        Array.Fill(teil, -1);
+        var anzahl = 0;
+        for (var start = 0; start < _knoten.Count; start++)
+        {
+            if (teil[start] >= 0) continue;
+            var stapel = new Stack<int>();
+            stapel.Push(start);
+            teil[start] = anzahl;
+            while (stapel.TryPop(out var k))
+                foreach (var (ziel, _) in nachbarn[k])
+                    if (teil[ziel] < 0) { teil[ziel] = anzahl; stapel.Push(ziel); }
+            anzahl++;
+        }
+        return anzahl;
+    }
+
+    /// <summary>Gesamtlänge eines Pfads in Metern.</summary>
+    public static float Laenge(Vector3[] pfad)
+    {
+        var summe = 0f;
+        for (var i = 0; i + 1 < pfad.Length; i++) summe += pfad[i].DistanceTo(pfad[i + 1]);
+        return summe;
+    }
+
+    /// <summary>Der Punkt bei diesem Anteil (0 = Anfang, 1 = Ende) der Strecke.</summary>
+    public static Vector3 PunktAuf(Vector3[] pfad, float anteil)
+    {
+        if (pfad.Length == 0) return Vector3.Zero;
+        var rest = Mathf.Clamp(anteil, 0, 1) * Laenge(pfad);
+        for (var i = 0; i + 1 < pfad.Length; i++)
+        {
+            var stueck = pfad[i].DistanceTo(pfad[i + 1]);
+            if (rest <= stueck) return stueck > 0 ? pfad[i].Lerp(pfad[i + 1], rest / stueck) : pfad[i];
+            rest -= stueck;
+        }
+        return pfad[^1];
+    }
+
+    // ── intern ────────────────────────────────────────────────────────────
+
+    private void KanteMitKreuzungen(int a, int b)
+    {
+        if (a == b) return;
+        // Kreuzungen mit vorhandenen Kanten suchen und dort Knoten einfügen (der Reihe nach entlang a → b).
+        var schnitte = new List<(float T, int Knoten)>();
+        foreach (var (c, d) in _kanten.ToList())
+        {
+            if (c == a || c == b || d == a || d == b) continue;
+            if (!Schnitt(_knoten[a], _knoten[b], _knoten[c], _knoten[d], out var t, out var punkt)) continue;
+            schnitte.Add((t, Teilen((c, d), punkt)));
+        }
+        // Knoten, die schon auf der neuen Kante liegen (z. B. eine Einmündung), werden mit durchlaufen.
+        for (var k = 0; k < _knoten.Count; k++)
+        {
+            if (k == a || k == b) continue;
+            var ab = _knoten[b] - _knoten[a];
+            var t = (_knoten[k] - _knoten[a]).Dot(ab) / ab.LengthSquared();
+            if (t is <= 0 or >= 1) continue;
+            if ((_knoten[a] + ab * t).DistanceTo(_knoten[k]) < Fang && !schnitte.Any(x => x.Knoten == k))
+                schnitte.Add((t, k));
+        }
+        var folge = new List<int> { a };
+        folge.AddRange(schnitte.OrderBy(s => s.T).Select(s => s.Knoten));
+        folge.Add(b);
+        for (var i = 0; i + 1 < folge.Count; i++)
+            if (folge[i] != folge[i + 1])
+                _kanten.Add(Ordnen(folge[i], folge[i + 1]));
+        Geaendert();
+    }
+
+    /// <summary>Teilt eine Kante am Punkt p und gibt den Knoten dort zurück (ein Endpunkt, wenn p dicht daran liegt).</summary>
+    private int Teilen((int A, int B) kante, Vector3 p)
+    {
+        if (_knoten[kante.A].DistanceTo(p) < Fang) return kante.A;
+        if (_knoten[kante.B].DistanceTo(p) < Fang) return kante.B;
+        _knoten.Add(p);
+        var neu = _knoten.Count - 1;
+        _kanten.Remove(Ordnen(kante.A, kante.B));
+        _kanten.Add(Ordnen(kante.A, neu));
+        _kanten.Add(Ordnen(neu, kante.B));
+        Geaendert();
+        return neu;
+    }
+
+    private void Geaendert()
+    {
+        _nachbarn = null;
+        _pfade.Clear();
+    }
+
+    private List<(int Ziel, float Laenge)>[] Nachbarn()
+    {
+        if (_nachbarn is not null) return _nachbarn;
+        _nachbarn = new List<(int, float)>[_knoten.Count];
+        for (var i = 0; i < _knoten.Count; i++) _nachbarn[i] = new();
+        foreach (var (a, b) in _kanten)
+        {
+            var laenge = _knoten[a].DistanceTo(_knoten[b]);
+            _nachbarn[a].Add((b, laenge));
+            _nachbarn[b].Add((a, laenge));
+        }
+        return _nachbarn;
+    }
+
+    private static (int, int) Ordnen(int a, int b) => a < b ? (a, b) : (b, a);
+
+    private static Vector3 NaechsterPunkt(Vector3 p, Vector3 a, Vector3 b)
+    {
+        var ab = b - a;
+        var t = ab.LengthSquared() > 0 ? Mathf.Clamp((p - a).Dot(ab) / ab.LengthSquared(), 0, 1) : 0;
+        return a + ab * t;
+    }
+
+    /// <summary>Schneiden sich die Strecken a–b und c–d (auf dem Boden, also in X und Z)? t = Anteil auf a–b.</summary>
+    private static bool Schnitt(Vector3 a, Vector3 b, Vector3 c, Vector3 d, out float t, out Vector3 punkt)
+    {
+        t = 0;
+        punkt = Vector3.Zero;
+        var r = new Vector2(b.X - a.X, b.Z - a.Z);
+        var s = new Vector2(d.X - c.X, d.Z - c.Z);
+        var nenner = r.X * s.Y - r.Y * s.X;
+        if (Mathf.Abs(nenner) < 1e-6f) return false; // parallel
+        var ca = new Vector2(c.X - a.X, c.Z - a.Z);
+        t = (ca.X * s.Y - ca.Y * s.X) / nenner;
+        var u = (ca.X * r.Y - ca.Y * r.X) / nenner;
+        const float rand = 1e-3f;
+        if (t <= rand || t >= 1 - rand || u <= rand || u >= 1 - rand) return false;
+        punkt = a + (b - a) * t;
+        return true;
+    }
+}
