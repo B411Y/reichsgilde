@@ -107,6 +107,7 @@ reichsgilde/
 │   ├── project.godot
 │   ├── Reichsgilde.csproj
 │   ├── data/wirtschaft.json        Alle Zahlen des Wirtschaftsmodells (aus dem Balancing-Rechner)
+│   ├── data/karten/                Stadtkarten als JSON (erzeugt von tools/karten, vom Spiel noch nicht gelesen)
 │   ├── assets/waren/               Pixel-Icons der Waren (32 × 32, erzeugt von tools/icons)
 │   ├── scenes/                     Szenen (.tscn)
 │   └── scripts/                    C#-Skripte, die an Szenen hängen
@@ -127,6 +128,7 @@ reichsgilde/
 │   └── Zeit/                       Spielzeit, Taktgeber, Kalender
 ├── tests/Reichsgilde.Core.Tests/   Automatische Tests für den Simulationskern
 ├── tools/icons/waren_icons.py      Zeichnet die Waren-Icons (Python + Pillow)
+├── tools/karten/                   Kartenwerkzeug und ein Skript je Stadt (prüft die Kartenregeln)
 ├── docs/
 │   ├── ARCHITEKTUR.md              Wie der Code aufgebaut ist und warum
 │   ├── ENTSCHEIDUNGEN.md           Alle Grundsatzentscheidungen, Phasenplan, offene Punkte
