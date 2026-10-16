@@ -1380,7 +1380,7 @@
    "name": "Startgrundstück 1",
    "punkt": [-17.0, -92.5],
    "eingang": [-15.5, -83.5],
-   "groesse": [16, 12]
+   "groesse": [24, 14]
   },
   {
    "kennung": "S2",
@@ -1388,7 +1388,7 @@
    "name": "Startgrundstück 2",
    "punkt": [-54.0, -77.0],
    "eingang": [-49.0, -69.5],
-   "groesse": [16, 12]
+   "groesse": [24, 14]
   },
   {
    "kennung": "S3",
@@ -1396,7 +1396,7 @@
    "name": "Startgrundstück 3",
    "punkt": [-78.5, -51.5],
    "eingang": [-71.0, -46.5],
-   "groesse": [16, 12]
+   "groesse": [24, 14]
   },
   {
    "kennung": "S4",
@@ -1404,7 +1404,7 @@
    "name": "Startgrundstück 4",
    "punkt": [-93.0, -14.0],
    "eingang": [-84.0, -12.5],
-   "groesse": [16, 12]
+   "groesse": [24, 14]
   },
   {
    "kennung": "S5",
@@ -1412,7 +1412,7 @@
    "name": "Startgrundstück 5",
    "punkt": [-91.0, 22.5],
    "eingang": [-82.5, 20.5],
-   "groesse": [16, 12]
+   "groesse": [24, 14]
   },
   {
    "kennung": "S6",
@@ -1420,7 +1420,7 @@
    "name": "Startgrundstück 6",
    "punkt": [-81.0, 48.0],
    "eingang": [-73.0, 43.0],
-   "groesse": [16, 12]
+   "groesse": [24, 14]
   },
   {
    "kennung": "S7",
@@ -1428,7 +1428,7 @@
    "name": "Startgrundstück 7",
    "punkt": [-54.0, 77.0],
    "eingang": [-48.5, 69.5],
-   "groesse": [16, 12]
+   "groesse": [24, 14]
   },
   {
    "kennung": "S8",
@@ -1436,7 +1436,7 @@
    "name": "Startgrundstück 8",
    "punkt": [-12.0, 93.0],
    "eingang": [-11.0, 84.0],
-   "groesse": [16, 12]
+   "groesse": [24, 14]
   }
  ],
  "vorkommen": [
