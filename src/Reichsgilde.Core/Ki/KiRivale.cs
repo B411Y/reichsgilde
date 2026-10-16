@@ -118,8 +118,11 @@ public sealed class KiRivale
         if (frei)
         {
             StandPruefen();
-            Ausbauen();
-            Expandieren();
+            if (!(Spart && Profil.Gaunerei <= 0)) // die Vorsichtige spart auf den Stand: kein Ausbau, keine Expansion
+            {
+                Ausbauen();
+                Expandieren();
+            }
         }
         if (_stundenImJahr == Politikstunde)
         {
@@ -305,7 +308,33 @@ public sealed class KiRivale
         }
     }
 
-    /// <summary>Aufsteigen, sobald Schwelle erreicht ist und nach der Gebühr die Reserve bleibt.</summary>
+    /// <summary>
+    /// Was das Wohnhaus für den nächsten Stand noch kostet (0, wenn das nötige Haus schon steht oder gebaut wird).
+    /// Der Ausbau ist eine Ausgabe: Er senkt das Reinvermögen – deshalb zählt er zum Ziel dazu.
+    /// </summary>
+    private double HausFuerNaechstenStand =>
+        _w.Wohnen.IstAktiv && _w.Wohnen.StandVerboten(Konto, Konto.Stand + 1) is not null && Konto.WohnhausFertigAb is null
+            ? _w.Wohnen.NaechsteStufe(Konto)?.Ausbau ?? 0
+            : 0;
+
+    /// <summary>Das Reinvermögen, ab dem der nächste Stand (samt nötigem Wohnhaus) erreichbar ist – null ohne weiteren Stand.</summary>
+    private double? Standziel => _w.NaechsterStand(Konto) is { } neu ? neu.Schwelle + HausFuerNaechstenStand : null;
+
+    /// <summary>Ab diesem Anteil des Standziels spart die KI (nach Charakter, siehe <see cref="Spart"/>).</summary>
+    private const double SparenAb = 0.8;
+
+    /// <summary>
+    /// Ist der nächste Stand in Sichtweite (Reinvermögen ab 80 % des Standziels)? Dann spart die KI nach Charakter:
+    /// vorsichtig keine Expansion und keinen Werkstattausbau, ausgewogen keine Geschenke an Ratsherren,
+    /// wagemutig nur halb so viele bezahlte Gaunerstücke (Banden; die eigenen Diebe kosten nichts).
+    /// </summary>
+    internal bool Spart => Standziel is { } ziel && Konto.Reinvermoegen >= SparenAb * ziel;
+
+    /// <summary>
+    /// Aufsteigen, sobald die Schwelle erreicht ist und nach der Gebühr die Reserve bleibt. Braucht der neue Stand ein
+    /// größeres Wohnhaus, baut die KI es erst, wenn sie danach noch über der Schwelle liegt (Schwelle + Ausbau) und Ausbau,
+    /// Gebühr und Reserve bar bezahlen kann – sonst fiele sie mit dem Bau unter die Schwelle und käme nicht weiter.
+    /// </summary>
     private void StandPruefen()
     {
         if (_w.NaechsterStand(Konto) is not { } neu) return;
@@ -314,6 +343,7 @@ public sealed class KiRivale
         if (_w.Wohnen.StandVerboten(Konto, Konto.Stand + 1) is not null)
         {
             if (_w.Wohnen.AusbauVerboten(Konto) is null && _w.Wohnen.NaechsteStufe(Konto) is { } haus
+                && Konto.Reinvermoegen - haus.Ausbau >= neu.Schwelle
                 && Konto.Vermoegen - haus.Ausbau - neu.Gebuehr >= Profil.Reserve)
                 Befehlen(new WohnhausAusbauen(), $"baut das Wohnhaus zum {haus.Name} aus ({Zahlenformat.Ganz(haus.Ausbau)} {_w.Daten.Allgemein.Waehrung}).");
             return;
@@ -858,6 +888,12 @@ public sealed class KiRivale
     }
 
     /// <summary>
+    /// Bezahlte Gaunerstücke im Jahr (Banden aus dem Hinterzimmer): nach Charakter; spart die Wagemutige auf den Stand,
+    /// nur halb so viele (aufgerundet). Die eigenen Diebe kosten nichts – für sie gilt das volle Budget.
+    /// </summary>
+    private int Gaunerbudget => Spart && Profil.Gaunerei >= 2 ? (Profil.Gaunerei + 1) / 2 : Profil.Gaunerei;
+
+    /// <summary>
     /// Selbst Banden anheuern – nur, wer es seinem Charakter nach tut. Unter den Augen der Spitzel hält
     /// der Ausgewogene still; der Wagemutige macht weiter und riskiert Gericht und Kerker.
     /// </summary>
@@ -866,7 +902,7 @@ public sealed class KiRivale
         var unterwelt = _w.Gauner;
         if (!unterwelt.IstAktiv) return;
         var g = unterwelt.Daten;
-        if (Profil.Gaunerei <= 0 || _gaunereienImJahr >= Profil.Gaunerei) return;
+        if (Profil.Gaunerei <= 0 || _gaunereienImJahr >= Gaunerbudget) return;
         if (Bestechungsrisiko > 1 && Profil.Gaunerei < 2) return;
         var rangliste = _w.Rangliste.Where(k => k.IstAktiv).ToList();
         var eigenerRang = rangliste.IndexOf(Konto);
@@ -955,7 +991,7 @@ public sealed class KiRivale
         if (!diebe.IstAktiv || diebe.Versteck(Konto) is not { } versteck) return;
         var waehrung = _w.Daten.Allgemein.Waehrung;
         var rangliste = _w.Rangliste.Where(k => k != Konto && k.IstAktiv).ToList();
-        bool BudgetFrei() => _gaunereienImJahr < Profil.Gaunerei; // Einbruch, Schutzgeld und Entführung zählen wie Gaunerstücke
+        bool BudgetFrei() => _gaunereienImJahr < Profil.Gaunerei; // Einbruch, Schutzgeld und Entführung zählen wie Gaunerstücke (die eigenen Leute kosten nichts – kein Sparen)
 
         if (BudgetFrei() && diebe.Verboten(Konto, Diebesstueck.Einbruch) is null)
         {
@@ -1073,7 +1109,8 @@ public sealed class KiRivale
     }
 
     /// <summary>Wie viel die KI heute höchstens für Geschenke ausgibt.</summary>
-    private double Politikbudget => Math.Max(0, Math.Min(Konto.Vermoegen - Profil.Reserve, Konto.Vermoegen * Profil.PolitikAnteil));
+    private double Politikbudget => Spart && Profil.Gaunerei == 1 ? 0 // die Ausgewogene spart auf den Stand: keine Geschenke
+        : Math.Max(0, Math.Min(Konto.Vermoegen - Profil.Reserve, Konto.Vermoegen * Profil.PolitikAnteil));
 
     /// <summary>Einmal am Tag: bewerben, für die Wahl werben, das Statut betreiben.</summary>
     private void Politik()
