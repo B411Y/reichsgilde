@@ -87,7 +87,7 @@ public sealed class HauseinbruchDaten
     /// <summary>Anteil des Bargelds, den die Bande aus der Truhe holt (0,05 = 5 %).</summary>
     public double Anteil { get; init; } = 0.05;
 
-    /// <summary>Höchstens so viel je Hausstufe: Fachwerkhaus 1×, Bürgerhaus 2×, … Hof 5×.</summary>
+    /// <summary>Höchstens so viel je Hausstufe: Fachwerkhaus 1×, Bürgerhaus 2×, … Stadthof 5×.</summary>
     public double HoechstensJeStufe { get; init; } = 300;
 }
 

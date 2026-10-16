@@ -296,7 +296,9 @@ public partial class KontorAnzeige : PanelContainer
                       : stufe.Ansehen > 0 ? $" (+{Zahlenformat.Ganz(stufe.Ansehen)} Ansehen, Unterhalt {Zahlenformat.Ganz(stufe.Unterhalt)} {waehrung} im Jahr)" : "");
         if (_wohnhausText.Text != text) _wohnhausText.Text = text;
         _wohnhausText.TooltipText = "Das Wohnhaus gehört dem Haus, nicht einem Betrieb. Es bringt Ansehen und ist Pflicht für den Stand: " +
-                                    "Wer aufsteigen will, braucht vorher das passende Haus. Ausbauen darf man höchstens eine Stufe über dem eigenen Stand.";
+                                    "Wer aufsteigen will, braucht vorher das passende Haus. Ausbauen darf man höchstens eine Stufe über dem eigenen Stand.\n" +
+                                    $"Was in den Ausbau geflossen ist, zählt als Hauswert zum Reinvermögen (jetzt {Zahlenformat.Ganz(_spieler.Hauswert)} {waehrung}) – " +
+                                    "wer baut, fällt also nicht unter die Schwelle seines Standes.";
 
         _hauswaechterKnopf.Visible = w.Gauner.GegenWohnhaus && _spieler.IstAktiv;
         if (_hauswaechterKnopf.Visible)
@@ -455,12 +457,13 @@ public partial class KontorAnzeige : PanelContainer
         _titel.Text = $"Kontor · {_spieler.Inhaber} · {w.StandVon(_spieler).Name}"
                       + (w.Rat.AmtVon(_spieler) is { } amt ? $" · {amt.Name}" : "");
         // Mit Kasse oder Kredit: Bargeld groß, darunter klein, was dem Haus wirklich gehört.
-        var verliehen = Math.Abs(_spieler.Forderungen) > 0.5 || Math.Abs(_spieler.Schulden) > 0.5;
+        var verliehen = Math.Abs(_spieler.Forderungen) > 0.5 || Math.Abs(_spieler.Schulden) > 0.5 || _spieler.Hauswert > 0.5;
         _vermoegen.Text = $"{Zahlenformat.Ganz(_spieler.Vermoegen)} {waehrung}"
                           + (verliehen ? $" bar · Reinvermögen {Zahlenformat.Ganz(_spieler.Reinvermoegen)}" : "");
         _vermoegen.AddThemeColorOverride("font_color", _spieler.Reinvermoegen < 0 ? new Color(0.95f, 0.45f, 0.4f) : new Color(1, 1, 1));
         _vermoegen.TooltipText = verliehen
-            ? $"Bargeld {Zahlenformat.Ganz(_spieler.Vermoegen)} + verliehen {Zahlenformat.Ganz(_spieler.Forderungen)} − Schulden {Zahlenformat.Ganz(_spieler.Schulden)} {waehrung}.\n" +
+            ? $"Bargeld {Zahlenformat.Ganz(_spieler.Vermoegen)} + verliehen {Zahlenformat.Ganz(_spieler.Forderungen)} − Schulden {Zahlenformat.Ganz(_spieler.Schulden)}" +
+              $" + Wohnhaus {Zahlenformat.Ganz(_spieler.Hauswert)} {waehrung}.\n" +
               "Stand, Rangliste und Ansehen richten sich nach dem Reinvermögen; bezahlt wird mit Bargeld."
             : "";
         _standZeile.Text = _spieler.IstBankrott ? "Bankrott" : _spieler.IstErloschen ? "Das Haus ist erloschen"

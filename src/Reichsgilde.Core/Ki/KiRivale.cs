@@ -309,16 +309,10 @@ public sealed class KiRivale
     }
 
     /// <summary>
-    /// Was das Wohnhaus für den nächsten Stand noch kostet (0, wenn das nötige Haus schon steht oder gebaut wird).
-    /// Der Ausbau ist eine Ausgabe: Er senkt das Reinvermögen – deshalb zählt er zum Ziel dazu.
+    /// Das Reinvermögen, ab dem der nächste Stand erreichbar ist – null ohne weiteren Stand.
+    /// Seit Kern PR #85 zählt der Hauswert zum Reinvermögen: Der Ausbau senkt es nicht mehr, deshalb ist das Ziel die Schwelle selbst.
     /// </summary>
-    private double HausFuerNaechstenStand =>
-        _w.Wohnen.IstAktiv && _w.Wohnen.StandVerboten(Konto, Konto.Stand + 1) is not null && Konto.WohnhausFertigAb is null
-            ? _w.Wohnen.NaechsteStufe(Konto)?.Ausbau ?? 0
-            : 0;
-
-    /// <summary>Das Reinvermögen, ab dem der nächste Stand (samt nötigem Wohnhaus) erreichbar ist – null ohne weiteren Stand.</summary>
-    private double? Standziel => _w.NaechsterStand(Konto) is { } neu ? neu.Schwelle + HausFuerNaechstenStand : null;
+    private double? Standziel => _w.NaechsterStand(Konto) is { } neu ? neu.Schwelle : null;
 
     /// <summary>Ab diesem Anteil des Standziels spart die KI (nach Charakter, siehe <see cref="Spart"/>).</summary>
     private const double SparenAb = 0.8;
@@ -332,8 +326,8 @@ public sealed class KiRivale
 
     /// <summary>
     /// Aufsteigen, sobald die Schwelle erreicht ist und nach der Gebühr die Reserve bleibt. Braucht der neue Stand ein
-    /// größeres Wohnhaus, baut die KI es erst, wenn sie danach noch über der Schwelle liegt (Schwelle + Ausbau) und Ausbau,
-    /// Gebühr und Reserve bar bezahlen kann – sonst fiele sie mit dem Bau unter die Schwelle und käme nicht weiter.
+    /// größeres Wohnhaus, baut die KI es, sobald sie Ausbau, Gebühr und Reserve bar bezahlen kann
+    /// (der Hauswert zählt zum Reinvermögen, Kern PR #85 – mit dem Bau fällt sie nicht unter die Schwelle).
     /// </summary>
     private void StandPruefen()
     {
@@ -343,7 +337,6 @@ public sealed class KiRivale
         if (_w.Wohnen.StandVerboten(Konto, Konto.Stand + 1) is not null)
         {
             if (_w.Wohnen.AusbauVerboten(Konto) is null && _w.Wohnen.NaechsteStufe(Konto) is { } haus
-                && Konto.Reinvermoegen - haus.Ausbau >= neu.Schwelle
                 && Konto.Vermoegen - haus.Ausbau - neu.Gebuehr >= Profil.Reserve)
                 Befehlen(new WohnhausAusbauen(), $"baut das Wohnhaus zum {haus.Name} aus ({Zahlenformat.Ganz(haus.Ausbau)} {_w.Daten.Allgemein.Waehrung}).");
             return;

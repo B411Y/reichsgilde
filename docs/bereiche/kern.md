@@ -24,7 +24,6 @@ So wird eingetragen (damit sich die Chats nie an derselben Stelle treffen):
 - (5) Wohnhaus kaufen statt bauen: Leerstand (`Wohnen.Leerstand`) übernehmen und sanieren – zusammen mit Bauzonen und Sanierung
 - (–) Sporadisches Leck beim Beenden im Rauchtest finden: „10 ObjectDB instances leaked“ und „10 RID allocations of type DummyTexture leaked“, im zweiten Start (mit Tafeln), nur auf GitHub, lokal nicht nachzustellen. Der Rauchtest wiederholt solche Funde seit PR #83; die Warnung „1. Versuch“ im Lauf zeigt, wie oft es vorkommt
 - (von Spiel-KI) Wohnhaus und Reinvermögen: Der Ausbau ist eine Ausgabe und zählt nicht zum Reinvermögen. Wer das Haus genau an der Schwelle baut, fällt darunter und kann nicht aufsteigen (KI vor PR #82: Startwert 606 fiel von 91.860 auf 37.583 und blieb Edler). Die KI wartet seit PR #82 auf Schwelle + Ausbau; der Spieler läuft weiter hinein. Vorschlag: Hauswert (ganz oder teilweise) zum Reinvermögen zählen oder die Tafel warnt vor dem Bau
-- (5) (von Leveldesign) Wohnhausstufe „Hof“ in `wirtschaft.json` (Abschnitt `wohnen`) in **„Stadthof“** umbenennen (Entscheidung 16.10.2026, `docs/bereiche/leveldesign.md`)
 
 ## Entscheidungen
 
@@ -60,6 +59,15 @@ So wird eingetragen (damit sich die Chats nie an derselben Stelle treffen):
 | Brand | **Reparatur + Ansehen fehlt**: 20 % des Ausbaupreises der Stufe (mindestens 100), das Ansehen des Hauses fehlt einen Tag (1.020 Min.), so lange kein Ausbau. Die Stufe bleibt, der Stand ist nie in Gefahr. Kosten 300, Chance 50 %. Vergehen: Sabotage. | 16.10.2026 |
 | Schutz | **Eigener Hauswächter** wie im Betrieb: 150 Gulden im Jahr, halbiert die Chance, Zeugen 60 % statt 25 %. Die Streife der Wache wirkt wie bei Betrieben in der Stadt. | 16.10.2026 |
 | KI-Häuser | Stellen nach einem Anschlag auf ihr Wohnhaus einen Hauswächter ein (kleine Änderung im Bereich Spiel-KI). Selbst heuern sie noch keine Bande gegen Wohnhäuser an – Punkt für die Spiel-KI. | 16.10.2026 |
+
+### Hauswert im Reinvermögen (PR #85)
+
+| Thema | Entscheidung | Datum |
+|---|---|---|
+| Hauswert | Was in den Ausbau des Wohnhauses geflossen ist, zählt **ganz** zum Reinvermögen – ab der Bezahlung, also schon während des Baus. Grund: Der Ausbau senkte das Reinvermögen, wer an der Schwelle baute, fiel darunter und konnte nicht aufsteigen (gemeldet von Spiel-KI). | 16.10.2026 |
+| Wirkung | Gilt überall, wo das Reinvermögen zählt: Stand, Rangliste, Ansehen, Bußdeckel, Kreditwürdigkeit, Bankrott, Sieg. Bezahlt wird weiter mit Bargeld; Brand und Unterhalt ändern den Hauswert nicht. | 16.10.2026 |
+| KI-Häuser | `KiRivale` spart nur noch auf die Schwelle selbst und baut das Haus, sobald Ausbau, Gebühr und Reserve bar da sind (kleine Änderung im Bereich Spiel-KI, zwei Tests angepasst). | 16.10.2026 |
+| Stadthof | Die oberste Stufe heißt „Stadthof“ statt „Hof“ (Wunsch Leveldesign: Verwechslung mit Bauernhof und Klosterhof). Spielstände speichern nur die Stufennummer, laden also weiter. | 16.10.2026 |
 
 ## Messungen
 

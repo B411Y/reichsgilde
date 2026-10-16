@@ -117,6 +117,37 @@ static class WohnhausTests
             Pruefe.Wahr(!w2.Ausfuehren(k2, new WohnhausAusbauen()).Erfolg, "kein Ausbau ohne Wohnhäuser");
         }),
 
+        ("Wohnhaus: Der Hauswert zählt ganz zum Reinvermögen – wer an der Schwelle baut, kann trotzdem aufsteigen", () =>
+        {
+            var sim = NeueSimulation();
+            var w = sim.Wirtschaft!;
+            var k = w.KontoEroeffnen("Haus Knapp", startvermoegen: 11_000); // Bürger ab 10.000
+            Pruefe.Gleich(0.0, w.Wohnen.Hauswert(k));
+            Pruefe.Wahr(w.Ausfuehren(k, new WohnhausAusbauen()).Erfolg, "Bürgerhaus");
+            Pruefe.Gleich(9_500.0, k.Vermoegen);                 // Bargeld sinkt …
+            Pruefe.Gleich(1_500.0, k.Hauswert);                  // … das Geld steckt im Haus (schon während des Baus)
+            Pruefe.Gleich(11_000.0, k.Reinvermoegen);            // … das Reinvermögen bleibt
+            Ticken(sim, 241);
+            Pruefe.Wahr(w.Ausfuehren(k, new StandErwerben()).Erfolg, "Aufstieg trotz Bargeld unter der Schwelle");
+            Pruefe.Gleich(1_500.0, k.Hauswert);
+
+            // Speichern und Laden: Der Hauswert wird aus der Stufe neu berechnet.
+            var geladen = Speicherung.Laden(Speicherung.Speichern(sim)).Simulation.Wirtschaft!;
+            var kg = geladen.Konten.Single(x => x.Inhaber == "Haus Knapp");
+            Pruefe.Gleich(1_500.0, kg.Hauswert);
+            Pruefe.Gleich(k.Reinvermoegen, kg.Reinvermoegen);
+        }),
+
+        ("Wohnhaus: Hauswert = alle Ausbauten bis zur Stufe; ein Brand ändert ihn nicht", () =>
+        {
+            var w = NeueSimulation().Wirtschaft!;
+            var k = w.KontoEroeffnen("Haus Gross");
+            k.WohnhausStufe = 3; // Stadtpalais
+            Pruefe.Gleich(1_500.0 + 4_000 + 10_000, w.Wohnen.Hauswert(k));
+            k.WohnhausFertigAb = 1; // Hof im Bau: schon bezahlt, zählt mit
+            Pruefe.Gleich(1_500.0 + 4_000 + 10_000 + 25_000, w.Wohnen.Hauswert(k));
+        }),
+
         ("Wohnhaus: Daten werden geprüft (Startwohnhaus kostenlos, Stände aufsteigend)", () =>
         {
             Pruefe.WirftMitMeldung(() => Wirtschaftsdaten.AusJson(Json.Replace(

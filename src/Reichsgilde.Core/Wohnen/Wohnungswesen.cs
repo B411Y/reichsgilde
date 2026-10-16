@@ -56,7 +56,7 @@ public sealed class WohnenDaten
 
 /// <summary>
 /// Das Wohnhaus jedes Hauses – getrennt von den Betrieben (Entscheidung Leveldesign/Kern, 16.10.2026).
-/// Es wird am selben Ort Stufe für Stufe ausgebaut (Fachwerkhaus → Bürgerhaus → Steinhaus → Stadtpalais → Hof),
+/// Es wird am selben Ort Stufe für Stufe ausgebaut (Fachwerkhaus → Bürgerhaus → Steinhaus → Stadtpalais → Stadthof),
 /// bringt Ansehen, kostet Unterhalt und ist <b>Voraussetzung für den Stand</b>: Wer Bürger werden will, braucht vorher ein Bürgerhaus.
 /// Ausbauen darf man höchstens eine Stufe über dem eigenen Stand.
 ///
@@ -112,6 +112,22 @@ public sealed class Wohnungswesen
             : $"Für den Stand {stand} braucht {k.Inhaber} erst ein {d.Stufen[noetig].Name} (Wohnhaus ausbauen).";
     }
 
+    /// <summary>
+    /// Was das Wohnhaus wert ist: die Ausbaupreise aller Stufen bis zur jetzigen, dazu ein Ausbau, der schon bezahlt ist und noch läuft.
+    /// Es zählt ganz zum Reinvermögen – wer baut, tauscht Bargeld gegen Hauswert und fällt nicht unter die Schwelle seines Standes.
+    /// </summary>
+    public double Hauswert(Konto k)
+    {
+        if (Daten is not { } d) return 0;
+        var bis = Math.Min(k.WohnhausStufe + (k.WohnhausFertigAb is not null ? 1 : 0), d.Stufen.Count - 1);
+        var wert = 0.0;
+        for (var i = 1; i <= bis; i++) wert += d.Stufen[i].Ausbau;
+        return wert;
+    }
+
+    /// <summary>Den Hauswert am Konto neu setzen (nach Ausbau und beim Laden).</summary>
+    internal void HauswertAktualisieren(Konto k) => k.Hauswert = Hauswert(k);
+
     /// <summary>Ansehen aus dem Wohnhaus – nach einem Brand fehlt es, bis das Haus instand gesetzt ist.</summary>
     public double AnsehenBonus(Konto k) => IstBeschaedigt(k) ? 0 : Stufe(k)?.Ansehen ?? 0;
 
@@ -149,6 +165,8 @@ public sealed class Wohnungswesen
         var naechste = NaechsteStufe(k)!;
         k.Investition(naechste.Ausbau);
         k.WohnhausFertigAb = zeit.VergangeneMinuten + Daten!.BauzeitMinuten;
+        HauswertAktualisieren(k); // das Geld steckt jetzt im Haus
+
         if (Daten.BauzeitMinuten == 0) Minute(zeit);
         var dauer = Daten.BauzeitMinuten >= 60 ? $"{Daten.BauzeitMinuten / 60.0:0.#} Stunden" : $"{Daten.BauzeitMinuten} Minuten";
         return Befehlsergebnis.Ok($"{k.Inhaber} baut das Wohnhaus zum {naechste.Name} aus " +
@@ -209,5 +227,11 @@ public sealed class Wohnungswesen
     {
         foreach (var k in ohneStufe)
             k.WohnhausStufe = NoetigeStufe(k.Stand);
+    }
+
+    /// <summary>Nach dem Laden: Hauswerte aus Stufe und laufendem Ausbau berechnen (sie werden nicht gespeichert).</summary>
+    internal void HauswerteNachDemLaden(IEnumerable<Konto> konten)
+    {
+        foreach (var k in konten) HauswertAktualisieren(k);
     }
 }
