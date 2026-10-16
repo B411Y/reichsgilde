@@ -62,6 +62,9 @@ public sealed class WohnenDaten
 ///
 /// Der Zustand (Stufe, Bauende) liegt am <see cref="Konto"/>, weil das Wohnhaus dem Haus gehört.
 /// Fehlt der Abschnitt „wohnen“, gibt es keine Wohnhäuser – alles wie vorher.
+///
+/// Gauner (Abschnitt gauner.wohnhaus): Einbruch holt Bargeld, Brand kostet Reparatur und das Ansehen des Hauses,
+/// bis es instand gesetzt ist – die Stufe und damit der Stand sind nie in Gefahr. Ein Hauswächter schützt wie im Betrieb.
 /// </summary>
 public sealed class Wohnungswesen
 {
@@ -109,8 +112,11 @@ public sealed class Wohnungswesen
             : $"Für den Stand {stand} braucht {k.Inhaber} erst ein {d.Stufen[noetig].Name} (Wohnhaus ausbauen).";
     }
 
-    /// <summary>Ansehen aus dem Wohnhaus.</summary>
-    public double AnsehenBonus(Konto k) => Stufe(k)?.Ansehen ?? 0;
+    /// <summary>Ansehen aus dem Wohnhaus – nach einem Brand fehlt es, bis das Haus instand gesetzt ist.</summary>
+    public double AnsehenBonus(Konto k) => IstBeschaedigt(k) ? 0 : Stufe(k)?.Ansehen ?? 0;
+
+    /// <summary>Hat es gebrannt, und wird das Haus noch instand gesetzt? (Bis wann: <see cref="Konto.WohnhausInstandBis"/>.)</summary>
+    public bool IstBeschaedigt(Konto k) => k.WohnhausInstandBis is not null;
 
     /// <summary>Unterhalt des Wohnhauses im Jahr.</summary>
     public double Unterhalt(Konto k) => Stufe(k)?.Unterhalt ?? 0;
@@ -124,6 +130,7 @@ public sealed class Wohnungswesen
         if (Daten is null) return "In dieser Stadt gibt es keine Wohnhäuser.";
         if (!k.IstAktiv) return $"{k.Inhaber} ist nicht mehr im Spiel.";
         if (k.WohnhausFertigAb is not null) return $"Am Wohnhaus von {k.Inhaber} wird schon gebaut.";
+        if (IstBeschaedigt(k)) return $"Das Wohnhaus von {k.Inhaber} wird nach dem Brand noch instand gesetzt.";
         if (NaechsteStufe(k) is not { } naechste) return $"{k.Inhaber} wohnt schon im größten Haus ({Stufe(k)!.Name}).";
         if (k.Stand < naechste.AbStand - 1)
             return $"Ein {naechste.Name} darf erst bauen, wer mindestens {_w.Daten.Staende[naechste.AbStand - 1].Name} ist.";
@@ -148,17 +155,40 @@ public sealed class Wohnungswesen
                                   $"({Zahlenformat.Ganz(naechste.Ausbau)} {_w.Daten.Allgemein.Waehrung}, fertig in {dauer}).");
     }
 
-    /// <summary>Jede Spielminute: fertige Ausbauten übernehmen.</summary>
+    /// <summary>Befehl „Hauswächter“: einstellen oder entlassen. Er kostet im Jahr so viel wie ein Wächter im Betrieb.</summary>
+    internal Befehlsergebnis HauswaechterSetzen(Konto k, bool angestellt)
+    {
+        if (Daten is null || _w.Daten.Gauner?.Wohnhaus is null)
+            return Befehlsergebnis.Abgelehnt("In dieser Stadt bricht niemand in Wohnhäuser ein – ein Hauswächter wäre umsonst.");
+        if (k.Hauswaechter == angestellt)
+            return Befehlsergebnis.Ok($"{k.Inhaber} hat {(angestellt ? "schon einen" : "keinen")} Hauswächter.");
+        k.Hauswaechter = angestellt;
+        return Befehlsergebnis.Ok(angestellt
+            ? $"{k.Inhaber} stellt einen Hauswächter ein ({Zahlenformat.Ganz(_w.Daten.Gauner.WaechterKosten)} {_w.Daten.Allgemein.Waehrung} im Jahr)."
+            : $"{k.Inhaber} entlässt den Hauswächter.");
+    }
+
+    /// <summary>Ein Brand (Gaunerstück „Brandstiftung“): Bis zur angegebenen Minute fehlt das Ansehen des Hauses.</summary>
+    internal void Brand(Konto k, long instandBis) => k.WohnhausInstandBis = instandBis;
+
+    /// <summary>Jede Spielminute: fertige Ausbauten übernehmen, abgebrannte Häuser wieder instand setzen.</summary>
     internal void Minute(Spielzeit zeit)
     {
         if (Daten is null) return;
         foreach (var k in _w.Konten)
+        {
             if (k.WohnhausFertigAb is { } ab && zeit.VergangeneMinuten >= ab)
             {
                 k.WohnhausFertigAb = null;
                 k.WohnhausStufe++;
                 _w.Melden($"{k.Inhaber} bezieht das neue {Stufe(k)!.Name}.");
             }
+            if (k.WohnhausInstandBis is { } bis && zeit.VergangeneMinuten >= bis)
+            {
+                k.WohnhausInstandBis = null;
+                if (k.IstAktiv) _w.Melden($"Das {Stufe(k)!.Name} von {k.Inhaber} ist nach dem Brand wieder instand gesetzt.");
+            }
+        }
     }
 
     /// <summary>Jahresende: Unterhalt der Wohnhäuser (mit den Haushaltskosten).</summary>
@@ -166,8 +196,12 @@ public sealed class Wohnungswesen
     {
         if (Daten is null) return;
         foreach (var k in _w.Konten.Where(k => k.IstAktiv))
+        {
             if (Unterhalt(k) is var betrag and > 0)
                 k.Familienkosten(betrag);
+            if (k.Hauswaechter && _w.Daten.Gauner is { } g)
+                k.Personal(g.WaechterKosten);
+        }
     }
 
     /// <summary>Ein Haus ohne gespeicherte Stufe (alter Spielstand): das Wohnhaus, das sein Stand verlangt.</summary>

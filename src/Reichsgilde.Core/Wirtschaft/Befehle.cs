@@ -25,6 +25,9 @@ public sealed record StandErwerben : Befehl;
 /// <summary>Das eigene Wohnhaus um eine Stufe ausbauen (z. B. Fachwerkhaus → Bürgerhaus). Kostet Gulden und Bauzeit.</summary>
 public sealed record WohnhausAusbauen : Befehl;
 
+/// <summary>Einen Hauswächter fürs Wohnhaus einstellen oder entlassen (kostet wie ein Betriebswächter).</summary>
+public sealed record HauswaechterSetzen(bool Angestellt) : Befehl;
+
 /// <summary>
 /// Eine freie Werkstatt kaufen oder eine Grube pachten (Name aus "liegenschaften").
 /// Voraussetzungen: Mindeststand erreicht, Kaufpreis und die Kosten des ersten Jahres bezahlbar.
