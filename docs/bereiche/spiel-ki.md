@@ -10,7 +10,6 @@ So wird eingetragen (damit sich die Chats nie an derselben Stelle treffen):
 
 ## Offen
 
-- (2) Bürger-KI: Kopplung an die Taschendiebe (Einwohner: PR #54, Wege: PR #57, Schänke: PR #58, Kirche: PR #61, Markt: PR #63)
 - (2) Bürger-KI: Warenkorb je Volk und Rolle (eigener Nachfragefaktor je Warengruppe)
 - (5) KI-Häuser handeln nicht von Hand am Markt
 - (5) KI-Häuser im Rat wählen immer den Amtsinhaber (bekannte Schwäche, Archiv §3a)
@@ -19,4 +18,4 @@ So wird eingetragen (damit sich die Chats nie an derselben Stelle treffen):
 
 ## Messungen
 
-Neue Messungen der Spiel-KI stehen hier (mit main-Commit), nicht mehr in `docs/WIRTSCHAFTSMODELL.md`. Ältere: dort §34–§40.
+Neue Messungen der Spiel-KI stehen hier (mit main-Commit), nicht mehr in `docs/WIRTSCHAFTSMODELL.md`. Ältere: dort bis §42 (Taschendiebe, PR #69).

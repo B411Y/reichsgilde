@@ -244,6 +244,7 @@ Format: `- PR #Nummer (Phase) – Inhalt`
 - PR #66 (3) – Leveldesign: Raster 2 × 2 m, Gewerbe in jeder Bauzone, Werkstätten an Karrenstraßen und Wohnhäuser auch an Gassen, feste Startgrundstücke
 - PR #67 (5) – Stadttore schließen um 20 Uhr: Umlandkarren warten bis zum Morgen oder zahlen Torgeld
 - PR #68 (3) – Vorstadt vor dem Osttor mit Wegkreuz, Holzschläge und Umlandstellen vor dem Westtor (Passanten Schritt 2, zweiter Teil)
+- PR #69 (2) – Bürger-KI: Beute der Taschendiebe folgt den Passanten (0,5–1,5); Bestohlene sind echte Einwohner. Damit sind alle vier Kopplungen fertig (Schänke #58, Kirche #61, Markt #63, Taschendiebe #69)
 
 ### 6b. Offen
 
@@ -354,6 +355,7 @@ Steht seit 16.10.2026 je Bereich in `docs/bereiche/<bereich>.md` unter „Offen�
 | Kopplung Kirche | **Gläubige und Kollekte × Gebetsstunden des Morgens ÷ üblich** (0,5–1,5), Verteilung bleibt beim Kirchenwesen (Konfessionen, Anziehung). Gezählt wird der ganze Morgen bis zur Messe, nicht nur eine Stunde – eine Stunde allein schwankte um ± 30 %. Kopplung voll (1,0) (PR #61). | 16.10.2026 |
 | Kopplung Markt | **Nur Fertigwaren und Heilmittel**, Nachfrage × Faktor **0,8–1,2** (Einkaufsstunden ÷ üblich), **gleitend über 17 Stunden** wie das Verkaufsfenster, **ein Faktor für alle** (Warenkorb je Volk später). Grundversorgung der Stadt bleibt fest. Vom Nutzer gewählt (PR #63). | 16.10.2026 |
 | Das Übliche | Die Bezugsgröße „üblich“ der Kopplungen **lernt nicht am ersten Tag** und mittelt die ersten Tage, bevor der gleitende Mittelwert greift. Grund: Der erste Tag lag am Markt ~20 % unter dem Dauerwert und hob die Faktoren zehn Jahre lang (PR #63). | 16.10.2026 |
+| Kopplung Taschendiebe | **Passanten = Markt, Gassen und Unterwegs** (nicht Umland), Beute × Passanten ÷ üblich je Uhrzeit, **0,5–1,5**. **Bestohlene sind echte Einwohner:** Name in Meldung und Spur, ihre Versorgung wird dringender. Vom Nutzer gewählt (PR #69). | 16.10.2026 |
 | Umland | **Stellen Weide, Feld, Wald**; neue Rollen Feldarbeiter und Holzsammler; Knechte und Mägde dienen in Bürger- und Ratsherrenhäusern. | 16.10.2026 |
 
 ## 16. KI-Häuser (Spiel-KI)

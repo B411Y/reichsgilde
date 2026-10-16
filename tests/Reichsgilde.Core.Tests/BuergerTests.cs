@@ -536,6 +536,71 @@ static class BuergerTests
             Pruefe.Wahr(original.Wirtschaft!.Markt["Silberring"].NachfrageFaktor != 1.0, "Faktor sollte nach drei Tagen von 1 abweichen");
         }),
 
+        ("Taschendiebe: Beute × (Passanten dieser Stunde ÷ üblich zu dieser Uhrzeit), begrenzt auf 1 ± Spanne", () =>
+        {
+            foreach (var mitKopplung in new[] { true, false })
+            {
+                var daten = mitKopplung ? Daten.Value : Abgewandelt(j => j["buerger"]!["kopplung"]!["diebe"] = 0);
+                var (sim, spieler) = Partieaufbau.Erstellen(Partieeinstellungen.Standard with { Zufallsstartwert = 1400, Siegbedingung = Siegbedingung.Endlos },
+                    daten, new NeuePartie(Beruf: "Dieb"));
+                var w = sim.Wirtschaft!;
+                var ew = Einwohner(sim);
+                var nest = w.Betriebe.Single(b => b.Konto == spieler && w.Diebe.IstDiebesbetrieb(b));
+                Ticken(sim, 2 * Spielzeit.MinutenProTag); // Einschwingen und das Übliche lernen
+                var kd = ew.Daten.Kopplung;
+                var abweichend = 0;
+                for (var stunde = 9; stunde < 19; stunde++)
+                {
+                    Bis(sim, stunde, 59);
+                    Ticken(sim, 1);                       // die letzte Minute der Stunde wird gearbeitet
+                    var minuten = nest.Fortschritt;
+                    var erwartet = ew.PassantenErwartet(stunde);
+                    var faktor = mitKopplung && erwartet > 0 ? Math.Clamp(ew.Passanten.Count() / erwartet, 1 - kd.Spanne, 1 + kd.Spanne) : 1;
+                    var vorher = w.Diebe.DiesesJahr(spieler).Beute;
+                    Ticken(sim, 1);                       // volle Stunde: die Taschendiebe liefern ab
+                    var beute = w.Diebe.DiesesJahr(spieler).Beute - vorher;
+                    Pruefe.Ungefaehr(minuten * w.Diebe.WertJeMinute(nest.Stufe) * faktor, beute, 1e-6);
+                    if (Math.Abs(faktor - 1) > 0.01) abweichend++;
+                }
+                Pruefe.Wahr(mitKopplung ? abweichend > 0 : abweichend == 0, $"{(mitKopplung ? "Mit" : "Ohne")} Kopplung: {abweichend} Stunden mit Faktor ≠ 1");
+            }
+        }),
+
+        ("Taschendiebe: Der Bestohlene ist ein Passant – ohne Kopplung bleibt es beim namenlosen Bürger", () =>
+        {
+            var (sim, _) = Partieaufbau.Erstellen(Partieeinstellungen.Standard with { Zufallsstartwert = 1400, Siegbedingung = Siegbedingung.Endlos },
+                Daten.Value, new NeuePartie(Beruf: "Dieb"));
+            var ew = Einwohner(sim);
+            Ticken(sim, Spielzeit.MinutenProTag);
+            Bis(sim, 9, 0);
+            Ticken(sim, 1);
+            Bis(sim, 10, 0);                            // volle Stunde: Passanten der Stunde 9–10
+            var passanten = ew.Passanten.ToList();
+            Pruefe.Wahr(passanten.Count > 0, "Um 9 Uhr ist jemand draußen");
+            Pruefe.Wahr(passanten.All(e => e.Ort is Stadtort.Markt or Stadtort.Gasse || e.Weg is not null), "Passanten sind am Markt, in der Gasse oder unterwegs");
+            var opfer = ew.Bestohlen();
+            Pruefe.Wahr(opfer is not null && passanten.Contains(opfer), "Ein Passant wird bestohlen");
+            var vorher = opfer!.Wert(Beduerfnis.Versorgung);
+            Pruefe.Wahr(vorher >= ew.Daten.Kopplung.Bestohlen || vorher == 100, "Die Versorgung ist dringender geworden");
+
+            var (ohne, _) = Partieaufbau.Erstellen(Partieeinstellungen.Standard with { Zufallsstartwert = 1400, Siegbedingung = Siegbedingung.Endlos },
+                Abgewandelt(j => j["buerger"]!["kopplung"]!["diebe"] = 0), new NeuePartie(Beruf: "Dieb"));
+            Ticken(ohne, Spielzeit.MinutenProTag + 300);
+            Pruefe.Wahr(Einwohner(ohne).Bestohlen() is null, "Ohne Kopplung kein namentliches Opfer");
+        }),
+
+        ("Taschendiebe: Speichern und Laden mit Kopplung – Beute und das Übliche laufen gleich weiter", () =>
+        {
+            var (original, spieler) = Partieaufbau.Erstellen(Partieeinstellungen.Standard with { Zufallsstartwert = 4711, Siegbedingung = Siegbedingung.Endlos },
+                Daten.Value, new NeuePartie(Beruf: "Dieb", Rivale: KiCharakter.Wagemutig));
+            Ticken(original, 2 * Spielzeit.MinutenProTag + 407);
+            var (kopie, kopieSpieler) = Speicherung.Laden(Speicherung.Speichern(original, spieler));
+            Ticken(original, 2 * Spielzeit.MinutenProTag);
+            Ticken(kopie, 2 * Spielzeit.MinutenProTag);
+            Pruefe.Gleich(Speicherung.Speichern(original, spieler, new DateTime(2026, 10, 16)),
+                          Speicherung.Speichern(kopie, kopieSpieler, new DateTime(2026, 10, 16)));
+        }),
+
         ("Bürger-KI: Datenprüfung lehnt Orks als Einwohner und eine fehlende Handlung ab", () =>
         {
             Pruefe.WirftMitMeldung(() => Abgewandelt(j => j["buerger"]!["voelker"]!["Ork"] = 1), "kein Bürgerrecht");
@@ -545,6 +610,7 @@ static class BuergerTests
             Pruefe.WirftMitMeldung(() => Abgewandelt(j => j["buerger"]!["kopplung"]!["schaenke"] = 1.5), "kopplung.schaenke");
             Pruefe.WirftMitMeldung(() => Abgewandelt(j => j["buerger"]!["kopplung"]!["kirche"] = -0.1), "kopplung.kirche");
             Pruefe.WirftMitMeldung(() => Abgewandelt(j => j["buerger"]!["kopplung"]!["marktSpanne"] = 1.0), "marktSpanne");
+            Pruefe.WirftMitMeldung(() => Abgewandelt(j => j["buerger"]!["kopplung"]!["diebe"] = 2), "kopplung.diebe");
             Pruefe.WirftMitMeldung(() => Abgewandelt(j => j["buerger"]!["handlungen"]!["Einkehren"]!["von"] = 13), "oeffnetUm");
         }),
     };

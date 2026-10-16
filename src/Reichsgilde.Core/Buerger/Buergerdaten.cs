@@ -109,6 +109,12 @@ public sealed class KopplungDaten
     /// <summary>Für den Markt eigene, engere Grenze: Faktor zwischen 1 − marktSpanne und 1 + marktSpanne.</summary>
     public double MarktSpanne { get; init; } = 0.2;
 
+    /// <summary>Taschendiebe: Beute × (Passanten dieser Stunde ÷ üblich zu dieser Uhrzeit), begrenzt auf 1 ± spanne.</summary>
+    public double Diebe { get; init; }
+
+    /// <summary>So viel dringender wird die Versorgung eines Bestohlenen (er muss nachkaufen).</summary>
+    public double Bestohlen { get; init; } = 20;
+
     /// <summary>Welche Warenarten die Einwohner kaufen (Typ der Ware). Rohstoffe und Zwischenwaren kaufen die Handwerker.</summary>
     public List<string> MarktTypen { get; init; } = new() { "Fertigprodukt", "Heilmittel" };
 
@@ -271,6 +277,8 @@ public sealed class BuergerDaten
         if (Kopplung.Schaenke is < 0 or > 1) f.Add($"{p}.kopplung.schaenke muss zwischen 0 und 1 liegen.");
         if (Kopplung.Kirche is < 0 or > 1) f.Add($"{p}.kopplung.kirche muss zwischen 0 und 1 liegen.");
         if (Kopplung.Markt is < 0 or > 1) f.Add($"{p}.kopplung.markt muss zwischen 0 und 1 liegen.");
+        if (Kopplung.Diebe is < 0 or > 1) f.Add($"{p}.kopplung.diebe muss zwischen 0 und 1 liegen.");
+        if (Kopplung.Bestohlen is < 0 or > 100) f.Add($"{p}.kopplung.bestohlen muss zwischen 0 und 100 liegen.");
         if (Kopplung.MarktSpanne is < 0 or >= 1) f.Add($"{p}.kopplung.marktSpanne muss zwischen 0 und unter 1 liegen.");
         if (Kopplung.Spanne is < 0 or >= 1 || Kopplung.Glaettung is <= 0 or > 1) f.Add($"{p}.kopplung: spanne zwischen 0 und unter 1, glaettung über 0 bis 1.");
         if (HaushaltVon < 1 || HaushaltBis < HaushaltVon || HaushaltBis > 20) f.Add($"{p}: haushaltVon ≥ 1, haushaltBis ≥ haushaltVon und ≤ 20.");

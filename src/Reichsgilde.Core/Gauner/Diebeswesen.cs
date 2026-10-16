@@ -290,12 +290,16 @@ public sealed class Diebeswesen
     internal void Stunde(Spielzeit zeit)
     {
         if (!IstAktiv) return;
+        // Bürger-KI: Wie viele Einwohner diese Stunde draußen unterwegs waren, verschiebt die Beute (Faktor um 1).
+        // Ohne Kopplung (Abschnitt „buerger" oder „kopplung.diebe" fehlt) ist der Faktor genau 1.
+        var passanten = _w.Einwohnerschaft.Diebesfaktor(zeit.StundeDieEndete);
         foreach (var b in _w.Betriebe.Where(IstDiebesbetrieb).ToList())
         {
             var minuten = b.ArbeitsminutenAbholen();
             if (minuten <= 0 || !b.Konto.IstAktiv) continue;
             var k = b.Konto;
             var beute = minuten * WertJeMinute(b.Stufe);
+            if (passanten != 1) beute *= passanten;
             k.Umsatz(beute); // gestohlenes Geld zahlt keine Steuer
             var buch = DiesesJahr(k);
             _diesesJahr[k] = buch with { Beute = buch.Beute + beute };
@@ -312,9 +316,13 @@ public sealed class Diebeswesen
             var wache = _w.Wache.TaschendiebGefasst(k);
             var zeugen = _w.Konten.Where(x => x != k && x.IstAktiv).ToList();
             var wisser = wache ?? (zeugen.Count > 0 ? zeugen[_zufall.Next(zeugen.Count)] : null);
-            if (_w.Justiz.IstAktiv && _w.Justiz.TatMelden(k, Vergehen.Taschendiebstahl, "Bürger am Markt", beute) is { } spur && wisser is not null)
+            // Bürger-KI: Mit Kopplung ist der Bestohlene ein echter Einwohner (sonst ein namenloser „Bürger am Markt").
+            var opfer = _w.Einwohnerschaft.Bestohlen();
+            var opferName = opfer is null ? "Bürger am Markt" : $"{opfer.Name} ({_w.Einwohnerschaft.RollenName(opfer)})";
+            if (_w.Justiz.IstAktiv && _w.Justiz.TatMelden(k, Vergehen.Taschendiebstahl, opferName, beute) is { } spur && wisser is not null)
                 _w.Justiz.BeweisGeben(wisser, spur);
-            _w.Gauner.Melden(null, $"Am Markt wird ein Taschendieb erwischt – ein {kraft} aus {b.Name}." +
+            _w.Gauner.Melden(null, $"Am Markt wird ein Taschendieb erwischt – ein {kraft} aus {b.Name}" +
+                                   (opfer is null ? "." : $", die Hand in der Tasche von {opferName}.") +
                                    (wache is not null ? $" Die Wache von {wache.Inhaber} hat ihn gefasst."
                                        : wisser is null ? "" : $" Ein Bürger hat ihn erkannt und erzählt es {wisser.Inhaber}."));
         }
