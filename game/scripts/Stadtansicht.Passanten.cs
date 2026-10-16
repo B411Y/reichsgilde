@@ -30,6 +30,8 @@ public partial class Stadtansicht
         public float Laenge { get; set; }
         /// <summary>Seitlicher Versatz (Meter), damit nicht alle auf derselben Linie laufen.</summary>
         public float Versatz { get; init; }
+        /// <summary>Wo die Figur zuletzt stand (null = sie lief). Steht sie noch dort, wird nichts neu gesetzt.</summary>
+        public (Aufenthalt Ort, Weg? Weg)? Stand { get; set; }
     }
 
     private readonly Dictionary<int, Passant> _passanten = new();
@@ -54,17 +56,20 @@ public partial class Stadtansicht
         _passantenEbene ??= NeueEbene();
         var minute = (long)Math.Floor(minuteGenau);
 
-        var gesehen = new HashSet<int>();
-        foreach (var e in einwohnerschaft.Einwohner)
+        var einwohner = einwohnerschaft.Einwohner;
+        foreach (var e in einwohner)
         {
-            gesehen.Add(e.Nummer);
             if (!_passanten.TryGetValue(e.Nummer, out var p))
                 _passanten[e.Nummer] = p = PassantBauen(e);
 
             var wo = e.Wo(minute);
             if (wo is { } ort)
             {
-                // Am Ort: nur draußen sichtbar
+                // Am Ort: nur draußen sichtbar. Steht die Figur schon da, bleibt alles, wie es ist –
+                // jede gesetzte Position kostet Godot Arbeit, auch wenn sie sich nicht ändert.
+                var stand = (ort, e.Weg);
+                if (p.Stand == stand) continue;
+                p.Stand = stand;
                 var punkt = Draussen(ort) ? Verweilpunkt(ort, e) : (Vector3?)null;
                 p.Knoten.Visible = punkt is not null;
                 if (punkt is { } q)
@@ -74,6 +79,7 @@ public partial class Stadtansicht
                 }
                 continue;
             }
+            p.Stand = null;
 
             // Unterwegs
             var weg = e.Weg!;
@@ -100,9 +106,9 @@ public partial class Stadtansicht
             p.Koerper.Position = new Vector3(0, Mathf.Abs(Mathf.Sin(anteil * p.Laenge * 2.2f)) * 0.08f, 0);
         }
 
-        // Verstorbene und Weggezogene verschwinden
-        if (gesehen.Count != _passanten.Count)
-            foreach (var nummer in _passanten.Keys.Where(n => !gesehen.Contains(n)).ToList())
+        // Verstorbene und Weggezogene verschwinden (nur prüfen, wenn die Zahl nicht stimmt)
+        if (einwohner.Count != _passanten.Count)
+            foreach (var nummer in _passanten.Keys.Except(einwohner.Select(e => e.Nummer)).ToList())
             {
                 _passanten[nummer].Knoten.QueueFree();
                 _passanten.Remove(nummer);
@@ -114,7 +120,8 @@ public partial class Stadtansicht
         if (_passantenSeitMessung >= 10)
         {
             GD.Print($"Passanten: {_passanten.Count} Figuren, {_passanten.Values.Count(p => p.Knoten.Visible)} sichtbar, " +
-                     $"{_passantenZeit / _passantenBilder:0.00} ms je Bild, {Engine.GetFramesPerSecond()} Bilder/s");
+                     $"{_passantenZeit / _passantenBilder:0.00} ms je Bild, {Engine.GetFramesPerSecond()} Bilder/s, " +
+                     $"{RenderingServer.GetRenderingInfo(RenderingServer.RenderingInfo.TotalDrawCallsInFrame)} Zeichenaufrufe");
             _passantenZeit = 0;
             _passantenBilder = 0;
             _passantenSeitMessung = 0;
