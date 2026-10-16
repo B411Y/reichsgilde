@@ -36,8 +36,16 @@ public partial class Stadtansicht
     public static readonly Dictionary<string, Vector3> Umlandstellen = new()
     {
         ["Weide"] = new(-70, 0, 26),  // vor dem Westtor, südlich der Weststraße
-        ["Feld"] = new(-66, 0, 54),
+        ["Feld"] = new(-60, 0, 62),
         ["Wald"] = new(-68, 0, -14),  // nördlich der Weststraße
+    };
+
+    /// <summary>Wo der Fußweg zu einer Umlandstelle von der Weststraße abgeht – je Stelle ein eigener, damit keiner durch den anderen führt.</summary>
+    private static readonly Dictionary<string, Vector3> UmlandZugaenge = new()
+    {
+        ["Weide"] = new(-70, 0, 6),
+        ["Feld"] = new(-58, 0, 6),
+        ["Wald"] = new(-66, 0, 6),
     };
 
     /// <summary>Breite, Tiefe und Abstand eines Ringplatzes (Meter).</summary>
@@ -109,11 +117,11 @@ public partial class Stadtansicht
             }
         }
 
-        foreach (var (_, stelle) in Umlandstellen)
+        foreach (var (name, stelle) in Umlandstellen)
         {
-            var anschluss = n.Knoten[n.Anschliessen(stelle)];
-            n.Weg(anschluss, stelle);
-            WegZiehen(anschluss, stelle, 2);
+            var zugang = UmlandZugaenge[name];
+            n.Weg(zugang, stelle);
+            WegZiehen(zugang, stelle, 2);
         }
 
         if (n.Teile() != 1)
