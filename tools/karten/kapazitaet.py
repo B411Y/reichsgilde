@@ -25,12 +25,12 @@ GEBAEUDE = {
     "Werkstatt": (8, 7),         # alle Stufen, 16 × 14 m
     "Wohnhaus": (4, 5),          # Fachwerkhaus → Bürgerhaus → Steinhaus, 8 × 10 m
     "Stadtpalais": (6, 5),       # 12 × 10 m, eigener Bau
-    "Hof": (8, 7),               # 16 × 14 m, eigener Bau, nur Kernlage
+    "Stadthof": (8, 7),          # 16 × 14 m, eigener Bau, Kernlage oder Mauerring
     "Einwohner-Wohnhaus": (3, 3),        # 6 × 6 m
     "Einwohner-Bürgerhaus": (4, 4),      # 7 × 7 m, belegt 8 × 8 m
     "Ratsherrenhaus": (4, 4),            # 8 × 8 m
 }
-FARBE = {"Werkstatt": "#8C5A2B", "Wohnhaus": "#A3262A", "Stadtpalais": "#6B2A7A", "Hof": "#2F4F7A",
+FARBE = {"Werkstatt": "#8C5A2B", "Wohnhaus": "#A3262A", "Stadtpalais": "#6B2A7A", "Stadthof": "#2F4F7A",
          "Einwohner-Wohnhaus": "#7A8A6A", "Einwohner-Bürgerhaus": "#5E7A4A", "Ratsherrenhaus": "#3E5A34",
          "fest": "#1F2326"}
 STADTZONEN = {"kern", "mauerring", "vorstadt"}
@@ -43,11 +43,11 @@ def bedarf_8_haeuser(einwohner_je_haus=25, haushalt=5, ratsherren=13, buergerhae
     Pflicht: je Haus zwei weitere Werkstätten (KI-Häuser führen bis zu 3 Betriebe, ab Patrizier 4; einer
     davon ist die Start-Werkstatt, einer liegt oft im Umland) und die Häuser der Einwohner
     (Werte aus wirtschaft.json, Abschnitt buerger: 25 je Haus, Haushalte 4–6, im Mittel 5).
-    Reserve: was wachsende Häuser später bauen könnten – jedes Haus ein Stadtpalais, die Hälfte einen Hof.
+    Reserve: was wachsende Häuser später bauen könnten – jedes Haus ein Stadtpalais, die Hälfte einen Stadthof.
     """
     pflicht = [("Werkstatt", 16), ("Ratsherrenhaus", ratsherren), ("Einwohner-Bürgerhaus", buergerhaeuser),
                ("Einwohner-Wohnhaus", math.ceil(8 * einwohner_je_haus / haushalt))]
-    reserve = [("Hof", 4), ("Stadtpalais", 8)]
+    reserve = [("Stadthof", 4), ("Stadtpalais", 8)]
     return pflicht, reserve
 
 
@@ -116,17 +116,22 @@ class Belegung:
             self.frei -= felder
             self.gesetzt.append(("fest", felder))
 
-    def setzen(self, art, nur_kern=False):
+    def setzen(self, art, erlaubt=None):
+        """Setzt ein Gebäude; `erlaubt` schränkt die Zonenarten ein (z. B. Stadthof nicht in der Vorstadt)."""
         b, t = GEBAEUDE[art]
         dist = self.d_karren if art == "Werkstatt" else self.d_alle
-        kandidaten = sorted(self.frei, key=lambda f: (dist[f], f))
+        if art == "Werkstatt":
+            schluessel = lambda f: (dist[f], f)
+        else:   # Wohnhäuser lassen die Karrenstraßen den Werkstätten und suchen zuerst Gassen
+            schluessel = lambda f: (dist[f] > STRASSENNAH, self.d_karren[f] <= STRASSENNAH, dist[f], f)
+        kandidaten = sorted(self.frei, key=schluessel)
         for (i, j) in kandidaten:
             for (w, h) in ((b, t), (t, b)):
                 for (oi, oj) in ((0, 0), (-(w - 1), 0), (0, -(h - 1)), (-(w - 1), -(h - 1))):
                     felder = {(i + oi + a, j + oj + c) for a in range(w) for c in range(h)}
                     if not felder <= self.frei:
                         continue
-                    if nur_kern and any(self.zone[f] != "kern" for f in felder):
+                    if erlaubt and any(self.zone[f] not in erlaubt for f in felder):
                         continue
                     if sum(1 for f in felder if dist[f] <= STRASSENNAH) < 2:
                         continue
@@ -148,7 +153,7 @@ class Belegung:
                 f"Pflicht {art}: {gesetzt} von {anzahl} passen")
         nach_pflicht = len(self.frei)
         for art, anzahl in reserve:
-            gesetzt = sum(self.setzen(art, nur_kern=(art == "Hof")) for _ in range(anzahl))
+            gesetzt = sum(self.setzen(art, erlaubt={"kern", "mauerring"} if art == "Stadthof" else None) for _ in range(anzahl))
             hinweise.append(f"Reserve {art}: {gesetzt} von {anzahl} passen")
         hinweise.append(f"Frei nach der Pflicht: {nach_pflicht} Felder ({nach_pflicht / gesamt:.0%}), "
                         f"nach der Reserve: {len(self.frei)} Felder")

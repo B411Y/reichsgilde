@@ -10,9 +10,9 @@ So wird eingetragen (damit sich die Chats nie an derselben Stelle treffen):
 
 ## Offen
 
-- (3) Köln: In der Kernlage passt nur 1 Hof (16 × 14 m), weil die Kernzonen schmale Keile sind. Entscheiden: Hof auch im Mauerring erlauben oder die Kernlage breiter machen
 - (3) Deutzer Mauer und Hafenkante als eigene Felder in der Kartendatei
 - (–) Reichskarte zum Wechsel zwischen den Städten (Idee, später)
+- (3) Köln: Straßenfront an Karrenstraßen ist knapp (etwa 25 Werkstätten passen, 24 gebraucht). Mehr Front schaffen: weitere Karrenstraßen durch die großen Mauerring-Blöcke oder größerer Radius – vor dem Einbau ins Spiel entscheiden
 
 ## Entscheidungen
 
@@ -35,4 +35,11 @@ Die Kartenregeln selbst stehen in `docs/LEVELDESIGN.md`.
 | Werkstatt | **Gleiche Fläche für Stufe 1–3, aber größer als heute: 16 × 14 m (56 Felder).** Jede Stufe soll von außen sichtbar größer werden (Anbau, Hof). | 16.10.2026 |
 | Wohnhaus | **Fachwerkhaus belegt die Fläche des Steinhauses (8 × 10 m, 20 Felder)** und wächst am Platz über Bürgerhaus zum Steinhaus. **Stadtpalais (12 × 10 m) und Hof (16 × 14 m)** sind ein neuer Bau an anderer Stelle oder Abriss und Neubau. | 16.10.2026 |
 | Aussehen | Gebäude behalten ihr Aussehen, Maße auf **glatte Meter** (Einwohnerhäuser 6 / 7 / 8 m). | 16.10.2026 |
+
+### Stadthof (PR #NUMMER)
+
+| Thema | Entscheidung | Datum |
+|---|---|---|
+| Name | Die höchste Wohnhausstufe heißt **Stadthof** statt „Hof“, damit sie nicht mit Bauernhof und Klosterhof im Umland verwechselt wird. | 16.10.2026 |
+| Lage | Der Stadthof darf in der **Kernlage und im Mauerring** stehen (vorher nur Kernlage; dort passte in Köln nur einer). | 16.10.2026 |
 
