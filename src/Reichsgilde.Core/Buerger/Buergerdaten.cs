@@ -91,6 +91,22 @@ public sealed class RolleDaten
     public bool Dienst { get; init; }
 }
 
+/// <summary>
+/// Wie stark die Einwohner auf die Zahlen der Stadt wirken (0 = gar nicht, Schritt 1; 1 = ganz).
+/// Gemischt wird: (1 − Kopplung) × bisherige Rechnung + Kopplung × Rechnung nach den Einwohnern.
+/// </summary>
+public sealed class KopplungDaten
+{
+    /// <summary>Gäste der Schänken: Menge und Verteilung auf die Schänken nach den eingekehrten Einwohnern.</summary>
+    public double Schaenke { get; init; }
+
+    /// <summary>So weit darf der Faktor „Einkehrende ÷ üblich“ von 1 abweichen (0,5 = zwischen 0,5 und 1,5).</summary>
+    public double Spanne { get; init; } = 0.5;
+
+    /// <summary>Wie schnell sich das „Übliche“ je Uhrzeit an neue Tage anpasst (0,2 = jeder Tag zählt 20 %).</summary>
+    public double Glaettung { get; init; } = 0.2;
+}
+
 /// <summary>Wie lange Wege dauern (in Spielminuten). Der Kern zählt nur die Zeit – den Weg durch die Gassen zeichnet die Darstellung.</summary>
 public sealed class WegeDaten
 {
@@ -177,6 +193,8 @@ public sealed class BuergerDaten
 
     public WegeDaten Wege { get; init; } = new();
 
+    public KopplungDaten Kopplung { get; init; } = new();
+
     /// <summary>Gewichte je Volk und Bedürfnis (1 = wie Menschen; fehlt ein Eintrag, gilt 1).</summary>
     public Dictionary<Volk, Dictionary<Beduerfnis, double>> Gewichte { get; init; } = new();
 
@@ -238,6 +256,8 @@ public sealed class BuergerDaten
             if (r.Arbeitsort != Stadtort.Umland && r.Stelle is not null) f.Add($"{p}.rollen.{name}: stelle gibt es nur bei arbeitsort Umland.");
             if (r.Dienst && r.Arbeitsort != Stadtort.Heim) f.Add($"{p}.rollen.{name}: dienst gibt es nur bei arbeitsort Heim.");
         }
+        if (Kopplung.Schaenke is < 0 or > 1) f.Add($"{p}.kopplung.schaenke muss zwischen 0 und 1 liegen.");
+        if (Kopplung.Spanne is < 0 or >= 1 || Kopplung.Glaettung is <= 0 or > 1) f.Add($"{p}.kopplung: spanne zwischen 0 und unter 1, glaettung über 0 bis 1.");
         if (HaushaltVon < 1 || HaushaltBis < HaushaltVon || HaushaltBis > 20) f.Add($"{p}: haushaltVon ≥ 1, haushaltBis ≥ haushaltVon und ≤ 20.");
         if (Buergerhaeuser < 1) f.Add($"{p}.buergerhaeuser muss mindestens 1 sein.");
         var wg = Wege;

@@ -231,11 +231,13 @@ Format: `- PR #Nummer (Phase) – Inhalt`
 - PR #55 (3) – Schattenkanten ohne Treppen: Schattenkarte 8192, Filter Ultra, leichte Weichzeichnung
 - PR #56 (3) – Einstellungen-Fenster: Kantenglättung wählbar (Standard SMAA), Vollbild
 - PR #57 (2) – Bürger-KI: Wege mit Abmarsch und Ankunft, Wohnhäuser und Haushalte, Umland (Weide, Feld, Wald), Dienst in Bürgerhäusern
+- PR #58 (2) – Bürger-KI: Gäste der Schänken folgen den einkehrenden Einwohnern (Menge als Faktor um 1, Verteilung als Quote nach Anziehung)
 
 ### 6b. Offen (eine Zeile je Punkt; erledigt → Zeile löschen und unter 6a eintragen)
 
 - (3) Raumansicht für den Dom und Feinschliff der Werkstatträume je Beruf (zweiter Teil von PR #52)
-- (2) Bürger-KI: Kopplung an Schänke → Kirche → Markt → Taschendiebe (Einwohner und Tagesablauf: PR #54)
+- (2) Bürger-KI: Kopplung an Kirche → Markt → Taschendiebe (Einwohner: PR #54, Wege: PR #57, Schänke: PR #58)
+- (5) KI-Häuser bauen nie eine Schänke: Wer den Wirt lernt, pachtet nur den Bauernhof (gefunden bei der Messung zu PR #58)
 - (5) Orks und Oger spielbar machen
 - (5) Bauplätze und Sanierung (siehe Abschnitt 7, Punkt 8)
 - (5) Gaunerberuf, Schmuggel und Schwarzarbeit unter dem Statut
@@ -338,4 +340,5 @@ Format: `- PR #Nummer (Phase) – Inhalt`
 | Rechenzeit | Höchstens **+25 %** auf `messen 30 20` (Ausgangswert 16 s je Charakter). | 15.10.2026 |
 | Passanten | Die Einwohner **laufen sichtbar** durch Stadt und Umland. **Der Kern legt Wege mit Zeiten fest** (Abmarsch, Ankunft), die Darstellung zeichnet die Figuren entlang der Gassen; gebaut vom Darstellungs-Chat. So passt das Bild zur Zählung (PR #57). | 16.10.2026 |
 | Wohnhäuser | **Der Kern vergibt Häuser:** Haushalte zu 4–6 Personen, je Ratsherr ein eigenes Haus, Bürgerhäuser für Kandidaten aus Bürger- und Patrizierfamilien. Die Darstellung stellt die Häuser in die Stadt. | 16.10.2026 |
+| Kopplung Schänke | **Menge nach den Einwohnern, Verteilung nach Anziehung als Quote:** Gäste je Stunde × (Einkehrende ÷ üblich zu dieser Uhrzeit, 0,5–1,5). Die Einwohner verteilen sich ohne Würfel nach der Anziehung auf die Schänken – die bestehende Regel „Gäste nach Anziehung“ bleibt exakt, und das Bild in der Schänke passt zur Kasse. Kopplung voll (1,0) (PR #58). | 16.10.2026 |
 | Umland | **Stellen Weide, Feld, Wald**; neue Rollen Feldarbeiter und Holzsammler; Knechte und Mägde dienen in Bürger- und Ratsherrenhäusern. | 16.10.2026 |

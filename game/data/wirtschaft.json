@@ -1,5 +1,5 @@
 {
-  "version": 26,
+  "version": 27,
   "gesundheit": {
     "medicusKosten": 120,
     "medicusKostenPest": 300,
@@ -1393,6 +1393,7 @@
     "haushaltBis": 6,
     "buergerhaeuser": 3,
     "wege": { "stadt": 10, "streuung": 5, "tor": 15, "umland": 30, "verzoegerung": 10 },
+    "kopplung": { "schaenke": 1.0, "spanne": 0.5, "glaettung": 0.2 },
     "beduerfnisse": {
       "Auskommen": { "start": 50, "anstieg": 12 },
       "Versorgung": { "start": 20, "anstieg": 3 },

@@ -374,6 +374,9 @@ public sealed class Wirtschaftsdaten
         Meistergrade?.Pruefen(f, Aktionspunkte?.Hoechstens ?? int.MaxValue);
         Gastwirtschaft?.Pruefen(f, Waren, Berufe);
         Buerger?.Pruefen(f);
+        if (Buerger is { Kopplung.Schaenke: > 0 } bk && Gastwirtschaft is { } gw &&
+            bk.Handlungen.TryGetValue(Reichsgilde.Core.Buerger.Handlung.Einkehren, out var einkehr) && einkehr.Von != gw.OeffnetUm)
+            f.Add($"buerger.handlungen.Einkehren.von ({einkehr.Von}) muss bei Kopplung an die Schänke gastwirtschaft.oeffnetUm ({gw.OeffnetUm}) sein.");
         if (Buerger is { } bg && Dynastie.IstAktiv)
             foreach (var volk in bg.Voelker.Keys.Where(v => !Dynastie.Voelker.ContainsKey(v)))
                 f.Add($"buerger.voelker: Für {volk.Mehrzahl()} fehlen Dynastie-Daten (Namen, Lebensalter).");
