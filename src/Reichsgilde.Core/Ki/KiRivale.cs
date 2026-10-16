@@ -333,6 +333,12 @@ public sealed class KiRivale
         }
     }
 
+    /// <summary>Führt das Haus eine Werkstatt dieses Handwerks (in der Stadt)?</summary>
+    private bool HatWerkstattFuer(string beruf) => Betriebe.Any(b => b.Ort == Arbeitsort.Werkstatt && b.Artdaten.Beruf == beruf);
+
+    /// <summary>Hat das Haus von diesem Handwerk nur den Umlandbetrieb, aber keine Werkstatt?</summary>
+    private bool NurUmland(string beruf) => Betriebe.Any(b => b.Artdaten.Beruf == beruf) && !HatWerkstattFuer(beruf);
+
     /// <summary>Müsste das Haus für diese Liegenschaft erst ein Handwerk erlernen (und darf es das)?</summary>
     private bool NeuerBeruf(string beruf) =>
         _w.Daten.Berufe.Count > 0 && Konto.Berufe.Count > 0 && !Konto.Beherrscht(beruf);
@@ -366,14 +372,18 @@ public sealed class KiRivale
     /// Gehört der Betrieb zu einem fremden Handwerk, lernt die KI es vorher (Lehrgeld und AP) – höchstens ein zweites, und erst als Patrizier.
     /// Unter mehreren Kandidaten gewinnt der höchste Gewinn nach Abzug der anteiligen Kosten; das eigene Handwerk
     /// ist damit im Vorteil, weil kein Lehrgeld anfällt.
+    /// Hat das Haus von einem Handwerk nur den Umlandbetrieb (z. B. den Bauernhof des Wirts), holt es die Werkstatt dazu nach –
+    /// auch über die Höchstzahl an Betrieben hinaus. Sonst lernte die KI den Wirt nur für den Bauernhof und schenkte nie aus.
     /// </summary>
     private void Expandieren()
     {
-        if (Betriebe.Count() >= BetriebeHoechstens) return;
+        var voll = Betriebe.Count() >= BetriebeHoechstens;
+        if (voll && !Betriebe.Any(b => b.Ort == Arbeitsort.Umland && !HatWerkstattFuer(b.Artdaten.Beruf))) return;
 
         var daten = _w.Daten;
         var wahl = _w.FreieLiegenschaften
             .Where(l => Konto.Stand >= daten.StandStufe(l.MindestStand))
+            .Where(l => !voll || daten.Art(l.Art).Ort == Arbeitsort.Werkstatt && NurUmland(daten.Art(l.Art).Beruf))
             // Mit dem Völkerbonus: Ein Zwergenhaus sucht eher eine Werkstatt, in der Zwerge gut sind.
             .Select(l => (Liegenschaft: l, Beruf: daten.Art(l.Art).Beruf,
                           Gewinn: Kalkulation.ErwarteterJahresgewinn(_w, l.Art, leistung: _w.VolksFaktor(Konto, daten.Art(l.Art).Beruf)) * DiebesZuschlag(l.Art)))

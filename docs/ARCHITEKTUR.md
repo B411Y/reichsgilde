@@ -142,6 +142,8 @@ Ein KI-Rivale (`src/Reichsgilde.Core/Ki/KiRivale.cs`) führt ein Konto und alle 
 | jede volle Stunde | Eskorte | Geringste erwartete Kosten: Eskortenlohn + Überfallchance × Erfolgschance der Banden × Ladungswert × Vorsicht |
 | Jahresende | Karren kaufen | Wenn der Betrieb im Vorjahr mehr als 20 % der Arbeitszeit stillstand und die Reserve es erlaubt |
 
+**Werkstatt zum Handwerk (PR #60):** Hat ein KI-Haus von einem Handwerk nur den Umlandbetrieb (Bauernhof, Klosterhof, Duftgarten), kauft `Expandieren` die Werkstatt dazu – auch wenn `BetriebeHoechstens` schon erreicht ist (`NurUmland`, `HatWerkstattFuer`). Andere Käufe bleiben an die Höchstzahl gebunden.
+
 Das **Profil** (`KiProfil`) gibt jedem Rivalen einen Charakter: Geldreserve, Wechselschwelle, Vorsicht (wie stark er Raub fürchtet) und Höchstzahl an Karren. Über 20 Jahre verdient der Rivale mit KI rund 9 % mehr als ohne. Für den Spieler wird es entsprechend enger, weil die KI in seine Märkte drängt.
 
 ## Befehle: der einzige Weg, etwas zu ändern
