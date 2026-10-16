@@ -551,11 +551,12 @@ public partial class Hauptszene : Node
                 _auswahlKennung = Stadtansicht.BetriebsKennung(betrieb);
         };
         // Ein Betrieb wurde verkauft: Nichts darf mehr auf ihn zeigen. Das Haus in der Stadt baut die Stadtansicht selbst um.
-        w.BetriebAbgegeben += (betrieb, _) =>
+        w.BetriebAbgegeben += (betrieb, frei) =>
         {
             var kennung = Stadtansicht.BetriebsKennung(betrieb);
             if (_stadt.InnenKennung == kennung) _stadt.InnenansichtVerlassen();
-            if (_auswahlKennung == kennung) AuswahlSchliessen();
+            // War der Betrieb ausgewählt, zeigt die Auswahl jetzt das freie Haus mit seinem Kaufangebot (Gegenstück zu BetriebErworben).
+            if (_auswahlKennung == kennung) _auswahlKennung = Stadtansicht.LiegenschaftKennung(frei.Name);
             if (_verkauf.Betrieb == betrieb) _verkauf.Hide();
             if (betrieb.Konto != spieler) return;
             if (_markt.Visible) _markt.Oeffnen(); // Auswahl der Handelsbetriebe neu aufbauen
