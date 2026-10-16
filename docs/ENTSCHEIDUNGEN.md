@@ -237,8 +237,11 @@ Format: `- PR #Nummer (Phase) – Inhalt`
 - PR #61 (2) – Bürger-KI: Gläubige und Kollekte der Messe folgen den Gebetsstunden der Einwohner; Betende verteilen sich nach Anziehung auf die Kirchen ihrer Konfession
 - PR #62 (3) – Leveldesign: fünfter Chat, Kartenregeln (`docs/LEVELDESIGN.md`), Entscheidungen zu Städten, Wohnhaus, Bauzonen, Toren, Wasser
 - PR #63 (2) – Bürger-KI: Nachfrage der Fertigwaren folgt den Einkäufen der Einwohner (Faktor 0,8–1,2, gleitend über 17 Stunden); das Übliche schwingt ohne den ersten Tag ein
+- PR #64 (3) – Wohnhäuser der Einwohner am Mauerring, Gassennetz der Darstellung (Passanten Schritt 2, erster Stand)
 - PR #65 (–) – Andockstellen der Spiel-KI: je Teilsystem ein Faktor oder Aufruf erlaubt
 - PR #66 (3) – Leveldesign: Raster 2 × 2 m, Gewerbe in jeder Bauzone, Werkstätten an Karrenstraßen und Wohnhäuser auch an Gassen, feste Startgrundstücke
+- PR #67 (5) – Stadttore schließen um 20 Uhr: Umlandkarren warten bis zum Morgen oder zahlen Torgeld
+- PR #68 (3) – Vorstadt vor dem Osttor mit Wegkreuz, Holzschläge und Umlandstellen vor dem Westtor (Passanten Schritt 2, zweiter Teil)
 - PR #69 (2) – Bürger-KI: Beute der Taschendiebe folgt den Passanten (0,5–1,5); Bestohlene sind echte Einwohner. Damit sind alle vier Kopplungen fertig (Schänke #58, Kirche #61, Markt #63, Taschendiebe #69)
 
 ### 6b. Offen (eine Zeile je Punkt; erledigt → Zeile löschen und unter 6a eintragen)
@@ -350,6 +353,7 @@ Format: `- PR #Nummer (Phase) – Inhalt`
 | Rechenzeit | Höchstens **+25 %** auf `messen 30 20` (Ausgangswert 16 s je Charakter). | 15.10.2026 |
 | Passanten | Die Einwohner **laufen sichtbar** durch Stadt und Umland. **Der Kern legt Wege mit Zeiten fest** (Abmarsch, Ankunft), die Darstellung zeichnet die Figuren entlang der Gassen; gebaut vom Darstellungs-Chat. So passt das Bild zur Zählung (PR #57). | 16.10.2026 |
 | Stadterweiterung | **Die Stadt wächst ringsum** von 72 auf 100 m (Mauer ±50), **Westtor** mit Weststraße für spätere Erweiterungen. Innen bleibt alles an seinem Platz; alles vor der alten Mauer rückt 14 m nach außen. Der neue Ring ist für die Wohnhäuser der Einwohner; was dort keinen Platz findet, kommt als **Vorstadt vor das Osttor** (Überlauf). Bürger- und Ratsherrenhäuser stehen immer in der Stadt. Einwohner in Schänke und Kirche zeigen die Innenräume später, in einem eigenen Schritt. | 16.10.2026 |
+| Wohnviertel und Vorstadt | Wohnhäuser am **Mauerring** (Ringgasse innen an der Mauer), Ratsherren- und Bürgerhäuser nächst dem Markt. **Vorstadt vor dem Osttor** nur als Überlauf (heute mit 4 Spielhäusern leer, mit 8 etwa 20 Häuser): Dafür rückt das östliche Umland 20 m weiter, die Wege zu Gruben und Höfen zweigen erst an einem **Wegkreuz** hinter der Vorstadt ab. **Der Westen wird genutzt** (Wunsch des Nutzers): beide Holzschläge, der Weg zum Steinbruch am Felsenhang und die Umlandstellen Weide, Feld und Wald liegen vor dem Westtor. Greybox-Platzhalter bis zur ersten echten Karte (Abschnitt 17). | 16.10.2026 |
 | Wohnhäuser | **Der Kern vergibt Häuser:** Haushalte zu 4–6 Personen, je Ratsherr ein eigenes Haus, Bürgerhäuser für Kandidaten aus Bürger- und Patrizierfamilien. Die Darstellung stellt die Häuser in die Stadt. | 16.10.2026 |
 | Kopplung Schänke | **Menge nach den Einwohnern, Verteilung nach Anziehung als Quote:** Gäste je Stunde × (Einkehrende ÷ üblich zu dieser Uhrzeit, 0,5–1,5). Die Einwohner verteilen sich ohne Würfel nach der Anziehung auf die Schänken – die bestehende Regel „Gäste nach Anziehung“ bleibt exakt, und das Bild in der Schänke passt zur Kasse. Kopplung voll (1,0) (PR #58). | 16.10.2026 |
 | Kopplung Kirche | **Gläubige und Kollekte × Gebetsstunden des Morgens ÷ üblich** (0,5–1,5), Verteilung bleibt beim Kirchenwesen (Konfessionen, Anziehung). Gezählt wird der ganze Morgen bis zur Messe, nicht nur eine Stunde – eine Stunde allein schwankte um ± 30 %. Kopplung voll (1,0) (PR #61). | 16.10.2026 |
@@ -387,3 +391,12 @@ Format: `- PR #Nummer (Phase) – Inhalt`
 | Thema | Entscheidung | Datum |
 |---|---|---|
 | Andockstellen | Neben `Stadtwirtschaft.cs`, `wirtschaft.json` und `Speicherstand.cs` darf der Spiel-KI-Chat **je Teilsystem des Kerns einen Faktor oder Aufruf** setzen, über den die Bürger wirken (wie schon in Gastwirtschaft, Kirchenwesen, Markt). Ohne Abschnitt `buerger` bleibt jeder Faktor 1 – Messungen bleiben gleich. Regel an die gelebte Praxis angepasst. | 16.10.2026 |
+
+## 19. Stadttore
+
+| Thema | Entscheidung | Datum |
+|---|---|---|
+| Torschluss | **20 Uhr bis Tagesbeginn (5 Uhr).** Betrifft nur Umlandkarren (Stadtwerkstätten fahren nicht durchs Tor). Umsetzung der Leveldesign-Entscheidung aus Abschnitt 17. | 16.10.2026 |
+| Nachtfahrt | Der Schalter „nachts“ bleibt: Wer ihn setzt, zahlt **15 Gulden Torgeld je Durchfahrt** (Transportkosten) und kommt durch; die Überfallgefahr nachts bleibt doppelt. | 16.10.2026 |
+| Warten | Ohne Erlaubnis wartet der Karren **sicher** bis zum Morgen (Hinweg vor dem Tor, Rückweg in der Stadt) – nur Zeitverlust, keine zusätzliche Gefahr. | 16.10.2026 |
+| Planung | Verwalter und KI planen den Torschluss **nicht** voraus; sie fahren los wie bisher und warten notfalls. | 16.10.2026 |

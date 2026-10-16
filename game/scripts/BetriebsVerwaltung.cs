@@ -644,7 +644,9 @@ public partial class BetriebsVerwaltung : VBoxContainer
                 foreach (var e in w.Daten.Logistik.Eskorten.Keys) eskorte.AddItem(e);
                 eskorte.ItemSelected += index => Befehlen(new EskorteWaehlen(b.Name, nummer, w.Daten.Logistik.Eskorten.Keys.ElementAt((int)index)));
                 nachts.Toggled += an => Befehlen(new NachtfahrtErlauben(b.Name, nummer, an));
-                nachts.TooltipText = "Auch in der Dunklen Nacht ins Umland fahren (doppeltes Überfallrisiko)";
+                nachts.TooltipText = "Auch in der Dunklen Nacht ins Umland fahren (doppeltes Überfallrisiko)" + (w.Daten.Logistik.Tore is { } tore
+                    ? $". Nach Torschluss ({tore.SchliessenUm} Uhr) zahlt der Karren {Zahlenformat.Ganz(tore.Torgeld)} {w.Daten.Allgemein.Waehrung} Torgeld je Durchfahrt – ohne Erlaubnis wartet er bis zum Morgen vor dem Tor."
+                    : "");
                 zeile.AddChild(eskorte);
                 zeile.AddChild(nachts);
             }

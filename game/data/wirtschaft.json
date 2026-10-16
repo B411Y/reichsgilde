@@ -669,6 +669,10 @@
     "abfahrtAbFuellgrad": 0.75,
     "nachkaufUnterStueck": 5,
     "maxWartezeitMinuten": 240,
+    "tore": {
+      "schliessenUm": 20,
+      "torgeld": 15
+    },
     "karren": {
       "Handkarren": {
         "sorten": 1,
