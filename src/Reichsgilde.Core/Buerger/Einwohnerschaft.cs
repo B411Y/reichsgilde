@@ -36,6 +36,12 @@ public sealed class Einwohnerschaft
     private readonly double[] _einkehrErwartet = new double[24]; // gleitender Mittelwert der Einkehrenden je Uhrzeit (Kopplung)
     private double _messeErwartet; // gleitender Mittelwert der Betenden bis zur Messe (Kopplung)
     private int _betendeHeute;     // Einwohner-Stunden in Kirchen seit Tagesbeginn
+    private readonly int[] _einkaeufe = new int[Spielzeit.StundenProTag]; // Einkaufende je Stunde, die letzten 17 Stunden (Ring)
+    private int _einkaufFach;      // nächstes Fach im Ring
+    private double _einkaufErwartet; // gleitender Mittelwert der Einkaufsstunden eines ganzen Tages
+    private readonly int[] _einkehrTage = new int[24]; // wie oft das Übliche schon gelernt wurde (siehe Lernen)
+    private int _messeTage;
+    private int _einkaufTage;
 
     public Einwohnerschaft(Stadtwirtschaft w, BuergerDaten? daten, int zufallsstartwert)
     {
@@ -128,6 +134,12 @@ public sealed class Einwohnerschaft
                 _verstorben++;
                 _zugezogen++;
             }
+        // Das Übliche am Markt: Einkaufsstunden des ganzen Tages (der Ring umfasst genau die 17 Stunden).
+        if (Daten.Kopplung.Markt > 0)
+        {
+            var tag = (double)_einkaeufe.Sum();
+            Lernen(ref _einkaufErwartet, ref _einkaufTage, tag);
+        }
         foreach (var e in _einwohner)
             Ausschlafen(e);
         _betendeHeute = 0;
@@ -163,7 +175,7 @@ public sealed class Einwohnerschaft
         var alle = (double)drin.Values.Sum();
         var erwartet = _einkehrErwartet[stunde];
         var faktor = erwartet > 0 ? Math.Clamp(alle / erwartet, 1 - kd.Spanne, 1 + kd.Spanne) : 1;
-        _einkehrErwartet[stunde] = erwartet > 0 ? erwartet + kd.Glaettung * (alle - erwartet) : alle;
+        Lernen(ref _einkehrErwartet[stunde], ref _einkehrTage[stunde], alle);
 
         var ergebnis = new Dictionary<Betrieb, double>();
         foreach (var b in schaenken)
@@ -236,6 +248,19 @@ public sealed class Einwohnerschaft
         }
     }
 
+    /// <summary>
+    /// Das „Übliche“ lernen: Der erste Tag zählt nicht (die Stadt schwingt erst ein), dann der Mittelwert der ersten Tage,
+    /// danach ein gleitender Mittelwert mit <see cref="KopplungDaten.Glaettung"/>. So hängt das Übliche nicht an einem
+    /// einzelnen, ungewöhnlichen ersten Tag (sonst lagen die Faktoren die ersten zehn Jahre um 10 % zu hoch).
+    /// </summary>
+    private void Lernen(ref double erwartet, ref int tage, double wert)
+    {
+        if (tage == 0) { tage = 1; return; }
+        var gewicht = Math.Max(Daten.Kopplung.Glaettung, 1.0 / tage);
+        erwartet = tage == 1 ? wert : erwartet + gewicht * (wert - erwartet);
+        tage++;
+    }
+
     /// <summary>Wer in der Stunde, die gerade endet, in einer Kirche war (auch im Dom).</summary>
     public int Betende => _einwohner.Count(e => e.Ort == Stadtort.Kirche);
 
@@ -256,9 +281,52 @@ public sealed class Einwohnerschaft
         var betende = (double)(_betendeHeute + Betende); // alle Gebetsstunden des Morgens bis zur Messe
         var erwartet = _messeErwartet;
         var faktor = erwartet > 0 ? Math.Clamp(betende / erwartet, 1 - kd.Spanne, 1 + kd.Spanne) : 1;
-        _messeErwartet = erwartet > 0 ? erwartet + kd.Glaettung * (betende - erwartet) : betende;
+        Lernen(ref _messeErwartet, ref _messeTage, betende);
         _betendeHeute = 0;
         return 1 - k + k * faktor;
+    }
+
+    /// <summary>Wer in der Stunde, die gerade endet, am Markt einkaufte.</summary>
+    public int Einkaufende => _einwohner.Count(e => e.Handlung == Handlung.Einkaufen);
+
+    /// <summary>Einkaufsstunden der Einwohner in den letzten 17 Spielstunden (gleitend, wie das Verkaufsfenster des Marktes).</summary>
+    public int EinkaeufeImFenster => _einkaeufe.Sum();
+
+    /// <summary>Wie viele Einkaufsstunden an einem Tag üblich sind (gleitender Mittelwert; 0 = noch keine Erfahrung).</summary>
+    public double EinkaufErwartet => _einkaufErwartet;
+
+    /// <summary>
+    /// Faktor auf die Nachfrage der Fertigwaren: (1 − k) + k × Einkaufsstunden der letzten 17 Stunden ÷ üblich am Tag,
+    /// begrenzt auf 1 ± marktSpanne. Ohne Kopplung oder im ersten Tag genau 1.
+    /// </summary>
+    public double Marktfaktor
+    {
+        get
+        {
+            var k = IstAktiv && _gegruendet ? Daten.Kopplung.Markt : 0;
+            if (k <= 0 || _einkaufErwartet <= 0) return 1;
+            var s = Daten.Kopplung.MarktSpanne;
+            return 1 - k + k * Math.Clamp(EinkaeufeImFenster / _einkaufErwartet, 1 - s, 1 + s);
+        }
+    }
+
+    /// <summary>Jede volle Stunde: die Einkäufe der Stunde, die gerade endet, in den Ring – und den Markt nachführen.</summary>
+    private void EinkaufZaehlen()
+    {
+        if (Daten.Kopplung.Markt <= 0) return;
+        _einkaeufe[_einkaufFach] = Einkaufende;
+        _einkaufFach = (_einkaufFach + 1) % _einkaeufe.Length;
+        MarktSetzen();
+    }
+
+    /// <summary>Setzt den Faktor auf die Nachfrage aller Waren, die Einwohner kaufen (Typ aus <see cref="KopplungDaten.MarktTypen"/>).</summary>
+    private void MarktSetzen()
+    {
+        if (!IstAktiv || Daten.Kopplung.Markt <= 0) return;
+        var faktor = Marktfaktor;
+        var typen = Daten.Kopplung.MarktTypen;
+        foreach (var stand in _w.Markt.Staende)
+            if (typen.Contains(stand.Typ)) stand.NachfrageFaktor = faktor;
     }
 
     /// <summary>Die Schänke des Tages (von <see cref="SchaenkenVerteilen"/> vergeben; sonst die anziehendste).</summary>
@@ -448,6 +516,7 @@ public sealed class Einwohnerschaft
         var d = Daten;
         var stunde = zeit.UhrzeitInMinuten / 60;
         _betendeHeute += Betende; // die Stunde, die gerade endet (für die Kopplung an die Messe)
+        EinkaufZaehlen();
         KandidatenAbgleichen();
 
         var schaenken = _w.Gastwirtschaft.IstAktiv
@@ -579,6 +648,10 @@ public sealed class Einwohnerschaft
         EinkehrErwartet = _einkehrErwartet.ToList(),
         MesseErwartet = _messeErwartet,
         BetendeHeute = _betendeHeute,
+        Einkaeufe = _einkaeufe.ToList(),
+        EinkaufFach = _einkaufFach,
+        EinkaufErwartet = _einkaufErwartet,
+        Gelernt = _einkehrTage.Append(_messeTage).Append(_einkaufTage).ToList(),
         Einwohner = _einwohner.Select(e => new EinwohnerStand
         {
             Nummer = e.Nummer,
@@ -611,9 +684,17 @@ public sealed class Einwohnerschaft
         _naechsteNummer = s.NaechsteNummer;
         _verstorben = s.Verstorben;
         _zugezogen = s.Zugezogen;
+        for (var i = 0; i < s.EinkehrErwartet.Count && i < _einkehrErwartet.Length; i++) _einkehrErwartet[i] = s.EinkehrErwartet[i];
         _messeErwartet = s.MesseErwartet;
         _betendeHeute = s.BetendeHeute;
-        for (var i = 0; i < s.EinkehrErwartet.Count && i < _einkehrErwartet.Length; i++) _einkehrErwartet[i] = s.EinkehrErwartet[i];
+        for (var i = 0; i < s.Einkaeufe.Count && i < _einkaeufe.Length; i++) _einkaeufe[i] = s.Einkaeufe[i];
+        _einkaufFach = s.EinkaufFach % _einkaeufe.Length;
+        _einkaufErwartet = s.EinkaufErwartet;
+        // Ältere Spielstände ohne Zähler: Wer schon etwas gelernt hat, gilt als eingeschwungen.
+        int Tage(int i, double erwartet) => i < s.Gelernt.Count ? s.Gelernt[i] : erwartet > 0 ? 100 : 0;
+        for (var i = 0; i < _einkehrTage.Length; i++) _einkehrTage[i] = Tage(i, _einkehrErwartet[i]);
+        _messeTage = Tage(24, _messeErwartet);
+        _einkaufTage = Tage(25, _einkaufErwartet);
         _einwohner.Clear();
         foreach (var x in s.Einwohner)
         {
@@ -637,6 +718,7 @@ public sealed class Einwohnerschaft
         _haeuser.AddRange(s.Haeuser);
         if (_gegruendet && _haeuser.Count == 0)
             HaeuserNachruesten();
+        MarktSetzen(); // der Faktor steckt nicht im Marktstand-Spielstand – aus Ring und Üblichem neu setzen
     }
 
     /// <summary>Spielstand aus der Zeit vor den Wohnhäusern: Häuser jetzt verteilen (einmalig, danach wie immer).</summary>
@@ -669,6 +751,12 @@ public sealed record EinwohnerschaftStand
     public List<double> EinkehrErwartet { get; init; } = new();
     public double MesseErwartet { get; init; }
     public int BetendeHeute { get; init; }
+    /// <summary>Einkaufende je Stunde der letzten 17 Stunden (Ring) – leer in älteren Spielständen.</summary>
+    public List<int> Einkaeufe { get; init; } = new();
+    public int EinkaufFach { get; init; }
+    public double EinkaufErwartet { get; init; }
+    /// <summary>Wie oft das Übliche gelernt wurde: 24 Uhrzeiten der Schänke, dann Messe, dann Markt.</summary>
+    public List<int> Gelernt { get; init; } = new();
     public List<EinwohnerStand> Einwohner { get; init; } = new();
 }
 

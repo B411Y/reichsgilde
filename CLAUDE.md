@@ -8,7 +8,7 @@ An diesem Projekt arbeiten **mehrere Chats gleichzeitig**. Die meisten Regeln un
 - **Reichsgilde** (Arbeitstitel): 2,5D-Wirtschaftssimulation im Stil von „Die Gilde Gold Edition“, düster-bodenständiges Heiliges Römisches Reich mit Menschen, Zwergen, Elben, Halblingen, Orks und Ogern.
 - Godot 4.7.2 (.NET) mit C#/.NET 8, MIT-Lizenz. Hobby- und Lernprojekt eines Solo-Entwicklers mit wenig Programmiererfahrung: **Erkläre umsetzbar und lehrreich.**
 - Aufbau: `src/Reichsgilde.Core` (Simulation, kennt Godot nicht) · `game/` (Godot: Darstellung und Oberfläche, liest den Kern nur) · `tests/` · `docs/` · Werte in `game/data/wirtschaft.json`.
-- Weiterlesen: `README.md` (Stand, Steuerung), `docs/ARCHITEKTUR.md` (Aufbau), `docs/ENTSCHEIDUNGEN.md` (alle Grundsatzentscheidungen und Phasenplan), `docs/WIRTSCHAFTSMODELL.md` (Zahlen, Messungen je Beruf).
+- Weiterlesen: `README.md` (Stand, Steuerung), `docs/ARCHITEKTUR.md` (Aufbau), `docs/ENTSCHEIDUNGEN.md` (alle Grundsatzentscheidungen und Phasenplan), `docs/WIRTSCHAFTSMODELL.md` (Zahlen, Messungen je Beruf), `docs/LEVELDESIGN.md` (Kartenregeln, Städte).
 
 ## Zu Beginn jeder Aufgabe (Pflicht)
 
@@ -36,6 +36,7 @@ Jeder Chat bekommt im Prompt einen Bereich. Dateien außerhalb des eigenen Berei
 | **Spiel-KI** | `src/Reichsgilde.Core/Ki/**` (KI-Häuser, `KiRivale.cs`), `src/Reichsgilde.Core/Buerger/**` (Bürger-KI), eigene Testdateien (`Ki*Tests.cs`, `Buerger*Tests.cs`) |
 | **Darstellung** | `game/scripts/Stadtansicht*.cs`, Szenen, Modelle, Licht, Kamera |
 | **Oberfläche** | Tafeln und Fenster in `game/scripts/*Anzeige.cs`, `Hauptmenue.cs`, `Hauptszene.cs` |
+| **Leveldesign** | `docs/LEVELDESIGN.md` (Kartenregeln), später die Kartendateien je Stadt (Ort wird mit der ersten Karte festgelegt). Regeln mit Wirkung auf die Simulation entscheidet der Kern. |
 | später z. B. Sound | wird hier ergänzt, sobald es den Chat gibt |
 
 Nur der Kern-Chat ändert: `game/data/wirtschaft.json`, `Stadtwirtschaft.cs`, `Speicherstand.cs`. Braucht ein anderer Bereich dort etwas: im PR-Text beschreiben und den Nutzer fragen.
