@@ -202,7 +202,7 @@ for i, (a1, a2) in enumerate(spannen):
     start_winkel += [(a1 + am) / 2, (am + a2) / 2] if i in breiteste else [am]
 for n, a in enumerate(sorted(start_winkel), start=1):
     k.fest(f"S{n}", "start", f"Startgrundstück {n}", m(*punkt(a, RING_MITTE + 14)),
-           eingang=m(*punkt(a, RING_MITTE)), groesse=[16, 12])
+           eingang=m(*punkt(a, RING_MITTE)), groesse=[24, 14])   # Werkstatt 16 m + Wohnhaus 8 m nebeneinander
 
 # ── Was von der Vorlage abweicht ─────────────────────────────────────────────
 k.fiktion("Rheinbrücke Heumarkt–Deutz: im Mittelalter gab es keine feste Brücke, nur Fähren.")
