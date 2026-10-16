@@ -857,3 +857,22 @@ Keine Balance-Änderung: Wege, Häuser und Umlandstellen würfeln nur mit dem Ge
 **Wegzeiten:** Abmarsch 0–10 Minuten nach der vollen Stunde; in der Stadt 10 ± 5 Minuten, Tor 15, Umland 30 – spätestens 40 Minuten nach der Stunde ist jeder da. Bei 4 Häusern: ~20 Wohnhäuser, 3 Bürgerhäuser, 13 Ratsherrenhäuser.
 
 **Messung** (gemessen auf main `52c249c` + PR #57, 20 Startwerte, 30 Jahre, Spieler Mensch, KI ausgewogen und wagemutig): Ausgabe **zeichengleich** mit main. Rechenzeit 15–17 s wie ohne Einwohner.
+
+## 37. Bürger-KI: Kopplung an die Schänke (PR #58)
+
+**Regel:** Gäste je Stunde = bisherige Gäste (120 im Jahr nach Stundengewicht) × Faktor, Faktor = einkehrende Einwohner ÷ üblich zu dieser Uhrzeit, begrenzt auf 0,5–1,5. Verteilung auf die Schänken nach den Einwohnern darin; die Einwohner verteilen sich als Quote nach der Anziehung. Werte: `buerger.kopplung` = schaenke 1,0, spanne 0,5, glaettung 0,2.
+
+**Messung 1** (`messen 30 20`, gemessen auf main `d7e49ee` + PR #58, Spieler Mensch, KI ausgewogen und wagemutig): **zeichengleich** mit main, 16–18 s. Grund: In der Messung baut kein Haus eine Schänke – die KI lernt den Wirt (Kieselbach 14×), pachtet aber nur den Bauernhof (offener Punkt unter 6b).
+
+**Messung 2** (eigener Lauf, da `messen` keine Schänke enthält: Spieler als Wirt, passiv, 20 Startwerte × 30 Jahre, Jahr 2–30):
+
+| Fall | Kopplung | Gäste der Spielerschänke je Jahr | Schwankung (σ, min–max) | Ausschank Ø | Vermögen Wirt Ø |
+|---|---|---|---|---|---|
+| Startaufstellung (Lager oft leer) | 0 | 120,0 | 0 (120–120) | 2.554 | 29.238 |
+| Startaufstellung | 1,0 | 120,5 | 3,9 (110–131) | 2.554 | 29.238 |
+| Volles Lager, dazu Wirtshaus Stufe 2 eines anderen Hauses | 0 | 47,9 (Wirtshaus 88,8) | 0,7 (45–49) | 4.748 | – |
+| dito | 1,0 | 48,1 (Wirtshaus 89,0) | 1,5 (44–53) | 4.758 | – |
+
+Ergebnis: Im Mittel bleiben Gäste, Verteilung nach Anziehung (1 : 1,85 mit Ansehen) und Tagesverlauf (nachmittags/abends 50/50 in den gemessenen Stunden 12–20 Uhr) gleich; neu ist eine Schwankung von Jahr zu Jahr um etwa ± 3 %. Der passive Wirt verkauft unverändert, weil sein Lager die Gäste begrenzt (79 von 120 abgewiesen). Ziele Z1–Z7 unberührt.
+
+**Tagesprofil der Einwohner in den Schänken** (5 Startwerte × 6 Tage, Spieler Wirt, ~123 Einwohner): 12 Uhr 84 (Mittagstisch), 13–17 Uhr 11–31, 18–19 Uhr 24–33, 20 Uhr 48, 21 Uhr 76.
