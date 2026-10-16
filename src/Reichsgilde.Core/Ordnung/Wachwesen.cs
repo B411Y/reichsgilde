@@ -166,7 +166,10 @@ public sealed class Wachwesen
     public double Patrouillefaktor(Betrieb? b) => b is null || b.InDerStadt ? 1 - Patrouilleschutz : 1;
 
     /// <summary>So viel wahrscheinlicher ist ein Zeuge in der Stadt.</summary>
-    public double ZeugenBonus(Betrieb? b) => b is not null && b.InDerStadt ? Patrouilleschutz * Daten.Patrouille.ZeugenAnteil : 0;
+    public double ZeugenBonus(Betrieb? b) => b is not null && b.InDerStadt ? ZeugenBonusInDerStadt : 0;
+
+    /// <summary>Zeugenbonus der Streife für alles in der Stadt (Betriebe in der Stadt, Wohnhäuser).</summary>
+    public double ZeugenBonusInDerStadt => IstAktiv ? Patrouilleschutz * Daten.Patrouille.ZeugenAnteil : 0;
 
     /// <summary>Faktor auf die Überfallchance der Banden im Umland (Wachtürme mit Leuten).</summary>
     public double Landstrassenfaktor => IstAktiv

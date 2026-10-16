@@ -577,13 +577,15 @@ public sealed class Stadtwirtschaft
         if (absender.IstErloschen)
             return Befehlsergebnis.Abgelehnt($"Das Haus {absender.Inhaber} ist erloschen.");
         if (Justiz.IstAktiv && Justiz.ImKerker(absender) && befehl is not (BetriebsBefehl or ErbenBestimmen or ErpressungBeantworten or DiebesforderungBeantworten or AusbildungWaehlen or KreditTilgen
-                                                                     or MedicusRufen or SchnapsKaufen or SchnapsGeben or GegengiftGeben))
+                                                                     or MedicusRufen or SchnapsKaufen or SchnapsGeben or GegengiftGeben or HauswaechterSetzen))
             return Befehlsergebnis.Abgelehnt($"Das Oberhaupt von {absender.Inhaber} sitzt bis Ende {Justiz.KerkerBis(absender)} im Kerker. " +
                                              "Nur die Betriebe laufen weiter.");
         if (befehl is StandErwerben)
             return StandErwerbenAusfuehren(absender);
         if (befehl is WohnhausAusbauen)
             return Wohnen.Ausbauen(absender, Uhr);
+        if (befehl is HauswaechterSetzen hauswaechter)
+            return Wohnen.HauswaechterSetzen(absender, hauswaechter.Angestellt);
         if (befehl is LiegenschaftErwerben liegenschaft)
             return LiegenschaftErwerbenAusfuehren(absender, liegenschaft.Name);
         if (befehl is AblassKaufen or BeichtgeheimnisBrechen or LehrschriftLesen or HetzschriftVerbreiten && !Kirchenwesen.IstAktiv)
