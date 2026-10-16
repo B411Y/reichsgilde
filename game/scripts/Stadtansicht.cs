@@ -214,6 +214,8 @@ public partial class Stadtansicht : Node3D
         public required Betrieb Betrieb { get; init; }
         public required Vector3 Hof { get; init; }
         public required Vector3[] WegZumMarkt { get; init; }
+        /// <summary>Alles, was zum Betrieb gehört (Gebäude, Weg, Innenraum) – verschwindet beim Verkauf in einem Zug.</summary>
+        public Node3D? Gruppe { get; set; }
         public bool Spieler { get; set; }
         public override string Kennung => BetriebsKennung(Betrieb);
         public override string Name => Betrieb.Name;
@@ -610,6 +612,16 @@ public partial class Stadtansicht : Node3D
         foreach (var frei in w.FreieLiegenschaften)
             FreienPlatzZeigen(frei);
         WohnhausRaeumeAnlegen(); // Wohnstube und Kontor im eigenen Wohnhaus (Stadtansicht.Wohnhaus.cs)
+        // Verkauf und Kündigung zeigt die Stadt selbst; den Erwerb meldet die Hauptszene (BetriebHinzufuegen).
+        _wirtschaft = w;
+        w.BetriebAbgegeben += BetriebEntfernen;
+    }
+
+    private Stadtwirtschaft? _wirtschaft;
+
+    public override void _ExitTree()
+    {
+        if (_wirtschaft is not null) _wirtschaft.BetriebAbgegeben -= BetriebEntfernen;
     }
 
     private Konto? _spielerKonto;
@@ -623,20 +635,18 @@ public partial class Stadtansicht : Node3D
             GD.PushWarning($"Für „{betrieb.Name}“ gibt es keinen Platz im Stadtplan – er wird nicht gezeigt.");
             return;
         }
-        // Stand hier ein freier Platz (Bauplatz oder leere Grube), weicht er dem neuen Betrieb.
+        // Stand hier ein freier Platz (Bauplatz, leere Grube oder leeres Haus), weicht er dem neuen Betrieb.
         if (_freiePlaetze.Remove(betrieb.Name, out var alt))
             KnotenEntfernen(alt);
+        _leereHaeuser.Remove(betrieb.Name);
 
         var spieler = betrieb.Konto == _spielerKonto;
         var farbe = Besitzerfarbe(betrieb.Konto);
         var abzweig = Abzweige.GetValueOrDefault(betrieb.Name, Wegkreuz + new Vector3(10, 0, 0));
+        var vorher = GetChildCount(); // alles ab hier gehört zum Betrieb und kommt in seine Gruppe
         // Werkstätten nach Beruf (eine ausgebaute Drechslerei bleibt eine Tischlerwerkstatt), Umland nach Art
         var ansicht = betrieb.InDerStadt
-            ? GiessereiBauen(betrieb, platz, farbe, betrieb.Artdaten.Beruf switch
-            {
-                "Tischler" => Werkstil.Tischlerei, "Steinmetz" => Werkstil.Maurerei, "Alchimist" => Werkstil.Tinkturei, "Wirt" => Werkstil.Schaenke,
-                "Prediger" => Werkstil.Kirche, "Dieb" => Werkstil.Diebesnest, "Gardist" => Werkstil.Wache, "Geldleiher" => Werkstil.Bank, "Parfumeur" => Werkstil.Siederei, _ => Werkstil.Giesserei,
-            })
+            ? GiessereiBauen(betrieb, platz, farbe, StilVon(betrieb.Artdaten.Beruf))
             : betrieb.Art switch
             {
                 Betriebsart.Holzfaellerei => HolzschlagBauen(betrieb, platz, farbe, abzweig),
@@ -650,7 +660,53 @@ public partial class Stadtansicht : Node3D
             };
         ansicht.Spieler = spieler;
         ansicht.Farbe = farbe;
+        ansicht.Gruppe = InGruppe("Betrieb_" + betrieb.Name.Replace(" ", "_"), vorher);
         _betriebe[betrieb] = ansicht;
+    }
+
+    /// <summary>Werkstil nach Beruf – eine ausgebaute Drechslerei bleibt eine Tischlerwerkstatt.</summary>
+    private static Werkstil StilVon(string beruf) => beruf switch
+    {
+        "Tischler" => Werkstil.Tischlerei, "Steinmetz" => Werkstil.Maurerei, "Alchimist" => Werkstil.Tinkturei, "Wirt" => Werkstil.Schaenke,
+        "Prediger" => Werkstil.Kirche, "Dieb" => Werkstil.Diebesnest, "Gardist" => Werkstil.Wache, "Geldleiher" => Werkstil.Bank, "Parfumeur" => Werkstil.Siederei, _ => Werkstil.Giesserei,
+    };
+
+    /// <summary>
+    /// Hängt alles, was seit <paramref name="abKind"/> direkt an der Stadt dazukam, an eine neue Gruppe. Die Bausteine eines
+    /// Gebäudes hängen einzeln an der Stadt (wie Rathaus und Wohnhäuser); so lässt es sich trotzdem in einem Zug entfernen.
+    /// Die Gruppe liegt im Ursprung – alle Lagen bleiben, wie sie sind.
+    /// </summary>
+    private Node3D InGruppe(string name, int abKind)
+    {
+        var teile = GetChildren().Skip(abKind).ToList();
+        var gruppe = new Node3D { Name = name };
+        AddChild(gruppe);
+        foreach (var teil in teile)
+        {
+            RemoveChild(teil);
+            gruppe.AddChild(teil);
+        }
+        return gruppe;
+    }
+
+    /// <summary>
+    /// Ein Betrieb wurde verkauft oder seine Pacht gekündigt (Ereignis des Kerns): Gebäude, Innenraum und Karren verschwinden,
+    /// an ihre Stelle tritt der freie Platz – in der Stadt das leere Haus mit dem Schild „zu verkaufen“, vor der Stadt die leere Grube.
+    /// </summary>
+    private void BetriebEntfernen(Betrieb betrieb, LiegenschaftDaten frei)
+    {
+        if (_betriebe.Remove(betrieb, out var ansicht))
+        {
+            if (_innen == ansicht) InnenansichtVerlassen(); // wer gerade drin ist, steht wieder in der Stadt
+            if (ansicht.Gruppe is not null) KnotenEntfernen(ansicht.Gruppe);
+        }
+        // Karren, die zu keinem Betrieb mehr gehören (sie gehen mit dem Betrieb an den Käufer)
+        foreach (var karren in _karren.Keys.Where(k => !_betriebe.Keys.Any(b => b.Karren.Contains(k))).ToList())
+        {
+            _karren[karren].QueueFree();
+            _karren.Remove(karren);
+        }
+        FreienPlatzZeigen(frei);
     }
 
     /// <summary>Farbe der Fahnen und Karren: Spieler blau, Haus Eisenbart rot, Haus Eichwald grün, Haus Kieselbach ocker.</summary>
@@ -668,6 +724,11 @@ public partial class Stadtansicht : Node3D
     private void FreienPlatzZeigen(LiegenschaftDaten frei)
     {
         if (!Stadtplan.TryGetValue(frei.Name, out var p)) return;
+        if (frei.Bebaut && _simulation?.Wirtschaft?.Daten.Art(frei.Art) is { InDerStadt: true } art)
+        {
+            LeeresHausZeigen(frei, p, art); // verkaufte Werkstatt: Das Haus steht noch
+            return;
+        }
         var gruppe = new Node3D { Name = "Frei_" + frei.Name.Replace(" ", "_") };
         AddChild(gruppe);
         var holz = Material(Holz);
@@ -735,25 +796,63 @@ public partial class Stadtansicht : Node3D
             GasseZiehen(p, Gasse(frei.Name, p), gruppe);
         }
 
-        // Schild am Pfosten – ohne Text, die Farbe sagt es: Ocker = zu verkaufen, Grün = zu verpachten.
-        // Name und Preis zeigt die Beschriftung, sobald die Maus darüber steht.
-        var tafel = Material(frei.IstPacht ? new Color(0.35f, 0.6f, 0.32f) : new Color(0.86f, 0.66f, 0.28f));
-        tafel.EmissionEnabled = true; // leuchtet leicht, damit es auch nachts zu sehen ist
-        tafel.Emission = tafel.AlbedoColor * 0.35f;
-        Quader(p + new Vector3(-4, 1.8f, 4.6f), new Vector3(0.22f, 3.6f, 0.22f), holz, gruppe);
-        Quader(p + new Vector3(-4, 3.2f, 4.75f), new Vector3(2.6f, 1.5f, 0.12f), tafel, gruppe);
-        Quader(p + new Vector3(-4, 3.2f, 4.68f), new Vector3(2.9f, 1.8f, 0.06f), holz, gruppe); // Rahmen
-
+        Verkaufsschild(p + new Vector3(-4, 0, 4.6f), frei.IstPacht, gruppe);
         Klickflaeche(LiegenschaftKennung(frei.Name), p + new Vector3(0, 2, 0), umland ? new Vector3(16, 8, 14) : new Vector3(10, 4, 8), gruppe);
         Beschriftung($"{frei.Name}\n{(frei.IstPacht ? "zu verpachten" : "zu verkaufen")}",
             p + new Vector3(0, SchildHoehe.GetValueOrDefault(frei.Name, frei.Art == Betriebsart.Mine ? 9 : 6), 0), 36, gruppe, LiegenschaftKennung(frei.Name));
         _freiePlaetze[frei.Name] = gruppe;
     }
 
+    /// <summary>
+    /// Schild am Pfosten – ohne Text, die Farbe sagt es: Ocker = zu verkaufen, Grün = zu verpachten.
+    /// Name und Preis zeigt die Beschriftung, sobald die Maus darüber steht.
+    /// </summary>
+    private void Verkaufsschild(Vector3 fuss, bool pacht, Node3D? eltern = null)
+    {
+        var holz = Material(Holz);
+        var tafel = Material(pacht ? new Color(0.35f, 0.6f, 0.32f) : new Color(0.86f, 0.66f, 0.28f));
+        tafel.EmissionEnabled = true; // leuchtet leicht, damit es auch nachts zu sehen ist
+        tafel.Emission = tafel.AlbedoColor * 0.35f;
+        Quader(fuss + new Vector3(0, 1.8f, 0), new Vector3(0.22f, 3.6f, 0.22f), holz, eltern);
+        Quader(fuss + new Vector3(0, 3.2f, 0.15f), new Vector3(2.6f, 1.5f, 0.12f), tafel, eltern);
+        Quader(fuss + new Vector3(0, 3.2f, 0.08f), new Vector3(2.9f, 1.8f, 0.06f), holz, eltern); // Rahmen
+    }
+
+    /// <summary>Verkaufte Werkstätten, die leer zum Verkauf stehen: Name → Mitte, Gruppe und Dach (für den Diorama-Schnitt des Doms).</summary>
+    private readonly Dictionary<string, (Vector3 Mitte, Node3D Gruppe, Node3D Dach)> _leereHaeuser = new();
+
+    /// <summary>
+    /// Eine verkaufte Werkstatt steht leer zum Verkauf: das Haus in seiner Stufe und seinem Werkstil, aber ohne Wappenfahne
+    /// und Besitzerfarbe, die Tür mit zwei Brettern verriegelt, davor das ockerfarbene Schild. Kein Innenraum – betreten
+    /// lässt es sich erst wieder, wenn es jemand gekauft hat (dann weicht es dem neuen Betrieb, <see cref="BetriebHinzufuegen"/>).
+    /// </summary>
+    private void LeeresHausZeigen(LiegenschaftDaten frei, Vector3 p, BetriebsartDaten art)
+    {
+        const float tiefe = 8;
+        var vorher = GetChildCount(); // alles ab hier kommt in die Gruppe des leeren Hauses
+        var huelle = WerkstattAussenBauen(p, StilVon(art.Beruf), besitzer: null);
+        if (art.Stufe > 1) AusbauBauen(huelle.Dach, p, art.Stufe, art.Beruf, umbau: false);
+        // Tür zu: zwei gekreuzte Bretter über dem Tor
+        var bretter = Material(new Color(0.42f, 0.32f, 0.20f));
+        foreach (var winkel in new[] { 32f, -32f })
+            Quader(p + new Vector3(-2, 1.5f, tiefe / 2 + 0.16f), new Vector3(2.4f, 0.22f, 0.06f), bretter).RotationDegrees = new Vector3(0, 0, winkel);
+        Verkaufsschild(p + new Vector3(-4, 0, tiefe / 2 + 1.6f), frei.IstPacht);
+        GasseZiehen(p, Gasse(frei.Name, p));
+
+        var kennung = LiegenschaftKennung(frei.Name);
+        Klickflaeche(kennung, p + new Vector3(0, 4, 1), new Vector3(10, 8, 10)); // mit dem Schild vor der Tür
+        Beschriftung($"{frei.Name}\n{(frei.IstPacht ? "zu verpachten" : "zu verkaufen")}",
+            p + new Vector3(0, GebaeudeSchildHoehe.GetValueOrDefault(frei.Name, 13), 0), 36, kennung: kennung);
+        var gruppe = InGruppe("Leer_" + frei.Name.Replace(" ", "_"), vorher);
+        _freiePlaetze[frei.Name] = gruppe;
+        _leereHaeuser[frei.Name] = (p, gruppe, huelle.Dach);
+    }
+
     /// <summary>Entfernt einen Knoten samt Kindern – und vergisst seine Beschriftungen, die sonst ins Leere zeigen.</summary>
     private void KnotenEntfernen(Node3D knoten)
     {
         _beschriftungen.RemoveAll(label => label == knoten || knoten.IsAncestorOf(label));
+        _kulisseAusgeblendet.RemoveAll(teil => teil == knoten || knoten.IsAncestorOf(teil));
         knoten.QueueFree();
     }
 
@@ -764,6 +863,44 @@ public partial class Stadtansicht : Node3D
     private enum Werkstil { Giesserei, Tischlerei, Maurerei, Tinkturei, Schaenke, Kirche, Diebesnest, Wache, Bank, Siederei }
 
     private BetriebsAnsicht GiessereiBauen(Betrieb betrieb, Vector3 p, Color besitzer, Werkstil stil = Werkstil.Giesserei)
+    {
+        var tischlerei = stil != Werkstil.Giesserei; // ohne glühende Esse auf dem Dach
+        const float breite = 10, tiefe = 8, dicke = 0.4f;
+        var huelle = WerkstattAussenBauen(p, stil, besitzer);
+
+        Klickflaeche(BetriebsKennung(betrieb), p + new Vector3(0, 4, 0), new Vector3(breite, 8, tiefe));
+        var schild = Beschriftung(betrieb.Name, p + new Vector3(0, GebaeudeSchildHoehe.GetValueOrDefault(betrieb.Name, 13), 0), 44, kennung: BetriebsKennung(betrieb));
+
+        // Weg zur nächsten Gasse und dann zum Markt
+        var hof = p + new Vector3(0, 0, 5.5f);
+        var gasse = Gasse(betrieb.Name, p);
+        GasseZiehen(p, gasse);
+
+        var ansicht = new BetriebsAnsicht
+        {
+            Betrieb = betrieb,
+            Mitte = p,
+            Hof = hof,
+            WegZumMarkt = gasse.Prepend(hof).Append(Marktplatz).ToArray(),
+            Glut = tischlerei ? null : huelle.Glut,
+            Esse = tischlerei ? null : huelle.Esse,
+            Schild = schild,
+            Dach = huelle.Dach,
+        };
+        ansicht.Waende.AddRange(huelle.Waende);
+        Innenraum(ansicht, stil, breite, tiefe, dicke);
+        if (betrieb.Stufe > 1 || betrieb.UmbauMinuten > 0) StufeZeigen(ansicht);
+        return ansicht;
+    }
+
+    /// <summary>Was <see cref="WerkstattAussenBauen"/> gebaut hat und die Ansicht weiter braucht.</summary>
+    private sealed record Werkstatthuelle(List<(Node3D Wand, Vector3 Aussen)> Waende, Node3D Dach, OmniLight3D Glut, StandardMaterial3D Esse);
+
+    /// <summary>
+    /// Die Werkstatt von außen: vier Wände, Dach mit Schornstein und Esse, der Schmuck des Berufs vor dem Haus.
+    /// Ohne <paramref name="besitzer"/> (verkaufte Werkstatt) fehlt die Wappenfahne.
+    /// </summary>
+    private Werkstatthuelle WerkstattAussenBauen(Vector3 p, Werkstil stil, Color? besitzer)
     {
         var tischlerei = stil != Werkstil.Giesserei; // ohne glühende Esse auf dem Dach
         // Maße: 10 m (West–Ost) × 8 m (Nord–Süd), Wände 6 m hoch und 0,4 m dick.
@@ -800,7 +937,8 @@ public partial class Stadtansicht : Node3D
         var suedwand = gebaeude[1].Item1;
         Quader(new Vector3(-2, -hoehe / 2 + 1.5f, dicke / 2 + 0.07f), new Vector3(1.8f, 3, 0.1f), Material(new Color(0.24f, 0.16f, 0.10f)), suedwand); // Tor
         var westwand = gebaeude[2].Item1;
-        Quader(new Vector3(-0.35f, 2, 0), new Vector3(0.2f, 3, 2), Material(besitzer), westwand); // Wappenfahne in der Besitzerfarbe
+        if (besitzer is { } farbe)
+            Quader(new Vector3(-0.35f, 2, 0), new Vector3(0.2f, 3, 2), Material(farbe), westwand); // Wappenfahne in der Besitzerfarbe
         var vorDemSchmuck = GetChildCount(); // ab hier: Schmuck des Berufs (siehe WandschmuckAnDieWand)
 
         // ── Dach mit Schornstein: eine Gruppe, die in der Innenansicht verschwindet ──
@@ -981,30 +1119,7 @@ public partial class Stadtansicht : Node3D
         Quader(p + new Vector3(3.6f, 13.3f, 0.2f), new Vector3(1.6f, 0.6f, 1.6f), esse, dach);
         var glut = new OmniLight3D { LightColor = new Color(1f, 0.55f, 0.2f), OmniRange = 12, LightEnergy = 0, Position = p + new Vector3(3.6f, 14.5f, 0.2f) };
         dach.AddChild(glut);
-
-        Klickflaeche(BetriebsKennung(betrieb), p + new Vector3(0, 4, 0), new Vector3(breite, 8, tiefe));
-        var schild = Beschriftung(betrieb.Name, p + new Vector3(0, GebaeudeSchildHoehe.GetValueOrDefault(betrieb.Name, 13), 0), 44, kennung: BetriebsKennung(betrieb));
-
-        // Weg zur nächsten Gasse und dann zum Markt
-        var hof = p + new Vector3(0, 0, 5.5f);
-        var gasse = Gasse(betrieb.Name, p);
-        GasseZiehen(p, gasse);
-
-        var ansicht = new BetriebsAnsicht
-        {
-            Betrieb = betrieb,
-            Mitte = p,
-            Hof = hof,
-            WegZumMarkt = gasse.Prepend(hof).Append(Marktplatz).ToArray(),
-            Glut = tischlerei ? null : glut,
-            Esse = tischlerei ? null : esse,
-            Schild = schild,
-            Dach = dach,
-        };
-        ansicht.Waende.AddRange(gebaeude);
-        Innenraum(ansicht, stil, breite, tiefe, dicke);
-        if (betrieb.Stufe > 1 || betrieb.UmbauMinuten > 0) StufeZeigen(ansicht);
-        return ansicht;
+        return new Werkstatthuelle(gebaeude, dach, glut, esse);
     }
 
     /// <summary>
@@ -1035,31 +1150,37 @@ public partial class Stadtansicht : Node3D
     /// </summary>
     private void StufeZeigen(BetriebsAnsicht a)
     {
-        const float hoehe = 6, tiefe = 8;
         var b = a.Betrieb;
         a.GezeigteStufe = b.Stufe;
         a.GezeigterUmbau = b.UmbauMinuten > 0;
         if (a.Ausbau is not null) KnotenEntfernen(a.Ausbau);
+        a.Ausbau = AusbauBauen(a.Dach ?? this, a.Mitte, b.Stufe, b.Artdaten.Beruf, b.UmbauMinuten > 0);
+        if (a.Schild is not null)
+            a.Schild.Text = b.Name + (b.UmbauMinuten > 0 ? " (Umbau)" : ""); // die Stufe zeigen Gaube und Dachreiter – eine zweite Zeile überdeckte die Nachbarn
+    }
+
+    /// <summary>Gaube, Dachreiter und Gerüst einer Werkstatt in der Mitte <paramref name="p"/> – als eigene Gruppe unter <paramref name="eltern"/>.</summary>
+    private Node3D AusbauBauen(Node3D eltern, Vector3 p, int stufe, string beruf, bool umbau)
+    {
+        const float hoehe = 6, tiefe = 8;
         var gruppe = new Node3D { Name = "Ausbau" };
-        (a.Dach ?? (Node3D)this).AddChild(gruppe);
-        a.Ausbau = gruppe;
-        var p = a.Mitte;
+        eltern.AddChild(gruppe);
         var holz = Material(Holz);
 
-        if (b.Stufe >= 2)
+        if (stufe >= 2)
         {
             // Dachgaube auf der Südseite des Dachs, mit Fenster und eigenem Satteldach
             var gaube = p + new Vector3(-2.5f, 0, 2.6f);
-            Quader(gaube + new Vector3(0, hoehe + 1.6f, 0), new Vector3(2.4f, 2.0f, 2.0f), Material(b.Artdaten.Beruf switch { "Steinmetz" or "Prediger" or "Gardist" => Mauerstein, "Alchimist" or "Geldleiher" => Putz, "Dieb" => Morsch, _ => Fachwerk }), gruppe);
+            Quader(gaube + new Vector3(0, hoehe + 1.6f, 0), new Vector3(2.4f, 2.0f, 2.0f), Material(beruf switch { "Steinmetz" or "Prediger" or "Gardist" => Mauerstein, "Alchimist" or "Geldleiher" => Putz, "Dieb" => Morsch, _ => Fachwerk }), gruppe);
             Quader(gaube + new Vector3(0, hoehe + 1.7f, 1.02f), new Vector3(1.1f, 1.0f, 0.06f), Material(new Color(0.12f, 0.1f, 0.08f)), gruppe);
-            Dach(gaube + new Vector3(0, hoehe + 2.6f, 0), new Vector3(2.9f, 1.2f, 2.4f), Material(b.Artdaten.Beruf is "Tischler" or "Alchimist" or "Prediger" ? Schiefer : Ziegel), quer: false, eltern: gruppe);
+            Dach(gaube + new Vector3(0, hoehe + 2.6f, 0), new Vector3(2.9f, 1.2f, 2.4f), Material(beruf is "Tischler" or "Alchimist" or "Prediger" ? Schiefer : Ziegel), quer: false, eltern: gruppe);
         }
-        if (b.Stufe >= 3)
+        if (stufe >= 3)
         {
             // Dachreiter: kleiner Turm auf dem First mit vierseitiger Spitze
             var first = p + new Vector3(-1, hoehe + 4.8f, 0);
-            Quader(first + new Vector3(0, 0.9f, 0), new Vector3(1.6f, 2.2f, 1.6f), Material(b.Artdaten.Beruf switch { "Steinmetz" or "Prediger" or "Gardist" => Mauerstein, "Alchimist" or "Geldleiher" => Putz, "Dieb" => Morsch, _ => Fachwerk }), gruppe);
-            var spitze = Material(b.Artdaten.Beruf switch
+            Quader(first + new Vector3(0, 0.9f, 0), new Vector3(1.6f, 2.2f, 1.6f), Material(beruf switch { "Steinmetz" or "Prediger" or "Gardist" => Mauerstein, "Alchimist" or "Geldleiher" => Putz, "Dieb" => Morsch, _ => Fachwerk }), gruppe);
+            var spitze = Material(beruf switch
             {
                 "Tischler" => new Color(0.35f, 0.55f, 0.45f),   // kupfergrün
                 "Steinmetz" => new Color(0.30f, 0.33f, 0.40f),  // Schiefer
@@ -1082,7 +1203,7 @@ public partial class Stadtansicht : Node3D
                 RotationDegrees = new Vector3(0, 45, 0),
             });
         }
-        if (b.UmbauMinuten > 0)
+        if (umbau)
         {
             // Gerüst vor der Südwand: Stangen und zwei Laufbretter
             var sued = p + new Vector3(0, 0, tiefe / 2 + 0.7f);
@@ -1091,8 +1212,7 @@ public partial class Stadtansicht : Node3D
             foreach (var y in new[] { 2.6f, 5.2f })
                 Quader(sued + new Vector3(0, y, 0), new Vector3(9.6f, 0.12f, 0.9f), holz, gruppe);
         }
-        if (a.Schild is not null)
-            a.Schild.Text = b.Name + (b.UmbauMinuten > 0 ? " (Umbau)" : ""); // die Stufe zeigen Gaube und Dachreiter – eine zweite Zeile überdeckte die Nachbarn
+        return gruppe;
     }
 
     /// <summary>Berg aus zwei abgeflachten Kugeln.</summary>
@@ -1638,7 +1758,9 @@ public partial class Stadtansicht : Node3D
     {
         KulisseZeigen();
         var eigene = new HashSet<Node>(ansicht.Waende.Select(x => (Node)x.Wand));
-        foreach (var kind in GetChildren())
+        // Betriebe und leere Häuser hängen in eigenen Gruppen (im Ursprung, die Lagen gelten also wie an der Stadt).
+        var gruppen = _betriebe.Values.Select(b => b.Gruppe).Concat(_leereHaeuser.Values.Select(l => l.Gruppe)).OfType<Node3D>();
+        foreach (var kind in GetChildren().Concat(gruppen.SelectMany(g => g.GetChildren())))
         {
             if (kind is not MeshInstance3D teil || eigene.Contains(teil) || teil.Mesh is PlaneMesh || teil.Position.Y < 0.2f)
                 continue;
@@ -1653,14 +1775,16 @@ public partial class Stadtansicht : Node3D
             }
         }
         // Dächer anderer Werkstätten, des Rathauses und des Doms sind eigene Gruppen – die gleichen Regeln gelten.
-        foreach (var andere in _betriebe.Values.Cast<InnenAnsicht>().Concat(_sonderbauten.Values).Where(x => x != ansicht && x.Dach is not null))
+        var daecher = _betriebe.Values.Cast<InnenAnsicht>().Concat(_sonderbauten.Values).Where(x => x != ansicht && x.Dach is not null)
+            .Select(x => (x.Mitte, Dach: x.Dach!)).Concat(_leereHaeuser.Values.Select(l => (l.Mitte, l.Dach)));
+        foreach (var (mitte, dach) in daecher)
         {
-            var abstand = andere.Mitte - ansicht.Mitte;
+            var abstand = mitte - ansicht.Mitte;
             var vorne = abstand.Dot(zurKamera);
-            if (vorne is > 4.5f and < 28f && (abstand - zurKamera * vorne).Length() < 11f && andere.Dach!.Visible)
+            if (vorne is > 4.5f and < 28f && (abstand - zurKamera * vorne).Length() < 11f && dach.Visible)
             {
-                andere.Dach.Visible = false;
-                _kulisseAusgeblendet.Add(andere.Dach);
+                dach.Visible = false;
+                _kulisseAusgeblendet.Add(dach);
             }
         }
     }
