@@ -380,6 +380,7 @@ public partial class Stadtansicht : Node3D
         RathausBauen(new Vector3(0, 0, -20)); // Rathaus und Dom mit Innenraum: Stadtansicht.Sonderbauten.cs
         DomBauen(new Vector3(-20, 0, -14));
         Wohnhaeuser();
+        WohnviertelAnlegen(); // Ringgasse, Umlandstellen, Gassennetz: Stadtansicht.Wohnviertel.cs
         Wald();
 
         // Wege: Ostgasse zum Tor und hinaus zur Grube; Westgasse zum Westtor (die Weststraße führt noch nirgends hin)
@@ -389,6 +390,10 @@ public partial class Stadtansicht : Node3D
         WegZiehen(WestgasseKnick, new Vector3(-38, 0, 6), 5);
         WegZiehen(new Vector3(-38, 0, 6), Westtor, 5);
         WegZiehen(Westtor, Weststrasse, 4);
+
+        // Ohne Simulation (Hauptmenü) füllt eine Mustermischung den Ring. Erst nach dem Aufbau der Szene prüfen,
+        // denn die Hauptszene verbindet die Simulation erst nach diesem _Ready.
+        Callable.From(() => { if (_simulation is null) WohnhaeuserPruefen(); }).CallDeferred();
     }
 
     private void UmgebungUndLicht()
@@ -545,6 +550,8 @@ public partial class Stadtansicht : Node3D
         if (Mathf.Abs(p.X) < Mauerrand + 6 && Mathf.Abs(p.Z) < Mauerrand + 6) return true; // in der Stadt oder dicht an der Mauer
         if (Mathf.Abs(p.Z - Osttor.Z) < 6 && p.X > 0) return true;  // Landstraße vom Osttor
         if (Mathf.Abs(p.Z - Westtor.Z) < 6 && p.X < 0) return true; // Weststraße vom Westtor
+        foreach (var (_, stelle) in Umlandstellen)
+            if (p.DistanceTo(stelle) < 11) return true;             // Weide, Feld und Wald (der hat eigene Bäume)
         foreach (var (name, abzweig) in Abzweige)
         {
             var grube = Stadtplan[name];
@@ -1405,6 +1412,7 @@ public partial class Stadtansicht : Node3D
     public void Aktualisieren(double delta)
     {
         if (_simulation is null) return;
+        WohnhaeuserPruefen(); // einmal, sobald der Kern die Wohnhäuser vergeben hat
         var zeit = _simulation.Zeit;
         // Die Simulation zählt nur ganze Minuten (bei Tempo 1 etwa eine pro Sekunde). Für die Darstellung
         // nehmen wir den Bruchteil der angebrochenen Minute dazu – sonst springen Sonne, Schatten und Karren
@@ -1925,6 +1933,7 @@ public partial class Stadtansicht : Node3D
     /// <summary>Ein flacher Weg zwischen zwei Punkten.</summary>
     private void WegZiehen(Vector3 von, Vector3 bis, float breite, Node3D? eltern = null)
     {
+        _strassen.Add((von, bis, breite));
         var mitte = (von + bis) / 2;
         var laenge = von.DistanceTo(bis);
         var weg = new MeshInstance3D
