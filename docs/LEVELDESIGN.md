@@ -129,11 +129,13 @@ python3 tools/karten/koeln.py      # Köln prüfen und neu schreiben
 |---|---|
 | `format`, `kennung`, `stadt`, `vorlage` | Formatnummer (jetzt 1), Dateiname, Anzeigename, reale Vorlage |
 | `einheit`, `achsen`, `raster` | Meter, Achsen wie oben, Rastergröße 2 |
-| `mauer.linie` | Stadtmauer als Punktfolge |
+| `mauer.linie` | Stadtmauer als Punktfolge (endet an den Ufertürmen) |
+| `nebenmauern` | weitere Mauern mit `name` und `linie`, z. B. um eine befestigte Vorstadt; ihre Tore stehen in `tore` |
 | `tore` | Name, Punkt, `schliesstNachts` |
 | `wasser` | `fluss`/`bach` als Linie mit `breite`, `see` als Fläche |
 | `gelaende` | Flächen der Art `feld`, `wald`, `huegel`, `wildnis` |
 | `wege` | Name, `klasse` (`land`, `haupt`, `ring`, `wall` = Karrenstraßen; `gasse`, `leinpfad` = nur Fußgänger), `linie`, `gefahr` (Faktor um 1,0, Vorschlag) |
+| `haefen` | `name`, `kante` (Kaimauer als Linie), `anleger` (Punkte an der Kaimauer, dort liegen Schiffe), `kran` |
 | `uebergaenge` | `bruecke` oder `faehre` mit `von` und `bis` |
 | `bauzonen` | `kennung`, `art` (`kern`, `mauerring`, `vorstadt`, `umland`), `flaeche` auf dem Raster |
 | `feste` | `kennung`, `art` (`start`, `sonderbau`, `kirche`, `leerstand`), `name`, `punkt`; Startgrundstücke mit `eingang` und `groesse` [Breite, Tiefe] (24 × 14 m: Werkstatt und Wohnhaus nebeneinander) |
@@ -144,6 +146,8 @@ python3 tools/karten/koeln.py      # Köln prüfen und neu schreiben
 - Jede Bauzone liegt höchstens 8 m von einer Karrenstraße entfernt.
 - Genau 8 Startgrundstücke, gleich weit vom Markt (±10 %), Eingang an einer Karrenstraße.
 - Jedes Vorkommen liegt an einem Weg.
+- Wege kreuzen eine Mauer (Stadtmauer und Nebenmauern) nur an einem Tor.
+- Anleger und Kran liegen an der Kaimauer.
 - Das Wegenetz hängt zusammen (Kreuzungen, Berührungen, Brücken und Fähren verbinden).
 - **Kapazität** (`tools/karten/kapazitaet.py`): Das Werkzeug setzt die Gebäude probeweise auf das Raster der Stadt-Bauzonen – feste Bauten zuerst, dann die größten Gebäude, jedes möglichst nah an seiner Straße (Werkstatt an einer Karrenstraße, Wohnhaus auch an einer Gasse). **Pflicht** für 8 Häuser: je Haus zwei weitere Werkstätten, dazu die Häuser der Einwohner (13 Ratsherrenhäuser, 3 Bürgerhäuser, 40 Wohnhäuser bei 25 Einwohnern je Haus und Haushalten von im Mittel 5). Passt die Pflicht nicht, bricht das Skript ab. **Reserve** (nur Bericht): je Haus ein Stadtpalais, die Hälfte einen Stadthof. Das Ergebnis zeigt `docs/karten/<kennung>-belegung.svg`.
 
