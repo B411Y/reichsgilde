@@ -1,8 +1,8 @@
 # Reichsgilde – Leveldesign
 
-Begonnen am 16.10.2026 · Bereich **Leveldesign** (siehe `CLAUDE.md`). Grundsatzentscheidungen stehen in `docs/ENTSCHEIDUNGEN.md`, Abschnitt 17. Dieses Dokument sammelt die **Kartenregeln** für alle Städte und den Stand der einzelnen Karten.
+Begonnen am 16.10.2026 · Bereich **Leveldesign** (siehe `CLAUDE.md`). Entscheidungen bis 16.10.2026 stehen im Archiv `docs/ENTSCHEIDUNGEN.md`, Abschnitt 17, neuere in `docs/bereiche/leveldesign.md`. Dieses Dokument sammelt die **Kartenregeln** für alle Städte und den Stand der einzelnen Karten.
 
-**Stand:** Planungsphase. Die heutige Greybox-Stadt bleibt Platzhalter für die Mechaniken und wird vorerst nicht ersetzt.
+**Stand:** Die erste Kartendatei (Köln) liegt vor, das Spiel liest sie noch nicht. Die heutige Greybox-Stadt bleibt Platzhalter für die Mechaniken und wird vorerst nicht ersetzt.
 
 **Status je Regel:** **entschieden** (mit Datum in ENTSCHEIDUNGEN) · **Vorschlag** (Leveldesign) · **Kern** (wirkt auf die Simulation, entscheidet der Kern-Chat).
 
@@ -92,12 +92,47 @@ Wohnstube und weitere Räume liegen im Wohnhaus. Das Wohnhaus eines erloschenen 
 
 | Stadt | Stand |
 |---|---|
-| Köln (Pilot) | Planungsskizze, Fassung 2 (noch nicht im Repo): fünf Radialen von den Toren, zwei Ringstraßen um den Heumarkt, Wallgasse; 6 Bauzonen Kernlage, 12 Mauerring, 1 Vorstadt Deutz, 6 Umland; 10 Rohstoffvorkommen; 8 Startgrundstücke am äußeren Ring; linkes Rheinufer, Mauerhalbkreis mit Toren, Dom als Baustelle, Hafen, **Rheinbrücke nach Deutz (Fiktion)**, Fähre, Umland Kölner Bucht, Ville, Königsforst, Bergische Höhen, Siebengebirge, Eifel |
+| Köln (Pilot) | **Kartendatei Format 1** (`game/data/karten/koeln.json`, Vorschau `docs/karten/koeln.svg`), Mauerradius 150 m: fünf Radialen von den Toren, zwei Ringstraßen um den Heumarkt, Wallgasse; 6 Bauzonen Kernlage, 12 Mauerring, 1 Vorstadt Deutz, 6 Umland; 10 Rohstoffvorkommen; 8 Startgrundstücke am äußeren Ring; linkes Rheinufer, Mauerhalbkreis mit Toren, Dom als Baustelle, Hafen, **Rheinbrücke nach Deutz (Fiktion)**, Fähre, Umland Kölner Bucht, Ville, Königsforst, Bergische Höhen, Siebengebirge, Eifel |
 | weitere ca. 7 | offen |
 
 Später: **Reichskarte**, über die man zwischen den Städten wechselt (Idee festgehalten, nicht jetzt).
 
-## 9. Zuständigkeit
+## 9. Kartendatei
+
+Jede Stadt ist **eine JSON-Datei** `game/data/karten/<kennung>.json`. Sie entsteht aus einem Python-Skript `tools/karten/<kennung>.py`, nie von Hand. Das Skript prüft die Kartenregeln und schreibt nur, wenn alle erfüllt sind; dazu ein Vorschaubild `docs/karten/<kennung>.svg`, das nur aus der JSON-Datei gezeichnet wird (auf GitHub direkt ansehbar).
+
+```bash
+python3 tools/karten/koeln.py      # Köln prüfen und neu schreiben
+```
+
+**Koordinaten:** Meter auf dem Boden, **x = Osten, z = Süden** (−z = Norden), wie im Spiel. Ursprung am Marktplatz. Bauzonen liegen auf dem **2-m-Raster**, alles andere auf 0,5 m.
+
+| Feld | Inhalt |
+|---|---|
+| `format`, `kennung`, `stadt`, `vorlage` | Formatnummer (jetzt 1), Dateiname, Anzeigename, reale Vorlage |
+| `einheit`, `achsen`, `raster` | Meter, Achsen wie oben, Rastergröße 2 |
+| `mauer.linie` | Stadtmauer als Punktfolge |
+| `tore` | Name, Punkt, `schliesstNachts` |
+| `wasser` | `fluss`/`bach` als Linie mit `breite`, `see` als Fläche |
+| `gelaende` | Flächen der Art `feld`, `wald`, `huegel`, `wildnis` |
+| `wege` | Name, `klasse` (`land`, `haupt`, `ring`, `wall` = Karrenstraßen; `gasse`, `leinpfad` = nur Fußgänger), `linie`, `gefahr` (Faktor um 1,0, Vorschlag) |
+| `uebergaenge` | `bruecke` oder `faehre` mit `von` und `bis` |
+| `bauzonen` | `kennung`, `art` (`kern`, `mauerring`, `vorstadt`, `umland`), `flaeche` auf dem Raster |
+| `feste` | `kennung`, `art` (`start`, `sonderbau`, `kirche`, `leerstand`), `name`, `punkt`; Startgrundstücke mit `eingang` und `groesse` [Breite, Tiefe] (Vorschlag 16 × 12 m) |
+| `vorkommen` | `kennung`, `betrieb` (`Mine`, `Steinbruch`, `Holzschlag`), `punkt` |
+| `fiktion` | Liste der Abweichungen von der Vorlage |
+
+**Prüfungen** (das Skript bricht ab, wenn eine fehlschlägt):
+- Jede Bauzone liegt höchstens 8 m von einer Karrenstraße entfernt.
+- Genau 8 Startgrundstücke, gleich weit vom Markt (±10 %), Eingang an einer Karrenstraße.
+- Jedes Vorkommen liegt an einem Weg.
+- Das Wegenetz hängt zusammen (Kreuzungen, Berührungen, Brücken und Fähren verbinden).
+
+Ändert sich das Format, steigt `format`, und der Kern und die Darstellung passen ihre Leser an. Neue Felder ohne Bedeutungsänderung brauchen keine neue Nummer.
+
+**Köln, Format 1 (16.10.2026):** Bauzonen Kernlage 6 (≈ 4.750 m², 1.187 Felder), Mauerring 12 (≈ 8.370 m², 2.091 Felder), Vorstadt Deutz 4 (≈ 3.960 m²), Umland 6 (≈ 39.700 m²); 41 Wege in einem Netz; 10 Vorkommen; Startgrundstücke 94 m vom Markt. **Zu prüfen:** Ob die Stadtfläche für 8 Häuser und die Wohnhäuser der Einwohner reicht, hängt von den Gebäudegrößen ab (noch offen).
+
+## 10. Zuständigkeit
 
 | Bereich | Zuständig für |
 |---|---|

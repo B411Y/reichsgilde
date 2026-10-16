@@ -39,7 +39,7 @@ Jeder Chat bekommt im Prompt einen Bereich. Dateien außerhalb des eigenen Berei
 | **Spiel-KI** | `src/Reichsgilde.Core/Ki/**` (KI-Häuser, `KiRivale.cs`), `src/Reichsgilde.Core/Buerger/**` (Bürger-KI), eigene Testdateien (`Ki*Tests.cs`, `Buerger*Tests.cs`) |
 | **Darstellung** | `game/scripts/Stadtansicht*.cs`, Szenen, Modelle, Licht, Kamera |
 | **Oberfläche** | Tafeln und Fenster in `game/scripts/*Anzeige.cs`, `Hauptmenue.cs`, `Hauptszene.cs` |
-| **Leveldesign** | `docs/LEVELDESIGN.md` (Kartenregeln), später die Kartendateien je Stadt (Ort wird mit der ersten Karte festgelegt). Regeln mit Wirkung auf die Simulation entscheidet der Kern. |
+| **Leveldesign** | `docs/LEVELDESIGN.md` (Kartenregeln), `tools/karten/**` (Kartenwerkzeug, ein Skript je Stadt), `game/data/karten/*.json` (Kartendateien, nur vom Werkzeug erzeugt), `docs/karten/*.svg` (Vorschau). Regeln mit Wirkung auf die Simulation entscheidet der Kern. |
 | später z. B. Sound | wird hier ergänzt, sobald es den Chat gibt |
 
 Nur der Kern-Chat ändert: `game/data/wirtschaft.json`, `Stadtwirtschaft.cs`, `Speicherstand.cs`. Braucht ein anderer Bereich dort etwas: im PR-Text beschreiben und den Nutzer fragen.
