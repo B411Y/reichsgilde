@@ -21,8 +21,8 @@ namespace Reichsgilde;
 ///   --tempo=8          Anfangstempo
 ///   --auswahl=Dom      Gebäude vorauswählen (Kennung wie beim Anklicken)
 ///   --drehung=1        Kamera um 1–3 Vierteldrehungen gedreht starten (0 = Blick nach Nordosten)
-///   --innen=1          direkt in der Innenansicht der eigenen Werkstatt starten (--innen=Rathaus bzw. --innen=Dom: dort)
-///   --raum=2           mit --innen: gleich im zweiten Raum der Raumleiste (Werkstatt: 1 Werkraum, 2 Lager, 3 Kontor, 4 Wohnstube)
+///   --innen=1          direkt in der Innenansicht der eigenen Werkstatt starten (--innen=Rathaus, --innen=Dom bzw. --innen=wohnhaus:<Inhaber>: dort)
+///   --raum=2           mit --innen: gleich im zweiten Raum der Raumleiste (Werkstatt: 1 Werkraum, 2 Lager; Wohnhaus: 1 Wohnstube, 2 Kontor)
 ///   --verwalten=1      das Bedienfeld der eigenen Gießerei gleich öffnen
 ///   --vermoegen=12000  Startvermögen des Spielers setzen (zum Ausprobieren des Aufstiegs)
 ///   --beruf=Steinmetz  Startberuf der Testpartie (Schmied, Tischler, Steinmetz, Alchimist, Wirt, Prediger, Dieb, Gardist)
@@ -222,7 +222,7 @@ public partial class Hauptszene : Node
         var minuten = _simulation.Takt.RundenDauerSekunden / 60;
         _hinweis.Text = $"1 Spieljahr = {minuten:0} Min. · {_simulation.Einstellungen.SiegbedingungText}\n"
                       + "Leertaste Pause · 1–4 Tempo (5–6 Test) · Mausrad Zoom\nRechte Maustaste/WASD verschieben · Q/E drehen · Alt: alle Namen\n"
-                      + "Doppelklick auf Werkstatt, Rathaus oder Dom = hineingehen · Esc zurück bzw. Spielmenü";
+                      + "Doppelklick auf Werkstatt, Wohnhaus, Rathaus oder Dom = hineingehen · Esc zurück bzw. Spielmenü";
 
         _stadt.GebaeudeAngeklickt += kennung =>
         {

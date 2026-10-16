@@ -14,7 +14,6 @@ So wird eingetragen (damit sich die Chats nie an derselben Stelle treffen):
 - (3) (von Kern) Karren am Stadttor zeigen: `Karren.WartetAmTor(zeit)` – Hinweg draußen vor dem Tor, Rückweg drinnen (ab PR #67)
 - (3) Einwohner in den Innenräumen von Schänke und Kirche zeigen (später, eigener Schritt)
 - (3) (von Leveldesign) Gebäudemaße auf glatte Meter: Einwohnerhäuser 6 × 6, 7 × 7, 8 × 8 m; Werkstatt belegt 16 × 14 m und zeigt jede Stufe als sichtbaren Anbau innerhalb dieser Fläche (`docs/LEVELDESIGN.md`, Gebäudegrößen)
-- (3) Wohnstube und Kontor ziehen aus der Werkstatt ins Wohnhaus: Doppelklick betritt das Wohnhaus (Raumansicht), die Räume wandern dorthin (Entscheidung Kern zu PR #75)
 
 ## Entscheidungen
 
@@ -51,3 +50,9 @@ So wird eingetragen (damit sich die Chats nie an derselben Stelle treffen):
 | Zustand | **Ausbau:** Gerüst vor der Gassenseite. **Nach Brand:** rußiges Dach und Gerüst bis zur Instandsetzung. **Leerstand:** bleibt stehen, Fahne und Wappen weg, Tür und Fenster vernagelt. Aufkaufen und Abreißen wünscht der Nutzer – Sache des Kerns (Zeile in `kern.md`). | 16.10.2026 |
 | Tafel | Klick zeigt Stufe, Ansehen, laufenden Ausbau mit Fertigzeit, Brandschaden, Hauswächter bzw. Leerstand. Wohnstube und Kontor ziehen in einem eigenen Schritt ins Wohnhaus. | 16.10.2026 |
 
+### Wohnstube und Kontor im Wohnhaus (PR #90)
+
+| Thema | Entscheidung | Datum |
+|---|---|---|
+| Räume | Doppelklick auf das **eigene** Wohnhaus betritt es (Raumansicht): Wohnstube, dann Kontor. Die Werkstatt hat nur noch Werkraum und Lager. Ohne Wohnhäuser (Abschnitt `wohnen` fehlt) bleibt es wie bisher. Rivalenhäuser sind nicht betretbar. | 16.10.2026 |
+| Schmuck | Die Einrichtung wächst mit der Stufe: Bürgerhaus Teppiche und Tellerbord, Steinhaus Wandbehang und Landkarte, Stadtpalais Kronleuchter, zweite Truhe und Standleuchter, Stadthof Wappenschild. Raumgröße bleibt gleich. | 16.10.2026 |
