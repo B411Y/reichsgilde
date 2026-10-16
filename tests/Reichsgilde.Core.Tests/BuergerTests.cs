@@ -508,7 +508,8 @@ static class BuergerTests
                 faktoren.Add(Math.Round(f, 6));
                 Pruefe.Wahr(f >= 1 - kd.MarktSpanne - 1e-9 && f <= 1 + kd.MarktSpanne + 1e-9, $"Faktor {f}");
                 foreach (var stand in w.Markt.Staende)
-                    Pruefe.Gleich(kd.MarktTypen.Contains(stand.Typ) ? f : 1.0, stand.NachfrageFaktor, $"{stand.Ware} ({stand.Typ})");
+                    Pruefe.Ungefaehr(kd.MarktTypen.Contains(stand.Typ) ? f * (1 - kd.Markt + kd.Markt * ew.Warenkorbfaktor(stand.Ware)) : 1.0, // dazu der Warenkorb
+                                     stand.NachfrageFaktor, 1e-12);
             }
             Pruefe.Wahr(faktoren.Count > 3, "Der Faktor bewegt sich über die Tage");
             var ring = w.Markt["Silberring"];

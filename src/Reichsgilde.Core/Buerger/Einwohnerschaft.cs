@@ -44,6 +44,11 @@ public sealed class Einwohnerschaft
     private readonly double[] _passantenErwartet = new double[24]; // üblich Passanten je Uhrzeit (Taschendiebe)
     private readonly int[] _passantenTage = new int[24];
     private int _einkaufTage;
+    private readonly Dictionary<string, double>[] _korb = Enumerable.Range(0, Spielzeit.StundenProTag)
+        .Select(_ => new Dictionary<string, double>(StringComparer.Ordinal)).ToArray(); // Warenkorb je Stunde (Ring, wie _einkaeufe)
+    private Dictionary<string, (string Korb, double Wert)>? _warenImKorb;  // Ware → Gruppe|Preisklasse und Gewicht (Nachfrage × Grundpreis)
+    private readonly Dictionary<(Volk, string), Dictionary<string, double>> _neigungJe = new();
+    private readonly Dictionary<string, double> _warenkorbfaktor = new(StringComparer.Ordinal);
 
     public Einwohnerschaft(Stadtwirtschaft w, BuergerDaten? daten, int zufallsstartwert)
     {
@@ -365,6 +370,12 @@ public sealed class Einwohnerschaft
     {
         if (Daten.Kopplung.Markt <= 0) return;
         _einkaeufe[_einkaufFach] = Einkaufende;
+        var korb = _korb[_einkaufFach];
+        korb.Clear();
+        if (Daten.Warenkorb is not null)
+            foreach (var e in _einwohner.Where(e => e.Handlung == Handlung.Einkaufen))
+                foreach (var (schluessel, neigung) in Neigungen(e))
+                    korb[schluessel] = korb.GetValueOrDefault(schluessel) + neigung;
         _einkaufFach = (_einkaufFach + 1) % _einkaeufe.Length;
         MarktSetzen();
     }
@@ -375,8 +386,96 @@ public sealed class Einwohnerschaft
         if (!IstAktiv || Daten.Kopplung.Markt <= 0) return;
         var faktor = Marktfaktor;
         var typen = Daten.Kopplung.MarktTypen;
+        WarenkorbRechnen();
+        var k = Daten.Kopplung.Markt;
         foreach (var stand in _w.Markt.Staende)
-            if (typen.Contains(stand.Typ)) stand.NachfrageFaktor = faktor;
+            if (typen.Contains(stand.Typ))
+                stand.NachfrageFaktor = faktor * (1 - k + k * Warenkorbfaktor(stand.Ware));
+    }
+
+    // ═════════════════════════════════════════════════════════════════════════
+    //  Warenkorb je Volk und Rolle
+    // ═════════════════════════════════════════════════════════════════════════
+
+    /// <summary>
+    /// Faktor des Warenkorbs auf die Nachfrage dieser Ware (1 = wie in den Daten): Wer in den letzten 17 Stunden einkaufte,
+    /// verschiebt die Nachfrage zu den Gruppen seines Volkes und den Preisklassen seiner Rolle. Begrenzt auf 1 ± spanne;
+    /// über alle Waren (gewichtet mit Nachfrage × Grundpreis) bleibt die Nachfrage in Gulden gleich.
+    /// </summary>
+    public double Warenkorbfaktor(string ware) => _warenkorbfaktor.GetValueOrDefault(ware, 1);
+
+    /// <summary>Die Warengruppe einer Ware für die Anzeige (z. B. „Schmiedewaren“) – null, wenn sie in keinem Warenkorb liegt.</summary>
+    public string? Warengruppe(string ware) =>
+        IstAktiv && Daten.Warenkorb is { } wk && WarenImKorb().TryGetValue(ware, out var x) && x.Korb.Split('|')[0] is { Length: > 0 } beruf
+            ? wk.Gruppen.GetValueOrDefault(beruf, beruf) : null;
+
+    /// <summary>Die Preisklasse einer Ware im Warenkorb: „guenstig“, „mittel“ oder „teuer“.</summary>
+    private string Preisklasse(double grundpreis, WarenkorbDaten wk) =>
+        grundpreis < wk.GuenstigBis ? "guenstig" : grundpreis >= wk.TeuerAb ? "teuer" : "mittel";
+
+    /// <summary>Welche Waren im Warenkorb liegen (Typ aus marktTypen), mit Gruppe (Beruf der herstellenden Betriebsart) und Preisklasse.</summary>
+    private Dictionary<string, (string Korb, double Wert)> WarenImKorb()
+    {
+        if (_warenImKorb is not null) return _warenImKorb;
+        var wk = Daten.Warenkorb!;
+        var beruf = new Dictionary<string, string>(StringComparer.Ordinal);
+        foreach (var art in _w.Daten.Betriebsarten.Values.OrderBy(a => a.Beruf, StringComparer.Ordinal))
+            foreach (var ware in art.Produkte)
+                beruf.TryAdd(ware, art.Beruf);
+        _warenImKorb = _w.Daten.Waren
+            .Where(x => Daten.Kopplung.MarktTypen.Contains(x.Value.Typ))
+            .ToDictionary(x => x.Key, x => ($"{beruf.GetValueOrDefault(x.Key, "")}|{Preisklasse(x.Value.Grundpreis, wk)}",
+                                            x.Value.Nachfrage * x.Value.Grundpreis), StringComparer.Ordinal);
+        return _warenImKorb;
+    }
+
+    /// <summary>Neigung eines Einwohners je Gruppe|Preisklasse: Volk × Gruppe, Rolle × Gruppe, Rolle × Preisklasse (fehlt etwas: 1).</summary>
+    private Dictionary<string, double> Neigungen(Einwohner e)
+    {
+        if (_neigungJe.TryGetValue((e.Volk, e.Rolle), out var fertig)) return fertig;
+        var wk = Daten.Warenkorb!;
+        var volk = wk.Voelker.GetValueOrDefault(e.Volk);
+        var rolle = wk.Rollen.GetValueOrDefault(e.Rolle);
+        var neu = new Dictionary<string, double>(StringComparer.Ordinal);
+        foreach (var schluessel in WarenImKorb().Values.Select(x => x.Korb).Distinct())
+        {
+            var teile = schluessel.Split('|');
+            neu[schluessel] = (volk?.GetValueOrDefault(teile[0], 1) ?? 1) * (rolle?.GetValueOrDefault(teile[0], 1) ?? 1)
+                              * (rolle?.GetValueOrDefault(teile[1], 1) ?? 1);
+        }
+        _neigungJe[(e.Volk, e.Rolle)] = neu;
+        return neu;
+    }
+
+    /// <summary>
+    /// Rechnet die Faktoren aller Waren neu: mittlere Neigung der Einkaufenden im Fenster, geteilt durch einen Maßstab M,
+    /// begrenzt auf 1 ± spanne. M wird so gesucht (Halbierung), dass der mit Nachfrage × Grundpreis gewichtete Mittelwert 1 ist.
+    /// </summary>
+    private void WarenkorbRechnen()
+    {
+        _warenkorbfaktor.Clear();
+        if (Daten.Warenkorb is not { } wk || !_gegruendet) return;
+        var kaeufer = (double)EinkaeufeImFenster;
+        if (kaeufer <= 0) return;
+        var summe = new Dictionary<string, double>(StringComparer.Ordinal);
+        foreach (var fach in _korb)
+            foreach (var (schluessel, x) in fach)
+                summe[schluessel] = summe.GetValueOrDefault(schluessel) + x;
+        var waren = WarenImKorb().Select(x => (Ware: x.Key, Roh: summe.GetValueOrDefault(x.Value.Korb, kaeufer) / kaeufer, x.Value.Wert))
+            .Where(x => x.Wert > 0).ToList();
+        if (waren.Count == 0) return;
+        var gesamt = waren.Sum(x => x.Wert);
+        double Faktor(double roh, double m) => Math.Clamp(roh / m, 1 - wk.Spanne, 1 + wk.Spanne);
+        double Mittel(double m) => waren.Sum(x => x.Wert * Faktor(x.Roh, m)) / gesamt;
+        // Mittel(m) fällt mit m: zwischen kleinster und größter Rohneigung liegt der Maßstab, bei dem es 1 ist.
+        double unten = waren.Min(x => x.Roh), oben = waren.Max(x => x.Roh);
+        for (var i = 0; i < 40; i++)
+        {
+            var m = (unten + oben) / 2;
+            if (Mittel(m) > 1) unten = m; else oben = m;
+        }
+        var mass = (unten + oben) / 2;
+        foreach (var x in waren) _warenkorbfaktor[x.Ware] = Faktor(x.Roh, mass);
     }
 
     /// <summary>Die Schänke des Tages (von <see cref="SchaenkenVerteilen"/> vergeben; sonst die anziehendste).</summary>
@@ -699,6 +798,7 @@ public sealed class Einwohnerschaft
         MesseErwartet = _messeErwartet,
         BetendeHeute = _betendeHeute,
         Einkaeufe = _einkaeufe.ToList(),
+        Warenkorb = Daten.Warenkorb is null ? null : _korb.Select(k => new Dictionary<string, double>(k)).ToList(),
         EinkaufFach = _einkaufFach,
         EinkaufErwartet = _einkaufErwartet,
         Gelernt = _einkehrTage.Append(_messeTage).Append(_einkaufTage).ToList(),
@@ -741,6 +841,13 @@ public sealed class Einwohnerschaft
         _betendeHeute = s.BetendeHeute;
         for (var i = 0; i < s.Einkaeufe.Count && i < _einkaeufe.Length; i++) _einkaeufe[i] = s.Einkaeufe[i];
         _einkaufFach = s.EinkaufFach % _einkaeufe.Length;
+        // Ältere Spielstände ohne Warenkorb: Der Ring füllt sich in den nächsten 17 Stunden – bis dahin zählt nur, was schon drin ist.
+        for (var i = 0; i < _korb.Length; i++)
+        {
+            _korb[i].Clear();
+            if (s.Warenkorb is { } wk && i < wk.Count)
+                foreach (var (schluessel, x) in wk[i]) _korb[i][schluessel] = x;
+        }
         _einkaufErwartet = s.EinkaufErwartet;
         // Ältere Spielstände ohne Zähler: Wer schon etwas gelernt hat, gilt als eingeschwungen.
         int Tage(int i, double erwartet) => i < s.Gelernt.Count ? s.Gelernt[i] : erwartet > 0 ? 100 : 0;
@@ -808,6 +915,8 @@ public sealed record EinwohnerschaftStand
     /// <summary>Einkaufende je Stunde der letzten 17 Stunden (Ring) – leer in älteren Spielständen.</summary>
     public List<int> Einkaeufe { get; init; } = new();
     public int EinkaufFach { get; init; }
+    /// <summary>Warenkorb je Stunde der letzten 17 Stunden (Ring, Schlüssel „Beruf|Preisklasse“) – null ohne Warenkorb oder in älteren Spielständen.</summary>
+    public List<Dictionary<string, double>>? Warenkorb { get; init; }
     public double EinkaufErwartet { get; init; }
     /// <summary>Wie oft das Übliche gelernt wurde: 24 Uhrzeiten der Schänke, dann Messe, dann Markt.</summary>
     public List<int> Gelernt { get; init; } = new();

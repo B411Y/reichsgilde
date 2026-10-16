@@ -199,9 +199,10 @@ static class KiTests
             Pruefe.Wahr(rivaleMit.Stand >= 2, "Die KI sollte nach 20 Jahren mindestens Patrizier sein");
             // Kein hektisches Hin und Her: im Schnitt höchstens 2 Produktwechsel und 4 Entscheidungen pro Jahr
             // (mit Meisterprüfungen, Ausbau, Ständen und Rat kommen über 20 Jahre einige dazu; seit PR #60 holt die KI
-            // die Werkstatt zum gelernten Handwerk nach – ein Betrieb mehr mit Kauf, Personal, Karren und Produkt: 90 statt 80).
+            // die Werkstatt zum gelernten Handwerk nach – ein Betrieb mehr mit Kauf, Personal, Karren und Produkt: 90 statt 80;
+            // seit dem Warenkorb der Einwohner verschiebt sich die Nachfrage je Ware etwas – 100 statt 90, Produktwechsel bleiben ≤ 40).
             Pruefe.Wahr(wechsel <= 40, $"{wechsel} Produktwechsel in 20 Jahren");
-            Pruefe.Wahr(entscheidungen <= 90, $"{entscheidungen} Entscheidungen in 20 Jahren");
+            Pruefe.Wahr(entscheidungen <= 100, $"{entscheidungen} Entscheidungen in 20 Jahren");
         }),
     };
 }

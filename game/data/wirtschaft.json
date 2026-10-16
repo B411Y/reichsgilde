@@ -1412,6 +1412,29 @@
     "buergerhaeuser": 3,
     "wege": { "stadt": 30, "streuung": 10, "tor": 40, "umland": 50, "verzoegerung": 9 },
     "kopplung": { "schaenke": 1.0, "kirche": 1.0, "markt": 1.0, "diebe": 1.0, "bestohlen": 20, "marktSpanne": 0.2, "marktTypen": [ "Fertigprodukt", "Heilmittel" ], "spanne": 0.5, "glaettung": 0.2 },
+    "warenkorb": {
+      "spanne": 0.1,
+      "guenstigBis": 150,
+      "teuerAb": 250,
+      "gruppen": { "Schmied": "Schmiedewaren", "Tischler": "Holzwaren", "Steinmetz": "Steinwaren", "Alchimist": "Arzneien", "Parfumeur": "Duftwaren", "Wirt": "Speis und Trank", "Prediger": "Kirchenbedarf" },
+      "voelker": {
+        "Zwerg": { "Schmied": 1.5, "Steinmetz": 1.5 },
+        "Elb": { "Parfumeur": 1.5, "Alchimist": 1.5 },
+        "Halbling": { "Wirt": 1.5, "Tischler": 1.3 },
+        "Mensch": { "Prediger": 1.2 }
+      },
+      "rollen": {
+        "Tagelöhner": { "guenstig": 1.15, "teuer": 0.85 },
+        "Knecht": { "guenstig": 1.15, "teuer": 0.85 },
+        "Hirte": { "guenstig": 1.15, "teuer": 0.85 },
+        "Feldarbeiter": { "guenstig": 1.15, "teuer": 0.85 },
+        "Holzsammler": { "guenstig": 1.15, "teuer": 0.85 },
+        "Bettler": { "guenstig": 1.15, "teuer": 0.85 },
+        "Mönch": { "Prediger": 2.0 },
+        "Ratsherr": { "guenstig": 0.85, "teuer": 1.3 },
+        "Bürgersohn": { "guenstig": 0.85, "teuer": 1.3 }
+      }
+    },
     "beduerfnisse": {
       "Auskommen": { "start": 50, "anstieg": 12 },
       "Versorgung": { "start": 20, "anstieg": 3 },
