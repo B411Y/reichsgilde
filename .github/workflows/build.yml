@@ -103,14 +103,15 @@ jobs:
           set -o pipefail   # ein Absturz des Spiels soll den Schritt fehlschlagen lassen
           chmod +x build/linux/Reichsgilde.x86_64
           # 1. normaler Start   2. mit Bedienfeld, Innenansicht, Jahresbericht, Ratskammer, Familientafel, Gerichtssaal, Hinterzimmer und hohem Tempo (mehr Code wird durchlaufen)
-          build/linux/Reichsgilde.x86_64 --headless --quit-after 300 2>&1 | tee start.log
-          build/linux/Reichsgilde.x86_64 --headless --quit-after 600 -- --verwalten=1 --innen=1 --tempo=8 --startstunde=4 --bericht=1 --rat=1 --familie=1 --gericht=1 --hinterzimmer=1 2>&1 | tee -a start.log
+          build/linux/Reichsgilde.x86_64 --headless --verbose --quit-after 300 2>&1 | tee start.log
+          echo "=== zweiter Start (mit Tafeln) ===" | tee -a start.log
+          build/linux/Reichsgilde.x86_64 --headless --verbose --quit-after 600 -- --verwalten=1 --innen=1 --tempo=8 --startstunde=4 --bericht=1 --rat=1 --familie=1 --gericht=1 --hinterzimmer=1 2>&1 | tee -a start.log
           # „leaked" fängt Speicherlecks beim Beenden (z. B. Knoten, die nie in den Szenenbaum kamen)
           if grep -E "ERROR|Unhandled exception|leaked" start.log; then
             echo "::error::Das exportierte Spiel meldet Fehler beim Start"
             # Die Fundstellen mit Folgezeilen zusätzlich als Anmerkung: Sie stehen oben in der Zusammenfassung
             # des Laufs und sind über die API lesbar, ohne das ganze Protokoll zu laden.
-            grep -E -A6 "ERROR|Unhandled exception|leaked" start.log | head -60 \
+            grep -E -B2 -A12 "ERROR|Unhandled exception|leaked|=== zweiter Start" start.log | head -120 \
               | sed -e 's/%/%25/g' -e 's/\r//g' | awk 'BEGIN { ORS = "%0A" } { print }' > anmerkung.txt
             echo "::error title=Rauchtest – Fundstellen::$(cat anmerkung.txt)"
             exit 1
