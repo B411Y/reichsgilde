@@ -1,5 +1,5 @@
 {
-  "version": 30,
+  "version": 31,
   "gesundheit": {
     "medicusKosten": 120,
     "medicusKostenPest": 300,
@@ -833,6 +833,16 @@
       "privilegien": "Höchster Stand der Reichsstadt"
     }
   ],
+  "wohnen": {
+    "bauzeitMinuten": 240,
+    "stufen": [
+      { "name": "Fachwerkhaus", "ausbau": 0, "unterhalt": 0, "ansehen": 0, "abStand": 0 },
+      { "name": "Bürgerhaus", "ausbau": 1500, "unterhalt": 30, "ansehen": 2, "abStand": 1 },
+      { "name": "Steinhaus", "ausbau": 4000, "unterhalt": 80, "ansehen": 4, "abStand": 2 },
+      { "name": "Stadtpalais", "ausbau": 10000, "unterhalt": 200, "ansehen": 6, "abStand": 3 },
+      { "name": "Hof", "ausbau": 25000, "unterhalt": 500, "ansehen": 8, "abStand": 4 }
+    ]
+  },
   "schulden": {
     "jahreBisBankrott": 3
   },

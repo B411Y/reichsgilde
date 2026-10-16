@@ -69,6 +69,9 @@ public sealed class Stadtwirtschaft
     /// <summary>Konfessionen, Glaubensnähe im Rat, Bekehrung und Stadtglaube.</summary>
     public Glaube.Glaubenswesen Glaube { get; }
 
+    /// <summary>Wohnhäuser der Häuser (Stufe, Ausbau, Unterhalt, Pflicht für den Stand).</summary>
+    public Wohnen.Wohnungswesen Wohnen { get; }
+
     /// <summary>Völkerbonus als Faktor auf die Leistung: 1 + Bonus des Berufs für das Volk des Oberhaupts (1 ohne Familie).</summary>
     public double VolksFaktor(Konto konto, string beruf) => 1 + VolksBonus(konto, beruf);
 
@@ -255,6 +258,7 @@ public sealed class Stadtwirtschaft
         Bank = new Bank.Bankwesen(this, daten.Geldleiher, zufallsstartwert);
         Duft = new Duft.Duftwesen(this, daten.Parfum, zufallsstartwert);
         Glaube = new Glaube.Glaubenswesen(this, daten.Glaube, zufallsstartwert);
+        Wohnen = new Wohnen.Wohnungswesen(this, daten.Wohnen);
         Gesundheit = new Gesundheitswesen(this, daten.Gesundheit, zufallsstartwert);
         Gastwirtschaft = new Gastwirtschaft(this, daten.Gastwirtschaft);
         Kirchenwesen = new Kirche.Kirchenwesen(this, daten.Kirche, zufallsstartwert);
@@ -436,6 +440,8 @@ public sealed class Stadtwirtschaft
         foreach (var karren in _alleKarren)
             karren.Tick(zeit, this);
 
+        Wohnen.Minute(zeit); // fertige Ausbauten der Wohnhäuser
+
         // Bürger-KI: Die Einwohner planen jede volle Stunde ihren Tag (lesen nur, eigener Zufall).
         Einwohnerschaft.Minute(zeit);
     }
@@ -466,6 +472,7 @@ public sealed class Stadtwirtschaft
         Justiz.Gerichtstag(); // vor dem Amtseinkommen: Wer verurteilt wird, verliert Amt und Einkommen
         Rat.EinkommenZahlen();
         Familien.UnterhaltZahlen();
+        Wohnen.UnterhaltZahlen(); // Unterhalt der Wohnhäuser, mit den Haushaltskosten
         Glaube.AbgabenZahlen(); // Glaubenszins der Andersgläubigen – noch ins alte Jahr
         Bank.Jahresende(); // Ausfälle, Zins und Rate der Kredite – noch in die alte Jahresrechnung
         foreach (var konto in _konten)
@@ -575,6 +582,8 @@ public sealed class Stadtwirtschaft
                                              "Nur die Betriebe laufen weiter.");
         if (befehl is StandErwerben)
             return StandErwerbenAusfuehren(absender);
+        if (befehl is WohnhausAusbauen)
+            return Wohnen.Ausbauen(absender, Uhr);
         if (befehl is LiegenschaftErwerben liegenschaft)
             return LiegenschaftErwerbenAusfuehren(absender, liegenschaft.Name);
         if (befehl is AblassKaufen or BeichtgeheimnisBrechen or LehrschriftLesen or HetzschriftVerbreiten && !Kirchenwesen.IstAktiv)
@@ -751,6 +760,8 @@ public sealed class Stadtwirtschaft
             return Befehlsergebnis.Abgelehnt(
                 $"Für den Stand {neu.Name} braucht es {Zahlenformat.Ganz(neu.Schwelle)} {waehrung} Vermögen – " +
                 $"es fehlen noch {Zahlenformat.Ganz(neu.Schwelle - konto.Reinvermoegen)} {waehrung}.");
+        if (Wohnen.StandVerboten(konto, konto.Stand + 1) is { } ohneHaus)
+            return Befehlsergebnis.Abgelehnt(ohneHaus);
 
         konto.Standesgebuehr(neu.Gebuehr);
         konto.Stand++;
@@ -982,6 +993,7 @@ public sealed class Stadtwirtschaft
         _reihenfolge = new Zufallsquelle(_reihenfolge.Startwert, s.ReihenfolgeWuerfe);
 
         _konten.AddRange(s.Konten.Select(Konto.Wiederherstellen));
+        Wohnen.AlteStaendeErgaenzen(_konten.Where((_, i) => s.Konten[i].WohnhausStufe is null));
         foreach (var bs in s.Betriebe)
         {
             var betrieb = new Betrieb(bs.Name, bs.Art, _konten[bs.Konto], Daten);

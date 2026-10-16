@@ -18,7 +18,7 @@ static class RatTests
     {
         var k = w.KontoEroeffnen(name, startvermoegen: 1_000_000);
         for (var i = 0; i < stand; i++)
-            Pruefe.Wahr(w.Ausfuehren(k, new StandErwerben()).Erfolg, "Aufstieg fehlgeschlagen");
+            Pruefe.Wahr(w.Ausfuehren(Wohnhaushilfe.MitWohnhaus(w, k), new StandErwerben()).Erfolg, "Aufstieg fehlgeschlagen");
         k.Schaden(k.Vermoegen - vermoegen);
         return k;
     }

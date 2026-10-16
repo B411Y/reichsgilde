@@ -460,6 +460,12 @@ public sealed record KontoStand
     public bool IstErloschen { get; init; }
     public int Aktionspunkte { get; init; }
 
+    /// <summary>Stufe des Wohnhauses (null in Spielständen von vor dem Wohnhaus – dann die Stufe, die der Stand verlangt).</summary>
+    public int? WohnhausStufe { get; init; }
+
+    /// <summary>Laufender Ausbau des Wohnhauses: Spielminute, ab der die nächste Stufe gilt.</summary>
+    public long? WohnhausFertigAb { get; init; }
+
     /// <summary>Beherrschte Handwerke (null in alten Spielständen – dann die Berufe der eigenen Betriebe).</summary>
     public List<string>? Berufe { get; init; }
 

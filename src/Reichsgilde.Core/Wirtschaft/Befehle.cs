@@ -22,6 +22,9 @@ public abstract record BetriebsBefehl(string Betrieb) : Befehl;
 /// </summary>
 public sealed record StandErwerben : Befehl;
 
+/// <summary>Das eigene Wohnhaus um eine Stufe ausbauen (z. B. Fachwerkhaus → Bürgerhaus). Kostet Gulden und Bauzeit.</summary>
+public sealed record WohnhausAusbauen : Befehl;
+
 /// <summary>
 /// Eine freie Werkstatt kaufen oder eine Grube pachten (Name aus "liegenschaften").
 /// Voraussetzungen: Mindeststand erreicht, Kaufpreis und die Kosten des ersten Jahres bezahlbar.

@@ -16,9 +16,10 @@ static class KiWerkstattTests
         k.BerufLernen("Schmied");
         w.BetriebEroeffnen("Gießerei Krug", Betriebsart.Giesserei, k);
         w.BetriebEroeffnen("Grube Krug", Betriebsart.Mine, k);
-        Pruefe.Wahr(w.Ausfuehren(k, new StandErwerben()).Erfolg, "Aufstieg zum Bürger");
+        Pruefe.Wahr(w.Ausfuehren(Wohnhaushilfe.MitWohnhaus(w, k), new StandErwerben()).Erfolg, "Aufstieg zum Bürger");
         k.BerufLernen("Wirt");
         Pruefe.Wahr(w.Ausfuehren(k, new LiegenschaftErwerben("Bauernhof an der Mühle")).Erfolg, "Bauernhof pachten");
+        Wohnhaushilfe.MitWohnhaus(w, k); // das Steinhaus steht schon: Die KI steigt gleich zum Patrizier auf
         var ki = w.KiAnmelden(k);
         Pruefe.Gleich(ki.BetriebeHoechstens, w.Betriebe.Count(b => b.Konto == k));
         return (w, k, ki);

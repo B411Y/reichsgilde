@@ -21,7 +21,7 @@ static class GerichtTests
     {
         var k = w.KontoEroeffnen(name, startvermoegen: 1_000_000);
         for (var i = 0; i < stand; i++)
-            Pruefe.Wahr(w.Ausfuehren(k, new StandErwerben()).Erfolg, "Aufstieg fehlgeschlagen");
+            Pruefe.Wahr(w.Ausfuehren(Wohnhaushilfe.MitWohnhaus(w, k), new StandErwerben()).Erfolg, "Aufstieg fehlgeschlagen");
         k.Schaden(k.Vermoegen - vermoegen);
         return k;
     }
@@ -143,7 +143,8 @@ static class GerichtTests
             Pruefe.Wahr(zoellner.Ratsherr is not null, "Ein Nachrücker sollte das Amt übernehmen");
             Pruefe.Wahr(w.Rat.LetzteSitzung.Any(t => t.Contains("rückt als Zöllner")), "Nachrücker fehlt im Protokoll");
             Pruefe.Gleich(1404, w.Justiz.PrangerBis(taeter)); // verurteilt am Gerichtstag 1401, am Pranger 1402–1404
-            var ohneSchande = Math.Min(40, taeter.Stand * 8 + taeter.Vermoegen / 1000 * 0.4); // die Buße senkt auch das Vermögen
+            var ohneSchande = Math.Min(40, taeter.Stand * 8 + taeter.Vermoegen / 1000 * 0.4) // die Buße senkt auch das Vermögen
+                              + w.Wohnen.AnsehenBonus(taeter);                                    // das Bürgerhaus bringt Ansehen
             Pruefe.Ungefaehr(ohneSchande - 10, w.Rat.Ansehen(taeter), 1e-9);
             Pruefe.Wahr(w.Rat.Ansehen(taeter) < ansehenVorher - 10, "Pranger");
             Pruefe.Gleich(0.0, w.Rat.Gunst(ratsherr, taeter)); // der bestochene Ratsherr ist abgerückt
@@ -205,7 +206,7 @@ static class GerichtTests
                 SichererSpitzel.Value, new NeuePartie(Startvermoegen: 30_000));
             var w = sim.Wirtschaft!;
             var rivale = w.Konten[1];
-            w.Ausfuehren(spieler, new StandErwerben());
+            w.Ausfuehren(Wohnhaushilfe.MitWohnhaus(w, spieler), new StandErwerben());
             var nachruecker = w.Rat.Ratsherren.Where(r => w.Rat.Aemter.All(a => a.Ratsherr != r)).ToList();
             for (var i = 0; i < 2; i++)
                 w.Ausfuehren(spieler, new Schenken(nachruecker[i].Name, 300));
