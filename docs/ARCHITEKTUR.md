@@ -67,6 +67,8 @@ Alle Zahlen stehen in **`game/data/wirtschaft.json`**, nicht im Code. So lässt 
 | `Konto` | Vermögen und Jahresrechnung (Umsatz, Zutaten, Löhne, Fixkosten, Steuer, Schäden). |
 | `Stadtwirtschaft` | Hält alles zusammen, kennt das geltende Fron- und Sklavenstatut und würfelt Ausbrüche und Aufstände. |
 
+**Stadttore** (`logistik.tore`, ab Datenversion 30, `ToreDaten`): Ab `schliessenUm` (20 Uhr) bis Tagesbeginn sind die Tore zu. Nur Umlandkarren müssen hindurch – auf dem Hinweg bei der Ankunft (kurz vor dem Markt), auf dem Rückweg bei der Abfahrt vom Markt. `Karren.DurchsTor`: offen → weiter; zu und Nachtfahrt erlaubt → `torgeld` als Transportkosten; sonst `TorWartenBis` = nächster Tagesbeginn. Hinweg: `Ankunft` wird auf den Morgen verschoben, dann normale Ankunft. Rückweg: Zustand schon `ZumBetrieb`, aber die eigentliche Abfahrt (Eskorte, Überfallwurf) erst am Morgen – das Warten ist sicher. `WartetAmTor(zeit)` ist die Abfrage für Anzeige und Darstellung. Ohne Abschnitt keine Tore (alte Daten und Spielstände laufen wie vorher).
+
 **Fairness:** Kommen mehrere Karren in derselben Minute am Markt an, ist die Reihenfolge jede Minute neu ausgelost. Sonst hätte immer der zuerst eröffnete Betrieb den besseren Preis, im Multiplayer also derjenige, der zuerst beitritt.
 
 **Zufall mit festem Startwert:** Alle Zufallsereignisse kommen aus einem einzigen Zufallsgenerator mit festem Startwert (`Partieeinstellungen.Zufallsstartwert`). Gleicher Startwert und gleiche Eingaben ergeben exakt denselben Spielverlauf. Das ist die Voraussetzung für den Multiplayer, bei dem alle Rechner dasselbe sehen müssen, und für Tests, die sich wiederholen lassen.
