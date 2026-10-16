@@ -231,6 +231,7 @@ Format: `- PR #Nummer (Phase) – Inhalt`
 - PR #55 (3) – Schattenkanten ohne Treppen: Schattenkarte 8192, Filter Ultra, leichte Weichzeichnung
 - PR #56 (3) – Einstellungen-Fenster: Kantenglättung wählbar (Standard SMAA), Vollbild
 - PR #57 (2) – Bürger-KI: Wege mit Abmarsch und Ankunft, Wohnhäuser und Haushalte, Umland (Weide, Feld, Wald), Dienst in Bürgerhäusern
+- PR #59 (3) – Stadterweiterung: Mauer ±50 m, Westtor, Umland 14 m nach außen (Vorbereitung Passanten)
 
 ### 6b. Offen (eine Zeile je Punkt; erledigt → Zeile löschen und unter 6a eintragen)
 
@@ -337,5 +338,6 @@ Format: `- PR #Nummer (Phase) – Inhalt`
 | Zufall | Fast deterministisch: eigener Generator ×71+53, Rauschen ±20 % auf den Nutzen, Streuung beim Aufwachen; Stammschänke und Stammkirche fest nach der Nummer. | 15.10.2026 |
 | Rechenzeit | Höchstens **+25 %** auf `messen 30 20` (Ausgangswert 16 s je Charakter). | 15.10.2026 |
 | Passanten | Die Einwohner **laufen sichtbar** durch Stadt und Umland. **Der Kern legt Wege mit Zeiten fest** (Abmarsch, Ankunft), die Darstellung zeichnet die Figuren entlang der Gassen; gebaut vom Darstellungs-Chat. So passt das Bild zur Zählung (PR #57). | 16.10.2026 |
+| Stadterweiterung | **Die Stadt wächst ringsum** von 72 auf 100 m (Mauer ±50), **Westtor** mit Weststraße für spätere Erweiterungen. Innen bleibt alles an seinem Platz; alles vor der alten Mauer rückt 14 m nach außen. Der neue Ring ist für die Wohnhäuser der Einwohner; was dort keinen Platz findet, kommt als **Vorstadt vor das Osttor** (Überlauf). Bürger- und Ratsherrenhäuser stehen immer in der Stadt. Einwohner in Schänke und Kirche zeigen die Innenräume erst, wenn die Schänke an die Bürger-KI gekoppelt ist. | 16.10.2026 |
 | Wohnhäuser | **Der Kern vergibt Häuser:** Haushalte zu 4–6 Personen, je Ratsherr ein eigenes Haus, Bürgerhäuser für Kandidaten aus Bürger- und Patrizierfamilien. Die Darstellung stellt die Häuser in die Stadt. | 16.10.2026 |
 | Umland | **Stellen Weide, Feld, Wald**; neue Rollen Feldarbeiter und Holzsammler; Knechte und Mägde dienen in Bürger- und Ratsherrenhäusern. | 16.10.2026 |
