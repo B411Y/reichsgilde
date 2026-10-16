@@ -41,6 +41,8 @@ public sealed class Einwohnerschaft
     private double _einkaufErwartet; // gleitender Mittelwert der Einkaufsstunden eines ganzen Tages
     private readonly int[] _einkehrTage = new int[24]; // wie oft das Übliche schon gelernt wurde (siehe Lernen)
     private int _messeTage;
+    private readonly double[] _passantenErwartet = new double[24]; // üblich Passanten je Uhrzeit (Taschendiebe)
+    private readonly int[] _passantenTage = new int[24];
     private int _einkaufTage;
 
     public Einwohnerschaft(Stadtwirtschaft w, BuergerDaten? daten, int zufallsstartwert)
@@ -284,6 +286,54 @@ public sealed class Einwohnerschaft
         Lernen(ref _messeErwartet, ref _messeTage, betende);
         _betendeHeute = 0;
         return 1 - k + k * faktor;
+    }
+
+    /// <summary>
+    /// Wer in der Stunde, die gerade endet, draußen in der Stadt war – Beute für Taschendiebe: am Markt, in den Gassen
+    /// oder in dieser Stunde unterwegs (nicht im Umland). Gezählt wird zur vollen Stunde, bevor die Einwohner neu planen.
+    /// </summary>
+    public IEnumerable<Einwohner> Passanten
+    {
+        get
+        {
+            var stundenbeginn = _w.Uhr.VergangeneMinuten - 60;
+            return _einwohner.Where(e => e.Ort is Stadtort.Markt or Stadtort.Gasse
+                                         || e.Weg is { } w && w.Abmarsch >= stundenbeginn
+                                            && w.Von.Ort != Stadtort.Umland && w.Nach.Ort != Stadtort.Umland);
+        }
+    }
+
+    /// <summary>Wie viele Passanten zu dieser Uhrzeit üblich sind (gleitender Mittelwert; 0 = noch keine Erfahrung).</summary>
+    public double PassantenErwartet(int stunde) => _passantenErwartet[stunde];
+
+    /// <summary>
+    /// Faktor auf die Beute der Taschendiebe (aus <see cref="Gauner.Diebeswesen"/>, einmal je volle Stunde):
+    /// (1 − k) + k × Passanten ÷ üblich zu dieser Uhrzeit, begrenzt auf 1 ± spanne. Ohne Kopplung genau 1.
+    /// </summary>
+    internal double Diebesfaktor(int stunde)
+    {
+        var k = IstAktiv && _gegruendet ? Daten.Kopplung.Diebe : 0;
+        if (k <= 0) return 1;
+        var kd = Daten.Kopplung;
+        var passanten = (double)Passanten.Count();
+        var erwartet = _passantenErwartet[stunde];
+        var faktor = erwartet > 0 ? Math.Clamp(passanten / erwartet, 1 - kd.Spanne, 1 + kd.Spanne) : 1;
+        Lernen(ref _passantenErwartet[stunde], ref _passantenTage[stunde], passanten);
+        return 1 - k + k * faktor;
+    }
+
+    /// <summary>
+    /// Ein Taschendieb wird erwischt: Wem hat er in die Tasche gegriffen? Ein Passant dieser Stunde (eigener Zufall der Bürger),
+    /// dessen Versorgung dringender wird – er muss nachkaufen. Null ohne Kopplung oder ohne Passanten.
+    /// </summary>
+    internal Einwohner? Bestohlen()
+    {
+        if (!IstAktiv || !_gegruendet || Daten.Kopplung.Diebe <= 0) return null;
+        var passanten = Passanten.ToList();
+        if (passanten.Count == 0) return null;
+        var opfer = passanten[_zufall.Next(passanten.Count)];
+        opfer.Setzen(Beduerfnis.Versorgung, opfer.Wert(Beduerfnis.Versorgung) + Daten.Kopplung.Bestohlen);
+        return opfer;
     }
 
     /// <summary>Wer in der Stunde, die gerade endet, am Markt einkaufte.</summary>
@@ -652,6 +702,8 @@ public sealed class Einwohnerschaft
         EinkaufFach = _einkaufFach,
         EinkaufErwartet = _einkaufErwartet,
         Gelernt = _einkehrTage.Append(_messeTage).Append(_einkaufTage).ToList(),
+        PassantenErwartet = _passantenErwartet.ToList(),
+        PassantenGelernt = _passantenTage.ToList(),
         Einwohner = _einwohner.Select(e => new EinwohnerStand
         {
             Nummer = e.Nummer,
@@ -695,6 +747,8 @@ public sealed class Einwohnerschaft
         for (var i = 0; i < _einkehrTage.Length; i++) _einkehrTage[i] = Tage(i, _einkehrErwartet[i]);
         _messeTage = Tage(24, _messeErwartet);
         _einkaufTage = Tage(25, _einkaufErwartet);
+        for (var i = 0; i < s.PassantenErwartet.Count && i < _passantenErwartet.Length; i++) _passantenErwartet[i] = s.PassantenErwartet[i];
+        for (var i = 0; i < s.PassantenGelernt.Count && i < _passantenTage.Length; i++) _passantenTage[i] = s.PassantenGelernt[i];
         _einwohner.Clear();
         foreach (var x in s.Einwohner)
         {
@@ -757,6 +811,9 @@ public sealed record EinwohnerschaftStand
     public double EinkaufErwartet { get; init; }
     /// <summary>Wie oft das Übliche gelernt wurde: 24 Uhrzeiten der Schänke, dann Messe, dann Markt.</summary>
     public List<int> Gelernt { get; init; } = new();
+    /// <summary>Üblich Passanten je Uhrzeit 0–23 und wie oft gelernt (leer in älteren Spielständen).</summary>
+    public List<double> PassantenErwartet { get; init; } = new();
+    public List<int> PassantenGelernt { get; init; } = new();
     public List<EinwohnerStand> Einwohner { get; init; } = new();
 }
 
