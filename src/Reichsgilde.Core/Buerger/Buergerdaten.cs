@@ -129,19 +129,19 @@ public sealed class KopplungDaten
 public sealed class WegeDaten
 {
     /// <summary>Ein Weg innerhalb der Stadt dauert im Mittel so lange …</summary>
-    public int Stadt { get; init; } = 10;
+    public int Stadt { get; init; } = 30;
 
     /// <summary>… plus/minus so viel (fest je Einwohner und Stunde ausgewürfelt).</summary>
-    public int Streuung { get; init; } = 5;
+    public int Streuung { get; init; } = 10;
 
     /// <summary>Weg zum oder vom Stadttor.</summary>
-    public int Tor { get; init; } = 15;
+    public int Tor { get; init; } = 40;
 
     /// <summary>Weg ins oder aus dem Umland (durch das Tor hinaus).</summary>
-    public int Umland { get; init; } = 30;
+    public int Umland { get; init; } = 50;
 
     /// <summary>Nicht alle laufen zur vollen Stunde los: Abmarsch 0 bis so viele Minuten danach.</summary>
-    public int Verzoegerung { get; init; } = 10;
+    public int Verzoegerung { get; init; } = 9;
 }
 
 /// <summary>Wie ein Bedürfnis über den Tag wächst.</summary>
