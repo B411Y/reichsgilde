@@ -188,8 +188,12 @@ public sealed class Kirchenwesen
     internal void Stunde(Spielzeit zeit)
     {
         if (!IstAktiv || zeit.UhrzeitInMinuten / 60 != Daten.MesseUm) return;
-        foreach (var (b, (glaeubige, kollekte)) in Verteilen(Kirchen))
+        // Bürger-KI: Wie viele Einwohner zur Messe in den Kirchen waren, verschiebt Gläubige und Kollekte (Faktor um 1).
+        // Ohne Kopplung (Abschnitt „buerger" oder „kopplung.kirche" fehlt) ist der Faktor genau 1.
+        var faktor = _w.Einwohnerschaft.Messefaktor();
+        foreach (var (b, (g0, k0)) in Verteilen(Kirchen))
         {
+            var (glaeubige, kollekte) = faktor == 1 ? (g0, k0) : (g0 * faktor, k0 * faktor);
             if (glaeubige <= 0) continue;
             b.Konto.Umsatz(kollekte); // Spenden sind steuerfrei
             var buch = DiesesJahr(b);
