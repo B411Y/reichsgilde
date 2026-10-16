@@ -72,15 +72,15 @@ public partial class Stadtansicht
               Teil(a, s + new Vector3(0, 3.75f, -3.25f), new Vector3(1.9f, 0.08f, 0.08f), dunkel));
         Ab(4, Wappen(a, s + new Vector3(0, 2.8f, -3.2f), gold, hausfarbe));
         // Kronleuchter über dem Tisch – brennt, sobald er hängt
-        Ab(3, Rund(a, s + new Vector3(0.4f, 3.3f, 0), 0.65f, 0.06f, eisen, segmente: 16),
-              Teil(a, s + new Vector3(0.4f, 3.85f, 0), new Vector3(0.04f, 1.1f, 0.04f), eisen));
+        Ab(3, Rund(a, s + new Vector3(0.4f, 3.0f, 0), 0.65f, 0.06f, eisen, segmente: 16),
+              Teil(a, s + new Vector3(0.4f, 3.65f, 0), new Vector3(0.04f, 1.3f, 0.04f), eisen));
         for (var i = 0; i < 6; i++)
         {
             var winkel = i * Mathf.Tau / 6;
-            var ort = s + new Vector3(0.4f + 0.6f * Mathf.Cos(winkel), 3.42f, 0.6f * Mathf.Sin(winkel));
+            var ort = s + new Vector3(0.4f + 0.6f * Mathf.Cos(winkel), 3.12f, 0.6f * Mathf.Sin(winkel));
             Ab(3, Rund(a, ort, 0.04f, 0.18f, Material(Leinen), segmente: 6), Teil(a, ort + new Vector3(0, 0.13f, 0), new Vector3(0.05f, 0.08f, 0.05f), kerze));
         }
-        FeuerAnlegen(a, s + new Vector3(0.4f, 3.0f, 0), null, lichtAn: 1.1f, lichtAus: 0, an: () => konto.WohnhausStufe >= 3, reichweite: 7);
+        FeuerAnlegen(a, s + new Vector3(0.4f, 2.7f, 0), null, lichtAn: 1.1f, lichtAus: 0, an: () => konto.WohnhausStufe >= 3, reichweite: 7);
 
         // ── Kontor ──
         Ab(1, Teil(a, k + new Vector3(0, 0.11f, 0.4f), new Vector3(3.2f, 0.02f, 2.6f), teppich));
@@ -102,7 +102,7 @@ public partial class Stadtansicht
         });
     }
 
-    /// <summary>Wappenschild: goldener Rand, innen die Hausfarbe, unten spitz (zwei gedrehte Quader).</summary>
+    /// <summary>Wappenschild: goldener Rand, innen die Hausfarbe mit goldenem Schrägbalken, unten spitz (gedrehte Quader).</summary>
     private Node3D Wappen(InnenAnsicht a, Vector3 ort, StandardMaterial3D gold, StandardMaterial3D farbe)
     {
         var g = new Node3D { Position = a.Mitte + ort };
@@ -111,6 +111,7 @@ public partial class Stadtansicht
         Quader(new Vector3(0, -0.3f, 0), new Vector3(0.56f, 0.56f, 0.04f), gold, g).RotationDegrees = new Vector3(0, 0, 45);
         Quader(new Vector3(0, 0.1f, 0.02f), new Vector3(0.66f, 0.58f, 0.04f), farbe, g);
         Quader(new Vector3(0, -0.28f, 0.02f), new Vector3(0.44f, 0.44f, 0.04f), farbe, g).RotationDegrees = new Vector3(0, 0, 45);
+        Quader(new Vector3(0, 0, 0.04f), new Vector3(0.14f, 0.85f, 0.04f), gold, g).RotationDegrees = new Vector3(0, 0, 40);
         return g;
     }
 }
