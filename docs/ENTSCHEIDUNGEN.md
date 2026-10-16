@@ -237,6 +237,7 @@ Format: `- PR #Nummer (Phase) – Inhalt`
 - PR #61 (2) – Bürger-KI: Gläubige und Kollekte der Messe folgen den Gebetsstunden der Einwohner; Betende verteilen sich nach Anziehung auf die Kirchen ihrer Konfession
 - PR #62 (3) – Leveldesign: fünfter Chat, Kartenregeln (`docs/LEVELDESIGN.md`), Entscheidungen zu Städten, Wohnhaus, Bauzonen, Toren, Wasser
 - PR #63 (2) – Bürger-KI: Nachfrage der Fertigwaren folgt den Einkäufen der Einwohner (Faktor 0,8–1,2, gleitend über 17 Stunden); das Übliche schwingt ohne den ersten Tag ein
+- PR #65 (–) – Andockstellen der Spiel-KI: je Teilsystem ein Faktor oder Aufruf erlaubt
 
 ### 6b. Offen (eine Zeile je Punkt; erledigt → Zeile löschen und unter 6a eintragen)
 
@@ -374,3 +375,9 @@ Format: `- PR #Nummer (Phase) – Inhalt`
 | Fahrzeit | **Nur aus der Weglänge**, keine Zielzeit. Damit ist die Kartengröße ein Balancing-Wert; jede Karte braucht eine Messung durch den Kern. | 16.10.2026 |
 | Tore | **Schließen nachts** (Dunkle Nacht, 20 Uhr). Umsetzung im Kern. | 16.10.2026 |
 | Wasser | **Flüsse, Häfen und Brücken** gehören zu den Karten. Häfen werden jetzt mitgeplant, ihre Mechanik (Schiffe, Stapel) kommt später. | 16.10.2026 |
+
+## 18. Andockstellen der Spiel-KI
+
+| Thema | Entscheidung | Datum |
+|---|---|---|
+| Andockstellen | Neben `Stadtwirtschaft.cs`, `wirtschaft.json` und `Speicherstand.cs` darf der Spiel-KI-Chat **je Teilsystem des Kerns einen Faktor oder Aufruf** setzen, über den die Bürger wirken (wie schon in Gastwirtschaft, Kirchenwesen, Markt). Ohne Abschnitt `buerger` bleibt jeder Faktor 1 – Messungen bleiben gleich. Regel an die gelebte Praxis angepasst. | 16.10.2026 |
