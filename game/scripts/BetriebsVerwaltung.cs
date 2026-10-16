@@ -80,6 +80,11 @@ public partial class BetriebsVerwaltung : VBoxContainer
     public event Action<Betrieb>? HandelGewuenscht;
     private Button _handelKnopf = null!;
 
+    /// <summary>Der Spieler will den Betrieb verkaufen bzw. die Pacht kündigen (öffnet die Rückfrage).</summary>
+    public event Action<Betrieb>? VerkaufGewuenscht;
+    private Button _verkaufKnopf = null!;
+    private Label _verkaufText = null!;
+
     public override void _Ready()
     {
         AddThemeConstantOverride("separation", 6);
@@ -216,6 +221,17 @@ public partial class BetriebsVerwaltung : VBoxContainer
         _handelKnopf.Pressed += () => { if (_betrieb is not null) HandelGewuenscht?.Invoke(_betrieb); };
         kauf.AddChild(_handelKnopf);
 
+        // Verkaufen bzw. Pacht kündigen – erst nach einer Rückfrage (VerkaufAnzeige). Gesperrt mit Grund aus dem Kern.
+        var verkauf = Zeile(this);
+        _verkaufKnopf = new Button { FocusMode = FocusModeEnum.None };
+        _verkaufKnopf.AddThemeFontSizeOverride("font_size", 13);
+        _verkaufKnopf.Pressed += () => { if (_betrieb is not null) VerkaufGewuenscht?.Invoke(_betrieb); };
+        verkauf.AddChild(_verkaufKnopf);
+        _verkaufText = NeuesLabel(verkauf, 12, Grau);
+        _verkaufText.SizeFlagsHorizontal = SizeFlags.ExpandFill;
+        _verkaufText.AutowrapMode = TextServer.AutowrapMode.WordSmart;
+        _verkaufText.CustomMinimumSize = new Vector2(220, 0);
+
         Visible = false;
     }
 
@@ -344,6 +360,24 @@ public partial class BetriebsVerwaltung : VBoxContainer
         }
         _kaufenKnopf.Disabled = b.Konto.Vermoegen < w.Daten.Logistik.Karren[_karrenTypen[Math.Max(0, _karrenTyp.Selected)]].Preis;
         _handelKnopf.Visible = w.Daten.Handel is not null && b.Karren.Count > 0;
+        VerkaufAktualisieren(b, w);
+    }
+
+    /// <summary>„Verkaufen …“ bzw. „Pacht kündigen …“ – gesperrt, solange der Kern einen Grund nennt (letzter Betrieb, Umbau, Karren unterwegs).</summary>
+    private void VerkaufAktualisieren(Betrieb b, Stadtwirtschaft w)
+    {
+        var pacht = w.Betriebswert(b) <= 0;
+        var knopf = pacht ? "Pacht kündigen …" : "Verkaufen …";
+        if (_verkaufKnopf.Text != knopf) _verkaufKnopf.Text = knopf;
+        var grund = w.VerkaufVerboten(_spieler!, b);
+        _verkaufKnopf.Disabled = grund is not null;
+        var tipp = grund ?? (pacht
+            ? "Die Pacht kündigen: Personal und Karren gehen mit, die Lagerware wird mitverkauft. Vorher kommt eine Rückfrage."
+            : $"Das Haus bringt {Zahlenformat.Ganz(w.Daten.Verkauf.Anteil * 100)} % seines Werts, Personal, Wächter und Karren gehen mit, " +
+              "die Lagerware wird mitverkauft. Vorher kommt eine Rückfrage mit allen Zahlen.");
+        if (_verkaufKnopf.TooltipText != tipp) _verkaufKnopf.TooltipText = tipp;
+        var text = grund ?? "";
+        if (_verkaufText.Text != text) _verkaufText.Text = text;
     }
 
     /// <summary>Gästebuch, Ausschank-Vorrat, Barde, Würfeltisch, Stammtisch und dunkle Ecke einer Schänke.</summary>
