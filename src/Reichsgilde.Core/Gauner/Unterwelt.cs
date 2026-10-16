@@ -138,6 +138,57 @@ public sealed class Unterwelt
     private double SabotageSchaden(Betrieb b) =>
         Daten.Sabotage.Reparatur + Daten.Sabotage.StillstandMinuten * Math.Max(0, Kalkulation.WertJeArbeitsminute(_w, b));
 
+    // ── Gegen das Wohnhaus ───────────────────────────────────────────────────
+
+    /// <summary>Gibt es Gaunerstücke gegen Wohnhäuser? (Abschnitt gauner.wohnhaus und Wohnhäuser in der Stadt.)</summary>
+    public bool GegenWohnhaus => _d?.Wohnhaus is not null && _w.Wohnen.IstAktiv;
+
+    /// <summary>
+    /// Erfolgschance von Einbruch oder Brand am Wohnhaus dieses Hauses. Ein Hauswächter halbiert sie, die Streife
+    /// der Wache wirkt wie bei Betrieben in der Stadt, „Bei Nacht und Nebel“ des Auftraggebers hebt sie.
+    /// </summary>
+    public double ErfolgschanceWohnhaus(Gaunerstueck art, Konto ziel, Konto? auftraggeber = null)
+    {
+        var wh = Daten.Wohnhaus ?? throw new InvalidOperationException("Es gibt keine Gaunerstücke gegen Wohnhäuser.");
+        var grund = art == Gaunerstueck.Brandstiftung ? wh.Brand.Chance : wh.Einbruch.Chance;
+        var schutz = ziel.Hauswaechter ? Daten.WaechterSchutz : 1;
+        var nacht = auftraggeber is null ? 0 : _w.Familien.NachtBonus(auftraggeber);
+        return Math.Min(0.95, grund * schutz + nacht) * _w.Wache.Patrouillefaktor(null);
+    }
+
+    /// <summary>Was ein Einbruch ins Wohnhaus holt: ein Anteil vom Bargeld, höchstens <c>hoechstensJeStufe</c> × (Stufe + 1).</summary>
+    public double Hausbeute(Konto ziel)
+    {
+        var e = Daten.Wohnhaus!.Einbruch;
+        return Math.Min(e.Anteil * Math.Max(0, ziel.Vermoegen), e.HoechstensJeStufe * (ziel.WohnhausStufe + 1));
+    }
+
+    /// <summary>Reparatur nach einem Brand am Wohnhaus (Anteil vom Ausbaupreis der Stufe, mindestens <c>mindestReparatur</c>).</summary>
+    public double Brandschaden(Konto ziel)
+    {
+        var b = Daten.Wohnhaus!.Brand;
+        return Math.Max(b.MindestReparatur, b.ReparaturAnteil * (_w.Wohnen.Stufe(ziel)?.Ausbau ?? 0));
+    }
+
+    /// <summary>Was ein Einbruch ins Wohnhaus im Mittel einbringt: Beute × Chance − Kosten (Bargeld braucht keinen Hehler).</summary>
+    public double ErwarteterHausgewinn(Konto ziel, Konto? auftraggeber = null) =>
+        Hausbeute(ziel) * ErfolgschanceWohnhaus(Gaunerstueck.Hauseinbruch, ziel, auftraggeber) - Kosten(Gaunerstueck.Hauseinbruch, auftraggeber);
+
+    /// <summary>Unter diesem Namen merken sich Gericht und Stadt Taten gegen das Wohnhaus eines Hauses.</summary>
+    public static string WohnhausVon(Konto k) => $"Wohnhaus von {k.Inhaber}";
+
+    /// <summary>In welchem Jahr das Wohnhaus dieses Hauses zuletzt angegriffen wurde (öffentlich).</summary>
+    public int? LetzterAngriffWohnhaus(Konto k) => LetzterAngriff(WohnhausVon(k));
+
+    /// <summary>Zeugenchance am Wohnhaus – wie im Betrieb, mit Hauswächter statt Betriebswächter.</summary>
+    public double ZeugenchanceWohnhaus(Konto ziel, bool erfolgreich, Konto? auftraggeber = null)
+    {
+        var d = Daten;
+        var chance = (ziel.Hauswaechter ? d.ZeugenChanceWaechter : d.ZeugenChance) + _w.Wache.ZeugenBonusInDerStadt;
+        if (auftraggeber is not null) chance *= _w.Familien.ZeugenFaktor(auftraggeber);
+        return Math.Min(1, erfolgreich ? chance : chance * d.ZeugenFaktorMisserfolg);
+    }
+
     /// <summary>Betriebe im Umland, deren beladene Karren man überfallen könnte.</summary>
     public bool HatUmlandfahrten(Konto ziel) => _w.Betriebe.Any(b => b.Konto == ziel && b.Ort == Arbeitsort.Umland && b.Karren.Count > 0);
 
@@ -174,6 +225,14 @@ public sealed class Unterwelt
                 return Befehlsergebnis.Abgelehnt("Krötenschleim braucht ein Oberhaupt, das krank werden kann.");
             betriebName = null;
         }
+        else if (art is Gaunerstueck.Hauseinbruch or Gaunerstueck.Brandstiftung)
+        {
+            if (!GegenWohnhaus)
+                return Befehlsergebnis.Abgelehnt("In dieser Stadt nimmt keine Bande Aufträge gegen Wohnhäuser an.");
+            if (art == Gaunerstueck.Brandstiftung && _w.Wohnen.IstBeschaedigt(ziel))
+                return Befehlsergebnis.Abgelehnt($"Das Wohnhaus von {ziel.Inhaber} ist vom letzten Brand noch nicht instand gesetzt.");
+            betriebName = null;
+        }
         else if (art == Gaunerstueck.Ueberfall)
         {
             if (!HatUmlandfahrten(ziel))
@@ -197,6 +256,8 @@ public sealed class Unterwelt
         return Befehlsergebnis.Ok($"Die Bande nimmt das Geld ({Zahlenformat.Ganz(kosten)} {waehrung}). " +
                                   (art == Gaunerstueck.Ueberfall ? $"Heute Nacht legen sich Wegelagerer gegen {ziel.Inhaber} auf die Lauer."
                                       : art == Gaunerstueck.Kroetenschleim ? $"Heute Nacht gelangt Krötenschleim in die Küche von {ziel.Inhaber}."
+                                      : art == Gaunerstueck.Hauseinbruch ? $"Heute Nacht um 20 Uhr steigt die Bande ins Wohnhaus von {ziel.Inhaber} ein."
+                                      : art == Gaunerstueck.Brandstiftung ? $"Heute Nacht um 20 Uhr brennt es am Wohnhaus von {ziel.Inhaber}."
                                       : $"{art.Name()} in {betriebName} – heute Nacht um 20 Uhr."));
     }
 
@@ -260,6 +321,8 @@ public sealed class Unterwelt
                 case Gaunerstueck.Diebstahl: Stehlen(a); break;
                 case Gaunerstueck.Sabotage: Sabotieren(a); break;
                 case Gaunerstueck.Kroetenschleim: Vergiften(a); break;
+                case Gaunerstueck.Hauseinbruch: InsHausEinbrechen(a); break;
+                case Gaunerstueck.Brandstiftung: HausAnzuenden(a, zeit); break;
                 default:
                     _hinterhalte.Add(new Hinterhalt(a.Auftraggeber, a.Ziel, zeit.VergangeneMinuten + Daten.Ueberfall.GueltigMinuten));
                     Ereignis(a.Auftraggeber, $"Eure Wegelagerer legen sich gegen {a.Ziel.Inhaber} auf die Lauer – bis morgen Nacht.");
@@ -324,6 +387,50 @@ public sealed class Unterwelt
         Spur(a, Vergehen.Sabotage, b.Name, schaden, b, erfolg, oeffentlich);
     }
 
+    private void InsHausEinbrechen(Gaunerauftrag a)
+    {
+        if (!GegenWohnhaus) return;
+        var ziel = a.Ziel;
+        var haus = _w.Wohnen.Stufe(ziel)!.Name;
+        var erfolg = _zufall.NextDouble() < ErfolgschanceWohnhaus(Gaunerstueck.Hauseinbruch, ziel, a.Auftraggeber);
+        double beute = 0;
+        string oeffentlich;
+        if (erfolg && (beute = Hausbeute(ziel)) > 0)
+        {
+            ziel.Schaden(beute);
+            a.Auftraggeber.Gaunerkosten(-beute);
+            oeffentlich = $"Einbruch ins {haus} von {ziel.Inhaber}: {Zahlenformat.Ganz(beute)} {_w.Daten.Allgemein.Waehrung} aus der Truhe gestohlen.";
+            Ereignis(a.Auftraggeber, $"Eure Leute haben im Wohnhaus von {ziel.Inhaber} {Zahlenformat.Ganz(beute)} erbeutet – Bargeld, kein Hehler nötig.");
+        }
+        else if (erfolg)
+            oeffentlich = $"Einbruch ins {haus} von {ziel.Inhaber} – doch die Truhe war leer.";
+        else
+            oeffentlich = $"Einbruchsversuch am {haus} von {ziel.Inhaber} – die Diebe wurden verscheucht{(ziel.Hauswaechter ? " (der Hauswächter war wachsam)" : "")}.";
+        Spur(a, Vergehen.Diebstahl, WohnhausVon(ziel), beute, null, erfolg, oeffentlich, wohnhaus: true);
+    }
+
+    private void HausAnzuenden(Gaunerauftrag a, Spielzeit zeit)
+    {
+        if (!GegenWohnhaus) return;
+        var ziel = a.Ziel;
+        var stufe = _w.Wohnen.Stufe(ziel)!;
+        var brand = Daten.Wohnhaus!.Brand;
+        var erfolg = !_w.Wohnen.IstBeschaedigt(ziel) && _zufall.NextDouble() < ErfolgschanceWohnhaus(Gaunerstueck.Brandstiftung, ziel, a.Auftraggeber);
+        double schaden = 0;
+        string oeffentlich;
+        if (erfolg)
+        {
+            schaden = Brandschaden(ziel);
+            ziel.Schaden(schaden);
+            _w.Wohnen.Brand(ziel, zeit.VergangeneMinuten + brand.InstandMinuten);
+            oeffentlich = $"Feuer am {stufe.Name} von {ziel.Inhaber}! Reparatur {Zahlenformat.Ganz(schaden)} {_w.Daten.Allgemein.Waehrung}" +
+                          (stufe.Ansehen > 0 ? $", bis zur Instandsetzung fehlt das Ansehen des Hauses (−{Zahlenformat.Ganz(stufe.Ansehen)})." : ".");
+        }
+        else
+            oeffentlich = $"Brandanschlag auf das {stufe.Name} von {ziel.Inhaber} vereitelt{(ziel.Hauswaechter ? " – der Hauswächter hat das Feuer bemerkt" : "")}.";
+        Spur(a, Vergehen.Sabotage, WohnhausVon(ziel), schaden, null, erfolg, oeffentlich, wohnhaus: true);
+    }
+
     private void Vergiften(Gaunerauftrag a)
     {
         if (_w.Familien.Von(a.Ziel) is not { } f) return;
@@ -378,11 +485,11 @@ public sealed class Unterwelt
     }
 
     /// <summary>Spur fürs Gericht, öffentliche Nachricht – und vielleicht ein Zeuge, der den Auftraggeber erkannt hat.</summary>
-    private void Spur(Gaunerauftrag a, Vergehen vergehen, string betroffener, double betrag, Betrieb? b, bool erfolg, string oeffentlich)
+    private void Spur(Gaunerauftrag a, Vergehen vergehen, string betroffener, double betrag, Betrieb? b, bool erfolg, string oeffentlich, bool wohnhaus = false)
     {
         _letzterAngriff[betroffener] = _w.Jahr;
         var spur = _w.Justiz.TatMelden(a.Auftraggeber, vergehen, betroffener, betrag);
-        var zeuge = _zufall.NextDouble() < Zeugenchance(b, erfolg, a.Auftraggeber);
+        var zeuge = _zufall.NextDouble() < (wohnhaus ? ZeugenchanceWohnhaus(a.Ziel, erfolg, a.Auftraggeber) : Zeugenchance(b, erfolg, a.Auftraggeber));
         if (zeuge && spur is not null)
         {
             _w.Justiz.BeweisGeben(a.Ziel, spur);

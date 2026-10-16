@@ -466,6 +466,12 @@ public sealed record KontoStand
     /// <summary>Laufender Ausbau des Wohnhauses: Spielminute, ab der die nächste Stufe gilt.</summary>
     public long? WohnhausFertigAb { get; init; }
 
+    /// <summary>Nach einem Brand: Spielminute, bis zu der das Wohnhaus instand gesetzt wird.</summary>
+    public long? WohnhausInstandBis { get; init; }
+
+    /// <summary>Hauswächter am Wohnhaus (fehlt in alten Spielständen = keiner).</summary>
+    public bool Hauswaechter { get; init; }
+
     /// <summary>Beherrschte Handwerke (null in alten Spielständen – dann die Berufe der eigenen Betriebe).</summary>
     public List<string>? Berufe { get; init; }
 
