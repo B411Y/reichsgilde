@@ -169,6 +169,7 @@ Oberfläche / KI ──Befehl──▶ Ausfuehren ──prüft──▶ Betrieb 
 - **Was es zu erwerben gibt**, steht in `wirtschaft.json` (Abschnitt `liegenschaften`: Name, Art, Kaufpreis, Mindeststand). Erworben wird mit dem Befehl `LiegenschaftErwerben(name)`. Die Stadtwirtschaft eröffnet dann einen Betrieb mit genau diesem Namen.
 - **Wo etwas steht**, weiß nur die Darstellung: Der `Stadtplan` in `Stadtansicht.cs` ordnet jedem Betriebsnamen einen Platz zu. Der Simulationskern kennt keine Koordinaten. So bleibt er unabhängig von der Grafik und läuft im Multiplayer genauso auf dem Server.
 - Ein neuer Bauplatz braucht also zwei Einträge: einen in `wirtschaft.json` und einen im `Stadtplan`.
+- **Größe der Stadt:** Die Mauer steht bei ±`Mauerrand` (50 m), Osttor bei (50|0), Westtor bei (−50|6). Die Weststraße führt noch nirgends hin. Bei der Erweiterung von ±36 auf ±50 rückte alles vor der alten Mauer um 14 m nach außen (`NachAussen`, auch für die Bäume, damit der Zufall dieselben liefert); innen blieb alles an seinem Platz, der neue Ring an der Mauer ist für Wohnhäuser frei. Wege zu den Gruben im Norden und Süden führen über Abzweige vor den Mauerecken, damit sie nicht durch die Stadt laufen.
 
 **Lehrstück aus diesem Schritt (Godot):** Ein Knopf darf nicht in jedem Bild kurz unsichtbar und wieder sichtbar geschaltet werden. Godot bricht beim Ausblenden einen laufenden Klick ab, und ein Klick, dessen Drücken und Loslassen in verschiedene Bilder fallen, geht verloren. Deshalb erst alles ausrechnen und dann jede Eigenschaft einmal setzen.
 
