@@ -989,7 +989,7 @@ Was sich lohnt (Chance ohne Wächter und Streife): Ein Einbruch bei einem Haus m
 
 ## Hauswert im Reinvermögen (PR #85)
 
-**Regel:** Reinvermögen = Bargeld + Forderungen − Schulden + Hauswert. Hauswert = Ausbaupreise aller Stufen bis zur jetzigen (Bürgerhaus 1.500, Steinhaus +4.000, Stadtpalais +10.000, Hof +25.000), ein laufender Ausbau zählt schon mit.
+**Regel:** Reinvermögen = Bargeld + Forderungen − Schulden + Hauswert. Hauswert = Ausbaupreise aller Stufen bis zur jetzigen (Bürgerhaus 1.500, Steinhaus +4.000, Stadtpalais +10.000, Stadthof +25.000), ein laufender Ausbau zählt schon mit.
 
 **Messung** (`messen 30 20`, Mensch, gemessen auf main `2cd3222` + PR #85; Reinvermögen Ø am Ende, **jetzt mit Hauswert**, Stand von Haus Eisenbart am Ende):
 

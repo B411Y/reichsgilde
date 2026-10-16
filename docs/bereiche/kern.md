@@ -24,7 +24,6 @@ So wird eingetragen (damit sich die Chats nie an derselben Stelle treffen):
 - (5) Wohnhaus kaufen statt bauen: Leerstand (`Wohnen.Leerstand`) übernehmen und sanieren – zusammen mit Bauzonen und Sanierung
 - (–) Sporadisches Leck beim Beenden im Rauchtest finden: „10 ObjectDB instances leaked“ und „10 RID allocations of type DummyTexture leaked“, im zweiten Start (mit Tafeln), nur auf GitHub, lokal nicht nachzustellen. Der Rauchtest wiederholt solche Funde seit PR #83; die Warnung „1. Versuch“ im Lauf zeigt, wie oft es vorkommt
 - (von Spiel-KI) Wohnhaus und Reinvermögen: Der Ausbau ist eine Ausgabe und zählt nicht zum Reinvermögen. Wer das Haus genau an der Schwelle baut, fällt darunter und kann nicht aufsteigen (KI vor PR #82: Startwert 606 fiel von 91.860 auf 37.583 und blieb Edler). Die KI wartet seit PR #82 auf Schwelle + Ausbau; der Spieler läuft weiter hinein. Vorschlag: Hauswert (ganz oder teilweise) zum Reinvermögen zählen oder die Tafel warnt vor dem Bau
-- (5) (von Leveldesign) Wohnhausstufe „Hof“ in `wirtschaft.json` (Abschnitt `wohnen`) in **„Stadthof“** umbenennen (Entscheidung 16.10.2026, `docs/bereiche/leveldesign.md`)
 
 ## Entscheidungen
 
@@ -68,6 +67,7 @@ So wird eingetragen (damit sich die Chats nie an derselben Stelle treffen):
 | Hauswert | Was in den Ausbau des Wohnhauses geflossen ist, zählt **ganz** zum Reinvermögen – ab der Bezahlung, also schon während des Baus. Grund: Der Ausbau senkte das Reinvermögen, wer an der Schwelle baute, fiel darunter und konnte nicht aufsteigen (gemeldet von Spiel-KI). | 16.10.2026 |
 | Wirkung | Gilt überall, wo das Reinvermögen zählt: Stand, Rangliste, Ansehen, Bußdeckel, Kreditwürdigkeit, Bankrott, Sieg. Bezahlt wird weiter mit Bargeld; Brand und Unterhalt ändern den Hauswert nicht. | 16.10.2026 |
 | KI-Häuser | `KiRivale` spart nur noch auf die Schwelle selbst und baut das Haus, sobald Ausbau, Gebühr und Reserve bar da sind (kleine Änderung im Bereich Spiel-KI, zwei Tests angepasst). | 16.10.2026 |
+| Stadthof | Die oberste Stufe heißt „Stadthof“ statt „Hof“ (Wunsch Leveldesign: Verwechslung mit Bauernhof und Klosterhof). Spielstände speichern nur die Stufennummer, laden also weiter. | 16.10.2026 |
 
 ## Messungen
 
