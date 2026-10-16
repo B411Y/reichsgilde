@@ -134,7 +134,7 @@ python3 tools/karten/koeln.py      # Köln prüfen und neu schreiben
 | `wege` | Name, `klasse` (`land`, `haupt`, `ring`, `wall` = Karrenstraßen; `gasse`, `leinpfad` = nur Fußgänger), `linie`, `gefahr` (Faktor um 1,0, Vorschlag) |
 | `uebergaenge` | `bruecke` oder `faehre` mit `von` und `bis` |
 | `bauzonen` | `kennung`, `art` (`kern`, `mauerring`, `vorstadt`, `umland`), `flaeche` auf dem Raster |
-| `feste` | `kennung`, `art` (`start`, `sonderbau`, `kirche`, `leerstand`), `name`, `punkt`; Startgrundstücke mit `eingang` und `groesse` [Breite, Tiefe] (Vorschlag 16 × 12 m) |
+| `feste` | `kennung`, `art` (`start`, `sonderbau`, `kirche`, `leerstand`), `name`, `punkt`; Startgrundstücke mit `eingang` und `groesse` [Breite, Tiefe] (24 × 14 m: Werkstatt und Wohnhaus nebeneinander) |
 | `vorkommen` | `kennung`, `betrieb` (`Mine`, `Steinbruch`, `Holzschlag`), `punkt` |
 | `fiktion` | Liste der Abweichungen von der Vorlage |
 
@@ -143,10 +143,11 @@ python3 tools/karten/koeln.py      # Köln prüfen und neu schreiben
 - Genau 8 Startgrundstücke, gleich weit vom Markt (±10 %), Eingang an einer Karrenstraße.
 - Jedes Vorkommen liegt an einem Weg.
 - Das Wegenetz hängt zusammen (Kreuzungen, Berührungen, Brücken und Fähren verbinden).
+- **Kapazität** (`tools/karten/kapazitaet.py`): Das Werkzeug setzt die Gebäude probeweise auf das Raster der Stadt-Bauzonen – feste Bauten zuerst, dann die größten Gebäude, jedes möglichst nah an seiner Straße (Werkstatt an einer Karrenstraße, Wohnhaus auch an einer Gasse). **Pflicht** für 8 Häuser: je Haus zwei weitere Werkstätten, dazu die Häuser der Einwohner (13 Ratsherrenhäuser, 3 Bürgerhäuser, 40 Wohnhäuser bei 25 Einwohnern je Haus und Haushalten von im Mittel 5). Passt die Pflicht nicht, bricht das Skript ab. **Reserve** (nur Bericht): je Haus ein Stadtpalais, die Hälfte einen Hof. Das Ergebnis zeigt `docs/karten/<kennung>-belegung.svg`.
 
 Ändert sich das Format, steigt `format`, und der Kern und die Darstellung passen ihre Leser an. Neue Felder ohne Bedeutungsänderung brauchen keine neue Nummer.
 
-**Köln, Format 1 (16.10.2026):** Bauzonen Kernlage 6 (≈ 4.750 m², 1.187 Felder), Mauerring 12 (≈ 8.370 m², 2.091 Felder), Vorstadt Deutz 4 (≈ 3.960 m²), Umland 6 (≈ 39.700 m²); 41 Wege in einem Netz; 10 Vorkommen; Startgrundstücke 94 m vom Markt. **Zu prüfen:** Ob die Stadtfläche für 8 Häuser und die Wohnhäuser der Einwohner reicht, hängt von den Gebäudegrößen ab (noch offen).
+**Köln, Format 1 (16.10.2026):** Bauzonen Kernlage 6 (≈ 4.750 m², 1.187 Felder), Mauerring 12 (≈ 8.370 m², 2.091 Felder), Vorstadt Deutz 4 (≈ 3.960 m²), Umland 6 (≈ 39.700 m²); 41 Wege in einem Netz; 10 Vorkommen; Startgrundstücke 94 m vom Markt. **Kapazität (Gebäudegrößen vom 16.10.2026):** Die Pflicht passt vollständig (16 Werkstätten, 56 Einwohnerhäuser), danach sind noch 2.120 von 4.267 Feldern frei (50 %). Reserve: alle 8 Stadtpalais passen, aber **nur 1 von 4 Höfen**, weil die Kernlage aus schmalen Keilen besteht.
 
 ## 10. Zuständigkeit
 

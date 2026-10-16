@@ -10,7 +10,7 @@ So wird eingetragen (damit sich die Chats nie an derselben Stelle treffen):
 
 ## Offen
 
-- (3) Kapazitätsprüfung im Kartenwerkzeug: Gebäude mit ihren Flächen in die Bauzonen einpassen und prüfen, ob Köln für 8 Häuser und die Einwohner reicht (Überschlag: knapp)
+- (3) Köln: In der Kernlage passt nur 1 Hof (16 × 14 m), weil die Kernzonen schmale Keile sind. Entscheiden: Hof auch im Mauerring erlauben oder die Kernlage breiter machen
 - (3) Deutzer Mauer und Hafenkante als eigene Felder in der Kartendatei
 - (–) Reichskarte zum Wechsel zwischen den Städten (Idee, später)
 
