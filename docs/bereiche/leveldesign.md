@@ -27,7 +27,7 @@ Die Kartenregeln selbst stehen in `docs/LEVELDESIGN.md`.
 | Koordinaten | Meter, x = Osten, z = Süden (−z = Norden), Ursprung am Marktplatz – wie im Spiel. Bauzonen auf dem 2-m-Raster. | 16.10.2026 |
 | Größe Köln | **Mauerhalbkreis mit 150 m Radius** (die Greybox-Stadt misst innen 100 m). | 16.10.2026 |
 
-### Gebäudegrößen (PR #NUMMER)
+### Gebäudegrößen (PR #76)
 
 | Thema | Entscheidung | Datum |
 |---|---|---|
