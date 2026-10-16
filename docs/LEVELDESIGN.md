@@ -55,7 +55,7 @@ Jedes Haus wohnt in einem **eigenen Wohnhaus**, getrennt von seinen Betrieben. D
 | Bürger | Bürgerhaus |
 | Patrizier | Steinhaus |
 | Edler | Stadtpalais |
-| Freiherr, Reichsgraf | Hof (nur Kern-Zone) |
+| Freiherr, Reichsgraf | Stadthof (Kernlage oder Mauerring) |
 
 Wohnstube und weitere Räume liegen im Wohnhaus. Das Wohnhaus eines erloschenen Hauses wird Leerstand. Umsetzung, Preise und Unterhalt: Kern.
 
@@ -68,7 +68,7 @@ Wohnstube und weitere Räume liegen im Wohnhaus. Das Wohnhaus eines erloschenen 
 | Werkstatt, Stufe 1–3 | 16 × 14 m | 8 × 7 = 56 | Stufe 1 → 2 → 3; **jede Stufe sichtbar größer** (Anbau, Hof), alles innerhalb der Fläche |
 | Fachwerkhaus → Bürgerhaus → Steinhaus | 8 × 10 m | 4 × 5 = 20 | Gemeiner bis Patrizier am selben Platz |
 | Stadtpalais (Edler) | 12 × 10 m | 6 × 5 = 30 | **neuer Bau** an anderer Stelle oder Abriss und Neubau |
-| Hof (Freiherr, Reichsgraf) | 16 × 14 m | 8 × 7 = 56 | **neuer Bau**, nur Kernlage; Palais → Hof am selben Platz nur, wenn die Fläche des Hofs schon belegt war |
+| Stadthof (Freiherr, Reichsgraf) | 16 × 14 m | 8 × 7 = 56 | **neuer Bau** in Kernlage oder Mauerring; Palais → Stadthof am selben Platz nur, wenn die Fläche des Stadthofs schon belegt war |
 | Einwohnerhäuser | 6 × 6 / 8 × 8 / 8 × 8 m | 9 / 16 / 16 | – (Wohnhaus, Bürgerhaus, Ratsherrenhaus) |
 | Mine, Steinbruch, Holzschlag, Gärten | 16 × 14 m | 8 × 7 = 56 | – |
 | Klosterhof / Bauernhof | 18 × 16 / 20 × 16 m | 72 / 80 | – |
@@ -143,11 +143,11 @@ python3 tools/karten/koeln.py      # Köln prüfen und neu schreiben
 - Genau 8 Startgrundstücke, gleich weit vom Markt (±10 %), Eingang an einer Karrenstraße.
 - Jedes Vorkommen liegt an einem Weg.
 - Das Wegenetz hängt zusammen (Kreuzungen, Berührungen, Brücken und Fähren verbinden).
-- **Kapazität** (`tools/karten/kapazitaet.py`): Das Werkzeug setzt die Gebäude probeweise auf das Raster der Stadt-Bauzonen – feste Bauten zuerst, dann die größten Gebäude, jedes möglichst nah an seiner Straße (Werkstatt an einer Karrenstraße, Wohnhaus auch an einer Gasse). **Pflicht** für 8 Häuser: je Haus zwei weitere Werkstätten, dazu die Häuser der Einwohner (13 Ratsherrenhäuser, 3 Bürgerhäuser, 40 Wohnhäuser bei 25 Einwohnern je Haus und Haushalten von im Mittel 5). Passt die Pflicht nicht, bricht das Skript ab. **Reserve** (nur Bericht): je Haus ein Stadtpalais, die Hälfte einen Hof. Das Ergebnis zeigt `docs/karten/<kennung>-belegung.svg`.
+- **Kapazität** (`tools/karten/kapazitaet.py`): Das Werkzeug setzt die Gebäude probeweise auf das Raster der Stadt-Bauzonen – feste Bauten zuerst, dann die größten Gebäude, jedes möglichst nah an seiner Straße (Werkstatt an einer Karrenstraße, Wohnhaus auch an einer Gasse). **Pflicht** für 8 Häuser: je Haus zwei weitere Werkstätten, dazu die Häuser der Einwohner (13 Ratsherrenhäuser, 3 Bürgerhäuser, 40 Wohnhäuser bei 25 Einwohnern je Haus und Haushalten von im Mittel 5). Passt die Pflicht nicht, bricht das Skript ab. **Reserve** (nur Bericht): je Haus ein Stadtpalais, die Hälfte einen Stadthof. Das Ergebnis zeigt `docs/karten/<kennung>-belegung.svg`.
 
 Ändert sich das Format, steigt `format`, und der Kern und die Darstellung passen ihre Leser an. Neue Felder ohne Bedeutungsänderung brauchen keine neue Nummer.
 
-**Köln, Format 1 (16.10.2026):** Bauzonen Kernlage 6 (≈ 4.750 m², 1.187 Felder), Mauerring 12 (≈ 8.370 m², 2.091 Felder), Vorstadt Deutz 4 (≈ 3.960 m²), Umland 6 (≈ 39.700 m²); 41 Wege in einem Netz; 10 Vorkommen; Startgrundstücke 94 m vom Markt. **Kapazität (Gebäudegrößen vom 16.10.2026):** Die Pflicht passt vollständig (16 Werkstätten, 56 Einwohnerhäuser), danach sind noch 2.120 von 4.267 Feldern frei (50 %). Reserve: alle 8 Stadtpalais passen, aber **nur 1 von 4 Höfen**, weil die Kernlage aus schmalen Keilen besteht.
+**Köln, Format 1 (16.10.2026):** Bauzonen Kernlage 6 (≈ 4.750 m², 1.187 Felder), Mauerring 12 (≈ 8.370 m², 2.091 Felder), Vorstadt Deutz 4 (≈ 3.960 m²), Umland 6 (≈ 39.700 m²); 41 Wege in einem Netz; 10 Vorkommen; Startgrundstücke 94 m vom Markt. **Kapazität (Gebäudegrößen vom 16.10.2026):** Die Pflicht passt vollständig (16 Werkstätten, 56 Einwohnerhäuser), danach sind noch 2.120 von 4.267 Feldern frei (50 %). Reserve: alle 8 Stadtpalais und 3 von 4 Stadthöfen passen (Stadthof seit 16.10.2026 auch im Mauerring). **Engpass ist die Straßenfront, nicht die Fläche:** Auf einer leeren Karte passen nur etwa 25 Werkstätten an Karrenstraßen (Bedarf 24 mit den Startwerkstätten), aber 19 Stadthöfe. Wohnhäuser suchen deshalb zuerst Plätze an Gassen und lassen die Karrenstraßen den Werkstätten.
 
 ## 10. Zuständigkeit
 
