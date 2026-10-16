@@ -1876,6 +1876,7 @@ public partial class Stadtansicht : Node3D
     /// <summary>Welches Gebäude liegt an dieser Bildschirmstelle? (Strahl aus der Kamera, trifft die Klickflächen)</summary>
     private string? KennungBei(Vector2 bildschirm)
     {
+        if (PassantBei(bildschirm) is { } einwohner) return einwohner; // Figuren vor Gebäuden (Stadtansicht.Passanten.cs)
         var kamera = _raum is not null ? _raumKamera : _kamera;
         var von = kamera.ProjectRayOrigin(bildschirm);
         var bis = von + kamera.ProjectRayNormal(bildschirm) * 500;
