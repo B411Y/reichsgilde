@@ -34,6 +34,8 @@ public sealed class Einwohnerschaft
     private int _verstorben;
     private int _zugezogen;
     private readonly double[] _einkehrErwartet = new double[24]; // gleitender Mittelwert der Einkehrenden je Uhrzeit (Kopplung)
+    private double _messeErwartet; // gleitender Mittelwert der Betenden bis zur Messe (Kopplung)
+    private int _betendeHeute;     // Einwohner-Stunden in Kirchen seit Tagesbeginn
 
     public Einwohnerschaft(Stadtwirtschaft w, BuergerDaten? daten, int zufallsstartwert)
     {
@@ -128,6 +130,7 @@ public sealed class Einwohnerschaft
             }
         foreach (var e in _einwohner)
             Ausschlafen(e);
+        _betendeHeute = 0;
     }
 
     // ═════════════════════════════════════════════════════════════════════════
@@ -177,31 +180,85 @@ public sealed class Einwohnerschaft
     /// genau anderthalbmal so viele Einwohner wie eine Schänke, ohne Würfelglück. Wer schon in einer Schänke sitzt
     /// oder heute schon eine hatte, bleibt dort, solange in ihr Platz ist.
     /// </summary>
-    private void SchaenkenVerteilen(List<Betrieb> schaenken)
+    private void SchaenkenVerteilen(List<Betrieb> schaenken) =>
+        Quote(_einwohner.Where(e => e.Handlung == Handlung.Einkehren).ToList(), schaenken, _w.Gastwirtschaft.Anziehung,
+              Stadtort.Schaenke, e => e.Stammschaenke, (e, n) => e.Stammschaenke = n);
+
+    /// <summary>
+    /// Wer betet, verteilt sich auf die Kirchen seiner Konfession (gibt es keine, auf alle), als Quote nach deren Anziehung
+    /// (Stufe, Ansehen, Rhetorik des Predigers). Ohne Kirchen eines Hauses beten alle im Dom.
+    /// </summary>
+    private void KirchenVerteilen(List<Betrieb> kirchen)
     {
-        if (schaenken.Count == 0) return;
-        var gaeste = _einwohner.Where(e => e.Handlung == Handlung.Einkehren).ToList();
-        if (gaeste.Count == 0) return;
-        var anziehung = schaenken.Select(b => _w.Gastwirtschaft.Anziehung(b)).ToList();
-        var summe = anziehung.Sum();
-        var soll = anziehung.Select(a => gaeste.Count * a / summe).ToList();
+        if (kirchen.Count == 0) return;
+        foreach (var gruppe in _einwohner.Where(e => e.Handlung == Handlung.Beten).GroupBy(e => e.Glaube).OrderBy(g => g.Key))
+            Quote(gruppe.ToList(), EigeneKirchen(gruppe.Key, kirchen), _w.Kirchenwesen.Anziehung,
+                  Stadtort.Kirche, e => e.Stammkirche, (e, n) => e.Stammkirche = n);
+    }
+
+    /// <summary>Kirchen dieser Konfession (eine Kirche ohne Familie nimmt jeden auf); gibt es keine, alle Kirchen.</summary>
+    private List<Betrieb> EigeneKirchen(Konfession glaube, List<Betrieb> kirchen)
+    {
+        var eigene = kirchen.Where(k => _w.Glaube.KonfessionVon(k) is not { } kk || kk == glaube).ToList();
+        return eigene.Count > 0 ? eigene : kirchen;
+    }
+
+    /// <summary>
+    /// Verteilt Einwohner als feste Quote nach der Anziehung auf Betriebe (Verfahren der größten Reste, wie bei Sitzverteilungen).
+    /// So bekommt ein Betrieb mit anderthalbfacher Anziehung genau anderthalbmal so viele Einwohner – ohne Würfelglück.
+    /// Wer schon dort ist oder heute schon dort war (Stamm), bleibt, solange Platz ist.
+    /// </summary>
+    private static void Quote(List<Einwohner> leute, List<Betrieb> ziele, Func<Betrieb, double> anziehung, Stadtort ort,
+                              Func<Einwohner, string?> stamm, Action<Einwohner, string> setzen)
+    {
+        if (ziele.Count == 0 || leute.Count == 0) return;
+        var werte = ziele.Select(anziehung).ToList();
+        var summe = werte.Sum();
+        if (summe <= 0) werte = ziele.Select(_ => 1.0).ToList();
+        summe = werte.Sum();
+        var soll = werte.Select(a => leute.Count * a / summe).ToList();
         var plaetze = soll.Select(x => (int)Math.Floor(x)).ToList();
-        foreach (var i in Enumerable.Range(0, schaenken.Count).OrderByDescending(i => soll[i] - plaetze[i]).ThenBy(i => i)
-                     .Take(gaeste.Count - plaetze.Sum()))
+        foreach (var i in Enumerable.Range(0, ziele.Count).OrderByDescending(i => soll[i] - plaetze[i]).ThenBy(i => i)
+                     .Take(leute.Count - plaetze.Sum()))
             plaetze[i]++;
 
-        var index = schaenken.Select((b, i) => (b.Name, i)).ToDictionary(x => x.Name, x => x.i);
+        var index = ziele.Select((b, i) => (b.Name, i)).ToDictionary(x => x.Name, x => x.i);
         var offen = new List<Einwohner>();
-        // Erst die Stammgäste des Tages (wer schon saß, zuerst), dann alle übrigen in die freien Plätze.
-        foreach (var e in gaeste.OrderBy(e => e.Ort == Stadtort.Schaenke ? 0 : 1).ThenBy(e => e.Nummer))
-            if (e.Stammschaenke is { } s && index.TryGetValue(s, out var i) && plaetze[i] > 0) plaetze[i]--;
+        // Erst die Stammgäste des Tages (wer schon da ist, zuerst), dann alle übrigen in die freien Plätze.
+        foreach (var e in leute.OrderBy(e => e.Ort == ort ? 0 : 1).ThenBy(e => e.Nummer))
+            if (stamm(e) is { } s && index.TryGetValue(s, out var i) && plaetze[i] > 0) plaetze[i]--;
             else offen.Add(e);
         foreach (var e in offen)
         {
-            var i = Enumerable.Range(0, schaenken.Count).OrderByDescending(j => plaetze[j]).ThenBy(j => j).First();
+            var i = Enumerable.Range(0, ziele.Count).OrderByDescending(j => plaetze[j]).ThenBy(j => j).First();
             plaetze[i]--;
-            e.Stammschaenke = schaenken[i].Name;
+            setzen(e, ziele[i].Name);
         }
+    }
+
+    /// <summary>Wer in der Stunde, die gerade endet, in einer Kirche war (auch im Dom).</summary>
+    public int Betende => _einwohner.Count(e => e.Ort == Stadtort.Kirche);
+
+    /// <summary>Wie viele Gebetsstunden der Einwohner bis zur Messe üblich sind (gleitender Mittelwert; 0 = noch keine Erfahrung).</summary>
+    public double MesseErwartet => _messeErwartet;
+
+    /// <summary>
+    /// Faktor auf Gläubige und Kollekte der Messe (aus <see cref="Kirche.Kirchenwesen"/>): (1 − k) + k × Gebetsstunden ÷ üblich,
+    /// gezählt alle Stunden des Morgens bis zur Messe (eine einzelne Stunde schwankt zu stark),
+    /// begrenzt auf 1 ± spanne. Ohne Kopplung oder Einwohner genau 1. Die Verteilung auf die Kirchen bleibt beim Kirchenwesen
+    /// (Konfession der Stadt, Anziehung); die Einwohner verteilen sich selbst nach derselben Anziehung.
+    /// </summary>
+    internal double Messefaktor()
+    {
+        var k = IstAktiv && _gegruendet ? Daten.Kopplung.Kirche : 0;
+        if (k <= 0) return 1;
+        var kd = Daten.Kopplung;
+        var betende = (double)(_betendeHeute + Betende); // alle Gebetsstunden des Morgens bis zur Messe
+        var erwartet = _messeErwartet;
+        var faktor = erwartet > 0 ? Math.Clamp(betende / erwartet, 1 - kd.Spanne, 1 + kd.Spanne) : 1;
+        _messeErwartet = erwartet > 0 ? erwartet + kd.Glaettung * (betende - erwartet) : betende;
+        _betendeHeute = 0;
+        return 1 - k + k * faktor;
     }
 
     /// <summary>Die Schänke des Tages (von <see cref="SchaenkenVerteilen"/> vergeben; sonst die anziehendste).</summary>
@@ -381,6 +438,7 @@ public sealed class Einwohnerschaft
         e.Haus = e.Wohnhaus;
         e.Weg = null; // über Nacht zu Hause
         e.Stammschaenke = null;
+        e.Stammkirche = null;
     }
 
     // ── Die stündliche Entscheidung ─────────────────────────────────────────
@@ -389,6 +447,7 @@ public sealed class Einwohnerschaft
     {
         var d = Daten;
         var stunde = zeit.UhrzeitInMinuten / 60;
+        _betendeHeute += Betende; // die Stunde, die gerade endet (für die Kopplung an die Messe)
         KandidatenAbgleichen();
 
         var schaenken = _w.Gastwirtschaft.IstAktiv
@@ -397,7 +456,8 @@ public sealed class Einwohnerschaft
         var kirchen = _w.Kirchenwesen.IstAktiv
             ? _w.Kirchenwesen.Kirchen.OrderBy(b => b.Name, StringComparer.Ordinal).ToList()
             : new List<Betrieb>();
-        var messe = _w.Kirchenwesen.IstAktiv && stunde == _w.Kirchenwesen.Daten.MesseUm ? d.Messe : 1;
+        // Die Messe wird zur vollen Stunde MesseUm abgerechnet – für die Stunde davor (z. B. 9–10 Uhr bei Messe um 10).
+        var messe = _w.Kirchenwesen.IstAktiv && stunde + 1 == _w.Kirchenwesen.Daten.MesseUm ? d.Messe : 1;
 
         foreach (var e in _einwohner)
         {
@@ -427,6 +487,7 @@ public sealed class Einwohnerschaft
 
         // Wer einkehrt, verteilt sich nach der Anziehung auf die Schänken (Stufe, Ansehen) – ohne Würfel, als Quote.
         SchaenkenVerteilen(schaenken);
+        KirchenVerteilen(kirchen);
 
         foreach (var e in _einwohner)
         {
@@ -493,14 +554,14 @@ public sealed class Einwohnerschaft
         };
     }
 
-    /// <summary>Fest nach der Nummer gewählt, ohne Würfel (Stammkirche).</summary>
-    private static string? Stammhaus(Einwohner e, List<Betrieb> liste) => liste.Count == 0 ? null : liste[e.Nummer % liste.Count].Name;
-
-    /// <summary>Kirche der eigenen Konfession, sonst eine fremde, sonst die Stadtkirche (null).</summary>
+    /// <summary>Die Kirche des Tages (von <see cref="KirchenVerteilen"/> vergeben; sonst die anziehendste der eigenen Konfession; ohne Kirchen der Dom = null).</summary>
     private string? Stammkirche(Einwohner e, List<Betrieb> kirchen)
     {
-        var eigene = kirchen.Where(k => _w.Glaube.GlaubeVon(k.Konto) == e.Glaube).ToList();
-        return Stammhaus(e, eigene.Count > 0 ? eigene : kirchen);
+        if (kirchen.Count == 0) return null;
+        if (e.Stammkirche is { } s && kirchen.Any(b => b.Name == s)) return s;
+        e.Stammkirche = EigeneKirchen(e.Glaube, kirchen).OrderByDescending(_w.Kirchenwesen.Anziehung)
+            .ThenBy(b => b.Name, StringComparer.Ordinal).First().Name;
+        return e.Stammkirche;
     }
 
     // ═════════════════════════════════════════════════════════════════════════
@@ -516,6 +577,8 @@ public sealed class Einwohnerschaft
         Zugezogen = _zugezogen,
         Haeuser = _haeuser.ToList(),
         EinkehrErwartet = _einkehrErwartet.ToList(),
+        MesseErwartet = _messeErwartet,
+        BetendeHeute = _betendeHeute,
         Einwohner = _einwohner.Select(e => new EinwohnerStand
         {
             Nummer = e.Nummer,
@@ -536,6 +599,7 @@ public sealed class Einwohnerschaft
             Wohnhaus = e.Wohnhaus,
             Weg = e.Weg,
             Stammschaenke = e.Stammschaenke,
+            Stammkirche = e.Stammkirche,
             Beduerfnisse = e.Beduerfnisse.ToList(),
         }).ToList(),
     };
@@ -547,6 +611,8 @@ public sealed class Einwohnerschaft
         _naechsteNummer = s.NaechsteNummer;
         _verstorben = s.Verstorben;
         _zugezogen = s.Zugezogen;
+        _messeErwartet = s.MesseErwartet;
+        _betendeHeute = s.BetendeHeute;
         for (var i = 0; i < s.EinkehrErwartet.Count && i < _einkehrErwartet.Length; i++) _einkehrErwartet[i] = s.EinkehrErwartet[i];
         _einwohner.Clear();
         foreach (var x in s.Einwohner)
@@ -561,6 +627,7 @@ public sealed class Einwohnerschaft
                 Wohnhaus = x.Wohnhaus,
                 Weg = x.Weg,
                 Stammschaenke = x.Stammschaenke,
+                Stammkirche = x.Stammkirche,
             };
             for (var i = 0; i < x.Beduerfnisse.Count && i < e.Beduerfnisse.Count; i++)
                 e.Setzen((Beduerfnis)i, x.Beduerfnisse[i]);
@@ -600,6 +667,8 @@ public sealed record EinwohnerschaftStand
     public List<Stadthaus> Haeuser { get; init; } = new();
     /// <summary>Üblich Einkehrende je Uhrzeit 0–23 (leer in älteren Spielständen).</summary>
     public List<double> EinkehrErwartet { get; init; } = new();
+    public double MesseErwartet { get; init; }
+    public int BetendeHeute { get; init; }
     public List<EinwohnerStand> Einwohner { get; init; } = new();
 }
 
@@ -623,6 +692,7 @@ public sealed record EinwohnerStand
     public int Wohnhaus { get; init; }
     public Weg? Weg { get; init; }
     public string? Stammschaenke { get; init; }
+    public string? Stammkirche { get; init; }
     /// <summary>Dringlichkeit je Bedürfnis in der Reihenfolge von <see cref="Beduerfnis"/>.</summary>
     public List<double> Beduerfnisse { get; init; } = new();
 }

@@ -414,6 +414,81 @@ static class BuergerTests
                           Speicherung.Speichern(kopie, kopieSpieler, new DateTime(2026, 10, 16)));
         }),
 
+        ("Kirche: Gläubige und Kollekte der Messe × (Gebetsstunden bis zur Messe ÷ üblich), begrenzt auf 1 ± Spanne", () =>
+        {
+            var (sim, spieler) = Partieaufbau.Erstellen(Partieeinstellungen.Standard with { Zufallsstartwert = 1400, Siegbedingung = Siegbedingung.Endlos },
+                Daten.Value, new NeuePartie(Beruf: "Prediger", Rivale: KiCharakter.Wagemutig));
+            var w = sim.Wirtschaft!;
+            var ew = Einwohner(sim);
+            var kirche = w.Betriebe.Single(b => b.Konto == spieler && w.Kirchenwesen.IstKirche(b));
+            Ticken(sim, Spielzeit.MinutenProTag); // erster Tag: das Übliche lernen (Faktor 1)
+            Pruefe.Wahr(ew.MesseErwartet > 0, "Nach dem ersten Tag ist das Übliche bekannt");
+            var kd = ew.Daten.Kopplung;
+            for (var tag = 0; tag < 4; tag++)
+            {
+                Bis(sim, w.Kirchenwesen.Daten.MesseUm - 1, 59);
+                var erwartet = ew.MesseErwartet;
+                var soll = w.Kirchenwesen.Verteilen(w.Kirchenwesen.Kirchen)[kirche];
+                var vorher = w.Kirchenwesen.DiesesJahr(kirche);
+                Ticken(sim, 2); // 10:00 – die Messe wird abgerechnet
+                var nachher = w.Kirchenwesen.DiesesJahr(kirche);
+                var faktor = (nachher.Glaeubige - vorher.Glaeubige) / soll.Glaeubige;
+                Pruefe.Wahr(faktor >= 1 - kd.Spanne - 1e-9 && faktor <= 1 + kd.Spanne + 1e-9, $"Faktor {faktor:0.00}");
+                Pruefe.Ungefaehr(soll.Kollekte * faktor, nachher.Kollekte - vorher.Kollekte, 1e-6);
+                Pruefe.Wahr(Math.Abs(ew.MesseErwartet - erwartet) > 0 || faktor == 1, "Das Übliche passt sich an");
+                Ticken(sim, Spielzeit.MinutenProTag - 300);
+            }
+        }),
+
+        ("Kirche: Ohne Kopplung bleibt die Messe genau wie vorher", () =>
+        {
+            var ohne = Abgewandelt(j => j["buerger"]!["kopplung"]!["kirche"] = 0);
+            var (sim, spieler) = Partieaufbau.Erstellen(Partieeinstellungen.Standard with { Zufallsstartwert = 1400, Siegbedingung = Siegbedingung.Endlos },
+                ohne, new NeuePartie(Beruf: "Prediger"));
+            var w = sim.Wirtschaft!;
+            var kirche = w.Betriebe.Single(b => b.Konto == spieler && w.Kirchenwesen.IstKirche(b));
+            for (var j = 0; j < 3; j++)
+            {
+                var soll = w.Kirchenwesen.Verteilen(w.Kirchenwesen.Kirchen)[kirche];
+                Ticken(sim, Spielzeit.MinutenProTag);
+                Pruefe.Ungefaehr(soll.Glaeubige, w.Kirchenwesen.Vorjahr(kirche)!.Glaeubige, 1e-6);
+            }
+        }),
+
+        ("Kirche: Betende gehen in eine Kirche ihrer Konfession (ohne eigene in eine fremde), Kirchen als Quote nach Anziehung", () =>
+        {
+            var (sim, spieler) = Partieaufbau.Erstellen(Partieeinstellungen.Standard with { Zufallsstartwert = 1400, Siegbedingung = Siegbedingung.Endlos },
+                Daten.Value, new NeuePartie(Beruf: "Prediger"));
+            var w = sim.Wirtschaft!;
+            var ew = Einwohner(sim);
+            var gezaehlt = 0;
+            for (var stunde = 6; stunde < 20; stunde++)
+            {
+                Bis(sim, stunde, 59);
+                var kirchen = w.Kirchenwesen.Kirchen.ToList();
+                foreach (var e in ew.Einwohner.Where(e => e.Handlung == Handlung.Beten))
+                {
+                    var b = kirchen.Single(k => k.Name == e.Betrieb);
+                    var eigene = kirchen.Where(k => w.Glaube.KonfessionVon(k) is not { } kk || kk == e.Glaube).ToList();
+                    Pruefe.Wahr(eigene.Count == 0 || eigene.Contains(b), $"{e.Name} ({e.Glaube}) betet in {b.Name}");
+                    gezaehlt++;
+                }
+            }
+            Pruefe.Wahr(gezaehlt > 20, $"Über den Tag beten einige ({gezaehlt})");
+        }),
+
+        ("Kirche: Speichern und Laden mit Kopplung – Gebetsstunden des Morgens und das Übliche laufen gleich weiter", () =>
+        {
+            var (original, spieler) = Partieaufbau.Erstellen(Partieeinstellungen.Standard with { Zufallsstartwert = 4711, Siegbedingung = Siegbedingung.Endlos },
+                Daten.Value, new NeuePartie(Beruf: "Prediger", Rivale: KiCharakter.Wagemutig));
+            Ticken(original, Spielzeit.MinutenProTag + 250); // 09:10 – mitten in den Gebetsstunden vor der Messe
+            var (kopie, kopieSpieler) = Speicherung.Laden(Speicherung.Speichern(original, spieler));
+            Ticken(original, 2 * Spielzeit.MinutenProTag);
+            Ticken(kopie, 2 * Spielzeit.MinutenProTag);
+            Pruefe.Gleich(Speicherung.Speichern(original, spieler, new DateTime(2026, 10, 16)),
+                          Speicherung.Speichern(kopie, kopieSpieler, new DateTime(2026, 10, 16)));
+        }),
+
         ("Bürger-KI: Datenprüfung lehnt Orks als Einwohner und eine fehlende Handlung ab", () =>
         {
             Pruefe.WirftMitMeldung(() => Abgewandelt(j => j["buerger"]!["voelker"]!["Ork"] = 1), "kein Bürgerrecht");
@@ -421,6 +496,7 @@ static class BuergerTests
             Pruefe.WirftMitMeldung(() => Abgewandelt(j => j["buerger"]!["rollen"]!["Hirte"]!.AsObject().Remove("stelle")), "braucht eine stelle");
             Pruefe.WirftMitMeldung(() => Abgewandelt(j => j["buerger"]!["wege"]!["umland"] = 55), "unter einer Stunde");
             Pruefe.WirftMitMeldung(() => Abgewandelt(j => j["buerger"]!["kopplung"]!["schaenke"] = 1.5), "kopplung.schaenke");
+            Pruefe.WirftMitMeldung(() => Abgewandelt(j => j["buerger"]!["kopplung"]!["kirche"] = -0.1), "kopplung.kirche");
             Pruefe.WirftMitMeldung(() => Abgewandelt(j => j["buerger"]!["handlungen"]!["Einkehren"]!["von"] = 13), "oeffnetUm");
         }),
     };

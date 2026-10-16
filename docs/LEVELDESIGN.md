@@ -1,6 +1,6 @@
 # Reichsgilde – Leveldesign
 
-Begonnen am 16.10.2026 · Bereich **Leveldesign** (siehe `CLAUDE.md`). Grundsatzentscheidungen stehen in `docs/ENTSCHEIDUNGEN.md`, Abschnitt 16. Dieses Dokument sammelt die **Kartenregeln** für alle Städte und den Stand der einzelnen Karten.
+Begonnen am 16.10.2026 · Bereich **Leveldesign** (siehe `CLAUDE.md`). Grundsatzentscheidungen stehen in `docs/ENTSCHEIDUNGEN.md`, Abschnitt 17. Dieses Dokument sammelt die **Kartenregeln** für alle Städte und den Stand der einzelnen Karten.
 
 **Stand:** Planungsphase. Die heutige Greybox-Stadt bleibt Platzhalter für die Mechaniken und wird vorerst nicht ersetzt.
 

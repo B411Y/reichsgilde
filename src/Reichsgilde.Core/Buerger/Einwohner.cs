@@ -52,6 +52,9 @@ public sealed class Einwohner
     /// <summary>Die Schänke, in die er heute einkehrt (einmal am Tag nach der Anziehung gewählt; über Nacht vergessen).</summary>
     public string? Stammschaenke { get; internal set; }
 
+    /// <summary>Die Kirche, in der er heute betet (nach der Anziehung in seiner Konfession vergeben; über Nacht vergessen).</summary>
+    public string? Stammkirche { get; internal set; }
+
     /// <summary>Nummer seines Wohnhauses (siehe <see cref="Einwohnerschaft.Wohnhaeuser"/>).</summary>
     public int Wohnhaus { get; internal set; }
 

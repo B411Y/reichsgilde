@@ -233,17 +233,18 @@ Format: `- PR #Nummer (Phase) – Inhalt`
 - PR #57 (2) – Bürger-KI: Wege mit Abmarsch und Ankunft, Wohnhäuser und Haushalte, Umland (Weide, Feld, Wald), Dienst in Bürgerhäusern
 - PR #58 (2) – Bürger-KI: Gäste der Schänken folgen den einkehrenden Einwohnern (Menge als Faktor um 1, Verteilung als Quote nach Anziehung)
 - PR #59 (3) – Stadterweiterung: Mauer ±50 m, Westtor, Umland 14 m nach außen (Vorbereitung Passanten)
+- PR #60 (5) – KI-Häuser holen die Werkstatt zum gelernten Handwerk nach (Schänke, Kirche, Siederei), auch über die Höchstzahl an Betrieben
+- PR #61 (2) – Bürger-KI: Gläubige und Kollekte der Messe folgen den Gebetsstunden der Einwohner; Betende verteilen sich nach Anziehung auf die Kirchen ihrer Konfession
 - PR #62 (3) – Leveldesign: fünfter Chat, Kartenregeln (`docs/LEVELDESIGN.md`), Entscheidungen zu Städten, Wohnhaus, Bauzonen, Toren, Wasser
 
 ### 6b. Offen (eine Zeile je Punkt; erledigt → Zeile löschen und unter 6a eintragen)
 
 - (3) Raumansicht für den Dom und Feinschliff der Werkstatträume je Beruf (zweiter Teil von PR #52)
-- (2) Bürger-KI: Kopplung an Kirche → Markt → Taschendiebe (Einwohner: PR #54, Wege: PR #57, Schänke: PR #58)
-- (5) KI-Häuser bauen nie eine Schänke: Wer den Wirt lernt, pachtet nur den Bauernhof (gefunden bei der Messung zu PR #58)
+- (2) Bürger-KI: Kopplung an Markt → Taschendiebe (Einwohner: PR #54, Wege: PR #57, Schänke: PR #58, Kirche: PR #61)
 - (5) Orks und Oger spielbar machen
-- (5) Bauplätze und Sanierung (siehe Abschnitt 7, Punkt 8) – Regeln jetzt in Abschnitt 16 (Bauzonen)
-- (5) Eigenes Wohnhaus je Haus, Größe nach Stand (Abschnitt 16) – Kern
-- (3) Leveldesign: Kartendatei-Format und erste Karte Köln (Abschnitt 16, `docs/LEVELDESIGN.md`)
+- (5) Bauplätze und Sanierung (siehe Abschnitt 7, Punkt 8) – Regeln jetzt in Abschnitt 17 (Bauzonen)
+- (5) Eigenes Wohnhaus je Haus, Größe nach Stand (Abschnitt 17) – Kern
+- (3) Leveldesign: Kartendatei-Format und erste Karte Köln (Abschnitt 17, `docs/LEVELDESIGN.md`)
 - (–) Reichskarte zum Wechsel zwischen den Städten (Idee, später)
 - (5) Gaunerberuf, Schmuggel und Schwarzarbeit unter dem Statut
 - (6) Multiplayer, Zuschauer-Modus
@@ -319,7 +320,7 @@ Format: `- PR #Nummer (Phase) – Inhalt`
 | Kamera | **Feste Ansicht je Raum**: Die Kamera steht vor der offenen Vorderseite und blickt leicht von oben hinein, kein Zoomen, Drehen oder Verschieben. Q/E wechseln im Gebäude den Raum. | 15.10.2026 |
 | Räume | **Räume mit Tafeln**: Werkstatt = Werkraum, Lager, Kontor (nur eigene; zeigt die Verwaltung), Wohnstube (nur Stammhaus; öffnet die Familie). Rathaus = Ratssaal, Gerichtssaal, Amtsstube, Kerker. Dom später: Kirchenschiff, Sakristei. | 15.10.2026 |
 | Umfang | **Erst Prototyp**: dieser PR baut Werkstätten und Rathaus; Dom und der Feinschliff je Beruf folgen im zweiten PR. | 15.10.2026 |
-| Stammhaus | **Abgelöst am 16.10.2026 durch ein eigenes Wohnhaus (Abschnitt 16); gilt bis zur Umsetzung im Kern.** ~~Die Familie wohnt in der **ersten eigenen Werkstatt in der Stadt**; dort gibt es die Wohnstube, das Oberhaupt sitzt tagsüber im Kontor, abends am Tisch.~~ | 15.10.2026 |
+| Stammhaus | **Abgelöst am 16.10.2026 durch ein eigenes Wohnhaus (Abschnitt 17); gilt bis zur Umsetzung im Kern.** ~~Die Familie wohnt in der **ersten eigenen Werkstatt in der Stadt**; dort gibt es die Wohnstube, das Oberhaupt sitzt tagsüber im Kontor, abends am Tisch.~~ | 15.10.2026 |
 | Bildschirm | Im Raum bleibt das Bild frei: Gebäudefenster und Kontor des Hauses erscheinen nur in Kontor und Amtsstube. Die Raumleiste steht unten rechts. | 15.10.2026 |
 
 ## 14. Chat für die Spiel-KI
@@ -347,9 +348,16 @@ Format: `- PR #Nummer (Phase) – Inhalt`
 | Stadterweiterung | **Die Stadt wächst ringsum** von 72 auf 100 m (Mauer ±50), **Westtor** mit Weststraße für spätere Erweiterungen. Innen bleibt alles an seinem Platz; alles vor der alten Mauer rückt 14 m nach außen. Der neue Ring ist für die Wohnhäuser der Einwohner; was dort keinen Platz findet, kommt als **Vorstadt vor das Osttor** (Überlauf). Bürger- und Ratsherrenhäuser stehen immer in der Stadt. Einwohner in Schänke und Kirche zeigen die Innenräume später, in einem eigenen Schritt. | 16.10.2026 |
 | Wohnhäuser | **Der Kern vergibt Häuser:** Haushalte zu 4–6 Personen, je Ratsherr ein eigenes Haus, Bürgerhäuser für Kandidaten aus Bürger- und Patrizierfamilien. Die Darstellung stellt die Häuser in die Stadt. | 16.10.2026 |
 | Kopplung Schänke | **Menge nach den Einwohnern, Verteilung nach Anziehung als Quote:** Gäste je Stunde × (Einkehrende ÷ üblich zu dieser Uhrzeit, 0,5–1,5). Die Einwohner verteilen sich ohne Würfel nach der Anziehung auf die Schänken – die bestehende Regel „Gäste nach Anziehung“ bleibt exakt, und das Bild in der Schänke passt zur Kasse. Kopplung voll (1,0) (PR #58). | 16.10.2026 |
+| Kopplung Kirche | **Gläubige und Kollekte × Gebetsstunden des Morgens ÷ üblich** (0,5–1,5), Verteilung bleibt beim Kirchenwesen (Konfessionen, Anziehung). Gezählt wird der ganze Morgen bis zur Messe, nicht nur eine Stunde – eine Stunde allein schwankte um ± 30 %. Kopplung voll (1,0) (PR #61). | 16.10.2026 |
 | Umland | **Stellen Weide, Feld, Wald**; neue Rollen Feldarbeiter und Holzsammler; Knechte und Mägde dienen in Bürger- und Ratsherrenhäusern. | 16.10.2026 |
 
-## 16. Leveldesign
+## 16. KI-Häuser (Spiel-KI)
+
+| Thema | Entscheidung | Datum |
+|---|---|---|
+| Werkstatt zum Handwerk | **Wer ein Handwerk gelernt hat, führt auch dessen Werkstatt.** Hat ein KI-Haus nur den Umlandbetrieb (Bauernhof, Klosterhof, Duftgarten), kauft es die Werkstatt (Schänke, Kirche, Siederei) dazu – **auch über die Höchstzahl an Betrieben**. Die KI-Häuser werden dadurch um 13–28 % reicher (Messung WIRTSCHAFTSMODELL §38); vom Nutzer so gewählt (Alternativen: Höchstzahl als Paar, oder erst ab Stand Edler) (PR #60). | 16.10.2026 |
+
+## 17. Leveldesign
 
 | Thema | Entscheidung | Datum |
 |---|---|---|

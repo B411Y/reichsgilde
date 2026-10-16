@@ -876,3 +876,39 @@ Keine Balance-Änderung: Wege, Häuser und Umlandstellen würfeln nur mit dem Ge
 Ergebnis: Im Mittel bleiben Gäste, Verteilung nach Anziehung (1 : 1,85 mit Ansehen) und Tagesverlauf (nachmittags/abends 50/50 in den gemessenen Stunden 12–20 Uhr) gleich; neu ist eine Schwankung von Jahr zu Jahr um etwa ± 3 %. Der passive Wirt verkauft unverändert, weil sein Lager die Gäste begrenzt (79 von 120 abgewiesen). Ziele Z1–Z7 unberührt.
 
 **Tagesprofil der Einwohner in den Schänken** (5 Startwerte × 6 Tage, Spieler Wirt, ~123 Einwohner): 12 Uhr 84 (Mittagstisch), 13–17 Uhr 11–31, 18–19 Uhr 24–33, 20 Uhr 48, 21 Uhr 76.
+
+## 38. KI-Häuser: Werkstatt zum gelernten Handwerk (PR #60)
+
+**Befund:** Die KI lernte Wirt, Prediger und Parfumeur nur für den Umlandbetrieb (Bauernhof, Klosterhof, Duftgarten, keine Kaufpreise). Danach war die Höchstzahl von 4 Betrieben (Patrizier) erreicht – Schänke, Kirche und Siederei kamen nie dazu. **Jetzt** kauft sie die Werkstatt zusätzlich und baut sie wie jede andere aus (in der Messung bis Festbier und Psalter, Stufe 3).
+
+**Messung** (gemessen auf main `da23c2d` + PR #60, 20 Startwerte, 30 Jahre, Spieler Mensch passiv; Vermögen Ø am Ende):
+
+| KI-Charakter | Eisenbart | Eichwald | Kieselbach | Eisenbart Bürgermeister |
+|---|---|---|---|---|
+| vorsichtig, vorher | 141.871 | 122.541 | 141.148 | 2/20 |
+| vorsichtig, jetzt | 160.599 (+13 %) | 136.463 (+11 %) | 178.019 (+26 %) | 6/20 |
+| ausgewogen, vorher | 139.150 | 95.155 | 132.085 | 14/20 |
+| ausgewogen, jetzt | 168.899 (+21 %) | 100.968 (+6 %) | 169.483 (+28 %) | 10/20 |
+| wagemutig, vorher | 85.600 | 68.142 | 63.028 | 13/20 |
+| wagemutig, jetzt | 75.073 (−12 %) | 70.933 (+4 %) | 72.955 (+16 %) | 17/20 |
+
+Erlernte Berufe unverändert (z. B. ausgewogen: Kieselbach → Wirt 14×, Eisenbart → Prediger 12×). Wagemutig schwankt durch Gaunerei und Kerker stark; Eisenbart verliert dort, weil die Wagemutigen sich gegenseitig mehr schaden (Raub und Schäden beim Spieler 519 → 869). Seit dieser Änderung gibt es KI-Schänken – damit wirkt die Kopplung der Bürger an die Schänke (§37) auch in `messen`. Rechenzeit 16–18 s.
+
+Die Spielerziele Z1–Z7 betreffen den Spieler und bleiben unberührt; für den Spieler werden die KI-Häuser stärkere Gegner.
+
+## 39. Bürger-KI: Kopplung an die Kirche (PR #61)
+
+**Regel:** Zur Messe (10 Uhr) Gläubige und Kollekte jeder Kirche × Faktor, Faktor = Gebetsstunden der Einwohner seit Tagesbeginn ÷ üblich (gleitender Mittelwert, 20 % je Tag), begrenzt auf 0,5–1,5. Verteilung auf die Kirchen unverändert. Werte: `buerger.kopplung.kirche` = 1,0.
+
+**Messung 1** (eigener Lauf: Standardaufstellung, 20 Startwerte × 30 Jahre, alle Jahre mit mindestens einer Kirche eines Hauses; gemessen auf PR #60 + diesem PR):
+
+| KI-Charakter | Kopplung | Kirchenjahre | Gläubige je Jahr (alle Kirchen) | Schwankung σ (min–max) | Kollekte Ø |
+|---|---|---|---|---|---|
+| ausgewogen | 0 | 346 | 200,0 | 0 | 389 |
+| ausgewogen | 1,0 | 346 | 200,9 | 8,8 (174–226) | 391 |
+| vorsichtig | 0 | 234 | 200,0 | 0 | 396 |
+| vorsichtig | 1,0 | 234 | 200,0 | 8,6 (179–224) | 396 |
+
+Mit nur der Stunde vor der Messe als Maß schwankte es um σ 57–66 (100–300, an den Grenzen) – deshalb zählt der ganze Morgen.
+
+**Messung 2** (`messen 30 20`, Mensch, gemessen auf PR #60 + diesem PR, gegen Kopplung 0): Vermögen der KI-Häuser bis auf wenige Gulden gleich (ausgewogen: Eisenbart 168.899 → 168.919, Eichwald 100.968 → 100.977; vorsichtig und wagemutig ebenso). Die Kollekte (~400 Gulden im Jahr) ist zu klein, um die Häuser spürbar zu verschieben. Rechenzeit 18 s (main ohne Bürger-KI 16 s, +12 %).
