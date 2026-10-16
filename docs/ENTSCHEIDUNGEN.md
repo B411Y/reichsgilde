@@ -233,6 +233,7 @@ Format: `- PR #Nummer (Phase) – Inhalt`
 - PR #57 (2) – Bürger-KI: Wege mit Abmarsch und Ankunft, Wohnhäuser und Haushalte, Umland (Weide, Feld, Wald), Dienst in Bürgerhäusern
 - PR #58 (2) – Bürger-KI: Gäste der Schänken folgen den einkehrenden Einwohnern (Menge als Faktor um 1, Verteilung als Quote nach Anziehung)
 - PR #59 (3) – Stadterweiterung: Mauer ±50 m, Westtor, Umland 14 m nach außen (Vorbereitung Passanten)
+- PR #62 (3) – Leveldesign: fünfter Chat, Kartenregeln (`docs/LEVELDESIGN.md`), Entscheidungen zu Städten, Wohnhaus, Bauzonen, Toren, Wasser
 
 ### 6b. Offen (eine Zeile je Punkt; erledigt → Zeile löschen und unter 6a eintragen)
 
