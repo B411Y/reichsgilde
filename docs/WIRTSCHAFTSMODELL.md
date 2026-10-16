@@ -986,3 +986,18 @@ Das Wohnhaus bindet viel Geld: Wer bis Freiherr aufsteigt, zahlt 40.500 Gulden A
 Was sich lohnt (Chance ohne Wächter und Streife): Ein Einbruch bei einem Haus mit 20.000 Gulden im Bürgerhaus bringt im Mittel 0,6 × 600 − 200 = 160 Gulden, im Fachwerkhaus 0,6 × 300 − 200 = −20 – gegen kleine Häuser lohnt er nicht, gegen reiche Häuser in großen Wohnhäusern schon (Hof: 0,6 × 1.500 − 200 = 700). Ein Brand trifft vor allem das Ansehen: im Stadtpalais 2.000 Reparatur und −6 Ansehen für einen Tag, kurz vor einer Ratswahl spürbar.
 
 **Messung** (`messen 30 20`, Mensch, ausgewogen, gemessen auf main `1c2e7d2` + PR #77): **zeichengleich** mit main (Eisenbart 123.907, Eichwald 77.487, Kieselbach 101.048, Bürgermeister 16/20). Die KI-Häuser heuern noch keine Banden gegen Wohnhäuser an, also stellt auch niemand einen Hauswächter ein.
+
+## Hauswert im Reinvermögen (PR #85)
+
+**Regel:** Reinvermögen = Bargeld + Forderungen − Schulden + Hauswert. Hauswert = Ausbaupreise aller Stufen bis zur jetzigen (Bürgerhaus 1.500, Steinhaus +4.000, Stadtpalais +10.000, Hof +25.000), ein laufender Ausbau zählt schon mit.
+
+**Messung** (`messen 30 20`, Mensch, gemessen auf main `2cd3222` + PR #85; Reinvermögen Ø am Ende, **jetzt mit Hauswert**, Stand von Haus Eisenbart am Ende):
+
+| KI-Charakter | Eisenbart | Eichwald | Kieselbach | Eisenbart Bürgermeister | Eisenbart Stand |
+|---|---|---|---|---|---|
+| ausgewogen, main | 127.631 | 98.916 | 107.109 | 16/20 | 20 Freiherr |
+| ausgewogen, jetzt | 174.720 | 106.067 | 144.125 | 16/20 | 19 Freiherr, 1 Reichsgraf |
+| wagemutig, main | 80.665 | 47.197 | 63.970 | 18/20 | 16 Edler, 3 Freiherr, 1 erloschen |
+| wagemutig, jetzt | 88.710 | 60.686 | 72.340 | 14/20 | 15 Freiherr, 5 Edler |
+
+Ein Freiherr hat 40.500 Gulden Hauswert. Ohne ihn liegt Eisenbart (ausgewogen) bei etwa 134.000 Bargeld, also etwas über main: Die KI baut das Haus früher, weil sie nicht mehr auf Schwelle + Ausbau warten muss. Größte Wirkung bei den wagemutigen Häusern: 15 statt 3 werden Freiherr – bisher fraß der Bau ihr Reinvermögen auf, und sie blieben beim Edlen hängen. Ein Haus erreicht wieder den Reichsgrafen.
