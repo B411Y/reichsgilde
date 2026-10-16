@@ -1,0 +1,245 @@
+using System.Diagnostics;
+using Godot;
+using Reichsgilde.Core.Buerger;
+using Reichsgilde.Core;
+
+namespace Reichsgilde;
+
+/// <summary>
+/// Passanten (sechster Teil der <c>partial class Stadtansicht</c>): die Einwohner der Bürger-KI, sichtbar in Stadt und Umland.
+///
+/// Die Darstellung rechnet nichts selbst aus, sie liest nur:
+///   • <see cref="Einwohner.Wo"/> – wo jemand gerade ist (null = unterwegs),
+///   • <see cref="Einwohner.Weg"/> – von wo nach wo, mit Abmarsch und Ankunft.
+/// Daraus folgt in jedem Bild:
+///   • unterwegs → die Figur läuft im <see cref="Gassennetz"/> vom alten zum neuen Ort; wie weit, sagt der Anteil der
+///     Wegzeit (Minute + angebrochener Bruchteil, also flüssig). Lange Wege werden schneller gegangen, kurze langsamer.
+///   • am Ort → sichtbar nur auf Markt, Gasse, am Tor und im Umland. Wer zu Hause, in Schänke, Kirche oder Rathaus ist,
+///     ist drinnen und nicht zu sehen. So passt das Bild immer zur Zählung des Kerns.
+/// </summary>
+public partial class Stadtansicht
+{
+    /// <summary>Eine Figur auf der Straße und was sie sich gemerkt hat, damit nicht jedes Bild neu gerechnet wird.</summary>
+    private sealed class Passant
+    {
+        public required Node3D Knoten { get; init; }
+        public required Node3D Koerper { get; init; }
+        /// <summary>Der Weg, für den <see cref="Pfad"/> berechnet wurde (Vergleich über die Referenz: neuer Weg = neue Strecke).</summary>
+        public Weg? FuerWeg { get; set; }
+        public Vector3[] Pfad { get; set; } = Array.Empty<Vector3>();
+        public float Laenge { get; set; }
+        /// <summary>Seitlicher Versatz (Meter), damit nicht alle auf derselben Linie laufen.</summary>
+        public float Versatz { get; init; }
+    }
+
+    private readonly Dictionary<int, Passant> _passanten = new();
+    private readonly Dictionary<Aufenthalt, Vector3> _verweilpunkte = new();
+    private Node3D? _passantenEbene;
+
+    // Gemeinsame Formen und Stoffe für alle Figuren – so muss die Grafikkarte nur wenige verschiedene Dinge kennen.
+    private static readonly CapsuleMesh Rumpf = new() { Radius = 0.28f, Height = 1.3f };
+    private static readonly SphereMesh Kopf = new() { Radius = 0.2f, Height = 0.4f };
+    private static readonly Color Hautfarbe = new(0.85f, 0.68f, 0.55f);
+
+    // Messung der Rechenzeit (nur Protokoll, alle 10 Sekunden)
+    private readonly Stopwatch _passantenUhr = new();
+    private double _passantenZeit, _passantenSeitMessung;
+    private int _passantenBilder;
+
+    /// <summary>Jedes Bild: alle Einwohner an ihren Platz stellen.</summary>
+    private void PassantenAktualisieren(double minuteGenau, double delta)
+    {
+        if (_simulation?.Wirtschaft?.Einwohnerschaft is not { IstAktiv: true } einwohnerschaft || !_wohnhaeuserGebaut) return;
+        _passantenUhr.Restart();
+        _passantenEbene ??= NeueEbene();
+        var minute = (long)Math.Floor(minuteGenau);
+
+        var gesehen = new HashSet<int>();
+        foreach (var e in einwohnerschaft.Einwohner)
+        {
+            gesehen.Add(e.Nummer);
+            if (!_passanten.TryGetValue(e.Nummer, out var p))
+                _passanten[e.Nummer] = p = PassantBauen(e);
+
+            var wo = e.Wo(minute);
+            if (wo is { } ort)
+            {
+                // Am Ort: nur draußen sichtbar
+                var punkt = Draussen(ort) ? Verweilpunkt(ort, e) : (Vector3?)null;
+                p.Knoten.Visible = punkt is not null;
+                if (punkt is { } q)
+                {
+                    p.Knoten.Position = q;
+                    p.Koerper.Position = Vector3.Zero;
+                }
+                continue;
+            }
+
+            // Unterwegs
+            var weg = e.Weg!;
+            if (!ReferenceEquals(p.FuerWeg, weg))
+            {
+                p.FuerWeg = weg;
+                p.Pfad = Strecke(weg, e);
+                p.Laenge = Gassennetz.Laenge(p.Pfad);
+            }
+            if (p.Pfad.Length == 0) { p.Knoten.Visible = false; continue; }
+            var anteil = (float)weg.Fortschritt(minuteGenau);
+            var hier = Gassennetz.PunktAuf(p.Pfad, anteil);
+            var weiter = Gassennetz.PunktAuf(p.Pfad, Mathf.Min(1, anteil + 0.5f / Mathf.Max(p.Laenge, 1)));
+            var richtung = weiter - hier;
+            if (richtung.LengthSquared() > 1e-6f)
+            {
+                richtung = richtung.Normalized();
+                p.Knoten.Rotation = new Vector3(0, Mathf.Atan2(richtung.X, richtung.Z), 0);
+                hier += new Vector3(-richtung.Z, 0, richtung.X) * p.Versatz; // rechts gehen, je nach Nummer etwas versetzt
+            }
+            p.Knoten.Position = hier;
+            p.Knoten.Visible = true;
+            // Schritte: leichtes Auf und Ab, abhängig vom zurückgelegten Weg (nicht von der Zeit) – so passt es zu jedem Tempo.
+            p.Koerper.Position = new Vector3(0, Mathf.Abs(Mathf.Sin(anteil * p.Laenge * 2.2f)) * 0.08f, 0);
+        }
+
+        // Verstorbene und Weggezogene verschwinden
+        if (gesehen.Count != _passanten.Count)
+            foreach (var nummer in _passanten.Keys.Where(n => !gesehen.Contains(n)).ToList())
+            {
+                _passanten[nummer].Knoten.QueueFree();
+                _passanten.Remove(nummer);
+            }
+
+        _passantenZeit += _passantenUhr.Elapsed.TotalMilliseconds;
+        _passantenBilder++;
+        _passantenSeitMessung += delta;
+        if (_passantenSeitMessung >= 10)
+        {
+            GD.Print($"Passanten: {_passanten.Count} Figuren, {_passanten.Values.Count(p => p.Knoten.Visible)} sichtbar, " +
+                     $"{_passantenZeit / _passantenBilder:0.00} ms je Bild, {Engine.GetFramesPerSecond()} Bilder/s");
+            _passantenZeit = 0;
+            _passantenBilder = 0;
+            _passantenSeitMessung = 0;
+        }
+    }
+
+    private Node3D NeueEbene()
+    {
+        var ebene = new Node3D { Name = "Passanten" };
+        AddChild(ebene);
+        return ebene;
+    }
+
+    /// <summary>Wo ein Einwohner draußen zu sehen ist. Drinnen (Heim, Schänke, Kirche, Rathaus) nicht.</summary>
+    private static bool Draussen(Aufenthalt a) => a.Ort is Stadtort.Markt or Stadtort.Gasse or Stadtort.Tor or Stadtort.Umland;
+
+    // ═════════════════════════════════════════════════════════════════════════
+    //  Orte und Strecken
+    // ═════════════════════════════════════════════════════════════════════════
+
+    /// <summary>Der Knoten im Gassennetz, an dem ein Aufenthalt beginnt oder endet (Haustür, Hof der Schänke, Domtür …).</summary>
+    private int Anlaufknoten(Aufenthalt a)
+    {
+        Vector3 punkt = a.Ort switch
+        {
+            Stadtort.Heim when _haustueren.TryGetValue(a.Haus, out var tuer) => _netz.Knoten[tuer],
+            Stadtort.Schaenke or Stadtort.Kirche when a.Betrieb is { } b && Stadtplan.TryGetValue(b, out var p) => p + new Vector3(0, 0, 5.5f),
+            Stadtort.Kirche => DomTuer,
+            Stadtort.Rathaus => RathausTuer,
+            Stadtort.Tor => Osttor,
+            Stadtort.Umland when a.Stelle is { } s && Umlandstellen.TryGetValue(s, out var u) => u,
+            _ => Marktplatz,
+        };
+        return _netz.KnotenBei(punkt);
+    }
+
+    /// <summary>
+    /// Die Strecke eines Weges: vom Platz, an dem er stand (Verweilpunkt oder Tür), über das Gassennetz zum neuen Platz.
+    /// </summary>
+    private Vector3[] Strecke(Weg weg, Einwohner e)
+    {
+        var pfad = _netz.Pfad(Anlaufknoten(weg.Von), Anlaufknoten(weg.Nach)).ToList();
+        if (pfad.Count == 0) return Array.Empty<Vector3>();
+        if (Draussen(weg.Von)) pfad.Insert(0, Verweilpunkt(weg.Von, e, weg.Abmarsch));
+        if (Draussen(weg.Nach)) pfad.Add(Verweilpunkt(weg.Nach, e, weg.Ankunft));
+        return pfad.ToArray();
+    }
+
+    private Vector3 Verweilpunkt(Aufenthalt a, Einwohner e) =>
+        // Beim Ziel gilt die Ankunftszeit des letzten Weges, sonst (vor dem Abmarsch) dessen Abmarsch.
+        Verweilpunkt(a, e, e.Weg is { } w ? (a == w.Nach ? w.Ankunft : w.Abmarsch) : 0);
+
+    /// <summary>
+    /// Wo genau jemand am Markt, in der Gasse, am Tor oder im Umland steht – fest aus Nummer und Zeitpunkt
+    /// (kein Würfel, also bei jedem Bild und jedem Laden gleich).
+    /// </summary>
+    private Vector3 Verweilpunkt(Aufenthalt a, Einwohner e, long zeitpunkt)
+    {
+        var zahl = Streuung(e.Nummer, zeitpunkt);
+        float Teil(int verschiebung) => ((zahl >> verschiebung) & 0xFFFF) / 65535f; // 0 … 1
+        return a.Ort switch
+        {
+            // Markt: zwischen den Ständen (Marktplatz 24 × 24 m, Brunnen in der Mitte frei lassen)
+            Stadtort.Markt => RingUmMitte(Marktplatz, 3f, 10.5f, Teil(0), Teil(16)),
+            // Tor: vor dem Osttor neben der Straße
+            Stadtort.Tor => Osttor + new Vector3(3 + Teil(0) * 4, 0, (Teil(16) < 0.5f ? -1 : 1) * (3 + Teil(8) * 2)),
+            // Umland: auf der Weide, auf dem Feld, zwischen den Bäumen
+            Stadtort.Umland when a.Stelle is { } s && Umlandstellen.TryGetValue(s, out var u) =>
+                u + new Vector3((Teil(0) - 0.5f) * 11, 0, (Teil(16) - 0.5f) * 7),
+            // Gasse: irgendwo auf einer Gasse in der Stadt
+            _ => PunktInDerGasse(Teil(0), Teil(16)),
+        };
+    }
+
+    private static Vector3 RingUmMitte(Vector3 mitte, float innen, float aussen, float a, float b)
+    {
+        var winkel = a * Mathf.Tau;
+        var radius = innen + b * (aussen - innen);
+        return mitte + new Vector3(Mathf.Cos(winkel) * radius, 0, Mathf.Sin(winkel) * radius);
+    }
+
+    private List<(Vector3 Von, Vector3 Bis)>? _gassenInDerStadt;
+
+    private Vector3 PunktInDerGasse(float wahl, float stelle)
+    {
+        _gassenInDerStadt ??= _netz.Kanten.Where(k => InDerStadt(k.Von) && InDerStadt(k.Bis) && k.Von.DistanceTo(k.Bis) > 3
+                                                 && k.Von.Length() > 13 && k.Bis.Length() > 13).ToList(); // nicht auf dem Markt
+        if (_gassenInDerStadt.Count == 0) return Marktplatz;
+        var (von, bis) = _gassenInDerStadt[(int)(wahl * (_gassenInDerStadt.Count - 1))];
+        return von.Lerp(bis, 0.15f + stelle * 0.7f);
+    }
+
+    /// <summary>Feste „Zufallszahl“ aus Nummer und Zeitpunkt (Hash-Mischung, in .NET bei jedem Start gleich).</summary>
+    private static uint Streuung(int nummer, long zeitpunkt)
+    {
+        var x = (uint)nummer * 2654435761u ^ (uint)zeitpunkt * 40503u;
+        x ^= x >> 15;
+        x *= 2246822519u;
+        x ^= x >> 13;
+        return x;
+    }
+
+    // ═════════════════════════════════════════════════════════════════════════
+    //  Figur
+    // ═════════════════════════════════════════════════════════════════════════
+
+    /// <summary>Größe und Breite nach Volk: Zwerge klein und breit, Halblinge klein, Elben groß und schlank.</summary>
+    private static Vector3 Gestalt(Volk volk) => volk switch
+    {
+        Volk.Zwerg => new Vector3(1.2f, 0.78f, 1.2f),
+        Volk.Halbling => new Vector3(0.78f, 0.7f, 0.78f),
+        Volk.Elb => new Vector3(0.85f, 1.1f, 0.85f),
+        _ => Vector3.One,
+    };
+
+    private Passant PassantBauen(Einwohner e)
+    {
+        var knoten = new Node3D { Name = $"Einwohner_{e.Nummer}", Visible = false };
+        _passantenEbene!.AddChild(knoten);
+        var koerper = new Node3D { Scale = Gestalt(e.Volk) };
+        knoten.AddChild(koerper);
+        var kleidung = Gewandfarben[e.Nummer * 7 % Gewandfarben.Length];
+        koerper.AddChild(new MeshInstance3D { Mesh = Rumpf, MaterialOverride = Stoff(kleidung), Position = new Vector3(0, 0.65f, 0) });
+        koerper.AddChild(new MeshInstance3D { Mesh = Kopf, MaterialOverride = Stoff(Hautfarbe), Position = new Vector3(0, 1.5f, 0) });
+        var versatz = ((e.Nummer * 37 % 9) - 4) * 0.22f; // −0,9 … +0,9 m
+        return new Passant { Knoten = knoten, Koerper = koerper, Versatz = versatz };
+    }
+}
