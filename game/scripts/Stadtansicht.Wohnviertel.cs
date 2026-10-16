@@ -35,9 +35,9 @@ public partial class Stadtansicht
     /// <summary>Die Stellen im Umland, an denen Hirten, Feldarbeiter und Holzsammler arbeiten (Namen wie im Kern).</summary>
     public static readonly Dictionary<string, Vector3> Umlandstellen = new()
     {
-        ["Weide"] = new(70, 0, -44),
-        ["Feld"] = new(30, 0, 60),
-        ["Wald"] = new(34, 0, -82),
+        ["Weide"] = new(-70, 0, 26),  // vor dem Westtor, südlich der Weststraße
+        ["Feld"] = new(-66, 0, 54),
+        ["Wald"] = new(-68, 0, -14),  // nördlich der Weststraße
     };
 
     /// <summary>Breite, Tiefe und Abstand eines Ringplatzes (Meter).</summary>
@@ -102,9 +102,9 @@ public partial class Stadtansicht
             }
             else
             {
-                var abzweig = Abzweige.GetValueOrDefault(name, Osttor + new Vector3(20, 0, 0));
-                if (AbstandZurStrecke(abzweig, Osttor, Landstrasse) > 1)
-                    n.Weg(Osttor, abzweig);
+                var abzweig = Abzweige.GetValueOrDefault(name, Wegkreuz + new Vector3(10, 0, 0));
+                if (!AnDerStrasse(name, abzweig))
+                    n.Weg(Kreuz(name), abzweig);
                 n.Weg(abzweig, p + new Vector3(-2, 0, 0));
             }
         }
@@ -200,10 +200,13 @@ public partial class Stadtansicht
         foreach (var h in einfach)
             zuordnung.Add((h, kulisse.Count > 0 ? kulisse.Dequeue() : frei.Count > 0 ? frei.Dequeue() : null));
 
+        // Überlauf: die Vorstadt vor dem Osttor. Reicht auch sie nicht, teilen sich die übrigen Häuser den letzten Platz.
         var ohnePlatz = zuordnung.Count(z => z.Platz is null);
-        var vorstadt = new Queue<Hausplatz>(VorstadtPlaetze(ohnePlatz));
-        if (vorstadt.Count < ohnePlatz)
-            GD.PushWarning($"Vorstadt: nur {vorstadt.Count} von {ohnePlatz} Plätzen gefunden – die übrigen Häuser teilen sich den letzten Platz.");
+        var vorstadtPlaetze = VorstadtPlaetze();
+        if (ohnePlatz > vorstadtPlaetze.Count)
+            GD.PushWarning($"Vorstadt: {ohnePlatz} Häuser, aber nur {vorstadtPlaetze.Count} Plätze – die übrigen teilen sich den letzten.");
+        var vorstadt = new Queue<Hausplatz>(vorstadtPlaetze.Take(ohnePlatz));
+        VorstadtgasseAnlegen(vorstadt);
 
         Hausplatz? letzter = null;
         foreach (var (haus, platz) in zuordnung)
@@ -219,8 +222,6 @@ public partial class Stadtansicht
                 WohnhausModell(haus.Art, p, haus.Nummer);
                 _gebautePlaetze.Add(p);
             }
-            if (!p.Ring && !KulissePlaetze().Contains(p))
-                WegZiehen(tuer, VorstadtAnschluss(tuer), 2); // Pfad von der Vorstadthaustür zur Straße
             var knoten = _netz.Anschliessen(tuer);
             _netz.Weg(_netz.Knoten[knoten], tuer);
             _haustueren[haus.Nummer] = _netz.KnotenBei(tuer);
@@ -231,20 +232,6 @@ public partial class Stadtansicht
     }
 
     private readonly HashSet<Hausplatz> _gebautePlaetze = new();
-
-    private Vector3 VorstadtAnschluss(Vector3 tuer)
-    {
-        var beste = tuer;
-        var abstand = float.MaxValue;
-        foreach (var (von, bis, _) in _strassen)
-        {
-            var ab = bis - von;
-            var t = ab.LengthSquared() > 0 ? Mathf.Clamp((tuer - von).Dot(ab) / ab.LengthSquared(), 0, 1) : 0;
-            var q = von + ab * t;
-            if (q.DistanceTo(tuer) < abstand) { abstand = q.DistanceTo(tuer); beste = q; }
-        }
-        return beste;
-    }
 
     /// <summary>Maße (Breite, Höhe, Tiefe) je Hausart.</summary>
     private static Vector3 Masse(Hausart art) => art switch
@@ -321,69 +308,43 @@ public partial class Stadtansicht
     };
     private static List<Hausplatz> KulissePlaetze() => _kulissePlaetze;
 
+    /// <summary>Die Vorstadtgasse kreuzt die Landstraße zwischen Osttor und Wegkreuz und reicht so weit nach Norden und Süden.</summary>
+    public const float VorstadtRand = 46;
+    private const float VorstadtGasseX = 64;
+    private const float VorstadtBreite = 7.5f;
+
     /// <summary>
-    /// Plätze vor dem Osttor: entlang der Landstraße und der Wege, die am Tor abzweigen, je Straßenseite.
-    /// Ein Platz gilt nur, wenn er keine andere Straße, keinen Berg, keinen Betrieb und kein anderes Haus berührt.
-    /// Die Plätze nächst dem Tor kommen zuerst.
+    /// Plätze in der Vorstadt: beiderseits der Vorstadtgasse (x = 64), nördlich und südlich der Landstraße,
+    /// die Vorderseite zur Gasse. Die Plätze nächst der Landstraße kommen zuerst. Für 8 Spielhäuser reicht es.
     /// </summary>
-    private List<Hausplatz> VorstadtPlaetze(int anzahl)
+    private static List<Hausplatz> VorstadtPlaetze()
     {
         var liste = new List<Hausplatz>();
-        if (anzahl <= 0) return liste;
-        var kandidaten = new List<(Hausplatz Platz, float Abstand, int Strasse)>();
-        for (var s = 0; s < _strassen.Count; s++)
+        var abstand = 1.5f + 0.8f + 3.1f; // Gassenrand + Vorplatz + halbe Tiefe eines einfachen Hauses
+        const float anfang = 5;           // Abstand zur Landstraße
+        var anzahl = (int)((VorstadtRand - anfang) / VorstadtBreite);
+        for (var i = 0; i < anzahl; i++)
         {
-            var (von, bis, breite) = _strassen[s];
-            if (InDerStadt(von) && InDerStadt(bis)) continue;
-            var richtung = bis - von;
-            var laenge = richtung.Length();
-            if (laenge < PlatzBreite) continue;
-            richtung /= laenge;
-            var quer = new Vector3(-richtung.Z, 0, richtung.X);
-            for (var t = 4f; t + 4 < laenge; t += PlatzBreite)
-                foreach (var seite in new[] { 1f, -1f })
-                {
-                    var mitte = von + richtung * t + quer * seite * (breite / 2 + 0.8f + 3);
-                    var p = new Hausplatz(mitte, -quer * seite, false);
-                    kandidaten.Add((p, mitte.DistanceTo(Osttor), s));
-                }
-        }
-        foreach (var (platz, _, strasse) in kandidaten.OrderBy(k => k.Abstand))
-        {
-            if (liste.Count >= anzahl) break;
-            if (VorstadtPlatzFrei(platz.Mitte, strasse, liste)) liste.Add(platz);
+            var z = anfang + VorstadtBreite * (i + 0.5f);
+            foreach (var seite in new[] { -1f, 1f })        // west, ost
+                foreach (var richtung in new[] { -1f, 1f })  // nord, süd
+                    liste.Add(new Hausplatz(new Vector3(VorstadtGasseX + seite * abstand, 0, z * richtung), new Vector3(-seite, 0, 0), false));
         }
         return liste;
     }
 
-    private bool VorstadtPlatzFrei(Vector3 mitte, int eigeneStrasse, List<Hausplatz> schonVergeben)
+    /// <summary>Zeichnet die Vorstadtgasse so weit, wie Häuser an ihr stehen, und knüpft sie ins Netz.</summary>
+    private void VorstadtgasseAnlegen(IEnumerable<Hausplatz> plaetze)
     {
-        const float radius = 4.6f; // umschreibender Kreis eines Hauses
-        if (Mathf.Abs(mitte.X) < Mauerrand + 3 + radius && Mathf.Abs(mitte.Z) < Mauerrand + 3 + radius) return false; // an der Mauer
-        for (var s = 0; s < _strassen.Count; s++)
-        {
-            if (s == eigeneStrasse) continue;
-            var (von, bis, breite) = _strassen[s];
-            if (AbstandZurStrecke(mitte, von, bis) < radius + breite / 2 + 0.5f) return false;
-        }
-        foreach (var (name, p) in Stadtplan)
-        {
-            if (InDerStadt(p)) continue;
-            if (Abzweige.ContainsKey(name) && Gruben.Contains(name))
-            {
-                // Berge der Gruben: zwei abgeflachte Kugeln (siehe BergBauen)
-                if (mitte.DistanceTo(p + new Vector3(10, 0, -8)) < 18 + radius || mitte.DistanceTo(p + new Vector3(20, 0, 4)) < 13 + radius) return false;
-            }
-            if (mitte.DistanceTo(p) < 12 + radius) return false;
-        }
-        foreach (var (_, stelle) in Umlandstellen)
-            if (mitte.DistanceTo(stelle) < 9 + radius) return false;
-        foreach (var anderer in schonVergeben)
-            if (mitte.DistanceTo(anderer.Mitte) < 2 * radius) return false;
-        return true;
+        var liste = plaetze.ToList();
+        if (liste.Count == 0) return;
+        var nord = Mathf.Min(0, liste.Min(p => p.Mitte.Z) - VorstadtBreite / 2);
+        var sued = Mathf.Max(0, liste.Max(p => p.Mitte.Z) + VorstadtBreite / 2);
+        var a = new Vector3(VorstadtGasseX, 0, nord);
+        var b = new Vector3(VorstadtGasseX, 0, sued);
+        WegZiehen(a, b, 3);
+        _netz.Weg(a, b); // kreuzt die Landstraße – der Knoten dort entsteht von selbst
     }
-
-    private static readonly HashSet<string> Gruben = new() { "Grube Eisenbart", "Grube am Silberberg", "Grube im Tannenwald" };
 
     // ═════════════════════════════════════════════════════════════════════════
     //  Hilfsansicht: --wegenetz=1 zeigt das Gassennetz
