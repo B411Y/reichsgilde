@@ -237,6 +237,7 @@ Format: `- PR #Nummer (Phase) – Inhalt`
 - PR #61 (2) – Bürger-KI: Gläubige und Kollekte der Messe folgen den Gebetsstunden der Einwohner; Betende verteilen sich nach Anziehung auf die Kirchen ihrer Konfession
 - PR #62 (3) – Leveldesign: fünfter Chat, Kartenregeln (`docs/LEVELDESIGN.md`), Entscheidungen zu Städten, Wohnhaus, Bauzonen, Toren, Wasser
 - PR #63 (2) – Bürger-KI: Nachfrage der Fertigwaren folgt den Einkäufen der Einwohner (Faktor 0,8–1,2, gleitend über 17 Stunden); das Übliche schwingt ohne den ersten Tag ein
+- PR #66 (3) – Leveldesign: Raster 2 × 2 m, Gewerbe in jeder Bauzone, Werkstätten an Karrenstraßen und Wohnhäuser auch an Gassen, feste Startgrundstücke
 
 ### 6b. Offen (eine Zeile je Punkt; erledigt → Zeile löschen und unter 6a eintragen)
 
