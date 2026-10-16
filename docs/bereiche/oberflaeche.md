@@ -11,5 +11,6 @@ So wird eingetragen (damit sich die Chats nie an derselben Stelle treffen):
 ## Offen
 
 - (von Spiel-KI) Ratsfenster: Abstimmen von Hand bei Wahlen und Anträgen, sobald der Kern den Befehl hat; die Wahlprognose zählt seit PR #73 die Stimmen der KI-Häuser mit
+- (von Spiel-KI) Marktfenster: Warengruppe und Warenkorb im Tooltip zeigen – `Einwohnerschaft.Warengruppe(ware)` (z. B. „Schmiedewaren“) und `Warenkorbfaktor(ware)` (0,9–1,1: „Die Einwohner fragen 7 % mehr nach“), seit PR #91
 
 ## Entscheidungen
