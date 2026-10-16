@@ -146,6 +146,8 @@ Ein KI-Rivale (`src/Reichsgilde.Core/Ki/KiRivale.cs`) führt ein Konto und alle 
 
 **Werkstatt zum Handwerk (PR #60):** Hat ein KI-Haus von einem Handwerk nur den Umlandbetrieb (Bauernhof, Klosterhof, Duftgarten), kauft `Expandieren` die Werkstatt dazu – auch wenn `BetriebeHoechstens` schon erreicht ist (`NurUmland`, `HatWerkstattFuer`). Andere Käufe bleiben an die Höchstzahl gebunden.
 
+**Wohnhaus und Sparen (PR #82):** `StandPruefen` baut ein fehlendes Wohnhaus erst, wenn das Reinvermögen nach dem Ausbau noch die Schwelle hält und Ausbau, Gebühr und Reserve bar da sind. `Spart` ist wahr ab 80 % des `Standziel` (Schwelle + noch nötiger Ausbau); dann setzt der Charakter aus: vorsichtig `Ausbauen`/`Expandieren`, ausgewogen das `Politikbudget`, wagemutig die Hälfte des `Gaunerbudget` (nur Banden, nicht die eigenen Diebe).
+
 Das **Profil** (`KiProfil`) gibt jedem Rivalen einen Charakter: Geldreserve, Wechselschwelle, Vorsicht (wie stark er Raub fürchtet) und Höchstzahl an Karren. Über 20 Jahre verdient der Rivale mit KI rund 9 % mehr als ohne. Für den Spieler wird es entsprechend enger, weil die KI in seine Märkte drängt.
 
 ## Befehle: der einzige Weg, etwas zu ändern
