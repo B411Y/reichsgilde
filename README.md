@@ -1,15 +1,109 @@
+<div align="center">
+
 # Reichsgilde
 
-*Arbeitstitel* – eine Wirtschaftssimulation und Dynastie-Sandbox im 2,5D-Stil, inspiriert von **„Die Gilde“ (Europa 1400)**.
-Schauplatz ist ein düster-bodenständiges Heiliges Römisches Reich des Spätmittelalters, in dem Menschen, Zwerge, Elben und Halblinge als Bürger leben und Orks und Oger als Bestien vor den Toren lauern.
+**Wirtschaftssimulation und Dynastie-Sandbox im 2,5D-Stil** – inspiriert von „Die Gilde“ (Europa 1400)
 
-> Hobby- und Lernprojekt · Open Source (MIT) · Godot 4.7 + C# · **Windows & Linux**
+*Ein düster-bodenständiges Heiliges Römisches Reich des Spätmittelalters: Menschen, Zwerge, Elben und Halblinge leben als Bürger in der Stadt, Orks und Oger lauern als Bestien vor den Toren.*
 
 [![Build, Tests & Export](https://github.com/B411Y/reichsgilde/actions/workflows/build.yml/badge.svg)](https://github.com/B411Y/reichsgilde/actions/workflows/build.yml)
+![Godot 4.7](https://img.shields.io/badge/Godot-4.7-478cbf)
+![C# .NET 8](https://img.shields.io/badge/C%23-.NET%208-512bd4)
+![Windows & Linux](https://img.shields.io/badge/Windows%20%26%20Linux-spielbar-2e7d32)
+[![Lizenz: MIT](https://img.shields.io/badge/Lizenz-MIT-yellow)](LICENSE)
 
-## Aktueller Stand
+![Die Reichsstadt mit Markt, Dom und Stadtmauer](docs/bilder/stadt.png)
 
-**Phase 3 – 2,5D-Stadtansicht (Greybox).** Die Reichsstadt ist als begehbare Schrägansicht zu sehen: Mauer (100 × 100 m) mit Ost- und Westtor, Wohnhäuser der Spielhäuser am Ring (Fachwerkhaus bis Hof, mit Gerüst beim Ausbau, nach Brand rußig, im Leerstand vernagelt), Wohnhäuser der Einwohner am Mauerring (Ratsherren- und Bürgerhäuser nächst dem Markt, mit mehr Spielhäusern eine Vorstadt vor dem Osttor), Weide, Feld und Holzschläge vor dem Westtor, **Passanten**: die Einwohner laufen sichtbar zu Markt, Gassen, Tor und Umland und verschwinden in Häusern, Schänken, Kirchen und dem Rathaus; man erkennt Volk und Rolle an Gestalt und Tracht, ein Klick zeigt Name, Rolle, Tun und Stimmung, Markt, Rathaus, Dom, Gießereien und die Grube vor der Stadt – noch aus einfachen Grundformen. Die orthografische Kamera blickt diagonal (nach Nordosten, Nordwesten, Südwesten oder Südosten) und dreht in 90°-Schritten. Karren fahren sichtbar zum Markt, Licht, Schatten und Himmel folgen der Spieluhr (flüssig, nicht minutenweise), die Esse glüht bei Arbeit, Gebäude lassen sich anklicken.
+*Arbeitstitel · Hobby- und Lernprojekt · Grafik noch aus einfachen Grundformen (Greybox)*
+
+</div>
+
+## Was das Spiel schon kann
+
+| | Thema | Was schon geht |
+|---|---|---|
+| 🏰 | [Stadt und Ansicht](#stadt) | Ummauerte Reichsstadt in drehbarer Schrägansicht, Einwohner laufen sichtbar durch die Gassen, Licht und Schatten folgen der Spieluhr. |
+| 🚪 | [Gebäude betreten](#gebaeude) | Werkstätten, eigenes Wohnhaus, Rathaus und Dom von innen – mit Arbeitern, Familie, Ratsherren und Gläubigen aus der Simulation. |
+| ⏳ | [Partie und Spieltag](#partie) | Ein Spieltag von 5 bis 22 Uhr ist ein Spieljahr. Hauptmenü, Speichern und Laden, Aktionspunkte für persönliche Handlungen. |
+| ⚖️ | [Wirtschaft und Handel](#wirtschaft) | Marktpreise nach Angebot und Nachfrage, Betriebe, Karren und Stadttore, Handel von Hand, Expansion, Meistergrade und Gebäudestufen. |
+| ⚒️ | [Berufe](#berufe) | Zehn Berufe – Schmied, Tischler, Steinmetz, Alchimist, Wirt, Prediger, Dieb, Gardist, Geldleiher, Parfumeur – mit eigenen Waren und Kniffen. |
+| 🛡️ | [Haus und Dynastie](#haus) | Wappen, Heirat, Kinder, Erbfolge, Talente, Krankheiten und Pest, ein Wohnhaus vom Fachwerkhaus bis zum Stadthof. |
+| 👑 | [Stand, Rat und Glaube](#aufstieg) | Vom Gemeinen zum Reichsgrafen, Ämter im Stadtrat, Wahlen und Statut, katholisch, evangelisch oder Naturglaube. |
+| 🗝️ | [Unterwelt und Gericht](#unterwelt) | Banden, Einbruch, Brand, Erpressung – und dagegen Wächter, Spitzel, Beweise, Anklage und Kerker. |
+| 👥 | [Einwohner](#einwohner) | 25 Einwohner je Haus mit Rolle und Tagesablauf; sie füllen Schänken und Kirchen und kaufen am Markt. |
+| 🤖 | [KI-Häuser](#ki) | Bis zu drei Rivalen mit Charakter, die nach denselben Regeln spielen wie du – ohne Schummelei. |
+
+Ein Klick auf ein Thema springt zu seinem Abschnitt im **Spielbuch** weiter unten; dort lässt er sich aufklappen.
+
+## Loslegen
+
+**Du brauchst:**
+- [Godot 4.7.x – .NET-Version](https://godotengine.org/download)
+- [.NET SDK 8 oder neuer](https://dotnet.microsoft.com/download)
+- VS Code mit der C#-Erweiterung (empfohlen)
+
+**Spiel starten:**
+1. Godot starten → **Importieren** → `game/project.godot` auswählen.
+2. Oben rechts auf **▶ (Projekt ausführen)** klicken oder **F5** drücken – das Hauptmenü erscheint.
+
+Spielstände liegen unter `%APPDATA%\Godot\app_userdata\Reichsgilde\spielstaende` (Windows) bzw. `~/.local/share/godot/app_userdata/Reichsgilde/spielstaende` (Linux).
+
+<details>
+<summary><b>Steuerung</b></summary>
+
+- **Leertaste** = Pause · **1–4** = Tempo 1×/2×/4×/8× · **5–6** = Testtempo 16×/32× (nur während der Entwicklung)
+- **Mausrad** = Zoom · **rechte Maustaste ziehen** oder **WASD/Pfeiltasten** = verschieben · **Q/E** = drehen
+- **Namen in der Stadt:** Ein Gebäude zeigt seinen Namen, wenn die Maus darüber steht oder es ausgewählt ist; **Alt gedrückt halten** zeigt alle Namen. Freie Plätze tragen ein Schild am Pfosten: **ocker = zu verkaufen**, **grün = zu verpachten**.
+- **Linksklick** auf ein Gebäude = Informationen (bei eigenen Betrieben mit Bedienfeld) · **Doppelklick** auf eine Werkstatt, das Rathaus oder den Dom = hineingehen · im Gebäude: **Raumleiste** oder **Q/E** = Raum wechseln, **Klick in den Raum** = seine Tafel
+- **Esc** = Tafel schließen → Gebäude verlassen → Auswahl schließen → Spielmenü (Speichern, Laden, Hauptmenü)
+- **F11** = Vollbild ein/aus (wird gespeichert).
+- **Einstellungen** (Knopf im Hauptmenü und im Spielmenü, Esc): Vollbild und **Kantenglättung** – Aus, FXAA, SMAA (Standard), TAA, MSAA 2×/4×/8×, je mit kurzer Erklärung. Die Wahl wirkt sofort und wird gespeichert. Das Fenster lässt sich frei ziehen: Ein größeres Fenster zeigt mehr Stadt, Tafeln, die nicht hineinpassen, bekommen Scrollbalken (Mausrad über der Tafel rollt sie).
+  Hinweis: Startet man das Spiel im Godot-Editor, läuft es im Reiter „Game“ eingebettet. Dort bestimmt der Editor die Fenstergröße, und Vollbild ist nicht möglich. Zum Testen im eigenen Fenster das Einbetten im Reiter „Game“ ausschalten.
+
+</details>
+
+<details>
+<summary><b>Tests ausführen</b></summary>
+
+Im Terminal (in VS Code: *Terminal → Neues Terminal*) im Ordner `reichsgilde`:
+
+```
+dotnet run --project tests/Reichsgilde.Core.Tests
+```
+
+Am Ende muss stehen: `Alle … Tests bestanden.`
+
+</details>
+
+<details>
+<summary><b>Spiel exportieren (Windows / Linux)</b></summary>
+
+1. Einmalig in Godot: **Editor → Exportvorlagen verwalten → Herunterladen und installieren**
+2. **Projekt → Exportieren…** → Vorlage **Windows** oder **Linux** wählen → **Projekt exportieren**
+3. Das fertige Spiel landet im Ordner `build/` (wird nicht ins Repository übernommen)
+
+</details>
+
+## Spielbuch
+
+Alles, was das Spiel kann, im Detail – zum Aufklappen.
+
+<!-- Neues bitte in den passenden aufklappbaren Abschnitt schreiben, nicht ans Ende.
+     Nach <summary>…</summary> und vor </details> muss eine Leerzeile stehen, sonst zeigt GitHub kein Markdown. -->
+
+<a id="stadt"></a>
+<details>
+<summary><b>Stadt und Ansicht</b> – Reichsstadt in Schrägansicht, Passanten, Tag und Nacht</summary>
+
+Die Reichsstadt ist als begehbare Schrägansicht zu sehen: Mauer (100 × 100 m) mit Ost- und Westtor, Wohnhäuser der Spielhäuser am Ring (Fachwerkhaus bis Stadthof, mit Gerüst beim Ausbau, nach Brand rußig, im Leerstand vernagelt), Wohnhäuser der Einwohner am Mauerring (Ratsherren- und Bürgerhäuser nächst dem Markt, mit mehr Spielhäusern eine Vorstadt vor dem Osttor), Weide, Feld und Holzschläge vor dem Westtor, **Passanten**: die Einwohner laufen sichtbar zu Markt, Gassen, Tor und Umland und verschwinden in Häusern, Schänken, Kirchen und dem Rathaus; man erkennt Volk und Rolle an Gestalt und Tracht, ein Klick zeigt Name, Rolle, Tun und Stimmung, Markt, Rathaus, Dom, Gießereien und die Grube vor der Stadt – noch aus einfachen Grundformen. Die orthografische Kamera blickt diagonal (nach Nordosten, Nordwesten, Südwesten oder Südosten) und dreht in 90°-Schritten. Karren fahren sichtbar zum Markt, Licht, Schatten und Himmel folgen der Spieluhr (flüssig, nicht minutenweise), die Esse glüht bei Arbeit, Gebäude lassen sich anklicken.
+
+**Tag und Nacht.** Sonne und Mond wandern über den Himmel und werfen beide Schatten; in der Dämmerung blenden sie weich über.
+
+</details>
+
+<a id="gebaeude"></a>
+<details>
+<summary><b>Gebäude betreten</b> – Werkstätten, Wohnhaus, Rathaus und Dom von innen</summary>
 
 **Raumansicht – Gebäude betreten.** Ein Doppelklick auf eine Werkstatt, das eigene Wohnhaus oder das Rathaus führt hinein: Eine eigene Kamera blickt fest in einen Raum, wie auf eine Bühne (Rückwand mit Fenstern, Seitenwände, die Vorderseite offen). Die **Raumleiste** unten rechts oder **Q/E** wechseln den Raum, ein **Klick in den Raum** öffnet seine Tafel, **Esc** führt zurück in die Stadt. Fenster und Licht folgen der Uhrzeit. Im Raum bleibt das Bild frei: Gebäudefenster und Kontor des Hauses erscheinen nur in Kontor und Amtsstube.
 - **Werkstatt:** **Werkraum** (Einrichtung des Berufs, siehe Tabelle; heißt je Beruf Werkstatt, Schankstube, Kirchenraum, Versteck, Wachstube, Wechselstube, Siedestube oder Laboratorium) · **Lager** (Kistenstapel je Ware, eine Kiste je 5 Stück).
@@ -34,7 +128,11 @@ Schauplatz ist ein düster-bodenständiges Heiliges Römisches Reich des Spätmi
 - **Rathaus:** vier Räume – **Ratssaal** (U-Tisch, die Ratsherren sitzen nach Rang, Häuser in ihrer Farbe mit Namensschild, der Bürgermeister trägt die Amtskette, eine Rolle liegt aus, solange ein Antrag läuft), **Gerichtssaal** (Richterpodest; bei einem Verfahren drei Richter, Ankläger und Beklagter, sonst schreibt der Stadtrichter), **Amtsstube** (Stadtschreiber, Stadtkasse, Ständetafel mit eurem Stand) und **Kerker** (hinter Gittern die einsitzenden Oberhäupter, davor ein Wächter). Besetzt ist das Rathaus von 8 bis 20 Uhr. Ein **Klick in den Raum** öffnet seine Tafel: Ratssaal → Stadtrat, Gerichtssaal und Kerker → Stadtgericht; in der Amtsstube steht das Rathausfenster mit dem Knopf zum Aufsteigen.
 - **Dom:** Hauptkirche des Stadtglaubens – **katholisch** prunkvoll (Hochaltar mit goldenem Flügelretabel, Marienfigur, Weihrauchfass, Bischof mit Mitra), **evangelisch** schlicht (Abendmahlstisch, Holzkreuz, Pfarrer auf der Kanzel), bei **Glaubensfreiheit** Simultankirche mit Seil im Mittelgang (Katholiken links, Evangelische rechts). Zur Messe um 10 Uhr sitzen die Gläubigen ohne Kirche eines Hauses in den Bänken (eine Figur je fünf Gläubige). Einwohner, die zum Beten in den Dom gehen, sitzen dort einzeln mit ihrer Gestalt und Tracht von draußen, vorne zuerst.
 
-**Einwohner (Bürger-KI, Schritt 1).** Neben den Häusern leben 25 Einwohner je Haus in der Stadt, dazu die Ratsherren und die Heiratskandidaten. Jeder hat Name, Volk, Rolle (Tagelöhner, Magd, Krämer, Mönch …) und einen eigenen Tagesablauf nach fünf Bedürfnissen: Arbeit, Markt, Schänke, Kirche, Feierabend. Sie wohnen in Haushalten (Ratsherren im eigenen Haus), gehen Wege durch die Stadt und hinaus aufs Umland (Weide, Feld, Wald), Knechte und Mägde dienen in den Bürgerhäusern. Die Gäste der Schänken richten sich schon nach den Einwohnern, die wirklich einkehren (volle Abende bringen mehr, leere weniger; im Mittel bleibt es bei 120 Gästen im Jahr). Ebenso die Gläubigen und die Kollekte der Messe: Je mehr Einwohner am Morgen beten, desto voller die Kirche. Auch die Nachfrage nach Fertigwaren folgt den Einkäufen der Einwohner (Faktor 0,8–1,2 auf die Nachfrage). Taschendiebe erbeuten mehr, wenn viele Einwohner draußen unterwegs sind; wird einer gefasst, steht der Name des Bestohlenen in der Meldung.
+</details>
+
+<a id="partie"></a>
+<details>
+<summary><b>Partie und Spieltag</b> – Hauptmenü, Spieltag 5–22 Uhr, Speichern, Aktionspunkte</summary>
 
 **Spieltag wie im Original: 05:00 bis 22:00 Uhr.** Ein Spieltag ist ein Spieljahr. Er beginnt um 5 Uhr mit der Zunftglocke, gearbeitet wird von 8 bis 20 Uhr, von 20 bis 22 Uhr ist Dunkle Nacht (die Gauner ziehen um 20 Uhr los), um 22 Uhr kommt die Jahresrechnung, und das nächste Jahr beginnt wieder um 5 Uhr. Ein Jahr dauert weiter 15 Minuten Echtzeit (eine Spielstunde ≈ 53 Sekunden). Spielstände aus der Zeit des 24-Stunden-Tags lassen sich nicht mehr laden.
 
@@ -44,13 +142,31 @@ Schauplatz ist ein düster-bodenständiges Heiliges Römisches Reich des Spätmi
 - Nach jedem Jahresbericht wird automatisch gespeichert.
 - Ein geladener Spielstand läuft exakt so weiter, wie er gespeichert wurde.
 
+**Aktionspunkte.** Jedes Haus bekommt zum Jahreswechsel **4 Aktionspunkte** (im Hauptmenü 1–12 einstellbar) und kann bis zu 12 ansparen. Persönliche Handlungen kosten AP: Werben, Heiraten, einen Ratsherrn beschenken, sich bewerben, einen Spitzel ansetzen, eine Bande anheuern (je 1), Statut-Antrag, Anklage, Erpresserbrief, Konvertieren, Antrag zum Stadtglauben (je 2), Bekehrungspredigt (1). Mit übrigen AP übt das Oberhaupt ein Talent: ½ Stern je Übung, je Talent einmal im Jahr; es kostet 2 AP unter 3 Sternen, 4 AP unter 5 und 6 AP darüber. Die Wirtschaft (Betriebe, Personal, Karren, Wächter, Stand, Liegenschaften) bleibt frei. Haus Eisenbart hat dieselben AP und setzt Prioritäten nach seinem Charakter.
+
+</details>
+
+<a id="wirtschaft"></a>
+<details>
+<summary><b>Wirtschaft und Handel</b> – Markt, Betriebe, Karren, Handel von Hand, Expansion, Meistergrade</summary>
+
+**Simulationskern.** Die Spielzeit läuft (1 Runde = 1 Spieltag = 1 Spieljahr, Standard 15 Minuten), mit Pause, Tempo und wählbarer Siegbedingung. Die **Wirtschaft** ist eingebaut: Marktpreise nach Angebot und Nachfrage, Gießerei und Mine produzieren während der Arbeitszeit, Löhne, Pacht und Steuern laufen in die Jahresrechnung, und das Fron- und Sklavenstatut bestimmt, wer wo arbeiten darf. **Lager und Karren** bringen die Waren zum Markt; auf Umland-Wegen lauern **Banditen aller Völker**, gegen die Eskorten helfen. Das Kontor im Spiel zeigt Vermögen, Lager, Karren, Jahresrechnung und Marktpreise.
+
+**Bedienung.** Ein Klick auf deine Gießerei (oder „⚒ Betrieb verwalten“ im Kontor) öffnet das Bedienfeld: Produkt wählen, Personal einstellen und entlassen, Karren kaufen und für Umland-Fahrten Eskorte und Nachtfahrt festlegen. **Stadttore:** Ab 20 Uhr sind die Tore zu, um 5 Uhr gehen sie wieder auf. Ein Umlandkarren, der nach Torschluss ankommt, wartet sicher bis zum Morgen vor dem Tor – außer er darf nachts fahren, dann zahlt er 15 Gulden Torgeld je Durchfahrt. Neben jeder Wahl steht, was sie bringt (Gulden je Arbeitsminute, Jahresertrag je Kopf, erwartete Kosten je Fahrt) – dieselben Rechnungen, nach denen die KI entscheidet. Jede Aktion ist ein **Befehl**, den der Simulationskern prüft und mit Begründung ausführt oder ablehnt; die KI benutzt denselben Weg.
+
+**Marktplatz.** Ein Klick auf den Marktplatz in der Stadt (oder der Knopf „Marktplatz“ im Kontor) öffnet das Marktfenster: alle Waren als Kacheln mit Pixel-Icon und Preis, nach Rohstoffen, Zwischenwaren und Fertigwaren geordnet. Grün ▲ heißt über dem Grundpreis, rot ▼ darunter; die gelbe Zahl im Icon ist der eigene Lagerbestand, der Tooltip zeigt Herkunft, Nachfrage, Zutaten und Gewinn je Arbeitsminute. Neue Icons: Zeichenfunktion in `tools/icons/waren_icons.py` ergänzen und `python3 tools/icons/waren_icons.py` ausführen.
+
+**Handel von Hand.** Oben im Marktfenster (oder über „Handel am Markt …“ in der Betriebsverwaltung) gibt man einem Karren einen **Auftrag**: Betrieb und Karren wählen, Ware anklicken, Menge eintragen, „verkaufen“ (aus dem Lager) oder „kaufen“ (ins Lager). Der Karren lädt, fährt zum Markt, handelt dort und bringt die Einkäufe heim. Eingekauft wird zum Marktpreis **+10 % Händlerspanne** (Verhandeln senkt sie), und jedes gekaufte Stück hebt den Preis, wie jeder Verkauf ihn senkt. Der Markt hat **8–20 Uhr** offen (Ankunft des Karrens). Ist der Karren unterwegs, wird der Auftrag **vorgemerkt** und startet, sobald er zurück ist. **Zurückhalten:** Eine Ware bleibt im Lager, der Karren verkauft sie nicht von selbst – Gekauftes, das der Betrieb nicht verarbeitet, wird automatisch zurückgehalten. Die KI handelt (noch) nicht von Hand.
+
 **Expansion.** Als Bürger kannst du eine zweite Werkstatt kaufen (Gießerei an der Südgasse) oder eine Grube pachten (am Silberberg oder im Tannenwald). Freie Plätze sind in der Stadt mit Zaun und Schild „zu verkaufen“ bzw. „zu verpachten“ markiert. Ein Klick darauf zeigt Preis, Pacht und den erwarteten Gewinn. Jede Liegenschaft gibt es nur einmal, und Haus Eisenbart greift ebenfalls zu.
 
-**Wappen und Hausname.** Ganz oben unter „Neue Partie“ wählst du das **Wappen** deines Hauses: eine von zwölf Vorlagen anklicken, die Farben für Grund und Figur ändern oder würfeln. Daneben steht die Beschreibung in der Sprache der Herolde („In Rot ein goldener Hammer.“). Ein Wappen besteht aus einer Teilung (z. B. geteilt, gespalten, Schildhaupt, Balken, Sparren), zwei Farben und einer von 16 Figuren; wo die Figur über die zweite Farbe reicht, wechselt sie die Farbe („verwechselte Farben“). Die KI-Häuser führen eigene Wappen (Eisenbart: in Schwarz ein goldener Amboss; Eichwald: in Grün mit silbernem Bord ein silberner Baum; Kieselbach: in Blau unter silbernem Schildhaupt ein silberner Wellenbalken), die du nicht wählen kannst. Wappen stehen im Kontor, in der Rangliste des Jahresberichts, bei Amtsinhabern im Rat, im Beweisbuch des Gerichts und im Gebäudefenster beim Besitzer. Als Hausname trägst du nur den Namen ein („Hammerschmid“) – das Spiel schreibt überall „Haus Hammerschmid“, wie bei den Rivalen.
+**Meistergrade und Gebäudestufen.** Jedes Stück, das die Betriebe eines Hauses herstellen oder fördern, bringt Erfahrung im Beruf. Reicht sie, legt man im Kontor die Meisterprüfung ab (Gebühr und 2–4 AP) – bis zum 6. Grad. Ab dem 3. Grad lässt sich die Werkstatt am Platz zur Stufe 2 ausbauen (Schmiede bzw. Drechslerei, 3 Plätze), ab dem 5. Grad zur Stufe 3 (Goldschmiede bzw. Sägewerk, 4 Plätze); der Umbau kostet Gulden und einen halben Arbeitstag. Höhere Stufen stellen wertvollere Waren her: Werkzeug, Silberkette, Goldkette, Prunkschwert; Gehstock, Armbrust, Schrank, Prunktruhe; Säule, Taufbecken, Steinfigur, Grabmal; Rosenwasser, Gegengift, Theriak, Zinnober (Gold gibt es nur auf dem Markt). Der Steinmetz baut zur Steinschneiderei und Steinmetzhütte aus. Der 6. Grad bringt einen Aktionspunkt mehr je Jahr. Grad und Erfahrung gehören dem Haus und gehen beim Erbfall nicht verloren.
 
-**Dynastie.** Dein Haus besteht aus Menschen, Zwergen, Elben oder Halblingen. Volk, Geschlecht und Vorname des Oberhaupts wählst du im Hauptmenü. Jedes Jahr altern alle; mit dem Alter steigt das Sterberisiko. Über „Familie“ im Kontor öffnest du die Familientafel. In der **Brautschau** wirbst du mit Geschenken um ledige Bürger der Stadt, nur standesgemäß und mit etwas Geduld, denn mehr als 20 Zuneigung im Jahr gewinnt niemand. Neben jedem Kandidaten steht, wie viele Kinder die Ehe erwarten lässt. Ehen zwischen Völkern sind erlaubt, aber weniger fruchtbar, und sie wirken sich im Rat aus. Stirbt das Oberhaupt, erbt das im **Testament** bestimmte Kind, sonst das älteste volljährige. Gibt es keines, führt nach dem Witwenrecht der Ehepartner das Haus weiter. Sonst erlischt das Haus, und die Partie ist verloren. Die Völker unterscheiden sich deutlich: Elben leben sehr lange, bekommen aber selten Kinder. Halblinge bekommen schnell Kinder, sterben aber früher. Haus Eisenbart ist ein Zwergenhaus und sucht nach denselben Regeln eine Partie.
+</details>
 
-**Talente und Ausbildung.** Jede Person hat fünf Talente mit 0 bis 6 Sternen: **Verhandeln** (bessere Markterlöse), **Handwerkskunst** (mehr Leistung aller Arbeitskräfte), **Bei Nacht und Nebel** (Gaunerstücke gelingen öfter, Zeugen sehen weniger), **Kampf** (stärkere Wegelagerer, besser geschützte eigene Karren) und **Rhetorik** (Ratswahlen, Plädoyer vor Gericht, Brautgeschenke). Es zählen die Talente des Oberhaupts, der Erbe ist also eine echte Entscheidung. Die Völker bringen Anlagen mit: Zwerge sind die besten Handwerker, Elben die besten Redner, Halblinge die geschicktesten Gauner. Dazu kommen **Völkerboni je Beruf** (±5 % Leistung und damit Erfahrung, nach dem Volk des Oberhaupts): Menschen als Tischler und Gardist +5 % und ohne Schwächen; Zwerge als Schmied, Steinmetz und Geldleiher +5 %, als Dieb und Parfumeur −5 %; Elben als Alchimist, Prediger und Parfumeur +5 %, als Steinmetz und Gardist −5 %; Halblinge als Wirt und Dieb +5 %, als Schmied und Gardist −5 %. Die KI wählt ihre Zweitberufe danach. Kinder erben die Hälfte vom Mittel der Eltern, den Rest von ihrem Volk, und die Brautschau zeigt die Stärken jedes Kandidaten. In der zweiten Hälfte der Kindheit lernen Kinder in einer **Ausbildung** dazu: Zunftlehre, Kontorlehre, Klosterschule, Fechtmeister, Universität (ab Bürger) oder die Gasse. Haus Eisenbart bildet seine Kinder ebenfalls aus und setzt das begabteste als Erben ein.
+<a id="berufe"></a>
+<details>
+<summary><b>Berufe</b> – zehn Handwerke von Schmied bis Parfumeur</summary>
 
 **Berufe: Schmied, Tischler, Steinmetz, Alchimist, Wirt, Prediger, Dieb, Gardist, Geldleiher und Parfumeur.** Im Hauptmenü wählt man den Startberuf. Der **Schmied** fördert in der Grube Eisen und Silber und macht in der Gießerei Beschläge, Rapiere und Silberringe. Der **Tischler** schlägt im Holzschlag Holz und macht in der Tischlerei Holzzapfen, Schemel und Truhen – für eine Truhe braucht er einen Beschlag vom Schmied. Der **Steinmetz** bricht im Steinbruch Bruchstein und Granit und macht in der Maurerei Schleifziegel, Grabsteine und Mühlsteine; seine Schleifziegel braucht die Goldschmiede für das Prunkschwert, er selbst braucht in der Steinmetzhütte Werkzeug vom Schmied. Der **Alchimist** zieht im Kräutergarten Kräuter und fängt Kröten und macht in der Tinkturei Farbe, Kräuterschnaps und Heilsalbe; seine Farbe braucht der Tischler für den Schrank. Wer das Handwerk beherrscht, mischt Krötenschleim im Hinterzimmer selbst (halber Preis, höhere Chance). Einen weiteren Beruf erlernt man im Kontor (500 Gulden Lehrgeld, 4 AP); erst dann darf man dessen Werkstätten und Umlandbetriebe erwerben. Neben Haus Eisenbart (Zwerge, Schmiede) spielen **Haus Eichwald** (Elben, Tischler) und **Haus Kieselbach** (Halblinge, Steinmetze) mit; im Hauptmenü lassen sich 1–3 Rivalen wählen. Ist ein KI-Haus Patrizier geworden, darf es einen Betrieb mehr führen und dafür ein zweites Handwerk erlernen. Werkstätten sind in `wirtschaft.json` unter `betriebsarten` und `berufe` beschrieben – ein weiterer Beruf ist vor allem ein Dateneintrag plus ein Platz in der Stadt.
 
@@ -66,17 +182,39 @@ Schauplatz ist ein düster-bodenständiges Heiliges Römisches Reich des Spätmi
 
 **Parfumeur.** Der Duftgarten liefert Lavendel und Jasmin, die Siederei (→ Duftwerkstatt → Parfumerie) macht **Politur** – die brauchen jetzt auch Goldkette (Schmied) und Prunktruhe (Tischler) –, die Blume der Zwietracht und Giftdolche, später Moschusduft, Fechterduft, Heiligenduft und Schattendolch. Vier Waren wirken, für jedes Haus, aus dem eigenen Lager oder vom Markt: **Moschusduft** bringt in der Brautschau +10 Zuneigung über das Jahreslimit hinaus und im Rat +12 Gunst ohne Bestechungsspur (je Person einmal im Jahr, 1 AP). **Blume der Zwietracht** (Hinterzimmer, 1 AP): Ein Ratsherr verliert 15 Gunst für ein anderes Haus – eine Intrige. **Heiligenduft** (Familientafel, 1 AP): +4 Ansehen bis Ende des nächsten Jahres. **Giftdolch** / **Schattendolch** (Hinterzimmer, 2 AP): In der Nacht wird das Oberhaupt eines Hauses vergiftet (60 % / 80 %); Medicus und Kräuterschnaps helfen nicht, nur **Gegengift** vom Alchimisten – sonst ist es am Ende des nächsten Jahres mit 20 % / 45 % tödlich. Ein Giftanschlag führt vor Gericht in den Kerker. Jede KI kann den Parfumeur lernen und schenkt Moschus, wenn die Geschenke des Jahres nicht reichen; vergiften lässt nur die wagemutige – und nur ein Haus, das anderthalbmal so reich ist.
 
-**Glaube und Konfessionen.** Jede Person ist **katholisch**, **evangelisch** oder – Orks und Oger – Anhänger des **Naturglaubens** (für die Kirchen Heiden). Im Hauptmenü wählt man den Glauben des Hauses („wie das Volk“: Menschen und Elben meist katholisch, Zwerge und Halblinge meist evangelisch). Im Rat geben Ratsherren (7 katholisch, 6 evangelisch) Glaubensbrüdern +5 Punkte, Andersgläubigen −3, Heiden −8. **Messe:** 55 % der Gläubigen sind katholisch, 45 % evangelisch; jede Gemeinde geht in die Kirche ihrer Konfession – gibt es keine, in eine fremde, spendet dort aber nur die Hälfte. **Konvertieren** (Familientafel, 2 AP, 300 Gulden): das ganze Haus wechselt, Heiden lassen sich taufen; bis Ende des nächsten Jahres −3 Ansehen. **Bekehrungspredigt** (Kirchenstube, 1 AP, einmal im Jahr): +4 Prozentpunkte für die eigene Gemeinde (Rhetorik hilft) und +3 Gunst bei jedem Ratsherrn des eigenen Glaubens; jedes Jahr kehren die Anteile um 10 % zurück. **Mischehe:** Wer anderen Glaubens einheiratet, tritt über – die Ratsherren seines alten Glaubens geben dem Haus 2 Punkte weniger. **Stadtglaube** (Ratsantrag, 2 AP): Ratsherren stimmen für ihren Glauben, für Glaubensfreiheit, wenn ein fremder gilt. Gilt ein Stadtglaube, zahlen andersgläubige Häuser 150 Gulden **Glaubenszins** im Jahr, und jede Messe oder Bekehrungspredigt anderen Glaubens ist **Ketzerei** (Spur; die Gemeinde des Stadtglaubens hat den Beweis). Die KI tritt unter einem fremden Stadtglauben über, beantragt im Rat ihren Glauben, wenn er durchginge, und predigt, wenn sonst Aktionspunkte verfielen.
+</details>
 
-**Marktplatz.** Ein Klick auf den Marktplatz in der Stadt (oder der Knopf „Marktplatz“ im Kontor) öffnet das Marktfenster: alle Waren als Kacheln mit Pixel-Icon und Preis, nach Rohstoffen, Zwischenwaren und Fertigwaren geordnet. Grün ▲ heißt über dem Grundpreis, rot ▼ darunter; die gelbe Zahl im Icon ist der eigene Lagerbestand, der Tooltip zeigt Herkunft, Nachfrage, Zutaten und Gewinn je Arbeitsminute. Neue Icons: Zeichenfunktion in `tools/icons/waren_icons.py` ergänzen und `python3 tools/icons/waren_icons.py` ausführen.
+<a id="haus"></a>
+<details>
+<summary><b>Haus und Dynastie</b> – Wappen, Familie, Erbfolge, Talente, Gesundheit, Wohnhaus</summary>
 
-**Handel von Hand.** Oben im Marktfenster (oder über „Handel am Markt …“ in der Betriebsverwaltung) gibt man einem Karren einen **Auftrag**: Betrieb und Karren wählen, Ware anklicken, Menge eintragen, „verkaufen“ (aus dem Lager) oder „kaufen“ (ins Lager). Der Karren lädt, fährt zum Markt, handelt dort und bringt die Einkäufe heim. Eingekauft wird zum Marktpreis **+10 % Händlerspanne** (Verhandeln senkt sie), und jedes gekaufte Stück hebt den Preis, wie jeder Verkauf ihn senkt. Der Markt hat **8–20 Uhr** offen (Ankunft des Karrens). Ist der Karren unterwegs, wird der Auftrag **vorgemerkt** und startet, sobald er zurück ist. **Zurückhalten:** Eine Ware bleibt im Lager, der Karren verkauft sie nicht von selbst – Gekauftes, das der Betrieb nicht verarbeitet, wird automatisch zurückgehalten. Die KI handelt (noch) nicht von Hand.
+**Wappen und Hausname.** Ganz oben unter „Neue Partie“ wählst du das **Wappen** deines Hauses: eine von zwölf Vorlagen anklicken, die Farben für Grund und Figur ändern oder würfeln. Daneben steht die Beschreibung in der Sprache der Herolde („In Rot ein goldener Hammer.“). Ein Wappen besteht aus einer Teilung (z. B. geteilt, gespalten, Schildhaupt, Balken, Sparren), zwei Farben und einer von 16 Figuren; wo die Figur über die zweite Farbe reicht, wechselt sie die Farbe („verwechselte Farben“). Die KI-Häuser führen eigene Wappen (Eisenbart: in Schwarz ein goldener Amboss; Eichwald: in Grün mit silbernem Bord ein silberner Baum; Kieselbach: in Blau unter silbernem Schildhaupt ein silberner Wellenbalken), die du nicht wählen kannst. Wappen stehen im Kontor, in der Rangliste des Jahresberichts, bei Amtsinhabern im Rat, im Beweisbuch des Gerichts und im Gebäudefenster beim Besitzer. Als Hausname trägst du nur den Namen ein („Hammerschmid“) – das Spiel schreibt überall „Haus Hammerschmid“, wie bei den Rivalen.
 
-**Meistergrade und Gebäudestufen.** Jedes Stück, das die Betriebe eines Hauses herstellen oder fördern, bringt Erfahrung im Beruf. Reicht sie, legt man im Kontor die Meisterprüfung ab (Gebühr und 2–4 AP) – bis zum 6. Grad. Ab dem 3. Grad lässt sich die Werkstatt am Platz zur Stufe 2 ausbauen (Schmiede bzw. Drechslerei, 3 Plätze), ab dem 5. Grad zur Stufe 3 (Goldschmiede bzw. Sägewerk, 4 Plätze); der Umbau kostet Gulden und einen halben Arbeitstag. Höhere Stufen stellen wertvollere Waren her: Werkzeug, Silberkette, Goldkette, Prunkschwert; Gehstock, Armbrust, Schrank, Prunktruhe; Säule, Taufbecken, Steinfigur, Grabmal; Rosenwasser, Gegengift, Theriak, Zinnober (Gold gibt es nur auf dem Markt). Der Steinmetz baut zur Steinschneiderei und Steinmetzhütte aus. Der 6. Grad bringt einen Aktionspunkt mehr je Jahr. Grad und Erfahrung gehören dem Haus und gehen beim Erbfall nicht verloren.
+**Dynastie.** Dein Haus besteht aus Menschen, Zwergen, Elben oder Halblingen. Volk, Geschlecht und Vorname des Oberhaupts wählst du im Hauptmenü. Jedes Jahr altern alle; mit dem Alter steigt das Sterberisiko. Über „Familie“ im Kontor öffnest du die Familientafel. In der **Brautschau** wirbst du mit Geschenken um ledige Bürger der Stadt, nur standesgemäß und mit etwas Geduld, denn mehr als 20 Zuneigung im Jahr gewinnt niemand. Neben jedem Kandidaten steht, wie viele Kinder die Ehe erwarten lässt. Ehen zwischen Völkern sind erlaubt, aber weniger fruchtbar, und sie wirken sich im Rat aus. Stirbt das Oberhaupt, erbt das im **Testament** bestimmte Kind, sonst das älteste volljährige. Gibt es keines, führt nach dem Witwenrecht der Ehepartner das Haus weiter. Sonst erlischt das Haus, und die Partie ist verloren. Die Völker unterscheiden sich deutlich: Elben leben sehr lange, bekommen aber selten Kinder. Halblinge bekommen schnell Kinder, sterben aber früher. Haus Eisenbart ist ein Zwergenhaus und sucht nach denselben Regeln eine Partie.
+
+**Talente und Ausbildung.** Jede Person hat fünf Talente mit 0 bis 6 Sternen: **Verhandeln** (bessere Markterlöse), **Handwerkskunst** (mehr Leistung aller Arbeitskräfte), **Bei Nacht und Nebel** (Gaunerstücke gelingen öfter, Zeugen sehen weniger), **Kampf** (stärkere Wegelagerer, besser geschützte eigene Karren) und **Rhetorik** (Ratswahlen, Plädoyer vor Gericht, Brautgeschenke). Es zählen die Talente des Oberhaupts, der Erbe ist also eine echte Entscheidung. Die Völker bringen Anlagen mit: Zwerge sind die besten Handwerker, Elben die besten Redner, Halblinge die geschicktesten Gauner. Dazu kommen **Völkerboni je Beruf** (±5 % Leistung und damit Erfahrung, nach dem Volk des Oberhaupts): Menschen als Tischler und Gardist +5 % und ohne Schwächen; Zwerge als Schmied, Steinmetz und Geldleiher +5 %, als Dieb und Parfumeur −5 %; Elben als Alchimist, Prediger und Parfumeur +5 %, als Steinmetz und Gardist −5 %; Halblinge als Wirt und Dieb +5 %, als Schmied und Gardist −5 %. Die KI wählt ihre Zweitberufe danach. Kinder erben die Hälfte vom Mittel der Eltern, den Rest von ihrem Volk, und die Brautschau zeigt die Stärken jedes Kandidaten. In der zweiten Hälfte der Kindheit lernen Kinder in einer **Ausbildung** dazu: Zunftlehre, Kontorlehre, Klosterschule, Fechtmeister, Universität (ab Bürger) oder die Gasse. Haus Eisenbart bildet seine Kinder ebenfalls aus und setzt das begabteste als Erben ein.
 
 **Gesundheit und Krankheiten.** Jedes Jahr erkrankt etwa jede siebte Person: Husten, Ruhr, Lungenentzündung, Knochenbruch, Vergesslichkeit, Angst im Dunkeln, Haarausfall oder Lachanfälle. Krankheiten kosten Talente oder Ansehen, Ruhr und Lungenentzündung können tödlich sein. Alle 25–40 Jahre kommt die **Pest**: Viele erkranken, ein Teil stirbt (Zwerge und Elben sind weniger anfällig), und alle Betriebe arbeiten ein Jahr lang 30 % langsamer. Ein **Medicus** (Gulden) heilt sofort bzw. halbiert das Pestrisiko; **Kräuterschnaps** vom Markt kommt in die Hausapotheke und heilt leichte Krankheiten. Im Hinterzimmer lässt sich einem fremden Oberhaupt **Krötenschleim** ins Essen mischen – das Vergehen heißt Giftmischerei.
 
-**Aktionspunkte.** Jedes Haus bekommt zum Jahreswechsel **4 Aktionspunkte** (im Hauptmenü 1–12 einstellbar) und kann bis zu 12 ansparen. Persönliche Handlungen kosten AP: Werben, Heiraten, einen Ratsherrn beschenken, sich bewerben, einen Spitzel ansetzen, eine Bande anheuern (je 1), Statut-Antrag, Anklage, Erpresserbrief, Konvertieren, Antrag zum Stadtglauben (je 2), Bekehrungspredigt (1). Mit übrigen AP übt das Oberhaupt ein Talent: ½ Stern je Übung, je Talent einmal im Jahr; es kostet 2 AP unter 3 Sternen, 4 AP unter 5 und 6 AP darüber. Die Wirtschaft (Betriebe, Personal, Karren, Wächter, Stand, Liegenschaften) bleibt frei. Haus Eisenbart hat dieselben AP und setzt Prioritäten nach seinem Charakter.
+**Wohnhaus.** Jedes Haus wohnt in einem eigenen Wohnhaus, getrennt von den Betrieben, und baut es am selben Ort Stufe für Stufe aus: **Fachwerkhaus** (zum Start) → **Bürgerhaus** (1.500 Gulden, 30 im Jahr Unterhalt, +2 Ansehen) → **Steinhaus** (4.000 / 80 / +4) → **Stadtpalais** (10.000 / 200 / +6) → **Stadthof** (25.000 / 500 / +8). Das Haus ist **Pflicht für den Stand**: Bürger wird nur, wer im Bürgerhaus wohnt, Patrizier nur im Steinhaus, Edler im Stadtpalais, Freiherr im Stadthof. Ausbauen darf man höchstens eine Stufe über dem eigenen Stand; ein Ausbau dauert 4 Stunden. Im Kontor steht die Zeile „Wohnhaus“ mit dem Knopf zum Ausbauen, der Rathaus-Knopf sagt, wenn das Haus noch fehlt. Der Unterhalt zählt zu den Haushaltskosten. Was in den Ausbau fließt, zählt als **Hauswert ganz zum Reinvermögen** – wer genau an der Schwelle baut, fällt also nicht darunter und kann trotzdem aufsteigen. Die KI-Häuser bauen ihr Wohnhaus selbst aus, bevor sie aufsteigen. Gegen Einbruch und Brand hilft ein **Hauswächter** (Knopf in derselben Zeile, 150 Gulden im Jahr): Er halbiert die Chance der Banden und sieht öfter, wer es war.
+
+</details>
+
+<a id="aufstieg"></a>
+<details>
+<summary><b>Stand, Rat und Glaube</b> – Stände, Stadtrat, Konfessionen</summary>
+
+**Stände, Rangliste und Bankrott.** Jedes Haus beginnt als Gemeiner. Ab 10.000 Gulden kann man im Rathaus das Bürgerrecht erwerben, danach geht es weiter über Patrizier und Edler bis zum Reichsgrafen. Nach jedem Jahr zeigt ein Jahresbericht Gewinn und Verlust, den Fortschritt zum nächsten Stand und die Rangliste gegen Haus Eisenbart. Wer drei Jahresabschlüsse in Folge im Minus steht, ist bankrott.
+
+**Stadtrat.** Im Rathaus öffnet „Ratskammer öffnen“ den Stadtrat: sieben Ämter in einer Pyramide, vom Zöllner bis zum Bürgermeister, jedes mit Amtseinkommen. Die Sitze halten zu Beginn Ratsherren der Stadt (Menschen, Zwerge, Elben, Halblinge), jeder mit einer eigenen Haltung zum Fron- und Sklavenstatut. Ab dem Stand Bürger kannst du dich um ein Amt bewerben, immer eine Stufe über deinem jetzigen. Gewählt wird am Jahresende, und zwar von den Inhabern der höheren Ämter. Mit Geschenken gewinnst du die Gunst einzelner Ratsherren; sie verblasst jedes Jahr zum Teil. Eine Prognose zeigt dir, wie die Wahl heute ausginge. Wer im Rat sitzt, kann eine Änderung des Statuts beantragen, über die der ganze Rat abstimmt. Haus Eisenbart spielt dabei mit: Es bewirbt sich, verschenkt Gulden und stellt Anträge, wenn sich das für seine Betriebe rechnet. Was in der Ratssitzung geschah, steht im Jahresbericht.
+
+**Glaube und Konfessionen.** Jede Person ist **katholisch**, **evangelisch** oder – Orks und Oger – Anhänger des **Naturglaubens** (für die Kirchen Heiden). Im Hauptmenü wählt man den Glauben des Hauses („wie das Volk“: Menschen und Elben meist katholisch, Zwerge und Halblinge meist evangelisch). Im Rat geben Ratsherren (7 katholisch, 6 evangelisch) Glaubensbrüdern +5 Punkte, Andersgläubigen −3, Heiden −8. **Messe:** 55 % der Gläubigen sind katholisch, 45 % evangelisch; jede Gemeinde geht in die Kirche ihrer Konfession – gibt es keine, in eine fremde, spendet dort aber nur die Hälfte. **Konvertieren** (Familientafel, 2 AP, 300 Gulden): das ganze Haus wechselt, Heiden lassen sich taufen; bis Ende des nächsten Jahres −3 Ansehen. **Bekehrungspredigt** (Kirchenstube, 1 AP, einmal im Jahr): +4 Prozentpunkte für die eigene Gemeinde (Rhetorik hilft) und +3 Gunst bei jedem Ratsherrn des eigenen Glaubens; jedes Jahr kehren die Anteile um 10 % zurück. **Mischehe:** Wer anderen Glaubens einheiratet, tritt über – die Ratsherren seines alten Glaubens geben dem Haus 2 Punkte weniger. **Stadtglaube** (Ratsantrag, 2 AP): Ratsherren stimmen für ihren Glauben, für Glaubensfreiheit, wenn ein fremder gilt. Gilt ein Stadtglaube, zahlen andersgläubige Häuser 150 Gulden **Glaubenszins** im Jahr, und jede Messe oder Bekehrungspredigt anderen Glaubens ist **Ketzerei** (Spur; die Gemeinde des Stadtglaubens hat den Beweis). Die KI tritt unter einem fremden Stadtglauben über, beantragt im Rat ihren Glauben, wenn er durchginge, und predigt, wenn sonst Aktionspunkte verfielen.
+
+</details>
+
+<a id="unterwelt"></a>
+<details>
+<summary><b>Unterwelt und Gericht</b> – Banden, Erpressung, Spitzel, Anklage, Kerker</summary>
 
 **Gauner.** Über „Hinterzimmer“ im Kontor heuerst du Banden gegen andere Häuser an. Ausgeführt wird bei Nacht und Nebel um 20 Uhr:
 - **Diebstahl:** Die Bande holt die wertvollste Ware aus einem Lager, der Hehler zahlt dir die Hälfte des Marktwerts.
@@ -89,21 +227,28 @@ Hast du mindestens 3 Beweise, kannst du **Schweigegeld erpressen**. Der Brief se
 
 **Stadtgericht.** Jedes Geschenk an einen Ratsherrn ist Bestechung und hinterlässt eine Spur, bei dir wie bei Haus Eisenbart. Im Rathaus öffnet „Gerichtssaal öffnen“ das Gericht. Dort setzt du einen **Spitzel** auf ein anderes Haus an. Er deckt am Jahresende Spuren auf, die in deinem **Beweisbuch** landen. Mit Beweisen erhebst du **Anklage**. Den Vorsitz führt der Stadtrichter, dazu kommen zwei ausgeloste Schöffen. Eine Prognose zeigt, wie jeder Richter heute urteilen würde. Am **Gerichtstag** zum Jahresende, noch vor der Ratssitzung, fällt das Urteil. Bei einem Schuldspruch gibt es eine Buße (das Dreifache des Tatwerts, höchstens das halbe Vermögen), der Verurteilte verliert sein Amt und steht drei Jahre am Pranger, was ihn Ansehen kostet. Bei einem Freispruch entschädigt der Ankläger den Beklagten. Geschenke an die Richter können einen knappen Fall kippen, ab drei Beweisen aber nicht mehr. So wird auch ein bestechlicher Bürgermeister angreifbar. Haus Eisenbart setzt ebenfalls Spitzel an, klagt, wenn die Beweise sicher reichen, verteidigt sich und besticht vorsichtiger, wenn man ihm auf die Finger schaut.
 
-**Stadtrat.** Im Rathaus öffnet „Ratskammer öffnen“ den Stadtrat: sieben Ämter in einer Pyramide, vom Zöllner bis zum Bürgermeister, jedes mit Amtseinkommen. Die Sitze halten zu Beginn Ratsherren der Stadt (Menschen, Zwerge, Elben, Halblinge), jeder mit einer eigenen Haltung zum Fron- und Sklavenstatut. Ab dem Stand Bürger kannst du dich um ein Amt bewerben, immer eine Stufe über deinem jetzigen. Gewählt wird am Jahresende, und zwar von den Inhabern der höheren Ämter. Mit Geschenken gewinnst du die Gunst einzelner Ratsherren; sie verblasst jedes Jahr zum Teil. Eine Prognose zeigt dir, wie die Wahl heute ausginge. Wer im Rat sitzt, kann eine Änderung des Statuts beantragen, über die der ganze Rat abstimmt. Haus Eisenbart spielt dabei mit: Es bewirbt sich, verschenkt Gulden und stellt Anträge, wenn sich das für seine Betriebe rechnet. Was in der Ratssitzung geschah, steht im Jahresbericht.
+</details>
 
-**Stände, Rangliste und Bankrott.** Jedes Haus beginnt als Gemeiner. Ab 10.000 Gulden kann man im Rathaus das Bürgerrecht erwerben, danach geht es weiter über Patrizier und Edler bis zum Reichsgrafen. Nach jedem Jahr zeigt ein Jahresbericht Gewinn und Verlust, den Fortschritt zum nächsten Stand und die Rangliste gegen Haus Eisenbart. Wer drei Jahresabschlüsse in Folge im Minus steht, ist bankrott.
+<a id="einwohner"></a>
+<details>
+<summary><b>Einwohner</b> – Bürger-KI mit eigenem Tagesablauf</summary>
 
-**Wohnhaus.** Jedes Haus wohnt in einem eigenen Wohnhaus, getrennt von den Betrieben, und baut es am selben Ort Stufe für Stufe aus: **Fachwerkhaus** (zum Start) → **Bürgerhaus** (1.500 Gulden, 30 im Jahr Unterhalt, +2 Ansehen) → **Steinhaus** (4.000 / 80 / +4) → **Stadtpalais** (10.000 / 200 / +6) → **Stadthof** (25.000 / 500 / +8). Das Haus ist **Pflicht für den Stand**: Bürger wird nur, wer im Bürgerhaus wohnt, Patrizier nur im Steinhaus, Edler im Stadtpalais, Freiherr im Stadthof. Ausbauen darf man höchstens eine Stufe über dem eigenen Stand; ein Ausbau dauert 4 Stunden. Im Kontor steht die Zeile „Wohnhaus“ mit dem Knopf zum Ausbauen, der Rathaus-Knopf sagt, wenn das Haus noch fehlt. Der Unterhalt zählt zu den Haushaltskosten. Was in den Ausbau fließt, zählt als **Hauswert ganz zum Reinvermögen** – wer genau an der Schwelle baut, fällt also nicht darunter und kann trotzdem aufsteigen. Die KI-Häuser bauen ihr Wohnhaus selbst aus, bevor sie aufsteigen. Gegen Einbruch und Brand hilft ein **Hauswächter** (Knopf in derselben Zeile, 150 Gulden im Jahr): Er halbiert die Chance der Banden und sieht öfter, wer es war.
+**Einwohner (Bürger-KI, Schritt 1).** Neben den Häusern leben 25 Einwohner je Haus in der Stadt, dazu die Ratsherren und die Heiratskandidaten. Jeder hat Name, Volk, Rolle (Tagelöhner, Magd, Krämer, Mönch …) und einen eigenen Tagesablauf nach fünf Bedürfnissen: Arbeit, Markt, Schänke, Kirche, Feierabend. Sie wohnen in Haushalten (Ratsherren im eigenen Haus), gehen Wege durch die Stadt und hinaus aufs Umland (Weide, Feld, Wald), Knechte und Mägde dienen in den Bürgerhäusern. Die Gäste der Schänken richten sich schon nach den Einwohnern, die wirklich einkehren (volle Abende bringen mehr, leere weniger; im Mittel bleibt es bei 120 Gästen im Jahr). Ebenso die Gläubigen und die Kollekte der Messe: Je mehr Einwohner am Morgen beten, desto voller die Kirche. Auch die Nachfrage nach Fertigwaren folgt den Einkäufen der Einwohner (Faktor 0,8–1,2 auf die Nachfrage). Taschendiebe erbeuten mehr, wenn viele Einwohner draußen unterwegs sind; wird einer gefasst, steht der Name des Bestohlenen in der Meldung.
 
-**Bedienung (Phase 4 beginnt).** Ein Klick auf deine Gießerei (oder „⚒ Betrieb verwalten“ im Kontor) öffnet das Bedienfeld: Produkt wählen, Personal einstellen und entlassen, Karren kaufen und für Umland-Fahrten Eskorte und Nachtfahrt festlegen. **Stadttore:** Ab 20 Uhr sind die Tore zu, um 5 Uhr gehen sie wieder auf. Ein Umlandkarren, der nach Torschluss ankommt, wartet sicher bis zum Morgen vor dem Tor – außer er darf nachts fahren, dann zahlt er 15 Gulden Torgeld je Durchfahrt. Neben jeder Wahl steht, was sie bringt (Gulden je Arbeitsminute, Jahresertrag je Kopf, erwartete Kosten je Fahrt) – dieselben Rechnungen, nach denen die KI entscheidet. Jede Aktion ist ein **Befehl**, den der Simulationskern prüft und mit Begründung ausführt oder ablehnt; die KI benutzt denselben Weg.
+</details>
 
-**Tag und Nacht.** Sonne und Mond wandern über den Himmel und werfen beide Schatten; in der Dämmerung blenden sie weich über.
+<a id="ki"></a>
+<details>
+<summary><b>KI-Häuser</b> – Rivalen nach denselben Regeln wie du</summary>
 
 **KI-Rivale.** Haus Eisenbart wird von einer KI geführt, die nach denselben Regeln und mit denselben Informationen spielt wie du (keine Schummelei). Sie stellt ihre Gießerei auf das jeweils einträglichste Produkt um, teilt die Förderung der Grube nach den Preisen auf, besetzt freie Plätze mit der besten erlaubten Arbeitskraft (auch nach einem neuen Statut), wählt Eskorten nach erwartetem Raubverlust und kauft Karren, wenn ein Betrieb zu oft stillsteht. Jede Entscheidung erscheint im Protokoll und im Kontor.
 
-**Phase 2 – Simulationskern.** Die Spielzeit läuft (1 Runde = 1 Spieltag = 1 Spieljahr, Standard 15 Minuten), mit Pause, Tempo und wählbarer Siegbedingung. Die **Wirtschaft** ist eingebaut: Marktpreise nach Angebot und Nachfrage, Gießerei und Mine produzieren während der Arbeitszeit, Löhne, Pacht und Steuern laufen in die Jahresrechnung, und das Fron- und Sklavenstatut bestimmt, wer wo arbeiten darf. **Lager und Karren** bringen die Waren zum Markt; auf Umland-Wegen lauern **Banditen aller Völker**, gegen die Eskorten helfen. Das Kontor im Spiel zeigt Vermögen, Lager, Karren, Jahresrechnung und Marktpreise.
+</details>
 
-## Projektstruktur
+## Für Entwickler
+
+<details>
+<summary><b>Projektstruktur</b></summary>
 
 ```
 reichsgilde/
@@ -136,7 +281,10 @@ reichsgilde/
 ├── tools/karten/                   Kartenwerkzeug und ein Skript je Stadt (prüft die Kartenregeln)
 ├── docs/
 │   ├── ARCHITEKTUR.md              Wie der Code aufgebaut ist und warum
-│   ├── ENTSCHEIDUNGEN.md           Alle Grundsatzentscheidungen, Phasenplan, offene Punkte
+│   ├── bereiche/                   Offene Punkte und neue Entscheidungen je Bereich (Kern, Spiel-KI, Darstellung …)
+│   ├── bilder/                     Bilder für diese Seite
+│   ├── ENTSCHEIDUNGEN.md           Archiv der Grundsatzentscheidungen bis 16.10.2026, Phasenplan
+│   ├── LEVELDESIGN.md              Kartenregeln und Städte
 │   └── WIRTSCHAFTSMODELL.md        Zahlen und Messungen je Beruf und Balance-Änderung
 ├── CLAUDE.md                       Arbeitsregeln für die Claude-Chats, die am Projekt arbeiten
 └── .github/                        Automatische Prüfung auf Windows und Linux, Vorlage für PR-Texte
@@ -144,46 +292,11 @@ reichsgilde/
 
 Warum diese Aufteilung? → [docs/ARCHITEKTUR.md](docs/ARCHITEKTUR.md) · Was wann entschieden wurde → [docs/ENTSCHEIDUNGEN.md](docs/ENTSCHEIDUNGEN.md)
 
-**Mitarbeit mehrerer Claude-Chats:** Jeder Chat arbeitet auf einem eigenen Branch, öffnet nach dem ersten Commit einen Entwurfs-PR (Aufgabe, Bereich, angefasste Dateien) und pflegt die Protokolle in `docs/` im selben PR. Die Regeln stehen in [CLAUDE.md](CLAUDE.md).
+</details>
 
-## Loslegen
+<details>
+<summary><b>Plattformen und automatische Prüfung</b></summary>
 
-### Voraussetzungen
-- [Godot 4.7.x – .NET-Version](https://godotengine.org/download)
-- [.NET SDK 8 oder neuer](https://dotnet.microsoft.com/download)
-- VS Code mit der C#-Erweiterung (empfohlen)
-
-### Spiel starten
-1. Godot starten → **Importieren** → `game/project.godot` auswählen.
-2. Oben rechts auf **▶ (Projekt ausführen)** klicken oder **F5** drücken – das Hauptmenü erscheint.
-
-Spielstände liegen unter `%APPDATA%\Godot\app_userdata\Reichsgilde\spielstaende` (Windows) bzw. `~/.local/share/godot/app_userdata/Reichsgilde/spielstaende` (Linux).
-
-Steuerung:
-- **Leertaste** = Pause · **1–4** = Tempo 1×/2×/4×/8× · **5–6** = Testtempo 16×/32× (nur während der Entwicklung)
-- **Mausrad** = Zoom · **rechte Maustaste ziehen** oder **WASD/Pfeiltasten** = verschieben · **Q/E** = drehen
-- **Namen in der Stadt:** Ein Gebäude zeigt seinen Namen, wenn die Maus darüber steht oder es ausgewählt ist; **Alt gedrückt halten** zeigt alle Namen. Freie Plätze tragen ein Schild am Pfosten: **ocker = zu verkaufen**, **grün = zu verpachten**.
-- **Linksklick** auf ein Gebäude = Informationen (bei eigenen Betrieben mit Bedienfeld) · **Doppelklick** auf eine Werkstatt, das Rathaus oder den Dom = hineingehen · im Gebäude: **Raumleiste** oder **Q/E** = Raum wechseln, **Klick in den Raum** = seine Tafel
-- **Esc** = Tafel schließen → Gebäude verlassen → Auswahl schließen → Spielmenü (Speichern, Laden, Hauptmenü)
-- **F11** = Vollbild ein/aus (wird gespeichert).
-- **Einstellungen** (Knopf im Hauptmenü und im Spielmenü, Esc): Vollbild und **Kantenglättung** – Aus, FXAA, SMAA (Standard), TAA, MSAA 2×/4×/8×, je mit kurzer Erklärung. Die Wahl wirkt sofort und wird gespeichert. Das Fenster lässt sich frei ziehen: Ein größeres Fenster zeigt mehr Stadt, Tafeln, die nicht hineinpassen, bekommen Scrollbalken (Mausrad über der Tafel rollt sie).
-  Hinweis: Startet man das Spiel im Godot-Editor, läuft es im Reiter „Game“ eingebettet. Dort bestimmt der Editor die Fenstergröße, und Vollbild ist nicht möglich. Zum Testen im eigenen Fenster das Einbetten im Reiter „Game“ ausschalten.
-
-### Tests ausführen
-Im Terminal (in VS Code: *Terminal → Neues Terminal*) im Ordner `reichsgilde`:
-
-```
-dotnet run --project tests/Reichsgilde.Core.Tests
-```
-
-Am Ende muss stehen: `Alle … Tests bestanden.`
-
-### Spiel exportieren (Windows / Linux)
-1. Einmalig in Godot: **Editor → Exportvorlagen verwalten → Herunterladen und installieren**
-2. **Projekt → Exportieren…** → Vorlage **Windows** oder **Linux** wählen → **Projekt exportieren**
-3. Das fertige Spiel landet im Ordner `build/` (wird nicht ins Repository übernommen)
-
-## Plattformen und automatische Prüfung
 
 Reichsgilde läuft auf **Windows und Linux**. Bei jedem Pull Request prüft GitHub automatisch:
 
@@ -194,6 +307,10 @@ Die fertigen Builds kann man unter **Actions → jeweiliger Lauf → Artifacts**
 Die Konfiguration steht in [`.github/workflows/build.yml`](.github/workflows/build.yml).
 
 Nach jedem Merge auf `main` hält die Action **„PRs aktuell halten“** ([`.github/workflows/prs-aktuell.yml`](.github/workflows/prs-aktuell.yml)) alle fertigen Pull Requests auf dem neuen Stand: Sie mergt `main` hinein und startet die Prüfung neu. Lässt sich das nicht automatisch lösen, bekommt der PR das Label **„Konflikt mit main“**. Damit das selten passiert, schreibt jeder Chat seine Entscheidungen und offenen Punkte in eine eigene Datei unter `docs/bereiche/`.
+
+</details>
+
+**Mitarbeit mehrerer Claude-Chats:** Jeder Chat arbeitet auf einem eigenen Branch, öffnet nach dem ersten Commit einen Entwurfs-PR (Aufgabe, Bereich, angefasste Dateien) und pflegt die Protokolle in `docs/` im selben PR. Die Regeln stehen in [CLAUDE.md](CLAUDE.md).
 
 ## Lizenz
 
