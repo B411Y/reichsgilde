@@ -77,6 +77,8 @@ Wohnstube und weitere Räume liegen im Wohnhaus. Das Wohnhaus eines erloschenen 
 
 ## 5. Wege und Wegfindung
 
+**Straßenbreite (entschieden 16.10.2026):** Bauzonen beginnen **3,3 m neben der Straßenmitte**, Straßen in der Stadt sind also gut **6,5 m** breit – genug für zwei Karren nebeneinander, eng wie in einer mittelalterlichen Stadt.
+
 | Wegklasse | Wer | Regel |
 |---|---|---|
 | Landstraße | Karren, Fußgänger | endet an einem Tor |
@@ -127,11 +129,13 @@ python3 tools/karten/koeln.py      # Köln prüfen und neu schreiben
 |---|---|
 | `format`, `kennung`, `stadt`, `vorlage` | Formatnummer (jetzt 1), Dateiname, Anzeigename, reale Vorlage |
 | `einheit`, `achsen`, `raster` | Meter, Achsen wie oben, Rastergröße 2 |
-| `mauer.linie` | Stadtmauer als Punktfolge |
+| `mauer.linie` | Stadtmauer als Punktfolge (endet an den Ufertürmen) |
+| `nebenmauern` | weitere Mauern mit `name` und `linie`, z. B. um eine befestigte Vorstadt; ihre Tore stehen in `tore` |
 | `tore` | Name, Punkt, `schliesstNachts` |
 | `wasser` | `fluss`/`bach` als Linie mit `breite`, `see` als Fläche |
 | `gelaende` | Flächen der Art `feld`, `wald`, `huegel`, `wildnis` |
 | `wege` | Name, `klasse` (`land`, `haupt`, `ring`, `wall` = Karrenstraßen; `gasse`, `leinpfad` = nur Fußgänger), `linie`, `gefahr` (Faktor um 1,0, Vorschlag) |
+| `haefen` | `name`, `kante` (Kaimauer als Linie), `anleger` (Punkte an der Kaimauer, dort liegen Schiffe), `kran` |
 | `uebergaenge` | `bruecke` oder `faehre` mit `von` und `bis` |
 | `bauzonen` | `kennung`, `art` (`kern`, `mauerring`, `vorstadt`, `umland`), `flaeche` auf dem Raster |
 | `feste` | `kennung`, `art` (`start`, `sonderbau`, `kirche`, `leerstand`), `name`, `punkt`; Startgrundstücke mit `eingang` und `groesse` [Breite, Tiefe] (24 × 14 m: Werkstatt und Wohnhaus nebeneinander) |
@@ -142,12 +146,14 @@ python3 tools/karten/koeln.py      # Köln prüfen und neu schreiben
 - Jede Bauzone liegt höchstens 8 m von einer Karrenstraße entfernt.
 - Genau 8 Startgrundstücke, gleich weit vom Markt (±10 %), Eingang an einer Karrenstraße.
 - Jedes Vorkommen liegt an einem Weg.
+- Wege kreuzen eine Mauer (Stadtmauer und Nebenmauern) nur an einem Tor.
+- Anleger und Kran liegen an der Kaimauer.
 - Das Wegenetz hängt zusammen (Kreuzungen, Berührungen, Brücken und Fähren verbinden).
 - **Kapazität** (`tools/karten/kapazitaet.py`): Das Werkzeug setzt die Gebäude probeweise auf das Raster der Stadt-Bauzonen – feste Bauten zuerst, dann die größten Gebäude, jedes möglichst nah an seiner Straße (Werkstatt an einer Karrenstraße, Wohnhaus auch an einer Gasse). **Pflicht** für 8 Häuser: je Haus zwei weitere Werkstätten, dazu die Häuser der Einwohner (13 Ratsherrenhäuser, 3 Bürgerhäuser, 40 Wohnhäuser bei 25 Einwohnern je Haus und Haushalten von im Mittel 5). Passt die Pflicht nicht, bricht das Skript ab. **Reserve** (nur Bericht): je Haus ein Stadtpalais, die Hälfte einen Stadthof. Das Ergebnis zeigt `docs/karten/<kennung>-belegung.svg`.
 
 Ändert sich das Format, steigt `format`, und der Kern und die Darstellung passen ihre Leser an. Neue Felder ohne Bedeutungsänderung brauchen keine neue Nummer.
 
-**Köln, Format 1 (16.10.2026):** Bauzonen Kernlage 6 (≈ 4.750 m², 1.187 Felder), Mauerring 12 (≈ 8.370 m², 2.091 Felder), Vorstadt Deutz 4 (≈ 3.960 m²), Umland 6 (≈ 39.700 m²); 41 Wege in einem Netz; 10 Vorkommen; Startgrundstücke 94 m vom Markt. **Kapazität (Gebäudegrößen vom 16.10.2026):** Die Pflicht passt vollständig (16 Werkstätten, 56 Einwohnerhäuser), danach sind noch 2.120 von 4.267 Feldern frei (50 %). Reserve: alle 8 Stadtpalais und 3 von 4 Stadthöfen passen (Stadthof seit 16.10.2026 auch im Mauerring). **Engpass ist die Straßenfront, nicht die Fläche:** Auf einer leeren Karte passen nur etwa 25 Werkstätten an Karrenstraßen (Bedarf 24 mit den Startwerkstätten), aber 19 Stadthöfe. Wohnhäuser suchen deshalb zuerst Plätze an Gassen und lassen die Karrenstraßen den Werkstätten.
+**Köln, Format 1 (16.10.2026):** Bauzonen Kernlage 6 (≈ 5.640 m², 1.410 Felder), Mauerring 12 (≈ 10.230 m², 2.557 Felder), Vorstadt Deutz 4 (≈ 3.960 m²), Umland 6 (≈ 39.700 m²); 41 Wege in einem Netz; 10 Vorkommen; Startgrundstücke 94 m vom Markt. **Kapazität:** Die Pflicht passt vollständig (16 Werkstätten, 56 Einwohnerhäuser), danach sind 2.691 von 4.949 Feldern frei (54 %). Reserve: alle 8 Stadtpalais und alle 4 Stadthöfe. Auf einer leeren Karte passen 29 Werkstätten (Bedarf 24 mit den Startwerkstätten). **Lehre aus der Messung:** Begrenzend ist die Blocktiefe, nicht die Länge der Straßenkante. Zusätzliche Straßen zerschneiden die Blöcke und bringen nichts (Querstraße statt Gasse: gleich viel, zusätzliche Hintergasse: weniger); schmalere Straßen machen die Blöcke tiefer.
 
 ## 10. Zuständigkeit
 
