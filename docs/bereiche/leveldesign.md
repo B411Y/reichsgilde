@@ -48,7 +48,7 @@ Die Kartenregeln selbst stehen in `docs/LEVELDESIGN.md`.
 | Breite | **Straßen in der Stadt gut 6,5 m breit**: Bauzonen beginnen 3,3 m neben der Straßenmitte (vorher 4,6 m). Köln: 29 statt 25 Werkstätten auf leerer Karte, alle 4 Stadthöfe passen. | 16.10.2026 |
 | Keine Querstraßen | Zusätzliche Straßen durch die Mauerring-Blöcke wurden gemessen und **verworfen**: Sie zerschneiden die Blöcke, ohne mehr Platz zu bringen (begrenzend ist die Blocktiefe). | 16.10.2026 |
 
-### Deutzer Mauer und Hafen (PR #NUMMER)
+### Deutzer Mauer und Hafen (PR #89)
 
 | Thema | Entscheidung | Datum |
 |---|---|---|
