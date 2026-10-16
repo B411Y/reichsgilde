@@ -248,10 +248,20 @@ public partial class Stadtansicht : Node3D
 
     // Feste Punkte der Stadt (Meter). Der Marktplatz liegt im Ursprung.
     public static readonly Vector3 Marktplatz = Vector3.Zero;
-    public static readonly Vector3 Osttor = new(36, 0, 0);
+    public static readonly Vector3 Osttor = new(50, 0, 0);
+    public static readonly Vector3 Westtor = new(-50, 0, 6); // etwas nach Süden, damit die Weststraße an der Kirche an der Westmauer vorbeiführt
+
+    /// <summary>Halbe Seitenlänge der Stadtmauer (Meter). Die Stadt reicht von −50 bis +50.</summary>
+    public const float Mauerrand = 50;
 
     /// <summary>Ende der Landstraße vor dem Osttor.</summary>
-    private static readonly Vector3 Landstrasse = new(56, 0, -2);
+    private static readonly Vector3 Landstrasse = new(70, 0, -2);
+
+    /// <summary>Ende der Weststraße vor dem Westtor (noch ohne Ziel – für spätere Erweiterungen).</summary>
+    /// <summary>Die Westgasse knickt hier nach Westen ab – nördlich vorbei am Weinmarkt, südlich an Dom und Kirche.</summary>
+    private static readonly Vector3 WestgasseKnick = new(-12, 0, 6);
+
+    private static readonly Vector3 Weststrasse = new(-118, 0, 6);
 
     /// <summary>
     /// Der Stadtplan: Wo steht welcher Betrieb (Mitte des Grundstücks)? Die Namen sind dieselben wie in
@@ -268,14 +278,14 @@ public partial class Stadtansicht : Node3D
         ["Maurerei am Weinmarkt"] = new(-20, 0, 14),    // derselbe Platz – je nach Startberuf
         ["Maurerei Kieselbach"] = new(25, 0, -29),
         ["Maurerei an der Stadtmauer"] = new(21, 0, 29),
-        ["Steinbruch Kieselbach"] = new(40, 0, 52),
-        ["Steinbruch am Felsenhang"] = new(-6, 0, -66),
+        ["Steinbruch Kieselbach"] = new(54, 0, 66),
+        ["Steinbruch am Felsenhang"] = new(-6, 0, -80),
         ["Tinkturei am Weinmarkt"] = new(-20, 0, 14),   // derselbe Platz – je nach Startberuf
         ["Tinkturei am Domplatz"] = new(-11, 0, -31),
-        ["Kräutergarten am Bach"] = new(72, 0, 56),
+        ["Kräutergarten am Bach"] = new(86, 0, 70),
         ["Schänke am Weinmarkt"] = new(-20, 0, 14),     // derselbe Platz – je nach Startberuf
         ["Schänke am Fischmarkt"] = new(-27, 0, 28),
-        ["Bauernhof an der Mühle"] = new(90, 0, -48),
+        ["Bauernhof an der Mühle"] = new(104, 0, -62),
         ["Kirche am Weinmarkt"] = new(-20, 0, 14),      // derselbe Platz – je nach Startberuf
         ["Schmugglerloch am Weinmarkt"] = new(-20, 0, 14), // derselbe Platz – je nach Startberuf
         ["Wachhaus am Weinmarkt"] = new(-20, 0, 14),    // derselbe Platz – je nach Startberuf
@@ -284,16 +294,16 @@ public partial class Stadtansicht : Node3D
         ["Wechselstube am Markt"] = new(14, 0, -18),
         ["Siederei am Weinmarkt"] = new(-20, 0, 14),     // derselbe Platz – je nach Startberuf
         ["Siederei an der Seifengasse"] = new(-24.5f, 0, -29),
-        ["Duftgarten am Lavendelhang"] = new(90, 0, 8),
-        ["Wachturm an der Landstraße"] = new(46, 0, -10),
+        ["Duftgarten am Lavendelhang"] = new(104, 0, 8),
+        ["Wachturm an der Landstraße"] = new(60, 0, -10),
         ["Schmugglerloch am Osttor"] = new(29, 0, -12),
         ["Kirche an der Westmauer"] = new(-30, 0, -4),
-        ["Klosterhof am Osthang"] = new(100, 0, 66),     // südöstlich hinter dem Kräutergarten – vor keinem Berg versteckt
-        ["Grube Eisenbart"] = new(68, 0, -12),
-        ["Grube am Silberberg"] = new(66, 0, 32),
-        ["Grube im Tannenwald"] = new(48, 0, -52),
-        ["Holzschlag Eichwald"] = new(20, 0, -62),
-        ["Holzschlag im Eichenforst"] = new(14, 0, 66),
+        ["Klosterhof am Osthang"] = new(114, 0, 80),     // südöstlich hinter dem Kräutergarten – vor keinem Berg versteckt
+        ["Grube Eisenbart"] = new(82, 0, -12),
+        ["Grube am Silberberg"] = new(80, 0, 32),
+        ["Grube im Tannenwald"] = new(62, 0, -66),
+        ["Holzschlag Eichwald"] = new(20, 0, -76),
+        ["Holzschlag im Eichenforst"] = new(14, 0, 80),
     };
 
     /// <summary>
@@ -322,17 +332,17 @@ public partial class Stadtansicht : Node3D
     /// <summary>Gruben liegen vor der Stadt: Hier zweigt ihr Weg von der Straße ab, die zum Osttor führt.</summary>
     private static readonly Dictionary<string, Vector3> Abzweige = new()
     {
-        ["Grube Eisenbart"] = new(56, 0, -2),
-        ["Grube am Silberberg"] = new(52, 0, 18),
-        ["Grube im Tannenwald"] = new(46, 0, -26),
-        ["Holzschlag Eichwald"] = new(42, 0, -20),
-        ["Holzschlag im Eichenforst"] = new(46, 0, 26),
-        ["Steinbruch Kieselbach"] = new(46, 0, 26),
-        ["Steinbruch am Felsenhang"] = new(42, 0, -20),
-        ["Kräutergarten am Bach"] = new(52, 0, 18),
-        ["Bauernhof an der Mühle"] = new(46, 0, -26),
-        ["Klosterhof am Osthang"] = new(64, 0, 43),      // auf dem Weg zum Kräutergarten
-        ["Wachturm an der Landstraße"] = new(46, 0, -1), // direkt an der Landstraße
+        ["Grube Eisenbart"] = new(70, 0, -2),
+        ["Grube am Silberberg"] = new(66, 0, 18),
+        ["Grube im Tannenwald"] = new(60, 0, -26),
+        ["Holzschlag Eichwald"] = new(60, 0, -56),      // um die Nordostecke der Mauer herum
+        ["Holzschlag im Eichenforst"] = new(60, 0, 56),  // um die Südostecke der Mauer herum
+        ["Steinbruch Kieselbach"] = new(60, 0, 26),
+        ["Steinbruch am Felsenhang"] = new(60, 0, -56), // um die Nordostecke der Mauer herum
+        ["Kräutergarten am Bach"] = new(66, 0, 18),
+        ["Bauernhof an der Mühle"] = new(60, 0, -26),
+        ["Klosterhof am Osthang"] = new(78, 0, 57),      // auf dem Weg zum Kräutergarten
+        ["Wachturm an der Landstraße"] = new(60, 0, -1), // direkt an der Landstraße
         ["Duftgarten am Lavendelhang"] = Landstrasse,      // am Ende der Landstraße weiter nach Osten
     };
 
@@ -361,8 +371,8 @@ public partial class Stadtansicht : Node3D
         UmgebungUndLicht();
         KameraAufbauen();
 
-        Flaeche(new Vector3(20, 0, 0), new Vector2(240, 200), Wiese, -0.05f);
-        Flaeche(Vector3.Zero, new Vector2(72, 72), Pflaster, 0f);
+        Flaeche(new Vector3(20, 0, 0), new Vector2(520, 480), Wiese, -0.05f); // groß genug, dass auch ganz herausgezoomt kein Himmel am Rand zu sehen ist
+        Flaeche(Vector3.Zero, new Vector2(2 * Mauerrand, 2 * Mauerrand), Pflaster, 0f);
         Flaeche(Vector3.Zero, new Vector2(24, 24), Marktpflaster, 0.02f);
 
         Stadtmauer();
@@ -372,9 +382,13 @@ public partial class Stadtansicht : Node3D
         Wohnhaeuser();
         Wald();
 
-        // Wege: Ostgasse zum Tor und hinaus zur Grube
+        // Wege: Ostgasse zum Tor und hinaus zur Grube; Westgasse zum Westtor (die Weststraße führt noch nirgends hin)
         WegZiehen(Marktplatz, Osttor, 5);
         WegZiehen(Osttor, Landstrasse, 4);
+        WegZiehen(Marktplatz, WestgasseKnick, 5);
+        WegZiehen(WestgasseKnick, new Vector3(-38, 0, 6), 5);
+        WegZiehen(new Vector3(-38, 0, 6), Westtor, 5);
+        WegZiehen(Westtor, Weststrasse, 4);
     }
 
     private void UmgebungUndLicht()
@@ -418,24 +432,37 @@ public partial class Stadtansicht : Node3D
 
     private void Stadtmauer()
     {
-        const float rand = 36, hoehe = 6, dicke = 2;
+        const float rand = Mauerrand, hoehe = 6, dicke = 2;
         var stein = Material(Mauerstein);
-        // Nord, Süd, West als ganze Mauern; Ost mit Tor in der Mitte.
+        // Nord und Süd als ganze Mauern; Ost und West mit je einem Tor (4 m breit).
         Quader(new Vector3(0, hoehe / 2, -rand), new Vector3(2 * rand, hoehe, dicke), stein);
         Quader(new Vector3(0, hoehe / 2, rand), new Vector3(2 * rand, hoehe, dicke), stein);
-        Quader(new Vector3(-rand, hoehe / 2, 0), new Vector3(dicke, hoehe, 2 * rand), stein);
-        Quader(new Vector3(rand, hoehe / 2, -20), new Vector3(dicke, hoehe, 32), stein);
-        Quader(new Vector3(rand, hoehe / 2, 20), new Vector3(dicke, hoehe, 32), stein);
+        MauerMitTor(rand, Osttor.Z);
+        MauerMitTor(-rand, Westtor.Z);
 
         foreach (var ecke in new[] { new Vector3(-rand, 0, -rand), new Vector3(rand, 0, -rand), new Vector3(-rand, 0, rand), new Vector3(rand, 0, rand) })
             Turm(ecke, 3.5f, 10, Schiefer);
 
-        // Torhaus über dem Osttor
-        Quader(new Vector3(rand, 8, 0), new Vector3(5, 4, 9), stein);
-        Turm(new Vector3(rand, 0, -5.5f), 2.6f, 11, Schiefer);
-        Turm(new Vector3(rand, 0, 5.5f), 2.6f, 11, Schiefer);
-        Klickflaeche("Osttor", new Vector3(rand, 5, 0), new Vector3(6, 10, 12));
-        Beschriftung("Osttor", new Vector3(rand, 15, 0), 48, kennung: "Osttor");
+        Torhaus(Osttor, "Osttor");
+        Torhaus(Westtor, "Westtor");
+
+        void MauerMitTor(float x, float torZ)
+        {
+            const float luecke = 4;
+            var nordLaenge = torZ - luecke + rand;  // von −rand bis zum Tor
+            var suedLaenge = rand - torZ - luecke;  // vom Tor bis +rand
+            Quader(new Vector3(x, hoehe / 2, -rand + nordLaenge / 2), new Vector3(dicke, hoehe, nordLaenge), stein);
+            Quader(new Vector3(x, hoehe / 2, rand - suedLaenge / 2), new Vector3(dicke, hoehe, suedLaenge), stein);
+        }
+
+        void Torhaus(Vector3 tor, string name)
+        {
+            Quader(tor + new Vector3(0, 8, 0), new Vector3(5, 4, 9), stein);
+            Turm(tor + new Vector3(0, 0, -5.5f), 2.6f, 11, Schiefer);
+            Turm(tor + new Vector3(0, 0, 5.5f), 2.6f, 11, Schiefer);
+            Klickflaeche(name, tor + new Vector3(0, 5, 0), new Vector3(6, 10, 12));
+            Beschriftung(name, tor + new Vector3(0, 15, 0), 48, kennung: name);
+        }
     }
 
     private void Marktstaende()
@@ -486,8 +513,8 @@ public partial class Stadtansicht : Node3D
         {
             var winkel = zufall.NextDouble() * Math.Tau;
             var abstand = 48 + zufall.NextDouble() * 50;
-            var p = new Vector3((float)(Math.Cos(winkel) * abstand) + 10, 0, (float)(Math.Sin(winkel) * abstand));
-            if (ImWegFuerWald(p)) continue; // Gruben und Straßen frei lassen
+            var p = NachAussen(new Vector3((float)(Math.Cos(winkel) * abstand) + 10, 0, (float)(Math.Sin(winkel) * abstand)));
+            if (ImWegFuerWald(p)) continue; // Stadt, Gruben und Straßen frei lassen
             var hoehe = 6 + (float)zufall.NextDouble() * 5;
             var baum = new MeshInstance3D
             {
@@ -499,10 +526,25 @@ public partial class Stadtansicht : Node3D
         }
     }
 
+    /// <summary>
+    /// Die Stadt war früher 72 m breit (Mauer bei ±36), jetzt 100 m (±50). Alles, was vor der alten Mauer lag,
+    /// rückt dafür um 14 m nach außen – so bleibt die Umgebung, wie sie war, nur mit einem neuen Ring innen.
+    /// Die Plätze im Stadtplan sind schon umgerechnet; die Bäume werden hier mit derselben Regel verschoben,
+    /// damit der Zufall (Startwert 1400) dieselben Bäume liefert.
+    /// </summary>
+    private static Vector3 NachAussen(Vector3 p)
+    {
+        const float alt = 36, dazu = Mauerrand - alt;
+        static float Schieben(float w) => w > alt ? w + dazu : w < -alt ? w - dazu : w;
+        return new Vector3(Schieben(p.X), p.Y, Schieben(p.Z));
+    }
+
     /// <summary>Liegt dieser Punkt auf einer Grube oder einem Weg? Dort wachsen keine Bäume.</summary>
     private static bool ImWegFuerWald(Vector3 p)
     {
-        if (Mathf.Abs(p.Z) < 6 && p.X > 30) return true; // Straße vom Osttor
+        if (Mathf.Abs(p.X) < Mauerrand + 6 && Mathf.Abs(p.Z) < Mauerrand + 6) return true; // in der Stadt oder dicht an der Mauer
+        if (Mathf.Abs(p.Z - Osttor.Z) < 6 && p.X > 0) return true;  // Landstraße vom Osttor
+        if (Mathf.Abs(p.Z - Westtor.Z) < 6 && p.X < 0) return true; // Weststraße vom Westtor
         foreach (var (name, abzweig) in Abzweige)
         {
             var grube = Stadtplan[name];
@@ -1726,7 +1768,7 @@ public partial class Stadtansicht : Node3D
             _kameraDrehung.Position = new Vector3(Mathf.Clamp(neu.X, m.X - r, m.X + r), 0, Mathf.Clamp(neu.Z, m.Z - r, m.Z + r));
             return;
         }
-        _kameraDrehung.Position = new Vector3(Mathf.Clamp(neu.X, -70, 110), 0, Mathf.Clamp(neu.Z, -80, 80));
+        _kameraDrehung.Position = new Vector3(Mathf.Clamp(neu.X, -90, 125), 0, Mathf.Clamp(neu.Z, -100, 100));
     }
 
     public override void _UnhandledInput(InputEvent eingabe)
