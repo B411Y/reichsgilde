@@ -57,7 +57,9 @@ def bogen(r=None, wall=False, n=48):
     a1, a2 = WINKEL[0], WINKEL[-1]
     return [punkt(a1 + (a2 - a1) * i / n, bis_wallgasse(a1 + (a2 - a1) * i / n) if wall else r) for i in range(n + 1)]
 
-def block(a1, a2, r1, r2=None, rand=7, n=10):
+RAND = 5   # Abstand Straßenmitte → Bauzone in Skizzenpunkten (5 × 0,65 = 3,3 m, Straßen gut 6,5 m breit; entschieden 16.10.2026)
+
+def block(a1, a2, r1, r2=None, rand=RAND, n=10):
     """Bauzone zwischen zwei Radialen und zwei Ringen, mit Abstand `rand` zu den Straßen."""
     aussen, innen = [], []
     for i in range(n + 1):
