@@ -22,7 +22,7 @@ namespace Reichsgilde.Core.Wirtschaft;
 /// Gleicher Startwert + gleiche Eingaben = exakt gleicher Spielverlauf.
 /// Das ist die Voraussetzung für Multiplayer und für reproduzierbare Tests.
 /// </summary>
-public sealed class Stadtwirtschaft
+public sealed partial class Stadtwirtschaft
 {
     private readonly List<Betrieb> _betriebe = new();
     private readonly List<Konto> _konten = new();
@@ -110,12 +110,8 @@ public sealed class Stadtwirtschaft
     /// <summary>Ein Konto ist bankrott gegangen (nach der Jahresabrechnung).</summary>
     public event Action<Konto>? Bankrott;
 
-    /// <summary>Ein Konto hat eine Werkstatt gekauft oder eine Grube gepachtet.</summary>
+    /// <summary>Ein Konto hat eine Werkstatt gekauft oder eine Grube gepachtet (Gegenstück: <see cref="BetriebAbgegeben"/>).</summary>
     public event Action<Betrieb>? BetriebErworben;
-
-    /// <summary>Liegenschaften, die noch niemandem gehören.</summary>
-    public IEnumerable<LiegenschaftDaten> FreieLiegenschaften =>
-        Daten.Liegenschaften.Where(l => _betriebe.All(b => b.Name != l.Name));
 
     /// <summary>Ein Konto ist in einen höheren Stand aufgestiegen.</summary>
     public event Action<Konto, StandDaten>? Aufgestiegen;
@@ -734,6 +730,7 @@ public sealed class Stadtwirtschaft
                 NachtfahrtErlauben n => NachtfahrtAusfuehren(betrieb, n),
                 WaechterSetzen s => WaechterAusfuehren(betrieb, s),
                 BetriebAusbauen => AusbauenAusfuehren(betrieb),
+                BetriebVerkaufen => VerkaufenAusfuehren(betrieb),
                 BardeEinladen => Gastwirtschaft.BardeEinladen(betrieb),
                 WuerfeltischAufstellen t => Gastwirtschaft.WuerfeltischAufstellen(betrieb, t.Aufstellen),
                 KasseEinlegen e => Bank.KasseEinlegen(betrieb, e.Betrag),
@@ -770,36 +767,6 @@ public sealed class Stadtwirtschaft
         Melden($"{konto.Inhaber} ist nun {neu.Name}! (Gebühr {Zahlenformat.Ganz(neu.Gebuehr)} {waehrung})");
         Aufgestiegen?.Invoke(konto, neu);
         return Befehlsergebnis.Ok($"{konto.Inhaber} steigt in den Stand {neu.Name} auf.");
-    }
-
-    private Befehlsergebnis LiegenschaftErwerbenAusfuehren(Konto konto, string name)
-    {
-        var waehrung = Daten.Allgemein.Waehrung;
-        var l = Daten.Liegenschaften.FirstOrDefault(x => x.Name == name);
-        if (l is null)
-            return Befehlsergebnis.Abgelehnt($"Eine Liegenschaft „{name}“ gibt es nicht.");
-        if (_betriebe.FirstOrDefault(b => b.Name == name) is { } vergeben)
-            return Befehlsergebnis.Abgelehnt($"{name} gehört bereits {vergeben.Konto.Inhaber}.");
-        if (konto.Stand < Daten.StandStufe(l.MindestStand))
-            return Befehlsergebnis.Abgelehnt($"{name} ist erst ab dem Stand {l.MindestStand} zu haben – {konto.Inhaber} ist {StandVon(konto).Name}.");
-        var beruf = Daten.Art(l.Art).Beruf;
-        if (Daten.Berufe.Count > 0 && konto.Berufe.Count > 0 && !konto.Beherrscht(beruf)) // ohne jedes Handwerk darf man mit jedem anfangen
-            return Befehlsergebnis.Abgelehnt($"{name} ist ein Betrieb der {beruf}. {konto.Inhaber} beherrscht dieses Handwerk nicht – erst erlernen.");
-
-        // Kaufpreis plus die Kosten des ersten Jahres müssen gedeckt sein – sonst droht sofort die Schuldenfalle.
-        var fixkosten = Daten.Fixkosten(l.Art);
-        if (konto.Vermoegen < l.Kaufpreis + fixkosten)
-            return Befehlsergebnis.Abgelehnt(
-                $"Für {name} braucht es {Zahlenformat.Ganz(l.Kaufpreis + fixkosten)} {waehrung} " +
-                $"({(l.IstPacht ? "erste Jahrespacht" : $"Kaufpreis {Zahlenformat.Ganz(l.Kaufpreis)} und ein Jahr Unterhalt")}).");
-
-        if (l.Kaufpreis > 0) konto.Investition(l.Kaufpreis);
-        var betrieb = BetriebEroeffnen(l.Name, l.Art, konto);
-        Melden(l.IstPacht
-            ? $"{konto.Inhaber} pachtet {name} ({Zahlenformat.Ganz(fixkosten)} {waehrung} Pacht im Jahr)."
-            : $"{konto.Inhaber} kauft {name} für {Zahlenformat.Ganz(l.Kaufpreis)} {waehrung}.");
-        BetriebErworben?.Invoke(betrieb);
-        return Befehlsergebnis.Ok($"{name} gehört nun {konto.Inhaber}. Jetzt Personal einstellen!");
     }
 
     private Befehlsergebnis BerufErlernenAusfuehren(Konto konto, string beruf)
@@ -978,6 +945,7 @@ public sealed class Stadtwirtschaft
         Parfum = Duft.IstAktiv ? Duft.Sichern(k => _konten.IndexOf(k)) : null,
         Glaube = Glaube.IstAktiv ? Glaube.Sichern(k => _konten.IndexOf(k)) : null,
         Einwohner = Einwohnerschaft.IstAktiv ? Einwohnerschaft.Sichern() : null,
+        Abgegeben = AbgegebeneSichern(),
     };
 
     /// <summary>
@@ -1003,6 +971,7 @@ public sealed class Stadtwirtschaft
             betrieb.Wiederherstellen(bs);
             _betriebe.Add(betrieb);
         }
+        AbgegebeneWiederherstellen(s.Abgegeben);
         foreach (var (ware, stand) in s.Markt)
             if (Markt.Staende.Any(x => x.Ware == ware))
                 Markt[ware].Wiederherstellen(stand);

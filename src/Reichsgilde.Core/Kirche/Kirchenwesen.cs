@@ -319,6 +319,13 @@ public sealed class Kirchenwesen
                                   $"bis Ende {Jahr + 1}. Eine Verleumdung – wer sie euch nachweist, kann euch anklagen.");
     }
 
+    /// <summary>Die Kirche wurde verkauft: Ihr Kirchenbuch geht nicht auf den nächsten Besitzer über.</summary>
+    internal void BetriebAufgegeben(Betrieb b)
+    {
+        _diesesJahr.Remove(b.Name);
+        _vorjahr.Remove(b.Name);
+    }
+
     // ── Jahresende ──────────────────────────────────────────────────────────
 
     /// <summary>Beichte (vor dem Gerichtstag nicht nötig – das Wissen wirkt erst, wenn der Prediger es preisgibt), dann neues Kirchenbuch.</summary>

@@ -1,5 +1,5 @@
 {
-  "version": 32,
+  "version": 33,
   "gesundheit": {
     "medicusKosten": 120,
     "medicusKostenPest": 300,
@@ -983,6 +983,10 @@
     "apBonusAbGrad": 6,
     "apBonus": 1,
     "umbauMinuten": 360
+  },
+  "verkauf": {
+    "anteil": 0.75,
+    "warenAbschlag": 0.2
   },
   "liegenschaften": [
     {

@@ -155,6 +155,13 @@ public sealed record WuerfeltischAufstellen(string Betrieb, bool Aufstellen) : B
 /// <summary>Die Werkstatt am Platz zur nächsten Stufe ausbauen (Gulden, Meistergrad; ein halber Tag Umbau).</summary>
 public sealed record BetriebAusbauen(string Betrieb) : BetriebsBefehl(Betrieb);
 
+/// <summary>
+/// Den Betrieb verkaufen – eine Werkstatt bringt 75 % ihres Werts, eine Umlandpacht wird gekündigt.
+/// Personal, Wächter und Karren gehen mit, die Lagerware wird zum Marktpreis −20 % mitverkauft.
+/// Danach ist der Betrieb wieder eine freie Liegenschaft (mit seiner Stufe). Vorab: <see cref="Stadtwirtschaft.VerkaufVorschau"/>.
+/// </summary>
+public sealed record BetriebVerkaufen(string Betrieb) : BetriebsBefehl(Betrieb);
+
 /// <summary>Geldleiher: Bargeld in die Kasse legen – die Schreiber verleihen es an Stadtkunden.</summary>
 public sealed record KasseEinlegen(string Betrieb, double Betrag) : BetriebsBefehl(Betrieb);
 

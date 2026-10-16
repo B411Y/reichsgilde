@@ -267,6 +267,16 @@ public sealed class Gastwirtschaft
         _barde.Clear();
     }
 
+    /// <summary>Die Schänke wurde verkauft: Barde, Würfeltisch, angefangene Gäste und Gästebücher gehen nicht auf den nächsten Besitzer über.</summary>
+    internal void BetriebAufgegeben(Betrieb b)
+    {
+        _offen.Remove(b.Name);
+        _diesesJahr.Remove(b.Name);
+        _vorjahr.Remove(b.Name);
+        _barde.Remove(b.Name);
+        _wuerfeltisch.Remove(b.Name);
+    }
+
     /// <summary>Häuser mit dunkler Ecke (eine besetzte Schänke) – je Haus die erste Schänke, für den Gerichtstag.</summary>
     internal IEnumerable<(Konto Konto, Betrieb Schaenke)> DunkleEcken() =>
         IstAktiv
