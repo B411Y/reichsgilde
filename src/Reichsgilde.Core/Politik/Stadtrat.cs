@@ -157,11 +157,17 @@ public sealed class Stadtrat
         if (amt.Ratsherr is not null) gegner.Add(null);
         else if (amt.Konto is { } inhaber && inhaber != bewerber) gegner.Add(inhaber);
 
+        var alle = new List<Konto?>(gegner) { bewerber };
         int sicher = 0, unsicher = 0, waehlerzahl = 0;
         foreach (var sitz in Waehler(amt).Where(w => w.Konto != bewerber && !mitbewerber.Contains(w.Konto)))
         {
             waehlerzahl++;
-            if (sitz.Ratsherr is not { } r) continue; // Häuser im Rat stimmen für den bisherigen Inhaber
+            if (sitz.Ratsherr is not { } r)
+            {
+                // KI-Häuser nach derselben Regel wie in der Wahl; das Haus des Spielers stimmt für den bisherigen Inhaber.
+                if (_w.Rivalen.FirstOrDefault(x => x.Konto == sitz.Konto) is { } ki && ki.Wahlstimme(amt, alle) == bewerber) sicher++;
+                continue;
+            }
             var eigene = Punkte(r, amt, bewerber);
             var beste = gegner.Select(g => Punkte(r, amt, g)).DefaultIfEmpty(double.MinValue).Max();
             if (eigene > beste + 1e-9) sicher++;
@@ -343,9 +349,11 @@ public sealed class Stadtrat
                 var gleichauf = kandidaten.Where(k => Punkte(r, amt, k) >= beste - 1e-9).ToList();
                 wahl = gleichauf.Count == 1 ? gleichauf[0] : gleichauf[zufall.Next(gleichauf.Count)];
             }
+            else if (_w.Rivalen.FirstOrDefault(r => r.Konto == waehler.Konto) is { } ki)
+                wahl = ki.Wahlstimme(amt, kandidaten); // Spiel-KI: wählt nach ihrem Charakter
             else
             {
-                // Ein Haus im Rat stimmt (noch) für den bisherigen Inhaber – Wahlabsprachen folgen später.
+                // Das Haus des Spielers stimmt (noch) für den bisherigen Inhaber – Abstimmen von Hand folgt später.
                 wahl = kandidaten.Contains(amt.Konto) ? amt.Konto : null;
                 if (wahl is null && !kandidaten.Contains(null)) wahl = kandidaten[0];
             }

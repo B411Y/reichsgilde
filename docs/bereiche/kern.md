@@ -19,6 +19,7 @@ So wird eingetragen (damit sich die Chats nie an derselben Stelle treffen):
 - (6) Multiplayer, Zuschauer-Modus
 - (Nutzer) Lizenz für Grafiken und Texte (CC BY 4.0?) bestätigen
 - (Nutzer) Pausenregeln im Multiplayer
+- (von Spiel-KI) Haus des Spielers im Rat: Befehl zum Abstimmen bei Wahlen und Anträgen (heute: Amtsinhaber bzw. Enthaltung); die KI-Häuser wählen seit PR #73 nach Charakter
 
 ## Entscheidungen
 
