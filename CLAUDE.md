@@ -46,6 +46,19 @@ Nur der Kern-Chat ändert: `game/data/wirtschaft.json`, `Stadtwirtschaft.cs`, `S
 **Ausnahme Spiel-KI:** Der Spiel-KI-Chat darf dort kleine Andockstellen ergänzen und nennt jede im PR-Text: einen Aufruf in `Stadtwirtschaft` (Takt, Jahreswechsel, öffentliche Abfrage), einen **eigenen** Abschnitt in `wirtschaft.json` (die Datenversion erhöht nur der Kern), eigene Felder im `Speicherstand` (alte Spielstände müssen weiter laden), dazu **je Teilsystem des Kerns einen Faktor oder Aufruf**, über den die Bürger wirken (z. B. `Markt.NachfrageFaktor`, ein Faktor in `Kirchenwesen` oder `Gastwirtschaft`; ohne Abschnitt `buerger` bleibt er 1). Bestehende Werte und Regeln ändert nur der Kern.
 Die Darstellung **liest den Kern nur** (öffentliche Abfragen). Fehlt eine Abfrage, kleine Ergänzung im Kern mit Test – im PR nennen.
 
+## Teamarbeit mit Teamleiter
+
+Gilt, wenn ein Chat als **Teamleiter** Teammitglieder (Agenten) startet. Alle übrigen Regeln gelten für jedes Teammitglied wie für einen eigenen Chat.
+
+- **Zuschnitt nach Größe:** Kleine Funktionen bekommen zwei Mitglieder, „kern“ und „spiel“ (Oberfläche und Darstellung zusammen). Nur große Themen mit viel unabhängiger Arbeit bekommen ein Mitglied je Bereich. Jede zusätzliche Grenze kostet Abstimmung.
+- **Reihenfolge:** Erst die Designfragen an den Nutzer, dann baut der Kern Befehl, Abfragen und Tests und meldet die genauen Signaturen. Erst danach starten die anderen und zweigen vom Kern-Branch ab. Ihr PR-Text beginnt mit „Setzt PR #… (Kern) voraus – bitte zuerst #… mergen“.
+- **Getrennte Ordner:** Jedes Mitglied hat einen eigenen Worktree `../rg-<name>` und einen eigenen Unterordner im Notizordner (`<Notizordner>/<name>/`), z. B. für den PR-Text. Ein gemeinsamer Ordner führt zu überschriebenen Dateien.
+- **Entscheidungen unterwegs:** Taucht eine neue Designfrage auf, entscheidet der Teamleiter **einmal** (oder fragt den Nutzer) und schickt **eine** endgültige Nachricht an alle Betroffenen. Eine getroffene Entscheidung nicht nachträglich umwerfen: Nachrichten überholen sich, und dann baut jemand den alten Stand zurück.
+- **Nachrichten:** Vorschläge an ein anderes Mitglied gehen **über den Teamleiter**, nicht direkt untereinander. Zwischenmeldungen nur bei einer Blockade oder einer fertigen Schnittstelle, sonst nur der Abschlussbericht.
+- **Nach „bereit“:** Ein Mitglied pusht nur noch auf Anweisung des Teamleiters. Gemergt wird nur vom Nutzer. Der Teamleiter meldet ihm erst dann ausdrücklich „mergebereit: #…, #… in dieser Reihenfolge“, wenn alle fertig sind und ein gemeinsamer Klicktest der zusammengeführten Branches gelaufen ist.
+- **Modelle:** Für den Kern und die Spiel-KI Opus: Simulation, Spielstände und Tests vertragen keine Fehler. Für Oberfläche und Darstellung Sonnet, denn sie folgen vorhandenen Mustern, und Tests, CI und Klicktest fangen Fehler ab. Für Kleinkram (Doku-Korrektur, main einmergen, CI abwarten) und zum Durchsuchen des Codes vor den Designfragen Haiku. Wird die Arbeit eines Bereichs mit einem kleineren Modell schlechter, kommt er zurück auf Opus.
+- **Aufräumen:** Am Ende entfernt der Teamleiter die Worktrees der gemergten Branches und fasst für den Nutzer zusammen, was offen bleibt.
+
 ## Feste Regeln
 
 - **Nichts aus dem Original-Spiel** (keine Grafiken, Sounds, Musik, Texte, Modelle). Es dient nur als Vorbild für Mechaniken.
@@ -66,5 +79,6 @@ dotnet run -c Release --project tests/Reichsgilde.Core.Tests -- messen 30 20   #
 ```
 
 Klicktest: Godot 4.7.2 mono (Linux) von den offiziellen Godot-Releases auf GitHub laden, Projekt einmal importieren (`--headless --import --path game`), dann unter Xvfb starten (`--rendering-driver opengl3 --path game -- <Optionen>`) und Bildschirmfotos selbst ansehen. Für Schatten und Kantenglättung stattdessen `--rendering-driver vulkan` (Paket `mesa-vulkan-drivers`): Das ist der Forward+-Renderer des Spiels, `opengl3` zeigt dort andere Ergebnisse.
+Auf dem Entwicklungsrechner (ohne root) liegt das schon bereit, also erst nachsehen, bevor du etwas lädst. Godot liegt unter `~/werkzeuge/godot/`, ein Xvfb ohne root unter `~/werkzeuge/xvfb/`. Ein Bildschirmfoto macht `~/werkzeuge/xvfb/skripte/klicktest.sh game <bild.png> <Wartesekunden> <Startoptionen>`. Klicks davor gibt man mit `KLICKS="x,y x,y"` vor.
 Startoptionen (nach `--`): `--beruf=<Beruf>`, `--startstunde=<Stunde>`, `--tempo=<1–32>`, `--innen=1` (eigene Werkstatt) oder `--innen=Rathaus|Dom|wohnhaus:<Inhaber>`, `--raum=<Nummer>` (mit `--innen`: Raum der Raumleiste, 1 = erster), `--verwalten=1`, `--auswahl=<Kennung>`, `--drehung=<1–3>`, `--vermoegen=<Gulden>`, `--rat=1`, `--familie=1`, `--gericht=1`, `--hinterzimmer=1`, `--markt=1`, `--verkaufen=1` (Rückfrage zum Verkauf der eigenen Werkstatt; `=2` kauft vorher eine Grube dazu und lässt bis Mittag laufen, mit `--vermoegen=20000`), `--bericht=1`, `--einstellungen=1`, `--wegenetz=1` (Gassennetz der Passanten einblenden), `--kanten=<Aus|Fxaa|Smaa|Taa|Msaa2|Msaa4|Msaa8>` (nur für diesen Start), `--laden=<datei.json>` (aus `~/.local/share/godot/app_userdata/Reichsgilde/spielstaende`).
 Ohne Zugang zu nuget.org genügt eine NuGet-Quelle auf den Ordner `GodotSharp/Tools/nupkgs` der heruntergeladenen Godot-Version.
