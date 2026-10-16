@@ -49,6 +49,9 @@ public sealed class Einwohner
     /// </summary>
     public int Haus { get; internal set; }
 
+    /// <summary>Die Schänke, in die er heute einkehrt (einmal am Tag nach der Anziehung gewählt; über Nacht vergessen).</summary>
+    public string? Stammschaenke { get; internal set; }
+
     /// <summary>Nummer seines Wohnhauses (siehe <see cref="Einwohnerschaft.Wohnhaeuser"/>).</summary>
     public int Wohnhaus { get; internal set; }
 

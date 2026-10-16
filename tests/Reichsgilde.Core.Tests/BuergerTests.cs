@@ -20,6 +20,32 @@ static class BuergerTests
     }
 
     static readonly Lazy<Wirtschaftsdaten> OhneBuerger = new(() => Abgewandelt(j => j.Remove("buerger")));
+    static readonly Lazy<Wirtschaftsdaten> OhneKopplung = new(() => Abgewandelt(j => j["buerger"]!.AsObject().Remove("kopplung")));
+
+    /// <summary>Partie mit dem Spieler als Wirt und einem zweiten Haus mit Wirtshaus (Stufe 2) – beide mit vollem Lager.</summary>
+    static (Simulation Sim, Konto Spieler, Betrieb Schaenke, Betrieb Wirtshaus) Wirte(Wirtschaftsdaten? daten = null, int startwert = 1400)
+    {
+        var (sim, spieler) = Partieaufbau.Erstellen(Partieeinstellungen.Standard with { Zufallsstartwert = startwert, Siegbedingung = Siegbedingung.Endlos },
+            daten ?? Daten.Value, new NeuePartie(Beruf: "Wirt", Rivale: KiCharakter.Wagemutig));
+        var w = sim.Wirtschaft!;
+        var krug = w.KontoEroeffnen("Haus Krug", startvermoegen: 20_000);
+        var wirtshaus = w.BetriebEroeffnen("Wirtshaus Krug", Betriebsart.Wirtshaus, krug, startkarren: "");
+        w.Einstellen(wirtshaus, "Geselle", 1);
+        var schaenke = w.Betriebe.First(b => b.Konto == spieler && b.IstSchaenke);
+        return (sim, spieler, schaenke, wirtshaus);
+    }
+
+    static void Auffuellen(Simulation sim)
+    {
+        foreach (var b in sim.Wirtschaft!.Betriebe.Where(b => b.IstSchaenke))
+            b.Einlagern("Dünnbier", Math.Max(0, 300 - b.ImLager("Dünnbier")));
+    }
+
+    static void JahrMitVollemLager(Simulation sim)
+    {
+        Auffuellen(sim);
+        Ticken(sim, Spielzeit.MinutenProTag);
+    }
 
     static (Simulation Sim, Konto Spieler) NeuePartie(Wirtschaftsdaten? daten = null, int startwert = 1400) =>
         Partieaufbau.Erstellen(Partieeinstellungen.Standard with { Zufallsstartwert = startwert, Siegbedingung = Siegbedingung.Endlos },
@@ -300,12 +326,102 @@ static class BuergerTests
             Pruefe.Wahr(ew.Einwohner.Any(e => e.Weg is not null), "Danach gehen sie wieder Wege");
         }),
 
+        ("Schänke: Ohne Kopplung bleibt alles wie vorher – auch mit Schänken (Gäste wie ohne Einwohner)", () =>
+        {
+            var (mit, sm, _, _) = Wirte(OhneKopplung.Value, startwert: 4711);
+            var (ohne, so, _, _) = Wirte(OhneBuerger.Value, startwert: 4711);
+            for (var j = 0; j < 2; j++) { JahrMitVollemLager(mit); JahrMitVollemLager(ohne); }
+            Pruefe.Wahr(Einwohner(mit).Einwohner.Count > 0, "Einwohner da");
+            Pruefe.Gleich(OhneEinwohner(ohne, so), OhneEinwohner(mit, sm));
+        }),
+
+        ("Schänke: Die Gäste einer Stunde folgen den Einwohnern, die in der Schänke sitzen", () =>
+        {
+            var (sim, _, schaenke, wirtshaus) = Wirte();
+            var w = sim.Wirtschaft!;
+            var ew = Einwohner(sim);
+            JahrMitVollemLager(sim); // erstes Jahr: das „Übliche“ je Uhrzeit lernen
+            Auffuellen(sim);
+            Bis(sim, 20, 59);
+            var drinS = ew.Einkehrende(schaenke);
+            var drinW = ew.Einkehrende(wirtshaus);
+            var erwartet = ew.EinkehrErwartet(20);
+            var vorherS = w.Gastwirtschaft.DiesesJahr(schaenke).Bewirtet;
+            var vorherW = w.Gastwirtschaft.DiesesJahr(wirtshaus).Bewirtet;
+            var gaeste = w.Gastwirtschaft.Daten.GaesteJeJahr * w.Gastwirtschaft.Daten.AbendGewicht /
+                         (6 + 4 * w.Gastwirtschaft.Daten.AbendGewicht); // 12–17 Uhr einfach, 18–21 Uhr doppelt
+            var kd = ew.Daten.Kopplung;
+            var faktor = Math.Clamp((drinS + drinW) / erwartet, 1 - kd.Spanne, 1 + kd.Spanne);
+            Ticken(sim, 2); // 21:00 – die Gäste der Stunde 20–21 kehren ein
+            var neuS = w.Gastwirtschaft.DiesesJahr(schaenke).Bewirtet - vorherS;
+            var neuW = w.Gastwirtschaft.DiesesJahr(wirtshaus).Bewirtet - vorherW;
+            Pruefe.Wahr(drinS + drinW > 0, "Abends sitzen Einwohner in den Schänken");
+            // Ganze Gäste: Bruchteile werden gesammelt – je Schänke höchstens einer mehr oder weniger als der Anteil.
+            Pruefe.Wahr(Math.Abs(neuS - gaeste * faktor * drinS / (drinS + drinW)) < 1.01, $"Schänke: {neuS} Gäste bei {drinS} von {drinS + drinW} Einwohnern");
+            Pruefe.Wahr(Math.Abs(neuW - gaeste * faktor * drinW / (drinS + drinW)) < 1.01, $"Wirtshaus: {neuW} Gäste bei {drinW} Einwohnern");
+        }),
+
+        ("Schänke: Einwohner verteilen sich als Quote nach der Anziehung – das Wirtshaus (Stufe 2) bekommt anderthalbmal so viele", () =>
+        {
+            var (sim, _, schaenke, wirtshaus) = Wirte();
+            var ew = Einwohner(sim);
+            int s = 0, w = 0;
+            for (var j = 0; j < 3; j++)
+            {
+                Auffuellen(sim);
+                for (var m = 0; m < Spielzeit.MinutenProTag; m++)
+                {
+                    sim.Tick();
+                    if (sim.Zeit.MinuteImTag % 60 != 59) continue;
+                    s += ew.Einkehrende(schaenke);
+                    w += ew.Einkehrende(wirtshaus);
+                }
+            }
+            var a = sim.Wirtschaft!.Gastwirtschaft;
+            var soll = a.Anziehung(wirtshaus) / (a.Anziehung(schaenke) + a.Anziehung(wirtshaus));
+            var ist = w / (double)(s + w);
+            Pruefe.Wahr(Math.Abs(ist - soll) < 0.02, $"Anteil Wirtshaus {ist:P1}, nach Anziehung {soll:P1}");
+            Pruefe.Wahr(ew.Einwohner.Where(e => e.Ort == Stadtort.Schaenke).All(e => e.Betrieb == e.Stammschaenke), "Jeder bleibt bei seiner Schänke des Tages");
+        }),
+
+        ("Schänke: Über 10 Jahre kommen im Mittel so viele Gäste wie ohne Kopplung – mit Schwankung, höchstens ± Spanne", () =>
+        {
+            var (sim, _, schaenke, wirtshaus) = Wirte(startwert: 77);
+            var g = sim.Wirtschaft!.Gastwirtschaft;
+            var jahre = new List<int>();
+            for (var j = 0; j < 11; j++)
+            {
+                JahrMitVollemLager(sim);
+                if (j > 0) jahre.Add(g.Vorjahr(schaenke)!.Bewirtet + g.Vorjahr(wirtshaus)!.Bewirtet);
+            }
+            var soll = g.Daten.GaesteJeJahr;
+            var spanne = Einwohner(sim).Daten.Kopplung.Spanne;
+            Pruefe.Wahr(Math.Abs(jahre.Average() - soll) < soll * 0.06, $"Ø {jahre.Average():0.0} Gäste statt {soll}");
+            Pruefe.Wahr(jahre.All(x => x >= soll * (1 - spanne) - 2 && x <= soll * (1 + spanne) + 2), $"Jahre: {string.Join(", ", jahre)}");
+            Pruefe.Wahr(jahre.Distinct().Count() > 1, "Die Gäste schwanken von Jahr zu Jahr");
+        }),
+
+        ("Schänke: Speichern und Laden mit Kopplung – Gäste, Stammschänke und das Übliche laufen gleich weiter", () =>
+        {
+            var (original, spieler, _, _) = Wirte(startwert: 4711);
+            JahrMitVollemLager(original);
+            Auffuellen(original);
+            Ticken(original, 560); // 14:20 – mitten am Nachmittag
+            var (kopie, kopieSpieler) = Speicherung.Laden(Speicherung.Speichern(original, spieler));
+            Ticken(original, 2 * Spielzeit.MinutenProTag);
+            Ticken(kopie, 2 * Spielzeit.MinutenProTag);
+            Pruefe.Gleich(Speicherung.Speichern(original, spieler, new DateTime(2026, 10, 16)),
+                          Speicherung.Speichern(kopie, kopieSpieler, new DateTime(2026, 10, 16)));
+        }),
+
         ("Bürger-KI: Datenprüfung lehnt Orks als Einwohner und eine fehlende Handlung ab", () =>
         {
             Pruefe.WirftMitMeldung(() => Abgewandelt(j => j["buerger"]!["voelker"]!["Ork"] = 1), "kein Bürgerrecht");
             Pruefe.WirftMitMeldung(() => Abgewandelt(j => j["buerger"]!["handlungen"]!.AsObject().Remove("Beten")), "Beten fehlt");
             Pruefe.WirftMitMeldung(() => Abgewandelt(j => j["buerger"]!["rollen"]!["Hirte"]!.AsObject().Remove("stelle")), "braucht eine stelle");
             Pruefe.WirftMitMeldung(() => Abgewandelt(j => j["buerger"]!["wege"]!["umland"] = 55), "unter einer Stunde");
+            Pruefe.WirftMitMeldung(() => Abgewandelt(j => j["buerger"]!["kopplung"]!["schaenke"] = 1.5), "kopplung.schaenke");
+            Pruefe.WirftMitMeldung(() => Abgewandelt(j => j["buerger"]!["handlungen"]!["Einkehren"]!["von"] = 13), "oeffnetUm");
         }),
     };
 }

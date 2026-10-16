@@ -199,9 +199,12 @@ public sealed class Gastwirtschaft
         var summe = schaenken.Sum(Anziehung);
         if (summe <= 0) return;
         var gaeste = d.GaesteJeJahr * gewicht / GewichtSumme;
+        // Bürger-KI: Wie viele Einwohner diese Stunde wirklich eingekehrt sind, verschiebt die Gäste (Faktor um 1).
+        // Ohne Kopplung (Abschnitt „buerger" oder „kopplung.schaenke" fehlt) genau wie bisher: gaeste × Anziehung ÷ Summe.
+        var anteile = _w.Einwohnerschaft.Gaesteanteile(schaenken, gaeste, Anziehung, stunde);
         foreach (var b in schaenken)
         {
-            var anteil = gaeste * Anziehung(b) / summe;
+            var anteil = anteile[b];
             var barde = _barde.Contains(b.Name) && IstAbend(stunde);
             if (barde) anteil *= 1 + d.Barde.Gaeste;
             var offen = _offen.GetValueOrDefault(b.Name) + anteil;
