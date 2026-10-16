@@ -187,7 +187,7 @@ Am Ende muss stehen: `Alle … Tests bestanden.`
 Reichsgilde läuft auf **Windows und Linux**. Bei jedem Pull Request prüft GitHub automatisch:
 
 1. Bauen und Tests – auf Windows **und** Linux
-2. Export für beide Systeme und ein kurzer Startversuch des Linux-Builds
+2. Export für beide Systeme und ein kurzer Startversuch des Linux-Builds (Rauchtest). Meldet das Spiel dabei einen Fehler oder ein Speicherleck, wird der Start einmal wiederholt – erst ein zweiter Fund lässt die Prüfung scheitern. Die Fundstellen stehen als Anmerkung oben in der Zusammenfassung des Laufs.
 
 Die fertigen Builds kann man unter **Actions → jeweiliger Lauf → Artifacts** herunterladen.
 Die Konfiguration steht in [`.github/workflows/build.yml`](.github/workflows/build.yml).
