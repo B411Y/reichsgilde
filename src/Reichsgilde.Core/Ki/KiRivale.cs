@@ -1021,6 +1021,49 @@ public sealed class KiRivale
     internal bool StimmtFuerStatut(Fronstatut statut) =>
         ErwartungUnter(statut) >= ErwartungUnter(_w.Statut) + Profil.StatutVorteil;
 
+    /// <summary>
+    /// Stimme bei einer Wahl im Rat (die KI sitzt selbst im Rat, kandidiert aber nicht für dieses Amt).
+    /// <paramref name="kandidaten"/>: die Bewerber und der bisherige Inhaber; <c>null</c> steht für den Ratsherrn im Amt.
+    /// Nach Charakter:
+    ///   • vorsichtig (Gaunerei 0): bleibt beim Amtsinhaber – außer der hat dem Haus geschadet; dann wie ausgewogen,
+    ///   • ausgewogen (1): wählt den, der ihm am wenigsten gefährlich ist – ein Ratsherr vor einem schwachen Haus vor einem starken,
+    ///   • wagemutig (2): stimmt nie für das führende Haus (das reichste außer ihm selbst), sonst wie ausgewogen.
+    /// Wer dem Haus geschadet hat (es hält Beweise für eine Tat gegen sich), gilt immer als der Gefährlichste.
+    /// Die KI sieht dabei nur, was auch der Spieler sieht: Reinvermögen der Häuser und die eigenen Beweise.
+    /// </summary>
+    public Konto? Wahlstimme(Amt amt, IReadOnlyList<Konto?> kandidaten)
+    {
+        if (kandidaten.Count == 0) return null;
+        var inhaber = amt.Ratsherr is not null ? null : amt.Konto;
+        if (Profil.Gaunerei <= 0 && kandidaten.Contains(inhaber) && (inhaber is null || !HatGeschadet(inhaber)))
+            return inhaber;
+        var auswahl = kandidaten.ToList();
+        if (Profil.Gaunerei >= 2 && FuehrendesHaus is { } fuehrend && auswahl.Count > 1)
+            auswahl.Remove(fuehrend);
+        return auswahl.OrderBy(Gefahr).ThenBy(k => k?.Inhaber ?? "", StringComparer.Ordinal).First();
+    }
+
+    /// <summary>Wie gefährlich ein Kandidat für dieses Haus wäre: Ratsherr 0, ein Haus nach seinem Reinvermögen, ein Feind am meisten.</summary>
+    private double Gefahr(Konto? kandidat) =>
+        kandidat is null ? double.MinValue
+        : HatGeschadet(kandidat) ? double.MaxValue
+        : kandidat.Reinvermoegen;
+
+    /// <summary>Das reichste andere Haus, das noch im Spiel ist.</summary>
+    private Konto? FuehrendesHaus => _w.Konten.Where(k => k != Konto && k.IstAktiv)
+        .OrderByDescending(k => k.Reinvermoegen).ThenBy(k => k.Inhaber, StringComparer.Ordinal).FirstOrDefault();
+
+    /// <summary>
+    /// Hat dieses Haus uns geschadet? Ja, wenn wir Beweise für eine Tat des Hauses haben, die uns betraf
+    /// (einen unserer Betriebe oder unser Haus). Ohne Gericht weiß die KI davon nichts.
+    /// </summary>
+    private bool HatGeschadet(Konto anderes)
+    {
+        if (!_w.Justiz.IstAktiv || anderes == Konto) return false;
+        var eigenes = Betriebe.Select(b => b.Name).Append(Konto.Inhaber).ToHashSet();
+        return _w.Justiz.Beweise(Konto, anderes).Any(s => eigenes.Any(n => s.Betroffener.Contains(n, StringComparison.Ordinal)));
+    }
+
     /// <summary>Wie viel die KI heute höchstens für Geschenke ausgibt.</summary>
     private double Politikbudget => Math.Max(0, Math.Min(Konto.Vermoegen - Profil.Reserve, Konto.Vermoegen * Profil.PolitikAnteil));
 
