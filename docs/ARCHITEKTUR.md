@@ -207,7 +207,9 @@ Gunst                    = Geschenk in Gulden × 0,05          (höchstens 100, 
 
 **Prognosen statt Geheimwissen.** `WahlPrognose` und `AbstimmungsPrognose` rechnen mit denselben Regeln wie die Sitzung. Die Ratskammer zeigt sie dem Spieler an, und die KI entscheidet danach. Sie verschenkt nur dann Gulden, wenn ihr Budget für eine Mehrheit reicht, und beantragt ein Statut nur, wenn es ihren erwarteten Jahresgewinn um mehr als `StatutVorteil` (200 Gulden) erhöht.
 
-**Bewusst offen:** Häuser im Rat stimmen bei Wahlen für den bisherigen Inhaber. Sitzt Haus Eisenbart einmal auf dem Bürgermeisterstuhl, kommt man dort schwer heran. Gegenmittel wie Bestechung, Erpressung und das Gericht folgen später. Bei fremden Anträgen enthält sich der Spieler noch; das Abstimmen über die Oberfläche kommt ebenfalls später.
+**KI-Häuser im Rat (PR #73):** Sitzt ein KI-Haus im Rat, fragt `Waehlen` es nach `KiRivale.Wahlstimme(amt, kandidaten)`: vorsichtig bleibt beim Amtsinhaber (außer der hat ihm geschadet), ausgewogen wählt den Ungefährlichsten (Ratsherr vor schwachem vor starkem Haus, nach Reinvermögen), wagemutig nie das führende Haus. „Geschadet“ = die KI hält einen Beweis (`Stadtgericht.Beweise`) für eine Tat, deren Betroffener einer ihrer Betriebe oder ihr Haus ist. `WahlPrognose` zählt KI-Stimmen nach derselben Regel.
+
+**Bewusst offen:** Das Haus des Spielers stimmt bei Wahlen weiter für den bisherigen Inhaber, und bei fremden Anträgen enthält es sich – Abstimmen über die Oberfläche (Befehl im Kern, Ratsfenster) kommt später. Gegenmittel wie Bestechung, Erpressung und das Gericht wirken über die Ratsherren.
 
 ## Dynastie
 
