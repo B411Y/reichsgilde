@@ -237,11 +237,11 @@ Format: `- PR #Nummer (Phase) – Inhalt`
 - PR #61 (2) – Bürger-KI: Gläubige und Kollekte der Messe folgen den Gebetsstunden der Einwohner; Betende verteilen sich nach Anziehung auf die Kirchen ihrer Konfession
 - PR #62 (3) – Leveldesign: fünfter Chat, Kartenregeln (`docs/LEVELDESIGN.md`), Entscheidungen zu Städten, Wohnhaus, Bauzonen, Toren, Wasser
 - PR #63 (2) – Bürger-KI: Nachfrage der Fertigwaren folgt den Einkäufen der Einwohner (Faktor 0,8–1,2, gleitend über 17 Stunden); das Übliche schwingt ohne den ersten Tag ein
+- PR #69 (2) – Bürger-KI: Beute der Taschendiebe folgt den Passanten (0,5–1,5); Bestohlene sind echte Einwohner. Damit sind alle vier Kopplungen fertig (Schänke #58, Kirche #61, Markt #63, Taschendiebe #69)
 
 ### 6b. Offen (eine Zeile je Punkt; erledigt → Zeile löschen und unter 6a eintragen)
 
 - (3) Raumansicht für den Dom und Feinschliff der Werkstatträume je Beruf (zweiter Teil von PR #52)
-- (2) Bürger-KI: Kopplung an die Taschendiebe (Einwohner: PR #54, Wege: PR #57, Schänke: PR #58, Kirche: PR #61, Markt: PR #63)
 - (2) Bürger-KI: Warenkorb je Volk und Rolle (eigener Nachfragefaktor je Warengruppe)
 - (5) Orks und Oger spielbar machen
 - (5) Bauplätze und Sanierung (siehe Abschnitt 7, Punkt 8) – Regeln jetzt in Abschnitt 17 (Bauzonen)
@@ -353,6 +353,7 @@ Format: `- PR #Nummer (Phase) – Inhalt`
 | Kopplung Kirche | **Gläubige und Kollekte × Gebetsstunden des Morgens ÷ üblich** (0,5–1,5), Verteilung bleibt beim Kirchenwesen (Konfessionen, Anziehung). Gezählt wird der ganze Morgen bis zur Messe, nicht nur eine Stunde – eine Stunde allein schwankte um ± 30 %. Kopplung voll (1,0) (PR #61). | 16.10.2026 |
 | Kopplung Markt | **Nur Fertigwaren und Heilmittel**, Nachfrage × Faktor **0,8–1,2** (Einkaufsstunden ÷ üblich), **gleitend über 17 Stunden** wie das Verkaufsfenster, **ein Faktor für alle** (Warenkorb je Volk später). Grundversorgung der Stadt bleibt fest. Vom Nutzer gewählt (PR #63). | 16.10.2026 |
 | Das Übliche | Die Bezugsgröße „üblich“ der Kopplungen **lernt nicht am ersten Tag** und mittelt die ersten Tage, bevor der gleitende Mittelwert greift. Grund: Der erste Tag lag am Markt ~20 % unter dem Dauerwert und hob die Faktoren zehn Jahre lang (PR #63). | 16.10.2026 |
+| Kopplung Taschendiebe | **Passanten = Markt, Gassen und Unterwegs** (nicht Umland), Beute × Passanten ÷ üblich je Uhrzeit, **0,5–1,5**. **Bestohlene sind echte Einwohner:** Name in Meldung und Spur, ihre Versorgung wird dringender. Vom Nutzer gewählt (PR #69). | 16.10.2026 |
 | Umland | **Stellen Weide, Feld, Wald**; neue Rollen Feldarbeiter und Holzsammler; Knechte und Mägde dienen in Bürger- und Ratsherrenhäusern. | 16.10.2026 |
 
 ## 16. KI-Häuser (Spiel-KI)
