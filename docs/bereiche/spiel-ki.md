@@ -12,6 +12,9 @@ So wird eingetragen (damit sich die Chats nie an derselben Stelle treffen):
 
 - (2) Bürger-KI: Warenkorb je Volk und Rolle (eigener Nachfragefaktor je Warengruppe)
 - (5) (von Kern) Gaunerstücke gegen das Wohnhaus (`Gaunerstueck.Hauseinbruch`, `Brandstiftung`, ab PR #77) in die Wahl der KI-Häuser aufnehmen – Rechnungen: `Unterwelt.ErwarteterHausgewinn`, `Brandschaden`, `ErfolgschanceWohnhaus`. Den Hauswächter nach einem Anschlag stellt `KiRivale` schon ein.
+- (5) (von Kern) Seit PR #85 zählt der Hauswert zum Reinvermögen. `KiRivale.Standziel` ist deshalb wieder die Schwelle allein, und `StandPruefen` baut ohne „Schwelle + Ausbau“; `KiWohnhausTests` (zwei Tests) entsprechend angepasst. Bitte prüfen, ob das zu eurer Sparlogik passt
+- (5) KI-Häuser im Rat wählen immer den Amtsinhaber (bekannte Schwäche, Archiv §3a)
+- (2) (von Darstellung) Wegzeiten der Einwohner verlängern, damit Passanten natürlich gehen (~2,5 m/s bei Tempo 1; eine Spielminute ≈ 0,88 s). Gemessene Weglängen im Gassennetz (PR #74): Stadt Median 69 m (90 % 115 m), Tor 86 m, Umland Median 113 m (90 % 169 m). Heute 5–15 / 15 / 30 Minuten; passend wären etwa Stadt 20–40, Tor 40, Umland 50 Minuten (Abmarsch 0–10 bleibt, Ankunft vor der nächsten Stunde). Bis dahin beeilt sich die Darstellung bis zum Doppelten des eigenen Tempos und kommt bei langen Wegen einige Minuten später an, als der Kern zählt.
 
 ## Entscheidungen
 

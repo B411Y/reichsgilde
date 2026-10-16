@@ -75,10 +75,17 @@ public sealed class Konto
     public double Schulden { get; private set; }
 
     /// <summary>
-    /// Bargeld + Forderungen − Schulden. Danach richten sich Stand, Rangliste, Ansehen, Bußdeckel, Bankrott und Sieg –
-    /// wer sich Geld leiht, wird dadurch nicht reicher. Ohne Kredite ist es genau das Bargeld.
+    /// Wert des Wohnhauses: alles, was in seinen Ausbau geflossen ist (auch ein Ausbau, der noch läuft).
+    /// Gepflegt vom <see cref="Wohnen.Wohnungswesen"/>; wird nicht gespeichert, sondern beim Laden neu berechnet.
     /// </summary>
-    public double Reinvermoegen => Vermoegen + Forderungen - Schulden;
+    public double Hauswert { get; internal set; }
+
+    /// <summary>
+    /// Bargeld + Forderungen − Schulden + Hauswert. Danach richten sich Stand, Rangliste, Ansehen, Bußdeckel, Bankrott und Sieg –
+    /// wer sich Geld leiht, wird dadurch nicht reicher, und wer sein Wohnhaus ausbaut, nicht ärmer (Entscheidung zu PR #85).
+    /// Ohne Kredite und Wohnhaus ist es genau das Bargeld.
+    /// </summary>
+    public double Reinvermoegen => Vermoegen + Forderungen - Schulden + Hauswert;
 
     /// <summary>Die Rechnung des laufenden Jahres.</summary>
     public Jahresbilanz Laufend { get; private set; }
