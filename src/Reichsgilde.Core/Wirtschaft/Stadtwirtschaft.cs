@@ -996,6 +996,7 @@ public sealed class Stadtwirtschaft
 
         _konten.AddRange(s.Konten.Select(Konto.Wiederherstellen));
         Wohnen.AlteStaendeErgaenzen(_konten.Where((_, i) => s.Konten[i].WohnhausStufe is null));
+        Wohnen.HauswerteNachDemLaden(_konten);
         foreach (var bs in s.Betriebe)
         {
             var betrieb = new Betrieb(bs.Name, bs.Art, _konten[bs.Konto], Daten);

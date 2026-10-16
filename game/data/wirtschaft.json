@@ -840,7 +840,7 @@
       { "name": "Bürgerhaus", "ausbau": 1500, "unterhalt": 30, "ansehen": 2, "abStand": 1 },
       { "name": "Steinhaus", "ausbau": 4000, "unterhalt": 80, "ansehen": 4, "abStand": 2 },
       { "name": "Stadtpalais", "ausbau": 10000, "unterhalt": 200, "ansehen": 6, "abStand": 3 },
-      { "name": "Hof", "ausbau": 25000, "unterhalt": 500, "ansehen": 8, "abStand": 4 }
+      { "name": "Stadthof", "ausbau": 25000, "unterhalt": 500, "ansehen": 8, "abStand": 4 }
     ]
   },
   "schulden": {
