@@ -255,7 +255,13 @@ public partial class Stadtansicht : Node3D
     public const float Mauerrand = 50;
 
     /// <summary>Ende der Landstraße vor dem Osttor.</summary>
-    private static readonly Vector3 Landstrasse = new(70, 0, -2);
+    private static readonly Vector3 Landstrasse = new(90, 0, -2);
+
+    /// <summary>
+    /// Hier zweigen die Wege zu Gruben, Höfen und Gärten von der Landstraße ab – erst hinter der Vorstadt,
+    /// damit zwischen Osttor und Kreuzung Platz für Häuser bleibt. Karren fahren Hof → Abzweig → Wegkreuz → Osttor.
+    /// </summary>
+    public static readonly Vector3 Wegkreuz = new(76, 0, -1.3f);
 
     /// <summary>Ende der Weststraße vor dem Westtor (noch ohne Ziel – für spätere Erweiterungen).</summary>
     /// <summary>Die Westgasse knickt hier nach Westen ab – nördlich vorbei am Weinmarkt, südlich an Dom und Kirche.</summary>
@@ -278,14 +284,14 @@ public partial class Stadtansicht : Node3D
         ["Maurerei am Weinmarkt"] = new(-20, 0, 14),    // derselbe Platz – je nach Startberuf
         ["Maurerei Kieselbach"] = new(25, 0, -29),
         ["Maurerei an der Stadtmauer"] = new(21, 0, 29),
-        ["Steinbruch Kieselbach"] = new(54, 0, 66),
+        ["Steinbruch Kieselbach"] = new(74, 0, 66),
         ["Steinbruch am Felsenhang"] = new(-6, 0, -80),
         ["Tinkturei am Weinmarkt"] = new(-20, 0, 14),   // derselbe Platz – je nach Startberuf
         ["Tinkturei am Domplatz"] = new(-11, 0, -31),
-        ["Kräutergarten am Bach"] = new(86, 0, 70),
+        ["Kräutergarten am Bach"] = new(106, 0, 70),
         ["Schänke am Weinmarkt"] = new(-20, 0, 14),     // derselbe Platz – je nach Startberuf
         ["Schänke am Fischmarkt"] = new(-27, 0, 28),
-        ["Bauernhof an der Mühle"] = new(104, 0, -62),
+        ["Bauernhof an der Mühle"] = new(124, 0, -62),
         ["Kirche am Weinmarkt"] = new(-20, 0, 14),      // derselbe Platz – je nach Startberuf
         ["Schmugglerloch am Weinmarkt"] = new(-20, 0, 14), // derselbe Platz – je nach Startberuf
         ["Wachhaus am Weinmarkt"] = new(-20, 0, 14),    // derselbe Platz – je nach Startberuf
@@ -294,16 +300,16 @@ public partial class Stadtansicht : Node3D
         ["Wechselstube am Markt"] = new(14, 0, -18),
         ["Siederei am Weinmarkt"] = new(-20, 0, 14),     // derselbe Platz – je nach Startberuf
         ["Siederei an der Seifengasse"] = new(-24.5f, 0, -29),
-        ["Duftgarten am Lavendelhang"] = new(104, 0, 8),
-        ["Wachturm an der Landstraße"] = new(60, 0, -10),
+        ["Duftgarten am Lavendelhang"] = new(124, 0, 8),
+        ["Wachturm an der Landstraße"] = new(80, 0, -10),
         ["Schmugglerloch am Osttor"] = new(29, 0, -12),
         ["Kirche an der Westmauer"] = new(-30, 0, -4),
-        ["Klosterhof am Osthang"] = new(114, 0, 80),     // südöstlich hinter dem Kräutergarten – vor keinem Berg versteckt
-        ["Grube Eisenbart"] = new(82, 0, -12),
-        ["Grube am Silberberg"] = new(80, 0, 32),
-        ["Grube im Tannenwald"] = new(62, 0, -66),
-        ["Holzschlag Eichwald"] = new(20, 0, -76),
-        ["Holzschlag im Eichenforst"] = new(14, 0, 80),
+        ["Klosterhof am Osthang"] = new(134, 0, 80),     // südöstlich hinter dem Kräutergarten – vor keinem Berg versteckt
+        ["Grube Eisenbart"] = new(102, 0, -12),
+        ["Grube am Silberberg"] = new(100, 0, 32),
+        ["Grube im Tannenwald"] = new(82, 0, -66),
+        ["Holzschlag Eichwald"] = new(-92, 0, -30),       // im Wald vor dem Westtor, nördlich der Weststraße
+        ["Holzschlag im Eichenforst"] = new(-94, 0, 46),  // im Wald vor dem Westtor, südlich der Weststraße
     };
 
     /// <summary>
@@ -332,19 +338,35 @@ public partial class Stadtansicht : Node3D
     /// <summary>Gruben liegen vor der Stadt: Hier zweigt ihr Weg von der Straße ab, die zum Osttor führt.</summary>
     private static readonly Dictionary<string, Vector3> Abzweige = new()
     {
-        ["Grube Eisenbart"] = new(70, 0, -2),
-        ["Grube am Silberberg"] = new(66, 0, 18),
-        ["Grube im Tannenwald"] = new(60, 0, -26),
-        ["Holzschlag Eichwald"] = new(60, 0, -56),      // um die Nordostecke der Mauer herum
-        ["Holzschlag im Eichenforst"] = new(60, 0, 56),  // um die Südostecke der Mauer herum
-        ["Steinbruch Kieselbach"] = new(60, 0, 26),
-        ["Steinbruch am Felsenhang"] = new(60, 0, -56), // um die Nordostecke der Mauer herum
-        ["Kräutergarten am Bach"] = new(66, 0, 18),
-        ["Bauernhof an der Mühle"] = new(60, 0, -26),
-        ["Klosterhof am Osthang"] = new(78, 0, 57),      // auf dem Weg zum Kräutergarten
-        ["Wachturm an der Landstraße"] = new(60, 0, -1), // direkt an der Landstraße
+        ["Grube Eisenbart"] = new(90, 0, -2),
+        ["Grube am Silberberg"] = new(86, 0, 18),
+        ["Grube im Tannenwald"] = new(80, 0, -26),
+        ["Holzschlag Eichwald"] = new(-84, 0, 6),         // an der Weststraße
+        ["Holzschlag im Eichenforst"] = new(-102, 0, 6),  // an der Weststraße
+        ["Steinbruch Kieselbach"] = new(80, 0, 26),
+        ["Steinbruch am Felsenhang"] = new(-62, 0, -58), // vom Westtor um die Nordwestecke der Mauer herum
+        ["Kräutergarten am Bach"] = new(86, 0, 18),
+        ["Bauernhof an der Mühle"] = new(80, 0, -26),
+        ["Klosterhof am Osthang"] = new(98, 0, 57),      // auf dem Weg zum Kräutergarten
+        ["Wachturm an der Landstraße"] = new(80, 0, -1), // direkt an der Landstraße
         ["Duftgarten am Lavendelhang"] = Landstrasse,      // am Ende der Landstraße weiter nach Osten
     };
+
+    /// <summary>Was vor dem Westtor liegt – die übrigen Plätze vor der Stadt erreicht man durch das Osttor.</summary>
+    private static readonly HashSet<string> ImWesten = new() { "Holzschlag Eichwald", "Holzschlag im Eichenforst", "Steinbruch am Felsenhang" };
+
+    /// <summary>Wo der Weg eines Platzes vor der Stadt an die Straße zum Tor stößt: Wegkreuz im Osten, Westtor im Westen.</summary>
+    private static Vector3 Kreuz(string name) => ImWesten.Contains(name) ? Westtor : Wegkreuz;
+
+    /// <summary>Liegt der Abzweig schon auf der Land- bzw. Weststraße? Dann braucht er keinen eigenen Weg zum Kreuz.</summary>
+    private static bool AnDerStrasse(string name, Vector3 abzweig) => ImWesten.Contains(name)
+        ? AbstandZurStrecke(abzweig, Westtor, Weststrasse) <= 1
+        : AbstandZurStrecke(abzweig, Osttor, Landstrasse) <= 1;
+
+    /// <summary>Der Weg eines Karrens vom Hof zum Markt – durch das Tor, das zu seinem Platz gehört.</summary>
+    private static Vector3[] WegZumMarktVon(string name, Vector3 hof, Vector3 abzweig) => ImWesten.Contains(name)
+        ? new[] { hof, abzweig, Westtor, new Vector3(-38, 0, 6), WestgasseKnick, Marktplatz }
+        : new[] { hof, abzweig, Wegkreuz, Osttor, Marktplatz };
 
     /// <summary>Höhe der Beschriftung über einem freien Platz, wo die übliche (6 m) eine Nachbarbeschriftung verdeckte.</summary>
     private static readonly Dictionary<string, float> SchildHoehe = new()
@@ -539,9 +561,10 @@ public partial class Stadtansicht : Node3D
     /// </summary>
     private static Vector3 NachAussen(Vector3 p)
     {
-        const float alt = 36, dazu = Mauerrand - alt;
+        const float alt = 36, dazu = Mauerrand - alt, vorstadt = 20;
         static float Schieben(float w) => w > alt ? w + dazu : w < -alt ? w - dazu : w;
-        return new Vector3(Schieben(p.X), p.Y, Schieben(p.Z));
+        // Im Osten rückt alles noch einmal 20 m weiter – Platz für die Vorstadt vor dem Osttor.
+        return new Vector3(p.X > alt ? p.X + dazu + vorstadt : Schieben(p.X), p.Y, Schieben(p.Z));
     }
 
     /// <summary>Liegt dieser Punkt auf einer Grube oder einem Weg? Dort wachsen keine Bäume.</summary>
@@ -549,6 +572,7 @@ public partial class Stadtansicht : Node3D
     {
         if (Mathf.Abs(p.X) < Mauerrand + 6 && Mathf.Abs(p.Z) < Mauerrand + 6) return true; // in der Stadt oder dicht an der Mauer
         if (Mathf.Abs(p.Z - Osttor.Z) < 6 && p.X > 0) return true;  // Landstraße vom Osttor
+        if (p.X > Mauerrand && p.X < Wegkreuz.X + 4 && Mathf.Abs(p.Z) < VorstadtRand + 6) return true; // Vorstadt
         if (Mathf.Abs(p.Z - Westtor.Z) < 6 && p.X < 0) return true; // Weststraße vom Westtor
         foreach (var (_, stelle) in Umlandstellen)
             if (p.DistanceTo(stelle) < 11) return true;             // Weide, Feld und Wald (der hat eigene Bäume)
@@ -556,7 +580,7 @@ public partial class Stadtansicht : Node3D
         {
             var grube = Stadtplan[name];
             if (p.DistanceTo(grube + new Vector3(10, 0, -4)) < 22) return true;
-            if (AbstandZurStrecke(p, Osttor, abzweig) < 5 || AbstandZurStrecke(p, abzweig, grube) < 5) return true;
+            if (AbstandZurStrecke(p, Kreuz(name), abzweig) < 5 || AbstandZurStrecke(p, abzweig, grube) < 5) return true;
         }
         return false;
     }
@@ -604,7 +628,7 @@ public partial class Stadtansicht : Node3D
 
         var spieler = betrieb.Konto == _spielerKonto;
         var farbe = Besitzerfarbe(betrieb.Konto);
-        var abzweig = Abzweige.GetValueOrDefault(betrieb.Name, Osttor + new Vector3(20, 0, 0));
+        var abzweig = Abzweige.GetValueOrDefault(betrieb.Name, Wegkreuz + new Vector3(10, 0, 0));
         // Werkstätten nach Beruf (eine ausgebaute Drechslerei bleibt eine Tischlerwerkstatt), Umland nach Art
         var ansicht = betrieb.InDerStadt
             ? GiessereiBauen(betrieb, platz, farbe, betrieb.Artdaten.Beruf switch
@@ -654,13 +678,13 @@ public partial class Stadtansicht : Node3D
             foreach (var (dx, dz) in new[] { (-4f, -3f), (3f, -4f), (5f, 3f), (-2f, 4f), (0f, 0f) })
                 Quader(p + new Vector3(dx, 0.4f, dz), new Vector3(1.2f, 0.8f, 1.2f), holz, gruppe);
             WegZiehen(Abzweige[frei.Name], p + new Vector3(-2, 0, 0), 4, gruppe);
-            WegZiehen(Osttor, Abzweige[frei.Name], 4, gruppe);
+            if (!AnDerStrasse(frei.Name, Abzweige[frei.Name])) WegZiehen(Kreuz(frei.Name), Abzweige[frei.Name], 4, gruppe);
         }
         else if (frei.Art == Betriebsart.Bauernhof)
         {
             Felder(p, gruppe);
             WegZiehen(Abzweige[frei.Name], p + new Vector3(-2, 0, 0), 4, gruppe);
-            WegZiehen(Osttor, Abzweige[frei.Name], 4, gruppe);
+            if (!AnDerStrasse(frei.Name, Abzweige[frei.Name])) WegZiehen(Kreuz(frei.Name), Abzweige[frei.Name], 4, gruppe);
         }
         else if (frei.Art == Betriebsart.Wachturm)
         {
@@ -671,7 +695,7 @@ public partial class Stadtansicht : Node3D
         {
             Klostergarten(p, gruppe);
             WegZiehen(Abzweige[frei.Name], p + new Vector3(-2, 0, 0), 4, gruppe);
-            WegZiehen(Osttor, Abzweige[frei.Name], 4, gruppe);
+            if (!AnDerStrasse(frei.Name, Abzweige[frei.Name])) WegZiehen(Kreuz(frei.Name), Abzweige[frei.Name], 4, gruppe);
         }
         else if (frei.Art == Betriebsart.Duftgarten)
         {
@@ -682,20 +706,20 @@ public partial class Stadtansicht : Node3D
         {
             Beete(p, gruppe);
             WegZiehen(Abzweige[frei.Name], p + new Vector3(-2, 0, 0), 4, gruppe);
-            WegZiehen(Osttor, Abzweige[frei.Name], 4, gruppe);
+            if (!AnDerStrasse(frei.Name, Abzweige[frei.Name])) WegZiehen(Kreuz(frei.Name), Abzweige[frei.Name], 4, gruppe);
         }
         else if (frei.Art == Betriebsart.Steinbruch)
         {
             FelsenBauen(p, gruppe);
             WegZiehen(Abzweige[frei.Name], p + new Vector3(-2, 0, 0), 4, gruppe);
-            WegZiehen(Osttor, Abzweige[frei.Name], 4, gruppe);
+            if (!AnDerStrasse(frei.Name, Abzweige[frei.Name])) WegZiehen(Kreuz(frei.Name), Abzweige[frei.Name], 4, gruppe);
         }
         else if (frei.Art == Betriebsart.Mine)
         {
             BergBauen(p, gruppe);
             Quader(p + new Vector3(2, 2, 0), new Vector3(3, 4, 4), Material(new Color(0.08f, 0.07f, 0.07f)), gruppe); // verlassener Stollen
             WegZiehen(Abzweige[frei.Name], p + new Vector3(-2, 0, 0), 4, gruppe);
-            WegZiehen(Osttor, Abzweige[frei.Name], 4, gruppe);
+            if (!AnDerStrasse(frei.Name, Abzweige[frei.Name])) WegZiehen(Kreuz(frei.Name), Abzweige[frei.Name], 4, gruppe);
         }
         else
         {
@@ -1097,14 +1121,14 @@ public partial class Stadtansicht : Node3D
 
         var hof = p + new Vector3(-2, 0, 0);
         WegZiehen(abzweig, hof, 4);
-        if (AbstandZurStrecke(abzweig, Osttor, Landstrasse) > 1) // nicht an der Landstraße? Dann eigene Verbindung zum Tor
-            WegZiehen(Osttor, abzweig, 4);
+        if (!AnDerStrasse(betrieb.Name, abzweig)) // nicht an der Straße? Dann eigene Verbindung zum Kreuz
+            WegZiehen(Kreuz(betrieb.Name), abzweig, 4);
         return new BetriebsAnsicht
         {
             Betrieb = betrieb,
             Mitte = p,
             Hof = hof,
-            WegZumMarkt = new[] { hof, abzweig, Osttor, Marktplatz },
+            WegZumMarkt = WegZumMarktVon(betrieb.Name, hof, abzweig),
             Schild = schild,
         };
     }
@@ -1139,14 +1163,14 @@ public partial class Stadtansicht : Node3D
         var schild = Beschriftung(betrieb.Name, p + new Vector3(2, 9, 0), 44, kennung: BetriebsKennung(betrieb));
         var hof = p + new Vector3(-2, 0, 0);
         WegZiehen(abzweig, hof, 4);
-        if (AbstandZurStrecke(abzweig, Osttor, Landstrasse) > 1)
-            WegZiehen(Osttor, abzweig, 4);
+        if (!AnDerStrasse(betrieb.Name, abzweig)) // nicht an der Straße? Dann eigene Verbindung zum Kreuz
+            WegZiehen(Kreuz(betrieb.Name), abzweig, 4);
         return new BetriebsAnsicht
         {
             Betrieb = betrieb,
             Mitte = p,
             Hof = hof,
-            WegZumMarkt = new[] { hof, abzweig, Osttor, Marktplatz },
+            WegZumMarkt = WegZumMarktVon(betrieb.Name, hof, abzweig),
             Schild = schild,
         };
     }
@@ -1183,14 +1207,14 @@ public partial class Stadtansicht : Node3D
         var schild = Beschriftung(betrieb.Name, p + new Vector3(4, 9, 0), 44, kennung: BetriebsKennung(betrieb));
         var hof = p + new Vector3(-2, 0, 0);
         WegZiehen(abzweig, hof, 4);
-        if (AbstandZurStrecke(abzweig, Osttor, Landstrasse) > 1)
-            WegZiehen(Osttor, abzweig, 4);
+        if (!AnDerStrasse(betrieb.Name, abzweig)) // nicht an der Straße? Dann eigene Verbindung zum Kreuz
+            WegZiehen(Kreuz(betrieb.Name), abzweig, 4);
         return new BetriebsAnsicht
         {
             Betrieb = betrieb,
             Mitte = p,
             Hof = hof,
-            WegZumMarkt = new[] { hof, abzweig, Osttor, Marktplatz },
+            WegZumMarkt = WegZumMarktVon(betrieb.Name, hof, abzweig),
             Schild = schild,
         };
     }
@@ -1206,14 +1230,14 @@ public partial class Stadtansicht : Node3D
         var schild = Beschriftung(betrieb.Name, p + new Vector3(2, 9, 0), 44, kennung: BetriebsKennung(betrieb));
         var hof = p + new Vector3(-2, 0, 0);
         WegZiehen(abzweig, hof, 4);
-        if (AbstandZurStrecke(abzweig, Osttor, Landstrasse) > 1)
-            WegZiehen(Osttor, abzweig, 4);
+        if (!AnDerStrasse(betrieb.Name, abzweig)) // nicht an der Straße? Dann eigene Verbindung zum Kreuz
+            WegZiehen(Kreuz(betrieb.Name), abzweig, 4);
         return new BetriebsAnsicht
         {
             Betrieb = betrieb,
             Mitte = p,
             Hof = hof,
-            WegZumMarkt = new[] { hof, abzweig, Osttor, Marktplatz },
+            WegZumMarkt = WegZumMarktVon(betrieb.Name, hof, abzweig),
             Schild = schild,
         };
     }
@@ -1244,14 +1268,14 @@ public partial class Stadtansicht : Node3D
         var schild = Beschriftung(betrieb.Name, p + new Vector3(0, 15, 0), 44, kennung: BetriebsKennung(betrieb));
         var hof = p + new Vector3(-2, 0, 0);
         WegZiehen(abzweig, hof, 4);
-        if (AbstandZurStrecke(abzweig, Osttor, Landstrasse) > 1)
-            WegZiehen(Osttor, abzweig, 4);
+        if (!AnDerStrasse(betrieb.Name, abzweig)) // nicht an der Straße? Dann eigene Verbindung zum Kreuz
+            WegZiehen(Kreuz(betrieb.Name), abzweig, 4);
         return new BetriebsAnsicht
         {
             Betrieb = betrieb,
             Mitte = p,
             Hof = hof,
-            WegZumMarkt = new[] { hof, abzweig, Osttor, Marktplatz },
+            WegZumMarkt = WegZumMarktVon(betrieb.Name, hof, abzweig),
             Schild = schild,
         };
     }
@@ -1343,14 +1367,14 @@ public partial class Stadtansicht : Node3D
         var schild = Beschriftung(betrieb.Name, p + new Vector3(2, 7, 0), 44, kennung: BetriebsKennung(betrieb));
         var hof = p + new Vector3(-2, 0, 0);
         WegZiehen(abzweig, hof, 4);
-        if (AbstandZurStrecke(abzweig, Osttor, Landstrasse) > 1)
-            WegZiehen(Osttor, abzweig, 4);
+        if (!AnDerStrasse(betrieb.Name, abzweig)) // nicht an der Straße? Dann eigene Verbindung zum Kreuz
+            WegZiehen(Kreuz(betrieb.Name), abzweig, 4);
         return new BetriebsAnsicht
         {
             Betrieb = betrieb,
             Mitte = p,
             Hof = hof,
-            WegZumMarkt = new[] { hof, abzweig, Osttor, Marktplatz },
+            WegZumMarkt = WegZumMarktVon(betrieb.Name, hof, abzweig),
             Schild = schild,
         };
     }
@@ -1366,14 +1390,14 @@ public partial class Stadtansicht : Node3D
         var schild = Beschriftung(betrieb.Name, p + new Vector3(2, 7, 0), 44, kennung: BetriebsKennung(betrieb));
         var hof = p + new Vector3(-2, 0, 0);
         WegZiehen(abzweig, hof, 4);
-        if (AbstandZurStrecke(abzweig, Osttor, Landstrasse) > 1)
-            WegZiehen(Osttor, abzweig, 4);
+        if (!AnDerStrasse(betrieb.Name, abzweig)) // nicht an der Straße? Dann eigene Verbindung zum Kreuz
+            WegZiehen(Kreuz(betrieb.Name), abzweig, 4);
         return new BetriebsAnsicht
         {
             Betrieb = betrieb,
             Mitte = p,
             Hof = hof,
-            WegZumMarkt = new[] { hof, abzweig, Osttor, Marktplatz },
+            WegZumMarkt = WegZumMarktVon(betrieb.Name, hof, abzweig),
             Schild = schild,
         };
     }
@@ -1394,14 +1418,14 @@ public partial class Stadtansicht : Node3D
         var schild = Beschriftung(betrieb.Name, p + new Vector3(2, 8, 0), 44, kennung: BetriebsKennung(betrieb));
         var hof = p + new Vector3(-2, 0, 0);
         WegZiehen(abzweig, hof, 4);
-        if (AbstandZurStrecke(abzweig, Osttor, Landstrasse) > 1)
-            WegZiehen(Osttor, abzweig, 4);
+        if (!AnDerStrasse(betrieb.Name, abzweig)) // nicht an der Straße? Dann eigene Verbindung zum Kreuz
+            WegZiehen(Kreuz(betrieb.Name), abzweig, 4);
         return new BetriebsAnsicht
         {
             Betrieb = betrieb,
             Mitte = p,
             Hof = hof,
-            WegZumMarkt = new[] { hof, abzweig, Osttor, Marktplatz },
+            WegZumMarkt = WegZumMarktVon(betrieb.Name, hof, abzweig),
             Schild = schild,
         };
     }
@@ -1776,7 +1800,7 @@ public partial class Stadtansicht : Node3D
             _kameraDrehung.Position = new Vector3(Mathf.Clamp(neu.X, m.X - r, m.X + r), 0, Mathf.Clamp(neu.Z, m.Z - r, m.Z + r));
             return;
         }
-        _kameraDrehung.Position = new Vector3(Mathf.Clamp(neu.X, -90, 125), 0, Mathf.Clamp(neu.Z, -100, 100));
+        _kameraDrehung.Position = new Vector3(Mathf.Clamp(neu.X, -110, 145), 0, Mathf.Clamp(neu.Z, -100, 100));
     }
 
     public override void _UnhandledInput(InputEvent eingabe)

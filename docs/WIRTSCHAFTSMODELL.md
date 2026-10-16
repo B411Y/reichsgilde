@@ -933,3 +933,18 @@ Mit nur der Stunde vor der Messe als Maß schwankte es um σ 57–66 (100–300,
 | wagemutig, jetzt | 81.917 (+9,1 %) | 61.725 (−13,0 %) | 65.549 (−10,2 %) | 18/20 |
 
 Im Mittel kein Trend (Faktor Ø 1,0); die Abweichungen sind Streuung: Kleine Preisunterschiede ändern KI-Entscheidungen (Produkt, Ausbau, Gaunerei), und bei wagemutigen Häusern schaukelt sich das über Raub und Kerker auf. Die Spielerziele Z1–Z7 halten (Kern-Tests). Rechenzeit unverändert (19 s wie main auf derselben Maschine).
+
+## 41. Stadttore schließen um 20 Uhr (PR #67)
+
+**Regel:** `logistik.tore` = schliessenUm 20, torgeld 15. Umlandkarren (Fahrzeit 120 Min.) kommen nach 20 Uhr nur mit Nachtfahrt-Erlaubnis durchs Tor (15 Gulden je Durchfahrt, als Transportkosten); sonst warten sie ohne Gefahr bis 5 Uhr. Wer nach 18 Uhr ins Umland-zu-Markt losfährt, kommt erst am nächsten Morgen an – die Ware fehlt dem Markt in der Dunklen Nacht und steht morgens gebündelt da.
+
+**Messung** (`messen 30 20`, Mensch, gemessen auf main `2f4d976` + PR #67; Vermögen Ø am Ende):
+
+| KI-Charakter | Eisenbart | Eichwald | Kieselbach | Eisenbart Bürgermeister |
+|---|---|---|---|---|
+| ausgewogen, main | 168.749 | 99.042 | 158.045 | 12/20 |
+| ausgewogen, jetzt | 170.235 (+0,9 %) | 101.958 (+2,9 %) | 152.002 (−3,8 %) | 9/20 |
+| wagemutig, main | 81.917 | 61.725 | 65.549 | 18/20 |
+| wagemutig, jetzt | 93.172 (+13,7 %) | 60.590 (−1,8 %) | 77.700 (+18,5 %) | 17/20 |
+
+Ausgewogen im Rahmen der Streuung (vgl. §40: ± 7 % ohne Regeländerung). Wagemutig etwas besser: Weniger Nachtfahrten heißt weniger Überfälle mit doppelter Nachtgefahr; bei wagemutigen Häusern schaukelt sich Raub über Gaunerei und Kerker auf, deshalb die größere Schwankung. Die Spielerziele Z1–Z7 halten (Kern-Tests grün).
