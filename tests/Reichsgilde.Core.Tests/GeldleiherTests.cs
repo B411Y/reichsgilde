@@ -226,7 +226,7 @@ static class GeldleiherTests
             var (w, geber, b) = Geldleihe(sim, Betriebsart.Bankhaus, geld: 40_000);
             var nehmer = w.KontoEroeffnen("Haus Eisenbart", startvermoegen: 9_000);
             w.Ausfuehren(nehmer, new KreditAufnehmen(geber.Inhaber, 4_000, 2));
-            var e = w.Ausfuehren(nehmer, new StandErwerben());
+            var e = w.Ausfuehren(Wohnhaushilfe.MitWohnhaus(w, nehmer), new StandErwerben());
             Pruefe.Wahr(!e.Erfolg && e.Meldung.Contains("fehlen noch 1.000"), e.Meldung);
         }),
 

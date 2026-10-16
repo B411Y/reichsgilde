@@ -16,7 +16,7 @@ static class LiegenschaftTests
     static Konto Buerger(Stadtwirtschaft w, string name, double vermoegen)
     {
         var k = w.KontoEroeffnen(name, startvermoegen: 10000);
-        Pruefe.Wahr(w.Ausfuehren(k, new StandErwerben()).Erfolg, "Aufstieg zum Bürger fehlgeschlagen");
+        Pruefe.Wahr(w.Ausfuehren(Wohnhaushilfe.MitWohnhaus(w, k), new StandErwerben()).Erfolg, "Aufstieg zum Bürger fehlgeschlagen");
         if (vermoegen > k.Vermoegen) k.Umsatz(vermoegen - k.Vermoegen); else k.Schaden(k.Vermoegen - vermoegen);
         return k;
     }

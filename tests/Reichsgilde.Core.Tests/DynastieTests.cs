@@ -215,7 +215,7 @@ static class DynastieTests
             Pruefe.Gleich(sohn, w.Familien.Erbe(f));
 
             // Ein Amt und Gunst, die beim Erbfall verloren gehen
-            Pruefe.Wahr(w.Ausfuehren(konto, new StandErwerben()).Erfolg, "Aufstieg");
+            Pruefe.Wahr(w.Ausfuehren(Wohnhaushilfe.MitWohnhaus(w, konto), new StandErwerben()).Erfolg, "Aufstieg");
             var ratsherr = w.Rat.Ratsherren[0];
             w.Ausfuehren(konto, new Schenken(ratsherr.Name, 400));
             Pruefe.Wahr(w.Rat.Gunst(ratsherr, konto) > 0, "Gunst");
@@ -269,7 +269,7 @@ static class DynastieTests
             Pruefe.Gleich(konto, erloschen);
             Pruefe.Wahr(konto.IstErloschen && !konto.IstAktiv, "erloschen");
             Pruefe.Gleich(0, betrieb.Belegt);
-            var e = w.Ausfuehren(konto, new StandErwerben());
+            var e = w.Ausfuehren(Wohnhaushilfe.MitWohnhaus(w, konto), new StandErwerben());
             Pruefe.Wahr(!e.Erfolg && e.Meldung.Contains("erloschen"), e.Meldung);
             Pruefe.Wahr(sim.IstBeendet, "Nur noch eine Dynastie – die Partie sollte enden");
             Pruefe.Gleich(anderes, w.Rangliste[0]);

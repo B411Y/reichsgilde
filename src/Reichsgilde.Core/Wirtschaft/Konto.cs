@@ -127,6 +127,12 @@ public sealed class Konto
 
     internal void GradSetzen(string beruf, int grad) => _grade[beruf] = grad;
 
+    /// <summary>Stufe des Wohnhauses (0 = Startwohnhaus, siehe <see cref="Wohnen.Wohnungswesen"/>).</summary>
+    public int WohnhausStufe { get; internal set; }
+
+    /// <summary>Läuft ein Ausbau des Wohnhauses: ab dieser Spielminute gilt die nächste Stufe (sonst null).</summary>
+    public long? WohnhausFertigAb { get; internal set; }
+
     /// <summary>Aktionspunkte des Hauses für persönliche Handlungen (Werben, Rat, Gericht, Hinterzimmer, Training).</summary>
     public Partie.Aktionspunkte Aktionspunkte { get; } = new();
 
@@ -172,6 +178,7 @@ public sealed class Konto
     {
         Inhaber = Inhaber, Wappen = Wappen, Vermoegen = Vermoegen, Forderungen = Forderungen, Schulden = Schulden, Stand = Stand, Schuldenjahre = Schuldenjahre, IstBankrott = IstBankrott, IstErloschen = IstErloschen,
         Aktionspunkte = Aktionspunkte.Vorrat,
+        WohnhausStufe = WohnhausStufe, WohnhausFertigAb = WohnhausFertigAb,
         Berufe = _berufe.ToList(),
         Meistergrade = _grade.ToDictionary(x => x.Key, x => x.Value),
         Erfahrung = _erfahrung.ToDictionary(x => x.Key, x => x.Value),
@@ -188,6 +195,8 @@ public sealed class Konto
         };
         if (s.Wappen is { } wappen) konto.Wappen = wappen;
         konto.Aktionspunkte.Setzen(s.Aktionspunkte);
+        konto.WohnhausStufe = s.WohnhausStufe ?? 0; // alte Spielstände: ergänzt die Stadtwirtschaft nach dem Laden
+        konto.WohnhausFertigAb = s.WohnhausFertigAb;
         foreach (var beruf in s.Berufe ?? new List<string>())
             konto.BerufLernen(beruf);
         foreach (var (beruf, grad) in s.Meistergrade ?? new Dictionary<string, int>())

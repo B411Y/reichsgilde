@@ -106,6 +106,7 @@ public sealed class Stadtrat
                + _w.Wache.AnsehenBonus(konto)           // ein Haus der Wache
                - _w.Bank.AnsehenAbzug(konto)            // ein Wucherkredit läuft
                + _w.Duft.AnsehenBonus(konto)            // Heiligenduft in der Kirche gestiftet
+               + _w.Wohnen.AnsehenBonus(konto)          // ein stattliches Wohnhaus
                - _w.Glaube.AnsehenAbzug(konto);         // gerade erst die Konfession gewechselt
     }
 
