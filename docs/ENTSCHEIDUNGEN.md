@@ -235,13 +235,17 @@ Format: `- PR #Nummer (Phase) – Inhalt`
 - PR #59 (3) – Stadterweiterung: Mauer ±50 m, Westtor, Umland 14 m nach außen (Vorbereitung Passanten)
 - PR #60 (5) – KI-Häuser holen die Werkstatt zum gelernten Handwerk nach (Schänke, Kirche, Siederei), auch über die Höchstzahl an Betrieben
 - PR #61 (2) – Bürger-KI: Gläubige und Kollekte der Messe folgen den Gebetsstunden der Einwohner; Betende verteilen sich nach Anziehung auf die Kirchen ihrer Konfession
+- PR #62 (3) – Leveldesign: fünfter Chat, Kartenregeln (`docs/LEVELDESIGN.md`), Entscheidungen zu Städten, Wohnhaus, Bauzonen, Toren, Wasser
 
 ### 6b. Offen (eine Zeile je Punkt; erledigt → Zeile löschen und unter 6a eintragen)
 
 - (3) Raumansicht für den Dom und Feinschliff der Werkstatträume je Beruf (zweiter Teil von PR #52)
 - (2) Bürger-KI: Kopplung an Markt → Taschendiebe (Einwohner: PR #54, Wege: PR #57, Schänke: PR #58, Kirche: PR #61)
 - (5) Orks und Oger spielbar machen
-- (5) Bauplätze und Sanierung (siehe Abschnitt 7, Punkt 8)
+- (5) Bauplätze und Sanierung (siehe Abschnitt 7, Punkt 8) – Regeln jetzt in Abschnitt 17 (Bauzonen)
+- (5) Eigenes Wohnhaus je Haus, Größe nach Stand (Abschnitt 17) – Kern
+- (3) Leveldesign: Kartendatei-Format und erste Karte Köln (Abschnitt 17, `docs/LEVELDESIGN.md`)
+- (–) Reichskarte zum Wechsel zwischen den Städten (Idee, später)
 - (5) Gaunerberuf, Schmuggel und Schwarzarbeit unter dem Statut
 - (6) Multiplayer, Zuschauer-Modus
 
@@ -316,7 +320,7 @@ Format: `- PR #Nummer (Phase) – Inhalt`
 | Kamera | **Feste Ansicht je Raum**: Die Kamera steht vor der offenen Vorderseite und blickt leicht von oben hinein, kein Zoomen, Drehen oder Verschieben. Q/E wechseln im Gebäude den Raum. | 15.10.2026 |
 | Räume | **Räume mit Tafeln**: Werkstatt = Werkraum, Lager, Kontor (nur eigene; zeigt die Verwaltung), Wohnstube (nur Stammhaus; öffnet die Familie). Rathaus = Ratssaal, Gerichtssaal, Amtsstube, Kerker. Dom später: Kirchenschiff, Sakristei. | 15.10.2026 |
 | Umfang | **Erst Prototyp**: dieser PR baut Werkstätten und Rathaus; Dom und der Feinschliff je Beruf folgen im zweiten PR. | 15.10.2026 |
-| Stammhaus | Die Familie wohnt in der **ersten eigenen Werkstatt in der Stadt**; dort gibt es die Wohnstube, das Oberhaupt sitzt tagsüber im Kontor, abends am Tisch. | 15.10.2026 |
+| Stammhaus | **Abgelöst am 16.10.2026 durch ein eigenes Wohnhaus (Abschnitt 17); gilt bis zur Umsetzung im Kern.** ~~Die Familie wohnt in der **ersten eigenen Werkstatt in der Stadt**; dort gibt es die Wohnstube, das Oberhaupt sitzt tagsüber im Kontor, abends am Tisch.~~ | 15.10.2026 |
 | Bildschirm | Im Raum bleibt das Bild frei: Gebäudefenster und Kontor des Hauses erscheinen nur in Kontor und Amtsstube. Die Raumleiste steht unten rechts. | 15.10.2026 |
 
 ## 14. Chat für die Spiel-KI
@@ -352,3 +356,17 @@ Format: `- PR #Nummer (Phase) – Inhalt`
 | Thema | Entscheidung | Datum |
 |---|---|---|
 | Werkstatt zum Handwerk | **Wer ein Handwerk gelernt hat, führt auch dessen Werkstatt.** Hat ein KI-Haus nur den Umlandbetrieb (Bauernhof, Klosterhof, Duftgarten), kauft es die Werkstatt (Schänke, Kirche, Siederei) dazu – **auch über die Höchstzahl an Betrieben**. Die KI-Häuser werden dadurch um 13–28 % reicher (Messung WIRTSCHAFTSMODELL §38); vom Nutzer so gewählt (Alternativen: Höchstzahl als Paar, oder erst ab Stand Edler) (PR #60). | 16.10.2026 |
+
+## 17. Leveldesign
+
+| Thema | Entscheidung | Datum |
+|---|---|---|
+| Fünfter Chat | **Leveldesign**: Kartenregeln (`docs/LEVELDESIGN.md`) und später die Kartendateien je Stadt. Regeln mit Wirkung auf die Simulation entscheidet der Kern. | 16.10.2026 |
+| Greybox | Die heutige Stadt bleibt **Platzhalter für die Mechaniken** und wird vorerst nicht ersetzt. Erst Planung, dann Karten. | 16.10.2026 |
+| Städte | **Etwa 8 Städte**, jede eine eigene Kartendatei und ein Einzelstück nach **realer Vorlage mit einem Hauch Fiktion**, alle nach denselben Kartenregeln. **Pilot: Köln.** Jede Karte ist für **8 Häuser** ausgelegt. | 16.10.2026 |
+| Reichskarte | Idee festgehalten: eine Reichskarte, über die man zwischen den Städten wechselt. **Später**, erst die einzelnen Städte. | 16.10.2026 |
+| Wohnhaus | **Jedes Haus wohnt in einem eigenen Wohnhaus**, getrennt von den Betrieben; löst „Stammhaus = erste Werkstatt“ (Abschnitt 13) ab. **Der Stand bestimmt die Größe**, die man bauen oder kaufen darf (Vorschlag: Fachwerkhaus, Bürgerhaus, Steinhaus, Stadtpalais, Hof). | 16.10.2026 |
+| Bauen | **Feste Straßen**, Spieler und KI bauen keine Wege. Zwischen den Straßen **Bauzonen**, darin freies Bauen auf einem **Raster** mit 90°-Drehung, jedes Gebäude mit einer Seite an der Straße. **Kein Grundstückskauf**, bezahlt wird nur Bau oder Kauf des Gebäudes; **keine Flächengrenze**. **Abriss und Umbau erlaubt.** Fest bleiben Startplätze, Sonderbauten, Ruinen und Leerstand. | 16.10.2026 |
+| Fahrzeit | **Nur aus der Weglänge**, keine Zielzeit. Damit ist die Kartengröße ein Balancing-Wert; jede Karte braucht eine Messung durch den Kern. | 16.10.2026 |
+| Tore | **Schließen nachts** (Dunkle Nacht, 20 Uhr). Umsetzung im Kern. | 16.10.2026 |
+| Wasser | **Flüsse, Häfen und Brücken** gehören zu den Karten. Häfen werden jetzt mitgeplant, ihre Mechanik (Schiffe, Stapel) kommt später. | 16.10.2026 |
