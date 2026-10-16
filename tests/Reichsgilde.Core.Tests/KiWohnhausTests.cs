@@ -28,12 +28,15 @@ static class KiWohnhausTests
 
     public static IEnumerable<(string, Action)> Alle() => new (string, Action)[]
     {
-        ("KI-Wohnhaus: Über der Schwelle, aber nach dem Bau darunter – die KI baut das Haus noch nicht", () =>
+        ("KI-Wohnhaus: Über der Schwelle baut die KI das Haus gleich – der Hauswert zählt zum Reinvermögen (Kern PR #85)", () =>
         {
             var (w, k, ki) = Buerger(21_000);
-            Pruefe.Wahr(k.Reinvermoegen >= w.NaechsterStand(k)!.Schwelle, "Schwelle erreicht");
+            var neu = w.NaechsterStand(k)!;
+            Pruefe.Wahr(k.Reinvermoegen >= neu.Schwelle, "Schwelle erreicht");
             ki.Stunde();
-            Pruefe.Wahr(k.WohnhausFertigAb is null, "Die KI hätte sich mit dem Bau unter die Schwelle gebracht");
+            Pruefe.Wahr(k.WohnhausFertigAb is not null, "Die KI baut das Steinhaus");
+            Pruefe.Ungefaehr(21_000 - Steinhaus(w, k), k.Vermoegen, 1e-6); // nur das Haus bezahlt, noch keine Gebühr
+            Pruefe.Wahr(k.Reinvermoegen >= neu.Schwelle, "Mit dem Bau bleibt sie über der Schwelle");
         }),
 
         ("KI-Wohnhaus: Reicht es für Schwelle, Haus, Gebühr und Reserve, baut sie das Haus", () =>
@@ -62,12 +65,14 @@ static class KiWohnhausTests
             Pruefe.Wahr(w.Betriebe.Any(b => b.Konto == k), "Ohne Sparen expandiert sie");
         }),
 
-        ("KI-Wohnhaus: Steht das nötige Haus schon, zählt es nicht mehr zum Ziel", () =>
+        ("KI-Wohnhaus: Das Sparziel ist die Schwelle selbst – ob das Haus schon steht, ändert nichts", () =>
         {
             var (w, k, ki) = Buerger(17_000);
-            Pruefe.Wahr(!ki.Spart, "17.000 < 80 % von 24.000");
-            Wohnhaushilfe.MitWohnhaus(w, k);
             Pruefe.Wahr(ki.Spart, "17.000 ≥ 80 % von 20.000");
+            Wohnhaushilfe.MitWohnhaus(w, k);
+            Pruefe.Wahr(ki.Spart, "mit Haus ebenso");
+            var (_, _, arm) = Buerger(15_000);
+            Pruefe.Wahr(!arm.Spart, "15.000 < 80 % von 20.000");
         }),
     };
 }
