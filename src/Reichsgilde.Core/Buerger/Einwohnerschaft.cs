@@ -33,6 +33,7 @@ public sealed class Einwohnerschaft
     private int _naechsteNummer = 1;
     private int _verstorben;
     private int _zugezogen;
+    private readonly double[] _einkehrErwartet = new double[24]; // gleitender Mittelwert der Einkehrenden je Uhrzeit (Kopplung)
 
     public Einwohnerschaft(Stadtwirtschaft w, BuergerDaten? daten, int zufallsstartwert)
     {
@@ -127,6 +128,89 @@ public sealed class Einwohnerschaft
             }
         foreach (var e in _einwohner)
             Ausschlafen(e);
+    }
+
+    // ═════════════════════════════════════════════════════════════════════════
+    //  Kopplung an die Schänke
+    // ═════════════════════════════════════════════════════════════════════════
+
+    /// <summary>Wer in der Stunde, die gerade endet, in dieser Schänke saß (die Planung der nächsten Stunde folgt erst danach).</summary>
+    public int Einkehrende(Betrieb schaenke) => _einwohner.Count(e => e.Ort == Stadtort.Schaenke && e.Betrieb == schaenke.Name);
+
+    /// <summary>Wie viele Einwohner zu dieser Uhrzeit üblicherweise in den Schänken sitzen (gleitender Mittelwert; 0 = noch keine Erfahrung).</summary>
+    public double EinkehrErwartet(int stunde) => _einkehrErwartet[stunde];
+
+    /// <summary>
+    /// Gäste je Schänke für die Stunde, die gerade endet (aus <see cref="Gastwirtschaft"/>).
+    /// Bisher: gaeste × Anziehung ÷ Summe. Mit Kopplung k wird gemischt mit der Rechnung nach den Einwohnern:
+    ///   • Menge: gaeste × Faktor, Faktor = Einkehrende jetzt ÷ üblich zu dieser Uhrzeit (begrenzt auf 1 ± spanne).
+    ///     Im Mittel bleibt es bei den Gästen der Daten – an vollen Abenden kommen mehr, an leeren weniger.
+    ///   • Verteilung: nach den Einwohnern, die in der jeweiligen Schänke sitzen (sie wählen ihre Schänke nach der Anziehung).
+    /// Ohne Kopplung oder ohne Einwohner gilt die bisherige Rechnung unverändert.
+    /// </summary>
+    internal Dictionary<Betrieb, double> Gaesteanteile(IReadOnlyList<Betrieb> schaenken, double gaeste, Func<Betrieb, double> anziehung, int stunde)
+    {
+        var summe = schaenken.Sum(anziehung);
+        var alt = schaenken.ToDictionary(b => b, b => gaeste * anziehung(b) / summe);
+        var k = IstAktiv && _gegruendet ? Daten.Kopplung.Schaenke : 0;
+        if (k <= 0) return alt;
+
+        var kd = Daten.Kopplung;
+        var drin = schaenken.ToDictionary(b => b, Einkehrende);
+        var alle = (double)drin.Values.Sum();
+        var erwartet = _einkehrErwartet[stunde];
+        var faktor = erwartet > 0 ? Math.Clamp(alle / erwartet, 1 - kd.Spanne, 1 + kd.Spanne) : 1;
+        _einkehrErwartet[stunde] = erwartet > 0 ? erwartet + kd.Glaettung * (alle - erwartet) : alle;
+
+        var ergebnis = new Dictionary<Betrieb, double>();
+        foreach (var b in schaenken)
+        {
+            var anteil = alle > 0 ? drin[b] / alle : anziehung(b) / summe;
+            ergebnis[b] = (1 - k) * alt[b] + k * gaeste * faktor * anteil;
+        }
+        return ergebnis;
+    }
+
+    /// <summary>
+    /// Verteilt alle, die in dieser Stunde einkehren, nach der Anziehung auf die Schänken – als feste Quote
+    /// (Verfahren der größten Reste, wie bei Sitzverteilungen). So bekommt ein Wirtshaus mit anderthalbfacher Anziehung
+    /// genau anderthalbmal so viele Einwohner wie eine Schänke, ohne Würfelglück. Wer schon in einer Schänke sitzt
+    /// oder heute schon eine hatte, bleibt dort, solange in ihr Platz ist.
+    /// </summary>
+    private void SchaenkenVerteilen(List<Betrieb> schaenken)
+    {
+        if (schaenken.Count == 0) return;
+        var gaeste = _einwohner.Where(e => e.Handlung == Handlung.Einkehren).ToList();
+        if (gaeste.Count == 0) return;
+        var anziehung = schaenken.Select(b => _w.Gastwirtschaft.Anziehung(b)).ToList();
+        var summe = anziehung.Sum();
+        var soll = anziehung.Select(a => gaeste.Count * a / summe).ToList();
+        var plaetze = soll.Select(x => (int)Math.Floor(x)).ToList();
+        foreach (var i in Enumerable.Range(0, schaenken.Count).OrderByDescending(i => soll[i] - plaetze[i]).ThenBy(i => i)
+                     .Take(gaeste.Count - plaetze.Sum()))
+            plaetze[i]++;
+
+        var index = schaenken.Select((b, i) => (b.Name, i)).ToDictionary(x => x.Name, x => x.i);
+        var offen = new List<Einwohner>();
+        // Erst die Stammgäste des Tages (wer schon saß, zuerst), dann alle übrigen in die freien Plätze.
+        foreach (var e in gaeste.OrderBy(e => e.Ort == Stadtort.Schaenke ? 0 : 1).ThenBy(e => e.Nummer))
+            if (e.Stammschaenke is { } s && index.TryGetValue(s, out var i) && plaetze[i] > 0) plaetze[i]--;
+            else offen.Add(e);
+        foreach (var e in offen)
+        {
+            var i = Enumerable.Range(0, schaenken.Count).OrderByDescending(j => plaetze[j]).ThenBy(j => j).First();
+            plaetze[i]--;
+            e.Stammschaenke = schaenken[i].Name;
+        }
+    }
+
+    /// <summary>Die Schänke des Tages (von <see cref="SchaenkenVerteilen"/> vergeben; sonst die anziehendste).</summary>
+    private string? Schaenke(Einwohner e, List<Betrieb> schaenken)
+    {
+        if (schaenken.Count == 0) return null;
+        if (e.Stammschaenke is { } s && schaenken.Any(b => b.Name == s)) return s;
+        e.Stammschaenke = schaenken.OrderByDescending(b => _w.Gastwirtschaft.Anziehung(b)).ThenBy(b => b.Name, StringComparer.Ordinal).First().Name;
+        return e.Stammschaenke;
     }
 
     private void Gruenden(int jahr)
@@ -296,6 +380,7 @@ public sealed class Einwohnerschaft
         e.Stelle = null;
         e.Haus = e.Wohnhaus;
         e.Weg = null; // über Nacht zu Hause
+        e.Stammschaenke = null;
     }
 
     // ── Die stündliche Entscheidung ─────────────────────────────────────────
@@ -337,8 +422,16 @@ public sealed class Einwohnerschaft
 
             foreach (var (b, x) in d.Handlungen[beste].Stillt)
                 e.Setzen(b, e.Wert(b) - x * (beste == Handlung.Beten ? messe : 1));
-            var vorher = e.Aufenthalt;
             e.Handlung = beste;
+        }
+
+        // Wer einkehrt, verteilt sich nach der Anziehung auf die Schänken (Stufe, Ansehen) – ohne Würfel, als Quote.
+        SchaenkenVerteilen(schaenken);
+
+        foreach (var e in _einwohner)
+        {
+            var vorher = e.Aufenthalt;
+            var beste = e.Handlung;
             (e.Ort, e.Betrieb) = Ort(e, beste, schaenken, kirchen);
             e.Haus = e.Ort == Stadtort.Heim ? (beste == Handlung.Arbeiten && IstDienst(e) ? Dienstherr(e) : e.Wohnhaus) : 0;
             e.Stelle = e.Ort == Stadtort.Umland && d.Rollen.TryGetValue(e.Rolle, out var rolle) ? rolle.Stelle : null;
@@ -382,7 +475,7 @@ public sealed class Einwohnerschaft
     {
         Handlung.Arbeiten => Arbeitsort(e, schaenken, kirchen),
         Handlung.Einkaufen => (Stadtort.Markt, null),
-        Handlung.Einkehren => (Stadtort.Schaenke, Stammhaus(e, schaenken)),
+        Handlung.Einkehren => (Stadtort.Schaenke, Schaenke(e, schaenken)),
         Handlung.Beten => (Stadtort.Kirche, Stammkirche(e, kirchen)),
         Handlung.Flanieren => (Stadtort.Gasse, null),
         _ => (Stadtort.Heim, null),
@@ -394,13 +487,13 @@ public sealed class Einwohnerschaft
         return ort switch
         {
             Stadtort.Kirche => (ort, Stammkirche(e, kirchen)),
-            Stadtort.Schaenke when schaenken.Count > 0 => (ort, Stammhaus(e, schaenken)),
+            Stadtort.Schaenke when schaenken.Count > 0 => (ort, Schaenke(e, schaenken)),
             Stadtort.Schaenke => (Stadtort.Gasse, null),
             _ => (ort, null),
         };
     }
 
-    /// <summary>Jeder hat seine Stammschänke – fest nach seiner Nummer, ohne Würfel (die Kopplung an die Anziehung folgt später).</summary>
+    /// <summary>Fest nach der Nummer gewählt, ohne Würfel (Stammkirche).</summary>
     private static string? Stammhaus(Einwohner e, List<Betrieb> liste) => liste.Count == 0 ? null : liste[e.Nummer % liste.Count].Name;
 
     /// <summary>Kirche der eigenen Konfession, sonst eine fremde, sonst die Stadtkirche (null).</summary>
@@ -422,6 +515,7 @@ public sealed class Einwohnerschaft
         Verstorben = _verstorben,
         Zugezogen = _zugezogen,
         Haeuser = _haeuser.ToList(),
+        EinkehrErwartet = _einkehrErwartet.ToList(),
         Einwohner = _einwohner.Select(e => new EinwohnerStand
         {
             Nummer = e.Nummer,
@@ -441,6 +535,7 @@ public sealed class Einwohnerschaft
             Stelle = e.Stelle,
             Wohnhaus = e.Wohnhaus,
             Weg = e.Weg,
+            Stammschaenke = e.Stammschaenke,
             Beduerfnisse = e.Beduerfnisse.ToList(),
         }).ToList(),
     };
@@ -452,6 +547,7 @@ public sealed class Einwohnerschaft
         _naechsteNummer = s.NaechsteNummer;
         _verstorben = s.Verstorben;
         _zugezogen = s.Zugezogen;
+        for (var i = 0; i < s.EinkehrErwartet.Count && i < _einkehrErwartet.Length; i++) _einkehrErwartet[i] = s.EinkehrErwartet[i];
         _einwohner.Clear();
         foreach (var x in s.Einwohner)
         {
@@ -464,6 +560,7 @@ public sealed class Einwohnerschaft
                 Stelle = x.Stelle,
                 Wohnhaus = x.Wohnhaus,
                 Weg = x.Weg,
+                Stammschaenke = x.Stammschaenke,
             };
             for (var i = 0; i < x.Beduerfnisse.Count && i < e.Beduerfnisse.Count; i++)
                 e.Setzen((Beduerfnis)i, x.Beduerfnisse[i]);
@@ -501,6 +598,8 @@ public sealed record EinwohnerschaftStand
     public int Zugezogen { get; init; }
     /// <summary>Wohnhäuser (leer in Spielständen von vor den Häusern – dann werden sie beim Laden verteilt).</summary>
     public List<Stadthaus> Haeuser { get; init; } = new();
+    /// <summary>Üblich Einkehrende je Uhrzeit 0–23 (leer in älteren Spielständen).</summary>
+    public List<double> EinkehrErwartet { get; init; } = new();
     public List<EinwohnerStand> Einwohner { get; init; } = new();
 }
 
@@ -523,6 +622,7 @@ public sealed record EinwohnerStand
     public string? Stelle { get; init; }
     public int Wohnhaus { get; init; }
     public Weg? Weg { get; init; }
+    public string? Stammschaenke { get; init; }
     /// <summary>Dringlichkeit je Bedürfnis in der Reihenfolge von <see cref="Beduerfnis"/>.</summary>
     public List<double> Beduerfnisse { get; init; } = new();
 }
