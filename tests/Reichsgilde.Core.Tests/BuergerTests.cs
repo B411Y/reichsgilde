@@ -108,9 +108,9 @@ static class BuergerTests
             Pruefe.Gleich(0, Einwohner(geladen).Einwohner.Count);
         }),
 
-        ("Bürger-KI: Keine Wirkung auf die Wirtschaft – mit und ohne Einwohner läuft die Partie 2 Jahre gleich", () =>
+        ("Bürger-KI: Ohne Kopplung keine Wirkung auf die Wirtschaft – mit und ohne Einwohner läuft die Partie 2 Jahre gleich", () =>
         {
-            var (mit, spielerMit) = NeuePartie(startwert: 4711);
+            var (mit, spielerMit) = NeuePartie(OhneKopplung.Value, startwert: 4711);
             var (ohne, spielerOhne) = NeuePartie(OhneBuerger.Value, startwert: 4711);
             Ticken(mit, 2 * Spielzeit.MinutenProTag + 400);
             Ticken(ohne, 2 * Spielzeit.MinutenProTag + 400);
@@ -340,7 +340,8 @@ static class BuergerTests
             var (sim, _, schaenke, wirtshaus) = Wirte();
             var w = sim.Wirtschaft!;
             var ew = Einwohner(sim);
-            JahrMitVollemLager(sim); // erstes Jahr: das „Übliche“ je Uhrzeit lernen
+            JahrMitVollemLager(sim); // erstes Jahr: Einschwingen
+            JahrMitVollemLager(sim); // zweites Jahr: das „Übliche“ je Uhrzeit lernen
             Auffuellen(sim);
             Bis(sim, 20, 59);
             var drinS = ew.Einkehrende(schaenke);
@@ -392,7 +393,8 @@ static class BuergerTests
             for (var j = 0; j < 11; j++)
             {
                 JahrMitVollemLager(sim);
-                if (j > 0) jahre.Add(g.Vorjahr(schaenke)!.Bewirtet + g.Vorjahr(wirtshaus)!.Bewirtet);
+                // Alle Schänken der Stadt – seit PR #60 kann auch ein KI-Haus eine führen.
+                if (j > 0) jahre.Add(sim.Wirtschaft!.Betriebe.Where(b => b.IstSchaenke).Sum(b => g.Vorjahr(b) is { } v ? v.Bewirtet + v.Abgewiesen : 0));
             }
             var soll = g.Daten.GaesteJeJahr;
             var spanne = Einwohner(sim).Daten.Kopplung.Spanne;
@@ -421,8 +423,8 @@ static class BuergerTests
             var w = sim.Wirtschaft!;
             var ew = Einwohner(sim);
             var kirche = w.Betriebe.Single(b => b.Konto == spieler && w.Kirchenwesen.IstKirche(b));
-            Ticken(sim, Spielzeit.MinutenProTag); // erster Tag: das Übliche lernen (Faktor 1)
-            Pruefe.Wahr(ew.MesseErwartet > 0, "Nach dem ersten Tag ist das Übliche bekannt");
+            Ticken(sim, 2 * Spielzeit.MinutenProTag); // erste Tage: Einschwingen, dann das Übliche lernen (Faktor 1)
+            Pruefe.Wahr(ew.MesseErwartet > 0, "Nach dem zweiten Tag ist das Übliche bekannt");
             var kd = ew.Daten.Kopplung;
             for (var tag = 0; tag < 4; tag++)
             {
@@ -489,6 +491,51 @@ static class BuergerTests
                           Speicherung.Speichern(kopie, kopieSpieler, new DateTime(2026, 10, 16)));
         }),
 
+        ("Markt: Die Einkäufe der Einwohner verschieben die Nachfrage der Fertigwaren – Rohstoffe und Zwischenwaren bleiben fest", () =>
+        {
+            var (sim, _) = NeuePartie();
+            var w = sim.Wirtschaft!;
+            var ew = Einwohner(sim);
+            var kd = ew.Daten.Kopplung;
+            Ticken(sim, Spielzeit.MinutenProTag);
+            Pruefe.Gleich(1.0, ew.Marktfaktor, "Erster Tag: Einschwingen, Faktor 1");
+            var faktoren = new HashSet<double>();
+            for (var m = 0; m < 3 * Spielzeit.MinutenProTag; m++)
+            {
+                sim.Tick();
+                if (sim.Zeit.MinuteImTag % 60 != 30) continue;
+                var f = ew.Marktfaktor;
+                faktoren.Add(Math.Round(f, 6));
+                Pruefe.Wahr(f >= 1 - kd.MarktSpanne - 1e-9 && f <= 1 + kd.MarktSpanne + 1e-9, $"Faktor {f}");
+                foreach (var stand in w.Markt.Staende)
+                    Pruefe.Gleich(kd.MarktTypen.Contains(stand.Typ) ? f : 1.0, stand.NachfrageFaktor, $"{stand.Ware} ({stand.Typ})");
+            }
+            Pruefe.Wahr(faktoren.Count > 3, "Der Faktor bewegt sich über die Tage");
+            var ring = w.Markt["Silberring"];
+            var a = w.Daten.Allgemein;
+            var nachfrage = w.Daten.Waren["Silberring"].Nachfrage;
+            var soll = Math.Clamp(Math.Pow(nachfrage * ring.NachfrageFaktor / ring.Gesamtangebot, a.Elastizitaet), a.PreisMin, a.PreisMax);
+            Pruefe.Ungefaehr(soll * ring.Grundpreis, ring.Preis, 1e-9);
+            Pruefe.Ungefaehr(nachfrage * w.Daten.Waren["Silberring"].NpcAnteil + ring.SpielerAngebotImJahr, ring.Gesamtangebot, 1e-9);
+        }),
+
+        ("Markt: Ohne Kopplung bleibt die Nachfrage aller Waren genau wie in den Daten", () =>
+        {
+            var (sim, _) = NeuePartie(Abgewandelt(j => j["buerger"]!["kopplung"]!["markt"] = 0));
+            Ticken(sim, 3 * Spielzeit.MinutenProTag);
+            Pruefe.Wahr(sim.Wirtschaft!.Markt.Staende.All(s => s.NachfrageFaktor == 1.0), "Faktor 1 überall");
+        }),
+
+        ("Markt: Nach dem Laden gilt sofort derselbe Faktor – auch mitten in der Stunde", () =>
+        {
+            var (original, spieler) = NeuePartie(startwert: 4711);
+            Ticken(original, 3 * Spielzeit.MinutenProTag + 431);
+            var (kopie, _) = Speicherung.Laden(Speicherung.Speichern(original, spieler));
+            foreach (var stand in original.Wirtschaft!.Markt.Staende)
+                Pruefe.Gleich(stand.NachfrageFaktor, kopie.Wirtschaft!.Markt[stand.Ware].NachfrageFaktor, stand.Ware);
+            Pruefe.Wahr(original.Wirtschaft!.Markt["Silberring"].NachfrageFaktor != 1.0, "Faktor sollte nach drei Tagen von 1 abweichen");
+        }),
+
         ("Bürger-KI: Datenprüfung lehnt Orks als Einwohner und eine fehlende Handlung ab", () =>
         {
             Pruefe.WirftMitMeldung(() => Abgewandelt(j => j["buerger"]!["voelker"]!["Ork"] = 1), "kein Bürgerrecht");
@@ -497,6 +544,7 @@ static class BuergerTests
             Pruefe.WirftMitMeldung(() => Abgewandelt(j => j["buerger"]!["wege"]!["umland"] = 55), "unter einer Stunde");
             Pruefe.WirftMitMeldung(() => Abgewandelt(j => j["buerger"]!["kopplung"]!["schaenke"] = 1.5), "kopplung.schaenke");
             Pruefe.WirftMitMeldung(() => Abgewandelt(j => j["buerger"]!["kopplung"]!["kirche"] = -0.1), "kopplung.kirche");
+            Pruefe.WirftMitMeldung(() => Abgewandelt(j => j["buerger"]!["kopplung"]!["marktSpanne"] = 1.0), "marktSpanne");
             Pruefe.WirftMitMeldung(() => Abgewandelt(j => j["buerger"]!["handlungen"]!["Einkehren"]!["von"] = 13), "oeffnetUm");
         }),
     };
