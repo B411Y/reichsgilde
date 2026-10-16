@@ -83,6 +83,31 @@ public sealed class RolleDaten
 
     /// <summary>Darf ein lediger Heiratskandidat (aus dem Stand Gemeiner) diese Rolle haben?</summary>
     public bool Ledig { get; init; } = true;
+
+    /// <summary>Stelle im Umland (bei Arbeitsort Umland), z. B. „Weide“ – muss unter <see cref="BuergerDaten.Umland"/> stehen.</summary>
+    public string? Stelle { get; init; }
+
+    /// <summary>Arbeit im Dienst: Bei Arbeitsort Heim arbeitet er nicht im eigenen Haus, sondern in einem Bürger- oder Ratsherrenhaus.</summary>
+    public bool Dienst { get; init; }
+}
+
+/// <summary>Wie lange Wege dauern (in Spielminuten). Der Kern zählt nur die Zeit – den Weg durch die Gassen zeichnet die Darstellung.</summary>
+public sealed class WegeDaten
+{
+    /// <summary>Ein Weg innerhalb der Stadt dauert im Mittel so lange …</summary>
+    public int Stadt { get; init; } = 10;
+
+    /// <summary>… plus/minus so viel (fest je Einwohner und Stunde ausgewürfelt).</summary>
+    public int Streuung { get; init; } = 5;
+
+    /// <summary>Weg zum oder vom Stadttor.</summary>
+    public int Tor { get; init; } = 15;
+
+    /// <summary>Weg ins oder aus dem Umland (durch das Tor hinaus).</summary>
+    public int Umland { get; init; } = 30;
+
+    /// <summary>Nicht alle laufen zur vollen Stunde los: Abmarsch 0 bis so viele Minuten danach.</summary>
+    public int Verzoegerung { get; init; } = 10;
 }
 
 /// <summary>Wie ein Bedürfnis über den Tag wächst.</summary>
@@ -140,6 +165,18 @@ public sealed class BuergerDaten
 
     public Dictionary<Handlung, HandlungDaten> Handlungen { get; init; } = new();
 
+    /// <summary>Stellen im Umland, an denen Einwohner arbeiten (z. B. Weide, Feld, Wald).</summary>
+    public List<string> Umland { get; init; } = new();
+
+    /// <summary>Wie viele Menschen ein Haushalt (ein einfaches Wohnhaus) hat: von … bis.</summary>
+    public int HaushaltVon { get; init; } = 4;
+    public int HaushaltBis { get; init; } = 6;
+
+    /// <summary>Bürgerhäuser für die Kandidaten aus Bürger- und Patrizierfamilien.</summary>
+    public int Buergerhaeuser { get; init; } = 3;
+
+    public WegeDaten Wege { get; init; } = new();
+
     /// <summary>Gewichte je Volk und Bedürfnis (1 = wie Menschen; fehlt ein Eintrag, gilt 1).</summary>
     public Dictionary<Volk, Dictionary<Beduerfnis, double>> Gewichte { get; init; } = new();
 
@@ -194,5 +231,19 @@ public sealed class BuergerDaten
         if (Rauschen is < 0 or > 1) f.Add($"{p}.rauschen muss zwischen 0 und 1 liegen.");
         if (StartStreuung is < 0 or > 50) f.Add($"{p}.startStreuung muss zwischen 0 und 50 liegen.");
         if (Beharrung < 0 || Messe < 1) f.Add($"{p}: beharrung nicht negativ, messe mindestens 1.");
+        foreach (var (name, r) in Rollen)
+        {
+            if (r.Arbeitsort == Stadtort.Umland && (r.Stelle is null || !Umland.Contains(r.Stelle)))
+                f.Add($"{p}.rollen.{name}: Wer im Umland arbeitet, braucht eine stelle aus „umland“ ({string.Join(", ", Umland)}).");
+            if (r.Arbeitsort != Stadtort.Umland && r.Stelle is not null) f.Add($"{p}.rollen.{name}: stelle gibt es nur bei arbeitsort Umland.");
+            if (r.Dienst && r.Arbeitsort != Stadtort.Heim) f.Add($"{p}.rollen.{name}: dienst gibt es nur bei arbeitsort Heim.");
+        }
+        if (HaushaltVon < 1 || HaushaltBis < HaushaltVon || HaushaltBis > 20) f.Add($"{p}: haushaltVon ≥ 1, haushaltBis ≥ haushaltVon und ≤ 20.");
+        if (Buergerhaeuser < 1) f.Add($"{p}.buergerhaeuser muss mindestens 1 sein.");
+        var wg = Wege;
+        if (wg.Stadt < 1 || wg.Streuung < 0 || wg.Streuung >= wg.Stadt || wg.Tor < 1 || wg.Umland < 1 || wg.Verzoegerung < 0)
+            f.Add($"{p}.wege: stadt, tor, umland mindestens 1; streuung kleiner als stadt; verzoegerung nicht negativ.");
+        if (wg.Verzoegerung + Math.Max(wg.Umland, Math.Max(wg.Tor, wg.Stadt + wg.Streuung)) >= 60)
+            f.Add($"{p}.wege: Verzögerung plus längster Weg muss unter einer Stunde bleiben – sonst käme jemand erst nach der nächsten Entscheidung an.");
     }
 }

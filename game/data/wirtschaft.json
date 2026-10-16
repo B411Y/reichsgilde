@@ -1,5 +1,5 @@
 {
-  "version": 25,
+  "version": 26,
   "gesundheit": {
     "medicusKosten": 120,
     "medicusKostenPest": 300,
@@ -1374,9 +1374,11 @@
     "voelker": { "Mensch": 5, "Halbling": 2, "Zwerg": 2, "Elb": 1 },
     "rollen": {
       "Tagelöhner": { "gewicht": 4, "arbeitsort": "Markt", "frau": "Tagelöhnerin" },
-      "Knecht": { "gewicht": 3, "arbeitsort": "Heim", "frau": "Magd" },
+      "Knecht": { "gewicht": 3, "arbeitsort": "Heim", "frau": "Magd", "dienst": true },
       "Krämer": { "gewicht": 2, "arbeitsort": "Markt", "frau": "Krämerin" },
-      "Hirte": { "gewicht": 2, "arbeitsort": "Umland", "frau": "Hirtin" },
+      "Hirte": { "gewicht": 2, "arbeitsort": "Umland", "frau": "Hirtin", "stelle": "Weide" },
+      "Feldarbeiter": { "gewicht": 2, "arbeitsort": "Umland", "frau": "Feldarbeiterin", "stelle": "Feld" },
+      "Holzsammler": { "gewicht": 1, "arbeitsort": "Umland", "frau": "Holzsammlerin", "stelle": "Wald" },
       "Bote": { "gewicht": 1, "arbeitsort": "Tor", "frau": "Botin" },
       "Bettler": { "gewicht": 1, "arbeitsort": "Gasse", "frau": "Bettlerin", "ledig": false },
       "Mönch": { "gewicht": 1, "arbeitsort": "Kirche", "frau": "Nonne", "ledig": false },
@@ -1386,6 +1388,11 @@
     },
     "rolleRatsherr": "Ratsherr",
     "rolleKandidatAbBuerger": "Bürgersohn",
+    "umland": [ "Weide", "Feld", "Wald" ],
+    "haushaltVon": 4,
+    "haushaltBis": 6,
+    "buergerhaeuser": 3,
+    "wege": { "stadt": 10, "streuung": 5, "tor": 15, "umland": 30, "verzoegerung": 10 },
     "beduerfnisse": {
       "Auskommen": { "start": 50, "anstieg": 12 },
       "Versorgung": { "start": 20, "anstieg": 3 },
