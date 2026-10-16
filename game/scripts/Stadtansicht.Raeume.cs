@@ -20,7 +20,8 @@ namespace Reichsgilde;
 /// sonst ungehindert durch die Decke. Licht im Raum kommt von Laternen, Feuer und den Fenstern (Umgebungslicht nach der Uhrzeit).
 ///
 /// Werkstätten: Werkraum (Einrichtung des Berufs, Stadtansicht.Innenraeume.cs) · Lager (Kistenstapel) ·
-/// Kontor (nur eigene Werkstätten; Klick öffnet die Verwaltung) · Wohnstube (nur im Stammhaus; Klick öffnet die Familie).
+/// Kontor und Wohnstube stehen im Wohnhaus des Spielers (Stadtansicht.Spielhaeuser.cs); nur ohne Wohnhäuser
+/// (Abschnitt „wohnen" fehlt) hängen sie wie früher an der eigenen Werkstatt (Kontor) bzw. am Stammhaus (Wohnstube).
 /// Rathaus: Ratssaal, Gerichtssaal, Amtsstube, Kerker (Stadtansicht.Sonderbauten.cs). Der Dom ist vorerst noch ein Diorama.
 /// </summary>
 public partial class Stadtansicht
@@ -225,6 +226,20 @@ public partial class Stadtansicht
         GehoertSpieler(a) && _betriebe.Values.FirstOrDefault(x => x.Raumansicht && GehoertSpieler(x)) == a;
 
     /// <summary>
+    /// Wem Kontor und Wohnstube gehören – damit dieselbe Einrichtung in der Werkstatt und im Wohnhaus stehen kann.
+    /// Alles als Abfrage (Func), nicht als fester Wert: Betriebe wechseln den Besitzer, das Wohnhaus entsteht erst nach dem Laden.
+    /// </summary>
+    /// <param name="Konto">das Haus, dessen Kasse und Familie gezeigt werden</param>
+    /// <param name="Farbe">Hausfarbe (Wandbehang, Gewand des Oberhaupts)</param>
+    /// <param name="Zugaenglich">ob der Raum in der Raumleiste steht</param>
+    /// <param name="FamilieWohntHier">ob das Oberhaupt am Pult sitzt (sonst ein Schreiber) und die Familie in der Stube</param>
+    /// <param name="Klickhinweis">letzte Zeile des Kontorschilds (leer = keine)</param>
+    private sealed record Hausstand(Func<Konto?> Konto, Func<Color> Farbe, Func<bool> Zugaenglich, Func<bool> FamilieWohntHier, string Klickhinweis);
+
+    /// <summary>Stehen Kontor und Wohnstube im Wohnhaus? Dann fehlen sie in den Werkstätten.</summary>
+    private bool RaeumeImWohnhaus => _wohnhausAnsicht is not null;
+
+    /// <summary>
     /// Legt die Räume einer Werkstatt an. Der Werkraum ist der bisherige Innenraum (Boden und Einrichtung baut
     /// <see cref="Innenraum"/>), hier kommen nur seine Wände dazu.
     /// </summary>
@@ -240,8 +255,11 @@ public partial class Stadtansicht
         RaumAnlegen(a, new Raum(RaumWerk, WerkraumName(stil), Vector3.Zero, new Vector3(breite, 6, tiefe)), wand, null,
             fenster: stil != Werkstil.Diebesnest, licht: stil == Werkstil.Diebesnest ? 0.15f : 0.35f);
         LagerEinrichten(a, wand);
-        KontorEinrichten(a, wand);
-        WohnstubeEinrichten(a);
+        // Kontor und Wohnstube werden trotzdem gebaut, aber ausgeblendet, sobald es das Wohnhaus gibt (siehe RaeumeImWohnhaus).
+        KontorEinrichten(a, KontorOrt, wand, new Hausstand(() => a.Betrieb.Konto, () => a.Farbe,
+            () => GehoertSpieler(a) && !RaeumeImWohnhaus, () => IstStammhaus(a), "Klick: Verwaltung"));
+        WohnstubeEinrichten(a, WohnstubeOrt, new Hausstand(() => a.Betrieb.Konto, () => a.Farbe,
+            () => IstStammhaus(a) && !RaeumeImWohnhaus, () => true, ""));
     }
 
     /// <summary>Lager: Kistenstapel je Ware an der Rückwand (<see cref="KistenspalteBauen"/>), Säcke und eine Waage.</summary>
@@ -262,17 +280,16 @@ public partial class Stadtansicht
     }
 
     /// <summary>
-    /// Kontor (nur in eigenen Werkstätten): Schreibpult mit Büchern und Kerze, Aktenregal, Geldtruhe, Wandbehang in der
-    /// Hausfarbe. Am Pult sitzt tagsüber im Stammhaus das Oberhaupt, sonst ein Schreiber. Ein Klick öffnet die Verwaltung.
+    /// Kontor: Schreibpult mit Büchern und Kerze, Aktenregal, Geldtruhe, Wandbehang in der Hausfarbe.
+    /// Am Pult sitzt tagsüber das Oberhaupt (wo die Familie wohnt), sonst ein Schreiber.
     /// </summary>
-    private void KontorEinrichten(BetriebsAnsicht a, Color wand)
+    private void KontorEinrichten(InnenAnsicht a, Vector3 k, Color wand, Hausstand haus)
     {
-        var k = KontorOrt;
-        RaumAnlegen(a, new Raum(RaumKontor, "Kontor", k, new Vector3(7.4f, 4.5f, 6.2f), () => GehoertSpieler(a)), wand, Dielen);
+        RaumAnlegen(a, new Raum(RaumKontor, "Kontor", k, new Vector3(7.4f, 4.5f, 6.2f), haus.Zugaenglich), wand, Dielen);
         var holz = Material(Holz);
         var dunkel = Material(DunklesHolz);
         var gold = Metall(Gold);
-        var hausfarbe = Material(a.Farbe);
+        var hausfarbe = Material(haus.Farbe());
 
         // Wandbehang in der Hausfarbe hinter dem Pult
         Teil(a, k + new Vector3(0, 2.9f, -3.05f), new Vector3(1.4f, 1.9f, 0.05f), hausfarbe);
@@ -307,35 +324,36 @@ public partial class Stadtansicht
         var figurStand = "";
         a.Raumzustaende.Add((zeit, arbeitszeit) =>
         {
-            hausfarbe.AlbedoColor = a.Farbe;
-            if (_raum?.Kennung != RaumKontor) return; // nur der gezeigte Raum braucht Figuren und Text
+            var farbe = haus.Farbe();
+            hausfarbe.AlbedoColor = farbe;
+            if (_raum?.Kennung != RaumKontor || haus.Konto() is not { } konto) return; // nur der gezeigte Raum braucht Figuren und Text
             var w = _simulation?.Wirtschaft;
-            var oberhaupt = IstStammhaus(a) ? w?.Familien.Von(a.Betrieb.Konto)?.Oberhaupt : null;
-            var stand = oberhaupt is null ? "Schreiber" : oberhaupt.Nummer.ToString();
+            var oberhaupt = haus.FamilieWohntHier() ? w?.Familien.Von(konto)?.Oberhaupt : null;
+            var stand = oberhaupt is null ? "Schreiber" : $"{oberhaupt.Nummer}:{farbe}";
             if (stand != figurStand)
             {
                 if (figur is not null) { a.Besucher.Remove(figur); KnotenEntfernen(figur.Koerper); }
                 var platz = new Arbeitsplatz(k + new Vector3(0, 0, -2.25f), Sued, Bewegung.Schreiben, Werkzeug.Feder, true);
                 figur = oberhaupt is not null
-                    ? PersonBauen(a, a.Innen!, platz, oberhaupt.Volk, a.Farbe, Kopfputz.Barett, 0.3f)
+                    ? PersonBauen(a, a.Innen!, platz, oberhaupt.Volk, farbe, Kopfputz.Barett, 0.3f)
                     : PersonBauen(a, a.Innen!, platz, Volk.Mensch, new Color(0.22f, 0.26f, 0.36f), Kopfputz.Barett, 0.3f);
                 a.Besucher.Add(figur);
                 figurStand = stand;
             }
             figur!.Koerper.Visible = arbeitszeit;
             var gulden = w?.Daten.Allgemein.Waehrung ?? "Gulden";
-            schild.Text = $"Kontor · {a.Betrieb.Konto.Inhaber}\n{Zahlenformat.Ganz(a.Betrieb.Konto.Vermoegen)} {gulden} in der Kasse\nKlick: Verwaltung";
+            schild.Text = $"Kontor · {konto.Inhaber}\n{Zahlenformat.Ganz(konto.Vermoegen)} {gulden} in der Kasse"
+                        + (haus.Klickhinweis == "" ? "" : "\n" + haus.Klickhinweis);
         });
     }
 
     /// <summary>
-    /// Wohnstube (nur im Stammhaus): Herd mit Feuer, Tisch mit Bänken, Bett, Truhe, Wiege. Die Familie aus dem Familienbuch
+    /// Wohnstube: Herd mit Feuer, Tisch mit Bänken, Bett, Truhe, Wiege. Die Familie aus dem Familienbuch
     /// sitzt hier: Ehepartner und Kinder immer, das Oberhaupt nach Feierabend (tagsüber sitzt es im Kontor). Klick öffnet die Familie.
     /// </summary>
-    private void WohnstubeEinrichten(BetriebsAnsicht a)
+    private void WohnstubeEinrichten(InnenAnsicht a, Vector3 s, Hausstand haus)
     {
-        var s = WohnstubeOrt;
-        RaumAnlegen(a, new Raum(RaumWohnstube, "Wohnstube", s, new Vector3(8.4f, 4.5f, 6.6f), () => IstStammhaus(a)), Fachwerk, Dielen, licht: 0.4f);
+        RaumAnlegen(a, new Raum(RaumWohnstube, "Wohnstube", s, new Vector3(8.4f, 4.5f, 6.6f), haus.Zugaenglich), Fachwerk, Dielen, licht: 0.4f);
         var holz = Material(Holz);
         var hell = Material(HellesHolz);
         var dunkel = Material(DunklesHolz);
@@ -370,13 +388,14 @@ public partial class Stadtansicht
         {
             if (_raum?.Kennung != RaumWohnstube) return;
             var w = _simulation?.Wirtschaft;
-            var familie = w?.Familien.Von(a.Betrieb.Konto);
-            var stand = familie is null ? "" : string.Join(",", familie.Lebende.Select(p => $"{p.Nummer}:{(w!.Familien.IstVolljaehrig(p) ? 1 : 0)}"));
+            var farbe = haus.Farbe();
+            var familie = haus.Konto() is { } konto ? w?.Familien.Von(konto) : null;
+            var stand = familie is null ? "" : farbe + string.Join(",", familie.Lebende.Select(p => $"{p.Nummer}:{(w!.Familien.IstVolljaehrig(p) ? 1 : 0)}"));
             if (stand != familienStand)
             {
                 foreach (var (f, _) in figuren) { a.Besucher.Remove(f); KnotenEntfernen(f.Koerper); }
                 figuren.Clear();
-                if (familie is not null) FamilieSetzen(a, s, familie, w!.Familien, figuren);
+                if (familie is not null) FamilieSetzen(a, s, familie, w!.Familien, figuren, farbe);
                 familienStand = stand;
             }
             foreach (var (f, nurAbends) in figuren) f.Koerper.Visible = !nurAbends || !arbeitszeit;
@@ -388,7 +407,7 @@ public partial class Stadtansicht
     private static string PersonenText(int anzahl) => anzahl == 1 ? "1 Person" : $"{anzahl} Personen";
 
     /// <summary>Setzt die Familie in die Wohnstube: Oberhaupt am Tisch (nur abends), Ehepartner am Herd, bis zu vier Kinder.</summary>
-    private void FamilieSetzen(BetriebsAnsicht a, Vector3 s, Familie familie, Familienbuch buch, List<(Arbeiterfigur, bool)> figuren)
+    private void FamilieSetzen(InnenAnsicht a, Vector3 s, Familie familie, Familienbuch buch, List<(Arbeiterfigur, bool)> figuren, Color farbe)
     {
         Arbeiterfigur Figur(Person p, Arbeitsplatz platz, Color gewand, int nummer)
         {
@@ -404,7 +423,7 @@ public partial class Stadtansicht
         }
 
         var nummer = 0;
-        figuren.Add((Figur(familie.Oberhaupt, new Arbeitsplatz(s + new Vector3(0.4f, 0, -0.95f), Sued, Bewegung.Beten, Werkzeug.Keins, true), a.Farbe, nummer++), true));
+        figuren.Add((Figur(familie.Oberhaupt, new Arbeitsplatz(s + new Vector3(0.4f, 0, -0.95f), Sued, Bewegung.Beten, Werkzeug.Keins, true), farbe, nummer++), true));
         if (familie.Ehepartner is { Lebt: true } partner)
             figuren.Add((Figur(partner, new Arbeitsplatz(s + new Vector3(-2.3f, 0, -1.5f), West, Bewegung.Ruehren, Werkzeug.Kelle), Gewandfarben[4], nummer++), false));
         var plaetze = new[]
