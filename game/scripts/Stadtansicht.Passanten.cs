@@ -30,6 +30,11 @@ public partial class Stadtansicht
         public float Laenge { get; set; }
         /// <summary>Seitlicher Versatz (Meter), damit nicht alle auf derselben Linie laufen.</summary>
         public float Versatz { get; init; }
+        /// <summary>Eigenes Gehtempo in Metern je echter Sekunde bei Tempo 1 (schlendern, normal, eilig).</summary>
+        public float Gehtempo { get; init; }
+        /// <summary>Wann die Figur für den aktuellen Weg losgeht und ankommt (Spielminuten, mit Bruchteil).</summary>
+        public double LaufStart { get; set; }
+        public double LaufEnde { get; set; }
         /// <summary>Wo die Figur zuletzt stand (null = sie lief). Steht sie noch dort, wird nichts neu gesetzt.</summary>
         public (Aufenthalt Ort, Weg? Weg)? Stand { get; set; }
     }
@@ -62,12 +67,24 @@ public partial class Stadtansicht
             if (!_passanten.TryGetValue(e.Nummer, out var p))
                 _passanten[e.Nummer] = p = PassantBauen(e);
 
-            var wo = e.Wo(minute);
+            // Wo die Figur ist, sagt ihr eigener Laufplan (siehe LaufPlanen): vor dem Losgehen am alten Ort,
+            // nach der Ankunft am neuen, dazwischen unterwegs.
+            var weg = e.Weg;
+            if (weg is not null && !ReferenceEquals(p.FuerWeg, weg))
+            {
+                p.FuerWeg = weg;
+                p.Pfad = Strecke(weg, e);
+                p.Laenge = Gassennetz.Laenge(p.Pfad);
+                LaufPlanen(p, weg);
+            }
+            Aufenthalt? wo = weg is null || minuteGenau >= p.LaufEnde ? e.Aufenthalt
+                           : minuteGenau < p.LaufStart ? weg.Von
+                           : null;
             if (wo is { } ort)
             {
                 // Am Ort: nur draußen sichtbar. Steht die Figur schon da, bleibt alles, wie es ist –
                 // jede gesetzte Position kostet Godot Arbeit, auch wenn sie sich nicht ändert.
-                var stand = (ort, e.Weg);
+                var stand = (ort, weg);
                 if (p.Stand == stand) continue;
                 p.Stand = stand;
                 var punkt = Draussen(ort) ? Verweilpunkt(ort, e) : (Vector3?)null;
@@ -82,15 +99,8 @@ public partial class Stadtansicht
             p.Stand = null;
 
             // Unterwegs
-            var weg = e.Weg!;
-            if (!ReferenceEquals(p.FuerWeg, weg))
-            {
-                p.FuerWeg = weg;
-                p.Pfad = Strecke(weg, e);
-                p.Laenge = Gassennetz.Laenge(p.Pfad);
-            }
             if (p.Pfad.Length == 0) { p.Knoten.Visible = false; continue; }
-            var anteil = (float)weg.Fortschritt(minuteGenau);
+            var anteil = (float)Math.Clamp((minuteGenau - p.LaufStart) / (p.LaufEnde - p.LaufStart), 0, 1);
             var hier = Gassennetz.PunktAuf(p.Pfad, anteil);
             var weiter = Gassennetz.PunktAuf(p.Pfad, Mathf.Min(1, anteil + 0.5f / Mathf.Max(p.Laenge, 1)));
             var richtung = weiter - hier;
@@ -119,12 +129,45 @@ public partial class Stadtansicht
         _passantenSeitMessung += delta;
         if (_passantenSeitMessung >= 10)
         {
-            GD.Print($"Passanten: {_passanten.Count} Figuren, {_passanten.Values.Count(p => p.Knoten.Visible)} sichtbar, " +
+            // Wie schnell die Laufenden gerade gehen (Meter je echter Sekunde bei Tempo 1) – zum Prüfen der Gehtempi
+            var sekunden = _simulation!.Takt.RundenDauerSekunden / Reichsgilde.Core.Zeit.Spielzeit.MinutenProTag;
+            var laufend = _passanten.Values.Where(p => p.Stand is null && p.Knoten.Visible && p.LaufEnde > p.LaufStart)
+                                           .Select(p => p.Laenge / ((p.LaufEnde - p.LaufStart) * sekunden)).ToList();
+            var tempi = laufend.Count == 0 ? "" : $"Gehtempo Ø {laufend.Average():0.0} m/s, höchstens {laufend.Max():0.0} m/s, ";
+            GD.Print($"Passanten: {_passanten.Count} Figuren, {_passanten.Values.Count(p => p.Knoten.Visible)} sichtbar, {tempi}" +
                      $"{_passantenZeit / _passantenBilder:0.00} ms je Bild, {Engine.GetFramesPerSecond()} Bilder/s, " +
                      $"{RenderingServer.GetRenderingInfo(RenderingServer.RenderingInfo.TotalDrawCallsInFrame)} Zeichenaufrufe");
             _passantenZeit = 0;
             _passantenBilder = 0;
             _passantenSeitMessung = 0;
+        }
+    }
+
+    /// <summary>Höchstens so viel schneller als ihr eigenes Tempo geht eine Figur, wenn die Zeit knapp ist.</summary>
+    private const double Hoechstens = 2;
+
+    /// <summary>
+    /// Plant den Gang einer Figur mit ihrem eigenen Tempo:
+    ///   • Reicht die Zeit zwischen Abmarsch und Ankunft (Kern), geht sie so spät los, dass sie genau zur Ankunft da ist.
+    ///   • Reicht sie nicht, geht sie beim Abmarsch los und beeilt sich – bis doppelt so schnell.
+    ///   • Reicht auch das nicht, kommt sie etwas später an, als der Kern sie zählt. Dafür bleibt sie glaubwürdig.
+    /// Die Geschwindigkeit gilt in echten Sekunden bei Tempo 1; bei höherem Spieltempo laufen alle entsprechend schneller.
+    /// </summary>
+    private void LaufPlanen(Passant p, Weg weg)
+    {
+        var sekundenJeMinute = _simulation!.Takt.RundenDauerSekunden / Reichsgilde.Core.Zeit.Spielzeit.MinutenProTag;
+        var meterJeMinute = p.Gehtempo * sekundenJeMinute;
+        var gemuetlich = p.Laenge / meterJeMinute;        // Minuten im eigenen Tempo
+        var verfuegbar = (double)(weg.Ankunft - weg.Abmarsch);
+        if (gemuetlich <= verfuegbar)
+        {
+            p.LaufStart = weg.Ankunft - gemuetlich;
+            p.LaufEnde = weg.Ankunft;
+        }
+        else
+        {
+            p.LaufStart = weg.Abmarsch;
+            p.LaufEnde = weg.Abmarsch + Math.Max(verfuegbar, gemuetlich / Hoechstens);
         }
     }
 
@@ -247,6 +290,24 @@ public partial class Stadtansicht
         koerper.AddChild(new MeshInstance3D { Mesh = Rumpf, MaterialOverride = Stoff(kleidung), Position = new Vector3(0, 0.65f, 0) });
         koerper.AddChild(new MeshInstance3D { Mesh = Kopf, MaterialOverride = Stoff(Hautfarbe), Position = new Vector3(0, 1.5f, 0) });
         var versatz = ((e.Nummer * 37 % 9) - 4) * 0.22f; // −0,9 … +0,9 m
-        return new Passant { Knoten = knoten, Koerper = koerper, Versatz = versatz };
+        return new Passant { Knoten = knoten, Koerper = koerper, Versatz = versatz, Gehtempo = Gehtempo(e) };
+    }
+
+    /// <summary>
+    /// Gehtempo in Metern je echter Sekunde (bei Tempo 1): ein Viertel schlendert (1,5), gut die Hälfte geht normal (2,5),
+    /// ein Fünftel ist eilig (3,5) – je ±10 %, fest nach der Nummer. Boten eilen immer, Bettler, Witwen und Witwer schlendern.
+    /// </summary>
+    private static float Gehtempo(Einwohner e)
+    {
+        var zahl = Streuung(e.Nummer, 977);
+        var wahl = (zahl & 0xFFFF) / 65535f;
+        var feinheit = 0.9f + ((zahl >> 16) & 0xFFFF) / 65535f * 0.2f;
+        var grund = e.Rolle switch
+        {
+            "Bote" => 3.5f,
+            "Bettler" or "Witwer" => 1.5f,
+            _ => wahl < 0.25f ? 1.5f : wahl < 0.8f ? 2.5f : 3.5f,
+        };
+        return grund * feinheit;
     }
 }
