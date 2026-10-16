@@ -531,6 +531,12 @@ public sealed record KarrenStand
     public Dictionary<string, int> Ladung { get; init; } = new();
     public string Eskorte { get; init; } = "Keine";
     public bool NachtsFahren { get; init; }
+
+    /// <summary>Wartet am geschlossenen Stadttor bis zu dieser Spielminute (null: wartet nicht; fehlt in alten Spielständen).</summary>
+    public long? TorWartenBis { get; init; }
+
+    /// <summary>Der Rückweg ins Umland beginnt erst, wenn das Tor aufgeht.</summary>
+    public bool RueckfahrtWartet { get; init; }
     public long? WareWartetSeit { get; init; }
 
     /// <summary>Einkäufe eines Handelsauftrags, solange der Karren zum Markt unterwegs ist (null: kein Auftrag).</summary>

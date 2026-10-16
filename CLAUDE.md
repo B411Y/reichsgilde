@@ -40,7 +40,7 @@ Jeder Chat bekommt im Prompt einen Bereich. Dateien außerhalb des eigenen Berei
 | später z. B. Sound | wird hier ergänzt, sobald es den Chat gibt |
 
 Nur der Kern-Chat ändert: `game/data/wirtschaft.json`, `Stadtwirtschaft.cs`, `Speicherstand.cs`. Braucht ein anderer Bereich dort etwas: im PR-Text beschreiben und den Nutzer fragen.
-**Ausnahme Spiel-KI:** Der Spiel-KI-Chat darf dort kleine Andockstellen ergänzen und nennt jede im PR-Text: einen Aufruf in `Stadtwirtschaft` (Takt, Jahreswechsel, öffentliche Abfrage), einen **eigenen** Abschnitt in `wirtschaft.json` (Datenversion erhöhen), eigene Felder im `Speicherstand` (alte Spielstände müssen weiter laden). Bestehende Werte und Regeln ändert nur der Kern.
+**Ausnahme Spiel-KI:** Der Spiel-KI-Chat darf dort kleine Andockstellen ergänzen und nennt jede im PR-Text: einen Aufruf in `Stadtwirtschaft` (Takt, Jahreswechsel, öffentliche Abfrage), einen **eigenen** Abschnitt in `wirtschaft.json` (Datenversion erhöhen), eigene Felder im `Speicherstand` (alte Spielstände müssen weiter laden), dazu **je Teilsystem des Kerns einen Faktor oder Aufruf**, über den die Bürger wirken (z. B. `Markt.NachfrageFaktor`, ein Faktor in `Kirchenwesen` oder `Gastwirtschaft`; ohne Abschnitt `buerger` bleibt er 1). Bestehende Werte und Regeln ändert nur der Kern.
 Die Darstellung **liest den Kern nur** (öffentliche Abfragen). Fehlt eine Abfrage, kleine Ergänzung im Kern mit Test – im PR nennen.
 
 ## Feste Regeln
