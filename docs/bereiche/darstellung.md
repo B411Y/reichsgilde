@@ -62,3 +62,12 @@ So wird eingetragen (damit sich die Chats nie an derselben Stelle treffen):
 | Thema | Entscheidung | Datum |
 |---|---|---|
 | Betende | Einwohner, die als Passanten im Dom angekommen sind, sitzen dort einzeln auf den Bänken: vorderster freier Platz, in der Simultankirche Katholiken links, Evangelische rechts. Gestalt, Gewand und Haut wie draußen; Strohhut und Last bleiben draußen. Jeder behält seinen Platz, bis er geht. Die Messe-Gläubigen (eine Figur je fünf) setzen sich auf die übrigen Plätze. Mehr Betende als 48 Plätze werden nicht gezeigt. Die Infotafel nennt die Zahl. | 16.10.2026 |
+
+### Verkaufte Werkstatt (PR #96)
+
+| Thema | Entscheidung | Datum |
+|---|---|---|
+| Aussehen | **Das Haus bleibt stehen** in Stufe (Gaube, Dachreiter) und Werkstil, aber neutral: keine Wappenfahne, keine Besitzerfarbe, die Tür mit zwei gekreuzten Brettern verriegelt, davor das **ockerfarbene Schild** wie bei freien Plätzen. Maus darüber: Name und „zu verkaufen“. Kein Innenraum. | 16.10.2026 |
+| Pacht | Eine gekündigte Grube oder Umlandpacht zeigt wieder den leeren Platz mit grünem Schild „zu verpachten“ wie vor dem ersten Pachten. | 16.10.2026 |
+| Ablauf | Mitten im Spiel verschwinden Gebäude, Innenraum und Karren des Betriebs in einem Zug; wer ihn gerade betreten hat, steht wieder in der Stadt. Beim Laden steht das leere Haus gleich da. Beim Wiederkauf weicht es dem neuen Betrieb (mit Fahne des Käufers). | 16.10.2026 |
+| Ereignis | Die Stadtansicht abonniert `BetriebAbgegeben` selbst – keine Änderung an der Hauptszene. Die Auswahltafel auf den freien Platz umstellen ist Sache der Oberfläche. | 16.10.2026 |
