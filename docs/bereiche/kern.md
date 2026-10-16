@@ -20,7 +20,6 @@ So wird eingetragen (damit sich die Chats nie an derselben Stelle treffen):
 - (Nutzer) Pausenregeln im Multiplayer
 - (5) (von Leveldesign) Wohnhaus-Ausbau: Fachwerkhaus → Bürgerhaus → Steinhaus am selben Platz; **Stadtpalais und Hof nicht am Platz**, sondern als neuer Bau oder Abriss und Neubau (Entscheidung 16.10.2026, `docs/LEVELDESIGN.md`, Gebäudegrößen) – betrifft Entwurf PR #75
 - (von Spiel-KI) Haus des Spielers im Rat: Befehl zum Abstimmen bei Wahlen und Anträgen (heute: Amtsinhaber bzw. Enthaltung); die KI-Häuser wählen seit PR #73 nach Charakter
-- (5) Werkstatt frei verkaufen: Befehl fehlt noch (Entscheidung zu PR #75)
 - (5) (von Darstellung) Leerstand aufkaufen und abreißen lassen, um Platz für ein neues Gebäude zu schaffen (Wunsch des Nutzers, 16.10.2026). Die Darstellung zeigt Leerstand heute vernagelt und ohne Fahne (PR #87); sobald es den Befehl gibt, verschwindet das Haus und der Platz wird frei.
 - (5) Wohnhaus kaufen statt bauen: Leerstand (`Wohnen.Leerstand`) übernehmen und sanieren – zusammen mit Bauzonen und Sanierung
 - (–) Sporadisches Leck beim Beenden im Rauchtest finden: „10 ObjectDB instances leaked“ und „10 RID allocations of type DummyTexture leaked“, im zweiten Start (mit Tafeln), nur auf GitHub, lokal nicht nachzustellen. Der Rauchtest wiederholt solche Funde seit PR #83; die Warnung „1. Versuch“ im Lauf zeigt, wie oft es vorkommt. Befund vom 16.10.: Vor dem Merge von PR #77 kein Fall in 40 Läufen, danach etwa jeder dritte Lauf, auch zweimal hintereinander im selben Lauf. In Schleifen im selben Job (Branch `experiment/leck`, mit und ohne Hinterzimmer, mit Menü-Start davor, mit und ohne `tee`) dagegen 0 von 152 Starts, und mit `--verbose` nie – es hängt am Zeitablauf
@@ -70,6 +69,18 @@ So wird eingetragen (damit sich die Chats nie an derselben Stelle treffen):
 | Wirkung | Gilt überall, wo das Reinvermögen zählt: Stand, Rangliste, Ansehen, Bußdeckel, Kreditwürdigkeit, Bankrott, Sieg. Bezahlt wird weiter mit Bargeld; Brand und Unterhalt ändern den Hauswert nicht. | 16.10.2026 |
 | KI-Häuser | `KiRivale` spart nur noch auf die Schwelle selbst und baut das Haus, sobald Ausbau, Gebühr und Reserve bar da sind (kleine Änderung im Bereich Spiel-KI, zwei Tests angepasst). | 16.10.2026 |
 | Stadthof | Die oberste Stufe heißt „Stadthof“ statt „Hof“ (Wunsch Leveldesign: Verwechslung mit Bauernhof und Klosterhof). Spielstände speichern nur die Stufennummer, laden also weiter. | 16.10.2026 |
+
+### Werkstatt verkaufen (PR #95)
+
+| Thema | Entscheidung | Datum |
+|---|---|---|
+| Erlös | **75 % des Werts**. Wert = Kaufpreis Stufe 1 (3.500 wie die Liegenschaften) **plus alle Ausbaukosten** bis zur aktuellen Stufe: Gießerei 3.500, Schmiede 6.000, Goldschmiede 11.000 → Erlös 2.625 / 4.500 / 8.250. Startbetriebe ohne eigene Liegenschaft nehmen den Preis der gleichnamigen, sonst der günstigsten Liegenschaft derselben Art – kein neues Datenfeld, die Preise bleiben an einer Stelle. | 16.10.2026 |
+| Danach | Der Betrieb wird **freie Liegenschaft mit seiner Stufe** (bleibt ausgebaut), Kaufpreis = **voller Wert**. Der Käufer braucht Mindeststand, Beruf und den **Meistergrad** der Stufe (wie beim Ausbau) und bekommt ihn leer mit Startkarren. Gilt auch für die Startbetriebe. Gespeichert im Spielstand; alte Spielstände laden weiter. In `wirtschaft.json` gibt es weiter nur Stufe 1 zu kaufen. | 16.10.2026 |
+| Inventar | **Alles inklusive**: Personal, Wächter und Karren gehen mit (kein Erlös). **Lagerware** zum aktuellen Marktpreis **−20 %**, ohne Preiswirkung auf den Markt. Ist ein Karren unterwegs, wird der Verkauf abgelehnt. Die Kasse eines Geldleihers kommt zurück ins Bargeld. | 16.10.2026 |
+| Laufende Kosten | Löhne, Wächter und Unterhalt bzw. Pacht werden beim Verkauf **anteilig bis zum Verkaufstag** fällig (sonst erst am Jahresende – wer kurz davor verkaufte, ließe das Jahr umsonst arbeiten). Detail des Kern-Chats, bitte bestätigen. | 16.10.2026 |
+| Umfang | Derselbe Befehl **kündigt Umlandpachten** (kein Erlös, nur die Lagerware). **Mindestens ein Betrieb bleibt**, **während eines Umbaus** kein Verkauf. | 16.10.2026 |
+| Buchung | Erlös als eigener Posten **„Verkäufe“** in der Jahresrechnung, außerhalb des Betriebsgewinns (Gegenstück zu den Anschaffungen). Werte im Abschnitt `verkauf` (`anteil`, `warenAbschlag`), Datenversion 33. | 16.10.2026 |
+| KI | Die KI-Häuser verkaufen noch nicht (offener Punkt bei Spiel-KI). Sie kaufen verkaufte Werkstätten nur mit dem nötigen Meistergrad (eine Zeile in `KiRivale.Expandieren`). Keine Messung nötig, solange die KI nicht verkauft. | 16.10.2026 |
 
 ## Messungen
 

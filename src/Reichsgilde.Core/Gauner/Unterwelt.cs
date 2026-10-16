@@ -316,6 +316,12 @@ public sealed class Unterwelt
         foreach (var a in _auftraege)
         {
             if (!a.Auftraggeber.IstAktiv || !a.Ziel.IstAktiv) continue;
+            if (a.Betrieb is { } name && _w.Betriebe.FirstOrDefault(b => b.Name == name)?.Konto != a.Ziel)
+            {
+                // Inzwischen verkauft: Die Bande behält ihr Geld, rührt aber den neuen Besitzer nicht an.
+                Ereignis(a.Auftraggeber, $"{name} gehört nicht mehr {a.Ziel.Inhaber} – eure Bande zieht unverrichteter Dinge ab.");
+                continue;
+            }
             switch (a.Art)
             {
                 case Gaunerstueck.Diebstahl: Stehlen(a); break;
@@ -500,6 +506,9 @@ public sealed class Unterwelt
 
     /// <summary>Ein Betrieb wurde angegriffen (auch von Dieben) – die Stadt redet davon, die KI stellt Wächter ein.</summary>
     internal void AngriffMerken(string betrieb) => _letzterAngriff[betrieb] = _w.Jahr;
+
+    /// <summary>Der Betrieb wurde verkauft: Der nächste Besitzer erbt keine alten Anschläge.</summary>
+    internal void BetriebAufgegeben(Betrieb b) => _letzterAngriff.Remove(b.Name);
 
     /// <summary>Nachricht aus der Unterwelt (auch von den Dieben) – erscheint im Hinterzimmer und im Protokoll.</summary>
     internal void Melden(Konto? fuer, string text) => Ereignis(fuer, text);

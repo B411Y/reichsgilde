@@ -44,6 +44,9 @@ public sealed class Jahresbilanz
     /// <summary>Zinsen für Kredite bei einem Geldleiher (nicht Teil des Betriebsgewinns).</summary>
     public double Zinsen { get; internal set; }
 
+    /// <summary>Erlös aus verkauften Betrieben samt ihrer Lagerware (nicht Teil des Betriebsgewinns – das Gegenstück zu den Anschaffungen).</summary>
+    public double Verkaeufe { get; internal set; }
+
     /// <summary>Hergestellte Stück je Ware.</summary>
     public Dictionary<string, int> Hergestellt { get; } = new();
 
@@ -172,6 +175,7 @@ public sealed class Konto
     internal void Gerichtskosten(double betrag) { Vermoegen -= betrag; Laufend.Gericht += betrag; }
     internal void Gaunerkosten(double betrag) { Vermoegen -= betrag; Laufend.Gaunerei += betrag; }
     internal void Raub(double warenwert) => Laufend.Raubwert += warenwert;
+    internal void Verkauf(double betrag) { Vermoegen += betrag; Laufend.Verkaeufe += betrag; }
 
     // ── Kredite (Geldleiher) ────────────────────────────────────────────────
     internal void Verleihen(double betrag) { Vermoegen -= betrag; Forderungen += betrag; }
@@ -227,7 +231,7 @@ public sealed class Konto
         Steuer = b.Steuer, Schaden = b.Schaden, Transport = b.Transport, Raubwert = b.Raubwert,
         Investitionen = b.Investitionen, Standesgebuehren = b.Standesgebuehren, Hergestellt = new(b.Hergestellt),
         Amtseinkommen = b.Amtseinkommen, Geschenke = b.Geschenke, Familie = b.Familie, Gericht = b.Gericht, Gaunerei = b.Gaunerei,
-        Zinsen = b.Zinsen,
+        Zinsen = b.Zinsen, Verkaeufe = b.Verkaeufe,
     };
 
     private static Jahresbilanz BilanzLaden(BilanzStand s)
@@ -238,7 +242,7 @@ public sealed class Konto
             Steuer = s.Steuer, Schaden = s.Schaden, Transport = s.Transport, Raubwert = s.Raubwert,
             Investitionen = s.Investitionen, Standesgebuehren = s.Standesgebuehren,
             Amtseinkommen = s.Amtseinkommen, Geschenke = s.Geschenke, Familie = s.Familie, Gericht = s.Gericht, Gaunerei = s.Gaunerei,
-            Zinsen = s.Zinsen,
+            Zinsen = s.Zinsen, Verkaeufe = s.Verkaeufe,
         };
         foreach (var (ware, stueck) in s.Hergestellt) b.Hergestellt[ware] = stueck;
         return b;

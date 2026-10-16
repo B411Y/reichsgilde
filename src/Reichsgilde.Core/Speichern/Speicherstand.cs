@@ -96,6 +96,18 @@ public sealed record WirtschaftStand
 
     /// <summary>Die Einwohner der Bürger-KI (null in Spielständen von vor der Bürger-KI).</summary>
     public Buerger.EinwohnerschaftStand? Einwohner { get; init; }
+
+    /// <summary>Verkaufte Betriebe, die wieder zu haben sind – mit Stufe und Kaufpreis (null: keine; alte Spielstände).</summary>
+    public List<FreieLiegenschaftStand>? Abgegeben { get; init; }
+}
+
+/// <summary>Ein verkaufter Betrieb, der wieder frei ist (siehe <see cref="Stadtwirtschaft.FreieLiegenschaften"/>).</summary>
+public sealed record FreieLiegenschaftStand
+{
+    public string Name { get; init; } = "";
+    public Betriebsart Art { get; init; }
+    public double Kaufpreis { get; init; }
+    public string MindestStand { get; init; } = "";
 }
 
 public sealed record GlaubeStand
@@ -503,6 +515,9 @@ public sealed record BilanzStand
     public double Gericht { get; init; }
     public double Gaunerei { get; init; }
     public double Zinsen { get; init; }
+
+    /// <summary>Erlös aus verkauften Betrieben (0 in alten Spielständen).</summary>
+    public double Verkaeufe { get; init; }
     public Dictionary<string, int> Hergestellt { get; init; } = new();
 }
 

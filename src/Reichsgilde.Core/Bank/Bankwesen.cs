@@ -286,6 +286,15 @@ public sealed class Bankwesen
         return Befehlsergebnis.Ok($"{b.Name}: {Zahlenformat.Ganz(betrag)} {_w.Daten.Allgemein.Waehrung} aus der Kasse genommen.");
     }
 
+    /// <summary>Die Geldleihe wird verkauft: Die Kasse geht ganz zurück ins Bargeld (sie ist Geld des Hauses, kein Erlös).</summary>
+    internal double KasseAufloesen(Betrieb b)
+    {
+        var kasse = Kasse(b);
+        if (kasse > 0) b.Konto.Zurueckerhalten(kasse);
+        _kassen.Remove(b.Name);
+        return kasse;
+    }
+
     internal Befehlsergebnis ZinsSetzen(Betrieb b, double satz)
     {
         if (!IstBankbetrieb(b)) return Befehlsergebnis.Abgelehnt($"{b.Name} ist keine Geldleihe.");

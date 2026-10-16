@@ -1,3 +1,5 @@
+using System.Text.Json.Serialization;
+
 namespace Reichsgilde.Core.Wirtschaft;
 
 /// <summary>
@@ -37,6 +39,8 @@ public sealed class SchuldenDaten
 ///   • Werkstätten werden gekauft (<see cref="Kaufpreis"/>), danach fällt jährlich Unterhalt an.
 ///   • Gruben werden gepachtet (Kaufpreis 0), die Pacht wird jährlich fällig.
 /// Wer zuerst kommt, mahlt zuerst: Jede Liegenschaft gibt es nur einmal.
+/// Verkauft ein Haus einen Betrieb (<see cref="BetriebVerkaufen"/>), wird er wieder eine Liegenschaft –
+/// dann mit seiner Stufe, dem vollen Wert als Kaufpreis und <see cref="Bebaut"/> (siehe <see cref="Stadtwirtschaft.FreieLiegenschaften"/>).
 /// </summary>
 public sealed class LiegenschaftDaten
 {
@@ -49,4 +53,34 @@ public sealed class LiegenschaftDaten
 
     /// <summary>Ohne Kaufpreis wird gepachtet (Umland): Man zahlt nur die Jahrespacht.</summary>
     public bool IstPacht => Kaufpreis <= 0;
+
+    /// <summary>
+    /// Ein verkaufter Betrieb: Das Gebäude steht schon (mit seiner Stufe, <see cref="Art"/> kann z. B. Schmiede sein) –
+    /// kein leerer Bauplatz. Nie in wirtschaft.json, nur aus <see cref="Stadtwirtschaft.FreieLiegenschaften"/>.
+    /// </summary>
+    [JsonIgnore]
+    public bool Bebaut { get; init; }
+
+    /// <summary>Welchen Meistergrad im Beruf der Käufer braucht – wie beim Ausbau zu dieser Stufe (Stufe 1: Grad 1).</summary>
+    [JsonIgnore]
+    public int MindestGrad { get; init; } = 1;
+}
+
+/// <summary>
+/// Betriebe verkaufen (Abschnitt "verkauf", ab Datenversion 33): Werkstätten bringen einen Teil ihres Werts,
+/// die Lagerware geht mit einem Abschlag auf den Marktpreis weg. Fehlt der Abschnitt, gelten die Standardwerte.
+/// </summary>
+public sealed class VerkaufDaten
+{
+    /// <summary>Anteil des Werts, den eine Werkstatt beim Verkauf bringt (0,75 = 75 %). Wert = Kaufpreis Stufe 1 + alle Ausbauten.</summary>
+    public double Anteil { get; init; } = 0.75;
+
+    /// <summary>Bearbeitungsgebühr auf die mitverkaufte Lagerware (0,2 = Marktpreis −20 %).</summary>
+    public double WarenAbschlag { get; init; } = 0.2;
+
+    public void Pruefen(List<string> f)
+    {
+        if (Anteil is < 0 or > 1) f.Add("verkauf.anteil muss zwischen 0 und 1 liegen.");
+        if (WarenAbschlag is < 0 or > 1) f.Add("verkauf.warenAbschlag muss zwischen 0 und 1 liegen.");
+    }
 }

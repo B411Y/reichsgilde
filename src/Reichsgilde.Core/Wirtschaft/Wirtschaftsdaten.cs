@@ -175,6 +175,9 @@ public sealed class Wirtschaftsdaten
     /// <summary>Freie Werkstätten und Gruben, die man erwerben kann (ab Datenversion 4).</summary>
     public List<LiegenschaftDaten> Liegenschaften { get; init; } = new();
 
+    /// <summary>Erlös beim Verkauf eines Betriebs (ab Datenversion 33). Fehlt der Abschnitt, gelten 75 % und −20 % auf die Ware.</summary>
+    public VerkaufDaten Verkauf { get; init; } = new();
+
     /// <summary>Stufe eines Standes nach Namen (−1, wenn es ihn nicht gibt).</summary>
     public int StandStufe(string name) => Staende.FindIndex(st => st.Name == name);
 
@@ -396,6 +399,7 @@ public sealed class Wirtschaftsdaten
         Logistik.Pruefen(f);
         Handel?.Pruefen(f);
         Wohnen?.Pruefen(f, Staende.Count);
+        Verkauf.Pruefen(f);
 
         if (Staende.Count == 0) f.Add("Es sind keine Stände definiert.");
         for (var i = 0; i < Staende.Count; i++)

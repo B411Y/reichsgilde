@@ -414,6 +414,7 @@ public sealed class KiRivale
         var daten = _w.Daten;
         var wahl = _w.FreieLiegenschaften
             .Where(l => Konto.Stand >= daten.StandStufe(l.MindestStand))
+            .Where(l => l.MindestGrad <= Math.Max(1, Konto.Meistergrad(daten.Art(l.Art).Beruf))) // verkaufte ausgebaute Werkstätten erst mit dem Meistergrad
             .Where(l => !voll || daten.Art(l.Art).Ort == Arbeitsort.Werkstatt && NurUmland(daten.Art(l.Art).Beruf))
             // Mit dem Völkerbonus: Ein Zwergenhaus sucht eher eine Werkstatt, in der Zwerge gut sind.
             .Select(l => (Liegenschaft: l, Beruf: daten.Art(l.Art).Beruf,
