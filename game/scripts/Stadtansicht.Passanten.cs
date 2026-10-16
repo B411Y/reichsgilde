@@ -420,16 +420,21 @@ public partial class Stadtansicht
     /// <summary>Hebt die Figur unter der Maus und die ausgewählte hell hervor (Stoff tauschen, nur bei Änderung).</summary>
     private void PassantenHervorheben()
     {
+        // Nummern einmal herauslesen statt je Figur einen Text zu bauen (das wären jedes Bild hunderte neue Texte)
+        var maus = EinwohnerNummer(_unterDerMaus);
+        var gewaehlt = EinwohnerNummer(Auswahl);
         foreach (var (nummer, p) in _passanten)
         {
-            var kennung = "einwohner:" + nummer;
-            var soll = kennung == _unterDerMaus || kennung == Auswahl;
+            var soll = nummer == maus || nummer == gewaehlt;
             if (p.Hervorgehoben == soll) continue;
             p.Hervorgehoben = soll;
             foreach (var (teil, stoff) in p.Teile)
                 teil.MaterialOverride = soll ? HellerStoff(stoff) : stoff;
         }
     }
+
+    private static int? EinwohnerNummer(string? kennung) =>
+        kennung is not null && kennung.StartsWith("einwohner:") && int.TryParse(kennung.AsSpan("einwohner:".Length), out var n) ? n : null;
 
     private readonly Dictionary<StandardMaterial3D, StandardMaterial3D> _hell = new();
 
@@ -452,7 +457,7 @@ public partial class Stadtansicht
         if (ew.Nummer(nummer) is not { } e) return "Dieser Einwohner lebt nicht mehr in der Stadt.";
         var zeit = _simulation.Zeit;
         var volk = e.Volk switch { Volk.Zwerg => "Zwerg", Volk.Elb => "Elb", Volk.Halbling => "Halbling", Volk.Ork => "Ork", Volk.Oger => "Oger", _ => "Mensch" };
-        if (e.Geschlecht == Geschlecht.Frau) volk = e.Volk switch { Volk.Zwerg => "Zwergin", Volk.Elb => "Elbin", Volk.Halbling => "Halblingsfrau", _ => "Menschenfrau" };
+        if (e.Geschlecht == Geschlecht.Frau) volk = e.Volk switch { Volk.Zwerg => "Zwergin", Volk.Elb => "Elbin", Volk.Halbling => "Halbling", _ => "Mensch" };
         var herkunft = e.Herkunft switch
         {
             Herkunft.Ratsherr => " · im Stadtrat",
@@ -478,9 +483,9 @@ public partial class Stadtansicht
         var haus = ew.Wohnhaeuser.FirstOrDefault(h => h.Nummer == e.Wohnhaus) is { } stadthaus
             ? $"Wohnt in einem {(stadthaus.Art switch { Hausart.Ratsherrenhaus => "Ratsherrenhaus", Hausart.Buergerhaus => "Bürgerhaus", _ => "einfachen Haus" })}"
               + (_hausplaetze.TryGetValue(stadthaus.Nummer, out var platz) && !platz.Ring && !KulissePlaetze().Contains(platz) ? " in der Vorstadt" : " am Mauerring")
-            : "";
+            : null;
         var stimmung = e.Stimmung switch { >= 75 => "zufrieden", >= 55 => "gut gelaunt", >= 35 => "mürrisch", _ => "unzufrieden" };
-        return string.Join("\n", new[]
+        return string.Join("\n", new string?[]
         {
             e.Name,
             "",
@@ -488,7 +493,7 @@ public partial class Stadtansicht
             $"{char.ToUpper(tun[0])}{tun[1..]} – {wo}.",
             haus,
             $"Stimmung: {stimmung} ({e.Stimmung:0} von 100)",
-        }.Where(z => z is not null));
+        }.OfType<string>()); // ohne Haus fällt die Zeile weg
     }
 
     private static string OrtText(Aufenthalt a, Einwohnerschaft ew, bool mitZu) => a.Ort switch

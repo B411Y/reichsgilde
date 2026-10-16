@@ -12,7 +12,6 @@ So wird eingetragen (damit sich die Chats nie an derselben Stelle treffen):
 
 - (3) Raumansicht für den Dom und Feinschliff der Werkstatträume je Beruf (zweiter Teil von PR #52)
 - (3) (von Kern) Karren am Stadttor zeigen: `Karren.WartetAmTor(zeit)` – Hinweg draußen vor dem Tor, Rückweg drinnen (ab PR #67)
-- (3) Passanten Schritt 4: Aussehen nach Volk und Rolle (Tracht), Klick auf eine Figur öffnet die Infotafel, Maus darüber hebt sie hervor
 - (3) Einwohner in den Innenräumen von Schänke und Kirche zeigen (später, eigener Schritt)
 - (3) (von Leveldesign) Gebäudemaße auf glatte Meter: Einwohnerhäuser 6 × 6, 7 × 7, 8 × 8 m; Werkstatt belegt 16 × 14 m und zeigt jede Stufe als sichtbaren Anbau innerhalb dieser Fläche (`docs/LEVELDESIGN.md`, Gebäudegrößen)
 - (3) (von Kern) Wohnhaus je Haus in der Stadt zeigen, Größe nach `Wohnen.Stufe(konto)` (Fachwerkhaus bis Hof), Bau läuft: `Wohnen.FertigAb(konto)`. Wohnstube und Kontor gehören ins Wohnhaus statt ins Stammhaus (ab PR #75)
@@ -35,4 +34,11 @@ So wird eingetragen (damit sich die Chats nie an derselben Stelle treffen):
 |---|---|---|
 | Gehtempo | **Feste Spanne je Figur** statt „Weglänge ÷ Wegzeit“: schlendern 1,5, normal 2,5, eilig 3,5 m/s (echte Sekunde bei Tempo 1, ±10 %, fest nach der Nummer). Boten eilen, Bettler und Verwitwete schlendern. | 16.10.2026 |
 | Ankunft | Die Figur geht so spät los, dass sie zur Ankunftszeit des Kerns da ist. Reicht die Zeit nicht, beeilt sie sich **bis zum Doppelten**; reicht auch das nicht, kommt sie später an als gezählt. Dafür bittet die Darstellung den Spiel-KI-Chat um längere Wegzeiten (Zeile in `spiel-ki.md`). | 16.10.2026 |
+
+### Tracht und Infotafel der Passanten (PR #78, #81)
+
+| Thema | Entscheidung | Datum |
+|---|---|---|
+| Aussehen | **Volk über die Gestalt, Rolle über die Tracht.** Ratsherr roter Mantel und Barett, Mönch braune Kutte mit Kapuze, Nonne schwarz mit weißem Schleier, Bettler graue Lumpen und gebeugt, Hirte Strohhut und Stab, Feldarbeiter Strohhut, Holzsammler Reisigbündel, Krämer Kiepe, Bote blau mit Tasche, Knecht und Magd mit Schürze, Verwitwete schwarz, Bürgerkinder kräftige Farben mit Barett. Frauen mit Rock und Haube, Zwerge mit Bart. | 16.10.2026 |
+| Klick | Klick auf eine Figur öffnet die Auswahltafel (Name, Rolle, Volk, Alter, Tun und Ort bzw. Ziel mit Ankunft, Wohnhaus, Stimmung). Maus darüber hebt sie hell hervor. Treffer über die Bildschirmlage statt Klickflächen (die müssten jedes Bild mitwandern). | 16.10.2026 |
 
