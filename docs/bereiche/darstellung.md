@@ -12,7 +12,7 @@ So wird eingetragen (damit sich die Chats nie an derselben Stelle treffen):
 
 - (3) Raumansicht für den Dom und Feinschliff der Werkstatträume je Beruf (zweiter Teil von PR #52)
 - (3) (von Kern) Karren am Stadttor zeigen: `Karren.WartetAmTor(zeit)` – Hinweg draußen vor dem Tor, Rückweg drinnen (ab PR #67)
-- (3) Einwohner in den Innenräumen von Schänke und Kirche zeigen (später, eigener Schritt)
+- (3) Einwohner in den Innenräumen von Schänken und Kirchen der Häuser zeigen (im Dom erledigt, PR #93)
 - (3) (von Leveldesign) Gebäudemaße auf glatte Meter: Einwohnerhäuser 6 × 6, 7 × 7, 8 × 8 m; Werkstatt belegt 16 × 14 m und zeigt jede Stufe als sichtbaren Anbau innerhalb dieser Fläche (`docs/LEVELDESIGN.md`, Gebäudegrößen)
 
 ## Entscheidungen
@@ -56,3 +56,9 @@ So wird eingetragen (damit sich die Chats nie an derselben Stelle treffen):
 |---|---|---|
 | Räume | Doppelklick auf das **eigene** Wohnhaus betritt es (Raumansicht): Wohnstube, dann Kontor. Die Werkstatt hat nur noch Werkraum und Lager. Ohne Wohnhäuser (Abschnitt `wohnen` fehlt) bleibt es wie bisher. Rivalenhäuser sind nicht betretbar. | 16.10.2026 |
 | Schmuck | Die Einrichtung wächst mit der Stufe: Bürgerhaus Teppiche und Tellerbord, Steinhaus Wandbehang und Landkarte, Stadtpalais Kronleuchter, zweite Truhe und Standleuchter, Stadthof Wappenschild. Raumgröße bleibt gleich. | 16.10.2026 |
+
+### Betende im Dom (PR #93)
+
+| Thema | Entscheidung | Datum |
+|---|---|---|
+| Betende | Einwohner, die als Passanten im Dom angekommen sind, sitzen dort einzeln auf den Bänken: vorderster freier Platz, in der Simultankirche Katholiken links, Evangelische rechts. Gestalt, Gewand und Haut wie draußen; Strohhut und Last bleiben draußen. Jeder behält seinen Platz, bis er geht. Die Messe-Gläubigen (eine Figur je fünf) setzen sich auf die übrigen Plätze. Mehr Betende als 48 Plätze werden nicht gezeigt. Die Infotafel nennt die Zahl. | 16.10.2026 |

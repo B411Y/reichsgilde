@@ -44,6 +44,9 @@ public partial class Stadtansicht
     }
 
     private readonly Dictionary<int, Passant> _passanten = new();
+
+    /// <summary>Nummern der Einwohner, die gerade im Dom angekommen sind – dort sitzen sie auf den Bänken (Stadtansicht.Sonderbauten.cs).</summary>
+    private readonly HashSet<int> _imDom = new();
     private readonly Dictionary<Aufenthalt, Vector3> _verweilpunkte = new();
     private Node3D? _passantenEbene;
 
@@ -91,6 +94,8 @@ public partial class Stadtansicht
                 var stand = (ort, weg);
                 if (p.Stand == stand) continue;
                 p.Stand = stand;
+                if (ort.Ort == Stadtort.Kirche && ort.Betrieb is null) _imDom.Add(e.Nummer);
+                else _imDom.Remove(e.Nummer);
                 var punkt = Draussen(ort) ? Verweilpunkt(ort, e) : (Vector3?)null;
                 p.Knoten.Visible = punkt is not null;
                 if (punkt is { } q)
@@ -101,6 +106,7 @@ public partial class Stadtansicht
                 continue;
             }
             p.Stand = null;
+            _imDom.Remove(e.Nummer);
 
             // Unterwegs
             if (p.Pfad.Length == 0) { p.Knoten.Visible = false; continue; }
@@ -126,6 +132,7 @@ public partial class Stadtansicht
             {
                 _passanten[nummer].Knoten.QueueFree();
                 _passanten.Remove(nummer);
+                _imDom.Remove(nummer);
             }
 
         PassantenHervorheben();
@@ -334,6 +341,27 @@ public partial class Stadtansicht
             "Knecht" => new PassantenTracht(farbe, frau ? Kopfbedeckung.Haube : Kopfbedeckung.Keine, Last.Keine, Schuerze: true, Kopffarbe: Leinenfarbe),
             _ => new PassantenTracht(farbe, frau ? Kopfbedeckung.Haube : Kopfbedeckung.Keine, Last.Keine, Kopffarbe: Leinenfarbe), // Tagelöhner und neue Rollen
         };
+    }
+
+    /// <summary>
+    /// Ein Einwohner sitzt drinnen (Dom): Gestalt, Gewand und Haut wie draußen, damit man ihn wiedererkennt.
+    /// Den Strohhut nimmt man in der Kirche ab; Kiepe, Bündel und Stab bleiben draußen.
+    /// </summary>
+    private Arbeiterfigur SitzendeFigur(InnenAnsicht a, Einwohner e, Arbeitsplatz platz)
+    {
+        var tracht = TrachtVon(e);
+        var kopf = tracht.Kopf switch
+        {
+            Kopfbedeckung.Barett => Kopfputz.Barett,
+            Kopfbedeckung.Kapuze => Kopfputz.Kapuze,
+            Kopfbedeckung.Haube or Kopfbedeckung.Schleier => Kopfputz.Kappe,
+            _ => Kopfputz.Keiner,
+        };
+        var bart = e.Volk == Volk.Zwerg && e.Geschlecht == Geschlecht.Mann;
+        var figur = FigurBauen(a.Innen!, a.Mitte + platz.Ort, platz.Drehung, Gestalt(e.Volk), tracht.Gewand, HautVon(e.Volk),
+            tracht.Schuerze ? Leinenfarbe : null, kopf, platz.Werkzeug, platz.Art, e.Nummer * 0.7f, platz.Sitzt, bart);
+        a.Besucher.Add(figur);
+        return figur;
     }
 
     /// <summary>Hautfarbe: Elben etwas heller, Zwerge etwas rötlicher.</summary>

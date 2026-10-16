@@ -491,6 +491,8 @@ public partial class Stadtansicht
         // Gläubige zur Messe: eine Figur je fünf, vorne zuerst
         var reihenfolge = sitzplaetze.Select((x, i) => (x, i)).OrderBy(x => x.x.Platz.Ort.Z).ThenBy(x => Math.Abs(x.x.Platz.Ort.X)).Select(x => x.i).ToList();
         var glaeubige = sitzplaetze.Select((x, i) => GastBauen(a, x.Platz, i)).ToList();
+        // Einwohner, die gerade im Dom sind (Passanten), sitzen einzeln: Nummer → Figur und Sitzplatz
+        var betende = new Dictionary<int, (Arbeiterfigur Figur, int Platz)>();
         Infotafel(a, new Vector3(0, 5.5f, 0));
 
         a.Zustand = (zeit, arbeitszeit, aktiv) =>
@@ -516,9 +518,11 @@ public partial class Stadtansicht
             var anteilKatholisch = glaubeAktiv ? w.Glaube.Anteile.GetValueOrDefault(Konfession.Katholisch) : 1;
             var links = istSimultan ? (int)Math.Round(zahl * anteilKatholisch) : -1;
             int linksGesetzt = 0, rechtsGesetzt = 0;
+            var besetzt = BetendeSetzen(a, betende, sitzplaetze, reihenfolge, istSimultan);
             foreach (var g in glaeubige) g.Koerper.Visible = false;
             foreach (var i in reihenfolge)
             {
+                if (besetzt.Contains(i)) continue; // dort sitzt schon ein Einwohner
                 var istLinks = sitzplaetze[i].Links;
                 if (links < 0) { if (linksGesetzt + rechtsGesetzt < zahl) { glaeubige[i].Koerper.Visible = true; linksGesetzt++; } continue; }
                 if (istLinks && linksGesetzt < links) { glaeubige[i].Koerper.Visible = true; linksGesetzt++; }
@@ -535,7 +539,38 @@ public partial class Stadtansicht
                 : messe[0] ? $"\nMesse: {Zahlenformat.Ganz(imDom)} Gläubige ohne Kirche eines Hauses"
                 : stunde < k.Daten.MesseUm ? $"\nMesse um {k.Daten.MesseUm} Uhr"
                 : $"\nMesse gehalten: {Zahlenformat.Ganz(imDom)} Gläubige ohne Kirche eines Hauses";
-            a.Infotafel!.Text = titel + messeText;
+            var betenText = betende.Count == 0 ? "" : $"\nZum Gebet im Dom: {PersonenText(betende.Count)}";
+            a.Infotafel!.Text = titel + messeText + betenText;
         };
+    }
+
+    /// <summary>
+    /// Setzt die Einwohner, die gerade im Dom sind, auf die Bänke – jeder behält seinen Platz, bis er geht. Neue nehmen den
+    /// vordersten freien Platz; in der Simultankirche Katholiken links, Evangelische rechts. Gibt die besetzten Plätze zurück,
+    /// damit die Gläubigen der Messe sich daneben setzen. Gibt es mehr Betende als Plätze, bleiben die übrigen ungezeigt.
+    /// </summary>
+    private HashSet<int> BetendeSetzen(InnenAnsicht a, Dictionary<int, (Arbeiterfigur Figur, int Platz)> betende,
+        List<(Arbeitsplatz Platz, bool Links)> sitzplaetze, List<int> reihenfolge, bool simultan)
+    {
+        // Wer gegangen ist, steht auf.
+        foreach (var nummer in betende.Keys.Where(n => !_imDom.Contains(n)).ToList())
+        {
+            a.Besucher.Remove(betende[nummer].Figur);
+            KnotenEntfernen(betende[nummer].Figur.Koerper);
+            betende.Remove(nummer);
+        }
+        var besetzt = betende.Values.Select(b => b.Platz).ToHashSet();
+        if (_imDom.Count == betende.Count || _simulation?.Wirtschaft?.Einwohnerschaft is not { } ew) return besetzt;
+        // Wer neu da ist, setzt sich.
+        foreach (var e in ew.Einwohner)
+        {
+            if (!_imDom.Contains(e.Nummer) || betende.ContainsKey(e.Nummer)) continue;
+            var links = e.Glaube == Konfession.Katholisch;
+            var frei = reihenfolge.FirstOrDefault(i => !besetzt.Contains(i) && (!simultan || sitzplaetze[i].Links == links), -1);
+            if (frei < 0) continue;
+            betende[e.Nummer] = (SitzendeFigur(a, e, sitzplaetze[frei].Platz), frei);
+            besetzt.Add(frei);
+        }
+        return besetzt;
     }
 }
