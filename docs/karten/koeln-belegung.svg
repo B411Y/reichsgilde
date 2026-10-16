@@ -92,7 +92,15 @@
 <polyline points="244.5,215 192.5,182.5" fill="none" stroke="#4B5258" stroke-width="2.0" stroke-dasharray="6 3" stroke-linecap="round"/>
 <polyline points="-336,197 -231.5,235" fill="none" stroke="#B5651D" stroke-width="6" opacity="0.35"/>
 <polyline points="-336,197 -231.5,235" fill="none" stroke="#4B5258" stroke-width="2.0" stroke-dasharray="6 3" stroke-linecap="round"/>
-<polyline points="16.5,-150 1.5,-149.5 -13,-147 -27,-143.5 -41,-138.5 -54.5,-132.5 -67,-124.5 -79,-116 -90,-106 -99.5,-95 -108.5,-83.5 -116,-70.5 -122.5,-57.5 -127,-43.5 -131,-29.5 -133,-14.5 -133.5,0 -133,14.5 -131,29.5 -127,43.5 -122.5,57.5 -116,70.5 -108.5,83.5 -99.5,95 -90,106 -79,116 -67,124.5 -54.5,132.5 -41,138.5 -27,143.5 -13,147 1.5,149.5 16.5,150" fill="none" stroke="#1F2326" stroke-width="3"/>
+<polyline points="8.5,-145 1.5,-149.5 -13,-147 -27,-143.5 -41,-138.5 -54.5,-132.5 -67,-124.5 -79,-116 -90,-106 -99.5,-95 -108.5,-83.5 -116,-70.5 -122.5,-57.5 -127,-43.5 -131,-29.5 -133,-14.5 -133.5,0 -133,14.5 -131,29.5 -127,43.5 -122.5,57.5 -116,70.5 -108.5,83.5 -99.5,95 -90,106 -79,116 -67,124.5 -54.5,132.5 -41,138.5 -27,143.5 -13,147 1.5,149.5 11,146.5" fill="none" stroke="#1F2326" stroke-width="3"/>
+<polyline points="43.5,-41.5 137,-39 139,34 43.5,38" fill="none" stroke="#1F2326" stroke-width="2.2"/>
+<polyline points="2.5,-67.5 1.5,-45 1,-23" fill="none" stroke="#5A5148" stroke-width="2"/>
+<rect x="2.5" y="-68.5" width="7" height="2" fill="#6B4E31"/>
+<rect x="2" y="-60" width="7" height="2" fill="#6B4E31"/>
+<rect x="1.5" y="-48" width="7" height="2" fill="#6B4E31"/>
+<rect x="1.5" y="-36.5" width="7" height="2" fill="#6B4E31"/>
+<rect x="1" y="-24.5" width="7" height="2" fill="#6B4E31"/>
+<circle cx="1.5" cy="-39" r="2.5" fill="none" stroke="#1F2326" stroke-width="1"/>
 <polyline points="3.5,7 43.5,7" fill="none" stroke="#1F2326" stroke-width="4"/>
 <polyline points="9,-158 42.5,-152.5" fill="none" stroke="#1F2326" stroke-width="1.2" stroke-dasharray="4 3"/>
 <rect x="-61.5" y="-133" width="6" height="6" fill="#1F2326"/>
@@ -109,6 +117,10 @@
 <text x="8.5" y="-150" font-size="6" text-anchor="middle" fill="#1F2326">Kunibertsturm (Ufer)</text>
 <rect x="8" y="143.5" width="6" height="6" fill="#1F2326"/>
 <text x="11" y="141.5" font-size="6" text-anchor="middle" fill="#1F2326">Bayenturm (Ufer)</text>
+<rect x="65.5" y="-43.5" width="6" height="6" fill="#1F2326"/>
+<text x="68.5" y="-45.5" font-size="6" text-anchor="middle" fill="#1F2326">Deutzer Nordtor</text>
+<rect x="135" y="-8" width="6" height="6" fill="#1F2326"/>
+<text x="138" y="-10" font-size="6" text-anchor="middle" fill="#1F2326">Deutzer Osttor</text>
 <circle cx="0" cy="0" r="3.5" fill="#1F2326"/><text x="5" y="2" font-size="6" fill="#1F2326">Heumarkt</text>
 <circle cx="-11" cy="-27.5" r="3.5" fill="#1F2326"/><text x="-6" y="-25.5" font-size="6" fill="#1F2326">Rathaus</text>
 <circle cx="8" cy="-39" r="3.5" fill="#1F2326"/><text x="13" y="-37" font-size="6" fill="#1F2326">Hafen mit Kran</text>

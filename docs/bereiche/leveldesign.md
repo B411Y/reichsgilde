@@ -10,7 +10,6 @@ So wird eingetragen (damit sich die Chats nie an derselben Stelle treffen):
 
 ## Offen
 
-- (3) Deutzer Mauer und Hafenkante als eigene Felder in der Kartendatei
 - (–) Reichskarte zum Wechsel zwischen den Städten (Idee, später)
 
 ## Entscheidungen
@@ -48,4 +47,12 @@ Die Kartenregeln selbst stehen in `docs/LEVELDESIGN.md`.
 |---|---|---|
 | Breite | **Straßen in der Stadt gut 6,5 m breit**: Bauzonen beginnen 3,3 m neben der Straßenmitte (vorher 4,6 m). Köln: 29 statt 25 Werkstätten auf leerer Karte, alle 4 Stadthöfe passen. | 16.10.2026 |
 | Keine Querstraßen | Zusätzliche Straßen durch die Mauerring-Blöcke wurden gemessen und **verworfen**: Sie zerschneiden die Blöcke, ohne mehr Platz zu bringen (begrenzend ist die Blocktiefe). | 16.10.2026 |
+
+### Deutzer Mauer und Hafen (PR #89)
+
+| Thema | Entscheidung | Datum |
+|---|---|---|
+| Kartendatei | Neue Felder **`nebenmauern`** (weitere Mauern) und **`haefen`** (Kaimauer, Anleger, Kran). Bestehende Felder bleiben gleich, deshalb bleibt es **Format 1**. | 16.10.2026 |
+| Köln | **Deutzer Mauer** um den Brückenkopf, zum Rhein hin offen, mit **Nordtor** (Mülheimer Weg) und **Osttor** (Bensberger Straße); beide schließen nachts. **Kölner Hafen**: Kaimauer am linken Ufer zwischen Dom und Heumarkt, 5 Anleger, Kran. Die Stadtmauer endet jetzt an den Ufertürmen. | 16.10.2026 |
+| Prüfungen | Wege kreuzen Mauern nur an Toren; Anleger und Kran liegen an der Kaimauer. | 16.10.2026 |
 

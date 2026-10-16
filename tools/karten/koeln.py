@@ -109,11 +109,17 @@ k.wasser("bach", "Strunde", linie=ml([(1000, 190), (900, 172), (780, 205), (700,
 k.wasser("see", "Altrheinarm", flaeche=ml([(380 + 78 * math.cos(t / 12 * 2 * math.pi), 72 + 24 * math.sin(t / 12 * 2 * math.pi)) for t in range(12)]))
 
 # ── Mauer und Tore ───────────────────────────────────────────────────────────
-k.mauer(ml([(MAUER_MITTE[0] - MAUER_R * math.sin(a), MAUER_MITTE[1] - MAUER_R * math.cos(a))
-            for a in (i / 32 * math.pi for i in range(33))]))
+# Die Mauer endet an den beiden Ufertürmen (nicht in der Flussmitte), sonst kreuzt der Leinpfad sie ohne Tor.
+k.mauer(ml([UFER_NORD] + [(MAUER_MITTE[0] - MAUER_R * math.sin(a), MAUER_MITTE[1] - MAUER_R * math.cos(a))
+                          for a in (i / 32 * math.pi for i in range(1, 32))] + [UFER_SUED]))
 for name, x, y in TORE:
     k.tor(name, m(x, y))
 k.tor("Kunibertsturm (Ufer)", m(*UFER_NORD)); k.tor("Bayenturm (Ufer)", m(*UFER_SUED))
+
+# Deutz: befestigter Brückenkopf am rechten Ufer, zum Rhein hin offen (dort liegt die Brücke).
+k.nebenmauer("Deutzer Mauer", ml([(652, 296), (795, 300), (798, 412), (652, 418)]))
+k.tor("Deutzer Nordtor", m(690, 298))     # Mülheimer Weg
+k.tor("Deutzer Osttor", m(796.5, 352))    # Bensberger Straße
 
 # ── Wege in der Stadt ────────────────────────────────────────────────────────
 for (name, x, y) in TORE:
@@ -187,6 +193,10 @@ for kennung, pts in [("U1", [(200, 262), (380, 288), (380, 372), (200, 382)]),
 k.fest("Markt", "sonderbau", "Heumarkt", m(*MARKT))
 k.fest("Rathaus", "sonderbau", "Rathaus", m(568, 318))
 k.fest("Hafen", "sonderbau", "Hafen mit Kran", m(597, 300))
+# Kaimauer am linken Ufer zwischen Dom und Heumarkt: das Ufer des Rheins, 23 Skizzenpunkte westlich der Flussmitte.
+kai = [(x - 23, y) for x, y in rhein if 235 <= y <= 345]
+k.hafen("Kölner Hafen", ml(kai), [m(*naechster((597, y), kai)) for y in (252, 270, 288, 306, 324)],
+        m(*naechster((597, 300), kai)))
 k.fest("Dom", "sonderbau", "Dom (Baustelle mit Kran)", m(578, 192))
 k.fest("Gereon", "kirche", "St. Gereon", m(445, 215), konfession="katholisch")
 k.fest("Severin", "kirche", "St. Severin", m(575, 540), konfession="katholisch")

@@ -78,10 +78,20 @@ class Karte:
         self.d = {"format": FORMAT, "kennung": kennung, "stadt": stadt, "vorlage": vorlage,
                   "einheit": "Meter", "achsen": "x = Osten, z = Süden (−z = Norden), Ursprung am Marktplatz",
                   "raster": RASTER, "mauer": {}, "tore": [], "wasser": [], "gelaende": [], "wege": [],
-                  "uebergaenge": [], "bauzonen": [], "feste": [], "vorkommen": [], "fiktion": []}
+                  "uebergaenge": [], "bauzonen": [], "feste": [], "vorkommen": [], "nebenmauern": [], "haefen": [],
+                  "fiktion": []}
 
     def mauer(self, linie):
         self.d["mauer"] = {"linie": [runden(p) for p in linie]}
+
+    def nebenmauer(self, name, linie):
+        """Weitere Mauer, z. B. um eine befestigte Vorstadt. Ihre Tore stehen wie alle Tore in `tore`."""
+        self.d["nebenmauern"].append({"name": name, "linie": [runden(p) for p in linie]})
+
+    def hafen(self, name, kante, anleger, kran):
+        """Hafen am Fluss: Kaimauer als Linie, Anlegestellen als Punkte (dort liegen Schiffe), Kran als Punkt."""
+        self.d["haefen"].append({"name": name, "kante": [runden(p) for p in kante],
+                                 "anleger": [runden(p) for p in anleger], "kran": runden(kran)})
 
     def tor(self, name, punkt, schliesst_nachts=True):
         self.d["tore"].append({"name": name, "punkt": runden(punkt), "schliesstNachts": schliesst_nachts})
@@ -154,7 +164,26 @@ class Karte:
             if n > 2:
                 fehler.append(f"Vorkommen {v['kennung']}: {n:.1f} m vom nächsten Weg")
 
-        # 4. Das Wegenetz hängt zusammen (Kreuzungen und Berührungen verbinden, Brücken und Fähren auch).
+        # 4. Wege kreuzen eine Mauer nur an einem Tor.
+        mauern = ([("Stadtmauer", self.d["mauer"]["linie"])] if self.d["mauer"] else []) + \
+                 [(m["name"], m["linie"]) for m in self.d["nebenmauern"]]
+        tore = [t["punkt"] for t in self.d["tore"]]
+        for name, ml_ in mauern:
+            for w in wege:
+                l = w["linie"]
+                for i in range(len(l) - 1):
+                    for j in range(len(ml_) - 1):
+                        s = schnitt(l[i], l[i + 1], ml_[j], ml_[j + 1])
+                        if s and min(abstand(s, t) for t in tore) > 3:
+                            fehler.append(f"{w['name']} kreuzt {name} ohne Tor bei ({s[0]:.0f}, {s[1]:.0f})")
+
+        # 5. Anleger liegen an der Kaimauer.
+        for h in self.d["haefen"]:
+            for p in h["anleger"] + [h["kran"]]:
+                if abstand_linie(p, h["kante"]) > 2:
+                    fehler.append(f"{h['name']}: Anleger oder Kran {p} liegt nicht an der Kaimauer")
+
+        # 6. Das Wegenetz hängt zusammen (Kreuzungen und Berührungen verbinden, Brücken und Fähren auch).
         teile = self._netzteile(alle + [[u["von"], u["bis"]] for u in self.d["uebergaenge"]])
         if teile != 1:
             fehler.append(f"Wegenetz zerfällt in {teile} Teile")
@@ -264,6 +293,14 @@ def vorschau(pfad):
                  + (f' stroke-dasharray="{dash}"' if dash else "") + ' stroke-linecap="round"/>')
     if k["mauer"]:
         o.append(f'<polyline points="{pts(k["mauer"]["linie"])}" fill="none" stroke="{FARBEN["mauer"]}" stroke-width="3"/>')
+    for m in k.get("nebenmauern", []):
+        o.append(f'<polyline points="{pts(m["linie"])}" fill="none" stroke="{FARBEN["mauer"]}" stroke-width="2.2"/>')
+    for h in k.get("haefen", []):
+        o.append(f'<polyline points="{pts(h["kante"])}" fill="none" stroke="#5A5148" stroke-width="2"/>')
+        for x, z in h["anleger"]:
+            o.append(f'<rect x="{x:g}" y="{z-1:g}" width="7" height="2" fill="#6B4E31"/>')
+        x, z = h["kran"]
+        o.append(f'<circle cx="{x:g}" cy="{z:g}" r="2.5" fill="none" stroke="#1F2326" stroke-width="1"/>')
     for u in k["uebergaenge"]:
         dash = ' stroke-dasharray="4 3"' if u["art"] == "faehre" else ""
         o.append(f'<polyline points="{pts([u["von"], u["bis"]])}" fill="none" stroke="#1F2326" stroke-width="{4 if u["art"]=="bruecke" else 1.2}"{dash}/>')
