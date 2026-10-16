@@ -187,6 +187,10 @@ class Karte:
     # ── Ausgabe ──────────────────────────────────────────────────────────────
     def schreiben(self):
         fehler, hinweise = self.pruefen()
+        from kapazitaet import Belegung       # erst hier laden: kapazitaet.py braucht dieses Modul
+        belegung = Belegung(self.d)
+        f2, h2 = belegung.pruefen()
+        fehler += f2; hinweise += h2
         kennung = self.d["kennung"]
         for h in hinweise:
             print("  ", h)
@@ -205,7 +209,9 @@ class Karte:
         os.makedirs(os.path.dirname(svg), exist_ok=True)
         with open(svg, "w", encoding="utf-8") as f:
             f.write(vorschau(pfad))
-        print(f"   geschrieben: game/data/karten/{kennung}.json, docs/karten/{kennung}.svg")
+        with open(svg.replace(".svg", "-belegung.svg"), "w", encoding="utf-8") as f:
+            f.write(vorschau(pfad).replace("</svg>", belegung.svg_ebene() + "\n</svg>"))
+        print(f"   geschrieben: game/data/karten/{kennung}.json, docs/karten/{kennung}.svg, {kennung}-belegung.svg")
 
 
 def json_kompakt(d):
