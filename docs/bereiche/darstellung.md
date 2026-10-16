@@ -35,7 +35,7 @@ So wird eingetragen (damit sich die Chats nie an derselben Stelle treffen):
 | Gehtempo | **Feste Spanne je Figur** statt „Weglänge ÷ Wegzeit“: schlendern 1,5, normal 2,5, eilig 3,5 m/s (echte Sekunde bei Tempo 1, ±10 %, fest nach der Nummer). Boten eilen, Bettler und Verwitwete schlendern. | 16.10.2026 |
 | Ankunft | Die Figur geht so spät los, dass sie zur Ankunftszeit des Kerns da ist. Reicht die Zeit nicht, beeilt sie sich **bis zum Doppelten**; reicht auch das nicht, kommt sie später an als gezählt. Dafür bittet die Darstellung den Spiel-KI-Chat um längere Wegzeiten (Zeile in `spiel-ki.md`). | 16.10.2026 |
 
-### Tracht und Infotafel der Passanten (PR #78)
+### Tracht und Infotafel der Passanten (PR #78, #81)
 
 | Thema | Entscheidung | Datum |
 |---|---|---|
