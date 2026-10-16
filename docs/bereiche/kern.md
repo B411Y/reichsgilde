@@ -19,6 +19,7 @@ So wird eingetragen (damit sich die Chats nie an derselben Stelle treffen):
 - (6) Multiplayer, Zuschauer-Modus
 - (Nutzer) Lizenz für Grafiken und Texte (CC BY 4.0?) bestätigen
 - (Nutzer) Pausenregeln im Multiplayer
+- (5) (von Leveldesign) Wohnhaus-Ausbau: Fachwerkhaus → Bürgerhaus → Steinhaus am selben Platz; **Stadtpalais und Hof nicht am Platz**, sondern als neuer Bau oder Abriss und Neubau (Entscheidung 16.10.2026, `docs/LEVELDESIGN.md`, Gebäudegrößen) – betrifft Entwurf PR #75
 
 ## Entscheidungen
 
