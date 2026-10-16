@@ -855,6 +855,10 @@ public sealed class KiRivale
         foreach (var b in Betriebe.Where(b => !b.Waechter && unterwelt.LetzterAngriff(b.Name) >= _w.Jahr - 1).ToList())
             if (Konto.Vermoegen - g.WaechterKosten >= Profil.Reserve)
                 Befehlen(new WaechterSetzen(b.Name, true), $"stellt nach dem Angriff einen Wächter für {b.Name} ein.");
+        // … und für das eigene Wohnhaus (Einbruch oder Brand, Kern PR #77).
+        if (unterwelt.GegenWohnhaus && !Konto.Hauswaechter && unterwelt.LetzterAngriffWohnhaus(Konto) >= _w.Jahr - 1
+            && Konto.Vermoegen - g.WaechterKosten >= Profil.Reserve)
+            Befehlen(new HauswaechterSetzen(true), "stellt nach dem Anschlag einen Hauswächter fürs Wohnhaus ein.");
     }
 
     /// <summary>
