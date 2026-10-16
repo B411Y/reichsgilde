@@ -176,6 +176,7 @@ Oberfläche / KI ──Befehl──▶ Ausfuehren ──prüft──▶ Betrieb 
 - **Pflicht für den Stand:** `StandErwerben` fragt `Wohnen.StandVerboten(konto, neuerStand)`; dieselbe Abfrage nutzen Kontor und Rathaus-Knopf für den Grund.
 - Ansehen: `Stadtrat.Ansehen` addiert `Wohnen.AnsehenBonus`. Unterhalt: am Jahresende nach den Familienkosten (`UnterhaltZahlen` → `Konto.Familienkosten`).
 - `Wohnen.Leerstand` liefert die Häuser erloschener oder bankrotter Konten – Grundlage für späteres Kaufen und Sanieren.
+- **Gauner gegen das Wohnhaus** (Abschnitt `gauner.wohnhaus`): Die Gaunerstücke `Hauseinbruch` und `Brandstiftung` laufen in der `Unterwelt` wie alle anderen (Auftrag, Nacht um 20 Uhr, Spur, Zeuge). Rechnungen für Tafel und KI: `ErfolgschanceWohnhaus`, `Hausbeute`, `Brandschaden`, `ZeugenchanceWohnhaus`, `LetzterAngriffWohnhaus`. Ein Brand setzt `Konto.WohnhausInstandBis`; bis dahin liefert `AnsehenBonus` 0 und `AusbauVerboten` sperrt den Ausbau. `Konto.Hauswaechter` (Befehl `HauswaechterSetzen`, auch aus dem Kerker erlaubt) wirkt wie ein Wächter im Betrieb und wird mit dem Unterhalt als Personal bezahlt.
 
 ## Liegenschaften und Stadtplan
 

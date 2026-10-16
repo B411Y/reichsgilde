@@ -978,3 +978,11 @@ Die große Streuung kommt schon ohne Kopplung von den Fängen (ein gefasster Die
 | wagemutig, jetzt | 56.842 (−38 %) | 60.157 (±0 %) | 57.846 (−24 %) | 17/20 | 16 Edler, 3 Freiherr, 1 erloschen |
 
 Das Wohnhaus bindet viel Geld: Wer bis Freiherr aufsteigt, zahlt 40.500 Gulden Ausbau plus bis zu 500 Gulden Unterhalt im Jahr – und das Geld fehlt danach in Betrieben und Zinsen. Ausgewogene Häuser erreichen weiterhin den Freiherrn, aber keiner mehr den Reichsgrafen; wagemutige Häuser bleiben meist beim Edlen hängen, weil sie ihr Geld ins Gaunern stecken und die Reserve für den Hof fehlt. Mehr Bürgermeister (16 statt 9) bei ausgewogen: Das Wohnhaus bringt Ansehen. Der Nutzer hat entschieden: **Die Preise bleiben** (16.10.2026).
+
+## Gauner gegen das Wohnhaus (PR #77)
+
+**Regel:** `gauner.wohnhaus` – Einbruch: Kosten 200, Chance 0,6, Beute = min(5 % des Bargelds, 300 × (Hausstufe + 1)), Bargeld ohne Hehler. Brand: Kosten 300, Chance 0,5, Reparatur = max(100, 20 % des Ausbaupreises der Stufe), das Ansehen des Hauses fehlt 1.020 Min. Hauswächter: 150 im Jahr, Chance × 0,5, Zeugen 0,6.
+
+Was sich lohnt (Chance ohne Wächter und Streife): Ein Einbruch bei einem Haus mit 20.000 Gulden im Bürgerhaus bringt im Mittel 0,6 × 600 − 200 = 160 Gulden, im Fachwerkhaus 0,6 × 300 − 200 = −20 – gegen kleine Häuser lohnt er nicht, gegen reiche Häuser in großen Wohnhäusern schon (Hof: 0,6 × 1.500 − 200 = 700). Ein Brand trifft vor allem das Ansehen: im Stadtpalais 2.000 Reparatur und −6 Ansehen für einen Tag, kurz vor einer Ratswahl spürbar.
+
+**Messung** (`messen 30 20`, Mensch, ausgewogen, gemessen auf main `1c2e7d2` + PR #77): **zeichengleich** mit main (Eisenbart 123.907, Eichwald 77.487, Kieselbach 101.048, Bürgermeister 16/20). Die KI-Häuser heuern noch keine Banden gegen Wohnhäuser an, also stellt auch niemand einen Hauswächter ein.

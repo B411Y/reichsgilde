@@ -20,7 +20,6 @@ So wird eingetragen (damit sich die Chats nie an derselben Stelle treffen):
 - (Nutzer) Pausenregeln im Multiplayer
 - (5) (von Leveldesign) Wohnhaus-Ausbau: Fachwerkhaus → Bürgerhaus → Steinhaus am selben Platz; **Stadtpalais und Hof nicht am Platz**, sondern als neuer Bau oder Abriss und Neubau (Entscheidung 16.10.2026, `docs/LEVELDESIGN.md`, Gebäudegrößen) – betrifft Entwurf PR #75
 - (von Spiel-KI) Haus des Spielers im Rat: Befehl zum Abstimmen bei Wahlen und Anträgen (heute: Amtsinhaber bzw. Enthaltung); die KI-Häuser wählen seit PR #73 nach Charakter
-- (5) Gauner auch gegen das Wohnhaus (Einbruch, Brand) – die Betriebe bleiben weiterhin Ziel (Entscheidung zu PR #75)
 - (5) Werkstatt frei verkaufen: Befehl fehlt noch (Entscheidung zu PR #75)
 - (5) Wohnhaus kaufen statt bauen: Leerstand (`Wohnen.Leerstand`) übernehmen und sanieren – zusammen mit Bauzonen und Sanierung
 
@@ -48,6 +47,16 @@ So wird eingetragen (damit sich die Chats nie an derselben Stelle treffen):
 | KI-Häuser | `KiRivale` baut das nötige Wohnhaus vor dem Aufstieg, wenn danach die Reserve bleibt (kleine Änderung im Bereich Spiel-KI). | 16.10.2026 |
 | Alte Spielstände | Bekommen beim Laden das Haus, das ihr Stand verlangt. | 16.10.2026 |
 | Preise nach der Messung | **Bleiben** (1.500 / 4.000 / 10.000 / 25.000, Unterhalt 2 %). Der Aufstieg soll Geld kosten; dass wagemutige KI-Häuser beim Edlen bleiben, verfeinert die Spiel-KI. | 16.10.2026 |
+
+### Gauner gegen das Wohnhaus (PR #77)
+
+| Thema | Entscheidung | Datum |
+|---|---|---|
+| Gaunerstücke | **Einbruch und Brand** am Wohnhaus, zusätzlich zu den Stücken gegen Betriebe (die bleiben Ziel). | 16.10.2026 |
+| Einbruch | **Anteil vom Bargeld, gedeckelt**: 5 %, höchstens 300 Gulden je Hausstufe (Fachwerkhaus 300 … Hof 1.500). Bargeld ohne Hehler. Kosten 200, Chance 60 %. Vergehen: Diebstahl. | 16.10.2026 |
+| Brand | **Reparatur + Ansehen fehlt**: 20 % des Ausbaupreises der Stufe (mindestens 100), das Ansehen des Hauses fehlt einen Tag (1.020 Min.), so lange kein Ausbau. Die Stufe bleibt, der Stand ist nie in Gefahr. Kosten 300, Chance 50 %. Vergehen: Sabotage. | 16.10.2026 |
+| Schutz | **Eigener Hauswächter** wie im Betrieb: 150 Gulden im Jahr, halbiert die Chance, Zeugen 60 % statt 25 %. Die Streife der Wache wirkt wie bei Betrieben in der Stadt. | 16.10.2026 |
+| KI-Häuser | Stellen nach einem Anschlag auf ihr Wohnhaus einen Hauswächter ein (kleine Änderung im Bereich Spiel-KI). Selbst heuern sie noch keine Bande gegen Wohnhäuser an – Punkt für die Spiel-KI. | 16.10.2026 |
 
 ## Messungen
 
