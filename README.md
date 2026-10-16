@@ -37,10 +37,12 @@ Ein Klick auf ein Thema springt zu seinem Abschnitt im **Spielbuch** weiter unte
 
 ## Loslegen
 
+**Du brauchst:**
 - [Godot 4.7.x – .NET-Version](https://godotengine.org/download)
 - [.NET SDK 8 oder neuer](https://dotnet.microsoft.com/download)
 - VS Code mit der C#-Erweiterung (empfohlen)
 
+**Spiel starten:**
 1. Godot starten → **Importieren** → `game/project.godot` auswählen.
 2. Oben rechts auf **▶ (Projekt ausführen)** klicken oder **F5** drücken – das Hauptmenü erscheint.
 
