@@ -42,7 +42,7 @@ Die Kartenregeln selbst stehen in `docs/LEVELDESIGN.md`.
 | Name | Die höchste Wohnhausstufe heißt **Stadthof** statt „Hof“, damit sie nicht mit Bauernhof und Klosterhof im Umland verwechselt wird. | 16.10.2026 |
 | Lage | Der Stadthof darf in der **Kernlage und im Mauerring** stehen (vorher nur Kernlage; dort passte in Köln nur einer). | 16.10.2026 |
 
-### Straßenbreite (PR #NUMMER)
+### Straßenbreite (PR #88)
 
 | Thema | Entscheidung | Datum |
 |---|---|---|
