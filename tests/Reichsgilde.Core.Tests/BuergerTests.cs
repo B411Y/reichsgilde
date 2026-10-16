@@ -191,10 +191,121 @@ static class BuergerTests
                           Speicherung.Speichern(kopie, kopieSpieler, new DateTime(2026, 10, 15)));
         }),
 
+        ("Wohnhäuser: Haushalte zu 4–6 Personen; jeder Ratsherr im eigenen Haus; Bürgerkinder im Bürgerhaus", () =>
+        {
+            var (sim, _) = NeuePartie();
+            sim.Tick();
+            var ew = Einwohner(sim);
+            var haeuser = ew.Wohnhaeuser.ToDictionary(h => h.Nummer);
+            Pruefe.Wahr(ew.Einwohner.All(e => haeuser.ContainsKey(e.Wohnhaus)), "Jeder wohnt in einem Haus, das es gibt");
+            var einfache = ew.Wohnhaeuser.Where(h => h.Art == Hausart.Wohnhaus).ToList();
+            foreach (var h in einfache)
+            {
+                var stadt = ew.Bewohner(h.Nummer).Count(e => e.Herkunft == Herkunft.Stadt);
+                Pruefe.Wahr(stadt is >= 1 and <= 6, $"Haus {h.Nummer}: {stadt} Bewohner aus der Stadt");
+            }
+            Pruefe.Wahr(einfache.Count(h => ew.Bewohner(h.Nummer).Count(e => e.Herkunft == Herkunft.Stadt) < 4) <= 1, "Nur das letzte Haus darf kleiner sein");
+            foreach (var r in ew.Einwohner.Where(e => e.Herkunft == Herkunft.Ratsherr))
+            {
+                Pruefe.Gleich(Hausart.Ratsherrenhaus, haeuser[r.Wohnhaus].Art);
+                Pruefe.Gleich(1, ew.Bewohner(r.Wohnhaus).Count());
+            }
+            foreach (var k in ew.Einwohner.Where(e => e.Herkunft == Herkunft.Kandidat))
+                Pruefe.Gleich(k.Rolle == ew.Daten.RolleKandidatAbBuerger ? Hausart.Buergerhaus : Hausart.Wohnhaus, haeuser[k.Wohnhaus].Art);
+            Pruefe.Wahr(ew.Einwohner.All(e => ew.ImHaus(e.Wohnhaus).Contains(e)), "Um 05:00 ist jeder in seinem eigenen Haus");
+        }),
+
+        ("Wege: Wer den Ort wechselt, läuft los – unterwegs zählt er nirgends, vor der nächsten Stunde ist er da", () =>
+        {
+            var (sim, _) = NeuePartie();
+            sim.Tick();
+            var ew = Einwohner(sim);
+            var d = ew.Daten.Wege;
+            Bis(sim, 8, 0);
+            sim.Tick(); // 08:00 – alle haben geplant
+            var start = sim.Zeit.VergangeneMinuten - 1; // Minute der Planung
+            var gewechselt = ew.Einwohner.Where(e => e.Weg is { } w && w.Abmarsch >= start).ToList();
+            Pruefe.Wahr(gewechselt.Count >= 20, $"Um 8 Uhr sollten viele losgehen (waren {gewechselt.Count})");
+            foreach (var e in gewechselt)
+            {
+                var w = e.Weg!;
+                Pruefe.Wahr(w.Abmarsch - start <= d.Verzoegerung, "Abmarsch kurz nach der vollen Stunde");
+                Pruefe.Wahr(w.Ankunft - start < 60, "Ankunft vor der nächsten Entscheidung");
+                Pruefe.Gleich(e.Aufenthalt, w.Nach);
+                Pruefe.Wahr(w.Von != w.Nach, "Ein Weg führt woanders hin");
+                var umland = w.Von.Ort == Stadtort.Umland || w.Nach.Ort == Stadtort.Umland;
+                if (umland) Pruefe.Gleich(d.Umland, w.Dauer);
+                else if (w.Von.Ort != Stadtort.Tor && w.Nach.Ort != Stadtort.Tor)
+                    Pruefe.Wahr(Math.Abs(w.Dauer - d.Stadt) <= d.Streuung, $"Weg in der Stadt {w.Dauer} Minuten");
+            }
+            // Ein paar Minuten später: Unterwegs ist, wer zwischen Abmarsch und Ankunft liegt – und der zählt an keinem Ort.
+            for (var i = 0; i < 9; i++) sim.Tick();
+            var jetzt = sim.Zeit.VergangeneMinuten;
+            var unterwegs = ew.Unterwegs.ToList();
+            Pruefe.Wahr(unterwegs.Count > 0, "Um 08:10 ist jemand unterwegs");
+            Pruefe.Wahr(unterwegs.All(e => e.Wo(jetzt) is null), "Unterwegs = kein Aufenthalt");
+            var gezaehlt = Enum.GetValues<Stadtort>().Sum(o => ew.Am(o).Count());
+            Pruefe.Gleich(ew.Einwohner.Count - unterwegs.Count, gezaehlt);
+            Pruefe.Gleich(0.5, gewechselt[0].Weg!.Fortschritt((gewechselt[0].Weg!.Abmarsch + gewechselt[0].Weg!.Ankunft) / 2.0), "Halber Weg");
+        }),
+
+        ("Umland und Dienst: Hirten auf der Weide, Feldarbeiter auf dem Feld; Knechte und Mägde dienen in Bürger- und Ratsherrenhäusern", () =>
+        {
+            var (sim, _) = NeuePartie();
+            sim.Tick();
+            var ew = Einwohner(sim);
+            var stellen = new HashSet<string?>();
+            var dienst = 0;
+            for (var stunde = 9; stunde < 19; stunde++)
+            {
+                Bis(sim, stunde, 50);
+                foreach (var e in ew.Einwohner.Where(e => e.Handlung == Handlung.Arbeiten))
+                {
+                    var rolle = ew.Daten.Rollen[e.Rolle];
+                    if (rolle.Arbeitsort == Stadtort.Umland)
+                    {
+                        Pruefe.Gleich(rolle.Stelle, e.Stelle);
+                        stellen.Add(e.Stelle);
+                    }
+                    if (rolle.Dienst)
+                    {
+                        Pruefe.Wahr(e.Haus != e.Wohnhaus && ew.Wohnhaeuser.First(h => h.Nummer == e.Haus).Art != Hausart.Wohnhaus,
+                                    $"{e.Name} dient in einem fremden, besseren Haus");
+                        dienst++;
+                    }
+                }
+                Pruefe.Wahr(ew.Einwohner.Where(e => e.Ort != Stadtort.Umland).All(e => e.Stelle is null), "Stelle nur im Umland");
+            }
+            Pruefe.Wahr(stellen.Count >= 2, $"Mehrere Stellen im Umland belegt ({string.Join(", ", stellen)})");
+            Pruefe.Wahr(dienst > 0, "Jemand ist im Dienst");
+        }),
+
+        ("Alter Spielstand ohne Wohnhäuser: Häuser werden beim Laden verteilt, die Partie läuft weiter", () =>
+        {
+            var (sim, spieler) = NeuePartie();
+            Ticken(sim, 200);
+            var json = JsonNode.Parse(Speicherung.Speichern(sim, spieler))!;
+            var stand = json["Wirtschaft"]!["Einwohner"]!.AsObject();
+            stand.Remove("Haeuser");
+            foreach (var e in stand["Einwohner"]!.AsArray())
+            {
+                var o = e!.AsObject();
+                o.Remove("Haus"); o.Remove("Wohnhaus"); o.Remove("Weg"); o.Remove("Stelle");
+            }
+            var (geladen, _) = Speicherung.Laden(json.ToJsonString());
+            var ew = Einwohner(geladen);
+            Pruefe.Wahr(ew.Wohnhaeuser.Count > 0, "Häuser nachgerüstet");
+            Pruefe.Wahr(ew.Einwohner.All(e => e.Wohnhaus > 0), "Jeder hat ein Haus");
+            Ticken(geladen, Spielzeit.MinutenProTag);
+            Pruefe.Wahr(ew.Einwohner.Any(e => e.Weg is not null), "Danach gehen sie wieder Wege");
+        }),
+
         ("Bürger-KI: Datenprüfung lehnt Orks als Einwohner und eine fehlende Handlung ab", () =>
         {
             Pruefe.WirftMitMeldung(() => Abgewandelt(j => j["buerger"]!["voelker"]!["Ork"] = 1), "kein Bürgerrecht");
             Pruefe.WirftMitMeldung(() => Abgewandelt(j => j["buerger"]!["handlungen"]!.AsObject().Remove("Beten")), "Beten fehlt");
+            Pruefe.WirftMitMeldung(() => Abgewandelt(j => j["buerger"]!["rollen"]!["Hirte"]!.AsObject().Remove("stelle")), "braucht eine stelle");
+            Pruefe.WirftMitMeldung(() => Abgewandelt(j => j["buerger"]!["wege"]!["umland"] = 55), "unter einer Stunde");
         }),
     };
 }

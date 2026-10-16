@@ -28,6 +28,7 @@ public sealed class Einwohnerschaft
     private readonly BuergerDaten? _d;
     private Zufallsquelle _zufall;
     private readonly List<Einwohner> _einwohner = new();
+    private readonly List<Stadthaus> _haeuser = new();
     private bool _gegruendet;
     private int _naechsteNummer = 1;
     private int _verstorben;
@@ -50,11 +51,26 @@ public sealed class Einwohnerschaft
     /// <summary>Alle Einwohner (gewöhnliche zuerst, dann Ratsherren, dann Kandidaten). Leer, bis die Partie das erste Mal tickt.</summary>
     public IReadOnlyList<Einwohner> Einwohner => _einwohner;
 
-    /// <summary>Wer sich gerade an diesem Ort aufhält.</summary>
-    public IEnumerable<Einwohner> Am(Stadtort ort) => _einwohner.Where(e => e.Ort == ort);
+    /// <summary>Die aktuelle Spielminute (<see cref="Spielzeit.VergangeneMinuten"/>) – nach ihr richten sich Wege und Aufenthalte.</summary>
+    private long Jetzt => _w.Uhr.VergangeneMinuten;
+
+    /// <summary>Wer sich gerade an diesem Ort aufhält (wer unterwegs ist, zählt nirgends).</summary>
+    public IEnumerable<Einwohner> Am(Stadtort ort) => _einwohner.Where(e => e.Wo(Jetzt)?.Ort == ort);
 
     /// <summary>Wer gerade in dieser Schänke oder Kirche ist (Name des Betriebs).</summary>
-    public IEnumerable<Einwohner> Im(string betrieb) => _einwohner.Where(e => e.Betrieb == betrieb);
+    public IEnumerable<Einwohner> Im(string betrieb) => _einwohner.Where(e => e.Wo(Jetzt)?.Betrieb == betrieb);
+
+    /// <summary>Wer gerade in diesem Haus ist (Bewohner, Gesinde im Dienst).</summary>
+    public IEnumerable<Einwohner> ImHaus(int haus) => _einwohner.Where(e => e.Wo(Jetzt) is { Ort: Stadtort.Heim } a && a.Haus == haus);
+
+    /// <summary>Wer gerade unterwegs ist – für die Passanten in den Gassen und auf der Landstraße.</summary>
+    public IEnumerable<Einwohner> Unterwegs => _einwohner.Where(e => e.IstUnterwegs(Jetzt));
+
+    /// <summary>Alle Häuser, in denen Einwohner wohnen (einfache Wohnhäuser, Bürgerhäuser, Ratsherrenhäuser).</summary>
+    public IReadOnlyList<Stadthaus> Wohnhaeuser => _haeuser;
+
+    /// <summary>Wer in diesem Haus wohnt.</summary>
+    public IEnumerable<Einwohner> Bewohner(int haus) => _einwohner.Where(e => e.Wohnhaus == haus);
 
     public Einwohner? Nummer(int nummer) => _einwohner.FirstOrDefault(e => e.Nummer == nummer);
 
@@ -103,7 +119,9 @@ public sealed class Einwohnerschaft
                 var e = _einwohner[i];
                 if (e.Herkunft != Herkunft.Stadt) continue; // Ratsherren und Kandidaten leben nach den Regeln von Rat und Familienbuch
                 if (_zufall.NextDouble() >= _w.Familien.Sterberisiko(e.Volk, e.Alter(neuesJahr - 1))) continue;
-                _einwohner[i] = NeuerStadtbewohner(neuesJahr, zuzug: true); // an derselben Stelle – die Reihenfolge bleibt
+                var neu = NeuerStadtbewohner(neuesJahr, zuzug: true); // an derselben Stelle – die Reihenfolge bleibt
+                neu.Wohnhaus = e.Wohnhaus; // der Zuzügler bezieht die Kammer des Verstorbenen
+                _einwohner[i] = neu;
                 _verstorben++;
                 _zugezogen++;
             }
@@ -117,6 +135,7 @@ public sealed class Einwohnerschaft
         var anzahl = d.JeHaus * _w.Konten.Count;
         for (var i = 0; i < anzahl; i++)
             _einwohner.Add(NeuerStadtbewohner(jahr, zuzug: false));
+        HaushalteBilden();
 
         if (d.MitRatsherren && _w.Rat.IstAktiv)
             foreach (var r in _w.Rat.Ratsherren)
@@ -131,6 +150,7 @@ public sealed class Einwohnerschaft
                 var alter = 35 + _zufall.Next(26);
                 var e = new Einwohner(_naechsteNummer++, Herkunft.Ratsherr, r.Name, vorname, familienname, r.Daten.Volk,
                                       geschlecht, jahr - alter, _w.Glaube.GlaubeVon(r), d.RolleRatsherr);
+                e.Wohnhaus = NeuesHaus(Hausart.Ratsherrenhaus); // jeder Ratsherr hat sein eigenes Haus
                 Ausschlafen(e);
                 _einwohner.Add(e);
             }
@@ -158,6 +178,8 @@ public sealed class Einwohnerschaft
                 : Gewichtet(d.Rollen.Where(r => r.Value.Ledig && r.Value.Gewicht > 0).Select(r => (r.Key, r.Value.Gewicht)));
             var e = new Einwohner(_naechsteNummer++, Herkunft.Kandidat, quelle, p.Vorname, p.Familienname, p.Volk,
                                   p.Geschlecht, p.Geburtsjahr, p.Glaube, rolle);
+            // Kandidaten wohnen bei ihren Eltern: aus Bürger- und Patrizierfamilien im Bürgerhaus, sonst in einem einfachen Haus.
+            e.Wohnhaus = HausFuer(k.Stand > 0 ? Hausart.Buergerhaus : Hausart.Wohnhaus, p.Nummer);
             Ausschlafen(e);
             _einwohner.Add(e);
         }
@@ -183,6 +205,47 @@ public sealed class Einwohnerschaft
         var e = new Einwohner(nummer, Herkunft.Stadt, "", vorname, familienname, volk, geschlecht, jahr - alter, glaube, rolle);
         Ausschlafen(e);
         return e;
+    }
+
+    /// <summary>Teilt die gewöhnlichen Einwohner in Haushalte zu je 4–6 Personen (einfache Wohnhäuser) und legt die Bürgerhäuser an.</summary>
+    private void HaushalteBilden()
+    {
+        var d = Daten;
+        var offen = 0;
+        foreach (var e in _einwohner.Where(e => e.Herkunft == Herkunft.Stadt))
+        {
+            if (offen == 0)
+            {
+                NeuesHaus(Hausart.Wohnhaus);
+                offen = d.HaushaltVon + _zufall.Next(d.HaushaltBis - d.HaushaltVon + 1);
+            }
+            e.Wohnhaus = _haeuser[^1].Nummer;
+            e.Haus = e.Wohnhaus;
+            offen--;
+        }
+        for (var i = 0; i < d.Buergerhaeuser; i++)
+            NeuesHaus(Hausart.Buergerhaus);
+    }
+
+    private int NeuesHaus(Hausart art)
+    {
+        var haus = new Stadthaus(_haeuser.Count + 1, art);
+        _haeuser.Add(haus);
+        return haus.Nummer;
+    }
+
+    /// <summary>Ein Haus dieser Art, fest nach einer Nummer gewählt (ohne Würfel). 0, wenn es keines gibt.</summary>
+    private int HausFuer(Hausart art, int nummer)
+    {
+        var passend = _haeuser.Where(h => h.Art == art).ToList();
+        return passend.Count == 0 ? 0 : passend[nummer % passend.Count].Nummer;
+    }
+
+    /// <summary>Wo Knechte und Mägde dienen: in einem Bürger- oder Ratsherrenhaus, fest nach ihrer Nummer.</summary>
+    private int Dienstherr(Einwohner e)
+    {
+        var herrschaft = _haeuser.Where(h => h.Art != Hausart.Wohnhaus).ToList();
+        return herrschaft.Count == 0 ? e.Wohnhaus : herrschaft[e.Nummer % herrschaft.Count].Nummer;
     }
 
     /// <summary>Name aus den Namenslisten des Volkes – kein ganzer Name doppelt, kein Familienname eines Hauses.</summary>
@@ -230,6 +293,9 @@ public sealed class Einwohnerschaft
         e.Handlung = Handlung.Ruhen;
         e.Ort = Stadtort.Heim;
         e.Betrieb = null;
+        e.Stelle = null;
+        e.Haus = e.Wohnhaus;
+        e.Weg = null; // über Nacht zu Hause
     }
 
     // ── Die stündliche Entscheidung ─────────────────────────────────────────
@@ -271,9 +337,28 @@ public sealed class Einwohnerschaft
 
             foreach (var (b, x) in d.Handlungen[beste].Stillt)
                 e.Setzen(b, e.Wert(b) - x * (beste == Handlung.Beten ? messe : 1));
+            var vorher = e.Aufenthalt;
             e.Handlung = beste;
             (e.Ort, e.Betrieb) = Ort(e, beste, schaenken, kirchen);
+            e.Haus = e.Ort == Stadtort.Heim ? (beste == Handlung.Arbeiten && IstDienst(e) ? Dienstherr(e) : e.Wohnhaus) : 0;
+            e.Stelle = e.Ort == Stadtort.Umland && d.Rollen.TryGetValue(e.Rolle, out var rolle) ? rolle.Stelle : null;
+            if (e.Aufenthalt != vorher)
+                e.Weg = NeuerWeg(vorher, e.Aufenthalt, zeit.VergangeneMinuten);
         }
+    }
+
+    private bool IstDienst(Einwohner e) => Daten.Rollen.TryGetValue(e.Rolle, out var r) && r.Dienst;
+
+    /// <summary>Ein Weg beginnt kurz nach der vollen Stunde und dauert je nach Ziel: in der Stadt ~10 Minuten, zum Tor 15, ins Umland 30.</summary>
+    private Weg NeuerWeg(Aufenthalt von, Aufenthalt nach, long stunde)
+    {
+        var w = Daten.Wege;
+        var abmarsch = stunde + (w.Verzoegerung > 0 ? _zufall.Next(w.Verzoegerung + 1) : 0);
+        int dauer;
+        if (von.Ort == Stadtort.Umland || nach.Ort == Stadtort.Umland) dauer = w.Umland;
+        else if (von.Ort == Stadtort.Tor || nach.Ort == Stadtort.Tor) dauer = w.Tor;
+        else dauer = w.Stadt - w.Streuung + _zufall.Next(2 * w.Streuung + 1);
+        return new Weg(von, nach, abmarsch, abmarsch + dauer);
     }
 
     private bool Moeglich(Handlung h, int stunde, List<Betrieb> schaenken)
@@ -336,6 +421,7 @@ public sealed class Einwohnerschaft
         NaechsteNummer = _naechsteNummer,
         Verstorben = _verstorben,
         Zugezogen = _zugezogen,
+        Haeuser = _haeuser.ToList(),
         Einwohner = _einwohner.Select(e => new EinwohnerStand
         {
             Nummer = e.Nummer,
@@ -351,6 +437,10 @@ public sealed class Einwohnerschaft
             Handlung = e.Handlung,
             Ort = e.Ort,
             Betrieb = e.Betrieb,
+            Haus = e.Haus,
+            Stelle = e.Stelle,
+            Wohnhaus = e.Wohnhaus,
+            Weg = e.Weg,
             Beduerfnisse = e.Beduerfnisse.ToList(),
         }).ToList(),
     };
@@ -370,11 +460,34 @@ public sealed class Einwohnerschaft
                 Handlung = x.Handlung,
                 Ort = x.Ort,
                 Betrieb = x.Betrieb,
+                Haus = x.Haus,
+                Stelle = x.Stelle,
+                Wohnhaus = x.Wohnhaus,
+                Weg = x.Weg,
             };
             for (var i = 0; i < x.Beduerfnisse.Count && i < e.Beduerfnisse.Count; i++)
                 e.Setzen((Beduerfnis)i, x.Beduerfnisse[i]);
             _einwohner.Add(e);
         }
+        _haeuser.Clear();
+        _haeuser.AddRange(s.Haeuser);
+        if (_gegruendet && _haeuser.Count == 0)
+            HaeuserNachruesten();
+    }
+
+    /// <summary>Spielstand aus der Zeit vor den Wohnhäusern: Häuser jetzt verteilen (einmalig, danach wie immer).</summary>
+    private void HaeuserNachruesten()
+    {
+        HaushalteBilden();
+        foreach (var e in _einwohner.Where(e => e.Herkunft == Herkunft.Ratsherr))
+            e.Wohnhaus = NeuesHaus(Hausart.Ratsherrenhaus);
+        foreach (var e in _einwohner.Where(e => e.Herkunft == Herkunft.Kandidat))
+        {
+            var buerger = e.Rolle == Daten.RolleKandidatAbBuerger;
+            e.Wohnhaus = HausFuer(buerger ? Hausart.Buergerhaus : Hausart.Wohnhaus, int.TryParse(e.Quelle, out var n) ? n : e.Nummer);
+        }
+        foreach (var e in _einwohner.Where(e => e.Ort == Stadtort.Heim))
+            e.Haus = e.Wohnhaus;
     }
 }
 
@@ -386,6 +499,8 @@ public sealed record EinwohnerschaftStand
     public int NaechsteNummer { get; init; } = 1;
     public int Verstorben { get; init; }
     public int Zugezogen { get; init; }
+    /// <summary>Wohnhäuser (leer in Spielständen von vor den Häusern – dann werden sie beim Laden verteilt).</summary>
+    public List<Stadthaus> Haeuser { get; init; } = new();
     public List<EinwohnerStand> Einwohner { get; init; } = new();
 }
 
@@ -404,6 +519,10 @@ public sealed record EinwohnerStand
     public Handlung Handlung { get; init; }
     public Stadtort Ort { get; init; }
     public string? Betrieb { get; init; }
+    public int Haus { get; init; }
+    public string? Stelle { get; init; }
+    public int Wohnhaus { get; init; }
+    public Weg? Weg { get; init; }
     /// <summary>Dringlichkeit je Bedürfnis in der Reihenfolge von <see cref="Beduerfnis"/>.</summary>
     public List<double> Beduerfnisse { get; init; } = new();
 }
