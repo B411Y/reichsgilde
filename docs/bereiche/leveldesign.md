@@ -18,7 +18,7 @@ So wird eingetragen (damit sich die Chats nie an derselben Stelle treffen):
 
 Die Kartenregeln selbst stehen in `docs/LEVELDESIGN.md`.
 
-### Kartendatei und Köln (PR #NUMMER)
+### Kartendatei und Köln (PR #72)
 
 | Thema | Entscheidung | Datum |
 |---|---|---|
