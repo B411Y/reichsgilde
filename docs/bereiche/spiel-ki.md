@@ -12,6 +12,7 @@ So wird eingetragen (damit sich die Chats nie an derselben Stelle treffen):
 
 - (2) Bürger-KI: Warenkorb je Volk und Rolle (eigener Nachfragefaktor je Warengruppe)
 - (5) KI-Häuser handeln nicht von Hand am Markt
+- (5) (von Kern) Wohnhaus: `KiRivale.StandPruefen` baut seit PR #75 das nötige Wohnhaus vor dem Aufstieg (einfache Regel: wenn danach die Reserve bleibt). Zeitpunkt und Charakter verfeinern; wagemutige Häuser bleiben jetzt meist Edler (Messung in `docs/WIRTSCHAFTSMODELL.md`, Abschnitt „Wohnhaus je Haus“)
 
 ## Entscheidungen
 

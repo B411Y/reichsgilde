@@ -963,3 +963,18 @@ Ausgewogen im Rahmen der Streuung (vgl. §40: ± 7 % ohne Regeländerung). Wagem
 Die große Streuung kommt schon ohne Kopplung von den Fängen (ein gefasster Dieb fehlt bis zur Neueinstellung). Die Kopplung legt im Mittel 2,6 % drauf: Viele Passanten in den Marktstunden fallen mit den Arbeitsstunden der Diebe zusammen.
 
 **Messung 2** (`messen 30 20`, Mensch, alle drei Charaktere): **zeichengleich** mit main – seit #60 lernt kein KI-Haus mehr den Dieb, und ohne Diebesbetrieb wirkt die Kopplung nicht. Rechenzeit 18–19 s wie main.
+
+## Wohnhaus je Haus (PR #75)
+
+**Regel:** Abschnitt `wohnen`, Bauzeit 240 Min. Stufen (Ausbau / Unterhalt im Jahr / Ansehen / Pflicht ab Stand): Fachwerkhaus 0 / 0 / 0 / Gemeiner · Bürgerhaus 1.500 / 30 / +2 / Bürger · Steinhaus 4.000 / 80 / +4 / Patrizier · Stadtpalais 10.000 / 200 / +6 / Edler · Hof 25.000 / 500 / +8 / Freiherr. Alle Stufen bis zum Hof kosten zusammen 40.500 Gulden, danach 500 im Jahr. Ausbauen höchstens eine Stufe über dem Stand.
+
+**Messung** (`messen 30 20`, Mensch, gemessen auf main `2e14225` + PR #75; Vermögen Ø am Ende, Stand von Haus Eisenbart am Ende):
+
+| KI-Charakter | Eisenbart | Eichwald | Kieselbach | Eisenbart Bürgermeister | Eisenbart Stand |
+|---|---|---|---|---|---|
+| ausgewogen, main | 170.263 | 102.775 | 151.742 | 9/20 | 18 Freiherr, 2 Reichsgraf |
+| ausgewogen, jetzt | 123.907 (−27 %) | 77.487 (−25 %) | 101.048 (−33 %) | 16/20 | 20 Freiherr |
+| wagemutig, main | 91.843 | 60.133 | 75.793 | 16/20 | 18 Freiherr, 2 Edler |
+| wagemutig, jetzt | 56.842 (−38 %) | 60.157 (±0 %) | 57.846 (−24 %) | 17/20 | 16 Edler, 3 Freiherr, 1 erloschen |
+
+Das Wohnhaus bindet viel Geld: Wer bis Freiherr aufsteigt, zahlt 40.500 Gulden Ausbau plus bis zu 500 Gulden Unterhalt im Jahr – und das Geld fehlt danach in Betrieben und Zinsen. Ausgewogene Häuser erreichen weiterhin den Freiherrn, aber keiner mehr den Reichsgrafen; wagemutige Häuser bleiben meist beim Edlen hängen, weil sie ihr Geld ins Gaunern stecken und die Reserve für den Hof fehlt. Mehr Bürgermeister (16 statt 9) bei ausgewogen: Das Wohnhaus bringt Ansehen. Ob die Preise so bleiben, entscheidet der Nutzer nach dieser Messung.
