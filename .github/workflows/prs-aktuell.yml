@@ -1,0 +1,78 @@
+# ─────────────────────────────────────────────────────────────────────────────
+#  Offene PRs aktuell halten (GitHub Actions)
+#
+#  Nach jedem Merge auf "main" mergt diese Action den neuen Stand von main in jeden
+#  offenen, fertigen PR (nicht in Entwürfe – an denen arbeitet ein Chat gerade).
+#
+#    • Klappt das, wird der Branch gepusht und die Prüfung (build.yml) neu gestartet.
+#      Konflikte in docs/bereiche/*.md löst Git selbst: beide Einträge bleiben stehen
+#      (Regel „union“ in .gitattributes).
+#    • Gibt es einen echten Konflikt (z. B. im Code), bekommt der PR das Label
+#      „Konflikt mit main“ und einen Kommentar mit den Dateien – einmal, nicht bei jedem Lauf.
+#      Dann löst der zuständige Chat den Konflikt von Hand.
+#
+#  Wichtig für die Chats: Danach liegt auf eurem Branch ein neuer Commit. Vor dem
+#  Weiterarbeiten also erst „git pull“.
+#  Manuell starten: Actions → „PRs aktuell halten“ → „Run workflow“.
+# ─────────────────────────────────────────────────────────────────────────────
+name: PRs aktuell halten
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  pull-requests: write
+  issues: write
+  actions: write
+
+concurrency:
+  group: prs-aktuell
+  cancel-in-progress: false
+
+jobs:
+  aktualisieren:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: main in die offenen PRs mergen
+        env:
+          GH_TOKEN: ${{ github.token }}
+          LABEL: "Konflikt mit main"
+          REPO: ${{ github.repository }}
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          # Die union-Regel auch für Branches, die die neue .gitattributes noch nicht haben.
+          echo 'docs/bereiche/*.md merge=union' >> .git/info/attributes
+          gh label create "$LABEL" --color B60205 --description "main lässt sich nicht automatisch einmergen" --force
+
+          # Offene, fertige PRs aus diesem Repository (REST statt „gh pr list“ – läuft überall).
+          gh api "repos/$REPO/pulls?state=open&per_page=100" \
+            --jq '.[] | select(.draft | not) | select(.head.repo.full_name == env.REPO) | "\(.number) \(.head.ref) \([.labels[].name] | index(env.LABEL) != null)"' |
+          while read -r nummer zweig hatLabel; do
+            git fetch -q origin "$zweig"
+            git checkout -q -B "$zweig" "origin/$zweig"
+            if git merge-base --is-ancestor origin/main HEAD; then
+              echo "#$nummer ($zweig): schon aktuell"
+            elif git merge --no-edit -m "main eingemergt (automatisch)" origin/main; then
+              git push -q origin "$zweig"
+              gh workflow run build.yml --ref "$zweig" < /dev/null
+              echo "#$nummer ($zweig): main eingemergt, Prüfung gestartet"
+            else
+              dateien=$(git diff --name-only --diff-filter=U | sed 's/^/`/; s/$/`/' | paste -sd, -)
+              git merge --abort
+              echo "#$nummer ($zweig): Konflikt in $dateien"
+              if [ "$hatLabel" != "true" ]; then
+                gh pr edit "$nummer" --add-label "$LABEL" < /dev/null
+                gh pr comment "$nummer" --body "Automatisch: Der neue Stand von main lässt sich nicht einmergen – Konflikt in $dateien. Bitte im zuständigen Chat lösen: main in den Branch mergen (nicht rebasen), beide Einträge behalten, bauen, testen, pushen." < /dev/null
+              fi
+              continue
+            fi
+            if [ "$hatLabel" = "true" ]; then gh pr edit "$nummer" --remove-label "$LABEL" < /dev/null; fi
+          done
