@@ -746,6 +746,7 @@ public partial class Hauptszene : Node
             "Osttor" => "Osttor\n\nHier endet der Schutz der Mauern. Auf dem Weg ins Umland lauern Banditen aller Völker, "
                         + "wilde Ork-Rotten und Ogerhorden – nachts doppelt so häufig.",
             _ when _stadt.EinwohnerText(_auswahlKennung) is { } einwohner => einwohner, // Passanten (Darstellung)
+            _ when _stadt.WohnhausText(_auswahlKennung) is { } wohnhaus => wohnhaus, // Wohnhaus eines Spielhauses (Darstellung)
             _ => _auswahlKennung,
         };
         AktionKnopfAnzeigen(w, frei);
