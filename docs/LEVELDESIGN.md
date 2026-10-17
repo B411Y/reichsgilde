@@ -173,7 +173,7 @@ python3 tools/karten/greybox.py    # Greybox-Stadt prüfen und neu schreiben
 | `umland` | die 12 Gruben, Höfe, Gärten und der Wachturm vor der Stadt (Größen nach „Gebäudegrößen“); `vorkommen` führt zusätzlich die sieben Rohstoffplätze |
 | `umlandstelle` | Weide, Feld, Wald der Einwohner vor dem Westtor |
 | `einwohnerhaus`, `einwohnerplatz` | die vier alten Kulissenhäuser und die 36 Plätze für Einwohnerhäuser (16 am Ring, 20 in der Vorstadt) |
-| `wohnhaus` | die **Wohnhausplätze der Spielhäuser** (Doppelplätze am Ring, 17 × 8 m), in Konto-Reihenfolge, `reihenfolge` 1 bis 8: Konto 1 (Spieler) bekommt Platz 1 usw., so wie `SpielhausPlaetze` sie heute zuweist. Heute spielen höchstens 4 Häuser; Platz 5 bis 8 (`haeuserAb`) gelten erst bei mehr Konten, bis dahin stehen dort Einwohnerhäuser |
+| `wohnhaus` | die **Wohnhausplätze der Spielhäuser** (Doppelplätze am Ring, 17 × 8 m), in Konto-Reihenfolge, `reihenfolge` 1 bis 8, `lage` = `mauerring` (sie liegen zwischen Ringgasse und Mauer, in keiner Bauzone): Konto 1 (Spieler) bekommt Platz 1 usw., so wie `SpielhausPlaetze` sie heute zuweist. Heute spielen höchstens 4 Häuser; Platz 5 bis 8 (`haeuserAb`) gelten erst bei mehr Konten, bis dahin stehen dort Einwohnerhäuser |
 
 **Straßen:** `haupt` (Ostgasse, Westgasse), `land` (Landstraße, Weststraße, Wege zu den Gruben und Höfen), `ring` (Ringgasse) sind Karrenstraßen; Gassen und Fußwege (Stichgassen, Vorstadtgasse, die 14 Gassen von den Werkstattplätzen zum Markt, Fußwege zu Weide, Feld, Wald) nicht. Die Breite steht in `breite` (3 bis 5 m, nicht 6,5 m wie in Köln).
 

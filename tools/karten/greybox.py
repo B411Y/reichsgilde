@@ -269,7 +269,7 @@ ANZAHL_HAEUSER = 8
 doppel, ring = doppelplaetze(ANZAHL_HAEUSER)
 for n, (mitte, vorne, _) in enumerate(doppel, start=1):
     gebaeude(f"Wohnhaus{n}", "wohnhaus", f"Wohnhaus {n}", mitte, [2 * PLATZ_BREITE, PLATZ_TIEFE],
-             drehung_von(vorne), reihenfolge=n, **({"haeuserAb": n} if n > 4 else {}))
+             drehung_von(vorne), reihenfolge=n, lage="mauerring", **({"haeuserAb": n} if n > 4 else {}))
 belegt = {i for _, _, nr in doppel for i in nr}
 
 # Die übrigen Ringplätze: Einwohnerhäuser (Ratsherren-, Bürger- und einfache Wohnhäuser)
