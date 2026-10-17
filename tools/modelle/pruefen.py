@@ -4,7 +4,8 @@
 
 Gibt Knoten, Materialien, Dreiecke je Knoten und die Ausdehnung (Y oben, Vorderseite +Z) aus
 und meldet Verstöße: Material „Hausfarbe“ fehlt, Modell ragt über die belegte Fläche oder
-unter den Boden, ein Zustandsknoten fehlt.
+unter den Boden, ein Zustandsknoten fehlt. Hat das Modell Stufen (Werkstatt), müssen es genau
+Stufe1–Stufe3 sein; dann steht auch da, wie viele Dreiecke je Stufe sichtbar sind (Haus + Stufe).
 """
 
 import json
@@ -34,6 +35,7 @@ def main():
     mins, maxs = [1e9] * 3, [-1e9] * 3
     print(f"{'Knoten':12s} {'Dreiecke':>8s}  Extras")
     namen = []
+    dreiecke_je = {}
     summe = 0
     for knoten in g["nodes"]:
         if "mesh" not in knoten:
@@ -49,11 +51,19 @@ def main():
                 mins[i] = min(mins[i], pos["min"][i] + versatz[i])
                 maxs[i] = max(maxs[i], pos["max"][i] + versatz[i])
         summe += dreiecke
+        dreiecke_je[knoten["name"]] = dreiecke
         print(f"{knoten['name']:12s} {dreiecke:8d}  {knoten.get('extras', '')}")
     print(f"{'gesamt':12s} {summe:8d}")
     print("Ausdehnung X {:.2f} … {:.2f}   Y {:.2f} … {:.2f}   Z {:.2f} … {:.2f}".format(
         mins[0], maxs[0], mins[1], maxs[1], mins[2], maxs[2]))
 
+    stufen = sorted(n for n in namen if n.startswith("Stufe"))
+    if stufen:
+        if stufen != ["Stufe1", "Stufe2", "Stufe3"]:
+            fehler.append("Stufen müssen genau Stufe1, Stufe2, Stufe3 heißen, gefunden: " + ", ".join(stufen))
+        fest = sum(n for k, n in dreiecke_je.items() if k in ("Haus", "Wappen", "Fahne"))
+        print("sichtbar je Stufe (Haus, Wappen, Fahne + Stufe): " +
+              ", ".join(f"{k} {fest + dreiecke_je[k]}" for k in stufen))
     for z in ZUSTAENDE:
         if z not in namen:
             fehler.append(f"Zustandsknoten „{z}“ fehlt")

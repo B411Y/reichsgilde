@@ -79,9 +79,17 @@ FARBEN = {
     "Schiefer": (0.27, 0.29, 0.33),
     "Schieferkante": (0.17, 0.18, 0.21),
     "Firstblech": (0.22, 0.23, 0.25),
+    # Werkstätten
+    "Glut": (0.45, 0.14, 0.05),            # Esse und Feuerschein; leuchtet (Emission), das Spiel regelt die Stärke
+    "Gold": (0.86, 0.67, 0.27),
+    "Kohle": (0.11, 0.11, 0.12),
+    "Formsand": (0.46, 0.37, 0.27),
+    "Wasser": (0.15, 0.21, 0.23),
+    "Leder": (0.31, 0.20, 0.13),
 }
-RAUHEIT = {"Glas": 0.2, "Eisen": 0.45}
-METALL = {"Eisen": 0.7}
+RAUHEIT = {"Glas": 0.2, "Eisen": 0.45, "Gold": 0.35, "Wasser": 0.1}
+METALL = {"Eisen": 0.7, "Gold": 0.85}
+LEUCHTEN = {"Glut": ((1.0, 0.45, 0.12), 3.0)}    # Farbe (sRGB) und Stärke der Emission
 
 _stoffe = {}
 
@@ -105,6 +113,10 @@ def stoff(name):
     p.inputs["Base Color"].default_value = farbe
     p.inputs["Roughness"].default_value = RAUHEIT.get(name, 0.9)
     p.inputs["Metallic"].default_value = METALL.get(name, 0.0)
+    if name in LEUCHTEN:
+        licht, staerke = LEUCHTEN[name]
+        p.inputs["Emission Color"].default_value = (*_linear(licht), 1.0)
+        p.inputs["Emission Strength"].default_value = staerke
     m.diffuse_color = farbe
     _stoffe[name] = m
     return m
@@ -629,6 +641,51 @@ def baugeruest(netz, st, x0, x1, y_innen, y_aussen, ebenen=(2.15, 4.25), hoehe_i
         netz.quader((x0 + 1.2, y_aussen - 0.36 + 0.1 * k, 0.06 + 0.11 * (k == 1)), (2.2, 0.12, 0.12), holz)
 
 
+def zaun(netz, st, punkte, hoehe=1.1, abstand=2.0, stoff="Holz alt"):
+    """Bretterzaun entlang eines Linienzugs [(x, y), …]: Pfosten und zwei Latten je Abschnitt."""
+    holz = st[stoff]
+    for (x0, y0), (x1, y1) in zip(punkte, punkte[1:]):
+        laenge = math.hypot(x1 - x0, y1 - y0)
+        n = max(1, round(laenge / abstand))
+        for k in range(n + 1):
+            x, y = x0 + (x1 - x0) * k / n, y0 + (y1 - y0) * k / n
+            netz.quader((x, y, hoehe / 2 + 0.05), (0.12, 0.12, hoehe + 0.1), holz)
+        for z in (hoehe * 0.35, hoehe * 0.85):
+            netz.stab((x0, y0, z), (x1, y1, z), 0.1, 0.05, holz, quer=(0, 0, 1))
+
+
+def fachwerkgiebel(netz, st, M, L, hoch, oeffnungen, laeden=False):
+    """Giebeldreieck mit Fachwerk für beliebige Maße: Schwelle, Firstsäule, Kehlbalken, Ständer neben
+    zwei Fenstern, Streben. Alle Maße wachsen mit der Giebelgröße, nichts ragt über das Dach."""
+    holz = st["Fachwerk"]
+    halb = L / 2
+    platte(netz, M, [(-halb, 0), (halb, 0), (0, hoch)], 0, 0.3, st["Putz"])
+
+    def rand(u):
+        return hoch * (1 - abs(u) / halb)
+
+    balken(netz, M, -halb + 0.05, B / 2, halb - 0.05, B / 2, holz, vor=VOR_SCHWELLE, enden=True)
+    balken(netz, M, 0, B, 0, hoch - 0.35, holz)
+    vk = hoch * 0.5
+    breite_k = halb * (1 - (vk + B) / hoch) - 0.05
+    balken(netz, M, -breite_k, vk + B / 2, breite_k, vk + B / 2, holz, vor=VOR_SCHWELLE)
+    fb, fv = 0.6, 0.45
+    fh = min(0.95, vk - fv - 0.25)
+    fu = halb * 0.33
+    for s in (-1, 1):
+        for u in (fu - fb / 2 - B / 2, fu + fb / 2 + B / 2):
+            balken(netz, M, s * u, B, s * u, min(vk, rand(u + B / 2) - 0.1), holz)
+        for v in (fv - B / 2, fv + fh + B / 2):
+            balken(netz, M, s * 0.07, v, s * (fu + fb / 2 + B), v, holz, vor=VOR_RIEGEL)
+        a = halb * 0.8
+        balken(netz, M, s * (fu + fb / 2 + B), B, s * a, max(B + 0.2, rand(a) - 0.2), holz, vor=VOR_STREBE)
+        if hoch - 0.8 > vk + B + 0.3:
+            balken(netz, M, s * halb * 0.3, vk + B, s * 0.08, hoch - 0.8, holz, vor=VOR_STREBE)
+        o = Oeffnung("fenster", s * fu, fv, fb, fh, laeden=laeden)
+        fenster(netz, M, o, st)
+        oeffnungen.append((M, o))
+
+
 # ─────────────────────────────────────────────────────────────────────────────
 #  Mauerwerk: Eckquader, Gesimse, Lagerfugen, Gewände, Rundbogenportal
 # ─────────────────────────────────────────────────────────────────────────────
@@ -660,14 +717,21 @@ def fugen(netz, M, L, v0, v1, st, abstand=0.42):
         v += abstand
 
 
-def gewaende(netz, M, o, st, kreuz=True, verdachung=False):
+def gewaende(netz, M, o, st, kreuz=True, verdachung=False, glas="Glas", gitter=False, stein="Sandstein"):
     """Steinfenster: Glas, Gewände aus Sandstein (Laibung, Sturz, vorstehende Sohlbank),
-    Fensterkreuz in der Hausfarbe (gestrichene Flügel), auf Wunsch eine Verdachung darüber."""
-    sand = st["Sandstein"]
+    Fensterkreuz in der Hausfarbe (gestrichene Flügel), auf Wunsch eine Verdachung darüber.
+    `glas`: Material der Scheibe (z. B. "Glut" für Feuerschein), `gitter`: Eisenstäbe statt Kreuz."""
+    sand = st[stein]
     g, vor = 0.16, 0.05
     y = -0.006
     netz.vieleck([M @ Vector(p) for p in ((o.u - o.b / 2, y, o.v), (o.u + o.b / 2, y, o.v),
-                                          (o.u + o.b / 2, y, o.v + o.h), (o.u - o.b / 2, y, o.v + o.h))], st["Glas"])
+                                          (o.u + o.b / 2, y, o.v + o.h), (o.u - o.b / 2, y, o.v + o.h))], st[glas])
+    if gitter:
+        for k in range(1, 4):
+            u = o.u - o.b / 2 + o.b * k / 4
+            balken(netz, M, u, o.v, u, o.v + o.h, st["Eisen"], vor=0.03, breite=0.035)
+        balken(netz, M, o.u - o.b / 2, o.v + o.h * 0.5, o.u + o.b / 2, o.v + o.h * 0.5, st["Eisen"], vor=0.035, breite=0.035)
+        kreuz = False
     for s in (-1, 1):
         netz.quader((o.u + s * (o.b / 2 + g / 2), (-vor + 0.02) / 2, o.v + o.h / 2), (g, vor + 0.02, o.h), sand, M,
                     ohne=("+y", "+z", "+x" if s > 0 else "-x"))
@@ -852,4 +916,29 @@ def rundum(name, sichtbar):
     gesamt.save(pfad, optimize=True)
     for p in teile:
         os.remove(p)
+    return pfad
+
+
+def nebeneinander(name, bilder, texte):
+    """Mehrere Vorschaubilder (gleicher Ausschnitt) nebeneinander mit Beschriftung: docs/modelle/<name>.png.
+    Schrift des Spiels (Alegreya, OFL); ohne Pillow bleibt es bei den Einzelbildern."""
+    try:
+        from PIL import Image, ImageDraw, ImageFont
+    except ImportError:
+        return None
+    teile = [Image.open(b).convert("RGB") for b in bilder]
+    w, h = teile[0].size
+    rand = int(w * 0.07)                       # links und rechts ist in jedem Bild nur Boden
+    gesamt = Image.new("RGB", (len(teile) * (w - 2 * rand), h))
+    for i, t in enumerate(teile):
+        gesamt.paste(t.crop((rand, 0, w - rand, h)), (i * (w - 2 * rand), 0))
+    zeichnen = ImageDraw.Draw(gesamt)
+    try:
+        schrift = ImageFont.truetype(os.path.join(WURZEL, "game", "assets", "schriften", "Alegreya-Variabel.ttf"), int(h / 30))
+    except OSError:
+        schrift = ImageFont.load_default()
+    for i, text in enumerate(texte):
+        zeichnen.text((int((i + 0.5) * (w - 2 * rand)), int(h * 0.96)), text, fill=(240, 236, 220), font=schrift, anchor="ms")
+    pfad = os.path.join(VORSCHAU, name + ".png")
+    gesamt.save(pfad, optimize=True)
     return pfad
