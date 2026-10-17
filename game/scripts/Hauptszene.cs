@@ -1042,7 +1042,7 @@ public partial class Hauptszene : Node
         var zeilen = new List<string>
         {
             "",
-            $"Kaufen: {Zahlenformat.Ganz(v.KaufSumme)} {waehrung} (Kauf {Zahlenformat.Ganz(v.Kaufpreis)} + Sanierung {Zahlenformat.Ganz(v.Sanierung)} − euer Haus {Zahlenformat.Ganz(v.Anrechnung)}), "
+            $"Kaufen: {Zahlenformat.Ganz(v.KaufSumme)} {waehrung} (Kauf {Zahlenformat.Ganz(v.Kaufpreis)} + Sanierung {Zahlenformat.Ganz(v.Sanierung)}{(v.Anrechnung > 0.5 ? $" − euer Haus {Zahlenformat.Ganz(v.Anrechnung)}" : "")}), "
                 + $"{BauAnzeige.BauzeitText(v.SanierungMinuten)}, dann zieht ihr ein.",
             $"Abreißen: {Zahlenformat.Ganz(v.AbrissSumme)} {waehrung} (Kauf {Zahlenformat.Ganz(v.Kaufpreis)} + Abriss {Zahlenformat.Ganz(v.Abriss)}), "
                 + $"{BauAnzeige.BauzeitText(v.AbrissMinuten)}, danach freier Bauplatz.",

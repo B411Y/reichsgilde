@@ -202,7 +202,7 @@ public partial class BauRueckfrage : PanelContainer
 
         var rechnung = Raster(_inhalt);
         Zeile(rechnung, werkstatt ? $"Preis (eine freie {v.Gebaeude} der Stufe 1)" : $"Hauswert ({v.Gebaeude})", Zahlenformat.Ganz(v.Preis));
-        if (!werkstatt)
+        if (!werkstatt && v.Anrechnung > 0.5)
             Zeile(rechnung, "Euer altes Haus wird angerechnet", "−" + Zahlenformat.Ganz(v.Anrechnung));
         Zeile(rechnung, "= Kosten, fällig beim Baubeginn", $"{Zahlenformat.Ganz(v.Kosten)} {waehrung}", Gold, 17);
         if (werkstatt)
@@ -236,7 +236,7 @@ public partial class BauRueckfrage : PanelContainer
         else
         {
             Zeile(rechnung, $"Sanierung ({Zahlenformat.Ganz((d?.Sanierung ?? 0.2) * 100)} %)", Zahlenformat.Ganz(v.Sanierung));
-            Zeile(rechnung, "Euer altes Haus wird angerechnet", "−" + Zahlenformat.Ganz(v.Anrechnung));
+            if (v.Anrechnung > 0.5) Zeile(rechnung, "Euer altes Haus wird angerechnet", "−" + Zahlenformat.Ganz(v.Anrechnung));
             Zeile(rechnung, "= Summe, fällig jetzt", $"{Zahlenformat.Ganz(v.KaufSumme)} {waehrung}", Gold, 17);
         }
         Zeile(rechnung, "Euer Vermögen", $"{Zahlenformat.Ganz(_spieler!.Vermoegen)} {waehrung}", Hell, 14);
