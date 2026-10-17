@@ -141,7 +141,7 @@ So wird eingetragen (damit sich die Chats nie an derselben Stelle treffen):
 | Schalten | Das Spiel setzt nachts die Emission des einen gemeinsamen Materials „Fenster“ (warmes Orange) – ein Schalter für die ganze Stadt. Leere Häuser bekommen eine Kopie in „Glas“. Die „Glut“ der Essen bleibt davon getrennt (sie hängt an der Arbeit, nicht an der Uhrzeit). | 17.10.2026 |
 | Vorschau | `<name>-nacht.png` zeigt jedes Modell bei Mondlicht mit Fensterlicht und Glut; einzeln mit `--nur-nacht`. | 17.10.2026 |
 
-### Werkstatt des Tischlers als 3D-Modell (PR #NUMMER)
+### Werkstatt des Tischlers als 3D-Modell (PR #109)
 
 | Thema | Entscheidung | Datum |
 |---|---|---|
