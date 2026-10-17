@@ -91,9 +91,15 @@ FARBEN = {
     "Schnittholz": (0.66, 0.53, 0.36),     # frisch gesägte Bretter und Hirnholz
     "Seil": (0.55, 0.48, 0.35),
     "Steinstaub": (0.70, 0.68, 0.63),      # heller Staub und Splitt am Werkplatz des Steinmetzen
+    "Kraut": (0.30, 0.42, 0.22),           # frische Kräuter, Beete, Sud
+    "Heu": (0.56, 0.50, 0.30),             # getrocknete Kräuterbündel
+    "Rose": (0.62, 0.16, 0.22),
+    "Farbe": (0.58, 0.18, 0.14),           # Farbsud im Bottich (Ware des Alchimisten)
+    "Elixier": (0.24, 0.48, 0.42),         # Flaschen und Kolben
+    "Violett": (0.45, 0.30, 0.55),         # Spitze des Dachreiters beim Alchimisten (wie bisher im Spiel)
 }
 RAUHEIT = {"Glas": 0.2, "Fenster": 0.2, "Eisen": 0.45, "Gold": 0.35, "Wasser": 0.1}
-METALL = {"Eisen": 0.7, "Gold": 0.85, "Kupfer": 0.5}
+METALL = {"Eisen": 0.7, "Gold": 0.85, "Kupfer": 0.5, "Violett": 0.5}
 LEUCHTEN = {"Glut": ((1.0, 0.45, 0.12), 3.0)}    # Farbe (sRGB) und Stärke der Emission
 # Licht hinter den Fenstern bei Nacht: Farbe (sRGB) und Stärke. Nicht in der GLB (dort aus), nur für die Nachtbilder –
 # im Spiel schaltet der Code die Emission des gemeinsamen Materials „Fenster“ abends an und morgens aus.
@@ -654,6 +660,21 @@ def baugeruest(netz, st, x0, x1, y_innen, y_aussen, ebenen=(2.15, 4.25), hoehe_i
         netz.stab((p.x - 0.22, p.y, p.z), (p.x + 0.22, p.y, p.z), 0.04, 0.04, holz)
     for k in range(3):
         netz.quader((x0 + 1.2, y_aussen - 0.36 + 0.1 * k, 0.06 + 0.11 * (k == 1)), (2.2, 0.12, 0.12), holz)
+
+
+def achteck(netz, st, boden, r, z0, z1, stoff="Sandstein", n=8):
+    """Stehendes n-Eck von z0 bis z1 über `boden` (Säulenschaft, Becken, Mühlstein)."""
+    profil = [(r * math.cos(math.radians(180 / n + 360 / n * k)), r * math.sin(math.radians(180 / n + 360 / n * k)))
+              for k in range(n)]
+    dreh = Matrix.Translation(Vector(boden)) @ Matrix.Rotation(math.radians(-90), 4, "Y")   # Prisma-x → Welt-z
+    netz.prisma(profil, z0, z1, st[stoff] if isinstance(stoff, str) else stoff, matrix=dreh)
+
+
+def rund_oben(netz, st, mitte, r, z, stoff="Loch", n=8):
+    """Flaches n-Eck nach oben (Loch im Mühlstein, Wasser oder Schatten im Becken)."""
+    netz.vieleck_nach([(mitte[0] + r * math.cos(math.radians(180 / n + 360 / n * k)),
+                        mitte[1] + r * math.sin(math.radians(180 / n + 360 / n * k)), z) for k in range(n)],
+                      (0, 0, 1), st[stoff])
 
 
 def pultdach(netz, st, x0, x1, y0, y1, z_hoch, z_tief, stoff="Holz alt", entlang="x"):
