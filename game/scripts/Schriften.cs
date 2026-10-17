@@ -71,4 +71,20 @@ public static class Schriften
             }
         };
     }
+
+    /// <summary>
+    /// Beim Beenden aufrufen (Autoload <see cref="Fenster"/>): Thema und Ersatzschrift lassen die Schriften los, die eigenen
+    /// Verweise werden sofort freigegeben. Sonst hielte C# sie bis zum Abbau der Laufzeit fest – dann kann die letzte
+    /// Freigabe nach dem Textserver kommen, und Godot meldet dessen Glyphen-Texturen als Leck („DummyTexture leaked“)
+    /// oder stürzt ab.
+    /// </summary>
+    public static void Freigeben()
+    {
+        ThemeDB.GetDefaultTheme().DefaultFont = null;
+        ThemeDB.FallbackFont = null;
+        _ueberschrift?.Dispose();
+        _ueberschrift = null;
+        _text?.Dispose();
+        _text = null;
+    }
 }
