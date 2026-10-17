@@ -23,6 +23,19 @@ public partial class Fenster : Node
     public static bool IstVollbild =>
         DisplayServer.WindowGetMode() is DisplayServer.WindowMode.Fullscreen or DisplayServer.WindowMode.ExclusiveFullscreen;
 
+    /// <summary>
+    /// Der Autoload verlässt den Baum erst beim Beenden des Spiels, als Letzter nach der Szene. Dann die Schriften loslassen
+    /// und die Müllabfuhr von C# sofort laufen lassen, solange Godot noch ganz steht: Godot-Objekte, deren C#-Hülle schon
+    /// Müll ist, werden sonst erst während des Herunterfahrens auf einem eigenen Faden freigegeben – je nach Zeitpunkt
+    /// ein Leck oder ein Absturz im Rauchtest.
+    /// </summary>
+    public override void _ExitTree()
+    {
+        Schriften.Freigeben();
+        GC.Collect();
+        GC.WaitForPendingFinalizers();
+    }
+
     public override void _Ready()
     {
         _instanz = this;
