@@ -69,7 +69,7 @@ FARBEN = {
     "Stroh": (0.49, 0.43, 0.30),           # altes, vergrautes Stroh
     "Strohkante": (0.38, 0.32, 0.21),
     "Firstsoden": (0.30, 0.30, 0.20),      # Grassoden auf dem First
-    "Moos": (0.37, 0.38, 0.24),
+    "Moos": (0.40, 0.39, 0.26),
     "Holz alt": (0.33, 0.27, 0.20),        # verwitterte Bretter
     "Scheitholz": (0.60, 0.48, 0.33),      # Hirnholz am Holzstapel
     # Steinhaus (Patrizier): Haustein, Sandstein, Schiefer

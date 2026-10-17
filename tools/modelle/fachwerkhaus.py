@@ -171,8 +171,8 @@ def strohdach(netz, st, traufe=0.5, ortgang=0.35):
     for p, q, n in ((A, B, (0, -1, 0)), (A2, B2, (0, 1, 0)), (B, C, (1, 0, 0)), (C, C2, (1, 0, 0)), (C2, B2, (1, 0, 0)),
                     (A, F, (-1, 0, 0)), (F, F2, (-1, 0, 0)), (F2, A2, (-1, 0, 0))):
         netz.vieleck_nach([p, q, q + unten, p + unten], n, kante)
-    # First: Grassoden, rundum etwas überstehend
-    netz.stab((-x_first - 0.15, y_first, z_first + 0.05), (x_first + 0.15, y_first, z_first + 0.05), 0.5, 0.5,
+    # First: Grassoden bis an die Walme
+    netz.stab((-x_first + 0.05, y_first, z_first + 0.05), (x_first - 0.05, y_first, z_first + 0.05), 0.5, 0.5,
               st["Firstsoden"], matrix=None, quer=(0, 1, 1))
     # Regenstreifen: schmale dunkle Bahnen die Fläche hinunter
     zufall = random.Random(11)
