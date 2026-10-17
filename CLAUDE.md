@@ -59,10 +59,11 @@ Gilt, wenn ein Chat als **Teamleiter** Teammitglieder (Agenten) startet. Alle ü
 - **Nachrichten:** Vorschläge an ein anderes Mitglied gehen **über den Teamleiter**, nicht direkt untereinander. Zwischenmeldungen nur bei einer Blockade oder einer fertigen Schnittstelle, sonst nur der Abschlussbericht.
 - **Nach „fertig“:** Ein Mitglied pusht nur noch auf Anweisung des Teamleiters. Sind alle Teile im Funktions-Branch, macht der Teamleiter dort den gemeinsamen Klicktest, schreibt die Übersicht für den Nutzer in den PR-Text, stellt den PR auf „bereit“ und meldet dem Nutzer „mergebereit: #…“. Nach `main` mergt nur der Nutzer.
 - **Modelle:** Für den Kern und die Spiel-KI Opus: Simulation, Spielstände und Tests vertragen keine Fehler. Für Oberfläche und Darstellung Sonnet, denn sie folgen vorhandenen Mustern, und Tests, CI und Klicktest fangen Fehler ab. Für Kleinkram (Doku-Korrektur, main einmergen, CI abwarten) und zum Durchsuchen des Codes vor den Designfragen Haiku. Wird die Arbeit eines Bereichs mit einem kleineren Modell schlechter, kommt er zurück auf Opus.
-- **Aufräumen:** Am Ende entfernt der Teamleiter die Worktrees und Mitglieder-Branches der gemergten Funktion und fasst für den Nutzer zusammen, was offen bleibt.
+- **Aufräumen:** Am Ende beendet der Teamleiter die Teammitglieder, entfernt die Worktrees und Mitglieder-Branches der gemergten Funktion und fasst für den Nutzer zusammen, was offen bleibt.
 
 ## Feste Regeln
 
+- **Mergen nur durch den Nutzer:** Kein Chat mergt nach `main` und keiner schaltet „Auto-merge“ ein (auch nicht mit `gh pr merge --auto`). Der Nutzer prüft den PR und schaltet Auto-merge selbst ein; `main` verlangt die drei CI-Prüfungen.
 - **Nichts aus dem Original-Spiel** (keine Grafiken, Sounds, Musik, Texte, Modelle). Es dient nur als Vorbild für Mechaniken.
 - Der **Mechanik-Katalog** und das **Design-Dossier** bleiben im privaten Claude-Projekt und kommen **nie** ins Repository.
 - Spieltag 05:00–22:00 Uhr (1020 Ticks = 1 Spieljahr), Arbeitszeit 8–20 Uhr, Gauner ab 20 Uhr.

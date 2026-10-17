@@ -18,6 +18,8 @@ So wird eingetragen (damit sich die Chats nie an derselben Stelle treffen):
 - Weitere Modelle aus Blender-Skripten: Stadtpalais, Stadthof; Werkstätten mit Stufe1–3 der übrigen Berufe (Tischler, Steinmetz, Alchimist …), je Beruf ein Schritt; Einwohnerhäuser (Ratsherrenhaus, Bürgerhaus, einfaches Haus)
 - Werkstatt des Schmieds einbauen: `schmied.glb` statt `WerkstattAussenBauen` und `AusbauBauen` beim Beruf Schmied; genau den Knoten `Stufe<n>` der Betriebsstufe zeigen, das Gerüst über „Geruest“, die Glut über das Material „Glut“ (Emission an, solange gearbeitet wird; ersetzt `huelle.Esse`), die verkaufte Werkstatt über „Leerstand“ ohne „Wappen“ und „Fahne“. Klickfläche, Innenraum und Schild bleiben wie bisher
 - Wohnhaus-Modelle auf Wohnhausplätzen der Karte (8 m tief, ohne Vorplatz): Die GLB sind für 8 × 10 m mit 2 m Vorplatz gebaut, die Hauskörper sind höchstens 7,4 m tief. Beim Einbau das Modell dort um 1 m zur Gasse versetzen (die Freitreppe des Steinhauses ragt dann in die Gasse); breitere Plätze lassen links und rechts Luft
+- Weitere Modelle ins Spiel einbauen, sobald es sie gibt: Stadtpalais und Hof in `SpielhausModell` (Stufe 3 und 4 bauen noch Grundkörper), die Einwohnerhäuser, die Werkstätten – nach dem Muster `WohnhausModellEinsetzen` (PR #105)
+- Weitere Modelle aus Blender-Skripten: Stadtpalais, Stadthof; Werkstätten mit Stufe1–3 (Gießerei, Tischlerei, Maurerei); Einwohnerhäuser (Ratsherrenhaus, Bürgerhaus, einfaches Haus)
 
 ## Entscheidungen
 
@@ -112,3 +114,11 @@ So wird eingetragen (damit sich die Chats nie an derselben Stelle treffen):
 | Glut | Neues Material „Glut“ (Esse, Feuerschein hinter den vergitterten Fenstern) mit Emission. Das Spiel schaltet sie wie bisher die Esse: hell bei der Arbeit, aus, wenn nicht gearbeitet wird oder die Werkstatt verkauft ist. | 17.10.2026 |
 | Verkauft und Ausbau | „Leerstand“ vernagelt Tor und Fenster der Halle (passt zur verkauften Werkstatt, PR #96; das ockerfarbene Schild bleibt Sache des Spiels). „Geruest“ steht vor der Halle. | 17.10.2026 |
 | Dreiecke | Sichtbar je Stufe 2.602, 3.536 und 4.738. Eine Werkstatt ist ein ganzer Hof mit mehreren Bauten, darum über dem Richtwert der Wohnhäuser; bei rund 20 Werkstätten in der Stadt sind das unter 100.000 Dreiecke. | 17.10.2026 |
+### Wohnhaus-Modelle im Spiel (PR #105)
+
+| Thema | Entscheidung | Datum |
+|---|---|---|
+| Einbau | `SpielhausModell` lädt für Fachwerkhaus, Bürgerhaus und Steinhaus (Stufe 0–2) die GLB aus `game/assets/modelle/` (einmal je Stufe, `WohnhausSzene`) und setzt sie mit `WohnhausModellEinsetzen` ein; Stadtpalais und Hof bauen weiter Grundkörper. Fehlt eine Datei, meldet das Spiel einen Fehler (der Rauchtest schlägt an) und baut das Haus aus Grundkörpern. Die `.glb.import` sind eingecheckt wie bei den Bildern. | 17.10.2026 |
+| Lage | Die Hausfront liegt im Modell bei z = +3 (Mitte der 10 m tiefen Fläche, 2 m Vorplatz). Das Modell sitzt bei `vorne − 3`: auf einem Neubau (10 m) genau in der Mitte, auf den Wohnhausplätzen der Karte (8 m, Front an der Gasse) 1 m weiter zur Gasse. | 17.10.2026 |
+| Zustände | Nach Namen: „Geruest“ bei Ausbau, Sanierung und Brand; „Leerstand“ (Bretter) nur im Leerstand; „Wappen“ und „Fahne“ nur bei einem Besitzer (nicht im Leerstand, nicht während der Sanierung). Das Code-Gerüst und das Code-Wappen entfallen für diese Stufen. | 17.10.2026 |
+| Farben | Das Material „Hausfarbe“ wird je Haus durch eine Kopie in der Besitzerfarbe ersetzt (je Vorlage und Farbe einmal); ohne Besitzer verwittertes Holz statt Spielerblau. Nach einem Brand werden die Dachmaterialien (Dachziegel, Stroh, Schiefer samt Kanten und First) zu 80 % rußig gefärbt. | 17.10.2026 |
