@@ -159,7 +159,7 @@ So wird eingetragen (damit sich die Chats nie an derselben Stelle treffen):
 | Wachstum | Maurerei: Vordach mit zwei Bänken und Werkstücken, Mörtelkasten, Sandhaufen und Kalkfässer, Quaderstapel, Rohblöcke und Bruchsteine. Steinschneiderei: steinerner Anbau mit Giebel zur Gasse, Steinsäge, Schleifstein, Dreibein mit Flaschenzug und hängendem Block (wie bisher im Innenraum), Gaube. Steinmetzhütte: offene Bauhütte mit Ziegeldach, darin die Steinfigur in Arbeit (wie bisher im Innenraum) und eine Säule; Dreibein im Hof, Dachreiter mit Schieferspitze wie bisher im Spiel. In jeder Stufe Ware an der Gasse (Grabsteine, Mühlsteine, Schleifziegel; in Stufe 3 Taufbecken, Grabmal und Säule) und eine Trockenmauer statt Bretterzaun. | 17.10.2026 |
 | Bausteine | `pultdach` liegt jetzt in `bausteine.py`, der Dachreiter hat wählbare Wände (`koerper`, `ecken`). Schmied und Tischler bleiben byte-gleich. | 17.10.2026 |
 
-### Werkstatt des Alchimisten als 3D-Modell (PR #…)
+### Werkstatt des Alchimisten als 3D-Modell (PR #112)
 
 | Thema | Entscheidung | Datum |
 |---|---|---|
