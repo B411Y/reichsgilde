@@ -56,7 +56,8 @@ public sealed class WohnenDaten
 
 /// <summary>
 /// Das Wohnhaus jedes Hauses – getrennt von den Betrieben (Entscheidung Leveldesign/Kern, 16.10.2026).
-/// Es wird am selben Ort Stufe für Stufe ausgebaut (Fachwerkhaus → Bürgerhaus → Steinhaus → Stadtpalais → Stadthof),
+/// Es wird am selben Ort Stufe für Stufe ausgebaut (Fachwerkhaus → Bürgerhaus → Steinhaus → Stadtpalais → Stadthof);
+/// wo gebaut wird, entstehen Stadtpalais und Stadthof nur als Neubau oder durch Kauf eines Leerstands (<see cref="Bauen.Bauwesen.NurNeubau"/>),
 /// bringt Ansehen, kostet Unterhalt und ist <b>Voraussetzung für den Stand</b>: Wer Bürger werden will, braucht vorher ein Bürgerhaus.
 /// Ausbauen darf man höchstens eine Stufe über dem eigenen Stand.
 ///
@@ -111,7 +112,8 @@ public sealed class Wohnungswesen
             return $"Für den Stand {stand} braucht {k.Inhaber} ein {d.Stufen[noetig].Name} – das neue Haus ist noch nicht bezogen.";
         return k.WohnhausFertigAb is not null && k.WohnhausStufe + 1 >= noetig
             ? $"Für den Stand {stand} braucht {k.Inhaber} ein {d.Stufen[noetig].Name} – der Ausbau läuft noch."
-            : $"Für den Stand {stand} braucht {k.Inhaber} erst ein {d.Stufen[noetig].Name} (Wohnhaus ausbauen).";
+            : $"Für den Stand {stand} braucht {k.Inhaber} erst ein {d.Stufen[noetig].Name} " +
+              (_w.Bauen.NurNeubau(noetig) ? "(neu bauen oder einen Leerstand kaufen)." : "(Wohnhaus ausbauen).");
     }
 
     /// <summary>
@@ -164,6 +166,8 @@ public sealed class Wohnungswesen
         if (_w.Bauen.Umzug(k) is not null) return $"{k.Inhaber} zieht bald in ein neues Wohnhaus – ausbauen erst danach.";
         if (IstBeschaedigt(k)) return $"Das Wohnhaus von {k.Inhaber} wird nach dem Brand noch instand gesetzt.";
         if (NaechsteStufe(k) is not { } naechste) return $"{k.Inhaber} wohnt schon im größten Haus ({Stufe(k)!.Name}).";
+        if (_w.Bauen.NurNeubau(k.WohnhausStufe + 1))
+            return $"Ein {naechste.Name} entsteht nur als Neubau – im Baumodus neu bauen oder einen Leerstand kaufen.";
         if (k.Stand < naechste.AbStand - 1)
             return $"Ein {naechste.Name} darf erst bauen, wer mindestens {_w.Daten.Staende[naechste.AbStand - 1].Name} ist.";
         if (k.Vermoegen < naechste.Ausbau)

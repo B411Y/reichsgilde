@@ -19,6 +19,12 @@ public sealed class Gebaeudemass
     /// <summary>In welchen Bauzonen das Gebäude stehen darf.</summary>
     public List<Lage> Lagen { get; init; } = new() { Lage.Kern, Lage.Mauerring, Lage.Vorstadt };
 
+    /// <summary>
+    /// Nur für Wohnhäuser: Diese Stufe entsteht nur als Neubau oder durch Kauf eines Leerstands, nicht als Ausbau am Platz
+    /// (Stadtpalais und Stadthof, ab Datenversion 35 – sie sind größer als ein Wohnhausplatz). Gilt nur, wo gebaut wird.
+    /// </summary>
+    public bool NurNeubau { get; init; }
+
     internal void Pruefen(List<string> f, string wo, double raster)
     {
         if (Breite <= 0 || Tiefe <= 0) f.Add($"{wo}: breite und tiefe müssen größer als 0 sein.");
@@ -87,6 +93,8 @@ public sealed class BauDaten
         Werkstatt.Pruefen(f, "bauen.werkstatt", Raster);
         for (var i = 0; i < Wohnhaus.Count; i++)
             Wohnhaus[i].Pruefen(f, $"bauen.wohnhaus[{i}]", Raster);
+        if (Werkstatt.NurNeubau) f.Add("bauen.werkstatt: nurNeubau gibt es nur für Wohnhäuser.");
+        if (Wohnhaus.Count > 0 && Wohnhaus[0].NurNeubau) f.Add("bauen.wohnhaus[0]: Das Startwohnhaus kann nicht nurNeubau sein.");
         // Ohne Abschnitt „wohnen“ wird nicht gebaut (siehe Bauwesen.IstAktiv) – dann gibt es nichts abzugleichen.
         if (wohnen is not null && Wohnhaus.Count != wohnen.Stufen.Count) f.Add($"bauen.wohnhaus braucht je Stufe des Wohnhauses einen Eintrag ({wohnen.Stufen.Count}, sind {Wohnhaus.Count}).");
         Leerstand.Pruefen(f);

@@ -196,5 +196,80 @@ static class GreyboxTests
             Pruefe.Wahr(w.Ausfuehren(k, palais).Erfolg, "Stadtpalais auf dem Wohnhausplatz");
             Pruefe.Wahr(!w.Bauen.Bauplaetze.Any(), "Platz vergeben");
         }),
+
+        ("Greybox: Bauorte – genau die gültigen Rasterstellen (gegen eine Suche über die ganze Stadt), in fester Reihenfolge und schnell genug für die KI", () =>
+        {
+            var (sim, spieler) = Partieaufbau.Erstellen(Partieeinstellungen.Standard, Daten.Value, new NeuePartie(), karte: Karte());
+            var w = sim.Wirtschaft!;
+            var k = Reich(w, "Haus Reich");
+            var vorlagen = new BauBefehl[]
+            {
+                new WerkstattBauen(Betriebsart.Giesserei, 0, 0, 0), new WohnhausBauen(1, 0, 0, 0), new WohnhausBauen(3, 0, 0, 0), new WohnhausBauen(4, 0, 0, 0),
+            };
+            var orte = vorlagen.Select(v => w.Bauen.Bauorte(k, v)).ToList(); // einmal vorweg (der erste Aufruf übersetzt den Code)
+            var zeitJeAbfrage = double.MaxValue; // die beste von drei Runden – der Rechner tut nebenher anderes
+            for (var runde = 0; runde < 3; runde++)
+            {
+                var uhr = System.Diagnostics.Stopwatch.StartNew();
+                orte = vorlagen.Select(v => w.Bauen.Bauorte(k, v)).ToList();
+                zeitJeAbfrage = Math.Min(zeitJeAbfrage, uhr.Elapsed.TotalMilliseconds / vorlagen.Length);
+            }
+            Pruefe.Wahr(zeitJeAbfrage < 500, $"Bauorte braucht {zeitJeAbfrage:0} ms je Abfrage");
+
+            for (var i = 0; i < vorlagen.Length; i++)
+            {
+                Pruefe.Wahr(orte[i].Count > 0, $"{vorlagen[i]}: kein Bauort");
+                Pruefe.Wahr(orte[i].All(o => w.Bauen.BauVerboten(k, o) is null && w.Bauen.Einrasten(o) == o), $"{vorlagen[i]}: ungültiger Bauort");
+                Pruefe.Wahr(orte[i].SequenceEqual(w.Bauen.Bauorte(k, vorlagen[i] with { X = 55, Z = -3, Drehung = 2 })), "Lage der Vorlage zählt nicht, Reihenfolge fest");
+                // Gegenprobe: jede Rasterstelle der ganzen Stadt (Rand 30 m um die Bauzonen), jede Drehung
+                var gefunden = orte[i].Select(o => (o.X, o.Z, o.Drehung)).ToHashSet();
+                var karte = w.Karte!;
+                var punkte = karte.Bauzonen.SelectMany(z => z.Flaeche).ToList();
+                for (var x = punkte.Min(p => p[0]) - 30; x <= punkte.Max(p => p[0]) + 30; x += 2)
+                    for (var z = punkte.Min(p => p[1]) - 30; z <= punkte.Max(p => p[1]) + 30; z += 2)
+                        for (var d = 0; d < 4; d++)
+                        {
+                            var g = w.Bauen.Grundriss(vorlagen[i] with { Drehung = d });
+                            var befehl = vorlagen[i] with { X = x + g.HalbX, Z = z + g.HalbZ, Drehung = d };
+                            Pruefe.Gleich(w.Bauen.PlatzVerboten(befehl) is null, gefunden.Contains((befehl.X, befehl.Z, d)), $"{befehl}");
+                        }
+            }
+            // Ein Stadthof nur am Mauerring (in Kernlage ist in der Greybox kein Platz dafür).
+            Pruefe.Wahr(orte[3].All(o => w.Karte!.ZoneBei(o.X, o.Z)!.Art == Lage.Mauerring), "Stadthof außerhalb des Mauerrings");
+            // Wer nicht bauen darf, bekommt keine Bauorte.
+            Pruefe.Gleich(0, w.Bauen.Bauorte(spieler, new WohnhausBauen(4, 0, 0, 0)).Count);
+        }),
+
+        ("Greybox: So viele Stadtpalais und Stadthöfe passen gleichzeitig in die Bauzonen (gierig gezählt) – und vorn stehen die Bauplätze", () =>
+        {
+            int Anzahl(int stufe)
+            {
+                var (sim, w) = MitKarte();
+                var n = 0;
+                for (; n < 100; n++)
+                {
+                    var k = Reich(w, $"Haus {n}");
+                    var orte = w.Bauen.Bauorte(k, new WohnhausBauen(stufe, 0, 0, 0));
+                    if (orte.Count == 0) break;
+                    Pruefe.Wahr(w.Ausfuehren(k, orte[0]).Erfolg, $"Stufe {stufe}, Bau {n + 1}");
+                }
+                return n;
+            }
+            var palais = Anzahl(3);
+            var hoefe = Anzahl(4);
+            Pruefe.Wahr(palais >= 3, $"nur {palais} Stadtpalais");
+            Pruefe.Wahr(hoefe >= 1, $"nur {hoefe} Stadthöfe");
+
+            // Ein Wohnhausplatz wird frei (Abriss): Er steht für jedes Wohnhaus vorn in der Liste, in seiner Drehung.
+            var (sim2, w2) = MitKarte();
+            var tot = w2.KontoEroeffnen("Haus Pleite");
+            var bauherr = Reich(w2, "Haus Neu");
+            tot.IstBankrott = true;
+            Pruefe.Wahr(w2.Ausfuehren(bauherr, new LeerstandAbreissen(tot.Inhaber)).Erfolg, "abreißen");
+            for (var i = 0; i < 241; i++) sim2.Tick();
+            Pruefe.Gleich<BauBefehl>(new WohnhausBauen(4, 0, -44.3, 0), w2.Bauen.Bauorte(bauherr, new WohnhausBauen(4, 0, 0, 0))[0]);
+            var platz = w2.Bauen.Bauplaetze.Single().Grundriss;
+            Pruefe.Wahr(w2.Bauen.Bauorte(bauherr, new WerkstattBauen(Betriebsart.Giesserei, 0, 0, 0)).All(o => !w2.Bauen.Grundriss(o).Ueberlappt(platz)), "keine Werkstatt auf dem Wohnhausplatz");
+        }),
     };
 }

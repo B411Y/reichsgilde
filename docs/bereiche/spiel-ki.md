@@ -14,8 +14,8 @@ So wird eingetragen (damit sich die Chats nie an derselben Stelle treffen):
 - (5) (von Kern) Seit PR #85 zählt der Hauswert zum Reinvermögen. `KiRivale.Standziel` ist deshalb wieder die Schwelle allein, und `StandPruefen` baut ohne „Schwelle + Ausbau“; `KiWohnhausTests` (zwei Tests) entsprechend angepasst. Bitte prüfen, ob das zu eurer Sparlogik passt
 - (5) KI-Häuser im Rat wählen immer den Amtsinhaber (bekannte Schwäche, Archiv §3a)
 - (2) (von Darstellung) Wegzeiten der Einwohner verlängern, damit Passanten natürlich gehen (~2,5 m/s bei Tempo 1; eine Spielminute ≈ 0,88 s). Gemessene Weglängen im Gassennetz (PR #74): Stadt Median 69 m (90 % 115 m), Tor 86 m, Umland Median 113 m (90 % 169 m). Heute 5–15 / 15 / 30 Minuten; passend wären etwa Stadt 20–40, Tor 40, Umland 50 Minuten (Abmarsch 0–10 bleibt, Ankunft vor der nächsten Stunde). Bis dahin beeilt sich die Darstellung bis zum Doppelten des eigenen Tempos und kommt bei langen Wegen einige Minuten später an, als der Kern zählt.
-- (5) (von Kern) Betriebe verkaufen (PR #95): Befehl `BetriebVerkaufen`, Rechnung `VerkaufVorschau` (Erlös 75 % des Werts, Lagerware −20 %, anteilige Kosten). Die KI-Häuser verkaufen noch nicht – z. B. einen Betrieb, der Jahre im Minus läuft, oder vor dem Bankrott. Verkaufte Werkstätten stehen mit Stufe und vollem Wert in `FreieLiegenschaften`; `Expandieren` nimmt sie seit PR #95 nur mit dem Meistergrad der Stufe (`LiegenschaftDaten.MindestGrad`), rechnet sonst aber wie bei neuen.
-- (5) (von Kern) Leerstand und Neubau (PR #103): Die KI-Häuser kaufen noch keinen Leerstand (`LeerstandKaufen`, Rechnung `Bauen.LeerstandVorschau` – ein Schnäppchen: 70 % des Hauswerts minus eigenes Haus) und bauen nicht neu (`WohnhausBauen`, `WerkstattBauen`; Platzwahl mit `Bauen.Einrasten`/`BauVerboten` über die Bauzonen der Karte). Werkstätten bankrotter oder erloschener Häuser stehen seit PR #103 in `FreieLiegenschaften` – die kauft `Expandieren` schon.
+- (3) Verlustjahre zählen auch, wenn ein Betrieb mangels Geld ohne Personal stand. Wird er danach besetzt, verkauft die KI ihn trotzdem nach zwei solchen Jahren (gesehen im Test zur Rückkauf-Schleife). Vielleicht Jahre ohne Personal nicht als Verlustjahr zählen.
+- (3) Ein Notverkauf wählt den Betrieb mit dem schlechtesten Gewinn, nicht den, dessen Erlös gerade reicht – so kann die KI mehr verkaufen als nötig. In den Messungen kam keine KI in Not; prüfen, wenn es Bankrotte gibt.
 
 ## Entscheidungen
 
@@ -57,6 +57,24 @@ So wird eingetragen (damit sich die Chats nie an derselben Stelle treffen):
 | Rechnung | Gezählt werden die Einkaufenden der letzten 17 Stunden (Ring wie beim Marktfaktor). Mittlere Neigung je Ware ÷ Maßstab, begrenzt auf **1 ± 10 %**; der Maßstab wird so gesucht, dass die Nachfrage der Stadt in Gulden (Nachfrage × Grundpreis) gleich bleibt. Faktor auf die Nachfrage = Marktfaktor × Warenkorb. | 16.10.2026 |
 | Kalibrierung | **Feste Neigung**, nicht gegen ein gelerntes Übliches: Die Standardstadt bekommt eine dauerhafte Färbung. Der Kern kalibriert nach (offener Punkt dort). | 16.10.2026 |
 | Anzeige | Öffentliche Abfragen `Warenkorbfaktor(ware)` und `Warengruppe(ware)`; Anzeige im Marktfenster als offener Punkt bei der Oberfläche. | 16.10.2026 |
+
+### KI kauft Leerstand, baut neu und verkauft Betriebe (PR #108)
+
+| Thema | Entscheidung | Datum |
+|---|---|---|
+| Leerstand kaufen | Nur bei Bedarf: wenn das Haus für den nächsten Stand ein größeres Wohnhaus braucht und der Leerstand günstiger ist als Ausbau oder Neubau. Kein Kauf als reines Schnäppchen. Entschieden vom Nutzer. | 17.10.2026 |
+| Vorrang des Spielers | Die KI kauft einen Leerstand erst, wenn er ein ganzes Spieljahr leer stand. Entschieden vom Nutzer. | 17.10.2026 |
+| Leerstand abreißen | Die KI reißt keinen Leerstand ab. | 17.10.2026 |
+| Werkstatt neu bauen | Gleichwertig zum Kauf einer freien Werkstatt, gewählt wird nach der Rechnung (das Baujahr ohne Einnahmen zählt mit). Kein Platz wird für den Spieler freigehalten. Entschieden vom Nutzer. | 17.10.2026 |
+| Wohnhaus neu bauen | Stadtpalais und Stadthof gibt es nur als Neubau (Kern) – die KI baut sie neu, wenn kein passender Leerstand günstiger ist. | 17.10.2026 |
+| Betriebe verkaufen | Die KI verkauft einen Betrieb, der zwei Jahre in Folge Verlust macht, und verkauft vor dem Bankrott, wenn das Bargeld nicht mehr reicht. Entschieden vom Nutzer. | 17.10.2026 |
+| Wahl des Wohnhauses | In `WohnhausBeschaffen`: ein Leerstand, der ein Jahr leer steht (`Bauen.LeerSeit`), groß genug ist, den der Stand erlaubt und der weniger kostet als der Ausbau (bis Steinhaus) bzw. der Neubau (Stadtpalais, Stadthof) – sonst der Ausbau, sonst der Neubau. Leerstand und Ausbau wie bisher erst über der Schwelle mit Kosten, Gebühr und Reserve in bar. | 17.10.2026 |
+| Neubau des Wohnhauses | Weil er zwei Jahre dauert, beginnt die KI schon ab **80 % der Schwelle** (wie beim Sparen) und braucht dafür nur Baukosten und Reserve bar; der Hauswert zählt sofort zum Reinvermögen. Steht ein billigerer passender Leerstand, der noch kein Jahr leer oder noch nicht bezahlbar ist, **wartet** sie auf ihn. Platz: der erste aus `Bauen.Bauorte` (frei gewordene Bauplätze zuerst). Beim Ausbau-Niveau wartet sie nicht auf einen jungen Leerstand – der Ausbau dauert nur 4 Stunden. | 17.10.2026 |
+| Neubau der Werkstatt | In `Expandieren` stehen neben den freien Liegenschaften alle Werkstätten der Stufe 1, die der Stand erlaubt (`Neubauten`). Kosten = Preis + Lehrgeld + **erwarteter Gewinn × Bauzeit** (das Baujahr ohne Einnahmen); dieselbe Amortisation und Reihenfolge wie beim Kauf. Bei gleichem Preis gewinnt so der Kauf. Platz: die gültige Stelle, die dem Marktplatz (Ursprung der Karte) am nächsten liegt. Findet sie keinen, versucht sie es im nächsten Jahr wieder. Eine Werkstatt im Bau zählt zu den Betrieben (`Baustellen`), auch für „Werkstatt zum Handwerk“. | 17.10.2026 |
+| Rechenzeit | `Bauen.Bauorte` (≈ 25 ms) fragt die KI nur zu ihrer **Baustunde** (3., 6., 9. … Stunde des Tages, je Haus eine andere), nur wenn sie wirklich bauen will, und höchstens einmal je Stunde. Gewinnt ein Neubau, wartet sie bis zur Baustunde, statt etwas Schlechteres zu kaufen. | 17.10.2026 |
+| Verlustjahr | Ein ganzes Jahr (`Betriebsrechnung.Ganzjaehrig`), in dem **Gewinn + Änderung des Lagerwerts** (Lager zum Grundpreis, zum Jahresende gemerkt) negativ ist. Ohne das Lager verkaufte die erste Messung die ausgebauten Hauptwerkstätten, die teure Zutaten auf Vorrat kaufen (19 Verkäufe statt 3). Ein angebrochenes Jahr zählt nicht und unterbricht nicht; ein Jahr ohne Verlust setzt zurück. Wache, Geldleiher und Dieb verkauft die KI nicht wegen Verlust – Kopfgeld, Kreditzinsen und nächtliche Beute stehen nicht (ganz) in ihrer Rechnung. | 17.10.2026 |
+| Notverkauf | Hat der Kämmerer `jahreBisBankrott − 1`-mal gemahnt und ist ab der Jahresmitte die Hochrechnung des Reinvermögens zum Jahresabschluss negativ (heute + bisheriger Betriebsertrag hochgerechnet − Löhne, Unterhalt, Haushalt, die erst am Jahresende fällig werden), verkauft die KI je Stunde den Betrieb mit dem schlechtesten Gewinn, der etwas einbringt. In Not (gemahnt und Reinvermögen minus offene Kosten negativ) kauft und baut sie nichts. Verkäufe macht auch der Verwalter aus dem Kerker. | 17.10.2026 |
+| Keine Schleife | Nach einem Verkauf meidet die KI **Handwerk und Ort** (z. B. Schmied/Werkstatt) **5 Jahre** (`SperreNachVerkauf`): kein Kauf, kein Neubau, auch nicht über „Werkstatt zum Handwerk“. Gemerkt im `RivaleStand` (`Verlustjahre`, `Lagerwert`, `Gesperrt`, `KeinWerkstattplatzJahr`); alte Spielstände laden ohne sie. | 17.10.2026 |
 
 ## Messungen
 
@@ -117,3 +135,24 @@ Faktoren in der Standardstadt (Startwert 101, Jahr 2), je Gruppe von günstig na
 | Kieselbach (Steinmetz, KI) | 144.125 | 138.788 (−4 %) |
 
 Alle verlieren etwas, weil späte Werkstätten vor allem teure Waren herstellen und die Einkaufenden meist arm sind. Kern-Test „Zwei Gießereien teilen sich den Silberring-Markt“: 611 → 649 (+6 %, Silberring ist günstige Schmiedeware).
+
+### KI kauft Leerstand, baut neu und verkauft Betriebe (PR #108)
+
+Gemessen auf main `5e62a04` + PR #108, `messen 30 20` (Spieler Mensch, passiv), 20 Partien × 30 Jahre, je drei KI-Häuser (60 Häuser). Neu: `messen … greybox` spielt mit der Greybox-Karte und zählt, was die KI-Häuser bauen und verkaufen, dazu ihren Stand am Ende. Vorher = Funktions-Branch mit der Kern-Arbeit, ohne die KI-Änderungen (Köln dort zeichengleich mit main).
+
+| Messung | Eisenbart Ø | Eichwald Ø | Kieselbach Ø | Stand am Ende (60 Häuser) | gebaut, gekauft, verkauft (Summe) |
+|---|---|---|---|---|---|
+| Köln, ausgewogen, vorher | 170.059 | 96.175 | 138.788 | Edler 3, Freiherr 56, Reichsgraf 1 | – |
+| Köln, ausgewogen, jetzt | 170.396 | 97.581 | 138.144 | Edler 3, Freiherr 56, Reichsgraf 1 | 3 Betriebe nach Verlustjahren verkauft |
+| Greybox, ausgewogen, vorher | 194.271 | 115.357 | 161.676 | **Patrizier 60** (hängen am Steinhaus) | – |
+| Greybox, ausgewogen, jetzt | 169.601 | 98.870 | 139.748 | Edler 4, Freiherr 55, Reichsgraf 1 | 60 Stadtpalais, 59 Stadthöfe neu gebaut; 3 Verlustverkäufe |
+| Greybox, vorsichtig, vorher | 172.903 | 153.120 | 189.260 | Patrizier 60 | – |
+| Greybox, vorsichtig, jetzt | 149.077 | 127.752 | 168.396 | Freiherr 57, Reichsgraf 3 | 60 Stadtpalais, 60 Stadthöfe |
+| Greybox, wagemutig, vorher | 111.611 | 70.712 | 78.944 | Patrizier 60 | – |
+| Greybox, wagemutig, jetzt | 93.400 | 64.666 | 76.592 | Edler 39, Freiherr 21 | 60 Stadtpalais, 42 Stadthöfe; 2 Verlustverkäufe |
+
+- **Greybox:** Vorher blieben alle KI-Häuser Patrizier, weil der Ausbau zum Stadtpalais abgelehnt wird; ihr Vermögen war höher, weil sie keine Standesgebühren und keinen größeren Unterhalt zahlten. Jetzt kommen sie so weit wie in Köln (ausgewogen: Edler 4 / Freiherr 55 / Reichsgraf 1 gegen 3 / 56 / 1).
+- **Leerstand** kaufte in den Messungen kein KI-Haus: Kein KI-Haus geht bankrott, und der bankrotte passive Spieler hinterlässt nur ein Fachwerkhaus. **Werkstätten** baute die KI nie neu – es gab immer freie, und bei gleichem Preis gewinnt der Kauf (Baujahr). Beides prüfen die Tests (`KiBauenTests`).
+- **Verkäufe** sind selten (2–3 in 600 Hausjahren), **Notverkäufe** gab es keine (kein KI-Haus kam in Not; Test `KiVerkaufTests`). Die erste Fassung ohne Lagerwert verkaufte 19 Werkstätten, meist die ausgebauten Hauptwerkstätten, und kostete Haus Eisenbart Ø 11.000 Gulden.
+- Rechenzeit der Messung: Köln 38 s, Greybox 43 s – die Bauortsuche fällt nicht ins Gewicht.
+

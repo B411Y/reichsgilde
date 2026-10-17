@@ -384,7 +384,7 @@ public sealed class Unterwelt
         {
             schaden = SabotageSchaden(b);
             b.Sabotieren(d.Sabotage.StillstandMinuten);
-            a.Ziel.Schaden(d.Sabotage.Reparatur);
+            b.SchadenBuchen(d.Sabotage.Reparatur);
             oeffentlich = $"Anschlag auf {b.Name}: Feuer in der Werkstatt! {d.Sabotage.StillstandMinuten / 60} Arbeitsstunden Stillstand, " +
                           $"Reparatur {Zahlenformat.Ganz(d.Sabotage.Reparatur)}.";
         }

@@ -79,6 +79,7 @@ Gilt, wenn ein Chat als **Teamleiter** Teammitglieder (Agenten) startet. Alle ü
 dotnet build Reichsgilde.sln
 dotnet run -c Release --project tests/Reichsgilde.Core.Tests          # alle Tests
 dotnet run -c Release --project tests/Reichsgilde.Core.Tests -- messen 30 20   # Messung: 30 Jahre, 20 Startwerte
+dotnet run -c Release --project tests/Reichsgilde.Core.Tests -- messen 30 20 greybox   # dieselbe Messung mit der Greybox-Karte (Bauen, Leerstand, Neubau)
 ```
 
 Klicktest: Godot 4.7.2 mono (Linux) von den offiziellen Godot-Releases auf GitHub laden, Projekt einmal importieren (`--headless --import --path game`), dann unter Xvfb starten (`--rendering-driver opengl3 --path game -- <Optionen>`) und Bildschirmfotos selbst ansehen. Für Schatten und Kantenglättung stattdessen `--rendering-driver vulkan` (Paket `mesa-vulkan-drivers`): Das ist der Forward+-Renderer des Spiels, `opengl3` zeigt dort andere Ergebnisse.

@@ -300,7 +300,7 @@ public sealed class Diebeswesen
             var k = b.Konto;
             var beute = minuten * WertJeMinute(b.Stufe);
             if (passanten != 1) beute *= passanten;
-            k.Umsatz(beute); // gestohlenes Geld zahlt keine Steuer
+            b.UmsatzBuchen(beute); // gestohlenes Geld zahlt keine Steuer
             var buch = DiesesJahr(k);
             _diesesJahr[k] = buch with { Beute = buch.Beute + beute };
 
@@ -537,7 +537,7 @@ public sealed class Diebeswesen
         {
             schaden = _w.Gauner.Sabotageschaden(b);
             b.Sabotieren(g.Sabotage.StillstandMinuten);
-            a.Ziel.Schaden(g.Sabotage.Reparatur);
+            b.SchadenBuchen(g.Sabotage.Reparatur);
             oeffentlich = $"Feuer in {b.Name}! Wer kein Schutzgeld zahlt … {g.Sabotage.StillstandMinuten / 60} Arbeitsstunden Stillstand, Reparatur {Zahlenformat.Ganz(g.Sabotage.Reparatur)}.";
         }
         else

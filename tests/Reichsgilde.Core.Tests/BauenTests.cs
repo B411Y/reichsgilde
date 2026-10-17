@@ -462,23 +462,133 @@ static class BauenTests
             Pruefe.Wahr(w2.FreieLiegenschaften.Any(l => l.Name == "Gießerei Arm"), "zu kaufen nach dem Laden");
         }),
 
-        ("Bauen: Daten werden geprüft – je Wohnhausstufe ein Eintrag, Maße auf dem Raster, Lagen nicht leer", () =>
+        ("Bauen: Daten werden geprüft – je Wohnhausstufe ein Eintrag, Maße auf dem Raster, Lagen nicht leer, nurNeubau nur ab dem Bürgerhaus", () =>
         {
-            Pruefe.Gleich(34, Daten.Value.Version);
+            Pruefe.Gleich(35, Daten.Value.Version);
             Pruefe.Gleich(5, Daten.Value.Bauen!.Wohnhaus.Count);
             Pruefe.Gleich((16.0, 14.0), (Daten.Value.Bauen.Werkstatt.Breite, Daten.Value.Bauen.Werkstatt.Tiefe));
+            Pruefe.Gleich("False False False True True", string.Join(" ", Daten.Value.Bauen.Wohnhaus.Select(m => m.NurNeubau))); // Stadtpalais, Stadthof
             var json = Datenpfad.OhneAktionspunkte();
             var kurz = System.Text.Json.Nodes.JsonNode.Parse(json)!;
             kurz["bauen"]!["wohnhaus"]!.AsArray().RemoveAt(4);
+            kurz["bauen"]!["wohnhaus"]![0]!["nurNeubau"] = true;
             kurz["bauen"]!["werkstatt"]!["breite"] = 15;
             kurz["bauen"]!["werkstatt"]!["lagen"] = new System.Text.Json.Nodes.JsonArray();
+            kurz["bauen"]!["werkstatt"]!["nurNeubau"] = true;
             try { Wirtschaftsdaten.AusJson(kurz.ToJsonString()); throw new Exception("Fehler erwartet"); }
             catch (WirtschaftsdatenFehler f)
             {
                 Pruefe.Wahr(f.Fehler.Any(x => x.Contains("je Stufe des Wohnhauses")), "Stufenzahl");
                 Pruefe.Wahr(f.Fehler.Any(x => x.Contains("Vielfache des Rasters")), "Raster");
                 Pruefe.Wahr(f.Fehler.Any(x => x.Contains("lagen darf nicht leer")), "Lagen");
+                Pruefe.Wahr(f.Fehler.Any(x => x.Contains("Startwohnhaus kann nicht nurNeubau")), "Startwohnhaus");
+                Pruefe.Wahr(f.Fehler.Any(x => x.Contains("nurNeubau gibt es nur für Wohnhäuser")), "Werkstatt");
             }
+        }),
+
+        ("Bauen: Stadtpalais und Stadthof nur als Neubau, wo gebaut wird – ohne Karte weiter als Ausbau; ein laufender Ausbau wird fertig", () =>
+        {
+            var (sim, w) = MitKarte();
+            var buerger = Haus(w, "Haus Bürger", stand: 1, stufe: 1, vermoegen: 50_000);
+            Pruefe.Gleich(null, w.Wohnen.AusbauVerboten(buerger)); // Bürgerhaus → Steinhaus bleibt Ausbau am Platz
+            var patrizier = Haus(w, "Haus Patrizier", stand: 2, stufe: 2, vermoegen: 50_000);
+            Pruefe.Wahr(w.Bauen.NurNeubau(3) && w.Bauen.NurNeubau(4) && !w.Bauen.NurNeubau(2), "Stadtpalais und Stadthof nur als Neubau");
+            Pruefe.Gleich("Ein Stadtpalais entsteht nur als Neubau – im Baumodus neu bauen oder einen Leerstand kaufen.", w.Wohnen.AusbauVerboten(patrizier));
+            Pruefe.Wahr(!w.Ausfuehren(patrizier, new WohnhausAusbauen()).Erfolg, "kein Ausbau zum Stadtpalais");
+            Pruefe.Wahr(w.Wohnen.StandVerboten(patrizier, 3)!.Contains("Stadtpalais (neu bauen oder einen Leerstand kaufen)"), w.Wohnen.StandVerboten(patrizier, 3)!);
+            Pruefe.Gleich(null, w.Bauen.BauVerboten(patrizier, new WohnhausBauen(3, -22, 9, 2))); // als Neubau geht es
+            var edler = Haus(w, "Haus Edel", stand: 3, stufe: 3, vermoegen: 50_000);
+            Pruefe.Wahr(w.Wohnen.AusbauVerboten(edler)!.StartsWith("Ein Stadthof entsteht nur als Neubau"), "Stadthof");
+
+            // Ein Ausbau zum Stadtpalais, der schon läuft (alter Spielstand), wird normal fertig.
+            patrizier.WohnhausFertigAb = sim.Zeit.VergangeneMinuten + 10;
+            Ticken(sim, 11);
+            Pruefe.Gleich(3, patrizier.WohnhausStufe);
+
+            // Ohne Karte (etwa Köln) bleibt der Ausbau zu allen Stufen erlaubt.
+            var ohne = NeueSimulation().Wirtschaft!;
+            var koelner = Haus(ohne, "Haus Köln", stand: 3, stufe: 3, vermoegen: 50_000);
+            Pruefe.Wahr(!ohne.Bauen.NurNeubau(4), "ohne Karte kein Neubau-Zwang");
+            Pruefe.Gleich(null, ohne.Wohnen.AusbauVerboten(koelner));
+            Pruefe.Wahr(ohne.Ausfuehren(koelner, new WohnhausAusbauen()).Erfolg, "Ausbau zum Stadthof in Köln");
+        }),
+
+        ("Bauen: Seit wann ein Haus leer steht – Minute von Bankrott oder Erlöschen, im Spielstand; alte Spielstände zählen ab dem Laden", () =>
+        {
+            var (sim, w) = MitKarte();
+            var arm = Haus(w, "Haus Arm", stand: 1, stufe: 1, vermoegen: -50_000);
+            var k = Haus(w, "Haus Reich", stand: 2, stufe: 1, vermoegen: 50_000);
+            Pruefe.Gleich(null, w.Bauen.LeerSeit(arm)); // lebt noch
+            Ticken(sim, 3 * 1_020); // drei Jahresabschlüsse im Minus: Bankrott in der Jahresabrechnung, die Uhr steht schon auf Minute 3.060
+            Pruefe.Wahr(arm.IstBankrott, "bankrott");
+            Pruefe.Gleich(3_060L, w.Bauen.LeerSeit(arm));
+            Pruefe.Gleich(3_060L, w.Bauen.Leerstand(arm)!.LeerSeit);
+            Ticken(sim, 500);
+            Pruefe.Gleich(3_060L, w.Bauen.LeerSeit(arm)); // bleibt
+
+            // Erlöschen (über Stilllegen wie im Familienbuch): ab dieser Minute.
+            var erloschen = Haus(w, "Haus Erlöschen", stand: 1, stufe: 1, vermoegen: 0);
+            erloschen.IstErloschen = true;
+            w.Stilllegen(erloschen);
+            Pruefe.Gleich(3_560L, w.Bauen.LeerSeit(erloschen));
+
+            // Ohne Stilllegen (alter Spielstand, Tests): zählt ab der nächsten Minute, bis dahin „jetzt“.
+            var still = Haus(w, "Haus Still", stand: 2, stufe: 2, vermoegen: 0);
+            still.IstBankrott = true;
+            Pruefe.Gleich(3_560L, w.Bauen.LeerSeit(still));
+            Ticken(sim, 3);
+            Pruefe.Gleich(3_560L, w.Bauen.LeerSeit(still));
+
+            // Speichern und Laden; ein alter Spielstand ohne Zeitpunkt zählt ab dem Laden.
+            var json = Speicherung.Speichern(sim);
+            var w2 = Speicherung.Laden(json).Simulation.Wirtschaft!;
+            Pruefe.Gleich(3_060L, w2.Bauen.LeerSeit(w2.Konten.Single(x => x.Inhaber == "Haus Arm")));
+            var alt = System.Text.Json.Nodes.JsonNode.Parse(json)!.AsObject();
+            foreach (var g in alt["Wirtschaft"]!["Bauen"]!["Grundstuecke"]!.AsArray()) g!.AsObject().Remove("LeerSeit");
+            var (sim3, _) = Speicherung.Laden(alt.ToJsonString());
+            var arm3 = sim3.Wirtschaft!.Konten.Single(x => x.Inhaber == "Haus Arm");
+            Pruefe.Gleich(3_563L, sim3.Wirtschaft.Bauen.LeerSeit(arm3));
+            Ticken(sim3, 5);
+            Pruefe.Gleich(3_563L, sim3.Wirtschaft.Bauen.LeerSeit(arm3));
+
+            // Gekauft: kein Leerstand mehr.
+            Pruefe.Wahr(w.Ausfuehren(k, new LeerstandKaufen(still.Inhaber)).Erfolg, "kaufen");
+            Pruefe.Gleich(null, w.Bauen.LeerSeit(still));
+            Pruefe.Wahr(w.Bauen.Grundstuecke.All(g => g.LeerSeit is null || g.Besitzer is { IstAktiv: false } && g.Arbeit is null), "nur Leerstand hat einen Zeitpunkt");
+        }),
+
+        ("Bauen: Bauorte – zuerst die Bauplätze, dann die Rasterstellen; alle gültig, fest geordnet; wer nicht bauen darf, bekommt keine", () =>
+        {
+            var (sim, w) = MitKarte();
+            var tot = Haus(w, "Haus Hütte", stand: 0, stufe: 0, vermoegen: 0);
+            var k = Haus(w, "Haus Neu", stand: 3, stufe: 1, vermoegen: 50_000);
+            var vorlage = new WohnhausBauen(3, 0, 0, 0);
+            var vorher = w.Bauen.Bauorte(k, vorlage);
+            Pruefe.Wahr(vorher.Count > 10, $"nur {vorher.Count} Bauorte");
+            Pruefe.Wahr(vorher.All(o => w.Bauen.BauVerboten(k, o) is null), "alle gültig");
+            Pruefe.Wahr(vorher.Contains(new WohnhausBauen(3, -22, 9, 2)), "an der Hauptstraße in Kernlage");
+            Pruefe.Wahr(vorher.All(o => o.Z > 0), "nördlich der Hauptstraße ist keine Bauzone");
+            Pruefe.Wahr(vorher.Zip(vorher.Skip(1)).All(p => p.First.Z - w.Bauen.Grundriss(p.First).HalbZ <= p.Second.Z - w.Bauen.Grundriss(p.Second).HalbZ),
+                "von Norden nach Süden (nach der nordwestlichen Ecke)");
+
+            // Ein Wohnhausplatz wird frei: Er steht vorn, eingepasst in seine Drehung.
+            tot.IstBankrott = true;
+            Pruefe.Wahr(w.Ausfuehren(k, new LeerstandAbreissen(tot.Inhaber)).Erfolg, "abreißen");
+            Ticken(sim, 241);
+            var nachher = w.Bauen.Bauorte(k, vorlage);
+            Pruefe.Gleich<BauBefehl>(new WohnhausBauen(3, -30, -9, 0), nachher[0]);
+            Pruefe.Gleich(vorher.Count + 1, nachher.Count);
+            Pruefe.Wahr(w.Bauen.Bauorte(k, new WerkstattBauen(Betriebsart.Giesserei, 0, 0, 0)).All(o => !w.Bauen.Grundriss(o).Ueberlappt(w.Bauen.Bauplaetze.Single().Grundriss)),
+                "keine Werkstatt auf dem Wohnhausplatz");
+
+            // Ein Gebäude belegt Bauorte; wer nicht bauen darf (Stand, Geld, schon ein Neubau), bekommt keine.
+            Pruefe.Wahr(w.Ausfuehren(k, nachher[1]).Erfolg, "bauen");
+            Pruefe.Gleich(0, w.Bauen.Bauorte(k, vorlage).Count); // baut schon
+            var anderer = Haus(w, "Haus Zwei", stand: 3, stufe: 1, vermoegen: 50_000);
+            Pruefe.Wahr(!w.Bauen.Bauorte(anderer, vorlage).Contains(nachher[1]), "die Baustelle ist belegt");
+            Pruefe.Gleich(0, w.Bauen.Bauorte(Haus(w, "Haus Gemein", stand: 0, stufe: 0, vermoegen: 50_000), vorlage).Count);
+            Pruefe.Gleich(0, w.Bauen.Bauorte(Haus(w, "Haus Arm", stand: 3, stufe: 1, vermoegen: 100), vorlage).Count);
+            Pruefe.Gleich(0, NeueSimulation().Wirtschaft!.Bauen.Bauorte(k, vorlage).Count); // ohne Karte
         }),
     };
 }
