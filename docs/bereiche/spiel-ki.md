@@ -58,7 +58,7 @@ So wird eingetragen (damit sich die Chats nie an derselben Stelle treffen):
 | Kalibrierung | **Feste Neigung**, nicht gegen ein gelerntes Übliches: Die Standardstadt bekommt eine dauerhafte Färbung. Der Kern kalibriert nach (offener Punkt dort). | 16.10.2026 |
 | Anzeige | Öffentliche Abfragen `Warenkorbfaktor(ware)` und `Warengruppe(ware)`; Anzeige im Marktfenster als offener Punkt bei der Oberfläche. | 16.10.2026 |
 
-### KI kauft Leerstand, baut neu und verkauft Betriebe (PR #…)
+### KI kauft Leerstand, baut neu und verkauft Betriebe (PR #108)
 
 | Thema | Entscheidung | Datum |
 |---|---|---|

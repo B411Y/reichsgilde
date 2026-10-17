@@ -98,7 +98,7 @@ So wird eingetragen (damit sich die Chats nie an derselben Stelle treffen):
 | Werte | Abschnitt `bauen` (raster, strassenAbstand, werkstatt, wohnhaus je Stufe mit breite, tiefe, bauzeitJahre, lagen; leerstand mit kauf, sanierung, abriss, abrissMindestens, abrissMinuten), Datenversion 34. | 17.10.2026 |
 | KI | Kauft frei gewordene Werkstätten schon (`Expandieren`); Leerstand kaufen und neu bauen später (Punkt bei Spiel-KI). | 17.10.2026 |
 
-### Stadtpalais und Stadthof nur als Neubau (PR #…)
+### Stadtpalais und Stadthof nur als Neubau (PR #108)
 
 | Thema | Entscheidung | Datum |
 |---|---|---|
