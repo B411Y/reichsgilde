@@ -102,9 +102,13 @@ FARBEN = {
     "Laub": (0.24, 0.35, 0.16),
     "Laub hell": (0.34, 0.44, 0.20),
     "Silber": (0.82, 0.82, 0.86),          # Spitze des Dachreiters beim Prediger (wie bisher im Spiel)
+    "Nachtblau": (0.16, 0.18, 0.30),       # Spitze des Dachreiters beim Dieb (wie bisher im Spiel)
+    "Schindel": (0.38, 0.32, 0.27),        # morsche Holzschindeln (Diebesnest, wie bisher im Spiel „Morsch“)
+    "Schindelkante": (0.24, 0.20, 0.17),
+    "Lumpen": (0.52, 0.48, 0.40),
 }
 RAUHEIT = {"Glas": 0.2, "Fenster": 0.2, "Eisen": 0.45, "Gold": 0.35, "Wasser": 0.1}
-METALL = {"Eisen": 0.7, "Gold": 0.85, "Kupfer": 0.5, "Violett": 0.5, "Weinrot": 0.5, "Silber": 0.5}
+METALL = {"Eisen": 0.7, "Gold": 0.85, "Kupfer": 0.5, "Violett": 0.5, "Weinrot": 0.5, "Silber": 0.5, "Nachtblau": 0.5}
 LEUCHTEN = {"Glut": ((1.0, 0.45, 0.12), 3.0)}    # Farbe (sRGB) und Stärke der Emission
 # Licht hinter den Fenstern bei Nacht: Farbe (sRGB) und Stärke. Nicht in der GLB (dort aus), nur für die Nachtbilder –
 # im Spiel schaltet der Code die Emission des gemeinsamen Materials „Fenster“ abends an und morgens aus.
@@ -489,6 +493,7 @@ def reihenkante(st, stufe, stoff="Ziegelkante"):
 ZIEGEL = dict(deckung="Dachziegel", kante="Ziegelkante", first="Firstziegel", reihe=0.45, stufe=0.06, dicke=0.22)
 STROH = dict(deckung="Stroh", kante="Strohkante", first="Firstsoden", reihe=0.7, stufe=0.09, dicke=0.38)
 SCHIEFER = dict(deckung="Schiefer", kante="Schieferkante", first="Firstblech", reihe=0.32, stufe=0.04, dicke=0.18)
+SCHINDEL = dict(deckung="Schindel", kante="Schindelkante", first="Holz alt", reihe=0.28, stufe=0.035, dicke=0.16)
 
 
 def satteldach(netz, st, x0, x1, y_vorn, y_hinten, z_traufe, neigung, traufe=0.35, ortgang=0.35,
@@ -535,9 +540,10 @@ def satteldach(netz, st, x0, x1, y_vorn, y_hinten, z_traufe, neigung, traufe=0.3
 #  Teile auf dem Dach: Gaube, Loch (Leerstand)
 # ─────────────────────────────────────────────────────────────────────────────
 
-def gaube(netz, st, dach, oeffnungen, x0, x1, y_front, neigung=17, hoehe=1.45, art="fachwerk"):
+def gaube(netz, st, dach, oeffnungen, x0, x1, y_front, neigung=17, hoehe=1.45, art="fachwerk", koerper=None):
     """Schleppgaube auf der vorderen Dachfläche (lokal, wie das Dach): Putzkörper, Front mit Fenster,
-    flaches Dach mit derselben Deckung. `art`: "fachwerk" (Ständer und Riegel) oder "stein" (Gewände)."""
+    flaches Dach mit derselben Deckung. `art`: "fachwerk" (Ständer und Riegel) oder "stein" (Gewände).
+    `koerper`: Material des Körpers statt Putz bzw. Haustein (z. B. "Bretter")."""
     t = dach["matrix"]
     tan_g = math.tan(math.radians(neigung))
     z_fuss = dach["oben_vorn"](y_front)
@@ -545,7 +551,7 @@ def gaube(netz, st, dach, oeffnungen, x0, x1, y_front, neigung=17, hoehe=1.45, a
     tiefe = hoehe / (dach["tan"] - tan_g)              # bis die Gaube das Hauptdach trifft
     y_hinten = y_front + tiefe
     profil = [(y_front, z_fuss - 0.3), (y_front, z_kopf), (y_hinten, z_kopf + tiefe * tan_g), (y_hinten, z_kopf + tiefe * tan_g - 0.35)]
-    netz.prisma(profil, x0, x1, st["Putz" if art == "fachwerk" else "Haustein"], matrix=t)
+    netz.prisma(profil, x0, x1, st[koerper or ("Putz" if art == "fachwerk" else "Haustein")], matrix=t)
     M = t @ wandmatrix(((x0 + x1) / 2, y_front, z_fuss), "vorne")
     o = Oeffnung("fenster", 0, 0.4, 0.8 if art == "fachwerk" else 0.7, 0.72 if art == "fachwerk" else 0.8)
     if art == "fachwerk":
