@@ -216,7 +216,7 @@ So wird eingetragen (damit sich die Chats nie an derselben Stelle treffen):
 | Wachstum | Jede Stufe: Kasernenhof hinter einer hohen Bruchsteinmauer, Pranger, Feuerkorb (Material „Glut“, vom Spiel geschaltet wie die Esse), Brennholz. Wachhaus: Bank mit Fässern, Steintrog, eiserner Käfig mit einem gefassten Dieb. Stadtwache: Exerzierplatz mit Strohpuppen, Zielscheiben, Waffenständer mit Hellebarden und Schilden, Rüstungsständer (wie bisher im Innenraum), Trog, Käfig, Gaube. Garnison: Mannschaftshaus im hinteren Hof, Fahnenmast mit der Stadtfahne, Übungsplatz, Gaube, Dachreiter mit stadtroter Spitze wie bisher im Spiel. | 17.10.2026 |
 | Bausteine | Neue Materialien Stadtrot, Stadtweiß und „Spitze rot“ (metallisch, nur für den Dachreiter). Die übrigen Werkstätten bleiben byte-gleich. | 17.10.2026 |
 
-### Werkstatt des Geldleihers als 3D-Modell (PR #…)
+### Werkstatt des Geldleihers als 3D-Modell (PR #120)
 
 | Thema | Entscheidung | Datum |
 |---|---|---|
