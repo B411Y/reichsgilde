@@ -24,8 +24,8 @@ namespace Reichsgilde.Core.Ki;
 /// <param name="MaxAmortisationJahre">Ein Kauf muss sich in so vielen Jahren aus dem erwarteten Gewinn bezahlt machen.</param>
 /// <param name="PolitikAnteil">Höchstens dieser Anteil des Vermögens geht pro Tag in Geschenke an Ratsherren.</param>
 /// <param name="StatutVorteil">So viele Gulden im Jahr muss ein anderes Statut mehr bringen, damit die KI es beantragt oder dafür stimmt.</param>
-/// <param name="Gaunerei">0 = nie; 1 = selten (ein Diebstahl oder eine Sabotage im Jahr, nur gegen Häuser vor ihr);
-/// 2 = oft (zwei Gaunerstücke im Jahr, auch Überfälle und Erpressung, gegen jeden).</param>
+/// <param name="Gaunerei">0 = nie; 1 = selten (ein Diebstahl, eine Sabotage oder ein Einbruch ins Wohnhaus im Jahr, nur gegen Häuser vor ihr);
+/// 2 = oft (zwei Gaunerstücke im Jahr, auch Überfälle, Brandstiftung und Erpressung, gegen jeden).</param>
 public sealed record KiProfil(
     double Reserve = 1500,
     double Wechselschwelle = 0.15,
@@ -1206,6 +1206,16 @@ public sealed class KiRivale
             if (Profil.Gaunerei >= 2 && b.Ort == Arbeitsort.Umland && b.Karren.Count > 0)
                 moeglich.Add((Gaunerstueck.Ueberfall, null,
                     unterwelt.MoeglicheBeute(b).Sum(x => x.Wert) * g.HehlerAnteil * unterwelt.Staerke(Konto) * 0.6 - g.Ueberfall.Kosten));
+        }
+        // Gegen das Wohnhaus: Einbruch = erwartetes Bargeld (wie ein Diebstahl, für alle); Brandstiftung = halbe Reparatur
+        // beim Gegner (wie Sabotage, nur wagemutig, nicht solange das Haus vom letzten Brand beschädigt ist).
+        if (unterwelt.GegenWohnhaus)
+        {
+            moeglich.Add((Gaunerstueck.Hauseinbruch, null, unterwelt.ErwarteterHausgewinn(ziel, Konto)));
+            if (Profil.Gaunerei >= 2 && !_w.Wohnen.IstBeschaedigt(ziel))
+                moeglich.Add((Gaunerstueck.Brandstiftung, null,
+                    unterwelt.ErfolgschanceWohnhaus(Gaunerstueck.Brandstiftung, ziel, Konto) * unterwelt.Brandschaden(ziel) * 0.5
+                    - unterwelt.Kosten(Gaunerstueck.Brandstiftung, Konto)));
         }
         var beste = moeglich.Where(m => m.Wert > 0).OrderByDescending(m => m.Wert).ThenBy(m => m.Art).FirstOrDefault();
         if (beste.Wert <= 0)
