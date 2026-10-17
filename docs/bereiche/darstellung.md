@@ -150,7 +150,7 @@ So wird eingetragen (damit sich die Chats nie an derselben Stelle treffen):
 | Wachstum | Tischlerei: Vordach mit Hobelbank und Spänen, Bretterstapel zum Trocknen, Sägebock, Rundholz, Bretterzaun. Drechslerei: Anbau mit offener Laube zur Gasse, darin die Wippdrehbank mit federnder Stange und gedrechselte Ware, Gaube. Sägewerk: offene Sägehalle mit Gattersäge und Stamm auf dem Wagen, rechts daneben ein Göpel (achteckiges Schieferdach, Pferd am Zugbaum, Königswelle mit Kammrad, liegende Welle zur Säge; ersetzt auf Wunsch des Nutzers das zuerst gebaute Wasserrad), Dachreiter mit kupfergrüner Spitze wie bisher im Spiel. | 17.10.2026 |
 | Deckungsgleiche Flächen | Jedes Skript sucht beim Erzeugen nach Flächen, die in derselben Ebene liegen und sich überdecken (Spiel: Flimmern, Cycles: schwarz), und warnt mit Ort und Größe. Sichtbare Fälle werden behoben (Laubenboden, Rampe, Torschwelle des Schmieds, Sägebock); kleine Reste liegen verdeckt im Inneren der Körper. | 17.10.2026 |
 
-### Werkstatt des Steinmetzen als 3D-Modell (PR #…)
+### Werkstatt des Steinmetzen als 3D-Modell (PR #110)
 
 | Thema | Entscheidung | Datum |
 |---|---|---|
