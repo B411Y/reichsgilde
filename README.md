@@ -24,6 +24,7 @@
 |---|---|---|
 | 🏰 | [Stadt und Ansicht](#stadt) | Ummauerte Reichsstadt in drehbarer Schrägansicht, Einwohner laufen sichtbar durch die Gassen, Licht und Schatten folgen der Spieluhr. |
 | 🚪 | [Gebäude betreten](#gebaeude) | Werkstätten, eigenes Wohnhaus, Rathaus und Dom von innen – mit Arbeitern, Familie, Ratsherren und Gläubigen aus der Simulation. |
+| 🏗️ | [Bauen und Leerstand](#bauen) | Bauzonen, Wohnhaus und Werkstatt frei bauen (Umriss an der Maus, Rückfrage mit Preis und Bauzeit), leere Häuser kaufen, sanieren oder abreißen, Baustellen und Bauplätze. |
 | ⏳ | [Partie und Spieltag](#partie) | Ein Spieltag von 5 bis 22 Uhr ist ein Spieljahr. Hauptmenü, Speichern und Laden, Aktionspunkte für persönliche Handlungen. |
 | ⚖️ | [Wirtschaft und Handel](#wirtschaft) | Marktpreise nach Angebot und Nachfrage, Betriebe, Karren und Stadttore, Handel von Hand, Expansion, Meistergrade und Gebäudestufen. |
 | ⚒️ | [Berufe](#berufe) | Zehn Berufe – Schmied, Tischler, Steinmetz, Alchimist, Wirt, Prediger, Dieb, Gardist, Geldleiher, Parfumeur – mit eigenen Waren und Kniffen. |
@@ -55,7 +56,8 @@ Spielstände liegen unter `%APPDATA%\Godot\app_userdata\Reichsgilde\spielstaende
 - **Mausrad** = Zoom · **rechte Maustaste ziehen** oder **WASD/Pfeiltasten** = verschieben · **Q/E** = drehen
 - **Namen in der Stadt:** Ein Gebäude zeigt seinen Namen, wenn die Maus darüber steht oder es ausgewählt ist; **Alt gedrückt halten** zeigt alle Namen. Freie Plätze tragen ein Schild am Pfosten: **ocker = zu verkaufen**, **grün = zu verpachten**.
 - **Linksklick** auf ein Gebäude = Informationen (bei eigenen Betrieben mit Bedienfeld) · **Doppelklick** auf eine Werkstatt, das Rathaus oder den Dom = hineingehen · im Gebäude: **Raumleiste** oder **Q/E** = Raum wechseln, **Klick in den Raum** = seine Tafel
-- **Esc** = Tafel schließen → Gebäude verlassen → Auswahl schließen → Spielmenü (Speichern, Laden, Hauptmenü)
+- **Bauen** (Knopf im Kontor): Gebäude wählen, dann folgt ein Umriss der Maus – **grün** = hier erlaubt, **rot** = nicht (der Grund steht dabei) · **R** = drehen · **Klick** = setzen (danach Rückfrage) · **Rechtsklick** oder **Esc** = zurück
+- **Esc** = Rückfrage oder Baumodus schließen → Tafel schließen → Gebäude verlassen → Auswahl schließen → Spielmenü (Speichern, Laden, Hauptmenü)
 - **F11** = Vollbild ein/aus (wird gespeichert).
 - **Einstellungen** (Knopf im Hauptmenü und im Spielmenü, Esc): Vollbild und **Kantenglättung** – Aus, FXAA, SMAA (Standard), TAA, MSAA 2×/4×/8×, je mit kurzer Erklärung. Die Wahl wirkt sofort und wird gespeichert. Das Fenster lässt sich frei ziehen: Ein größeres Fenster zeigt mehr Stadt, Tafeln, die nicht hineinpassen, bekommen Scrollbalken (Mausrad über der Tafel rollt sie).
   Hinweis: Startet man das Spiel im Godot-Editor, läuft es im Reiter „Game“ eingebettet. Dort bestimmt der Editor die Fenstergröße, und Vollbild ist nicht möglich. Zum Testen im eigenen Fenster das Einbetten im Reiter „Game“ ausschalten.
@@ -129,6 +131,22 @@ Die Reichsstadt ist als begehbare Schrägansicht zu sehen: Mauer (100 × 100 m) 
 **Rathaus und Dom von innen.**
 - **Rathaus:** vier Räume – **Ratssaal** (U-Tisch, die Ratsherren sitzen nach Rang, Häuser in ihrer Farbe mit Namensschild, der Bürgermeister trägt die Amtskette, eine Rolle liegt aus, solange ein Antrag läuft), **Gerichtssaal** (Richterpodest; bei einem Verfahren drei Richter, Ankläger und Beklagter, sonst schreibt der Stadtrichter), **Amtsstube** (Stadtschreiber, Stadtkasse, Ständetafel mit eurem Stand) und **Kerker** (hinter Gittern die einsitzenden Oberhäupter, davor ein Wächter). Besetzt ist das Rathaus von 8 bis 20 Uhr. Ein **Klick in den Raum** öffnet seine Tafel: Ratssaal → Stadtrat, Gerichtssaal und Kerker → Stadtgericht; in der Amtsstube steht das Rathausfenster mit dem Knopf zum Aufsteigen.
 - **Dom:** Hauptkirche des Stadtglaubens – **katholisch** prunkvoll (Hochaltar mit goldenem Flügelretabel, Marienfigur, Weihrauchfass, Bischof mit Mitra), **evangelisch** schlicht (Abendmahlstisch, Holzkreuz, Pfarrer auf der Kanzel), bei **Glaubensfreiheit** Simultankirche mit Seil im Mittelgang (Katholiken links, Evangelische rechts). Zur Messe um 10 Uhr sitzen die Gläubigen ohne Kirche eines Hauses in den Bänken (eine Figur je fünf Gläubige). Einwohner, die zum Beten in den Dom gehen, sitzen dort einzeln mit ihrer Gestalt und Tracht von draußen, vorne zuerst.
+
+</details>
+
+<a id="bauen"></a>
+<details>
+<summary><b>Bauen und Leerstand</b> – Bauzonen, Neubau, leere Häuser kaufen und abreißen</summary>
+
+**Bauen.** Der Knopf **Bauen** im Kontor öffnet die Bautafel (statt des Kontors) und zeigt in der Stadt die **Bauzonen** der Karte als farbige Flächen mit 2-m-Raster: orange = Kern, blau = Mauerring, türkis = Vorstadt. Gewählt wird ein Gebäude – **Wohnhaus** (Fachwerkhaus bis Stadthof) oder **Werkstatt** (Stufe 1, je Beruf); jedes nennt Kosten, Maß und Bauzeit. Was das Haus nicht darf (Stand, Handwerk, Geld), ist ausgegraut, der Grund steht darunter. Danach folgt ein **Umriss** der Maus und rastet aufs Raster (oder auf einen Bauplatz) ein: **grün**, wenn dort gebaut werden darf, sonst **rot** mit dem Grund (keine Bauzone, steht schon etwas da, nicht an einer Straße …). Der helle Streifen vorn ist der Vorplatz, die Spitze zeigt zur Straße. **R** dreht in Vierteln, **Q/E** drehen weiter die Kamera. Ein Klick auf grün öffnet die **Rückfrage**: Preis, angerechnetes altes Haus, Kosten beim Baubeginn, Bauzeit und Fertigstellung. Erst „Bauen“ schickt den Befehl.
+- **Wohnhaus:** Das alte Haus wird angerechnet; ihr wohnt bis zur Fertigstellung im alten, danach zieht ihr um, und das alte Haus wird abgerissen und zum Bauplatz. Stufe 1–2 dauert ein Spieljahr, ab Stufe 3 zwei.
+- **Werkstatt:** Preis einer freien Werkstatt der Stufe 1 plus ein Jahr Unterhalt in bar, ein Spieljahr Bauzeit. Danach öffnet sie wie jede andere (das Modell nach Beruf, in der gewählten Drehung).
+- **Baustelle:** Fundament, Mauern, die mit der Bauzeit hochwachsen, zuletzt der Dachstuhl, dazu Gerüst und Holzstapel. Ein Klick nennt, was entsteht und wann es fertig ist; ist es fertig, folgt die Auswahl dem neuen Haus.
+- **Bauplatz:** Wiese mit Pflöcken und Schnur, nach einem Abriss. Hier darf jeder bauen, was hineinpasst, auch außerhalb der Bauzonen.
+
+**Leerstand.** Das Wohnhaus eines bankrotten oder erloschenen Hauses bleibt vernagelt stehen. Ein Klick darauf zeigt zwei Knöpfe: **Kaufen und sanieren** (50 % des Hauswerts plus 20 % Sanierung, abzüglich eures alten Hauses; 4 Stunden, dann zieht ihr ein; nur, wenn das Haus größer ist als eures) und **Abreißen lassen** (50 % plus Abrisskosten; danach ein Bauplatz für jeden). Beide fragen vorher mit der ganzen Rechnung nach; geht etwas nicht, ist der Knopf gesperrt und der Grund steht in der Tafel.
+
+**Zum Ausprobieren** (Startoptionen nach `--`, siehe `CLAUDE.md`): `--bauen=1` öffnet den Baumodus, `--bauen=wohnhaus:1 --bauort=-96,-3,0 --bauklick=1` setzt den Umriss auf eine Probestelle und öffnet die Rückfrage, `--bauklick=2 --spulen=1100` baut gleich und lässt die Bauzeit ablaufen.
 
 </details>
 

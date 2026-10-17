@@ -134,11 +134,14 @@ jobs:
             return 1
           }
           # 1. normaler Start   2. mit Bedienfeld, Innenansicht, Jahresbericht, Ratskammer, Familientafel, Gerichtssaal, Hinterzimmer und hohem Tempo (mehr Code wird durchlaufen)
+          # 3. Bauen: Baumodus, Umriss, Neubau einer gedrehten Werkstatt, eine Bauzeit im Zeitraffer, Baustelle und fertiger Bau
           rauchtest() {
             : > start.log
             starte --quit-after 300 || return 1
             echo "=== zweiter Start (mit Tafeln) ===" | tee -a start.log
             starte --quit-after 600 -- --verwalten=1 --innen=1 --tempo=8 --startstunde=4 --bericht=1 --rat=1 --familie=1 --gericht=1 --hinterzimmer=1 || return 1
+            echo "=== dritter Start (Bauen) ===" | tee -a start.log
+            starte --quit-after 600 -- --startstunde=5 --vermoegen=30000 --aufsteigen=1 --bauen=werkstatt:Giesserei --bauort=-112,17,2 --bauklick=2 --spulen=1100 || return 1
           }
           # Nach einem Absturz oder Hänger: Welcher Faden war es und wo? Ein Absturz beim Beenden kam schon ohne jede Meldung
           # von Godot (16.10.2026) – die Fadennamen zeigen, ob es Godot selbst war oder die .NET-Laufzeit (z. B. „.NET Finalizer“).
@@ -168,7 +171,7 @@ jobs:
           # Fundstellen mit Folgezeilen als Anmerkung (Stufe $1): Sie stehen oben in der Zusammenfassung des Laufs
           # und sind über die API lesbar, ohne das ganze Protokoll zu laden.
           anmerken() {
-            grep -E -B1 -A6 "$MUSTER|=== zweiter Start" start.log | head -80 \
+            grep -E -B1 -A6 "$MUSTER|=== zweiter Start|=== dritter Start" start.log | head -80 \
               | sed -e 's/%/%25/g' -e 's/\r//g' | awk 'BEGIN { ORS = "%0A" } { print }' > anmerkung.txt
             echo "::$1 title=$2::$(cat anmerkung.txt)"
           }
