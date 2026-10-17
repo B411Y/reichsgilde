@@ -189,7 +189,7 @@ So wird eingetragen (damit sich die Chats nie an derselben Stelle treffen):
 | Wachstum | Jede Stufe: Tisch mit Bänken neben der Tür und Fasslager an der Hauswand (wie bisher im Spiel), Brennholz und Fässer im Hinterhof. Schänke: Linde mit zwei Tischen im Hof. Wirtshaus: Biergarten unter einer Laube mit Weinlaub, Linde, Kegelbahn am Zaun mit Pultdach über den Kegeln, Gaube. Gasthaus: Stall für die Pferde der Reisenden mit Stalltüren und Heuluken, Tränke mit Pferd, Biergarten, Linde, Gaube, Dachreiter mit weinroter Spitze wie bisher im Spiel. | 17.10.2026 |
 | Bausteine | `tor_fluegel` und `pferd` liegen jetzt in `bausteine.py`; neue Materialien Weinrot, Ocker, Laub, Laub hell. Die übrigen Werkstätten bleiben byte-gleich. | 17.10.2026 |
 
-### Werkstatt des Predigers als 3D-Modell (PR #…)
+### Werkstatt des Predigers als 3D-Modell (PR #116)
 
 | Thema | Entscheidung | Datum |
 |---|---|---|
