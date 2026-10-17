@@ -111,8 +111,14 @@ public partial class Stadtansicht
         }
     }
 
-    /// <summary>Lokale z-Koordinate der Hausfront: Die Plätze der Karte reichen bis an die Gasse, Neubauten haben 2 m Vorplatz davor.</summary>
-    private static float HausFront(Grundstueck g) => (float)g.Grundriss.Tiefe / 2 - (g.Kennung is null ? Vorplatz : 0);
+    /// <summary>
+    /// Wie viel Vorplatz die Fläche vor der Hausfront enthält: Neubauten nach den Normmaßen (10 oder 14 m tief) haben 2 m davor;
+    /// die Wohnhausplätze der Karte (8 m tief, auch als Bauplatz und beim Neubau „eingepasst“) reichen mit der Hausfront bis an die Gasse.
+    /// </summary>
+    private static float VorplatzVon(Grundriss g) => g.Tiefe > 9 ? Vorplatz : 0;
+
+    /// <summary>Lokale z-Koordinate der Hausfront (die Mitte der Fläche ist 0, vorne ist +z).</summary>
+    private static float HausFront(Grundstueck g) => (float)g.Grundriss.Tiefe / 2 - VorplatzVon(g.Grundriss);
 
     public static string BaustellenKennung(Grundstueck g) => "baustelle:" + g.Nummer;
     public static string BauplatzKennung(Grundstueck g) => "bauplatz:" + g.Nummer;
@@ -209,7 +215,7 @@ public partial class Stadtansicht
             _ => (Mathf.Min(16, breite), 8.4f, 10f, new Color(0.72f, 0.68f, 0.60f)),
         };
         hb = Mathf.Min(hb, breite - 0.4f);
-        ht = Mathf.Min(ht, tiefe - (g.Kennung is null ? Vorplatz : 0) - 0.2f);
+        ht = Mathf.Min(ht, tiefe - VorplatzVon(gr) - 0.2f);
         var mitteZ = front - ht / 2;
         var abriss = g.Arbeit == Bauarbeit.Abriss;
         var anteil = abriss ? 0.75f - 0.2f * stufe : 0.2f + 0.25f * stufe; // Abriss: Mauern sinken; Neubau: sie wachsen
@@ -287,8 +293,11 @@ public partial class Stadtansicht
 
         if (g.Arbeit is not { } arbeit)
             return g.Zustand != Bauzustand.Bauplatz ? null
-                : string.Join("\n", "Bauplatz", "", $"Freie Fläche, {flaeche} (mit Vorplatz).",
-                    "Hier darf jeder bauen, was hineinpasst: Wohnhaus oder Werkstatt – im Kontor „Bauen“ und das Gebäude auf den Platz setzen.");
+                : Bauwesen.IstWohnhausplatz(g)
+                    ? string.Join("\n", "Bauplatz (Wohnhausplatz)", "", $"Freie Fläche, {flaeche}.",
+                        "Hier darf jeder ein Wohnhaus jeder Stufe bauen – es passt sich der Fläche an. Eine Werkstatt darf hier nicht stehen. Im Kontor „Bauen“ wählen und die Maus über den Platz führen.")
+                    : string.Join("\n", "Bauplatz", "", $"Freie Fläche, {flaeche} (mit Vorplatz).",
+                        "Hier darf jeder bauen, was hineinpasst: Wohnhaus oder Werkstatt – im Kontor „Bauen“ und das Gebäude auf den Platz setzen.");
 
         var stufenname = w.Wohnen.Daten is { } wd ? wd.Stufen[Math.Clamp(g.Stufe, 0, wd.Stufen.Count - 1)].Name : "Wohnhaus";
         var bauherr = g.Besitzer?.Inhaber ?? "?";
@@ -359,7 +368,7 @@ public partial class Stadtansicht
         if (_wirtschaft?.Bauen.Werkstatt(betrieb) is { } g)
         {
             var gr = g.Grundriss;
-            var abstand = (float)gr.Tiefe / 2 - Vorplatz - 4f; // Modellmitte relativ zur Flächenmitte, zur Front hin
+            var abstand = (float)gr.Tiefe / 2 - VorplatzVon(gr) - 4f; // Modellmitte relativ zur Flächenmitte, zur Front hin
             mitte = Mitte3(gr) + new Vector3((float)gr.Vorne.X, 0, (float)gr.Vorne.Z) * abstand;
             drehung = gr.Drehung;
             return true;
@@ -660,11 +669,13 @@ public partial class Stadtansicht
         _bauPfeilFarbe!.AlbedoColor = new Color(farbe.Lightened(0.5f), 0.85f);
         ((BoxMesh)_bauFlaeche!.Mesh).Size = new Vector3(breite, 0.12f, tiefe);
         _bauFlaeche.Position = new Vector3(0, 0.12f, 0);
-        ((BoxMesh)_bauVorplatz!.Mesh).Size = new Vector3(breite, 0.16f, Vorplatz);
-        _bauVorplatz.Position = new Vector3(0, 0.14f, tiefe / 2 - Vorplatz / 2);
-        ((BoxMesh)_bauKoerper!.Mesh).Size = new Vector3(breite - 0.4f, hoehe, tiefe - Vorplatz - 0.4f);
-        _bauKoerper.Position = new Vector3(0, hoehe / 2, -Vorplatz / 2);
-        _bauPfeil!.Position = new Vector3(0, 0.3f, tiefe / 2 - Vorplatz / 2); // Spitze zeigt zur Straße (+z)
+        var vorplatz = VorplatzVon(gr);
+        _bauVorplatz!.Visible = vorplatz > 0; // ein Wohnhausplatz der Karte reicht bis an die Gasse
+        ((BoxMesh)_bauVorplatz.Mesh).Size = new Vector3(breite, 0.16f, Mathf.Max(vorplatz, 0.1f));
+        _bauVorplatz.Position = new Vector3(0, 0.14f, tiefe / 2 - vorplatz / 2);
+        ((BoxMesh)_bauKoerper!.Mesh).Size = new Vector3(breite - 0.4f, hoehe, tiefe - vorplatz - 0.4f);
+        _bauKoerper.Position = new Vector3(0, hoehe / 2, -vorplatz / 2);
+        _bauPfeil!.Position = new Vector3(0, 0.3f, tiefe / 2 - Mathf.Max(vorplatz, 1) / 2); // Spitze zeigt zur Straße (+z)
         _bauText!.Position = new Vector3(0, hoehe + 4, 0);
         _bauText.Text = BauGrund ?? "Hier kann gebaut werden";
         _bauText.Modulate = farbe.Lightened(0.35f);

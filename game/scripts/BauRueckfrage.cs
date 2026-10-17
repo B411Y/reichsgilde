@@ -197,7 +197,7 @@ public partial class BauRueckfrage : PanelContainer
         Hauptmenue.Text(_inhalt, $"Neubau: {v.Gebaeude}", 22, Gold, zentriert: true);
         if (v.Betrieb is not null) Hauptmenue.Text(_inhalt, $"„{v.Betrieb}“", 16, Hell, zentriert: true);
         Hauptmenue.Text(_inhalt,
-            $"{Zahlenformat.Ganz(v.Grundriss.Breite)} × {Zahlenformat.Ganz(v.Grundriss.Tiefe)} m (mit 2 m Vorplatz), Eingang nach {Himmelsrichtung(v.Grundriss.Drehung)}.",
+            $"{Zahlenformat.Ganz(v.Grundriss.Breite)} × {Zahlenformat.Ganz(v.Grundriss.Tiefe)} m{(v.Grundriss.Tiefe > 9 ? " (mit 2 m Vorplatz)" : " (der Wohnhausplatz)")}, Eingang nach {Himmelsrichtung(v.Grundriss.Drehung)}.",
             13, Grau, umbruchBreite: Breite);
 
         var rechnung = Raster(_inhalt);

@@ -142,7 +142,7 @@ Die Reichsstadt ist als begehbare Schrägansicht zu sehen: Mauer (100 × 100 m) 
 - **Wohnhaus:** Das alte Haus wird angerechnet; ihr wohnt bis zur Fertigstellung im alten, danach zieht ihr um, und das alte Haus wird abgerissen und zum Bauplatz. Stufe 1–2 dauert ein Spieljahr, ab Stufe 3 zwei.
 - **Werkstatt:** Preis einer freien Werkstatt der Stufe 1 plus ein Jahr Unterhalt in bar, ein Spieljahr Bauzeit. Danach öffnet sie wie jede andere (das Modell nach Beruf, in der gewählten Drehung).
 - **Baustelle:** Fundament, Mauern, die mit der Bauzeit hochwachsen, zuletzt der Dachstuhl, dazu Gerüst und Holzstapel. Ein Klick nennt, was entsteht und wann es fertig ist; ist es fertig, folgt die Auswahl dem neuen Haus.
-- **Bauplatz:** Wiese mit Pflöcken und Schnur, nach einem Abriss. Hier darf jeder bauen, was hineinpasst, auch außerhalb der Bauzonen.
+- **Bauplatz:** Wiese mit Pflöcken und Schnur, nach einem Abriss. Hier darf jeder bauen, was hineinpasst, auch außerhalb der Bauzonen. Ein **Wohnhausplatz** (der Platz eines abgerissenen Hauses der Karte) nimmt jedes Wohnhaus jeder Stufe auf – es passt sich der Fläche und ihrer Drehung an; eine Werkstatt darf dort nicht stehen.
 
 **Leerstand.** Das Wohnhaus eines bankrotten oder erloschenen Hauses bleibt vernagelt stehen. Ein Klick darauf zeigt zwei Knöpfe: **Kaufen und sanieren** (50 % des Hauswerts plus 20 % Sanierung, abzüglich eures alten Hauses; 4 Stunden, dann zieht ihr ein; nur, wenn das Haus größer ist als eures) und **Abreißen lassen** (50 % plus Abrisskosten; danach ein Bauplatz für jeden). Beide fragen vorher mit der ganzen Rechnung nach; geht etwas nicht, ist der Knopf gesperrt und der Grund steht in der Tafel.
 

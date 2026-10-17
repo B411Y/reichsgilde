@@ -208,7 +208,7 @@ public partial class BauAnzeige : PanelContainer
         Hauptmenue.Text(_inhalt, "Platz wählen", 22, Gold, zentriert: true);
         Hauptmenue.Text(_inhalt, g.Name, 17, Hell, zentriert: true);
         Hauptmenue.Text(_inhalt,
-            $"Fläche {Zahlenformat.Ganz(vorschau.Grundriss.Breite)} × {Zahlenformat.Ganz(vorschau.Grundriss.Tiefe)} m (mit 2 m Vorplatz) · Bauzeit {BauzeitText(vorschau.BauzeitMinuten)} · " +
+            $"Fläche {Zahlenformat.Ganz(vorschau.Grundriss.Breite)} × {Zahlenformat.Ganz(vorschau.Grundriss.Tiefe)} m (mit 2 m Vorplatz; auf einem Wohnhausplatz passt sich ein Wohnhaus ein) · Bauzeit {BauzeitText(vorschau.BauzeitMinuten)} · " +
             $"Kosten {Zahlenformat.Ganz(vorschau.Kosten)} {waehrung}", 14, Grau, umbruchBreite: Breite);
 
         // Zustand des Umrisses: grün oder rot mit Grund
