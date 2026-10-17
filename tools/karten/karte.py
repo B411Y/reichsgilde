@@ -27,7 +27,7 @@ WURZEL = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file_
 
 # ── Geometrie ────────────────────────────────────────────────────────────────
 def runden(p, schritt=0.5):
-    return [round(p[0] / schritt) * schritt, round(p[1] / schritt) * schritt]
+    return [round(round(p[0] / schritt) * schritt, 4), round(round(p[1] / schritt) * schritt, 4)]
 
 def aufs_raster(p):
     return runden(p, RASTER)
@@ -74,7 +74,8 @@ def ohne_doppelte(punkte):
 
 # ── Die Karte ────────────────────────────────────────────────────────────────
 class Karte:
-    def __init__(self, kennung, stadt, vorlage):
+    def __init__(self, kennung, stadt, vorlage, schritt=0.5):
+        self.schritt = schritt            # Rundung aller Punkte außer den Bauzonen (die rasten auf das 2-m-Raster)
         self.d = {"format": FORMAT, "kennung": kennung, "stadt": stadt, "vorlage": vorlage,
                   "einheit": "Meter", "achsen": "x = Osten, z = Süden (−z = Norden), Ursprung am Marktplatz",
                   "raster": RASTER, "mauer": {}, "tore": [], "wasser": [], "gelaende": [], "wege": [],
@@ -82,35 +83,38 @@ class Karte:
                   "fiktion": []}
 
     def mauer(self, linie):
-        self.d["mauer"] = {"linie": [runden(p) for p in linie]}
+        self.d["mauer"] = {"linie": [runden(p, self.schritt) for p in linie]}
 
     def nebenmauer(self, name, linie):
         """Weitere Mauer, z. B. um eine befestigte Vorstadt. Ihre Tore stehen wie alle Tore in `tore`."""
-        self.d["nebenmauern"].append({"name": name, "linie": [runden(p) for p in linie]})
+        self.d["nebenmauern"].append({"name": name, "linie": [runden(p, self.schritt) for p in linie]})
 
     def hafen(self, name, kante, anleger, kran):
         """Hafen am Fluss: Kaimauer als Linie, Anlegestellen als Punkte (dort liegen Schiffe), Kran als Punkt."""
-        self.d["haefen"].append({"name": name, "kante": [runden(p) for p in kante],
-                                 "anleger": [runden(p) for p in anleger], "kran": runden(kran)})
+        self.d["haefen"].append({"name": name, "kante": [runden(p, self.schritt) for p in kante],
+                                 "anleger": [runden(p, self.schritt) for p in anleger], "kran": runden(kran, self.schritt)})
 
     def tor(self, name, punkt, schliesst_nachts=True):
-        self.d["tore"].append({"name": name, "punkt": runden(punkt), "schliesstNachts": schliesst_nachts})
+        self.d["tore"].append({"name": name, "punkt": runden(punkt, self.schritt), "schliesstNachts": schliesst_nachts})
 
     def wasser(self, art, name, linie=None, breite=None, flaeche=None):
         e = {"art": art, "name": name}
-        if linie: e["linie"] = [runden(p) for p in linie]; e["breite"] = breite
-        if flaeche: e["flaeche"] = [runden(p) for p in flaeche]
+        if linie: e["linie"] = [runden(p, self.schritt) for p in linie]; e["breite"] = breite
+        if flaeche: e["flaeche"] = [runden(p, self.schritt) for p in flaeche]
         self.d["wasser"].append(e)
 
     def gelaende(self, art, name, flaeche):
-        self.d["gelaende"].append({"art": art, "name": name, "flaeche": [runden(p) for p in flaeche]})
+        self.d["gelaende"].append({"art": art, "name": name, "flaeche": [runden(p, self.schritt) for p in flaeche]})
 
-    def weg(self, name, klasse, linie, gefahr=1.0):
+    def weg(self, name, klasse, linie, gefahr=1.0, breite=None):
+        """`breite` (Meter, optional) ist die gezeichnete Breite des Weges – die Greybox-Karte gibt sie an, Köln noch nicht."""
         assert klasse in WEGKLASSEN, klasse
-        self.d["wege"].append({"name": name, "klasse": klasse, "linie": [runden(p) for p in linie], "gefahr": gefahr})
+        e = {"name": name, "klasse": klasse, "linie": [runden(p, self.schritt) for p in linie], "gefahr": gefahr}
+        if breite is not None: e["breite"] = breite
+        self.d["wege"].append(e)
 
     def uebergang(self, art, name, von, bis):
-        self.d["uebergaenge"].append({"art": art, "name": name, "von": runden(von), "bis": runden(bis)})
+        self.d["uebergaenge"].append({"art": art, "name": name, "von": runden(von, self.schritt), "bis": runden(bis, self.schritt)})
 
     def bauzone(self, kennung, art, poly):
         assert art in ZONENARTEN, art
@@ -118,21 +122,21 @@ class Karte:
         self.d["bauzonen"].append({"kennung": kennung, "art": art, "flaeche": pts})
 
     def fest(self, kennung, art, name, punkt, eingang=None, groesse=None, **mehr):
-        e = {"kennung": kennung, "art": art, "name": name, "punkt": runden(punkt)}
-        if eingang is not None: e["eingang"] = runden(eingang)
+        e = {"kennung": kennung, "art": art, "name": name, "punkt": runden(punkt, self.schritt)}
+        if eingang is not None: e["eingang"] = runden(eingang, self.schritt)
         if groesse is not None: e["groesse"] = groesse
         e.update(mehr)
         self.d["feste"].append(e)
 
     def vorkommen(self, kennung, betrieb, punkt):
         """Fester Ort für einen Rohstoffbetrieb (Mine, Steinbruch, Holzschlag) – nur dort darf er stehen."""
-        self.d["vorkommen"].append({"kennung": kennung, "betrieb": betrieb, "punkt": runden(punkt)})
+        self.d["vorkommen"].append({"kennung": kennung, "betrieb": betrieb, "punkt": runden(punkt, self.schritt)})
 
     def fiktion(self, text):
         self.d["fiktion"].append(text)
 
     # ── Prüfungen nach den Kartenregeln ──────────────────────────────────────
-    def pruefen(self, markt=(0, 0), startabweichung=0.10, anschluss=8.0):
+    def pruefen(self, markt=(0, 0), startabweichung=0.10, anschluss=8.0, startzahl=8):
         fehler, hinweise = [], []
         wege = self.d["wege"]
         karren = [w["linie"] for w in wege if w["klasse"] in KARRENSTRASSEN]
@@ -145,9 +149,10 @@ class Karte:
                 fehler.append(f"Bauzone {z['kennung']}: nächste Karrenstraße {n:.1f} m entfernt (höchstens {anschluss} m)")
 
         # 2. Startgrundstücke: gleich weit vom Markt (Fairness bei 8 Häusern), Eingang an einer Karrenstraße.
-        starts = [f for f in self.d["feste"] if f["art"] == "start"]
-        if len(starts) != 8:
-            fehler.append(f"{len(starts)} Startgrundstücke statt 8")
+        #    (Die Greybox-Karte hat keine Startgrundstücke, sondern Wohnhausplätze – sie prüft sie selbst: startzahl=0.)
+        starts = [f for f in self.d["feste"] if f["art"] == "start"] if startzahl else []
+        if startzahl and len(starts) != startzahl:
+            fehler.append(f"{len(starts)} Startgrundstücke statt {startzahl}")
         if starts:
             ds = [abstand(f["punkt"], markt) for f in starts]
             m = sum(ds) / len(ds)
@@ -214,11 +219,17 @@ class Karte:
         return {art: (n, a, int(a / (RASTER * RASTER))) for art, (n, a) in zeilen.items()}
 
     # ── Ausgabe ──────────────────────────────────────────────────────────────
-    def schreiben(self):
-        fehler, hinweise = self.pruefen()
-        from kapazitaet import Belegung       # erst hier laden: kapazitaet.py braucht dieses Modul
-        belegung = Belegung(self.d)
-        f2, h2 = belegung.pruefen()
+    def schreiben(self, pruefung=None, startzahl=8):
+        """Prüft und schreibt die Karte. `pruefung` ist eine Funktion Karte → (Fehler, Hinweise, SVG-Ebene) für die
+        Kapazität einer Stadt mit eigenen Regeln (Greybox); ohne sie gilt die Kölner Prüfung für 8 Häuser."""
+        fehler, hinweise = self.pruefen(startzahl=startzahl)
+        if pruefung is None:
+            from kapazitaet import Belegung       # erst hier laden: kapazitaet.py braucht dieses Modul
+            belegung = Belegung(self.d)
+            f2, h2 = belegung.pruefen()
+            ebene = belegung.svg_ebene()
+        else:
+            f2, h2, ebene = pruefung(self)
         fehler += f2; hinweise += h2
         kennung = self.d["kennung"]
         for h in hinweise:
@@ -239,7 +250,7 @@ class Karte:
         with open(svg, "w", encoding="utf-8") as f:
             f.write(vorschau(pfad))
         with open(svg.replace(".svg", "-belegung.svg"), "w", encoding="utf-8") as f:
-            f.write(vorschau(pfad).replace("</svg>", belegung.svg_ebene() + "\n</svg>"))
+            f.write(vorschau(pfad).replace("</svg>", ebene + "\n</svg>"))
         print(f"   geschrieben: game/data/karten/{kennung}.json, docs/karten/{kennung}.svg, {kennung}-belegung.svg")
 
 
@@ -257,6 +268,9 @@ FARBEN = {
     "vorstadt": "#E2DCC6", "umland": "#E1E5C0", "zonenrand": "#6B6E66", "start": "#A3262A", "fest": "#1F2326",
     "leer": "#6B6E66", "vorkommen": "#FFFFFF", "text": "#1F2326",
 }
+# Feste Gebäude mit Maßen und Drehung (Greybox-Karte): Füllfarbe je Art
+GEBAEUDEFARBEN = {"sonderbau": "#8E8F88", "werkstatt": "#B58A5A", "umland": "#C9B88A", "umlandstelle": "#B7C79A",
+                  "einwohnerhaus": "#9DB287", "einwohnerplatz": "#CFE0C0", "wohnhausplatz": "#A3262A", "turm": "#4B5258"}
 STRICH = {"land": (2.0, "6 3", "#4B5258"), "haupt": (2.6, None, "#1F2326"), "ring": (2.2, None, "#1F2326"),
           "wall": (1.6, None, "#4B5258"), "gasse": (1.0, "3 2", "#4B5258"), "leinpfad": (0.8, "1 2", "#4E7A96")}
 
@@ -287,6 +301,8 @@ def vorschau(pfad):
             o.append(f'<polyline points="{pts(w["linie"])}" fill="none" stroke="{farbe}" stroke-width="{w["breite"]:g}" stroke-linecap="round"/>')
     for w in k["wege"]:
         b, dash, farbe = STRICH[w["klasse"]]
+        if "breite" in w:                 # gezeichnete Breite des Weges (Greybox-Karte)
+            b, dash = w["breite"], None
         if w["gefahr"] > 1:
             o.append(f'<polyline points="{pts(w["linie"])}" fill="none" stroke="#B5651D" stroke-width="6" opacity="0.35"/>')
         o.append(f'<polyline points="{pts(w["linie"])}" fill="none" stroke="{farbe}" stroke-width="{b}"'
@@ -310,6 +326,19 @@ def vorschau(pfad):
         o.append(f'<text x="{x:g}" y="{z-5:g}" font-size="6" text-anchor="middle" fill="{FARBEN["text"]}">{t["name"]}</text>')
     for f in k["feste"]:
         x, z = f["punkt"]
+        if "drehung" in f:                # Gebäude mit Maßen: Breite entlang der Vorderseite, Tiefe dahinter, Vorderseite lokal +z
+            breite, tiefe = f["groesse"]
+            wx, wz = (breite, tiefe) if f["drehung"] % 180 == 0 else (tiefe, breite)
+            o.append(f'<rect x="{x - wx / 2:g}" y="{z - wz / 2:g}" width="{wx:g}" height="{wz:g}" '
+                     f'fill="{GEBAEUDEFARBEN.get(f["art"], "#999")}" stroke="{FARBEN["fest"]}" stroke-width="0.3"/>')
+            if "eingang" in f:
+                ex, ez = f["eingang"]
+                o.append(f'<circle cx="{ex:g}" cy="{ez:g}" r="0.9" fill="{FARBEN["start"]}"/>')
+            if f["art"] in ("sonderbau", "werkstatt"):
+                o.append(f'<text x="{x:g}" y="{z + 1:g}" font-size="3" text-anchor="middle" fill="{FARBEN["text"]}">{f["kennung"]}</text>')
+            elif f["art"] == "wohnhausplatz":
+                o.append(f'<text x="{x:g}" y="{z + 1.5:g}" font-size="4" text-anchor="middle" fill="#fff" font-weight="bold">{f["kennung"]}</text>')
+            continue
         if f["art"] == "start":
             o.append(f'<rect x="{x-5:g}" y="{z-5:g}" width="10" height="10" fill="{FARBEN["start"]}"/>'
                      f'<text x="{x:g}" y="{z+2.5:g}" font-size="7" text-anchor="middle" fill="#fff" font-weight="bold">{f["kennung"][1:]}</text>')
