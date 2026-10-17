@@ -150,12 +150,13 @@ static class GreyboxTests
             for (var i = 0; i < 241; i++) sim.Tick();
             var platz = w.Bauen.Bauplaetze.Single();
             Pruefe.Gleich("Wohnhaus1", platz.Kennung);
+            Pruefe.Gleich(Lage.Mauerring, platz.Lage);
             for (var stufe = 0; stufe < 5; stufe++)
             {
                 var befehl = w.Bauen.Einrasten(new WohnhausBauen(stufe, 3, -45, 2));
                 Pruefe.Gleich(new WohnhausBauen(stufe, 0, -44.3, 0), befehl);
                 Pruefe.Gleich(platz.Grundriss, w.Bauen.Grundriss(befehl));
-                if (stufe < 4) Pruefe.Gleich(null, w.Bauen.PlatzVerboten(befehl), $"Stufe {stufe}"); // der Stadthof hängt an der „lage“ des Platzes
+                Pruefe.Gleich(null, w.Bauen.PlatzVerboten(befehl), $"Stufe {stufe}"); // auch der Stadthof: der Platz liegt laut Karte am Mauerring
             }
             Pruefe.Gleich("Auf einem Wohnhausplatz stehen nur Wohnhäuser.", w.Bauen.PlatzVerboten(new WerkstattBauen(Betriebsart.Giesserei, 0, -45, 0)));
             var palais = new WohnhausBauen(3, 0, -44.3, 0);
