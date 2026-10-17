@@ -106,9 +106,12 @@ FARBEN = {
     "Schindel": (0.38, 0.32, 0.27),        # morsche Holzschindeln (Diebesnest, wie bisher im Spiel „Morsch“)
     "Schindelkante": (0.24, 0.20, 0.17),
     "Lumpen": (0.52, 0.48, 0.40),
+    "Stadtrot": (0.72, 0.12, 0.12),        # Stadtfarben (Wappen, Schilderhäuschen, Fahne der Wache, wie bisher im Spiel)
+    "Stadtweiss": (0.92, 0.90, 0.85),
+    "Spitze rot": (0.72, 0.12, 0.12),      # Spitze des Dachreiters beim Gardisten (wie bisher im Spiel, metallisch)
 }
 RAUHEIT = {"Glas": 0.2, "Fenster": 0.2, "Eisen": 0.45, "Gold": 0.35, "Wasser": 0.1}
-METALL = {"Eisen": 0.7, "Gold": 0.85, "Kupfer": 0.5, "Violett": 0.5, "Weinrot": 0.5, "Silber": 0.5, "Nachtblau": 0.5}
+METALL = {"Eisen": 0.7, "Gold": 0.85, "Kupfer": 0.5, "Violett": 0.5, "Weinrot": 0.5, "Silber": 0.5, "Nachtblau": 0.5, "Spitze rot": 0.5}
 LEUCHTEN = {"Glut": ((1.0, 0.45, 0.12), 3.0)}    # Farbe (sRGB) und Stärke der Emission
 # Licht hinter den Fenstern bei Nacht: Farbe (sRGB) und Stärke. Nicht in der GLB (dort aus), nur für die Nachtbilder –
 # im Spiel schaltet der Code die Emission des gemeinsamen Materials „Fenster“ abends an und morgens aus.
