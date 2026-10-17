@@ -10,9 +10,7 @@ So wird eingetragen (damit sich die Chats nie an derselben Stelle treffen):
 
 ## Offen
 
-- (5) (von Kern) Gaunerstücke gegen das Wohnhaus (`Gaunerstueck.Hauseinbruch`, `Brandstiftung`, ab PR #77) in die Wahl der KI-Häuser aufnehmen – Rechnungen: `Unterwelt.ErwarteterHausgewinn`, `Brandschaden`, `ErfolgschanceWohnhaus`. Den Hauswächter nach einem Anschlag stellt `KiRivale` schon ein.
 - (5) (von Kern) Seit PR #85 zählt der Hauswert zum Reinvermögen. `KiRivale.Standziel` ist deshalb wieder die Schwelle allein, und `StandPruefen` baut ohne „Schwelle + Ausbau“; `KiWohnhausTests` (zwei Tests) entsprechend angepasst. Bitte prüfen, ob das zu eurer Sparlogik passt
-- (2) (von Darstellung) Wegzeiten der Einwohner verlängern, damit Passanten natürlich gehen (~2,5 m/s bei Tempo 1; eine Spielminute ≈ 0,88 s). Gemessene Weglängen im Gassennetz (PR #74): Stadt Median 69 m (90 % 115 m), Tor 86 m, Umland Median 113 m (90 % 169 m). Heute 5–15 / 15 / 30 Minuten; passend wären etwa Stadt 20–40, Tor 40, Umland 50 Minuten (Abmarsch 0–10 bleibt, Ankunft vor der nächsten Stunde). Bis dahin beeilt sich die Darstellung bis zum Doppelten des eigenen Tempos und kommt bei langen Wegen einige Minuten später an, als der Kern zählt.
 - (3) Verlustjahre zählen auch, wenn ein Betrieb mangels Geld ohne Personal stand. Wird er danach besetzt, verkauft die KI ihn trotzdem nach zwei solchen Jahren (gesehen im Test zur Rückkauf-Schleife). Vielleicht Jahre ohne Personal nicht als Verlustjahr zählen.
 - (3) Ein Notverkauf wählt den Betrieb mit dem schlechtesten Gewinn, nicht den, dessen Erlös gerade reicht – so kann die KI mehr verkaufen als nötig. In den Messungen kam keine KI in Not; prüfen, wenn es Bankrotte gibt.
 
@@ -74,6 +72,14 @@ So wird eingetragen (damit sich die Chats nie an derselben Stelle treffen):
 | Verlustjahr | Ein ganzes Jahr (`Betriebsrechnung.Ganzjaehrig`), in dem **Gewinn + Änderung des Lagerwerts** (Lager zum Grundpreis, zum Jahresende gemerkt) negativ ist. Ohne das Lager verkaufte die erste Messung die ausgebauten Hauptwerkstätten, die teure Zutaten auf Vorrat kaufen (19 Verkäufe statt 3). Ein angebrochenes Jahr zählt nicht und unterbricht nicht; ein Jahr ohne Verlust setzt zurück. Wache, Geldleiher und Dieb verkauft die KI nicht wegen Verlust – Kopfgeld, Kreditzinsen und nächtliche Beute stehen nicht (ganz) in ihrer Rechnung. | 17.10.2026 |
 | Notverkauf | Hat der Kämmerer `jahreBisBankrott − 1`-mal gemahnt und ist ab der Jahresmitte die Hochrechnung des Reinvermögens zum Jahresabschluss negativ (heute + bisheriger Betriebsertrag hochgerechnet − Löhne, Unterhalt, Haushalt, die erst am Jahresende fällig werden), verkauft die KI je Stunde den Betrieb mit dem schlechtesten Gewinn, der etwas einbringt. In Not (gemahnt und Reinvermögen minus offene Kosten negativ) kauft und baut sie nichts. Verkäufe macht auch der Verwalter aus dem Kerker. | 17.10.2026 |
 | Keine Schleife | Nach einem Verkauf meidet die KI **Handwerk und Ort** (z. B. Schmied/Werkstatt) **5 Jahre** (`SperreNachVerkauf`): kein Kauf, kein Neubau, auch nicht über „Werkstatt zum Handwerk“. Gemerkt im `RivaleStand` (`Verlustjahre`, `Lagerwert`, `Gesperrt`, `KeinWerkstattplatzJahr`); alte Spielstände laden ohne sie. | 17.10.2026 |
+
+### Gaunerstücke gegen Wohnhäuser (PR #119)
+
+| Thema | Entscheidung | Datum |
+|---|---|---|
+| Wer | **Einbruch** ins Wohnhaus nutzt jedes KI-Haus, das Gaunerstücke nutzt (ausgewogen selten und nur gegen Häuser vor ihm, wie Diebstahl und Sabotage). **Brandstiftung** nur die Wagemutige, wie Überfall und Erpressung. Entschieden vom Nutzer. | 18.10.2026 |
+| Wert | Einbruch = `Unterwelt.ErwarteterHausgewinn` (Bargeld × Chance − Kosten, kein Hehler). Brandstiftung wie Sabotage: **halbe Reparatur** beim Gegner × Chance − Kosten (`Brandschaden`, `ErfolgschanceWohnhaus`); das fehlende Ansehen zählt nicht mit. Entschieden vom Nutzer. Beide stehen in derselben Liste wie die Stücke gegen Betriebe, das Beste gewinnt. | 18.10.2026 |
+| Wann es sich lohnt | Einbruch erst ab dem Bürgerhaus (Fachwerkhaus: höchstens 300 Beute × 0,6 < 200 Kosten), Brand erst ab dem Stadtpalais (Steinhaus: 800 × 0,5 × 0,5 = 200 < 300). Ein Haus, das vom letzten Brand noch beschädigt ist, steht nicht zur Wahl (der Kern lehnt den Auftrag ab). | 18.10.2026 |
 
 ## Messungen
 

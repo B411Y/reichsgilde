@@ -10,7 +10,7 @@
 ![Godot 4.7](https://img.shields.io/badge/Godot-4.7-478cbf)
 ![C# .NET 8](https://img.shields.io/badge/C%23-.NET%208-512bd4)
 ![Windows & Linux](https://img.shields.io/badge/Windows%20%26%20Linux-spielbar-2e7d32)
-[![Lizenz: MIT](https://img.shields.io/badge/Lizenz-MIT-yellow)](LICENSE)
+[![Lizenz: MIT](https://img.shields.io/badge/Lizenz-MIT-yellow)](LICENSE) [![Inhalte: CC BY 4.0](https://img.shields.io/badge/Inhalte-CC%20BY%204.0-lightgrey)](LICENSE-INHALTE.md)
 
 ![Die Reichsstadt mit Markt, Dom und Stadtmauer](docs/bilder/stadt.png)
 
@@ -342,4 +342,4 @@ Nach jedem Merge auf `main` hält die Action **„PRs aktuell halten“** ([`.gi
 
 ## Lizenz
 
-Code: [MIT](LICENSE). Schriften: **Alegreya** (The Alegreya Project Authors) und **Germania One** (John Vargas Beltrán), beide unter der [SIL Open Font License 1.1](game/assets/schriften/) – die Lizenztexte liegen neben den Schriftdateien. Die Waren-Icons sind selbst gezeichnet (`tools/icons/waren_icons.py`) und stehen unter derselben Lizenz. Dieses Projekt verwendet **keine** Grafiken, Sounds, Texte oder sonstigen Inhalte aus „Die Gilde“ – das Original dient nur als Vorbild für Spielmechaniken.
+Code: [MIT](LICENSE), auch die Skripte, die Icons und Modelle zeichnen. Grafiken, 3D-Modelle, Icons, Bilder und Texte: [CC BY 4.0](LICENSE-INHALTE.md) – frei nutzbar, auch kommerziell, mit Namensnennung. Schriften: **Alegreya** (The Alegreya Project Authors) und **Germania One** (John Vargas Beltrán), beide unter der [SIL Open Font License 1.1](game/assets/schriften/) – die Lizenztexte liegen neben den Schriftdateien. Dieses Projekt verwendet **keine** Grafiken, Sounds, Texte oder sonstigen Inhalte aus „Die Gilde“ – das Original dient nur als Vorbild für Spielmechaniken.
