@@ -340,8 +340,11 @@ def werkstatt(netz, st):
     bs.fachwerk(netz, M_r, y1 - y0, h, fr, st, saat=22)
     bs.fenster(netz, M_r, fr[0], st)
     laeden(netz, st, M_r, fr[0])
+    for seite, (x, y), L, saat in (("hinten", (cx, y1), x1 - x0, 23), ("links", (x0, cy), y1 - y0, 24)):
+        bs.fachwerk(netz, bs.wandmatrix((x, y, 0.3), seite), L, h, [], st, saat=saat)
     dach = bs.satteldach(netz, st, x0, x1, y0, y1, 0.3 + h, 45, traufe=0.3, ortgang=0.25, **bs.ZIEGEL)
-    bs.fachwerkgiebel(netz, st, bs.wandmatrix((x1, cy, 0.3 + h), "rechts"), y1 - y0, (y1 - y0) / 2 * dach["tan"], [])
+    for x, seite in ((x1, "rechts"), (x0, "links")):
+        bs.fachwerkgiebel(netz, st, bs.wandmatrix((x, cy, 0.3 + h), seite), y1 - y0, (y1 - y0) / 2 * dach["tan"], [])
     netz.quader((cx + tuer.u, y0 - 0.2, 0.155), (1.4, 0.4, 0.31), st["Sandstein"])
 
 
