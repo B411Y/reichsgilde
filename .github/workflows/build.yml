@@ -154,7 +154,9 @@ jobs:
               rm -f kern.*   # das Abbild ist mehrere hundert MB groß – die Rückverfolgung genügt
             fi
             if [ -s rueckverfolgung.txt ]; then
-              head -60 rueckverfolgung.txt | sed -e 's/%/%25/g' -e 's/\r//g' | awk 'BEGIN { ORS = "%0A" } { print }' > anmerkung.txt
+              # ohne die Vorrede von gdb („[New LWP …]“), damit die Fäden in die Anmerkung passen
+              grep -vE '^\[New LWP|^\[Thread debugging|^Using host libthread_db|^warning:|^$' rueckverfolgung.txt | head -60 \
+                | sed -e 's/%/%25/g' -e 's/\r//g' | awk 'BEGIN { ORS = "%0A" } { print }' > anmerkung.txt || true
               echo "::error title=Rauchtest – Rückverfolgung::$(cat anmerkung.txt)"
             else
               echo "Kein Speicherabbild gefunden – nur start.log." | tee rueckverfolgung.txt
