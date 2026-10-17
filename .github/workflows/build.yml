@@ -99,32 +99,47 @@ jobs:
           ls -d build/windows/data_Reichsgilde_* || { echo "::error::C#-Daten fehlen im Windows-Export"; exit 1; }
 
       - name: Linux-Build kurz starten (Rauchtest)
+        timeout-minutes: 20   # Notbremse, falls trotz der Zeitgrenze unten etwas hängt
         run: |
           set -o pipefail   # ein Absturz des Spiels soll den Schritt fehlschlagen lassen
           chmod +x build/linux/Reichsgilde.x86_64
           # Stürzt das Spiel ab, landet ein Speicherabbild (Core-Dump) im Arbeitsordner – für die Rückverfolgung unten.
           ulimit -c unlimited || true
           sudo sysctl -q -w kernel.core_pattern="$PWD/kern.%p" || true
+          # Ein Start mit Zeitgrenze ($GRENZE Sekunden, sonst 180). Hängt das Spiel, bekommt es SIGABRT: Das schreibt ebenfalls
+          # ein Speicherabbild, die Rückverfolgung zeigt dann, wo es hängt. Hilft das nicht, folgt nach 20 s SIGKILL.
+          # (Ein von außen geschicktes SIGSEGV ließ das Spiel am 16.10.2026 hängen statt abstürzen – der Lauf stand 6 Stunden.)
+          starte() {
+            local status=0
+            timeout -s ABRT -k 20 "${GRENZE:-180}" build/linux/Reichsgilde.x86_64 --headless "$@" 2>&1 | tee -a start.log || status=$?
+            case $status in
+              0) return 0 ;;
+              124|137) FEHLER="hängt (nach ${GRENZE:-180} s abgebrochen)" ;;
+              *) FEHLER="ist abgestürzt (Rückgabewert $status)" ;;
+            esac
+            return 1
+          }
           # 1. normaler Start   2. mit Bedienfeld, Innenansicht, Jahresbericht, Ratskammer, Familientafel, Gerichtssaal, Hinterzimmer und hohem Tempo (mehr Code wird durchlaufen)
           rauchtest() {
-            build/linux/Reichsgilde.x86_64 --headless --quit-after 300 2>&1 | tee start.log || return 1
+            : > start.log
+            starte --quit-after 300 || return 1
             echo "=== zweiter Start (mit Tafeln) ===" | tee -a start.log
-            build/linux/Reichsgilde.x86_64 --headless --quit-after 600 -- --verwalten=1 --innen=1 --tempo=8 --startstunde=4 --bericht=1 --rat=1 --familie=1 --gericht=1 --hinterzimmer=1 2>&1 | tee -a start.log || return 1
+            starte --quit-after 600 -- --verwalten=1 --innen=1 --tempo=8 --startstunde=4 --bericht=1 --rat=1 --familie=1 --gericht=1 --hinterzimmer=1 || return 1
           }
-          # Nach einem Absturz: Welcher Faden ist abgestürzt und wo? Ein Absturz beim Beenden kam schon ohne jede Meldung
+          # Nach einem Absturz oder Hänger: Welcher Faden war es und wo? Ein Absturz beim Beenden kam schon ohne jede Meldung
           # von Godot (16.10.2026) – die Fadennamen zeigen, ob es Godot selbst war oder die .NET-Laufzeit (z. B. „.NET Finalizer“).
           # Die volle Ausgabe steht in rueckverfolgung.txt (Artefakt „Rauchtest-Protokoll“), der Anfang als Anmerkung.
           absturz() {
-            echo "::error::Das exportierte Spiel ist abgestürzt (Rückverfolgung im Artefakt „Rauchtest-Protokoll“)"
+            echo "::error::Das exportierte Spiel $FEHLER – Rückverfolgung im Artefakt „Rauchtest-Protokoll“"
             local abbild
-            abbild=$(ls -t kern.* 2>/dev/null | head -1)
+            abbild=$(ls -t kern.* 2>/dev/null | head -1) || true   # ohne Abbild schlägt ls fehl
             if [ -n "$abbild" ]; then
               sudo apt-get install -y -qq gdb > /dev/null 2>&1
               gdb -batch -ex "info threads" -ex "bt 30" -ex "thread apply all bt 15" \
                 build/linux/Reichsgilde.x86_64 "$abbild" > rueckverfolgung.txt 2>&1 || true
               rm -f kern.*   # das Abbild ist mehrere hundert MB groß – die Rückverfolgung genügt
               head -60 rueckverfolgung.txt | sed -e 's/%/%25/g' -e 's/\r//g' | awk 'BEGIN { ORS = "%0A" } { print }' > anmerkung.txt
-              echo "::error title=Rauchtest – Rückverfolgung des Absturzes::$(cat anmerkung.txt)"
+              echo "::error title=Rauchtest – Rückverfolgung::$(cat anmerkung.txt)"
             else
               echo "Kein Speicherabbild gefunden – nur start.log." | tee rueckverfolgung.txt
             fi
