@@ -103,7 +103,7 @@ public static class Spielstaende
         var json = Godot.FileAccess.GetFileAsString(pfad);
         if (string.IsNullOrEmpty(json))
             throw new SpielstandFehler($"Die Datei {pfad} gibt es nicht oder sie ist leer.");
-        return Speicherung.Laden(json);
+        return Speicherung.Laden(json, Stadtkarten.Greybox); // die Karte gilt nur für alte Stände ohne eigene
     }
 
     /// <summary>Nur Buchstaben, Ziffern und Unterstriche – Dateinamen sollen auf Windows und Linux gültig sein.</summary>
