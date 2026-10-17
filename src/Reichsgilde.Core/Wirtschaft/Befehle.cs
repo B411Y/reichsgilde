@@ -72,6 +72,16 @@ public sealed record Schenken(string Ratsherr, double Betrag) : Befehl;
 /// <summary>Antrag im Rat, das Fron- und Sklavenstatut zu ändern (nur für Ratsmitglieder, einer pro Jahr).</summary>
 public sealed record StatutBeantragen(Fronstatut Statut) : Befehl;
 
+/// <summary>
+/// Stimme bei der Wahl zu einem Amt festlegen (frei, bis zur Ratssitzung änderbar). <paramref name="Kandidat"/> ist der Name eines Kandidaten
+/// aus <see cref="Politik.Stadtrat.Kandidaten"/>: der Hausname eines Bewerbers bzw. des bisherigen Inhabers oder der Name des Ratsherrn im Amt.
+/// null nimmt die Stimme zurück – dann gilt die Vorgabe (der bisherige Inhaber).
+/// </summary>
+public sealed record WahlStimme(string Amt, string? Kandidat) : Befehl;
+
+/// <summary>Stimme zum vorliegenden Antrag auf ein Statut festlegen: true dafür, false dagegen, null Enthaltung (frei, bis zur Ratssitzung änderbar).</summary>
+public sealed record StatutStimme(bool? Ja) : Befehl;
+
 /// <summary>Ein Geschenk an einen Heiratskandidaten (Nummer der Person) – bringt Zuneigung, höchstens bis zur Jahresgrenze.</summary>
 public sealed record Werben(int Kandidat, double Betrag) : Befehl;
 
@@ -232,6 +242,9 @@ public sealed record Bekehrungspredigt : Befehl;
 
 /// <summary>Im Rat einen Stadtglauben beantragen (null = Glaubensfreiheit).</summary>
 public sealed record StadtglaubeBeantragen(Reichsgilde.Core.Glaube.Konfession? Glaube) : Befehl;
+
+/// <summary>Stimme zum vorliegenden Antrag auf einen Stadtglauben festlegen: true dafür, false dagegen, null Enthaltung (frei, bis zur Ratssitzung änderbar).</summary>
+public sealed record StadtglaubeStimme(bool? Ja) : Befehl;
 
 /// <summary>
 /// Handel von Hand: Der Karren Nr. <paramref name="Karren"/> (0 = erster) lädt die Verkaufsware aus dem Lager, fährt zum Markt,
