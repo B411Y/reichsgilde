@@ -279,20 +279,6 @@ def holzlager(netz, st, mitte, n=4, laenge=4.0):
         netz.quader((x + laenge * 0.3, y + s * 3.4 * r, 0.45), (0.12, 0.12, 0.9), st["Holz alt"])
 
 
-def pultdach(netz, st, x0, x1, y0, y1, z_hoch, z_tief, stoff="Holz alt", entlang="x"):
-    """Einfaches Pultdach aus Brettern mit Fugen; fällt entlang x (von x0 hoch nach x1 tief)."""
-    neig = math.atan2(z_hoch - z_tief, x1 - x0)
-    laenge = (x1 - x0 + 0.3) / math.cos(neig)
-    mitte = Vector(((x0 + x1 + 0.3) / 2, (y0 + y1) / 2, (z_hoch + z_tief) / 2 + 0.05 - 0.15 * math.tan(neig)))
-    t = Matrix.Translation(mitte) @ Matrix.Rotation(neig, 4, "Y")
-    netz.quader((0, 0, 0), (laenge, y1 - y0 + 0.4, 0.08), st[stoff], t)
-    y = -(y1 - y0 + 0.4) / 2 + 0.32
-    while y < (y1 - y0 + 0.4) / 2 - 0.1:
-        netz.vieleck([t @ Vector(p) for p in ((-laenge / 2, y - 0.02, 0.045), (laenge / 2, y - 0.02, 0.045),
-                                              (laenge / 2, y + 0.02, 0.045), (-laenge / 2, y + 0.02, 0.045))], st["Fachwerk"])
-        y += 0.32
-
-
 def tischlerei(netz, st):
     """Stufe 1: Vordach an der Werkstatt mit Hobelbank und Spänen, Bretterstapel, Sägebock, Rundholz, Zaun."""
     holz = st["Fachwerk"]
@@ -300,7 +286,7 @@ def tischlerei(netz, st):
     for y in (ya + 0.1, (ya + yb) / 2, yb - 0.1):
         netz.stab((xa, y, 0), (xa, y, 2.55), 0.15, 0.15, holz)
     netz.stab((xa, ya, 2.5), (xa, yb, 2.5), 0.15, 0.15, holz)
-    pultdach(netz, st, X1, xa + 0.1, ya, yb, 3.3, 2.55)
+    bs.pultdach(netz, st, X1, xa + 0.1, ya, yb, 3.3, 2.55)
     hobelbank(netz, st, Vector((2.0, -1.0, 0)), dreh=90)
     for k, (x, y, r) in enumerate(((2.6, 0.6, 0.35), (2.2, -2.6, 0.25))):
         netz.vieleck_nach([(x - r, y - r * 0.7, 0.01), (x + r, y - r * 0.7, 0.01), (x + r * 0.3, y + r * 0.8, 0.01),
