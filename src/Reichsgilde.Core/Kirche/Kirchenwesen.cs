@@ -195,7 +195,7 @@ public sealed class Kirchenwesen
         {
             var (glaeubige, kollekte) = faktor == 1 ? (g0, k0) : (g0 * faktor, k0 * faktor);
             if (glaeubige <= 0) continue;
-            b.Konto.Umsatz(kollekte); // Spenden sind steuerfrei
+            b.UmsatzBuchen(kollekte); // Spenden sind steuerfrei
             var buch = DiesesJahr(b);
             _diesesJahr[b.Name] = buch with { Glaeubige = buch.Glaeubige + glaeubige, Kollekte = buch.Kollekte + kollekte };
         }
@@ -224,7 +224,7 @@ public sealed class Kirchenwesen
         var waehrung = _w.Daten.Allgemein.Waehrung;
         if (kaeufer.Vermoegen < preis) return Befehlsergebnis.Abgelehnt($"Der Ablass kostet {Zahlenformat.Ganz(preis)} {waehrung}.");
         kaeufer.Gerichtskosten(preis);
-        kirche.Konto.Umsatz(preis);
+        kirche.UmsatzBuchen(preis);
         var buch = DiesesJahr(kirche);
         _diesesJahr[kirche.Name] = buch with { Ablaesse = buch.Ablaesse + 1, Ablassgeld = buch.Ablassgeld + preis };
         var beschreibung = spur.Beschreibung;

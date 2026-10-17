@@ -191,8 +191,8 @@ public sealed class Wachwesen
             var minuten = b.ArbeitsminutenAbholen();
             if (minuten <= 0 || !b.Konto.IstAktiv) continue;
             var sold = minuten * Daten.Sold.JeMinute * Daten.Sold.JeStufe[Math.Clamp(b.Stufe - 1, 0, Daten.Sold.JeStufe.Count - 1)];
-            b.Konto.Umsatz(sold);
-            b.Konto.Steuer(sold * steuer);
+            b.UmsatzBuchen(sold);
+            b.SteuerBuchen(sold * steuer);
             Buchen(b.Konto, x => x with { Sold = x.Sold + sold });
         }
     }
@@ -238,9 +238,9 @@ public sealed class Wachwesen
         _w.Daten.Logistik.Eskorten.TryGetValue(name, out var e) && (!e.Wache || Geleitgeber is not null);
 
     /// <summary>Ein Karren fährt mit der Stadtwache: Der Lohn geht an das Haus, das sie stellt.</summary>
-    internal void GeleitBezahlen(Konto kunde, double kosten)
+    internal void GeleitBezahlen(Betrieb kunde, double kosten)
     {
-        kunde.Transport(kosten);
+        kunde.TransportBuchen(kosten);
         if (Geleitgeber is not { } wache) return;
         wache.Umsatz(kosten);
         Buchen(wache, x => x with { Geleitgeld = x.Geleitgeld + kosten });

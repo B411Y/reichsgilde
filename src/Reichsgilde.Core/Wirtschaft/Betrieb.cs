@@ -91,6 +91,47 @@ public enum Betriebsart
 }
 
 /// <summary>
+/// Die Jahresrechnung eines einzelnen Betriebs – dieselben Posten wie der Betriebsgewinn des Kontos (<see cref="Jahresbilanz"/>),
+/// aber nur, was diesem Betrieb gehört: Markt, Gäste, Kollekte, Sold, Beute, Zinsen der Stadtkunden; Zutaten, Fahrten, Löhne,
+/// Unterhalt bzw. Pacht, Schäden durch Aufstände und Anschläge. Was dem ganzen Haus gehört (Kredite an andere Häuser, Kopfgeld,
+/// Geleitgeld, Glaubenszins, Einbruch ins Wohnhaus), fehlt – die Summe aller Betriebe ist daher nicht genau der Gewinn des Kontos.
+/// Für die KI: Welcher Betrieb macht Verlust?
+/// </summary>
+public sealed class Betriebsrechnung
+{
+    public int Jahr { get; init; }
+
+    /// <summary>
+    /// Lief der Betrieb das ganze Jahr? Nein im Jahr, in dem er gekauft, gepachtet oder fertig gebaut wurde (außer genau zum Jahresbeginn),
+    /// und im Jahr, in dem ein alter Spielstand ohne Betriebsrechnung geladen wurde. Dann ist der Gewinn kein gutes Urteil.
+    /// </summary>
+    public bool Ganzjaehrig { get; init; }
+
+    public double Umsatz { get; internal set; }
+    public double Zutaten { get; internal set; }
+    public double Personal { get; internal set; }
+    public double Fixkosten { get; internal set; }
+    public double Steuer { get; internal set; }
+    public double Schaden { get; internal set; }
+    public double Transport { get; internal set; }
+
+    /// <summary>Gewinn des Betriebs: Umsatz minus Zutaten, Personal, Unterhalt bzw. Pacht, Steuer, Schaden und Transport.</summary>
+    public double Gewinn => Umsatz - Zutaten - Personal - Fixkosten - Steuer - Schaden - Transport;
+
+    internal BetriebsrechnungStand Sichern() => new()
+    {
+        Jahr = Jahr, Ganzjaehrig = Ganzjaehrig, Umsatz = Umsatz, Zutaten = Zutaten, Personal = Personal, Fixkosten = Fixkosten,
+        Steuer = Steuer, Schaden = Schaden, Transport = Transport,
+    };
+
+    internal static Betriebsrechnung Laden(BetriebsrechnungStand s) => new()
+    {
+        Jahr = s.Jahr, Ganzjaehrig = s.Ganzjaehrig, Umsatz = s.Umsatz, Zutaten = s.Zutaten, Personal = s.Personal, Fixkosten = s.Fixkosten,
+        Steuer = s.Steuer, Schaden = s.Schaden, Transport = s.Transport,
+    };
+}
+
+/// <summary>
 /// Ein Betrieb mit Arbeitskräften, Lager und Karren.
 ///
 /// Ablauf:
@@ -216,7 +257,8 @@ public sealed class Betrieb
     public int ZutatenReichweite =>
         Zutaten.Count == 0 ? int.MaxValue : Zutaten.Min(z => ImLager(z.Key) / z.Value);
 
-    internal Betrieb(string name, Betriebsart art, Konto konto, Wirtschaftsdaten daten)
+    /// <param name="ganzjaehrig">Eröffnet genau zum Jahresbeginn? Dann zählt die erste Betriebsrechnung als ganzes Jahr.</param>
+    internal Betrieb(string name, Betriebsart art, Konto konto, Wirtschaftsdaten daten, bool ganzjaehrig = false)
     {
         Name = name;
         Art = art;
@@ -224,6 +266,31 @@ public sealed class Betrieb
         _daten = daten;
         _art = daten.Art(art);
         _produkt = _art.Standardprodukt ?? _art.Produkte.LastOrDefault() ?? "";
+        Laufend = new Betriebsrechnung { Jahr = konto.Laufend.Jahr, Ganzjaehrig = ganzjaehrig };
+    }
+
+    // ── Rechnung des Betriebs ───────────────────────────────────────────────
+
+    /// <summary>Die Rechnung des laufenden Jahres.</summary>
+    public Betriebsrechnung Laufend { get; private set; }
+
+    /// <summary>Die abgeschlossene Rechnung des Vorjahres (null im ersten Jahr des Betriebs). Gewinn: <c>Vorjahr.Gewinn</c>.</summary>
+    public Betriebsrechnung? Vorjahr { get; private set; }
+
+    // Buchungen: aufs Konto des Hauses und zugleich in die Rechnung dieses Betriebs.
+    internal void UmsatzBuchen(double betrag) { Konto.Umsatz(betrag); Laufend.Umsatz += betrag; }
+    internal void ZutatenBuchen(double betrag) { Konto.Zutaten(betrag); Laufend.Zutaten += betrag; }
+    internal void PersonalBuchen(double betrag) { Konto.Personal(betrag); Laufend.Personal += betrag; }
+    internal void FixkostenBuchen(double betrag) { Konto.Fixkosten(betrag); Laufend.Fixkosten += betrag; }
+    internal void SteuerBuchen(double betrag) { Konto.Steuer(betrag); Laufend.Steuer += betrag; }
+    internal void SchadenBuchen(double betrag) { Konto.Schaden(betrag); Laufend.Schaden += betrag; }
+    internal void TransportBuchen(double betrag) { Konto.Transport(betrag); Laufend.Transport += betrag; }
+
+    /// <summary>Jahreswechsel (mit dem Konto): Die laufende Rechnung wird zum Vorjahr.</summary>
+    internal void JahrAbschliessen(int neuesJahr)
+    {
+        Vorjahr = Laufend;
+        Laufend = new Betriebsrechnung { Jahr = neuesJahr, Ganzjaehrig = true };
     }
 
     // ── Personal ────────────────────────────────────────────────────────────
@@ -467,8 +534,8 @@ public sealed class Betrieb
     {
         if (stueck <= 0) return;
         var erloes = markt[ware].Verkaufen(stueck) * verkaufsFaktor;
-        Konto.Umsatz(erloes);
-        Konto.Steuer(erloes * _daten.Allgemein.Umsatzsteuer);
+        UmsatzBuchen(erloes);
+        SteuerBuchen(erloes * _daten.Allgemein.Umsatzsteuer);
     }
 
     // ── Speichern ───────────────────────────────────────────────────────────
@@ -483,6 +550,7 @@ public sealed class Betrieb
         Karren = _karren.Select(k => k.Sichern()).ToList(),
         Zurueckgehalten = _zurueckgehalten.Count > 0 ? _zurueckgehalten.ToList() : null,
         Waechter = Waechter, SabotageMinuten = _sabotageMinuten, UmbauMinuten = _umbauMinuten,
+        Rechnung = Laufend.Sichern(), RechnungVorjahr = Vorjahr?.Sichern(),
     };
 
     internal void Wiederherstellen(BetriebStand s)
@@ -501,6 +569,8 @@ public sealed class Betrieb
         Waechter = s.Waechter;
         _sabotageMinuten = s.SabotageMinuten;
         _umbauMinuten = s.UmbauMinuten;
+        if (s.Rechnung is { } r) Laufend = Betriebsrechnung.Laden(r); // alte Spielstände: ab dem Laden, kein ganzes Jahr
+        Vorjahr = s.RechnungVorjahr is { } v ? Betriebsrechnung.Laden(v) : null;
         foreach (var ware in s.Zurueckgehalten ?? new()) _zurueckgehalten.Add(ware);
         foreach (var karrenStand in s.Karren)
         {
@@ -520,14 +590,14 @@ public sealed class Betrieb
         foreach (var (name, anzahl) in _belegung)
         {
             var kraft = _daten.Arbeitskraefte[name];
-            Konto.Personal(anzahl * kraft.Kosten);
+            PersonalBuchen(anzahl * kraft.Kosten);
 
             // Jede unfreie Arbeitskraft hat ihr eigenes Risiko.
             for (var i = 0; i < anzahl; i++)
             {
                 if (kraft.Risiko > 0 && zufall.NextDouble() < kraft.Risiko)
                 {
-                    Konto.Schaden(kraft.Schaden);
+                    SchadenBuchen(kraft.Schaden);
                     melden(Ort == Arbeitsort.Umland
                         ? $"Ausbruch in {Name}: Ein {name} hat sich losgerissen. Schaden: {Zahlenformat.Ganz(kraft.Schaden)} {_daten.Allgemein.Waehrung}."
                         : $"Aufstand in {Name}: Ein {name} hat sich erhoben. Schaden: {Zahlenformat.Ganz(kraft.Schaden)} {_daten.Allgemein.Waehrung}.");
@@ -535,9 +605,9 @@ public sealed class Betrieb
             }
         }
 
-        Konto.Fixkosten(_art.Fixkosten);
+        FixkostenBuchen(_art.Fixkosten);
         if (Waechter && _daten.Gauner is { } gauner)
-            Konto.Personal(gauner.WaechterKosten);
+            PersonalBuchen(gauner.WaechterKosten);
 
         StillstandMinutenVorjahr = StillstandMinuten;
         StillstandMinuten = 0;

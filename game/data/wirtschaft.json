@@ -1,5 +1,5 @@
 {
-  "version": 34,
+  "version": 35,
   "gesundheit": {
     "medicusKosten": 120,
     "medicusKostenPest": 300,
@@ -996,8 +996,8 @@
       { "breite": 8, "tiefe": 10, "bauzeitJahre": 1, "lagen": [ "kern", "mauerring", "vorstadt" ] },
       { "breite": 8, "tiefe": 10, "bauzeitJahre": 1, "lagen": [ "kern", "mauerring", "vorstadt" ] },
       { "breite": 8, "tiefe": 10, "bauzeitJahre": 2, "lagen": [ "kern", "mauerring", "vorstadt" ] },
-      { "breite": 12, "tiefe": 10, "bauzeitJahre": 2, "lagen": [ "kern", "mauerring", "vorstadt" ] },
-      { "breite": 16, "tiefe": 14, "bauzeitJahre": 2, "lagen": [ "kern", "mauerring" ] }
+      { "breite": 12, "tiefe": 10, "bauzeitJahre": 2, "lagen": [ "kern", "mauerring", "vorstadt" ], "nurNeubau": true },
+      { "breite": 16, "tiefe": 14, "bauzeitJahre": 2, "lagen": [ "kern", "mauerring" ], "nurNeubau": true }
     ],
     "leerstand": { "kauf": 0.5, "sanierung": 0.2, "abriss": 0.1, "abrissMindestens": 100, "abrissMinuten": 240 }
   },

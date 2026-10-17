@@ -316,8 +316,10 @@ public partial class KontorAnzeige : PanelContainer
         }
 
         var naechste = w.Wohnen.NaechsteStufe(_spieler);
-        _ausbauKnopf.Visible = naechste is not null && _spieler.IstAktiv;
-        if (naechste is null) return;
+        // Stadtpalais und Stadthof gibt es nur als Neubau (Knopf „Bauen“) – dann kein Ausbau-Knopf, der Hinweis steht schon oben.
+        var nurNeubau = w.Bauen.NurNeubau(_spieler.WohnhausStufe + 1) && w.Wohnen.FertigAb(_spieler) is null;
+        _ausbauKnopf.Visible = naechste is not null && _spieler.IstAktiv && !nurNeubau;
+        if (naechste is null || nurNeubau) return;
         string knopf;
         if (w.Wohnen.FertigAb(_spieler) is { } ab && _simulation is { } sim)
         {

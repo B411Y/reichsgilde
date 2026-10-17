@@ -96,6 +96,9 @@ public sealed class Grundstueck
     /// <summary>Ab dieser Spielminute ist die Baustelle fertig (null = keine Baustelle).</summary>
     public long? FertigAb { get; internal set; }
 
+    /// <summary>Leerstand: seit dieser Spielminute steht das Haus leer (Bankrott oder Erlöschen des Bewohners) – sonst null.</summary>
+    public long? LeerSeit { get; internal set; }
+
     public Bauzustand Zustand =>
         Arbeit is not null ? Bauzustand.Baustelle
         : Art switch
@@ -210,11 +213,24 @@ public sealed class Bauwesen
     /// <summary>Das leerstehende Wohnhaus eines bankrotten oder erloschenen Hauses (null: lebt noch, schon verkauft oder kein Platz).</summary>
     public Grundstueck? Leerstand(Konto leer) => !leer.IstAktiv ? Wohnhaus(leer) : null;
 
+    /// <summary>
+    /// Seit welcher Spielminute das Wohnhaus dieses Hauses leer steht – die Minute des Bankrotts oder Erlöschens (null: kein Leerstand).
+    /// Die KI-Häuser kaufen einen Leerstand erst nach einem Spieljahr (1.020 Minuten), damit der Spieler Vorrang hat.
+    /// Ein Leerstand aus einem alten Spielstand (ohne gespeicherten Zeitpunkt) zählt ab dem Laden.
+    /// </summary>
+    public long? LeerSeit(Konto leer) => Leerstand(leer) is { } g ? g.LeerSeit ?? _w.Uhr.VergangeneMinuten : null;
+
     /// <summary>Die Stufe, die das Haus nach dem laufenden Neubau oder der Sanierung bewohnt (null: kein Umzug).</summary>
     public int? UmzugZiel(Konto k) => Umzug(k)?.GespeicherteStufe;
 
     /// <summary>Ein bankrottes oder erloschenes Haus, dessen Wohnhaus verkauft oder abgerissen ist: kein Hauswert, kein Leerstand.</summary>
     internal bool HausAufgegeben(Konto k) => IstAktiv && !k.IstAktiv && Wohnhaus(k) is null && Umzug(k) is null;
+
+    /// <summary>
+    /// Entsteht diese Wohnhausstufe nur als Neubau oder durch Kauf eines Leerstands, nicht als Ausbau am Platz (Stadtpalais, Stadthof)?
+    /// Nur, wo gebaut wird – ohne Karte (etwa in Köln) bleibt der Ausbau zu allen Stufen erlaubt, sonst käme dort niemand zum Palais.
+    /// </summary>
+    public bool NurNeubau(int stufe) => IstAktiv && stufe >= 0 && stufe < Daten!.Wohnhaus.Count && Daten.Wohnhaus[stufe].NurNeubau;
 
     /// <summary>Größe, Bauzeit und Lagen des Gebäudes, das der Befehl bauen will (null: unbekannte Stufe oder Art).</summary>
     public Gebaeudemass? Mass(BauBefehl befehl) => Daten is not { } d ? null : befehl switch
@@ -366,6 +382,63 @@ public sealed class Bauwesen
                 ? "Die Vorderseite einer Werkstatt muss an einer Karrenstraße liegen (Haupt-, Ring- oder Wallstraße)."
                 : "Die Vorderseite eines Wohnhauses muss an einer Straße oder Gasse liegen.";
         return null;
+    }
+
+    /// <summary>
+    /// Alle Stellen, an denen dieses Haus das Gebäude der Vorlage jetzt bauen darf: eingerastete Befehle, für die <see cref="BauVerboten"/> null ist.
+    /// Lage und Drehung der Vorlage zählen nicht, nur das Gebäude (Wohnhausstufe bzw. Betriebsart). Feste Reihenfolge:
+    ///   1. Bauplätze nach Nummer – ein Wohnhausplatz (nur für Wohnhäuser) in seiner Drehung, ein anderer Bauplatz je Drehung 0–3 eingerastet;
+    ///   2. die Rasterstellen in den Bauzonen von Norden nach Süden und von Westen nach Osten (nach der nordwestlichen Ecke), je Stelle die Drehungen 0–3.
+    /// Leer, wenn das Haus das Gebäude gar nicht bauen darf (<see cref="BauherrVerboten"/>). Für die KI, die nur selten fragt:
+    /// Auf der Greybox prüft es einige tausend Stellen (Rechenzeit siehe Test „Bauorte“).
+    /// </summary>
+    public IReadOnlyList<BauBefehl> Bauorte(Konto konto, BauBefehl vorlage)
+    {
+        if (BauherrVerboten(konto, vorlage) is not null || Mass(vorlage) is not { } mass) return Array.Empty<BauBefehl>();
+        var d = Daten!;
+        var orte = new List<BauBefehl>();
+        var geprueft = new HashSet<(double, double, int)>();
+        void Pruefen(BauBefehl b)
+        {
+            if (geprueft.Add((b.X, b.Z, b.Drehung)) && PlatzVerboten(b) is null) orte.Add(b);
+        }
+
+        var bauplaetze = Bauplaetze.OrderBy(p => p.Nummer).ToList();
+        foreach (var platz in bauplaetze)
+        {
+            var p = platz.Grundriss;
+            if (!IstWohnhausplatz(platz))
+                for (var drehung = 0; drehung < 4; drehung++) Pruefen(Einrasten(vorlage with { X = p.X, Z = p.Z, Drehung = drehung }));
+            else if (vorlage is WohnhausBauen)
+                Pruefen(vorlage with { X = p.X, Z = p.Z, Drehung = p.Drehung });
+        }
+
+        // Rasterstellen: Das Gebiet umfasst alle passenden Bauzonen und die Bauplätze. Vorab genügt ein billiger Blick auf die vier Eckfelder:
+        // Liegt eines weder auf einem Bauplatz noch in einer passenden Zone, lehnt PlatzVerboten die Stelle sicher ab.
+        var zonen = Karte!.Bauzonen.Where(z => mass.Lagen.Contains(z.Art)).ToList();
+        var freie = bauplaetze.Where(p => !IstWohnhausplatz(p)).ToList();
+        var ecken = zonen.SelectMany(z => z.Flaeche.Select(e => (X: e[0], Z: e[1])))
+            .Concat(freie.SelectMany(p => new[] { (X: p.Grundriss.X - p.Grundriss.HalbX, Z: p.Grundriss.Z - p.Grundriss.HalbZ),
+                                                   (X: p.Grundriss.X + p.Grundriss.HalbX, Z: p.Grundriss.Z + p.Grundriss.HalbZ) }))
+            .ToList();
+        if (ecken.Count == 0) return orte;
+        var r = d.Raster;
+        var (x0, x1) = (Math.Floor(ecken.Min(e => e.X) / r) * r, ecken.Max(e => e.X));
+        var (z0, z1) = (Math.Floor(ecken.Min(e => e.Z) / r) * r, ecken.Max(e => e.Z));
+        bool Bebaubar(double fx, double fz) => freie.Any(p => p.Grundriss.Enthaelt(fx, fz)) || zonen.Any(zone => zone.Enthaelt(fx, fz));
+        for (var ez = z0; ez < z1; ez += r)
+            for (var ex = x0; ex < x1; ex += r)
+                for (var drehung = 0; drehung < 4; drehung++)
+                {
+                    var g = new Grundriss(ex, ez, mass.Breite, mass.Tiefe, drehung);
+                    var (x, z) = (ex + g.HalbX, ez + g.HalbZ); // Mitte; (ex, ez) ist die nordwestliche Ecke
+                    if (x + g.HalbX > x1 + 1e-6 || z + g.HalbZ > z1 + 1e-6) continue;
+                    var (ax, az) = (g.HalbX - r / 2, g.HalbZ - r / 2); // von der Mitte zu den Mitten der Eckfelder
+                    if (!Bebaubar(x - ax, z - az) || !Bebaubar(x + ax, z - az) || !Bebaubar(x - ax, z + az) || !Bebaubar(x + ax, z + az)) continue;
+                    var befehl = vorlage with { X = x, Z = z, Drehung = drehung };
+                    if (Wohnhausplatz(befehl) is null) Pruefen(befehl); // genau auf einem Wohnhausplatz: schon oben, in seiner Drehung
+                }
+        return orte;
     }
 
     /// <summary>Was der Neubau kosten würde und ob er hier geht.</summary>
@@ -566,6 +639,7 @@ public sealed class Bauwesen
         if (v.KaufSumme > 0) konto.Investition(v.KaufSumme);
         g.GespeicherteStufe = v.Stufe;
         g.Besitzer = konto;
+        g.LeerSeit = null;
         g.Arbeit = Bauarbeit.Sanierung;
         g.FertigAb = zeit.VergangeneMinuten + v.SanierungMinuten;
         HauswerteAktualisieren(konto, leer);
@@ -586,6 +660,7 @@ public sealed class Bauwesen
         konto.Investition(v.AbrissSumme);
         g.GespeicherteStufe = v.Stufe;
         g.Besitzer = konto;
+        g.LeerSeit = null;
         g.Arbeit = Bauarbeit.Abriss;
         g.FertigAb = zeit.VergangeneMinuten + v.AbrissMinuten;
         HauswerteAktualisieren(leer);
@@ -644,9 +719,18 @@ public sealed class Bauwesen
         foreach (var k in konten) _w.Wohnen.HauswertAktualisieren(k);
     }
 
-    /// <summary>Jede Spielminute: fertige Baustellen übernehmen.</summary>
+    /// <summary>Ein Haus scheidet aus (Bankrott oder Erlöschen): Sein Wohnhaus steht ab jetzt leer.</summary>
+    internal void LeerstandBeginnt(Konto k)
+    {
+        if (Wohnhaus(k) is { LeerSeit: null } g) g.LeerSeit = _w.Uhr.VergangeneMinuten;
+    }
+
+    /// <summary>Jede Spielminute: Leerstand ohne Zeitpunkt (alter Spielstand) zählt ab jetzt; fertige Baustellen übernehmen.</summary>
     internal void Minute(Spielzeit zeit)
     {
+        foreach (var g in _grundstuecke)
+            if (g.LeerSeit is null && g.Art == Grundstuecksart.Wohnhaus && g.Arbeit is null && g.Besitzer is { IstAktiv: false })
+                g.LeerSeit = zeit.VergangeneMinuten;
         if (!_grundstuecke.Any(g => g.FertigAb is { } ab && zeit.VergangeneMinuten >= ab)) return;
         foreach (var g in _grundstuecke.Where(g => g.FertigAb is { } ab && zeit.VergangeneMinuten >= ab).ToList())
         {
@@ -708,6 +792,7 @@ public sealed class Bauwesen
         g.FertigAb = null;
         g.Betrieb = null;
         g.Betriebsart = null;
+        g.LeerSeit = null;
         Abgerissen?.Invoke(g);
     }
 
@@ -730,7 +815,7 @@ public sealed class Bauwesen
         {
             Nummer = g.Nummer, X = g.Grundriss.X, Z = g.Grundriss.Z, Breite = g.Grundriss.Breite, Tiefe = g.Grundriss.Tiefe, Drehung = g.Grundriss.Drehung,
             Art = g.Art, Lage = g.Lage, Kennung = g.Kennung, Besitzer = g.Besitzer is { } b ? nummer(b) : null, Stufe = g.GespeicherteStufe,
-            Betrieb = g.Betrieb, Betriebsart = g.Betriebsart, Arbeit = g.Arbeit, FertigAb = g.FertigAb,
+            Betrieb = g.Betrieb, Betriebsart = g.Betriebsart, Arbeit = g.Arbeit, FertigAb = g.FertigAb, LeerSeit = g.LeerSeit,
         }).ToList(),
     };
 
@@ -748,7 +833,7 @@ public sealed class Bauwesen
             _grundstuecke.Add(new Grundstueck(gs.Nummer, new Grundriss(gs.X, gs.Z, gs.Breite, gs.Tiefe, gs.Drehung), gs.Art, gs.Lage, gs.Kennung)
             {
                 Besitzer = gs.Besitzer is int n ? konten[n] : null, GespeicherteStufe = gs.Stufe,
-                Betrieb = gs.Betrieb, Betriebsart = gs.Betriebsart, Arbeit = gs.Arbeit, FertigAb = gs.FertigAb,
+                Betrieb = gs.Betrieb, Betriebsart = gs.Betriebsart, Arbeit = gs.Arbeit, FertigAb = gs.FertigAb, LeerSeit = gs.LeerSeit,
             });
     }
 }

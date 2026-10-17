@@ -132,6 +132,9 @@ public sealed record GrundstueckStand
     public Betriebsart? Betriebsart { get; init; }
     public Bauen.Bauarbeit? Arbeit { get; init; }
     public long? FertigAb { get; init; }
+
+    /// <summary>Leerstand: seit dieser Spielminute (null: kein Leerstand – oder ein alter Spielstand, dann zählt er ab dem Laden).</summary>
+    public long? LeerSeit { get; init; }
 }
 
 /// <summary>Ein verkaufter Betrieb, der wieder frei ist (siehe <see cref="Stadtwirtschaft.FreieLiegenschaften"/>).</summary>
@@ -580,6 +583,24 @@ public sealed record BetriebStand
     public bool Waechter { get; init; }
     public int SabotageMinuten { get; init; }
     public int UmbauMinuten { get; init; }
+
+    /// <summary>Rechnung des Betriebs im laufenden Jahr und im Vorjahr (null: alte Spielstände bzw. erstes Jahr).</summary>
+    public BetriebsrechnungStand? Rechnung { get; init; }
+    public BetriebsrechnungStand? RechnungVorjahr { get; init; }
+}
+
+/// <summary>Die Rechnung eines Betriebs (siehe <see cref="Betriebsrechnung"/>).</summary>
+public sealed record BetriebsrechnungStand
+{
+    public int Jahr { get; init; }
+    public bool Ganzjaehrig { get; init; }
+    public double Umsatz { get; init; }
+    public double Zutaten { get; init; }
+    public double Personal { get; init; }
+    public double Fixkosten { get; init; }
+    public double Steuer { get; init; }
+    public double Schaden { get; init; }
+    public double Transport { get; init; }
 }
 
 public sealed record KarrenStand
@@ -625,4 +646,16 @@ public sealed record RivaleStand
     public List<string> Entscheidungen { get; init; } = new();
     public int StundenImJahr { get; init; }
     public int GaunereienImJahr { get; init; }
+
+    /// <summary>Betriebsname → ganze Jahre in Folge mit Verlust (Spiel-KI, PR #108; fehlt in alten Spielständen).</summary>
+    public Dictionary<string, int> Verlustjahre { get; init; } = new();
+
+    /// <summary>Betriebsname → Lagerwert zum letzten Jahresende (zum Grundpreis), für die Verlustrechnung der KI.</summary>
+    public Dictionary<string, double> Lagerwert { get; init; } = new();
+
+    /// <summary>„Beruf/Ort“ eines verkauften Betriebs → bis zu diesem Jahr (ausschließlich) kauft und baut die KI dort nichts.</summary>
+    public Dictionary<string, int> Gesperrt { get; init; } = new();
+
+    /// <summary>In diesem Jahr fand die KI keinen Platz für eine neue Werkstatt (null: kein solches Jahr).</summary>
+    public int? KeinWerkstattplatzJahr { get; init; }
 }
