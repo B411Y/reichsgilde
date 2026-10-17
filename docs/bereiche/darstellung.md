@@ -16,6 +16,7 @@ So wird eingetragen (damit sich die Chats nie an derselben Stelle treffen):
 - (3) (von Leveldesign) Gebäudemaße auf glatte Meter: Einwohnerhäuser 6 × 6, 7 × 7, 8 × 8 m; Werkstatt belegt 16 × 14 m und zeigt jede Stufe als sichtbaren Anbau innerhalb dieser Fläche (`docs/LEVELDESIGN.md`, Gebäudegrößen)
 - Modelle ins Spiel einbauen (nach PR #103): `SpielhausModell` und die Einwohnerhäuser laden die GLB aus `game/assets/modelle/` statt Grundkörper zu bauen; Material „Hausfarbe“ je Haus einfärben, Knoten „Leerstand“/„Geruest“ (und „Wappen“/„Fahne“) nach Zustand ein- und ausblenden
 - Weitere Modelle aus Blender-Skripten: Stadtpalais, Stadthof; Werkstätten mit Stufe1–3 (Gießerei, Tischlerei, Maurerei); Einwohnerhäuser (Ratsherrenhaus, Bürgerhaus, einfaches Haus)
+- Wohnhaus-Modelle auf Wohnhausplätzen der Karte (8 m tief, ohne Vorplatz): Die GLB sind für 8 × 10 m mit 2 m Vorplatz gebaut, die Hauskörper sind höchstens 7,4 m tief. Beim Einbau das Modell dort um 1 m zur Gasse versetzen (die Freitreppe des Steinhauses ragt dann in die Gasse); breitere Plätze lassen links und rechts Luft
 
 ## Entscheidungen
 
