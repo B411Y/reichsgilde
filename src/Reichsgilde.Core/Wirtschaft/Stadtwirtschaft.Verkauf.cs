@@ -131,12 +131,12 @@ public sealed partial class Stadtwirtschaft
     /// Die Liegenschaft aus den Daten, nach der sich ein Betrieb richtet: die gleichnamige, sonst die günstigste derselben Art.
     /// So kostet die Startgießerei am Weinmarkt so viel wie die Gießerei an der Südgasse – ohne neues Feld in den Daten.
     /// </summary>
-    private LiegenschaftDaten? Vorbild(string name, Betriebsart grundart) =>
+    internal LiegenschaftDaten? Vorbild(string name, Betriebsart grundart) =>
         Daten.Liegenschaften.FirstOrDefault(l => l.Name == name)
         ?? Daten.Liegenschaften.Where(l => l.Art == grundart).OrderBy(l => l.Kaufpreis).ThenBy(l => l.Name, StringComparer.Ordinal).FirstOrDefault();
 
     /// <summary>Kaufpreis der Stufe 1. Gibt es keine Liegenschaft dieser Art, gilt die günstigste Werkstatt der Stadt; Umland wird gepachtet (0).</summary>
-    private double Grundpreis(string name, Betriebsart grundart)
+    internal double Grundpreis(string name, Betriebsart grundart)
     {
         if (Vorbild(name, grundart) is { } l) return l.Kaufpreis;
         if (!Daten.Art(grundart).InDerStadt) return 0;
@@ -215,17 +215,7 @@ public sealed partial class Stadtwirtschaft
         if (loehne > 0) konto.Personal(loehne);
         if (fix > 0) konto.Fixkosten(fix);
         if (vorschau.Gebaeudeerloes + vorschau.Warenerloes > 0) konto.Verkauf(vorschau.Gebaeudeerloes + vorschau.Warenerloes);
-        if (Bank.IstAktiv) Bank.KasseAufloesen(betrieb);
-        Gastwirtschaft.BetriebAufgegeben(betrieb);
-        Kirchenwesen.BetriebAufgegeben(betrieb);
-        Gauner.BetriebAufgegeben(betrieb);
-        _betriebe.Remove(betrieb);
-
-        var vorbild = Vorbild(betrieb.Name, Grundart(betrieb.Art).Art);
-        var stand = vorbild?.MindestStand ?? Daten.Staende[Math.Min(1, Daten.Staende.Count - 1)].Name;
-        var frei = FreieLiegenschaft(betrieb.Name, betrieb.Art, vorschau.Wert, stand);
-        _abgegeben.RemoveAll(x => x.Name == betrieb.Name);
-        _abgegeben.Add(frei);
+        var frei = Freigeben(betrieb, vorschau.Wert);
 
         var ware = vorschau.Lagerware.Count > 0 ? $", die Lagerware {Zahlenformat.Ganz(vorschau.Warenerloes)}" : "";
         var abzug = vorschau.Abrechnung > 0.5 ? $", abzüglich {Zahlenformat.Ganz(vorschau.Abrechnung)} Löhne und {(vorschau.IstPacht ? "Pacht" : "Unterhalt")} bis heute" : "";
@@ -238,6 +228,54 @@ public sealed partial class Stadtwirtschaft
             : $"{betrieb.Name} ist verkauft: {Zahlenformat.Ganz(vorschau.Gebaeudeerloes)} {waehrung} für das Haus{ware}{abzug}. " +
               "Personal, Wächter und Karren gehen mit.");
     }
+
+    /// <summary>
+    /// Der Betrieb gehört niemandem mehr: Kasse zurück ins Bargeld, aus Gästebuch, Kirchenbuch und Hinterzimmer streichen,
+    /// und er steht als freie Liegenschaft zum Verkauf – mit seiner Stufe und dem vollen Wert.
+    /// </summary>
+    private LiegenschaftDaten Freigeben(Betrieb betrieb, double wert)
+    {
+        if (Bank.IstAktiv) Bank.KasseAufloesen(betrieb);
+        Gastwirtschaft.BetriebAufgegeben(betrieb);
+        Kirchenwesen.BetriebAufgegeben(betrieb);
+        Gauner.BetriebAufgegeben(betrieb);
+        _betriebe.Remove(betrieb);
+
+        var vorbild = Vorbild(betrieb.Name, Grundart(betrieb.Art).Art);
+        var stand = vorbild?.MindestStand ?? Daten.Staende[Math.Min(1, Daten.Staende.Count - 1)].Name;
+        var frei = FreieLiegenschaft(betrieb.Name, betrieb.Art, wert, stand);
+        _abgegeben.RemoveAll(x => x.Name == betrieb.Name);
+        _abgegeben.Add(frei);
+        return frei;
+    }
+
+    /// <summary>
+    /// Betriebe bankrotter oder erloschener Häuser stehen zum Verkauf wie verkaufte Werkstätten (Entscheidung vom 17.10.2026) –
+    /// ohne Erlös: Die Gläubiger bzw. die Stadt nehmen sie. Personal ist schon fort (<see cref="Stilllegen"/>), Lager und Karren gehen mit.
+    /// </summary>
+    private void ToteBetriebeFreigeben()
+    {
+        if (_betriebe.All(b => b.Konto.IstAktiv)) return;
+        foreach (var gruppe in _betriebe.Where(b => !b.Konto.IstAktiv).GroupBy(b => b.Konto).ToList())
+        {
+            foreach (var betrieb in gruppe)
+            {
+                var frei = Freigeben(betrieb, Betriebswert(betrieb)); // nicht im Aufruf: „?.Invoke“ wertet ohne Zuhörer die Argumente nicht aus
+                BetriebAbgegeben?.Invoke(betrieb, frei);
+            }
+            Melden($"Die Betriebe von {gruppe.Key.Inhaber} stehen nun zum Verkauf: {string.Join(", ", gruppe.Select(b => b.Name))}.");
+        }
+    }
+
+    /// <summary>Eine neu gebaute Werkstatt, deren Bauherr nicht mehr im Spiel ist: Sie steht zum Verkauf (Stufe 1, Neubaupreis).</summary>
+    internal void NeubauFreigeben(string name, Betriebsart art, string mindestStand)
+    {
+        _abgegeben.RemoveAll(x => x.Name == name);
+        _abgegeben.Add(FreieLiegenschaft(name, art, Grundpreis("", art), mindestStand));
+    }
+
+    /// <summary>Eine neue Werkstatt ist fertig gebaut – für die Darstellung wie ein Kauf (<see cref="BetriebErworben"/>).</summary>
+    internal void ErworbenMelden(Betrieb betrieb) => BetriebErworben?.Invoke(betrieb);
 
     // ── Speichern ───────────────────────────────────────────────────────────
 

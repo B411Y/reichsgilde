@@ -45,6 +45,9 @@ public sealed record Speicherstand
     /// </summary>
     public Wirtschaftsdaten? Daten { get; init; }
 
+    /// <summary>Die Karte der Stadt, wie bei <see cref="Daten"/> mitgespeichert (null: ohne Karte oder alter Spielstand – dann die aktuelle).</summary>
+    public Bauen.Stadtkarte? Karte { get; init; }
+
     public WirtschaftStand? Wirtschaft { get; init; }
 }
 
@@ -99,6 +102,36 @@ public sealed record WirtschaftStand
 
     /// <summary>Verkaufte Betriebe, die wieder zu haben sind – mit Stufe und Kaufpreis (null: keine; alte Spielstände).</summary>
     public List<FreieLiegenschaftStand>? Abgegeben { get; init; }
+
+    /// <summary>Grundstücke: Wohnhäuser, Neubauten, Bauplätze (null: ohne Bauwesen oder alter Spielstand – dann die Startplätze der Karte).</summary>
+    public BauenStand? Bauen { get; init; }
+}
+
+/// <summary>Die Grundstücke des Bauwesens (siehe <see cref="Reichsgilde.Core.Bauen.Bauwesen"/>).</summary>
+public sealed record BauenStand
+{
+    public int NaechsteNummer { get; init; } = 1;
+    public List<GrundstueckStand> Grundstuecke { get; init; } = new();
+}
+
+/// <summary>Ein Grundstück: Fläche, Art, Besitzer (Kontonummer) und eine laufende Baustelle.</summary>
+public sealed record GrundstueckStand
+{
+    public int Nummer { get; init; }
+    public double X { get; init; }
+    public double Z { get; init; }
+    public double Breite { get; init; }
+    public double Tiefe { get; init; }
+    public int Drehung { get; init; }
+    public Bauen.Grundstuecksart Art { get; init; }
+    public Bauen.Lage? Lage { get; init; }
+    public string? Kennung { get; init; }
+    public int? Besitzer { get; init; }
+    public int Stufe { get; init; }
+    public string? Betrieb { get; init; }
+    public Betriebsart? Betriebsart { get; init; }
+    public Bauen.Bauarbeit? Arbeit { get; init; }
+    public long? FertigAb { get; init; }
 }
 
 /// <summary>Ein verkaufter Betrieb, der wieder frei ist (siehe <see cref="Stadtwirtschaft.FreieLiegenschaften"/>).</summary>
