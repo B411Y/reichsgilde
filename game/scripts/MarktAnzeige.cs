@@ -239,8 +239,9 @@ public partial class MarktAnzeige : PanelContainer
                 $"Preis {Zahlenformat.Kommazahl(stand.Preis)} {waehrung} (Grundpreis {Zahlenformat.Ganz(stand.Grundpreis)}, " +
                 $"{(abweichung >= 0 ? "+" : "−")}{Zahlenformat.Ganz(Math.Abs(abweichung) * 100)} %)",
                 $"Nachfrage der Stadt: {Zahlenformat.Ganz(daten.Nachfrage)} im Jahr ({Zahlenformat.Ganz(daten.NpcAnteil * 100)} % decken Händler)",
-                $"Von den Häusern verkauft im letzten Jahr: {Zahlenformat.Ganz(stand.SpielerAngebotImJahr)}",
             };
+            if (Warenkorb(w, ware) is { } korb) zeilen.Add(korb);
+            zeilen.Add($"Von den Häusern verkauft im letzten Jahr: {Zahlenformat.Ganz(stand.SpielerAngebotImJahr)}");
             if (daten.Zutaten.Count > 0)
                 zeilen.Add($"Zutaten: {string.Join(", ", daten.Zutaten.Select(z => $"{z.Value} {z.Key}"))} · " +
                            $"Gewinn je Arbeitsminute {Zahlenformat.Kommazahl(Kalkulation.GewinnJeArbeitsminute(w, ware))} {waehrung}");
@@ -251,6 +252,20 @@ public partial class MarktAnzeige : PanelContainer
             var tipp = string.Join("\n", zeilen);
             if (kachel.TooltipText != tipp) kachel.TooltipText = tipp;
         }
+    }
+
+    /// <summary>
+    /// Zeile zum Warenkorb der Einwohner, z. B. „Schmiedewaren: Die Einwohner fragen 7 % mehr nach“ –
+    /// null, wenn die Ware in keinem Warenkorb liegt. Gezeigt wird die Wirkung auf die Nachfrage (Faktor × Kopplung).
+    /// </summary>
+    private static string? Warenkorb(Stadtwirtschaft w, string ware)
+    {
+        var e = w.Einwohnerschaft;
+        if (e.Warengruppe(ware) is not { } gruppe) return null;
+        var wirkung = e.Daten.Kopplung.Markt * (e.Warenkorbfaktor(ware) - 1);
+        var prozent = Zahlenformat.Ganz(Math.Abs(wirkung) * 100);
+        var text = prozent == "0" ? "wie üblich" : $"{prozent} % {(wirkung > 0 ? "mehr" : "weniger")}";
+        return $"{gruppe}: Die Einwohner fragen {text} nach";
     }
 
     // ═════════════════════════════════════════════════════════════════════════
