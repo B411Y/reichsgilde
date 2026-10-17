@@ -198,7 +198,7 @@ So wird eingetragen (damit sich die Chats nie an derselben Stelle treffen):
 | Wachstum | Kirche: Kirchhof mit Gräbern (Holzkreuze, Grabsteine), Linde mit Bank, Kirchhofmauer. Dom: dazu Chor mit polygonaler Apsis und Strebepfeilern, Skriptorium (Papier, Kerzen, Schriften) mit Lumpenballen vor der Tür, Gaube. Kathedrale: Chor und Skriptorium, Vorhalle mit Wimperg und Krabben vor dem Portal, Fialen auf allen Strebepfeilern, ein Strebebogen an der Langseite, Dachreiter mit silberner Spitze wie bisher im Spiel. | 17.10.2026 |
 | Bausteine | `steingiebel` (jetzt auch ohne Fenster), `grabstein`, `trockenmauer` und `linde` liegen in `bausteine.py`; neues Material Silber. Die übrigen Werkstätten bleiben byte-gleich. | 17.10.2026 |
 
-### Werkstatt des Diebs als 3D-Modell (PR #…)
+### Werkstatt des Diebs als 3D-Modell (PR #117)
 
 | Thema | Entscheidung | Datum |
 |---|---|---|
