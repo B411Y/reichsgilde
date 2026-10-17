@@ -14,7 +14,13 @@ So wird eingetragen (damit sich die Chats nie an derselben Stelle treffen):
 - (3) (von Kern) Karren am Stadttor zeigen: `Karren.WartetAmTor(zeit)` – Hinweg draußen vor dem Tor, Rückweg drinnen (ab PR #67)
 - (3) Einwohner in den Innenräumen von Schänken und Kirchen der Häuser zeigen (im Dom erledigt, PR #93)
 - (3) (von Leveldesign) Gebäudemaße auf glatte Meter: Einwohnerhäuser 6 × 6, 7 × 7, 8 × 8 m; Werkstatt belegt 16 × 14 m und zeigt jede Stufe als sichtbaren Anbau innerhalb dieser Fläche (`docs/LEVELDESIGN.md`, Gebäudegrößen)
+- Modelle ins Spiel einbauen (nach PR #103): `SpielhausModell` und die Einwohnerhäuser laden die GLB aus `game/assets/modelle/` statt Grundkörper zu bauen; Material „Hausfarbe“ je Haus einfärben, Knoten „Leerstand“/„Geruest“ (und „Wappen“/„Fahne“) nach Zustand ein- und ausblenden
+- Weitere Modelle aus Blender-Skripten: Stadtpalais, Stadthof; Werkstätten mit Stufe1–3 der übrigen Berufe (Tischler, Steinmetz, Alchimist …), je Beruf ein Schritt; Einwohnerhäuser (Ratsherrenhaus, Bürgerhaus, einfaches Haus)
+- Werkstatt des Schmieds einbauen: `schmied.glb` statt `WerkstattAussenBauen` und `AusbauBauen` beim Beruf Schmied; genau den Knoten `Stufe<n>` der Betriebsstufe zeigen, das Gerüst über „Geruest“, die Glut über das Material „Glut“ (Emission an, solange gearbeitet wird; ersetzt `huelle.Esse`), die verkaufte Werkstatt über „Leerstand“ ohne „Wappen“ und „Fahne“. Klickfläche, Innenraum und Schild bleiben wie bisher
+- Wohnhaus-Modelle auf Wohnhausplätzen der Karte (8 m tief, ohne Vorplatz): Die GLB sind für 8 × 10 m mit 2 m Vorplatz gebaut, die Hauskörper sind höchstens 7,4 m tief. Beim Einbau das Modell dort um 1 m zur Gasse versetzen (die Freitreppe des Steinhauses ragt dann in die Gasse); breitere Plätze lassen links und rechts Luft
 - Weitere Modelle ins Spiel einbauen, sobald es sie gibt: Stadtpalais und Hof in `SpielhausModell` (Stufe 3 und 4 bauen noch Grundkörper), die Einwohnerhäuser, die Werkstätten – nach dem Muster `WohnhausModellEinsetzen` (PR #105)
+- Ankerpunkte der Modelle nutzen: Passanten gehen das letzte Stück vom Gassennetz bis „Anker_Tuer“ (mit dessen Höhe, also die Stufen hinauf) und verschwinden erst dort; Karren halten an „Anker_Karren“. Für die eingebauten Wohnhäuser ersetzt der Anker die Haustür aus der Fläche, für Werkstätten den Hof (`HofVon`, 5,5 m vor der Mitte). Den Anker nach dem Einsetzen über `FindChild` suchen und seine globale Lage nehmen – das Modell ist schon verschoben und gedreht
+- Fensterlicht bei Nacht schalten: Die Emission des Materials „Fenster“ abends an (Farbe sRGB 1,0 / 0,62 / 0,28, Stärke wie in den Nachtbildern), morgens aus – alle Häuser teilen das geladene Material, ein Schalter genügt. Leere Häuser (Leerstand, Sanierung) bekommen statt „Fenster“ das dunkle „Glas“ (wie beim Einfärben der „Hausfarbe“)
 - Weitere Modelle aus Blender-Skripten: Stadtpalais, Stadthof; Werkstätten mit Stufe1–3 (Gießerei, Tischlerei, Maurerei); Einwohnerhäuser (Ratsherrenhaus, Bürgerhaus, einfaches Haus)
 
 ## Entscheidungen
@@ -99,6 +105,17 @@ So wird eingetragen (damit sich die Chats nie an derselben Stelle treffen):
 | Bäume | Zufallsbäume lassen die Bauzonen der Karte frei (3 m Rand); die übrigen Bäume bleiben, wo sie waren (die Zufallsfolge läuft unverändert weiter). | 17.10.2026 |
 | Baumodus | Bauzonen nur im Baumodus: Fläche in der Farbe der Lage (Kern orange, Mauerring blau, Vorstadt türkis), 2-m-Raster, Name der Zone. Der Umriss (Fläche, hellerer Vorplatz-Streifen, Pfeil zur Straße, durchsichtiger Körper in Gebäudehöhe, Text mit dem Grund) folgt der Maus über die Bodenebene und rastet mit `Einrasten` ein. | 17.10.2026 |
 
+
+### Werkstatt des Schmieds als 3D-Modell (PR #106)
+
+| Thema | Entscheidung | Datum |
+|---|---|---|
+| Ein Modell je Beruf | `schmied.glb` enthält alle drei Stufen (Gießerei, Schmiede, Goldschmiede) auf der Fläche 16 × 14 m mit 2 m Vorplatz, Ursprung in ihrer Mitte. Weitere Berufe folgen Schritt für Schritt, je Beruf ein Skript `tools/modelle/<beruf>.py`. | 17.10.2026 |
+| Stufen | „Haus“ ist der Bau, der in jeder Stufe gleich bleibt (die Schmiedehalle). „Stufe1“–„Stufe3“ sind **ausschließlich**: Genau einer ist sichtbar. So kann eine höhere Stufe ersetzen, was vorher dastand (der offene Schuppen der Gießerei weicht dem Anbau), und das Spiel braucht nur „zeige Stufe n, verstecke die anderen“. Teile, die in Stufe 2 und 3 stehen, stecken in beiden Knoten. | 17.10.2026 |
+| Wachstum | Gießerei: Halle mit offenem Schuppen, Esse, Amboss, Kohle, Formkästen, Bretterzaun. Schmiede: Steinanbau mit zweiter Esse und Tor, Gaube, Notstall zum Hufbeschlag. Goldschmiede: Anbau mit Fachwerk-Obergeschoss und Laden (Klappläden in der Hausfarbe, goldener Ring als Schild), Hinterhaus aus Stein, Hofmauer mit Tor, Dachreiter mit goldener Spitze wie bisher im Spiel. | 17.10.2026 |
+| Glut | Neues Material „Glut“ (Esse, Feuerschein hinter den vergitterten Fenstern) mit Emission. Das Spiel schaltet sie wie bisher die Esse: hell bei der Arbeit, aus, wenn nicht gearbeitet wird oder die Werkstatt verkauft ist. | 17.10.2026 |
+| Verkauft und Ausbau | „Leerstand“ vernagelt Tor und Fenster der Halle (passt zur verkauften Werkstatt, PR #96; das ockerfarbene Schild bleibt Sache des Spiels). „Geruest“ steht vor der Halle. | 17.10.2026 |
+| Dreiecke | Sichtbar je Stufe 2.602, 3.536 und 4.738. Eine Werkstatt ist ein ganzer Hof mit mehreren Bauten, darum über dem Richtwert der Wohnhäuser; bei rund 20 Werkstätten in der Stadt sind das unter 100.000 Dreiecke. | 17.10.2026 |
 ### Wohnhaus-Modelle im Spiel (PR #105)
 
 | Thema | Entscheidung | Datum |
@@ -107,3 +124,22 @@ So wird eingetragen (damit sich die Chats nie an derselben Stelle treffen):
 | Lage | Die Hausfront liegt im Modell bei z = +3 (Mitte der 10 m tiefen Fläche, 2 m Vorplatz). Das Modell sitzt bei `vorne − 3`: auf einem Neubau (10 m) genau in der Mitte, auf den Wohnhausplätzen der Karte (8 m, Front an der Gasse) 1 m weiter zur Gasse. | 17.10.2026 |
 | Zustände | Nach Namen: „Geruest“ bei Ausbau, Sanierung und Brand; „Leerstand“ (Bretter) nur im Leerstand; „Wappen“ und „Fahne“ nur bei einem Besitzer (nicht im Leerstand, nicht während der Sanierung). Das Code-Gerüst und das Code-Wappen entfallen für diese Stufen. | 17.10.2026 |
 | Farben | Das Material „Hausfarbe“ wird je Haus durch eine Kopie in der Besitzerfarbe ersetzt (je Vorlage und Farbe einmal); ohne Besitzer verwittertes Holz statt Spielerblau. Nach einem Brand werden die Dachmaterialien (Dachziegel, Stroh, Schiefer samt Kanten und First) zu 80 % rußig gefärbt. | 17.10.2026 |
+
+### Ankerpunkte für Türen und Karren (PR #106)
+
+| Thema | Entscheidung | Datum |
+|---|---|---|
+| Wozu | Passanten und Karren sollen an die echte Tür bzw. das Tor des Modells gehen und erst dort verschwinden, nicht vor der Hauswand. Heute enden ihre Wege an Punkten, die aus der Fläche berechnet sind (Haustür, `HofVon`). | 17.10.2026 |
+| Form | Leere Knoten im GLB mit festem Namen: „Anker_Tuer“ (Pflicht, Eingang für Personen) und bei Werkstätten „Anker_Karren“ (Halteplatz vor dem Tor). Keine Dreiecke, kein Einfluss auf das Einfärben nach Namen (das sucht nur Meshes). | 17.10.2026 |
+| Lage und Richtung | Der Anker liegt direkt vor der Tür, in der Höhe der obersten Stufe davor (Bürgerhaus 0,46 m, Steinhaus 0,5 m, Fachwerkhaus 0,2 m, Schmied auf der Schwelle 0,3 m). Seine Blickrichtung (Godot −Z) zeigt ins Haus. Der Karrenanker liegt auf dem Boden des Vorplatzes. | 17.10.2026 |
+| Stufen | Ändert sich ein Zugang mit der Stufe, hängt der Anker im Knoten der Stufe. Beim Schmied bleiben beide am Tor der Halle, in jeder Stufe gleich. | 17.10.2026 |
+| Prüfung | `pruefen.py` listet die Anker mit Lage und Richtung und verlangt „Anker_Tuer“ auf der Fläche. `<name>-anker.png` zeigt sie als Pfeile (Personen magenta, Karren türkis), die Spitze auf dem Ankerpunkt. | 17.10.2026 |
+
+### Licht in den Fenstern bei Nacht (PR #106)
+
+| Thema | Entscheidung | Datum |
+|---|---|---|
+| Material | Scheiben, hinter denen nachts Licht brennt, tragen das Material „Fenster“, die übrigen „Glas“. Tagsüber sehen beide gleich aus. In der GLB ist „Fenster“ **ohne** Leuchten – die eingebauten Wohnhäuser bleiben unverändert, bis das Spiel es schaltet. | 17.10.2026 |
+| Auswahl | Etwa zwei von drei Fenstern sind „Fenster“, fest aus der Lage des Fensters (bei jedem Erzeugen gleich). So wirkt eine Stadt bei Nacht belebt statt gleichförmig. Die Laterne am Portal des Steinhauses leuchtet mit. | 17.10.2026 |
+| Schalten | Das Spiel setzt nachts die Emission des einen gemeinsamen Materials „Fenster“ (warmes Orange) – ein Schalter für die ganze Stadt. Leere Häuser bekommen eine Kopie in „Glas“. Die „Glut“ der Essen bleibt davon getrennt (sie hängt an der Arbeit, nicht an der Uhrzeit). | 17.10.2026 |
+| Vorschau | `<name>-nacht.png` zeigt jedes Modell bei Mondlicht mit Fensterlicht und Glut; einzeln mit `--nur-nacht`. | 17.10.2026 |
