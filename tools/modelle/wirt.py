@@ -231,33 +231,6 @@ def fasslager(netz, st, mitte, dreh=0.0, n=3):
         bs.fass(netz, st, t @ Vector((0.05 * k, dy, 0)), r=0.33, h=0.95)
 
 
-def linde(netz, st, fuss, hoehe=6.6, r=2.3, saat=0):
-    """Linde: Stamm und eine Krone aus drei Achteckringen, die Flächen abwechselnd hell und dunkel."""
-    m = Vector(fuss)
-    bs.achteck(netz, st, m, 0.24, 0.0, hoehe * 0.45, "Holz")
-    zufall = random.Random(saat)
-    ringe = [(0.55, hoehe * 0.36), (1.0, hoehe * 0.55), (0.82, hoehe * 0.78)]
-    punkte = []
-    for i, (f, z) in enumerate(ringe):
-        punkte.append([m + Vector((r * f * zufall.uniform(0.9, 1.08) * math.cos(math.radians(22.5 * i + 45 * k)),
-                                   r * f * zufall.uniform(0.9, 1.08) * math.sin(math.radians(22.5 * i + 45 * k)), z))
-                       for k in range(8)])
-    gipfel = m + Vector((0, 0, hoehe))
-    mitte_k = m + Vector((0, 0, hoehe * 0.58))
-    for i in range(len(punkte) - 1):
-        for k in range(8):
-            a, b = punkte[i][k], punkte[i][(k + 1) % 8]
-            c, d = punkte[i + 1][(k + 1) % 8], punkte[i + 1][k]
-            stoff = st["Laub" if (k + i) % 2 else "Laub hell"]
-            netz.vieleck_nach([a, b, c], (a + b + c) / 3 - mitte_k, stoff)
-            netz.vieleck_nach([a, c, d], (a + c + d) / 3 - mitte_k, stoff)
-    for k in range(8):
-        a, b = punkte[-1][k], punkte[-1][(k + 1) % 8]
-        netz.vieleck_nach([a, b, gipfel], (a + b) / 2 - mitte_k, st["Laub hell" if k % 2 else "Laub"])
-    unten = [p for p in punkte[0]]
-    netz.vieleck_nach(unten, (0, 0, -1), st["Laub"])
-
-
 def laube(netz, st, x0, x1, y0, y1, h=2.4, saat=0):
     """Laube: Pfosten, Pfetten, Latten und darüber Weinlaub in Flecken."""
     holz = st["Holz alt"]
@@ -373,7 +346,7 @@ def vorplatz(netz, st):
 def schaenke(netz, st):
     """Stufe 1: Tisch vor der Tür, Fasslager, Linde mit zwei Tischen im Hof, Zaun."""
     vorplatz(netz, st)
-    linde(netz, st, (5.0, 2.6, 0), saat=2)
+    bs.linde(netz, st, (5.0, 2.6, 0), saat=2)
     tisch(netz, st, (4.4, 0.4, 0), laenge=2.0, saat=3)
     tisch(netz, st, (5.6, 4.6, 0), dreh=90, laenge=2.0, saat=4)
     bs.zaun(netz, st, [(7.8, -4.8), (7.8, 6.8), (-7.8, 6.8), (-7.8, YA + 0.3)])
@@ -385,7 +358,7 @@ def wirtshaus(netz, st):
     laube(netz, st, 2.6, 5.8, -4.0, -0.8, saat=5)
     tisch(netz, st, (4.2, -3.3, 0), laenge=2.4, saat=6)
     tisch(netz, st, (4.2, -1.5, 0), laenge=2.4, saat=7)
-    linde(netz, st, (4.0, 3.8, 0), saat=8)
+    bs.linde(netz, st, (4.0, 3.8, 0), saat=8)
     tisch(netz, st, (3.4, 1.4, 0), laenge=2.0, saat=9)
     tisch(netz, st, (4.4, 5.8, 0), laenge=2.0, saat=10)
     kegelbahn(netz, st, 6.8, -4.4, 5.6)
@@ -401,7 +374,7 @@ def gasthaus(netz, st):
     laube(netz, st, 2.8, 6.0, -4.0, -0.8, saat=11)
     tisch(netz, st, (4.4, -3.3, 0), laenge=2.4, saat=12)
     tisch(netz, st, (4.4, -1.5, 0), laenge=2.4, saat=13)
-    linde(netz, st, (6.6, 1.0, 0), hoehe=5.6, r=1.15, saat=14)
+    bs.linde(netz, st, (6.6, 1.0, 0), hoehe=5.6, r=1.15, saat=14)
     bs.zaun(netz, st, [(7.8, -4.8), (7.8, 3.3)])
     bs.zaun(netz, st, [(2.0, 6.8), (-7.8, 6.8), (-7.8, YA + 0.3)])
 

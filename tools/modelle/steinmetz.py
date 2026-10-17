@@ -101,7 +101,7 @@ def bauen():
     dach = bs.satteldach(haus, st, X0, X1, Y0, Y1, Z_TRAUFE, NEIGUNG, traufe=0.4, ortgang=0.2, **bs.ZIEGEL)
     hoch = HT * dach["tan"]
     for seite, x in (("rechts", X1), ("links", X0)):
-        steingiebel(haus, st, bs.wandmatrix((x, CY, Z_TRAUFE), seite), 2 * HT, hoch, oeffnungen)
+        bs.steingiebel(haus, st, bs.wandmatrix((x, CY, Z_TRAUFE), seite), 2 * HT, hoch, oeffnungen)
     xs, ys = CX - 2.2, Y1 - 1.4
     z0 = dach["oben_hinten"](ys) - 0.3
     haus.quader((xs, ys, (z0 + dach["z_first"] + 0.7) / 2), (0.6, 0.6, dach["z_first"] + 0.7 - z0), st["Bruchstein dunkel"])
@@ -151,22 +151,6 @@ def bauen():
 #  Teile der Werkstatt
 # ─────────────────────────────────────────────────────────────────────────────
 
-def steingiebel(netz, st, M, L, hoch, oeffnungen, stoff="Bruchstein"):
-    """Giebeldreieck aus Mauerwerk mit Lagerfugen (je Höhe so breit wie der Giebel) und einem Steinfenster."""
-    halb = L / 2
-    bs.platte(netz, M, [(-halb, 0), (halb, 0), (0, hoch)], 0, 0.4, st[stoff])
-    v = 0.42
-    while v < hoch - 0.4:
-        b = halb * (1 - (v + 0.014) / hoch) - 0.03
-        netz.vieleck([M @ Vector(p) for p in ((-b, -0.003, v - 0.014), (b, -0.003, v - 0.014),
-                                               (b, -0.003, v + 0.014), (-b, -0.003, v + 0.014))], st["Fuge"])
-        v += 0.42
-    if hoch > 2.2:
-        o = Oeffnung("fenster", 0.0, 0.6, 0.6, 0.85, laeden=False)
-        bs.gewaende(netz, M, o, st, kreuz=False)
-        oeffnungen.append((M, o))
-
-
 def zunftzeichen(netz, st, M, u, v):
     """Zunftzeichen am Ausleger: eine Sandsteintafel mit Zirkel und Winkel aus Eisen."""
     eisen = st["Eisen"]
@@ -197,25 +181,6 @@ def staub(netz, st, mitte, r, saat=0):
                y + r * (0.75 + 0.3 * zufall.random()) * math.sin(math.radians(60 * k + 10 * zufall.random())), 0.012)
               for k in range(6)]
     netz.vieleck_nach(punkte, (0, 0, 1), st["Steinstaub"])
-
-
-def grabstein(netz, st, fuss, dreh=0.0, breite=0.6, hoehe=1.0, dicke=0.14, form="rund", stoff="Sandstein"):
-    """Grabstein auf einem Sockel, die Schauseite (mit zwei Schriftzeilen) zur Gasse. `form`: "rund" oder "giebel"."""
-    t = Matrix.Translation(Vector(fuss)) @ Matrix.Rotation(math.radians(dreh - 90), 4, "Z")   # Prisma-x → zur Gasse
-    netz.quader((0, 0, 0.06), (dicke + 0.16, breite + 0.16, 0.12), st["Bruchstein dunkel"], t)
-    b = breite / 2
-    if form == "rund":
-        profil = [(-b, 0.12), (b, 0.12)] + [(b * math.cos(math.radians(30 * k)), 0.12 + hoehe - b + b * math.sin(math.radians(30 * k)))
-                                            for k in range(7)]
-    else:
-        profil = [(-b, 0.12), (b, 0.12), (b, 0.12 + hoehe - 0.22), (0, 0.12 + hoehe), (-b, 0.12 + hoehe - 0.22)]
-    netz.prisma(profil, -dicke / 2, dicke / 2, st[stoff], matrix=t)
-    n = t.to_3x3() @ Vector((1, 0, 0))
-    for k in range(2):
-        z = 0.12 + hoehe * (0.55 - 0.13 * k)
-        w = b * (0.65 - 0.15 * k)
-        netz.vieleck_nach([t @ Vector((dicke / 2 + 0.003, yy, zz)) for yy, zz in ((-w, z), (w, z), (w, z + 0.035), (-w, z + 0.035))],
-                          n, st["Fuge"])
 
 
 def muehlstein(netz, st, fuss, r=0.55, dicke=0.26, dreh=0.0, neigung=10.0):
@@ -403,26 +368,13 @@ def grabmal(netz, st, fuss, dreh=0.0):
     """Hohes Grabmal (Epitaph) mit Giebel auf einem breiten Sockel."""
     t = Matrix.Translation(Vector(fuss)) @ Matrix.Rotation(math.radians(dreh), 4, "Z")
     netz.quader((0, 0, 0.15), (1.1, 0.55, 0.3), st["Haustein"], t)
-    grabstein(netz, st, t @ Vector((0, 0, 0.3)), dreh=dreh, breite=0.8, hoehe=1.6, dicke=0.24, form="giebel")
-
-
-def trockenmauer(netz, st, punkte, hoehe=0.95, dicke=0.4):
-    """Mauer aus Bruchstein um den Hof, mit Sandsteinabdeckung. An den Ecken stoßen die Abschnitte stumpf
-    aneinander (jeder reicht bis zur Außenkante des vorigen), so decken sich keine Flächen."""
-    pts = [Vector((x, y, 0)) for x, y in punkte]
-    for i in range(len(pts) - 1):
-        d = (pts[i + 1] - pts[i]).normalized()
-        a = pts[i] + (d * dicke / 2 if i > 0 else Vector())
-        b = pts[i + 1] + (d * dicke / 2 if i < len(pts) - 2 else Vector())
-        netz.stab(a + Vector((0, 0, hoehe / 2)), b + Vector((0, 0, hoehe / 2)), dicke, hoehe, st["Bruchstein"], quer=(0, 0, 1))
-        netz.stab(a + Vector((0, 0, hoehe + 0.05)), b + Vector((0, 0, hoehe + 0.05)), dicke + 0.08, 0.1, st["Sandstein"],
-                  quer=(0, 0, 1), ohne=("-z",))
+    bs.grabstein(netz, st, t @ Vector((0, 0, 0.3)), dreh=dreh, breite=0.8, hoehe=1.6, dicke=0.24, form="giebel")
 
 
 def ware_an_der_gasse(netz, st, mit_muehlstein=True):
     """Grabsteine und Mühlsteine zum Verkauf auf dem Vorplatz rechts vom Tor."""
-    grabstein(netz, st, (1.5, -5.7, 0), breite=0.6, hoehe=0.95)
-    grabstein(netz, st, (2.4, -5.75, 0), dreh=-8, breite=0.55, hoehe=1.1, form="giebel")
+    bs.grabstein(netz, st, (1.5, -5.7, 0), breite=0.6, hoehe=0.95)
+    bs.grabstein(netz, st, (2.4, -5.75, 0), dreh=-8, breite=0.55, hoehe=1.1, form="giebel")
     if mit_muehlstein:
         muehlstein(netz, st, (3.5, -5.6, 0), dreh=90)
         muehlsteine_liegend(netz, st, (4.7, -5.8, 0))
@@ -451,7 +403,7 @@ def maurerei(netz, st):
     moertelplatz(netz, st, (5.0, 2.2, 0), dreh=90)
     ware_an_der_gasse(netz, st)
     ziegelstapel(netz, st, (6.1, -5.7, 0))
-    trockenmauer(netz, st, [(7.76, -4.8), (7.76, 6.76), (-7.76, 6.76), (-7.76, Y1 + 0.3)])
+    bs.trockenmauer(netz, st, [(7.76, -4.8), (7.76, 6.76), (-7.76, 6.76), (-7.76, Y1 + 0.3)])
 
 
 def steinschneiderei(netz, st):
@@ -478,7 +430,7 @@ def steinschneiderei(netz, st):
     drehung = Matrix.Translation((cx, 0, 0)) @ Matrix.Rotation(math.radians(90), 4, "Z")
     dach = bs.satteldach(netz, st, ay0, ay1, -breite / 2, breite / 2, h, 42, traufe=0.3, ortgang=0.15, matrix=drehung,
                          **bs.ZIEGEL)
-    steingiebel(netz, st, bs.wandmatrix((cx, ay0, h), "vorne"), breite, breite / 2 * dach["tan"], [])
+    bs.steingiebel(netz, st, bs.wandmatrix((cx, ay0, h), "vorne"), breite, breite / 2 * dach["tan"], [])
     # Hof: Steinsäge, Dreibein, Quader, Bruchsteine, Ware
     steinsaege(netz, st, (2.6, -2.4, 0))
     dreibein(netz, st, (5.8, -1.6, 0))
@@ -488,7 +440,7 @@ def steinschneiderei(netz, st):
     bruchsteinhaufen(netz, st, (2.4, 5.6, 0), n=7, r=0.8, saat=5)
     ware_an_der_gasse(netz, st)
     ziegelstapel(netz, st, (6.1, -5.7, 0))
-    trockenmauer(netz, st, [(7.76, -4.8), (7.76, 6.76), (-7.76, 6.76), (-7.76, Y1 + 0.3)])
+    bs.trockenmauer(netz, st, [(7.76, -4.8), (7.76, 6.76), (-7.76, 6.76), (-7.76, Y1 + 0.3)])
 
 
 def steinmetzhuette(netz, st):
@@ -527,14 +479,14 @@ def steinmetzhuette(netz, st):
     taufbecken(netz, st, Vector((1.8, -5.8, 0)))
     grabmal(netz, st, (3.3, -5.85, 0))
     saeule(netz, st, (4.7, -5.75, 0), (4.7, -5.75, 2.5), r=0.2)
-    grabstein(netz, st, (5.8, -5.75, 0), breite=0.6, hoehe=1.0)
+    bs.grabstein(netz, st, (5.8, -5.75, 0), breite=0.6, hoehe=1.0)
     muehlsteine_liegend(netz, st, (6.9, -5.75, 0), r=0.5)
     # Hof hinter der Hütte
     dreibein(netz, st, (3.6, 4.4, 0))
     block(netz, st, (6.2, 3.6, 0), (1.6, 1.1, 0.9), "Haustein", -10)
     block(netz, st, (6.4, 5.5, 0), (1.2, 0.9, 0.8), "Sandstein", 15)
     bruchsteinhaufen(netz, st, (-3.6, 4.6, 0), n=8, r=0.9, saat=9)
-    trockenmauer(netz, st, [(7.76, hy1 + 0.25), (7.76, 6.76), (-7.76, 6.76), (-7.76, Y1 + 0.3)])
+    bs.trockenmauer(netz, st, [(7.76, hy1 + 0.25), (7.76, 6.76), (-7.76, 6.76), (-7.76, Y1 + 0.3)])
 
 
 def main():

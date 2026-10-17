@@ -101,9 +101,10 @@ FARBEN = {
     "Ocker": (0.80, 0.66, 0.32),           # Wirtshausschild (wie bisher im Spiel)
     "Laub": (0.24, 0.35, 0.16),
     "Laub hell": (0.34, 0.44, 0.20),
+    "Silber": (0.82, 0.82, 0.86),          # Spitze des Dachreiters beim Prediger (wie bisher im Spiel)
 }
 RAUHEIT = {"Glas": 0.2, "Fenster": 0.2, "Eisen": 0.45, "Gold": 0.35, "Wasser": 0.1}
-METALL = {"Eisen": 0.7, "Gold": 0.85, "Kupfer": 0.5, "Violett": 0.5, "Weinrot": 0.5}
+METALL = {"Eisen": 0.7, "Gold": 0.85, "Kupfer": 0.5, "Violett": 0.5, "Weinrot": 0.5, "Silber": 0.5}
 LEUCHTEN = {"Glut": ((1.0, 0.45, 0.12), 3.0)}    # Farbe (sRGB) und Stärke der Emission
 # Licht hinter den Fenstern bei Nacht: Farbe (sRGB) und Stärke. Nicht in der GLB (dort aus), nur für die Nachtbilder –
 # im Spiel schaltet der Code die Emission des gemeinsamen Materials „Fenster“ abends an und morgens aus.
@@ -721,6 +722,81 @@ def pferd(netz, st, ort, winkel):
     netz.quader((0.82, 0, 1.36), (0.4, 0.16, 0.18), fell, matrix=M)                 # Kopf
     netz.stab((0.4, 0, 1.2), (0.64, 0, 1.56), 0.05, 0.06, dunkel, matrix=M)         # Mähne
     netz.stab((-0.5, 0, 1.12), (-0.6, 0, 0.62), 0.06, 0.08, dunkel, matrix=M)       # Schweif
+
+
+def steingiebel(netz, st, M, L, hoch, oeffnungen, stoff="Bruchstein", mit_fenster=True):
+    """Giebeldreieck aus Mauerwerk mit Lagerfugen (je Höhe so breit wie der Giebel) und einem Steinfenster."""
+    halb = L / 2
+    platte(netz, M, [(-halb, 0), (halb, 0), (0, hoch)], 0, 0.4, st[stoff])
+    v = 0.42
+    while v < hoch - 0.4:
+        b = halb * (1 - (v + 0.014) / hoch) - 0.03
+        netz.vieleck([M @ Vector(p) for p in ((-b, -0.003, v - 0.014), (b, -0.003, v - 0.014),
+                                               (b, -0.003, v + 0.014), (-b, -0.003, v + 0.014))], st["Fuge"])
+        v += 0.42
+    if mit_fenster and hoch > 2.2:
+        o = Oeffnung("fenster", 0.0, 0.6, 0.6, 0.85, laeden=False)
+        gewaende(netz, M, o, st, kreuz=False)
+        oeffnungen.append((M, o))
+
+
+def grabstein(netz, st, fuss, dreh=0.0, breite=0.6, hoehe=1.0, dicke=0.14, form="rund", stoff="Sandstein"):
+    """Grabstein auf einem Sockel, die Schauseite (mit zwei Schriftzeilen) zur Gasse. `form`: "rund" oder "giebel"."""
+    t = Matrix.Translation(Vector(fuss)) @ Matrix.Rotation(math.radians(dreh - 90), 4, "Z")   # Prisma-x → zur Gasse
+    netz.quader((0, 0, 0.06), (dicke + 0.16, breite + 0.16, 0.12), st["Bruchstein dunkel"], t)
+    b = breite / 2
+    if form == "rund":
+        profil = [(-b, 0.12), (b, 0.12)] + [(b * math.cos(math.radians(30 * k)), 0.12 + hoehe - b + b * math.sin(math.radians(30 * k)))
+                                            for k in range(7)]
+    else:
+        profil = [(-b, 0.12), (b, 0.12), (b, 0.12 + hoehe - 0.22), (0, 0.12 + hoehe), (-b, 0.12 + hoehe - 0.22)]
+    netz.prisma(profil, -dicke / 2, dicke / 2, st[stoff], matrix=t)
+    n = t.to_3x3() @ Vector((1, 0, 0))
+    for k in range(2):
+        z = 0.12 + hoehe * (0.55 - 0.13 * k)
+        w = b * (0.65 - 0.15 * k)
+        netz.vieleck_nach([t @ Vector((dicke / 2 + 0.003, yy, zz)) for yy, zz in ((-w, z), (w, z), (w, z + 0.035), (-w, z + 0.035))],
+                          n, st["Fuge"])
+
+
+def trockenmauer(netz, st, punkte, hoehe=0.95, dicke=0.4):
+    """Mauer aus Bruchstein um den Hof, mit Sandsteinabdeckung. An den Ecken stoßen die Abschnitte stumpf
+    aneinander (jeder reicht bis zur Außenkante des vorigen), so decken sich keine Flächen."""
+    pts = [Vector((x, y, 0)) for x, y in punkte]
+    for i in range(len(pts) - 1):
+        d = (pts[i + 1] - pts[i]).normalized()
+        a = pts[i] + (d * dicke / 2 if i > 0 else Vector())
+        b = pts[i + 1] + (d * dicke / 2 if i < len(pts) - 2 else Vector())
+        netz.stab(a + Vector((0, 0, hoehe / 2)), b + Vector((0, 0, hoehe / 2)), dicke, hoehe, st["Bruchstein"], quer=(0, 0, 1))
+        netz.stab(a + Vector((0, 0, hoehe + 0.05)), b + Vector((0, 0, hoehe + 0.05)), dicke + 0.08, 0.1, st["Sandstein"],
+                  quer=(0, 0, 1), ohne=("-z",))
+
+
+def linde(netz, st, fuss, hoehe=6.6, r=2.3, saat=0):
+    """Linde: Stamm und eine Krone aus drei Achteckringen, die Flächen abwechselnd hell und dunkel."""
+    m = Vector(fuss)
+    achteck(netz, st, m, 0.24, 0.0, hoehe * 0.45, "Holz")
+    zufall = random.Random(saat)
+    ringe = [(0.55, hoehe * 0.36), (1.0, hoehe * 0.55), (0.82, hoehe * 0.78)]
+    punkte = []
+    for i, (f, z) in enumerate(ringe):
+        punkte.append([m + Vector((r * f * zufall.uniform(0.9, 1.08) * math.cos(math.radians(22.5 * i + 45 * k)),
+                                   r * f * zufall.uniform(0.9, 1.08) * math.sin(math.radians(22.5 * i + 45 * k)), z))
+                       for k in range(8)])
+    gipfel = m + Vector((0, 0, hoehe))
+    mitte_k = m + Vector((0, 0, hoehe * 0.58))
+    for i in range(len(punkte) - 1):
+        for k in range(8):
+            a, b = punkte[i][k], punkte[i][(k + 1) % 8]
+            c, d = punkte[i + 1][(k + 1) % 8], punkte[i + 1][k]
+            stoff = st["Laub" if (k + i) % 2 else "Laub hell"]
+            netz.vieleck_nach([a, b, c], (a + b + c) / 3 - mitte_k, stoff)
+            netz.vieleck_nach([a, c, d], (a + c + d) / 3 - mitte_k, stoff)
+    for k in range(8):
+        a, b = punkte[-1][k], punkte[-1][(k + 1) % 8]
+        netz.vieleck_nach([a, b, gipfel], (a + b) / 2 - mitte_k, st["Laub hell" if k % 2 else "Laub"])
+    unten = [p for p in punkte[0]]
+    netz.vieleck_nach(unten, (0, 0, -1), st["Laub"])
 
 
 def zaun(netz, st, punkte, hoehe=1.1, abstand=2.0, stoff="Holz alt"):
