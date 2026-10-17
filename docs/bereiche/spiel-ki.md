@@ -10,9 +10,7 @@ So wird eingetragen (damit sich die Chats nie an derselben Stelle treffen):
 
 ## Offen
 
-- (5) (von Kern) Gaunerstücke gegen das Wohnhaus (`Gaunerstueck.Hauseinbruch`, `Brandstiftung`, ab PR #77) in die Wahl der KI-Häuser aufnehmen – Rechnungen: `Unterwelt.ErwarteterHausgewinn`, `Brandschaden`, `ErfolgschanceWohnhaus`. Den Hauswächter nach einem Anschlag stellt `KiRivale` schon ein.
 - (5) (von Kern) Seit PR #85 zählt der Hauswert zum Reinvermögen. `KiRivale.Standziel` ist deshalb wieder die Schwelle allein, und `StandPruefen` baut ohne „Schwelle + Ausbau“; `KiWohnhausTests` (zwei Tests) entsprechend angepasst. Bitte prüfen, ob das zu eurer Sparlogik passt
-- (2) (von Darstellung) Wegzeiten der Einwohner verlängern, damit Passanten natürlich gehen (~2,5 m/s bei Tempo 1; eine Spielminute ≈ 0,88 s). Gemessene Weglängen im Gassennetz (PR #74): Stadt Median 69 m (90 % 115 m), Tor 86 m, Umland Median 113 m (90 % 169 m). Heute 5–15 / 15 / 30 Minuten; passend wären etwa Stadt 20–40, Tor 40, Umland 50 Minuten (Abmarsch 0–10 bleibt, Ankunft vor der nächsten Stunde). Bis dahin beeilt sich die Darstellung bis zum Doppelten des eigenen Tempos und kommt bei langen Wegen einige Minuten später an, als der Kern zählt.
 - (3) Verlustjahre zählen auch, wenn ein Betrieb mangels Geld ohne Personal stand. Wird er danach besetzt, verkauft die KI ihn trotzdem nach zwei solchen Jahren (gesehen im Test zur Rückkauf-Schleife). Vielleicht Jahre ohne Personal nicht als Verlustjahr zählen.
 - (3) Ein Notverkauf wählt den Betrieb mit dem schlechtesten Gewinn, nicht den, dessen Erlös gerade reicht – so kann die KI mehr verkaufen als nötig. In den Messungen kam keine KI in Not; prüfen, wenn es Bankrotte gibt.
 
@@ -74,6 +72,14 @@ So wird eingetragen (damit sich die Chats nie an derselben Stelle treffen):
 | Verlustjahr | Ein ganzes Jahr (`Betriebsrechnung.Ganzjaehrig`), in dem **Gewinn + Änderung des Lagerwerts** (Lager zum Grundpreis, zum Jahresende gemerkt) negativ ist. Ohne das Lager verkaufte die erste Messung die ausgebauten Hauptwerkstätten, die teure Zutaten auf Vorrat kaufen (19 Verkäufe statt 3). Ein angebrochenes Jahr zählt nicht und unterbricht nicht; ein Jahr ohne Verlust setzt zurück. Wache, Geldleiher und Dieb verkauft die KI nicht wegen Verlust – Kopfgeld, Kreditzinsen und nächtliche Beute stehen nicht (ganz) in ihrer Rechnung. | 17.10.2026 |
 | Notverkauf | Hat der Kämmerer `jahreBisBankrott − 1`-mal gemahnt und ist ab der Jahresmitte die Hochrechnung des Reinvermögens zum Jahresabschluss negativ (heute + bisheriger Betriebsertrag hochgerechnet − Löhne, Unterhalt, Haushalt, die erst am Jahresende fällig werden), verkauft die KI je Stunde den Betrieb mit dem schlechtesten Gewinn, der etwas einbringt. In Not (gemahnt und Reinvermögen minus offene Kosten negativ) kauft und baut sie nichts. Verkäufe macht auch der Verwalter aus dem Kerker. | 17.10.2026 |
 | Keine Schleife | Nach einem Verkauf meidet die KI **Handwerk und Ort** (z. B. Schmied/Werkstatt) **5 Jahre** (`SperreNachVerkauf`): kein Kauf, kein Neubau, auch nicht über „Werkstatt zum Handwerk“. Gemerkt im `RivaleStand` (`Verlustjahre`, `Lagerwert`, `Gesperrt`, `KeinWerkstattplatzJahr`); alte Spielstände laden ohne sie. | 17.10.2026 |
+
+### Gaunerstücke gegen Wohnhäuser (PR #119)
+
+| Thema | Entscheidung | Datum |
+|---|---|---|
+| Wer | **Einbruch** ins Wohnhaus nutzt jedes KI-Haus, das Gaunerstücke nutzt (ausgewogen selten und nur gegen Häuser vor ihm, wie Diebstahl und Sabotage). **Brandstiftung** nur die Wagemutige, wie Überfall und Erpressung. Entschieden vom Nutzer. | 18.10.2026 |
+| Wert | Einbruch = `Unterwelt.ErwarteterHausgewinn` (Bargeld × Chance − Kosten, kein Hehler). Brandstiftung wie Sabotage: **halbe Reparatur** beim Gegner × Chance − Kosten (`Brandschaden`, `ErfolgschanceWohnhaus`); das fehlende Ansehen zählt nicht mit. Entschieden vom Nutzer. Beide stehen in derselben Liste wie die Stücke gegen Betriebe, das Beste gewinnt. | 18.10.2026 |
+| Wann es sich lohnt | Einbruch erst ab dem Bürgerhaus (Fachwerkhaus: höchstens 300 Beute × 0,6 < 200 Kosten), Brand erst ab dem Stadtpalais (Steinhaus: 800 × 0,5 × 0,5 = 200 < 300). Ein Haus, das vom letzten Brand noch beschädigt ist, steht nicht zur Wahl (der Kern lehnt den Auftrag ab). | 18.10.2026 |
 
 ## Messungen
 
@@ -154,4 +160,22 @@ Gemessen auf main `5e62a04` + PR #108, `messen 30 20` (Spieler Mensch, passiv), 
 - **Leerstand** kaufte in den Messungen kein KI-Haus: Kein KI-Haus geht bankrott, und der bankrotte passive Spieler hinterlässt nur ein Fachwerkhaus. **Werkstätten** baute die KI nie neu – es gab immer freie, und bei gleichem Preis gewinnt der Kauf (Baujahr). Beides prüfen die Tests (`KiBauenTests`).
 - **Verkäufe** sind selten (2–3 in 600 Hausjahren), **Notverkäufe** gab es keine (kein KI-Haus kam in Not; Test `KiVerkaufTests`). Die erste Fassung ohne Lagerwert verkaufte 19 Werkstätten, meist die ausgebauten Hauptwerkstätten, und kostete Haus Eisenbart Ø 11.000 Gulden.
 - Rechenzeit der Messung: Köln 38 s, Greybox 43 s – die Bauortsuche fällt nicht ins Gewicht.
+
+### Gaunerstücke gegen Wohnhäuser (PR #119)
+
+Gemessen auf main `5db3ab6` + PR #119 (bis main `cd00f6d` kamen nur Modelle dazu), `messen 30 20` (Spieler Mensch, passiv), 20 Partien × 30 Jahre. Neu in der Messung: die Zeile „Banden der KI je Art und Ziel“ (Summe über alle Partien).
+
+| Messung | Eisenbart Ø | Eichwald Ø | Kieselbach Ø | Banden der KI (Summe) |
+|---|---|---|---|---|
+| Köln, ausgewogen, vorher | 170.396 | 97.581 | 138.144 | Diebstahl 420 |
+| Köln, ausgewogen, jetzt | 158.436 | 97.265 | 137.862 | Diebstahl 342, Einbruch 137 |
+| Köln, wagemutig, vorher | 101.867 | 67.902 | 74.040 | Diebstahl 869, Sabotage 1 |
+| Köln, wagemutig, jetzt | 89.015 | 57.458 | 77.743 | Diebstahl 636, Einbruch 280, Brand 52 |
+| Greybox, ausgewogen, vorher | 169.601 | 98.870 | 139.748 | – |
+| Greybox, ausgewogen, jetzt | 157.689 | 96.805 | 138.480 | – |
+
+- **Ausgewogen:** Eichwald und Kieselbach brechen bei Eisenbart ein (72-mal in 20 Partien), Eichwald auch bei Kieselbach (64-mal), meist statt eines Diebstahls. Eisenbart, das führende Haus und damit das Ziel, verliert im Schnitt **7 %**; der Einbruch holt bei Stadthof und Palais bis 1.500 bzw. 1.200 Gulden, mehr als ein Diebstahl. Die anderen beiden bleiben gleich (was sie erbeuten, verlieren sie an den Einbrüchen gegeneinander). Ein Startwert (1818) fällt aus der Reihe: 160.646 → 94.416; ohne ihn sind es −5 %.
+- **Wagemutig:** 52 Brände, 39 davon am Stadthof von Eisenbart (Reparatur 5.000, gelingt halb so oft). Eisenbart verliert 13 %, Eichwald 15 %, Kieselbach gewinnt 5 %.
+- **Spieler:** Der passive Spieler bleibt im Fachwerkhaus, wo sich kein Einbruch lohnt – Raub und Schäden bei ihm unverändert (Ø 369). Bürgermeister wird Eisenbart etwas später (Ø Jahr 14,7 statt 13,6).
+- Kerkerjahre der KI weiter 0, kein KI-Haus bankrott.
 
