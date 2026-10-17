@@ -63,6 +63,22 @@ FARBEN = {
     "Loch": (0.11, 0.08, 0.06),            # fehlende Ziegel im Leerstand: Blick auf dunkles Gebälk
     "Gras": (0.31, 0.36, 0.19),
     "Hausfarbe": (0.18, 0.30, 0.58),       # Vorgabe Spielerblau; das Spiel färbt je Haus um
+    # Fachwerkhaus (Gemeiner): Lehm, Stroh, altes Holz
+    "Lehmputz": (0.63, 0.57, 0.46),        # fleckiger Lehmputz
+    "Lehm": (0.42, 0.33, 0.24),            # abgeplatzter Putz, das Flechtwerk schaut durch
+    "Stroh": (0.49, 0.43, 0.30),           # altes, vergrautes Stroh
+    "Strohkante": (0.38, 0.32, 0.21),
+    "Firstsoden": (0.30, 0.30, 0.20),      # Grassoden auf dem First
+    "Moos": (0.37, 0.38, 0.24),
+    "Holz alt": (0.33, 0.27, 0.20),        # verwitterte Bretter
+    "Scheitholz": (0.60, 0.48, 0.33),      # Hirnholz am Holzstapel
+    # Steinhaus (Patrizier): Haustein, Sandstein, Schiefer
+    "Haustein": (0.53, 0.52, 0.49),        # graues Mauerwerk der Wände
+    "Fuge": (0.40, 0.39, 0.37),            # Lagerfugen im Mauerwerk
+    "Sandstein": (0.74, 0.64, 0.48),       # warmer Stein für Eckquader, Gewände, Gesimse
+    "Schiefer": (0.27, 0.29, 0.33),
+    "Schieferkante": (0.17, 0.18, 0.21),
+    "Firstblech": (0.22, 0.23, 0.25),
 }
 RAUHEIT = {"Glas": 0.2, "Eisen": 0.45}
 METALL = {"Eisen": 0.7}
@@ -273,11 +289,13 @@ def platte(netz, M, umriss, y0, y1, m, m_enden=None):
     netz.prisma([(-u, v) for u, v in umriss], y0, y1, m, matrix=M @ dreh, m_enden=m_enden)
 
 
-def fachwerk(netz, M, L, H, oeffnungen, st, kreuze=False, eckstreben=True):
+def fachwerk(netz, M, L, H, oeffnungen, st, kreuze=False, eckstreben=True, feld=FELD, schief=0.0, saat=0):
     """Fachwerk auf einer Wand der Länge L und Höhe H (der Putz kommt vom Aufrufer):
     Schwelle, Rähm, Ständer an Ecken und Öffnungen, Füllständer, Brust- und Sturzriegel,
-    Streben in den Eckfeldern (zur Ecke ansteigend) und auf Wunsch Andreaskreuze in der Brüstung."""
+    Streben in den Eckfeldern (zur Ecke ansteigend) und auf Wunsch Andreaskreuze in der Brüstung.
+    `schief` (Meter): Füllständer stehen bis zu so viel schräg – für alte, krumme Häuser."""
     holz = st["Fachwerk"]
+    zufall = random.Random(saat)
     h = L / 2
     # Ständer: Ecken und Öffnungsränder, dicht beieinander liegende zusammengelegt
     roh = sorted([-h + B / 2, h - B / 2] + [o.u + s * (o.b / 2 + B / 2) for o in oeffnungen for s in (-1, 1)])
@@ -295,7 +313,7 @@ def fachwerk(netz, M, L, H, oeffnungen, st, kreuze=False, eckstreben=True):
     for a, b in zip(staender, staender[1:]):
         voll.append(a)
         if oeffnung_bei((a + b) / 2) is None:
-            n = math.ceil((b - a) / FELD) - 1
+            n = math.ceil((b - a) / feld) - 1
             voll += [a + (b - a) * k / (n + 1) for k in range(1, n + 1)]
     voll.append(staender[-1])
     felder = [(a, b, oeffnung_bei((a + b) / 2)) for a, b in zip(voll, voll[1:])]
@@ -307,7 +325,8 @@ def fachwerk(netz, M, L, H, oeffnungen, st, kreuze=False, eckstreben=True):
     balken(netz, M, -h, B / 2, h, B / 2, holz, vor=VOR_SCHWELLE, enden=True)            # Schwelle
     balken(netz, M, -h, H - B / 2, h, H - B / 2, holz, vor=VOR_SCHWELLE, enden=True)    # Rähm
     for u in voll:
-        balken(netz, M, u, B, u, H - B, holz)
+        krumm = zufall.uniform(-schief, schief) if schief and u not in staender else 0.0
+        balken(netz, M, u - krumm, B, u + krumm, H - B, holz)
 
     def riegel_laeufe(v):
         """Riegel bei Höhe v über alle Felder, unterbrochen an Türen."""
@@ -347,20 +366,23 @@ def fachwerk(netz, M, L, H, oeffnungen, st, kreuze=False, eckstreben=True):
             kreuz(x0, B, x1, oben)
 
 
-def fenster(netz, M, o, st, winkel=32):
-    """Glas, Fensterkreuz und zwei halb geöffnete Läden in der Hausfarbe."""
+def fenster(netz, M, o, st, winkel=32, kreuz="Fachwerk", winkel_rechts=None):
+    """Glas, Fensterkreuz und zwei halb geöffnete Läden in der Hausfarbe.
+    `kreuz`: Material des Fensterkreuzes oder None (Luke ohne Kreuz)."""
     y = -0.006
     netz.vieleck([M @ Vector(p) for p in ((o.u - o.b / 2, y, o.v), (o.u + o.b / 2, y, o.v),
                                           (o.u + o.b / 2, y, o.v + o.h), (o.u - o.b / 2, y, o.v + o.h))], st["Glas"])
     y, d, vk = -0.02, 0.025, o.v + o.h * 0.58       # Fensterkreuz: flache Leisten vor dem Glas
     for ecken in (((o.u - d, o.v), (o.u + d, o.v), (o.u + d, o.v + o.h), (o.u - d, o.v + o.h)),
                   ((o.u - o.b / 2, vk - d), (o.u + o.b / 2, vk - d), (o.u + o.b / 2, vk + d), (o.u - o.b / 2, vk + d))):
-        netz.vieleck([M @ Vector((u, y, v)) for u, v in ecken], st["Fachwerk"])
+        if kreuz:
+            netz.vieleck([M @ Vector((u, y, v)) for u, v in ecken], st[kreuz])
     if not o.laeden:
         return
     breite = o.b / 2
     for s in (-1, 1):
-        dreh = -winkel if s > 0 else 180 + winkel
+        w = winkel_rechts if (s > 0 and winkel_rechts is not None) else winkel
+        dreh = -w if s > 0 else 180 + w
         t = (M @ Matrix.Translation((o.u + s * o.b / 2, -VOR_PFOSTEN - 0.012, o.v + o.h / 2))
              @ Matrix.Rotation(math.radians(dreh), 4, "Z"))
         netz.quader((breite / 2, 0, 0), (breite, 0.035, o.h), st["Hausfarbe"], t)
@@ -420,15 +442,24 @@ def zaehne(start, richtung, normale, laenge, dicke, reihe=0.45, stufe=0.05):
     return punkte
 
 
-def reihenkante(st, stufe):
-    """Für Netz.prisma: kurze Kanten (die Stöße der Ziegelreihen) bekommen die dunkle Ziegelkante."""
-    return lambda p, q: st["Ziegelkante"] if (q - p).length < max(stufe, KANTE) * 1.2 else None
+def reihenkante(st, stufe, stoff="Ziegelkante"):
+    """Für Netz.prisma: kurze Kanten (die Stöße der Reihen) bekommen die dunkle Kante."""
+    return lambda p, q: st[stoff] if (q - p).length < max(stufe, KANTE) * 1.2 else None
+
+
+# Dachdeckungen: Material der Fläche, der Reihenkante, des Firsts; Reihenbreite, Stufe, Dicke
+ZIEGEL = dict(deckung="Dachziegel", kante="Ziegelkante", first="Firstziegel", reihe=0.45, stufe=0.06, dicke=0.22)
+STROH = dict(deckung="Stroh", kante="Strohkante", first="Firstsoden", reihe=0.7, stufe=0.09, dicke=0.38)
+SCHIEFER = dict(deckung="Schiefer", kante="Schieferkante", first="Firstblech", reihe=0.32, stufe=0.04, dicke=0.18)
 
 
 def satteldach(netz, st, x0, x1, y_vorn, y_hinten, z_traufe, neigung, traufe=0.35, ortgang=0.35,
-               dicke=0.22, reihe=0.45, stufe=0.06):
+               dicke=0.22, reihe=0.45, stufe=0.06, deckung="Dachziegel", kante="Ziegelkante", first="Firstziegel",
+               first_dicke=0.24, enden="Fachwerk", matrix=None):
     """Satteldach mit First entlang X über der Wand von y_vorn bis y_hinten, Wandoberkante z_traufe.
-    Stirnseiten in Holz (wirkt wie ein Windbrett). Gibt Maße für weitere Teile zurück."""
+    Alle Maße im lokalen System; `matrix` setzt es in die Welt (z. B. gedreht für einen Giebel zur Gasse).
+    Stirnseiten in `enden` (Holz wirkt wie ein Windbrett). Gibt Maße für weitere Teile zurück."""
+    t = matrix if matrix is not None else Matrix.Identity(4)
     th = math.radians(neigung)
     tan, cos, sin = math.tan(th), math.cos(th), math.sin(th)
     halb = (y_hinten - y_vorn) / 2
@@ -441,10 +472,12 @@ def satteldach(netz, st, x0, x1, y_vorn, y_hinten, z_traufe, neigung, traufe=0.3
     vorn = zaehne(traufe_vorn, Vector((cos, sin)), Vector((-sin, cos)), laenge, dicke, reihe, stufe)
     hinten = zaehne(traufe_hinten, Vector((-cos, sin)), Vector((sin, cos)), laenge, dicke, reihe, stufe)
     profil = [traufe_vorn, unten_first, traufe_hinten] + hinten[:-1] + [oben_first] + list(reversed(vorn[:-1]))
-    netz.prisma(profil, x0 - ortgang, x1 + ortgang, st["Dachziegel"], m_enden=st["Fachwerk"], kante=reihenkante(st, stufe))
-    # Firstziegel: über Eck gestellter Balken
-    first = Matrix.Translation((0, y_first, oben_first.y + 0.02)) @ Matrix.Rotation(math.radians(45), 4, "X")
-    netz.quader((0, 0, 0), (x1 - x0 + 2 * ortgang + 0.06, 0.24, 0.24), st["Firstziegel"], first)
+    netz.prisma(profil, x0 - ortgang, x1 + ortgang, st[deckung], m_enden=st[enden], kante=reihenkante(st, stufe, kante),
+                matrix=t)
+    # First: über Eck gestellter Balken
+    firstbalken = (t @ Matrix.Translation(((x0 + x1) / 2, y_first, oben_first.y + 0.02 + (first_dicke - 0.24) * 0.3))
+                   @ Matrix.Rotation(math.radians(45), 4, "X"))
+    netz.quader((0, 0, 0), (x1 - x0 + 2 * ortgang + 0.06, first_dicke, first_dicke), st[first], firstbalken)
 
     def oben_vorn(y):
         """Höhe der Dachoberfläche vorn bei y (ohne Zahnstufe)."""
@@ -456,7 +489,216 @@ def satteldach(netz, st, x0, x1, y_vorn, y_hinten, z_traufe, neigung, traufe=0.3
     return {"y_first": y_first, "z_first": oben_first.y, "oben_vorn": oben_vorn, "oben_hinten": oben_hinten,
             "tan": tan, "dicke": dicke, "traufe_vorn": traufe_vorn, "traufe_hinten": traufe_hinten,
             "richtung_vorn": Vector((cos, sin)), "normale_vorn": Vector((-sin, cos)),
-            "richtung_hinten": Vector((-cos, sin)), "normale_hinten": Vector((sin, cos))}
+            "richtung_hinten": Vector((-cos, sin)), "normale_hinten": Vector((sin, cos)), "matrix": t,
+            "deckung": deckung, "kante": kante}
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+#  Teile auf dem Dach: Gaube, Loch (Leerstand)
+# ─────────────────────────────────────────────────────────────────────────────
+
+def gaube(netz, st, dach, oeffnungen, x0, x1, y_front, neigung=17, hoehe=1.45, art="fachwerk"):
+    """Schleppgaube auf der vorderen Dachfläche (lokal, wie das Dach): Putzkörper, Front mit Fenster,
+    flaches Dach mit derselben Deckung. `art`: "fachwerk" (Ständer und Riegel) oder "stein" (Gewände)."""
+    t = dach["matrix"]
+    tan_g = math.tan(math.radians(neigung))
+    z_fuss = dach["oben_vorn"](y_front)
+    z_kopf = z_fuss + hoehe
+    tiefe = hoehe / (dach["tan"] - tan_g)              # bis die Gaube das Hauptdach trifft
+    y_hinten = y_front + tiefe
+    profil = [(y_front, z_fuss - 0.3), (y_front, z_kopf), (y_hinten, z_kopf + tiefe * tan_g), (y_hinten, z_kopf + tiefe * tan_g - 0.35)]
+    netz.prisma(profil, x0, x1, st["Putz" if art == "fachwerk" else "Haustein"], matrix=t)
+    M = t @ wandmatrix(((x0 + x1) / 2, y_front, z_fuss), "vorne")
+    o = Oeffnung("fenster", 0, 0.4, 0.8 if art == "fachwerk" else 0.7, 0.72 if art == "fachwerk" else 0.8)
+    if art == "fachwerk":
+        fachwerk(netz, M, x1 - x0, hoehe, [o], st, eckstreben=False)
+        fenster(netz, M, o, st)
+    else:
+        gewaende(netz, M, o, st)
+    oeffnungen.append((M, o))
+    deckung = dach["deckung"]
+    richtung = Vector((math.cos(math.radians(neigung)), math.sin(math.radians(neigung))))
+    normale = Vector((-richtung.y, richtung.x))
+    ueber = 0.3
+    unten = Vector((y_front, z_kopf)) - richtung * ueber
+    laenge = (tiefe + ueber + 0.25) / richtung.x
+    ende = unten + richtung * laenge
+    oben = zaehne(unten, richtung, normale, laenge, 0.12, reihe=0.4, stufe=0.04)
+    profil = [tuple(unten), tuple(ende)] + [tuple(p) for p in reversed(oben)]
+    netz.prisma(profil, x0 - 0.18, x1 + 0.18, st[deckung], m_enden=st["Fachwerk"],
+                kante=reihenkante(st, 0.04, dach["kante"]), matrix=t)
+
+
+def dachloch(netz, st, dach, seite, x, s, r, stoff="Loch"):
+    """Ausgefranster Fleck auf einer Dachfläche: `seite` "vorn"/"hinten", x entlang des Firsts,
+    s = Abstand von der Traufe entlang der Fläche, r = Größe. Leerstand: dunkles Loch mit zwei Latten.
+    Mit stoff="Moos" ein Moosfleck (ohne Latten)."""
+    t = dach["matrix"]
+    start, rich, nor = dach["traufe_" + seite], dach["richtung_" + seite], dach["normale_" + seite]
+    hoehe = dach["dicke"] + 0.07 + (0.04 if stoff == "Moos" else 0)
+
+    def punkt(dx, ds, mehr=0.0):
+        p = start + rich * (s + ds) + nor * (hoehe + mehr)
+        return t @ Vector((x + dx, p.x, p.y))
+
+    zacken = [1.0, 0.65, 0.95, 0.7, 1.05, 0.6, 0.9, 0.75]
+    rand = [punkt(r * z * math.cos(k * math.pi / 4), r * 0.8 * z * math.sin(k * math.pi / 4)) for k, z in enumerate(zacken)]
+    normale = (t.to_3x3() @ Vector((0, nor.x, nor.y))).normalized()
+    netz.vieleck_nach(rand, normale, st[stoff])
+    if stoff == "Loch":
+        for ds in (-0.18 * r / 0.4, 0.2 * r / 0.4):
+            netz.stab(punkt(-r * 0.95, ds, 0.03), punkt(r * 0.95, ds, 0.03), 0.06, 0.03, st["Holz"], quer=normale)
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+#  Kleinteile am Haus
+# ─────────────────────────────────────────────────────────────────────────────
+
+def fass(netz, st, boden, r=0.33, h=0.95, reifen=(0.2, 0.75), stoff="Holz"):
+    """Fass oder Hackklotz: Achteck aus Holz, auf Wunsch mit Eisenreifen."""
+    def ring(radius, z0, z1, m):
+        profil = [(radius * math.cos(math.radians(22.5 + 45 * k)), radius * math.sin(math.radians(22.5 + 45 * k))) for k in range(8)]
+        dreh = Matrix.Translation(boden) @ Matrix.Rotation(math.radians(-90), 4, "Y")   # Prisma-x → Welt-z
+        netz.prisma(profil, z0, z1, m, matrix=dreh)
+    ring(r, 0, h, st[stoff])
+    for z in reifen:
+        ring(r + 0.015, z, z + 0.06, st["Eisen"])
+
+
+def buschel(netz, st, fuss, groesse=0.35, stoff="Gras"):
+    """Unkraut oder Grasbüschel: zwei gekreuzte, spitze Dreiecke."""
+    for w in (20, 110):
+        d = Vector((math.cos(math.radians(w)), math.sin(math.radians(w)), 0)) * groesse / 2
+        spitze = fuss + Vector((0, 0, groesse * 1.2))
+        n = d.cross(Vector((0, 0, 1)))
+        netz.vieleck_nach([fuss - d, fuss + d, spitze], n, st[stoff])
+        netz.vieleck_nach([fuss - d, fuss + d, spitze], -n, st[stoff])
+
+
+SCHILD = [(-0.34, 0.42), (0.34, 0.42), (0.34, -0.02), (0.0, -0.44), (-0.34, -0.02)]
+
+
+def wappen(netz, M, u, v, st, groesse=1.0, rahmen="Fachwerk"):
+    """Wappenschild in der Hausfarbe auf einer Wand, mit Rahmen und Eisenhaken."""
+    g = groesse
+    platte(netz, M, [(u + x * 1.16 * g, v + y * 1.12 * g) for x, y in SCHILD], -0.085, -0.05, st[rahmen])
+    platte(netz, M, [(u + x * g, v + y * g) for x, y in SCHILD], -0.11, -0.08, st["Hausfarbe"])
+    balken(netz, M, u - 0.24 * g, v + 0.52 * g, u + 0.24 * g, v + 0.52 * g, st["Eisen"], vor=0.12, breite=0.05)
+
+
+def fahne(netz, st, fuss, hoehe=2.7, richtung=-1):
+    """Fahnenstange mit Schwalbenschwanz-Tuch in der Hausfarbe. Das Tuch weht nach `richtung` (±X)."""
+    x, y, z = fuss
+    netz.stab((x, y, z), (x, y, z + hoehe), 0.08, 0.08, st["Holz"])
+    netz.quader((x, y, z + hoehe + 0.05), (0.14, 0.14, 0.14), st["Eisen"])
+    tuch = [(0, 0), (1.25, 0.05), (0.98, 0.38), (1.25, 0.72), (0, 0.72)]
+    dreh = Matrix.Rotation(math.radians(90 if richtung < 0 else -90), 4, "Z")
+    netz.prisma(tuch, -0.015, 0.015, st["Hausfarbe"],
+                matrix=Matrix.Translation((x + 0.04 * richtung, y, z + hoehe - 0.85)) @ dreh)
+
+
+def baugeruest(netz, st, x0, x1, y_innen, y_aussen, ebenen=(2.15, 4.25), hoehe_innen=5.35, hoehe_aussen=6.3, felder=3):
+    """Stangengerüst vor der Gassenseite: zwei Reihen Stangen, Längs- und Querriegel, Bohlen,
+    Geländer, Kreuzstreben, Leiter und ein paar Balken am Boden."""
+    holz = st["Geruestholz"]
+    xs = [x0 + (x1 - x0) * i / felder for i in range(felder + 1)]
+    for x in xs:
+        netz.stab((x, y_aussen, 0), (x, y_aussen, hoehe_aussen), 0.13, 0.13, holz)
+        netz.stab((x, y_innen, 0), (x, y_innen, hoehe_innen), 0.13, 0.13, holz)
+    for z in ebenen:
+        for y in (y_innen, y_aussen):
+            netz.stab((x0 - 0.15, y, z), (x1 + 0.15, y, z), 0.1, 0.1, holz)
+        for x in xs:
+            netz.stab((x, y_innen + 0.1, z + 0.08), (x, y_aussen - 0.1, z + 0.08), 0.09, 0.09, holz, quer=(1, 0, 0))
+        tief = y_innen - y_aussen
+        for k in range(3):
+            y = y_aussen + tief * (k + 0.5) / 3
+            netz.quader(((x0 + x1) / 2, y, z + 0.15), (x1 - x0 + 0.1, tief / 3 - 0.03, 0.05), holz)
+        netz.stab((x0 - 0.1, y_aussen - 0.02, z + 1.0), (x1 + 0.1, y_aussen - 0.02, z + 1.0), 0.08, 0.08, holz)
+    oben = ebenen[-1]
+    netz.stab((x0, y_aussen - 0.08, 0.2), (xs[-2], y_aussen - 0.08, oben), 0.1, 0.06, holz)
+    netz.stab((xs[1], y_aussen - 0.12, 0.2), (x1, y_aussen - 0.12, oben), 0.1, 0.06, holz)
+    fuss, kopf = (x1 - 0.45, y_aussen - 0.38, 0), (x1 - 0.45, y_aussen - 0.12, ebenen[0] + 0.9)
+    for dx in (-0.22, 0.22):
+        netz.stab((fuss[0] + dx, fuss[1], fuss[2]), (kopf[0] + dx, kopf[1], kopf[2]), 0.07, 0.05, holz)
+    sprossen = int(kopf[2] / 0.32)
+    for k in range(1, sprossen):
+        p = Vector(fuss).lerp(Vector(kopf), k / sprossen)
+        netz.stab((p.x - 0.22, p.y, p.z), (p.x + 0.22, p.y, p.z), 0.04, 0.04, holz)
+    for k in range(3):
+        netz.quader((x0 + 1.2, y_aussen - 0.36 + 0.1 * k, 0.06 + 0.11 * (k == 1)), (2.2, 0.12, 0.12), holz)
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+#  Mauerwerk: Eckquader, Gesimse, Lagerfugen, Gewände, Rundbogenportal
+# ─────────────────────────────────────────────────────────────────────────────
+
+def eckquader(netz, st, x, y, sx, sy, z0, z1, hoehe=0.55, lang=0.62, kurz=0.34, vor=0.035, stoff="Sandstein"):
+    """Eckquader an der Hausecke (x, y); sx, sy = ±1 zeigen nach außen. Lang und kurz im Wechsel,
+    mit einer schmalen Fuge dazwischen. Die Innenseiten fehlen (sie liegen in der Wand)."""
+    n = max(1, round((z1 - z0) / hoehe))
+    h = (z1 - z0) / n
+    for k in range(n):
+        lx, ly = (lang, kurz) if k % 2 == 0 else (kurz, lang)
+        mitte = (x - sx * (lx - vor) / 2, y - sy * (ly - vor) / 2, z0 + h * k + (h - 0.03) / 2)
+        netz.quader(mitte, (lx + vor, ly + vor, h - 0.03), st[stoff],
+                    ohne=("-x" if sx > 0 else "+x", "-y" if sy > 0 else "+y"))
+
+
+def gesims(netz, st, x0, x1, y0, y1, z, hoehe=0.16, vor=0.07, stoff="Sandstein"):
+    """Umlaufendes Gesims: ein Band rund um den Baukörper von (x0, y0) bis (x1, y1) bei Höhe z."""
+    netz.quader(((x0 + x1) / 2, (y0 + y1) / 2, z + hoehe / 2), (x1 - x0 + 2 * vor, y1 - y0 + 2 * vor, hoehe), st[stoff])
+
+
+def fugen(netz, M, L, v0, v1, st, abstand=0.42):
+    """Lagerfugen als dunkle Linien auf der Wandfläche: Mauerwerk aus Schichten, kaum Dreiecke.
+    Fenster, Gewände und Glas liegen davor und decken sie ab."""
+    v = v0 + abstand
+    while v < v1 - 0.05:
+        netz.vieleck([M @ Vector(p) for p in ((-L / 2, -0.003, v - 0.014), (L / 2, -0.003, v - 0.014),
+                                               (L / 2, -0.003, v + 0.014), (-L / 2, -0.003, v + 0.014))], st["Fuge"])
+        v += abstand
+
+
+def gewaende(netz, M, o, st, kreuz=True, verdachung=False):
+    """Steinfenster: Glas, Gewände aus Sandstein (Laibung, Sturz, vorstehende Sohlbank),
+    Fensterkreuz in der Hausfarbe (gestrichene Flügel), auf Wunsch eine Verdachung darüber."""
+    sand = st["Sandstein"]
+    g, vor = 0.16, 0.05
+    y = -0.006
+    netz.vieleck([M @ Vector(p) for p in ((o.u - o.b / 2, y, o.v), (o.u + o.b / 2, y, o.v),
+                                          (o.u + o.b / 2, y, o.v + o.h), (o.u - o.b / 2, y, o.v + o.h))], st["Glas"])
+    for s in (-1, 1):
+        netz.quader((o.u + s * (o.b / 2 + g / 2), (-vor + 0.02) / 2, o.v + o.h / 2), (g, vor + 0.02, o.h), sand, M,
+                    ohne=("+y", "+z", "+x" if s > 0 else "-x"))
+    netz.quader((o.u, (-vor + 0.02) / 2, o.v + o.h + g / 2), (o.b + 2 * g, vor + 0.02, g), sand, M, ohne=("+y", "+x", "-x"))
+    netz.quader((o.u, (-vor - 0.05 + 0.02) / 2, o.v - 0.06), (o.b + 2 * g + 0.12, vor + 0.07, 0.12), sand, M, ohne=("+y",))
+    if verdachung:
+        netz.quader((o.u, (-vor - 0.08 + 0.02) / 2, o.v + o.h + g + 0.06), (o.b + 2 * g + 0.2, vor + 0.1, 0.12), sand, M,
+                    ohne=("+y",))
+    if kreuz:
+        d, vk, yk = 0.03, o.v + o.h * 0.62, -0.02
+        for ecken in (((o.u - d, o.v), (o.u + d, o.v), (o.u + d, o.v + o.h), (o.u - d, o.v + o.h)),
+                      ((o.u - o.b / 2, vk - d), (o.u + o.b / 2, vk - d), (o.u + o.b / 2, vk + d), (o.u - o.b / 2, vk + d))):
+            netz.vieleck([M @ Vector((u, yk, v)) for u, v in ecken], st["Hausfarbe"])
+
+
+def portal(netz, M, o, st, teile=8):
+    """Rundbogenportal: Tür in der Hausfarbe (Rechteck mit Halbkreis), Bogen aus Sandstein mit Schlussstein.
+    o.h ist die Höhe bis zum Scheitel des Bogens."""
+    r = o.b / 2
+    kaempfer = o.v + o.h - r
+    bogen = [(o.u + r * math.cos(math.pi * k / teile), kaempfer + r * math.sin(math.pi * k / teile)) for k in range(teile + 1)]
+    platte(netz, M, [(o.u - r, o.v), (o.u + r, o.v)] + bogen, -0.01, 0.03, st["Hausfarbe"])
+    for f in (0.25, 0.6):
+        balken(netz, M, o.u - r * 0.85, o.v + (o.h - r) * f * 1.4, o.u + r * 0.85, o.v + (o.h - r) * f * 1.4, st["Eisen"],
+               vor=0.03, breite=0.07)
+    g = 0.2
+    aussen = [(o.u + (r + g) * math.cos(math.pi * k / teile), kaempfer + (r + g) * math.sin(math.pi * k / teile))
+              for k in range(teile + 1)]
+    ring = [(o.u + r + g, o.v)] + aussen + [(o.u - r - g, o.v), (o.u - r, o.v)] + list(reversed(bogen)) + [(o.u + r, o.v)]
+    platte(netz, M, ring, -0.06, 0.0, st["Sandstein"])
+    netz.quader((o.u, -0.045, kaempfer + r + g * 0.45), (0.26, 0.1, g + 0.12), st["Sandstein"], M, ohne=("+y",))
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -504,12 +746,13 @@ def vorschau_buehne(flaeche, ziel_hoehe=5.0, ausschnitt=17.0, schnell=False):
     umgebung = Netz("_Umgebung")
     st = {n: _hilfsstoff(n, f) for n, f in (("_Boden", (0.33, 0.33, 0.25)), ("_Gasse", (0.36, 0.34, 0.31)),
                                             ("_Rahmen", (0.86, 0.80, 0.52)))}
-    umgebung.quader((0, 0, -0.05), (80, 80, 0.1), st["_Boden"])
-    umgebung.quader((0, -flaeche[1] / 2 - 3.25, -0.045), (80, 6.5, 0.1), st["_Gasse"])
-    bx, by = flaeche[0] / 2, flaeche[1] / 2
-    for mitte, masse in (((0, -by, 0.005), (flaeche[0] + 0.08, 0.08, 0.01)), ((0, by, 0.005), (flaeche[0] + 0.08, 0.08, 0.01)),
-                         ((-bx, 0, 0.005), (0.08, flaeche[1], 0.01)), ((bx, 0, 0.005), (0.08, flaeche[1], 0.01))):
-        umgebung.quader(mitte, masse, st["_Rahmen"])
+    umgebung.quader((0, 0, -0.05), (120, 120, 0.1), st["_Boden"])
+    if flaeche is not None:      # Gasse vor dem Haus und Rahmen der belegten Fläche
+        umgebung.quader((0, -flaeche[1] / 2 - 3.25, -0.045), (80, 6.5, 0.1), st["_Gasse"])
+        bx, by = flaeche[0] / 2, flaeche[1] / 2
+        for mitte, masse in (((0, -by, 0.005), (flaeche[0] + 0.08, 0.08, 0.01)), ((0, by, 0.005), (flaeche[0] + 0.08, 0.08, 0.01)),
+                             ((-bx, 0, 0.005), (0.08, flaeche[1], 0.01)), ((bx, 0, 0.005), (0.08, flaeche[1], 0.01))):
+            umgebung.quader(mitte, masse, st["_Rahmen"])
     umgebung.objekt()
 
     kam = bpy.data.objects.new("Kamera", bpy.data.cameras.new("Kamera"))
