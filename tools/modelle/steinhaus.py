@@ -186,7 +186,7 @@ def laterne(netz, st, M, u, v):
     netz.stab(M @ Vector((u, 0, v + 0.35)), M @ Vector((u, -0.55, v + 0.35)), 0.04, 0.04, eisen)
     netz.stab(M @ Vector((u, 0, v)), M @ Vector((u, -0.45, v + 0.33)), 0.03, 0.03, eisen)
     mitte = M @ Vector((u, -0.5, v + 0.05))
-    netz.quader(mitte, (0.22, 0.22, 0.3), st["Glas"])
+    netz.quader(mitte, (0.22, 0.22, 0.3), st["Fenster"])          # leuchtet nachts mit den Fenstern
     netz.quader(mitte + Vector((0, 0, 0.2)), (0.3, 0.3, 0.08), eisen)
     netz.quader(mitte - Vector((0, 0, 0.18)), (0.26, 0.26, 0.05), eisen)
 
@@ -196,6 +196,10 @@ def main():
     bs.bericht(NAME, objekte)
     print("geschrieben:", bs.exportieren(NAME, objekte))
     if "--ohne-bilder" in sys.argv:
+        return
+    if "--nur-nacht" in sys.argv:          # nur das Nachtbild
+        bs.vorschau_buehne(FLAECHE, ziel_hoehe=7.6, ausschnitt=26.0, schnell="--schnell" in sys.argv)
+        print(bs.nachtbild(NAME, lambda o: o.name not in ("Leerstand", "Geruest")))
         return
     if "--nur-anker" in sys.argv:          # nur das Bild mit den Ankerpunkten
         bs.vorschau_buehne(FLAECHE, ziel_hoehe=7.6, ausschnitt=26.0, schnell="--schnell" in sys.argv)
@@ -209,6 +213,7 @@ def main():
     if "--schnell" not in sys.argv:
         print(bs.rundum(NAME, normal))
     print(bs.anker_bild(NAME, normal))
+    print(bs.nachtbild(NAME, normal))
 
 
 if __name__ == "__main__":

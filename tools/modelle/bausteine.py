@@ -55,7 +55,8 @@ FARBEN = {
     "Dachziegel": (0.50, 0.27, 0.19),      # Biberschwanz, gedecktes Rotbraun
     "Firstziegel": (0.36, 0.20, 0.15),
     "Ziegelkante": (0.32, 0.18, 0.13),     # Stoßkante jeder Ziegelreihe
-    "Glas": (0.09, 0.11, 0.14),
+    "Glas": (0.09, 0.11, 0.14),            # dunkles Fenster (bleibt auch nachts dunkel)
+    "Fenster": (0.09, 0.11, 0.14),         # Fenster mit Licht: tagsüber wie Glas, nachts schaltet das Spiel es an
     "Eisen": (0.10, 0.10, 0.11),
     "Holz": (0.38, 0.28, 0.18),            # Bank, Fass, Fahnenstange
     "Bretter": (0.46, 0.41, 0.34),         # vergraute Bretter im Leerstand
@@ -87,9 +88,19 @@ FARBEN = {
     "Wasser": (0.15, 0.21, 0.23),
     "Leder": (0.31, 0.20, 0.13),
 }
-RAUHEIT = {"Glas": 0.2, "Eisen": 0.45, "Gold": 0.35, "Wasser": 0.1}
+RAUHEIT = {"Glas": 0.2, "Fenster": 0.2, "Eisen": 0.45, "Gold": 0.35, "Wasser": 0.1}
 METALL = {"Eisen": 0.7, "Gold": 0.85}
 LEUCHTEN = {"Glut": ((1.0, 0.45, 0.12), 3.0)}    # Farbe (sRGB) und Stärke der Emission
+# Licht hinter den Fenstern bei Nacht: Farbe (sRGB) und Stärke. Nicht in der GLB (dort aus), nur für die Nachtbilder –
+# im Spiel schaltet der Code die Emission des gemeinsamen Materials „Fenster“ abends an und morgens aus.
+NACHTLICHT = {"Fenster": ((1.0, 0.62, 0.28), 4.0)}
+
+
+def scheibe(M, o):
+    """Material der Scheibe: etwa zwei von drei Fenstern sind nachts erleuchtet („Fenster“), die übrigen
+    bleiben dunkel („Glas“). Fest aus der Lage des Fensters, also bei jedem Erzeugen gleich."""
+    p = M @ Vector((o.u, 0, o.v))
+    return "Glas" if int(abs(p.x * 3.1 + p.y * 1.7 + p.z * 2.3) * 10) % 3 == 0 else "Fenster"
 
 _stoffe = {}
 
@@ -383,7 +394,7 @@ def fenster(netz, M, o, st, winkel=32, kreuz="Fachwerk", winkel_rechts=None):
     `kreuz`: Material des Fensterkreuzes oder None (Luke ohne Kreuz)."""
     y = -0.006
     netz.vieleck([M @ Vector(p) for p in ((o.u - o.b / 2, y, o.v), (o.u + o.b / 2, y, o.v),
-                                          (o.u + o.b / 2, y, o.v + o.h), (o.u - o.b / 2, y, o.v + o.h))], st["Glas"])
+                                          (o.u + o.b / 2, y, o.v + o.h), (o.u - o.b / 2, y, o.v + o.h))], st[scheibe(M, o)])
     y, d, vk = -0.02, 0.025, o.v + o.h * 0.58       # Fensterkreuz: flache Leisten vor dem Glas
     for ecken in (((o.u - d, o.v), (o.u + d, o.v), (o.u + d, o.v + o.h), (o.u - d, o.v + o.h)),
                   ((o.u - o.b / 2, vk - d), (o.u + o.b / 2, vk - d), (o.u + o.b / 2, vk + d), (o.u - o.b / 2, vk + d))):
@@ -717,7 +728,7 @@ def fugen(netz, M, L, v0, v1, st, abstand=0.42):
         v += abstand
 
 
-def gewaende(netz, M, o, st, kreuz=True, verdachung=False, glas="Glas", gitter=False, stein="Sandstein"):
+def gewaende(netz, M, o, st, kreuz=True, verdachung=False, glas=None, gitter=False, stein="Sandstein"):
     """Steinfenster: Glas, Gewände aus Sandstein (Laibung, Sturz, vorstehende Sohlbank),
     Fensterkreuz in der Hausfarbe (gestrichene Flügel), auf Wunsch eine Verdachung darüber.
     `glas`: Material der Scheibe (z. B. "Glut" für Feuerschein), `gitter`: Eisenstäbe statt Kreuz."""
@@ -725,7 +736,7 @@ def gewaende(netz, M, o, st, kreuz=True, verdachung=False, glas="Glas", gitter=F
     g, vor = 0.16, 0.05
     y = -0.006
     netz.vieleck([M @ Vector(p) for p in ((o.u - o.b / 2, y, o.v), (o.u + o.b / 2, y, o.v),
-                                          (o.u + o.b / 2, y, o.v + o.h), (o.u - o.b / 2, y, o.v + o.h))], st[glas])
+                                          (o.u + o.b / 2, y, o.v + o.h), (o.u - o.b / 2, y, o.v + o.h))], st[glas or scheibe(M, o)])
     if gitter:
         for k in range(1, 4):
             u = o.u - o.b / 2 + o.b * k / 4
@@ -824,6 +835,30 @@ def anker_bild(name, sichtbar):
     pfad = rendern(name + "-anker", lambda o: sichtbar(o) or o.name.startswith("_Marke_"))
     for o in marken:
         bpy.data.objects.remove(o)
+    return pfad
+
+
+def nachtbild(name, sichtbar, drehung=0):
+    """Vorschau bei Nacht docs/modelle/<name>-nacht.png: Mondlicht, dunkler Himmel, Licht hinter den Fenstern
+    und Glut der Essen an – so, wie das Spiel es abends schalten soll."""
+    szene = bpy.context.scene
+    sonne = bpy.data.objects["Sonne"].data
+    hg = szene.world.node_tree.nodes["Background"].inputs
+    alt = (sonne.energy, tuple(sonne.color), tuple(hg["Color"].default_value), hg["Strength"].default_value)
+    sonne.energy, sonne.color = 0.35, (0.62, 0.70, 1.0)
+    hg["Color"].default_value, hg["Strength"].default_value = (0.05, 0.07, 0.13, 1), 0.5
+    an = []
+    for name_stoff, (farbe, staerke) in NACHTLICHT.items():
+        if name_stoff in _stoffe:
+            p = _stoffe[name_stoff].node_tree.nodes["Principled BSDF"]
+            p.inputs["Emission Color"].default_value = (*_linear(farbe), 1.0)
+            p.inputs["Emission Strength"].default_value = staerke
+            an.append(p)
+    pfad = rendern(name + "-nacht", sichtbar, drehung)
+    for p in an:
+        p.inputs["Emission Strength"].default_value = 0.0
+    sonne.energy, sonne.color = alt[0], alt[1]
+    hg["Color"].default_value, hg["Strength"].default_value = alt[2], alt[3]
     return pfad
 
 

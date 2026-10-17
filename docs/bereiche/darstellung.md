@@ -20,6 +20,7 @@ So wird eingetragen (damit sich die Chats nie an derselben Stelle treffen):
 - Wohnhaus-Modelle auf Wohnhausplätzen der Karte (8 m tief, ohne Vorplatz): Die GLB sind für 8 × 10 m mit 2 m Vorplatz gebaut, die Hauskörper sind höchstens 7,4 m tief. Beim Einbau das Modell dort um 1 m zur Gasse versetzen (die Freitreppe des Steinhauses ragt dann in die Gasse); breitere Plätze lassen links und rechts Luft
 - Weitere Modelle ins Spiel einbauen, sobald es sie gibt: Stadtpalais und Hof in `SpielhausModell` (Stufe 3 und 4 bauen noch Grundkörper), die Einwohnerhäuser, die Werkstätten – nach dem Muster `WohnhausModellEinsetzen` (PR #105)
 - Ankerpunkte der Modelle nutzen: Passanten gehen das letzte Stück vom Gassennetz bis „Anker_Tuer“ (mit dessen Höhe, also die Stufen hinauf) und verschwinden erst dort; Karren halten an „Anker_Karren“. Für die eingebauten Wohnhäuser ersetzt der Anker die Haustür aus der Fläche, für Werkstätten den Hof (`HofVon`, 5,5 m vor der Mitte). Den Anker nach dem Einsetzen über `FindChild` suchen und seine globale Lage nehmen – das Modell ist schon verschoben und gedreht
+- Fensterlicht bei Nacht schalten: Die Emission des Materials „Fenster“ abends an (Farbe sRGB 1,0 / 0,62 / 0,28, Stärke wie in den Nachtbildern), morgens aus – alle Häuser teilen das geladene Material, ein Schalter genügt. Leere Häuser (Leerstand, Sanierung) bekommen statt „Fenster“ das dunkle „Glas“ (wie beim Einfärben der „Hausfarbe“)
 - Weitere Modelle aus Blender-Skripten: Stadtpalais, Stadthof; Werkstätten mit Stufe1–3 (Gießerei, Tischlerei, Maurerei); Einwohnerhäuser (Ratsherrenhaus, Bürgerhaus, einfaches Haus)
 
 ## Entscheidungen
@@ -133,3 +134,12 @@ So wird eingetragen (damit sich die Chats nie an derselben Stelle treffen):
 | Lage und Richtung | Der Anker liegt direkt vor der Tür, in der Höhe der obersten Stufe davor (Bürgerhaus 0,46 m, Steinhaus 0,5 m, Fachwerkhaus 0,2 m, Schmied auf der Schwelle 0,3 m). Seine Blickrichtung (Godot −Z) zeigt ins Haus. Der Karrenanker liegt auf dem Boden des Vorplatzes. | 17.10.2026 |
 | Stufen | Ändert sich ein Zugang mit der Stufe, hängt der Anker im Knoten der Stufe. Beim Schmied bleiben beide am Tor der Halle, in jeder Stufe gleich. | 17.10.2026 |
 | Prüfung | `pruefen.py` listet die Anker mit Lage und Richtung und verlangt „Anker_Tuer“ auf der Fläche. `<name>-anker.png` zeigt sie als Pfeile (Personen magenta, Karren türkis), die Spitze auf dem Ankerpunkt. | 17.10.2026 |
+
+### Licht in den Fenstern bei Nacht (PR #106)
+
+| Thema | Entscheidung | Datum |
+|---|---|---|
+| Material | Scheiben, hinter denen nachts Licht brennt, tragen das Material „Fenster“, die übrigen „Glas“. Tagsüber sehen beide gleich aus. In der GLB ist „Fenster“ **ohne** Leuchten – die eingebauten Wohnhäuser bleiben unverändert, bis das Spiel es schaltet. | 17.10.2026 |
+| Auswahl | Etwa zwei von drei Fenstern sind „Fenster“, fest aus der Lage des Fensters (bei jedem Erzeugen gleich). So wirkt eine Stadt bei Nacht belebt statt gleichförmig. Die Laterne am Portal des Steinhauses leuchtet mit. | 17.10.2026 |
+| Schalten | Das Spiel setzt nachts die Emission des einen gemeinsamen Materials „Fenster“ (warmes Orange) – ein Schalter für die ganze Stadt. Leere Häuser bekommen eine Kopie in „Glas“. Die „Glut“ der Essen bleibt davon getrennt (sie hängt an der Arbeit, nicht an der Uhrzeit). | 17.10.2026 |
+| Vorschau | `<name>-nacht.png` zeigt jedes Modell bei Mondlicht mit Fensterlicht und Glut; einzeln mit `--nur-nacht`. | 17.10.2026 |

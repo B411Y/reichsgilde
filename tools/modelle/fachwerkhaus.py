@@ -255,6 +255,10 @@ def main():
     print("geschrieben:", bs.exportieren(NAME, objekte))
     if "--ohne-bilder" in sys.argv:
         return
+    if "--nur-nacht" in sys.argv:          # nur das Nachtbild
+        bs.vorschau_buehne(FLAECHE, ziel_hoehe=3.6, ausschnitt=20.0, schnell="--schnell" in sys.argv)
+        print(bs.nachtbild(NAME, lambda o: o.name not in ("Leerstand", "Geruest")))
+        return
     if "--nur-anker" in sys.argv:          # nur das Bild mit den Ankerpunkten
         bs.vorschau_buehne(FLAECHE, ziel_hoehe=3.6, ausschnitt=20.0, schnell="--schnell" in sys.argv)
         print(bs.anker_bild(NAME, lambda o: o.name not in ("Leerstand", "Geruest")))
@@ -267,6 +271,7 @@ def main():
     if "--schnell" not in sys.argv:
         print(bs.rundum(NAME, normal))
     print(bs.anker_bild(NAME, normal))
+    print(bs.nachtbild(NAME, normal))
 
 
 if __name__ == "__main__":

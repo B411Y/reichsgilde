@@ -415,6 +415,10 @@ def main():
     print("geschrieben:", bs.exportieren(NAME, objekte))
     if "--ohne-bilder" in sys.argv:
         return
+    if "--nur-nacht" in sys.argv:          # nur das Nachtbild (Stufe 3, die meisten Fenster)
+        bs.vorschau_buehne(FLAECHE, ziel_hoehe=3.6, ausschnitt=27.0)
+        print(bs.nachtbild(NAME, lambda o: o.name in ("Haus", "Stufe3", "Wappen", "Fahne")))
+        return
     if "--nur-anker" in sys.argv:          # nur das Bild mit den Ankerpunkten (Stufe 1)
         bs.vorschau_buehne(FLAECHE, ziel_hoehe=3.6, ausschnitt=27.0)
         print(bs.anker_bild(NAME, lambda o: o.name in ("Haus", "Stufe1", "Wappen", "Fahne")))
@@ -437,6 +441,7 @@ def main():
         print(bs.rundum(NAME + "-stufe3", nur("Stufe3")))
     print(bs.nebeneinander(NAME, bilder, [f"Stufe {k + 1}: {n}" for k, n in enumerate(STUFEN)]))
     print(bs.anker_bild(NAME, nur("Stufe1")))
+    print(bs.nachtbild(NAME, nur("Stufe3")))
 
 
 if __name__ == "__main__":
