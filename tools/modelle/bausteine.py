@@ -87,9 +87,12 @@ FARBEN = {
     "Formsand": (0.46, 0.37, 0.27),
     "Wasser": (0.15, 0.21, 0.23),
     "Leder": (0.31, 0.20, 0.13),
+    "Kupfer": (0.36, 0.56, 0.47),          # grün angelaufenes Kupfer (Dachreiter des Tischlers)
+    "Schnittholz": (0.66, 0.53, 0.36),     # frisch gesägte Bretter und Hirnholz
+    "Seil": (0.55, 0.48, 0.35),
 }
 RAUHEIT = {"Glas": 0.2, "Fenster": 0.2, "Eisen": 0.45, "Gold": 0.35, "Wasser": 0.1}
-METALL = {"Eisen": 0.7, "Gold": 0.85}
+METALL = {"Eisen": 0.7, "Gold": 0.85, "Kupfer": 0.5}
 LEUCHTEN = {"Glut": ((1.0, 0.45, 0.12), 3.0)}    # Farbe (sRGB) und Stärke der Emission
 # Licht hinter den Fenstern bei Nacht: Farbe (sRGB) und Stärke. Nicht in der GLB (dort aus), nur für die Nachtbilder –
 # im Spiel schaltet der Code die Emission des gemeinsamen Materials „Fenster“ abends an und morgens aus.
@@ -697,6 +700,25 @@ def fachwerkgiebel(netz, st, M, L, hoch, oeffnungen, laeden=False):
         oeffnungen.append((M, o))
 
 
+def dachreiter(netz, st, first, spitze="Gold"):
+    """Dachreiter auf dem First mit vierseitiger Spitze (wie bisher im Spiel ab Stufe 3): golden beim Schmied,
+    kupfergrün beim Tischler … – `spitze` ist das Material."""
+    x, y, z = first
+    netz.quader((x, y, z + 0.6), (1.3, 1.3, 1.6), st["Putz"])
+    for sx in (-1, 1):
+        for sy in (-1, 1):
+            netz.quader((x + sx * 0.6, y + sy * 0.6, z + 0.6), (0.14, 0.14, 1.6), st["Fachwerk"])
+    for s in (-1, 1):
+        netz.vieleck_nach([(x - 0.3, y + s * 0.66, z + 0.7), (x + 0.3, y + s * 0.66, z + 0.7),
+                           (x + 0.3, y + s * 0.66, z + 1.25), (x - 0.3, y + s * 0.66, z + 1.25)], (0, s, 0), st["Loch"])
+    gipfel = Vector((x, y, z + 3.4))
+    ecken = [Vector((x + sx * 0.85, y + sy * 0.85, z + 1.4)) for sx, sy in ((-1, -1), (1, -1), (1, 1), (-1, 1))]
+    for i in range(4):
+        j = (i + 1) % 4
+        netz.vieleck_nach([ecken[i], ecken[j], gipfel], (ecken[i] + ecken[j]) / 2 - Vector((x, y, z + 1.0)), st[spitze])
+    netz.quader((x, y, z + 3.6), (0.1, 0.1, 0.45), st[spitze])
+
+
 # ─────────────────────────────────────────────────────────────────────────────
 #  Mauerwerk: Eckquader, Gesimse, Lagerfugen, Gewände, Rundbogenportal
 # ─────────────────────────────────────────────────────────────────────────────
@@ -862,6 +884,39 @@ def nachtbild(name, sichtbar, drehung=0):
     return pfad
 
 
+def deckungsgleich(objekte, grenze=0.004):
+    """Sucht Flächen, die in derselben Ebene liegen, in dieselbe Richtung zeigen und sich überdecken.
+    Im Spiel flimmern sie (Z-Fighting), in Cycles werden sie schwarz. Vergleicht die Umrisse als Rechtecke
+    in der Ebene – schräge Flächen können also auch einmal fälschlich gemeldet werden.
+    Gibt Liste [(Ort, Objekt A, Objekt B, Fläche)] zurück."""
+    import collections
+    eimer = collections.defaultdict(list)
+    for o in objekte:
+        if o.type != "MESH":
+            continue
+        for p in o.data.polygons:
+            n = p.normal
+            if p.area < grenze:
+                continue
+            # Achsen in der Ebene: waagrecht und „hoch“ (bei Wänden), sonst entlang X – so bleiben Umrisse eng
+            u = n.cross(Vector((0, 0, 1))).normalized() if abs(n.z) < 0.9 else Vector((1, 0, 0))
+            v = n.cross(u)
+            punkte = [o.data.vertices[i].co for i in p.vertices]
+            us, vs = [q.dot(u) for q in punkte], [q.dot(v) for q in punkte]
+            schluessel = (round(n.x, 2), round(n.y, 2), round(n.z, 2), round(n.dot(p.center), 3))
+            eimer[schluessel].append((o.name, p.center.copy(), (min(us), max(us), min(vs), max(vs))))
+    funde = []
+    for liste in eimer.values():
+        for i in range(len(liste)):
+            for j in range(i + 1, len(liste)):
+                a, b = liste[i][2], liste[j][2]
+                du = min(a[1], b[1]) - max(a[0], b[0])
+                dv = min(a[3], b[3]) - max(a[2], b[2])
+                if du > 0.01 and dv > 0.01 and du * dv > grenze:
+                    funde.append((liste[i][1], liste[i][0], liste[j][0], du * dv))
+    return funde
+
+
 def bericht(name, objekte):
     """Dreiecke je Objekt (so, wie sie im Export landen); Anker mit ihrer Lage."""
     print(f"\n{name}: Dreiecke")
@@ -875,6 +930,19 @@ def bericht(name, objekte):
         summe += n
         print(f"  {o.name:10s} {n:6d}")
     print(f"  {'gesamt':10s} {summe:6d}\n")
+    # Deckungsgleiche Flächen: je sichtbarer Kombination (Haus mit genau einer Stufe, Zustände dazu)
+    feste = [o for o in objekte if o.type == "MESH" and not o.name.startswith("Stufe")]
+    stufen = [o for o in objekte if o.type == "MESH" and o.name.startswith("Stufe")] or [None]
+    funde = []
+    for stufe in stufen:
+        funde += deckungsgleich(feste + ([stufe] if stufe else []))
+    funde = list({(round(f[0].x, 2), round(f[0].y, 2), round(f[0].z, 2), f[1], f[2]): f for f in funde}.values())
+    if funde:
+        print(f"  WARNUNG: {len(funde)} deckungsgleiche Flächen (flimmern im Spiel), größte:")
+        for ort, a, b, flaeche in sorted(funde, key=lambda f: -f[3])[:8]:
+            print(f"    bei ({ort.x:.2f}, {ort.y:.2f}, {ort.z:.2f})  {a} / {b}  {flaeche:.2f} m²")
+    else:
+        print("  keine deckungsgleichen Flächen")
 
 
 def vorschau_buehne(flaeche, ziel_hoehe=5.0, ausschnitt=17.0, schnell=False):

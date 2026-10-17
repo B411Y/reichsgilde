@@ -14,14 +14,11 @@ So wird eingetragen (damit sich die Chats nie an derselben Stelle treffen):
 - (3) (von Kern) Karren am Stadttor zeigen: `Karren.WartetAmTor(zeit)` – Hinweg draußen vor dem Tor, Rückweg drinnen (ab PR #67)
 - (3) Einwohner in den Innenräumen von Schänken und Kirchen der Häuser zeigen (im Dom erledigt, PR #93)
 - (3) (von Leveldesign) Gebäudemaße auf glatte Meter: Einwohnerhäuser 6 × 6, 7 × 7, 8 × 8 m; Werkstatt belegt 16 × 14 m und zeigt jede Stufe als sichtbaren Anbau innerhalb dieser Fläche (`docs/LEVELDESIGN.md`, Gebäudegrößen)
-- Modelle ins Spiel einbauen (nach PR #103): `SpielhausModell` und die Einwohnerhäuser laden die GLB aus `game/assets/modelle/` statt Grundkörper zu bauen; Material „Hausfarbe“ je Haus einfärben, Knoten „Leerstand“/„Geruest“ (und „Wappen“/„Fahne“) nach Zustand ein- und ausblenden
-- Weitere Modelle aus Blender-Skripten: Stadtpalais, Stadthof; Werkstätten mit Stufe1–3 der übrigen Berufe (Tischler, Steinmetz, Alchimist …), je Beruf ein Schritt; Einwohnerhäuser (Ratsherrenhaus, Bürgerhaus, einfaches Haus)
-- Werkstatt des Schmieds einbauen: `schmied.glb` statt `WerkstattAussenBauen` und `AusbauBauen` beim Beruf Schmied; genau den Knoten `Stufe<n>` der Betriebsstufe zeigen, das Gerüst über „Geruest“, die Glut über das Material „Glut“ (Emission an, solange gearbeitet wird; ersetzt `huelle.Esse`), die verkaufte Werkstatt über „Leerstand“ ohne „Wappen“ und „Fahne“. Klickfläche, Innenraum und Schild bleiben wie bisher
-- Wohnhaus-Modelle auf Wohnhausplätzen der Karte (8 m tief, ohne Vorplatz): Die GLB sind für 8 × 10 m mit 2 m Vorplatz gebaut, die Hauskörper sind höchstens 7,4 m tief. Beim Einbau das Modell dort um 1 m zur Gasse versetzen (die Freitreppe des Steinhauses ragt dann in die Gasse); breitere Plätze lassen links und rechts Luft
+- Weitere Modelle aus Blender-Skripten: Stadtpalais, Stadthof; Werkstätten mit Stufe1–3 der übrigen Berufe (Steinmetz, Alchimist, Wirt …), je Beruf ein Schritt; Einwohnerhäuser (Ratsherrenhaus, Bürgerhaus, einfaches Haus)
+- Werkstätten einbauen: `schmied.glb` und `tischler.glb` statt `WerkstattAussenBauen` und `AusbauBauen` beim Beruf Schmied bzw. Tischler; genau den Knoten `Stufe<n>` der Betriebsstufe zeigen, das Gerüst über „Geruest“, die Glut über das Material „Glut“ (Emission an, solange gearbeitet wird; ersetzt `huelle.Esse`), die verkaufte Werkstatt über „Leerstand“ ohne „Wappen“ und „Fahne“. Klickfläche, Innenraum und Schild bleiben wie bisher
 - Weitere Modelle ins Spiel einbauen, sobald es sie gibt: Stadtpalais und Hof in `SpielhausModell` (Stufe 3 und 4 bauen noch Grundkörper), die Einwohnerhäuser, die Werkstätten – nach dem Muster `WohnhausModellEinsetzen` (PR #105)
 - Ankerpunkte der Modelle nutzen: Passanten gehen das letzte Stück vom Gassennetz bis „Anker_Tuer“ (mit dessen Höhe, also die Stufen hinauf) und verschwinden erst dort; Karren halten an „Anker_Karren“. Für die eingebauten Wohnhäuser ersetzt der Anker die Haustür aus der Fläche, für Werkstätten den Hof (`HofVon`, 5,5 m vor der Mitte). Den Anker nach dem Einsetzen über `FindChild` suchen und seine globale Lage nehmen – das Modell ist schon verschoben und gedreht
 - Fensterlicht bei Nacht schalten: Die Emission des Materials „Fenster“ abends an (Farbe sRGB 1,0 / 0,62 / 0,28, Stärke wie in den Nachtbildern), morgens aus – alle Häuser teilen das geladene Material, ein Schalter genügt. Leere Häuser (Leerstand, Sanierung) bekommen statt „Fenster“ das dunkle „Glas“ (wie beim Einfärben der „Hausfarbe“)
-- Weitere Modelle aus Blender-Skripten: Stadtpalais, Stadthof; Werkstätten mit Stufe1–3 (Gießerei, Tischlerei, Maurerei); Einwohnerhäuser (Ratsherrenhaus, Bürgerhaus, einfaches Haus)
 
 ## Entscheidungen
 
@@ -143,3 +140,12 @@ So wird eingetragen (damit sich die Chats nie an derselben Stelle treffen):
 | Auswahl | Etwa zwei von drei Fenstern sind „Fenster“, fest aus der Lage des Fensters (bei jedem Erzeugen gleich). So wirkt eine Stadt bei Nacht belebt statt gleichförmig. Die Laterne am Portal des Steinhauses leuchtet mit. | 17.10.2026 |
 | Schalten | Das Spiel setzt nachts die Emission des einen gemeinsamen Materials „Fenster“ (warmes Orange) – ein Schalter für die ganze Stadt. Leere Häuser bekommen eine Kopie in „Glas“. Die „Glut“ der Essen bleibt davon getrennt (sie hängt an der Arbeit, nicht an der Uhrzeit). | 17.10.2026 |
 | Vorschau | `<name>-nacht.png` zeigt jedes Modell bei Mondlicht mit Fensterlicht und Glut; einzeln mit `--nur-nacht`. | 17.10.2026 |
+
+### Werkstatt des Tischlers als 3D-Modell (PR #109)
+
+| Thema | Entscheidung | Datum |
+|---|---|---|
+| Aufbau | `tischler.glb` nach dem Muster des Schmieds: „Haus“ (Werkstatt mit Giebel zur Gasse) und genau eine von „Stufe1“–„Stufe3“, Fläche 16 × 14 m, Anker an Tor und Rampe. | 17.10.2026 |
+| Werkstatt | Zwei Fachwerkgeschosse auf Bruchsteinsockel, Schieferdach wie bisher im Spiel. Im Giebel eine Ladeluke mit Kranbalken, Rolle und Seil für das Holz auf dem Dachboden, unten ein zweiflügeliges Tor in der Hausfarbe mit Rampe. Zunftzeichen: Säge am Ausleger. | 17.10.2026 |
+| Wachstum | Tischlerei: Vordach mit Hobelbank und Spänen, Bretterstapel zum Trocknen, Sägebock, Rundholz, Bretterzaun. Drechslerei: Anbau mit offener Laube zur Gasse, darin die Wippdrehbank mit federnder Stange und gedrechselte Ware, Gaube. Sägewerk: offene Sägehalle mit Gattersäge und Stamm auf dem Wagen, rechts daneben ein Göpel (achteckiges Schieferdach, Pferd am Zugbaum, Königswelle mit Kammrad, liegende Welle zur Säge; ersetzt auf Wunsch des Nutzers das zuerst gebaute Wasserrad), Dachreiter mit kupfergrüner Spitze wie bisher im Spiel. | 17.10.2026 |
+| Deckungsgleiche Flächen | Jedes Skript sucht beim Erzeugen nach Flächen, die in derselben Ebene liegen und sich überdecken (Spiel: Flimmern, Cycles: schwarz), und warnt mit Ort und Größe. Sichtbare Fälle werden behoben (Laubenboden, Rampe, Torschwelle des Schmieds, Sägebock); kleine Reste liegen verdeckt im Inneren der Körper. | 17.10.2026 |

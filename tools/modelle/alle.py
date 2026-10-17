@@ -21,7 +21,7 @@ ORDNER = os.path.dirname(os.path.abspath(__file__))
 # Reihenfolge = Stufe; Beschriftung für die Übersicht
 WOHNHAEUSER = [("fachwerkhaus", "Fachwerkhaus – Gemeiner"), ("buergerhaus", "Bürgerhaus – Bürger"),
                ("steinhaus", "Steinhaus – Patrizier")]
-WERKSTAETTEN = ["schmied"]          # je Beruf ein Modell mit Stufe1–Stufe3
+WERKSTAETTEN = ["schmied", "tischler"]          # je Beruf ein Modell mit Stufe1–Stufe3
 
 
 def erzeugen(name, schalter):
