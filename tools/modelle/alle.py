@@ -1,4 +1,4 @@
-"""Erzeugt alle Modelle neu und rendert die Übersicht der Wohnhaus-Stufen.
+"""Erzeugt alle Modelle neu (Wohnhäuser und Werkstätten) und rendert die Übersicht der Wohnhaus-Stufen.
 
     python tools/modelle/alle.py [--schnell] [--ohne-bilder]
     blender -b --python tools/modelle/alle.py -- [--schnell]
@@ -21,6 +21,7 @@ ORDNER = os.path.dirname(os.path.abspath(__file__))
 # Reihenfolge = Stufe; Beschriftung für die Übersicht
 WOHNHAEUSER = [("fachwerkhaus", "Fachwerkhaus – Gemeiner"), ("buergerhaus", "Bürgerhaus – Bürger"),
                ("steinhaus", "Steinhaus – Patrizier")]
+WERKSTAETTEN = ["schmied"]          # je Beruf ein Modell mit Stufe1–Stufe3
 
 
 def erzeugen(name, schalter):
@@ -74,7 +75,7 @@ def uebersicht(schnell=False, abstand=12.0):
 
 def main():
     schalter = [a for a in sys.argv if a in ("--schnell", "--ohne-bilder")]
-    for name, _ in WOHNHAEUSER:
+    for name in [n for n, _ in WOHNHAEUSER] + WERKSTAETTEN:
         erzeugen(name, schalter)
     if "--ohne-bilder" not in schalter:
         print(uebersicht(schnell="--schnell" in schalter))

@@ -55,7 +55,8 @@ FARBEN = {
     "Dachziegel": (0.50, 0.27, 0.19),      # Biberschwanz, gedecktes Rotbraun
     "Firstziegel": (0.36, 0.20, 0.15),
     "Ziegelkante": (0.32, 0.18, 0.13),     # Stoßkante jeder Ziegelreihe
-    "Glas": (0.09, 0.11, 0.14),
+    "Glas": (0.09, 0.11, 0.14),            # dunkles Fenster (bleibt auch nachts dunkel)
+    "Fenster": (0.09, 0.11, 0.14),         # Fenster mit Licht: tagsüber wie Glas, nachts schaltet das Spiel es an
     "Eisen": (0.10, 0.10, 0.11),
     "Holz": (0.38, 0.28, 0.18),            # Bank, Fass, Fahnenstange
     "Bretter": (0.46, 0.41, 0.34),         # vergraute Bretter im Leerstand
@@ -79,9 +80,27 @@ FARBEN = {
     "Schiefer": (0.27, 0.29, 0.33),
     "Schieferkante": (0.17, 0.18, 0.21),
     "Firstblech": (0.22, 0.23, 0.25),
+    # Werkstätten
+    "Glut": (0.45, 0.14, 0.05),            # Esse und Feuerschein; leuchtet (Emission), das Spiel regelt die Stärke
+    "Gold": (0.86, 0.67, 0.27),
+    "Kohle": (0.11, 0.11, 0.12),
+    "Formsand": (0.46, 0.37, 0.27),
+    "Wasser": (0.15, 0.21, 0.23),
+    "Leder": (0.31, 0.20, 0.13),
 }
-RAUHEIT = {"Glas": 0.2, "Eisen": 0.45}
-METALL = {"Eisen": 0.7}
+RAUHEIT = {"Glas": 0.2, "Fenster": 0.2, "Eisen": 0.45, "Gold": 0.35, "Wasser": 0.1}
+METALL = {"Eisen": 0.7, "Gold": 0.85}
+LEUCHTEN = {"Glut": ((1.0, 0.45, 0.12), 3.0)}    # Farbe (sRGB) und Stärke der Emission
+# Licht hinter den Fenstern bei Nacht: Farbe (sRGB) und Stärke. Nicht in der GLB (dort aus), nur für die Nachtbilder –
+# im Spiel schaltet der Code die Emission des gemeinsamen Materials „Fenster“ abends an und morgens aus.
+NACHTLICHT = {"Fenster": ((1.0, 0.62, 0.28), 4.0)}
+
+
+def scheibe(M, o):
+    """Material der Scheibe: etwa zwei von drei Fenstern sind nachts erleuchtet („Fenster“), die übrigen
+    bleiben dunkel („Glas“). Fest aus der Lage des Fensters, also bei jedem Erzeugen gleich."""
+    p = M @ Vector((o.u, 0, o.v))
+    return "Glas" if int(abs(p.x * 3.1 + p.y * 1.7 + p.z * 2.3) * 10) % 3 == 0 else "Fenster"
 
 _stoffe = {}
 
@@ -105,6 +124,10 @@ def stoff(name):
     p.inputs["Base Color"].default_value = farbe
     p.inputs["Roughness"].default_value = RAUHEIT.get(name, 0.9)
     p.inputs["Metallic"].default_value = METALL.get(name, 0.0)
+    if name in LEUCHTEN:
+        licht, staerke = LEUCHTEN[name]
+        p.inputs["Emission Color"].default_value = (*_linear(licht), 1.0)
+        p.inputs["Emission Strength"].default_value = staerke
     m.diffuse_color = farbe
     _stoffe[name] = m
     return m
@@ -371,7 +394,7 @@ def fenster(netz, M, o, st, winkel=32, kreuz="Fachwerk", winkel_rechts=None):
     `kreuz`: Material des Fensterkreuzes oder None (Luke ohne Kreuz)."""
     y = -0.006
     netz.vieleck([M @ Vector(p) for p in ((o.u - o.b / 2, y, o.v), (o.u + o.b / 2, y, o.v),
-                                          (o.u + o.b / 2, y, o.v + o.h), (o.u - o.b / 2, y, o.v + o.h))], st["Glas"])
+                                          (o.u + o.b / 2, y, o.v + o.h), (o.u - o.b / 2, y, o.v + o.h))], st[scheibe(M, o)])
     y, d, vk = -0.02, 0.025, o.v + o.h * 0.58       # Fensterkreuz: flache Leisten vor dem Glas
     for ecken in (((o.u - d, o.v), (o.u + d, o.v), (o.u + d, o.v + o.h), (o.u - d, o.v + o.h)),
                   ((o.u - o.b / 2, vk - d), (o.u + o.b / 2, vk - d), (o.u + o.b / 2, vk + d), (o.u - o.b / 2, vk + d))):
@@ -629,6 +652,51 @@ def baugeruest(netz, st, x0, x1, y_innen, y_aussen, ebenen=(2.15, 4.25), hoehe_i
         netz.quader((x0 + 1.2, y_aussen - 0.36 + 0.1 * k, 0.06 + 0.11 * (k == 1)), (2.2, 0.12, 0.12), holz)
 
 
+def zaun(netz, st, punkte, hoehe=1.1, abstand=2.0, stoff="Holz alt"):
+    """Bretterzaun entlang eines Linienzugs [(x, y), …]: Pfosten und zwei Latten je Abschnitt."""
+    holz = st[stoff]
+    for i, ((x0, y0), (x1, y1)) in enumerate(zip(punkte, punkte[1:])):
+        laenge = math.hypot(x1 - x0, y1 - y0)
+        n = max(1, round(laenge / abstand))
+        for k in range(0 if i == 0 else 1, n + 1):     # Eckpfosten nur einmal (doppelte Flächen flimmern)
+            x, y = x0 + (x1 - x0) * k / n, y0 + (y1 - y0) * k / n
+            netz.quader((x, y, hoehe / 2 + 0.05), (0.12, 0.12, hoehe + 0.1), holz)
+        for z in (hoehe * 0.35, hoehe * 0.85):
+            netz.stab((x0, y0, z), (x1, y1, z), 0.1, 0.05, holz, quer=(0, 0, 1))
+
+
+def fachwerkgiebel(netz, st, M, L, hoch, oeffnungen, laeden=False):
+    """Giebeldreieck mit Fachwerk für beliebige Maße: Schwelle, Firstsäule, Kehlbalken, Ständer neben
+    zwei Fenstern, Streben. Alle Maße wachsen mit der Giebelgröße, nichts ragt über das Dach."""
+    holz = st["Fachwerk"]
+    halb = L / 2
+    platte(netz, M, [(-halb, 0), (halb, 0), (0, hoch)], 0, 0.3, st["Putz"])
+
+    def rand(u):
+        return hoch * (1 - abs(u) / halb)
+
+    balken(netz, M, -halb + 0.05, B / 2, halb - 0.05, B / 2, holz, vor=VOR_SCHWELLE, enden=True)
+    balken(netz, M, 0, B, 0, hoch - 0.35, holz)
+    vk = hoch * 0.5
+    breite_k = halb * (1 - (vk + B) / hoch) - 0.05
+    balken(netz, M, -breite_k, vk + B / 2, breite_k, vk + B / 2, holz, vor=VOR_SCHWELLE)
+    fb, fv = 0.6, 0.45
+    fh = min(0.95, vk - fv - 0.25)
+    fu = halb * 0.33
+    for s in (-1, 1):
+        for u in (fu - fb / 2 - B / 2, fu + fb / 2 + B / 2):
+            balken(netz, M, s * u, B, s * u, min(vk, rand(u + B / 2) - 0.1), holz)
+        for v in (fv - B / 2, fv + fh + B / 2):
+            balken(netz, M, s * 0.07, v, s * (fu + fb / 2 + B), v, holz, vor=VOR_RIEGEL)
+        a = halb * 0.8
+        balken(netz, M, s * (fu + fb / 2 + B), B, s * a, max(B + 0.2, rand(a) - 0.2), holz, vor=VOR_STREBE)
+        if hoch - 0.8 > vk + B + 0.3:
+            balken(netz, M, s * halb * 0.3, vk + B, s * 0.08, hoch - 0.8, holz, vor=VOR_STREBE)
+        o = Oeffnung("fenster", s * fu, fv, fb, fh, laeden=laeden)
+        fenster(netz, M, o, st)
+        oeffnungen.append((M, o))
+
+
 # ─────────────────────────────────────────────────────────────────────────────
 #  Mauerwerk: Eckquader, Gesimse, Lagerfugen, Gewände, Rundbogenportal
 # ─────────────────────────────────────────────────────────────────────────────
@@ -660,14 +728,21 @@ def fugen(netz, M, L, v0, v1, st, abstand=0.42):
         v += abstand
 
 
-def gewaende(netz, M, o, st, kreuz=True, verdachung=False):
+def gewaende(netz, M, o, st, kreuz=True, verdachung=False, glas=None, gitter=False, stein="Sandstein"):
     """Steinfenster: Glas, Gewände aus Sandstein (Laibung, Sturz, vorstehende Sohlbank),
-    Fensterkreuz in der Hausfarbe (gestrichene Flügel), auf Wunsch eine Verdachung darüber."""
-    sand = st["Sandstein"]
+    Fensterkreuz in der Hausfarbe (gestrichene Flügel), auf Wunsch eine Verdachung darüber.
+    `glas`: Material der Scheibe (z. B. "Glut" für Feuerschein), `gitter`: Eisenstäbe statt Kreuz."""
+    sand = st[stein]
     g, vor = 0.16, 0.05
     y = -0.006
     netz.vieleck([M @ Vector(p) for p in ((o.u - o.b / 2, y, o.v), (o.u + o.b / 2, y, o.v),
-                                          (o.u + o.b / 2, y, o.v + o.h), (o.u - o.b / 2, y, o.v + o.h))], st["Glas"])
+                                          (o.u + o.b / 2, y, o.v + o.h), (o.u - o.b / 2, y, o.v + o.h))], st[glas or scheibe(M, o)])
+    if gitter:
+        for k in range(1, 4):
+            u = o.u - o.b / 2 + o.b * k / 4
+            balken(netz, M, u, o.v, u, o.v + o.h, st["Eisen"], vor=0.03, breite=0.035)
+        balken(netz, M, o.u - o.b / 2, o.v + o.h * 0.5, o.u + o.b / 2, o.v + o.h * 0.5, st["Eisen"], vor=0.035, breite=0.035)
+        kreuz = False
     for s in (-1, 1):
         netz.quader((o.u + s * (o.b / 2 + g / 2), (-vor + 0.02) / 2, o.v + o.h / 2), (g, vor + 0.02, o.h), sand, M,
                     ohne=("+y", "+z", "+x" if s > 0 else "-x"))
@@ -727,11 +802,74 @@ def exportieren(name, objekte):
     return pfad
 
 
+def anker(name, punkt, drehung=0.0):
+    """Ankerpunkt: ein leerer Knoten, den das Spiel nach dem Laden sucht (Name „Anker_…“).
+    `punkt` liegt dort, wo eine Figur oder ein Karren ankommt (Höhe = Stufe davor), `drehung` (Grad um Z)
+    so, dass die Blickrichtung ins Haus zeigt: In Blender ist das lokal +Y, im Spiel (Godot) −Z.
+    Für eine Tür an der Gassenseite also 0, an der rechten Seite 90, hinten 180, links 270."""
+    obj = bpy.data.objects.new(name, None)
+    obj.empty_display_type = "SINGLE_ARROW"
+    obj.location = Vector(punkt)
+    obj.rotation_euler = (0, 0, math.radians(drehung))
+    obj["anker"] = True
+    bpy.context.scene.collection.objects.link(obj)
+    return obj
+
+
+def anker_bild(name, sichtbar):
+    """Vorschau docs/modelle/<name>-anker.png: jeder Anker als Stab mit Pfeil am Boden (Personen magenta,
+    Karren türkis); der Pfeil zeigt ins Haus. Die Markierungen werden danach wieder entfernt."""
+    farben = {"Karren": _hilfsstoff("_Anker_Karren", (0.1, 0.85, 0.85))}
+    tuer = _hilfsstoff("_Anker_Tuer", (0.95, 0.15, 0.75))
+    marken = []
+    for o in [o for o in bpy.context.scene.objects if o.get("anker")]:
+        m = farben.get(o.name.split("_")[-1], tuer)
+        netz = Netz("_Marke_" + o.name)
+        t = o.matrix_world
+        lang = 1.4 if "Karren" in o.name else 0.9
+        # Pfeil vor dem Anker, die Spitze auf dem Ankerpunkt: zeigt ins Haus
+        netz.vieleck([t @ Vector(p) for p in ((-0.4, -lang, 0.03), (0.4, -lang, 0.03), (0, 0, 0.03))], m, immer=True)
+        netz.stab(t @ Vector((0, 0, 0)), t @ Vector((0, 0, 1.8)), 0.08, 0.08, m)
+        netz.quader((0, 0, 1.85), (0.22, 0.22, 0.22), m, matrix=t)
+        marken.append(netz.objekt())
+    pfad = rendern(name + "-anker", lambda o: sichtbar(o) or o.name.startswith("_Marke_"))
+    for o in marken:
+        bpy.data.objects.remove(o)
+    return pfad
+
+
+def nachtbild(name, sichtbar, drehung=0):
+    """Vorschau bei Nacht docs/modelle/<name>-nacht.png: Mondlicht, dunkler Himmel, Licht hinter den Fenstern
+    und Glut der Essen an – so, wie das Spiel es abends schalten soll."""
+    szene = bpy.context.scene
+    sonne = bpy.data.objects["Sonne"].data
+    hg = szene.world.node_tree.nodes["Background"].inputs
+    alt = (sonne.energy, tuple(sonne.color), tuple(hg["Color"].default_value), hg["Strength"].default_value)
+    sonne.energy, sonne.color = 0.35, (0.62, 0.70, 1.0)
+    hg["Color"].default_value, hg["Strength"].default_value = (0.05, 0.07, 0.13, 1), 0.5
+    an = []
+    for name_stoff, (farbe, staerke) in NACHTLICHT.items():
+        if name_stoff in _stoffe:
+            p = _stoffe[name_stoff].node_tree.nodes["Principled BSDF"]
+            p.inputs["Emission Color"].default_value = (*_linear(farbe), 1.0)
+            p.inputs["Emission Strength"].default_value = staerke
+            an.append(p)
+    pfad = rendern(name + "-nacht", sichtbar, drehung)
+    for p in an:
+        p.inputs["Emission Strength"].default_value = 0.0
+    sonne.energy, sonne.color = alt[0], alt[1]
+    hg["Color"].default_value, hg["Strength"].default_value = alt[2], alt[3]
+    return pfad
+
+
 def bericht(name, objekte):
-    """Dreiecke je Objekt (so, wie sie im Export landen)."""
+    """Dreiecke je Objekt (so, wie sie im Export landen); Anker mit ihrer Lage."""
     print(f"\n{name}: Dreiecke")
     summe = 0
     for o in objekte:
+        if o.type != "MESH":
+            print(f"  {o.name:10s} Anker bei ({o.location.x:.2f}, {o.location.y:.2f}, {o.location.z:.2f})")
+            continue
         o.data.calc_loop_triangles()
         n = len(o.data.loop_triangles)
         summe += n
@@ -852,4 +990,29 @@ def rundum(name, sichtbar):
     gesamt.save(pfad, optimize=True)
     for p in teile:
         os.remove(p)
+    return pfad
+
+
+def nebeneinander(name, bilder, texte):
+    """Mehrere Vorschaubilder (gleicher Ausschnitt) nebeneinander mit Beschriftung: docs/modelle/<name>.png.
+    Schrift des Spiels (Alegreya, OFL); ohne Pillow bleibt es bei den Einzelbildern."""
+    try:
+        from PIL import Image, ImageDraw, ImageFont
+    except ImportError:
+        return None
+    teile = [Image.open(b).convert("RGB") for b in bilder]
+    w, h = teile[0].size
+    rand = int(w * 0.07)                       # links und rechts ist in jedem Bild nur Boden
+    gesamt = Image.new("RGB", (len(teile) * (w - 2 * rand), h))
+    for i, t in enumerate(teile):
+        gesamt.paste(t.crop((rand, 0, w - rand, h)), (i * (w - 2 * rand), 0))
+    zeichnen = ImageDraw.Draw(gesamt)
+    try:
+        schrift = ImageFont.truetype(os.path.join(WURZEL, "game", "assets", "schriften", "Alegreya-Variabel.ttf"), int(h / 30))
+    except OSError:
+        schrift = ImageFont.load_default()
+    for i, text in enumerate(texte):
+        zeichnen.text((int((i + 0.5) * (w - 2 * rand)), int(h * 0.96)), text, fill=(240, 236, 220), font=schrift, anchor="ms")
+    pfad = os.path.join(VORSCHAU, name + ".png")
+    gesamt.save(pfad, optimize=True)
     return pfad
