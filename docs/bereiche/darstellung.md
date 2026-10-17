@@ -14,9 +14,8 @@ So wird eingetragen (damit sich die Chats nie an derselben Stelle treffen):
 - (3) (von Kern) Karren am Stadttor zeigen: `Karren.WartetAmTor(zeit)` – Hinweg draußen vor dem Tor, Rückweg drinnen (ab PR #67)
 - (3) Einwohner in den Innenräumen von Schänken und Kirchen der Häuser zeigen (im Dom erledigt, PR #93)
 - (3) (von Leveldesign) Gebäudemaße auf glatte Meter: Einwohnerhäuser 6 × 6, 7 × 7, 8 × 8 m; Werkstatt belegt 16 × 14 m und zeigt jede Stufe als sichtbaren Anbau innerhalb dieser Fläche (`docs/LEVELDESIGN.md`, Gebäudegrößen)
-- Modelle ins Spiel einbauen (nach PR #103): `SpielhausModell` und die Einwohnerhäuser laden die GLB aus `game/assets/modelle/` statt Grundkörper zu bauen; Material „Hausfarbe“ je Haus einfärben, Knoten „Leerstand“/„Geruest“ (und „Wappen“/„Fahne“) nach Zustand ein- und ausblenden
+- Weitere Modelle ins Spiel einbauen, sobald es sie gibt: Stadtpalais und Hof in `SpielhausModell` (Stufe 3 und 4 bauen noch Grundkörper), die Einwohnerhäuser, die Werkstätten – nach dem Muster `WohnhausModellEinsetzen` (PR #105)
 - Weitere Modelle aus Blender-Skripten: Stadtpalais, Stadthof; Werkstätten mit Stufe1–3 (Gießerei, Tischlerei, Maurerei); Einwohnerhäuser (Ratsherrenhaus, Bürgerhaus, einfaches Haus)
-- Wohnhaus-Modelle auf Wohnhausplätzen der Karte (8 m tief, ohne Vorplatz): Die GLB sind für 8 × 10 m mit 2 m Vorplatz gebaut, die Hauskörper sind höchstens 7,4 m tief. Beim Einbau das Modell dort um 1 m zur Gasse versetzen (die Freitreppe des Steinhauses ragt dann in die Gasse); breitere Plätze lassen links und rechts Luft
 
 ## Entscheidungen
 
@@ -100,3 +99,11 @@ So wird eingetragen (damit sich die Chats nie an derselben Stelle treffen):
 | Bäume | Zufallsbäume lassen die Bauzonen der Karte frei (3 m Rand); die übrigen Bäume bleiben, wo sie waren (die Zufallsfolge läuft unverändert weiter). | 17.10.2026 |
 | Baumodus | Bauzonen nur im Baumodus: Fläche in der Farbe der Lage (Kern orange, Mauerring blau, Vorstadt türkis), 2-m-Raster, Name der Zone. Der Umriss (Fläche, hellerer Vorplatz-Streifen, Pfeil zur Straße, durchsichtiger Körper in Gebäudehöhe, Text mit dem Grund) folgt der Maus über die Bodenebene und rastet mit `Einrasten` ein. | 17.10.2026 |
 
+### Wohnhaus-Modelle im Spiel (PR #105)
+
+| Thema | Entscheidung | Datum |
+|---|---|---|
+| Einbau | `SpielhausModell` lädt für Fachwerkhaus, Bürgerhaus und Steinhaus (Stufe 0–2) die GLB aus `game/assets/modelle/` (einmal je Stufe, `WohnhausSzene`) und setzt sie mit `WohnhausModellEinsetzen` ein; Stadtpalais und Hof bauen weiter Grundkörper. Fehlt eine Datei, meldet das Spiel einen Fehler (der Rauchtest schlägt an) und baut das Haus aus Grundkörpern. Die `.glb.import` sind eingecheckt wie bei den Bildern. | 17.10.2026 |
+| Lage | Die Hausfront liegt im Modell bei z = +3 (Mitte der 10 m tiefen Fläche, 2 m Vorplatz). Das Modell sitzt bei `vorne − 3`: auf einem Neubau (10 m) genau in der Mitte, auf den Wohnhausplätzen der Karte (8 m, Front an der Gasse) 1 m weiter zur Gasse. | 17.10.2026 |
+| Zustände | Nach Namen: „Geruest“ bei Ausbau, Sanierung und Brand; „Leerstand“ (Bretter) nur im Leerstand; „Wappen“ und „Fahne“ nur bei einem Besitzer (nicht im Leerstand, nicht während der Sanierung). Das Code-Gerüst und das Code-Wappen entfallen für diese Stufen. | 17.10.2026 |
+| Farben | Das Material „Hausfarbe“ wird je Haus durch eine Kopie in der Besitzerfarbe ersetzt (je Vorlage und Farbe einmal); ohne Besitzer verwittertes Holz statt Spielerblau. Nach einem Brand werden die Dachmaterialien (Dachziegel, Stroh, Schiefer samt Kanten und First) zu 80 % rußig gefärbt. | 17.10.2026 |
