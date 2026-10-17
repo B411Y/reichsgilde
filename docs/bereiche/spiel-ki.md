@@ -58,6 +58,17 @@ So wird eingetragen (damit sich die Chats nie an derselben Stelle treffen):
 | Kalibrierung | **Feste Neigung**, nicht gegen ein gelerntes Übliches: Die Standardstadt bekommt eine dauerhafte Färbung. Der Kern kalibriert nach (offener Punkt dort). | 16.10.2026 |
 | Anzeige | Öffentliche Abfragen `Warenkorbfaktor(ware)` und `Warengruppe(ware)`; Anzeige im Marktfenster als offener Punkt bei der Oberfläche. | 16.10.2026 |
 
+### KI kauft Leerstand, baut neu und verkauft Betriebe (PR #…)
+
+| Thema | Entscheidung | Datum |
+|---|---|---|
+| Leerstand kaufen | Nur bei Bedarf: wenn das Haus für den nächsten Stand ein größeres Wohnhaus braucht und der Leerstand günstiger ist als Ausbau oder Neubau. Kein Kauf als reines Schnäppchen. Entschieden vom Nutzer. | 17.10.2026 |
+| Vorrang des Spielers | Die KI kauft einen Leerstand erst, wenn er ein ganzes Spieljahr leer stand. Entschieden vom Nutzer. | 17.10.2026 |
+| Leerstand abreißen | Die KI reißt keinen Leerstand ab. | 17.10.2026 |
+| Werkstatt neu bauen | Gleichwertig zum Kauf einer freien Werkstatt, gewählt wird nach der Rechnung (das Baujahr ohne Einnahmen zählt mit). Kein Platz wird für den Spieler freigehalten. Entschieden vom Nutzer. | 17.10.2026 |
+| Wohnhaus neu bauen | Stadtpalais und Stadthof gibt es nur als Neubau (Kern) – die KI baut sie neu, wenn kein passender Leerstand günstiger ist. | 17.10.2026 |
+| Betriebe verkaufen | Die KI verkauft einen Betrieb, der zwei Jahre in Folge Verlust macht, und verkauft vor dem Bankrott, wenn das Bargeld nicht mehr reicht. Entschieden vom Nutzer. | 17.10.2026 |
+
 ## Messungen
 
 Neue Messungen der Spiel-KI stehen hier (mit main-Commit), nicht mehr in `docs/WIRTSCHAFTSMODELL.md`. Ältere: dort bis §42 (Taschendiebe, PR #69).

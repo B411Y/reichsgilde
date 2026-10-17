@@ -98,6 +98,12 @@ So wird eingetragen (damit sich die Chats nie an derselben Stelle treffen):
 | Werte | Abschnitt `bauen` (raster, strassenAbstand, werkstatt, wohnhaus je Stufe mit breite, tiefe, bauzeitJahre, lagen; leerstand mit kauf, sanierung, abriss, abrissMindestens, abrissMinuten), Datenversion 34. | 17.10.2026 |
 | KI | Kauft frei gewordene Werkstätten schon (`Expandieren`); Leerstand kaufen und neu bauen später (Punkt bei Spiel-KI). | 17.10.2026 |
 
+### Stadtpalais und Stadthof nur als Neubau (PR #…)
+
+| Thema | Entscheidung | Datum |
+|---|---|---|
+| Ausbau am Platz | Fachwerkhaus → Bürgerhaus → Steinhaus wie bisher am Platz. **Stadtpalais und Stadthof nur als Neubau** oder durch Kauf eines Leerstands, nicht als Ausbau (LEVELDESIGN, Gebäudegrößen; bestätigt vom Nutzer). Ersetzt die Zeile „Ausbau am Platz“ aus PR #103. | 17.10.2026 |
+
 ## Messungen
 
 Messungen des Kerns stehen in `docs/WIRTSCHAFTSMODELL.md` (nur der Kern schreibt dort).
