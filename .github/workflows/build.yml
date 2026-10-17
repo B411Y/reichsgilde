@@ -99,14 +99,69 @@ jobs:
           ls -d build/windows/data_Reichsgilde_* || { echo "::error::C#-Daten fehlen im Windows-Export"; exit 1; }
 
       - name: Linux-Build kurz starten (Rauchtest)
+        timeout-minutes: 20   # Notbremse, falls trotz des Wächters unten etwas hängt
         run: |
           set -o pipefail   # ein Absturz des Spiels soll den Schritt fehlschlagen lassen
           chmod +x build/linux/Reichsgilde.x86_64
+          # Stürzt das Spiel ab, landet ein Speicherabbild (Core-Dump) im Arbeitsordner – für die Rückverfolgung unten.
+          ulimit -c unlimited || true
+          sudo sysctl -q -w kernel.core_pattern="$PWD/kern.%p" || true
+          gdb_holen() { command -v gdb > /dev/null || { sudo apt-get update -qq && sudo apt-get install -y -qq gdb; } > /dev/null 2>&1; }
+          # Läuft neben jedem Start: Ist das Spiel nach $1 Sekunden noch da, hängt es. Dann liest gdb am lebenden Prozess ab,
+          # wo welcher Faden steht, und beendet es. (Signale von außen helfen nicht: Auf SIGSEGV und SIGABRT reagierte das
+          # Spiel am 16./17.10.2026 gar nicht mehr – ein Lauf stand 6 Stunden, bis GitHub ihn abbrach.)
+          waechter() {
+            local i pid
+            for i in $(seq "$1"); do sleep 1; [ -f laeuft ] || return 0; done
+            pid=$(cat spiel.pid)
+            touch haenger
+            gdb_holen
+            sudo gdb -p "$pid" -batch -ex "info threads" -ex "thread apply all bt 15" > rueckverfolgung.txt 2>&1
+            sudo kill -KILL "$pid"
+          }
+          # Ein Start mit Zeitgrenze ($GRENZE Sekunden, sonst 180), Ausgabe nach start.log.
+          starte() {
+            local status=0 wache
+            touch laeuft
+            waechter "${GRENZE:-180}" & wache=$!
+            # über sh, damit die Prozessnummer des Spiels für den Wächter in spiel.pid steht (exec behält sie bei)
+            sh -c 'echo $$ > spiel.pid; exec build/linux/Reichsgilde.x86_64 --headless "$@"' sh "$@" 2>&1 | tee -a start.log || status=$?
+            rm -f laeuft spiel.pid
+            wait "$wache" || true
+            if [ -f haenger ]; then FEHLER="hängt (nach ${GRENZE:-180} s abgebrochen)"; return 1; fi
+            [ "$status" = 0 ] && return 0
+            FEHLER="ist abgestürzt (Rückgabewert $status)"
+            return 1
+          }
           # 1. normaler Start   2. mit Bedienfeld, Innenansicht, Jahresbericht, Ratskammer, Familientafel, Gerichtssaal, Hinterzimmer und hohem Tempo (mehr Code wird durchlaufen)
           rauchtest() {
-            build/linux/Reichsgilde.x86_64 --headless --quit-after 300 2>&1 | tee start.log
+            : > start.log
+            starte --quit-after 300 || return 1
             echo "=== zweiter Start (mit Tafeln) ===" | tee -a start.log
-            build/linux/Reichsgilde.x86_64 --headless --quit-after 600 -- --verwalten=1 --innen=1 --tempo=8 --startstunde=4 --bericht=1 --rat=1 --familie=1 --gericht=1 --hinterzimmer=1 2>&1 | tee -a start.log
+            starte --quit-after 600 -- --verwalten=1 --innen=1 --tempo=8 --startstunde=4 --bericht=1 --rat=1 --familie=1 --gericht=1 --hinterzimmer=1 || return 1
+          }
+          # Nach einem Absturz oder Hänger: Welcher Faden war es und wo? Ein Absturz beim Beenden kam schon ohne jede Meldung
+          # von Godot (16.10.2026) – die Fadennamen zeigen, ob es Godot selbst war oder die .NET-Laufzeit (z. B. „.NET Finalizer“).
+          # Die volle Ausgabe steht in rueckverfolgung.txt (Artefakt „Rauchtest-Protokoll“), der Anfang als Anmerkung.
+          absturz() {
+            echo "::error::Das exportierte Spiel $FEHLER – Rückverfolgung im Artefakt „Rauchtest-Protokoll“"
+            local abbild
+            abbild=$(ls -t kern.* 2>/dev/null | head -1) || true   # ohne Abbild schlägt ls fehl
+            if [ -n "$abbild" ]; then
+              gdb_holen
+              gdb -batch -ex "info threads" -ex "bt 30" -ex "thread apply all bt 15" \
+                build/linux/Reichsgilde.x86_64 "$abbild" > rueckverfolgung.txt 2>&1 || true
+              rm -f kern.*   # das Abbild ist mehrere hundert MB groß – die Rückverfolgung genügt
+            fi
+            if [ -s rueckverfolgung.txt ]; then
+              # ohne die Vorrede von gdb („[New LWP …]“), damit die Fäden in die Anmerkung passen
+              grep -vE '^\[New LWP|^\[Thread debugging|^Using host libthread_db|^warning:|^$' rueckverfolgung.txt | head -60 \
+                | sed -e 's/%/%25/g' -e 's/\r//g' | awk 'BEGIN { ORS = "%0A" } { print }' > anmerkung.txt || true
+              echo "::error title=Rauchtest – Rückverfolgung::$(cat anmerkung.txt)"
+            else
+              echo "Kein Speicherabbild gefunden – nur start.log." | tee rueckverfolgung.txt
+            fi
+            exit 1
           }
           # „leaked" fängt Speicherlecks beim Beenden (z. B. Knoten, die nie in den Szenenbaum kamen)
           MUSTER="ERROR|Unhandled exception|leaked"
@@ -117,18 +172,31 @@ jobs:
               | sed -e 's/%/%25/g' -e 's/\r//g' | awk 'BEGIN { ORS = "%0A" } { print }' > anmerkung.txt
             echo "::$1 title=$2::$(cat anmerkung.txt)"
           }
-          rauchtest
+          rauchtest || absturz
           if grep -qE "$MUSTER" start.log; then
             # Manche Meldungen kommen nur sporadisch (z. B. ein Leck beim Beenden, je nach Zeitpunkt). Deshalb ein
             # zweiter Versuch: Erst wenn er wieder etwas findet, schlägt der Schritt fehl. Der erste Fund bleibt als Warnung sichtbar.
             anmerken warning "Rauchtest, 1. Versuch – Fundstellen (wird wiederholt)"
-            rauchtest
+            cp start.log start-1.log
+            rauchtest || absturz
             if grep -qE "$MUSTER" start.log; then
               echo "::error::Das exportierte Spiel meldet Fehler beim Start (in zwei Versuchen)"
               anmerken error "Rauchtest, 2. Versuch – Fundstellen"
               exit 1
             fi
           fi
+
+      - name: Rauchtest-Protokoll bereitstellen (nur bei Fehlern)
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: Rauchtest-Protokoll
+          path: |
+            start.log
+            start-1.log
+            rueckverfolgung.txt
+          if-no-files-found: ignore
+          retention-days: 14
 
       - name: Linux-Build bereitstellen
         uses: actions/upload-artifact@v4
