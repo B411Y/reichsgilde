@@ -8,10 +8,10 @@
 
 # Binärdateien nie verändern.
 *.png binary
+*.glb binary
 *.jpg binary
 *.ogg binary
 *.wav binary
-*.glb binary
 *.ttf binary
 
 # Protokolle je Bereich: Bei einem Merge-Konflikt beide Seiten behalten („union“).
