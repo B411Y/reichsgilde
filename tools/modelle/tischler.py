@@ -82,7 +82,7 @@ def bauen():
         "links": [Oeffnung(F, u, **og) for u in (-2.3, 0.0, 2.3)],
     }, kreuze=True)
     M_vorn = bs.wandmatrix((CX, Y0, Z_SOCKEL), "vorne")
-    tor_fluegel(haus, st, M_vorn, tor)
+    bs.tor_fluegel(haus, st, M_vorn, tor)
     # Rampe vor dem Tor: Karren und Schubkarren rollen hinein
     rampe = [(Y0 - 1.1, 0.0), (Y0, 0.0), (Y0, Z_SOCKEL + 0.01), (Y0 - 0.25, Z_SOCKEL + 0.01)]   # 1 cm über dem Sockel
     haus.prisma(rampe, CX + tor.u - 1.4, CX + tor.u + 1.4, st["Bruchstein"])
@@ -143,20 +143,6 @@ def bauen():
 # ─────────────────────────────────────────────────────────────────────────────
 #  Teile der Werkstatt
 # ─────────────────────────────────────────────────────────────────────────────
-
-def tor_fluegel(netz, st, M, o):
-    """Zweiflügeliges Brettertor in der Hausfarbe mit Z-Streben und Eisenbändern."""
-    for s in (-1, 1):
-        u = o.u + s * o.b / 4
-        netz.quader((u, -0.01, o.v + o.h / 2), (o.b / 2 - 0.03, 0.04, o.h), st["Hausfarbe"], M, ohne=("+y",))
-        for f in (0.15, 0.85):
-            netz.quader((u, -0.04, o.v + o.h * f), (o.b / 2 - 0.12, 0.03, 0.12), st["Fachwerk"], M, ohne=("+y",))
-        netz.stab(M @ Vector((u - s * (o.b / 4 - 0.12), -0.045, o.v + o.h * 0.15)),
-                  M @ Vector((u + s * (o.b / 4 - 0.12), -0.045, o.v + o.h * 0.85)), 0.11, 0.03, st["Fachwerk"],
-                  quer=M.to_3x3() @ Vector((0, 1, 0)), ohne=("+y",))
-        for f in (0.3, 0.7):
-            netz.quader((o.u + s * 0.25, -0.06, o.v + o.h * f), (0.4, 0.02, 0.06), st["Eisen"], M, ohne=("+y",))
-
 
 def ladegiebel(netz, st, M, L, hoch, oeffnungen):
     """Giebel zur Gasse mit Ladeluke für das Holz auf dem Dachboden, Kranbalken mit Rolle und Seil,
@@ -356,20 +342,6 @@ def drechslerei(netz, st):
     bs.zaun(netz, st, [(7.8, ay1 + 0.2), (7.8, 6.8), (-7.8, 6.8), (-7.8, Y1 + 0.3)])
 
 
-def pferd(netz, st, ort, winkel):
-    """Schlichtes Zugpferd aus Quadern und Stäben, Blick in Richtung `winkel` (Grad, von +x gegen den Uhrzeigersinn)."""
-    M = Matrix.Translation(Vector(ort)) @ Matrix.Rotation(math.radians(winkel), 4, "Z")
-    fell, dunkel = st["Leder"], st["Kohle"]
-    netz.quader((0, 0, 0.95), (1.0, 0.36, 0.42), fell, matrix=M)
-    for x in (-0.38, 0.38):
-        for y in (-0.12, 0.12):
-            netz.stab((x, y, 0), (x, y, 0.8), 0.1, 0.1, fell, matrix=M)
-    netz.stab((0.4, 0, 1.0), (0.68, 0, 1.45), 0.2, 0.16, fell, matrix=M)            # Hals
-    netz.quader((0.82, 0, 1.36), (0.4, 0.16, 0.18), fell, matrix=M)                 # Kopf
-    netz.stab((0.4, 0, 1.2), (0.64, 0, 1.56), 0.05, 0.06, dunkel, matrix=M)         # Mähne
-    netz.stab((-0.5, 0, 1.12), (-0.6, 0, 0.62), 0.06, 0.08, dunkel, matrix=M)       # Schweif
-
-
 def goepel(netz, st, mitte, r=1.5, h=2.5, spitze=4.2, richtung=(-1, 0)):
     """Göpel: achteckiger offener Rundbau mit Schieferdach. In der Mitte die stehende Königswelle mit dem
     Kammrad unter dem Dach; außen der Zugbaum, an dem das Pferd im Kreis geht (der Pfad ist ausgetreten).
@@ -404,7 +376,7 @@ def goepel(netz, st, mitte, r=1.5, h=2.5, spitze=4.2, richtung=(-1, 0)):
     ende = punkt(0.85 * r, 0, 0.95, versatz=-60)
     netz.stab((x, y, 0.95), ende, 0.14, 0.14, holz)
     mitte_pferd = punkt(0.73 * r, 0, 0, versatz=-85)
-    pferd(netz, st, mitte_pferd, -85 + 90)
+    bs.pferd(netz, st, mitte_pferd, -85 + 90)
     return Vector((x + 0.5 * r * richtung[0], y + 0.5 * r * richtung[1], h - 0.15))   # dort greift die liegende Welle an
 
 
