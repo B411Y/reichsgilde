@@ -639,7 +639,7 @@ public sealed partial class Stadtwirtschaft
             return BerufErlernenAusfuehren(absender, lehre.Beruf);
         if (befehl is MeisterpruefungAblegen pruefung)
             return MeisterpruefungAusfuehren(absender, pruefung.Beruf);
-        if (befehl is AmtBewerben or Schenken or StatutBeantragen && !Rat.IstAktiv)
+        if (befehl is AmtBewerben or Schenken or StatutBeantragen or WahlStimme or StatutStimme && !Rat.IstAktiv)
             return Befehlsergebnis.Abgelehnt("In dieser Stadt gibt es keinen Stadtrat.");
         if (befehl is AmtBewerben bewerbung)
             return Rat.Bewerben(absender, bewerbung.Amt);
@@ -647,6 +647,10 @@ public sealed partial class Stadtwirtschaft
             return Rat.Schenken(absender, geschenk.Ratsherr, geschenk.Betrag);
         if (befehl is StatutBeantragen antrag)
             return Rat.Beantragen(absender, antrag.Statut);
+        if (befehl is WahlStimme wahlStimme)
+            return Rat.WahlStimmeFestlegen(absender, wahlStimme.Amt, wahlStimme.Kandidat);
+        if (befehl is StatutStimme statutStimme)
+            return Rat.StatutStimmeFestlegen(absender, statutStimme.Ja);
         if (befehl is SpitzelAnsetzen or Anklagen)
         {
             if (!Justiz.IstAktiv)
@@ -699,6 +703,8 @@ public sealed partial class Stadtwirtschaft
             return Glaube.Bekehrungspredigt(absender);
         if (befehl is StadtglaubeBeantragen glaubensantrag)
             return Glaube.Beantragen(absender, glaubensantrag.Glaube);
+        if (befehl is StadtglaubeStimme glaubensStimme)
+            return Glaube.StimmeFestlegen(absender, glaubensStimme.Ja);
         if (befehl is GegengiftGeben gegengift)
             return Gesundheit.IstAktiv ? Gesundheit.GegengiftGeben(absender, gegengift.Person) : Befehlsergebnis.Abgelehnt("In dieser Stadt wird niemand krank.");
         if (befehl is Razzia razzia)
