@@ -72,6 +72,23 @@ public sealed partial class Stadtwirtschaft
     /// <summary>Wohnhäuser der Häuser (Stufe, Ausbau, Unterhalt, Pflicht für den Stand).</summary>
     public Wohnen.Wohnungswesen Wohnen { get; }
 
+    /// <summary>Grundstücke, Leerstand kaufen und abreißen, Neubau von Wohnhäusern und Werkstätten (braucht die <see cref="Karte"/>).</summary>
+    public Bauen.Bauwesen Bauen { get; }
+
+    /// <summary>Die Karte der Stadt: Wege, Bauzonen, feste Bauten, Wohnhausplätze (null: ohne Karte – dann wird nicht gebaut).</summary>
+    public Bauen.Stadtkarte? Karte { get; private set; }
+
+    /// <summary>
+    /// Legt die Karte der Stadt fest (einmal, gleich nach dem Erzeugen). Häuser, die es schon gibt, bekommen ihre Startplätze in Konto-Reihenfolge.
+    /// </summary>
+    public void KarteSetzen(Bauen.Stadtkarte karte)
+    {
+        if (Karte is not null) throw new InvalidOperationException("Die Karte der Stadt steht schon fest.");
+        Karte = karte;
+        for (var i = 0; i < _konten.Count; i++)
+            Bauen.StartplatzVergeben(_konten[i], i);
+    }
+
     /// <summary>Völkerbonus als Faktor auf die Leistung: 1 + Bonus des Berufs für das Volk des Oberhaupts (1 ohne Familie).</summary>
     public double VolksFaktor(Konto konto, string beruf) => 1 + VolksBonus(konto, beruf);
 
@@ -255,6 +272,7 @@ public sealed partial class Stadtwirtschaft
         Duft = new Duft.Duftwesen(this, daten.Parfum, zufallsstartwert);
         Glaube = new Glaube.Glaubenswesen(this, daten.Glaube, zufallsstartwert);
         Wohnen = new Wohnen.Wohnungswesen(this, daten.Wohnen);
+        Bauen = new Bauen.Bauwesen(this, daten.Bauen);
         Gesundheit = new Gesundheitswesen(this, daten.Gesundheit, zufallsstartwert);
         Gastwirtschaft = new Gastwirtschaft(this, daten.Gastwirtschaft);
         Kirchenwesen = new Kirche.Kirchenwesen(this, daten.Kirche, zufallsstartwert);
@@ -268,6 +286,7 @@ public sealed partial class Stadtwirtschaft
         if (HatAktionspunkte)
             konto.Aktionspunkte.NeueRunde(AktionspunkteJeRunde, hoechstens: Daten.Aktionspunkte!.Hoechstens);
         _konten.Add(konto);
+        Bauen.StartplatzVergeben(konto, _konten.Count - 1);
         return konto;
     }
 
@@ -437,9 +456,12 @@ public sealed partial class Stadtwirtschaft
             karren.Tick(zeit, this);
 
         Wohnen.Minute(zeit); // fertige Ausbauten der Wohnhäuser
+        Bauen.Minute(zeit);  // fertige Baustellen: Umzug, neue Werkstätten, Bauplätze
 
         // Bürger-KI: Die Einwohner planen jede volle Stunde ihren Tag (lesen nur, eigener Zufall).
         Einwohnerschaft.Minute(zeit);
+
+        ToteBetriebeFreigeben(); // wer in dieser Minute erlosch (Giftanschlag), dessen Werkstätten stehen nun zum Verkauf
     }
 
     /// <summary>
@@ -489,6 +511,7 @@ public sealed partial class Stadtwirtschaft
         foreach (var rivale in _rivalen.Where(r => r.Konto.IstAktiv))
             rivale.Jahresende();
         Einwohnerschaft.Jahresende(neuesJahr); // Bürger-KI: altern, sterben, zuziehen, ausschlafen
+        ToteBetriebeFreigeben(); // Betriebe der Häuser, die bankrott gingen oder erloschen, stehen zum Verkauf
     }
 
     /// <summary>
@@ -584,6 +607,15 @@ public sealed partial class Stadtwirtschaft
             return Wohnen.HauswaechterSetzen(absender, hauswaechter.Angestellt);
         if (befehl is LiegenschaftErwerben liegenschaft)
             return LiegenschaftErwerbenAusfuehren(absender, liegenschaft.Name);
+        if (befehl is BauBefehl bau)
+            return Bauen.Bauen(absender, bau, Uhr);
+        if (befehl is LeerstandKaufen or LeerstandAbreissen)
+        {
+            var hausName = befehl is LeerstandKaufen lk ? lk.Haus : ((LeerstandAbreissen)befehl).Haus;
+            if (_konten.FirstOrDefault(k => k.Inhaber == hausName) is not { } leer)
+                return Befehlsergebnis.Abgelehnt($"Ein Haus „{hausName}“ gibt es nicht.");
+            return befehl is LeerstandKaufen ? Bauen.LeerstandKaufen(absender, leer, Uhr) : Bauen.LeerstandAbreissen(absender, leer, Uhr);
+        }
         if (befehl is AblassKaufen or BeichtgeheimnisBrechen or LehrschriftLesen or HetzschriftVerbreiten && !Kirchenwesen.IstAktiv)
             return Befehlsergebnis.Abgelehnt("In dieser Stadt gibt es keine Kirchen.");
         if (befehl is AblassKaufen ablass)
@@ -946,6 +978,7 @@ public sealed partial class Stadtwirtschaft
         Glaube = Glaube.IstAktiv ? Glaube.Sichern(k => _konten.IndexOf(k)) : null,
         Einwohner = Einwohnerschaft.IstAktiv ? Einwohnerschaft.Sichern() : null,
         Abgegeben = AbgegebeneSichern(),
+        Bauen = Bauen.Sichern(k => _konten.IndexOf(k)),
     };
 
     /// <summary>
@@ -964,6 +997,7 @@ public sealed partial class Stadtwirtschaft
 
         _konten.AddRange(s.Konten.Select(Konto.Wiederherstellen));
         Wohnen.AlteStaendeErgaenzen(_konten.Where((_, i) => s.Konten[i].WohnhausStufe is null));
+        Bauen.Wiederherstellen(s.Bauen, _konten); // vor den Hauswerten: Ein laufender Umzug zählt schon
         Wohnen.HauswerteNachDemLaden(_konten);
         foreach (var bs in s.Betriebe)
         {
@@ -1009,6 +1043,7 @@ public sealed partial class Stadtwirtschaft
             Glaube.Wiederherstellen(glaubeStand, _konten);
         if (s.Einwohner is { } einwohnerStand && Einwohnerschaft.IstAktiv)
             Einwohnerschaft.Wiederherstellen(einwohnerStand);
+        ToteBetriebeFreigeben(); // alte Spielstände: Betriebe toter Häuser standen still – nun stehen sie zum Verkauf
     }
 
     public double HoechstesVermoegen => _konten.Count == 0 ? 0 : _konten.Max(k => k.Reinvermoegen);
