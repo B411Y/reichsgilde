@@ -10,7 +10,8 @@ using Reichsgilde.Core.Wirtschaft;
 ///
 /// Die Testkarte ist klein und rechtwinklig, damit man die Zahlen im Kopf nachrechnen kann:
 ///   • Hauptstraße (Karrenstraße) entlang z = 0, Gerbergasse entlang x = −60 (nach Süden).
-///   • Nördlich der Hauptstraße vier Wohnhausplätze (16 × 10, Eingang nach Süden), Mitte bei x = −30, −10, 10, 30, z = −9.
+///   • Nördlich der Hauptstraße vier Wohnhausplätze (16 × 10, Eingang nach Süden), Mitte bei x = −30, −10, 10, 30, z = −9
+///     (W1 und W2 in der Datei vertauscht, die „reihenfolge“ stellt sie richtig; W2 mit „lage“).
 ///   • Südlich: Kernzone K1 (x −40…40, z 4…40) mit der „Gießerei am Weinmarkt“ (16 × 14 um 0/30),
 ///     Vorstadt V1 an der Gasse (x −56…−42, z 20…60), Umland U1 (x 60…100, z 4…40).
 /// </summary>
@@ -33,8 +34,8 @@ static class BauenTests
       ],
       "feste": [
         { "kennung": "Markt", "art": "sonderbau", "name": "Markt", "punkt": [0, -30] },
-        { "kennung": "W1", "art": "wohnhaus", "name": "Wohnhausplatz 1", "punkt": [-30, -9], "eingang": [-30, -3], "groesse": [16, 10] },
-        { "kennung": "W2", "art": "wohnhaus", "name": "Wohnhausplatz 2", "punkt": [-10, -9], "eingang": [-10, -3], "groesse": [16, 10] },
+        { "kennung": "W2", "art": "wohnhaus", "name": "Wohnhausplatz 2", "punkt": [-10, -9], "eingang": [-10, -3], "groesse": [16, 10], "reihenfolge": 2, "lage": "mauerring" },
+        { "kennung": "W1", "art": "wohnhaus", "name": "Wohnhausplatz 1", "punkt": [-30, -9], "eingang": [-30, -3], "groesse": [16, 10], "reihenfolge": 1 },
         { "kennung": "W3", "art": "wohnhaus", "name": "Wohnhausplatz 3", "punkt": [10, -9], "eingang": [10, -3], "groesse": [16, 10] },
         { "kennung": "W4", "art": "wohnhaus", "name": "Wohnhausplatz 4", "punkt": [30, -9], "eingang": [30, -3], "groesse": [16, 10] },
         { "kennung": "G1", "art": "werkstatt", "name": "Gießerei am Weinmarkt", "punkt": [0, 30], "eingang": [0, 40], "groesse": [16, 14] }
@@ -144,6 +145,8 @@ static class BauenTests
                 Pruefe.Gleich(Bauzustand.Bewohnt, g.Zustand);
             }
             Pruefe.Wahr(w.Bauen.Wohnhaus(konten[4]) is null, "Für das fünfte Haus hat die Karte keinen Platz");
+            Pruefe.Gleich(Lage.Mauerring, w.Bauen.Wohnhaus(konten[1])!.Lage); // aus der Karte („lage“)
+            Pruefe.Gleich(Lage.Kern, w.Bauen.Wohnhaus(konten[0])!.Lage);      // ohne Angabe: die nächste Bauzone
 
             var sim2 = NeueSimulation();
             var a = sim2.Wirtschaft!.KontoEroeffnen("Haus A");

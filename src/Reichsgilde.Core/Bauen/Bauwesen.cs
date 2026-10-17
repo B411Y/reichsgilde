@@ -590,9 +590,9 @@ public sealed class Bauwesen
         minuten >= Spielzeit.MinutenProTag ? $"{minuten / (double)Spielzeit.MinutenProTag:0.#} {(minuten == Spielzeit.MinutenProTag ? "Jahr" : "Jahren")}"
         : minuten >= 60 ? $"{minuten / 60.0:0.#} Stunden" : $"{minuten} Minuten";
 
-    private Grundstueck Neu(Grundriss grundriss, Grundstuecksart art, string? kennung)
+    private Grundstueck Neu(Grundriss grundriss, Grundstuecksart art, string? kennung, Lage? lage = null)
     {
-        var g = new Grundstueck(_naechsteNummer++, grundriss, art, Karte?.ZoneBei(grundriss.X, grundriss.Z)?.Art, kennung);
+        var g = new Grundstueck(_naechsteNummer++, grundriss, art, lage ?? Karte?.ZoneBei(grundriss.X, grundriss.Z)?.Art, kennung);
         _grundstuecke.Add(g);
         return g;
     }
@@ -677,7 +677,7 @@ public sealed class Bauwesen
         if (!IstAktiv || Wohnhaus(k) is not null) return;
         var plaetze = Karte!.Wohnhausplaetze;
         if (nummer < 0 || nummer >= plaetze.Count || _grundstuecke.Any(g => g.Kennung == plaetze[nummer].Kennung)) return;
-        var g = Neu(plaetze[nummer].Grundriss!.Value, Grundstuecksart.Wohnhaus, plaetze[nummer].Kennung);
+        var g = Neu(plaetze[nummer].Grundriss!.Value, Grundstuecksart.Wohnhaus, plaetze[nummer].Kennung, plaetze[nummer].Lage);
         g.Besitzer = k;
     }
 
