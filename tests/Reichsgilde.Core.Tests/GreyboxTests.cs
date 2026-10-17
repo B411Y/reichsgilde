@@ -56,6 +56,37 @@ static class GreyboxTests
 
     public static IEnumerable<(string, Action)> Alle() => new (string, Action)[]
     {
+        ("Greybox: Neue Werkstätten heißen nach der Straße – grammatisch richtig und kurz, für jede Karrenstraße der Karte", () =>
+        {
+            var erwartet = new Dictionary<string, string>
+            {
+                ["Ostgasse"] = "an der Ostgasse",
+                ["Landstraße"] = "an der Landstraße",
+                ["Ringgasse"] = "an der Ringgasse",
+                ["Weg zum Abzweig Steinbruch am Felsenhang"] = "am Felsenhang",
+                ["Weg zu Bauernhof an der Mühle"] = "an der Mühle",
+                ["Weg zu Grube im Tannenwald"] = "im Tannenwald",
+                ["Weg zu Grube Eisenbart"] = "am Weg zur Grube Eisenbart",
+                ["Weg zum Abzweig Steinbruch Kieselbach"] = "am Weg zum Steinbruch Kieselbach",
+                ["Heumarkt"] = "am Heumarkt",
+            };
+            foreach (var (strasse, lage) in erwartet)
+                Pruefe.Gleich(lage, Bauwesen.Lagebezeichnung(strasse), strasse);
+            foreach (var weg in Karte().Wege.Where(x => x.IstKarrenstrasse))
+            {
+                var lage = Bauwesen.Lagebezeichnung(weg.Name);
+                Pruefe.Wahr(lage.StartsWith("am ") || lage.StartsWith("an der ") || lage.StartsWith("im "), $"{weg.Name} → {lage}");
+                Pruefe.Wahr(!lage.Contains("an der Weg") && !lage.Contains("Abzweig") && !lage.Contains("Weg zu "), $"{weg.Name} → {lage}");
+                Pruefe.Wahr(lage.Length <= 40, $"zu lang: {weg.Name} → {lage}");
+            }
+
+            // Am Stück: die Werkstatt des Probeplans in V8 liegt am Weg zum Steinbruch am Felsenhang.
+            var (_, w) = MitKarte();
+            var v8 = Probeplan().First(p => p.Art == "Werkstatt" && p.Zone == "V8");
+            var name = w.Bauen.Vorschau(Reich(w, "Haus Esse"), v8.Befehl()).Betrieb!;
+            Pruefe.Wahr(name.StartsWith("Gießerei ") && !name.Contains("Weg zu"), name);
+        }),
+
         ("Greybox: Karte wird gelesen; Spieler und drei Rivalen bekommen Wohnhaus 1–4", () =>
         {
             var k = Karte();

@@ -513,7 +513,7 @@ public sealed class Bauwesen
         var weg = Karte?.Wege.Where(w => w.IstKarrenstrasse && w.Name != "")
             .OrderBy(w => w.Abstand(ex, ez)).ThenBy(w => w.Name, StringComparer.Ordinal).FirstOrDefault();
         var artName = _w.Daten.Art(art).Name;
-        var basis = weg is null ? artName : $"{artName} {Praeposition(weg.Name)} {weg.Name}";
+        var basis = weg is null ? artName : $"{artName} {Lagebezeichnung(weg.Name)}";
         var name = basis;
         for (var n = 2; Vergeben(name); n++)
             name = $"{basis} {Roemisch(n)}";
@@ -524,11 +524,32 @@ public sealed class Bauwesen
         _w.Betriebe.Any(b => b.Name == name) || _w.Daten.Liegenschaften.Any(l => l.Name == name) || _w.FreieLiegenschaften.Any(l => l.Name == name)
         || _grundstuecke.Any(g => g.Betrieb == name) || Karte?.Feste.Any(f => f.Name == name) == true;
 
+    /// <summary>
+    /// Wo eine neue Werkstatt liegt, kurz und mit passender Präposition – nach dem Namen der nächsten Karrenstraße:
+    ///   • „Ostgasse“ → „an der Ostgasse“, „Heumarkt“ → „am Heumarkt“ (grob nach der Endung: maskulin/neutral „am“, sonst „an der“),
+    ///   • Zufahrten wie „Weg zum Abzweig Steinbruch am Felsenhang“ → „am Felsenhang“ (die Lage des Ziels),
+    ///   • ohne Lage im Ziel: „Weg zu Grube Eisenbart“ → „am Weg zur Grube Eisenbart“.
+    /// </summary>
+    internal static string Lagebezeichnung(string strasse)
+    {
+        var zufahrt = System.Text.RegularExpressions.Regex.Match(strasse, @"^Weg zu[mr]?\s+(?:Abzweig\s+)?(?<ziel>.+)$");
+        if (!zufahrt.Success)
+            return $"{Praeposition(strasse)} {strasse}";
+        var ziel = zufahrt.Groups["ziel"].Value;
+        var lage = System.Text.RegularExpressions.Regex.Match(ziel, @"\s(?<lage>(?:am|an der|im|beim|auf der|vor dem) .+)$");
+        if (lage.Success)
+            return lage.Groups["lage"].Value;
+        var erstesWort = ziel.Split(' ')[0];
+        return $"am Weg {(erstesWort.EndsWith('e') ? "zur" : "zum")} {ziel}"; // Grube, Mühle → zur; Steinbruch, Holzschlag → zum
+    }
+
     /// <summary>„am Heumarkt“, aber „an der Ostgasse“ – grob nach der Endung.</summary>
     private static string Praeposition(string strasse)
     {
         var klein = strasse.ToLowerInvariant();
-        return new[] { "markt", "platz", "weg", "wall", "graben", "ring", "damm", "hof", "steg", "berg", "kai" }.Any(klein.EndsWith) ? "am" : "an der";
+        return klein.StartsWith("weg ")
+               || new[] { "markt", "platz", "weg", "pfad", "steig", "wall", "graben", "ring", "damm", "hof", "steg", "berg", "kai", "tor", "ufer", "feld", "bach", "hang", "wald", "forst" }.Any(klein.EndsWith)
+            ? "am" : "an der";
     }
 
     private static string Roemisch(int n) =>
