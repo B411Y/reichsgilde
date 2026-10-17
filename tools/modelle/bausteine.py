@@ -90,6 +90,7 @@ FARBEN = {
     "Kupfer": (0.36, 0.56, 0.47),          # grün angelaufenes Kupfer (Dachreiter des Tischlers)
     "Schnittholz": (0.66, 0.53, 0.36),     # frisch gesägte Bretter und Hirnholz
     "Seil": (0.55, 0.48, 0.35),
+    "Steinstaub": (0.70, 0.68, 0.63),      # heller Staub und Splitt am Werkplatz des Steinmetzen
 }
 RAUHEIT = {"Glas": 0.2, "Fenster": 0.2, "Eisen": 0.45, "Gold": 0.35, "Wasser": 0.1}
 METALL = {"Eisen": 0.7, "Gold": 0.85, "Kupfer": 0.5}
@@ -655,6 +656,20 @@ def baugeruest(netz, st, x0, x1, y_innen, y_aussen, ebenen=(2.15, 4.25), hoehe_i
         netz.quader((x0 + 1.2, y_aussen - 0.36 + 0.1 * k, 0.06 + 0.11 * (k == 1)), (2.2, 0.12, 0.12), holz)
 
 
+def pultdach(netz, st, x0, x1, y0, y1, z_hoch, z_tief, stoff="Holz alt", entlang="x"):
+    """Einfaches Pultdach aus Brettern mit Fugen; fällt entlang x (von x0 hoch nach x1 tief)."""
+    neig = math.atan2(z_hoch - z_tief, x1 - x0)
+    laenge = (x1 - x0 + 0.3) / math.cos(neig)
+    mitte = Vector(((x0 + x1 + 0.3) / 2, (y0 + y1) / 2, (z_hoch + z_tief) / 2 + 0.05 - 0.15 * math.tan(neig)))
+    t = Matrix.Translation(mitte) @ Matrix.Rotation(neig, 4, "Y")
+    netz.quader((0, 0, 0), (laenge, y1 - y0 + 0.4, 0.08), st[stoff], t)
+    y = -(y1 - y0 + 0.4) / 2 + 0.32
+    while y < (y1 - y0 + 0.4) / 2 - 0.1:
+        netz.vieleck([t @ Vector(p) for p in ((-laenge / 2, y - 0.02, 0.045), (laenge / 2, y - 0.02, 0.045),
+                                              (laenge / 2, y + 0.02, 0.045), (-laenge / 2, y + 0.02, 0.045))], st["Fachwerk"])
+        y += 0.32
+
+
 def zaun(netz, st, punkte, hoehe=1.1, abstand=2.0, stoff="Holz alt"):
     """Bretterzaun entlang eines Linienzugs [(x, y), …]: Pfosten und zwei Latten je Abschnitt."""
     holz = st[stoff]
@@ -700,14 +715,15 @@ def fachwerkgiebel(netz, st, M, L, hoch, oeffnungen, laeden=False):
         oeffnungen.append((M, o))
 
 
-def dachreiter(netz, st, first, spitze="Gold"):
+def dachreiter(netz, st, first, spitze="Gold", koerper="Putz", ecken="Fachwerk"):
     """Dachreiter auf dem First mit vierseitiger Spitze (wie bisher im Spiel ab Stufe 3): golden beim Schmied,
-    kupfergrün beim Tischler … – `spitze` ist das Material."""
+    kupfergrün beim Tischler, Schiefer beim Steinmetz – `spitze` ist das Material. `koerper` und `ecken`:
+    Putz mit Fachwerkständern oder Mauerwerk mit Eckquadern."""
     x, y, z = first
-    netz.quader((x, y, z + 0.6), (1.3, 1.3, 1.6), st["Putz"])
+    netz.quader((x, y, z + 0.6), (1.3, 1.3, 1.6), st[koerper])
     for sx in (-1, 1):
         for sy in (-1, 1):
-            netz.quader((x + sx * 0.6, y + sy * 0.6, z + 0.6), (0.14, 0.14, 1.6), st["Fachwerk"])
+            netz.quader((x + sx * 0.6, y + sy * 0.6, z + 0.6), (0.14, 0.14, 1.6), st[ecken])
     for s in (-1, 1):
         netz.vieleck_nach([(x - 0.3, y + s * 0.66, z + 0.7), (x + 0.3, y + s * 0.66, z + 0.7),
                            (x + 0.3, y + s * 0.66, z + 1.25), (x - 0.3, y + s * 0.66, z + 1.25)], (0, s, 0), st["Loch"])
