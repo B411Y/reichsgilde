@@ -10,6 +10,7 @@ using Reichsgilde.Core.Wirtschaft;
 /// Aufruf:  dotnet run --project tests/Reichsgilde.Core.Tests -- messen 40 20 Zwerg
 ///          … -- messen 30 20 Mensch gericht   (der Spieler setzt jedes Jahr einen Spitzel auf den Rivalen und klagt, sobald es reicht)
 ///          … -- messen 30 20 Mensch - Wagemutig   (fünftes Argument: Charakter des Rivalen)
+///          … -- messen 30 20 greybox   („greybox“ an beliebiger Stelle: mit der Greybox-Karte – Bauen, Leerstand, Neubau)
 /// </summary>
 static class Messung
 {
@@ -18,6 +19,13 @@ static class Messung
     public static int Dynastie(string[] args)
     {
         var daten = Wirtschaftsdaten.AusDatei(Datenpfad.Wirtschaft());
+        var mitKarte = args.Contains("greybox");
+        args = args.Where(a => a != "greybox").ToArray();
+        var kartenpfad = Path.Combine(Path.GetDirectoryName(Datenpfad.Wirtschaft())!, "karten", "greybox.json");
+        // Bauen und Verkaufen der KI-Häuser (Spiel-KI, PR #108): gezählt über ihre Meldungen
+        var bauen = new SortedDictionary<string, int>(StringComparer.Ordinal);
+        var staendeKi = new SortedDictionary<string, int>(StringComparer.Ordinal);
+        int bankrottKi = 0;
         var jahre = args.Length > 0 ? int.Parse(args[0]) : 40;
         var startwerte = args.Length > 1 ? int.Parse(args[1]) : 10;
         var volk = args.Length > 2 ? Enum.Parse<Volk>(args[2]) : Volk.Mensch;
@@ -48,8 +56,25 @@ static class Messung
         {
             var (sim, spieler) = Partieaufbau.Erstellen(
                 Partieeinstellungen.Standard with { Zufallsstartwert = s * 101, Siegbedingung = Siegbedingung.Endlos },
-                daten, new NeuePartie(Volk: volk, Rivale: charakter));
+                daten, new NeuePartie(Volk: volk, Rivale: charakter), karte: mitKarte ? Reichsgilde.Core.Bauen.Stadtkarte.AusDatei(kartenpfad) : null);
             if (w0(sim) is { } w1) w1.Meldung += m => { if (m.Contains("heuert im Hinterzimmer") || m.Contains("Erpresserbrief:")) gaunerstuecke++; };
+            if (w0(sim) is { } w2)
+            {
+                var kiNamen = w2.Rivalen.Select(r => r.Konto.Inhaber + ": ").ToList();
+                void Zaehlen(string was) => bauen[was] = bauen.GetValueOrDefault(was) + 1;
+                w2.Meldung += m =>
+                {
+                    if (!kiNamen.Any(m.StartsWith)) return;
+                    if (m.Contains("kauft das leerstehende")) Zaehlen("Leerstand gekauft");
+                    else if (m.Contains("baut ein neues")) Zaehlen($"Wohnhaus neu gebaut ({m.Split("baut ein neues ")[1].Split(' ')[0]})");
+                    else if (m.Contains(" neu (") && m.Contains("keine freie Werkstatt")) Zaehlen("Werkstatt neu gebaut");
+                    else if (m.Contains("baut das Wohnhaus zum")) Zaehlen("Wohnhaus ausgebaut");
+                    else if (m.Contains("um den Bankrott abzuwenden")) Zaehlen("verkauft vor dem Bankrott");
+                    else if (m.Contains("Jahre in Folge Verlust")) Zaehlen("verkauft nach Verlustjahren");
+                    else if (m.Contains("wollte, durfte aber nicht")) Zaehlen("abgelehnt");
+                    else if (m.Contains("erwarteter Gewinn ≈") && (m.Contains(": kauft ") || m.Contains(": pachtet "))) Zaehlen("Betrieb gekauft/gepachtet");
+                };
+            }
             var w = sim.Wirtschaft!;
             var rivale = w.Konten.First(k => k != spieler);
             int? heirat = null, bm = null;
@@ -119,6 +144,11 @@ static class Messung
                     Zaehlen($"{ki.Inhaber.Replace("Haus ", "")} {w.Glaube.GlaubeVon(ki)?.ToString().ToLowerInvariant()}");
                 katholikenAnteil += w.Glaube.Anteil(Reichsgilde.Core.Glaube.Konfession.Katholisch);
             }
+            foreach (var ki in w.Rivalen.Select(r => r.Konto))
+            {
+                staendeKi[w.StandVon(ki).Name] = staendeKi.GetValueOrDefault(w.StandVon(ki).Name) + 1;
+                if (ki.IstBankrott) bankrottKi++;
+            }
             var f = w.Familien.Von(rivale)!;
             var nachkommen = f.Mitglieder.Count(p => p.Vater is not null);
             if (heirat is { } h) { verheiratet++; heiratsjahre += h; }
@@ -166,6 +196,10 @@ static class Messung
         Console.WriteLine("  Von der KI erlernte Berufe (in n Partien): " + (gelernt.Count == 0 ? "keine" : string.Join(", ", gelernt.Select(x => $"{x.Key} {x.Value}×"))));
         Console.WriteLine("  Meistergrade/Stufen der KI (erreicht in n Partien, Ø Jahr): " +
                           string.Join(", ", meisterJahre.Select(x => $"{x.Key} {x.Value.Anzahl}× ab {x.Value.Jahre / x.Value.Anzahl:N1}")));
+        if (mitKarte || bauen.Count > 0)
+            Console.WriteLine($"  KI-Häuser bauen und verkaufen{(mitKarte ? " (Greybox-Karte)" : "")} (Summe über alle Partien): " +
+                              (bauen.Count == 0 ? "nichts" : string.Join(", ", bauen.Select(x => $"{x.Key} {x.Value}×"))));
+        Console.WriteLine($"  Stand der KI-Häuser am Ende (alle Partien): {string.Join(", ", staendeKi.Select(x => $"{x.Key} {x.Value}"))}; bankrott {bankrottKi}");
         if (gericht)
             Console.WriteLine($"  vor Gericht: {urteileSchuldig} Schuldsprüche, {urteileFrei} Freisprüche, davon {amtVerloren} mit Amtsverlust (Summe über alle Startwerte)");
         return 0;
