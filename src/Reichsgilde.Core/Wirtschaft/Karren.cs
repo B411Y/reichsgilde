@@ -206,7 +206,7 @@ public sealed class Karren
             return true;
         if (NachtsFahren)
         {
-            Heimat.Konto.Transport(tore.Torgeld);
+            Heimat.TransportBuchen(tore.Torgeld);
             return true;
         }
         TorWartenBis = (zeit.VergangeneMinuten / Spielzeit.MinutenProTag + 1) * Spielzeit.MinutenProTag;
@@ -238,8 +238,8 @@ public sealed class Karren
         var eskorte = w.Wache.EskorteVerfuegbar(Eskorte) ? w.Daten.Logistik.Eskorten[Eskorte] : new EskorteDaten();
         if (eskorte.KostenJeFahrt > 0)
         {
-            if (eskorte.Wache) w.Wache.GeleitBezahlen(Heimat.Konto, eskorte.KostenJeFahrt);
-            else Heimat.Konto.Transport(eskorte.KostenJeFahrt);
+            if (eskorte.Wache) w.Wache.GeleitBezahlen(Heimat, eskorte.KostenJeFahrt);
+            else Heimat.TransportBuchen(eskorte.KostenJeFahrt);
         }
 
         // Ein bestellter Hinterhalt geht vor; sonst würfeln die gewöhnlichen Banden.
@@ -274,7 +274,7 @@ public sealed class Karren
             while (stueck > 0 && stand.HandKaufpreis(stueck, faktor) > Heimat.Konto.Vermoegen) stueck--;
             if (stueck <= 0) { gekauft.Add($"{ware}: kein Geld"); continue; }
             var kosten = stand.HandKaufen(stueck, faktor);
-            Heimat.Konto.Zutaten(kosten);
+            Heimat.ZutatenBuchen(kosten);
             _ladung[ware] = _ladung.GetValueOrDefault(ware) + stueck;
             gekauft.Add($"{stueck} {ware} für {Zahlenformat.Ganz(kosten)}");
         }
@@ -337,7 +337,7 @@ public sealed class Karren
             if (knappste.Zutat is null) break;
 
             var menge = Math.Min(Daten.KapazitaetJeSorte, Heimat.LagerKapazitaetJeWare - knappste.Bestand);
-            Heimat.Konto.Zutaten(w.Markt[knappste.Zutat].Kaufen(menge));
+            Heimat.ZutatenBuchen(w.Markt[knappste.Zutat].Kaufen(menge));
             _ladung[knappste.Zutat] = _ladung.GetValueOrDefault(knappste.Zutat) + menge;
         }
     }

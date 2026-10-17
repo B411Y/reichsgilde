@@ -103,6 +103,13 @@ So wird eingetragen (damit sich die Chats nie an derselben Stelle treffen):
 | Thema | Entscheidung | Datum |
 |---|---|---|
 | Ausbau am Platz | Fachwerkhaus → Bürgerhaus → Steinhaus wie bisher am Platz. **Stadtpalais und Stadthof nur als Neubau** oder durch Kauf eines Leerstands, nicht als Ausbau (LEVELDESIGN, Gebäudegrößen; bestätigt vom Nutzer). Ersetzt die Zeile „Ausbau am Platz“ aus PR #103. | 17.10.2026 |
+| Feld | `bauen.wohnhaus[i].nurNeubau` (Stadtpalais, Stadthof), Datenversion 35 – im Abschnitt `bauen`, weil die Regel nur gilt, wo gebaut wird. Das Startwohnhaus und die Werkstatt dürfen es nicht haben (Prüfung). | 17.10.2026 |
+| Ohne Karte | Die Regel gilt nur bei `Bauen.IstAktiv`. Ohne Karte bzw. Bauzonen (Köln) bleibt der Ausbau zu allen Stufen erlaubt, sonst käme dort niemand mehr zum Palais. Ein Ausbau, der in einem alten Spielstand schon läuft, wird fertig. | 17.10.2026 |
+| Platz in der Greybox | Gierig gezählt passen gleichzeitig **9 Stadtpalais** (12 × 10, Kern, Mauerring, Vorstadt) bzw. **2 Stadthöfe** (16 × 14, nur in M1 am Mauerring; K1 ist zu schmal) in die Bauzonen, solange dort nichts anderes steht. Dazu nimmt jeder frei gewordene Wohnhausplatz (Umzug, Abriss) ein Wohnhaus jeder Stufe auf. | 17.10.2026 |
+| Seit wann leer | `Bauen.LeerSeit(konto)`: Spielminute des Bankrotts bzw. Erlöschens (gesetzt in `Stilllegen`), im Spielstand. **Alte Spielstände** ohne Zeitpunkt zählen **ab dem Laden** – so bekommt der Spieler sein Jahr Vorrang vor der KI. Gekauft oder abgerissen: null. | 17.10.2026 |
+| Bauorte | `Bauen.Bauorte(konto, vorlage)` für die KI: alle gültigen eingerasteten Befehle, fest geordnet (Bauplätze nach Nummer, dann Rasterstellen von Nord nach Süd, West nach Ost, je Stelle Drehung 0–3). Etwa 25 ms je Abfrage auf der Greybox – die KI fragt nur selten (einmal am Tag, wenn sie bauen will). | 17.10.2026 |
+| Gewinn je Betrieb | Neu: `Betriebsrechnung` je Betrieb (`Betrieb.Laufend`, `Betrieb.Vorjahr`, `Gewinn`, `Ganzjaehrig`) mit den Posten des Betriebsgewinns, soweit sie dem Betrieb gehören; im Spielstand. Das erste, angebrochene Jahr eines Betriebs (und das Jahr eines geladenen alten Spielstands) ist nicht `Ganzjaehrig`. Die Zählung „zwei Jahre in Folge Verlust“ führt die KI selbst. | 17.10.2026 |
+| Bankrott | Unverändert: am 3. Jahresabschluss in Folge mit negativem Reinvermögen (`schulden.jahreBisBankrott`), in der Jahresabrechnung vor `KiRivale.Jahresende`. Betriebe zählen nicht zum Reinvermögen – ein Verkauf vor diesem Abschluss hebt es um den Erlös (Test). | 17.10.2026 |
 
 ## Messungen
 
