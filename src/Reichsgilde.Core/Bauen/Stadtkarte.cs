@@ -112,6 +112,12 @@ public sealed class FesterBau
     /// <summary>Konfession einer Kirche (nur gelesen).</summary>
     public string? Konfession { get; init; }
 
+    /// <summary>Wohnhausplatz: in welcher Lage er liegt (für den Bauplatz nach einem Abriss). Fehlt sie, gilt die nächste Bauzone.</summary>
+    public Lage? Lage { get; init; }
+
+    /// <summary>Wohnhausplatz: Nummer in der Konto-Reihenfolge (1 = Spieler). Fehlt sie, zählt die Reihenfolge in der Datei.</summary>
+    public int? Reihenfolge { get; init; }
+
     /// <summary>
     /// Die Fläche, die der Bau belegt – oder null, wenn auf ihm nichts im Weg steht (z. B. der offene Markt).
     /// Kirche und Leerstand ohne Größe belegen 16 × 14 m, wie im Kapazitätswerkzeug (tools/karten/kapazitaet.py).
@@ -161,9 +167,9 @@ public sealed class Stadtkarte
     public List<Bauzone> Bauzonen { get; init; } = new();
     public List<FesterBau> Feste { get; init; } = new();
 
-    /// <summary>Die Wohnhausplätze der Häuser in Konto-Reihenfolge (feste Bauten der Art „wohnhaus“).</summary>
+    /// <summary>Die Wohnhausplätze der Häuser in Konto-Reihenfolge (feste Bauten der Art „wohnhaus“, nach <see cref="FesterBau.Reihenfolge"/>, sonst wie in der Datei).</summary>
     [JsonIgnore]
-    public IReadOnlyList<FesterBau> Wohnhausplaetze => Feste.Where(f => f.Art == "wohnhaus").ToList();
+    public IReadOnlyList<FesterBau> Wohnhausplaetze => Feste.Where(f => f.Art == "wohnhaus").OrderBy(f => f.Reihenfolge ?? int.MaxValue).ToList();
 
     private static readonly JsonSerializerOptions Optionen = new()
     {

@@ -1048,7 +1048,8 @@
    "eingang": [0.0, -40.3],
    "groesse": [17.0, 8.0],
    "drehung": 0,
-   "reihenfolge": 1
+   "reihenfolge": 1,
+   "lage": "mauerring"
   },
   {
    "kennung": "Wohnhaus2",
@@ -1058,7 +1059,8 @@
    "eingang": [0.0, 40.3],
    "groesse": [17.0, 8.0],
    "drehung": 180,
-   "reihenfolge": 2
+   "reihenfolge": 2,
+   "lage": "mauerring"
   },
   {
    "kennung": "Wohnhaus3",
@@ -1068,7 +1070,8 @@
    "eingang": [-40.3, -9.0],
    "groesse": [17.0, 8.0],
    "drehung": 90,
-   "reihenfolge": 3
+   "reihenfolge": 3,
+   "lage": "mauerring"
   },
   {
    "kennung": "Wohnhaus4",
@@ -1078,7 +1081,8 @@
    "eingang": [40.3, -16.25],
    "groesse": [17.0, 8.0],
    "drehung": 270,
-   "reihenfolge": 4
+   "reihenfolge": 4,
+   "lage": "mauerring"
   },
   {
    "kennung": "Wohnhaus5",
@@ -1089,6 +1093,7 @@
    "groesse": [17.0, 8.0],
    "drehung": 270,
    "reihenfolge": 5,
+   "lage": "mauerring",
    "haeuserAb": 5
   },
   {
@@ -1100,6 +1105,7 @@
    "groesse": [17.0, 8.0],
    "drehung": 0,
    "reihenfolge": 6,
+   "lage": "mauerring",
    "haeuserAb": 6
   },
   {
@@ -1111,6 +1117,7 @@
    "groesse": [17.0, 8.0],
    "drehung": 180,
    "reihenfolge": 7,
+   "lage": "mauerring",
    "haeuserAb": 7
   },
   {
@@ -1122,6 +1129,7 @@
    "groesse": [17.0, 8.0],
    "drehung": 0,
    "reihenfolge": 8,
+   "lage": "mauerring",
    "haeuserAb": 8
   },
   {
