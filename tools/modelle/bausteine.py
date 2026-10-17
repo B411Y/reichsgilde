@@ -97,9 +97,13 @@ FARBEN = {
     "Farbe": (0.58, 0.18, 0.14),           # Farbsud im Bottich (Ware des Alchimisten)
     "Elixier": (0.24, 0.48, 0.42),         # Flaschen und Kolben
     "Violett": (0.45, 0.30, 0.55),         # Spitze des Dachreiters beim Alchimisten (wie bisher im Spiel)
+    "Weinrot": (0.60, 0.25, 0.20),         # Spitze des Dachreiters beim Wirt (wie bisher im Spiel)
+    "Ocker": (0.80, 0.66, 0.32),           # Wirtshausschild (wie bisher im Spiel)
+    "Laub": (0.24, 0.35, 0.16),
+    "Laub hell": (0.34, 0.44, 0.20),
 }
 RAUHEIT = {"Glas": 0.2, "Fenster": 0.2, "Eisen": 0.45, "Gold": 0.35, "Wasser": 0.1}
-METALL = {"Eisen": 0.7, "Gold": 0.85, "Kupfer": 0.5, "Violett": 0.5}
+METALL = {"Eisen": 0.7, "Gold": 0.85, "Kupfer": 0.5, "Violett": 0.5, "Weinrot": 0.5}
 LEUCHTEN = {"Glut": ((1.0, 0.45, 0.12), 3.0)}    # Farbe (sRGB) und Stärke der Emission
 # Licht hinter den Fenstern bei Nacht: Farbe (sRGB) und Stärke. Nicht in der GLB (dort aus), nur für die Nachtbilder –
 # im Spiel schaltet der Code die Emission des gemeinsamen Materials „Fenster“ abends an und morgens aus.
@@ -689,6 +693,34 @@ def pultdach(netz, st, x0, x1, y0, y1, z_hoch, z_tief, stoff="Holz alt", entlang
         netz.vieleck([t @ Vector(p) for p in ((-laenge / 2, y - 0.02, 0.045), (laenge / 2, y - 0.02, 0.045),
                                               (laenge / 2, y + 0.02, 0.045), (-laenge / 2, y + 0.02, 0.045))], st["Fachwerk"])
         y += 0.32
+
+
+def tor_fluegel(netz, st, M, o):
+    """Zweiflügeliges Brettertor in der Hausfarbe mit Z-Streben und Eisenbändern."""
+    for s in (-1, 1):
+        u = o.u + s * o.b / 4
+        netz.quader((u, -0.01, o.v + o.h / 2), (o.b / 2 - 0.03, 0.04, o.h), st["Hausfarbe"], M, ohne=("+y",))
+        for f in (0.15, 0.85):
+            netz.quader((u, -0.04, o.v + o.h * f), (o.b / 2 - 0.12, 0.03, 0.12), st["Fachwerk"], M, ohne=("+y",))
+        netz.stab(M @ Vector((u - s * (o.b / 4 - 0.12), -0.045, o.v + o.h * 0.15)),
+                  M @ Vector((u + s * (o.b / 4 - 0.12), -0.045, o.v + o.h * 0.85)), 0.11, 0.03, st["Fachwerk"],
+                  quer=M.to_3x3() @ Vector((0, 1, 0)), ohne=("+y",))
+        for f in (0.3, 0.7):
+            netz.quader((o.u + s * 0.25, -0.06, o.v + o.h * f), (0.4, 0.02, 0.06), st["Eisen"], M, ohne=("+y",))
+
+
+def pferd(netz, st, ort, winkel):
+    """Schlichtes Zugpferd aus Quadern und Stäben, Blick in Richtung `winkel` (Grad, von +x gegen den Uhrzeigersinn)."""
+    M = Matrix.Translation(Vector(ort)) @ Matrix.Rotation(math.radians(winkel), 4, "Z")
+    fell, dunkel = st["Leder"], st["Kohle"]
+    netz.quader((0, 0, 0.95), (1.0, 0.36, 0.42), fell, matrix=M)
+    for x in (-0.38, 0.38):
+        for y in (-0.12, 0.12):
+            netz.stab((x, y, 0), (x, y, 0.8), 0.1, 0.1, fell, matrix=M)
+    netz.stab((0.4, 0, 1.0), (0.68, 0, 1.45), 0.2, 0.16, fell, matrix=M)            # Hals
+    netz.quader((0.82, 0, 1.36), (0.4, 0.16, 0.18), fell, matrix=M)                 # Kopf
+    netz.stab((0.4, 0, 1.2), (0.64, 0, 1.56), 0.05, 0.06, dunkel, matrix=M)         # Mähne
+    netz.stab((-0.5, 0, 1.12), (-0.6, 0, 0.62), 0.06, 0.08, dunkel, matrix=M)       # Schweif
 
 
 def zaun(netz, st, punkte, hoehe=1.1, abstand=2.0, stoff="Holz alt"):
