@@ -363,11 +363,16 @@ static class BauenTests
             Pruefe.Wahr(w.Bauen.Bauplaetze.Contains(huette), "Bauplatz");
             Pruefe.Gleich(Lage.Kern, huette.Lage); // außerhalb der Zonen – die nächste ist K1
 
-            // Auf dem Bauplatz (außerhalb jeder Bauzone) darf wieder gebaut werden: eingerastet, Vorderkante bündig an der Straße.
-            var befehl = w.Bauen.Einrasten(new WohnhausBauen(1, -27, -10, 0));
+            // Ein Wohnhausplatz (außerhalb jeder Bauzone) nimmt jedes Wohnhaus auf – eingepasst in seine Fläche und Drehung, keine Werkstatt.
+            var befehl = w.Bauen.Einrasten(new WohnhausBauen(1, -27, -10, 2));
             Pruefe.Gleich(new WohnhausBauen(1, -30, -9, 0), befehl);
+            Pruefe.Gleich(new Grundriss(-30, -9, 16, 10, 0), w.Bauen.Grundriss(befehl));
             Pruefe.Gleich(null, w.Bauen.BauVerboten(k, befehl));
-            Pruefe.Wahr(w.Bauen.PlatzVerboten(new WohnhausBauen(4, -30, -11, 0))!.Contains("keine Bauzone"), "ein Stadthof passt nicht auf den Bauplatz");
+            Pruefe.Gleich(null, w.Bauen.PlatzVerboten(new WohnhausBauen(4, -30, -9, 0))); // auch ein Stadthof, eingepasst (Lage Kern)
+            Pruefe.Gleich(new Grundriss(-30, -9, 16, 10, 0), w.Bauen.Vorschau(k, new WohnhausBauen(4, -30, -9, 0)).Grundriss);
+            Pruefe.Wahr(w.Bauen.PlatzVerboten(new WohnhausBauen(1, -32, -9, 0))!.Contains("genau auf den Wohnhausplatz"), "halb darauf");
+            Pruefe.Gleich("Auf einem Wohnhausplatz stehen nur Wohnhäuser.", w.Bauen.PlatzVerboten(new WerkstattBauen(Betriebsart.Giesserei, -30, -9, 0)));
+            Pruefe.Gleich(new WerkstattBauen(Betriebsart.Giesserei, -30, -9, 0), w.Bauen.Einrasten(new WerkstattBauen(Betriebsart.Giesserei, -29.5, -9.3, 0))); // Werkstatt: nur aufs Raster
             Grundstueck? bebaut = null;
             w.Bauen.BauplatzBebaut += g => bebaut = g;
             Pruefe.Wahr(w.Ausfuehren(k, befehl).Erfolg, "auf dem Bauplatz bauen");

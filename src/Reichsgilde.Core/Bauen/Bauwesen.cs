@@ -227,19 +227,34 @@ public sealed class Bauwesen
     /// <summary>Die Fläche, die das Gebäude an dieser Stelle belegen würde (inkl. Vorplatz).</summary>
     public Grundriss Grundriss(BauBefehl befehl)
     {
+        if (Wohnhausplatz(befehl) is { } platz) return platz.Grundriss;
         var m = Mass(befehl);
         return new Grundriss(befehl.X, befehl.Z, m?.Breite ?? 0, m?.Tiefe ?? 0, ((befehl.Drehung % 4) + 4) % 4);
     }
 
+    /// <summary>Ist der Bauplatz aus einem Wohnhausplatz der Karte entstanden (Abriss oder Umzug)? Dann nimmt er nur Wohnhäuser auf, eingepasst.</summary>
+    public static bool IstWohnhausplatz(Grundstueck g) => g.Art == Grundstuecksart.Bauplatz && g.Kennung is not null;
+
     /// <summary>
-    /// Rastet die Mausposition ein: auf einen Bauplatz, auf dem das Gebäude ganz Platz hat (mit der Vorderkante bündig, wenn es
-    /// gleich gedreht ist), sonst aufs 2-m-Raster. Gibt den Befehl mit den eingerasteten Koordinaten zurück.
+    /// Der Wohnhausplatz (als Bauplatz), auf den dieser Wohnhaus-Neubau eingepasst wird – null, wenn die Mitte nicht genau auf einem liegt.
+    /// Ein Wohnhausplatz nimmt jedes Wohnhaus jeder Stufe auf, in genau seiner Fläche und Drehung (wie der Ausbau am Platz);
+    /// die Normmaße aus „bauen.wohnhaus“ gelten nur in den Bauzonen (Entscheidung des Teamleiters vom 17.10.2026).
+    /// </summary>
+    public Grundstueck? Wohnhausplatz(BauBefehl befehl) => befehl is not WohnhausBauen ? null
+        : Bauplaetze.FirstOrDefault(p => IstWohnhausplatz(p) && Math.Abs(p.Grundriss.X - befehl.X) < 1e-6 && Math.Abs(p.Grundriss.Z - befehl.Z) < 1e-6);
+
+    /// <summary>
+    /// Rastet die Mausposition ein: ein Wohnhaus auf einen Wohnhausplatz, über dem die Maus steht (Mitte und Drehung des Platzes);
+    /// sonst auf einen Bauplatz, auf dem das Gebäude ganz Platz hat (mit der Vorderkante bündig, wenn es gleich gedreht ist);
+    /// sonst aufs 2-m-Raster. Gibt den Befehl mit den eingerasteten Koordinaten (und beim Wohnhausplatz seiner Drehung) zurück.
     /// </summary>
     public BauBefehl Einrasten(BauBefehl befehl)
     {
         if (Daten is not { } d || Mass(befehl) is null) return befehl;
+        if (befehl is WohnhausBauen && Bauplaetze.FirstOrDefault(p => IstWohnhausplatz(p) && p.Grundriss.Enthaelt(befehl.X, befehl.Z)) is { } wohnplatz)
+            return befehl with { X = wohnplatz.Grundriss.X, Z = wohnplatz.Grundriss.Z, Drehung = wohnplatz.Grundriss.Drehung };
         var g = Grundriss(befehl);
-        foreach (var platz in Bauplaetze)
+        foreach (var platz in Bauplaetze.Where(p => !IstWohnhausplatz(p)))
         {
             var p = platz.Grundriss;
             if (!p.Enthaelt(befehl.X, befehl.Z) || g.HalbX > p.HalbX + 1e-6 || g.HalbZ > p.HalbZ + 1e-6) continue;
@@ -312,7 +327,13 @@ public sealed class Bauwesen
         var g = Grundriss(befehl);
         var name = GebaeudeName(befehl);
         var felder = g.Felder(d.Raster).ToList();
-        var bauplaetze = Bauplaetze.ToList();
+        // Wohnhausplätze sind nur eingepasst bebaubar: Dann zählt genau dieser eine, sonst keiner (und keiner darf berührt werden).
+        var eingepasst = Wohnhausplatz(befehl);
+        if (eingepasst is null && Bauplaetze.Any(p => IstWohnhausplatz(p) && g.Ueberlappt(p.Grundriss)))
+            return befehl is WerkstattBauen
+                ? "Auf einem Wohnhausplatz stehen nur Wohnhäuser."
+                : "Ein Wohnhaus kommt genau auf den Wohnhausplatz – nicht daneben oder halb darauf.";
+        var bauplaetze = eingepasst is not null ? new List<Grundstueck> { eingepasst } : Bauplaetze.Where(p => !IstWohnhausplatz(p)).ToList();
 
         Grundstueck? BauplatzBei((double X, double Z) f) => bauplaetze.FirstOrDefault(p => p.Grundriss.Enthaelt(f.X, f.Z));
         if (!g.AufDemRaster(d.Raster) && !felder.All(f => BauplatzBei(f) is not null))
