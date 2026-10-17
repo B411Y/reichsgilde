@@ -102,7 +102,7 @@ So wird eingetragen (damit sich die Chats nie an derselben Stelle treffen):
 | Baumodus | Bauzonen nur im Baumodus: Fläche in der Farbe der Lage (Kern orange, Mauerring blau, Vorstadt türkis), 2-m-Raster, Name der Zone. Der Umriss (Fläche, hellerer Vorplatz-Streifen, Pfeil zur Straße, durchsichtiger Körper in Gebäudehöhe, Text mit dem Grund) folgt der Maus über die Bodenebene und rastet mit `Einrasten` ein. | 17.10.2026 |
 
 
-### Werkstatt des Schmieds als 3D-Modell (PR #NUMMER)
+### Werkstatt des Schmieds als 3D-Modell (PR #106)
 
 | Thema | Entscheidung | Datum |
 |---|---|---|
