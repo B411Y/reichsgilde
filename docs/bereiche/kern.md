@@ -111,6 +111,15 @@ So wird eingetragen (damit sich die Chats nie an derselben Stelle treffen):
 | Gewinn je Betrieb | Neu: `Betriebsrechnung` je Betrieb (`Betrieb.Laufend`, `Betrieb.Vorjahr`, `Gewinn`, `Ganzjaehrig`) mit den Posten des Betriebsgewinns, soweit sie dem Betrieb gehören; im Spielstand. Das erste, angebrochene Jahr eines Betriebs (und das Jahr eines geladenen alten Spielstands) ist nicht `Ganzjaehrig`. Die Zählung „zwei Jahre in Folge Verlust“ führt die KI selbst. | 17.10.2026 |
 | Bankrott | Unverändert: am 3. Jahresabschluss in Folge mit negativem Reinvermögen (`schulden.jahreBisBankrott`), in der Jahresabrechnung vor `KiRivale.Jahresende`. Betriebe zählen nicht zum Reinvermögen – ein Verkauf vor diesem Abschluss hebt es um den Erlös (Test). | 17.10.2026 |
 
+### Abstimmen des Spielers im Rat (PR #111)
+
+| Thema | Entscheidung | Datum |
+|---|---|---|
+| Ablauf | Der Spieler legt seine Stimme **vorab** fest, im Ratsfenster, und kann sie bis zur Ratssitzung am Jahresende jederzeit ändern; das Spiel läuft weiter. Die Prognosen (Wahl, Statut, Glaube) zählen seine Stimme mit. Entschieden vom Nutzer. | 17.10.2026 |
+| Vorgabe | Ohne festgelegte Stimme wie bisher: bei Wahlen für den Amtsinhaber, bei Anträgen Enthaltung. Entschieden vom Nutzer. | 17.10.2026 |
+| Umfang | Alle drei Abstimmungen der Sitzung: Ämterwahlen, Antrag auf ein Fron- und Sklavenstatut, Antrag auf einen Stadtglauben. Entschieden vom Nutzer. | 17.10.2026 |
+| Kosten | Abstimmen kostet keine Aktionspunkte. Entschieden vom Nutzer. | 17.10.2026 |
+
 ## Messungen
 
 Messungen des Kerns stehen in `docs/WIRTSCHAFTSMODELL.md` (nur der Kern schreibt dort).
