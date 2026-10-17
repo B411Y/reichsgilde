@@ -212,8 +212,8 @@ public sealed partial class Stadtwirtschaft
         var waehrung = Daten.Allgemein.Waehrung;
 
         var (loehne, fix) = Abrechnung(betrieb);
-        if (loehne > 0) konto.Personal(loehne);
-        if (fix > 0) konto.Fixkosten(fix);
+        if (loehne > 0) betrieb.PersonalBuchen(loehne);
+        if (fix > 0) betrieb.FixkostenBuchen(fix);
         if (vorschau.Gebaeudeerloes + vorschau.Warenerloes > 0) konto.Verkauf(vorschau.Gebaeudeerloes + vorschau.Warenerloes);
         var frei = Freigeben(betrieb, vorschau.Wert);
 

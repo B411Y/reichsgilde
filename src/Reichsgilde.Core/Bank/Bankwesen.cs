@@ -403,8 +403,8 @@ public sealed class Bankwesen
             var zins = Math.Min(Kasse(b), rahmen) * Daten.Stadtzins * 60 / _w.Daten.Allgemein.Arbeitsminuten;
             var wechsel = minuten * Stufenwert(Daten.Wechsel.JeStufe, b.Stufe) * proMinute * deckel;
             if (zins + wechsel <= 0) continue;
-            b.Konto.Umsatz(zins + wechsel);
-            b.Konto.Steuer((zins + wechsel) * steuer);
+            b.UmsatzBuchen(zins + wechsel);
+            b.SteuerBuchen((zins + wechsel) * steuer);
             Buchen(b.Konto, x => x with { Stadtzinsen = x.Stadtzinsen + zins, Wechsel = x.Wechsel + wechsel });
         }
         if (zeit.MinuteImTag != 0) // die letzte Stunde des Jahres rechnet das Jahresende ab

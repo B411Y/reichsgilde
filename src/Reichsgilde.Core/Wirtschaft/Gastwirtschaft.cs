@@ -230,13 +230,13 @@ public sealed class Gastwirtschaft
         }
         b.Auslagern(ware, 1);
         var preis = Ausschankpreis(ware) * (barde ? 1 + d.Barde.Zeche : 1);
-        b.Konto.Umsatz(preis);
-        b.Konto.Steuer(preis * _w.Daten.Allgemein.Umsatzsteuer);
+        b.UmsatzBuchen(preis);
+        b.SteuerBuchen(preis * _w.Daten.Allgemein.Umsatzsteuer);
         var wuerfel = 0.0;
         if (_wuerfeltisch.Contains(b.Name))
         {
             wuerfel = d.Wuerfeltisch.EinsatzJeGast;
-            b.Konto.Umsatz(wuerfel);
+            b.UmsatzBuchen(wuerfel);
         }
         _diesesJahr[b.Name] = buch with { Bewirtet = buch.Bewirtet + 1, Einnahmen = buch.Einnahmen + preis, Wuerfelgeld = buch.Wuerfelgeld + wuerfel };
     }
@@ -292,7 +292,7 @@ public sealed class Gastwirtschaft
         var kosten = Daten.Barde.Kosten;
         var waehrung = _w.Daten.Allgemein.Waehrung;
         if (b.Konto.Vermoegen < kosten) return Befehlsergebnis.Abgelehnt($"Ein Barde will {Zahlenformat.Ganz(kosten)} {waehrung}.");
-        b.Konto.Personal(kosten);
+        b.PersonalBuchen(kosten);
         _barde.Add(b.Name);
         return Befehlsergebnis.Ok($"Ein Barde spielt heute Abend in {b.Name} ({Zahlenformat.Ganz(kosten)} {waehrung}): " +
                                   $"ab {Daten.AbendAb} Uhr {Zahlenformat.Ganz(Daten.Barde.Gaeste * 100)} % mehr Gäste, " +

@@ -381,7 +381,7 @@ public sealed partial class Stadtwirtschaft
         // Befehle nennen Betriebe beim Namen – deshalb muss er eindeutig sein.
         if (_betriebe.Any(b => b.Name == name))
             throw new ArgumentException($"Einen Betrieb „{name}“ gibt es schon.", nameof(name));
-        var betrieb = new Betrieb(name, art, konto, Daten);
+        var betrieb = new Betrieb(name, art, konto, Daten, ganzjaehrig: Uhr.MinuteImTag == 0); // zum Jahresbeginn: ganzes Jahr
         _betriebe.Add(betrieb);
         konto.BerufLernen(betrieb.Artdaten.Beruf); // wer einen Betrieb führt, beherrscht sein Handwerk
 
@@ -495,6 +495,8 @@ public sealed partial class Stadtwirtschaft
         Bank.Jahresende(); // Ausfälle, Zins und Rate der Kredite – noch in die alte Jahresrechnung
         foreach (var konto in _konten)
             konto.JahrAbschliessen(neuesJahr);
+        foreach (var betrieb in _betriebe)
+            betrieb.JahrAbschliessen(neuesJahr);
         SchuldenPruefen();
         Gesundheit.Jahresende();  // Kranke sterben oder genesen – mit dem alten Jahr
         Familien.Jahreswechsel(); // Tod und Erbfall vor der Ratssitzung: Ein verwaistes Amt wird gleich neu besetzt
@@ -540,9 +542,10 @@ public sealed partial class Stadtwirtschaft
         }
     }
 
-    /// <summary>Ein Haus scheidet aus (bankrott oder erloschen): Alle Arbeitskräfte gehen, Amt und Bewerbung sind verloren.</summary>
+    /// <summary>Ein Haus scheidet aus (bankrott oder erloschen): Alle Arbeitskräfte gehen, Amt und Bewerbung sind verloren, das Wohnhaus steht leer.</summary>
     internal void Stilllegen(Konto konto)
     {
+        Bauen.LeerstandBeginnt(konto);
         foreach (var betrieb in _betriebe.Where(b => b.Konto == konto))
             foreach (var kraft in betrieb.Belegung.Keys.ToList())
                 betrieb.Einstellen(kraft, 0, Statut);
