@@ -646,4 +646,16 @@ public sealed record RivaleStand
     public List<string> Entscheidungen { get; init; } = new();
     public int StundenImJahr { get; init; }
     public int GaunereienImJahr { get; init; }
+
+    /// <summary>Betriebsname → ganze Jahre in Folge mit Verlust (Spiel-KI, PR #108; fehlt in alten Spielständen).</summary>
+    public Dictionary<string, int> Verlustjahre { get; init; } = new();
+
+    /// <summary>Betriebsname → Lagerwert zum letzten Jahresende (zum Grundpreis), für die Verlustrechnung der KI.</summary>
+    public Dictionary<string, double> Lagerwert { get; init; } = new();
+
+    /// <summary>„Beruf/Ort“ eines verkauften Betriebs → bis zu diesem Jahr (ausschließlich) kauft und baut die KI dort nichts.</summary>
+    public Dictionary<string, int> Gesperrt { get; init; } = new();
+
+    /// <summary>In diesem Jahr fand die KI keinen Platz für eine neue Werkstatt (null: kein solches Jahr).</summary>
+    public int? KeinWerkstattplatzJahr { get; init; }
 }

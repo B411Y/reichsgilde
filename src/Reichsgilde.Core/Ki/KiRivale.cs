@@ -1,3 +1,4 @@
+using Reichsgilde.Core.Bauen;
 using Reichsgilde.Core.Dynastie;
 using Reichsgilde.Core.Glaube;
 using Reichsgilde.Core.Gauner;
@@ -5,6 +6,7 @@ using Reichsgilde.Core.Justiz;
 using Reichsgilde.Core.Politik;
 using Reichsgilde.Core.Speichern;
 using Reichsgilde.Core.Wirtschaft;
+using Reichsgilde.Core.Zeit;
 
 namespace Reichsgilde.Core.Ki;
 
@@ -52,7 +54,9 @@ public sealed record KiProfil(
 ///                       • freie Arbeitsplätze mit der ertragreichsten erlaubten Arbeitskraft besetzen
 ///                       • Eskorte je Karren nach erwartetem Verlust wählen
 ///   einmal am Tag       • Politik im Rat, Brautschau, Gericht (Spitzel, Anklage, Verteidigung)
+///                       • zur eigenen Baustunde: Bauplatz für ein neues Wohnhaus oder eine neue Werkstatt suchen
 ///   zum Jahresende      • Karren kaufen, wenn ein Betrieb zu oft stillstand
+///                       • Verlustjahre der Betriebe zählen (verkauft wird in den Stunden danach)
 ///
 /// Jede Entscheidung wird als Meldung ausgegeben, damit der Spieler sie nachvollziehen kann.
 /// </summary>
@@ -63,6 +67,11 @@ public sealed class KiRivale
     private readonly List<string> _entscheidungen = new();
     private int _stundenImJahr;
     private int _gaunereienImJahr;
+    private readonly Dictionary<string, int> _verlustjahre = new();
+    private readonly Dictionary<string, double> _lagerwert = new();
+    private readonly Dictionary<string, int> _gesperrt = new();
+    private int? _keinWerkstattplatzJahr;
+    private bool _bauorteGefragt; // in dieser Stunde schon nach Bauorten gefragt (teuer – höchstens einmal)
 
     /// <summary>Zu dieser Stunde des Spieltags kümmert sich die KI um die Politik (mittags, einmal am Tag).</summary>
     private const int Politikstunde = 6;
@@ -92,6 +101,10 @@ public sealed class KiRivale
         Entscheidungen = new(_entscheidungen),
         StundenImJahr = _stundenImJahr,
         GaunereienImJahr = _gaunereienImJahr,
+        Verlustjahre = new(_verlustjahre),
+        Lagerwert = new(_lagerwert),
+        Gesperrt = new(_gesperrt),
+        KeinWerkstattplatzJahr = _keinWerkstattplatzJahr,
     };
 
     internal void Wiederherstellen(RivaleStand s)
@@ -102,6 +115,10 @@ public sealed class KiRivale
         _entscheidungen.AddRange(s.Entscheidungen);
         _stundenImJahr = s.StundenImJahr;
         _gaunereienImJahr = s.GaunereienImJahr;
+        foreach (var (name, jahre) in s.Verlustjahre) _verlustjahre[name] = jahre;
+        foreach (var (name, wert) in s.Lagerwert) _lagerwert[name] = wert;
+        foreach (var (art, bis) in s.Gesperrt) _gesperrt[art] = bis;
+        _keinWerkstattplatzJahr = s.KeinWerkstattplatzJahr;
     }
 
     // ═════════════════════════════════════════════════════════════════════════
@@ -113,12 +130,15 @@ public sealed class KiRivale
     {
         if (!Konto.IstAktiv) return;
         _stundenImJahr++;
+        _bauorteGefragt = false;
         // Im Kerker führt nur der Verwalter die Betriebe – alles Persönliche ruht.
         var frei = !(_w.Justiz.IstAktiv && _w.Justiz.ImKerker(Konto));
+        BetriebeVerkaufen(); // Betriebssache – das tut auch der Verwalter
         if (frei)
         {
             StandPruefen();
-            if (!(Spart && Profil.Gaunerei <= 0)) // die Vorsichtige spart auf den Stand: kein Ausbau, keine Expansion
+            // Die Vorsichtige spart auf den Stand: kein Ausbau, keine Expansion. Droht der Bankrott, investiert niemand.
+            if (!(Spart && Profil.Gaunerei <= 0) && !InNot)
             {
                 Ausbauen();
                 Expandieren();
@@ -174,6 +194,7 @@ public sealed class KiRivale
     {
         _stundenImJahr = 0;
         _gaunereienImJahr = 0;
+        VerlusteZaehlen();
         foreach (var betrieb in Betriebe.ToList())
             KarrenNachkaufen(betrieb);
     }
@@ -326,23 +347,100 @@ public sealed class KiRivale
 
     /// <summary>
     /// Aufsteigen, sobald die Schwelle erreicht ist und nach der Gebühr die Reserve bleibt. Braucht der neue Stand ein
-    /// größeres Wohnhaus, baut die KI es, sobald sie Ausbau, Gebühr und Reserve bar bezahlen kann
-    /// (der Hauswert zählt zum Reinvermögen, Kern PR #85 – mit dem Bau fällt sie nicht unter die Schwelle).
+    /// größeres Wohnhaus, besorgt die KI es zuerst (<see cref="WohnhausBeschaffen"/>).
     /// </summary>
     private void StandPruefen()
     {
         if (_w.NaechsterStand(Konto) is not { } neu) return;
-        if (Konto.Reinvermoegen < neu.Schwelle || Konto.Vermoegen - neu.Gebuehr < Profil.Reserve) return;
         // Wohnhaus zuerst (Kern, Wohnungswesen): Für den neuen Stand braucht es das passende Haus.
         if (_w.Wohnen.StandVerboten(Konto, Konto.Stand + 1) is not null)
         {
-            if (_w.Wohnen.AusbauVerboten(Konto) is null && _w.Wohnen.NaechsteStufe(Konto) is { } haus
-                && Konto.Vermoegen - haus.Ausbau - neu.Gebuehr >= Profil.Reserve)
-                Befehlen(new WohnhausAusbauen(), $"baut das Wohnhaus zum {haus.Name} aus ({Zahlenformat.Ganz(haus.Ausbau)} {_w.Daten.Allgemein.Waehrung}).");
+            WohnhausBeschaffen(neu);
             return;
         }
+        if (Konto.Reinvermoegen < neu.Schwelle || Konto.Vermoegen - neu.Gebuehr < Profil.Reserve) return;
         Befehlen(new StandErwerben(),
             $"steigt in den Stand {neu.Name} auf ({Zahlenformat.Ganz(neu.Gebuehr)} {_w.Daten.Allgemein.Waehrung} Gebühr).");
+    }
+
+    /// <summary>
+    /// Für den nächsten Stand fehlt ein größeres Wohnhaus. Die KI nimmt den günstigsten Weg:
+    ///   • <b>Leerstand kaufen</b> – nur bei diesem Bedarf, nur einen, der ein ganzes Spieljahr leer stand (Vorrang des Spielers),
+    ///     groß genug ist und weniger kostet als Ausbau oder Neubau. Nie als Schnäppchen, nie zum Abreißen.
+    ///   • <b>Ausbauen</b> am Platz (bis zum Steinhaus). Ausbau und Leerstand dauern nur Stunden: Die KI wartet, bis sie über der Schwelle
+    ///     liegt und Kosten, Gebühr und Reserve bar bezahlen kann (der Hauswert zählt zum Reinvermögen, Kern PR #85).
+    ///   • <b>Neu bauen</b> – Stadtpalais und Stadthof gibt es mit Karte nur als Neubau (Kern PR #108). Er dauert zwei Jahre, deshalb
+    ///     beginnt die KI schon ab 80 % der Schwelle (wie beim Sparen) und braucht dafür nur Baukosten und Reserve bar. Steht ein
+    ///     passender Leerstand, der billiger ist, aber noch kein Jahr leer (oder noch nicht bezahlbar), wartet sie auf ihn.
+    ///     Den Bauplatz sucht sie nur zu ihrer Baustunde: den ersten aus <see cref="Bauwesen.Bauorte"/> (frei gewordene Plätze zuerst).
+    /// </summary>
+    private void WohnhausBeschaffen(StandDaten neu)
+    {
+        if (Konto.WohnhausFertigAb is not null || _w.Bauen.Umzug(Konto) is not null) return; // das Haus entsteht schon
+        var waehrung = _w.Daten.Allgemein.Waehrung;
+        var noetig = _w.Wohnen.NoetigeStufe(Konto.Stand + 1);
+        var aufsteigen = Konto.Reinvermoegen >= neu.Schwelle && Konto.Vermoegen - neu.Gebuehr >= Profil.Reserve;
+        bool Bezahlbar(double kosten) => aufsteigen && Konto.Vermoegen - kosten - neu.Gebuehr >= Profil.Reserve;
+
+        var nurNeubau = _w.Bauen.NurNeubau(Konto.WohnhausStufe + 1);
+        var neubau = new WohnhausBauen(noetig, 0, 0, 0);
+        var neubauKosten = _w.Bauen.IstAktiv ? _w.Bauen.Vorschau(Konto, neubau).Kosten : double.MaxValue;
+        // Womit sich ein Leerstand messen muss: mit dem Ausbau am Platz, wo es ihn gibt, sonst mit dem Neubau.
+        var vergleich = !nurNeubau && _w.Wohnen.NaechsteStufe(Konto) is { } stufe ? stufe.Ausbau : neubauKosten;
+
+        // Leerstände, die passen und billiger sind – mit der Angabe, ob sie schon ein Spieljahr leer stehen.
+        var passend = !_w.Bauen.IstAktiv ? new() : _w.Wohnen.Leerstand
+            .Where(leer => leer.WohnhausStufe >= noetig && _w.Wohnen.Stufe(leer)!.AbStand - 1 <= Konto.Stand && _w.Bauen.LeerSeit(leer) is not null)
+            .Select(leer => (Haus: leer, V: _w.Bauen.LeerstandVorschau(Konto, leer),
+                             Frei: _w.Uhr.VergangeneMinuten - _w.Bauen.LeerSeit(leer)!.Value >= Spielzeit.MinutenProTag))
+            .Where(x => x.V.KaufSumme < vergleich)
+            .OrderBy(x => x.V.KaufSumme)
+            .ToList();
+        var kauf = passend.FirstOrDefault(x => x.Frei && x.V.KaufVerboten is null && Bezahlbar(x.V.KaufSumme));
+        if (kauf.Haus is not null)
+        {
+            Befehlen(new LeerstandKaufen(kauf.Haus.Inhaber),
+                $"kauft das leerstehende {kauf.V.Gebaeude} von {kauf.Haus.Inhaber} ({Zahlenformat.Ganz(kauf.V.KaufSumme)} {waehrung} mit Sanierung, " +
+                $"nach Anrechnung des alten Hauses) – günstiger als {(nurNeubau ? "ein Neubau" : "der Ausbau")} ({Zahlenformat.Ganz(vergleich)} {waehrung}).");
+            return;
+        }
+
+        if (!nurNeubau)
+        {
+            if (_w.Wohnen.AusbauVerboten(Konto) is null && _w.Wohnen.NaechsteStufe(Konto) is { } haus && Bezahlbar(haus.Ausbau))
+                Befehlen(new WohnhausAusbauen(), $"baut das Wohnhaus zum {haus.Name} aus ({Zahlenformat.Ganz(haus.Ausbau)} {waehrung}).");
+            return;
+        }
+
+        if (passend.Count > 0) return; // ein billigerer Leerstand – bald frei oder bald bezahlbar: warten statt zwei Jahre bauen
+        if (Konto.Reinvermoegen < SparenAb * neu.Schwelle || Konto.Vermoegen - neubauKosten < Profil.Reserve) return;
+        if (_w.Bauen.BauherrVerboten(Konto, neubau) is not null || !IstBaustunde) return;
+        _bauorteGefragt = true;
+        if (_w.Bauen.Bauorte(Konto, neubau).FirstOrDefault() is not { } ort) return; // kein Platz – morgen wieder
+        var v = _w.Bauen.Vorschau(Konto, ort);
+        Befehlen(ort, $"baut ein neues {v.Gebaeude} ({Zahlenformat.Ganz(v.Kosten)} {waehrung} nach Anrechnung des alten Hauses, " +
+                      $"fertig in {Jahre(v.BauzeitMinuten)}) – ausbauen geht nicht, und kein passender Leerstand ist günstiger.");
+    }
+
+    private static string Jahre(int minuten)
+    {
+        var jahre = minuten / (double)Spielzeit.MinutenProTag;
+        var zahl = Math.Abs(jahre - Math.Round(jahre)) < 1e-9 ? Zahlenformat.Ganz(jahre) : Zahlenformat.Kommazahl(jahre);
+        return $"{zahl} {(Math.Abs(jahre - 1) < 1e-9 ? "Jahr" : "Jahren")}";
+    }
+
+    /// <summary>
+    /// Zu dieser Stunde des Tages sucht die KI Bauplätze – die Suche (<see cref="Bauwesen.Bauorte"/>) kostet Rechenzeit.
+    /// Jedes Haus hat seine eigene Stunde (3, 6, 9, 12, 15 Uhr nach Tagesbeginn), damit das Spiel nicht ruckelt; je Stunde höchstens eine Suche.
+    /// </summary>
+    private bool IstBaustunde
+    {
+        get
+        {
+            var nummer = 0;
+            while (nummer < _w.Rivalen.Count && _w.Rivalen[nummer] != this) nummer++;
+            return !_bauorteGefragt && _stundenImJahr == 3 + 3 * (nummer % 5);
+        }
     }
 
     /// <summary>Mehr Handwerke als dieses erlernt die KI nicht.</summary>
@@ -364,8 +462,14 @@ public sealed class KiRivale
         }
     }
 
-    /// <summary>Führt das Haus eine Werkstatt dieses Handwerks (in der Stadt)?</summary>
-    private bool HatWerkstattFuer(string beruf) => Betriebe.Any(b => b.Ort == Arbeitsort.Werkstatt && b.Artdaten.Beruf == beruf);
+    /// <summary>Führt das Haus eine Werkstatt dieses Handwerks (in der Stadt) – oder baut es gerade eine?</summary>
+    private bool HatWerkstattFuer(string beruf) =>
+        Betriebe.Any(b => b.Ort == Arbeitsort.Werkstatt && b.Artdaten.Beruf == beruf)
+        || Baustellen.Any(g => _w.Daten.Art(g.Betriebsart!.Value).Beruf == beruf);
+
+    /// <summary>Eigene Werkstätten im Bau. Sie zählen schon zu den Betrieben – sonst baute die KI zwei auf einmal.</summary>
+    private IEnumerable<Grundstueck> Baustellen =>
+        _w.Bauen.Grundstuecke.Where(g => g.Art == Grundstuecksart.Werkstatt && g.Arbeit == Bauarbeit.Neubau && g.Besitzer == Konto);
 
     /// <summary>Hat das Haus von diesem Handwerk nur den Umlandbetrieb, aber keine Werkstatt?</summary>
     private bool NurUmland(string beruf) => Betriebe.Any(b => b.Artdaten.Beruf == beruf) && !HatWerkstattFuer(beruf);
@@ -396,47 +500,99 @@ public sealed class KiRivale
         && (!_w.Wache.IstAktiv || beruf != _w.Wache.Daten.Beruf || WacheErlaubt)
         && IstReich && Konto.Berufe.Count < MaxBerufe && _w.Daten.Berufe.ContainsKey(beruf) && _w.ApReichen(Konto, new BerufErlernen(beruf));
 
+    /// <summary>Eine freie Liegenschaft zum Kauf (oder zur Pacht) – oder eine Werkstatt der Stufe 1, die die KI neu bauen könnte.</summary>
+    private sealed record Angebot(string Name, Betriebsart Art, double Preis, bool IstPacht, bool Neubau, double BauJahre);
+
     /// <summary>
-    /// Eine freie Werkstatt kaufen oder einen Umlandbetrieb pachten, wenn es sich rechnet:
+    /// Eine freie Werkstatt kaufen, einen Umlandbetrieb pachten oder eine Werkstatt neu bauen, wenn es sich rechnet:
     ///   • erwarteter Jahresgewinn positiv; Kaufpreis plus Lehrgeld in höchstens <see cref="KiProfil.MaxAmortisationJahre"/> Jahren verdient,
     ///   • nach Kaufpreis, Lehrgeld, einem Jahr Unterhalt/Pacht und den Löhnen bleibt die Reserve übrig.
     /// Gehört der Betrieb zu einem fremden Handwerk, lernt die KI es vorher (Lehrgeld und AP) – höchstens ein zweites, und erst als Patrizier.
     /// Unter mehreren Kandidaten gewinnt der höchste Gewinn nach Abzug der anteiligen Kosten; das eigene Handwerk
     /// ist damit im Vorteil, weil kein Lehrgeld anfällt.
+    /// Neubau und Kauf sind gleichwertig (Entscheidung des Nutzers, PR #108): Beim Neubau zählt das Baujahr ohne Einnahmen wie ein Aufpreis
+    /// in Höhe des entgangenen Gewinns. Gewinnt ein Neubau, sucht die KI den Platz zu ihrer Baustunde – den nächsten zum Marktplatz.
     /// Hat das Haus von einem Handwerk nur den Umlandbetrieb (z. B. den Bauernhof des Wirts), holt es die Werkstatt dazu nach –
     /// auch über die Höchstzahl an Betrieben hinaus. Sonst lernte die KI den Wirt nur für den Bauernhof und schenkte nie aus.
+    /// Was die KI kürzlich verkauft hat (Handwerk und Ort), kauft und baut sie einige Jahre nicht (<see cref="SperreNachVerkauf"/>).
     /// </summary>
     private void Expandieren()
     {
-        var voll = Betriebe.Count() >= BetriebeHoechstens;
+        var voll = Betriebe.Count() + Baustellen.Count() >= BetriebeHoechstens;
         if (voll && !Betriebe.Any(b => b.Ort == Arbeitsort.Umland && !HatWerkstattFuer(b.Artdaten.Beruf))) return;
 
         var daten = _w.Daten;
         var wahl = _w.FreieLiegenschaften
             .Where(l => Konto.Stand >= daten.StandStufe(l.MindestStand))
             .Where(l => l.MindestGrad <= Math.Max(1, Konto.Meistergrad(daten.Art(l.Art).Beruf))) // verkaufte ausgebaute Werkstätten erst mit dem Meistergrad
-            .Where(l => !voll || daten.Art(l.Art).Ort == Arbeitsort.Werkstatt && NurUmland(daten.Art(l.Art).Beruf))
+            .Select(l => new Angebot(l.Name, l.Art, l.Kaufpreis, l.IstPacht, Neubau: false, BauJahre: 0))
+            .Concat(Neubauten())
+            .Where(a => !voll || daten.Art(a.Art).Ort == Arbeitsort.Werkstatt && NurUmland(daten.Art(a.Art).Beruf))
+            .Where(a => !Gesperrt(a.Art))
             // Mit dem Völkerbonus: Ein Zwergenhaus sucht eher eine Werkstatt, in der Zwerge gut sind.
-            .Select(l => (Liegenschaft: l, Beruf: daten.Art(l.Art).Beruf,
-                          Gewinn: Kalkulation.ErwarteterJahresgewinn(_w, l.Art, leistung: _w.VolksFaktor(Konto, daten.Art(l.Art).Beruf)) * DiebesZuschlag(l.Art)))
-            .Select(x => (x.Liegenschaft, x.Beruf, x.Gewinn, Lehrgeld: NeuerBeruf(x.Beruf) ? daten.Berufe[x.Beruf].Lehrgeld : -1))
+            .Select(a => (Angebot: a, Beruf: daten.Art(a.Art).Beruf,
+                          Gewinn: Kalkulation.ErwarteterJahresgewinn(_w, a.Art, leistung: _w.VolksFaktor(Konto, daten.Art(a.Art).Beruf)) * DiebesZuschlag(a.Art)))
+            .Select(x => (x.Angebot, x.Beruf, x.Gewinn, Lehrgeld: NeuerBeruf(x.Beruf) ? daten.Berufe[x.Beruf].Lehrgeld : -1))
             .Where(x => x.Lehrgeld < 0 || DarfBerufLernen(x.Beruf))
-            .Select(x => (x.Liegenschaft, x.Beruf, x.Gewinn, Lehrgeld: Math.Max(0, x.Lehrgeld), Neu: x.Lehrgeld >= 0))
-            .Where(x => x.Gewinn > 0 && x.Liegenschaft.Kaufpreis + x.Lehrgeld <= x.Gewinn * Profil.MaxAmortisationJahre)
-            .Where(x => Konto.Vermoegen - x.Liegenschaft.Kaufpreis - x.Lehrgeld - daten.Fixkosten(x.Liegenschaft.Art)
-                        - daten.Plaetze(x.Liegenschaft.Art) * HoechsterLohn(x.Liegenschaft.Art) >= Profil.Reserve)
-            .OrderByDescending(x => x.Gewinn - (x.Liegenschaft.Kaufpreis + x.Lehrgeld) / Profil.MaxAmortisationJahre)
-            .ThenBy(x => x.Liegenschaft.Name, StringComparer.Ordinal)
+            .Select(x => (x.Angebot, x.Beruf, x.Gewinn, Lehrgeld: Math.Max(0, x.Lehrgeld), Neu: x.Lehrgeld >= 0))
+            // Was der Betrieb kostet, bis er arbeitet: Preis, Lehrgeld und beim Neubau der Gewinn, der im Baujahr entgeht.
+            .Select(x => (x.Angebot, x.Beruf, x.Gewinn, x.Lehrgeld, x.Neu, Kosten: x.Angebot.Preis + x.Lehrgeld + x.Gewinn * x.Angebot.BauJahre))
+            .Where(x => x.Gewinn > 0 && x.Kosten <= x.Gewinn * Profil.MaxAmortisationJahre)
+            .Where(x => Konto.Vermoegen - x.Angebot.Preis - x.Lehrgeld - daten.Fixkosten(x.Angebot.Art)
+                        - daten.Plaetze(x.Angebot.Art) * HoechsterLohn(x.Angebot.Art) >= Profil.Reserve)
+            .OrderByDescending(x => x.Gewinn - x.Kosten / Profil.MaxAmortisationJahre)
+            .ThenBy(x => x.Angebot.Name, StringComparer.Ordinal)
             .FirstOrDefault();
-        if (wahl.Liegenschaft is null) return;
+        if (wahl.Angebot is not { } l) return;
 
-        var l = wahl.Liegenschaft;
         var waehrung = daten.Allgemein.Waehrung;
+        if (l.Neubau && !IstBaustunde) return; // der Neubau rechnet sich am besten – bis zur Baustunde warten, nichts Schlechteres kaufen
         if (wahl.Neu && !Befehlen(new BerufErlernen(wahl.Beruf),
-                $"erlernt das Handwerk der {wahl.Beruf} ({Zahlenformat.Ganz(wahl.Lehrgeld)} {waehrung} Lehrgeld), um {l.Name} zu übernehmen."))
+                $"erlernt das Handwerk der {wahl.Beruf} ({Zahlenformat.Ganz(wahl.Lehrgeld)} {waehrung} Lehrgeld), um {(l.Neubau ? $"eine {l.Name} zu bauen" : $"{l.Name} zu übernehmen")}."))
             return;
+        if (l.Neubau)
+        {
+            WerkstattBauen(l, wahl.Gewinn);
+            return;
+        }
         Befehlen(new LiegenschaftErwerben(l.Name),
             $"{(l.IstPacht ? "pachtet" : "kauft")} {l.Name} (erwarteter Gewinn ≈ {Zahlenformat.Ganz(wahl.Gewinn)} {waehrung} im Jahr).");
+    }
+
+    /// <summary>Werkstätten, die die KI neu bauen könnte (nur mit Karte): jede Betriebsart der Stufe 1 in der Stadt, die ihr Stand erlaubt.</summary>
+    private IEnumerable<Angebot> Neubauten()
+    {
+        if (!_w.Bauen.IstAktiv || _keinWerkstattplatzJahr == _w.Uhr.Jahr) yield break;
+        var bauzeit = _w.Bauen.Daten!.Werkstatt.BauzeitJahre;
+        foreach (var (art, d) in _w.Daten.Betriebsarten)
+        {
+            if (!d.InDerStadt || d.Stufe != 1) continue;
+            // Mindeststand wie beim Bauwesen: der des Vorbilds aus den Liegenschaften, sonst Bürger.
+            var stand = _w.Vorbild("", art)?.MindestStand ?? _w.Daten.Staende[Math.Min(1, _w.Daten.Staende.Count - 1)].Name;
+            if (Konto.Stand < _w.Daten.StandStufe(stand)) continue;
+            yield return new Angebot($"neue {d.Name}", art, _w.Bauen.WerkstattPreis(art), IstPacht: false, Neubau: true, bauzeit);
+        }
+    }
+
+    /// <summary>
+    /// Die neue Werkstatt bauen: an der gültigen Stelle, die dem Marktplatz (Ursprung der Karte) am nächsten liegt –
+    /// bei Gleichstand die erste in der festen Reihenfolge von <see cref="Bauwesen.Bauorte"/>. Ohne Platz sucht die KI erst im nächsten Jahr wieder.
+    /// </summary>
+    private void WerkstattBauen(Angebot angebot, double gewinn)
+    {
+        _bauorteGefragt = true;
+        var ort = _w.Bauen.Bauorte(Konto, new WerkstattBauen(angebot.Art, 0, 0, 0))
+            .OrderBy(o => o.X * o.X + o.Z * o.Z)
+            .FirstOrDefault();
+        if (ort is null)
+        {
+            _keinWerkstattplatzJahr = _w.Uhr.Jahr;
+            return;
+        }
+        var v = _w.Bauen.Vorschau(Konto, ort);
+        var waehrung = _w.Daten.Allgemein.Waehrung;
+        Befehlen(ort, $"baut {v.Betrieb} neu ({Zahlenformat.Ganz(v.Kosten)} {waehrung}, fertig in {Jahre(v.BauzeitMinuten)}; " +
+                      $"erwarteter Gewinn ≈ {Zahlenformat.Ganz(gewinn)} {waehrung} im Jahr) – keine freie Werkstatt rechnet sich besser.");
     }
 
     /// <summary>
@@ -569,6 +725,136 @@ public sealed class KiRivale
                 $"legt die Meisterprüfung ab: {beruf} im {Konto.Meistergrad(beruf) + 1}. Grad " +
                 $"({Zahlenformat.Ganz(p.Gebuehr)} {_w.Daten.Allgemein.Waehrung}).");
         }
+    }
+
+    // ═════════════════════════════════════════════════════════════════════════
+    //  Betriebe verkaufen
+    // ═════════════════════════════════════════════════════════════════════════
+
+    /// <summary>Ab so vielen ganzen Jahren in Folge mit Verlust verkauft die KI einen Betrieb.</summary>
+    private const int VerlustjahreBisVerkauf = 2;
+
+    /// <summary>So viele Jahre kauft und baut die KI nach einem Verkauf nichts im selben Handwerk am selben Ort (Stadt bzw. Umland).</summary>
+    public const int SperreNachVerkauf = 5;
+
+    /// <summary>Den Bankrott rechnet die KI erst ab der Hälfte des Jahres hoch – vorher sagt der bisherige Ertrag zu wenig.</summary>
+    private const double NotverkaufAb = 0.5;
+
+    private static string Sperrschluessel(BetriebsartDaten d) => $"{d.Beruf}/{d.Ort}";
+
+    /// <summary>Hat die KI kürzlich einen Betrieb dieses Handwerks am selben Ort verkauft? Dann kauft und baut sie dort vorerst nichts.</summary>
+    private bool Gesperrt(Betriebsart art) =>
+        _gesperrt.TryGetValue(Sperrschluessel(_w.Daten.Art(art)), out var bis) && _w.Uhr.Jahr < bis;
+
+    /// <summary>Wie viele ganze Jahre in Folge dieser Betrieb Verlust gemacht hat (gezählt zum Jahresende).</summary>
+    public int Verlustjahre(Betrieb betrieb) => _verlustjahre.GetValueOrDefault(betrieb.Name);
+
+    /// <summary>Was im Lager des Betriebs liegt, zum Grundpreis (Zutaten und Waren).</summary>
+    private double Lagerwert(Betrieb b) => b.Lager.Sum(x => x.Value * (_w.Daten.Waren.GetValueOrDefault(x.Key)?.Grundpreis ?? 0));
+
+    /// <summary>
+    /// Zum Jahresende: Verlustjahre je Betrieb zählen. Verlust heißt: Der Gewinn des Jahres samt Änderung des Lagerwerts ist negativ.
+    /// Ohne das Lager sähe eine Werkstatt, die teure Zutaten (Gold, Schleifziegel) auf Vorrat kauft, nach Verlust aus –
+    /// die erste Messung verkaufte so die ausgebauten Hauptwerkstätten. Ein Jahr, das der Betrieb nicht ganz lief (gekauft, gebaut,
+    /// alter Spielstand), zählt nicht und unterbricht die Folge nicht; ein Jahr ohne Verlust setzt sie zurück.
+    /// </summary>
+    private void VerlusteZaehlen()
+    {
+        var eigene = Betriebe.ToList();
+        foreach (var name in _verlustjahre.Keys.Concat(_lagerwert.Keys).Where(n => eigene.All(b => b.Name != n)).ToList())
+        {
+            _verlustjahre.Remove(name);
+            _lagerwert.Remove(name);
+        }
+        foreach (var b in eigene)
+        {
+            var lager = Lagerwert(b);
+            // Ohne gemerkten Wert begann das ganze Jahr mit leerem Lager: Der Betrieb wurde zum Jahresbeginn eröffnet oder gekauft.
+            if (b.Vorjahr is { Ganzjaehrig: true } r)
+            {
+                if (r.Gewinn + lager - _lagerwert.GetValueOrDefault(b.Name) < 0) _verlustjahre[b.Name] = Verlustjahre(b) + 1;
+                else _verlustjahre.Remove(b.Name);
+            }
+            _lagerwert[b.Name] = lager;
+        }
+    }
+
+    /// <summary>Was erst zum Jahresabschluss fällig wird: Löhne, Wächter und Unterhalt bzw. Pacht der Betriebe, Unterhalt des Wohnhauses, Haushalt und Ausbildung.</summary>
+    private double OffeneJahreskosten
+    {
+        get
+        {
+            var waechter = _w.Daten.Gauner?.WaechterKosten ?? 0;
+            var betriebe = Betriebe.Sum(b => b.Belegung.Sum(x => x.Value * _w.Daten.Arbeitskraefte[x.Key].Kosten)
+                                             + b.Artdaten.Fixkosten + (b.Waechter ? waechter : 0));
+            var haus = _w.Wohnen.Unterhalt(Konto) + (Konto.Hauswaechter ? waechter : 0);
+            var familie = _w.Familien.Von(Konto) is { } f ? _w.Familien.Haushaltskosten(f) + _w.Familien.Ausbildungskosten(f) : 0;
+            return betriebe + haus + familie;
+        }
+    }
+
+    /// <summary>
+    /// Grobe Hochrechnung des Reinvermögens zum Jahresabschluss: heute, dazu der bisherige Ertrag der Betriebe (Umsatz minus Zutaten,
+    /// Steuer, Transport und Schaden) auf das ganze Jahr hochgerechnet, minus was erst am Jahresende fällig wird.
+    /// </summary>
+    public double ReinvermoegenAmJahresende
+    {
+        get
+        {
+            var anteil = Math.Max(0.05, _w.Uhr.TagesFortschritt);
+            var ertrag = Betriebe.Sum(b => b.Laufend.Umsatz - b.Laufend.Zutaten - b.Laufend.Steuer - b.Laufend.Transport - b.Laufend.Schaden);
+            return Konto.Reinvermoegen + ertrag * (1 - anteil) / anteil - OffeneJahreskosten;
+        }
+    }
+
+    /// <summary>Hat der Kämmerer schon gemahnt, und reicht das Geld nach Abzug der offenen Kosten nicht? Dann investiert die KI nicht.</summary>
+    private bool InNot => Konto.Schuldenjahre > 0 && Konto.Reinvermoegen - OffeneJahreskosten < 0;
+
+    /// <summary>
+    /// Jede Stunde, auch aus dem Kerker (Betriebssache des Verwalters), höchstens ein Verkauf:
+    ///   • <b>Vor dem Bankrott:</b> Steht der letzte Jahresabschluss vor dem Bankrott an (<see cref="SchuldenDaten.JahreBisBankrott"/> − 1 Mahnungen)
+    ///     und ist die Hochrechnung ab der Jahresmitte negativ, verkauft die KI den Betrieb mit dem schlechtesten Gewinn, der etwas einbringt –
+    ///     Stunde um Stunde, bis es reicht. Der Erlös hebt das Reinvermögen (Betriebe zählen dort nicht), und die Löhne für den Rest des Jahres entfallen.
+    ///   • <b>Verlust:</b> Ein Betrieb mit zwei ganzen Verlustjahren in Folge wird verkauft. Ausgenommen sind die Betriebe ohne Ware
+    ///     (Wache, Geldleiher, Dieb): Kopfgeld, Kreditzinsen und nächtliche Beute stehen nicht (ganz) in ihrer Rechnung.
+    /// Gesperrt ist der Verkauf des letzten Betriebs, während eines Umbaus und solange ein Karren unterwegs ist – dann in der nächsten Stunde.
+    /// </summary>
+    private void BetriebeVerkaufen()
+    {
+        var waehrung = _w.Daten.Allgemein.Waehrung;
+        if (Konto.Schuldenjahre >= _w.Daten.Schulden.JahreBisBankrott - 1 && _w.Uhr.TagesFortschritt >= NotverkaufAb
+            && ReinvermoegenAmJahresende is var prognose and < 0)
+        {
+            var not = Betriebe
+                .Select(b => (Betrieb: b, V: _w.VerkaufVorschau(b)))
+                .Where(x => x.V.Verboten is null && x.V.Summe > 0)
+                .OrderBy(x => x.Betrieb.Vorjahr?.Gewinn ?? x.Betrieb.Laufend.Gewinn)
+                .ThenBy(x => x.Betrieb.Name, StringComparer.Ordinal)
+                .FirstOrDefault();
+            if (not.Betrieb is not null)
+                Verkaufen(not.Betrieb,
+                    $"{(not.V.IstPacht ? "kündigt die Pacht für" : "verkauft")} {not.Betrieb.Name} ({Zahlenformat.Ganz(not.V.Summe)} {waehrung}), " +
+                    $"um den Bankrott abzuwenden – zum Jahresabschluss fehlten sonst etwa {Zahlenformat.Ganz(-prognose)} {waehrung}.");
+            return;
+        }
+        foreach (var b in Betriebe.Where(b => Verlustjahre(b) >= VerlustjahreBisVerkauf && !b.Artdaten.OhneProduktion)
+                     .OrderBy(b => b.Name, StringComparer.Ordinal).ToList())
+        {
+            var v = _w.VerkaufVorschau(b);
+            if (v.Verboten is not null) continue;
+            Verkaufen(b,
+                $"{(v.IstPacht ? "kündigt die Pacht für" : "verkauft")} {b.Name} ({Zahlenformat.Ganz(v.Summe)} {waehrung}) – " +
+                $"{Verlustjahre(b)} Jahre in Folge Verlust (Gewinn samt Änderung des Lagerwerts).");
+            return;
+        }
+    }
+
+    private void Verkaufen(Betrieb betrieb, string begruendung)
+    {
+        if (!Befehlen(new BetriebVerkaufen(betrieb.Name), begruendung)) return;
+        _verlustjahre.Remove(betrieb.Name);
+        _stundenSeitWechsel.Remove(betrieb);
+        _gesperrt[Sperrschluessel(betrieb.Artdaten)] = _w.Uhr.Jahr + SperreNachVerkauf;
     }
 
     // ═════════════════════════════════════════════════════════════════════════
