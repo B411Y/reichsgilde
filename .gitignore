@@ -35,3 +35,6 @@ obj/
 
 # Exportierte Spiel-Builds
 build/
+
+# Python-Zwischendateien der Blender-Skripte
+__pycache__/
