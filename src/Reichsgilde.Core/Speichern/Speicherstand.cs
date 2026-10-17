@@ -156,6 +156,9 @@ public sealed record GlaubeStand
     public Dictionary<string, int> KonvertiertBis { get; init; } = new();
     public Dictionary<string, int> BekehrtIm { get; init; } = new();
     public Dictionary<string, double> AbgabenVorjahr { get; init; } = new();
+
+    /// <summary>Kontonummer (als Text) → Stimme zum Antrag auf einen Stadtglauben (true = dafür; ältere Spielstände: keine).</summary>
+    public Dictionary<string, bool> Stimmen { get; init; } = new();
 }
 
 public sealed record ParfumStand
@@ -476,6 +479,21 @@ public sealed record RatStand
     public int? AntragKonto { get; init; }
     public Fronstatut? AntragStatut { get; init; }
     public List<string> LetzteSitzung { get; init; } = new();
+
+    /// <summary>Festgelegte Stimmen bei Wahlen (ältere Spielstände: keine).</summary>
+    public List<WahlStimmeStand> WahlStimmen { get; init; } = new();
+
+    /// <summary>Kontonummer (als Text) → Stimme zum Antrag auf ein Statut (true = dafür; ältere Spielstände: keine).</summary>
+    public Dictionary<string, bool> StatutStimmen { get; init; } = new();
+}
+
+/// <summary>Eine festgelegte Wahlstimme: Wähler, Amt und entweder ein Haus (Kandidat) oder der Ratsherr im Amt.</summary>
+public sealed record WahlStimmeStand
+{
+    public int Konto { get; init; }
+    public string Amt { get; init; } = "";
+    public int? Kandidat { get; init; }
+    public string? Ratsherr { get; init; }
 }
 
 public sealed record SitzStand

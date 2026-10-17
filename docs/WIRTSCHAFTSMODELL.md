@@ -1009,3 +1009,11 @@ Ein Freiherr hat 40.500 Gulden Hauswert. Ohne ihn liegt Eisenbart (ausgewogen) b
 Was es bringt: Ein Patrizier im Steinhaus kauft ein leeres Stadtpalais für 0,7 × 15.500 − 5.500 = 5.350 Gulden statt 10.000 für den Ausbau, und sein Reinvermögen steigt um 0,3 × 15.500 = 4.650 – ein Schnäppchen, das es nur gibt, wenn ein Haus untergeht. Abriss lohnt nur für den Platz: Er kostet 60 % des Hauswerts (mindestens 100) und bringt nichts zurück.
 
 **Messung** (`messen 30 20`, Mensch, gemessen auf main `38dd23b` + PR #103): Die KI-Häuser kaufen noch keinen Leerstand und bauen nicht; die Messung hat keine Karte, wirken kann also nur „Betriebe toter Häuser werden frei“. **Ausgewogen:** zeichengleich mit main (Eisenbart 170.059, Eichwald 96.175, Kieselbach 138.788, Bürgermeister 16/20). Kieselbach erlischt in einer von 20 Partien; seine Werkstätten stehen danach zum Verkauf, die Zahlen der anderen Häuser bleiben gleich – gekauft hat sie in dieser Partie niemand. Einziger Unterschied in der Ausgabe: Die Zeile „erlernte Berufe“ zählt nun „Kieselbach → Steinmetz 1×“, weil die Messung erlernte Berufe an den eigenen Betrieben abliest und das erloschene Haus keine mehr hat. **Wagemutig:** zeichengleich (kein Haus geht unter). Die Wirkung zeigt sich erst, wenn Häuser häufiger untergehen oder die KI Leerstand kauft (offener Punkt bei Spiel-KI).
+
+## Abstimmen des Spielers im Rat (PR #111)
+
+**Regel:** Ein Haus im Rat, das keine KI ist, legt seine Stimme bei Wahlen, zum Statut und zum Stadtglauben vorab fest (keine AP). Ohne Stimme gilt wie bisher: Bei Wahlen stimmt es für den bisherigen Inhaber, bei Anträgen enthält es sich. Keine neuen Werte in `wirtschaft.json`.
+
+Was es bringt: Eine Stimme kippt knappe Fälle. Bei einer Wahl mit 5 Wählern macht sie aus 2 zu 3 ein 3 zu 2. Bei einem Antrag mit Gleichstand ohne den Spieler (der Bürgermeister dafür) kippt ein Nein den Antrag (3 zu 4 statt 3 zu 3).
+
+**Messung** (`messen 30 20`, Mensch, ausgewogen, gemessen auf main `2f64149` + PR #111; Kern und Daten gleich main `5296754`): **zeichengleich** mit main (Eisenbart 170.396, Eichwald 97.581, Kieselbach 138.144, Bürgermeister 16/20). In der Messung legt der Spieler keine Stimme fest, also gilt überall die Vorgabe wie bisher.
