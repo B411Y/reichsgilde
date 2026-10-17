@@ -76,8 +76,8 @@ public partial class Stadtansicht
     /// Baut das Wohnhaus einer Stufe auf einer Fläche (Vorderseite lokal +Z, zur Gasse): die Plätze der Karte sind 17 × 8 m
     /// (Doppelplatz am Ring), Neubauten 8 × 10, 12 × 10 oder 16 × 14 m mit 2 m Vorplatz davor (<paramref name="vorne"/> ist die lokale
     /// z-Koordinate der Hausfront). Modelle:
-    /// 0 Fachwerkhaus, 1 Bürgerhaus, 2 Steinhaus aus Blender (<see cref="WohnhausModellEinsetzen"/>);
-    /// aus Grundkörpern: 3 Stadtpalais bis 15 × 8 mit Erker und zwei Ecktürmchen, 4 Hof: Haupthaus hinten, zwei Flügel vorn, Mauer mit Tor.
+    /// 0 Fachwerkhaus, 1 Bürgerhaus, 2 Steinhaus aus Blender (<see cref="WohnhausModellEinsetzen"/>), 3 und 4 ebenso, sobald die Datei da ist;
+    /// bis dahin als Platzhalter aus Grundkörpern: 3 Stadtpalais bis 15 × 8 mit Erker und zwei Ecktürmchen, 4 Hof: Haupthaus hinten, zwei Flügel vorn, Mauer mit Tor.
     /// Bei laufendem Ausbau steht ein Gerüst davor, nach einem Brand ist das Dach rußig, im Leerstand sind Tür und Fenster vernagelt.
     /// </summary>
     private Node3D SpielhausModell(Vector3 mitte, float drehungY, float platzBreite, float platzTiefe, float vorne,
@@ -108,10 +108,10 @@ public partial class Stadtansicht
                 }
         }
 
-        // Fachwerkhaus, Bürgerhaus und Steinhaus kommen als Modell aus Blender (PR #104), Stadtpalais und Hof noch aus dem Code.
+        // Die Wohnhäuser kommen als Modell aus Blender (PR #104); fehlt eins (Stadtpalais, Hof), baut der Code einen Platzhalter.
         var szene = WohnhausSzene(stufe);
         if (szene is not null)
-            WohnhausModellEinsetzen(szene, g, vorne, imBau || brand, brand, leer, farbe);
+            WohnhausModellEinsetzen(szene, g, vorne - ModellFront(stufe), imBau || brand, brand, leer, farbe);
         else switch (stufe)
         {
             case 0: // Fachwerkhaus
@@ -179,15 +179,24 @@ public partial class Stadtansicht
     //  Modelle aus Blender (game/assets/modelle, Konventionen: docs/bereiche/darstellung.md)
     // ═════════════════════════════════════════════════════════════════════════
 
-    /// <summary>Dateien der Wohnhaus-Modelle je Stufe. Für Stadtpalais und Hof gibt es noch keine – die baut der Code.</summary>
-    private static readonly string[] WohnhausDateien = { "fachwerkhaus", "buergerhaus", "steinhaus" };
+    /// <summary>
+    /// Dateien der Wohnhaus-Modelle je Stufe. Fachwerkhaus, Bürgerhaus und Steinhaus sind Pflicht. Stadtpalais und Stadthof kommen
+    /// später aus Blender – bis die Datei da ist, baut der Code sie als Platzhalter (kein Fehler).
+    /// </summary>
+    private static readonly string[] WohnhausDateien = { "fachwerkhaus", "buergerhaus", "steinhaus", "stadtpalais", "stadthof" };
+
+    /// <summary>Bis zu dieser Stufe (ausschließlich) muss es ein Modell geben, sonst meldet das Spiel einen Fehler.</summary>
+    private const int PflichtModelle = 3;
+
+    /// <summary>Tiefe der belegten Fläche je Stufe in Metern, inklusive 2 m Vorplatz (LEVELDESIGN, Gebäudegrößen).</summary>
+    private static readonly float[] ModellTiefe = { 10, 10, 10, 10, 14 };
 
     /// <summary>
-    /// Wo die Hausfront in den Modellen liegt: Der Ursprung ist die Mitte der 10 m tiefen Fläche, davon 2 m Vorplatz – die Front liegt
-    /// also bei z = +3. Auf einem Neubau (10 m, Vorplatz) sitzt das Modell damit genau in der Mitte; auf den Wohnhausplätzen der Karte
-    /// (8 m tief, Front an der Gasse) rückt es 1 m zur Gasse.
+    /// Wo die Hausfront in den Modellen liegt: Der Ursprung ist die Mitte der belegten Fläche, davon 2 m Vorplatz – die Front liegt
+    /// also bei z = Tiefe/2 − 2 (+3 bei 10 m, +5 beim Stadthof). Auf einem Neubau sitzt das Modell damit genau in der Mitte; auf den
+    /// Wohnhausplätzen der Karte (8 m tief, Front an der Gasse) steht die Front an der Gasse und der Rest ragt nach hinten.
     /// </summary>
-    private const float ModellFront = 3f;
+    private static float ModellFront(int stufe) => ModellTiefe[stufe] / 2 - 2;
 
     /// <summary>Hausfarbe eines Hauses ohne Besitzerfarbe (Leerstand, Sanierung): verwittertes Holz statt Spielerblau.</summary>
     private static readonly Color OhneHausfarbe = new(0.36f, 0.31f, 0.25f);
@@ -210,19 +219,19 @@ public partial class Stadtansicht
         if (_wohnhausSzenen.TryGetValue(stufe, out var szene)) return szene;
         var pfad = $"res://assets/modelle/{WohnhausDateien[stufe]}.glb";
         szene = ResourceLoader.Exists(pfad) ? ResourceLoader.Load<PackedScene>(pfad) : null;
-        if (szene is null) GD.PushError($"Wohnhaus-Modell fehlt: {pfad} – es wird aus Grundkörpern gebaut.");
+        if (szene is null && stufe < PflichtModelle) GD.PushError($"Wohnhaus-Modell fehlt: {pfad} – es wird aus Grundkörpern gebaut.");
         return _wohnhausSzenen[stufe] = szene;
     }
 
     /// <summary>
-    /// Setzt ein Wohnhaus-Modell in den Knoten des Hauses: Front an <paramref name="vorne"/>, Zustände nach Namen ein- oder ausblenden
+    /// Setzt ein Wohnhaus-Modell in den Knoten des Hauses: Ursprung bei lokal <paramref name="z"/> (siehe <see cref="ModellFront"/>), Zustände nach Namen ein- oder ausblenden
     /// („Geruest“ bei Ausbau und Brand, „Leerstand“ mit den Brettern, „Wappen“ und „Fahne“ nur bei einem Besitzer), das Material
     /// „Hausfarbe“ durch die Farbe des Hauses ersetzen und nach einem Brand die Dachmaterialien rußig färben.
     /// </summary>
-    private void WohnhausModellEinsetzen(PackedScene szene, Node3D eltern, float vorne, bool geruest, bool brand, bool leer, Color? farbe)
+    private void WohnhausModellEinsetzen(PackedScene szene, Node3D eltern, float z, bool geruest, bool brand, bool leer, Color? farbe)
     {
         var modell = szene.Instantiate<Node3D>();
-        modell.Position = new Vector3(0, 0, vorne - ModellFront);
+        modell.Position = new Vector3(0, 0, z);
         eltern.AddChild(modell);
         foreach (var teil in modell.FindChildren("*", nameof(MeshInstance3D), true, false).OfType<MeshInstance3D>())
         {
