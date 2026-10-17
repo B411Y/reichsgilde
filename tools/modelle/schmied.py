@@ -82,7 +82,7 @@ def bauen():
     haus.quader((-1.2, -0.03, 2.2), (1.4, 0.1, 0.2), st["Bruchstein dunkel"], M["hinten"], ohne=("+y",))
     oeffnungen.append((M["hinten"], hintertuer))
     # Schwelle aus Stein vor dem Tor: das Tor liegt auf dem Sockel, 30 cm über dem Boden
-    haus.quader((CX + tor.u, Y0 - 0.25, Z_SOCKEL / 2), (tor.b + 0.5, 0.5, Z_SOCKEL), st["Bruchstein dunkel"])
+    haus.quader((CX + tor.u, Y0 - 0.25, (Z_SOCKEL + 0.01) / 2), (tor.b + 0.5, 0.5, Z_SOCKEL + 0.01), st["Bruchstein dunkel"])  # 1 cm über dem Sockel: keine deckungsgleichen Flächen
     # Schwelle zwischen Stein und Fachwerk
     haus.quader((CX, CY, Z_OG - 0.06), (X1 - X0 + 0.1, Y1 - Y0 + 0.1, 0.14), st["Fachwerk"], ohne=("+z",))
 
@@ -128,7 +128,7 @@ def bauen():
     stufe3 = bs.Netz("Stufe3")
     anbau(stufe3, st, obergeschoss=True)
     bs.gaube(stufe3, st, dach, [], x0=-5.6, x1=-4.0, y_front=Y0 + 1.1)
-    dachreiter(stufe3, st, Vector((-2.4, dach["y_first"], dach["z_first"])))
+    bs.dachreiter(stufe3, st, Vector((-2.4, dach["y_first"], dach["z_first"])), spitze="Gold")
     hinterhaus(stufe3, st)
     hofmauer(stufe3, st)
 
@@ -347,24 +347,6 @@ def notstall(netz, st, mitte):
         netz.stab(mitte + Vector((-bx / 2 - 0.1, sy * by / 2, 2.05)), mitte + Vector((bx / 2 + 0.1, sy * by / 2, 2.05)), 0.12, 0.12, holz)
     netz.quader((0, 0, 2.25), (bx + 0.6, by + 0.6, 0.07), st["Holz alt"],
                 matrix=Matrix.Translation(mitte) @ Matrix.Rotation(math.radians(8), 4, "X"))
-
-
-def dachreiter(netz, st, first):
-    """Dachreiter auf dem First mit goldener vierseitiger Spitze (wie bisher im Spiel ab Stufe 3)."""
-    x, y, z = first
-    netz.quader((x, y, z + 0.6), (1.3, 1.3, 1.6), st["Putz"])
-    for sx in (-1, 1):
-        for sy in (-1, 1):
-            netz.quader((x + sx * 0.6, y + sy * 0.6, z + 0.6), (0.14, 0.14, 1.6), st["Fachwerk"])
-    for s in (-1, 1):
-        netz.vieleck_nach([(x - 0.3, y + s * 0.66, z + 0.7), (x + 0.3, y + s * 0.66, z + 0.7),
-                           (x + 0.3, y + s * 0.66, z + 1.25), (x - 0.3, y + s * 0.66, z + 1.25)], (0, s, 0), st["Loch"])
-    spitze = Vector((x, y, z + 3.4))
-    ecken = [Vector((x + sx * 0.85, y + sy * 0.85, z + 1.4)) for sx, sy in ((-1, -1), (1, -1), (1, 1), (-1, 1))]
-    for i in range(4):
-        j = (i + 1) % 4
-        netz.vieleck_nach([ecken[i], ecken[j], spitze], (ecken[i] + ecken[j]) / 2 - Vector((x, y, z + 1.0)), st["Gold"])
-    netz.quader((x, y, z + 3.6), (0.1, 0.1, 0.45), st["Gold"])
 
 
 def hinterhaus(netz, st):
