@@ -418,7 +418,7 @@ public sealed class KiRivale
         _bauorteGefragt = true;
         if (_w.Bauen.Bauorte(Konto, neubau).FirstOrDefault() is not { } ort) return; // kein Platz – morgen wieder
         var v = _w.Bauen.Vorschau(Konto, ort);
-        Befehlen(ort, $"baut ein neues {v.Gebaeude} ({Zahlenformat.Ganz(v.Kosten)} {waehrung} nach Anrechnung des alten Hauses, " +
+        Befehlen(ort, $"baut ein neues Wohnhaus, ein {v.Gebaeude} ({Zahlenformat.Ganz(v.Kosten)} {waehrung} nach Anrechnung des alten Hauses, " +
                       $"fertig in {Jahre(v.BauzeitMinuten)}) – ausbauen geht nicht, und kein passender Leerstand ist günstiger.");
     }
 

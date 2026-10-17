@@ -66,7 +66,7 @@ static class Messung
                 {
                     if (!kiNamen.Any(m.StartsWith)) return;
                     if (m.Contains("kauft das leerstehende")) Zaehlen("Leerstand gekauft");
-                    else if (m.Contains("baut ein neues")) Zaehlen($"Wohnhaus neu gebaut ({m.Split("baut ein neues ")[1].Split(' ')[0]})");
+                    else if (m.Contains("baut ein neues Wohnhaus, ein ")) Zaehlen($"Wohnhaus neu gebaut ({m.Split("baut ein neues Wohnhaus, ein ")[1].Split(' ')[0]})");
                     else if (m.Contains(" neu (") && m.Contains("keine freie Werkstatt")) Zaehlen("Werkstatt neu gebaut");
                     else if (m.Contains("baut das Wohnhaus zum")) Zaehlen("Wohnhaus ausgebaut");
                     else if (m.Contains("um den Bankrott abzuwenden")) Zaehlen("verkauft vor dem Bankrott");

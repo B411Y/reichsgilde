@@ -119,7 +119,7 @@ static class KiBauenTests
             Ticks(sim, Spielzeit.MinutenProTag);
             Pruefe.Wahr(BautWohnhaus(w, k), "Die KI baut neu");
             Pruefe.Gleich(3, w.Bauen.UmzugZiel(k));
-            Pruefe.Wahr(ki.Entscheidungen.Any(e => e.Contains("baut ein neues Stadtpalais")), "Begründung");
+            Pruefe.Wahr(ki.Entscheidungen.Any(e => e.Contains("baut ein neues Wohnhaus, ein Stadtpalais")), "Begründung");
             Ticks(sim, 2 * Spielzeit.MinutenProTag);
             Pruefe.Gleich(3, k.WohnhausStufe);
             Pruefe.Gleich("Edler", w.StandVon(k).Name);
