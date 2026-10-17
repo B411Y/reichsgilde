@@ -9,6 +9,7 @@ namespace Reichsgilde;
 /// <summary>
 /// Die Ratskammer: alle Ämter mit Inhabern, Haltung zum Statut und eurer Gunst bei jedem Ratsherrn –
 /// dazu Bewerbung, Geschenke und Anträge zum Statut, jeweils mit einer Prognose nach heutigem Stand.
+/// Wer im Rat sitzt, legt hier auch seine Stimme bei den Wahlen und den Anträgen vorab fest (bis zur Sitzung am Jahresende änderbar).
 ///
 /// Wie alle Bedienfelder ändert sie nichts selbst, sondern schickt Befehle an die Stadtwirtschaft.
 /// </summary>
@@ -195,6 +196,8 @@ public partial class RatAnzeige : PanelContainer
             }
         }
 
+        WahlStimmenAbschnitt(rat, waehrung);
+
         // ── Antrag zum Statut ──
         _inhalt.AddChild(new HSeparator());
         Hauptmenue.Text(_inhalt, "Antrag zum Fron- und Sklavenstatut", 16);
@@ -205,6 +208,7 @@ public partial class RatAnzeige : PanelContainer
             Hauptmenue.Text(_inhalt, $"{antrag.Antragsteller.Inhaber} beantragt Statut {antrag.Statut.Kuerzel()} – {antrag.Statut.Name()}. " +
                                      $"Stand heute: {ja} dafür, {nein} dagegen{(enthaltung > 0 ? $", {enthaltung} Enthaltung" : "")} → {(durch ? "würde angenommen" : "würde abgelehnt")}.",
                 14, durch ? Gruen : Rot, umbruchBreite: 670);
+            AntragStimme(rat.StatutStimmeVerboten(_spieler), rat.StatutStimmeVon(_spieler), ja => Befehlen(new StatutStimme(ja)));
         }
         else if (eigenesAmt is null)
             Hauptmenue.Text(_inhalt, "Anträge stellen nur Mitglieder des Rates.", 14, Grau);
@@ -255,6 +259,7 @@ public partial class RatAnzeige : PanelContainer
             Hauptmenue.Text(_inhalt, $"{antrag.Antragsteller.Inhaber} beantragt: {KonfessionTexte.StadtglaubeText(antrag.Glaube)}. " +
                                      $"Stand heute: {ja} dafür, {nein} dagegen{(enthaltung > 0 ? $", {enthaltung} Enthaltung" : "")} → {(durch ? "würde angenommen" : "würde abgelehnt")}.",
                 14, durch ? Gruen : Rot, umbruchBreite: 670);
+            AntragStimme(gw.StimmeVerboten(_spieler!), gw.StimmeVon(_spieler!), ja => Befehlen(new StadtglaubeStimme(ja)));
         }
         else if (eigenesAmt is null)
             Hauptmenue.Text(_inhalt, "Anträge stellen nur Mitglieder des Rates.", 14, Grau);
@@ -280,6 +285,79 @@ public partial class RatAnzeige : PanelContainer
         Hauptmenue.Text(_inhalt, "Ratsherren stimmen für ihren eigenen Glauben; für Glaubensfreiheit, wenn ein fremder gilt (sonst ab " +
                                  $"{Zahlenformat.Ganz(d.SchwelleFrei)} Gunst); für einen fremden Glauben erst ab {Zahlenformat.Ganz(d.SchwelleFremd)} Gunst. " +
                                  "Gilt ein Stadtglaube, ist jede Messe und Bekehrungspredigt anderen Glaubens Ketzerei.", 12, Grau, umbruchBreite: 670);
+    }
+
+    /// <summary>
+    /// Die Stimme des Spielers bei den Ämterwahlen: je Wahl eine Auswahl der Kandidaten, die Vorgabe zuerst.
+    /// Wer nicht abstimmen darf, sieht den Grund des Kerns in grau; ohne Wahl in der Stadt entfällt der Abschnitt.
+    /// </summary>
+    private void WahlStimmenAbschnitt(Stadtrat rat, string waehrung)
+    {
+        var wahlen = rat.Aemter.Where(a => rat.Kandidaten(a).Count > 0).Select(a => (Amt: a, Grund: rat.WahlStimmeVerboten(_spieler!, a))).ToList();
+        if (wahlen.Count == 0) return;
+        _inhalt.AddChild(new HSeparator());
+        Hauptmenue.Text(_inhalt, "Eure Stimme bei den Wahlen", 16);
+        if (wahlen.All(x => x.Grund is not null && x.Grund == wahlen[0].Grund))
+        {
+            // Derselbe Grund für alle Wahlen (z. B. kein Mitglied des Rates): einmal sagen genügt.
+            Hauptmenue.Text(_inhalt, $"Dieses Jahr wird gewählt: {string.Join(", ", wahlen.Select(x => x.Amt.Name))}. {wahlen[0].Grund}", 13, Grau, umbruchBreite: 670);
+            return;
+        }
+        Hauptmenue.Text(_inhalt, "Ihr legt die Stimme vorab fest und ändert sie bis zur Ratssitzung am Jahresende, wann ihr wollt. " +
+                                 "Ohne Stimme gilt die Vorgabe: der bisherige Inhaber.", 12, Grau, umbruchBreite: 670);
+        foreach (var (amt, grund) in wahlen)
+        {
+            var kandidaten = rat.Kandidaten(amt);
+            if (grund is not null)
+            {
+                Hauptmenue.Text(_inhalt, $"{amt.Name}: {grund}", 13, Grau, umbruchBreite: 670);
+                continue;
+            }
+            var zeile = new HBoxContainer();
+            zeile.AddThemeConstantOverride("separation", 10);
+            _inhalt.AddChild(zeile);
+            var name = Hauptmenue.Text(zeile, $"{amt.Name}:", 14);
+            name.CustomMinimumSize = new Vector2(120, 0);
+            var auswahl = new OptionButton { FocusMode = FocusModeEnum.None };
+            var vorgabe = rat.VorgabeStimme(amt);
+            auswahl.AddItem($"Vorgabe: {vorgabe?.Name}");
+            foreach (var k in kandidaten)
+                auswahl.AddItem(k.Haus is null ? $"{k.Name} (Ratsherr im Amt)" : k.IstAmtsinhaber ? $"{k.Name} (bisheriger Inhaber)" : k.Name);
+            var gewaehlt = rat.WahlStimmeVon(_spieler!, amt);
+            auswahl.Selected = gewaehlt is null ? 0 : kandidaten.ToList().FindIndex(k => k.Name == gewaehlt.Name) + 1;
+            auswahl.TooltipText = $"Zur Wahl für {amt.Name} ({Zahlenformat.Ganz(amt.Daten.Einkommen)} {waehrung}/Jahr) stehen {kandidaten.Count}. Eure Stimme zählt in der Prognose und in der Sitzung.";
+            auswahl.ItemSelected += index => Befehlen(new WahlStimme(amt.Name, index == 0 ? null : kandidaten[(int)index - 1].Name));
+            zeile.AddChild(auswahl);
+            // Stand der Bewerber nach heutigem Stand – zählt die festgelegte Stimme schon mit.
+            var stand = kandidaten.Where(k => k.Haus is not null).Select(k =>
+            {
+                var (sicher, unsicher, waehler) = rat.WahlPrognose(amt, k.Haus!);
+                return $"{k.Name} {sicher}{(unsicher > 0 ? $" (+{unsicher} offen)" : "")} von {waehler}";
+            });
+            Hauptmenue.Text(_inhalt, "Stimmen heute: " + string.Join(" · ", stand), 12, Grau, umbruchBreite: 670);
+        }
+    }
+
+    /// <summary>Die Stimme zu einem Antrag (Statut oder Stadtglaube): Dafür / Dagegen / Enthaltung, oder der Grund, warum nicht.</summary>
+    private void AntragStimme(string? verboten, bool? aktuell, Action<bool?> setzen)
+    {
+        if (verboten is not null)
+        {
+            Hauptmenue.Text(_inhalt, "Eure Stimme: " + verboten, 13, Grau, umbruchBreite: 670);
+            return;
+        }
+        var zeile = new HBoxContainer();
+        zeile.AddThemeConstantOverride("separation", 6);
+        _inhalt.AddChild(zeile);
+        Hauptmenue.Text(zeile, "Eure Stimme:", 14);
+        foreach (var (text, wert) in new (string, bool?)[] { ("Dafür", true), ("Dagegen", false), ("Enthaltung", null) })
+        {
+            var knopf = new Button { Text = text, ToggleMode = true, ButtonPressed = aktuell == wert, FocusMode = FocusModeEnum.None };
+            knopf.TooltipText = wert is null ? "Ohne Stimme gilt die Enthaltung – sie ändert die Prognose nicht." : "Gilt bis zur Ratssitzung am Jahresende; bis dahin änderbar.";
+            knopf.Pressed += () => setzen(wert);
+            zeile.AddChild(knopf);
+        }
+        Hauptmenue.Text(zeile, "  (bis zur Sitzung änderbar, Vorgabe: Enthaltung)", 12, Grau);
     }
 
     private void PrognoseZeigen(Stadtrat rat, Amt amt, string vorsatz = "")
