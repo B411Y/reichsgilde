@@ -1,0 +1,1621 @@
+{
+ "format": 1,
+ "kennung": "greybox",
+ "stadt": "Greybox-Stadt",
+ "vorlage": "Die heutige Platzhalter-Stadt des Spiels (fest in game/scripts/Stadtansicht*.cs gezeichnet), Mauer bei ±50 m",
+ "einheit": "Meter",
+ "achsen": "x = Osten, z = Süden (−z = Norden), Ursprung am Marktplatz – Weltkoordinaten der Stadtansicht in Metern (Godot x/z, y = oben)",
+ "raster": 2.0,
+ "mauer": {
+  "linie": [
+   [50.0, -4.0],
+   [50.0, -50.0],
+   [-50.0, -50.0],
+   [-50.0, 2.0]
+  ]
+ },
+ "tore": [
+  {
+   "name": "Osttor",
+   "punkt": [50.0, 0.0],
+   "schliesstNachts": true
+  },
+  {
+   "name": "Westtor",
+   "punkt": [-50.0, 6.0],
+   "schliesstNachts": true
+  }
+ ],
+ "wasser": [],
+ "gelaende": [],
+ "wege": [
+  {
+   "name": "Ostgasse",
+   "klasse": "haupt",
+   "linie": [
+    [0.0, 0.0],
+    [50.0, 0.0]
+   ],
+   "gefahr": 1.0,
+   "breite": 5
+  },
+  {
+   "name": "Landstraße",
+   "klasse": "land",
+   "linie": [
+    [50.0, 0.0],
+    [90.0, -2.0]
+   ],
+   "gefahr": 1.0,
+   "breite": 4
+  },
+  {
+   "name": "Westgasse",
+   "klasse": "haupt",
+   "linie": [
+    [0.0, 0.0],
+    [-12.0, 6.0],
+    [-38.0, 6.0],
+    [-50.0, 6.0]
+   ],
+   "gefahr": 1.0,
+   "breite": 5
+  },
+  {
+   "name": "Weststraße",
+   "klasse": "land",
+   "linie": [
+    [-50.0, 6.0],
+    [-118.0, 6.0]
+   ],
+   "gefahr": 1.0,
+   "breite": 4
+  },
+  {
+   "name": "Ringgasse",
+   "klasse": "ring",
+   "linie": [
+    [-38.0, -38.0],
+    [38.0, -38.0],
+    [38.0, 38.0],
+    [-38.0, 38.0],
+    [-38.0, -38.0]
+   ],
+   "gefahr": 1.0,
+   "breite": 3
+  },
+  {
+   "name": "Stichgasse Süd 1",
+   "klasse": "gasse",
+   "linie": [
+    [12.0, 38.0],
+    [11.0, 24.0]
+   ],
+   "gefahr": 1.0,
+   "breite": 3
+  },
+  {
+   "name": "Stichgasse Süd 2",
+   "klasse": "gasse",
+   "linie": [
+    [-21.0, 38.0],
+    [-20.5, 22.0]
+   ],
+   "gefahr": 1.0,
+   "breite": 3
+  },
+  {
+   "name": "Domgasse",
+   "klasse": "gasse",
+   "linie": [
+    [-20.0, -2.5],
+    [-20.0, 6.0]
+   ],
+   "gefahr": 1.0,
+   "breite": 2.5
+  },
+  {
+   "name": "Vorstadtgasse",
+   "klasse": "gasse",
+   "linie": [
+    [64.0, -42.5],
+    [64.0, 42.5]
+   ],
+   "gefahr": 1.0,
+   "breite": 3
+  },
+  {
+   "name": "Gasse Weinmarkt",
+   "klasse": "gasse",
+   "linie": [
+    [-20.0, 19.5],
+    [-9.0, 6.3],
+    [0.0, 0.0]
+   ],
+   "gefahr": 1.0,
+   "breite": 3.5
+  },
+  {
+   "name": "Gasse Gießerei Eisenbart",
+   "klasse": "gasse",
+   "linie": [
+    [18.0, 21.5],
+    [8.1, 7.2],
+    [0.0, 0.0]
+   ],
+   "gefahr": 1.0,
+   "breite": 3.5
+  },
+  {
+   "name": "Gasse Gießerei an der Südgasse",
+   "klasse": "gasse",
+   "linie": [
+    [2.0, 25.5],
+    [0.9, 9.0],
+    [0.0, 0.0]
+   ],
+   "gefahr": 1.0,
+   "breite": 3.5
+  },
+  {
+   "name": "Gasse Tischlerei Eichwald",
+   "klasse": "gasse",
+   "linie": [
+    [-14.0, 32.5],
+    [-6.3, 12.15],
+    [0.0, 0.0]
+   ],
+   "gefahr": 1.0,
+   "breite": 3.5
+  },
+  {
+   "name": "Gasse Tischlerei am Holzmarkt",
+   "klasse": "gasse",
+   "linie": [
+    [18.0, -1.5],
+    [8.1, -3.15],
+    [0.0, 0.0]
+   ],
+   "gefahr": 1.0,
+   "breite": 3.5
+  },
+  {
+   "name": "Gasse Maurerei Kieselbach",
+   "klasse": "gasse",
+   "linie": [
+    [25.0, -23.5],
+    [11.25, -13.05],
+    [0.0, 0.0]
+   ],
+   "gefahr": 1.0,
+   "breite": 3.5
+  },
+  {
+   "name": "Gasse Maurerei an der Stadtmauer",
+   "klasse": "gasse",
+   "linie": [
+    [21.0, 34.5],
+    [11.0, 24.0],
+    [0.0, 0.0]
+   ],
+   "gefahr": 1.0,
+   "breite": 3.5
+  },
+  {
+   "name": "Gasse Tinkturei am Domplatz",
+   "klasse": "gasse",
+   "linie": [
+    [-11.0, -25.5],
+    [-11.0, -4.0],
+    [0.0, 0.0]
+   ],
+   "gefahr": 1.0,
+   "breite": 3.5
+  },
+  {
+   "name": "Gasse Schänke am Fischmarkt",
+   "klasse": "gasse",
+   "linie": [
+    [-27.0, 33.5],
+    [-20.5, 22.0],
+    [-8.0, 21.5],
+    [0.0, 0.0]
+   ],
+   "gefahr": 1.0,
+   "breite": 3.5
+  },
+  {
+   "name": "Gasse Wachhaus an der Torstraße",
+   "klasse": "gasse",
+   "linie": [
+    [29.0, 15.5],
+    [13.05, 4.5],
+    [0.0, 0.0]
+   ],
+   "gefahr": 1.0,
+   "breite": 3.5
+  },
+  {
+   "name": "Gasse Wechselstube am Markt",
+   "klasse": "gasse",
+   "linie": [
+    [14.0, -12.5],
+    [6.3, -8.1],
+    [0.0, 0.0]
+   ],
+   "gefahr": 1.0,
+   "breite": 3.5
+  },
+  {
+   "name": "Gasse Siederei an der Seifengasse",
+   "klasse": "gasse",
+   "linie": [
+    [-24.5, -23.5],
+    [-11.0, -13.05],
+    [0.0, 0.0]
+   ],
+   "gefahr": 1.0,
+   "breite": 3.5
+  },
+  {
+   "name": "Gasse Schmugglerloch am Osttor",
+   "klasse": "gasse",
+   "linie": [
+    [29.0, -6.5],
+    [26.0, -1.0],
+    [0.0, 0.0]
+   ],
+   "gefahr": 1.0,
+   "breite": 3.5
+  },
+  {
+   "name": "Gasse Kirche an der Westmauer",
+   "klasse": "gasse",
+   "linie": [
+    [-30.0, 1.5],
+    [-22.0, 5.0],
+    [-12.0, 6.0],
+    [0.0, 0.0]
+   ],
+   "gefahr": 1.0,
+   "breite": 3.5
+  },
+  {
+   "name": "Weg zum Abzweig Steinbruch Kieselbach",
+   "klasse": "land",
+   "linie": [
+    [76.0, -1.3],
+    [80.0, 26.0]
+   ],
+   "gefahr": 1.0,
+   "breite": 4
+  },
+  {
+   "name": "Weg zu Steinbruch Kieselbach",
+   "klasse": "land",
+   "linie": [
+    [80.0, 26.0],
+    [72.0, 66.0]
+   ],
+   "gefahr": 1.0,
+   "breite": 4
+  },
+  {
+   "name": "Weg zum Abzweig Steinbruch am Felsenhang",
+   "klasse": "land",
+   "linie": [
+    [-50.0, 6.0],
+    [-62.0, -58.0]
+   ],
+   "gefahr": 1.0,
+   "breite": 4
+  },
+  {
+   "name": "Weg zu Steinbruch am Felsenhang",
+   "klasse": "land",
+   "linie": [
+    [-62.0, -58.0],
+    [-8.0, -80.0]
+   ],
+   "gefahr": 1.0,
+   "breite": 4
+  },
+  {
+   "name": "Weg zum Abzweig Kräutergarten am Bach",
+   "klasse": "land",
+   "linie": [
+    [76.0, -1.3],
+    [86.0, 18.0]
+   ],
+   "gefahr": 1.0,
+   "breite": 4
+  },
+  {
+   "name": "Weg zu Kräutergarten am Bach",
+   "klasse": "land",
+   "linie": [
+    [86.0, 18.0],
+    [104.0, 70.0]
+   ],
+   "gefahr": 1.0,
+   "breite": 4
+  },
+  {
+   "name": "Weg zum Abzweig Bauernhof an der Mühle",
+   "klasse": "land",
+   "linie": [
+    [76.0, -1.3],
+    [80.0, -26.0]
+   ],
+   "gefahr": 1.0,
+   "breite": 4
+  },
+  {
+   "name": "Weg zu Bauernhof an der Mühle",
+   "klasse": "land",
+   "linie": [
+    [80.0, -26.0],
+    [122.0, -62.0]
+   ],
+   "gefahr": 1.0,
+   "breite": 4
+  },
+  {
+   "name": "Weg zu Duftgarten am Lavendelhang",
+   "klasse": "land",
+   "linie": [
+    [90.0, -2.0],
+    [122.0, 8.0]
+   ],
+   "gefahr": 1.0,
+   "breite": 4
+  },
+  {
+   "name": "Weg zu Wachturm an der Landstraße",
+   "klasse": "land",
+   "linie": [
+    [80.0, -1.0],
+    [78.0, -10.0]
+   ],
+   "gefahr": 1.0,
+   "breite": 4
+  },
+  {
+   "name": "Weg zum Abzweig Klosterhof am Osthang",
+   "klasse": "land",
+   "linie": [
+    [76.0, -1.3],
+    [98.0, 57.0]
+   ],
+   "gefahr": 1.0,
+   "breite": 4
+  },
+  {
+   "name": "Weg zu Klosterhof am Osthang",
+   "klasse": "land",
+   "linie": [
+    [98.0, 57.0],
+    [132.0, 80.0]
+   ],
+   "gefahr": 1.0,
+   "breite": 4
+  },
+  {
+   "name": "Weg zu Grube Eisenbart",
+   "klasse": "land",
+   "linie": [
+    [90.0, -2.0],
+    [100.0, -12.0]
+   ],
+   "gefahr": 1.0,
+   "breite": 4
+  },
+  {
+   "name": "Weg zu Grube am Silberberg",
+   "klasse": "land",
+   "linie": [
+    [86.0, 18.0],
+    [98.0, 32.0]
+   ],
+   "gefahr": 1.0,
+   "breite": 4
+  },
+  {
+   "name": "Weg zu Grube im Tannenwald",
+   "klasse": "land",
+   "linie": [
+    [80.0, -26.0],
+    [80.0, -66.0]
+   ],
+   "gefahr": 1.0,
+   "breite": 4
+  },
+  {
+   "name": "Weg zu Holzschlag Eichwald",
+   "klasse": "land",
+   "linie": [
+    [-84.0, 6.0],
+    [-94.0, -30.0]
+   ],
+   "gefahr": 1.0,
+   "breite": 4
+  },
+  {
+   "name": "Weg zu Holzschlag im Eichenforst",
+   "klasse": "land",
+   "linie": [
+    [-102.0, 6.0],
+    [-96.0, 46.0]
+   ],
+   "gefahr": 1.0,
+   "breite": 4
+  },
+  {
+   "name": "Fußweg Weide",
+   "klasse": "gasse",
+   "linie": [
+    [-70.0, 6.0],
+    [-70.0, 26.0]
+   ],
+   "gefahr": 1.0,
+   "breite": 2
+  },
+  {
+   "name": "Fußweg Feld",
+   "klasse": "gasse",
+   "linie": [
+    [-58.0, 6.0],
+    [-60.0, 62.0]
+   ],
+   "gefahr": 1.0,
+   "breite": 2
+  },
+  {
+   "name": "Fußweg Wald",
+   "klasse": "gasse",
+   "linie": [
+    [-66.0, 6.0],
+    [-68.0, -14.0]
+   ],
+   "gefahr": 1.0,
+   "breite": 2
+  }
+ ],
+ "uebergaenge": [],
+ "bauzonen": [
+  {
+   "kennung": "K1",
+   "art": "kern",
+   "flaeche": [
+    [28.0, 18.0],
+    [36.0, 18.0],
+    [36.0, 36.0],
+    [28.0, 36.0]
+   ]
+  },
+  {
+   "kennung": "V1",
+   "art": "vorstadt",
+   "flaeche": [
+    [-118.0, -12.0],
+    [-92.0, -12.0],
+    [-92.0, 2.0],
+    [-118.0, 2.0]
+   ]
+  },
+  {
+   "kennung": "V2",
+   "art": "vorstadt",
+   "flaeche": [
+    [-120.0, 10.0],
+    [-104.0, 10.0],
+    [-104.0, 24.0],
+    [-120.0, 24.0]
+   ]
+  },
+  {
+   "kennung": "V3",
+   "art": "vorstadt",
+   "flaeche": [
+    [-96.0, 10.0],
+    [-80.0, 10.0],
+    [-80.0, 24.0],
+    [-96.0, 24.0]
+   ]
+  },
+  {
+   "kennung": "V5",
+   "art": "vorstadt",
+   "flaeche": [
+    [-112.0, 28.0],
+    [-102.0, 28.0],
+    [-102.0, 36.0],
+    [-112.0, 36.0]
+   ]
+  },
+  {
+   "kennung": "M1",
+   "art": "mauerring",
+   "flaeche": [
+    [-80.0, -58.0],
+    [-66.0, -58.0],
+    [-66.0, -44.0],
+    [-62.0, -44.0],
+    [-62.0, -26.0],
+    [-80.0, -26.0]
+   ]
+  },
+  {
+   "kennung": "V6",
+   "art": "vorstadt",
+   "flaeche": [
+    [-76.0, -66.0],
+    [-66.0, -66.0],
+    [-66.0, -58.0],
+    [-76.0, -58.0]
+   ]
+  },
+  {
+   "kennung": "V7",
+   "art": "vorstadt",
+   "flaeche": [
+    [-42.0, -62.0],
+    [-34.0, -62.0],
+    [-34.0, -66.0],
+    [-16.0, -66.0],
+    [-16.0, -52.0],
+    [-42.0, -52.0]
+   ]
+  },
+  {
+   "kennung": "V8",
+   "art": "vorstadt",
+   "flaeche": [
+    [-56.0, -78.0],
+    [-48.0, -78.0],
+    [-48.0, -82.0],
+    [-40.0, -82.0],
+    [-40.0, -84.0],
+    [-32.0, -84.0],
+    [-32.0, -96.0],
+    [-16.0, -96.0],
+    [-16.0, -82.0],
+    [-32.0, -82.0],
+    [-32.0, -74.0],
+    [-40.0, -74.0],
+    [-40.0, -72.0],
+    [-48.0, -72.0],
+    [-48.0, -68.0],
+    [-56.0, -68.0]
+   ]
+  }
+ ],
+ "feste": [
+  {
+   "kennung": "Markt",
+   "art": "sonderbau",
+   "name": "Marktplatz mit Ständen und Brunnen",
+   "punkt": [0.0, 0.0],
+   "groesse": [24.0, 24.0],
+   "drehung": 0
+  },
+  {
+   "kennung": "Rathaus",
+   "art": "sonderbau",
+   "name": "Rathaus",
+   "punkt": [0.0, -20.0],
+   "eingang": [0.0, -15.0],
+   "groesse": [16, 10],
+   "drehung": 0
+  },
+  {
+   "kennung": "Dom",
+   "art": "sonderbau",
+   "name": "Dom",
+   "punkt": [-20.0, -14.0],
+   "eingang": [-20.0, -3.0],
+   "groesse": [10, 22],
+   "drehung": 0
+  },
+  {
+   "kennung": "TorhausOst",
+   "art": "sonderbau",
+   "name": "Torhaus Osttor",
+   "punkt": [50.0, 0.0],
+   "groesse": [16, 6],
+   "drehung": 90
+  },
+  {
+   "kennung": "TorhausWest",
+   "art": "sonderbau",
+   "name": "Torhaus Westtor",
+   "punkt": [-50.0, 6.0],
+   "groesse": [16, 6],
+   "drehung": 90
+  },
+  {
+   "kennung": "Eckturm1",
+   "art": "turm",
+   "name": "Eckturm 1",
+   "punkt": [-50.0, -50.0],
+   "groesse": [7, 7],
+   "drehung": 0
+  },
+  {
+   "kennung": "Eckturm2",
+   "art": "turm",
+   "name": "Eckturm 2",
+   "punkt": [50.0, -50.0],
+   "groesse": [7, 7],
+   "drehung": 0
+  },
+  {
+   "kennung": "Eckturm3",
+   "art": "turm",
+   "name": "Eckturm 3",
+   "punkt": [-50.0, 50.0],
+   "groesse": [7, 7],
+   "drehung": 0
+  },
+  {
+   "kennung": "Eckturm4",
+   "art": "turm",
+   "name": "Eckturm 4",
+   "punkt": [50.0, 50.0],
+   "groesse": [7, 7],
+   "drehung": 0
+  },
+  {
+   "kennung": "Giesserei_am_Weinmarkt",
+   "art": "werkstatt",
+   "name": "Gießerei am Weinmarkt",
+   "punkt": [-20.0, 14.0],
+   "eingang": [-20.0, 18.0],
+   "groesse": [10, 8],
+   "drehung": 0
+  },
+  {
+   "kennung": "Tischlerei_am_Weinmarkt",
+   "art": "werkstatt",
+   "name": "Tischlerei am Weinmarkt",
+   "punkt": [-20.0, 14.0],
+   "eingang": [-20.0, 18.0],
+   "groesse": [10, 8],
+   "drehung": 0
+  },
+  {
+   "kennung": "Maurerei_am_Weinmarkt",
+   "art": "werkstatt",
+   "name": "Maurerei am Weinmarkt",
+   "punkt": [-20.0, 14.0],
+   "eingang": [-20.0, 18.0],
+   "groesse": [10, 8],
+   "drehung": 0
+  },
+  {
+   "kennung": "Tinkturei_am_Weinmarkt",
+   "art": "werkstatt",
+   "name": "Tinkturei am Weinmarkt",
+   "punkt": [-20.0, 14.0],
+   "eingang": [-20.0, 18.0],
+   "groesse": [10, 8],
+   "drehung": 0
+  },
+  {
+   "kennung": "Schaenke_am_Weinmarkt",
+   "art": "werkstatt",
+   "name": "Schänke am Weinmarkt",
+   "punkt": [-20.0, 14.0],
+   "eingang": [-20.0, 18.0],
+   "groesse": [10, 8],
+   "drehung": 0
+  },
+  {
+   "kennung": "Kirche_am_Weinmarkt",
+   "art": "werkstatt",
+   "name": "Kirche am Weinmarkt",
+   "punkt": [-20.0, 14.0],
+   "eingang": [-20.0, 18.0],
+   "groesse": [10, 8],
+   "drehung": 0
+  },
+  {
+   "kennung": "Schmugglerloch_am_Weinmarkt",
+   "art": "werkstatt",
+   "name": "Schmugglerloch am Weinmarkt",
+   "punkt": [-20.0, 14.0],
+   "eingang": [-20.0, 18.0],
+   "groesse": [10, 8],
+   "drehung": 0
+  },
+  {
+   "kennung": "Wachhaus_am_Weinmarkt",
+   "art": "werkstatt",
+   "name": "Wachhaus am Weinmarkt",
+   "punkt": [-20.0, 14.0],
+   "eingang": [-20.0, 18.0],
+   "groesse": [10, 8],
+   "drehung": 0
+  },
+  {
+   "kennung": "Wechselstube_am_Weinmarkt",
+   "art": "werkstatt",
+   "name": "Wechselstube am Weinmarkt",
+   "punkt": [-20.0, 14.0],
+   "eingang": [-20.0, 18.0],
+   "groesse": [10, 8],
+   "drehung": 0
+  },
+  {
+   "kennung": "Siederei_am_Weinmarkt",
+   "art": "werkstatt",
+   "name": "Siederei am Weinmarkt",
+   "punkt": [-20.0, 14.0],
+   "eingang": [-20.0, 18.0],
+   "groesse": [10, 8],
+   "drehung": 0
+  },
+  {
+   "kennung": "Giesserei_Eisenbart",
+   "art": "werkstatt",
+   "name": "Gießerei Eisenbart",
+   "punkt": [18.0, 16.0],
+   "eingang": [18.0, 20.0],
+   "groesse": [10, 8],
+   "drehung": 0
+  },
+  {
+   "kennung": "Giesserei_an_der_Suedgasse",
+   "art": "werkstatt",
+   "name": "Gießerei an der Südgasse",
+   "punkt": [2.0, 20.0],
+   "eingang": [2.0, 24.0],
+   "groesse": [10, 8],
+   "drehung": 0
+  },
+  {
+   "kennung": "Tischlerei_Eichwald",
+   "art": "werkstatt",
+   "name": "Tischlerei Eichwald",
+   "punkt": [-14.0, 27.0],
+   "eingang": [-14.0, 31.0],
+   "groesse": [10, 8],
+   "drehung": 0
+  },
+  {
+   "kennung": "Tischlerei_am_Holzmarkt",
+   "art": "werkstatt",
+   "name": "Tischlerei am Holzmarkt",
+   "punkt": [18.0, -7.0],
+   "eingang": [18.0, -3.0],
+   "groesse": [10, 8],
+   "drehung": 0
+  },
+  {
+   "kennung": "Maurerei_Kieselbach",
+   "art": "werkstatt",
+   "name": "Maurerei Kieselbach",
+   "punkt": [25.0, -29.0],
+   "eingang": [25.0, -25.0],
+   "groesse": [10, 8],
+   "drehung": 0
+  },
+  {
+   "kennung": "Maurerei_an_der_Stadtmauer",
+   "art": "werkstatt",
+   "name": "Maurerei an der Stadtmauer",
+   "punkt": [21.0, 29.0],
+   "eingang": [21.0, 33.0],
+   "groesse": [10, 8],
+   "drehung": 0
+  },
+  {
+   "kennung": "Tinkturei_am_Domplatz",
+   "art": "werkstatt",
+   "name": "Tinkturei am Domplatz",
+   "punkt": [-11.0, -31.0],
+   "eingang": [-11.0, -27.0],
+   "groesse": [10, 8],
+   "drehung": 0
+  },
+  {
+   "kennung": "Schaenke_am_Fischmarkt",
+   "art": "werkstatt",
+   "name": "Schänke am Fischmarkt",
+   "punkt": [-27.0, 28.0],
+   "eingang": [-27.0, 32.0],
+   "groesse": [10, 8],
+   "drehung": 0
+  },
+  {
+   "kennung": "Wachhaus_an_der_Torstrasse",
+   "art": "werkstatt",
+   "name": "Wachhaus an der Torstraße",
+   "punkt": [29.0, 10.0],
+   "eingang": [29.0, 14.0],
+   "groesse": [10, 8],
+   "drehung": 0
+  },
+  {
+   "kennung": "Wechselstube_am_Markt",
+   "art": "werkstatt",
+   "name": "Wechselstube am Markt",
+   "punkt": [14.0, -18.0],
+   "eingang": [14.0, -14.0],
+   "groesse": [10, 8],
+   "drehung": 0
+  },
+  {
+   "kennung": "Siederei_an_der_Seifengasse",
+   "art": "werkstatt",
+   "name": "Siederei an der Seifengasse",
+   "punkt": [-24.5, -29.0],
+   "eingang": [-24.5, -25.0],
+   "groesse": [10, 8],
+   "drehung": 0
+  },
+  {
+   "kennung": "Schmugglerloch_am_Osttor",
+   "art": "werkstatt",
+   "name": "Schmugglerloch am Osttor",
+   "punkt": [29.0, -12.0],
+   "eingang": [29.0, -8.0],
+   "groesse": [10, 8],
+   "drehung": 0
+  },
+  {
+   "kennung": "Kirche_an_der_Westmauer",
+   "art": "werkstatt",
+   "name": "Kirche an der Westmauer",
+   "punkt": [-30.0, -4.0],
+   "eingang": [-30.0, 0.0],
+   "groesse": [10, 8],
+   "drehung": 0
+  },
+  {
+   "kennung": "Steinbruch_Kieselbach",
+   "art": "umland",
+   "name": "Steinbruch Kieselbach",
+   "punkt": [74.0, 66.0],
+   "eingang": [74.0, 73.0],
+   "groesse": [16, 14],
+   "drehung": 0
+  },
+  {
+   "kennung": "Steinbruch_am_Felsenhang",
+   "art": "umland",
+   "name": "Steinbruch am Felsenhang",
+   "punkt": [-6.0, -80.0],
+   "eingang": [-6.0, -73.0],
+   "groesse": [16, 14],
+   "drehung": 0
+  },
+  {
+   "kennung": "Kraeutergarten_am_Bach",
+   "art": "umland",
+   "name": "Kräutergarten am Bach",
+   "punkt": [106.0, 70.0],
+   "eingang": [106.0, 77.0],
+   "groesse": [16, 14],
+   "drehung": 0
+  },
+  {
+   "kennung": "Bauernhof_an_der_Muehle",
+   "art": "umland",
+   "name": "Bauernhof an der Mühle",
+   "punkt": [124.0, -62.0],
+   "eingang": [124.0, -54.0],
+   "groesse": [20, 16],
+   "drehung": 0
+  },
+  {
+   "kennung": "Duftgarten_am_Lavendelhang",
+   "art": "umland",
+   "name": "Duftgarten am Lavendelhang",
+   "punkt": [124.0, 8.0],
+   "eingang": [124.0, 15.0],
+   "groesse": [16, 14],
+   "drehung": 0
+  },
+  {
+   "kennung": "Wachturm_an_der_Landstrasse",
+   "art": "umland",
+   "name": "Wachturm an der Landstraße",
+   "punkt": [80.0, -10.0],
+   "eingang": [80.0, -8.0],
+   "groesse": [4, 4],
+   "drehung": 0
+  },
+  {
+   "kennung": "Klosterhof_am_Osthang",
+   "art": "umland",
+   "name": "Klosterhof am Osthang",
+   "punkt": [134.0, 80.0],
+   "eingang": [134.0, 88.0],
+   "groesse": [18, 16],
+   "drehung": 0
+  },
+  {
+   "kennung": "Grube_Eisenbart",
+   "art": "umland",
+   "name": "Grube Eisenbart",
+   "punkt": [102.0, -12.0],
+   "eingang": [102.0, -5.0],
+   "groesse": [16, 14],
+   "drehung": 0
+  },
+  {
+   "kennung": "Grube_am_Silberberg",
+   "art": "umland",
+   "name": "Grube am Silberberg",
+   "punkt": [100.0, 32.0],
+   "eingang": [100.0, 39.0],
+   "groesse": [16, 14],
+   "drehung": 0
+  },
+  {
+   "kennung": "Grube_im_Tannenwald",
+   "art": "umland",
+   "name": "Grube im Tannenwald",
+   "punkt": [82.0, -66.0],
+   "eingang": [82.0, -59.0],
+   "groesse": [16, 14],
+   "drehung": 0
+  },
+  {
+   "kennung": "Holzschlag_Eichwald",
+   "art": "umland",
+   "name": "Holzschlag Eichwald",
+   "punkt": [-92.0, -30.0],
+   "eingang": [-92.0, -23.0],
+   "groesse": [16, 14],
+   "drehung": 0
+  },
+  {
+   "kennung": "Holzschlag_im_Eichenforst",
+   "art": "umland",
+   "name": "Holzschlag im Eichenforst",
+   "punkt": [-94.0, 46.0],
+   "eingang": [-94.0, 53.0],
+   "groesse": [16, 14],
+   "drehung": 0
+  },
+  {
+   "kennung": "StelleWeide",
+   "art": "umlandstelle",
+   "name": "Weide der Einwohner",
+   "punkt": [-70.0, 26.0],
+   "groesse": [14, 10],
+   "drehung": 0
+  },
+  {
+   "kennung": "StelleFeld",
+   "art": "umlandstelle",
+   "name": "Feld der Einwohner",
+   "punkt": [-60.0, 62.0],
+   "groesse": [14, 9],
+   "drehung": 0
+  },
+  {
+   "kennung": "StelleWald",
+   "art": "umlandstelle",
+   "name": "Wald der Einwohner",
+   "punkt": [-68.0, -14.0],
+   "groesse": [18, 16],
+   "drehung": 0
+  },
+  {
+   "kennung": "Kulisse1",
+   "art": "einwohnerhaus",
+   "name": "Haus der Kulisse 1",
+   "punkt": [10.0, -29.0],
+   "eingang": [10.0, -26.0],
+   "groesse": [7, 6],
+   "drehung": 0
+  },
+  {
+   "kennung": "Kulisse2",
+   "art": "einwohnerhaus",
+   "name": "Haus der Kulisse 2",
+   "punkt": [-4.0, 29.0],
+   "eingang": [-4.0, 32.0],
+   "groesse": [7, 6],
+   "drehung": 0
+  },
+  {
+   "kennung": "Kulisse3",
+   "art": "einwohnerhaus",
+   "name": "Haus der Kulisse 3",
+   "punkt": [5.0, 29.0],
+   "eingang": [5.0, 32.0],
+   "groesse": [7, 6],
+   "drehung": 0
+  },
+  {
+   "kennung": "Kulisse4",
+   "art": "einwohnerhaus",
+   "name": "Haus der Kulisse 4",
+   "punkt": [-29.0, 18.0],
+   "eingang": [-26.0, 18.0],
+   "groesse": [7, 6],
+   "drehung": 90
+  },
+  {
+   "kennung": "Wohnhaus1",
+   "art": "wohnhaus",
+   "name": "Wohnhaus 1",
+   "punkt": [0.0, -44.3],
+   "eingang": [0.0, -40.3],
+   "groesse": [17.0, 8.0],
+   "drehung": 0,
+   "reihenfolge": 1,
+   "lage": "mauerring"
+  },
+  {
+   "kennung": "Wohnhaus2",
+   "art": "wohnhaus",
+   "name": "Wohnhaus 2",
+   "punkt": [0.0, 44.3],
+   "eingang": [0.0, 40.3],
+   "groesse": [17.0, 8.0],
+   "drehung": 180,
+   "reihenfolge": 2,
+   "lage": "mauerring"
+  },
+  {
+   "kennung": "Wohnhaus3",
+   "art": "wohnhaus",
+   "name": "Wohnhaus 3",
+   "punkt": [-44.3, -9.0],
+   "eingang": [-40.3, -9.0],
+   "groesse": [17.0, 8.0],
+   "drehung": 90,
+   "reihenfolge": 3,
+   "lage": "mauerring"
+  },
+  {
+   "kennung": "Wohnhaus4",
+   "art": "wohnhaus",
+   "name": "Wohnhaus 4",
+   "punkt": [44.3, -16.25],
+   "eingang": [40.3, -16.25],
+   "groesse": [17.0, 8.0],
+   "drehung": 270,
+   "reihenfolge": 4,
+   "lage": "mauerring"
+  },
+  {
+   "kennung": "Wohnhaus5",
+   "art": "wohnhaus",
+   "name": "Wohnhaus 5",
+   "punkt": [44.3, 16.25],
+   "eingang": [40.3, 16.25],
+   "groesse": [17.0, 8.0],
+   "drehung": 270,
+   "reihenfolge": 5,
+   "lage": "mauerring",
+   "haeuserAb": 5
+  },
+  {
+   "kennung": "Wohnhaus6",
+   "art": "wohnhaus",
+   "name": "Wohnhaus 6",
+   "punkt": [-17.0, -44.3],
+   "eingang": [-17.0, -40.3],
+   "groesse": [17.0, 8.0],
+   "drehung": 0,
+   "reihenfolge": 6,
+   "lage": "mauerring",
+   "haeuserAb": 6
+  },
+  {
+   "kennung": "Wohnhaus7",
+   "art": "wohnhaus",
+   "name": "Wohnhaus 7",
+   "punkt": [-17.0, 44.3],
+   "eingang": [-17.0, 40.3],
+   "groesse": [17.0, 8.0],
+   "drehung": 180,
+   "reihenfolge": 7,
+   "lage": "mauerring",
+   "haeuserAb": 7
+  },
+  {
+   "kennung": "Wohnhaus8",
+   "art": "wohnhaus",
+   "name": "Wohnhaus 8",
+   "punkt": [17.0, -44.3],
+   "eingang": [17.0, -40.3],
+   "groesse": [17.0, 8.0],
+   "drehung": 0,
+   "reihenfolge": 8,
+   "lage": "mauerring",
+   "haeuserAb": 8
+  },
+  {
+   "kennung": "Ring1",
+   "art": "einwohnerplatz",
+   "name": "Ringplatz 1",
+   "punkt": [-38.25, -44.3],
+   "eingang": [-38.25, -40.3],
+   "groesse": [8.5, 8.0],
+   "drehung": 0
+  },
+  {
+   "kennung": "Ring2",
+   "art": "einwohnerplatz",
+   "name": "Ringplatz 2",
+   "punkt": [-29.75, -44.3],
+   "eingang": [-29.75, -40.3],
+   "groesse": [8.5, 8.0],
+   "drehung": 0
+  },
+  {
+   "kennung": "Ring9",
+   "art": "einwohnerplatz",
+   "name": "Ringplatz 9",
+   "punkt": [29.75, -44.3],
+   "eingang": [29.75, -40.3],
+   "groesse": [8.5, 8.0],
+   "drehung": 0
+  },
+  {
+   "kennung": "Ring10",
+   "art": "einwohnerplatz",
+   "name": "Ringplatz 10",
+   "punkt": [38.25, -44.3],
+   "eingang": [38.25, -40.3],
+   "groesse": [8.5, 8.0],
+   "drehung": 0
+  },
+  {
+   "kennung": "Ring11",
+   "art": "einwohnerplatz",
+   "name": "Ringplatz 11",
+   "punkt": [-38.25, 44.3],
+   "eingang": [-38.25, 40.3],
+   "groesse": [8.5, 8.0],
+   "drehung": 180
+  },
+  {
+   "kennung": "Ring12",
+   "art": "einwohnerplatz",
+   "name": "Ringplatz 12",
+   "punkt": [-29.75, 44.3],
+   "eingang": [-29.75, 40.3],
+   "groesse": [8.5, 8.0],
+   "drehung": 180
+  },
+  {
+   "kennung": "Ring17",
+   "art": "einwohnerplatz",
+   "name": "Ringplatz 17",
+   "punkt": [12.75, 44.3],
+   "eingang": [12.75, 40.3],
+   "groesse": [8.5, 8.0],
+   "drehung": 180
+  },
+  {
+   "kennung": "Ring18",
+   "art": "einwohnerplatz",
+   "name": "Ringplatz 18",
+   "punkt": [21.25, 44.3],
+   "eingang": [21.25, 40.3],
+   "groesse": [8.5, 8.0],
+   "drehung": 180
+  },
+  {
+   "kennung": "Ring19",
+   "art": "einwohnerplatz",
+   "name": "Ringplatz 19",
+   "punkt": [29.75, 44.3],
+   "eingang": [29.75, 40.3],
+   "groesse": [8.5, 8.0],
+   "drehung": 180
+  },
+  {
+   "kennung": "Ring20",
+   "art": "einwohnerplatz",
+   "name": "Ringplatz 20",
+   "punkt": [38.25, 44.3],
+   "eingang": [38.25, 40.3],
+   "groesse": [8.5, 8.0],
+   "drehung": 180
+  },
+  {
+   "kennung": "Ring21",
+   "art": "einwohnerplatz",
+   "name": "Ringplatz 21",
+   "punkt": [44.3, -29.0],
+   "eingang": [40.3, -29.0],
+   "groesse": [8.5, 8.0],
+   "drehung": 270
+  },
+  {
+   "kennung": "Ring26",
+   "art": "einwohnerplatz",
+   "name": "Ringplatz 26",
+   "punkt": [44.3, 29.0],
+   "eingang": [40.3, 29.0],
+   "groesse": [8.5, 8.0],
+   "drehung": 270
+  },
+  {
+   "kennung": "Ring27",
+   "art": "einwohnerplatz",
+   "name": "Ringplatz 27",
+   "punkt": [-44.3, -30.25],
+   "eingang": [-40.3, -30.25],
+   "groesse": [8.5, 8.0],
+   "drehung": 90
+  },
+  {
+   "kennung": "Ring28",
+   "art": "einwohnerplatz",
+   "name": "Ringplatz 28",
+   "punkt": [-44.3, -21.75],
+   "eingang": [-40.3, -21.75],
+   "groesse": [8.5, 8.0],
+   "drehung": 90
+  },
+  {
+   "kennung": "Ring31",
+   "art": "einwohnerplatz",
+   "name": "Ringplatz 31",
+   "punkt": [-44.3, 19.25],
+   "eingang": [-40.3, 19.25],
+   "groesse": [8.5, 8.0],
+   "drehung": 90
+  },
+  {
+   "kennung": "Ring32",
+   "art": "einwohnerplatz",
+   "name": "Ringplatz 32",
+   "punkt": [-44.3, 27.75],
+   "eingang": [-40.3, 27.75],
+   "groesse": [8.5, 8.0],
+   "drehung": 90
+  },
+  {
+   "kennung": "Vorstadt1",
+   "art": "einwohnerplatz",
+   "name": "Vorstadtplatz 1",
+   "punkt": [58.6, -8.75],
+   "eingang": [61.7, -8.75],
+   "groesse": [7.5, 6.2],
+   "drehung": 90
+  },
+  {
+   "kennung": "Vorstadt2",
+   "art": "einwohnerplatz",
+   "name": "Vorstadtplatz 2",
+   "punkt": [58.6, 8.75],
+   "eingang": [61.7, 8.75],
+   "groesse": [7.5, 6.2],
+   "drehung": 90
+  },
+  {
+   "kennung": "Vorstadt3",
+   "art": "einwohnerplatz",
+   "name": "Vorstadtplatz 3",
+   "punkt": [69.4, -8.75],
+   "eingang": [66.3, -8.75],
+   "groesse": [7.5, 6.2],
+   "drehung": 270
+  },
+  {
+   "kennung": "Vorstadt4",
+   "art": "einwohnerplatz",
+   "name": "Vorstadtplatz 4",
+   "punkt": [69.4, 8.75],
+   "eingang": [66.3, 8.75],
+   "groesse": [7.5, 6.2],
+   "drehung": 270
+  },
+  {
+   "kennung": "Vorstadt5",
+   "art": "einwohnerplatz",
+   "name": "Vorstadtplatz 5",
+   "punkt": [58.6, -16.25],
+   "eingang": [61.7, -16.25],
+   "groesse": [7.5, 6.2],
+   "drehung": 90
+  },
+  {
+   "kennung": "Vorstadt6",
+   "art": "einwohnerplatz",
+   "name": "Vorstadtplatz 6",
+   "punkt": [58.6, 16.25],
+   "eingang": [61.7, 16.25],
+   "groesse": [7.5, 6.2],
+   "drehung": 90
+  },
+  {
+   "kennung": "Vorstadt7",
+   "art": "einwohnerplatz",
+   "name": "Vorstadtplatz 7",
+   "punkt": [69.4, -16.25],
+   "eingang": [66.3, -16.25],
+   "groesse": [7.5, 6.2],
+   "drehung": 270
+  },
+  {
+   "kennung": "Vorstadt8",
+   "art": "einwohnerplatz",
+   "name": "Vorstadtplatz 8",
+   "punkt": [69.4, 16.25],
+   "eingang": [66.3, 16.25],
+   "groesse": [7.5, 6.2],
+   "drehung": 270
+  },
+  {
+   "kennung": "Vorstadt9",
+   "art": "einwohnerplatz",
+   "name": "Vorstadtplatz 9",
+   "punkt": [58.6, -23.75],
+   "eingang": [61.7, -23.75],
+   "groesse": [7.5, 6.2],
+   "drehung": 90
+  },
+  {
+   "kennung": "Vorstadt10",
+   "art": "einwohnerplatz",
+   "name": "Vorstadtplatz 10",
+   "punkt": [58.6, 23.75],
+   "eingang": [61.7, 23.75],
+   "groesse": [7.5, 6.2],
+   "drehung": 90
+  },
+  {
+   "kennung": "Vorstadt11",
+   "art": "einwohnerplatz",
+   "name": "Vorstadtplatz 11",
+   "punkt": [69.4, -23.75],
+   "eingang": [66.3, -23.75],
+   "groesse": [7.5, 6.2],
+   "drehung": 270
+  },
+  {
+   "kennung": "Vorstadt12",
+   "art": "einwohnerplatz",
+   "name": "Vorstadtplatz 12",
+   "punkt": [69.4, 23.75],
+   "eingang": [66.3, 23.75],
+   "groesse": [7.5, 6.2],
+   "drehung": 270
+  },
+  {
+   "kennung": "Vorstadt13",
+   "art": "einwohnerplatz",
+   "name": "Vorstadtplatz 13",
+   "punkt": [58.6, -31.25],
+   "eingang": [61.7, -31.25],
+   "groesse": [7.5, 6.2],
+   "drehung": 90
+  },
+  {
+   "kennung": "Vorstadt14",
+   "art": "einwohnerplatz",
+   "name": "Vorstadtplatz 14",
+   "punkt": [58.6, 31.25],
+   "eingang": [61.7, 31.25],
+   "groesse": [7.5, 6.2],
+   "drehung": 90
+  },
+  {
+   "kennung": "Vorstadt15",
+   "art": "einwohnerplatz",
+   "name": "Vorstadtplatz 15",
+   "punkt": [69.4, -31.25],
+   "eingang": [66.3, -31.25],
+   "groesse": [7.5, 6.2],
+   "drehung": 270
+  },
+  {
+   "kennung": "Vorstadt16",
+   "art": "einwohnerplatz",
+   "name": "Vorstadtplatz 16",
+   "punkt": [69.4, 31.25],
+   "eingang": [66.3, 31.25],
+   "groesse": [7.5, 6.2],
+   "drehung": 270
+  },
+  {
+   "kennung": "Vorstadt17",
+   "art": "einwohnerplatz",
+   "name": "Vorstadtplatz 17",
+   "punkt": [58.6, -38.75],
+   "eingang": [61.7, -38.75],
+   "groesse": [7.5, 6.2],
+   "drehung": 90
+  },
+  {
+   "kennung": "Vorstadt18",
+   "art": "einwohnerplatz",
+   "name": "Vorstadtplatz 18",
+   "punkt": [58.6, 38.75],
+   "eingang": [61.7, 38.75],
+   "groesse": [7.5, 6.2],
+   "drehung": 90
+  },
+  {
+   "kennung": "Vorstadt19",
+   "art": "einwohnerplatz",
+   "name": "Vorstadtplatz 19",
+   "punkt": [69.4, -38.75],
+   "eingang": [66.3, -38.75],
+   "groesse": [7.5, 6.2],
+   "drehung": 270
+  },
+  {
+   "kennung": "Vorstadt20",
+   "art": "einwohnerplatz",
+   "name": "Vorstadtplatz 20",
+   "punkt": [69.4, 38.75],
+   "eingang": [66.3, 38.75],
+   "groesse": [7.5, 6.2],
+   "drehung": 270
+  }
+ ],
+ "vorkommen": [
+  {
+   "kennung": "Steinbruch_Kieselbach",
+   "betrieb": "Steinbruch",
+   "punkt": [74.0, 66.0]
+  },
+  {
+   "kennung": "Steinbruch_am_Felsenhang",
+   "betrieb": "Steinbruch",
+   "punkt": [-6.0, -80.0]
+  },
+  {
+   "kennung": "Grube_Eisenbart",
+   "betrieb": "Mine",
+   "punkt": [102.0, -12.0]
+  },
+  {
+   "kennung": "Grube_am_Silberberg",
+   "betrieb": "Mine",
+   "punkt": [100.0, 32.0]
+  },
+  {
+   "kennung": "Grube_im_Tannenwald",
+   "betrieb": "Mine",
+   "punkt": [82.0, -66.0]
+  },
+  {
+   "kennung": "Holzschlag_Eichwald",
+   "betrieb": "Holzschlag",
+   "punkt": [-92.0, -30.0]
+  },
+  {
+   "kennung": "Holzschlag_im_Eichenforst",
+   "betrieb": "Holzschlag",
+   "punkt": [-94.0, 46.0]
+  }
+ ],
+ "nebenmauern": [
+  {
+   "name": "Stadtmauer Süd",
+   "linie": [
+    [-50.0, 10.0],
+    [-50.0, 50.0],
+    [50.0, 50.0],
+    [50.0, 4.0]
+   ]
+  }
+ ],
+ "haefen": [],
+ "fiktion": [
+  "Zone M1 liegt knapp vor der Westmauer, zählt aber als Mauerring: Innerhalb der Mauer ist kein Platz für einen Stadthof (16 × 14 m) frei. Mit HOF_ZONE_ALS_MAUERRING = False in tools/karten/greybox.py wird sie „Vorstadt“.",
+  "Die Greybox hat keine Startgrundstücke, sondern Wohnhausplätze (Doppelplätze am Ring); die Reihenfolge ist die der Konten. Heute spielen höchstens 4 Häuser (Spieler und drei Rivalen), Wohnhausplatz 5 bis 8 gelten erst bei mehr Konten."
+ ],
+ "gebaeude": "feste[]: `punkt` = Mitte des Gebäudes, `groesse` = [Breite, Tiefe] in Metern, Breite entlang der Vorderseite. `drehung` = Grad um die Hochachse wie Godot Rotation.Y; die Vorderseite zeigt für 0 nach +z (Süden), 90 nach +x (Osten), 180 nach −z (Norden), 270 nach −x (Westen). `eingang` = Mitte der Vorderseite. Bei 90 und 270 vertauschen sich Breite und Tiefe auf den Achsen: x-Ausdehnung = Tiefe, z-Ausdehnung = Breite.",
+ "probeplan": [
+  {
+   "art": "Werkstatt",
+   "zone": "V1",
+   "punkt": [-110.0, -5.0],
+   "groesse": [16, 14],
+   "drehung": 0
+  },
+  {
+   "art": "Wohnhaus",
+   "zone": "V1",
+   "punkt": [-96.0, -3.0],
+   "groesse": [8, 10],
+   "drehung": 0
+  },
+  {
+   "art": "Werkstatt",
+   "zone": "V2",
+   "punkt": [-112.0, 17.0],
+   "groesse": [16, 14],
+   "drehung": 180
+  },
+  {
+   "art": "Werkstatt",
+   "zone": "V3",
+   "punkt": [-88.0, 17.0],
+   "groesse": [16, 14],
+   "drehung": 180
+  },
+  {
+   "art": "Wohnhaus",
+   "zone": "V5",
+   "punkt": [-107.0, 32.0],
+   "groesse": [8, 10],
+   "drehung": 90
+  },
+  {
+   "art": "Stadthof",
+   "zone": "M1",
+   "punkt": [-73.0, -50.0],
+   "groesse": [16, 14],
+   "drehung": 90
+  },
+  {
+   "art": "Stadthof",
+   "zone": "M1",
+   "punkt": [-69.0, -34.0],
+   "groesse": [16, 14],
+   "drehung": 90
+  },
+  {
+   "art": "Wohnhaus",
+   "zone": "V6",
+   "punkt": [-71.0, -62.0],
+   "groesse": [8, 10],
+   "drehung": 90
+  },
+  {
+   "art": "Werkstatt",
+   "zone": "V7",
+   "punkt": [-24.0, -59.0],
+   "groesse": [16, 14],
+   "drehung": 180
+  },
+  {
+   "art": "Wohnhaus",
+   "zone": "V7",
+   "punkt": [-38.0, -57.0],
+   "groesse": [8, 10],
+   "drehung": 180
+  },
+  {
+   "art": "Wohnhaus",
+   "zone": "V8",
+   "punkt": [-52.0, -73.0],
+   "groesse": [8, 10],
+   "drehung": 0
+  },
+  {
+   "art": "Wohnhaus",
+   "zone": "V8",
+   "punkt": [-44.0, -77.0],
+   "groesse": [8, 10],
+   "drehung": 0
+  },
+  {
+   "art": "Wohnhaus",
+   "zone": "V8",
+   "punkt": [-36.0, -79.0],
+   "groesse": [8, 10],
+   "drehung": 0
+  },
+  {
+   "art": "Werkstatt",
+   "zone": "V8",
+   "punkt": [-24.0, -89.0],
+   "groesse": [16, 14],
+   "drehung": 0
+  },
+  {
+   "art": "Wohnhaus",
+   "zone": "K1",
+   "punkt": [32.0, 31.0],
+   "groesse": [8, 10],
+   "drehung": 0
+  }
+ ]
+}

@@ -47,23 +47,27 @@ public static class Speicherung
             Endgrund = simulation.Endgrund,
             Spielerkonto = spieler is null || w is null ? null : IndexOder(w.Konten, spieler),
             Daten = w?.Daten,
+            Karte = w?.Karte,
             Wirtschaft = w?.Sichern(),
         };
         return JsonSerializer.Serialize(stand, Optionen);
     }
 
     /// <summary>Liest nur die Kopfdaten (Titel, Zeitpunkt) – für die Liste im Ladedialog.</summary>
-    public static Speicherstand Kopf(string json) => Lesen(json) with { Wirtschaft = null, Daten = null };
+    public static Speicherstand Kopf(string json) => Lesen(json) with { Wirtschaft = null, Daten = null, Karte = null };
 
     /// <summary>Stellt eine Partie aus einem Spielstand wieder her.</summary>
+    /// <param name="karte">Die Karte der Stadt für Spielstände, die noch keine mitgespeichert haben (sonst gilt die gespeicherte).</param>
     /// <returns>Die Simulation und das Konto des menschlichen Spielers (falls gespeichert).</returns>
     /// <exception cref="SpielstandFehler">Wenn die Datei nicht passt – mit verständlicher Begründung.</exception>
-    public static (Simulation Simulation, Konto? Spieler) Laden(string json)
+    public static (Simulation Simulation, Konto? Spieler) Laden(string json, Bauen.Stadtkarte? karte = null)
     {
         var stand = Lesen(json);
 
         if (stand.Daten is { } daten && daten.Pruefen() is { Count: > 0 } fehler)
             throw new SpielstandFehler("Die Wirtschaftsdaten im Spielstand sind fehlerhaft:\n  • " + string.Join("\n  • ", fehler));
+        if (stand.Karte is { } gespeichert && gespeichert.Pruefen() is { Count: > 0 } kartenfehler)
+            throw new SpielstandFehler("Die Karte im Spielstand ist fehlerhaft:\n  • " + string.Join("\n  • ", kartenfehler));
 
         try
         {
@@ -75,6 +79,7 @@ public static class Speicherung
             Konto? spieler = null;
             if (simulation.Wirtschaft is { } w && stand.Wirtschaft is { } ws)
             {
+                if ((stand.Karte ?? karte) is { } k) w.KarteSetzen(k);
                 w.Wiederherstellen(ws);
                 if (stand.Spielerkonto is int nummer && nummer >= 0 && nummer < w.Konten.Count)
                     spieler = w.Konten[nummer];

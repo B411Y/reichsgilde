@@ -156,7 +156,8 @@ public partial class Stadtansicht : Node3D
     /// </summary>
     private abstract class InnenAnsicht
     {
-        public required Vector3 Mitte { get; init; }
+        /// <summary>Mitte des Gebäudes (Ziel der Kamera beim Betreten). Das Wohnhaus des Spielers wandert beim Umzug.</summary>
+        public required Vector3 Mitte { get; set; }
         /// <summary>Kennung wie beim Anklicken („betrieb:…", „Rathaus", „Dom").</summary>
         public abstract string Kennung { get; }
         public abstract string Name { get; }
@@ -545,6 +546,7 @@ public partial class Stadtansicht : Node3D
             var p = NachAussen(new Vector3((float)(Math.Cos(winkel) * abstand) + 10, 0, (float)(Math.Sin(winkel) * abstand)));
             if (ImWegFuerWald(p)) continue; // Stadt, Gruben und Straßen frei lassen
             var hoehe = 6 + (float)zufall.NextDouble() * 5;
+            if (AufBauzone(p)) continue;     // die Bauzonen der Karte bleiben frei (der Zufall läuft weiter wie bisher)
             var baum = new MeshInstance3D
             {
                 Mesh = new CylinderMesh { TopRadius = 0, BottomRadius = 2.2f, Height = hoehe, RadialSegments = 7 },
@@ -586,6 +588,10 @@ public partial class Stadtansicht : Node3D
         }
         return false;
     }
+
+    /// <summary>Liegt der Punkt auf einer Bauzone der Karte (mit 3 m Rand für den Baum)? Dort wird gebaut, nicht gepflanzt.</summary>
+    private static bool AufBauzone(Vector3 p) =>
+        Stadtkarten.Greybox?.Bauzonen.Any(z => z.Abstand(p.X, p.Z) < 3) == true;
 
     private static float AbstandZurStrecke(Vector3 p, Vector3 a, Vector3 b)
     {
@@ -630,7 +636,7 @@ public partial class Stadtansicht : Node3D
     public void BetriebHinzufuegen(Betrieb betrieb)
     {
         if (_betriebe.ContainsKey(betrieb)) return;
-        if (!Stadtplan.TryGetValue(betrieb.Name, out var platz))
+        if (!PlatzVon(betrieb.Name, out var platz, out var drehung))
         {
             GD.PushWarning($"Für „{betrieb.Name}“ gibt es keinen Platz im Stadtplan – er wird nicht gezeigt.");
             return;
@@ -645,8 +651,10 @@ public partial class Stadtansicht : Node3D
         var abzweig = Abzweige.GetValueOrDefault(betrieb.Name, Wegkreuz + new Vector3(10, 0, 0));
         var vorher = GetChildCount(); // alles ab hier gehört zum Betrieb und kommt in seine Gruppe
         // Werkstätten nach Beruf (eine ausgebaute Drechslerei bleibt eine Tischlerwerkstatt), Umland nach Art
+        // Neu gebaut (nicht im Stadtplan): Platz, Drehung und Weg zum Markt kommen vom Grundstück
+        var neuerWeg = betrieb.InDerStadt && !Stadtplan.ContainsKey(betrieb.Name) ? WerkstattWeg(betrieb.Name) : ((Vector3 Hof, Vector3[] Weg)?)null;
         var ansicht = betrieb.InDerStadt
-            ? GiessereiBauen(betrieb, platz, farbe, StilVon(betrieb.Artdaten.Beruf))
+            ? GiessereiBauen(betrieb, platz, farbe, StilVon(betrieb.Artdaten.Beruf), neuerWeg)
             : betrieb.Art switch
             {
                 Betriebsart.Holzfaellerei => HolzschlagBauen(betrieb, platz, farbe, abzweig),
@@ -661,6 +669,14 @@ public partial class Stadtansicht : Node3D
         ansicht.Spieler = spieler;
         ansicht.Farbe = farbe;
         ansicht.Gruppe = InGruppe("Betrieb_" + betrieb.Name.Replace(" ", "_"), vorher);
+        if (drehung != 0)
+        {
+            // Eine gedrehte Werkstatt: Gebäude samt Innenraum um die Mitte drehen, die Wände schauen mit
+            var basis = UmMitteDrehen(ansicht.Gruppe, platz, drehung, ansicht.Innen);
+            for (var i = 0; i < ansicht.Waende.Count; i++)
+                ansicht.Waende[i] = (ansicht.Waende[i].Wand, basis * ansicht.Waende[i].Aussen);
+        }
+        if (neuerWeg is { } nw) WegZiehen(nw.Weg[0], nw.Weg[1], 3.5f, ansicht.Gruppe); // vom Hof auf die nächste Gasse
         _betriebe[betrieb] = ansicht;
     }
 
@@ -723,10 +739,10 @@ public partial class Stadtansicht : Node3D
     /// </summary>
     private void FreienPlatzZeigen(LiegenschaftDaten frei)
     {
-        if (!Stadtplan.TryGetValue(frei.Name, out var p)) return;
+        if (!PlatzVon(frei.Name, out var p, out var drehung)) return;
         if (frei.Bebaut && _simulation?.Wirtschaft?.Daten.Art(frei.Art) is { InDerStadt: true } art)
         {
-            LeeresHausZeigen(frei, p, art); // verkaufte Werkstatt: Das Haus steht noch
+            LeeresHausZeigen(frei, p, art, drehung); // verkaufte Werkstatt: Das Haus steht noch
             return;
         }
         var gruppe = new Node3D { Name = "Frei_" + frei.Name.Replace(" ", "_") };
@@ -826,7 +842,7 @@ public partial class Stadtansicht : Node3D
     /// und Besitzerfarbe, die Tür mit zwei Brettern verriegelt, davor das ockerfarbene Schild. Kein Innenraum – betreten
     /// lässt es sich erst wieder, wenn es jemand gekauft hat (dann weicht es dem neuen Betrieb, <see cref="BetriebHinzufuegen"/>).
     /// </summary>
-    private void LeeresHausZeigen(LiegenschaftDaten frei, Vector3 p, BetriebsartDaten art)
+    private void LeeresHausZeigen(LiegenschaftDaten frei, Vector3 p, BetriebsartDaten art, int drehung = 0)
     {
         const float tiefe = 8;
         var vorher = GetChildCount(); // alles ab hier kommt in die Gruppe des leeren Hauses
@@ -837,13 +853,14 @@ public partial class Stadtansicht : Node3D
         foreach (var winkel in new[] { 32f, -32f })
             Quader(p + new Vector3(-2, 1.5f, tiefe / 2 + 0.16f), new Vector3(2.4f, 0.22f, 0.06f), bretter).RotationDegrees = new Vector3(0, 0, winkel);
         Verkaufsschild(p + new Vector3(-4, 0, tiefe / 2 + 1.6f), frei.IstPacht);
-        GasseZiehen(p, Gasse(frei.Name, p));
+        if (Stadtplan.ContainsKey(frei.Name)) GasseZiehen(p, Gasse(frei.Name, p)); // neu gebaute Werkstätten haben ihren Weg vom Grundstück
 
         var kennung = LiegenschaftKennung(frei.Name);
         Klickflaeche(kennung, p + new Vector3(0, 4, 1), new Vector3(10, 8, 10)); // mit dem Schild vor der Tür
         Beschriftung($"{frei.Name}\n{(frei.IstPacht ? "zu verpachten" : "zu verkaufen")}",
             p + new Vector3(0, GebaeudeSchildHoehe.GetValueOrDefault(frei.Name, 13), 0), 36, kennung: kennung);
         var gruppe = InGruppe("Leer_" + frei.Name.Replace(" ", "_"), vorher);
+        UmMitteDrehen(gruppe, p, drehung); // eine neu gebaute, gedrehte Werkstatt
         _freiePlaetze[frei.Name] = gruppe;
         _leereHaeuser[frei.Name] = (p, gruppe, huelle.Dach);
     }
@@ -862,7 +879,8 @@ public partial class Stadtansicht : Node3D
     /// </summary>
     private enum Werkstil { Giesserei, Tischlerei, Maurerei, Tinkturei, Schaenke, Kirche, Diebesnest, Wache, Bank, Siederei }
 
-    private BetriebsAnsicht GiessereiBauen(Betrieb betrieb, Vector3 p, Color besitzer, Werkstil stil = Werkstil.Giesserei)
+    private BetriebsAnsicht GiessereiBauen(Betrieb betrieb, Vector3 p, Color besitzer, Werkstil stil = Werkstil.Giesserei,
+                                           (Vector3 Hof, Vector3[] Weg)? neuerPlatz = null)
     {
         var tischlerei = stil != Werkstil.Giesserei; // ohne glühende Esse auf dem Dach
         const float breite = 10, tiefe = 8, dicke = 0.4f;
@@ -871,17 +889,17 @@ public partial class Stadtansicht : Node3D
         Klickflaeche(BetriebsKennung(betrieb), p + new Vector3(0, 4, 0), new Vector3(breite, 8, tiefe));
         var schild = Beschriftung(betrieb.Name, p + new Vector3(0, GebaeudeSchildHoehe.GetValueOrDefault(betrieb.Name, 13), 0), 44, kennung: BetriebsKennung(betrieb));
 
-        // Weg zur nächsten Gasse und dann zum Markt
-        var hof = p + new Vector3(0, 0, 5.5f);
+        // Weg zur nächsten Gasse und dann zum Markt (eine neu gebaute Werkstatt: über das Gassennetz, gezeichnet von BetriebHinzufuegen)
+        var hof = neuerPlatz?.Hof ?? p + new Vector3(0, 0, 5.5f);
         var gasse = Gasse(betrieb.Name, p);
-        GasseZiehen(p, gasse);
+        if (neuerPlatz is null) GasseZiehen(p, gasse);
 
         var ansicht = new BetriebsAnsicht
         {
             Betrieb = betrieb,
             Mitte = p,
             Hof = hof,
-            WegZumMarkt = gasse.Prepend(hof).Append(Marktplatz).ToArray(),
+            WegZumMarkt = neuerPlatz?.Weg ?? gasse.Prepend(hof).Append(Marktplatz).ToArray(),
             Glut = tischlerei ? null : huelle.Glut,
             Esse = tischlerei ? null : huelle.Esse,
             Schild = schild,
@@ -1558,7 +1576,8 @@ public partial class Stadtansicht : Node3D
     {
         if (_simulation is null) return;
         WohnhaeuserPruefen(); // einmal, sobald der Kern die Wohnhäuser vergeben hat
-        SpielhaeuserAktualisieren(); // Wohnhäuser der Spielhäuser (Stadtansicht.Spielhaeuser.cs)
+        GrundstueckeAktualisieren(); // Wohnhäuser, Baustellen und Bauplätze der Karte (Stadtansicht.Bauen.cs)
+        BauUmrissAktualisieren();    // Baumodus: der Umriss an der Maus
         var zeit = _simulation.Zeit;
         // Die Simulation zählt nur ganze Minuten (bei Tempo 1 etwa eine pro Sekunde). Für die Darstellung
         // nehmen wir den Bruchteil der angebrochenen Minute dazu – sonst springen Sonne, Schatten und Karren
@@ -1803,6 +1822,13 @@ public partial class Stadtansicht : Node3D
         _kamerafahrt.TweenProperty(_kamera, "size", zoom, 0.6);
     }
 
+    /// <summary>Stellt die Kamera auf einen Punkt der Stadt (Meter) und optional auf eine Zoomstufe – für Startoption und Klicktest.</summary>
+    public void KameraSetzen(float x, float z, float? zoom = null)
+    {
+        _kameraDrehung.Position = new Vector3(x, 0, z);
+        if (zoom is { } z2) _kamera.Size = Mathf.Clamp(z2, KameraMinZoom, KameraMaxZoom);
+    }
+
     /// <summary>Dreht die Kamera um ganze Vierteldrehungen (+1 = 90° gegen den Uhrzeigersinn von oben).</summary>
     public void Drehen(int vierteldrehungen, bool sofort = false)
     {
@@ -1935,6 +1961,11 @@ public partial class Stadtansicht : Node3D
         if (_raum is not null)
         {
             RaumEingabe(eingabe);
+            return;
+        }
+        if (BauEingabe(eingabe)) // Baumodus: R dreht, Klick setzt (Stadtansicht.Bauen.cs)
+        {
+            GetViewport().SetInputAsHandled();
             return;
         }
         switch (eingabe)

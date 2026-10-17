@@ -107,6 +107,8 @@ public sealed class Wohnungswesen
         var noetig = NoetigeStufe(neuerStand);
         if (k.WohnhausStufe >= noetig) return null;
         var stand = _w.Daten.Staende[Math.Min(neuerStand, _w.Daten.Staende.Count - 1)].Name;
+        if (_w.Bauen.UmzugZiel(k) >= noetig)
+            return $"Für den Stand {stand} braucht {k.Inhaber} ein {d.Stufen[noetig].Name} – das neue Haus ist noch nicht bezogen.";
         return k.WohnhausFertigAb is not null && k.WohnhausStufe + 1 >= noetig
             ? $"Für den Stand {stand} braucht {k.Inhaber} ein {d.Stufen[noetig].Name} – der Ausbau läuft noch."
             : $"Für den Stand {stand} braucht {k.Inhaber} erst ein {d.Stufen[noetig].Name} (Wohnhaus ausbauen).";
@@ -115,13 +117,23 @@ public sealed class Wohnungswesen
     /// <summary>
     /// Was das Wohnhaus wert ist: die Ausbaupreise aller Stufen bis zur jetzigen, dazu ein Ausbau, der schon bezahlt ist und noch läuft.
     /// Es zählt ganz zum Reinvermögen – wer baut, tauscht Bargeld gegen Hauswert und fällt nicht unter die Schwelle seines Standes.
+    /// Läuft ein Neubau oder die Sanierung eines gekauften Hauses, zählt schon das neue (das alte ist angerechnet und wird abgerissen).
+    /// Ist das Wohnhaus eines toten Hauses verkauft oder abgerissen, ist es nichts mehr wert.
     /// </summary>
     public double Hauswert(Konto k)
     {
         if (Daten is not { } d) return 0;
-        var bis = Math.Min(k.WohnhausStufe + (k.WohnhausFertigAb is not null ? 1 : 0), d.Stufen.Count - 1);
+        if (_w.Bauen.UmzugZiel(k) is { } ziel) return WertDerStufe(ziel);
+        if (_w.Bauen.HausAufgegeben(k)) return 0;
+        return WertDerStufe(Math.Min(k.WohnhausStufe + (k.WohnhausFertigAb is not null ? 1 : 0), d.Stufen.Count - 1));
+    }
+
+    /// <summary>Hauswert eines Wohnhauses dieser Stufe: die Ausbaupreise aller Stufen bis dahin (Fachwerkhaus 0, Bürgerhaus 1.500 …).</summary>
+    public double WertDerStufe(int stufe)
+    {
+        if (Daten is not { } d) return 0;
         var wert = 0.0;
-        for (var i = 1; i <= bis; i++) wert += d.Stufen[i].Ausbau;
+        for (var i = 1; i <= Math.Min(stufe, d.Stufen.Count - 1); i++) wert += d.Stufen[i].Ausbau;
         return wert;
     }
 
@@ -137,8 +149,11 @@ public sealed class Wohnungswesen
     /// <summary>Unterhalt des Wohnhauses im Jahr.</summary>
     public double Unterhalt(Konto k) => Stufe(k)?.Unterhalt ?? 0;
 
-    /// <summary>Häuser, deren Wohnhaus leer steht (erloschen oder bankrott) – später kauf- und sanierbar.</summary>
-    public IEnumerable<Konto> Leerstand => IstAktiv ? _w.Konten.Where(k => !k.IstAktiv) : Enumerable.Empty<Konto>();
+    /// <summary>
+    /// Häuser, deren Wohnhaus leer steht (erloschen oder bankrott) und noch nicht verkauft oder abgerissen ist.
+    /// Kaufen und abreißen: <see cref="Bauen.Bauwesen.LeerstandVorschau"/>.
+    /// </summary>
+    public IEnumerable<Konto> Leerstand => IstAktiv ? _w.Konten.Where(k => !k.IstAktiv && !_w.Bauen.HausAufgegeben(k)) : Enumerable.Empty<Konto>();
 
     /// <summary>Warum dieses Haus jetzt nicht ausbauen kann – oder null.</summary>
     public string? AusbauVerboten(Konto k)
@@ -146,6 +161,7 @@ public sealed class Wohnungswesen
         if (Daten is null) return "In dieser Stadt gibt es keine Wohnhäuser.";
         if (!k.IstAktiv) return $"{k.Inhaber} ist nicht mehr im Spiel.";
         if (k.WohnhausFertigAb is not null) return $"Am Wohnhaus von {k.Inhaber} wird schon gebaut.";
+        if (_w.Bauen.Umzug(k) is not null) return $"{k.Inhaber} zieht bald in ein neues Wohnhaus – ausbauen erst danach.";
         if (IstBeschaedigt(k)) return $"Das Wohnhaus von {k.Inhaber} wird nach dem Brand noch instand gesetzt.";
         if (NaechsteStufe(k) is not { } naechste) return $"{k.Inhaber} wohnt schon im größten Haus ({Stufe(k)!.Name}).";
         if (k.Stand < naechste.AbStand - 1)

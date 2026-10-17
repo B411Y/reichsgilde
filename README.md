@@ -24,6 +24,7 @@
 |---|---|---|
 | 🏰 | [Stadt und Ansicht](#stadt) | Ummauerte Reichsstadt in drehbarer Schrägansicht, Einwohner laufen sichtbar durch die Gassen, Licht und Schatten folgen der Spieluhr. |
 | 🚪 | [Gebäude betreten](#gebaeude) | Werkstätten, eigenes Wohnhaus, Rathaus und Dom von innen – mit Arbeitern, Familie, Ratsherren und Gläubigen aus der Simulation. |
+| 🏗️ | [Bauen und Leerstand](#bauen) | Bauzonen, Wohnhaus und Werkstatt frei bauen (Umriss an der Maus, Rückfrage mit Preis und Bauzeit), leere Häuser kaufen, sanieren oder abreißen, Baustellen und Bauplätze. |
 | ⏳ | [Partie und Spieltag](#partie) | Ein Spieltag von 5 bis 22 Uhr ist ein Spieljahr. Hauptmenü, Speichern und Laden, Aktionspunkte für persönliche Handlungen. |
 | ⚖️ | [Wirtschaft und Handel](#wirtschaft) | Marktpreise nach Angebot und Nachfrage, Betriebe, Karren und Stadttore, Handel von Hand, Expansion, Meistergrade und Gebäudestufen. |
 | ⚒️ | [Berufe](#berufe) | Zehn Berufe – Schmied, Tischler, Steinmetz, Alchimist, Wirt, Prediger, Dieb, Gardist, Geldleiher, Parfumeur – mit eigenen Waren und Kniffen. |
@@ -55,7 +56,8 @@ Spielstände liegen unter `%APPDATA%\Godot\app_userdata\Reichsgilde\spielstaende
 - **Mausrad** = Zoom · **rechte Maustaste ziehen** oder **WASD/Pfeiltasten** = verschieben · **Q/E** = drehen
 - **Namen in der Stadt:** Ein Gebäude zeigt seinen Namen, wenn die Maus darüber steht oder es ausgewählt ist; **Alt gedrückt halten** zeigt alle Namen. Freie Plätze tragen ein Schild am Pfosten: **ocker = zu verkaufen**, **grün = zu verpachten**.
 - **Linksklick** auf ein Gebäude = Informationen (bei eigenen Betrieben mit Bedienfeld) · **Doppelklick** auf eine Werkstatt, das Rathaus oder den Dom = hineingehen · im Gebäude: **Raumleiste** oder **Q/E** = Raum wechseln, **Klick in den Raum** = seine Tafel
-- **Esc** = Tafel schließen → Gebäude verlassen → Auswahl schließen → Spielmenü (Speichern, Laden, Hauptmenü)
+- **Bauen** (Knopf im Kontor): Gebäude wählen, dann folgt ein Umriss der Maus – **grün** = hier erlaubt, **rot** = nicht (der Grund steht dabei) · **R** = drehen · **Klick** = setzen (danach Rückfrage) · **Rechtsklick** oder **Esc** = zurück
+- **Esc** = Rückfrage oder Baumodus schließen → Tafel schließen → Gebäude verlassen → Auswahl schließen → Spielmenü (Speichern, Laden, Hauptmenü)
 - **F11** = Vollbild ein/aus (wird gespeichert).
 - **Einstellungen** (Knopf im Hauptmenü und im Spielmenü, Esc): Vollbild und **Kantenglättung** – Aus, FXAA, SMAA (Standard), TAA, MSAA 2×/4×/8×, je mit kurzer Erklärung. Die Wahl wirkt sofort und wird gespeichert. Das Fenster lässt sich frei ziehen: Ein größeres Fenster zeigt mehr Stadt, Tafeln, die nicht hineinpassen, bekommen Scrollbalken (Mausrad über der Tafel rollt sie).
   Hinweis: Startet man das Spiel im Godot-Editor, läuft es im Reiter „Game“ eingebettet. Dort bestimmt der Editor die Fenstergröße, und Vollbild ist nicht möglich. Zum Testen im eigenen Fenster das Einbetten im Reiter „Game“ ausschalten.
@@ -132,6 +134,22 @@ Die Reichsstadt ist als begehbare Schrägansicht zu sehen: Mauer (100 × 100 m) 
 
 </details>
 
+<a id="bauen"></a>
+<details>
+<summary><b>Bauen und Leerstand</b> – Bauzonen, Neubau, leere Häuser kaufen und abreißen</summary>
+
+**Bauen.** Der Knopf **Bauen** im Kontor öffnet die Bautafel (statt des Kontors) und zeigt in der Stadt die **Bauzonen** der Karte als farbige Flächen mit 2-m-Raster: orange = Kern, blau = Mauerring, türkis = Vorstadt. Gewählt wird ein Gebäude – **Wohnhaus** (Fachwerkhaus bis Stadthof) oder **Werkstatt** (Stufe 1, je Beruf); jedes nennt Kosten, Maß und Bauzeit. Was das Haus nicht darf (Stand, Handwerk, Geld), ist ausgegraut, der Grund steht darunter. Danach folgt ein **Umriss** der Maus und rastet aufs Raster (oder auf einen Bauplatz) ein: **grün**, wenn dort gebaut werden darf, sonst **rot** mit dem Grund (keine Bauzone, steht schon etwas da, nicht an einer Straße …). Der helle Streifen vorn ist der Vorplatz, die Spitze zeigt zur Straße. **R** dreht in Vierteln, **Q/E** drehen weiter die Kamera. Ein Klick auf grün öffnet die **Rückfrage**: Preis, angerechnetes altes Haus, Kosten beim Baubeginn, Bauzeit und Fertigstellung. Erst „Bauen“ schickt den Befehl.
+- **Wohnhaus:** Das alte Haus wird angerechnet; ihr wohnt bis zur Fertigstellung im alten, danach zieht ihr um, und das alte Haus wird abgerissen und zum Bauplatz. Stufe 1–2 dauert ein Spieljahr, ab Stufe 3 zwei.
+- **Werkstatt:** Preis einer freien Werkstatt der Stufe 1 plus ein Jahr Unterhalt in bar, ein Spieljahr Bauzeit. Danach öffnet sie wie jede andere (das Modell nach Beruf, in der gewählten Drehung).
+- **Baustelle:** Fundament, Mauern, die mit der Bauzeit hochwachsen, zuletzt der Dachstuhl, dazu Gerüst und Holzstapel. Ein Klick nennt, was entsteht und wann es fertig ist; ist es fertig, folgt die Auswahl dem neuen Haus.
+- **Bauplatz:** Wiese mit Pflöcken und Schnur, nach einem Abriss. Hier darf jeder bauen, was hineinpasst, auch außerhalb der Bauzonen. Ein **Wohnhausplatz** (der Platz eines abgerissenen Hauses der Karte) nimmt jedes Wohnhaus jeder Stufe auf – es passt sich der Fläche und ihrer Drehung an; eine Werkstatt darf dort nicht stehen.
+
+**Leerstand.** Das Wohnhaus eines bankrotten oder erloschenen Hauses bleibt vernagelt stehen. Ein Klick darauf zeigt zwei Knöpfe: **Kaufen und sanieren** (50 % des Hauswerts plus 20 % Sanierung, abzüglich eures alten Hauses; 4 Stunden, dann zieht ihr ein; nur, wenn das Haus größer ist als eures) und **Abreißen lassen** (50 % plus Abrisskosten; danach ein Bauplatz für jeden). Beide fragen vorher mit der ganzen Rechnung nach; geht etwas nicht, ist der Knopf gesperrt und der Grund steht in der Tafel.
+
+**Zum Ausprobieren** (Startoptionen nach `--`, siehe `CLAUDE.md`): `--bauen=1` öffnet den Baumodus, `--bauen=wohnhaus:1 --bauort=-96,-3,0 --bauklick=1` setzt den Umriss auf eine Probestelle und öffnet die Rückfrage, `--bauklick=2 --spulen=1100` baut gleich und lässt die Bauzeit ablaufen.
+
+</details>
+
 <a id="partie"></a>
 <details>
 <summary><b>Partie und Spieltag</b> – Hauptmenü, Spieltag 5–22 Uhr, Speichern, Aktionspunkte</summary>
@@ -204,13 +222,15 @@ Die Reichsstadt ist als begehbare Schrägansicht zu sehen: Mauer (100 × 100 m) 
 
 **Wohnhaus.** Jedes Haus wohnt in einem eigenen Wohnhaus, getrennt von den Betrieben, und baut es am selben Ort Stufe für Stufe aus: **Fachwerkhaus** (zum Start) → **Bürgerhaus** (1.500 Gulden, 30 im Jahr Unterhalt, +2 Ansehen) → **Steinhaus** (4.000 / 80 / +4) → **Stadtpalais** (10.000 / 200 / +6) → **Stadthof** (25.000 / 500 / +8). Das Haus ist **Pflicht für den Stand**: Bürger wird nur, wer im Bürgerhaus wohnt, Patrizier nur im Steinhaus, Edler im Stadtpalais, Freiherr im Stadthof. Ausbauen darf man höchstens eine Stufe über dem eigenen Stand; ein Ausbau dauert 4 Stunden. Im Kontor steht die Zeile „Wohnhaus“ mit dem Knopf zum Ausbauen, der Rathaus-Knopf sagt, wenn das Haus noch fehlt. Der Unterhalt zählt zu den Haushaltskosten. Was in den Ausbau fließt, zählt als **Hauswert ganz zum Reinvermögen** – wer genau an der Schwelle baut, fällt also nicht darunter und kann trotzdem aufsteigen. Die KI-Häuser bauen ihr Wohnhaus selbst aus, bevor sie aufsteigen. Gegen Einbruch und Brand hilft ein **Hauswächter** (Knopf in derselben Zeile, 150 Gulden im Jahr): Er halbiert die Chance der Banden und sieht öfter, wer es war.
 
+**Leerstand und Neubau.** Das Wohnhaus eines bankrotten oder erloschenen Hauses steht leer. Wer ein größeres Haus will, kann es **kaufen**: 50 % des Hauswerts plus 20 % Sanierung, abzüglich des Hauswerts des eigenen Hauses (keine Auszahlung, höchstens eine Stufe über dem eigenen Stand). Nach 4 Stunden Sanierung zieht man um, das alte Haus wird abgerissen. Oder man lässt den Leerstand **abreißen** (50 % plus 10 %, mindestens 100 Gulden, 4 Stunden) – dann ist dort ein Bauplatz für jeden. **Neu bauen** geht in den Bauzonen der Stadt und auf Bauplätzen, auf einem Raster von 2 m, in vier Drehungen, mit der Vorderseite an einer Straße: Werkstätten an einer Karrenstraße (Haupt-, Ring-, Wallstraße), Wohnhäuser auch an einer Gasse, ein Stadthof nur in Kernlage oder am Mauerring. Ein neues Wohnhaus kostet den Hauswert seiner Stufe minus den des alten Hauses und braucht ein Spieljahr (Fachwerk-, Bürgerhaus) bzw. zwei (ab Steinhaus); danach zieht man um, das alte wird abgerissen. Eine neue Werkstatt kostet so viel wie eine freie (3.500 Gulden, dazu ein Jahr Unterhalt bar), braucht ein Spieljahr und kostet während des Baus weder Löhne noch Unterhalt. Auf dem Platz eines abgerissenen Wohnhauses am Ring passt jedes Wohnhaus, aber keine Werkstatt. Grundstücke kauft man nicht – bezahlt wird nur der Bau.
+
 </details>
 
 <a id="aufstieg"></a>
 <details>
 <summary><b>Stand, Rat und Glaube</b> – Stände, Stadtrat, Konfessionen</summary>
 
-**Stände, Rangliste und Bankrott.** Jedes Haus beginnt als Gemeiner. Ab 10.000 Gulden kann man im Rathaus das Bürgerrecht erwerben, danach geht es weiter über Patrizier und Edler bis zum Reichsgrafen. Nach jedem Jahr zeigt ein Jahresbericht Gewinn und Verlust, den Fortschritt zum nächsten Stand und die Rangliste gegen Haus Eisenbart. Wer drei Jahresabschlüsse in Folge im Minus steht, ist bankrott.
+**Stände, Rangliste und Bankrott.** Jedes Haus beginnt als Gemeiner. Ab 10.000 Gulden kann man im Rathaus das Bürgerrecht erwerben, danach geht es weiter über Patrizier und Edler bis zum Reichsgrafen. Nach jedem Jahr zeigt ein Jahresbericht Gewinn und Verlust, den Fortschritt zum nächsten Stand und die Rangliste gegen Haus Eisenbart. Wer drei Jahresabschlüsse in Folge im Minus steht, ist bankrott. Die Betriebe bankrotter oder erloschener Häuser stehen danach zum Verkauf wie verkaufte Werkstätten, ihr Wohnhaus steht leer.
 
 **Stadtrat.** Im Rathaus öffnet „Ratskammer öffnen“ den Stadtrat: sieben Ämter in einer Pyramide, vom Zöllner bis zum Bürgermeister, jedes mit Amtseinkommen. Die Sitze halten zu Beginn Ratsherren der Stadt (Menschen, Zwerge, Elben, Halblinge), jeder mit einer eigenen Haltung zum Fron- und Sklavenstatut. Ab dem Stand Bürger kannst du dich um ein Amt bewerben, immer eine Stufe über deinem jetzigen. Gewählt wird am Jahresende, und zwar von den Inhabern der höheren Ämter. Mit Geschenken gewinnst du die Gunst einzelner Ratsherren; sie verblasst jedes Jahr zum Teil. Eine Prognose zeigt dir, wie die Wahl heute ausginge. Wer im Rat sitzt, kann eine Änderung des Statuts beantragen, über die der ganze Rat abstimmt. Haus Eisenbart spielt dabei mit: Es bewirbt sich, verschenkt Gulden und stellt Anträge, wenn sich das für seine Betriebe rechnet. Was in der Ratssitzung geschah, steht im Jahresbericht.
 

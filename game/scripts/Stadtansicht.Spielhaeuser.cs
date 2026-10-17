@@ -16,21 +16,13 @@ namespace Reichsgilde;
 /// </summary>
 public partial class Stadtansicht
 {
-    private sealed class Spielhaus
-    {
-        public required Konto Konto { get; init; }
-        public required Hausplatz Platz { get; init; }
-        public Node3D? Modell { get; set; }
-        /// <summary>Was zuletzt gebaut wurde (Stufe, Ausbau, Brand, verlassen) – nur bei Änderung neu bauen.</summary>
-        public (int Stufe, bool Bau, bool Brand, bool Leer)? Stand { get; set; }
-    }
-
-    private readonly List<Spielhaus> _spielhaeuser = new();
     private List<Hausplatz>? _spielhausPlaetze;
 
     /// <summary>
-    /// Die Doppelplätze der Spielhäuser: je zwei benachbarte Ringplätze derselben Seite, die nächsten am Markt zuerst.
-    /// Gibt die Mitte (zwischen den beiden Plätzen) zurück; die beiden Einzelplätze stehen in <see cref="BelegteRingplaetze"/>.
+    /// Die Doppelplätze der Spielhäuser am Ring: je zwei benachbarte Ringplätze derselben Seite, die nächsten am Markt zuerst.
+    /// Die Karte (Wohnhausplätze in <c>greybox.json</c>) bildet diese Plätze ab; hier werden sie nur noch gebraucht, um sie den
+    /// Einwohnern wegzunehmen (<see cref="BelegteRingplaetze"/>) und für die Muster-Häuser im Hauptmenü.
+    /// Gibt die Mitte (zwischen den beiden Plätzen) zurück.
     /// </summary>
     private List<Hausplatz> SpielhausPlaetze(int anzahl)
     {
@@ -61,42 +53,14 @@ public partial class Stadtansicht
     private int AnzahlSpielhaeuser() =>
         _simulation?.Wirtschaft is { } w ? (w.Wohnen.IstAktiv ? w.Konten.Count : 0) : 4;
 
-    /// <summary>Jedes Bild: Wohnhäuser der Spielhäuser anlegen (einmal) und bei Änderungen neu bauen.</summary>
-    private void SpielhaeuserAktualisieren()
-    {
-        if (_simulation?.Wirtschaft is not { } w || !w.Wohnen.IstAktiv) return;
-        if (_spielhaeuser.Count == 0)
-        {
-            var plaetze = SpielhausPlaetze(w.Konten.Count);
-            for (var i = 0; i < w.Konten.Count && i < plaetze.Count; i++)
-            {
-                var platz = plaetze[i];
-                _spielhaeuser.Add(new Spielhaus { Konto = w.Konten[i], Platz = platz });
-                var tuer = platz.Mitte + platz.Vorne * (PlatzTiefe / 2);
-                var knoten = _netz.Anschliessen(tuer);
-                _netz.Weg(_netz.Knoten[knoten], tuer);
-            }
-        }
-        var minute = _simulation.Zeit.VergangeneMinuten;
-        foreach (var h in _spielhaeuser)
-        {
-            var k = h.Konto;
-            var stand = (k.WohnhausStufe, k.WohnhausFertigAb is { } f && f > minute, k.WohnhausInstandBis is { } b && b > minute, !k.IstAktiv);
-            if (h.Stand == stand) continue;
-            h.Stand = stand;
-            if (h.Modell is not null) KnotenEntfernen(h.Modell);
-            h.Modell = SpielhausModell(h.Platz, stand.WohnhausStufe, stand.Item2, stand.Item3, stand.Item4,
-                                       stand.Item4 ? (Color?)null : Besitzerfarbe(k), WohnhausKennung(k), k.Inhaber);
-        }
-    }
-
     /// <summary>Im Hauptmenü: vier Spielhäuser in verschiedenen Stufen, damit man sieht, was es gibt.</summary>
     private void SpielhaeuserMuster()
     {
         var plaetze = SpielhausPlaetze(4);
         var farben = new[] { Spieler, Rivale, ZweiterRivale, DritterRivale };
         for (var i = 0; i < plaetze.Count; i++)
-            SpielhausModell(plaetze[i], 4 - i, false, false, false, farben[i], null, null);
+            SpielhausModell(plaetze[i].Mitte, Mathf.Atan2(plaetze[i].Vorne.X, plaetze[i].Vorne.Z), DoppelplatzBreite, PlatzTiefe, PlatzTiefe / 2,
+                            4 - i, false, false, false, farben[i], null, null);
     }
 
     public static string WohnhausKennung(Konto k) => "wohnhaus:" + k.Inhaber;
@@ -105,22 +69,27 @@ public partial class Stadtansicht
     //  Modelle der Stufen
     // ═════════════════════════════════════════════════════════════════════════
 
+    /// <summary>Breite eines Doppelplatzes am Ring – so breit sind auch die Wohnhausplätze der Karte (17 m).</summary>
+    private const float DoppelplatzBreite = 17f;
+
     /// <summary>
-    /// Baut das Wohnhaus einer Stufe auf einem Doppelplatz (16,5 × 8,4 m; Vorderseite lokal +Z, zur Gasse):
+    /// Baut das Wohnhaus einer Stufe auf einer Fläche (Vorderseite lokal +Z, zur Gasse): die Plätze der Karte sind 17 × 8 m
+    /// (Doppelplatz am Ring), Neubauten 8 × 10, 12 × 10 oder 16 × 14 m mit 2 m Vorplatz davor (<paramref name="vorne"/> ist die lokale
+    /// z-Koordinate der Hausfront). Modelle:
     /// 0 Fachwerkhaus 6 × 6, 1 Bürgerhaus 7 × 7 mit Giebel, 2 Steinhaus 8 × 8 mit drei Geschossen,
-    /// 3 Stadtpalais 15 × 8 mit Erker und zwei Ecktürmchen, 4 Hof: Haupthaus hinten, zwei Flügel vorn, Mauer mit Tor.
+    /// 3 Stadtpalais bis 15 × 8 mit Erker und zwei Ecktürmchen, 4 Hof: Haupthaus hinten, zwei Flügel vorn, Mauer mit Tor.
     /// Bei laufendem Ausbau steht ein Gerüst davor, nach einem Brand ist das Dach rußig, im Leerstand sind Tür und Fenster vernagelt.
     /// </summary>
-    private Node3D SpielhausModell(Hausplatz platz, int stufe, bool imBau, bool brand, bool leer, Color? farbe, string? kennung, string? name)
+    private Node3D SpielhausModell(Vector3 mitte, float drehungY, float platzBreite, float platzTiefe, float vorne,
+                                   int stufe, bool imBau, bool brand, bool leer, Color? farbe, string? kennung, string? name, string? zusatz = null)
     {
-        var g = new Node3D { Name = "Spielhaus", Position = platz.Mitte, Rotation = new Vector3(0, Mathf.Atan2(platz.Vorne.X, platz.Vorne.Z), 0) };
+        var g = new Node3D { Name = "Spielhaus", Position = mitte, Rotation = new Vector3(0, drehungY, 0) };
         AddChild(g);
         var russ = new Color(0.16f, 0.14f, 0.13f);
         Color Dachfarbe(Color c) => brand ? russ : c;
         var dunkel = Stoff(new Color(0.18f, 0.13f, 0.10f));
         var glas = Stoff(new Color(0.20f, 0.22f, 0.26f));
         var bretter = Stoff(new Color(0.30f, 0.22f, 0.14f));
-        const float vorne = PlatzTiefe / 2; // lokale Z-Koordinate der Gassenseite
 
         // Ein Hausteil: Wand, Dach, Tür und Fensterreihen auf der Vorderseite.
         void Bau(Vector3 mitte, Vector3 masse, Color wand, Color dach, bool giebel, int geschosse, bool tuer)
@@ -150,20 +119,26 @@ public partial class Stadtansicht
             case 2: // Steinhaus
                 Bau(new Vector3(0, 0, vorne - 4.2f), new Vector3(8, 9, 8), Mauerstein, Schiefer, true, 3, true);
                 break;
-            case 3: // Stadtpalais
-                Bau(new Vector3(0, 0, vorne - 4.2f), new Vector3(15, 10, 8), new Color(0.72f, 0.68f, 0.60f), Schiefer, false, 3, true);
+            case 3: // Stadtpalais (auf einem schmaleren Platz etwas schmaler)
+            {
+                var b = Mathf.Min(15, platzBreite - 1);
+                Bau(new Vector3(0, 0, vorne - 4.2f), new Vector3(b, 10, 8), new Color(0.72f, 0.68f, 0.60f), Schiefer, false, 3, true);
                 Quader(new Vector3(0, 6.2f, vorne + 0.5f), new Vector3(3, 2.6f, 1f), Stoff(Putz), g); // Erker
                 if (!leer)
-                    foreach (var x in new[] { -7f, 7f })
+                    foreach (var x in new[] { -(b / 2 - 0.5f), b / 2 - 0.5f })
                         Turm(new Vector3(x, 0, vorne - 0.6f), 1.1f, 13, Dachfarbe(Schiefer), eltern: g);
                 break;
+            }
             default: // Hof
-                Bau(new Vector3(0, 0, vorne - 6.2f), new Vector3(16, 10, 4), new Color(0.72f, 0.68f, 0.60f), Schiefer, false, 3, false);
-                foreach (var x in new[] { -6.5f, 6.5f })
+            {
+                var b = Mathf.Min(16, platzBreite);
+                Bau(new Vector3(0, 0, vorne - 6.2f), new Vector3(b, 10, 4), new Color(0.72f, 0.68f, 0.60f), Schiefer, false, 3, false);
+                foreach (var x in new[] { -(b / 2 - 1.5f), b / 2 - 1.5f })
                     Bau(new Vector3(x, 0, vorne - 2.1f), new Vector3(3, 7, 4.2f), Mauerstein, Schiefer, true, 2, false);
-                Quader(new Vector3(0, 1.4f, vorne - 0.15f), new Vector3(10, 2.8f, 0.5f), Stoff(Mauerstein), g);            // Hofmauer
+                Quader(new Vector3(0, 1.4f, vorne - 0.15f), new Vector3(Mathf.Min(10, b - 3), 2.8f, 0.5f), Stoff(Mauerstein), g);   // Hofmauer
                 Quader(new Vector3(0, 1.5f, vorne + 0.12f), new Vector3(2.6f, 3f, 0.1f), leer ? bretter : dunkel, g);  // Tor
                 break;
+            }
         }
 
         if (farbe is { } f)
@@ -180,16 +155,17 @@ public partial class Stadtansicht
         {
             // Gerüst vor der Gassenseite: Stangen und zwei Laufbretter
             var holz = Stoff(Holz);
-            foreach (var x in new[] { -6f, -2f, 2f, 6f })
+            var gb = Mathf.Min(12f, platzBreite - 2);
+            foreach (var x in new[] { -gb / 2, -gb / 6, gb / 6, gb / 2 })
                 Quader(new Vector3(x, 3.6f, vorne + 0.7f), new Vector3(0.15f, 7.2f, 0.15f), holz, g);
             foreach (var y in new[] { 2.6f, 5.2f })
-                Quader(new Vector3(0, y, vorne + 0.7f), new Vector3(12.5f, 0.12f, 0.9f), holz, g);
+                Quader(new Vector3(0, y, vorne + 0.7f), new Vector3(gb + 0.5f, 0.12f, 0.9f), holz, g);
         }
 
         if (kennung is not null)
         {
-            Klickflaeche(kennung, new Vector3(0, 5, 0), new Vector3(16, 10, PlatzTiefe), g);
-            var text = name + (imBau ? " (Ausbau)" : brand ? " (nach Brand)" : leer ? " (Leerstand)" : "");
+            Klickflaeche(kennung, new Vector3(0, 5, 0), new Vector3(Mathf.Min(16, platzBreite), 10, platzTiefe), g);
+            var text = name + (zusatz is not null ? $" ({zusatz})" : imBau ? " (Ausbau)" : brand ? " (nach Brand)" : leer ? " (Leerstand)" : "");
             Beschriftung(text, new Vector3(0, 16, 0), 44, g, kennung);
         }
         return g;
@@ -203,25 +179,32 @@ public partial class Stadtansicht
     public string? WohnhausText(string kennung)
     {
         if (!kennung.StartsWith("wohnhaus:") || _simulation?.Wirtschaft is not { } w) return null;
-        var h = _spielhaeuser.FirstOrDefault(x => WohnhausKennung(x.Konto) == kennung);
-        if (h is null) return null;
-        var k = h.Konto;
+        var g = w.Bauen.Grundstuecke.FirstOrDefault(x => x.Art == Reichsgilde.Core.Bauen.Grundstuecksart.Wohnhaus && x.Arbeit is null
+                                                         && x.Besitzer is { } b && WohnhausKennung(b) == kennung);
+        if (g?.Besitzer is not { } k) return null;
         var minute = _simulation.Zeit.VergangeneMinuten;
         var zeilen = new List<string> { $"Wohnhaus – {k.Inhaber}", "" };
         if (!k.IstAktiv)
         {
-            zeilen.Add($"Leerstand: Das Haus {k.Inhaber} ist erloschen. Das {w.Wohnen.Stufe(k)?.Name} steht leer.");
+            zeilen.Add($"Leerstand: {k.Inhaber} {AusDemSpielGrund(k)}. Das {w.Wohnen.Stufe(k)?.Name} steht leer.");
             return string.Join("\n", zeilen);
         }
         zeilen.Add($"{w.Wohnen.Stufe(k)?.Name}" + (w.Wohnen.Stufe(k) is { Ansehen: > 0 } s ? $" · +{s.Ansehen:0} Ansehen" : ""));
         if (k.WohnhausFertigAb is { } fertig && fertig > minute)
-        {
-            var zeit = new Reichsgilde.Core.Zeit.Spielzeit(fertig);
-            zeilen.Add($"Ausbau zum {w.Wohnen.NaechsteStufe(k)?.Name} – fertig {(zeit.Jahr == _simulation.Zeit.Jahr ? "gegen " + zeit.UhrzeitText + " Uhr" : zeit.DatumText)}");
-        }
+            zeilen.Add($"Ausbau zum {w.Wohnen.NaechsteStufe(k)?.Name} – fertig {FertigText(fertig)}");
         if (k.WohnhausInstandBis is { } instand && instand > minute)
             zeilen.Add($"Nach einem Brand wird es instand gesetzt (bis {new Reichsgilde.Core.Zeit.Spielzeit(instand).UhrzeitText} Uhr) – bis dahin fehlt sein Ansehen.");
         if (k.Hauswaechter) zeilen.Add("Ein Hauswächter bewacht es.");
         return string.Join("\n", zeilen);
+    }
+
+    /// <summary>Warum ein Haus nicht mehr mitspielt: „ist bankrott" oder „ist erloschen" (ohne Erben).</summary>
+    private static string AusDemSpielGrund(Konto k) => k.IstBankrott ? "ist bankrott" : "ist erloschen";
+
+    /// <summary>„gegen 14:30 Uhr" am selben Spieltag, sonst das Datum.</summary>
+    private string FertigText(long minute)
+    {
+        var zeit = new Reichsgilde.Core.Zeit.Spielzeit(minute);
+        return zeit.Jahr == _simulation!.Zeit.Jahr ? "gegen " + zeit.UhrzeitText + " Uhr" : zeit.DatumText;
     }
 }

@@ -71,3 +71,17 @@ So wird eingetragen (damit sich die Chats nie an derselben Stelle treffen):
 | Pacht | Eine gekündigte Grube oder Umlandpacht zeigt wieder den leeren Platz mit grünem Schild „zu verpachten“ wie vor dem ersten Pachten. | 16.10.2026 |
 | Ablauf | Mitten im Spiel verschwinden Gebäude, Innenraum und Karren des Betriebs in einem Zug; wer ihn gerade betreten hat, steht wieder in der Stadt. Beim Laden steht das leere Haus gleich da. Beim Wiederkauf weicht es dem neuen Betrieb (mit Fahne des Käufers). | 16.10.2026 |
 | Ereignis | Die Stadtansicht abonniert `BetriebAbgegeben` selbst – keine Änderung an der Hauptszene. War der Betrieb ausgewählt, springt die Auswahl der Oberfläche (PR #97) auf `LiegenschaftKennung(name)` des leeren Hauses und zeigt dessen Kaufangebot. | 16.10.2026 |
+
+### Bauwesen in der Stadt (PR #103)
+
+| Thema | Entscheidung | Datum |
+|---|---|---|
+| Quelle | Die Darstellung liest jedes Bild `w.Bauen.Grundstuecke` und baut je Grundstück ein Modell, nur bei geändertem Stand. Die Ereignisse des Kerns werden nicht einzeln abonniert: Der Stand ist die Quelle, auch nach dem Laden. Die Karte liest `Stadtkarten` einmal aus `res://data/karten/greybox.json`; fehlt sie, meldet `GD.PushError` (der Rauchtest schlägt an) und das Spiel läuft ohne Bauwesen weiter. | 17.10.2026 |
+| Wohnhäuser | Die Startplätze der Karte (17 × 8 m am Ring) bilden die alten Doppelplätze genau ab (nachgemessen); die Stadt sieht beim Start aus wie vorher. `SpielhausModell` baut auf jeder Fläche, Stadtpalais und Hof passen sich schmaleren Neubauflächen an; Neubauten haben 2 m Vorplatz vor der Hausfront. Leerstand trägt „bankrott“ bzw. „erloschen“ im Namen und in der Tafel. | 17.10.2026 |
+| Baustelle | Fundament, vier Mauern, die mit der Bauzeit in vier Stufen hochwachsen, zuletzt Dachstuhl; Gerüst vor der Front, Holzstapel, Steinhaufen. Sanierung: das Haus selbst mit Gerüst und Holzstapel. Abriss: niedrige, unterschiedlich weit abgetragene Mauern, Schutt, Gerüst. Maße nach Gebäude (Fachwerk 6 × 6 … Werkstatt 10 × 8 innerhalb der 16 × 14 m). | 17.10.2026 |
+| Bauplatz | Helle Wiese mit aufgewühlter Erde, vier Pflöcke mit roten Spitzen und eine Schnur ringsum, in der Größe des Grundstücks. | 17.10.2026 |
+| Wohnhausplatz | Ein Wohnhaus auf einem Wohnhausplatz der Karte (8 m tief, Entscheidung des Kerns: „eingepasst“) hat keinen Vorplatz vor der Front (`VorplatzVon`: nur Flächen über 9 m Tiefe haben 2 m); Umriss, Baustelle und Haus richten sich danach. | 17.10.2026 |
+| Neue Werkstatt | Das Modell nach Beruf (`Werkstil`) sitzt mit der Front 2 m hinter der Vorderkante der Fläche; bei Drehung wandert das fertige Gebäude samt Wänden in einen um die Mitte gedrehten Knoten (die Räume im Innern bleiben ungedreht, die Raumkamera blickt fest). Der Weg zum Markt läuft über das Gassennetz, der Hof hängt am Netz (Gäste von Schänke und Kirche finden hin). Verkauft, zeigt sie das leere Haus mit Schild in der Drehung. | 17.10.2026 |
+| Bäume | Zufallsbäume lassen die Bauzonen der Karte frei (3 m Rand); die übrigen Bäume bleiben, wo sie waren (die Zufallsfolge läuft unverändert weiter). | 17.10.2026 |
+| Baumodus | Bauzonen nur im Baumodus: Fläche in der Farbe der Lage (Kern orange, Mauerring blau, Vorstadt türkis), 2-m-Raster, Name der Zone. Der Umriss (Fläche, hellerer Vorplatz-Streifen, Pfeil zur Straße, durchsichtiger Körper in Gebäudehöhe, Text mit dem Grund) folgt der Maus über die Bodenebene und rastet mit `Einrasten` ein. | 17.10.2026 |
+

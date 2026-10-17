@@ -203,7 +203,7 @@ public partial class Stadtansicht
         Vector3 punkt = a.Ort switch
         {
             Stadtort.Heim when _haustueren.TryGetValue(a.Haus, out var tuer) => _netz.Knoten[tuer],
-            Stadtort.Schaenke or Stadtort.Kirche when a.Betrieb is { } b && Stadtplan.TryGetValue(b, out var p) => p + new Vector3(0, 0, 5.5f),
+            Stadtort.Schaenke or Stadtort.Kirche when a.Betrieb is { } b && HofVon(b) is { } hof => hof,
             Stadtort.Kirche => DomTuer,
             Stadtort.Rathaus => RathausTuer,
             Stadtort.Tor => Osttor,

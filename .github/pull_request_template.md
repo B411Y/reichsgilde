@@ -1,5 +1,9 @@
 <!-- Gleich nach dem ersten Commit als Entwurf öffnen, damit die anderen Chats sehen, was läuft (siehe CLAUDE.md).
-     Titel mit dem Bereich beginnen: „Kern: …“, „Spiel-KI: …“, „Darstellung: …“, „Oberfläche: …“, „Leveldesign: …“. -->
+     Titel mit dem Bereich beginnen: „Kern: …“, „Spiel-KI: …“, „Darstellung: …“, „Oberfläche: …“, „Leveldesign: …“;
+     arbeiten mehrere Bereiche an der Funktion, alle nennen („Kern, Oberfläche: …“). Ein PR pro Funktion. -->
+
+## Übersicht für den Nutzer
+<!-- Was kann das Spiel jetzt Neues? Wie probiere ich es aus (Startoptionen)? Was hat der Klicktest gezeigt? -->
 
 **Aufgabe:** 
 **Bereich:** Kern / Spiel-KI / Darstellung / Oberfläche / Leveldesign
