@@ -207,7 +207,7 @@ So wird eingetragen (damit sich die Chats nie an derselben Stelle treffen):
 | Wachstum | Jede Stufe: Hof hinter einem hohen Bretterzaun mit offenem Tor, Diebesgut an der Hauswand (wie bisher im Spiel an der Ostseite), Falltür im Hof (wie bisher im Spiel), Feuerstelle mit Kessel (Material „Glut“, vom Spiel geschaltet wie die Esse), Kisten und Säcke. Schmugglerloch: dazu kaputter Karren und Hundehütte. Unterschlupf: Bretterverschlag an der Hauswand mit Diebesgut, Fluchtleiter zum Obergeschoss, Wäscheleine mit Verkleidungen, Taubenschlag für Botentauben, Gaube. Diebesgilde: Verschlag und Leiter, Gildenhaus im hinteren Hof, hölzerner Ausguck, Gaube, Dachreiter mit nachtblauer Spitze wie bisher im Spiel. | 17.10.2026 |
 | Bausteine | Neue Deckung `SCHINDEL`, Materialien Schindel, Lumpen, Nachtblau; `gaube` hat einen wählbaren Körper (`koerper`, hier Bretter). Die übrigen Werkstätten bleiben byte-gleich. | 17.10.2026 |
 
-### Werkstatt des Gardisten als 3D-Modell (PR #…)
+### Werkstatt des Gardisten als 3D-Modell (PR #118)
 
 | Thema | Entscheidung | Datum |
 |---|---|---|
