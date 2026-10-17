@@ -27,8 +27,15 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [windows-latest, ubuntu-latest]
-    runs-on: ${{ matrix.os }}
+        # Linux läuft fest auf Ubuntu 24.04 statt „ubuntu-latest“: GitHub stellt „latest“ ab 19.10.2026 auf Ubuntu 26 um, und
+        # das soll nicht unbemerkt die CI brechen – umgestellt wird bewusst, nach einem Probelauf. Der Name „ubuntu-latest“
+        # bleibt, weil die Schutzregel für main die Prüfung „Build & Tests (ubuntu-latest)“ unter genau diesem Namen verlangt.
+        include:
+          - os: windows-latest
+            rechner: windows-latest
+          - os: ubuntu-latest
+            rechner: ubuntu-24.04
+    runs-on: ${{ matrix.rechner }}
     steps:
       - name: Code holen
         uses: actions/checkout@v4
@@ -47,7 +54,7 @@ jobs:
   export:
     name: Spiel exportieren (Windows + Linux)
     needs: tests
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04   # fest, siehe oben bei den Tests
     steps:
       - name: Code holen
         uses: actions/checkout@v4
