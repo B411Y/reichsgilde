@@ -99,24 +99,38 @@ jobs:
           ls -d build/windows/data_Reichsgilde_* || { echo "::error::C#-Daten fehlen im Windows-Export"; exit 1; }
 
       - name: Linux-Build kurz starten (Rauchtest)
-        timeout-minutes: 20   # Notbremse, falls trotz der Zeitgrenze unten etwas hängt
+        timeout-minutes: 20   # Notbremse, falls trotz des Wächters unten etwas hängt
         run: |
           set -o pipefail   # ein Absturz des Spiels soll den Schritt fehlschlagen lassen
           chmod +x build/linux/Reichsgilde.x86_64
           # Stürzt das Spiel ab, landet ein Speicherabbild (Core-Dump) im Arbeitsordner – für die Rückverfolgung unten.
           ulimit -c unlimited || true
           sudo sysctl -q -w kernel.core_pattern="$PWD/kern.%p" || true
-          # Ein Start mit Zeitgrenze ($GRENZE Sekunden, sonst 180). Hängt das Spiel, bekommt es SIGABRT: Das schreibt ebenfalls
-          # ein Speicherabbild, die Rückverfolgung zeigt dann, wo es hängt. Hilft das nicht, folgt nach 20 s SIGKILL.
-          # (Ein von außen geschicktes SIGSEGV ließ das Spiel am 16.10.2026 hängen statt abstürzen – der Lauf stand 6 Stunden.)
+          gdb_holen() { command -v gdb > /dev/null || { sudo apt-get update -qq && sudo apt-get install -y -qq gdb; } > /dev/null 2>&1; }
+          # Läuft neben jedem Start: Ist das Spiel nach $1 Sekunden noch da, hängt es. Dann liest gdb am lebenden Prozess ab,
+          # wo welcher Faden steht, und beendet es. (Signale von außen helfen nicht: Auf SIGSEGV und SIGABRT reagierte das
+          # Spiel am 16./17.10.2026 gar nicht mehr – ein Lauf stand 6 Stunden, bis GitHub ihn abbrach.)
+          waechter() {
+            local i pid
+            for i in $(seq "$1"); do sleep 1; [ -f laeuft ] || return 0; done
+            pid=$(cat spiel.pid)
+            touch haenger
+            gdb_holen
+            sudo gdb -p "$pid" -batch -ex "info threads" -ex "thread apply all bt 15" > rueckverfolgung.txt 2>&1
+            sudo kill -KILL "$pid"
+          }
+          # Ein Start mit Zeitgrenze ($GRENZE Sekunden, sonst 180), Ausgabe nach start.log.
           starte() {
-            local status=0
-            timeout -s ABRT -k 20 "${GRENZE:-180}" build/linux/Reichsgilde.x86_64 --headless "$@" 2>&1 | tee -a start.log || status=$?
-            case $status in
-              0) return 0 ;;
-              124|137) FEHLER="hängt (nach ${GRENZE:-180} s abgebrochen)" ;;
-              *) FEHLER="ist abgestürzt (Rückgabewert $status)" ;;
-            esac
+            local status=0 wache
+            touch laeuft
+            waechter "${GRENZE:-180}" & wache=$!
+            # über sh, damit die Prozessnummer des Spiels für den Wächter in spiel.pid steht (exec behält sie bei)
+            sh -c 'echo $$ > spiel.pid; exec build/linux/Reichsgilde.x86_64 --headless "$@"' sh "$@" 2>&1 | tee -a start.log || status=$?
+            rm -f laeuft spiel.pid
+            wait "$wache" || true
+            if [ -f haenger ]; then FEHLER="hängt (nach ${GRENZE:-180} s abgebrochen)"; return 1; fi
+            [ "$status" = 0 ] && return 0
+            FEHLER="ist abgestürzt (Rückgabewert $status)"
             return 1
           }
           # 1. normaler Start   2. mit Bedienfeld, Innenansicht, Jahresbericht, Ratskammer, Familientafel, Gerichtssaal, Hinterzimmer und hohem Tempo (mehr Code wird durchlaufen)
@@ -134,10 +148,12 @@ jobs:
             local abbild
             abbild=$(ls -t kern.* 2>/dev/null | head -1) || true   # ohne Abbild schlägt ls fehl
             if [ -n "$abbild" ]; then
-              sudo apt-get install -y -qq gdb > /dev/null 2>&1
+              gdb_holen
               gdb -batch -ex "info threads" -ex "bt 30" -ex "thread apply all bt 15" \
                 build/linux/Reichsgilde.x86_64 "$abbild" > rueckverfolgung.txt 2>&1 || true
               rm -f kern.*   # das Abbild ist mehrere hundert MB groß – die Rückverfolgung genügt
+            fi
+            if [ -s rueckverfolgung.txt ]; then
               head -60 rueckverfolgung.txt | sed -e 's/%/%25/g' -e 's/\r//g' | awk 'BEGIN { ORS = "%0A" } { print }' > anmerkung.txt
               echo "::error title=Rauchtest – Rückverfolgung::$(cat anmerkung.txt)"
             else
