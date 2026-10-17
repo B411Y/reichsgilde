@@ -45,6 +45,15 @@ So wird eingetragen (damit sich die Chats nie an derselben Stelle treffen):
 | Baustelle und Bauplatz | Auswahltafel mit dem, was entsteht, für wen und wann es fertig ist; ein Bauplatz nennt Fläche und wie man baut. Die Auswahl folgt einer fertigen Baustelle zum Haus bzw. zur Werkstatt und schließt sich, wenn der Bauplatz überbaut wird (`Stadtansicht.KennungNachBau`). | 17.10.2026 |
 | Startoptionen | `--bauen`, `--bauort`, `--bauklick`, `--aufsteigen`, `--spulen`, `--leerstand`, `--speichern`, `--blick`, `--ui` für den Klicktest (Liste in `CLAUDE.md`). | 17.10.2026 |
 
+
+### Waren-Icons im Stil des kolorierten Holzschnitts (PR #113)
+
+| Thema | Entscheidung | Datum |
+|---|---|---|
+| Stil | Kolorierter Holzschnitt wie Drucke um 1480 statt Pixel-Art: schwarzer Umriss, Schraffur im Schatten, von Hand verwaschen koloriert. Gewählt aus drei Proben (Buchmalerei, kolorierter Holzschnitt, Glasmalerei). Ersetzt die Pixel-Art-Entscheidung vom 14.10.2026 im Archiv. | 17.10.2026 |
+| Hintergrund | Freigestellt auf der Kachel, kein Pergamentfeld. | 17.10.2026 |
+| Größe und Filter | 128 × 128, Import mit Mipmaps, Anzeige mit `LinearWithMipmaps` (im Markt 64 px). | 17.10.2026 |
+| Zeichnen | Weiter per Skript (`tools/icons/waren_icons.py`, Pillow und numpy), fester Zufall je Ware. Dünne Stellen bekommen feinere Linien und keine Schraffur, sonst bliebe nur Schwarz; trotzdem Glieder, Klingen und Stiele nicht dünner als etwa 2,5 Rastereinheiten anlegen. | 17.10.2026 |
 ### Abstimmen im Ratsfenster (PR #111)
 
 | Thema | Entscheidung | Datum |

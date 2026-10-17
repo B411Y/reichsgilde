@@ -174,7 +174,7 @@ Die Reichsstadt ist als begehbare Schrägansicht zu sehen: Mauer (100 × 100 m) 
 
 **Bedienung.** Ein Klick auf deine Gießerei (oder „⚒ Betrieb verwalten“ im Kontor) öffnet das Bedienfeld: Produkt wählen, Personal einstellen und entlassen, Karren kaufen und für Umland-Fahrten Eskorte und Nachtfahrt festlegen, den Betrieb verkaufen. **Stadttore:** Ab 20 Uhr sind die Tore zu, um 5 Uhr gehen sie wieder auf. Ein Umlandkarren, der nach Torschluss ankommt, wartet sicher bis zum Morgen vor dem Tor – außer er darf nachts fahren, dann zahlt er 15 Gulden Torgeld je Durchfahrt. Neben jeder Wahl steht, was sie bringt (Gulden je Arbeitsminute, Jahresertrag je Kopf, erwartete Kosten je Fahrt) – dieselben Rechnungen, nach denen die KI entscheidet. Jede Aktion ist ein **Befehl**, den der Simulationskern prüft und mit Begründung ausführt oder ablehnt; die KI benutzt denselben Weg.
 
-**Marktplatz.** Ein Klick auf den Marktplatz in der Stadt (oder der Knopf „Marktplatz“ im Kontor) öffnet das Marktfenster: alle Waren als Kacheln mit Pixel-Icon und Preis, nach Rohstoffen, Zwischenwaren und Fertigwaren geordnet. Grün ▲ heißt über dem Grundpreis, rot ▼ darunter; die gelbe Zahl im Icon ist der eigene Lagerbestand, der Tooltip zeigt Herkunft, Nachfrage, Zutaten und Gewinn je Arbeitsminute. Neue Icons: Zeichenfunktion in `tools/icons/waren_icons.py` ergänzen und `python3 tools/icons/waren_icons.py` ausführen.
+**Marktplatz.** Ein Klick auf den Marktplatz in der Stadt (oder der Knopf „Marktplatz“ im Kontor) öffnet das Marktfenster: alle Waren als Kacheln mit Icon (im Stil eines kolorierten Holzschnitts) und Preis, nach Rohstoffen, Zwischenwaren und Fertigwaren geordnet. Grün ▲ heißt über dem Grundpreis, rot ▼ darunter; die gelbe Zahl im Icon ist der eigene Lagerbestand, der Tooltip zeigt Herkunft, Nachfrage, Zutaten und Gewinn je Arbeitsminute. Neue Icons: Zeichenfunktion in `tools/icons/waren_icons.py` ergänzen und `python3 tools/icons/waren_icons.py` ausführen (braucht Pillow und numpy; `--nur Truhe` zeichnet nur eine Ware, `--vorschau x.png` legt eine Übersicht an).
 
 **Handel von Hand.** Oben im Marktfenster (oder über „Handel am Markt …“ in der Betriebsverwaltung) gibt man einem Karren einen **Auftrag**: Betrieb und Karren wählen, Ware anklicken, Menge eintragen, „verkaufen“ (aus dem Lager) oder „kaufen“ (ins Lager). Der Karren lädt, fährt zum Markt, handelt dort und bringt die Einkäufe heim. Eingekauft wird zum Marktpreis **+10 % Händlerspanne** (Verhandeln senkt sie), und jedes gekaufte Stück hebt den Preis, wie jeder Verkauf ihn senkt. Der Markt hat **8–20 Uhr** offen (Ankunft des Karrens). Ist der Karren unterwegs, wird der Auftrag **vorgemerkt** und startet, sobald er zurück ist. **Zurückhalten:** Eine Ware bleibt im Lager, der Karren verkauft sie nicht von selbst – Gekauftes, das der Betrieb nicht verarbeitet, wird automatisch zurückgehalten. Die KI handelt (noch) nicht von Hand.
 
@@ -286,7 +286,7 @@ reichsgilde/
 │   ├── Reichsgilde.csproj
 │   ├── data/wirtschaft.json        Alle Zahlen des Wirtschaftsmodells (aus dem Balancing-Rechner)
 │   ├── data/karten/                Stadtkarten als JSON (erzeugt von tools/karten, vom Spiel noch nicht gelesen)
-│   ├── assets/waren/               Pixel-Icons der Waren (32 × 32, erzeugt von tools/icons)
+│   ├── assets/waren/               Waren-Icons (128 × 128, Holzschnitt, erzeugt von tools/icons)
 │   ├── scenes/                     Szenen (.tscn)
 │   └── scripts/                    C#-Skripte, die an Szenen hängen
 ├── src/Reichsgilde.Core/           Simulationskern – die reine Spiellogik, OHNE Godot
@@ -305,7 +305,7 @@ reichsgilde/
 │   ├── Wirtschaft/                 Markt, Betriebe, Lager, Karren, Überfälle, Konten, Fronstatut
 │   └── Zeit/                       Spielzeit, Taktgeber, Kalender
 ├── tests/Reichsgilde.Core.Tests/   Automatische Tests für den Simulationskern
-├── tools/icons/waren_icons.py      Zeichnet die Waren-Icons (Python + Pillow)
+├── tools/icons/waren_icons.py      Zeichnet die Waren-Icons (Python + Pillow + numpy)
 ├── tools/karten/                   Kartenwerkzeug und ein Skript je Stadt (prüft die Kartenregeln)
 ├── docs/
 │   ├── ARCHITEKTUR.md              Wie der Code aufgebaut ist und warum
