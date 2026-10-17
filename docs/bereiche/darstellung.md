@@ -19,6 +19,7 @@ So wird eingetragen (damit sich die Chats nie an derselben Stelle treffen):
 - Werkstatt des Schmieds einbauen: `schmied.glb` statt `WerkstattAussenBauen` und `AusbauBauen` beim Beruf Schmied; genau den Knoten `Stufe<n>` der Betriebsstufe zeigen, das Gerüst über „Geruest“, die Glut über das Material „Glut“ (Emission an, solange gearbeitet wird; ersetzt `huelle.Esse`), die verkaufte Werkstatt über „Leerstand“ ohne „Wappen“ und „Fahne“. Klickfläche, Innenraum und Schild bleiben wie bisher
 - Wohnhaus-Modelle auf Wohnhausplätzen der Karte (8 m tief, ohne Vorplatz): Die GLB sind für 8 × 10 m mit 2 m Vorplatz gebaut, die Hauskörper sind höchstens 7,4 m tief. Beim Einbau das Modell dort um 1 m zur Gasse versetzen (die Freitreppe des Steinhauses ragt dann in die Gasse); breitere Plätze lassen links und rechts Luft
 - Weitere Modelle ins Spiel einbauen, sobald es sie gibt: Stadtpalais und Hof in `SpielhausModell` (Stufe 3 und 4 bauen noch Grundkörper), die Einwohnerhäuser, die Werkstätten – nach dem Muster `WohnhausModellEinsetzen` (PR #105)
+- Ankerpunkte der Modelle nutzen: Passanten gehen das letzte Stück vom Gassennetz bis „Anker_Tuer“ (mit dessen Höhe, also die Stufen hinauf) und verschwinden erst dort; Karren halten an „Anker_Karren“. Für die eingebauten Wohnhäuser ersetzt der Anker die Haustür aus der Fläche, für Werkstätten den Hof (`HofVon`, 5,5 m vor der Mitte). Den Anker nach dem Einsetzen über `FindChild` suchen und seine globale Lage nehmen – das Modell ist schon verschoben und gedreht
 - Weitere Modelle aus Blender-Skripten: Stadtpalais, Stadthof; Werkstätten mit Stufe1–3 (Gießerei, Tischlerei, Maurerei); Einwohnerhäuser (Ratsherrenhaus, Bürgerhaus, einfaches Haus)
 
 ## Entscheidungen
@@ -122,3 +123,13 @@ So wird eingetragen (damit sich die Chats nie an derselben Stelle treffen):
 | Lage | Die Hausfront liegt im Modell bei z = +3 (Mitte der 10 m tiefen Fläche, 2 m Vorplatz). Das Modell sitzt bei `vorne − 3`: auf einem Neubau (10 m) genau in der Mitte, auf den Wohnhausplätzen der Karte (8 m, Front an der Gasse) 1 m weiter zur Gasse. | 17.10.2026 |
 | Zustände | Nach Namen: „Geruest“ bei Ausbau, Sanierung und Brand; „Leerstand“ (Bretter) nur im Leerstand; „Wappen“ und „Fahne“ nur bei einem Besitzer (nicht im Leerstand, nicht während der Sanierung). Das Code-Gerüst und das Code-Wappen entfallen für diese Stufen. | 17.10.2026 |
 | Farben | Das Material „Hausfarbe“ wird je Haus durch eine Kopie in der Besitzerfarbe ersetzt (je Vorlage und Farbe einmal); ohne Besitzer verwittertes Holz statt Spielerblau. Nach einem Brand werden die Dachmaterialien (Dachziegel, Stroh, Schiefer samt Kanten und First) zu 80 % rußig gefärbt. | 17.10.2026 |
+
+### Ankerpunkte für Türen und Karren (PR #106)
+
+| Thema | Entscheidung | Datum |
+|---|---|---|
+| Wozu | Passanten und Karren sollen an die echte Tür bzw. das Tor des Modells gehen und erst dort verschwinden, nicht vor der Hauswand. Heute enden ihre Wege an Punkten, die aus der Fläche berechnet sind (Haustür, `HofVon`). | 17.10.2026 |
+| Form | Leere Knoten im GLB mit festem Namen: „Anker_Tuer“ (Pflicht, Eingang für Personen) und bei Werkstätten „Anker_Karren“ (Halteplatz vor dem Tor). Keine Dreiecke, kein Einfluss auf das Einfärben nach Namen (das sucht nur Meshes). | 17.10.2026 |
+| Lage und Richtung | Der Anker liegt direkt vor der Tür, in der Höhe der obersten Stufe davor (Bürgerhaus 0,46 m, Steinhaus 0,5 m, Fachwerkhaus 0,2 m, Schmied auf der Schwelle 0,3 m). Seine Blickrichtung (Godot −Z) zeigt ins Haus. Der Karrenanker liegt auf dem Boden des Vorplatzes. | 17.10.2026 |
+| Stufen | Ändert sich ein Zugang mit der Stufe, hängt der Anker im Knoten der Stufe. Beim Schmied bleiben beide am Tor der Halle, in jeder Stufe gleich. | 17.10.2026 |
+| Prüfung | `pruefen.py` listet die Anker mit Lage und Richtung und verlangt „Anker_Tuer“ auf der Fläche. `<name>-anker.png` zeigt sie als Pfeile (Personen magenta, Karren türkis), die Spitze auf dem Ankerpunkt. | 17.10.2026 |

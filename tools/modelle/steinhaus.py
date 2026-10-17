@@ -131,7 +131,9 @@ def bauen():
     bs.baugeruest(geruest, st, x0=-HX - 0.15, x1=HX + 0.15, y_innen=VORN - 0.3, y_aussen=VORN - 1.2,
                   ebenen=(2.5, 5.0, 7.5), hoehe_innen=9.4, hoehe_aussen=10.0)
 
-    return [haus.objekt(), wappen.objekt(), fahne.objekt(), bs.zustand(leer.objekt()), bs.zustand(geruest.objekt())]
+    # Ankerpunkt: auf der obersten Stufe der Freitreppe vor dem Portal, Blick ins Haus
+    tuer = bs.anker("Anker_Tuer", (0.0, VORN - 0.2, 0.5))
+    return [haus.objekt(), wappen.objekt(), fahne.objekt(), bs.zustand(leer.objekt()), bs.zustand(geruest.objekt()), tuer]
 
 
 def treppengiebel(netz, st, M, dach, oeffnungen, stufen=5, oben_halb=0.45):
@@ -195,6 +197,10 @@ def main():
     print("geschrieben:", bs.exportieren(NAME, objekte))
     if "--ohne-bilder" in sys.argv:
         return
+    if "--nur-anker" in sys.argv:          # nur das Bild mit den Ankerpunkten
+        bs.vorschau_buehne(FLAECHE, ziel_hoehe=7.6, ausschnitt=26.0, schnell="--schnell" in sys.argv)
+        print(bs.anker_bild(NAME, lambda o: o.name not in ("Leerstand", "Geruest")))
+        return
     bs.vorschau_buehne(FLAECHE, ziel_hoehe=7.6, ausschnitt=26.0, schnell="--schnell" in sys.argv)
     normal = lambda o: o.name not in ("Leerstand", "Geruest")                     # noqa: E731
     print(bs.rendern(NAME, normal))
@@ -202,6 +208,7 @@ def main():
     print(bs.rendern(NAME + "-geruest", lambda o: o.name != "Leerstand"))
     if "--schnell" not in sys.argv:
         print(bs.rundum(NAME, normal))
+    print(bs.anker_bild(NAME, normal))
 
 
 if __name__ == "__main__":

@@ -6,7 +6,11 @@ Gibt Knoten, Materialien, Dreiecke je Knoten und die Ausdehnung (Y oben, Vorders
 und meldet Verstöße: Material „Hausfarbe“ fehlt, Modell ragt über die belegte Fläche oder
 unter den Boden, ein Zustandsknoten fehlt. Hat das Modell Stufen (Werkstatt), müssen es genau
 Stufe1–Stufe3 sein; dann steht auch da, wie viele Dreiecke je Stufe sichtbar sind (Haus + Stufe).
+Ankerpunkte („Anker_…“, leere Knoten) werden mit Lage und Blickrichtung gelistet; „Anker_Tuer“ ist Pflicht
+und jeder Anker muss auf der Fläche liegen.
 """
+
+import math
 
 import json
 import struct
@@ -37,8 +41,11 @@ def main():
     namen = []
     dreiecke_je = {}
     summe = 0
+    anker = []
     for knoten in g["nodes"]:
         if "mesh" not in knoten:
+            if knoten.get("name", "").startswith("Anker_"):
+                anker.append(knoten)
             continue
         namen.append(knoten["name"])
         dreiecke = 0
@@ -64,6 +71,17 @@ def main():
         fest = sum(n for k, n in dreiecke_je.items() if k in ("Haus", "Wappen", "Fahne"))
         print("sichtbar je Stufe (Haus, Wappen, Fahne + Stufe): " +
               ", ".join(f"{k} {fest + dreiecke_je[k]}" for k in stufen))
+    for k in anker:
+        x, y, z = k.get("translation", [0, 0, 0])
+        qx, qy, qz, qw = k.get("rotation", [0, 0, 0, 1])
+        # Blickrichtung = lokal −Z, gedreht mit dem Quaternion (nur um die Hochachse)
+        winkel = math.degrees(2 * math.atan2(qy, qw))
+        richtung = (-math.sin(math.radians(winkel)), -math.cos(math.radians(winkel)))
+        print(f"{k['name']:14s} bei X {x:.2f}  Y {y:.2f}  Z {z:.2f}, Blick ins Haus nach ({round(richtung[0]) + 0}, {round(richtung[1]) + 0})")
+        if breite is not None and (abs(x) > breite / 2 or abs(z) > tiefe / 2):
+            fehler.append(f"{k['name']} liegt außerhalb der Fläche")
+    if "Anker_Tuer" not in [k["name"] for k in anker]:
+        fehler.append("Ankerpunkt „Anker_Tuer“ fehlt")
     for z in ZUSTAENDE:
         if z not in namen:
             fehler.append(f"Zustandsknoten „{z}“ fehlt")

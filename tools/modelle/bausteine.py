@@ -791,11 +791,50 @@ def exportieren(name, objekte):
     return pfad
 
 
+def anker(name, punkt, drehung=0.0):
+    """Ankerpunkt: ein leerer Knoten, den das Spiel nach dem Laden sucht (Name „Anker_…“).
+    `punkt` liegt dort, wo eine Figur oder ein Karren ankommt (Höhe = Stufe davor), `drehung` (Grad um Z)
+    so, dass die Blickrichtung ins Haus zeigt: In Blender ist das lokal +Y, im Spiel (Godot) −Z.
+    Für eine Tür an der Gassenseite also 0, an der rechten Seite 90, hinten 180, links 270."""
+    obj = bpy.data.objects.new(name, None)
+    obj.empty_display_type = "SINGLE_ARROW"
+    obj.location = Vector(punkt)
+    obj.rotation_euler = (0, 0, math.radians(drehung))
+    obj["anker"] = True
+    bpy.context.scene.collection.objects.link(obj)
+    return obj
+
+
+def anker_bild(name, sichtbar):
+    """Vorschau docs/modelle/<name>-anker.png: jeder Anker als Stab mit Pfeil am Boden (Personen magenta,
+    Karren türkis); der Pfeil zeigt ins Haus. Die Markierungen werden danach wieder entfernt."""
+    farben = {"Karren": _hilfsstoff("_Anker_Karren", (0.1, 0.85, 0.85))}
+    tuer = _hilfsstoff("_Anker_Tuer", (0.95, 0.15, 0.75))
+    marken = []
+    for o in [o for o in bpy.context.scene.objects if o.get("anker")]:
+        m = farben.get(o.name.split("_")[-1], tuer)
+        netz = Netz("_Marke_" + o.name)
+        t = o.matrix_world
+        lang = 1.4 if "Karren" in o.name else 0.9
+        # Pfeil vor dem Anker, die Spitze auf dem Ankerpunkt: zeigt ins Haus
+        netz.vieleck([t @ Vector(p) for p in ((-0.4, -lang, 0.03), (0.4, -lang, 0.03), (0, 0, 0.03))], m, immer=True)
+        netz.stab(t @ Vector((0, 0, 0)), t @ Vector((0, 0, 1.8)), 0.08, 0.08, m)
+        netz.quader((0, 0, 1.85), (0.22, 0.22, 0.22), m, matrix=t)
+        marken.append(netz.objekt())
+    pfad = rendern(name + "-anker", lambda o: sichtbar(o) or o.name.startswith("_Marke_"))
+    for o in marken:
+        bpy.data.objects.remove(o)
+    return pfad
+
+
 def bericht(name, objekte):
-    """Dreiecke je Objekt (so, wie sie im Export landen)."""
+    """Dreiecke je Objekt (so, wie sie im Export landen); Anker mit ihrer Lage."""
     print(f"\n{name}: Dreiecke")
     summe = 0
     for o in objekte:
+        if o.type != "MESH":
+            print(f"  {o.name:10s} Anker bei ({o.location.x:.2f}, {o.location.y:.2f}, {o.location.z:.2f})")
+            continue
         o.data.calc_loop_triangles()
         n = len(o.data.loop_triangles)
         summe += n

@@ -81,6 +81,8 @@ def bauen():
     bs.tuer(haus, M["hinten"], hintertuer, st)
     haus.quader((-1.2, -0.03, 2.2), (1.4, 0.1, 0.2), st["Bruchstein dunkel"], M["hinten"], ohne=("+y",))
     oeffnungen.append((M["hinten"], hintertuer))
+    # Schwelle aus Stein vor dem Tor: das Tor liegt auf dem Sockel, 30 cm über dem Boden
+    haus.quader((CX + tor.u, Y0 - 0.25, Z_SOCKEL / 2), (tor.b + 0.5, 0.5, Z_SOCKEL), st["Bruchstein dunkel"])
     # Schwelle zwischen Stein und Fachwerk
     haus.quader((CX, CY, Z_OG - 0.06), (X1 - X0 + 0.1, Y1 - Y0 + 0.1, 0.14), st["Fachwerk"], ohne=("+z",))
 
@@ -140,8 +142,10 @@ def bauen():
     bs.baugeruest(geruest, st, x0=X0 - 0.15, x1=X1 + 0.15, y_innen=Y0 - 0.3, y_aussen=Y0 - 1.2,
                   ebenen=(2.4, 4.6), hoehe_innen=5.6, hoehe_aussen=7.0, felder=4)
 
+    # Ankerpunkte am Tor der Halle (in jeder Stufe gleich): Personen auf der Schwelle, der Karren davor auf dem Vorplatz
+    anker = [bs.anker("Anker_Tuer", (CX + tor.u, Y0 - 0.25, Z_SOCKEL)), bs.anker("Anker_Karren", (CX + tor.u, Y0 - 1.3, 0.0))]
     objekte = [haus.objekt(), stufe1.objekt(), stufe2.objekt(), stufe3.objekt(), wappen.objekt(), fahne.objekt(),
-               leer.objekt(), geruest.objekt()]
+               leer.objekt(), geruest.objekt()] + anker
     for o in objekte:
         if o.name in ("Stufe2", "Stufe3", "Leerstand", "Geruest"):
             bs.zustand(o)
@@ -411,6 +415,10 @@ def main():
     print("geschrieben:", bs.exportieren(NAME, objekte))
     if "--ohne-bilder" in sys.argv:
         return
+    if "--nur-anker" in sys.argv:          # nur das Bild mit den Ankerpunkten (Stufe 1)
+        bs.vorschau_buehne(FLAECHE, ziel_hoehe=3.6, ausschnitt=27.0)
+        print(bs.anker_bild(NAME, lambda o: o.name in ("Haus", "Stufe1", "Wappen", "Fahne")))
+        return
     schnell = "--schnell" in sys.argv
     bs.vorschau_buehne(FLAECHE, ziel_hoehe=3.6, ausschnitt=27.0, schnell=schnell)
     zustaende = ("Stufe1", "Stufe2", "Stufe3", "Leerstand", "Geruest")
@@ -428,6 +436,7 @@ def main():
     if not schnell:
         print(bs.rundum(NAME + "-stufe3", nur("Stufe3")))
     print(bs.nebeneinander(NAME, bilder, [f"Stufe {k + 1}: {n}" for k, n in enumerate(STUFEN)]))
+    print(bs.anker_bild(NAME, nur("Stufe1")))
 
 
 if __name__ == "__main__":

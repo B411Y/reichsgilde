@@ -152,7 +152,9 @@ def bauen():
     geruest = bs.Netz("Geruest")
     bs.baugeruest(geruest, st, x0=-OG_X - 0.1, x1=OG_X + 0.1, y_innen=OG_VORN - 0.25, y_aussen=OG_VORN - 1.15)
 
-    objekte = [haus.objekt(), wappen.objekt(), fahne.objekt(), bs.zustand(leer.objekt()), bs.zustand(geruest.objekt())]
+    # Ankerpunkt: auf der oberen Stufe vor der Haustür, Blick ins Haus
+    tuer = bs.anker("Anker_Tuer", (1.2, EG_VORN - 0.15, 0.46))
+    objekte = [haus.objekt(), wappen.objekt(), fahne.objekt(), bs.zustand(leer.objekt()), bs.zustand(geruest.objekt()), tuer]
     return objekte
 
 
@@ -192,6 +194,10 @@ def main():
     print("geschrieben:", bs.exportieren(NAME, objekte))
     if "--ohne-bilder" in sys.argv:
         return
+    if "--nur-anker" in sys.argv:          # nur das Bild mit den Ankerpunkten
+        bs.vorschau_buehne(FLAECHE, ziel_hoehe=5.0, ausschnitt=20.0, schnell="--schnell" in sys.argv)
+        print(bs.anker_bild(NAME, lambda o: o.name not in ("Leerstand", "Geruest")))
+        return
     bs.vorschau_buehne(FLAECHE, ziel_hoehe=5.0, ausschnitt=20.0, schnell="--schnell" in sys.argv)
     normal = lambda o: o.name not in ("Leerstand", "Geruest")                     # noqa: E731
     print(bs.rendern(NAME, normal))
@@ -199,6 +205,7 @@ def main():
     print(bs.rendern(NAME + "-geruest", lambda o: o.name != "Leerstand"))
     if "--schnell" not in sys.argv:
         print(bs.rundum(NAME, normal))
+    print(bs.anker_bild(NAME, normal))
 
 
 if __name__ == "__main__":
