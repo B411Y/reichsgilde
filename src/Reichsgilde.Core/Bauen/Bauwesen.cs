@@ -605,13 +605,14 @@ public sealed class Bauwesen
     /// <summary>Jede Spielminute: fertige Baustellen übernehmen.</summary>
     internal void Minute(Spielzeit zeit)
     {
-        if (_grundstuecke.Count == 0) return;
+        if (!_grundstuecke.Any(g => g.FertigAb is { } ab && zeit.VergangeneMinuten >= ab)) return;
         foreach (var g in _grundstuecke.Where(g => g.FertigAb is { } ab && zeit.VergangeneMinuten >= ab).ToList())
         {
             if (g.Arbeit == Bauarbeit.Abriss)
             {
+                var bauherr = g.Besitzer?.Inhaber;
                 ZumBauplatz(g);
-                _w.Melden($"Das Haus ist abgerissen – dort ist jetzt ein Bauplatz.");
+                _w.Melden($"{bauherr} hat das alte Haus abreißen lassen – dort ist jetzt ein Bauplatz.");
             }
             else if (g.Art == Grundstuecksart.Wohnhaus)
                 Einziehen(g);
