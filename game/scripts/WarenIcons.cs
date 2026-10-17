@@ -3,7 +3,7 @@ using Godot;
 namespace Reichsgilde;
 
 /// <summary>
-/// Die Icons der Waren im Stil gotischer Buchmalerei (128 × 128, erzeugt mit tools/icons/waren_icons.py, liegen in res://assets/waren/).
+/// Die Icons der Waren im Stil eines kolorierten Holzschnitts (128 × 128, erzeugt mit tools/icons/waren_icons.py, liegen in res://assets/waren/).
 /// Fehlt ein Icon (z. B. eine neue Ware in den Daten), zeigt das Spiel einen Platzhalter mit dem Anfangsbuchstaben.
 /// </summary>
 public static class WarenIcons
@@ -25,7 +25,7 @@ public static class WarenIcons
 
     /// <summary>
     /// Das Icon als Bildfeld in <paramref name="groesse"/> Pixeln. Verkleinert wird über Mipmaps
-    /// (beim Import erzeugt), damit die Tuschelinien auch bei 64 px glatt bleiben und nicht flimmern.
+    /// (beim Import erzeugt), damit die Linien und Schraffuren auch bei 64 px glatt bleiben und nicht flimmern.
     /// </summary>
     public static Control Bild(string ware, int groesse)
     {

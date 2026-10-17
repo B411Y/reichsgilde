@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Zeichnet die Waren-Icons von Reichsgilde im Stil gotischer Buchmalerei (eigene Grafiken, MIT-Lizenz wie das Projekt).
+Zeichnet die Waren-Icons von Reichsgilde im Stil eines kolorierten Holzschnitts (eigene Grafiken, MIT-Lizenz wie das Projekt).
 
 Aufruf (aus dem Projektordner, braucht Pillow und numpy):
     python3 tools/icons/waren_icons.py                     # schreibt game/assets/waren/<ware>.png (128 × 128)
@@ -10,9 +10,10 @@ Aufruf (aus dem Projektordner, braucht Pillow und numpy):
 Jede Ware ist eine kleine Zeichenfunktion aus Formen (Vieleck, Ellipse, Rechteck, Ring, Blatt, Balken) im
 64er-Raster: (0, 0) ist oben links, (64, 64) unten rechts. Das Skript zeichnet achtfach vergrößert (512 px)
 und verkleinert am Ende auf 128 px – so werden die Kanten glatt.
-Wie in einer Handschrift um 1400 bekommt jede Fläche Licht von links oben, eine feine weiße Lichtkante
-(Weißhöhung) und einen Umriss in brauner Tinte; die Farbe GOLD wird zu Blattgold. Eine leichte Verbiegung
-aller Formen lässt die Linien wie von Hand gezogen wirken.
+Wie in einem Druck um 1480 (Schedelsche Weltchronik) bekommt jede Fläche einen schwarzen Umriss, im Schatten
+(Licht von links oben) eine schräge Schraffur, die zum Dunkel hin dicker wird, und darunter eine von Hand
+aufgetragene Wasserfarbe, die leicht neben den Linien sitzt und ungleich deckt. Eine leichte Verbiegung
+aller Formen lässt die Linien wie geschnitten wirken.
 Neue Ware: Funktion schreiben und in WAREN eintragen – der Dateiname entsteht aus dem Warennamen
 („Kräuter“ → kraeuter.png), genauso wie im Spiel (WarenIcons.cs).
 """
@@ -31,7 +32,7 @@ W = G * S         # Zeichenfläche in Pixeln
 AUS = 128         # Größe der fertigen Icons
 
 # ── Farben (an mittelalterliche Pigmente angelehnt) ───────────────────────────
-GOLD = (222, 172, 62)          # wird zu Blattgold
+GOLD = (222, 172, 62)
 EISEN = (122, 126, 134)
 EISEN_D = (84, 86, 94)
 SILBER = (204, 210, 220)
@@ -63,13 +64,14 @@ SCHAUM = (242, 236, 216)
 DUNKEL = (36, 26, 22)
 LICHT = (255, 252, 240)        # Glanzpunkte
 
-TINTE = (44, 28, 20)
+SCHWARZ = (22, 18, 16)         # Druckerschwärze
+PAPIER = (238, 228, 202)
 
 
 # ── Zeichnung: sammelt die Formen als Masken ─────────────────────────────────
 class Zeichnung:
-    """Formen in Zeichenreihenfolge. Arten: „flaeche“ (schattiert, mit Umriss), „tupfen“ (flache Farbe ohne Umriss),
-    „strich“ (Tinte). Was später gezeichnet wird, verdeckt Früheres."""
+    """Formen in Zeichenreihenfolge. Arten: „flaeche“ (koloriert, schraffiert, mit Umriss), „tupfen“ (nur Farbe),
+    „strich“ (schwarze Linie). Was später gezeichnet wird, verdeckt Früheres."""
 
     def __init__(self):
         self.ebenen = []
@@ -158,18 +160,18 @@ class Zeichnung:
         self._ablegen(self._linienmaske(punkte, dicke), farbe, kontur)
 
     def strich(self, punkte, dicke=0.8, farbe=None):
-        """Binnenzeichnung (Maserung, Falten, Schrift): in Tinte, mit `farbe` als farbige Linie."""
+        """Binnenzeichnung (Maserung, Falten, Schrift): schwarz, mit `farbe` als farbige Linie."""
         if farbe is None:
             self.ebenen.append((self._linienmaske(punkte, dicke), None, "strich"))
         else:
             self._ablegen(self._linienmaske(punkte, dicke), farbe, False)
 
     def kreis(self, cx, cy, rx, ry, dicke=0.8, farbe=None, von=0, bis=360):
-        """Ellipse als Tintenlinie (Jahresringe, Bohrlöcher)."""
+        """Ellipse als schwarze Linie (Jahresringe, Bohrlöcher)."""
         self.strich(self.ellipsenpunkte(cx, cy, rx, ry, von, bis), dicke, farbe)
 
     def punkt(self, x, y, r=0.8, farbe=None):
-        """Tintenpunkt, mit `farbe` ein farbiger Tupfen (Glanzlicht, Niete, Warze)."""
+        """Schwarzer Punkt, mit `farbe` ein farbiger Tupfen (Glanzlicht, Niete, Warze)."""
         maske = self._linienmaske([(x, y), (x, y)], r * 2)
         if farbe is None:
             self.ebenen.append((maske, None, "strich"))
@@ -177,7 +179,7 @@ class Zeichnung:
             self._ablegen(maske, farbe, False)
 
 
-# ── Malen im Stil der Buchmalerei ────────────────────────────────────────────
+# ── Malen im Stil des kolorierten Holzschnitts ───────────────────────────────
 def _rauschen(rng, zellen):
     klein = (rng.random((zellen, zellen)) * 255).astype(np.uint8)
     return np.array(Image.fromarray(klein).resize((W, W), Image.BICUBIC), dtype=np.float32) / 255 - 0.5
@@ -206,6 +208,10 @@ def _erodieren(m, px):
     return np.array(_als_bild(m.astype(np.float32)).filter(ImageFilter.MinFilter(2 * px + 1))) > 127
 
 
+def _dehnen(m, px):
+    return np.array(_als_bild(m.astype(np.float32)).filter(ImageFilter.MaxFilter(2 * px + 1))) > 127
+
+
 def _weich(a, r):
     return np.array(_als_bild(a).filter(ImageFilter.GaussianBlur(r)), dtype=np.float32) / 255
 
@@ -216,12 +222,6 @@ def _licht(maske, r=26, k=20):
     hell = maske * np.clip(1 - _schieben(w, -k, -k) * 1.6, 0, 1)
     dunkel = maske * np.clip(1 - _schieben(w, k, k) * 1.6, 0, 1)
     return hell, dunkel
-
-
-def _blattgold(hell, dunkel, rausch):
-    t = np.clip(0.45 + 0.7 * hell - 0.55 * dunkel + 0.35 * rausch, 0, 1)[..., None]
-    tief, mitte, licht = (np.array(c, np.float32) for c in ((128, 84, 26), (222, 172, 62), (255, 238, 170)))
-    return np.where(t < 0.5, tief + (mitte - tief) * (t * 2), mitte + (licht - mitte) * ((t - 0.5) * 2))
 
 
 class _Leinwand:
@@ -243,8 +243,7 @@ class _Leinwand:
 
 def malen(z, saat):
     rng = np.random.default_rng(saat)
-    wx, wy = _rauschen(rng, 6) * 5, _rauschen(rng, 6) * 5        # Handzeichnung: alles leicht verbogen
-    fein = _rauschen(rng, 64) + 0.5 * _rauschen(rng, 160)         # Farbkörnung
+    wx, wy = _rauschen(rng, 6) * 6, _rauschen(rng, 6) * 6        # geschnittene Linien: alles leicht verbogen
     ebenen = [(_verbiegen(m, wx, wy), f, art) for m, f, art in z.ebenen]
 
     # Jede Form nur dort, wo keine spätere Fläche sie verdeckt
@@ -258,28 +257,36 @@ def malen(z, saat):
     umriss = darueber
 
     lw = _Leinwand()
+    lw.malen(umriss, PAPIER)
+    # Handkolorierung: Wasserfarbe leicht neben den Linien, ungleich deckend
+    vx, vy = _rauschen(rng, 5) * 14 + 4, _rauschen(rng, 5) * 14 + 3
+    fleck = _rauschen(rng, 12)
     for (m, farbe, art), v in zip(ebenen, sichtbar):
-        if art == "tupfen":
-            lw.malen(v, farbe)
-        elif art == "flaeche":
-            hell, dunkel = _licht(m)
-            if farbe == GOLD:
-                col = _blattgold(hell, dunkel, fein)
-            else:
-                f = np.asarray(farbe, np.float32)
-                col = f + (np.array((255, 250, 236), np.float32) - f) * (0.32 * hell)[..., None]
-                col = col * (1 - 0.38 * dunkel[..., None]) * (1 + 0.06 * fein[..., None])
-            lw.malen(v, np.clip(col, 0, 255))
-            innen = _erodieren(v, 7)
-            if farbe != GOLD and innen.sum() > 900:              # Weißhöhung an der Lichtkante
-                lw.malen(innen & ~_schieben(innen, -9, -9), (252, 248, 234), 0.55)
-    for (m, _, art), v in zip(ebenen, sichtbar):
-        if art == "flaeche":
-            lw.malen(v & ~_erodieren(v, 3), TINTE)
-    lw.malen(umriss & ~_erodieren(umriss, 7), TINTE)
+        if art == "strich":
+            continue
+        f = np.asarray(farbe, np.float32)
+        lw.malen(_verbiegen(v, vx, vy) & umriss, f + (np.asarray(PAPIER, np.float32) - f) * 0.1, 0.9 + 0.3 * fleck)
+    # Dünne Stellen (unter etwa 3,5 Rastereinheiten: Kettenglieder, Reifen, Stiele) bekommen feinere Linien und keine Schraffur,
+    # sonst bliebe dort nur Schwarz übrig
+    duenn = {i: v & ~_dehnen(_erodieren(v, 13), 13) for i, (v, e) in enumerate(zip(sichtbar, ebenen)) if e[2] == "flaeche"}
+    alle_duenn = np.zeros((W, W), bool)
+    for d in duenn.values():
+        alle_duenn |= d
+    # Schraffur im Schatten: schräge Linien, zum Dunkel hin dicker
+    yy, xx = np.mgrid[0:W, 0:W]
+    phase = np.abs(((xx - yy) % 16) - 8)
+    for i, d in duenn.items():
+        if sichtbar[i].sum() < 5000:                                 # kleine Flächen (Blütenblatt, Knauf) bleiben hell
+            continue
+        _, dunkel = _licht(ebenen[i][0], 30, 26)
+        lw.malen(sichtbar[i] & ~d & (phase < np.clip(dunkel * 1.25 - 0.12, 0, 0.75) * 8), SCHWARZ)
+    for i, d in duenn.items():
+        v = sichtbar[i]
+        lw.malen(v & ~np.where(d, _erodieren(v, 2), _erodieren(v, 4)), SCHWARZ)
+    lw.malen(umriss & ~np.where(alle_duenn, _erodieren(umriss, 3), _erodieren(umriss, 8)), SCHWARZ)
     for (_, _, art), v in zip(ebenen, sichtbar):
         if art == "strich":
-            lw.malen(v, TINTE)
+            lw.malen(v, SCHWARZ)
     return lw.bild()
 
 
