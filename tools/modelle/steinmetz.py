@@ -199,21 +199,6 @@ def staub(netz, st, mitte, r, saat=0):
     netz.vieleck_nach(punkte, (0, 0, 1), st["Steinstaub"])
 
 
-def achteck(netz, st, boden, r, z0, z1, stoff="Sandstein", n=8):
-    """Stehendes n-Eck von z0 bis z1 über `boden` (Säulenschaft, Becken, Mühlstein)."""
-    profil = [(r * math.cos(math.radians(180 / n + 360 / n * k)), r * math.sin(math.radians(180 / n + 360 / n * k)))
-              for k in range(n)]
-    dreh = Matrix.Translation(Vector(boden)) @ Matrix.Rotation(math.radians(-90), 4, "Y")   # Prisma-x → Welt-z
-    netz.prisma(profil, z0, z1, st[stoff] if isinstance(stoff, str) else stoff, matrix=dreh)
-
-
-def rund_oben(netz, st, mitte, r, z, stoff="Loch", n=8):
-    """Flaches n-Eck nach oben (Loch im Mühlstein, Wasser oder Schatten im Becken)."""
-    netz.vieleck_nach([(mitte[0] + r * math.cos(math.radians(180 / n + 360 / n * k)),
-                        mitte[1] + r * math.sin(math.radians(180 / n + 360 / n * k)), z) for k in range(n)],
-                      (0, 0, 1), st[stoff])
-
-
 def grabstein(netz, st, fuss, dreh=0.0, breite=0.6, hoehe=1.0, dicke=0.14, form="rund", stoff="Sandstein"):
     """Grabstein auf einem Sockel, die Schauseite (mit zwei Schriftzeilen) zur Gasse. `form`: "rund" oder "giebel"."""
     t = Matrix.Translation(Vector(fuss)) @ Matrix.Rotation(math.radians(dreh - 90), 4, "Z")   # Prisma-x → zur Gasse
@@ -249,9 +234,9 @@ def muehlsteine_liegend(netz, st, boden, r=0.55, lagen=2):
     """Gestapelte Mühlsteine, oben das Loch."""
     z = 0.0
     for k in range(lagen):
-        achteck(netz, st, Vector(boden) + Vector((0.03 * k, -0.02 * k, 0)), r - 0.02 * k, z, z + 0.24, "Haustein", n=12)
+        bs.achteck(netz, st, Vector(boden) + Vector((0.03 * k, -0.02 * k, 0)), r - 0.02 * k, z, z + 0.24, "Haustein", n=12)
         z += 0.24
-    rund_oben(netz, st, Vector(boden) + Vector((0.03 * (lagen - 1), -0.02 * (lagen - 1), 0)), 0.1, z + 0.003)
+    bs.rund_oben(netz, st, Vector(boden) + Vector((0.03 * (lagen - 1), -0.02 * (lagen - 1), 0)), 0.1, z + 0.003)
 
 
 def ziegelstapel(netz, st, fuss, lagen=4):
@@ -307,7 +292,7 @@ def moertelplatz(netz, st, fuss, dreh=0.0):
         netz.vieleck_nach([a, b, gipfel], (a + b) / 2 - sand, st["Formsand"])
     for d in (-0.4, 0.25):
         bs.fass(netz, st, t @ Vector((-1.25, 1.2 + d, 0)), r=0.28, h=0.7)
-        rund_oben(netz, st, t @ Vector((-1.25, 1.2 + d, 0)), 0.24, 0.703, "Steinstaub")
+        bs.rund_oben(netz, st, t @ Vector((-1.25, 1.2 + d, 0)), 0.24, 0.703, "Steinstaub")
 
 
 def bankstein(netz, st, fuss, dreh=0.0, werkstueck=(1.0, 0.6, 0.45)):
@@ -362,7 +347,7 @@ def steinsaege(netz, st, fuss, dreh=0.0):
     netz.quader((0, 0, 1.12), (1.9, 0.08, 0.08), st["Holz"], t)
     netz.quader((0, 0, 0.8), (1.8, 0.015, 0.14), st["Eisen"], t, ohne=("-z",))       # Blatt, steckt im Schnitt
     bs.fass(netz, st, t @ Vector((1.0, 0.75, 0)), r=0.24, h=0.5, reifen=(0.1, 0.38))
-    rund_oben(netz, st, t @ Vector((1.0, 0.75, 0)), 0.2, 0.45, "Wasser")
+    bs.rund_oben(netz, st, t @ Vector((1.0, 0.75, 0)), 0.2, 0.45, "Wasser")
     staub(netz, st, t @ Vector((0.2, -0.2, 0)), 1.2, saat=7)
 
 
@@ -394,11 +379,11 @@ def saeule(netz, st, a, b, r=0.2, stoff="Sandstein"):
 
 def taufbecken(netz, st, boden):
     """Achteckiges Taufbecken: Stufe, Fuß, Schaft und Becken mit dunkler Mulde."""
-    achteck(netz, st, boden, 0.5, 0.0, 0.14, "Bruchstein dunkel")
-    achteck(netz, st, boden, 0.3, 0.14, 0.3)
-    achteck(netz, st, boden, 0.2, 0.3, 0.7)
-    achteck(netz, st, boden, 0.58, 0.7, 1.02)
-    rund_oben(netz, st, boden, 0.46, 1.023, "Fuge")
+    bs.achteck(netz, st, boden, 0.5, 0.0, 0.14, "Bruchstein dunkel")
+    bs.achteck(netz, st, boden, 0.3, 0.14, 0.3)
+    bs.achteck(netz, st, boden, 0.2, 0.3, 0.7)
+    bs.achteck(netz, st, boden, 0.58, 0.7, 1.02)
+    bs.rund_oben(netz, st, boden, 0.46, 1.023, "Fuge")
 
 
 def figur(netz, st, boden, dreh=0.0):
