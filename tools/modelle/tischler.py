@@ -9,8 +9,8 @@ Objekte im GLB (wie beim Schmied):
     Haus        die Werkstatt mit dem Giebel zur Gasse, in jeder Stufe gleich
     Stufe1      Tischlerei: Vordach mit Hobelbank, Bretterstapel, Sägebock, Rundholz, Bretterzaun
     Stufe2      Drechslerei: Anbau mit offener Laube und Wippdrehbank, Gaube, Bretterstapel, Zaun
-    Stufe3      Sägewerk: offene Sägehalle mit Gattersäge, Wasserrad mit Gerinne, Dachreiter mit
-                kupfergrüner Spitze, Gaube, Holzlager
+    Stufe3      Sägewerk: offene Sägehalle mit Gattersäge, angetrieben von einem Göpel (Pferd im Kreis),
+                Dachreiter mit kupfergrüner Spitze, Gaube, Holzlager
     Wappen, Fahne, Leerstand, Geruest, Anker_Tuer, Anker_Karren
 Genau einer der Knoten Stufe1–Stufe3 ist sichtbar; Leerstand und Geruest sind standardmäßig aus.
 
@@ -370,54 +370,63 @@ def drechslerei(netz, st):
     bs.zaun(netz, st, [(7.8, ay1 + 0.2), (7.8, 6.8), (-7.8, 6.8), (-7.8, Y1 + 0.3)])
 
 
-def wasserrad(netz, st, mitte, r=1.7, breite=0.7, speichen=10, achse="y"):
-    """Oberschlächtiges Wasserrad: zwei Kränze, Schaufeln, Speichen und Welle. `achse`: "y" oder "x"."""
-    holz, alt = st["Holz"], st["Holz alt"]
-    B = Matrix.Translation(mitte) @ (Matrix.Rotation(math.radians(90), 4, "Z") if achse == "x" else Matrix.Identity(4))
-    quer = B.to_3x3() @ Vector((0, 1, 0))
-    for s in (-1, 1):
-        y = s * breite / 2
-        for k in range(speichen):
-            a0, a1 = 2 * math.pi * k / speichen, 2 * math.pi * (k + 1) / speichen
-            stueck = [(r * math.cos(a0), r * math.sin(a0)), (r * math.cos(a1), r * math.sin(a1)),
-                      ((r - 0.18) * math.cos(a1), (r - 0.18) * math.sin(a1)), ((r - 0.18) * math.cos(a0), (r - 0.18) * math.sin(a0))]
-            netz.prisma([(-px, pz) for px, pz in stueck], y - 0.05, y + 0.05, holz,
-                        matrix=B @ Matrix.Rotation(math.radians(90), 4, "Z"))
-        for k in range(0, speichen, 2):
-            a = 2 * math.pi * (k + 0.25 * s) / speichen          # Speichen der beiden Kränze leicht versetzt
-            netz.stab(B @ Vector((0, y, 0)), B @ Vector(((r - 0.1) * math.cos(a), y, (r - 0.1) * math.sin(a))), 0.08, 0.06, alt,
-                      quer=quer)
-    for k in range(speichen):
-        a = 2 * math.pi * (k + 0.5) / speichen
-        innen = B @ Vector(((r - 0.15) * math.cos(a), 0, (r - 0.15) * math.sin(a)))
-        aussen = B @ Vector(((r + 0.12) * math.cos(a), 0, (r + 0.12) * math.sin(a)))
-        netz.stab(innen, aussen, 0.04, breite + 0.06, alt, quer=quer)
-    netz.stab(B @ Vector((0, -breite / 2 - 0.5, 0)), B @ Vector((0, breite / 2 + 0.3, 0)), 0.16, 0.16, st["Fachwerk"])
+def pferd(netz, st, ort, winkel):
+    """Schlichtes Zugpferd aus Quadern und Stäben, Blick in Richtung `winkel` (Grad, von +x gegen den Uhrzeigersinn)."""
+    M = Matrix.Translation(Vector(ort)) @ Matrix.Rotation(math.radians(winkel), 4, "Z")
+    fell, dunkel = st["Leder"], st["Kohle"]
+    netz.quader((0, 0, 0.95), (1.0, 0.36, 0.42), fell, matrix=M)
+    for x in (-0.38, 0.38):
+        for y in (-0.12, 0.12):
+            netz.stab((x, y, 0), (x, y, 0.8), 0.1, 0.1, fell, matrix=M)
+    netz.stab((0.4, 0, 1.0), (0.68, 0, 1.45), 0.2, 0.16, fell, matrix=M)            # Hals
+    netz.quader((0.82, 0, 1.36), (0.4, 0.16, 0.18), fell, matrix=M)                 # Kopf
+    netz.stab((0.4, 0, 1.2), (0.64, 0, 1.56), 0.05, 0.06, dunkel, matrix=M)         # Mähne
+    netz.stab((-0.5, 0, 1.12), (-0.6, 0, 0.62), 0.06, 0.08, dunkel, matrix=M)       # Schweif
 
 
-def gerinne(netz, st, a, b, breite=0.6, frei=0.0):
-    """Hölzernes Gerinne auf Stelzen: Boden, zwei Seitenbretter, Wasser darin. Die letzten `frei` Meter
-    vor dem Ende stehen ohne Stelzen (über dem Wasserrad)."""
-    a, b = Vector(a), Vector(b)
-    t = Matrix.Translation(a) @ bs._richtung(b - a, (0, 0, 1))
-    L = (b - a).length
-    netz.quader((L / 2, 0, -0.05), (L, breite, 0.08), st["Holz"], t)
-    for s in (-1, 1):
-        netz.quader((L / 2, s * breite / 2, 0.12), (L, 0.06, 0.32), st["Holz"], t)
-    netz.vieleck([t @ Vector(p) for p in ((0, -breite / 2 + 0.04, 0.18), (L, -breite / 2 + 0.04, 0.18),
-                                          (L, breite / 2 - 0.04, 0.18), (0, breite / 2 - 0.04, 0.18))], st["Wasser"], immer=True)
-    n = max(2, int((L - frei) / 2.5))
-    for k in range(n + 1):
-        p = a.lerp(b, k / n * (L - frei) / L)
-        for s in (-1, 1):
-            netz.stab((p.x, p.y + s * breite / 2, 0), (p.x, p.y + s * breite / 2, p.z - 0.1), 0.12, 0.12, st["Holz alt"])
+def goepel(netz, st, mitte, r=1.5, h=2.5, spitze=4.2, richtung=(-1, 0)):
+    """Göpel: achteckiger offener Rundbau mit Schieferdach. In der Mitte die stehende Königswelle mit dem
+    Kammrad unter dem Dach; außen der Zugbaum, an dem das Pferd im Kreis geht (der Pfad ist ausgetreten).
+    Eine liegende Welle führt die Kraft in die Sägehalle; `richtung` zeigt dorthin (Einheitsvektor in x/y)."""
+    holz, alt = st["Fachwerk"], st["Holz alt"]
+    x, y = mitte.x, mitte.y
+
+    def punkt(radius, k, z, versatz=22.5):
+        a = math.radians(versatz + 45 * k)
+        return Vector((x + radius * math.cos(a), y + radius * math.sin(a), z))
+
+    # ausgetretener Pfad des Pferdes
+    for k in range(8):
+        netz.vieleck_nach([punkt(0.55 * r, k, 0.012), punkt(0.55 * r, k + 1, 0.012), punkt(0.95 * r, k + 1, 0.012), punkt(0.95 * r, k, 0.012)],
+                          (0, 0, 1), st["Lehm"])
+    # Pfosten, Rähm, Kopfbänder
+    for k in range(8):
+        netz.stab(punkt(r - 0.1, k, 0), punkt(r - 0.1, k, h), 0.16, 0.16, holz)
+        netz.stab(punkt(r - 0.1, k, h - 0.08), punkt(r - 0.1, k + 1, h - 0.08), 0.16, 0.16, holz)
+    # achteckiges Zeltdach aus Schiefer mit Knauf
+    gipfel = Vector((x, y, spitze))
+    for k in range(8):
+        a, b = punkt(r + 0.3, k, h - 0.25), punkt(r + 0.3, k + 1, h - 0.25)
+        netz.vieleck_nach([a, b, gipfel], (a + b) / 2 - Vector((x, y, h - 1.5)), st["Schiefer"])
+        netz.vieleck_nach([a, b, b + Vector((0, 0, -0.12)), a + Vector((0, 0, -0.12))], (a + b) / 2 - Vector((x, y, h)), st["Schieferkante"])
+    netz.quader((x, y, spitze + 0.12), (0.2, 0.2, 0.3), st["Eisen"])
+    # Königswelle, Kammrad mit Zähnen, Zugbaum mit Ortscheit
+    netz.stab((x, y, 0), (x, y, spitze - 0.6), 0.26, 0.26, holz)
+    bs.fass(netz, st, Vector((x, y, h - 0.45)), r=0.55 * r, h=0.14, reifen=(), stoff="Holz")
+    for k in range(8):
+        netz.quader(punkt(0.5 * r, k, h - 0.24, versatz=0), (0.12, 0.12, 0.12), alt)
+    ende = punkt(0.85 * r, 0, 0.95, versatz=-60)
+    netz.stab((x, y, 0.95), ende, 0.14, 0.14, holz)
+    mitte_pferd = punkt(0.73 * r, 0, 0, versatz=-85)
+    pferd(netz, st, mitte_pferd, -85 + 90)
+    return Vector((x + 0.5 * r * richtung[0], y + 0.5 * r * richtung[1], h - 0.15))   # dort greift die liegende Welle an
 
 
 def saegewerk(netz, st):
-    """Stufe 3: offene Sägehalle mit Gattersäge und Stamm auf dem Wagen, angetrieben vom Wasserrad im Hof
-    (Gerinne auf Stelzen), Holzlager und Bretterstapel."""
+    """Stufe 3: offene Sägehalle mit Gattersäge und Stamm auf dem Wagen, angetrieben vom Göpel im Hof
+    (ein Pferd geht im Kreis, eine liegende Welle führt in die Halle), Holzlager und Bretterstapel."""
     holz = st["Fachwerk"]
-    hx0, hx1, hy0, hy1 = 1.2, 6.2, -4.8, 2.8
+    hx0, hx1, hy0, hy1 = 1.2, 4.6, -4.8, 2.4
     cx = (hx0 + hx1) / 2
     breite = hx1 - hx0
     h = 3.4
@@ -455,15 +464,13 @@ def saegewerk(netz, st):
     rundholz(netz, st, (gx, hy0 - 0.2, 0.92), (gx, gy + 0.2, 0.92), r=0.3)
     for k, y in enumerate((gy + 0.6, gy + 1.2, gy + 1.8)):
         netz.quader((gx, y + 0.3, 0.75 + 0.07 * k), (0.62, 0.55, 0.06), st["Schnittholz"])
-    # Wasserrad rechts neben der Halle (quer zur Gasse, gut zu sehen), Gerinne von hinten, Welle in die Halle
-    rad = Vector((7.1, 0.0, 1.86))          # die Schaufeln tauchen ins Becken, nicht in den Boden
-    wasserrad(netz, st, rad, achse="x")
-    netz.stab((hx1, rad.y, rad.z), (rad.x - 0.3, rad.y, rad.z), 0.14, 0.14, holz)
-    gerinne(netz, st, (7.1, 6.5, 3.95), (7.1, 0.5, 3.8), frei=2.2)
-    netz.quader((7.15, 0.0, 0.14), (1.1, 3.4, 0.24), st["Wasser"])
-    netz.quader((7.15, 0.0, 0.05), (1.3, 3.7, 0.1), st["Bruchstein"])
+    # Göpel rechts neben der Halle; die liegende Welle läuft vom Kammrad über die Bretterwand zur Säge
+    welle = goepel(netz, st, Vector((6.3, -1.2, 0)))
+    netz.stab(welle, (gx + 0.9, gy, welle.z), 0.14, 0.14, holz)
+    netz.stab((gx + 0.9, gy, welle.z), (gx + 0.9, gy, 2.9), 0.12, 0.12, holz)       # Kurbelstange zum Gatter
     # Holzlager und Bretter
     holzlager(netz, st, Vector((-3.4, 4.0, 0)), n=5, laenge=4.4)
+    bretterstapel(netz, st, Vector((5.4, 4.6, 0)), 3.0, 1.0, lagen=3)
     bretterstapel(netz, st, Vector((-3.4, 6.0, 0)), 3.2, 1.0, lagen=4)
     holzlager(netz, st, Vector((4.3, -5.9, 0)), n=3, laenge=4.6)
     bs.zaun(netz, st, [(7.8, hy1 + 0.2), (7.8, 6.8), (-7.8, 6.8), (-7.8, Y1 + 0.3)])
