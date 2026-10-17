@@ -168,7 +168,7 @@ So wird eingetragen (damit sich die Chats nie an derselben Stelle treffen):
 | Wachstum | Tinkturei: Fässer mit Kräuterauszügen an der Hauswand, Trockengestelle mit Kräuterbündeln (wie bisher im Spiel vor dem Tor), Farbbottich, Brennholz, Kräuterbeete. Kräuterladen: Ladenanbau mit Giebel zur Gasse, Auslage mit Flaschen und Tiegeln, Hängeschild mit Mörser, Flaschen auch auf dem Ladenbrett des Hauses, Rosenbeete (Rosenwasser), Gaube. Alchimistenstube: achteckiger Laborturm an der Gasse mit Schieferhelm und Schlot, im ersten Stock der Feuerschein des Athanors (Material „Glut“, vom Spiel geschaltet wie die Esse), Ziehbrunnen, Gaube, Dachreiter mit violetter Spitze wie bisher im Spiel. | 17.10.2026 |
 | Bausteine | `achteck` und `rund_oben` liegen jetzt in `bausteine.py`; neue Materialien Kraut, Heu, Rose, Farbe, Elixier, Violett. Schmied, Tischler und Steinmetz bleiben byte-gleich. | 17.10.2026 |
 
-### Werkstatt des Wirts als 3D-Modell (PR #…)
+### Werkstatt des Wirts als 3D-Modell (PR #114)
 
 | Thema | Entscheidung | Datum |
 |---|---|---|
