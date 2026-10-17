@@ -14,6 +14,8 @@ So wird eingetragen (damit sich die Chats nie an derselben Stelle treffen):
 - (3) (von Kern) Karren am Stadttor zeigen: `Karren.WartetAmTor(zeit)` – Hinweg draußen vor dem Tor, Rückweg drinnen (ab PR #67)
 - (3) Einwohner in den Innenräumen von Schänken und Kirchen der Häuser zeigen (im Dom erledigt, PR #93)
 - (3) (von Leveldesign) Gebäudemaße auf glatte Meter: Einwohnerhäuser 6 × 6, 7 × 7, 8 × 8 m; Werkstatt belegt 16 × 14 m und zeigt jede Stufe als sichtbaren Anbau innerhalb dieser Fläche (`docs/LEVELDESIGN.md`, Gebäudegrößen)
+- Modelle ins Spiel einbauen (nach PR #103): `SpielhausModell` und die Einwohnerhäuser laden die GLB aus `game/assets/modelle/` statt Grundkörper zu bauen; Material „Hausfarbe“ je Haus einfärben, Knoten „Leerstand“/„Geruest“ (und „Wappen“/„Fahne“) nach Zustand ein- und ausblenden
+- Weitere Modelle aus Blender-Skripten: Bürgerhaus, Steinhaus, Stadtpalais, Stadthof; Werkstätten mit Stufe1–3 (Gießerei, Tischlerei, Maurerei); Einwohnerhäuser (Ratsherrenhaus, Bürgerhaus, einfaches Haus)
 
 ## Entscheidungen
 
@@ -71,3 +73,14 @@ So wird eingetragen (damit sich die Chats nie an derselben Stelle treffen):
 | Pacht | Eine gekündigte Grube oder Umlandpacht zeigt wieder den leeren Platz mit grünem Schild „zu verpachten“ wie vor dem ersten Pachten. | 16.10.2026 |
 | Ablauf | Mitten im Spiel verschwinden Gebäude, Innenraum und Karren des Betriebs in einem Zug; wer ihn gerade betreten hat, steht wieder in der Stadt. Beim Laden steht das leere Haus gleich da. Beim Wiederkauf weicht es dem neuen Betrieb (mit Fahne des Käufers). | 16.10.2026 |
 | Ereignis | Die Stadtansicht abonniert `BetriebAbgegeben` selbst – keine Änderung an der Hauptszene. War der Betrieb ausgewählt, springt die Auswahl der Oberfläche (PR #97) auf `LiegenschaftKennung(name)` des leeren Hauses und zeigt dessen Kaufangebot. | 16.10.2026 |
+
+### 3D-Modelle aus Blender-Skripten (PR #104)
+
+| Thema | Entscheidung | Datum |
+|---|---|---|
+| Herkunft | Jedes Modell entsteht aus einem Python-Skript `tools/modelle/<name>.py` (gemeinsame Hilfen in `bausteine.py`) und wird als `game/assets/modelle/<name>.glb` eingecheckt. Nichts Heruntergeladenes, keine Bildtexturen: Geometrie aus Quadern und Prismen, schlichte Materialien mit fester Farbe. Richtwert unter 3.000 Dreiecke je Haus (Zustände extra). | 17.10.2026 |
+| Koordinaten | Meter, Y oben, Vorderseite (Eingang) nach +Z zur Straße. Ursprung = Mitte der belegten Fläche nach LEVELDESIGN „Gebäudegrößen“, inklusive 2 m Vorplatz, auf dem Boden. In Blender wird mit Z oben und Vorderseite -Y gebaut; der glTF-Export dreht das um. | 17.10.2026 |
+| Hausfarbe | Tür, Fensterläden, Wappen und Fahne tragen das Material „Hausfarbe“ (Vorgabe Spielerblau). Das Spiel tauscht dieses Material je Haus (Spieler blau, Eisenbart rot, Eichwald grün, Kieselbach ocker). | 17.10.2026 |
+| Zustände | Eigene Objekte mit festen Namen: „Leerstand“ (Bretter vor Tür und Fenstern), „Geruest“ (Baustelle), bei Werkstätten „Stufe1“–„Stufe3“. glTF kennt keine Sichtbarkeit, darum kommen sie sichtbar aus der Datei und tragen in den glTF-Extras `sichtbar: false`; das Spiel blendet sie nach dem Laden per Namen aus. „Wappen“ und „Fahne“ sind ebenfalls eigene Objekte, damit der Leerstand sie ausblenden kann. | 17.10.2026 |
+| Vorschau | Je Modell Bilder in `docs/modelle/<name>.png` (dazu `-leerstand`, `-geruest`), gerendert mit Cycles auf der CPU: orthografische Kamera, 40° Neigung, Blick diagonal von vorne rechts wie im Spiel; ein heller Rahmen zeigt die belegte Fläche. | 17.10.2026 |
+| Werkzeug | Blender als Programm (`blender -b --python …`) oder als Python-Modul `bpy` (pip, Blender 5.2) – beides läuft dasselbe Skript. Auf dem Cloud-Rechner ist nur das Modul erreichbar. | 17.10.2026 |
