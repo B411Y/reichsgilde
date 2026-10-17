@@ -14,6 +14,11 @@ So wird eingetragen (damit sich die Chats nie an derselben Stelle treffen):
 - (3) (von Kern) Karren am Stadttor zeigen: `Karren.WartetAmTor(zeit)` – Hinweg draußen vor dem Tor, Rückweg drinnen (ab PR #67)
 - (3) Einwohner in den Innenräumen von Schänken und Kirchen der Häuser zeigen (im Dom erledigt, PR #93)
 - (3) (von Leveldesign) Gebäudemaße auf glatte Meter: Einwohnerhäuser 6 × 6, 7 × 7, 8 × 8 m; Werkstatt belegt 16 × 14 m und zeigt jede Stufe als sichtbaren Anbau innerhalb dieser Fläche (`docs/LEVELDESIGN.md`, Gebäudegrößen)
+- Modelle ins Spiel einbauen (nach PR #103): `SpielhausModell` und die Einwohnerhäuser laden die GLB aus `game/assets/modelle/` statt Grundkörper zu bauen; Material „Hausfarbe“ je Haus einfärben, Knoten „Leerstand“/„Geruest“ (und „Wappen“/„Fahne“) nach Zustand ein- und ausblenden
+- Weitere Modelle aus Blender-Skripten: Stadtpalais, Stadthof; Werkstätten mit Stufe1–3 der übrigen Berufe (Tischler, Steinmetz, Alchimist …), je Beruf ein Schritt; Einwohnerhäuser (Ratsherrenhaus, Bürgerhaus, einfaches Haus)
+- Werkstatt des Schmieds einbauen: `schmied.glb` statt `WerkstattAussenBauen` und `AusbauBauen` beim Beruf Schmied; genau den Knoten `Stufe<n>` der Betriebsstufe zeigen, das Gerüst über „Geruest“, die Glut über das Material „Glut“ (Emission an, solange gearbeitet wird; ersetzt `huelle.Esse`), die verkaufte Werkstatt über „Leerstand“ ohne „Wappen“ und „Fahne“. Klickfläche, Innenraum und Schild bleiben wie bisher
+- Wohnhaus-Modelle auf Wohnhausplätzen der Karte (8 m tief, ohne Vorplatz): Die GLB sind für 8 × 10 m mit 2 m Vorplatz gebaut, die Hauskörper sind höchstens 7,4 m tief. Beim Einbau das Modell dort um 1 m zur Gasse versetzen (die Freitreppe des Steinhauses ragt dann in die Gasse); breitere Plätze lassen links und rechts Luft
+- Weitere Modelle ins Spiel einbauen, sobald es sie gibt: die Einwohnerhäuser, die Werkstätten (Stadtpalais und Hof kommen von selbst, PR #111) – nach dem Muster `WohnhausModellEinsetzen` (PR #105)
 - Weitere Modelle aus Blender-Skripten: Stadtpalais, Stadthof; Werkstätten mit Stufe1–3 der übrigen Berufe (Steinmetz, Alchimist, Wirt …), je Beruf ein Schritt; Einwohnerhäuser (Ratsherrenhaus, Bürgerhaus, einfaches Haus)
 - Werkstätten einbauen: `schmied.glb`, `tischler.glb`, `steinmetz.glb`, `alchimist.glb` und `wirt.glb` statt `WerkstattAussenBauen` und `AusbauBauen` beim Beruf Schmied, Tischler, Steinmetz, Alchimist bzw. Wirt; genau den Knoten `Stufe<n>` der Betriebsstufe zeigen, das Gerüst über „Geruest“, die Glut über das Material „Glut“ (Emission an, solange gearbeitet wird; ersetzt `huelle.Esse`), die verkaufte Werkstatt über „Leerstand“ ohne „Wappen“ und „Fahne“. Klickfläche, Innenraum und Schild bleiben wie bisher
 - Weitere Modelle ins Spiel einbauen, sobald es sie gibt: Stadtpalais und Hof in `SpielhausModell` (Stufe 3 und 4 bauen noch Grundkörper), die Einwohnerhäuser, die Werkstätten – nach dem Muster `WohnhausModellEinsetzen` (PR #105)
@@ -141,6 +146,13 @@ So wird eingetragen (damit sich die Chats nie an derselben Stelle treffen):
 | Schalten | Das Spiel setzt nachts die Emission des einen gemeinsamen Materials „Fenster“ (warmes Orange) – ein Schalter für die ganze Stadt. Leere Häuser bekommen eine Kopie in „Glas“. Die „Glut“ der Essen bleibt davon getrennt (sie hängt an der Arbeit, nicht an der Uhrzeit). | 17.10.2026 |
 | Vorschau | `<name>-nacht.png` zeigt jedes Modell bei Mondlicht mit Fensterlicht und Glut; einzeln mit `--nur-nacht`. | 17.10.2026 |
 
+### Platzhalter für Stadtpalais und Stadthof (PR #111)
+
+| Thema | Entscheidung | Datum |
+|---|---|---|
+| Einbau | `SpielhausModell` sucht auch `game/assets/modelle/stadtpalais.glb` (Stufe 3) und `stadthof.glb` (Stufe 4). Fehlt die Datei, baut der Code wie bisher einen Platzhalter aus Grundkörpern – ohne Fehler (nur Stufe 0–2 sind Pflicht). Das echte Modell kommt aus einem anderen Chat; liegt die Datei samt `.glb.import` im Repository, erscheint es ohne Änderung am Code. Entschieden vom Nutzer: erst nur Platzhalter, Größe auf schmalen Plätzen egal. | 17.10.2026 |
+| Konventionen | Wie bei den Wohnhäusern (PR #104, #105): Ursprung in der Mitte der belegten Fläche inklusive 2 m Vorplatz, Front nach +Z. Stadtpalais 12 × 10 m (Front bei z = +3), Stadthof 16 × 14 m (Front bei z = +5). Knoten „Geruest“, „Leerstand“, „Wappen“, „Fahne“, Material „Hausfarbe“, Dachmaterialien wie gehabt. | 17.10.2026 |
+| Schmale Plätze | Auf den Wohnhausplätzen am Ring (17 × 8 m) steht die Front an der Gasse und ein tieferes Modell ragt nach hinten über den Platz hinaus. Mit einer Ersatzdatei (Steinhaus als Palais und Hof) im Klicktest geprüft: Lage, Hausfarbe und Fahne stimmen. | 17.10.2026 |
 ### Werkstatt des Tischlers als 3D-Modell (PR #109)
 
 | Thema | Entscheidung | Datum |

@@ -178,6 +178,8 @@ public sealed class Glaubenswesen
     private readonly Dictionary<Konto, int> _konvertiertBis = new(); // Ansehen gemindert bis einschließlich Jahr …
     private readonly Dictionary<Konto, int> _bekehrtIm = new();      // Bekehrungspredigt gehalten im Jahr …
     private readonly Dictionary<Konto, double> _abgabenVorjahr = new();
+    private readonly Dictionary<Konto, bool> _stimmen = new();       // festgelegte Stimmen zum Antrag (fehlt = Enthaltung)
+    private (Konto Antragsteller, Konfession? Glaube)? _antrag;
 
     public Glaubenswesen(Stadtwirtschaft w, GlaubeDaten? daten, int zufallsstartwert)
     {
@@ -195,7 +197,15 @@ public sealed class Glaubenswesen
     public Konfession? Stadtglaube { get; internal set; }
 
     /// <summary>Der Antrag auf einen Stadtglauben, über den am Jahresende abgestimmt wird.</summary>
-    public (Konto Antragsteller, Konfession? Glaube)? Antrag { get; private set; }
+    public (Konto Antragsteller, Konfession? Glaube)? Antrag
+    {
+        get => _antrag;
+        private set
+        {
+            _antrag = value;
+            _stimmen.Clear(); // ein neuer oder kein Antrag: die Stimmen zum alten gelten nicht mehr
+        }
+    }
 
     private int Jahr => _w.Jahr;
 
@@ -367,7 +377,10 @@ public sealed class Glaubenswesen
         return glaube == eigener || glaube is null && Stadtglaube != eigener;
     }
 
-    /// <summary>Wie ginge die Abstimmung über einen Stadtglauben heute aus? Enthaltungen sind Häuser, die keine KI sind.</summary>
+    /// <summary>
+    /// Wie ginge die Abstimmung über einen Stadtglauben heute aus? Häuser, die keine KI sind, stimmen wie festgelegt
+    /// (nur beim vorliegenden Antrag) und enthalten sich sonst.
+    /// </summary>
     public (int Ja, int Nein, int Enthaltung, bool? Buergermeister) AbstimmungsPrognose(Konto antragsteller, Konfession? glaube)
     {
         int ja = 0, nein = 0, enthaltung = 0;
@@ -377,6 +390,7 @@ public sealed class Glaubenswesen
             bool? stimme = amt.Ratsherr is { } r ? StimmtZu(r, glaube, antragsteller)
                 : amt.Konto == antragsteller ? true
                 : _w.Rivalen.Any(k => k.Konto == amt.Konto) ? KiStimmtZu(amt.Konto!, glaube)
+                : Antrag == (antragsteller, glaube) ? StimmeVon(amt.Konto!) // die festgelegte Stimme gilt nur dem vorliegenden Antrag
                 : null;
             if (stimme == true) ja++;
             else if (stimme == false) nein++;
@@ -404,18 +418,47 @@ public sealed class Glaubenswesen
         return Befehlsergebnis.Ok($"{konto.Inhaber} beantragt als Stadtglauben: {KonfessionTexte.StadtglaubeText(glaube)}. Der Rat stimmt am Jahresende ab.");
     }
 
-    /// <summary>Ein Haus scheidet aus dem Rat aus (Bankrott, Erbfall): sein Antrag verfällt.</summary>
+    /// <summary>Darf dieses Haus zum Antrag auf einen Stadtglauben eine Stimme festlegen? (null = ja, sonst der Grund)</summary>
+    public string? StimmeVerboten(Konto konto)
+    {
+        if (!IstAktiv) return "In dieser Stadt spielt der Glaube keine Rolle.";
+        if (_w.Rat.StimmeVerboten(konto) is { } grund) return grund;
+        if (Antrag is not { } antrag) return "Dieses Jahr liegt kein Antrag zum Stadtglauben vor.";
+        if (antrag.Antragsteller == konto) return $"{konto.Inhaber} hat den Antrag gestellt und stimmt ohnehin dafür.";
+        return null;
+    }
+
+    /// <summary>Die festgelegte Stimme dieses Hauses zum vorliegenden Antrag (true = dafür, false = dagegen, null = Enthaltung).</summary>
+    public bool? StimmeVon(Konto konto) => StimmeVerboten(konto) is null && _stimmen.TryGetValue(konto, out var ja) ? ja : null;
+
+    /// <summary>Stimme zum Antrag auf einen Stadtglauben festlegen (true/false) oder sich enthalten (null) – gilt bis zur Sitzung.</summary>
+    internal Befehlsergebnis StimmeFestlegen(Konto konto, bool? ja)
+    {
+        if (StimmeVerboten(konto) is { } grund) return Befehlsergebnis.Abgelehnt(grund);
+        var antrag = Antrag!.Value;
+        var worum = $"den Antrag von {antrag.Antragsteller.Inhaber} auf Stadtglauben „{KonfessionTexte.StadtglaubeText(antrag.Glaube)}“";
+        if (ja is not { } stimme)
+        {
+            _stimmen.Remove(konto);
+            return Befehlsergebnis.Ok($"{konto.Inhaber} enthält sich bei der Abstimmung über {worum}.");
+        }
+        _stimmen[konto] = stimme;
+        return Befehlsergebnis.Ok($"{konto.Inhaber} stimmt {(stimme ? "für" : "gegen")} {worum}. Abgestimmt wird am Jahresende.");
+    }
+
+    /// <summary>Ein Haus scheidet aus dem Rat aus (Bankrott, Erbfall): sein Antrag und seine Stimme verfallen.</summary>
     internal void Ausscheiden(Konto konto)
     {
         if (Antrag?.Antragsteller == konto) Antrag = null;
+        _stimmen.Remove(konto);
     }
 
     /// <summary>In der Ratssitzung, nach dem Statut: Abstimmung über den Stadtglauben.</summary>
     internal void Abstimmen(int jahr, Action<string> protokoll)
     {
         if (Antrag is not { } antrag) return;
-        Antrag = null;
-        var (ja, nein, _, buergermeister) = AbstimmungsPrognose(antrag.Antragsteller, antrag.Glaube);
+        var (ja, nein, _, buergermeister) = AbstimmungsPrognose(antrag.Antragsteller, antrag.Glaube); // mit den festgelegten Stimmen
+        Antrag = null; // leert die Stimmen
         var angenommen = Stadtrat.IstAngenommen(ja, nein, buergermeister);
         protokoll($"Ratssitzung {jahr}: Antrag von {antrag.Antragsteller.Inhaber} auf Stadtglauben „{KonfessionTexte.StadtglaubeText(antrag.Glaube)}“ " +
                   $"{(angenommen ? "ANGENOMMEN" : "abgelehnt")} ({ja} dafür, {nein} dagegen{(ja == nein ? ", der Bürgermeister entscheidet" : "")}).");
@@ -468,6 +511,7 @@ public sealed class Glaubenswesen
         KonvertiertBis = _konvertiertBis.OrderBy(x => nr(x.Key)).ToDictionary(x => nr(x.Key).ToString(), x => x.Value),
         BekehrtIm = _bekehrtIm.OrderBy(x => nr(x.Key)).ToDictionary(x => nr(x.Key).ToString(), x => x.Value),
         AbgabenVorjahr = _abgabenVorjahr.OrderBy(x => nr(x.Key)).ToDictionary(x => nr(x.Key).ToString(), x => x.Value),
+        Stimmen = _stimmen.OrderBy(x => nr(x.Key)).ToDictionary(x => nr(x.Key).ToString(), x => x.Value),
     };
 
     internal void Wiederherstellen(GlaubeStand s, IReadOnlyList<Konto> konten)
@@ -476,7 +520,8 @@ public sealed class Glaubenswesen
         _anteile.Clear();
         foreach (var (k, v) in s.Anteile) _anteile[k] = v;
         Stadtglaube = s.Stadtglaube;
-        Antrag = s.AntragKonto is int ak ? (konten[ak], s.AntragGlaube) : null;
+        Antrag = s.AntragKonto is int ak ? (konten[ak], s.AntragGlaube) : null; // leert die Stimmen
+        foreach (var (k, v) in s.Stimmen) _stimmen[konten[int.Parse(k)]] = v;
         foreach (var (k, v) in s.KonvertiertBis) _konvertiertBis[konten[int.Parse(k)]] = v;
         foreach (var (k, v) in s.BekehrtIm) _bekehrtIm[konten[int.Parse(k)]] = v;
         foreach (var (k, v) in s.AbgabenVorjahr) _abgabenVorjahr[konten[int.Parse(k)]] = v;
