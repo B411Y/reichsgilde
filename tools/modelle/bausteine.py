@@ -644,10 +644,10 @@ def baugeruest(netz, st, x0, x1, y_innen, y_aussen, ebenen=(2.15, 4.25), hoehe_i
 def zaun(netz, st, punkte, hoehe=1.1, abstand=2.0, stoff="Holz alt"):
     """Bretterzaun entlang eines Linienzugs [(x, y), …]: Pfosten und zwei Latten je Abschnitt."""
     holz = st[stoff]
-    for (x0, y0), (x1, y1) in zip(punkte, punkte[1:]):
+    for i, ((x0, y0), (x1, y1)) in enumerate(zip(punkte, punkte[1:])):
         laenge = math.hypot(x1 - x0, y1 - y0)
         n = max(1, round(laenge / abstand))
-        for k in range(n + 1):
+        for k in range(0 if i == 0 else 1, n + 1):     # Eckpfosten nur einmal (doppelte Flächen flimmern)
             x, y = x0 + (x1 - x0) * k / n, y0 + (y1 - y0) * k / n
             netz.quader((x, y, hoehe / 2 + 0.05), (0.12, 0.12, hoehe + 0.1), holz)
         for z in (hoehe * 0.35, hoehe * 0.85):

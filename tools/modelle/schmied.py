@@ -162,7 +162,7 @@ def esse(netz, st, mitte, z_kopf, z_fuss, breite=1.0, tiefe=0.9):
     netz.vieleck([(x - breite / 2, y - tiefe / 2, z_kopf - 0.02), (x + breite / 2, y - tiefe / 2, z_kopf - 0.02),
                   (x + breite / 2, y + tiefe / 2, z_kopf - 0.02), (x - breite / 2, y + tiefe / 2, z_kopf - 0.02)], st["Glut"])
     for dx, dy, bx, by in ((0, -(tiefe - r) / 2, breite + 0.1, r), (0, (tiefe - r) / 2, breite + 0.1, r),
-                           (-(breite - r) / 2, 0, r, tiefe), ((breite - r) / 2, 0, r, tiefe)):
+                           (-(breite - r) / 2, 0, r, tiefe - 2 * r), ((breite - r) / 2, 0, r, tiefe - 2 * r)):
         netz.quader((x + dx, y + dy, z_kopf + 0.12), (bx, by, 0.28), st["Bruchstein"])
 
 
@@ -389,12 +389,16 @@ def hinterhaus(netz, st):
 def hofmauer(netz, st):
     """Goldschmiede: Hofmauer aus Bruchstein mit Torbogen statt des Bretterzauns."""
     stein = st["Bruchstein"]
-    for (x0, y0), (x1, y1) in (((7.7, AY1 + 0.2), (7.7, 6.7)), ((7.7, 6.7), (-7.7, 6.7)), ((-7.7, 6.7), (-7.7, Y1 + 0.3))):
+    # Abschnitte so, dass sich keine Flächen decken: die Rückmauer läuft durch, die Seiten enden davor,
+    # rechts lässt die Mauer Platz für das Tor
+    for (x0, y0), (x1, y1) in (((7.7, AY1 + 0.2), (7.7, 3.4)), ((7.7, 5.8), (7.7, 6.5)), ((7.9, 6.7), (-7.9, 6.7)),
+                               ((-7.7, 6.5), (-7.7, Y1 + 0.3))):
         laenge = math.hypot(x1 - x0, y1 - y0)
         mitte = Vector(((x0 + x1) / 2, (y0 + y1) / 2, 0.9))
         quer = abs(x1 - x0) > abs(y1 - y0)
-        netz.quader(mitte, (laenge + 0.4 if quer else 0.4, 0.4 if quer else laenge, 1.8), stein)
-        netz.quader(mitte + Vector((0, 0, 0.95)), (laenge + 0.5 if quer else 0.5, 0.5 if quer else laenge, 0.1), st["Sandstein"])
+        netz.quader(mitte, (laenge if quer else 0.4, 0.4 if quer else laenge, 1.8), stein)
+        netz.quader(mitte + Vector((0, 0, 0.97 if quer else 0.95)), (laenge + 0.1 if quer else 0.5, 0.5 if quer else laenge, 0.1),
+                    st["Sandstein"])                    # Rückmauer 2 cm höher: die Abdeckungen decken sich nicht
     # Torbogen in der rechten Mauer
     netz.quader((7.65, 4.6, 1.35), (0.45, 2.4, 2.7), stein)
     M = bs.wandmatrix((7.875, 4.6, 0), "rechts")
