@@ -77,7 +77,34 @@
 <rect x="46.5" y="46.5" width="7" height="7" fill="#4B5258" stroke="#1F2326" stroke-width="0.3"/>
 <rect x="-25" y="10" width="10" height="8" fill="#B58A5A" stroke="#1F2326" stroke-width="0.3"/>
 <circle cx="-20" cy="18" r="0.9" fill="#A3262A"/>
-<text x="-20" y="15" font-size="3" text-anchor="middle" fill="#1F2326">Weinmarkt</text>
+<text x="-20" y="15" font-size="3" text-anchor="middle" fill="#1F2326">Giesserei_am_Weinmarkt</text>
+<rect x="-25" y="10" width="10" height="8" fill="#B58A5A" stroke="#1F2326" stroke-width="0.3"/>
+<circle cx="-20" cy="18" r="0.9" fill="#A3262A"/>
+<text x="-20" y="15" font-size="3" text-anchor="middle" fill="#1F2326">Tischlerei_am_Weinmarkt</text>
+<rect x="-25" y="10" width="10" height="8" fill="#B58A5A" stroke="#1F2326" stroke-width="0.3"/>
+<circle cx="-20" cy="18" r="0.9" fill="#A3262A"/>
+<text x="-20" y="15" font-size="3" text-anchor="middle" fill="#1F2326">Maurerei_am_Weinmarkt</text>
+<rect x="-25" y="10" width="10" height="8" fill="#B58A5A" stroke="#1F2326" stroke-width="0.3"/>
+<circle cx="-20" cy="18" r="0.9" fill="#A3262A"/>
+<text x="-20" y="15" font-size="3" text-anchor="middle" fill="#1F2326">Tinkturei_am_Weinmarkt</text>
+<rect x="-25" y="10" width="10" height="8" fill="#B58A5A" stroke="#1F2326" stroke-width="0.3"/>
+<circle cx="-20" cy="18" r="0.9" fill="#A3262A"/>
+<text x="-20" y="15" font-size="3" text-anchor="middle" fill="#1F2326">Schaenke_am_Weinmarkt</text>
+<rect x="-25" y="10" width="10" height="8" fill="#B58A5A" stroke="#1F2326" stroke-width="0.3"/>
+<circle cx="-20" cy="18" r="0.9" fill="#A3262A"/>
+<text x="-20" y="15" font-size="3" text-anchor="middle" fill="#1F2326">Kirche_am_Weinmarkt</text>
+<rect x="-25" y="10" width="10" height="8" fill="#B58A5A" stroke="#1F2326" stroke-width="0.3"/>
+<circle cx="-20" cy="18" r="0.9" fill="#A3262A"/>
+<text x="-20" y="15" font-size="3" text-anchor="middle" fill="#1F2326">Schmugglerloch_am_Weinmarkt</text>
+<rect x="-25" y="10" width="10" height="8" fill="#B58A5A" stroke="#1F2326" stroke-width="0.3"/>
+<circle cx="-20" cy="18" r="0.9" fill="#A3262A"/>
+<text x="-20" y="15" font-size="3" text-anchor="middle" fill="#1F2326">Wachhaus_am_Weinmarkt</text>
+<rect x="-25" y="10" width="10" height="8" fill="#B58A5A" stroke="#1F2326" stroke-width="0.3"/>
+<circle cx="-20" cy="18" r="0.9" fill="#A3262A"/>
+<text x="-20" y="15" font-size="3" text-anchor="middle" fill="#1F2326">Wechselstube_am_Weinmarkt</text>
+<rect x="-25" y="10" width="10" height="8" fill="#B58A5A" stroke="#1F2326" stroke-width="0.3"/>
+<circle cx="-20" cy="18" r="0.9" fill="#A3262A"/>
+<text x="-20" y="15" font-size="3" text-anchor="middle" fill="#1F2326">Siederei_am_Weinmarkt</text>
 <rect x="13" y="12" width="10" height="8" fill="#B58A5A" stroke="#1F2326" stroke-width="0.3"/>
 <circle cx="18" cy="20" r="0.9" fill="#A3262A"/>
 <text x="18" y="17" font-size="3" text-anchor="middle" fill="#1F2326">Giesserei_Eisenbart</text>

@@ -666,25 +666,94 @@
    "drehung": 0
   },
   {
-   "kennung": "Weinmarkt",
+   "kennung": "Giesserei_am_Weinmarkt",
    "art": "werkstatt",
-   "name": "Weinmarkt (Startplatz je nach Beruf)",
+   "name": "Gießerei am Weinmarkt",
    "punkt": [-20.0, 14.0],
    "eingang": [-20.0, 18.0],
    "groesse": [10, 8],
-   "drehung": 0,
-   "liegenschaften": [
-    "Gießerei am Weinmarkt",
-    "Tischlerei am Weinmarkt",
-    "Maurerei am Weinmarkt",
-    "Tinkturei am Weinmarkt",
-    "Schänke am Weinmarkt",
-    "Kirche am Weinmarkt",
-    "Schmugglerloch am Weinmarkt",
-    "Wachhaus am Weinmarkt",
-    "Wechselstube am Weinmarkt",
-    "Siederei am Weinmarkt"
-   ]
+   "drehung": 0
+  },
+  {
+   "kennung": "Tischlerei_am_Weinmarkt",
+   "art": "werkstatt",
+   "name": "Tischlerei am Weinmarkt",
+   "punkt": [-20.0, 14.0],
+   "eingang": [-20.0, 18.0],
+   "groesse": [10, 8],
+   "drehung": 0
+  },
+  {
+   "kennung": "Maurerei_am_Weinmarkt",
+   "art": "werkstatt",
+   "name": "Maurerei am Weinmarkt",
+   "punkt": [-20.0, 14.0],
+   "eingang": [-20.0, 18.0],
+   "groesse": [10, 8],
+   "drehung": 0
+  },
+  {
+   "kennung": "Tinkturei_am_Weinmarkt",
+   "art": "werkstatt",
+   "name": "Tinkturei am Weinmarkt",
+   "punkt": [-20.0, 14.0],
+   "eingang": [-20.0, 18.0],
+   "groesse": [10, 8],
+   "drehung": 0
+  },
+  {
+   "kennung": "Schaenke_am_Weinmarkt",
+   "art": "werkstatt",
+   "name": "Schänke am Weinmarkt",
+   "punkt": [-20.0, 14.0],
+   "eingang": [-20.0, 18.0],
+   "groesse": [10, 8],
+   "drehung": 0
+  },
+  {
+   "kennung": "Kirche_am_Weinmarkt",
+   "art": "werkstatt",
+   "name": "Kirche am Weinmarkt",
+   "punkt": [-20.0, 14.0],
+   "eingang": [-20.0, 18.0],
+   "groesse": [10, 8],
+   "drehung": 0
+  },
+  {
+   "kennung": "Schmugglerloch_am_Weinmarkt",
+   "art": "werkstatt",
+   "name": "Schmugglerloch am Weinmarkt",
+   "punkt": [-20.0, 14.0],
+   "eingang": [-20.0, 18.0],
+   "groesse": [10, 8],
+   "drehung": 0
+  },
+  {
+   "kennung": "Wachhaus_am_Weinmarkt",
+   "art": "werkstatt",
+   "name": "Wachhaus am Weinmarkt",
+   "punkt": [-20.0, 14.0],
+   "eingang": [-20.0, 18.0],
+   "groesse": [10, 8],
+   "drehung": 0
+  },
+  {
+   "kennung": "Wechselstube_am_Weinmarkt",
+   "art": "werkstatt",
+   "name": "Wechselstube am Weinmarkt",
+   "punkt": [-20.0, 14.0],
+   "eingang": [-20.0, 18.0],
+   "groesse": [10, 8],
+   "drehung": 0
+  },
+  {
+   "kennung": "Siederei_am_Weinmarkt",
+   "art": "werkstatt",
+   "name": "Siederei am Weinmarkt",
+   "punkt": [-20.0, 14.0],
+   "eingang": [-20.0, 18.0],
+   "groesse": [10, 8],
+   "drehung": 0
   },
   {
    "kennung": "Giesserei_Eisenbart",
@@ -693,10 +762,7 @@
    "punkt": [18.0, 16.0],
    "eingang": [18.0, 20.0],
    "groesse": [10, 8],
-   "drehung": 0,
-   "liegenschaften": [
-    "Gießerei Eisenbart"
-   ]
+   "drehung": 0
   },
   {
    "kennung": "Giesserei_an_der_Suedgasse",
@@ -705,10 +771,7 @@
    "punkt": [2.0, 20.0],
    "eingang": [2.0, 24.0],
    "groesse": [10, 8],
-   "drehung": 0,
-   "liegenschaften": [
-    "Gießerei an der Südgasse"
-   ]
+   "drehung": 0
   },
   {
    "kennung": "Tischlerei_Eichwald",
@@ -717,10 +780,7 @@
    "punkt": [-14.0, 27.0],
    "eingang": [-14.0, 31.0],
    "groesse": [10, 8],
-   "drehung": 0,
-   "liegenschaften": [
-    "Tischlerei Eichwald"
-   ]
+   "drehung": 0
   },
   {
    "kennung": "Tischlerei_am_Holzmarkt",
@@ -729,10 +789,7 @@
    "punkt": [18.0, -7.0],
    "eingang": [18.0, -3.0],
    "groesse": [10, 8],
-   "drehung": 0,
-   "liegenschaften": [
-    "Tischlerei am Holzmarkt"
-   ]
+   "drehung": 0
   },
   {
    "kennung": "Maurerei_Kieselbach",
@@ -741,10 +798,7 @@
    "punkt": [25.0, -29.0],
    "eingang": [25.0, -25.0],
    "groesse": [10, 8],
-   "drehung": 0,
-   "liegenschaften": [
-    "Maurerei Kieselbach"
-   ]
+   "drehung": 0
   },
   {
    "kennung": "Maurerei_an_der_Stadtmauer",
@@ -753,10 +807,7 @@
    "punkt": [21.0, 29.0],
    "eingang": [21.0, 33.0],
    "groesse": [10, 8],
-   "drehung": 0,
-   "liegenschaften": [
-    "Maurerei an der Stadtmauer"
-   ]
+   "drehung": 0
   },
   {
    "kennung": "Tinkturei_am_Domplatz",
@@ -765,10 +816,7 @@
    "punkt": [-11.0, -31.0],
    "eingang": [-11.0, -27.0],
    "groesse": [10, 8],
-   "drehung": 0,
-   "liegenschaften": [
-    "Tinkturei am Domplatz"
-   ]
+   "drehung": 0
   },
   {
    "kennung": "Schaenke_am_Fischmarkt",
@@ -777,10 +825,7 @@
    "punkt": [-27.0, 28.0],
    "eingang": [-27.0, 32.0],
    "groesse": [10, 8],
-   "drehung": 0,
-   "liegenschaften": [
-    "Schänke am Fischmarkt"
-   ]
+   "drehung": 0
   },
   {
    "kennung": "Wachhaus_an_der_Torstrasse",
@@ -789,10 +834,7 @@
    "punkt": [29.0, 10.0],
    "eingang": [29.0, 14.0],
    "groesse": [10, 8],
-   "drehung": 0,
-   "liegenschaften": [
-    "Wachhaus an der Torstraße"
-   ]
+   "drehung": 0
   },
   {
    "kennung": "Wechselstube_am_Markt",
@@ -801,10 +843,7 @@
    "punkt": [14.0, -18.0],
    "eingang": [14.0, -14.0],
    "groesse": [10, 8],
-   "drehung": 0,
-   "liegenschaften": [
-    "Wechselstube am Markt"
-   ]
+   "drehung": 0
   },
   {
    "kennung": "Siederei_an_der_Seifengasse",
@@ -813,10 +852,7 @@
    "punkt": [-24.5, -29.0],
    "eingang": [-24.5, -25.0],
    "groesse": [10, 8],
-   "drehung": 0,
-   "liegenschaften": [
-    "Siederei an der Seifengasse"
-   ]
+   "drehung": 0
   },
   {
    "kennung": "Schmugglerloch_am_Osttor",
@@ -825,10 +861,7 @@
    "punkt": [29.0, -12.0],
    "eingang": [29.0, -8.0],
    "groesse": [10, 8],
-   "drehung": 0,
-   "liegenschaften": [
-    "Schmugglerloch am Osttor"
-   ]
+   "drehung": 0
   },
   {
    "kennung": "Kirche_an_der_Westmauer",
@@ -837,10 +870,7 @@
    "punkt": [-30.0, -4.0],
    "eingang": [-30.0, 0.0],
    "groesse": [10, 8],
-   "drehung": 0,
-   "liegenschaften": [
-    "Kirche an der Westmauer"
-   ]
+   "drehung": 0
   },
   {
    "kennung": "Steinbruch_Kieselbach",
@@ -849,10 +879,7 @@
    "punkt": [74.0, 66.0],
    "eingang": [74.0, 73.0],
    "groesse": [16, 14],
-   "drehung": 0,
-   "liegenschaften": [
-    "Steinbruch Kieselbach"
-   ]
+   "drehung": 0
   },
   {
    "kennung": "Steinbruch_am_Felsenhang",
@@ -861,10 +888,7 @@
    "punkt": [-6.0, -80.0],
    "eingang": [-6.0, -73.0],
    "groesse": [16, 14],
-   "drehung": 0,
-   "liegenschaften": [
-    "Steinbruch am Felsenhang"
-   ]
+   "drehung": 0
   },
   {
    "kennung": "Kraeutergarten_am_Bach",
@@ -873,10 +897,7 @@
    "punkt": [106.0, 70.0],
    "eingang": [106.0, 77.0],
    "groesse": [16, 14],
-   "drehung": 0,
-   "liegenschaften": [
-    "Kräutergarten am Bach"
-   ]
+   "drehung": 0
   },
   {
    "kennung": "Bauernhof_an_der_Muehle",
@@ -885,10 +906,7 @@
    "punkt": [124.0, -62.0],
    "eingang": [124.0, -54.0],
    "groesse": [20, 16],
-   "drehung": 0,
-   "liegenschaften": [
-    "Bauernhof an der Mühle"
-   ]
+   "drehung": 0
   },
   {
    "kennung": "Duftgarten_am_Lavendelhang",
@@ -897,10 +915,7 @@
    "punkt": [124.0, 8.0],
    "eingang": [124.0, 15.0],
    "groesse": [16, 14],
-   "drehung": 0,
-   "liegenschaften": [
-    "Duftgarten am Lavendelhang"
-   ]
+   "drehung": 0
   },
   {
    "kennung": "Wachturm_an_der_Landstrasse",
@@ -909,10 +924,7 @@
    "punkt": [80.0, -10.0],
    "eingang": [80.0, -8.0],
    "groesse": [4, 4],
-   "drehung": 0,
-   "liegenschaften": [
-    "Wachturm an der Landstraße"
-   ]
+   "drehung": 0
   },
   {
    "kennung": "Klosterhof_am_Osthang",
@@ -921,10 +933,7 @@
    "punkt": [134.0, 80.0],
    "eingang": [134.0, 88.0],
    "groesse": [18, 16],
-   "drehung": 0,
-   "liegenschaften": [
-    "Klosterhof am Osthang"
-   ]
+   "drehung": 0
   },
   {
    "kennung": "Grube_Eisenbart",
@@ -933,10 +942,7 @@
    "punkt": [102.0, -12.0],
    "eingang": [102.0, -5.0],
    "groesse": [16, 14],
-   "drehung": 0,
-   "liegenschaften": [
-    "Grube Eisenbart"
-   ]
+   "drehung": 0
   },
   {
    "kennung": "Grube_am_Silberberg",
@@ -945,10 +951,7 @@
    "punkt": [100.0, 32.0],
    "eingang": [100.0, 39.0],
    "groesse": [16, 14],
-   "drehung": 0,
-   "liegenschaften": [
-    "Grube am Silberberg"
-   ]
+   "drehung": 0
   },
   {
    "kennung": "Grube_im_Tannenwald",
@@ -957,10 +960,7 @@
    "punkt": [82.0, -66.0],
    "eingang": [82.0, -59.0],
    "groesse": [16, 14],
-   "drehung": 0,
-   "liegenschaften": [
-    "Grube im Tannenwald"
-   ]
+   "drehung": 0
   },
   {
    "kennung": "Holzschlag_Eichwald",
@@ -969,10 +969,7 @@
    "punkt": [-92.0, -30.0],
    "eingang": [-92.0, -23.0],
    "groesse": [16, 14],
-   "drehung": 0,
-   "liegenschaften": [
-    "Holzschlag Eichwald"
-   ]
+   "drehung": 0
   },
   {
    "kennung": "Holzschlag_im_Eichenforst",
@@ -981,10 +978,7 @@
    "punkt": [-94.0, 46.0],
    "eingang": [-94.0, 53.0],
    "groesse": [16, 14],
-   "drehung": 0,
-   "liegenschaften": [
-    "Holzschlag im Eichenforst"
-   ]
+   "drehung": 0
   },
   {
    "kennung": "StelleWeide",
@@ -1048,8 +1042,8 @@
   },
   {
    "kennung": "Wohnhaus1",
-   "art": "wohnhausplatz",
-   "name": "Wohnhausplatz 1",
+   "art": "wohnhaus",
+   "name": "Wohnhaus 1",
    "punkt": [0.0, -44.3],
    "eingang": [0.0, -40.3],
    "groesse": [17.0, 8.0],
@@ -1058,8 +1052,8 @@
   },
   {
    "kennung": "Wohnhaus2",
-   "art": "wohnhausplatz",
-   "name": "Wohnhausplatz 2",
+   "art": "wohnhaus",
+   "name": "Wohnhaus 2",
    "punkt": [0.0, 44.3],
    "eingang": [0.0, 40.3],
    "groesse": [17.0, 8.0],
@@ -1068,8 +1062,8 @@
   },
   {
    "kennung": "Wohnhaus3",
-   "art": "wohnhausplatz",
-   "name": "Wohnhausplatz 3",
+   "art": "wohnhaus",
+   "name": "Wohnhaus 3",
    "punkt": [-44.3, -9.0],
    "eingang": [-40.3, -9.0],
    "groesse": [17.0, 8.0],
@@ -1078,8 +1072,8 @@
   },
   {
    "kennung": "Wohnhaus4",
-   "art": "wohnhausplatz",
-   "name": "Wohnhausplatz 4",
+   "art": "wohnhaus",
+   "name": "Wohnhaus 4",
    "punkt": [44.3, -16.25],
    "eingang": [40.3, -16.25],
    "groesse": [17.0, 8.0],
@@ -1088,8 +1082,8 @@
   },
   {
    "kennung": "Wohnhaus5",
-   "art": "wohnhausplatz",
-   "name": "Wohnhausplatz 5",
+   "art": "wohnhaus",
+   "name": "Wohnhaus 5",
    "punkt": [44.3, 16.25],
    "eingang": [40.3, 16.25],
    "groesse": [17.0, 8.0],
@@ -1099,8 +1093,8 @@
   },
   {
    "kennung": "Wohnhaus6",
-   "art": "wohnhausplatz",
-   "name": "Wohnhausplatz 6",
+   "art": "wohnhaus",
+   "name": "Wohnhaus 6",
    "punkt": [-17.0, -44.3],
    "eingang": [-17.0, -40.3],
    "groesse": [17.0, 8.0],
@@ -1110,8 +1104,8 @@
   },
   {
    "kennung": "Wohnhaus7",
-   "art": "wohnhausplatz",
-   "name": "Wohnhausplatz 7",
+   "art": "wohnhaus",
+   "name": "Wohnhaus 7",
    "punkt": [-17.0, 44.3],
    "eingang": [-17.0, 40.3],
    "groesse": [17.0, 8.0],
@@ -1121,8 +1115,8 @@
   },
   {
    "kennung": "Wohnhaus8",
-   "art": "wohnhausplatz",
-   "name": "Wohnhausplatz 8",
+   "art": "wohnhaus",
+   "name": "Wohnhaus 8",
    "punkt": [17.0, -44.3],
    "eingang": [17.0, -40.3],
    "groesse": [17.0, 8.0],

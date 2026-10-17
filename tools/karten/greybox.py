@@ -244,14 +244,14 @@ for n, (ex, ez) in enumerate([(-R, -R), (R, -R), (-R, R), (R, R)], start=1):
 
 # Liegenschaften in der Stadt: eine Werkstatt je Platz; mehrere Namen auf einem Platz = je nach Startberuf (Weinmarkt)
 for p, namen in plaetze_stadt.items():
-    anzeige = platzname(namen) if len(namen) == 1 else "Weinmarkt (Startplatz je nach Beruf)"
-    gebaeude(kennung_von(platzname(namen)), "werkstatt", anzeige, p, list(WERKSTATT), liegenschaften=namen)
+    for name in namen:                       # ein Eintrag je Liegenschaft; `name` ist genau der Name aus dem Stadtplan
+        gebaeude(kennung_von(name), "werkstatt", name, p, list(WERKSTATT))
 
 # Umland: Gruben, Höfe, Gärten, Wachturm (nicht bebaubar, aber Gebäude der Stadtansicht)
 for name, p in STADTPLAN.items():
     if im_stadtgebiet(p):
         continue
-    gebaeude(kennung_von(name), "umland", name, p, umlandgroesse(name), liegenschaften=[name])
+    gebaeude(kennung_von(name), "umland", name, p, umlandgroesse(name))
     for anfang, betrieb in VORKOMMEN.items():
         if name.startswith(anfang):
             k.vorkommen(kennung_von(name), betrieb, p)
@@ -268,7 +268,7 @@ for n, (p, vorne) in enumerate([((10, -29), (0, 1)), ((-4, 29), (0, 1)), ((5, 29
 ANZAHL_HAEUSER = 8
 doppel, ring = doppelplaetze(ANZAHL_HAEUSER)
 for n, (mitte, vorne, _) in enumerate(doppel, start=1):
-    gebaeude(f"Wohnhaus{n}", "wohnhausplatz", f"Wohnhausplatz {n}", mitte, [2 * PLATZ_BREITE, PLATZ_TIEFE],
+    gebaeude(f"Wohnhaus{n}", "wohnhaus", f"Wohnhaus {n}", mitte, [2 * PLATZ_BREITE, PLATZ_TIEFE],
              drehung_von(vorne), reihenfolge=n, **({"haeuserAb": n} if n > 4 else {}))
 belegt = {i for _, _, nr in doppel for i in nr}
 
@@ -343,7 +343,7 @@ k.fiktion("Die Greybox hat keine Startgrundstücke, sondern Wohnhausplätze (Dop
 ABSTAND_STRASSE = 0.5      # Meter zwischen Zone und Straßenrand (Köln: 3,3 m ab Straßenmitte bei 6,5 m breiten Straßen)
 ABSTAND_FESTE = 2.0        # Meter zwischen Zone und festem Gebäude
 ABSTAND_MAUER = 2.0        # Meter zwischen Zone und Mauermitte (die Mauer ist 2 m dick)
-FRONT_MAX = 3.0            # Meter zwischen Vorderseite eines Gebäudes und Straßenrand (an der Zonengrenze: 0,5 m)
+STRASSENNAH = 7.0          # Eingangsregel des Kerns: mindestens 2 Felder der Vorplatzreihe höchstens 7 m von der Straßenmitte (wie kapazitaet.py)
 MIN_WERKSTAETTEN, MIN_WOHNHAEUSER, MIN_STADTHOEFE = 6, 8, 2
 
 
@@ -392,6 +392,14 @@ def vorderseite(x0, z0, x1, z1, drehung):
     return {0: ((x0, z1), (x1, z1)), 90: ((x1, z0), (x1, z1)), 180: ((x0, z0), (x1, z0)), 270: ((x0, z0), (x0, z1))}[drehung]
 
 
+def vorplatzreihe(x0, z0, x1, z1, drehung):
+    """Mittelpunkte der Rasterfelder in der Reihe an der Vorderseite (eine Feldtiefe = 2 m Vorplatz)."""
+    xs = [x0 + RASTER * (i + 0.5) for i in range(int((x1 - x0) // RASTER))]
+    zs = [z0 + RASTER * (j + 0.5) for j in range(int((z1 - z0) // RASTER))]
+    return {0: [(x, z1 - RASTER / 2) for x in xs], 180: [(x, z0 + RASTER / 2) for x in xs],
+            90: [(x1 - RASTER / 2, z) for z in zs], 270: [(x0 + RASTER / 2, z) for z in zs]}[drehung]
+
+
 def kapazitaet(karte):
     """Prüft Abstände und Überlappungen der Bauzonen und den Probeplan. Gibt (Fehler, Hinweise, SVG-Ebene) zurück."""
     d = karte.d
@@ -434,7 +442,7 @@ def kapazitaet(karte):
                 fehler.append(f"Zonen {a} und {b} überlappen")
 
     # 3. Probeplan: jedes Gebäude liegt ganz in seiner Zone, überlappt kein anderes und hat die Vorderseite an einer Straße
-    #    (Werkstatt und Stadthof an einer Karrenstraße, Wohnhaus an irgendeiner; höchstens FRONT_MAX m vom Straßenrand);
+    #    (Eingangsregel des Kerns: mindestens 2 Rasterfelder der Vorplatzreihe höchstens 7 m von der Mittellinie einer passenden Straße – Werkstatt und Stadthof Karrenstraße, Wohnhaus jede);
     #    ein Stadthof steht nur in Kern oder Mauerring
     belegt = {}
     je_zone = {kz: {} for kz in zonen}
@@ -460,10 +468,10 @@ def kapazitaet(karte):
             fehler.append(f"Probeplan Stadthof in {kz}: Zone ist {z['art']}, erlaubt sind nur Kern und Mauerring")
         vorn = vorderseite(x0, z0, x1, z1, drehung)
         wege = d["wege"] if art == "Wohnhaus" else karren
-        a = min(abstand_strecken(vorn[0], vorn[1], w["linie"][i], w["linie"][i + 1]) - w["breite"] / 2
-                for w in wege for i in range(len(w["linie"]) - 1))
-        if a > FRONT_MAX:
-            fehler.append(f"Probeplan {art} in {kz} ({x0:g}, {z0:g}): Vorderseite {a:.1f} m vom Straßenrand (höchstens {FRONT_MAX:g} m)")
+        reihe = vorplatzreihe(x0, z0, x1, z1, drehung)
+        nah = sum(1 for c in reihe if min(abstand_linie(c, w["linie"]) for w in wege) <= STRASSENNAH)
+        if nah < 2:
+            fehler.append(f"Probeplan {art} in {kz} ({x0:g}, {z0:g}): nur {nah} Felder der Vorplatzreihe höchstens {STRASSENNAH:g} m von der Straßenmitte (mindestens 2)")
         je_zone[kz][art] = je_zone[kz].get(art, 0) + 1
         ebene.append(f'<rect x="{x0:g}" y="{z0:g}" width="{wx:g}" height="{wz:g}" fill="{FARBE[art]}" opacity="0.75" '
                      f'stroke="#1F2326" stroke-width="0.3"/>')
@@ -485,7 +493,7 @@ def kapazitaet(karte):
 
     # 4. Wohnhausplätze: gleich weit vom Markt wie bei den Startgrundstücken (±10 %), Eingang an einem Weg –
     #    gilt für die ersten vier (heute spielenden) Häuser
-    plaetze = sorted((f for f in d["feste"] if f["art"] == "wohnhausplatz"), key=lambda f: f["reihenfolge"])
+    plaetze = sorted((f for f in d["feste"] if f["art"] == "wohnhaus"), key=lambda f: f["reihenfolge"])
     if len(plaetze) != ANZAHL_HAEUSER:
         fehler.append(f"{len(plaetze)} Wohnhausplätze statt {ANZAHL_HAEUSER}")
     abst = [abstand(f["punkt"], (0, 0)) for f in plaetze[:4]]

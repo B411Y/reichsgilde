@@ -140,7 +140,7 @@ python3 tools/karten/greybox.py    # Greybox-Stadt prüfen und neu schreiben
 | `haefen` | `name`, `kante` (Kaimauer als Linie), `anleger` (Punkte an der Kaimauer, dort liegen Schiffe), `kran` |
 | `uebergaenge` | `bruecke` oder `faehre` mit `von` und `bis` |
 | `bauzonen` | `kennung`, `art` (`kern`, `mauerring`, `vorstadt`, `umland`), `flaeche` auf dem Raster |
-| `feste` | `kennung`, `art` (`start`, `sonderbau`, `kirche`, `leerstand`; Greybox zusätzlich `werkstatt`, `umland`, `umlandstelle`, `turm`, `einwohnerhaus`, `einwohnerplatz`, `wohnhausplatz`), `name`, `punkt`; Startgrundstücke mit `eingang` und `groesse` [Breite, Tiefe] (24 × 14 m: Werkstatt und Wohnhaus nebeneinander). Die Greybox-Gebäude haben außerdem `drehung` (siehe unten) |
+| `feste` | `kennung`, `art` (`start`, `sonderbau`, `kirche`, `leerstand`; Greybox zusätzlich `werkstatt`, `umland`, `umlandstelle`, `turm`, `einwohnerhaus`, `einwohnerplatz`, `wohnhaus`), `name`, `punkt`; Startgrundstücke mit `eingang` und `groesse` [Breite, Tiefe] (24 × 14 m: Werkstatt und Wohnhaus nebeneinander). Die Greybox-Gebäude haben außerdem `drehung` (siehe unten) |
 | `vorkommen` | `kennung`, `betrieb` (`Mine`, `Steinbruch`, `Holzschlag`), `punkt` |
 | `fiktion` | Liste der Abweichungen von der Vorlage |
 | `gebaeude`, `probeplan` | nur Greybox: Schreibweise der Gebäudemaße und ein Plan, wie die geforderten Gebäude in die Bauzonen passen (siehe „Greybox-Karte“) |
@@ -164,16 +164,16 @@ python3 tools/karten/greybox.py    # Greybox-Stadt prüfen und neu schreiben
 
 **Koordinaten:** **Weltkoordinaten der Stadtansicht in Metern**, Godot x/z (x = Osten, z = Süden, Ursprung am Marktplatz), ohne Umrechnung. Punkte der Greybox stehen auf 5 cm genau (Köln: 0,5 m), nur die Bauzonen liegen auf dem 2-m-Raster.
 
-**Gebäude (`feste` mit `drehung`):** `punkt` ist die Mitte, `groesse` [Breite, Tiefe] in Metern, die Breite liegt an der Vorderseite. `drehung` ist der Winkel um die Hochachse wie Godot `Rotation.Y` in Grad: Die Vorderseite zeigt bei 0 nach +z (Süden), bei 90 nach +x (Osten), bei 180 nach −z (Norden), bei 270 nach −x (Westen). `eingang` ist die Mitte der Vorderseite. Bei 90 und 270 liegt die Tiefe auf der x-Achse und die Breite auf der z-Achse.
+**Gebäude (`feste` mit `drehung`):** `punkt` ist die Mitte, `groesse` [Breite, Tiefe] in Metern, die Breite liegt an der Vorderseite. `drehung` ist der Winkel um die Hochachse wie Godot `Rotation.Y` in Grad: Die Vorderseite zeigt bei 0 nach +z (Süden), bei 90 nach +x (Osten), bei 180 nach −z (Norden), bei 270 nach −x (Westen). `eingang` ist die Mitte der Vorderseite (der Kern nimmt daraus nur die Richtung). Der Kern zählt die Drehung in Vierteln (0 Süden, 1 Osten, 2 Norden, 3 Westen); die Datei schreibt Grad (Viertel × 90). Bei 90 und 270 liegt die Tiefe auf der x-Achse und die Breite auf der z-Achse.
 
 | Art in `feste` | Inhalt |
 |---|---|
 | `sonderbau`, `turm` | Marktplatz (24 × 24 m), Rathaus, Dom, Torhäuser, vier Ecktürme |
-| `werkstatt` | 14 Werkstattplätze der Stadt, je 10 × 8 m; `liegenschaften` nennt die Namen aus `wirtschaft.json` (auf dem Weinmarkt teilen sich zehn Berufe einen Platz) |
+| `werkstatt` | ein Eintrag je Liegenschaft in der Stadt, je 10 × 8 m; `name` ist **genau** der Name aus dem Stadtplan und aus `wirtschaft.json` (auf dem Weinmarkt teilen sich zehn Einträge einen Platz) |
 | `umland` | die 12 Gruben, Höfe, Gärten und der Wachturm vor der Stadt (Größen nach „Gebäudegrößen“); `vorkommen` führt zusätzlich die sieben Rohstoffplätze |
 | `umlandstelle` | Weide, Feld, Wald der Einwohner vor dem Westtor |
 | `einwohnerhaus`, `einwohnerplatz` | die vier alten Kulissenhäuser und die 36 Plätze für Einwohnerhäuser (16 am Ring, 20 in der Vorstadt) |
-| `wohnhausplatz` | die **Doppelplätze der Spielhäuser** am Ring (17 × 8 m), mit `reihenfolge` 1 bis 8: Konto 1 (Spieler) bekommt Platz 1 usw., so wie `SpielhausPlaetze` sie heute zuweist. Heute spielen höchstens 4 Häuser; Platz 5 bis 8 (`haeuserAb`) gelten erst bei mehr Konten, bis dahin stehen dort Einwohnerhäuser |
+| `wohnhaus` | die **Wohnhausplätze der Spielhäuser** (Doppelplätze am Ring, 17 × 8 m), in Konto-Reihenfolge, `reihenfolge` 1 bis 8: Konto 1 (Spieler) bekommt Platz 1 usw., so wie `SpielhausPlaetze` sie heute zuweist. Heute spielen höchstens 4 Häuser; Platz 5 bis 8 (`haeuserAb`) gelten erst bei mehr Konten, bis dahin stehen dort Einwohnerhäuser |
 
 **Straßen:** `haupt` (Ostgasse, Westgasse), `land` (Landstraße, Weststraße, Wege zu den Gruben und Höfen), `ring` (Ringgasse) sind Karrenstraßen; Gassen und Fußwege (Stichgassen, Vorstadtgasse, die 14 Gassen von den Werkstattplätzen zum Markt, Fußwege zu Weide, Feld, Wald) nicht. Die Breite steht in `breite` (3 bis 5 m, nicht 6,5 m wie in Köln).
 
@@ -183,7 +183,7 @@ python3 tools/karten/greybox.py    # Greybox-Stadt prüfen und neu schreiben
 
 **Probeplan** (`probeplan` in der Datei): Gebäude mit Zone, Mitte, Maßen und Drehung, die in die Zonen passen – 7 Plätze zu 16 × 14 m (davon 2 Stadthöfe in `M1`, 5 Werkstätten) und 8 Wohnhäuser zu 8 × 10 m. Er dient dem Kern als Testdaten und ist keine Vorgabe für Spieler.
 
-**Prüfungen** (`python3 tools/karten/greybox.py`, bricht bei einem Fehler ab): jede Zone auf dem Raster, ohne Überlappung mit einer anderen Zone, mit Abstand zu Gebäuden, Straßen und Mauer, höchstens 8 m von einer Karrenstraße; jedes Gebäude des Probeplans liegt ganz in seiner Zone, überlappt keines und hat die Vorderseite höchstens 3 m vom Straßenrand (Werkstatt und Stadthof an einer Karrenstraße); Stadthof nur in Kern oder Mauerring; Wohnhausplätze 1 bis 4 gleich weit vom Markt (44,3 / 44,3 / 45,2 / 47,2 m, ±10 %). Das Wegenetz hängt zusammen, Wege kreuzen die Mauer nur an den Toren.
+**Prüfungen** (`python3 tools/karten/greybox.py`, bricht bei einem Fehler ab): jede Zone auf dem Raster, ohne Überlappung mit einer anderen Zone, mit Abstand zu Gebäuden, Straßen und Mauer, höchstens 8 m von einer Karrenstraße; jedes Gebäude des Probeplans liegt ganz in seiner Zone, überlappt keines und erfüllt die Eingangsregel des Kerns (mindestens 2 Rasterfelder der Vorplatzreihe höchstens 7 m von der Straßenmitte; Werkstatt und Stadthof Karrenstraße, Wohnhaus jede Straße); Stadthof nur in Kern oder Mauerring; Wohnhäuser 1 bis 4 gleich weit vom Markt (44,3 / 44,3 / 45,2 / 47,2 m, ±10 %). Das Wegenetz hängt zusammen, Wege kreuzen die Mauer nur an den Toren.
 
 ## 10. Zuständigkeit
 

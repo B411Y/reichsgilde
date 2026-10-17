@@ -270,7 +270,7 @@ FARBEN = {
 }
 # Feste Gebäude mit Maßen und Drehung (Greybox-Karte): Füllfarbe je Art
 GEBAEUDEFARBEN = {"sonderbau": "#8E8F88", "werkstatt": "#B58A5A", "umland": "#C9B88A", "umlandstelle": "#B7C79A",
-                  "einwohnerhaus": "#9DB287", "einwohnerplatz": "#CFE0C0", "wohnhausplatz": "#A3262A", "turm": "#4B5258"}
+                  "einwohnerhaus": "#9DB287", "einwohnerplatz": "#CFE0C0", "wohnhaus": "#A3262A", "turm": "#4B5258"}
 STRICH = {"land": (2.0, "6 3", "#4B5258"), "haupt": (2.6, None, "#1F2326"), "ring": (2.2, None, "#1F2326"),
           "wall": (1.6, None, "#4B5258"), "gasse": (1.0, "3 2", "#4B5258"), "leinpfad": (0.8, "1 2", "#4E7A96")}
 
@@ -336,7 +336,7 @@ def vorschau(pfad):
                 o.append(f'<circle cx="{ex:g}" cy="{ez:g}" r="0.9" fill="{FARBEN["start"]}"/>')
             if f["art"] in ("sonderbau", "werkstatt"):
                 o.append(f'<text x="{x:g}" y="{z + 1:g}" font-size="3" text-anchor="middle" fill="{FARBEN["text"]}">{f["kennung"]}</text>')
-            elif f["art"] == "wohnhausplatz":
+            elif f["art"] == "wohnhaus":
                 o.append(f'<text x="{x:g}" y="{z + 1.5:g}" font-size="4" text-anchor="middle" fill="#fff" font-weight="bold">{f["kennung"]}</text>')
             continue
         if f["art"] == "start":
