@@ -79,8 +79,9 @@ public static class Partieaufbau
 
     /// <returns>Die Simulation und das Konto des Spielers.</returns>
     /// <param name="startzeit">Abweichender Startzeitpunkt (zum Testen); ohne Angabe Frühling 1400, 05:00.</param>
+    /// <param name="karte">Die Karte der Stadt (game/data/karten/…): Wohnhausplätze in Konto-Reihenfolge, Bauzonen. Ohne Karte wird nicht gebaut.</param>
     public static (Simulation Simulation, Konto Spieler) Erstellen(Partieeinstellungen einstellungen, Wirtschaftsdaten daten, NeuePartie neu,
-        Spielzeit? startzeit = null)
+        Spielzeit? startzeit = null, Bauen.Stadtkarte? karte = null)
     {
         var name = Hausname(neu.Familienname);
         if (Rivalennamen.Contains(name))
@@ -95,6 +96,7 @@ public static class Partieaufbau
 
         var simulation = new Simulation(einstellungen, startzeit, daten);
         var w = simulation.Wirtschaft!;
+        if (karte is not null) w.KarteSetzen(karte);
 
         if (neu.Volk is Volk.Ork or Volk.Oger)
             throw new ArgumentException("Orks und Oger sind nicht spielbar.");

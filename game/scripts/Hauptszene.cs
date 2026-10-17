@@ -1,5 +1,6 @@
 using Godot;
 using Reichsgilde.Core;
+using Reichsgilde.Core.Bauen;
 using Reichsgilde.Core.Partie;
 using Reichsgilde.Core.Speichern;
 using Reichsgilde.Core.Wirtschaft;
@@ -21,6 +22,15 @@ namespace Reichsgilde;
 ///   --tempo=8          Anfangstempo
 ///   --auswahl=Dom      Gebäude vorauswählen (Kennung wie beim Anklicken)
 ///   --drehung=1        Kamera um 1–3 Vierteldrehungen gedreht starten (0 = Blick nach Nordosten)
+///   --blick=0,0,120    Kamera auf einen Punkt der Stadt (x,z in Metern) und optional auf eine Zoomstufe stellen
+///   --ui=0             Tafeln und Fenster ausblenden (freie Sicht für Bildschirmfotos)
+///   --aufsteigen=1     das Wohnhaus zum Bürgerhaus ausbauen und zum Bürger aufsteigen (nötig, um Werkstätten zu bauen; mit --vermoegen=30000)
+///   --spulen=1020      so viele Spielminuten auf einen Schlag ablaufen lassen (1020 = ein Spieljahr; nach einem --bauklick)
+///   --speichern=x.json die Partie nach --bauklick und --spulen in den Spielstand-Ordner speichern (für Tests mit --laden)
+///   --bauen=1          den Baumodus öffnen (=wohnhaus:2 oder =werkstatt:Tischlerei wählt gleich das Gebäude)
+///   --bauort=-96,-3,0  mit --bauen=<Gebäude>: der Umriss sitzt an dieser Stelle (x,z in Metern, Drehung 0–3), bis die Maus bewegt wird
+///   --bauklick=1       mit --bauort: die Rückfrage öffnen (=2: gleich bauen; auch bei --leerstand: gleich kaufen bzw. abreißen)
+///   --leerstand=kaufen mit --auswahl=wohnhaus:<Inhaber>: die Rückfrage zum Kauf des leeren Hauses öffnen (=abreissen: zum Abriss; Leerzeichen als _)
 ///   --innen=1          direkt in der Innenansicht der eigenen Werkstatt starten (--innen=Rathaus, --innen=Dom bzw. --innen=wohnhaus:<Inhaber>: dort)
 ///   --raum=2           mit --innen: gleich im zweiten Raum der Raumleiste (Werkstatt: 1 Werkraum, 2 Lager; Wohnhaus: 1 Wohnstube, 2 Kontor)
 ///   --verwalten=1      das Bedienfeld der eigenen Gießerei gleich öffnen
@@ -66,6 +76,20 @@ public partial class Hauptszene : Node
     private GaunerAnzeige _hinterzimmer = null!;
     private MarktAnzeige _markt = null!;
     private VerkaufAnzeige _verkauf = null!;
+    private BauAnzeige _bau = null!;
+    private BauRueckfrage _bauFrage = null!;
+    private Button _leerstandKaufen = null!;
+    private Button _leerstandAbreissen = null!;
+    /// <summary>Das leere Wohnhaus, zu dem gerade die Rückfrage offen ist – nach dem Kauf zeigt die Auswahl seine Baustelle.</summary>
+    private Grundstueck? _leerstandZiel;
+    /// <summary>Startoption --bauklick: 1 = Rückfrage öffnen, 2 = gleich bauen – sobald der Umriss steht.</summary>
+    private int _bauAutoKlick;
+    /// <summary>Startoption --spulen: So viele Spielminuten (Ticks) auf einen Schlag ablaufen lassen, sobald nichts mehr zu klicken bleibt.</summary>
+    private int _spulen;
+    /// <summary>Startoption --innen=betrieb:<Name> für eine Werkstatt, die erst durch --bauklick und --spulen entsteht.</summary>
+    private string? _innenWartet;
+    /// <summary>Startoption --speichern=x.json: Nach --bauklick und --spulen wird die Partie unter diesem Namen gespeichert.</summary>
+    private string? _speichernAls;
     private Button _gerichtKnopf = null!;
     private Button _ratKnopf = null!;
     private Konto? _spieler;
@@ -122,6 +146,10 @@ public partial class Hauptszene : Node
         ratMitte.AddChild(_markt);
         _verkauf = new VerkaufAnzeige();
         ratMitte.AddChild(_verkauf);
+        _bauFrage = new BauRueckfrage();
+        ratMitte.AddChild(_bauFrage);
+        _bau = new BauAnzeige();
+        GetNode<CanvasLayer>("Oberflaeche").AddChild(_bau); // rechts, anstelle des Kontors
         _gerichtKnopf = GetNode<Button>("%GerichtKnopf");
         // Der Bericht sitzt in einem CenterContainer: Der hält ihn mittig, egal wie hoch er wird.
         var berichtMitte = Hauptmenue.Mitte();
@@ -154,6 +182,7 @@ public partial class Hauptszene : Node
         foreach (var tafel in new[] { _tafel, _kontor, _auswahl })
             Rollbereich.Einhuellen(tafel);
         RaumleisteBauen();
+        LeerstandKnoepfeBauen();
 
         var optionen = Startoptionen();
         _simulation = SimulationAufbauen(optionen);
@@ -167,6 +196,26 @@ public partial class Hauptszene : Node
         _kontor.HinterzimmerGewuenscht += () => { TafelnSchliessen(); _hinterzimmer.Oeffnen(); };
         _hinterzimmer.Gemeldet += Protokollieren;
         _kontor.MarktGewuenscht += MarktOeffnen;
+        _kontor.BauenGewuenscht += BauenOeffnen;
+        _bau.Geschlossen += () => { _bauFrage.Hide(); AuswahlAnzeigen(); };
+        _stadt.BauPlatzGewaehlt += befehl =>
+        {
+            _stadt.BauFest = true; // der Umriss bleibt stehen, bis die Rückfrage beantwortet ist
+            _bauFrage.OeffnenNeubau(befehl);
+        };
+        _stadt.BauAbgebrochen += _bau.Zurueck;
+        _bauFrage.Gemeldet += Protokollieren;
+        _bauFrage.Abgebrochen += () => _stadt.BauFest = false;
+        _bauFrage.Beauftragt += neubau =>
+        {
+            if (neubau) _bau.Schliessen();
+            if (_simulation.Wirtschaft is not { } wirtschaft || _spieler is null) return;
+            // Die Auswahl zeigt jetzt die Baustelle (Neubau) bzw. die des gekauften Leerstands
+            var baustelle = neubau
+                ? wirtschaft.Bauen.Grundstuecke.LastOrDefault(g => g.Besitzer == _spieler && g.Arbeit == Bauarbeit.Neubau)
+                : _leerstandZiel;
+            if (baustelle is not null) _auswahlKennung = Stadtansicht.BaustellenKennung(baustelle);
+        };
 
         _pauseKnopf.Pressed += PauseUmschalten;
         foreach (var tempo in Taktgeber.AlleTempostufen /* TESTTEMPO */)
@@ -254,9 +303,17 @@ public partial class Hauptszene : Node
         _kontor.Gemeldet += Protokollieren;
         _kontor.VerwaltenGewuenscht += betrieb => { _auswahlKennung = Stadtansicht.BetriebsKennung(betrieb); AuswahlAnzeigen(); };
         if (optionen.TryGetValue("auswahl", out var vorauswahl))
-            _auswahlKennung = vorauswahl;
+            _auswahlKennung = vorauswahl.Replace('_', ' '); // Leerzeichen in Namen als _ (--auswahl=wohnhaus:Haus_Eisenbart)
         if (optionen.TryGetValue("drehung", out var d) && int.TryParse(d, out var drehung))
             _stadt.Drehen(drehung, sofort: true);
+        if (optionen.TryGetValue("blick", out var blick)) // --blick=x,z[,zoom]: Kamera auf einen Punkt der Stadt (Meter) stellen
+        {
+            var teile = blick.Split(',').Select(t => float.TryParse(t, System.Globalization.CultureInfo.InvariantCulture, out var f) ? f : float.NaN).ToArray();
+            if (teile.Length >= 2 && !float.IsNaN(teile[0]) && !float.IsNaN(teile[1]))
+                _stadt.KameraSetzen(teile[0], teile[1], teile.Length >= 3 && !float.IsNaN(teile[2]) ? teile[2] : null);
+        }
+        if (optionen.TryGetValue("ui", out var ui) && ui == "0")
+            GetNode<CanvasLayer>("Oberflaeche").Visible = false; // freie Sicht auf die Stadt für Bildschirmfotos
         if (optionen.TryGetValue("verwalten", out var verwalten) && verwalten == "1" && _eigeneGiesserei is not null)
             _auswahlKennung = Stadtansicht.BetriebsKennung(_eigeneGiesserei);
         if (optionen.TryGetValue("rat", out var rat) && rat == "1")
@@ -275,6 +332,24 @@ public partial class Hauptszene : Node
             _auswahlKennung = Stadtansicht.BetriebsKennung(werkstatt);
             _verkauf.Oeffnen(werkstatt);
         }
+        if (optionen.TryGetValue("aufsteigen", out var aufsteigen) && aufsteigen == "1") AufsteigenVorbereiten();
+        if (optionen.TryGetValue("bauen", out var bauen) && bauen != "0" && _spieler is not null)
+            BauenStarten(bauen, optionen);
+        if (optionen.TryGetValue("leerstand", out var leerstand) && leerstand is "kaufen" or "abreissen"
+            && _simulation.Wirtschaft is { } wLeer && _spieler is not null && LeerstandKonto(wLeer) is { } leerKonto)
+        {
+            _leerstandZiel = wLeer.Bauen.Leerstand(leerKonto);
+            if (optionen.GetValueOrDefault("bauklick") == "2") // gleich kaufen bzw. abreißen lassen, ohne Rückfrage
+            {
+                Befehl befehl = leerstand == "abreissen" ? new LeerstandAbreissen(leerKonto.Inhaber) : new LeerstandKaufen(leerKonto.Inhaber);
+                var ergebnis = wLeer.Ausfuehren(_spieler, befehl);
+                Protokollieren(ergebnis.Erfolg ? ergebnis.Meldung : "✗ " + ergebnis.Meldung);
+                if (ergebnis.Erfolg && _leerstandZiel is not null) _auswahlKennung = Stadtansicht.BaustellenKennung(_leerstandZiel);
+            }
+            else _bauFrage.OeffnenLeerstand(leerKonto, leerstand == "abreissen"); // mit --auswahl=wohnhaus:<Inhaber>, Leerzeichen als _
+        }
+        if (optionen.TryGetValue("spulen", out var spulen) && int.TryParse(spulen, out var ticks)) _spulen = ticks;
+        if (optionen.TryGetValue("speichern", out var speichern)) _speichernAls = speichern;
         if (optionen.TryGetValue("einstellungen", out var einstellungen) && einstellungen == "1")
         {
             SpielmenueOeffnen();
@@ -287,7 +362,7 @@ public partial class Hauptszene : Node
         if (optionen.TryGetValue("innen", out var innen))
         {
             if (innen == "1" && _eigeneGiesserei is not null) _stadt.InnenansichtBetreten(_eigeneGiesserei);
-            else if (innen != "1") _stadt.InnenansichtBetreten(innen); // Rathaus oder Dom
+            else if (innen != "1" && !_stadt.InnenansichtBetreten(innen)) _innenWartet = innen; // Rathaus oder Dom; ein Betrieb, den es noch nicht gibt (--bauklick), kommt später
             if (optionen.TryGetValue("raum", out var raum) && int.TryParse(raum, out var raumNummer))
                 _stadt.RaumWaehlen(raumNummer - 1); // --raum=2: zweiter Raum der Leiste
         }
@@ -306,6 +381,7 @@ public partial class Hauptszene : Node
         _hinterzimmer.Hide();
         _markt.Hide();
         _verkauf.Hide();
+        if (_bauFrage.Visible) _bauFrage.Zurueck(); // der Umriss der Platzwahl wird wieder frei
     }
 
     /// <summary>
@@ -330,6 +406,19 @@ public partial class Hauptszene : Node
         if (gekauft) return;
         w.Ausfuehren(_spieler, new StandErwerben());
         if (!Kaufen()) Protokollieren("--verkaufen=2: Keine freie Liegenschaft zu haben – mehr Vermögen mit --vermoegen=20000.");
+    }
+
+    /// <summary>
+    /// Nur für den Klicktest (--aufsteigen=1): Der Spieler baut sein Wohnhaus zum Bürgerhaus aus und steigt zum Bürger auf –
+    /// erst dann darf er Werkstätten bauen. Alles mit den gewöhnlichen Befehlen (dafür braucht es Geld: --vermoegen=30000).
+    /// </summary>
+    private void AufsteigenVorbereiten()
+    {
+        if (_simulation.Wirtschaft is not { } w || _spieler is null) return;
+        w.Ausfuehren(_spieler, new WohnhausAusbauen());
+        for (var i = 0; i < 245 && !_simulation.IstBeendet; i++) _simulation.Tick(); // der Umbau dauert 4 Stunden
+        var ergebnis = w.Ausfuehren(_spieler, new StandErwerben());
+        if (!ergebnis.Erfolg) Protokollieren("--aufsteigen=1: " + ergebnis.Meldung + " (mehr Vermögen mit --vermoegen=30000)");
     }
 
     private void MarktOeffnen()
@@ -395,7 +484,8 @@ public partial class Hauptszene : Node
 
         var (simulation, spieler) = Partieaufbau.Erstellen(einstellungen ?? Partieeinstellungen.Standard, daten,
             neu ?? new NeuePartie(Startvermoegen: startvermoegen, Beruf: optionen.GetValueOrDefault("beruf", "Schmied"),
-                Glaube: optionen.TryGetValue("glaube", out var g) && Enum.TryParse<Reichsgilde.Core.Glaube.Konfession>(g, true, out var konfession) ? konfession : null), start);
+                Glaube: optionen.TryGetValue("glaube", out var g) && Enum.TryParse<Reichsgilde.Core.Glaube.Konfession>(g, true, out var konfession) ? konfession : null),
+            start, Stadtkarten.Greybox);
         SimulationVerbinden(simulation, spieler);
         return simulation;
     }
@@ -541,6 +631,8 @@ public partial class Hauptszene : Node
         // Um 20 Uhr schlagen die Banden zu – ein offenes Hinterzimmer zeigt sofort, was geschah.
         w.Gauner.NachtVorbei += () => { if (_hinterzimmer.Visible) _hinterzimmer.Aufbauen(); };
         _verwaltung.Verbinden(simulation, spieler);
+        _bauFrage.Verbinden(simulation, spieler);
+        _bau.Verbinden(simulation, spieler, _stadt);
         // Die Stadtansicht stellt jeden Betrieb an seinen Platz im Stadtplan und zeigt die freien Plätze.
         _stadt.Verbinden(simulation, spieler);
         w.BetriebErworben += betrieb =>
@@ -576,9 +668,22 @@ public partial class Hauptszene : Node
     public override void _Process(double delta)
     {
         _simulation.Aktualisieren(delta);
+        if (_spulen > 0 && _bauAutoKlick == 0) // Klicktest: Zeit überspringen (z. B. eine Bauzeit)
+        {
+            var ticks = _spulen;
+            _spulen = 0;
+            for (var i = 0; i < ticks && !_simulation.IstBeendet; i++) _simulation.Tick();
+        }
+        if (_speichernAls is not null && _bauAutoKlick == 0 && _spulen == 0 && _spieler is not null)
+        {
+            Protokollieren(Spielstaende.Speichern(_simulation, _spieler, _speichernAls).Meldung); // Spielstand für Tests ablegen
+            _speichernAls = null;
+        }
+        if (_innenWartet is not null && _bauAutoKlick == 0 && _spulen == 0 && _stadt.InnenansichtBetreten(_innenWartet)) _innenWartet = null;
         Anzeigen();
         _stadt.Auswahl = _auswahl.Visible ? _auswahlKennung : null; // Name des ausgewählten Gebäudes bleibt sichtbar
         _stadt.Aktualisieren(delta);
+        BauAutoKlickPruefen();
         if (_auswahlKennung is not null) AuswahlAnzeigen();
     }
 
@@ -589,6 +694,10 @@ public partial class Hauptszene : Node
         {
             // Esc geht einen Schritt zurück: Innenansicht verlassen → Auswahl schließen → Spielmenü auf/zu.
             if (_jahresbericht.Visible) { /* der Bericht wird mit „Weiter" geschlossen */ }
+            else if (_bauFrage.Visible)
+                _bauFrage.Zurueck();
+            else if (_bau.Aktiv)
+                _bau.Zurueck();
             else if (_ratskammer.Visible)
                 _ratskammer.Hide();
             else if (_familientafel.Visible)
@@ -784,6 +893,14 @@ public partial class Hauptszene : Node
         if (_auswahlKennung is null || _simulation.Wirtschaft is not { } w)
             return;
 
+        // Eine Baustelle, die fertig wird, wird zum Haus bzw. zur Werkstatt: Die Auswahl folgt ihr (ein verschwundener Bauplatz schließt sie).
+        if (_auswahlKennung.StartsWith("baustelle:") || _auswahlKennung.StartsWith("bauplatz:"))
+        {
+            var folgekennung = _stadt.KennungNachBau(_auswahlKennung);
+            if (folgekennung is null) { AuswahlSchliessen(); return; }
+            _auswahlKennung = folgekennung;
+        }
+
         var betrieb = AusgewaehlterBetrieb();
         _verwaltung.Zeigen(betrieb); // nur bei eigenen Betrieben sichtbar
         _innenKnopf.Visible = _stadt.HatInnenansicht(_auswahlKennung);
@@ -804,15 +921,157 @@ public partial class Hauptszene : Node
             "Osttor" => "Osttor\n\nHier endet der Schutz der Mauern. Auf dem Weg ins Umland lauern Banditen aller Völker, "
                         + "wilde Ork-Rotten und Ogerhorden – nachts doppelt so häufig.",
             _ when _stadt.EinwohnerText(_auswahlKennung) is { } einwohner => einwohner, // Passanten (Darstellung)
-            _ when _stadt.WohnhausText(_auswahlKennung) is { } wohnhaus => wohnhaus, // Wohnhaus eines Spielhauses (Darstellung)
+            _ when _stadt.WohnhausText(_auswahlKennung) is { } wohnhaus => wohnhaus + LeerstandZusatz(w), // Wohnhaus eines Spielhauses (Darstellung)
+            _ when _stadt.GrundstueckText(_auswahlKennung) is { } grundstueck => grundstueck, // Baustelle oder Bauplatz (Darstellung)
             _ => _auswahlKennung,
         };
         AktionKnopfAnzeigen(w, frei);
+        LeerstandKnoepfeAnzeigen(w);
         var ratSichtbar = _auswahlKennung == "Rathaus" && w.Rat.IstAktiv;
         if (_ratKnopf.Visible != ratSichtbar) _ratKnopf.Visible = ratSichtbar; // nur bei Änderung setzen (siehe AktionKnopfAnzeigen)
         var gerichtSichtbar = _auswahlKennung == "Rathaus" && w.Justiz.IstAktiv;
         if (_gerichtKnopf.Visible != gerichtSichtbar) _gerichtKnopf.Visible = gerichtSichtbar;
         if (_auswahl.Visible != AuswahlImRaum) _auswahl.Visible = AuswahlImRaum;
+    }
+
+    // ═════════════════════════════════════════════════════════════════════════
+    //  Bauen und Leerstand
+    // ═════════════════════════════════════════════════════════════════════════
+
+    /// <summary>Der Baumodus: Bauzonen zeigen, Gebäude wählen, Platz bestimmen (<see cref="BauAnzeige"/>).</summary>
+    private void BauenOeffnen()
+    {
+        if (_simulation.Wirtschaft?.Bauen.IstAktiv != true)
+        {
+            Protokollieren("✗ In dieser Stadt wird nicht gebaut (keine Karte geladen).");
+            return;
+        }
+        TafelnSchliessen();
+        _bau.Oeffnen();
+    }
+
+    /// <summary>
+    /// Startoption <c>--bauen</c>: =1 öffnet den Baumodus, =wohnhaus:2 bzw. =werkstatt:Tischlerei wählt gleich das Gebäude.
+    /// Mit <c>--bauort=x,z,drehung</c> sitzt der Umriss an dieser Weltstelle (bis die Maus bewegt wird), mit <c>--bauklick=1</c> öffnet sich
+    /// dort die Rückfrage, mit <c>--bauklick=2</c> wird gleich gebaut.
+    /// </summary>
+    private void BauenStarten(string wahl, Dictionary<string, string> optionen)
+    {
+        BauenOeffnen();
+        if (wahl == "1" || !_bau.Aktiv) return;
+        var teile = wahl.Split(':', 2);
+        Func<double, double, int, BauBefehl>? erzeuger = null;
+        if (teile.Length == 2 && teile[0] == "wohnhaus" && int.TryParse(teile[1], out var stufe))
+            erzeuger = (x, z, d) => new WohnhausBauen(stufe, x, z, d);
+        else if (teile.Length == 2 && teile[0] == "werkstatt" && Enum.TryParse<Betriebsart>(teile[1], true, out var art))
+            erzeuger = (x, z, d) => new WerkstattBauen(art, x, z, d);
+        if (erzeuger is null)
+        {
+            Protokollieren($"--bauen={wahl}: gemeint ist 1, wohnhaus:<Stufe 0–4> oder werkstatt:<Betriebsart>.");
+            return;
+        }
+        _bau.Waehlen(wahl, erzeuger);
+        if (optionen.TryGetValue("bauort", out var ort))
+        {
+            var zahlen = ort.Split(',').Select(t => double.TryParse(t, System.Globalization.CultureInfo.InvariantCulture, out var f) ? f : double.NaN).ToArray();
+            if (zahlen.Length >= 2 && !double.IsNaN(zahlen[0]) && !double.IsNaN(zahlen[1]))
+            {
+                _stadt.BauOrtSetzen(zahlen[0], zahlen[1]);
+                if (zahlen.Length >= 3 && !double.IsNaN(zahlen[2])) _stadt.BauDrehung = ((int)zahlen[2] % 4 + 4) % 4;
+            }
+        }
+        if (optionen.TryGetValue("bauklick", out var klick) && int.TryParse(klick, out var art2)) _bauAutoKlick = art2;
+    }
+
+    /// <summary>Nur für den Klicktest (--bauklick): Sobald der Umriss steht und grün ist, die Rückfrage öffnen oder gleich bauen.</summary>
+    private void BauAutoKlickPruefen()
+    {
+        if (_bauAutoKlick == 0 || _stadt.BauAuftrag is not { } befehl || _simulation.Wirtschaft is not { } w || _spieler is null) return;
+        var modus = _bauAutoKlick;
+        _bauAutoKlick = 0;
+        if (_stadt.BauGrund is { } grund) { Protokollieren($"--bauklick: Hier kann nicht gebaut werden – {grund}"); return; }
+        if (modus == 1)
+        {
+            _stadt.BauFest = true;
+            _bauFrage.OeffnenNeubau(befehl);
+            return;
+        }
+        var ergebnis = w.Ausfuehren(_spieler, befehl);
+        Protokollieren(ergebnis.Erfolg ? ergebnis.Meldung : "✗ " + ergebnis.Meldung);
+        if (!ergebnis.Erfolg) return;
+        _bau.Schliessen();
+        if (w.Bauen.Grundstuecke.LastOrDefault(g => g.Besitzer == _spieler && g.Arbeit == Bauarbeit.Neubau) is { } baustelle)
+            _auswahlKennung = Stadtansicht.BaustellenKennung(baustelle);
+    }
+
+    /// <summary>Zwei Knöpfe unter dem Gebäudefenster, wenn ein leeres Wohnhaus gewählt ist: „Kaufen" und „Abreißen" (je mit Rückfrage).</summary>
+    private void LeerstandKnoepfeBauen()
+    {
+        var spalte = _aktionKnopf.GetParent();
+        var stelle = _aktionKnopf.GetIndex() + 1;
+        Button Neu(bool abreissen)
+        {
+            var knopf = new Button { FocusMode = Control.FocusModeEnum.None, Visible = false };
+            knopf.Pressed += () =>
+            {
+                if (_simulation.Wirtschaft is not { } w || LeerstandKonto(w) is not { } leer) return;
+                _leerstandZiel = w.Bauen.Leerstand(leer);
+                TafelnSchliessen();
+                _bauFrage.OeffnenLeerstand(leer, abreissen);
+            };
+            spalte.AddChild(knopf);
+            spalte.MoveChild(knopf, stelle + (abreissen ? 1 : 0));
+            return knopf;
+        }
+        _leerstandKaufen = Neu(false);
+        _leerstandAbreissen = Neu(true);
+    }
+
+    /// <summary>Das leere Wohnhaus, das gerade ausgewählt ist (null: die Auswahl ist keines).</summary>
+    private Konto? LeerstandKonto(Stadtwirtschaft w) =>
+        _auswahlKennung is { } kennung && kennung.StartsWith("wohnhaus:")
+            ? w.Konten.FirstOrDefault(k => Stadtansicht.WohnhausKennung(k) == kennung && w.Bauen.Leerstand(k) is not null)
+            : null;
+
+    /// <summary>Preise für Kauf und Abriss unter dem Text eines leeren Hauses – dieselbe Rechnung wie in der Rückfrage.</summary>
+    private string LeerstandZusatz(Stadtwirtschaft w)
+    {
+        if (_spieler is null || LeerstandKonto(w) is not { } leer) return "";
+        var v = w.Bauen.LeerstandVorschau(_spieler, leer);
+        var waehrung = w.Daten.Allgemein.Waehrung;
+        var zeilen = new List<string>
+        {
+            "",
+            $"Kaufen: {Zahlenformat.Ganz(v.KaufSumme)} {waehrung} (Kauf {Zahlenformat.Ganz(v.Kaufpreis)} + Sanierung {Zahlenformat.Ganz(v.Sanierung)}{(v.Anrechnung > 0.5 ? $" − euer Haus {Zahlenformat.Ganz(v.Anrechnung)}" : "")}), "
+                + $"{BauAnzeige.BauzeitText(v.SanierungMinuten)}, dann zieht ihr ein.",
+            $"Abreißen: {Zahlenformat.Ganz(v.AbrissSumme)} {waehrung} (Kauf {Zahlenformat.Ganz(v.Kaufpreis)} + Abriss {Zahlenformat.Ganz(v.Abriss)}), "
+                + $"{BauAnzeige.BauzeitText(v.AbrissMinuten)}, danach freier Bauplatz.",
+        };
+        if (v.KaufVerboten is { } kauf) zeilen.Add($"⚠ Kaufen: {kauf}");
+        if (v.AbrissVerboten is { } abriss) zeilen.Add($"⚠ Abreißen: {abriss}");
+        return "\n" + string.Join("\n", zeilen);
+    }
+
+    /// <summary>Zeigt die Knöpfe „Kaufen" und „Abreißen" nur bei einem leeren Wohnhaus; gesperrt mit Grund im Tooltip, wenn es nicht geht.</summary>
+    private void LeerstandKnoepfeAnzeigen(Stadtwirtschaft w)
+    {
+        // Nur bei Änderung zuweisen (wie beim Aktionsknopf: sonst geht ein Klick zwischen zwei Bildern verloren)
+        var leer = _spieler is null ? null : LeerstandKonto(w);
+        var sichtbar = leer is not null && _stadt.RaumKennung is null;
+        if (_leerstandKaufen.Visible != sichtbar) _leerstandKaufen.Visible = sichtbar;
+        if (_leerstandAbreissen.Visible != sichtbar) _leerstandAbreissen.Visible = sichtbar;
+        if (!sichtbar || leer is null) return;
+        var v = w.Bauen.LeerstandVorschau(_spieler!, leer);
+        var waehrung = w.Daten.Allgemein.Waehrung;
+        void Setzen(Button knopf, string text, string? grund)
+        {
+            var gesperrt = grund is not null || !_spieler!.IstAktiv;
+            if (knopf.Disabled != gesperrt) knopf.Disabled = gesperrt;
+            if (knopf.Text != text) knopf.Text = text;
+            if (knopf.TooltipText != (grund ?? "")) knopf.TooltipText = grund ?? "";
+        }
+        Setzen(_leerstandKaufen, $"Kaufen und sanieren ({Zahlenformat.Ganz(v.KaufSumme)} {waehrung})", v.KaufVerboten);
+        Setzen(_leerstandAbreissen, $"Abreißen lassen ({Zahlenformat.Ganz(v.AbrissSumme)} {waehrung})", v.AbrissVerboten);
     }
 
     /// <summary>Ein freier Platz: was er kostet, ab welchem Stand und was er voraussichtlich einbringt.</summary>
@@ -910,7 +1169,7 @@ public partial class Hauptszene : Node
     private void PlatzMachen()
     {
         _hinweis.Visible = !_auswahl.Visible && _stadt.RaumKennung is null;
-        var kontorSichtbar = _stadt.RaumKennung is null or Stadtansicht.RaumKontor;
+        var kontorSichtbar = _stadt.RaumKennung is null or Stadtansicht.RaumKontor && !_bau.Aktiv; // im Baumodus steht rechts die Bautafel
         if (_kontor.Visible != kontorSichtbar) _kontor.Visible = kontorSichtbar;
     }
 

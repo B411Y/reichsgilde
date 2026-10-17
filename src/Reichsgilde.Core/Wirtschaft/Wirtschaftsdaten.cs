@@ -199,6 +199,9 @@ public sealed class Wirtschaftsdaten
     /// <summary>Wohnhäuser je Haus: Stufen, Ausbau, Unterhalt, Ansehen, Pflicht für den Stand (ab Datenversion 31). Fehlt der Abschnitt, gibt es keine Wohnhäuser.</summary>
     public Wohnen.WohnenDaten? Wohnen { get; init; }
 
+    /// <summary>Bauen in der Stadt: Raster, Größen, Bauzeiten, Preise für Leerstand (ab Datenversion 34). Fehlt der Abschnitt, wird nicht gebaut.</summary>
+    public Bauen.BauDaten? Bauen { get; init; }
+
     /// <summary>Handel von Hand per Karrenauftrag (ab Datenversion 24). Fehlt der Abschnitt, handeln nur die Verwalter.</summary>
     public HandelDaten? Handel { get; init; }
 
@@ -399,6 +402,7 @@ public sealed class Wirtschaftsdaten
         Logistik.Pruefen(f);
         Handel?.Pruefen(f);
         Wohnen?.Pruefen(f, Staende.Count);
+        Bauen?.Pruefen(f, Wohnen);
         Verkauf.Pruefen(f);
 
         if (Staende.Count == 0) f.Add("Es sind keine Stände definiert.");

@@ -44,6 +44,9 @@ public partial class KontorAnzeige : PanelContainer
     /// <summary>Der Spieler möchte das Marktfenster sehen.</summary>
     public event Action? MarktGewuenscht;
 
+    /// <summary>Der Spieler möchte bauen (Baumodus mit Bauzonen und Umriss).</summary>
+    public event Action? BauenGewuenscht;
+
     /// <summary>Ergebnis eines Befehls aus dem Kontor (Beruf erlernen) – für das Protokoll.</summary>
     public event Action<string>? Gemeldet;
 
@@ -152,6 +155,10 @@ public partial class KontorAnzeige : PanelContainer
         markt.Pressed += () => MarktGewuenscht?.Invoke();
         familie.AddChild(markt);
         familie.MoveChild(markt, 2);
+        var bauen = new Button { Text = "Bauen", FocusMode = FocusModeEnum.None, TooltipText = "Wohnhaus oder Werkstatt bauen – auf Bauplätzen und in den Bauzonen" };
+        bauen.Pressed += () => BauenGewuenscht?.Invoke();
+        familie.AddChild(bauen);
+        familie.MoveChild(bauen, 3);
         _familienZeile = NeuesLabel(familie, 14);
         // Je Betrieb zwei Zeilen und ein ⚒-Knopf – neu gebaut, sobald ein Betrieb dazukommt.
         _betriebsliste = new VBoxContainer();

@@ -22,19 +22,17 @@ public partial class Stadtansicht
 
     /// <summary>
     /// Legt die Räume im Wohnhaus des Spielers an (einmal, beim Verbinden mit der Simulation).
-    /// Der Platz ist derselbe, den <see cref="SpielhaeuserAktualisieren"/> dem Haus später gibt (gleiche Reihenfolge der Konten).
+    /// Der Platz kommt vom Kern (<c>w.Bauen.Wohnhaus</c>); zieht der Spieler um, folgt die Kamera (<see cref="GrundstueckeAktualisieren"/>).
     /// </summary>
     private void WohnhausRaeumeAnlegen()
     {
         if (_wohnhausAnsicht is not null || _spielerKonto is not { } konto || _simulation?.Wirtschaft is not { } w || !w.Wohnen.IstAktiv) return;
-        var nummer = w.Konten.ToList().IndexOf(konto);
-        var plaetze = SpielhausPlaetze(w.Konten.Count);
-        if (nummer < 0 || nummer >= plaetze.Count) return;
+        if (w.Bauen.Wohnhaus(konto) is not { } platz) return; // ohne Karte kein Wohnhaus – dann fehlen auch die Räume
 
         var kennung = WohnhausKennung(konto);
         var innen = new Node3D { Name = "Innen_Wohnhaus", Visible = false, Position = new Vector3(0, RaumTiefe, 0) };
         AddChild(innen);
-        var a = new SonderbauAnsicht { Mitte = plaetze[nummer].Mitte, Schluessel = kennung, Titel = "Euer Wohnhaus", Innen = innen };
+        var a = new SonderbauAnsicht { Mitte = Mitte3(platz.Grundriss), Schluessel = kennung, Titel = "Euer Wohnhaus", Innen = innen };
         var haus = new Hausstand(() => konto, () => Besitzerfarbe(konto), () => true, () => true, "");
         var stube = Vector3.Zero;
         var kontor = new Vector3(RaumAbstand, 0, 0);

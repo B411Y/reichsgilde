@@ -2,7 +2,7 @@
 
 Begonnen am 16.10.2026 · Bereich **Leveldesign** (siehe `CLAUDE.md`). Entscheidungen bis 16.10.2026 stehen im Archiv `docs/ENTSCHEIDUNGEN.md`, Abschnitt 17, neuere in `docs/bereiche/leveldesign.md`. Dieses Dokument sammelt die **Kartenregeln** für alle Städte und den Stand der einzelnen Karten.
 
-**Stand:** Die erste Kartendatei (Köln) liegt vor, das Spiel liest sie noch nicht. Die heutige Greybox-Stadt bleibt Platzhalter für die Mechaniken und wird vorerst nicht ersetzt.
+**Stand:** Die erste Stadtkarte (Köln) liegt vor, das Spiel liest sie noch nicht. Die heutige Greybox-Stadt bleibt Platzhalter für die Mechaniken und wird vorerst nicht ersetzt; sie hat seit 17.10.2026 eine eigene Kartendatei mit Bauzonen (Abschnitt „Greybox-Karte“), damit der Kern das freie Bauen prüfen kann.
 
 **Status je Regel:** **entschieden** (mit Datum in ENTSCHEIDUNGEN) · **Vorschlag** (Leveldesign) · **Kern** (wirkt auf die Simulation, entscheidet der Kern-Chat).
 
@@ -41,7 +41,7 @@ Begonnen am 16.10.2026 · Bereich **Leveldesign** (siehe `CLAUDE.md`). Entscheid
 - **Anschluss:** Werkstätten brauchen ihren Eingang an einer **Karrenstraße** (Haupt-, Ring-, Wallgasse). Wohnhäuser dürfen auch an einer **Gasse** stehen. Gassen bringt die Karte mit, Spieler bauen keine. *(entschieden 16.10.2026)*
 - **Fest bleiben:** Startgrundstücke (je Haus Wohnhaus und Werkstatt, gleich weit vom Markt; entschieden 16.10.2026), Sonderbauten (Rathaus, Hauptkirche, Markt, Hafen, Tore), Ruinen und Leerstand.
 - **Umland:** Rohstoffbetriebe sind an Vorkommen gebunden (Erz, Stein, Wald). Höfe und Gärten stehen frei in Umland-Bauzonen. *(Vorschlag)*
-- **Zustände:** frei → bebaut → leerstehend (Haus erloschen oder bankrott) → verfallen. Leerstand lässt sich kaufen und sanieren (Kosten nach Zustand). *(Kern)*
+- **Zustände:** frei → bebaut → leerstehend (Haus erloschen oder bankrott) → verfallen. Leerstand lässt sich kaufen und sanieren: **fest 50 % + 20 % des Hauswerts** (Entscheidung des Nutzers 17.10.2026, statt „Kosten nach Zustand“). *(Kern)*
 
 **Offenes Risiko:** Ohne Flächenpreis und Grenze kann ein Haus gute Zonen mit billigen Bauten zustellen. Mögliche Gegenmittel, falls es in Tests auffällt: Unterhalt je Gebäude, Verfall ungenutzter Gebäude, Mindestabstand gleicher Betriebe. *(Kern)*
 
@@ -111,6 +111,7 @@ Wohnstube und weitere Räume liegen im Wohnhaus. Das Wohnhaus eines erloschenen 
 | Stadt | Stand |
 |---|---|
 | Köln (Pilot) | **Kartendatei Format 1** (`game/data/karten/koeln.json`, Vorschau `docs/karten/koeln.svg`), Mauerradius 150 m: fünf Radialen von den Toren, zwei Ringstraßen um den Heumarkt, Wallgasse; 6 Bauzonen Kernlage, 12 Mauerring, 1 Vorstadt Deutz, 6 Umland; 10 Rohstoffvorkommen; 8 Startgrundstücke am äußeren Ring; linkes Rheinufer, Mauerhalbkreis mit Toren, Dom als Baustelle, Hafen, **Rheinbrücke nach Deutz (Fiktion)**, Fähre, Umland Kölner Bucht, Ville, Königsforst, Bergische Höhen, Siebengebirge, Eifel |
+| Greybox (Testkarte) | **Kartendatei Format 1** (`game/data/karten/greybox.json`, Vorschau `docs/karten/greybox.svg`): die heutige, fest im Code gezeichnete Stadt in Weltkoordinaten, mit 9 Bauzonen für das freie Bauen (Abschnitt „Greybox-Karte“) |
 | weitere ca. 7 | offen |
 
 Später: **Reichskarte**, über die man zwischen den Städten wechselt (Idee festgehalten, nicht jetzt).
@@ -121,6 +122,7 @@ Jede Stadt ist **eine JSON-Datei** `game/data/karten/<kennung>.json`. Sie entste
 
 ```bash
 python3 tools/karten/koeln.py      # Köln prüfen und neu schreiben
+python3 tools/karten/greybox.py    # Greybox-Stadt prüfen und neu schreiben
 ```
 
 **Koordinaten:** Meter auf dem Boden, **x = Osten, z = Süden** (−z = Norden), wie im Spiel. Ursprung am Marktplatz. Bauzonen liegen auf dem **2-m-Raster**, alles andere auf 0,5 m.
@@ -134,13 +136,14 @@ python3 tools/karten/koeln.py      # Köln prüfen und neu schreiben
 | `tore` | Name, Punkt, `schliesstNachts` |
 | `wasser` | `fluss`/`bach` als Linie mit `breite`, `see` als Fläche |
 | `gelaende` | Flächen der Art `feld`, `wald`, `huegel`, `wildnis` |
-| `wege` | Name, `klasse` (`land`, `haupt`, `ring`, `wall` = Karrenstraßen; `gasse`, `leinpfad` = nur Fußgänger), `linie`, `gefahr` (Faktor um 1,0, Vorschlag) |
+| `wege` | Name, `klasse` (`land`, `haupt`, `ring`, `wall` = Karrenstraßen; `gasse`, `leinpfad` = nur Fußgänger), `linie`, `gefahr` (Faktor um 1,0, Vorschlag), optional `breite` in Metern (gezeichnete Breite; nur die Greybox-Karte) |
 | `haefen` | `name`, `kante` (Kaimauer als Linie), `anleger` (Punkte an der Kaimauer, dort liegen Schiffe), `kran` |
 | `uebergaenge` | `bruecke` oder `faehre` mit `von` und `bis` |
 | `bauzonen` | `kennung`, `art` (`kern`, `mauerring`, `vorstadt`, `umland`), `flaeche` auf dem Raster |
-| `feste` | `kennung`, `art` (`start`, `sonderbau`, `kirche`, `leerstand`), `name`, `punkt`; Startgrundstücke mit `eingang` und `groesse` [Breite, Tiefe] (24 × 14 m: Werkstatt und Wohnhaus nebeneinander) |
+| `feste` | `kennung`, `art` (`start`, `sonderbau`, `kirche`, `leerstand`; Greybox zusätzlich `werkstatt`, `umland`, `umlandstelle`, `turm`, `einwohnerhaus`, `einwohnerplatz`, `wohnhaus`), `name`, `punkt`; Startgrundstücke mit `eingang` und `groesse` [Breite, Tiefe] (24 × 14 m: Werkstatt und Wohnhaus nebeneinander). Die Greybox-Gebäude haben außerdem `drehung` (siehe unten) |
 | `vorkommen` | `kennung`, `betrieb` (`Mine`, `Steinbruch`, `Holzschlag`), `punkt` |
 | `fiktion` | Liste der Abweichungen von der Vorlage |
+| `gebaeude`, `probeplan` | nur Greybox: Schreibweise der Gebäudemaße und ein Plan, wie die geforderten Gebäude in die Bauzonen passen (siehe „Greybox-Karte“) |
 
 **Prüfungen** (das Skript bricht ab, wenn eine fehlschlägt):
 - Jede Bauzone liegt höchstens 8 m von einer Karrenstraße entfernt.
@@ -154,6 +157,33 @@ python3 tools/karten/koeln.py      # Köln prüfen und neu schreiben
 Ändert sich das Format, steigt `format`, und der Kern und die Darstellung passen ihre Leser an. Neue Felder ohne Bedeutungsänderung brauchen keine neue Nummer.
 
 **Köln, Format 1 (16.10.2026):** Bauzonen Kernlage 6 (≈ 5.640 m², 1.410 Felder), Mauerring 12 (≈ 10.230 m², 2.557 Felder), Vorstadt Deutz 4 (≈ 3.960 m²), Umland 6 (≈ 39.700 m²); 41 Wege in einem Netz; 10 Vorkommen; Startgrundstücke 94 m vom Markt. **Kapazität:** Die Pflicht passt vollständig (16 Werkstätten, 56 Einwohnerhäuser), danach sind 2.691 von 4.949 Feldern frei (54 %). Reserve: alle 8 Stadtpalais und alle 4 Stadthöfe. Auf einer leeren Karte passen 29 Werkstätten (Bedarf 24 mit den Startwerkstätten). **Lehre aus der Messung:** Begrenzend ist die Blocktiefe, nicht die Länge der Straßenkante. Zusätzliche Straßen zerschneiden die Blöcke und bringen nichts (Querstraße statt Gasse: gleich viel, zusätzliche Hintergasse: weniger); schmalere Straßen machen die Blöcke tiefer.
+
+### Greybox-Karte (17.10.2026)
+
+`greybox.json` beschreibt die **heutige Platzhalter-Stadt** so, wie `game/scripts/Stadtansicht*.cs` sie zeichnet (Mauer bei ±50 m, Ringgasse bei ±38 m, Ost- und Westtor, Wohnviertel). Das Skript `tools/karten/greybox.py` bildet den Spielcode nach (Stadtplan, Gassen, Ringplätze, Doppelplätze) und prüft die Bauzonen; ändert sich dort etwas, muss es nachziehen. Der Spielcode wird nicht verändert.
+
+**Koordinaten:** **Weltkoordinaten der Stadtansicht in Metern**, Godot x/z (x = Osten, z = Süden, Ursprung am Marktplatz), ohne Umrechnung. Punkte der Greybox stehen auf 5 cm genau (Köln: 0,5 m), nur die Bauzonen liegen auf dem 2-m-Raster.
+
+**Gebäude (`feste` mit `drehung`):** `punkt` ist die Mitte, `groesse` [Breite, Tiefe] in Metern, die Breite liegt an der Vorderseite. `drehung` ist der Winkel um die Hochachse wie Godot `Rotation.Y` in Grad: Die Vorderseite zeigt bei 0 nach +z (Süden), bei 90 nach +x (Osten), bei 180 nach −z (Norden), bei 270 nach −x (Westen). `eingang` ist die Mitte der Vorderseite (der Kern nimmt daraus nur die Richtung). Der Kern zählt die Drehung in Vierteln (0 Süden, 1 Osten, 2 Norden, 3 Westen); die Datei schreibt Grad (Viertel × 90). Bei 90 und 270 liegt die Tiefe auf der x-Achse und die Breite auf der z-Achse.
+
+| Art in `feste` | Inhalt |
+|---|---|
+| `sonderbau`, `turm` | Marktplatz (24 × 24 m), Rathaus, Dom, Torhäuser, vier Ecktürme |
+| `werkstatt` | ein Eintrag je Liegenschaft in der Stadt, je 10 × 8 m; `name` ist **genau** der Name aus dem Stadtplan und aus `wirtschaft.json` (auf dem Weinmarkt teilen sich zehn Einträge einen Platz) |
+| `umland` | die 12 Gruben, Höfe, Gärten und der Wachturm vor der Stadt (Größen nach „Gebäudegrößen“); `vorkommen` führt zusätzlich die sieben Rohstoffplätze |
+| `umlandstelle` | Weide, Feld, Wald der Einwohner vor dem Westtor |
+| `einwohnerhaus`, `einwohnerplatz` | die vier alten Kulissenhäuser und die 36 Plätze für Einwohnerhäuser (16 am Ring, 20 in der Vorstadt) |
+| `wohnhaus` | die **Wohnhausplätze der Spielhäuser** (Doppelplätze am Ring, 17 × 8 m), in Konto-Reihenfolge, `reihenfolge` 1 bis 8, `lage` = `mauerring` (sie liegen zwischen Ringgasse und Mauer, in keiner Bauzone): Konto 1 (Spieler) bekommt Platz 1 usw., so wie `SpielhausPlaetze` sie heute zuweist. Heute spielen höchstens 4 Häuser; Platz 5 bis 8 (`haeuserAb`) gelten erst bei mehr Konten, bis dahin stehen dort Einwohnerhäuser |
+
+**Straßen:** `haupt` (Ostgasse, Westgasse), `land` (Landstraße, Weststraße, Wege zu den Gruben und Höfen), `ring` (Ringgasse) sind Karrenstraßen; Gassen und Fußwege (Stichgassen, Vorstadtgasse, die 14 Gassen von den Werkstattplätzen zum Markt, Fußwege zu Weide, Feld, Wald) nicht. Die Breite steht in `breite` (3 bis 5 m, nicht 6,5 m wie in Köln).
+
+**Bauzonen** (9, zusammen 2.432 m²): Die Stadt ist voll. Innerhalb der Mauer bleibt nur eine Lücke, in die ein Wohnhaus passt (`K1`, Südostecke); für 16 × 14 m ist dort **nichts** frei. Die übrigen Zonen liegen vor dem Westtor an der Weststraße (`V1` bis `V3`, `V5`), am Weg zum Eichenforst und an der Straße zum Steinbruch am Felsenhang (`M1`, `V6` bis `V8`). `M1` (zwei Plätze für den Stadthof) liegt knapp vor der Westmauer und **zählt als Mauerring**, damit der Stadthof prüfbar ist (Eintrag in `fiktion`; `HOF_ZONE_ALS_MAUERRING = False` im Skript macht sie wieder zur Vorstadt). Die Einwohnerhäuser bleiben, wie sie sind: keine Zone überdeckt einen Einwohnerplatz.
+
+**Regeln gegenüber Köln:** Die Greybox-Straßen sind 3 bis 5 m breit, die Zonen halten deshalb **Straßenrand + 0,5 m** Abstand (Köln: 3,3 m ab Straßenmitte), zu festen Gebäuden 2 m (Vorplatz, Zaun, Schild), zur Mauermitte 2 m.
+
+**Probeplan** (`probeplan` in der Datei): Gebäude mit Zone, Mitte, Maßen und Drehung, die in die Zonen passen – 7 Plätze zu 16 × 14 m (davon 2 Stadthöfe in `M1`, 5 Werkstätten) und 8 Wohnhäuser zu 8 × 10 m. Er dient dem Kern als Testdaten und ist keine Vorgabe für Spieler.
+
+**Prüfungen** (`python3 tools/karten/greybox.py`, bricht bei einem Fehler ab): jede Zone auf dem Raster, ohne Überlappung mit einer anderen Zone, mit Abstand zu Gebäuden, Straßen und Mauer, höchstens 8 m von einer Karrenstraße; jedes Gebäude des Probeplans liegt ganz in seiner Zone, überlappt keines und erfüllt die Eingangsregel des Kerns (mindestens 2 Rasterfelder der Vorplatzreihe höchstens 7 m von der Straßenmitte; Werkstatt und Stadthof Karrenstraße, Wohnhaus jede Straße); Stadthof nur in Kern oder Mauerring; Wohnhäuser 1 bis 4 gleich weit vom Markt (44,3 / 44,3 / 45,2 / 47,2 m, ±10 %). Das Wegenetz hängt zusammen, Wege kreuzen die Mauer nur an den Toren.
 
 ## 10. Zuständigkeit
 

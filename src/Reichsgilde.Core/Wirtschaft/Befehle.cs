@@ -25,6 +25,35 @@ public sealed record StandErwerben : Befehl;
 /// <summary>Das eigene Wohnhaus um eine Stufe ausbauen (z. B. Fachwerkhaus → Bürgerhaus). Kostet Gulden und Bauzeit.</summary>
 public sealed record WohnhausAusbauen : Befehl;
 
+/// <summary>
+/// Das leerstehende Wohnhaus eines bankrotten oder erloschenen Hauses kaufen und sanieren lassen (nur ein größeres als das eigene).
+/// Kauf 50 % + Sanierung 20 % des Hauswerts − Hauswert des eigenen Hauses; nach der Sanierung zieht das Haus um, das alte wird abgerissen.
+/// Vorab: <see cref="Bauen.Bauwesen.LeerstandVorschau"/>.
+/// </summary>
+public sealed record LeerstandKaufen(string Haus) : Befehl;
+
+/// <summary>Das leerstehende Wohnhaus eines bankrotten oder erloschenen Hauses kaufen und abreißen lassen (50 % + 10 %) – danach ist dort ein Bauplatz.</summary>
+public sealed record LeerstandAbreissen(string Haus) : Befehl;
+
+/// <summary>
+/// Ein Gebäude neu bauen: Mitte der Fläche (<paramref name="X"/>, <paramref name="Z"/> in Metern, inkl. Vorplatz) und
+/// <paramref name="Drehung"/> in Vierteln (0 = Eingang nach Süden, 1 = Osten, 2 = Norden, 3 = Westen).
+/// Vorab: <see cref="Bauen.Bauwesen.Einrasten"/> und <see cref="Bauen.Bauwesen.Vorschau"/>.
+/// </summary>
+public abstract record BauBefehl(double X, double Z, int Drehung) : Befehl;
+
+/// <summary>
+/// Ein neues Wohnhaus dieser Stufe bauen (mindestens die eigene Stufe, höchstens eine über dem Stand). Kosten: Hauswert der Stufe − Hauswert
+/// des alten Hauses; Bauzeit 1 Spieljahr (Fachwerk-, Bürgerhaus) bzw. 2 (ab Steinhaus). Danach Umzug, das alte Haus wird abgerissen.
+/// </summary>
+public sealed record WohnhausBauen(int Stufe, double X, double Z, int Drehung) : BauBefehl(X, Z, Drehung);
+
+/// <summary>
+/// Eine neue Werkstatt (Stufe 1) bauen – zum Preis und mit den Voraussetzungen einer freien Werkstatt. Bauzeit 1 Spieljahr ohne Löhne
+/// und Unterhalt, danach läuft sie wie eine gekaufte.
+/// </summary>
+public sealed record WerkstattBauen(Betriebsart Art, double X, double Z, int Drehung) : BauBefehl(X, Z, Drehung);
+
 /// <summary>Einen Hauswächter fürs Wohnhaus einstellen oder entlassen (kostet wie ein Betriebswächter).</summary>
 public sealed record HauswaechterSetzen(bool Angestellt) : Befehl;
 

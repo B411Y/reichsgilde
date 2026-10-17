@@ -1,5 +1,5 @@
 {
-  "version": 33,
+  "version": 34,
   "gesundheit": {
     "medicusKosten": 120,
     "medicusKostenPest": 300,
@@ -987,6 +987,19 @@
   "verkauf": {
     "anteil": 0.75,
     "warenAbschlag": 0.2
+  },
+  "bauen": {
+    "raster": 2,
+    "strassenAbstand": 7,
+    "werkstatt": { "breite": 16, "tiefe": 14, "bauzeitJahre": 1, "lagen": [ "kern", "mauerring", "vorstadt" ] },
+    "wohnhaus": [
+      { "breite": 8, "tiefe": 10, "bauzeitJahre": 1, "lagen": [ "kern", "mauerring", "vorstadt" ] },
+      { "breite": 8, "tiefe": 10, "bauzeitJahre": 1, "lagen": [ "kern", "mauerring", "vorstadt" ] },
+      { "breite": 8, "tiefe": 10, "bauzeitJahre": 2, "lagen": [ "kern", "mauerring", "vorstadt" ] },
+      { "breite": 12, "tiefe": 10, "bauzeitJahre": 2, "lagen": [ "kern", "mauerring", "vorstadt" ] },
+      { "breite": 16, "tiefe": 14, "bauzeitJahre": 2, "lagen": [ "kern", "mauerring" ] }
+    ],
+    "leerstand": { "kauf": 0.5, "sanierung": 0.2, "abriss": 0.1, "abrissMindestens": 100, "abrissMinuten": 240 }
   },
   "liegenschaften": [
     {
