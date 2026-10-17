@@ -76,8 +76,8 @@ public partial class Stadtansicht
     /// Baut das Wohnhaus einer Stufe auf einer Fläche (Vorderseite lokal +Z, zur Gasse): die Plätze der Karte sind 17 × 8 m
     /// (Doppelplatz am Ring), Neubauten 8 × 10, 12 × 10 oder 16 × 14 m mit 2 m Vorplatz davor (<paramref name="vorne"/> ist die lokale
     /// z-Koordinate der Hausfront). Modelle:
-    /// 0 Fachwerkhaus 6 × 6, 1 Bürgerhaus 7 × 7 mit Giebel, 2 Steinhaus 8 × 8 mit drei Geschossen,
-    /// 3 Stadtpalais bis 15 × 8 mit Erker und zwei Ecktürmchen, 4 Hof: Haupthaus hinten, zwei Flügel vorn, Mauer mit Tor.
+    /// 0 Fachwerkhaus, 1 Bürgerhaus, 2 Steinhaus aus Blender (<see cref="WohnhausModellEinsetzen"/>);
+    /// aus Grundkörpern: 3 Stadtpalais bis 15 × 8 mit Erker und zwei Ecktürmchen, 4 Hof: Haupthaus hinten, zwei Flügel vorn, Mauer mit Tor.
     /// Bei laufendem Ausbau steht ein Gerüst davor, nach einem Brand ist das Dach rußig, im Leerstand sind Tür und Fenster vernagelt.
     /// </summary>
     private Node3D SpielhausModell(Vector3 mitte, float drehungY, float platzBreite, float platzTiefe, float vorne,
@@ -108,7 +108,11 @@ public partial class Stadtansicht
                 }
         }
 
-        switch (stufe)
+        // Fachwerkhaus, Bürgerhaus und Steinhaus kommen als Modell aus Blender (PR #104), Stadtpalais und Hof noch aus dem Code.
+        var szene = WohnhausSzene(stufe);
+        if (szene is not null)
+            WohnhausModellEinsetzen(szene, g, vorne, imBau || brand, brand, leer, farbe);
+        else switch (stufe)
         {
             case 0: // Fachwerkhaus
                 Bau(new Vector3(0, 0, vorne - 3.2f), new Vector3(6, 5, 6), Fachwerk, Ziegel, false, 1, true);
@@ -141,7 +145,7 @@ public partial class Stadtansicht
             }
         }
 
-        if (farbe is { } f)
+        if (szene is null && farbe is { } f)
         {
             // Wappenschild über der Tür und eine Fahne am Dach in der Hausfarbe
             var hoehe = stufe switch { 0 => 3.4f, 1 => 3.6f, 2 => 3.8f, 3 => 3.9f, _ => 3.6f };
@@ -151,7 +155,7 @@ public partial class Stadtansicht
             Quader(new Vector3(3.15f, dachHoehe + 2, vorne - 2), new Vector3(1.2f, 0.75f, 0.05f), Stoff(f), g);
         }
 
-        if (imBau || brand)
+        if (szene is null && (imBau || brand))
         {
             // Gerüst vor der Gassenseite: Stangen und zwei Laufbretter
             var holz = Stoff(Holz);
@@ -169,6 +173,84 @@ public partial class Stadtansicht
             Beschriftung(text, new Vector3(0, 16, 0), 44, g, kennung);
         }
         return g;
+    }
+
+    // ═════════════════════════════════════════════════════════════════════════
+    //  Modelle aus Blender (game/assets/modelle, Konventionen: docs/bereiche/darstellung.md)
+    // ═════════════════════════════════════════════════════════════════════════
+
+    /// <summary>Dateien der Wohnhaus-Modelle je Stufe. Für Stadtpalais und Hof gibt es noch keine – die baut der Code.</summary>
+    private static readonly string[] WohnhausDateien = { "fachwerkhaus", "buergerhaus", "steinhaus" };
+
+    /// <summary>
+    /// Wo die Hausfront in den Modellen liegt: Der Ursprung ist die Mitte der 10 m tiefen Fläche, davon 2 m Vorplatz – die Front liegt
+    /// also bei z = +3. Auf einem Neubau (10 m, Vorplatz) sitzt das Modell damit genau in der Mitte; auf den Wohnhausplätzen der Karte
+    /// (8 m tief, Front an der Gasse) rückt es 1 m zur Gasse.
+    /// </summary>
+    private const float ModellFront = 3f;
+
+    /// <summary>Hausfarbe eines Hauses ohne Besitzerfarbe (Leerstand, Sanierung): verwittertes Holz statt Spielerblau.</summary>
+    private static readonly Color OhneHausfarbe = new(0.36f, 0.31f, 0.25f);
+
+    private static readonly Color Russ = new(0.16f, 0.14f, 0.13f);
+
+    /// <summary>Die Dachmaterialien der Modelle – nach einem Brand werden sie rußig.</summary>
+    private static readonly HashSet<string> Dachstoffe = new()
+    {
+        "Dachziegel", "Ziegelkante", "Firstziegel", "Stroh", "Strohkante", "Firstsoden", "Schiefer", "Schieferkante", "Firstblech",
+    };
+
+    private readonly Dictionary<int, PackedScene?> _wohnhausSzenen = new();
+    private readonly Dictionary<(Material Vorlage, Color Farbe), Material> _modellStoffe = new();
+
+    /// <summary>Das Modell einer Wohnhaus-Stufe (einmal geladen) – oder null, wenn es für die Stufe keins gibt.</summary>
+    private PackedScene? WohnhausSzene(int stufe)
+    {
+        if (stufe < 0 || stufe >= WohnhausDateien.Length) return null;
+        if (_wohnhausSzenen.TryGetValue(stufe, out var szene)) return szene;
+        var pfad = $"res://assets/modelle/{WohnhausDateien[stufe]}.glb";
+        szene = ResourceLoader.Exists(pfad) ? ResourceLoader.Load<PackedScene>(pfad) : null;
+        if (szene is null) GD.PushError($"Wohnhaus-Modell fehlt: {pfad} – es wird aus Grundkörpern gebaut.");
+        return _wohnhausSzenen[stufe] = szene;
+    }
+
+    /// <summary>
+    /// Setzt ein Wohnhaus-Modell in den Knoten des Hauses: Front an <paramref name="vorne"/>, Zustände nach Namen ein- oder ausblenden
+    /// („Geruest“ bei Ausbau und Brand, „Leerstand“ mit den Brettern, „Wappen“ und „Fahne“ nur bei einem Besitzer), das Material
+    /// „Hausfarbe“ durch die Farbe des Hauses ersetzen und nach einem Brand die Dachmaterialien rußig färben.
+    /// </summary>
+    private void WohnhausModellEinsetzen(PackedScene szene, Node3D eltern, float vorne, bool geruest, bool brand, bool leer, Color? farbe)
+    {
+        var modell = szene.Instantiate<Node3D>();
+        modell.Position = new Vector3(0, 0, vorne - ModellFront);
+        eltern.AddChild(modell);
+        foreach (var teil in modell.FindChildren("*", nameof(MeshInstance3D), true, false).OfType<MeshInstance3D>())
+        {
+            teil.Visible = teil.Name.ToString() switch
+            {
+                "Geruest" => geruest,
+                "Leerstand" => leer,
+                "Wappen" or "Fahne" => !leer && farbe is not null,
+                _ => true,
+            };
+            for (var i = 0; i < teil.Mesh.GetSurfaceCount(); i++)
+            {
+                if (teil.Mesh.SurfaceGetMaterial(i) is not BaseMaterial3D stoff) continue;
+                if (stoff.ResourceName == "Hausfarbe")
+                    teil.SetSurfaceOverrideMaterial(i, Umgefaerbt(stoff, farbe ?? OhneHausfarbe));
+                else if (brand && Dachstoffe.Contains(stoff.ResourceName))
+                    teil.SetSurfaceOverrideMaterial(i, Umgefaerbt(stoff, stoff.AlbedoColor.Lerp(Russ, 0.8f)));
+            }
+        }
+    }
+
+    /// <summary>Eine Kopie des Materials in anderer Farbe – je Vorlage und Farbe nur einmal.</summary>
+    private Material Umgefaerbt(BaseMaterial3D vorlage, Color farbe)
+    {
+        if (_modellStoffe.TryGetValue((vorlage, farbe), out var stoff)) return stoff;
+        var kopie = (BaseMaterial3D)vorlage.Duplicate();
+        kopie.AlbedoColor = farbe;
+        return _modellStoffe[(vorlage, farbe)] = kopie;
     }
 
     // ═════════════════════════════════════════════════════════════════════════
