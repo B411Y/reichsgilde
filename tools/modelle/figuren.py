@@ -13,7 +13,8 @@ Inhalt je Datei (Blender: Z oben, Blick nach -Y; im Spiel Y oben, Blick nach +Z)
     Koerper_Frau    Kleid bis über die Knöchel, Zopf
     Trachtteile     Strohhut, Barett, Kapuze, Haube, Schleier, Schuerze, Kiepe, Buendel, Tasche, Stab, Hacke
                     – standardmäßig aus, das Spiel blendet sie je Rolle ein (wie heute `TrachtVon`)
-    Bewegungen      Stehen, Gehen, Eilen, Gebeugt, Tragen, Sitzen, Reden, Hacken, Buecken, Hueten
+    Bewegungen      Stehen, Gehen, Eilen, Gebeugt, Tragen, Sitzen, Reden, Hacken, Buecken, Hueten,
+                    Ziehen (Handkarren), Kutschieren (auf dem Bock)
                     – jede eine Schleife am Ort (ohne Vorwärtsbewegung; das Spiel schiebt die Figur)
 Farben je Figur über die Materialien „Gewand“, „Beinkleid“, „Haut“, „Haar“ und „Kopfbedeckung“: Das Spiel
 setzt sie je Figur (wie heute Gewandfarbe und Haut nach Volk). Die übrigen Stoffe bleiben fest.
@@ -362,6 +363,20 @@ def haltung(name, phase, p):
         r["Oberschenkel_L"], r["Oberschenkel_R"] = (-35 * b, 0, 3), (-35 * b, 0, -3)
         r["Unterschenkel_L"], r["Unterschenkel_R"] = (60 * b, 0, 0), (60 * b, 0, 0)
         hoch = -0.16 * b * p["huefte"] / 0.92
+    elif name == "Ziehen":                                              # Handkarren: Holme in den Händen, vorgebeugt
+        gang(20, 0, 34, 0.03, vor=14)
+        for seite, z in (("L", 12), ("R", -12)):
+            r[f"Oberarm_{seite}"] = (14, 0, z)
+            r[f"Unterarm_{seite}"] = (-28, 0, 0)
+    elif name == "Kutschieren":                                         # auf dem Bock, Zügel in beiden Händen
+        hoch = -(p["huefte"] - (p["knie"] - 0.02)) + 0.012 * abs(s2)
+        r["Oberschenkel_L"], r["Oberschenkel_R"] = (-82, 0, 6), (-82, 0, -6)
+        r["Unterschenkel_L"], r["Unterschenkel_R"] = (70, 0, 0), (70, 0, 0)
+        r["Ruecken"] = (6 + 2 * s, 0, 0)
+        r["Kopf"] = (-6, 0, 4 * math.sin(2 * math.pi * phase))
+        for seite, z in (("L", 8), ("R", -8)):
+            r[f"Oberarm_{seite}"] = (-38 - 4 * s, 0, z)
+            r[f"Unterarm_{seite}"] = (-42, 0, 0)
     elif name == "Hueten":
         r["Oberarm_R"] = (-28, 0, -10)                                   # hält den Stab vor sich
         r["Unterarm_R"] = (-55, 0, 0)
@@ -376,7 +391,7 @@ def haltung(name, phase, p):
 
 BEWEGUNGEN = {   # Name: Dauer in Sekunden (eine Schleife)
     "Stehen": 3.0, "Gehen": 1.0, "Eilen": 0.7, "Gebeugt": 1.4, "Tragen": 1.2, "Sitzen": 3.0, "Reden": 2.0,
-    "Hacken": 1.3, "Buecken": 2.4, "Hueten": 4.0,
+    "Hacken": 1.3, "Buecken": 2.4, "Hueten": 4.0, "Ziehen": 1.3, "Kutschieren": 1.0,
 }
 
 
@@ -563,7 +578,7 @@ def vorschau_bewegungen(schnell):
             neu, kopien = kopie(ske, wahl, ort, dreh=math.radians(-90))     # Seitenansicht: Blick nach links im Bild
             pose_setzen(neu, *haltung(name, ph, p))
             alle += kopien
-            if name == "Sitzen":                                         # Bank fürs Bild
+            if name in ("Sitzen", "Kutschieren"):                        # Bank fürs Bild
                 bank = bs.Netz("_Bank")
                 bank.quader(ort + Vector((0, 0, p["knie"] - 0.06)), (0.5, 0.5, 0.08), st["Holz"])
                 for dx in (-0.2, 0.2):
