@@ -1856,6 +1856,7 @@ public partial class Stadtansicht : Node3D
         var sonnenhoehe = Mathf.Sin((stunde - 5f) / 15f * Mathf.Pi);          // > 0 zwischen 05 und 20 Uhr
         var mondhoehe = Mathf.Sin(((stunde + 4f) % 24f) / 9f * Mathf.Pi);       // > 0 zwischen 20 und 05 Uhr
         var tag = Mathf.Clamp(sonnenhoehe, 0f, 1f);
+        FensterlichtSetzen(sonnenhoehe < 0.25f); // vor 6:30 und nach 18:30 Uhr brennt Licht hinter den Fenstern (nur beim Wechsel)
 
         if (sonnenhoehe >= mondhoehe)
         {
