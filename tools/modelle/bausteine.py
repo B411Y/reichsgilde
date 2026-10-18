@@ -749,6 +749,58 @@ def steingiebel(netz, st, M, L, hoch, oeffnungen, stoff="Bruchstein", mit_fenste
         oeffnungen.append((M, o))
 
 
+def treppengiebel(netz, st, M, halb, z_dach0, tan, oeffnungen, fenster, stufen=5, oben_halb=0.45, dicke=0.45,
+                  stoff="Haustein"):
+    """Treppengiebel über einer Wand der halben Breite `halb`: Mauerscheibe mit Stufen, die über das Dach ragen,
+    Sandsteinplatten auf jeder Stufe, Lagerfugen und Fenster (`fenster`: Liste von Öffnungen).
+    `z_dach0`: Höhe der Dachoberfläche an der Wandkante über dem Fuß des Giebels.
+    Gibt die Höhe des obersten Blocks zurück (für die Fahne)."""
+    def dach_bei(a):                                     # Höhe der Dachoberfläche bei |u| = a
+        return z_dach0 + (halb - a) * tan
+
+    grenzen = [halb - k * (halb - oben_halb) / stufen for k in range(stufen + 1)]   # von außen nach innen
+    hoehen = [dach_bei(grenzen[k + 1]) + 0.35 for k in range(stufen)]
+    spitze = dach_bei(0) + 0.75
+    rechts = [(halb, 0)]
+    for k in range(stufen):
+        rechts += [(grenzen[k], hoehen[k]), (grenzen[k + 1], hoehen[k])]
+    rechts += [(oben_halb, spitze)]
+    umriss = rechts + [(-u, v) for u, v in reversed(rechts)]
+    platte(netz, M, umriss, 0, dicke, st[stoff])
+    for k in range(stufen):
+        b = grenzen[k] - grenzen[k + 1]
+        for s in (-1, 1):
+            netz.quader((s * (grenzen[k] + grenzen[k + 1]) / 2, dicke / 2, hoehen[k] + 0.05),
+                        (b + 0.12, dicke + 0.12, 0.1), st["Sandstein"], M)
+    netz.quader((0, dicke / 2, spitze + 0.06), (2 * oben_halb + 0.14, dicke + 0.14, 0.12), st["Sandstein"], M)
+    v = 0.42
+    while v < spitze - 0.1:
+        breite = max([g for g, h in zip(grenzen, hoehen + [spitze]) if h > v + 0.05] + [oben_halb])
+        if v > hoehen[-1]:
+            breite = oben_halb
+        netz.vieleck([M @ Vector(p) for p in ((-breite + 0.01, -0.003, v - 0.014), (breite - 0.01, -0.003, v - 0.014),
+                                               (breite - 0.01, -0.003, v + 0.014), (-breite + 0.01, -0.003, v + 0.014))],
+                     st["Fuge"])
+        v += 0.42
+    for o in fenster:
+        gewaende(netz, M, o, st)
+        oeffnungen.append((M, o))
+    return spitze + 0.12
+
+
+def turmhelm(netz, st, mitte, r, z0, hoehe, stoff="Schiefer", n=8):
+    """Spitzer Turmhelm: n-eckige Pyramide über einem Turm (Umkreis r, Fuß bei z0), mit goldenem Knauf und Eisenspitze."""
+    mitte = Vector(mitte)
+    spitze = mitte + Vector((0, 0, z0 + hoehe))
+    ecken = [mitte + Vector((r * math.cos(math.radians(180 / n + 360 / n * k)), r * math.sin(math.radians(180 / n + 360 / n * k)),
+                             z0 - 0.05)) for k in range(n)]
+    for k in range(n):
+        a, b = ecken[k], ecken[(k + 1) % n]
+        netz.vieleck_nach([a, b, spitze], (a + b) / 2 - (mitte + Vector((0, 0, z0 + 0.6))), st[stoff])
+    achteck(netz, st, spitze - Vector((0, 0, 0.35)), 0.12, 0.0, 0.25, "Gold")
+    netz.stab(spitze - Vector((0, 0, 0.1)), spitze + Vector((0, 0, 0.6)), 0.04, 0.04, st["Eisen"])
+
+
 def grabstein(netz, st, fuss, dreh=0.0, breite=0.6, hoehe=1.0, dicke=0.14, form="rund", stoff="Sandstein"):
     """Grabstein auf einem Sockel, die Schauseite (mit zwei Schriftzeilen) zur Gasse. `form`: "rund" oder "giebel"."""
     t = Matrix.Translation(Vector(fuss)) @ Matrix.Rotation(math.radians(dreh - 90), 4, "Z")   # Prisma-x → zur Gasse
