@@ -319,7 +319,7 @@ So wird eingetragen (damit sich die Chats nie an derselben Stelle treffen):
 | Maße | Haus 15 × 9 m, mit Dachüberstand genau die 16 × 10 m der Karte; der Uhrturm steht 0,25 m vor. | 18.10.2026 |
 | Farben | Keine Hausfarbe: Läden und Türen nehmen Stadtrot (im Skript wird „Hausfarbe“ auf Stadtrot gelegt, das Material heißt im GLB „Stadtrot“). | 18.10.2026 |
 
-### Dom, Rathaus und Stadtmauer ins Spiel (PR folgt)
+### Dom, Rathaus und Stadtmauer ins Spiel (PR #136)
 
 | Thema | Entscheidung | Datum |
 |---|---|---|
