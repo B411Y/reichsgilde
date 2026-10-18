@@ -198,7 +198,8 @@ public partial class Stadtansicht
         if (g.Arbeit == Bauarbeit.Sanierung)
         {
             // Das Haus steht schon: neu verputzt und mit Gerüst
-            wurzel = SpielhausModell(Mitte3(gr), DrehungY(gr), breite, tiefe, front, g.Stufe, true, false, false, null, kennung, besitzer, titel);
+            wurzel = SpielhausModell(Mitte3(gr), DrehungY(gr), breite, tiefe, front, g.Stufe, true, false, false, null, kennung, besitzer, titel,
+                ankerKennung: g.Besitzer is { } bk ? WohnhausKennung(bk) : null); // dieselben Anker wie das bewohnte Haus
             Holzstapel(wurzel, new Vector3(-(Mathf.Min(breite, 10) / 2 - 1.4f), 0, front + 1.0f));
             return wurzel;
         }
