@@ -343,7 +343,7 @@ So wird eingetragen (damit sich die Chats nie an derselben Stelle treffen):
 | Stadtmauer | Neue Datei `Stadtansicht.Mauer.cs`: `MauerAufbauen(linie, geschlossen, stadtmitte, tore)` setzt die Mauer aus dem Baukasten für jede Punktfolge zusammen (Greybox: Quadrat ±50 m mit Osttor und Westtor). Mauerstücke, Mauertürme und Ecktürme sind je ein `MultiMeshInstance3D`, die Tore einzelne Knoten mit Anker `Tor:<Name>`, Klickfläche und Schild (jetzt auf 20 m). Abstand der Mauertürme etwa 35 m (an der Ost- und Westseite stehen keine, dort reichen Tore und Ecken), Ecktürme ab 12° Knick. Köln ruft dieselbe Funktion auf, sobald es eine Stadtansicht gibt. | 18.10.2026 |
 | Messung (gleiche Ansicht, Llvmpipe, Tag, 123 Figuren) | Vorher 1,69 ms je Bild und 3864 Zeichenaufrufe, nachher 1,73 ms und 3915 (+1,3 %): Die Mauer mit rund 100 Stücken braucht dank MultiMesh nur wenige Aufrufe (einzeln wären es etwa 500 je Durchgang); Dom (50 Flächen) und Rathaus (20) kosten mehr als die alten Quader, daher unterm Strich etwas mehr. Die Passanten-Zeile im Protokoll erscheint erst nach etwa 80 s (ein Bild je Sekunde unter Llvmpipe). | 18.10.2026 |
 
-### Natur als 3D-Modelle (PR #…)
+### Natur als 3D-Modelle (PR #138)
 
 | Thema | Entscheidung | Datum |
 |---|---|---|
