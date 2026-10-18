@@ -1441,15 +1441,15 @@
         "Mensch": { "Prediger": 1.2 }
       },
       "rollen": {
-        "Tagelöhner": { "guenstig": 1.15, "teuer": 0.85 },
-        "Knecht": { "guenstig": 1.15, "teuer": 0.85 },
-        "Hirte": { "guenstig": 1.15, "teuer": 0.85 },
-        "Feldarbeiter": { "guenstig": 1.15, "teuer": 0.85 },
-        "Holzsammler": { "guenstig": 1.15, "teuer": 0.85 },
-        "Bettler": { "guenstig": 1.15, "teuer": 0.85 },
+        "Tagelöhner": { "guenstig": 1.15, "teuer": 1.0 },
+        "Knecht": { "guenstig": 1.15, "teuer": 1.0 },
+        "Hirte": { "guenstig": 1.15, "teuer": 1.0 },
+        "Feldarbeiter": { "guenstig": 1.15, "teuer": 1.0 },
+        "Holzsammler": { "guenstig": 1.15, "teuer": 1.0 },
+        "Bettler": { "guenstig": 1.15, "teuer": 1.0 },
         "Mönch": { "Prediger": 2.0 },
-        "Ratsherr": { "guenstig": 0.85, "teuer": 1.3 },
-        "Bürgersohn": { "guenstig": 0.85, "teuer": 1.3 }
+        "Ratsherr": { "guenstig": 1.0, "teuer": 1.3 },
+        "Bürgersohn": { "guenstig": 1.0, "teuer": 1.3 }
       }
     },
     "beduerfnisse": {
