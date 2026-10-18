@@ -8,7 +8,7 @@ using Reichsgilde.Core.Zeit;
 
 /// <summary>
 /// Tests: KI-Häuser verkaufen einen Betrieb nach zwei ganzen Verlustjahren und vor dem Bankrott – und kaufen ihn nicht gleich zurück
-/// (Spiel-KI, PR #108). Ohne Karte (wie Köln).
+/// (Spiel-KI, PR #108). Jahre ohne Personal zählen nicht, der Notverkauf nimmt einen Betrieb, der reicht. Ohne Karte (wie Köln).
 /// </summary>
 static class KiVerkaufTests
 {
@@ -30,6 +30,21 @@ static class KiVerkaufTests
         return (k, nord, sued);
     }
 
+    /// <summary>Wie <see cref="ZweiLeereGiessereien"/>, aber mit je einem Gesellen: Jede macht im Jahr Lohn und Unterhalt Verlust.</summary>
+    static (Konto K, Betrieb Nord, Betrieb Sued) ZweiGiessereienMitGesellen(Stadtwirtschaft w, double vermoegen)
+    {
+        var (k, nord, sued) = ZweiLeereGiessereien(w, vermoegen);
+        w.Einstellen(nord, "Geselle", 1);
+        w.Einstellen(sued, "Geselle", 1);
+        return (k, nord, sued);
+    }
+
+    /// <summary>So viele Spielstunden ticken.</summary>
+    static void Stunden(Simulation sim, int stunden)
+    {
+        for (var i = 0; i < stunden * 60; i++) sim.Tick();
+    }
+
     /// <summary>Bis zum Jahreswechsel (die Jahresabrechnung ist gelaufen), dann noch so viele Minuten.</summary>
     static void Jahr(Simulation sim, int danach = 0)
     {
@@ -46,7 +61,7 @@ static class KiVerkaufTests
         {
             var sim = NeueSimulation();
             var w = sim.Wirtschaft!;
-            var (k, nord, sued) = ZweiLeereGiessereien(w, 50_000);
+            var (k, nord, sued) = ZweiGiessereienMitGesellen(w, 50_000);
             var ki = w.KiAnmelden(k, new KiProfil(Reserve: 1e9)); // stellt niemanden ein, kauft und baut nichts
             Jahr(sim, danach: 120);
             Pruefe.Gleich((1, 1), (ki.Verlustjahre(nord), ki.Verlustjahre(sued)));
@@ -63,15 +78,56 @@ static class KiVerkaufTests
         {
             var sim = NeueSimulation();
             var w = sim.Wirtschaft!;
-            var (k, nord, sued) = ZweiLeereGiessereien(w, 50_000);
+            var (k, nord, sued) = ZweiGiessereienMitGesellen(w, 50_000);
             var ki = w.KiAnmelden(k, new KiProfil(Reserve: 1e9));
             Jahr(sim);
             Pruefe.Gleich((1, 1), (ki.Verlustjahre(nord), ki.Verlustjahre(sued)));
-            nord.Einlagern("Silberring", 10); // mehr wert als 80 Gulden Unterhalt
+            nord.Einlagern("Silberring", 10); // mehr wert als 220 Gulden Lohn und 80 Gulden Unterhalt
             Jahr(sim);
             Pruefe.Gleich((0, 2), (ki.Verlustjahre(nord), ki.Verlustjahre(sued)));
             for (var i = 0; i < 120; i++) sim.Tick();
             Pruefe.Wahr(Besitzt(w, k, "Gießerei Nord") && !Besitzt(w, k, "Gießerei Süd"), "Süd ist verkauft, Nord nicht");
+        }),
+
+        ("KI-Verkauf: Ein Jahr mit mindestens einem Viertel der Stunden ohne Personal zählt nicht und unterbricht die Folge nicht", () =>
+        {
+            var sim = NeueSimulation();
+            var w = sim.Wirtschaft!;
+            var (k, nord, sued) = ZweiGiessereienMitGesellen(w, 50_000);
+            var ki = w.KiAnmelden(k, new KiProfil(Reserve: 1e9)); // stellt nicht wieder ein
+            Jahr(sim);
+            Pruefe.Gleich((1, 1), (ki.Verlustjahre(nord), ki.Verlustjahre(sued)));
+
+            // Süd steht sechs der 17 Stunden ohne Gesellen (mehr als ein Viertel): Das Jahr zählt nicht – die Folge bleibt bei 1.
+            w.Einstellen(sued, "Geselle", 0);
+            Stunden(sim, 6);
+            w.Einstellen(sued, "Geselle", 1);
+            Jahr(sim);
+            Pruefe.Gleich((2, 1), (ki.Verlustjahre(nord), ki.Verlustjahre(sued)));
+            Stunden(sim, 2);
+            Pruefe.Wahr(!Besitzt(w, k, "Gießerei Nord") && Besitzt(w, k, "Gießerei Süd"), "Nord nach zwei Verlustjahren verkauft, Süd nicht");
+
+            // Zwei Stunden ohne Gesellen (weniger als ein Viertel): Das Jahr zählt – jetzt hat auch Süd zwei Verlustjahre in Folge.
+            w.Einstellen(sued, "Geselle", 0);
+            Stunden(sim, 2);
+            w.Einstellen(sued, "Geselle", 1);
+            Jahr(sim);
+            Pruefe.Gleich(2, ki.Verlustjahre(sued));
+        }),
+
+        ("KI-Verkauf: Ein Betrieb ganz ohne Personal hat keine Verlustjahre – auch wenn er danach besetzt wird", () =>
+        {
+            var sim = NeueSimulation();
+            var w = sim.Wirtschaft!;
+            var (k, nord, sued) = ZweiLeereGiessereien(w, 50_000);
+            var ki = w.KiAnmelden(k, new KiProfil(Reserve: 1e9));
+            Jahr(sim);
+            Jahr(sim);
+            Pruefe.Gleich((0, 0), (ki.Verlustjahre(nord), ki.Verlustjahre(sued)));
+            w.Einstellen(nord, "Geselle", 1); // endlich Geld für Löhne: Der Betrieb fängt bei null an
+            Jahr(sim, danach: 120);
+            Pruefe.Gleich((1, 0), (ki.Verlustjahre(nord), ki.Verlustjahre(sued)));
+            Pruefe.Wahr(Besitzt(w, k, "Gießerei Nord") && Besitzt(w, k, "Gießerei Süd"), "nichts verkauft");
         }),
 
         ("KI-Verkauf: Vor dem Bankrott verkauft die KI ab der Jahresmitte den schwächsten Betrieb – und bleibt im Spiel", () =>
@@ -99,17 +155,48 @@ static class KiVerkaufTests
             }
         }),
 
-        ("KI-Verkauf: Keine Rückkauf-Schleife – Handwerk und Ort eines verkauften Betriebs meidet die KI fünf Jahre, danach kauft sie wieder", () =>
+        ("KI-Verkauf: Vor dem Bankrott nimmt die KI einen Betrieb, dessen Verkauf reicht – nicht den schwächsten, wenn der zu wenig bringt", () =>
+        {
+            foreach (var regel in new[] { false, true })
+            {
+                var sim = NeueSimulation(SchnellBankrott.Value);
+                var w = sim.Wirtschaft!;
+                var (k, nord, sued) = ZweiLeereGiessereien(w, -500);
+                sued.Einlagern("Silberring", 60); // Süd bringt mit der Lagerware weit mehr
+                nord.SchadenBuchen(50);           // Nord ist der schwächere Betrieb
+                var ki = w.KiAnmelden(k);
+                Jahr(sim, danach: 60);
+                Pruefe.Gleich(1, k.Schuldenjahre);
+                for (var i = 0; i < Spielzeit.MinutenProTag / 2 - 120; i++) sim.Tick();
+                // Das Minus zum Jahresende: 2.000 mehr, als Nord bringt – oder (zum Vergleich) weniger als Nord bringt.
+                var nordErloes = w.VerkaufVorschau(nord).Summe;
+                Pruefe.Wahr(w.VerkaufVorschau(sued).Summe > nordErloes + 3_000, "Süd bringt deutlich mehr");
+                var minus = regel ? nordErloes + 2_000 : nordErloes - 1_000;
+                k.Schaden(ki.ReinvermoegenAmJahresende + minus);
+                Jahr(sim);
+                Pruefe.Wahr(!k.IstBankrott, "Die KI hat den Bankrott abgewendet");
+                if (regel)
+                {
+                    Pruefe.Wahr(Besitzt(w, k, "Gießerei Nord") && !Besitzt(w, k, "Gießerei Süd"), "Süd verkauft – Nord allein hätte nicht gereicht");
+                    Pruefe.Wahr(ki.Entscheidungen.Any(e => e.Contains("verkauft Gießerei Süd") && e.Contains("Bankrott abzuwenden")), "Begründung");
+                }
+                else
+                    Pruefe.Wahr(!Besitzt(w, k, "Gießerei Nord") && Besitzt(w, k, "Gießerei Süd"), "Reichen beide, geht der schwächere");
+            }
+        }),
+
+        ("KI-Verkauf: Keine Rückkauf-Schleife – Handwerk und Ort eines verkauften Betriebs meidet die KI fünf Jahre, danach darf sie wieder", () =>
         {
             var sim = NeueSimulation(SchnellBankrott.Value);
             var w = sim.Wirtschaft!;
-            var (k, _, _) = ZweiLeereGiessereien(w, -500);
-            w.KiAnmelden(k);
+            var (k, _, sued) = ZweiLeereGiessereien(w, -500);
+            var ki = w.KiAnmelden(k);
             Jahr(sim);
             Jahr(sim);
             Pruefe.Wahr(!Besitzt(w, k, "Gießerei Nord") && !k.IstBankrott, "Notverkauf im zweiten Jahr");
             k.Verkauf(50_000); // jetzt ist Geld da: Die freie Gießerei Nord (und die der Stadt) rechnen sich
-            // Auch Gießerei Süd hat zwei Verlustjahre hinter sich – sobald eine gepachtete Grube da ist, geht sie ebenfalls.
+            // Gießerei Süd stand zwei Jahre ohne Personal (kein Geld für Löhne): keine Verlustjahre – jetzt besetzt, wird sie nicht verkauft.
+            Pruefe.Gleich(0, ki.Verlustjahre(sued));
             // Solange die Sperre seit dem letzten Verkauf läuft, kommt keine Gießerei dazu (andere Handwerke darf sie kaufen).
             int Werkstaetten() => w.Betriebe.Count(b => b.Konto == k && b.Ort == Arbeitsort.Werkstatt && b.Artdaten.Beruf == "Schmied");
             var anzahl = Werkstaetten();
@@ -121,27 +208,32 @@ static class KiVerkaufTests
                 if (sim.Zeit.Jahr >= sperreBis) break; // der Jahreswechsel: Ab jetzt darf sie wieder
                 Pruefe.Wahr(jetzt <= anzahl, $"{sim.Zeit.DatumText}: Gießerei zurückgekauft");
                 Pruefe.Wahr(!Besitzt(w, k, "Gießerei Nord"), "Nord zurückgekauft");
+                Pruefe.Wahr(ki.Gesperrt(Betriebsart.Giesserei), "Gießereien gesperrt");
                 if (jetzt < anzahl) sperreBis = sim.Zeit.Jahr + KiRivale.SperreNachVerkauf;
                 anzahl = jetzt;
             }
-            Jahr(sim);
-            Pruefe.Wahr(Werkstaetten() > anzahl, "Nach der Sperre kauft die KI wieder eine Gießerei");
+            Pruefe.Wahr(Besitzt(w, k, "Gießerei Süd"), "Süd ist geblieben");
+            Pruefe.Wahr(!ki.Gesperrt(Betriebsart.Giesserei), "Nach der Sperre darf die KI wieder eine Gießerei kaufen");
         }),
 
-        ("KI-Verkauf: Verlustjahre, Lagerwerte und Sperren kommen in den Spielstand; alte Spielstände ohne sie laden", () =>
+        ("KI-Verkauf: Verlustjahre, Lagerwerte, Stunden ohne Personal und Sperren kommen in den Spielstand; alte Spielstände ohne sie laden", () =>
         {
-            var sim = NeueSimulation(SchnellBankrott.Value);
+            var sim = NeueSimulation();
             var w = sim.Wirtschaft!;
-            var (k, _, sued) = ZweiLeereGiessereien(w, -500);
-            var ki = w.KiAnmelden(k);
+            var (k, _, sued) = ZweiGiessereienMitGesellen(w, 50_000);
+            var ki = w.KiAnmelden(k, new KiProfil(Reserve: 1e9));
             Jahr(sim);
-            Jahr(sim, danach: 60);
+            Jahr(sim, danach: 120); // Nord ist verkauft
+            w.Einstellen(sued, "Geselle", 0);
+            Stunden(sim, 2);
+            w.Einstellen(sued, "Geselle", 1);
             sued.Einlagern("Silberring", 3);
             var json = Speicherung.Speichern(sim, zeitpunkt: DateTime.UnixEpoch);
             var stand = JsonNode.Parse(json)!["Wirtschaft"]!["Rivalen"]![0]!;
             Pruefe.Gleich(2, (int)stand["Verlustjahre"]!["Gießerei Süd"]!);
             Pruefe.Wahr(stand["Lagerwert"]!["Gießerei Süd"] is not null, "Lagerwert gespeichert");
-            Pruefe.Gleich(sim.Zeit.Jahr - 1 + KiRivale.SperreNachVerkauf, (int)stand["Gesperrt"]!["Schmied/Werkstatt"]!);
+            Pruefe.Wahr((int)stand["StundenOhnePersonal"]!["Gießerei Süd"]! >= 2, "Stunden ohne Personal gespeichert");
+            Pruefe.Gleich(sim.Zeit.Jahr + KiRivale.SperreNachVerkauf, (int)stand["Gesperrt"]!["Schmied/Werkstatt"]!);
 
             var (sim2, _) = Speicherung.Laden(json);
             Pruefe.Gleich(json, Speicherung.Speichern(sim2, zeitpunkt: DateTime.UnixEpoch));
@@ -150,7 +242,7 @@ static class KiVerkaufTests
 
             var alt = JsonNode.Parse(json)!;
             var rivale = alt["Wirtschaft"]!["Rivalen"]![0]!.AsObject();
-            foreach (var feld in new[] { "Verlustjahre", "Lagerwert", "Gesperrt", "KeinWerkstattplatzJahr" }) rivale.Remove(feld);
+            foreach (var feld in new[] { "Verlustjahre", "Lagerwert", "StundenOhnePersonal", "Gesperrt", "KeinWerkstattplatzJahr" }) rivale.Remove(feld);
             var (sim3, _) = Speicherung.Laden(alt.ToJsonString());
             Pruefe.Gleich(0, sim3.Wirtschaft!.Rivalen.Single().Verlustjahre(sim3.Wirtschaft.Betriebe.Single(b => b.Name == "Gießerei Süd")));
             Jahr(sim3, danach: 60); // läuft weiter
