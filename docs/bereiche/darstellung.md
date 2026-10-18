@@ -321,3 +321,9 @@ So wird eingetragen (damit sich die Chats nie an derselben Stelle treffen):
 | Aussehen (Wunsch des Nutzers) | Markthalle mit Fachwerk, wie der Platzhalter verputzt mit Fachwerk: Erdgeschoss aus Haustein, vorn vier und links ein Rundbogen auf Pfeilern zu einer offenen Markthalle mit Pflaster, Balkendecke, Stadtwaage, Bank und dem Portal; darüber der Ratssaal in Fachwerk mit Andreaskreuzen, Läden in Stadtrot mit weißem Streifen und dem Stadtwappen (roter Schild, weißes Kreuz). Schieferdach mit der Traufe zum Markt, Fachwerkgiebel, zwei Gauben. Vorn rechts ein Uhrturm aus Haustein mit Zifferblättern nach vorn und zur Seite, Glockenstube und spitzem Helm (23 m). | 18.10.2026 |
 | Maße | Haus 15 × 9 m, mit Dachüberstand genau die 16 × 10 m der Karte; der Uhrturm steht 0,25 m vor. | 18.10.2026 |
 | Farben | Keine Hausfarbe: Läden und Türen nehmen Stadtrot (im Skript wird „Hausfarbe“ auf Stadtrot gelegt, das Material heißt im GLB „Stadtrot“). | 18.10.2026 |
+
+### Dom, Rathaus und Stadtmauer ins Spiel (PR folgt)
+
+| Thema | Entscheidung | Datum |
+|---|---|---|
+| Umfang | `dom.glb`, `rathaus.glb` und `stadtmauer.glb` ersetzen die Grundkörper von Dom, Rathaus und Stadtmauer, nach den Einbau-Hinweisen der Modell-PRs #132–#134 und mit der gemeinsamen Einsetz-Hilfe aus PR #131. Wie dort kein Rückfall auf Grundkörper. Wunsch des Nutzers. | 18.10.2026 |
