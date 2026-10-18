@@ -33,7 +33,6 @@ public partial class Stadtansicht : Node3D
     // ── Farben der Greybox (gedämpft, bodenständig) ─────────────────────────
     private static readonly Color Wiese = new(0.33f, 0.40f, 0.24f);
     private static readonly Color Pflaster = new(0.47f, 0.44f, 0.40f);
-    private static readonly Color Marktpflaster = new(0.55f, 0.51f, 0.46f);
     private static readonly Color Weg = new(0.45f, 0.36f, 0.26f);
     private static readonly Color Mauerstein = new(0.52f, 0.49f, 0.45f);
     private static readonly Color Putz = new(0.80f, 0.75f, 0.64f);
@@ -406,10 +405,9 @@ public partial class Stadtansicht : Node3D
 
         Flaeche(new Vector3(20, 0, 0), new Vector2(520, 480), Wiese, -0.05f); // groß genug, dass auch ganz herausgezoomt kein Himmel am Rand zu sehen ist
         Flaeche(Vector3.Zero, new Vector2(2 * Mauerrand, 2 * Mauerrand), Pflaster, 0f);
-        Flaeche(Vector3.Zero, new Vector2(24, 24), Marktpflaster, 0.02f);
 
         Stadtmauer();
-        Marktstaende();
+        Marktstaende();       // Marktplatz, Stände und Auslagen: Stadtansicht.Markt.cs
         RathausBauen(new Vector3(0, 0, -20)); // Rathaus und Dom mit Innenraum: Stadtansicht.Sonderbauten.cs
         DomBauen(new Vector3(-20, 0, -14));
         Wohnhaeuser();
@@ -465,25 +463,6 @@ public partial class Stadtansicht : Node3D
         _kameraDrehung.Position = new Vector3(24, 0, -6); // Stadt und Grube im Blick
         RaumKameraAufbauen();
     }
-
-    private void Marktstaende()
-    {
-        var planen = new[] { new Color(0.72f, 0.62f, 0.38f), new Color(0.55f, 0.20f, 0.18f), new Color(0.25f, 0.38f, 0.30f), new Color(0.62f, 0.55f, 0.44f) };
-        var i = 0;
-        foreach (var (x, z) in new[] { (-8f, -8f), (0f, -9f), (8f, -8f), (-9f, 2f), (9f, 2f), (-4f, 8f), (4f, 8f) })
-        {
-            var p = new Vector3(x, 0, z);
-            Quader(p + new Vector3(0, 0.6f, 0), new Vector3(3, 1.2f, 2), Material(Holz));
-            Dach(p + new Vector3(0, 2.4f, 0), new Vector3(3.6f, 1f, 2.6f), Material(planen[i++ % planen.Length]), quer: true);
-        }
-        // Brunnen
-        var brunnen = new MeshInstance3D { Mesh = new CylinderMesh { TopRadius = 1.6f, BottomRadius = 1.8f, Height = 1f }, MaterialOverride = Material(Mauerstein) };
-        brunnen.Position = new Vector3(0, 0.5f, 0);
-        AddChild(brunnen);
-        Klickflaeche("Marktplatz", new Vector3(0, 1, 0), new Vector3(22, 2, 22));
-        Beschriftung("Marktplatz", new Vector3(0, 6, 0), 56, kennung: "Marktplatz");
-    }
-
 
     /// <summary>
     /// Die vier Kulissenhäuser (<see cref="KulissePlaetze"/>, Tür zur nächsten Gasse) als Modell <c>einwohner_buergerhaus</c> – Variante und
@@ -1309,10 +1288,21 @@ public partial class Stadtansicht : Node3D
         (eltern ?? this).AddChild(spitze);
     }
 
-    /// <summary>Ein flacher Weg zwischen zwei Punkten.</summary>
+    /// <summary>Ein flacher Weg zwischen zwei Punkten. Über den Marktplatz führt keiner – dort liegt das Pflaster des Modells (Stadtansicht.Markt.cs).</summary>
     private void WegZiehen(Vector3 von, Vector3 bis, float breite, Node3D? eltern = null)
     {
         _strassen.Add((von, bis, breite));
+        // Gruppen (Betrieb, freier Platz) liegen beim Ziehen noch im Ursprung: Ihre Wege sind in Koordinaten der Stadt.
+        if ((eltern is null || eltern.Transform.IsEqualApprox(Transform3D.Identity)) && OhneMarktplatz(von, bis, breite) is { } stuecke)
+        {
+            foreach (var (a, b) in stuecke) WegStueck(a, b, breite, eltern ?? this);
+            return;
+        }
+        WegStueck(von, bis, breite, eltern ?? this);
+    }
+
+    private void WegStueck(Vector3 von, Vector3 bis, float breite, Node3D eltern)
+    {
         var mitte = (von + bis) / 2;
         var laenge = von.DistanceTo(bis);
         var weg = new MeshInstance3D
@@ -1322,7 +1312,7 @@ public partial class Stadtansicht : Node3D
             Position = new Vector3(mitte.X, 0.04f, mitte.Z),
             Rotation = new Vector3(0, Mathf.Atan2(bis.X - von.X, bis.Z - von.Z), 0),
         };
-        (eltern ?? this).AddChild(weg);
+        eltern.AddChild(weg);
     }
 
     /// <summary>Unsichtbarer Körper, damit Mausklicks das Gebäude treffen. Die Form lässt sich abschalten (Innenansicht).</summary>
