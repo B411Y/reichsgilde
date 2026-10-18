@@ -6,6 +6,8 @@ Gibt Knoten, Materialien, Dreiecke je Knoten und die Ausdehnung (Y oben, Vorders
 und meldet Verstöße: Material „Hausfarbe“ fehlt, Modell ragt über die belegte Fläche oder
 unter den Boden, ein Zustandsknoten fehlt. Hat das Modell Stufen (Werkstatt), müssen es genau
 Stufe1–Stufe3 sein; dann steht auch da, wie viele Dreiecke je Stufe sichtbar sind (Haus + Stufe).
+Hat das Modell Varianten (Einwohnerhäuser), müssen sie Variante1, Variante2 … heißen; Zustandsknoten
+sind dann nicht nötig, weil Einwohnerhäuser weder leer stehen noch ausgebaut werden.
 Ankerpunkte („Anker_…“, leere Knoten) werden mit Lage und Blickrichtung gelistet; „Anker_Tuer“ ist Pflicht
 und jeder Anker muss auf der Fläche liegen.
 """
@@ -71,6 +73,11 @@ def main():
         fest = sum(n for k, n in dreiecke_je.items() if k in ("Haus", "Wappen", "Fahne"))
         print("sichtbar je Stufe (Haus, Wappen, Fahne + Stufe): " +
               ", ".join(f"{k} {fest + dreiecke_je[k]}" for k in stufen))
+    varianten = sorted(n for n in namen if n.startswith("Variante"))
+    if varianten:
+        if varianten != [f"Variante{i}" for i in range(1, len(varianten) + 1)]:
+            fehler.append("Varianten müssen Variante1, Variante2 … heißen, gefunden: " + ", ".join(varianten))
+        print("sichtbar je Variante: " + ", ".join(f"{k} {dreiecke_je[k]}" for k in varianten))
     for k in anker:
         x, y, z = k.get("translation", [0, 0, 0])
         qx, qy, qz, qw = k.get("rotation", [0, 0, 0, 1])
@@ -83,7 +90,7 @@ def main():
     if "Anker_Tuer" not in [k["name"] for k in anker]:
         fehler.append("Ankerpunkt „Anker_Tuer“ fehlt")
     for z in ZUSTAENDE:
-        if z not in namen:
+        if z not in namen and not varianten:
             fehler.append(f"Zustandsknoten „{z}“ fehlt")
     if mins[1] < -0.06:
         fehler.append(f"ragt {-mins[1]:.2f} m unter den Boden")

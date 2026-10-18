@@ -1,4 +1,4 @@
-"""Erzeugt alle Modelle neu (Wohnhäuser und Werkstätten) und rendert die Übersicht der Wohnhaus-Stufen.
+"""Erzeugt alle Modelle neu (Wohnhäuser, Werkstätten und Einwohnerhäuser) und rendert die Übersicht der Wohnhaus-Stufen.
 
     python tools/modelle/alle.py [--schnell] [--ohne-bilder]
     blender -b --python tools/modelle/alle.py -- [--schnell]
@@ -23,6 +23,7 @@ WOHNHAEUSER = [("fachwerkhaus", "Fachwerkhaus – Gemeiner"), ("buergerhaus", "B
                ("steinhaus", "Steinhaus – Patrizier"), ("stadtpalais", "Stadtpalais – Edler")]
 WERKSTAETTEN = ["schmied", "tischler", "steinmetz", "alchimist", "wirt", "prediger", "dieb", "gardist", "geldleiher",
                 "parfumeur"]          # je Beruf ein Modell mit Stufe1–Stufe3
+EINWOHNERHAEUSER = ["einwohner_ratsherrenhaus"]      # je Hausart ein Modell mit Variante1–Variante3
 
 
 def erzeugen(name, schalter):
@@ -78,7 +79,7 @@ def uebersicht(schnell=False, abstand=14.0):
 
 def main():
     schalter = [a for a in sys.argv if a in ("--schnell", "--ohne-bilder")]
-    for name in [n for n, _ in WOHNHAEUSER] + WERKSTAETTEN:
+    for name in [n for n, _ in WOHNHAEUSER] + WERKSTAETTEN + EINWOHNERHAEUSER:
         erzeugen(name, schalter)
     if "--ohne-bilder" not in schalter:
         print(uebersicht(schnell="--schnell" in schalter))
