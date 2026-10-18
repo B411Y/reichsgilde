@@ -367,3 +367,11 @@ So wird eingetragen (damit sich die Chats nie an derselben Stelle treffen):
 | Dateien (Wunsch des Nutzers) | Je Gruppe ein Baukasten: `natur_baeume`, `natur_buesche`, `natur_boden`, `natur_steine`, `natur_holz`. Jeder Knoten steht mit dem Fuß im Nullpunkt; keine Hausfarbe, keine Zustände, keine Anker (`pruefen.py … --natur`). | 18.10.2026 |
 | Jahreszeiten (Wunsch des Nutzers) | Über Materialien: Laub trägt nur „Laub“, „Laub hell“ und „Laub dunkel“, das Spiel färbt sie um. Nadeln, Gras, Farn, Blüten, Rinde und Steine bleiben. | 18.10.2026 |
 | Sparsamkeit | Ein Baum hat 40–220 Dreiecke, eine Bodenpflanze 10–115: Davon stehen im Umland Hunderte. | 18.10.2026 |
+
+### Bloom (PR folgt)
+
+| Thema | Entscheidung | Datum |
+|---|---|---|
+| Wirkung | **Nur Lichtquellen** leuchten weich nach: Fenster bei Nacht, Glut, Domfenster. Sonnenbeschienene Flächen bleiben klar, wie es der Holzschnitt-Stil verlangt. Entschieden vom Nutzer. | 18.10.2026 |
+| Einstellung | In den Einstellungen unter Anzeige: Schalter **An/Aus** und ein **Stärkeregler 0–100 %**, gespeichert wie die übrigen Einstellungen. Entschieden vom Nutzer. | 18.10.2026 |
+| Standard | **An**, Stärke 50 %. 50 % ist das abgestimmte, empfohlene Bild, 100 % deutlich kräftiger. An entschied der Nutzer, die 50 % der Teamleiter. | 18.10.2026 |
