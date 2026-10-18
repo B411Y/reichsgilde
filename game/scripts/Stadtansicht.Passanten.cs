@@ -181,7 +181,7 @@ public partial class Stadtansicht
         // Im Umland bei der Arbeit: auf dem Feld hacken, im Wald Holz aufheben, auf der Weide hüten – in irgendeine Richtung
         var arbeit = ort.Ort == Stadtort.Umland ? ort.Stelle switch { "Feld" => "Hacken", "Wald" => "Buecken", "Weide" => "Hueten", _ => null } : null;
         if (arbeit is not null)
-            p.Knoten.Rotation = new Vector3(0, (Streuung(e.Nummer, 71) & 0xFFFF) / 65536f * Mathf.Tau, 0);
+            p.Knoten.Rotation = new Vector3(0, UmlandPlatz(ort.Stelle!, Streuung(e.Nummer, Verweilzeit(ort, e))).Blick, 0);
         BewegungSetzen(figur, arbeit ?? "Stehen");
     }
 
@@ -347,9 +347,10 @@ public partial class Stadtansicht
         return new Vector3(ort.X, Mathf.Min(ort.Y, 0.04f), ort.Z);
     }
 
-    private Vector3 Verweilpunkt(Aufenthalt a, Einwohner e) =>
-        // Beim Ziel gilt die Ankunftszeit des letzten Weges, sonst (vor dem Abmarsch) dessen Abmarsch.
-        Verweilpunkt(a, e, e.Weg is { } w ? (a == w.Nach ? w.Ankunft : w.Abmarsch) : 0);
+    private Vector3 Verweilpunkt(Aufenthalt a, Einwohner e) => Verweilpunkt(a, e, Verweilzeit(a, e));
+
+    /// <summary>Beim Ziel gilt die Ankunftszeit des letzten Weges, sonst (vor dem Abmarsch) dessen Abmarsch.</summary>
+    private static long Verweilzeit(Aufenthalt a, Einwohner e) => e.Weg is { } w ? (a == w.Nach ? w.Ankunft : w.Abmarsch) : 0;
 
     /// <summary>
     /// Wo genau jemand am Markt, in der Gasse, am Tor oder im Umland steht – fest aus Nummer und Zeitpunkt
@@ -365,12 +366,62 @@ public partial class Stadtansicht
             Stadtort.Markt => RingUmMitte(Marktplatz, 3f, 10.5f, Teil(0), Teil(16)),
             // Tor: vor dem Osttor neben der Straße
             Stadtort.Tor => Osttor + new Vector3(3 + Teil(0) * 4, 0, (Teil(16) < 0.5f ? -1 : 1) * (3 + Teil(8) * 2)),
-            // Umland: auf der Weide, auf dem Feld, zwischen den Bäumen
-            Stadtort.Umland when a.Stelle is { } s && Umlandstellen.TryGetValue(s, out var u) =>
-                u + new Vector3((Teil(0) - 0.5f) * 11, 0, (Teil(16) - 0.5f) * 7),
+            // Umland: auf der Weide, zwischen den Furchen, bei Reisig und Stümpfen im Wald (UmlandPlatz)
+            Stadtort.Umland when a.Stelle is { } s && Umlandstellen.ContainsKey(s) => UmlandPlatz(s, zahl).Ort,
             // Gasse: irgendwo auf einer Gasse in der Stadt
             _ => PunktInDerGasse(Teil(0), Teil(16)),
         };
+    }
+
+    /// <summary>Arbeitsplätze im Wald (Koordinaten im Modell, vorne +Z): bei den Stümpfen, am Reisig und am Holzstapel, mindestens 2 m von jeder Tanne.</summary>
+    private static readonly Vector2[] WaldPlaetze =
+    {
+        new(-2.4f, -1.2f), new(2.2f, -3.0f), new(-3.2f, 6.0f), new(5.0f, 2.2f), new(2.3f, 2.2f), new(-1.6f, 2.4f), new(0.0f, -1.5f), new(-3.6f, -2.0f),
+    };
+
+    /// <summary>Was auf der Weide im Weg steht (Koordinaten im Modell): Tränke, zwei Büsche, Weidestein – mit Radius.</summary>
+    private static readonly (Vector2 Mitte, float Radius)[] WeideHindernisse =
+    {
+        (new(4.6f, -2.6f), 1.6f), (new(-5.2f, -3.4f), 1.4f), (new(5.6f, 3.4f), 1.2f), (new(-2.0f, -1.4f), 1.0f),
+    };
+
+    /// <summary>
+    /// Wo jemand an einer Arbeitsstelle im Umland steht und wohin er blickt – passend zu <c>umland_stellen.glb</c> (<c>tools/modelle/umland_stellen.py</c>):
+    /// Feld zwischen zwei Furchen, längs der Reihe; Wald an einem Stumpf oder beim Reisig; Weide irgendwo in der Koppel, nicht in Tränke, Busch oder Stein.
+    /// Fest aus der Zahl (Nummer und Zeitpunkt). Die Lage im Modell wird mit der Drehung der Stelle in die Stadt gedreht.
+    /// </summary>
+    private static (Vector3 Ort, float Blick) UmlandPlatz(string stelle, uint zahl)
+    {
+        float Teil(int verschiebung) => ((zahl >> verschiebung) & 0xFF) / 255f; // 0 … 1
+        Vector2 lokal;
+        float blick;
+        switch (stelle)
+        {
+            case "Feld":
+                // Gassen zwischen den sechs Furchen (Furchen bei x = −6 + 2,4 · i, längs z), die Vogelscheuche steht bei (5,6 | −1)
+                lokal = new Vector2(-4.8f + 2.4f * (int)(Teil(0) * 4.99f), -3.5f + 7f * Teil(8));
+                if (lokal.X > 4 && Mathf.Abs(lokal.Y + 1) < 1.2f) lokal.Y += 2.4f;
+                blick = Teil(16) < 0.5f ? 0 : Mathf.Pi;
+                break;
+            case "Wald":
+                var platz = WaldPlaetze[(int)(Teil(0) * (WaldPlaetze.Length - 0.01f))];
+                lokal = platz + new Vector2(Teil(8) - 0.5f, Teil(16) - 0.5f) * 0.6f;
+                blick = Teil(24) * Mathf.Tau;
+                break;
+            default:
+                // Weide: Koppel 14 × 10 m mit Zaun; bis zu vier Versuche, bis nichts im Weg steht
+                lokal = Vector2.Zero;
+                for (var versuch = 0; versuch < 4; versuch++)
+                {
+                    var z = Streuung((int)zahl, versuch);
+                    lokal = new Vector2(((z & 0xFFFF) / 65535f - 0.5f) * 11.5f, (((z >> 16) & 0xFFFF) / 65535f - 0.5f) * 7.5f);
+                    if (!WeideHindernisse.Any(h => h.Mitte.DistanceTo(lokal) < h.Radius)) break;
+                }
+                blick = Teil(24) * Mathf.Tau;
+                break;
+        }
+        var drehung = UmlandstelleDrehung(stelle);
+        return (Umlandstellen[stelle] + new Basis(Vector3.Up, drehung) * new Vector3(lokal.X, 0, lokal.Y), drehung + blick);
     }
 
     private static Vector3 RingUmMitte(Vector3 mitte, float innen, float aussen, float a, float b)
