@@ -1,0 +1,593 @@
+"""Passanten: Grundkörper je Volk mit Skelett, Trachtteilen und Bewegungen.
+
+    blender -b --python tools/modelle/figuren.py        oder
+    python tools/modelle/figuren.py [--schnell] [--ohne-bilder]
+
+Schreibt game/assets/modelle/figur_mensch.glb, figur_zwerg.glb, figur_elb.glb, figur_halbling.glb
+und Vorschaubilder nach docs/modelle/ (figuren.png: alle Körper und Trachten, figuren-bewegungen.png: die Bewegungen).
+
+Inhalt je Datei (Blender: Z oben, Blick nach -Y; im Spiel Y oben, Blick nach +Z):
+    Skelett         elf Knochen: Wurzel, Ruecken, Kopf, Oberarm_L/R, Unterarm_L/R, Oberschenkel_L/R, Unterschenkel_L/R
+                    („L“ ist die linke Seite der Figur). Jeder Teil hängt starr an genau einem Knochen.
+    Koerper_Mann    Wams bis zur Mitte des Oberschenkels, Beinkleid, Schuhe, Gürtel; beim Zwerg mit Bart
+    Koerper_Frau    Kleid bis über die Knöchel, Zopf
+    Trachtteile     Strohhut, Barett, Kapuze, Haube, Schleier, Schuerze, Kiepe, Buendel, Tasche, Stab, Hacke
+                    – standardmäßig aus, das Spiel blendet sie je Rolle ein (wie heute `TrachtVon`)
+    Bewegungen      Stehen, Gehen, Eilen, Gebeugt, Tragen, Sitzen, Reden, Hacken, Buecken, Hueten
+                    – jede eine Schleife am Ort (ohne Vorwärtsbewegung; das Spiel schiebt die Figur)
+Farben je Figur über die Materialien „Gewand“, „Beinkleid“, „Haut“, „Haar“ und „Kopfbedeckung“: Das Spiel
+setzt sie je Figur (wie heute Gewandfarbe und Haut nach Volk). Die übrigen Stoffe bleiben fest.
+"""
+
+import math
+import os
+import sys
+
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+import bausteine as bs  # noqa: E402
+from bausteine import Matrix, Vector  # noqa: E402
+
+bs.FARBEN.update({
+    "Gewand": (0.30, 0.40, 0.55),          # Vorgabe; das Spiel färbt je Figur
+    "Beinkleid": (0.30, 0.26, 0.22),
+    "Haut": (0.86, 0.68, 0.55),
+    "Haar": (0.32, 0.22, 0.14),
+    "Kopfbedeckung": (0.78, 0.74, 0.64),
+    "Leinen": (0.84, 0.81, 0.72),
+    "Geflecht": (0.56, 0.44, 0.27),
+    "Auge": (0.08, 0.07, 0.07),
+})
+
+FPS = 24
+VOELKER = {
+    #            Höhe, Hüfte, Knie, Schulter, Hals, Kopfradius, Schulterbreite/2, Hüftbreite/2, Oberarm, Unterarm, Fuß, Rumpftiefe
+    "mensch": dict(huefte=0.92, knie=0.50, schulter=1.45, hals=0.07, kopf=0.12, schulterbreite=0.20, hueftbreite=0.12,
+                   oberarm=0.29, unterarm=0.38, fuss=0.24, tiefe=0.12),
+    "zwerg": dict(huefte=0.58, knie=0.31, schulter=1.06, hals=0.05, kopf=0.135, schulterbreite=0.26, hueftbreite=0.16,
+                  oberarm=0.24, unterarm=0.30, fuss=0.25, tiefe=0.16),
+    "elb": dict(huefte=1.04, knie=0.57, schulter=1.60, hals=0.08, kopf=0.115, schulterbreite=0.18, hueftbreite=0.11,
+                oberarm=0.32, unterarm=0.42, fuss=0.25, tiefe=0.105),
+    "halbling": dict(huefte=0.53, knie=0.29, schulter=0.90, hals=0.05, kopf=0.125, schulterbreite=0.155, hueftbreite=0.11,
+                     oberarm=0.2, unterarm=0.26, fuss=0.24, tiefe=0.11),
+}
+TRACHT = ["Strohhut", "Barett", "Kapuze", "Haube", "Schleier", "Schuerze", "Kiepe", "Buendel", "Tasche", "Stab", "Hacke"]
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+#  Geometrie: Ringe übereinander (Rumpf, Glieder, Kopf) – die Figur steht in Ruhe senkrecht
+# ─────────────────────────────────────────────────────────────────────────────
+
+class Teile:
+    """Netz plus Buch, welche Ecken zu welchem Knochen gehören (jede Ecke starr an einem Knochen)."""
+
+    def __init__(self, name):
+        self.netz = bs.Netz(name)
+        self.gruppen = []          # (Knochen, erste Ecke, letzte Ecke + 1)
+        self.knochen = None
+
+    def an(self, knochen):
+        self.knochen = knochen
+        return self
+
+    def __enter__(self):
+        self._start = len(self.netz.ecken)
+        return self.netz
+
+    def __exit__(self, *a):
+        self.gruppen.append((self.knochen, self._start, len(self.netz.ecken)))
+
+    def objekt(self, skelett):
+        import bpy
+        o = self.netz.objekt()
+        for name in {g[0] for g in self.gruppen}:
+            o.vertex_groups.new(name=name)
+        for knochen, a, b in self.gruppen:
+            if b > a:
+                o.vertex_groups[knochen].add(list(range(a, b)), 1.0, "REPLACE")
+        o.parent = skelett
+        mod = o.modifiers.new("Skelett", "ARMATURE")
+        mod.object = skelett
+        bpy.context.view_layer.update()
+        return o
+
+
+def ringe(netz, st, liste, stoff, n=8, oben=True, unten=False, cx=0.0, cy=0.0, dreh=math.pi / 8):
+    """Körper aus waagrechten Ringen: liste = [(z, rx, ry[, dy])]; Seiten als Vierecke, auf Wunsch Deckel."""
+    rs = []
+    for eintrag in liste:
+        z, rx, ry = eintrag[:3]
+        dy = eintrag[3] if len(eintrag) > 3 else 0.0
+        rs.append([Vector((cx + rx * math.cos(dreh + 2 * math.pi * k / n), cy + dy + ry * math.sin(dreh + 2 * math.pi * k / n), z))
+                   for k in range(n)])
+    m = st[stoff] if isinstance(stoff, str) else stoff
+    for i in range(len(rs) - 1):
+        mitte = sum(rs[i] + rs[i + 1], Vector()) / (2 * n)
+        for k in range(n):
+            j = (k + 1) % n
+            quad = [rs[i][k], rs[i][j], rs[i + 1][j], rs[i + 1][k]]
+            netz.vieleck_nach(quad, sum(quad, Vector()) / 4 - mitte, m)
+    if oben:
+        netz.vieleck_nach(rs[-1], (0, 0, 1), m)
+    if unten:
+        netz.vieleck_nach(rs[0], (0, 0, -1), m)
+
+
+def koerper(teile, st, p, frau, zwerg):
+    """Grundkörper aus Ringen; jeder Teil an seinem Knochen."""
+    hb, sb, t = p["hueftbreite"], p["schulterbreite"], p["tiefe"]
+    hu, kn, sc = p["huefte"], p["knie"], p["schulter"]
+    taille = hu + (sc - hu) * 0.25
+    hals_z = sc + p["hals"]
+    kopf_m = hals_z + p["kopf"] * 0.95
+    r = p["kopf"]
+    # Beine: Oberschenkel, Unterschenkel mit Schuh
+    for s, seite in ((1, "L"), (-1, "R")):
+        x = s * hb * 0.7
+        with teile.an(f"Oberschenkel_{seite}") as n:
+            ringe(n, st, [(kn, hb * 0.42, hb * 0.45), (hu - 0.02, hb * 0.6, hb * 0.62)], "Beinkleid", n=6, cx=x, oben=False)
+        with teile.an(f"Unterschenkel_{seite}") as n:
+            ringe(n, st, [(0.09, hb * 0.32, hb * 0.34), (kn + 0.02, hb * 0.42, hb * 0.45)], "Beinkleid", n=6, cx=x, oben=False)
+            f = p["fuss"]
+            n.quader((x, -f * 0.25, 0.045), (hb * 0.75, f, 0.09), st["Leder"], ohne=("-z",))
+    # Arme mit Händen
+    for s, seite in ((1, "L"), (-1, "R")):
+        x = s * (sb + 0.01)
+        oa, ua = p["oberarm"], p["unterarm"]
+        z_ell = sc - 0.03 - oa
+        with teile.an(f"Oberarm_{seite}") as n:
+            ringe(n, st, [(z_ell, 0.045 * sb / 0.2, 0.05), (sc + 0.02, 0.06 * sb / 0.2, 0.065)], "Gewand", n=6, cx=x)
+        with teile.an(f"Unterarm_{seite}") as n:
+            ringe(n, st, [(z_ell - ua * 0.72, 0.04 * sb / 0.2, 0.042), (z_ell + 0.02, 0.048 * sb / 0.2, 0.05)], "Gewand",
+                  n=6, cx=x, oben=False)
+            n.quader((x, 0, z_ell - ua * 0.72 - 0.06), (0.06, 0.07, 0.13), st["Haut"])
+    # Rumpf (am Rücken), unten Gürtel; Wams oder Kleid an der Wurzel
+    with teile.an("Ruecken") as n:
+        ringe(n, st, [(taille, hb * 1.05, t * 0.95), (sc - 0.08, sb * 0.98, t * 1.05), (sc + 0.01, sb * 0.8, t * 0.85)],
+              "Gewand", n=8)
+        ringe(n, st, [(sc, 0.045, 0.045), (hals_z + 0.02, 0.04, 0.04)], "Haut", n=6, oben=False)
+    with teile.an("Wurzel") as n:
+        ringe(n, st, [(taille - 0.025, hb * 1.08, t * 0.98), (taille + 0.025, hb * 1.08, t * 0.98)], "Leder", n=8,
+              oben=False)
+        if frau:     # Kleid bis über die Knöchel
+            ringe(n, st, [(0.12, hb * 2.1, t * 2.0), (kn, hb * 1.65, t * 1.55), (taille - 0.02, hb * 1.06, t * 0.96)],
+                  "Gewand", n=8, oben=False)
+        else:        # Wams bis zur Mitte des Oberschenkels
+            ringe(n, st, [((hu + kn) / 2 + 0.03, hb * 1.5, t * 1.25), (taille - 0.02, hb * 1.06, t * 0.96)], "Gewand",
+                  n=8, oben=False)
+    # Kopf: Gesicht, Nase, Augen, Haar
+    with teile.an("Kopf") as n:
+        ringe(n, st, [(kopf_m - r * 0.95, r * 0.45, r * 0.5), (kopf_m - r * 0.55, r * 0.85, r * 0.9),
+                      (kopf_m, r, r * 1.02), (kopf_m + r * 0.55, r * 0.85, r * 0.88), (kopf_m + r * 0.95, r * 0.35, r * 0.38)],
+              "Haut", n=8)
+        n.quader((0, -r * 1.0, kopf_m - r * 0.1), (r * 0.22, r * 0.25, r * 0.35), st["Haut"])
+        for s in (-1, 1):
+            n.vieleck_nach([(s * r * 0.38 - r * 0.09, -r * 0.93, kopf_m + r * 0.14), (s * r * 0.38 + r * 0.09, -r * 0.93, kopf_m + r * 0.14),
+                            (s * r * 0.38 + r * 0.09, -r * 0.93, kopf_m + r * 0.26), (s * r * 0.38 - r * 0.09, -r * 0.93, kopf_m + r * 0.26)],
+                           (0, -1, 0), st["Auge"])
+        # Haar: Kappe hinten und oben, etwas größer als der Kopf
+        ringe(n, st, [(kopf_m - r * 0.35, r * 1.06, r * 1.0, r * 0.3), (kopf_m + r * 0.5, r * 0.95, r * 0.97, r * 0.06),
+                      (kopf_m + r * 1.02, r * 0.42, r * 0.44)], "Haar", n=8)
+        if frau:     # Zopf hinten
+            ringe(n, st, [(kopf_m - r * 2.2, r * 0.18, r * 0.18, r * 1.0), (kopf_m - r * 0.2, r * 0.3, r * 0.3, r * 0.95)],
+                  "Haar", n=5)
+        if zwerg and not frau:   # Bart über Kinn und Brust
+            ringe(n, st, [(kopf_m - r * 2.0, r * 0.25, r * 0.15, -r * 1.05), (kopf_m - r * 1.1, r * 0.7, r * 0.42, -r * 0.85),
+                          (kopf_m - r * 0.3, r * 0.82, r * 0.55, -r * 0.55)], "Haar", n=6)
+
+
+def tracht(name, st, p):
+    """Ein Trachtteil (eigenes Objekt, starr an einem Knochen)."""
+    t = Teile(name)
+    r, sc, hu, kn = p["kopf"], p["schulter"], p["huefte"], p["knie"]
+    kopf_m = sc + p["hals"] + r * 0.95
+    sb, tf, hb = p["schulterbreite"], p["tiefe"], p["hueftbreite"]
+    taille = hu + (sc - hu) * 0.25
+    hand_z = sc - 0.03 - p["oberarm"] - p["unterarm"] * 0.72 - 0.06
+    xr = -(sb + 0.01)                       # rechte Hand
+    if name == "Strohhut":
+        with t.an("Kopf") as n:
+            ringe(n, st, [(kopf_m + r * 0.45, r * 2.6, r * 2.6), (kopf_m + r * 0.55, r * 2.5, r * 2.5)], "Stroh", n=10)
+            ringe(n, st, [(kopf_m + r * 0.55, r * 1.05, r * 1.05), (kopf_m + r * 1.35, r * 0.8, r * 0.8)], "Stroh", n=8)
+    elif name == "Barett":
+        with t.an("Kopf") as n:
+            ringe(n, st, [(kopf_m + r * 0.55, r * 1.08, r * 1.08), (kopf_m + r * 0.85, r * 1.35, r * 1.3, r * 0.1),
+                          (kopf_m + r * 1.0, r * 1.25, r * 1.2, r * 0.1)], "Kopfbedeckung", n=8)
+    elif name in ("Kapuze", "Schleier", "Haube"):
+        with t.an("Kopf") as n:
+            if name == "Haube":
+                ringe(n, st, [(kopf_m - r * 0.2, r * 1.1, r * 1.12, r * 0.12), (kopf_m + r * 0.6, r * 1.02, r * 1.02, r * 0.05),
+                              (kopf_m + r * 1.1, r * 0.5, r * 0.5)], "Kopfbedeckung", n=8)
+            else:      # Kapuze bzw. Schleier fallen bis auf die Schultern
+                ringe(n, st, [(sc - 0.03, sb * 0.95, tf * 1.2, r * 0.25), (kopf_m - r * 0.6, r * 1.25, r * 1.2, r * 0.3),
+                              (kopf_m + r * 0.5, r * 1.12, r * 1.12, r * 0.12), (kopf_m + r * 1.12, r * 0.5, r * 0.5, r * 0.1)],
+                      "Kopfbedeckung", n=8)
+    elif name == "Schuerze":
+        with t.an("Wurzel") as n:
+            y = -tf * 1.02
+            n.vieleck_nach([(-hb * 1.0, y, taille), (hb * 1.0, y, taille), (hb * 1.25, y - 0.1 * hb, kn + 0.03),
+                            (-hb * 1.25, y - 0.1 * hb, kn + 0.03)], (0, -1, 0), st["Leinen"])
+            n.vieleck_nach([(-hb * 1.25, y - 0.1 * hb + 0.01, kn + 0.03), (hb * 1.25, y - 0.1 * hb + 0.01, kn + 0.03),
+                            (hb * 1.0, y + 0.01, taille), (-hb * 1.0, y + 0.01, taille)], (0, 1, 0), st["Leinen"])
+    elif name == "Kiepe":
+        with t.an("Ruecken") as n:
+            ringe(n, st, [(taille, sb * 0.8, tf * 0.8, tf * 1.9), (sc + 0.12, sb * 1.05, tf * 1.05, tf * 2.1)], "Geflecht", n=6)
+            for s in (-1, 1):
+                n.stab((s * sb * 0.6, -tf * 0.9, sc - 0.02), (s * sb * 0.6, tf * 1.2, sc + 0.02), 0.03, 0.025, st["Leder"])
+    elif name == "Buendel":
+        with t.an("Ruecken") as n:      # auf der rechten Schulter, die Hand hält es (Bewegung „Tragen“)
+            n.stab((xr - 0.05, -0.35, sc + 0.1), (xr - 0.05, 0.35, sc + 0.1), 0.24, 0.24, st["Holz alt"])
+    elif name == "Tasche":
+        with t.an("Wurzel") as n:
+            n.quader((-hb * 1.4, -0.02, hu - 0.05), (0.06, 0.2, 0.22), st["Leder"])
+            n.stab((-hb * 1.4, 0, hu + 0.06), (sb * 0.9, 0, sc - 0.02), 0.03, 0.02, st["Leder"])
+    elif name == "Stab":
+        with t.an("Wurzel") as n:         # steht senkrecht rechts vor der Figur; beim Hüten greift die Hand ihn
+            n.stab((xr - 0.04, -0.3, 0.0), (xr - 0.04, -0.3, sc + 0.35), 0.045, 0.045, st["Holz"])
+    elif name == "Hacke":
+        with t.an("Unterarm_R") as n:     # Stiel verlängert den Unterarm nach unten, das Blatt zeigt nach vorn
+            unten = hand_z - 0.85
+            n.stab((xr, 0, hand_z + 0.08), (xr, 0, unten), 0.04, 0.04, st["Holz"])
+            n.quader((xr, -0.09, unten + 0.02), (0.12, 0.2, 0.04), st["Eisen"])
+    return t
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+#  Skelett und Bewegungen
+# ─────────────────────────────────────────────────────────────────────────────
+
+def skelett(p):
+    import bpy
+    arm = bpy.data.armatures.new("Skelett")
+    ob = bpy.data.objects.new("Skelett", arm)
+    bpy.context.scene.collection.objects.link(ob)
+    bpy.context.view_layer.objects.active = ob
+    bpy.ops.object.mode_set(mode="EDIT")
+    sc, hu, kn = p["schulter"], p["huefte"], p["knie"]
+    kopf_z = sc + p["hals"]
+
+    def knochen(name, kopf, schwanz, eltern=None):
+        b = arm.edit_bones.new(name)
+        b.head, b.tail = kopf, schwanz
+        if eltern:
+            b.parent = arm.edit_bones[eltern]
+        return b
+
+    knochen("Wurzel", (0, 0, hu), (0, 0, hu + 0.08))
+    knochen("Ruecken", (0, 0, hu), (0, 0, sc), "Wurzel")
+    knochen("Kopf", (0, 0, kopf_z), (0, 0, kopf_z + 2 * p["kopf"]), "Ruecken")
+    for s, seite in ((1, "L"), (-1, "R")):
+        x = s * (p["schulterbreite"] + 0.01)
+        ell = sc - 0.03 - p["oberarm"]
+        knochen(f"Oberarm_{seite}", (x, 0, sc - 0.03), (x, 0, ell), "Ruecken")
+        knochen(f"Unterarm_{seite}", (x, 0, ell), (x, 0, ell - p["unterarm"]), f"Oberarm_{seite}")
+        xb = s * p["hueftbreite"] * 0.7
+        knochen(f"Oberschenkel_{seite}", (xb, 0, hu), (xb, 0, kn), "Wurzel")
+        knochen(f"Unterschenkel_{seite}", (xb, 0, kn), (xb, 0, 0.06), f"Oberschenkel_{seite}")
+    bpy.ops.object.mode_set(mode="OBJECT")
+    for pb in ob.pose.bones:
+        pb.rotation_mode = "XYZ"
+    return ob
+
+
+def g(w):
+    return math.radians(w)
+
+
+def haltung(name, phase, p):
+    """Pose zur Phase 0…1 einer Bewegung: {Knochen: (x, y, z) in Grad}, dazu die Hüfthöhe (Meter, relativ).
+    Vorzeichen: Bei Beinen und Armen (hängende Knochen) schwingt negatives X nach vorn, beim Rücken und Kopf
+    (stehende Knochen) neigt positives X nach vorn. Z dreht um die Hochachse."""
+    s = math.sin(2 * math.pi * phase)
+    c = math.cos(2 * math.pi * phase)
+    s2 = math.sin(4 * math.pi * phase)
+    r = {}
+    hoch = 0.0
+
+    def gang(bein, arm, knie, takt_hoch, vor=0.0):
+        nonlocal hoch
+        r["Oberschenkel_L"] = (-bein * s, 0, 0)
+        r["Oberschenkel_R"] = (bein * s, 0, 0)
+        r["Unterschenkel_L"] = (knie * max(0.0, -c) + 4, 0, 0)          # Knie beugt beim Durchschwingen
+        r["Unterschenkel_R"] = (knie * max(0.0, c) + 4, 0, 0)
+        r["Oberarm_L"] = (arm * s, 0, 6)
+        r["Oberarm_R"] = (-arm * s, 0, -6)
+        r["Unterarm_L"] = (-12 - arm * 0.4 * max(0.0, s), 0, 0)
+        r["Unterarm_R"] = (-12 - arm * 0.4 * max(0.0, -s), 0, 0)
+        r["Ruecken"] = (vor, 0, 4 * s)
+        r["Kopf"] = (-vor * 0.6, 0, -3 * s)
+        hoch = takt_hoch * abs(s2) - takt_hoch * 0.5
+
+    if name == "Stehen":
+        r["Ruecken"] = (1.5 * s, 0, 0)
+        r["Kopf"] = (-1.5 * s, 0, 3 * math.sin(2 * math.pi * phase + 1))
+        for seite, z in (("L", 6), ("R", -6)):
+            r[f"Oberarm_{seite}"] = (2 * s, 0, z)
+            r[f"Unterarm_{seite}"] = (-8, 0, 0)
+        r["Oberschenkel_L"], r["Oberschenkel_R"] = (0, 0, 2), (0, 0, -2)
+        hoch = 0.006 * s
+    elif name == "Gehen":
+        gang(24, 22, 38, 0.035)
+    elif name == "Eilen":
+        gang(32, 32, 50, 0.05, vor=9)
+    elif name == "Gebeugt":
+        gang(14, 6, 24, 0.02, vor=26)
+        for seite in ("L", "R"):
+            r[f"Unterarm_{seite}"] = (-30, 0, 0)
+        r["Kopf"] = (-22, 0, 0)
+        hoch -= 0.04
+    elif name == "Tragen":
+        gang(18, 14, 30, 0.025, vor=6)
+        r["Oberarm_R"] = (-20, 0, -150)                                 # rechte Hand hält die Last auf der Schulter
+        r["Unterarm_R"] = (-110, 0, 0)
+    elif name == "Sitzen":
+        hoch = -(p["huefte"] - (p["knie"] - 0.02)) + 0.006 * s           # Hüfte auf Sitzhöhe (etwa Kniehöhe)
+        r["Oberschenkel_L"], r["Oberschenkel_R"] = (-88, 0, 4), (-88, 0, -4)
+        r["Unterschenkel_L"], r["Unterschenkel_R"] = (88, 0, 0), (88, 0, 0)
+        r["Ruecken"] = (2 + 1.5 * s, 0, 0)
+        r["Kopf"] = (-2 - 1.5 * s, 0, 0)
+        for seite, z in (("L", 4), ("R", -4)):
+            r[f"Oberarm_{seite}"] = (-18, 0, z)
+            r[f"Unterarm_{seite}"] = (-55, 0, 0)
+    elif name == "Reden":
+        r["Ruecken"] = (1.5 * s, 0, 5 * math.sin(2 * math.pi * phase * 2))
+        r["Kopf"] = (6 * max(0.0, s2), 0, 8 * math.sin(2 * math.pi * phase))
+        r["Oberarm_R"] = (-35 - 20 * max(0.0, s), 0, -18)
+        r["Unterarm_R"] = (-60 - 25 * abs(s2), 0, 0)
+        r["Oberarm_L"] = (-15 - 10 * max(0.0, -s), 0, 10)
+        r["Unterarm_L"] = (-45, 0, 0)
+    elif name == "Hacken":
+        # Ausholen (0–0,45), Schlag (0,45–0,6), Herausziehen (0,6–1)
+        if phase < 0.45:
+            a = phase / 0.45
+        elif phase < 0.6:
+            a = 1 - (phase - 0.45) / 0.15
+        else:
+            a = 0.0
+        hub = 105 * a
+        r["Ruecken"] = (22 - 14 * a, 0, -6)
+        r["Kopf"] = (-6, 0, 0)
+        for seite, z in (("L", 14), ("R", -14)):
+            r[f"Oberarm_{seite}"] = (-25 - hub, 0, z)
+            r[f"Unterarm_{seite}"] = (-25 - 40 * a, 0, 0)
+        r["Oberschenkel_L"], r["Oberschenkel_R"] = (-14, 0, 4), (10, 0, -4)
+        r["Unterschenkel_L"], r["Unterschenkel_R"] = (18, 0, 0), (6, 0, 0)
+        hoch = -0.03
+    elif name == "Buecken":
+        b = 0.5 - 0.5 * math.cos(2 * math.pi * phase)                   # 0 → 1 → 0
+        r["Ruecken"] = (70 * b, 0, 0)
+        r["Kopf"] = (-25 * b, 0, 0)
+        for seite, z in (("L", 6), ("R", -6)):
+            r[f"Oberarm_{seite}"] = (-40 * b, 0, z)
+            r[f"Unterarm_{seite}"] = (-10 - 15 * b, 0, 0)
+        r["Oberschenkel_L"], r["Oberschenkel_R"] = (-35 * b, 0, 3), (-35 * b, 0, -3)
+        r["Unterschenkel_L"], r["Unterschenkel_R"] = (60 * b, 0, 0), (60 * b, 0, 0)
+        hoch = -0.16 * b * p["huefte"] / 0.92
+    elif name == "Hueten":
+        r["Oberarm_R"] = (-28, 0, -10)                                   # hält den Stab vor sich
+        r["Unterarm_R"] = (-55, 0, 0)
+        r["Oberarm_L"] = (3 * s, 0, 6)
+        r["Unterarm_L"] = (-10, 0, 0)
+        r["Ruecken"] = (2, 0, 6 * s)
+        r["Kopf"] = (-2, 0, 14 * math.sin(2 * math.pi * phase + 0.6))
+        r["Oberschenkel_L"], r["Oberschenkel_R"] = (0, 0, 3 + 2 * s), (0, 0, -3)
+        hoch = 0.004 * s
+    return {k: tuple(g(w) for w in v) for k, v in r.items()}, hoch
+
+
+BEWEGUNGEN = {   # Name: Dauer in Sekunden (eine Schleife)
+    "Stehen": 3.0, "Gehen": 1.0, "Eilen": 0.7, "Gebeugt": 1.4, "Tragen": 1.2, "Sitzen": 3.0, "Reden": 2.0,
+    "Hacken": 1.3, "Buecken": 2.4, "Hueten": 4.0,
+}
+
+
+def pose_setzen(ob, pose, hoch):
+    for pb in ob.pose.bones:
+        pb.rotation_euler = pose.get(pb.name, (0.0, 0.0, 0.0))
+        pb.location = (0.0, 0.0, 0.0)
+    # Die Wurzel zeigt nach oben (lokales Y = Welt-Z): Hüfthöhe über ihr lokales Y
+    ob.pose.bones["Wurzel"].location = (0.0, hoch, 0.0)
+
+
+def bewegungen_anlegen(ob, p):
+    import bpy
+    ob.animation_data_create()
+    for name, dauer in BEWEGUNGEN.items():
+        bilder = int(round(dauer * FPS))
+        act = bpy.data.actions.new(name)
+        ob.animation_data.action = act
+        for f in range(0, bilder + 1, 2):
+            pose, hoch = haltung(name, (f % bilder) / bilder, p)
+            pose_setzen(ob, pose, hoch)
+            for pb in ob.pose.bones:
+                pb.keyframe_insert("rotation_euler", frame=f + 1)
+            ob.pose.bones["Wurzel"].keyframe_insert("location", frame=f + 1)
+        spur = ob.animation_data.nla_tracks.new()
+        spur.name = name
+        spur.strips.new(name, 1, act)
+        ob.animation_data.action = None
+    pose_setzen(ob, *haltung("Stehen", 0.0, p))
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+#  Bauen, Export, Vorschau
+# ─────────────────────────────────────────────────────────────────────────────
+
+def figur_bauen(volk, st):
+    p = VOELKER[volk]
+    ske = skelett(p)
+    objekte = [ske]
+    for frau in (False, True):
+        t = Teile("Koerper_Frau" if frau else "Koerper_Mann")
+        koerper(t, st, p, frau, volk == "zwerg")
+        objekte.append(t.objekt(ske))
+    for name in TRACHT:
+        o = tracht(name, st, p).objekt(ske)
+        o["teil"] = True
+        o["sichtbar"] = False
+        objekte.append(o)
+    return ske, objekte
+
+
+def exportieren(name, objekte):
+    import bpy
+    pfad = os.path.join(bs.MODELLE, name + ".glb")
+    for o in bpy.context.scene.objects:
+        o.select_set(o in objekte)
+    bpy.ops.export_scene.gltf(
+        filepath=pfad, export_format="GLB", use_selection=True, export_yup=True, export_apply=False,
+        export_extras=True, export_normals=True, export_texcoords=False, export_skins=True, export_animations=True,
+        export_animation_mode="NLA_TRACKS", export_morph=False, export_lights=False, export_cameras=False,
+        export_image_format="NONE")
+    return pfad
+
+
+def bericht(volk, objekte):
+    print(f"\nfigur_{volk}: Dreiecke")
+    for o in objekte:
+        if o.type == "MESH":
+            o.data.calc_loop_triangles()
+            print(f"  {o.name:14s} {len(o.data.loop_triangles):5d}")
+
+
+def main():
+    import bpy
+    schnell = "--schnell" in sys.argv
+    for volk in VOELKER:
+        bs.neue_szene()
+        st = bs.Stoffe()
+        ske, objekte = figur_bauen(volk, st)
+        bewegungen_anlegen(ske, VOELKER[volk])
+        bericht(volk, objekte)
+        print("geschrieben:", exportieren("figur_" + volk, objekte))
+    if "--ohne-bilder" in sys.argv:
+        return
+    vorschau_figuren(schnell)
+    vorschau_bewegungen(schnell)
+
+
+def kopie(ske, objekte, ort, dreh=0.0):
+    """Skelett samt Körperteilen kopieren (fürs Bild) und an `ort` stellen."""
+    import bpy
+    neu = ske.copy()
+    neu.data = ske.data
+    neu.animation_data_clear()
+    bpy.context.scene.collection.objects.link(neu)
+    neu.location = ort
+    neu.rotation_euler = (0, 0, dreh)
+    teile = []
+    for o in objekte:
+        k = o.copy()
+        k.data = o.data.copy()                    # eigene Materialliste je Kopie (fürs Umfärben)
+        bpy.context.scene.collection.objects.link(k)
+        k.parent = neu
+        k.matrix_parent_inverse = Matrix.Identity(4)
+        k.location = (0, 0, 0)
+        k.modifiers["Skelett"].object = neu
+        teile.append(k)
+    return neu, teile
+
+
+TRACHTEN_BILD = [   # Volk, Frau, Teile, Gewand, Kopfbedeckung – wie die Rollen im Spiel
+    ("mensch", False, ["Barett"], (0.55, 0.12, 0.12), (0.12, 0.11, 0.12)),          # Ratsherr
+    ("mensch", True, ["Haube", "Schuerze"], (0.58, 0.45, 0.30), (0.78, 0.74, 0.64)),  # Magd
+    ("mensch", False, ["Kapuze"], (0.36, 0.24, 0.14), (0.36, 0.24, 0.14)),          # Mönch
+    ("mensch", False, ["Strohhut", "Stab"], (0.40, 0.36, 0.24), (0.78, 0.66, 0.40)),  # Hirte
+    ("zwerg", False, ["Kiepe"], (0.24, 0.42, 0.26), None),                           # Krämer
+    ("zwerg", True, ["Haube"], (0.45, 0.22, 0.50), (0.78, 0.74, 0.64)),
+    ("elb", False, ["Tasche"], (0.20, 0.32, 0.62), None),                            # Bote
+    ("elb", True, ["Schleier"], (0.12, 0.11, 0.12), (0.92, 0.92, 0.88)),             # Nonne
+    ("halbling", False, ["Strohhut", "Hacke"], (0.58, 0.50, 0.36), (0.78, 0.66, 0.40)),  # Feldarbeiter
+    ("halbling", True, ["Buendel", "Haube"], (0.42, 0.30, 0.20), (0.78, 0.74, 0.64)),  # Holzsammlerin
+]
+
+
+def vorschau_figuren(schnell):
+    """Alle Völker in typischer Tracht nebeneinander (je eigene Farben über Kopien der Materialien)."""
+    import bpy
+    bs.neue_szene()
+    st = bs.Stoffe()
+    figuren = {}
+    for volk in VOELKER:
+        figuren[volk] = figur_bauen(volk, st)
+        for o in figuren[volk][1] + [figuren[volk][0]]:
+            o.location.z -= 50                     # Vorlagen aus dem Bild
+    alle = []
+    for i, (volk, frau, teile, gewand, kopf) in enumerate(TRACHTEN_BILD):
+        ske, objekte = figuren[volk]
+        wahl = [o for o in objekte if o.type == "MESH" and o.name.split(".")[0] in teile + ["Koerper_Frau" if frau else "Koerper_Mann"]]
+        x = (i - (len(TRACHTEN_BILD) - 1) / 2) * 0.9
+        neu, kopien = kopie(ske, wahl, Vector((x * 0.7071, x * 0.7071, 0)))
+        pose_setzen(neu, *haltung("Hueten" if "Stab" in teile else "Tragen" if "Buendel" in teile else "Stehen", 0.2,
+                                  VOELKER[volk]))
+        for k in kopien:
+            umfaerben(k, {"Gewand": gewand, "Kopfbedeckung": kopf, "Haut": HAUT[volk]})
+        alle += kopien
+    bs.vorschau_buehne(None, ziel_hoehe=0.9, ausschnitt=9.2, schnell=schnell)
+    print(bs.rendern("figuren", lambda o: o in alle))
+
+
+HAUT = {"mensch": (0.86, 0.68, 0.55), "zwerg": (0.80, 0.60, 0.48), "elb": (0.93, 0.85, 0.76), "halbling": (0.88, 0.70, 0.56)}
+
+
+def umfaerben(o, farben):
+    """Fürs Bild: Materialien dieses Objekts durch umgefärbte Kopien ersetzen (wie es das Spiel je Figur tut)."""
+    for i, m in enumerate(o.data.materials):
+        f = farben.get(m.name)
+        if f is None:
+            continue
+        neu = m.copy()
+        neu.node_tree.nodes["Principled BSDF"].inputs["Base Color"].default_value = (*bs._linear(f), 1)
+        o.data.materials[i] = neu
+
+
+def vorschau_bewegungen(schnell):
+    """Je Bewegung eine Reihe: vier Phasen nebeneinander (Mensch, Mann; beim Hüten mit Stab, Tragen mit Bündel)."""
+    import bpy
+    from bpy_extras.object_utils import world_to_camera_view
+    bs.neue_szene()
+    st = bs.Stoffe()
+    p = VOELKER["mensch"]
+    ske, objekte = figur_bauen("mensch", st)
+    for o in objekte:
+        o.location.z -= 50
+    reihen = list(BEWEGUNGEN)
+    phasen = (0.0, 0.25, 0.5, 0.75)
+    alle, marken = [], []
+    for r, name in enumerate(reihen):
+        teile = {"Hueten": ["Stab"], "Tragen": ["Buendel"], "Hacken": ["Hacke", "Strohhut"]}.get(name, [])
+        wahl = [o for o in objekte if o.type == "MESH" and o.name.split(".")[0] in teile + ["Koerper_Mann"]]
+        for k, ph in enumerate(phasen):
+            # Spalten nach rechts im Bild, Reihen nach hinten
+            sx, sy = (k - 1.5) * 1.1, ((len(reihen) - 1) / 2 - r) * 2.7
+            ort = Vector((sx * 0.7071 - sy * 0.7071, sx * 0.7071 + sy * 0.7071, 0))
+            neu, kopien = kopie(ske, wahl, ort, dreh=math.radians(-90))     # Seitenansicht: Blick nach links im Bild
+            pose_setzen(neu, *haltung(name, ph, p))
+            alle += kopien
+            if name == "Sitzen":                                         # Bank fürs Bild
+                bank = bs.Netz("_Bank")
+                bank.quader(ort + Vector((0, 0, p["knie"] - 0.06)), (0.5, 0.5, 0.08), st["Holz"])
+                for dx in (-0.2, 0.2):
+                    bank.quader(ort + Vector((dx, 0, (p["knie"] - 0.1) / 2)), (0.06, 0.4, p["knie"] - 0.1), st["Holz"])
+                alle.append(bank.objekt())
+        marken.append((name, Vector(((-2.3) * 0.7071 - sy * 0.7071, (-2.3) * 0.7071 + sy * 0.7071, 0.9))))
+    bs.vorschau_buehne(None, ziel_hoehe=0.9, ausschnitt=22.0, schnell=schnell)
+    szene = bpy.context.scene
+    szene.render.resolution_x, szene.render.resolution_y = 1000, 1800
+    pfad = bs.rendern("figuren-bewegungen", lambda o: o in alle)
+    try:
+        from PIL import Image, ImageDraw, ImageFont
+    except ImportError:
+        return
+    bild = Image.open(pfad).convert("RGB")
+    w, h = bild.size
+    zeichnen = ImageDraw.Draw(bild)
+    schrift = ImageFont.truetype(os.path.join(bs.WURZEL, "game", "assets", "schriften", "Alegreya-Variabel.ttf"), int(h / 50))
+    for name, ort in marken:
+        q = world_to_camera_view(szene, szene.camera, ort)
+        zeichnen.text((int(q.x * w), int((1 - q.y) * h)), name, fill=(240, 236, 220), font=schrift, anchor="rm")
+    bild.save(pfad, optimize=True)
+    print(pfad)
+
+
+if __name__ == "__main__":
+    main()
