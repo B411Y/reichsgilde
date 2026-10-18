@@ -69,6 +69,7 @@ public sealed class KiRivale
     private int _gaunereienImJahr;
     private readonly Dictionary<string, int> _verlustjahre = new();
     private readonly Dictionary<string, double> _lagerwert = new();
+    private readonly Dictionary<string, int> _stundenOhnePersonal = new();
     private readonly Dictionary<string, int> _gesperrt = new();
     private int? _keinWerkstattplatzJahr;
     private bool _bauorteGefragt; // in dieser Stunde schon nach Bauorten gefragt (teuer – höchstens einmal)
@@ -103,6 +104,7 @@ public sealed class KiRivale
         GaunereienImJahr = _gaunereienImJahr,
         Verlustjahre = new(_verlustjahre),
         Lagerwert = new(_lagerwert),
+        StundenOhnePersonal = new(_stundenOhnePersonal),
         Gesperrt = new(_gesperrt),
         KeinWerkstattplatzJahr = _keinWerkstattplatzJahr,
     };
@@ -117,6 +119,7 @@ public sealed class KiRivale
         _gaunereienImJahr = s.GaunereienImJahr;
         foreach (var (name, jahre) in s.Verlustjahre) _verlustjahre[name] = jahre;
         foreach (var (name, wert) in s.Lagerwert) _lagerwert[name] = wert;
+        foreach (var (name, stunden) in s.StundenOhnePersonal) _stundenOhnePersonal[name] = stunden;
         foreach (var (art, bis) in s.Gesperrt) _gesperrt[art] = bis;
         _keinWerkstattplatzJahr = s.KeinWerkstattplatzJahr;
     }
@@ -184,6 +187,8 @@ public sealed class KiRivale
                 ProduktWaehlen(betrieb);
             else if (betrieb.Rohstoffe.Count >= 2)
                 FoerderungAufteilen(betrieb);
+            if (betrieb.Belegt == 0) // die vergangene Stunde ohne jedes Personal – zählt gegen das Verlustjahr
+                _stundenOhnePersonal[betrieb.Name] = _stundenOhnePersonal.GetValueOrDefault(betrieb.Name) + 1;
             PersonalBesetzen(betrieb);
             EskorteWaehlen(betrieb);
         }
@@ -192,9 +197,9 @@ public sealed class KiRivale
     /// <summary>Überlegungen zum Jahresende (nach der Abrechnung).</summary>
     internal void Jahresende()
     {
+        VerlusteZaehlen(_stundenImJahr);
         _stundenImJahr = 0;
         _gaunereienImJahr = 0;
-        VerlusteZaehlen();
         foreach (var betrieb in Betriebe.ToList())
             KarrenNachkaufen(betrieb);
     }
@@ -734,6 +739,9 @@ public sealed class KiRivale
     /// <summary>Ab so vielen ganzen Jahren in Folge mit Verlust verkauft die KI einen Betrieb.</summary>
     private const int VerlustjahreBisVerkauf = 2;
 
+    /// <summary>Stand ein Betrieb mindestens diesen Anteil der Stunden des Jahres ganz ohne Personal, zählt sein Jahr nicht als Verlustjahr.</summary>
+    private const double OhnePersonalAb = 0.25;
+
     /// <summary>So viele Jahre kauft und baut die KI nach einem Verkauf nichts im selben Handwerk am selben Ort (Stadt bzw. Umland).</summary>
     public const int SperreNachVerkauf = 5;
 
@@ -743,7 +751,7 @@ public sealed class KiRivale
     private static string Sperrschluessel(BetriebsartDaten d) => $"{d.Beruf}/{d.Ort}";
 
     /// <summary>Hat die KI kürzlich einen Betrieb dieses Handwerks am selben Ort verkauft? Dann kauft und baut sie dort vorerst nichts.</summary>
-    private bool Gesperrt(Betriebsart art) =>
+    internal bool Gesperrt(Betriebsart art) =>
         _gesperrt.TryGetValue(Sperrschluessel(_w.Daten.Art(art)), out var bis) && _w.Uhr.Jahr < bis;
 
     /// <summary>Wie viele ganze Jahre in Folge dieser Betrieb Verlust gemacht hat (gezählt zum Jahresende).</summary>
@@ -757,8 +765,11 @@ public sealed class KiRivale
     /// Ohne das Lager sähe eine Werkstatt, die teure Zutaten (Gold, Schleifziegel) auf Vorrat kauft, nach Verlust aus –
     /// die erste Messung verkaufte so die ausgebauten Hauptwerkstätten. Ein Jahr, das der Betrieb nicht ganz lief (gekauft, gebaut,
     /// alter Spielstand), zählt nicht und unterbricht die Folge nicht; ein Jahr ohne Verlust setzt sie zurück.
+    /// Ebenso ein Jahr, in dem der Betrieb mindestens ein Viertel der Stunden ganz ohne Personal stand (meist fehlte das Geld für Löhne):
+    /// Er konnte nichts verdienen, und die Löhne zum Jahresende zahlt er für alle, die zuletzt da sind – das sagt nichts über den Betrieb.
     /// </summary>
-    private void VerlusteZaehlen()
+    /// <param name="stundenImJahr">So viele Stunden hat die KI in diesem Jahr überlegt (bei einem ganzen Jahr 17).</param>
+    private void VerlusteZaehlen(int stundenImJahr)
     {
         var eigene = Betriebe.ToList();
         foreach (var name in _verlustjahre.Keys.Concat(_lagerwert.Keys).Where(n => eigene.All(b => b.Name != n)).ToList())
@@ -769,14 +780,16 @@ public sealed class KiRivale
         foreach (var b in eigene)
         {
             var lager = Lagerwert(b);
+            var ohnePersonal = stundenImJahr > 0 && _stundenOhnePersonal.GetValueOrDefault(b.Name) >= OhnePersonalAb * stundenImJahr;
             // Ohne gemerkten Wert begann das ganze Jahr mit leerem Lager: Der Betrieb wurde zum Jahresbeginn eröffnet oder gekauft.
-            if (b.Vorjahr is { Ganzjaehrig: true } r)
+            if (b.Vorjahr is { Ganzjaehrig: true } r && !ohnePersonal)
             {
                 if (r.Gewinn + lager - _lagerwert.GetValueOrDefault(b.Name) < 0) _verlustjahre[b.Name] = Verlustjahre(b) + 1;
                 else _verlustjahre.Remove(b.Name);
             }
             _lagerwert[b.Name] = lager;
         }
+        _stundenOhnePersonal.Clear();
     }
 
     /// <summary>Was erst zum Jahresabschluss fällig wird: Löhne, Wächter und Unterhalt bzw. Pacht der Betriebe, Unterhalt des Wohnhauses, Haushalt und Ausbildung.</summary>
@@ -785,27 +798,37 @@ public sealed class KiRivale
         get
         {
             var waechter = _w.Daten.Gauner?.WaechterKosten ?? 0;
-            var betriebe = Betriebe.Sum(b => b.Belegung.Sum(x => x.Value * _w.Daten.Arbeitskraefte[x.Key].Kosten)
-                                             + b.Artdaten.Fixkosten + (b.Waechter ? waechter : 0));
+            var betriebe = Betriebe.Sum(OffeneKosten);
             var haus = _w.Wohnen.Unterhalt(Konto) + (Konto.Hauswaechter ? waechter : 0);
             var familie = _w.Familien.Von(Konto) is { } f ? _w.Familien.Haushaltskosten(f) + _w.Familien.Ausbildungskosten(f) : 0;
             return betriebe + haus + familie;
         }
     }
 
+    /// <summary>Was dieser Betrieb erst zum Jahresabschluss zahlt: Löhne, Wächter und Unterhalt bzw. Pacht für das ganze Jahr.</summary>
+    private double OffeneKosten(Betrieb b) =>
+        b.Belegung.Sum(x => x.Value * _w.Daten.Arbeitskraefte[x.Key].Kosten) + b.Artdaten.Fixkosten
+        + (b.Waechter ? _w.Daten.Gauner?.WaechterKosten ?? 0 : 0);
+
+    /// <summary>Was der Betrieb im Rest des Jahres noch einbringt: sein bisheriger Ertrag (Umsatz minus Zutaten, Steuer, Transport und Schaden) hochgerechnet.</summary>
+    private double RestErtrag(Betrieb b)
+    {
+        var anteil = Math.Max(0.05, _w.Uhr.TagesFortschritt);
+        var ertrag = b.Laufend.Umsatz - b.Laufend.Zutaten - b.Laufend.Steuer - b.Laufend.Transport - b.Laufend.Schaden;
+        return ertrag * (1 - anteil) / anteil;
+    }
+
     /// <summary>
     /// Grobe Hochrechnung des Reinvermögens zum Jahresabschluss: heute, dazu der bisherige Ertrag der Betriebe (Umsatz minus Zutaten,
     /// Steuer, Transport und Schaden) auf das ganze Jahr hochgerechnet, minus was erst am Jahresende fällig wird.
     /// </summary>
-    public double ReinvermoegenAmJahresende
-    {
-        get
-        {
-            var anteil = Math.Max(0.05, _w.Uhr.TagesFortschritt);
-            var ertrag = Betriebe.Sum(b => b.Laufend.Umsatz - b.Laufend.Zutaten - b.Laufend.Steuer - b.Laufend.Transport - b.Laufend.Schaden);
-            return Konto.Reinvermoegen + ertrag * (1 - anteil) / anteil - OffeneJahreskosten;
-        }
-    }
+    public double ReinvermoegenAmJahresende => Konto.Reinvermoegen + Betriebe.Sum(RestErtrag) - OffeneJahreskosten;
+
+    /// <summary>
+    /// Um so viel hebt der Verkauf dieses Betriebs die Hochrechnung zum Jahresabschluss: der Erlös (schon abzüglich Löhne und Unterhalt bis heute),
+    /// dazu die Kosten, die zum Jahresende nicht mehr anfallen, minus was der Betrieb im Rest des Jahres noch eingebracht hätte.
+    /// </summary>
+    private double Verkaufswirkung(Betrieb b, Verkaufsvorschau v) => v.Summe + OffeneKosten(b) - RestErtrag(b);
 
     /// <summary>Hat der Kämmerer schon gemahnt, und reicht das Geld nach Abzug der offenen Kosten nicht? Dann investiert die KI nicht.</summary>
     private bool InNot => Konto.Schuldenjahre > 0 && Konto.Reinvermoegen - OffeneJahreskosten < 0;
@@ -813,7 +836,8 @@ public sealed class KiRivale
     /// <summary>
     /// Jede Stunde, auch aus dem Kerker (Betriebssache des Verwalters), höchstens ein Verkauf:
     ///   • <b>Vor dem Bankrott:</b> Steht der letzte Jahresabschluss vor dem Bankrott an (<see cref="SchuldenDaten.JahreBisBankrott"/> − 1 Mahnungen)
-    ///     und ist die Hochrechnung ab der Jahresmitte negativ, verkauft die KI den Betrieb mit dem schlechtesten Gewinn, der etwas einbringt –
+    ///     und ist die Hochrechnung ab der Jahresmitte negativ, verkauft die KI unter den Betrieben, deren Verkauf das Minus allein deckt
+    ///     (<see cref="Verkaufswirkung"/>), den mit dem schlechtesten Gewinn. Reicht keiner allein, den schlechtesten, der etwas einbringt –
     ///     Stunde um Stunde, bis es reicht. Der Erlös hebt das Reinvermögen (Betriebe zählen dort nicht), und die Löhne für den Rest des Jahres entfallen.
     ///   • <b>Verlust:</b> Ein Betrieb mit zwei ganzen Verlustjahren in Folge wird verkauft. Ausgenommen sind die Betriebe ohne Ware
     ///     (Wache, Geldleiher, Dieb): Kopfgeld, Kreditzinsen und nächtliche Beute stehen nicht (ganz) in ihrer Rechnung.
@@ -825,10 +849,12 @@ public sealed class KiRivale
         if (Konto.Schuldenjahre >= _w.Daten.Schulden.JahreBisBankrott - 1 && _w.Uhr.TagesFortschritt >= NotverkaufAb
             && ReinvermoegenAmJahresende is var prognose and < 0)
         {
+            // Zuerst die Betriebe, deren Verkauf allein reicht – sonst verkauft die KI erst die kleinen und dann doch noch einen großen.
             var not = Betriebe
                 .Select(b => (Betrieb: b, V: _w.VerkaufVorschau(b)))
                 .Where(x => x.V.Verboten is null && x.V.Summe > 0)
-                .OrderBy(x => x.Betrieb.Vorjahr?.Gewinn ?? x.Betrieb.Laufend.Gewinn)
+                .OrderBy(x => Verkaufswirkung(x.Betrieb, x.V) >= -prognose ? 0 : 1)
+                .ThenBy(x => x.Betrieb.Vorjahr?.Gewinn ?? x.Betrieb.Laufend.Gewinn)
                 .ThenBy(x => x.Betrieb.Name, StringComparer.Ordinal)
                 .FirstOrDefault();
             if (not.Betrieb is not null)
@@ -853,6 +879,7 @@ public sealed class KiRivale
     {
         if (!Befehlen(new BetriebVerkaufen(betrieb.Name), begruendung)) return;
         _verlustjahre.Remove(betrieb.Name);
+        _stundenOhnePersonal.Remove(betrieb.Name);
         _stundenSeitWechsel.Remove(betrieb);
         _gesperrt[Sperrschluessel(betrieb.Artdaten)] = _w.Uhr.Jahr + SperreNachVerkauf;
     }
