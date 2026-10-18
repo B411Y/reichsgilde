@@ -1136,9 +1136,9 @@ def bericht(name, objekte):
         summe += n
         print(f"  {o.name:10s} {n:6d}")
     print(f"  {'gesamt':10s} {summe:6d}\n")
-    # Deckungsgleiche Flächen: je sichtbarer Kombination (Haus mit genau einer Stufe, Zustände dazu)
-    feste = [o for o in objekte if o.type == "MESH" and not o.name.startswith("Stufe")]
-    stufen = [o for o in objekte if o.type == "MESH" and o.name.startswith("Stufe")] or [None]
+    # Deckungsgleiche Flächen: je sichtbarer Kombination (Haus mit genau einer Stufe bzw. Variante, Zustände dazu)
+    feste = [o for o in objekte if o.type == "MESH" and not o.name.startswith(("Stufe", "Variante"))]
+    stufen = [o for o in objekte if o.type == "MESH" and o.name.startswith(("Stufe", "Variante"))] or [None]
     funde = []
     for stufe in stufen:
         funde += deckungsgleich(feste + ([stufe] if stufe else []))
