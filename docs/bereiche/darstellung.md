@@ -448,7 +448,7 @@ So wird eingetragen (damit sich die Chats nie an derselben Stelle treffen):
 | Verhalten (Wunsch des Nutzers) | Eigener Code in `Stadtansicht.Voegel.cs`: Schwärme mit Heimat in Stadt und Umland, abwechselnd sitzen (Putzen, Umschauen), zum Boden fliegen und picken, zum nächsten Haus weiterfliegen. Passanten unter 1,5 m scheuchen auf. Nachts (21–5:30 Uhr) sitzen alle auf den Dächern. | 18.10.2026 |
 | Landeplätze (Wunsch des Nutzers) | Aus den Modellen berechnet, ohne die Modelle zu ändern: Höhenraster je Mesh, lokale Gipfel mit Standfläche (First, Turm, Mauerkrone, Schornstein), alle 45 s neu. Ein Mesh pro Haus hat den Schornstein als höchsten Punkt – deshalb kein „höchster Punkt des Meshes“, sondern lokale Gipfel. | 18.10.2026 |
 
-### Materialien zusammengelegt, Felsberg, Winterbäume (PR #…)
+### Materialien zusammengelegt, Felsberg, Winterbäume (PR #147)
 
 | Thema | Entscheidung | Datum |
 |---|---|---|
