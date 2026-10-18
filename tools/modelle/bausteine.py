@@ -1123,8 +1123,9 @@ def deckungsgleich(objekte, grenze=0.004):
     return funde
 
 
-def bericht(name, objekte):
-    """Dreiecke je Objekt (so, wie sie im Export landen); Anker mit ihrer Lage."""
+def bericht(name, objekte, einzeln=False):
+    """Dreiecke je Objekt (so, wie sie im Export landen); Anker mit ihrer Lage.
+    `einzeln`: jedes Objekt für sich auf Flimmern prüfen (Baukasten, dessen Teile alle im Nullpunkt liegen)."""
     print(f"\n{name}: Dreiecke")
     summe = 0
     for o in objekte:
@@ -1140,6 +1141,11 @@ def bericht(name, objekte):
     feste = [o for o in objekte if o.type == "MESH" and not o.name.startswith(("Stufe", "Variante"))]
     stufen = [o for o in objekte if o.type == "MESH" and o.name.startswith(("Stufe", "Variante"))] or [None]
     funde = []
+    if einzeln:
+        for o in objekte:
+            if o.type == "MESH":
+                funde += deckungsgleich([o])
+        stufen = []
     for stufe in stufen:
         funde += deckungsgleich(feste + ([stufe] if stufe else []))
     funde = list({(round(f[0].x, 2), round(f[0].y, 2), round(f[0].z, 2), f[1], f[2]): f for f in funde}.values())
