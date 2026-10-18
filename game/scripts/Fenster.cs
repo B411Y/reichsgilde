@@ -3,7 +3,8 @@ using Godot;
 namespace Reichsgilde;
 
 /// <summary>
-/// Anzeige-Einstellungen: Fenster oder Vollbild (auch F11, überall), die Kantenglättung, die Schattenqualität und der Bloom.
+/// Anzeige-Einstellungen: Fenster oder Vollbild (auch F11, überall), die Kantenglättung, die Schattenqualität, der Bloom,
+/// die Umgebungsverdeckung (SSAO), das indirekte Licht (SSIL) und die Hochskalierung mit FSR 2.2.
 /// Geändert werden sie im Fenster „Einstellungen“ (<see cref="EinstellungenAnzeige"/>), gespeichert in
 /// <c>user://einstellungen.cfg</c> und beim Start wieder angewendet.
 ///
@@ -52,6 +53,13 @@ public partial class Fenster : Node
         BloomSetzen(geladen ? einstellungen.GetValue("anzeige", "bloom", true).AsBool() : true,
                     geladen ? einstellungen.GetValue("anzeige", "bloomstaerke", StandardBloomStaerke).AsInt32() : StandardBloomStaerke,
                     speichern: false);
+        // Alte Dateien ohne die Schlüssel: Umgebungsverdeckung Mittel, indirektes Licht aus, FSR aus mit 67 %.
+        var verdeckung = geladen ? einstellungen.GetValue("anzeige", "ssao", "").AsString() : "";
+        UmgebungsverdeckungSetzen(Enum.TryParse<Umgebungsverdeckung>(verdeckung, out var v) ? v : StandardUmgebungsverdeckung, speichern: false);
+        IndirektesLichtSetzen(geladen && einstellungen.GetValue("anzeige", "ssil", false).AsBool(), speichern: false);
+        FsrSetzen(geladen && einstellungen.GetValue("anzeige", "fsr", false).AsBool(),
+                  geladen ? einstellungen.GetValue("anzeige", "renderaufloesung", StandardRenderaufloesung).AsInt32() : StandardRenderaufloesung,
+                  speichern: false);
     }
 
     // ── Kantenglättung ──────────────────────────────────────────────────────
@@ -69,24 +77,34 @@ public partial class Fenster : Node
     public static void KantenglaettungSetzen(Kantenglaettung art, bool speichern = true)
     {
         AktuelleKantenglaettung = art;
-        if (_instanz?.GetTree().Root is { } fenster)
-        {
-            fenster.Msaa3D = art switch
-            {
-                Kantenglaettung.Msaa2 => Viewport.Msaa.Msaa2X,
-                Kantenglaettung.Msaa4 => Viewport.Msaa.Msaa4X,
-                Kantenglaettung.Msaa8 => Viewport.Msaa.Msaa8X,
-                _ => Viewport.Msaa.Disabled,
-            };
-            fenster.ScreenSpaceAA = art switch
-            {
-                Kantenglaettung.Fxaa => Viewport.ScreenSpaceAAEnum.Fxaa,
-                Kantenglaettung.Smaa => Viewport.ScreenSpaceAAEnum.Smaa,
-                _ => Viewport.ScreenSpaceAAEnum.Disabled,
-            };
-            fenster.UseTaa = art == Kantenglaettung.Taa;
-        }
+        KantenglaettungAnwenden();
         if (speichern) Speichern("kantenglaettung", art.ToString());
+    }
+
+    /// <summary>
+    /// Überträgt die gewählte Kantenglättung aufs Hauptfenster. Ist FSR 2.2 an, glättet es selbst (es ist ein zeitliches
+    /// Verfahren wie TAA, Godot schaltet TAA dabei ohnehin ab): MSAA, FXAA/SMAA und TAA bleiben dann aus – MSAA kostete Leistung
+    /// auf dem kleinen Bild, FXAA/SMAA verwischten das hochgerechnete. Die gewählte Art bleibt gespeichert und gilt wieder,
+    /// sobald FSR aus ist.
+    /// </summary>
+    private static void KantenglaettungAnwenden()
+    {
+        if (_instanz?.GetTree().Root is not { } fenster) return;
+        var art = FsrAn ? Kantenglaettung.Aus : AktuelleKantenglaettung;
+        fenster.Msaa3D = art switch
+        {
+            Kantenglaettung.Msaa2 => Viewport.Msaa.Msaa2X,
+            Kantenglaettung.Msaa4 => Viewport.Msaa.Msaa4X,
+            Kantenglaettung.Msaa8 => Viewport.Msaa.Msaa8X,
+            _ => Viewport.Msaa.Disabled,
+        };
+        fenster.ScreenSpaceAA = art switch
+        {
+            Kantenglaettung.Fxaa => Viewport.ScreenSpaceAAEnum.Fxaa,
+            Kantenglaettung.Smaa => Viewport.ScreenSpaceAAEnum.Smaa,
+            _ => Viewport.ScreenSpaceAAEnum.Disabled,
+        };
+        fenster.UseTaa = art == Kantenglaettung.Taa;
     }
 
     // ── Schattenqualität ────────────────────────────────────────────────────
@@ -134,6 +152,85 @@ public partial class Fenster : Node
         {
             Speichern("bloom", BloomAn);
             Speichern("bloomstaerke", BloomStaerke);
+        }
+    }
+
+    // ── Umgebungsverdeckung und indirektes Licht ────────────────────────────
+
+    /// <summary>Ohne gespeicherte Wahl: Mittel – Ecken und Fußpunkte etwas dunkler, die Häuser stehen fester (Werte: Stadtansicht.Licht.cs).</summary>
+    public const Umgebungsverdeckung StandardUmgebungsverdeckung = Umgebungsverdeckung.Mittel;
+
+    public static Umgebungsverdeckung AktuelleUmgebungsverdeckung { get; private set; } = StandardUmgebungsverdeckung;
+
+    public static bool IndirektesLichtAn { get; private set; }
+
+    /// <summary>Wird ausgelöst, wenn Umgebungsverdeckung oder indirektes Licht wechseln: Die Stadtansicht stellt ihre Umgebungen sofort um.</summary>
+    public static event Action? VerdeckungGeaendert;
+
+    /// <summary>
+    /// Stellt die Umgebungsverdeckung (SSAO) um. Die Güte der Rechnung gilt für alle Umgebungen und wird hier am RenderingServer
+    /// gesetzt; Stärke und Reichweite stellt die Stadtansicht je Umgebung ein (<see cref="VerdeckungGeaendert"/>, Stadtansicht.Licht.cs).
+    /// </summary>
+    public static void UmgebungsverdeckungSetzen(Umgebungsverdeckung stufe, bool speichern = true)
+    {
+        AktuelleUmgebungsverdeckung = stufe;
+        VerdeckungGueteSetzen();
+        VerdeckungGeaendert?.Invoke();
+        if (speichern) Speichern("ssao", stufe.ToString());
+    }
+
+    /// <summary>Schaltet das indirekte Licht (SSIL: Licht, das von Flächen in der Nähe zurückstrahlt) an oder aus.</summary>
+    public static void IndirektesLichtSetzen(bool an, bool speichern = true)
+    {
+        IndirektesLichtAn = an;
+        VerdeckungGueteSetzen();
+        VerdeckungGeaendert?.Invoke();
+        if (speichern) Speichern("ssil", an);
+    }
+
+    private static void VerdeckungGueteSetzen()
+    {
+        var gute = Stadtansicht.VerdeckungGueteFuer(AktuelleUmgebungsverdeckung);
+        RenderingServer.EnvironmentSetSsaoQuality(gute.Qualitaet, gute.HalbeGroesse, gute.Anpassung, gute.Weichzeichner, VerdeckungAusblendenAb, VerdeckungAusblendenBis);
+        // Das indirekte Licht rechnet in derselben Güte (die Stufen heißen gleich und stehen in derselben Reihenfolge).
+        RenderingServer.EnvironmentSetSsilQuality((RenderingServer.EnvironmentSsilQuality)(int)gute.Qualitaet, gute.HalbeGroesse, gute.Anpassung, gute.Weichzeichner, VerdeckungAusblendenAb, VerdeckungAusblendenBis);
+    }
+
+    /// <summary>
+    /// Godot blendet SSAO und SSIL nach Abstand zur Kamera aus (Grundwerte 50 m und 300 m). Die Stadtkamera steht aber rund
+    /// 150 m entfernt (orthografisch, nur der Abstand zählt für die Tiefe) – mit den Grundwerten fehlte die Wirkung fast ganz.
+    /// </summary>
+    private const float VerdeckungAusblendenAb = 1000f, VerdeckungAusblendenBis = 2000f;
+
+    // ── FSR 2.2 ─────────────────────────────────────────────────────────────
+
+    /// <summary>Ohne gespeicherte Wahl: 67 % – die Stufe „Qualität“ von AMD (empfohlene Werte laut Godot-Doku: 77, 67, 59, 50 %).</summary>
+    public const int StandardRenderaufloesung = 67;
+
+    public static bool FsrAn { get; private set; }
+
+    /// <summary>Renderauflösung in Prozent (25–100), gilt nur, solange FSR an ist.</summary>
+    public static int Renderaufloesung { get; private set; } = StandardRenderaufloesung;
+
+    /// <summary>
+    /// Schaltet FSR 2.2 (AMD FidelityFX Super Resolution, in Godot eingebaut) an oder aus und stellt die Renderauflösung ein:
+    /// Das 3D-Bild wird kleiner gerechnet und aus den letzten Bildern wieder auf Fenstergröße hochgerechnet, das spart Leistung.
+    /// Aus: Godots normaler Weg bei Faktor 1,0. Die Kantenglättung ruht, solange FSR an ist (<see cref="KantenglaettungAnwenden"/>).
+    /// </summary>
+    public static void FsrSetzen(bool an, int prozent, bool speichern = true)
+    {
+        FsrAn = an;
+        Renderaufloesung = Math.Clamp(prozent, 25, 100);
+        if (_instanz?.GetTree().Root is { } fenster)
+        {
+            fenster.Scaling3DMode = an ? Viewport.Scaling3DModeEnum.Fsr2 : Viewport.Scaling3DModeEnum.Bilinear;
+            fenster.Scaling3DScale = an ? Renderaufloesung / 100f : 1f;
+        }
+        KantenglaettungAnwenden();
+        if (speichern)
+        {
+            Speichern("fsr", FsrAn);
+            Speichern("renderaufloesung", Renderaufloesung);
         }
     }
 
@@ -207,6 +304,9 @@ public partial class Fenster : Node
 
 /// <summary>Die Verfahren zur Kantenglättung, die Godot 4.7 mitbringt (Beschreibung: <see cref="EinstellungenAnzeige"/>).</summary>
 public enum Kantenglaettung { Aus, Fxaa, Smaa, Taa, Msaa2, Msaa4, Msaa8 }
+
+/// <summary>Stufen der Umgebungsverdeckung (SSAO; Beschreibung: <see cref="EinstellungenAnzeige"/>, Werte: Stadtansicht.Licht.cs).</summary>
+public enum Umgebungsverdeckung { Aus, Niedrig, Mittel, Hoch }
 
 /// <summary>Stufen der Schattenqualität (Beschreibung: <see cref="EinstellungenAnzeige"/>, Werte: Stadtansicht.Licht.cs).</summary>
 public enum Schattenqualitaet { Niedrig, Mittel, Hoch }

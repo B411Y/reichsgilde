@@ -3,7 +3,7 @@ using Godot;
 namespace Reichsgilde;
 
 /// <summary>
-/// Fenster „Einstellungen“: Vollbild, Kantenglättung, Schattenqualität und Bloom. Erreichbar aus dem Hauptmenü und aus dem Spielmenü (Esc).
+/// Fenster „Einstellungen“: Vollbild, Kantenglättung, FSR 2.2, Schattenqualität, Umgebungsverdeckung, indirektes Licht und Bloom. Erreichbar aus dem Hauptmenü und aus dem Spielmenü (Esc).
 /// Jede Änderung wirkt sofort und wird gespeichert (siehe <see cref="Fenster"/>).
 /// </summary>
 public sealed class EinstellungenAnzeige
@@ -28,6 +28,17 @@ public sealed class EinstellungenAnzeige
         (Schattenqualitaet.Hoch, "Hoch (empfohlen)", "Große Schattenkarte, feiner Filter: scharfe, glatte Schatten bis an den Fuß jeder Figur."),
     };
 
+    /// <summary>Anzeigename und Erklärung je Stufe der Umgebungsverdeckung – in der Reihenfolge der Auswahlliste (Werte: Stadtansicht.Licht.cs).</summary>
+    private static readonly (Umgebungsverdeckung Stufe, string Name, string Erklaerung)[] Verdeckungsstufen =
+    {
+        (Umgebungsverdeckung.Aus, "Aus", "Keine Verdunkelung in Ecken und an Fußpunkten. Am schnellsten."),
+        (Umgebungsverdeckung.Niedrig, "Niedrig", "Ecken, Fugen und Fußpunkte etwas dunkler, die Häuser stehen fester. Wenig Proben, kostet wenig."),
+        (Umgebungsverdeckung.Mittel, "Mittel (empfohlen)", "Wie Niedrig, mit mehr Proben: gleichmäßiger, weniger Körnung."),
+        (Umgebungsverdeckung.Hoch, "Hoch", "Volle Auflösung und viele Proben: feinste Fugen. Kostet deutlich mehr Grafikleistung."),
+    };
+
+    private const string ErklaerungKantenFsr = "FSR 2.2 glättet selbst. Diese Wahl gilt wieder, wenn FSR aus ist.";
+
     public PanelContainer Tafel { get; }
     private readonly CheckButton _vollbild;
     private readonly OptionButton _kanten;
@@ -37,6 +48,13 @@ public sealed class EinstellungenAnzeige
     private readonly CheckButton _bloom;
     private readonly HSlider _bloomRegler;
     private readonly Label _bloomWert;
+    private readonly OptionButton _verdeckung;
+    private readonly Label _verdeckungErklaerung;
+    private readonly CheckButton _indirekt;
+    private readonly CheckButton _fsr;
+    private readonly HBoxContainer _fsrZeile;
+    private readonly HSlider _fsrRegler;
+    private readonly Label _fsrWert;
 
     public EinstellungenAnzeige(Action zurueck)
     {
@@ -57,10 +75,40 @@ public sealed class EinstellungenAnzeige
         _kanten.ItemSelected += nummer =>
         {
             Fenster.KantenglaettungSetzen(Verfahren[nummer].Art);
-            _erklaerung!.Text = Verfahren[nummer].Erklaerung;
+            _erklaerung!.Text = Fenster.FsrAn ? ErklaerungKantenFsr : Verfahren[nummer].Erklaerung;
         };
         spalte.AddChild(_kanten);
         _erklaerung = Hauptmenue.Text(spalte, "", 13, new Color(0.75f, 0.75f, 0.75f), umbruchBreite: 400);
+
+        Hauptmenue.Text(spalte, "Hochskalierung", 18);
+        _fsr = new CheckButton { Text = "FSR 2.2 (Hochskalierung)", FocusMode = Control.FocusModeEnum.None };
+        _fsr.AddThemeFontSizeOverride("font_size", 15);
+        _fsr.Toggled += an =>
+        {
+            Fenster.FsrSetzen(an, Fenster.Renderaufloesung);
+            Auffrischen();
+        };
+        spalte.AddChild(_fsr);
+        _fsrZeile = new HBoxContainer();
+        _fsrZeile.AddThemeConstantOverride("separation", 10);
+        spalte.AddChild(_fsrZeile);
+        Hauptmenue.Text(_fsrZeile, "Renderauflösung", 15);
+        _fsrRegler = new HSlider
+        {
+            MinValue = 25, MaxValue = 100, Step = 1, FocusMode = Control.FocusModeEnum.None,
+            SizeFlagsHorizontal = Control.SizeFlags.ExpandFill, SizeFlagsVertical = Control.SizeFlags.ShrinkCenter,
+            CustomMinimumSize = new Vector2(150, 0),
+        };
+        _fsrRegler.ValueChanged += wert =>
+        {
+            _fsrWert!.Text = $"{(int)wert} %";
+            Fenster.FsrSetzen(Fenster.FsrAn, (int)wert);
+        };
+        _fsrZeile.AddChild(_fsrRegler);
+        _fsrWert = Hauptmenue.Text(_fsrZeile, "", 15);
+        _fsrWert.CustomMinimumSize = new Vector2(50, 0);
+        Hauptmenue.Text(spalte, "Rechnet das Bild kleiner und holt es aus den letzten Bildern auf volle Größe: spart Grafikleistung, glättet selbst. 67 % = AMD-Stufe „Qualität“. Bewegtes kann leicht schlieren.",
+            13, new Color(0.75f, 0.75f, 0.75f), umbruchBreite: 400);
 
         Hauptmenue.Text(spalte, "Schattenqualität", 18);
         _schatten = new OptionButton { FocusMode = Control.FocusModeEnum.None };
@@ -72,6 +120,23 @@ public sealed class EinstellungenAnzeige
         };
         spalte.AddChild(_schatten);
         _schattenErklaerung = Hauptmenue.Text(spalte, "", 13, new Color(0.75f, 0.75f, 0.75f), umbruchBreite: 400);
+
+        Hauptmenue.Text(spalte, "Umgebungsverdeckung", 18);
+        _verdeckung = new OptionButton { FocusMode = Control.FocusModeEnum.None };
+        foreach (var (_, name, _) in Verdeckungsstufen) _verdeckung.AddItem(name);
+        _verdeckung.ItemSelected += nummer =>
+        {
+            Fenster.UmgebungsverdeckungSetzen(Verdeckungsstufen[nummer].Stufe);
+            _verdeckungErklaerung!.Text = Verdeckungsstufen[nummer].Erklaerung;
+        };
+        spalte.AddChild(_verdeckung);
+        _verdeckungErklaerung = Hauptmenue.Text(spalte, "", 13, new Color(0.75f, 0.75f, 0.75f), umbruchBreite: 400);
+        _indirekt = new CheckButton { Text = "Indirektes Licht (SSIL)", FocusMode = Control.FocusModeEnum.None };
+        _indirekt.AddThemeFontSizeOverride("font_size", 15);
+        _indirekt.Toggled += an => Fenster.IndirektesLichtSetzen(an);
+        spalte.AddChild(_indirekt);
+        Hauptmenue.Text(spalte, "Flächen strahlen etwas Farbe auf ihre Nachbarn zurück. Zurückhaltend; kostet Grafikleistung.",
+            13, new Color(0.75f, 0.75f, 0.75f), umbruchBreite: 400);
 
         Hauptmenue.Text(spalte, "Bloom", 18);
         _bloom = new CheckButton { Text = "Lichtschein (Bloom)", FocusMode = Control.FocusModeEnum.None };
@@ -110,7 +175,16 @@ public sealed class EinstellungenAnzeige
         _vollbild.SetPressedNoSignal(Fenster.IstVollbild);
         var nummer = Array.FindIndex(Verfahren, v => v.Art == Fenster.AktuelleKantenglaettung);
         _kanten.Select(nummer);
-        _erklaerung.Text = Verfahren[nummer].Erklaerung;
+        _kanten.Disabled = Fenster.FsrAn; // FSR 2.2 glättet selbst; die Wahl bleibt gespeichert
+        _erklaerung.Text = Fenster.FsrAn ? ErklaerungKantenFsr : Verfahren[nummer].Erklaerung;
+        _fsr.SetPressedNoSignal(Fenster.FsrAn);
+        _fsrZeile.Visible = Fenster.FsrAn;
+        _fsrRegler.SetValueNoSignal(Fenster.Renderaufloesung);
+        _fsrWert.Text = $"{Fenster.Renderaufloesung} %";
+        var verdeckung = Array.FindIndex(Verdeckungsstufen, v => v.Stufe == Fenster.AktuelleUmgebungsverdeckung);
+        _verdeckung.Select(verdeckung);
+        _verdeckungErklaerung.Text = Verdeckungsstufen[verdeckung].Erklaerung;
+        _indirekt.SetPressedNoSignal(Fenster.IndirektesLichtAn);
         var stufe = Array.FindIndex(Schattenstufen, s => s.Stufe == Fenster.AktuelleSchattenqualitaet);
         _schatten.Select(stufe);
         _schattenErklaerung.Text = Schattenstufen[stufe].Erklaerung;
