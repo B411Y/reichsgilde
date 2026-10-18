@@ -25,6 +25,7 @@ So wird eingetragen (damit sich die Chats nie an derselben Stelle treffen):
 - (von Kern) Die 3D-Stadt zum Holzschnitt-Stil passend machen (Entscheidung in `kern.md`, „Grafikstil Holzschnitt“): prüfen, was Farbpalette, Konturlinien (Umriss-Shader) und Licht dazu beitragen können, und einen Vorschlag mit Bildern machen.
 - Sonderbauten einbauen: `dom.glb` statt `SonderbauHuelle` und Turm in `DomBauen` (`Stadtansicht.Sonderbauten.cs`). Der Ursprung ist die Mitte des Langhauses (wie der Punkt der Karte), die Einrichtung bleibt; beim Hineinsehen „Dach“, „Turm“ und die Wände zur Kamera ausblenden (statt der Wände der Hülle in `Waende`). Das Portal sitzt im Turm, „Anker_Tuer“ vor den Stufen.
 - Stadtmauer einbauen: `stadtmauer.glb` statt der Quader und Türme in `Stadtmauer()` (`Stadtansicht.cs`). Entlang jeder Mauerlinie „Mauerstueck“ kacheln (4 m, auf 3–5 m streckbar, damit die Strecke aufgeht), an Ecken und Knicken „Eckturm“, etwa alle 30–40 m einen „Mauerturm“, an den Toren „Tor“ (die Mauerstücke enden bei ±7,6 m vom Tor). Die Feldseite der Teile ist +Z. Klickfläche und Schild der Tore bleiben wie bisher; „Anker_Tuer“ liegt in der Durchfahrt.
+- Rathaus einbauen: `rathaus.glb` statt `SonderbauHuelle` und Turm in `RathausBauen` (`Stadtansicht.Sonderbauten.cs`). Die Räume bleiben in der Raumansicht, die Hülle ist ein Knoten „Haus“ (mit Dachüberstand genau 16 × 10 m, Ursprung in der Mitte, Markt bei +Z); „Anker_Tuer“ liegt in der Markthalle vor dem Portal. Klickfläche und Schild bleiben.
 
 ## Entscheidungen
 
@@ -302,3 +303,10 @@ So wird eingetragen (damit sich die Chats nie an derselben Stelle treffen):
 | Maße | Wie bisher im Spiel: Mauer 6 m hoch und 2 m dick; Eckturm Radius 3,6 m, 11 m hoch; Torburg 16 m breit mit zwei Rundtürmen (Radius 2,6 m, 11 m) und Durchfahrt 3,6 m breit, Scheitel 5,2 m. Mauerturm Radius 2,8 m, 9,5 m hoch, steht zur Feldseite vor. | 18.10.2026 |
 | Aussehen | Haustein mit Lagerfugen und Sockel, Wehrgang mit Zinnen (Takt 2 m, damit aneinandergesetzte Stücke passen) und Schießscharten, Holzgeländer zur Stadtseite. Rundtürme mit Gesimsen, Schießscharten und Kegeldach aus Schiefer. Torburg mit Bogenring, halb hochgezogenem Fallgitter, offenen Torflügeln, Stadtwappen über der Durchfahrt und Satteldach. | 18.10.2026 |
 | Kacheln | Mauerstücke haben keine Stirnflächen: Aneinandergesetzt sind keine Fugen zu sehen; offene Enden verdecken Türme und Tore. `bericht(…, einzeln=True)` prüft das Flimmern je Teil. Vorschau `stadtmauer-aufbau.png` zeigt einen Probeaufbau mit Tor, Mauerturm und Ecke. | 18.10.2026 |
+### Rathaus als 3D-Modell (PR #133)
+
+| Thema | Entscheidung | Datum |
+|---|---|---|
+| Aussehen (Wunsch des Nutzers) | Markthalle mit Fachwerk, wie der Platzhalter verputzt mit Fachwerk: Erdgeschoss aus Haustein, vorn vier und links ein Rundbogen auf Pfeilern zu einer offenen Markthalle mit Pflaster, Balkendecke, Stadtwaage, Bank und dem Portal; darüber der Ratssaal in Fachwerk mit Andreaskreuzen, Läden in Stadtrot mit weißem Streifen und dem Stadtwappen (roter Schild, weißes Kreuz). Schieferdach mit der Traufe zum Markt, Fachwerkgiebel, zwei Gauben. Vorn rechts ein Uhrturm aus Haustein mit Zifferblättern nach vorn und zur Seite, Glockenstube und spitzem Helm (23 m). | 18.10.2026 |
+| Maße | Haus 15 × 9 m, mit Dachüberstand genau die 16 × 10 m der Karte; der Uhrturm steht 0,25 m vor. | 18.10.2026 |
+| Farben | Keine Hausfarbe: Läden und Türen nehmen Stadtrot (im Skript wird „Hausfarbe“ auf Stadtrot gelegt, das Material heißt im GLB „Stadtrot“). | 18.10.2026 |

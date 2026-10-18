@@ -28,7 +28,7 @@ FLAECHEN = {"fachwerkhaus": (8, 10), "buergerhaus": (8, 10), "steinhaus": (8, 10
 WERKSTAETTEN = ["schmied", "tischler", "steinmetz", "alchimist", "wirt", "prediger", "dieb", "gardist", "geldleiher",
                 "parfumeur"]          # je Beruf ein Modell mit Stufe1–Stufe3
 EINWOHNERHAEUSER = ["einwohner_ratsherrenhaus", "einwohner_buergerhaus", "einwohner_wohnhaus"]      # je Hausart ein Modell mit Variante1–Variante3
-SONDERBAUTEN = ["dom", "stadtmauer"]          # Gebäude der Stadt: ohne Zustände und Hausfarbe
+SONDERBAUTEN = ["dom", "rathaus", "stadtmauer"]          # Gebäude der Stadt: ohne Zustände und Hausfarbe
 
 
 def erzeugen(name, schalter):
