@@ -72,11 +72,11 @@ public partial class Stadtansicht
         _fensterglas.EmissionEnabled = true;
     }
 
-    /// <summary>Tag und Nacht im Raum: Umgebungslicht und Fenster folgen der Uhrzeit (<paramref name="hell"/> 0 = Nacht, 1 = Tag).</summary>
-    private void RaumlichtNachUhrzeit(float uhrzeitInMinuten, float hell)
+    /// <summary>Tag und Nacht im Raum: Umgebungslicht und Fenster folgen dem Himmel draußen (<paramref name="hell"/> 0 = Nacht, 1 = Tag).</summary>
+    private void RaumlichtSetzen(Color himmel, float hell)
     {
         _raumUmgebung.AmbientLightEnergy = 0.2f + 0.35f * hell;
-        _fensterglas.Emission = Himmelsfarbe(uhrzeitInMinuten);
+        _fensterglas.Emission = himmel;
         _fensterglas.EmissionEnergyMultiplier = 0.2f + 1.1f * hell;
     }
 
