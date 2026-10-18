@@ -671,6 +671,9 @@ public sealed record RivaleStand
     /// <summary>Betriebsname → Lagerwert zum letzten Jahresende (zum Grundpreis), für die Verlustrechnung der KI.</summary>
     public Dictionary<string, double> Lagerwert { get; init; } = new();
 
+    /// <summary>Betriebsname → Stunden des laufenden Jahres ganz ohne Personal (Spiel-KI; fehlt in alten Spielständen).</summary>
+    public Dictionary<string, int> StundenOhnePersonal { get; init; } = new();
+
     /// <summary>„Beruf/Ort“ eines verkauften Betriebs → bis zu diesem Jahr (ausschließlich) kauft und baut die KI dort nichts.</summary>
     public Dictionary<string, int> Gesperrt { get; init; } = new();
 
