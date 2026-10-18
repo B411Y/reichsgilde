@@ -421,7 +421,7 @@ So wird eingetragen (damit sich die Chats nie an derselben Stelle treffen):
 | Figur am Anker | Ein Anker zeigt seine Blickrichtung mit −Z (Godot-Regel, wie `LookAt`), eine Figur hat ihr Gesicht aber bei +Z (Vorderseite aller Modelle). Beim Einsetzen also `anker.Transform.RotatedLocal(Vector3.Up, Mathf.Pi)` – gilt für die Karren und genauso für alle Anker auf dem Markt. Im Godot-Test geprüft: ohne Drehung schauten Zieher, Treiber und Kutscher nach hinten. | 18.10.2026 |
 | Aussehen | Handkarren mit zwei Holmen, Ochsenkarren mit großen Speichenrädern und Joch, Kriegskarren als Wehrwagen mit hohen Bohlenwänden, Eisenbändern, Scharten und Bock. | 18.10.2026 |
 
-### Vögel mit eigenem Verhalten (PR #…)
+### Vögel mit eigenem Verhalten (PR #146)
 
 | Thema | Entscheidung | Datum |
 |---|---|---|
