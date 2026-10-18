@@ -11,6 +11,7 @@ So wird eingetragen (damit sich die Chats nie an derselben Stelle treffen):
 ## Offen
 
 - Aufklappmenüs (`OptionButton`) erscheinen im Klicktest unter Xvfb/opengl3 nicht auf dem Bildschirmfoto (auch nicht in den Einstellungen, Kantenglättung): Auswahlen lassen sich dort nur per Code prüfen; zu klären, ob es am Rechner oder am Thema liegt
+- (von Darstellung) Einstellung „Fahnen bewegen an/aus“ in `EinstellungenAnzeige`: globale Shader-Uniform `wind_staerke` auf 0 setzen (`RenderingServer.GlobalShaderParameterSet`; bei 0 hängen die Fahnen still) oder 0,5 – PR #129
 
 ## Entscheidungen
 

@@ -152,7 +152,7 @@ public partial class Stadtansicht
             Quader(new Vector3(0, hoehe, vorne + 0.12f), new Vector3(0.9f, 1.0f, 0.1f), Stoff(f), g);
             var dachHoehe = stufe switch { 0 => 7.5f, 1 => 11, 2 => 13.5f, 3 => 14, _ => 14 };
             Quader(new Vector3(2.5f, dachHoehe + 1.2f, vorne - 2), new Vector3(0.1f, 2.4f, 0.1f), Stoff(Holz), g);
-            Quader(new Vector3(3.15f, dachHoehe + 2, vorne - 2), new Vector3(1.2f, 0.75f, 0.05f), Stoff(f), g);
+            FahnenTuchAmMast(new Vector3(2.55f, dachHoehe + 2, vorne - 2), Vector3.Right, 1.2f, 0.75f, f, g);
         }
 
         if (szene is null && (imBau || brand))
@@ -242,6 +242,12 @@ public partial class Stadtansicht
                 "Wappen" or "Fahne" => !leer && farbe is not null,
                 _ => true,
             };
+            if (teil.Name == "Fahne")
+            {
+                // das Tuch der Fahne flattert im Wind (eigenes Netz mit Shader); ohne Besitzer ist die Fahne ohnehin ausgeblendet
+                if (!leer && farbe is { } tuchfarbe) ModellFahneBelebt(teil, tuchfarbe);
+                continue;
+            }
             for (var i = 0; i < teil.Mesh.GetSurfaceCount(); i++)
             {
                 if (teil.Mesh.SurfaceGetMaterial(i) is not BaseMaterial3D stoff) continue;
