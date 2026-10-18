@@ -229,13 +229,15 @@ public partial class Stadtansicht
 
     /// <summary>
     /// Die Tür des Hauses, in dem ein Aufenthalt stattfindet (Anker des Modells, Stadtansicht.Modelle.cs): Einwohnerhaus beim Heim, Werkstatt
-    /// bei Schänke und Kirche eines Hauses. Null ohne Modell (Kulisse, Dom, Rathaus): Dann endet der Weg wie bisher an der Haustür im Gassennetz.
-    /// Wird nur beim Planen eines Weges gefragt, nicht jedes Bild.
+    /// bei Schänke und Kirche eines Hauses, dazu Dom (Stufen vor dem Portal) und Rathaus (Markthalle). Null ohne Modell (Kulisse): Dann endet der Weg
+    /// wie bisher an der Haustür im Gassennetz. Wird nur beim Planen eines Weges gefragt, nicht jedes Bild.
     /// </summary>
     private Vector3? TuerVon(Aufenthalt a) => a.Ort switch
     {
         Stadtort.Heim when EinwohnerKennung(a.Haus) is { } kennung => TuerAnker(kennung),
         Stadtort.Schaenke or Stadtort.Kirche when a.Betrieb is { } betrieb => TuerAnker(betrieb),
+        Stadtort.Kirche => TuerAnker("Dom"),
+        Stadtort.Rathaus => TuerAnker("Rathaus"),
         _ => null,
     };
 

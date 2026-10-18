@@ -728,7 +728,7 @@ def pferd(netz, st, ort, winkel):
         for y in (-0.12, 0.12):
             netz.stab((x, y, 0), (x, y, 0.8), 0.1, 0.1, fell, matrix=M)
     netz.stab((0.4, 0, 1.0), (0.68, 0, 1.45), 0.2, 0.16, fell, matrix=M)            # Hals
-    netz.quader((0.82, 0, 1.36), (0.4, 0.16, 0.18), fell, matrix=M)                 # Kopf
+    netz.quader((0.82, 0, 1.36), (0.4, 0.18, 0.18), fell, matrix=M)                 # Kopf (breiter als der Hals: sonst flimmern die Seiten)
     netz.stab((0.4, 0, 1.2), (0.64, 0, 1.56), 0.05, 0.06, dunkel, matrix=M)         # Mähne
     netz.stab((-0.5, 0, 1.12), (-0.6, 0, 0.62), 0.06, 0.08, dunkel, matrix=M)       # Schweif
 
@@ -910,10 +910,11 @@ def dachreiter(netz, st, first, spitze="Gold", koerper="Putz", ecken="Fachwerk")
     kupfergrün beim Tischler, Schiefer beim Steinmetz – `spitze` ist das Material. `koerper` und `ecken`:
     Putz mit Fachwerkständern oder Mauerwerk mit Eckquadern."""
     x, y, z = first
-    netz.quader((x, y, z + 0.6), (1.3, 1.3, 1.6), st[koerper])
+    # Deckel weglassen: Sie liegen unter der Spitze und in einer Ebene (sonst flimmern sie)
+    netz.quader((x, y, z + 0.6), (1.3, 1.3, 1.6), st[koerper], ohne=("+z",))
     for sx in (-1, 1):
         for sy in (-1, 1):
-            netz.quader((x + sx * 0.6, y + sy * 0.6, z + 0.6), (0.14, 0.14, 1.6), st[ecken])
+            netz.quader((x + sx * 0.6, y + sy * 0.6, z + 0.6), (0.14, 0.14, 1.6), st[ecken], ohne=("+z",))
     for s in (-1, 1):
         netz.vieleck_nach([(x - 0.3, y + s * 0.66, z + 0.7), (x + 0.3, y + s * 0.66, z + 0.7),
                            (x + 0.3, y + s * 0.66, z + 1.25), (x - 0.3, y + s * 0.66, z + 1.25)], (0, s, 0), st["Loch"])
@@ -1123,8 +1124,9 @@ def deckungsgleich(objekte, grenze=0.004):
     return funde
 
 
-def bericht(name, objekte):
-    """Dreiecke je Objekt (so, wie sie im Export landen); Anker mit ihrer Lage."""
+def bericht(name, objekte, einzeln=False):
+    """Dreiecke je Objekt (so, wie sie im Export landen); Anker mit ihrer Lage.
+    `einzeln`: jedes Objekt für sich auf Flimmern prüfen (Baukasten, dessen Teile alle im Nullpunkt liegen)."""
     print(f"\n{name}: Dreiecke")
     summe = 0
     for o in objekte:
@@ -1140,6 +1142,11 @@ def bericht(name, objekte):
     feste = [o for o in objekte if o.type == "MESH" and not o.name.startswith(("Stufe", "Variante"))]
     stufen = [o for o in objekte if o.type == "MESH" and o.name.startswith(("Stufe", "Variante"))] or [None]
     funde = []
+    if einzeln:
+        for o in objekte:
+            if o.type == "MESH":
+                funde += deckungsgleich([o])
+        stufen = []
     for stufe in stufen:
         funde += deckungsgleich(feste + ([stufe] if stufe else []))
     funde = list({(round(f[0].x, 2), round(f[0].y, 2), round(f[0].z, 2), f[1], f[2]): f for f in funde}.values())

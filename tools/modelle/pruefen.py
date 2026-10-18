@@ -9,6 +9,8 @@ Stufe1–Stufe3 sein; dann steht auch da, wie viele Dreiecke je Stufe sichtbar s
 Hat das Modell Varianten (Einwohnerhäuser), müssen sie Variante1, Variante2 … heißen; Zustandsknoten
 sind dann nicht nötig, weil Einwohnerhäuser weder leer stehen noch ausgebaut werden.
 Mit `--sonderbau` (Dom, Rathaus, Stadtmauer) sind weder Zustände noch „Hausfarbe“ nötig: Sonderbauten gehören der Stadt.
+Mit `--umland` (Grube, Holzschlag … Wachturm) braucht das Modell „Haus“, „Arbeit“, „Fahne“ und „Leerstand“, aber kein
+Gerüst: Umlandbetriebe werden nicht ausgebaut.
 Ankerpunkte („Anker_…“, leere Knoten) werden mit Lage und Blickrichtung gelistet; „Anker_Tuer“ ist Pflicht
 und jeder Anker muss auf der Fläche liegen.
 """
@@ -31,6 +33,7 @@ def lesen(pfad):
 
 def main():
     sonderbau = "--sonderbau" in sys.argv
+    umland = "--umland" in sys.argv
     argumente = [a for a in sys.argv[1:] if not a.startswith("--")]
     pfad = argumente[0]
     breite, tiefe = (float(a) for a in argumente[1:3]) if len(argumente) >= 3 else (None, None)
@@ -92,7 +95,7 @@ def main():
             fehler.append(f"{k['name']} liegt außerhalb der Fläche")
     if "Anker_Tuer" not in [k["name"] for k in anker]:
         fehler.append("Ankerpunkt „Anker_Tuer“ fehlt")
-    for z in ZUSTAENDE:
+    for z in (("Haus", "Arbeit", "Fahne", "Leerstand") if umland else ZUSTAENDE):
         if z not in namen and not varianten and not sonderbau:
             fehler.append(f"Zustandsknoten „{z}“ fehlt")
     if mins[1] < -0.06:

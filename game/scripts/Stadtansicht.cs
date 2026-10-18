@@ -166,6 +166,8 @@ public partial class Stadtansicht : Node3D
         /// <summary>Jede Wand mit ihrer Außenrichtung (zeigt vom Gebäude weg).</summary>
         public List<(Node3D Wand, Vector3 Aussen)> Waende { get; } = new();
         public Node3D? Dach { get; set; }
+        /// <summary>Das ganze Gebäude von außen, wo es ein Modell ist (Rathaus, Dom): Es steht beim Blick in ein anderes Haus nur als Ganzes davor und wird dann ausgeblendet.</summary>
+        public Node3D? Huelle { get; set; }
         public Node3D? Innen { get; set; }
         public bool HatInnenraum => Innen is not null;
         /// <summary>Zoom beim Betreten und wie weit man die Kamera im Innern verschieben darf.</summary>
@@ -173,6 +175,8 @@ public partial class Stadtansicht : Node3D
         public float Reichweite { get; init; } = 8;
         /// <summary>Klickfläche des ganzen Gebäudes – in der Innenansicht aus, damit die Räume erreichbar sind.</summary>
         public CollisionShape3D? Aussenklick { get; set; }
+        /// <summary>Weitere Klickflächen des Gebäudes von außen (Turm), die in der Innenansicht ebenfalls aus sind.</summary>
+        public List<CollisionShape3D> ZusatzKlicks { get; } = new();
         /// <summary>Klickflächen der Räume (Rathaus) – nur in der Innenansicht an.</summary>
         public List<CollisionShape3D> Raumklicks { get; } = new();
 
@@ -458,41 +462,6 @@ public partial class Stadtansicht : Node3D
         neigung.AddChild(_kamera);
         _kameraDrehung.Position = new Vector3(24, 0, -6); // Stadt und Grube im Blick
         RaumKameraAufbauen();
-    }
-
-    private void Stadtmauer()
-    {
-        const float rand = Mauerrand, hoehe = 6, dicke = 2;
-        var stein = Material(Mauerstein);
-        // Nord und Süd als ganze Mauern; Ost und West mit je einem Tor (4 m breit).
-        Quader(new Vector3(0, hoehe / 2, -rand), new Vector3(2 * rand, hoehe, dicke), stein);
-        Quader(new Vector3(0, hoehe / 2, rand), new Vector3(2 * rand, hoehe, dicke), stein);
-        MauerMitTor(rand, Osttor.Z);
-        MauerMitTor(-rand, Westtor.Z);
-
-        foreach (var ecke in new[] { new Vector3(-rand, 0, -rand), new Vector3(rand, 0, -rand), new Vector3(-rand, 0, rand), new Vector3(rand, 0, rand) })
-            Turm(ecke, 3.5f, 10, Schiefer);
-
-        Torhaus(Osttor, "Osttor");
-        Torhaus(Westtor, "Westtor");
-
-        void MauerMitTor(float x, float torZ)
-        {
-            const float luecke = 4;
-            var nordLaenge = torZ - luecke + rand;  // von −rand bis zum Tor
-            var suedLaenge = rand - torZ - luecke;  // vom Tor bis +rand
-            Quader(new Vector3(x, hoehe / 2, -rand + nordLaenge / 2), new Vector3(dicke, hoehe, nordLaenge), stein);
-            Quader(new Vector3(x, hoehe / 2, rand - suedLaenge / 2), new Vector3(dicke, hoehe, suedLaenge), stein);
-        }
-
-        void Torhaus(Vector3 tor, string name)
-        {
-            Quader(tor + new Vector3(0, 8, 0), new Vector3(5, 4, 9), stein);
-            Turm(tor + new Vector3(0, 0, -5.5f), 2.6f, 11, Schiefer);
-            Turm(tor + new Vector3(0, 0, 5.5f), 2.6f, 11, Schiefer);
-            Klickflaeche(name, tor + new Vector3(0, 5, 0), new Vector3(6, 10, 12));
-            Beschriftung(name, tor + new Vector3(0, 15, 0), 48, kennung: name);
-        }
     }
 
     private void Marktstaende()
@@ -1449,6 +1418,7 @@ public partial class Stadtansicht : Node3D
         foreach (var (wand, _) in ansicht.Waende) wand.Visible = true;
         // Drinnen treffen Klicks die Räume, draußen das ganze Gebäude.
         if (ansicht.Aussenklick is not null) ansicht.Aussenklick.Disabled = innen;
+        foreach (var klick in ansicht.ZusatzKlicks) klick.Disabled = innen;
         foreach (var raum in ansicht.Raumklicks) raum.Disabled = !innen;
         KulisseZeigen();
         if (!innen) return;
@@ -1509,8 +1479,8 @@ public partial class Stadtansicht : Node3D
             }
         }
         // Dächer anderer Werkstätten, des Rathauses und des Doms sind eigene Gruppen – die gleichen Regeln gelten.
-        var daecher = _betriebe.Values.Cast<InnenAnsicht>().Concat(_sonderbauten.Values).Where(x => x != ansicht && x.Dach is not null)
-            .Select(x => (x.Mitte, Dach: x.Dach!)).Concat(_leereHaeuser.Values.Select(l => (l.Mitte, l.Dach)));
+        var daecher = _betriebe.Values.Cast<InnenAnsicht>().Concat(_sonderbauten.Values).Where(x => x != ansicht && (x.Huelle ?? x.Dach) is not null)
+            .Select(x => (x.Mitte, Dach: (x.Huelle ?? x.Dach)!)).Concat(_leereHaeuser.Values.Select(l => (l.Mitte, l.Dach)));
         foreach (var (mitte, dach) in daecher)
         {
             var abstand = mitte - ansicht.Mitte;
