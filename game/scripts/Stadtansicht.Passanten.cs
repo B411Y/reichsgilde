@@ -221,9 +221,23 @@ public partial class Stadtansicht
         var pfad = _netz.Pfad(Anlaufknoten(weg.Von), Anlaufknoten(weg.Nach)).ToList();
         if (pfad.Count == 0) return Array.Empty<Vector3>();
         if (Draussen(weg.Von)) pfad.Insert(0, Verweilpunkt(weg.Von, e, weg.Abmarsch));
+        else if (TuerVon(weg.Von) is { } ausgang) pfad.Insert(0, ausgang); // kommt aus der Tür des Modells (mit der Höhe der Stufen)
         if (Draussen(weg.Nach)) pfad.Add(Verweilpunkt(weg.Nach, e, weg.Ankunft));
+        else if (TuerVon(weg.Nach) is { } eingang) pfad.Add(eingang);      // verschwindet erst an der Tür
         return pfad.ToArray();
     }
+
+    /// <summary>
+    /// Die Tür des Hauses, in dem ein Aufenthalt stattfindet (Anker des Modells, Stadtansicht.Modelle.cs): Einwohnerhaus beim Heim, Werkstatt
+    /// bei Schänke und Kirche eines Hauses. Null ohne Modell (Kulisse, Dom, Rathaus): Dann endet der Weg wie bisher an der Haustür im Gassennetz.
+    /// Wird nur beim Planen eines Weges gefragt, nicht jedes Bild.
+    /// </summary>
+    private Vector3? TuerVon(Aufenthalt a) => a.Ort switch
+    {
+        Stadtort.Heim when EinwohnerKennung(a.Haus) is { } kennung => TuerAnker(kennung),
+        Stadtort.Schaenke or Stadtort.Kirche when a.Betrieb is { } betrieb => TuerAnker(betrieb),
+        _ => null,
+    };
 
     private Vector3 Verweilpunkt(Aufenthalt a, Einwohner e) =>
         // Beim Ziel gilt die Ankunftszeit des letzten Weges, sonst (vor dem Abmarsch) dessen Abmarsch.
