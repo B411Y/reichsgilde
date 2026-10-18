@@ -401,6 +401,8 @@ public partial class Stadtansicht : Node3D
         UmgebungUndLicht();
         KameraAufbauen();
         SchattenEinrichten(); // braucht Sonne und Kamera (Stadtansicht.Licht.cs)
+        BloomNachfuehren();   // beide Umgebungen stehen jetzt (Stadtansicht.Licht.cs)
+        Fenster.BloomGeaendert += BloomNachfuehren;
 
         Flaeche(new Vector3(20, 0, 0), new Vector2(520, 480), Wiese, -0.05f); // groß genug, dass auch ganz herausgezoomt kein Himmel am Rand zu sehen ist
         Flaeche(Vector3.Zero, new Vector2(2 * Mauerrand, 2 * Mauerrand), Pflaster, 0f);
@@ -598,6 +600,7 @@ public partial class Stadtansicht : Node3D
 
     public override void _ExitTree()
     {
+        Fenster.BloomGeaendert -= BloomNachfuehren;
         if (_wirtschaft is not null) _wirtschaft.BetriebAbgegeben -= BetriebEntfernen;
     }
 

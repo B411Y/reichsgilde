@@ -3,7 +3,7 @@ using Godot;
 namespace Reichsgilde;
 
 /// <summary>
-/// Anzeige-Einstellungen: Fenster oder Vollbild (auch F11, überall), die Kantenglättung und die Schattenqualität.
+/// Anzeige-Einstellungen: Fenster oder Vollbild (auch F11, überall), die Kantenglättung, die Schattenqualität und der Bloom.
 /// Geändert werden sie im Fenster „Einstellungen“ (<see cref="EinstellungenAnzeige"/>), gespeichert in
 /// <c>user://einstellungen.cfg</c> und beim Start wieder angewendet.
 ///
@@ -48,6 +48,10 @@ public partial class Fenster : Node
         KantenglaettungSetzen(Enum.TryParse<Kantenglaettung>(kanten, out var k) ? k : StandardKantenglaettung, speichern: false);
         var schatten = geladen ? einstellungen.GetValue("anzeige", "schattenqualitaet", "").AsString() : "";
         SchattenqualitaetSetzen(Enum.TryParse<Schattenqualitaet>(schatten, out var q) ? q : Schattenqualitaet.Hoch, speichern: false);
+        // Alte Dateien ohne die Schlüssel bekommen den Standard (An, 50 %).
+        BloomSetzen(geladen ? einstellungen.GetValue("anzeige", "bloom", true).AsBool() : true,
+                    geladen ? einstellungen.GetValue("anzeige", "bloomstaerke", StandardBloomStaerke).AsInt32() : StandardBloomStaerke,
+                    speichern: false);
     }
 
     // ── Kantenglättung ──────────────────────────────────────────────────────
@@ -102,6 +106,35 @@ public partial class Fenster : Node
         RenderingServer.DirectionalShadowAtlasSetSize(stufe.Karte, true);
         RenderingServer.DirectionalSoftShadowFilterSetQuality(stufe.Filter);
         if (speichern) Speichern("schattenqualitaet", q.ToString());
+    }
+
+    // ── Bloom ───────────────────────────────────────────────────────────────
+
+    /// <summary>Ohne gespeicherte Wahl: 50 % – ein dezenter Schein um Fensterlicht und Glut (Werte: Stadtansicht.Licht.cs).</summary>
+    public const int StandardBloomStaerke = 50;
+
+    public static bool BloomAn { get; private set; } = true;
+
+    /// <summary>Stärke des Bloom in Prozent (0–100). 0 ist wie „Aus“.</summary>
+    public static int BloomStaerke { get; private set; } = StandardBloomStaerke;
+
+    /// <summary>Wird ausgelöst, wenn Schalter oder Stärke wechseln: Die Stadtansicht stellt ihre Umgebungen sofort um.</summary>
+    public static event Action? BloomGeaendert;
+
+    /// <summary>
+    /// Schaltet den Bloom (weiches Nachleuchten heller Lichtquellen) an oder aus und stellt seine Stärke ein. Die Ansichten
+    /// hören auf <see cref="BloomGeaendert"/>, die Änderung wirkt darum ohne Neustart (Werte und Wirkung: Stadtansicht.Licht.cs).
+    /// </summary>
+    public static void BloomSetzen(bool an, int staerke, bool speichern = true)
+    {
+        BloomAn = an;
+        BloomStaerke = Math.Clamp(staerke, 0, 100);
+        BloomGeaendert?.Invoke();
+        if (speichern)
+        {
+            Speichern("bloom", BloomAn);
+            Speichern("bloomstaerke", BloomStaerke);
+        }
     }
 
     private static void Speichern(string schluessel, Variant wert)

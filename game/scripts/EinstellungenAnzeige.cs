@@ -3,7 +3,7 @@ using Godot;
 namespace Reichsgilde;
 
 /// <summary>
-/// Fenster „Einstellungen“: Vollbild, Kantenglättung und Schattenqualität. Erreichbar aus dem Hauptmenü und aus dem Spielmenü (Esc).
+/// Fenster „Einstellungen“: Vollbild, Kantenglättung, Schattenqualität und Bloom. Erreichbar aus dem Hauptmenü und aus dem Spielmenü (Esc).
 /// Jede Änderung wirkt sofort und wird gespeichert (siehe <see cref="Fenster"/>).
 /// </summary>
 public sealed class EinstellungenAnzeige
@@ -34,6 +34,9 @@ public sealed class EinstellungenAnzeige
     private readonly Label _erklaerung;
     private readonly OptionButton _schatten;
     private readonly Label _schattenErklaerung;
+    private readonly CheckButton _bloom;
+    private readonly HSlider _bloomRegler;
+    private readonly Label _bloomWert;
 
     public EinstellungenAnzeige(Action zurueck)
     {
@@ -70,6 +73,32 @@ public sealed class EinstellungenAnzeige
         spalte.AddChild(_schatten);
         _schattenErklaerung = Hauptmenue.Text(spalte, "", 13, new Color(0.75f, 0.75f, 0.75f), umbruchBreite: 400);
 
+        Hauptmenue.Text(spalte, "Bloom", 18);
+        _bloom = new CheckButton { Text = "Lichtschein (Bloom)", FocusMode = Control.FocusModeEnum.None };
+        _bloom.AddThemeFontSizeOverride("font_size", 15);
+        _bloom.Toggled += an => Fenster.BloomSetzen(an, Fenster.BloomStaerke);
+        spalte.AddChild(_bloom);
+        var reglerZeile = new HBoxContainer();
+        reglerZeile.AddThemeConstantOverride("separation", 10);
+        spalte.AddChild(reglerZeile);
+        Hauptmenue.Text(reglerZeile, "Stärke", 15);
+        _bloomRegler = new HSlider
+        {
+            MinValue = 0, MaxValue = 100, Step = 5, FocusMode = Control.FocusModeEnum.None,
+            SizeFlagsHorizontal = Control.SizeFlags.ExpandFill, SizeFlagsVertical = Control.SizeFlags.ShrinkCenter,
+            CustomMinimumSize = new Vector2(200, 0),
+        };
+        _bloomRegler.ValueChanged += wert =>
+        {
+            _bloomWert!.Text = $"{(int)wert} %";
+            Fenster.BloomSetzen(Fenster.BloomAn, (int)wert);
+        };
+        reglerZeile.AddChild(_bloomRegler);
+        _bloomWert = Hauptmenue.Text(reglerZeile, "", 15);
+        _bloomWert.CustomMinimumSize = new Vector2(50, 0);
+        Hauptmenue.Text(spalte, "Heller Schein um Fensterlicht, Glut und Domfenster. Sonnenbeschienene Flächen bleiben klar. 50 % ist das empfohlene Bild; kostet etwas Grafikleistung.",
+            13, new Color(0.75f, 0.75f, 0.75f), umbruchBreite: 400);
+
         spalte.AddChild(new HSeparator());
         Hauptmenue.Knopf(spalte, "Zurück", zurueck);
         Auffrischen();
@@ -85,5 +114,8 @@ public sealed class EinstellungenAnzeige
         var stufe = Array.FindIndex(Schattenstufen, s => s.Stufe == Fenster.AktuelleSchattenqualitaet);
         _schatten.Select(stufe);
         _schattenErklaerung.Text = Schattenstufen[stufe].Erklaerung;
+        _bloom.SetPressedNoSignal(Fenster.BloomAn);
+        _bloomRegler.SetValueNoSignal(Fenster.BloomStaerke);
+        _bloomWert.Text = $"{Fenster.BloomStaerke} %";
     }
 }

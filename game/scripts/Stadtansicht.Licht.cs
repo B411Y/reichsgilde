@@ -234,6 +234,57 @@ public partial class Stadtansicht
 
     private (float Zoom, float Seiten, Schattenqualitaet Stufe)? _schattenFuer;
 
+    // ═════════════════════════════════════════════════════════════════════════
+    //  Bloom
+    // ═════════════════════════════════════════════════════════════════════════
+
+    /// <summary>
+    /// Godots Glow trägt nur Bildpunkte weiter, deren hellster Farbkanal über dem Schwellwert liegt. Das Bild wird in HDR
+    /// gerechnet (Werte über 1 sind möglich): Sonnenbeschienene Dächer und Wände liegen darunter und schimmern nie (gemessen:
+    /// Markt um 13 Uhr bei 100 % gegen Aus, Unterschiede nur an leuchtenden Fenstern). Lichtquellen liegen darüber: Fensterlicht
+    /// mit Emission 2,2 (<see cref="FensterLichtStaerke"/>), Glut, Feuerkorb und Domfenster – nur sie leuchten nach.
+    /// 1,0 ist Godots Grundwert; <see cref="BloomUebergang"/> blendet den Einsatz weich ein, statt eine harte Kante zu ziehen.
+    /// </summary>
+    private const float BloomSchwelle = 1f, BloomUebergang = 1f;
+
+    /// <summary>
+    /// Stärke des Scheins (<c>GlowIntensity</c>) bei 100 %: kräftig, aber nicht grell. Die Stärke in Prozent geht mit
+    /// Exponent <see cref="BloomKurve"/> ein, so liegt der Regler unten fein abgestuft: 50 % ergibt etwa 0,75 (dezent, das
+    /// empfohlene Bild), 25 % etwa 0,2. 0 % schaltet den Glow ganz ab, das Bild ist dann wie mit „Aus“.
+    /// </summary>
+    private const float BloomMaximum = 2.6f, BloomKurve = 1.8f;
+
+    /// <summary>
+    /// Wie weit der Schein reicht: Die Stufen des Glow sind immer breitere Weichzeichnungen des hellen Bildes
+    /// (Stufe 1 klein, Stufe 5 sehr breit). Wir nehmen die mittleren: ein Hof um Fenster und Glut, aber kein Nebel über der Stadt.
+    /// </summary>
+    private static readonly float[] BloomStufen = { 0f, 0.5f, 1f, 1f, 0.6f, 0f, 0f };
+
+    /// <summary>
+    /// Stellt den Bloom einer Umgebung (Stadt oder Raumansicht) nach der Einstellung ein (<see cref="Fenster.BloomAn"/>,
+    /// <see cref="Fenster.BloomStaerke"/>). „Screen“ als Mischung hellt nur auf und überstrahlt nie über Weiß.
+    /// </summary>
+    internal static void BloomAnwenden(Godot.Environment umgebung)
+    {
+        var anteil = Fenster.BloomStaerke / 100f;
+        umgebung.GlowEnabled = Fenster.BloomAn && Fenster.BloomStaerke > 0;
+        umgebung.GlowBlendMode = Godot.Environment.GlowBlendModeEnum.Screen;
+        umgebung.GlowHdrThreshold = BloomSchwelle;
+        umgebung.GlowHdrScale = BloomUebergang;
+        umgebung.GlowHdrLuminanceCap = 12f; // sehr helle Quellen (Domfenster) strahlen nicht unbegrenzt weiter
+        umgebung.GlowBloom = 0f;            // sonst würden auch dunkle Flächen leuchten
+        umgebung.GlowStrength = 1f;
+        umgebung.GlowIntensity = BloomMaximum * Mathf.Pow(anteil, BloomKurve);
+        for (var i = 0; i < BloomStufen.Length; i++) umgebung.SetGlowLevel(i, BloomStufen[i]);
+    }
+
+    /// <summary>Stadt und Raumansicht übernehmen die Einstellung sofort, wenn sie sich ändert.</summary>
+    private void BloomNachfuehren()
+    {
+        BloomAnwenden(_umgebung.Environment);
+        BloomAnwenden(_raumUmgebung);
+    }
+
     /// <summary>Einmal beim Aufbau: Grundeinstellung des Schattens der Sonne.</summary>
     private void SchattenEinrichten()
     {
