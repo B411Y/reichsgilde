@@ -1,4 +1,4 @@
-"""Erzeugt alle Modelle neu (Wohnhäuser, Werkstätten, Einwohnerhäuser, Sonderbauten und Umland) und rendert die
+"""Erzeugt alle Modelle neu (Wohnhäuser, Werkstätten, Einwohnerhäuser, Sonderbauten, Umland und Natur) und rendert die
 Übersicht der Wohnhaus-Stufen.
 
     python tools/modelle/alle.py [--schnell] [--ohne-bilder]
@@ -33,6 +33,7 @@ SONDERBAUTEN = ["dom", "rathaus", "stadtmauer"]          # Gebäude der Stadt: o
 UMLAND = ["grube", "holzschlag", "steinbruch", "kraeutergarten", "duftgarten", "bauernhof", "klosterhof",
           "wachturm"]         # Umlandbetriebe: Haus, Arbeit, Fahne, Leerstand (gemeinsame Teile in landbau.py)
 UMLANDSTELLEN = ["umland_stellen"]                       # Weide, Feld und Wald der Einwohner
+NATUR = ["natur_baeume", "natur_buesche", "natur_boden", "natur_steine", "natur_holz"]   # Baukästen, gemeinsame Teile in natur.py
 
 
 def erzeugen(name, schalter):
@@ -93,7 +94,7 @@ def uebersicht(schnell=False, luft=0.5):
 
 def main():
     schalter = [a for a in sys.argv if a in ("--schnell", "--ohne-bilder")]
-    for name in [n for n, _ in WOHNHAEUSER] + WERKSTAETTEN + EINWOHNERHAEUSER + SONDERBAUTEN + UMLAND + UMLANDSTELLEN:
+    for name in [n for n, _ in WOHNHAEUSER] + WERKSTAETTEN + EINWOHNERHAEUSER + SONDERBAUTEN + UMLAND + UMLANDSTELLEN + NATUR:
         erzeugen(name, schalter)
     if "--ohne-bilder" not in schalter:
         print(uebersicht(schnell="--schnell" in schalter))
