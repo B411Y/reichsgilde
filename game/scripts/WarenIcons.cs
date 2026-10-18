@@ -3,7 +3,7 @@ using Godot;
 namespace Reichsgilde;
 
 /// <summary>
-/// Die Pixel-Icons der Waren (32 × 32, erzeugt mit tools/icons/waren_icons.py, liegen in res://assets/waren/).
+/// Die Icons der Waren im Stil eines kolorierten Holzschnitts (128 × 128, erzeugt mit tools/icons/waren_icons.py, liegen in res://assets/waren/).
 /// Fehlt ein Icon (z. B. eine neue Ware in den Daten), zeigt das Spiel einen Platzhalter mit dem Anfangsbuchstaben.
 /// </summary>
 public static class WarenIcons
@@ -24,8 +24,8 @@ public static class WarenIcons
     }
 
     /// <summary>
-    /// Das Icon als Bildfeld in <paramref name="groesse"/> Pixeln (am besten ein Vielfaches von 32) –
-    /// ohne Weichzeichnen, damit die Pixel scharf bleiben.
+    /// Das Icon als Bildfeld in <paramref name="groesse"/> Pixeln. Verkleinert wird über Mipmaps
+    /// (beim Import erzeugt), damit die Linien und Schraffuren auch bei 64 px glatt bleiben und nicht flimmern.
     /// </summary>
     public static Control Bild(string ware, int groesse)
     {
@@ -33,7 +33,7 @@ public static class WarenIcons
             return new TextureRect
             {
                 Texture = textur,
-                TextureFilter = CanvasItem.TextureFilterEnum.Nearest,
+                TextureFilter = CanvasItem.TextureFilterEnum.LinearWithMipmaps,
                 ExpandMode = TextureRect.ExpandModeEnum.IgnoreSize,
                 StretchMode = TextureRect.StretchModeEnum.KeepAspectCentered,
                 CustomMinimumSize = new Vector2(groesse, groesse),
