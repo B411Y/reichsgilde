@@ -31,8 +31,8 @@ public partial class Stadtansicht
         public double Rueckstand { get; set; }
         /// <summary>Versetzt die Bilder, in denen Karren animiert werden, damit nicht alle im selben Bild dran sind.</summary>
         public int Versatz { get; init; }
-        /// <summary>Hier steht die Passanten-Figur (Knecht, Treiber, Kutscher), sobald <see cref="KarrenFigurAnhaengen"/> eine anhängt.</summary>
-        public Node3D? Figur { get; set; }
+        /// <summary>Der Mensch am Karren (Zieher, Treiber, Kutscher), eine Figur wie die Passanten; null, wenn das Figurenmodell fehlt.</summary>
+        public Figur? Fahrer { get; set; }
     }
 
     /// <summary>Was an einer Karrenart verschieden ist: das Modell, der Weg einer Schleife „Fahren“ und der Anker für den Menschen.</summary>
@@ -102,18 +102,95 @@ public partial class Stadtansicht
         {
             Wurzel = wurzel, Art = art, Spieler = spieler, Ladung = ladung.ToArray(), Plane = plane, Eskorte = eskorte, Versatz = nummer,
         };
-        KarrenFigurAnhaengen(ansicht, modell);
+        ansicht.Fahrer = KarrenFahrerEinsetzen(ansicht, modell, karren, besitzer);
         return ansicht;
     }
 
+    /// <summary>Die Figur ist ein Mensch: Zieher, Treiber und Kutscher sind für 0,92 m Hüfthöhe an Holmen, Seil und Bock abgestimmt.</summary>
+    private const float KarrenGehTempo = GehenTempo;
+
     /// <summary>
-    /// Stellt die Passanten-Figur an den Anker des Karrens: Zieher zwischen den Holmen („Ziehen“), Treiber neben dem Ochsen („Gehen“),
-    /// Kutscher auf dem Bock („Kutschieren“). Der Anker blickt mit −Z, die Figur mit +Z: Beim Einsetzen um 180° um die Hochachse drehen.
-    /// Die Figur kommt aus dem Passanten-Teil (<c>Stadtansicht.Passanten.cs</c>), nicht aus einer eigenen Datei.
-    /// Noch ohne Figur: hier bleibt der Anker leer, bis die Passanten-Figuren eingebaut sind.
+    /// Stellt den Menschen an den Anker des Karrens: Zieher zwischen den Holmen („Ziehen“), Treiber neben dem Ochsen („Gehen“), Kutscher auf
+    /// dem Bock („Kutschieren“). Der Anker blickt mit −Z, die Figur mit +Z: Ein Halter am Anker dreht sie um 180° um die Hochachse. Die Figur
+    /// kommt aus <see cref="FigurEinsetzen"/> (<c>Stadtansicht.Figuren.cs</c>), immer als Mensch (Nummer durch 4 teilbar), im Gewand in
+    /// der gedämpften Hausfarbe; die Nummer stammt aus Betriebs- und Karrenname, damit sie bei jedem Start gleich ist.
     /// </summary>
-    private void KarrenFigurAnhaengen(KarrenAnsicht ansicht, Node3D? modell)
+    private Figur? KarrenFahrerEinsetzen(KarrenAnsicht ansicht, Node3D? modell, Karren karren, Color besitzer)
     {
+        if (modell?.FindChild(ansicht.Art.Anker, true, false) is not Node3D anker || anker.GetParent() is not { } eltern) return null;
+        var halter = new Node3D { Name = "Fahrer" };
+        eltern.AddChild(halter);
+        halter.Transform = anker.Transform.RotatedLocal(Vector3.Up, Mathf.Pi);
+        var nummer = 4 * (int)(StabilerHash(karren.Heimat.Name + "/" + karren.Name) % 100000);
+        var gewand = besitzer.Lerp(new Color(0.45f, 0.38f, 0.28f), 0.45f);
+        var aussehen = AussehenAusNummer(nummer, gewand) with { Kopf = Kopfbedeckung.Strohhut };
+        return FigurEinsetzen(halter, aussehen, nummer);
+    }
+
+    /// <summary>Ein Hash, der bei jedem Programmstart gleich ist (<c>string.GetHashCode</c> ist es nicht).</summary>
+    private static uint StabilerHash(string text)
+    {
+        var h = 2166136261u;
+        foreach (var c in text) h = (h ^ c) * 16777619u;
+        return h;
+    }
+
+    /// <summary>
+    /// Der Mensch am Karren bewegt sich mit: beim Fahren „Ziehen“ oder „Gehen“ im Takt der Räder (die Schritte passen zum Tempo, aber
+    /// nicht schneller als <see cref="KarrenMaxTempo"/> Schleifen der Räder), der Kutscher „Kutschieren“; im Stand „Stehen“ (der Kutscher
+    /// bleibt auf dem Bock bei „Kutschieren“).
+    /// </summary>
+    private void KarrenFahrerBewegen(KarrenAnsicht karren, float geschwindigkeit, double delta)
+    {
+        if (karren.Fahrer is not { } fahrer) return;
+        if (geschwindigkeit > 0.05f)
+        {
+            var kutscher = karren.Art.FigurFahren == "Kutschieren";
+            var tempo = Mathf.Min(geschwindigkeit, KarrenMaxTempo * karren.Art.Weg);
+            BewegungSetzen(fahrer, karren.Art.FigurFahren, kutscher ? 1f : Mathf.Min(tempo / (KarrenGehTempo * fahrer.Beinfaktor), 3f));
+        }
+        else BewegungSetzen(fahrer, karren.Art.FigurStehen);
+        var sekunden = _simulation?.Takt.IstPausiert == true ? 0 : delta; // in der Pause steht auch der Mensch still
+        FigurImBildBewegen(fahrer, karren.Wurzel.Position, sekunden);
+    }
+
+    /// <summary>Wie weit (Chebyshev-Abstand von der Platzmitte, Meter) die Karren am Markt halten: Das Pflaster reicht bis 12 m, die Tiere stehen am Rand.</summary>
+    private const float KarrenHaltAmMarkt = MarktplatzHalb + 3.5f;
+
+    private readonly System.Runtime.CompilerServices.ConditionalWeakTable<Vector3[], Vector3[]> _karrenWege = new();
+
+    /// <summary>Der Weg des Karrens zum Markt, gekürzt auf den Rand des Platzes (<see cref="KarrenWegBisPlatzrand"/>); je Weg nur einmal gerechnet.</summary>
+    private Vector3[] KarrenWeg(BetriebsAnsicht ansicht)
+    {
+        if (!_karrenWege.TryGetValue(ansicht.WegZumMarkt, out var weg))
+            _karrenWege.Add(ansicht.WegZumMarkt, weg = KarrenWegBisPlatzrand(ansicht.WegZumMarkt, KarrenHaltAmMarkt));
+        return weg;
+    }
+
+    /// <summary>
+    /// Der Weg endet in der Platzmitte (im Brunnen): Karren halten und wenden dort, wo ihre Zufahrtsgasse auf den Platz trifft. Schneidet den Weg
+    /// an dem Punkt ab, an dem er das Quadrat mit der halben Seite <paramref name="halb"/> um die Platzmitte betritt. Beginnt der Weg schon darin
+    /// (ein Betrieb am Markt) oder berührt er den Platz nicht, bleibt er, wie er ist.
+    /// </summary>
+    private static Vector3[] KarrenWegBisPlatzrand(Vector3[] weg, float halb)
+    {
+        float Rand(Vector3 p) => Math.Max(Math.Abs(p.X - Marktplatz.X), Math.Abs(p.Z - Marktplatz.Z));
+        if (weg.Length < 2 || Rand(weg[0]) < halb) return weg;
+        var gekuerzt = new List<Vector3> { weg[0] };
+        for (var i = 0; i + 1 < weg.Length; i++)
+        {
+            var (a, b) = (weg[i], weg[i + 1]);
+            if (Rand(b) >= halb) { gekuerzt.Add(b); continue; }
+            float klein = 0, gross = 1; // zwischen a (außen) und b (innen): wo wird der Rand erreicht?
+            for (var n = 0; n < 24; n++)
+            {
+                var mitte = (klein + gross) / 2;
+                if (Rand(a.Lerp(b, mitte)) >= halb) klein = mitte; else gross = mitte;
+            }
+            gekuerzt.Add(a.Lerp(b, klein));
+            return gekuerzt.ToArray();
+        }
+        return weg;
     }
 
     /// <summary>Liegt der Karren (samt Tieren) im sichtbaren Ausschnitt der Kamera? Nur dann lohnt sich seine Animation.</summary>
@@ -136,7 +213,7 @@ public partial class Stadtansicht
     {
         if (karren.Zustand == KarrenZustand.AmBetrieb || fahrzeit <= 0 || _simulation is not { } sim || sim.Takt.IstPausiert || karren.WartetAmTor(sim.Zeit))
             return 0;
-        return WegLaenge(ansicht.WegZumMarkt) / fahrzeit * (float)sim.Takt.TicksProSekunde;
+        return WegLaenge(KarrenWeg(ansicht)) / fahrzeit * (float)sim.Takt.TicksProSekunde;
     }
 
     /// <summary>
@@ -168,8 +245,10 @@ public partial class Stadtansicht
 
     private void KarrenBewegen(Karren karren, int nummer, BetriebsAnsicht ansicht, int fahrzeit, double jetztGenau, double delta, bool spieler)
     {
+        var neu = false;
         if (!_karren.TryGetValue(karren, out var gezeigt))
         {
+            neu = true;
             gezeigt = KarrenErzeugen(karren, ansicht.Farbe, nummer);
             gezeigt.Wurzel.Position = ansicht.Hof;
             _karren[karren] = gezeigt;
@@ -179,29 +258,32 @@ public partial class Stadtansicht
         // Mehrere Karren eines Betriebs fahren hintereinander statt ineinander (mit den Tieren sind sie bis zu 6 m lang): Karren Nr. n
         // liegt immer n · KarrenAbstand weiter Richtung Markt als der erste. Am Halteplatz warten sie so in einer Reihe auf dem Weg,
         // und auf der Rückfahrt kommt der erste zuerst an.
-        var laenge = WegLaenge(ansicht.WegZumMarkt);
+        var weg = KarrenWeg(ansicht);
+        var laenge = WegLaenge(weg);
         var versatz = laenge > 0 ? nummer * KarrenAbstand / laenge : 0f;
-        float Stelle(float anteil) => Math.Min(1f, anteil + versatz);
+        // Am Markt halten die Karren ebenfalls in der Reihe: der letzte ganz vorn, die übrigen je einen Abstand dahinter
+        var spaet = laenge > 0 ? (ansicht.Betrieb.Karren.Count - 1 - nummer) * KarrenAbstand / laenge : 0f;
+        float Stelle(float anteil) => Math.Clamp(Math.Min(anteil + versatz, 1f - spaet), 0f, 1f);
         Vector3 ziel;
         Vector3 blick;
         if (karren.Zustand == KarrenZustand.AmBetrieb && ansicht.KarrenReihe is { } reihe)
         {
             // Umland: am Halteplatz stehen die Karren nebeneinander (4 m, Reihe aus Stadtansicht.Umland.cs), mittig um den Anker verteilt; bei der Abfahrt rücken sie auf den Weg
             ziel = ansicht.Hof + reihe * (nummer - (ansicht.Betrieb.Karren.Count - 1) / 2f);
-            blick = ziel + (ansicht.WegZumMarkt[1] - ansicht.Hof); // alle mit derselben Blickrichtung, nicht zum selben Punkt
+            blick = ziel + (weg[1] - ansicht.Hof); // alle mit derselben Blickrichtung, nicht zum selben Punkt
         }
         else if (karren.Zustand == KarrenZustand.AmBetrieb)
         {
-            ziel = PunktAufWeg(ansicht.WegZumMarkt, Stelle(0));
-            blick = PunktAufWeg(ansicht.WegZumMarkt, Math.Min(1f, Stelle(0) + (laenge > 0 ? 1f / laenge : 0f)));
+            ziel = PunktAufWeg(weg, Stelle(0));
+            blick = PunktAufWeg(weg, Math.Min(1f, Stelle(0) + (laenge > 0 ? 1f / laenge : 0f)));
         }
         else
         {
             var rest = Math.Clamp((karren.Ankunft - jetztGenau) / fahrzeit, 0, 1);
             var anteil = (float)(karren.Zustand == KarrenZustand.ZumMarkt ? 1 - rest : rest);
             var stelle = Stelle(anteil);
-            ziel = PunktAufWeg(ansicht.WegZumMarkt, stelle);
-            blick = PunktAufWeg(ansicht.WegZumMarkt, Math.Clamp(stelle + (karren.Zustand == KarrenZustand.ZumMarkt ? 0.02f : -0.02f), 0f, 1f));
+            ziel = PunktAufWeg(weg, stelle);
+            blick = PunktAufWeg(weg, Math.Clamp(stelle + (karren.Zustand == KarrenZustand.ZumMarkt ? 0.02f : -0.02f), 0f, 1f));
         }
 
         // Das Ziel wandert dank des Minuten-Bruchteils schon stetig. Das kurze Hinterhergleiten
@@ -210,7 +292,11 @@ public partial class Stadtansicht
         var richtung = blick - knoten.Position;
         richtung.Y = 0;
         if (richtung.LengthSquared() > 0.01f)
-            knoten.Rotation = new Vector3(0, Mathf.Atan2(richtung.X, richtung.Z), 0);
+        {
+            // Am Markt wendet der Karren, statt sich herumzuwerfen; ein neuer Karren steht gleich richtig
+            var soll = Mathf.Atan2(richtung.X, richtung.Z);
+            knoten.Rotation = new Vector3(0, neu ? soll : Mathf.LerpAngle(knoten.Rotation.Y, soll, (float)Math.Min(1, delta * 6)), 0);
+        }
 
         // Ladung nach der Zahl der geladenen Sorten, Plane darüber, Eskorte als Begleiter (nur beim Wechsel schalten)
         var sorten = Math.Min(karren.Ladung.Count(l => l.Value > 0), gezeigt.Ladung.Length);
@@ -227,7 +313,9 @@ public partial class Stadtansicht
             gezeigt.Eskorte.Visible = eskortiert;
         }
 
-        KarrenAnimieren(gezeigt, KarrenGeschwindigkeit(karren, ansicht, fahrzeit), delta);
+        var geschwindigkeit = KarrenGeschwindigkeit(karren, ansicht, fahrzeit);
+        KarrenAnimieren(gezeigt, geschwindigkeit, delta);
+        KarrenFahrerBewegen(gezeigt, geschwindigkeit, delta);
     }
 
     private static float WegLaenge(Vector3[] weg)
