@@ -24,6 +24,7 @@ So wird eingetragen (damit sich die Chats nie an derselben Stelle treffen):
 - Fahnen im Shader: Ausschlag in der Ferne ausblenden, falls es bei Zoom ganz heraus flimmert; die Shaderzeit springt einmal je Stunde (`time_rollover_secs`)
 - (von Kern) Die 3D-Stadt zum Holzschnitt-Stil passend machen (Entscheidung in `kern.md`, „Grafikstil Holzschnitt“): prüfen, was Farbpalette, Konturlinien (Umriss-Shader) und Licht dazu beitragen können, und einen Vorschlag mit Bildern machen.
 - Sonderbauten einbauen: `dom.glb` statt `SonderbauHuelle` und Turm in `DomBauen` (`Stadtansicht.Sonderbauten.cs`). Der Ursprung ist die Mitte des Langhauses (wie der Punkt der Karte), die Einrichtung bleibt; beim Hineinsehen „Dach“, „Turm“ und die Wände zur Kamera ausblenden (statt der Wände der Hülle in `Waende`). Das Portal sitzt im Turm, „Anker_Tuer“ vor den Stufen.
+- Rathaus einbauen: `rathaus.glb` statt `SonderbauHuelle` und Turm in `RathausBauen` (`Stadtansicht.Sonderbauten.cs`). Die Räume bleiben in der Raumansicht, die Hülle ist ein Knoten „Haus“ (mit Dachüberstand genau 16 × 10 m, Ursprung in der Mitte, Markt bei +Z); „Anker_Tuer“ liegt in der Markthalle vor dem Portal. Klickfläche und Schild bleiben.
 
 ## Entscheidungen
 
@@ -292,3 +293,11 @@ So wird eingetragen (damit sich die Chats nie an derselben Stelle treffen):
 | Aussehen | Gotisch mit einem Westturm (Wunsch des Nutzers, wie der Platzhalter): Langhaus 10 × 22 m mit 12 m hohen Wänden, fünf Joche mit Strebepfeilern und Fialen, Spitzbogenfenster mit Mittelpfosten, im Chor ein großes Fenster mit zwei Pfosten, steiles Schieferdach mit Rundfenster im Chorgiebel und goldenem Kreuz. Westturm 6,5 × 6 m vor dem Portal: Spitzbogenportal mit dreifach gestuftem Gewände, Fenster, Rosette, Glockenstube mit Schallarkaden, Eckfialen, achteckiger Schieferhelm bis 42 m. | 18.10.2026 |
 | Einblick | Die Einrichtung baut weiter das Spiel. Damit man hineinsehen kann, sind die vier Wände, das Dach und der Turm eigene Knoten; innen ist das Langhaus frei (x ±4,5, y ±10,5 wie die Hülle), die Fenster haben innen dunkles Glas in einer Laibung. Vorschau `dom-innen.png` zeigt den Einblick. | 18.10.2026 |
 | Prüfung | `pruefen.py` kennt `--sonderbau`: keine Zustände und keine „Hausfarbe“ nötig. Fläche 16 × 40 m um die Mitte des Langhauses. | 18.10.2026 |
+
+### Rathaus als 3D-Modell (PR #133)
+
+| Thema | Entscheidung | Datum |
+|---|---|---|
+| Aussehen (Wunsch des Nutzers) | Markthalle mit Fachwerk, wie der Platzhalter verputzt mit Fachwerk: Erdgeschoss aus Haustein, vorn vier und links ein Rundbogen auf Pfeilern zu einer offenen Markthalle mit Pflaster, Balkendecke, Stadtwaage, Bank und dem Portal; darüber der Ratssaal in Fachwerk mit Andreaskreuzen, Läden in Stadtrot mit weißem Streifen und dem Stadtwappen (roter Schild, weißes Kreuz). Schieferdach mit der Traufe zum Markt, Fachwerkgiebel, zwei Gauben. Vorn rechts ein Uhrturm aus Haustein mit Zifferblättern nach vorn und zur Seite, Glockenstube und spitzem Helm (23 m). | 18.10.2026 |
+| Maße | Haus 15 × 9 m, mit Dachüberstand genau die 16 × 10 m der Karte; der Uhrturm steht 0,25 m vor. | 18.10.2026 |
+| Farben | Keine Hausfarbe: Läden und Türen nehmen Stadtrot (im Skript wird „Hausfarbe“ auf Stadtrot gelegt, das Material heißt im GLB „Stadtrot“). | 18.10.2026 |
