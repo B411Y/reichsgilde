@@ -127,7 +127,7 @@ So wird eingetragen (damit sich die Chats nie an derselben Stelle treffen):
 | Berufe | Es bleibt bei den **zehn Berufen**, einen Gaunerberuf gibt es nicht. Schmuggel und Schwarzarbeit unter dem Statut gibt es auch nicht. Entschieden vom Nutzer. | 18.10.2026 |
 | Lizenz | Code und Skripte (auch die Zeichen- und Blender-Skripte unter `tools/`) **MIT**; Grafiken, Modelle, Icons, Bilder und Texte (`game/assets/` außer den Schriften, `docs/`) **CC BY 4.0** (`LICENSE-INHALTE.md`). Entschieden vom Nutzer. | 18.10.2026 |
 
-### Grafikstil Holzschnitt (PR folgt)
+### Grafikstil Holzschnitt (PR #130)
 
 | Thema | Entscheidung | Datum |
 |---|---|---|
