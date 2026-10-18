@@ -127,6 +127,14 @@ So wird eingetragen (damit sich die Chats nie an derselben Stelle treffen):
 | Berufe | Es bleibt bei den **zehn Berufen**, einen Gaunerberuf gibt es nicht. Schmuggel und Schwarzarbeit unter dem Statut gibt es auch nicht. Entschieden vom Nutzer. | 18.10.2026 |
 | Lizenz | Code und Skripte (auch die Zeichen- und Blender-Skripte unter `tools/`) **MIT**; Grafiken, Modelle, Icons, Bilder und Texte (`game/assets/` außer den Schriften, `docs/`) **CC BY 4.0** (`LICENSE-INHALTE.md`). Entschieden vom Nutzer. | 18.10.2026 |
 
+### Grafikstil Holzschnitt (PR folgt)
+
+| Thema | Entscheidung | Datum |
+|---|---|---|
+| Stil | Das ganze Spiel folgt dem **kolorierten Holzschnitt** des Spätmittelalters (Vorbild: Schedelsche Weltchronik, um 1480): schwarzer Umriss, Schraffur im Schatten, von Hand aufgetragene Farbe, die leicht neben den Linien sitzt. Entschieden vom Nutzer (zuerst für die Waren-Icons, PR #113, dann für das ganze Spiel). | 18.10.2026 |
+| Geltung | Oberfläche (Tafeln, Fenster, Rahmen, Schmuck), Icons, Wappen, Bilder und alle weiteren Grafiken. Ersetzt die Pixel-Art-Entscheidung für die Waren-Icons im Archiv (14.10.2026). Neue Grafiken nur noch in diesem Stil; Bestehendes wird nach und nach umgestellt (offene Punkte bei Oberfläche und Darstellung). Eine Zeile dazu steht in `CLAUDE.md`, damit jeder Chat sie liest. | 18.10.2026 |
+| Herkunft | Grafiken dürfen auch mit anderen Werkzeugen entstehen (etwa die Marktplatz-Icons mit Gemini, beim Nutzer in Arbeit). Es gilt die Lizenz CC BY 4.0 und die feste Regel: nichts aus dem Original-Spiel. | 18.10.2026 |
+
 ## Messungen
 
 Messungen des Kerns stehen in `docs/WIRTSCHAFTSMODELL.md` (nur der Kern schreibt dort).

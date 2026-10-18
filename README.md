@@ -14,7 +14,7 @@
 
 ![Die Reichsstadt mit Markt, Dom und Stadtmauer](docs/bilder/stadt.png)
 
-*Arbeitstitel · Hobby- und Lernprojekt · Grafik noch aus einfachen Grundformen (Greybox)*
+*Arbeitstitel · Hobby- und Lernprojekt · Grafikstil: kolorierter Holzschnitt des Spätmittelalters (im Aufbau, vieles noch aus einfachen Grundformen)*
 
 </div>
 

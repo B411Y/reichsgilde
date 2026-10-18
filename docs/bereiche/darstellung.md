@@ -22,6 +22,7 @@ So wird eingetragen (damit sich die Chats nie an derselben Stelle treffen):
 - (von Spiel-KI) Zu jedem neuen Modell die `.glb.import` mitcommitten: Godot legt sie beim ersten Import an (`--headless --import --path game`). Fehlten bisher bei Alchimist, Steinmetz, Tischler, Wirt, Prediger, Dieb, Gardist, Geldleiher und Parfumeur und kamen in PR #111, #115, #119 und #123 nach.
 - Fahnen drehen sich nicht nach der Windrichtung (Mastwinkel im Shader); Wind nach Tageszeit oder Wetter statt fest (die globalen Uniforms `wind_richtung` und `wind_staerke` sind dafür schon da, PR #129)
 - Fahnen im Shader: Ausschlag in der Ferne ausblenden, falls es bei Zoom ganz heraus flimmert; die Shaderzeit springt einmal je Stunde (`time_rollover_secs`)
+- (von Kern) Die 3D-Stadt zum Holzschnitt-Stil passend machen (Entscheidung in `kern.md`, „Grafikstil Holzschnitt“): prüfen, was Farbpalette, Konturlinien (Umriss-Shader) und Licht dazu beitragen können, und einen Vorschlag mit Bildern machen.
 
 ## Entscheidungen
 
