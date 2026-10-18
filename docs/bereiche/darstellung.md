@@ -21,6 +21,8 @@ So wird eingetragen (damit sich die Chats nie an derselben Stelle treffen):
 - (von Kern) Die 3D-Stadt zum Holzschnitt-Stil passend machen (Entscheidung in `kern.md`, „Grafikstil Holzschnitt“): prüfen, was Farbpalette, Konturlinien (Umriss-Shader) und Licht dazu beitragen können, und einen Vorschlag mit Bildern machen.
 - Die Werkstattmodelle sind 16 × 14 m groß, die alten Plätze im `Stadtplan` für 10 × 8 m gezeichnet: Dicht stehende Werkstätten (Weinmarkt, Eichwald, Fischmarkt) überlappen mit Zaun und Hof; die Leveldesign-Karte müsste die Plätze auf 16 × 14 m auseinanderrücken (Zeile in `leveldesign.md`)
 - Baustellen eines Neubaus (Fundament, wachsende Mauern) sind noch Grundkörper; die Modelle könnten sie mit „Geruest“ und Stufe zeigen
+- Umland einbauen: je Betriebsart das Modell statt der Grundkörper in `MineBauen`, `HolzschlagBauen`, `SteinbruchBauen`, `KraeutergartenBauen`, `DuftgartenBauen`, `BauernhofBauen`, `KlosterhofBauen` und `WachturmBauen` (`Stadtansicht.cs`): Mine → `grube.glb`, Holzfaellerei → `holzschlag.glb`, Steinbruch → `steinbruch.glb`, Kraeutergarten → `kraeutergarten.glb`, Duftgarten → `duftgarten.glb`, Bauernhof → `bauernhof.glb`, Klosterhof → `klosterhof.glb`, Wachturm → `wachturm.glb`. Flächen: 22 × 18 m (Grube, Holzschlag, Steinbruch, Klosterhof), 20 × 16 m (die Gärten), 26 × 20 m (Bauernhof), 12 × 12 m (Wachturm); Ursprung in der Mitte, die Vorderseite (+Z) mit „Anker_Karren“ zum Abzweig drehen, dort endet der Weg. Im Betrieb „Haus“, „Arbeit“ und „Fahne“ zeigen, auf einem freien Platz (`FreienPlatzZeigen`) „Haus“ und „Leerstand“ statt der Reste aus Grundkörpern. „Fahne“ und Läden tragen „Hausfarbe“ (Besitzerfarbe); „Glut“ (Feuerkorb und Laterne am Wachturm, Grubenlampe) wie die Esse schalten. Der Berg der Grube (`BergBauen`) bleibt hinter dem Modell. Klickfläche und Schild bleiben.
+- Umlandstellen einbauen: `umland_stellen.glb` statt `UmlandstellenBauen` (`Stadtansicht.Wohnviertel.cs`): Knoten „Weide“, „Feld“, „Wald“ je an `Umlandstellen[name]`, die Vorderseite (+Z, dort liegt „Anker_Tuer“) zum Zugang drehen (Weide und Feld um 180°). Die Bäume des Waldes kommen dann aus dem Modell; `ImWegFuerWald` hält die Fläche schon frei.
 
 ## Entscheidungen
 
@@ -319,6 +321,15 @@ So wird eingetragen (damit sich die Chats nie an derselben Stelle treffen):
 | Maße | Haus 15 × 9 m, mit Dachüberstand genau die 16 × 10 m der Karte; der Uhrturm steht 0,25 m vor. | 18.10.2026 |
 | Farben | Keine Hausfarbe: Läden und Türen nehmen Stadtrot (im Skript wird „Hausfarbe“ auf Stadtrot gelegt, das Material heißt im GLB „Stadtrot“). | 18.10.2026 |
 
+### Umland als 3D-Modelle (PR #137)
+
+| Thema | Entscheidung | Datum |
+|---|---|---|
+| Umfang (Wunsch des Nutzers) | Je Umlandbetrieb die ganze Anlage mit Gelände im Modell (Gebäude, Felsen, Felder, Beete, Teich, Wald am Rand), nicht nur das Gebäude. Nur der große Berg der Grube bleibt im Code, er ist viel größer als die Fläche. | 18.10.2026 |
+| Knoten (Wunsch des Nutzers) | „Haus“ (bleibt immer), „Arbeit“ (Ware, Werkzeug, Pflanzen, Glut – nur im Betrieb), „Fahne“ (Besitzer) und „Leerstand“ (Bretter, Unkraut, Brache – nur auf einem freien Platz). Keine Stufen und kein Gerüst: Umlandbetriebe bleiben auf Stufe 1. „Anker_Tuer“ und „Anker_Karren“ wie bei den Werkstätten, auch beim Wachturm (der Gardist hat keinen Karren). | 18.10.2026 |
+| Aussehen | Wie bisher im Spiel, nur ausgearbeitet: Grube mit Felshang, Stollenmundloch, Gleis, Förderwagen und Halde; Holzschlag mit Blockhütte, Polter, Sägebock und Tannen; Steinbruch mit abgetreppter Bruchwand, Dreibein und Quadern; Kräutergarten mit Fachwerkhütte, Beeten und Krötenteich; Duftgarten mit Lavendel- und Jasminreihen und Laubengang; Bauernhof mit Fachwerkscheune, Bockwindmühle und Gerste- und Roggenstreifen; Klosterhof mit Zellenhaus und Dachreiter, Beeten, Bienenstand und Wegkreuz; Wachturm aus Bruchstein mit Zinnen, Feuerkorb und Palisade. | 18.10.2026 |
+| Arbeitsstellen der Einwohner (Wunsch des Nutzers) | Ein Modell `umland_stellen.glb` mit „Weide“ (Koppel, Gatter, Tränke), „Feld“ (Furchen mit Korn und Kraut, Vogelscheuche) und „Wald“ (Tannen, Linde, Reisig, Brennholz), je mit eigenem Ursprung; keine Zustände, keine Hausfarbe. | 18.10.2026 |
+| Prüfung | `pruefen.py … --umland` verlangt „Haus“, „Arbeit“, „Fahne“, „Leerstand“ und „Hausfarbe“, aber kein Gerüst. `landbau.bericht` prüft das Flimmern getrennt für „in Betrieb“ und „Leerstand“. | 18.10.2026 |
 ### Dom, Rathaus und Stadtmauer ins Spiel (PR #136)
 
 | Thema | Entscheidung | Datum |
