@@ -184,7 +184,13 @@ public partial class Stadtansicht
         float Stelle(float anteil) => Math.Min(1f, anteil + versatz);
         Vector3 ziel;
         Vector3 blick;
-        if (karren.Zustand == KarrenZustand.AmBetrieb)
+        if (karren.Zustand == KarrenZustand.AmBetrieb && ansicht.KarrenReihe is { } reihe)
+        {
+            // Umland: am Halteplatz stehen die Karren nebeneinander (3 m, Reihe aus Stadtansicht.Umland.cs); bei der Abfahrt rücken sie auf den Weg
+            ziel = ansicht.Hof + reihe * nummer;
+            blick = ansicht.WegZumMarkt[1];
+        }
+        else if (karren.Zustand == KarrenZustand.AmBetrieb)
         {
             ziel = PunktAufWeg(ansicht.WegZumMarkt, Stelle(0));
             blick = PunktAufWeg(ansicht.WegZumMarkt, Math.Min(1f, Stelle(0) + (laenge > 0 ? 1f / laenge : 0f)));
