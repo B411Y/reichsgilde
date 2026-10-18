@@ -396,6 +396,7 @@ public partial class Stadtansicht : Node3D
     {
         UmgebungUndLicht();
         KameraAufbauen();
+        SchattenEinrichten(); // braucht Sonne und Kamera (Stadtansicht.Licht.cs)
 
         Flaeche(new Vector3(20, 0, 0), new Vector2(520, 480), Wiese, -0.05f); // groß genug, dass auch ganz herausgezoomt kein Himmel am Rand zu sehen ist
         Flaeche(Vector3.Zero, new Vector2(2 * Mauerrand, 2 * Mauerrand), Pflaster, 0f);
@@ -435,9 +436,8 @@ public partial class Stadtansicht : Node3D
         _umgebung = new WorldEnvironment { Environment = umgebung };
         AddChild(_umgebung);
 
-        // ShadowBlur weicht die Schattenkante leicht auf. Gegen die „Treppen“ an der Kante helfen vor allem
-        // die Schattenkarte mit 8192 Pixeln und der Filter „Ultra“ (beides in project.godot, Abschnitt rendering).
-        _sonne = new DirectionalLight3D { ShadowEnabled = true, LightEnergy = 1.1f, ShadowBlur = 1.5f };
+        // Schatten: Bias, Weichzeichner und Größe der Schattenkarte stellt SchattenNachfuehren ein (Stadtansicht.Licht.cs).
+        _sonne = new DirectionalLight3D { ShadowEnabled = true, LightEnergy = 1.1f };
         _sonne.RotationDegrees = new Vector3(-50, 30, 0);
         AddChild(_sonne);
     }
@@ -447,14 +447,13 @@ public partial class Stadtansicht : Node3D
         // Drehung (um die Hochachse) → Neigung (40° schräg von oben) → Kamera mit Abstand.
         _kameraDrehung = new Node3D { Name = "Kamerafuehrung", RotationDegrees = new Vector3(0, _zielDrehung, 0) };
         AddChild(_kameraDrehung);
-        var neigung = new Node3D { RotationDegrees = new Vector3(-40, 0, 0) };
+        var neigung = new Node3D { RotationDegrees = new Vector3(-KameraNeigung, 0, 0) };
         _kameraDrehung.AddChild(neigung);
         _kamera = new Camera3D
         {
             Projection = Camera3D.ProjectionType.Orthogonal, // keine Fluchtpunkte = klassischer 2,5D-Look
             Size = 95,
-            Position = new Vector3(0, 0, 150),
-            Far = 400,
+            Position = new Vector3(0, 0, KameraAbstand), // Near und Far folgen dem Zoom (SchattenNachfuehren)
         };
         neigung.AddChild(_kamera);
         _kameraDrehung.Position = new Vector3(24, 0, -6); // Stadt und Grube im Blick
@@ -1296,7 +1295,7 @@ public partial class Stadtansicht : Node3D
         // nehmen wir den Bruchteil der angebrochenen Minute dazu – sonst springen Sonne, Schatten und Karren
         // einmal pro Sekunde, statt sich jedes Bild ein Stückchen weiterzubewegen.
         var bruchteil = _simulation.Takt.AngebrocheneMinute;
-        LichtNachUhrzeit(zeit.UhrzeitInMinuten + (float)bruchteil);
+        LichtNachUhrzeit(zeit.UhrzeitInMinuten + (float)bruchteil, delta); // Stadtansicht.Licht.cs
         PassantenAktualisieren(zeit.VergangeneMinuten + bruchteil, delta); // Stadtansicht.Passanten.cs
 
         if (_simulation.Wirtschaft is not { } w) return;
@@ -1552,88 +1551,14 @@ public partial class Stadtansicht : Node3D
         if (sofort) _kameraDrehung.RotationDegrees = new Vector3(0, _zielDrehung, 0);
     }
 
-    // ── Tag und Nacht ───────────────────────────────────────────────────────
-
-    /// <summary>
-    /// Sonne bei Tag, Mond bei Nacht – beide werfen Schatten.
-    ///
-    /// Wann ist ein Schatten sichtbar? Ein Schatten ist die Stelle, an der nur noch das
-    /// Umgebungslicht ankommt. Sichtbar wird er erst, wenn das gerichtete Licht (Sonne oder Mond)
-    /// deutlich heller ist als das Umgebungslicht. Deshalb ist die Nacht hier nicht einfach „alles
-    /// dunkler", sondern: wenig blaues Umgebungslicht + ein klarer, kühler Mond.
-    ///
-    /// Beide Gestirne wandern in einem Bogen von Osten (+X) über Süden nach Westen. Ihre Stärke
-    /// hängt an der Höhe über dem Horizont – so blenden sie in der Dämmerung weich über.
-    /// </summary>
-    private void LichtNachUhrzeit(float uhrzeitInMinuten)
-    {
-        var stunde = uhrzeitInMinuten / 60f;
-        // Gespielt wird von 05 bis 22 Uhr: Die Sonne steht von 05 bis 20 Uhr am Himmel, danach zwei Stunden Mondnacht.
-        var sonnenhoehe = Mathf.Sin((stunde - 5f) / 15f * Mathf.Pi);          // > 0 zwischen 05 und 20 Uhr
-        var mondhoehe = Mathf.Sin(((stunde + 4f) % 24f) / 9f * Mathf.Pi);       // > 0 zwischen 20 und 05 Uhr
-        var tag = Mathf.Clamp(sonnenhoehe, 0f, 1f);
-        FensterlichtSetzen(sonnenhoehe < 0.25f); // vor 6:30 und nach 18:30 Uhr brennt Licht hinter den Fenstern (nur beim Wechsel)
-
-        if (sonnenhoehe >= mondhoehe)
-        {
-            var fortschritt = (stunde - 5f) / 15f; // 0 = Aufgang im Osten, 1 = Untergang im Westen
-            _sonne.RotationDegrees = new Vector3(-(8 + 52 * tag), 90 - fortschritt * 180, 0);
-            _sonne.LightColor = new Color(1f, 0.78f, 0.55f).Lerp(new Color(1f, 0.97f, 0.9f), tag);
-            _sonne.LightEnergy = 0.2f + 1.0f * Mathf.Sqrt(tag); // etwas Dämmerlicht schon bei Sonnenaufgang
-            _sonne.ShadowOpacity = 1f;
-        }
-        else
-        {
-            var nacht = Mathf.Clamp(mondhoehe, 0f, 1f);
-            var fortschritt = ((stunde + 4f) % 24f) / 9f; // 0 = Aufgang (20 Uhr), 1 = Untergang (05 Uhr)
-            _sonne.RotationDegrees = new Vector3(-(10 + 45 * nacht), 90 - fortschritt * 180, 0);
-            _sonne.LightColor = new Color(0.62f, 0.72f, 1f);
-            _sonne.LightEnergy = 0.15f + 0.4f * Mathf.Sqrt(nacht);
-            _sonne.ShadowOpacity = 0.85f; // Mondschatten sind etwas weicher und weniger tief
-        }
-
-        var umgebung = _umgebung.Environment;
-        umgebung.BackgroundColor = Himmelsfarbe(uhrzeitInMinuten);
-        // Nachts wenig, dafür bläuliches Umgebungslicht – so heben sich Mondschatten und die warme Glut der Essen ab.
-        // Dämmerung: Das Umgebungslicht steigt schon ab 04:00 und klingt erst gegen 21:00 ab –
-        // so beginnt der Spieltag um 05:00 im Morgengrauen statt in tiefer Nacht.
-        var hell = Mathf.Clamp(Mathf.Sin((stunde - 4f) / 17f * Mathf.Pi), 0f, 1f);
-        umgebung.AmbientLightColor = new Color(0.30f, 0.36f, 0.58f).Lerp(new Color(0.85f, 0.83f, 0.78f), hell);
-        umgebung.AmbientLightEnergy = 0.18f + 0.52f * hell;
-        RaumlichtNachUhrzeit(uhrzeitInMinuten, hell);
-    }
-
-    // Stützpunkte für den Himmel: (Uhrzeit in Minuten, Farbe).
-    private static readonly (int Minute, Color Farbe)[] HimmelsVerlauf =
-    {
-        (0 * 60,  new Color(0.04f, 0.05f, 0.10f)),
-        (4 * 60,  new Color(0.10f, 0.10f, 0.18f)),
-        (5 * 60,  new Color(0.65f, 0.48f, 0.38f)), // Morgenrot zur Zunftglocke
-        (8 * 60,  new Color(0.52f, 0.66f, 0.78f)),
-        (14 * 60, new Color(0.55f, 0.69f, 0.82f)),
-        (19 * 60, new Color(0.70f, 0.45f, 0.30f)), // Abendrot
-        (20 * 60 + 30, new Color(0.14f, 0.12f, 0.20f)),
-        (24 * 60, new Color(0.04f, 0.05f, 0.10f)),
-    };
-
-    public static Color Himmelsfarbe(float uhrzeitInMinuten)
-    {
-        for (var i = 0; i < HimmelsVerlauf.Length - 1; i++)
-        {
-            var (von, farbeVon) = HimmelsVerlauf[i];
-            var (bis, farbeBis) = HimmelsVerlauf[i + 1];
-            if (uhrzeitInMinuten < bis)
-                return farbeVon.Lerp(farbeBis, (uhrzeitInMinuten - von) / (bis - von));
-        }
-        return HimmelsVerlauf[0].Farbe;
-    }
-
     // ═════════════════════════════════════════════════════════════════════════
     //  Kamera und Auswahl
     // ═════════════════════════════════════════════════════════════════════════
 
     public override void _Process(double delta)
     {
+        SchattenNachfuehren(); // Zoom, Fenstergröße oder Schattenqualität geändert? (Stadtansicht.Licht.cs)
+
         // Beschriftungen mitskalieren, damit sie bei jedem Zoom gleich groß wirken.
         var massstab = _raum is not null ? RaumSchildMassstab : _kamera.Size / BezugsZoom;
         foreach (var label in _beschriftungen)

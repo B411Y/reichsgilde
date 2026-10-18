@@ -44,4 +44,4 @@ wind_staerke={
 
 anti_aliasing/quality/screen_space_aa=2
 lights_and_shadows/directional_shadow/size=8192
-lights_and_shadows/directional_shadow/soft_shadow_filter_quality=5
+lights_and_shadows/directional_shadow/soft_shadow_filter_quality=4

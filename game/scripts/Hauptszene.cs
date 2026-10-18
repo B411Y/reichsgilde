@@ -46,6 +46,7 @@ namespace Reichsgilde;
 ///                      Liegenschaft dazukaufen und bis Mittag laufen lassen, damit der Verkauf erlaubt ist und Ware im Lager liegt)
 ///   --einstellungen=1  gleich zu Beginn das Fenster „Einstellungen“ öffnen
 ///   --kanten=<Art>     Kantenglättung nur für diesen Start (Aus, Fxaa, Smaa, Taa, Msaa2, Msaa4, Msaa8)
+///   --schatten=<Stufe> Schattenqualität nur für diesen Start (Niedrig, Mittel, Hoch)
 ///   --laden=datei.json einen Spielstand aus dem Spielstand-Ordner laden
 /// </summary>
 public partial class Hauptszene : Node
@@ -357,6 +358,8 @@ public partial class Hauptszene : Node
         }
         if (optionen.TryGetValue("kanten", out var kanten) && Enum.TryParse<Kantenglaettung>(kanten, true, out var art))
             Fenster.KantenglaettungSetzen(art, speichern: false); // für Vergleichsbilder, ändert die gespeicherte Wahl nicht
+        if (optionen.TryGetValue("schatten", out var schatten) && Enum.TryParse<Schattenqualitaet>(schatten, true, out var stufe))
+            Fenster.SchattenqualitaetSetzen(stufe, speichern: false); // ebenso
         if (optionen.TryGetValue("bericht", out var bericht) && bericht == "1" && _spieler is not null)
             _jahresbericht.Zeigen(_simulation, _spieler);
         if (optionen.TryGetValue("innen", out var innen))

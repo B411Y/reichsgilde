@@ -3,7 +3,7 @@ using Godot;
 namespace Reichsgilde;
 
 /// <summary>
-/// Anzeige-Einstellungen: Fenster oder Vollbild (auch F11, überall) und die Kantenglättung.
+/// Anzeige-Einstellungen: Fenster oder Vollbild (auch F11, überall), die Kantenglättung und die Schattenqualität.
 /// Geändert werden sie im Fenster „Einstellungen“ (<see cref="EinstellungenAnzeige"/>), gespeichert in
 /// <c>user://einstellungen.cfg</c> und beim Start wieder angewendet.
 ///
@@ -46,6 +46,8 @@ public partial class Fenster : Node
             Setzen(true, speichern: false);
         var kanten = geladen ? einstellungen.GetValue("anzeige", "kantenglaettung", "").AsString() : "";
         KantenglaettungSetzen(Enum.TryParse<Kantenglaettung>(kanten, out var k) ? k : StandardKantenglaettung, speichern: false);
+        var schatten = geladen ? einstellungen.GetValue("anzeige", "schattenqualitaet", "").AsString() : "";
+        SchattenqualitaetSetzen(Enum.TryParse<Schattenqualitaet>(schatten, out var q) ? q : Schattenqualitaet.Hoch, speichern: false);
     }
 
     // ── Kantenglättung ──────────────────────────────────────────────────────
@@ -81,6 +83,25 @@ public partial class Fenster : Node
             fenster.UseTaa = art == Kantenglaettung.Taa;
         }
         if (speichern) Speichern("kantenglaettung", art.ToString());
+    }
+
+    // ── Schattenqualität ────────────────────────────────────────────────────
+
+    public static Schattenqualitaet AktuelleSchattenqualitaet { get; private set; } = Schattenqualitaet.Hoch;
+
+    /// <summary>
+    /// Stellt die Schattenqualität um. Größe der Schattenkarte und Filter gelten für alle gerichteten Lichter und werden hier
+    /// am RenderingServer gesetzt; Bias und Weichzeichner der Sonne passt die Stadtansicht im nächsten Bild selbst an
+    /// (Stadtansicht.Licht.cs, dort stehen auch die Werte je Stufe und warum).
+    /// </summary>
+    public static void SchattenqualitaetSetzen(Schattenqualitaet q, bool speichern = true)
+    {
+        AktuelleSchattenqualitaet = q;
+        var stufe = Stadtansicht.SchattenStufeFuer(q);
+        // 16 Bit Tiefe wie Godots Grundeinstellung: reicht bei unserem engen Tiefenbereich (Schritt ≈ 5 mm) und ist schneller.
+        RenderingServer.DirectionalShadowAtlasSetSize(stufe.Karte, true);
+        RenderingServer.DirectionalSoftShadowFilterSetQuality(stufe.Filter);
+        if (speichern) Speichern("schattenqualitaet", q.ToString());
     }
 
     private static void Speichern(string schluessel, Variant wert)
@@ -153,3 +174,6 @@ public partial class Fenster : Node
 
 /// <summary>Die Verfahren zur Kantenglättung, die Godot 4.7 mitbringt (Beschreibung: <see cref="EinstellungenAnzeige"/>).</summary>
 public enum Kantenglaettung { Aus, Fxaa, Smaa, Taa, Msaa2, Msaa4, Msaa8 }
+
+/// <summary>Stufen der Schattenqualität (Beschreibung: <see cref="EinstellungenAnzeige"/>, Werte: Stadtansicht.Licht.cs).</summary>
+public enum Schattenqualitaet { Niedrig, Mittel, Hoch }

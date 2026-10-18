@@ -179,14 +179,20 @@ public partial class Stadtansicht
     /// <summary>Stärke der Emission des Fensterlichts bei Nacht.</summary>
     private const float FensterLichtStaerke = 2.2f;
 
+    /// <summary>
+    /// In so vielen Stufen blendet das Fensterlicht ein und aus. 50 Stufen sind für das Auge ein weicher Verlauf, und die Materialien
+    /// werden nur angefasst, wenn eine neue Stufe erreicht ist – in der Dämmerung etwa jede zweite Spielminute, sonst nie.
+    /// </summary>
+    private const float FensterLichtStufen = 50f;
+
     /// <summary>Das Material „Fenster“ jedes geladenen Modells – alle Instanzen einer Datei teilen es.</summary>
     private readonly HashSet<BaseMaterial3D> _fensterStoffe = new();
     private readonly Dictionary<string, Material> _modellGlas = new();
-    private bool _fensterNacht;
+    private float _fensterLicht; // 0 = aus (Tag), 1 = volle Nacht
 
     private void FensterMelden(BaseMaterial3D stoff)
     {
-        if (_fensterStoffe.Add(stoff)) FensterSchalten(stoff, _fensterNacht);
+        if (_fensterStoffe.Add(stoff)) FensterSchalten(stoff, _fensterLicht);
     }
 
     /// <summary>Das dunkle Material „Glas“ eines Modells (für leere Häuser) – oder ein dunkles Ersatzglas, wenn das Modell keins hat.</summary>
@@ -201,22 +207,24 @@ public partial class Stadtansicht
     }
 
     /// <summary>
-    /// Schaltet das Licht hinter allen Fenstern der Stadt (Nacht an, Tag aus). Alle Häuser teilen je Datei ein Material „Fenster“,
-    /// darum genügt ein Schalter; geschaltet wird nur beim Wechsel (<see cref="LichtNachUhrzeit"/>), nicht jedes Bild.
+    /// Stellt das Licht hinter allen Fenstern der Stadt ein (<paramref name="staerke"/> 0 = Tag, 1 = Nacht; dazwischen die Dämmerung).
+    /// Alle Häuser teilen je Datei ein Material „Fenster“, darum genügt je Datei ein Wert. Angefasst werden die Materialien nur,
+    /// wenn eine neue der <see cref="FensterLichtStufen"/> Stufen erreicht ist (<see cref="LichtNachUhrzeit"/> ruft jedes Bild).
     /// </summary>
-    private void FensterlichtSetzen(bool nacht)
+    private void FensterlichtSetzen(float staerke)
     {
-        if (nacht == _fensterNacht) return;
-        _fensterNacht = nacht;
-        foreach (var stoff in _fensterStoffe) FensterSchalten(stoff, nacht);
+        var stufe = Mathf.Round(Mathf.Clamp(staerke, 0, 1) * FensterLichtStufen) / FensterLichtStufen;
+        if (stufe == _fensterLicht) return;
+        _fensterLicht = stufe;
+        foreach (var stoff in _fensterStoffe) FensterSchalten(stoff, stufe);
     }
 
-    private static void FensterSchalten(BaseMaterial3D stoff, bool nacht)
+    private static void FensterSchalten(BaseMaterial3D stoff, float staerke)
     {
-        stoff.EmissionEnabled = nacht;
-        if (!nacht) return;
+        stoff.EmissionEnabled = staerke > 0; // bei Tag ganz aus: so sieht das Material aus wie in Blender
+        if (staerke <= 0) return;
         stoff.Emission = FensterLichtFarbe;
-        stoff.EmissionEnergyMultiplier = FensterLichtStaerke;
+        stoff.EmissionEnergyMultiplier = FensterLichtStaerke * staerke;
     }
 
     // ═════════════════════════════════════════════════════════════════════════
