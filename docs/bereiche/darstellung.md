@@ -294,7 +294,7 @@ So wird eingetragen (damit sich die Chats nie an derselben Stelle treffen):
 | Einblick | Die Einrichtung baut weiter das Spiel. Damit man hineinsehen kann, sind die vier Wände, das Dach und der Turm eigene Knoten; innen ist das Langhaus frei (x ±4,5, y ±10,5 wie die Hülle), die Fenster haben innen dunkles Glas in einer Laibung. Vorschau `dom-innen.png` zeigt den Einblick. | 18.10.2026 |
 | Prüfung | `pruefen.py` kennt `--sonderbau`: keine Zustände und keine „Hausfarbe“ nötig. Fläche 16 × 40 m um die Mitte des Langhauses. | 18.10.2026 |
 
-### Stadtmauer als Baukasten (PR #…)
+### Stadtmauer als Baukasten (PR #134)
 
 | Thema | Entscheidung | Datum |
 |---|---|---|
