@@ -20,7 +20,7 @@ import bausteine as bs  # noqa: E402
 ORDNER = os.path.dirname(os.path.abspath(__file__))
 # Reihenfolge = Stufe; Beschriftung für die Übersicht
 WOHNHAEUSER = [("fachwerkhaus", "Fachwerkhaus – Gemeiner"), ("buergerhaus", "Bürgerhaus – Bürger"),
-               ("steinhaus", "Steinhaus – Patrizier")]
+               ("steinhaus", "Steinhaus – Patrizier"), ("stadtpalais", "Stadtpalais – Edler")]
 WERKSTAETTEN = ["schmied", "tischler", "steinmetz", "alchimist", "wirt", "prediger", "dieb", "gardist", "geldleiher",
                 "parfumeur"]          # je Beruf ein Modell mit Stufe1–Stufe3
 
@@ -35,19 +35,21 @@ def erzeugen(name, schalter):
     subprocess.run(befehl, check=True)
 
 
-def uebersicht(schnell=False, abstand=12.0):
+def uebersicht(schnell=False, abstand=14.0):
     """Alle Wohnhäuser nebeneinander, Zustände ausgeblendet, gleiche Kamera wie im Spiel."""
     bs.neue_szene()
+    mitte = (len(WOHNHAEUSER) - 1) / 2
+    ausschnitt = (len(WOHNHAEUSER) - 1) * abstand + 18.0      # Bildbreite in Metern: alle Häuser und etwas Rand
     for i, (name, _) in enumerate(WOHNHAEUSER):
         vorher = set(bpy.data.objects)
         bpy.ops.import_scene.gltf(filepath=os.path.join(bs.MODELLE, name + ".glb"))
         for o in set(bpy.data.objects) - vorher:
             if o.parent is None:      # quer zur Blickrichtung aufreihen, damit sich keins verdeckt
-                o.location.x += (i - 1) * abstand * 0.7071
-                o.location.y += (i - 1) * abstand * 0.7071
+                o.location.x += (i - mitte) * abstand * 0.7071
+                o.location.y += (i - mitte) * abstand * 0.7071
             if o.name.split(".")[0] in ("Leerstand", "Geruest"):
                 o.hide_render = True
-    bs.vorschau_buehne(None, ziel_hoehe=6.2, ausschnitt=37.0, schnell=schnell)
+    bs.vorschau_buehne(None, ziel_hoehe=6.2, ausschnitt=ausschnitt, schnell=schnell)
     szene = bpy.context.scene
     pfad = os.path.join(bs.VORSCHAU, "wohnhaeuser.png")
     szene.render.resolution_x, szene.render.resolution_y = 1600, 900
@@ -65,7 +67,7 @@ def uebersicht(schnell=False, abstand=12.0):
             schrift = ImageFont.load_default()
         breite = bild.size[0]
         for i, (_, text) in enumerate(WOHNHAEUSER):
-            x = int(breite * (0.5 + (i - 1) * abstand / 36.0))
+            x = int(breite * (0.5 + (i - mitte) * abstand / ausschnitt))
             zeichnen.text((x, int(bild.size[1] * 0.94)), f"Stufe {i + 1}: {text}", fill=(240, 236, 220), font=schrift,
                           anchor="ms")
         bild.save(pfad, optimize=True)
