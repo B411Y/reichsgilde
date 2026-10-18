@@ -1269,6 +1269,7 @@ public partial class Stadtansicht : Node3D
         var bruchteil = _simulation.Takt.AngebrocheneMinute;
         LichtNachUhrzeit(zeit.UhrzeitInMinuten + (float)bruchteil, delta); // Stadtansicht.Licht.cs
         PassantenAktualisieren(zeit.VergangeneMinuten + bruchteil, delta); // Stadtansicht.Passanten.cs
+        VoegelAktualisieren(zeit.UhrzeitInMinuten + (float)bruchteil, delta, _simulation.Takt.IstPausiert); // Stadtansicht.Voegel.cs
 
         if (_simulation.Wirtschaft is not { } w) return;
         var arbeitszeit = w.IstArbeitszeit(zeit);
