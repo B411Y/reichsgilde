@@ -241,6 +241,10 @@ public partial class Stadtansicht
         // Ohne Splits blendet Godot den Schatten zwischen FadeStart · Far und Far aus. Far liegt knapp hinter dem Boden am
         // oberen Bildrand – mit dem Grundwert 0,8 fehlte dort oben der Schatten. 1 heißt: nicht ausblenden.
         _sonne.DirectionalShadowFadeStart = 1f;
+        // Godot legt beim Import vereinfachte Fassungen jedes Modells an (LOD) und wählt sie auch für den Schatten – dort aus
+        // Sicht der Sonne, deren Karte die ganze Stadt fasst, also sehr grob. Dann warfen Spitzdächer, Zinnen und Balken keinen
+        // Schatten. Die Modelle sind schlicht genug, um immer ganz gezeichnet zu werden (kostet unter lavapipe 7–9 % Bildzeit).
+        GetViewport().MeshLodThreshold = 0;
         SchattenNachfuehren();
     }
 
