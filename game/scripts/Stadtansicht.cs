@@ -15,7 +15,7 @@ namespace Reichsgilde;
 /// Was diese Ansicht zeigt (alles kommt aus dem Simulationskern):
 ///   • Karren fahren entlang der Wege zum Markt und zurück
 ///   • Sonne, Himmel und Licht folgen der Spieluhr
-///   • Die Esse einer Gießerei glüht, solange dort gearbeitet wird
+///   • Das Material „Glut“ der Werkstatt-Modelle (Esse, Ofen, Athanor) glüht, solange dort gearbeitet wird; bei Nacht leuchten die Fenster
 ///   • Gebäude lassen sich anklicken (Ereignis <see cref="GebaeudeAngeklickt"/>)
 ///   • Werkstätten und Rathaus lassen sich betreten: Eine eigene Kamera blickt fest in je einen Raum
 ///     (Raumansicht, Stadtansicht.Raeume.cs; Einrichtung des Werkraums: Stadtansicht.Innenraeume.cs).
@@ -213,8 +213,9 @@ public partial class Stadtansicht : Node3D
     private sealed class BetriebsAnsicht : InnenAnsicht
     {
         public required Betrieb Betrieb { get; init; }
-        public required Vector3 Hof { get; init; }
-        public required Vector3[] WegZumMarkt { get; init; }
+        /// <summary>Wo Karren losfahren und halten: bei Werkstätten mit Modell dessen „Anker_Karren“ (<see cref="KarrenAnker"/>), sonst der Hof vor dem Tor.</summary>
+        public required Vector3 Hof { get; set; }
+        public required Vector3[] WegZumMarkt { get; set; }
         /// <summary>Alles, was zum Betrieb gehört (Gebäude, Weg, Innenraum) – verschwindet beim Verkauf in einem Zug.</summary>
         public Node3D? Gruppe { get; set; }
         public bool Spieler { get; set; }
@@ -223,8 +224,10 @@ public partial class Stadtansicht : Node3D
 
         /// <summary>Farbe des Besitzers (Fahne, Karren).</summary>
         public Color Farbe { get; set; }
-        public OmniLight3D? Glut { get; init; }
-        public StandardMaterial3D? Esse { get; init; }
+        /// <summary>Das Gebäude von außen (nur Werkstätten): das Modell aus Blender, hängt am <see cref="InnenAnsicht.Dach"/>-Knoten.</summary>
+        public ModellInstanz? Modell { get; init; }
+        /// <summary>Glühen die Essen und Öfen des Modells (Material „Glut“) gerade? Geschaltet wird nur beim Wechsel.</summary>
+        public bool Glueht { get; set; }
 
         // ── nur bei Werkstätten mit Innenraum ──
         public Werkstil Stil { get; set; }
@@ -240,8 +243,6 @@ public partial class Stadtansicht : Node3D
         public List<StandardMaterial3D> Produktfarben { get; } = new();
 
         // ── Gebäudestufe (nur Werkstätten) ──
-        /// <summary>Dachgaube, Dachreiter und Gerüst – hängt am Dach, verschwindet also in der Innenansicht mit.</summary>
-        public Node3D? Ausbau { get; set; }
         public int GezeigteStufe { get; set; } = 1;
         public bool GezeigterUmbau { get; set; }
     }
@@ -514,23 +515,25 @@ public partial class Stadtansicht : Node3D
     }
 
 
+    /// <summary>
+    /// Die vier Kulissenhäuser (<see cref="KulissePlaetze"/>, Tür zur nächsten Gasse) als Modell <c>einwohner_buergerhaus</c> – Variante und
+    /// gedeckte Hausfarbe nach der Reihenfolge wie bei den Einwohnerhäusern (<see cref="Hausfarben"/>). Die Einwohner, die dort wohnen,
+    /// gehen weiter zur Haustür im Gassennetz (Wohnviertel.cs); einen Anker braucht es nicht.
+    /// Frei bleiben: (−11|−29) Tinkturei am Domplatz, (−24,5|−29) Siederei, (19|−29) und (28|−29) Maurerei Kieselbach, (−29|29) Schänke am Fischmarkt,
+    /// (29|29) Maurerei an der Stadtmauer, (−29|±6) Kirche an der Westmauer, (29|−12) Schmugglerloch, (29|10) Wachhaus, (14|−18) Wechselstube.
+    /// </summary>
     private void Wohnhaeuser()
     {
-        // Feste Liste – jede Partie sieht gleich aus. Später erzeugt der Stadtplan die Häuser.
-        var haeuser = new (float X, float Z, bool Quer)[]
-        {
-            (10, -29, true), // (−11|−29): Tinkturei am Domplatz; (−24,5|−29): Siederei an der Seifengasse; (19|−29), (28|−29): Maurerei Kieselbach
-            (-4, 29, true), (5, 29, true), // (−29|29): Schänke am Fischmarkt; (29|29): Maurerei an der Stadtmauer
-            // (−29|±6): Kirche an der Westmauer; (29|−12): Schmugglerloch am Osttor; (29|10): Wachhaus an der Torstraße;
-            // (14|−18): Wechselstube am Markt
-            (-29, 18, false),
-        };
         var i = 0;
-        foreach (var (x, z, quer) in haeuser)
+        foreach (var platz in KulissePlaetze())
         {
-            var wand = i % 3 == 0 ? Fachwerk : Putz;
-            var dach = i % 4 == 0 ? Schiefer : Ziegel;
-            Haus(new Vector3(x, 0, z), new Vector3(7, 6 + i % 3, 6), wand, dach, quer);
+            var gruppe = new Node3D { Name = $"Kulissenhaus_{i}", Position = platz.Mitte, Rotation = new Vector3(0, Mathf.Atan2(platz.Vorne.X, platz.Vorne.Z), 0) };
+            AddChild(gruppe);
+            // Die Hauswand steht 3 m von der Mitte entfernt zur Gasse hin (wie die Wand des alten Quaders). Das Haus bei (−29|18) rückt 1,5 m
+            // nach hinten: Sonst stößt es an die Halle der Werkstatt am Weinmarkt (16 × 14 m).
+            var wand = platz.Vorne == Vector3.Right ? 1.5f : 3f;
+            ModellEinsetzen(EinwohnerDatei(Reichsgilde.Core.Buerger.Hausart.Buergerhaus), gruppe, new Vector3(0, 0, wand - EinwohnerFront(Reichsgilde.Core.Buerger.Hausart.Buergerhaus)),
+                new ModellZustand(Variante: i % 3 + 1, Besitzer: Hausfarben[i % Hausfarben.Length]));
             i++;
         }
     }
@@ -654,7 +657,7 @@ public partial class Stadtansicht : Node3D
         // Neu gebaut (nicht im Stadtplan): Platz, Drehung und Weg zum Markt kommen vom Grundstück
         var neuerWeg = betrieb.InDerStadt && !Stadtplan.ContainsKey(betrieb.Name) ? WerkstattWeg(betrieb.Name) : ((Vector3 Hof, Vector3[] Weg)?)null;
         var ansicht = betrieb.InDerStadt
-            ? GiessereiBauen(betrieb, platz, farbe, StilVon(betrieb.Artdaten.Beruf), neuerWeg)
+            ? WerkstattBauen(betrieb, platz, farbe, StilVon(betrieb.Artdaten.Beruf), neuerWeg)
             : betrieb.Art switch
             {
                 Betriebsart.Holzfaellerei => HolzschlagBauen(betrieb, platz, farbe, abzweig),
@@ -677,6 +680,12 @@ public partial class Stadtansicht : Node3D
                 ansicht.Waende[i] = (ansicht.Waende[i].Wand, basis * ansicht.Waende[i].Aussen);
         }
         if (neuerWeg is { } nw) WegZiehen(nw.Weg[0], nw.Weg[1], 3.5f, ansicht.Gruppe); // vom Hof auf die nächste Gasse
+        if (KarrenAnker(betrieb.Name) is { } halt)
+        {
+            // Karren starten und halten am „Anker_Karren“ des Modells (erst jetzt, nach dem Drehen, liegt er an seinem Platz) und fahren von dort zum Hof und weiter
+            ansicht.Hof = halt;
+            ansicht.WegZumMarkt = ansicht.WegZumMarkt.Prepend(halt).ToArray();
+        }
         _betriebe[betrieb] = ansicht;
     }
 
@@ -838,31 +847,41 @@ public partial class Stadtansicht : Node3D
     private readonly Dictionary<string, (Vector3 Mitte, Node3D Gruppe, Node3D Dach)> _leereHaeuser = new();
 
     /// <summary>
-    /// Eine verkaufte Werkstatt steht leer zum Verkauf: das Haus in seiner Stufe und seinem Werkstil, aber ohne Wappenfahne
-    /// und Besitzerfarbe, die Tür mit zwei Brettern verriegelt, davor das ockerfarbene Schild. Kein Innenraum – betreten
+    /// Die Werkstätten sind Modelle aus Blender (<c>schmied.glb</c> usw., Fläche 16 × 14 m, Front bei z = +5 von der Mitte, siehe
+    /// <see cref="ModellEinsetzen"/>). <c>p</c> ist die Mitte des alten 10 × 8-m-Hauses, dessen Front bei z = +4 stand und an der Gasse
+    /// bzw. am Vorplatz hängt – das Modell sitzt deshalb einen Meter weiter hinten, damit seine Front am selben Fleck steht (bei einem Neubau
+    /// ist <c>p</c> schon so berechnet, <see cref="PlatzVon"/>). Gebäude und Gruppe drehen sich später um <c>p</c>.
+    /// </summary>
+    private static readonly Vector3 WerkstattModellVersatz = new(0, 0, -1);
+
+    /// <summary>Die Datei des Werkstatt-Modells: der Beruf in Kleinbuchstaben (<c>schmied</c>, <c>geldleiher</c> …).</summary>
+    private static string WerkstattModellDatei(string beruf) => beruf.ToLowerInvariant();
+
+    /// <summary>Die Betriebsstufe der Modelle (Knoten „Stufe1“ bis „Stufe3“).</summary>
+    private static int Modellstufe(int stufe) => Math.Clamp(stufe, 1, 3);
+
+    /// <summary>
+    /// Eine verkaufte Werkstatt steht leer zum Verkauf: das Modell in seiner Stufe, aber mit „Leerstand“ (Tor und Fenster vernagelt, dunkles Glas),
+    /// ohne Wappen, Fahne und Besitzerfarbe, davor das ockerfarbene Schild. Kein Innenraum – betreten
     /// lässt es sich erst wieder, wenn es jemand gekauft hat (dann weicht es dem neuen Betrieb, <see cref="BetriebHinzufuegen"/>).
     /// </summary>
     private void LeeresHausZeigen(LiegenschaftDaten frei, Vector3 p, BetriebsartDaten art, int drehung = 0)
     {
         const float tiefe = 8;
         var vorher = GetChildCount(); // alles ab hier kommt in die Gruppe des leeren Hauses
-        var huelle = WerkstattAussenBauen(p, StilVon(art.Beruf), besitzer: null);
-        if (art.Stufe > 1) AusbauBauen(huelle.Dach, p, art.Stufe, art.Beruf, umbau: false);
-        // Tür zu: zwei gekreuzte Bretter über dem Tor
-        var bretter = Material(new Color(0.42f, 0.32f, 0.20f));
-        foreach (var winkel in new[] { 32f, -32f })
-            Quader(p + new Vector3(-2, 1.5f, tiefe / 2 + 0.16f), new Vector3(2.4f, 0.22f, 0.06f), bretter).RotationDegrees = new Vector3(0, 0, winkel);
-        Verkaufsschild(p + new Vector3(-4, 0, tiefe / 2 + 1.6f), frei.IstPacht);
+        var modell = ModellEinsetzen(WerkstattModellDatei(art.Beruf), this, p + WerkstattModellVersatz,
+                                     new ModellZustand(Stufe: Modellstufe(art.Stufe), Leerstand: true));
+        Verkaufsschild(p + new Vector3(3.5f, 0, tiefe / 2 + 1.6f), frei.IstPacht); // rechts vom Tor: links stehen in den Modellen Vordach und Karrenplatz
         if (Stadtplan.ContainsKey(frei.Name)) GasseZiehen(p, Gasse(frei.Name, p)); // neu gebaute Werkstätten haben ihren Weg vom Grundstück
 
         var kennung = LiegenschaftKennung(frei.Name);
-        Klickflaeche(kennung, p + new Vector3(0, 4, 1), new Vector3(10, 8, 10)); // mit dem Schild vor der Tür
+        Klickflaeche(kennung, p + new Vector3(0, 5, 0), new Vector3(14, 10, 14)); // das Gebäude des Modells mit dem Schild vor der Tür
         Beschriftung($"{frei.Name}\n{(frei.IstPacht ? "zu verpachten" : "zu verkaufen")}",
             p + new Vector3(0, GebaeudeSchildHoehe.GetValueOrDefault(frei.Name, 13), 0), 36, kennung: kennung);
         var gruppe = InGruppe("Leer_" + frei.Name.Replace(" ", "_"), vorher);
         UmMitteDrehen(gruppe, p, drehung); // eine neu gebaute, gedrehte Werkstatt
         _freiePlaetze[frei.Name] = gruppe;
-        _leereHaeuser[frei.Name] = (p, gruppe, huelle.Dach);
+        _leereHaeuser[frei.Name] = (p, gruppe, modell?.Wurzel ?? gruppe);
     }
 
     /// <summary>Entfernt einen Knoten samt Kindern – und vergisst seine Beschriftungen, die sonst ins Leere zeigen.</summary>
@@ -874,19 +893,20 @@ public partial class Stadtansicht : Node3D
     }
 
     /// <summary>
-    /// Werkstatt in Fachwerk, Stein, Putz oder morschem Holz – je nach Beruf (<see cref="Werkstil"/>).
-    /// Die Gießerei hat eine glühende Esse; jede Werkstatt hat einen Innenraum (Diorama).
+    /// Werkstattarten nach Beruf (<see cref="Werkstil"/>): bestimmt die Einrichtung der Räume (Raumansicht, siehe Stadtansicht.Raeume.cs).
+    /// Von außen steht das Modell des Berufs (Stufe, Gerüst, Besitzerfarbe, Glut bei der Arbeit).
     /// </summary>
     private enum Werkstil { Giesserei, Tischlerei, Maurerei, Tinkturei, Schaenke, Kirche, Diebesnest, Wache, Bank, Siederei }
 
-    private BetriebsAnsicht GiessereiBauen(Betrieb betrieb, Vector3 p, Color besitzer, Werkstil stil = Werkstil.Giesserei,
+    private BetriebsAnsicht WerkstattBauen(Betrieb betrieb, Vector3 p, Color besitzer, Werkstil stil = Werkstil.Giesserei,
                                            (Vector3 Hof, Vector3[] Weg)? neuerPlatz = null)
     {
-        var tischlerei = stil != Werkstil.Giesserei; // ohne glühende Esse auf dem Dach
         const float breite = 10, tiefe = 8, dicke = 0.4f;
-        var huelle = WerkstattAussenBauen(p, stil, besitzer);
+        var modell = ModellEinsetzen(WerkstattModellDatei(betrieb.Artdaten.Beruf), this, p + WerkstattModellVersatz,
+                                     new ModellZustand(Stufe: Modellstufe(betrieb.Stufe), Geruest: betrieb.UmbauMinuten > 0, Besitzer: besitzer), betrieb.Name);
 
-        Klickflaeche(BetriebsKennung(betrieb), p + new Vector3(0, 4, 0), new Vector3(breite, 8, tiefe));
+        // Klickfläche: das Gebäude des Modells (Halle und Anbauten), nicht der Hof ringsum
+        Klickflaeche(BetriebsKennung(betrieb), p + WerkstattModellVersatz + new Vector3(0, 5, 0), new Vector3(14, 10, 12));
         var schild = Beschriftung(betrieb.Name, p + new Vector3(0, GebaeudeSchildHoehe.GetValueOrDefault(betrieb.Name, 13), 0), 44, kennung: BetriebsKennung(betrieb));
 
         // Weg zur nächsten Gasse und dann zum Markt (eine neu gebaute Werkstatt: über das Gassennetz, gezeichnet von BetriebHinzufuegen)
@@ -900,270 +920,19 @@ public partial class Stadtansicht : Node3D
             Mitte = p,
             Hof = hof,
             WegZumMarkt = neuerPlatz?.Weg ?? gasse.Prepend(hof).Append(Marktplatz).ToArray(),
-            Glut = tischlerei ? null : huelle.Glut,
-            Esse = tischlerei ? null : huelle.Esse,
+            Modell = modell,
             Schild = schild,
-            Dach = huelle.Dach,
+            Dach = modell?.Wurzel,
+            GezeigteStufe = betrieb.Stufe,
+            GezeigterUmbau = betrieb.UmbauMinuten > 0,
         };
-        ansicht.Waende.AddRange(huelle.Waende);
         Innenraum(ansicht, stil, breite, tiefe, dicke);
-        if (betrieb.Stufe > 1 || betrieb.UmbauMinuten > 0) StufeZeigen(ansicht);
+        if (betrieb.UmbauMinuten > 0) StufeZeigen(ansicht); // die Beschriftung „(Umbau)“
         return ansicht;
     }
 
-    /// <summary>Was <see cref="WerkstattAussenBauen"/> gebaut hat und die Ansicht weiter braucht.</summary>
-    private sealed record Werkstatthuelle(List<(Node3D Wand, Vector3 Aussen)> Waende, Node3D Dach, OmniLight3D Glut, StandardMaterial3D Esse);
-
     /// <summary>
-    /// Die Werkstatt von außen: vier Wände, Dach mit Schornstein und Esse, der Schmuck des Berufs vor dem Haus.
-    /// Ohne <paramref name="besitzer"/> (verkaufte Werkstatt) fehlt die Wappenfahne.
-    /// </summary>
-    private Werkstatthuelle WerkstattAussenBauen(Vector3 p, Werkstil stil, Color? besitzer)
-    {
-        var tischlerei = stil != Werkstil.Giesserei; // ohne glühende Esse auf dem Dach
-        // Maße: 10 m (West–Ost) × 8 m (Nord–Süd), Wände 6 m hoch und 0,4 m dick.
-        const float breite = 10, tiefe = 8, hoehe = 6, dicke = 0.4f;
-
-        // ── Außenhülle: vier einzelne Wände, damit jede für sich ausgeblendet werden kann ──
-        var wandFarbe = Material(stil switch
-        {
-            Werkstil.Maurerei or Werkstil.Kirche or Werkstil.Wache => Mauerstein, // Steinmetz, Kirche und Wache bauen massiv
-            Werkstil.Tinkturei or Werkstil.Bank => Putz,
-            Werkstil.Diebesnest => Morsch,                      // verwittertes Holz, schief geflickt
-            _ => Fachwerk,
-        });
-        var waende = new (string Name, Vector3 Mitte, Vector3 Groesse, Vector3 Aussen)[]
-        {
-            ("Nordwand", new(0, hoehe / 2, -tiefe / 2 + dicke / 2), new(breite, hoehe, dicke), Vector3.Forward),
-            ("Suedwand", new(0, hoehe / 2, tiefe / 2 - dicke / 2), new(breite, hoehe, dicke), Vector3.Back),
-            ("Westwand", new(-breite / 2 + dicke / 2, hoehe / 2, 0), new(dicke, hoehe, tiefe - 2 * dicke), Vector3.Left),
-            ("Ostwand", new(breite / 2 - dicke / 2, hoehe / 2, 0), new(dicke, hoehe, tiefe - 2 * dicke), Vector3.Right),
-        };
-        var gebaeude = new List<(Node3D, Vector3)>();
-        foreach (var (name, mitte, groesse, aussen) in waende)
-        {
-            var wand = Quader(p + mitte, groesse, wandFarbe);
-            wand.Name = name;
-            // Balken des Fachwerks: dunkle Leisten oben und unten auf der Außenseite
-            var leiste = Material(Holz);
-            var laenge = Mathf.Max(groesse.X, groesse.Z) + 0.1f;
-            var leistenGroesse = aussen.X != 0 ? new Vector3(0.12f, 0.3f, laenge) : new Vector3(laenge, 0.3f, 0.12f);
-            foreach (var y in new[] { -hoehe / 2 + 0.15f, 0.2f, hoehe / 2 - 0.15f })
-                Quader(aussen * (dicke / 2 + 0.06f) + new Vector3(0, y, 0), leistenGroesse, leiste, wand);
-            gebaeude.Add((wand, aussen));
-        }
-        var suedwand = gebaeude[1].Item1;
-        Quader(new Vector3(-2, -hoehe / 2 + 1.5f, dicke / 2 + 0.07f), new Vector3(1.8f, 3, 0.1f), Material(new Color(0.24f, 0.16f, 0.10f)), suedwand); // Tor
-        var westwand = gebaeude[2].Item1;
-        if (besitzer is { } farbe)
-            FahnenBehang(new Vector3(-0.28f, 3.5f, 0), Vector3.Back, Vector3.Left, 3, 2, farbe, westwand); // Wappenfahne in der Besitzerfarbe, hängt von oben und flattert
-        var vorDemSchmuck = GetChildCount(); // ab hier: Schmuck des Berufs (siehe WandschmuckAnDieWand)
-
-        // ── Dach mit Schornstein: eine Gruppe, die in der Innenansicht verschwindet ──
-        var dach = new Node3D { Name = "Dach" };
-        AddChild(dach);
-        Dach(p + new Vector3(0, hoehe, 0), new Vector3(breite + 0.6f, 4.8f, tiefe + 0.6f), Material(stil switch
-        {
-            Werkstil.Tischlerei or Werkstil.Tinkturei or Werkstil.Kirche => Schiefer,
-            Werkstil.Diebesnest => Morsch,
-            _ => Ziegel,
-        }), quer: true, eltern: dach);
-        if (stil == Werkstil.Bank)
-        {
-            // Wechseltisch mit grünem Tuch vor dem Tor, Münzstapel und Waage darauf; Schild mit goldener Münze; vergitterte Fenster
-            var holz = Material(Holz);
-            var tuch = Material(new Color(0.16f, 0.38f, 0.22f));
-            var gold = Material(new Color(0.92f, 0.75f, 0.30f));
-            gold.Metallic = 0.7f;
-            gold.Roughness = 0.35f;
-            var eisen = Material(new Color(0.30f, 0.31f, 0.34f));
-            var tisch = p + new Vector3(1.8f, 0, tiefe / 2 + 1.3f);
-            foreach (var dx in new[] { -1.1f, 1.1f })
-                Quader(tisch + new Vector3(dx, 0.45f, 0), new Vector3(0.12f, 0.9f, 0.9f), holz);
-            Quader(tisch + new Vector3(0, 0.95f, 0), new Vector3(2.6f, 0.1f, 1.1f), tuch);
-            foreach (var (dx, hoch) in new[] { (-0.8f, 0.30f), (-0.5f, 0.18f), (-0.2f, 0.24f) })
-                AddChild(new MeshInstance3D
-                {
-                    Mesh = new CylinderMesh { TopRadius = 0.12f, BottomRadius = 0.12f, Height = hoch, RadialSegments = 10 },
-                    MaterialOverride = gold,
-                    Position = tisch + new Vector3(dx, 1.0f + hoch / 2, 0.1f),
-                });
-            Quader(tisch + new Vector3(0.7f, 1.35f, 0), new Vector3(0.06f, 0.7f, 0.06f), eisen);         // Waage: Ständer
-            Quader(tisch + new Vector3(0.7f, 1.7f, 0), new Vector3(0.8f, 0.04f, 0.04f), eisen);          // Balken
-            foreach (var dx in new[] { 0.32f, 1.08f })
-                Quader(tisch + new Vector3(dx, 1.45f, 0), new Vector3(0.24f, 0.03f, 0.24f), gold);       // Schalen
-            Quader(tisch + new Vector3(0, 0.45f, -0.75f), new Vector3(1.0f, 0.9f, 0.5f), holz);          // Truhe dahinter
-            Quader(p + new Vector3(-2, 4.5f, tiefe / 2 + 0.3f), new Vector3(0.1f, 0.1f, 0.8f), eisen);   // Schildarm
-            AddChild(new MeshInstance3D
-            {
-                Mesh = new CylinderMesh { TopRadius = 0.5f, BottomRadius = 0.5f, Height = 0.08f, RadialSegments = 20 },
-                MaterialOverride = gold,
-                Position = p + new Vector3(-2, 3.9f, tiefe / 2 + 0.6f),
-                RotationDegrees = new Vector3(90, 0, 0),
-            });
-            foreach (var x in new[] { 1.5f, 3.4f })
-                foreach (var dx in new[] { -0.45f, -0.15f, 0.15f, 0.45f })
-                    Quader(p + new Vector3(x + dx, 3.2f, tiefe / 2 + 0.08f), new Vector3(0.06f, 1.2f, 0.06f), eisen); // Gitter
-        }
-        else if (stil == Werkstil.Wache)
-        {
-            // Wappenschild der Stadt über dem Tor, Speergestell, ein Schilderhäuschen mit Fahne
-            var rot = Material(new Color(0.72f, 0.12f, 0.12f));
-            var weiss = Material(new Color(0.92f, 0.90f, 0.85f));
-            Quader(p + new Vector3(-2, 4.4f, tiefe / 2 + 0.08f), new Vector3(1.0f, 1.2f, 0.06f), weiss);
-            Quader(p + new Vector3(-2, 4.4f, tiefe / 2 + 0.12f), new Vector3(1.0f, 0.4f, 0.06f), rot);
-            var holz = Material(Holz);
-            var eisen = Material(new Color(0.55f, 0.57f, 0.62f));
-            Quader(p + new Vector3(1.2f, 0.9f, tiefe / 2 + 0.6f), new Vector3(2.2f, 0.12f, 0.12f), holz);
-            foreach (var dx in new[] { 0.4f, 0.9f, 1.4f, 1.9f })
-            {
-                Quader(p + new Vector3(dx, 1.4f, tiefe / 2 + 0.6f), new Vector3(0.07f, 2.8f, 0.07f), holz);
-                Quader(p + new Vector3(dx, 2.9f, tiefe / 2 + 0.6f), new Vector3(0.14f, 0.3f, 0.07f), eisen);
-            }
-            var haus = p + new Vector3(breite / 2 + 1.2f, 0, tiefe / 2 - 0.5f);
-            Quader(haus + new Vector3(0, 1.3f, 0), new Vector3(1.3f, 2.6f, 1.3f), rot);
-            Dach(haus + new Vector3(0, 2.6f, 0), new Vector3(1.6f, 0.8f, 1.6f), Material(Schiefer), quer: false);
-            Quader(haus + new Vector3(0, 3.8f, 0), new Vector3(0.08f, 2.4f, 0.08f), holz);
-            FahnenTuchAmMast(haus + new Vector3(0.04f, 4.6f, 0), Vector3.Right, 0.8f, 0.5f, rot.AlbedoColor);
-        }
-        else if (stil == Werkstil.Diebesnest)
-        {
-            // Vernagelte Fenster, eine trübe Laterne über dem Tor, Kisten und ein Fass mit Diebesgut, eine Falltür im Hof
-            var bretter = Material(Holz);
-            foreach (var x in new[] { 1.5f, 3.4f })
-            {
-                Quader(p + new Vector3(x, 3.4f, tiefe / 2 + 0.08f), new Vector3(1.4f, 0.18f, 0.06f), bretter);
-                Quader(p + new Vector3(x, 3.0f, tiefe / 2 + 0.08f), new Vector3(1.4f, 0.18f, 0.06f), bretter);
-            }
-            var laterne = Material(new Color(0.95f, 0.75f, 0.35f));
-            laterne.EmissionEnabled = true;
-            laterne.Emission = new Color(1f, 0.65f, 0.25f);
-            laterne.EmissionEnergyMultiplier = 0.8f;
-            Quader(p + new Vector3(-2, 4.1f, tiefe / 2 + 0.5f), new Vector3(0.35f, 0.45f, 0.35f), laterne);
-            Quader(p + new Vector3(-2, 4.5f, tiefe / 2 + 0.3f), new Vector3(0.1f, 0.1f, 0.6f), bretter);
-            foreach (var (dx, dz, h) in new[] { (breite / 2 + 1.0f, -2.4f, 1.0f), (breite / 2 + 1.1f, -1.1f, 0.8f), (breite / 2 + 1.0f, -1.8f, 1.8f) })
-                Quader(p + new Vector3(dx, h / 2 + (h > 1.5f ? 0.5f : 0), dz), new Vector3(1.0f, h > 1.5f ? 0.8f : h, 1.0f), bretter);
-            Quader(p + new Vector3(2.6f, 0.03f, tiefe / 2 + 1.6f), new Vector3(1.4f, 0.06f, 1.4f), Material(new Color(0.22f, 0.15f, 0.10f))); // Falltür
-        }
-        else if (stil == Werkstil.Kirche)
-        {
-            // Glockenturm an der Ostseite mit Schallöffnungen und spitzem Helm, ein Kreuz darauf; Opferstock vor dem Tor
-            var stein = Material(Mauerstein);
-            var turm = p + new Vector3(breite / 2 + 1.4f, 0, -1.5f);
-            Quader(turm + new Vector3(0, 6, 0), new Vector3(2.8f, 12, 2.8f), stein, dach);
-            var dunkel = Material(new Color(0.10f, 0.09f, 0.08f));
-            Quader(turm + new Vector3(0, 10.2f, 1.42f), new Vector3(1.0f, 1.6f, 0.06f), dunkel, dach);
-            Quader(turm + new Vector3(1.42f, 10.2f, 0), new Vector3(0.06f, 1.6f, 1.0f), dunkel, dach);
-            dach.AddChild(new MeshInstance3D
-            {
-                Mesh = new CylinderMesh { TopRadius = 0, BottomRadius = 2.1f, Height = 5, RadialSegments = 4 },
-                MaterialOverride = Material(Schiefer),
-                Position = turm + new Vector3(0, 14.5f, 0),
-                RotationDegrees = new Vector3(0, 45, 0),
-            });
-            var gold = Material(new Color(0.85f, 0.70f, 0.30f));
-            Quader(turm + new Vector3(0, 17.6f, 0), new Vector3(0.15f, 1.4f, 0.15f), gold, dach);
-            Quader(turm + new Vector3(0, 17.8f, 0), new Vector3(0.8f, 0.15f, 0.15f), gold, dach);
-            Quader(p + new Vector3(2.2f, 0.5f, tiefe / 2 + 1.2f), new Vector3(0.7f, 1.0f, 0.7f), Material(Holz)); // Opferstock
-        }
-        else if (stil == Werkstil.Schaenke)
-        {
-            // Wirtshausschild am Ausleger über dem Tor, Fässer und ein Tisch mit Bänken vor der Tür
-            var holz = Material(Holz);
-            Quader(p + new Vector3(-2, 4.6f, tiefe / 2 + 0.9f), new Vector3(0.15f, 0.15f, 1.6f), holz);
-            Quader(p + new Vector3(-2, 3.9f, tiefe / 2 + 1.5f), new Vector3(1.4f, 1.1f, 0.12f), Material(new Color(0.85f, 0.72f, 0.35f)));
-            foreach (var dz in new[] { -2.2f, -0.6f })
-                Quader(p + new Vector3(breite / 2 + 1.0f, 0.6f, dz), new Vector3(1.2f, 1.2f, 1.2f), holz);
-            Quader(p + new Vector3(2.5f, 0.8f, tiefe / 2 + 2.2f), new Vector3(2.6f, 0.12f, 1.0f), holz);   // Tisch
-            Quader(p + new Vector3(2.5f, 0.45f, tiefe / 2 + 1.3f), new Vector3(2.6f, 0.1f, 0.35f), holz);  // Bank
-            Quader(p + new Vector3(2.5f, 0.45f, tiefe / 2 + 3.1f), new Vector3(2.6f, 0.1f, 0.35f), holz);  // Bank
-        }
-        else if (stil == Werkstil.Siederei)
-        {
-            // Kupferkessel mit Destillierhelm an der Ostseite, Blumenkästen mit Lavendel und Jasmin, lila Fensterläden
-            var kupfer = Material(new Color(0.78f, 0.45f, 0.25f));
-            kupfer.Metallic = 0.6f;
-            kupfer.Roughness = 0.35f;
-            var kessel = p + new Vector3(breite / 2 + 1.4f, 0, -1);
-            Quader(kessel + new Vector3(0, 0.4f, 0), new Vector3(1.8f, 0.8f, 1.8f), Material(Mauerstein)); // Feuerstelle
-            AddChild(new MeshInstance3D { Mesh = new SphereMesh { Radius = 0.9f, Height = 1.6f }, MaterialOverride = kupfer, Position = kessel + new Vector3(0, 1.5f, 0) });
-            AddChild(new MeshInstance3D { Mesh = new CylinderMesh { TopRadius = 0.15f, BottomRadius = 0.4f, Height = 1.0f }, MaterialOverride = kupfer, Position = kessel + new Vector3(0, 2.6f, 0) });
-            Quader(kessel + new Vector3(0, 3.0f, 0.9f), new Vector3(0.12f, 0.12f, 1.8f), kupfer);                          // Kühlrohr
-            Quader(kessel + new Vector3(0, 1.7f, 1.8f), new Vector3(0.12f, 2.6f, 0.12f), kupfer);
-            var lavendel = Material(new Color(0.55f, 0.43f, 0.78f));
-            var jasmin = Material(new Color(0.96f, 0.95f, 0.88f));
-            var laden = Material(new Color(0.42f, 0.30f, 0.58f));
-            foreach (var x in new[] { 1.5f, 3.4f })
-            {
-                Quader(p + new Vector3(x, 2.4f, tiefe / 2 + 0.35f), new Vector3(1.4f, 0.35f, 0.5f), Material(Holz));          // Blumenkasten
-                for (var i = 0; i < 3; i++)
-                    Quader(p + new Vector3(x - 0.45f + i * 0.45f, 2.75f, tiefe / 2 + 0.35f), new Vector3(0.35f, 0.4f, 0.35f), i % 2 == 0 ? lavendel : jasmin);
-                foreach (var dx in new[] { -0.85f, 0.85f })
-                    Quader(p + new Vector3(x + dx, 3.4f, tiefe / 2 + 0.08f), new Vector3(0.3f, 1.2f, 0.06f), laden);           // Fensterläden
-            }
-        }
-        else if (stil == Werkstil.Tinkturei)
-        {
-            // Fässer mit Kräuterauszügen an der Ostseite, ein Trockengestell mit Kräuterbündeln vor dem Tor
-            var fass = Material(Holz);
-            foreach (var dz in new[] { -2.5f, -0.8f, 0.9f })
-                Quader(p + new Vector3(breite / 2 + 1.0f, 0.6f, dz), new Vector3(1.1f, 1.2f, 1.1f), fass);
-            Quader(p + new Vector3(2, 1.1f, tiefe / 2 + 1.4f), new Vector3(2.4f, 0.12f, 0.12f), fass);
-            foreach (var dx in new[] { 1.2f, 1.9f, 2.6f })
-                Quader(p + new Vector3(dx, 0.75f, tiefe / 2 + 1.4f), new Vector3(0.35f, 0.6f, 0.35f), Material(Kraut));
-        }
-        else if (stil == Werkstil.Maurerei)
-        {
-            // Quader und Bruchsteine an der Ostseite, ein Werkblock vor dem Tor
-            var stein = Material(Bruchstein);
-            for (var i = 0; i < 3; i++)
-                Quader(p + new Vector3(breite / 2 + 1.3f, 0.5f + i * 1.0f, -2 + i * 1.2f), new Vector3(1.8f, 1f, 2.6f - i * 0.6f), stein);
-            Quader(p + new Vector3(2, 0.45f, tiefe / 2 + 1.4f), new Vector3(1.4f, 0.9f, 1.4f), stein);
-        }
-        else if (tischlerei)
-        {
-            // Holzstapel an der Ostseite, ein Sägebock vor dem Tor
-            var stamm = Material(Holz);
-            for (var lage = 0; lage < 3; lage++)
-                Quader(p + new Vector3(breite / 2 + 1.2f, 0.4f + lage * 0.8f, 0), new Vector3(1.8f, 0.7f, tiefe - 1 - lage), stamm);
-            Quader(p + new Vector3(2, 0.5f, tiefe / 2 + 1.4f), new Vector3(2.2f, 1f, 0.6f), stamm);
-        }
-        WandschmuckAnDieWand(p, tiefe, suedwand, vorDemSchmuck);
-        var esse = Material(new Color(0.3f, 0.28f, 0.27f));
-        esse.EmissionEnabled = true;
-        esse.Emission = new Color(1f, 0.45f, 0.1f);
-        esse.EmissionEnergyMultiplier = 0;
-        Quader(p + new Vector3(3.6f, 10.5f, 0.2f), new Vector3(1.4f, 5, 1.4f), Material(Mauerstein), dach);
-        Quader(p + new Vector3(3.6f, 13.3f, 0.2f), new Vector3(1.6f, 0.6f, 1.6f), esse, dach);
-        var glut = new OmniLight3D { LightColor = new Color(1f, 0.55f, 0.2f), OmniRange = 12, LightEnergy = 0, Position = p + new Vector3(3.6f, 14.5f, 0.2f) };
-        dach.AddChild(glut);
-        return new Werkstatthuelle(gebaeude, dach, glut, esse);
-    }
-
-    /// <summary>
-    /// Was an der Südwand hängt (Wappenschild, Fenstergitter, Blumenkästen, Fensterläden, Laterne, Münzschild), wird ein
-    /// Kind der Wand. So verschwindet es mit ihr, wenn die Werkstatt in der Innenansicht aufgeschnitten wird – sonst
-    /// schwebte es mitten im Raum. Freistehendes vor der Tür (Tische, Speergestell, Fässer) bleibt stehen.
-    /// Erkannt wird Wandschmuck an seiner Lage: dicht vor der Wand (bis 0,4 m) und höher als 1,5 m,
-    /// oder bis 0,65 m davor und höher als 3,5 m (Schilder an einem kurzen Arm).
-    /// </summary>
-    private void WandschmuckAnDieWand(Vector3 p, float tiefe, Node3D suedwand, int abKind)
-    {
-        foreach (var kind in GetChildren().Skip(abKind).OfType<MeshInstance3D>().ToList())
-        {
-            var vorDerWand = kind.Position.Z - (p.Z + tiefe / 2);
-            var hoehe = kind.Position.Y - p.Y;
-            if (vorDerWand is < -0.1f or > 0.65f || !(vorDerWand <= 0.4f && hoehe > 1.5f || hoehe > 3.5f)) continue;
-            var lage = kind.GlobalTransform;
-            RemoveChild(kind);
-            suedwand.AddChild(kind);
-            kind.GlobalTransform = lage;
-        }
-    }
-
-    /// <summary>
-    /// Die Gebäudestufe von außen: ab Stufe 2 eine Dachgaube über dem Tor, ab Stufe 3 ein Dachreiter auf dem First
-    /// (golden beim Schmied, kupfergrün beim Tischler, schiefergrau beim Steinmetz). Während des Umbaus steht ein Gerüst vor der Südwand.
+    /// Die Gebäudestufe von außen: Das Modell zeigt den Knoten „Stufe1“ bis „Stufe3“ der Betriebsstufe, während eines Umbaus steht das Gerüst davor.
     /// Die Grundfläche bleibt gleich – die Nachbarn rücken nicht zusammen.
     /// </summary>
     private void StufeZeigen(BetriebsAnsicht a)
@@ -1171,67 +940,11 @@ public partial class Stadtansicht : Node3D
         var b = a.Betrieb;
         a.GezeigteStufe = b.Stufe;
         a.GezeigterUmbau = b.UmbauMinuten > 0;
-        if (a.Ausbau is not null) KnotenEntfernen(a.Ausbau);
-        a.Ausbau = AusbauBauen(a.Dach ?? this, a.Mitte, b.Stufe, b.Artdaten.Beruf, b.UmbauMinuten > 0);
+        if (a.Modell is { } modell) ModellStufeSetzen(modell, Modellstufe(b.Stufe), b.UmbauMinuten > 0);
         if (a.Schild is not null)
-            a.Schild.Text = b.Name + (b.UmbauMinuten > 0 ? " (Umbau)" : ""); // die Stufe zeigen Gaube und Dachreiter – eine zweite Zeile überdeckte die Nachbarn
+            a.Schild.Text = b.Name + (b.UmbauMinuten > 0 ? " (Umbau)" : ""); // die Stufe zeigt das Modell – eine zweite Zeile überdeckte die Nachbarn
     }
 
-    /// <summary>Gaube, Dachreiter und Gerüst einer Werkstatt in der Mitte <paramref name="p"/> – als eigene Gruppe unter <paramref name="eltern"/>.</summary>
-    private Node3D AusbauBauen(Node3D eltern, Vector3 p, int stufe, string beruf, bool umbau)
-    {
-        const float hoehe = 6, tiefe = 8;
-        var gruppe = new Node3D { Name = "Ausbau" };
-        eltern.AddChild(gruppe);
-        var holz = Material(Holz);
-
-        if (stufe >= 2)
-        {
-            // Dachgaube auf der Südseite des Dachs, mit Fenster und eigenem Satteldach
-            var gaube = p + new Vector3(-2.5f, 0, 2.6f);
-            Quader(gaube + new Vector3(0, hoehe + 1.6f, 0), new Vector3(2.4f, 2.0f, 2.0f), Material(beruf switch { "Steinmetz" or "Prediger" or "Gardist" => Mauerstein, "Alchimist" or "Geldleiher" => Putz, "Dieb" => Morsch, _ => Fachwerk }), gruppe);
-            Quader(gaube + new Vector3(0, hoehe + 1.7f, 1.02f), new Vector3(1.1f, 1.0f, 0.06f), Material(new Color(0.12f, 0.1f, 0.08f)), gruppe);
-            Dach(gaube + new Vector3(0, hoehe + 2.6f, 0), new Vector3(2.9f, 1.2f, 2.4f), Material(beruf is "Tischler" or "Alchimist" or "Prediger" ? Schiefer : Ziegel), quer: false, eltern: gruppe);
-        }
-        if (stufe >= 3)
-        {
-            // Dachreiter: kleiner Turm auf dem First mit vierseitiger Spitze
-            var first = p + new Vector3(-1, hoehe + 4.8f, 0);
-            Quader(first + new Vector3(0, 0.9f, 0), new Vector3(1.6f, 2.2f, 1.6f), Material(beruf switch { "Steinmetz" or "Prediger" or "Gardist" => Mauerstein, "Alchimist" or "Geldleiher" => Putz, "Dieb" => Morsch, _ => Fachwerk }), gruppe);
-            var spitze = Material(beruf switch
-            {
-                "Tischler" => new Color(0.35f, 0.55f, 0.45f),   // kupfergrün
-                "Steinmetz" => new Color(0.30f, 0.33f, 0.40f),  // Schiefer
-                "Alchimist" => new Color(0.45f, 0.30f, 0.55f),  // violett
-                "Wirt" => new Color(0.60f, 0.25f, 0.20f),       // weinrot
-                "Prediger" => new Color(0.82f, 0.82f, 0.86f),   // silbern
-                "Dieb" => new Color(0.16f, 0.18f, 0.30f),       // nachtblau
-                "Gardist" => new Color(0.72f, 0.12f, 0.12f),    // stadtrot
-                "Geldleiher" => new Color(0.15f, 0.28f, 0.55f), // königsblau
-                "Parfumeur" => new Color(0.62f, 0.45f, 0.78f),  // lavendel
-                _ => new Color(0.85f, 0.68f, 0.25f),            // golden
-            });
-            spitze.Metallic = 0.5f;
-            spitze.Roughness = 0.4f;
-            gruppe.AddChild(new MeshInstance3D
-            {
-                Mesh = new CylinderMesh { TopRadius = 0, BottomRadius = 1.3f, Height = 3, RadialSegments = 4 },
-                MaterialOverride = spitze,
-                Position = first + new Vector3(0, 3.5f, 0),
-                RotationDegrees = new Vector3(0, 45, 0),
-            });
-        }
-        if (umbau)
-        {
-            // Gerüst vor der Südwand: Stangen und zwei Laufbretter
-            var sued = p + new Vector3(0, 0, tiefe / 2 + 0.7f);
-            foreach (var x in new[] { -4.5f, -1.5f, 1.5f, 4.5f })
-                Quader(sued + new Vector3(x, 3.6f, 0), new Vector3(0.15f, 7.2f, 0.15f), holz, gruppe);
-            foreach (var y in new[] { 2.6f, 5.2f })
-                Quader(sued + new Vector3(0, y, 0), new Vector3(9.6f, 0.12f, 0.9f), holz, gruppe);
-        }
-        return gruppe;
-    }
 
     /// <summary>Berg aus zwei abgeflachten Kugeln.</summary>
     private void BergBauen(Vector3 p, Node3D? eltern = null)
@@ -1595,8 +1308,11 @@ public partial class Stadtansicht : Node3D
             if (betrieb.InDerStadt && (betrieb.Stufe != ansicht.GezeigteStufe || (betrieb.UmbauMinuten > 0) != ansicht.GezeigterUmbau))
                 StufeZeigen(ansicht);
             var arbeitet = arbeitszeit && betrieb.Belegt > 0 && betrieb.Stillstand is null;
-            if (ansicht.Glut is not null) ansicht.Glut.LightEnergy = arbeitet ? 3f : 0f;
-            if (ansicht.Esse is not null) ansicht.Esse.EmissionEnergyMultiplier = arbeitet ? 2.5f : 0f;
+            if (ansicht.Modell is { Glut.Length: > 0 } modell && ansicht.Glueht != arbeitet)
+            {
+                ansicht.Glueht = arbeitet; // das Material „Glut“ (Esse, Ofen, Athanor) nur beim Wechsel schalten
+                GlutSetzen(modell, arbeitet);
+            }
             if (ansicht == _innen)
                 InnenAktualisieren(ansicht, zeit, arbeitszeit, arbeitet, delta);
 

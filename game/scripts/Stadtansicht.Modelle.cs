@@ -45,8 +45,11 @@ public partial class Stadtansicht
     /// <param name="Besitzer">Farbe des Besitzers für „Hausfarbe“, Wappen und Fahne; ohne Besitzer verwittertes Holz.</param>
     private sealed record ModellZustand(int Stufe = 0, int Variante = 0, bool Geruest = false, bool Leerstand = false, bool Brand = false, Color? Besitzer = null);
 
-    /// <summary>Ein eingesetztes Modell: der Wurzelknoten und die eigenen Kopien des Materials „Glut“ (null, wenn das Modell keins hat).</summary>
-    private sealed record ModellInstanz(Node3D Wurzel, StandardMaterial3D[] Glut);
+    /// <summary>
+    /// Ein eingesetztes Modell: der Wurzelknoten und die eigenen Kopien des Materials „Glut“ (leer, wenn das Modell keins hat) samt ihrer
+    /// Stärke bei der Arbeit (<paramref name="GlutAn"/>, die Emissionsstärke aus der Datei).
+    /// </summary>
+    private sealed record ModellInstanz(Node3D Wurzel, StandardMaterial3D[] Glut, float GlutAn);
 
     /// <summary>
     /// Setzt das Modell <paramref name="datei"/> als Kind von <paramref name="eltern"/> an die Stelle <paramref name="lage"/> (lokal im Elternknoten):
@@ -63,6 +66,7 @@ public partial class Stadtansicht
         eltern.AddChild(modell);
         var glas = ModellGlas(datei, modell);
         var glut = new List<StandardMaterial3D>();
+        var glutAn = 2.5f;
         foreach (var teil in modell.FindChildren("*", nameof(MeshInstance3D), true, false).OfType<MeshInstance3D>())
         {
             var name = teil.Name.ToString();
@@ -103,6 +107,8 @@ public partial class Stadtansicht
                     case "Glut" when stoff is StandardMaterial3D glutVorlage:
                         // jede Werkstatt glüht für sich: eigene Kopie, nicht das Material, das alle teilen
                         var kopie = (StandardMaterial3D)glutVorlage.Duplicate();
+                        glutAn = glutVorlage.EmissionEnergyMultiplier;
+                        kopie.EmissionEnergyMultiplier = 0; // aus, bis gearbeitet wird (GlutSetzen)
                         teil.SetSurfaceOverrideMaterial(i, kopie);
                         glut.Add(kopie);
                         break;
@@ -115,7 +121,26 @@ public partial class Stadtansicht
         }
         if (ankerKennung is not null)
             _modellAnker[ankerKennung] = (modell.FindChild("Anker_Tuer", true, false) as Node3D, modell.FindChild("Anker_Karren", true, false) as Node3D);
-        return new ModellInstanz(modell, glut.ToArray());
+        return new ModellInstanz(modell, glut.ToArray(), glutAn);
+    }
+
+    /// <summary>Zeigt von „Stufe1“ bis „Stufe3“ nur die Betriebsstufe und blendet das Gerüst ein oder aus (Ausbau einer Werkstatt).</summary>
+    private static void ModellStufeSetzen(ModellInstanz modell, int stufe, bool geruest)
+    {
+        foreach (var teil in modell.Wurzel.FindChildren("*", nameof(MeshInstance3D), true, false).OfType<MeshInstance3D>())
+            switch (teil.Name.ToString())
+            {
+                case "Stufe1": teil.Visible = stufe == 1; break;
+                case "Stufe2": teil.Visible = stufe == 2; break;
+                case "Stufe3": teil.Visible = stufe == 3; break;
+                case "Geruest": teil.Visible = geruest; break;
+            }
+    }
+
+    /// <summary>Schaltet das Material „Glut“ dieses Modells (Esse, Ofen): hell, solange gearbeitet wird, sonst aus. Jedes Modell hat eigene Kopien.</summary>
+    private static void GlutSetzen(ModellInstanz modell, bool an)
+    {
+        foreach (var stoff in modell.Glut) stoff.EmissionEnergyMultiplier = an ? modell.GlutAn : 0f;
     }
 
     // ═════════════════════════════════════════════════════════════════════════
