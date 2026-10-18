@@ -239,7 +239,7 @@ So wird eingetragen (damit sich die Chats nie an derselben Stelle treffen):
 | Farben im Skript | „Palaststein“ und eine hellere „Fuge“ stehen in `stadtpalais.py`; jedes Modell läuft in einem eigenen Prozess, die anderen behalten ihre Fuge. | 18.10.2026 |
 | Übersicht | `alle.py` stellt das Stadtpalais als vierte Stufe in `wohnhaeuser.png`; Bildausschnitt und Beschriftung richten sich nach der Zahl der Häuser. | 18.10.2026 |
 
-### Ratsherrenhaus der Einwohner als 3D-Modell (PR #…)
+### Ratsherrenhaus der Einwohner als 3D-Modell (PR #125)
 
 | Thema | Entscheidung | Datum |
 |---|---|---|
