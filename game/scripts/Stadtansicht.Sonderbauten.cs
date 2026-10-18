@@ -8,10 +8,11 @@ using Reichsgilde.Core.Zeit;
 namespace Reichsgilde;
 
 /// <summary>
-/// Rathaus (Raumansicht) und Dom (noch Diorama) – dritter Teil der Stadtansicht.
+/// Rathaus (Raumansicht) und Dom (Diorama) – dritter Teil der Stadtansicht.
 ///
 /// Beide sind keine Betriebe, nutzen aber dasselbe Gerüst wie die Werkstätten (<see cref="InnenAnsicht"/>):
-/// einzelne Wände, ein Dach als Gruppe, ein Knoten „Innen". Die Ansicht liest nur Abfragen des Kerns.
+/// ein Knoten „Innen". Von außen stehen die Modelle <c>rathaus.glb</c> und <c>dom.glb</c> (Stadtansicht.Modelle.cs); beim Dom sind Dach, Turm
+/// und die vier Wände eigene Knoten des Modells, die beim Hineinsehen ausgeblendet werden. Die Ansicht liest nur Abfragen des Kerns.
 ///
 /// Rathaus – vier Räume, jeder mit fester Ansicht (Raumansicht, siehe Stadtansicht.Raeume.cs):
 ///   • Ratssaal (West): Hufeisentisch mit den sieben Ämtern. Häuser im Amt sitzen in ihrer Farbe da,
@@ -39,21 +40,17 @@ public partial class Stadtansicht
     private static readonly Color Gold = new(0.90f, 0.74f, 0.30f);
 
     // ═════════════════════════════════════════════════════════════════════════
-    //  Gemeinsame Hülle
+    //  Gemeinsames Gerüst
     // ═════════════════════════════════════════════════════════════════════════
 
     /// <summary>
-    /// Die Hülle eines Sonderbaus: vier Wände (mit Fenstern), Dach als Gruppe, Klickfläche, Beschriftung
-    /// und ein leerer Innenraum mit Boden und zwei Laternen.
+    /// Das Gerüst eines Sonderbaus ohne Hülle (die Hülle ist ein Modell, <see cref="ModellEinsetzen"/>): Klickfläche, Beschriftung
+    /// und der leere Knoten „Innen“ für die Einrichtung. Beim Rathaus liegt er unter der Stadt (Raumansicht).
     /// </summary>
-    private SonderbauAnsicht SonderbauHuelle(string kennung, string titel, Vector3 p, Vector3 masse, Color wandfarbe, Color boden,
-        Vector3 schildOrt, float zoom, float reichweite, bool fachwerk, int fensterReihen, bool raumansicht = false)
+    /// <param name="klick">Größe der Klickfläche des Gebäudes (Mitte auf halber Höhe über <paramref name="p"/>).</param>
+    private SonderbauAnsicht SonderbauAnlegen(string kennung, string titel, Vector3 p, Vector3 klick, Vector3 schildOrt, float zoom, float reichweite,
+        bool raumansicht = false)
     {
-        const float dicke = 0.5f;
-        var (breite, hoehe, tiefe) = (masse.X, masse.Y, masse.Z);
-        var wandMaterial = Material(wandfarbe);
-        var glas = Material(new Color(0.12f, 0.14f, 0.20f));
-        var leiste = Material(Holz);
         var ansicht = new SonderbauAnsicht
         {
             Mitte = p,
@@ -63,69 +60,13 @@ public partial class Stadtansicht
             Zoom = zoom,
             Reichweite = reichweite,
         };
-        foreach (var (mitte, groesse, aussen) in new (Vector3, Vector3, Vector3)[]
-        {
-            (new(0, hoehe / 2, -tiefe / 2 + dicke / 2), new(breite, hoehe, dicke), Vector3.Forward),
-            (new(0, hoehe / 2, tiefe / 2 - dicke / 2), new(breite, hoehe, dicke), Vector3.Back),
-            (new(-breite / 2 + dicke / 2, hoehe / 2, 0), new(dicke, hoehe, tiefe - 2 * dicke), Vector3.Left),
-            (new(breite / 2 - dicke / 2, hoehe / 2, 0), new(dicke, hoehe, tiefe - 2 * dicke), Vector3.Right),
-        })
-        {
-            var wand = Quader(p + mitte, groesse, wandMaterial);
-            var laenge = Mathf.Max(groesse.X, groesse.Z);
-            var entlangX = aussen.X == 0;
-            var aussenOrt = aussen * (dicke / 2 + 0.06f);
-            if (fachwerk)
-                foreach (var y in new[] { -hoehe / 2 + 0.15f, 0f, hoehe / 2 - 0.15f })
-                    Quader(aussenOrt + new Vector3(0, y, 0), entlangX ? new Vector3(laenge + 0.1f, 0.3f, 0.12f) : new Vector3(0.12f, 0.3f, laenge + 0.1f), leiste, wand);
-            // Fenster: gleichmäßig über die Wand verteilt, eine oder zwei Reihen
-            var anzahl = Mathf.Max(2, (int)(laenge / 3.2f));
-            for (var reihe = 0; reihe < fensterReihen; reihe++)
-                for (var i = 0; i < anzahl; i++)
-                {
-                    var t = -laenge / 2 + (i + 0.5f) * laenge / anzahl;
-                    var y = fensterReihen == 1 ? hoehe * 0.15f : (reihe == 0 ? -hoehe * 0.22f : hoehe * 0.2f);
-                    var fensterHoehe = fensterReihen == 1 ? hoehe * 0.45f : 1.6f;
-                    Quader(aussenOrt + new Vector3(entlangX ? t : 0, y, entlangX ? 0 : t), entlangX ? new Vector3(0.9f, fensterHoehe, 0.08f) : new Vector3(0.08f, fensterHoehe, 0.9f), glas, wand);
-                }
-            ansicht.Waende.Add((wand, aussen));
-        }
-        // Tor in der Südwand
-        Quader(new Vector3(0, -hoehe / 2 + 1.7f, dicke / 2 + 0.1f), new Vector3(2.2f, 3.4f, 0.1f), Material(new Color(0.24f, 0.16f, 0.10f)), ansicht.Waende[1].Wand);
-
-        var dach = new Node3D { Name = "Dach_" + kennung };
-        AddChild(dach);
-        Dach(p + new Vector3(0, hoehe, 0), new Vector3(breite + 0.6f, Mathf.Min(breite, tiefe) * 0.6f, tiefe + 0.6f), Material(Schiefer), quer: breite > tiefe, eltern: dach);
-        ansicht.Dach = dach;
-        ansicht.Aussenklick = Klickflaeche(kennung, p + new Vector3(0, hoehe / 2, 0), masse);
-
+        ansicht.Aussenklick = Klickflaeche(kennung, p + new Vector3(0, klick.Y / 2, 0), klick);
         var innen = new Node3D { Name = "Innen_" + kennung, Visible = false };
+        if (raumansicht) innen.Position = new Vector3(0, RaumTiefe, 0); // Räume unter der Stadt, jeder mit eigener Bühne (RaumAnlegen)
         AddChild(innen);
         ansicht.Innen = innen;
         _sonderbauten[kennung] = ansicht;
-        if (raumansicht)
-        {
-            // Räume unter der Stadt, jeder mit eigener Bühne (RaumAnlegen) – kein gemeinsamer Boden
-            innen.Position = new Vector3(0, RaumTiefe, 0);
-            return ansicht;
-        }
-        Quader(p + new Vector3(0, 0.05f, 0), new Vector3(breite - 2 * dicke, 0.1f, tiefe - 2 * dicke), Material(boden), innen);
-        foreach (var versatz in new[] { -0.25f, 0.25f })
-            innen.AddChild(new OmniLight3D
-            {
-                LightColor = new Color(1f, 0.85f, 0.6f),
-                OmniRange = Mathf.Max(breite, tiefe) * 0.6f,
-                LightEnergy = 0.45f,
-                Position = p + new Vector3(breite > tiefe ? breite * versatz : 0, hoehe * 0.55f, breite > tiefe ? 0 : tiefe * versatz),
-            });
         return ansicht;
-    }
-
-    /// <summary>Ein Teil an einer Wand: verschwindet mit ihr, wenn man von dieser Seite hineinschaut.</summary>
-    private void AnDerWand(InnenAnsicht a, Vector3 aussen, Vector3 ort, Vector3 groesse, StandardMaterial3D m)
-    {
-        var wand = a.Waende.First(x => x.Aussen == aussen).Wand;
-        Quader(a.Mitte + ort - wand.Position, groesse, m, wand);
     }
 
     /// <summary>Körperbau nach Volk (wie bei den Gästen der Werkstätten).</summary>
@@ -177,10 +118,12 @@ public partial class Stadtansicht
 
     private void RathausBauen(Vector3 p)
     {
-        // Außen 16 × 10 m, 9 m hoch, verputzt mit Fachwerkbalken. Innen vier Räume (Raumansicht, je 40 m auseinander).
-        var a = SonderbauHuelle("Rathaus", "Rathaus", p, new Vector3(16, 9, 10), Putz, Steinboden, new Vector3(0, 18, 0),
-            zoom: 21, reichweite: 12, fachwerk: true, fensterReihen: 2, raumansicht: true);
-        Turm(p + new Vector3(7, 0, 3), 2.2f, 20, Schiefer, eckig: true, eltern: a.Dach);
+        // Außen das Modell rathaus.glb: Markthalle mit Ratssaal in Fachwerk (16 × 10 m, Markt bei +Z) und Uhrturm vorn rechts, 23,6 m hoch.
+        // Innen vier Räume (Raumansicht, je 40 m auseinander); das Haus bleibt dabei in der Stadt stehen.
+        var a = SonderbauAnlegen("Rathaus", "Rathaus", p, new Vector3(16, 10, 10), new Vector3(0, 26, 0), zoom: 21, reichweite: 12, raumansicht: true);
+        var huelle = ModellEinsetzen("rathaus", this, p, new ModellZustand(), "Rathaus");
+        a.Huelle = huelle?.Wurzel;
+        a.ZusatzKlicks.Add(Klickflaeche("Rathaus", p + new Vector3(6.2f, 17, 3.2f), new Vector3(4.2f, 14, 4.2f))); // der Uhrturm
 
         var innen = a.Innen!;
         var holz = Material(Holz);
@@ -399,10 +342,36 @@ public partial class Stadtansicht
 
     private void DomBauen(Vector3 p)
     {
-        // 10 × 22 m, 12 m hoch, Mauerstein; innen x −4,5 … 4,5, z −10,5 … 10,5; Chor im Norden
-        var a = SonderbauHuelle("Dom", "Dom", p, new Vector3(10, 12, 22), Mauerstein, Steinboden, new Vector3(0, 34, 13),
-            zoom: 27, reichweite: 15, fachwerk: false, fensterReihen: 1);
-        Turm(p + new Vector3(0, 0, 13), 3.4f, 30, Schiefer, eckig: true, eltern: a.Dach);
+        // Außen das Modell dom.glb, Ursprung in der Mitte des Langhauses (10 × 22 m, Wände 12 m hoch; innen x −4,5 … 4,5, z −10,5 … 10,5;
+        // Chor im Norden). Der Westturm steht vor dem Portal im Süden. Hineinsehen: Dach und Turm aus, dazu die Wände zur Kamera.
+        var a = SonderbauAnlegen("Dom", "Dom", p, new Vector3(11.5f, 13, 24.6f), new Vector3(0, 46, 13), zoom: 27, reichweite: 15);
+        var huelle = ModellEinsetzen("dom", this, p, new ModellZustand(), "Dom");
+        if (huelle is not null)
+        {
+            var dach = new Node3D { Name = "Dach_Dom", Position = p };
+            AddChild(dach);
+            foreach (var teil in new[] { "Dach", "Turm" })
+                if (huelle.Wurzel.FindChild(teil, false, false) is { } knoten)
+                {
+                    huelle.Wurzel.RemoveChild(knoten);
+                    dach.AddChild(knoten);
+                }
+            a.Dach = dach;
+            foreach (var (name, aussen) in new[] { ("Wand_vorne", Vector3.Back), ("Wand_hinten", Vector3.Forward), ("Wand_links", Vector3.Left), ("Wand_rechts", Vector3.Right) })
+                if (huelle.Wurzel.FindChild(name, false, false) is Node3D wand) a.Waende.Add((wand, aussen));
+            a.Huelle = huelle.Wurzel;
+        }
+        a.ZusatzKlicks.Add(Klickflaeche("Dom", p + new Vector3(0, 21, 14.5f), new Vector3(7.5f, 42, 7)));   // der Westturm
+        // Boden und Licht im Innern: das Modell hat keinen Boden
+        Quader(p + new Vector3(0, 0.05f, 0), new Vector3(9, 0.1f, 21), Material(Steinboden), a.Innen);
+        foreach (var versatz in new[] { -0.25f, 0.25f })
+            a.Innen!.AddChild(new OmniLight3D
+            {
+                LightColor = new Color(1f, 0.85f, 0.6f),
+                OmniRange = 13,
+                LightEnergy = 0.45f,
+                Position = p + new Vector3(0, 6.6f, 22 * versatz),
+            });
 
         var holz = Material(Holz);
         var dunkel = Material(DunklesHolz);
