@@ -36,6 +36,7 @@ public partial class Stadtansicht
     /// <summary>
     /// Welche Zustandsknoten eines Modells sichtbar sind. Ein Modell kennt „Stufe1“–„Stufe3“ (genau eine sichtbar), „Variante1“–„Variante3“
     /// (genau eine sichtbar), „Geruest“, „Leerstand“ sowie „Wappen“ und „Fahne“ (nur mit Besitzer, nie im Leerstand).
+    /// Umlandbetriebe haben zusätzlich „Arbeit“ (nur im Betrieb, nie im Leerstand).
     /// </summary>
     /// <param name="Stufe">Betriebsstufe 1 bis 3; 0 blendet alle Stufenknoten aus (Modelle ohne Stufen haben keine).</param>
     /// <param name="Variante">1 bis 3 zeigt nur diese Variante; 0 lässt alle Varianten stehen.</param>
@@ -80,6 +81,7 @@ public partial class Stadtansicht
                 "Variante3" => zustand.Variante is 0 or 3,
                 "Geruest" => zustand.Geruest,
                 "Leerstand" => zustand.Leerstand,
+                "Arbeit" => !zustand.Leerstand, // Umland: Ware, Werkzeug und Pflanzen gibt es nur im Betrieb
                 "Wappen" or "Fahne" => !zustand.Leerstand && zustand.Besitzer is not null,
                 _ => true,
             };
@@ -103,6 +105,9 @@ public partial class Stadtansicht
                         break;
                     case "Fenster":
                         FensterMelden(stoff);
+                        break;
+                    case "Laub" or "Laub hell" or "Laub dunkel":
+                        LaubMelden(stoff); // färbt sich mit der Jahreszeit (Stadtansicht.Natur.cs)
                         break;
                     case "Glut" when stoff is StandardMaterial3D glutVorlage:
                         // jede Werkstatt glüht für sich: eigene Kopie, nicht das Material, das alle teilen
