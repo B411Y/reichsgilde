@@ -410,7 +410,7 @@ So wird eingetragen (damit sich die Chats nie an derselben Stelle treffen):
 | Anker (Wunsch des Nutzers) | Kunden und Verkäufer je Stand, Plauderrunden aus zwei oder drei Plätzen, Brunnen, Bänke und ein Rundgang aus zwölf Wegpunkten. Jeder Anker blickt in die Richtung, in die die Figur schauen soll. | 18.10.2026 |
 | Extras (Wunsch des Nutzers) | Ausgearbeiteter Brunnen (Becken, Säule, vier Speier, Eimer) und ein Marktkreuz; eine Rolandfigur später, falls gewünscht. | 18.10.2026 |
 
-### Karren mit Zugtieren (PR #…)
+### Karren mit Zugtieren (PR #145)
 
 | Thema | Entscheidung | Datum |
 |---|---|---|
