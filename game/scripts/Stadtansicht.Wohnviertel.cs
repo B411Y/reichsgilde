@@ -229,8 +229,7 @@ public partial class Stadtansicht
             if (p is null) continue;
             letzter = p;
             _hausplaetze[haus.Nummer] = p;
-            var tiefe = Masse(haus.Art).Z;
-            var tuer = platz is not null && KulissePlaetze().Contains(platz) ? p.Mitte + p.Vorne * 3.2f : p.Tuer(tiefe);
+            var tuer = KulissePlaetze().Contains(p) ? p.Mitte + p.Vorne * 3.2f : p.Mitte + p.Vorne * (Vorderkante(p) + VorplatzBreite);
             if (!KulissePlaetze().Contains(p) && !_gebautePlaetze.Contains(p))
             {
                 WohnhausModell(haus.Art, p, haus.Nummer);
@@ -247,43 +246,55 @@ public partial class Stadtansicht
 
     private readonly HashSet<Hausplatz> _gebautePlaetze = new();
 
-    /// <summary>Maße (Breite, Höhe, Tiefe) je Hausart.</summary>
-    private static Vector3 Masse(Hausart art) => art switch
+    /// <summary>Die Modelle der Einwohnerhäuser je Hausart (<c>game/assets/modelle/</c>, Konventionen in <c>docs/bereiche/darstellung.md</c>).</summary>
+    private static string EinwohnerDatei(Hausart art) => art switch
     {
-        Hausart.Ratsherrenhaus => new Vector3(7.6f, 8.5f, 7.6f),
-        Hausart.Buergerhaus => new Vector3(7.2f, 7f, 7f),
-        _ => new Vector3(6.2f, 5f, 6f),
+        Hausart.Ratsherrenhaus => "einwohner_ratsherrenhaus",
+        Hausart.Buergerhaus => "einwohner_buergerhaus",
+        _ => "einwohner_wohnhaus",
     };
 
+    /// <summary>Wo die Hausfront im Modell liegt (z): Ratsherren- und Bürgerhaus bei +3 (Fläche 8 × 10 m), einfaches Haus bei +2 (6 × 8 m) – jeweils 2 m Vorplatz davor.</summary>
+    private static float EinwohnerFront(Hausart art) => art == Hausart.Wohnhaus ? 2f : 3f;
+
+    /// <summary>Abstand der Hauswand von der Mitte des Platzes (Meter): am Ring die halbe Platztiefe, in der Vorstadt bleiben 0,8 m Vorplatz bis zur Gasse.</summary>
+    private static float Vorderkante(Hausplatz platz) => platz.Ring ? PlatzTiefe / 2 : 3.1f;
+
+    /// <summary>Streifen zwischen Hauswand und Gassenrand (Meter) – dort steht der Anker der Tür, die Haustür im Gassennetz liegt am Gassenrand.</summary>
+    private const float VorplatzBreite = 0.8f;
+
+    /// <summary>Gedeckte Hausfarben der Einwohnerhäuser (Ochsenblut, Waid-Blau, Ocker, Moosgrün, Braun) – nach der Hausnummer, damit sie sich nicht mit den kräftigen Farben der Spielhäuser beißen.</summary>
+    private static readonly Color[] Hausfarben =
+    {
+        new(0.42f, 0.17f, 0.15f), new(0.24f, 0.31f, 0.43f), new(0.62f, 0.46f, 0.20f), new(0.30f, 0.38f, 0.22f), new(0.38f, 0.27f, 0.18f),
+    };
+
+    /// <summary>Welche Tür-Kennung zu welchem gebauten Platz gehört – teilen sich Häuser einen Platz (Vorstadt voll), gehen alle zur Tür des gebauten.</summary>
+    private readonly Dictionary<Hausplatz, string> _platzKennung = new();
+
+    /// <summary>Kennung der Haustür eines Einwohnerhauses für <see cref="TuerAnker"/> – null, wenn das Haus nicht als Modell steht (Kulisse).</summary>
+    private string? EinwohnerKennung(int nummer) =>
+        _hausplaetze.TryGetValue(nummer, out var platz) && _platzKennung.TryGetValue(platz, out var kennung) ? kennung : null;
+
     /// <summary>
-    /// Ein Wohnhaus nach seiner Art, die Vorderseite zur Gasse:
-    /// Ratsherrenhaus aus Stein mit Giebel zur Gasse und Erker, Bürgerhaus verputzt mit Giebel,
-    /// einfaches Haus aus Fachwerk oder Putz mit der Traufe zur Gasse.
+    /// Ein Wohnhaus nach seiner Art als Modell aus Blender, die Vorderseite zur Gasse: <c>einwohner_ratsherrenhaus</c>, <c>einwohner_buergerhaus</c>
+    /// oder <c>einwohner_wohnhaus</c>, eingesetzt über <see cref="ModellEinsetzen"/>. Die Variante (1–3) folgt der Hausnummer, die Hausfarbe
+    /// ebenso (gedeckte Palette). Die Hauswand steht an der Vorderkante des Platzes – am Ring (8 m tief, ohne Vorplatz) damit 1 m weiter zur
+    /// Gasse als in der Mitte einer 10-m-Fläche.
     /// </summary>
     private void WohnhausModell(Hausart art, Hausplatz platz, int nummer)
     {
         var gruppe = new Node3D { Name = $"Wohnhaus_{nummer}", Position = platz.Mitte, Rotation = new Vector3(0, Mathf.Atan2(platz.Vorne.X, platz.Vorne.Z), 0) };
         AddChild(gruppe);
-        var m = Masse(art);
-        var (wand, dach, giebel) = art switch
+        var variante = art switch
         {
-            Hausart.Ratsherrenhaus => (Mauerstein, Schiefer, true),
-            Hausart.Buergerhaus => (Putz, nummer % 2 == 0 ? Ziegel : Schiefer, true),
-            _ => (nummer % 3 == 0 ? Putz : Fachwerk, nummer % 4 == 0 ? Schiefer : Ziegel, false),
+            Hausart.Wohnhaus => nummer % 3 == 0 ? 2 : nummer % 4 == 0 ? 3 : 1, // meist Fachwerk, jedes dritte verputzt, jedes vierte mit Schiefer
+            _ => nummer % 3 + 1,
         };
-        Quader(new Vector3(0, m.Y / 2, 0), m, Stoff(wand), gruppe);
-        // Giebel zur Gasse: First läuft von vorn nach hinten (PrismMesh ohne Drehung); sonst Traufe zur Gasse.
-        Dach(new Vector3(0, m.Y, 0), new Vector3(m.X + 0.6f, Mathf.Min(m.X, m.Z) * 0.6f, m.Z + 0.6f), Stoff(dach), quer: !giebel, eltern: gruppe);
-        // Tür und Fenster auf der Vorderseite (lokal +Z)
-        var dunkel = Stoff(new Color(0.18f, 0.13f, 0.10f));
-        Quader(new Vector3(0, 1.1f, m.Z / 2 + 0.03f), new Vector3(1.2f, 2.2f, 0.1f), dunkel, gruppe);
-        var glas = Stoff(new Color(0.20f, 0.22f, 0.26f));
-        var stockwerke = art == Hausart.Ratsherrenhaus ? 3 : art == Hausart.Buergerhaus ? 2 : 1;
-        for (var s = 0; s < stockwerke; s++)
-            foreach (var x in new[] { -m.X / 3, m.X / 3 })
-                Quader(new Vector3(x, 1.6f + s * 2.4f + (s > 0 ? 0.5f : 0), m.Z / 2 + 0.03f), new Vector3(0.9f, 1.1f, 0.1f), glas, gruppe);
-        if (art == Hausart.Ratsherrenhaus)
-            Quader(new Vector3(0, 5.2f, m.Z / 2 + 0.5f), new Vector3(2.4f, 2.2f, 1f), Stoff(Putz), gruppe); // Erker über der Tür
+        var kennung = "einwohner:" + nummer;
+        ModellEinsetzen(EinwohnerDatei(art), gruppe, new Vector3(0, 0, Vorderkante(platz) - EinwohnerFront(art)),
+            new ModellZustand(Variante: variante, Besitzer: Hausfarben[nummer % Hausfarben.Length]), kennung);
+        _platzKennung[platz] = kennung;
     }
 
     /// <summary>
