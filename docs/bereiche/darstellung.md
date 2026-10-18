@@ -399,12 +399,11 @@ So wird eingetragen (damit sich die Chats nie an derselben Stelle treffen):
 | Skelett | Elf Knochen, jeder Körperteil hängt starr an einem (keine weichen Übergänge – passt zum kantigen Stil und kostet wenig). Stab steht an der Hüfte (bleibt beim Gehen senkrecht), die Hacke verlängert den rechten Unterarm. | 18.10.2026 |
 | Prüfung | In Godot geladen: alle zehn Bewegungen im `AnimationPlayer`, alle Teile mit Skin, Bewegungen laufen (Probe unter Xvfb). | 18.10.2026 |
 
-### Grafikoptionen: Umgebungsverdeckung, FSR, Kantenglättung (PR folgt)
+### Grafikoptionen: Umgebungsverdeckung und FSR (PR #142)
 
 | Thema | Entscheidung | Datum |
 |---|---|---|
 | Umgebungsverdeckung | **SSAO** in den Stufen Aus, Niedrig, Mittel und Hoch, Standard **Mittel**, dezent abgestimmt (Bodenhaftung, ohne den Holzschnitt zu verschmieren). Dazu ein Schalter **„Indirektes Licht (SSIL)“**, Standard Aus. HBAO bringt Godot 4.7 nicht mit, Godots SSAO ist ein adaptives Verfahren. Entschieden vom Nutzer. | 18.10.2026 |
 | Raytracing | Nicht vorgesehen. Godot 4.7 hat nur eine Grundschnittstelle für Raytracing-Shader, keine fertigen Raytracing-Schatten und kein Raytracing-Licht; bei Schrägansicht, schlichten Modellen und Holzschnitt-Stil wäre der Nutzen klein. Mit dem Nutzer besprochen. | 18.10.2026 |
 | Hochskalierung | Nur **FSR 2.2** (die neueste in Godot eingebaute Fassung; FSR 3 und 4 fehlen), als Schalter. Ist FSR an, erscheint ein Regler **Renderauflösung 25–100 %** (Godot erlaubt nicht weniger), Standard 67 % (AMD-Stufe „Qualität“). FSR 2.2 glättet selbst, die Kantenglättung wird dann ausgegraut. Standard: FSR aus. Entschieden vom Nutzer. | 18.10.2026 |
-| Kantenglättung | Der Nutzer meldet, dass die Einstellung nicht wirkt. Ursache suchen und beheben, im selben PR. | 18.10.2026 |
-| Zuschnitt | Ein Mitglied „grafik“, weil alle Teile dieselben Dateien anfassen (`Fenster.cs`, `EinstellungenAnzeige.cs`). Der Branch baut auf #140 (Bloom) und #139 (Schatten ohne LOD) auf. Entschieden vom Teamleiter. | 18.10.2026 |
+| Zuschnitt | Ein Mitglied „grafik“, weil beide Teile dieselben Dateien anfassen (`Fenster.cs`, `EinstellungenAnzeige.cs`). Der Branch baut auf #140 (Bloom) und #139 (Schatten ohne LOD) auf. Entschieden vom Teamleiter. | 18.10.2026 |
