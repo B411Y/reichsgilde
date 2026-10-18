@@ -284,7 +284,7 @@ So wird eingetragen (damit sich die Chats nie an derselben Stelle treffen):
 | Einstellung | „Fahnen bewegen an/aus“ in den Einstellungen kommt später (offener Punkt bei der Oberfläche). | 18.10.2026 |
 | Umsetzung | `game/shader/fahne.gdshader` (`render_mode cull_disabled`), Hilfen in `Stadtansicht.Fahnen.cs`. Netz **8 × 4 Felder** (45 Ecken), u = `UV.x` vom Mast, `UV2` = Länge und Höhe. Ausschlag senkrecht zum Tuch, ∝ u^1,35 × Länge × 0,16 × (0,3 + Windstärke): **drei Wellen** (u·5,5 / u·10,5 mit Faktor 0,4 / quer über die Höhe mit Faktor 0,25, Frequenzen 2,6 / 4,1 / 1,9 je Sekunde × Zeitfaktor 1 + 1,5·Stärke), dazu **Böen** (zwei langsame Sinus, Faktor 0,65–1,15). Phase aus `NODE_POSITION_WORLD.xz`. Normalen aus der Steigung (Differenzen in u und v), Rückseite von Godot selbst gespiegelt. Wind: `wind_staerke` 0,5, `wind_richtung` (1; 0,4) als globale Uniforms; die Richtung drückt das Tuch nur leicht auf die abgewandte Seite. Mastfahnen (Wohnhaus-Modelle, Wachturm, Schilderhäuschen) schlagen beidseitig aus, **Wandbehänge** (Wappenfahne der Werkstätten, Fahne am Holzschlag) hängen von der Oberkante und schlagen nur von der Wand weg (Uniform `wandbehang`). Netze je Maß und Stoffe je Farbe werden geteilt. Die .glb-Tuchfläche wird aus ihrem Umriss neu gebaut (Länge, Höhe, Schwalbenschwanz-Kerbe, Mastseite aus der Lage des Mastes „Holz“). Messung: auf der Software-Grafik (llvmpipe, kein Grafikchip vorhanden) kein Unterschied (2,89 ± 0,1 gegen 2,80 ± 0,1 Bilder/s mit und ohne Shader, je 35 Messungen); Zeichenaufrufe und Skriptzeit je Bild unverändert (kein `_Process`), je Fahne 45 Ecken mehr. | 18.10.2026 |
 
-### Dom als 3D-Modell (PR #…)
+### Dom als 3D-Modell (PR #132)
 
 | Thema | Entscheidung | Datum |
 |---|---|---|
