@@ -27,7 +27,7 @@ FLAECHEN = {"fachwerkhaus": (8, 10), "buergerhaus": (8, 10), "steinhaus": (8, 10
             "stadthof": (16, 14)}
 WERKSTAETTEN = ["schmied", "tischler", "steinmetz", "alchimist", "wirt", "prediger", "dieb", "gardist", "geldleiher",
                 "parfumeur"]          # je Beruf ein Modell mit Stufe1–Stufe3
-EINWOHNERHAEUSER = ["einwohner_ratsherrenhaus"]      # je Hausart ein Modell mit Variante1–Variante3
+EINWOHNERHAEUSER = ["einwohner_ratsherrenhaus", "einwohner_buergerhaus"]      # je Hausart ein Modell mit Variante1–Variante3
 
 
 def erzeugen(name, schalter):
