@@ -47,6 +47,8 @@ namespace Reichsgilde;
 ///   --einstellungen=1  gleich zu Beginn das Fenster „Einstellungen“ öffnen
 ///   --kanten=<Art>     Kantenglättung nur für diesen Start (Aus, Fxaa, Smaa, Taa, Msaa2, Msaa4, Msaa8)
 ///   --schatten=<Stufe> Schattenqualität nur für diesen Start (Niedrig, Mittel, Hoch)
+///   --bloom=<An|Aus>   Bloom nur für diesen Start
+///   --bloomstaerke=<0–100> Stärke des Bloom in Prozent, nur für diesen Start
 ///   --laden=datei.json einen Spielstand aus dem Spielstand-Ordner laden
 /// </summary>
 public partial class Hauptszene : Node
@@ -360,6 +362,12 @@ public partial class Hauptszene : Node
             Fenster.KantenglaettungSetzen(art, speichern: false); // für Vergleichsbilder, ändert die gespeicherte Wahl nicht
         if (optionen.TryGetValue("schatten", out var schatten) && Enum.TryParse<Schattenqualitaet>(schatten, true, out var stufe))
             Fenster.SchattenqualitaetSetzen(stufe, speichern: false); // ebenso
+        if (optionen.ContainsKey("bloom") || optionen.ContainsKey("bloomstaerke")) // ebenso; was fehlt, bleibt wie eingestellt
+        {
+            var bloomAn = optionen.TryGetValue("bloom", out var bloom) ? !bloom.Equals("Aus", StringComparison.OrdinalIgnoreCase) : Fenster.BloomAn;
+            var bloomProzent = optionen.TryGetValue("bloomstaerke", out var bloomStaerke) && int.TryParse(bloomStaerke, out var prozent) ? prozent : Fenster.BloomStaerke;
+            Fenster.BloomSetzen(bloomAn, bloomProzent, speichern: false);
+        }
         if (optionen.TryGetValue("bericht", out var bericht) && bericht == "1" && _spieler is not null)
             _jahresbericht.Zeigen(_simulation, _spieler);
         if (optionen.TryGetValue("innen", out var innen))
