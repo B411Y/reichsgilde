@@ -91,26 +91,28 @@ public partial class Stadtansicht
     /// Die Lichtstimmung zur Uhrzeit (<paramref name="stunde"/> mit Bruchteil). Der Spieltag läuft von 05 bis 22 Uhr:
     /// <list type="bullet">
     /// <item>05:00 Morgengrauen im Mondlicht – genauso wie 22:00, denn um 22 Uhr springt die Uhr auf 05 Uhr des nächsten Jahres.</item>
-    /// <item>05:00–05:45 der Mond blendet aus, 05:45–06:45 die Sonne ein (Morgenrot), ab etwa 07:30 voller Tag.</item>
-    /// <item>ab 18:00 Abendrot, die Sonne sinkt bis 20:00 zum Horizont und blendet dabei aus.</item>
-    /// <item>ab 20:05 blendet der Mond ein, ab 21:00 ist richtig Nacht.</item>
+    /// <item>05:00–05:27 der Mond blendet aus, 05:30–06:30 die Sonne ein (Morgenrot), ab etwa 07:30 voller Tag.</item>
+    /// <item>ab 18:00 Abendrot, die Sonne sinkt zum Horizont und blendet von 19:00 bis 19:54 aus.</item>
+    /// <item>ab 19:57 blendet der Mond ein (voll um 20:45), ab 21:00 ist richtig Nacht.</item>
     /// </list>
     /// Sonne und Mond sind <b>ein</b> Licht mit einer Schattenkarte (das spart die Hälfte der Schattenarbeit). Es wechselt die
     /// Richtung nur, wenn es gerade ganz ausgeblendet ist – darum kippen die Schatten nie sichtbar.
     /// </summary>
     private static Lichtstimmung StimmungUm(float stunde)
     {
-        // Sonne: Aufgang 05:30 im Osten (+X), Untergang 20:00 im Westen. Sichtbar erst ab 05:45, ab 19:00 blendet sie aus.
+        // Sonne: Aufgang 05:30 im Osten (+X), Untergang 20:00 im Westen. Sie blendet nach dem Aufgang ein und kurz vor dem
+        // Untergang aus – so steht sie nie mit voller Kraft auf dem Horizont (dort wären alle Schatten endlos lang).
         var bogen = Mathf.Clamp((stunde - 5.5f) / 14.5f, 0f, 1f);
         var sonnenhoehe = Mathf.Sin(bogen * Mathf.Pi);
-        var sonnenSicht = Mathf.SmoothStep(5.75f, 6.75f, stunde) * (1 - Mathf.SmoothStep(19f, 20f, stunde));
+        var sonnenSicht = Mathf.SmoothStep(5.5f, 6.5f, stunde) * (1 - Mathf.SmoothStep(19f, 19.9f, stunde));
         var sonnenStaerke = sonnenSicht * (0.25f + 0.95f * Mathf.Sqrt(sonnenhoehe));
 
         // Mond: läuft von 20 Uhr bis 05:45 von Osten nach Westen. u zählt die Nachtstunden: 20 Uhr = 0, 22 Uhr = 2 –
         // und 05 Uhr ebenfalls 2, damit der Mond nach dem Sprung über den Jahreswechsel genau dort steht, wo er um 22 Uhr stand.
+        // Er blendet erst ein, wenn die Sonne ganz aus ist (19:57), und morgens aus, bevor sie kommt (05:27).
         var u = stunde >= 12 ? stunde - 20f : stunde - 3f;
-        var mondSicht = Mathf.SmoothStep(0.1f, 1f, u) * (1 - Mathf.SmoothStep(2f, 2.75f, u));
-        var mondStaerke = 0.5f * mondSicht;
+        var mondSicht = Mathf.SmoothStep(-0.05f, 0.75f, u) * (1 - Mathf.SmoothStep(2f, 2.45f, u));
+        var mondStaerke = 0.35f * mondSicht;
 
         Quaternion richtung;
         Color farbe;
@@ -139,12 +141,15 @@ public partial class Stadtansicht
                             Mathf.SmoothStep(17.5f, 18.75f, stunde) * (1 - Mathf.SmoothStep(19.75f, 20.75f, stunde)));
         var umgebung = new Color(0.30f, 0.36f, 0.58f).Lerp(new Color(0.85f, 0.83f, 0.78f), hell)
                                                      .Lerp(new Color(0.95f, 0.66f, 0.52f), 0.35f * rot);
+        // Zwischen Sonne und Mond (und morgens umgekehrt) fehlt das gerichtete Licht ganz. Damit die Stadt dort nicht dunkler
+        // wird als in der Nacht danach, hellt das Himmelslicht diese Lücke etwas auf (die „blaue Stunde“).
+        var luecke = (1 - Mathf.Max(sonnenSicht, mondSicht)) * (1 - hell);
 
         // Fensterlicht: geht ab 18 Uhr nach und nach an und ab 05:30 wieder aus (um 22 und um 05 Uhr also gleich hell)
         var fenster = stunde >= 12 ? Mathf.SmoothStep(18f, 20f, stunde) : 1 - Mathf.SmoothStep(5.5f, 7f, stunde);
 
         return new Lichtstimmung(richtung, farbe, staerke, schatten, Himmelsfarbe(stunde * 60), umgebung,
-                                 0.18f + 0.52f * hell, hell, fenster);
+                                 0.18f + 0.52f * hell + 0.2f * luecke, hell, fenster);
     }
 
     /// <summary>Drehung des gerichteten Lichts: <paramref name="hoehe"/> Grad über dem Horizont, aus der Himmelsrichtung <paramref name="richtung"/> (90 = Osten).</summary>
