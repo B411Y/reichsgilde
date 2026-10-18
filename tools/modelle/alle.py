@@ -28,6 +28,7 @@ FLAECHEN = {"fachwerkhaus": (8, 10), "buergerhaus": (8, 10), "steinhaus": (8, 10
 WERKSTAETTEN = ["schmied", "tischler", "steinmetz", "alchimist", "wirt", "prediger", "dieb", "gardist", "geldleiher",
                 "parfumeur"]          # je Beruf ein Modell mit Stufe1–Stufe3
 EINWOHNERHAEUSER = ["einwohner_ratsherrenhaus", "einwohner_buergerhaus", "einwohner_wohnhaus"]      # je Hausart ein Modell mit Variante1–Variante3
+SONDERBAUTEN = ["dom"]          # Gebäude der Stadt: ohne Zustände und Hausfarbe
 
 
 def erzeugen(name, schalter):
@@ -88,7 +89,7 @@ def uebersicht(schnell=False, luft=0.5):
 
 def main():
     schalter = [a for a in sys.argv if a in ("--schnell", "--ohne-bilder")]
-    for name in [n for n, _ in WOHNHAEUSER] + WERKSTAETTEN + EINWOHNERHAEUSER:
+    for name in [n for n, _ in WOHNHAEUSER] + WERKSTAETTEN + EINWOHNERHAEUSER + SONDERBAUTEN:
         erzeugen(name, schalter)
     if "--ohne-bilder" not in schalter:
         print(uebersicht(schnell="--schnell" in schalter))

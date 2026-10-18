@@ -8,6 +8,7 @@ unter den Boden, ein Zustandsknoten fehlt. Hat das Modell Stufen (Werkstatt), m�
 Stufe1–Stufe3 sein; dann steht auch da, wie viele Dreiecke je Stufe sichtbar sind (Haus + Stufe).
 Hat das Modell Varianten (Einwohnerhäuser), müssen sie Variante1, Variante2 … heißen; Zustandsknoten
 sind dann nicht nötig, weil Einwohnerhäuser weder leer stehen noch ausgebaut werden.
+Mit `--sonderbau` (Dom, Rathaus, Stadtmauer) sind weder Zustände noch „Hausfarbe“ nötig: Sonderbauten gehören der Stadt.
 Ankerpunkte („Anker_…“, leere Knoten) werden mit Lage und Blickrichtung gelistet; „Anker_Tuer“ ist Pflicht
 und jeder Anker muss auf der Fläche liegen.
 """
@@ -29,13 +30,15 @@ def lesen(pfad):
 
 
 def main():
-    pfad = sys.argv[1]
-    breite, tiefe = (float(a) for a in sys.argv[2:4]) if len(sys.argv) >= 4 else (None, None)
+    sonderbau = "--sonderbau" in sys.argv
+    argumente = [a for a in sys.argv[1:] if not a.startswith("--")]
+    pfad = argumente[0]
+    breite, tiefe = (float(a) for a in argumente[1:3]) if len(argumente) >= 3 else (None, None)
     g = lesen(pfad)
     fehler = []
     materialien = [m["name"] for m in g.get("materials", [])]
     print("Materialien:", ", ".join(materialien))
-    if "Hausfarbe" not in materialien:
+    if "Hausfarbe" not in materialien and not sonderbau:
         fehler.append("Material „Hausfarbe“ fehlt")
 
     mins, maxs = [1e9] * 3, [-1e9] * 3
@@ -90,7 +93,7 @@ def main():
     if "Anker_Tuer" not in [k["name"] for k in anker]:
         fehler.append("Ankerpunkt „Anker_Tuer“ fehlt")
     for z in ZUSTAENDE:
-        if z not in namen and not varianten:
+        if z not in namen and not varianten and not sonderbau:
             fehler.append(f"Zustandsknoten „{z}“ fehlt")
     if mins[1] < -0.06:
         fehler.append(f"ragt {-mins[1]:.2f} m unter den Boden")
