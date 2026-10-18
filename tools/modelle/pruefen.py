@@ -11,6 +11,8 @@ sind dann nicht nötig, weil Einwohnerhäuser weder leer stehen noch ausgebaut w
 Mit `--sonderbau` (Dom, Rathaus, Stadtmauer) sind weder Zustände noch „Hausfarbe“ nötig: Sonderbauten gehören der Stadt.
 Mit `--umland` (Grube, Holzschlag … Wachturm) braucht das Modell „Haus“, „Arbeit“, „Fahne“ und „Leerstand“, aber kein
 Gerüst: Umlandbetriebe werden nicht ausgebaut.
+Mit `--natur` (Bäume, Büsche, Boden, Steine, Totholz) sind weder Hausfarbe noch Zustände noch Anker nötig; B und T
+sind dann die größte erlaubte Ausdehnung eines einzelnen Knotens (jeder steht mit dem Fuß im Nullpunkt).
 Ankerpunkte („Anker_…“, leere Knoten) werden mit Lage und Blickrichtung gelistet; „Anker_Tuer“ ist Pflicht
 und jeder Anker muss auf der Fläche liegen.
 """
@@ -34,6 +36,8 @@ def lesen(pfad):
 def main():
     sonderbau = "--sonderbau" in sys.argv
     umland = "--umland" in sys.argv
+    natur = "--natur" in sys.argv
+    sonderbau = sonderbau or natur
     argumente = [a for a in sys.argv[1:] if not a.startswith("--")]
     pfad = argumente[0]
     breite, tiefe = (float(a) for a in argumente[1:3]) if len(argumente) >= 3 else (None, None)
@@ -93,7 +97,7 @@ def main():
         print(f"{k['name']:14s} bei X {x:.2f}  Y {y:.2f}  Z {z:.2f}, Blick ins Haus nach ({round(richtung[0]) + 0}, {round(richtung[1]) + 0})")
         if breite is not None and (abs(x) > breite / 2 or abs(z) > tiefe / 2):
             fehler.append(f"{k['name']} liegt außerhalb der Fläche")
-    if "Anker_Tuer" not in [k["name"] for k in anker]:
+    if "Anker_Tuer" not in [k["name"] for k in anker] and not natur:
         fehler.append("Ankerpunkt „Anker_Tuer“ fehlt")
     for z in (("Haus", "Arbeit", "Fahne", "Leerstand") if umland else ZUSTAENDE):
         if z not in namen and not varianten and not sonderbau:
