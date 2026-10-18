@@ -383,6 +383,11 @@ So wird eingetragen (damit sich die Chats nie an derselben Stelle treffen):
 | Umsetzung: Form | Mischung `Screen`, Glow-Stufen 2–5 mit 0,5 / 1 / 1 / 0,6 (Hof um die Quelle, kein Nebel), `GlowHdrLuminanceCap` 12. Gleiche Einstellung für Stadt (`_umgebung`) und Raumansicht (`_raumUmgebung`), beide über `Stadtansicht.BloomAnwenden`; `Fenster.BloomSetzen` löst `BloomGeaendert` aus, darum wirkt eine Änderung ohne Neustart. | 18.10.2026 |
 | Umsetzung: Stärke | `GlowIntensity = 2,6 · (Prozent/100)^1,8`: 50 % = 0,75 (dezenter Schein, am Dom und an den Fenstern deutlich, aber nicht aufdringlich), 100 % = 2,6 (kräftig, die Glut der Esse strahlt in den Raum, nicht grell), 25 % ≈ 0,2. 0 % oder Aus schaltet den Glow ganz ab (`GlowEnabled` aus, Bild wie vorher). Gespeichert in `user://einstellungen.cfg`, Abschnitt `anzeige`, Schlüssel `bloom` und `bloomstaerke`; fehlen sie, gilt An mit 50 %. | 18.10.2026 |
 | Umsetzung: Leistung | Gemessen mit Vulkan/lavapipe (Software-Rendering auf dem Prozessor, nur ein Richtwert), 800 × 450, Markt um 21 Uhr, Mittel von 40 Bildern, zwei Läufe: Aus 304 / 304 ms je Bild, 50 % 342 / 354 ms, 100 % 346 / 344 ms – etwa **+15 %**, unabhängig von der Stärke. Der Glow rechnet vier Unschärfestufen auf verkleinertem Bild; auf einer Grafikkarte kostet das erwartungsgemäß weniger, gemessen ist es nicht (offener Punkt). | 18.10.2026 |
+### Schatten ohne LOD (PR #139)
+
+| Thema | Entscheidung | Datum |
+|---|---|---|
+| LOD im Schatten | Godot wählt die beim Import erzeugten vereinfachten Fassungen der Modelle (LOD) auch für den Schatten, aus Sicht der Sonne und darum sehr grob: Spitzdächer der Türme, Zinnen und der Balken über dem Fallgitter warfen keinen Schatten (vom Nutzer im Klicktest bemerkt). Jetzt `MeshLodThreshold = 0` für das Spielfenster, die Modelle werden immer ganz gezeichnet; die Modelle und ihre Import-Einstellungen bleiben unverändert. Kosten (lavapipe, 800 × 450, gemessen auf main 1cf59e5 + diesem PR): Markt Zoom 45 ≈ 448 → 479 ms je Bild (+7 %), ganze Stadt Zoom 95 ≈ 492 → 538 ms (+9 %). Entschieden vom Teamleiter auf Frage des Nutzers. | 18.10.2026 |
 ### Passanten als 3D-Figuren mit Bewegungen (PR #141)
 
 | Thema | Entscheidung | Datum |
@@ -393,3 +398,13 @@ So wird eingetragen (damit sich die Chats nie an derselben Stelle treffen):
 | Orks und Oger (Wunsch des Nutzers) | Später, sobald sie im Spiel auftauchen; dasselbe Skelett mit eigenen Maßen. | 18.10.2026 |
 | Skelett | Elf Knochen, jeder Körperteil hängt starr an einem (keine weichen Übergänge – passt zum kantigen Stil und kostet wenig). Stab steht an der Hüfte (bleibt beim Gehen senkrecht), die Hacke verlängert den rechten Unterarm. | 18.10.2026 |
 | Prüfung | In Godot geladen: alle zehn Bewegungen im `AnimationPlayer`, alle Teile mit Skin, Bewegungen laufen (Probe unter Xvfb). | 18.10.2026 |
+
+### Grafikoptionen: Umgebungsverdeckung, FSR, Kantenglättung (PR folgt)
+
+| Thema | Entscheidung | Datum |
+|---|---|---|
+| Umgebungsverdeckung | **SSAO** in den Stufen Aus, Niedrig, Mittel und Hoch, Standard **Mittel**, dezent abgestimmt (Bodenhaftung, ohne den Holzschnitt zu verschmieren). Dazu ein Schalter **„Indirektes Licht (SSIL)“**, Standard Aus. HBAO bringt Godot 4.7 nicht mit, Godots SSAO ist ein adaptives Verfahren. Entschieden vom Nutzer. | 18.10.2026 |
+| Raytracing | Nicht vorgesehen. Godot 4.7 hat nur eine Grundschnittstelle für Raytracing-Shader, keine fertigen Raytracing-Schatten und kein Raytracing-Licht; bei Schrägansicht, schlichten Modellen und Holzschnitt-Stil wäre der Nutzen klein. Mit dem Nutzer besprochen. | 18.10.2026 |
+| Hochskalierung | Nur **FSR 2.2** (die neueste in Godot eingebaute Fassung; FSR 3 und 4 fehlen), als Schalter. Ist FSR an, erscheint ein Regler **Renderauflösung 25–100 %** (Godot erlaubt nicht weniger), Standard 67 % (AMD-Stufe „Qualität“). FSR 2.2 glättet selbst, die Kantenglättung wird dann ausgegraut. Standard: FSR aus. Entschieden vom Nutzer. | 18.10.2026 |
+| Kantenglättung | Der Nutzer meldet, dass die Einstellung nicht wirkt. Ursache suchen und beheben, im selben PR. | 18.10.2026 |
+| Zuschnitt | Ein Mitglied „grafik“, weil alle Teile dieselben Dateien anfassen (`Fenster.cs`, `EinstellungenAnzeige.cs`). Der Branch baut auf #140 (Bloom) und #139 (Schatten ohne LOD) auf. Entschieden vom Teamleiter. | 18.10.2026 |
