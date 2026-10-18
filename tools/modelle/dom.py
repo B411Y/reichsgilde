@@ -190,7 +190,7 @@ def rosette(netz, st, M, u, v, r, n=16):
 
 def turm_bauen(netz, st):
     ym = (TY0 + TY1) / 2
-    netz.quader((0, ym, TH / 2), (2 * TX, TY1 - TY0, TH), st["Haustein"], ohne=("+y",))
+    netz.quader((0, ym, TH / 2), (2 * TX, TY1 - TY0, TH), st["Haustein"])     # Rückseite über dem Dach sichtbar
     # Sockel: an den Seiten durchgehend, vorn nur neben dem Portal (die Tür reicht bis zum Boden)
     netz.quader((0, (TY0 + 0.01 + TY1 - 0.08) / 2, 0.3), (2 * TX + 0.14, TY1 - 0.08 - TY0 - 0.01, 0.6), st["Bruchstein dunkel"],
                 ohne=("+y", "-y"))
