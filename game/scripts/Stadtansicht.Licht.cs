@@ -285,6 +285,64 @@ public partial class Stadtansicht
         BloomAnwenden(_raumUmgebung);
     }
 
+    // ═════════════════════════════════════════════════════════════════════════
+    //  Umgebungsverdeckung (SSAO) und indirektes Licht (SSIL)
+    // ═════════════════════════════════════════════════════════════════════════
+
+    /// <summary>Wie genau Godot SSAO und SSIL rechnet (<see cref="Fenster.UmgebungsverdeckungSetzen"/> reicht es an den RenderingServer).</summary>
+    internal readonly record struct VerdeckungGuete(RenderingServer.EnvironmentSsaoQuality Qualitaet, bool HalbeGroesse, float Anpassung, int Weichzeichner);
+
+    /// <summary>
+    /// Güte je Stufe: Niedrig = wenige Proben auf halber Auflösung, Mittel = Godots Grundwerte (mittlere Proben, halbe
+    /// Auflösung), Hoch = viele Proben in voller Auflösung (feinere Fugen, kostet deutlich mehr). Bei „Aus“ zählt die Güte nur
+    /// für das indirekte Licht, wenn es allein läuft.
+    /// </summary>
+    internal static VerdeckungGuete VerdeckungGueteFuer(Umgebungsverdeckung stufe) => stufe switch
+    {
+        Umgebungsverdeckung.Hoch => new(RenderingServer.EnvironmentSsaoQuality.High, false, 0.5f, 2),
+        Umgebungsverdeckung.Mittel => new(RenderingServer.EnvironmentSsaoQuality.Medium, true, 0.5f, 2),
+        _ => new(RenderingServer.EnvironmentSsaoQuality.Low, true, 0.5f, 1),
+    };
+
+    /// <summary>
+    /// Reichweite (Meter), Stärke, Kontrast und Einfluss aufs direkte Licht der Umgebungsverdeckung. Dezent: dunkler werden
+    /// nur Ecken, Fußpunkte und Fugen, nicht ganze Flächen. Die Kamera ist orthografisch; Godot rechnet die Reichweite in Metern
+    /// der Welt, sie gilt also bei jedem Zoom gleich (gemessen bei Zoom 25, 45 und 95). Der Einfluss aufs direkte Licht
+    /// (<c>SsaoLightAffect</c>) ist nötig: Mit Godots Grundwert 0 dunkelt SSAO nur das Umgebungslicht, und das ist in der
+    /// Sonne ein kleiner Teil des Bildes – der Unterschied war dann kaum zu sehen (im Mittel unter 1 von 255).
+    /// </summary>
+    private const float VerdeckungReichweite = 2f, VerdeckungStaerke = 6f, VerdeckungKontrast = 1.2f, VerdeckungDirektesLicht = 0.7f;
+
+    /// <summary>
+    /// Dieselben Werte für die Raumansicht: Dort steht eine perspektivische Kamera nah an kleinen Räumen, 2 m Reichweite
+    /// würden ganze Wände und Böden abdunkeln (geprüft in der Schmiede). Darum kleiner und schwächer: Nur Ecken, Möbelfüße
+    /// und die Kante zwischen Wand und Boden werden dunkler.
+    /// </summary>
+    private const float RaumVerdeckungReichweite = 0.7f, RaumVerdeckungStaerke = 2.5f, RaumVerdeckungDirektesLicht = 0.5f;
+
+    /// <summary>Reichweite (Meter) und Stärke des indirekten Lichts; es soll nur ein wenig Farbe von nahen Flächen zurückgeben, nichts verschmieren.</summary>
+    private const float IndirektReichweite = 4f, IndirektStaerke = 2f;
+
+    /// <summary>Stellt SSAO und SSIL einer Umgebung (Stadt oder Raumansicht) nach der Einstellung ein.</summary>
+    internal static void VerdeckungAnwenden(Godot.Environment umgebung, bool raum = false)
+    {
+        umgebung.SsaoEnabled = Fenster.AktuelleUmgebungsverdeckung != Umgebungsverdeckung.Aus;
+        umgebung.SsaoRadius = raum ? RaumVerdeckungReichweite : VerdeckungReichweite;
+        umgebung.SsaoIntensity = raum ? RaumVerdeckungStaerke : VerdeckungStaerke;
+        umgebung.SsaoPower = VerdeckungKontrast;
+        umgebung.SsaoLightAffect = raum ? RaumVerdeckungDirektesLicht : VerdeckungDirektesLicht;
+        umgebung.SsilEnabled = Fenster.IndirektesLichtAn;
+        umgebung.SsilRadius = IndirektReichweite;
+        umgebung.SsilIntensity = IndirektStaerke;
+    }
+
+    /// <summary>Stadt und Raumansicht übernehmen die Einstellung sofort, wenn sie sich ändert.</summary>
+    private void VerdeckungNachfuehren()
+    {
+        VerdeckungAnwenden(_umgebung.Environment);
+        VerdeckungAnwenden(_raumUmgebung, raum: true);
+    }
+
     /// <summary>Einmal beim Aufbau: Grundeinstellung des Schattens der Sonne.</summary>
     private void SchattenEinrichten()
     {

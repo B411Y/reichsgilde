@@ -49,6 +49,10 @@ namespace Reichsgilde;
 ///   --schatten=<Stufe> Schattenqualität nur für diesen Start (Niedrig, Mittel, Hoch)
 ///   --bloom=<An|Aus>   Bloom nur für diesen Start
 ///   --bloomstaerke=<0–100> Stärke des Bloom in Prozent, nur für diesen Start
+///   --ssao=<Stufe>     Umgebungsverdeckung nur für diesen Start (Aus, Niedrig, Mittel, Hoch)
+///   --ssil=<An|Aus>    indirektes Licht (SSIL) nur für diesen Start
+///   --fsr=<An|Aus>     FSR 2.2 (Hochskalierung) nur für diesen Start
+///   --renderaufloesung=<25–100> Renderauflösung in Prozent bei FSR, nur für diesen Start
 ///   --laden=datei.json einen Spielstand aus dem Spielstand-Ordner laden
 /// </summary>
 public partial class Hauptszene : Node
@@ -353,11 +357,6 @@ public partial class Hauptszene : Node
         }
         if (optionen.TryGetValue("spulen", out var spulen) && int.TryParse(spulen, out var ticks)) _spulen = ticks;
         if (optionen.TryGetValue("speichern", out var speichern)) _speichernAls = speichern;
-        if (optionen.TryGetValue("einstellungen", out var einstellungen) && einstellungen == "1")
-        {
-            SpielmenueOeffnen();
-            EinstellungenOeffnen();
-        }
         if (optionen.TryGetValue("kanten", out var kanten) && Enum.TryParse<Kantenglaettung>(kanten, true, out var art))
             Fenster.KantenglaettungSetzen(art, speichern: false); // für Vergleichsbilder, ändert die gespeicherte Wahl nicht
         if (optionen.TryGetValue("schatten", out var schatten) && Enum.TryParse<Schattenqualitaet>(schatten, true, out var stufe))
@@ -367,6 +366,22 @@ public partial class Hauptszene : Node
             var bloomAn = optionen.TryGetValue("bloom", out var bloom) ? !bloom.Equals("Aus", StringComparison.OrdinalIgnoreCase) : Fenster.BloomAn;
             var bloomProzent = optionen.TryGetValue("bloomstaerke", out var bloomStaerke) && int.TryParse(bloomStaerke, out var prozent) ? prozent : Fenster.BloomStaerke;
             Fenster.BloomSetzen(bloomAn, bloomProzent, speichern: false);
+        }
+        if (optionen.TryGetValue("ssao", out var ssao) && Enum.TryParse<Umgebungsverdeckung>(ssao, true, out var verdeckung))
+            Fenster.UmgebungsverdeckungSetzen(verdeckung, speichern: false); // ebenso
+        if (optionen.TryGetValue("ssil", out var ssil))
+            Fenster.IndirektesLichtSetzen(!ssil.Equals("Aus", StringComparison.OrdinalIgnoreCase), speichern: false);
+        if (optionen.ContainsKey("fsr") || optionen.ContainsKey("renderaufloesung")) // ebenso; was fehlt, bleibt wie eingestellt
+        {
+            var fsrAn = optionen.TryGetValue("fsr", out var fsr) ? !fsr.Equals("Aus", StringComparison.OrdinalIgnoreCase) : Fenster.FsrAn;
+            var fsrProzent = optionen.TryGetValue("renderaufloesung", out var aufloesung) && int.TryParse(aufloesung, out var anteil) ? anteil : Fenster.Renderaufloesung;
+            Fenster.FsrSetzen(fsrAn, fsrProzent, speichern: false);
+        }
+        // Erst nach den Grafikoptionen: Das Fenster zeigt beim Öffnen die dann gültigen Werte.
+        if (optionen.TryGetValue("einstellungen", out var einstellungen) && einstellungen == "1")
+        {
+            SpielmenueOeffnen();
+            EinstellungenOeffnen();
         }
         if (optionen.TryGetValue("bericht", out var bericht) && bericht == "1" && _spieler is not null)
             _jahresbericht.Zeigen(_simulation, _spieler);
