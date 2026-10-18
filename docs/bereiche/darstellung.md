@@ -24,6 +24,7 @@ So wird eingetragen (damit sich die Chats nie an derselben Stelle treffen):
 - Fahnen im Shader: Ausschlag in der Ferne ausblenden, falls es bei Zoom ganz heraus flimmert; die Shaderzeit springt einmal je Stunde (`time_rollover_secs`)
 - (von Kern) Die 3D-Stadt zum Holzschnitt-Stil passend machen (Entscheidung in `kern.md`, „Grafikstil Holzschnitt“): prüfen, was Farbpalette, Konturlinien (Umriss-Shader) und Licht dazu beitragen können, und einen Vorschlag mit Bildern machen.
 - Sonderbauten einbauen: `dom.glb` statt `SonderbauHuelle` und Turm in `DomBauen` (`Stadtansicht.Sonderbauten.cs`). Der Ursprung ist die Mitte des Langhauses (wie der Punkt der Karte), die Einrichtung bleibt; beim Hineinsehen „Dach“, „Turm“ und die Wände zur Kamera ausblenden (statt der Wände der Hülle in `Waende`). Das Portal sitzt im Turm, „Anker_Tuer“ vor den Stufen.
+- Stadtmauer einbauen: `stadtmauer.glb` statt der Quader und Türme in `Stadtmauer()` (`Stadtansicht.cs`). Entlang jeder Mauerlinie „Mauerstueck“ kacheln (4 m, auf 3–5 m streckbar, damit die Strecke aufgeht), an Ecken und Knicken „Eckturm“, etwa alle 30–40 m einen „Mauerturm“, an den Toren „Tor“ (die Mauerstücke enden bei ±7,6 m vom Tor). Die Feldseite der Teile ist +Z. Klickfläche und Schild der Tore bleiben wie bisher; „Anker_Tuer“ liegt in der Durchfahrt.
 
 ## Entscheidungen
 
@@ -292,3 +293,12 @@ So wird eingetragen (damit sich die Chats nie an derselben Stelle treffen):
 | Aussehen | Gotisch mit einem Westturm (Wunsch des Nutzers, wie der Platzhalter): Langhaus 10 × 22 m mit 12 m hohen Wänden, fünf Joche mit Strebepfeilern und Fialen, Spitzbogenfenster mit Mittelpfosten, im Chor ein großes Fenster mit zwei Pfosten, steiles Schieferdach mit Rundfenster im Chorgiebel und goldenem Kreuz. Westturm 6,5 × 6 m vor dem Portal: Spitzbogenportal mit dreifach gestuftem Gewände, Fenster, Rosette, Glockenstube mit Schallarkaden, Eckfialen, achteckiger Schieferhelm bis 42 m. | 18.10.2026 |
 | Einblick | Die Einrichtung baut weiter das Spiel. Damit man hineinsehen kann, sind die vier Wände, das Dach und der Turm eigene Knoten; innen ist das Langhaus frei (x ±4,5, y ±10,5 wie die Hülle), die Fenster haben innen dunkles Glas in einer Laibung. Vorschau `dom-innen.png` zeigt den Einblick. | 18.10.2026 |
 | Prüfung | `pruefen.py` kennt `--sonderbau`: keine Zustände und keine „Hausfarbe“ nötig. Fläche 16 × 40 m um die Mitte des Langhauses. | 18.10.2026 |
+
+### Stadtmauer als Baukasten (PR #…)
+
+| Thema | Entscheidung | Datum |
+|---|---|---|
+| Baukasten (Wunsch des Nutzers) | Ein GLB mit vier Teilen, jedes mit eigenem Ursprung im Nullpunkt, damit das Spiel die Mauer für jede Karte zusammensetzt (Quadrat der Greybox, Halbkreis von Köln): „Mauerstueck“, „Mauerturm“, „Eckturm“, „Tor“ und „Anker_Tuer“ in der Durchfahrt. Lokal X entlang der Mauer, −Y in Blender (+Z im Spiel) ist die Feldseite. | 18.10.2026 |
+| Maße | Wie bisher im Spiel: Mauer 6 m hoch und 2 m dick; Eckturm Radius 3,6 m, 11 m hoch; Torburg 16 m breit mit zwei Rundtürmen (Radius 2,6 m, 11 m) und Durchfahrt 3,6 m breit, Scheitel 5,2 m. Mauerturm Radius 2,8 m, 9,5 m hoch, steht zur Feldseite vor. | 18.10.2026 |
+| Aussehen | Haustein mit Lagerfugen und Sockel, Wehrgang mit Zinnen (Takt 2 m, damit aneinandergesetzte Stücke passen) und Schießscharten, Holzgeländer zur Stadtseite. Rundtürme mit Gesimsen, Schießscharten und Kegeldach aus Schiefer. Torburg mit Bogenring, halb hochgezogenem Fallgitter, offenen Torflügeln, Stadtwappen über der Durchfahrt und Satteldach. | 18.10.2026 |
+| Kacheln | Mauerstücke haben keine Stirnflächen: Aneinandergesetzt sind keine Fugen zu sehen; offene Enden verdecken Türme und Tore. `bericht(…, einzeln=True)` prüft das Flimmern je Teil. Vorschau `stadtmauer-aufbau.png` zeigt einen Probeaufbau mit Tor, Mauerturm und Ecke. | 18.10.2026 |
