@@ -179,6 +179,7 @@ public partial class Stadtansicht
 
     private readonly Plane[] _bildEbenen = new Plane[6];
     private Transform3D _stadtLage = Transform3D.Identity;
+    private bool _stadtVerdeckt;
     private int _figurenBild, _figurenTeiler = 1;
     private double _figurenZeit;
     private int _figurenBewegt;
@@ -191,12 +192,14 @@ public partial class Stadtansicht
         var pixelJeMeter = GetViewport().GetVisibleRect().Size.Y / _kamera.Size;
         _figurenTeiler = pixelJeMeter < FigurenDrittelRateUnter ? 3 : pixelJeMeter < FigurenHalbeRateUnter ? 2 : 1;
         _stadtLage = GlobalTransform;
+        _stadtVerdeckt = _raum is not null; // in der Raumansicht sieht man die Stadt nicht
         _figurenBild++;
     }
 
     /// <summary>Liegt der Punkt (in Koordinaten der Stadt) im Bild – mit 1,5 m Rand, damit auch Kopf und Füße am Rand mitzählen?</summary>
     private bool ImBild(Vector3 punkt)
     {
+        if (_stadtVerdeckt) return false;
         punkt = _stadtLage * punkt;
         foreach (var ebene in _bildEbenen)
             if (ebene.DistanceTo(punkt) > 1.5f) return false; // Die Ebenen zeigen nach außen
