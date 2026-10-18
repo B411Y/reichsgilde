@@ -1,4 +1,4 @@
-"""Erzeugt alle Modelle neu (Wohnhäuser, Werkstätten, Einwohnerhäuser, Sonderbauten, Umland, Natur und Figuren) und rendert die
+"""Erzeugt alle Modelle neu (Wohnhäuser, Werkstätten, Einwohnerhäuser, Sonderbauten, Umland, Natur, Figuren und Markt) und rendert die
 Übersicht der Wohnhaus-Stufen.
 
     python tools/modelle/alle.py [--schnell] [--ohne-bilder]
@@ -34,6 +34,7 @@ UMLAND = ["grube", "holzschlag", "steinbruch", "kraeutergarten", "duftgarten", "
           "wachturm"]         # Umlandbetriebe: Haus, Arbeit, Fahne, Leerstand (gemeinsame Teile in landbau.py)
 UMLANDSTELLEN = ["umland_stellen"]                       # Weide, Feld und Wald der Einwohner
 NATUR = ["natur_baeume", "natur_buesche", "natur_boden", "natur_steine", "natur_holz"]   # Baukästen, gemeinsame Teile in natur.py
+MARKT = ["markt"]             # ein Skript, schreibt marktplatz.glb (Platz und Anker) und marktstaende.glb (Baukasten)
 FIGUREN = ["figuren"]         # ein Skript, schreibt figur_mensch/zwerg/elb/halbling.glb mit Skelett und Bewegungen
 
 
@@ -95,7 +96,7 @@ def uebersicht(schnell=False, luft=0.5):
 
 def main():
     schalter = [a for a in sys.argv if a in ("--schnell", "--ohne-bilder")]
-    for name in [n for n, _ in WOHNHAEUSER] + WERKSTAETTEN + EINWOHNERHAEUSER + SONDERBAUTEN + UMLAND + UMLANDSTELLEN + NATUR + FIGUREN:
+    for name in [n for n, _ in WOHNHAEUSER] + WERKSTAETTEN + EINWOHNERHAEUSER + SONDERBAUTEN + UMLAND + UMLANDSTELLEN + NATUR + FIGUREN + MARKT:
         erzeugen(name, schalter)
     if "--ohne-bilder" not in schalter:
         print(uebersicht(schnell="--schnell" in schalter))
