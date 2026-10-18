@@ -246,3 +246,12 @@ So wird eingetragen (damit sich die Chats nie an derselben Stelle treffen):
 | Aufbau | `stadthof.glb` nach dem Muster der Wohnhäuser: „Haus“, „Wappen“, „Fahne“, „Leerstand“, „Geruest“, Anker „Anker_Tuer“ vor dem Tor. Fläche 16 × 14 m, Front (Torhaus) bei z = +5 wie in PR #111 festgelegt. Mit der Datei samt `.glb.import` zeigt das Spiel das Modell ohne Codeänderung; der Platzhalter aus Grundkörpern entfällt. Auf den Ringplätzen (8 m tief) ragt der Hof nach hinten über den Platz hinaus, wie in PR #111 entschieden. | 18.10.2026 |
 | Aussehen | Wie der Platzhalter (Wunsch des Nutzers), im hellen Haustein des Stadtpalais: hinten das Haupthaus mit drei Geschossen, Schieferdach mit der Traufe zum Hof, Treppengiebeln und Gauben, davor in der Mitte ein achteckiger Treppenturm mit Portal und spitzem Helm. Zwei Flügel mit zwei Geschossen und Treppengiebel zur Gasse. Vorn die Hofmauer mit einem Torhaus: Rundbogendurchfahrt mit Tor in der Hausfarbe, Wappen darüber, Fahne auf dem First, Prellsteine. Im Ehrenhof Pflaster, ein Brunnen und zwei Buchsbeete. | 18.10.2026 |
 | Übersicht | `alle.py` stellt den Stadthof als fünfte Stufe in `wohnhaeuser.png`. | 18.10.2026 |
+
+### Fahnen im Wind (PR folgt)
+
+| Thema | Entscheidung | Datum |
+|---|---|---|
+| Verfahren | **Vertex-Shader** statt Stoffsimulation: Die Grafikkarte biegt das Tuch mit zwei bis drei Sinuswellen vom Mast nach außen, dazu Böen; Ausschlag 0 am Mast, am freien Ende am größten. Phase aus der Weltposition, damit nicht alle im Gleichtakt flattern. Normalen aus der Ableitung, doppelseitig. Kein Skript je Bild. Verworfen: SoftBody3D (CPU je Fahne), eigene Verlet-Simulation, in Blender gebackene Animation (später möglich, falls der Shader nicht reicht). Vorschlag aus dem 3D-Physik-Chat, entschieden vom Teamleiter im Auftrag des Nutzers. | 18.10.2026 |
+| Umfang | Alle Fahnen: die Code-Fahnen (Wappenfahne, Kaserne, Wachturm, Schilderhäuschen) werden unterteilte Flächen; in den .glb-Modellen baut der Code das Tuch des Knotens „Fahne“ (Material „Hausfarbe“, 26 Ecken, ohne UV) aus seinem Umriss als feines Netz nach und blendet das alte Tuch aus – die Modelle müssen nicht neu gebaut werden. | 18.10.2026 |
+| Wind | Zuerst **fest** für alle Fahnen, als globale Shader-Uniforms (`project.godot`), damit ein Wetter später andocken kann. Die Fahne dreht sich nicht nach dem Wind. | 18.10.2026 |
+| Einstellung | „Fahnen bewegen an/aus“ in den Einstellungen kommt später (offener Punkt bei der Oberfläche). | 18.10.2026 |
