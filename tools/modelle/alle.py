@@ -32,6 +32,7 @@ EINWOHNERHAEUSER = ["einwohner_ratsherrenhaus", "einwohner_buergerhaus", "einwoh
 SONDERBAUTEN = ["dom", "rathaus", "stadtmauer"]          # Gebäude der Stadt: ohne Zustände und Hausfarbe
 UMLAND = ["grube", "holzschlag", "steinbruch", "kraeutergarten", "duftgarten", "bauernhof", "klosterhof",
           "wachturm"]         # Umlandbetriebe: Haus, Arbeit, Fahne, Leerstand (gemeinsame Teile in landbau.py)
+BERGE = ["berg_grube"]        # Felsberg hinter der Grube (eigene Datei, Knoten „Berg“)
 UMLANDSTELLEN = ["umland_stellen"]                       # Weide, Feld und Wald der Einwohner
 NATUR = ["natur_baeume", "natur_buesche", "natur_boden", "natur_steine", "natur_holz"]   # Baukästen, gemeinsame Teile in natur.py
 MARKT = ["markt"]             # ein Skript, schreibt marktplatz.glb (Platz und Anker) und marktstaende.glb (Baukasten)
@@ -98,7 +99,7 @@ def uebersicht(schnell=False, luft=0.5):
 
 def main():
     schalter = [a for a in sys.argv if a in ("--schnell", "--ohne-bilder")]
-    for name in [n for n, _ in WOHNHAEUSER] + WERKSTAETTEN + EINWOHNERHAEUSER + SONDERBAUTEN + UMLAND + UMLANDSTELLEN + NATUR + FIGUREN + MARKT + KARREN + VOEGEL:
+    for name in [n for n, _ in WOHNHAEUSER] + WERKSTAETTEN + EINWOHNERHAEUSER + SONDERBAUTEN + UMLAND + BERGE + UMLANDSTELLEN + NATUR + FIGUREN + MARKT + KARREN + VOEGEL:
         erzeugen(name, schalter)
     if "--ohne-bilder" not in schalter:
         print(uebersicht(schnell="--schnell" in schalter))
