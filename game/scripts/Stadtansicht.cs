@@ -515,23 +515,25 @@ public partial class Stadtansicht : Node3D
     }
 
 
+    /// <summary>
+    /// Die vier Kulissenhäuser (<see cref="KulissePlaetze"/>, Tür zur nächsten Gasse) als Modell <c>einwohner_buergerhaus</c> – Variante und
+    /// gedeckte Hausfarbe nach der Reihenfolge wie bei den Einwohnerhäusern (<see cref="Hausfarben"/>). Die Einwohner, die dort wohnen,
+    /// gehen weiter zur Haustür im Gassennetz (Wohnviertel.cs); einen Anker braucht es nicht.
+    /// Frei bleiben: (−11|−29) Tinkturei am Domplatz, (−24,5|−29) Siederei, (19|−29) und (28|−29) Maurerei Kieselbach, (−29|29) Schänke am Fischmarkt,
+    /// (29|29) Maurerei an der Stadtmauer, (−29|±6) Kirche an der Westmauer, (29|−12) Schmugglerloch, (29|10) Wachhaus, (14|−18) Wechselstube.
+    /// </summary>
     private void Wohnhaeuser()
     {
-        // Feste Liste – jede Partie sieht gleich aus. Später erzeugt der Stadtplan die Häuser.
-        var haeuser = new (float X, float Z, bool Quer)[]
-        {
-            (10, -29, true), // (−11|−29): Tinkturei am Domplatz; (−24,5|−29): Siederei an der Seifengasse; (19|−29), (28|−29): Maurerei Kieselbach
-            (-4, 29, true), (5, 29, true), // (−29|29): Schänke am Fischmarkt; (29|29): Maurerei an der Stadtmauer
-            // (−29|±6): Kirche an der Westmauer; (29|−12): Schmugglerloch am Osttor; (29|10): Wachhaus an der Torstraße;
-            // (14|−18): Wechselstube am Markt
-            (-29, 18, false),
-        };
         var i = 0;
-        foreach (var (x, z, quer) in haeuser)
+        foreach (var platz in KulissePlaetze())
         {
-            var wand = i % 3 == 0 ? Fachwerk : Putz;
-            var dach = i % 4 == 0 ? Schiefer : Ziegel;
-            Haus(new Vector3(x, 0, z), new Vector3(7, 6 + i % 3, 6), wand, dach, quer);
+            var gruppe = new Node3D { Name = $"Kulissenhaus_{i}", Position = platz.Mitte, Rotation = new Vector3(0, Mathf.Atan2(platz.Vorne.X, platz.Vorne.Z), 0) };
+            AddChild(gruppe);
+            // Die Hauswand steht 3 m von der Mitte entfernt zur Gasse hin (wie die Wand des alten Quaders). Das Haus bei (−29|18) rückt 1,5 m
+            // nach hinten: Sonst stößt es an die Halle der Werkstatt am Weinmarkt (16 × 14 m).
+            var wand = platz.Vorne == Vector3.Right ? 1.5f : 3f;
+            ModellEinsetzen(EinwohnerDatei(Reichsgilde.Core.Buerger.Hausart.Buergerhaus), gruppe, new Vector3(0, 0, wand - EinwohnerFront(Reichsgilde.Core.Buerger.Hausart.Buergerhaus)),
+                new ModellZustand(Variante: i % 3 + 1, Besitzer: Hausfarben[i % Hausfarben.Length]));
             i++;
         }
     }
