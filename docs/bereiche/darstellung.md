@@ -369,6 +369,11 @@ So wird eingetragen (damit sich die Chats nie an derselben Stelle treffen):
 | Jahreszeiten (Wunsch des Nutzers) | Über Materialien: Laub trägt nur „Laub“, „Laub hell“ und „Laub dunkel“, das Spiel färbt sie um. Nadeln, Gras, Farn, Blüten, Rinde und Steine bleiben. | 18.10.2026 |
 | Sparsamkeit | Ein Baum hat 40–220 Dreiecke, eine Bodenpflanze 10–115: Davon stehen im Umland Hunderte. | 18.10.2026 |
 
+### Schatten ohne LOD (PR #139)
+
+| Thema | Entscheidung | Datum |
+|---|---|---|
+| LOD im Schatten | Godot wählt die beim Import erzeugten vereinfachten Fassungen der Modelle (LOD) auch für den Schatten, aus Sicht der Sonne und darum sehr grob: Spitzdächer der Türme, Zinnen und der Balken über dem Fallgitter warfen keinen Schatten (vom Nutzer im Klicktest bemerkt). Jetzt `MeshLodThreshold = 0` für das Spielfenster, die Modelle werden immer ganz gezeichnet; die Modelle und ihre Import-Einstellungen bleiben unverändert. Kosten (lavapipe, 800 × 450, gemessen auf main 1cf59e5 + diesem PR): Markt Zoom 45 ≈ 448 → 479 ms je Bild (+7 %), ganze Stadt Zoom 95 ≈ 492 → 538 ms (+9 %). Entschieden vom Teamleiter auf Frage des Nutzers. | 18.10.2026 |
 ### Passanten als 3D-Figuren mit Bewegungen (PR #141)
 
 | Thema | Entscheidung | Datum |
