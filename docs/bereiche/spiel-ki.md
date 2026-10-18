@@ -86,6 +86,13 @@ So wird eingetragen (damit sich die Chats nie an derselben Stelle treffen):
 | Notverkauf | Vor dem Bankrott verkauft die KI unter den Betrieben, deren Verkauf das Minus zum Jahresabschluss **allein deckt**, den mit dem schlechtesten Gewinn. Reicht keiner allein, wie bisher den schlechtesten, und in der nächsten Stunde den nächsten. Was ein Verkauf bringt (`Verkaufswirkung`): Erlös + Löhne und Unterhalt, die zum Jahresende entfallen − was der Betrieb im Rest des Jahres noch eingebracht hätte. Entschieden vom Nutzer. | 18.10.2026 |
 | Sparziel | Geprüft: `Standziel` = Schwelle passt. Der Hauswert zählt seit Kern PR #85 ganz zum Reinvermögen (Ausbau, Neubau und Leerstand tauschen Bargeld gegen Hauswert), nur die Gebühr senkt es. Ab 80 % der Schwelle spart die KI, und Ausbau, Gebühr und Reserve müssen bar da sein – die Messung zeigt kein Haus, das jahrelang spart, ohne aufzusteigen. Ersetzt „80 % des Standziels (Schwelle + nötiger Ausbau)“ aus PR #82. | 18.10.2026 |
 
+### Warenkorb ohne Abneigung (PR #127)
+
+| Thema | Entscheidung | Datum |
+|---|---|---|
+| Rollen | **Keine Abneigung:** Arme (Tagelöhner, Knecht, Hirte, Feldarbeiter, Holzsammler, Bettler) kaufen günstige Waren ×1,15, teure aber ×1,0 statt ×0,85; Ratsherren und Bürgersöhne teure ×1,3, günstige ×1,0 statt ×0,85. Die meisten Einkaufenden sind arm, und die ausgebauten Werkstätten stellen vor allem teure Waren her – die Abneigung kostete die Häuser 3–6 % Vermögen nach 30 Jahren, jetzt etwa die Hälfte. Völker, Mönche und Spanne (±10 %) bleiben. Entschieden vom Nutzer. Damit ist der offene Punkt des Kerns („Kalibrierung prüfen“) erledigt. | 18.10.2026 |
+| Verworfen | Spanne halbieren (±5 %): in der Messung nicht besser (im Rauschen), und die Völker sind kaum noch zu sehen. Die Nachfrage nach dem Umsatz der Häuser statt nach den Daten gewichten: Eichwald −11 %, und Speichern/Laden mitten in der Stunde liefe nicht mehr gleich weiter. | 18.10.2026 |
+
 ## Messungen
 
 Neue Messungen der Spiel-KI stehen hier (mit main-Commit), nicht mehr in `docs/WIRTSCHAFTSMODELL.md`. Ältere: dort bis §42 (Taschendiebe, PR #69).
@@ -197,3 +204,23 @@ Gemessen auf main `cd6a466` + PR #123, `messen 30 20` (Spieler Mensch, passiv), 
 
 - **Gleich auf die Zahl:** In den Messungen steht kein KI-Betrieb ein Viertel des Jahres ohne Personal, und kein Haus kommt in Not. Die neuen Regeln greifen nur im Ausnahmefall (die Tests in `KiVerkaufTests` zeigen ihn).
 - **Sparziel:** Kein Haus spart länger als 5 Jahre in Folge; danach steigt es auf oder baut. Die längste Folge hat die wagemutige Eisenbart-KI vor dem Freiherrn (100.000 und ein Stadthof). Die Sparlogik passt also zur Schwelle als Ziel.
+
+### Warenkorb ohne Abneigung (PR #127)
+
+Gemessen auf main `1209ff2` + PR #127, `messen 30 20` (Spieler Mensch, passiv), 20 Partien × 30 Jahre. „Ohne Warenkorb“ = `buerger.warenkorb.spanne` 0 zum Vergleich. Vermögen Ø am Ende, in Klammern gegen „ohne Warenkorb“:
+
+| Messung | Haus | ohne Warenkorb | bisher | ohne Abneigung |
+|---|---|---|---|---|
+| Köln, ausgewogen | Eisenbart (Spieler) | 167.673 | 158.436 (−5,5 %) | 163.070 (−2,7 %) |
+| | Eichwald | 103.416 | 97.265 (−5,9 %) | 97.608 (−5,6 %) |
+| | Kieselbach | 142.722 | 137.862 (−3,4 %) | 141.735 (−0,7 %) |
+| Köln, wagemutig | Eisenbart (Spieler) | 91.270 | 89.015 (−2,5 %) | 90.307 (−1,1 %) |
+| | Eichwald | 67.801 | 57.458 (−15,3 %) | 59.696 (−12,0 %) |
+| | Kieselbach | 67.581 | 77.743 (+15,0 %) | 67.650 (+0,1 %) |
+| Greybox, ausgewogen | Eisenbart (Spieler) | 168.691 | 157.689 (−6,5 %) | 162.635 (−3,6 %) |
+| | Eichwald | 104.280 | 96.805 (−7,2 %) | 97.509 (−6,5 %) |
+| | Kieselbach | 143.029 | 138.480 (−3,2 %) | 142.891 (−0,1 %) |
+
+- Eisenbart und Kieselbach verlieren nur noch 0–4 %. **Eichwald** (Tischler) bleibt bei etwa −6 %: Schrank und Prunktruhe sind teure Holzwaren, die außer Ratsherren und Bürgersöhnen niemand bevorzugt, und Holzwaren sind nur bei Halblingen beliebt. Das ist die gewollte Färbung der Standardstadt.
+- Die wagemutigen Zeilen schwanken stark (Kieselbach +15 % bisher ist Rauschen der Gaunerstücke, nicht der Warenkorb).
+- Stand der KI-Häuser am Ende (Köln, ausgewogen): Edler 3, Freiherr 57 (bisher Edler 5, Freiherr 55); kein Haus bankrott. Alle Tests unverändert grün, auch „Zwei Gießereien teilen sich den Silberring-Markt“.
