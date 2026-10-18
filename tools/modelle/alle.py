@@ -23,7 +23,7 @@ WOHNHAEUSER = [("fachwerkhaus", "Fachwerkhaus – Gemeiner"), ("buergerhaus", "B
                ("steinhaus", "Steinhaus – Patrizier"), ("stadtpalais", "Stadtpalais – Edler")]
 WERKSTAETTEN = ["schmied", "tischler", "steinmetz", "alchimist", "wirt", "prediger", "dieb", "gardist", "geldleiher",
                 "parfumeur"]          # je Beruf ein Modell mit Stufe1–Stufe3
-EINWOHNERHAEUSER = ["einwohner_ratsherrenhaus", "einwohner_buergerhaus"]      # je Hausart ein Modell mit Variante1–Variante3
+EINWOHNERHAEUSER = ["einwohner_ratsherrenhaus", "einwohner_buergerhaus", "einwohner_wohnhaus"]      # je Hausart ein Modell mit Variante1–Variante3
 
 
 def erzeugen(name, schalter):
