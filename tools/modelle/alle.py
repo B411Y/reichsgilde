@@ -1,4 +1,5 @@
-"""Erzeugt alle Modelle neu (Wohnhäuser, Werkstätten und Einwohnerhäuser) und rendert die Übersicht der Wohnhaus-Stufen.
+"""Erzeugt alle Modelle neu (Wohnhäuser, Werkstätten, Einwohnerhäuser, Sonderbauten und Umland) und rendert die
+Übersicht der Wohnhaus-Stufen.
 
     python tools/modelle/alle.py [--schnell] [--ohne-bilder]
     blender -b --python tools/modelle/alle.py -- [--schnell]
@@ -29,6 +30,9 @@ WERKSTAETTEN = ["schmied", "tischler", "steinmetz", "alchimist", "wirt", "predig
                 "parfumeur"]          # je Beruf ein Modell mit Stufe1–Stufe3
 EINWOHNERHAEUSER = ["einwohner_ratsherrenhaus", "einwohner_buergerhaus", "einwohner_wohnhaus"]      # je Hausart ein Modell mit Variante1–Variante3
 SONDERBAUTEN = ["dom", "rathaus", "stadtmauer"]          # Gebäude der Stadt: ohne Zustände und Hausfarbe
+UMLAND = ["grube", "holzschlag", "steinbruch", "kraeutergarten", "duftgarten", "bauernhof", "klosterhof",
+          "wachturm"]         # Umlandbetriebe: Haus, Arbeit, Fahne, Leerstand (gemeinsame Teile in landbau.py)
+UMLANDSTELLEN = ["umland_stellen"]                       # Weide, Feld und Wald der Einwohner
 
 
 def erzeugen(name, schalter):
@@ -89,7 +93,7 @@ def uebersicht(schnell=False, luft=0.5):
 
 def main():
     schalter = [a for a in sys.argv if a in ("--schnell", "--ohne-bilder")]
-    for name in [n for n, _ in WOHNHAEUSER] + WERKSTAETTEN + EINWOHNERHAEUSER + SONDERBAUTEN:
+    for name in [n for n, _ in WOHNHAEUSER] + WERKSTAETTEN + EINWOHNERHAEUSER + SONDERBAUTEN + UMLAND + UMLANDSTELLEN:
         erzeugen(name, schalter)
     if "--ohne-bilder" not in schalter:
         print(uebersicht(schnell="--schnell" in schalter))
