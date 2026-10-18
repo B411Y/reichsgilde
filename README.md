@@ -101,9 +101,11 @@ Die Reichsstadt ist als begehbare Schrägansicht zu sehen: Mauer (100 × 100 m) 
 
 **Tag und Nacht.** Sonne und Mond wandern über den Himmel und werfen beide Schatten; in der Dämmerung blenden sie weich über.
 
-**Fahnen im Wind.** Alle Fahnen der Stadt flattern: auf den Wohnhäusern, am Wachturm, am Schilderhäuschen der Wache und als Wandbehang an den Werkstätten. Das Tuch hängt am Mast fest und schlägt am freien Ende am stärksten aus; Falten fangen Licht und Schatten. Jede Fahne flattert in ihrem eigenen Takt. Die Grafikkarte rechnet das mit einem kleinen Programm (Shader), der Wind ist für alle gleich und fest.
+**Fahnen im Wind.** Alle Fahnen der Stadt flattern: auf den Wohnhäusern, am Wachturm, am Schilderhäuschen der Wache und auf den Werkstätten. Das Tuch hängt am Mast fest und schlägt am freien Ende am stärksten aus; Falten fangen Licht und Schatten. Jede Fahne flattert in ihrem eigenen Takt. Die Grafikkarte rechnet das mit einem kleinen Programm (Shader), der Wind ist für alle gleich und fest.
 
-**Verkaufte Werkstätten.** Wer eine Werkstatt verkauft, lässt das Haus stehen: in seiner Stufe (Gaube, Dachreiter) und seinem Werkstil, aber ohne Wappenfahne, die Tür mit zwei Brettern verriegelt, davor das ockerfarbene Schild „zu verkaufen“. Ein Klick darauf bietet es zum Kauf an; betreten lässt es sich erst wieder nach dem Kauf. Eine gekündigte Pacht wird wieder leere Grube bzw. freier Umlandplatz mit grünem Schild.
+**Verkaufte Werkstätten.** Wer eine Werkstatt verkauft, lässt das Haus stehen: in seiner Stufe, aber ohne Wappen und Fahne, Tor und Fenster vernagelt, die Scheiben dunkel, davor das ockerfarbene Schild „zu verkaufen“. Ein Klick darauf bietet es zum Kauf an; betreten lässt es sich erst wieder nach dem Kauf. Eine gekündigte Pacht wird wieder leere Grube bzw. freier Umlandplatz mit grünem Schild.
+
+**Werkstätten als Modelle.** Die zehn Werkstätten der Stadt (Schmied, Tischler, Steinmetz, Alchimist, Wirt, Prediger, Dieb, Gardist, Geldleiher, Parfumeur) stehen als Modelle aus Blender da, nicht mehr als Quader: Jede Stufe zeigt ihren Ausbau (zum Beispiel Gießerei, Schmiede, Goldschmiede), beim Umbau steht ein Gerüst davor, Tür, Fensterläden, Wappen und Fahne tragen die Farbe des Hauses. Wird gearbeitet, **glüht** die Esse, der Ofen oder der Athanor der Werkstatt, sonst nicht. **Bei Nacht brennt Licht in den Fenstern** (ab etwa 18:30 und bis 6:30 Uhr), in leeren und verkauften Häusern bleibt es dunkel. Karren halten am Halteplatz vor dem Tor des Modells. Die Modelle sind 16 × 14 m groß: In der alten Stadt, deren Plätze für 10 × 8 m gezeichnet sind, stehen sie näher beieinander, als es ihre Fläche erlaubt.
 
 </details>
 

@@ -869,11 +869,11 @@ public partial class Stadtansicht : Node3D
         var vorher = GetChildCount(); // alles ab hier kommt in die Gruppe des leeren Hauses
         var modell = ModellEinsetzen(WerkstattModellDatei(art.Beruf), this, p + WerkstattModellVersatz,
                                      new ModellZustand(Stufe: Modellstufe(art.Stufe), Leerstand: true));
-        Verkaufsschild(p + new Vector3(-4, 0, tiefe / 2 + 1.6f), frei.IstPacht);
+        Verkaufsschild(p + new Vector3(3.5f, 0, tiefe / 2 + 1.6f), frei.IstPacht); // rechts vom Tor: links stehen in den Modellen Vordach und Karrenplatz
         if (Stadtplan.ContainsKey(frei.Name)) GasseZiehen(p, Gasse(frei.Name, p)); // neu gebaute Werkstätten haben ihren Weg vom Grundstück
 
         var kennung = LiegenschaftKennung(frei.Name);
-        Klickflaeche(kennung, p + new Vector3(0, 4, 1), new Vector3(10, 8, 10)); // mit dem Schild vor der Tür
+        Klickflaeche(kennung, p + new Vector3(0, 5, 0), new Vector3(14, 10, 14)); // das Gebäude des Modells mit dem Schild vor der Tür
         Beschriftung($"{frei.Name}\n{(frei.IstPacht ? "zu verpachten" : "zu verkaufen")}",
             p + new Vector3(0, GebaeudeSchildHoehe.GetValueOrDefault(frei.Name, 13), 0), 36, kennung: kennung);
         var gruppe = InGruppe("Leer_" + frei.Name.Replace(" ", "_"), vorher);
@@ -891,8 +891,8 @@ public partial class Stadtansicht : Node3D
     }
 
     /// <summary>
-    /// Werkstattarten nach Beruf (<see cref="Werkstil"/>): bestimmt die Einrichtung des Innenraums und die Wände der Innenansicht.
-    /// Von außen steht das Modell des Berufs (Stufe, Gerüst, Besitzerfarbe, Glut bei der Arbeit); jede Werkstatt hat einen Innenraum (Diorama).
+    /// Werkstattarten nach Beruf (<see cref="Werkstil"/>): bestimmt die Einrichtung der Räume (Raumansicht, siehe Stadtansicht.Raeume.cs).
+    /// Von außen steht das Modell des Berufs (Stufe, Gerüst, Besitzerfarbe, Glut bei der Arbeit).
     /// </summary>
     private enum Werkstil { Giesserei, Tischlerei, Maurerei, Tinkturei, Schaenke, Kirche, Diebesnest, Wache, Bank, Siederei }
 
@@ -902,9 +902,9 @@ public partial class Stadtansicht : Node3D
         const float breite = 10, tiefe = 8, dicke = 0.4f;
         var modell = ModellEinsetzen(WerkstattModellDatei(betrieb.Artdaten.Beruf), this, p + WerkstattModellVersatz,
                                      new ModellZustand(Stufe: Modellstufe(betrieb.Stufe), Geruest: betrieb.UmbauMinuten > 0, Besitzer: besitzer), betrieb.Name);
-        var waende = InnenSchaleBauen(p, stil);
 
-        Klickflaeche(BetriebsKennung(betrieb), p + new Vector3(0, 4, 0), new Vector3(breite, 8, tiefe));
+        // Klickfläche: das Gebäude des Modells (Halle und Anbauten), nicht der Hof ringsum
+        Klickflaeche(BetriebsKennung(betrieb), p + WerkstattModellVersatz + new Vector3(0, 5, 0), new Vector3(14, 10, 12));
         var schild = Beschriftung(betrieb.Name, p + new Vector3(0, GebaeudeSchildHoehe.GetValueOrDefault(betrieb.Name, 13), 0), 44, kennung: BetriebsKennung(betrieb));
 
         // Weg zur nächsten Gasse und dann zum Markt (eine neu gebaute Werkstatt: über das Gassennetz, gezeichnet von BetriebHinzufuegen)
@@ -924,49 +924,9 @@ public partial class Stadtansicht : Node3D
             GezeigteStufe = betrieb.Stufe,
             GezeigterUmbau = betrieb.UmbauMinuten > 0,
         };
-        ansicht.Waende.AddRange(waende);
         Innenraum(ansicht, stil, breite, tiefe, dicke);
         if (betrieb.UmbauMinuten > 0) StufeZeigen(ansicht); // die Beschriftung „(Umbau)“
         return ansicht;
-    }
-
-    /// <summary>
-    /// Die vier Wände der Innenansicht (10 × 8 m, 6 m hoch, 0,4 m dick): Von außen sind sie unsichtbar, denn dort steht das Modell. Betritt man die
-    /// Werkstatt, verschwindet das Modell, und die Wände (je Werkstil in Fachwerk, Stein, Putz oder morschem Holz) fassen den Innenraum ein –
-    /// die zur Kamera zeigenden werden wie bisher ausgeblendet (<see cref="Aufschneiden"/>, <see cref="InnenraumZeigen"/>).
-    /// </summary>
-    private List<(Node3D Wand, Vector3 Aussen)> InnenSchaleBauen(Vector3 p, Werkstil stil)
-    {
-        const float breite = 10, tiefe = 8, hoehe = 6, dicke = 0.4f;
-        var wandFarbe = Material(stil switch
-        {
-            Werkstil.Maurerei or Werkstil.Kirche or Werkstil.Wache => Mauerstein, // Steinmetz, Kirche und Wache bauen massiv
-            Werkstil.Tinkturei or Werkstil.Bank => Putz,
-            Werkstil.Diebesnest => Morsch,                      // verwittertes Holz, schief geflickt
-            _ => Fachwerk,
-        });
-        var waende = new (string Name, Vector3 Mitte, Vector3 Groesse, Vector3 Aussen)[]
-        {
-            ("Nordwand", new(0, hoehe / 2, -tiefe / 2 + dicke / 2), new(breite, hoehe, dicke), Vector3.Forward),
-            ("Suedwand", new(0, hoehe / 2, tiefe / 2 - dicke / 2), new(breite, hoehe, dicke), Vector3.Back),
-            ("Westwand", new(-breite / 2 + dicke / 2, hoehe / 2, 0), new(dicke, hoehe, tiefe - 2 * dicke), Vector3.Left),
-            ("Ostwand", new(breite / 2 - dicke / 2, hoehe / 2, 0), new(dicke, hoehe, tiefe - 2 * dicke), Vector3.Right),
-        };
-        var ergebnis = new List<(Node3D, Vector3)>();
-        foreach (var (name, mitte, groesse, aussen) in waende)
-        {
-            var wand = Quader(p + mitte, groesse, wandFarbe);
-            wand.Name = name;
-            // Balken des Fachwerks: dunkle Leisten oben und unten auf der Außenseite
-            var leiste = Material(Holz);
-            var laenge = Mathf.Max(groesse.X, groesse.Z) + 0.1f;
-            var leistenGroesse = aussen.X != 0 ? new Vector3(0.12f, 0.3f, laenge) : new Vector3(laenge, 0.3f, 0.12f);
-            foreach (var y in new[] { -hoehe / 2 + 0.15f, 0.2f, hoehe / 2 - 0.15f })
-                Quader(aussen * (dicke / 2 + 0.06f) + new Vector3(0, y, 0), leistenGroesse, leiste, wand);
-            wand.Visible = false; // sichtbar erst in der Innenansicht
-            ergebnis.Add((wand, aussen));
-        }
-        return ergebnis;
     }
 
     /// <summary>
@@ -1485,8 +1445,7 @@ public partial class Stadtansicht : Node3D
         ansicht.Innen!.Visible = innen;
         if (ansicht.Dach is not null) ansicht.Dach.Visible = !innen;
         if (ansicht.Schild is not null) ansicht.Schild.Visible = !innen;
-        // Von außen stehen die Wände eines Gebäudes (Rathaus, Dom); bei den Werkstätten sind es nur die Wände der Innenansicht – dort steht von außen das Modell.
-        foreach (var (wand, _) in ansicht.Waende) wand.Visible = ansicht is not BetriebsAnsicht { Modell: not null } || innen;
+        foreach (var (wand, _) in ansicht.Waende) wand.Visible = true;
         // Drinnen treffen Klicks die Räume, draußen das ganze Gebäude.
         if (ansicht.Aussenklick is not null) ansicht.Aussenklick.Disabled = innen;
         foreach (var raum in ansicht.Raumklicks) raum.Disabled = !innen;
