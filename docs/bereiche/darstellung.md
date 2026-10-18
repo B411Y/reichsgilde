@@ -383,6 +383,11 @@ So wird eingetragen (damit sich die Chats nie an derselben Stelle treffen):
 | Umsetzung: Form | Mischung `Screen`, Glow-Stufen 2–5 mit 0,5 / 1 / 1 / 0,6 (Hof um die Quelle, kein Nebel), `GlowHdrLuminanceCap` 12. Gleiche Einstellung für Stadt (`_umgebung`) und Raumansicht (`_raumUmgebung`), beide über `Stadtansicht.BloomAnwenden`; `Fenster.BloomSetzen` löst `BloomGeaendert` aus, darum wirkt eine Änderung ohne Neustart. | 18.10.2026 |
 | Umsetzung: Stärke | `GlowIntensity = 2,6 · (Prozent/100)^1,8`: 50 % = 0,75 (dezenter Schein, am Dom und an den Fenstern deutlich, aber nicht aufdringlich), 100 % = 2,6 (kräftig, die Glut der Esse strahlt in den Raum, nicht grell), 25 % ≈ 0,2. 0 % oder Aus schaltet den Glow ganz ab (`GlowEnabled` aus, Bild wie vorher). Gespeichert in `user://einstellungen.cfg`, Abschnitt `anzeige`, Schlüssel `bloom` und `bloomstaerke`; fehlen sie, gilt An mit 50 %. | 18.10.2026 |
 | Umsetzung: Leistung | Gemessen mit Vulkan/lavapipe (Software-Rendering auf dem Prozessor, nur ein Richtwert), 800 × 450, Markt um 21 Uhr, Mittel von 40 Bildern, zwei Läufe: Aus 304 / 304 ms je Bild, 50 % 342 / 354 ms, 100 % 346 / 344 ms – etwa **+15 %**, unabhängig von der Stärke. Der Glow rechnet vier Unschärfestufen auf verkleinertem Bild; auf einer Grafikkarte kostet das erwartungsgemäß weniger, gemessen ist es nicht (offener Punkt). | 18.10.2026 |
+### Schatten ohne LOD (PR #139)
+
+| Thema | Entscheidung | Datum |
+|---|---|---|
+| LOD im Schatten | Godot wählt die beim Import erzeugten vereinfachten Fassungen der Modelle (LOD) auch für den Schatten, aus Sicht der Sonne und darum sehr grob: Spitzdächer der Türme, Zinnen und der Balken über dem Fallgitter warfen keinen Schatten (vom Nutzer im Klicktest bemerkt). Jetzt `MeshLodThreshold = 0` für das Spielfenster, die Modelle werden immer ganz gezeichnet; die Modelle und ihre Import-Einstellungen bleiben unverändert. Kosten (lavapipe, 800 × 450, gemessen auf main 1cf59e5 + diesem PR): Markt Zoom 45 ≈ 448 → 479 ms je Bild (+7 %), ganze Stadt Zoom 95 ≈ 492 → 538 ms (+9 %). Entschieden vom Teamleiter auf Frage des Nutzers. | 18.10.2026 |
 ### Passanten als 3D-Figuren mit Bewegungen (PR #141)
 
 | Thema | Entscheidung | Datum |
