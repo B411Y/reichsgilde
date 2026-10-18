@@ -255,7 +255,7 @@ So wird eingetragen (damit sich die Chats nie an derselben Stelle treffen):
 | Aussehen | Wie bisher im Spiel verputzt mit Giebel zur Gasse: Variante 1 heller Kalkputz, Fachwerkgiebel, Ziegel. Variante 2 rötlicher Putz, verputzter Giebel mit Ladeluke und Kranbalken, Schiefer. Variante 3 grauer Putz, vorkragender Fachwerkgiebel auf Balkenköpfen, Ziegel, im Erdgeschoss ein Laden mit heruntergeklappter Auslage und Vordach. Fenster mit hellen Putzfaschen und Läden, Haustür rechts. | 18.10.2026 |
 | Hausfarbe | Läden, Tür und Auslage tragen „Hausfarbe“, im Modell ein gedecktes Grün. | 18.10.2026 |
 
-### Einfaches Wohnhaus der Einwohner als 3D-Modell (PR #…)
+### Einfaches Wohnhaus der Einwohner als 3D-Modell (PR #128)
 
 | Thema | Entscheidung | Datum |
 |---|---|---|
