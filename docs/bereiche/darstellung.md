@@ -312,3 +312,12 @@ So wird eingetragen (damit sich die Chats nie an derselben Stelle treffen):
 | Aussehen (Wunsch des Nutzers) | Markthalle mit Fachwerk, wie der Platzhalter verputzt mit Fachwerk: Erdgeschoss aus Haustein, vorn vier und links ein Rundbogen auf Pfeilern zu einer offenen Markthalle mit Pflaster, Balkendecke, Stadtwaage, Bank und dem Portal; darüber der Ratssaal in Fachwerk mit Andreaskreuzen, Läden in Stadtrot mit weißem Streifen und dem Stadtwappen (roter Schild, weißes Kreuz). Schieferdach mit der Traufe zum Markt, Fachwerkgiebel, zwei Gauben. Vorn rechts ein Uhrturm aus Haustein mit Zifferblättern nach vorn und zur Seite, Glockenstube und spitzem Helm (23 m). | 18.10.2026 |
 | Maße | Haus 15 × 9 m, mit Dachüberstand genau die 16 × 10 m der Karte; der Uhrturm steht 0,25 m vor. | 18.10.2026 |
 | Farben | Keine Hausfarbe: Läden und Türen nehmen Stadtrot (im Skript wird „Hausfarbe“ auf Stadtrot gelegt, das Material heißt im GLB „Stadtrot“). | 18.10.2026 |
+
+### Licht und Schatten (PR folgt)
+
+| Thema | Entscheidung | Datum |
+|---|---|---|
+| Dämmerung | **Lange Dämmerung:** Abendrot ab etwa 18 Uhr, die Sonne sinkt bis 20 Uhr weich zum Horizont und blendet aus, der Mond blendet erst danach ein – getrennt, ohne Sprung in Richtung, Farbe oder Stärke. Richtig Nacht ab etwa 21 Uhr. 22 Uhr und 5 Uhr sehen ähnlich aus (Nacht bzw. Morgengrauen); der Sprung über den Jahreswechsel wird kurz überblendet. Das Fensterlicht folgt weich. Entschieden vom Nutzer. Anlass: Um 20 Uhr sprang dasselbe Licht von der Sonne zum Mond (Farbe, Stärke und Schattenrichtung in einem Bild). | 18.10.2026 |
+| Schatten | Schatten sollen am Fuß der Objekte ansetzen (kein „Schweben“ der Figuren und Fahnen) und nach dem Stand der Technik in Godot 4.7 das Beste aus Qualität und Leistung holen. | 18.10.2026 |
+| Einstellung | **Schattenqualität** (niedrig, mittel, hoch) gleich mit in die Einstellungen; die beste Stufe ist der Standard. Entschieden vom Nutzer. | 18.10.2026 |
+| Zuschnitt | Ein Mitglied „licht“ für Tag/Nacht und Schatten (derselbe Code), auf **Opus** statt Sonnet: Recherche und Urteil über Bildqualität. Entschieden vom Teamleiter. | 18.10.2026 |
