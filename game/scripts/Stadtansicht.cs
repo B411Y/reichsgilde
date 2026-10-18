@@ -40,7 +40,6 @@ public partial class Stadtansicht : Node3D
     private static readonly Color Ziegel = new(0.55f, 0.25f, 0.18f);
     private static readonly Color Schiefer = new(0.28f, 0.30f, 0.34f);
     private static readonly Color Fels = new(0.40f, 0.37f, 0.34f);
-    private static readonly Color Tanne = new(0.16f, 0.27f, 0.17f);
     private static readonly Color Holz = new(0.36f, 0.25f, 0.16f);
     private static readonly Color Spieler = new(0.20f, 0.42f, 0.72f);
     private static readonly Color Rivale = new(0.70f, 0.20f, 0.16f);
@@ -49,7 +48,6 @@ public partial class Stadtansicht : Node3D
     private static readonly Color Bruchstein = new(0.68f, 0.65f, 0.60f);
     private static readonly Color Kraut = new(0.30f, 0.52f, 0.25f);
     private static readonly Color Wasser = new(0.25f, 0.42f, 0.55f);
-    private static readonly Color Korn = new(0.80f, 0.68f, 0.30f);
     private static readonly Color Morsch = new(0.33f, 0.29f, 0.25f);
 
     private const float KameraMinZoom = 25f;
@@ -231,6 +229,8 @@ public partial class Stadtansicht : Node3D
         public ModellInstanz? Modell { get; init; }
         /// <summary>Glühen die Essen und Öfen des Modells (Material „Glut“) gerade? Geschaltet wird nur beim Wechsel.</summary>
         public bool Glueht { get; set; }
+        /// <summary>Abstand zweier Karren nebeneinander am Halteplatz (der n-te steht n-mal so weit weg): bei Werkstätten 3 m nach Osten, im Umland entlang der Vorderkante des gedrehten Modells.</summary>
+        public Vector3 KarrenReihe { get; init; } = new(3, 0, 0);
 
         // ── nur bei Werkstätten mit Innenraum ──
         public Werkstil Stil { get; set; }
@@ -487,28 +487,6 @@ public partial class Stadtansicht : Node3D
         }
     }
 
-    private void Wald()
-    {
-        // Deterministischer „Zufall" – gleiche Bäume bei jedem Start.
-        var zufall = new Random(1400);
-        for (var i = 0; i < 70; i++)
-        {
-            var winkel = zufall.NextDouble() * Math.Tau;
-            var abstand = 48 + zufall.NextDouble() * 50;
-            var p = NachAussen(new Vector3((float)(Math.Cos(winkel) * abstand) + 10, 0, (float)(Math.Sin(winkel) * abstand)));
-            if (ImWegFuerWald(p)) continue; // Stadt, Gruben und Straßen frei lassen
-            var hoehe = 6 + (float)zufall.NextDouble() * 5;
-            if (AufBauzone(p)) continue;     // die Bauzonen der Karte bleiben frei (der Zufall läuft weiter wie bisher)
-            var baum = new MeshInstance3D
-            {
-                Mesh = new CylinderMesh { TopRadius = 0, BottomRadius = 2.2f, Height = hoehe, RadialSegments = 7 },
-                MaterialOverride = Material(Tanne),
-                Position = p + new Vector3(0, hoehe / 2, 0),
-            };
-            AddChild(baum);
-        }
-    }
-
     /// <summary>
     /// Die Stadt war früher 72 m breit (Mauer bei ±36), jetzt 100 m (±50). Alles, was vor der alten Mauer lag,
     /// rückt dafür um 14 m nach außen – so bleibt die Umgebung, wie sie war, nur mit einem neuen Ring innen.
@@ -523,20 +501,20 @@ public partial class Stadtansicht : Node3D
         return new Vector3(p.X > alt ? p.X + dazu + vorstadt : Schieben(p.X), p.Y, Schieben(p.Z));
     }
 
-    /// <summary>Liegt dieser Punkt auf einer Grube oder einem Weg? Dort wachsen keine Bäume.</summary>
+    /// <summary>Liegt dieser Punkt in der Stadt, auf einem Betrieb, einer Arbeitsstelle oder einem Weg? Dort wächst nichts.</summary>
     private static bool ImWegFuerWald(Vector3 p)
     {
         if (Mathf.Abs(p.X) < Mauerrand + 6 && Mathf.Abs(p.Z) < Mauerrand + 6) return true; // in der Stadt oder dicht an der Mauer
         if (Mathf.Abs(p.Z - Osttor.Z) < 6 && p.X > 0) return true;  // Landstraße vom Osttor
         if (p.X > Mauerrand && p.X < Wegkreuz.X + 4 && Mathf.Abs(p.Z) < VorstadtRand + 6) return true; // Vorstadt
         if (Mathf.Abs(p.Z - Westtor.Z) < 6 && p.X < 0) return true; // Weststraße vom Westtor
-        foreach (var (_, stelle) in Umlandstellen)
-            if (p.DistanceTo(stelle) < 11) return true;             // Weide, Feld und Wald (der hat eigene Bäume)
+        foreach (var (name, stelle) in Umlandstellen)
+            if (p.DistanceTo(stelle) < 11 || AbstandZurStrecke(p, UmlandZugaenge[name], stelle) < 4) return true; // Weide, Feld und Wald (der hat eigene Bäume) samt Fußweg
         foreach (var (name, abzweig) in Abzweige)
         {
-            var grube = Stadtplan[name];
-            if (p.DistanceTo(grube + new Vector3(10, 0, -4)) < 22) return true;
-            if (AbstandZurStrecke(p, Kreuz(name), abzweig) < 5 || AbstandZurStrecke(p, abzweig, grube) < 5) return true;
+            var platz = Stadtplan[name];
+            if (p.DistanceTo(platz) < 19) return true; // das Modell des Betriebs (Bauernhof 26 × 20 m) mit etwas Rand, auch gedreht
+            if (AbstandZurStrecke(p, Kreuz(name), abzweig) < 5 || AbstandZurStrecke(p, abzweig, platz) < 5) return true;
         }
         return false;
     }
@@ -608,17 +586,7 @@ public partial class Stadtansicht : Node3D
         var neuerWeg = betrieb.InDerStadt && !Stadtplan.ContainsKey(betrieb.Name) ? WerkstattWeg(betrieb.Name) : ((Vector3 Hof, Vector3[] Weg)?)null;
         var ansicht = betrieb.InDerStadt
             ? WerkstattBauen(betrieb, platz, farbe, StilVon(betrieb.Artdaten.Beruf), neuerWeg)
-            : betrieb.Art switch
-            {
-                Betriebsart.Holzfaellerei => HolzschlagBauen(betrieb, platz, farbe, abzweig),
-                Betriebsart.Steinbruch => SteinbruchBauen(betrieb, platz, farbe, abzweig),
-                Betriebsart.Kraeutergarten => KraeutergartenBauen(betrieb, platz, farbe, abzweig),
-                Betriebsart.Bauernhof => BauernhofBauen(betrieb, platz, farbe, abzweig),
-                Betriebsart.Klosterhof => KlosterhofBauen(betrieb, platz, farbe, abzweig),
-                Betriebsart.Wachturm => WachturmBauen(betrieb, platz, farbe, abzweig),
-                Betriebsart.Duftgarten => DuftgartenBauen(betrieb, platz, farbe, abzweig),
-                _ => MineBauen(betrieb, platz, farbe, abzweig),
-            };
+            : UmlandBauen(betrieb, platz, farbe, abzweig);
         ansicht.Spieler = spieler;
         ansicht.Farbe = farbe;
         ansicht.Gruppe = InGruppe("Betrieb_" + betrieb.Name.Replace(" ", "_"), vorher);
@@ -693,7 +661,7 @@ public partial class Stadtansicht : Node3D
     public static string LiegenschaftKennung(string name) => "liegenschaft:" + name;
 
     /// <summary>
-    /// Ein freier Platz: in der Stadt ein eingezäuntes Grundstück, vor der Stadt eine Grube ohne Schuppen.
+    /// Ein freier Platz: in der Stadt ein eingezäuntes Grundstück, vor der Stadt das Modell des Betriebs im Leerstand (<see cref="UmlandPlatzZeigen"/>).
     /// Alles hängt an einem Knoten, damit es beim Erwerb in einem Zug verschwindet.
     /// </summary>
     private void FreienPlatzZeigen(LiegenschaftDaten frei)
@@ -706,75 +674,27 @@ public partial class Stadtansicht : Node3D
         }
         var gruppe = new Node3D { Name = "Frei_" + frei.Name.Replace(" ", "_") };
         AddChild(gruppe);
+        if (UmlandModelle.ContainsKey(frei.Art))
+        {
+            UmlandPlatzZeigen(frei, p, gruppe); // Modell mit „Leerstand“, Weg, Schild, Klickfläche und Beschriftung
+            _freiePlaetze[frei.Name] = gruppe;
+            return;
+        }
+        // Zaun um das Grundstück (10 × 8 m) und ein Haufen Bauholz
         var holz = Material(Holz);
-
-        var umland = _simulation?.Wirtschaft?.Daten.Art(frei.Art).Ort == Arbeitsort.Umland;
-        if (frei.Art == Betriebsart.Holzfaellerei)
+        foreach (var (mitte, groesse) in new[]
         {
-            // Ein Kahlschlag mit Baumstümpfen
-            foreach (var (dx, dz) in new[] { (-4f, -3f), (3f, -4f), (5f, 3f), (-2f, 4f), (0f, 0f) })
-                Quader(p + new Vector3(dx, 0.4f, dz), new Vector3(1.2f, 0.8f, 1.2f), holz, gruppe);
-            WegZiehen(Abzweige[frei.Name], p + new Vector3(-2, 0, 0), 4, gruppe);
-            if (!AnDerStrasse(frei.Name, Abzweige[frei.Name])) WegZiehen(Kreuz(frei.Name), Abzweige[frei.Name], 4, gruppe);
-        }
-        else if (frei.Art == Betriebsart.Bauernhof)
-        {
-            Felder(p, gruppe);
-            WegZiehen(Abzweige[frei.Name], p + new Vector3(-2, 0, 0), 4, gruppe);
-            if (!AnDerStrasse(frei.Name, Abzweige[frei.Name])) WegZiehen(Kreuz(frei.Name), Abzweige[frei.Name], 4, gruppe);
-        }
-        else if (frei.Art == Betriebsart.Wachturm)
-        {
-            Quader(p + new Vector3(0, 0.3f, 0), new Vector3(4, 0.6f, 4), Material(Mauerstein), gruppe); // Fundament
-            WegZiehen(Abzweige[frei.Name], p + new Vector3(-2, 0, 0), 4, gruppe);
-        }
-        else if (frei.Art == Betriebsart.Klosterhof)
-        {
-            Klostergarten(p, gruppe);
-            WegZiehen(Abzweige[frei.Name], p + new Vector3(-2, 0, 0), 4, gruppe);
-            if (!AnDerStrasse(frei.Name, Abzweige[frei.Name])) WegZiehen(Kreuz(frei.Name), Abzweige[frei.Name], 4, gruppe);
-        }
-        else if (frei.Art == Betriebsart.Duftgarten)
-        {
-            Duftbeete(p, gruppe);
-            WegZiehen(Abzweige[frei.Name], p + new Vector3(-2, 0, 0), 4, gruppe);
-        }
-        else if (frei.Art == Betriebsart.Kraeutergarten)
-        {
-            Beete(p, gruppe);
-            WegZiehen(Abzweige[frei.Name], p + new Vector3(-2, 0, 0), 4, gruppe);
-            if (!AnDerStrasse(frei.Name, Abzweige[frei.Name])) WegZiehen(Kreuz(frei.Name), Abzweige[frei.Name], 4, gruppe);
-        }
-        else if (frei.Art == Betriebsart.Steinbruch)
-        {
-            FelsenBauen(p, gruppe);
-            WegZiehen(Abzweige[frei.Name], p + new Vector3(-2, 0, 0), 4, gruppe);
-            if (!AnDerStrasse(frei.Name, Abzweige[frei.Name])) WegZiehen(Kreuz(frei.Name), Abzweige[frei.Name], 4, gruppe);
-        }
-        else if (frei.Art == Betriebsart.Mine)
-        {
-            BergBauen(p, gruppe);
-            Quader(p + new Vector3(2, 2, 0), new Vector3(3, 4, 4), Material(new Color(0.08f, 0.07f, 0.07f)), gruppe); // verlassener Stollen
-            WegZiehen(Abzweige[frei.Name], p + new Vector3(-2, 0, 0), 4, gruppe);
-            if (!AnDerStrasse(frei.Name, Abzweige[frei.Name])) WegZiehen(Kreuz(frei.Name), Abzweige[frei.Name], 4, gruppe);
-        }
-        else
-        {
-            // Zaun um das Grundstück (10 × 8 m) und ein Haufen Bauholz
-            foreach (var (mitte, groesse) in new[]
-            {
-                (new Vector3(0, 0.5f, -4), new Vector3(10, 1, 0.15f)), (new Vector3(0, 0.5f, 4), new Vector3(10, 1, 0.15f)),
-                (new Vector3(-5, 0.5f, 0), new Vector3(0.15f, 1, 8)), (new Vector3(5, 0.5f, 0), new Vector3(0.15f, 1, 8)),
-            })
-                Quader(p + mitte, groesse, holz, gruppe);
-            Quader(p + new Vector3(-2, 0.3f, 1), new Vector3(3, 0.6f, 1.2f), holz, gruppe);
-            GasseZiehen(p, Gasse(frei.Name, p), gruppe);
-        }
+            (new Vector3(0, 0.5f, -4), new Vector3(10, 1, 0.15f)), (new Vector3(0, 0.5f, 4), new Vector3(10, 1, 0.15f)),
+            (new Vector3(-5, 0.5f, 0), new Vector3(0.15f, 1, 8)), (new Vector3(5, 0.5f, 0), new Vector3(0.15f, 1, 8)),
+        })
+            Quader(p + mitte, groesse, holz, gruppe);
+        Quader(p + new Vector3(-2, 0.3f, 1), new Vector3(3, 0.6f, 1.2f), holz, gruppe);
+        GasseZiehen(p, Gasse(frei.Name, p), gruppe);
 
         Verkaufsschild(p + new Vector3(-4, 0, 4.6f), frei.IstPacht, gruppe);
-        Klickflaeche(LiegenschaftKennung(frei.Name), p + new Vector3(0, 2, 0), umland ? new Vector3(16, 8, 14) : new Vector3(10, 4, 8), gruppe);
+        Klickflaeche(LiegenschaftKennung(frei.Name), p + new Vector3(0, 2, 0), new Vector3(10, 4, 8), gruppe);
         Beschriftung($"{frei.Name}\n{(frei.IstPacht ? "zu verpachten" : "zu verkaufen")}",
-            p + new Vector3(0, SchildHoehe.GetValueOrDefault(frei.Name, frei.Art == Betriebsart.Mine ? 9 : 6), 0), 36, gruppe, LiegenschaftKennung(frei.Name));
+            p + new Vector3(0, SchildHoehe.GetValueOrDefault(frei.Name, 6), 0), 36, gruppe, LiegenschaftKennung(frei.Name));
         _freiePlaetze[frei.Name] = gruppe;
     }
 
@@ -790,6 +710,7 @@ public partial class Stadtansicht : Node3D
         tafel.Emission = tafel.AlbedoColor * 0.35f;
         Quader(fuss + new Vector3(0, 1.8f, 0), new Vector3(0.22f, 3.6f, 0.22f), holz, eltern);
         Quader(fuss + new Vector3(0, 3.2f, 0.15f), new Vector3(2.6f, 1.5f, 0.12f), tafel, eltern);
+        Quader(fuss + new Vector3(0, 3.2f, 0), new Vector3(2.6f, 1.5f, 0.12f), tafel, eltern); // dieselbe Tafel von hinten: Draußen schaut die Vorderseite oft von der Kamera weg
         Quader(fuss + new Vector3(0, 3.2f, 0.08f), new Vector3(2.9f, 1.8f, 0.06f), holz, eltern); // Rahmen
     }
 
@@ -896,342 +817,6 @@ public partial class Stadtansicht : Node3D
     }
 
 
-    /// <summary>Berg aus zwei abgeflachten Kugeln.</summary>
-    private void BergBauen(Vector3 p, Node3D? eltern = null)
-    {
-        foreach (var (versatz, radius) in new[] { (new Vector3(10, 0, -8), 18f), (new Vector3(20, 0, 4), 13f) })
-        {
-            var berg = new MeshInstance3D
-            {
-                Mesh = new SphereMesh { Radius = radius, Height = radius * 1.3f, RadialSegments = 12, Rings = 6 },
-                MaterialOverride = Material(Fels),
-                Position = p + versatz,
-            };
-            (eltern ?? this).AddChild(berg);
-        }
-    }
-
-    private BetriebsAnsicht MineBauen(Betrieb betrieb, Vector3 p, Color besitzer, Vector3 abzweig)
-    {
-        BergBauen(p);
-        Quader(p + new Vector3(2, 2, 0), new Vector3(3, 4, 4), Material(new Color(0.08f, 0.07f, 0.07f))); // Stolleneingang
-        Haus(p + new Vector3(-6, 0, 6), new Vector3(6, 4, 5), Holz, Schiefer, quer: true);                // Schuppen
-        Quader(p + new Vector3(-9.2f, 3.5f, 6), new Vector3(0.2f, 3, 2), Material(besitzer));
-
-        Klickflaeche(BetriebsKennung(betrieb), p + new Vector3(2, 4, 0), new Vector3(16, 8, 14));
-        var schild = Beschriftung(betrieb.Name, p + new Vector3(2, 9, 0), 44, kennung: BetriebsKennung(betrieb));
-
-        var hof = p + new Vector3(-2, 0, 0);
-        WegZiehen(abzweig, hof, 4);
-        if (!AnDerStrasse(betrieb.Name, abzweig)) // nicht an der Straße? Dann eigene Verbindung zum Kreuz
-            WegZiehen(Kreuz(betrieb.Name), abzweig, 4);
-        return new BetriebsAnsicht
-        {
-            Betrieb = betrieb,
-            Mitte = p,
-            Hof = hof,
-            WegZumMarkt = WegZumMarktVon(betrieb.Name, hof, abzweig),
-            Schild = schild,
-        };
-    }
-
-    /// <summary>Ein Felsen mit abgetreppter Bruchkante – kleiner als der Berg einer Grube.</summary>
-    private void FelsenBauen(Vector3 p, Node3D? eltern = null)
-    {
-        foreach (var (versatz, radius) in new[] { (new Vector3(8, 0, -7), 9f), (new Vector3(14, 0, 1), 6f) })
-            (eltern ?? this).AddChild(new MeshInstance3D
-            {
-                Mesh = new SphereMesh { Radius = radius, Height = radius * 1.4f, RadialSegments = 10, Rings = 5 },
-                MaterialOverride = Material(Fels),
-                Position = p + versatz,
-            });
-        // Abgetreppte, hell angeschnittene Bruchkante vor dem Felsen
-        var schnitt = Material(Bruchstein);
-        for (var stufe = 0; stufe < 3; stufe++)
-            Quader(p + new Vector3(3 + stufe * 1.6f, 1 + stufe * 2, -2 - stufe * 1.2f), new Vector3(6, 2, 4), schnitt, eltern);
-    }
-
-    /// <summary>Steinbruch: Felsen mit Bruchkante, Steinquader zum Abtransport und ein Schuppen.</summary>
-    private BetriebsAnsicht SteinbruchBauen(Betrieb betrieb, Vector3 p, Color besitzer, Vector3 abzweig)
-    {
-        FelsenBauen(p);
-        var stein = Material(Bruchstein);
-        foreach (var (dx, dz, h) in new[] { (0f, 4f, 1.2f), (1.6f, 4.2f, 0.8f), (0.8f, 5.6f, 1f), (3.5f, 6f, 1.2f) })
-            Quader(p + new Vector3(dx, h / 2, dz), new Vector3(1.4f, h, 1.4f), stein);
-        Haus(p + new Vector3(-6, 0, 6), new Vector3(6, 4, 5), Holz, Schiefer, quer: true);
-        Quader(p + new Vector3(-9.2f, 3.5f, 6), new Vector3(0.2f, 3, 2), Material(besitzer));
-
-        Klickflaeche(BetriebsKennung(betrieb), p + new Vector3(2, 4, 0), new Vector3(16, 8, 14));
-        var schild = Beschriftung(betrieb.Name, p + new Vector3(2, 9, 0), 44, kennung: BetriebsKennung(betrieb));
-        var hof = p + new Vector3(-2, 0, 0);
-        WegZiehen(abzweig, hof, 4);
-        if (!AnDerStrasse(betrieb.Name, abzweig)) // nicht an der Straße? Dann eigene Verbindung zum Kreuz
-            WegZiehen(Kreuz(betrieb.Name), abzweig, 4);
-        return new BetriebsAnsicht
-        {
-            Betrieb = betrieb,
-            Mitte = p,
-            Hof = hof,
-            WegZumMarkt = WegZumMarktVon(betrieb.Name, hof, abzweig),
-            Schild = schild,
-        };
-    }
-
-    /// <summary>Gersten- und Roggenfelder in Streifen und eine kleine Windmühle.</summary>
-    private void Felder(Vector3 p, Node3D? eltern = null)
-    {
-        var gerste = Material(Korn);
-        var roggen = Material(new Color(0.66f, 0.55f, 0.28f));
-        for (var streifen = 0; streifen < 6; streifen++)
-            Quader(p + new Vector3(1 + streifen * 2.2f, 0.25f, -3), new Vector3(1.9f, 0.5f, 12), streifen % 2 == 0 ? gerste : roggen, eltern);
-        // Windmühle: Turm mit Kappe und vier Flügeln
-        var m = p + new Vector3(16, 0, 6);
-        Quader(m + new Vector3(0, 3, 0), new Vector3(2.4f, 6, 2.4f), Material(Putz), eltern);
-        Dach(m + new Vector3(0, 6, 0), new Vector3(3, 1.6f, 3), Material(Holz), quer: false, eltern: eltern);
-        foreach (var winkel in new[] { 30f, 120f })
-            (eltern ?? this).AddChild(new MeshInstance3D
-            {
-                Mesh = new BoxMesh { Size = new Vector3(0.4f, 7, 0.1f) },
-                MaterialOverride = Material(Holz),
-                Position = m + new Vector3(0, 5, 1.35f),
-                RotationDegrees = new Vector3(0, 0, winkel),
-            });
-    }
-
-    /// <summary>Bauernhof: Felder, Mühle und eine Scheune – vor der Stadt.</summary>
-    private BetriebsAnsicht BauernhofBauen(Betrieb betrieb, Vector3 p, Color besitzer, Vector3 abzweig)
-    {
-        Felder(p);
-        Haus(p + new Vector3(-6, 0, 6), new Vector3(7, 4.5f, 5), Holz, Ziegel, quer: true);   // Scheune
-        Quader(p + new Vector3(-9.7f, 3.5f, 6), new Vector3(0.2f, 3, 2), Material(besitzer));
-
-        Klickflaeche(BetriebsKennung(betrieb), p + new Vector3(4, 3, 0), new Vector3(20, 6, 16));
-        var schild = Beschriftung(betrieb.Name, p + new Vector3(4, 9, 0), 44, kennung: BetriebsKennung(betrieb));
-        var hof = p + new Vector3(-2, 0, 0);
-        WegZiehen(abzweig, hof, 4);
-        if (!AnDerStrasse(betrieb.Name, abzweig)) // nicht an der Straße? Dann eigene Verbindung zum Kreuz
-            WegZiehen(Kreuz(betrieb.Name), abzweig, 4);
-        return new BetriebsAnsicht
-        {
-            Betrieb = betrieb,
-            Mitte = p,
-            Hof = hof,
-            WegZumMarkt = WegZumMarktVon(betrieb.Name, hof, abzweig),
-            Schild = schild,
-        };
-    }
-
-    /// <summary>Klosterhof: Gemüsebeete, Bienenstöcke (Wachs), eine Lumpenkammer und eine Kapelle – vor der Stadt am Osthang.</summary>
-    private BetriebsAnsicht KlosterhofBauen(Betrieb betrieb, Vector3 p, Color besitzer, Vector3 abzweig)
-    {
-        Klostergarten(p);
-        Haus(p + new Vector3(-6, 0, 6), new Vector3(7, 4.5f, 5), Mauerstein, Schiefer, quer: true);   // Lumpenkammer und Zellen
-        Quader(p + new Vector3(-9.7f, 3.5f, 6), new Vector3(0.2f, 3, 2), Material(besitzer));
-
-        Klickflaeche(BetriebsKennung(betrieb), p + new Vector3(2, 3, 0), new Vector3(18, 6, 16));
-        var schild = Beschriftung(betrieb.Name, p + new Vector3(2, 9, 0), 44, kennung: BetriebsKennung(betrieb));
-        var hof = p + new Vector3(-2, 0, 0);
-        WegZiehen(abzweig, hof, 4);
-        if (!AnDerStrasse(betrieb.Name, abzweig)) // nicht an der Straße? Dann eigene Verbindung zum Kreuz
-            WegZiehen(Kreuz(betrieb.Name), abzweig, 4);
-        return new BetriebsAnsicht
-        {
-            Betrieb = betrieb,
-            Mitte = p,
-            Hof = hof,
-            WegZumMarkt = WegZumMarktVon(betrieb.Name, hof, abzweig),
-            Schild = schild,
-        };
-    }
-
-    /// <summary>Wachturm: steinerner Turm mit Zinnen, Feuerkorb und Fahne an der Landstraße, eine Palisade um den Hof.</summary>
-    private BetriebsAnsicht WachturmBauen(Betrieb betrieb, Vector3 p, Color besitzer, Vector3 abzweig)
-    {
-        var stein = Material(Mauerstein);
-        Quader(p + new Vector3(0, 6, 0), new Vector3(4, 12, 4), stein);
-        foreach (var (dx, dz) in new[] { (-1.6f, -1.6f), (1.6f, -1.6f), (-1.6f, 1.6f), (1.6f, 1.6f), (0f, -1.6f), (0f, 1.6f), (-1.6f, 0f), (1.6f, 0f) })
-            Quader(p + new Vector3(dx, 12.5f, dz), new Vector3(0.7f, 1.0f, 0.7f), stein); // Zinnen
-        var glut = Material(new Color(1f, 0.55f, 0.2f));
-        glut.EmissionEnabled = true;
-        glut.Emission = new Color(1f, 0.5f, 0.15f);
-        glut.EmissionEnergyMultiplier = 1.2f;
-        Quader(p + new Vector3(0, 12.4f, 0), new Vector3(0.8f, 0.6f, 0.8f), glut); // Feuerkorb
-        Quader(p + new Vector3(0, 15, 0), new Vector3(0.12f, 4, 0.12f), Material(Holz));
-        FahnenTuchAmMast(p + new Vector3(0.06f, 16.3f, 0), Vector3.Right, 1.3f, 0.8f, besitzer);
-        Quader(p + new Vector3(0, 1.3f, 2.03f), new Vector3(1.2f, 2.6f, 0.08f), Material(new Color(0.24f, 0.16f, 0.10f))); // Tür
-        var holz = Material(Holz);
-        foreach (var (mitte, groesse) in new[]
-        {
-            (new Vector3(0, 0.8f, -5), new Vector3(10, 1.6f, 0.3f)), (new Vector3(-5, 0.8f, 0), new Vector3(0.3f, 1.6f, 10)), (new Vector3(5, 0.8f, 0), new Vector3(0.3f, 1.6f, 10)),
-        })
-            Quader(p + mitte, groesse, holz);
-
-        Klickflaeche(BetriebsKennung(betrieb), p + new Vector3(0, 6, 0), new Vector3(10, 12, 10));
-        var schild = Beschriftung(betrieb.Name, p + new Vector3(0, 15, 0), 44, kennung: BetriebsKennung(betrieb));
-        var hof = p + new Vector3(-2, 0, 0);
-        WegZiehen(abzweig, hof, 4);
-        if (!AnDerStrasse(betrieb.Name, abzweig)) // nicht an der Straße? Dann eigene Verbindung zum Kreuz
-            WegZiehen(Kreuz(betrieb.Name), abzweig, 4);
-        return new BetriebsAnsicht
-        {
-            Betrieb = betrieb,
-            Mitte = p,
-            Hof = hof,
-            WegZumMarkt = WegZumMarktVon(betrieb.Name, hof, abzweig),
-            Schild = schild,
-        };
-    }
-
-    /// <summary>Beete in Reihen, sechs strohgedeckte Bienenkörbe und ein Wegkreuz.</summary>
-    private void Klostergarten(Vector3 p, Node3D? eltern = null)
-    {
-        var erde = Material(new Color(0.36f, 0.27f, 0.18f));
-        var kohl = Material(new Color(0.42f, 0.55f, 0.32f));
-        for (var reihe = 0; reihe < 3; reihe++)
-        {
-            Quader(p + new Vector3(2 + reihe * 2.4f, 0.15f, -4), new Vector3(1.6f, 0.3f, 6), erde, eltern);
-            for (var i = 0; i < 3; i++)
-                Quader(p + new Vector3(2 + reihe * 2.4f, 0.45f, -6 + i * 2), new Vector3(0.8f, 0.4f, 0.8f), kohl, eltern);
-        }
-        var stroh = Material(new Color(0.78f, 0.64f, 0.34f));
-        var bank = Material(Holz);
-        Quader(p + new Vector3(4.5f, 0.35f, 3.2f), new Vector3(7.2f, 0.15f, 1.0f), bank, eltern); // Bienenbank
-        for (var i = 0; i < 6; i++)
-            (eltern ?? this).AddChild(new MeshInstance3D
-            {
-                Mesh = new SphereMesh { Radius = 0.55f, Height = 1.3f, RadialSegments = 10, Rings = 5 },
-                MaterialOverride = stroh,
-                Position = p + new Vector3(1.6f + i * 1.15f, 1.0f, 3.2f),
-            });
-        var kreuz = Material(Holz);
-        Quader(p + new Vector3(10, 1.4f, -1), new Vector3(0.2f, 2.8f, 0.2f), kreuz, eltern);
-        Quader(p + new Vector3(10, 2.2f, -1), new Vector3(1.2f, 0.18f, 0.18f), kreuz, eltern);
-    }
-
-    /// <summary>Kräuterbeete in Reihen und ein Krötenteich.</summary>
-    private void Beete(Vector3 p, Node3D? eltern = null)
-    {
-        var erde = Material(new Color(0.36f, 0.27f, 0.18f));
-        var kraut = Material(Kraut);
-        for (var reihe = 0; reihe < 4; reihe++)
-        {
-            Quader(p + new Vector3(2 + reihe * 2.4f, 0.15f, -3), new Vector3(1.6f, 0.3f, 8), erde, eltern);
-            for (var i = 0; i < 4; i++)
-                Quader(p + new Vector3(2 + reihe * 2.4f, 0.55f, -6 + i * 2), new Vector3(0.9f, 0.6f, 0.9f), kraut, eltern);
-        }
-        (eltern ?? this).AddChild(new MeshInstance3D
-        {
-            Mesh = new CylinderMesh { TopRadius = 3.2f, BottomRadius = 3.2f, Height = 0.1f, RadialSegments = 16 },
-            MaterialOverride = Material(Wasser),
-            Position = p + new Vector3(6, 0.05f, 6),
-        });
-    }
-
-    /// <summary>Lavendel- und Jasminbeete im Wechsel, dazu ein Trockengestell.</summary>
-    private void Duftbeete(Vector3 p, Node3D? eltern = null)
-    {
-        var erde = Material(new Color(0.40f, 0.30f, 0.20f));
-        var lavendel = Material(new Color(0.55f, 0.43f, 0.78f));
-        var jasmin = Material(new Color(0.96f, 0.95f, 0.88f));
-        var blatt = Material(Kraut);
-        for (var reihe = 0; reihe < 5; reihe++)
-        {
-            var x = 0 + reihe * 2.2f;
-            Quader(p + new Vector3(x, 0.15f, -1), new Vector3(1.4f, 0.3f, 10), erde, eltern);
-            for (var i = 0; i < 5; i++)
-            {
-                var z = -5 + i * 2;
-                if (reihe % 2 == 0)
-                    Quader(p + new Vector3(x, 0.6f, z), new Vector3(0.9f, 0.7f, 1.2f), lavendel, eltern);
-                else
-                {
-                    Quader(p + new Vector3(x, 0.55f, z), new Vector3(1.0f, 0.6f, 1.0f), blatt, eltern);
-                    Quader(p + new Vector3(x, 0.95f, z), new Vector3(0.6f, 0.25f, 0.6f), jasmin, eltern);
-                }
-            }
-        }
-        var holz = Material(Holz);
-        Quader(p + new Vector3(4.4f, 1.6f, 6), new Vector3(6, 0.12f, 0.12f), holz, eltern);                  // Trockengestell
-        foreach (var dx in new[] { 1.6f, 7.2f })
-            Quader(p + new Vector3(dx, 0.8f, 6), new Vector3(0.15f, 1.6f, 0.15f), holz, eltern);
-        foreach (var dx in new[] { 2.6f, 3.6f, 4.6f, 5.6f, 6.6f })
-            Quader(p + new Vector3(dx, 1.25f, 6), new Vector3(0.3f, 0.6f, 0.3f), lavendel, eltern);
-    }
-
-    /// <summary>Duftgarten: Lavendel- und Jasminbeete, Trockengestell, Gärtnerhütte – östlich am Ende der Landstraße.</summary>
-    private BetriebsAnsicht DuftgartenBauen(Betrieb betrieb, Vector3 p, Color besitzer, Vector3 abzweig)
-    {
-        Duftbeete(p);
-        Haus(p + new Vector3(-6, 0, 6), new Vector3(6, 4, 5), Holz, Ziegel, quer: true);
-        Quader(p + new Vector3(-9.2f, 3.5f, 6), new Vector3(0.2f, 3, 2), Material(besitzer));
-
-        Klickflaeche(BetriebsKennung(betrieb), p + new Vector3(2, 3, 0), new Vector3(16, 6, 14));
-        var schild = Beschriftung(betrieb.Name, p + new Vector3(2, 7, 0), 44, kennung: BetriebsKennung(betrieb));
-        var hof = p + new Vector3(-2, 0, 0);
-        WegZiehen(abzweig, hof, 4);
-        if (!AnDerStrasse(betrieb.Name, abzweig)) // nicht an der Straße? Dann eigene Verbindung zum Kreuz
-            WegZiehen(Kreuz(betrieb.Name), abzweig, 4);
-        return new BetriebsAnsicht
-        {
-            Betrieb = betrieb,
-            Mitte = p,
-            Hof = hof,
-            WegZumMarkt = WegZumMarktVon(betrieb.Name, hof, abzweig),
-            Schild = schild,
-        };
-    }
-
-    /// <summary>Kräutergarten: Beete, Teich, Gärtnerhütte – vor der Stadt am Bach.</summary>
-    private BetriebsAnsicht KraeutergartenBauen(Betrieb betrieb, Vector3 p, Color besitzer, Vector3 abzweig)
-    {
-        Beete(p);
-        Haus(p + new Vector3(-6, 0, 6), new Vector3(6, 4, 5), Holz, Schiefer, quer: true);
-        Quader(p + new Vector3(-9.2f, 3.5f, 6), new Vector3(0.2f, 3, 2), Material(besitzer));
-
-        Klickflaeche(BetriebsKennung(betrieb), p + new Vector3(2, 3, 0), new Vector3(16, 6, 14));
-        var schild = Beschriftung(betrieb.Name, p + new Vector3(2, 7, 0), 44, kennung: BetriebsKennung(betrieb));
-        var hof = p + new Vector3(-2, 0, 0);
-        WegZiehen(abzweig, hof, 4);
-        if (!AnDerStrasse(betrieb.Name, abzweig)) // nicht an der Straße? Dann eigene Verbindung zum Kreuz
-            WegZiehen(Kreuz(betrieb.Name), abzweig, 4);
-        return new BetriebsAnsicht
-        {
-            Betrieb = betrieb,
-            Mitte = p,
-            Hof = hof,
-            WegZumMarkt = WegZumMarktVon(betrieb.Name, hof, abzweig),
-            Schild = schild,
-        };
-    }
-
-    /// <summary>Holzschlag: Blockhütte, gestapelte Stämme und Stümpfe – im Wald vor der Stadt.</summary>
-    private BetriebsAnsicht HolzschlagBauen(Betrieb betrieb, Vector3 p, Color besitzer, Vector3 abzweig)
-    {
-        var stamm = Material(Holz);
-        Haus(p + new Vector3(-6, 0, 6), new Vector3(6, 4, 5), Holz, Schiefer, quer: true);           // Hütte
-        FahnenBehang(p + new Vector3(-9.1f, 5, 6), Vector3.Back, Vector3.Left, 3, 2, besitzer);       // Fahne, hängt von oben und flattert
-        for (var reihe = 0; reihe < 3; reihe++)                                                       // Stämme
-            for (var lage = 0; lage < 3 - reihe; lage++)
-                Quader(p + new Vector3(2 + reihe * 2.5f, 0.45f + lage * 0.9f, -2), new Vector3(0.8f, 0.8f, 7), stamm);
-        foreach (var (dx, dz) in new[] { (6f, 5f), (9f, 1f), (3f, 7f), (10f, -6f) })                  // Stümpfe
-            Quader(p + new Vector3(dx, 0.4f, dz), new Vector3(1.1f, 0.8f, 1.1f), stamm);
-
-        Klickflaeche(BetriebsKennung(betrieb), p + new Vector3(2, 4, 0), new Vector3(16, 8, 14));
-        var schild = Beschriftung(betrieb.Name, p + new Vector3(2, 8, 0), 44, kennung: BetriebsKennung(betrieb));
-        var hof = p + new Vector3(-2, 0, 0);
-        WegZiehen(abzweig, hof, 4);
-        if (!AnDerStrasse(betrieb.Name, abzweig)) // nicht an der Straße? Dann eigene Verbindung zum Kreuz
-            WegZiehen(Kreuz(betrieb.Name), abzweig, 4);
-        return new BetriebsAnsicht
-        {
-            Betrieb = betrieb,
-            Mitte = p,
-            Hof = hof,
-            WegZumMarkt = WegZumMarktVon(betrieb.Name, hof, abzweig),
-            Schild = schild,
-        };
-    }
-
     public static string BetriebsKennung(Betrieb b) => "betrieb:" + b.Name;
 
     /// <summary>Jedes Bild: Licht nach Uhrzeit, Esse, Karren.</summary>
@@ -1248,6 +833,8 @@ public partial class Stadtansicht : Node3D
         var bruchteil = _simulation.Takt.AngebrocheneMinute;
         LichtNachUhrzeit(zeit.UhrzeitInMinuten + (float)bruchteil, delta); // Stadtansicht.Licht.cs
         PassantenAktualisieren(zeit.VergangeneMinuten + bruchteil, delta); // Stadtansicht.Passanten.cs
+        JahreszeitSetzen(zeit.Jahreszeit); // Laub gelb, orange und braun im Herbst (Stadtansicht.Natur.cs)
+        VoegelAktualisieren(zeit.UhrzeitInMinuten + (float)bruchteil, delta, _simulation.Takt.IstPausiert); // Stadtansicht.Voegel.cs
 
         if (_simulation.Wirtschaft is not { } w) return;
         var arbeitszeit = w.IstArbeitszeit(zeit);
@@ -1258,10 +845,12 @@ public partial class Stadtansicht : Node3D
             if (betrieb.InDerStadt && (betrieb.Stufe != ansicht.GezeigteStufe || (betrieb.UmbauMinuten > 0) != ansicht.GezeigterUmbau))
                 StufeZeigen(ansicht);
             var arbeitet = arbeitszeit && betrieb.Belegt > 0 && betrieb.Stillstand is null;
-            if (ansicht.Modell is { Glut.Length: > 0 } modell && ansicht.Glueht != arbeitet)
+            // Der Feuerkorb des Wachturms brennt auch nachts, solange ein Gardist Wache hält
+            var glueht = arbeitet || (betrieb.Art == Betriebsart.Wachturm && betrieb.Belegt > 0 && betrieb.Stillstand is null && _fensterLicht > 0);
+            if (ansicht.Modell is { Glut.Length: > 0 } modell && ansicht.Glueht != glueht)
             {
-                ansicht.Glueht = arbeitet; // das Material „Glut“ (Esse, Ofen, Athanor) nur beim Wechsel schalten
-                GlutSetzen(modell, arbeitet);
+                ansicht.Glueht = glueht; // das Material „Glut“ (Esse, Ofen, Athanor, Feuerkorb) nur beim Wechsel schalten
+                GlutSetzen(modell, glueht);
             }
             if (ansicht == _innen)
                 InnenAktualisieren(ansicht, zeit, arbeitszeit, arbeitet, delta);
@@ -1287,7 +876,7 @@ public partial class Stadtansicht : Node3D
         Vector3 blick;
         if (karren.Zustand == KarrenZustand.AmBetrieb)
         {
-            ziel = ansicht.Hof + new Vector3(nummer * 3f, 0, 0);
+            ziel = ansicht.Hof + ansicht.KarrenReihe * nummer;
             blick = ansicht.WegZumMarkt[1];
         }
         else
@@ -1676,14 +1265,6 @@ public partial class Stadtansicht : Node3D
         };
         if (quer) dach.RotationDegrees = new Vector3(0, 90, 0);
         (eltern ?? this).AddChild(dach);
-    }
-
-    /// <summary>Ein Haus: Wandquader plus Satteldach.</summary>
-    private void Haus(Vector3 grund, Vector3 groesse, Color wand, Color dach, bool quer)
-    {
-        Quader(grund + new Vector3(0, groesse.Y / 2, 0), groesse, Material(wand));
-        var dachhoehe = Mathf.Min(groesse.X, groesse.Z) * 0.6f;
-        Dach(grund + new Vector3(0, groesse.Y, 0), new Vector3(groesse.X + 0.6f, dachhoehe, groesse.Z + 0.6f), Material(dach), quer);
     }
 
     /// <summary>Ein Turm mit spitzem Dach (rund oder eckig).</summary>
