@@ -20,7 +20,7 @@ So wird eingetragen (damit sich die Chats nie an derselben Stelle treffen):
 - Weitere Modelle ins Spiel einbauen, sobald es sie gibt: den Stadthof in `SpielhausModell` (Stufe 4 baut noch Grundkörper; kommt von selbst, sobald `stadthof.glb` samt `.glb.import` da ist, PR #111), die Einwohnerhäuser (`WohnhausModell` in `Stadtansicht.Wohnviertel.cs`: je `Hausart` das Modell `einwohner_<hausart>.glb`, davon die Variante nach der Hausnummer; „Hausfarbe“ ist im Modell ein gedecktes Braun und darf je Haus gedeckt umgefärbt werden), die Werkstätten – nach dem Muster `WohnhausModellEinsetzen` (PR #105)
 - Ankerpunkte der Modelle nutzen: Passanten gehen das letzte Stück vom Gassennetz bis „Anker_Tuer“ (mit dessen Höhe, also die Stufen hinauf) und verschwinden erst dort; Karren halten an „Anker_Karren“. Für die eingebauten Wohnhäuser ersetzt der Anker die Haustür aus der Fläche, für Werkstätten den Hof (`HofVon`, 5,5 m vor der Mitte). Den Anker nach dem Einsetzen über `FindChild` suchen und seine globale Lage nehmen – das Modell ist schon verschoben und gedreht
 - Fensterlicht bei Nacht schalten: Die Emission des Materials „Fenster“ abends an (Farbe sRGB 1,0 / 0,62 / 0,28, Stärke wie in den Nachtbildern), morgens aus – alle Häuser teilen das geladene Material, ein Schalter genügt. Leere Häuser (Leerstand, Sanierung) bekommen statt „Fenster“ das dunkle „Glas“ (wie beim Einfärben der „Hausfarbe“)
-- (von Spiel-KI) Zu jedem neuen Modell die `.glb.import` mitcommitten: Godot legt sie beim ersten Import an (`--headless --import --path game`). Fehlten bisher bei Alchimist, Steinmetz, Tischler, Wirt, Prediger, Dieb und Gardist und kamen in PR #111, #115 und #119 nach.
+- (von Spiel-KI) Zu jedem neuen Modell die `.glb.import` mitcommitten: Godot legt sie beim ersten Import an (`--headless --import --path game`). Fehlten bisher bei Alchimist, Steinmetz, Tischler, Wirt, Prediger, Dieb, Gardist, Geldleiher und Parfumeur und kamen in PR #111, #115, #119 und #123 nach.
 
 ## Entscheidungen
 
@@ -239,7 +239,7 @@ So wird eingetragen (damit sich die Chats nie an derselben Stelle treffen):
 | Farben im Skript | „Palaststein“ und eine hellere „Fuge“ stehen in `stadtpalais.py`; jedes Modell läuft in einem eigenen Prozess, die anderen behalten ihre Fuge. | 18.10.2026 |
 | Übersicht | `alle.py` stellt das Stadtpalais als vierte Stufe in `wohnhaeuser.png`; Bildausschnitt und Beschriftung richten sich nach der Zahl der Häuser. | 18.10.2026 |
 
-### Ratsherrenhaus der Einwohner als 3D-Modell (PR #…)
+### Ratsherrenhaus der Einwohner als 3D-Modell (PR #125)
 
 | Thema | Entscheidung | Datum |
 |---|---|---|

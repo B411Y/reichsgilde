@@ -10,9 +10,6 @@ So wird eingetragen (damit sich die Chats nie an derselben Stelle treffen):
 
 ## Offen
 
-- (5) (von Kern) Seit PR #85 zählt der Hauswert zum Reinvermögen. `KiRivale.Standziel` ist deshalb wieder die Schwelle allein, und `StandPruefen` baut ohne „Schwelle + Ausbau“; `KiWohnhausTests` (zwei Tests) entsprechend angepasst. Bitte prüfen, ob das zu eurer Sparlogik passt
-- (3) Verlustjahre zählen auch, wenn ein Betrieb mangels Geld ohne Personal stand. Wird er danach besetzt, verkauft die KI ihn trotzdem nach zwei solchen Jahren (gesehen im Test zur Rückkauf-Schleife). Vielleicht Jahre ohne Personal nicht als Verlustjahr zählen.
-- (3) Ein Notverkauf wählt den Betrieb mit dem schlechtesten Gewinn, nicht den, dessen Erlös gerade reicht – so kann die KI mehr verkaufen als nötig. In den Messungen kam keine KI in Not; prüfen, wenn es Bankrotte gibt.
 
 ## Entscheidungen
 
@@ -80,6 +77,14 @@ So wird eingetragen (damit sich die Chats nie an derselben Stelle treffen):
 | Wer | **Einbruch** ins Wohnhaus nutzt jedes KI-Haus, das Gaunerstücke nutzt (ausgewogen selten und nur gegen Häuser vor ihm, wie Diebstahl und Sabotage). **Brandstiftung** nur die Wagemutige, wie Überfall und Erpressung. Entschieden vom Nutzer. | 18.10.2026 |
 | Wert | Einbruch = `Unterwelt.ErwarteterHausgewinn` (Bargeld × Chance − Kosten, kein Hehler). Brandstiftung wie Sabotage: **halbe Reparatur** beim Gegner × Chance − Kosten (`Brandschaden`, `ErfolgschanceWohnhaus`); das fehlende Ansehen zählt nicht mit. Entschieden vom Nutzer. Beide stehen in derselben Liste wie die Stücke gegen Betriebe, das Beste gewinnt. | 18.10.2026 |
 | Wann es sich lohnt | Einbruch erst ab dem Bürgerhaus (Fachwerkhaus: höchstens 300 Beute × 0,6 < 200 Kosten), Brand erst ab dem Stadtpalais (Steinhaus: 800 × 0,5 × 0,5 = 200 < 300). Ein Haus, das vom letzten Brand noch beschädigt ist, steht nicht zur Wahl (der Kern lehnt den Auftrag ab). | 18.10.2026 |
+
+### Verlustjahre, Notverkauf und Sparziel (PR #123)
+
+| Thema | Entscheidung | Datum |
+|---|---|---|
+| Jahre ohne Personal | Stand ein Betrieb mindestens **ein Viertel der Stunden** des Jahres ganz ohne Personal (meist fehlte das Geld für Löhne), zählt sein Jahr **nicht als Verlustjahr** und unterbricht die Folge nicht – wie ein angebrochenes Jahr. Kurze Lücken (eine Stunde nach dem Kauf, ein Statutwechsel) ändern nichts. Gezählt in `KiRivale.Stunde`, gemerkt im `RivaleStand` (`StundenOhnePersonal`). Entschieden vom Nutzer. | 18.10.2026 |
+| Notverkauf | Vor dem Bankrott verkauft die KI unter den Betrieben, deren Verkauf das Minus zum Jahresabschluss **allein deckt**, den mit dem schlechtesten Gewinn. Reicht keiner allein, wie bisher den schlechtesten, und in der nächsten Stunde den nächsten. Was ein Verkauf bringt (`Verkaufswirkung`): Erlös + Löhne und Unterhalt, die zum Jahresende entfallen − was der Betrieb im Rest des Jahres noch eingebracht hätte. Entschieden vom Nutzer. | 18.10.2026 |
+| Sparziel | Geprüft: `Standziel` = Schwelle passt. Der Hauswert zählt seit Kern PR #85 ganz zum Reinvermögen (Ausbau, Neubau und Leerstand tauschen Bargeld gegen Hauswert), nur die Gebühr senkt es. Ab 80 % der Schwelle spart die KI, und Ausbau, Gebühr und Reserve müssen bar da sein – die Messung zeigt kein Haus, das jahrelang spart, ohne aufzusteigen. Ersetzt „80 % des Standziels (Schwelle + nötiger Ausbau)“ aus PR #82. | 18.10.2026 |
 
 ## Messungen
 
@@ -179,3 +184,16 @@ Gemessen auf main `5db3ab6` + PR #119 (bis main `cd00f6d` kamen nur Modelle dazu
 - **Spieler:** Der passive Spieler bleibt im Fachwerkhaus, wo sich kein Einbruch lohnt – Raub und Schäden bei ihm unverändert (Ø 369). Bürgermeister wird Eisenbart etwas später (Ø Jahr 14,7 statt 13,6).
 - Kerkerjahre der KI weiter 0, kein KI-Haus bankrott.
 
+
+### Verlustjahre, Notverkauf und Sparziel (PR #123)
+
+Gemessen auf main `cd6a466` + PR #123, `messen 30 20` (Spieler Mensch, passiv), 20 Partien × 30 Jahre. Neu in der Messung: die Zeile „Sparjahre der KI“ (Jahre, in denen ein KI-Haus zum Jahresende spart, Ø je Partie, und die längste Folge in einer Partie).
+
+| Messung | Ergebnis main = PR | Sparjahre Ø (längste Folge) |
+|---|---|---|
+| Köln, ausgewogen | Eisenbart 158.436, Eichwald 97.265, Kieselbach 137.862; Edler 5, Freiherr 55 | Eisenbart 6,0 (3), Eichwald 5,0 (4), Kieselbach 5,0 (3) |
+| Köln, wagemutig | Eisenbart 89.015, Eichwald 57.458, Kieselbach 77.743; Edler 34, Freiherr 26; 2 Verkäufe nach Verlustjahren | Eisenbart 4,5 (5), Eichwald 2,2 (3), Kieselbach 3,0 (3) |
+| Greybox, ausgewogen | Eisenbart 157.689, Eichwald 96.805, Kieselbach 138.480; Edler 6, Freiherr 54 | Eisenbart 8,2 (3), Eichwald 6,4 (4), Kieselbach 6,2 (3) |
+
+- **Gleich auf die Zahl:** In den Messungen steht kein KI-Betrieb ein Viertel des Jahres ohne Personal, und kein Haus kommt in Not. Die neuen Regeln greifen nur im Ausnahmefall (die Tests in `KiVerkaufTests` zeigen ihn).
+- **Sparziel:** Kein Haus spart länger als 5 Jahre in Folge; danach steigt es auf oder baut. Die längste Folge hat die wagemutige Eisenbart-KI vor dem Freiherrn (100.000 und ein Stadthof). Die Sparlogik passt also zur Schwelle als Ziel.
