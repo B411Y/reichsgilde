@@ -369,7 +369,7 @@ So wird eingetragen (damit sich die Chats nie an derselben Stelle treffen):
 | Jahreszeiten (Wunsch des Nutzers) | Über Materialien: Laub trägt nur „Laub“, „Laub hell“ und „Laub dunkel“, das Spiel färbt sie um. Nadeln, Gras, Farn, Blüten, Rinde und Steine bleiben. | 18.10.2026 |
 | Sparsamkeit | Ein Baum hat 40–220 Dreiecke, eine Bodenpflanze 10–115: Davon stehen im Umland Hunderte. | 18.10.2026 |
 
-### Passanten als 3D-Figuren mit Bewegungen (PR #…)
+### Passanten als 3D-Figuren mit Bewegungen (PR #141)
 
 | Thema | Entscheidung | Datum |
 |---|---|---|
