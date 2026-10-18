@@ -230,7 +230,7 @@ public partial class Stadtansicht : Node3D
         public ModellInstanz? Modell { get; init; }
         /// <summary>Glühen die Essen und Öfen des Modells (Material „Glut“) gerade? Geschaltet wird nur beim Wechsel.</summary>
         public bool Glueht { get; set; }
-        /// <summary>Abstand zweier Karren nebeneinander am Halteplatz (der n-te steht n-mal so weit weg), im Umland entlang der Vorderkante des gedrehten Modells; null bei Werkstätten (dort warten die Karren hintereinander auf dem Weg, siehe <c>KarrenBewegen</c>).</summary>
+        /// <summary>Abstand zweier Karren nebeneinander am Halteplatz (die Karren stehen mittig um den Anker verteilt, je eine Reihe weit auseinander), im Umland entlang der Vorderkante des gedrehten Modells; null bei Werkstätten (dort warten die Karren hintereinander auf dem Weg, siehe <c>KarrenBewegen</c>).</summary>
         public Vector3? KarrenReihe { get; init; }
 
         // ── nur bei Werkstätten mit Innenraum ──

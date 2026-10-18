@@ -143,12 +143,12 @@ public partial class Stadtansicht
     }
 
     /// <summary>
-    /// Mehrere Karren eines Betriebs stehen nebeneinander am Halteplatz, 3 m auseinander – entlang der Vorderkante des Modells, zur freieren Seite hin.
+    /// Mehrere Karren eines Betriebs stehen nebeneinander am Halteplatz, 4 m auseinander und um den Anker herum verteilt (siehe <c>KarrenBewegen</c>) – entlang der Vorderkante des Modells.
     /// </summary>
     private Vector3 UmlandKarrenReihe(UmlandModell art, Basis drehung)
     {
         var anker = UmlandAnkerImModell(art.Datei).Karren;
-        return drehung * new Vector3(anker.X <= 0 ? 3 : -3, 0, 0);
+        return drehung * new Vector3(anker.X <= 0 ? 4 : -4, 0, 0);
     }
 
     /// <summary>

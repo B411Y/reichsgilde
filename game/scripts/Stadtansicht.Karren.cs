@@ -186,9 +186,9 @@ public partial class Stadtansicht
         Vector3 blick;
         if (karren.Zustand == KarrenZustand.AmBetrieb && ansicht.KarrenReihe is { } reihe)
         {
-            // Umland: am Halteplatz stehen die Karren nebeneinander (3 m, Reihe aus Stadtansicht.Umland.cs); bei der Abfahrt rücken sie auf den Weg
-            ziel = ansicht.Hof + reihe * nummer;
-            blick = ansicht.WegZumMarkt[1];
+            // Umland: am Halteplatz stehen die Karren nebeneinander (4 m, Reihe aus Stadtansicht.Umland.cs), mittig um den Anker verteilt; bei der Abfahrt rücken sie auf den Weg
+            ziel = ansicht.Hof + reihe * (nummer - (ansicht.Betrieb.Karren.Count - 1) / 2f);
+            blick = ziel + (ansicht.WegZumMarkt[1] - ansicht.Hof); // alle mit derselben Blickrichtung, nicht zum selben Punkt
         }
         else if (karren.Zustand == KarrenZustand.AmBetrieb)
         {
