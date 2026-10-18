@@ -25,6 +25,8 @@ static class Messung
         // Bauen und Verkaufen der KI-Häuser (Spiel-KI, PR #108): gezählt über ihre Meldungen
         var bauen = new SortedDictionary<string, int>(StringComparer.Ordinal);
         var staendeKi = new SortedDictionary<string, int>(StringComparer.Ordinal);
+        // Sparen auf den Stand: Jahre, die ein KI-Haus zum Jahresende spart, und die längste Folge davon (bleibt eins hängen?)
+        var sparjahre = new SortedDictionary<string, (int Jahre, int Laengste)>(StringComparer.Ordinal);
         int bankrottKi = 0;
         var jahre = args.Length > 0 ? int.Parse(args[0]) : 40;
         var startwerte = args.Length > 1 ? int.Parse(args[1]) : 10;
@@ -87,6 +89,7 @@ static class Messung
             var rivale = w.Konten.First(k => k != spieler);
             int? heirat = null, bm = null;
             var erreicht = new HashSet<string>();
+            var sparfolge = new Dictionary<string, int>();
             for (var j = 1; j <= jahre; j++)
             {
                 if (gericht && spieler.IstAktiv)
@@ -111,6 +114,13 @@ static class Messung
                 if (w.Gesundheit.IstPestjahr) pestjahre++;
                 if (w.Familien.Von(rivale)?.Oberhaupt.Krankheit is not null) krankJahre++;
                 familienKi += rivale.Vorjahr?.Familie ?? 0;
+                foreach (var r in w.Rivalen.Where(r => r.Konto.IstAktiv))
+                {
+                    var name = r.Konto.Inhaber.Replace("Haus ", "");
+                    sparfolge[name] = r.Spart ? sparfolge.GetValueOrDefault(name) + 1 : 0;
+                    var (sj, laengste) = sparjahre.GetValueOrDefault(name);
+                    sparjahre[name] = (sj + (r.Spart ? 1 : 0), Math.Max(laengste, sparfolge[name]));
+                }
                 foreach (var ki in w.Rivalen.Select(r => r.Konto))
                 {
                     var name = ki.Inhaber.Replace("Haus ", "");
@@ -209,6 +219,8 @@ static class Messung
             Console.WriteLine($"  KI-Häuser bauen und verkaufen{(mitKarte ? " (Greybox-Karte)" : "")} (Summe über alle Partien): " +
                               (bauen.Count == 0 ? "nichts" : string.Join(", ", bauen.Select(x => $"{x.Key} {x.Value}×"))));
         Console.WriteLine($"  Stand der KI-Häuser am Ende (alle Partien): {string.Join(", ", staendeKi.Select(x => $"{x.Key} {x.Value}"))}; bankrott {bankrottKi}");
+        Console.WriteLine("  Sparjahre der KI zum Jahresende (Ø je Partie, längste Folge in einer Partie): " +
+                          string.Join(", ", sparjahre.Select(x => $"{x.Key} {(double)x.Value.Jahre / startwerte:N1} (längste {x.Value.Laengste})")));
         if (gericht)
             Console.WriteLine($"  vor Gericht: {urteileSchuldig} Schuldsprüche, {urteileFrei} Freisprüche, davon {amtVerloren} mit Amtsverlust (Summe über alle Startwerte)");
         return 0;
