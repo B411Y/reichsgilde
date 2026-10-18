@@ -956,7 +956,7 @@ public partial class Stadtansicht : Node3D
         Quader(new Vector3(-2, -hoehe / 2 + 1.5f, dicke / 2 + 0.07f), new Vector3(1.8f, 3, 0.1f), Material(new Color(0.24f, 0.16f, 0.10f)), suedwand); // Tor
         var westwand = gebaeude[2].Item1;
         if (besitzer is { } farbe)
-            Quader(new Vector3(-0.35f, 2, 0), new Vector3(0.2f, 3, 2), Material(farbe), westwand); // Wappenfahne in der Besitzerfarbe
+            FahnenBehang(new Vector3(-0.28f, 3.5f, 0), Vector3.Back, Vector3.Left, 3, 2, farbe, westwand); // Wappenfahne in der Besitzerfarbe, hängt von oben und flattert
         var vorDemSchmuck = GetChildCount(); // ab hier: Schmuck des Berufs (siehe WandschmuckAnDieWand)
 
         // ── Dach mit Schornstein: eine Gruppe, die in der Innenansicht verschwindet ──
@@ -1024,7 +1024,7 @@ public partial class Stadtansicht : Node3D
             Quader(haus + new Vector3(0, 1.3f, 0), new Vector3(1.3f, 2.6f, 1.3f), rot);
             Dach(haus + new Vector3(0, 2.6f, 0), new Vector3(1.6f, 0.8f, 1.6f), Material(Schiefer), quer: false);
             Quader(haus + new Vector3(0, 3.8f, 0), new Vector3(0.08f, 2.4f, 0.08f), holz);
-            Quader(haus + new Vector3(0.45f, 4.6f, 0), new Vector3(0.8f, 0.5f, 0.05f), rot);
+            FahnenTuchAmMast(haus + new Vector3(0.04f, 4.6f, 0), Vector3.Right, 0.8f, 0.5f, rot.AlbedoColor);
         }
         else if (stil == Werkstil.Diebesnest)
         {
@@ -1394,7 +1394,7 @@ public partial class Stadtansicht : Node3D
         glut.EmissionEnergyMultiplier = 1.2f;
         Quader(p + new Vector3(0, 12.4f, 0), new Vector3(0.8f, 0.6f, 0.8f), glut); // Feuerkorb
         Quader(p + new Vector3(0, 15, 0), new Vector3(0.12f, 4, 0.12f), Material(Holz));
-        Quader(p + new Vector3(0.7f, 16.3f, 0), new Vector3(1.3f, 0.8f, 0.06f), Material(besitzer));
+        FahnenTuchAmMast(p + new Vector3(0.06f, 16.3f, 0), Vector3.Right, 1.3f, 0.8f, besitzer);
         Quader(p + new Vector3(0, 1.3f, 2.03f), new Vector3(1.2f, 2.6f, 0.08f), Material(new Color(0.24f, 0.16f, 0.10f))); // Tür
         var holz = Material(Holz);
         foreach (var (mitte, groesse) in new[]
@@ -1546,7 +1546,7 @@ public partial class Stadtansicht : Node3D
     {
         var stamm = Material(Holz);
         Haus(p + new Vector3(-6, 0, 6), new Vector3(6, 4, 5), Holz, Schiefer, quer: true);           // Hütte
-        Quader(p + new Vector3(-9.2f, 3.5f, 6), new Vector3(0.2f, 3, 2), Material(besitzer));        // Fahne
+        FahnenBehang(p + new Vector3(-9.1f, 5, 6), Vector3.Back, Vector3.Left, 3, 2, besitzer);       // Fahne, hängt von oben und flattert
         for (var reihe = 0; reihe < 3; reihe++)                                                       // Stämme
             for (var lage = 0; lage < 3 - reihe; lage++)
                 Quader(p + new Vector3(2 + reihe * 2.5f, 0.45f + lage * 0.9f, -2), new Vector3(0.8f, 0.8f, 7), stamm);

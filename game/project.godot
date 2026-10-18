@@ -29,6 +29,17 @@ window/size/viewport_height=900
 project/assembly_name="Reichsgilde"
 project/solution_directory="../"
 
+[shader_globals]
+
+wind_richtung={
+"type": "vec2",
+"value": Vector2(1, 0.4)
+}
+wind_staerke={
+"type": "float",
+"value": 0.5
+}
+
 [rendering]
 
 anti_aliasing/quality/screen_space_aa=2
