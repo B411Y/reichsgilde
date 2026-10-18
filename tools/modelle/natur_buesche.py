@@ -96,7 +96,7 @@ def wacholder(netz, st, h, saat):
 
 
 def main():
-    nt.ausgeben(NAME, bauen(), spalten=5, abstand=5.0, zeilenabstand=6.0, ziel_hoehe=1.2, ausschnitt=23.0)
+    nt.ausgeben(NAME, bauen(), spalten=5, abstand=5.0, zeilenabstand=6.0, ziel_hoehe=1.2, ausschnitt=26.0)
 
 
 if __name__ == "__main__":
