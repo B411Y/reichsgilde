@@ -400,7 +400,7 @@ So wird eingetragen (damit sich die Chats nie an derselben Stelle treffen):
 | Skelett | Elf Knochen, jeder Körperteil hängt starr an einem (keine weichen Übergänge – passt zum kantigen Stil und kostet wenig). Stab steht an der Hüfte (bleibt beim Gehen senkrecht), die Hacke verlängert den rechten Unterarm. | 18.10.2026 |
 | Prüfung | In Godot geladen: alle zehn Bewegungen im `AnimationPlayer`, alle Teile mit Skin, Bewegungen laufen (Probe unter Xvfb). | 18.10.2026 |
 
-### Marktplatz und Marktstände (PR #…)
+### Marktplatz und Marktstände (PR #143)
 
 | Thema | Entscheidung | Datum |
 |---|---|---|
