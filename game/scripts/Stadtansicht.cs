@@ -83,7 +83,7 @@ public partial class Stadtansicht : Node3D
     private Raum? _raum;
 
     private readonly Dictionary<Betrieb, BetriebsAnsicht> _betriebe = new();
-    private readonly Dictionary<Karren, Node3D> _karren = new();
+    private readonly Dictionary<Karren, KarrenAnsicht> _karren = new();
     private readonly List<Label3D> _beschriftungen = new();
     private const float BezugsZoom = 95f;
 
@@ -699,7 +699,7 @@ public partial class Stadtansicht : Node3D
         // Karren, die zu keinem Betrieb mehr gehören (sie gehen mit dem Betrieb an den Käufer)
         foreach (var karren in _karren.Keys.Where(k => !_betriebe.Keys.Any(b => b.Karren.Contains(k))).ToList())
         {
-            _karren[karren].QueueFree();
+            _karren[karren].Wurzel.QueueFree();
             _karren.Remove(karren);
         }
         FreienPlatzZeigen(frei);
@@ -1293,77 +1293,6 @@ public partial class Stadtansicht : Node3D
         }
         if (_innen is SonderbauAnsicht sonderbau)
             SonderbauAktualisieren(sonderbau, zeit, arbeitszeit, delta);
-    }
-
-    private void KarrenBewegen(Karren karren, int nummer, BetriebsAnsicht ansicht, int fahrzeit, double jetztGenau, double delta, bool spieler)
-    {
-        if (!_karren.TryGetValue(karren, out var knoten))
-        {
-            knoten = KarrenModell(ansicht.Farbe);
-            knoten.Position = ansicht.Hof;
-            _karren[karren] = knoten;
-        }
-
-        Vector3 ziel;
-        Vector3 blick;
-        if (karren.Zustand == KarrenZustand.AmBetrieb)
-        {
-            ziel = ansicht.Hof + new Vector3(nummer * 3f, 0, 0);
-            blick = ansicht.WegZumMarkt[1];
-        }
-        else
-        {
-            var rest = Math.Clamp((karren.Ankunft - jetztGenau) / fahrzeit, 0, 1);
-            var anteil = karren.Zustand == KarrenZustand.ZumMarkt ? 1 - rest : rest;
-            ziel = PunktAufWeg(ansicht.WegZumMarkt, (float)anteil);
-            var weiter = PunktAufWeg(ansicht.WegZumMarkt, (float)Math.Clamp(anteil + (karren.Zustand == KarrenZustand.ZumMarkt ? 0.02 : -0.02), 0, 1));
-            blick = weiter;
-        }
-
-        // Das Ziel wandert dank des Minuten-Bruchteils schon stetig. Das kurze Hinterhergleiten
-        // fängt nur noch echte Sprünge ab (Abfahrt vom Hof, Ankunft, Tempowechsel).
-        knoten.Position = knoten.Position.Lerp(ziel, (float)Math.Min(1, delta * 10));
-        var richtung = blick - knoten.Position;
-        richtung.Y = 0;
-        if (richtung.LengthSquared() > 0.01f)
-            knoten.Rotation = new Vector3(0, Mathf.Atan2(richtung.X, richtung.Z), 0);
-
-        // Ladung sichtbar machen, Eskorte als Begleiter
-        knoten.GetNode<Node3D>("Ladung").Visible = karren.Ladung.Count > 0;
-        knoten.GetNode<Node3D>("Eskorte").Visible = karren.Eskorte != "Keine" && karren.Ladung.Count > 0;
-    }
-
-    private static Vector3 PunktAufWeg(Vector3[] weg, float anteil)
-    {
-        var laengen = new float[weg.Length - 1];
-        float gesamt = 0;
-        for (var i = 0; i < laengen.Length; i++) { laengen[i] = weg[i].DistanceTo(weg[i + 1]); gesamt += laengen[i]; }
-        var strecke = anteil * gesamt;
-        for (var i = 0; i < laengen.Length; i++)
-        {
-            if (strecke <= laengen[i]) return weg[i].Lerp(weg[i + 1], laengen[i] > 0 ? strecke / laengen[i] : 0);
-            strecke -= laengen[i];
-        }
-        return weg[^1];
-    }
-
-    private Node3D KarrenModell(Color besitzer)
-    {
-        var karren = new Node3D();
-        AddChild(karren);
-        karren.AddChild(new MeshInstance3D { Mesh = new BoxMesh { Size = new Vector3(1.6f, 0.8f, 2.6f) }, MaterialOverride = Material(Holz), Position = new Vector3(0, 1.1f, 0) });
-        foreach (var x in new[] { -0.95f, 0.95f })
-        {
-            var rad = new MeshInstance3D { Mesh = new CylinderMesh { TopRadius = 0.6f, BottomRadius = 0.6f, Height = 0.2f }, MaterialOverride = Material(new Color(0.2f, 0.15f, 0.1f)) };
-            rad.Position = new Vector3(x, 0.6f, 0);
-            rad.RotationDegrees = new Vector3(0, 0, 90);
-            karren.AddChild(rad);
-        }
-        var ladung = new MeshInstance3D { Name = "Ladung", Mesh = new BoxMesh { Size = new Vector3(1.3f, 0.7f, 2f) }, MaterialOverride = Material(besitzer), Position = new Vector3(0, 1.85f, 0) };
-        karren.AddChild(ladung);
-        var eskorte = new MeshInstance3D { Name = "Eskorte", Mesh = new CapsuleMesh { Radius = 0.35f, Height = 1.8f }, MaterialOverride = Material(new Color(0.35f, 0.35f, 0.38f)), Position = new Vector3(1.8f, 0.9f, 0.6f) };
-        karren.AddChild(eskorte);
-        return karren;
     }
 
     // ── Innenansicht betreten und verlassen ─────────────────────────────────

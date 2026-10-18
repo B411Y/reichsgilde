@@ -34,6 +34,7 @@ namespace Reichsgilde;
 ///   --innen=1          direkt in der Innenansicht der eigenen Werkstatt starten (--innen=Rathaus, --innen=Dom bzw. --innen=wohnhaus:<Inhaber>: dort)
 ///   --raum=2           mit --innen: gleich im zweiten Raum der Raumleiste (Werkstatt: 1 Werkraum, 2 Lager; Wohnhaus: 1 Wohnstube, 2 Kontor)
 ///   --verwalten=1      das Bedienfeld der eigenen Gießerei gleich öffnen
+///   --karren=Ochsenkarren,Kriegskarren  der eigenen Gießerei gleich diese Karren dazukaufen (mit --vermoegen=5000; Handkarren, Ochsenkarren, Kriegskarren)
 ///   --vermoegen=12000  Startvermögen des Spielers setzen (zum Ausprobieren des Aufstiegs)
 ///   --beruf=Steinmetz  Startberuf der Testpartie (Schmied, Tischler, Steinmetz, Alchimist, Wirt, Prediger, Dieb, Gardist)
 ///   --bericht=1        gleich zu Beginn einen Jahresbericht zeigen (zum Testen der Anzeige)
@@ -319,6 +320,12 @@ public partial class Hauptszene : Node
             GetNode<CanvasLayer>("Oberflaeche").Visible = false; // freie Sicht auf die Stadt für Bildschirmfotos
         if (optionen.TryGetValue("verwalten", out var verwalten) && verwalten == "1" && _eigeneGiesserei is not null)
             _auswahlKennung = Stadtansicht.BetriebsKennung(_eigeneGiesserei);
+        if (optionen.TryGetValue("karren", out var karrenTypen) && _eigeneGiesserei is { } kaeufer && _simulation.Wirtschaft is { } wKarren && _spieler is not null)
+            foreach (var typ in karrenTypen.Split(',', StringSplitOptions.RemoveEmptyEntries))
+            {
+                var ergebnis = wKarren.Ausfuehren(_spieler, new KarrenKaufen(kaeufer.Name, typ));
+                if (!ergebnis.Erfolg) Protokollieren("--karren=" + typ + ": " + ergebnis.Meldung);
+            }
         if (optionen.TryGetValue("rat", out var rat) && rat == "1")
             _ratskammer.Oeffnen();
         if (optionen.TryGetValue("familie", out var familie) && familie == "1")
