@@ -29,8 +29,9 @@ public partial class Stadtansicht
         new Vector3[] { new(-21, 0, Ringgasse), new(-20.5f, 0, 22) },  // Süden: zur Gasse der Schänke am Fischmarkt
     };
 
-    public static readonly Vector3 RathausTuer = new(0, 0, -14.5f);
-    public static readonly Vector3 DomTuer = new(-20, 0, -2.5f);
+    /// <summary>Wo das Gassennetz an Rathaus und Dom beginnt: vor dem Rundbogen der Markthalle, in dem der Anker des Modells liegt (x −1,8), und am Fuß der Stufen vor dem Domportal.</summary>
+    public static readonly Vector3 RathausTuer = new(-1.8f, 0, -14.5f);
+    public static readonly Vector3 DomTuer = new(-20, 0, 4.2f);
 
     /// <summary>Die Stellen im Umland, an denen Hirten, Feldarbeiter und Holzsammler arbeiten (Namen wie im Kern).</summary>
     public static readonly Dictionary<string, Vector3> Umlandstellen = new()
