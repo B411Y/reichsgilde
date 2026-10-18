@@ -15,7 +15,6 @@ So wird eingetragen (damit sich die Chats nie an derselben Stelle treffen):
 - (3) Einwohner in den Innenräumen von Schänken und Kirchen der Häuser zeigen (im Dom erledigt, PR #93)
 - (3) (von Leveldesign) Gebäudemaße auf glatte Meter: Einwohnerhäuser 6 × 6, 7 × 7, 8 × 8 m; Werkstatt belegt 16 × 14 m und zeigt jede Stufe als sichtbaren Anbau innerhalb dieser Fläche (`docs/LEVELDESIGN.md`, Gebäudegrößen)
 - Wohnhaus-Modelle auf Wohnhausplätzen der Karte (8 m tief, ohne Vorplatz): Die GLB sind für 8 × 10 m mit 2 m Vorplatz gebaut, die Hauskörper sind höchstens 7,4 m tief. Beim Einbau das Modell dort um 1 m zur Gasse versetzen (die Freitreppe des Steinhauses ragt dann in die Gasse); breitere Plätze lassen links und rechts Luft
-- Weitere Modelle aus Blender-Skripten: Einwohnerhäuser (einfaches Haus). Die Werkstätten der bisher geplanten Berufe sind fertig (zuletzt Gardist, Geldleiher, Parfumeur).
 - Werkstätten einbauen: `schmied.glb`, `tischler.glb`, `steinmetz.glb`, `alchimist.glb`, `wirt.glb`, `prediger.glb`, `dieb.glb`, `gardist.glb`, `geldleiher.glb` und `parfumeur.glb` statt `WerkstattAussenBauen` und `AusbauBauen` beim Beruf Schmied, Tischler, Steinmetz, Alchimist, Wirt, Prediger, Dieb, Gardist, Geldleiher bzw. Parfumeur; genau den Knoten `Stufe<n>` der Betriebsstufe zeigen, das Gerüst über „Geruest“, die Glut über das Material „Glut“ (Emission an, solange gearbeitet wird; ersetzt `huelle.Esse`), die verkaufte Werkstatt über „Leerstand“ ohne „Wappen“ und „Fahne“. Klickfläche, Innenraum und Schild bleiben wie bisher
 - Weitere Modelle ins Spiel einbauen, sobald es sie gibt: die Einwohnerhäuser (`WohnhausModell` in `Stadtansicht.Wohnviertel.cs`: je `Hausart` das Modell `einwohner_<hausart>.glb`, davon die Variante nach der Hausnummer; „Hausfarbe“ ist im Modell ein gedecktes Braun und darf je Haus gedeckt umgefärbt werden), die Werkstätten – nach dem Muster `WohnhausModellEinsetzen` (PR #105)
 - Ankerpunkte der Modelle nutzen: Passanten gehen das letzte Stück vom Gassennetz bis „Anker_Tuer“ (mit dessen Höhe, also die Stufen hinauf) und verschwinden erst dort; Karren halten an „Anker_Karren“. Für die eingebauten Wohnhäuser ersetzt der Anker die Haustür aus der Fläche, für Werkstätten den Hof (`HofVon`, 5,5 m vor der Mitte). Den Anker nach dem Einsetzen über `FindChild` suchen und seine globale Lage nehmen – das Modell ist schon verschoben und gedreht
@@ -257,6 +256,14 @@ So wird eingetragen (damit sich die Chats nie an derselben Stelle treffen):
 | Aufbau | Wie beim Ratsherrenhaus: `einwohner_buergerhaus.glb` mit „Variante1“–„Variante3“ und „Anker_Tuer“, ohne Zustände, Fläche 8 × 10 m, Front bei z = +3. Haus 6,6 × 6,8 m mit zwei Geschossen (mit Dachüberstand im 7-m-Raster, LEVELDESIGN: Bürgerhaus 7 m). | 18.10.2026 |
 | Aussehen | Wie bisher im Spiel verputzt mit Giebel zur Gasse: Variante 1 heller Kalkputz, Fachwerkgiebel, Ziegel. Variante 2 rötlicher Putz, verputzter Giebel mit Ladeluke und Kranbalken, Schiefer. Variante 3 grauer Putz, vorkragender Fachwerkgiebel auf Balkenköpfen, Ziegel, im Erdgeschoss ein Laden mit heruntergeklappter Auslage und Vordach. Fenster mit hellen Putzfaschen und Läden, Haustür rechts. | 18.10.2026 |
 | Hausfarbe | Läden, Tür und Auslage tragen „Hausfarbe“, im Modell ein gedecktes Grün. | 18.10.2026 |
+
+### Einfaches Wohnhaus der Einwohner als 3D-Modell (PR #128)
+
+| Thema | Entscheidung | Datum |
+|---|---|---|
+| Aufbau | Wie beim Ratsherrenhaus: `einwohner_wohnhaus.glb` mit „Variante1“–„Variante3“ und „Anker_Tuer“, ohne Zustände. Fläche 6 × 8 m (LEVELDESIGN: einfaches Haus 6 m, dazu 2 m Vorplatz), Front bei z = +2. Haus 5 × 5,4 m mit Erdgeschoss und niedrigem Obergeschoss; mit Dachüberstand im 6-m-Raster. | 18.10.2026 |
+| Aussehen | Wie bisher im Spiel Fachwerk oder Putz mit der Traufe zur Gasse: Variante 1 Fachwerk mit Lehmputz, Ziegel, Schleppgaube, Regentonne. Variante 2 glatt verputzt mit Geschossband, Ziegel, Vordach über der Tür, Bank. Variante 3 dunkles Fachwerk mit Andreaskreuzen im Obergeschoss, Schiefer, Holzstapel an der Seite. Im Code heute meist Fachwerk, jedes dritte Haus verputzt, jedes vierte mit Schiefer – beim Einbau die Variante entsprechend wählen. | 18.10.2026 |
+| Hausfarbe | Läden und Tür tragen „Hausfarbe“, im Modell ein gedecktes Rotbraun. | 18.10.2026 |
 ### Stadthof als 3D-Modell (PR #124)
 
 | Thema | Entscheidung | Datum |
