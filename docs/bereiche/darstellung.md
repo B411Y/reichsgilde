@@ -248,7 +248,7 @@ So wird eingetragen (damit sich die Chats nie an derselben Stelle treffen):
 | Aussehen | Wie bisher im Spiel aus Stein mit Giebel zur Gasse und Erker: Variante 1 grauer Haustein, Treppengiebel, Schiefer, Kastenerker in der Mitte. Variante 2 ockerfarben verputzt, glatter Giebel mit Sandsteinkanten und Kugeln, Ziegel, Eckerker mit Spitzhelm. Variante 3 roter Sandstein, Treppengiebel, Ziegel, Erker über der Tür. Rundbogentür mit Stufen links, Steinfenster mit Kreuzstock. | 18.10.2026 |
 | Hausfarbe | Tür und Fensterkreuze tragen „Hausfarbe“, im Modell ein gedecktes Braun. Färbt das Spiel nicht um, sieht das Haus trotzdem fertig aus. | 18.10.2026 |
 
-### Bürgerhaus der Einwohner als 3D-Modell (PR #…)
+### Bürgerhaus der Einwohner als 3D-Modell (PR #126)
 
 | Thema | Entscheidung | Datum |
 |---|---|---|
