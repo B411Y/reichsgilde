@@ -230,7 +230,7 @@ So wird eingetragen (damit sich die Chats nie an derselben Stelle treffen):
 | Wachstum | Wechselstube: Hof hinter einer verputzten Mauer mit Tor, Pfandgut (Kisten, beschlagene Truhe, Fass, ein Karren mit Plane), Linde mit Bank. Geldleihe: Kontor als zweigeschossiger Anbau mit Giebel zur Gasse, Gaube. Bankhaus: Kontor, Tresorturm mit eiserner Tür, vergitterten Fenstern und Kupferhelm, Ziergarten mit Prunkbrunnen und Buchsbeeten, Gaube, Dachreiter mit königsblauer Spitze wie bisher im Spiel. | 17.10.2026 |
 | Farben im Skript | Die neuen Farben (Tuch, Königsblau) stehen im Skript selbst (`bs.FARBEN.update`), nicht in `bausteine.py` – so kommen sich die Werkstatt-PRs, die gleichzeitig offen sind, nicht in die Quere. Die übrigen Werkstätten bleiben unverändert. | 17.10.2026 |
 
-### Stadtpalais als 3D-Modell (PR #…)
+### Stadtpalais als 3D-Modell (PR #122)
 
 | Thema | Entscheidung | Datum |
 |---|---|---|
