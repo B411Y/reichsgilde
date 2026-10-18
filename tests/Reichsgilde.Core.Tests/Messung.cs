@@ -32,6 +32,7 @@ static class Messung
         var gericht = args.Length > 3 && args[3] == "gericht";
         var charakter = args.Length > 4 ? Enum.Parse<KiCharakter>(args[4]) : KiCharakter.Ausgewogen;
         int gaunerstuecke = 0, kerker = 0;
+        var gaunerJeArt = new SortedDictionary<string, int>(StringComparer.Ordinal); // Banden der KI je Art und Ziel
         double gaunerBilanz = 0, schadenSpieler = 0;
         int urteileSchuldig = 0, urteileFrei = 0, amtVerloren = 0;
         double bestechung = 0;
@@ -57,7 +58,14 @@ static class Messung
             var (sim, spieler) = Partieaufbau.Erstellen(
                 Partieeinstellungen.Standard with { Zufallsstartwert = s * 101, Siegbedingung = Siegbedingung.Endlos },
                 daten, new NeuePartie(Volk: volk, Rivale: charakter), karte: mitKarte ? Reichsgilde.Core.Bauen.Stadtkarte.AusDatei(kartenpfad) : null);
-            if (w0(sim) is { } w1) w1.Meldung += m => { if (m.Contains("heuert im Hinterzimmer") || m.Contains("Erpresserbrief:")) gaunerstuecke++; };
+            if (w0(sim) is { } w1) w1.Meldung += m =>
+            {
+                if (m.Contains("heuert im Hinterzimmer") || m.Contains("Erpresserbrief:")) gaunerstuecke++;
+                // „Eichwald: heuert im Hinterzimmer eine Bande an: Einbruch ins Wohnhaus gegen Haus Eisenbart – …“ → je Art und Ziel
+                if (m.Split(": heuert im Hinterzimmer eine Bande an: ") is [_, var rest]
+                    && rest.Split(" – ")[0].Split(" (")[0] is var tat && tat.Contains(" gegen "))
+                    gaunerJeArt[tat] = gaunerJeArt.GetValueOrDefault(tat) + 1;
+            };
             if (w0(sim) is { } w2)
             {
                 var kiNamen = w2.Rivalen.Select(r => r.Konto.Inhaber + ": ").ToList();
@@ -178,6 +186,7 @@ static class Messung
         Console.WriteLine($"  Geschenke an Ratsherren (Bestechung) Ø {Zahlenformat.Ganz(bestechung / startwerte)} Gulden über {jahre} Jahre");
         Console.WriteLine($"  Gaunerstücke der KI ({charakter}): {gaunerstuecke} in {startwerte} Partien, Bilanz Hinterzimmer {Zahlenformat.Ganz(gaunerBilanz / startwerte)} je Partie; " +
                           $"Raub und Schäden beim Spieler Ø {Zahlenformat.Ganz(schadenSpieler / startwerte)}; Kerkerjahre der KI {kerker}");
+        Console.WriteLine("  Banden der KI je Art und Ziel (Summe): " + string.Join(", ", gaunerJeArt.Select(x => $"{x.Key} {x.Value}×")));
         Console.WriteLine($"  Talente des Oberhaupts am Ende Ø {talentOberhaupt / startwerte:N1} Sterne (Summe aller fünf); ausgebildete Nachkommen Ø {ausgebildet / startwerte:N1} " +
                           $"({string.Join(", ", abschluesse.Select(x => $"{x.Key} {x.Value}"))})");
         Console.WriteLine($"  Gesundheit: {pestjahre} Pestjahre in {startwerte} Partien; Krankheitstote im Haus Eisenbart {krankheitstote} (davon Pest {pesttote}); " +

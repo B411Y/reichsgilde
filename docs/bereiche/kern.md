@@ -10,15 +10,12 @@ So wird eingetragen (damit sich die Chats nie an derselben Stelle treffen):
 
 ## Offen
 
-- (5) Orks und Oger spielbar machen
 - (5) Bauen im Umland (Höfe und Gärten an Vorkommen) und in Köln (die Kölner Karte hat noch keine Wohnhausplätze); Verfall von Leerstand und Sanierungskosten nach Zustand (LEVELDESIGN §3) – Rest aus „Bauzonen, Bauplätze und Sanierung von Leerstand“ nach PR #103
-- (5) Gaunerberuf, Schmuggel und Schwarzarbeit unter dem Statut
+- (5) Schmuggel und Schwarzarbeit unter dem Statut
 - (3) Fahrzeit aus der Weglänge (Wegegraph), sobald es die erste Kartendatei gibt (`docs/LEVELDESIGN.md`)
 - (–) „Kirche an der Westmauer“ umbenennen – steht seit der Stadterweiterung nicht mehr an der Mauer (Name in `wirtschaft.json`, Schlüssel in der Stadtansicht)
 - (6) Multiplayer, Zuschauer-Modus
-- (Nutzer) Lizenz für Grafiken und Texte (CC BY 4.0?) bestätigen
 - (Nutzer) Pausenregeln im Multiplayer
-- (5) (von Leveldesign) Wohnhaus-Ausbau: Fachwerkhaus → Bürgerhaus → Steinhaus am selben Platz; **Stadtpalais und Hof nicht am Platz**, sondern als neuer Bau oder Abriss und Neubau (Entscheidung 16.10.2026, `docs/LEVELDESIGN.md`, Gebäudegrößen) – betrifft Entwurf PR #75
 - (–) Sporadisches Leck beim Beenden im Rauchtest finden: „10 ObjectDB instances leaked“ und „10 RID allocations of type DummyTexture leaked“, im zweiten Start (mit Tafeln), nur auf GitHub, lokal nicht nachzustellen. Der Rauchtest wiederholt solche Funde seit PR #83; die Warnung „1. Versuch“ im Lauf zeigt, wie oft es vorkommt. Befund vom 16.10.: Vor dem Merge von PR #77 kein Fall in 40 Läufen, danach etwa jeder dritte Lauf, auch zweimal hintereinander im selben Lauf. In Schleifen im selben Job (Branch `experiment/leck`, mit und ohne Hinterzimmer, mit Menü-Start davor, mit und ohne `tee`) dagegen 0 von 152 Starts, und mit `--verbose` nie – es hängt am Zeitablauf
 - (von Spiel-KI) Warenkorb je Volk und Rolle (PR #91): Die Einwohner verschieben die Nachfrage der Fertigwaren um bis zu ±10 % (günstige Waren und die Lieblingsgruppen der Völker rauf, teure runter; Summe in Gulden gleich). Den Test „Konkurrenz: Zwei Gießereien teilen sich den Silberring-Markt“ hat Spiel-KI in PR #91 auf Wunsch des Nutzers von 611 auf 649 (+6 %) nachgezogen; in `messen 30 20` verlieren die Häuser 3–9 %. Bitte Kalibrierung prüfen – oder Werte in `buerger.warenkorb` mit Spiel-KI abstimmen
 - (von Infra) Zum Leck beim Beenden, Befund vom 16.10.2026: Einmal kam statt des Lecks ein Absturz (Rückgabewert 139, „36 ObjectDB instances leaked“, „1 resources still in use“) ganz ohne Ausgabe von Godots Absturzbehandlung. Die Fälle häuften sich am 16.10. zwischen 18:10 und 19:30 UTC, im Vergleich danach 0 von 16 Läufen (mit und ohne PR #100). Ausgeschlossen: Waren-Icons (im Rauchtest wird keins geladen) und Wappen. PR #100 gibt die Schriften beim Beenden frei – eine Absicherung, nicht bewiesen. Seit PR #101 zeigt ein Absturz oder Hänger die Rückverfolgung aller Fäden (Anmerkung im Lauf, Artefakt „Rauchtest-Protokoll“): Steht dort der Faden „.NET Finalizer“, gibt die Müllabfuhr von C# ein Godot-Objekt zu spät frei
@@ -123,6 +120,14 @@ So wird eingetragen (damit sich die Chats nie an derselben Stelle treffen):
 | Stimmrecht | Abfragen nach dem `…Verboten`-Muster: `Stadtrat.WahlStimmeVerboten(konto, amt)`, `Stadtrat.StatutStimmeVerboten(konto)`, `Glaubenswesen.StimmeVerboten(konto)`. Abgewiesen wird, wer nicht im Rat sitzt, eine KI ist, bei dieser Wahl nicht wählt (nur höhere Ämter) oder selbst Kandidat ist; ohne Bewerber bzw. Antrag gibt es keine Stimme; der Antragsteller stimmt ohnehin dafür. | 17.10.2026 |
 | Gültigkeit | Eine Stimme verfällt, sobald sie nicht mehr passt: Der Kandidat scheidet aus (Bankrott, Erbfall), der Ratsherr ist nicht mehr im Amt, der Antrag fällt weg oder ein neuer kommt, das Haus verliert sein Amt oder wird selbst Kandidat. Dann gilt die Vorgabe. Eine verfallene Stimme lebt nicht wieder auf. Nach der Sitzung sind alle Stimmen gelöscht. | 17.10.2026 |
 | Prognosen | `WahlPrognose` und die beiden `AbstimmungsPrognose` zählen die Stimme. Beim Antrag gilt sie nur für den vorliegenden Antrag, gedachte Anträge zählen das Haus als Enthaltung. Die KI sieht die Stimme über die Prognosen mit. | 17.10.2026 |
+
+### Völker, Berufe und Lizenz (PR #119)
+
+| Thema | Entscheidung | Datum |
+|---|---|---|
+| Orks und Oger | **Nicht spielbar.** Sie bleiben Bestien vor den Toren, Banden und Arbeitskräfte. Entschieden vom Nutzer. | 18.10.2026 |
+| Berufe | Es bleibt bei den **zehn Berufen**, einen Gaunerberuf gibt es nicht. Schmuggel und Schwarzarbeit unter dem Statut bleiben offen. Entschieden vom Nutzer. | 18.10.2026 |
+| Lizenz | Code und Skripte (auch die Zeichen- und Blender-Skripte unter `tools/`) **MIT**; Grafiken, Modelle, Icons, Bilder und Texte (`game/assets/` außer den Schriften, `docs/`) **CC BY 4.0** (`LICENSE-INHALTE.md`). Entschieden vom Nutzer. | 18.10.2026 |
 
 ## Messungen
 

@@ -469,6 +469,7 @@ Die Unterwelt (`src/Reichsgilde.Core/Gauner/Unterwelt.cs`) gehört zur Stadtwirt
 - Erpresserbriefe beantwortet sie mit `DrohendeStrafe`: Buße + Pranger + Amt + Kerker, grob in Gulden geschätzt.
 - Nach einem Angriff (`LetzterAngriff`, öffentlich) stellt sie einen Wächter ein.
 - Selbst heuert sie Banden nur an, wenn der erwartete Vorteil die Kosten übersteigt. Unter den Augen der Spitzel hält die Ausgewogene still, die Wagemutige macht weiter.
+- Gegen das Wohnhaus (PR #119, nur wenn `Unterwelt.GegenWohnhaus`): Einbruch mit dem Wert `ErwarteterHausgewinn` (jede KI mit Gaunerei), Brandstiftung mit halber Reparatur × Chance − Kosten (nur wagemutig, nicht solange `Wohnen.IstBeschaedigt`). Beide stehen in derselben Liste wie Diebstahl, Sabotage und Überfall, das Beste gewinnt.
 
 **Lehrstück aus diesem Schritt (Anzeige und Zeitpunkt):** Im Klicktest zeigte die Tafel nach 21 Uhr noch „Sabotage bestellt“. Der Kern war richtig: Die Tafel war um 20:45 aufgebaut worden und wusste nichts von der Nacht. Eine Anzeige muss erfahren, wann sich ihre Daten ändern. Dafür gibt es jetzt das Ereignis `NachtVorbei`. Das Phasen-Ereignis „Dunkle Nacht“ wäre eine Spielminute zu früh gekommen.
 

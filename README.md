@@ -10,7 +10,7 @@
 ![Godot 4.7](https://img.shields.io/badge/Godot-4.7-478cbf)
 ![C# .NET 8](https://img.shields.io/badge/C%23-.NET%208-512bd4)
 ![Windows & Linux](https://img.shields.io/badge/Windows%20%26%20Linux-spielbar-2e7d32)
-[![Lizenz: MIT](https://img.shields.io/badge/Lizenz-MIT-yellow)](LICENSE)
+[![Lizenz: MIT](https://img.shields.io/badge/Lizenz-MIT-yellow)](LICENSE) [![Inhalte: CC BY 4.0](https://img.shields.io/badge/Inhalte-CC%20BY%204.0-lightgrey)](LICENSE-INHALTE.md)
 
 ![Die Reichsstadt mit Markt, Dom und Stadtmauer](docs/bilder/stadt.png)
 
@@ -249,7 +249,7 @@ Die Reichsstadt ist als begehbare Schrägansicht zu sehen: Mauer (100 × 100 m) 
 - **Einbruch ins Wohnhaus:** Die Bande holt 5 % vom Bargeld aus der Truhe, höchstens 300 Gulden je Hausstufe (Fachwerkhaus 300 … Stadthof 1.500). Bargeld braucht keinen Hehler.
 - **Brand am Wohnhaus:** Das Opfer zahlt die Reparatur (20 % des Ausbaupreises, mindestens 100), und einen Tag lang fehlt das Ansehen des Hauses. Die Stufe bleibt, der Stand ist nie in Gefahr.
 
-Hast du mindestens 3 Beweise, kannst du **Schweigegeld erpressen**. Der Brief selbst ist allerdings ein Beweis gegen dich. Jedes Gaunerstück hinterlässt eine Spur fürs Gericht, und manchmal erkennt dich ein Zeuge. Überfall und Erpressung bringen vor Gericht ein Jahr **Kerker**. In dieser Zeit laufen nur deine Betriebe weiter. Gegen Gauner hilft ein **Wächter** je Betrieb: Er halbiert die Chance der Diebe und sieht öfter, wer es war. Haus Eisenbart greift je nach Charakter selbst zu solchen Mitteln: vorsichtig nie, ausgewogen selten, wagemutig oft.
+Hast du mindestens 3 Beweise, kannst du **Schweigegeld erpressen**. Der Brief selbst ist allerdings ein Beweis gegen dich. Jedes Gaunerstück hinterlässt eine Spur fürs Gericht, und manchmal erkennt dich ein Zeuge. Überfall und Erpressung bringen vor Gericht ein Jahr **Kerker**. In dieser Zeit laufen nur deine Betriebe weiter. Gegen Gauner hilft ein **Wächter** je Betrieb: Er halbiert die Chance der Diebe und sieht öfter, wer es war. Haus Eisenbart greift je nach Charakter selbst zu solchen Mitteln: vorsichtig nie, ausgewogen selten, wagemutig oft. Die KI-Häuser brechen auch in Wohnhäuser ein, sobald sich das lohnt (ab dem Bürgerhaus), und die wagemutigen legen Feuer an Stadtpalais und Stadthof.
 
 **Stadtgericht.** Jedes Geschenk an einen Ratsherrn ist Bestechung und hinterlässt eine Spur, bei dir wie bei Haus Eisenbart. Im Rathaus öffnet „Gerichtssaal öffnen“ das Gericht. Dort setzt du einen **Spitzel** auf ein anderes Haus an. Er deckt am Jahresende Spuren auf, die in deinem **Beweisbuch** landen. Mit Beweisen erhebst du **Anklage**. Den Vorsitz führt der Stadtrichter, dazu kommen zwei ausgeloste Schöffen. Eine Prognose zeigt, wie jeder Richter heute urteilen würde. Am **Gerichtstag** zum Jahresende, noch vor der Ratssitzung, fällt das Urteil. Bei einem Schuldspruch gibt es eine Buße (das Dreifache des Tatwerts, höchstens das halbe Vermögen), der Verurteilte verliert sein Amt und steht drei Jahre am Pranger, was ihn Ansehen kostet. Bei einem Freispruch entschädigt der Ankläger den Beklagten. Geschenke an die Richter können einen knappen Fall kippen, ab drei Beweisen aber nicht mehr. So wird auch ein bestechlicher Bürgermeister angreifbar. Haus Eisenbart setzt ebenfalls Spitzel an, klagt, wenn die Beweise sicher reichen, verteidigt sich und besticht vorsichtiger, wenn man ihm auf die Finger schaut.
 
@@ -342,4 +342,4 @@ Nach jedem Merge auf `main` hält die Action **„PRs aktuell halten“** ([`.gi
 
 ## Lizenz
 
-Code: [MIT](LICENSE). Schriften: **Alegreya** (The Alegreya Project Authors) und **Germania One** (John Vargas Beltrán), beide unter der [SIL Open Font License 1.1](game/assets/schriften/) – die Lizenztexte liegen neben den Schriftdateien. Die Waren-Icons sind selbst gezeichnet (`tools/icons/waren_icons.py`) und stehen unter derselben Lizenz. Dieses Projekt verwendet **keine** Grafiken, Sounds, Texte oder sonstigen Inhalte aus „Die Gilde“ – das Original dient nur als Vorbild für Spielmechaniken.
+Code: [MIT](LICENSE), auch die Skripte, die Icons und Modelle zeichnen. Grafiken, 3D-Modelle, Icons, Bilder und Texte: [CC BY 4.0](LICENSE-INHALTE.md) – frei nutzbar, auch kommerziell, mit Namensnennung. Schriften: **Alegreya** (The Alegreya Project Authors) und **Germania One** (John Vargas Beltrán), beide unter der [SIL Open Font License 1.1](game/assets/schriften/) – die Lizenztexte liegen neben den Schriftdateien. Dieses Projekt verwendet **keine** Grafiken, Sounds, Texte oder sonstigen Inhalte aus „Die Gilde“ – das Original dient nur als Vorbild für Spielmechaniken.
