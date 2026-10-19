@@ -1017,3 +1017,22 @@ Was es bringt: Ein Patrizier im Steinhaus kauft ein leeres Stadtpalais für 0,7 
 Was es bringt: Eine Stimme kippt knappe Fälle. Bei einer Wahl mit 5 Wählern macht sie aus 2 zu 3 ein 3 zu 2. Bei einem Antrag mit Gleichstand ohne den Spieler (der Bürgermeister dafür) kippt ein Nein den Antrag (3 zu 4 statt 3 zu 3).
 
 **Messung** (`messen 30 20`, Mensch, ausgewogen, gemessen auf main `2f64149` + PR #111; Kern und Daten gleich main `5296754`): **zeichengleich** mit main (Eisenbart 170.396, Eichwald 97.581, Kieselbach 138.144, Bürgermeister 16/20). In der Messung legt der Spieler keine Stimme fest, also gilt überall die Vorgabe wie bisher.
+
+## Werkstatt wie in Gilde 1 (PR #152)
+
+**Regel:** Abschnitt `werkstatt` (Datenversion 36). Jeder Arbeiter hat eine eigene Ware, eine Werkstatt stellt mehrere Waren zugleich her. Lohnstufen knapp/üblich/gut = Lohn × 0,8 / 1 / 1,25, Laune-Ziel 25 / 50 / 75; die Laune läuft 3 Punkte je Arbeitsstunde aufs Ziel, Tempo = 1 + 0,2 × (Laune − 50) / 50. Prämie 30 Gulden je Arbeiter, +20 aufs Ziel für einen Spieltag. Unfall je Arbeiter und Jahr: Schmied 5 %, Steinmetz und Tischler 4 %, Alchimist und Parfumeur 3 %, Wirt und Prediger 2 %; Ausfall für den Rest des Tages (bis zum Jahreswechsel) mit Lohn, Lederschürzen halbieren die Gefahr. Einrichtung des Schmieds: Werkzeug −10 % Zeit (300), Meisterwerkzeug nochmals −10 % (800, ab Stufe 2), Blasebalg −10 % für Eisenwaren (350), Regale +20 Lager (200), Löschfass Feuer ×0,5 (100), Eisentür Diebstahl ×0,5 (300), Lederschürzen (80).
+
+Was es bringt (Gießerei, 2 Gesellen, Silberring ≈ 48 Gulden Spanne je Stück, 14,4 Stück je Geselle und Jahr ≈ 690 Gulden):
+- **Guter Lohn** kostet 2 × 55 = 110 Gulden mehr, Laune 75 bringt +10 % Tempo ≈ 140 Gulden – lohnt knapp, bei teuren Waren (Goldkette, Prunkschwert) deutlich. **Knapper Lohn** spart 88 Gulden, kostet −10 % Tempo ≈ 140 und droht nach einem Unfall mit Kündigung.
+- **Gutes Werkzeug** (300) bringt +11 % Stück ≈ 150 Gulden im Jahr – nach zwei Jahren bezahlt. Meisterwerkzeug in der Schmiede (3 Plätze, teurere Waren) ähnlich nach zwei bis drei Jahren.
+- **Unfälle:** Gewürfelt wird am Ende jeder der 12 Arbeitsstunden; wer verunglückt, verliert im Mittel 5,5 von 12 Stunden. Je Schmied-Arbeiter fehlen so 5 % × 0,46 ≈ 2,3 % eines Arbeitsjahres (≈ 16 Gulden beim Silberring); Lederschürzen (80) holen die Hälfte zurück – sie lohnen erst nach Jahren oder bei teuren Waren.
+
+**Messung** (`messen 30 20`, Mensch, ausgewogen, gemessen auf main `3e206cd` + PR #152; die KI-Häuser zahlen üblichen Lohn und kaufen keine Einrichtung, nur die Unfälle wirken):
+
+| Haus | vorher (main) | nachher | Änderung |
+|---|---|---|---|
+| Eisenbart (Schmied, von der KI geführt) | 163.070 | 161.736 | −0,8 % |
+| Eichwald (Tischler) | 97.608 | 96.795 | −0,8 % |
+| Kieselbach (Steinmetz) | 141.735 | 143.128 | +1,0 % |
+
+Bürgermeister 18/20 → 16/20 (im Schnitt ab Jahr 14,2 → 13,4), Stand am Ende Freiherr 57 / Edler 3 → Freiherr 48 / Edler 11 / Reichsgraf 1, gekaufte Betriebe 168 → 164, kein Bankrott. Die Verschiebung liegt bei ±1 % – innerhalb der Streuung zwischen den Startwerten; erwartet war etwa −1 bis −2 % (Leistungsverlust Gefahr × 0,46). Die Referenztests der Gießerei (ein Startwert, 20 Jahre) bleiben in ihrer Toleranz: 848 → 822, 649 → 633. Nur der Vergleich der beiden Gießereien im Konkurrenztest bekommt ±8 % statt ±5 %, weil Unfälle die beiden zufällig verschieden oft treffen.

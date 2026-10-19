@@ -83,10 +83,9 @@ public sealed class Werkstattwesen
         foreach (var a in b.Arbeiter.ToList())
         {
             if (a.FaelltAus(jetzt) || _zufall.NextDouble() >= gefahr) continue;
-            var tage = u.AusfallTageVon + _zufall.Next(u.AusfallTageBis - u.AusfallTageVon + 1);
-            a.AusfallBis = jetzt + (long)tage * u.AusfallMinutenJeTag;
+            a.AusfallBis = (jetzt / Spielzeit.MinutenProTag + 1) * Spielzeit.MinutenProTag; // bis zum Jahreswechsel
             b.UnfallLauneBis = jetzt + u.LauneMinuten;
-            _w.Melden($"Unfall in {b.Name}: {a.Arbeitskraft} Nr. {a.Nummer} hat sich verletzt und fällt {tage} {(tage == 1 ? "Spieltag" : "Spieltage")} aus. " +
+            _w.Melden($"Unfall in {b.Name}: {a.Arbeitskraft} Nr. {a.Nummer} hat sich verletzt und fällt für den Rest des Tages aus. " +
                       "Der Lohn läuft weiter.");
         }
     }

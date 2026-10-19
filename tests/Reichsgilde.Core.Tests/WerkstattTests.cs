@@ -24,12 +24,11 @@ static class WerkstattTests
         return Wirtschaftsdaten.AusJson(knoten.ToJsonString());
     }
 
-    /// <summary>Unfälle sehr häufig (einer je Arbeiter und Jahr im Mittel), ohne Ausfallzeit – zum Zählen.</summary>
-    static Wirtschaftsdaten VieleUnfaelle(int ausfallTage = 0) => DatenMit(w =>
+    /// <summary>Unfälle in der Schmiede sehr häufig (Gefahr je Arbeiter und Jahr), beim Tischler gar nicht.</summary>
+    static Wirtschaftsdaten VieleUnfaelle(double gefahr = 1.0) => DatenMit(w =>
     {
-        w["unfall"]!["gefahr"]!["Schmied"] = 1.0;
-        w["unfall"]!["ausfallTageVon"] = ausfallTage;
-        w["unfall"]!["ausfallTageBis"] = ausfallTage;
+        w["unfall"]!["gefahr"]!["Schmied"] = gefahr;
+        w["unfall"]!["gefahr"]!.AsObject().Remove("Tischler");
     });
 
     /// <summary>Ein Haus mit Gießerei ohne Karren (nichts wird verkauft oder gekauft), Lager mit Eisen und Silber gefüllt.</summary>
@@ -260,33 +259,34 @@ static class WerkstattTests
             Pruefe.Wahr(meldungen.Any(m => m.Contains("Geselle Nr. 1 kündigt")), string.Join(" | ", meldungen));
         }),
 
-        ("Werkstatt: Unfall – der Arbeiter fällt 1–3 Spieltage aus, arbeitet nicht, bekommt aber Lohn; die Laune im Betrieb sinkt", () =>
+        ("Werkstatt: Unfall – der Arbeiter fällt für den Rest des Tages aus, arbeitet nicht, bekommt aber Lohn; die Laune im Betrieb sinkt", () =>
         {
-            var sim = NeueSimulation(VieleUnfaelle(ausfallTage: 2));
+            var sim = NeueSimulation(VieleUnfaelle());
             var (w, k, g) = Giesserei(sim);
             Ok(w, k, new PersonalSetzen(g.Name, "Geselle", 2));
             var meldungen = new List<string>();
             w.Meldung += meldungen.Add;
             while (!g.Arbeiter.Any(a => a.FaelltAus(sim.Zeit.VergangeneMinuten))) sim.Tick();
             var verletzt = g.Arbeiter.First(a => a.FaelltAus(sim.Zeit.VergangeneMinuten));
-            Pruefe.Wahr(meldungen.Any(m => m.Contains($"Nr. {verletzt.Nummer} hat sich verletzt und fällt 2 Spieltage aus")), string.Join(" | ", meldungen));
-            Pruefe.Wahr(verletzt.AusfallBis - sim.Zeit.VergangeneMinuten is > 2 * 1020 - 60 and <= 2 * 1020, $"Ausfall bis {verletzt.AusfallBis}");
+            Pruefe.Wahr(meldungen.Any(m => m.Contains($"Nr. {verletzt.Nummer} hat sich verletzt und fällt für den Rest des Tages aus")), string.Join(" | ", meldungen));
+            Pruefe.Gleich((long)Spielzeit.MinutenProTag, verletzt.AusfallBis); // bis zum Jahreswechsel
             Pruefe.Wahr(g.LeistungProMinute <= 1.0 + 1e-9, $"Leistung {g.LeistungProMinute}");
             Pruefe.Wahr(g.UnfallLauneBis > sim.Zeit.VergangeneMinuten, "Laune im Betrieb gedrückt");
             Pruefe.Ungefaehr(35, w.Werkstaetten.LauneZiel(g, verletzt), 1e-12);
             Pruefe.Gleich(verletzt.AusfallBis, w.Werkstaetten.Arbeiterliste(g).Single(z => z.Nummer == verletzt.Nummer).FaelltAusBis);
             JahreSimulieren(sim, 1);
             Pruefe.Ungefaehr(2 * 220, g.Vorjahr!.Personal, 1e-9);
+            Pruefe.Wahr(!verletzt.FaelltAus(sim.Zeit.VergangeneMinuten), "Im neuen Jahr arbeitet er wieder");
         }),
 
         ("Werkstatt: Schürzen halbieren die Unfälle (gezählt über viele Jahre); ohne Gefahr im Beruf keine Unfälle", () =>
         {
             int Zaehlen(bool schuerzen)
             {
-                var sim = NeueSimulation(VieleUnfaelle(), startwert: 77);
+                var sim = NeueSimulation(VieleUnfaelle(0.3), startwert: 77);
                 var w = sim.Wirtschaft!;
                 var k = w.KontoEroeffnen("Haus Fuchs", startvermoegen: 100_000);
-                for (var i = 0; i < 4; i++)
+                for (var i = 0; i < 8; i++)
                 {
                     var g = w.BetriebEroeffnen($"Gießerei {i}", Betriebsart.Giesserei, k, startkarren: "");
                     Ok(w, k, new PersonalSetzen(g.Name, "Geselle", 2));
@@ -296,14 +296,15 @@ static class WerkstattTests
                 Ok(w, k, new PersonalSetzen(t.Name, "Geselle", 2));
                 var zahl = 0;
                 w.Meldung += m => { if (m.StartsWith("Unfall in Gießerei")) zahl++; else if (m.StartsWith("Unfall in Tischlerei")) zahl += 1000; };
-                JahreSimulieren(sim, 10);
+                JahreSimulieren(sim, 20);
                 return zahl;
             }
             var ohne = Zaehlen(false);
             var mit = Zaehlen(true);
             Pruefe.Wahr(ohne < 1000 && mit < 1000, "Unfall in der Tischlerei, obwohl der Tischler hier keine Gefahr hat");
-            Pruefe.Wahr(ohne is > 55 and < 110, $"ohne Schürzen {ohne} Unfälle (erwartet ≈ 80)");
-            Pruefe.Wahr(mit / (double)ohne is > 0.35 and < 0.65, $"mit Schürzen {mit}, ohne {ohne}");
+            // Je Arbeiter und Jahr höchstens ein Unfall (danach fehlt er): 1 − (1 − 0,3/12)^12 ≈ 26 %, mit Schürzen ≈ 14 %.
+            Pruefe.Wahr(ohne is > 60 and < 110, $"ohne Schürzen {ohne} Unfälle (erwartet ≈ 84)");
+            Pruefe.Wahr(mit / (double)ohne is > 0.35 and < 0.72, $"mit Schürzen {mit}, ohne {ohne}");
         }),
 
         ("Werkstatt: Einrichtung – Werkzeug und Blasebalg sparen Zeit je Stück, Regale geben Lager, Preis als Anschaffung", () =>
@@ -388,7 +389,7 @@ static class WerkstattTests
 
         ("Werkstatt: Speichern und Laden – Arbeiter mit Ware, Laune, Ausfall, Lohnstufe, Einrichtung, Fortschritt je Ware; gleicher Verlauf danach", () =>
         {
-            var original = NeueSimulation(VieleUnfaelle(ausfallTage: 1), startwert: 9);
+            var original = NeueSimulation(VieleUnfaelle(), startwert: 9);
             var (w, k, g) = Giesserei(original);
             Ok(w, k, new PersonalSetzen(g.Name, "Geselle", 1));
             Ok(w, k, new ArbeiterEinstellen(g.Name, "Lehrling", "Beschlag"));
@@ -446,7 +447,7 @@ static class WerkstattTests
         {
             List<string> Unfaelle()
             {
-                var sim = NeueSimulation(VieleUnfaelle(ausfallTage: 1), startwert: 5);
+                var sim = NeueSimulation(VieleUnfaelle(), startwert: 5);
                 var (w, k, g) = Giesserei(sim);
                 Ok(w, k, new PersonalSetzen(g.Name, "Geselle", 2));
                 var liste = new List<string>();
