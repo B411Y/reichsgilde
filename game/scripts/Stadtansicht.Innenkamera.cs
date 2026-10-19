@@ -257,8 +257,18 @@ public partial class Stadtansicht
         var von = _raumKamera.ProjectRayOrigin(bildschirm);
         var bis = von + _raumKamera.ProjectRayNormal(bildschirm) * 60;
         var treffer = GetWorld3D().DirectSpaceState.IntersectRay(PhysicsRayQueryParameters3D.Create(von, bis));
-        return treffer.Count > 0 && treffer["collider"].As<Node>() is { } koerper && koerper.HasMeta("innen")
+        return treffer.Count > 0 && treffer["collider"].As<Node>() is { } koerper && koerper.HasMeta("innen") && IstImGezeigtenRaum(koerper)
             ? koerper.GetMeta("innen").AsString() : null;
+    }
+
+    /// <summary>
+    /// Liegt der Knoten im gezeigten Raum? Die Wände haben keine Klickflächen, ein Strahl ginge sonst durch sie in den Nachbarraum
+    /// (Lager, Sägehalle) und träfe dort Gegenstände und Arbeiter. Knoten unter keinem Raumknoten zählen überall.
+    /// </summary>
+    private bool IstImGezeigtenRaum(Node knoten)
+    {
+        var schluessel = RaumSchluesselVon(knoten);
+        return schluessel == "" || _raum is null || "raum:" + schluessel.ToLowerInvariant() == _raum.Kennung;
     }
 
     // ═════════════════════════════════════════════════════════════════════════
@@ -303,7 +313,7 @@ public partial class Stadtansicht
         var neu = dazu ? new HashSet<int>(_gewaehlt) : new HashSet<int>();
         foreach (var arbeiter in md.Arbeiter.Values)
         {
-            if (!arbeiter.Halter.Visible) continue;
+            if (!arbeiter.Halter.Visible || !IstImGezeigtenRaum(arbeiter.Halter)) continue; // nur wer im gezeigten Raum steht
             var punkt = arbeiter.Halter.GlobalPosition + Vector3.Up * 1.0f;
             if (!_raumKamera.IsPositionBehind(punkt) && rahmen.HasPoint(_raumKamera.UnprojectPosition(punkt))) neu.Add(arbeiter.Nummer);
         }

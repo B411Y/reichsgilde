@@ -311,7 +311,7 @@ public partial class Hauptszene : Node
         {
             if (kennung is not null) _auswahlKennung = kennung;
             Protokollieren(kennung is null ? "Zurück in den Gassen der Stadt."
-                : _stadt.HatBedienung ? $"Ihr betretet {_stadt.InnenName}. Gegenstände anklicken (Buch, Amboss, Regal, Tor, Werkzeugwand) · Maus an den Bildrand: Blick wechseln · Rechtsklick: hinaus."
+                : _stadt.HatBedienung ? $"Ihr betretet {_stadt.InnenName}. Gegenstände anklicken (Buch, Werkbank, Lager, Hoftor, Werkzeugwand) · Maus an den Bildrand: Blick wechseln · Rechtsklick: hinaus."
                 : _stadt.RaumKennung is not null ? $"Ihr betretet {(kennung is "Rathaus" ? "das Rathaus" : _stadt.InnenName)}. Räume wechseln: Leiste unten oder Q/E · ein Klick in den Raum öffnet seine Tafel."
                 : $"Ihr betretet {(kennung is "Dom" ? "den" : "die")} {_stadt.InnenName}.");
             RaumleisteAufbauen();
@@ -321,6 +321,7 @@ public partial class Hauptszene : Node
             RaumleisteAufbauen();
             foreach (var tafel in _innenTafeln) tafel.Hide(); // ein anderer Raum, eine andere Bedienung
         };
+        _stadt.InnenRaeumeGeaendert += RaumleisteAufbauen; // z. B. die Sägehalle nach dem Ausbau zum Sägewerk
         _innenKnopf.Pressed += InnenKnopfGedrueckt;
         foreach (var tafel in _innenTafeln)
         {
@@ -958,7 +959,7 @@ public partial class Hauptszene : Node
                 TafelnSchliessen();
                 _familientafel.Oeffnen();
                 return true;
-            case Stadtansicht.RaumAmt or Stadtansicht.RaumKontor or Stadtansicht.RaumWerk or Stadtansicht.RaumLager:
+            case Stadtansicht.RaumAmt or Stadtansicht.RaumKontor or Stadtansicht.RaumWerk or Stadtansicht.RaumLager or Stadtansicht.RaumSaege:
                 return true;
             default:
                 return false;
