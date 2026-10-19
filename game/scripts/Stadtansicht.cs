@@ -39,7 +39,6 @@ public partial class Stadtansicht : Node3D
     private static readonly Color Fachwerk = new(0.62f, 0.55f, 0.45f);
     private static readonly Color Ziegel = new(0.55f, 0.25f, 0.18f);
     private static readonly Color Schiefer = new(0.28f, 0.30f, 0.34f);
-    private static readonly Color Fels = new(0.40f, 0.37f, 0.34f);
     private static readonly Color Holz = new(0.36f, 0.25f, 0.16f);
     private static readonly Color Spieler = new(0.20f, 0.42f, 0.72f);
     private static readonly Color Rivale = new(0.70f, 0.20f, 0.16f);
@@ -507,6 +506,7 @@ public partial class Stadtansicht : Node3D
     private static bool ImWegFuerWald(Vector3 p)
     {
         if (Mathf.Abs(p.X) < Mauerrand + 6 && Mathf.Abs(p.Z) < Mauerrand + 6) return true; // in der Stadt oder dicht an der Mauer
+        if (AufBerg(p)) return true; // der Felsberg hinter einer Grube (Stadtansicht.Umland.cs)
         if (Mathf.Abs(p.Z - Osttor.Z) < 6 && p.X > 0) return true;  // Landstraße vom Osttor
         if (p.X > Mauerrand && p.X < Wegkreuz.X + 4 && Mathf.Abs(p.Z) < VorstadtRand + 6) return true; // Vorstadt
         if (Mathf.Abs(p.Z - Westtor.Z) < 6 && p.X < 0) return true; // Weststraße vom Westtor

@@ -9,7 +9,8 @@ namespace Reichsgilde;
 /// Wald und Streu kommen aus den Baukästen <c>natur_baeume</c>, <c>natur_buesche</c>, <c>natur_boden</c>, <c>natur_steine</c> und <c>natur_holz</c>
 /// (je Art und Variante ein Knoten, der Fuß im Nullpunkt; Konventionen in <c>docs/bereiche/darstellung.md</c>). Alles steht fest aus einem Startwert
 /// (gleich bei jedem Start), jede Art ist ein <see cref="MultiMeshInstance3D"/>: Hunderte Teile kosten nur ein paar Zeichenaufrufe.
-/// Dazu färbt <see cref="JahreszeitSetzen"/> das Laub aller Modelle um (Material „Laub“, „Laub hell“, „Laub dunkel“).
+/// Dazu stellt <see cref="JahreszeitSetzen"/> die Jahreszeit ein: Das Laub aller Modelle färbt sich um (Material „Laub“, „Laub hell“, „Laub dunkel“),
+/// im Winter zeigen Bäume und Büsche ihre kahlen „…_Winter“-Fassungen bzw. „Winteraeste_…“ statt der Laubkrone.
 /// </summary>
 public partial class Stadtansicht
 {
@@ -23,14 +24,17 @@ public partial class Stadtansicht
     /// <summary>Wo welche Art steht: Lage (Ort, Drehung, Größe) aller Kopien, bis <see cref="NaturAufbauen"/> sie in je ein MultiMesh packt.</summary>
     private readonly Dictionary<(string Datei, string Knoten), List<Transform3D>> _naturLagen = new();
 
-    private Mesh? NaturNetz(string datei, string knoten)
+    /// <summary>Die MultiMeshes der Arten mit kahler Fassung: das Netz im Sommer und das im Winter (<see cref="JahreszeitSetzen"/> tauscht).</summary>
+    private readonly List<(MultiMesh Vielfach, Mesh Sommer, Mesh Winter)> _naturWinter = new();
+
+    private Mesh? NaturNetz(string datei, string knoten, bool pflicht = true)
     {
         if (_naturNetze.TryGetValue((datei, knoten), out var netz)) return netz;
         if (Modell(datei)?.Instantiate<Node3D>() is { } kasten)
         {
             netz = (kasten.FindChild(knoten, true, false) as MeshInstance3D)?.Mesh;
             kasten.Free();
-            if (netz is null) GD.PushError($"Modell unvollständig: res://assets/modelle/{datei}.glb hat keinen Knoten „{knoten}“.");
+            if (netz is null) { if (pflicht) GD.PushError($"Modell unvollständig: res://assets/modelle/{datei}.glb hat keinen Knoten „{knoten}“."); }
             else LaubMelden(netz);
         }
         return _naturNetze[(datei, knoten)] = netz;
@@ -55,6 +59,12 @@ public partial class Stadtansicht
             if (NaturNetz(datei, knoten) is not { } netz) continue;
             var vielfach = new MultiMesh { TransformFormat = MultiMesh.TransformFormatEnum.Transform3D, Mesh = netz, InstanceCount = lagen.Count };
             for (var i = 0; i < lagen.Count; i++) vielfach.SetInstanceTransform(i, lagen[i]);
+            // Bäume und Büsche haben eine kahle Fassung „<Name>_Winter“ (Tanne, Ginster und Wacholder nicht): im Winter tauscht JahreszeitSetzen das Netz
+            if ((datei is "natur_baeume" or "natur_buesche") && NaturNetz(datei, knoten + "_Winter", pflicht: false) is { } winter)
+            {
+                _naturWinter.Add((vielfach, netz, winter));
+                if (_jahreszeit == Jahreszeit.Winter) vielfach.Mesh = winter;
+            }
             natur.AddChild(new MultiMeshInstance3D
             {
                 Name = knoten,
@@ -199,6 +209,17 @@ public partial class Stadtansicht
         ["Laub dunkel"] = new Color(0.50f, 0.28f, 0.13f),
     };
 
+    /// <summary>
+    /// Winterfarben (sRGB) für das Laub, das im Winter noch dran ist, wenn die Kronen kahl sind – Buchshecken, Beete, Weide, Grasbüschel und Marktware:
+    /// verdorrt und matt (Stroh, Lehm, Moor) statt herbstlich bunt.
+    /// </summary>
+    private static readonly Dictionary<string, Color> Winterlaub = new()
+    {
+        ["Laub hell"] = new Color(0.60f, 0.54f, 0.36f),
+        ["Laub"] = new Color(0.40f, 0.34f, 0.23f),
+        ["Laub dunkel"] = new Color(0.29f, 0.25f, 0.19f),
+    };
+
     /// <summary>Merkt ein Laubmaterial vor und färbt es sofort nach der gerade geltenden Jahreszeit. Andere Materialien bleiben unberührt.</summary>
     private void LaubMelden(BaseMaterial3D stoff)
     {
@@ -215,16 +236,61 @@ public partial class Stadtansicht
     }
 
     private void LaubFaerben(BaseMaterial3D stoff, Color sommer) =>
-        stoff.AlbedoColor = _jahreszeit is Jahreszeit.Herbst or Jahreszeit.Winter ? Herbstlaub[stoff.ResourceName] : sommer;
+        stoff.AlbedoColor = _jahreszeit switch
+        {
+            Jahreszeit.Herbst => Herbstlaub[stoff.ResourceName],
+            Jahreszeit.Winter => Winterlaub[stoff.ResourceName],
+            _ => sommer,
+        };
+
+    // ═════════════════════════════════════════════════════════════════════════
+    //  Kronen im Winter
+    // ═════════════════════════════════════════════════════════════════════════
 
     /// <summary>
-    /// Stellt die Jahreszeit ein (jedes Bild gefragt, angefasst werden die Materialien nur beim Wechsel). Frühling und Sommer zeigen das Laub, wie
-    /// die Modelle es mitbringen, Herbst gelb, orange und braun; der Winter sieht vorerst aus wie der Herbst (kahle Äste kommen später).
+    /// Die Laubkronen („Laubkrone_*“) und kahlen Äste („Winteraeste_*“) der eingesetzten Modelle: Beide sind Kinder des Knotens, in dem der Baum steht
+    /// (Stufe, Haus, Wald), und folgen so dessen Sichtbarkeit. Im Winter zeigt das Spiel die Äste statt der Krone.
+    /// </summary>
+    private readonly List<(MeshInstance3D Knoten, bool Aeste)> _kronen = new();
+    private int _kronenSchwelle = 64;
+
+    /// <summary>
+    /// Meldet alle Kronen und Winteräste unterhalb von <paramref name="wurzel"/> an und stellt sie auf die gerade geltende Jahreszeit ein – auch Modelle,
+    /// die erst später gebaut werden, haben so sofort den richtigen Stand. Die Laubmaterialien der Kronen melden sich dabei mit.
+    /// </summary>
+    private void KronenMelden(Node wurzel)
+    {
+        var winter = _jahreszeit == Jahreszeit.Winter;
+        foreach (var teil in wurzel.FindChildren("*", nameof(MeshInstance3D), true, false).OfType<MeshInstance3D>())
+        {
+            var name = teil.Name.ToString();
+            var aeste = name.StartsWith("Winteraeste_");
+            if (!aeste && !name.StartsWith("Laubkrone_")) continue;
+            if (_kronen.Count >= _kronenSchwelle) // abgerissene und ersetzte Häuser nehmen ihre Kronen mit
+            {
+                _kronen.RemoveAll(k => !IsInstanceValid(k.Knoten));
+                _kronenSchwelle = Math.Max(64, _kronen.Count * 2);
+            }
+            _kronen.Add((teil, aeste));
+            teil.Visible = aeste == winter;
+            if (teil.Mesh is { } netz) LaubMelden(netz);
+        }
+    }
+
+    /// <summary>
+    /// Stellt die Jahreszeit ein (jedes Bild gefragt, angefasst wird nur beim Wechsel). Frühling und Sommer zeigen das Laub, wie die Modelle es
+    /// mitbringen, Herbst gelb, orange und braun. Im Winter zeigen Bäume und Büsche der Natur ihre kahlen Fassungen („…_Winter“), in den Modellen
+    /// wechseln „Laubkrone_*“ zu „Winteraeste_*“, und das übrige Laub (Hecken, Beete, Weide) verdorrt zu Stroh und Braun.
     /// </summary>
     private void JahreszeitSetzen(Jahreszeit jahreszeit)
     {
         if (jahreszeit == _jahreszeit) return;
         _jahreszeit = jahreszeit;
         foreach (var (stoff, sommer) in _laubStoffe) LaubFaerben(stoff, sommer);
+
+        var winter = jahreszeit == Jahreszeit.Winter;
+        foreach (var (vielfach, sommerNetz, winterNetz) in _naturWinter) vielfach.Mesh = winter ? winterNetz : sommerNetz;
+        _kronen.RemoveAll(k => !IsInstanceValid(k.Knoten));
+        foreach (var (knoten, aeste) in _kronen) knoten.Visible = aeste == winter;
     }
 }

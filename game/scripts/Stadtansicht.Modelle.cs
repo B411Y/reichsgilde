@@ -109,6 +109,9 @@ public partial class Stadtansicht
                     case "Laub" or "Laub hell" or "Laub dunkel":
                         LaubMelden(stoff); // färbt sich mit der Jahreszeit (Stadtansicht.Natur.cs)
                         break;
+                    case "Farben":
+                        FarbenEinrichten(stoff);
+                        break;
                     case "Glut" when stoff is StandardMaterial3D glutVorlage:
                         // jede Werkstatt glüht für sich: eigene Kopie, nicht das Material, das alle teilen
                         var kopie = (StandardMaterial3D)glutVorlage.Duplicate();
@@ -124,9 +127,21 @@ public partial class Stadtansicht
                 }
             }
         }
+        KronenMelden(modell); // Laubkrone im Sommer, kahle Äste im Winter (Stadtansicht.Natur.cs)
         if (ankerKennung is not null)
             _modellAnker[ankerKennung] = (modell.FindChild("Anker_Tuer", true, false) as Node3D, modell.FindChild("Anker_Karren", true, false) as Node3D);
         return new ModellInstanz(modell, glut.ToArray(), glutAn);
+    }
+
+    /// <summary>
+    /// Das Material „Farben“ (Umlandbetriebe, Felsberg): alle einfachen Farben des Modells stehen als Eckenfarbe im Netz. Godot setzt beim Import nicht
+    /// in jeder Datei <c>vertex_color_use_as_albedo</c> (beim Felsberg fehlte es, er war weiß); hier ist es immer an. Die Werte der Datei sind sRGB
+    /// (<c>vertex_color_is_srgb</c>): ohne das sind die Modelle in Forward+ viel zu hell (geprüft gegen die Grube vor der Zusammenlegung der Materialien).
+    /// </summary>
+    private static void FarbenEinrichten(BaseMaterial3D stoff)
+    {
+        stoff.VertexColorUseAsAlbedo = true;
+        stoff.VertexColorIsSrgb = true;
     }
 
     /// <summary>Zeigt von „Stufe1“ bis „Stufe3“ nur die Betriebsstufe und blendet das Gerüst ein oder aus (Ausbau einer Werkstatt).</summary>
