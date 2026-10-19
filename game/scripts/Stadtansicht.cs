@@ -92,6 +92,9 @@ public partial class Stadtansicht : Node3D
     /// <summary>Wird ausgelöst, wenn in der Raumansicht ein anderer Raum gezeigt wird (Kennung des Raums, null beim Verlassen).</summary>
     public event Action<string?>? RaumGewechselt;
 
+    /// <summary>Wird ausgelöst, wenn sich ändert, welche Räume des betretenen Gebäudes man betreten darf (z. B. die Sägehalle nach dem Ausbau): Die Raumleiste muss neu aufgebaut werden.</summary>
+    public event Action? InnenRaeumeGeaendert;
+
     /// <summary>Kennung des gezeigten Raums („raum:werk", „rathaus:rat" …), sonst null – auch im Dom, der noch ein Diorama ist.</summary>
     public string? RaumKennung => _raum?.Kennung;
 
