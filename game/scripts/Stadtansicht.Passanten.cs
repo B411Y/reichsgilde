@@ -308,6 +308,50 @@ public partial class Stadtansicht
     }
 
     /// <summary>
+    /// Ein Weg im Gassennetz von Anlaufknoten zu Anlaufknoten. Ist ein Ende ein Gassen-Aufenthalt, steht die Figur dort mitten auf einem Wegstück
+    /// (<see cref="GassenLage"/>): Dann kommen die beiden Enden des Stücks in Frage, und es gilt die Kombination mit dem kürzesten Gesamtweg
+    /// (Netzweg plus Reststück entlang der Gasse). So läuft der ganze Weg auf Gassen, und die letzten Meter gehen nur an der Gasse entlang.
+    /// Beide Enden auf demselben Stück: gerade am Stück entlang. Wird nur beim Planen gebaut; die Netzwege sind gemerkt.
+    /// </summary>
+    private List<Vector3> GassenPfad(Weg weg, Einwohner e)
+    {
+        if (weg.Von.Ort == Stadtort.Gasse && weg.Nach.Ort == Stadtort.Gasse
+            && GassenLage(e, weg.Abmarsch) is { } a && GassenLage(e, weg.Ankunft) is { } b
+            && a.Von.IsEqualApprox(b.Von) && a.Bis.IsEqualApprox(b.Bis))
+            return new List<Vector3> { a.Punkt, b.Punkt }; // dasselbe Stück: das Netz wird nicht gebraucht
+
+        var anfaenge = Anlaeufe(weg.Von, e, weg.Abmarsch);
+        var enden = Anlaeufe(weg.Nach, e, weg.Ankunft);
+        List<Vector3>? beste = null;
+        var bestes = float.MaxValue;
+        foreach (var (von, vorlauf) in anfaenge)
+            foreach (var (nach, nachlauf) in enden)
+            {
+                var weg2 = _netz.Pfad(von, nach);
+                if (weg2.Length == 0) continue;
+                var gesamt = Gassennetz.Laenge(weg2) + vorlauf + nachlauf;
+                if (gesamt >= bestes) continue;
+                bestes = gesamt;
+                beste = weg2.ToList();
+            }
+        return beste ?? new List<Vector3>();
+    }
+
+    /// <summary>
+    /// Die Knoten, über die man einen Aufenthalt erreicht, mit dem Rest bis zum Standpunkt in Metern: sonst einer (Reststück 0), bei einem
+    /// Platz in der Gasse die beiden Enden des Wegstücks, auf dem man steht.
+    /// </summary>
+    private List<(int Knoten, float Reststueck)> Anlaeufe(Aufenthalt a, Einwohner e, long zeitpunkt)
+    {
+        if (a.Ort != Stadtort.Gasse || GassenLage(e, zeitpunkt) is not { } lage) return new() { (Anlaufknoten(a), 0f) };
+        return new()
+        {
+            (_netz.KnotenBei(lage.Von), lage.Punkt.DistanceTo(lage.Von)),
+            (_netz.KnotenBei(lage.Bis), lage.Punkt.DistanceTo(lage.Bis)),
+        };
+    }
+
+    /// <summary>
     /// Die Strecke eines Weges: vom Platz, an dem er stand (Verweilpunkt, Marktstelle oder Tür), über das Gassennetz zum neuen Platz.
     /// Auf dem Markt belegt sie dabei die neue Stelle; die alte behält sie, bis sie losgeht.
     /// </summary>
@@ -329,7 +373,7 @@ public partial class Stadtansicht
     /// </summary>
     private Vector3[] PfadBauen(Weg weg, Einwohner e, Passant p, double abmarsch, double ankunft)
     {
-        var pfad = _netz.Pfad(Anlaufknoten(weg.Von), Anlaufknoten(weg.Nach)).ToList();
+        var pfad = GassenPfad(weg, e);
         if (pfad.Count == 0) return Array.Empty<Vector3>();
         if (Draussen(weg.Von)) pfad.Insert(0, StreckenEnde(weg.Von, e, p.AlteMarktstelle, weg.Abmarsch, abmarsch));
         else if (TuerVon(weg.Von) is { } ausgang) pfad.Insert(0, ausgang); // kommt aus der Tür des Modells (mit der Höhe der Stufen)
@@ -382,7 +426,7 @@ public partial class Stadtansicht
             // Umland: auf der Weide, zwischen den Furchen, bei Reisig und Stümpfen im Wald (UmlandPlatz)
             Stadtort.Umland when a.Stelle is { } s && Umlandstellen.ContainsKey(s) => UmlandPlatz(s, zahl).Ort,
             // Gasse: irgendwo auf einer Gasse in der Stadt
-            _ => PunktInDerGasse(Teil(0), Teil(16)),
+            _ => GassenLage(e, zeitpunkt)?.Punkt ?? Marktplatz,
         };
     }
 
@@ -460,13 +504,20 @@ public partial class Stadtansicht
 
     private List<(Vector3 Von, Vector3 Bis)>? _gassenInDerStadt;
 
-    private Vector3 PunktInDerGasse(float wahl, float stelle)
+    /// <summary>
+    /// Wo jemand in der Gasse steht: ein Punkt auf einem Wegstück der Stadt (nicht auf dem Markt), fest aus Nummer und Zeitpunkt,
+    /// dazu die Enden dieses Stücks. Null, wenn es keine Gasse gibt.
+    /// </summary>
+    private (Vector3 Punkt, Vector3 Von, Vector3 Bis)? GassenLage(Einwohner e, long zeitpunkt)
     {
+        var zahl = Streuung(e.Nummer, zeitpunkt);
+        var wahl = (zahl & 0xFFFF) / 65535f;
+        var stelle = ((zahl >> 16) & 0xFFFF) / 65535f;
         _gassenInDerStadt ??= _netz.Kanten.Where(k => InDerStadt(k.Von) && InDerStadt(k.Bis) && k.Von.DistanceTo(k.Bis) > 3
                                                  && k.Von.Length() > 13 && k.Bis.Length() > 13).ToList(); // nicht auf dem Markt
-        if (_gassenInDerStadt.Count == 0) return Marktplatz;
+        if (_gassenInDerStadt.Count == 0) return null;
         var (von, bis) = _gassenInDerStadt[(int)(wahl * (_gassenInDerStadt.Count - 1))];
-        return von.Lerp(bis, 0.15f + stelle * 0.7f);
+        return (von.Lerp(bis, 0.15f + stelle * 0.7f), von, bis);
     }
 
     /// <summary>Feste „Zufallszahl“ aus Nummer und Zeitpunkt (Hash-Mischung, in .NET bei jedem Start gleich).</summary>
