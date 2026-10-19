@@ -10,6 +10,7 @@ So wird eingetragen (damit sich die Chats nie an derselben Stelle treffen):
 
 ## Offen
 
+- (von Kern) Die KI-Häuser nutzen die Werkstatt wie in Gilde 1 noch nicht (PR #152): Sie zahlen üblichen Lohn ohne Prämie, kaufen keine Einrichtung (z. B. Lederschürzen 80 Gulden gegen Unfälle, Werkzeug) und teilen keine Arbeiter einzeln zu, befördern keine Lehrlinge. Abfragen: `Stadtwirtschaft.Werkstaetten` (`Einrichtungsliste`, `EinrichtungVerboten`, `UnfallGefahr`), Befehle `EinrichtungKaufen`, `LohnstufeSetzen`, `ArbeiterBefoerdern`.
 
 ## Entscheidungen
 
