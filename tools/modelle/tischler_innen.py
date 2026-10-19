@@ -95,8 +95,8 @@ BLICKE = {
     "Blick_Werk_0": ((0.2, -3.2, 2.55), (0.0, 1.8, 0.8)),          # Hobelbank, Sägebock, Drechselbank, Tür zur Sägehalle
     "Blick_Werk_L1": ((1.6, -2.6, 2.5), (-4.0, 0.2, 0.9)),         # Hoftor, Personalbuch, Drechselbank
     "Blick_Werk_L2": ((0.6, 1.0, 2.6), (-3.6, -3.2, 0.8)),         # Holztür, Personalbuch, Schürzen
-    "Blick_Werk_R1": ((-1.6, -2.6, 2.5), (4.0, 0.6, 1.0)),         # Leimtisch, Werkzeugwand, Tür ins Lager
-    "Blick_Werk_R2": ((-2.2, 2.0, 2.6), (3.8, -3.3, 0.8)),         # Leimofen, Löschfass, Sägebock
+    "Blick_Werk_R1": ((-3.0, -2.9, 2.6), (3.5, 2.8, 0.9)),         # schräg: Hobelbank, Sägebock, Türen ins Lager und zur Sägehalle
+    "Blick_Werk_R2": ((-1.6, -2.6, 2.5), (4.0, 0.6, 1.0)),         # Leimtisch, Werkzeugwand, Leimofen, Löschfass
     "Blick_Lager_0": ((6.8, -1.25, 2.3), (6.9, 2.6, 0.5)),         # Bretterstapel, Stellplätze
     "Blick_Lager_L1": ((8.7, -1.2, 2.3), (4.6, 2.4, 0.8)),         # Tür in den Werkraum, Bretterstapel
     "Blick_Lager_R1": ((5.0, -1.1, 2.3), (9.2, 1.4, 0.7)),         # Holzgestell, Kantholz, Kisten
@@ -1187,8 +1187,10 @@ def sichtbar(o, stufe, einrichtung, decke=True, spaene=0):
 
 
 def pruefbericht(objekte):
-    """Dreiecke je Knoten, sichtbar je Stufe, und deckungsgleiche Flächen je Stand (Stufe, mit und ohne Einrichtung)."""
-    netze = [o for o in objekte if o.type == "MESH"]
+    """Dreiecke je Knoten, sichtbar je Stufe, und deckungsgleiche Flächen je Stand (Stufe, mit und ohne Einrichtung) –
+    mit allen Kindern (bewegte Teile unter den Stufen, Späne der Drechselbank)."""
+    alle = list(dict.fromkeys(objekte + [k for o in objekte for k in o.children_recursive]))
+    netze = [o for o in alle if o.type == "MESH"]
     print(f"\n{NAME}: Dreiecke")
     summe = 0
     for o in netze:
@@ -1196,13 +1198,25 @@ def pruefbericht(objekte):
         summe += len(o.data.loop_triangles)
         print(f"  {o.name:34s} {len(o.data.loop_triangles):6d}")
     print(f"  {'gesamt':34s} {summe:6d}")
+    # bs.deckungsgleich rechnet in den Koordinaten des Netzes: bewegte Teile (Ursprung im Drehpunkt) als Kopie in Weltlage
+    import bpy
+    welt = {}
+    for o in netze:
+        if o.matrix_world != Matrix.Identity(4):
+            me = o.data.copy()
+            me.transform(o.matrix_world)
+            welt[o] = bpy.data.objects.new(o.name, me)
     funde = []
     for stufe in (1, 2, 3):
         for einrichtung in (False, True):
             auswahl = [o for o in netze if sichtbar(o, stufe, einrichtung, spaene=stufe)]
             dreiecke = sum(len(o.data.loop_triangles) for o in auswahl)
             print(f"  sichtbar Stufe {stufe}{' mit aller Einrichtung' if einrichtung else ''}: {dreiecke} Dreiecke")
-            funde += bs.deckungsgleich(auswahl)
+            funde += bs.deckungsgleich([welt.get(o, o) for o in auswahl])
+    for k in welt.values():
+        me = k.data
+        bpy.data.objects.remove(k)
+        bpy.data.meshes.remove(me)
     funde = list({(round(f[0].x, 2), round(f[0].y, 2), round(f[0].z, 2), f[1], f[2]): f for f in funde}.values())
     if funde:
         print(f"  WARNUNG: {len(funde)} deckungsgleiche Flächen (flimmern im Spiel), größte:")
