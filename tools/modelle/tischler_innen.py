@@ -387,18 +387,10 @@ def werkzeug2(netz, st, M):
     netz.stab(M @ Vector((0.76, 0.1, 1.48)), M @ Vector((0.76, 0.1, 1.24)), 0.035, 0.012, e)
 
 
-def zwinge(netz, st, M, mitte, weite, drehung=0.0):
-    """Hölzerne Schraubzwinge: zwei Backen quer, zwei Spindeln; örtlich (M), Backen entlang y, `weite` auseinander."""
-    T = M @ Matrix.Translation(mitte) @ Matrix.Rotation(math.radians(drehung), 4, "Z")
-    for s in (-1, 1):
-        netz.quader((s * weite / 2, 0, 0), (0.05, 0.32, 0.05), st["Holz"], T)
-    for y in (-0.1, 0.1):
-        netz.stab(T @ Vector((-weite / 2 - 0.06, y, 0)), T @ Vector((weite / 2 + 0.03, y, 0)), 0.022, 0.022, st["Holz alt"])
-
-
-def leimzwingen(netz, st, M):
+def leimzwingen(netz, st):
     """Gekauft: Leimofen in der Ecke unter dem Fenster (Feuerloch mit Glut, Topf im Wasserbad, Rohr in die Wand) und
-    Schraubzwingen – zwei halten den Rahmen auf dem Leimtisch, zwei hängen an der Tischkante."""
+    Schraubzwingen an einer Leiste daneben. Alles liegt vor dem Leimtisch: Die Klickfläche (Umriss des Knotens) soll
+    die des Tischs nicht überdecken."""
     ofen = Vector((WX1 - 0.4, -2.85, 0))
     netz.quader(ofen + Vector((0, 0, 0.31)), (0.6, 0.55, 0.62), st["Ziegel"], ohne=("-z",))
     for k in range(1, 6):                                                                         # Fugen
@@ -416,10 +408,13 @@ def leimzwingen(netz, st, M):
     rohr = ofen + Vector((0.18, 0.15, 0.65))
     netz.stab(rohr, rohr + Vector((0, 0, 0.35)), 0.1, 0.1, st["Eisen"])
     netz.stab(rohr + Vector((0, 0, 0.35)), Vector((WX1 + 0.01, rohr.y, rohr.z + 0.35)), 0.1, 0.1, st["Eisen"])
-    zwinge(netz, st, M, Vector((-0.25, 0.2, 0.9)), 0.12, 90)
-    zwinge(netz, st, M, Vector((-0.25, 0.6, 0.9)), 0.12, 90)
-    for x in (-0.55, 0.0):                                                                        # an der Tischkante
-        zwinge(netz, st, M, Vector((x, 0.79, 0.62)), 0.1, 90)
+    M = si.rahmen(WX1 - 0.06, -2.12, 90)                                                          # Leiste mit Zwingen
+    si.q(netz, st, M, (0, 0.03, 1.8), (0.4, 0.06, 0.06), "Fachwerk", ohne=("-y",))
+    for k, x in enumerate((-0.13, 0.0, 0.13)):
+        for y in (0.07, 0.07 + 0.1 + 0.03 * k):
+            si.q(netz, st, M, (x, y, 1.58 - 0.03 * k), (0.035, 0.035, 0.34), "Holz")
+        for z in (1.7, 1.5):
+            netz.stab(M @ Vector((x, 0.03, z - 0.03 * k)), M @ Vector((x, 0.3, z - 0.03 * k)), 0.018, 0.018, st["Holz alt"])
 
 
 def drehbank(netz, st):
@@ -1004,7 +999,7 @@ def bauen():
     si.werkzeugwand(teil("Bedienung_Einrichten_Werkzeugwand"), st, M_tisch)
     werkzeug1(teil("Einrichtung_Werkzeug1"), st, M_tisch)
     werkzeug2(teil("Einrichtung_Werkzeug2"), st, M_tisch)
-    leimzwingen(teil("Einrichtung_Leimzwingen"), st, M_tisch)
+    leimzwingen(teil("Einrichtung_Leimzwingen"), st)
     hoftor(teil("Bedienung_Karren_Hoftor"), st, si.rahmen(WX0, HOFTOR_Y, -90), HOFTOR_B, HOFTOR_H)
     M_holz = si.rahmen(HOLZTUER_X, WY0, 0)
     si.bretttuer(teil("Holztuer"), st, M_holz, HOLZTUER_B, HOLZTUER_H)
