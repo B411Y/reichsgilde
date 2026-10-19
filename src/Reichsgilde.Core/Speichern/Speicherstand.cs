@@ -105,6 +105,9 @@ public sealed record WirtschaftStand
 
     /// <summary>Grundstücke: Wohnhäuser, Neubauten, Bauplätze (null: ohne Bauwesen oder alter Spielstand – dann die Startplätze der Karte).</summary>
     public BauenStand? Bauen { get; init; }
+
+    /// <summary>Würfe des Zufalls der Werkstätten (Unfälle; 0 in alten Spielständen).</summary>
+    public long WerkstattWuerfe { get; init; }
 }
 
 /// <summary>Die Grundstücke des Bauwesens (siehe <see cref="Reichsgilde.Core.Bauen.Bauwesen"/>).</summary>
@@ -144,6 +147,9 @@ public sealed record FreieLiegenschaftStand
     public Betriebsart Art { get; init; }
     public double Kaufpreis { get; init; }
     public string MindestStand { get; init; } = "";
+
+    /// <summary>Einrichtung, die im Haus geblieben ist (null: keine).</summary>
+    public List<string>? Einrichtung { get; init; }
 }
 
 public sealed record GlaubeStand
@@ -605,6 +611,37 @@ public sealed record BetriebStand
     /// <summary>Rechnung des Betriebs im laufenden Jahr und im Vorjahr (null: alte Spielstände bzw. erstes Jahr).</summary>
     public BetriebsrechnungStand? Rechnung { get; init; }
     public BetriebsrechnungStand? RechnungVorjahr { get; init; }
+
+    /// <summary>Die einzelnen Arbeiter (null: alter Spielstand – dann aus <see cref="Belegung"/>, alle an der Ware des Betriebs, Laune neutral).</summary>
+    public List<ArbeiterStand>? Arbeiter { get; init; }
+    public int? NaechsteArbeiterNummer { get; init; }
+
+    /// <summary>Werkstatt: Fortschritt je Ware (null: alter Spielstand – dann gehört <see cref="Fortschritt"/> dem <see cref="Produkt"/>).</summary>
+    public Dictionary<string, double>? FortschrittJeWare { get; init; }
+
+    /// <summary>Lohnstufe (null: alter Spielstand, üblich) und ihr Mittel über die Arbeitsminuten des laufenden Jahres.</summary>
+    public Lohnstufe? Lohnstufe { get; init; }
+    public double LohnFaktorSumme { get; init; }
+    public int LohnMinuten { get; init; }
+
+    /// <summary>Gekaufte Einrichtung (Kennungen; null: keine).</summary>
+    public List<string>? Einrichtung { get; init; }
+
+    /// <summary>Nach einem Unfall ist die Laune im Betrieb bis zu dieser Spielminute gedrückt.</summary>
+    public long? UnfallLauneBis { get; init; }
+}
+
+/// <summary>Ein Arbeiter eines Betriebs (siehe <see cref="Wirtschaft.Arbeiter"/>).</summary>
+public sealed record ArbeiterStand
+{
+    public int Nummer { get; init; }
+    public string Arbeitskraft { get; init; } = "";
+    public string? Ware { get; init; }
+    public double Laune { get; init; } = 50;
+    public long? AusfallBis { get; init; }
+    public long EingestelltUm { get; init; }
+    public long? PraemieBis { get; init; }
+    public int UnzufriedenStunden { get; init; }
 }
 
 /// <summary>Die Rechnung eines Betriebs (siehe <see cref="Betriebsrechnung"/>).</summary>

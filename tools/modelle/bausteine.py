@@ -198,8 +198,9 @@ def _richtung(dir_, quer):
 class Netz:
     """Sammelt Geometrie für ein Objekt. Jede Fläche kennt ihr Material."""
 
-    def __init__(self, name):
+    def __init__(self, name, alle=False):
         self.name = name
+        self.alle = alle            # True: auch Flächen nach unten behalten (Innenräume: Decke, Stürze, Balken)
         self.ecken = []
         self.flaechen = []
         self.fstoff = []
@@ -212,7 +213,7 @@ class Netz:
         n = _newell(punkte)
         if n.length < 1e-10:
             return
-        if not immer and n.z / n.length < UNSICHTBAR_Z:
+        if not (immer or self.alle) and n.z / n.length < UNSICHTBAR_Z:
             return
         if m not in self.stoffe:
             self.stoffe.append(m)
@@ -1434,6 +1435,48 @@ def rundum(name, sichtbar):
     gesamt.save(pfad, optimize=True)
     for p in teile:
         os.remove(p)
+    return pfad
+
+
+def rendern_einzeln(name, text=None):
+    """Rendert die Szene so, wie sie steht (Kamera und Sichtbarkeit setzt der Aufrufer), nach docs/modelle/<name>.png.
+    `text` steht oben links im Bild (Blenders Stempel – braucht kein Pillow)."""
+    r = bpy.context.scene.render
+    for k in dir(r):
+        if k.startswith("use_stamp_"):
+            setattr(r, k, False)
+    r.use_stamp = bool(text)
+    if text:
+        r.use_stamp_note = True
+        r.stamp_note_text = text
+        r.stamp_font_size = max(12, int(22 * r.resolution_y * r.resolution_percentage / 100 / 540))
+        r.stamp_foreground = (0.94, 0.92, 0.86, 1.0)
+        r.stamp_background = (0.0, 0.0, 0.0, 0.55)
+    os.makedirs(VORSCHAU, exist_ok=True)
+    pfad = os.path.join(VORSCHAU, name + ".png")
+    r.filepath = pfad
+    bpy.ops.render.render(write_still=True)
+    r.use_stamp = False
+    return pfad
+
+
+def zusammensetzen(name, bilder, spalten=2, loeschen=True):
+    """Bilder gleicher Größe im Raster zu docs/modelle/<name>.png zusammensetzen (OpenImageIO, liegt Blender bei).
+    `loeschen`: die Einzelbilder danach entfernen."""
+    import OpenImageIO as oiio
+    teile = [oiio.ImageBuf(p) for p in bilder]
+    spec = teile[0].spec()
+    w, h, kanaele = spec.width, spec.height, spec.nchannels
+    zeilen = (len(teile) + spalten - 1) // spalten
+    gesamt = oiio.ImageBuf(oiio.ImageSpec(spalten * w, zeilen * h, kanaele, oiio.UINT8))
+    oiio.ImageBufAlgo.fill(gesamt, (0.08,) * 3 + (1.0,) * (kanaele - 3))
+    for i, t in enumerate(teile):
+        oiio.ImageBufAlgo.paste(gesamt, (i % spalten) * w, (i // spalten) * h, 0, 0, t)
+    pfad = os.path.join(VORSCHAU, name + ".png")
+    gesamt.write(pfad)
+    if loeschen:
+        for p in bilder:
+            os.remove(p)
     return pfad
 
 

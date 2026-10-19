@@ -33,6 +33,12 @@ namespace Reichsgilde;
 ///   --leerstand=kaufen mit --auswahl=wohnhaus:<Inhaber>: die Rückfrage zum Kauf des leeren Hauses öffnen (=abreissen: zum Abriss; Leerzeichen als _)
 ///   --innen=1          direkt in der Innenansicht der eigenen Werkstatt starten (--innen=Rathaus, --innen=Dom bzw. --innen=wohnhaus:<Inhaber>: dort)
 ///   --raum=2           mit --innen: gleich im zweiten Raum der Raumleiste (Werkstatt: 1 Werkraum, 2 Lager; Wohnhaus: 1 Wohnstube, 2 Kontor)
+///   --innenblick=L1    mit --innen: gleich auf diesem Blickpunkt des Raums stehen (0 = Mitte, L1, L2, R1, R2, O1, U1 – was das Modell hat)
+///   --tafel=personal   mit --innen: gleich eine Tafel der Bedienung öffnen (personal, produktion, lager, karren, einrichten)
+///   --arbeiter=1,2     mit --innen: diese Arbeiter im Raum auswählen (Nummern wie im Personalbuch)
+///   --einrichtung=Werkzeug1,Regale  der eigenen Werkstatt gleich diese Einrichtung kaufen (mit --vermoegen=5000)
+///   --einstellen=Lehrling,Geselle   der eigenen Werkstatt gleich diese Arbeiter einstellen
+///   --ausbauen=2       die eigene Werkstatt gleich zweimal ausbauen und den Umbau abwarten (Stufe 3; mit --vermoegen=30000)
 ///   --verwalten=1      das Bedienfeld der eigenen Gießerei gleich öffnen
 ///   --karren=Ochsenkarren,Kriegskarren  der eigenen Gießerei gleich diese Karren dazukaufen (mit --vermoegen=5000; Handkarren, Ochsenkarren, Kriegskarren)
 ///   --vermoegen=12000  Startvermögen des Spielers setzen (zum Ausprobieren des Aufstiegs)
@@ -83,6 +89,13 @@ public partial class Hauptszene : Node
     private GerichtAnzeige _gerichtssaal = null!;
     private GaunerAnzeige _hinterzimmer = null!;
     private MarktAnzeige _markt = null!;
+    private PersonalAnzeige _personalTafel = null!;
+    private ProduktionAnzeige _produktionTafel = null!;
+    private LagerAnzeige _lagerTafel = null!;
+    private KarrenAnzeige _karrenTafel = null!;
+    private EinrichtenAnzeige _einrichtenTafel = null!;
+    /// <summary>Die Tafeln der Bedienung im Innenraum (rechts im Bild, damit der Raum frei bleibt).</summary>
+    private InnenTafel[] _innenTafeln = null!;
     private VerkaufAnzeige _verkauf = null!;
     private BauAnzeige _bau = null!;
     private BauRueckfrage _bauFrage = null!;
@@ -154,6 +167,7 @@ public partial class Hauptszene : Node
         ratMitte.AddChild(_markt);
         _verkauf = new VerkaufAnzeige();
         ratMitte.AddChild(_verkauf);
+        InnenTafelnBauen();
         _bauFrage = new BauRueckfrage();
         ratMitte.AddChild(_bauFrage);
         _bau = new BauAnzeige();
@@ -297,12 +311,24 @@ public partial class Hauptszene : Node
         {
             if (kennung is not null) _auswahlKennung = kennung;
             Protokollieren(kennung is null ? "Zurück in den Gassen der Stadt."
+                : _stadt.HatBedienung ? $"Ihr betretet {_stadt.InnenName}. Gegenstände anklicken (Buch, Amboss, Regal, Tor, Werkzeugwand) · Maus an den Bildrand: Blick wechseln · Rechtsklick: hinaus."
                 : _stadt.RaumKennung is not null ? $"Ihr betretet {(kennung is "Rathaus" ? "das Rathaus" : _stadt.InnenName)}. Räume wechseln: Leiste unten oder Q/E · ein Klick in den Raum öffnet seine Tafel."
                 : $"Ihr betretet {(kennung is "Dom" ? "den" : "die")} {_stadt.InnenName}.");
             RaumleisteAufbauen();
         };
-        _stadt.RaumGewechselt += _ => RaumleisteAufbauen();
+        _stadt.RaumGewechselt += _ =>
+        {
+            RaumleisteAufbauen();
+            foreach (var tafel in _innenTafeln) tafel.Hide(); // ein anderer Raum, eine andere Bedienung
+        };
         _innenKnopf.Pressed += InnenKnopfGedrueckt;
+        foreach (var tafel in _innenTafeln)
+        {
+            tafel.Gemeldet += Protokollieren;
+            tafel.Auswahl = () => _stadt.GewaehlteArbeiter;
+        }
+        _karrenTafel.HandelGewuenscht += b => { TafelnSchliessen(); _markt.Oeffnen(b); };
+        _stadt.BedienungAngeklickt += (tafel, _) => InnenTafelOeffnen(tafel);
         _verwaltung.Gemeldet += Protokollieren;
         _verwaltung.HandelGewuenscht += b => { TafelnSchliessen(); _markt.Oeffnen(b); };
         _markt.Gemeldet += Protokollieren;
@@ -347,6 +373,19 @@ public partial class Hauptszene : Node
             _verkauf.Oeffnen(werkstatt);
         }
         if (optionen.TryGetValue("aufsteigen", out var aufsteigen) && aufsteigen == "1") AufsteigenVorbereiten();
+        if (optionen.TryGetValue("ausbauen", out var ausbauen) && int.TryParse(ausbauen, out var stufen)) AusbauenVorbereiten(stufen);
+        if (optionen.TryGetValue("einstellen", out var einstellen) && _eigeneGiesserei is { } einsteller && _simulation.Wirtschaft is { } wEin && _spieler is not null)
+            foreach (var kraft in einstellen.Split(',', StringSplitOptions.RemoveEmptyEntries))
+            {
+                var ergebnis = wEin.Ausfuehren(_spieler, new ArbeiterEinstellen(einsteller.Name, kraft));
+                if (!ergebnis.Erfolg) Protokollieren("--einstellen=" + kraft + ": " + ergebnis.Meldung);
+            }
+        if (optionen.TryGetValue("einrichtung", out var einrichtung) && _eigeneGiesserei is { } kaeufer2 && _simulation.Wirtschaft is { } wEinr && _spieler is not null)
+            foreach (var kennung in einrichtung.Split(',', StringSplitOptions.RemoveEmptyEntries))
+            {
+                var ergebnis = wEinr.Ausfuehren(_spieler, new EinrichtungKaufen(kaeufer2.Name, kennung));
+                if (!ergebnis.Erfolg) Protokollieren("--einrichtung=" + kennung + ": " + ergebnis.Meldung);
+            }
         if (optionen.TryGetValue("bauen", out var bauen) && bauen != "0" && _spieler is not null)
             BauenStarten(bauen, optionen);
         if (optionen.TryGetValue("leerstand", out var leerstand) && leerstand is "kaufen" or "abreissen"
@@ -398,6 +437,11 @@ public partial class Hauptszene : Node
             else if (innen != "1" && !_stadt.InnenansichtBetreten(innen)) _innenWartet = innen; // Rathaus oder Dom; ein Betrieb, den es noch nicht gibt (--bauklick), kommt später
             if (optionen.TryGetValue("raum", out var raum) && int.TryParse(raum, out var raumNummer))
                 _stadt.RaumWaehlen(raumNummer - 1); // --raum=2: zweiter Raum der Leiste
+            if (optionen.TryGetValue("innenblick", out var blickName) && !_stadt.InnenBlickWaehlen(blickName))
+                Protokollieren($"--innenblick={blickName}: Diesen Blickpunkt gibt es in diesem Raum nicht.");
+            if (optionen.TryGetValue("arbeiter", out var arbeiter))
+                _stadt.ArbeiterWaehlen(arbeiter.Split(',', StringSplitOptions.RemoveEmptyEntries).Select(int.Parse));
+            if (optionen.TryGetValue("tafel", out var tafelName)) InnenTafelOeffnen(tafelName);
         }
 
         if (_simulation.Zeit.VergangeneMinuten == 0) // nur bei einer neuen Partie, nicht nach dem Laden
@@ -414,7 +458,73 @@ public partial class Hauptszene : Node
         _hinterzimmer.Hide();
         _markt.Hide();
         _verkauf.Hide();
+        foreach (var tafel in _innenTafeln) tafel.Hide();
         if (_bauFrage.Visible) _bauFrage.Zurueck(); // der Umriss der Platzwahl wird wieder frei
+    }
+
+    /// <summary>
+    /// Baut die fünf Tafeln der Bedienung im Innenraum und hängt sie rechts ins Bild, mittig in der Höhe und mit Luft über der Raumleiste.
+    /// </summary>
+    private void InnenTafelnBauen()
+    {
+        _personalTafel = new PersonalAnzeige();
+        _produktionTafel = new ProduktionAnzeige();
+        _lagerTafel = new LagerAnzeige();
+        _karrenTafel = new KarrenAnzeige();
+        _einrichtenTafel = new EinrichtenAnzeige();
+        _innenTafeln = new InnenTafel[] { _personalTafel, _produktionTafel, _lagerTafel, _karrenTafel, _einrichtenTafel };
+        var rand = new MarginContainer { MouseFilter = Control.MouseFilterEnum.Ignore };
+        rand.SetAnchorsAndOffsetsPreset(Control.LayoutPreset.FullRect);
+        rand.AddThemeConstantOverride("margin_left", 16);
+        rand.AddThemeConstantOverride("margin_right", 16);
+        rand.AddThemeConstantOverride("margin_top", 16);
+        rand.AddThemeConstantOverride("margin_bottom", 84);
+        var reihe = new HBoxContainer { Alignment = BoxContainer.AlignmentMode.End, MouseFilter = Control.MouseFilterEnum.Ignore };
+        rand.AddChild(reihe);
+        foreach (var tafel in _innenTafeln)
+        {
+            tafel.Tafel.SizeFlagsVertical = Control.SizeFlags.ShrinkCenter;
+            reihe.AddChild(tafel.Tafel);
+        }
+        GetNode<CanvasLayer>("Oberflaeche").AddChild(rand);
+    }
+
+    /// <summary>Öffnet die Tafel zu einem Gegenstand im Raum (Personal, Produktion, Lager, Karren, Einrichten) – nur für die eigene Werkstatt.</summary>
+    private void InnenTafelOeffnen(string tafel)
+    {
+        if (_stadt.InnenBetrieb is not { } betrieb) return;
+        if (betrieb.Konto != _spieler)
+        {
+            Protokollieren($"{betrieb.Name} gehört {betrieb.Konto.Inhaber} – die Bücher und Werkzeuge dort sind nicht für Euch.");
+            return;
+        }
+        InnenTafel? ziel = tafel.ToLowerInvariant() switch
+        {
+            "personal" => _personalTafel,
+            "produktion" => _produktionTafel,
+            "lager" => _lagerTafel,
+            "karren" => _karrenTafel,
+            "einrichten" => _einrichtenTafel,
+            _ => null,
+        };
+        if (ziel is null) return;
+        TafelnSchliessen();
+        ziel.Oeffnen(betrieb);
+    }
+
+    /// <summary>
+    /// Nur für den Klicktest (--ausbauen=N): Die eigene Werkstatt wird N-mal ausgebaut (Gießerei → Schmiede → Goldschmiede), der Umbau läuft
+    /// jeweils durch. Alles mit den gewöhnlichen Befehlen; es braucht Geld und Meistergrad (--vermoegen=30000, eventuell --aufsteigen=1).
+    /// </summary>
+    private void AusbauenVorbereiten(int stufen)
+    {
+        if (_simulation.Wirtschaft is not { } w || _spieler is null || _eigeneGiesserei is not { } betrieb) return;
+        for (var i = 0; i < stufen; i++)
+        {
+            var ergebnis = w.Ausfuehren(_spieler, new BetriebAusbauen(betrieb.Name));
+            if (!ergebnis.Erfolg) { Protokollieren("--ausbauen: " + ergebnis.Meldung); GD.Print("--ausbauen: " + ergebnis.Meldung); return; }
+            for (var t = 0; t < 2000 && betrieb.UmbauMinuten > 0 && !_simulation.IstBeendet; t++) _simulation.Tick();
+        }
     }
 
     /// <summary>
@@ -661,6 +771,7 @@ public partial class Hauptszene : Node
         _hinterzimmer.Verbinden(simulation, spieler);
         _markt.Verbinden(simulation, spieler);
         _verkauf.Verbinden(simulation, spieler);
+        foreach (var tafel in _innenTafeln) tafel.Verbinden(simulation, spieler);
         // Um 20 Uhr schlagen die Banden zu – ein offenes Hinterzimmer zeigt sofort, was geschah.
         w.Gauner.NachtVorbei += () => { if (_hinterzimmer.Visible) _hinterzimmer.Aufbauen(); };
         _verwaltung.Verbinden(simulation, spieler);
@@ -716,6 +827,9 @@ public partial class Hauptszene : Node
         Anzeigen();
         _stadt.Auswahl = _auswahl.Visible ? _auswahlKennung : null; // Name des ausgewählten Gebäudes bleibt sichtbar
         _stadt.Aktualisieren(delta);
+        foreach (var tafel in _innenTafeln) tafel.Aktualisieren(delta);
+        var mausPos = GetViewport().GetMousePosition();
+        _stadt.UnterTafel = _innenTafeln.Any(t => t.Visible && t.Tafel.GetGlobalRect().HasPoint(mausPos));
         BauAutoKlickPruefen();
         if (_auswahlKennung is not null) AuswahlAnzeigen();
     }
@@ -743,6 +857,8 @@ public partial class Hauptszene : Node
                 _markt.Hide();
             else if (_verkauf.Visible)
                 _verkauf.Hide();
+            else if (_innenTafeln.Any(t => t.Visible))
+                foreach (var tafel in _innenTafeln) tafel.Hide();
             else if (_einstellungen.Tafel.Visible)
                 EinstellungenSchliessen();
             else if (_spielmenue.Visible)

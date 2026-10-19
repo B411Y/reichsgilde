@@ -203,7 +203,7 @@ static class WirtschaftTests
             w.Einstellen(w.BetriebEroeffnen("Gießerei Spieler", Betriebsart.Giesserei, spieler), "Geselle", 2);
             w.Einstellen(w.BetriebEroeffnen("Gießerei Rivale", Betriebsart.Giesserei, rivale), "Geselle", 2);
             Pruefe.Ungefaehr(649, MittlererGewinn(sim, spieler).Gewinn, 0.05);
-            Pruefe.Ungefaehr(spieler.Vermoegen, rivale.Vermoegen, 0.05);
+            Pruefe.Ungefaehr(spieler.Vermoegen, rivale.Vermoegen, 0.08); // ±8 %: Seit PR #152 trifft ein Unfall die beiden zufällig verschieden oft
         }),
 
         ("Mine, 3 Bergleute (Statut A), Ochsenkarren ohne Eskorte: Gewinn ≈ 947 Gulden/Jahr", () =>

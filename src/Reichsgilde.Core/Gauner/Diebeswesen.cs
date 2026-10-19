@@ -246,7 +246,7 @@ public sealed class Diebeswesen
     {
         var g = _w.Gauner.Daten;
         var schutz = b.Waechter ? g.WaechterSchutz : 1;
-        return Math.Min(0.95, (g.Diebstahl.Chance + Daten.Einbruch.ChanceBonus) * schutz + _w.Familien.NachtBonus(dieb)) * _w.Wache.Patrouillefaktor(b);
+        return Math.Min(0.95, (g.Diebstahl.Chance + Daten.Einbruch.ChanceBonus) * schutz + _w.Familien.NachtBonus(dieb)) * _w.Wache.Patrouillefaktor(b) * b.EinbruchFaktor;
     }
 
     /// <summary>Die wertvollste Ware im Lager – so viel, wie die eigenen Leute tragen.</summary>
@@ -276,7 +276,7 @@ public sealed class Diebeswesen
     {
         var g = _w.Gauner.Daten;
         var schutz = b.Waechter ? g.WaechterSchutz : 1;
-        return Math.Min(0.95, (g.Sabotage.Chance + Daten.Schutzgeld.SabotageBonus) * schutz + _w.Familien.NachtBonus(dieb)) * _w.Wache.Patrouillefaktor(b);
+        return Math.Min(0.95, (g.Sabotage.Chance + Daten.Schutzgeld.SabotageBonus) * schutz + _w.Familien.NachtBonus(dieb)) * _w.Wache.Patrouillefaktor(b) * b.BrandFaktor;
     }
 
     /// <summary>Was ein verweigertes Schutzgeld das Opfer im Mittel kostet (für die Abwägung der KI und die Anzeige).</summary>
