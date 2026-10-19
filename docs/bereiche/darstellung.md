@@ -51,6 +51,8 @@ So wird eingetragen (damit sich die Chats nie an derselben Stelle treffen):
 - Blickpunkte nach oben und unten (`_O1`, `_U1`) sind im Gerüst fertig, das Schmiedemodell hat keine: Beim ersten Modell mit ihnen Pfeile und Rand oben und unten ansehen (die Zeittafel liegt oben links über dem Bild).
 - Innenraum: Amboss, Hebel und Tische haben eine feste Höhe für Menschen; Zwerge und Halblinge erreichen sie im Stehen mit gehobenen Armen (beim Sitzen setzt das Spiel die Hüfte schon je Volk auf die Sitzhöhe)
 - Figurfarben im Compatibility-Renderer (`opengl3`, auch der Rückfall, wenn Vulkan fehlt): Godot meldet bei vielen Figuren „Too many instances using shader instance variables“, die Farben der Figuren sind dann falsch (schwarz, rot, orange). In Forward+ (Vulkan) tritt das nicht auf (Klicktest #152). Lösung prüfen: Puffer für Instanz-Uniforms vergrößern oder für `opengl3` einen Rückfall ohne Instanz-Uniforms (seit #150)
+- Holzschnitt als Grafikoption einbauen (Teamleiter): Schalter in den Einstellungen (wie Bloom, gespeichert). An: jede Fläche bekommt ein `ShaderMaterial` mit `holzschnitt.gdshader` (Muster: `umstellen()` in `tools/holzschnitt/vorschau/test.gd`: `farbe` = Albedo des alten Materials, `art` aus `materialarten.json`, bei „Farben“/„Figur“ `eckenfarbe` und `art_aus_uv`, bei „Figur“ `zonen` und die Zonenfarben als Instanz-Uniform wie in `figur.gdshader`; „Glut“, „Fenster“, „Glas“, „Wasser“ bleiben). Was das Spiel umfärbt (Hausfarbe, Laub je Jahreszeit, Ruß), muss im Holzschnitt-Material den Parameter `farbe` setzen. Dazu das Umriss-Quad an die Kamera, `staerke` nach Zoom, und der globale Shader-Parameter `holzschnitt_umgebung` (in `project.godot` schon angelegt, Vorgabe 0,3; je Bild aus Umgebungslicht × Stärke setzen). Aus: alte Materialien zurück, Quad weg. In Forward+ prüfen (nur im Compatibility-Renderer getestet; der Normalenzweig des Umrisses ist ungetestet).
+- (für den Einbau) `berg_grube.glb` und die Figuren zeigen ohne eigenen Shader die Eckenfarben nicht: Godot setzt dort `vertex_color_use_as_albedo` nicht (bei den Umlandbetrieben schon). Beim Einbau das Flag setzen, für Forward+ zusätzlich `vertex_color_is_srgb`.
 
 ## Entscheidungen
 
@@ -542,4 +544,15 @@ So wird eingetragen (damit sich die Chats nie an derselben Stelle treffen):
 | Runde | Etwa jeder fünfte Flug der Tauben dreht vorher eine gemeinsame Runde über den Dächern, Spatzen fliegen immer direkt. | 19.10.2026 |
 | Aufscheuchen (Gag) | Wunsch des Nutzers: Ein Klick auf einen Vogel scheucht ihn auf, der ganze Schwarm fliegt erschrocken davon (alle zugleich, schneller, ohne Runde) – wie bei einem Passanten, der zu nahe kommt. Der Klick wählt dann nichts anderes aus. Bewusst nicht im Spielbuch: Er soll eine Überraschung bleiben. | 19.10.2026 |
 | Prüfung | Auswertung mit vorübergehender Ausgabe (nicht im Code), Vulkan auf der NVIDIA T400, Tempo 4, 150 s: Weite der Dachflüge Median 21,5 m, 90 % über 12,8 m (kürzer nur, wo im Umland kein Dach weiter weg ist); Vögel innerhalb 1,2 m beieinander höchstens 3 (zu Beginn einmal 4). | 19.10.2026 |
+
+### Holzschnitt-Look als Shader (PR #…)
+
+| Thema | Entscheidung | Datum |
+|---|---|---|
+| Ansatz (Wunsch des Nutzers) | Ein gemeinsamer Shader mit wenigen Kacheltexturen statt einer Textur je Modell: Die Modelle haben keine UV-Abwicklung, und ein Stil für alle wirkt einheitlicher. Als Grafikoption an- und ausschaltbar; den Einbau ins Spiel macht der Teamleiter. | 19.10.2026 |
+| Umfang (Wunsch des Nutzers) | Schwarzer Umriss, Schraffur im Schatten (drei Stufen), versetzte Farbe mit Papierkorn, Materialstruktur. Nur zwei Farbtöne für Licht und Schatten wie beim Druck. | 19.10.2026 |
+| Texturen | Selbst erzeugt (`tools/holzschnitt/texturen.py`), 256 px, kachelbar, als Kanäle gepackt: `schraffur.png`, `papier.png` (mit Bodentupfen), `struktur_a.png` (Holz, Bretter, Mauer, Fels), `struktur_b.png` (Biberschwanzziegel, Stroh, Schiefer, Laub). Vier Texturen für alle Modelle. | 19.10.2026 |
+| Materialart je Fläche | `materialarten.json` ordnet jedem Materialnamen eine Art zu (genauer Name vor Teilwort). In den Modellen mit einem Material („Farben“: Umlandbetriebe, Felsberg; „Figur“) steht die Art je Fläche in `UV.y` – Blender schreibt dafür `1 − Art`, weil glTF `1 − v` speichert (in Godot geprüft). | 19.10.2026 |
+| Nacht | Das Umgebungslicht ist im Shader aus (es würde die Schraffur zudecken); stattdessen hellt `holzschnitt_umgebung` jede Fläche leicht schraffiert auf. Nachts bleibt das Bild so lesbar (Vorschau „Nacht“). | 19.10.2026 |
+| Umriss | Quad vor der Kamera, Linien an Tiefensprüngen (alle Renderer); in Forward+ zusätzlich an Knicken der Normalen (Dachfirst, Hausecken) über `hint_normal_roughness_texture` – hier nicht testbar. Linienbreite als Parameter, damit das Spiel sie dem Zoom anpassen kann. | 19.10.2026 |
 

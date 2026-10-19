@@ -1106,6 +1106,40 @@ BENANNTE_STOFFE = {"Hausfarbe", "Fenster", "Glut", "Laub", "Laub hell", "Laub du
                    "Schiefer", "Schieferkante", "Firstblech"}
 
 
+_MATERIALARTEN = None
+
+
+def materialart(name):
+    """Holzschnitt: Struktur des Materials `name` als Zahl (0 keine, 1 Holz, 2 Bretter, 3 Mauer, 4 Fels, 5 Ziegel,
+    6 Stroh, 7 Schiefer, 8 Laub, 9 Boden) nach game/assets/holzschnitt/materialarten.json – dieselbe Tabelle liest das Spiel."""
+    global _MATERIALARTEN
+    if _MATERIALARTEN is None:
+        import json
+        with open(os.path.join(WURZEL, "game", "assets", "holzschnitt", "materialarten.json"), encoding="utf-8") as f:
+            _MATERIALARTEN = json.load(f)
+    t = _MATERIALARTEN
+    name = name.split(".")[0]
+    art = t["namen"].get(name)
+    if art is None:
+        art = next((a for teil, a in t["enthaelt"] if teil in name), "keine")
+    return t["arten"][art]
+
+
+def arten_setzen(me, materialnamen, uv_name="Art"):
+    """Schreibt die Materialart jeder Fläche als UV (y = Art; im Spiel UV.y) – je Fläche konstant. Bei Netzen mit nur
+    einem Material („Farben“, „Figur“) sagt sonst nichts mehr, ob eine Fläche Holz oder Stein ist. Gibt die UV-Schicht zurück."""
+    uv = me.uv_layers.get(uv_name) or me.uv_layers.new(name=uv_name)
+    werte = [0.0] * (len(me.loops) * 2)
+    for poly in me.polygons:
+        name = materialnamen[poly.material_index] if poly.material_index < len(materialnamen) else ""
+        art = float(materialart(name))
+        for li in poly.loop_indices:
+            werte[li * 2] = uv.data[li].uv[0]
+            werte[li * 2 + 1] = 1.0 - art          # glTF speichert 1 − v: so kommt im Spiel UV.y = Art an
+    uv.data.foreach_set("uv", werte)
+    return uv
+
+
 def farben_zusammenlegen(objekte, behalten=BENANNTE_STOFFE):
     """Legt alle einfachen Farbmaterialien zu einem Material „Farben“ zusammen: Die Farbe wandert als Eckenfarbe
     (glTF COLOR_0) ins Netz, das Material liest sie über einen Color-Attribute-Knoten. Weniger Materialien heißt weniger
@@ -1145,6 +1179,7 @@ def farben_zusammenlegen(objekte, behalten=BENANNTE_STOFFE):
         alte = list(me.materials)
         if not any(einfach(m) for m in alte):
             continue
+        arten_setzen(me, [m.name if m else "" for m in alte])      # Holzschnitt: Struktur je Fläche (UV.y)
         attr = me.color_attributes.get("Farbe") or me.color_attributes.new("Farbe", "BYTE_COLOR", "CORNER")
         me.color_attributes.active_color = attr
         me.color_attributes.render_color_index = me.color_attributes.find("Farbe")
@@ -1182,7 +1217,7 @@ def exportieren(name, objekte):
         o.select_set(o in mit_kindern)
     bpy.ops.export_scene.gltf(
         filepath=pfad, export_format="GLB", use_selection=True, export_yup=True, export_apply=True,
-        export_extras=True, export_normals=True, export_texcoords=False, export_animations=False,
+        export_extras=True, export_normals=True, export_texcoords=True, export_animations=False,
         export_skins=False, export_morph=False, export_lights=False, export_cameras=False,
         export_image_format="NONE", export_vertex_color="ACTIVE", export_all_vertex_colors=False)
     return pfad
