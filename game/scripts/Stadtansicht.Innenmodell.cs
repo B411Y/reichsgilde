@@ -78,8 +78,11 @@ public partial class Stadtansicht
         public string Stand { get; set; } = "";
     }
 
-    /// <summary>Wie ein Licht des Modells leuchtet (extras „art“): Glut flackert orange bei der Arbeit, Fenster werfen Tageslicht, Lampen leuchten warm und gleichmäßig.</summary>
+    /// <summary>Wie ein Licht des Modells leuchtet (extras „art“): Glut flackert orange bei der Arbeit, Fenster werfen Tageslicht, Lampen leuchten warm und gleichmäßig, solange gearbeitet wird.</summary>
     private enum LichtArt { Fenster, Glut, Lampe }
+
+    /// <summary>Was die Animation „Arbeit“ des Raums gerade tut: in Ruhelage (Zeit 0, nichts wird gearbeitet), Schleife oder bei Spielpause an der Stelle angehalten.</summary>
+    private enum AnimationStand { Ruht, Laeuft, Haelt }
 
     /// <summary>Alles, was ein Modellraum an Knoten und Zustand braucht (je Betrieb).</summary>
     private sealed class ModellRaumDaten
@@ -114,7 +117,7 @@ public partial class Stadtansicht
         public float Hell { get; set; } = -1;
         public string WerkstueckStand { get; set; } = "";
         public int SpaeneStand { get; set; } = -1;
-        public bool ArbeitLaeuft { get; set; }
+        public AnimationStand ArbeitStand { get; set; }
     }
 
     // ═════════════════════════════════════════════════════════════════════════
@@ -169,7 +172,7 @@ public partial class Stadtansicht
                 var vorgabe = schluessel == "Saege" ? 3 : 1; // gilt, wenn die „extras“ fehlen
                 var abStufe = raumKnoten is null ? vorgabe : ExtraZahl(raumKnoten, "stufe", vorgabe);
                 if (raumKnoten is not null && abStufe > 1) md.StufenKnoten.Add((raumKnoten, abStufe));
-                a.Raeume.Add(new Raum(kennung, name, Vector3.Zero, new Vector3(9, 3.6f, 6.5f),
+                a.Raeume.Add(new Raum(kennung, name, Vector3.Zero, Vector3.Zero, // Mitte und Maße braucht nur der alte Raum aus Grundkörpern: Wände und Lage stehen im Modell, die Kamera folgt den Blickpunkten
                     abStufe > 1 ? () => Modellstufe(a.Betrieb.Stufe) >= abStufe : null, blicke));
             }
         KontorUndWohnstubeAnlegen(a, WandVon(stil));
@@ -234,9 +237,12 @@ public partial class Stadtansicht
                 InnenKlickAnlegen(a, md, knoten, $"tuer:{teile[1]}:{teile[2]}");
                 if (ExtraZahl(knoten, "stufe", 1) is > 1 and var tuerStufe) md.StufenKnoten.Add((knoten, tuerStufe)); // die Tür zur Sägehalle gibt es erst mit ihr
                 break;
-            case "Spaene1" or "Spaene2" or "Spaene3":
+            case "Spaene1" or "Spaene2" or "Spaene3" when teile.Length == 1:
                 md.Spaene[name[^1] - '0'] = knoten;
                 knoten.Visible = false; // bis zur Arbeit des Tages
+                break;
+            case "Spaene1" or "Spaene2" or "Spaene3": // Teil einer Menge Späne (Spaene<n>_Drechselbank), liegt erst ab seiner Stufe da
+                if (ExtraZahl(knoten, "stufe", 1) is > 1 and var spaeneStufe) md.StufenKnoten.Add((knoten, spaeneStufe));
                 break;
             case "Blick" when teile.Length >= 3:
                 if (!md.Blicke.TryGetValue(teile[1], out var liste)) md.Blicke[teile[1]] = liste = new List<Blickpunkt>();
@@ -384,34 +390,48 @@ public partial class Stadtansicht
                 licht.LightEnergy = art switch
                 {
                     LichtArt.Glut => arbeitet ? 1.6f : 0.25f,
-                    LichtArt.Lampe => 0.45f + 0.5f * (1f - _raumHell), // nachts heller
+                    LichtArt.Lampe => arbeitet ? 0.55f + 0.5f * (1f - _raumHell) : 0.05f, // brennt wie die Laternenscheibe (Material „Glut“) nur bei der Arbeit, nachts heller
                     _ => 0.05f + 0.8f * _raumHell,
                 };
             }
         }
 
         InnenSpaeneAktualisieren(md, b, zeit);
-        if (md.Animation is { } animation)
-        {
-            var laeuft = arbeitet && !_simulation!.Takt.IstPausiert;
-            if (laeuft != md.ArbeitLaeuft)
-            {
-                md.ArbeitLaeuft = laeuft;
-                if (laeuft) animation.Play("Arbeit"); // nach einer Pause geht es an der Stelle weiter
-                else animation.Pause();
-            }
-        }
+        if (md.Animation is not null)
+            InnenAnimationSetzen(md, !arbeitet ? AnimationStand.Ruht : _simulation!.Takt.IstPausiert ? AnimationStand.Haelt : AnimationStand.Laeuft);
 
         InnenArbeiterAktualisieren(a, md, b, stufe, arbeitszeit, arbeitet, delta);
         InnenLagerAktualisieren(a, md, b);
     }
 
-    /// <summary>Hält die Animation „Arbeit“ an (beim Verlassen des Hauses), damit sie nicht im Hintergrund weiterläuft.</summary>
+    /// <summary>
+    /// Stellt die Animation „Arbeit“ um: Schleife, solange gearbeitet wird; bei Spielpause an der Stelle angehalten (danach geht es dort weiter);
+    /// wird nicht gearbeitet, steht sie in der Ruhelage (Zeit 0). Angefasst wird nur bei einem neuen Stand.
+    /// </summary>
+    private static void InnenAnimationSetzen(ModellRaumDaten md, AnimationStand stand)
+    {
+        if (md.Animation is not { } animation || stand == md.ArbeitStand) return;
+        md.ArbeitStand = stand;
+        switch (stand)
+        {
+            case AnimationStand.Laeuft:
+                animation.Play("Arbeit");
+                break;
+            case AnimationStand.Haelt:
+                animation.Pause();
+                break;
+            default:
+                animation.Play("Arbeit");
+                animation.Seek(0, true);
+                animation.Pause();
+                break;
+        }
+    }
+
+    /// <summary>Beim Verlassen des Hauses läuft die Animation nicht im Hintergrund weiter: Sie hält an, wo sie ist.</summary>
     private static void InnenModellAnhalten(ModellRaumDaten md)
     {
-        if (md.Animation is null || !md.ArbeitLaeuft) return;
-        md.ArbeitLaeuft = false;
-        md.Animation.Pause();
+        if (md.ArbeitStand == AnimationStand.Laeuft) InnenAnimationSetzen(md, AnimationStand.Haelt);
     }
 
     /// <summary>Die Raumleiste hat sich geändert (z. B. kam die Sägehalle dazu); steht man in einem Raum, der nicht mehr zu betreten ist, geht es in den ersten.</summary>
