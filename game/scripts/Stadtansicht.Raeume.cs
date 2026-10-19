@@ -27,8 +27,9 @@ namespace Reichsgilde;
 public partial class Stadtansicht
 {
     /// <summary>Ein Raum: Kennung (für Klicks), Name (Raumleiste), Mitte relativ zur Gebäudemitte, Innenmaße (Breite, Höhe, Tiefe).
-    /// <paramref name="Zugaenglich"/>: nur betretbar, solange das gilt (z. B. nur im eigenen Haus).</summary>
-    private sealed record Raum(string Kennung, string Name, Vector3 Mitte, Vector3 Masse, Func<bool>? Zugaenglich = null);
+    /// <paramref name="Zugaenglich"/>: nur betretbar, solange das gilt (z. B. nur im eigenen Haus).
+    /// <paramref name="Blicke"/>: bei Räumen aus Modellen die festen Blickpunkte der Kamera (Stadtansicht.Innenkamera.cs), der erste ist der Standard.</summary>
+    private sealed record Raum(string Kennung, string Name, Vector3 Mitte, Vector3 Masse, Func<bool>? Zugaenglich = null, List<Blickpunkt>? Blicke = null);
 
     /// <summary>Kennungen der Werkstatträume (Klick in der Raumansicht).</summary>
     public const string RaumWerk = "raum:werk", RaumLager = "raum:lager", RaumKontor = "raum:kontor", RaumWohnstube = "raum:wohnstube";
@@ -50,6 +51,8 @@ public partial class Stadtansicht
     private Godot.Environment _raumUmgebung = null!;
     /// <summary>Fensterglas aller Räume: leuchtet in der Farbe des Himmels, nachts kaum.</summary>
     private StandardMaterial3D _fensterglas = null!;
+    /// <summary>Helligkeit draußen (0 = Nacht, 1 = Tag): die Fenster der Modellräume werfen Tageslicht (Stadtansicht.Innenmodell.cs).</summary>
+    private float _raumHell;
 
     // ═════════════════════════════════════════════════════════════════════════
     //  Kamera und Wechsel
@@ -70,11 +73,13 @@ public partial class Stadtansicht
         AddChild(_raumKamera);
         _fensterglas = Material(new Color(0.2f, 0.22f, 0.26f));
         _fensterglas.EmissionEnabled = true;
+        RaumOberflaecheAufbauen(); // Pfeile, Rahmen und Namensschild (Stadtansicht.Innenkamera.cs)
     }
 
     /// <summary>Tag und Nacht im Raum: Umgebungslicht und Fenster folgen dem Himmel draußen (<paramref name="hell"/> 0 = Nacht, 1 = Tag).</summary>
     private void RaumlichtSetzen(Color himmel, float hell)
     {
+        _raumHell = hell;
         _raumUmgebung.AmbientLightEnergy = 0.2f + 0.35f * hell;
         _fensterglas.Emission = himmel;
         _fensterglas.EmissionEnergyMultiplier = 0.2f + 1.1f * hell;
@@ -88,6 +93,7 @@ public partial class Stadtansicht
         a.Innen!.Visible = innen;
         foreach (var klick in a.Raumklicks) klick.Disabled = !innen;
         _sonne.Visible = !innen;
+        RaumOberflaecheUmschalten(innen);
         if (innen) _raumKamera.MakeCurrent();
         else
         {
@@ -104,6 +110,12 @@ public partial class Stadtansicht
     {
         if (_innen?.Innen is not { } innen) return;
         _raum = r;
+        if (r.Blicke is { Count: > 0 } blicke)
+        {
+            BlickSetzen(blicke[0], true); // Raum aus einem Modell: die Kamera steht auf dem Blickpunkt 0
+            if (melden) RaumGewechselt?.Invoke(r.Kennung);
+            return;
+        }
         var mitte = innen.ToGlobal(_innen.Mitte + r.Mitte);
         var (breite, hoehe, tiefe) = (r.Masse.X, r.Masse.Y, r.Masse.Z);
         var abstand = breite * 0.62f + 0.8f;
@@ -138,10 +150,18 @@ public partial class Stadtansicht
     /// <summary>Eingabe in der Raumansicht: Klick = Raum anklicken, Q/E = Raum wechseln. Kein Zoom, kein Verschieben.</summary>
     private void RaumEingabe(InputEvent eingabe)
     {
+        if (_raum?.Blicke is not null && ModellRaumEingabe(eingabe)) // Raum aus einem Modell: Bedienung, Rahmen, Rechtsklick (Stadtansicht.Innenkamera.cs)
+        {
+            GetViewport().SetInputAsHandled();
+            return;
+        }
         switch (eingabe)
         {
-            case InputEventMouseButton { Pressed: true, ButtonIndex: MouseButton.Left } klick:
+            case InputEventMouseButton { Pressed: true, ButtonIndex: MouseButton.Left } klick when _raum?.Blicke is null:
                 Auswaehlen(klick.Position, false);
+                break;
+            case InputEventMouseButton { Pressed: true, ButtonIndex: MouseButton.Right }:
+                InnenansichtVerlassen(); // Rechtsklick verlässt das Haus, in jedem Raum
                 break;
             case InputEventKey { Pressed: true, Echo: false, Keycode: Key.Q }:
                 RaumBlaettern(-1);
@@ -243,19 +263,26 @@ public partial class Stadtansicht
     /// Legt die Räume einer Werkstatt an. Der Werkraum ist der bisherige Innenraum (Boden und Einrichtung baut
     /// <see cref="Innenraum"/>), hier kommen nur seine Wände dazu.
     /// </summary>
+    private static Color WandVon(Werkstil stil) => stil switch
+    {
+        Werkstil.Maurerei or Werkstil.Kirche or Werkstil.Wache => Mauerstein,
+        Werkstil.Tinkturei or Werkstil.Bank => Putz,
+        Werkstil.Diebesnest => Morsch,
+        _ => Fachwerk,
+    };
+
     private void WerkstattRaeumeAnlegen(BetriebsAnsicht a, Werkstil stil, float breite, float tiefe)
     {
-        var wand = stil switch
-        {
-            Werkstil.Maurerei or Werkstil.Kirche or Werkstil.Wache => Mauerstein,
-            Werkstil.Tinkturei or Werkstil.Bank => Putz,
-            Werkstil.Diebesnest => Morsch,
-            _ => Fachwerk,
-        };
+        var wand = WandVon(stil);
         RaumAnlegen(a, new Raum(RaumWerk, WerkraumName(stil), Vector3.Zero, new Vector3(breite, 6, tiefe)), wand, null,
             fenster: stil != Werkstil.Diebesnest, licht: stil == Werkstil.Diebesnest ? 0.15f : 0.35f);
         LagerEinrichten(a, wand);
-        // Kontor und Wohnstube werden trotzdem gebaut, aber ausgeblendet, sobald es das Wohnhaus gibt (siehe RaeumeImWohnhaus).
+        KontorUndWohnstubeAnlegen(a, wand);
+    }
+
+    /// <summary>Kontor und Wohnstube der Werkstatt (auch bei Werkstätten mit Modellraum): gebaut, aber ausgeblendet, sobald es das Wohnhaus gibt (siehe <see cref="RaeumeImWohnhaus"/>).</summary>
+    private void KontorUndWohnstubeAnlegen(BetriebsAnsicht a, Color wand)
+    {
         KontorEinrichten(a, KontorOrt, wand, new Hausstand(() => a.Betrieb.Konto, () => a.Farbe,
             () => GehoertSpieler(a) && !RaeumeImWohnhaus, () => IstStammhaus(a), "Klick: Verwaltung"));
         WohnstubeEinrichten(a, WohnstubeOrt, new Hausstand(() => a.Betrieb.Konto, () => a.Farbe,

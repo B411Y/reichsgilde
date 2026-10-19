@@ -82,6 +82,11 @@ public partial class Stadtansicht
     /// </summary>
     private void Innenraum(BetriebsAnsicht ansicht, Werkstil stil, float breite, float tiefe, float dicke)
     {
+        if (InnenModellDatei(stil) is { } datei && Modell(datei) is not null)
+        {
+            InnenModellBauen(ansicht, stil, datei); // Räume aus einem Blender-Modell (Stadtansicht.Innenmodell.cs)
+            return;
+        }
         var p = ansicht.Mitte;
         // Die Räume liegen unter der Stadt (Raumansicht, siehe Stadtansicht.Raeume.cs).
         var innen = new Node3D { Name = "Innen", Visible = false, Position = new Vector3(0, RaumTiefe, 0) };
@@ -1203,6 +1208,11 @@ public partial class Stadtansicht
     {
         var b = a.Betrieb;
         GemeinsamAktualisieren(a, zeit, arbeitszeit, arbeitet, delta, b.Stufe);
+        if (a.Modellraum is { } modellraum)
+        {
+            InnenModellAktualisieren(a, modellraum, zeit, arbeitszeit, arbeitet, delta);
+            return;
+        }
         if (b.IstWerkstatt)
         {
             var farbe = Warenfarbe(b.Produkt);

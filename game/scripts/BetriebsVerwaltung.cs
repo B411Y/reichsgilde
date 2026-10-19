@@ -25,6 +25,9 @@ public partial class BetriebsVerwaltung : VBoxContainer
     private Simulation? _simulation;
     private Konto? _spieler;
 
+    /// <summary>Nur der Abschnitt „Karren“ (Kaufen, Zustand, Handel): so steht er als Tafel am Hoftor im Innenraum (<see cref="KarrenAnzeige"/>).</summary>
+    public bool NurKarren { get; init; }
+
     /// <summary>Wessen Betriebe dieses Feld bedienen darf.</summary>
     public Konto? Spieler => _spieler;
     private Betrieb? _betrieb;
@@ -232,6 +235,9 @@ public partial class BetriebsVerwaltung : VBoxContainer
         _verkaufText.AutowrapMode = TextServer.AutowrapMode.WordSmart;
         _verkaufText.CustomMinimumSize = new Vector2(220, 0);
 
+        if (NurKarren)
+            foreach (var kind in GetChildren().OfType<Control>().Where(k => k != _karrenKopf && k != _karren && k != _karrenKauf))
+                kind.Visible = false;
         Visible = false;
     }
 
@@ -295,6 +301,12 @@ public partial class BetriebsVerwaltung : VBoxContainer
             _bauplan = bauplan;
         }
 
+        if (NurKarren)
+        {
+            KarrenAktualisieren(b, w);
+            return;
+        }
+
         // Produkt: Auswahl angleichen (Select löst KEIN ItemSelected aus) und Gewinn je Minute zeigen
         _produktZeile.Visible = b.IstWerkstatt;
         if (_produktZeile.Visible)
@@ -333,6 +345,14 @@ public partial class BetriebsVerwaltung : VBoxContainer
                         + (daten.Risiko > 0 ? $" · Risiko {Zahlenformat.Ganz(daten.Risiko * 100)} %" : "");
         }
 
+        KarrenAktualisieren(b, w);
+        VerkaufAktualisieren(b, w);
+    }
+
+    /// <summary>Der Abschnitt „Karren“: Zeilen beschriften, Eskorte und Nachtfahrt angleichen, Kaufen und Handel sperren.</summary>
+    private void KarrenAktualisieren(Betrieb b, Stadtwirtschaft w)
+    {
+        var waehrung = w.Daten.Allgemein.Waehrung;
         // Karren – Wache und Geldleihe haben nichts zu fahren (der Dieb schon: Beute aus Einbrüchen).
         var ohneKarren = w.Wache.IstWachbetrieb(b) || w.Bank.IstBankbetrieb(b);
         _karrenKopf.Visible = _karren.Visible = _karrenKauf.Visible = !ohneKarren || b.Karren.Count > 0;
@@ -360,7 +380,6 @@ public partial class BetriebsVerwaltung : VBoxContainer
         }
         _kaufenKnopf.Disabled = b.Konto.Vermoegen < w.Daten.Logistik.Karren[_karrenTypen[Math.Max(0, _karrenTyp.Selected)]].Preis;
         _handelKnopf.Visible = w.Daten.Handel is not null && b.Karren.Count > 0;
-        VerkaufAktualisieren(b, w);
     }
 
     /// <summary>„Verkaufen …“ bzw. „Pacht kündigen …“ – gesperrt, solange der Kern einen Grund nennt (letzter Betrieb, Umbau, Karren unterwegs).</summary>

@@ -29,6 +29,8 @@ public partial class Stadtansicht
         /// <summary>Alle Teile, die gezeigt werden können – zum Hervorheben bekommen sie eine helle Schicht.</summary>
         public List<MeshInstance3D> Teile { get; } = new();
         public MeshInstance3D? Hacke { get; set; }
+        /// <summary>Der Hammer der Schmiede (Modell „Hammer"): nur beim Hämmern zu sehen.</summary>
+        public MeshInstance3D? Hammer { get; set; }
         public MeshInstance3D? Stab { get; set; }
         /// <summary>Trägt die Figur den Stab immer (Hirte) oder nur beim Hüten?</summary>
         public bool StabImmer { get; init; }
@@ -114,7 +116,7 @@ public partial class Stadtansicht
                 "Koerper_Mann" => !aussehen.Frau,
                 "Koerper_Frau" => aussehen.Frau,
                 "Schuerze" => aussehen.Schuerze,
-                "Hacke" or "Stab" => true,
+                "Hacke" or "Stab" or "Hammer" => true,
                 _ => name == kopf || name == last,
             };
             if (!behalten)
@@ -123,6 +125,7 @@ public partial class Stadtansicht
                 continue;
             }
             if (name == "Hacke") { figur.Hacke = teil; teil.Visible = false; }
+            if (name == "Hammer") { figur.Hammer = teil; teil.Visible = false; }
             if (name == "Stab") { figur.Stab = teil; teil.Visible = figur.StabImmer; }
             figur.Teile.Add(teil);
             // Ein Material für alle Teile (figur.gdshader), die Farben je Figur als Instanz-Uniform: ein Zeichenaufruf je Teil.
@@ -152,6 +155,7 @@ public partial class Stadtansicht
         f.Neu = true;
         f.Langsam = bewegung is "Stehen" or "Sitzen" or "Hueten";
         if (f.Hacke is not null) f.Hacke.Visible = bewegung == "Hacken";
+        if (f.Hammer is not null) f.Hammer.Visible = bewegung == "Haemmern";
         if (f.Stab is not null) f.Stab.Visible = f.StabImmer || bewegung == "Hueten";
     }
 

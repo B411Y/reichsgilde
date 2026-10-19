@@ -246,6 +246,8 @@ public partial class Stadtansicht : Node3D
 
         // ── Gebäudestufe (nur Werkstätten) ──
         public int GezeigteStufe { get; set; } = 1;
+        /// <summary>Innenraum aus einem Blender-Modell (Stadtansicht.Innenmodell.cs); null bei den alten Räumen aus Grundkörpern.</summary>
+        public ModellRaumDaten? Modellraum { get; set; }
         public bool GezeigterUmbau { get; set; }
     }
 
@@ -1042,7 +1044,11 @@ public partial class Stadtansicht : Node3D
         var aktuell = _kameraDrehung.RotationDegrees.Y;
         _kameraDrehung.RotationDegrees = new Vector3(0, Mathf.LerpAngle(Mathf.DegToRad(aktuell), Mathf.DegToRad(_zielDrehung), (float)Math.Min(1, delta * 8)) * 180 / Mathf.Pi, 0);
         if (_innen is { Raumansicht: false }) Aufschneiden(_innen);
-        if (_raum is not null) return; // feste Ansicht: im Raum wird nicht verschoben
+        if (_raum is not null)
+        {
+            RaumBildAktualisieren(delta); // Blickpunkte, Rand, Namen unter der Maus (Stadtansicht.Innenkamera.cs)
+            return; // feste Ansicht: im Raum wird nicht verschoben
+        }
 
         // Verschieben mit Tastatur
         var richtung = Vector2.Zero;
