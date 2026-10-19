@@ -1036,3 +1036,9 @@ Was es bringt (Gießerei, 2 Gesellen, Silberring ≈ 48 Gulden Spanne je Stück,
 | Kieselbach (Steinmetz) | 141.735 | 143.128 | +1,0 % |
 
 Bürgermeister 18/20 → 16/20 (im Schnitt ab Jahr 14,2 → 13,4), Stand am Ende Freiherr 57 / Edler 3 → Freiherr 48 / Edler 11 / Reichsgraf 1, gekaufte Betriebe 168 → 164, kein Bankrott. Die Verschiebung liegt bei ±1 % – innerhalb der Streuung zwischen den Startwerten; erwartet war etwa −1 bis −2 % (Leistungsverlust Gefahr × 0,46). Die Referenztests der Gießerei (ein Startwert, 20 Jahre) bleiben in ihrer Toleranz: 848 → 822, 649 → 633. Nur der Vergleich der beiden Gießereien im Konkurrenztest bekommt ±8 % statt ±5 %, weil Unfälle die beiden zufällig verschieden oft treffen.
+
+## Einrichtung des Tischlers (PR #154)
+
+**Regel:** `werkstatt.einrichtung.Tischler` (Datenversion 37), gleiche Stücke und Preise wie beim Schmied, statt des Blasebalgs **Leimofen und Zwingen** (350): −10 % Zeit für Truhe, Schrank, Prunktruhe und Armbrust (nicht für Holzzapfen, Schemel, Gehstock). Mit gutem Werkzeug braucht eine Truhe 75 × 0,81 ≈ 61 statt 75 Minuten, ein Geselle schafft in 6 Stunden 5 statt 4. Das Holzgestell (`Regale`) gibt 60 statt 40 Lager je Ware. Gilt in Tischlerei, Drechslerei und Sägewerk.
+
+**Keine Messung:** Die KI-Häuser kaufen keine Einrichtung, in `messen` ändert sich nichts.
