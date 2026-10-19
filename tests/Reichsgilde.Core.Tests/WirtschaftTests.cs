@@ -174,14 +174,15 @@ static class WirtschaftTests
         // Fuhrenverkauf erzielt etwas bessere Preise (das 24-h-Fenster zählt vor einer Fuhre weniger
         // Angebot); die Mine verliert Ware an Banditen. Die Tests sichern diese Werte gegen ungewollte
         // Änderungen ab (±5 %).
-        ("Gießerei allein, 2 Gesellen, Silberring: Gewinn ≈ 848 Gulden/Jahr", () =>
+        // Seit den Unfällen in der Werkstatt (PR #152) fehlt mit diesem Startwert zeitweise ein Geselle (Ausfall 1–3 Spieltage, Lohn läuft weiter): 848 → 789, 649 → 580.
+        ("Gießerei allein, 2 Gesellen, Silberring: Gewinn ≈ 789 Gulden/Jahr", () =>
         {
             var sim = NeueSimulation();
             var w = sim.Wirtschaft!;
             var konto = w.KontoEroeffnen("Spieler");
             var g = w.BetriebEroeffnen("Gießerei", Betriebsart.Giesserei, konto);
             w.Einstellen(g, "Geselle", 2);
-            Pruefe.Ungefaehr(848, MittlererGewinn(sim, konto).Gewinn, 0.05);
+            Pruefe.Ungefaehr(789, MittlererGewinn(sim, konto).Gewinn, 0.05);
         }),
 
         ("Gießerei, 1 Lehrling, Silberring: Gewinn ≈ 289 Gulden/Jahr", () =>
@@ -194,7 +195,7 @@ static class WirtschaftTests
         }),
 
         // Seit dem Warenkorb der Einwohner (PR #91) fragen sie günstige Schmiedewaren wie den Silberring rund 7 % mehr nach: 611 → 649.
-        ("Konkurrenz: Zwei Gießereien teilen sich den Silberring-Markt, je ≈ 649 Gulden", () =>
+        ("Konkurrenz: Zwei Gießereien teilen sich den Silberring-Markt, je ≈ 580 Gulden", () =>
         {
             var sim = NeueSimulation();
             var w = sim.Wirtschaft!;
@@ -202,7 +203,7 @@ static class WirtschaftTests
             var rivale = w.KontoEroeffnen("Rivale");
             w.Einstellen(w.BetriebEroeffnen("Gießerei Spieler", Betriebsart.Giesserei, spieler), "Geselle", 2);
             w.Einstellen(w.BetriebEroeffnen("Gießerei Rivale", Betriebsart.Giesserei, rivale), "Geselle", 2);
-            Pruefe.Ungefaehr(649, MittlererGewinn(sim, spieler).Gewinn, 0.05);
+            Pruefe.Ungefaehr(580, MittlererGewinn(sim, spieler).Gewinn, 0.05);
             Pruefe.Ungefaehr(spieler.Vermoegen, rivale.Vermoegen, 0.05);
         }),
 

@@ -109,6 +109,9 @@ public sealed partial class Stadtwirtschaft
     /// <summary>Gäste und Ausschank der Wirtshäuser, Barde, Würfeltisch, Stammtisch.</summary>
     public Gastwirtschaft Gastwirtschaft { get; }
 
+    /// <summary>Werkstatt wie in Gilde 1: Arbeiter mit eigener Ware, Lohnstufen, Prämie, Laune, Unfälle, Beförderung und Einrichtung.</summary>
+    public Werkstattwesen Werkstaetten { get; }
+
     /// <summary>Messe und Kollekte, Ablass, Beichte, Lehr- und Hetzschriften.</summary>
     public Kirche.Kirchenwesen Kirchenwesen { get; }
 
@@ -275,6 +278,7 @@ public sealed partial class Stadtwirtschaft
         Bauen = new Bauen.Bauwesen(this, daten.Bauen);
         Gesundheit = new Gesundheitswesen(this, daten.Gesundheit, zufallsstartwert);
         Gastwirtschaft = new Gastwirtschaft(this, daten.Gastwirtschaft);
+        Werkstaetten = new Werkstattwesen(this, daten.Werkstatt, zufallsstartwert);
         Kirchenwesen = new Kirche.Kirchenwesen(this, daten.Kirche, zufallsstartwert);
         Einwohnerschaft = new Buerger.Einwohnerschaft(this, daten.Buerger, zufallsstartwert);
     }
@@ -381,7 +385,7 @@ public sealed partial class Stadtwirtschaft
         // Befehle nennen Betriebe beim Namen – deshalb muss er eindeutig sein.
         if (_betriebe.Any(b => b.Name == name))
             throw new ArgumentException($"Einen Betrieb „{name}“ gibt es schon.", nameof(name));
-        var betrieb = new Betrieb(name, art, konto, Daten, ganzjaehrig: Uhr.MinuteImTag == 0); // zum Jahresbeginn: ganzes Jahr
+        var betrieb = new Betrieb(name, art, konto, Daten, ganzjaehrig: Uhr.MinuteImTag == 0, jetzt: () => Uhr.VergangeneMinuten); // zum Jahresbeginn: ganzes Jahr
         _betriebe.Add(betrieb);
         konto.BerufLernen(betrieb.Artdaten.Beruf); // wer einen Betrieb führt, beherrscht sein Handwerk
 
@@ -475,6 +479,7 @@ public sealed partial class Stadtwirtschaft
         Diebe.Stunde(zeit);        // die Taschendiebe der vergangenen Stunde
         Wache.Stunde(zeit);        // Sold für die Wachleute
         Bank.Stunde(zeit);         // Zinsen der Stadtkunden, Wechsel; Kreditzinsen laufen auf
+        Werkstaetten.Stunde(zeit); // Unfälle, Laune und Kündigungen in den Werkstätten
         foreach (var rivale in _rivalen)
             rivale.Stunde(); // bankrotte Rivalen tun nichts mehr
     }
@@ -764,6 +769,13 @@ public sealed partial class Stadtwirtschaft
             return befehl switch
             {
                 ProduktWaehlen p => ProduktWaehlenAusfuehren(betrieb, p),
+                ArbeiterZuteilen z => Werkstaetten.Zuteilen(betrieb, z),
+                ArbeiterEinstellen e => Werkstaetten.Einstellen(betrieb, e),
+                ArbeiterEntlassen e => Werkstattwesen.Entlassen(betrieb, e),
+                ArbeiterBefoerdern f => Werkstaetten.Befoerdern(betrieb, f),
+                LohnstufeSetzen l => Werkstaetten.LohnstufeSetzen(betrieb, l),
+                PraemieZahlen p => Werkstaetten.PraemieZahlen(betrieb, p),
+                EinrichtungKaufen e => Werkstaetten.EinrichtungKaufen(betrieb, e),
                 FoerderungAufteilen f => FoerderungAusfuehren(betrieb, f),
                 PersonalSetzen p => PersonalAusfuehren(betrieb, p),
                 KarrenKaufen k => KarrenKaufenAusfuehren(betrieb, k),
@@ -868,7 +880,7 @@ public sealed partial class Stadtwirtschaft
             return Befehlsergebnis.Abgelehnt($"{betrieb.Name} ist keine Werkstatt und stellt nichts her.");
         if (!betrieb.Artdaten.Produkte.Contains(befehl.Ware))
             return Befehlsergebnis.Abgelehnt($"{befehl.Ware} kann eine {betrieb.Artdaten.Name} nicht herstellen.");
-        if (betrieb.Produkt == befehl.Ware)
+        if (betrieb.Produkt == befehl.Ware && betrieb.Arbeiter.All(a => a.Ware is null))
             return Befehlsergebnis.Ok($"{betrieb.Name} stellt bereits {befehl.Ware} her.");
         betrieb.Produkt = befehl.Ware;
         return Befehlsergebnis.Ok($"{betrieb.Name} stellt nun {befehl.Ware} her.");
@@ -988,6 +1000,7 @@ public sealed partial class Stadtwirtschaft
         Einwohner = Einwohnerschaft.IstAktiv ? Einwohnerschaft.Sichern() : null,
         Abgegeben = AbgegebeneSichern(),
         Bauen = Bauen.Sichern(k => _konten.IndexOf(k)),
+        WerkstattWuerfe = Werkstaetten.Wuerfe,
     };
 
     /// <summary>
@@ -1010,7 +1023,7 @@ public sealed partial class Stadtwirtschaft
         Wohnen.HauswerteNachDemLaden(_konten);
         foreach (var bs in s.Betriebe)
         {
-            var betrieb = new Betrieb(bs.Name, bs.Art, _konten[bs.Konto], Daten);
+            var betrieb = new Betrieb(bs.Name, bs.Art, _konten[bs.Konto], Daten, jetzt: () => Uhr.VergangeneMinuten);
             betrieb.Wiederherstellen(bs);
             _betriebe.Add(betrieb);
         }
@@ -1052,6 +1065,7 @@ public sealed partial class Stadtwirtschaft
             Glaube.Wiederherstellen(glaubeStand, _konten);
         if (s.Einwohner is { } einwohnerStand && Einwohnerschaft.IstAktiv)
             Einwohnerschaft.Wiederherstellen(einwohnerStand);
+        Werkstaetten.Wiederherstellen(s.WerkstattWuerfe);
         ToteBetriebeFreigeben(); // alte Spielstände: Betriebe toter Häuser standen still – nun stehen sie zum Verkauf
     }
 

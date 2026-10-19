@@ -21,11 +21,18 @@ public static class Kalkulation
         return (erloes - zutaten) / daten.Zeit;
     }
 
-    /// <summary>Wert einer Arbeitsminute in diesem Betrieb bei der aktuellen Ausrichtung.</summary>
+    /// <summary>
+    /// Wert einer Arbeitsminute in diesem Betrieb bei der aktuellen Ausrichtung – in einer Werkstatt nach den Waren in Arbeit gewichtet,
+    /// mit der Einrichtung (weniger Zeit je Stück = mehr wert je Minute).
+    /// </summary>
     public static double WertJeArbeitsminute(Stadtwirtschaft w, Betrieb betrieb) =>
         betrieb.OhneProduktion ? w.WertOhneWare(betrieb.Artdaten)
-        : betrieb.IstWerkstatt ? GewinnJeArbeitsminute(w, betrieb.Produkt)
+        : betrieb.IstWerkstatt ? Werkstattmix(betrieb, ware => GewinnJeArbeitsminute(w, ware) / betrieb.ZeitFaktor(ware))
         : Gemischt(betrieb, ware => GewinnJeArbeitsminute(w, ware));
+
+    /// <summary>Werkstatt: nach dem Anteil der Waren an der Arbeit gewichtet (eine Ware: genau deren Wert).</summary>
+    private static double Werkstattmix(Betrieb b, Func<string, double> wert) =>
+        b.WarenInArbeit.Count == 1 ? wert(b.WarenInArbeit[0]) : b.WarenAnteile.Sum(x => x.Value * wert(x.Key));
 
     /// <summary>Umland: Wert der Förderung – bei zwei Rohstoffen nach der Aufteilung der Arbeitszeit gewichtet.</summary>
     private static double Gemischt(Betrieb b, Func<string, double> wert) => b.Rohstoffe.Count switch
@@ -99,7 +106,7 @@ public static class Kalkulation
     {
         var betrieb = karren.Heimat;
         var preis = betrieb.OhneProduktion ? betrieb.Lager.Keys.Select(ware => w.Markt[ware].Preis).DefaultIfEmpty(0).Max() // Diebesgut
-            : betrieb.IstWerkstatt ? w.Markt[betrieb.Produkt].Preis : Gemischt(betrieb, ware => w.Markt[ware].Preis);
+            : betrieb.IstWerkstatt ? Werkstattmix(betrieb, ware => w.Markt[ware].Preis) : Gemischt(betrieb, ware => w.Markt[ware].Preis);
         return karren.Daten.Gesamtkapazitaet * preis;
     }
 }

@@ -115,8 +115,32 @@ public sealed record AusbildungWaehlen(int Kind, string? Weg) : Befehl;
 /// <summary>Das Oberhaupt übt ein Talent: +½ Stern, höchstens einmal je Talent und Jahr (kostet Aktionspunkte).</summary>
 public sealed record TalentTrainieren(Dynastie.Talent Talent) : Befehl;
 
-/// <summary>Die Gießerei stellt ab sofort diese Ware her.</summary>
+/// <summary>Die Werkstatt stellt ab sofort diese Ware her: Sie wird die Ware des Betriebs, und alle Arbeiter arbeiten an ihr.</summary>
 public sealed record ProduktWaehlen(string Betrieb, string Ware) : BetriebsBefehl(Betrieb);
+
+/// <summary>
+/// Einen Arbeiter (Nummer aus <see cref="Wirtschaft.Arbeiter.Nummer"/>) an diese Ware setzen. null: wieder an die Ware des Betriebs.
+/// Vorab: <see cref="Werkstattwesen.ZuteilenVerboten"/>.
+/// </summary>
+public sealed record ArbeiterZuteilen(string Betrieb, int Arbeiter, string? Ware) : BetriebsBefehl(Betrieb);
+
+/// <summary>Einen Arbeiter dieser Art einstellen und gleich einer Ware zuteilen (null: die Ware des Betriebs). Statut und Plätze wie bei <see cref="PersonalSetzen"/>.</summary>
+public sealed record ArbeiterEinstellen(string Betrieb, string Arbeitskraft, string? Ware = null) : BetriebsBefehl(Betrieb);
+
+/// <summary>Genau diesen Arbeiter entlassen.</summary>
+public sealed record ArbeiterEntlassen(string Betrieb, int Arbeiter) : BetriebsBefehl(Betrieb);
+
+/// <summary>Lehrling zum Gesellen befördern (nach der Dienstzeit aus den Daten) – ab dann gilt der Gesellenlohn. Vorab: <see cref="Werkstattwesen.BefoerdernVerboten"/>.</summary>
+public sealed record ArbeiterBefoerdern(string Betrieb, int Arbeiter) : BetriebsBefehl(Betrieb);
+
+/// <summary>Wie gut die Werkstatt zahlt: Faktor auf den Lohn, Ziel für die Laune.</summary>
+public sealed record LohnstufeSetzen(string Betrieb, Lohnstufe Stufe) : BetriebsBefehl(Betrieb);
+
+/// <summary>Eine einmalige Prämie zahlen – an einen Arbeiter (Nummer) oder an alle (null). Hebt die Laune eine Weile. Vorab: <see cref="Werkstattwesen.PraemieVerboten"/>.</summary>
+public sealed record PraemieZahlen(string Betrieb, int? Arbeiter = null) : BetriebsBefehl(Betrieb);
+
+/// <summary>Ein Stück Einrichtung kaufen (Kennung aus „werkstatt.einrichtung"). Vorab: <see cref="Werkstattwesen.EinrichtungVerboten"/>.</summary>
+public sealed record EinrichtungKaufen(string Betrieb, string Kennung) : BetriebsBefehl(Betrieb);
 
 /// <summary>Die Mine teilt ihre Arbeitszeit so auf (0 = nur Eisen, 1 = nur Silber).</summary>
 public sealed record FoerderungAufteilen(string Betrieb, double Silberanteil) : BetriebsBefehl(Betrieb);
