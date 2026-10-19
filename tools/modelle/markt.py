@@ -121,6 +121,9 @@ def bank(netz, st, fuss, dreh):
         netz.quader((x, 0, 0.225), (0.1, 0.36, 0.41), st["Holz alt"], t)
 
 
+BRUNNENPLATZ = 2.65          # Abstand der Brunnenanker von der Mitte: Rand 1,98 m + halbe Figur + etwas Luft
+
+
 def platz_anker():
     """Alle Anker des Platzes. Drehung: Blick ins Ziel (bs.anker: 0 = Blick nach +Y in Blender)."""
     anker = []
@@ -133,9 +136,9 @@ def platz_anker():
     for i, (x, z) in enumerate(STAENDE):
         p = blender(x, z)
         anker.append(bs.anker(f"Anker_Stand{i + 1}", (p.x, p.y, 0.04), blick(mitte, p)))      # Front (-Y) zur Mitte
-    for k in range(4):
-        w = math.pi / 4 + k * math.pi / 2 + 0.3
-        p = Vector((math.cos(w) * 2.35, math.sin(w) * 2.35, 0.04))
+    for k in range(4):                  # frei vor dem Beckenrand (Halbmesser 1,98 m), nicht am Eimer (1,7|−1,5)
+        w = math.pi / 4 + k * math.pi / 2 - 0.35
+        p = Vector((math.cos(w) * BRUNNENPLATZ, math.sin(w) * BRUNNENPLATZ, 0.04))
         anker.append(bs.anker(f"Anker_Brunnen{k + 1}", tuple(p), blick(p, mitte)))
     for (x, z), dreh in (((10.6, 10.0), 0.0), ((-10.6, -3.4), 90.0), ((10.6, -3.4), -90.0)):
         t = Matrix.Translation(blender(x, z)) @ Matrix.Rotation(math.radians(dreh), 4, "Z")

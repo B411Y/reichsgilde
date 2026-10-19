@@ -477,6 +477,14 @@ So wird eingetragen (damit sich die Chats nie an derselben Stelle treffen):
 | Felsberg | Eigene Datei `berg_grube.glb` mit Knoten „Berg“ statt eines Knotens in `grube.glb` – so bleibt die Grube unverändert und der Berg lässt sich getrennt ein- und ausblenden. Höhenraster aus Facetten, Hauptgipfel 11,5 m, Nebengipfel 8,5 m und ein Sporn; Gras auf flachen Facetten, Geröll am Fuß, sieben Tannen. | 18.10.2026 |
 | Winter | Natur: „<Name>_Winter“ zu Eiche, Buche, Birke, Linde, Apfelbaum, Kopfweide, Hasel, Holunder und Brombeere; Tanne, Baum_tot, Ginster und Wacholder bleiben. Andere Modelle: „Laubkrone_<Knoten>“ und „Winteraeste_<Knoten>“ als Kinder des Knotens, in dem der Baum steht (wirt, prediger, geldleiher: Stufe1–3; kraeutergarten, klosterhof: Haus; umland_stellen: Wald). Die Winteräste liegen innerhalb der Krone. Kein Schnee. | 18.10.2026 |
 
+### Figurkörper mit einem Material, Brunnenplätze (PR #149)
+
+| Thema | Entscheidung | Datum |
+|---|---|---|
+| Kodierung (Auftrag des Teamleiters) | Ein Material „Figur“ für Körper, Trachtteile und Werkzeug. `COLOR_0` = Grundfarbe in sRGB-Werten (wie bei den Umlandbetrieben), `TEXCOORD_0` (Godot `UV`, nicht `UV2`) x = Zone je Fläche: 0 fest, 1 Gewand, 2 Beinkleid, 3 Haut, 4 Haar, 5 Kopfbedeckung. Die Figuren haben keine Textur, also ist das erste UV-Set frei; ein leeres erstes Set nur für `UV2` hätte Daten gekostet. In Zone 1–5 steht in `COLOR_0` die Vorgabefarbe. | 19.10.2026 |
+| Godot-Import | Anders als bei den Umlandbetrieben setzt Godot bei den Figuren `vertex_color_use_as_albedo` nicht von selbst (geprüft, Ursache unklar). Ohne den Shader des Spiels erscheinen die Figuren weiß; der Shader liest `COLOR` und `UV.x` selbst (im Godot-Test mit fünf Zonenfarben geprüft). | 19.10.2026 |
+| Brunnenplätze | Anker_Brunnen1–4 bei 2,65 m statt 2,35 m von der Mitte (Beckenrand 1,98 m) und um 0,65 rad gedreht, so dass der nächste 1,07 m vom Eimer entfernt ist; Blick weiter zur Brunnenmitte. | 19.10.2026 |
+
 ### Modelle aus #147 im Spiel, Marktzugang, Grundversorgung (PR #148)
 
 | Thema | Entscheidung | Datum |

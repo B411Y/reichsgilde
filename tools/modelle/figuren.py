@@ -16,8 +16,12 @@ Inhalt je Datei (Blender: Z oben, Blick nach -Y; im Spiel Y oben, Blick nach +Z)
     Bewegungen      Stehen, Gehen, Eilen, Gebeugt, Tragen, Sitzen, Reden, Hacken, Buecken, Hueten,
                     Ziehen (Handkarren), Kutschieren (auf dem Bock)
                     – jede eine Schleife am Ort (ohne Vorwärtsbewegung; das Spiel schiebt die Figur)
-Farben je Figur über die Materialien „Gewand“, „Beinkleid“, „Haut“, „Haar“ und „Kopfbedeckung“: Das Spiel
-setzt sie je Figur (wie heute Gewandfarbe und Haut nach Volk). Die übrigen Stoffe bleiben fest.
+Material: alle Teile (Körper, Trachtteile, Werkzeug) tragen nur ein Material „Figur“ – eine Figur ist so ein
+Zeichenaufruf statt sechs. Je Ecke stehen zwei Angaben im Netz, je Fläche konstant:
+    COLOR_0         Grundfarbe als sRGB-Wert (wie bei den Umlandbetrieben, siehe bausteine.farben_zusammenlegen)
+    TEXCOORD_0      (Godot: UV) x = Zone, y = 0:  0 feste Farbe aus COLOR_0 (Auge, Leder, Holz, Eisen, Leinen …),
+                    1 Gewand, 2 Beinkleid, 3 Haut, 4 Haar, 5 Kopfbedeckung (ZONEN). Das Spiel färbt die Zonen 1–5
+                    je Figur; in COLOR_0 steht dort die Vorgabefarbe, ohne eigenen Shader sieht die Figur also aus wie bisher.
 """
 
 import math
@@ -51,6 +55,7 @@ VOELKER = {
     "halbling": dict(huefte=0.53, knie=0.29, schulter=0.90, hals=0.05, kopf=0.125, schulterbreite=0.155, hueftbreite=0.11,
                      oberarm=0.2, unterarm=0.26, fuss=0.24, tiefe=0.11),
 }
+ZONEN = {"Gewand": 1, "Beinkleid": 2, "Haut": 3, "Haar": 4, "Kopfbedeckung": 5}   # alle übrigen Stoffe: Zone 0
 TRACHT = ["Strohhut", "Barett", "Kapuze", "Haube", "Schleier", "Schuerze", "Kiepe", "Buendel", "Tasche", "Stab", "Hacke"]
 
 
@@ -440,7 +445,60 @@ def figur_bauen(volk, st):
         o["teil"] = True
         o["sichtbar"] = False
         objekte.append(o)
+    zonen_setzen([o for o in objekte if o.type == "MESH"])
     return ske, objekte
+
+
+def figur_material():
+    """Das eine Material „Figur“: Grundfarbe aus der Eckenfarbe (sRGB, für die Blender-Vorschau über Gamma 2,2 linear)."""
+    import bpy
+    m = bpy.data.materials.get("Figur")
+    if m is not None:
+        return m
+    m = bpy.data.materials.new("Figur")
+    try:
+        m.use_nodes = True
+    except AttributeError:
+        pass
+    baum = m.node_tree
+    p = baum.nodes.get("Principled BSDF")
+    p.inputs["Roughness"].default_value = 0.9
+    p.inputs["Base Color"].default_value = (1.0, 1.0, 1.0, 1.0)      # glTF multipliziert Faktor und Eckenfarbe
+    ecke = baum.nodes.new("ShaderNodeVertexColor")
+    ecke.layer_name = "Farbe"
+    gamma = baum.nodes.new("ShaderNodeGamma")
+    gamma.inputs["Gamma"].default_value = 2.2
+    baum.links.new(ecke.outputs["Color"], gamma.inputs["Color"])
+    baum.links.new(gamma.outputs["Color"], p.inputs["Base Color"])
+    m.diffuse_color = (0.6, 0.6, 0.6, 1.0)
+    return m
+
+
+def zonen_setzen(netze):
+    """Ersetzt alle Materialien durch „Figur“: Farbe des alten Materials (sRGB aus FARBEN) als Eckenfarbe „Farbe“,
+    Zone nach ZONEN als UV „Zone“ (x)."""
+    figur = figur_material()
+    for o in netze:
+        me = o.data
+        alte = [m.name if m else "" for m in me.materials]
+        farbe = me.color_attributes.new("Farbe", "BYTE_COLOR", "CORNER")
+        me.color_attributes.active_color = farbe
+        me.color_attributes.render_color_index = me.color_attributes.find("Farbe")
+        uv = me.uv_layers.new(name="Zone")
+        werte, zonen = [1.0] * (len(me.loops) * 4), [0.0] * (len(me.loops) * 2)
+        for poly in me.polygons:
+            name = alte[poly.material_index] if poly.material_index < len(alte) else ""
+            f = bs.FARBEN.get(name.split(".")[0], (1.0, 0.0, 1.0))
+            z = float(ZONEN.get(name.split(".")[0], 0))
+            for li in poly.loop_indices:
+                werte[li * 4:li * 4 + 4] = [f[0], f[1], f[2], 1.0]
+                zonen[li * 2] = z
+        farbe.data.foreach_set("color", werte)
+        uv.data.foreach_set("uv", zonen)
+        me.materials.clear()
+        me.materials.append(figur)
+        me.polygons.foreach_set("material_index", [0] * len(me.polygons))
+        me.update()
 
 
 def exportieren(name, objekte):
@@ -450,9 +508,9 @@ def exportieren(name, objekte):
         o.select_set(o in objekte)
     bpy.ops.export_scene.gltf(
         filepath=pfad, export_format="GLB", use_selection=True, export_yup=True, export_apply=False,
-        export_extras=True, export_normals=True, export_texcoords=False, export_skins=True, export_animations=True,
+        export_extras=True, export_normals=True, export_texcoords=True, export_skins=True, export_animations=True,
         export_animation_mode="NLA_TRACKS", export_morph=False, export_lights=False, export_cameras=False,
-        export_image_format="NONE")
+        export_image_format="NONE", export_vertex_color="ACTIVE", export_all_vertex_colors=False)
     return pfad
 
 
@@ -535,24 +593,31 @@ def vorschau_figuren(schnell):
         pose_setzen(neu, *haltung("Hueten" if "Stab" in teile else "Tragen" if "Buendel" in teile else "Stehen", 0.2,
                                   VOELKER[volk]))
         for k in kopien:
-            umfaerben(k, {"Gewand": gewand, "Kopfbedeckung": kopf, "Haut": HAUT[volk]})
+            umfaerben(k, {"Gewand": gewand, "Kopfbedeckung": kopf, "Haut": HAUT[volk], "Haar": HAAR[i % len(HAAR)],
+                          "Beinkleid": BEINKLEID[i % len(BEINKLEID)]})
         alle += kopien
     bs.vorschau_buehne(None, ziel_hoehe=0.9, ausschnitt=9.2, schnell=schnell)
     print(bs.rendern("figuren", lambda o: o in alle))
 
 
+HAAR = [(0.32, 0.22, 0.14), (0.62, 0.48, 0.26), (0.14, 0.12, 0.10), (0.55, 0.30, 0.16)]     # Beispielfarben fürs Bild
+BEINKLEID = [(0.30, 0.26, 0.22), (0.24, 0.28, 0.36), (0.40, 0.34, 0.24)]
 HAUT = {"mensch": (0.86, 0.68, 0.55), "zwerg": (0.80, 0.60, 0.48), "elb": (0.93, 0.85, 0.76), "halbling": (0.88, 0.70, 0.56)}
 
 
 def umfaerben(o, farben):
-    """Fürs Bild: Materialien dieses Objekts durch umgefärbte Kopien ersetzen (wie es das Spiel je Figur tut)."""
-    for i, m in enumerate(o.data.materials):
-        f = farben.get(m.name)
+    """Fürs Bild: die Eckenfarben der Zonen dieses Objekts (eigene Netzkopie) umfärben, wie es das Spiel je Figur
+    mit seinem Shader tut. `farben`: {Zonenname: sRGB} (Namen wie in ZONEN)."""
+    me = o.data
+    uv = me.uv_layers["Zone"].data
+    farbe = me.color_attributes["Farbe"].data
+    nach_zone = {ZONEN[n]: f for n, f in farben.items() if f is not None}
+    for poly in me.polygons:
+        f = nach_zone.get(int(round(uv[poly.loop_indices[0]].uv[0])))
         if f is None:
             continue
-        neu = m.copy()
-        neu.node_tree.nodes["Principled BSDF"].inputs["Base Color"].default_value = (*bs._linear(f), 1)
-        o.data.materials[i] = neu
+        for li in poly.loop_indices:
+            farbe[li].color = (f[0], f[1], f[2], 1.0)
 
 
 def vorschau_bewegungen(schnell):
