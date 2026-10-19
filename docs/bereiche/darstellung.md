@@ -543,3 +543,12 @@ So wird eingetragen (damit sich die Chats nie an derselben Stelle treffen):
 | Aufscheuchen (Gag) | Wunsch des Nutzers: Ein Klick auf einen Vogel scheucht ihn auf, der ganze Schwarm fliegt erschrocken davon (alle zugleich, schneller, ohne Runde) – wie bei einem Passanten, der zu nahe kommt. Der Klick wählt dann nichts anderes aus. Bewusst nicht im Spielbuch: Er soll eine Überraschung bleiben. | 19.10.2026 |
 | Prüfung | Auswertung mit vorübergehender Ausgabe (nicht im Code), Vulkan auf der NVIDIA T400, Tempo 4, 150 s: Weite der Dachflüge Median 21,5 m, 90 % über 12,8 m (kürzer nur, wo im Umland kein Dach weiter weg ist); Vögel innerhalb 1,2 m beieinander höchstens 3 (zu Beginn einmal 4). | 19.10.2026 |
 
+### Innenraum des Tischlers (PR #154)
+
+| Thema | Entscheidung | Datum |
+|---|---|---|
+| Räume | Werkraum und Holzlager wie beim Schmied; ab dem Sägewerk (Stufe 3) kommt eine Sägehalle mit Gattersäge als dritter Raum dazu, über eine Tür erreichbar (passt zur offenen Sägehalle des Außenmodells). Das Gerüst lernt dafür Räume, die erst ab einer Stufe da sind. | 19.10.2026 |
+| Arbeitsplätze | 1 Hobeln an der Hobelbank, 2 Sägen am Sägebock (Tischlerei), 3 Drechseln an der Wippdrehbank mit Fußpedal (ab Drechslerei), 4 an der Gattersäge den Stamm nachschieben (ab Sägewerk, in der Sägehalle). Vier neue Bewegungen der Figuren. | 19.10.2026 |
+| Späne | Unter Hobelbank und Drechselbank liegen Hobelspäne, die über den Arbeitstag in drei Stufen mehr werden und zum Jahreswechsel weggefegt sind. Reine Darstellung. | 19.10.2026 |
+| Modell | `tischler_innen.glb` vom Modell-Agenten, gleiche Knotenregeln wie `schmied_innen.glb`. | 19.10.2026 |
+
