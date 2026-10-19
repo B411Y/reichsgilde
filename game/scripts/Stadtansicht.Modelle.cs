@@ -135,11 +135,13 @@ public partial class Stadtansicht
 
     /// <summary>
     /// Das Material „Farben“ (Umlandbetriebe, Felsberg): alle einfachen Farben des Modells stehen als Eckenfarbe im Netz. Godot setzt beim Import nicht
-    /// in jeder Datei <c>vertex_color_use_as_albedo</c> (beim Felsberg fehlte es, er war weiß); hier ist es immer an.
+    /// in jeder Datei <c>vertex_color_use_as_albedo</c> (beim Felsberg fehlte es, er war weiß); hier ist es immer an. Die Werte der Datei sind sRGB
+    /// (<c>vertex_color_is_srgb</c>): ohne das sind die Modelle in Forward+ viel zu hell (geprüft gegen die Grube vor der Zusammenlegung der Materialien).
     /// </summary>
     private static void FarbenEinrichten(BaseMaterial3D stoff)
     {
         stoff.VertexColorUseAsAlbedo = true;
+        stoff.VertexColorIsSrgb = true;
     }
 
     /// <summary>Zeigt von „Stufe1“ bis „Stufe3“ nur die Betriebsstufe und blendet das Gerüst ein oder aus (Ausbau einer Werkstatt).</summary>
