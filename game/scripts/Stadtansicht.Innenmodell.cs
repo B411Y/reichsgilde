@@ -468,6 +468,16 @@ public partial class Stadtansicht
     }
 
     /// <summary>
+    /// Farbe des Werkstücks auf der Werkbank. Meist die Farbe der Ware; in der Tischlerei ist das Stück Holz: der Ton der Ware „Holz“,
+    /// nur zu einem Fünftel zur Warenfarbe getönt, damit man den Wechsel der Ware noch ahnt (ein hellblauer Klotz auf dem Stamm wirkte wie ein Fremdkörper).
+    /// </summary>
+    private static Color WerkstueckFarbe(Werkstil stil, string ware) => stil switch
+    {
+        Werkstil.Tischlerei => Warenfarbe("Holz").Lerp(Warenfarbe(ware), 0.2f),
+        _ => Warenfarbe(ware),
+    };
+
+    /// <summary>
     /// Je Arbeiter eine Figur am nächsten freien Arbeitsplatz (Reihenfolge der Nummern), mit der Bewegung des Platzes – nur zur Arbeitszeit und
     /// nicht während eines Ausfalls. Gearbeitet wird, solange der Betrieb arbeitet und seine Ware nicht stillsteht; sonst stehen sie da.
     /// </summary>
@@ -516,7 +526,7 @@ public partial class Stadtansicht
             if (ware != "" && ware != platz.WerkstueckWare)
             {
                 platz.WerkstueckWare = ware;
-                ((StandardMaterial3D)platz.Werkstueck.MaterialOverride).AlbedoColor = Warenfarbe(ware);
+                ((StandardMaterial3D)platz.Werkstueck.MaterialOverride).AlbedoColor = WerkstueckFarbe(a.Stil, ware);
             }
         }
     }
