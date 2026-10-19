@@ -477,7 +477,7 @@ So wird eingetragen (damit sich die Chats nie an derselben Stelle treffen):
 | Felsberg | Eigene Datei `berg_grube.glb` mit Knoten „Berg“ statt eines Knotens in `grube.glb` – so bleibt die Grube unverändert und der Berg lässt sich getrennt ein- und ausblenden. Höhenraster aus Facetten, Hauptgipfel 11,5 m, Nebengipfel 8,5 m und ein Sporn; Gras auf flachen Facetten, Geröll am Fuß, sieben Tannen. | 18.10.2026 |
 | Winter | Natur: „<Name>_Winter“ zu Eiche, Buche, Birke, Linde, Apfelbaum, Kopfweide, Hasel, Holunder und Brombeere; Tanne, Baum_tot, Ginster und Wacholder bleiben. Andere Modelle: „Laubkrone_<Knoten>“ und „Winteraeste_<Knoten>“ als Kinder des Knotens, in dem der Baum steht (wirt, prediger, geldleiher: Stufe1–3; kraeutergarten, klosterhof: Haus; umland_stellen: Wald). Die Winteräste liegen innerhalb der Krone. Kein Schnee. | 18.10.2026 |
 
-### Figurkörper mit einem Material, Brunnenplätze (PR #…)
+### Figurkörper mit einem Material, Brunnenplätze (PR #149)
 
 | Thema | Entscheidung | Datum |
 |---|---|---|
