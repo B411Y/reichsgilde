@@ -897,7 +897,7 @@ def _buehne(schnell):
     import bpy
     szene = bpy.context.scene
     szene.render.engine = "CYCLES"
-    szene.cycles.device = "CPU"
+    bs.cycles_geraet(szene)
     szene.cycles.samples = 24 if schnell else 64
     szene.cycles.use_denoising = True
     szene.view_settings.view_transform = "Standard"
