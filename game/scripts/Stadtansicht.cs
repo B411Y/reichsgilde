@@ -1165,6 +1165,7 @@ public partial class Stadtansicht : Node3D
 
     private void Auswaehlen(Vector2 mausposition, bool doppelklick)
     {
+        if (VogelAufscheuchen(mausposition)) return; // Klick auf einen Vogel (Stadtansicht.Voegel.cs)
         if (KennungBei(mausposition) is not { } kennung)
             return;
         GebaeudeAngeklickt?.Invoke(kennung);

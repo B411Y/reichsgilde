@@ -299,6 +299,30 @@ public partial class Stadtansicht
         return belegt < VogelJePlatz ? punkt + Versatz(belegt) : null;
     }
 
+    /// <summary>
+    /// Kleiner Gag: Ein Klick auf einen Vogel scheucht ihn auf, und sein ganzer Schwarm fliegt erschrocken davon. Getroffen ist der
+    /// Vogel, der dem Mauszeiger auf dem Bildschirm am nächsten ist (wie bei <see cref="PassantBei"/>). Gibt <c>true</c> zurück,
+    /// wenn ein Vogel getroffen war – dann wählt der Klick nichts anderes aus.
+    /// </summary>
+    private bool VogelAufscheuchen(Vector2 bildschirm)
+    {
+        if (_raum is not null || _innen is not null || _vogelEbene is null) return false;
+        var pixelJeMeter = GetViewport().GetVisibleRect().Size.Y / _kamera.Size;
+        Schwarm? getroffen = null;
+        var besterAbstand = Mathf.Max(10, 0.5f * pixelJeMeter);
+        foreach (var s in _schwaerme)
+            foreach (var v in s.Voegel)
+            {
+                var mitte = v.Knoten.GlobalPosition + new Vector3(0, 0.15f, 0);
+                if (_kamera.IsPositionBehind(mitte)) continue;
+                var abstand = _kamera.UnprojectPosition(mitte).DistanceTo(bildschirm);
+                if (abstand < besterAbstand) { besterAbstand = abstand; getroffen = s; }
+            }
+        if (getroffen is null) return false;
+        if (getroffen.Voegel.All(v => v.Zustand != Vogelzustand.Fliegt)) SchwarmFliegt(getroffen, boden: false, erschreckt: true);
+        return true;
+    }
+
     private bool PassantNahe(Vector3 p, float abstand)
     {
         foreach (var passant in _passanten.Values)
@@ -338,7 +362,7 @@ public partial class Stadtansicht
             {
                 s.Warten -= dt;
                 var erschreckt = s.AmBoden && s.Voegel.Any(v => PassantNahe(v.Knoten.Position, VogelScheu));
-                if (erschreckt || (s.AmBoden && nacht)) SchwarmFliegt(s, boden: false);
+                if (erschreckt || (s.AmBoden && nacht)) SchwarmFliegt(s, boden: false, erschreckt);
                 else if (s.Warten <= 0 && !(nacht && !s.AmBoden && _vogelZufall.Randf() < 0.9f))
                     SchwarmFliegt(s, boden: !nacht && !s.AmBoden && _vogelZufall.Randf() < (s.Tauben ? 0.5f : 0.6f));
                 else if (s.Warten <= 0) s.Warten = _vogelZufall.RandfRange(20, 60); // nachts meist sitzen bleiben
@@ -347,8 +371,11 @@ public partial class Stadtansicht
         }
     }
 
-    /// <summary>Der ganze Schwarm zieht um: auf ein Dach (nächstes Haus) oder zum Boden.</summary>
-    private void SchwarmFliegt(Schwarm s, bool boden)
+    /// <summary>
+    /// Der ganze Schwarm zieht um: auf ein Dach (anderes Haus) oder zum Boden. <paramref name="erschreckt"/>: alle auf einmal und
+    /// schneller, ohne Runde (ein Passant kam zu nahe oder jemand hat geklickt).
+    /// </summary>
+    private void SchwarmFliegt(Schwarm s, bool boden, bool erschreckt = false)
     {
         var mitte = s.Voegel[0].Knoten.Position;
         var ziel = boden ? Bodenplatz(s, mitte) : Dachplatz(s, mitte);
@@ -356,7 +383,7 @@ public partial class Stadtansicht
         var plaetze = boden ? null : DachplaetzeVerteilen(z, s.Voegel.Count, s);
         // manche Taubenflüge drehen erst eine gemeinsame Runde über den Dächern zwischen Abflug und Ziel
         (Vector3 Mitte, float Halbmesser)? runde = null;
-        if (!boden && s.Tauben && _vogelZufall.Randf() < TaubenRunde)
+        if (!boden && !erschreckt && s.Tauben && _vogelZufall.Randf() < TaubenRunde)
             runde = (mitte.Lerp(z, 0.5f) with { Y = Mathf.Max(mitte.Y, z.Y) + _vogelZufall.RandfRange(6, 10) }, _vogelZufall.RandfRange(10, 15));
         s.AmBoden = boden;
         s.Warten = boden ? _vogelZufall.RandfRange(15, 40) : _vogelZufall.RandfRange(20, 70);
@@ -366,8 +393,9 @@ public partial class Stadtansicht
             v.Von = v.Knoten.Position;
             v.Nach = plaetze?[i] ?? z + new Vector3(_vogelZufall.RandfRange(-1.2f, 1.2f), 0, _vogelZufall.RandfRange(-1.2f, 1.2f));
             // in der Runde fliegt jeder etwas versetzt, damit es nach Schwarm aussieht und nicht nach einer Perlenkette
-            BahnLegen(v, runde is { } r ? (r.Mitte + new Vector3(0, _vogelZufall.RandfRange(-0.8f, 0.8f), 0), r.Halbmesser + _vogelZufall.RandfRange(-1.2f, 1.2f)) : null);
-            v.Zeit = -_vogelZufall.RandfRange(0, 0.6f); // nicht alle im selben Augenblick
+            BahnLegen(v, runde is { } r ? (r.Mitte + new Vector3(0, _vogelZufall.RandfRange(-0.8f, 0.8f), 0), r.Halbmesser + _vogelZufall.RandfRange(-1.2f, 1.2f)) : null,
+                erschreckt ? 1.6f : 1f);
+            v.Zeit = -_vogelZufall.RandfRange(0, erschreckt ? 0.15f : 0.6f); // nicht alle im selben Augenblick
             v.Zustand = Vogelzustand.Fliegt;
         }
     }
@@ -376,7 +404,7 @@ public partial class Stadtansicht
     /// Legt die Flugbahn von <c>Von</c> nach <c>Nach</c>: steil aufsteigen, dann ein hoher Bogen (oder eine Runde um
     /// <paramref name="runde"/>), schräg anfliegen und landen. Die Stützpunkte verbindet <see cref="Flugpunkt"/> zu einer glatten Kurve.
     /// </summary>
-    private static void BahnLegen(Vogel v, (Vector3 Mitte, float Halbmesser)? runde)
+    private static void BahnLegen(Vogel v, (Vector3 Mitte, float Halbmesser)? runde, float tempo = 1f)
     {
         var von = v.Von;
         var nach = v.Nach;
@@ -400,7 +428,7 @@ public partial class Stadtansicht
         v.Bahn = bahn.ToArray();
         v.BahnWeg = new float[v.Bahn.Length];
         for (var i = 1; i < v.Bahn.Length; i++) v.BahnWeg[i] = v.BahnWeg[i - 1] + v.Bahn[i - 1].DistanceTo(v.Bahn[i]);
-        v.Dauer = Mathf.Max(1.5f, v.BahnWeg[^1] / (v.Taube ? 7f : 6f));
+        v.Dauer = Mathf.Max(1.5f / tempo, v.BahnWeg[^1] / ((v.Taube ? 7f : 6f) * tempo));
     }
 
     /// <summary>
