@@ -1187,8 +1187,10 @@ def sichtbar(o, stufe, einrichtung, decke=True, spaene=0):
 
 
 def pruefbericht(objekte):
-    """Dreiecke je Knoten, sichtbar je Stufe, und deckungsgleiche Flächen je Stand (Stufe, mit und ohne Einrichtung)."""
-    netze = [o for o in objekte if o.type == "MESH"]
+    """Dreiecke je Knoten, sichtbar je Stufe, und deckungsgleiche Flächen je Stand (Stufe, mit und ohne Einrichtung) –
+    mit allen Kindern (bewegte Teile unter den Stufen, Späne der Drechselbank)."""
+    alle = list(dict.fromkeys(objekte + [k for o in objekte for k in o.children_recursive]))
+    netze = [o for o in alle if o.type == "MESH"]
     print(f"\n{NAME}: Dreiecke")
     summe = 0
     for o in netze:
@@ -1196,13 +1198,25 @@ def pruefbericht(objekte):
         summe += len(o.data.loop_triangles)
         print(f"  {o.name:34s} {len(o.data.loop_triangles):6d}")
     print(f"  {'gesamt':34s} {summe:6d}")
+    # bs.deckungsgleich rechnet in den Koordinaten des Netzes: bewegte Teile (Ursprung im Drehpunkt) als Kopie in Weltlage
+    import bpy
+    welt = {}
+    for o in netze:
+        if o.matrix_world != Matrix.Identity(4):
+            me = o.data.copy()
+            me.transform(o.matrix_world)
+            welt[o] = bpy.data.objects.new(o.name, me)
     funde = []
     for stufe in (1, 2, 3):
         for einrichtung in (False, True):
             auswahl = [o for o in netze if sichtbar(o, stufe, einrichtung, spaene=stufe)]
             dreiecke = sum(len(o.data.loop_triangles) for o in auswahl)
             print(f"  sichtbar Stufe {stufe}{' mit aller Einrichtung' if einrichtung else ''}: {dreiecke} Dreiecke")
-            funde += bs.deckungsgleich(auswahl)
+            funde += bs.deckungsgleich([welt.get(o, o) for o in auswahl])
+    for k in welt.values():
+        me = k.data
+        bpy.data.objects.remove(k)
+        bpy.data.meshes.remove(me)
     funde = list({(round(f[0].x, 2), round(f[0].y, 2), round(f[0].z, 2), f[1], f[2]): f for f in funde}.values())
     if funde:
         print(f"  WARNUNG: {len(funde)} deckungsgleiche Flächen (flimmern im Spiel), größte:")
