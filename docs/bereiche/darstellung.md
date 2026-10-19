@@ -545,7 +545,7 @@ So wird eingetragen (damit sich die Chats nie an derselben Stelle treffen):
 | Aufscheuchen (Gag) | Wunsch des Nutzers: Ein Klick auf einen Vogel scheucht ihn auf, der ganze Schwarm fliegt erschrocken davon (alle zugleich, schneller, ohne Runde) – wie bei einem Passanten, der zu nahe kommt. Der Klick wählt dann nichts anderes aus. Bewusst nicht im Spielbuch: Er soll eine Überraschung bleiben. | 19.10.2026 |
 | Prüfung | Auswertung mit vorübergehender Ausgabe (nicht im Code), Vulkan auf der NVIDIA T400, Tempo 4, 150 s: Weite der Dachflüge Median 21,5 m, 90 % über 12,8 m (kürzer nur, wo im Umland kein Dach weiter weg ist); Vögel innerhalb 1,2 m beieinander höchstens 3 (zu Beginn einmal 4). | 19.10.2026 |
 
-### Holzschnitt-Look als Shader (PR #…)
+### Holzschnitt-Look als Shader (PR #155)
 
 | Thema | Entscheidung | Datum |
 |---|---|---|
