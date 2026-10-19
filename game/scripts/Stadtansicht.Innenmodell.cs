@@ -397,7 +397,7 @@ public partial class Stadtansicht
     /// <summary>Name der Bewegung in den Figurenmodellen: die Bewegung des Arbeitsplatzes, sonst ein Ersatz, solange das Modell sie noch nicht kennt.</summary>
     private static string FigurBewegungVon(ModellArbeiter arbeiter)
     {
-        foreach (var name in new[] { arbeiter.Platz.Bewegung, "Gebeugt", "Stehen" })
+        foreach (var name in new[] { arbeiter.Platz.Bewegung, arbeiter.Platz.Bewegung == "Feinarbeit" ? "Sitzen" : "Gebeugt", "Stehen" })
             if (arbeiter.Figur.Spieler.HasAnimation(name)) return name;
         return "Stehen";
     }
