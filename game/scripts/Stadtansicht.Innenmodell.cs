@@ -227,8 +227,8 @@ public partial class Stadtansicht
     {
         var glut = ExtraText(anker, "art") == "Glut";
         Light3D licht = glut
-            ? new OmniLight3D { LightColor = new Color(1f, 0.55f, 0.22f), OmniRange = 7f, LightEnergy = 0.3f }
-            : new SpotLight3D { LightColor = new Color(0.86f, 0.90f, 1f), SpotRange = 8f, SpotAngle = 58f, LightEnergy = 0f };
+            ? new OmniLight3D { LightColor = new Color(1f, 0.55f, 0.22f), OmniRange = 5f, LightEnergy = 0.3f }
+            : new SpotLight3D { LightColor = new Color(0.86f, 0.90f, 1f), SpotRange = 4.5f, SpotAngle = 50f, LightEnergy = 0f };
         anker.AddChild(licht);
         md.Lichter.Add((licht, glut, ExtraZahl(anker, "stufe", 1)));
     }
@@ -372,7 +372,7 @@ public partial class Stadtansicht
                 arbeiter.Bewegung = bewegung;
                 BewegungSetzen(arbeiter.Figur, bewegung, (float)Mathf.Clamp(zeile.TempoFaktor, 0.5, 1.5));
             }
-            if (da && bewegt) FigurBewegen(arbeiter.Figur, delta);
+            if (da && (bewegt || arbeiter.Figur.Neu)) FigurBewegen(arbeiter.Figur, bewegt ? delta : 0); // in der Pause nur die erste Pose der neuen Bewegung setzen
             var gewaehlt = _gewaehlt.Contains(zeile.Nummer);
             FigurHervorheben(arbeiter.Figur, gewaehlt || _hoverArbeiter == zeile.Nummer);
             if (arbeiter.Ring.Visible != gewaehlt) arbeiter.Ring.Visible = gewaehlt;
@@ -394,12 +394,10 @@ public partial class Stadtansicht
         }
     }
 
-    /// <summary>Name der Bewegung in den Figurenmodellen: die Bewegung des Arbeitsplatzes, sonst ein Ersatz, solange das Modell sie noch nicht kennt.</summary>
+    /// <summary>Name der Bewegung in den Figurenmodellen: die Bewegung des Arbeitsplatzes (kennt das Modell sie nicht, bleibt die Figur stehen).</summary>
     private static string FigurBewegungVon(ModellArbeiter arbeiter)
     {
-        foreach (var name in new[] { arbeiter.Platz.Bewegung, arbeiter.Platz.Bewegung == "Feinarbeit" ? "Sitzen" : "Gebeugt", "Stehen" })
-            if (arbeiter.Figur.Spieler.HasAnimation(name)) return name;
-        return "Stehen";
+        return arbeiter.Figur.Spieler.HasAnimation(arbeiter.Platz.Bewegung) ? arbeiter.Platz.Bewegung : "Stehen";
     }
 
     private void ArbeiterNeuStellen(BetriebsAnsicht a, ModellRaumDaten md, IReadOnlyList<ArbeiterZeile> zeilen, int stufe)
@@ -422,6 +420,8 @@ public partial class Stadtansicht
                 halter.QueueFree();
                 continue;
             }
+            // Wer sitzt (Feinarbeit), hat die Hüfte auf Sitzhöhe des Menschen: kleine Völker sitzen höher, Orks tiefer (wie die Sitzenden im Dom).
+            if (platz.Bewegung == "Feinarbeit") halter.Position = new Vector3(0, SitzKniehoehe - figur.Kniehoehe, 0);
             var koerper = new StaticBody3D();
             koerper.SetMeta("innen", "arbeiter:" + zeile.Nummer);
             var form = new CollisionShape3D { Shape = new CapsuleShape3D { Radius = 0.38f, Height = 1.75f }, Position = new Vector3(0, 0.88f, 0) };
@@ -438,6 +438,9 @@ public partial class Stadtansicht
         }
         if (_gewaehlt.RemoveWhere(n => !md.Arbeiter.ContainsKey(n)) > 0) ArbeiterAuswahlGeaendert?.Invoke(); // Gegangene sind nicht mehr gewählt
     }
+
+    /// <summary>Kniehöhe des Menschen (Meter): Der Hocker der Feinarbeit ist für ihn gebaut.</summary>
+    private const float SitzKniehoehe = 0.50f;
 
     private static StandardMaterial3D? _auswahlRing;
 
