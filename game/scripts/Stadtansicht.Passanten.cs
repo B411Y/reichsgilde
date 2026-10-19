@@ -514,7 +514,9 @@ public partial class Stadtansicht
         var wahl = (zahl & 0xFFFF) / 65535f;
         var stelle = ((zahl >> 16) & 0xFFFF) / 65535f;
         _gassenInDerStadt ??= _netz.Kanten.Where(k => InDerStadt(k.Von) && InDerStadt(k.Bis) && k.Von.DistanceTo(k.Bis) > 3
-                                                 && k.Von.Length() > 13 && k.Bis.Length() > 13).ToList(); // nicht auf dem Markt
+                                                 && k.Von.Length() > 13 && k.Bis.Length() > 13) // nicht auf dem Markt
+                                     // nach Lage geordnet: Die Kanten liegen in einem HashSet, gleiche Nummer soll nach dem Laden gleiche Gasse sein
+                                     .OrderBy(k => k.Von.X).ThenBy(k => k.Von.Z).ThenBy(k => k.Bis.X).ThenBy(k => k.Bis.Z).ToList();
         if (_gassenInDerStadt.Count == 0) return null;
         var (von, bis) = _gassenInDerStadt[(int)(wahl * (_gassenInDerStadt.Count - 1))];
         return (von.Lerp(bis, 0.15f + stelle * 0.7f), von, bis);
