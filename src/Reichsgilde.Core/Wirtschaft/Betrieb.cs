@@ -333,7 +333,7 @@ public sealed class Betrieb
     public Lohnstufe Lohnstufe { get; internal set; } = Lohnstufe.Ueblich;
 
     /// <summary>Faktor auf den Lohn bei der jetzigen Lohnstufe.</summary>
-    public double LohnFaktor => _daten.Werkstatt?.Stufe(Lohnstufe).LohnFaktor ?? 1;
+    public double LohnFaktor => HatWerkstattregeln ? _daten.Werkstatt!.Stufe(Lohnstufe).LohnFaktor : 1;
 
     /// <summary>Löhne für ein ganzes Jahr bei der jetzigen Belegung und Lohnstufe (ohne Wächter).</summary>
     public double Lohnkosten => _belegung.Sum(b => b.Value * _daten.Arbeitskraefte[b.Key].Kosten) * LohnFaktor;

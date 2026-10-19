@@ -1,4 +1,4 @@
-"""Erzeugt alle Modelle neu (Wohnhäuser, Werkstätten, Einwohnerhäuser, Sonderbauten, Umland, Natur, Figuren, Markt und Karren) und rendert die
+"""Erzeugt alle Modelle neu (Wohnhäuser, Werkstätten, Innenräume, Einwohnerhäuser, Sonderbauten, Umland, Natur, Figuren, Markt und Karren) und rendert die
 Übersicht der Wohnhaus-Stufen.
 
     python tools/modelle/alle.py [--schnell] [--ohne-bilder]
@@ -28,6 +28,7 @@ FLAECHEN = {"fachwerkhaus": (8, 10), "buergerhaus": (8, 10), "steinhaus": (8, 10
             "stadthof": (16, 14)}
 WERKSTAETTEN = ["schmied", "tischler", "steinmetz", "alchimist", "wirt", "prediger", "dieb", "gardist", "geldleiher",
                 "parfumeur"]          # je Beruf ein Modell mit Stufe1–Stufe3
+INNENRAEUME = ["schmied_innen"]      # je Beruf ein Innenraum: Räume, Stufen, Bedienung, Einrichtung, Blickpunkte, Arbeitsplätze
 EINWOHNERHAEUSER = ["einwohner_ratsherrenhaus", "einwohner_buergerhaus", "einwohner_wohnhaus"]      # je Hausart ein Modell mit Variante1–Variante3
 SONDERBAUTEN = ["dom", "rathaus", "stadtmauer"]          # Gebäude der Stadt: ohne Zustände und Hausfarbe
 UMLAND = ["grube", "holzschlag", "steinbruch", "kraeutergarten", "duftgarten", "bauernhof", "klosterhof",
@@ -99,7 +100,7 @@ def uebersicht(schnell=False, luft=0.5):
 
 def main():
     schalter = [a for a in sys.argv if a in ("--schnell", "--ohne-bilder")]
-    for name in [n for n, _ in WOHNHAEUSER] + WERKSTAETTEN + EINWOHNERHAEUSER + SONDERBAUTEN + UMLAND + BERGE + UMLANDSTELLEN + NATUR + FIGUREN + MARKT + KARREN + VOEGEL:
+    for name in [n for n, _ in WOHNHAEUSER] + WERKSTAETTEN + INNENRAEUME + EINWOHNERHAEUSER + SONDERBAUTEN + UMLAND + BERGE + UMLANDSTELLEN + NATUR + FIGUREN + MARKT + KARREN + VOEGEL:
         erzeugen(name, schalter)
     if "--ohne-bilder" not in schalter:
         print(uebersicht(schnell="--schnell" in schalter))
