@@ -95,8 +95,8 @@ BLICKE = {
     "Blick_Werk_0": ((0.2, -3.2, 2.55), (0.0, 1.8, 0.8)),          # Hobelbank, Sägebock, Drechselbank, Tür zur Sägehalle
     "Blick_Werk_L1": ((1.6, -2.6, 2.5), (-4.0, 0.2, 0.9)),         # Hoftor, Personalbuch, Drechselbank
     "Blick_Werk_L2": ((0.6, 1.0, 2.6), (-3.6, -3.2, 0.8)),         # Holztür, Personalbuch, Schürzen
-    "Blick_Werk_R1": ((-1.6, -2.6, 2.5), (4.0, 0.6, 1.0)),         # Leimtisch, Werkzeugwand, Tür ins Lager
-    "Blick_Werk_R2": ((-2.2, 2.0, 2.6), (3.8, -3.3, 0.8)),         # Leimofen, Löschfass, Sägebock
+    "Blick_Werk_R1": ((-3.0, -2.9, 2.6), (3.5, 2.8, 0.9)),         # schräg: Hobelbank, Sägebock, Türen ins Lager und zur Sägehalle
+    "Blick_Werk_R2": ((-1.6, -2.6, 2.5), (4.0, 0.6, 1.0)),         # Leimtisch, Werkzeugwand, Leimofen, Löschfass
     "Blick_Lager_0": ((6.8, -1.25, 2.3), (6.9, 2.6, 0.5)),         # Bretterstapel, Stellplätze
     "Blick_Lager_L1": ((8.7, -1.2, 2.3), (4.6, 2.4, 0.8)),         # Tür in den Werkraum, Bretterstapel
     "Blick_Lager_R1": ((5.0, -1.1, 2.3), (9.2, 1.4, 0.7)),         # Holzgestell, Kantholz, Kisten
