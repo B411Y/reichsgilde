@@ -469,11 +469,11 @@ public partial class Stadtansicht
 
     /// <summary>
     /// Farbe des Werkstücks auf der Werkbank. Meist die Farbe der Ware; in der Tischlerei ist das Stück Holz: der Ton der Ware „Holz“,
-    /// nur zu einem Fünftel zur Warenfarbe getönt, damit man den Wechsel der Ware noch ahnt (ein hellblauer Klotz auf dem Stamm wirkte wie ein Fremdkörper).
+    /// nur zu einem Zehntel zur Warenfarbe getönt, damit man den Wechsel der Ware noch ahnt (ein hellblauer Klotz auf dem Stamm wirkte wie ein Fremdkörper).
     /// </summary>
     private static Color WerkstueckFarbe(Werkstil stil, string ware) => stil switch
     {
-        Werkstil.Tischlerei => Warenfarbe("Holz").Lerp(Warenfarbe(ware), 0.2f),
+        Werkstil.Tischlerei => Warenfarbe("Holz").Lerp(Warenfarbe(ware), 0.1f),
         _ => Warenfarbe(ware),
     };
 
