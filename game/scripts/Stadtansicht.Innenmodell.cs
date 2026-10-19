@@ -118,6 +118,9 @@ public partial class Stadtansicht
         public string WerkstueckStand { get; set; } = "";
         public int SpaeneStand { get; set; } = -1;
         public AnimationStand ArbeitStand { get; set; }
+        /// <summary>Länge einer Schleife der Animation „Arbeit“ (Sekunden) und Stand in der Schleife: Figuren mit Bewegungen im Takt des Raums (Drechseln, Gatter) übernehmen die Phase.</summary>
+        public double ArbeitDauer { get; set; } = 1;
+        public double ArbeitPhase { get; set; }
     }
 
     // ═════════════════════════════════════════════════════════════════════════
@@ -145,8 +148,13 @@ public partial class Stadtansicht
             InnenModellKnoten(a, md, knoten);
         if (wurzel.FindChild("AnimationPlayer", true, false) is AnimationPlayer spieler && spieler.HasAnimation("Arbeit"))
         {
-            spieler.GetAnimation("Arbeit").LoopMode = Animation.LoopModeEnum.Linear; // eine Schleife, solange gearbeitet wird (InnenModellAktualisieren)
+            // Wie bei den Figuren rückt das Spiel die Pose selbst weiter (Seek in InnenAnimationSetzen): So laufen Raum und Figuren (Drechsler am Pedal,
+            // Gatterarbeiter) im selben Takt und halten gemeinsam an. Die Schleife läuft ab dem zweiten Bild (SchleifenAnfang), wie bei den Figuren.
+            spieler.CallbackModeProcess = AnimationMixer.AnimationCallbackModeProcess.Manual;
+            spieler.GetAnimation("Arbeit").LoopMode = Animation.LoopModeEnum.Linear;
+            spieler.Play("Arbeit"); // wählt die Animation aus, weiter geht es nur mit Seek
             md.Animation = spieler;
+            md.ArbeitDauer = Math.Max(0.1, spieler.GetAnimation("Arbeit").Length - SchleifenAnfang);
         }
 
         foreach (var plan in md.Plaetze) // Werkstück-Anker zum Platz gleicher Nummer
@@ -398,40 +406,32 @@ public partial class Stadtansicht
 
         InnenSpaeneAktualisieren(md, b, zeit);
         if (md.Animation is not null)
-            InnenAnimationSetzen(md, !arbeitet ? AnimationStand.Ruht : _simulation!.Takt.IstPausiert ? AnimationStand.Haelt : AnimationStand.Laeuft);
+            InnenAnimationSetzen(md, !arbeitet ? AnimationStand.Ruht : _simulation!.Takt.IstPausiert ? AnimationStand.Haelt : AnimationStand.Laeuft, delta);
 
         InnenArbeiterAktualisieren(a, md, b, stufe, arbeitszeit, arbeitet, delta);
         InnenLagerAktualisieren(a, md, b);
     }
 
     /// <summary>
-    /// Stellt die Animation „Arbeit“ um: Schleife, solange gearbeitet wird; bei Spielpause an der Stelle angehalten (danach geht es dort weiter);
-    /// wird nicht gearbeitet, steht sie in der Ruhelage (Zeit 0). Angefasst wird nur bei einem neuen Stand.
+    /// Führt die Animation „Arbeit“: Läuft die Arbeit, rückt die Phase um <paramref name="delta"/> weiter (Schleife); bei Spielpause bleibt sie stehen
+    /// (danach geht es dort weiter); wird nicht gearbeitet (Feierabend, Ausfall, Stillstand), steht sie in der Ruhelage (Zeit 0, Phase 0).
+    /// Die Pose wird selbst gesetzt (Seek), der Player läuft nicht von allein: So bleiben Raum und Figuren im Takt.
     /// </summary>
-    private static void InnenAnimationSetzen(ModellRaumDaten md, AnimationStand stand)
+    private static void InnenAnimationSetzen(ModellRaumDaten md, AnimationStand stand, double delta)
     {
-        if (md.Animation is not { } animation || stand == md.ArbeitStand) return;
-        md.ArbeitStand = stand;
-        switch (stand)
+        if (md.Animation is not { } animation) return;
+        if (stand != md.ArbeitStand)
         {
-            case AnimationStand.Laeuft:
-                animation.Play("Arbeit");
-                break;
-            case AnimationStand.Haelt:
-                animation.Pause();
-                break;
-            default:
-                animation.Play("Arbeit");
+            md.ArbeitStand = stand;
+            if (stand == AnimationStand.Ruht)
+            {
+                md.ArbeitPhase = 0;
                 animation.Seek(0, true);
-                animation.Pause();
-                break;
+            }
         }
-    }
-
-    /// <summary>Beim Verlassen des Hauses läuft die Animation nicht im Hintergrund weiter: Sie hält an, wo sie ist.</summary>
-    private static void InnenModellAnhalten(ModellRaumDaten md)
-    {
-        if (md.ArbeitStand == AnimationStand.Laeuft) InnenAnimationSetzen(md, AnimationStand.Haelt);
+        if (stand != AnimationStand.Laeuft || delta <= 0) return;
+        md.ArbeitPhase = (md.ArbeitPhase + delta) % md.ArbeitDauer;
+        animation.Seek(SchleifenAnfang + md.ArbeitPhase, true);
     }
 
     /// <summary>Die Raumleiste hat sich geändert (z. B. kam die Sägehalle dazu); steht man in einem Raum, der nicht mehr zu betreten ist, geht es in den ersten.</summary>
@@ -504,12 +504,19 @@ public partial class Stadtansicht
             if (arbeiter.Klick.Disabled == da) arbeiter.Klick.Disabled = !da; // Einsteigen setzt alle Klickflächen an: abgleichen
             var arbeitet1 = da && arbeitet && !still.Contains(zeile.Ware);
             var bewegung = arbeitet1 ? FigurBewegungVon(arbeiter) : "Stehen";
+            // Drechseln (Fuß am Pedal) und Gatter gehören zu Teilen, die der Raum bewegt (Animation „Arbeit“): Die Figur läuft in deren Takt, nicht mit eigener Startphase und Tempo.
+            var imTakt = md.Animation is not null && bewegung == arbeiter.Platz.Bewegung && bewegung is "Drechseln" or "Gatter";
             if (bewegung != arbeiter.Bewegung)
             {
                 arbeiter.Bewegung = bewegung;
-                BewegungSetzen(arbeiter.Figur, bewegung, (float)Mathf.Clamp(zeile.TempoFaktor, 0.5, 1.5));
+                BewegungSetzen(arbeiter.Figur, bewegung, imTakt ? 1f : (float)Mathf.Clamp(zeile.TempoFaktor, 0.5, 1.5));
             }
-            if (da && (bewegt || arbeiter.Figur.Neu)) FigurBewegen(arbeiter.Figur, bewegt ? delta : 0); // in der Pause nur die erste Pose der neuen Bewegung setzen
+            if (da && imTakt)
+            {
+                arbeiter.Figur.Phase = md.ArbeitPhase % arbeiter.Figur.Dauer; // Schleifen von 1 bzw. 2 s, die Animation des Raums hat 2 s
+                FigurBewegen(arbeiter.Figur, 0);
+            }
+            else if (da && (bewegt || arbeiter.Figur.Neu)) FigurBewegen(arbeiter.Figur, bewegt ? delta : 0); // in der Pause nur die erste Pose der neuen Bewegung setzen
             var gewaehlt = _gewaehlt.Contains(zeile.Nummer);
             FigurHervorheben(arbeiter.Figur, gewaehlt || _hoverArbeiter == zeile.Nummer);
             if (arbeiter.Ring.Visible != gewaehlt) arbeiter.Ring.Visible = gewaehlt;

@@ -99,7 +99,6 @@ public partial class Stadtansicht
         {
             _kamera.MakeCurrent();
             _raum = null;
-            if (a is BetriebsAnsicht { Modellraum: { } md }) InnenModellAnhalten(md); // die Animation „Arbeit“ läuft nicht im verlassenen Raum weiter
         }
     }
 
