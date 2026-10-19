@@ -204,6 +204,7 @@ class Netz:
         self.flaechen = []
         self.fstoff = []
         self.stoffe = []
+        self.baeume = None          # Baumkronen dieses Knotens (siehe kronen), werden beim Objekt Kinderknoten
 
     # Grundform: ein Vieleck, Ecken gegen den Uhrzeigersinn von außen gesehen
     def vieleck(self, punkte, m, immer=False):
@@ -290,7 +291,15 @@ class Netz:
         mesh.update()
         obj = bpy.data.objects.new(self.name, mesh)
         bpy.context.scene.collection.objects.link(obj)
+        if self.baeume is not None:
+            self.baeume.objekte(obj)
         return obj
+
+    def kronen(self):
+        """Laubkronen und Winteräste der Bäume dieses Knotens (Kinderknoten „Laubkrone_<Name>“, „Winteraeste_<Name>“)."""
+        if self.baeume is None:
+            self.baeume = Baumkronen(self.name)
+        return self.baeume
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -833,10 +842,56 @@ def trockenmauer(netz, st, punkte, hoehe=0.95, dicke=0.4):
                   quer=(0, 0, 1), ohne=("-z",))
 
 
-def linde(netz, st, fuss, hoehe=6.6, r=2.3, saat=0):
-    """Linde: Stamm und eine Krone aus drei Achteckringen, die Flächen abwechselnd hell und dunkel."""
+def ast_stumpf(netz, a, b, r0, r1, m, n=4):
+    """Ast als n-eckiger Kegelstumpf von a (Dicke r0) nach b (Dicke r1), Spitze mit Deckel."""
+    a, b = Vector(a), Vector(b)
+    achse = (b - a).normalized()
+    hilf = Vector((1, 0, 0)) if abs(achse.x) < 0.9 else Vector((0, 1, 0))
+    u = achse.cross(hilf).normalized()
+    v = achse.cross(u)
+    ring_a = [a + (u * math.cos(2 * math.pi * k / n) + v * math.sin(2 * math.pi * k / n)) * r0 for k in range(n)]
+    ring_b = [b + (u * math.cos(2 * math.pi * k / n) + v * math.sin(2 * math.pi * k / n)) * r1 for k in range(n)]
+    for k in range(n):
+        j = (k + 1) % n
+        quad = [ring_a[k], ring_a[j], ring_b[j], ring_b[k]]
+        netz.vieleck_nach(quad, sum(quad, Vector()) / 4 - (a + b) / 2, m)
+    netz.vieleck_nach(ring_b, achse, m)
+
+
+def kahle_aeste(netz, st, mitte, rx, rz, ry=None, saat=0, stoff="Rinde", aeste=6, dicke=None):
+    """Winterkrone: kahle Äste, die vom Fuß der Krone (unten in der Mitte) bis an ihren Rand reichen, je mit zwei Zweigen.
+    Füllt grob denselben Raum wie die Laubkrone mit Mitte `mitte` und Halbachsen rx/ry (waagrecht) und rz (senkrecht)."""
+    zufall = random.Random(saat * 31 + 7)
+    ry = rx if ry is None else ry
+    m = Vector(mitte)
+    fuss = m + Vector((0, 0, -rz * 0.8))
+    d = dicke if dicke is not None else max(0.03, min(rx, rz) * 0.07)
+    for k in range(aeste):
+        w = 2 * math.pi * k / aeste + zufall.uniform(-0.3, 0.3)
+        hoch = zufall.uniform(-0.15, 0.75)
+        f = math.sqrt(max(0.0, 1 - hoch * hoch)) * zufall.uniform(0.75, 0.95)
+        ende = m + Vector((rx * f * math.cos(w), ry * f * math.sin(w), rz * hoch))
+        ast_stumpf(netz, fuss, ende, d, d * 0.3, st[stoff])
+        knick = fuss.lerp(ende, 0.55)
+        for seite in (-1, 1):
+            w2 = w + seite * zufall.uniform(0.5, 0.9)
+            zweig = knick + Vector((rx * 0.32 * math.cos(w2), ry * 0.32 * math.sin(w2), rz * zufall.uniform(0.25, 0.5)))
+            ast_stumpf(netz, knick, zweig, d * 0.45, d * 0.12, st[stoff], n=3)
+
+
+def linde(netz, st, fuss, hoehe=6.6, r=2.3, saat=0, krone=None, winter=None):
+    """Linde: Stamm und eine Krone aus drei Achteckringen, die Flächen abwechselnd hell und dunkel.
+    `krone`: eigenes Netz für die Laubkrone (sonst `netz`); `winter`: Netz für die kahlen Winteräste (sonst keine).
+    Das Spiel blendet je nach Jahreszeit „Laubkrone…“ oder „Winteraeste…“ ein (siehe `baumkronen`)."""
     m = Vector(fuss)
     achteck(netz, st, m, 0.24, 0.0, hoehe * 0.45, "Holz")
+    if krone is None and winter is None:          # Normalfall: eigene Kinderknoten des Knotens, in dem der Baum steht
+        kronen = netz.kronen()
+        krone, winter = kronen.laub, kronen.winter
+    if winter is not None:
+        kahle_aeste(winter, st, m + Vector((0, 0, hoehe * 0.58)), r * 0.8, hoehe * 0.3, saat=saat, stoff="Holz",
+                    aeste=7, dicke=0.1)
+    netz = krone if krone is not None else netz
     zufall = random.Random(saat)
     ringe = [(0.55, hoehe * 0.36), (1.0, hoehe * 0.55), (0.82, hoehe * 0.78)]
     punkte = []
@@ -858,6 +913,33 @@ def linde(netz, st, fuss, hoehe=6.6, r=2.3, saat=0):
         netz.vieleck_nach([a, b, gipfel], (a + b) / 2 - mitte_k, st["Laub hell" if k % 2 else "Laub"])
     unten = [p for p in punkte[0]]
     netz.vieleck_nach(unten, (0, 0, -1), st["Laub"])
+
+
+class Baumkronen:
+    """Laubkronen und Winteräste der Bäume in einem Knoten (Haus, Stufe2, Wald …) als eigene Kinderknoten
+    „Laubkrone_<Knoten>“ und „Winteraeste_<Knoten>“: Das Spiel blendet je nach Jahreszeit einen davon ein, die Winteräste
+    sind als Zustand markiert (aus). Als Kinder folgen sie der Sichtbarkeit ihres Knotens (Stufen, Varianten).
+    `bs.linde(netz, …)` legt sie selbst an (`Netz.kronen`), `Netz.objekt` hängt sie als Kinder an."""
+
+    def __init__(self, knoten):
+        self.laub = Netz(f"Laubkrone_{knoten}")
+        self.winter = Netz(f"Winteraeste_{knoten}")
+
+    def zu(self):
+        return {"krone": self.laub, "winter": self.winter}
+
+    def objekte(self, eltern):
+        """Die beiden Knoten als Kinder von `eltern` (gleiches Koordinatensystem wie dessen Netz)."""
+        objekte = []
+        for netz, aus in ((self.laub, False), (self.winter, True)):
+            if not netz.dreiecke():
+                continue
+            o = netz.objekt()
+            o.parent = eltern
+            o.matrix_parent_inverse = Matrix.Identity(4)
+            o.location = (0.0, 0.0, 0.0)
+            objekte.append(zustand(o) if aus else o)
+        return objekte
 
 
 def zaun(netz, st, punkte, hoehe=1.1, abstand=2.0, stoff="Holz alt"):
@@ -1017,17 +1099,91 @@ def zustand(obj):
     return obj
 
 
+# Materialien, die das Spiel nach Namen anspricht (umfärben, leuchten, Ruß): beim Zusammenlegen bleiben sie eigene Materialien.
+BENANNTE_STOFFE = {"Hausfarbe", "Fenster", "Glut", "Laub", "Laub hell", "Laub dunkel",
+                   "Dachziegel", "Ziegelkante", "Firstziegel", "Stroh", "Strohkante", "Firstsoden",
+                   "Schiefer", "Schieferkante", "Firstblech"}
+
+
+def farben_zusammenlegen(objekte, behalten=BENANNTE_STOFFE):
+    """Legt alle einfachen Farbmaterialien zu einem Material „Farben“ zusammen: Die Farbe wandert als Eckenfarbe
+    (glTF COLOR_0) ins Netz, das Material liest sie über einen Color-Attribute-Knoten. Weniger Materialien heißt weniger
+    Zeichenaufrufe im Spiel (jedes Material einer ist einer, im Schatten noch einmal). Getrennt bleiben die Materialien in
+    `behalten` und alle, die anders glänzen oder leuchten (Glas, Metall, Glut) – für sie gäbe es sonst einen Unterschied
+    im Aussehen. Gibt die Zahl der Materialien vorher und nachher zurück."""
+    netze = [o for o in set(objekte) | {k for o in objekte for k in o.children_recursive} if o.type == "MESH"]
+    vorher = {m.name for o in netze for m in o.data.materials if m}
+
+    def einfach(m):
+        if m is None or m.name in behalten or m.name not in _stoffe:
+            return False
+        p = m.node_tree.nodes.get("Principled BSDF")
+        return (abs(p.inputs["Roughness"].default_value - 0.9) < 1e-3 and p.inputs["Metallic"].default_value == 0.0
+                and p.inputs["Emission Strength"].default_value == 0.0)
+
+    farben = bpy.data.materials.get("Farben")
+    if farben is None:
+        farben = bpy.data.materials.new("Farben")
+        try:
+            farben.use_nodes = True
+        except AttributeError:
+            pass
+        baum = farben.node_tree
+        p = baum.nodes.get("Principled BSDF")
+        p.inputs["Roughness"].default_value = 0.9
+        p.inputs["Base Color"].default_value = (1.0, 1.0, 1.0, 1.0)   # glTF multipliziert Faktor und Eckenfarbe
+        ecke = baum.nodes.new("ShaderNodeVertexColor")
+        ecke.layer_name = "Farbe"
+        gamma = baum.nodes.new("ShaderNodeGamma")
+        gamma.inputs["Gamma"].default_value = 2.2
+        baum.links.new(ecke.outputs["Color"], gamma.inputs["Color"])
+        baum.links.new(gamma.outputs["Color"], p.inputs["Base Color"])
+        farben.diffuse_color = (0.6, 0.6, 0.6, 1.0)
+    for o in netze:
+        me = o.data
+        alte = list(me.materials)
+        if not any(einfach(m) for m in alte):
+            continue
+        attr = me.color_attributes.get("Farbe") or me.color_attributes.new("Farbe", "BYTE_COLOR", "CORNER")
+        me.color_attributes.active_color = attr
+        me.color_attributes.render_color_index = me.color_attributes.find("Farbe")
+        neue = [m for m in alte if not einfach(m)] + [farben]
+        index = {m.name: i for i, m in enumerate(neue)}
+        werte = [1.0] * (len(me.loops) * 4)
+        neu_index = []
+        for poly in me.polygons:
+            m = alte[poly.material_index] if poly.material_index < len(alte) else None
+            if einfach(m):
+                # sRGB-Werte, nicht linear: Godot zeigt die Eckenfarbe aus der GLB so, wie sie dasteht (im Godot-Test mit
+                # linearen Werten deutlich zu dunkel). Für die Blender-Vorschau rechnet der Gamma-Knoten im Material zurück.
+                farbe = FARBEN[m.name]
+                for li in poly.loop_indices:
+                    werte[li * 4:li * 4 + 4] = [farbe[0], farbe[1], farbe[2], 1.0]
+                neu_index.append(index["Farben"])
+            else:
+                neu_index.append(index[m.name] if m else 0)
+        attr.data.foreach_set("color", werte)
+        me.materials.clear()
+        for m in neue:
+            me.materials.append(m)
+        me.polygons.foreach_set("material_index", neu_index)
+        me.update()
+    nachher = {m.name for o in netze for m in o.data.materials if m}
+    return len(vorher), len(nachher)
+
+
 def exportieren(name, objekte):
     """GLB nach game/assets/modelle/<name>.glb – Y oben, Vorderseite +Z, nur diese Objekte."""
     os.makedirs(MODELLE, exist_ok=True)
     pfad = os.path.join(MODELLE, name + ".glb")
+    mit_kindern = set(objekte) | {k for o in objekte for k in o.children_recursive}
     for o in bpy.context.scene.objects:
-        o.select_set(o in objekte)
+        o.select_set(o in mit_kindern)
     bpy.ops.export_scene.gltf(
         filepath=pfad, export_format="GLB", use_selection=True, export_yup=True, export_apply=True,
         export_extras=True, export_normals=True, export_texcoords=False, export_animations=False,
         export_skins=False, export_morph=False, export_lights=False, export_cameras=False,
-        export_image_format="NONE")
+        export_image_format="NONE", export_vertex_color="ACTIVE", export_all_vertex_colors=False)
     return pfad
 
 
@@ -1232,6 +1388,9 @@ def blick(drehung):
     bpy.data.objects["Sonne"].rotation_euler = (-zum_licht).to_track_quat("-Z", "Y").to_euler()
 
 
+WINTERBILD = False         # True: rendern zeigt Winteräste statt Laubkronen
+
+
 def rendern(name, sichtbar, drehung=0):
     """Rendert docs/modelle/<name>.png. `sichtbar(obj)` entscheidet je Objekt."""
     os.makedirs(VORSCHAU, exist_ok=True)
@@ -1239,6 +1398,10 @@ def rendern(name, sichtbar, drehung=0):
     for o in bpy.context.scene.objects:
         if o.type == "MESH":
             o.hide_render = not (o.name.startswith("_") or sichtbar(o))
+    for o in bpy.context.scene.objects:          # Baumkronen folgen ihrem Knoten, die Winteräste nur im Winterbild
+        if o.type == "MESH" and o.parent is not None and o.name.startswith(("Laubkrone_", "Winteraeste_")):
+            winter = o.name.startswith("Winteraeste_")
+            o.hide_render = o.parent.hide_render or winter != WINTERBILD
     pfad = os.path.join(VORSCHAU, name + ".png")
     bpy.context.scene.render.filepath = pfad
     bpy.ops.render.render(write_still=True)

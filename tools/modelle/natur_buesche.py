@@ -11,6 +11,7 @@ Knoten (Ursprung je in der Mitte am Boden):
     Brombeere1–2    niedrige, lange Hecke mit dunklen Beeren (3–4 m lang, 1 m hoch)
     Ginster1–2      struppiger Busch mit gelben Blüten (1,3 m)
     Wacholder1–2    schmale, dunkle Säule (2–3 m)
+    <Laubbusch>_Winter  Hasel, Holunder und Brombeere ohne Laub, Blüten und Beeren (kahle Zweige); Bild natur_buesche_winter.png
 Laub: „Laub“, „Laub hell“, „Laub dunkel“ (je Jahreszeit umgefärbt), Wacholder in „Tanne“.
 """
 
@@ -31,14 +32,23 @@ def bauen():
     bs.neue_szene()
     st = bs.Stoffe()
     teile = []
-    for art, bauer, groessen in (("Hasel", hasel, (2.8, 2.4)), ("Holunder", holunder, (2.6, 2.2)),
-                                 ("Brombeere", brombeere, (3.8, 2.8)), ("Ginster", ginster, (1.3, 1.1)),
-                                 ("Wacholder", wacholder, (2.8, 2.0))):
-        for i, g in enumerate(groessen):
-            netz = bs.Netz(f"{art}{i + 1}")
-            bauer(netz, st, g, sum(map(ord, art)) * 10 + i)      # fester Startwert je Art
-            teile.append(netz.objekt())
+    arten = (("Hasel", hasel, (2.8, 2.4)), ("Holunder", holunder, (2.6, 2.2)), ("Brombeere", brombeere, (3.8, 2.8)),
+             ("Ginster", ginster, (1.3, 1.1)), ("Wacholder", wacholder, (2.8, 2.0)))
+    for winter in (False, True):            # erst alle, dann die Laubbüsche kahl („…_Winter“)
+        nt.WINTER = winter
+        for art, bauer, groessen in arten:
+            if winter and art not in LAUBBUESCHE:
+                continue
+            for i, g in enumerate(groessen):
+                netz = bs.Netz(f"{art}{i + 1}" + ("_Winter" if winter else ""))
+                bauer(netz, st, g, sum(map(ord, art)) * 10 + i)      # fester Startwert je Art
+                teile.append(netz.objekt())
+    nt.WINTER = False
     return teile
+
+
+# Laubbüsche mit Wintervariante; Ginster (grüne Ruten) und Wacholder (Nadeln) bleiben im Winter, wie sie sind
+LAUBBUESCHE = ("Hasel", "Holunder", "Brombeere")
 
 
 def hasel(netz, st, h, saat):
@@ -96,7 +106,12 @@ def wacholder(netz, st, h, saat):
 
 
 def main():
-    nt.ausgeben(NAME, bauen(), spalten=5, abstand=5.0, zeilenabstand=6.0, ziel_hoehe=1.2, ausschnitt=26.0)
+    teile = bauen()
+    sommer = [o for o in teile if not o.name.endswith("_Winter")]
+    winter = [o for o in teile if o.name.endswith("_Winter")]
+    nt.ausgeben(NAME, teile, spalten=5, abstand=5.0, zeilenabstand=6.0, ziel_hoehe=1.2, ausschnitt=26.0, nur=sommer)
+    if "--ohne-bilder" not in sys.argv:
+        nt.bild(NAME + "_winter", winter, spalten=3, abstand=5.0, zeilenabstand=6.0, ziel_hoehe=1.2, ausschnitt=20.0)
 
 
 if __name__ == "__main__":

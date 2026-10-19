@@ -14,6 +14,8 @@ Knoten (Ursprung je am Stammfuß, Höhe in Klammern):
     Apfelbaum1–2    kurzer Stamm, runde Krone mit roten Äpfeln (4–5 m)
     Kopfweide1–2    dicker kurzer Stamm mit Kopf, Ruten nach oben (am Bach, 4 m)
     Baum_tot1–2     abgestorbener Baum ohne Laub, vergraut (6–8 m)
+    <Laubbaum>_Winter  zu jeder Laubbaum-Variante (Eiche, Buche, Birke, Linde, Apfelbaum, Kopfweide) dieselbe ohne Laub:
+                    Stamm gleich, statt der Krone kahle Äste im selben Raum (Rinde der Art), ohne Äpfel; Bild natur_baeume_winter.png
 Laub: „Laub“, „Laub hell“, „Laub dunkel“ – das Spiel färbt sie je Jahreszeit (siehe natur.py).
 """
 
@@ -42,20 +44,17 @@ def bauen():
 
     for i, (h, r) in enumerate(((11.0, 2.4), (8.0, 1.9), (6.0, 1.5))):
         teil(f"Tanne{i + 1}", lambda n, s, h=h, r=r, i=i: lb.tanne(n, s, (0, 0), hoehe=h, r=r, saat=100 + i))
-    for i, h in enumerate((10.5, 9.0, 11.0)):
-        teil(f"Eiche{i + 1}", eiche, h, 200 + i)
-    for i, h in enumerate((12.0, 10.0)):
-        teil(f"Buche{i + 1}", buche, h, 300 + i)
-    for i, h in enumerate((9.0, 7.5, 8.2)):
-        teil(f"Birke{i + 1}", birke, h, 400 + i)
-    for i, h in enumerate((7.0, 6.2)):
-        teil(f"Linde{i + 1}", lambda n, s, h=h, i=i: linde(n, s, h, 500 + i))
-    for i, h in enumerate((4.6, 4.0)):
-        teil(f"Apfelbaum{i + 1}", apfelbaum, h, 600 + i)
-    for i, h in enumerate((4.0, 3.4)):
-        teil(f"Kopfweide{i + 1}", kopfweide, h, 700 + i)
-    for i, h in enumerate((8.0, 6.0)):
-        teil(f"Baum_tot{i + 1}", baum_tot, h, 800 + i)
+    for winter in (False, True):                    # erst alle Laubbäume, dann dieselben kahl („…_Winter“)
+        nt.WINTER = winter
+        endung = "_Winter" if winter else ""
+        for art, bauer, hoehen, saat, rinde in LAUBBAEUME:
+            nt.WINTER_RINDE = rinde
+            for i, h in enumerate(hoehen):
+                teil(f"{art}{i + 1}{endung}", bauer, h, saat + i)
+        if not winter:
+            for i, h in enumerate((8.0, 6.0)):
+                teil(f"Baum_tot{i + 1}", baum_tot, h, 800 + i)
+    nt.WINTER = False
     return teile
 
 
@@ -128,8 +127,9 @@ def kopfweide(netz, st, h, saat):
         fuss = kopf + Vector((math.cos(w) * 0.35, math.sin(w) * 0.35, 0.2))
         spitze = fuss + Vector((math.cos(w) * h * 0.18, math.sin(w) * h * 0.18, h * z.uniform(0.38, 0.5)))
         nt.ast(netz, st, fuss, spitze, 0.05, 0.02, n=4)
-        lb.kegel(netz, ((fuss.x + spitze.x) / 2, (fuss.y + spitze.y) / 2), 0.38, fuss.z + 0.5, spitze.z + 0.25,
-                 st["Laub hell"], st["Laub"], n=5, dreh=w)
+        if not nt.WINTER:
+            lb.kegel(netz, ((fuss.x + spitze.x) / 2, (fuss.y + spitze.y) / 2), 0.38, fuss.z + 0.5, spitze.z + 0.25,
+                     st["Laub hell"], st["Laub"], n=5, dreh=w)
 
 
 def baum_tot(netz, st, h, saat):
@@ -148,8 +148,19 @@ def baum_tot(netz, st, h, saat):
         nt.ast(netz, st, ende, zweig, 0.035, 0.015, stoff="Totholz", n=3)
 
 
+# Laubbäume: Art, Bauer, Höhen der Varianten, Startwert, Rinde der kahlen Äste im Winter
+LAUBBAEUME = (("Eiche", eiche, (10.5, 9.0, 11.0), 200, "Rinde"), ("Buche", buche, (12.0, 10.0), 300, "Rinde hell"),
+              ("Birke", birke, (9.0, 7.5, 8.2), 400, "Birkenrinde"), ("Linde", linde, (7.0, 6.2), 500, "Rinde"),
+              ("Apfelbaum", apfelbaum, (4.6, 4.0), 600, "Rinde"), ("Kopfweide", kopfweide, (4.0, 3.4), 700, "Rinde"))
+
+
 def main():
-    nt.ausgeben(NAME, bauen(), spalten=7, abstand=9.0, zeilenabstand=17.0, ziel_hoehe=4.0, ausschnitt=70.0)
+    teile = bauen()
+    sommer = [o for o in teile if not o.name.endswith("_Winter")]
+    winter = [o for o in teile if o.name.endswith("_Winter")]
+    nt.ausgeben(NAME, teile, spalten=7, abstand=9.0, zeilenabstand=17.0, ziel_hoehe=4.0, ausschnitt=70.0, nur=sommer)
+    if "--ohne-bilder" not in sys.argv:
+        nt.bild(NAME + "_winter", winter, spalten=7, abstand=9.0, zeilenabstand=17.0, ziel_hoehe=4.0, ausschnitt=68.0)
 
 
 if __name__ == "__main__":

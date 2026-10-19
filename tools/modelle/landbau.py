@@ -359,6 +359,8 @@ def knoten(haus, arbeit, fahne, leer, anker):
 def ausgeben(name, flaeche, objekte, ziel_hoehe=2.5, ausschnitt=26.0):
     """Export und Vorschaubilder: In Betrieb und Leerstand nebeneinander, rundum, Anker, Nacht."""
     bericht(name, objekte)
+    vorher, nachher = bs.farben_zusammenlegen(objekte)
+    print(f"  Materialien: {vorher} → {nachher}")
     print("geschrieben:", bs.exportieren(name, objekte))
     if "--ohne-bilder" in sys.argv:
         return

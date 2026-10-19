@@ -42,6 +42,12 @@ bs.FARBEN.update({
 })
 
 
+# Winter: krone() zeichnet kahle Äste (in WINTER_RINDE) statt Laub, tupfen() (Blüten, Beeren, Äpfel) entfällt.
+# Die Baukästen setzen das für ihre „…_Winter“-Knoten (natur_baeume, natur_buesche).
+WINTER = False
+WINTER_RINDE = "Rinde"
+
+
 def zufall(saat):
     return random.Random(saat * 7919 + 13)
 
@@ -53,7 +59,10 @@ def zufall(saat):
 def krone(netz, st, mitte, rx, rz, saat=0, stoffe=("Laub", "Laub hell"), n=7, ry=None, flach_unten=0.55):
     """Laubkrone als unregelmäßiger Körper: drei Ringe aus n Ecken zwischen Unter- und Oberpol.
     `rx`/`ry` waagrechte Halbachsen, `rz` senkrechte; `flach_unten`: wie weit die Unterseite eingezogen ist.
-    Die Flächen wechseln die Farbe (heller oben)."""
+    Die Flächen wechseln die Farbe (heller oben). Im Winter (WINTER) stehen statt einer Laubkrone kahle Äste im selben Raum."""
+    if WINTER and any(s.startswith("Laub") for s in stoffe):
+        bs.kahle_aeste(netz, st, mitte, rx * 0.95, rz, ry=ry, saat=saat, stoff=WINTER_RINDE)
+        return
     z = zufall(saat)
     ry = rx if ry is None else ry
     m = Vector(mitte)
@@ -109,7 +118,9 @@ def blatt(netz, st, fuss, richtung, laenge, breite, stoff, hoch=0.3, dicke=0.01)
 
 
 def tupfen(netz, st, punkt, groesse, stoff, n=4):
-    """Kleiner Farbtupfer (Blüte, Beere, Apfel): flache Pyramide nach oben."""
+    """Kleiner Farbtupfer (Blüte, Beere, Apfel): flache Pyramide nach oben. Im Winter keiner."""
+    if WINTER:
+        return
     p = Vector(punkt)
     ring = [p + Vector((groesse * math.cos(2 * math.pi * k / n + 0.4), groesse * math.sin(2 * math.pi * k / n + 0.4), 0))
             for k in range(n)]
@@ -142,12 +153,17 @@ def bericht(name, objekte):
     bs.bericht(name, objekte, einzeln=True)
 
 
-def ausgeben(name, objekte, spalten, abstand, ziel_hoehe=1.5, ausschnitt=30.0, zeilenabstand=None):
-    """Export, dann alle Knoten im Raster nebeneinander rendern (nur fürs Bild verschoben) und beschriften."""
+def ausgeben(name, objekte, spalten, abstand, ziel_hoehe=1.5, ausschnitt=30.0, zeilenabstand=None, nur=None):
+    """Export, dann alle Knoten (oder nur die in `nur`) im Raster nebeneinander rendern (nur fürs Bild verschoben) und beschriften."""
     bericht(name, objekte)
     print("geschrieben:", bs.exportieren(name, objekte))
     if "--ohne-bilder" in sys.argv:
         return
+    bild(name, nur if nur is not None else objekte, spalten, abstand, ziel_hoehe, ausschnitt, zeilenabstand)
+
+
+def bild(name, objekte, spalten, abstand, ziel_hoehe=1.5, ausschnitt=30.0, zeilenabstand=None):
+    """docs/modelle/<name>.png: die Knoten im Raster, beschriftet. Die übrigen Knoten bleiben unsichtbar."""
     import bpy
     from bpy_extras.object_utils import world_to_camera_view
     schnell = "--schnell" in sys.argv
@@ -158,7 +174,13 @@ def ausgeben(name, objekte, spalten, abstand, ziel_hoehe=1.5, ausschnitt=30.0, z
         x = (sx - (spalten - 1) / 2) * abstand
         y = ((zeilen - 1) / 2 - sy) * (zeilenabstand or abstand)
         o.location = Vector((x * 0.7071 - y * 0.7071, x * 0.7071 + y * 0.7071, 0))
-    bs.vorschau_buehne(None, ziel_hoehe=ziel_hoehe, ausschnitt=ausschnitt, schnell=schnell)
+    szene = bpy.context.scene
+    if szene.camera is None:
+        bs.vorschau_buehne(None, ziel_hoehe=ziel_hoehe, ausschnitt=ausschnitt, schnell=schnell)
+    else:                                   # zweites Bild derselben Datei: Bühne steht schon
+        szene.camera.data.ortho_scale = ausschnitt
+        szene["_ziel"] = ziel_hoehe
+        bs.blick(0)
     bpy.context.scene.render.resolution_x, bpy.context.scene.render.resolution_y = 1600, 1200
     pfad = bs.rendern(name, lambda o: o in objekte)
     try:
