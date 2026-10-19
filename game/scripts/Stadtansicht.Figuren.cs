@@ -68,13 +68,18 @@ public partial class Stadtansicht
     /// <summary>Der Export aus Blender hält die erste Pose ein Bild lang (Blender beginnt bei Bild 1): Die Schleife läuft erst ab hier.</summary>
     private const double SchleifenAnfang = 1.0 / 24;
 
+    private const string FigurShaderPfad = "res://shader/figur.gdshader";
+
+    /// <summary>Das eine Material aller Figuren (PR #149: Zone in UV.x, feste Farbe in COLOR).</summary>
+    private static ShaderMaterial? _figurStoff;
+
     /// <summary>Dateien, deren Bewegungen schon auf Schleife gestellt sind (die Animationen teilen sich alle Figuren einer Datei).</summary>
     private readonly HashSet<string> _figurSchleifen = new();
 
     /// <summary>
     /// Setzt eine Figur als Kind von <paramref name="eltern"/> ein (Lage und Drehung bestimmt der Elternknoten): Grundkörper nach
-    /// Geschlecht, Trachtteile nach <paramref name="aussehen"/>, Farben über die Materialien „Gewand“, „Beinkleid“, „Haut“, „Haar“ und
-    /// „Kopfbedeckung“ (je Farbe ein Material für alle Figuren dieser Datei). Hacke und Stab bleiben versteckt da, bis eine
+    /// Geschlecht, Trachtteile nach <paramref name="aussehen"/>, Farben für Gewand, Beinkleid, Haut, Haar und Kopfbedeckung über
+    /// das gemeinsame Material <c>figur.gdshader</c> (Zonen im Modell, Farben je Teil als Instanz-Uniform). Hacke und Stab bleiben versteckt da, bis eine
     /// Bewegung sie braucht; alle übrigen Teile werden gelöscht. Null, wenn das Modell fehlt.
     /// </summary>
     private Figur? FigurEinsetzen(Node3D eltern, FigurAussehen aussehen, int nummer)
@@ -120,20 +125,13 @@ public partial class Stadtansicht
             if (name == "Hacke") { figur.Hacke = teil; teil.Visible = false; }
             if (name == "Stab") { figur.Stab = teil; teil.Visible = figur.StabImmer; }
             figur.Teile.Add(teil);
-            for (var i = 0; i < teil.Mesh.GetSurfaceCount(); i++)
-            {
-                if (teil.Mesh.SurfaceGetMaterial(i) is not BaseMaterial3D stoff) continue;
-                Color? farbe = stoff.ResourceName switch
-                {
-                    "Gewand" => aussehen.Gewand,
-                    "Beinkleid" => aussehen.Beinkleid,
-                    "Haut" => aussehen.Haut,
-                    "Haar" => aussehen.Haar,
-                    "Kopfbedeckung" => aussehen.Kopffarbe,
-                    _ => null,
-                };
-                if (farbe is { } f) teil.SetSurfaceOverrideMaterial(i, Umgefaerbt(stoff, f));
-            }
+            // Ein Material für alle Teile (figur.gdshader), die Farben je Figur als Instanz-Uniform: ein Zeichenaufruf je Teil.
+            teil.MaterialOverride = _figurStoff ??= new ShaderMaterial { Shader = GD.Load<Shader>(FigurShaderPfad) };
+            teil.SetInstanceShaderParameter("gewand", aussehen.Gewand);
+            teil.SetInstanceShaderParameter("beinkleid", aussehen.Beinkleid);
+            teil.SetInstanceShaderParameter("haut", aussehen.Haut);
+            teil.SetInstanceShaderParameter("haar", aussehen.Haar);
+            teil.SetInstanceShaderParameter("kopfbedeckung", aussehen.Kopffarbe);
         }
         BewegungSetzen(figur, "Stehen");
         return figur;
