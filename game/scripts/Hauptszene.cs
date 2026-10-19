@@ -828,6 +828,8 @@ public partial class Hauptszene : Node
         _stadt.Auswahl = _auswahl.Visible ? _auswahlKennung : null; // Name des ausgewählten Gebäudes bleibt sichtbar
         _stadt.Aktualisieren(delta);
         foreach (var tafel in _innenTafeln) tafel.Aktualisieren(delta);
+        var mausPos = GetViewport().GetMousePosition();
+        _stadt.UnterTafel = _innenTafeln.Any(t => t.Visible && t.Tafel.GetGlobalRect().HasPoint(mausPos));
         BauAutoKlickPruefen();
         if (_auswahlKennung is not null) AuswahlAnzeigen();
     }

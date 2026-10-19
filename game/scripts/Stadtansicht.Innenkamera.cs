@@ -67,6 +67,9 @@ public partial class Stadtansicht
     /// <summary>Nummern der Arbeiter, die im Raum ausgewählt sind (für die Produktionstafel).</summary>
     public IReadOnlyCollection<int> GewaehlteArbeiter => _gewaehlt;
 
+    /// <summary>Die Hauptszene meldet, dass die Maus über einer offenen Tafel liegt: Dann kein Schild, kein Randschwenken.</summary>
+    public bool UnterTafel { get; set; }
+
     /// <summary>Ob der gezeigte Raum aus einem Modell stammt (feste Blickpunkte, Bedienung zum Anklicken).</summary>
     public bool HatBedienung => _raum?.Blicke is not null;
 
@@ -222,7 +225,7 @@ public partial class Stadtansicht
     private void RaumBildAktualisieren(double delta)
     {
         if (_raum?.Blicke is null) return;
-        var ueberOberflaeche = GetViewport().GuiGetHoveredControl() is not null;
+        var ueberOberflaeche = UnterTafel || GetViewport().GuiGetHoveredControl() is not null;
         RaumKameraNachfuehren(delta);
         RaumRandPruefen(delta, ueberOberflaeche);
         _raumPfeile.Setzen(BlickSchritt('L').Anzahl, BlickSchritt('R').Anzahl, BlickSchritt('O').Anzahl, BlickSchritt('U').Anzahl);
