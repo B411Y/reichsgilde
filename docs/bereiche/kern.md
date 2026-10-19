@@ -157,6 +157,7 @@ So wird eingetragen (damit sich die Chats nie an derselben Stelle treffen):
 | Thema | Entscheidung | Datum |
 |---|---|---|
 | Stücke | Wie beim Schmied, mit Leimofen und Zwingen statt Blasebalg: Gutes Werkzeug (−10 % Zeit), Meisterwerkzeug (ab Stufe 2, braucht Gutes Werkzeug, −10 %), Leimofen und Zwingen (−10 % für Truhe, Schrank, Prunktruhe, Armbrust), Holzgestell (60 statt 40 je Ware), Löschfass (Feuer halb so oft), Eisentür (Diebstahl und Einbruch halb so oft), Lederschürzen (Unfälle halb so oft). Gleiche Preise wie beim Schmied. Nur Daten, keine neue Art Wirkung. | 19.10.2026 |
+| Daten | `werkstatt.einrichtung.Tischler` mit den Kennungen `Werkzeug1`, `Werkzeug2`, `Leimzwingen` (350 Gulden), `Regale` (Name „Holzgestell“), `Loeschfass`, `Eisentuer`, `Schuerzen` – wie die Knoten `Einrichtung_<Kennung>` im Raummodell. Gilt für Tischlerei, Drechslerei und Sägewerk, nicht für den Holzschlag (keine Werkstatt). **Datenversion 37.** Keine Messung: Die KI-Häuser kaufen keine Einrichtung. | 19.10.2026 |
 
 ## Messungen
 

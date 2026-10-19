@@ -42,6 +42,17 @@ static class WerkstattTests
         return (w, k, g);
     }
 
+    /// <summary>Ein Haus mit Tischlerei ohne Karren, Lager mit Holz und Beschlag für Truhen gefüllt.</summary>
+    static (Stadtwirtschaft W, Konto K, Betrieb T) Tischlerei(Simulation sim, double vermoegen = 20_000)
+    {
+        var w = sim.Wirtschaft!;
+        var k = w.KontoEroeffnen("Haus Fuchs", startvermoegen: vermoegen);
+        var t = w.BetriebEroeffnen("Tischlerei am Holzmarkt", Betriebsart.Tischlerei, k, startkarren: "");
+        t.Einlagern("Holz", 40);
+        t.Einlagern("Beschlag", 20);
+        return (w, k, t);
+    }
+
     static void BisUhrzeit(Simulation sim, int stunde)
     {
         while (sim.Zeit.UhrzeitInMinuten < stunde * 60) sim.Tick();
@@ -78,7 +89,7 @@ static class WerkstattTests
         ("Werkstatt: Daten – Abschnitt „werkstatt“ mit drei Lohnstufen und genau den sieben Stücken des Schmieds (Kennungen wie im Raummodell)", () =>
         {
             var d = Daten.Value.Werkstatt!;
-            Pruefe.Gleich(36, Daten.Value.Version);
+            Pruefe.Gleich(37, Daten.Value.Version);
             Pruefe.Ungefaehr(1, d.Stufe(Lohnstufe.Ueblich).LohnFaktor, 1e-12);
             Pruefe.Gleich(0.0, d.Stufe(Lohnstufe.Ueblich).Laune);
             Pruefe.Wahr(d.Stufe(Lohnstufe.Knapp).LohnFaktor < 1 && d.Stufe(Lohnstufe.Gut).LohnFaktor > 1, "Lohnfaktoren");
@@ -361,6 +372,86 @@ static class WerkstattTests
             Pruefe.Ungefaehr(vorher.Item2 / 2, w.Gauner.Erfolgschance(Gaunerstueck.Sabotage, g), 1e-12);
             Pruefe.Ungefaehr(vorher.Item3 / 2, w.Diebe.Einbruchchance(g, dieb), 1e-12);
             Pruefe.Ungefaehr(vorher.Item4 / 2, w.Diebe.Brandchance(g, dieb), 1e-12);
+        }),
+
+        ("Werkstatt: Daten – der Tischler hat sieben Stücke (Kennungen wie im Raummodell) zu den Preisen des Schmieds; jede Ware eines Stücks stellt der Beruf selbst her", () =>
+        {
+            var d = Daten.Value.Werkstatt!;
+            var tischler = d.EinrichtungFuer("Tischler");
+            Pruefe.Gleich("Werkzeug1 Werkzeug2 Leimzwingen Regale Loeschfass Eisentuer Schuerzen", string.Join(" ", tischler.Select(e => e.Kennung)));
+            Pruefe.Gleich("Gutes Werkzeug, Meisterwerkzeug, Leimofen und Zwingen, Holzgestell, Löschfass, Eisentür, Lederschürzen",
+                string.Join(", ", tischler.Select(e => e.Name)));
+            foreach (var e in tischler.Where(e => e.Kennung != "Leimzwingen"))
+                Pruefe.Gleich(d.Stueck("Schmied", e.Kennung)!.Preis, e.Preis, $"Preis {e.Kennung}");
+            Pruefe.Gleich(350.0, d.Stueck("Tischler", "Leimzwingen")!.Preis);
+            Pruefe.Gleich("Werkzeug1", d.Stueck("Tischler", "Werkzeug2")!.Voraussetzung);
+            Pruefe.Gleich(2, d.Stueck("Tischler", "Werkzeug2")!.AbStufe);
+            Pruefe.Gleich("Truhe Schrank Prunktruhe Armbrust", string.Join(" ", d.Stueck("Tischler", "Leimzwingen")!.Wirkung.Waren));
+            // Eine Ware, die keine Werkstatt des Berufs herstellt, gibt es zwar, das Stück wirkte aber nie.
+            var arten = Enum.GetValues<Betriebsart>().Where(Daten.Value.KenntArt).Select(Daten.Value.Art).ToList();
+            foreach (var (beruf, liste) in d.Einrichtung)
+                foreach (var ware in liste.SelectMany(e => e.Wirkung.Waren))
+                    Pruefe.Wahr(arten.Any(a => a.Beruf == beruf && a.Produkte.Contains(ware)), $"{beruf}: „{ware}“ stellt keine Werkstatt des Berufs her");
+        }),
+
+        ("Werkstatt: Tischler – Werkzeug spart Zeit bei allen Waren, Leimofen und Zwingen nur bei Truhe, Schrank, Prunktruhe, Armbrust; Holzgestell gibt Lager", () =>
+        {
+            var sim = NeueSimulation();
+            var (w, k, t) = Tischlerei(sim, vermoegen: 5_000);
+            Pruefe.Wahr(w.Werkstaetten.Einrichtungsliste(t) is { Count: 7 } l && l.All(e => !e.Gekauft), "sieben Stücke, keins gekauft");
+            Ok(w, k, new EinrichtungKaufen(t.Name, "Leimzwingen"));
+            Pruefe.Ungefaehr(4_650, k.Vermoegen, 1e-9);
+            Pruefe.Ungefaehr(350, k.Laufend.Investitionen, 1e-9);
+            foreach (var (ware, zeit) in new[] { ("Truhe", 75.0), ("Schrank", 100.0), ("Prunktruhe", 100.0), ("Armbrust", 70.0) })
+                Pruefe.Ungefaehr(zeit * 0.9, t.MinutenJeStueck(ware), 1e-9);
+            foreach (var (ware, zeit) in new[] { ("Holzzapfen", 30.0), ("Schemel", 45.0), ("Gehstock", 40.0) })
+                Pruefe.Ungefaehr(zeit, t.MinutenJeStueck(ware), 1e-9); // Zwingen helfen beim Drechseln nicht
+            Ok(w, k, new EinrichtungKaufen(t.Name, "Werkzeug1"));
+            Pruefe.Ungefaehr(75 * 0.81, t.MinutenJeStueck("Truhe"), 1e-9);
+            Pruefe.Ungefaehr(45 * 0.9, t.MinutenJeStueck("Schemel"), 1e-9);
+            Pruefe.Gleich(40, t.LagerKapazitaetJeWare);
+            Ok(w, k, new EinrichtungKaufen(t.Name, "Regale"));
+            Pruefe.Gleich(60, t.LagerKapazitaetJeWare);
+            foreach (var kennung in new[] { "Loeschfass", "Eisentuer", "Schuerzen" }) Ok(w, k, new EinrichtungKaufen(t.Name, kennung));
+            Pruefe.Gleich((0.5, 0.5, 0.5), (t.BrandFaktor, t.EinbruchFaktor, t.UnfallFaktor));
+            Pruefe.Ungefaehr(5_000 - 350 - 300 - 200 - 100 - 300 - 80, k.Vermoegen, 1e-9);
+            Abgelehnt(w, k, new EinrichtungKaufen(t.Name, "Blasebalg"), "kein Stück „Blasebalg“");
+            Abgelehnt(w, k, new EinrichtungKaufen(t.Name, "Werkzeug2"), "erst ab Stufe 2");
+            Ok(w, k, new ProduktWaehlen(t.Name, "Truhe"));
+            Ok(w, k, new PersonalSetzen(t.Name, "Geselle", 1));
+            BisUhrzeit(sim, 14);
+            Pruefe.Wahr(t.ImLager("Truhe") == 5, $"Truhen mit Werkzeug und Zwingen: {t.ImLager("Truhe")} (360 / 60,75 ≈ 5,9; ohne beides 360 / 75 = 4,8)");
+            var liste = w.Werkstaetten.Einrichtungsliste(t);
+            Pruefe.Gleich("10 % weniger Zeit je Stück (Truhe, Schrank, Prunktruhe, Armbrust)", liste.Single(e => e.Kennung == "Leimzwingen").Wirkung);
+            Pruefe.Gleich("20 mehr Lager je Ware", liste.Single(e => e.Kennung == "Regale").Wirkung);
+        }),
+
+        ("Werkstatt: Tischler – Meisterwerkzeug erst ab der Drechslerei und nur mit gutem Werkzeug; die Einrichtung gilt in allen drei Stufen, nicht im Holzschlag", () =>
+        {
+            var sim = NeueSimulation();
+            var (w, k, t) = Tischlerei(sim);
+            Ok(w, k, new EinrichtungKaufen(t.Name, "Regale"));
+            Ok(w, k, new EinrichtungKaufen(t.Name, "Leimzwingen"));
+            Abgelehnt(w, k, new EinrichtungKaufen(t.Name, "Werkzeug2"), "erst ab Stufe 2");
+            t.Ausbauen(Betriebsart.Drechslerei, 0);
+            Pruefe.Gleich(7, w.Werkstaetten.Einrichtungsliste(t).Count);
+            Pruefe.Wahr(t.HatEinrichtung("Regale") && t.LagerKapazitaetJeWare == 60, "Holzgestell nach dem Ausbau");
+            Abgelehnt(w, k, new EinrichtungKaufen(t.Name, "Werkzeug2"), "Erst braucht es: Gutes Werkzeug");
+            Ok(w, k, new EinrichtungKaufen(t.Name, "Werkzeug1"));
+            Ok(w, k, new EinrichtungKaufen(t.Name, "Werkzeug2"));
+            Pruefe.Ungefaehr(40 * 0.81, t.MinutenJeStueck("Gehstock"), 1e-9);
+            Pruefe.Ungefaehr(70 * 0.729, t.MinutenJeStueck("Armbrust"), 1e-9);
+            t.Ausbauen(Betriebsart.Saegewerk, 0);
+            Pruefe.Gleich(3, t.Stufe);
+            var liste = w.Werkstaetten.Einrichtungsliste(t);
+            Pruefe.Gleich(7, liste.Count);
+            Pruefe.Gleich("Werkzeug1 Werkzeug2 Leimzwingen Regale", string.Join(" ", liste.Where(e => e.Gekauft).Select(e => e.Kennung)));
+            Pruefe.Ungefaehr(100 * 0.729, t.MinutenJeStueck("Schrank"), 1e-9);
+            Pruefe.Ungefaehr(100 * 0.729, t.MinutenJeStueck("Prunktruhe"), 1e-9);
+            // Der Holzschlag gehört auch zum Tischler, ist aber keine Werkstatt.
+            var h = w.BetriebEroeffnen("Holzschlag Fuchs", Betriebsart.Holzfaellerei, k, startkarren: "");
+            Pruefe.Gleich(0, w.Werkstaetten.Einrichtungsliste(h).Count);
+            Abgelehnt(w, k, new EinrichtungKaufen(h.Name, "Regale"), "kein Stück „Regale“");
         }),
 
         ("Werkstatt: Beim Verkauf zählt die Einrichtung zum Wert und bleibt im Haus für den nächsten Käufer", () =>
