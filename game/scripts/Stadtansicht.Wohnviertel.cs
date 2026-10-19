@@ -1,5 +1,6 @@
 using Godot;
 using Reichsgilde.Core.Buerger;
+using Reichsgilde.Core.Wirtschaft;
 
 namespace Reichsgilde;
 
@@ -114,7 +115,7 @@ public partial class Stadtansicht
                 var abzweig = Abzweige.GetValueOrDefault(name, Wegkreuz + new Vector3(10, 0, 0));
                 if (!AnDerStrasse(name, abzweig))
                     n.Weg(Kreuz(name), abzweig);
-                n.Weg(abzweig, p + new Vector3(-2, 0, 0));
+                n.Weg(abzweig, UmlandHof(name, p, UmlandArtVon(name) ?? Betriebsart.Mine)); // bis zum „Anker_Karren“ des Modells
             }
         }
 
@@ -122,7 +123,8 @@ public partial class Stadtansicht
         {
             var zugang = UmlandZugaenge[name];
             n.Weg(zugang, stelle);
-            WegZiehen(zugang, stelle, 2);
+            // sichtbar endet der Fußweg am Gatter („Anker_Tuer“ des Modells, 5,4 m vor der Mitte), im Netz an der Mitte der Stelle
+            WegZiehen(zugang, stelle + new Basis(Vector3.Up, UmlandstelleDrehung(name)) * UmlandAnkerImModell("umland_stellen").Tuer, 2);
         }
 
         if (n.Teile() != 1)
@@ -130,37 +132,6 @@ public partial class Stadtansicht
     }
 
     public static bool InDerStadt(Vector3 p) => Mathf.Abs(p.X) < Mauerrand && Mathf.Abs(p.Z) < Mauerrand;
-
-    /// <summary>Weide (Zaun), Feld (Furchen) und Wald (eine Baumgruppe) – die Arbeitsstellen der Einwohner im Umland.</summary>
-    private void UmlandstellenBauen()
-    {
-        var holz = Stoff(Holz);
-        var weide = Umlandstellen["Weide"];
-        foreach (var (mitte, groesse) in new[]
-        {
-            (new Vector3(0, 0.5f, -5), new Vector3(14, 0.8f, 0.15f)), (new Vector3(0, 0.5f, 5), new Vector3(14, 0.8f, 0.15f)),
-            (new Vector3(-7, 0.5f, 0), new Vector3(0.15f, 0.8f, 10)), (new Vector3(7, 0.5f, 0), new Vector3(0.15f, 0.8f, 10)),
-        })
-            Quader(weide + mitte, groesse, holz);
-        Flaeche(weide, new Vector2(14, 10), new Color(0.38f, 0.47f, 0.26f), 0.01f);
-
-        var feld = Umlandstellen["Feld"];
-        Flaeche(feld, new Vector2(14, 9), new Color(0.42f, 0.33f, 0.22f), 0.01f);
-        for (var i = 0; i < 6; i++)
-            Quader(feld + new Vector3(-6 + i * 2.4f, 0.12f, 0), new Vector3(0.8f, 0.24f, 8.4f), Stoff(i % 2 == 0 ? Korn : Kraut));
-
-        var wald = Umlandstellen["Wald"];
-        var tanne = Stoff(Tanne);
-        foreach (var (dx, dz, h) in new[] { (-5f, -3f, 8f), (-1f, -6f, 10f), (4f, -4f, 7f), (6f, 2f, 9f), (-4f, 4f, 9f), (1f, 5f, 7f), (-7f, 1f, 6f) })
-            AddChild(new MeshInstance3D
-            {
-                Mesh = new CylinderMesh { TopRadius = 0, BottomRadius = 2f, Height = h, RadialSegments = 7 },
-                MaterialOverride = tanne,
-                Position = wald + new Vector3(dx, h / 2, dz),
-            });
-        // Reisigbündel am Wegrand
-        Quader(wald + new Vector3(2, 0.3f, 0), new Vector3(2.2f, 0.6f, 0.8f), holz);
-    }
 
     // ═════════════════════════════════════════════════════════════════════════
     //  Wohnhäuser

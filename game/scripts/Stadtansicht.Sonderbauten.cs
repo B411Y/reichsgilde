@@ -459,7 +459,7 @@ public partial class Stadtansicht
 
         // Gläubige zur Messe: eine Figur je fünf, vorne zuerst
         var reihenfolge = sitzplaetze.Select((x, i) => (x, i)).OrderBy(x => x.x.Platz.Ort.Z).ThenBy(x => Math.Abs(x.x.Platz.Ort.X)).Select(x => x.i).ToList();
-        var glaeubige = sitzplaetze.Select((x, i) => GastBauen(a, x.Platz, i)).ToList();
+        var glaeubige = sitzplaetze.Select((x, i) => GlaeubigerBauen(a, x.Platz, i)).ToList(); // Figurmodelle wie die Passanten
         // Einwohner, die gerade im Dom sind (Passanten), sitzen einzeln: Nummer → Figur und Sitzplatz
         var betende = new Dictionary<int, (Arbeiterfigur Figur, int Platz)>();
         Infotafel(a, new Vector3(0, 5.5f, 0));
@@ -510,6 +510,7 @@ public partial class Stadtansicht
                 : $"\nMesse gehalten: {Zahlenformat.Ganz(imDom)} Gläubige ohne Kirche eines Hauses";
             var betenText = betende.Count == 0 ? "" : $"\nZum Gebet im Dom: {PersonenText(betende.Count)}";
             a.Infotafel!.Text = titel + messeText + betenText;
+            SitzendeBewegen(); // Betende und Gläubige sitzen und atmen (Stadtansicht.Passanten.cs)
         };
     }
 
@@ -525,7 +526,7 @@ public partial class Stadtansicht
         foreach (var nummer in betende.Keys.Where(n => !_imDom.Contains(n)).ToList())
         {
             a.Besucher.Remove(betende[nummer].Figur);
-            KnotenEntfernen(betende[nummer].Figur.Koerper);
+            SitzendeEntfernen(betende[nummer].Figur);
             betende.Remove(nummer);
         }
         var besetzt = betende.Values.Select(b => b.Platz).ToHashSet();
