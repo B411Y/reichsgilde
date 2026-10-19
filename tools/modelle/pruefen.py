@@ -15,9 +15,17 @@ Mit `--natur` (Bäume, Büsche, Boden, Steine, Totholz) sind weder Hausfarbe noc
 sind dann die größte erlaubte Ausdehnung eines einzelnen Knotens (jeder steht mit dem Fuß im Nullpunkt).
 Ankerpunkte („Anker_…“, leere Knoten) werden mit Lage und Blickrichtung gelistet; „Anker_Tuer“ ist Pflicht
 und jeder Anker muss auf der Fläche liegen.
+Mit `--innen` (Innenräume, z. B. schmied_innen.glb) gelten eigene Regeln: Räume „Raum_<Name>“, Stufe1–Stufe3, je Raum
+ein Blickpunkt „Blick_<Raum>_0“ (weitere „_L1“, „_R1“, „_O1“, „_U1“ …), Bedienung für Personal, Produktion, Lager,
+Einrichten und Karren, Türen paarweise („Tuer_A_B“ und „Tuer_B_A“), Einrichtung standardmäßig aus (und „Holztuer“, wenn es
+„Einrichtung_Eisentuer“ gibt), Arbeitsplätze „Arbeit_<n>_<Bewegung>“ (n lückenlos ab 1, die Bewegung muss es in
+figur_mensch.glb geben), Stellplätze „Lager_<n>“ und Werkstücke „Werkstueck_<n>“ lückenlos ab 1; alle Anker und
+Blickpunkte liegen in einem Raum. Die Lage rechnet die Knotenhierarchie mit ein.
 """
 
 import math
+import os
+import re
 
 import json
 import struct
@@ -33,7 +41,139 @@ def lesen(pfad):
     return json.loads(daten[20:20 + laenge])
 
 
+def _matrix(knoten):
+    """4×4-Matrix (Zeilen) eines glTF-Knotens aus matrix oder translation/rotation/scale."""
+    if "matrix" in knoten:
+        m = knoten["matrix"]
+        return [[m[c * 4 + r] for c in range(4)] for r in range(4)]
+    tx, ty, tz = knoten.get("translation", [0, 0, 0])
+    x, y, z, w = knoten.get("rotation", [0, 0, 0, 1])
+    sx, sy, sz = knoten.get("scale", [1, 1, 1])
+    r = [[1 - 2 * (y * y + z * z), 2 * (x * y - z * w), 2 * (x * z + y * w)],
+         [2 * (x * y + z * w), 1 - 2 * (x * x + z * z), 2 * (y * z - x * w)],
+         [2 * (x * z - y * w), 2 * (y * z + x * w), 1 - 2 * (x * x + y * y)]]
+    return [[r[0][0] * sx, r[0][1] * sy, r[0][2] * sz, tx], [r[1][0] * sx, r[1][1] * sy, r[1][2] * sz, ty],
+            [r[2][0] * sx, r[2][1] * sy, r[2][2] * sz, tz], [0, 0, 0, 1]]
+
+
+def _mal(a, b):
+    return [[sum(a[i][k] * b[k][j] for k in range(4)) for j in range(4)] for i in range(4)]
+
+
+def _welt(g):
+    """Weltmatrix je Knotenindex (Eltern eingerechnet)."""
+    eltern = {k: i for i, n in enumerate(g["nodes"]) for k in n.get("children", [])}
+    welt = {}
+
+    def rechne(i):
+        if i not in welt:
+            m = _matrix(g["nodes"][i])
+            welt[i] = _mal(rechne(eltern[i]), m) if i in eltern else m
+        return welt[i]
+    for i in range(len(g["nodes"])):
+        rechne(i)
+    return welt
+
+
+def innen(pfad, g):
+    """Prüfung für Innenräume (siehe oben). Gibt die Liste der Fehler zurück."""
+    fehler = []
+    welt = _welt(g)
+    knoten = {n.get("name", ""): i for i, n in enumerate(g["nodes"])}
+    print("Materialien:", ", ".join(m["name"] for m in g.get("materials", [])))
+    raeume = {}
+    summe = 0
+    for name, i in sorted(knoten.items()):
+        n = g["nodes"][i]
+        if "mesh" not in n:
+            continue
+        dreiecke = sum(g["accessors"][p["indices"]]["count"] // 3 for p in g["meshes"][n["mesh"]]["primitives"] if "indices" in p)
+        summe += dreiecke
+        print(f"  {name:36s} {dreiecke:6d}  {n.get('extras', '')}")
+        if name.startswith("Raum_"):
+            ecken = []
+            for p in g["meshes"][n["mesh"]]["primitives"]:
+                acc = g["accessors"][p["attributes"]["POSITION"]]
+                for x in (acc["min"][0], acc["max"][0]):
+                    for y in (acc["min"][1], acc["max"][1]):
+                        for z in (acc["min"][2], acc["max"][2]):
+                            m = welt[i]
+                            ecken.append([sum(m[r][c] * v for c, v in enumerate((x, y, z, 1))) for r in range(3)])
+            raeume[name[5:]] = ([min(e[k] for e in ecken) for k in range(3)], [max(e[k] for e in ecken) for k in range(3)])
+    print(f"  {'gesamt':36s} {summe:6d}")
+    if not raeume:
+        fehler.append("kein Raum „Raum_<Name>“")
+    for k in (1, 2, 3):
+        if f"Stufe{k}" not in knoten:
+            fehler.append(f"Stufe{k} fehlt")
+
+    def raum_bei(p):
+        return next((r for r, (lo, hi) in raeume.items() if all(lo[k] - 1e-3 <= p[k] <= hi[k] + 1e-3 for k in range(3))), None)
+
+    bewegungen = None
+    figur = os.path.join(os.path.dirname(os.path.abspath(pfad)), "figur_mensch.glb")
+    if os.path.exists(figur):
+        bewegungen = {a["name"] for a in lesen(figur).get("animations", [])}
+    print("Anker und Blickpunkte (Spielkoordinaten, Blick = −Z):")
+    reihen = {"Arbeit": [], "Lager": [], "Werkstueck": []}
+    for name, i in sorted(knoten.items()):
+        if "mesh" in g["nodes"][i] or not name.startswith(("Blick_", "Arbeit_", "Lager_", "Werkstueck_", "Licht_")):
+            continue
+        m = welt[i]
+        p = [m[0][3], m[1][3], m[2][3]]
+        vor = [-m[0][2], -m[1][2], -m[2][2]]
+        laenge = math.sqrt(sum(v * v for v in vor)) or 1.0
+        vor = [v / laenge for v in vor]
+        gier = math.degrees(math.atan2(-vor[0], -vor[2]))
+        neigung = math.degrees(math.asin(max(-1.0, min(1.0, vor[1]))))
+        print(f"  {name:22s} bei X {p[0]:6.2f}  Y {p[1]:5.2f}  Z {p[2]:6.2f}  Blick {gier:6.1f}° waagrecht, {neigung:5.1f}° hoch"
+              f"  {g['nodes'][i].get('extras', '')}")
+        raum = raum_bei(p)
+        if raum is None:
+            fehler.append(f"{name} liegt in keinem Raum")
+        if name.startswith("Blick_"):
+            teile = re.fullmatch(r"Blick_(.+)_(0|[LROU]\d+)", name)
+            if not teile or teile.group(1) not in raeume:
+                fehler.append(f"{name}: Name muss Blick_<Raum>_<0|L1|R1|O1|U1 …> sein")
+            elif raum != teile.group(1):
+                fehler.append(f"{name} liegt nicht im Raum {teile.group(1)}")
+        for art in reihen:
+            treffer = re.fullmatch(art + r"_(\d+)(?:_(.+))?", name)
+            if treffer:
+                reihen[art].append(int(treffer.group(1)))
+                if art == "Arbeit" and bewegungen is not None and treffer.group(2) not in bewegungen:
+                    fehler.append(f"{name}: Bewegung „{treffer.group(2)}“ gibt es in figur_mensch.glb nicht")
+    for raum in raeume:
+        if f"Blick_{raum}_0" not in knoten:
+            fehler.append(f"Blickpunkt „Blick_{raum}_0“ fehlt")
+    for art, nummern in reihen.items():
+        if sorted(nummern) != list(range(1, len(nummern) + 1)) or not nummern:
+            fehler.append(f"{art}_<n>: Nummern müssen lückenlos ab 1 laufen, gefunden {sorted(nummern)}")
+    print("Arbeitsplätze {}, Stellplätze {}, Werkstücke {}".format(*(len(reihen[a]) for a in ("Arbeit", "Lager", "Werkstueck"))))
+    for art in ("Personal", "Produktion", "Lager", "Einrichten", "Karren"):
+        if not any(n.startswith(f"Bedienung_{art}_") for n in knoten):
+            fehler.append(f"keine Bedienung „Bedienung_{art}_…“")
+    for name in knoten:
+        tuer = re.fullmatch(r"Tuer_(.+?)_(.+)", name)
+        if tuer:
+            a, b = tuer.groups()
+            if a not in raeume or b not in raeume:
+                fehler.append(f"{name}: Räume {a} und {b} muss es als Raum_{a}, Raum_{b} geben")
+            if f"Tuer_{b}_{a}" not in knoten:
+                fehler.append(f"{name}: Gegentür Tuer_{b}_{a} fehlt")
+        if name.startswith("Einrichtung_") and g["nodes"][knoten[name]].get("extras", {}).get("sichtbar", True):
+            fehler.append(f"{name} ist nicht als unsichtbar markiert")
+    if "Einrichtung_Eisentuer" in knoten and "Holztuer" not in knoten:
+        fehler.append("Einrichtung_Eisentuer ohne Holztuer")
+    return fehler
+
+
 def main():
+    if "--innen" in sys.argv:
+        pfad = [a for a in sys.argv[1:] if not a.startswith("--")][0]
+        fehler = innen(pfad, lesen(pfad))
+        print("in Ordnung" if not fehler else "FEHLER:\n  " + "\n  ".join(fehler))
+        sys.exit(1 if fehler else 0)
     sonderbau = "--sonderbau" in sys.argv
     umland = "--umland" in sys.argv
     natur = "--natur" in sys.argv
