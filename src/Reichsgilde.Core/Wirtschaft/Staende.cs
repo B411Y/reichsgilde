@@ -64,6 +64,10 @@ public sealed class LiegenschaftDaten
     /// <summary>Welchen Meistergrad im Beruf der Käufer braucht – wie beim Ausbau zu dieser Stufe (Stufe 1: Grad 1).</summary>
     [JsonIgnore]
     public int MindestGrad { get; init; } = 1;
+
+    /// <summary>Ein verkaufter Betrieb: Diese Einrichtung ist im Haus geblieben und geht an den nächsten Käufer (Kennungen).</summary>
+    [JsonIgnore]
+    public List<string> Einrichtung { get; init; } = new();
 }
 
 /// <summary>

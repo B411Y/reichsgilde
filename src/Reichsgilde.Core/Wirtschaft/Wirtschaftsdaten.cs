@@ -220,6 +220,12 @@ public sealed class Wirtschaftsdaten
     /// <summary>Einwohner der Stadt mit Tagesablauf – Bürger-KI (ab Datenversion 25). Fehlt der Abschnitt, gibt es keine Einwohner.</summary>
     public Reichsgilde.Core.Buerger.BuergerDaten? Buerger { get; init; }
 
+    /// <summary>
+    /// Werkstatt wie in Gilde 1: Lohnstufen, Prämie, Laune, Unfälle, Beförderung und Einrichtung je Beruf (ab Datenversion 36).
+    /// Fehlt der Abschnitt, arbeiten alle mit neutraler Laune, ohne Unfälle und ohne Einrichtung.
+    /// </summary>
+    public WerkstattDaten? Werkstatt { get; init; }
+
     /// <summary>Meisterprüfungen und Gebäudestufen (ab Datenversion 13). Fehlt der Abschnitt, bleibt jedes Haus auf Grad 1.</summary>
     public MeistergradDaten? Meistergrade { get; init; }
 
@@ -404,6 +410,7 @@ public sealed class Wirtschaftsdaten
         Wohnen?.Pruefen(f, Staende.Count);
         Bauen?.Pruefen(f, Wohnen);
         Verkauf.Pruefen(f);
+        Werkstatt?.Pruefen(f, Berufe, Waren, Arbeitskraefte);
 
         if (Staende.Count == 0) f.Add("Es sind keine Stände definiert.");
         for (var i = 0; i < Staende.Count; i++)

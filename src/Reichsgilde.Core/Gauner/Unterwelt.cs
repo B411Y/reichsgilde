@@ -104,8 +104,9 @@ public sealed class Unterwelt
         return art switch
         {
             // Die Streife der Wache macht nächtliche Taten in der Stadt schwerer.
-            Gaunerstueck.Diebstahl => Math.Min(0.95, d.Diebstahl.Chance * schutz + nacht) * _w.Wache.Patrouillefaktor(b),
-            Gaunerstueck.Sabotage => Math.Min(0.95, d.Sabotage.Chance * schutz + nacht) * _w.Wache.Patrouillefaktor(b),
+            // Eisentür bzw. Löschfass der Werkstatt machen es zusätzlich schwerer.
+            Gaunerstueck.Diebstahl => Math.Min(0.95, d.Diebstahl.Chance * schutz + nacht) * _w.Wache.Patrouillefaktor(b) * (b?.EinbruchFaktor ?? 1),
+            Gaunerstueck.Sabotage => Math.Min(0.95, d.Sabotage.Chance * schutz + nacht) * _w.Wache.Patrouillefaktor(b) * (b?.BrandFaktor ?? 1),
             // Wächter schützen Betriebe, nicht die Tafel; ein Alchimist mischt selbst – sicherer
             Gaunerstueck.Kroetenschleim => Math.Min(0.95, d.Kroetenschleim.Chance + nacht + (MischtSelbst(auftraggeber) ? d.Kroetenschleim.BerufBonus : 0)),
             _ => Staerke(auftraggeber), // vor der Eskorte des jeweiligen Karrens

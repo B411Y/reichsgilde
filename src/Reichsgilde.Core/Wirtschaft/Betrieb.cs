@@ -137,17 +137,30 @@ public sealed class Betriebsrechnung
 /// Ablauf:
 ///   • Während der Arbeitszeit produzieren die Arbeitskräfte. Zutaten kommen aus dem Lager,
 ///     fertige Waren gehen ins Lager.
-///   • Fehlen Zutaten oder ist das Lager voll, steht die Produktion still.
+///   • Jeder Arbeiter ist ein eigener Eintrag (<see cref="Arbeiter"/>) mit eigener Ware: Eine Werkstatt stellt
+///     mehrere Waren zugleich her, jede mit ihrem eigenen Fortschritt. Wer keine Ware zugeteilt hat, arbeitet am <see cref="Produkt"/>.
+///   • Fehlen Zutaten oder ist das Lager voll, steht die Produktion dieser Ware still.
 ///   • Die Karren bringen Waren zum Markt und Zutaten zurück (siehe <see cref="Karren"/>).
 /// </summary>
 public sealed class Betrieb
 {
     private readonly Wirtschaftsdaten _daten;
     private BetriebsartDaten _art;
-    private readonly Dictionary<string, int> _belegung = new();
+    private readonly List<Arbeiter> _arbeiter = new();
+    private int _naechsteNummer = 1;
+    private readonly Dictionary<string, int> _belegung = new(); // aus _arbeiter abgeleitet (Art → Anzahl)
     private readonly SortedDictionary<string, int> _lager = new(StringComparer.Ordinal); // sortiert: gleiche Reihenfolge nach Entnehmen und nach dem Laden
     private readonly List<Karren> _karren = new();
-    private double _fortschritt;        // Werkstatt: Arbeitsminuten am aktuellen Stück
+    private readonly SortedDictionary<string, double> _fortschrittJeWare = new(StringComparer.Ordinal); // Werkstatt: Arbeitsminuten am Stück je Ware
+    private readonly SortedDictionary<string, double> _leistungJeWare = new(StringComparer.Ordinal);    // nur innerhalb einer Arbeitsminute
+    private readonly SortedSet<string> _einrichtung = new(StringComparer.Ordinal);
+    private List<string> _warenInArbeit = new();
+    private IReadOnlyDictionary<string, int> _zutaten = KeineZutaten;
+    private readonly Func<long> _jetzt;  // die Uhr der Stadt (Spielminuten seit Spielbeginn)
+    private double _lohnFaktorSumme;     // Lohnstufe über die Arbeitsminuten des Jahres – wer kurz vor der Abrechnung knausert, spart nichts
+    private int _lohnMinuten;
+    private int _lagerPlus;              // Regale: so viel mehr Lager je Ware
+    private double _fortschritt;        // ohne Produktion: gesammelte Arbeitsminuten
     private double _fortschrittEisen;   // Umland: erster Rohstoff (Name aus alten Spielständen)
     private double _fortschrittSilber;  // Umland: zweiter Rohstoff
     private string _produkt;
@@ -198,11 +211,23 @@ public sealed class Betrieb
     /// <summary>Umland: die geförderten Rohstoffe (eine oder zwei Waren).</summary>
     public IReadOnlyList<string> Rohstoffe => _art.Rohstoffe;
 
+    /// <summary>Wie viele Arbeitskräfte jeder Art hier arbeiten (aus <see cref="Arbeiter"/> gezählt, auch wer nach einem Unfall fehlt).</summary>
     public IReadOnlyDictionary<string, int> Belegung => _belegung;
-    public int Belegt => _belegung.Values.Sum();
+    public int Belegt => _arbeiter.Count;
+
+    /// <summary>Die einzelnen Arbeiter in der Reihenfolge, in der sie eingestellt wurden.</summary>
+    public IReadOnlyList<Arbeiter> Arbeiter => _arbeiter;
+
+    /// <summary>Der Arbeiter mit dieser Nummer (null, wenn es ihn hier nicht gibt).</summary>
+    public Arbeiter? ArbeiterNr(int nummer) => _arbeiter.FirstOrDefault(a => a.Nummer == nummer);
+
+    /// <summary>Woran der Arbeiter arbeitet: seine zugeteilte Ware oder die Ware des Betriebs.</summary>
+    public string WareVon(Arbeiter a) => a.Ware ?? _produkt;
 
     public IReadOnlyDictionary<string, int> Lager => _lager;
-    public int LagerKapazitaetJeWare => _daten.Logistik.LagerJeWare;
+
+    /// <summary>Wie viel von jeder Ware ins Lager passt – 40 laut Daten, mit Regalen mehr.</summary>
+    public int LagerKapazitaetJeWare => _daten.Logistik.LagerJeWare + _lagerPlus;
     public int ImLager(string ware) => _lager.GetValueOrDefault(ware);
 
     public IReadOnlyList<Karren> Karren => _karren;
@@ -222,7 +247,10 @@ public sealed class Betrieb
     /// <summary>Arbeitsminuten mit Stillstand im Vorjahr – zeigt, ob Karren oder Lager zu knapp sind.</summary>
     public int StillstandMinutenVorjahr { get; private set; }
 
-    /// <summary>Was die Werkstatt herstellt – eines ihrer <see cref="BetriebsartDaten.Produkte"/>.</summary>
+    /// <summary>
+    /// Die Ware des Betriebs – eines seiner <see cref="BetriebsartDaten.Produkte"/>: Daran arbeitet, wem keine eigene Ware zugeteilt ist.
+    /// Setzen (Befehl <see cref="ProduktWaehlen"/>) teilt alle Arbeiter dieser Ware zu. Der Fortschritt anderer Waren bleibt liegen.
+    /// </summary>
     public string Produkt
     {
         get => _produkt;
@@ -232,10 +260,100 @@ public sealed class Betrieb
                 throw new InvalidOperationException($"Eine {_art.Name} stellt nichts her, sie fördert.");
             if (!_art.Produkte.Contains(value) || !_daten.Waren.ContainsKey(value))
                 throw new ArgumentException($"„{value}“ kann eine {_art.Name} nicht herstellen.");
-            if (value != _produkt) _fortschritt = 0;
             _produkt = value;
+            foreach (var a in _arbeiter) a.Ware = null;
+            PersonalGeaendert();
         }
     }
+
+    /// <summary>Die Waren, an denen gerade jemand arbeitet (sortiert; ohne Personal nur die Ware des Betriebs).</summary>
+    public IReadOnlyList<string> WarenInArbeit => _warenInArbeit;
+
+    /// <summary>Werkstatt: Anteil jeder Ware an der Arbeit (nach dem Tempo der zugeteilten Arbeitskräfte; ohne Personal die Ware des Betriebs ganz).</summary>
+    public IReadOnlyDictionary<string, double> WarenAnteile
+    {
+        get
+        {
+            var anteile = new SortedDictionary<string, double>(StringComparer.Ordinal);
+            if (!IstWerkstatt) return anteile;
+            foreach (var a in _arbeiter)
+                anteile[WareVon(a)] = anteile.GetValueOrDefault(WareVon(a)) + _daten.Arbeitskraefte[a.Arbeitskraft].TempoAm(Ort);
+            var summe = anteile.Values.Sum();
+            if (summe <= 0) return new SortedDictionary<string, double>(StringComparer.Ordinal) { [_produkt] = 1 };
+            foreach (var ware in anteile.Keys.ToList()) anteile[ware] /= summe;
+            return anteile;
+        }
+    }
+
+    /// <summary>Werkstatt: Arbeitsminuten, die am angefangenen Stück dieser Ware schon getan sind.</summary>
+    public double FortschrittVon(string ware) => _fortschrittJeWare.GetValueOrDefault(ware);
+
+    /// <summary>Arbeitsminuten (eines Gesellen) je Stück in dieser Werkstatt – mit der Wirkung der Einrichtung.</summary>
+    public double MinutenJeStueck(string ware) => _daten.Waren[ware].Zeit * ZeitFaktor(ware);
+
+    // ── Einrichtung ─────────────────────────────────────────────────────────
+
+    /// <summary>Die gekauften Stücke (Kennungen, sortiert).</summary>
+    public IReadOnlyCollection<string> Einrichtung => _einrichtung;
+
+    public bool HatEinrichtung(string kennung) => _einrichtung.Contains(kennung);
+
+    /// <summary>Die gekauften Stücke mit ihren Daten (Stücke, die es in den Daten nicht mehr gibt, wirken nicht).</summary>
+    public IEnumerable<EinrichtungDaten> Einrichtungsstuecke =>
+        _einrichtung.Count == 0 || _daten.Werkstatt is not { } w ? Enumerable.Empty<EinrichtungDaten>()
+            : w.EinrichtungFuer(_art.Beruf).Where(e => _einrichtung.Contains(e.Kennung));
+
+    /// <summary>Faktor der Einrichtung auf die Zeit je Stück dieser Ware (1 = ohne Wirkung).</summary>
+    public double ZeitFaktor(string ware)
+    {
+        var faktor = 1.0;
+        foreach (var e in Einrichtungsstuecke)
+            if (e.Wirkung.GiltFuer(ware)) faktor *= e.Wirkung.ZeitFaktor;
+        return faktor;
+    }
+
+    /// <summary>Faktor auf die Unfallgefahr (Schürzen: 0,5).</summary>
+    public double UnfallFaktor => Einrichtungsstuecke.Aggregate(1.0, (f, e) => f * e.Wirkung.UnfallFaktor);
+
+    /// <summary>Faktor auf die Erfolgschance von Feuer – Sabotage und Brand (Löschfass).</summary>
+    public double BrandFaktor => Einrichtungsstuecke.Aggregate(1.0, (f, e) => f * e.Wirkung.BrandFaktor);
+
+    /// <summary>Faktor auf die Erfolgschance von Diebstahl und Einbruch ins Lager (Eisentür).</summary>
+    public double EinbruchFaktor => Einrichtungsstuecke.Aggregate(1.0, (f, e) => f * e.Wirkung.EinbruchFaktor);
+
+    internal void EinrichtungHinzufuegen(string kennung)
+    {
+        _einrichtung.Add(kennung);
+        _lagerPlus = Einrichtungsstuecke.Sum(e => e.Wirkung.LagerPlus);
+    }
+
+    // ── Lohn und Laune ──────────────────────────────────────────────────────
+
+    /// <summary>Wie gut der Betrieb zahlt (nur Werkstätten; sonst immer üblich).</summary>
+    public Lohnstufe Lohnstufe { get; internal set; } = Lohnstufe.Ueblich;
+
+    /// <summary>Faktor auf den Lohn bei der jetzigen Lohnstufe.</summary>
+    public double LohnFaktor => _daten.Werkstatt?.Stufe(Lohnstufe).LohnFaktor ?? 1;
+
+    /// <summary>Löhne für ein ganzes Jahr bei der jetzigen Belegung und Lohnstufe (ohne Wächter).</summary>
+    public double Lohnkosten => _belegung.Sum(b => b.Value * _daten.Arbeitskraefte[b.Key].Kosten) * LohnFaktor;
+
+    /// <summary>Nach einem Unfall ist die Laune aller hier bis zu dieser Spielminute gedrückt (null = kein Unfall).</summary>
+    public long? UnfallLauneBis { get; internal set; }
+
+    /// <summary>Gilt die Werkstatt wie in Gilde 1 (Laune, Lohnstufe, Unfälle, Einrichtung) für diesen Betrieb? Nur Werkstätten mit Ware.</summary>
+    public bool HatWerkstattregeln => IstWerkstatt && _daten.Werkstatt is not null;
+
+    /// <summary>Faktor der Laune auf das Tempo dieses Arbeiters (1 = neutral; ±20 % laut Daten). Nur in Werkstätten mit Ware.</summary>
+    public double TempoFaktor(Arbeiter a)
+    {
+        if (!HatWerkstattregeln) return 1;
+        var l = _daten.Werkstatt!.Laune;
+        var abstand = a.Laune >= l.Neutral ? (a.Laune - l.Neutral) / (100 - l.Neutral) : (a.Laune - l.Neutral) / l.Neutral;
+        return 1 + l.TempoBis * Math.Clamp(abstand, -1, 1);
+    }
+
+    private double NeutraleLaune => _daten.Werkstatt?.Laune.Neutral ?? 50;
 
     /// <summary>
     /// Umland mit zwei Rohstoffen: Anteil der Arbeitszeit für den zweiten (Grube: 0 = nur Eisen, 1 = nur Silber).
@@ -247,9 +365,11 @@ public sealed class Betrieb
         set => _silberanteil = Math.Clamp(value, 0, 1);
     }
 
-    /// <summary>Waren, die dieser Betrieb als Zutaten braucht (nur Werkstätten).</summary>
-    public IReadOnlyDictionary<string, int> Zutaten =>
-        IstWerkstatt ? _daten.Waren[_produkt].Zutaten : KeineZutaten;
+    /// <summary>
+    /// Waren, die dieser Betrieb als Zutaten braucht (nur Werkstätten): Menge je Stück, über alle <see cref="WarenInArbeit"/> zusammengezählt
+    /// (eine Runde, in der von jeder Ware in Arbeit ein Stück entsteht).
+    /// </summary>
+    public IReadOnlyDictionary<string, int> Zutaten => _zutaten;
 
     private static readonly Dictionary<string, int> KeineZutaten = new();
 
@@ -258,15 +378,44 @@ public sealed class Betrieb
         Zutaten.Count == 0 ? int.MaxValue : Zutaten.Min(z => ImLager(z.Key) / z.Value);
 
     /// <param name="ganzjaehrig">Eröffnet genau zum Jahresbeginn? Dann zählt die erste Betriebsrechnung als ganzes Jahr.</param>
-    internal Betrieb(string name, Betriebsart art, Konto konto, Wirtschaftsdaten daten, bool ganzjaehrig = false)
+    /// <param name="jetzt">Die Uhr der Stadt in Spielminuten (für Dienstzeit und Unfälle; ohne Angabe steht sie auf 0).</param>
+    internal Betrieb(string name, Betriebsart art, Konto konto, Wirtschaftsdaten daten, bool ganzjaehrig = false, Func<long>? jetzt = null)
     {
         Name = name;
         Art = art;
         Konto = konto;
         _daten = daten;
         _art = daten.Art(art);
+        _jetzt = jetzt ?? (() => 0);
         _produkt = _art.Standardprodukt ?? _art.Produkte.LastOrDefault() ?? "";
         Laufend = new Betriebsrechnung { Jahr = konto.Laufend.Jahr, Ganzjaehrig = ganzjaehrig };
+        PersonalGeaendert();
+    }
+
+    /// <summary>Nach jeder Änderung am Personal oder an der Ware: Belegung, Waren in Arbeit und Zutaten neu zählen.</summary>
+    private void PersonalGeaendert()
+    {
+        _belegung.Clear();
+        foreach (var a in _arbeiter)
+            _belegung[a.Arbeitskraft] = _belegung.GetValueOrDefault(a.Arbeitskraft) + 1;
+        if (!IstWerkstatt)
+        {
+            _warenInArbeit = new List<string>();
+            _zutaten = KeineZutaten;
+            return;
+        }
+        _warenInArbeit = _arbeiter.Count == 0 ? new List<string> { _produkt }
+            : _arbeiter.Select(WareVon).Distinct().OrderBy(w => w, StringComparer.Ordinal).ToList();
+        if (_warenInArbeit.Count == 1)
+        {
+            _zutaten = _daten.Waren[_warenInArbeit[0]].Zutaten;
+            return;
+        }
+        var summe = new SortedDictionary<string, int>(StringComparer.Ordinal);
+        foreach (var ware in _warenInArbeit)
+            foreach (var (zutat, menge) in _daten.Waren[ware].Zutaten)
+                summe[zutat] = summe.GetValueOrDefault(zutat) + menge;
+        _zutaten = summe;
     }
 
     // ── Rechnung des Betriebs ───────────────────────────────────────────────
@@ -314,8 +463,45 @@ public sealed class Betrieb
         if (andere + anzahl > Plaetze)
             throw new InvalidOperationException($"{Name} hat nur {Plaetze} Arbeitsplätze ({andere} sind schon belegt).");
 
-        if (anzahl == 0) _belegung.Remove(arbeitskraft);
-        else _belegung[arbeitskraft] = anzahl;
+        // Mehr: neue Arbeiter an der Ware des Betriebs. Weniger: die zuletzt eingestellten dieser Art gehen.
+        var jetzt = _belegung.GetValueOrDefault(arbeitskraft);
+        for (var i = jetzt; i < anzahl; i++)
+            _arbeiter.Add(new Arbeiter(_naechsteNummer++, arbeitskraft, _jetzt(), NeutraleLaune));
+        for (var i = jetzt; i > anzahl; i--)
+            _arbeiter.RemoveAt(_arbeiter.FindLastIndex(a => a.Arbeitskraft == arbeitskraft));
+        PersonalGeaendert();
+    }
+
+    /// <summary>Stellt einen Arbeiter ein (Statut und Plätze wie bei <see cref="Einstellen"/>) und teilt ihm gleich eine Ware zu.</summary>
+    internal Arbeiter EinenEinstellen(string arbeitskraft, string? ware, Fronstatut statut)
+    {
+        Einstellen(arbeitskraft, _belegung.GetValueOrDefault(arbeitskraft) + 1, statut);
+        var neu = _arbeiter[^1];
+        if (ware is not null) Zuteilen(neu, ware);
+        return neu;
+    }
+
+    /// <summary>Entlässt diesen einen Arbeiter (Kündigung, Entlassung, gefasster Taschendieb).</summary>
+    internal void Entlassen(Arbeiter a)
+    {
+        _arbeiter.Remove(a);
+        PersonalGeaendert();
+    }
+
+    /// <summary>Teilt dem Arbeiter eine Ware zu (null: wieder die Ware des Betriebs). Die Ware muss die Werkstatt herstellen können.</summary>
+    internal void Zuteilen(Arbeiter a, string? ware)
+    {
+        if (ware is not null && (!IstWerkstatt || !_art.Produkte.Contains(ware)))
+            throw new ArgumentException($"„{ware}“ kann eine {_art.Name} nicht herstellen.");
+        a.Ware = ware;
+        PersonalGeaendert();
+    }
+
+    /// <summary>Beförderung: Der Arbeiter wird zu dieser Arbeitskraft (Ware, Laune und Nummer bleiben).</summary>
+    internal void Befoerdern(Arbeiter a, string zu)
+    {
+        a.Arbeitskraft = zu;
+        PersonalGeaendert();
     }
 
     /// <summary>Entlässt alle Arbeitskräfte, die unter dem Statut nicht erlaubt sind.</summary>
@@ -325,8 +511,9 @@ public sealed class Betrieb
             .Where(b => !_daten.Arbeitskraefte[b.Key].IstErlaubt(statut, Ort))
             .Select(b => (b.Key, b.Value))
             .ToList();
-        foreach (var (kraft, _) in entlassen)
-            _belegung.Remove(kraft);
+        if (entlassen.Count == 0) return entlassen;
+        _arbeiter.RemoveAll(a => entlassen.Any(e => e.Item1 == a.Arbeitskraft));
+        PersonalGeaendert();
         return entlassen;
     }
 
@@ -394,16 +581,28 @@ public sealed class Betrieb
 
     // ── Produktion ──────────────────────────────────────────────────────────
 
-    /// <summary>Arbeitsminuten, die die Belegschaft in einer Spielminute schafft.</summary>
-    public double LeistungProMinute =>
-        _belegung.Sum(b => b.Value * _daten.Arbeitskraefte[b.Key].TempoAm(Ort));
+    /// <summary>Arbeitsminuten, die die Belegschaft in einer Spielminute schafft (wer nach einem Unfall fehlt, zählt nicht; mit der Laune).</summary>
+    public double LeistungProMinute
+    {
+        get
+        {
+            var jetzt = _jetzt();
+            var summe = 0.0;
+            foreach (var a in _arbeiter)
+                if (!a.FaelltAus(jetzt))
+                    summe += _daten.Arbeitskraefte[a.Arbeitskraft].TempoAm(Ort) * TempoFaktor(a);
+            return summe;
+        }
+    }
 
     /// <summary>Eine Spielminute Arbeit. Wird nur während der Arbeitszeit aufgerufen.</summary>
-    /// <param name="leistungsFaktor">Handwerkskunst des Oberhaupts: 1,09 = die Arbeitskräfte schaffen 9 % mehr.</param>
     /// <param name="leistungsFaktor">Handwerkskunst des Oberhaupts, Krankenstand, Völkerbonus – gilt für Betriebe mit Ware.</param>
     /// <param name="volksFaktor">Nur der Völkerbonus – gilt auch für Betriebe ohne Ware (Diebe, Wache, Schreiber).</param>
     internal void Arbeitsminute(Action<string> melden, double leistungsFaktor = 1, double volksFaktor = 1)
     {
+        _lohnFaktorSumme += LohnFaktor; // für den Lohn am Jahresende: die Lohnstufe im Mittel der Arbeitszeit
+        _lohnMinuten++;
+
         if (_umbauMinuten > 0 || _sabotageMinuten > 0)
         {
             // Während des Umbaus bzw. nach einem Anschlag wird gebaut statt gearbeitet.
@@ -427,14 +626,15 @@ public sealed class Betrieb
             return;
         }
 
-        var leistung = LeistungProMinute * leistungsFaktor;
+        var leistungProMinute = LeistungProMinute;
+        var leistung = leistungProMinute * leistungsFaktor;
         if (leistung <= 0) return;
 
         if (OhneProduktion)
         {
             // Diebe verdienen nicht nach Handwerkskunst – gezählt wird die Arbeitszeit der Leute, mit dem Geschick ihres Volkes.
-            _fortschritt += LeistungProMinute * volksFaktor;
-            Konto.ErfahrungSammeln(_art.Beruf, LeistungProMinute * volksFaktor / 60);
+            _fortschritt += leistungProMinute * volksFaktor;
+            Konto.ErfahrungSammeln(_art.Beruf, leistungProMinute * volksFaktor / 60);
             Stillstand = null;
             _letzterStillstand = null;
             return;
@@ -443,22 +643,19 @@ public sealed class Betrieb
         string? stillstand = null;
         if (IstWerkstatt)
         {
-            var zeit = _daten.Waren[_produkt].Zeit;
-            _fortschritt += leistung;
-            while (_fortschritt >= zeit)
+            // Jede Ware für sich: Die Leistung der Arbeiter, die an ihr arbeiten, geht in ihren eigenen Fortschritt.
+            var jetzt = _jetzt();
+            _leistungJeWare.Clear();
+            foreach (var a in _arbeiter)
             {
-                stillstand = KannHerstellen(_produkt);
-                if (stillstand is not null)
-                {
-                    _fortschritt = zeit; // wartet, statt Arbeit „anzusparen"
-                    break;
-                }
-                foreach (var (zutat, menge) in Zutaten)
-                    Auslagern(zutat, menge);
-                Einlagern(_produkt, 1);
-                Konto.Hergestellt(_produkt);
-                Konto.ErfahrungSammeln(_art.Beruf, zeit / 60);
-                _fortschritt -= zeit;
+                if (a.FaelltAus(jetzt)) continue;
+                var ware = WareVon(a);
+                _leistungJeWare[ware] = _leistungJeWare.GetValueOrDefault(ware) + _daten.Arbeitskraefte[a.Arbeitskraft].TempoAm(Ort) * TempoFaktor(a);
+            }
+            foreach (var (ware, anteil) in _leistungJeWare)
+            {
+                var grund = Herstellen(ware, anteil * leistungsFaktor);
+                stillstand ??= grund;
             }
         }
         else if (Rohstoffe.Count == 1)
@@ -482,6 +679,31 @@ public sealed class Betrieb
         _letzterStillstand = stillstand;
         Stillstand = stillstand;
         if (stillstand is not null) StillstandMinuten++;
+    }
+
+    /// <summary>Werkstatt: so viel Arbeit an dieser Ware – fertige Stücke ins Lager. Gibt den Grund zurück, wenn sie stillsteht.</summary>
+    private string? Herstellen(string ware, double leistung)
+    {
+        var zeit = MinutenJeStueck(ware);
+        var fortschritt = _fortschrittJeWare.GetValueOrDefault(ware) + leistung;
+        string? stillstand = null;
+        while (fortschritt >= zeit)
+        {
+            stillstand = KannHerstellen(ware);
+            if (stillstand is not null)
+            {
+                fortschritt = zeit; // wartet, statt Arbeit „anzusparen"
+                break;
+            }
+            foreach (var (zutat, menge) in _daten.Waren[ware].Zutaten)
+                Auslagern(zutat, menge);
+            Einlagern(ware, 1);
+            Konto.Hergestellt(ware);
+            Konto.ErfahrungSammeln(_art.Beruf, zeit / 60);
+            fortschritt -= zeit;
+        }
+        _fortschrittJeWare[ware] = fortschritt;
+        return stillstand;
     }
 
     private string? KannHerstellen(string ware)
@@ -523,6 +745,7 @@ public sealed class Betrieb
         _umbauMinuten += umbauMinuten;
         if (_art.IstWerkstatt && !_art.Produkte.Contains(_produkt)) // Betriebe ohne Ware (Dieb, Wache, Geldleiher) haben kein Produkt
             _produkt = _art.Standardprodukt ?? _art.Produkte.Last();
+        PersonalGeaendert();
     }
 
     /// <summary>Sabotage: So viele Arbeitsminuten muss repariert werden (zwei Anschläge addieren sich).</summary>
@@ -551,15 +774,34 @@ public sealed class Betrieb
         Zurueckgehalten = _zurueckgehalten.Count > 0 ? _zurueckgehalten.ToList() : null,
         Waechter = Waechter, SabotageMinuten = _sabotageMinuten, UmbauMinuten = _umbauMinuten,
         Rechnung = Laufend.Sichern(), RechnungVorjahr = Vorjahr?.Sichern(),
+        Arbeiter = _arbeiter.Select(a => a.Sichern()).ToList(), NaechsteArbeiterNummer = _naechsteNummer,
+        FortschrittJeWare = new(_fortschrittJeWare), Lohnstufe = Lohnstufe,
+        LohnFaktorSumme = _lohnFaktorSumme, LohnMinuten = _lohnMinuten,
+        Einrichtung = _einrichtung.Count > 0 ? _einrichtung.ToList() : null, UnfallLauneBis = UnfallLauneBis,
     };
 
     internal void Wiederherstellen(BetriebStand s)
     {
-        foreach (var (kraft, anzahl) in s.Belegung) _belegung[kraft] = anzahl;
+        if (s.Arbeiter is { } arbeiter)
+        {
+            _arbeiter.AddRange(arbeiter.Select(Wirtschaft.Arbeiter.Laden));
+            _naechsteNummer = Math.Max(s.NaechsteArbeiterNummer ?? 1, _arbeiter.Select(a => a.Nummer + 1).DefaultIfEmpty(1).Max());
+        }
+        else // alter Spielstand: nur die Zahl je Art – alle an der Ware des Betriebs, Laune neutral, Dienstzeit ab Spielbeginn
+            foreach (var (kraft, anzahl) in s.Belegung)
+                for (var i = 0; i < anzahl; i++)
+                    _arbeiter.Add(new Arbeiter(_naechsteNummer++, kraft, 0, NeutraleLaune));
         foreach (var (ware, stueck) in s.Lager) _lager[ware] = stueck;
         _produkt = s.Produkt;
         _silberanteil = s.Silberanteil;
         _fortschritt = s.Fortschritt;
+        if (s.FortschrittJeWare is { } jeWare)
+            foreach (var (ware, minuten) in jeWare) _fortschrittJeWare[ware] = minuten;
+        else if (IstWerkstatt) // alter Spielstand: Der Fortschritt gehörte der einen Ware
+        {
+            if (s.Fortschritt > 0) _fortschrittJeWare[_produkt] = s.Fortschritt;
+            _fortschritt = 0;
+        }
         _fortschrittEisen = s.FortschrittEisen;
         _fortschrittSilber = s.FortschrittSilber;
         Stillstand = s.Stillstand;
@@ -569,6 +811,11 @@ public sealed class Betrieb
         Waechter = s.Waechter;
         _sabotageMinuten = s.SabotageMinuten;
         _umbauMinuten = s.UmbauMinuten;
+        Lohnstufe = s.Lohnstufe ?? Lohnstufe.Ueblich;
+        _lohnFaktorSumme = s.LohnFaktorSumme;
+        _lohnMinuten = s.LohnMinuten;
+        UnfallLauneBis = s.UnfallLauneBis;
+        foreach (var kennung in s.Einrichtung ?? new()) EinrichtungHinzufuegen(kennung);
         if (s.Rechnung is { } r) Laufend = Betriebsrechnung.Laden(r); // alte Spielstände: ab dem Laden, kein ganzes Jahr
         Vorjahr = s.RechnungVorjahr is { } v ? Betriebsrechnung.Laden(v) : null;
         foreach (var ware in s.Zurueckgehalten ?? new()) _zurueckgehalten.Add(ware);
@@ -580,6 +827,7 @@ public sealed class Betrieb
             karren.Wiederherstellen(karrenStand);
             _karren.Add(karren);
         }
+        PersonalGeaendert();
     }
 
     // ── Jahresende ──────────────────────────────────────────────────────────
@@ -587,10 +835,14 @@ public sealed class Betrieb
     /// <summary>Löhne, Unterhalt bzw. Pacht und zufällige Ausbrüche oder Aufstände.</summary>
     internal void Jahresabrechnung(Zufallsquelle zufall, Action<string> melden)
     {
+        // Lohnstufe: im Mittel über die Arbeitsminuten des Jahres (ohne Arbeitszeit: die jetzige).
+        var lohnFaktor = _lohnMinuten > 0 ? _lohnFaktorSumme / _lohnMinuten : LohnFaktor;
+        _lohnFaktorSumme = 0;
+        _lohnMinuten = 0;
         foreach (var (name, anzahl) in _belegung)
         {
             var kraft = _daten.Arbeitskraefte[name];
-            PersonalBuchen(anzahl * kraft.Kosten);
+            PersonalBuchen(anzahl * kraft.Kosten * lohnFaktor);
 
             // Jede unfreie Arbeitskraft hat ihr eigenes Risiko.
             for (var i = 0; i < anzahl; i++)

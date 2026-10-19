@@ -1,5 +1,5 @@
 {
-  "version": 35,
+  "version": 36,
   "gesundheit": {
     "medicusKosten": 120,
     "medicusKostenPest": 300,
@@ -983,6 +983,35 @@
     "apBonusAbGrad": 6,
     "apBonus": 1,
     "umbauMinuten": 360
+  },
+  "werkstatt": {
+    "lohnstufen": {
+      "Knapp": { "lohnFaktor": 0.8, "laune": -25 },
+      "Ueblich": { "lohnFaktor": 1, "laune": 0 },
+      "Gut": { "lohnFaktor": 1.25, "laune": 25 }
+    },
+    "praemie": { "kostenJeArbeiter": 30, "laune": 20, "minuten": 1020 },
+    "laune": { "neutral": 50, "tempoBis": 0.2, "jeStunde": 3, "kuendigungUnter": 20, "kuendigungNachStunden": 6 },
+    "unfall": {
+      "gefahr": { "Schmied": 0.02, "Steinmetz": 0.015, "Tischler": 0.015, "Alchimist": 0.01, "Parfumeur": 0.01, "Wirt": 0.005, "Prediger": 0.005 },
+      "ausfallTageVon": 1,
+      "ausfallTageBis": 3,
+      "ausfallMinutenJeTag": 1020,
+      "laune": -15,
+      "launeMinuten": 1020
+    },
+    "befoerderung": { "von": "Lehrling", "zu": "Geselle", "dienstMinuten": 2040 },
+    "einrichtung": {
+      "Schmied": [
+        { "kennung": "Werkzeug1", "name": "Gutes Werkzeug", "preis": 300, "abStufe": 1, "wirkung": { "zeitFaktor": 0.9 } },
+        { "kennung": "Werkzeug2", "name": "Meisterwerkzeug", "preis": 800, "abStufe": 2, "voraussetzung": "Werkzeug1", "wirkung": { "zeitFaktor": 0.9 } },
+        { "kennung": "Blasebalg", "name": "Großer Blasebalg", "preis": 350, "abStufe": 1, "wirkung": { "zeitFaktor": 0.9, "waren": ["Beschlag", "Rapier", "Werkzeug", "Prunkschwert"] } },
+        { "kennung": "Regale", "name": "Regale", "preis": 200, "abStufe": 1, "wirkung": { "lagerPlus": 20 } },
+        { "kennung": "Loeschfass", "name": "Löschfass", "preis": 100, "abStufe": 1, "wirkung": { "brandFaktor": 0.5 } },
+        { "kennung": "Eisentuer", "name": "Eisentür", "preis": 300, "abStufe": 1, "wirkung": { "einbruchFaktor": 0.5 } },
+        { "kennung": "Schuerzen", "name": "Lederschürzen", "preis": 80, "abStufe": 1, "wirkung": { "unfallFaktor": 0.5 } }
+      ]
+    }
   },
   "verkauf": {
     "anteil": 0.75,

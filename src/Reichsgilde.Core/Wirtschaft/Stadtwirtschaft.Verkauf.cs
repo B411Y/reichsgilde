@@ -91,6 +91,7 @@ public sealed partial class Stadtwirtschaft
         var waehrung = Daten.Allgemein.Waehrung;
         if (l.Kaufpreis > 0) konto.Investition(l.Kaufpreis);
         var betrieb = BetriebEroeffnen(l.Name, l.Art, konto); // leer, mit dem Startkarren – auch ein gebrauchter Betrieb
+        foreach (var kennung in l.Einrichtung) betrieb.EinrichtungHinzufuegen(kennung); // die Einrichtung ist im Haus geblieben
         _abgegeben.RemoveAll(x => x.Name == name);
         Melden(l.IstPacht
             ? $"{konto.Inhaber} pachtet {name} ({Zahlenformat.Ganz(Daten.Fixkosten(l.Art))} {waehrung} Pacht im Jahr)."
@@ -103,9 +104,10 @@ public sealed partial class Stadtwirtschaft
 
     /// <summary>
     /// Was ein Betrieb wert ist: Kaufpreis der Stufe 1 plus alle Ausbauten bis zu seiner Stufe
-    /// (Gießerei 3.500, Schmiede 6.000, Goldschmiede 11.000). Eine Pacht ist nichts wert.
+    /// (Gießerei 3.500, Schmiede 6.000, Goldschmiede 11.000) plus der Preis der Einrichtung. Eine Pacht ist nichts wert.
     /// </summary>
-    public double Betriebswert(Betrieb betrieb) => Wert(betrieb.Name, betrieb.Art);
+    public double Betriebswert(Betrieb betrieb) =>
+        Wert(betrieb.Name, betrieb.Art) is var wert and > 0 ? wert + Werkstaetten.Einrichtungswert(betrieb) : 0;
 
     private double Wert(string name, Betriebsart art)
     {
@@ -146,9 +148,10 @@ public sealed partial class Stadtwirtschaft
     /// <summary>Welcher Meistergrad für eine Werkstatt dieser Art (Stufe) nötig ist.</summary>
     private int MindestGrad(Betriebsart art) => Daten.Meistergrade?.GradFuerStufe(Daten.Art(art).Stufe) ?? 1;
 
-    private LiegenschaftDaten FreieLiegenschaft(string name, Betriebsart art, double kaufpreis, string mindestStand) => new()
+    private LiegenschaftDaten FreieLiegenschaft(string name, Betriebsart art, double kaufpreis, string mindestStand, List<string>? einrichtung = null) => new()
     {
         Name = name, Art = art, Kaufpreis = kaufpreis, MindestStand = mindestStand, Bebaut = true, MindestGrad = MindestGrad(art),
+        Einrichtung = einrichtung ?? new(),
     };
 
     // ── Verkaufen ───────────────────────────────────────────────────────────
@@ -198,8 +201,7 @@ public sealed partial class Stadtwirtschaft
     private (double Loehne, double Fixkosten) Abrechnung(Betrieb betrieb)
     {
         var anteil = Uhr.TagesFortschritt;
-        var loehne = betrieb.Belegung.Sum(x => x.Value * Daten.Arbeitskraefte[x.Key].Kosten)
-                     + (betrieb.Waechter && Daten.Gauner is { } g ? g.WaechterKosten : 0);
+        var loehne = betrieb.Lohnkosten + (betrieb.Waechter && Daten.Gauner is { } g ? g.WaechterKosten : 0);
         return (loehne * anteil, betrieb.Artdaten.Fixkosten * anteil);
     }
 
@@ -243,7 +245,7 @@ public sealed partial class Stadtwirtschaft
 
         var vorbild = Vorbild(betrieb.Name, Grundart(betrieb.Art).Art);
         var stand = vorbild?.MindestStand ?? Daten.Staende[Math.Min(1, Daten.Staende.Count - 1)].Name;
-        var frei = FreieLiegenschaft(betrieb.Name, betrieb.Art, wert, stand);
+        var frei = FreieLiegenschaft(betrieb.Name, betrieb.Art, wert, stand, wert > 0 ? betrieb.Einrichtung.ToList() : null);
         _abgegeben.RemoveAll(x => x.Name == betrieb.Name);
         _abgegeben.Add(frei);
         return frei;
@@ -280,11 +282,14 @@ public sealed partial class Stadtwirtschaft
     // ── Speichern ───────────────────────────────────────────────────────────
 
     private List<FreieLiegenschaftStand>? AbgegebeneSichern() => _abgegeben.Count == 0 ? null
-        : _abgegeben.Select(l => new FreieLiegenschaftStand { Name = l.Name, Art = l.Art, Kaufpreis = l.Kaufpreis, MindestStand = l.MindestStand }).ToList();
+        : _abgegeben.Select(l => new FreieLiegenschaftStand
+        {
+            Name = l.Name, Art = l.Art, Kaufpreis = l.Kaufpreis, MindestStand = l.MindestStand, Einrichtung = l.Einrichtung.Count > 0 ? l.Einrichtung.ToList() : null,
+        }).ToList();
 
     private void AbgegebeneWiederherstellen(List<FreieLiegenschaftStand>? s)
     {
         foreach (var l in s ?? new())
-            _abgegeben.Add(FreieLiegenschaft(l.Name, l.Art, l.Kaufpreis, l.MindestStand));
+            _abgegeben.Add(FreieLiegenschaft(l.Name, l.Art, l.Kaufpreis, l.MindestStand, l.Einrichtung));
     }
 }

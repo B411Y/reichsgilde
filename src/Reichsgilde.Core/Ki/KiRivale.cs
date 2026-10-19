@@ -807,7 +807,7 @@ public sealed class KiRivale
 
     /// <summary>Was dieser Betrieb erst zum Jahresabschluss zahlt: Löhne, Wächter und Unterhalt bzw. Pacht für das ganze Jahr.</summary>
     private double OffeneKosten(Betrieb b) =>
-        b.Belegung.Sum(x => x.Value * _w.Daten.Arbeitskraefte[x.Key].Kosten) + b.Artdaten.Fixkosten
+        b.Lohnkosten + b.Artdaten.Fixkosten
         + (b.Waechter ? _w.Daten.Gauner?.WaechterKosten ?? 0 : 0);
 
     /// <summary>Was der Betrieb im Rest des Jahres noch einbringt: sein bisheriger Ertrag (Umsatz minus Zutaten, Steuer, Transport und Schaden) hochgerechnet.</summary>
