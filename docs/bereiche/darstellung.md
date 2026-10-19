@@ -49,8 +49,8 @@ So wird eingetragen (damit sich die Chats nie an derselben Stelle treffen):
 - Räume in Modellen sind auf Software-Rendering abgestimmt (opengl3): auf einer echten Grafikkarte Helligkeit der Räume (`AmbientLightEnergy`, Fensterlichter) und Schatten der Glut beurteilen; die Fensterlichter (`SpotLight3D` ohne Schatten) leuchten durch Wände ins Nachbarzimmer.
 - Der Tooltip der gesperrten Knöpfe erscheint erst nach Godots Verzögerung; die Gründe stehen deshalb bei Beförderung, Einrichtung und Einstellen auch als Zeile in der Tafel. Prämie und Lohnstufe nennen ihren Grund bisher nur am Knopf.
 - Blickpunkte nach oben und unten (`_O1`, `_U1`) sind im Gerüst fertig, das Schmiedemodell hat keine: Beim ersten Modell mit ihnen Pfeile und Rand oben und unten ansehen (die Zeittafel liegt oben links über dem Bild).
-- Innenraum: Die Scheiben („Fenster“) wirken von innen nur hell, wenn das Spiel ihre Emission auch tagsüber anschaltet (außen leuchten sie nur nachts); dazu Licht an den Ankern „Licht_<n>“ (art „Fenster“ als Spot mit −Z in den Raum, „Glut“ als Punktlicht, das mit der Glut der Esse schwankt)
-- Innenraum: Amboss, Hebel und Tische haben eine feste Höhe für Menschen; Zwerge und Halblinge erreichen sie mit gehobenen Armen, beim Sitzen (Feinarbeit) sitzen kleine Völker tiefer als der Hocker. Falls das stört: Anker oder Hocker je Volk anpassen
+- Innenraum: Amboss, Hebel und Tische haben eine feste Höhe für Menschen; Zwerge und Halblinge erreichen sie im Stehen mit gehobenen Armen (beim Sitzen setzt das Spiel die Hüfte schon je Volk auf die Sitzhöhe)
+- Figurfarben im Compatibility-Renderer (`opengl3`, auch der Rückfall, wenn Vulkan fehlt): Godot meldet bei vielen Figuren „Too many instances using shader instance variables“, die Farben der Figuren sind dann falsch (schwarz, rot, orange). In Forward+ (Vulkan) tritt das nicht auf (Klicktest #152). Lösung prüfen: Puffer für Instanz-Uniforms vergrößern oder für `opengl3` einen Rückfall ohne Instanz-Uniforms (seit #150)
 
 ## Entscheidungen
 
