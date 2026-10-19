@@ -136,6 +136,15 @@ So wird eingetragen (damit sich die Chats nie an derselben Stelle treffen):
 | Geltung | Oberfläche (Tafeln, Fenster, Rahmen, Schmuck), Icons, Wappen, Bilder und alle weiteren Grafiken. Ersetzt die Pixel-Art-Entscheidung für die Waren-Icons im Archiv (14.10.2026). Neue Grafiken nur noch in diesem Stil; Bestehendes wird nach und nach umgestellt (offene Punkte bei Oberfläche und Darstellung). Eine Zeile dazu steht in `CLAUDE.md`, damit jeder Chat sie liest. | 18.10.2026 |
 | Herkunft | Grafiken dürfen auch mit anderen Werkzeugen entstehen (etwa die Marktplatz-Icons mit Gemini, beim Nutzer in Arbeit). Es gilt die Lizenz CC BY 4.0 und die feste Regel: nichts aus dem Original-Spiel. | 18.10.2026 |
 
+### Werkstatt wie in Gilde 1: Waren je Arbeiter, Einrichtung, Unfälle, Lohn (PR #152)
+
+| Thema | Entscheidung | Datum |
+|---|---|---|
+| Waren je Arbeiter | Ein Betrieb stellt mehrere Waren zugleich her: Jeder Arbeiter wird einer Ware zugeteilt (bisher eine Ware je Betrieb für alle). Die KI-Häuser und der Spielstand werden mit umgestellt, alte Spielstände laden weiter (alle Arbeiter an der bisherigen Ware). | 19.10.2026 |
+| Einrichtung | Gekaufte Einrichtung mit Wirkung, je Beruf eigene Stücke; beim Schmied: Werkzeug (weniger Zeit je Stück), Regale (mehr Lager je Ware als 40), Löschfass (Brand), Eisentür (Einbruch), Schürzen (Unfälle). | 19.10.2026 |
+| Unfälle | Neues System: Selten fällt ein Arbeiter nach einem Unfall 1 bis 3 Spieltage aus und bekommt weiter Lohn. Die Gefahr hängt vom Beruf ab (Feuer in der Schmiede höher), Schürzen halbieren sie. | 19.10.2026 |
+| Lohn und Laune | Drei Lohnstufen (knapp, üblich, gut) und eine einmalige Prämie. Die Laune steigt und fällt langsam und ändert das Tempo um bis zu ±20 %; bei schlechter Laune kündigt jemand. Lehrlinge lassen sich zum Gesellen befördern. | 19.10.2026 |
+
 ## Messungen
 
 Messungen des Kerns stehen in `docs/WIRTSCHAFTSMODELL.md` (nur der Kern schreibt dort).
