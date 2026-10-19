@@ -42,7 +42,7 @@ import sys
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import bausteine as bs  # noqa: E402
 from bausteine import Matrix, Vector  # noqa: E402
-import schmied  # noqa: E402  (Amboss und Kohlehaufen wie außen)
+import schmied  # noqa: E402  (Kohlehaufen wie außen)
 
 NAME = "schmied_innen"
 STUFEN = ("Gießerei", "Schmiede", "Goldschmiede")
@@ -69,11 +69,11 @@ SICHTFELD = 50.0                                # Grad, senkrecht; Bild 16:9
 
 # Blickpunkte: Auge, Ziel (Blender-Koordinaten)
 BLICKE = {
-    "Blick_Werk_0": ((0.0, -2.9, 2.55), (-0.1, 1.8, 0.75)),        # Esse, Amboss, Blasebalg, Trog
+    "Blick_Werk_0": ((0.0, -3.1, 2.6), (-0.1, 1.8, 0.75)),        # Esse, Amboss, Blasebalg, Trog
     "Blick_Werk_L1": ((1.3, -2.5, 2.5), (-4.0, 0.3, 0.9)),         # Hoftor, Personalbuch
-    "Blick_Werk_L2": ((0.6, 1.2, 2.5), (-3.4, -2.4, 0.8)),         # zweite Esse, Personalbuch
-    "Blick_Werk_R1": ((-1.3, -2.5, 2.5), (4.0, 1.4, 1.0)),         # Werkbank, Werkzeugwand, Tür ins Lager
-    "Blick_Werk_R2": ((-0.6, 1.2, 2.5), (3.6, -2.3, 0.8)),         # Schleifbock, Feinwerktisch
+    "Blick_Werk_L2": ((2.2, 1.0, 2.6), (-3.4, -2.3, 0.8)),         # zweite Esse, Personalbuch
+    "Blick_Werk_R1": ((-1.0, -0.6, 2.6), (4.0, 1.4, 1.0)),         # Werkbank, Werkzeugwand, Tür ins Lager
+    "Blick_Werk_R2": ((0.2, 1.2, 2.6), (3.6, -2.2, 0.7)),         # Schleifbock, Feinwerktisch
     "Blick_Lager_0": ((7.5, -1.5, 2.75), (7.4, 2.0, 0.5)),         # Regal, Stellplätze, Tür
     "Blick_Lager_L1": ((8.8, -1.3, 2.6), (5.4, 2.2, 0.8)),         # Tür in den Werkraum, Regal
     "Blick_Lager_R1": ((6.2, -1.3, 2.6), (9.6, 1.6, 0.8)),         # Kisten, zusätzliche Regale
@@ -333,7 +333,7 @@ def werkstatt_werk(raum, st, teil, anker):
     anker.append(arbeit("Arbeit_2_Blasebalg", griff + Vector((0.42, 0, 0)), (-1, 0), 1))        # rechts vom Griff, Blick zur Esse
     # Amboss vor der Esse, Löschtrog rechts davon, Kohle unter dem Fenster
     amboss(teil("Bedienung_Produktion_Amboss"), st, AMBOSS)
-    anker.append(arbeit("Arbeit_1_Haemmern", AMBOSS + Vector((0, 0.6, 0)), (0, -1), 1))      # Blick zur Kamera
+    anker.append(arbeit("Arbeit_1_Haemmern", AMBOSS + Vector((0, 0.68, 0)), (0, -1), 1))     # Blick zur Kamera
     anker.append(bs.anker("Werkstueck_1", AMBOSS + Vector((-0.04, 0, AMBOSS_HOEHE))))
     trog(raum, st, Vector((0.85, 1.2, 0)), 0.6, 1.1, 0.62)
     schmied.kohlehaufen(raum, st, Vector((2.9, 2.75, 0)), 1.2, 0.8, 0.45)
@@ -553,8 +553,8 @@ def schleifbock(netz, st, mitte):
     netz.stab(mitte + Vector((0, -0.28, z)), mitte + Vector((0, 0.28, z)), 0.04, 0.04, st["Eisen"])
     netz.stab(mitte + Vector((0, -0.28, z)), mitte + Vector((0, -0.28, z - 0.22)), 0.03, 0.03, st["Eisen"])   # Kurbel
     trog(netz, st, mitte + Vector((0, 0, 0)), 0.5, 0.26, 0.28, wasser=0.06)
-    netz.stab(mitte + Vector((-0.28, -0.28, z - 0.22)), mitte + Vector((-0.75, -0.3, 0.08)), 0.03, 0.03, holz)  # Pleuel
-    netz.quader(mitte + Vector((-0.75, -0.2, 0.06)), (0.32, 0.22, 0.04), holz)                                  # Tretbrett
+    netz.stab(mitte + Vector((0.0, -0.28, z - 0.22)), mitte + Vector((-0.3, -0.2, 0.08)), 0.03, 0.03, holz)     # Pleuel
+    netz.quader(mitte + Vector((-0.3, -0.09, 0.05)), (0.3, 0.24, 0.04), holz)                                   # Tretbrett vor dem rechten Fuß
     netz.quader(mitte + Vector((0.48, 0.0, 0.42)), (0.3, 0.4, 0.04), holz)                                      # Ablage
     for sy in (-1, 1):
         netz.stab(mitte + Vector((0.48, sy * 0.15, 0)), mitte + Vector((0.48, sy * 0.15, 0.4)), 0.05, 0.05, holz)
@@ -626,7 +626,6 @@ def werkzeug2(netz, st, M):
 
 def regal(netz, st, M, breite=2.4, hoehe=2.2, tiefe=0.45, boeden=4, saat=0):
     """Wandregal mit Waren (Säcke, Fässchen, Ballen, Eisenstangen) – örtlich, +y in den Raum."""
-    holz = st["Holz"]
     for x in (-breite / 2, breite / 2):
         q(netz, st, M, (x, tiefe / 2, hoehe / 2), (0.05, tiefe, hoehe), "Holz", ohne=("-y",))
     zufall = random.Random(saat)
@@ -655,7 +654,6 @@ def regal(netz, st, M, breite=2.4, hoehe=2.2, tiefe=0.45, boeden=4, saat=0):
             else:
                 q(netz, st, M, (x + b / 2, tiefe * 0.5, z + 0.12), (b, tiefe * 0.8, 0.2), "Holz alt")
             x += b + zufall.uniform(0.03, 0.1)
-    del holz
 
 
 def kisten(netz, st, mitte):
@@ -777,7 +775,7 @@ def bauen():
 
     # ── Stufen (kumulativ) ───────────────────────────────────────────────────
     M_fein = rahmen(WX1, -2.5, 90)
-    SCHLEIF = Vector((2.0, -1.0, 0))
+    SCHLEIF = Vector((1.7, -2.2, 0))
     stufen = [bs.Netz(f"Stufe{k}") for k in (1, 2, 3)]
     for k, netz in enumerate(stufen, 1):
         gussformen(netz, st)
@@ -786,11 +784,11 @@ def bauen():
             schleifbock(netz, st, SCHLEIF)
         if k >= 3:
             feinwerktisch(netz, st, M_fein)
-    anker.append(arbeit("Arbeit_3_Schleifen", SCHLEIF + Vector((-0.6, 0.12, 0)), (1, 0), 2))
+    anker.append(arbeit("Arbeit_3_Schleifen", SCHLEIF + Vector((-0.6, 0.0, 0)), (1, 0), 2))
     anker.append(arbeit("Arbeit_4_Feinarbeit", M_fein @ Vector((0, 0.95, 0)), (1, 0), 3))
     w3 = bs.anker("Werkstueck_3", SCHLEIF + Vector((0.48, 0.0, 0.445)))
     w3["stufe"] = 2
-    w4 = bs.anker("Werkstueck_4", M_fein @ Vector((0.1, 0.35, 0.775)))
+    w4 = bs.anker("Werkstueck_4", M_fein @ Vector((0.0, 0.5, 0.775)))
     w4["stufe"] = 3
     anker += [w3, w4, licht("Licht_2", rahmen(-2.6, WY0, 0) @ Vector((0, 0.45, 1.0)), (0, 0, 1), "Glut", stufe=2)]
 
@@ -900,7 +898,7 @@ def _buehne(schnell):
     szene = bpy.context.scene
     szene.render.engine = "CYCLES"
     szene.cycles.device = "CPU"
-    szene.cycles.samples = 24 if schnell else 128
+    szene.cycles.samples = 24 if schnell else 64
     szene.cycles.use_denoising = True
     szene.view_settings.view_transform = "Standard"
     welt = bpy.data.worlds.new("Himmel")

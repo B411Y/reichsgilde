@@ -1,7 +1,7 @@
 """Passanten: Grundkörper je Volk mit Skelett, Trachtteilen und Bewegungen.
 
     blender -b --python tools/modelle/figuren.py        oder
-    python tools/modelle/figuren.py [--schnell] [--ohne-bilder]
+    python tools/modelle/figuren.py [--schnell] [--ohne-bilder] [--nur-bewegungen]
 
 Schreibt game/assets/modelle/figur_mensch.glb, figur_zwerg.glb, figur_elb.glb, figur_halbling.glb
 und Vorschaubilder nach docs/modelle/ (figuren.png: alle Körper und Trachten, figuren-bewegungen.png: die Bewegungen).
@@ -11,11 +11,14 @@ Inhalt je Datei (Blender: Z oben, Blick nach -Y; im Spiel Y oben, Blick nach +Z)
                     („L“ ist die linke Seite der Figur). Jeder Teil hängt starr an genau einem Knochen.
     Koerper_Mann    Wams bis zur Mitte des Oberschenkels, Beinkleid, Schuhe, Gürtel; beim Zwerg mit Bart
     Koerper_Frau    Kleid bis über die Knöchel, Zopf
-    Trachtteile     Strohhut, Barett, Kapuze, Haube, Schleier, Schuerze, Kiepe, Buendel, Tasche, Stab, Hacke
-                    – standardmäßig aus, das Spiel blendet sie je Rolle ein (wie heute `TrachtVon`)
+    Trachtteile     Strohhut, Barett, Kapuze, Haube, Schleier, Schuerze, Kiepe, Buendel, Tasche, Stab, Hacke, Hammer
+                    – standardmäßig aus, das Spiel blendet sie je Rolle ein (wie heute `TrachtVon`; den Hammer beim Hämmern)
     Bewegungen      Stehen, Gehen, Eilen, Gebeugt, Tragen, Sitzen, Reden, Hacken, Buecken, Hueten,
-                    Ziehen (Handkarren), Kutschieren (auf dem Bock)
+                    Ziehen (Handkarren), Kutschieren (auf dem Bock),
+                    Haemmern, Blasebalg, Schleifen (stehend), Feinarbeit (sitzend) – Arbeit in der Werkstatt
                     – jede eine Schleife am Ort (ohne Vorwärtsbewegung; das Spiel schiebt die Figur)
+                    Die Werkstatt-Bewegungen zielen mit den Händen auf feste Höhen (ARBEITSHOEHEN, wie im Innenraum
+                    schmied_innen.glb): Jedes Volk erreicht sie mit eigenen Armwinkeln (`arm_ik`).
 Material: alle Teile (Körper, Trachtteile, Werkzeug) tragen nur ein Material „Figur“ – eine Figur ist so ein
 Zeichenaufruf statt sechs. Je Ecke stehen zwei Angaben im Netz, je Fläche konstant:
     COLOR_0         Grundfarbe als sRGB-Wert (wie bei den Umlandbetrieben, siehe bausteine.farben_zusammenlegen)
@@ -56,7 +59,13 @@ VOELKER = {
                      oberarm=0.2, unterarm=0.26, fuss=0.24, tiefe=0.11),
 }
 ZONEN = {"Gewand": 1, "Beinkleid": 2, "Haut": 3, "Haar": 4, "Kopfbedeckung": 5}   # alle übrigen Stoffe: Zone 0
-TRACHT = ["Strohhut", "Barett", "Kapuze", "Haube", "Schleier", "Schuerze", "Kiepe", "Buendel", "Tasche", "Stab", "Hacke"]
+TRACHT = ["Strohhut", "Barett", "Kapuze", "Haube", "Schleier", "Schuerze", "Kiepe", "Buendel", "Tasche", "Stab", "Hacke", "Hammer"]
+HAMMER = 0.3          # vom Mittelpunkt der Hand bis zur Mitte des Hammerkopfs, in Verlängerung des Unterarms
+# Wo die Hände bei der Arbeit sind (Meter vor dem Fußpunkt der Figur, Höhe über dem Boden) – passend zu den Ankern
+# im Innenraum: Amboss 0,68 m vor der Figur, Bahn 0,86 m hoch; Hebel des Blasebalgs 0,42 m vor ihr, 1,36 m hoch;
+# Schleifstein (Mitte 0,6 m vor ihr, 0,72 m hoch, Halbmesser 0,38); Feinwerktisch 0,77 m hoch.
+ARBEITSHOEHEN = {"Amboss": (0.68, 0.90), "Zange": (0.52, 0.93), "Hebel": (0.42, 1.36), "Stein": (0.36, 0.99),
+                 "Tisch": (0.44, 0.81)}
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -234,6 +243,11 @@ def tracht(name, st, p):
             unten = hand_z - 0.85
             n.stab((xr, 0, hand_z + 0.08), (xr, 0, unten), 0.04, 0.04, st["Holz"])
             n.quader((xr, -0.09, unten + 0.02), (0.12, 0.2, 0.04), st["Eisen"])
+    elif name == "Hammer":
+        with t.an("Unterarm_R") as n:     # Stiel verlängert den Unterarm, der Kopf liegt quer (Bahn nach vorn, Finne nach hinten)
+            unten = hand_z - HAMMER
+            n.stab((xr, 0, hand_z + 0.06), (xr, 0, unten + 0.02), 0.032, 0.032, st["Holz"])
+            n.quader((xr, -0.015, unten), (0.065, 0.17, 0.065), st["Eisen"])
     return t
 
 
@@ -277,6 +291,25 @@ def skelett(p):
 
 def g(w):
     return math.radians(w)
+
+
+def arm_ik(p, lehne, hoch, vor, hoehe, extra=0.0):
+    """Winkel (Grad) für Oberarm und Unterarm (X, wie in `haltung`), damit die Hand – mit `extra` Metern Werkzeug in
+    Verlängerung des Unterarms dessen Ende – `vor` Meter vor dem Fußpunkt auf `hoehe` Metern liegt. Der Rumpf ist um
+    `lehne` Grad nach vorn geneigt, die Hüfte um `hoch` verschoben. Zu weit weg: der Arm zeigt gestreckt dorthin.
+    Der Ellbogen knickt nach vorn (die natürliche Lösung)."""
+    l1 = p["oberarm"]
+    l2 = p["unterarm"] * 0.72 + 0.06 + extra
+    w = math.radians(lehne)
+    rumpf = p["schulter"] - 0.03 - p["huefte"]
+    dx = vor - rumpf * math.sin(w)
+    dz = hoehe - (p["huefte"] + hoch + rumpf * math.cos(w))
+    d = min(math.hypot(dx, dz), l1 + l2 - 1e-4)
+    ziel = math.atan2(dx, -dz)                       # Richtung zum Ziel, von unten gemessen, nach vorn positiv
+    a = ziel - math.acos(max(-1.0, min(1.0, (l1 * l1 + d * d - l2 * l2) / (2 * l1 * d))))
+    b = math.atan2(dx - l1 * math.sin(a), -(dz + l1 * math.cos(a)))
+    # Der Arm hängt am geneigten Rumpf: im Knochen zählt der Winkel zum Rumpf, vorn ist dort −X
+    return -(math.degrees(a) + lehne), -(math.degrees(b) - math.degrees(a))
 
 
 def haltung(name, phase, p):
@@ -382,6 +415,64 @@ def haltung(name, phase, p):
         for seite, z in (("L", 8), ("R", -8)):
             r[f"Oberarm_{seite}"] = (-38 - 4 * s, 0, z)
             r[f"Unterarm_{seite}"] = (-42, 0, 0)
+    elif name == "Haemmern":                                            # am Amboss, Hammer in der Rechten
+        # Ausholen (0–0,5), Schlag (0,5–0,62), Nachfedern, kurz Ruhe auf dem Werkstück
+        if phase < 0.5:
+            a = math.sin(math.pi / 2 * phase / 0.5)
+        elif phase < 0.62:
+            a = 1 - (phase - 0.5) / 0.12
+        elif phase < 0.74:
+            a = 0.12 * math.sin(math.pi * (phase - 0.62) / 0.12)
+        else:
+            a = 0.0
+        lehne = 8 + 4 * a
+        hoch = -0.015 * (1 - a)
+        ober, unter = arm_ik(p, lehne, hoch, *ARBEITSHOEHEN["Amboss"], extra=HAMMER)
+        r["Oberarm_R"] = (ober - 100 * a, 0, -6)
+        r["Unterarm_R"] = (unter - 45 * a, 0, 0)
+        ober, unter = arm_ik(p, lehne, hoch, *ARBEITSHOEHEN["Zange"])       # die Linke hält das Werkstück mit der Zange
+        r["Oberarm_L"], r["Unterarm_L"] = (ober, 0, 12), (unter, 0, 0)
+        r["Ruecken"] = (lehne, 0, -5 + 6 * a)
+        r["Kopf"] = (18 - lehne, 0, 4 - 4 * a)
+        r["Oberschenkel_L"], r["Oberschenkel_R"] = (-10, 0, 5), (7, 0, -5)
+        r["Unterschenkel_L"], r["Unterschenkel_R"] = (12 + 6 * (1 - a), 0, 0), (6 + 6 * (1 - a), 0, 0)
+    elif name == "Blasebalg":                                           # beide Hände am Hebel: hinunterziehen, hochlassen
+        zug = 0.5 - 0.5 * math.cos(2 * math.pi * phase)                 # 0 oben → 1 unten → 0
+        lehne = 4 + 10 * zug
+        hoch = -0.035 * zug
+        vor, hoehe = ARBEITSHOEHEN["Hebel"]
+        ober, unter = arm_ik(p, lehne, hoch, vor, hoehe + 0.1 - 0.22 * zug)
+        for seite, z in (("L", 10), ("R", -10)):
+            r[f"Oberarm_{seite}"], r[f"Unterarm_{seite}"] = (ober, 0, z), (unter, 0, 0)
+        r["Ruecken"] = (lehne, 0, 0)
+        r["Kopf"] = (2 - lehne * 0.6, 0, 6 * math.sin(2 * math.pi * phase + 0.4))
+        r["Oberschenkel_L"], r["Oberschenkel_R"] = (-12 - 10 * zug, 0, 4), (10 - 8 * zug, 0, -4)
+        r["Unterschenkel_L"], r["Unterschenkel_R"] = (8 + 18 * zug, 0, 0), (4 + 14 * zug, 0, 0)
+    elif name == "Schleifen":                                           # Werkstück mit beiden Händen an den Stein, rechter Fuß tritt
+        lehne = 16
+        hoch = -0.01
+        vor, hoehe = ARBEITSHOEHEN["Stein"]
+        hin = 0.025 * math.sin(4 * math.pi * phase)                     # zweimal je Schleife über den Stein
+        ober, unter = arm_ik(p, lehne, hoch, vor + hin, hoehe + 0.5 * hin)
+        for seite, z in (("L", 12), ("R", -12)):
+            r[f"Oberarm_{seite}"], r[f"Unterarm_{seite}"] = (ober, 0, z), (unter, 0, 0)
+        r["Ruecken"] = (lehne, 0, 0)
+        r["Kopf"] = (22 - lehne, 0, 0)
+        r["Oberschenkel_L"], r["Unterschenkel_L"] = (4, 0, 4), (6, 0, 0)
+        r["Oberschenkel_R"] = (-26 - 14 * s, 0, -3)                     # Tretbrett vor dem rechten Fuß
+        r["Unterschenkel_R"] = (34 + 10 * s, 0, 0)
+    elif name == "Feinarbeit":                                          # sitzend am Tisch, kleine Bewegungen der Hände
+        hoch = -(p["huefte"] - (p["knie"] - 0.02)) + 0.004 * s
+        lehne = 14 + 2 * s
+        r["Oberschenkel_L"], r["Oberschenkel_R"] = (-86, 0, 6), (-86, 0, -6)
+        r["Unterschenkel_L"], r["Unterschenkel_R"] = (82, 0, 0), (86, 0, 0)
+        vor, hoehe = ARBEITSHOEHEN["Tisch"]
+        ober, unter = arm_ik(p, lehne, hoch, vor + 0.02 * math.sin(6 * math.pi * phase), hoehe + 0.025 * max(0.0, s2))
+        r["Oberarm_R"], r["Unterarm_R"] = (ober, 0, -14), (unter, 0, 0)
+        ober, unter = arm_ik(p, lehne, hoch, vor - 0.03, hoehe + 0.01 * s)
+        r["Oberarm_L"], r["Unterarm_L"] = (ober, 0, 14), (unter, 0, 0)
+        r["Ruecken"] = (lehne, 0, 3 * s)
+        r["Kopf"] = (30 - lehne, 0, 5 * math.sin(2 * math.pi * phase + 1.0))
     elif name == "Hueten":
         r["Oberarm_R"] = (-28, 0, -10)                                   # hält den Stab vor sich
         r["Unterarm_R"] = (-55, 0, 0)
@@ -397,6 +488,7 @@ def haltung(name, phase, p):
 BEWEGUNGEN = {   # Name: Dauer in Sekunden (eine Schleife)
     "Stehen": 3.0, "Gehen": 1.0, "Eilen": 0.7, "Gebeugt": 1.4, "Tragen": 1.2, "Sitzen": 3.0, "Reden": 2.0,
     "Hacken": 1.3, "Buecken": 2.4, "Hueten": 4.0, "Ziehen": 1.3, "Kutschieren": 1.0,
+    "Haemmern": 0.9, "Blasebalg": 1.6, "Schleifen": 1.2, "Feinarbeit": 2.0,
 }
 
 
@@ -534,7 +626,8 @@ def main():
         print("geschrieben:", exportieren("figur_" + volk, objekte))
     if "--ohne-bilder" in sys.argv:
         return
-    vorschau_figuren(schnell)
+    if "--nur-bewegungen" not in sys.argv:
+        vorschau_figuren(schnell)
     vorschau_bewegungen(schnell)
 
 
@@ -621,9 +714,10 @@ def umfaerben(o, farben):
 
 
 def vorschau_bewegungen(schnell):
-    """Je Bewegung eine Reihe: vier Phasen nebeneinander (Mensch, Mann; beim Hüten mit Stab, Tragen mit Bündel)."""
+    """Je Bewegung eine Reihe: vier Phasen nebeneinander (Mensch, Mann; beim Hüten mit Stab, Tragen mit Bündel, Hämmern mit
+    Hammer). Für die Werkstatt-Bewegungen stehen Amboss, Hebel, Schleifstein und Tisch dort, wo sie im Innenraum stehen.
+    Die Beschriftung sind Textobjekte in der Szene (braucht kein Pillow)."""
     import bpy
-    from bpy_extras.object_utils import world_to_camera_view
     bs.neue_szene()
     st = bs.Stoffe()
     p = VOELKER["mensch"]
@@ -632,41 +726,87 @@ def vorschau_bewegungen(schnell):
         o.location.z -= 50
     reihen = list(BEWEGUNGEN)
     phasen = (0.0, 0.25, 0.5, 0.75)
-    alle, marken = [], []
+    alle = []
+    abstand = 2.7
     for r, name in enumerate(reihen):
-        teile = {"Hueten": ["Stab"], "Tragen": ["Buendel"], "Hacken": ["Hacke", "Strohhut"]}.get(name, [])
+        teile = {"Hueten": ["Stab"], "Tragen": ["Buendel"], "Hacken": ["Hacke", "Strohhut"], "Haemmern": ["Hammer"]}.get(name, [])
         wahl = [o for o in objekte if o.type == "MESH" and o.name.split(".")[0] in teile + ["Koerper_Mann"]]
+        sy = ((len(reihen) - 1) / 2 - r) * abstand
         for k, ph in enumerate(phasen):
             # Spalten nach rechts im Bild, Reihen nach hinten
-            sx, sy = (k - 1.5) * 1.1, ((len(reihen) - 1) / 2 - r) * 2.7
+            sx = (k - 1.5) * 1.1
             ort = Vector((sx * 0.7071 - sy * 0.7071, sx * 0.7071 + sy * 0.7071, 0))
-            neu, kopien = kopie(ske, wahl, ort, dreh=math.radians(-90))     # Seitenansicht: Blick nach links im Bild
+            neu, kopien = kopie(ske, wahl, ort, dreh=math.radians(-90))     # Seitenansicht: Blick nach links im Bild (−x)
             pose_setzen(neu, *haltung(name, ph, p))
             alle += kopien
-            if name in ("Sitzen", "Kutschieren"):                        # Bank fürs Bild
-                bank = bs.Netz("_Bank")
-                bank.quader(ort + Vector((0, 0, p["knie"] - 0.06)), (0.5, 0.5, 0.08), st["Holz"])
-                for dx in (-0.2, 0.2):
-                    bank.quader(ort + Vector((dx, 0, (p["knie"] - 0.1) / 2)), (0.06, 0.4, p["knie"] - 0.1), st["Holz"])
-                alle.append(bank.objekt())
-        marken.append((name, Vector(((-2.3) * 0.7071 - sy * 0.7071, (-2.3) * 0.7071 + sy * 0.7071, 0.9))))
-    bs.vorschau_buehne(None, ziel_hoehe=0.9, ausschnitt=22.0, schnell=schnell)
+            hilfe = arbeitsplatz(name, ort, st, p)
+            if hilfe is not None:
+                alle.append(hilfe)
+        alle.append(beschriftung(name, Vector(((-2.3) * 0.7071 - sy * 0.7071, (-2.3) * 0.7071 + sy * 0.7071, 0.9))))
+    bs.vorschau_buehne(None, ziel_hoehe=0.9, ausschnitt=22.0 * len(reihen) / 12, schnell=schnell)
     szene = bpy.context.scene
-    szene.render.resolution_x, szene.render.resolution_y = 1000, 1800
-    pfad = bs.rendern("figuren-bewegungen", lambda o: o in alle)
+    szene.render.resolution_x, szene.render.resolution_y = 1000, int(1800 * len(reihen) / 12)
+    print(bs.rendern("figuren-bewegungen", lambda o: o in alle))
+
+
+def arbeitsplatz(name, ort, st, p):
+    """Fürs Bild: was vor der Figur steht (Bank, Amboss, Hebel, Schleifstein, Tisch); die Figur blickt nach −x."""
+    netz = bs.Netz("_Hilfe")
+    holz, eisen = st["Holz"], st["Eisen"]
+    if name in ("Sitzen", "Kutschieren", "Feinarbeit"):                  # Bank bzw. Hocker unter der Hüfte
+        netz.quader(ort + Vector((0, 0, p["knie"] - 0.06)), (0.5, 0.5, 0.08), holz)
+        for dx in (-0.2, 0.2):
+            netz.quader(ort + Vector((dx, 0, (p["knie"] - 0.1) / 2)), (0.06, 0.4, p["knie"] - 0.1), holz)
+    if name == "Haemmern":
+        vor, _ = ARBEITSHOEHEN["Amboss"]
+        netz.quader(ort + Vector((-vor, 0, 0.25)), (0.5, 0.5, 0.5), st["Holz alt"])
+        netz.quader(ort + Vector((-vor, 0, 0.68)), (0.17, 0.5, 0.36), eisen)
+    elif name == "Blasebalg":
+        vor, hoehe = ARBEITSHOEHEN["Hebel"]
+        netz.stab(ort + Vector((-vor, 0, hoehe)), ort + Vector((-vor - 0.9, 0, hoehe + 0.2)), 0.06, 0.06, holz)
+        netz.stab(ort + Vector((-vor - 0.45, 0, 0)), ort + Vector((-vor - 0.45, 0, hoehe + 0.12)), 0.1, 0.1, holz)
+    elif name == "Schleifen":
+        bs.achteck(netz, st, ort + Vector((-0.6, 0.0, 0.0)), 0.06, 0.0, 0.72, "Holz")
+        dreh = Matrix.Translation(ort + Vector((-0.6, 0, 0))) @ Matrix.Rotation(math.radians(90), 4, "Z")
+        netz.prisma([(0.38 * math.cos(2 * math.pi * k / 12), 0.72 + 0.38 * math.sin(2 * math.pi * k / 12)) for k in range(12)],
+                    -0.07, 0.07, st["Sandstein"], matrix=dreh)
+        netz.quader(ort + Vector((-0.3, 0.09, 0.05)), (0.3, 0.2, 0.04), holz)            # Tretbrett vor dem rechten Fuß
+    elif name == "Feinarbeit":
+        vor, hoehe = ARBEITSHOEHEN["Tisch"]
+        netz.quader(ort + Vector((-vor - 0.25, 0, hoehe - 0.07)), (0.62, 0.9, 0.06), holz)
+        for dx in (-0.05, -0.5):
+            netz.quader(ort + Vector((-vor - 0.25 + dx + 0.27, 0, (hoehe - 0.1) / 2)), (0.05, 0.8, hoehe - 0.1), holz)
+    return netz.objekt() if netz.dreiecke() else None
+
+
+def beschriftung(text, ort):
+    """Fürs Bild: Text in der Szene, zur Spielkamera gedreht (Schrift des Spiels, Alegreya, OFL)."""
+    import bpy
+    kurve = bpy.data.curves.new("_Text_" + text, "FONT")
+    kurve.body = text
+    kurve.size = 0.62
+    kurve.align_x, kurve.align_y = "RIGHT", "CENTER"
     try:
-        from PIL import Image, ImageDraw, ImageFont
-    except ImportError:
-        return
-    bild = Image.open(pfad).convert("RGB")
-    w, h = bild.size
-    zeichnen = ImageDraw.Draw(bild)
-    schrift = ImageFont.truetype(os.path.join(bs.WURZEL, "game", "assets", "schriften", "Alegreya-Variabel.ttf"), int(h / 50))
-    for name, ort in marken:
-        q = world_to_camera_view(szene, szene.camera, ort)
-        zeichnen.text((int(q.x * w), int((1 - q.y) * h)), name, fill=(240, 236, 220), font=schrift, anchor="rm")
-    bild.save(pfad, optimize=True)
-    print(pfad)
+        kurve.font = bpy.data.fonts.load(os.path.join(bs.WURZEL, "game", "assets", "schriften", "Alegreya-Variabel.ttf"),
+                                         check_existing=True)
+    except RuntimeError:
+        pass
+    o = bpy.data.objects.new("_Text_" + text, kurve)
+    o.visible_shadow = False
+    o.location = ort
+    o.rotation_euler = (math.radians(90 - bs.KAMERA_NEIGUNG), 0, math.radians(-45 + 90))   # wie die Kamera in bs.blick(0)
+    m = bpy.data.materials.new("_Schrift")
+    try:
+        m.use_nodes = True
+    except AttributeError:
+        pass
+    pr = m.node_tree.nodes["Principled BSDF"]
+    pr.inputs["Base Color"].default_value = (0.87, 0.84, 0.75, 1)
+    pr.inputs["Emission Color"].default_value = (0.87, 0.84, 0.75, 1)
+    pr.inputs["Emission Strength"].default_value = 1.0
+    kurve.materials.append(m)
+    bpy.context.scene.collection.objects.link(o)
+    return o
 
 
 if __name__ == "__main__":
