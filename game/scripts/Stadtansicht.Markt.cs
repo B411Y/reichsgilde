@@ -7,9 +7,9 @@ namespace Reichsgilde;
 /// Der Marktplatz (Teil der <c>partial class Stadtansicht</c>): <c>marktplatz.glb</c> mit Pflaster, Brunnen, Marktkreuz und Bänken,
 /// auf jedem „Anker_Stand&lt;n&gt;“ ein Stand aus <c>marktstaende.glb</c> (PR #143).
 ///
-/// Auslagen: Ein Stand zeigt die Waren eines Handwerks, das in den letzten 17 Spielstunden etwas auf den Markt gebracht hat
-/// (<see cref="Marktstand.SpielerAngebotImJahr"/> – Verkäufe der Spieler und KI-Häuser; die Grundversorgung der Stadt zählt nicht).
-/// Ein Stand behält seine Ware, solange sie da ist; neue Ware bekommt den nächsten freien Stand. Hinter jedem belegten Stand steht
+/// Auslagen: Ein Stand zeigt die Waren eines Handwerks. Zuerst bekommen die einen Stand, die in den letzten 17 Spielstunden etwas auf den
+/// Markt gebracht haben (<see cref="Marktstand.SpielerAngebotImJahr"/> – Verkäufe der Spieler und KI-Häuser), die übrigen Stände füllt die
+/// Grundversorgung der Stadt (PR #148). Ein Stand behält seine Ware, solange sie da ist. Hinter jedem belegten Stand steht
 /// ein Verkäufer, zur Arbeitszeit.
 ///
 /// Stellen: Einwohner auf dem Markt stehen an den Kundenplätzen der belegten Stände, plaudern in kleinen Runden, holen Wasser am Brunnen,
@@ -62,6 +62,8 @@ public partial class Stadtansicht
     private long _auslagenGeprueft = -1;
     private bool _marktOffen = true;
     private Dictionary<string, string>? _berufJeWare;
+    /// <summary>Was auf dem Pflaster im Weg steht (Brunnen, Marktkreuz, Bänke, Stände): Mitte und Radius in Metern, ohne Abstand für die Figur.</summary>
+    private readonly List<(Vector3 Mitte, float Radius)> _marktHindernisse = new();
 
     private void Marktstaende()
     {
@@ -79,6 +81,7 @@ public partial class Stadtansicht
                 else if (name.StartsWith("Anker_Plausch") && int.TryParse(name["Anker_Plausch".Length..].Split('_')[0], out var gruppe))
                     _marktstellen.Add(new Marktstelle(lage.Origin, blick, "Reden", Gruppe: gruppe));
             }
+            MarktHindernisseSammeln(platz.Wurzel, anker);
             // Rundgang: Anker_Weg1 … Anker_Weg12 in Laufrichtung; an jedem Wegpunkt beginnt ein Schlendernder
             _rundgang = Enumerable.Range(1, 99).Select(n => anker.TryGetValue($"Anker_Weg{n}", out var w) ? (Vector3?)w.Origin : null)
                                   .TakeWhile(w => w is not null).Select(w => w!.Value).ToArray();
@@ -108,6 +111,10 @@ public partial class Stadtansicht
         modell.Wurzel.Basis = lage.Basis;
         var stand = new StandAnsicht { Wurzel = modell.Wurzel };
         var form = StandFormen[nummer % StandFormen.Length];
+        // Hindernis: Tisch 2,8 × 1,4 m samt Pfosten und Plane als drei Kreise längs des Tisches; der Handkarren hat hinten eine Deichsel
+        foreach (var dx in new[] { -1f, 0f, 1f })
+            _marktHindernisse.Add((lage * new Vector3(dx, 0, 0), 0.95f));
+        if (form == "Stand_Karren") _marktHindernisse.Add((lage * new Vector3(-1.9f, 0, 0), 0.5f));
         foreach (var teil in modell.Wurzel.GetChildren().OfType<MeshInstance3D>())
         {
             var name = teil.Name.ToString();
@@ -158,6 +165,8 @@ public partial class Stadtansicht
         var zehntel = (long)Math.Floor(minuteGenau) / 10;
         if (zehntel != _auslagenGeprueft)
         {
+            // Beim ersten Mal die Platzhalter des Hauptmenüs wegräumen: Die Stände werden nach Wert belegt, nicht nach Nummer
+            if (_auslagenGeprueft < 0) foreach (var stand in _marktstaende) stand.Auslage = null;
             _auslagenGeprueft = zehntel;
             AuslagenVerteilen(w);
         }
@@ -173,31 +182,48 @@ public partial class Stadtansicht
     }
 
     /// <summary>
-    /// Welche Handwerke gerade Ware auf dem Markt haben (Verkäufe der letzten 17 Spielstunden, nach Wert): Ein Stand behält seine
-    /// Auslage, solange sie da ist; was neu kommt, bekommt den nächsten freien Stand. Gibt es mehr Handwerke als Stände, fehlt das kleinste.
+    /// Welche Waren auf den Ständen liegen. Zuerst bekommen Handwerke einen Stand, die in den letzten 17 Spielstunden etwas auf den Markt gebracht
+    /// haben (Verkäufe der Häuser, nach Wert); dann füllt die Grundversorgung der Stadt (Gesamtangebot ohne die Verkäufe der Häuser, nach Wert)
+    /// die übrigen Stände. Ein Stand behält seine Auslage, solange sie da ist; eine verkaufte Ware verdrängt bei Bedarf die kleinste
+    /// Grundversorgung. Bei sieben Ständen und acht Warengruppen fehlt am ersten Tag meist die kleinste.
     /// </summary>
     private void AuslagenVerteilen(Stadtwirtschaft w)
     {
         _berufJeWare ??= w.Daten.Betriebsarten.Values.OrderBy(a => a.Beruf, StringComparer.Ordinal)
                           .SelectMany(a => a.Produkte.Select(ware => (ware, a.Beruf)))
                           .GroupBy(x => x.ware).ToDictionary(g => g.Key, g => g.First().Beruf);
-        var wert = new Dictionary<string, double>();
+        var verkauft = new Dictionary<string, double>();   // Verkäufe der Häuser
+        var versorgung = new Dictionary<string, double>(); // Grundversorgung der Stadt
         foreach (var s in w.Markt.Staende)
         {
-            if (s.SpielerAngebotImJahr < 1 || AuslageVon(s) is not { } auslage) continue;
-            wert[auslage] = wert.GetValueOrDefault(auslage) + s.SpielerAngebotImJahr * s.Grundpreis;
+            if (AuslageVon(s) is not { } auslage) continue;
+            if (s.SpielerAngebotImJahr >= 1) verkauft[auslage] = verkauft.GetValueOrDefault(auslage) + s.SpielerAngebotImJahr * s.Grundpreis;
+            var grund = s.Gesamtangebot - s.SpielerAngebotImJahr;
+            if (grund > 0) versorgung[auslage] = versorgung.GetValueOrDefault(auslage) + grund * s.Grundpreis;
         }
         var vorher = string.Join(", ", _marktstaende.Select(s => s.Auslage ?? "–"));
-        foreach (var stand in _marktstaende.Where(s => s.Auslage is not null && !wert.ContainsKey(s.Auslage)))
+        foreach (var stand in _marktstaende.Where(s => s.Auslage is not null && !verkauft.ContainsKey(s.Auslage) && !versorgung.ContainsKey(s.Auslage)))
             stand.Auslage = null;
-        foreach (var auslage in wert.OrderByDescending(x => x.Value).ThenBy(x => x.Key, StringComparer.Ordinal).Select(x => x.Key))
+        // Verkaufte Ware zuerst: freier Stand, sonst der mit der kleinsten Grundversorgung (nicht der eines anderen Verkaufs)
+        foreach (var auslage in verkauft.OrderByDescending(x => x.Value).ThenBy(x => x.Key, StringComparer.Ordinal).Select(x => x.Key))
+        {
+            if (_marktstaende.Any(s => s.Auslage == auslage)) continue;
+            var platz = _marktstaende.FirstOrDefault(s => s.Auslage is null)
+                        ?? _marktstaende.Where(s => !verkauft.ContainsKey(s.Auslage!))
+                                        .OrderBy(s => versorgung.GetValueOrDefault(s.Auslage!)).FirstOrDefault();
+            if (platz is null) break;
+            platz.Auslage = auslage;
+        }
+        // Die übrigen Stände füllt die Grundversorgung, die größte zuerst
+        foreach (var auslage in versorgung.OrderByDescending(x => x.Value).ThenBy(x => x.Key, StringComparer.Ordinal).Select(x => x.Key))
         {
             if (_marktstaende.Any(s => s.Auslage == auslage)) continue;
             if (_marktstaende.FirstOrDefault(s => s.Auslage is null) is not { } frei) break;
             frei.Auslage = auslage;
         }
         var nachher = string.Join(", ", _marktstaende.Select(s => s.Auslage ?? "–"));
-        if (nachher != vorher) GD.Print($"Markt: Stände {nachher} ({string.Join(", ", wert.Select(x => $"{x.Key} {x.Value:0} Gulden"))})");
+        if (nachher != vorher)
+            GD.Print($"Markt: Stände {nachher} (verkauft: {string.Join(", ", verkauft.Select(x => $"{x.Key} {x.Value:0}"))}; Grundversorgung: {string.Join(", ", versorgung.Select(x => $"{x.Key} {x.Value:0}"))} Gulden)");
     }
 
     /// <summary>Welche Auslage zu einer Ware gehört: Rohstoffe zusammen, sonst nach dem Handwerk, das sie herstellt.</summary>
@@ -239,6 +265,186 @@ public partial class Stadtansicht
         if (t0 * d.Length() > 0.01f) stuecke.Add((von, von + d * t0));
         if ((1 - t1) * d.Length() > 0.01f) stuecke.Add((von + d * t1, bis));
         return stuecke;
+    }
+
+    // ═════════════════════════════════════════════════════════════════════════
+    //  Wege über das Pflaster
+    // ═════════════════════════════════════════════════════════════════════════
+
+    /// <summary>So viel Abstand (Meter) halten Figuren zu Brunnen, Kreuz, Bänken und Ständen.</summary>
+    private const float Wegrand = 0.3f;
+
+    /// <summary>
+    /// Sammelt, was auf dem Pflaster im Weg steht, aus dem Modell: den Brunnen (höchste Punkte des Pflasters nahe der Mitte, mit Eimer),
+    /// die Bänke (je zwei Sitzanker; drei Kreise längs der Bank) und das Marktkreuz (Lage aus <c>tools/modelle/markt.py</c>, ein Anker fehlt).
+    /// Die Stände kommen in <see cref="StandAufbauen"/> dazu.
+    /// </summary>
+    private void MarktHindernisseSammeln(Node3D wurzel, Dictionary<string, Transform3D> anker)
+    {
+        var brunnen = 0f;
+        foreach (var teil in wurzel.GetChildren().OfType<MeshInstance3D>())
+        {
+            var lage = wurzel.Transform * teil.Transform;
+            foreach (var ecke in teil.Mesh.GetFaces())
+            {
+                var p = lage * ecke;
+                if (p.Y > 0.1f && new Vector2(p.X, p.Z).Length() < 4f) brunnen = Mathf.Max(brunnen, new Vector2(p.X, p.Z).Length());
+            }
+        }
+        _marktHindernisse.Add((Vector3.Zero, Mathf.Max(brunnen, 2f)));
+        _marktHindernisse.Add((new Vector3(-10.4f, 0, 10.4f), 1.0f));
+        for (var n = 1; anker.TryGetValue($"Anker_Sitz{2 * n - 1}", out var a) && anker.TryGetValue($"Anker_Sitz{2 * n}", out var b); n++)
+        {
+            var mitte = (a.Origin + b.Origin) / 2;
+            var achse = (b.Origin - a.Origin).Normalized();
+            foreach (var d in new[] { -0.9f, 0f, 0.9f })
+                _marktHindernisse.Add((new Vector3(mitte.X, 0, mitte.Z) + achse * d, 0.6f));
+        }
+    }
+
+    /// <summary>Liegt der Punkt auf dem Pflaster des Marktplatzes?</summary>
+    private static bool AufDemPflaster(Vector3 p) => Mathf.Abs(p.X - Marktplatz.X) <= MarktplatzHalb && Mathf.Abs(p.Z - Marktplatz.Z) <= MarktplatzHalb;
+
+    /// <summary>Der Teil der Strecke von <paramref name="a"/> nach <paramref name="b"/> (Anteile 0 bis 1), der auf dem Pflaster liegt. Null, wenn keiner.</summary>
+    private static (float Von, float Bis)? ImPflaster(Vector3 a, Vector3 b)
+    {
+        var d = b - a;
+        float t0 = 0, t1 = 1;
+        foreach (var (p, q) in new[] { (-d.X, a.X - Marktplatz.X + MarktplatzHalb), (d.X, Marktplatz.X + MarktplatzHalb - a.X),
+                                       (-d.Z, a.Z - Marktplatz.Z + MarktplatzHalb), (d.Z, Marktplatz.Z + MarktplatzHalb - a.Z) })
+        {
+            if (Mathf.IsZeroApprox(p)) { if (q < 0) return null; continue; }
+            var t = q / p;
+            if (p < 0) t0 = Mathf.Max(t0, t);
+            else t1 = Mathf.Min(t1, t);
+        }
+        return t0 < t1 ? (t0, t1) : null;
+    }
+
+    /// <summary>
+    /// Führt einen Weg über das Pflaster des Marktplatzes so, wie man wirklich geht: Wer hineingeht, betritt den Platz dort, wo der Weg das Pflaster
+    /// trifft, und geht von da direkt zu seinem Ziel; wer hinausgeht, geht direkt zum Rand; von Stelle zu Stelle direkt. Brunnen, Kreuz, Bänke und
+    /// Stände umgeht er (<see cref="PlatzZwischenpunkte"/>). Wege, die nur durchs Netz über die Mitte führen (Knoten am Brunnen), laufen so um den Brunnen
+    /// herum. Der erste und letzte Punkt des Weges bleiben, wie sie sind.
+    /// </summary>
+    private List<Vector3> UeberDenPlatz(IReadOnlyList<Vector3> pfad)
+    {
+        var aus = new List<Vector3>();
+        if (pfad.Count == 0) return aus;
+        var drin = AufDemPflaster(pfad[0]);
+        var eintritt = pfad[0]; // wo der Weg das Pflaster betritt (oder dort beginnt)
+        aus.Add(pfad[0]);
+        for (var i = 0; i + 1 < pfad.Count; i++)
+        {
+            var a = pfad[i];
+            var b = pfad[i + 1];
+            var abschnitt = ImPflaster(a, b);
+            var aDrin = AufDemPflaster(a);
+            var bDrin = AufDemPflaster(b);
+            if (!aDrin && !bDrin)
+            {
+                // streift nur eine Ecke des Platzes
+                if (abschnitt is { } stueck && (stueck.Bis - stueck.Von) * a.DistanceTo(b) > 0.05f)
+                {
+                    var x1 = a.Lerp(b, stueck.Von);
+                    var x2 = a.Lerp(b, stueck.Bis);
+                    aus.Add(x1);
+                    aus.AddRange(PlatzZwischenpunkte(x1, x2));
+                    aus.Add(x2);
+                }
+                aus.Add(b);
+            }
+            else if (!aDrin)
+            {
+                eintritt = a.Lerp(b, abschnitt?.Von ?? 1);
+                aus.Add(eintritt);
+                drin = true;
+            }
+            else if (!bDrin)
+            {
+                var austritt = a.Lerp(b, abschnitt?.Bis ?? 0);
+                aus.AddRange(PlatzZwischenpunkte(eintritt, austritt));
+                aus.Add(austritt);
+                aus.Add(b);
+                drin = false;
+            }
+        }
+        if (drin)
+        {
+            aus.AddRange(PlatzZwischenpunkte(eintritt, pfad[^1]));
+            if (aus.Count == 0 || aus[^1] != pfad[^1]) aus.Add(pfad[^1]);
+        }
+        return aus;
+    }
+
+    /// <summary>
+    /// Die Punkte zwischen <paramref name="von"/> und <paramref name="bis"/> (ohne diese beiden), mit denen man Brunnen, Kreuz, Bänke und Stände
+    /// umgeht: Die Gerade, wenn nichts im Weg steht, sonst am ersten Hindernis um den Kreis herum (Tangente, ein Stück Kreisbogen, Tangente) auf der kürzeren Seite.
+    /// Steht ein Ende dicht am Hindernis (Brunnenplatz, Kundenplatz), schrumpft der Kreis bis dorthin.
+    /// </summary>
+    private List<Vector3> PlatzZwischenpunkte(Vector3 von, Vector3 bis, int tiefe = 0)
+    {
+        var punkte = new List<Vector3>();
+        if (tiefe > 4) return punkte;
+        var d = new Vector3(bis.X - von.X, 0, bis.Z - von.Z);
+        var laenge2 = d.LengthSquared();
+        if (laenge2 < 1e-4f) return punkte;
+        (Vector3 Mitte, float Radius)? erstes = null;
+        var ersteT = float.MaxValue;
+        foreach (var (mitte, radius) in _marktHindernisse)
+        {
+            var m = new Vector3(mitte.X, 0, mitte.Z);
+            var abVon = new Vector3(von.X, 0, von.Z).DistanceTo(m);
+            var abBis = new Vector3(bis.X, 0, bis.Z).DistanceTo(m);
+            var r = Mathf.Min(radius + Wegrand, Mathf.Min(abVon, abBis) - 0.05f);
+            if (r < 0.3f) continue;
+            var t = Mathf.Clamp((m - new Vector3(von.X, 0, von.Z)).Dot(d) / laenge2, 0, 1);
+            var q = new Vector3(von.X, 0, von.Z) + d * t;
+            if (q.DistanceTo(m) >= r - 0.01f || t >= ersteT) continue;
+            ersteT = t;
+            erstes = (m, r);
+        }
+        if (erstes is not { } h) return punkte;
+
+        // Um den Kreis herum: Tangentenpunkte von beiden Seiten, die kürzere Richtung nehmen
+        Vector2 Auf(Vector3 v) => new(v.X - h.Mitte.X, v.Z - h.Mitte.Z);
+        var wVon = Auf(von);
+        var wBis = Auf(bis);
+        var winkelVon = Mathf.Atan2(wVon.Y, wVon.X);
+        var winkelBis = Mathf.Atan2(wBis.Y, wBis.X);
+        var abwVon = Mathf.Acos(Mathf.Clamp(h.Radius / wVon.Length(), -1, 1));
+        var abwBis = Mathf.Acos(Mathf.Clamp(h.Radius / wBis.Length(), -1, 1));
+        var beste = (Laenge: float.MaxValue, Seite: 1, TVon: 0f, TBis: 0f, Spanne: 0f);
+        foreach (var seite in new[] { 1, -1 })
+        {
+            var tVon = winkelVon + seite * abwVon;
+            var tBis = winkelBis - seite * abwBis;
+            var spanne = Mathf.PosMod(seite * (tBis - tVon), Mathf.Tau);
+            var gesamt = Mathf.Sqrt(Mathf.Max(wVon.LengthSquared() - h.Radius * h.Radius, 0)) + h.Radius * spanne
+                       + Mathf.Sqrt(Mathf.Max(wBis.LengthSquared() - h.Radius * h.Radius, 0));
+            if (gesamt < beste.Laenge) beste = (gesamt, seite, tVon, tBis, spanne);
+        }
+        Vector3 PunktAmKreis(float winkel, float radius) => new(h.Mitte.X + Mathf.Cos(winkel) * radius, 0, h.Mitte.Z + Mathf.Sin(winkel) * radius);
+        var ersterPunkt = PunktAmKreis(beste.TVon, h.Radius);
+        var letzterPunkt = PunktAmKreis(beste.TBis, h.Radius);
+        punkte.AddRange(PlatzZwischenpunkte(von, ersterPunkt, tiefe + 1));
+        punkte.Add(ersterPunkt);
+        var schritte = Mathf.CeilToInt(beste.Spanne / 0.6f);
+        for (var k = 1; k < schritte; k++) // Sehnen des Kreisbogens berühren den Kreis nur, wenn die Zwischenpunkte weiter außen liegen
+            punkte.Add(PunktAmKreis(beste.TVon + beste.Seite * beste.Spanne * k / schritte, h.Radius / Mathf.Cos(beste.Spanne / schritte / 2)));
+        punkte.Add(letzterPunkt);
+        punkte.AddRange(PlatzZwischenpunkte(letzterPunkt, bis, tiefe + 1));
+        if (tiefe > 0) return punkte;
+        // Punkte dicht hintereinander (von Kreisen, die sich überlappen) ergäben nur ein Zittern: zusammenfassen
+        var glatt = new List<Vector3>();
+        var davor = von;
+        foreach (var punkt in punkte)
+        {
+            if (punkt.DistanceTo(davor) < 0.5f || punkt.DistanceTo(bis) < 0.5f) continue;
+            glatt.Add(punkt);
+            davor = punkt;
+        }
+        return glatt;
     }
 
     // ═════════════════════════════════════════════════════════════════════════

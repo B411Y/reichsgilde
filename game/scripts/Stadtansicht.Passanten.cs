@@ -92,9 +92,12 @@ public partial class Stadtansicht
                 p.Pfad = Strecke(weg, e, p);
                 p.Laenge = Gassennetz.Laenge(p.Pfad);
                 LaufPlanen(p, weg);
-                // Wer schlendert, ist beim Losgehen und Ankommen schon ein Stück weiter auf dem Rundgang
-                if (p.Pfad.Length > 0 && AufDemRundgang(p.AlteMarktstelle)) p.Pfad[0] = MarktstelleLage(p.AlteMarktstelle, p.LaufStart).Ort;
-                if (p.Pfad.Length > 0 && AufDemRundgang(p.Marktstelle)) p.Pfad[^1] = MarktstelleLage(p.Marktstelle, p.LaufEnde).Ort;
+                // Wer schlendert, ist beim Losgehen und Ankommen schon ein Stück weiter auf dem Rundgang: den Weg mit diesen Zeiten neu legen
+                if (p.Pfad.Length > 0 && (AufDemRundgang(p.AlteMarktstelle) || AufDemRundgang(p.Marktstelle)))
+                {
+                    p.Pfad = PfadBauen(weg, e, p, AufDemRundgang(p.AlteMarktstelle) ? p.LaufStart : weg.Abmarsch, AufDemRundgang(p.Marktstelle) ? p.LaufEnde : weg.Ankunft);
+                    p.Laenge = Gassennetz.Laenge(p.Pfad);
+                }
             }
             var losgegangen = weg is null || minuteGenau >= p.LaufStart;
             if (losgegangen && p.AlteMarktstelle >= 0)
@@ -316,13 +319,23 @@ public partial class Stadtansicht
         else MarktstelleRaeumen(p.Marktstelle, e.Nummer);
         p.Marktstelle = weg.Nach.Ort == Stadtort.Markt ? MarktstelleBelegen(e.Nummer, weg.Ankunft) : -1;
 
+        return PfadBauen(weg, e, p, weg.Abmarsch, weg.Ankunft);
+    }
+
+    /// <summary>
+    /// Der Weg Punkt für Punkt: Anfang, Gassennetz, Ende. Auf dem Markt betritt und verlässt man den Platz am Rand und geht dort direkt zur Stelle
+    /// (<see cref="UeberDenPlatz"/>), statt erst zur Mitte zu laufen. <paramref name="abmarsch"/> und <paramref name="ankunft"/> sind die Spielminuten
+    /// (mit Bruchteil), zu denen die alte und die neue Stelle gelten – wichtig für den Rundgang, der sich bewegt.
+    /// </summary>
+    private Vector3[] PfadBauen(Weg weg, Einwohner e, Passant p, double abmarsch, double ankunft)
+    {
         var pfad = _netz.Pfad(Anlaufknoten(weg.Von), Anlaufknoten(weg.Nach)).ToList();
         if (pfad.Count == 0) return Array.Empty<Vector3>();
-        if (Draussen(weg.Von)) pfad.Insert(0, StreckenEnde(weg.Von, e, p.AlteMarktstelle, weg.Abmarsch));
+        if (Draussen(weg.Von)) pfad.Insert(0, StreckenEnde(weg.Von, e, p.AlteMarktstelle, weg.Abmarsch, abmarsch));
         else if (TuerVon(weg.Von) is { } ausgang) pfad.Insert(0, ausgang); // kommt aus der Tür des Modells (mit der Höhe der Stufen)
-        if (Draussen(weg.Nach)) pfad.Add(StreckenEnde(weg.Nach, e, p.Marktstelle, weg.Ankunft));
+        if (Draussen(weg.Nach)) pfad.Add(StreckenEnde(weg.Nach, e, p.Marktstelle, weg.Ankunft, ankunft));
         else if (TuerVon(weg.Nach) is { } eingang) pfad.Add(eingang);      // verschwindet erst an der Tür
-        return pfad.ToArray();
+        return UeberDenPlatz(pfad).ToArray();
     }
 
     /// <summary>
@@ -340,10 +353,10 @@ public partial class Stadtansicht
     };
 
     /// <summary>Anfang oder Ende einer Strecke draußen: auf dem Markt die Stelle (am Boden, auch bei einer Bank), sonst der Verweilpunkt.</summary>
-    private Vector3 StreckenEnde(Aufenthalt a, Einwohner e, int marktstelle, long zeitpunkt)
+    private Vector3 StreckenEnde(Aufenthalt a, Einwohner e, int marktstelle, long zeitpunkt, double minute)
     {
         if (a.Ort != Stadtort.Markt || marktstelle < 0) return Verweilpunkt(a, e, zeitpunkt);
-        var ort = MarktstelleLage(marktstelle, zeitpunkt).Ort;
+        var ort = MarktstelleLage(marktstelle, minute).Ort;
         return new Vector3(ort.X, Mathf.Min(ort.Y, 0.04f), ort.Z);
     }
 
@@ -362,8 +375,8 @@ public partial class Stadtansicht
         float Teil(int verschiebung) => ((zahl >> verschiebung) & 0xFFFF) / 65535f; // 0 … 1
         return a.Ort switch
         {
-            // Markt (nur, wenn alle Stellen besetzt sind): zwischen den Ständen (Marktplatz 24 × 24 m, Brunnen in der Mitte frei lassen)
-            Stadtort.Markt => RingUmMitte(Marktplatz, 3f, 10.5f, Teil(0), Teil(16)),
+            // Markt (nur, wenn alle Stellen besetzt sind): zwischen den Ständen (Marktplatz 24 × 24 m), nicht in Brunnen, Kreuz, Bank oder Stand
+            Stadtort.Markt => FreierPunktAufDemMarkt(zahl),
             // Tor: vor dem Osttor neben der Straße
             Stadtort.Tor => Osttor + new Vector3(3 + Teil(0) * 4, 0, (Teil(16) < 0.5f ? -1 : 1) * (3 + Teil(8) * 2)),
             // Umland: auf der Weide, zwischen den Furchen, bei Reisig und Stümpfen im Wald (UmlandPlatz)
@@ -422,6 +435,20 @@ public partial class Stadtansicht
         }
         var drehung = UmlandstelleDrehung(stelle);
         return (Umlandstellen[stelle] + new Basis(Vector3.Up, drehung) * new Vector3(lokal.X, 0, lokal.Y), drehung + blick);
+    }
+
+    /// <summary>Ein Punkt zwischen den Ständen, an dem nichts steht: bis zu acht feste Versuche aus der Zahl, sonst der erste.</summary>
+    private Vector3 FreierPunktAufDemMarkt(uint zahl)
+    {
+        Vector3 erster = default;
+        for (var versuch = 0; versuch < 8; versuch++)
+        {
+            var z = versuch == 0 ? zahl : Streuung((int)zahl, 900 + versuch);
+            var punkt = RingUmMitte(Marktplatz, 3f, 10.5f, (z & 0xFFFF) / 65535f, ((z >> 16) & 0xFFFF) / 65535f);
+            if (versuch == 0) erster = punkt;
+            if (!_marktHindernisse.Any(h => new Vector2(punkt.X - h.Mitte.X, punkt.Z - h.Mitte.Z).Length() < h.Radius + Wegrand)) return punkt;
+        }
+        return erster;
     }
 
     private static Vector3 RingUmMitte(Vector3 mitte, float innen, float aussen, float a, float b)
