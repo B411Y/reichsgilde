@@ -39,11 +39,10 @@ So wird eingetragen (damit sich die Chats nie an derselben Stelle treffen):
 - Die Werte der Umgebungsverdeckung (Reichweite, Stärke) sind für Zoom 25–95 abgestimmt; bei einer späteren Änderung der Kamera (anderes Bildformat, andere Neigung) erneut prüfen
 - Vögel: Im westlichen Umland (Weide, Feld, Wald) gibt es kaum Landeplätze, die Schwärme sitzen dort oft auf der Stadtmauer. Mit dem Einbau der Umland- und Naturmodelle kommen Dächer und Baumkronen dazu; dann prüfen.
 - Einbau (Teamleiter #144): `berg_grube.glb` statt der zwei Kugeln hinter der Grube; je Jahreszeit „…_Winter“ bzw. „Winteraeste_…“ statt Laub einblenden. Bis dahin liegen die Winteräste unsichtbar in den Kronen; in Forward+ prüfen, dass die Eckenfarben der Umlandbetriebe gleich hell sind wie vorher.
-- Auslagen erst nach dem ersten Verkauf: Am ersten Spieltag sind alle Stände bis zum Abend leer, weil nur Verkäufe der Häuser zählen. Soll die Grundversorgung der Stadt (NPC-Anteil) auch Stände belegen? Entscheidung des Nutzers
 - Übrige Innenraumfiguren (Arbeiter und Gäste in Werkstätten und Schänken, Ratsherren, Richter, Familie in der Wohnstube) sind noch Kapseln mit Arm; auf die Figurmodelle umstellen (Sitzen in der Schänke, Arbeit mit Werkzeug bräuchte weitere Bewegungen)
 - Figuren wechseln die Bewegung ohne Überblenden (Gehen → Stehen springt); bei Bedarf kurzes Überblenden über eine zweite Animation
 - Orks und Oger haben noch kein eigenes Figurmodell (vorerst ein größerer Mensch)
-- Zeichenaufrufe der Figuren: Der Körper hat sechs Materialien (Gewand, Beinkleid, Haut, Haar, Auge, Leder), jedes ein Aufruf je Figur und Schattendurchgang; mit Farben über eine Farbtabelle oder Eckfarben (ein Material) wären es weniger – Modelländerung, Entscheidung des Nutzers
+- Zeichenaufrufe der Figuren: Der Körper hat sechs Materialien (Gewand, Beinkleid, Haut, Haar, Auge, Leder), jedes ein Aufruf je Figur und Schattendurchgang. Vom Nutzer entschieden: ein Material mit Zonen, beim Modell-Chat beauftragt; nach dessen PR einen Shader mit fünf Farben je Figur einbauen und neu messen
 - Rechenzeit der Figuren auf einer echten Grafikkarte abnehmen (gemessen nur lavapipe auf einem stark belasteten Rechner)
 - Im Wald verdecken die hohen Tannen die Arbeitenden (Blick nach Nordosten fast ganz): Tannen in Kameranähe durchscheinend machen oder die Arbeitsplätze an den Waldrand legen
 
@@ -477,3 +476,11 @@ So wird eingetragen (damit sich die Chats nie an derselben Stelle treffen):
 | Felsberg | Eigene Datei `berg_grube.glb` mit Knoten „Berg“ statt eines Knotens in `grube.glb` – so bleibt die Grube unverändert und der Berg lässt sich getrennt ein- und ausblenden. Höhenraster aus Facetten, Hauptgipfel 11,5 m, Nebengipfel 8,5 m und ein Sporn; Gras auf flachen Facetten, Geröll am Fuß, sieben Tannen. | 18.10.2026 |
 | Winter | Natur: „<Name>_Winter“ zu Eiche, Buche, Birke, Linde, Apfelbaum, Kopfweide, Hasel, Holunder und Brombeere; Tanne, Baum_tot, Ginster und Wacholder bleiben. Andere Modelle: „Laubkrone_<Knoten>“ und „Winteraeste_<Knoten>“ als Kinder des Knotens, in dem der Baum steht (wirt, prediger, geldleiher: Stufe1–3; kraeutergarten, klosterhof: Haus; umland_stellen: Wald). Die Winteräste liegen innerhalb der Krone. Kein Schnee. | 18.10.2026 |
 
+### Modelle aus #147 im Spiel, Marktzugang, Grundversorgung (PR #148)
+
+| Thema | Entscheidung | Datum |
+|---|---|---|
+| Marktzugang (Wunsch des Nutzers) | Passanten laufen nicht mehr erst zur Mitte des Platzes (dem Knoten des Gassennetzes am Brunnen): Sie betreten den Platz am Rand, wo ihre Gasse auf das Pflaster trifft, und gehen von dort direkt zu ihrer Stelle, um den Brunnen herum. Beim Verlassen ebenso. | 19.10.2026 |
+| Stände | Die Grundversorgung der Stadt belegt auch Stände, damit der Markt vom ersten Tag an voll ist. Waren, die Spieler oder KI-Häuser in den letzten 17 Stunden verkauft haben, bekommen zuerst einen Stand; die übrigen Stände füllt die Grundversorgung nach Wert (7 Stände, 8 Warengruppen). Entschieden vom Nutzer. | 19.10.2026 |
+| Figurkörper | Ein Material statt sechs: Zonen im Modell, Farben je Figur über einen Shader. Entschieden vom Nutzer, beim Modell-Chat beauftragt; Einbau nach dessen PR. | 19.10.2026 |
+| Brunnenplätze | „Anker_Brunnen1–4“ liegen fast auf dem Eimer. Der Modell-Chat setzt sie nach außen, das Spiel übernimmt sie ohne Änderung. Entschieden vom Nutzer. | 19.10.2026 |
