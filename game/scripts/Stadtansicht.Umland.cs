@@ -47,10 +47,17 @@ public partial class Stadtansicht
     };
 
     /// <summary>
-    /// Plätze, deren Vorderseite von Hand ausgerichtet ist (Grad um die Hochachse, 0 = nach +Z/Süden, −90 = nach −X/Westen): Beim Silberberg zeigt der Abzweig
-    /// schräg (−14|−14), und der Berg hinter dem Modell käme dem Kräutergarten in die Quere – so liegt er im freien Osten.
+    /// Plätze, deren Vorderseite von Hand ausgerichtet ist (Grad um die Hochachse, 0 = nach +Z/Süden, −90 = nach −X/Westen): Der Felsberg hinter einer Grube
+    /// (<see cref="BergBauen"/>) ist 45 × 32 m groß und käme dem Weg zum Bauernhof (Grube Eisenbart) bzw. dem Duftgarten und dem Kräutergarten
+    /// (Silberberg) in die Quere – so liegt er in der Lücke dazwischen.
     /// </summary>
-    private static readonly Dictionary<string, float> UmlandDrehungGrad = new() { ["Grube am Silberberg"] = -90 };
+    private static readonly Dictionary<string, float> UmlandDrehungGrad = new() { ["Grube am Silberberg"] = -110, ["Grube Eisenbart"] = -60 };
+
+    /// <summary>
+    /// Wie groß der Felsberg einer Grube ist (1 = wie im Modell), wo er sonst nicht neben die Nachbarn passt: Der Silberberg liegt zwischen Duftgarten
+    /// und Kräutergarten. Der Berg schrumpft um den Punkt, an dem er an den Felshang des Grubenmodells stößt.
+    /// </summary>
+    private static readonly Dictionary<string, float> BergGroesse = new() { ["Grube am Silberberg"] = 0.85f };
 
     /// <summary>
     /// Die Drehung eines Umlandmodells um die Hochachse (Bogenmaß): Seine Vorderseite (+Z) zeigt vom Platz <paramref name="p"/> zum Abzweig, wo der Weg
@@ -121,7 +128,7 @@ public partial class Stadtansicht
         var art = UmlandModelle.GetValueOrDefault(betrieb.Art, UmlandModelle[Betriebsart.Mine]);
         var gruppe = UmlandGruppe(betrieb.Name, p);
         var modell = ModellEinsetzen(art.Datei, gruppe, Vector3.Zero, new ModellZustand(Besitzer: besitzer), betrieb.Name);
-        if (betrieb.Art == Betriebsart.Mine) BergBauen(gruppe);
+        if (betrieb.Art == Betriebsart.Mine) BergBauen(betrieb.Name, gruppe);
 
         var kennung = BetriebsKennung(betrieb);
         Klickflaeche(kennung, new Vector3(0, art.KlickHoehe / 2, 0), new Vector3(art.Flaeche.X - 2, art.KlickHoehe, art.Flaeche.Y - 2), gruppe);
@@ -170,7 +177,7 @@ public partial class Stadtansicht
         var art = UmlandModelle.GetValueOrDefault(frei.Art, UmlandModelle[Betriebsart.Mine]);
         var modell = UmlandGruppe(frei.Name, p, gruppe);
         ModellEinsetzen(art.Datei, modell, Vector3.Zero, new ModellZustand(Leerstand: true));
-        if (frei.Art == Betriebsart.Mine) BergBauen(modell);
+        if (frei.Art == Betriebsart.Mine) BergBauen(frei.Name, modell);
 
         var abzweig = Abzweige.GetValueOrDefault(frei.Name, Wegkreuz + new Vector3(10, 0, 0));
         UmlandWegZiehen(frei.Name, abzweig, UmlandHof(frei.Name, p, frei.Art), gruppe);
@@ -182,20 +189,39 @@ public partial class Stadtansicht
     }
 
     /// <summary>
-    /// Der Berg der Grube – viel größer als die Fläche des Modells, darum bleibt er im Code: zwei abgeflachte Kugeln hinter dem Modell (lokal −Z, also von der Straße
-    /// abgewandt), die den Felshang des Modells fortsetzen.
+    /// Der Felsberg hinter der Grube – viel größer als die Fläche des Modells (45 × 32 m, bis 16 m hoch), darum eine eigene Datei <c>berg_grube.glb</c>
+    /// (Knoten „Berg“, Koordinaten wie <c>grube.glb</c>). Er liegt lokal bei −Z, von der Straße abgewandt, und läuft vorn hinter dem Felshang des Modells aus.
+    /// Er sitzt im selben gedrehten Knoten wie das Grubenmodell, im Betrieb und auf dem freien Platz.
     /// </summary>
-    private void BergBauen(Node3D eltern)
+    private void BergBauen(string name, Node3D eltern)
     {
-        foreach (var (versatz, radius) in new[] { (new Vector3(2, 0, -22), 17f), (new Vector3(-12, 0, -16), 12f) })
+        var berg = ModellEinsetzen("berg_grube", eltern, Vector3.Zero, new ModellZustand());
+        if (berg is null || !BergGroesse.TryGetValue(name, out var groesse)) return;
+        berg.Wurzel.Scale = Vector3.One * groesse;
+        berg.Wurzel.Position = new Vector3(0, 0, BergAnsatz * (groesse - 1)); // der Ansatz (z = −5) bleibt, wo er ist
+    }
+
+    /// <summary>Lokales z, wo der Berg an das Grubenmodell stößt (Vorderkante der Grundfläche).</summary>
+    private const float BergAnsatz = -5;
+
+    /// <summary>
+    /// Liegt der Punkt auf dem Felsberg einer Grube (mit etwas Rand)? Die Grundfläche ist eine Ellipse um (−2,5|−21,25) mit den Halbachsen 26 und 19 m
+    /// im Modell; gedreht und verkleinert wie das Modell. Dort wächst nichts (<see cref="ImWegFuerWald"/>).
+    /// </summary>
+    private static bool AufBerg(Vector3 p)
+    {
+        foreach (var (name, platz) in Stadtplan)
         {
-            eltern.AddChild(new MeshInstance3D
-            {
-                Mesh = new SphereMesh { Radius = radius, Height = radius * 1.3f, RadialSegments = 12, Rings = 6 },
-                MaterialOverride = Material(Fels),
-                Position = versatz,
-            });
+            if (UmlandArtVon(name) != Betriebsart.Mine) continue;
+            var d = p - platz;
+            if (d.LengthSquared() > 50 * 50) continue;
+            var lokal = new Basis(Vector3.Up, UmlandDrehung(name, platz)).Inverse() * d;
+            var groesse = BergGroesse.GetValueOrDefault(name, 1f);
+            var x = lokal.X / groesse;
+            var z = BergAnsatz + (lokal.Z - BergAnsatz) / groesse;
+            if (Mathf.Pow((x + 2.5f) / 26, 2) + Mathf.Pow((z + 21.25f) / 19, 2) < 1) return true;
         }
+        return false;
     }
 
     // ═════════════════════════════════════════════════════════════════════════
@@ -212,13 +238,18 @@ public partial class Stadtansicht
         if (Modell("umland_stellen")?.Instantiate<Node3D>() is not { } kasten) return;
         foreach (var (name, stelle) in Umlandstellen)
         {
-            if ((kasten.FindChild(name, true, false) as MeshInstance3D)?.Mesh is not { } netz)
+            if (kasten.FindChild(name, true, false) is not MeshInstance3D { Mesh: { } netz } teil)
             {
                 GD.PushError($"Modell unvollständig: res://assets/modelle/umland_stellen.glb hat keinen Knoten „{name}“.");
                 continue;
             }
             LaubMelden(netz);
-            AddChild(new MeshInstance3D { Name = "Stelle_" + name, Mesh = netz, Position = stelle, Rotation = new Vector3(0, UmlandstelleDrehung(name), 0) });
+            var stelleKnoten = new MeshInstance3D { Name = "Stelle_" + name, Mesh = netz, Position = stelle, Rotation = new Vector3(0, UmlandstelleDrehung(name), 0) };
+            // auch die Kinder kommen mit (der Wald trägt „Laubkrone_Wald“ und „Winteraeste_Wald“), nicht nur sein Netz
+            foreach (var kind in teil.GetChildren().OfType<MeshInstance3D>())
+                stelleKnoten.AddChild(new MeshInstance3D { Name = kind.Name, Mesh = kind.Mesh, Transform = kind.Transform });
+            AddChild(stelleKnoten);
+            KronenMelden(stelleKnoten);
         }
         kasten.Free();
     }
