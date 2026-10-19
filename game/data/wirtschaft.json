@@ -993,10 +993,7 @@
     "praemie": { "kostenJeArbeiter": 30, "laune": 20, "minuten": 1020 },
     "laune": { "neutral": 50, "tempoBis": 0.2, "jeStunde": 3, "kuendigungUnter": 20, "kuendigungNachStunden": 6 },
     "unfall": {
-      "gefahr": { "Schmied": 0.02, "Steinmetz": 0.015, "Tischler": 0.015, "Alchimist": 0.01, "Parfumeur": 0.01, "Wirt": 0.005, "Prediger": 0.005 },
-      "ausfallTageVon": 1,
-      "ausfallTageBis": 3,
-      "ausfallMinutenJeTag": 1020,
+      "gefahr": { "Schmied": 0.05, "Steinmetz": 0.04, "Tischler": 0.04, "Alchimist": 0.03, "Parfumeur": 0.03, "Wirt": 0.02, "Prediger": 0.02 },
       "laune": -15,
       "launeMinuten": 1020
     },

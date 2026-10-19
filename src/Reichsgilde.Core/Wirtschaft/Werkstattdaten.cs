@@ -67,8 +67,6 @@ public sealed class WerkstattDaten
             if (berufe.Count > 0 && !berufe.ContainsKey(beruf)) f.Add($"werkstatt.unfall.gefahr: Den Beruf „{beruf}“ gibt es nicht.");
             if (gefahr is < 0 or > 1) f.Add($"werkstatt.unfall.gefahr.{beruf} muss zwischen 0 und 1 liegen.");
         }
-        if (u.AusfallTageVon < 0 || u.AusfallTageBis < u.AusfallTageVon) f.Add("werkstatt.unfall: ausfallTageVon ≥ 0 und ausfallTageBis ≥ ausfallTageVon.");
-        if (u.AusfallMinutenJeTag < 1) f.Add("werkstatt.unfall.ausfallMinutenJeTag muss mindestens 1 sein.");
         if (u.LauneMinuten < 0) f.Add("werkstatt.unfall.launeMinuten darf nicht negativ sein.");
         var b = Befoerderung;
         if (b.Von != "" && !kraefte.ContainsKey(b.Von)) f.Add($"werkstatt.befoerderung.von: Die Arbeitskraft „{b.Von}“ gibt es nicht.");
@@ -135,19 +133,14 @@ public sealed class LauneDaten
 }
 
 /// <summary>
-/// Unfälle in Werkstätten: Gefahr je Arbeiter und Jahr nach Beruf, Ausfall in Spieltagen (Lohn läuft weiter),
-/// und für eine Weile schlechtere Laune bei allen im Betrieb.
+/// Unfälle in Werkstätten: Gefahr je Arbeiter und Jahr nach Beruf. Wer verunglückt, fällt für den Rest des Tages aus
+/// (bis zum Jahreswechsel, Lohn läuft weiter) – im Mittel ein halber Arbeitstag, der Leistungsverlust ist also Gefahr ÷ 2.
+/// Danach ist die Laune aller im Betrieb eine Weile gedrückt.
 /// </summary>
 public sealed class UnfallDaten
 {
     /// <summary>Beruf → Wahrscheinlichkeit je Arbeiter und Spieljahr (fehlt der Beruf: keine Unfälle).</summary>
     public Dictionary<string, double> Gefahr { get; init; } = new();
-
-    public int AusfallTageVon { get; init; } = 1;
-    public int AusfallTageBis { get; init; } = 3;
-
-    /// <summary>Spielminuten je Ausfalltag (1020 = ein Spieltag = ein Spieljahr).</summary>
-    public int AusfallMinutenJeTag { get; init; } = Zeit.Spielzeit.MinutenProTag;
 
     public double Laune { get; init; } = -15;
     public int LauneMinuten { get; init; } = 1020;
