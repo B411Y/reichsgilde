@@ -11,6 +11,7 @@ So wird eingetragen (damit sich die Chats nie an derselben Stelle treffen):
 ## Offen
 
 - (–) Reichskarte zum Wechsel zwischen den Städten (Idee, später)
+- Level-Editor (Grundsatz siehe „Level-Editor und Wege“): vor dem Start Umfang (Gelände, Wasser, Bauzonen, feste Gebäude), Kartenformat 2 und Reihenfolge klären – Vorschlag: Wegegraph im Kern, Wege in der Darstellung, dann der Editor
 
 ## Entscheidungen
 
@@ -68,3 +69,15 @@ Die Kartenregeln selbst stehen in `docs/LEVELDESIGN.md`.
 | Kern liest | `werkstatt`: ein Eintrag je Liegenschaft, `name` genau wie im Stadtplan; `wohnhaus`: Konto-Reihenfolge; jedes feste Gebäude mit `groesse` blockiert; Eingangsregel: 2 Felder der Vorplatzreihe höchstens 7 m von der Straßenmitte (Probeplan erfüllt sie). Einwohnerhäuser kennt der Kern nicht, die Zonen decken nur freien Boden ab. | 17.10.2026 |
 | Abstände | Greybox-Straßen sind nur 3 bis 5 m breit: Zonen halten **Straßenrand + 0,5 m** Abstand (Köln 3,3 m ab Straßenmitte), 2 m zu festen Gebäuden. Einwohnerhäuser bleiben unverändert, keine Zone überdeckt einen Einwohnerplatz. | 17.10.2026 |
 | Leerstand | Leerstand kaufen und sanieren kostet **fest 50 % + 20 % des Hauswerts** (Entscheidung des Nutzers), nicht mehr nach Zustand. | 17.10.2026 |
+
+### Level-Editor und Wege (Grundsatz, PR #151)
+
+Noch nicht begonnen; festgehalten, damit niemand weiter Arbeit in die Greybox-Wege steckt.
+
+| Thema | Entscheidung | Datum |
+|---|---|---|
+| Editor | Ein selbst programmierter Level-Editor im Spiel, erreichbar aus dem Hauptmenü, mit derselben Darstellung wie das Spiel. Erst Werkzeug für den Entwickler (die rund acht Städte), später für Spieler freigegeben. Entschieden vom Nutzer. | 19.10.2026 |
+| Kartenquelle | Der Editor ersetzt die Python-Skripte in `tools/karten/`: Er schreibt die Kartendatei selbst, die Prüfungen (Bauzonen an Straßen, Tore, Kapazität) wandern nach C# und laufen im Editor mit. Köln und Greybox werden einmal übernommen. Damit fällt die Regel „Kartendatei nur aus dem Skript, nie von Hand“, sobald der Editor da ist. Entschieden vom Nutzer. | 19.10.2026 |
+| Wege zeichnen | Punkte setzen, das Werkzeug legt eine glatte Kurve hindurch; Kreuzungen rasten ein; Mindestbreite je Wegklasse. Vorschlag des Teamleiters. | 19.10.2026 |
+| Belag | Verkehr tritt einen Trampelpfad zum Fahrweg mit Spurrillen aus, wenig Verkehr lässt ihn verwildern; Kies und Pflaster sind ein Bauauftrag, den der Rat oder der Spieler bezahlt. Der Belag wirkt auf das Tempo der Karren und bei Regen. Entschieden vom Nutzer. | 19.10.2026 |
+| Gegenverkehr | Nur sichtbar: Rechtsverkehr, Fußgänger am Rand, Karren in der Mitte, Ausweichen macht die Darstellung. Der Kern rechnet Fahrzeiten aus einem groben Wegegraphen (Länge, Klasse, Belag), ohne Stau (passt zu „Zwei Ebenen“ in `docs/LEVELDESIGN.md`, Wege und Wegfindung). Entschieden vom Nutzer. | 19.10.2026 |
