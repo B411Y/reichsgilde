@@ -178,6 +178,6 @@ public partial class Stadtansicht
     /// <summary>Strichbreite in Pixeln der Stadt bei 50 %: dünn bei weitem Zoom, dicker, wenn man nah heranzoomt (Pixel je Meter der Stadt).</summary>
     internal static float UmrissBreite(float pixelJeMeter) => Mathf.Clamp(UmrissGrundbreite + UmrissJeMeter * pixelJeMeter, UmrissMinimum, UmrissMaximum);
 
-    /// <summary>Der Regler „Umriss“ (0–100 %) als Faktor auf die Strichbreite: 50 % = 1, je 35 Punkte doppelt oder halb so breit (10 % ≈ 0,45, 100 % ≈ 2,7).</summary>
-    internal static float UmrissFaktor(int prozent) => Mathf.Pow(2f, (prozent - 50) / 35f);
+    /// <summary>Der Regler „Umriss“ (0–100 %) als Faktor auf die Strichbreite: 50 % = 1, je 50 Punkte doppelt oder halb so breit (10 % ≈ 0,57, 100 % = 2).</summary>
+    internal static float UmrissFaktor(int prozent) => Mathf.Pow(2f, (prozent - 50) / 50f);
 }

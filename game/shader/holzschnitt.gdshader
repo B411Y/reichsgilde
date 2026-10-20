@@ -12,13 +12,15 @@ uniform bool eckenfarbe = false;
 // art_aus_uv: je Fläche aus UV.y (Material „Farben“ und „Figur“), sonst der feste Wert art.
 uniform int art = 0;
 uniform bool art_aus_uv = false;
-// Figuren: Zonen aus UV.x (1 Gewand, 2 Beinkleid, 3 Haut, 4 Haar, 5 Kopfbedeckung) je Figur einfärben.
+// Figuren: Zonen aus UV.x (1 Gewand, 2 Beinkleid, 3 Haut, 4 Haar, 5 Kopfbedeckung) je Figur einfärben. Gewöhnliche Uniforms, kein
+// „instance uniform“: Das Spiel gibt jeder Tracht ein eigenes Material. Jede Instanz mit Instanz-Uniform belegt 16 Plätze im Puffer
+// der Grafikkarte (nur 4096 in Forward+), und dieser Shader gilt für alle Knoten der Stadt, nicht nur für Figuren.
 uniform bool zonen = false;
-instance uniform vec4 gewand : source_color = vec4(0.30, 0.40, 0.55, 1.0);
-instance uniform vec4 beinkleid : source_color = vec4(0.30, 0.26, 0.22, 1.0);
-instance uniform vec4 haut : source_color = vec4(0.86, 0.68, 0.55, 1.0);
-instance uniform vec4 haar : source_color = vec4(0.32, 0.22, 0.14, 1.0);
-instance uniform vec4 kopfbedeckung : source_color = vec4(0.78, 0.74, 0.64, 1.0);
+uniform vec4 gewand : source_color = vec4(0.30, 0.40, 0.55, 1.0);
+uniform vec4 beinkleid : source_color = vec4(0.30, 0.26, 0.22, 1.0);
+uniform vec4 haut : source_color = vec4(0.86, 0.68, 0.55, 1.0);
+uniform vec4 haar : source_color = vec4(0.32, 0.22, 0.14, 1.0);
+uniform vec4 kopfbedeckung : source_color = vec4(0.78, 0.74, 0.64, 1.0);
 
 uniform sampler2D schraffur : repeat_enable, filter_linear_mipmap;
 uniform sampler2D papier : repeat_enable, filter_linear_mipmap;

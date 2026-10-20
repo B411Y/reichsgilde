@@ -41,6 +41,10 @@ internal sealed class Holzschnitt
     private readonly List<(string Teil, int Art)> _artTeile = new();
     private readonly int _artFigur;
 
+    /// <summary>Die Farben einer Figur (Gewand, Beinkleid, Haut, Haar, Kopfbedeckung): Wer gleich aussieht, teilt sich ein Material.</summary>
+    private readonly record struct Tracht(Color Gewand, Color Beinkleid, Color Haut, Color Haar, Color Kopf);
+    private readonly Dictionary<Tracht, ShaderMaterial> _trachten = new();
+
     /// <summary>Zu jedem Ausgangsmaterial sein Holzschnitt-Material; null = bleibt, wie es ist (leuchtet, ist durchsichtig …).</summary>
     private readonly Dictionary<Material, ShaderMaterial?> _abgeleitet = new();
 
@@ -92,7 +96,7 @@ internal sealed class Holzschnitt
     /// <summary>
     /// Das Holzschnitt-Material zu einem Ausgangsmaterial – oder null, wenn es bleiben soll: Glut, Fenster, Glas und Wasser
     /// (Namen), alles Leuchtende, Durchsichtige und Unbeschattete (Auswahlring, Baumodus, Hilfslinien) und Materialien mit Textur.
-    /// Auch fremde Shader bleiben (Fahnen); nur das Figurenmaterial (<c>figur.gdshader</c>) wird zum Holzschnitt-Material mit Zonen.
+    /// Auch fremde Shader bleiben (Fahnen); das Figurenmaterial (<c>figur.gdshader</c>) hängt von der Figur ab und kommt aus <see cref="FigurStoff"/>.
     /// Je Ausgangsmaterial wird nur einmal abgeleitet.
     /// </summary>
     public ShaderMaterial? Ableiten(Material? quelle)
@@ -104,17 +108,7 @@ internal sealed class Holzschnitt
 
     private ShaderMaterial? Erzeugen(Material quelle)
     {
-        if (quelle is ShaderMaterial { Shader.ResourcePath: FigurShaderPfad })
-        {
-            // Figuren: Gewand, Haut, Haar … je Zone aus UV.x, die Farben je Figur stehen als Instanz-Uniform am Knoten (wie in figur.gdshader)
-            var figur = Neu("Figur");
-            figur.SetShaderParameter("eckenfarbe", true);
-            figur.SetShaderParameter("art_aus_uv", true);
-            figur.SetShaderParameter("art", _artFigur);
-            figur.SetShaderParameter("zonen", true);
-            return figur;
-        }
-        if (quelle is not BaseMaterial3D stoff) return null;
+        if (quelle is not BaseMaterial3D stoff) return null; // auch das Figurenmaterial: das hängt von der Figur ab (FigurStoff)
         var name = stoff.ResourceName;
         if (Behalten.Contains(name) || stoff.Transparency != BaseMaterial3D.TransparencyEnum.Disabled
             || stoff.ShadingMode == BaseMaterial3D.ShadingModeEnum.Unshaded || stoff.EmissionEnabled || stoff.AlbedoTexture is not null)
@@ -131,6 +125,31 @@ internal sealed class Holzschnitt
         return ziel;
     }
 
+    /// <summary>
+    /// Das Holzschnitt-Material einer Figur: Zone und Grundfarbe je Fläche stehen im Netz (UV.x, Eckenfarbe), die Farben von Gewand, Haut,
+    /// Haar … je Figur setzt das Spiel als Instanz-Uniform am Knoten (<c>figur.gdshader</c>). Hier werden sie zu gewöhnlichen Uniforms eines
+    /// Materials je Tracht: Jede Instanz mit Instanz-Uniform belegt 16 Plätze im Puffer der Grafikkarte (4096 in Forward+, 256 im
+    /// Compatibility-Renderer), und der Holzschnitt gilt für alle Knoten der Stadt.
+    /// </summary>
+    private ShaderMaterial FigurStoff(GeometryInstance3D knoten)
+    {
+        Color Farbe(string name, Color vorgabe) => knoten.GetInstanceShaderParameter(name) is { VariantType: Variant.Type.Color } v ? v.AsColor() : vorgabe;
+        var tracht = new Tracht(Farbe("gewand", new Color(0.5f, 0.4f, 0.3f)), Farbe("beinkleid", new Color(0.35f, 0.3f, 0.25f)),
+                                Farbe("haut", new Color(0.85f, 0.66f, 0.52f)), Farbe("haar", new Color(0.3f, 0.2f, 0.12f)), Farbe("kopfbedeckung", new Color(0.6f, 0.5f, 0.3f)));
+        if (_trachten.TryGetValue(tracht, out var vorhanden)) return vorhanden;
+        var figur = Neu("Figur");
+        figur.SetShaderParameter("eckenfarbe", true);
+        figur.SetShaderParameter("art_aus_uv", true);
+        figur.SetShaderParameter("art", _artFigur);
+        figur.SetShaderParameter("zonen", true);
+        figur.SetShaderParameter("gewand", tracht.Gewand);
+        figur.SetShaderParameter("beinkleid", tracht.Beinkleid);
+        figur.SetShaderParameter("haut", tracht.Haut);
+        figur.SetShaderParameter("haar", tracht.Haar);
+        figur.SetShaderParameter("kopfbedeckung", tracht.Kopf);
+        return _trachten[tracht] = figur;
+    }
+
     private ShaderMaterial Neu(string name)
     {
         var material = new ShaderMaterial { Shader = _shader, ResourceName = name };
@@ -140,12 +159,12 @@ internal sealed class Holzschnitt
 
     /// <summary>
     /// Zieht die Farbe der Holzschnitt-Materialien nach, wenn das Spiel das Ausgangsmaterial umgefärbt hat (Hausfarbe, Laub, Werkstück).
-    /// Reihum, etwa alle 20 Bilder ist jedes einmal dran: eine Abfrage je Material kostet wenig, alle zugleich wären zu viel.
+    /// Reihum, etwa alle 10 Bilder ist jedes einmal dran: eine Abfrage je Material kostet wenig, alle zugleich wären zu viel.
     /// </summary>
     public void Abgleichen()
     {
         if (_spiegel.Count == 0) return;
-        var anzahl = Math.Max(64, _spiegel.Count / 20 + 1);
+        var anzahl = Math.Max(128, _spiegel.Count / 10 + 1);
         for (var i = 0; i < anzahl && i < _spiegel.Count; i++)
         {
             _naechster = (_naechster + 1) % _spiegel.Count;
@@ -172,7 +191,8 @@ internal sealed class Holzschnitt
         var instanz = knoten.GetInstance();
         if (knoten.MaterialOverride is { } alles)
         {
-            RenderingServer.InstanceGeometrySetMaterialOverride(instanz, (Ableiten(alles) ?? alles).GetRid());
+            var figur = alles is ShaderMaterial { Shader.ResourcePath: FigurShaderPfad };
+            RenderingServer.InstanceGeometrySetMaterialOverride(instanz, (figur ? FigurStoff(knoten) : Ableiten(alles) ?? alles).GetRid());
             return;
         }
         RenderingServer.InstanceGeometrySetMaterialOverride(instanz, new Rid());
