@@ -628,3 +628,13 @@ So wird eingetragen (damit sich die Chats nie an derselben Stelle treffen):
 | Messung | Vorübergehende Ausgabe (nicht im Code), Vulkan auf der T400, Tempo 1, 3 Minuten, 80 Vögel, gemessen auf main f94995c + diesem PR: im Mittel in der Luft **9,6 → 21,5**; Vögel innerhalb 2,4 m beieinander **4–5 → 1**; Dachflüge Median 32 m (90 % über 13,6 m), mittlere Flugdauer 8,6 s. | 20.10.2026 |
 | Flügelschlag | Fehler vom Nutzer: Die Flügel schlugen gegenläufig (in `voegel.py` hatte die Drehung des rechten Flügels um X das falsche Vorzeichen; auch Gleiten und Sitzen waren schief). Jetzt spiegelgleich (in 16 Phasen je Bewegung gemessen) und natürlicher: Abschlag 60 % des Schlags von 60° bis −50° leicht nach vorn, schneller Aufschlag nach hinten gezogen und bis ein Viertel kürzer, Rumpf und Schwanz nicken mit. Gemacht vom Modell-Agenten auf Wunsch des Nutzers. | 20.10.2026 |
 
+### Böden, Wände und Decken der Innenräume (PR #159)
+
+| Thema | Entscheidung | Datum |
+|---|---|---|
+| Doppelte Struktur | Wo das Raummodell Steine, Fugen oder Dielen schon als Form hat, legt der Holzschnitt keine zweite Struktur darüber (Materialart „keine“), nur Schraffur, Papierkorn und Umriss. Fehler vom Nutzer: Gemalte Steine des Modells und die Mauer-Struktur des Shaders lagen doppelt. | 20.10.2026 |
+| Böden | Erdgeschoss in Stufe 1 und 2 gestampfter Lehmboden, ab Stufe 3 (gehobene Klasse) Backsteinpflaster im Fischgrätmuster. Räume im Obergeschoss haben Dielen mit Nut und Feder. | 20.10.2026 |
+| Wände | Passend zum Haus: Fachwerkhäuser zeigen innen die Balken mit hellem Lehmputz in den Gefachen; Steinhäuser sind innen gekalkt verputzt, an Ecken und unten bricht der Bruchstein durch. Die Schmiede ist am Rauchfang rußig. | 20.10.2026 |
+| Decken | Balkendecke: sichtbare Deckenbalken, darüber Bretter. | 20.10.2026 |
+| Obergeschoss | Das Lager liegt oben unter dem Dach, mit Ladeluke und Kranbalken (wie außen am Tischler) und Dielenboden; Werkraum und Hallen bleiben unten. Kontor und Wohnstube folgen, wenn sie eigene Modelle bekommen. | 20.10.2026 |
+
