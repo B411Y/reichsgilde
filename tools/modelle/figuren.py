@@ -1152,6 +1152,8 @@ def vorschau_bewegungen(schnell):
     bs.vorschau_buehne(None, ziel_hoehe=0.9, ausschnitt=22.0 * len(reihen) / 12, schnell=schnell)
     szene = bpy.context.scene
     szene.render.resolution_x, szene.render.resolution_y = 1000, int(1800 * len(reihen) / 12)
+    szene.render.image_settings.color_mode = "RGB"                      # ohne Alphakanal und stark gepackt: kleinere Datei
+    szene.render.image_settings.compression = 100
     print(bs.rendern("figuren-bewegungen", lambda o: o in alle))
 
 
