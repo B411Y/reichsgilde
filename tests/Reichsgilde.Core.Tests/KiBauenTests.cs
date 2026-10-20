@@ -154,12 +154,14 @@ static class KiBauenTests
         ("KI-Bauen: Steht eine gleichwertige Werkstatt frei, kauft die KI sie, statt zu bauen – das Baujahr ohne Einnahmen zählt mit", () =>
         {
             var (sim, w) = Greybox();
+            Werkstatthilfe.FreieWerkstatt(w, "Gießerei an der Südgasse", Betriebsart.Giesserei); // gleicher Preis wie ein Neubau
             var k = Haus(w, "Haus Lind", stand: 1, wohnhaus: 1, vermoegen: 30_000);
             k.BerufLernen("Schmied");
             w.KiAnmelden(k, new KiProfil(MaxBetriebe: 1));
             Ticks(sim, Spielzeit.MinutenProTag);
             Pruefe.Gleich(0, Baustellen(w, k));
             Pruefe.Gleich(1, w.Betriebe.Count(b => b.Konto == k && b.Ort == Arbeitsort.Werkstatt));
+            Pruefe.Wahr(w.Betriebe.Any(b => b.Konto == k && b.Name == "Gießerei an der Südgasse"), "gekauft, nicht gebaut");
         }),
 
         ("KI-Bauen: Ohne Karte (Köln) baut die KI nicht und kauft keinen Leerstand – der Ausbau zum Stadtpalais geht dort wie bisher", () =>

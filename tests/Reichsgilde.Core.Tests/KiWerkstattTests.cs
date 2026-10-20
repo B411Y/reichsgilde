@@ -7,7 +7,10 @@ static class KiWerkstattTests
 {
     static readonly Lazy<Wirtschaftsdaten> Daten = new(() => Wirtschaftsdaten.AusDatei(Datenpfad.Wirtschaft()));
 
-    /// <summary>Ein reiches KI-Haus (Bürger) mit Gießerei, Grube und dem Bauernhof des Wirts – damit ist die Höchstzahl (3) erreicht.</summary>
+    /// <summary>
+    /// Ein reiches KI-Haus (Bürger) mit Gießerei, Grube und dem Bauernhof des Wirts – damit ist die Höchstzahl (3) erreicht.
+    /// Eine Schänke steht frei zum Kauf.
+    /// </summary>
     static (Stadtwirtschaft W, Konto K, Reichsgilde.Core.Ki.KiRivale Ki) WirtMitBauernhof()
     {
         var sim = new Simulation(Partieeinstellungen.Standard with { Siegbedingung = Siegbedingung.Endlos }, wirtschaftsdaten: Daten.Value);
@@ -19,6 +22,7 @@ static class KiWerkstattTests
         Pruefe.Wahr(w.Ausfuehren(Wohnhaushilfe.MitWohnhaus(w, k), new StandErwerben()).Erfolg, "Aufstieg zum Bürger");
         k.BerufLernen("Wirt");
         Pruefe.Wahr(w.Ausfuehren(k, new LiegenschaftErwerben("Bauernhof an der Mühle")).Erfolg, "Bauernhof pachten");
+        Werkstatthilfe.FreieWerkstatt(w, "Schänke am Fischmarkt", Betriebsart.Schaenke); // ohne Karte wird nicht gebaut: eine verkaufte Schänke
         Wohnhaushilfe.MitWohnhaus(w, k); // das Steinhaus steht schon: Die KI steigt gleich zum Patrizier auf
         var ki = w.KiAnmelden(k);
         Pruefe.Gleich(ki.BetriebeHoechstens, w.Betriebe.Count(b => b.Konto == k));

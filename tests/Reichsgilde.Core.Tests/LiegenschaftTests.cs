@@ -1,6 +1,8 @@
+using System.Text.Json.Nodes;
 using Reichsgilde.Core;
 using Reichsgilde.Core.Ki;
 using Reichsgilde.Core.Partie;
+using Reichsgilde.Core.Speichern;
 using Reichsgilde.Core.Wirtschaft;
 using Reichsgilde.Core.Zeit;
 
@@ -23,19 +25,77 @@ static class LiegenschaftTests
 
     public static IEnumerable<(string, Action)> Alle() => new (string, Action)[]
     {
-        ("Liegenschaften: neunzehn sind frei (je Beruf eine Werkstatt und – außer bei Dieb und Geldleiher – Umland, dazu eine Grube), erst ab Bürger zu haben", () =>
+        ("Liegenschaften: neun sind frei – nur Umland (je Beruf außer Dieb und Geldleiher, dazu eine Grube), erst ab Bürger zu haben", () =>
         {
             var w = NeueSimulation().Wirtschaft!;
-            Pruefe.Gleich(19, w.FreieLiegenschaften.Count());
+            Pruefe.Gleich(9, w.FreieLiegenschaften.Count());
+            Pruefe.Wahr(w.FreieLiegenschaften.All(l => l.IstPacht && !w.Daten.Art(l.Art).InDerStadt), "nur Umland");
             var gemeiner = w.KontoEroeffnen("Gemeiner", startvermoegen: 50000);
-            var e = w.Ausfuehren(gemeiner, new LiegenschaftErwerben("Gießerei an der Südgasse"));
+            var e = w.Ausfuehren(gemeiner, new LiegenschaftErwerben("Grube am Silberberg"));
             Pruefe.Wahr(!e.Erfolg && e.Meldung.Contains("erst ab dem Stand Bürger"), e.Meldung);
+        }),
+
+        ("Liegenschaften: Werkstätten in der Stadt gibt es nicht mehr zu kaufen – neue entstehen durch Bauen, freie durch Verkauf", () =>
+        {
+            var w = NeueSimulation().Wirtschaft!;
+            var k = Buerger(w, "Spieler", 20000);
+            var e = w.Ausfuehren(k, new LiegenschaftErwerben("Gießerei an der Südgasse"));
+            Pruefe.Wahr(!e.Erfolg && e.Meldung.Contains("gibt es nicht"), e.Meldung);
+            Pruefe.Wahr(w.Daten.Liegenschaften.All(l => !w.Daten.Art(l.Art).InDerStadt), "keine Werkstatt unter „liegenschaften“");
+            // Der Preis der Stufe 1 steht nun bei der Betriebsart: Neubau und Wert der Startwerkstatt wie früher.
+            Pruefe.Ungefaehr(3500, w.Bauen.WerkstattPreis(Betriebsart.Giesserei), 1e-9);
+            Pruefe.Ungefaehr(3000, w.Bauen.WerkstattPreis(Betriebsart.Schmugglerloch), 1e-9);
+            var start = w.BetriebEroeffnen("Gießerei am Weinmarkt", Betriebsart.Giesserei, k, "");
+            Pruefe.Ungefaehr(3500, w.Betriebswert(start), 1e-9);
+            Pruefe.Ungefaehr(0, w.Betriebswert(w.BetriebEroeffnen("Grube Spieler", Betriebsart.Mine, k, "")), 1e-9);
+        }),
+
+        ("Daten: Jede Werkstatt der Stufe 1 hat einen kaufpreis – höhere Stufen und Umland keinen, negativ geht nicht", () =>
+        {
+            foreach (var (art, d) in Daten.Value.Betriebsarten)
+                Pruefe.Wahr(d.InDerStadt && d.Stufe == 1 ? d.Kaufpreis > 0 : d.Kaufpreis == 0, $"{art}: kaufpreis {d.Kaufpreis}");
+            JsonNode Knoten() => JsonNode.Parse(File.ReadAllText(Datenpfad.Wirtschaft()),
+                documentOptions: new System.Text.Json.JsonDocumentOptions { CommentHandling = System.Text.Json.JsonCommentHandling.Skip })!;
+            var schmiede = Knoten();
+            schmiede["betriebsarten"]!["Schmiede"]!["kaufpreis"] = 6000;
+            Pruefe.WirftMitMeldung(() => Wirtschaftsdaten.AusJson(schmiede.ToJsonString()), "Einen kaufpreis haben nur Werkstätten der Stufe 1");
+            var negativ = Knoten();
+            negativ["betriebsarten"]!["Giesserei"]!["kaufpreis"] = -1;
+            Pruefe.WirftMitMeldung(() => Wirtschaftsdaten.AusJson(negativ.ToJsonString()), "betriebsarten.Giesserei.kaufpreis darf nicht negativ sein");
+        }),
+
+        ("Alter Spielstand (Datenversion 39): Die gekaufte Gießerei an der Südgasse bleibt dem Haus und behält ihren Wert", () =>
+        {
+            // Ein Spielstand bringt seine Daten mit – so sahen sie vor Datenversion 40 aus: die Werkstatt unter „liegenschaften“, kein kaufpreis an der Art.
+            var knoten = JsonNode.Parse(File.ReadAllText(Datenpfad.Wirtschaft()),
+                documentOptions: new System.Text.Json.JsonDocumentOptions { CommentHandling = System.Text.Json.JsonCommentHandling.Skip })!;
+            knoten["version"] = 39;
+            knoten["betriebsarten"]!["Giesserei"]!.AsObject().Remove("kaufpreis");
+            knoten["liegenschaften"]!.AsArray().Add(new JsonObject
+            {
+                ["name"] = "Gießerei an der Südgasse", ["art"] = "Giesserei", ["kaufpreis"] = 3500, ["mindestStand"] = "Bürger",
+            });
+            var sim = new Simulation(Partieeinstellungen.Standard with { Siegbedingung = Siegbedingung.Endlos },
+                wirtschaftsdaten: Wirtschaftsdaten.AusJson(knoten.ToJsonString()));
+            var w = sim.Wirtschaft!;
+            var k = Buerger(w, "Spieler", 8000);
+            var e = w.Ausfuehren(k, new LiegenschaftErwerben("Gießerei an der Südgasse"));
+            Pruefe.Wahr(e.Erfolg, e.Meldung);
+
+            var (geladen, spieler) = Speicherung.Laden(Speicherung.Speichern(sim, k));
+            var gw = geladen.Wirtschaft!;
+            var g = gw.Betriebe.Single(b => b.Name == "Gießerei an der Südgasse");
+            Pruefe.Gleich(spieler, g.Konto);
+            Pruefe.Ungefaehr(3500, gw.Betriebswert(g), 1e-9);
+            Pruefe.Ungefaehr(3500, gw.Bauen.WerkstattPreis(Betriebsart.Giesserei), 1e-9); // ohne kaufpreis: der der Liegenschaft
+            Pruefe.Wahr(gw.FreieLiegenschaften.All(l => l.Name != g.Name), "gehört dem Haus, nicht frei");
         }),
 
         ("Werkstatt kaufen: Kaufpreis als Anschaffung, Betrieb mit Handkarren, nicht mehr frei", () =>
         {
             var w = NeueSimulation().Wirtschaft!;
             var k = Buerger(w, "Spieler", 8000);
+            Werkstatthilfe.FreieWerkstatt(w, "Gießerei an der Südgasse", Betriebsart.Giesserei);
             Betrieb? erworben = null;
             w.BetriebErworben += b => erworben = b;
             var e = w.Ausfuehren(k, new LiegenschaftErwerben("Gießerei an der Südgasse"));
@@ -46,7 +106,7 @@ static class LiegenschaftTests
             Pruefe.Gleich(k, erworben.Konto);
             Pruefe.Gleich("Handkarren", erworben.Karren.Single().Typ);
             Pruefe.Gleich(0, erworben.Belegt);
-            Pruefe.Gleich(w.Daten.Liegenschaften.Count - 1, w.FreieLiegenschaften.Count());
+            Pruefe.Gleich(w.Daten.Liegenschaften.Count, w.FreieLiegenschaften.Count()); // die freie Werkstatt ist fort, das Umland bleibt
         }),
 
         ("Grube pachten: kein Kaufpreis, aber die erste Jahrespacht muss gedeckt sein", () =>
@@ -91,12 +151,13 @@ static class LiegenschaftTests
             var sim = NeueSimulation();
             var w = sim.Wirtschaft!;
             var k = Buerger(w, "Rivale", 19000); // unter der Patrizier-Schwelle – sonst dürfte die KI einen Betrieb mehr führen
+            Werkstatthilfe.FreieWerkstatt(w, "Schänke am Fischmarkt", Betriebsart.Schaenke); // ohne Karte wird nicht gebaut
             w.KiAnmelden(k, KiProfil.Standard with { MaxBetriebe = 2 });
             Pruefe.Gleich(1, w.Betriebe.Count(b => b.Konto == k)); // höchstens ein Erwerb pro Stunde
             for (var i = 0; i < 3 * 60; i++) sim.Tick();
             Pruefe.Gleich(2, w.Betriebe.Count(b => b.Konto == k));
             Pruefe.Wahr(w.Betriebe.Where(b => b.Konto == k).All(b => b.Belegt > 0), "neue Betriebe ohne Personal");
-            Pruefe.Gleich(w.Daten.Liegenschaften.Count - 2, w.FreieLiegenschaften.Count());
+            Pruefe.Gleich(w.Daten.Liegenschaften.Count - 1, w.FreieLiegenschaften.Count()); // ein Umlandbetrieb und die freie Schänke
             // Mit dem ersten Erwerb hat die KI ihr Handwerk – der zweite gehört zum selben Beruf.
             Pruefe.Gleich(1, w.Betriebe.Where(b => b.Konto == k).Select(b => b.Artdaten.Beruf).Distinct().Count());
         }),
