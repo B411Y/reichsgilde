@@ -12,20 +12,24 @@ Inhalt je Datei (Blender: Z oben, Blick nach -Y; im Spiel Y oben, Blick nach +Z)
     Koerper_Mann    Wams bis zur Mitte des Oberschenkels, Beinkleid, Schuhe, Gürtel; beim Zwerg mit Bart
     Koerper_Frau    Kleid bis über die Knöchel, Zopf
     Trachtteile     Strohhut, Barett, Kapuze, Haube, Schleier, Schuerze, Kiepe, Buendel, Tasche, Stab, Hacke, Hammer,
-                    Hobel, Saege, Drechseleisen, Schlaegel, Meissel
+                    Hobel, Saege, Drechseleisen, Schlaegel, Meissel, Stoessel, Kelle
                     – standardmäßig aus, das Spiel blendet sie je Rolle ein (wie heute `TrachtVon`; das Werkzeug bei der
                     passenden Bewegung: Hammer beim Hämmern, Hobel beim Hobeln, Säge beim Sägen, Drechseleisen beim Drechseln,
-                    Schlägel und Meißel beim Behauen und Bildhauen)
+                    Schlägel und Meißel beim Behauen und Bildhauen, Stößel beim Mörsern, Kelle beim Rühren)
     Bewegungen      Stehen, Gehen, Eilen, Gebeugt, Tragen, Sitzen, Reden, Hacken, Buecken, Hueten,
                     Ziehen (Handkarren), Kutschieren (auf dem Bock),
                     Haemmern, Blasebalg, Schleifen (stehend), Feinarbeit (sitzend) – Arbeit in der Schmiede,
                     Hobeln, Saegen (Handsäge am Sägebock), Drechseln (ein Fuß tritt das Pedal), Gatter (Stamm nachschieben)
                     – Arbeit beim Tischler,
                     Behauen (Schlägel rechts, Meißel links am Werkblock), Bildhauen (feine Meißelarbeit an einer Figur in
-                    Brust- bis Kopfhöhe) – Arbeit beim Steinmetz
+                    Brust- bis Kopfhöhe) – Arbeit beim Steinmetz,
+                    Moersern (Stößel kreist im Mörser und stößt, die Linke hält den Mörser), Ruehren (mit langer Kelle im
+                    Kessel, die Linke greift den Stiel), Destillieren (bückt sich zur Feuertür der Destille und regelt die
+                    Flamme, richtet sich auf und prüft den Tropfen an der Vorlage; ruhig) – Arbeit beim Alchimisten
                     – jede eine Schleife am Ort (ohne Vorwärtsbewegung; das Spiel schiebt die Figur)
                     Die Werkstatt-Bewegungen zielen mit den Händen (beim Drechseln auch mit dem rechten Fuß) auf feste
-                    Höhen (ARBEITSHOEHEN, PEDAL – wie in schmied_innen.glb, tischler_innen.glb und steinmetz_innen.glb): Jedes Volk erreicht sie
+                    Höhen (ARBEITSHOEHEN, PEDAL, VORLAGE – wie in schmied_innen.glb, tischler_innen.glb, steinmetz_innen.glb
+                    und alchimist_innen.glb): Jedes Volk erreicht sie
                     mit eigenen Arm- und Beinwinkeln (`arm_ik`, `arm_ziel`, `bein_ik`).
 Material: alle Teile (Körper, Trachtteile, Werkzeug) tragen nur ein Material „Figur“ – eine Figur ist so ein
 Zeichenaufruf statt sechs. Je Ecke stehen zwei Angaben im Netz, je Fläche konstant:
@@ -68,7 +72,7 @@ VOELKER = {
 }
 ZONEN = {"Gewand": 1, "Beinkleid": 2, "Haut": 3, "Haar": 4, "Kopfbedeckung": 5}   # alle übrigen Stoffe: Zone 0
 TRACHT = ["Strohhut", "Barett", "Kapuze", "Haube", "Schleier", "Schuerze", "Kiepe", "Buendel", "Tasche", "Stab", "Hacke", "Hammer",
-          "Hobel", "Saege", "Drechseleisen", "Schlaegel", "Meissel"]
+          "Hobel", "Saege", "Drechseleisen", "Schlaegel", "Meissel", "Stoessel", "Kelle"]
 HAMMER = 0.3          # vom Mittelpunkt der Hand bis zur Mitte des Hammerkopfs, in Verlängerung des Unterarms
 # Wo die Hände bei der Arbeit sind (Meter vor dem Fußpunkt der Figur, Höhe über dem Boden) – passend zu den Ankern
 # im Innenraum: Amboss 0,68 m vor der Figur, Bahn 0,86 m hoch; Hebel des Blasebalgs 0,42 m vor ihr, 1,36 m hoch;
@@ -81,7 +85,11 @@ ARBEITSHOEHEN = {"Amboss": (0.68, 0.90), "Zange": (0.52, 0.93), "Hebel": (0.42, 
                  "Hobel": (0.5, 0.98), "Bock": (0.55, 1.02), "Drehbank": (0.46, 1.05), "Stamm": (0.5, 0.9),
                  # Steinmetz (steinmetz_innen.glb): Schneide des Meißels auf der Oberseite des Werkblocks (0,86 m), 0,46 m vor der
                  # Figur; an der Steinfigur in der Bauhütte vor der Brust (Mitte der feinen Arbeit)
-                 "Block": (0.46, 0.86), "Figur": (0.52, 1.22)}
+                 "Block": (0.46, 0.86), "Figur": (0.52, 1.22),
+                 # Alchimist (alchimist_innen.glb): Spitze des Stößels auf dem Boden der Mulde (0,87 m, Rand 0,95 m), 0,45 m vor
+                 # der Figur; Spitze der Kelle im Kessel (Mitte 0,7 m vor ihr, Brühe bis 0,85 m); Schieber an der Feuertür der
+                 # Destille
+                 "Moerser": (0.45, 0.87), "Kessel": (0.7, 0.70), "Ofen": (0.48, 0.52)}
 PEDAL = (0.2, 0.345, 0.09)   # Pedal der Drehbank unter dem rechten Fuß: vor der Figur, Höhe der Oberseite oben und getreten
 SAEGE = (0.2, 0.33)          # Säge: Abstand von der Mitte der Hand bis zur Oberkante des Stamms beim Stoß und beim Zug
 KLUEPFEL_R = 0.062           # Halbmesser des Kopfs: Seine Seite trifft den Meißel
@@ -89,6 +97,11 @@ FAUST_R = (-0.17, -0.16, 0.07)   # beim Behauen: rechte Hand gegenüber dem Kopf
 MEISSEL = (0.12, 0.13)       # Meißel: von der Mitte der linken Hand bis zur Schneide und bis zum Kopf (Schlagfläche)
 MEISSEL_RICHTUNG = (0.0, 0.25, -1.0)   # beim Behauen vom Kopf zur Schneide (seitlich, vor, Höhe): fast senkrecht, leicht nach vorn
 BILDHAUEN_RICHTUNG = (0.0, 0.6, -0.8)  # beim Bildhauen (vorläufig, wird gemessen)
+VORLAGE = (-0.45, 0.4, 0.92)           # Destillieren: die Rechte am Hals der Vorlage, rechts vor der Figur (seitlich, vor, Höhe)
+FAUST = {"Stoessel": (-0.01, -0.05, 0.19),   # rechte Faust gegenüber der Spitze des Werkzeugs (seitlich, vor, Höhe) in der
+         "Kelle": (-0.10, -0.36, 0.52)}      # Haltung von REQUISITEN: Stößel fast senkrecht, Kelle steil von oben in den Kessel
+                                             # (die Kelle beim Menschen; kleinere Völker halten sie tiefer, siehe _faust)
+KELLE_GRIFF = 0.3                      # beim Rühren greift die Linke den Stiel so weit unter der rechten Faust
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -282,14 +295,14 @@ def tracht(name, st, p):
 
 
 REQUISITEN = {"Hobel": ("Hobeln", 0.3), "Drechseleisen": ("Drechseln", 0.5), "Meissel": ("Behauen", 0.55),
-              "Schlaegel": ("Behauen", 0.55)}   # Bewegung, Phase
+              "Schlaegel": ("Behauen", 0.55), "Stoessel": ("Moersern", 0.0), "Kelle": ("Ruehren", 0.0)}   # Bewegung, Phase
 
 
 def requisit(name, st, p, ske):
     """Werkzeug in der Hand für eine Bewegung (REQUISITEN): in deren Haltung gebaut – Hobel flach auf dem Brett,
     Drechseleisen von der Hand zum Werkstück, Meißel (linke Hand) mit der Schneide auf dem Block, Klüpfel mit dem Kopf auf dem
-    Meißel – und mit der Lage des Unterarms in die Ruhelage zurückgerechnet. Es hängt starr am Unterarm und folgt ihm durch
-    die ganze Bewegung."""
+    Meißel, Stößel von der Faust in die Mulde, Kelle von der Faust schräg in den Kessel – und mit der Lage des Unterarms in die
+    Ruhelage zurückgerechnet. Es hängt starr am Unterarm und folgt ihm durch die ganze Bewegung."""
     import bpy
     bewegung, phase = REQUISITEN[name]
     seite = "L" if name == "Meissel" else "R"
@@ -328,6 +341,18 @@ def requisit(name, st, p, ske):
             n.stab(zurueck @ kopf, zurueck @ (kopf + a * 0.03), 0.03, 0.03, eisen, quer=quer)            # Kopf, breitgeschlagen
             n.stab(zurueck @ (kopf + a * 0.03), zurueck @ (schneide - a * 0.04), 0.019, 0.019, eisen, quer=quer)
             n.stab(zurueck @ (schneide - a * 0.04), zurueck @ schneide, 0.026, 0.008, eisen, quer=quer)  # Schneide
+        elif name == "Stoessel":                  # hölzerner Stößel: oben aus der Faust, unten zur Keule verdickt
+            spitze = _blender(_werkzeug_koerper(bewegung, phase, p)[2])
+            d = (spitze - hand).normalized()
+            for (u0, r0), (u1, r1) in zip(((-0.07, 0.014), (0.1, 0.017), (0.17, 0.027)), ((0.1, 0.017), (0.17, 0.027), (0.2, 0.024))):
+                drehteil(n, zurueck @ (hand + d * u0), zurueck.to_3x3() @ d, u1 - u0, r0, r1, holz, n=6,
+                         deckel=(u0 == -0.07, u1 == 0.2))
+        elif name == "Kelle":                     # lange Rührkelle: Stiel aus der Faust bis in den Kessel, unten ein flaches Blatt
+            spitze = _blender(_werkzeug_koerper(bewegung, phase, p)[2])
+            d = (spitze - hand).normalized()
+            quer = zurueck.to_3x3() @ Vector((1, 0, 0))
+            n.stab(zurueck @ (hand - d * 0.1), zurueck @ (spitze - d * 0.16), 0.032, 0.032, holz, quer=quer)
+            n.stab(zurueck @ (spitze - d * 0.2), zurueck @ spitze, 0.09, 0.016, st["Holz alt"], quer=quer)   # Blatt
         else:                                     # Drechseleisen: Heft hinter der Hand, Klinge bis an das Werkstück
             vor, hoehe = ARBEITSHOEHEN["Drehbank"]
             spitze = Vector((0.02, -(vor - 0.01), hoehe))
@@ -684,6 +709,12 @@ def haltung(name, phase, p):
     elif name in ("Behauen", "Bildhauen"):                              # Meißel in der Linken, der Klüpfel schlägt auf seinen Kopf
         r.update(meisseln(name, phase, p))
         hoch = r.pop("_hoch")[0]
+    elif name in ("Moersern", "Ruehren"):                               # Stößel bzw. Kelle in der Rechten, die Spitze genau geführt
+        winkel, hoch = werkzeug_fuehren(name, phase, p)
+        r.update(winkel)
+    elif name == "Destillieren":                                        # Flamme regeln, Tropfen prüfen
+        winkel, hoch = destillieren(phase, p)
+        r.update(winkel)
     elif name == "Hueten":
         r["Oberarm_R"] = (-28, 0, -10)                                   # hält den Stab vor sich
         r["Unterarm_R"] = (-55, 0, 0)
@@ -886,12 +917,157 @@ def meisseln(name, phase, p):
     return r
 
 
+# ── Alchimist: Stößel und Kelle (starr in der rechten Faust, ihre Spitze wird geführt wie Meißel und Klüpfel) ──
+
+def _moersern_koerper(phase, p):
+    """Mörsern: Rumpf, Beine, linker Arm (hält den Mörser am Rand) und die Spitze des Stößels (seitlich, vor, Höhe). Zwei Runden
+    in der Mulde (0–0,6), dann zwei Stöße: langsam heben, schnell hinunter, kurz Ruhe."""
+    vor, hoehe = ARBEITSHOEHEN["Moerser"]
+    rk = 0.035
+    if phase < 0.6:
+        w = 2 * math.pi * 2 * phase / 0.6
+        spitze, hub = Vector((rk * math.cos(w), vor + rk * math.sin(w), hoehe)), 0.0
+    else:
+        h = (2 * (phase - 0.6) / 0.4) % 1
+        hub = weich(h / 0.6) if h < 0.6 else 1 - ((h - 0.6) / 0.12) ** 2 if h < 0.72 else 0.0
+        spitze = Vector((rk, vor, hoehe + 0.08 * hub))
+    lehne, hoch = 17 + 3 * hub, -0.02
+    r = {"Ruecken": (lehne, 0, 2 * math.sin(2 * math.pi * phase)), "Kopf": (26 - lehne, 0, 0)}
+    r["Oberschenkel_L"], r["Oberschenkel_R"] = (-8, 0, 5), (6, 0, -5)
+    r["Unterschenkel_L"], r["Unterschenkel_R"] = (10, 0, 0), (6, 0, 0)
+    r["Oberarm_L"], r["Unterarm_L"] = arm_genau(p, r, hoch, "L", (0.15, vor + 0.01, hoehe + 0.1))
+    return r, hoch, spitze
+
+
+def _ruehren_koerper(phase, p):
+    """Rühren: Rumpf und Beine; die Spitze der Kelle zieht eine Runde durch den Kessel, der Rumpf neigt und dreht sich mit."""
+    vor, hoehe = ARBEITSHOEHEN["Kessel"]
+    w = 2 * math.pi * phase
+    rk = 0.16
+    spitze = Vector((rk * math.cos(w), vor + 0.8 * rk * math.sin(w), hoehe + 0.02 * math.sin(2 * w)))
+    lehne, hoch, drehung = 16 + 5 * math.sin(w), -0.02, 9 * math.cos(w)
+    r = {"Ruecken": (lehne, drehung, 0), "Kopf": (28 - lehne, -0.4 * drehung, 0)}
+    r["Oberschenkel_L"], r["Oberschenkel_R"] = (-10, 0, 5), (8, 0, -5)
+    r["Unterschenkel_L"], r["Unterschenkel_R"] = (12, 0, 0), (8, 0, 0)
+    return r, hoch, spitze
+
+
+def _faust(name, p):
+    """FAUST für das Volk: Die Kelle hält jedes Volk gleich steil, die Faust liegt um seine Schulterhöhe tiefer oder höher."""
+    k = p["schulter"] / VOELKER["mensch"]["schulter"] if name == "Kelle" else 1.0
+    return Vector(FAUST[name]) * k
+
+
+def _werkzeug_koerper(bewegung, phase, p):
+    return (_moersern_koerper if bewegung == "Moersern" else _ruehren_koerper)(phase, p)
+
+
+_WERKZEUG = {}
+
+
+def werkzeug_ruhe(name, p):
+    """Spitze des Werkzeugs `name` (Stößel, Kelle) und – bei der Kelle – der Griff der linken Hand am Stiel in der Ruhelage des
+    rechten Unterarms (Blender). Gebaut in der Haltung von REQUISITEN: Dort liegt die Faust FAUST gegenüber der Spitze."""
+    schluessel = (name,) + tuple(sorted(p.items()))
+    if schluessel not in _WERKZEUG:
+        bewegung, phase = REQUISITEN[name]
+        r, hoch, spitze = _werkzeug_koerper(bewegung, phase, p)
+        r["Oberarm_R"], r["Unterarm_R"] = arm_genau(p, r, hoch, "R", tuple(spitze + _faust(name, p)))
+        lage = unterarm_lage(p, _bogen(r), hoch, "R")
+        hand, ziel = lage @ hand_ruhe(p, "R"), _blender(spitze)
+        griff = hand + (ziel - hand).normalized() * KELLE_GRIFF
+        _WERKZEUG[schluessel] = (lage.inverted() @ ziel, lage.inverted() @ griff)
+    return _WERKZEUG[schluessel]
+
+
+def werkzeug_fuehren(bewegung, phase, p):
+    """Mörsern und Rühren: Die rechte Faust wird so geführt, dass die Spitze von Stößel bzw. Kelle (starr in der Faust) genau
+    auf ihrer Bahn liegt; beim Rühren greift die Linke den Stiel KELLE_GRIFF unter der Faust. Gibt (Winkel in Grad, Hüfte)."""
+    name = "Stoessel" if bewegung == "Moersern" else "Kelle"
+    r, hoch, spitze = _werkzeug_koerper(bewegung, phase, p)
+    spitze_ruhe, griff_ruhe = werkzeug_ruhe(name, p)
+    faust = spitze + _faust(name, p)
+    for _ in range(24):
+        r["Oberarm_R"], r["Unterarm_R"] = arm_genau(p, r, hoch, "R", tuple(faust))
+        fehler = spitze - _figur(unterarm_lage(p, _bogen(r), hoch, "R") @ spitze_ruhe)
+        if fehler.length < 2e-4:
+            break
+        faust += fehler * 0.5
+    if name == "Kelle":
+        griff = _figur(unterarm_lage(p, _bogen(r), hoch, "R") @ griff_ruhe)
+        r["Oberarm_L"], r["Unterarm_L"] = arm_genau(p, r, hoch, "L", tuple(griff))
+    return r, hoch
+
+
+_DESTILLIEREN = {}
+
+
+def destillier_stand(p):
+    """Die drei Haltungen des Destillierens je Volk: Rumpf (Neigung, Drehung), Hüfte, rechte Hand, linke Hand, Kopf (Neigung,
+    Drehung). An der Feuertür geht die Figur so tief in die Hocke, an der Vorlage neigt sie sich so weit, bis die Rechte ihr
+    Ziel erreicht (große Völker tiefer, kleine weniger)."""
+    schluessel = tuple(sorted(p.items()))
+    if schluessel not in _DESTILLIEREN:
+        vor_o, hoehe_o = ARBEITSHOEHEN["Ofen"]
+        k = p["huefte"] / VOELKER["mensch"]["huefte"]
+
+        def trifft(lehne, drehung, hoch, ziel):
+            r = {"Ruecken": (lehne, drehung, 0)}
+            ober, unter = arm_genau(p, r, hoch, "R", ziel)
+            hand = _figur(unterarm_lage(p, _bogen({**r, "Oberarm_R": ober, "Unterarm_R": unter}), hoch, "R") @ hand_ruhe(p, "R"))
+            return (hand - Vector(ziel)).length < 0.01
+        ofen = (-0.12, vor_o, hoehe_o)
+        # so wenig in die Hocke wie möglich, dabei der Rumpf 20–36° vorgeneigt
+        lehne_o, hoch = next(((w, h) for h in (-k * 0.02 * i for i in range(2, 26)) for w in range(20, 38, 4) if trifft(w, -4, h, ofen)),
+                             (28, -0.4 * k))
+        lehne = next((w for w in range(12, 42, 2) if trifft(w, -30, -0.01, VORLAGE)), 40)
+        _DESTILLIEREN[schluessel] = {
+            "stehen": (4, 0, 0.0, (-0.24, 0.12, 0.84 * k), (0.24, 0.1, 0.84 * k), (6, 0)),
+            "ofen": (lehne_o, -4, hoch, ofen, (0.15, 0.3, 0.6 * k + hoch), (8 - lehne_o * 0.5, 2)),
+            "vorlage": (lehne, -30, -0.01, VORLAGE, (0.18, 0.14, 0.86 * k), (34 - lehne, -12)),
+        }
+    return _DESTILLIEREN[schluessel]
+
+
+def destillieren(phase, p):
+    """Destillieren (ruhig): stehen (0–0,08), bücken zur Feuertür (bis 0,3), den Schieber regeln (bis 0,42), aufrichten und zur
+    Vorlage drehen (bis 0,58), die Rechte am Hals der Vorlage, den Tropfen prüfen (bis 0,86), zurück. Die Füße bleiben stehen
+    (bein_ik). Gibt (Winkel in Grad, Hüfte)."""
+    stand = destillier_stand(p)
+    folge = ((0.08, "stehen", "stehen"), (0.3, "stehen", "ofen"), (0.42, "ofen", "ofen"), (0.58, "ofen", "vorlage"),
+             (0.86, "vorlage", "vorlage"), (1.0, "vorlage", "stehen"))
+    anfang = 0.0
+    for ende, a, b in folge:
+        if phase <= ende:
+            t = weich((phase - anfang) / (ende - anfang)) if a != b else 0.0
+            break
+        anfang = ende
+    A, B = stand[a], stand[b]
+
+    def mix(x, y):
+        return tuple(u + (v - u) * t for u, v in zip(x, y)) if isinstance(x, tuple) else x + (y - x) * t
+    lehne, drehung, hoch = mix(A[0], B[0]), mix(A[1], B[1]), mix(A[2], B[2])
+    rechts, links, kopf = Vector(mix(A[3], B[3])), mix(A[4], B[4]), mix(A[5], B[5])
+    if a == b == "ofen":                                                # den Schieber hin und her
+        rechts.x += 0.03 * math.sin(2 * math.pi * (phase - anfang) / (ende - anfang))
+    if a == b == "vorlage":                                             # nicken: der Tropfen fällt
+        kopf = (kopf[0] + 5 * math.sin(4 * math.pi * (phase - anfang) / (ende - anfang)), kopf[1])
+    r = {"Ruecken": (lehne, drehung, 0), "Kopf": (kopf[0], kopf[1], 0)}
+    r["Oberarm_R"], r["Unterarm_R"] = arm_genau(p, r, hoch, "R", tuple(rechts))
+    r["Oberarm_L"], r["Unterarm_L"] = arm_genau(p, r, hoch, "L", links)
+    for seite, vor, z in (("L", 0.06, 5), ("R", -0.03, -5)):
+        ober, unter = bein_ik(p, hoch, vor, 0.0)
+        r[f"Oberschenkel_{seite}"], r[f"Unterschenkel_{seite}"] = (ober, 0, z), (unter, 0, 0)
+    return r, hoch
+
+
 BEWEGUNGEN = {   # Name: Dauer in Sekunden (eine Schleife)
     "Stehen": 3.0, "Gehen": 1.0, "Eilen": 0.7, "Gebeugt": 1.4, "Tragen": 1.2, "Sitzen": 3.0, "Reden": 2.0,
     "Hacken": 1.3, "Buecken": 2.4, "Hueten": 4.0, "Ziehen": 1.3, "Kutschieren": 1.0,
     "Haemmern": 0.9, "Blasebalg": 1.6, "Schleifen": 1.2, "Feinarbeit": 2.0,
     "Hobeln": 1.2, "Saegen": 1.0, "Drechseln": 1.0, "Gatter": 2.0,
     "Behauen": 1.0, "Bildhauen": 1.6,
+    "Moersern": 2.0, "Ruehren": 2.4, "Destillieren": 4.0,
 }
 
 
@@ -1135,7 +1311,7 @@ def vorschau_bewegungen(schnell):
     for r, name in enumerate(reihen):
         teile = {"Hueten": ["Stab"], "Tragen": ["Buendel"], "Hacken": ["Hacke", "Strohhut"], "Haemmern": ["Hammer"],
                  "Hobeln": ["Hobel"], "Saegen": ["Saege"], "Drechseln": ["Drechseleisen"], "Behauen": ["Schlaegel", "Meissel"],
-                 "Bildhauen": ["Schlaegel", "Meissel"]}.get(name, [])
+                 "Bildhauen": ["Schlaegel", "Meissel"], "Moersern": ["Stoessel"], "Ruehren": ["Kelle"]}.get(name, [])
         wahl = [o for o in objekte if o.type == "MESH" and o.name.split(".")[0] in teile + ["Koerper_Mann"]]
         sy = ((len(reihen) - 1) / 2 - r) * abstand
         for k, ph in enumerate(phasen):
@@ -1215,6 +1391,26 @@ def arbeitsplatz(name, ort, st, p):
         vor, hoehe = ARBEITSHOEHEN["Figur"]
         netz.quader(ort + Vector((-vor - 0.2, 0, 0.25)), (0.6, 0.6, 0.5), holz)
         netz.quader(ort + Vector((-vor - 0.18, 0, 1.15)), (0.36, 0.5, 1.3), st["Sandstein"])
+    elif name == "Moersern":                                            # Tisch, Mörser darauf
+        vor, hoehe = ARBEITSHOEHEN["Moerser"]
+        netz.quader(ort + Vector((-vor - 0.12, 0, 0.75)), (0.6, 1.2, 0.06), holz)
+        bs.achteck(netz, st, ort + Vector((-vor, 0, 0.78)), 0.12, 0.0, 0.17, "Sandstein")
+        bs.rund_oben(netz, st, ort + Vector((-vor, 0, 0)), 0.085, 0.951, "Loch")
+    elif name == "Ruehren":                                             # offener Kessel, Brühe 10 cm unter dem Rand
+        vor, hoehe = ARBEITSHOEHEN["Kessel"]
+        m = ort + Vector((-vor, 0, 0))
+        for k in range(12):
+            a, b = (m + Vector((0.42 * math.cos(2 * math.pi * j / 12), 0.42 * math.sin(2 * math.pi * j / 12), 0)) for j in (k, k + 1))
+            netz.vieleck_nach([a + Vector((0, 0, 0.5)), b + Vector((0, 0, 0.5)), b + Vector((0, 0, 0.95)), a + Vector((0, 0, 0.95))],
+                              (a + b) / 2 - m, eisen)
+        bs.rund_oben(netz, st, m, 0.41, 0.85, "Kraut", n=12)
+    elif name == "Destillieren":                                        # Ofen mit Feuertür vor der Figur, Vorlage rechts
+        vor, hoehe = ARBEITSHOEHEN["Ofen"]
+        netz.quader(ort + Vector((-vor - 0.37, 0.12, 0.38)), (0.7, 0.7, 0.76), st["Bruchstein dunkel"])
+        sx, sv, sh = VORLAGE
+        bs.achteck(netz, st, ort + Vector((-sv, -sx, 0.45)), 0.13, 0.0, 0.26, "Elixier")
+        bs.achteck(netz, st, ort + Vector((-sv, -sx, 0.45)), 0.03, 0.26, 0.5, "Elixier")
+        netz.quader(ort + Vector((-sv, -sx, 0.22)), (0.3, 0.3, 0.44), holz)
     return netz.objekt() if netz.dreiecke() else None
 
 

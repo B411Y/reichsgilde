@@ -32,7 +32,7 @@ public partial class Stadtansicht
     private sealed record Raum(string Kennung, string Name, Vector3 Mitte, Vector3 Masse, Func<bool>? Zugaenglich = null, List<Blickpunkt>? Blicke = null);
 
     /// <summary>Kennungen der Werkstatträume (Klick in der Raumansicht).</summary>
-    public const string RaumWerk = "raum:werk", RaumLager = "raum:lager", RaumSaege = "raum:saege", RaumHuette = "raum:huette", RaumKontor = "raum:kontor", RaumWohnstube = "raum:wohnstube";
+    public const string RaumWerk = "raum:werk", RaumLager = "raum:lager", RaumSaege = "raum:saege", RaumHuette = "raum:huette", RaumLaden = "raum:laden", RaumTurm = "raum:turm", RaumKontor = "raum:kontor", RaumWohnstube = "raum:wohnstube";
 
     /// <summary>So tief unter der Stadt liegen die Räume.</summary>
     private const float RaumTiefe = -200f;
