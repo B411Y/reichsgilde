@@ -39,9 +39,9 @@ Umdrehung; Tritt und Kurbelstange im Takt der Bewegung „Schleifen“: Tritt ob
 Zeit modulo 1 s) –, der Flaschenzug hebt den Block in 3 s um 0,6 m an und senkt ihn wieder, die Winde dreht sich mit.
 Ruht der Betrieb, steht alles in der Lage der Datei (Block unten, Rahmen hinten, Kurbel vorn).
 Lichter: extras „art“ = „Fenster“ (Tageslicht) und „Lampe“ (Laterne an der Decke, Blick −Z nach unten) wie beim Tischler.
-Materialien: „Farben“ (Eckenfarben; die Materialart für den Holzschnitt je Fläche als UV.y, bausteine.arten_setzen),
+Materialien: „Farben“ (Eckenfarben; die Materialart für die Oberflächendetails je Fläche als UV.y, bausteine.arten_setzen),
 „Hausfarbe“ (Hoftor, Holztür, Ladetor, Flügel der Ladeluke), „Fenster“ (auch der Himmel hinter der Ladeluke), „Glut“
-(Laternen), „Eisen“, „Wasser“. Die Steine heißen so, dass materialarten.json passt: roher Stein „Fels …“ (Holzschnitt
+(Laternen), „Eisen“, „Wasser“. Die Steine heißen so, dass materialarten.json passt: roher Stein „Fels …“ (Materialart
 „fels“), modellierte Mauersteine „Bruch …“ (keine Struktur: Steine und Fugen zeichnet das Modell), glatt behauene Stücke
 „Quader“ (keine Struktur, nur Schraffur), Staub „Steinstaub“ und der Lehmboden „Erde hell“ („boden“).
 Einrichtung_Flaschenzug: ein kleiner Drehkran neben dem Werkblock (Pfosten, Ausleger, Kloben mit vier Seilen, Steinzange) –

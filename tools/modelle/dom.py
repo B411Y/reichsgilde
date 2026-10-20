@@ -163,7 +163,13 @@ def dach_bauen(netz, st):
     for y, seite in ((-HY, "vorne"), (HY, "hinten")):
         M = bs.wandmatrix((0, y, H_WAND), seite)
         bs.platte(netz, M, [(-HX, 0), (HX, 0), (0, hoch)], 0, DICKE, st["Haustein"])
-        bs.fugen(netz, M, 2 * HX - 0.4, 0.0, hoch - 1.2, st, abstand=0.5)
+        # Lagerfugen je Höhe so breit wie das Giebeldreieck: über die Schrägen hinaus schweben sie über dem Dach
+        v = 0.5
+        while v < hoch - 1.25:
+            b = min(HX - 0.2, HX - (v + 0.014) / dach["tan"] - 0.03)
+            netz.vieleck([M @ Vector(p) for p in ((-b, -0.003, v - 0.014), (b, -0.003, v - 0.014),
+                                                   (b, -0.003, v + 0.014), (-b, -0.003, v + 0.014))], st["Fuge"])
+            v += 0.5
     M = bs.wandmatrix((0, HY, H_WAND), "hinten")
     rosette(netz, st, M, 0.0, 3.4, 0.85)
     spitze = Vector((0, HY - 0.2, H_WAND + hoch + 0.2))
