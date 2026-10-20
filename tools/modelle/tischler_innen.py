@@ -1,18 +1,24 @@
-"""Innenraum des Tischlers: Werkraum, Holzlager und ab dem Sägewerk die Sägehalle; Stufen Tischlerei, Drechslerei, Sägewerk.
+"""Innenraum des Tischlers: Werkraum, darüber das Holzlager unter dem Dach und ab dem Sägewerk die Sägehalle; Stufen
+Tischlerei, Drechslerei, Sägewerk.
 
     blender -b --python tools/modelle/tischler_innen.py -- [--schnell] [--ohne-bilder]
     python tools/modelle/tischler_innen.py [--schnell] [--ohne-bilder]
 
 Schreibt game/assets/modelle/tischler_innen.glb und Bilder nach docs/modelle/ (tischler_innen-blicke.png: das Bild jedes
-Blickpunkts, tischler_innen-stufen.png: Grundriss je Stufe, tischler_innen-grundriss.png: Grundriss mit Ankern).
+Blickpunkts, tischler_innen-stufen.png: Erdgeschoss von oben je Stufe, tischler_innen-grundriss.png: Erdgeschoss und
+Dachboden mit Ankern).
 
 Koordinaten wie beim Schmied (Blender: Z oben; im Spiel Y oben, Blender −Y = Spiel +Z): Ursprung in der Mitte des
-Werkraums auf dem Boden. Fachwerkwände 0,3 m dick, innen verputzt, Dielenboden. Werkraum innen x −4 … 4, y −3,5 … 3,5,
-3,4 m hoch; Holzlager rechts daneben x 4,3 … 9,3, y −1,5 … 3,5, 3,0 m hoch; Sägehalle hinter dem Werkraum x −4 … 4,
-y 3,8 … 9,8, 4,2 m hoch. Alle Räume sind rundum geschlossen, die Kamera steht im Raum.
+Werkraums auf dem Boden. Fachwerkwände 0,3 m dick: innen die Balken, in den Gefachen heller Lehmputz. Werkraum innen
+x −4 … 4, y −3,5 … 3,5, 3,4 m hoch, Boden in Stufe 1 und 2 gestampfter Lehm, in Stufe 3 Backsteinpflaster im
+Fischgrätmuster, Balkendecke; Sägehalle hinter dem Werkraum x −4 … 4, y 3,8 … 9,8, 4,2 m hoch, Lehmboden. Das Holzlager
+liegt über dem Werkraum unter dem Dach (Boden in 3,45 m, First entlang x, Kniestock 1,3 m, 52°): Dielen, Fachwerk an
+Kniestock und Giebeln, Sparren mit Schalung, Ladeluke mit Kranbalken im rechten Giebel; eine steile Treppe an der rechten
+Wand führt hinauf. Alle Räume sind rundum geschlossen, die Kamera steht im Raum (Bausteine in innenausbau.py).
 
 Knoten im GLB – dieselben Regeln wie in schmied_innen.glb (Raum_…, Decke_…, Stufe1–Stufe3, Bedienung_…, Tuer_…,
-Einrichtung_…, Holztuer, Blick_…, Arbeit_…, Lager_…, Werkstueck_…, Licht_…), dazu:
+Einrichtung_…, Holztuer, Blick_…, Arbeit_…, Lager_…, Werkstueck_…, Licht_…, Kranbalken, Himmel_Lager; Tuer_Werk_Lager ist
+die Treppe, Tuer_Lager_Werk die Bodenluke, beide mit extras „schild“), dazu:
     Raum_Saege                  die Sägehalle, extras „stufe“ = 3: das Spiel zeigt sie erst ab dem Sägewerk
     Tuer_Werk_Saege,            Tür zwischen Werkraum und Sägehalle, extras „stufe“ = 3 (vorher unsichtbar und nicht
     Tuer_Saege_Werk             anklickbar); in Stufe1 und Stufe2 schließt ein verputztes Gefach die Öffnung im Werkraum
@@ -27,8 +33,9 @@ die Federstange zieht zurück, das Werkstück dreht hin und her), die Welle dreh
 Gatterrahmen. Ruht der Betrieb, steht alles in der Lage der Datei (Pedal oben, Gatterrahmen oben).
 Lichter: extras „art“ = „Fenster“ wie beim Schmied, dazu „Lampe“ (Laterne an der Decke, Blick −Z nach unten). Glut gibt
 es nicht; das Material „Glut“ tragen Laternen und Leimofen (leuchten, solange gearbeitet wird).
-Materialien: „Farben“ (Eckenfarben; die Materialart für den Holzschnitt je Fläche als UV.y, bausteine.arten_setzen),
-„Hausfarbe“ (Hoftor, Holztür, Ladetor), „Fenster“, „Glut“, „Eisen“, „Wasser“.
+Materialien: „Farben“ (Eckenfarben; die Materialart für den Holzschnitt je Fläche als UV.y, bausteine.arten_setzen –
+„keine“, wo das Modell Ziegel oder Bretter schon zeichnet), „Hausfarbe“ (Hoftor, Holztür, Ladetor, Flügel der Ladeluke),
+„Fenster“ (auch der Himmel hinter der Ladeluke), „Glut“, „Eisen“, „Wasser“.
 """
 
 import math
@@ -39,7 +46,8 @@ import sys
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import bausteine as bs  # noqa: E402
 from bausteine import Matrix, Vector  # noqa: E402
-import schmied_innen as si  # noqa: E402  (Wände, Fenster, Dielen, Pult, Türen, Werkzeugwand, Kisten, Löschfass, Anker)
+import innenausbau as ia  # noqa: E402  (Böden, Decke, Treppe, Dachboden, Prüfbericht, Vorschau)
+import schmied_innen as si  # noqa: E402  (Wände, Fenster, Pult, Türen, Werkzeugwand, Kisten, Löschfass, Anker)
 import tischler  # noqa: E402  (Rundholz wie außen)
 
 NAME = "tischler_innen"
@@ -56,12 +64,14 @@ bs.FARBEN.update({
 WAND = 0.3                                                         # Fachwerkwand mit Putz
 WX0, WX1, WY0, WY1 = -4.0, 4.0, -3.5, 3.5                           # Werkraum innen
 H_WERK = 3.4
-LX0, LX1, LY0, LY1 = WX1 + WAND, WX1 + WAND + 5.0, -1.5, WY1        # Holzlager innen
-H_LAGER = 3.0
+Z_LAGER = H_WERK + ia.DIELE                                         # Boden des Holzlagers unter dem Dach
 SX0, SX1, SY0, SY1 = WX0, WX1, WY1 + WAND, WY1 + WAND + 6.0         # Sägehalle innen
 H_SAEGE = 4.2
 UEBER = si.UEBER                                                   # Außenseite der Wände reicht so weit über die Decke
-TUER_Y, TUER_B, TUER_H = 2.5, 1.0, 2.1                             # Tür Werkraum – Lager (rechte Wand)
+TREPPE_X, TREPPE_FUSS, TREPPE_OBEN = 3.60, 2.7, 1.45               # steile Treppe an der rechten Wand, steigt nach vorn
+LUKE = (3.22, WX1, 1.41, 2.45)                                     # Treppenloch in der Decke (x0, x1, y0, y1)
+LADELUKE_Y = -1.1                                                  # Ladeluke im rechten Giebel (Mitte), 1,2 × 1,8 m
+DACH = ia.Dachboden(WX0, WX1, WY0, WY1, Z_LAGER, 52)
 SAEGETUER_X, SAEGETUER_B, SAEGETUER_H = 2.8, 1.1, 2.2              # Tür Werkraum – Sägehalle (Rückwand)
 HOFTOR_Y, HOFTOR_B, HOFTOR_H = -0.6, 2.6, 2.8                      # Hoftor in der linken Wand
 HOLZTUER_X, HOLZTUER_B, HOLZTUER_H = -2.0, 0.95, 2.1              # Tür zum Hof in der Vorderwand
@@ -96,28 +106,23 @@ BLICKE = {
     "Blick_Werk_0": ((0.2, -3.2, 2.55), (0.0, 1.8, 0.8)),          # Hobelbank, Sägebock, Drechselbank, Tür zur Sägehalle
     "Blick_Werk_L1": ((1.6, -2.6, 2.5), (-4.0, 0.2, 0.9)),         # Hoftor, Personalbuch, Drechselbank
     "Blick_Werk_L2": ((0.6, 1.0, 2.6), (-3.6, -3.2, 0.8)),         # Holztür, Personalbuch, Schürzen
-    "Blick_Werk_R1": ((-3.0, -2.9, 2.6), (3.5, 2.8, 0.9)),         # schräg: Hobelbank, Sägebock, Türen ins Lager und zur Sägehalle
+    "Blick_Werk_R1": ((-3.0, -2.9, 2.6), (3.5, 2.8, 0.9)),         # schräg: Hobelbank, Sägebock, Treppe, Tür zur Sägehalle
     "Blick_Werk_R2": ((-1.6, -2.6, 2.5), (4.0, 0.6, 1.0)),         # Leimtisch, Werkzeugwand, Leimofen, Löschfass
-    "Blick_Lager_0": ((6.8, -1.25, 2.3), (6.9, 2.6, 0.5)),         # Bretterstapel, Stellplätze
-    "Blick_Lager_L1": ((8.7, -1.2, 2.3), (4.6, 2.4, 0.8)),         # Tür in den Werkraum, Bretterstapel
-    "Blick_Lager_R1": ((5.0, -1.1, 2.3), (9.2, 1.4, 0.7)),         # Holzgestell, Kantholz, Kisten
+    "Blick_Lager_0": ((-3.4, -1.4, Z_LAGER + 2.1), (3.2, -0.4, Z_LAGER + 0.7)),     # den First entlang: Ladeluke, Stapel
+    "Blick_Lager_L1": ((3.2, -2.5, Z_LAGER + 2.0), (-3.8, 0.9, Z_LAGER + 0.9)),     # zurück: Bretterstapel, Holzgestell
+    "Blick_Lager_R1": ((2.5, -0.4, Z_LAGER + 2.2), (3.6, 1.95, Z_LAGER - 0.6)),     # hinunter in die Bodenluke mit der Treppe
     "Blick_Saege_0": ((2.6, 4.2, 3.5), (-1.0, 7.8, 0.6)),          # Gattersäge, Arbeitsplatz am Stamm, Rampe, Ladetor
     "Blick_Saege_L1": ((-0.3, 4.1, 3.4), (-3.5, 7.6, 0.8)),        # Arbeitsplatz am Stamm von der Seite, Bretter
     "Blick_Saege_R1": ((3.4, 9.3, 3.5), (2.6, 4.0, 0.8)),          # Tür in den Werkraum, Welle durch die Wand
 }
 
 Oe = si.Oe
+SCHILDER = {"Tuer_Werk_Lager": "Treppe zum Lager", "Tuer_Lager_Werk": "Treppe hinunter zum Werkraum"}   # extras „schild“
 WERK_OEFFNUNGEN = {
     "vorne": [Oe(0.4, 1.2, 0.9, 1.1), Oe(2.6, 1.2, 0.9, 1.1), Oe(HOLZTUER_X, 0.0, HOLZTUER_B, HOLZTUER_H)],
-    "rechts": [Oe(-2.75, 1.2, 0.8, 1.1), Oe(TUER_Y, 0.0, TUER_B, TUER_H)],
+    "rechts": [Oe(-2.75, 1.2, 0.8, 1.1)],
     "hinten": [Oe(SAEGETUER_X, 0.0, SAEGETUER_B, SAEGETUER_H)],
     "links": [Oe(HOFTOR_Y, 0.0, HOFTOR_B, HOFTOR_H), Oe(2.4, 1.3, 0.8, 1.1)],
-}
-LAGER_OEFFNUNGEN = {
-    "vorne": [Oe(6.0, 1.3, 0.9, 1.0)],
-    "hinten": [Oe(7.1, 1.85, 1.0, 0.75)],
-    "links": [Oe(TUER_Y, 0.0, TUER_B, TUER_H)],
-    "rechts": [],
 }
 LADETOR_X, LADETOR_B, LADETOR_H = -1.8, 2.4, 2.7
 SAEGE_OEFFNUNGEN = {
@@ -128,39 +133,26 @@ SAEGE_OEFFNUNGEN = {
 }
 
 
-def ecken(x0, x1, y0, y1):
-    """Innenkanten der vier Wände, a → b so, dass der Raum links der Laufrichtung liegt."""
-    return {"vorne": ((x0, y0), (x1, y0)), "rechts": ((x1, y0), (x1, y1)), "hinten": ((x1, y1), (x0, y1)),
-            "links": ((x0, y1), (x0, y0))}
+ecken = ia.ecken
 
 
 # ─────────────────────────────────────────────────────────────────────────────
 #  Hülle: Wände, Fachwerk, Decke, Fenster
 # ─────────────────────────────────────────────────────────────────────────────
 
-def huelle(netz, decke, st, x0, x1, y0, y1, hoehe, waende):
-    """Putzwände (waende = {seite: dict(oeffnungen, aussen, laibung, enden, teile)}) mit Außenseite und Laibungen, dazu
-    die Decke mit Brettern, Balken und Abdeckung – wie schmied_innen.raum_huelle, nur mit der dünneren Fachwerkwand."""
+def huelle(netz, decke, st, x0, x1, y0, y1, hoehe, waende, luke=None, oben=None, saat=0):
+    """Wände aus hellem Lehmputz (waende = {seite: dict(oeffnungen, aussen, laibung, enden, teile)}) mit Außenseite und
+    Laibungen, dazu die Balkendecke (innenausbau.balkendecke): mit Treppenloch `luke` und den Dielen des Raums darüber in
+    `oben`, ohne Raum darüber mit Abdeckung – wie schmied_innen.steinraum, nur mit der dünneren Fachwerkwand."""
     kanten = ecken(x0, x1, y0, y1)
     netz.alle = True
     for seite, angaben in waende.items():
         for a, b, art in angaben.get("teile", [kanten[seite] + ({},)]):
-            si.wand(netz, st, a, b, hoehe, stoff="Putz", dicke=WAND,
+            si.wand(netz, st, a, b, hoehe, stoff="Lehmputz hell", dicke=WAND,
                     **{**{k: v for k, v in angaben.items() if k != "teile"}, **art})
     netz.alle = False
-    decke.vieleck_nach([(x0, y0, hoehe), (x1, y0, hoehe), (x1, y1, hoehe), (x0, y1, hoehe)], (0, 0, -1), st["Holz"])
-    y = y0 + 0.3
-    while y < y1 - 0.1:
-        decke.vieleck_nach([(x0, y - 0.012, hoehe - 0.003), (x1, y - 0.012, hoehe - 0.003), (x1, y + 0.012, hoehe - 0.003),
-                            (x0, y + 0.012, hoehe - 0.003)], (0, 0, -1), st["Fachwerk"])
-        y += 0.3
-    anzahl = max(2, round((x1 - x0) / 1.05))
-    for k in range(anzahl):
-        x = x0 + (x1 - x0) * (k + 0.5) / anzahl
-        decke.quader((x, (y0 + y1) / 2, hoehe - 0.13), (0.18, y1 - y0, 0.26), st["Fachwerk"], ohne=("+z", "+y", "-y"))
-    d = WAND
-    decke.vieleck_nach([(x0 - d, y0 - d, hoehe + UEBER), (x1 + d, y0 - d, hoehe + UEBER), (x1 + d, y1 + d, hoehe + UEBER),
-                        (x0 - d, y1 + d, hoehe + UEBER)], (0, 0, 1), st["Holz alt"])
+    return ia.balkendecke(decke, st, x0, x1, y0, y1, hoehe, luke=luke, oben=oben, abdeckung=None if oben is not None else WAND,
+                          saat=saat)
 
 
 def fachwerk_innen(netz, st, x0, x1, y0, y1, hoehe, oeffnungen):
@@ -613,7 +605,7 @@ def drechselware(netz, st):
 def gefach(netz, st):
     """Stufe 1 und 2: Die Öffnung zur späteren Sägehalle ist ein verputztes Gefach mit Riegel."""
     x0, x1 = SAEGETUER_X - SAEGETUER_B / 2, SAEGETUER_X + SAEGETUER_B / 2
-    netz.vieleck_nach([(x0, WY1, 0), (x1, WY1, 0), (x1, WY1, SAEGETUER_H), (x0, WY1, SAEGETUER_H)], (0, -1, 0), st["Putz"])
+    netz.vieleck_nach([(x0, WY1, 0), (x1, WY1, 0), (x1, WY1, SAEGETUER_H), (x0, WY1, SAEGETUER_H)], (0, -1, 0), st["Lehmputz hell"])
     M = bs.wandmatrix((SAEGETUER_X, WY1, 0), "vorne")
     bs.balken(netz, M, -SAEGETUER_B / 2 - 0.02, 0.9 - bs.B / 2, SAEGETUER_B / 2 + 0.02, 0.9 - bs.B / 2, st["Fachwerk"],
               vor=bs.VOR_RIEGEL)
@@ -739,31 +731,30 @@ def stapel(netz, st, M, laenge, breite, lagen, brett=0.05, stoff="Schnittholz"):
     return z
 
 
-def kantholz(netz, st, x0, x1, y, lagen=4):
-    """Kanthölzer auf Unterlagen, entlang x gestapelt."""
+def kantholz(netz, st, x0, x1, y, lagen=4, z=0.0):
+    """Kanthölzer auf Unterlagen, entlang x gestapelt (Boden in z)."""
     for x in (x0 + 0.3, (x0 + x1) / 2, x1 - 0.3):
-        netz.quader((x, y, 0.05), (0.12, 0.6, 0.1), st["Holz alt"])
+        netz.quader((x, y, z + 0.05), (0.12, 0.6, 0.1), st["Holz alt"])
     for k in range(lagen):
         for i in range(4 - k % 2):
-            netz.quader(((x0 + x1) / 2 + 0.04 * (k % 2), y - 0.21 + 0.14 * i + 0.07 * (k % 2), 0.1 + 0.13 * k + 0.065),
+            netz.quader(((x0 + x1) / 2 + 0.04 * (k % 2), y - 0.21 + 0.14 * i + 0.07 * (k % 2), z + 0.1 + 0.13 * k + 0.065),
                         (x1 - x0 - 0.1 * (i % 2), 0.12, 0.12), st["Holz" if (i + k) % 3 else "Schnittholz"])
 
 
-def kisten(netz, st):
-    """Kisten für fertige Ware in der vorderen rechten Ecke, darauf Schalen und ein Stuhl."""
-    for (x, y, z, b, t, h) in ((8.85, -1.1, 0, 0.7, 0.6, 0.55), (8.85, -1.05, 0.55, 0.6, 0.5, 0.45), (8.05, -1.1, 0, 0.7, 0.6, 0.6),
-                               (8.85, -0.35, 0, 0.6, 0.6, 0.45)):
-        c = Vector((x, y, z + h / 2))
+def kisten(netz, st, mitte):
+    """Kisten für fertige Ware um `mitte` (Boden in mitte.z), darauf Schalen und ein Hocker."""
+    for (x, y, z, b, t, h) in ((0.4, -0.35, 0, 0.7, 0.6, 0.55), (0.4, -0.3, 0.55, 0.6, 0.5, 0.45), (-0.4, -0.35, 0, 0.7, 0.6, 0.6),
+                               (0.4, 0.4, 0, 0.6, 0.6, 0.45)):
+        c = mitte + Vector((x, y, z + h / 2))
         netz.quader(c, (b, t, h), st["Holz alt"])
         for sx in (-1, 1):
             netz.quader(c + Vector((sx * (b / 2 - 0.03), 0, 0)), (0.07, t + 0.012, h + 0.012), st["Fachwerk"], ohne=("-z",))
         netz.quader(c, (b - 0.14, t + 0.008, 0.06), st["Fachwerk"], ohne=("-z", "+z", "+x", "-x"))
     for k in range(3):
-        fuss = Vector((7.9 + 0.2 * k, -1.15 + 0.08 * (k % 2), 0.6))
+        fuss = mitte + Vector((-0.55 + 0.2 * k, -0.4 + 0.08 * (k % 2), 0.6))
         bs.achteck(netz, st, fuss, 0.08, 0.0, 0.025, "Schnittholz")
         bs.achteck(netz, st, fuss, 0.11, 0.025, 0.06, "Schnittholz")
-    # Hocker auf der Kiste vorn
-    sitz = Vector((8.85, -0.35, 0.45))
+    sitz = mitte + Vector((0.4, 0.4, 0.45))                                                       # Hocker auf der Kiste vorn
     bs.achteck(netz, st, sitz + Vector((0, 0, 0.32)), 0.16, 0.0, 0.04, "Holz")
     for k in range(3):
         w = 2 * math.pi * k / 3
@@ -771,17 +762,70 @@ def kisten(netz, st):
                   0.035, 0.035, st["Holz"])
 
 
-def holzgestell(netz, st):
-    """Gekauft: Holzgestell an der rechten Wand – Ständer mit Kragarmen, darauf Bretter und Leisten."""
-    x = LX1 - 0.05
-    for y in (0.25, 1.75, 3.2):
-        netz.quader((x - 0.06, y, 1.2), (0.1, 0.1, 2.4), st["Holz"], ohne=("+x",))
-        for z in (0.45, 1.05, 1.65, 2.25):
-            netz.stab((x - 0.06, y, z - 0.08), (x - 0.48, y, z), 0.06, 0.06, st["Holz alt"])
-    for k, z in enumerate((0.45, 1.05, 1.65, 2.25)):
+def holzgestell(netz, st, x0, x1):
+    """Gekauft: Holzgestell am vorderen Kniestock des Dachbodens (von x0 bis x1, niedrig unter der Schräge) – Ständer mit
+    Kragarmen, darauf Bretter und Leisten."""
+    z, y = Z_LAGER, WY0 + 0.05 + 0.06                         # vor dem Fachwerk
+    staender = [x0 + (x1 - x0) * k / 3 for k in range(4)]
+    for x in staender:
+        netz.quader((x, y, z + 0.54), (0.1, 0.1, 1.08), st["Holz"], ohne=("-y",))
+        for h in (0.3, 0.65, 1.0):
+            netz.stab((x, y + 0.04, z + h - 0.07), (x, y + 0.46, z + h), 0.06, 0.06, st["Holz alt"])
+    for k, h in enumerate((0.3, 0.65, 1.0)):
         for i in range(3 - k % 2):
-            netz.quader((x - 0.2 - 0.09 * i, 1.72 + 0.05 * ((i + k) % 3), z + 0.04 + 0.03 * (i % 2)), (0.08 + 0.1 * (k % 2), 3.3, 0.03 + 0.02 * (k % 2)),
+            netz.quader(((x0 + x1) / 2 + 0.05 * ((i + k) % 3), y + 0.17 + 0.1 * i, z + h + 0.045 + 0.02 * (i % 2)),
+                        (x1 - x0 + 0.2 - 0.15 * (i % 2), 0.08 + 0.06 * (k % 2), 0.03 + 0.02 * (k % 2)),
                         st["Schnittholz" if (i + k) % 2 else "Holz"])
+
+
+def dach_fachwerk(netz, st, luke, gfenster):
+    """Fachwerk auf der Innenseite von Kniestöcken und Giebeln des Holzlagers (vor dem Lehmputz): Schwellen, Ständer an den
+    Ecken, an den Öffnungen und dazwischen höchstens 1,2 m auseinander (am Kniestock bis unter die Fußpfette, im Giebel bis
+    unter die Dachschräge), Riegel; im rechten Giebel ein Sturzriegel über der Ladeluke, im linken Riegel um das Fenster."""
+    z, B, holz = Z_LAGER, bs.B, st["Fachwerk"]
+    alle, netz.alle = netz.alle, True
+    cx, cy = (WX0 + WX1) / 2, DACH.ym
+    L = WX1 - WX0
+    for vorn in (True, False):                                                                  # Kniestöcke
+        M = bs.wandmatrix((cx, WY0 if vorn else WY1, z), "hinten" if vorn else "vorne")
+        hoch = DACH.kniestock - 0.18
+        bs.balken(netz, M, -L / 2, B / 2, L / 2, B / 2, holz, vor=bs.VOR_SCHWELLE, enden=True)
+        n = math.ceil((L - B) / 1.2)
+        for k in range(n + 1):
+            u = -L / 2 + B / 2 + (L - B) * k / n
+            bs.balken(netz, M, u, B, u, hoch, holz)
+        bs.balken(netz, M, -L / 2, 0.68, L / 2, 0.68, holz, vor=bs.VOR_RIEGEL)
+    T = WY1 - WY0
+    for rechts, o in ((True, luke), (False, gfenster)):                                         # Giebel
+        M = bs.wandmatrix((WX1 if rechts else WX0, cy, z), "links" if rechts else "rechts")
+        u_o = (cy - o.s) if rechts else (o.s - cy)
+        bs.balken(netz, M, -T / 2, B / 2, T / 2, B / 2, holz, vor=bs.VOR_SCHWELLE, enden=True)
+        rand = B / 2 + 0.01                         # 1 cm neben der Laibung: sonst lägen Balken und Laibung in einer Ebene
+        roh = sorted([-T / 2 + B / 2, T / 2 - B / 2, u_o - o.b / 2 - rand, u_o + o.b / 2 + rand])
+        us = []
+        for a, b in zip(roh, roh[1:]):
+            us.append(a)
+            n = math.ceil((b - a) / 1.2) - 1
+            if not (a < u_o < b):
+                us += [a + (b - a) * k / (n + 1) for k in range(1, n + 1)]
+        us.append(roh[-1])
+        for u in us:
+            y = (cy - u) if rechts else (cy + u)
+            oben = DACH.hoehe(min(DACH.y1, max(DACH.y0, y + (B / 2 if y > cy else -B / 2)))) - 0.03
+            if abs(u - u_o) < o.b / 2:
+                continue
+            bs.balken(netz, M, u, B, u, oben, holz)
+        weit = DACH.halb - (DACH.kehle + 0.1 - DACH.kniestock) / DACH.tan
+        bs.balken(netz, M, -weit, DACH.kehle, weit, DACH.kehle, holz, vor=bs.VOR_RIEGEL)                 # Kehlriegel
+        if o.v < 0.05:                                                                               # Ladeluke: Brustriegel daneben, Sturz
+            for a, b in ((-T / 2 + B, u_o - o.b / 2 - B), (u_o + o.b / 2 + B, T / 2 - B)):
+                bs.balken(netz, M, a, 0.9, b, 0.9, holz, vor=bs.VOR_RIEGEL)
+            bs.balken(netz, M, u_o - o.b / 2 - B, o.h + rand, u_o + o.b / 2 + B, o.h + rand, holz, vor=bs.VOR_RIEGEL)
+        else:                                                                                        # Fenster: Brust-, Riegel darunter und darüber
+            bs.balken(netz, M, -T / 2 + B, 0.9, T / 2 - B, 0.9, holz, vor=bs.VOR_RIEGEL)
+            for v in (o.v - rand, o.v + o.h + rand):
+                bs.balken(netz, M, u_o - o.b / 2 - B, v, u_o + o.b / 2 + B, v, holz, vor=bs.VOR_RIEGEL)
+    netz.alle = alle
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -954,10 +998,11 @@ def bauen():
     bs.neue_szene()
     _lichter[0] = 0
     st = bs.Stoffe()
-    werk, lager = bs.Netz("Raum_Werk"), bs.Netz("Raum_Lager")
+    werk, lager = bs.Netz("Raum_Werk"), bs.Netz("Raum_Lager", alle=True)
     saege = bs.Netz("Raum_Saege")
     decke_w, decke_l = bs.Netz("Decke_Werk", alle=True), bs.Netz("Decke_Lager", alle=True)
     decke_s = bs.Netz("Decke_Saege", alle=True)
+    kran, himmel = bs.Netz("Kranbalken", alle=True), bs.Netz("Himmel_Lager")
     teile = {}                    # Name → (Netz, Raum)
 
     def teil(name, raum="Werk"):
@@ -976,17 +1021,15 @@ def bauen():
     W = WERK_OEFFNUNGEN
     huelle(werk, decke_w, st, WX0, WX1, WY0, WY1, H_WERK, {
         "vorne": dict(oeffnungen=W["vorne"]),
-        "rechts": dict(teile=[((WX1, WY0), (WX1, LY0), dict(oeffnungen=W["rechts"][:1], enden=(True, False))),
-                              ((WX1, LY0), (WX1, WY1), dict(oeffnungen=W["rechts"][1:], aussen=False))]),
+        "rechts": dict(oeffnungen=W["rechts"]),
         "hinten": dict(oeffnungen=W["hinten"], aussen=False),
         "links": dict(oeffnungen=W["links"]),
-    })
+    }, luke=LUKE, oben=lager, saat=3)
     fachwerk_innen(werk, st, WX0, WX1, WY0, WY1, H_WERK, W)
     fenster_liste = []
     fenster_und_licht(werk, st, ecken(WX0, WX1, WY0, WY1), W, fenster_liste)
     for o in fenster_liste:
         setzen(o)
-    si.bretterboden(werk, st, WX0, WX1, WY0, WY1, saat=3)
     bretter_an_wand(werk, st)
     hobelbank(teil("Bedienung_Produktion_Hobelbank"), st, HOBELBANK)
     saegebock(werk, st, SAEGEBOCK)
@@ -1007,10 +1050,9 @@ def bauen():
     si.eisentuer(teil("Einrichtung_Eisentuer"), st, M_holz, HOLZTUER_B, HOLZTUER_H)
     si.loeschfass(teil("Einrichtung_Loeschfass"), st, Vector((2.55, -3.05, 0)))
     schuerzen(teil("Einrichtung_Schuerzen"), st, si.rahmen(-0.95, WY0, 0))
-    si.bretttuer(teil("Tuer_Werk_Lager"), st, si.rahmen(WX1, TUER_Y, 90), TUER_B, TUER_H, stoff="Holz alt")
-    si.bretttuer(teil("Tuer_Lager_Werk", "Lager"), st, si.rahmen(LX0, TUER_Y, -90), TUER_B, TUER_H, stoff="Holz alt")
-    si.bretttuer(teil("Tuer_Werk_Saege"), st, si.rahmen(SAEGETUER_X, WY1, 180), SAEGETUER_B, SAEGETUER_H, stoff="Holz alt")
-    si.bretttuer(teil("Tuer_Saege_Werk", "Saege"), st, si.rahmen(SAEGETUER_X, SY0, 0), SAEGETUER_B, SAEGETUER_H, stoff="Holz alt")
+    ia.treppe(teil("Tuer_Werk_Lager"), st, TREPPE_X, TREPPE_FUSS, TREPPE_OBEN, Z_LAGER)       # Treppe hinauf ins Holzlager
+    si.bretttuer(teil("Tuer_Werk_Saege"), st, si.rahmen(SAEGETUER_X, WY1, 180), SAEGETUER_B, SAEGETUER_H, stoff="Brett")
+    si.bretttuer(teil("Tuer_Saege_Werk", "Saege"), st, si.rahmen(SAEGETUER_X, SY0, 0), SAEGETUER_B, SAEGETUER_H, stoff="Brett")
 
     # ── Werkraum: Arbeitsplätze ──────────────────────────────────────────────
     setzen(si.arbeit("Arbeit_1_Hobeln", (HOBELBANK.x, HOBELBANK.y + 0.65), (0, -1), 1))
@@ -1023,7 +1065,12 @@ def bauen():
 
     # ── Stufen (kumulativ) und bewegte Teile der Drehbank ─────────────────────
     stufen = [bs.Netz(f"Stufe{k}") for k in (1, 2, 3)]
+    ziegel = 0
     for k, netz in enumerate(stufen, 1):
+        if k < 3:
+            ia.lehmboden(netz, st, WX0, WX1, WY0, WY1, saat=8)
+        else:
+            ziegel = ia.fischgraet(netz, st, WX0, WX1, WY0, WY1, saat=8)
         if k <= 2:
             gefach(netz, st)
         if k >= 2:
@@ -1038,28 +1085,31 @@ def bauen():
             bewegt.append((o, bewegung))
     spaene_obj = [spaene_stand(m, st) for m in (1, 2, 3)]
 
-    # ── Holzlager ─────────────────────────────────────────────────────────────
-    L = LAGER_OEFFNUNGEN
-    huelle(lager, decke_l, st, LX0, LX1, LY0, LY1, H_LAGER, {
-        "vorne": dict(oeffnungen=L["vorne"]),
-        "rechts": dict(),
-        "hinten": dict(oeffnungen=L["hinten"]),
-        "links": dict(oeffnungen=L["links"], aussen=False, laibung=False),
-    })
-    fachwerk_innen(lager, st, LX0, LX1, LY0, LY1, H_LAGER, L)
-    fenster_liste = []
-    fenster_und_licht(lager, st, ecken(LX0, LX1, LY0, LY1), L, fenster_liste)
-    for o in fenster_liste:
-        setzen(o, "Lager")
-    si.bretterboden(lager, st, LX0, LX1, LY0, LY1, saat=4)
-    stapel(teil("Bedienung_Lager_Bretter", "Lager"), st, Matrix.Translation((7.1, 2.95, 0)), 2.8, 0.9, 6)
-    kisten(teil("Bedienung_Lager_Kisten", "Lager"), st)
-    holzgestell(teil("Einrichtung_Regale", "Lager"), st)
-    kantholz(lager, st, 4.9, 7.4, -1.1)
+    print(f"Backsteinpflaster: {ziegel} Ziegel")
+
+    # ── Holzlager unter dem Dach ──────────────────────────────────────────────
+    z = Z_LAGER
+    kanten = ecken(WX0, WX1, WY0, WY1)
+    DACH.kniestoecke(lager, st, "Lehmputz hell")
+    luke = Oe(LADELUKE_Y, 0.0, 1.2, 1.8)                      # Höhen über dem Dachboden
+    gfenster = Oe(0.0, 2.2, 0.6, 0.55)
+    DACH.giebel(lager, st, False, [gfenster], "Lehmputz hell", WAND)
+    DACH.giebel(lager, st, True, [luke], "Lehmputz hell", WAND)
+    dach_fachwerk(lager, st, luke, gfenster)
+    DACH.dach(decke_l, st)
+    licht_luke = DACH.ladeluke(lager, kran, himmel, st, LADELUKE_Y, luke.b, luke.h, WAND, futter=False)
+    fenster(lager, st, *kanten["links"], Oe(gfenster.s, z + gfenster.v, gfenster.b, gfenster.h))
+    ia.bodenluke(teil("Tuer_Lager_Werk", "Lager"), st, LUKE, z, gelaender_x=LUKE[0] - 0.05)
+    setzen(licht(licht_luke, (-1, 0, 0), "Fenster"), "Lager")
+    setzen(licht(Vector((WX0 + 0.1, gfenster.s, z + gfenster.v + gfenster.h / 2)), (1, 0, 0), "Fenster"), "Lager")
+    stapel(teil("Bedienung_Lager_Bretter", "Lager"), st, Matrix.Translation((-1.8, WY1 - 0.58, z)), 2.8, 0.9, 6)   # hinten
+    kisten(teil("Bedienung_Lager_Kisten", "Lager"), st, Vector((2.9, -2.4, z)))                                   # bei der Ladeluke
+    holzgestell(teil("Einrichtung_Regale", "Lager"), st, -3.6, -0.3)                                              # vorn, niedrig
+    kantholz(lager, st, 0.0, 2.6, WY1 - 0.55, z=z)
     nummer = 1
-    for y in (1.55, 0.5):
-        for x in (5.3, 6.25, 7.2, 8.15):
-            setzen(bs.anker(f"Lager_{nummer}", (x, y, 0.0)), "Lager")
+    for y in (1.5, 0.55):
+        for x in (-1.6, -0.6, 0.4, 1.4):
+            setzen(bs.anker(f"Lager_{nummer}", (x, y, z)), "Lager")
             nummer += 1
 
     # ── Sägehalle (ab Stufe 3) ────────────────────────────────────────────────
@@ -1069,13 +1119,13 @@ def bauen():
         "rechts": dict(oeffnungen=S["rechts"], enden=(False, True)),
         "hinten": dict(oeffnungen=S["hinten"]),
         "links": dict(oeffnungen=S["links"], enden=(True, False)),
-    })
+    }, saat=5)
     fachwerk_innen(saege, st, SX0, SX1, SY0, SY1, H_SAEGE, S)
     fenster_liste = []
     fenster_und_licht(saege, st, ecken(SX0, SX1, SY0, SY1), S, fenster_liste, stufe=3)
     for o in fenster_liste:
         setzen(o, "Saege")
-    si.bretterboden(saege, st, SX0, SX1, SY0, SY1, saat=5)
+    ia.lehmboden(saege, st, SX0, SX1, SY0, SY1, saat=5, flecken=12)
     gatter_fest(saege, st)
     saegehalle(saege, st)
     laterne(saege, st, Vector((1.5, 8.4, 3.05)), H_SAEGE - 0.26)
@@ -1094,7 +1144,7 @@ def bauen():
     raeume["Saege"]["stufe"] = 3
     kinder = {r: [] for r in raeume}
     kinder["Werk"] += [decke_w.objekt()] + stufen_obj + spaene_obj
-    kinder["Lager"].append(decke_l.objekt())
+    kinder["Lager"] += [decke_l.objekt(), kran.objekt(), himmel.objekt()]
     kinder["Saege"] += [decke_s.objekt(), o_rahmen, o_welle, o_pleuel]
     for name, (netz, raum) in teile.items():
         o = netz.objekt()
@@ -1103,6 +1153,8 @@ def bauen():
             bs.zustand(o)
         if name in ("Tuer_Werk_Saege", "Tuer_Saege_Werk"):
             o["stufe"] = 3
+        if name in SCHILDER:
+            o["schild"] = SCHILDER[name]
     for o, raum in anker:
         kinder[raum].append(o)
     for raum, liste in kinder.items():
@@ -1164,179 +1216,17 @@ def exportieren(objekte, name=NAME):
     return pfad
 
 
-# ─────────────────────────────────────────────────────────────────────────────
-#  Sichtbarkeit wie im Spiel, Bericht
-# ─────────────────────────────────────────────────────────────────────────────
-
-def sichtbar(o, stufe, einrichtung, decke=True, spaene=0):
-    """Was das Spiel bei dieser Stufe zeigt (für Vorschau und Prüfung): Stufe{k} genau, Einrichtung nach Kauf, Holztür nur
-    ohne Eisentür, Spaene<n> nur der gewählte, Knoten mit extras „stufe“ erst ab dieser Stufe; Kinder folgen den Eltern."""
-    while o is not None:
-        n = o.name
-        if n.startswith("Stufe") and n[5:].isdigit() and int(n[5:]) != stufe:
-            return False
-        if n.startswith("Einrichtung_") and not einrichtung:
-            return False
-        if n == "Holztuer" and einrichtung:
-            return False
-        if n.startswith("Decke_") and not decke:
-            return False
-        if n.startswith("Spaene") and n[6:].isdigit() and int(n[6:]) != spaene:
-            return False
-        if o.type == "MESH" and o.get("stufe", 0) > stufe:
-            return False
-        o = o.parent
-    return True
-
-
-def pruefbericht(objekte, name=NAME):
-    """Dreiecke je Knoten, sichtbar je Stufe, und deckungsgleiche Flächen je Stand (Stufe, mit und ohne Einrichtung) –
-    mit allen Kindern (bewegte Teile unter den Stufen, Späne der Drechselbank). `name`: Überschrift (auch für steinmetz_innen)."""
-    alle = list(dict.fromkeys(objekte + [k for o in objekte for k in o.children_recursive]))
-    netze = [o for o in alle if o.type == "MESH"]
-    print(f"\n{name}: Dreiecke")
-    summe = 0
-    for o in netze:
-        o.data.calc_loop_triangles()
-        summe += len(o.data.loop_triangles)
-        print(f"  {o.name:34s} {len(o.data.loop_triangles):6d}")
-    print(f"  {'gesamt':34s} {summe:6d}")
-    # bs.deckungsgleich rechnet in den Koordinaten des Netzes: bewegte Teile (Ursprung im Drehpunkt) als Kopie in Weltlage
-    import bpy
-    welt = {}
-    for o in netze:
-        if o.matrix_world != Matrix.Identity(4):
-            me = o.data.copy()
-            me.transform(o.matrix_world)
-            welt[o] = bpy.data.objects.new(o.name, me)
-    funde = []
-    for stufe in (1, 2, 3):
-        for einrichtung in (False, True):
-            auswahl = [o for o in netze if sichtbar(o, stufe, einrichtung, spaene=stufe)]
-            dreiecke = sum(len(o.data.loop_triangles) for o in auswahl)
-            print(f"  sichtbar Stufe {stufe}{' mit aller Einrichtung' if einrichtung else ''}: {dreiecke} Dreiecke")
-            funde += bs.deckungsgleich([welt.get(o, o) for o in auswahl])
-    for k in welt.values():
-        me = k.data
-        bpy.data.objects.remove(k)
-        bpy.data.meshes.remove(me)
-    funde = list({(round(f[0].x, 2), round(f[0].y, 2), round(f[0].z, 2), f[1], f[2]): f for f in funde}.values())
-    if funde:
-        print(f"  WARNUNG: {len(funde)} deckungsgleiche Flächen (flimmern im Spiel), größte:")
-        for ort, a, b, flaeche in sorted(funde, key=lambda f: -f[3])[:12]:
-            print(f"    bei ({ort.x:.2f}, {ort.y:.2f}, {ort.z:.2f})  {a} / {b}  {flaeche:.3f} m²")
-    else:
-        print("  keine deckungsgleichen Flächen")
-
-
-# ─────────────────────────────────────────────────────────────────────────────
-#  Vorschau
-# ─────────────────────────────────────────────────────────────────────────────
-
-def _buehne(schnell):
-    import bpy
-    szene = bpy.context.scene
-    szene.render.engine = "CYCLES"
-    bs.cycles_geraet(szene)
-    szene.cycles.samples = 24 if schnell else 64
-    szene.cycles.use_denoising = True
-    szene.view_settings.view_transform = "Standard"
-    welt = bpy.data.worlds.new("Himmel")
-    try:
-        welt.use_nodes = True
-    except AttributeError:
-        pass
-    welt.node_tree.nodes["Background"].inputs["Color"].default_value = (0.35, 0.38, 0.45, 1)
-    welt.node_tree.nodes["Background"].inputs["Strength"].default_value = 0.3
-    szene.world = welt
-    kam = bpy.data.objects.new("Kamera", bpy.data.cameras.new("Kamera"))
-    kam.data.sensor_fit = "VERTICAL"
-    kam.data.angle_y = math.radians(SICHTFELD)
-    kam.data.clip_start = 0.05
-    szene.collection.objects.link(kam)
-    szene.camera = kam
-    # Licht für die Bilder: Tageslicht an den Fenstern, Laternen, ein schwaches Füllicht unter jeder Decke
-    for o in [o for o in szene.objects if o.get("art")]:
-        if o["art"] == "Lampe":
-            l = bpy.data.lights.new("_" + o.name, "POINT")
-            l.energy, l.color, l.shadow_soft_size = 70, (1.0, 0.72, 0.42), 0.15
-        else:
-            l = bpy.data.lights.new("_" + o.name, "AREA")
-            l.energy, l.color, l.size = 110, (0.85, 0.9, 1.0), 0.9
-        lo = bpy.data.objects.new("_" + o.name, l)
-        lo["stufe"] = o["stufe"]
-        lo.matrix_world = o.matrix_world @ Matrix.Rotation(math.radians(90), 4, "X")      # Flächenlicht leuchtet mit −Z
-        szene.collection.objects.link(lo)
-    for x, y, h, e, stufe in ((0, 0, H_WERK, 140, 1), ((LX0 + LX1) / 2, (LY0 + LY1) / 2, H_LAGER, 70, 1),
-                              (0, (SY0 + SY1) / 2, H_SAEGE, 160, 3)):
-        l = bpy.data.lights.new("_Fuell", "AREA")
-        l.energy, l.size, l.color = e, 4.0, (1.0, 0.92, 0.8)
-        lo = bpy.data.objects.new("_Fuell", l)
-        lo.location = (x, y, h - 0.4)
-        lo["stufe"] = stufe
-        szene.collection.objects.link(lo)
-    p = bs.stoff("Fenster").node_tree.nodes["Principled BSDF"]
-    p.inputs["Emission Color"].default_value = (0.8, 0.86, 0.95, 1)
-    p.inputs["Emission Strength"].default_value = 2.5
-    return szene, kam
-
-
-def _zeigen(szene, stufe, einrichtung, decke=True, spaene=0):
-    for o in szene.objects:
-        if o.type == "MESH" and not o.name.startswith("_"):
-            o.hide_render = not sichtbar(o, stufe, einrichtung, decke, spaene)
-        elif o.type == "LIGHT" and "stufe" in o:
-            o.hide_render = o["stufe"] > stufe
-
-
-def vorschau(schnell):
-    import bpy
-    szene, kam = _buehne(schnell)
-    szene.render.resolution_x, szene.render.resolution_y = 960, 540
-    szene.render.resolution_percentage = 50 if schnell else 100
-    szene.frame_set(1)
-    bilder = []
-    _zeigen(szene, 3, True, spaene=2)
-    for name in BLICKE:
-        o = bpy.data.objects[name]
-        kam.matrix_world = o.matrix_world @ Matrix.Rotation(math.radians(90), 4, "X")
-        bilder.append(bs.rendern_einzeln(f"_{NAME}-{name}", name))
-    print(bs.zusammensetzen(NAME + "-blicke", bilder, spalten=2))
-    # Grundriss von oben ohne Decke: je Stufe, dazu einer mit allen Ankern
-    kam.data.type = "ORTHO"
-    kam.data.sensor_fit = "AUTO"
-    kam.data.ortho_scale = 14.8
-    kam.matrix_world = Matrix.Translation(((WX0 + LX1) / 2, (WY0 + SY1) / 2, 30.0))
-    szene.render.resolution_x, szene.render.resolution_y = 900, 900
-    sonne = bpy.data.objects.new("_Sonne", bpy.data.lights.new("_Sonne", "SUN"))
-    sonne.data.energy = 2.5
-    sonne.rotation_euler = (math.radians(25), math.radians(-15), 0)
-    szene.collection.objects.link(sonne)
-    teile = []
-    for k in (1, 2, 3):
-        _zeigen(szene, k, False, decke=False, spaene=k)
-        teile.append(bs.rendern_einzeln(f"_{NAME}-stufe{k}", f"Stufe {k}: {STUFEN[k - 1]}"))
-    print(bs.zusammensetzen(NAME + "-stufen", teile, spalten=3))
-    marken = si._marken()
-    for o in marken:
-        o.location.z += 0.7                       # über die Wände der Sägehalle
-    _zeigen(szene, 3, True, decke=False, spaene=3)
-    szene.render.resolution_x, szene.render.resolution_y = 1200, 1200
-    print(bs.rendern_einzeln(NAME + "-grundriss", "Stufe 3 mit aller Einrichtung: Arbeitsplätze magenta, Stellplätze türkis, "
-                                                 "Werkstücke orange, Blickpunkte gelb"))
-    for o in marken:
-        bpy.data.objects.remove(o)
-
-
 def main():
     objekte = bauen()
-    vorher, nachher = bs.farben_zusammenlegen(objekte)
+    vorher, nachher = ia.farben_zusammenlegen(objekte)
     print(f"Materialien: {vorher} → {nachher}")
-    pruefbericht(objekte)
+    ia.pruefbericht(objekte, NAME)
     print("geschrieben:", exportieren(objekte))
     if "--ohne-bilder" in sys.argv:
         return
-    vorschau("--schnell" in sys.argv)
+    ia.vorschau(NAME, list(BLICKE), STUFEN, "--schnell" in sys.argv, (WX0 - WAND, WX1 + WAND, WY0 - WAND, SY1 + WAND),
+                (WX0 - WAND, WX1 + WAND, WY0 - WAND, WY1 + WAND), DACH, {"Werk", "Saege"}, lampe=70,
+                fuell=[(0, 0, H_WERK - 0.4, 140, 1), (0, 0.3, Z_LAGER + 3.0, 90, 1), (0, (SY0 + SY1) / 2, H_SAEGE - 0.4, 160, 3)])
 
 
 if __name__ == "__main__":

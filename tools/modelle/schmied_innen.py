@@ -1,25 +1,31 @@
-"""Innenraum des Schmieds: Werkraum und Lager, Stufen Gießerei, Schmiede, Goldschmiede.
+"""Innenraum des Schmieds: Werkraum und darüber das Lager unter dem Dach, Stufen Gießerei, Schmiede, Goldschmiede.
 
     blender -b --python tools/modelle/schmied_innen.py -- [--schnell] [--ohne-bilder]
     python tools/modelle/schmied_innen.py [--schnell] [--ohne-bilder]
 
 Schreibt game/assets/modelle/schmied_innen.glb und Bilder nach docs/modelle/ (schmied_innen-blicke.png: das Bild
-jedes Blickpunkts, schmied_innen-stufen.png: Grundriss je Stufe, schmied_innen-grundriss.png: Grundriss mit Ankern).
+jedes Blickpunkts, schmied_innen-stufen.png: Erdgeschoss von oben je Stufe, schmied_innen-grundriss.png: Erdgeschoss
+und Dachboden mit Ankern).
 
 Koordinaten (Blender: Z oben; im Spiel Y oben, Blender −Y = Spiel +Z): Ursprung in der Mitte des Werkraums auf dem
-Boden. Werkraum innen x −4,5 … 4,5, y −3,25 … 3,25, 3,6 m hoch; Lager rechts daneben x 5,0 … 10,0, y −1,75 … 3,25,
-3,2 m hoch; dazwischen eine 0,5 m dicke Wand mit Tür. Beide Räume sind rundum geschlossen (Wände mit Außenseite,
-Decke mit Abdeckung), die Kamera steht im Raum.
+Boden. Werkraum innen x −4,5 … 4,5, y −3,25 … 3,25, 3,6 m hoch, Wände 0,5 m: gekalkter Putz, an den Ecken und unten
+bricht der Bruchstein durch, über dem Rauchfang Ruß; Boden in Stufe 1 und 2 gestampfter Lehm, in Stufe 3
+Backsteinpflaster im Fischgrätmuster; Balkendecke. Das Lager liegt darüber unter dem Dach (Boden in 3,65 m, gleiche
+Grundfläche, First entlang x, Kniestock 1,3 m, 50°): Dielen, Sparren mit Schalung, Kehlbalken, Ladeluke mit
+Kranbalken im rechten Giebel. Eine steile Treppe an der rechten Wand führt durch ein Loch in der Decke hinauf. Beide
+Räume sind rundum geschlossen, die Kamera steht im Raum (Bausteine dafür in innenausbau.py).
 
 Knoten im GLB (alle unter „Raum_Werk“ bzw. „Raum_Lager“; beide Raumknoten liegen im Ursprung, die Lage der Kinder ist
 also zugleich die Lage im Modell):
     Raum_Werk, Raum_Lager       Wände, Boden, Fenster und die Grundausstattung, in jeder Stufe gleich
-    Decke_Werk, Decke_Lager     Decke mit Balken (eigene Knoten, damit ein Bild von oben sie ausblenden kann)
+    Decke_Werk, Decke_Lager     Balkendecke des Werkraums mit Treppenloch, Dach des Lagers (eigene Knoten, damit ein
+                                Bild von oben sie ausblenden kann)
     Stufe1–Stufe3               Ausstattung je Stufe, kumulativ wie außen: genau einer sichtbar, jeder enthält alles,
                                 was die Stufe hat (Stufe1 Gießerei: Gussformen; Stufe2 dazu zweite Esse und Schleifbock;
                                 Stufe3 dazu Feinwerktisch mit Waage)
     Bedienung_…                 anklickbare Gegenstände (je ein Knoten, das Spiel baut die Klickfläche aus dem Umriss)
-    Tuer_<von>_<nach>           Tür in einen anderen Raum (anklickbar)
+    Tuer_<von>_<nach>           Tür in einen anderen Raum (anklickbar): Tuer_Werk_Lager ist die Treppe hinauf,
+                                Tuer_Lager_Werk die Bodenluke mit Klappe und Geländer; extras „schild“: Text fürs Spiel
     Einrichtung_…               gekaufte Einrichtung, standardmäßig aus; Holztuer wird ausgeblendet, sobald
                                 Einrichtung_Eisentuer gekauft ist
     Blick_<Raum>_<n>            Blickpunkte der Kamera (leere Knoten, Kamera blickt mit −Z, oben +Y): 0 Mitte,
@@ -28,10 +34,13 @@ also zugleich die Lage im Modell):
                                 extras „stufe“: ab welcher Stufe es den Platz gibt
     Lager_<n>                   Stellplätze für Warenstapel auf dem Boden des Lagers
     Werkstueck_<n>              Stück in Arbeit (nimmt die Farbe der Ware an); extras „stufe“
-    Licht_<n>                   Lichtquellen: extras „art“ = „Glut“ (Esse) oder „Fenster“ (Tageslicht, −Z in den Raum),
-                                „stufe“ ab welcher Stufe
-Materialien: „Farben“ (Eckenfarben, bausteine.farben_zusammenlegen; die Materialart für den Holzschnitt je Fläche als UV.y,
-bausteine.arten_setzen), dazu „Glut“ (Esse, leuchtet), „Fenster“ (Scheiben),
+    Licht_<n>                   Lichtquellen: extras „art“ = „Glut“ (Esse) oder „Fenster“ (Tageslicht, −Z in den Raum,
+                                auch an der Ladeluke), „stufe“ ab welcher Stufe
+    Kranbalken, Himmel_Lager    unter Raum_Lager: Kranbalken mit Rolle und Seil durch die Ladeluke, dahinter eine Fläche
+                                „Fenster“ als Himmel
+Materialien: „Farben“ (Eckenfarben, innenausbau.farben_zusammenlegen mit dem Rußverlauf; die Materialart für den
+Holzschnitt je Fläche als UV.y, bausteine.arten_setzen – „keine“, wo das Modell Steine, Ziegel oder Bretter schon
+zeichnet), dazu „Glut“ (Esse, leuchtet), „Fenster“ (Scheiben, Himmel hinter der Ladeluke),
 „Hausfarbe“ (Tore und Türen), „Eisen“, „Wasser“, „Gold“.
 """
 
@@ -43,6 +52,7 @@ import sys
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import bausteine as bs  # noqa: E402
 from bausteine import Matrix, Vector  # noqa: E402
+import innenausbau as ia  # noqa: E402  (Böden, Putz, Ruß, Decke, Treppe, Dachboden, Prüfbericht, Vorschau)
 import schmied  # noqa: E402  (Kohlehaufen wie außen)
 
 NAME = "schmied_innen"
@@ -50,19 +60,23 @@ STUFEN = ("Gießerei", "Schmiede", "Goldschmiede")
 
 bs.FARBEN.update({
     "Russ": (0.24, 0.22, 0.21),            # verrußter Lehm am Rauchfang
-    "Fuge dunkel": (0.22, 0.21, 0.20),     # Fugen im Steinboden
     "Leinen": (0.84, 0.81, 0.72),          # Buchseiten
+    "Fels Sandstein": (0.66, 0.57, 0.43),  # Schleifstein (roher Sandstein, wie beim Steinmetz)
 })
 
 # ── Maße ─────────────────────────────────────────────────────────────────────
 WX0, WX1, WY0, WY1 = -4.5, 4.5, -3.25, 3.25     # Werkraum innen
 H_WERK = 3.6
-LX0, LX1, LY0, LY1 = 5.0, 10.0, -1.75, 3.25     # Lager innen
-H_LAGER = 3.2
+Z_LAGER = H_WERK + ia.DIELE                     # Boden des Lagers unter dem Dach (gleiche Grundfläche)
 WAND = 0.5
 UEBER = 0.3                                     # Außenseite der Wände reicht so weit über die Decke (Abdeckung)
-TUER_Y, TUER_B, TUER_H = 2.45, 1.0, 2.1        # Tür zwischen Werkraum und Lager
 ESSE_X = -0.4                                   # Esse an der Rückwand
+SCHLOT = (ESSE_X - 0.45, ESSE_X + 0.45, WY1 - 0.6, WY1)   # Rauchfang der Esse: durch Decke und Dachboden (Wechsel)
+SCHLOT2 = (-3.05, -2.15, WY0, WY0 + 0.6)       # zweite Esse (ab Stufe 2): Schlot im Dachboden vorn
+TREPPE_X, TREPPE_FUSS, TREPPE_OBEN = 4.13, 3.05, 1.8    # steile Treppe an der rechten Wand, steigt nach vorn
+LUKE = (3.74, WX1, 1.76, 2.78)                  # Treppenloch in der Decke (x0, x1, y0, y1)
+LADELUKE_Y = -1.1                               # Ladeluke im rechten Giebel (Mitte), 1,2 × 1,8 m
+DACH = ia.Dachboden(WX0, WX1, WY0, WY1, Z_LAGER, 50)
 HOFTOR_Y, HOFTOR_B, HOFTOR_H = 0.75, 2.6, 2.9  # Hoftor in der linken Wand
 HOLZTUER_X = -2.95                             # Tür zum Hof in der Rückwand
 AMBOSS = Vector((ESSE_X, 1.1, 0))                # Horn nach +x, der Schmied steht zwischen Amboss und Esse
@@ -73,11 +87,11 @@ BLICKE = {
     "Blick_Werk_0": ((0.0, -3.1, 2.6), (-0.1, 1.8, 0.75)),        # Esse, Amboss, Blasebalg, Trog
     "Blick_Werk_L1": ((1.3, -2.5, 2.5), (-4.0, 0.3, 0.9)),         # Hoftor, Personalbuch
     "Blick_Werk_L2": ((2.2, 1.0, 2.6), (-3.4, -2.3, 0.8)),         # zweite Esse, Personalbuch
-    "Blick_Werk_R1": ((-1.0, -0.6, 2.6), (4.0, 1.4, 1.0)),         # Werkbank, Werkzeugwand, Tür ins Lager
+    "Blick_Werk_R1": ((-1.0, -0.6, 2.6), (4.0, 1.4, 1.0)),         # Werkbank, Werkzeugwand, Treppe ins Lager
     "Blick_Werk_R2": ((0.2, 1.2, 2.6), (3.6, -2.2, 0.7)),         # Schleifbock, Feinwerktisch
-    "Blick_Lager_0": ((7.5, -1.5, 2.75), (7.4, 2.0, 0.5)),         # Regal, Stellplätze, Tür
-    "Blick_Lager_L1": ((8.8, -1.3, 2.6), (5.4, 2.2, 0.8)),         # Tür in den Werkraum, Regal
-    "Blick_Lager_R1": ((6.2, -1.3, 2.6), (9.6, 1.6, 0.8)),         # Kisten, zusätzliche Regale
+    "Blick_Lager_0": ((-3.9, -1.4, Z_LAGER + 2.1), (3.5, -0.4, Z_LAGER + 0.7)),     # den First entlang: Ladeluke, Stapel
+    "Blick_Lager_L1": ((3.7, -2.4, Z_LAGER + 2.0), (-4.2, 0.9, Z_LAGER + 0.9)),     # zurück: Regal am Giebel, Stapel
+    "Blick_Lager_R1": ((3.0, -0.1, Z_LAGER + 2.2), (4.1, 2.3, Z_LAGER - 0.6)),      # hinunter in die Bodenluke mit der Treppe
 }
 
 
@@ -190,68 +204,21 @@ def fenster(netz, st, a, b, o, dicke=WAND):
               ohne=("+x", "-x"))
 
 
-def raum_huelle(netz, decke, st, x0, x1, y0, y1, hoehe, waende, stoff, fugen):
-    """Wände (waende = {seite: dict(oeffnungen, aussen, laibung, enden, teile)}), Decke mit Balken und Abdeckung."""
-    ecken = {"vorne": ((x0, y0), (x1, y0)), "rechts": ((x1, y0), (x1, y1)), "hinten": ((x1, y1), (x0, y1)),
-             "links": ((x0, y1), (x0, y0))}
+def steinraum(netz, decke, oben, st, x0, x1, y0, y1, hoehe, waende, luke=None, schlote=(), saat=0, frei=None):
+    """Raum im Steinhaus: Wände aus gekalktem Putz (waende = {seite: dict(oeffnungen, aussen, laibung, enden)}), an den Ecken
+    und unten bricht der Bruchstein durch (`frei` = {seite: [(u0, u1)]}: dort nicht, etwa hinter der Esse); Balkendecke mit
+    Treppenloch `luke` und den Löchern `schlote`, die Dielen darüber kommen in `oben` (ohne Raum darüber: None, dann mit
+    Abdeckung). Gibt die Höhe des Bodens darüber zurück."""
+    kanten = ia.ecken(x0, x1, y0, y1)
     netz.alle = True
-    for i, (seite, angaben) in enumerate(waende.items()):
-        for a, b, art in angaben.get("teile", [ecken[seite] + ({},)]):
-            wand(netz, st, a, b, hoehe, stoff=stoff, fugen=fugen, saat=i * 17 + int(a[0] * 7 + a[1] * 3),
-                 **{**{k: v for k, v in angaben.items() if k != "teile"}, **art})
+    for seite, angaben in waende.items():
+        wand(netz, st, *kanten[seite], hoehe, stoff="Kalkputz", **angaben)
     netz.alle = False
-    # Decke: Bretter mit Fugen, Balken quer über die kurze Seite, oben eine Abdeckung über die ganze Außenkante
-    decke.vieleck_nach([(x0, y0, hoehe), (x1, y0, hoehe), (x1, y1, hoehe), (x0, y1, hoehe)], (0, 0, -1), st["Holz"])
-    y = y0 + 0.3
-    while y < y1 - 0.1:
-        decke.vieleck_nach([(x0, y - 0.012, hoehe - 0.003), (x1, y - 0.012, hoehe - 0.003), (x1, y + 0.012, hoehe - 0.003),
-                            (x0, y + 0.012, hoehe - 0.003)], (0, 0, -1), st["Fachwerk"])
-        y += 0.3
-    anzahl = max(2, round((x1 - x0) / 1.05))
-    for k in range(anzahl):
-        x = x0 + (x1 - x0) * (k + 0.5) / anzahl
-        decke.quader((x, (y0 + y1) / 2, hoehe - 0.13), (0.18, y1 - y0, 0.26), st["Fachwerk"], ohne=("+z", "+y", "-y"))
-    d = WAND
-    decke.vieleck_nach([(x0 - d, y0 - d, hoehe + UEBER), (x1 + d, y0 - d, hoehe + UEBER), (x1 + d, y1 + d, hoehe + UEBER),
-                        (x0 - d, y1 + d, hoehe + UEBER)], (0, 0, 1), st["Holz alt"])
-
-
-def steinboden(netz, st, x0, x1, y0, y1, saat=1):
-    """Boden aus Steinplatten: dunkler Stein, Fugen in Reihen, die Stoßfugen versetzt."""
-    netz.vieleck_nach([(x0, y0, 0), (x1, y0, 0), (x1, y1, 0), (x0, y1, 0)], (0, 0, 1), st["Bruchstein dunkel"])
-    zufall = random.Random(saat)
-    fuge, z, f = st["Fuge dunkel"], 0.003, 0.016
-    reihen = []
-    y = y0
-    while y < y1 - 0.3:
-        y += zufall.uniform(0.55, 0.75)
-        reihen.append(min(y, y1))
-    for y in reihen[:-1]:
-        netz.vieleck_nach([(x0, y - f, z), (x1, y - f, z), (x1, y + f, z), (x0, y + f, z)], (0, 0, 1), fuge)
-    unten = y0
-    for y in reihen:
-        x = x0 + zufall.uniform(0.2, 0.8)
-        while x < x1 - 0.2:
-            netz.vieleck_nach([(x - f, unten + f, z), (x + f, unten + f, z), (x + f, y - f, z), (x - f, y - f, z)], (0, 0, 1), fuge)
-            x += zufall.uniform(0.7, 1.1)
-        unten = y
-
-
-def bretterboden(netz, st, x0, x1, y0, y1, saat=2):
-    """Dielenboden: Bretter entlang x, Fugen dazwischen, die Stöße versetzt."""
-    netz.vieleck_nach([(x0, y0, 0), (x1, y0, 0), (x1, y1, 0), (x0, y1, 0)], (0, 0, 1), st["Holz alt"])
-    zufall = random.Random(saat)
-    fuge, z, f = st["Fachwerk"], 0.003, 0.012
-    y = y0 + 0.26
-    unten = y0
-    while y < y1 - 0.1:
-        netz.vieleck_nach([(x0, y - f, z), (x1, y - f, z), (x1, y + f, z), (x0, y + f, z)], (0, 0, 1), fuge)
-        x = x0 + zufall.uniform(0.3, 2.0)
-        while x < x1 - 0.2:
-            netz.vieleck_nach([(x - f, unten + f, z), (x + f, unten + f, z), (x + f, y - f, z), (x - f, y - f, z)], (0, 0, 1), fuge)
-            x += zufall.uniform(1.6, 2.6)
-        unten = y
-        y += 0.26
+    for i, (seite, angaben) in enumerate(waende.items()):
+        ia.durchbruch(netz, st, *kanten[seite], hoehe, angaben.get("oeffnungen", ()), saat=saat + 17 * i,
+                      frei=(frei or {}).get(seite, ()))
+    return ia.balkendecke(decke, st, x0, x1, y0, y1, hoehe, luke=luke, schlote=schlote, oben=oben,
+                          abdeckung=None if oben is not None else WAND, saat=saat)
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -339,7 +306,7 @@ def werkstatt_werk(raum, st, teil, anker):
     trog(raum, st, Vector((0.85, 1.2, 0)), 0.6, 1.1, 0.62)
     schmied.kohlehaufen(raum, st, Vector((2.9, 2.75, 0)), 1.2, 0.8, 0.45)
     korb(raum, st, Vector((1.9, 1.6, 0)))
-    # Türstöcke: Holztür zum Hof (Rückwand), Tür ins Lager (rechte Wand)
+    # Türstock der Holztür zum Hof (Rückwand)
     tuerstock(raum, st, rahmen(HOLZTUER_X, WY1, 180), 0.95, 2.1)
 
 
@@ -550,7 +517,7 @@ def schleifbock(netz, st, mitte):
     teile = 12
     ring = [(r * math.cos(2 * math.pi * k / teile), z + r * math.sin(2 * math.pi * k / teile)) for k in range(teile)]
     dreh = Matrix.Translation(mitte) @ Matrix.Rotation(math.radians(90), 4, "Z")      # Prisma-x → Welt-y (Achse)
-    netz.prisma(ring, -0.07, 0.07, st["Sandstein"], matrix=dreh, m_enden=st["Steinstaub"])
+    netz.prisma(ring, -0.07, 0.07, st["Fels Sandstein"], matrix=dreh, m_enden=st["Steinstaub"])
     netz.stab(mitte + Vector((0, -0.28, z)), mitte + Vector((0, 0.28, z)), 0.04, 0.04, st["Eisen"])
     netz.stab(mitte + Vector((0, -0.28, z)), mitte + Vector((0, -0.28, z - 0.22)), 0.03, 0.03, st["Eisen"])   # Kurbel
     trog(netz, st, mitte + Vector((0, 0, 0)), 0.5, 0.26, 0.28, wasser=0.06)
@@ -713,9 +680,11 @@ def blick(name, auge, ziel):
 
 def bauen():
     bs.neue_szene()
+    ia.RUSS_QUELLEN.clear()
     st = bs.Stoffe()
-    werk, lager = bs.Netz("Raum_Werk"), bs.Netz("Raum_Lager")
+    werk, lager = bs.Netz("Raum_Werk"), bs.Netz("Raum_Lager", alle=True)
     decke_w, decke_l = bs.Netz("Decke_Werk", alle=True), bs.Netz("Decke_Lager", alle=True)
+    kran, himmel = bs.Netz("Kranbalken", alle=True), bs.Netz("Himmel_Lager")
     teile = {}
 
     def teil(name):
@@ -725,23 +694,22 @@ def bauen():
 
     anker = []
 
-    # ── Werkraum: Hülle ───────────────────────────────────────────────────────
+    # ── Werkraum: Hülle (Kalkputz mit Bruchstein an Ecken und unten, Balkendecke mit Treppenloch) ─────────────
     f_vorne = [Oe(-0.4, 1.3, 0.9, 1.2), Oe(2.0, 1.3, 0.9, 1.2)]
     f_hinten = [Oe(3.3, 1.3, 0.9, 1.2)]
     f_rechts = [Oe(-2.5, 1.2, 0.9, 1.2)]
     holztuer = Oe(HOLZTUER_X, 0.0, 0.95, 2.1)
-    lagertuer = Oe(TUER_Y, 0.0, TUER_B, TUER_H)
     hof = Oe(HOFTOR_Y, 0.0, HOFTOR_B, HOFTOR_H)
-    raum_huelle(werk, decke_w, st, WX0, WX1, WY0, WY1, H_WERK, {
+    steinraum(werk, decke_w, lager, st, WX0, WX1, WY0, WY1, H_WERK, {
         "vorne": dict(oeffnungen=f_vorne),
-        "rechts": dict(teile=[((WX1, WY0), (WX1, LY0), dict(oeffnungen=f_rechts, enden=(True, False))),
-                              ((WX1, LY0), (WX1, WY1), dict(oeffnungen=[lagertuer], aussen=False))]),
-        "hinten": dict(oeffnungen=f_hinten + [holztuer], enden=(False, True)),
+        "rechts": dict(oeffnungen=f_rechts),
+        "hinten": dict(oeffnungen=f_hinten + [holztuer]),
         "links": dict(oeffnungen=[hof]),
-    }, "Bruchstein", True)
-    for a, b, liste in (((WX0, WY0), (WX1, WY0), f_vorne), ((WX1, WY0), (WX1, LY0), f_rechts), ((WX1, WY1), (WX0, WY1), f_hinten)):
+    }, luke=LUKE, schlote=[SCHLOT], saat=5, frei={"hinten": [(WX1 - ESSE_X - 1.0, WX1 - ESSE_X + 0.9)]})
+    kanten = ia.ecken(WX0, WX1, WY0, WY1)
+    for seite, liste in (("vorne", f_vorne), ("rechts", f_rechts), ("hinten", f_hinten)):
         for o in liste:
-            fenster(werk, st, a, b, o)
+            fenster(werk, st, *kanten[seite], o)
     for i, o in enumerate(f_hinten + f_rechts + f_vorne):
         if o in f_hinten:
             punkt, richtung = (o.s, WY1 - 0.1, o.v + o.h / 2), (0, -1, 0)
@@ -750,7 +718,7 @@ def bauen():
         else:
             punkt, richtung = (o.s, WY0 + 0.1, o.v + o.h / 2), (0, 1, 0)
         anker.append(licht(f"Licht_{i + 3}", punkt, richtung, "Fenster"))
-    steinboden(werk, st, WX0, WX1, WY0, WY1)
+    ia.russ(werk, st, *kanten["hinten"], WX1 - ESSE_X, 0.9, 1.85, H_WERK, f_hinten + [holztuer])     # Ruß über dem Rauchfang
     werkstatt_werk(werk, st, teil, anker)
 
     # ── Werkraum: Bedienung und Einrichtung ──────────────────────────────────
@@ -765,26 +733,32 @@ def bauen():
     M_holz = rahmen(HOLZTUER_X, WY1, 180)
     bretttuer(teil("Holztuer"), st, M_holz, holztuer.b, holztuer.h)
     eisentuer(teil("Einrichtung_Eisentuer"), st, M_holz, holztuer.b, holztuer.h)
-    M_tw = rahmen(WX1, TUER_Y, 90)
-    bretttuer(teil("Tuer_Werk_Lager"), st, M_tw, TUER_B, TUER_H, stoff="Holz alt")
-    tuerstock(teil("Tuer_Werk_Lager"), st, M_tw, TUER_B, TUER_H)
-    M_tl = rahmen(LX0, TUER_Y, -90)
-    bretttuer(teil("Tuer_Lager_Werk"), st, M_tl, TUER_B, TUER_H, stoff="Holz alt")      # Rahmen: Fachwerk der Lagerwand
+    ia.treppe(teil("Tuer_Werk_Lager"), st, TREPPE_X, TREPPE_FUSS, TREPPE_OBEN, Z_LAGER)       # Treppe hinauf ins Lager
     grosser_blasebalg(teil("Einrichtung_Blasebalg"), st, rahmen(ESSE_X, WY1, 180))
     loeschfass(teil("Einrichtung_Loeschfass"), st, Vector((-1.88, 2.88, 0)))
     schuerzen(teil("Einrichtung_Schuerzen"), st)
 
-    # ── Stufen (kumulativ) ───────────────────────────────────────────────────
+    # ── Stufen (kumulativ): Boden, Ausstattung, Schlot der zweiten Esse im Dachboden ─────────────────────────
     M_fein = rahmen(WX1, -2.5, 90)
     SCHLEIF = Vector((1.7, -2.2, 0))
     stufen = [bs.Netz(f"Stufe{k}") for k in (1, 2, 3)]
+    ziegel = 0
     for k, netz in enumerate(stufen, 1):
+        if k < 3:
+            ia.lehmboden(netz, st, WX0, WX1, WY0, WY1, saat=7)
+        else:
+            ziegel = ia.fischgraet(netz, st, WX0, WX1, WY0, WY1, saat=7)
         gussformen(netz, st)
         if k >= 2:
             esse2(netz, st)
             schleifbock(netz, st, SCHLEIF)
+            ia.russ(netz, st, *kanten["vorne"], -2.6 - WX0, 0.75, 1.85, H_WERK, f_vorne)
+            netz.alle = True
+            schlot(netz, st, SCHLOT2, vorn=True)
+            netz.alle = False
         if k >= 3:
             feinwerktisch(netz, st, M_fein)
+    print(f"Backsteinpflaster: {ziegel} Ziegel")
     anker.append(arbeit("Arbeit_3_Schleifen", SCHLEIF + Vector((-0.6, 0.0, 0)), (1, 0), 2))
     anker.append(arbeit("Arbeit_4_Feinarbeit", M_fein @ Vector((0, 0.95, 0)), (1, 0), 3))
     w3 = bs.anker("Werkstueck_3", SCHLEIF + Vector((0.48, 0.0, 0.445)))
@@ -793,30 +767,33 @@ def bauen():
     w4["stufe"] = 3
     anker += [w3, w4, licht("Licht_2", rahmen(-2.6, WY0, 0) @ Vector((0, 0.45, 1.0)), (0, 0, 1), "Glut", stufe=2)]
 
-    # ── Lager ─────────────────────────────────────────────────────────────────
-    lf_hinten = [Oe(9.35, 1.7, 0.7, 0.9)]
-    lf_vorne = [Oe(7.5, 1.4, 0.9, 1.1)]
-    raum_huelle(lager, decke_l, st, LX0, LX1, LY0, LY1, H_LAGER, {
-        "vorne": dict(oeffnungen=lf_vorne),
-        "rechts": dict(),
-        "hinten": dict(oeffnungen=lf_hinten),
-        "links": dict(oeffnungen=[Oe(TUER_Y, 0.0, TUER_B, TUER_H)], aussen=False, laibung=False),
-    }, "Putz", False)
-    fenster(lager, st, (LX1, LY1), (LX0, LY1), lf_hinten[0])
-    fenster(lager, st, (LX0, LY0), (LX1, LY0), lf_vorne[0])
-    lager_fachwerk(lager, st, lf_hinten, lf_vorne)
-    bretterboden(lager, st, LX0, LX1, LY0, LY1)
+    # ── Lager unter dem Dach ─────────────────────────────────────────────────
+    z = Z_LAGER
+    DACH.kniestoecke(lager, st, "Kalkputz")
+    luke = Oe(LADELUKE_Y, 0.0, 1.2, 1.8)                      # Höhen über dem Dachboden
+    gfenster = Oe(0.0, 2.55, 0.6, 0.6)
+    DACH.giebel(lager, st, False, [gfenster], "Kalkputz", WAND)
+    DACH.giebel(lager, st, True, [luke], "Kalkputz", WAND)
+    for i, (seite, oeff) in enumerate((("vorne", []), ("hinten", []), ("links", [gfenster]), ("rechts", [luke]))):
+        ia.durchbruch(lager, st, *kanten[seite], DACH.kniestock, oeff, saat=40 + 7 * i, boden=z, ecke_hoch=(0.8, 1.25),
+                      frei=[(0.0, 0.9), (WX1 - SCHLOT[1] - 0.2, WX1 - SCHLOT[0] + 0.2)] if seite == "hinten" else
+                      [(LUKE[2] - WY0 - 0.15, LUKE[3] - WY0 + 0.15)] if seite == "rechts" else ())        # nicht über der Bodenluke
+    DACH.dach(decke_l, st, aussparen=[SCHLOT[:2], SCHLOT2[:2]])
+    licht_luke = DACH.ladeluke(lager, kran, himmel, st, LADELUKE_Y, luke.b, luke.h, WAND)
+    fenster(lager, st, *kanten["links"], Oe(gfenster.s, z + gfenster.v, gfenster.b, gfenster.h))
+    schlot(lager, st, SCHLOT, vorn=False)
+    ia.bodenluke(teil("Tuer_Lager_Werk"), st, LUKE, z, gelaender_x=LUKE[0] - 0.05)
     n_licht = len([a for a in anker if a.name.startswith("Licht_")])
-    anker.append(licht(f"Licht_{n_licht + 1}", (lf_hinten[0].s, LY1 - 0.1, 2.15), (0, -1, 0), "Fenster"))
-    anker.append(licht(f"Licht_{n_licht + 2}", (lf_vorne[0].s, LY0 + 0.1, 1.95), (0, 1, 0), "Fenster"))
-    regal(teil("Bedienung_Lager_Regal"), st, rahmen(7.2, LY1, 180), saat=4)
-    kisten(teil("Bedienung_Lager_Kisten"), st, Vector((9.4, 2.65, 0)))
-    for k, y in enumerate((-0.55, 0.85)):
-        regal(teil("Einrichtung_Regale"), st, rahmen(LX1, y, 90), breite=1.3, hoehe=2.0, boeden=4, saat=10 + k)
+    anker.append(licht(f"Licht_{n_licht + 1}", licht_luke, (-1, 0, 0), "Fenster"))
+    anker.append(licht(f"Licht_{n_licht + 2}", (WX0 + 0.1, gfenster.s, z + gfenster.v + gfenster.h / 2), (1, 0, 0), "Fenster"))
+    regal(teil("Bedienung_Lager_Regal"), st, rahmen(WX0, 0.0, -90, z), saat=4)              # am linken Giebel
+    kisten(teil("Bedienung_Lager_Kisten"), st, Vector((3.4, -2.0, z)))                       # vorn bei der Ladeluke
+    for k, (x, b) in enumerate(((-3.78, 1.25), (-1.35, 1.4))):                              # niedrig unter der Dachschräge
+        regal(teil("Einrichtung_Regale"), st, rahmen(x, WY0, 0, z), breite=b, hoehe=1.1, tiefe=0.4, boeden=3, saat=10 + k)
     nummer = 1
-    for y in (1.6, 0.45):
-        for x in (6.1, 7.05, 8.0, 8.95):
-            anker.append(bs.anker(f"Lager_{nummer}", (x, y, 0.0)))
+    for y in (1.5, 0.55):
+        for x in (-1.6, -0.6, 0.4, 1.4):
+            anker.append(bs.anker(f"Lager_{nummer}", (x, y, z)))
             nummer += 1
 
     # ── Blickpunkte ──────────────────────────────────────────────────────────
@@ -824,15 +801,19 @@ def bauen():
 
     # ── Objekte, Zustände, Hierarchie ─────────────────────────────────────────
     raum_w, raum_l = werk.objekt(), lager.objekt()
-    kinder = {raum_w: [decke_w.objekt()] + [s.objekt() for s in stufen], raum_l: [decke_l.objekt()]}
+    kinder = {raum_w: [decke_w.objekt()] + [s.objekt() for s in stufen],
+              raum_l: [decke_l.objekt(), kran.objekt(), himmel.objekt()]}
     for name, netz in teile.items():
         o = netz.objekt()
         im_lager = name in ("Bedienung_Lager_Regal", "Bedienung_Lager_Kisten", "Einrichtung_Regale", "Tuer_Lager_Werk")
         kinder[raum_l if im_lager else raum_w].append(o)
         if name.startswith("Einrichtung_"):
             bs.zustand(o)
+    teile_obj = {o.name: o for liste in kinder.values() for o in liste}
+    teile_obj["Tuer_Werk_Lager"]["schild"] = "Treppe zum Lager"
+    teile_obj["Tuer_Lager_Werk"]["schild"] = "Treppe hinunter zum Werkraum"
     for a in anker:
-        im_lager = a.name.startswith(("Lager_", "Blick_Lager")) or (a.name.startswith("Licht_") and a.location.x > LX0)
+        im_lager = a.name.startswith(("Lager_", "Blick_Lager")) or (a.name.startswith("Licht_") and a.location.z > Z_LAGER - 0.2)
         kinder[raum_l if im_lager else raum_w].append(a)
     for eltern, liste in kinder.items():
         for o in liste:
@@ -843,6 +824,17 @@ def bauen():
             elif o.name in ("Stufe2", "Stufe3"):
                 bs.zustand(o)
     return [raum_w, raum_l] + [o for liste in kinder.values() for o in liste]
+
+
+def schlot(netz, st, r, vorn):
+    """Verputzter Schlot im Dachboden über einem Rauchfang (r = x0, x1, y0, y1 an der Wand vorn oder hinten): vom Boden
+    durch die Dachschräge."""
+    x0, x1, y0, y1 = r
+    z0, z1 = H_WERK, Z_LAGER + 2.4
+    seite = y1 if vorn else y0                                  # Seite zum Raum
+    netz.vieleck_nach([(x0, seite, z0), (x1, seite, z0), (x1, seite, z1), (x0, seite, z1)], (0, 1 if vorn else -1, 0), st["Schlot"])
+    for x, n in ((x0, -1), (x1, 1)):
+        netz.vieleck_nach([(x, y0, z0), (x, y1, z0), (x, y1, z1), (x, y0, z1)], (n, 0, 0), st["Schlot"])
 
 
 def eisentuer(netz, st, M, b, h):
@@ -879,166 +871,17 @@ def loeschfass(netz, st, fuss):
     netz.stab(eimer + Vector((-0.13, 0, 0.26)), eimer + Vector((0.13, 0, 0.26)), 0.015, 0.015, st["Eisen"])
 
 
-def lager_fachwerk(netz, st, lf_hinten, lf_vorne):
-    """Fachwerk auf der Innenseite der Lagerwände (Ständer, Riegel, Streben vor dem Putz)."""
-    cx, cy = (LX0 + LX1) / 2, (LY0 + LY1) / 2
-    for punkt, seite, laenge, oeff in (
-            ((cx, LY1, 0), "vorne", LX1 - LX0, [bs.Oeffnung("fenster", o.s - cx, o.v - 0.02, o.b + 0.04, o.h + 0.04) for o in lf_hinten]),
-            ((cx, LY0, 0), "hinten", LX1 - LX0, [bs.Oeffnung("fenster", cx - o.s, o.v - 0.02, o.b + 0.04, o.h + 0.04) for o in lf_vorne]),
-            ((LX1, cy, 0), "links", LY1 - LY0, []),
-            ((LX0, cy, 0), "rechts", LY1 - LY0, [bs.Oeffnung("tuer", TUER_Y - cy, 0.0, TUER_B + 0.04, TUER_H)])):
-        bs.fachwerk(netz, bs.wandmatrix(punkt, seite), laenge, H_LAGER, oeff, st, eckstreben=True)
-
-
-# ─────────────────────────────────────────────────────────────────────────────
-#  Vorschau
-# ─────────────────────────────────────────────────────────────────────────────
-
-def _buehne(schnell):
-    import bpy
-    szene = bpy.context.scene
-    szene.render.engine = "CYCLES"
-    bs.cycles_geraet(szene)
-    szene.cycles.samples = 24 if schnell else 64
-    szene.cycles.use_denoising = True
-    szene.view_settings.view_transform = "Standard"
-    welt = bpy.data.worlds.new("Himmel")
-    try:
-        welt.use_nodes = True
-    except AttributeError:
-        pass
-    welt.node_tree.nodes["Background"].inputs["Color"].default_value = (0.35, 0.38, 0.45, 1)
-    welt.node_tree.nodes["Background"].inputs["Strength"].default_value = 0.3
-    szene.world = welt
-    kam = bpy.data.objects.new("Kamera", bpy.data.cameras.new("Kamera"))
-    kam.data.sensor_fit = "VERTICAL"
-    kam.data.angle_y = math.radians(SICHTFELD)
-    kam.data.clip_start = 0.05
-    szene.collection.objects.link(kam)
-    szene.camera = kam
-    # Licht für die Bilder: Glut, Tageslicht an den Fenstern, ein schwaches Füllicht unter jeder Decke
-    for o in [o for o in szene.objects if o.get("art")]:
-        if o["art"] == "Glut":
-            l = bpy.data.lights.new("_" + o.name, "POINT")
-            l.energy, l.color, l.shadow_soft_size = 260, (1.0, 0.5, 0.22), 0.3
-        else:
-            l = bpy.data.lights.new("_" + o.name, "AREA")
-            l.energy, l.color, l.size = 110, (0.85, 0.9, 1.0), 0.9
-        lo = bpy.data.objects.new("_" + o.name, l)
-        lo["stufe"] = o["stufe"]
-        lo.matrix_world = o.matrix_world @ Matrix.Rotation(math.radians(90), 4, "X")      # Flächenlicht leuchtet mit −Z
-        szene.collection.objects.link(lo)
-    for x, y, h, e in ((0, 0, H_WERK, 140), ((LX0 + LX1) / 2, (LY0 + LY1) / 2, H_LAGER, 70)):
-        l = bpy.data.lights.new("_Fuell", "AREA")
-        l.energy, l.size, l.color = e, 4.0, (1.0, 0.92, 0.8)
-        lo = bpy.data.objects.new("_Fuell", l)
-        lo.location = (x, y, h - 0.4)
-        szene.collection.objects.link(lo)
-    p = bs.stoff("Fenster").node_tree.nodes["Principled BSDF"]
-    p.inputs["Emission Color"].default_value = (0.8, 0.86, 0.95, 1)
-    p.inputs["Emission Strength"].default_value = 2.5
-    return szene, kam
-
-
-def _sichtbar(szene, stufe, einrichtung, decke=True):
-    for o in szene.objects:
-        if o.type == "MESH":
-            n = o.name
-            an = True
-            if n.startswith("Stufe"):
-                an = n == f"Stufe{stufe}"
-            elif n.startswith("Einrichtung_"):
-                an = einrichtung
-            elif n == "Holztuer":
-                an = not einrichtung
-            elif n.startswith("Decke_"):
-                an = decke
-            o.hide_render = not an
-        elif o.type == "LIGHT" and "stufe" in o:
-            o.hide_render = o["stufe"] > stufe
-
-
-def vorschau(schnell):
-    import bpy
-    szene, kam = _buehne(schnell)
-    szene.render.resolution_x, szene.render.resolution_y = 960, 540
-    szene.render.resolution_percentage = 50 if schnell else 100
-    bilder = []
-    _sichtbar(szene, 3, True)
-    for name in BLICKE:
-        o = bpy.data.objects[name]
-        kam.matrix_world = o.matrix_world @ Matrix.Rotation(math.radians(90), 4, "X")
-        bilder.append(bs.rendern_einzeln(f"_{NAME}-{name}", name))
-    print(bs.zusammensetzen(NAME + "-blicke", bilder, spalten=2))
-    # Grundriss von oben ohne Decke: je Stufe, dazu einer mit allen Ankern
-    kam.data.type = "ORTHO"
-    kam.data.sensor_fit = "AUTO"
-    kam.data.ortho_scale = 15.6
-    kam.matrix_world = Matrix.Translation((2.75, 0.0, 30.0))
-    szene.render.resolution_x, szene.render.resolution_y = 1200, 760
-    sonne = bpy.data.objects.new("_Sonne", bpy.data.lights.new("_Sonne", "SUN"))
-    sonne.data.energy = 2.5
-    sonne.rotation_euler = (math.radians(25), math.radians(-15), 0)
-    szene.collection.objects.link(sonne)
-    teile = []
-    for k in (1, 2, 3):
-        _sichtbar(szene, k, False, decke=False)
-        teile.append(bs.rendern_einzeln(f"_{NAME}-stufe{k}", f"Stufe {k}: {STUFEN[k - 1]}"))
-    print(bs.zusammensetzen(NAME + "-stufen", teile, spalten=1))
-    marken = _marken()
-    _sichtbar(szene, 3, True, decke=False)
-    print(bs.rendern_einzeln(NAME + "-grundriss", "Stufe 3 mit aller Einrichtung: Arbeitsplätze magenta, Stellplätze türkis, "
-                                                 "Werkstücke orange, Blickpunkte gelb"))
-    for o in marken:
-        bpy.data.objects.remove(o)
-
-
-def _marken():
-    """Markierungen für den Grundriss: Arbeitsplätze magenta (Pfeil = Blickrichtung), Stellplätze türkis,
-    Werkstücke orange, Blickpunkte gelb (Keil = Sichtfeld waagrecht)."""
-    import bpy
-    farben = {"Arbeit": (0.95, 0.15, 0.75), "Lager": (0.1, 0.85, 0.85), "Werkstueck": (1.0, 0.55, 0.1), "Blick": (1.0, 0.9, 0.2)}
-    stoffe = {k: bs._hilfsstoff("_Marke_" + k, f) for k, f in farben.items()}
-    marken = []
-    breite = math.atan(math.tan(math.radians(SICHTFELD / 2)) * 16 / 9)
-    for o in list(bpy.context.scene.objects):
-        art = o.name.split("_")[0]
-        if o.type != "EMPTY" or art not in stoffe:
-            continue
-        netz = bs.Netz("_Marke_" + o.name)
-        t = o.matrix_world
-        p = t.translation.copy()
-        p.z = 4.0
-        m = stoffe[art]
-        if art == "Blick":
-            vor = (t.to_3x3() @ Vector((0, 1, 0)))
-            vor.z = 0
-            vor.normalize()
-            for s in (-1, 1):
-                netz.stab(p, p + Matrix.Rotation(s * breite, 3, "Z") @ vor * 1.4, 0.05, 0.05, m)
-            netz.stab(p, p + vor * 0.7, 0.09, 0.09, m)
-            netz.quader(p, (0.22, 0.22, 0.05), m)
-        elif art == "Lager":
-            netz.vieleck_nach([p + Vector((x, y, 0)) for x, y in ((-0.38, -0.38), (0.38, -0.38), (0.38, 0.38), (-0.38, 0.38))], (0, 0, 1), m)
-        elif art == "Werkstueck":
-            netz.quader(p, (0.16, 0.16, 0.05), m)
-        else:
-            vor = t.to_3x3() @ Vector((0, 1, 0))
-            quer = Vector((-vor.y, vor.x, 0))
-            netz.vieleck_nach([p - quer * 0.2 - vor * 0.15, p + vor * 0.45, p + quer * 0.2 - vor * 0.15], (0, 0, 1), m)
-        marken.append(netz.objekt())
-    return marken
-
-
 def main():
     objekte = bauen()
-    vorher, nachher = bs.farben_zusammenlegen(objekte)
+    vorher, nachher = ia.farben_zusammenlegen(objekte)
     print(f"Materialien: {vorher} → {nachher}")
-    bs.bericht(NAME, objekte)
+    ia.pruefbericht(objekte, NAME)
     print("geschrieben:", bs.exportieren(NAME, objekte))
     if "--ohne-bilder" in sys.argv:
         return
-    vorschau("--schnell" in sys.argv)
+    rand = (WX0 - WAND, WX1 + WAND, WY0 - WAND, WY1 + WAND)
+    ia.vorschau(NAME, list(BLICKE), STUFEN, "--schnell" in sys.argv, rand, rand, DACH, {"Werk"}, glut=260,
+                fuell=[(0, 0, H_WERK - 0.4, 140, 1), (0, 0.3, Z_LAGER + 3.0, 90, 1)])
 
 
 if __name__ == "__main__":
