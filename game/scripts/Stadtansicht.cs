@@ -275,46 +275,43 @@ public partial class Stadtansicht : Node3D
     public static readonly Vector3 Wegkreuz = new(76, 0, -1.3f);
 
     /// <summary>Ende der Weststraße vor dem Westtor (noch ohne Ziel – für spätere Erweiterungen).</summary>
-    /// <summary>Die Westgasse knickt hier nach Westen ab – nördlich vorbei am Weinmarkt, südlich an Dom und Kirche.</summary>
+    /// <summary>Die Westgasse knickt hier nach Westen ab – nördlich vorbei am Weinmarkt, südlich am Dom.</summary>
     private static readonly Vector3 WestgasseKnick = new(-12, 0, 6);
 
     private static readonly Vector3 Weststrasse = new(-118, 0, 6);
 
     /// <summary>
-    /// Der Stadtplan: Wo steht welcher Betrieb (Mitte des Grundstücks)? Die Namen sind dieselben wie in
-    /// der Simulation und in wirtschaft.json („liegenschaften"). Ein neuer Bauplatz braucht hier einen Eintrag.
+    /// Die Startwerkstatt des Spielers „… am Weinmarkt“: ein Platz für alle Berufe, südlich der Westgasse zwischen Dom und Ringgasse.
+    /// </summary>
+    private static readonly Vector3 Weinmarkt = new(-21, 0, 17);
+
+    /// <summary>
+    /// Der Stadtplan: Wo steht welcher Betrieb? Die Namen sind dieselben wie in der Simulation und in wirtschaft.json
+    /// („liegenschaften"). Ein neuer Bauplatz braucht hier einen Eintrag. In der Stadt ist der Punkt die Mitte des alten
+    /// 10 × 8-m-Hauses: Die Werkstatt belegt 16 × 14 m von 8 m dahinter bis 6 m davor (Vorplatz), x ± 8 m, die Tür zeigt nach Süden.
+    /// Dieselben Plätze stehen in <c>game/data/karten/greybox.json</c> (Kartenwerkzeug <c>tools/karten/greybox.py</c>, dort mit der Mitte der Fläche).
     /// </summary>
     public static readonly Dictionary<string, Vector3> Stadtplan = new()
     {
-        ["Gießerei am Weinmarkt"] = new(-20, 0, 14),
-        ["Tischlerei am Weinmarkt"] = new(-20, 0, 14), // derselbe Platz – je nach Startberuf
-        ["Gießerei Eisenbart"] = new(18, 0, 16),
-        ["Gießerei an der Südgasse"] = new(2, 0, 20),
-        ["Tischlerei Eichwald"] = new(-14, 0, 27),
-        ["Tischlerei am Holzmarkt"] = new(18, 0, -7),
-        ["Maurerei am Weinmarkt"] = new(-20, 0, 14),    // derselbe Platz – je nach Startberuf
-        ["Maurerei Kieselbach"] = new(25, 0, -29),
-        ["Maurerei an der Stadtmauer"] = new(21, 0, 29),
+        ["Gießerei am Weinmarkt"] = Weinmarkt,
+        ["Tischlerei am Weinmarkt"] = Weinmarkt, // derselbe Platz – je nach Startberuf
+        ["Gießerei Eisenbart"] = new(22, 0, 14),       // südlich der Ostgasse
+        ["Tischlerei Eichwald"] = new(22, 0, -12),     // nördlich der Ostgasse, Tür zur Ostgasse
+        ["Maurerei am Weinmarkt"] = Weinmarkt,
+        ["Maurerei Kieselbach"] = new(25, 0, -28),     // hinter der Tischlerei Eichwald an der Ringgasse
         ["Steinbruch Kieselbach"] = new(74, 0, 66),
         ["Steinbruch am Felsenhang"] = new(-6, 0, -80),
-        ["Tinkturei am Weinmarkt"] = new(-20, 0, 14),   // derselbe Platz – je nach Startberuf
-        ["Tinkturei am Domplatz"] = new(-11, 0, -31),
+        ["Tinkturei am Weinmarkt"] = Weinmarkt,
         ["Kräutergarten am Bach"] = new(106, 0, 70),
-        ["Schänke am Weinmarkt"] = new(-20, 0, 14),     // derselbe Platz – je nach Startberuf
-        ["Schänke am Fischmarkt"] = new(-27, 0, 28),
+        ["Schänke am Weinmarkt"] = Weinmarkt,
         ["Bauernhof an der Mühle"] = new(124, 0, -62),
-        ["Kirche am Weinmarkt"] = new(-20, 0, 14),      // derselbe Platz – je nach Startberuf
-        ["Schmugglerloch am Weinmarkt"] = new(-20, 0, 14), // derselbe Platz – je nach Startberuf
-        ["Wachhaus am Weinmarkt"] = new(-20, 0, 14),    // derselbe Platz – je nach Startberuf
-        ["Wachhaus an der Torstraße"] = new(29, 0, 10),
-        ["Wechselstube am Weinmarkt"] = new(-20, 0, 14), // derselbe Platz – je nach Startberuf
-        ["Wechselstube am Markt"] = new(14, 0, -18),
-        ["Siederei am Weinmarkt"] = new(-20, 0, 14),     // derselbe Platz – je nach Startberuf
-        ["Siederei an der Seifengasse"] = new(-24.5f, 0, -29),
+        ["Kirche am Weinmarkt"] = Weinmarkt,
+        ["Schmugglerloch am Weinmarkt"] = Weinmarkt,
+        ["Wachhaus am Weinmarkt"] = Weinmarkt,
+        ["Wechselstube am Weinmarkt"] = Weinmarkt,
+        ["Siederei am Weinmarkt"] = Weinmarkt,
         ["Duftgarten am Lavendelhang"] = new(124, 0, 8),
         ["Wachturm an der Landstraße"] = new(80, 0, -10),
-        ["Schmugglerloch am Osttor"] = new(29, 0, -12),
-        ["Kirche an der Westmauer"] = new(-30, 0, -4),
         ["Klosterhof am Osthang"] = new(134, 0, 80),     // südöstlich hinter dem Kräutergarten – vor keinem Berg versteckt
         ["Grube Eisenbart"] = new(102, 0, -12),
         ["Grube am Silberberg"] = new(100, 0, 32),
@@ -324,19 +321,21 @@ public partial class Stadtansicht : Node3D
     };
 
     /// <summary>
-    /// Werkstätten erreichen den Markt über eine Gasse – meist auf knapp halbem Weg zur Mitte. Wo dieser gerade Weg
-    /// durch ein Nachbarhaus führte, stehen hier eigene Knicke (der Reihe nach, vom Betrieb zum Markt).
+    /// Werkstätten erreichen den Markt über eine Gasse: vom Hof vor der Tür am Vorplatz entlang und dann zum Markt, nie durch ein Haus
+    /// (der Reihe nach, vom Betrieb zum Markt). Ohne Eintrag geht die Gasse auf knapp halbem Weg zur Mitte.
     /// </summary>
     private static readonly Dictionary<string, Vector3[]> Gassen = new()
     {
-        ["Maurerei an der Stadtmauer"] = new Vector3[] { new(11, 0, 24) },                    // zwischen Südgasse und Gießerei Eisenbart
-        ["Tinkturei am Domplatz"] = new Vector3[] { new(-11, 0, -4) },                        // zwischen Dom und Rathaus nach Süden
-        ["Schänke am Fischmarkt"] = new Vector3[] { new(-20.5f, 0, 22), new(-8, 0, 21.5f) },  // an Weinmarkt und Eichwald vorbei
-        ["Kirche an der Westmauer"] = new Vector3[] { new(-22, 0, 5), new(-12, 0, 6) },      // nördlich am Domturm vorbei
-        ["Schmugglerloch am Osttor"] = new Vector3[] { new(26, 0, -1) },                     // auf die Torstraße, an der Tischlerei am Holzmarkt vorbei
+        ["Gießerei Eisenbart"] = new Vector3[] { new(12, 0, 19.5f) },                      // nach Westen am Vorplatz entlang
+        ["Tischlerei Eichwald"] = new Vector3[] { new(12.5f, 0, -6.5f) },                  // nach Westen bis an den Markt
+        ["Maurerei Kieselbach"] = new Vector3[] { new(11, 0, -22.5f), new(11, 0, -13) },  // zwischen Rathaus und Eichwald nach Süden
     };
 
-    private static Vector3[] Gasse(string name, Vector3 p) => Gassen.GetValueOrDefault(name) ?? new[] { new Vector3(p.X * 0.45f, 0, p.Z * 0.45f) };
+    /// <summary>Die Gasse vom Weinmarkt (für jeden Startberuf derselbe Platz): nach Osten am Vorplatz entlang, dann zum Markt.</summary>
+    private static readonly Vector3[] WeinmarktGasse = { new(-10.5f, 0, 22.5f) };
+
+    private static Vector3[] Gasse(string name, Vector3 p) =>
+        Gassen.GetValueOrDefault(name) ?? (p == Weinmarkt ? WeinmarktGasse : new[] { new Vector3(p.X * 0.45f, 0, p.Z * 0.45f) });
 
     /// <summary>Weg vom Betrieb über die Gasse(n) zum Markt ziehen.</summary>
     private void GasseZiehen(Vector3 p, Vector3[] gasse, Node3D? eltern = null)
@@ -379,18 +378,6 @@ public partial class Stadtansicht : Node3D
         ? new[] { hof, abzweig, Westtor, new Vector3(-38, 0, 6), WestgasseKnick, Marktplatz }
         : new[] { hof, abzweig, Wegkreuz, Osttor, Marktplatz };
 
-    /// <summary>Höhe der Beschriftung über einem freien Platz, wo die übliche (6 m) eine Nachbarbeschriftung verdeckte.</summary>
-    private static readonly Dictionary<string, float> SchildHoehe = new()
-    {
-        ["Wachhaus an der Torstraße"] = 9, // sonst über „Gießerei Eisenbart“
-        ["Wechselstube am Markt"] = 8,     // sonst über „Tischlerei am Holzmarkt“
-    };
-
-    /// <summary>Höhe der Beschriftung über einem gebauten Werkstattplatz, wo die übliche (13 m) eine Nachbarbeschriftung verdeckte.</summary>
-    private static readonly Dictionary<string, float> GebaeudeSchildHoehe = new()
-    {
-        ["Wechselstube am Markt"] = 7,  // sonst über „Schmugglerloch am Osttor“ oder „Rathaus“
-    };
 
     /// <summary>Freie Bauplätze und Gruben, die noch niemandem gehören: Name → ihre Darstellung.</summary>
     private readonly Dictionary<string, Node3D> _freiePlaetze = new();
@@ -475,8 +462,6 @@ public partial class Stadtansicht : Node3D
     /// Die vier Kulissenhäuser (<see cref="KulissePlaetze"/>, Tür zur nächsten Gasse) als Modell <c>einwohner_buergerhaus</c> – Variante und
     /// gedeckte Hausfarbe nach der Reihenfolge wie bei den Einwohnerhäusern (<see cref="Hausfarben"/>). Die Einwohner, die dort wohnen,
     /// gehen weiter zur Haustür im Gassennetz (Wohnviertel.cs); einen Anker braucht es nicht.
-    /// Frei bleiben: (−11|−29) Tinkturei am Domplatz, (−24,5|−29) Siederei, (19|−29) und (28|−29) Maurerei Kieselbach, (−29|29) Schänke am Fischmarkt,
-    /// (29|29) Maurerei an der Stadtmauer, (−29|±6) Kirche an der Westmauer, (29|−12) Schmugglerloch, (29|10) Wachhaus, (14|−18) Wechselstube.
     /// </summary>
     private void Wohnhaeuser()
     {
@@ -485,9 +470,8 @@ public partial class Stadtansicht : Node3D
         {
             var gruppe = new Node3D { Name = $"Kulissenhaus_{i}", Position = platz.Mitte, Rotation = new Vector3(0, Mathf.Atan2(platz.Vorne.X, platz.Vorne.Z), 0) };
             AddChild(gruppe);
-            // Die Hauswand steht 3 m von der Mitte entfernt zur Gasse hin (wie die Wand des alten Quaders). Das Haus bei (−29|18) rückt 1,5 m
-            // nach hinten: Sonst stößt es an die Halle der Werkstatt am Weinmarkt (16 × 14 m).
-            var wand = platz.Vorne == Vector3.Right ? 1.5f : 3f;
+            // Die Hauswand steht 3 m von der Mitte entfernt zur Gasse hin (wie die Wand des alten Quaders), das Modell also mitten auf dem Platz.
+            const float wand = 3f;
             ModellEinsetzen(EinwohnerDatei(Reichsgilde.Core.Buerger.Hausart.Buergerhaus), gruppe, new Vector3(0, 0, wand - EinwohnerFront(Reichsgilde.Core.Buerger.Hausart.Buergerhaus)),
                 new ModellZustand(Variante: i % 3 + 1, Besitzer: Hausfarben[i % Hausfarben.Length]));
             i++;
@@ -690,21 +674,21 @@ public partial class Stadtansicht : Node3D
             _freiePlaetze[frei.Name] = gruppe;
             return;
         }
-        // Zaun um das Grundstück (10 × 8 m) und ein Haufen Bauholz
+        // Zaun um das Grundstück (16 × 14 m: 8 m hinter p bis 6 m davor, wie die Fläche des Werkstattmodells) und ein Haufen Bauholz
         var holz = Material(Holz);
         foreach (var (mitte, groesse) in new[]
         {
-            (new Vector3(0, 0.5f, -4), new Vector3(10, 1, 0.15f)), (new Vector3(0, 0.5f, 4), new Vector3(10, 1, 0.15f)),
-            (new Vector3(-5, 0.5f, 0), new Vector3(0.15f, 1, 8)), (new Vector3(5, 0.5f, 0), new Vector3(0.15f, 1, 8)),
+            (new Vector3(0, 0.5f, -8), new Vector3(16, 1, 0.15f)), (new Vector3(0, 0.5f, 6), new Vector3(16, 1, 0.15f)),
+            (new Vector3(-8, 0.5f, -1), new Vector3(0.15f, 1, 14)), (new Vector3(8, 0.5f, -1), new Vector3(0.15f, 1, 14)),
         })
             Quader(p + mitte, groesse, holz, gruppe);
         Quader(p + new Vector3(-2, 0.3f, 1), new Vector3(3, 0.6f, 1.2f), holz, gruppe);
         GasseZiehen(p, Gasse(frei.Name, p), gruppe);
 
-        Verkaufsschild(p + new Vector3(-4, 0, 4.6f), frei.IstPacht, gruppe);
-        Klickflaeche(LiegenschaftKennung(frei.Name), p + new Vector3(0, 2, 0), new Vector3(10, 4, 8), gruppe);
+        Verkaufsschild(p + new Vector3(-6, 0, 6.6f), frei.IstPacht, gruppe);
+        Klickflaeche(LiegenschaftKennung(frei.Name), p + new Vector3(0, 2, -1), new Vector3(16, 4, 14), gruppe);
         Beschriftung($"{frei.Name}\n{(frei.IstPacht ? "zu verpachten" : "zu verkaufen")}",
-            p + new Vector3(0, SchildHoehe.GetValueOrDefault(frei.Name, 6), 0), 36, gruppe, LiegenschaftKennung(frei.Name));
+            p + new Vector3(0, 6, 0), 36, gruppe, LiegenschaftKennung(frei.Name));
         _freiePlaetze[frei.Name] = gruppe;
     }
 
@@ -758,7 +742,7 @@ public partial class Stadtansicht : Node3D
         var kennung = LiegenschaftKennung(frei.Name);
         Klickflaeche(kennung, p + new Vector3(0, 5, 0), new Vector3(14, 10, 14)); // das Gebäude des Modells mit dem Schild vor der Tür
         Beschriftung($"{frei.Name}\n{(frei.IstPacht ? "zu verpachten" : "zu verkaufen")}",
-            p + new Vector3(0, GebaeudeSchildHoehe.GetValueOrDefault(frei.Name, 13), 0), 36, kennung: kennung);
+            p + new Vector3(0, 13, 0), 36, kennung: kennung);
         var gruppe = InGruppe("Leer_" + frei.Name.Replace(" ", "_"), vorher);
         UmMitteDrehen(gruppe, p, drehung); // eine neu gebaute, gedrehte Werkstatt
         _freiePlaetze[frei.Name] = gruppe;
@@ -788,7 +772,7 @@ public partial class Stadtansicht : Node3D
 
         // Klickfläche: das Gebäude des Modells (Halle und Anbauten), nicht der Hof ringsum
         Klickflaeche(BetriebsKennung(betrieb), p + WerkstattModellVersatz + new Vector3(0, 5, 0), new Vector3(14, 10, 12));
-        var schild = Beschriftung(betrieb.Name, p + new Vector3(0, GebaeudeSchildHoehe.GetValueOrDefault(betrieb.Name, 13), 0), 44, kennung: BetriebsKennung(betrieb));
+        var schild = Beschriftung(betrieb.Name, p + new Vector3(0, 13, 0), 44, kennung: BetriebsKennung(betrieb));
 
         // Weg zur nächsten Gasse und dann zum Markt (eine neu gebaute Werkstatt: über das Gassennetz, gezeichnet von BetriebHinzufuegen)
         var hof = neuerPlatz?.Hof ?? p + new Vector3(0, 0, 5.5f);

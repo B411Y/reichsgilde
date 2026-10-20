@@ -26,8 +26,8 @@ public partial class Stadtansicht
     /// <summary>Stichwege vom Ring nach innen, wo zwischen den Bauplätzen Platz ist (vom Ring zur nächsten Gasse).</summary>
     private static readonly Vector3[][] RingAnschluesse =
     {
-        new Vector3[] { new(12, 0, Ringgasse), new(11, 0, 24) },       // Süden: zur Gasse der Maurerei an der Stadtmauer
-        new Vector3[] { new(-21, 0, Ringgasse), new(-20.5f, 0, 22) },  // Süden: zur Gasse der Schänke am Fischmarkt
+        new Vector3[] { new(12, 0, Ringgasse), new(12, 0, 19.5f) },      // Süden: zur Gasse der Gießerei Eisenbart (ihr Knick)
+        new Vector3[] { new(-21, 0, Ringgasse), new(-21, 0, 22.5f) },    // Süden: zum Hof am Weinmarkt
     };
 
     /// <summary>Wo das Gassennetz an Rathaus und Dom beginnt: vor dem Rundbogen der Markthalle, in dem der Anker des Modells liegt (x −1,8), und am Fuß der Stufen vor dem Domportal.</summary>
@@ -301,7 +301,7 @@ public partial class Stadtansicht
         new Hausplatz(new Vector3(10, 0, -29), Vector3.Back, true),
         new Hausplatz(new Vector3(-4, 0, 29), Vector3.Back, true),
         new Hausplatz(new Vector3(5, 0, 29), Vector3.Back, true),
-        new Hausplatz(new Vector3(-29, 0, 18), Vector3.Right, true),
+        new Hausplatz(new Vector3(-13, 0, 29), Vector3.Back, true), // in der Reihe mit den beiden davor, südöstlich vom Weinmarkt
     };
     private static List<Hausplatz> KulissePlaetze() => _kulissePlaetze;
 

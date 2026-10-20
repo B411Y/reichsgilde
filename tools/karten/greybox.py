@@ -16,11 +16,11 @@ und Darstellung ohne Umrechnung arbeiten. Quellen im Spielcode:
   • Mauer, Tore, Türme, Marktpflaster:  Stadtansicht.cs (Stadtmauer, _Ready)
   • Ringgasse, Ringplätze, Vorstadt:    Stadtansicht.Wohnviertel.cs
   • Doppelplätze der Spielhäuser:       Stadtansicht.Spielhaeuser.cs (SpielhausPlaetze)
-Ändert sich dort etwas, muss dieses Skript nachziehen (die Zahlen unten tragen den Stand vom 17.10.2026).
+Ändert sich dort etwas, muss dieses Skript nachziehen (die Zahlen unten tragen den Stand vom 20.10.2026).
 
-Die Greybox ist voll: Innerhalb der Mauer bleibt nur eine Lücke für ein Wohnhaus frei (Kern), große freie Flächen an
-einer Straße gibt es nur vor dem Westtor und an der Straße zum Steinbruch am Felsenhang. Die Bauzonen liegen deshalb dort
-(siehe „Bauzonen“).
+Werkstätten in der Stadt gibt es seit 20.10.2026 nur noch vier (Startwerkstatt am Weinmarkt und die drei Rivalen), jede auf
+16 × 14 m wie ihr Modell; die Werkstätten zum Kauf sind gestrichen, ihre Plätze leer. Innerhalb der Mauer liegt nur die Kernzone
+K1 (ein Wohnhaus), die übrigen Bauzonen vor dem Westtor und an der Straße zum Steinbruch am Felsenhang (siehe „Bauzonen“).
 """
 import math
 import os
@@ -50,27 +50,25 @@ MARKTPFLASTER = 24.0
 
 # Stadtansicht.Stadtplan: Mitte des Grundstücks je Liegenschaft (Name wie in wirtschaft.json)
 STADTPLAN = {
-    "Gießerei am Weinmarkt": (-20, 14), "Tischlerei am Weinmarkt": (-20, 14), "Gießerei Eisenbart": (18, 16),
-    "Gießerei an der Südgasse": (2, 20), "Tischlerei Eichwald": (-14, 27), "Tischlerei am Holzmarkt": (18, -7),
-    "Maurerei am Weinmarkt": (-20, 14), "Maurerei Kieselbach": (25, -29), "Maurerei an der Stadtmauer": (21, 29),
-    "Steinbruch Kieselbach": (74, 66), "Steinbruch am Felsenhang": (-6, -80), "Tinkturei am Weinmarkt": (-20, 14),
-    "Tinkturei am Domplatz": (-11, -31), "Kräutergarten am Bach": (106, 70), "Schänke am Weinmarkt": (-20, 14),
-    "Schänke am Fischmarkt": (-27, 28), "Bauernhof an der Mühle": (124, -62), "Kirche am Weinmarkt": (-20, 14),
-    "Schmugglerloch am Weinmarkt": (-20, 14), "Wachhaus am Weinmarkt": (-20, 14), "Wachhaus an der Torstraße": (29, 10),
-    "Wechselstube am Weinmarkt": (-20, 14), "Wechselstube am Markt": (14, -18), "Siederei am Weinmarkt": (-20, 14),
-    "Siederei an der Seifengasse": (-24.5, -29), "Duftgarten am Lavendelhang": (124, 8),
-    "Wachturm an der Landstraße": (80, -10), "Schmugglerloch am Osttor": (29, -12), "Kirche an der Westmauer": (-30, -4),
+    "Gießerei am Weinmarkt": (-21, 17), "Tischlerei am Weinmarkt": (-21, 17), "Gießerei Eisenbart": (22, 14),
+    "Tischlerei Eichwald": (22, -12), "Maurerei am Weinmarkt": (-21, 17), "Maurerei Kieselbach": (25, -28),
+    "Steinbruch Kieselbach": (74, 66), "Steinbruch am Felsenhang": (-6, -80), "Tinkturei am Weinmarkt": (-21, 17),
+    "Kräutergarten am Bach": (106, 70), "Schänke am Weinmarkt": (-21, 17),
+    "Bauernhof an der Mühle": (124, -62), "Kirche am Weinmarkt": (-21, 17),
+    "Schmugglerloch am Weinmarkt": (-21, 17), "Wachhaus am Weinmarkt": (-21, 17),
+    "Wechselstube am Weinmarkt": (-21, 17), "Siederei am Weinmarkt": (-21, 17),
+    "Duftgarten am Lavendelhang": (124, 8), "Wachturm an der Landstraße": (80, -10),
     "Klosterhof am Osthang": (134, 80), "Grube Eisenbart": (102, -12), "Grube am Silberberg": (100, 32),
     "Grube im Tannenwald": (82, -66), "Holzschlag Eichwald": (-92, -30), "Holzschlag im Eichenforst": (-94, 46),
 }
 
-# Stadtansicht.Gassen: Knicke der Gasse vom Betrieb zum Markt (sonst gerade Linie)
+# Stadtansicht.Gassen: Knicke der Gasse vom Hof eines Werkstattplatzes zum Markt, je Platz (Weinmarkt: ein Platz für zehn
+# Berufe). Die Gasse läuft vom Hof (5,5 m vor dem Stadtplan-Punkt) an der Vorderseite entlang und dann zum Markt, nie durch ein Haus.
 GASSEN_KNICKE = {
-    "Maurerei an der Stadtmauer": [(11, 24)],
-    "Tinkturei am Domplatz": [(-11, -4)],
-    "Schänke am Fischmarkt": [(-20.5, 22), (-8, 21.5)],
-    "Kirche an der Westmauer": [(-22, 5), (-12, 6)],
-    "Schmugglerloch am Osttor": [(26, -1)],
+    "Weinmarkt": [(-10.5, 22.5)],                        # nach Osten am Vorplatz entlang, dann zum Markt
+    "Gießerei Eisenbart": [(12, 19.5)],                  # nach Westen am Vorplatz entlang, dann zum Markt
+    "Tischlerei Eichwald": [(12.5, -6.5)],               # nach Westen bis an den Markt
+    "Maurerei Kieselbach": [(11, -22.5), (11, -13)],     # zwischen Rathaus und Eichwald nach Süden
 }
 
 # Stadtansicht.Abzweige: wo der Weg zu einem Platz vor der Stadt von der Straße abgeht
@@ -95,7 +93,9 @@ def umlandgroesse(name):
     return [16, 14]
 
 VORKOMMEN = {"Grube": "Mine", "Steinbruch": "Steinbruch", "Holzschlag": "Holzschlag"}   # Namensanfang → Betriebsart
-WERKSTATT = (10, 8)                    # jede Werkstatt der Greybox: 10 m breit (x) und 8 m tief (z), Tür nach Süden (+z)
+WERKSTATT = (16, 14)                   # jede Werkstatt der Greybox: 16 m breit (x) und 14 m tief (z) mit 2 m Vorplatz, Tür nach Süden (+z)
+WERKSTATT_VORN = 1                     # der Stadtplan-Punkt liegt 1 m vor der Mitte der Fläche (Mitte des alten 10 × 8-m-Hauses, wie bei Neubauten)
+HOF_VORN = 5.5                         # der Hof (Gassenanfang, Karren, Gäste) liegt 5,5 m vor dem Stadtplan-Punkt, im Vorplatz
 
 
 def im_stadtgebiet(p):
@@ -193,12 +193,12 @@ k.weg("Westgasse", "haupt", [(0, 0), WESTGASSE_KNICK, (-38, 6), WESTTOR], breite
 k.weg("Weststraße", "land", [WESTTOR, WESTSTRASSE], breite=4)
 r = RINGGASSE
 k.weg("Ringgasse", "ring", [(-r, -r), (r, -r), (r, r), (-r, r), (-r, -r)], breite=3)
-k.weg("Stichgasse Süd 1", "gasse", [(12, r), (11, 24)], breite=3)        # vom Ring zur Gasse der Maurerei an der Stadtmauer
-k.weg("Stichgasse Süd 2", "gasse", [(-21, r), (-20.5, 22)], breite=3)    # vom Ring zur Gasse der Schänke am Fischmarkt
-k.weg("Domgasse", "gasse", [(-20, -2.5), (-20, WESTGASSE_KNICK[1])], breite=2.5)   # von der Domtür zur Westgasse
+k.weg("Stichgasse Süd 1", "gasse", [(12, r), GASSEN_KNICKE["Gießerei Eisenbart"][0]], breite=3)   # vom Ring zur Gasse der Gießerei Eisenbart
+k.weg("Stichgasse Süd 2", "gasse", [(-21, r), (-21, 17 + HOF_VORN)], breite=3)                    # vom Ring zum Hof am Weinmarkt
+k.weg("Domgasse", "gasse", [(-20, 4.2), (-20, WESTGASSE_KNICK[1])], breite=2.5)   # von den Stufen vor dem Domportal zur Westgasse
 k.weg("Vorstadtgasse", "gasse", [(64, -42.5), (64, 42.5)], breite=3)     # kreuzt die Landstraße, gezeichnet so weit Häuser an ihr stehen
 
-# Gassen vom Hof jeder Werkstatt zum Markt (Gassennetz: Hof 5,5 m vor der Mitte, dann Knicke, dann Marktplatz)
+# Gassen vom Hof jeder Werkstatt zum Markt (Gassennetz: Hof 5,5 m vor dem Stadtplan-Punkt, dann Knicke, dann Marktplatz)
 plaetze_stadt = {}                           # Mitte → alle Liegenschaften auf diesem Platz
 for name, p in STADTPLAN.items():
     if im_stadtgebiet(p):
@@ -208,8 +208,8 @@ def platzname(namen):
     return namen[0] if len(namen) == 1 else "Weinmarkt"
 
 for p, namen in plaetze_stadt.items():
-    knicke = GASSEN_KNICKE.get(namen[0]) or [(p[0] * 0.45, p[1] * 0.45)]
-    k.weg(f"Gasse {platzname(namen)}", "gasse", [(p[0], p[1] + 5.5)] + knicke + [(0, 0)], breite=3.5)
+    knicke = GASSEN_KNICKE.get(platzname(namen)) or [(p[0] * 0.45, p[1] * 0.45)]
+    k.weg(f"Gasse {platzname(namen)}", "gasse", [(p[0], p[1] + HOF_VORN)] + knicke + [(0, 0)], breite=3.5)
 
 # Wege zu den Plätzen vor der Stadt (Karren fahren sie, deshalb Klasse „land“)
 for name, p in STADTPLAN.items():
@@ -236,16 +236,20 @@ def gebaeude(kennung, art, name, mitte, groesse, drehung=0, eingang=True, **mehr
 # Sonderbauten (RathausBauen, DomBauen, Marktpflaster, Torhaus): Das Torhaus ist 5 × 9 m mit zwei Türmen davor und dahinter
 gebaeude("Markt", "sonderbau", "Marktplatz mit Ständen und Brunnen", (0, 0), [MARKTPFLASTER, MARKTPFLASTER], eingang=False)
 gebaeude("Rathaus", "sonderbau", "Rathaus", (0, -20), [16, 10])
-gebaeude("Dom", "sonderbau", "Dom", (-20, -14), [10, 22])
+gebaeude("Dom", "sonderbau", "Dom", (-20, -11.15), [12.5, 30.2])   # Langhaus 10 × 22 m um (−20|−14) mit Strebewerk und Westturm bis z = 3,9 (dom.glb)
 gebaeude("TorhausOst", "sonderbau", "Torhaus Osttor", OSTTOR, [16, 6], drehung=90, eingang=False)
 gebaeude("TorhausWest", "sonderbau", "Torhaus Westtor", WESTTOR, [16, 6], drehung=90, eingang=False)
 for n, (ex, ez) in enumerate([(-R, -R), (R, -R), (-R, R), (R, R)], start=1):
     gebaeude(f"Eckturm{n}", "turm", f"Eckturm {n}", (ex, ez), [7, 7], eingang=False)
 
-# Liegenschaften in der Stadt: eine Werkstatt je Platz; mehrere Namen auf einem Platz = je nach Startberuf (Weinmarkt)
+# Werkstätten in der Stadt: eine je Platz; mehrere Namen auf einem Platz = je nach Startberuf (Weinmarkt). Die Fläche (16 × 14 m mit
+# Vorplatz) liegt mit ihrer Mitte 1 m hinter dem Stadtplan-Punkt, ihre Vorderkante 6 m vor ihm.
+def werkstatt_mitte(p):
+    return (p[0], p[1] - WERKSTATT_VORN)
+
 for p, namen in plaetze_stadt.items():
     for name in namen:                       # ein Eintrag je Liegenschaft; `name` ist genau der Name aus dem Stadtplan
-        gebaeude(kennung_von(name), "werkstatt", name, p, list(WERKSTATT))
+        gebaeude(kennung_von(name), "werkstatt", name, werkstatt_mitte(p), list(WERKSTATT))
 
 # Umland: Gruben, Höfe, Gärten, Wachturm (nicht bebaubar, aber Gebäude der Stadtansicht)
 for name, p in STADTPLAN.items():
@@ -260,9 +264,9 @@ for name, p in STADTPLAN.items():
 for name, (mitte, groesse, _) in UMLANDSTELLEN.items():
     gebaeude(f"Stelle{name}", "umlandstelle", f"{name} der Einwohner", mitte, list(groesse), eingang=False)
 
-# Die vier alten Häuser der Kulisse (Wohnhaeuser(), 7 × 6 m) – sie stehen immer
-for n, (p, vorne) in enumerate([((10, -29), (0, 1)), ((-4, 29), (0, 1)), ((5, 29), (0, 1)), ((-29, 18), (1, 0))], start=1):
-    gebaeude(f"Kulisse{n}", "einwohnerhaus", f"Haus der Kulisse {n}", p, [7, 6], drehung_von(vorne))
+# Die vier alten Häuser der Kulisse (Wohnhaeuser(), Modell einwohner_buergerhaus, 7,6 × 8,1 m um die Mitte) – sie stehen immer
+for n, (p, vorne) in enumerate([((10, -29), (0, 1)), ((-4, 29), (0, 1)), ((5, 29), (0, 1)), ((-13, 29), (0, 1))], start=1):
+    gebaeude(f"Kulisse{n}", "einwohnerhaus", f"Haus der Kulisse {n}", p, [8, 8.5], drehung_von(vorne))
 
 # Doppelplätze der Spielhäuser am Ring: die Wohnhaus-Startplätze, in der Reihenfolge der Konten (Spieler zuerst)
 ANZAHL_HAEUSER = 8
@@ -295,8 +299,8 @@ for i in range(int((46 - 5) / VORSTADT_BREITE)):
 # Zonen ihr in Stufen.
 HOF = "M1" if HOF_ZONE_ALS_MAUERRING else "V4"
 ZONEN = [
-    # Kern: die einzige Lücke innerhalb der Ringgasse, in die ein Wohnhaus passt (Südostecke, zwischen Maurerei und Ringgasse)
-    ("K1", "kern", [(28, 18), (36, 18), (36, 36), (28, 36)]),
+    # Kern: innerhalb der Ringgasse, Südostecke zwischen Gießerei Eisenbart und Ringgasse
+    ("K1", "kern", [(28, 22), (36, 22), (36, 36), (28, 36)]),
     # Vor dem Westtor an der Weststraße (Karrenstraße, z = 6) und am Weg zum Holzschlag im Eichenforst
     ("V1", "vorstadt", [(-118, -12), (-92, -12), (-92, 2), (-118, 2)]),               # Nordseite am Ende der Straße
     ("V2", "vorstadt", [(-120, 10), (-104, 10), (-104, 24), (-120, 24)]),             # Südseite, links vom Weg zum Eichenforst
@@ -345,6 +349,7 @@ ABSTAND_FESTE = 2.0        # Meter zwischen Zone und festem Gebäude
 ABSTAND_MAUER = 2.0        # Meter zwischen Zone und Mauermitte (die Mauer ist 2 m dick)
 STRASSENNAH = 7.0          # Eingangsregel des Kerns: mindestens 2 Felder der Vorplatzreihe höchstens 7 m von der Straßenmitte (wie kapazitaet.py)
 MIN_WERKSTAETTEN, MIN_WOHNHAEUSER, MIN_STADTHOEFE = 6, 8, 2
+ABSTAND_WERKSTATT = 2.0    # Meter zwischen den Flächen zweier Werkstätten der Stadt (Platz für Zaun und Durchgang)
 
 
 def strecken(poly):
@@ -506,6 +511,54 @@ def kapazitaet(karte):
             fehler.append(f"{f['kennung']}: Eingang liegt nicht an einem Weg")
     hinweise.append("Wohnhausplätze 1–4: " + ", ".join(f"{a:.1f} m" for a in abst) + f" zum Markt (Mittel {mittel:.1f} m); Plätze 5–8: "
                     + ", ".join(f"{abstand(f['punkt'], (0, 0)):.1f} m" for f in plaetze[4:]))
+
+    # 5. Werkstattplätze der Stadt (16 × 14 m): Keine Fläche überlappt ein anderes Gebäude, zwischen zwei Werkstätten bleiben
+    #    ABSTAND_WERKSTATT Meter. Auf dem Haus (die Fläche ohne den Vorplatz) liegt keine Straße und keine Mauer. Der Hof liegt im
+    #    Vorplatz, und dort beginnt die eigene Gasse.
+    def ecken(r):
+        return [(r[0], r[1]), (r[2], r[1]), (r[2], r[3]), (r[0], r[3])]
+
+    def ueberlappen(a, b):
+        return min(a[2], b[2]) > max(a[0], b[0]) and min(a[3], b[3]) > max(a[1], b[1])
+
+    def ohne_vorplatz(f):
+        x0, z0, x1, z1 = rechteck_von(f)
+        return (x0, z0, x1, z1 - RASTER) if f["art"] == "werkstatt" else (x0, z0, x1, z1)
+
+    werkstaetten = list({tuple(f["punkt"]): f for f in d["feste"] if f["art"] == "werkstatt"}.values())   # je Platz eine
+    andere = [f for f in d["feste"] if "drehung" in f and f["art"] != "werkstatt"]
+    for n, f in enumerate(werkstaetten):
+        r = rechteck_von(f)
+        if (r[2] - r[0], r[3] - r[1]) != WERKSTATT:
+            fehler.append(f"Werkstatt {f['name']}: {r[2] - r[0]:g} × {r[3] - r[1]:g} m statt {WERKSTATT[0]} × {WERKSTATT[1]} m")
+        for g in andere:
+            if ueberlappen(r, rechteck_von(g)):
+                fehler.append(f"Werkstatt {f['name']} überlappt {g['kennung']} ({g['name']})")
+        for g in werkstaetten[n + 1:]:
+            if abstand_zone_rechteck(ecken(r), rechteck_von(g)) < ABSTAND_WERKSTATT:
+                fehler.append(f"Werkstätten {f['name']} und {g['name']}: weniger als {ABSTAND_WERKSTATT:g} m Abstand")
+        for m in mauern:
+            if abstand_zone_linie(ecken(r), m) < 1:
+                fehler.append(f"Werkstatt {f['name']}: steht auf der Mauer")
+        hof = (f["punkt"][0], f["punkt"][1] + WERKSTATT_VORN + HOF_VORN)
+        if not (r[0] < hof[0] < r[2] and r[3] - RASTER < hof[1] < r[3]):
+            fehler.append(f"Werkstatt {f['name']}: Hof {hof} liegt nicht im Vorplatz")
+        if not any(w["klasse"] == "gasse" and w["linie"][0] == list(hof) for w in d["wege"]):
+            fehler.append(f"Werkstatt {f['name']}: keine Gasse beginnt am Hof {hof}")
+
+    # 6. Keine Straße läuft über eine Werkstatt und keine Gasse über ein Haus in der Stadt (Abstand zur Mitte mindestens die halbe
+    #    Breite). Vorplätze sind frei; eine Gasse, die an der Tür eines Hauses beginnt (Hof, Domstufen), gehört zu ihm.
+    for w in d["wege"]:
+        for g in werkstaetten + (andere if w["klasse"] == "gasse" else []):
+            if g["kennung"] == "Markt" or not im_stadtgebiet(g["punkt"]):
+                continue                       # die Gassen enden in der Mitte des Marktplatzes
+            if "eingang" in g and abstand(w["linie"][0], g["eingang"]) < 1:
+                continue
+            a = abstand_zone_linie(ecken(ohne_vorplatz(g)), w["linie"])
+            if a < w["breite"] / 2:
+                fehler.append(f"{w['name']} läuft über {g['kennung']} ({g['name']}): {a:.1f} m zur Mitte, {w['breite']:g} m breit")
+    hinweise.append("Werkstattplätze der Stadt (16 × 14 m, Mitte der Fläche): " + ", ".join(
+        f"{'Weinmarkt' if 'Weinmarkt' in f['name'] else f['name']} ({f['punkt'][0]:g}|{f['punkt'][1]:g})" for f in werkstaetten))
     return fehler, hinweise, "\n".join(ebene)
 
 
