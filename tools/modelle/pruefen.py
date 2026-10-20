@@ -21,6 +21,10 @@ Einrichten und Karren, Türen paarweise („Tuer_A_B“ und „Tuer_B_A“), Ein
 „Einrichtung_Eisentuer“ gibt), Arbeitsplätze „Arbeit_<n>_<Bewegung>“ (n lückenlos ab 1, die Bewegung muss es in
 figur_mensch.glb geben), Stellplätze „Lager_<n>“ und Werkstücke „Werkstueck_<n>“ lückenlos ab 1; alle Anker und
 Blickpunkte liegen in einem Raum. Die Lage rechnet die Knotenhierarchie mit ein.
+Ein Raum mit extras „stufe“ (z. B. die Sägehalle des Tischlers ab Stufe 3) gibt es erst ab dieser Stufe: Anker darin und
+Türen dorthin brauchen mindestens dieselbe „stufe“. Späne „Spaene1“–„Spaene3“ (falls vorhanden) sind lückenlos und
+standardmäßig aus. Hat die Datei Animationen, muss eine „Arbeit“ heißen; sie darf weder Räume noch Stufen, Anker oder
+Blickpunkte bewegen.
 """
 
 import math
@@ -146,6 +150,7 @@ def innen(pfad, g):
     for raum in raeume:
         if f"Blick_{raum}_0" not in knoten:
             fehler.append(f"Blickpunkt „Blick_{raum}_0“ fehlt")
+    fehler += innen_stufen(g, knoten, welt, raeume, raum_bei)
     for art, nummern in reihen.items():
         if sorted(nummern) != list(range(1, len(nummern) + 1)) or not nummern:
             fehler.append(f"{art}_<n>: Nummern müssen lückenlos ab 1 laufen, gefunden {sorted(nummern)}")
@@ -165,6 +170,59 @@ def innen(pfad, g):
             fehler.append(f"{name} ist nicht als unsichtbar markiert")
     if "Einrichtung_Eisentuer" in knoten and "Holztuer" not in knoten:
         fehler.append("Einrichtung_Eisentuer ohne Holztuer")
+    fehler += innen_spaene_und_animation(g, knoten)
+    return fehler
+
+
+def innen_stufen(g, knoten, welt, raeume, raum_bei):
+    """Räume ab einer Stufe (extras „stufe“): Anker darin und Türen dorthin brauchen mindestens dieselbe Stufe."""
+    fehler = []
+
+    def stufe(name):
+        return g["nodes"][knoten[name]].get("extras", {}).get("stufe", 1)
+    ab = {r: stufe(f"Raum_{r}") for r in raeume}
+    for raum, k in ab.items():
+        if k > 1:
+            print(f"Raum_{raum} erst ab Stufe {k}")
+    for name, i in knoten.items():
+        if "mesh" in g["nodes"][i] or not name.startswith(("Blick_", "Arbeit_", "Lager_", "Werkstueck_", "Licht_")):
+            continue
+        m = welt[i]
+        raum = raum_bei([m[0][3], m[1][3], m[2][3]])
+        if raum is not None and stufe(name) < ab[raum]:
+            fehler.append(f"{name} liegt in Raum_{raum} (ab Stufe {ab[raum]}), hat aber stufe {stufe(name)}")
+    for name in knoten:
+        tuer = re.fullmatch(r"Tuer_(.+?)_(.+)", name)
+        if tuer and all(r in ab for r in tuer.groups()):
+            noetig = max(ab[r] for r in tuer.groups())
+            if stufe(name) < noetig:
+                fehler.append(f"{name} führt in einen Raum ab Stufe {noetig}, hat aber stufe {stufe(name)}")
+    return fehler
+
+
+def innen_spaene_und_animation(g, knoten):
+    """Späne „Spaene1“–„Spaene3“ lückenlos und aus; die Animation „Arbeit“ bewegt nur Teile, keine Räume oder Anker."""
+    fehler = []
+    spaene = sorted(int(n[6:]) for n in knoten if re.fullmatch(r"Spaene\d+", n))
+    if spaene:
+        print("Späne:", ", ".join(f"Spaene{k}" + "".join(f" (+ {g['nodes'][c]['name']}, stufe {g['nodes'][c].get('extras', {}).get('stufe', 1)})"
+                                                         for c in g["nodes"][knoten[f"Spaene{k}"]].get("children", []))
+                                    for k in spaene))
+        if spaene != list(range(1, len(spaene) + 1)):
+            fehler.append(f"Spaene<n>: Nummern müssen lückenlos ab 1 laufen, gefunden {spaene}")
+        for k in spaene:
+            if g["nodes"][knoten[f"Spaene{k}"]].get("extras", {}).get("sichtbar", True):
+                fehler.append(f"Spaene{k} ist nicht als unsichtbar markiert")
+    animationen = g.get("animations", [])
+    if animationen and "Arbeit" not in [a.get("name") for a in animationen]:
+        fehler.append("Animationen vorhanden, aber keine heißt „Arbeit“")
+    for a in animationen:
+        ziele = sorted({(g["nodes"][c["target"]["node"]].get("name", ""), c["target"]["path"]) for c in a["channels"]})
+        laenge = max(g["accessors"][s["input"]]["max"][0] for s in a["samplers"])
+        print(f"Animation „{a.get('name')}“: {laenge:.2f} s, bewegt " + ", ".join(f"{n} ({p})" for n, p in ziele))
+        for n, _ in ziele:
+            if re.match(r"(Raum|Stufe\d|Blick|Arbeit|Lager|Werkstueck|Licht|Bedienung|Tuer|Einrichtung)_?", n):
+                fehler.append(f"Animation „{a.get('name')}“ bewegt {n} – nur eigene Teile dürfen sich bewegen")
     return fehler
 
 
