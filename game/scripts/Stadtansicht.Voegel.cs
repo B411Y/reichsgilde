@@ -90,7 +90,9 @@ public partial class Stadtansicht
         if (Modell(tauben ? "vogel_taube" : "vogel_spatz") is not { } szene || _vogelEbene is null) return;
         var schwarm = new Schwarm { Tauben = tauben, Heimat = heimat, Reichweite = reichweite, Warten = _vogelZufall.RandfRange(2, 20) };
         var anzahl = _vogelZufall.RandiRange(3, 5);
-        var plaetze = DachplaetzeVerteilen(schwarm, Enumerable.Repeat(heimat, anzahl).ToList()) ?? Enumerable.Repeat(heimat, anzahl).ToList();
+        var plaetze = DachplaetzeVerteilen(schwarm, Enumerable.Repeat(heimat, anzahl).ToList());
+        anzahl = Math.Max(1, plaetze.Count(p => p is not null));
+        plaetze = plaetze.Where(p => p is not null).DefaultIfEmpty(heimat).ToList();
         for (var i = 0; i < anzahl; i++)
         {
             var knoten = szene.Instantiate<Node3D>();
@@ -100,7 +102,7 @@ public partial class Stadtansicht
                 foreach (var name in spieler.GetAnimationList())
                     spieler.GetAnimation(name).LoopMode = Animation.LoopModeEnum.Linear;
             var vogel = new Vogel { Knoten = knoten, Spieler = spieler, Taube = tauben };
-            var platz = plaetze[i];
+            var platz = plaetze[i] ?? heimat;
             vogel.Von = vogel.Nach = platz;
             knoten.Position = platz;
             knoten.Rotation = new Vector3(0, _vogelZufall.RandfRange(0, Mathf.Tau), 0);
@@ -235,21 +237,20 @@ public partial class Stadtansicht
     /// Je Vogel ein eigener Landeplatz irgendwo im Heimatgebiet: frei (kein anderer Vogel sitzt oder landet im Umkreis von
     /// <see cref="VogelPlatzUmkreis"/>) und mindestens <see cref="VogelMindestflug"/> waagerecht von der jetzigen Lage des Vogels
     /// <paramref name="von"/> entfernt – der Schwarm fliegt gemeinsam auf und verstreut sich. Gibt es so weit keinen (wenige Dächer im
-    /// Umland), einer der weitesten freien. Die Vögel von <paramref name="eigener"/> zählen nicht mit, sie fliegen ja weg. <c>null</c>,
-    /// wenn kein einziger Platz frei ist.
+    /// Umland), einer der weitesten freien. Die Vögel von <paramref name="eigener"/> zählen nicht mit, sie fliegen ja weg. Ist für einen
+    /// Vogel kein Platz mehr frei, steht dort <c>null</c> – er bleibt sitzen, statt sich zu einem anderen zu setzen.
     /// </summary>
-    private List<Vector3>? DachplaetzeVerteilen(Schwarm eigener, List<Vector3> von)
+    private List<Vector3?> DachplaetzeVerteilen(Schwarm eigener, List<Vector3> von)
     {
-        var plaetze = new List<Vector3>();
+        var plaetze = new List<Vector3?>();
         var frei = _dachpunkte.Where(d => d.DistanceTo(eigener.Heimat with { Y = d.Y }) < eigener.Reichweite && Belegung(d, eigener) == 0).ToList();
         foreach (var start in von)
         {
-            var offen = frei.Where(d => plaetze.All(p => p.DistanceTo(d) >= VogelPlatzUmkreis)).ToList();
+            var offen = frei.Where(d => plaetze.All(p => p is not { } q || q.DistanceTo(d) >= VogelPlatzUmkreis)).ToList();
             var weit = offen.Where(d => Waagerecht(d, start) >= VogelMindestflug).ToList();
             if (weit.Count == 0) weit = offen.Where(d => Waagerecht(d, start) > 4).OrderByDescending(d => Waagerecht(d, start)).Take(3).ToList();
             if (weit.Count == 0) weit = offen;
-            if (weit.Count == 0) return plaetze.Count == 0 ? null : plaetze.Concat(Enumerable.Repeat(plaetze[^1], von.Count - plaetze.Count)).ToList();
-            plaetze.Add(weit[_vogelZufall.RandiRange(0, weit.Count - 1)]);
+            plaetze.Add(weit.Count == 0 ? null : weit[_vogelZufall.RandiRange(0, weit.Count - 1)]);
         }
         return plaetze;
     }
@@ -361,7 +362,7 @@ public partial class Stadtansicht
     {
         var jetzt = s.Voegel.Select(v => v.Knoten.Position).ToList();
         var mitte = Schwerpunkt(jetzt);
-        List<Vector3>? plaetze = null;
+        List<Vector3?>? plaetze = null;
         Vector3 z;
         if (boden)
         {
@@ -371,8 +372,9 @@ public partial class Stadtansicht
         else
         {
             plaetze = DachplaetzeVerteilen(s, jetzt);
-            if (plaetze is null) { s.Warten = _vogelZufall.RandfRange(5, 15); return; }
-            z = Schwerpunkt(plaetze);
+            var ziele = plaetze.OfType<Vector3>().ToList();
+            if (ziele.Count == 0) { s.Warten = _vogelZufall.RandfRange(5, 15); return; }
+            z = Schwerpunkt(ziele);
         }
         // jeder zweite Taubenflug dreht erst gemeinsam eine Runde (manchmal zwei) über den Dächern, dann verstreut sich der Schwarm
         (Vector3 Mitte, float Halbmesser, int Runden)? runde = null;
@@ -384,6 +386,7 @@ public partial class Stadtansicht
         for (var i = 0; i < s.Voegel.Count; i++)
         {
             var v = s.Voegel[i];
+            if (!boden && plaetze?[i] is null) continue; // kein freier Platz: bleibt sitzen
             v.Von = v.Knoten.Position;
             v.Nach = plaetze?[i] ?? z + new Vector3(_vogelZufall.RandfRange(-2.5f, 2.5f), 0, _vogelZufall.RandfRange(-2.5f, 2.5f));
             // in der Runde fliegt jeder etwas versetzt, damit es nach Schwarm aussieht und nicht nach einer Perlenkette
