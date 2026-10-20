@@ -3,7 +3,7 @@
 // Schatten in zwei Tönen mit Schraffur. Alle Muster werden dreiseitig in Weltkoordinaten projiziert – die Modelle
 // brauchen keine UV-Abwicklung. Der schwarze Umriss kommt aus holzschnitt_umriss.gdshader (eigenes Bild-Quad).
 shader_type spatial;
-render_mode ambient_light_disabled, specular_disabled;
+render_mode ambient_light_disabled, specular_disabled, cull_disabled;   // cull_disabled: Die Modelle aus Blender sind doppelseitig (wie figur.gdshader)
 
 // Grundfarbe: aus dem alten Material (farbe) oder aus der Eckenfarbe der GLB (Material „Farben“ und „Figur“).
 uniform vec4 farbe : source_color = vec4(1.0);
@@ -12,13 +12,15 @@ uniform bool eckenfarbe = false;
 // art_aus_uv: je Fläche aus UV.y (Material „Farben“ und „Figur“), sonst der feste Wert art.
 uniform int art = 0;
 uniform bool art_aus_uv = false;
-// Figuren: Zonen aus UV.x (1 Gewand, 2 Beinkleid, 3 Haut, 4 Haar, 5 Kopfbedeckung) je Figur einfärben.
+// Figuren: Zonen aus UV.x (1 Gewand, 2 Beinkleid, 3 Haut, 4 Haar, 5 Kopfbedeckung) je Figur einfärben. Gewöhnliche Uniforms, kein
+// „instance uniform“: Das Spiel gibt jeder Tracht ein eigenes Material. Jede Instanz mit Instanz-Uniform belegt 16 Plätze im Puffer
+// der Grafikkarte (nur 4096 in Forward+), und dieser Shader gilt für alle Knoten der Stadt, nicht nur für Figuren.
 uniform bool zonen = false;
-instance uniform vec4 gewand : source_color = vec4(0.30, 0.40, 0.55, 1.0);
-instance uniform vec4 beinkleid : source_color = vec4(0.30, 0.26, 0.22, 1.0);
-instance uniform vec4 haut : source_color = vec4(0.86, 0.68, 0.55, 1.0);
-instance uniform vec4 haar : source_color = vec4(0.32, 0.22, 0.14, 1.0);
-instance uniform vec4 kopfbedeckung : source_color = vec4(0.78, 0.74, 0.64, 1.0);
+uniform vec4 gewand : source_color = vec4(0.30, 0.40, 0.55, 1.0);
+uniform vec4 beinkleid : source_color = vec4(0.30, 0.26, 0.22, 1.0);
+uniform vec4 haut : source_color = vec4(0.86, 0.68, 0.55, 1.0);
+uniform vec4 haar : source_color = vec4(0.32, 0.22, 0.14, 1.0);
+uniform vec4 kopfbedeckung : source_color = vec4(0.78, 0.74, 0.64, 1.0);
 
 uniform sampler2D schraffur : repeat_enable, filter_linear_mipmap;
 uniform sampler2D papier : repeat_enable, filter_linear_mipmap;
@@ -29,8 +31,16 @@ uniform vec3 papierfarbe : source_color = vec3(0.93, 0.89, 0.79);   // scheint d
 // Grundhelligkeit ohne Sonne (Farbe × Stärke des Umgebungslichts), nachts wichtig. Für alle Materialien gleich: globaler
 // Shader-Parameter, der in den Projekteinstellungen (Shader Globals, Typ vec3) angelegt sein muss und den das Spiel je Bild setzt.
 global uniform vec3 holzschnitt_umgebung;
+// Innenräume (Einbau ins Spiel): 0 in der Stadt, 1 im Raum. Dort trägt das Umgebungslicht das Bild (ruhige Flächen, keine Schraffur),
+// die Lichter (Lampe, Glut, Fenster) sind schwach und haben eine Reichweite: Ihr Licht nimmt weich ab, die Zweitonstufe ist weich,
+// und nur im Licht selbst, wo es schwach wird, steht eine grobe Schraffur.
+global uniform float holzschnitt_raum;
 
 const float SCHRAFFUR_DICHTE = 0.22;        // Kacheln je Meter (16 Linien je Kachel → etwa 28 cm Abstand)
+const float RAUM_DICHTE = 1.5;              // Im Raum so viel mal feiner schraffiert (die Kamera steht nah)
+const float RAUM_LICHT = 6.0;               // Im Raum zählen die Lichter so viel mal stärker für die Schattenstufen
+const float RAUM_LINIE = 0.5;               // Im Raum lassen die Schraffurlinien so viel Licht durch (Stadt: 0,12)
+const float RAUM_WEICH = 0.3;               // Im Raum geht der helle Ton so breit ineinander über (Stadt: harte Kante)
 
 varying vec3 welt;
 varying vec3 welt_n;
@@ -88,16 +98,21 @@ void fragment() {
 	ALBEDO = c;
 	// Grundhelligkeit ohne Sonne (statt des abgeschalteten Umgebungslichts), mit leichter Schraffur
 	vec4 h = dreiseitig(schraffur, welt, welt_n, SCHRAFFUR_DICHTE);
-	EMISSION = c * holzschnitt_umgebung * mix(0.55, 1.0, h.r);
+	EMISSION = c * holzschnitt_umgebung * mix(mix(0.55, 1.0, h.r), 1.0, holzschnitt_raum);   // im Raum ohne Schraffur: ruhige Flächen
 }
 
 void light() {
-	float hell = clamp(dot(NORMAL, LIGHT), 0.0, 1.0) * ATTENUATION;
-	vec4 h = dreiseitig(schraffur, welt, welt_n, SCHRAFFUR_DICHTE);
+	float anteil = clamp(dot(NORMAL, LIGHT), 0.0, 1.0) * ATTENUATION;
+	float hell = anteil * mix(1.0, RAUM_LICHT, holzschnitt_raum);
+	vec4 h = dreiseitig(schraffur, welt, welt_n, SCHRAFFUR_DICHTE * mix(1.0, RAUM_DICHTE, holzschnitt_raum));
+	float linie = mix(0.12, RAUM_LINIE, holzschnitt_raum);   // wie schwarz die Schraffurlinien sind (im Raum zarter)
 	float tusche = 1.0;
-	if (hell < 0.50) tusche *= mix(0.12, 1.0, h.r);   // Halbschatten: einfache Schraffur
-	if (hell < 0.22) tusche *= mix(0.12, 1.0, h.g);   // Schatten: Kreuzschraffur
-	if (hell < 0.06) tusche *= mix(0.25, 1.0, h.b);   // tiefer Schatten: dichter
-	float ton = mix(0.62, 1.0, step(0.50, hell));    // nur zwei Farbtöne wie beim Druck
-	DIFFUSE_LIGHT += LIGHT_COLOR * ton * tusche * 0.42;
+	if (hell < 0.50) tusche *= mix(linie, 1.0, h.r);   // Halbschatten: einfache Schraffur
+	if (hell < 0.22) tusche *= mix(linie, 1.0, h.g);   // Schatten: Kreuzschraffur
+	if (hell < 0.06) tusche *= mix(0.25, 1.0, h.b);    // tiefer Schatten: dichter
+	float weich = mix(0.001, RAUM_WEICH, holzschnitt_raum);
+	float ton = mix(0.62, 1.0, smoothstep(0.50 - weich, 0.50 + weich, hell));    // nur zwei Farbtöne wie beim Druck (im Raum ohne harte Kante)
+	// Die Sonne der Stadt gibt überall gleich viel. Die Lichter im Raum (Lampe, Glut, Fenster) haben eine Reichweite: Ihr Licht muss mit Abstand
+	// und Winkel abnehmen (ATTENUATION, dot), sonst hat es an der Grenze der Reichweite eine harte Kante (helle Kreise und Kästen im Raum).
+	DIFFUSE_LIGHT += LIGHT_COLOR * ton * tusche * 0.42 * mix(1.0, clamp(anteil * 2.0, 0.0, 1.0), holzschnitt_raum);
 }

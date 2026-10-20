@@ -26,7 +26,9 @@ func _ready():
 		var f := setzen("figur_mensch", Vector3(-2.5 + i * 1.2, 0, 7.5 + i * 0.4), [], PI + i * 0.5)
 		for n in f.find_children("*", "MeshInstance3D", true, false):
 			n.visible = n.name == ("Koerper_Frau" if i == 1 else "Koerper_Mann") or (i == 2 and n.name == "Strohhut")
-			n.set_instance_shader_parameter("gewand", gewaender[i])
+			for s in n.mesh.get_surface_count():   # Zonenfarben sind gewöhnliche Uniforms: je Figur ein eigenes Material
+				var m = n.get_surface_override_material(s)
+				if m is ShaderMaterial: m.set_shader_parameter("gewand", gewaender[i])
 	var boden := MeshInstance3D.new(); boden.mesh = PlaneMesh.new(); boden.mesh.size = Vector2(120, 120); add_child(boden)
 	boden.position.y = -0.02
 	var bm := StandardMaterial3D.new(); bm.albedo_color = Color(0.40, 0.46, 0.27); bm.resource_name = "Gras"
