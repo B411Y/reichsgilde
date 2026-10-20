@@ -1,21 +1,25 @@
-"""Innenraum des Steinmetzen: Werkraum, Steinlager und ab der Steinmetzhütte die Bauhütte; Stufen Maurerei,
-Steinschneiderei, Steinmetzhütte.
+"""Innenraum des Steinmetzen: Werkraum, darüber das Steinlager unter dem Dach und ab der Steinmetzhütte die Bauhütte;
+Stufen Maurerei, Steinschneiderei, Steinmetzhütte.
 
     blender -b --python tools/modelle/steinmetz_innen.py -- [--schnell] [--ohne-bilder]
     python tools/modelle/steinmetz_innen.py [--schnell] [--ohne-bilder]
 
 Schreibt game/assets/modelle/steinmetz_innen.glb und Bilder nach docs/modelle/ (steinmetz_innen-blicke.png: das Bild jedes
-Blickpunkts, steinmetz_innen-stufen.png: Grundriss je Stufe, steinmetz_innen-grundriss.png: Grundriss mit Ankern).
+Blickpunkts, steinmetz_innen-stufen.png: Erdgeschoss von oben je Stufe, steinmetz_innen-grundriss.png: Erdgeschoss und
+Dachboden mit Ankern).
 
 Koordinaten wie beim Schmied (Blender: Z oben; im Spiel Y oben, Blender −Y = Spiel +Z): Ursprung in der Mitte des
-Werkraums auf dem Boden. Werkraum und Steinlager aus Bruchstein (0,5 m, innen mit Fugen, Steinboden) wie beim Schmied und
-wie die Werkstatt außen: Werkraum innen x −4 … 4, y −3,5 … 3,5, 4,0 m hoch (Platz für das Dreibein); Steinlager rechts
-daneben x 4,5 … 9,5, y −1,5 … 3,5, 3,4 m hoch; Bauhütte hinter dem Werkraum x −4 … 4, y 4,0 … 10,0, 4,6 m hoch – eine
-Bretterhalle mit Ständern, an die Rückwand des Hauses gebaut (ihre Vorderwand ist dessen Bruchstein). Alle Räume sind
-rundum geschlossen, die Kamera steht im Raum.
+Werkraums auf dem Boden. Werkraum wie beim Schmied ein Steinraum (0,5 m, gekalkter Putz, an Ecken und unten bricht der
+Bruchstein durch; Boden in Stufe 1 und 2 gestampfter Lehm, in Stufe 3 Backsteinpflaster im Fischgrätmuster;
+Balkendecke): innen x −4 … 4, y −3,5 … 3,5, 4,0 m hoch (Platz für das Dreibein). Das Steinlager liegt darüber unter dem
+Dach (Boden in 4,05 m, First entlang x, Kniestock 1,3 m, 48°, Ladeluke mit Kranbalken im rechten Giebel – die Steine kommen
+mit dem Seil hinauf); eine steile Treppe an der rechten Wand führt hinauf. Bauhütte hinter dem Werkraum x −4 … 4,
+y 4,0 … 10,0, 4,6 m hoch – eine Bretterhalle mit Ständern und Lehmboden, an die Rückwand des Hauses gebaut (ihre
+Vorderwand ist dessen Bruchstein, außen unverputzt). Alle Räume sind rundum geschlossen, die Kamera steht im Raum.
 
 Knoten im GLB – dieselben Regeln wie in schmied_innen.glb und tischler_innen.glb (Raum_…, Decke_…, Stufe1–Stufe3,
-Bedienung_…, Tuer_…, Einrichtung_…, Holztuer, Blick_…, Arbeit_…, Lager_…, Werkstueck_…, Licht_…), dazu:
+Bedienung_…, Tuer_…, Einrichtung_…, Holztuer, Blick_…, Arbeit_…, Lager_…, Werkstueck_…, Licht_…, Kranbalken,
+Himmel_Lager; Tuer_Werk_Lager ist die Treppe, Tuer_Lager_Werk die Bodenluke, beide mit extras „schild“), dazu:
     Raum_Huette                 die Bauhütte, extras „stufe“ = 3: das Spiel zeigt sie erst ab der Steinmetzhütte
     Tuer_Werk_Huette,           Tür zwischen Werkraum und Bauhütte, extras „stufe“ = 3 (vorher unsichtbar und nicht
     Tuer_Huette_Werk            anklickbar); in Stufe1 und Stufe2 ist die Öffnung im Werkraum vermauert
@@ -36,9 +40,10 @@ Zeit modulo 1 s) –, der Flaschenzug hebt den Block in 3 s um 0,6 m an und senk
 Ruht der Betrieb, steht alles in der Lage der Datei (Block unten, Rahmen hinten, Kurbel vorn).
 Lichter: extras „art“ = „Fenster“ (Tageslicht) und „Lampe“ (Laterne an der Decke, Blick −Z nach unten) wie beim Tischler.
 Materialien: „Farben“ (Eckenfarben; die Materialart für den Holzschnitt je Fläche als UV.y, bausteine.arten_setzen),
-„Hausfarbe“ (Hoftor, Holztür, Ladetor), „Fenster“, „Glut“ (Laternen), „Eisen“, „Wasser“. Die Steine heißen so, dass
-materialarten.json passt: roher Stein „Fels …“ (Holzschnitt „fels“), Mauern „Bruchstein“ („mauer“), glatt behauene Stücke
-„Quader“ (keine Struktur, nur Schraffur), Staub „Steinstaub“ und der Lehmboden der Bauhütte „Erde hell“ („boden“).
+„Hausfarbe“ (Hoftor, Holztür, Ladetor, Flügel der Ladeluke), „Fenster“ (auch der Himmel hinter der Ladeluke), „Glut“
+(Laternen), „Eisen“, „Wasser“. Die Steine heißen so, dass materialarten.json passt: roher Stein „Fels …“ (Holzschnitt
+„fels“), modellierte Mauersteine „Bruch …“ (keine Struktur: Steine und Fugen zeichnet das Modell), glatt behauene Stücke
+„Quader“ (keine Struktur, nur Schraffur), Staub „Steinstaub“ und der Lehmboden „Erde hell“ („boden“).
 Einrichtung_Flaschenzug: ein kleiner Drehkran neben dem Werkblock (Pfosten, Ausleger, Kloben mit vier Seilen, Steinzange) –
 unabhängig vom Dreibein der Steinschneiderei, deshalb schon in der Maurerei sinnvoll.
 """
@@ -52,9 +57,10 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import bausteine as bs  # noqa: E402
 from bausteine import Matrix, Vector  # noqa: E402
 import figuren as fg  # noqa: E402  (Hand der Bewegung „Saegen“ für den Griff der Steinsäge, Arbeitshöhen)
+import innenausbau as ia  # noqa: E402  (Böden, Putz, Decke, Treppe, Dachboden, Prüfbericht, Vorschau)
 import schmied_innen as si  # noqa: E402  (Mauern mit Fugen, Fenster, Steinboden, Pult, Türen, Werkzeugwand, Kisten, Anker)
 import steinmetz  # noqa: E402  (Säule und Quaderstapel wie außen)
-import tischler_innen as ti  # noqa: E402  (Hoftor, Schürzen, Laterne, Fenster in dünnen Wänden, Animation, Prüfbericht)
+import tischler_innen as ti  # noqa: E402  (Hoftor, Schürzen, Laterne, Fenster in dünnen Wänden, Animation, Export)
 
 NAME = "steinmetz_innen"
 STUFEN = ("Maurerei", "Steinschneiderei", "Steinmetzhütte")
@@ -73,12 +79,14 @@ bs.FARBEN.update({
 WAND = si.WAND                                                     # Bruchstein, 0,5 m
 WX0, WX1, WY0, WY1 = -4.0, 4.0, -3.5, 3.5                          # Werkraum innen
 H_WERK = 4.0
-LX0, LX1, LY0, LY1 = WX1 + WAND, WX1 + WAND + 5.0, -1.5, WY1       # Steinlager innen
-H_LAGER = 3.4
+Z_LAGER = H_WERK + ia.DIELE                                        # Boden des Steinlagers unter dem Dach
 HX0, HX1, HY0, HY1 = WX0, WX1, WY1 + WAND, WY1 + WAND + 6.0        # Bauhütte innen
 H_HUETTE = 4.6
 BRETTWAND = 0.25                                                   # Bretterwand der Bauhütte
-TUER_Y, TUER_B, TUER_H = 2.5, 1.0, 2.1                             # Tür Werkraum – Lager (rechte Wand)
+TREPPE_X, TREPPE_FUSS, TREPPE_OBEN = 3.63, 3.0, 1.6               # steile Treppe an der rechten Wand, steigt nach vorn
+LUKE = (3.25, WX1, 1.56, 2.70)                                     # Treppenloch in der Decke (x0, x1, y0, y1)
+LADELUKE_Y = -1.1                                                  # Ladeluke im rechten Giebel (Mitte), 1,2 × 1,8 m
+DACH = ia.Dachboden(WX0, WX1, WY0, WY1, Z_LAGER, 48)
 HUETTENTUER_X, HUETTENTUER_B, HUETTENTUER_H = 2.6, 1.1, 2.3        # Tür Werkraum – Bauhütte (Rückwand)
 HOFTOR_Y, HOFTOR_B, HOFTOR_H = -0.4, 2.6, 3.0                      # Hoftor in der linken Wand
 HOLZTUER_X, HOLZTUER_B, HOLZTUER_H = -1.8, 0.95, 2.1               # Tür zum Hof in der Vorderwand
@@ -109,11 +117,11 @@ BLICKE = {
     "Blick_Werk_0": ((0.3, -3.1, 2.8), (-0.4, 1.8, 0.9)),          # Werkblock, Dreibein, Steinsäge, Tür zur Bauhütte
     "Blick_Werk_L1": ((1.8, -2.4, 2.7), (-4.0, 0.3, 0.9)),         # Hoftor, Personalbuch, Dreibein
     "Blick_Werk_L2": ((2.2, 0.2, 2.8), (-3.6, -3.0, 0.8)),         # Holztür, Personalbuch, Schürzen, Löschfass
-    "Blick_Werk_R1": ((-3.0, -2.9, 2.8), (3.4, 2.9, 0.9)),         # schräg: Steinsäge, Quader, Türen ins Lager und zur Bauhütte
+    "Blick_Werk_R1": ((-3.0, -2.9, 2.8), (3.4, 2.9, 0.9)),         # schräg: Steinsäge, Treppe, Tür zur Bauhütte
     "Blick_Werk_R2": ((-1.4, -1.2, 2.7), (4.0, -0.6, 1.0)),        # Schleifstein, Werkzeugwand
-    "Blick_Lager_0": ((7.0, -1.25, 2.5), (7.0, 2.6, 0.5)),         # Quader, Stellplätze
-    "Blick_Lager_L1": ((9.0, -1.2, 2.4), (4.8, 2.4, 0.8)),         # Tür in den Werkraum, Quader
-    "Blick_Lager_R1": ((5.0, -1.1, 2.4), (9.3, 1.4, 0.7)),         # Steingestell, Kisten
+    "Blick_Lager_0": ((-3.4, -1.4, Z_LAGER + 2.1), (3.2, -0.4, Z_LAGER + 0.7)),     # den First entlang: Ladeluke, Stapel
+    "Blick_Lager_L1": ((3.2, -2.5, Z_LAGER + 2.0), (-3.8, 0.9, Z_LAGER + 0.9)),     # zurück: Quader, Grabplatten, Steingestell
+    "Blick_Lager_R1": ((2.5, -0.25, Z_LAGER + 2.2), (3.6, 2.1, Z_LAGER - 0.6)),     # hinunter in die Bodenluke mit der Treppe
     "Blick_Huette_0": ((0.4, 4.4, 3.2), (-0.4, 8.6, 0.9)),         # Steinfigur mit dem Bildhauer, Ladetor
     "Blick_Huette_L1": ((3.0, 4.5, 3.1), (-3.4, 8.0, 0.8)),        # Taufbecken, Grabmal
     "Blick_Huette_R1": ((-2.6, 9.5, 3.2), (2.6, 4.4, 0.9)),        # Tür in den Werkraum, Säule, Gerüstbock
@@ -122,16 +130,11 @@ BLICKE = {
 Oe = si.Oe
 WERK_OEFFNUNGEN = {
     "vorne": [Oe(0.6, 1.4, 0.9, 1.2), Oe(2.7, 1.4, 0.9, 1.2), Oe(HOLZTUER_X, 0.0, HOLZTUER_B, HOLZTUER_H)],
-    "rechts": [Oe(-2.5, 1.4, 0.9, 1.2), Oe(TUER_Y, 0.0, TUER_B, TUER_H)],
+    "rechts": [Oe(-2.5, 1.4, 0.9, 1.2)],
     "hinten": [Oe(HUETTENTUER_X, 0.0, HUETTENTUER_B, HUETTENTUER_H)],
     "links": [Oe(HOFTOR_Y, 0.0, HOFTOR_B, HOFTOR_H), Oe(2.4, 1.4, 0.9, 1.2)],
 }
-LAGER_OEFFNUNGEN = {
-    "vorne": [Oe(7.0, 1.4, 0.9, 1.0)],
-    "hinten": [Oe(8.4, 1.9, 0.9, 0.8)],
-    "links": [Oe(TUER_Y, 0.0, TUER_B, TUER_H)],
-    "rechts": [],
-}
+SCHILDER = {"Tuer_Werk_Lager": "Treppe zum Lager", "Tuer_Lager_Werk": "Treppe hinunter zum Werkraum"}   # extras „schild“
 HUETTEN_OEFFNUNGEN = {
     "vorne": [Oe(HUETTENTUER_X, 0.0, HUETTENTUER_B, HUETTENTUER_H)],
     "rechts": [Oe(6.6, 1.4, 1.2, 1.3), Oe(9.0, 1.6, 0.8, 1.0)],
@@ -139,30 +142,12 @@ HUETTEN_OEFFNUNGEN = {
     "links": [Oe(6.2, 1.4, 1.2, 1.3)],
 }
 
-ecken = ti.ecken
+ecken = ia.ecken
 
 
 # ─────────────────────────────────────────────────────────────────────────────
 #  Hülle: Mauern, Bretterwände, Decken, Fenster, Lichter
 # ─────────────────────────────────────────────────────────────────────────────
-
-def decke(netz, st, x0, x1, y0, y1, hoehe, dicke, rand_hinten=0.0):
-    """Decke aus Brettern mit Fugen, Balken quer, oben eine Abdeckung über die ganze Außenkante (wie beim Schmied).
-    `rand_hinten`: dort enden die Balken vor der Rückwand (am Rähm der Bretterwand)."""
-    netz.vieleck_nach([(x0, y0, hoehe), (x1, y0, hoehe), (x1, y1, hoehe), (x0, y1, hoehe)], (0, 0, -1), st["Holz"])
-    y = y0 + 0.3
-    while y < y1 - 0.1:
-        netz.vieleck_nach([(x0, y - 0.012, hoehe - 0.003), (x1, y - 0.012, hoehe - 0.003), (x1, y + 0.012, hoehe - 0.003),
-                           (x0, y + 0.012, hoehe - 0.003)], (0, 0, -1), st["Fachwerk"])
-        y += 0.3
-    anzahl = max(2, round((x1 - x0) / 1.05))
-    laenge = y1 - y0 - rand_hinten
-    for k in range(anzahl):
-        x = x0 + (x1 - x0) * (k + 0.5) / anzahl
-        netz.quader((x, y0 + laenge / 2, hoehe - 0.13), (0.18, laenge, 0.26), st["Fachwerk"], ohne=("+z", "+y", "-y"))
-    netz.vieleck_nach([(x0 - dicke, y0 - dicke, hoehe + si.UEBER), (x1 + dicke, y0 - dicke, hoehe + si.UEBER),
-                       (x1 + dicke, y1 + dicke, hoehe + si.UEBER), (x0 - dicke, y1 + dicke, hoehe + si.UEBER)], (0, 0, 1), st["Holz alt"])
-
 
 RAEHM = 0.22           # Höhe des Rähms der Bretterwand (oben an der Decke)
 
@@ -171,7 +156,7 @@ def bretterwand(netz, st, a, b, hoehe, oeffnungen, enden=(True, True), eckpfoste
     """Bretterwand der Bauhütte (a → b, Raum links): Bretter mit Fugen, Ständer, Rähm und ein Riegel, alles innen; die
     Öffnungen bleiben frei. `eckpfosten`: Ständer an den Enden – in einer Ecke steht nur einer, Rähm und Riegel der anderen
     Wand stoßen an ihn (so decken sich keine Flächen)."""
-    si.wand(netz, st, a, b, hoehe, oeffnungen, stoff="Holz alt", dicke=BRETTWAND, enden=enden)
+    si.wand(netz, st, a, b, hoehe, oeffnungen, stoff="Brett", dicke=BRETTWAND, enden=enden)
     a3, b3 = Vector((a[0], a[1], 0)), Vector((b[0], b[1], 0))
     d = (b3 - a3).normalized()
     n = Vector((-d.y, d.x, 0))
@@ -269,7 +254,7 @@ def vermauert(netz, st):
     """Stufe 1 und 2: Die Öffnung zur späteren Bauhütte ist mit Bruchstein zugemauert, etwas zurückgesetzt, mit Fugen."""
     x0, x1 = HUETTENTUER_X - HUETTENTUER_B / 2, HUETTENTUER_X + HUETTENTUER_B / 2
     y = WY1 + 0.05
-    netz.vieleck_nach([(x0, y, 0), (x1, y, 0), (x1, y, HUETTENTUER_H), (x0, y, HUETTENTUER_H)], (0, -1, 0), st["Bruchstein dunkel"])
+    netz.vieleck_nach([(x0, y, 0), (x1, y, 0), (x1, y, HUETTENTUER_H), (x0, y, HUETTENTUER_H)], (0, -1, 0), st["Bruch dunkel"])
     zufall = random.Random(17)
     f = 0.014
     for k, z in enumerate((0.38, 0.78, 1.16, 1.52, 1.92)):
@@ -295,9 +280,9 @@ def block(netz, st, mitte, masse, stoff="Fels Sandstein", oben=None, dreh=0.0, z
         netz.quader((0, 0, masse[2] / 2), (masse[0], masse[1], 0.0), st[oben], t, ohne=("-z", "+x", "-x", "+y", "-y"))
 
 
-def kanthoelzer(netz, st, mitte, laenge, abstand, dreh=0.0, h=0.1):
-    """Zwei Kanthölzer als Unterlage (quer zur Richtung `dreh`)."""
-    t = Matrix.Translation((mitte[0], mitte[1], h / 2)) @ Matrix.Rotation(math.radians(dreh), 4, "Z")
+def kanthoelzer(netz, st, mitte, laenge, abstand, dreh=0.0, h=0.1, z0=0.0):
+    """Zwei Kanthölzer als Unterlage (quer zur Richtung `dreh`, Boden in z0)."""
+    t = Matrix.Translation((mitte[0], mitte[1], z0 + h / 2)) @ Matrix.Rotation(math.radians(dreh), 4, "Z")
     for s in (-1, 1):
         netz.quader((s * abstand / 2, 0, 0), (0.12, laenge, h), st["Holz alt"], t)
 
@@ -674,8 +659,8 @@ def dreibein_teile(st, k):
 
 # ── weitere Ausstattung des Werkraums ─────────────────────────────────────────
 
-def bruchsteinhaufen(netz, st, mitte, n=10, r=0.8, saat=3):
-    """Haufen grober Bruchsteine in zwei Lagen, zufällig gedreht."""
+def bruchsteinhaufen(netz, st, mitte, n=10, r=0.8, saat=3, z0=0.0):
+    """Haufen grober Bruchsteine in zwei Lagen, zufällig gedreht (Boden in z0)."""
     zufall = random.Random(saat)
     for k in range(n):
         oben = k >= n * 2 // 3
@@ -683,7 +668,8 @@ def bruchsteinhaufen(netz, st, mitte, n=10, r=0.8, saat=3):
         a = zufall.uniform(0, r * (0.45 if oben else 1.0))
         g = zufall.uniform(0.3, 0.52)
         block(netz, st, (mitte[0] + a * math.cos(w), mitte[1] + a * math.sin(w)), (g, g * 0.8, g * 0.6),
-              "Fels Bruch" if k % 2 else "Fels Granit", dreh=zufall.uniform(0, 90), z0=0.2 if oben else 0.0)
+              "Fels Bruch" if k % 2 else "Fels Granit", dreh=zufall.uniform(0, 90),
+              z0=z0 + (0.2 if oben else 0.0) + 0.002 * k)                       # je Stein 2 mm höher: keine Flächen in einer Ebene
 
 
 def werktisch(netz, st, M):
@@ -782,76 +768,75 @@ def drehkran(netz, st):
 #  Steinlager
 # ─────────────────────────────────────────────────────────────────────────────
 
-def quaderlager(netz, st):
-    """Behauene Quader auf Kanthölzern an der Rückwand: zwei Lagen, oben versetzt, dazu zwei Platten auf dem Stapel."""
-    x0, y = 5.45, LY1 - 0.55
+def quaderlager(netz, st, x0, y, z):
+    """Behauene Quader auf Kanthölzern am hinteren Kniestock (ab x0, Mitte bei y, Boden in z): zwei Lagen, oben versetzt,
+    dazu eine Platte auf dem Stapel – mit dem Kranbalken heraufgezogen."""
     for k in range(3):
-        kanthoelzer(netz, st, (x0 + 0.95 * k, y), 0.8, 0.5, dreh=0, h=0.1)
+        kanthoelzer(netz, st, (x0 + 0.95 * k, y), 0.8, 0.5, dreh=0, h=0.1, z0=z)
     for lage, (dx, n) in enumerate(((0.0, 3), (0.45, 2))):
         for i in range(n):
             mitte = (x0 + dx + 0.95 * i, y + 0.02 * ((i + lage) % 2))
-            block(netz, st, mitte, (0.86, 0.62, 0.44), "Quader" if (i + lage) % 3 else "Quader grau", z0=0.1 + 0.44 * lage)
-    block(netz, st, (x0 + 0.9, y - 0.05), (1.1, 0.5, 0.08), "Quader grau", z0=0.98, dreh=4)
+            block(netz, st, mitte, (0.86, 0.62, 0.44), "Quader" if (i + lage) % 3 else "Quader grau", z0=z + 0.1 + 0.44 * lage)
+    block(netz, st, (x0 + 0.9, y - 0.05), (1.1, 0.5, 0.08), "Quader grau", z0=z + 0.98, dreh=4)
 
 
-def kisten(netz, st):
-    """Kisten für fertige Ware in der vorderen rechten Ecke, darauf ein Mörser und ein kleiner Weihwasserstein."""
-    si.kisten(netz, st, Vector((9.0, -0.25, 0)))
-    moerser = Vector((9.0, -0.2, 1.05))
+def kisten(netz, st, mitte):
+    """Kisten für fertige Ware um `mitte` (Boden in mitte.z), darauf ein Mörser und ein kleiner Weihwasserstein."""
+    si.kisten(netz, st, mitte)
+    moerser = mitte + Vector((0.0, 0.05, 1.05))
     bs.achteck(netz, st, moerser, 0.16, 0.0, 0.18, "Quader")
-    bs.rund_oben(netz, st, moerser, 0.11, 1.05 + 0.181, "Loch")
-    stein = Vector((9.05, -1.1, 0.45))
+    bs.rund_oben(netz, st, moerser, 0.11, moerser.z + 0.181, "Loch")
+    stein = mitte + Vector((0.05, -0.85, 0.45))
     bs.achteck(netz, st, stein, 0.13, 0.0, 0.12, "Quader grau")
     bs.achteck(netz, st, stein, 0.2, 0.12, 0.24, "Quader grau")
-    bs.rund_oben(netz, st, stein, 0.15, 0.45 + 0.241, "Loch")
+    bs.rund_oben(netz, st, stein, 0.15, stein.z + 0.241, "Loch")
 
 
-def steingestell(netz, st):
-    """Gekauft: schweres Steingestell an der rechten Wand – Ständer aus Kantholz, drei Böden aus Bohlen, darauf Platten,
-    Gesimsstücke und kleine Quader."""
-    x = LX1 - 0.25
-    for y in (0.5, 1.9, 3.25):
-        netz.quader((x, y, 1.15), (0.12, 0.12, 2.3), st["Holz"])
-        netz.quader((x - 0.0, y, 0.06), (0.4, 0.14, 0.12), st["Holz alt"])
+def steingestell(netz, st, x0, x1):
+    """Gekauft: niedriges, schweres Steingestell am vorderen Kniestock (von x0 bis x1, unter der Dachschräge) – Ständer aus
+    Kantholz, drei Böden aus Bohlen, darauf Platten, Gesimsstücke und kleine Quader."""
+    z, y = Z_LAGER, WY0 + 0.25
+    for x in (x0, (x0 + x1) / 2, x1):
+        netz.quader((x, y, z + 0.55), (0.12, 0.12, 1.1), st["Holz"])
+        netz.quader((x, y, z + 0.06), (0.14, 0.4, 0.12), st["Holz alt"])
     zufall = random.Random(5)
-    for k, z in enumerate((0.45, 1.15, 1.85)):
-        netz.quader((x, 1.875, z), (0.42, 2.9, 0.06), st["Holz alt"])
-        y = 0.65
-        while y < 3.1:
+    for k, h in enumerate((0.25, 0.6, 0.95)):
+        netz.quader(((x0 + x1) / 2, y, z + h), (x1 - x0 + 0.1, 0.42, 0.06), st["Holz alt"])
+        if k == 2:
+            continue
+        x = x0 + 0.12
+        while x < x1 - 0.3:
             art = zufall.choice(("platte", "quader", "gesims"))
             b = zufall.uniform(0.3, 0.55)
-            if y + b > 3.15:
+            if x + b > x1 - 0.08:
                 break
             if art == "platte":
                 for j in range(3):
-                    netz.quader((x, y + b / 2, z + 0.05 + 0.045 * j), (0.36, b, 0.04), st["Quader grau" if j % 2 else "Quader"])
+                    netz.quader((x + b / 2, y, z + h + 0.05 + 0.045 * j), (b, 0.36, 0.04), st["Quader grau" if j % 2 else "Quader"])
             elif art == "quader":
-                netz.quader((x, y + b / 2, z + 0.15), (0.32, b, 0.24), st["Quader"])
+                netz.quader((x + b / 2, y, z + h + 0.15), (b, 0.32, 0.24), st["Quader"])
             else:
-                netz.prisma([(-0.16, 0.03), (0.16, 0.03), (0.16, 0.1), (0.08, 0.16), (-0.16, 0.16)], y, y + b, st["Quader"],
-                            matrix=Matrix.Translation((x, 0, z)) @ Matrix.Rotation(math.radians(90), 4, "Z"))
-            y += b + zufall.uniform(0.05, 0.12)
+                netz.prisma([(-0.16, 0.03), (0.16, 0.03), (0.16, 0.1), (0.08, 0.16), (-0.16, 0.16)], x, x + b, st["Quader"],
+                            matrix=Matrix.Translation((0, y, z + h)))
+            x += b + zufall.uniform(0.05, 0.12)
+    for x, b in ((x0 + 0.2, 0.3), (x1 - 0.35, 0.4)):                                        # oben nur ein paar Platten
+        netz.quader((x + b / 2, y, z + 0.95 + 0.05), (b, 0.34, 0.04), st["Quader grau"])
 
 
-def lagersteine(netz, st):
-    """Rohblöcke und Bruchsteine im Lager, an die linke Wand gelehnte Grabplatten."""
-    block(netz, st, (5.25, -0.85), (0.9, 0.6, 0.55), "Fels Granit", dreh=6)
-    block(netz, st, (5.15, -0.8), (0.6, 0.45, 0.35), "Fels Sandstein", dreh=-10, z0=0.55)
-    bruchsteinhaufen(netz, st, (6.5, -0.9), n=8, r=0.45, saat=7)
-    for k in range(3):                                                                        # Grabplatten an der Wand
-        y = 0.1 + 0.55 * k
-        netz.stab((LX0 + 0.28 - 0.03 * k, y, 0.0), (LX0 + 0.06, y, 1.25 - 0.1 * k), 0.5, 0.1,
+def lagersteine(netz, st, z):
+    """Rohblöcke bei der Ladeluke, ein Haufen Bruchsteine und an den linken Giebel gelehnte Grabplatten (Boden in z)."""
+    block(netz, st, (0.8, -2.0), (0.9, 0.6, 0.55), "Fels Granit", dreh=6, z0=z)
+    block(netz, st, (0.7, -1.95), (0.6, 0.45, 0.35), "Fels Sandstein", dreh=-10, z0=z + 0.55)
+    bruchsteinhaufen(netz, st, (-0.4, -2.5), n=8, r=0.45, saat=7, z0=z)
+    for k in range(3):
+        y = -0.9 + 0.55 * k
+        netz.stab((WX0 + 0.28 - 0.03 * k, y, z), (WX0 + 0.06, y, z + 1.25 - 0.1 * k), 0.5, 0.1,
                   st["Quader grau" if k % 2 else "Quader"], quer=(1, 0, 0.2))
 
 
 # ─────────────────────────────────────────────────────────────────────────────
 #  Bauhütte
 # ─────────────────────────────────────────────────────────────────────────────
-
-def lehmboden(netz, st, x0, x1, y0, y1):
-    """Festgetretener Lehm (Staub liegt nur, wo gearbeitet wird: splitter)."""
-    netz.vieleck_nach([(x0, y0, 0), (x1, y0, 0), (x1, y1, 0), (x0, y1, 0)], (0, 0, 1), st["Erde hell"])
-
 
 FIGUR_OBEN = fg.ARBEITSHOEHEN["Figur"]       # (vor, Höhe): Schneide des Meißels an der Flanke der Figur
 
@@ -973,9 +958,10 @@ def bauen():
     bs.neue_szene()
     _lichter[0] = 0
     st = bs.Stoffe()
-    werk, lager, huette = bs.Netz("Raum_Werk"), bs.Netz("Raum_Lager"), bs.Netz("Raum_Huette")
+    werk, lager, huette = bs.Netz("Raum_Werk"), bs.Netz("Raum_Lager", alle=True), bs.Netz("Raum_Huette")
     decke_w, decke_l = bs.Netz("Decke_Werk", alle=True), bs.Netz("Decke_Lager", alle=True)
     decke_h = bs.Netz("Decke_Huette", alle=True)
+    kran, himmel = bs.Netz("Kranbalken", alle=True), bs.Netz("Himmel_Lager")
     teile = {}                    # Name → (Netz, Raum)
 
     def teil(name, raum="Werk"):
@@ -992,18 +978,16 @@ def bauen():
 
     # ── Werkraum: Hülle ───────────────────────────────────────────────────────
     W = WERK_OEFFNUNGEN
-    si.raum_huelle(werk, decke_w, st, WX0, WX1, WY0, WY1, H_WERK, {
+    si.steinraum(werk, decke_w, lager, st, WX0, WX1, WY0, WY1, H_WERK, {
         "vorne": dict(oeffnungen=W["vorne"]),
-        "rechts": dict(teile=[((WX1, WY0), (WX1, LY0), dict(oeffnungen=W["rechts"][:1], enden=(True, False))),
-                              ((WX1, LY0), (WX1, WY1), dict(oeffnungen=W["rechts"][1:], aussen=False))]),
+        "rechts": dict(oeffnungen=W["rechts"]),
         "hinten": dict(oeffnungen=W["hinten"], aussen=False),
         "links": dict(oeffnungen=W["links"]),
-    }, "Bruchstein", True)
+    }, luke=LUKE, saat=3)
     fenster_liste = []
     fenster_und_licht(werk, st, ecken(WX0, WX1, WY0, WY1), W, fenster_liste)
     for o in fenster_liste:
         setzen(o)
-    si.steinboden(werk, st, WX0, WX1, WY0, WY1, saat=3)
     werkblock(teil("Bedienung_Produktion_Werkblock"), st)
     schleifstein_fest(werk, st)
     kanthoelzer(werk, st, DREIBEIN, 0.75, 0.5, dreh=0)
@@ -1026,15 +1010,12 @@ def bauen():
     si.eisentuer(teil("Einrichtung_Eisentuer"), st, M_holz, HOLZTUER_B, HOLZTUER_H)
     si.loeschfass(teil("Einrichtung_Loeschfass"), st, Vector((-0.15, -3.05, 0)))
     ti.schuerzen(teil("Einrichtung_Schuerzen"), st, si.rahmen(-0.75, WY0, 0))
-    M_tl = si.rahmen(WX1, TUER_Y, 90)
-    si.bretttuer(teil("Tuer_Werk_Lager"), st, M_tl, TUER_B, TUER_H, stoff="Holz alt")
-    si.tuerstock(teil("Tuer_Werk_Lager"), st, M_tl, TUER_B, TUER_H)
-    si.bretttuer(teil("Tuer_Lager_Werk", "Lager"), st, si.rahmen(LX0, TUER_Y, -90), TUER_B, TUER_H, stoff="Holz alt")
+    ia.treppe(teil("Tuer_Werk_Lager"), st, TREPPE_X, TREPPE_FUSS, TREPPE_OBEN, Z_LAGER)       # Treppe hinauf ins Steinlager
     M_th = si.rahmen(HUETTENTUER_X, WY1, 180)
-    si.bretttuer(teil("Tuer_Werk_Huette"), st, M_th, HUETTENTUER_B, HUETTENTUER_H, stoff="Holz alt")
+    si.bretttuer(teil("Tuer_Werk_Huette"), st, M_th, HUETTENTUER_B, HUETTENTUER_H, stoff="Brett")
     si.tuerstock(teil("Tuer_Werk_Huette"), st, M_th, HUETTENTUER_B, HUETTENTUER_H)
     si.bretttuer(teil("Tuer_Huette_Werk", "Huette"), st, si.rahmen(HUETTENTUER_X, HY0, 0), HUETTENTUER_B, HUETTENTUER_H,
-                 stoff="Holz alt")
+                 stoff="Brett")
 
     # ── Werkraum: Arbeitsplätze ──────────────────────────────────────────────
     vor, oben = fg.ARBEITSHOEHEN["Block"]
@@ -1051,7 +1032,12 @@ def bauen():
 
     # ── Stufen (kumulativ) und bewegte Teile ─────────────────────────────────
     stufen = [bs.Netz(f"Stufe{k}") for k in (1, 2, 3)]
+    ziegel = 0
     for k, netz in enumerate(stufen, 1):
+        if k < 3:
+            ia.lehmboden(netz, st, WX0, WX1, WY0, WY1, saat=9)
+        else:
+            ziegel = ia.fischgraet(netz, st, WX0, WX1, WY0, WY1, saat=9)
         if k <= 2:
             vermauert(netz, st)
         if k == 1:
@@ -1069,44 +1055,51 @@ def bauen():
             bewegt.append((o, bewegung))
     spaene_obj = [spaene_stand(m, st) for m in (1, 2, 3)]
 
-    # ── Steinlager ────────────────────────────────────────────────────────────
-    L = LAGER_OEFFNUNGEN
-    si.raum_huelle(lager, decke_l, st, LX0, LX1, LY0, LY1, H_LAGER, {
-        "vorne": dict(oeffnungen=L["vorne"]),
-        "rechts": dict(),
-        "hinten": dict(oeffnungen=L["hinten"]),
-        "links": dict(oeffnungen=L["links"], aussen=False, laibung=False),
-    }, "Bruchstein", True)
-    fenster_liste = []
-    fenster_und_licht(lager, st, ecken(LX0, LX1, LY0, LY1), L, fenster_liste)
-    for o in fenster_liste:
-        setzen(o, "Lager")
-    si.steinboden(lager, st, LX0, LX1, LY0, LY1, saat=4)
-    quaderlager(teil("Bedienung_Lager_Quader", "Lager"), st)
-    kisten(teil("Bedienung_Lager_Kisten", "Lager"), st)
-    steingestell(teil("Einrichtung_Regale", "Lager"), st)
-    lagersteine(lager, st)
+    print(f"Backsteinpflaster: {ziegel} Ziegel")
+
+    # ── Steinlager unter dem Dach ─────────────────────────────────────────────
+    z = Z_LAGER
+    kanten = ecken(WX0, WX1, WY0, WY1)
+    DACH.kniestoecke(lager, st, "Kalkputz")
+    luke = Oe(LADELUKE_Y, 0.0, 1.2, 1.8)                      # Höhen über dem Dachboden
+    gfenster = Oe(0.0, 2.3, 0.6, 0.6)
+    DACH.giebel(lager, st, False, [gfenster], "Kalkputz", WAND)
+    DACH.giebel(lager, st, True, [luke], "Kalkputz", WAND)
+    for i, (seite, oeff) in enumerate((("vorne", []), ("hinten", []), ("links", [gfenster]), ("rechts", [luke]))):
+        ia.durchbruch(lager, st, *kanten[seite], DACH.kniestock, oeff, saat=40 + 7 * i, boden=z, ecke_hoch=(0.8, 1.25),
+                      frei=[(0.0, 0.9)] if seite == "hinten" else
+                      [(LUKE[2] - WY0 - 0.15, LUKE[3] - WY0 + 0.15)] if seite == "rechts" else ())        # nicht über der Bodenluke
+    DACH.dach(decke_l, st)
+    licht_luke = DACH.ladeluke(lager, kran, himmel, st, LADELUKE_Y, luke.b, luke.h, WAND)
+    si.fenster(lager, st, *kanten["links"], Oe(gfenster.s, z + gfenster.v, gfenster.b, gfenster.h))
+    ia.bodenluke(teil("Tuer_Lager_Werk", "Lager"), st, LUKE, z, gelaender_x=LUKE[0] - 0.05)
+    setzen(licht(licht_luke, (-1, 0, 0), "Fenster"), "Lager")
+    setzen(licht(Vector((WX0 + 0.1, gfenster.s, z + gfenster.v + gfenster.h / 2)), (1, 0, 0), "Fenster"), "Lager")
+    quaderlager(teil("Bedienung_Lager_Quader", "Lager"), st, -3.3, WY1 - 0.5, z)                 # hinten
+    kisten(teil("Bedienung_Lager_Kisten", "Lager"), st, Vector((3.2, -1.95, z)))                  # bei der Ladeluke
+    steingestell(teil("Einrichtung_Regale", "Lager"), st, -3.6, -1.1)                             # vorn, niedrig
+    lagersteine(lager, st, z)
     nummer = 1
-    for y in (1.75, 0.75):
-        for x in (5.2, 6.1, 7.0, 7.9):
-            setzen(bs.anker(f"Lager_{nummer}", (x, y, 0.0)), "Lager")
+    for y in (1.5, 0.55):
+        for x in (-1.6, -0.6, 0.4, 1.4):
+            setzen(bs.anker(f"Lager_{nummer}", (x, y, z)), "Lager")
             nummer += 1
 
     # ── Bauhütte (ab Stufe 3) ─────────────────────────────────────────────────
     H = HUETTEN_OEFFNUNGEN
     kanten = ecken(HX0, HX1, HY0, HY1)
     huette.alle = True
-    si.wand(huette, st, *kanten["vorne"], H_HUETTE, H["vorne"], stoff="Bruchstein", aussen=False, laibung=False, fugen=True, saat=9)
+    si.wand(huette, st, *kanten["vorne"], H_HUETTE, H["vorne"], stoff="Bruch", aussen=False, laibung=False, fugen=True, saat=9)
     bretterwand(huette, st, *kanten["rechts"], H_HUETTE, H["rechts"], enden=(False, True))
     bretterwand(huette, st, *kanten["hinten"], H_HUETTE, H["hinten"], eckpfosten=(False, False))
     bretterwand(huette, st, *kanten["links"], H_HUETTE, H["links"], enden=(True, False))
     huette.alle = False
-    decke(decke_h, st, HX0, HX1, HY0, HY1, H_HUETTE, BRETTWAND, rand_hinten=0.14)
+    ia.balkendecke(decke_h, st, HX0, HX1, HY0, HY1, H_HUETTE, abdeckung=BRETTWAND, rand_hinten=0.14, saat=11)
     fenster_liste = []
     fenster_und_licht(huette, st, kanten, {s: l for s, l in H.items() if s != "vorne"}, fenster_liste, stufe=3, mauer=False)
     for o in fenster_liste:
         setzen(o, "Huette")
-    lehmboden(huette, st, HX0, HX1, HY0, HY1)
+    ia.lehmboden(huette, st, HX0, HX1, HY0, HY1, saat=12, flecken=12)
     steinfigur(huette, st)
     huette_ausstattung(huette, st)
     steinbank(huette, st, Vector((-1.15, BILDHAUER.y, 0)))
@@ -1127,7 +1120,7 @@ def bauen():
     raeume["Huette"]["stufe"] = 3
     kinder = {r: [] for r in raeume}
     kinder["Werk"] += [decke_w.objekt()] + stufen_obj + spaene_obj + raum_bewegt
-    kinder["Lager"].append(decke_l.objekt())
+    kinder["Lager"] += [decke_l.objekt(), kran.objekt(), himmel.objekt()]
     kinder["Huette"].append(decke_h.objekt())
     for name, (netz, raum) in teile.items():
         o = netz.objekt()
@@ -1136,6 +1129,8 @@ def bauen():
             bs.zustand(o)
         if name in ("Tuer_Werk_Huette", "Tuer_Huette_Werk"):
             o["stufe"] = 3
+        if name in SCHILDER:
+            o["schild"] = SCHILDER[name]
     for o, raum in anker:
         kinder[raum].append(o)
     for raum, liste in kinder.items():
@@ -1150,119 +1145,17 @@ def bauen():
     return list(raeume.values()) + [o for liste in kinder.values() for o in liste]
 
 
-# ─────────────────────────────────────────────────────────────────────────────
-#  Vorschau
-# ─────────────────────────────────────────────────────────────────────────────
-
-def _buehne(schnell):
-    import bpy
-    szene = bpy.context.scene
-    szene.render.engine = "CYCLES"
-    bs.cycles_geraet(szene)
-    szene.cycles.samples = 24 if schnell else 64
-    szene.cycles.use_denoising = True
-    szene.view_settings.view_transform = "Standard"
-    szene.render.image_settings.color_mode = "RGB"
-    szene.render.image_settings.compression = 100
-    welt = bpy.data.worlds.new("Himmel")
-    try:
-        welt.use_nodes = True
-    except AttributeError:
-        pass
-    welt.node_tree.nodes["Background"].inputs["Color"].default_value = (0.35, 0.38, 0.45, 1)
-    welt.node_tree.nodes["Background"].inputs["Strength"].default_value = 0.3
-    szene.world = welt
-    kam = bpy.data.objects.new("Kamera", bpy.data.cameras.new("Kamera"))
-    kam.data.sensor_fit = "VERTICAL"
-    kam.data.angle_y = math.radians(SICHTFELD)
-    kam.data.clip_start = 0.05
-    szene.collection.objects.link(kam)
-    szene.camera = kam
-    # Licht für die Bilder: Tageslicht an den Fenstern, Laternen, ein schwaches Füllicht unter jeder Decke
-    for o in [o for o in szene.objects if o.get("art")]:
-        if o["art"] == "Lampe":
-            l = bpy.data.lights.new("_" + o.name, "POINT")
-            l.energy, l.color, l.shadow_soft_size = 80, (1.0, 0.72, 0.42), 0.15
-        else:
-            l = bpy.data.lights.new("_" + o.name, "AREA")
-            l.energy, l.color, l.size = 110, (0.85, 0.9, 1.0), 0.9
-        lo = bpy.data.objects.new("_" + o.name, l)
-        lo["stufe"] = o["stufe"]
-        lo.matrix_world = o.matrix_world @ Matrix.Rotation(math.radians(90), 4, "X")      # Flächenlicht leuchtet mit −Z
-        szene.collection.objects.link(lo)
-    for x, y, h, e, stufe in ((0, 0, H_WERK, 170, 1), ((LX0 + LX1) / 2, (LY0 + LY1) / 2, H_LAGER, 80, 1),
-                              (0, (HY0 + HY1) / 2, H_HUETTE, 170, 3)):
-        l = bpy.data.lights.new("_Fuell", "AREA")
-        l.energy, l.size, l.color = e, 4.0, (1.0, 0.92, 0.8)
-        lo = bpy.data.objects.new("_Fuell", l)
-        lo.location = (x, y, h - 0.4)
-        lo["stufe"] = stufe
-        szene.collection.objects.link(lo)
-    p = bs.stoff("Fenster").node_tree.nodes["Principled BSDF"]
-    p.inputs["Emission Color"].default_value = (0.8, 0.86, 0.95, 1)
-    p.inputs["Emission Strength"].default_value = 2.5
-    return szene, kam
-
-
-def _zeigen(szene, stufe, einrichtung, decke=True, spaene=0):
-    for o in szene.objects:
-        if o.type == "MESH" and not o.name.startswith("_"):
-            o.hide_render = not ti.sichtbar(o, stufe, einrichtung, decke, spaene)
-        elif o.type == "LIGHT" and "stufe" in o:
-            o.hide_render = o["stufe"] > stufe
-
-
-def vorschau(schnell):
-    """Bilder: jeder Blickpunkt (Stufe 3 mit aller Einrichtung, mittlere Späne, Animation bei 1,6 s), Grundriss je Stufe
-    und Grundriss mit Ankern. Kleiner als beim Tischler (640 × 360 je Blick, RGB): jedes Bild unter 3 MB."""
-    import bpy
-    szene, kam = _buehne(schnell)
-    szene.render.resolution_x, szene.render.resolution_y = 640, 360
-    szene.render.resolution_percentage = 50 if schnell else 100
-    szene.frame_set(1 + int(1.6 * FPS))                         # Block halb gehoben, Säge im Strich
-    bilder = []
-    _zeigen(szene, 3, True, spaene=2)
-    for name in BLICKE:
-        o = bpy.data.objects[name]
-        kam.matrix_world = o.matrix_world @ Matrix.Rotation(math.radians(90), 4, "X")
-        bilder.append(bs.rendern_einzeln(f"_{NAME}-{name}", name))
-    print(bs.zusammensetzen(NAME + "-blicke", bilder, spalten=2))
-    szene.frame_set(1)
-    # Grundriss von oben ohne Decke: je Stufe, dazu einer mit allen Ankern
-    kam.data.type = "ORTHO"
-    kam.data.sensor_fit = "AUTO"
-    kam.data.ortho_scale = 17.8                                 # oben Platz für die Beschriftung über der Bauhütte
-    kam.matrix_world = Matrix.Translation(((WX0 + LX1) / 2, (WY0 + HY1) / 2 + 1.5, 30.0))
-    szene.render.resolution_x, szene.render.resolution_y = 760, 760
-    sonne = bpy.data.objects.new("_Sonne", bpy.data.lights.new("_Sonne", "SUN"))
-    sonne.data.energy = 2.5
-    sonne.rotation_euler = (math.radians(25), math.radians(-15), 0)
-    szene.collection.objects.link(sonne)
-    teile = []
-    for k in (1, 2, 3):
-        _zeigen(szene, k, False, decke=False, spaene=k)
-        teile.append(bs.rendern_einzeln(f"_{NAME}-stufe{k}", f"Stufe {k}: {STUFEN[k - 1]}"))
-    print(bs.zusammensetzen(NAME + "-stufen", teile, spalten=3))
-    marken = si._marken()
-    for o in marken:
-        o.location.z += 1.2                       # über die Wände der Bauhütte
-    _zeigen(szene, 3, True, decke=False, spaene=3)
-    szene.render.resolution_x, szene.render.resolution_y = 1100, 1100
-    print(bs.rendern_einzeln(NAME + "-grundriss", "Stufe 3 mit aller Einrichtung: Arbeitsplätze magenta, Stellplätze türkis, "
-                                                 "Werkstücke orange, Blickpunkte gelb"))
-    for o in marken:
-        bpy.data.objects.remove(o)
-
-
 def main():
     objekte = bauen()
-    vorher, nachher = bs.farben_zusammenlegen(objekte)
+    vorher, nachher = ia.farben_zusammenlegen(objekte)
     print(f"Materialien: {vorher} → {nachher}")
-    ti.pruefbericht(objekte, NAME)
+    ia.pruefbericht(objekte, NAME)
     print("geschrieben:", ti.exportieren(objekte, NAME))
     if "--ohne-bilder" in sys.argv:
         return
-    vorschau("--schnell" in sys.argv)
+    ia.vorschau(NAME, list(BLICKE), STUFEN, "--schnell" in sys.argv, (WX0 - WAND, WX1 + WAND, WY0 - WAND, HY1 + BRETTWAND),
+                (WX0 - WAND, WX1 + WAND, WY0 - WAND, WY1 + WAND), DACH, {"Werk", "Huette"}, bild=1 + int(1.6 * FPS), lampe=80,
+                fuell=[(0, 0, H_WERK - 0.4, 170, 1), (0, 0.3, Z_LAGER + 3.0, 90, 1), (0, (HY0 + HY1) / 2, H_HUETTE - 0.4, 170, 3)])
 
 
 if __name__ == "__main__":
