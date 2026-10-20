@@ -139,7 +139,7 @@ BLICKE = {
     "Blick_Laden_0": ((5.0, -3.1, 2.3), (7.2, 0.4, 1.0)),          # Tresen, Regale, Schild
     "Blick_Laden_L1": ((8.6, -3.0, 2.3), (4.8, -0.3, 1.0)),        # Regale, Tür in den Werkraum
     "Blick_Laden_R1": ((5.0, -0.3, 2.3), (8.8, -2.9, 1.0)),        # Tür zur Gasse, Fenster, Tresen
-    "Blick_Turm_0": ((1.2, 4.5, 2.8), (1.6, 7.6, 1.0)),            # Athanor, Blasebalg, Alembik
+    "Blick_Turm_0": ((1.25, 4.5, 2.8), (1.25, 7.6, 1.15)),         # Athanor, Blasebalg, Alembik (der Arbeiter nicht links oben)
     "Blick_Turm_L1": ((2.8, 4.7, 2.7), (-0.4, 7.6, 1.6)),          # Tierkreis, Bücher, Blasebalg
     "Blick_Turm_R1": ((-0.2, 5.0, 2.7), (3.5, 6.8, 1.0)),          # Alembik und Vorlage, Fenster
 }
@@ -214,26 +214,34 @@ def am_ort(netz, ort):
 
 
 def vermauert(netz, st, a, b, o, rueck=0.05):
-    """Die Türöffnung o in der Wand a → b (Raum links) ist mit Bruchstein zugemauert, etwas hinter der Innenseite, mit Fugen
-    (wie beim Steinmetz)."""
+    """Die Türöffnung o in der Wand a → b (Raum links) ist mit Bruchstein zugemauert, etwas hinter der Innenseite: eine
+    Mörtelfläche, davor Lagen einzelner Steine wie beim Durchbruch des Putzes (innenausbau.durchbruch)."""
     wand = ia.Wand(a, b, [o])
     u = wand.ops[0][0]
     u0, u1 = u - o.b / 2, u + o.b / 2
     netz.vieleck_nach([wand.p(u0, 0, -rueck), wand.p(u1, 0, -rueck), wand.p(u1, o.h, -rueck), wand.p(u0, o.h, -rueck)], wand.n,
-                      st["Bruch dunkel"])
+                      st["Moertel"])
     zufall = random.Random(int(abs(u) * 100))
-    f, w = 0.014, -rueck + 0.003
-    unten = 0.0
-    for z in (0.38, 0.78, 1.16, 1.52, 1.92):
-        if z > o.h - 0.1:
-            break
-        netz.vieleck_nach([wand.p(u0, z - f, w), wand.p(u1, z - f, w), wand.p(u1, z + f, w), wand.p(u0, z + f, w)], wand.n, st["Fuge"])
-        x = u0 + zufall.uniform(0.15, 0.45)
-        while x < u1 - 0.12:
-            netz.vieleck_nach([wand.p(x - 0.012, unten + f, w), wand.p(x + 0.012, unten + f, w), wand.p(x + 0.012, z - f, w),
-                               wand.p(x - 0.012, z - f, w)], wand.n, st["Fuge"])
-            x += zufall.uniform(0.35, 0.55)
-        unten = z
+    j = 0.013
+    v0 = 0.0
+    while v0 < o.h - 0.05:
+        v1 = min(v0 + zufall.uniform(0.2, 0.3), o.h)
+        if o.h - v1 < 0.12:
+            v1 = o.h
+        x0 = u0
+        while x0 < u1 - 0.05:
+            x1 = min(x0 + zufall.uniform(0.24, 0.42), u1)
+            if u1 - x1 < 0.12:
+                x1 = u1
+            ecken_ = [(x0 + j + zufall.uniform(0, 0.02), v0 + j + zufall.uniform(0, 0.015)),
+                      ((x0 + x1) / 2 + zufall.uniform(-0.04, 0.04), v0 + j + zufall.uniform(-0.005, 0.01)),
+                      (x1 - j - zufall.uniform(0, 0.02), v0 + j + zufall.uniform(0, 0.015)),
+                      (x1 - j - zufall.uniform(0, 0.02), v1 - j - zufall.uniform(0, 0.015)),
+                      ((x0 + x1) / 2 + zufall.uniform(-0.04, 0.04), v1 - j - zufall.uniform(-0.005, 0.01)),
+                      (x0 + j + zufall.uniform(0, 0.02), v1 - j - zufall.uniform(0, 0.015))]
+            netz.vieleck_nach([wand.p(x, y, -rueck + 0.005) for x, y in ecken_], wand.n, st[zufall.choice(ia.STEINE)])
+            x0 = x1
+        v0 = v1
 
 
 def fenster_und_licht(netz, st, kanten, oeffnungen, anker, stufe=1, dicke=WAND):
@@ -1313,6 +1321,19 @@ def main():
                 (WX0 - WAND, WX1 + WAND, WY0 - WAND, WY1 + WAND), DACH, {"Werk", "Laden", "Turm"}, bild=1 + int(1.5 * FPS), lampe=80,
                 fuell=[(0, 0, H_WERK - 0.4, 170, 1), (0, 0.3, Z_LAGER + 3.0, 90, 1), ((LX0 + LX1) / 2, (LY0 + LY1) / 2, H_LADEN - 0.4, 120, 2),
                        (TM.x, TM.y, H_TURM - 0.6, 170, 3)])
+    verkleinern(NAME + "-blicke", 0.875)
+
+
+def verkleinern(name, faktor):
+    """docs/modelle/<name>.png auf `faktor` verkleinern: 14 Blickpunkte zu 640 × 360 ergäben über 3 MB."""
+    import OpenImageIO as oiio
+    pfad = os.path.join(bs.VORSCHAU, name + ".png")
+    bild = oiio.ImageBuf(pfad)
+    spec = bild.spec()
+    klein = oiio.ImageBufAlgo.resize(bild, roi=oiio.ROI(0, round(spec.width * faktor), 0, round(spec.height * faktor), 0, 1, 0,
+                                                        spec.nchannels))
+    klein.write(pfad)
+    print("verkleinert:", pfad)
 
 
 if __name__ == "__main__":
