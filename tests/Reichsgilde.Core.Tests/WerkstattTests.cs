@@ -64,6 +64,17 @@ static class WerkstattTests
         return (w, k, m);
     }
 
+    /// <summary>Ein Haus mit Tinkturei ohne Karren, Lager mit Kräutern und Kröten gefüllt.</summary>
+    static (Stadtwirtschaft W, Konto K, Betrieb T) Tinkturei(Simulation sim, double vermoegen = 20_000)
+    {
+        var w = sim.Wirtschaft!;
+        var k = w.KontoEroeffnen("Haus Fuchs", startvermoegen: vermoegen);
+        var t = w.BetriebEroeffnen("Tinkturei am Domplatz", Betriebsart.Tinkturei, k, startkarren: "");
+        t.Einlagern("Kräuter", 40);
+        t.Einlagern("Kröte", 20);
+        return (w, k, t);
+    }
+
     static void BisUhrzeit(Simulation sim, int stunde)
     {
         while (sim.Zeit.UhrzeitInMinuten < stunde * 60) sim.Tick();
@@ -100,7 +111,7 @@ static class WerkstattTests
         ("Werkstatt: Daten – Abschnitt „werkstatt“ mit drei Lohnstufen und genau den sieben Stücken des Schmieds (Kennungen wie im Raummodell)", () =>
         {
             var d = Daten.Value.Werkstatt!;
-            Pruefe.Gleich(38, Daten.Value.Version);
+            Pruefe.Gleich(39, Daten.Value.Version);
             Pruefe.Ungefaehr(1, d.Stufe(Lohnstufe.Ueblich).LohnFaktor, 1e-12);
             Pruefe.Gleich(0.0, d.Stufe(Lohnstufe.Ueblich).Laune);
             Pruefe.Wahr(d.Stufe(Lohnstufe.Knapp).LohnFaktor < 1 && d.Stufe(Lohnstufe.Gut).LohnFaktor > 1, "Lohnfaktoren");
@@ -543,6 +554,121 @@ static class WerkstattTests
             var s = w.BetriebEroeffnen("Steinbruch Fuchs", Betriebsart.Steinbruch, k, startkarren: "");
             Pruefe.Gleich(0, w.Werkstaetten.Einrichtungsliste(s).Count);
             Abgelehnt(w, k, new EinrichtungKaufen(s.Name, "Regale"), "kein Stück „Regale“");
+        }),
+
+        ("Werkstatt: Daten – der Alchimist hat sieben Stücke (Kennungen wie im Raummodell) zu den Preisen des Schmieds, mit Destillierhelm statt Blasebalg und Handschuhen statt Schürzen", () =>
+        {
+            var d = Daten.Value.Werkstatt!;
+            var alchimist = d.EinrichtungFuer("Alchimist");
+            Pruefe.Gleich("Werkzeug1 Werkzeug2 Destillierhelm Regale Loeschfass Eisentuer Handschuhe", string.Join(" ", alchimist.Select(e => e.Kennung)));
+            Pruefe.Gleich("Gutes Werkzeug, Meisterwerkzeug, Kupferner Destillierhelm, Kräuterregale, Löschfass, Eisentür, Lederhandschuhe",
+                string.Join(", ", alchimist.Select(e => e.Name)));
+            foreach (var e in alchimist.Where(e => e.Kennung != "Destillierhelm"))
+            {
+                var schmied = d.Stueck("Schmied", e.Kennung == "Handschuhe" ? "Schuerzen" : e.Kennung)!;
+                Pruefe.Gleich(schmied.Preis, e.Preis, $"Preis {e.Kennung}");
+                Pruefe.Gleich(schmied.Wirkung.Text(), e.Wirkung.Text(), $"Wirkung {e.Kennung}");
+            }
+            Pruefe.Gleich(350.0, d.Stueck("Alchimist", "Destillierhelm")!.Preis);
+            Pruefe.Gleich("Werkzeug1", d.Stueck("Alchimist", "Werkzeug2")!.Voraussetzung);
+            Pruefe.Gleich(2, d.Stueck("Alchimist", "Werkzeug2")!.AbStufe);
+            Pruefe.Gleich("Kräuterschnaps Rosenwasser Gegengift Theriak", string.Join(" ", d.Stueck("Alchimist", "Destillierhelm")!.Wirkung.Waren));
+            Pruefe.Ungefaehr(0.5, d.Stueck("Alchimist", "Handschuhe")!.Wirkung.UnfallFaktor, 1e-12);
+            Pruefe.Wahr(d.Stueck("Alchimist", "Schuerzen") is null, "Der Alchimist hat Handschuhe, keine Schürzen");
+        }),
+
+        ("Werkstatt: Alchimist – Werkzeug spart Zeit bei allen Waren, der Destillierhelm nur bei Kräuterschnaps, Rosenwasser, Gegengift, Theriak; Kräuterregale geben Lager", () =>
+        {
+            var sim = NeueSimulation();
+            var (w, k, t) = Tinkturei(sim, vermoegen: 5_000);
+            Pruefe.Wahr(w.Werkstaetten.Einrichtungsliste(t) is { Count: 7 } l && l.All(e => !e.Gekauft), "sieben Stücke, keins gekauft");
+            Ok(w, k, new EinrichtungKaufen(t.Name, "Destillierhelm"));
+            Pruefe.Ungefaehr(4_650, k.Vermoegen, 1e-9);
+            Pruefe.Ungefaehr(350, k.Laufend.Investitionen, 1e-9);
+            foreach (var (ware, zeit) in new[] { ("Kräuterschnaps", 15.0), ("Rosenwasser", 50.0), ("Gegengift", 70.0), ("Theriak", 100.0) })
+                Pruefe.Ungefaehr(zeit * 0.9, t.MinutenJeStueck(ware), 1e-9);
+            foreach (var (ware, zeit) in new[] { ("Farbe", 30.0), ("Heilsalbe", 50.0), ("Zinnober", 100.0) })
+                Pruefe.Ungefaehr(zeit, t.MinutenJeStueck(ware), 1e-9); // gebrannt wird nur, was destilliert wird
+            Ok(w, k, new EinrichtungKaufen(t.Name, "Werkzeug1"));
+            Pruefe.Ungefaehr(15 * 0.81, t.MinutenJeStueck("Kräuterschnaps"), 1e-9);
+            Pruefe.Ungefaehr(50 * 0.9, t.MinutenJeStueck("Heilsalbe"), 1e-9);
+            Pruefe.Gleich(40, t.LagerKapazitaetJeWare);
+            Ok(w, k, new EinrichtungKaufen(t.Name, "Regale"));
+            Pruefe.Gleich(60, t.LagerKapazitaetJeWare);
+            foreach (var kennung in new[] { "Loeschfass", "Eisentuer", "Handschuhe" }) Ok(w, k, new EinrichtungKaufen(t.Name, kennung));
+            Pruefe.Gleich((0.5, 0.5, 0.5), (t.BrandFaktor, t.EinbruchFaktor, t.UnfallFaktor));
+            Pruefe.Ungefaehr(5_000 - 350 - 300 - 200 - 100 - 300 - 80, k.Vermoegen, 1e-9);
+            Abgelehnt(w, k, new EinrichtungKaufen(t.Name, "Schuerzen"), "kein Stück „Schuerzen“");
+            Abgelehnt(w, k, new EinrichtungKaufen(t.Name, "Flaschenzug"), "kein Stück „Flaschenzug“");
+            Abgelehnt(w, k, new EinrichtungKaufen(t.Name, "Werkzeug2"), "erst ab Stufe 2");
+            Ok(w, k, new ProduktWaehlen(t.Name, "Kräuterschnaps"));
+            Ok(w, k, new PersonalSetzen(t.Name, "Geselle", 1));
+            BisUhrzeit(sim, 14);
+            Pruefe.Wahr(t.ImLager("Kräuterschnaps") == 29, $"Kräuterschnaps mit Werkzeug und Destillierhelm: {t.ImLager("Kräuterschnaps")} (360 / 12,15 ≈ 29,6; ohne beides 360 / 15 = 24)");
+            var liste = w.Werkstaetten.Einrichtungsliste(t);
+            Pruefe.Gleich("10 % weniger Zeit je Stück (Kräuterschnaps, Rosenwasser, Gegengift, Theriak)", liste.Single(e => e.Kennung == "Destillierhelm").Wirkung);
+            Pruefe.Gleich("Kräuterregale", liste.Single(e => e.Kennung == "Regale").Name);
+            Pruefe.Gleich("20 mehr Lager je Ware", liste.Single(e => e.Kennung == "Regale").Wirkung);
+            Pruefe.Gleich("Lederhandschuhe", liste.Single(e => e.Kennung == "Handschuhe").Name);
+            Pruefe.Gleich("Unfälle halb so oft", liste.Single(e => e.Kennung == "Handschuhe").Wirkung);
+            Pruefe.Ungefaehr(0.03 * 0.5, w.Werkstaetten.UnfallGefahr(t), 1e-12); // Gefahr des Alchimisten je Arbeiter und Jahr
+        }),
+
+        ("Werkstatt: Alchimist – Lederhandschuhe halbieren die Unfälle in der Tinkturei (Gefahr und gezählt über viele Jahre)", () =>
+        {
+            int Zaehlen(bool handschuhe)
+            {
+                var sim = NeueSimulation(DatenMit(x => x["unfall"]!["gefahr"]!["Alchimist"] = 0.3), startwert: 77);
+                var w = sim.Wirtschaft!;
+                var k = w.KontoEroeffnen("Haus Fuchs", startvermoegen: 100_000);
+                for (var i = 0; i < 8; i++)
+                {
+                    var t = w.BetriebEroeffnen($"Tinkturei {i}", Betriebsart.Tinkturei, k, startkarren: "");
+                    Ok(w, k, new PersonalSetzen(t.Name, "Geselle", 2));
+                    if (handschuhe) Ok(w, k, new EinrichtungKaufen(t.Name, "Handschuhe"));
+                    Pruefe.Ungefaehr(handschuhe ? 0.15 : 0.3, w.Werkstaetten.UnfallGefahr(t), 1e-12);
+                }
+                var zahl = 0;
+                w.Meldung += m => { if (m.StartsWith("Unfall in Tinkturei")) zahl++; };
+                JahreSimulieren(sim, 20);
+                return zahl;
+            }
+            var ohne = Zaehlen(false);
+            var mit = Zaehlen(true);
+            // Je Arbeiter und Jahr höchstens ein Unfall (danach fehlt er): 1 − (1 − 0,3/12)^12 ≈ 26 %, mit Handschuhen ≈ 14 %.
+            Pruefe.Wahr(ohne is > 60 and < 110, $"ohne Handschuhe {ohne} Unfälle (erwartet ≈ 84)");
+            Pruefe.Wahr(mit / (double)ohne is > 0.35 and < 0.72, $"mit Handschuhen {mit}, ohne {ohne}");
+        }),
+
+        ("Werkstatt: Alchimist – Meisterwerkzeug erst ab dem Kräuterladen und nur mit gutem Werkzeug; die Einrichtung gilt in allen drei Stufen, nicht im Kräutergarten", () =>
+        {
+            var sim = NeueSimulation();
+            var (w, k, t) = Tinkturei(sim);
+            Ok(w, k, new EinrichtungKaufen(t.Name, "Regale"));
+            Ok(w, k, new EinrichtungKaufen(t.Name, "Destillierhelm"));
+            Abgelehnt(w, k, new EinrichtungKaufen(t.Name, "Werkzeug2"), "erst ab Stufe 2");
+            t.Ausbauen(Betriebsart.Kraeuterladen, 0);
+            Pruefe.Gleich(7, w.Werkstaetten.Einrichtungsliste(t).Count);
+            Pruefe.Wahr(t.HatEinrichtung("Regale") && t.LagerKapazitaetJeWare == 60, "Kräuterregale nach dem Ausbau");
+            Abgelehnt(w, k, new EinrichtungKaufen(t.Name, "Werkzeug2"), "Erst braucht es: Gutes Werkzeug");
+            Ok(w, k, new EinrichtungKaufen(t.Name, "Werkzeug1"));
+            Ok(w, k, new EinrichtungKaufen(t.Name, "Werkzeug2"));
+            Pruefe.Ungefaehr(50 * 0.81, t.MinutenJeStueck("Heilsalbe"), 1e-9);
+            Pruefe.Ungefaehr(50 * 0.729, t.MinutenJeStueck("Rosenwasser"), 1e-9);
+            Pruefe.Ungefaehr(70 * 0.729, t.MinutenJeStueck("Gegengift"), 1e-9);
+            t.Ausbauen(Betriebsart.Alchimistenstube, 0);
+            Pruefe.Gleich(3, t.Stufe);
+            var liste = w.Werkstaetten.Einrichtungsliste(t);
+            Pruefe.Gleich(7, liste.Count);
+            Pruefe.Gleich("Werkzeug1 Werkzeug2 Destillierhelm Regale", string.Join(" ", liste.Where(e => e.Gekauft).Select(e => e.Kennung)));
+            Pruefe.Ungefaehr(100 * 0.729, t.MinutenJeStueck("Theriak"), 1e-9);
+            Pruefe.Ungefaehr(100 * 0.81, t.MinutenJeStueck("Zinnober"), 1e-9);
+            Pruefe.Ungefaehr(30 * 0.81, t.MinutenJeStueck("Farbe"), 1e-9);
+            // Der Kräutergarten gehört auch zum Alchimisten, ist aber keine Werkstatt.
+            var g = w.BetriebEroeffnen("Kräutergarten Fuchs", Betriebsart.Kraeutergarten, k, startkarren: "");
+            Pruefe.Gleich(0, w.Werkstaetten.Einrichtungsliste(g).Count);
+            Abgelehnt(w, k, new EinrichtungKaufen(g.Name, "Regale"), "kein Stück „Regale“");
+            Pruefe.Gleich(0.0, w.Werkstaetten.UnfallGefahr(g));
         }),
 
         ("Werkstatt: Beim Verkauf zählt die Einrichtung zum Wert und bleibt im Haus für den nächsten Käufer", () =>

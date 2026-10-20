@@ -166,6 +166,13 @@ So wird eingetragen (damit sich die Chats nie an derselben Stelle treffen):
 | Stücke | Wie beim Schmied und Tischler, mit Flaschenzug am Dreibein statt Blasebalg: Gutes Werkzeug (−10 % Zeit), Meisterwerkzeug (ab Stufe 2, braucht Gutes Werkzeug, −10 %), Flaschenzug (−10 % für Mühlstein, Säule, Taufbecken, Grabmal), Steingestell (60 statt 40 je Ware), Löschfass, Eisentür, Lederschürzen. Gleiche Preise. Nur Daten. | 20.10.2026 |
 | Daten | `werkstatt.einrichtung.Steinmetz` mit den Kennungen `Werkzeug1`, `Werkzeug2`, `Flaschenzug` (350 Gulden), `Regale` (Name „Steingestell“), `Loeschfass`, `Eisentuer`, `Schuerzen` – wie die Knoten `Einrichtung_<Kennung>` im Raummodell. Gilt für Maurerei, Steinschneiderei und Steinmetzhütte, nicht für den Steinbruch (keine Werkstatt). **Datenversion 38.** Keine Messung: Die KI-Häuser kaufen keine Einrichtung. | 20.10.2026 |
 
+### Einrichtung des Alchimisten (PR #160)
+
+| Thema | Entscheidung | Datum |
+|---|---|---|
+| Stücke | Wie bei den anderen Werkstätten, mit kupfernem Destillierhelm statt Blasebalg: Gutes Werkzeug (Mörser und Spatel, −10 % Zeit), Meisterwerkzeug (ab Stufe 2, braucht Gutes Werkzeug, −10 %), Destillierhelm (−10 % für Kräuterschnaps, Rosenwasser, Gegengift, Theriak), Kräuterregale (60 statt 40 je Ware), Löschfass, Eisentür, Lederhandschuhe (Unfälle halb so oft). Gleiche Preise. Nur Daten. | 20.10.2026 |
+| Daten | `werkstatt.einrichtung.Alchimist` mit den Kennungen `Werkzeug1`, `Werkzeug2`, `Destillierhelm` (Name „Kupferner Destillierhelm“, 350 Gulden), `Regale` (Name „Kräuterregale“), `Loeschfass`, `Eisentuer`, `Handschuhe` (Name „Lederhandschuhe“, 80 Gulden, neue Kennung statt `Schuerzen`) – wie die Knoten `Einrichtung_<Kennung>` im Raummodell. Gilt für Tinkturei, Kräuterladen und Alchimistenstube, nicht für den Kräutergarten (keine Werkstatt). **Datenversion 39.** Keine Messung: Die KI-Häuser kaufen keine Einrichtung. | 20.10.2026 |
+
 ## Messungen
 
 Messungen des Kerns stehen in `docs/WIRTSCHAFTSMODELL.md` (nur der Kern schreibt dort).
