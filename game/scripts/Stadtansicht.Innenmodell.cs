@@ -14,7 +14,7 @@ namespace Reichsgilde;
 /// <item><c>Raum_Werk</c>, <c>Raum_Lager</c>, <c>Raum_Saege</c>, <c>Raum_Huette</c> – die Räume (glTF-extras „stufe“ auf dem Raumknoten: erst ab dieser Betriebsstufe da,
 /// so die Sägehalle des Tischlers und die Bauhütte des Steinmetzen ab Stufe 3, siehe <see cref="ModellRaeume"/>); <c>Blick_&lt;Raum&gt;_&lt;0|L1|R1|O1|U1…&gt;</c> – feste Blickpunkte der Kamera (Stadtansicht.Innenkamera.cs)</item>
 /// <item><c>Stufe1</c>–<c>Stufe3</c> – Ausstattung der Betriebsstufe (genau eine sichtbar); <c>Einrichtung_&lt;Kennung&gt;</c> – gekaufte Einrichtung (erst nach dem Kauf sichtbar)</item>
-/// <item><c>Bedienung_&lt;Tafel&gt;_&lt;Name&gt;</c> und <c>Tuer_&lt;von&gt;_&lt;nach&gt;</c> – anklickbare Gegenstände (Klickfläche aus dem Umriss des Netzes; eine Tür mit „stufe“ ist darunter unsichtbar und nicht anklickbar)</item>
+/// <item><c>Bedienung_&lt;Tafel&gt;_&lt;Name&gt;</c> und <c>Tuer_&lt;von&gt;_&lt;nach&gt;</c> – anklickbare Gegenstände (Klickfläche aus dem Umriss des Netzes; eine Tür mit „stufe“ ist darunter unsichtbar und nicht anklickbar, extras „schild“ ersetzt ihren Namen unter der Maus)</item>
 /// <item><c>Arbeit_&lt;n&gt;_&lt;Bewegung&gt;</c> – Arbeitsplätze (extras „requisit“: ersetzt die Werkzeuge der Bewegung, „keins“ = keine); <c>Werkstueck_&lt;n&gt;</c> – Stück in Arbeit; <c>Lager_&lt;n&gt;</c> – Stellplätze der Warenstapel; <c>Licht_&lt;n&gt;</c> – Lichter (extras „art“: Glut, Fenster, Lampe)</item>
 /// <item><c>Spaene1</c>–<c>Spaene3</c> – Hobelspäne, höchstens einer sichtbar, nach der Arbeit des Tages; die Animation „Arbeit“ des Modells läuft als Schleife, solange gearbeitet wird</item>
 /// </list>
@@ -272,7 +272,8 @@ public partial class Stadtansicht
                 InnenKlickAnlegen(a, md, knoten, $"bedienung:{teile[1]}:{teile[2]}");
                 break;
             case "Tuer" when teile.Length >= 3:
-                InnenKlickAnlegen(a, md, knoten, $"tuer:{teile[1]}:{teile[2]}");
+                // extras „schild“: eigener Text fürs Schild, z. B. „Treppe zum Lager“, wenn die Tür eine Treppe oder Luke ist
+                InnenKlickAnlegen(a, md, knoten, $"tuer:{teile[1]}:{teile[2]}" + (ExtraText(knoten, "schild") is { Length: > 0 } schild ? ":" + schild : ""));
                 if (ExtraZahl(knoten, "stufe", 1) is > 1 and var tuerStufe) md.StufenKnoten.Add((knoten, tuerStufe)); // die Tür zur Sägehalle gibt es erst mit ihr
                 break;
             case "Spaene1" or "Spaene2" or "Spaene3" when teile.Length == 1:
@@ -745,6 +746,8 @@ public partial class Stadtansicht
                     ("Einrichten", _) => ("Werkzeugwand", "Klick: Einrichtung kaufen"),
                     _ => (teile[2], ""),
                 };
+            case "tuer" when teile.Length >= 4:
+                return (string.Join(':', teile[3..]), "Klick: Raum wechseln");
             case "tuer" when teile.Length >= 3:
                 return (teile[2] switch { "Lager" => "Tür zum Lager", "Saege" => "Tür zur Sägehalle", "Huette" => "Tür zur Bauhütte", _ => "Tür zum Werkraum" }, "Klick: Raum wechseln");
             case "einrichtung" when teile.Length >= 2:
