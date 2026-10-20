@@ -401,7 +401,7 @@ public partial class Stadtansicht : Node3D
 
     public override void _Ready()
     {
-        HolzschnittEinrichten(); // vor dem Aufbau: Ist der Stil an, bekommt jeder neue Knoten sein Material (Stadtansicht.Holzschnitt.cs)
+        OberflaecheEinrichten(); // vor dem Aufbau: Sind die Oberflächendetails an, bekommt jeder neue Knoten sein Material (Stadtansicht.Oberflaechendetails.cs)
         UmgebungUndLicht();
         KameraAufbauen();
         SchattenEinrichten(); // braucht Sonne und Kamera (Stadtansicht.Licht.cs)
@@ -567,7 +567,7 @@ public partial class Stadtansicht : Node3D
     {
         Fenster.BloomGeaendert -= BloomNachfuehren;
         Fenster.VerdeckungGeaendert -= VerdeckungNachfuehren;
-        HolzschnittAufgeben();
+        OberflaecheAufgeben();
         if (_wirtschaft is not null) _wirtschaft.BetriebAbgegeben -= BetriebEntfernen;
     }
 
@@ -1038,7 +1038,7 @@ public partial class Stadtansicht : Node3D
     public override void _Process(double delta)
     {
         SchattenNachfuehren(); // Zoom, Fenstergröße oder Schattenqualität geändert? (Stadtansicht.Licht.cs)
-        HolzschnittBild();     // Umgebungslicht, Umriss und umgefärbte Materialien des Holzschnitt-Stils (Stadtansicht.Holzschnitt.cs)
+        OberflaecheBild();     // umgefärbte Materialien der Oberflächendetails nachziehen (Stadtansicht.Oberflaechendetails.cs)
 
         // Beschriftungen mitskalieren, damit sie bei jedem Zoom gleich groß wirken.
         var massstab = _raum is not null ? RaumSchildMassstab : _kamera.Size / BezugsZoom;
@@ -1186,8 +1186,8 @@ public partial class Stadtansicht : Node3D
     private static StandardMaterial3D Material(Color farbe) => new() { AlbedoColor = farbe, Roughness = 0.95f, ResourceName = StoffNamen.GetValueOrDefault(farbe, "") };
 
     /// <summary>
-    /// Namen für die Farben der Greybox (Wiese, Pflaster, Mauerstein …): Der Holzschnitt-Stil sucht über den Namen die Materialart
-    /// (Gras, Pflaster, Holz …, <c>materialarten.json</c>), die Farben selbst kennt er nicht. Das Spiel liest diese Namen sonst nicht.
+    /// Namen für die Farben der Greybox (Wiese, Pflaster, Mauerstein …): Die Oberflächendetails suchen über den Namen die Materialart
+    /// (Gras, Pflaster, Holz …, <c>materialarten.json</c>), die Farben selbst kennen sie nicht. Das Spiel liest diese Namen sonst nicht.
     /// </summary>
     private static readonly Dictionary<Color, string> StoffNamen = new()
     {
