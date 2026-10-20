@@ -3,31 +3,31 @@ using Godot;
 namespace Reichsgilde;
 
 /// <summary>
-/// Der Holzschnitt-Stil als Grafikoption: Diese Klasse macht aus den Materialien des Spiels Holzschnitt-Materialien
-/// (<c>holzschnitt.gdshader</c>) und gibt dem Spiel seine Materialien zurück, wenn der Stil ausgeschaltet wird.
-/// Verdrahtet wird sie von der Stadtansicht (<c>Stadtansicht.Holzschnitt.cs</c>): Dort stehen der Schalter, der neue Knoten
-/// erfasst, und der Umriss.
+/// Die Oberflächendetails als Grafikoption: Diese Klasse macht aus den Materialien des Spiels Materialien mit Oberflächenstruktur
+/// (<c>oberflaeche.gdshader</c>: Mauerwerk, Ziegel, Stroh, Maserung, Laub, Boden …) und gibt dem Spiel seine Materialien zurück,
+/// wenn die Option ausgeschaltet wird. Verdrahtet wird sie von der Stadtansicht (<c>Stadtansicht.Oberflaechendetails.cs</c>): Dort
+/// stehen der Schalter und die Knoten, die neu dazukommen.
 ///
 /// <b>Das Spiel behält seine Materialien.</b> Die Modelle und die Grundkörper behalten ihre <see cref="StandardMaterial3D"/>
-/// (das Spiel liest ihren Namen, färbt sie um und schaltet ihr Leuchten), und der Holzschnitt-Stil legt sich beim
-/// <see cref="RenderingServer"/> darüber: Je Fläche bekommt die Instanz dort ein Holzschnitt-Material
+/// (das Spiel liest ihren Namen, färbt sie um und schaltet ihr Leuchten), und die Oberflächendetails legen sich beim
+/// <see cref="RenderingServer"/> darüber: Je Fläche bekommt die Instanz dort ein Material mit Struktur
 /// (<see cref="RenderingServer.InstanceSetSurfaceOverrideMaterial"/>, bei einem <see cref="GeometryInstance3D.MaterialOverride"/>
 /// <see cref="RenderingServer.InstanceGeometrySetMaterialOverride"/>). Die Eigenschaften der Knoten ändern sich dabei nicht.
 /// Ausschalten heißt darum nur: den Wert der Knoten wieder an den RenderingServer geben.
 ///
-/// <b>Je Ausgangsmaterial ein Holzschnitt-Material.</b> Was sich Knoten teilen, bleibt geteilt, die Zeichenaufrufe steigen nicht
+/// <b>Je Ausgangsmaterial ein Material mit Struktur.</b> Was sich Knoten teilen, bleibt geteilt, die Zeichenaufrufe steigen nicht
 /// (<see cref="Ableiten"/>). Färbt das Spiel ein Ausgangsmaterial um (Hausfarbe, Laub je Jahreszeit, Werkstück), zieht
 /// <see cref="Abgleichen"/> die Farbe nach: reihum, ein kleines Stück je Bild.
 ///
-/// <b>MultiMesh</b> (Natur, Mauer) kennt keine Überschreibung je Fläche: Dort kommt eine Kopie des Netzes mit
-/// Holzschnitt-Materialien an die Stelle des Netzes (<see cref="Netz"/>), beim Ausschalten wieder das Original.
+/// <b>MultiMesh</b> (Natur, Mauer) kennt keine Überschreibung je Fläche: Dort kommt eine Kopie des Netzes mit den neuen
+/// Materialien an die Stelle des Netzes (<see cref="Netz"/>), beim Ausschalten wieder das Original.
 /// </summary>
-internal sealed class Holzschnitt
+internal sealed class Oberflaechendetails
 {
-    private const string ShaderPfad = "res://shader/holzschnitt.gdshader";
+    private const string ShaderPfad = "res://shader/oberflaeche.gdshader";
     private const string FigurShaderPfad = "res://shader/figur.gdshader";
-    private const string ArtenPfad = "res://assets/holzschnitt/materialarten.json";
-    private static readonly string[] Texturen = { "schraffur", "papier", "struktur_a", "struktur_b" };
+    private const string ArtenPfad = "res://assets/oberflaeche/materialarten.json";
+    private const string StrukturenPfad = "res://assets/oberflaeche/strukturen.png";
 
     /// <summary>Diese Materialien leuchten oder spiegeln und behalten ihr Aussehen (Namen wie in <c>docs/bereiche/darstellung.md</c>).</summary>
     private static readonly HashSet<string> Behalten = new() { "Glut", "Fenster", "Glas", "Wasser" };
@@ -36,7 +36,7 @@ internal sealed class Holzschnitt
     private static readonly HashSet<string> JeFlaeche = new() { "Farben", "Figur" };
 
     private readonly Shader _shader = GD.Load<Shader>(ShaderPfad);
-    private readonly Texture2D[] _texturen = Texturen.Select(n => GD.Load<Texture2D>($"res://assets/holzschnitt/{n}.png")).ToArray();
+    private readonly TextureLayered _strukturen = GD.Load<TextureLayered>(StrukturenPfad);
     private readonly Dictionary<string, int> _artNamen = new();
     private readonly List<(string Teil, int Art)> _artTeile = new();
     private readonly int _artFigur;
@@ -45,10 +45,10 @@ internal sealed class Holzschnitt
     private readonly record struct Tracht(Color Gewand, Color Beinkleid, Color Haut, Color Haar, Color Kopf);
     private readonly Dictionary<Tracht, ShaderMaterial> _trachten = new();
 
-    /// <summary>Zu jedem Ausgangsmaterial sein Holzschnitt-Material; null = bleibt, wie es ist (leuchtet, ist durchsichtig …).</summary>
+    /// <summary>Zu jedem Ausgangsmaterial sein Material mit Struktur; null = bleibt, wie es ist (leuchtet, ist durchsichtig, hat keine Struktur …).</summary>
     private readonly Dictionary<Material, ShaderMaterial?> _abgeleitet = new();
 
-    /// <summary>Ausgangsmaterial und Holzschnitt-Material mit der Farbe, die zuletzt übertragen wurde (<see cref="Abgleichen"/>).</summary>
+    /// <summary>Ausgangsmaterial und abgeleitetes Material mit der Farbe, die zuletzt übertragen wurde (<see cref="Abgleichen"/>).</summary>
     private readonly List<Spiegel> _spiegel = new();
     private int _naechster;
 
@@ -63,7 +63,7 @@ internal sealed class Holzschnitt
         public Color Zuletzt { get; set; }
     }
 
-    public Holzschnitt()
+    public Oberflaechendetails()
     {
         if (Json.ParseString(Godot.FileAccess.GetFileAsString(ArtenPfad)).AsGodotDictionary() is { Count: > 0 } tabelle)
         {
@@ -76,7 +76,7 @@ internal sealed class Holzschnitt
                 _artTeile.Add((paar[0].AsString(), arten[paar[1].AsString()].AsInt32()));
             }
         }
-        else GD.PushError($"Holzschnitt: {ArtenPfad} fehlt oder ist leer.");
+        else GD.PushError($"Oberflächendetails: {ArtenPfad} fehlt oder ist leer.");
         _artFigur = ArtVon("Figur");
     }
 
@@ -94,9 +94,10 @@ internal sealed class Holzschnitt
     // ═════════════════════════════════════════════════════════════════════════
 
     /// <summary>
-    /// Das Holzschnitt-Material zu einem Ausgangsmaterial – oder null, wenn es bleiben soll: Glut, Fenster, Glas und Wasser
-    /// (Namen), alles Leuchtende, Durchsichtige und Unbeschattete (Auswahlring, Baumodus, Hilfslinien) und Materialien mit Textur.
-    /// Auch fremde Shader bleiben (Fahnen); das Figurenmaterial (<c>figur.gdshader</c>) hängt von der Figur ab und kommt aus <see cref="FigurStoff"/>.
+    /// Das Material mit Struktur zu einem Ausgangsmaterial – oder null, wenn es bleiben soll: Glut, Fenster, Glas und Wasser
+    /// (Namen), alles Leuchtende, Durchsichtige und Unbeschattete (Auswahlring, Baumodus, Hilfslinien), Materialien mit Textur
+    /// und Materialien ohne Struktur (Art „keine“, etwa Putz, Eisen, Leder). Auch fremde Shader bleiben (Fahnen); das
+    /// Figurenmaterial (<c>figur.gdshader</c>) hängt von der Figur ab und kommt aus <see cref="FigurStoff"/>.
     /// Je Ausgangsmaterial wird nur einmal abgeleitet.
     /// </summary>
     public ShaderMaterial? Ableiten(Material? quelle)
@@ -113,23 +114,28 @@ internal sealed class Holzschnitt
         if (Behalten.Contains(name) || stoff.Transparency != BaseMaterial3D.TransparencyEnum.Disabled
             || stoff.ShadingMode == BaseMaterial3D.ShadingModeEnum.Unshaded || stoff.EmissionEnabled || stoff.AlbedoTexture is not null)
             return null;
+        var jeFlaeche = JeFlaeche.Contains(name);
+        var art = ArtVon(name);
+        if (art == 0 && !jeFlaeche) return null; // ohne Struktur sähe das Material genauso aus wie vorher
 
         var ziel = Neu(name);
-        var jeFlaeche = JeFlaeche.Contains(name);
         ziel.SetShaderParameter("farbe", stoff.AlbedoColor);
-        ziel.SetShaderParameter("eckenfarbe", jeFlaeche);
+        ziel.SetShaderParameter("eckenfarbe", jeFlaeche || stoff.VertexColorUseAsAlbedo);
         ziel.SetShaderParameter("art_aus_uv", jeFlaeche);
-        ziel.SetShaderParameter("art", ArtVon(name));
+        ziel.SetShaderParameter("art", art);
         ziel.SetShaderParameter("zonen", name == "Figur");
+        ziel.SetShaderParameter("rauheit", stoff.Roughness);
+        ziel.SetShaderParameter("metall", stoff.Metallic);
+        ziel.SetShaderParameter("glanz", stoff.MetallicSpecular);
         _spiegel.Add(new Spiegel { Quelle = stoff, Ziel = ziel, Zuletzt = stoff.AlbedoColor });
         return ziel;
     }
 
     /// <summary>
-    /// Das Holzschnitt-Material einer Figur: Zone und Grundfarbe je Fläche stehen im Netz (UV.x, Eckenfarbe), die Farben von Gewand, Haut,
+    /// Das Material einer Figur: Zone und Grundfarbe je Fläche stehen im Netz (UV.x, Eckenfarbe), die Farben von Gewand, Haut,
     /// Haar … je Figur setzt das Spiel als Instanz-Uniform am Knoten (<c>figur.gdshader</c>). Hier werden sie zu gewöhnlichen Uniforms eines
     /// Materials je Tracht: Jede Instanz mit Instanz-Uniform belegt 16 Plätze im Puffer der Grafikkarte (4096 in Forward+, 256 im
-    /// Compatibility-Renderer), und der Holzschnitt gilt für alle Knoten der Stadt.
+    /// Compatibility-Renderer), und die Oberflächendetails gelten für alle Knoten der Stadt.
     /// </summary>
     private ShaderMaterial FigurStoff(GeometryInstance3D knoten)
     {
@@ -147,18 +153,19 @@ internal sealed class Holzschnitt
         figur.SetShaderParameter("haut", tracht.Haut);
         figur.SetShaderParameter("haar", tracht.Haar);
         figur.SetShaderParameter("kopfbedeckung", tracht.Kopf);
+        figur.SetShaderParameter("rauheit", 0.9f); // wie figur.gdshader
         return _trachten[tracht] = figur;
     }
 
     private ShaderMaterial Neu(string name)
     {
         var material = new ShaderMaterial { Shader = _shader, ResourceName = name };
-        for (var i = 0; i < Texturen.Length; i++) material.SetShaderParameter(Texturen[i], _texturen[i]);
+        material.SetShaderParameter("strukturen", _strukturen);
         return material;
     }
 
     /// <summary>
-    /// Zieht die Farbe der Holzschnitt-Materialien nach, wenn das Spiel das Ausgangsmaterial umgefärbt hat (Hausfarbe, Laub, Werkstück).
+    /// Zieht die Farbe der abgeleiteten Materialien nach, wenn das Spiel das Ausgangsmaterial umgefärbt hat (Hausfarbe, Laub, Werkstück).
     /// Reihum, etwa alle 10 Bilder ist jedes einmal dran: eine Abfrage je Material kostet wenig, alle zugleich wären zu viel.
     /// </summary>
     public void Abgleichen()
@@ -181,7 +188,7 @@ internal sealed class Holzschnitt
     // ═════════════════════════════════════════════════════════════════════════
 
     /// <summary>
-    /// Gibt dem Knoten beim RenderingServer die Holzschnitt-Materialien. Maßgeblich ist, was das Spiel am Knoten eingestellt hat:
+    /// Gibt dem Knoten beim RenderingServer die Materialien mit Struktur. Maßgeblich ist, was das Spiel am Knoten eingestellt hat:
     /// ein <see cref="GeometryInstance3D.MaterialOverride"/> gilt für alle Flächen, sonst je Fläche die Überschreibung des Knotens
     /// oder das Material des Netzes. Wiederholbar: Nach einer Änderung am Knoten stellt ein neuer Aufruf alles wieder richtig.
     /// </summary>
@@ -204,7 +211,7 @@ internal sealed class Holzschnitt
         }
     }
 
-    /// <summary>Gibt dem RenderingServer wieder an, was das Spiel am Knoten eingestellt hat – so, als hätte es den Holzschnitt nie gegeben.</summary>
+    /// <summary>Gibt dem RenderingServer wieder an, was das Spiel am Knoten eingestellt hat – so, als hätte es die Oberflächendetails nie gegeben.</summary>
     public static void Zuruecksetzen(MeshInstance3D knoten)
     {
         var instanz = knoten.GetInstance();
@@ -218,13 +225,15 @@ internal sealed class Holzschnitt
     // ═════════════════════════════════════════════════════════════════════════
 
     /// <summary>
-    /// Das Netz mit Holzschnitt-Materialien: eine Kopie des Originals, einmal je Netz. Ein Netz, das schon eine Kopie ist, bleibt, wie es ist.
-    /// Die Flächen ohne Holzschnitt-Material (Glut, Glas …) behalten ihr Material.
+    /// Das Netz mit den Materialien mit Struktur: eine Kopie des Originals, einmal je Netz. Ein Netz, das schon eine Kopie ist, bleibt,
+    /// wie es ist. Die Flächen ohne abgeleitetes Material (Glut, Glas, Art „keine“ …) behalten ihr Material.
     /// </summary>
     public Mesh Netz(Mesh original)
     {
         if (_netzOriginale.ContainsKey(original)) return original;
         if (_netze.TryGetValue(original, out var kopie)) return kopie;
+        if (Enumerable.Range(0, original.GetSurfaceCount()).All(i => Ableiten(original.SurfaceGetMaterial(i)) is null))
+            return _netze[original] = original; // nichts mit Struktur: keine Kopie nötig
         var neu = new ArrayMesh();
         for (var i = 0; i < original.GetSurfaceCount(); i++)
         {
@@ -237,7 +246,7 @@ internal sealed class Holzschnitt
         return neu;
     }
 
-    /// <summary>Stellt das Netz eines MultiMesh auf die Kopie mit Holzschnitt-Materialien um (auch nach einem Netzwechsel, etwa im Winter).</summary>
+    /// <summary>Stellt das Netz eines MultiMesh auf die Kopie mit Struktur um (auch nach einem Netzwechsel, etwa im Winter).</summary>
     public void Umstellen(MultiMeshInstance3D knoten)
     {
         if (knoten.Multimesh is { Mesh: { } netz } vielfach) vielfach.Mesh = Netz(netz);

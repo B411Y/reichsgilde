@@ -40,8 +40,8 @@ also zugleich die Lage im Modell):
                                 „Fenster“ als Himmel
     Schlot2                     unter Raum_Lager: Schlot der zweiten Esse im Dachboden, extras „stufe“ = 2 (gehört zum Lager
                                 und seiner Lichtebene, nicht zu Stufe2/Stufe3 im Werkraum)
-Materialien: „Farben“ (Eckenfarben, innenausbau.farben_zusammenlegen mit dem Rußverlauf; die Materialart für den
-Holzschnitt je Fläche als UV.y, bausteine.arten_setzen – „keine“, wo das Modell Steine, Ziegel oder Bretter schon
+Materialien: „Farben“ (Eckenfarben, innenausbau.farben_zusammenlegen mit dem Rußverlauf; die Materialart für die
+Oberflächendetails je Fläche als UV.y, bausteine.arten_setzen – „keine“, wo das Modell Steine, Ziegel oder Bretter schon
 zeichnet), dazu „Glut“ (Esse, leuchtet), „Fenster“ (Scheiben, Himmel hinter der Ladeluke),
 „Hausfarbe“ (Tore und Türen), „Eisen“, „Wasser“, „Gold“.
 """
