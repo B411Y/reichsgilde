@@ -9,13 +9,13 @@ namespace Reichsgilde;
 /// Innenräume aus Blender-Modellen – elfter Teil der <c>partial class Stadtansicht</c> (PR #152).
 ///
 /// Ein Beruf bekommt seinen Innenraum, indem <see cref="InnenModellDatei"/> eine Datei nennt (Schmied: <c>schmied_innen.glb</c>, Tischler:
-/// <c>tischler_innen.glb</c>). Alles Weitere liest dieses Gerüst aus den Knotennamen des Modells (Verträge: <c>docs/bereiche/darstellung.md</c>):
+/// <c>tischler_innen.glb</c>, Steinmetz: <c>steinmetz_innen.glb</c>). Alles Weitere liest dieses Gerüst aus den Knotennamen des Modells (Verträge: <c>docs/bereiche/darstellung.md</c>):
 /// <list type="bullet">
-/// <item><c>Raum_Werk</c>, <c>Raum_Lager</c>, <c>Raum_Saege</c> – die Räume (glTF-extras „stufe“ auf dem Raumknoten: erst ab dieser Betriebsstufe da, so die
-/// Sägehalle ab Stufe 3); <c>Blick_&lt;Raum&gt;_&lt;0|L1|R1|O1|U1…&gt;</c> – feste Blickpunkte der Kamera (Stadtansicht.Innenkamera.cs)</item>
+/// <item><c>Raum_Werk</c>, <c>Raum_Lager</c>, <c>Raum_Saege</c>, <c>Raum_Huette</c> – die Räume (glTF-extras „stufe“ auf dem Raumknoten: erst ab dieser Betriebsstufe da,
+/// so die Sägehalle des Tischlers und die Bauhütte des Steinmetzen ab Stufe 3, siehe <see cref="ModellRaeume"/>); <c>Blick_&lt;Raum&gt;_&lt;0|L1|R1|O1|U1…&gt;</c> – feste Blickpunkte der Kamera (Stadtansicht.Innenkamera.cs)</item>
 /// <item><c>Stufe1</c>–<c>Stufe3</c> – Ausstattung der Betriebsstufe (genau eine sichtbar); <c>Einrichtung_&lt;Kennung&gt;</c> – gekaufte Einrichtung (erst nach dem Kauf sichtbar)</item>
 /// <item><c>Bedienung_&lt;Tafel&gt;_&lt;Name&gt;</c> und <c>Tuer_&lt;von&gt;_&lt;nach&gt;</c> – anklickbare Gegenstände (Klickfläche aus dem Umriss des Netzes; eine Tür mit „stufe“ ist darunter unsichtbar und nicht anklickbar)</item>
-/// <item><c>Arbeit_&lt;n&gt;_&lt;Bewegung&gt;</c> – Arbeitsplätze; <c>Werkstueck_&lt;n&gt;</c> – Stück in Arbeit; <c>Lager_&lt;n&gt;</c> – Stellplätze der Warenstapel; <c>Licht_&lt;n&gt;</c> – Lichter (extras „art“: Glut, Fenster, Lampe)</item>
+/// <item><c>Arbeit_&lt;n&gt;_&lt;Bewegung&gt;</c> – Arbeitsplätze (extras „requisit“: ersetzt die Werkzeuge der Bewegung, „keins“ = keine); <c>Werkstueck_&lt;n&gt;</c> – Stück in Arbeit; <c>Lager_&lt;n&gt;</c> – Stellplätze der Warenstapel; <c>Licht_&lt;n&gt;</c> – Lichter (extras „art“: Glut, Fenster, Lampe)</item>
 /// <item><c>Spaene1</c>–<c>Spaene3</c> – Hobelspäne, höchstens einer sichtbar, nach der Arbeit des Tages; die Animation „Arbeit“ des Modells läuft als Schleife, solange gearbeitet wird</item>
 /// </list>
 /// Der Raum folgt dem Kern: Stufe, Einrichtung, Glut, Arbeiter, Werkstücke und Warenstapel werden nur angefasst, wenn sich etwas geändert hat.
@@ -27,7 +27,34 @@ public partial class Stadtansicht
     {
         Werkstil.Giesserei => "schmied_innen",
         Werkstil.Tischlerei => "tischler_innen",
+        Werkstil.Maurerei => "steinmetz_innen",
         _ => null,
+    };
+
+    /// <summary>
+    /// Die Räume, die ein Innenmodell haben kann, in der Reihenfolge der Raumleiste: Kennung, Schlüssel im Knotennamen (<c>Raum_&lt;Schlüssel&gt;</c>, <c>Blick_&lt;Schlüssel&gt;_…</c>,
+    /// <c>Tuer_&lt;von&gt;_&lt;nach&gt;</c>), Name in der Leiste und ab welcher Betriebsstufe es den Raum gibt, wenn die extras „stufe“ am Raumknoten fehlen.
+    /// Hat das Modell einen Raum nicht (keine Blickpunkte), fehlt er einfach. Ein weiterer Raum ist eine Zeile hier, eine Kennung in <c>Stadtansicht.Raeume.cs</c> und ein Satz in <see cref="InnenText"/>.
+    /// </summary>
+    private static (string Kennung, string Schluessel, string Name, int Vorgabe)[] ModellRaeume(Werkstil stil) => new[]
+    {
+        (RaumWerk, "Werk", WerkraumName(stil), 1),
+        (RaumLager, "Lager", "Lager", 1),
+        (RaumSaege, "Saege", "Sägehalle", 3),
+        (RaumHuette, "Huette", "Bauhütte", 3),
+    };
+
+    /// <summary>
+    /// Sekunden einer Schleife, in der die Figur eines Arbeitsplatzes mit den bewegten Teilen des Raums (Animation „Arbeit“) läuft – nur dort, wo ein Teil der Maschine
+    /// der Hand oder dem Fuß der Figur folgt (Werkstil, Bewegung des Platzes). Alles andere (Hobeln, die Handsäge am Sägebock …) läuft mit eigener Startphase und Laune-Tempo.
+    /// Der Wert ist die Dauer der Bewegung in Blender (<c>BEWEGUNGEN</c> in <c>figuren.py</c>), nach der das Modell seine Teile gebaut hat.
+    /// </summary>
+    private static readonly Dictionary<(Werkstil, string), double> RaumTakt = new()
+    {
+        [(Werkstil.Tischlerei, "Drechseln")] = 1.0,  // Fuß am Pedal der Wippdrehbank
+        [(Werkstil.Tischlerei, "Gatter")] = 2.0,     // Stamm nachschieben, der Rahmen der Gattersäge geht mit
+        [(Werkstil.Maurerei, "Saegen")] = 1.0,       // die rechte Hand führt den Rahmen der Steinsäge
+        [(Werkstil.Maurerei, "Schleifen")] = 1.2,    // der Fuß tritt den Tritt, die Kurbel dreht den Schleifstein
     };
 
     /// <summary>Mit so vielen Kisten steht ein volles Lager einer Ware (Höhe der Warenstapel).</summary>
@@ -49,6 +76,10 @@ public partial class Stadtansicht
         public int AbStufe { get; init; } = 1;
         /// <summary>Schlüssel des Raums, in dem der Platz liegt („Werk“, „Saege“ …; leer: unter keinem Raumknoten).</summary>
         public string Raum { get; init; } = "";
+        /// <summary>Werkzeuge der Figur an diesem Platz statt derer der Bewegung (extras „requisit“; leer: keine), null: die der Bewegung.</summary>
+        public string[]? Werkzeug { get; init; }
+        /// <summary>&gt; 0: Die Figur läuft im Takt des Raums, so viele Sekunden dauert ihre Schleife (<see cref="RaumTakt"/>); 0: eigene Phase.</summary>
+        public double Takt { get; init; }
         public Node3D? WerkstueckAnker { get; set; }
         public MeshInstance3D? Werkstueck { get; set; }
         public string WerkstueckWare { get; set; } = "";
@@ -171,13 +202,12 @@ public partial class Stadtansicht
         }
         md.Plaetze.Sort((x, y) => x.Nr.CompareTo(y.Nr));
 
-        // Räume in der Reihenfolge der Raumleiste (Mitte, Maße und Wände stehen im Modell). Ein Raum mit „stufe“ (die Sägehalle ab 3) steht erst ab dieser Stufe in der Leiste.
-        foreach (var (kennung, schluessel, name) in new[] { (RaumWerk, "Werk", WerkraumName(stil)), (RaumLager, "Lager", "Lager"), (RaumSaege, "Saege", "Sägehalle") })
+        // Räume in der Reihenfolge der Raumleiste (Mitte, Maße und Wände stehen im Modell). Ein Raum mit „stufe“ (die Sägehalle, die Bauhütte ab 3) steht erst ab dieser Stufe in der Leiste.
+        foreach (var (kennung, schluessel, name, vorgabe) in ModellRaeume(stil)) // die Vorgabe gilt, wenn die „extras“ fehlen
             if (md.Blicke.TryGetValue(schluessel, out var blicke) && blicke.Count > 0)
             {
                 blicke.Sort((x, y) => x.Rang.CompareTo(y.Rang));
                 var raumKnoten = wurzel.FindChild("Raum_" + schluessel, true, false) as Node3D;
-                var vorgabe = schluessel == "Saege" ? 3 : 1; // gilt, wenn die „extras“ fehlen
                 var abStufe = raumKnoten is null ? vorgabe : ExtraZahl(raumKnoten, "stufe", vorgabe);
                 if (raumKnoten is not null && abStufe > 1) md.StufenKnoten.Add((raumKnoten, abStufe));
                 a.Raeume.Add(new Raum(kennung, name, Vector3.Zero, Vector3.Zero, // Mitte und Maße braucht nur der alte Raum aus Grundkörpern: Wände und Lage stehen im Modell, die Kamera folgt den Blickpunkten
@@ -258,7 +288,7 @@ public partial class Stadtansicht
                 break;
             case "Arbeit" when teile.Length >= 3 && int.TryParse(teile[1], out var nr):
                 md.Plaetze.Add(new ModellPlatz { Nr = nr, Bewegung = teile[2], Anker = knoten, Raum = RaumSchluesselVon(knoten),
-                    AbStufe = ExtraZahl(knoten, "stufe", nr <= 2 ? 1 : nr - 1) });
+                    AbStufe = ExtraZahl(knoten, "stufe", nr <= 2 ? 1 : nr - 1), Werkzeug = PlatzWerkzeug(knoten), Takt = RaumTakt.GetValueOrDefault((a.Stil, teile[2])) });
                 break;
             case "Lager" when teile.Length == 2 && int.TryParse(teile[1], out _):
                 md.Lagerplaetze.Add(knoten);
@@ -301,7 +331,18 @@ public partial class Stadtansicht
         md.Klicks.Add(new ModellKlick { Form = form, Knoten = knoten });
     }
 
-    /// <summary>Schlüssel des Raums, in dem der Knoten liegt: der Name des nächsten Vorfahren „Raum_&lt;Schlüssel&gt;“ („Werk“, „Lager“, „Saege“), sonst leer.</summary>
+    /// <summary>
+    /// Die Werkzeuge der Figur an einem Arbeitsplatz nach seinen extras „requisit“: ein oder mehrere Teilnamen, durch Komma getrennt (<c>Schlaegel,Meissel</c>),
+    /// oder „keins“ (der Platz hat sein Werkzeug selbst, etwa die Steinsäge: die Figur trägt keines). Fehlt „requisit“: null, es gelten die Werkzeuge der Bewegung.
+    /// </summary>
+    private static string[]? PlatzWerkzeug(Node knoten) => ExtraText(knoten, "requisit") switch
+    {
+        "" => null,
+        "keins" => Array.Empty<string>(),
+        var liste => liste.Split(',', StringSplitOptions.TrimEntries | StringSplitOptions.RemoveEmptyEntries),
+    };
+
+    /// <summary>Schlüssel des Raums, in dem der Knoten liegt: der Name des nächsten Vorfahren „Raum_&lt;Schlüssel&gt;“ („Werk“, „Lager“, „Saege“, „Huette“), sonst leer.</summary>
     private static string RaumSchluesselVon(Node knoten)
     {
         for (var k = knoten; k is not null; k = k.GetParent())
@@ -468,12 +509,13 @@ public partial class Stadtansicht
     }
 
     /// <summary>
-    /// Farbe des Werkstücks auf der Werkbank. Meist die Farbe der Ware; in der Tischlerei ist das Stück Holz: der Ton der Ware „Holz“,
-    /// nur zu einem Zehntel zur Warenfarbe getönt, damit man den Wechsel der Ware noch ahnt (ein hellblauer Klotz auf dem Stamm wirkte wie ein Fremdkörper).
+    /// Farbe des Werkstücks auf der Werkbank. Meist die Farbe der Ware; in der Tischlerei ist das Stück Holz: der Ton der Ware „Holz“, in der Maurerei Stein: der Ton
+    /// der Ware „Granit“, jeweils nur zu einem Zehntel zur Warenfarbe getönt, damit man den Wechsel der Ware noch ahnt (ein hellblauer Klotz auf dem Stamm wirkte wie ein Fremdkörper).
     /// </summary>
     private static Color WerkstueckFarbe(Werkstil stil, string ware) => stil switch
     {
         Werkstil.Tischlerei => Warenfarbe("Holz").Lerp(Warenfarbe(ware), 0.1f),
+        Werkstil.Maurerei => Warenfarbe("Granit").Lerp(Warenfarbe(ware), 0.1f),
         _ => Warenfarbe(ware),
     };
 
@@ -504,16 +546,18 @@ public partial class Stadtansicht
             if (arbeiter.Klick.Disabled == da) arbeiter.Klick.Disabled = !da; // Einsteigen setzt alle Klickflächen an: abgleichen
             var arbeitet1 = da && arbeitet && !still.Contains(zeile.Ware);
             var bewegung = arbeitet1 ? FigurBewegungVon(arbeiter) : "Stehen";
-            // Drechseln (Fuß am Pedal) und Gatter gehören zu Teilen, die der Raum bewegt (Animation „Arbeit“): Die Figur läuft in deren Takt, nicht mit eigener Startphase und Tempo.
-            var imTakt = md.Animation is not null && bewegung == arbeiter.Platz.Bewegung && bewegung is "Drechseln" or "Gatter";
+            // Bewegungen, deren Hand oder Fuß ein bewegtes Teil des Raums führt (Animation „Arbeit“, siehe RaumTakt): Die Figur läuft in dessen Takt, nicht mit eigener Startphase und Tempo.
+            var eigene = bewegung == arbeiter.Platz.Bewegung; // sonst steht sie oder hilft sich mit „Gebeugt“
+            var takt = eigene && md.Animation is not null ? arbeiter.Platz.Takt : 0;
             if (bewegung != arbeiter.Bewegung)
             {
                 arbeiter.Bewegung = bewegung;
-                BewegungSetzen(arbeiter.Figur, bewegung, imTakt ? 1f : (float)Mathf.Clamp(zeile.TempoFaktor, 0.5, 1.5));
+                BewegungSetzen(arbeiter.Figur, bewegung, takt > 0 ? 1f : (float)Mathf.Clamp(zeile.TempoFaktor, 0.5, 1.5), eigene ? arbeiter.Platz.Werkzeug : null);
             }
-            if (da && imTakt)
+            if (da && takt > 0)
             {
-                arbeiter.Figur.Phase = md.ArbeitPhase % arbeiter.Figur.Dauer; // Schleifen von 1 bzw. 2 s, die Animation des Raums hat 2 s
+                // Phase des Raums in der Schleife des Platzes (Sekunden: Drechseln 1, Gatter 2, Sägen 1, Schleifen 1,2), umgerechnet auf die Schleife der Figur
+                arbeiter.Figur.Phase = md.ArbeitPhase % takt / takt * arbeiter.Figur.Dauer;
                 FigurBewegen(arbeiter.Figur, 0);
             }
             else if (da && (bewegt || arbeiter.Figur.Neu)) FigurBewegen(arbeiter.Figur, bewegt ? delta : 0); // in der Pause nur die erste Pose der neuen Bewegung setzen
@@ -693,15 +737,16 @@ public partial class Stadtansicht
                 return (teile[1], teile[2]) switch
                 {
                     ("Personal", _) => ("Personalbuch", "Klick: Arbeiter einstellen, befördern, entlassen, Lohn und Prämie"),
-                    ("Produktion", var ding) => (ding, "Klick: Waren herstellen und Arbeiter zuteilen"), // Amboss, Werkbank, Hobelbank, Leimtisch
+                    ("Produktion", var ding) => (ding, "Klick: Waren herstellen und Arbeiter zuteilen"), // Amboss, Werkbank, Hobelbank, Leimtisch, Werkblock
                     ("Lager", "Bretter") => ("Bretterstapel", "Klick: Bestand und Zurückhalten"),
+                    ("Lager", "Quader") => ("Quaderstapel", "Klick: Bestand und Zurückhalten"),
                     ("Lager", var ding) => (ding, "Klick: Bestand und Zurückhalten"),                  // Regal, Kisten
                     ("Karren", _) => ("Hoftor", "Klick: Karren des Hauses"),
                     ("Einrichten", _) => ("Werkzeugwand", "Klick: Einrichtung kaufen"),
                     _ => (teile[2], ""),
                 };
             case "tuer" when teile.Length >= 3:
-                return (teile[2] switch { "Lager" => "Tür zum Lager", "Saege" => "Tür zur Sägehalle", _ => "Tür zum Werkraum" }, "Klick: Raum wechseln");
+                return (teile[2] switch { "Lager" => "Tür zum Lager", "Saege" => "Tür zur Sägehalle", "Huette" => "Tür zur Bauhütte", _ => "Tür zum Werkraum" }, "Klick: Raum wechseln");
             case "einrichtung" when teile.Length >= 2:
                 var stueck = w?.Werkstaetten.Einrichtungsliste(a.Betrieb).FirstOrDefault(e => e.Kennung == teile[1]);
                 return (stueck?.Name ?? teile[1], stueck is null ? "" : "Eingerichtet: " + stueck.Wirkung);
