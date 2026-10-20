@@ -1111,11 +1111,11 @@ _MATERIALARTEN = None
 
 def materialart(name):
     """Holzschnitt: Struktur des Materials `name` als Zahl (0 keine, 1 Holz, 2 Bretter, 3 Mauer, 4 Fels, 5 Ziegel,
-    6 Stroh, 7 Schiefer, 8 Laub, 9 Boden) nach game/assets/holzschnitt/materialarten.json – dieselbe Tabelle liest das Spiel."""
+    6 Stroh, 7 Schiefer, 8 Laub, 9 Boden) nach game/assets/oberflaeche/materialarten.json – dieselbe Tabelle liest das Spiel."""
     global _MATERIALARTEN
     if _MATERIALARTEN is None:
         import json
-        with open(os.path.join(WURZEL, "game", "assets", "holzschnitt", "materialarten.json"), encoding="utf-8") as f:
+        with open(os.path.join(WURZEL, "game", "assets", "oberflaeche", "materialarten.json"), encoding="utf-8") as f:
             _MATERIALARTEN = json.load(f)
     t = _MATERIALARTEN
     name = name.split(".")[0]
