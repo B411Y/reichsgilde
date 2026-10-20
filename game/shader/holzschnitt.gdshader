@@ -3,7 +3,7 @@
 // Schatten in zwei Tönen mit Schraffur. Alle Muster werden dreiseitig in Weltkoordinaten projiziert – die Modelle
 // brauchen keine UV-Abwicklung. Der schwarze Umriss kommt aus holzschnitt_umriss.gdshader (eigenes Bild-Quad).
 shader_type spatial;
-render_mode ambient_light_disabled, specular_disabled;
+render_mode ambient_light_disabled, specular_disabled, cull_disabled;   // cull_disabled: Die Modelle aus Blender sind doppelseitig (wie figur.gdshader)
 
 // Grundfarbe: aus dem alten Material (farbe) oder aus der Eckenfarbe der GLB (Material „Farben“ und „Figur“).
 uniform vec4 farbe : source_color = vec4(1.0);

@@ -25,13 +25,14 @@ public partial class Stadtansicht
     private ShaderMaterial? _umrissStoff;
     private Vector3? _holzschnittUmgebung;
     private float? _umrissStaerke;
+    private bool? _holzschnittImRaum;
     private readonly bool _holzschnittKompatibel = RenderingServer.GetCurrentRenderingMethod() == "gl_compatibility";
 
     /// <summary>
     /// Strichbreite des Umrisses bei 50 %: Der Shader zeichnet die Linie beiderseits der Kante, ihre Breite ist also das Doppelte des Werts.
-    /// Bei Zoom 95 (9,5 Pixel je Meter) etwa ein Pixel, bei nahem Zoom 25 (36 Pixel je Meter) knapp zwei (<see cref="UmrissBreite"/>).
+    /// Bei Zoom 95 (9,5 Pixel je Meter) etwa ein Pixel, bei nahem Zoom 25 (36 Pixel je Meter) etwas mehr: Figuren sind dort nur 40 Pixel hoch und würden von einer dickeren Linie ganz schwarz (<see cref="UmrissBreite"/>).
     /// </summary>
-    private const float UmrissGrundbreite = 0.45f, UmrissJeMeter = 0.016f, UmrissMinimum = 0.55f, UmrissMaximum = 1.4f;
+    private const float UmrissGrundbreite = 0.5f, UmrissJeMeter = 0.008f, UmrissMinimum = 0.55f, UmrissMaximum = 1.0f;
 
     /// <summary>Im Raum (Perspektive, feste Ansicht) ist der Umriss immer gleich breit, bezogen auf 900 Pixel Bildhöhe.</summary>
     private const float RaumUmrissBreite = 1.0f, BezugsHoehe = 900f;
@@ -43,14 +44,14 @@ public partial class Stadtansicht
         HolzschnittNachfuehren();
     }
 
-    /// <summary>In <c>_ExitTree</c>: nicht mehr zuhören, nichts zurücklassen.</summary>
+    /// <summary>
+    /// In <c>_ExitTree</c>: nicht mehr zuhören und dem RenderingServer sein altes Bild zurückgeben. Die Holzschnitt-Materialien gehen danach an
+    /// den Müllsammler, die Knoten stehen aber noch bis zum Ende des Baums: Keiner soll dann noch auf ein freigegebenes Material zeigen.
+    /// </summary>
     private void HolzschnittAufgeben()
     {
         Fenster.HolzschnittGeaendert -= HolzschnittNachfuehren;
-        if (_holzschnitt is null) return;
-        GetTree().NodeAdded -= HolzschnittKnotenNeu;
-        _holzschnitt = null;
-        _holzschnittNeu.Clear();
+        if (_holzschnitt is not null) HolzschnittAusschalten(beimBeenden: true);
     }
 
     private void HolzschnittNachfuehren()
@@ -68,16 +69,17 @@ public partial class Stadtansicht
         foreach (var teil in FindChildren("*", nameof(MultiMeshInstance3D), true, false).OfType<MultiMeshInstance3D>()) _holzschnitt.Umstellen(teil);
     }
 
-    private void HolzschnittAusschalten()
+    private void HolzschnittAusschalten(bool beimBeenden = false)
     {
         GetTree().NodeAdded -= HolzschnittKnotenNeu;
         foreach (var teil in FindChildren("*", nameof(MeshInstance3D), true, false).OfType<MeshInstance3D>()) Holzschnitt.Zuruecksetzen(teil);
         foreach (var teil in FindChildren("*", nameof(MultiMeshInstance3D), true, false).OfType<MultiMeshInstance3D>()) _holzschnitt!.Zuruecksetzen(teil);
-        _umrissFlaeche?.QueueFree();
+        if (!beimBeenden) _umrissFlaeche?.QueueFree(); // beim Beenden fällt es mit der Kamera
         _umrissFlaeche = null;
         _umrissStoff = null;
         _umrissStaerke = null;
         _holzschnittUmgebung = null;
+        _holzschnittImRaum = null;
         _holzschnitt = null;
         _holzschnittNeu.Clear();
     }
@@ -130,7 +132,12 @@ public partial class Stadtansicht
             _holzschnittUmgebung = grundhelligkeit;
             RenderingServer.GlobalShaderParameterSet("holzschnitt_umgebung", grundhelligkeit);
         }
-        RenderingServer.GlobalShaderParameterSet("holzschnitt_raum", _raum is not null ? 1f : 0f); // Schraffur und Schattenstufen im Raum (holzschnitt.gdshader)
+        var imRaum = _raum is not null;
+        if (_holzschnittImRaum != imRaum)
+        {
+            _holzschnittImRaum = imRaum;
+            RenderingServer.GlobalShaderParameterSet("holzschnitt_raum", imRaum ? 1f : 0f); // Schraffur und Schattenstufen im Raum (holzschnitt.gdshader)
+        }
         HolzschnittUmriss();
     }
 
