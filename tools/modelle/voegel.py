@@ -8,7 +8,8 @@ Schreibt game/assets/modelle/vogel_taube.glb und vogel_spatz.glb und docs/modell
 Inhalt je Datei (Blender: Z oben, Blick nach -Y; im Spiel Y oben, Blick nach +Z; Ursprung zwischen den Füßen):
     Skelett         Koerper, Kopf, Fluegel_L, Fluegel_R, Schwanz – jeder Teil starr an einem Knochen
     Vogel           Körper, Kopf mit Schnabel und Augen, Flügel mit Schwungfedern und Binden, Fächerschwanz, Füße
-    Bewegungen      Fliegen (Flügelschlag), Gleiten (Flügel ausgebreitet), Sitzen (Kopf dreht sich),
+    Bewegungen      Fliegen (Flügelschlag: kräftiger Abschlag leicht nach vorn, schneller Aufschlag mit nach hinten
+                    gezogenen, kürzeren Flügeln), Gleiten (Flügel ausgebreitet), Sitzen (Kopf dreht sich),
                     Picken (Körper kippt, Kopf nickt zum Boden), Putzen (Kopf ins Gefieder),
                     Gehen (Taube: Kopfnicken im Schritt; Spatz: Hüpfen)
                     – Schleifen am Ort; das Spiel bewegt den Vogel und hebt ihn beim Fliegen vom Boden.
@@ -47,6 +48,7 @@ ARTEN = {
                   hals="Spatz dunkel", bauch="Spatz hell", bein=0.03),
 }
 BEWEGUNGEN = {"Fliegen": 0.35, "Gleiten": 1.5, "Sitzen": 3.0, "Picken": 1.0, "Putzen": 2.0, "Gehen": 0.6}
+ABSCHLAG = 0.6                                                         # Anteil des Abschlags an einem Flügelschlag
 
 
 def masse(art):
@@ -162,29 +164,43 @@ def vogel(art, st, ske):
     return t.objekt(ske)
 
 
+def schlagwinkel(phase):
+    """Lage im Flügelschlag als Winkel: 0 oben, π unten, 2π wieder oben. Der kräftige Abschlag dauert ABSCHLAG des
+    Schlags, der Aufschlag geht schneller."""
+    if phase < ABSCHLAG:
+        return math.pi * phase / ABSCHLAG
+    return math.pi * (1 + (phase - ABSCHLAG) / (1 - ABSCHLAG))
+
+
 def haltung(art, name, phase):
-    """{Knochen: (x, y, z) Grad}, Höhe des Körpers über der Ruhe (m). Flügel (Knochen zeigen nach außen): positives X
-    hebt die Spitze des linken Flügels, negatives die des rechten (Flügelschlag), Z schwenkt sie waagrecht – links positiv, rechts negativ nach hinten."""
+    """{Knochen: (x, y, z) Grad}, Höhe des Körpers über der Ruhe (m), Spannweite der Flügel (1 = ausgestreckt).
+    Flügel: Beide Knochen zeigen nach außen und haben Roll 0, die lokale X-Achse zeigt darum links nach vorn (−Y),
+    rechts nach hinten (+Y). Dieselbe Drehung um X wirkt so auf beiden Seiten spiegelbildlich: positives X hebt beide
+    Spitzen (Flügelschlag), gleiches Vorzeichen links und rechts. Z schwenkt die Spitze waagrecht und wird gespiegelt:
+    links positiv, rechts negativ nach hinten."""
     s = math.sin(2 * math.pi * phase)
     c = math.cos(2 * math.pi * phase)
     r = {}
     hoch = 0.0
+    spanne = 1.0
     eingeklappt = 78                                                   # Flügel am Körper
     if name == "Fliegen":
-        schlag = 55 * s
-        r["Fluegel_L"] = (schlag, 0, 8)
-        r["Fluegel_R"] = (-schlag, 0, -8)
-        r["Koerper"] = (-4 * c, 0, 0)
-        r["Schwanz"] = (6 * s, 0, 0)
-        hoch = 0.0
+        winkel = schlagwinkel(phase)
+        hub = 5 + 55 * math.cos(winkel)                                 # oben 60°, unten −50°
+        zurueck = 10 - 14 * math.sin(winkel)                            # Abschlag leicht nach vorn, Aufschlag nach hinten gezogen
+        r["Fluegel_L"] = (hub, 0, zurueck)
+        r["Fluegel_R"] = (hub, 0, -zurueck)
+        r["Koerper"] = (4 * math.sin(winkel), 0, 0)                     # beim Abschlag hebt sich die Brust
+        r["Schwanz"] = (6 * math.cos(winkel), 0, 0)
+        spanne = 1 - 0.25 * max(0.0, -math.sin(winkel))                 # beim Aufschlag angewinkelt: kürzer
     elif name == "Gleiten":
-        r["Fluegel_L"] = (8 + 4 * s, 0, 4)
-        r["Fluegel_R"] = (-8 - 4 * s, 0, -4)
+        r["Fluegel_L"] = (8 + 4 * s, 0, 4)                             # leichtes V
+        r["Fluegel_R"] = (8 + 4 * s, 0, -4)
         r["Koerper"] = (0, 0, 0)
         r["Kopf"] = (0, 0, 6 * s)
     else:
-        r["Fluegel_L"] = (-6, 0, eingeklappt)
-        r["Fluegel_R"] = (6, 0, -eingeklappt)
+        r["Fluegel_L"] = (-6, 0, eingeklappt)                          # Spitzen etwas tiefer als die Schultern
+        r["Fluegel_R"] = (-6, 0, -eingeklappt)
         if name == "Sitzen":
             dreh = 35 * math.sin(2 * math.pi * phase) * (abs(math.sin(2 * math.pi * phase * 2)) > 0.4)
             r["Kopf"] = (0, 0, dreh)
@@ -197,7 +213,7 @@ def haltung(art, name, phase):
         elif name == "Putzen":
             p = max(0.0, s)
             r["Kopf"] = (-30 * p, 0, 110 * p)
-            r["Fluegel_L"] = (10 * p, 0, eingeklappt - 18 * p)
+            r["Fluegel_L"] = (-6 + 16 * p, 0, eingeklappt - 18 * p)       # nur der linke Flügel hebt sich
         elif name == "Gehen":
             if art == "taube":
                 r["Kopf"] = (12 * s, 0, 0)
@@ -205,13 +221,14 @@ def haltung(art, name, phase):
             else:
                 hoch = 0.035 * max(0.0, s)
                 r["Schwanz"] = (-10 * max(0.0, s), 0, 0)
-    return {k: tuple(math.radians(v) for v in w) for k, w in r.items()}, hoch
+    return {k: tuple(math.radians(v) for v in w) for k, w in r.items()}, hoch, spanne
 
 
-def pose_setzen(ob, pose, hoch):
+def pose_setzen(ob, pose, hoch, spanne=1.0):
     for pb in ob.pose.bones:
         pb.rotation_euler = pose.get(pb.name, (0.0, 0.0, 0.0))
         pb.location = (0.0, 0.0, 0.0)
+        pb.scale = (1.0, spanne, 1.0) if pb.name.startswith("Fluegel") else (1.0, 1.0, 1.0)   # Knochen-Y: den Flügel entlang
     ob.pose.bones["Koerper"].location = (0.0, 0.0, -hoch)        # Knochen zeigt nach -Y: lokales -Z ist oben
     return ob
 
@@ -228,6 +245,8 @@ def bewegungen_anlegen(ob, art):
             for pb in ob.pose.bones:
                 pb.keyframe_insert("rotation_euler", frame=f + 1)
             ob.pose.bones["Koerper"].keyframe_insert("location", frame=f + 1)
+            for seite in ("L", "R"):
+                ob.pose.bones[f"Fluegel_{seite}"].keyframe_insert("scale", frame=f + 1)
         spur = ob.animation_data.nla_tracks.new()
         spur.name = name
         spur.strips.new(name, 1, act)
@@ -251,22 +270,24 @@ def main():
 
 
 def vorschau(schnell):
-    """Je Vogel eine Reihe: Sitzen, Picken, Putzen, Gehen, Fliegen (oben, unten), Gleiten."""
+    """Je Vogel eine Reihe: Sitzen, Picken, Putzen, Gehen, Fliegen (oben, unten, im Aufschlag), Gleiten."""
+    import bpy
     bs.neue_szene()
     st = bs.Stoffe()
     sichtbar = []
-    reihe = [("Sitzen", 0.25), ("Picken", 0.25), ("Putzen", 0.25), ("Gehen", 0.25), ("Fliegen", 0.25), ("Fliegen", 0.75),
-             ("Gleiten", 0.0)]
+    reihe = [("Sitzen", 0.25), ("Picken", 0.25), ("Putzen", 0.25), ("Gehen", 0.25), ("Fliegen", 0.0), ("Fliegen", ABSCHLAG),
+             ("Fliegen", 0.8), ("Gleiten", 0.0)]
     for z, art in enumerate(ARTEN):
         for k, (name, phase) in enumerate(reihe):
             ske = skelett(art)
             o = vogel(art, st, ske)
-            sx, sy = (k - 3) * 0.75, (0.5 - z) * 1.0
+            sx, sy = (k - (len(reihe) - 1) / 2) * 0.75, (0.5 - z) * 1.0
             ske.location = Vector((sx * 0.7071 - sy * 0.7071, sx * 0.7071 + sy * 0.7071, 0.3 if name in ("Fliegen", "Gleiten") else 0))
             ske.rotation_euler = (0, 0, math.radians(-90))
             pose_setzen(ske, *haltung(art, name, phase))
             sichtbar.append(o)
-    bs.vorschau_buehne(None, ziel_hoehe=0.15, ausschnitt=4.6, schnell=schnell)
+    bs.vorschau_buehne(None, ziel_hoehe=0.3, ausschnitt=6.4, schnell=schnell)
+    bpy.context.scene.render.resolution_y = 520                       # flacher als sonst: nur zwei Reihen
     print(bs.rendern("voegel", lambda o: o in sichtbar))
 
 
