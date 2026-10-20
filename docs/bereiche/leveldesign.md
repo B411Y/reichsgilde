@@ -81,3 +81,10 @@ Noch nicht begonnen; festgehalten, damit niemand weiter Arbeit in die Greybox-We
 | Wege zeichnen | Punkte setzen, das Werkzeug legt eine glatte Kurve hindurch; Kreuzungen rasten ein; Mindestbreite je Wegklasse. Vorschlag des Teamleiters. | 19.10.2026 |
 | Belag | Verkehr tritt einen Trampelpfad zum Fahrweg mit Spurrillen aus, wenig Verkehr lässt ihn verwildern; Kies und Pflaster sind ein Bauauftrag, den der Rat oder der Spieler bezahlt. Der Belag wirkt auf das Tempo der Karren und bei Regen. Entschieden vom Nutzer. | 19.10.2026 |
 | Gegenverkehr | Nur sichtbar: Rechtsverkehr, Fußgänger am Rand, Karren in der Mitte, Ausweichen macht die Darstellung. Der Kern rechnet Fahrzeiten aus einem groben Wegegraphen (Länge, Klasse, Belag), ohne Stau (passt zu „Zwei Ebenen“ in `docs/LEVELDESIGN.md`, Wege und Wegfindung). Entschieden vom Nutzer. | 19.10.2026 |
+
+### Werkstattplätze 16 × 14 m in der Greybox (PR #162)
+
+| Thema | Entscheidung | Datum |
+|---|---|---|
+| Plätze | Jeder Werkstattplatz der Greybox wird 16 × 14 m groß (so groß sind die Werkstattmodelle); wo es eng wird, rücken Nachbarn auseinander oder ein Einwohnerhaus entfällt. Die Plätze der 10 gestrichenen Werkstätten zum Kauf werden frei. Karte wie immer aus dem Kartenwerkzeug, Stadtplan und Gassen ziehen mit. Entschieden vom Nutzer. | 20.10.2026 |
+
