@@ -132,8 +132,8 @@ def maserung(saat, linien, aeste=0, streckung=6.0):
         phase += 2.2 * np.exp(-q / 6) * np.sign(dx) * 0.5          # die Linien weichen dem Ast aus
         ast = np.maximum(ast, np.exp(-q * 1.5))
     t = phase % 1.0
-    linie = np.exp(-((t - 0.5) / 0.12) ** 2)                        # dunkle Spätholz-Linien
-    helligkeit = -0.10 * linie - 0.04 * (rauschen(30, saat + 2, streckung * 2) - 0.5) * 2 - 0.30 * ast
+    linie = np.exp(-((t - 0.5) / 0.16) ** 2)                        # dunkle Spätholz-Linien
+    helligkeit = -0.24 * linie - 0.10 * (rauschen(30, saat + 2, streckung * 2) - 0.5) * 2 - 0.40 * ast
     hoehe = 0.5 - 0.25 * linie - 0.4 * ast
     return helligkeit, hoehe
 
@@ -238,7 +238,7 @@ def stroh():
     verschieden hell und ein paar dunklere, verwitterte Stellen (Kachel 1,5 m)."""
     halme = rauschen(1.3, 151, 40.0)
     halme2 = rauschen(2.5, 152, 18.0)
-    bueschel = rauschen(18, 153, 3.0)
+    bueschel = rauschen(5, 153, 10.0)                                   # Strähnen von gut 1 cm Breite
     alt = np.clip((rauschen(40, 154) - 0.55) * 3, 0, 1)
     hell = 0.34 * (halme - 0.5) + 0.22 * (halme2 - 0.5) + 0.18 * (bueschel - 0.5) - 0.20 * alt
     ton = 0.35 * (halme2 - 0.5) + 0.3 * (rauschen(60, 155) - 0.5) - 0.4 * alt
@@ -292,9 +292,9 @@ def boden():
     """Gras, Erde, Lehm, Moos: feine Körnung, Krumen und kleine Steinchen, dazu Büschel (Kachel 3 m)."""
     korn = fbm(181, [8, 3, 1.2])
     nummer, f1, _, _, _ = zellen(24, 24, 182, 1.0)
-    steinchen = (zufall_je(nummer, 183, 576) > 0.55) & (f1 < 3.2)
+    steinchen = (zufall_je(nummer, 183, 576) > 0.7) & (f1 < 3.2)
     bueschel = rauschen(14, 184)
-    hell = 0.22 * (korn - 0.5) + 0.12 * (bueschel - 0.5) + 0.25 * steinchen * zufall_je(nummer, 185, 576)
+    hell = 0.34 * (korn - 0.5) + 0.20 * (bueschel - 0.5) + 0.25 * steinchen * zufall_je(nummer, 185, 576)
     ton = 0.4 * (rauschen(30, 186) - 0.5) + 0.2 * (korn - 0.5)
     return hell, ton, 3.0 * korn + 2.0 * bueschel + 1.5 * steinchen * np.clip(1 - f1 / 3.2, 0, 1)
 

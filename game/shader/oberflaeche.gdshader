@@ -30,7 +30,7 @@ uniform float glanz = 0.5;
 
 // Elf Schichten (tools/oberflaeche/texturen.py): 0–8 die Materialarten 1–9, 9 Pflaster (Mauer von oben), 10 Flecken.
 // R Helligkeit, G Farbton (+ warm, − kühl), B/A Neigung der Fläche in U/V – alle um 128 als „nichts“.
-uniform sampler2DArray strukturen : repeat_enable, filter_linear_mipmap_anisotropic;
+uniform sampler2DArray strukturen : repeat_enable, filter_linear_mipmap;
 
 // Je Materialart (Holz, Bretter, Mauer, Fels, Ziegel, Stroh, Schiefer, Laub, Boden):
 const float GROESSE[9] = float[9](1.6, 2.0, 2.0, 4.0, 1.2, 1.5, 2.0, 1.0, 3.0);         // Meter je Kachel
@@ -63,9 +63,10 @@ void vertex() {
 	v_zone = int(round(UV.x));
 }
 
-// Ein Wert der Schicht: (Wert − 128) / 127, also −1 … 1 mit 0 bei 128
-vec4 lesen(vec2 uv, float schicht) {
-	return texture(strukturen, vec3(uv, schicht)) * (255.0 / 127.0) - (128.0 / 127.0);
+// Ein Wert der Schicht: (Wert − 128) / 127, also −1 … 1 mit 0 bei 128. Mit den Ableitungen von außen (textureGrad), denn gelesen
+// wird nur in Zweigen, und dort sind die Ableitungen der Grafikkarte nicht verlässlich.
+vec4 lesen(vec2 uv, vec2 dx, vec2 dy, float schicht) {
+	return textureGrad(strukturen, vec3(uv, schicht), dx, dy) * (255.0 / 127.0) - (128.0 / 127.0);
 }
 
 void fragment() {
@@ -87,11 +88,16 @@ void fragment() {
 		// Seitenflächen mit V nach unten (die Bilder stehen aufrecht: Ziegelspitzen und Strohlagen zeigen nach unten).
 		// Eine Mauer von oben gesehen (Mauerkrone, Pflaster) zeigt runde Steine statt Quader.
 		float oben = v_art == 3 ? 9.0 : float(i);
-		vec4 tx = lesen(vec2(ort.z, -ort.y) * s, float(i));
-		vec4 ty = lesen(ort.xz * s, oben);
-		vec4 tz = lesen(vec2(ort.x, -ort.y) * s, float(i));
+		// Nur die Projektionen lesen, die zählen: Meist ist es eine, an Kanten und schrägen Flächen zwei oder drei.
+		vec2 ux = vec2(ort.z, -ort.y) * s, uy = ort.xz * s, uz = vec2(ort.x, -ort.y) * s;
+		vec2 dxx = dFdx(ux), dyx = dFdy(ux), dxy = dFdx(uy), dyy = dFdy(uy), dxz = dFdx(uz), dyz = dFdy(uz);
+		vec4 tx = vec4(0.0), ty = vec4(0.0), tz = vec4(0.0);
+		if (w.x > 0.01) tx = lesen(ux, dxx, dyx, float(i));
+		if (w.y > 0.01) ty = lesen(uy, dxy, dyy, oben);
+		if (w.z > 0.01) tz = lesen(uz, dxz, dyz, float(i));
 		vec4 t = tx * w.x + ty * w.y + tz * w.z;
-		vec4 f = lesen(vec2(welt.x + welt.y * 0.6, welt.z - welt.y * 0.4) / FLECKEN_GROESSE, 10.0);
+		vec2 uf = vec2(welt.x + welt.y * 0.6, welt.z - welt.y * 0.4) / FLECKEN_GROESSE;
+		vec4 f = lesen(uf, dFdx(uf), dFdy(uf), 10.0);
 		float hell = 0.5 * t.r * HELL[i] + FLECKEN_HELL * f.r;
 		float ton = t.g * TON[i] + FLECKEN_TON * f.g;
 		grund *= (1.0 + hell) * (1.0 + ton * WARM);
