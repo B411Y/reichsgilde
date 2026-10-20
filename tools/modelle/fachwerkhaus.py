@@ -11,7 +11,7 @@ letzten standardmäßig aus).
 Ein ärmliches, eingeschossiges Haus (Blender: Z oben, Gasse bei -Y):
     niedriger Feldsteinsockel, 6 × 5,6 m, grobes Fachwerk mit weiten Feldern und krummen Ständern,
     fleckiger Lehmputz mit abgeplatzten Stellen, kleine Luken ohne Glas, schiefe Läden,
-    dickes Strohdach mit Grassoden auf dem First und Moos, Bretter im Giebel mit Eulenloch,
+    dickes Strohdach mit Grassoden auf dem First, Bretter im Giebel mit Eulenloch,
     gemauerter Schornstein. Daneben ein Holzstapel, ein Hackklotz und hinten ein Bretterschuppen.
 """
 
@@ -81,12 +81,10 @@ def bauen():
     # Trittstein vor der Tür
     haus.quader((0.9, VORN - 0.3, 0.1), (1.1, 0.5, 0.2), st["Bruchstein"])
 
-    # ── Strohdach (Krüppelwalm), Bretter im Giebel, Moos, Schornstein ─────────
+    # ── Strohdach (Krüppelwalm), Bretter im Giebel, Schornstein ───────────────
     dach = strohdach(haus, st)
     for s, seite in ((1, "rechts"), (-1, "links")):
         bretter_giebel(haus, st, bs.wandmatrix((s * HX, y_mitte, Z_TRAUFE), seite), tief, dach["giebel_hoehe"], dach["giebel_oben"])
-    for seite, x, s, r in (("vorn", -1.5, 1.2, 0.55), ("vorn", 1.4, 2.6, 0.4), ("hinten", 0.6, 1.0, 0.6), ("hinten", -1.6, 2.4, 0.35)):
-        bs.dachloch(haus, st, dach, seite, x, s, r, stoff="Moos")
     xs, ys = -1.0, 0.8
     z0 = dach["oben_hinten"](ys + 0.25) - 0.3
     haus.quader((xs, ys, (z0 + dach["z_first"] + 0.6) / 2), (0.55, 0.55, dach["z_first"] + 0.6 - z0), st["Bruchstein dunkel"])
@@ -139,7 +137,7 @@ WALM_AB = 1.9          # über der Wandoberkante beginnt der Walm
 def strohdach(netz, st, traufe=0.5, ortgang=0.35):
     """Krüppelwalmdach aus Stroh: zwei Hauptflächen, über den Giebeln je ein kleiner Walm,
     dicke senkrechte Kanten an Traufe und Ortgang, Grassoden auf dem First und dunkle Regenstreifen.
-    Gibt Maße zurück, die bs.dachloch versteht (für Moos und Löcher)."""
+    Gibt Maße zurück, die bs.dachloch versteht (für die Löcher im Leerstand)."""
     th = math.radians(NEIGUNG)
     tan, cos, sin = math.tan(th), math.cos(th), math.sin(th)
     halb = (HINTEN - VORN) / 2

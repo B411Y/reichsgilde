@@ -15,10 +15,9 @@ Gemeinsame Bausteine in Blender-Koordinaten (Z oben, die Vorderseite eines Raums
                     Kranbalken und Himmel dahinter
     pruefbericht    Dreiecke je Knoten und je Stufe, deckungsgleiche Flächen; vorschau: Bilder der Blickpunkte und Grundrisse
 
-Materialarten für den Holzschnitt (game/assets/holzschnitt/materialarten.json): Wo die Form die Struktur schon zeigt –
+Materialarten für die Oberflächendetails (game/assets/oberflaeche/materialarten.json): Wo die Form die Struktur schon zeigt –
 Steine, Ziegel, Bretter mit Fugen –, heißen die Materialien so, dass die Tabelle „keine“ liefert (Kalkputz, Moertel,
-Bruch …, Ziegelboden …, Diele …): Der Holzschnitt legt dort nur Schraffur, Papierkorn und Umriss darüber, keine zweite
-Struktur. Balken („Fachwerk“, „Holz“) behalten die Holzmaserung, der Lehmboden („Erde hell“) die Bodentupfen.
+Bruch …, Ziegelboden …, Diele …): Die Oberflächendetails legen dort keine zweite Struktur darüber. Balken („Fachwerk“, „Holz“) behalten die Holzmaserung, der Lehmboden („Erde hell“) die Bodentupfen.
 """
 
 import math
@@ -31,7 +30,7 @@ bs.FARBEN.update({
     "Kalkputz": (0.80, 0.77, 0.69),           # gekalkter Putz der Steinhäuser
     "Lehmputz hell": (0.77, 0.70, 0.56),      # heller Lehmputz in den Gefachen der Fachwerkhäuser
     "Moertel": (0.55, 0.52, 0.46),            # Mörtel, wo der Putz abgefallen ist
-    "Bruch": (0.50, 0.48, 0.44),              # Bruchsteine (einzeln modelliert, ohne Struktur im Holzschnitt)
+    "Bruch": (0.50, 0.48, 0.44),              # Bruchsteine (einzeln modelliert, ohne Struktur in den Oberflächendetails)
     "Bruch hell": (0.60, 0.57, 0.51),
     "Bruch dunkel": (0.40, 0.39, 0.36),
     "Bruch warm": (0.57, 0.50, 0.40),
@@ -47,9 +46,9 @@ bs.FARBEN.update({
     "Ziegelboden hell": (0.62, 0.38, 0.27),
     "Ziegelboden dunkel": (0.47, 0.26, 0.19),
     "Ziegelfuge": (0.58, 0.55, 0.48),
-    "Erde hell": (0.47, 0.39, 0.28),          # gestampfter Lehm (wie landbau.py; im Holzschnitt mit Bodentupfen)
-    "Lehmfleck hell": (0.51, 0.43, 0.31),
-    "Lehmfleck dunkel": (0.44, 0.36, 0.26),
+    "Erde hell": (0.47, 0.39, 0.28),          # gestampfter Lehm (wie landbau.py; in den Oberflächendetails mit Bodentupfen)
+    "Lehmfleck hell": (0.49, 0.41, 0.295),    # schwach: die feine Körnung kommt aus dem Oberflächen-Shader
+    "Lehmfleck dunkel": (0.455, 0.375, 0.27),
     "Sack": (0.62, 0.55, 0.42),               # Sack am Seil des Kranbalkens
     "Strohhalm": (0.72, 0.63, 0.40),
 })
@@ -179,7 +178,9 @@ class Wand:
 
 def lehmboden(netz, st, x0, x1, y0, y1, saat=0, flecken=10, halme=26):
     """Gestampfter Lehm: eine ruhige Fläche, darauf ein paar unregelmäßige hellere (festgetretene) und dunklere Flecken und
-    verstreute Strohhalme – keine Platten. Flecken und Halme liegen 1 bis 3 mm über dem Boden, Späne darüber."""
+    verstreute Strohhalme – keine Platten. Flecken und Halme liegen 1 bis 3 mm über dem Boden, Späne darüber.
+    Von den `flecken` Plätzen bekommt nur jeder zweite einen Fleck, in halber Größe (die feine Körnung kommt aus dem
+    Oberflächen-Shader); die Plätze werden weiter alle gezogen, damit die Halme bleiben, wo sie waren."""
     waagrecht(netz, (x0, x1, y0, y1), 0.0, True, st["Erde hell"])
     zufall = random.Random(saat)
     mitten = []
@@ -191,6 +192,8 @@ def lehmboden(netz, st, x0, x1, y0, y1, saat=0, flecken=10, halme=26):
         if all((c - m).length > r + rm + 0.15 for m, rm in mitten):
             mitten.append((c, r))
     for k, (c, r) in enumerate(mitten):
+        sichtbar = k % 2 == 0
+        r *= 0.5
         dehnung = zufall.uniform(0.6, 1.0)
         dreh = zufall.uniform(0, math.pi)
         rand = []
@@ -199,7 +202,8 @@ def lehmboden(netz, st, x0, x1, y0, y1, saat=0, flecken=10, halme=26):
             rr = r * zufall.uniform(0.8, 1.0)
             lx, ly = rr * math.cos(w), rr * dehnung * math.sin(w)
             rand.append(c + Vector((lx * math.cos(dreh) - ly * math.sin(dreh), lx * math.sin(dreh) + ly * math.cos(dreh), 0.0012)))
-        netz.vieleck_nach(rand, (0, 0, 1), st["Lehmfleck hell" if k % 3 else "Lehmfleck dunkel"])
+        if sichtbar:
+            netz.vieleck_nach(rand, (0, 0, 1), st["Lehmfleck hell" if k % 3 else "Lehmfleck dunkel"])
     for _ in range(halme):
         c = Vector((zufall.uniform(x0 + 0.2, x1 - 0.2), zufall.uniform(y0 + 0.2, y1 - 0.2), 0.0025))
         w = zufall.uniform(0, math.pi)
@@ -510,7 +514,7 @@ def treppe(netz, st, x_mitte, y_fuss, y_oben, z_oben, breite=0.66, steigung=0.25
 
 def bodenluke(netz, st, luke, z, gelaender_x=None):
     """Am Treppenloch im Boden (luke = (x0, x1, y0, y1), Boden in z; die Kante x1 liegt an der Wand, die Treppe kommt von
-    vorn (−y) herauf): ein Lukenkranz aus dunklen Bohlen an den drei offenen Kanten (zeichnet das Loch im Holzschnitt nach),
+    vorn (−y) herauf): ein Lukenkranz aus dunklen Bohlen an den drei offenen Kanten (zeichnet den Rand des Lochs nach),
     die Klappe aus Brettern, an der Wandseite angeschlagen und senkrecht hochgestellt (mit Leisten, Bändern, Ring), und an
     der Seite `gelaender_x` ein Geländer mit zwei Pfosten."""
     lx0, lx1, ly0, ly1 = luke

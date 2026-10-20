@@ -1110,7 +1110,7 @@ _MATERIALARTEN = None
 
 
 def materialart(name):
-    """Holzschnitt: Struktur des Materials `name` als Zahl (0 keine, 1 Holz, 2 Bretter, 3 Mauer, 4 Fels, 5 Ziegel,
+    """Oberflächendetails: Struktur des Materials `name` als Zahl (0 keine, 1 Holz, 2 Bretter, 3 Mauer, 4 Fels, 5 Ziegel,
     6 Stroh, 7 Schiefer, 8 Laub, 9 Boden) nach game/assets/oberflaeche/materialarten.json – dieselbe Tabelle liest das Spiel."""
     global _MATERIALARTEN
     if _MATERIALARTEN is None:
@@ -1179,7 +1179,7 @@ def farben_zusammenlegen(objekte, behalten=BENANNTE_STOFFE):
         alte = list(me.materials)
         if not any(einfach(m) for m in alte):
             continue
-        arten_setzen(me, [m.name if m else "" for m in alte])      # Holzschnitt: Struktur je Fläche (UV.y)
+        arten_setzen(me, [m.name if m else "" for m in alte])      # Oberflächendetails: Struktur je Fläche (UV.y)
         attr = me.color_attributes.get("Farbe") or me.color_attributes.new("Farbe", "BYTE_COLOR", "CORNER")
         me.color_attributes.active_color = attr
         me.color_attributes.render_color_index = me.color_attributes.find("Farbe")

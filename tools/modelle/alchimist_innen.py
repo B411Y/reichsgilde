@@ -50,7 +50,7 @@ Vorlage der Destille bildet sich ein Tropfen und fällt in den Trichter (zweimal
 ist keine Blase und kein Tropfen zu sehen. Glut und Dampf sind Sache des Spiels.
 Lichter: extras „art“ = „Fenster“, „Lampe“ (Laterne) und „Glut“ (Feuer unter dem Kessel, Feuertür der Destille ab Stufe 2,
 Athanor ab Stufe 3).
-Materialien: „Farben“ (Eckenfarben; die Materialart für den Holzschnitt je Fläche als UV.y, bausteine.arten_setzen),
+Materialien: „Farben“ (Eckenfarben; die Materialart für die Oberflächendetails je Fläche als UV.y, bausteine.arten_setzen),
 „Fluessigkeit“ (Werkstücke), „Hausfarbe“ (Hoftor, Holztür, Ladentür, Flügel der Ladeluke, Schild), „Fenster“ (auch der
 Himmel hinter der Ladeluke), „Glut“ (Feuer, Laternen), „Eisen“, „Wasser“.
 Einrichtung_Destillierhelm: kupferner Helm an einer Kette unter dem Rauchfang über dem Kessel (hochgezogen, damit gerührt
@@ -78,7 +78,7 @@ bs.FARBEN.update({
     "Fluessigkeit": (0.30, 0.42, 0.22),     # Werkstück (Brei, Brühe, Auszug, Destillat): das Spiel färbt es in der Farbe der Ware
     "Glaskolben": (0.56, 0.64, 0.58),       # grünliches Glas der Kolben und Flaschen (deckend gemalt)
     "Kupferblech": (0.60, 0.35, 0.21),      # blankes Kupfer: Kessel, Helm, Kühlrohr
-    "Ziegelmauer": (0.46, 0.28, 0.21),      # Ofen der Destille und Athanor (im Holzschnitt mit Mauerstruktur)
+    "Ziegelmauer": (0.46, 0.28, 0.21),      # Ofen der Destille und Athanor (in den Oberflächendetails mit Mauerstruktur)
     "Tiegel": (0.70, 0.60, 0.46),           # irdene Tiegel und der Tonhelm
     "Tiegel dunkel": (0.48, 0.38, 0.28),
     "Steingut": (0.55, 0.52, 0.45),        # graues Steinzeug: Krüge, Flaschen

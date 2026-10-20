@@ -33,7 +33,7 @@ die Federstange zieht zurück, das Werkstück dreht hin und her), die Welle dreh
 Gatterrahmen. Ruht der Betrieb, steht alles in der Lage der Datei (Pedal oben, Gatterrahmen oben).
 Lichter: extras „art“ = „Fenster“ wie beim Schmied, dazu „Lampe“ (Laterne an der Decke, Blick −Z nach unten). Glut gibt
 es nicht; das Material „Glut“ tragen Laternen und Leimofen (leuchten, solange gearbeitet wird).
-Materialien: „Farben“ (Eckenfarben; die Materialart für den Holzschnitt je Fläche als UV.y, bausteine.arten_setzen –
+Materialien: „Farben“ (Eckenfarben; die Materialart für die Oberflächendetails je Fläche als UV.y, bausteine.arten_setzen –
 „keine“, wo das Modell Ziegel oder Bretter schon zeichnet), „Hausfarbe“ (Hoftor, Holztür, Ladetor, Flügel der Ladeluke),
 „Fenster“ (auch der Himmel hinter der Ladeluke), „Glut“, „Eisen“, „Wasser“.
 """
@@ -1200,7 +1200,7 @@ def animieren(bewegt, bilder=ARBEIT_BILDER):
 
 def exportieren(objekte, name=NAME):
     """GLB mit der Animation „Arbeit“ (wie bausteine.exportieren, aber mit Animationen aus den NLA-Spuren); mit UV für die
-    Materialart je Fläche (Holzschnitt). `name`: Datei (auch für steinmetz_innen)."""
+    Materialart je Fläche (Oberflächendetails). `name`: Datei (auch für steinmetz_innen)."""
     import bpy
     pfad = os.path.join(bs.MODELLE, name + ".glb")
     mit_kindern = set(objekte) | {k for o in objekte for k in o.children_recursive}
