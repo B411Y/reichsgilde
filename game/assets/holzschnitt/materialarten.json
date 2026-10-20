@@ -1,0 +1,18 @@
+{
+  "_hinweis": "Holzschnitt-Look: welche Struktur ein Material bekommt. Gilt für Blender (tools/modelle/bausteine.materialart) und das Spiel. Erst 'namen' (genauer Name), dann 'enthaelt' (Teilwort, in dieser Reihenfolge), sonst 0.",
+  "arten": {"keine": 0, "holz": 1, "bretter": 2, "mauer": 3, "fels": 4, "ziegel": 5, "stroh": 6, "schiefer": 7, "laub": 8, "boden": 9},
+  "kanaele": {"holz": "struktur_a.r", "bretter": "struktur_a.g", "mauer": "struktur_a.b", "fels": "struktur_a.a",
+              "ziegel": "struktur_b.r", "stroh": "struktur_b.g", "schiefer": "struktur_b.b", "laub": "struktur_b.a", "boden": "papier.b"},
+  "namen": {
+    "Holz alt": "bretter", "Bretter": "bretter", "Geruestholz": "bretter",
+    "Lehmputz": "keine", "Putz": "keine", "Fuge": "keine", "Steinstaub": "boden", "Formsand": "boden",
+    "Dachziegel": "ziegel", "Ziegelkante": "ziegel", "Firstziegel": "ziegel",
+    "Stroh": "stroh", "Strohkante": "stroh", "Firstsoden": "stroh", "Heu": "stroh", "Schilf": "stroh", "Roggen": "stroh", "Stoppel": "stroh", "Korn": "stroh",
+    "Schiefer": "schiefer", "Schieferkante": "schiefer", "Firstblech": "schiefer", "Schindel": "schiefer", "Schindelkante": "schiefer",
+    "Erz": "fels", "Silbererz": "fels", "Kohle": "fels",
+    "Gras": "boden", "Erde": "boden", "Erde hell": "boden", "Moos": "boden", "Lehm": "boden", "Pflaster": "mauer",
+    "Farn": "laub", "Kraut": "laub", "Ginster": "laub", "Kohl": "laub"
+  },
+  "enthaelt": [["Laub", "laub"], ["Tanne", "laub"], ["Rinde", "holz"], ["holz", "holz"], ["Holz", "holz"], ["Fachwerk", "holz"],
+               ["Fels", "fels"], ["stein", "mauer"], ["Stein", "mauer"], ["Mauer", "mauer"]]
+}

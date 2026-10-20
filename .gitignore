@@ -38,3 +38,5 @@ build/
 
 # Python-Zwischendateien der Blender-Skripte
 __pycache__/
+# Holzschnitt-Vorschau (tools/holzschnitt/vorschau.py)
+.holzschnitt-vorschau/

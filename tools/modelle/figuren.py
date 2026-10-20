@@ -27,7 +27,7 @@ Inhalt je Datei (Blender: Z oben, Blick nach -Y; im Spiel Y oben, Blick nach +Z)
 Material: alle Teile (Körper, Trachtteile, Werkzeug) tragen nur ein Material „Figur“ – eine Figur ist so ein
 Zeichenaufruf statt sechs. Je Ecke stehen zwei Angaben im Netz, je Fläche konstant:
     COLOR_0         Grundfarbe als sRGB-Wert (wie bei den Umlandbetrieben, siehe bausteine.farben_zusammenlegen)
-    TEXCOORD_0      (Godot: UV) x = Zone, y = 0:  0 feste Farbe aus COLOR_0 (Auge, Leder, Holz, Eisen, Leinen …),
+    TEXCOORD_0      (Godot: UV) x = Zone, y = Materialart für den Holzschnitt-Look (bausteine.materialart):  0 feste Farbe aus COLOR_0 (Auge, Leder, Holz, Eisen, Leinen …),
                     1 Gewand, 2 Beinkleid, 3 Haut, 4 Haar, 5 Kopfbedeckung (ZONEN). Das Spiel färbt die Zonen 1–5
                     je Figur; in COLOR_0 steht dort die Vorgabefarbe, ohne eigenen Shader sieht die Figur also aus wie bisher.
 """
@@ -746,6 +746,7 @@ def zonen_setzen(netze):
                 zonen[li * 2] = z
         farbe.data.foreach_set("color", werte)
         uv.data.foreach_set("uv", zonen)
+        bs.arten_setzen(me, alte, uv_name="Zone")                  # Holzschnitt: Struktur je Fläche als UV.y
         me.materials.clear()
         me.materials.append(figur)
         me.polygons.foreach_set("material_index", [0] * len(me.polygons))
