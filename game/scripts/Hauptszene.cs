@@ -313,7 +313,7 @@ public partial class Hauptszene : Node
         {
             if (kennung is not null) _auswahlKennung = kennung;
             Protokollieren(kennung is null ? "Zurück in den Gassen der Stadt."
-                : _stadt.HatBedienung ? $"Ihr betretet {_stadt.InnenName}. Gegenstände anklicken (Buch, Werkbank, Lager, Hoftor, Werkzeugwand) · Maus an den Bildrand: Blick wechseln · Rechtsklick: hinaus."
+                : _stadt.HatBedienung ? $"Ihr betretet {_stadt.InnenName}. Gegenstände anklicken ({_stadt.InnenBedienungen}) · Maus an den Bildrand: Blick wechseln · Rechtsklick: hinaus."
                 : _stadt.RaumKennung is not null ? $"Ihr betretet {(kennung is "Rathaus" ? "das Rathaus" : _stadt.InnenName)}. Räume wechseln: Leiste unten oder Q/E · ein Klick in den Raum öffnet seine Tafel."
                 : $"Ihr betretet {(kennung is "Dom" ? "den" : "die")} {_stadt.InnenName}.");
             RaumleisteAufbauen();
@@ -967,7 +967,7 @@ public partial class Hauptszene : Node
                 TafelnSchliessen();
                 _familientafel.Oeffnen();
                 return true;
-            case Stadtansicht.RaumAmt or Stadtansicht.RaumKontor or Stadtansicht.RaumWerk or Stadtansicht.RaumLager or Stadtansicht.RaumSaege or Stadtansicht.RaumHuette:
+            case Stadtansicht.RaumAmt or Stadtansicht.RaumKontor or Stadtansicht.RaumWerk or Stadtansicht.RaumLager or Stadtansicht.RaumSaege or Stadtansicht.RaumHuette or Stadtansicht.RaumLaden or Stadtansicht.RaumTurm:
                 return true;
             default:
                 return false;
