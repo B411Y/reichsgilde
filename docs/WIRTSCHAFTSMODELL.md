@@ -1048,3 +1048,9 @@ Bürgermeister 18/20 → 16/20 (im Schnitt ab Jahr 14,2 → 13,4), Stand am Ende
 **Regel:** `werkstatt.einrichtung.Steinmetz` (Datenversion 38), gleiche Stücke und Preise wie beim Schmied, statt des Blasebalgs der **Flaschenzug** am Dreibein (350): −10 % Zeit für Mühlstein, Säule, Taufbecken und Grabmal (nicht für Schleifziegel, Grabstein, Steinfigur). Mit gutem Werkzeug braucht ein Mühlstein 60 × 0,81 ≈ 49 statt 60 Minuten, ein Geselle schafft in 6 Stunden 7 statt 6. Das Steingestell (`Regale`) gibt 60 statt 40 Lager je Ware. Gilt in Maurerei, Steinschneiderei und Steinmetzhütte, nicht im Steinbruch.
 
 **Keine Messung:** Die KI-Häuser kaufen keine Einrichtung, in `messen` ändert sich nichts.
+
+## Einrichtung des Alchimisten (PR #160)
+
+**Regel:** `werkstatt.einrichtung.Alchimist` (Datenversion 39), gleiche Stücke und Preise wie beim Schmied, statt des Blasebalgs der **kupferne Destillierhelm** (350): −10 % Zeit für Kräuterschnaps, Rosenwasser, Gegengift und Theriak (nicht für Farbe, Heilsalbe, Zinnober). Mit gutem Werkzeug und Destillierhelm braucht ein Kräuterschnaps 15 × 0,81 ≈ 12 statt 15 Minuten, ein Geselle schafft in 6 Stunden 29 statt 24. Die Kräuterregale (`Regale`) geben 60 statt 40 Lager je Ware, die Lederhandschuhe (`Handschuhe`, 80) halbieren die Unfälle wie die Schürzen der anderen Werkstätten (Gefahr des Alchimisten 3 % → 1,5 % je Arbeiter und Jahr). Gilt in Tinkturei, Kräuterladen und Alchimistenstube, nicht im Kräutergarten.
+
+**Keine Messung:** Die KI-Häuser kaufen keine Einrichtung, in `messen` ändert sich nichts.
