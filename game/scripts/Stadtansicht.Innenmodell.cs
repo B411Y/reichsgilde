@@ -9,14 +9,18 @@ namespace Reichsgilde;
 /// Innenräume aus Blender-Modellen – elfter Teil der <c>partial class Stadtansicht</c> (PR #152).
 ///
 /// Ein Beruf bekommt seinen Innenraum, indem <see cref="InnenModellDatei"/> eine Datei nennt (Schmied: <c>schmied_innen.glb</c>, Tischler:
-/// <c>tischler_innen.glb</c>, Steinmetz: <c>steinmetz_innen.glb</c>). Alles Weitere liest dieses Gerüst aus den Knotennamen des Modells (Verträge: <c>docs/bereiche/darstellung.md</c>):
+/// <c>tischler_innen.glb</c>, Steinmetz: <c>steinmetz_innen.glb</c>, Alchimist: <c>alchimist_innen.glb</c>). Alles Weitere liest dieses Gerüst aus den Knotennamen des Modells (Verträge: <c>docs/bereiche/darstellung.md</c>):
 /// <list type="bullet">
-/// <item><c>Raum_Werk</c>, <c>Raum_Lager</c>, <c>Raum_Saege</c>, <c>Raum_Huette</c> – die Räume (glTF-extras „stufe“ auf dem Raumknoten: erst ab dieser Betriebsstufe da,
+/// <item><c>Raum_Werk</c>, <c>Raum_Lager</c>, <c>Raum_Saege</c>, <c>Raum_Huette</c>, <c>Raum_Laden</c>, <c>Raum_Turm</c> – die Räume (glTF-extras „stufe“ auf dem Raumknoten: erst ab dieser Betriebsstufe da,
 /// so die Sägehalle des Tischlers und die Bauhütte des Steinmetzen ab Stufe 3, siehe <see cref="ModellRaeume"/>); <c>Blick_&lt;Raum&gt;_&lt;0|L1|R1|O1|U1…&gt;</c> – feste Blickpunkte der Kamera (Stadtansicht.Innenkamera.cs)</item>
+/// <item><b>Stufenregel:</b> jeder Knoten mit extras „stufe“ &gt; 1 ist erst ab dieser Betriebsstufe sichtbar (<see cref="ModellRaumDaten.StufenKnoten"/>); ausgenommen sind die Anker mit eigener Regel
+/// (<c>Arbeit_</c>, <c>Werkstueck_</c>, <c>Licht_</c>, <c>Dampf_</c>, <c>Auslage_</c>, <c>Blick_</c>), die ihre Stufe selbst auswerten</item>
 /// <item><c>Stufe1</c>–<c>Stufe3</c> – Ausstattung der Betriebsstufe (genau eine sichtbar); <c>Einrichtung_&lt;Kennung&gt;</c> – gekaufte Einrichtung (erst nach dem Kauf sichtbar)</item>
 /// <item><c>Bedienung_&lt;Tafel&gt;_&lt;Name&gt;</c> und <c>Tuer_&lt;von&gt;_&lt;nach&gt;</c> – anklickbare Gegenstände (Klickfläche aus dem Umriss des Netzes; eine Tür mit „stufe“ ist darunter unsichtbar und nicht anklickbar, extras „schild“ ersetzt ihren Namen unter der Maus)</item>
 /// <item><c>Arbeit_&lt;n&gt;_&lt;Bewegung&gt;</c> – Arbeitsplätze (extras „requisit“: ersetzt die Werkzeuge der Bewegung, „keins“ = keine); <c>Werkstueck_&lt;n&gt;</c> – Stück in Arbeit; <c>Lager_&lt;n&gt;</c> – Stellplätze der Warenstapel; <c>Licht_&lt;n&gt;</c> – Lichter (extras „art“: Glut, Fenster, Lampe)</item>
 /// <item><c>Spaene1</c>–<c>Spaene3</c> – Hobelspäne, höchstens einer sichtbar, nach der Arbeit des Tages; die Animation „Arbeit“ des Modells läuft als Schleife, solange gearbeitet wird</item>
+/// <item><c>Werkstueck_&lt;n&gt;</c> mit Netzen aus dem Material „Fluessigkeit“ (Mörser, Kessel, Kolben): die Flüssigkeit selbst ist das Stück in Arbeit und hat die Farbe der Ware;
+/// <c>Dampf_&lt;n&gt;</c> – Dampf über dem Gefäß, solange an seinem Arbeitsplatz gearbeitet wird; <c>Auslage_&lt;n&gt;</c> – Regalplätze im Laden, je Fertigware eine Reihe Flaschen und Tiegel nach dem Lager</item>
 /// </list>
 /// Der Raum folgt dem Kern: Stufe, Einrichtung, Glut, Arbeiter, Werkstücke und Warenstapel werden nur angefasst, wenn sich etwas geändert hat.
 /// </summary>
@@ -28,6 +32,7 @@ public partial class Stadtansicht
         Werkstil.Giesserei => "schmied_innen",
         Werkstil.Tischlerei => "tischler_innen",
         Werkstil.Maurerei => "steinmetz_innen",
+        Werkstil.Tinkturei => "alchimist_innen",
         _ => null,
     };
 
@@ -42,6 +47,8 @@ public partial class Stadtansicht
         (RaumLager, "Lager", "Lager", 1),
         (RaumSaege, "Saege", "Sägehalle", 3),
         (RaumHuette, "Huette", "Bauhütte", 3),
+        (RaumLaden, "Laden", "Laden", 2),
+        (RaumTurm, "Turm", "Laborturm", 3),
     };
 
     /// <summary>
@@ -81,8 +88,32 @@ public partial class Stadtansicht
         /// <summary>&gt; 0: Die Figur läuft im Takt des Raums, so viele Sekunden dauert ihre Schleife (<see cref="RaumTakt"/>); 0: eigene Phase.</summary>
         public double Takt { get; init; }
         public Node3D? WerkstueckAnker { get; set; }
-        public MeshInstance3D? Werkstueck { get; set; }
+        /// <summary>Das Stück in Arbeit: ein grauer Quader als Kind des Ankers, oder – hat <c>Werkstueck_&lt;n&gt;</c> Netze mit dem Material „Fluessigkeit“ – der Anker selbst (samt Blasen, Tropfen).</summary>
+        public Node3D? Werkstueck { get; set; }
+        /// <summary>Das Material des Stücks (Quader oder Flüssigkeit; eigene Kopie je Platz), das die Farbe der Ware trägt.</summary>
+        public StandardMaterial3D? WerkstueckStoff { get; set; }
         public string WerkstueckWare { get; set; } = "";
+    }
+
+    /// <summary>Dampf über einem Gefäß (Knoten <c>Dampf_&lt;n&gt;</c>): steigt auf, solange am zugehörigen Arbeitsplatz gearbeitet wird.</summary>
+    private sealed class DampfQuelle
+    {
+        public required CpuParticles3D Teilchen { get; init; }
+        public required int AbStufe { get; init; }
+        /// <summary>Der Arbeitsplatz, dessen Werkstück neben der Quelle liegt (der Dampf steht über dem Kessel, dem Kolben, dem Athanor); null: Dampf bei jeder Arbeit des Hauses.</summary>
+        public ModellPlatz? Platz { get; init; }
+    }
+
+    /// <summary>Ein Platz im Regal des Ladens (<c>Auslage_&lt;n&gt;</c>): eine Reihe Tiegel und Flaschen einer Fertigware.</summary>
+    private sealed class AuslagePlatz
+    {
+        public required Node3D Anker { get; init; }
+        public required Node3D[] Gefaesse { get; init; }
+        public required StandardMaterial3D Stoff { get; init; }
+        public required CollisionShape3D Klick { get; init; }
+        public required Label3D Schild { get; init; }
+        public string Ware { get; set; } = "";
+        public string Stand { get; set; } = "";
     }
 
     private sealed class ModellArbeiter
@@ -128,8 +159,17 @@ public partial class Stadtansicht
         public Dictionary<string, List<Blickpunkt>> Blicke { get; } = new();
         public List<ModellPlatz> Plaetze { get; } = new();
         public List<Node3D> Lagerplaetze { get; } = new();
+        /// <summary>Die Anker der Regalplätze im Laden (<c>Auslage_&lt;n&gt;</c>, nach Nummer) und was darauf steht (je Platz eine Fertigware, gebaut beim ersten Stück im Lager).</summary>
+        public List<Node3D> Auslageplaetze { get; } = new();
+        public List<AuslagePlatz?> Auslagen { get; } = new();
+        /// <summary>Dampf über Kessel, Kolben und Athanor; sein Material (ein weicher Fleck, im Raum nach der Tageshelligkeit getönt).</summary>
+        public List<DampfQuelle> Dampf { get; } = new();
+        public List<Node3D> DampfAnker { get; } = new();
+        public StandardMaterial3D? DampfStoff { get; set; }
+        /// <summary>Die Bedienungsstücke des Raums (Tafel, Name) in der Reihenfolge der Tafeln – für den Hinweis beim Betreten.</summary>
+        public List<(string Tafel, string Name, Node3D Knoten)> Bedienungen { get; } = new();
         public List<(Light3D Licht, LichtArt Art, int AbStufe)> Lichter { get; } = new();
-        /// <summary>Knoten, die erst ab einer Betriebsstufe da sind (Raum „Saege“, Türen dorthin; extras „stufe“): darunter unsichtbar.</summary>
+        /// <summary>Knoten, die erst ab einer Betriebsstufe da sind (Räume ab der zweiten oder dritten Stufe, Türen dorthin, Schlot2, Fischgrät …; extras „stufe“): darunter unsichtbar.</summary>
         public List<(Node3D Knoten, int AbStufe)> StufenKnoten { get; } = new();
         /// <summary>Hobelspäne in drei Mengen (Index 1–3); höchstens einer sichtbar.</summary>
         public Node3D?[] Spaene { get; } = new Node3D?[4];
@@ -192,25 +232,36 @@ public partial class Stadtansicht
         {
             if (wurzel.FindChild($"Werkstueck_{plan.Nr}", true, false) is not Node3D anker) continue;
             plan.WerkstueckAnker = anker;
+            if (FluessigkeitKopieren(anker) is { } fluessigkeit)
+            {
+                // Mörser, Kessel, Kolben, Athanor: Das Stück ist die Flüssigkeit im Gefäß (samt Blasen und Tropfen) und hat die Farbe der Ware
+                plan.Werkstueck = anker;
+                plan.WerkstueckStoff = fluessigkeit;
+                anker.Visible = false;
+                continue;
+            }
+            plan.WerkstueckStoff = Material(Colors.Gray);
             plan.Werkstueck = new MeshInstance3D
             {
                 Mesh = new BoxMesh { Size = new Vector3(0.42f, 0.08f, 0.22f) },
-                MaterialOverride = Material(Colors.Gray),
+                MaterialOverride = plan.WerkstueckStoff,
                 Visible = false,
             };
             anker.AddChild(plan.Werkstueck);
         }
         md.Plaetze.Sort((x, y) => x.Nr.CompareTo(y.Nr));
-        RaumEbeneUebernehmen(wurzel); // alles, was bis hier im Modell steht, auch Lichter und Werkstücke
+        DampfAnlegen(wurzel, md);
+        md.Auslageplaetze.Sort((x, y) => NummerImNamen(x).CompareTo(NummerImNamen(y)));
+        RaumEbeneUebernehmen(wurzel); // alles, was bis hier im Modell steht, auch Lichter, Werkstücke und Dampf
 
-        // Räume in der Reihenfolge der Raumleiste (Mitte, Maße und Wände stehen im Modell). Ein Raum mit „stufe“ (die Sägehalle, die Bauhütte ab 3) steht erst ab dieser Stufe in der Leiste.
+        // Räume in der Reihenfolge der Raumleiste (Mitte, Maße und Wände stehen im Modell). Ein Raum mit „stufe“ (Sägehalle, Bauhütte, Laden, Laborturm) steht erst ab dieser Stufe in der Leiste.
         foreach (var (kennung, schluessel, name, vorgabe) in ModellRaeume(stil)) // die Vorgabe gilt, wenn die „extras“ fehlen
             if (md.Blicke.TryGetValue(schluessel, out var blicke) && blicke.Count > 0)
             {
                 blicke.Sort((x, y) => x.Rang.CompareTo(y.Rang));
                 var raumKnoten = wurzel.FindChild("Raum_" + schluessel, true, false) as Node3D;
                 var abStufe = raumKnoten is null ? vorgabe : ExtraZahl(raumKnoten, "stufe", vorgabe);
-                if (raumKnoten is not null && abStufe > 1) md.StufenKnoten.Add((raumKnoten, abStufe));
+                if (raumKnoten is not null && abStufe > 1 && md.StufenKnoten.All(x => x.Knoten != raumKnoten)) md.StufenKnoten.Add((raumKnoten, abStufe)); // ohne extras: die Vorgabe der Tabelle
                 a.Raeume.Add(new Raum(kennung, name, Vector3.Zero, Vector3.Zero, // Mitte und Maße braucht nur der alte Raum aus Grundkörpern: Wände und Lage stehen im Modell, die Kamera folgt den Blickpunkten
                     abStufe > 1 ? () => Modellstufe(a.Betrieb.Stufe) >= abStufe : null, blicke));
             }
@@ -256,6 +307,10 @@ public partial class Stadtansicht
     {
         var name = knoten.Name.ToString();
         var teile = name.Split('_');
+        // Allgemeine Stufenregel: Ab dieser Betriebsstufe ist der Knoten da, darunter unsichtbar (Raum, Tür, Schlot2, Fischgrät, Späne …).
+        // Die Anker mit eigener Regel werten ihre Stufe selbst aus; ohne sie schaltete sich Arbeitsplatz, Werkstück und Licht doppelt.
+        if (ExtraZahl(knoten, "stufe", 1) is > 1 and var abStufe && teile[0] is not ("Arbeit" or "Werkstueck" or "Licht" or "Dampf" or "Auslage" or "Blick"))
+            md.StufenKnoten.Add((knoten, abStufe));
         switch (teile[0])
         {
             case "Stufe1" or "Stufe2" or "Stufe3":
@@ -270,20 +325,18 @@ public partial class Stadtansicht
                 InnenKlickAnlegen(a, md, knoten, "einrichtung:" + teile[1]);
                 break;
             case "Bedienung" when teile.Length >= 3:
+                md.Bedienungen.Add((teile[1], teile[2], knoten));
                 InnenKlickAnlegen(a, md, knoten, $"bedienung:{teile[1]}:{teile[2]}");
                 break;
             case "Tuer" when teile.Length >= 3:
                 // extras „schild“: eigener Text fürs Schild, z. B. „Treppe zum Lager“, wenn die Tür eine Treppe oder Luke ist
                 InnenKlickAnlegen(a, md, knoten, $"tuer:{teile[1]}:{teile[2]}" + (ExtraText(knoten, "schild") is { Length: > 0 } schild ? ":" + schild : ""));
-                if (ExtraZahl(knoten, "stufe", 1) is > 1 and var tuerStufe) md.StufenKnoten.Add((knoten, tuerStufe)); // die Tür zur Sägehalle gibt es erst mit ihr
                 break;
             case "Spaene1" or "Spaene2" or "Spaene3" when teile.Length == 1:
                 md.Spaene[name[^1] - '0'] = knoten;
                 knoten.Visible = false; // bis zur Arbeit des Tages
                 break;
-            case "Spaene1" or "Spaene2" or "Spaene3": // Teil einer Menge Späne (Spaene<n>_Drechselbank), liegt erst ab seiner Stufe da
-                if (ExtraZahl(knoten, "stufe", 1) is > 1 and var spaeneStufe) md.StufenKnoten.Add((knoten, spaeneStufe));
-                break;
+            // (Teil einer Menge Späne, Spaene<n>_Drechselbank, liegt erst ab seiner Stufe da: Stufenregel oben)
             case "Blick" when teile.Length >= 3:
                 if (!md.Blicke.TryGetValue(teile[1], out var liste)) md.Blicke[teile[1]] = liste = new List<Blickpunkt>();
                 liste.Add(new Blickpunkt(teile[2], knoten));
@@ -295,10 +348,130 @@ public partial class Stadtansicht
             case "Lager" when teile.Length == 2 && int.TryParse(teile[1], out _):
                 md.Lagerplaetze.Add(knoten);
                 break;
+            case "Auslage" when teile.Length == 2 && int.TryParse(teile[1], out _):
+                md.Auslageplaetze.Add(knoten);
+                break;
+            case "Dampf" when teile.Length == 2:
+                md.DampfAnker.Add(knoten);
+                break;
             case "Licht" when teile.Length == 2:
                 InnenLichtAnlegen(md, knoten);
                 break;
         }
+    }
+
+    /// <summary>Die Nummer am Ende eines Knotennamens wie <c>Auslage_3</c> (sonst 0).</summary>
+    private static int NummerImNamen(Node knoten) => int.TryParse(knoten.Name.ToString().Split('_')[^1], out var nr) ? nr : 0;
+
+    /// <summary>
+    /// Hat der Knoten – er selbst oder darunter (Blasen, Tropfen) – Netze mit dem Material „Fluessigkeit“, bekommen alle zusammen eine eigene Kopie dieses Materials
+    /// (je Werkstück eine, damit jede Flüssigkeit ihre Farbe hat); die Kopie wird zurückgegeben. Sonst null: Dann ist das Werkstück ein Quader (Schmied, Tischler, Steinmetz).
+    /// </summary>
+    private static StandardMaterial3D? FluessigkeitKopieren(Node3D anker)
+    {
+        StandardMaterial3D? kopie = null;
+        var teile = anker.FindChildren("*", nameof(MeshInstance3D), true, false).OfType<MeshInstance3D>().ToList();
+        if (anker is MeshInstance3D selbst) teile.Add(selbst);
+        foreach (var teil in teile)
+            for (var i = 0; teil.Mesh is { } netz && i < netz.GetSurfaceCount(); i++)
+                if (netz.SurfaceGetMaterial(i) is StandardMaterial3D { ResourceName: "Fluessigkeit" } vorlage)
+                {
+                    kopie ??= (StandardMaterial3D)vorlage.Duplicate();
+                    teil.SetSurfaceOverrideMaterial(i, kopie);
+                }
+        return kopie;
+    }
+
+    // ═════════════════════════════════════════════════════════════════════════
+    //  Dampf
+    // ═════════════════════════════════════════════════════════════════════════
+
+    /// <summary>Wie weit (Meter, waagerecht) ein Werkstück von einem <c>Dampf_&lt;n&gt;</c> höchstens liegen darf, damit der Dampf zu seinem Arbeitsplatz gehört.</summary>
+    private const float DampfReichweite = 0.6f;
+
+    private static GradientTexture2D? _dampfFleck;
+
+    /// <summary>Ein weicher heller Fleck (radialer Verlauf, außen durchsichtig) als Gestalt eines Dampfballens; alle Dampfquellen teilen ihn.</summary>
+    private static GradientTexture2D DampfFleck() => _dampfFleck ??= new GradientTexture2D
+    {
+        Width = 64, Height = 64,
+        Fill = GradientTexture2D.FillEnum.Radial, FillFrom = new Vector2(0.5f, 0.5f), FillTo = new Vector2(1f, 0.5f),
+        Gradient = new Gradient
+        {
+            Offsets = new[] { 0f, 0.45f, 1f },
+            Colors = new[] { new Color(1, 1, 1, 1), new Color(1, 1, 1, 0.45f), new Color(1, 1, 1, 0) },
+        },
+    };
+
+    /// <summary>
+    /// Legt an jedes <c>Dampf_&lt;n&gt;</c> (leerer Knoten, der Dampf steigt nach +Y) eine Quelle: wenige weiche Flecken, die sanft aufsteigen, wachsen und vergehen.
+    /// Zum Arbeitsplatz gehört sie über das nächste Werkstück (die Quelle steht über dem Kessel, dem Kolben, dem Athanor).
+    /// Der Fleck ist unbeschattet und durchsichtig; der Holzschnitt lässt ihn darum, wie er ist (hell und schlicht).
+    /// </summary>
+    private static void DampfAnlegen(Node3D wurzel, ModellRaumDaten md)
+    {
+        if (md.DampfAnker.Count == 0) return;
+        md.DampfStoff = new StandardMaterial3D
+        {
+            ShadingMode = BaseMaterial3D.ShadingModeEnum.Unshaded,
+            Transparency = BaseMaterial3D.TransparencyEnum.Alpha,
+            BillboardMode = BaseMaterial3D.BillboardModeEnum.Particles,
+            VertexColorUseAsAlbedo = true,
+            AlbedoTexture = DampfFleck(),
+            AlbedoColor = new Color(0.8f, 0.8f, 0.78f),
+            CullMode = BaseMaterial3D.CullModeEnum.Disabled,
+        };
+        var kurve = new Curve { MaxValue = 2f };
+        kurve.AddPoint(new Vector2(0f, 0.5f));
+        kurve.AddPoint(new Vector2(1f, 1.7f));
+        var verlauf = new Gradient // durchsichtig → dünner Dampf → verweht
+        {
+            Offsets = new[] { 0f, 0.25f, 1f },
+            Colors = new[] { new Color(1, 1, 1, 0), new Color(1, 1, 1, 0.28f), new Color(1, 1, 1, 0) },
+        };
+        foreach (var anker in md.DampfAnker)
+        {
+            var teilchen = new CpuParticles3D
+            {
+                Emitting = false,
+                Amount = 9,
+                Lifetime = 3.2,
+                Randomness = 0.6f,
+                LocalCoords = false,
+                CastShadow = GeometryInstance3D.ShadowCastingSetting.Off,
+                Mesh = new QuadMesh { Size = new Vector2(0.45f, 0.45f), Material = md.DampfStoff },
+                EmissionShape = CpuParticles3D.EmissionShapeEnum.Sphere,
+                EmissionSphereRadius = 0.07f,
+                Direction = Vector3.Up,
+                Spread = 14f,
+                Gravity = Vector3.Zero,
+                InitialVelocityMin = 0.16f,
+                InitialVelocityMax = 0.30f,
+                AngleMin = 0f,
+                AngleMax = 360f,
+                ScaleAmountMin = 0.8f,
+                ScaleAmountMax = 1.2f,
+                ScaleAmountCurve = kurve,
+                ColorRamp = verlauf,
+            };
+            anker.AddChild(teilchen);
+            var lage = LageImModell(wurzel, anker).Origin;
+            float Abstand(ModellPlatz p) // waagerecht
+            {
+                var stueck = LageImModell(wurzel, p.WerkstueckAnker!).Origin;
+                return new Vector2(stueck.X - lage.X, stueck.Z - lage.Z).Length();
+            }
+            var platz = md.Plaetze.Where(p => p.WerkstueckAnker is not null).OrderBy(Abstand).FirstOrDefault(p => Abstand(p) < DampfReichweite);
+            md.Dampf.Add(new DampfQuelle { Teilchen = teilchen, AbStufe = ExtraZahl(anker, "stufe", 1), Platz = platz });
+        }
+    }
+
+    /// <summary>Lage eines Knotens im Koordinatensystem der Modellwurzel (ohne dass das Modell schon im Baum stehen muss).</summary>
+    private static Transform3D LageImModell(Node3D wurzel, Node3D knoten)
+    {
+        var lage = Transform3D.Identity;
+        for (Node3D? k = knoten; k is not null && k != wurzel; k = k.GetParent() as Node3D) lage = k.Transform * lage;
+        return lage;
     }
 
     private void InnenLichtAnlegen(ModellRaumDaten md, Node3D anker)
@@ -344,8 +517,8 @@ public partial class Stadtansicht
         var liste => liste.Split(',', StringSplitOptions.TrimEntries | StringSplitOptions.RemoveEmptyEntries),
     };
 
-    /// <summary>Raumschlüssel in der Reihenfolge ihrer Render-Ebene (11, 12, 13, 14): Jeder Raum eines Modells hat seine eigene.</summary>
-    private static readonly string[] RaumEbenen = { "Werk", "Lager", "Saege", "Huette" };
+    /// <summary>Raumschlüssel in der Reihenfolge ihrer Render-Ebene (11 bis 16): Jeder Raum eines Modells hat seine eigene.</summary>
+    private static readonly string[] RaumEbenen = { "Werk", "Lager", "Saege", "Huette", "Laden", "Turm" };
 
     /// <summary>
     /// Legt alles unter <paramref name="knoten"/> auf die Render-Ebene seines Raums und lässt jedes Licht nur diese Ebene beleuchten. Die Räume liegen
@@ -373,7 +546,7 @@ public partial class Stadtansicht
         foreach (var kind in knoten.GetChildren()) EbeneSetzen(kind, ebene);
     }
 
-    /// <summary>Schlüssel des Raums, in dem der Knoten liegt: der Name des nächsten Vorfahren „Raum_&lt;Schlüssel&gt;“ („Werk“, „Lager“, „Saege“, „Huette“), sonst leer.</summary>
+    /// <summary>Schlüssel des Raums, in dem der Knoten liegt: der Name des nächsten Vorfahren „Raum_&lt;Schlüssel&gt;“ („Werk“, „Lager“, „Saege“, „Huette“, „Laden“, „Turm“), sonst leer.</summary>
     private static string RaumSchluesselVon(Node knoten)
     {
         for (var k = knoten; k is not null; k = k.GetParent())
@@ -464,6 +637,7 @@ public partial class Stadtansicht
         if (Mathf.Abs(_raumHell - md.Hell) > 0.01f)
         {
             md.Hell = _raumHell;
+            if (md.DampfStoff is { } dampf) dampf.AlbedoColor = new Color(0.5f, 0.5f, 0.5f).Lerp(new Color(0.9f, 0.9f, 0.87f), _raumHell); // unbeschattet: nachts dunkler, damit er nicht leuchtet
             foreach (var (licht, art, abStufe) in md.Lichter)
             {
                 licht.Visible = stufe >= abStufe;
@@ -481,7 +655,24 @@ public partial class Stadtansicht
             InnenAnimationSetzen(md, !arbeitet ? AnimationStand.Ruht : _simulation!.Takt.IstPausiert ? AnimationStand.Haelt : AnimationStand.Laeuft, delta);
 
         InnenArbeiterAktualisieren(a, md, b, stufe, arbeitszeit, arbeitet, delta);
+        InnenDampfAktualisieren(md, stufe, arbeitet);
         InnenLagerAktualisieren(a, md, b);
+        InnenAuslageAktualisieren(a, md, b);
+    }
+
+    /// <summary>
+    /// Dampf steigt, solange das Werkstück seines Arbeitsplatzes im Gefäß steht (also an diesem Platz gearbeitet wird und die Stufe da ist); eine Quelle ohne Platz dampft bei jeder Arbeit.
+    /// Ohne Arbeit hört die Quelle auf, was aufgestiegen ist, vergeht von allein. In der Spielpause stehen die Flecken still.
+    /// </summary>
+    private void InnenDampfAktualisieren(ModellRaumDaten md, int stufe, bool arbeitet)
+    {
+        var tempo = _simulation!.Takt.IstPausiert ? 0f : 1f;
+        foreach (var quelle in md.Dampf)
+        {
+            var an = stufe >= quelle.AbStufe && (quelle.Platz is { Werkstueck: { } stueck } ? stueck.Visible : arbeitet);
+            if (quelle.Teilchen.Emitting != an) quelle.Teilchen.Emitting = an;
+            if (!Mathf.IsEqualApprox(quelle.Teilchen.SpeedScale, tempo)) quelle.Teilchen.SpeedScale = tempo;
+        }
     }
 
     /// <summary>
@@ -608,7 +799,7 @@ public partial class Stadtansicht
             if (ware != "" && ware != platz.WerkstueckWare)
             {
                 platz.WerkstueckWare = ware;
-                ((StandardMaterial3D)platz.Werkstueck.MaterialOverride).AlbedoColor = WerkstueckFarbe(a.Stil, ware);
+                platz.WerkstueckStoff!.AlbedoColor = WerkstueckFarbe(a.Stil, ware);
             }
         }
     }
@@ -756,8 +947,153 @@ public partial class Stadtansicht
     }
 
     // ═════════════════════════════════════════════════════════════════════════
+    //  Auslage im Laden
+    // ═════════════════════════════════════════════════════════════════════════
+
+    /// <summary>So viele Gefäße hat eine volle Reihe (wie die Kisten eines vollen Stapels).</summary>
+    private const int AuslageReihe = 5;
+
+    /// <summary>Abstand der Gefäße in der Reihe (Meter); der Platz im Regal ist 0,85 m breit.</summary>
+    private const float AuslageAbstand = 0.17f;
+
+    /// <summary>In dieser Reihenfolge füllt sich die Reihe: erst die Mitte, dann abwechselnd links und rechts.</summary>
+    private static readonly int[] AuslageFolge = { 2, 1, 3, 0, 4 };
+
+    private static StandardMaterial3D? _auslageKork;
+    private static readonly Dictionary<string, Mesh> _auslageNetze = new();
+
+    /// <summary>Die Netze der Gefäße (Flaschenbauch, Hals, Kork, Tiegel, Deckel), alle Reihen teilen sie.</summary>
+    private static Mesh AuslageNetz(string art) => _auslageNetze.TryGetValue(art, out var netz) ? netz : _auslageNetze[art] = art switch
+    {
+        "Bauch" => new CylinderMesh { TopRadius = 0.046f, BottomRadius = 0.062f, Height = 0.16f, RadialSegments = 12, Rings = 1 },
+        "Hals" => new CylinderMesh { TopRadius = 0.020f, BottomRadius = 0.026f, Height = 0.09f, RadialSegments = 10, Rings = 1 },
+        "Kork" => new CylinderMesh { TopRadius = 0.026f, BottomRadius = 0.022f, Height = 0.035f, RadialSegments = 10, Rings = 1 },
+        "Tiegel" => new CylinderMesh { TopRadius = 0.062f, BottomRadius = 0.066f, Height = 0.105f, RadialSegments = 12, Rings = 1 },
+        _ => new CylinderMesh { TopRadius = 0.066f, BottomRadius = 0.07f, Height = 0.03f, RadialSegments = 12, Rings = 1 }, // Deckel
+    };
+
+    /// <summary>
+    /// Im Laden steht je Fertigware des Hauses (<c>Betriebsart.Produkte</c>, der Reihe nach an <c>Auslage_1</c> …) eine Reihe Flaschen und Tiegel in der Farbe der Ware, so viele
+    /// wie der Anteil am vollen Lager (höchstens fünf, mindestens eines, solange etwas im Lager liegt). Ein Platz bleibt einer Ware treu, auch wenn ihr Lager leer ist.
+    /// Ein Klick auf die Reihe öffnet das Lager der Ware (wie bei den Stapeln im Dachboden).
+    /// </summary>
+    private void InnenAuslageAktualisieren(BetriebsAnsicht a, ModellRaumDaten md, Betrieb b)
+    {
+        if (md.Auslageplaetze.Count == 0) return;
+        var produkte = b.Artdaten.Produkte;
+        while (md.Auslagen.Count < md.Auslageplaetze.Count) md.Auslagen.Add(null);
+        for (var i = 0; i < md.Auslageplaetze.Count; i++)
+        {
+            var ware = i < produkte.Count ? produkte[i] : "";
+            var menge = ware == "" ? 0 : b.ImLager(ware);
+            var platz = md.Auslagen[i];
+            if (platz is null)
+            {
+                if (menge <= 0) continue; // gebaut wird mit dem ersten Stück im Lager
+                md.Auslagen[i] = platz = AuslageBauen(a, md.Auslageplaetze[i]);
+            }
+            var kapazitaet = Math.Max(1, b.LagerKapazitaetJeWare);
+            var stand = $"{ware}|{menge}/{kapazitaet}";
+            if (stand != platz.Stand)
+            {
+                platz.Stand = stand;
+                if (ware != platz.Ware)
+                {
+                    platz.Ware = ware;
+                    platz.Stoff.AlbedoColor = Warenfarbe(ware);
+                    platz.Klick.GetParent().SetMeta("innen", "ware:" + ware);
+                }
+                var anzahl = menge <= 0 ? 0 : Math.Clamp((int)Math.Ceiling(AuslageReihe * menge / (double)kapazitaet), 1, AuslageReihe);
+                for (var k = 0; k < AuslageReihe; k++) platz.Gefaesse[AuslageFolge[k]].Visible = k < anzahl;
+                platz.Schild.Text = $"{ware} {menge}";
+            }
+            var aktiv = menge > 0 && platz.Anker.IsVisibleInTree(); // ohne Ware oder ohne Laden (Stufe 1) nicht anklickbar
+            if (platz.Klick.Disabled == aktiv) platz.Klick.Disabled = !aktiv;
+            var schildSichtbar = aktiv && _raum?.Kennung == RaumLaden; // das Schild sieht durch Wände: nur im Laden
+            if (platz.Schild.Visible != schildSichtbar) platz.Schild.Visible = schildSichtbar;
+        }
+    }
+
+    /// <summary>
+    /// Baut die fünf Gefäße einer Reihe am Anker (Mitte der Brettoberkante, −Z zeigt in den Laden): abwechselnd Flasche und Tiegel, alle unsichtbar, bis Ware da ist.
+    /// Die Farbe der Ware trägt ein Material je Reihe, Hals, Kork und Deckel sind aus dunklem Holz und Wachs.
+    /// </summary>
+    private AuslagePlatz AuslageBauen(BetriebsAnsicht a, Node3D anker)
+    {
+        var stoff = Material(Colors.White);
+        stoff.Roughness = 0.45f;
+        _auslageKork ??= Material(new Color(0.34f, 0.23f, 0.14f));
+        var gefaesse = new Node3D[AuslageReihe];
+        for (var i = 0; i < AuslageReihe; i++)
+        {
+            var gefaess = new Node3D
+            {
+                Position = new Vector3((i - AuslageReihe / 2) * AuslageAbstand, 0, ((i * 7) % 3 - 1) * 0.03f),
+                RotationDegrees = new Vector3(0, i * 53 % 360, 0),
+                Visible = false,
+            };
+            MeshInstance3D Teil(string art, float hoehe, StandardMaterial3D material) => new() { Mesh = AuslageNetz(art), MaterialOverride = material, Position = new Vector3(0, hoehe, 0) };
+            if (i % 2 == 0) // Flasche: Bauch, Hals, Kork
+            {
+                gefaess.AddChild(Teil("Bauch", 0.08f, stoff));
+                gefaess.AddChild(Teil("Hals", 0.205f, stoff));
+                gefaess.AddChild(Teil("Kork", 0.268f, _auslageKork));
+            }
+            else // Tiegel mit Deckel
+            {
+                gefaess.AddChild(Teil("Tiegel", 0.0525f, stoff));
+                gefaess.AddChild(Teil("Deckel", 0.12f, _auslageKork));
+            }
+            anker.AddChild(gefaess);
+            gefaesse[i] = gefaess;
+        }
+        var schild = Beschriftung("", Vector3.Zero, 12, anker);
+        schild.Position = new Vector3(0, 0.38f, 0);
+        schild.Visible = false;
+        var koerper = new StaticBody3D();
+        koerper.SetMeta("innen", "ware:");
+        var form = new CollisionShape3D { Shape = new BoxShape3D { Size = new Vector3(0.85f, 0.39f, 0.32f) }, Position = new Vector3(0, 0.195f, 0), Disabled = true };
+        koerper.AddChild(form);
+        anker.AddChild(koerper);
+        a.Raumklicks.Add(form);
+        RaumEbeneUebernehmen(anker);
+        return new AuslagePlatz { Anker = anker, Gefaesse = gefaesse, Stoff = stoff, Klick = form, Schild = schild };
+    }
+
+    // ═════════════════════════════════════════════════════════════════════════
     //  Namen unter der Maus
     // ═════════════════════════════════════════════════════════════════════════
+
+    /// <summary>
+    /// Der Name eines Bedienungsstücks auf seinem Schild: Das Personalbuch, das Hoftor und die Werkzeugwand heißen immer so, die anderen nach dem Knoten
+    /// (Amboss, Werkbank, Hobelbank …); Umlaute stehen im Knotennamen umschrieben (<c>Kraeutertisch</c>), das Schild schreibt sie aus.
+    /// </summary>
+    private static string BedienungName(string tafel, string ding) => (tafel, ding) switch
+    {
+        ("Personal", _) => "Personalbuch",
+        ("Karren", _) => "Hoftor",
+        ("Einrichten", _) => "Werkzeugwand",
+        ("Lager", "Bretter") => "Bretterstapel",
+        ("Lager", "Quader") => "Quaderstapel",
+        ("Lager", "Kraeuter") => "Kräuterbündel",
+        (_, "Kraeutertisch") => "Kräutertisch",
+        _ => ding,
+    };
+
+    /// <summary>
+    /// Die Gegenstände des betretenen Raums, die man anklicken kann, nach den Tafeln geordnet (Buch, Werkbank, Lager, Hoftor, Werkzeugwand …) – für den Hinweis beim Betreten.
+    /// Leer, wenn das Haus kein Modell hat.
+    /// </summary>
+    public string InnenBedienungen => _innen is BetriebsAnsicht { Modellraum: { } md } a
+        ? string.Join(", ", md.Bedienungen.Where(x => IstDaAbStufe(x.Knoten, md, Modellstufe(a.Betrieb.Stufe)))
+            .OrderBy(x => Array.IndexOf(BedienungTafeln, x.Tafel)).Select(x => BedienungName(x.Tafel, x.Name)).Distinct())
+        : "";
+
+    /// <summary>Gibt es den Knoten in dieser Betriebsstufe? Nicht, wenn er selbst oder einer seiner Vorfahren (der Laden, der Turm) erst später dazukommt (<see cref="ModellRaumDaten.StufenKnoten"/>).</summary>
+    private static bool IstDaAbStufe(Node knoten, ModellRaumDaten md, int stufe) =>
+        md.StufenKnoten.All(x => stufe >= x.AbStufe || !(x.Knoten == knoten || x.Knoten.IsAncestorOf(knoten)));
+
+    private static readonly string[] BedienungTafeln = { "Personal", "Produktion", "Lager", "Karren", "Einrichten" };
 
     /// <summary>Der Text zum Schild an der Maus: erste Zeile der Name, darunter in kleiner Schrift, was ein Klick tut. Leer: nichts anzeigen.</summary>
     private (string Name, string Hinweis) InnenText(BetriebsAnsicht a, string tag)
@@ -767,21 +1103,23 @@ public partial class Stadtansicht
         switch (teile[0])
         {
             case "bedienung" when teile.Length >= 3:
-                return (teile[1], teile[2]) switch
+                return (BedienungName(teile[1], teile[2]), teile[1] switch
                 {
-                    ("Personal", _) => ("Personalbuch", "Klick: Arbeiter einstellen, befördern, entlassen, Lohn und Prämie"),
-                    ("Produktion", var ding) => (ding, "Klick: Waren herstellen und Arbeiter zuteilen"), // Amboss, Werkbank, Hobelbank, Leimtisch, Werkblock
-                    ("Lager", "Bretter") => ("Bretterstapel", "Klick: Bestand und Zurückhalten"),
-                    ("Lager", "Quader") => ("Quaderstapel", "Klick: Bestand und Zurückhalten"),
-                    ("Lager", var ding) => (ding, "Klick: Bestand und Zurückhalten"),                  // Regal, Kisten
-                    ("Karren", _) => ("Hoftor", "Klick: Karren des Hauses"),
-                    ("Einrichten", _) => ("Werkzeugwand", "Klick: Einrichtung kaufen"),
-                    _ => (teile[2], ""),
-                };
+                    "Personal" => "Klick: Arbeiter einstellen, befördern, entlassen, Lohn und Prämie",
+                    "Produktion" => "Klick: Waren herstellen und Arbeiter zuteilen",
+                    "Lager" => "Klick: Bestand und Zurückhalten",
+                    "Karren" => "Klick: Karren des Hauses",
+                    "Einrichten" => "Klick: Einrichtung kaufen",
+                    _ => "",
+                });
             case "tuer" when teile.Length >= 4:
                 return (string.Join(':', teile[3..]), "Klick: Raum wechseln");
             case "tuer" when teile.Length >= 3:
-                return (teile[2] switch { "Lager" => "Tür zum Lager", "Saege" => "Tür zur Sägehalle", "Huette" => "Tür zur Bauhütte", _ => "Tür zum Werkraum" }, "Klick: Raum wechseln");
+                return (teile[2] switch
+                {
+                    "Lager" => "Tür zum Lager", "Saege" => "Tür zur Sägehalle", "Huette" => "Tür zur Bauhütte", "Laden" => "Tür zum Laden", "Turm" => "Tür zum Laborturm",
+                    _ => "Tür zum Werkraum",
+                }, "Klick: Raum wechseln");
             case "einrichtung" when teile.Length >= 2:
                 var stueck = w?.Werkstaetten.Einrichtungsliste(a.Betrieb).FirstOrDefault(e => e.Kennung == teile[1]);
                 return (stueck?.Name ?? teile[1], stueck is null ? "" : "Eingerichtet: " + stueck.Wirkung);
