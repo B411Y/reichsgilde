@@ -133,7 +133,8 @@ def maserung(saat, linien, aeste=0, streckung=6.0):
         ast = np.maximum(ast, np.exp(-q * 1.5))
     t = phase % 1.0
     linie = np.exp(-((t - 0.5) / 0.16) ** 2)                        # dunkle Spätholz-Linien
-    helligkeit = -0.24 * linie - 0.10 * (rauschen(30, saat + 2, streckung * 2) - 0.5) * 2 - 0.40 * ast
+    streifen = rauschen(6, saat + 2, streckung * 3)                      # hellere und dunklere Fasern
+    helligkeit = -0.42 * linie - 0.45 * (streifen - 0.5) - 0.45 * ast
     hoehe = 0.5 - 0.25 * linie - 0.4 * ast
     return helligkeit, hoehe
 
@@ -193,11 +194,12 @@ def mauer():
     nummer, stoss, lager = verband(8, 5, 121)
     abstand = np.minimum(stoss, lager)
     abstand = abstand + 3.5 * (rauschen(6, 122) - 0.5) + 2.0 * (rauschen(2.5, 123) - 0.5)   # Kanten nicht gerade
-    stein = np.clip((abstand - 1.5) / 5.0, 0, 1)
+    stein = np.clip((abstand - 2.5) / 5.0, 0, 1)
     flaeche = fbm(124, [40, 12, 4])
-    hell = 0.22 * zufall_je(nummer, 125, 40) + 0.14 * (flaeche - 0.5) - 0.42 * (1 - np.clip((abstand - 0.5) / 2.5, 0, 1))
+    fuge = 1 - np.clip((abstand - 1.5) / 3.0, 0, 1)                    # gut 1,5 cm breit, weich auslaufend
+    hell = 0.32 * zufall_je(nummer, 125, 40) + 0.20 * (flaeche - 0.5) - 0.60 * fuge
     ton = 0.55 * zufall_je(nummer, 126, 40) + 0.2 * (rauschen(30, 127) - 0.5)
-    hoehe = 6.0 * np.sqrt(stein) + 2.5 * flaeche + 1.0 * zufall_je(nummer, 128, 40)
+    hoehe = 7.0 * np.sqrt(stein) + 3.0 * flaeche + 1.0 * zufall_je(nummer, 128, 40)
     return hell, ton, hoehe
 
 
@@ -234,15 +236,14 @@ def ziegel():
 
 
 def stroh():
-    """Strohdach: Die Lagen sind im Modell schon Form (alle 70 cm), hier nur dichte Halme in Fallrichtung, Büschel
-    verschieden hell und ein paar dunklere, verwitterte Stellen (Kachel 1,5 m)."""
+    """Strohdach: Die Lagen sind im Modell schon Form (alle 70 cm), hier nur Halme und Strähnen in Fallrichtung,
+    verschieden hell (Kachel 1,5 m)."""
     halme = rauschen(1.3, 151, 40.0)
-    halme2 = rauschen(2.5, 152, 18.0)
-    bueschel = rauschen(5, 153, 10.0)                                   # Strähnen von gut 1 cm Breite
-    alt = np.clip((rauschen(40, 154) - 0.55) * 3, 0, 1)
-    hell = 0.34 * (halme - 0.5) + 0.22 * (halme2 - 0.5) + 0.18 * (bueschel - 0.5) - 0.20 * alt
-    ton = 0.35 * (halme2 - 0.5) + 0.3 * (rauschen(60, 155) - 0.5) - 0.4 * alt
-    return hell, ton, 2.5 * halme + 1.5 * halme2 + 2.0 * bueschel
+    halme2 = rauschen(3.0, 152, 20.0)
+    straehnen = rauschen(9, 153, 9.0)                                   # Strähnen von 2–3 cm Breite, gut 25 cm lang
+    hell = 0.40 * (halme - 0.5) + 0.50 * (halme2 - 0.5) + 0.80 * (straehnen - 0.5)
+    ton = 0.6 * (straehnen - 0.5) + 0.3 * (halme2 - 0.5)
+    return hell, ton, 2.0 * halme + 2.0 * halme2 + 4.0 * straehnen
 
 
 def schiefer():
@@ -294,9 +295,9 @@ def boden():
     nummer, f1, _, _, _ = zellen(24, 24, 182, 1.0)
     steinchen = (zufall_je(nummer, 183, 576) > 0.7) & (f1 < 3.2)
     bueschel = rauschen(14, 184)
-    hell = 0.34 * (korn - 0.5) + 0.20 * (bueschel - 0.5) + 0.25 * steinchen * zufall_je(nummer, 185, 576)
+    hell = 0.80 * (korn - 0.5) + 0.35 * (bueschel - 0.5) + 0.30 * steinchen * zufall_je(nummer, 185, 576)
     ton = 0.4 * (rauschen(30, 186) - 0.5) + 0.2 * (korn - 0.5)
-    return hell, ton, 3.0 * korn + 2.0 * bueschel + 1.5 * steinchen * np.clip(1 - f1 / 3.2, 0, 1)
+    return hell, ton, 5.0 * korn + 2.5 * bueschel + 1.5 * steinchen * np.clip(1 - f1 / 3.2, 0, 1)
 
 
 def pflaster():

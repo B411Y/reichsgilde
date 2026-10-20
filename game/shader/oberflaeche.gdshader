@@ -34,9 +34,9 @@ uniform sampler2DArray strukturen : repeat_enable, filter_linear_mipmap;
 
 // Je Materialart (Holz, Bretter, Mauer, Fels, Ziegel, Stroh, Schiefer, Laub, Boden):
 const float GROESSE[9] = float[9](1.6, 2.0, 2.0, 4.0, 1.2, 1.5, 2.0, 1.0, 3.0);         // Meter je Kachel
-const float HELL[9] = float[9](1.2, 1.1, 1.0, 1.0, 1.2, 1.0, 1.4, 1.0, 1.4);             // Anteil der Helligkeitsunterschiede
+const float HELL[9] = float[9](1.4, 1.2, 1.0, 1.0, 1.2, 1.0, 1.4, 1.0, 1.4);             // Anteil der Helligkeitsunterschiede
 const float TON[9] = float[9](0.8, 0.8, 1.0, 1.0, 1.0, 0.8, 0.8, 1.0, 1.0);              // Anteil der Farbtonunterschiede
-const float RELIEF[9] = float[9](0.5, 0.6, 0.7, 0.8, 0.9, 0.7, 0.9, 0.6, 0.7);           // Stärke der Unebenheit im Licht
+const float RELIEF[9] = float[9](0.6, 0.6, 0.9, 0.8, 0.9, 0.7, 0.9, 0.6, 1.0);           // Stärke der Unebenheit im Licht
 const vec3 WARM = vec3(0.07, 0.0, -0.08);   // Farbton +1: etwas röter, weniger blau (−1 umgekehrt)
 const float SCHAERFE = 12.0;                // Übergang zwischen den drei Projektionen: groß = schmal (Dachflächen mischen kaum)
 const float FLECKEN_GROESSE = 14.0;         // Meter je Kachel der Flecken (in Weltkoordinaten: über Kachelgrenzen hinweg)
