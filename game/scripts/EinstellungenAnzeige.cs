@@ -3,7 +3,7 @@ using Godot;
 namespace Reichsgilde;
 
 /// <summary>
-/// Fenster „Einstellungen“: Vollbild, Holzschnitt, Kantenglättung, FSR 2.2, Schattenqualität, Umgebungsverdeckung, indirektes Licht und Bloom. Erreichbar aus dem Hauptmenü und aus dem Spielmenü (Esc).
+/// Fenster „Einstellungen“: Vollbild, Oberflächendetails, Kantenglättung, FSR 2.2, Schattenqualität, Umgebungsverdeckung, indirektes Licht und Bloom. Erreichbar aus dem Hauptmenü und aus dem Spielmenü (Esc).
 /// Jede Änderung wirkt sofort und wird gespeichert (siehe <see cref="Fenster"/>).
 /// </summary>
 public sealed class EinstellungenAnzeige
@@ -41,9 +41,7 @@ public sealed class EinstellungenAnzeige
 
     public PanelContainer Tafel { get; }
     private readonly CheckButton _vollbild;
-    private readonly CheckButton _holzschnitt;
-    private readonly HSlider _umrissRegler;
-    private readonly Label _umrissWert;
+    private readonly CheckButton _oberflaeche;
     private readonly OptionButton _kanten;
     private readonly Label _erklaerung;
     private readonly OptionButton _schatten;
@@ -72,34 +70,12 @@ public sealed class EinstellungenAnzeige
         _vollbild.Toggled += an => { if (an != Fenster.IstVollbild) Fenster.VollbildSetzen(an); };
         spalte.AddChild(_vollbild);
 
-        Hauptmenue.Text(spalte, "Holzschnitt", 18);
-        _holzschnitt = new CheckButton { Text = "Holzschnitt-Stil", FocusMode = Control.FocusModeEnum.None };
-        _holzschnitt.AddThemeFontSizeOverride("font_size", 15);
-        _holzschnitt.Toggled += an =>
-        {
-            Fenster.HolzschnittSetzen(an, Fenster.HolzschnittUmriss);
-            Auffrischen();
-        };
-        spalte.AddChild(_holzschnitt);
-        var umrissZeile = new HBoxContainer();
-        umrissZeile.AddThemeConstantOverride("separation", 10);
-        spalte.AddChild(umrissZeile);
-        Hauptmenue.Text(umrissZeile, "Umriss", 15);
-        _umrissRegler = new HSlider
-        {
-            MinValue = 0, MaxValue = 100, Step = 5, FocusMode = Control.FocusModeEnum.None,
-            SizeFlagsHorizontal = Control.SizeFlags.ExpandFill, SizeFlagsVertical = Control.SizeFlags.ShrinkCenter,
-            CustomMinimumSize = new Vector2(200, 0),
-        };
-        _umrissRegler.ValueChanged += wert =>
-        {
-            _umrissWert!.Text = UmrissText((int)wert);
-            Fenster.HolzschnittSetzen(Fenster.HolzschnittAn, (int)wert);
-        };
-        umrissZeile.AddChild(_umrissRegler);
-        _umrissWert = Hauptmenue.Text(umrissZeile, "", 15);
-        _umrissWert.CustomMinimumSize = new Vector2(60, 0);
-        Hauptmenue.Text(spalte, "Zeichnet die Welt wie einen kolorierten Holzschnitt: schwarzer Umriss, Schraffur im Schatten, Farbe leicht neben den Linien. Der Regler stellt die Strichstärke ein (0 % ohne Umriss, 100 % kräftig). Kostet Grafikleistung.",
+        Hauptmenue.Text(spalte, "Oberflächen", 18);
+        _oberflaeche = new CheckButton { Text = "Oberflächendetails", FocusMode = Control.FocusModeEnum.None };
+        _oberflaeche.AddThemeFontSizeOverride("font_size", 15);
+        _oberflaeche.Toggled += an => Fenster.OberflaechendetailsSetzen(an);
+        spalte.AddChild(_oberflaeche);
+        Hauptmenue.Text(spalte, "Mauerwerk, Ziegel, Stroh, Schiefer, Holzmaserung, Laub und Boden mit feiner Struktur und leichter Unebenheit im Licht. Aus: nur die Farben der Modelle – kostet weniger Grafikleistung.",
             13, new Color(0.75f, 0.75f, 0.75f), umbruchBreite: 400);
 
         Hauptmenue.Text(spalte, "Kantenglättung", 18);
@@ -202,17 +178,11 @@ public sealed class EinstellungenAnzeige
         Auffrischen();
     }
 
-    /// <summary>Der Wert des Reglers „Umriss“ als Text: in Prozent, am unteren Ende „aus“.</summary>
-    private static string UmrissText(int prozent) => prozent == 0 ? "aus" : $"{prozent} %";
-
     /// <summary>Zeigt die aktuellen Werte – Vollbild kann sich inzwischen per F11 geändert haben.</summary>
     public void Auffrischen()
     {
         _vollbild.SetPressedNoSignal(Fenster.IstVollbild);
-        _holzschnitt.SetPressedNoSignal(Fenster.HolzschnittAn);
-        _umrissRegler.SetValueNoSignal(Fenster.HolzschnittUmriss);
-        _umrissRegler.Editable = Fenster.HolzschnittAn; // ohne Holzschnitt gibt es keinen Umriss einzustellen
-        _umrissWert.Text = UmrissText(Fenster.HolzschnittUmriss);
+        _oberflaeche.SetPressedNoSignal(Fenster.OberflaechendetailsAn);
         var nummer = Array.FindIndex(Verfahren, v => v.Art == Fenster.AktuelleKantenglaettung);
         _kanten.Select(nummer);
         _kanten.Disabled = Fenster.FsrAn; // FSR 2.2 glättet selbst; die Wahl bleibt gespeichert

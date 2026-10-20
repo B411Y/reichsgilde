@@ -31,14 +31,6 @@ project/solution_directory="../"
 
 [shader_globals]
 
-holzschnitt_raum={
-"type": "float",
-"value": 0.0
-}
-holzschnitt_umgebung={
-"type": "vec3",
-"value": Vector3(0.3, 0.3, 0.32)
-}
 wind_richtung={
 "type": "vec2",
 "value": Vector2(1, 0.4)

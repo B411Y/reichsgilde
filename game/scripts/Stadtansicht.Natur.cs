@@ -289,7 +289,7 @@ public partial class Stadtansicht
         foreach (var (stoff, sommer) in _laubStoffe) LaubFaerben(stoff, sommer);
 
         var winter = jahreszeit == Jahreszeit.Winter;
-        foreach (var (vielfach, sommerNetz, winterNetz) in _naturWinter) vielfach.Mesh = HolzschnittNetz(winter ? winterNetz : sommerNetz); // mit Holzschnitt-Materialien, wenn der Stil an ist
+        foreach (var (vielfach, sommerNetz, winterNetz) in _naturWinter) vielfach.Mesh = OberflaecheNetz(winter ? winterNetz : sommerNetz); // mit Struktur, wenn die Oberflächendetails an sind
         _kronen.RemoveAll(k => !IsInstanceValid(k.Knoten));
         foreach (var (knoten, aeste) in _kronen) knoten.Visible = aeste == winter;
     }

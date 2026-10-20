@@ -405,7 +405,7 @@ public partial class Stadtansicht
 
     /// <summary>
     /// Legt an jedes <c>Dampf_&lt;n&gt;</c> (leerer Knoten, der Dampf steigt nach +Y) eine Quelle: wenige weiche Flecken, die sanft aufsteigen, wachsen und vergehen.
-    /// Zum Arbeitsplatz gehört sie über das nächste Werkstück (die Quelle steht über dem Kessel, dem Kolben, dem Athanor).
+    /// Der Fleck ist unbeschattet und durchsichtig; die Oberflächendetails lassen ihn darum, wie er ist.
     /// Der Fleck ist unbeschattet und durchsichtig; der Holzschnitt lässt ihn darum, wie er ist (hell und schlicht).
     /// </summary>
     private static void DampfAnlegen(Node3D wurzel, ModellRaumDaten md)

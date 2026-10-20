@@ -4,7 +4,7 @@ namespace Reichsgilde;
 
 /// <summary>
 /// Anzeige-Einstellungen: Fenster oder Vollbild (auch F11, überall), die Kantenglättung, die Schattenqualität, der Bloom,
-/// die Umgebungsverdeckung (SSAO), das indirekte Licht (SSIL), die Hochskalierung mit FSR 2.2 und der Holzschnitt-Stil.
+/// die Umgebungsverdeckung (SSAO), das indirekte Licht (SSIL), die Hochskalierung mit FSR 2.2 und die Oberflächendetails.
 /// Geändert werden sie im Fenster „Einstellungen“ (<see cref="EinstellungenAnzeige"/>), gespeichert in
 /// <c>user://einstellungen.cfg</c> und beim Start wieder angewendet.
 ///
@@ -60,10 +60,8 @@ public partial class Fenster : Node
         FsrSetzen(geladen && einstellungen.GetValue("anzeige", "fsr", false).AsBool(),
                   geladen ? einstellungen.GetValue("anzeige", "renderaufloesung", StandardRenderaufloesung).AsInt32() : StandardRenderaufloesung,
                   speichern: false);
-        // Alte Dateien ohne die Schlüssel: Holzschnitt aus, Umriss 50 %.
-        HolzschnittSetzen(geladen && einstellungen.GetValue("anzeige", "holzschnitt", false).AsBool(),
-                          geladen ? einstellungen.GetValue("anzeige", "umriss", StandardUmriss).AsInt32() : StandardUmriss,
-                          speichern: false);
+        // Alte Dateien ohne den Schlüssel: Oberflächendetails an. Die Schlüssel „holzschnitt“ und „umriss“ älterer Fassungen bleiben ungelesen.
+        OberflaechendetailsSetzen(!geladen || einstellungen.GetValue("anzeige", "oberflaechendetails", true).AsBool(), speichern: false);
     }
 
     // ── Kantenglättung ──────────────────────────────────────────────────────
@@ -238,35 +236,24 @@ public partial class Fenster : Node
         }
     }
 
-    // ── Holzschnitt ─────────────────────────────────────────────────────────
+    // ── Oberflächendetails ──────────────────────────────────────────────────
 
-    /// <summary>Ohne gespeicherte Wahl: 50 % – die Strichbreite, auf die der Umriss abgestimmt ist (Stadtansicht.Holzschnitt.cs).</summary>
-    public const int StandardUmriss = 50;
+    /// <summary>Ohne gespeicherte Wahl an: Mauerwerk, Ziegel, Stroh, Maserung … als Struktur; abschaltbar für schwache Rechner.</summary>
+    public static bool OberflaechendetailsAn { get; private set; } = true;
 
-    /// <summary>Ohne gespeicherte Wahl aus: Den Stil schaltet der Spieler ein, nachdem er ihn gesehen hat.</summary>
-    public static bool HolzschnittAn { get; private set; }
-
-    /// <summary>Stärke des schwarzen Umrisses in Prozent (0–100): 0 ohne Umriss, 10 sehr fein, 50 normal, 100 kräftig.</summary>
-    public static int HolzschnittUmriss { get; private set; } = StandardUmriss;
-
-    /// <summary>Wird ausgelöst, wenn Schalter oder Umriss wechseln: Die Stadtansicht stellt Materialien und Umriss sofort um.</summary>
-    public static event Action? HolzschnittGeaendert;
+    /// <summary>Wird ausgelöst, wenn der Schalter wechselt: Die Stadtansicht stellt die Materialien sofort um.</summary>
+    public static event Action? OberflaechendetailsGeaendert;
 
     /// <summary>
-    /// Schaltet den Holzschnitt-Stil an oder aus und stellt die Stärke seines Umrisses ein. Der Stil ersetzt die Materialien aller
-    /// Modelle durch den Holzschnitt-Shader und legt einen schwarzen Umriss über das Bild (Stadtansicht.Holzschnitt.cs); die Ansichten
-    /// hören auf <see cref="HolzschnittGeaendert"/>, die Änderung wirkt darum ohne Neustart.
+    /// Schaltet die Oberflächendetails an oder aus. An, bekommen die Materialien der Modelle eine Struktur je Materialart
+    /// (Stadtansicht.Oberflaechendetails.cs); die Ansichten hören auf <see cref="OberflaechendetailsGeaendert"/>, die Änderung wirkt
+    /// darum ohne Neustart.
     /// </summary>
-    public static void HolzschnittSetzen(bool an, int umriss, bool speichern = true)
+    public static void OberflaechendetailsSetzen(bool an, bool speichern = true)
     {
-        HolzschnittAn = an;
-        HolzschnittUmriss = Math.Clamp(umriss, 0, 100);
-        HolzschnittGeaendert?.Invoke();
-        if (speichern)
-        {
-            Speichern("holzschnitt", HolzschnittAn);
-            Speichern("umriss", HolzschnittUmriss);
-        }
+        OberflaechendetailsAn = an;
+        OberflaechendetailsGeaendert?.Invoke();
+        if (speichern) Speichern("oberflaechendetails", an);
     }
 
     private static void Speichern(string schluessel, Variant wert)
