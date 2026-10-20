@@ -29,8 +29,14 @@ uniform vec3 papierfarbe : source_color = vec3(0.93, 0.89, 0.79);   // scheint d
 // Grundhelligkeit ohne Sonne (Farbe × Stärke des Umgebungslichts), nachts wichtig. Für alle Materialien gleich: globaler
 // Shader-Parameter, der in den Projekteinstellungen (Shader Globals, Typ vec3) angelegt sein muss und den das Spiel je Bild setzt.
 global uniform vec3 holzschnitt_umgebung;
+// Innenräume (Einbau ins Spiel): 0 in der Stadt, 1 im Raum. Dort steht die Kamera nah, das Umgebungslicht trägt das Bild und die Lichter
+// sind schwach: Die Schraffur wird feiner, Schatten beginnen erst bei dunkleren Flächen, die Grundhelligkeit ist weniger schraffiert.
+global uniform float holzschnitt_raum;
 
 const float SCHRAFFUR_DICHTE = 0.22;        // Kacheln je Meter (16 Linien je Kachel → etwa 28 cm Abstand)
+const float RAUM_DICHTE = 3.0;              // Im Raum so viel mal feiner schraffiert
+const float RAUM_LICHT = 6.0;               // Im Raum zählen die Lichter so viel mal stärker für die Schattenstufen
+const float RAUM_LINIE = 0.5;               // Im Raum lassen die Schraffurlinien so viel Licht durch (Stadt: 0,12)
 
 varying vec3 welt;
 varying vec3 welt_n;
@@ -87,17 +93,20 @@ void fragment() {
 	c *= struktur(int(round(v_art)), welt, welt_n);
 	ALBEDO = c;
 	// Grundhelligkeit ohne Sonne (statt des abgeschalteten Umgebungslichts), mit leichter Schraffur
-	vec4 h = dreiseitig(schraffur, welt, welt_n, SCHRAFFUR_DICHTE);
-	EMISSION = c * holzschnitt_umgebung * mix(0.55, 1.0, h.r);
+	vec4 h = dreiseitig(schraffur, welt, welt_n, SCHRAFFUR_DICHTE * mix(1.0, RAUM_DICHTE, holzschnitt_raum));
+	EMISSION = c * holzschnitt_umgebung * mix(mix(0.55, 0.8, holzschnitt_raum), 1.0, h.r);
 }
 
 void light() {
-	float hell = clamp(dot(NORMAL, LIGHT), 0.0, 1.0) * ATTENUATION;
-	vec4 h = dreiseitig(schraffur, welt, welt_n, SCHRAFFUR_DICHTE);
+	float anteil = clamp(dot(NORMAL, LIGHT), 0.0, 1.0) * ATTENUATION;
+	float hell = anteil * mix(1.0, RAUM_LICHT, holzschnitt_raum);
+	vec4 h = dreiseitig(schraffur, welt, welt_n, SCHRAFFUR_DICHTE * mix(1.0, RAUM_DICHTE, holzschnitt_raum));
+	float linie = mix(0.12, RAUM_LINIE, holzschnitt_raum);   // wie schwarz die Schraffurlinien sind (im Raum zarter)
 	float tusche = 1.0;
-	if (hell < 0.50) tusche *= mix(0.12, 1.0, h.r);   // Halbschatten: einfache Schraffur
-	if (hell < 0.22) tusche *= mix(0.12, 1.0, h.g);   // Schatten: Kreuzschraffur
-	if (hell < 0.06) tusche *= mix(0.25, 1.0, h.b);   // tiefer Schatten: dichter
+	if (hell < 0.50) tusche *= mix(linie, 1.0, h.r);   // Halbschatten: einfache Schraffur
+	if (hell < 0.22) tusche *= mix(linie, 1.0, h.g);   // Schatten: Kreuzschraffur
+	if (hell < 0.06) tusche *= mix(0.25, 1.0, h.b);    // tiefer Schatten: dichter
 	float ton = mix(0.62, 1.0, step(0.50, hell));    // nur zwei Farbtöne wie beim Druck
-	DIFFUSE_LIGHT += LIGHT_COLOR * ton * tusche * 0.42;
+	// Die Sonne der Stadt gibt überall gleich viel; die Lichter im Raum (Glut, Fenster) sind stark und nehmen mit Abstand und Winkel ab
+	DIFFUSE_LIGHT += LIGHT_COLOR * ton * tusche * 0.42 * mix(1.0, clamp(anteil * 2.0, 0.0, 1.0), holzschnitt_raum);
 }
