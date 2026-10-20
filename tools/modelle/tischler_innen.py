@@ -27,7 +27,8 @@ die Federstange zieht zurück, das Werkstück dreht hin und her), die Welle dreh
 Gatterrahmen. Ruht der Betrieb, steht alles in der Lage der Datei (Pedal oben, Gatterrahmen oben).
 Lichter: extras „art“ = „Fenster“ wie beim Schmied, dazu „Lampe“ (Laterne an der Decke, Blick −Z nach unten). Glut gibt
 es nicht; das Material „Glut“ tragen Laternen und Leimofen (leuchten, solange gearbeitet wird).
-Materialien: „Farben“ (Eckenfarben), „Hausfarbe“ (Hoftor, Holztür, Ladetor), „Fenster“, „Glut“, „Eisen“, „Wasser“.
+Materialien: „Farben“ (Eckenfarben; die Materialart für den Holzschnitt je Fläche als UV.y, bausteine.arten_setzen),
+„Hausfarbe“ (Hoftor, Holztür, Ladetor), „Fenster“, „Glut“, „Eisen“, „Wasser“.
 """
 
 import math
@@ -1145,7 +1146,8 @@ def animieren(bewegt):
 
 
 def exportieren(objekte):
-    """GLB mit der Animation „Arbeit“ (wie bausteine.exportieren, aber mit Animationen aus den NLA-Spuren)."""
+    """GLB mit der Animation „Arbeit“ (wie bausteine.exportieren, aber mit Animationen aus den NLA-Spuren); mit UV für die
+    Materialart je Fläche (Holzschnitt)."""
     import bpy
     pfad = os.path.join(bs.MODELLE, NAME + ".glb")
     mit_kindern = set(objekte) | {k for o in objekte for k in o.children_recursive}
@@ -1155,7 +1157,7 @@ def exportieren(objekte):
     bpy.context.scene.render.fps = FPS
     bpy.ops.export_scene.gltf(
         filepath=pfad, export_format="GLB", use_selection=True, export_yup=True, export_apply=True,
-        export_extras=True, export_normals=True, export_texcoords=False, export_animations=True,
+        export_extras=True, export_normals=True, export_texcoords=True, export_animations=True,
         export_animation_mode="NLA_TRACKS", export_skins=False, export_morph=False, export_lights=False,
         export_cameras=False, export_image_format="NONE", export_vertex_color="ACTIVE", export_all_vertex_colors=False)
     return pfad
