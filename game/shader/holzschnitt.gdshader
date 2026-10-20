@@ -31,14 +31,16 @@ uniform vec3 papierfarbe : source_color = vec3(0.93, 0.89, 0.79);   // scheint d
 // Grundhelligkeit ohne Sonne (Farbe × Stärke des Umgebungslichts), nachts wichtig. Für alle Materialien gleich: globaler
 // Shader-Parameter, der in den Projekteinstellungen (Shader Globals, Typ vec3) angelegt sein muss und den das Spiel je Bild setzt.
 global uniform vec3 holzschnitt_umgebung;
-// Innenräume (Einbau ins Spiel): 0 in der Stadt, 1 im Raum. Dort steht die Kamera nah, das Umgebungslicht trägt das Bild und die Lichter
-// sind schwach: Die Schraffur wird feiner, Schatten beginnen erst bei dunkleren Flächen, die Grundhelligkeit ist weniger schraffiert.
+// Innenräume (Einbau ins Spiel): 0 in der Stadt, 1 im Raum. Dort trägt das Umgebungslicht das Bild (ruhige Flächen, keine Schraffur),
+// die Lichter (Lampe, Glut, Fenster) sind schwach und haben eine Reichweite: Ihr Licht nimmt weich ab, die Zweitonstufe ist weich,
+// und nur im Licht selbst, wo es schwach wird, steht eine grobe Schraffur.
 global uniform float holzschnitt_raum;
 
 const float SCHRAFFUR_DICHTE = 0.22;        // Kacheln je Meter (16 Linien je Kachel → etwa 28 cm Abstand)
-const float RAUM_DICHTE = 3.0;              // Im Raum so viel mal feiner schraffiert
+const float RAUM_DICHTE = 1.5;              // Im Raum so viel mal feiner schraffiert (die Kamera steht nah)
 const float RAUM_LICHT = 6.0;               // Im Raum zählen die Lichter so viel mal stärker für die Schattenstufen
 const float RAUM_LINIE = 0.5;               // Im Raum lassen die Schraffurlinien so viel Licht durch (Stadt: 0,12)
+const float RAUM_WEICH = 0.3;               // Im Raum geht der helle Ton so breit ineinander über (Stadt: harte Kante)
 
 varying vec3 welt;
 varying vec3 welt_n;
@@ -95,8 +97,8 @@ void fragment() {
 	c *= struktur(int(round(v_art)), welt, welt_n);
 	ALBEDO = c;
 	// Grundhelligkeit ohne Sonne (statt des abgeschalteten Umgebungslichts), mit leichter Schraffur
-	vec4 h = dreiseitig(schraffur, welt, welt_n, SCHRAFFUR_DICHTE * mix(1.0, RAUM_DICHTE, holzschnitt_raum));
-	EMISSION = c * holzschnitt_umgebung * mix(mix(0.55, 0.8, holzschnitt_raum), 1.0, h.r);
+	vec4 h = dreiseitig(schraffur, welt, welt_n, SCHRAFFUR_DICHTE);
+	EMISSION = c * holzschnitt_umgebung * mix(mix(0.55, 1.0, h.r), 1.0, holzschnitt_raum);   // im Raum ohne Schraffur: ruhige Flächen
 }
 
 void light() {
@@ -108,7 +110,9 @@ void light() {
 	if (hell < 0.50) tusche *= mix(linie, 1.0, h.r);   // Halbschatten: einfache Schraffur
 	if (hell < 0.22) tusche *= mix(linie, 1.0, h.g);   // Schatten: Kreuzschraffur
 	if (hell < 0.06) tusche *= mix(0.25, 1.0, h.b);    // tiefer Schatten: dichter
-	float ton = mix(0.62, 1.0, step(0.50, hell));    // nur zwei Farbtöne wie beim Druck
-	// Die Sonne der Stadt gibt überall gleich viel; die Lichter im Raum (Glut, Fenster) sind stark und nehmen mit Abstand und Winkel ab
+	float weich = mix(0.001, RAUM_WEICH, holzschnitt_raum);
+	float ton = mix(0.62, 1.0, smoothstep(0.50 - weich, 0.50 + weich, hell));    // nur zwei Farbtöne wie beim Druck (im Raum ohne harte Kante)
+	// Die Sonne der Stadt gibt überall gleich viel. Die Lichter im Raum (Lampe, Glut, Fenster) haben eine Reichweite: Ihr Licht muss mit Abstand
+	// und Winkel abnehmen (ATTENUATION, dot), sonst hat es an der Grenze der Reichweite eine harte Kante (helle Kreise und Kästen im Raum).
 	DIFFUSE_LIGHT += LIGHT_COLOR * ton * tusche * 0.42 * mix(1.0, clamp(anteil * 2.0, 0.0, 1.0), holzschnitt_raum);
 }
