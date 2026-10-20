@@ -58,6 +58,7 @@ So wird eingetragen (damit sich die Chats nie an derselben Stelle treffen):
 - Sägehalle des Tischlers: Im Blick „Blick_Saege_0“ steht der Arbeiter an der Gattersäge links unter der Infotafel der Hauptszene und ist kaum zu sehen (Blick L1 zeigt ihn); Blickpunkt oder Tafel beim nächsten Beruf mit Raummodell abstimmen
 - Vorschaubilder der Innenräume sind groß (`tischler_innen-blicke.png` 6,2 MB, `schmied_innen-blicke.png` 4,3 MB): kleinere Auflösung oder JPEG-ähnliche Kompression für Bilder mit vielen Blickpunkten prüfen
 - Spielstände von vor #154 bringen ihre Daten mit und haben deshalb keine Einrichtung des Tischlers (wie Lohnstufen und Einrichtung bei Ständen von vor #152); erst eine neue Partie hat sie. Falls das stört, müsste der Kern beim Laden fehlende Einrichtungslisten aus den aktuellen Daten ergänzen (Entscheidung des Nutzers)
+- Vögel: Ganz unten im Flügelschlag reichen die Flügelspitzen der Taube etwa 10 cm unter die Füße – beim Ab- und Anflug können sie kurz in First oder Boden tauchen; die angelegten Flügel ragen beim Sitzen etwa 9 cm über das Schwanzende (`voegel.py`, Modell-Agent)
 
 ## Entscheidungen
 
