@@ -201,6 +201,7 @@ public partial class Stadtansicht
             anker.AddChild(plan.Werkstueck);
         }
         md.Plaetze.Sort((x, y) => x.Nr.CompareTo(y.Nr));
+        RaumEbeneUebernehmen(wurzel); // alles, was bis hier im Modell steht, auch Lichter und Werkstücke
 
         // Räume in der Reihenfolge der Raumleiste (Mitte, Maße und Wände stehen im Modell). Ein Raum mit „stufe“ (die Sägehalle, die Bauhütte ab 3) steht erst ab dieser Stufe in der Leiste.
         foreach (var (kennung, schluessel, name, vorgabe) in ModellRaeume(stil)) // die Vorgabe gilt, wenn die „extras“ fehlen
@@ -342,6 +343,35 @@ public partial class Stadtansicht
         "keins" => Array.Empty<string>(),
         var liste => liste.Split(',', StringSplitOptions.TrimEntries | StringSplitOptions.RemoveEmptyEntries),
     };
+
+    /// <summary>Raumschlüssel in der Reihenfolge ihrer Render-Ebene (11, 12, 13, 14): Jeder Raum eines Modells hat seine eigene.</summary>
+    private static readonly string[] RaumEbenen = { "Werk", "Lager", "Saege", "Huette" };
+
+    /// <summary>
+    /// Legt alles unter <paramref name="knoten"/> auf die Render-Ebene seines Raums und lässt jedes Licht nur diese Ebene beleuchten. Die Räume liegen
+    /// im Modell aneinander oder übereinander (das Lager über dem Werkraum), und die Raumlichter haben keine Schatten: ohne eigene Ebene schienen
+    /// Esse und Laterne durch die Decke ins Lager und die Fenster des Lagers in den Werkraum. Die Raumkamera sieht alle Ebenen.
+    /// </summary>
+    private static void RaumEbeneUebernehmen(Node knoten)
+    {
+        if (knoten.Name.ToString() is not { } name || !name.StartsWith("Raum_"))
+        {
+            var schluessel = RaumSchluesselVon(knoten);
+            if (schluessel.Length > 0) { EbeneSetzen(knoten, RaumEbene(schluessel)); return; }
+        }
+        foreach (var kind in knoten.GetChildren()) // die Wurzel des Modells: jeden Raum für sich
+            if (kind.Name.ToString().StartsWith("Raum_")) EbeneSetzen(kind, RaumEbene(kind.Name.ToString()[5..]));
+            else RaumEbeneUebernehmen(kind);
+    }
+
+    private static uint RaumEbene(string schluessel) => 1u << (10 + Math.Max(0, Array.IndexOf(RaumEbenen, schluessel)));
+
+    private static void EbeneSetzen(Node knoten, uint ebene)
+    {
+        if (knoten is Light3D licht) licht.LightCullMask = ebene;
+        else if (knoten is VisualInstance3D sichtbar) sichtbar.Layers = ebene;
+        foreach (var kind in knoten.GetChildren()) EbeneSetzen(kind, ebene);
+    }
 
     /// <summary>Schlüssel des Raums, in dem der Knoten liegt: der Name des nächsten Vorfahren „Raum_&lt;Schlüssel&gt;“ („Werk“, „Lager“, „Saege“, „Huette“), sonst leer.</summary>
     private static string RaumSchluesselVon(Node knoten)
@@ -628,6 +658,7 @@ public partial class Stadtansicht
                 MaterialOverride = AuswahlRing(), Position = new Vector3(0, 0.04f, 0), Visible = false,
             };
             halter.AddChild(ring);
+            RaumEbeneUebernehmen(halter);
             md.Arbeiter[zeile.Nummer] = new ModellArbeiter { Nummer = zeile.Nummer, Figur = figur, Halter = halter, Platz = platz, Klick = form, Ring = ring };
         }
         if (_gewaehlt.RemoveWhere(n => !md.Arbeiter.ContainsKey(n)) > 0) ArbeiterAuswahlGeaendert?.Invoke(); // Gegangene sind nicht mehr gewählt
@@ -720,6 +751,7 @@ public partial class Stadtansicht
         koerper.AddChild(form);
         platz.AddChild(koerper);
         a.Raumklicks.Add(form);
+        RaumEbeneUebernehmen(platz);
         return new LagerStapel { Wurzel = platz, Kisten = kisten, Stoff = stoff, Schild = schild, Klick = form, Koerper = koerper, Ware = ware };
     }
 
