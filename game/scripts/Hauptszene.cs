@@ -54,6 +54,8 @@ namespace Reichsgilde;
 ///   --einstellungen=1  gleich zu Beginn das Fenster „Einstellungen“ öffnen
 ///   --kanten=<Art>     Kantenglättung nur für diesen Start (Aus, Fxaa, Smaa, Taa, Msaa2, Msaa4, Msaa8)
 ///   --schatten=<Stufe> Schattenqualität nur für diesen Start (Niedrig, Mittel, Hoch)
+///   --holzschnitt=<An|Aus> Holzschnitt-Stil nur für diesen Start
+///   --umriss=<0–100>   Stärke des Holzschnitt-Umrisses in Prozent, nur für diesen Start
 ///   --bloom=<An|Aus>   Bloom nur für diesen Start
 ///   --bloomstaerke=<0–100> Stärke des Bloom in Prozent, nur für diesen Start
 ///   --ssao=<Stufe>     Umgebungsverdeckung nur für diesen Start (Aus, Niedrig, Mittel, Hoch)
@@ -408,6 +410,12 @@ public partial class Hauptszene : Node
             Fenster.KantenglaettungSetzen(art, speichern: false); // für Vergleichsbilder, ändert die gespeicherte Wahl nicht
         if (optionen.TryGetValue("schatten", out var schatten) && Enum.TryParse<Schattenqualitaet>(schatten, true, out var stufe))
             Fenster.SchattenqualitaetSetzen(stufe, speichern: false); // ebenso
+        if (optionen.ContainsKey("holzschnitt") || optionen.ContainsKey("umriss")) // ebenso; was fehlt, bleibt wie eingestellt
+        {
+            var holzschnittAn = optionen.TryGetValue("holzschnitt", out var holzschnitt) ? !holzschnitt.Equals("Aus", StringComparison.OrdinalIgnoreCase) : Fenster.HolzschnittAn;
+            var umrissProzent = optionen.TryGetValue("umriss", out var umriss) && int.TryParse(umriss, out var staerke) ? staerke : Fenster.HolzschnittUmriss;
+            Fenster.HolzschnittSetzen(holzschnittAn, umrissProzent, speichern: false);
+        }
         if (optionen.ContainsKey("bloom") || optionen.ContainsKey("bloomstaerke")) // ebenso; was fehlt, bleibt wie eingestellt
         {
             var bloomAn = optionen.TryGetValue("bloom", out var bloom) ? !bloom.Equals("Aus", StringComparison.OrdinalIgnoreCase) : Fenster.BloomAn;

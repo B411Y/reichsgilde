@@ -401,6 +401,7 @@ public partial class Stadtansicht : Node3D
 
     public override void _Ready()
     {
+        HolzschnittEinrichten(); // vor dem Aufbau: Ist der Stil an, bekommt jeder neue Knoten sein Material (Stadtansicht.Holzschnitt.cs)
         UmgebungUndLicht();
         KameraAufbauen();
         SchattenEinrichten(); // braucht Sonne und Kamera (Stadtansicht.Licht.cs)
@@ -566,6 +567,7 @@ public partial class Stadtansicht : Node3D
     {
         Fenster.BloomGeaendert -= BloomNachfuehren;
         Fenster.VerdeckungGeaendert -= VerdeckungNachfuehren;
+        HolzschnittAufgeben();
         if (_wirtschaft is not null) _wirtschaft.BetriebAbgegeben -= BetriebEntfernen;
     }
 
@@ -1036,6 +1038,7 @@ public partial class Stadtansicht : Node3D
     public override void _Process(double delta)
     {
         SchattenNachfuehren(); // Zoom, Fenstergröße oder Schattenqualität geändert? (Stadtansicht.Licht.cs)
+        HolzschnittBild();     // Umgebungslicht, Umriss und umgefärbte Materialien des Holzschnitt-Stils (Stadtansicht.Holzschnitt.cs)
 
         // Beschriftungen mitskalieren, damit sie bei jedem Zoom gleich groß wirken.
         var massstab = _raum is not null ? RaumSchildMassstab : _kamera.Size / BezugsZoom;
@@ -1180,7 +1183,18 @@ public partial class Stadtansicht : Node3D
     //  Bausteine der Greybox
     // ═════════════════════════════════════════════════════════════════════════
 
-    private static StandardMaterial3D Material(Color farbe) => new() { AlbedoColor = farbe, Roughness = 0.95f };
+    private static StandardMaterial3D Material(Color farbe) => new() { AlbedoColor = farbe, Roughness = 0.95f, ResourceName = StoffNamen.GetValueOrDefault(farbe, "") };
+
+    /// <summary>
+    /// Namen für die Farben der Greybox (Wiese, Pflaster, Mauerstein …): Der Holzschnitt-Stil sucht über den Namen die Materialart
+    /// (Gras, Pflaster, Holz …, <c>materialarten.json</c>), die Farben selbst kennt er nicht. Das Spiel liest diese Namen sonst nicht.
+    /// </summary>
+    private static readonly Dictionary<Color, string> StoffNamen = new()
+    {
+        [Wiese] = "Gras", [Pflaster] = "Pflaster", [Weg] = "Erde", [Mauerstein] = "Mauerstein", [Putz] = "Putz", [Fachwerk] = "Fachwerk",
+        [Ziegel] = "Dachziegel", [Schiefer] = "Schiefer", [Holz] = "Holz", [Bruchstein] = "Bruchstein", [Kraut] = "Kraut", [Morsch] = "Holz alt",
+        [Wasser] = "Wasser",
+    };
 
     /// <summary>Ein Quader. Ohne <paramref name="eltern"/> hängt er direkt an der Stadt,
     /// sonst an einem anderen Knoten (dann ist <paramref name="mitte"/> relativ zu diesem).</summary>

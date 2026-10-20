@@ -24,6 +24,10 @@ window/size/viewport_height=800
 [rendering]
 renderer/rendering_method="{renderer}"
 [shader_globals]
+holzschnitt_raum={{
+"type": "float",
+"value": 0.0
+}}
 holzschnitt_umgebung={{
 "type": "vec3",
 "value": Vector3(0.3, 0.3, 0.32)
