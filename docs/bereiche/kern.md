@@ -171,6 +171,12 @@ So wird eingetragen (damit sich die Chats nie an derselben Stelle treffen):
 | Thema | Entscheidung | Datum |
 |---|---|---|
 | Geltung | Der kolorierte Holzschnitt aus „Grafikstil Holzschnitt (PR #130)“ gilt nur noch für die Oberfläche (Tafeln, Fenster, Icons, Wappen, Bilder). Die 3D-Welt ist gemalt-realistisch; der Holzschnitt-Shader (#155/#156) wird entfernt. Entschieden vom Nutzer. | 20.10.2026 |
+### Einrichtung des Alchimisten (PR #160)
+
+| Thema | Entscheidung | Datum |
+|---|---|---|
+| Stücke | Wie bei den anderen Werkstätten, mit kupfernem Destillierhelm statt Blasebalg: Gutes Werkzeug (Mörser und Spatel, −10 % Zeit), Meisterwerkzeug (ab Stufe 2, braucht Gutes Werkzeug, −10 %), Destillierhelm (−10 % für Kräuterschnaps, Rosenwasser, Gegengift, Theriak), Kräuterregale (60 statt 40 je Ware), Löschfass, Eisentür, Lederhandschuhe (Unfälle halb so oft). Gleiche Preise. Nur Daten. | 20.10.2026 |
+| Daten | `werkstatt.einrichtung.Alchimist` mit den Kennungen `Werkzeug1`, `Werkzeug2`, `Destillierhelm` (Name „Kupferner Destillierhelm“, 350 Gulden), `Regale` (Name „Kräuterregale“), `Loeschfass`, `Eisentuer`, `Handschuhe` (Name „Lederhandschuhe“, 80 Gulden, neue Kennung statt `Schuerzen`) – wie die Knoten `Einrichtung_<Kennung>` im Raummodell. Gilt für Tinkturei, Kräuterladen und Alchimistenstube, nicht für den Kräutergarten (keine Werkstatt). **Datenversion 39.** Keine Messung: Die KI-Häuser kaufen keine Einrichtung. | 20.10.2026 |
 
 ## Messungen
 

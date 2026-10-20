@@ -1283,6 +1283,13 @@ public partial class Stadtansicht
         "Wachs" => new Color(0.90f, 0.80f, 0.45f),
         "Lavendel" => new Color(0.55f, 0.43f, 0.78f),
         "Jasmin" => new Color(0.96f, 0.95f, 0.88f),
+        "Farbe" => new Color(0.18f, 0.32f, 0.62f),          // Indigo
+        "Kräuterschnaps" => new Color(0.78f, 0.56f, 0.18f), // Bernstein
+        "Heilsalbe" => new Color(0.62f, 0.68f, 0.30f),      // gelbgrüne Salbe
+        "Rosenwasser" => new Color(0.90f, 0.55f, 0.62f),
+        "Gegengift" => new Color(0.30f, 0.62f, 0.55f),
+        "Theriak" => new Color(0.38f, 0.20f, 0.12f),        // dunkler Sud
+        "Zinnober" => new Color(0.82f, 0.18f, 0.10f),
         _ => Streufarbe(ware),
     };
 
