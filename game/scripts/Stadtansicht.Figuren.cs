@@ -29,7 +29,7 @@ public partial class Stadtansicht
         /// <summary>Alle Teile, die gezeigt werden können – zum Hervorheben bekommen sie eine helle Schicht.</summary>
         public List<MeshInstance3D> Teile { get; } = new();
         public MeshInstance3D? Hacke { get; set; }
-        /// <summary>Werkzeuge der Werkstatt, die nur bei ihrer Bewegung zu sehen sind (Bewegung → Teil, siehe <see cref="WerkstattWerkzeug"/>); nur die, die das Figurenmodell hat.</summary>
+        /// <summary>Werkzeuge der Werkstatt, die nur bei ihrer Bewegung zu sehen sind (Name des Teils → Teil, siehe <see cref="WerkstattWerkzeug"/>); nur die, die das Figurenmodell hat.</summary>
         public Dictionary<string, MeshInstance3D> Werkzeuge { get; } = new();
         public MeshInstance3D? Stab { get; set; }
         /// <summary>Trägt die Figur den Stab immer (Hirte) oder nur beim Hüten?</summary>
@@ -64,11 +64,18 @@ public partial class Stadtansicht
         _ => ("figur_mensch", 0.92f, 0.50f, Vector3.One),
     };
 
-    /// <summary>Welches Teil der Figur zu welcher Bewegung der Werkstatt gehört: Hammer beim Hämmern, Hobel beim Hobeln, Säge beim Sägen, Drechseleisen beim Drechseln.</summary>
-    private static readonly Dictionary<string, string> WerkstattWerkzeug = new()
+    /// <summary>
+    /// Welche Teile der Figur zu welcher Bewegung der Werkstatt gehören (eines oder mehrere): Hammer beim Hämmern, Hobel beim Hobeln, Säge beim Sägen,
+    /// Drechseleisen beim Drechseln, Schlägel und Meißel beim Behauen und Bildhauen. Ein Arbeitsplatz im Innenraum kann sie mit seinen extras „requisit“ ersetzen.
+    /// </summary>
+    private static readonly Dictionary<string, string[]> WerkstattWerkzeug = new()
     {
-        ["Haemmern"] = "Hammer", ["Hobeln"] = "Hobel", ["Saegen"] = "Saege", ["Drechseln"] = "Drechseleisen",
+        ["Haemmern"] = new[] { "Hammer" }, ["Hobeln"] = new[] { "Hobel" }, ["Saegen"] = new[] { "Saege" }, ["Drechseln"] = new[] { "Drechseleisen" },
+        ["Behauen"] = new[] { "Schlaegel", "Meissel" }, ["Bildhauen"] = new[] { "Schlaegel", "Meissel" },
     };
+
+    /// <summary>Namen aller Werkzeugteile der Figuren (die übrigen Teile, die kein Kleid und keine Last sind, werden gelöscht).</summary>
+    private static readonly HashSet<string> WerkzeugNamen = WerkstattWerkzeug.Values.SelectMany(x => x).ToHashSet();
 
     /// <summary>Frauen sind 5 % kleiner als Männer desselben Volks (Wunsch des Nutzers).</summary>
     private const float FrauenGroesse = 0.95f;
@@ -123,7 +130,7 @@ public partial class Stadtansicht
                 "Koerper_Frau" => aussehen.Frau,
                 "Schuerze" => aussehen.Schuerze,
                 "Hacke" or "Stab" => true,
-                _ => WerkstattWerkzeug.ContainsValue(name) || name == kopf || name == last,
+                _ => WerkzeugNamen.Contains(name) || name == kopf || name == last,
             };
             if (!behalten)
             {
@@ -131,8 +138,7 @@ public partial class Stadtansicht
                 continue;
             }
             if (name == "Hacke") { figur.Hacke = teil; teil.Visible = false; }
-            foreach (var (bewegung, werkzeug) in WerkstattWerkzeug)
-                if (name == werkzeug) { figur.Werkzeuge[bewegung] = teil; teil.Visible = false; }
+            if (WerkzeugNamen.Contains(name)) { figur.Werkzeuge[name] = teil; teil.Visible = false; }
             if (name == "Stab") { figur.Stab = teil; teil.Visible = figur.StabImmer; }
             figur.Teile.Add(teil);
             // Ein Material für alle Teile (figur.gdshader), die Farben je Figur als Instanz-Uniform: ein Zeichenaufruf je Teil.
@@ -149,9 +155,10 @@ public partial class Stadtansicht
 
     /// <summary>
     /// Wechselt die Bewegung (eine der zehn Schleifen). Die Startphase kommt aus der Nummer, damit nicht alle im Gleichschritt gehen.
-    /// Die Hacke erscheint nur beim Hacken, der Stab beim Hüten (der Hirte trägt ihn immer), Hammer, Hobel, Säge und Drechseleisen bei ihrer Werkstattbewegung.
+    /// Die Hacke erscheint nur beim Hacken, der Stab beim Hüten (der Hirte trägt ihn immer), Hammer, Hobel, Säge, Drechseleisen, Schlägel und Meißel
+    /// bei ihrer Werkstattbewegung. <paramref name="werkzeug"/> ersetzt deren Teile (leer: keines, z. B. an der Steinsäge der Steinmetzei); null: die der Bewegung.
     /// </summary>
-    private static void BewegungSetzen(Figur f, string bewegung, float takt = 1)
+    private static void BewegungSetzen(Figur f, string bewegung, float takt = 1, string[]? werkzeug = null)
     {
         f.Takt = takt;
         if (f.Bewegung == bewegung) return;
@@ -162,7 +169,8 @@ public partial class Stadtansicht
         f.Neu = true;
         f.Langsam = bewegung is "Stehen" or "Sitzen" or "Hueten";
         if (f.Hacke is not null) f.Hacke.Visible = bewegung == "Hacken";
-        foreach (var (zu, teil) in f.Werkzeuge) teil.Visible = zu == bewegung;
+        var sichtbar = werkzeug ?? (WerkstattWerkzeug.TryGetValue(bewegung, out var teile) ? teile : Array.Empty<string>());
+        foreach (var (name, teil) in f.Werkzeuge) teil.Visible = sichtbar.Contains(name);
         if (f.Stab is not null) f.Stab.Visible = f.StabImmer || bewegung == "Hueten";
     }
 
