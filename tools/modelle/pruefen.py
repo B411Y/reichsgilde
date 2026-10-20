@@ -21,9 +21,11 @@ Einrichten und Karren, Türen paarweise („Tuer_A_B“ und „Tuer_B_A“), Ein
 „Einrichtung_Eisentuer“ gibt), Arbeitsplätze „Arbeit_<n>_<Bewegung>“ (n lückenlos ab 1, die Bewegung muss es in
 figur_mensch.glb geben; extras „requisit“ – das Werkzeug statt dem der Bewegung – muss „keins“ oder ein Knoten von
 figur_mensch.glb sein), Stellplätze „Lager_<n>“ und Werkstücke „Werkstueck_<n>“ lückenlos ab 1; alle Anker und
-Blickpunkte liegen in einem Raum. Die Lage rechnet die Knotenhierarchie mit ein.
-Ein Raum mit extras „stufe“ (z. B. die Sägehalle des Tischlers ab Stufe 3) gibt es erst ab dieser Stufe: Anker darin und
-Türen dorthin brauchen mindestens dieselbe „stufe“. Späne „Spaene1“–„Spaene3“ (falls vorhanden) sind lückenlos und
+Blickpunkte liegen in einem Raum. Die Lage rechnet die Knotenhierarchie mit ein. Ein Werkstück darf statt eines leeren
+Knotens ein Netz sein (beim Alchimisten die Flüssigkeit, die das Spiel färbt); Stellplätze der Auslage „Auslage_<n>“ (im
+Laden) und Dampfquellen „Dampf_<n>“ sind freiwillig, gibt es sie, laufen sie lückenlos ab 1.
+Ein Raum mit extras „stufe“ (z. B. die Sägehalle des Tischlers ab Stufe 3, Laden und Turm des Alchimisten) gibt es erst ab
+dieser Stufe: Anker darin und Türen dorthin brauchen mindestens dieselbe „stufe“. Späne „Spaene1“–„Spaene3“ (falls vorhanden) sind lückenlos und
 standardmäßig aus. Hat die Datei Animationen, muss eine „Arbeit“ heißen; sie darf weder Räume noch Stufen, Anker oder
 Blickpunkte bewegen.
 """
@@ -122,9 +124,9 @@ def innen(pfad, g):
         bewegungen = {a["name"] for a in figur_glb.get("animations", [])}
         teile = {n.get("name") for n in figur_glb["nodes"]}
     print("Anker und Blickpunkte (Spielkoordinaten, Blick = −Z):")
-    reihen = {"Arbeit": [], "Lager": [], "Werkstueck": []}
+    reihen = {"Arbeit": [], "Lager": [], "Werkstueck": [], "Auslage": [], "Dampf": []}
     for name, i in sorted(knoten.items()):
-        if "mesh" in g["nodes"][i] or not name.startswith(("Blick_", "Arbeit_", "Lager_", "Werkstueck_", "Licht_")):
+        if not ist_anker(g, name, i):
             continue
         m = welt[i]
         p = [m[0][3], m[1][3], m[2][3]]
@@ -133,8 +135,10 @@ def innen(pfad, g):
         vor = [v / laenge for v in vor]
         gier = math.degrees(math.atan2(-vor[0], -vor[2]))
         neigung = math.degrees(math.asin(max(-1.0, min(1.0, vor[1]))))
+        netz = "  Netz " + ", ".join(g["materials"][q["material"]]["name"] for q in g["meshes"][g["nodes"][i]["mesh"]]["primitives"]
+                                     if "material" in q) if "mesh" in g["nodes"][i] else ""
         print(f"  {name:22s} bei X {p[0]:6.2f}  Y {p[1]:5.2f}  Z {p[2]:6.2f}  Blick {gier:6.1f}° waagrecht, {neigung:5.1f}° hoch"
-              f"  {g['nodes'][i].get('extras', '')}")
+              f"  {g['nodes'][i].get('extras', '')}{netz}")
         raum = raum_bei(p)
         if raum is None:
             fehler.append(f"{name} liegt in keinem Raum")
@@ -158,9 +162,10 @@ def innen(pfad, g):
             fehler.append(f"Blickpunkt „Blick_{raum}_0“ fehlt")
     fehler += innen_stufen(g, knoten, welt, raeume, raum_bei)
     for art, nummern in reihen.items():
-        if sorted(nummern) != list(range(1, len(nummern) + 1)) or not nummern:
+        if sorted(nummern) != list(range(1, len(nummern) + 1)) or (not nummern and art not in ("Auslage", "Dampf")):
             fehler.append(f"{art}_<n>: Nummern müssen lückenlos ab 1 laufen, gefunden {sorted(nummern)}")
-    print("Arbeitsplätze {}, Stellplätze {}, Werkstücke {}".format(*(len(reihen[a]) for a in ("Arbeit", "Lager", "Werkstueck"))))
+    print("Arbeitsplätze {}, Stellplätze {}, Werkstücke {}, Auslage {}, Dampf {}".format(
+        *(len(reihen[a]) for a in ("Arbeit", "Lager", "Werkstueck", "Auslage", "Dampf"))))
     for art in ("Personal", "Produktion", "Lager", "Einrichten", "Karren"):
         if not any(n.startswith(f"Bedienung_{art}_") for n in knoten):
             fehler.append(f"keine Bedienung „Bedienung_{art}_…“")
@@ -180,6 +185,14 @@ def innen(pfad, g):
     return fehler
 
 
+ANKER = ("Blick_", "Arbeit_", "Lager_", "Werkstueck_", "Licht_", "Auslage_", "Dampf_")
+
+
+def ist_anker(g, name, i):
+    """Anker und Blickpunkte sind leere Knoten; nur ein Werkstück darf ein Netz sein."""
+    return name.startswith(ANKER) and ("mesh" not in g["nodes"][i] or name.startswith("Werkstueck_"))
+
+
 def innen_stufen(g, knoten, welt, raeume, raum_bei):
     """Räume ab einer Stufe (extras „stufe“): Anker darin und Türen dorthin brauchen mindestens dieselbe Stufe."""
     fehler = []
@@ -191,7 +204,7 @@ def innen_stufen(g, knoten, welt, raeume, raum_bei):
         if k > 1:
             print(f"Raum_{raum} erst ab Stufe {k}")
     for name, i in knoten.items():
-        if "mesh" in g["nodes"][i] or not name.startswith(("Blick_", "Arbeit_", "Lager_", "Werkstueck_", "Licht_")):
+        if not ist_anker(g, name, i):
             continue
         m = welt[i]
         raum = raum_bei([m[0][3], m[1][3], m[2][3]])
