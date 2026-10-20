@@ -1118,16 +1118,17 @@ def bauen():
     return list(raeume.values()) + [o for liste in kinder.values() for o in liste]
 
 
-def animieren(bewegt):
+def animieren(bewegt, bilder=ARBEIT_BILDER):
     """Animation „Arbeit“: je bewegtem Teil eine Action in einer NLA-Spur „Arbeit“ (der glTF-Export legt gleichnamige
-    Spuren zu einer Animation zusammen). Ein Schlüssel je Bild, das letzte Bild gleicht dem ersten (nahtlose Schleife)."""
+    Spuren zu einer Animation zusammen). Ein Schlüssel je Bild, das letzte Bild gleicht dem ersten (nahtlose Schleife).
+    `bilder`: Länge der Animation (auch für steinmetz_innen)."""
     import bpy
     for o, bewegung in bewegt:
         ruhe = (o.location.copy(), o.rotation_euler.copy(), o.scale.copy())
         o.animation_data_create()
         act = bpy.data.actions.new("Arbeit_" + o.name)
         o.animation_data.action = act
-        for bild in range(ARBEIT_BILDER + 1):
+        for bild in range(bilder + 1):
             ort, dreh, mass = bewegung(bild)
             if ort is not None:
                 o.location = ort
@@ -1145,11 +1146,11 @@ def animieren(bewegt):
         o.location, o.rotation_euler, o.scale = ruhe
 
 
-def exportieren(objekte):
+def exportieren(objekte, name=NAME):
     """GLB mit der Animation „Arbeit“ (wie bausteine.exportieren, aber mit Animationen aus den NLA-Spuren); mit UV für die
-    Materialart je Fläche (Holzschnitt)."""
+    Materialart je Fläche (Holzschnitt). `name`: Datei (auch für steinmetz_innen)."""
     import bpy
-    pfad = os.path.join(bs.MODELLE, NAME + ".glb")
+    pfad = os.path.join(bs.MODELLE, name + ".glb")
     mit_kindern = set(objekte) | {k for o in objekte for k in o.children_recursive}
     for o in bpy.context.scene.objects:
         o.select_set(o in mit_kindern)
@@ -1188,12 +1189,12 @@ def sichtbar(o, stufe, einrichtung, decke=True, spaene=0):
     return True
 
 
-def pruefbericht(objekte):
+def pruefbericht(objekte, name=NAME):
     """Dreiecke je Knoten, sichtbar je Stufe, und deckungsgleiche Flächen je Stand (Stufe, mit und ohne Einrichtung) –
-    mit allen Kindern (bewegte Teile unter den Stufen, Späne der Drechselbank)."""
+    mit allen Kindern (bewegte Teile unter den Stufen, Späne der Drechselbank). `name`: Überschrift (auch für steinmetz_innen)."""
     alle = list(dict.fromkeys(objekte + [k for o in objekte for k in o.children_recursive]))
     netze = [o for o in alle if o.type == "MESH"]
-    print(f"\n{NAME}: Dreiecke")
+    print(f"\n{name}: Dreiecke")
     summe = 0
     for o in netze:
         o.data.calc_loop_triangles()
