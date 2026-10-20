@@ -118,6 +118,27 @@ def beschneiden(punkte, x0, x1, y0, y1):
     return punkte
 
 
+def beschneiden_vieleck(punkte, umriss):
+    """Vieleck (Liste von (x, y)) auf ein konvexes Vieleck `umriss` (gegen den Uhrzeigersinn) beschneiden."""
+    for i in range(len(umriss)):
+        p, q = umriss[i - 1], umriss[i]
+        neu = []
+        for j in range(len(punkte)):
+            s, e = punkte[j - 1], punkte[j]
+            innen_e = (q[0] - p[0]) * (e[1] - p[1]) - (q[1] - p[1]) * (e[0] - p[0]) >= 0
+            innen_s = (q[0] - p[0]) * (s[1] - p[1]) - (q[1] - p[1]) * (s[0] - p[0]) >= 0
+            if innen_e:
+                if not innen_s:
+                    neu.append(_kreuz(s, e, p, q))
+                neu.append(e)
+            elif innen_s:
+                neu.append(_kreuz(s, e, p, q))
+        punkte = neu
+        if len(punkte) < 3:
+            return []
+    return punkte
+
+
 def flaeche2d(punkte):
     return abs(sum(punkte[i][0] * punkte[i - 1][1] - punkte[i - 1][0] * punkte[i][1] for i in range(len(punkte)))) / 2
 
@@ -188,11 +209,15 @@ def lehmboden(netz, st, x0, x1, y0, y1, saat=0, flecken=10, halme=26):
         netz.vieleck_nach([c - d - q, c + d - q, c + d + q, c - d + q], (0, 0, 1), st["Strohhalm"])
 
 
-def fischgraet(netz, st, x0, x1, y0, y1, saat=0, b=0.16):
+def fischgraet(netz, st, x0, x1, y0, y1, saat=0, b=0.16, umriss=None, z=0.0):
     """Backsteinpflaster im Fischgrätmuster (Ziegel b × 2b, um 45° gedreht, die Zickzackreihen laufen entlang x): nur die
     Deckfläche jedes Ziegels in z = 0, am Rand auf den Raum beschnitten; darunter (z = −8 mm) eine Mörtelfläche, die in
-    den Fugen zu sehen ist. Gibt die Zahl der Ziegel zurück."""
-    waagrecht(netz, (x0, x1, y0, y1), -0.008, True, st["Ziegelfuge"])
+    den Fugen zu sehen ist. Gibt die Zahl der Ziegel zurück. `umriss`: konvexes Vieleck [(x, y)] gegen den Uhrzeigersinn
+    statt des Rechtecks (der achteckige Turm des Alchimisten; x0 … y1 umschließen es), `z`: Höhe der Ziegel."""
+    if umriss is None:
+        waagrecht(netz, (x0, x1, y0, y1), z - 0.008, True, st["Ziegelfuge"])
+    else:
+        netz.vieleck_nach([(x, y, z - 0.008) for x, y in umriss], (0, 0, 1), st["Ziegelfuge"])
     zufall = random.Random(saat)
     s = math.sqrt(0.5)
 
@@ -211,10 +236,10 @@ def fischgraet(netz, st, x0, x1, y0, y1, saat=0, b=0.16):
                 if a1 < umin or a0 > umax or c1 < vmin or c0 > vmax:
                     continue
                 ecken = [welt(a0 + f, c0 + f), welt(a1 - f, c0 + f), welt(a1 - f, c1 - f), welt(a0 + f, c1 - f)]
-                stueck = beschneiden(ecken, x0, x1, y0, y1)
+                stueck = beschneiden(ecken, x0, x1, y0, y1) if umriss is None else beschneiden_vieleck(ecken, umriss)
                 if len(stueck) < 3 or flaeche2d(stueck) < 0.0004:
                     continue
-                netz.vieleck_nach([(x, y, 0.0) for x, y in stueck], (0, 0, 1), st[zufall.choice(farben)])
+                netz.vieleck_nach([(x, y, z) for x, y in stueck], (0, 0, 1), st[zufall.choice(farben)])
                 anzahl += 1
     return anzahl
 

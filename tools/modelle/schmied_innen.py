@@ -38,6 +38,8 @@ also zugleich die Lage im Modell):
                                 auch an der Ladeluke), „stufe“ ab welcher Stufe
     Kranbalken, Himmel_Lager    unter Raum_Lager: Kranbalken mit Rolle und Seil durch die Ladeluke, dahinter eine Fläche
                                 „Fenster“ als Himmel
+    Schlot2                     unter Raum_Lager: Schlot der zweiten Esse im Dachboden, extras „stufe“ = 2 (gehört zum Lager
+                                und seiner Lichtebene, nicht zu Stufe2/Stufe3 im Werkraum)
 Materialien: „Farben“ (Eckenfarben, innenausbau.farben_zusammenlegen mit dem Rußverlauf; die Materialart für den
 Holzschnitt je Fläche als UV.y, bausteine.arten_setzen – „keine“, wo das Modell Steine, Ziegel oder Bretter schon
 zeichnet), dazu „Glut“ (Esse, leuchtet), „Fenster“ (Scheiben, Himmel hinter der Ladeluke),
@@ -738,7 +740,7 @@ def bauen():
     loeschfass(teil("Einrichtung_Loeschfass"), st, Vector((-1.88, 2.88, 0)))
     schuerzen(teil("Einrichtung_Schuerzen"), st)
 
-    # ── Stufen (kumulativ): Boden, Ausstattung, Schlot der zweiten Esse im Dachboden ─────────────────────────
+    # ── Stufen (kumulativ): Boden, Ausstattung ────────────────────────────────
     M_fein = rahmen(WX1, -2.5, 90)
     SCHLEIF = Vector((1.7, -2.2, 0))
     stufen = [bs.Netz(f"Stufe{k}") for k in (1, 2, 3)]
@@ -753,9 +755,6 @@ def bauen():
             esse2(netz, st)
             schleifbock(netz, st, SCHLEIF)
             ia.russ(netz, st, *kanten["vorne"], -2.6 - WX0, 0.75, 1.85, H_WERK, f_vorne)
-            netz.alle = True
-            schlot(netz, st, SCHLOT2, vorn=True)
-            netz.alle = False
         if k >= 3:
             feinwerktisch(netz, st, M_fein)
     print(f"Backsteinpflaster: {ziegel} Ziegel")
@@ -782,6 +781,8 @@ def bauen():
     licht_luke = DACH.ladeluke(lager, kran, himmel, st, LADELUKE_Y, luke.b, luke.h, WAND)
     fenster(lager, st, *kanten["links"], Oe(gfenster.s, z + gfenster.v, gfenster.b, gfenster.h))
     schlot(lager, st, SCHLOT, vorn=False)
+    schlot2 = bs.Netz("Schlot2", alle=True)                   # Schlot der zweiten Esse (ab Stufe 2), im Lager wie der erste
+    schlot(schlot2, st, SCHLOT2, vorn=True)
     ia.bodenluke(teil("Tuer_Lager_Werk"), st, LUKE, z, gelaender_x=LUKE[0] - 0.05)
     n_licht = len([a for a in anker if a.name.startswith("Licht_")])
     anker.append(licht(f"Licht_{n_licht + 1}", licht_luke, (-1, 0, 0), "Fenster"))
@@ -801,8 +802,10 @@ def bauen():
 
     # ── Objekte, Zustände, Hierarchie ─────────────────────────────────────────
     raum_w, raum_l = werk.objekt(), lager.objekt()
+    o_schlot2 = schlot2.objekt()
+    o_schlot2["stufe"] = 2
     kinder = {raum_w: [decke_w.objekt()] + [s.objekt() for s in stufen],
-              raum_l: [decke_l.objekt(), kran.objekt(), himmel.objekt()]}
+              raum_l: [decke_l.objekt(), kran.objekt(), himmel.objekt(), o_schlot2]}
     for name, netz in teile.items():
         o = netz.objekt()
         im_lager = name in ("Bedienung_Lager_Regal", "Bedienung_Lager_Kisten", "Einrichtung_Regale", "Tuer_Lager_Werk")
