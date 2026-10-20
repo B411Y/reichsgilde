@@ -1388,7 +1388,7 @@ def vorschau_buehne(flaeche, ziel_hoehe=5.0, ausschnitt=17.0, schnell=False):
     szene.world = welt
 
     szene.render.engine = "CYCLES"
-    szene.cycles.device = "CPU"
+    cycles_geraet(szene)
     szene.cycles.samples = 16 if schnell else 96
     szene.cycles.use_denoising = True
     szene.render.resolution_x, szene.render.resolution_y = 1200, 900
@@ -1396,6 +1396,26 @@ def vorschau_buehne(flaeche, ziel_hoehe=5.0, ausschnitt=17.0, schnell=False):
     szene.view_settings.view_transform = "Standard"
     szene["_ziel"] = ziel_hoehe
     blick(0)
+
+
+def cycles_geraet(szene):
+    """Cycles rechnet auf der Grafikkarte (CUDA), wenn eine da ist, sonst wie bisher auf dem Prozessor. OptiX ginge auch,
+    bricht auf dem Entwicklungsrechner (NVIDIA T400) aber mit Fehler 7804 ab. Gibt „GPU“ oder „CPU“ zurück.
+    Erst nach neue_szene aufrufen: die Werkseinstellungen setzen auch die Geräte zurück."""
+    szene.cycles.device = "CPU"
+    try:
+        prefs = bpy.context.preferences.addons["cycles"].preferences
+        prefs.compute_device_type = "CUDA"
+        prefs.get_devices()
+    except (KeyError, TypeError, AttributeError, RuntimeError):
+        return "CPU"
+    if not any(d.type == "CUDA" for d in prefs.devices):
+        return "CPU"
+    for d in prefs.devices:
+        d.use = d.type == "CUDA"
+    szene.cycles.device = "GPU"
+    szene.cycles.denoising_use_gpu = True
+    return "GPU"
 
 
 def _hilfsstoff(name, farbe):

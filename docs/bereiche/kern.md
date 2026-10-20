@@ -152,6 +152,13 @@ So wird eingetragen (damit sich die Chats nie an derselben Stelle treffen):
 | Einrichtung des Schmieds (Vorschlag Kern) | Kennungen wie die Knoten `Einrichtung_<Kennung>` im Raummodell: `Werkzeug1` Gutes Werkzeug 300 Gulden, Zeit je Stück −10 %; `Werkzeug2` Meisterwerkzeug 800, ab Stufe 2, braucht Werkzeug1, nochmals −10 %; `Blasebalg` Großer Blasebalg 350, −10 % für Beschlag, Rapier, Werkzeug, Prunkschwert (nicht für Schmuck); `Regale` 200, +20 Lager je Ware (60); `Loeschfass` Löschfass 100, Feuer (Sabotage, Brand nach Schutzgeld) halb so oft; `Eisentuer` Eisentür 300, Diebstahl und Einbruch halb so oft; `Schuerzen` Lederschürzen 80, Unfälle halb so oft. Gekauft als Anschaffung; bleibt beim Ausbau; beim Verkauf zählt sie zum Wert (75 % Erlös) und bleibt im Haus für den nächsten Käufer. | 19.10.2026 |
 | Arbeiter und Waren | Jeder Arbeiter hat eine feste Nummer im Betrieb. Wer keine Ware zugeteilt hat, arbeitet an der Ware des Betriebs; `ProduktWaehlen` setzt sie und teilt alle Arbeiter ihr zu (so arbeiten KI und alte Abläufe weiter). Jede Ware hat ihren eigenen Fortschritt, ein angefangenes Stück bleibt liegen, wenn niemand mehr daran arbeitet. `PersonalSetzen` entlässt die zuletzt eingestellten Arbeiter dieser Art. | 19.10.2026 |
 
+### Einrichtung des Tischlers (PR #154)
+
+| Thema | Entscheidung | Datum |
+|---|---|---|
+| Stücke | Wie beim Schmied, mit Leimofen und Zwingen statt Blasebalg: Gutes Werkzeug (−10 % Zeit), Meisterwerkzeug (ab Stufe 2, braucht Gutes Werkzeug, −10 %), Leimofen und Zwingen (−10 % für Truhe, Schrank, Prunktruhe, Armbrust), Holzgestell (60 statt 40 je Ware), Löschfass (Feuer halb so oft), Eisentür (Diebstahl und Einbruch halb so oft), Lederschürzen (Unfälle halb so oft). Gleiche Preise wie beim Schmied. Nur Daten, keine neue Art Wirkung. | 19.10.2026 |
+| Daten | `werkstatt.einrichtung.Tischler` mit den Kennungen `Werkzeug1`, `Werkzeug2`, `Leimzwingen` (350 Gulden), `Regale` (Name „Holzgestell“), `Loeschfass`, `Eisentuer`, `Schuerzen` – wie die Knoten `Einrichtung_<Kennung>` im Raummodell. Gilt für Tischlerei, Drechslerei und Sägewerk, nicht für den Holzschlag (keine Werkstatt). **Datenversion 37.** Keine Messung: Die KI-Häuser kaufen keine Einrichtung. | 19.10.2026 |
+
 ## Messungen
 
 Messungen des Kerns stehen in `docs/WIRTSCHAFTSMODELL.md` (nur der Kern schreibt dort).

@@ -8,13 +8,15 @@ namespace Reichsgilde;
 /// <summary>
 /// Innenräume aus Blender-Modellen – elfter Teil der <c>partial class Stadtansicht</c> (PR #152).
 ///
-/// Ein Beruf bekommt seinen Innenraum, indem <see cref="InnenModellDatei"/> eine Datei nennt (bisher nur der Schmied:
-/// <c>schmied_innen.glb</c>). Alles Weitere liest dieses Gerüst aus den Knotennamen des Modells (Verträge: <c>docs/bereiche/darstellung.md</c>):
+/// Ein Beruf bekommt seinen Innenraum, indem <see cref="InnenModellDatei"/> eine Datei nennt (Schmied: <c>schmied_innen.glb</c>, Tischler:
+/// <c>tischler_innen.glb</c>). Alles Weitere liest dieses Gerüst aus den Knotennamen des Modells (Verträge: <c>docs/bereiche/darstellung.md</c>):
 /// <list type="bullet">
-/// <item><c>Raum_Werk</c>, <c>Raum_Lager</c> – die Räume; <c>Blick_&lt;Raum&gt;_&lt;0|L1|R1|O1|U1…&gt;</c> – feste Blickpunkte der Kamera (Stadtansicht.Innenkamera.cs)</item>
+/// <item><c>Raum_Werk</c>, <c>Raum_Lager</c>, <c>Raum_Saege</c> – die Räume (glTF-extras „stufe“ auf dem Raumknoten: erst ab dieser Betriebsstufe da, so die
+/// Sägehalle ab Stufe 3); <c>Blick_&lt;Raum&gt;_&lt;0|L1|R1|O1|U1…&gt;</c> – feste Blickpunkte der Kamera (Stadtansicht.Innenkamera.cs)</item>
 /// <item><c>Stufe1</c>–<c>Stufe3</c> – Ausstattung der Betriebsstufe (genau eine sichtbar); <c>Einrichtung_&lt;Kennung&gt;</c> – gekaufte Einrichtung (erst nach dem Kauf sichtbar)</item>
-/// <item><c>Bedienung_&lt;Tafel&gt;_&lt;Name&gt;</c> und <c>Tuer_&lt;von&gt;_&lt;nach&gt;</c> – anklickbare Gegenstände (Klickfläche aus dem Umriss des Netzes)</item>
-/// <item><c>Arbeit_&lt;n&gt;_&lt;Bewegung&gt;</c> – Arbeitsplätze; <c>Werkstueck_&lt;n&gt;</c> – Stück in Arbeit; <c>Lager_&lt;n&gt;</c> – Stellplätze der Warenstapel; <c>Licht_&lt;n&gt;</c> – Lichter</item>
+/// <item><c>Bedienung_&lt;Tafel&gt;_&lt;Name&gt;</c> und <c>Tuer_&lt;von&gt;_&lt;nach&gt;</c> – anklickbare Gegenstände (Klickfläche aus dem Umriss des Netzes; eine Tür mit „stufe“ ist darunter unsichtbar und nicht anklickbar)</item>
+/// <item><c>Arbeit_&lt;n&gt;_&lt;Bewegung&gt;</c> – Arbeitsplätze; <c>Werkstueck_&lt;n&gt;</c> – Stück in Arbeit; <c>Lager_&lt;n&gt;</c> – Stellplätze der Warenstapel; <c>Licht_&lt;n&gt;</c> – Lichter (extras „art“: Glut, Fenster, Lampe)</item>
+/// <item><c>Spaene1</c>–<c>Spaene3</c> – Hobelspäne, höchstens einer sichtbar, nach der Arbeit des Tages; die Animation „Arbeit“ des Modells läuft als Schleife, solange gearbeitet wird</item>
 /// </list>
 /// Der Raum folgt dem Kern: Stufe, Einrichtung, Glut, Arbeiter, Werkstücke und Warenstapel werden nur angefasst, wenn sich etwas geändert hat.
 /// </summary>
@@ -24,17 +26,18 @@ public partial class Stadtansicht
     private static string? InnenModellDatei(Werkstil stil) => stil switch
     {
         Werkstil.Giesserei => "schmied_innen",
+        Werkstil.Tischlerei => "tischler_innen",
         _ => null,
     };
 
     /// <summary>Mit so vielen Kisten steht ein volles Lager einer Ware (Höhe der Warenstapel).</summary>
     private const int StapelHoehe = 5;
 
-    /// <summary>Anklickbarer Gegenstand: seine Klickfläche ist nur aktiv, solange <see cref="Knoten"/> sichtbar ist (Einrichtung).</summary>
+    /// <summary>Anklickbarer Gegenstand: seine Klickfläche ist nur aktiv, solange <see cref="Knoten"/> im Bild steht (selbst sichtbar, ebenso Stufe, Raum und Elternknoten).</summary>
     private sealed class ModellKlick
     {
         public required CollisionShape3D Form { get; init; }
-        public Node3D? Knoten { get; init; }
+        public required Node3D Knoten { get; init; }
     }
 
     /// <summary>Ein Arbeitsplatz des Modells (<c>Arbeit_&lt;n&gt;_&lt;Bewegung&gt;</c>) und sein Werkstück.</summary>
@@ -44,6 +47,8 @@ public partial class Stadtansicht
         public required string Bewegung { get; init; }
         public required Node3D Anker { get; init; }
         public int AbStufe { get; init; } = 1;
+        /// <summary>Schlüssel des Raums, in dem der Platz liegt („Werk“, „Saege“ …; leer: unter keinem Raumknoten).</summary>
+        public string Raum { get; init; } = "";
         public Node3D? WerkstueckAnker { get; set; }
         public MeshInstance3D? Werkstueck { get; set; }
         public string WerkstueckWare { get; set; } = "";
@@ -73,6 +78,12 @@ public partial class Stadtansicht
         public string Stand { get; set; } = "";
     }
 
+    /// <summary>Wie ein Licht des Modells leuchtet (extras „art“): Glut flackert orange bei der Arbeit, Fenster werfen Tageslicht, Lampen leuchten warm und gleichmäßig, solange gearbeitet wird.</summary>
+    private enum LichtArt { Fenster, Glut, Lampe }
+
+    /// <summary>Was die Animation „Arbeit“ des Raums gerade tut: in Ruhelage (Zeit 0, nichts wird gearbeitet), Schleife oder bei Spielpause an der Stelle angehalten.</summary>
+    private enum AnimationStand { Ruht, Laeuft, Haelt }
+
     /// <summary>Alles, was ein Modellraum an Knoten und Zustand braucht (je Betrieb).</summary>
     private sealed class ModellRaumDaten
     {
@@ -86,7 +97,13 @@ public partial class Stadtansicht
         public Dictionary<string, List<Blickpunkt>> Blicke { get; } = new();
         public List<ModellPlatz> Plaetze { get; } = new();
         public List<Node3D> Lagerplaetze { get; } = new();
-        public List<(Light3D Licht, bool Glut, int AbStufe)> Lichter { get; } = new();
+        public List<(Light3D Licht, LichtArt Art, int AbStufe)> Lichter { get; } = new();
+        /// <summary>Knoten, die erst ab einer Betriebsstufe da sind (Raum „Saege“, Türen dorthin; extras „stufe“): darunter unsichtbar.</summary>
+        public List<(Node3D Knoten, int AbStufe)> StufenKnoten { get; } = new();
+        /// <summary>Hobelspäne in drei Mengen (Index 1–3); höchstens einer sichtbar.</summary>
+        public Node3D?[] Spaene { get; } = new Node3D?[4];
+        /// <summary>Die Animation „Arbeit“ des Modells (Gatter, Drechselbank …), sonst null.</summary>
+        public AnimationPlayer? Animation { get; set; }
         public List<ModellKlick> Klicks { get; } = new();
         public Dictionary<int, ModellArbeiter> Arbeiter { get; } = new();
         public List<LagerStapel> Stapel { get; } = new();
@@ -99,6 +116,11 @@ public partial class Stadtansicht
         public Color Hausfarbe { get; set; }
         public float Hell { get; set; } = -1;
         public string WerkstueckStand { get; set; } = "";
+        public int SpaeneStand { get; set; } = -1;
+        public AnimationStand ArbeitStand { get; set; }
+        /// <summary>Länge einer Schleife der Animation „Arbeit“ (Sekunden) und Stand in der Schleife: Figuren mit Bewegungen im Takt des Raums (Drechseln, Gatter) übernehmen die Phase.</summary>
+        public double ArbeitDauer { get; set; } = 1;
+        public double ArbeitPhase { get; set; }
     }
 
     // ═════════════════════════════════════════════════════════════════════════
@@ -124,6 +146,16 @@ public partial class Stadtansicht
         InnenModellStoffe(md, wurzel);
         foreach (var knoten in wurzel.FindChildren("*", nameof(Node3D), true, false).OfType<Node3D>())
             InnenModellKnoten(a, md, knoten);
+        if (wurzel.FindChild("AnimationPlayer", true, false) is AnimationPlayer spieler && spieler.HasAnimation("Arbeit"))
+        {
+            // Wie bei den Figuren rückt das Spiel die Pose selbst weiter (Seek in InnenAnimationSetzen): So laufen Raum und Figuren (Drechsler am Pedal,
+            // Gatterarbeiter) im selben Takt und halten gemeinsam an. Die Schleife läuft ab dem zweiten Bild (SchleifenAnfang), wie bei den Figuren.
+            spieler.CallbackModeProcess = AnimationMixer.AnimationCallbackModeProcess.Manual;
+            spieler.GetAnimation("Arbeit").LoopMode = Animation.LoopModeEnum.Linear;
+            spieler.Play("Arbeit"); // wählt die Animation aus, weiter geht es nur mit Seek
+            md.Animation = spieler;
+            md.ArbeitDauer = Math.Max(0.1, spieler.GetAnimation("Arbeit").Length - SchleifenAnfang);
+        }
 
         foreach (var plan in md.Plaetze) // Werkstück-Anker zum Platz gleicher Nummer
         {
@@ -139,12 +171,17 @@ public partial class Stadtansicht
         }
         md.Plaetze.Sort((x, y) => x.Nr.CompareTo(y.Nr));
 
-        // Räume in der Reihenfolge der Raumleiste (Mitte, Maße und Wände stehen im Modell)
-        foreach (var (kennung, schluessel, name) in new[] { (RaumWerk, "Werk", WerkraumName(stil)), (RaumLager, "Lager", "Lager") })
+        // Räume in der Reihenfolge der Raumleiste (Mitte, Maße und Wände stehen im Modell). Ein Raum mit „stufe“ (die Sägehalle ab 3) steht erst ab dieser Stufe in der Leiste.
+        foreach (var (kennung, schluessel, name) in new[] { (RaumWerk, "Werk", WerkraumName(stil)), (RaumLager, "Lager", "Lager"), (RaumSaege, "Saege", "Sägehalle") })
             if (md.Blicke.TryGetValue(schluessel, out var blicke) && blicke.Count > 0)
             {
                 blicke.Sort((x, y) => x.Rang.CompareTo(y.Rang));
-                a.Raeume.Add(new Raum(kennung, name, Vector3.Zero, new Vector3(9, 3.6f, 6.5f), Blicke: blicke));
+                var raumKnoten = wurzel.FindChild("Raum_" + schluessel, true, false) as Node3D;
+                var vorgabe = schluessel == "Saege" ? 3 : 1; // gilt, wenn die „extras“ fehlen
+                var abStufe = raumKnoten is null ? vorgabe : ExtraZahl(raumKnoten, "stufe", vorgabe);
+                if (raumKnoten is not null && abStufe > 1) md.StufenKnoten.Add((raumKnoten, abStufe));
+                a.Raeume.Add(new Raum(kennung, name, Vector3.Zero, Vector3.Zero, // Mitte und Maße braucht nur der alte Raum aus Grundkörpern: Wände und Lage stehen im Modell, die Kamera folgt den Blickpunkten
+                    abStufe > 1 ? () => Modellstufe(a.Betrieb.Stufe) >= abStufe : null, blicke));
             }
         KontorUndWohnstubeAnlegen(a, WandVon(stil));
     }
@@ -199,20 +236,29 @@ public partial class Stadtansicht
             case "Einrichtung" when teile.Length >= 2:
                 md.Einrichtung[teile[1]] = knoten;
                 knoten.Visible = false; // bis zum Kauf (steht im Modell auch als Zustand „sichtbar: false")
-                InnenKlickAnlegen(a, md, knoten, "einrichtung:" + teile[1], nurSichtbar: true);
+                InnenKlickAnlegen(a, md, knoten, "einrichtung:" + teile[1]);
                 break;
             case "Bedienung" when teile.Length >= 3:
-                InnenKlickAnlegen(a, md, knoten, $"bedienung:{teile[1]}:{teile[2]}", nurSichtbar: false);
+                InnenKlickAnlegen(a, md, knoten, $"bedienung:{teile[1]}:{teile[2]}");
                 break;
             case "Tuer" when teile.Length >= 3:
-                InnenKlickAnlegen(a, md, knoten, $"tuer:{teile[1]}:{teile[2]}", nurSichtbar: false);
+                InnenKlickAnlegen(a, md, knoten, $"tuer:{teile[1]}:{teile[2]}");
+                if (ExtraZahl(knoten, "stufe", 1) is > 1 and var tuerStufe) md.StufenKnoten.Add((knoten, tuerStufe)); // die Tür zur Sägehalle gibt es erst mit ihr
+                break;
+            case "Spaene1" or "Spaene2" or "Spaene3" when teile.Length == 1:
+                md.Spaene[name[^1] - '0'] = knoten;
+                knoten.Visible = false; // bis zur Arbeit des Tages
+                break;
+            case "Spaene1" or "Spaene2" or "Spaene3": // Teil einer Menge Späne (Spaene<n>_Drechselbank), liegt erst ab seiner Stufe da
+                if (ExtraZahl(knoten, "stufe", 1) is > 1 and var spaeneStufe) md.StufenKnoten.Add((knoten, spaeneStufe));
                 break;
             case "Blick" when teile.Length >= 3:
                 if (!md.Blicke.TryGetValue(teile[1], out var liste)) md.Blicke[teile[1]] = liste = new List<Blickpunkt>();
                 liste.Add(new Blickpunkt(teile[2], knoten));
                 break;
             case "Arbeit" when teile.Length >= 3 && int.TryParse(teile[1], out var nr):
-                md.Plaetze.Add(new ModellPlatz { Nr = nr, Bewegung = teile[2], Anker = knoten, AbStufe = ExtraZahl(knoten, "stufe", nr <= 2 ? 1 : nr - 1) });
+                md.Plaetze.Add(new ModellPlatz { Nr = nr, Bewegung = teile[2], Anker = knoten, Raum = RaumSchluesselVon(knoten),
+                    AbStufe = ExtraZahl(knoten, "stufe", nr <= 2 ? 1 : nr - 1) });
                 break;
             case "Lager" when teile.Length == 2 && int.TryParse(teile[1], out _):
                 md.Lagerplaetze.Add(knoten);
@@ -225,16 +271,19 @@ public partial class Stadtansicht
 
     private void InnenLichtAnlegen(ModellRaumDaten md, Node3D anker)
     {
-        var glut = ExtraText(anker, "art") == "Glut";
-        Light3D licht = glut
-            ? new OmniLight3D { LightColor = new Color(1f, 0.55f, 0.22f), OmniRange = 5f, LightEnergy = 0.3f }
-            : new SpotLight3D { LightColor = new Color(0.86f, 0.90f, 1f), SpotRange = 4.5f, SpotAngle = 50f, LightEnergy = 0f };
+        var art = ExtraText(anker, "art") switch { "Glut" => LichtArt.Glut, "Lampe" => LichtArt.Lampe, _ => LichtArt.Fenster };
+        Light3D licht = art switch
+        {
+            LichtArt.Glut => new OmniLight3D { LightColor = new Color(1f, 0.55f, 0.22f), OmniRange = 5f, LightEnergy = 0.3f },
+            LichtArt.Lampe => new OmniLight3D { LightColor = new Color(1f, 0.82f, 0.55f), OmniRange = 6f, LightEnergy = 0.5f },
+            _ => new SpotLight3D { LightColor = new Color(0.86f, 0.90f, 1f), SpotRange = 4.5f, SpotAngle = 50f, LightEnergy = 0f },
+        };
         anker.AddChild(licht);
-        md.Lichter.Add((licht, glut, ExtraZahl(anker, "stufe", 1)));
+        md.Lichter.Add((licht, art, ExtraZahl(anker, "stufe", 1)));
     }
 
     /// <summary>Eine Klickfläche aus dem Umriss des Knotens (sein Netz oder die Netze darunter), mit dem Tag „art:…" für Maus und Klick.</summary>
-    private void InnenKlickAnlegen(BetriebsAnsicht a, ModellRaumDaten md, Node3D knoten, string tag, bool nurSichtbar)
+    private void InnenKlickAnlegen(BetriebsAnsicht a, ModellRaumDaten md, Node3D knoten, string tag)
     {
         var umriss = LokalerUmriss(knoten);
         if (umriss is not { } box) return;
@@ -249,7 +298,15 @@ public partial class Stadtansicht
         koerper.AddChild(form);
         knoten.AddChild(koerper);
         a.Raumklicks.Add(form); // nur aktiv, solange man im Haus ist
-        md.Klicks.Add(new ModellKlick { Form = form, Knoten = nurSichtbar ? knoten : null });
+        md.Klicks.Add(new ModellKlick { Form = form, Knoten = knoten });
+    }
+
+    /// <summary>Schlüssel des Raums, in dem der Knoten liegt: der Name des nächsten Vorfahren „Raum_&lt;Schlüssel&gt;“ („Werk“, „Lager“, „Saege“), sonst leer.</summary>
+    private static string RaumSchluesselVon(Node knoten)
+    {
+        for (var k = knoten; k is not null; k = k.GetParent())
+            if (k.Name.ToString() is var name && name.StartsWith("Raum_")) return name[5..];
+        return "";
     }
 
     /// <summary>Der Umriss eines Knotens in seinen eigenen Koordinaten: sein Netz, sonst die Netze seiner Kinder.</summary>
@@ -297,11 +354,14 @@ public partial class Stadtansicht
         var stufe = Modellstufe(b.Stufe);
         if (stufe != md.Stufe)
         {
+            var erstes = md.Stufe == 0;
             md.Stufe = stufe;
             for (var i = 1; i <= 3; i++)
                 if (md.Stufen[i] is { } teil) teil.Visible = i == stufe;
+            foreach (var (knoten, abStufe) in md.StufenKnoten) knoten.Visible = stufe >= abStufe; // Sägehalle und ihre Tür
             md.ArbeiterStand = ""; // mehr Plätze: Arbeiter neu setzen
             md.Hell = -1;          // Lichter der Stufe
+            if (!erstes && md.StufenKnoten.Count > 0) InnenRaeumeNeuPruefen(); // nach einem Ausbau steht der neue Raum sofort in der Leiste
         }
 
         if (a.Farbe != md.Hausfarbe)
@@ -317,8 +377,11 @@ public partial class Stadtansicht
             foreach (var (kennung, knoten) in md.Einrichtung) knoten.Visible = b.HatEinrichtung(kennung);
             if (md.Holztuer is not null) md.Holztuer.Visible = !b.HatEinrichtung("Eisentuer");
         }
-        foreach (var klick in md.Klicks)
-            if (klick.Knoten is not null && klick.Form.Disabled == klick.Knoten.Visible) klick.Form.Disabled = !klick.Knoten.Visible;
+        foreach (var klick in md.Klicks) // anklickbar nur, was zu sehen ist: Einrichtung nach dem Kauf, Tür und Raum ab ihrer Stufe
+        {
+            var sichtbar = klick.Knoten.IsVisibleInTree();
+            if (klick.Form.Disabled == sichtbar) klick.Form.Disabled = !sichtbar;
+        }
 
         if (arbeitet != md.Glueht)
         {
@@ -329,16 +392,90 @@ public partial class Stadtansicht
         if (Mathf.Abs(_raumHell - md.Hell) > 0.01f)
         {
             md.Hell = _raumHell;
-            foreach (var (licht, glut, abStufe) in md.Lichter)
+            foreach (var (licht, art, abStufe) in md.Lichter)
             {
                 licht.Visible = stufe >= abStufe;
-                licht.LightEnergy = glut ? (arbeitet ? 1.6f : 0.25f) : 0.05f + 0.8f * _raumHell;
+                licht.LightEnergy = art switch
+                {
+                    LichtArt.Glut => arbeitet ? 1.6f : 0.25f,
+                    LichtArt.Lampe => arbeitet ? 0.55f + 0.5f * (1f - _raumHell) : 0.05f, // brennt wie die Laternenscheibe (Material „Glut“) nur bei der Arbeit, nachts heller
+                    _ => 0.05f + 0.8f * _raumHell,
+                };
             }
         }
+
+        InnenSpaeneAktualisieren(md, b, zeit);
+        if (md.Animation is not null)
+            InnenAnimationSetzen(md, !arbeitet ? AnimationStand.Ruht : _simulation!.Takt.IstPausiert ? AnimationStand.Haelt : AnimationStand.Laeuft, delta);
 
         InnenArbeiterAktualisieren(a, md, b, stufe, arbeitszeit, arbeitet, delta);
         InnenLagerAktualisieren(a, md, b);
     }
+
+    /// <summary>
+    /// Führt die Animation „Arbeit“: Läuft die Arbeit, rückt die Phase um <paramref name="delta"/> weiter (Schleife); bei Spielpause bleibt sie stehen
+    /// (danach geht es dort weiter); wird nicht gearbeitet (Feierabend, Ausfall, Stillstand), steht sie in der Ruhelage (Zeit 0, Phase 0).
+    /// Die Pose wird selbst gesetzt (Seek), der Player läuft nicht von allein: So bleiben Raum und Figuren im Takt.
+    /// </summary>
+    private static void InnenAnimationSetzen(ModellRaumDaten md, AnimationStand stand, double delta)
+    {
+        if (md.Animation is not { } animation) return;
+        if (stand != md.ArbeitStand)
+        {
+            md.ArbeitStand = stand;
+            if (stand == AnimationStand.Ruht)
+            {
+                md.ArbeitPhase = 0;
+                animation.Seek(0, true);
+            }
+        }
+        if (stand != AnimationStand.Laeuft || delta <= 0) return;
+        md.ArbeitPhase = (md.ArbeitPhase + delta) % md.ArbeitDauer;
+        animation.Seek(SchleifenAnfang + md.ArbeitPhase, true);
+    }
+
+    /// <summary>Die Raumleiste hat sich geändert (z. B. kam die Sägehalle dazu); steht man in einem Raum, der nicht mehr zu betreten ist, geht es in den ersten.</summary>
+    private void InnenRaeumeNeuPruefen()
+    {
+        if (_innen is null) return;
+        var raeume = Zugaengliche(_innen).ToList();
+        if (_raum is not null && raeume.Count > 0 && !raeume.Contains(_raum)) RaumZeigen(raeume[0]); // meldet RaumGewechselt: die Leiste baut sich neu
+        else InnenRaeumeGeaendert?.Invoke();
+    }
+
+    /// <summary>Ab so vielen Minuten Arbeit am Tag (nach dem Arbeitsbeginn, ohne Stillstand) liegt die erste, zweite und dritte Menge Späne (Index 1–3): 10, 13 und 16 Uhr.</summary>
+    private static readonly int[] SpaeneAbMinuten = { 0, 120, 300, 480 };
+
+    /// <summary>
+    /// Hobelspäne nach der Arbeit des Tages: keine, bis zwei Stunden gearbeitet wurde (10 Uhr), dann eine Menge, ab 13 Uhr mehr, ab 16 Uhr am meisten.
+    /// Gezählt werden die Minuten seit Arbeitsbeginn ohne den Stillstand des Tages; ohne Arbeiter wird nicht gearbeitet. Zum Jahreswechsel
+    /// (der Tag beginnt um 5 Uhr) ist alles weggefegt. Reine Darstellung, angefasst wird nur bei einer neuen Menge.
+    /// </summary>
+    private void InnenSpaeneAktualisieren(ModellRaumDaten md, Betrieb b, Spielzeit zeit)
+    {
+        if (md.Spaene.All(x => x is null)) return;
+        var arbeitsminuten = _simulation?.Wirtschaft?.Daten.Allgemein.Arbeitsminuten ?? 720;
+        var gearbeitet = b.Belegt > 0
+            ? Math.Clamp(zeit.UhrzeitInMinuten - Stadtwirtschaft.Arbeitsbeginn, 0, arbeitsminuten) - b.StillstandMinuten
+            : 0;
+        var menge = 0;
+        for (var i = 1; i < SpaeneAbMinuten.Length; i++)
+            if (gearbeitet >= SpaeneAbMinuten[i]) menge = i;
+        if (menge == md.SpaeneStand) return;
+        md.SpaeneStand = menge;
+        for (var i = 1; i < md.Spaene.Length; i++)
+            if (md.Spaene[i] is { } spaene) spaene.Visible = i == menge;
+    }
+
+    /// <summary>
+    /// Farbe des Werkstücks auf der Werkbank. Meist die Farbe der Ware; in der Tischlerei ist das Stück Holz: der Ton der Ware „Holz“,
+    /// nur zu einem Zehntel zur Warenfarbe getönt, damit man den Wechsel der Ware noch ahnt (ein hellblauer Klotz auf dem Stamm wirkte wie ein Fremdkörper).
+    /// </summary>
+    private static Color WerkstueckFarbe(Werkstil stil, string ware) => stil switch
+    {
+        Werkstil.Tischlerei => Warenfarbe("Holz").Lerp(Warenfarbe(ware), 0.1f),
+        _ => Warenfarbe(ware),
+    };
 
     /// <summary>
     /// Je Arbeiter eine Figur am nächsten freien Arbeitsplatz (Reihenfolge der Nummern), mit der Bewegung des Platzes – nur zur Arbeitszeit und
@@ -367,12 +504,19 @@ public partial class Stadtansicht
             if (arbeiter.Klick.Disabled == da) arbeiter.Klick.Disabled = !da; // Einsteigen setzt alle Klickflächen an: abgleichen
             var arbeitet1 = da && arbeitet && !still.Contains(zeile.Ware);
             var bewegung = arbeitet1 ? FigurBewegungVon(arbeiter) : "Stehen";
+            // Drechseln (Fuß am Pedal) und Gatter gehören zu Teilen, die der Raum bewegt (Animation „Arbeit“): Die Figur läuft in deren Takt, nicht mit eigener Startphase und Tempo.
+            var imTakt = md.Animation is not null && bewegung == arbeiter.Platz.Bewegung && bewegung is "Drechseln" or "Gatter";
             if (bewegung != arbeiter.Bewegung)
             {
                 arbeiter.Bewegung = bewegung;
-                BewegungSetzen(arbeiter.Figur, bewegung, (float)Mathf.Clamp(zeile.TempoFaktor, 0.5, 1.5));
+                BewegungSetzen(arbeiter.Figur, bewegung, imTakt ? 1f : (float)Mathf.Clamp(zeile.TempoFaktor, 0.5, 1.5));
             }
-            if (da && (bewegt || arbeiter.Figur.Neu)) FigurBewegen(arbeiter.Figur, bewegt ? delta : 0); // in der Pause nur die erste Pose der neuen Bewegung setzen
+            if (da && imTakt)
+            {
+                arbeiter.Figur.Phase = md.ArbeitPhase % arbeiter.Figur.Dauer; // Schleifen von 1 bzw. 2 s, die Animation des Raums hat 2 s
+                FigurBewegen(arbeiter.Figur, 0);
+            }
+            else if (da && (bewegt || arbeiter.Figur.Neu)) FigurBewegen(arbeiter.Figur, bewegt ? delta : 0); // in der Pause nur die erste Pose der neuen Bewegung setzen
             var gewaehlt = _gewaehlt.Contains(zeile.Nummer);
             FigurHervorheben(arbeiter.Figur, gewaehlt || _hoverArbeiter == zeile.Nummer);
             if (arbeiter.Ring.Visible != gewaehlt) arbeiter.Ring.Visible = gewaehlt;
@@ -389,15 +533,20 @@ public partial class Stadtansicht
             if (ware != "" && ware != platz.WerkstueckWare)
             {
                 platz.WerkstueckWare = ware;
-                ((StandardMaterial3D)platz.Werkstueck.MaterialOverride).AlbedoColor = Warenfarbe(ware);
+                ((StandardMaterial3D)platz.Werkstueck.MaterialOverride).AlbedoColor = WerkstueckFarbe(a.Stil, ware);
             }
         }
     }
 
-    /// <summary>Name der Bewegung in den Figurenmodellen: die Bewegung des Arbeitsplatzes (kennt das Modell sie nicht, bleibt die Figur stehen).</summary>
+    /// <summary>
+    /// Name der Bewegung in den Figurenmodellen: die Bewegung des Arbeitsplatzes. Kennt das Modell sie noch nicht, hilft sich die Figur mit
+    /// „Gebeugt“ (arbeitet vorgebeugt), sonst bleibt sie stehen.
+    /// </summary>
     private static string FigurBewegungVon(ModellArbeiter arbeiter)
     {
-        return arbeiter.Figur.Spieler.HasAnimation(arbeiter.Platz.Bewegung) ? arbeiter.Platz.Bewegung : "Stehen";
+        var spieler = arbeiter.Figur.Spieler;
+        if (spieler.HasAnimation(arbeiter.Platz.Bewegung)) return arbeiter.Platz.Bewegung;
+        return spieler.HasAnimation("Gebeugt") ? "Gebeugt" : "Stehen";
     }
 
     private void ArbeiterNeuStellen(BetriebsAnsicht a, ModellRaumDaten md, IReadOnlyList<ArbeiterZeile> zeilen, int stufe)
@@ -544,16 +693,15 @@ public partial class Stadtansicht
                 return (teile[1], teile[2]) switch
                 {
                     ("Personal", _) => ("Personalbuch", "Klick: Arbeiter einstellen, befördern, entlassen, Lohn und Prämie"),
-                    ("Produktion", "Amboss") => ("Amboss", "Klick: Waren herstellen und Arbeiter zuteilen"),
-                    ("Produktion", "Werkbank") => ("Werkbank", "Klick: Waren herstellen und Arbeiter zuteilen"),
-                    ("Lager", "Regal") => ("Regal", "Klick: Bestand und Zurückhalten"),
-                    ("Lager", "Kisten") => ("Kisten", "Klick: Bestand und Zurückhalten"),
+                    ("Produktion", var ding) => (ding, "Klick: Waren herstellen und Arbeiter zuteilen"), // Amboss, Werkbank, Hobelbank, Leimtisch
+                    ("Lager", "Bretter") => ("Bretterstapel", "Klick: Bestand und Zurückhalten"),
+                    ("Lager", var ding) => (ding, "Klick: Bestand und Zurückhalten"),                  // Regal, Kisten
                     ("Karren", _) => ("Hoftor", "Klick: Karren des Hauses"),
                     ("Einrichten", _) => ("Werkzeugwand", "Klick: Einrichtung kaufen"),
                     _ => (teile[2], ""),
                 };
             case "tuer" when teile.Length >= 3:
-                return (teile[2] == "Lager" ? "Tür zum Lager" : "Tür zum Werkraum", "Klick: Raum wechseln");
+                return (teile[2] switch { "Lager" => "Tür zum Lager", "Saege" => "Tür zur Sägehalle", _ => "Tür zum Werkraum" }, "Klick: Raum wechseln");
             case "einrichtung" when teile.Length >= 2:
                 var stueck = w?.Werkstaetten.Einrichtungsliste(a.Betrieb).FirstOrDefault(e => e.Kennung == teile[1]);
                 return (stueck?.Name ?? teile[1], stueck is null ? "" : "Eingerichtet: " + stueck.Wirkung);

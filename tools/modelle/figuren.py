@@ -11,14 +11,19 @@ Inhalt je Datei (Blender: Z oben, Blick nach -Y; im Spiel Y oben, Blick nach +Z)
                     („L“ ist die linke Seite der Figur). Jeder Teil hängt starr an genau einem Knochen.
     Koerper_Mann    Wams bis zur Mitte des Oberschenkels, Beinkleid, Schuhe, Gürtel; beim Zwerg mit Bart
     Koerper_Frau    Kleid bis über die Knöchel, Zopf
-    Trachtteile     Strohhut, Barett, Kapuze, Haube, Schleier, Schuerze, Kiepe, Buendel, Tasche, Stab, Hacke, Hammer
-                    – standardmäßig aus, das Spiel blendet sie je Rolle ein (wie heute `TrachtVon`; den Hammer beim Hämmern)
+    Trachtteile     Strohhut, Barett, Kapuze, Haube, Schleier, Schuerze, Kiepe, Buendel, Tasche, Stab, Hacke, Hammer,
+                    Hobel, Saege, Drechseleisen
+                    – standardmäßig aus, das Spiel blendet sie je Rolle ein (wie heute `TrachtVon`; das Werkzeug bei der
+                    passenden Bewegung: Hammer beim Hämmern, Hobel beim Hobeln, Säge beim Sägen, Drechseleisen beim Drechseln)
     Bewegungen      Stehen, Gehen, Eilen, Gebeugt, Tragen, Sitzen, Reden, Hacken, Buecken, Hueten,
                     Ziehen (Handkarren), Kutschieren (auf dem Bock),
-                    Haemmern, Blasebalg, Schleifen (stehend), Feinarbeit (sitzend) – Arbeit in der Werkstatt
+                    Haemmern, Blasebalg, Schleifen (stehend), Feinarbeit (sitzend) – Arbeit in der Schmiede,
+                    Hobeln, Saegen (Handsäge am Sägebock), Drechseln (ein Fuß tritt das Pedal), Gatter (Stamm nachschieben)
+                    – Arbeit beim Tischler
                     – jede eine Schleife am Ort (ohne Vorwärtsbewegung; das Spiel schiebt die Figur)
-                    Die Werkstatt-Bewegungen zielen mit den Händen auf feste Höhen (ARBEITSHOEHEN, wie im Innenraum
-                    schmied_innen.glb): Jedes Volk erreicht sie mit eigenen Armwinkeln (`arm_ik`).
+                    Die Werkstatt-Bewegungen zielen mit den Händen (beim Drechseln auch mit dem rechten Fuß) auf feste
+                    Höhen (ARBEITSHOEHEN, PEDAL – wie in schmied_innen.glb und tischler_innen.glb): Jedes Volk erreicht sie
+                    mit eigenen Arm- und Beinwinkeln (`arm_ik`, `arm_ziel`, `bein_ik`).
 Material: alle Teile (Körper, Trachtteile, Werkzeug) tragen nur ein Material „Figur“ – eine Figur ist so ein
 Zeichenaufruf statt sechs. Je Ecke stehen zwei Angaben im Netz, je Fläche konstant:
     COLOR_0         Grundfarbe als sRGB-Wert (wie bei den Umlandbetrieben, siehe bausteine.farben_zusammenlegen)
@@ -59,13 +64,20 @@ VOELKER = {
                      oberarm=0.2, unterarm=0.26, fuss=0.24, tiefe=0.11),
 }
 ZONEN = {"Gewand": 1, "Beinkleid": 2, "Haut": 3, "Haar": 4, "Kopfbedeckung": 5}   # alle übrigen Stoffe: Zone 0
-TRACHT = ["Strohhut", "Barett", "Kapuze", "Haube", "Schleier", "Schuerze", "Kiepe", "Buendel", "Tasche", "Stab", "Hacke", "Hammer"]
+TRACHT = ["Strohhut", "Barett", "Kapuze", "Haube", "Schleier", "Schuerze", "Kiepe", "Buendel", "Tasche", "Stab", "Hacke", "Hammer",
+          "Hobel", "Saege", "Drechseleisen"]
 HAMMER = 0.3          # vom Mittelpunkt der Hand bis zur Mitte des Hammerkopfs, in Verlängerung des Unterarms
 # Wo die Hände bei der Arbeit sind (Meter vor dem Fußpunkt der Figur, Höhe über dem Boden) – passend zu den Ankern
 # im Innenraum: Amboss 0,68 m vor der Figur, Bahn 0,86 m hoch; Hebel des Blasebalgs 0,42 m vor ihr, 1,36 m hoch;
 # Schleifstein (Mitte 0,6 m vor ihr, 0,72 m hoch, Halbmesser 0,38); Feinwerktisch 0,77 m hoch.
 ARBEITSHOEHEN = {"Amboss": (0.68, 0.90), "Zange": (0.52, 0.93), "Hebel": (0.42, 1.36), "Stein": (0.36, 0.99),
-                 "Tisch": (0.44, 0.81)}
+                 "Tisch": (0.44, 0.81),
+                 # Tischler (tischler_innen.glb): Hobelbank 0,86 m, Brett 4 cm, Griff des Hobels 0,98 m, 0,5 m vor der Figur;
+                 # Oberkante des Stamms auf dem Sägebock 1,02 m, 0,55 m vor ihr; Werkstück der Drehbank 0,5 m vor ihr auf
+                 # 1,05 m (Auflage knapp davor); Stirn des Stamms im Gatter 0,5 m vor ihr, Achse 0,9 m
+                 "Hobel": (0.5, 0.98), "Bock": (0.55, 1.02), "Drehbank": (0.46, 1.05), "Stamm": (0.5, 0.9)}
+PEDAL = (0.2, 0.345, 0.09)   # Pedal der Drehbank unter dem rechten Fuß: vor der Figur, Höhe der Oberseite oben und getreten
+SAEGE = (0.2, 0.33)          # Säge: Abstand von der Mitte der Hand bis zur Oberkante des Stamms beim Stoß und beim Zug
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -248,6 +260,51 @@ def tracht(name, st, p):
             unten = hand_z - HAMMER
             n.stab((xr, 0, hand_z + 0.06), (xr, 0, unten + 0.02), 0.032, 0.032, st["Holz"])
             n.quader((xr, -0.015, unten), (0.065, 0.17, 0.065), st["Eisen"])
+    elif name == "Saege":
+        t.netz.alle = True                # dreht sich mit dem Arm: auch Flächen, die in Ruhe nach unten zeigen
+        with t.an("Unterarm_R") as n:     # Blatt verlängert den Unterarm (in Ruhe nach unten), die Zähne auf der Seite +y
+            zaehne = [q for k in range(10) for q in ((0.045, -0.62 + 0.055 * k), (0.063, -0.5925 + 0.055 * k))]   # (y, z)
+            n.prisma([(-0.06, -0.07), (-0.015, -0.62)] + zaehne + [(0.045, -0.07)], -0.003, 0.003, st["Eisen"],
+                     matrix=Matrix.Translation((xr, 0, hand_z)))
+            n.quader((xr, 0.0, hand_z + 0.01), (0.03, 0.11, 0.13), st["Holz"])                   # Griff um die Hand
+    return t
+
+
+REQUISITEN = {"Hobel": ("Hobeln", 0.3), "Drechseleisen": ("Drechseln", 0.5)}   # Bewegung, Phase
+
+
+def requisit(name, st, p, ske):
+    """Werkzeug in der rechten Hand für eine Bewegung (REQUISITEN): in deren Haltung gebaut – Hobel flach auf dem Brett,
+    Drechseleisen von der Hand zum Werkstück – und mit der Lage des Unterarms in die Ruhelage zurückgerechnet. Es hängt starr
+    am Unterarm und folgt ihm durch die ganze Bewegung."""
+    import bpy
+    bewegung, phase = REQUISITEN[name]
+    pose_setzen(ske, *haltung(bewegung, phase, p))
+    bpy.context.view_layer.update()
+    hin = ske.pose.bones["Unterarm_R"].matrix @ ske.data.bones["Unterarm_R"].matrix_local.inverted()   # Ruhelage → Haltung
+    zurueck = hin.inverted()
+    hand_z = p["schulter"] - 0.03 - p["oberarm"] - p["unterarm"] * 0.72 - 0.06
+    hand = hin @ Vector((-(p["schulterbreite"] + 0.01), 0, hand_z))          # Mitte der rechten Hand in der Haltung
+    holz, eisen = st["Holz"], st["Eisen"]
+    t = Teile(name)
+    t.netz.alle = True                            # dreht sich mit dem Arm: auch Flächen, die in Ruhe nach unten zeigen
+    with t.an("Unterarm_R") as n:
+        if name == "Hobel":                       # Sohle 8 cm unter der Hand, Stoß nach links (+x), Griff unter der Hand
+            M = zurueck @ Matrix.Translation(hand)
+            n.quader((0.09, 0, -0.045), (0.26, 0.065, 0.07), holz, M)
+            n.quader((0.0, 0, 0.0), (0.06, 0.03, 0.03), st["Holz alt"], M)                       # Griff
+            n.quader((0.19, 0, -0.0), (0.035, 0.035, 0.03), st["Holz alt"], M)                   # Nase
+            n.quader((0.07, 0, -0.005), (0.02, 0.05, 0.015), eisen, M)                           # Eisen und Keil
+        else:                                     # Drechseleisen: Heft hinter der Hand, Klinge bis an das Werkstück
+            vor, hoehe = ARBEITSHOEHEN["Drehbank"]
+            spitze = Vector((0.02, -(vor - 0.01), hoehe))
+            achse = (spitze - hand).normalized()
+            quer = zurueck.to_3x3() @ Vector((0, 0, 1))
+            n.stab(zurueck @ (hand - achse * 0.13), zurueck @ (hand + achse * 0.06), 0.035, 0.035, holz, quer=quer)
+            n.stab(zurueck @ (hand + achse * 0.06), zurueck @ (hand + achse * 0.085), 0.045, 0.045, eisen, quer=quer)
+            n.stab(zurueck @ (hand + achse * 0.085), zurueck @ spitze, 0.022, 0.012, eisen, quer=quer)
+    pose_setzen(ske, {}, 0.0)
+    bpy.context.view_layer.update()
     return t
 
 
@@ -310,6 +367,47 @@ def arm_ik(p, lehne, hoch, vor, hoehe, extra=0.0):
     b = math.atan2(dx - l1 * math.sin(a), -(dz + l1 * math.cos(a)))
     # Der Arm hängt am geneigten Rumpf: im Knochen zählt der Winkel zum Rumpf, vorn ist dort −X
     return -(math.degrees(a) + lehne), -(math.degrees(b) - math.degrees(a))
+
+
+def arm_ziel(p, lehne, hoch, seite, ziel, drehung=0.0, extra=0.0):
+    """Winkel (Grad) für Oberarm (X, Y) und Unterarm (X), damit die Hand der Seite „L“ oder „R“ bei `ziel` = (seitlich, vor,
+    hoehe) liegt – seitlich: + zur linken Seite der Figur, vor und hoehe ab dem Fußpunkt. Der Rumpf ist um `lehne` Grad nach
+    vorn geneigt und um `drehung` Grad nach links gedreht (Ruecken Y). Wie arm_ik, nur schwenkt der Oberarm dazu um die
+    Hochachse (Y: + schwenkt die Hand nach rechts), statt in der Ebene des Rumpfs zu bleiben."""
+    x, v, h = ziel
+    w = math.radians(drehung)
+    xt, vt = x * math.cos(w) - v * math.sin(w), x * math.sin(w) + v * math.cos(w)     # im gedrehten Rumpf
+    rumpf = p["schulter"] - 0.03 - p["huefte"]
+    xs = (1 if seite == "L" else -1) * (p["schulterbreite"] + 0.01)
+    vs = rumpf * math.sin(math.radians(lehne))
+    dx, dv = xt - xs, vt - vs
+    ober, unter = arm_ik(p, lehne, hoch, vs + math.hypot(dx, dv), h, extra)
+    return (ober, -math.degrees(math.atan2(dx, dv)), 0.0), (unter, 0.0, 0.0)
+
+
+def bein_ik(p, hoch, vor, hoehe):
+    """Winkel (Grad) für Oberschenkel und Unterschenkel (X), damit die Sohle unter dem Knöchel `vor` Meter vor dem Fußpunkt auf
+    `hoehe` steht; das Knie knickt nach vorn. Zu weit weg: das Bein zeigt gestreckt dorthin."""
+    l1, l2 = p["huefte"] - p["knie"], p["knie"] - 0.06
+    dz = hoehe + 0.06 - (p["huefte"] + hoch)
+    d = min(math.hypot(vor, dz), l1 + l2 - 1e-4)
+    a = math.atan2(vor, -dz) + math.acos(max(-1.0, min(1.0, (l1 * l1 + d * d - l2 * l2) / (2 * l1 * d))))
+    b = math.atan2(vor - l1 * math.sin(a), -(dz + l1 * math.cos(a)))
+    return -math.degrees(a), math.degrees(a) - math.degrees(b)
+
+
+def weich(t):
+    """0 → 1 mit sanftem Anfang und Ende."""
+    t = max(0.0, min(1.0, t))
+    return t * t * (3 - 2 * t)
+
+
+def tritt(phase):
+    """Pedal der Drehbank: 0 oben, 1 getreten – in 40 % des Takts hinunter, dann zieht die Federstange es zurück
+    (wie tischler_innen.tritt_anteil, damit Fuß und Pedal im selben Takt gehen)."""
+    if phase < 0.4:
+        return 0.5 - 0.5 * math.cos(math.pi * phase / 0.4)
+    return 0.5 + 0.5 * math.cos(math.pi * (phase - 0.4) / 0.6)
 
 
 def haltung(name, phase, p):
@@ -473,6 +571,66 @@ def haltung(name, phase, p):
         r["Oberarm_L"], r["Unterarm_L"] = (ober, 0, 14), (unter, 0, 0)
         r["Ruecken"] = (lehne, 0, 3 * s)
         r["Kopf"] = (30 - lehne, 0, 5 * math.sin(2 * math.pi * phase + 1.0))
+    elif name == "Hobeln":                                              # an der Hobelbank, Hobel nach links schieben
+        # Stoß (0–0,6): der Hobel wandert 0,4 m nach links, der Rumpf dreht und neigt sich mit; zurück (0,6–1) leicht angehoben
+        if phase < 0.6:
+            a, heben = weich(phase / 0.6), 0.0
+        else:
+            a, heben = 1 - weich((phase - 0.6) / 0.4), 0.03 * math.sin(math.pi * (phase - 0.6) / 0.4)
+        vor, hoehe = ARBEITSHOEHEN["Hobel"]
+        u = -0.17 + 0.4 * a
+        lehne, drehung = 16 + 8 * a, -8 + 22 * a
+        hoch = -0.02 - 0.02 * a
+        r["Oberarm_R"], r["Unterarm_R"] = arm_ziel(p, lehne, hoch, "R", (u - 0.06, vor, hoehe + heben), drehung)
+        r["Oberarm_L"], r["Unterarm_L"] = arm_ziel(p, lehne, hoch, "L", (u + 0.13, vor + 0.02, hoehe + 0.01 + heben), drehung)
+        r["Ruecken"] = (lehne, drehung, 0)
+        r["Kopf"] = (24 - lehne, -0.4 * drehung, 0)
+        r["Oberschenkel_L"], r["Unterschenkel_L"] = (-12 - 6 * a, 0, 6), (14 + 4 * a, 0, 0)
+        r["Oberschenkel_R"], r["Unterschenkel_R"] = (6 + 4 * a, 0, -4), (8, 0, 0)
+    elif name == "Saegen":                                              # Handsäge am Sägebock, die Linke hält den Stamm
+        # Das Blatt verlängert den Unterarm (wie der Hammer) und liegt immer auf der Oberkante des Stamms; die Hand geht vor
+        # und zurück, der Abstand Hand–Stamm wechselt zwischen SAEGE[0] (Stoß) und SAEGE[1] (Zug)
+        stoss = 0.5 - 0.5 * math.cos(2 * math.pi * phase)               # 0 Zug … 1 Stoß … 0
+        vor, hoehe = ARBEITSHOEHEN["Bock"]
+        lehne = 24 + 6 * stoss
+        hoch = -0.03
+        extra = SAEGE[1] + (SAEGE[0] - SAEGE[1]) * stoss
+        r["Oberarm_R"], r["Unterarm_R"] = arm_ziel(p, lehne, hoch, "R", (-0.2, vor, hoehe), extra=extra)
+        r["Oberarm_L"], r["Unterarm_L"] = arm_ziel(p, lehne, hoch, "L", (0.2, vor - 0.05, hoehe + 0.03))
+        r["Ruecken"] = (lehne, -6, 0)
+        r["Kopf"] = (30 - lehne, 4, 0)
+        r["Oberschenkel_L"], r["Unterschenkel_L"] = (-16, 0, 6), (18, 0, 0)
+        r["Oberschenkel_R"], r["Unterschenkel_R"] = (10 + 3 * stoss, 0, -6), (6, 0, 0)
+    elif name == "Drechseln":                                           # an der Wippdrehbank: rechter Fuß tritt, Hände führen das Eisen
+        d = tritt(phase)
+        vor, hoehe = ARBEITSHOEHEN["Drehbank"]
+        lehne = 12 + 3 * d
+        hoch = -0.015 - 0.015 * d
+        quer = 0.02 * math.sin(2 * math.pi * phase)                     # das Eisen wandert ein wenig am Werkstück entlang
+        r["Oberarm_L"], r["Unterarm_L"] = arm_ziel(p, lehne, hoch, "L", (0.04 + quer, vor - 0.07, hoehe - 0.015))
+        r["Oberarm_R"], r["Unterarm_R"] = arm_ziel(p, lehne, hoch, "R", (-0.06 + quer, vor - 0.27, hoehe - 0.07))
+        r["Ruecken"] = (lehne, 4, 0)
+        r["Kopf"] = (26 - lehne, -3, 0)
+        pv, oben, unten = PEDAL
+        ober, unter = bein_ik(p, hoch, pv, unten + (oben - unten) * (1 - d))
+        r["Oberschenkel_R"], r["Unterschenkel_R"] = (ober, 0, -3), (unter, 0, 0)
+        r["Oberschenkel_L"], r["Unterschenkel_L"] = (2, 0, 4), (6 + 4 * d, 0, 0)
+    elif name == "Gatter":                                              # Stamm nachschieben: beide Hände an der Stirn
+        if phase < 0.45:
+            a = weich(phase / 0.45)
+        elif phase < 0.65:
+            a = 1.0
+        else:
+            a = 1 - weich((phase - 0.65) / 0.35)
+        vor, hoehe = ARBEITSHOEHEN["Stamm"]
+        lehne = 14 + 24 * a
+        hoch = -0.02 - 0.05 * a
+        r["Oberarm_R"], r["Unterarm_R"] = arm_ziel(p, lehne, hoch, "R", (-0.12, vor, hoehe - 0.04))
+        r["Oberarm_L"], r["Unterarm_L"] = arm_ziel(p, lehne, hoch, "L", (0.12, vor, hoehe + 0.05))
+        r["Ruecken"] = (lehne, 0, 0)
+        r["Kopf"] = (26 - lehne * 0.7, 0, 0)
+        r["Oberschenkel_L"], r["Unterschenkel_L"] = (-18 - 10 * a, 0, 5), (18 + 14 * a, 0, 0)
+        r["Oberschenkel_R"], r["Unterschenkel_R"] = (6 + 20 * a, 0, -5), (8 - 4 * a, 0, 0)
     elif name == "Hueten":
         r["Oberarm_R"] = (-28, 0, -10)                                   # hält den Stab vor sich
         r["Unterarm_R"] = (-55, 0, 0)
@@ -489,6 +647,7 @@ BEWEGUNGEN = {   # Name: Dauer in Sekunden (eine Schleife)
     "Stehen": 3.0, "Gehen": 1.0, "Eilen": 0.7, "Gebeugt": 1.4, "Tragen": 1.2, "Sitzen": 3.0, "Reden": 2.0,
     "Hacken": 1.3, "Buecken": 2.4, "Hueten": 4.0, "Ziehen": 1.3, "Kutschieren": 1.0,
     "Haemmern": 0.9, "Blasebalg": 1.6, "Schleifen": 1.2, "Feinarbeit": 2.0,
+    "Hobeln": 1.2, "Saegen": 1.0, "Drechseln": 1.0, "Gatter": 2.0,
 }
 
 
@@ -533,7 +692,7 @@ def figur_bauen(volk, st):
         koerper(t, st, p, frau, volk == "zwerg")
         objekte.append(t.objekt(ske))
     for name in TRACHT:
-        o = tracht(name, st, p).objekt(ske)
+        o = (requisit(name, st, p, ske) if name in REQUISITEN else tracht(name, st, p)).objekt(ske)
         o["teil"] = True
         o["sichtbar"] = False
         objekte.append(o)
@@ -730,7 +889,8 @@ def vorschau_bewegungen(schnell):
     alle = []
     abstand = 2.7
     for r, name in enumerate(reihen):
-        teile = {"Hueten": ["Stab"], "Tragen": ["Buendel"], "Hacken": ["Hacke", "Strohhut"], "Haemmern": ["Hammer"]}.get(name, [])
+        teile = {"Hueten": ["Stab"], "Tragen": ["Buendel"], "Hacken": ["Hacke", "Strohhut"], "Haemmern": ["Hammer"],
+                 "Hobeln": ["Hobel"], "Saegen": ["Saege"], "Drechseln": ["Drechseleisen"]}.get(name, [])
         wahl = [o for o in objekte if o.type == "MESH" and o.name.split(".")[0] in teile + ["Koerper_Mann"]]
         sy = ((len(reihen) - 1) / 2 - r) * abstand
         for k, ph in enumerate(phasen):
@@ -777,6 +937,29 @@ def arbeitsplatz(name, ort, st, p):
         netz.quader(ort + Vector((-vor - 0.25, 0, hoehe - 0.07)), (0.62, 0.9, 0.06), holz)
         for dx in (-0.05, -0.5):
             netz.quader(ort + Vector((-vor - 0.25 + dx + 0.27, 0, (hoehe - 0.1) / 2)), (0.05, 0.8, hoehe - 0.1), holz)
+    elif name == "Hobeln":                                              # Hobelbank quer vor der Figur, Brett darauf
+        vor, hoehe = ARBEITSHOEHEN["Hobel"]
+        netz.quader(ort + Vector((-vor - 0.12, 0, 0.81)), (0.6, 1.6, 0.1), holz)
+        netz.quader(ort + Vector((-vor, 0, 0.88)), (0.22, 1.4, 0.04), st["Schnittholz"])
+        for dy in (-0.65, 0.65):
+            netz.quader(ort + Vector((-vor - 0.12, dy, 0.38)), (0.5, 0.08, 0.76), holz)
+    elif name == "Saegen":                                              # Stamm quer auf einem Bock
+        vor, hoehe = ARBEITSHOEHEN["Bock"]
+        netz.stab(ort + Vector((-vor, -0.9, hoehe - 0.17)), ort + Vector((-vor, 0.9, hoehe - 0.17)), 0.34, 0.34, st["Holz alt"])
+        for dy in (-0.55, 0.55):
+            netz.quader(ort + Vector((-vor, dy, 0.34)), (0.4, 0.08, 0.68), holz)
+    elif name == "Drechseln":                                           # Bett, Werkstück, Auflage, Pedal (halb getreten)
+        vor, hoehe = ARBEITSHOEHEN["Drehbank"]
+        netz.stab(ort + Vector((-vor - 0.04, -0.4, hoehe)), ort + Vector((-vor - 0.04, 0.4, hoehe)), 0.09, 0.09, st["Schnittholz"])
+        netz.quader(ort + Vector((-vor - 0.04, 0, 0.84)), (0.3, 1.6, 0.12), holz)
+        netz.quader(ort + Vector((-vor + 0.06, 0, 0.99)), (0.04, 0.8, 0.03), holz)
+        pv, oben, unten = PEDAL
+        netz.stab(ort + Vector((-pv + 0.05, -0.09, (oben + unten) / 2 - 0.02)), ort + Vector((-pv - 0.9, -0.09, 0.06)), 0.12, 0.04,
+                  st["Holz alt"], quer=(0, 0, 1))
+    elif name == "Gatter":                                              # Stamm auf dem Wagen, die Stirn zur Figur
+        vor, hoehe = ARBEITSHOEHEN["Stamm"]
+        netz.stab(ort + Vector((-vor, 0, hoehe)), ort + Vector((-vor - 0.5, 0, hoehe)), 0.6, 0.6, st["Holz alt"])
+        netz.quader(ort + Vector((-vor - 0.25, 0, 0.45)), (0.5, 0.7, 0.3), holz)
     return netz.objekt() if netz.dreiecke() else None
 
 
