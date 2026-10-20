@@ -1231,8 +1231,8 @@ def vorschau(schnell):
     # Grundriss von oben ohne Decke: je Stufe, dazu einer mit allen Ankern
     kam.data.type = "ORTHO"
     kam.data.sensor_fit = "AUTO"
-    kam.data.ortho_scale = 15.2
-    kam.matrix_world = Matrix.Translation(((WX0 + LX1) / 2, (WY0 + HY1) / 2, 30.0))
+    kam.data.ortho_scale = 17.8                                 # oben Platz für die Beschriftung über der Bauhütte
+    kam.matrix_world = Matrix.Translation(((WX0 + LX1) / 2, (WY0 + HY1) / 2 + 1.5, 30.0))
     szene.render.resolution_x, szene.render.resolution_y = 760, 760
     sonne = bpy.data.objects.new("_Sonne", bpy.data.lights.new("_Sonne", "SUN"))
     sonne.data.energy = 2.5
