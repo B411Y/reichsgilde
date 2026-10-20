@@ -12,7 +12,6 @@ So wird eingetragen (damit sich die Chats nie an derselben Stelle treffen):
 
 - (5) Bauen im Umland (Höfe und Gärten an Vorkommen) und in Köln (die Kölner Karte hat noch keine Wohnhausplätze); Verfall von Leerstand und Sanierungskosten nach Zustand (LEVELDESIGN §3) – Rest aus „Bauzonen, Bauplätze und Sanierung von Leerstand“ nach PR #103
 - (3) Fahrzeit aus der Weglänge (Wegegraph), sobald es die erste Kartendatei gibt (`docs/LEVELDESIGN.md`)
-- (–) „Kirche an der Westmauer“ umbenennen – steht seit der Stadterweiterung nicht mehr an der Mauer (Name in `wirtschaft.json`, Schlüssel in der Stadtansicht)
 - (6) Multiplayer, Zuschauer-Modus
 - (Nutzer) Pausenregeln im Multiplayer
 - (–) Sporadisches Leck beim Beenden im Rauchtest finden: „10 ObjectDB instances leaked“ und „10 RID allocations of type DummyTexture leaked“, im zweiten Start (mit Tafeln), nur auf GitHub, lokal nicht nachzustellen. Der Rauchtest wiederholt solche Funde seit PR #83; die Warnung „1. Versuch“ im Lauf zeigt, wie oft es vorkommt. Befund vom 16.10.: Vor dem Merge von PR #77 kein Fall in 40 Läufen, danach etwa jeder dritte Lauf, auch zweimal hintereinander im selben Lauf. In Schleifen im selben Job (Branch `experiment/leck`, mit und ohne Hinterzimmer, mit Menü-Start davor, mit und ohne `tee`) dagegen 0 von 152 Starts, und mit `--verbose` nie – es hängt am Zeitablauf
@@ -183,6 +182,7 @@ So wird eingetragen (damit sich die Chats nie an derselben Stelle treffen):
 | Thema | Entscheidung | Datum |
 |---|---|---|
 | Liegenschaften | Die 10 Werkstätten zum Kauf in der Stadt (Gießerei an der Südgasse, Tischlerei am Holzmarkt, Maurerei an der Stadtmauer, Tinkturei am Domplatz, Siederei an der Seifengasse, Schänke am Fischmarkt, Kirche an der Westmauer, Wachhaus an der Torstraße, Schmugglerloch am Osttor, Wechselstube am Markt) werden aus `liegenschaften` gestrichen. Die 9 im Umland bleiben (Rohstoffe). Neue Werkstätten gibt es weiter über „Bauen“. Entschieden vom Nutzer. | 20.10.2026 |
+| Datenversion 40 | Liegenschaften gestrichen; der Preis der Stufe 1 (Neubau, Wert beim Verkauf) steht nun als `kaufpreis` an der Betriebsart (3.500, Schmugglerloch 3.000), gleiche Werte wie vorher. Alte Spielstände bringen ihre Daten mit und behalten die früheren Werkstätten. Messung (main `3086bda` + PR #162, ausgewogen, Ø Vermögen): Greybox Eisenbart 161.916 → 156.555, Eichwald 96.186 → 111.613, Kieselbach 144.285 → 148.035 (die KI baut 57 Werkstätten neu statt 45 zu kaufen); ohne Karte −9 bis −20 %, weil dort nicht gebaut wird. Keine Änderung an der KI (siehe `docs/WIRTSCHAFTSMODELL.md`). | 20.10.2026 |
 
 ## Messungen
 
