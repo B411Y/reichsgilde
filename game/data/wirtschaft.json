@@ -1,5 +1,5 @@
 {
-  "version": 37,
+  "version": 38,
   "gesundheit": {
     "medicusKosten": 120,
     "medicusKostenPest": 300,
@@ -1013,6 +1013,15 @@
         { "kennung": "Werkzeug2", "name": "Meisterwerkzeug", "preis": 800, "abStufe": 2, "voraussetzung": "Werkzeug1", "wirkung": { "zeitFaktor": 0.9 } },
         { "kennung": "Leimzwingen", "name": "Leimofen und Zwingen", "preis": 350, "abStufe": 1, "wirkung": { "zeitFaktor": 0.9, "waren": ["Truhe", "Schrank", "Prunktruhe", "Armbrust"] } },
         { "kennung": "Regale", "name": "Holzgestell", "preis": 200, "abStufe": 1, "wirkung": { "lagerPlus": 20 } },
+        { "kennung": "Loeschfass", "name": "Löschfass", "preis": 100, "abStufe": 1, "wirkung": { "brandFaktor": 0.5 } },
+        { "kennung": "Eisentuer", "name": "Eisentür", "preis": 300, "abStufe": 1, "wirkung": { "einbruchFaktor": 0.5 } },
+        { "kennung": "Schuerzen", "name": "Lederschürzen", "preis": 80, "abStufe": 1, "wirkung": { "unfallFaktor": 0.5 } }
+      ],
+      "Steinmetz": [
+        { "kennung": "Werkzeug1", "name": "Gutes Werkzeug", "preis": 300, "abStufe": 1, "wirkung": { "zeitFaktor": 0.9 } },
+        { "kennung": "Werkzeug2", "name": "Meisterwerkzeug", "preis": 800, "abStufe": 2, "voraussetzung": "Werkzeug1", "wirkung": { "zeitFaktor": 0.9 } },
+        { "kennung": "Flaschenzug", "name": "Flaschenzug", "preis": 350, "abStufe": 1, "wirkung": { "zeitFaktor": 0.9, "waren": ["Mühlstein", "Säule", "Taufbecken", "Grabmal"] } },
+        { "kennung": "Regale", "name": "Steingestell", "preis": 200, "abStufe": 1, "wirkung": { "lagerPlus": 20 } },
         { "kennung": "Loeschfass", "name": "Löschfass", "preis": 100, "abStufe": 1, "wirkung": { "brandFaktor": 0.5 } },
         { "kennung": "Eisentuer", "name": "Eisentür", "preis": 300, "abStufe": 1, "wirkung": { "einbruchFaktor": 0.5 } },
         { "kennung": "Schuerzen", "name": "Lederschürzen", "preis": 80, "abStufe": 1, "wirkung": { "unfallFaktor": 0.5 } }

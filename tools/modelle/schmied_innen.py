@@ -30,7 +30,8 @@ also zugleich die Lage im Modell):
     Werkstueck_<n>              Stück in Arbeit (nimmt die Farbe der Ware an); extras „stufe“
     Licht_<n>                   Lichtquellen: extras „art“ = „Glut“ (Esse) oder „Fenster“ (Tageslicht, −Z in den Raum),
                                 „stufe“ ab welcher Stufe
-Materialien: „Farben“ (Eckenfarben, bausteine.farben_zusammenlegen), dazu „Glut“ (Esse, leuchtet), „Fenster“ (Scheiben),
+Materialien: „Farben“ (Eckenfarben, bausteine.farben_zusammenlegen; die Materialart für den Holzschnitt je Fläche als UV.y,
+bausteine.arten_setzen), dazu „Glut“ (Esse, leuchtet), „Fenster“ (Scheiben),
 „Hausfarbe“ (Tore und Türen), „Eisen“, „Wasser“, „Gold“.
 """
 

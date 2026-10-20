@@ -12,17 +12,20 @@ Inhalt je Datei (Blender: Z oben, Blick nach -Y; im Spiel Y oben, Blick nach +Z)
     Koerper_Mann    Wams bis zur Mitte des Oberschenkels, Beinkleid, Schuhe, Gürtel; beim Zwerg mit Bart
     Koerper_Frau    Kleid bis über die Knöchel, Zopf
     Trachtteile     Strohhut, Barett, Kapuze, Haube, Schleier, Schuerze, Kiepe, Buendel, Tasche, Stab, Hacke, Hammer,
-                    Hobel, Saege, Drechseleisen
+                    Hobel, Saege, Drechseleisen, Schlaegel, Meissel
                     – standardmäßig aus, das Spiel blendet sie je Rolle ein (wie heute `TrachtVon`; das Werkzeug bei der
-                    passenden Bewegung: Hammer beim Hämmern, Hobel beim Hobeln, Säge beim Sägen, Drechseleisen beim Drechseln)
+                    passenden Bewegung: Hammer beim Hämmern, Hobel beim Hobeln, Säge beim Sägen, Drechseleisen beim Drechseln,
+                    Schlägel und Meißel beim Behauen und Bildhauen)
     Bewegungen      Stehen, Gehen, Eilen, Gebeugt, Tragen, Sitzen, Reden, Hacken, Buecken, Hueten,
                     Ziehen (Handkarren), Kutschieren (auf dem Bock),
                     Haemmern, Blasebalg, Schleifen (stehend), Feinarbeit (sitzend) – Arbeit in der Schmiede,
                     Hobeln, Saegen (Handsäge am Sägebock), Drechseln (ein Fuß tritt das Pedal), Gatter (Stamm nachschieben)
-                    – Arbeit beim Tischler
+                    – Arbeit beim Tischler,
+                    Behauen (Schlägel rechts, Meißel links am Werkblock), Bildhauen (feine Meißelarbeit an einer Figur in
+                    Brust- bis Kopfhöhe) – Arbeit beim Steinmetz
                     – jede eine Schleife am Ort (ohne Vorwärtsbewegung; das Spiel schiebt die Figur)
                     Die Werkstatt-Bewegungen zielen mit den Händen (beim Drechseln auch mit dem rechten Fuß) auf feste
-                    Höhen (ARBEITSHOEHEN, PEDAL – wie in schmied_innen.glb und tischler_innen.glb): Jedes Volk erreicht sie
+                    Höhen (ARBEITSHOEHEN, PEDAL – wie in schmied_innen.glb, tischler_innen.glb und steinmetz_innen.glb): Jedes Volk erreicht sie
                     mit eigenen Arm- und Beinwinkeln (`arm_ik`, `arm_ziel`, `bein_ik`).
 Material: alle Teile (Körper, Trachtteile, Werkzeug) tragen nur ein Material „Figur“ – eine Figur ist so ein
 Zeichenaufruf statt sechs. Je Ecke stehen zwei Angaben im Netz, je Fläche konstant:
@@ -65,7 +68,7 @@ VOELKER = {
 }
 ZONEN = {"Gewand": 1, "Beinkleid": 2, "Haut": 3, "Haar": 4, "Kopfbedeckung": 5}   # alle übrigen Stoffe: Zone 0
 TRACHT = ["Strohhut", "Barett", "Kapuze", "Haube", "Schleier", "Schuerze", "Kiepe", "Buendel", "Tasche", "Stab", "Hacke", "Hammer",
-          "Hobel", "Saege", "Drechseleisen"]
+          "Hobel", "Saege", "Drechseleisen", "Schlaegel", "Meissel"]
 HAMMER = 0.3          # vom Mittelpunkt der Hand bis zur Mitte des Hammerkopfs, in Verlängerung des Unterarms
 # Wo die Hände bei der Arbeit sind (Meter vor dem Fußpunkt der Figur, Höhe über dem Boden) – passend zu den Ankern
 # im Innenraum: Amboss 0,68 m vor der Figur, Bahn 0,86 m hoch; Hebel des Blasebalgs 0,42 m vor ihr, 1,36 m hoch;
@@ -75,9 +78,17 @@ ARBEITSHOEHEN = {"Amboss": (0.68, 0.90), "Zange": (0.52, 0.93), "Hebel": (0.42, 
                  # Tischler (tischler_innen.glb): Hobelbank 0,86 m, Brett 4 cm, Griff des Hobels 0,98 m, 0,5 m vor der Figur;
                  # Oberkante des Stamms auf dem Sägebock 1,02 m, 0,55 m vor ihr; Werkstück der Drehbank 0,5 m vor ihr auf
                  # 1,05 m (Auflage knapp davor); Stirn des Stamms im Gatter 0,5 m vor ihr, Achse 0,9 m
-                 "Hobel": (0.5, 0.98), "Bock": (0.55, 1.02), "Drehbank": (0.46, 1.05), "Stamm": (0.5, 0.9)}
+                 "Hobel": (0.5, 0.98), "Bock": (0.55, 1.02), "Drehbank": (0.46, 1.05), "Stamm": (0.5, 0.9),
+                 # Steinmetz (steinmetz_innen.glb): Schneide des Meißels auf der Oberseite des Werkblocks (0,86 m), 0,46 m vor der
+                 # Figur; an der Steinfigur in der Bauhütte vor der Brust (Mitte der feinen Arbeit)
+                 "Block": (0.46, 0.86), "Figur": (0.52, 1.22)}
 PEDAL = (0.2, 0.345, 0.09)   # Pedal der Drehbank unter dem rechten Fuß: vor der Figur, Höhe der Oberseite oben und getreten
 SAEGE = (0.2, 0.33)          # Säge: Abstand von der Mitte der Hand bis zur Oberkante des Stamms beim Stoß und beim Zug
+KLUEPFEL_R = 0.062           # Halbmesser des Kopfs: Seine Seite trifft den Meißel
+FAUST_R = (-0.17, -0.16, 0.07)   # beim Behauen: rechte Hand gegenüber dem Kopf des Meißels (seitlich, vor, Höhe), vor der Brust
+MEISSEL = (0.12, 0.13)       # Meißel: von der Mitte der linken Hand bis zur Schneide und bis zum Kopf (Schlagfläche)
+MEISSEL_RICHTUNG = (0.0, 0.25, -1.0)   # beim Behauen vom Kopf zur Schneide (seitlich, vor, Höhe): fast senkrecht, leicht nach vorn
+BILDHAUEN_RICHTUNG = (0.0, 0.6, -0.8)  # beim Bildhauen (vorläufig, wird gemessen)
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -270,31 +281,53 @@ def tracht(name, st, p):
     return t
 
 
-REQUISITEN = {"Hobel": ("Hobeln", 0.3), "Drechseleisen": ("Drechseln", 0.5)}   # Bewegung, Phase
+REQUISITEN = {"Hobel": ("Hobeln", 0.3), "Drechseleisen": ("Drechseln", 0.5), "Meissel": ("Behauen", 0.55),
+              "Schlaegel": ("Behauen", 0.55)}   # Bewegung, Phase
 
 
 def requisit(name, st, p, ske):
-    """Werkzeug in der rechten Hand für eine Bewegung (REQUISITEN): in deren Haltung gebaut – Hobel flach auf dem Brett,
-    Drechseleisen von der Hand zum Werkstück – und mit der Lage des Unterarms in die Ruhelage zurückgerechnet. Es hängt starr
-    am Unterarm und folgt ihm durch die ganze Bewegung."""
+    """Werkzeug in der Hand für eine Bewegung (REQUISITEN): in deren Haltung gebaut – Hobel flach auf dem Brett,
+    Drechseleisen von der Hand zum Werkstück, Meißel (linke Hand) mit der Schneide auf dem Block, Klüpfel mit dem Kopf auf dem
+    Meißel – und mit der Lage des Unterarms in die Ruhelage zurückgerechnet. Es hängt starr am Unterarm und folgt ihm durch
+    die ganze Bewegung."""
     import bpy
     bewegung, phase = REQUISITEN[name]
+    seite = "L" if name == "Meissel" else "R"
     pose_setzen(ske, *haltung(bewegung, phase, p))
     bpy.context.view_layer.update()
-    hin = ske.pose.bones["Unterarm_R"].matrix @ ske.data.bones["Unterarm_R"].matrix_local.inverted()   # Ruhelage → Haltung
+    knochen = f"Unterarm_{seite}"
+    hin = ske.pose.bones[knochen].matrix @ ske.data.bones[knochen].matrix_local.inverted()   # Ruhelage → Haltung
     zurueck = hin.inverted()
     hand_z = p["schulter"] - 0.03 - p["oberarm"] - p["unterarm"] * 0.72 - 0.06
-    hand = hin @ Vector((-(p["schulterbreite"] + 0.01), 0, hand_z))          # Mitte der rechten Hand in der Haltung
+    x = (1 if seite == "L" else -1) * (p["schulterbreite"] + 0.01)
+    hand = hin @ Vector((x, 0, hand_z))                                        # Mitte der Hand in der Haltung
     holz, eisen = st["Holz"], st["Eisen"]
     t = Teile(name)
     t.netz.alle = True                            # dreht sich mit dem Arm: auch Flächen, die in Ruhe nach unten zeigen
-    with t.an("Unterarm_R") as n:
+    with t.an(knochen) as n:
         if name == "Hobel":                       # Sohle 8 cm unter der Hand, Stoß nach links (+x), Griff unter der Hand
             M = zurueck @ Matrix.Translation(hand)
             n.quader((0.09, 0, -0.045), (0.26, 0.065, 0.07), holz, M)
             n.quader((0.0, 0, 0.0), (0.06, 0.03, 0.03), st["Holz alt"], M)                       # Griff
             n.quader((0.19, 0, -0.0), (0.035, 0.035, 0.03), st["Holz alt"], M)                   # Nase
             n.quader((0.07, 0, -0.005), (0.02, 0.05, 0.015), eisen, M)                           # Eisen und Keil
+        elif name == "Schlaegel":                 # Klüpfel: Stiel quer durch die Faust bis zum runden Kopf auf dem Meißel
+            ziel = _blender(meissel_kopf(p, *haltung(bewegung, phase, p))) + Vector((0, 0, KLUEPFEL_R + 0.004))
+            d = (ziel - hand).normalized()
+            quer = zurueck.to_3x3() @ Vector((0, 0, 1))
+            n.stab(zurueck @ (hand - d * 0.06), zurueck @ (ziel - d * 0.05), 0.032, 0.032, holz, quer=quer)
+            ring = [(0.0, 0.62), (0.05, 0.9), (0.115, 1.0), (0.14, 0.9)]          # Kopf: wird zum Ende hin dicker
+            achse = zurueck.to_3x3() @ d
+            for (u0, f0), (u1, f1) in zip(ring, ring[1:]):
+                drehteil(n, zurueck @ (ziel + d * (u0 - 0.07)), achse, u1 - u0, KLUEPFEL_R * f0, KLUEPFEL_R * f1,
+                         st["Holz alt"], deckel=(u0 == 0.0, u1 == 0.14))
+        elif name == "Meissel":                   # Eisen durch die Faust: Kopf oben, Schneide auf dem Stein (vorn = −y)
+            a = Vector((MEISSEL_RICHTUNG[0], -MEISSEL_RICHTUNG[1], MEISSEL_RICHTUNG[2])).normalized()
+            kopf, schneide = hand - a * MEISSEL[1], hand + a * MEISSEL[0]
+            quer = zurueck.to_3x3() @ Vector((1, 0, 0))
+            n.stab(zurueck @ kopf, zurueck @ (kopf + a * 0.03), 0.03, 0.03, eisen, quer=quer)            # Kopf, breitgeschlagen
+            n.stab(zurueck @ (kopf + a * 0.03), zurueck @ (schneide - a * 0.04), 0.019, 0.019, eisen, quer=quer)
+            n.stab(zurueck @ (schneide - a * 0.04), zurueck @ schneide, 0.026, 0.008, eisen, quer=quer)  # Schneide
         else:                                     # Drechseleisen: Heft hinter der Hand, Klinge bis an das Werkstück
             vor, hoehe = ARBEITSHOEHEN["Drehbank"]
             spitze = Vector((0.02, -(vor - 0.01), hoehe))
@@ -306,6 +339,23 @@ def requisit(name, st, p, ske):
     pose_setzen(ske, {}, 0.0)
     bpy.context.view_layer.update()
     return t
+
+
+def drehteil(netz, fuss, achse, laenge, r0, r1, m, n=8, deckel=(True, True)):
+    """Kegelstumpf von `fuss` entlang `achse` (Länge `laenge`, Halbmesser r0 → r1), n-eckig, auf Wunsch mit Deckeln."""
+    achse = Vector(achse).normalized()
+    u = achse.orthogonal().normalized()
+    v = achse.cross(u)
+    ringe = [[fuss + achse * h + (u * math.cos(2 * math.pi * k / n) + v * math.sin(2 * math.pi * k / n)) * r for k in range(n)]
+             for h, r in ((0.0, r0), (laenge, r1))]
+    for k in range(n):
+        j = (k + 1) % n
+        quad = [ringe[0][k], ringe[0][j], ringe[1][j], ringe[1][k]]
+        netz.vieleck_nach(quad, sum(quad, Vector()) / 4 - (fuss + achse * laenge / 2), m)
+    if deckel[0]:
+        netz.vieleck_nach(ringe[0], -achse, m)
+    if deckel[1]:
+        netz.vieleck_nach(ringe[1], achse, m)
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -631,6 +681,9 @@ def haltung(name, phase, p):
         r["Kopf"] = (26 - lehne * 0.7, 0, 0)
         r["Oberschenkel_L"], r["Unterschenkel_L"] = (-18 - 10 * a, 0, 5), (18 + 14 * a, 0, 0)
         r["Oberschenkel_R"], r["Unterschenkel_R"] = (6 + 20 * a, 0, -5), (8 - 4 * a, 0, 0)
+    elif name in ("Behauen", "Bildhauen"):                              # Meißel in der Linken, der Klüpfel schlägt auf seinen Kopf
+        r.update(meisseln(name, phase, p))
+        hoch = r.pop("_hoch")[0]
     elif name == "Hueten":
         r["Oberarm_R"] = (-28, 0, -10)                                   # hält den Stab vor sich
         r["Unterarm_R"] = (-55, 0, 0)
@@ -643,11 +696,202 @@ def haltung(name, phase, p):
     return {k: tuple(g(w) for w in v) for k, v in r.items()}, hoch
 
 
+def _ruhe(kopf, unten):
+    """Ruhelage eines Knochens in der Armatur, wie Blender sie anlegt (Rolle 0): Y entlang des Knochens (senkrecht nach oben
+    oder unten), X nach links der Figur, Kopf des Knochens als Ort."""
+    y = Vector((0, 0, -1 if unten else 1))
+    x = Vector((1, 0, 0))
+    m = Matrix((x, y, x.cross(y))).transposed().to_4x4()
+    m.translation = kopf
+    return m
+
+
+def unterarm_lage(p, pose, hoch, seite):
+    """Matrix, die einen Punkt am Unterarm der Seite „L“/„R“ aus der Ruhelage in die Haltung bringt – dieselbe Rechnung wie
+    Blender (Wurzel, Ruecken, Oberarm, Unterarm; Euler XYZ im Knochen). `pose`: {Knochen: (x, y, z) im Bogenmaß} wie aus
+    `haltung`, `hoch`: Hüfte. Koordinaten der Figur in Blender (Blick −Y)."""
+    from mathutils import Euler
+    sc, hu = p["schulter"], p["huefte"]
+    xs = (1 if seite == "L" else -1) * (p["schulterbreite"] + 0.01)
+    kette = (("Wurzel", (0, 0, hu), False), ("Ruecken", (0, 0, hu), False), (f"Oberarm_{seite}", (xs, 0, sc - 0.03), True),
+             (f"Unterarm_{seite}", (xs, 0, sc - 0.03 - p["oberarm"]), True))
+    m, vorher = Matrix.Identity(4), None
+    for name, kopf, unten in kette:
+        ruhe = _ruhe(Vector(kopf), unten)
+        lokal = Euler(pose.get(name, (0.0, 0.0, 0.0)), "XYZ").to_matrix().to_4x4()
+        if name == "Wurzel":
+            lokal = Matrix.Translation((0, hoch, 0)) @ lokal
+        m = (ruhe if vorher is None else m @ vorher.inverted() @ ruhe) @ lokal
+        vorher = ruhe
+    return m @ vorher.inverted()
+
+
+def hand_ruhe(p, seite, extra=0.0):
+    """Mitte der Hand in der Ruhelage (Blender), mit `extra` Metern Werkzeug in Verlängerung des Unterarms dessen Ende."""
+    hand_z = p["schulter"] - 0.03 - p["oberarm"] - p["unterarm"] * 0.72 - 0.06
+    return Vector(((1 if seite == "L" else -1) * (p["schulterbreite"] + 0.01), 0, hand_z - extra))
+
+
+def _figur(v):
+    """Blender-Koordinaten der Figur → (seitlich, vor, Höhe) wie in ARBEITSHOEHEN."""
+    return Vector((v.x, -v.y, v.z))
+
+
+def _blender(v):
+    """(seitlich, vor, Höhe) → Blender-Koordinaten der Figur (Blick −Y)."""
+    return Vector((v[0], -v[1], v[2]))
+
+
+def arm_genau(p, pose, hoch, seite, ziel, extra=0.0):
+    """Wie arm_ziel, aber genau: Die Hand (mit `extra` Metern Werkzeug dessen Ende) liegt bei `ziel` (seitlich, vor, Höhe).
+    arm_ziel rechnet den Arm vereinfacht (bei stark gebeugtem Arm liegt die Hand einige Zentimeter daneben); hier wird das
+    Ziel verschoben, bis die nachgerechnete Hand (unterarm_lage) trifft. `pose`: die übrigen Winkel in Grad (Ruecken: Neigung,
+    Drehung). Gibt die Winkel (Grad) für Oberarm und Unterarm zurück."""
+    lehne, drehung = pose["Ruecken"][0], pose["Ruecken"][1]
+    soll, z = Vector(ziel), Vector(ziel)
+    for _ in range(8):
+        ober, unter = arm_ziel(p, lehne, hoch, seite, tuple(z), drehung, extra)
+        winkel = _bogen({**pose, f"Oberarm_{seite}": ober, f"Unterarm_{seite}": unter})
+        fehler = soll - _figur(unterarm_lage(p, winkel, hoch, seite) @ hand_ruhe(p, seite, extra))
+        if fehler.length < 1e-4:
+            break
+        z += fehler
+    return ober, unter
+
+
+_MEISSEL = {}
+
+
+def meissel_ruhe(p):
+    """Schneide und Kopf des Meißels in der Ruhelage des linken Unterarms (Blender): Der Meißel ist in der Haltung „Behauen“
+    beim Schlag gebaut (REQUISITEN) und hängt starr am Unterarm – so lässt sich seine Lage in jeder Haltung nachrechnen."""
+    schluessel = tuple(sorted(p.items()))
+    if schluessel not in _MEISSEL:
+        bewegung, phase = REQUISITEN["Meissel"]
+        r, hoch, _, _ = _meissel_haltung(bewegung, phase, p)
+        lage = unterarm_lage(p, _bogen(r), hoch, "L")
+        zurueck = lage.inverted()
+        hand = lage @ hand_ruhe(p, "L")
+        a = Vector((MEISSEL_RICHTUNG[0], -MEISSEL_RICHTUNG[1], MEISSEL_RICHTUNG[2])).normalized()
+        _MEISSEL[schluessel] = (zurueck @ (hand + a * MEISSEL[0]), zurueck @ (hand - a * MEISSEL[1]))
+    return _MEISSEL[schluessel]
+
+
+def _bogen(winkel):
+    """{Knochen: Winkel in Grad} → im Bogenmaß (wie haltung sie liefert)."""
+    return {k: tuple(math.radians(w) for w in v) for k, v in winkel.items()}
+
+
+def meissel_kopf(p, winkel, hoch):
+    """Kopf (Schlagfläche) des Meißels in einer Haltung (Winkel im Bogenmaß wie aus haltung) als (seitlich, vor, Höhe)."""
+    return _figur(unterarm_lage(p, winkel, hoch, "L") @ meissel_ruhe(p)[1])
+
+
+_SCHLAEGEL = {}
+
+
+def schlaegel_ruhe(p):
+    """Mitte des Klüpfelkopfs in der Ruhelage des rechten Unterarms (Blender), wie meissel_ruhe."""
+    schluessel = tuple(sorted(p.items()))
+    if schluessel not in _SCHLAEGEL:
+        bewegung, phase = REQUISITEN["Schlaegel"]
+        winkel, hoch = haltung(bewegung, phase, p)
+        lage = unterarm_lage(p, winkel, hoch, "R")
+        ziel = _blender(meissel_kopf(p, winkel, hoch)) + Vector((0, 0, KLUEPFEL_R + 0.004))
+        _SCHLAEGEL[schluessel] = lage.inverted() @ ziel
+    return _SCHLAEGEL[schluessel]
+
+
+def _meissel_haltung(name, phase, p):
+    """Rumpf, Beine und linker Arm mit dem Meißel für meisseln: (Winkel in Grad, Hüfte, Ausholen 0…1, Ausholwinkel des
+    rechten Arms)."""
+    r = {}
+    if name == "Behauen":
+        if phase < 0.45:
+            a = weich(phase / 0.45)
+        elif phase < 0.55:
+            a = 1 - ((phase - 0.45) / 0.1) ** 2
+        elif phase < 0.65:
+            a = 0.08 * math.sin(math.pi * (phase - 0.55) / 0.1)
+        else:
+            a = 0.0
+        vor, hoehe = ARBEITSHOEHEN["Block"]
+        lehne, hoch = 20 + 2 * a, -0.03
+        schneide = Vector((0.03 + 0.012 * math.sin(2 * math.pi * phase), vor, hoehe))
+        ausholen = (-78 * a, -36 * a)
+        r["Ruecken"] = (lehne, 0, 0)
+        r["Kopf"] = (30 - lehne, 0, 3 - 3 * a)
+        r["Oberschenkel_L"], r["Oberschenkel_R"] = (-12, 0, 5), (8, 0, -5)
+        r["Unterschenkel_L"], r["Unterschenkel_R"] = (16, 0, 0), (10, 0, 0)
+        richtung = Vector(MEISSEL_RICHTUNG).normalized()
+        r["Oberarm_L"], r["Unterarm_L"] = arm_genau(p, r, hoch, "L", tuple(schneide - richtung * MEISSEL[0]))
+    else:
+        halb = (2 * phase) % 1
+        if halb < 0.55:
+            a = weich(halb / 0.55)
+        elif halb < 0.65:
+            a = 1 - ((halb - 0.55) / 0.1) ** 2
+        elif halb < 0.75:
+            a = 0.06 * math.sin(math.pi * (halb - 0.65) / 0.1)
+        else:
+            a = 0.0
+        vor, hoehe = ARBEITSHOEHEN["Figur"]
+        lehne, hoch = 7 + 1.5 * math.sin(2 * math.pi * phase), -0.01
+        schneide = Vector((0.02 + 0.03 * math.sin(2 * math.pi * phase), vor, hoehe + 0.05 * math.sin(2 * math.pi * phase + 1.2)))
+        ausholen = (-18 * a, -30 * a)
+        r["Ruecken"] = (lehne, 0, 0)
+        r["Kopf"] = (8 - lehne + 40 * (schneide.z - hoehe), 0, 4 * math.sin(2 * math.pi * phase))
+        r["Oberschenkel_L"], r["Oberschenkel_R"] = (-6, 0, 5), (5, 0, -5)
+        r["Unterschenkel_L"], r["Unterschenkel_R"] = (8, 0, 0), (6, 0, 0)
+        # Die Hand so führen, dass die Schneide (starr in der Faust) an der Figur liegt
+        hand = schneide - Vector(BILDHAUEN_RICHTUNG).normalized() * MEISSEL[0]
+        spitze_ruhe = meissel_ruhe(p)[0]
+        for _ in range(6):
+            r["Oberarm_L"], r["Unterarm_L"] = arm_genau(p, r, hoch, "L", tuple(hand))
+            winkel = _bogen(r)
+            hand += schneide - _figur(unterarm_lage(p, winkel, hoch, "L") @ spitze_ruhe)
+    return r, hoch, a, ausholen
+
+
+def meisseln(name, phase, p):
+    """Behauen am Werkblock und Bildhauen an der Steinfigur: {Knochen: Winkel in Grad}, dazu „_hoch“ (Hüfte).
+    Die Linke hält den Meißel (MEISSEL, starr am Unterarm, gebaut in der Haltung „Behauen“ beim Schlag) mit der Schneide auf
+    dem Stein, die Rechte schlägt mit der Seite des Klüpfelkopfs auf den Kopf des Meißels. Behauen: Ausholen (0–0,45),
+    Schlag (0,45–0,55), Rückprall, Ruhe; die Schneide wandert dabei ein wenig über den Block. Bildhauen: zwei kurze Schläge je
+    Schleife, aufrecht, die Linke führt den Meißel vor der Brust langsam höher und tiefer, nach links und rechts.
+    Beide Arme mit arm_genau: Die Schneide sitzt auf dem Stein, der Klüpfel trifft den Kopf des Meißels."""
+    r, hoch, a, ausholen = _meissel_haltung(name, phase, p)
+    # Der Klüpfel (starr in der rechten Faust, gebaut beim Schlag des Behauens) trifft mit der Seite seines Kopfs den Kopf des
+    # Meißels: beim Behauen von oben – dort steht die Faust fest vor der Brust (FAUST_R) –, beim Bildhauen (der Meißel liegt
+    # flacher) von rechts hinten; dort wird die Faust so geführt, dass der Kopf trifft.
+    kopf = meissel_kopf(p, _bogen(r), hoch)
+    if name == "Behauen":
+        (ox, oy, oz), (ux, uy, uz) = arm_genau(p, r, hoch, "R", tuple(kopf + Vector(FAUST_R)))
+    else:
+        spitze = _figur(unterarm_lage(p, _bogen(r), hoch, "L") @ meissel_ruhe(p)[0])
+        anschlag = ((kopf - spitze).normalized() + Vector((-0.9, 0, 0))).normalized()
+        soll = kopf + anschlag * (KLUEPFEL_R + 0.004)
+        klopfer_ruhe = schlaegel_ruhe(p)
+        faust = soll + Vector(FAUST_R) - Vector((0, 0, KLUEPFEL_R + 0.004))
+        for _ in range(24):                     # gedämpft: Der Klüpfel dreht sich mit dem Unterarm, sonst schwingt es hin und her
+            (ox, oy, oz), (ux, uy, uz) = arm_genau(p, r, hoch, "R", tuple(faust))
+            winkel = _bogen({**r, "Oberarm_R": (ox, oy, oz), "Unterarm_R": (ux, uy, uz)})
+            fehler = soll - _figur(unterarm_lage(p, winkel, hoch, "R") @ klopfer_ruhe)
+            if fehler.length < 2e-4:
+                break
+            faust += fehler * 0.4
+    r["Oberarm_R"] = (ox + ausholen[0], oy * (1 - 0.8 * a), oz + 14 * a)       # beim Ausholen nach rechts oben, nicht vors Gesicht
+    r["Unterarm_R"] = (ux + ausholen[1], uy, uz)
+    r["_hoch"] = (hoch, 0, 0)
+    return r
+
+
 BEWEGUNGEN = {   # Name: Dauer in Sekunden (eine Schleife)
     "Stehen": 3.0, "Gehen": 1.0, "Eilen": 0.7, "Gebeugt": 1.4, "Tragen": 1.2, "Sitzen": 3.0, "Reden": 2.0,
     "Hacken": 1.3, "Buecken": 2.4, "Hueten": 4.0, "Ziehen": 1.3, "Kutschieren": 1.0,
     "Haemmern": 0.9, "Blasebalg": 1.6, "Schleifen": 1.2, "Feinarbeit": 2.0,
     "Hobeln": 1.2, "Saegen": 1.0, "Drechseln": 1.0, "Gatter": 2.0,
+    "Behauen": 1.0, "Bildhauen": 1.6,
 }
 
 
@@ -890,7 +1134,8 @@ def vorschau_bewegungen(schnell):
     abstand = 2.7
     for r, name in enumerate(reihen):
         teile = {"Hueten": ["Stab"], "Tragen": ["Buendel"], "Hacken": ["Hacke", "Strohhut"], "Haemmern": ["Hammer"],
-                 "Hobeln": ["Hobel"], "Saegen": ["Saege"], "Drechseln": ["Drechseleisen"]}.get(name, [])
+                 "Hobeln": ["Hobel"], "Saegen": ["Saege"], "Drechseln": ["Drechseleisen"], "Behauen": ["Schlaegel", "Meissel"],
+                 "Bildhauen": ["Schlaegel", "Meissel"]}.get(name, [])
         wahl = [o for o in objekte if o.type == "MESH" and o.name.split(".")[0] in teile + ["Koerper_Mann"]]
         sy = ((len(reihen) - 1) / 2 - r) * abstand
         for k, ph in enumerate(phasen):
@@ -907,6 +1152,8 @@ def vorschau_bewegungen(schnell):
     bs.vorschau_buehne(None, ziel_hoehe=0.9, ausschnitt=22.0 * len(reihen) / 12, schnell=schnell)
     szene = bpy.context.scene
     szene.render.resolution_x, szene.render.resolution_y = 1000, int(1800 * len(reihen) / 12)
+    szene.render.image_settings.color_mode = "RGB"                      # ohne Alphakanal und stark gepackt: kleinere Datei
+    szene.render.image_settings.compression = 100
     print(bs.rendern("figuren-bewegungen", lambda o: o in alle))
 
 
@@ -960,6 +1207,14 @@ def arbeitsplatz(name, ort, st, p):
         vor, hoehe = ARBEITSHOEHEN["Stamm"]
         netz.stab(ort + Vector((-vor, 0, hoehe)), ort + Vector((-vor - 0.5, 0, hoehe)), 0.6, 0.6, st["Holz alt"])
         netz.quader(ort + Vector((-vor - 0.25, 0, 0.45)), (0.5, 0.7, 0.3), holz)
+    elif name == "Behauen":                                             # Block auf dem Bock, die Schneide auf seiner Oberseite
+        vor, hoehe = ARBEITSHOEHEN["Block"]
+        netz.quader(ort + Vector((-vor - 0.25, 0, hoehe - 0.19)), (0.6, 0.8, 0.38), st["Sandstein"])
+        netz.quader(ort + Vector((-vor - 0.25, 0, (hoehe - 0.38) / 2)), (0.5, 0.6, hoehe - 0.38), st["Holz alt"])
+    elif name == "Bildhauen":                                           # Figur auf dem Bock, ihre Vorderseite an der Schneide
+        vor, hoehe = ARBEITSHOEHEN["Figur"]
+        netz.quader(ort + Vector((-vor - 0.2, 0, 0.25)), (0.6, 0.6, 0.5), holz)
+        netz.quader(ort + Vector((-vor - 0.18, 0, 1.15)), (0.36, 0.5, 1.3), st["Sandstein"])
     return netz.objekt() if netz.dreiecke() else None
 
 

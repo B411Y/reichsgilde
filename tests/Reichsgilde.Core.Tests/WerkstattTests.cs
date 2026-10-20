@@ -53,6 +53,17 @@ static class WerkstattTests
         return (w, k, t);
     }
 
+    /// <summary>Ein Haus mit Maurerei ohne Karren, Lager mit Bruchstein und Schleifziegeln für Mühlsteine gefüllt.</summary>
+    static (Stadtwirtschaft W, Konto K, Betrieb M) Maurerei(Simulation sim, double vermoegen = 20_000)
+    {
+        var w = sim.Wirtschaft!;
+        var k = w.KontoEroeffnen("Haus Fuchs", startvermoegen: vermoegen);
+        var m = w.BetriebEroeffnen("Maurerei an der Stadtmauer", Betriebsart.Maurerei, k, startkarren: "");
+        m.Einlagern("Bruchstein", 40);
+        m.Einlagern("Schleifziegel", 20);
+        return (w, k, m);
+    }
+
     static void BisUhrzeit(Simulation sim, int stunde)
     {
         while (sim.Zeit.UhrzeitInMinuten < stunde * 60) sim.Tick();
@@ -89,7 +100,7 @@ static class WerkstattTests
         ("Werkstatt: Daten – Abschnitt „werkstatt“ mit drei Lohnstufen und genau den sieben Stücken des Schmieds (Kennungen wie im Raummodell)", () =>
         {
             var d = Daten.Value.Werkstatt!;
-            Pruefe.Gleich(37, Daten.Value.Version);
+            Pruefe.Gleich(38, Daten.Value.Version);
             Pruefe.Ungefaehr(1, d.Stufe(Lohnstufe.Ueblich).LohnFaktor, 1e-12);
             Pruefe.Gleich(0.0, d.Stufe(Lohnstufe.Ueblich).Laune);
             Pruefe.Wahr(d.Stufe(Lohnstufe.Knapp).LohnFaktor < 1 && d.Stufe(Lohnstufe.Gut).LohnFaktor > 1, "Lohnfaktoren");
@@ -452,6 +463,86 @@ static class WerkstattTests
             var h = w.BetriebEroeffnen("Holzschlag Fuchs", Betriebsart.Holzfaellerei, k, startkarren: "");
             Pruefe.Gleich(0, w.Werkstaetten.Einrichtungsliste(h).Count);
             Abgelehnt(w, k, new EinrichtungKaufen(h.Name, "Regale"), "kein Stück „Regale“");
+        }),
+
+        ("Werkstatt: Daten – der Steinmetz hat sieben Stücke (Kennungen wie im Raummodell) zu den Preisen des Schmieds, mit Flaschenzug statt Blasebalg", () =>
+        {
+            var d = Daten.Value.Werkstatt!;
+            var steinmetz = d.EinrichtungFuer("Steinmetz");
+            Pruefe.Gleich("Werkzeug1 Werkzeug2 Flaschenzug Regale Loeschfass Eisentuer Schuerzen", string.Join(" ", steinmetz.Select(e => e.Kennung)));
+            Pruefe.Gleich("Gutes Werkzeug, Meisterwerkzeug, Flaschenzug, Steingestell, Löschfass, Eisentür, Lederschürzen",
+                string.Join(", ", steinmetz.Select(e => e.Name)));
+            foreach (var e in steinmetz.Where(e => e.Kennung != "Flaschenzug"))
+            {
+                var schmied = d.Stueck("Schmied", e.Kennung)!;
+                Pruefe.Gleich(schmied.Preis, e.Preis, $"Preis {e.Kennung}");
+                Pruefe.Gleich(schmied.Wirkung.Text(), e.Wirkung.Text(), $"Wirkung {e.Kennung}");
+            }
+            Pruefe.Gleich(350.0, d.Stueck("Steinmetz", "Flaschenzug")!.Preis);
+            Pruefe.Gleich("Werkzeug1", d.Stueck("Steinmetz", "Werkzeug2")!.Voraussetzung);
+            Pruefe.Gleich(2, d.Stueck("Steinmetz", "Werkzeug2")!.AbStufe);
+            Pruefe.Gleich("Mühlstein Säule Taufbecken Grabmal", string.Join(" ", d.Stueck("Steinmetz", "Flaschenzug")!.Wirkung.Waren));
+        }),
+
+        ("Werkstatt: Steinmetz – Werkzeug spart Zeit bei allen Waren, der Flaschenzug nur bei Mühlstein, Säule, Taufbecken, Grabmal; Steingestell gibt Lager", () =>
+        {
+            var sim = NeueSimulation();
+            var (w, k, m) = Maurerei(sim, vermoegen: 5_000);
+            Pruefe.Wahr(w.Werkstaetten.Einrichtungsliste(m) is { Count: 7 } l && l.All(e => !e.Gekauft), "sieben Stücke, keins gekauft");
+            Ok(w, k, new EinrichtungKaufen(m.Name, "Flaschenzug"));
+            Pruefe.Ungefaehr(4_650, k.Vermoegen, 1e-9);
+            Pruefe.Ungefaehr(350, k.Laufend.Investitionen, 1e-9);
+            foreach (var (ware, zeit) in new[] { ("Mühlstein", 60.0), ("Säule", 60.0), ("Taufbecken", 70.0), ("Grabmal", 100.0) })
+                Pruefe.Ungefaehr(zeit * 0.9, m.MinutenJeStueck(ware), 1e-9);
+            foreach (var (ware, zeit) in new[] { ("Schleifziegel", 35.0), ("Grabstein", 50.0), ("Steinfigur", 100.0) })
+                Pruefe.Ungefaehr(zeit, m.MinutenJeStueck(ware), 1e-9); // gehoben wird nur, was schwer ist
+            Ok(w, k, new EinrichtungKaufen(m.Name, "Werkzeug1"));
+            Pruefe.Ungefaehr(60 * 0.81, m.MinutenJeStueck("Mühlstein"), 1e-9);
+            Pruefe.Ungefaehr(50 * 0.9, m.MinutenJeStueck("Grabstein"), 1e-9);
+            Pruefe.Gleich(40, m.LagerKapazitaetJeWare);
+            Ok(w, k, new EinrichtungKaufen(m.Name, "Regale"));
+            Pruefe.Gleich(60, m.LagerKapazitaetJeWare);
+            foreach (var kennung in new[] { "Loeschfass", "Eisentuer", "Schuerzen" }) Ok(w, k, new EinrichtungKaufen(m.Name, kennung));
+            Pruefe.Gleich((0.5, 0.5, 0.5), (m.BrandFaktor, m.EinbruchFaktor, m.UnfallFaktor));
+            Pruefe.Ungefaehr(5_000 - 350 - 300 - 200 - 100 - 300 - 80, k.Vermoegen, 1e-9);
+            Abgelehnt(w, k, new EinrichtungKaufen(m.Name, "Leimzwingen"), "kein Stück „Leimzwingen“");
+            Abgelehnt(w, k, new EinrichtungKaufen(m.Name, "Werkzeug2"), "erst ab Stufe 2");
+            Ok(w, k, new ProduktWaehlen(m.Name, "Mühlstein"));
+            Ok(w, k, new PersonalSetzen(m.Name, "Geselle", 1));
+            BisUhrzeit(sim, 14);
+            Pruefe.Wahr(m.ImLager("Mühlstein") == 7, $"Mühlsteine mit Werkzeug und Flaschenzug: {m.ImLager("Mühlstein")} (360 / 48,6 ≈ 7,4; ohne beides 360 / 60 = 6)");
+            var liste = w.Werkstaetten.Einrichtungsliste(m);
+            Pruefe.Gleich("10 % weniger Zeit je Stück (Mühlstein, Säule, Taufbecken, Grabmal)", liste.Single(e => e.Kennung == "Flaschenzug").Wirkung);
+            Pruefe.Gleich("Steingestell", liste.Single(e => e.Kennung == "Regale").Name);
+            Pruefe.Gleich("20 mehr Lager je Ware", liste.Single(e => e.Kennung == "Regale").Wirkung);
+        }),
+
+        ("Werkstatt: Steinmetz – Meisterwerkzeug erst ab der Steinschneiderei und nur mit gutem Werkzeug; die Einrichtung gilt in allen drei Stufen, nicht im Steinbruch", () =>
+        {
+            var sim = NeueSimulation();
+            var (w, k, m) = Maurerei(sim);
+            Ok(w, k, new EinrichtungKaufen(m.Name, "Regale"));
+            Ok(w, k, new EinrichtungKaufen(m.Name, "Flaschenzug"));
+            Abgelehnt(w, k, new EinrichtungKaufen(m.Name, "Werkzeug2"), "erst ab Stufe 2");
+            m.Ausbauen(Betriebsart.Steinschneiderei, 0);
+            Pruefe.Gleich(7, w.Werkstaetten.Einrichtungsliste(m).Count);
+            Pruefe.Wahr(m.HatEinrichtung("Regale") && m.LagerKapazitaetJeWare == 60, "Steingestell nach dem Ausbau");
+            Abgelehnt(w, k, new EinrichtungKaufen(m.Name, "Werkzeug2"), "Erst braucht es: Gutes Werkzeug");
+            Ok(w, k, new EinrichtungKaufen(m.Name, "Werkzeug1"));
+            Ok(w, k, new EinrichtungKaufen(m.Name, "Werkzeug2"));
+            Pruefe.Ungefaehr(50 * 0.81, m.MinutenJeStueck("Grabstein"), 1e-9);
+            Pruefe.Ungefaehr(70 * 0.729, m.MinutenJeStueck("Taufbecken"), 1e-9);
+            m.Ausbauen(Betriebsart.Steinmetzhuette, 0);
+            Pruefe.Gleich(3, m.Stufe);
+            var liste = w.Werkstaetten.Einrichtungsliste(m);
+            Pruefe.Gleich(7, liste.Count);
+            Pruefe.Gleich("Werkzeug1 Werkzeug2 Flaschenzug Regale", string.Join(" ", liste.Where(e => e.Gekauft).Select(e => e.Kennung)));
+            Pruefe.Ungefaehr(100 * 0.729, m.MinutenJeStueck("Grabmal"), 1e-9);
+            Pruefe.Ungefaehr(100 * 0.81, m.MinutenJeStueck("Steinfigur"), 1e-9);
+            // Der Steinbruch gehört auch zum Steinmetz, ist aber keine Werkstatt.
+            var s = w.BetriebEroeffnen("Steinbruch Fuchs", Betriebsart.Steinbruch, k, startkarren: "");
+            Pruefe.Gleich(0, w.Werkstaetten.Einrichtungsliste(s).Count);
+            Abgelehnt(w, k, new EinrichtungKaufen(s.Name, "Regale"), "kein Stück „Regale“");
         }),
 
         ("Werkstatt: Beim Verkauf zählt die Einrichtung zum Wert und bleibt im Haus für den nächsten Käufer", () =>

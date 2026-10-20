@@ -19,7 +19,8 @@ Mit `--innen` (Innenräume, z. B. schmied_innen.glb) gelten eigene Regeln: Räum
 ein Blickpunkt „Blick_<Raum>_0“ (weitere „_L1“, „_R1“, „_O1“, „_U1“ …), Bedienung für Personal, Produktion, Lager,
 Einrichten und Karren, Türen paarweise („Tuer_A_B“ und „Tuer_B_A“), Einrichtung standardmäßig aus (und „Holztuer“, wenn es
 „Einrichtung_Eisentuer“ gibt), Arbeitsplätze „Arbeit_<n>_<Bewegung>“ (n lückenlos ab 1, die Bewegung muss es in
-figur_mensch.glb geben), Stellplätze „Lager_<n>“ und Werkstücke „Werkstueck_<n>“ lückenlos ab 1; alle Anker und
+figur_mensch.glb geben; extras „requisit“ – das Werkzeug statt dem der Bewegung – muss „keins“ oder ein Knoten von
+figur_mensch.glb sein), Stellplätze „Lager_<n>“ und Werkstücke „Werkstueck_<n>“ lückenlos ab 1; alle Anker und
 Blickpunkte liegen in einem Raum. Die Lage rechnet die Knotenhierarchie mit ein.
 Ein Raum mit extras „stufe“ (z. B. die Sägehalle des Tischlers ab Stufe 3) gibt es erst ab dieser Stufe: Anker darin und
 Türen dorthin brauchen mindestens dieselbe „stufe“. Späne „Spaene1“–„Spaene3“ (falls vorhanden) sind lückenlos und
@@ -114,10 +115,12 @@ def innen(pfad, g):
     def raum_bei(p):
         return next((r for r, (lo, hi) in raeume.items() if all(lo[k] - 1e-3 <= p[k] <= hi[k] + 1e-3 for k in range(3))), None)
 
-    bewegungen = None
+    bewegungen, teile = None, None
     figur = os.path.join(os.path.dirname(os.path.abspath(pfad)), "figur_mensch.glb")
     if os.path.exists(figur):
-        bewegungen = {a["name"] for a in lesen(figur).get("animations", [])}
+        figur_glb = lesen(figur)
+        bewegungen = {a["name"] for a in figur_glb.get("animations", [])}
+        teile = {n.get("name") for n in figur_glb["nodes"]}
     print("Anker und Blickpunkte (Spielkoordinaten, Blick = −Z):")
     reihen = {"Arbeit": [], "Lager": [], "Werkstueck": []}
     for name, i in sorted(knoten.items()):
@@ -147,6 +150,9 @@ def innen(pfad, g):
                 reihen[art].append(int(treffer.group(1)))
                 if art == "Arbeit" and bewegungen is not None and treffer.group(2) not in bewegungen:
                     fehler.append(f"{name}: Bewegung „{treffer.group(2)}“ gibt es in figur_mensch.glb nicht")
+                requisit = g["nodes"][i].get("extras", {}).get("requisit")
+                if art == "Arbeit" and requisit is not None and teile is not None and requisit != "keins" and requisit not in teile:
+                    fehler.append(f"{name}: Requisit „{requisit}“ gibt es in figur_mensch.glb nicht (oder „keins“)")
     for raum in raeume:
         if f"Blick_{raum}_0" not in knoten:
             fehler.append(f"Blickpunkt „Blick_{raum}_0“ fehlt")
