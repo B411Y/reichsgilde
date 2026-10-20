@@ -14,7 +14,7 @@ namespace Reichsgilde;
 /// <item><c>Raum_Werk</c>, <c>Raum_Lager</c>, <c>Raum_Saege</c>, <c>Raum_Huette</c> – die Räume (glTF-extras „stufe“ auf dem Raumknoten: erst ab dieser Betriebsstufe da,
 /// so die Sägehalle des Tischlers und die Bauhütte des Steinmetzen ab Stufe 3, siehe <see cref="ModellRaeume"/>); <c>Blick_&lt;Raum&gt;_&lt;0|L1|R1|O1|U1…&gt;</c> – feste Blickpunkte der Kamera (Stadtansicht.Innenkamera.cs)</item>
 /// <item><c>Stufe1</c>–<c>Stufe3</c> – Ausstattung der Betriebsstufe (genau eine sichtbar); <c>Einrichtung_&lt;Kennung&gt;</c> – gekaufte Einrichtung (erst nach dem Kauf sichtbar)</item>
-/// <item><c>Bedienung_&lt;Tafel&gt;_&lt;Name&gt;</c> und <c>Tuer_&lt;von&gt;_&lt;nach&gt;</c> – anklickbare Gegenstände (Klickfläche aus dem Umriss des Netzes; eine Tür mit „stufe“ ist darunter unsichtbar und nicht anklickbar)</item>
+/// <item><c>Bedienung_&lt;Tafel&gt;_&lt;Name&gt;</c> und <c>Tuer_&lt;von&gt;_&lt;nach&gt;</c> – anklickbare Gegenstände (Klickfläche aus dem Umriss des Netzes; eine Tür mit „stufe“ ist darunter unsichtbar und nicht anklickbar, extras „schild“ ersetzt ihren Namen unter der Maus)</item>
 /// <item><c>Arbeit_&lt;n&gt;_&lt;Bewegung&gt;</c> – Arbeitsplätze (extras „requisit“: ersetzt die Werkzeuge der Bewegung, „keins“ = keine); <c>Werkstueck_&lt;n&gt;</c> – Stück in Arbeit; <c>Lager_&lt;n&gt;</c> – Stellplätze der Warenstapel; <c>Licht_&lt;n&gt;</c> – Lichter (extras „art“: Glut, Fenster, Lampe)</item>
 /// <item><c>Spaene1</c>–<c>Spaene3</c> – Hobelspäne, höchstens einer sichtbar, nach der Arbeit des Tages; die Animation „Arbeit“ des Modells läuft als Schleife, solange gearbeitet wird</item>
 /// </list>
@@ -201,6 +201,7 @@ public partial class Stadtansicht
             anker.AddChild(plan.Werkstueck);
         }
         md.Plaetze.Sort((x, y) => x.Nr.CompareTo(y.Nr));
+        RaumEbeneUebernehmen(wurzel); // alles, was bis hier im Modell steht, auch Lichter und Werkstücke
 
         // Räume in der Reihenfolge der Raumleiste (Mitte, Maße und Wände stehen im Modell). Ein Raum mit „stufe“ (die Sägehalle, die Bauhütte ab 3) steht erst ab dieser Stufe in der Leiste.
         foreach (var (kennung, schluessel, name, vorgabe) in ModellRaeume(stil)) // die Vorgabe gilt, wenn die „extras“ fehlen
@@ -272,7 +273,8 @@ public partial class Stadtansicht
                 InnenKlickAnlegen(a, md, knoten, $"bedienung:{teile[1]}:{teile[2]}");
                 break;
             case "Tuer" when teile.Length >= 3:
-                InnenKlickAnlegen(a, md, knoten, $"tuer:{teile[1]}:{teile[2]}");
+                // extras „schild“: eigener Text fürs Schild, z. B. „Treppe zum Lager“, wenn die Tür eine Treppe oder Luke ist
+                InnenKlickAnlegen(a, md, knoten, $"tuer:{teile[1]}:{teile[2]}" + (ExtraText(knoten, "schild") is { Length: > 0 } schild ? ":" + schild : ""));
                 if (ExtraZahl(knoten, "stufe", 1) is > 1 and var tuerStufe) md.StufenKnoten.Add((knoten, tuerStufe)); // die Tür zur Sägehalle gibt es erst mit ihr
                 break;
             case "Spaene1" or "Spaene2" or "Spaene3" when teile.Length == 1:
@@ -341,6 +343,35 @@ public partial class Stadtansicht
         "keins" => Array.Empty<string>(),
         var liste => liste.Split(',', StringSplitOptions.TrimEntries | StringSplitOptions.RemoveEmptyEntries),
     };
+
+    /// <summary>Raumschlüssel in der Reihenfolge ihrer Render-Ebene (11, 12, 13, 14): Jeder Raum eines Modells hat seine eigene.</summary>
+    private static readonly string[] RaumEbenen = { "Werk", "Lager", "Saege", "Huette" };
+
+    /// <summary>
+    /// Legt alles unter <paramref name="knoten"/> auf die Render-Ebene seines Raums und lässt jedes Licht nur diese Ebene beleuchten. Die Räume liegen
+    /// im Modell aneinander oder übereinander (das Lager über dem Werkraum), und die Raumlichter haben keine Schatten: ohne eigene Ebene schienen
+    /// Esse und Laterne durch die Decke ins Lager und die Fenster des Lagers in den Werkraum. Die Raumkamera sieht alle Ebenen.
+    /// </summary>
+    private static void RaumEbeneUebernehmen(Node knoten)
+    {
+        if (knoten.Name.ToString() is not { } name || !name.StartsWith("Raum_"))
+        {
+            var schluessel = RaumSchluesselVon(knoten);
+            if (schluessel.Length > 0) { EbeneSetzen(knoten, RaumEbene(schluessel)); return; }
+        }
+        foreach (var kind in knoten.GetChildren()) // die Wurzel des Modells: jeden Raum für sich
+            if (kind.Name.ToString().StartsWith("Raum_")) EbeneSetzen(kind, RaumEbene(kind.Name.ToString()[5..]));
+            else RaumEbeneUebernehmen(kind);
+    }
+
+    private static uint RaumEbene(string schluessel) => 1u << (10 + Math.Max(0, Array.IndexOf(RaumEbenen, schluessel)));
+
+    private static void EbeneSetzen(Node knoten, uint ebene)
+    {
+        if (knoten is Light3D licht) licht.LightCullMask = ebene;
+        else if (knoten is VisualInstance3D sichtbar) sichtbar.Layers = ebene;
+        foreach (var kind in knoten.GetChildren()) EbeneSetzen(kind, ebene);
+    }
 
     /// <summary>Schlüssel des Raums, in dem der Knoten liegt: der Name des nächsten Vorfahren „Raum_&lt;Schlüssel&gt;“ („Werk“, „Lager“, „Saege“, „Huette“), sonst leer.</summary>
     private static string RaumSchluesselVon(Node knoten)
@@ -627,6 +658,7 @@ public partial class Stadtansicht
                 MaterialOverride = AuswahlRing(), Position = new Vector3(0, 0.04f, 0), Visible = false,
             };
             halter.AddChild(ring);
+            RaumEbeneUebernehmen(halter);
             md.Arbeiter[zeile.Nummer] = new ModellArbeiter { Nummer = zeile.Nummer, Figur = figur, Halter = halter, Platz = platz, Klick = form, Ring = ring };
         }
         if (_gewaehlt.RemoveWhere(n => !md.Arbeiter.ContainsKey(n)) > 0) ArbeiterAuswahlGeaendert?.Invoke(); // Gegangene sind nicht mehr gewählt
@@ -719,6 +751,7 @@ public partial class Stadtansicht
         koerper.AddChild(form);
         platz.AddChild(koerper);
         a.Raumklicks.Add(form);
+        RaumEbeneUebernehmen(platz);
         return new LagerStapel { Wurzel = platz, Kisten = kisten, Stoff = stoff, Schild = schild, Klick = form, Koerper = koerper, Ware = ware };
     }
 
@@ -745,6 +778,8 @@ public partial class Stadtansicht
                     ("Einrichten", _) => ("Werkzeugwand", "Klick: Einrichtung kaufen"),
                     _ => (teile[2], ""),
                 };
+            case "tuer" when teile.Length >= 4:
+                return (string.Join(':', teile[3..]), "Klick: Raum wechseln");
             case "tuer" when teile.Length >= 3:
                 return (teile[2] switch { "Lager" => "Tür zum Lager", "Saege" => "Tür zur Sägehalle", "Huette" => "Tür zur Bauhütte", _ => "Tür zum Werkraum" }, "Klick: Raum wechseln");
             case "einrichtung" when teile.Length >= 2:
