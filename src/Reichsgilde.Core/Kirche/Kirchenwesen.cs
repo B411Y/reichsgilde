@@ -201,6 +201,57 @@ public sealed class Kirchenwesen
         }
     }
 
+    // ── Abfragen für die Darstellung (nur lesend, ohne Zufall) ───────────────
+
+    /// <summary>So viele Gläubige zeigt das Kirchenschiff höchstens, wenn die Darstellung nichts anderes vorgibt.</summary>
+    public const int SitzplaetzeImSchiff = 16;
+
+    /// <summary>So viele Gläubige des Jahres stehen zur Messe für eine Figur im Schiff.</summary>
+    public const double GlaeubigeJeFigur = 8;
+
+    /// <summary>Außerhalb der Messe beten so viele, gemessen an den Figuren zur Messe.</summary>
+    public const double BetendeAnteil = 0.125;
+
+    private int MinuteJetzt => _w.Uhr.UhrzeitInMinuten;
+
+    /// <summary>Zur Messe (eine halbe Stunde vor <see cref="KirchenDaten.MesseUm"/> bis eine Stunde danach) ist das Schiff voll.</summary>
+    private bool IstMessezeit(int minute) => minute >= Daten.MesseUm * 60 - 30 && minute < Daten.MesseUm * 60 + 60;
+
+    /// <summary>
+    /// Wie viele Gläubige gerade in dieser Kirche sind – für die Darstellung, abgeleitet aus der Messe:
+    ///   • Messezeit (9:30 bis 11 Uhr bei Messe um 10): <see cref="ErwarteteGlaeubige"/> ÷ <see cref="GlaeubigeJeFigur"/>,
+    ///     gerundet, mindestens 1 und höchstens <paramref name="hoechstens"/>.
+    ///   • sonst in der Arbeitszeit der Kirche (8–20 Uhr) wenige Betende: dasselbe × <see cref="BetendeAnteil"/>, mindestens 1.
+    ///   • 0 davor und danach, wenn das Haus nicht mehr spielt oder niemand in der Kirche arbeitet (dann gibt es auch keine Messe).
+    /// Ohne den Messefaktor der Bürger-KI: Den lernt die Einwohnerschaft bei jedem Aufruf mit, er bleibt der Messe vorbehalten.
+    /// </summary>
+    public int GlaeubigeJetzt(Betrieb b, int hoechstens = SitzplaetzeImSchiff)
+    {
+        if (!Kirchen.Contains(b)) return 0;
+        var minute = MinuteJetzt;
+        var messe = IstMessezeit(minute);
+        if (!messe && !b.IstArbeitszeit(minute)) return 0;
+        var figuren = ErwarteteGlaeubige(b) / GlaeubigeJeFigur * (messe ? 1 : BetendeAnteil);
+        return Math.Clamp((int)Math.Round(figuren, MidpointRounding.AwayFromZero), 1, Math.Max(1, hoechstens));
+    }
+
+    /// <summary>Der Prediger steht auf der Kanzel: zur Stunde <see cref="KirchenDaten.MesseUm"/> (10–11 Uhr), mit mindestens einem Arbeiter, Haus im Spiel.</summary>
+    public bool MesseLaeuft(Betrieb b) =>
+        Kirchen.Contains(b) && MinuteJetzt / 60 == Daten.MesseUm;
+
+    /// <summary>
+    /// Gerade sitzt jemand im Beichtstuhl: in der Arbeitszeit außerhalb der Messezeit, in jeder Viertelstunde q (seit Mitternacht),
+    /// für die der Nachkommateil von q × 0,618… (goldener Schnitt) unter <see cref="BeichteDaten.Chance"/> liegt –
+    /// so verteilen sich die Beichten gleichmäßig über den Tag, bei Chance 0,25 etwa jede vierte Viertelstunde.
+    /// </summary>
+    public bool BeichteJetzt(Betrieb b)
+    {
+        var minute = MinuteJetzt;
+        if (!Kirchen.Contains(b) || IstMessezeit(minute) || !b.IstArbeitszeit(minute)) return false;
+        var q = minute / 15 * 0.6180339887498949;
+        return q - Math.Floor(q) < Daten.Beichte.Chance;
+    }
+
     // ── Ablass ──────────────────────────────────────────────────────────────
 
     /// <summary>
