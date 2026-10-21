@@ -339,8 +339,9 @@ aussen, innen = ring_bild(WALDMITTE, WALD_AUSSEN, 64), ring_bild(WALDMITTE, WALD
 STADT_MIT_RAND = [(-56, -56), (56, -56), (56, 56), (-56, 56)]    # in der Stadt und dicht an der Mauer wächst nichts
 VORSTADT = [(50, -52), (80, -52), (80, 52), (50, 52)]            # die Vorstadt vor dem Osttor bis zum Wegkreuz
 LAUBGRENZE = -20                                                 # westlich davon stehen zwischen den Tannen Eichen und Buchen
-# 70 Bäume auf dem Ring (π · (98² − 48²) ≈ 22.900 m²): 3,05 je 1.000 m²
-WALD_DICHTE = 3.05
+# 70 Bäume wie früher: Der verschobene Ring hat nach Abzug der Aussparungen rund 29.400 m² (das Spiel zählt auf einem Raster),
+# also 2,4 je 1.000 m² (mit 3,05 standen rund 90 Bäume)
+WALD_DICHTE = 2.4
 k.naturflaeche("Tannenwald um die Stadt", "wald", halbebene(aussen, LAUBGRENZE, westlich=False), WALD_DICHTE, 1400,
                [(1, 0, [({"tanne": 1}, 1, 1)])], aussparungen=[innen, STADT_MIT_RAND, VORSTADT])
 k.naturflaeche("Mischwald im Westen", "wald", halbebene(aussen, LAUBGRENZE, westlich=True), WALD_DICHTE, 1401,

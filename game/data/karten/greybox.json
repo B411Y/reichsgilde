@@ -165,7 +165,7 @@
      [[-56, -56], [56, -56], [56, 56], [-56, 56]],
      [[50, -52], [80, -52], [80, 52], [50, 52]]
     ],
-    "dichte": 3.05,
+    "dichte": 2.4,
     "startwert": 1400,
     "gruppen": [{"gewicht": 1, "radius": 0, "teile": [{"arten": {"tanne": 1}, "anzahl": [1, 1]}]}]
    },
@@ -186,7 +186,7 @@
      ],
      [[-56, -56], [56, -56], [56, 56], [-56, 56]]
     ],
-    "dichte": 3.05,
+    "dichte": 2.4,
     "startwert": 1401,
     "gruppen": [{"gewicht": 1, "radius": 0, "teile": [{"arten": {"tanne": 0.55, "eiche": 0.3, "buche": 0.15}, "anzahl": [1, 1]}]}]
    },
