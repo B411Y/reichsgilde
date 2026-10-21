@@ -110,15 +110,15 @@ Wohnstube und weitere Räume liegen im Wohnhaus. Das Wohnhaus eines erloschenen 
 
 | Stadt | Stand |
 |---|---|
-| Köln (Pilot) | **Kartendatei Format 2** (`game/data/karten/koeln.json`, Vorschau `docs/karten/koeln.svg`), Mauerradius 150 m: fünf Radialen von den Toren, zwei Ringstraßen um den Heumarkt, Wallgasse; 6 Bauzonen Kernlage, 12 Mauerring, 1 Vorstadt Deutz, 6 Umland; 10 Rohstoffvorkommen; 8 Startgrundstücke am äußeren Ring; linkes Rheinufer, Mauerhalbkreis mit Toren, Dom als Baustelle, Hafen, **Rheinbrücke nach Deutz (Fiktion)**, Fähre, Umland Kölner Bucht, Ville, Königsforst, Bergische Höhen, Siebengebirge, Eifel |
-| Greybox (Testkarte) | **Kartendatei Format 2** (`game/data/karten/greybox.json`, Vorschau `docs/karten/greybox.svg`): die Platzhalter-Stadt in Weltkoordinaten mit allem, was in Stadt und Umland steht (bis PR #163 fest im Code gezeichnet), mit 11 Bauzonen für das freie Bauen, davon 3 in Kernlage (Abschnitt „Greybox-Karte“) |
+| Köln (Pilot) | **Kartendatei Format 2** (`game/karten/koeln.json`, Vorschau `docs/karten/koeln.svg`), Mauerradius 150 m: fünf Radialen von den Toren, zwei Ringstraßen um den Heumarkt, Wallgasse; 6 Bauzonen Kernlage, 12 Mauerring, 1 Vorstadt Deutz, 6 Umland; 10 Rohstoffvorkommen; 8 Startgrundstücke am äußeren Ring; linkes Rheinufer, Mauerhalbkreis mit Toren, Dom als Baustelle, Hafen, **Rheinbrücke nach Deutz (Fiktion)**, Fähre, Umland Kölner Bucht, Ville, Königsforst, Bergische Höhen, Siebengebirge, Eifel |
+| Greybox (Testkarte) | **Kartendatei Format 2** (`game/karten/greybox.json`, Vorschau `docs/karten/greybox.svg`): die Platzhalter-Stadt in Weltkoordinaten mit allem, was in Stadt und Umland steht (bis PR #163 fest im Code gezeichnet), mit 11 Bauzonen für das freie Bauen, davon 3 in Kernlage (Abschnitt „Greybox-Karte“) |
 | weitere ca. 7 | offen |
 
 Später: **Reichskarte**, über die man zwischen den Städten wechselt (Idee festgehalten, nicht jetzt).
 
 ## 9. Kartendatei
 
-Jede Stadt ist **eine JSON-Datei** `game/data/karten/<kennung>.json`. Sie entsteht aus einem Python-Skript `tools/karten/<kennung>.py`, nie von Hand (bis zum Level-Editor, siehe `docs/bereiche/leveldesign.md`). Das Skript prüft die Kartenregeln und schreibt nur, wenn alle erfüllt sind; dazu ein Vorschaubild `docs/karten/<kennung>.svg`, das nur aus der JSON-Datei und dem Gebäudekatalog gezeichnet wird (auf GitHub direkt ansehbar). Seit PR #163 schreibt das Werkzeug **Kartenformat 2** (Abschnitt unten).
+Jede Stadt ist **eine JSON-Datei** `game/karten/<kennung>.json`. Sie entsteht aus einem Python-Skript `tools/karten/<kennung>.py`, nie von Hand (bis zum Level-Editor, siehe `docs/bereiche/leveldesign.md`). Das Skript prüft die Kartenregeln und schreibt nur, wenn alle erfüllt sind; dazu ein Vorschaubild `docs/karten/<kennung>.svg`, das nur aus der JSON-Datei und dem Gebäudekatalog gezeichnet wird (auf GitHub direkt ansehbar). Seit PR #163 schreibt das Werkzeug **Kartenformat 2** (Abschnitt unten).
 
 ```bash
 python3 tools/karten/koeln.py             # Köln prüfen und neu schreiben
@@ -223,14 +223,14 @@ Koordinaten wie bisher: Meter, x = Osten, z = Süden, Ursprung am Markt. **Drehu
 
 ### Gebäudekatalog (21.10.2026)
 
-Eine Datei **`game/data/katalog.json`** für alle Karten: je Baustein, **was** er ist. Neue Modelle trägt der Modell-Agent gleich ein. Anker (Tür, Hof, Karren) liest das Spiel wie bisher aus dem Modell. Gelesen von `Gebaeudekatalog.cs`; im Spielstand liegt er mit der Karte (wie die Wirtschaftsdaten).
+Eine Datei **`game/daten/katalog.json`** für alle Karten: je Baustein, **was** er ist. Neue Modelle trägt der Modell-Agent gleich ein. Anker (Tür, Hof, Karren) liest das Spiel wie bisher aus dem Modell. Gelesen von `Gebaeudekatalog.cs`; im Spielstand liegt er mit der Karte (wie die Wirtschaftsdaten).
 
 | Feld | Inhalt |
 |---|---|
 | `kennung` | eindeutig, klein, ohne Leerzeichen (`grube`, `werkstattplatz`) – darauf verweisen die Karten |
 | `art` | `werkstattplatz`, `wohnhausplatz`, `einwohnerplatz`, `kulisse`, `sonderbau`, `umlandbetrieb`, `umlandstelle`, `berg` (diese stehen unter `gebaeude`); `mauer` (unter `mauern`); `natur` (unter `natur`); `werkstatt`, `wohnhaus`, `einwohnerhaus` (wählt das Spiel nach Beruf, Stufe, Hausart – stehen nie in einer Karte) |
 | `name` | Anzeigename für Werkzeug und Editor |
-| `modell` | Datei unter `game/assets/modelle/` ohne `.glb`; fehlt bei Plätzen (das Modell folgt dem Betrieb, der Stufe, der Hausart) |
+| `modell` | Datei unter `game/assets/modelle/` mit Unterordner, ohne `.glb` (`gebaeude/schmied`, `umland/grube`, `natur/natur_baeume`; Unterordner siehe `docs/ARCHITEKTUR.md`, „Ordner im Godot-Projekt“); fehlt bei Plätzen (das Modell folgt dem Betrieb, der Stufe, der Hausart) |
 | `knoten` | Knoten im Modell, wenn die Datei ein Baukasten ist (`Weide` in `umland_stellen`, `Tanne` in `natur_baeume`) |
 | `varianten` | Natur: Anzahl der Varianten des Knotens (`Tanne1` … `Tanne3`), Vorgabe 1 |
 | `groesse` | [Breite an der Vorderseite, Tiefe] in Metern, inklusive Vorplatz – die belegte Fläche (LEVELDESIGN „Gebäudegrößen“). Pflicht außer bei `mauer` und `natur` |
