@@ -1859,7 +1859,7 @@ def bauen():
     si.steinraum(werk, decken["Werk"], None, st, SX0, SX1, SY0, SY1, H_SAK, {
         "vorne": dict(oeffnungen=oeff["vorne"], laibung=False, dicke=WAND_S),
         "rechts": dict(oeffnungen=oeff["rechts"], aussen=False, laibung=False, dicke=WAND),
-        "hinten": dict(dicke=WAND_S),
+        "hinten": dict(dicke=WAND_S, aussen=False),                       # dahinter liegt die Schatzkammer
         "links": dict(dicke=WAND_S),
     }, saat=7, frei=frei)
     liste = []
