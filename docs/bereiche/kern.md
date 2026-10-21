@@ -198,6 +198,13 @@ So wird eingetragen (damit sich die Chats nie an derselben Stelle treffen):
 | Alte Spielstände | Karte in Format 1 im Spielstand → Kartendatei derselben `kennung` (andere Kennung: Fehlermeldung). Werkstätten in der Stadt ohne Platz bekommen beim Laden ein Grundstück an der ersten freien Stelle der Bauzonen (fertig gebaut, gespeichert wie ein Neubau, also beim nächsten Laden derselbe Platz); freie Werkstätten zum Kauf ohne Platz (Daten vor Version 40) sind nicht mehr zu haben. | 21.10.2026 |
 | Messung | `messen 30 20 greybox` auf main `ac32342` + diesem Branch: Ausgabe zeichengleich mit main (Eisenbart Ø 156.891, Eichwald 100.413, Kieselbach 149.875) – mit der umgestellten Karte und ebenso mit der Karte aus dem Werkzeug (Funktions-Branch `824ceb2`). | 21.10.2026 |
 
+### Einrichtung des Parfumeurs (PR #165)
+
+| Thema | Entscheidung | Datum |
+|---|---|---|
+| Stücke | Wie bei den anderen Werkstätten, eigenes Stück: Venezianische Glasflakons (−10 % Zeit für Moschusduft, Fechterduft, Heiligenduft). Dazu Gutes Werkzeug, Meisterwerkzeug (ab Stufe 2, braucht Gutes Werkzeug), Regale (60 statt 40 je Ware), Löschfass, Eisentür, Lederhandschuhe. Gleiche Preise. Nur Daten. | 21.10.2026 |
+| Daten | `werkstatt.einrichtung.Parfumeur` mit den Kennungen `Werkzeug1`, `Werkzeug2`, `Glasflakons` (Name „Venezianische Glasflakons“, 350 Gulden), `Regale` (Name „Flakonregale“), `Loeschfass`, `Eisentuer`, `Handschuhe` (Name „Lederhandschuhe“, 80 Gulden) – wie die Knoten `Einrichtung_<Kennung>` im Raummodell. Gilt für Siederei, Duftwerkstatt und Parfumerie, nicht für den Duftgarten (keine Werkstatt). **Datenversion 41.** Keine Messung: Die KI-Häuser kaufen keine Einrichtung. | 21.10.2026 |
+
 ## Messungen
 
 Messungen des Kerns stehen in `docs/WIRTSCHAFTSMODELL.md` (nur der Kern schreibt dort).

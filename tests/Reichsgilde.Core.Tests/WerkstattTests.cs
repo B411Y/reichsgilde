@@ -75,6 +75,17 @@ static class WerkstattTests
         return (w, k, t);
     }
 
+    /// <summary>Ein Haus mit Siederei ohne Karren, Lager mit Lavendel und Jasmin gefüllt.</summary>
+    static (Stadtwirtschaft W, Konto K, Betrieb S) Siederei(Simulation sim, double vermoegen = 20_000)
+    {
+        var w = sim.Wirtschaft!;
+        var k = w.KontoEroeffnen("Haus Rosenhain", startvermoegen: vermoegen);
+        var s = w.BetriebEroeffnen("Siederei an der Seifengasse", Betriebsart.Siederei, k, startkarren: "");
+        s.Einlagern("Lavendel", 40);
+        s.Einlagern("Jasmin", 40);
+        return (w, k, s);
+    }
+
     static void BisUhrzeit(Simulation sim, int stunde)
     {
         while (sim.Zeit.UhrzeitInMinuten < stunde * 60) sim.Tick();
@@ -111,7 +122,7 @@ static class WerkstattTests
         ("Werkstatt: Daten – Abschnitt „werkstatt“ mit drei Lohnstufen und genau den sieben Stücken des Schmieds (Kennungen wie im Raummodell)", () =>
         {
             var d = Daten.Value.Werkstatt!;
-            Pruefe.Gleich(40, Daten.Value.Version);
+            Pruefe.Gleich(41, Daten.Value.Version);
             Pruefe.Ungefaehr(1, d.Stufe(Lohnstufe.Ueblich).LohnFaktor, 1e-12);
             Pruefe.Gleich(0.0, d.Stufe(Lohnstufe.Ueblich).Laune);
             Pruefe.Wahr(d.Stufe(Lohnstufe.Knapp).LohnFaktor < 1 && d.Stufe(Lohnstufe.Gut).LohnFaktor > 1, "Lohnfaktoren");
@@ -666,6 +677,124 @@ static class WerkstattTests
             Pruefe.Ungefaehr(30 * 0.81, t.MinutenJeStueck("Farbe"), 1e-9);
             // Der Kräutergarten gehört auch zum Alchimisten, ist aber keine Werkstatt.
             var g = w.BetriebEroeffnen("Kräutergarten Fuchs", Betriebsart.Kraeutergarten, k, startkarren: "");
+            Pruefe.Gleich(0, w.Werkstaetten.Einrichtungsliste(g).Count);
+            Abgelehnt(w, k, new EinrichtungKaufen(g.Name, "Regale"), "kein Stück „Regale“");
+            Pruefe.Gleich(0.0, w.Werkstaetten.UnfallGefahr(g));
+        }),
+
+        ("Werkstatt: Daten – der Parfumeur hat sieben Stücke (Kennungen wie im Raummodell) zu den Preisen des Schmieds, mit Glasflakons statt Blasebalg und Handschuhen statt Schürzen", () =>
+        {
+            var d = Daten.Value.Werkstatt!;
+            var parfumeur = d.EinrichtungFuer("Parfumeur");
+            Pruefe.Gleich("Werkzeug1 Werkzeug2 Glasflakons Regale Loeschfass Eisentuer Handschuhe", string.Join(" ", parfumeur.Select(e => e.Kennung)));
+            Pruefe.Gleich("Gutes Werkzeug, Meisterwerkzeug, Venezianische Glasflakons, Flakonregale, Löschfass, Eisentür, Lederhandschuhe",
+                string.Join(", ", parfumeur.Select(e => e.Name)));
+            foreach (var e in parfumeur.Where(e => e.Kennung != "Glasflakons"))
+            {
+                var schmied = d.Stueck("Schmied", e.Kennung == "Handschuhe" ? "Schuerzen" : e.Kennung)!;
+                Pruefe.Gleich(schmied.Preis, e.Preis, $"Preis {e.Kennung}");
+                Pruefe.Gleich(schmied.Wirkung.Text(), e.Wirkung.Text(), $"Wirkung {e.Kennung}");
+            }
+            Pruefe.Gleich(350.0, d.Stueck("Parfumeur", "Glasflakons")!.Preis);
+            Pruefe.Gleich("Werkzeug1", d.Stueck("Parfumeur", "Werkzeug2")!.Voraussetzung);
+            Pruefe.Gleich(2, d.Stueck("Parfumeur", "Werkzeug2")!.AbStufe);
+            Pruefe.Gleich("Moschusduft Fechterduft Heiligenduft", string.Join(" ", d.Stueck("Parfumeur", "Glasflakons")!.Wirkung.Waren));
+            foreach (var ware in d.Stueck("Parfumeur", "Glasflakons")!.Wirkung.Waren)
+                Pruefe.Wahr(Daten.Value.Waren.ContainsKey(ware), $"Ware {ware} gibt es");
+            Pruefe.Ungefaehr(0.5, d.Stueck("Parfumeur", "Handschuhe")!.Wirkung.UnfallFaktor, 1e-12);
+            Pruefe.Wahr(d.Stueck("Parfumeur", "Schuerzen") is null, "Der Parfumeur hat Handschuhe, keine Schürzen");
+        }),
+
+        ("Werkstatt: Parfumeur – Werkzeug spart Zeit bei allen Waren, die Glasflakons nur bei Moschusduft, Fechterduft, Heiligenduft; Flakonregale geben Lager", () =>
+        {
+            var sim = NeueSimulation();
+            var (w, k, s) = Siederei(sim, vermoegen: 5_000);
+            Pruefe.Wahr(w.Werkstaetten.Einrichtungsliste(s) is { Count: 7 } l && l.All(e => !e.Gekauft), "sieben Stücke, keins gekauft");
+            Ok(w, k, new EinrichtungKaufen(s.Name, "Glasflakons"));
+            Pruefe.Ungefaehr(4_650, k.Vermoegen, 1e-9);
+            Pruefe.Ungefaehr(350, k.Laufend.Investitionen, 1e-9);
+            foreach (var (ware, zeit) in new[] { ("Moschusduft", 70.0), ("Fechterduft", 60.0), ("Heiligenduft", 100.0) })
+                Pruefe.Ungefaehr(zeit * 0.9, s.MinutenJeStueck(ware), 1e-9);
+            foreach (var (ware, zeit) in new[] { ("Politur", 30.0), ("Blume der Zwietracht", 50.0), ("Giftdolch", 50.0), ("Schattendolch", 100.0) })
+                Pruefe.Ungefaehr(zeit, s.MinutenJeStueck(ware), 1e-9); // abgefüllt wird nur, was in den Flakon kommt
+            Ok(w, k, new EinrichtungKaufen(s.Name, "Werkzeug1"));
+            Pruefe.Ungefaehr(70 * 0.81, s.MinutenJeStueck("Moschusduft"), 1e-9);
+            Pruefe.Ungefaehr(30 * 0.9, s.MinutenJeStueck("Politur"), 1e-9);
+            Pruefe.Gleich(40, s.LagerKapazitaetJeWare);
+            Ok(w, k, new EinrichtungKaufen(s.Name, "Regale"));
+            Pruefe.Gleich(60, s.LagerKapazitaetJeWare);
+            foreach (var kennung in new[] { "Loeschfass", "Eisentuer", "Handschuhe" }) Ok(w, k, new EinrichtungKaufen(s.Name, kennung));
+            Pruefe.Gleich((0.5, 0.5, 0.5), (s.BrandFaktor, s.EinbruchFaktor, s.UnfallFaktor));
+            Pruefe.Ungefaehr(5_000 - 350 - 300 - 200 - 100 - 300 - 80, k.Vermoegen, 1e-9);
+            Abgelehnt(w, k, new EinrichtungKaufen(s.Name, "Schuerzen"), "kein Stück „Schuerzen“");
+            Abgelehnt(w, k, new EinrichtungKaufen(s.Name, "Destillierhelm"), "kein Stück „Destillierhelm“");
+            Abgelehnt(w, k, new EinrichtungKaufen(s.Name, "Werkzeug2"), "erst ab Stufe 2");
+            Ok(w, k, new ProduktWaehlen(s.Name, "Politur"));
+            Ok(w, k, new PersonalSetzen(s.Name, "Geselle", 1));
+            BisUhrzeit(sim, 14);
+            Pruefe.Wahr(s.ImLager("Politur") == 13, $"Politur mit Werkzeug: {s.ImLager("Politur")} (360 / 27 ≈ 13,3; ohne Werkzeug 360 / 30 = 12)");
+            var liste = w.Werkstaetten.Einrichtungsliste(s);
+            Pruefe.Gleich("10 % weniger Zeit je Stück (Moschusduft, Fechterduft, Heiligenduft)", liste.Single(e => e.Kennung == "Glasflakons").Wirkung);
+            Pruefe.Gleich("Venezianische Glasflakons", liste.Single(e => e.Kennung == "Glasflakons").Name);
+            Pruefe.Gleich("Flakonregale", liste.Single(e => e.Kennung == "Regale").Name);
+            Pruefe.Gleich("20 mehr Lager je Ware", liste.Single(e => e.Kennung == "Regale").Wirkung);
+            Pruefe.Gleich("Lederhandschuhe", liste.Single(e => e.Kennung == "Handschuhe").Name);
+            Pruefe.Gleich("Unfälle halb so oft", liste.Single(e => e.Kennung == "Handschuhe").Wirkung);
+            Pruefe.Ungefaehr(0.03 * 0.5, w.Werkstaetten.UnfallGefahr(s), 1e-12); // Gefahr des Parfumeurs je Arbeiter und Jahr
+        }),
+
+        ("Werkstatt: Parfumeur – Lederhandschuhe halbieren die Unfälle in der Siederei (Gefahr und gezählt über viele Jahre)", () =>
+        {
+            int Zaehlen(bool handschuhe)
+            {
+                var sim = NeueSimulation(DatenMit(x => x["unfall"]!["gefahr"]!["Parfumeur"] = 0.3), startwert: 77);
+                var w = sim.Wirtschaft!;
+                var k = w.KontoEroeffnen("Haus Rosenhain", startvermoegen: 100_000);
+                for (var i = 0; i < 8; i++)
+                {
+                    var s = w.BetriebEroeffnen($"Siederei {i}", Betriebsart.Siederei, k, startkarren: "");
+                    Ok(w, k, new PersonalSetzen(s.Name, "Geselle", 2));
+                    if (handschuhe) Ok(w, k, new EinrichtungKaufen(s.Name, "Handschuhe"));
+                    Pruefe.Ungefaehr(handschuhe ? 0.15 : 0.3, w.Werkstaetten.UnfallGefahr(s), 1e-12);
+                }
+                var zahl = 0;
+                w.Meldung += m => { if (m.StartsWith("Unfall in Siederei")) zahl++; };
+                JahreSimulieren(sim, 20);
+                return zahl;
+            }
+            var ohne = Zaehlen(false);
+            var mit = Zaehlen(true);
+            // Je Arbeiter und Jahr höchstens ein Unfall (danach fehlt er): 1 − (1 − 0,3/12)^12 ≈ 26 %, mit Handschuhen ≈ 14 %.
+            Pruefe.Wahr(ohne is > 60 and < 110, $"ohne Handschuhe {ohne} Unfälle (erwartet ≈ 84)");
+            Pruefe.Wahr(mit / (double)ohne is > 0.35 and < 0.72, $"mit Handschuhen {mit}, ohne {ohne}");
+        }),
+
+        ("Werkstatt: Parfumeur – Meisterwerkzeug erst ab der Duftwerkstatt und nur mit gutem Werkzeug; die Einrichtung gilt in allen drei Stufen, nicht im Duftgarten", () =>
+        {
+            var sim = NeueSimulation();
+            var (w, k, s) = Siederei(sim);
+            Ok(w, k, new EinrichtungKaufen(s.Name, "Regale"));
+            Ok(w, k, new EinrichtungKaufen(s.Name, "Glasflakons"));
+            Abgelehnt(w, k, new EinrichtungKaufen(s.Name, "Werkzeug2"), "erst ab Stufe 2");
+            s.Ausbauen(Betriebsart.Duftwerkstatt, 0);
+            Pruefe.Gleich(7, w.Werkstaetten.Einrichtungsliste(s).Count);
+            Pruefe.Wahr(s.HatEinrichtung("Regale") && s.LagerKapazitaetJeWare == 60, "Flakonregale nach dem Ausbau");
+            Abgelehnt(w, k, new EinrichtungKaufen(s.Name, "Werkzeug2"), "Erst braucht es: Gutes Werkzeug");
+            Ok(w, k, new EinrichtungKaufen(s.Name, "Werkzeug1"));
+            Ok(w, k, new EinrichtungKaufen(s.Name, "Werkzeug2"));
+            Pruefe.Ungefaehr(50 * 0.81, s.MinutenJeStueck("Giftdolch"), 1e-9);
+            Pruefe.Ungefaehr(70 * 0.729, s.MinutenJeStueck("Moschusduft"), 1e-9);
+            Pruefe.Ungefaehr(60 * 0.729, s.MinutenJeStueck("Fechterduft"), 1e-9);
+            s.Ausbauen(Betriebsart.Parfumerie, 0);
+            Pruefe.Gleich(3, s.Stufe);
+            var liste = w.Werkstaetten.Einrichtungsliste(s);
+            Pruefe.Gleich(7, liste.Count);
+            Pruefe.Gleich("Werkzeug1 Werkzeug2 Glasflakons Regale", string.Join(" ", liste.Where(e => e.Gekauft).Select(e => e.Kennung)));
+            Pruefe.Ungefaehr(100 * 0.729, s.MinutenJeStueck("Heiligenduft"), 1e-9);
+            Pruefe.Ungefaehr(100 * 0.81, s.MinutenJeStueck("Schattendolch"), 1e-9);
+            Pruefe.Ungefaehr(50 * 0.81, s.MinutenJeStueck("Blume der Zwietracht"), 1e-9);
+            // Der Duftgarten gehört auch zum Parfumeur, ist aber keine Werkstatt.
+            var g = w.BetriebEroeffnen("Duftgarten Rosenhain", Betriebsart.Duftgarten, k, startkarren: "");
             Pruefe.Gleich(0, w.Werkstaetten.Einrichtungsliste(g).Count);
             Abgelehnt(w, k, new EinrichtungKaufen(g.Name, "Regale"), "kein Stück „Regale“");
             Pruefe.Gleich(0.0, w.Werkstaetten.UnfallGefahr(g));

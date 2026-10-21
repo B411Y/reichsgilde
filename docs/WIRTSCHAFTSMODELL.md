@@ -1055,6 +1055,12 @@ Bürgermeister 18/20 → 16/20 (im Schnitt ab Jahr 14,2 → 13,4), Stand am Ende
 
 **Keine Messung:** Die KI-Häuser kaufen keine Einrichtung, in `messen` ändert sich nichts.
 
+## Einrichtung des Parfumeurs (PR #165)
+
+**Regel:** `werkstatt.einrichtung.Parfumeur` (Datenversion 41), gleiche Stücke und Preise wie beim Alchimisten, statt des Destillierhelms die **venezianischen Glasflakons** (350): −10 % Zeit für Moschusduft, Fechterduft und Heiligenduft (nicht für Politur, Blume der Zwietracht, Giftdolch, Schattendolch). Mit gutem Werkzeug und Glasflakons braucht ein Moschusduft 70 × 0,81 ≈ 57 statt 70 Minuten, ein Geselle schafft in 6 Stunden 6 statt 5. Die Flakonregale (`Regale`) geben 60 statt 40 Lager je Ware, die Lederhandschuhe (`Handschuhe`, 80) halbieren die Unfälle (Gefahr des Parfumeurs 3 % → 1,5 % je Arbeiter und Jahr). Gilt in Siederei, Duftwerkstatt und Parfumerie, nicht im Duftgarten.
+
+**Keine Messung:** Die KI-Häuser kaufen keine Einrichtung, in `messen` ändert sich nichts.
+
 ## Keine Werkstätten zum Kauf in der Stadt (PR #162)
 
 **Regel:** Datenversion 40. Unter `liegenschaften` stehen nur noch die neun Umlandbetriebe zur Pacht; die zehn Werkstätten der Stadt (Gießerei an der Südgasse … Wechselstube am Markt) sind gestrichen. Neue Werkstätten entstehen durch Bauen, frei werden welche durch Verkauf oder Untergang eines Hauses. Der Preis der Stufe 1 steht jetzt als `kaufpreis` an der Betriebsart (3.500, Schmugglerloch 3.000) – unverändert gegenüber den gestrichenen Liegenschaften, also gleicher Neubaupreis und gleicher Wert beim Verkauf.

@@ -9,10 +9,10 @@ namespace Reichsgilde;
 /// Innenräume aus Blender-Modellen – elfter Teil der <c>partial class Stadtansicht</c> (PR #152).
 ///
 /// Ein Beruf bekommt seinen Innenraum, indem <see cref="InnenModellDatei"/> eine Datei nennt (Schmied: <c>schmied_innen.glb</c>, Tischler:
-/// <c>tischler_innen.glb</c>, Steinmetz: <c>steinmetz_innen.glb</c>, Alchimist: <c>alchimist_innen.glb</c>). Alles Weitere liest dieses Gerüst aus den Knotennamen des Modells (Verträge: <c>docs/bereiche/darstellung.md</c>):
+/// <c>tischler_innen.glb</c>, Steinmetz: <c>steinmetz_innen.glb</c>, Alchimist: <c>alchimist_innen.glb</c>, Parfumeur: <c>parfumeur_innen.glb</c>). Alles Weitere liest dieses Gerüst aus den Knotennamen des Modells (Verträge: <c>docs/bereiche/darstellung.md</c>):
 /// <list type="bullet">
-/// <item><c>Raum_Werk</c>, <c>Raum_Lager</c>, <c>Raum_Saege</c>, <c>Raum_Huette</c>, <c>Raum_Laden</c>, <c>Raum_Turm</c> – die Räume (glTF-extras „stufe“ auf dem Raumknoten: erst ab dieser Betriebsstufe da,
-/// so die Sägehalle des Tischlers und die Bauhütte des Steinmetzen ab Stufe 3, siehe <see cref="ModellRaeume"/>); <c>Blick_&lt;Raum&gt;_&lt;0|L1|R1|O1|U1…&gt;</c> – feste Blickpunkte der Kamera (Stadtansicht.Innenkamera.cs)</item>
+/// <item><c>Raum_Werk</c>, <c>Raum_Lager</c>, <c>Raum_Saege</c>, <c>Raum_Huette</c>, <c>Raum_Laden</c>, <c>Raum_Turm</c>, <c>Raum_Pavillon</c> – die Räume (glTF-extras „stufe“ auf dem Raumknoten: erst ab dieser Betriebsstufe da,
+/// so die Sägehalle des Tischlers, die Bauhütte des Steinmetzen und der Duftpavillon des Parfumeurs ab Stufe 3, siehe <see cref="ModellRaeume"/>); <c>Blick_&lt;Raum&gt;_&lt;0|L1|R1|O1|U1…&gt;</c> – feste Blickpunkte der Kamera (Stadtansicht.Innenkamera.cs)</item>
 /// <item><b>Stufenregel:</b> jeder Knoten mit extras „stufe“ &gt; 1 ist erst ab dieser Betriebsstufe sichtbar (<see cref="ModellRaumDaten.StufenKnoten"/>); ausgenommen sind die Anker mit eigener Regel
 /// (<c>Arbeit_</c>, <c>Werkstueck_</c>, <c>Licht_</c>, <c>Dampf_</c>, <c>Auslage_</c>, <c>Blick_</c>), die ihre Stufe selbst auswerten</item>
 /// <item><c>Stufe1</c>–<c>Stufe3</c> – Ausstattung der Betriebsstufe (genau eine sichtbar); <c>Einrichtung_&lt;Kennung&gt;</c> – gekaufte Einrichtung (erst nach dem Kauf sichtbar)</item>
@@ -33,6 +33,7 @@ public partial class Stadtansicht
         Werkstil.Tischlerei => "innen/tischler_innen",
         Werkstil.Maurerei => "innen/steinmetz_innen",
         Werkstil.Tinkturei => "innen/alchimist_innen",
+        Werkstil.Siederei => "innen/parfumeur_innen",
         _ => null,
     };
 
@@ -49,6 +50,7 @@ public partial class Stadtansicht
         (RaumHuette, "Huette", "Bauhütte", 3),
         (RaumLaden, "Laden", "Laden", 2),
         (RaumTurm, "Turm", "Laborturm", 3),
+        (RaumPavillon, "Pavillon", "Duftpavillon", 3),
     };
 
     /// <summary>
@@ -62,6 +64,7 @@ public partial class Stadtansicht
         [(Werkstil.Tischlerei, "Gatter")] = 2.0,     // Stamm nachschieben, der Rahmen der Gattersäge geht mit
         [(Werkstil.Maurerei, "Saegen")] = 1.0,       // die rechte Hand führt den Rahmen der Steinsäge
         [(Werkstil.Maurerei, "Schleifen")] = 1.2,    // der Fuß tritt den Tritt, die Kurbel dreht den Schleifstein
+        [(Werkstil.Siederei, "Pressen")] = 3.0,      // die Hände liegen am Querhebel, die Spindel der Presse dreht genau nach der Bewegung
     };
 
     /// <summary>Mit so vielen Kisten steht ein volles Lager einer Ware (Höhe der Warenstapel).</summary>
@@ -254,7 +257,7 @@ public partial class Stadtansicht
         md.Auslageplaetze.Sort((x, y) => NummerImNamen(x).CompareTo(NummerImNamen(y)));
         RaumEbeneUebernehmen(wurzel); // alles, was bis hier im Modell steht, auch Lichter, Werkstücke und Dampf
 
-        // Räume in der Reihenfolge der Raumleiste (Mitte, Maße und Wände stehen im Modell). Ein Raum mit „stufe“ (Sägehalle, Bauhütte, Laden, Laborturm) steht erst ab dieser Stufe in der Leiste.
+        // Räume in der Reihenfolge der Raumleiste (Mitte, Maße und Wände stehen im Modell). Ein Raum mit „stufe“ (Sägehalle, Bauhütte, Laden, Laborturm, Duftpavillon) steht erst ab dieser Stufe in der Leiste.
         foreach (var (kennung, schluessel, name, vorgabe) in ModellRaeume(stil)) // die Vorgabe gilt, wenn die „extras“ fehlen
             if (md.Blicke.TryGetValue(schluessel, out var blicke) && blicke.Count > 0)
             {
@@ -518,7 +521,7 @@ public partial class Stadtansicht
     };
 
     /// <summary>Raumschlüssel in der Reihenfolge ihrer Render-Ebene (11 bis 16): Jeder Raum eines Modells hat seine eigene.</summary>
-    private static readonly string[] RaumEbenen = { "Werk", "Lager", "Saege", "Huette", "Laden", "Turm" };
+    private static readonly string[] RaumEbenen = { "Werk", "Lager", "Saege", "Huette", "Laden", "Turm", "Pavillon" };
 
     /// <summary>
     /// Legt alles unter <paramref name="knoten"/> auf die Render-Ebene seines Raums und lässt jedes Licht nur diese Ebene beleuchten. Die Räume liegen
@@ -546,7 +549,7 @@ public partial class Stadtansicht
         foreach (var kind in knoten.GetChildren()) EbeneSetzen(kind, ebene);
     }
 
-    /// <summary>Schlüssel des Raums, in dem der Knoten liegt: der Name des nächsten Vorfahren „Raum_&lt;Schlüssel&gt;“ („Werk“, „Lager“, „Saege“, „Huette“, „Laden“, „Turm“), sonst leer.</summary>
+    /// <summary>Schlüssel des Raums, in dem der Knoten liegt: der Name des nächsten Vorfahren „Raum_&lt;Schlüssel&gt;“ („Werk“, „Lager“, „Saege“, „Huette“, „Laden“, „Turm“, „Pavillon“), sonst leer.</summary>
     private static string RaumSchluesselVon(Node knoten)
     {
         for (var k = knoten; k is not null; k = k.GetParent())
@@ -959,16 +962,22 @@ public partial class Stadtansicht
     /// <summary>In dieser Reihenfolge füllt sich die Reihe: erst die Mitte, dann abwechselnd links und rechts.</summary>
     private static readonly int[] AuslageFolge = { 2, 1, 3, 0, 4 };
 
-    private static StandardMaterial3D? _auslageKork;
+    private static StandardMaterial3D? _auslageKork, _auslageMessing;
     private static readonly Dictionary<string, Mesh> _auslageNetze = new();
 
-    /// <summary>Die Netze der Gefäße (Flaschenbauch, Hals, Kork, Tiegel, Deckel), alle Reihen teilen sie.</summary>
+    /// <summary>Die Netze der Gefäße (Flaschenbauch, Hals, Kork, Tiegel, Deckel, beim Parfumeur Flakon und Phiole), alle Reihen teilen sie.</summary>
     private static Mesh AuslageNetz(string art) => _auslageNetze.TryGetValue(art, out var netz) ? netz : _auslageNetze[art] = art switch
     {
         "Bauch" => new CylinderMesh { TopRadius = 0.046f, BottomRadius = 0.062f, Height = 0.16f, RadialSegments = 12, Rings = 1 },
         "Hals" => new CylinderMesh { TopRadius = 0.020f, BottomRadius = 0.026f, Height = 0.09f, RadialSegments = 10, Rings = 1 },
         "Kork" => new CylinderMesh { TopRadius = 0.026f, BottomRadius = 0.022f, Height = 0.035f, RadialSegments = 10, Rings = 1 },
         "Tiegel" => new CylinderMesh { TopRadius = 0.062f, BottomRadius = 0.066f, Height = 0.105f, RadialSegments = 12, Rings = 1 },
+        // Parfumeur: Flakon mit achteckigem Bauch, kurzem Hals und Kugelstöpsel; schlanke Phiole mit Korken
+        "FlakonBauch" => new CylinderMesh { TopRadius = 0.052f, BottomRadius = 0.064f, Height = 0.12f, RadialSegments = 8, Rings = 1 },
+        "FlakonHals" => new CylinderMesh { TopRadius = 0.018f, BottomRadius = 0.022f, Height = 0.05f, RadialSegments = 8, Rings = 1 },
+        "Stoepsel" => new SphereMesh { Radius = 0.03f, Height = 0.06f, RadialSegments = 10, Rings = 5 },
+        "PhioleBauch" => new CylinderMesh { TopRadius = 0.026f, BottomRadius = 0.04f, Height = 0.19f, RadialSegments = 10, Rings = 1 },
+        "PhioleKork" => new CylinderMesh { TopRadius = 0.022f, BottomRadius = 0.018f, Height = 0.03f, RadialSegments = 8, Rings = 1 },
         _ => new CylinderMesh { TopRadius = 0.066f, BottomRadius = 0.07f, Height = 0.03f, RadialSegments = 12, Rings = 1 }, // Deckel
     };
 
@@ -1015,14 +1024,17 @@ public partial class Stadtansicht
     }
 
     /// <summary>
-    /// Baut die fünf Gefäße einer Reihe am Anker (Mitte der Brettoberkante, −Z zeigt in den Laden): abwechselnd Flasche und Tiegel, alle unsichtbar, bis Ware da ist.
-    /// Die Farbe der Ware trägt ein Material je Reihe, Hals, Kork und Deckel sind aus dunklem Holz und Wachs.
+    /// Baut die fünf Gefäße einer Reihe am Anker (Mitte der Brettoberkante, −Z zeigt in den Laden): abwechselnd Flasche und Tiegel, beim Parfumeur (Siederei) abwechselnd
+    /// Flakon mit Kugelstöpsel und schlanke Phiole, alle unsichtbar, bis Ware da ist.
+    /// Die Farbe der Ware trägt ein Material je Reihe, Hals, Kork und Deckel sind aus dunklem Holz und Wachs, die Stöpsel der Flakons aus Messing.
     /// </summary>
     private AuslagePlatz AuslageBauen(BetriebsAnsicht a, Node3D anker)
     {
         var stoff = Material(Colors.White);
         stoff.Roughness = 0.45f;
         _auslageKork ??= Material(new Color(0.34f, 0.23f, 0.14f));
+        _auslageMessing ??= Material(new Color(0.72f, 0.56f, 0.24f));
+        var duft = a.Stil == Werkstil.Siederei;
         var gefaesse = new Node3D[AuslageReihe];
         for (var i = 0; i < AuslageReihe; i++)
         {
@@ -1033,7 +1045,18 @@ public partial class Stadtansicht
                 Visible = false,
             };
             MeshInstance3D Teil(string art, float hoehe, StandardMaterial3D material) => new() { Mesh = AuslageNetz(art), MaterialOverride = material, Position = new Vector3(0, hoehe, 0) };
-            if (i % 2 == 0) // Flasche: Bauch, Hals, Kork
+            if (duft && i % 2 == 0) // Flakon: achteckiger Bauch, Hals, Kugelstöpsel aus Messing
+            {
+                gefaess.AddChild(Teil("FlakonBauch", 0.06f, stoff));
+                gefaess.AddChild(Teil("FlakonHals", 0.145f, stoff));
+                gefaess.AddChild(Teil("Stoepsel", 0.2f, _auslageMessing));
+            }
+            else if (duft) // Phiole: schlankes Fläschchen mit Kork
+            {
+                gefaess.AddChild(Teil("PhioleBauch", 0.095f, stoff));
+                gefaess.AddChild(Teil("PhioleKork", 0.205f, _auslageKork));
+            }
+            else if (i % 2 == 0) // Flasche: Bauch, Hals, Kork
             {
                 gefaess.AddChild(Teil("Bauch", 0.08f, stoff));
                 gefaess.AddChild(Teil("Hals", 0.205f, stoff));
@@ -1068,7 +1091,7 @@ public partial class Stadtansicht
     /// Der Name eines Bedienungsstücks auf seinem Schild: Das Personalbuch, das Hoftor und die Werkzeugwand heißen immer so, die anderen nach dem Knoten
     /// (Amboss, Werkbank, Hobelbank …); Umlaute stehen im Knotennamen umschrieben (<c>Kraeutertisch</c>), das Schild schreibt sie aus.
     /// </summary>
-    private static string BedienungName(string tafel, string ding) => (tafel, ding) switch
+    private static string BedienungName(Werkstil stil, string tafel, string ding) => (tafel, ding) switch
     {
         ("Personal", _) => "Personalbuch",
         ("Karren", _) => "Hoftor",
@@ -1076,6 +1099,8 @@ public partial class Stadtansicht
         ("Lager", "Bretter") => "Bretterstapel",
         ("Lager", "Quader") => "Quaderstapel",
         ("Lager", "Kraeuter") => "Kräuterbündel",
+        ("Lager", "Koerbe") => "Blütenkörbe",
+        ("Produktion", "Kessel") when stil == Werkstil.Siederei => "Brennkessel",
         (_, "Kraeutertisch") => "Kräutertisch",
         _ => ding,
     };
@@ -1086,7 +1111,7 @@ public partial class Stadtansicht
     /// </summary>
     public string InnenBedienungen => _innen is BetriebsAnsicht { Modellraum: { } md } a
         ? string.Join(", ", md.Bedienungen.Where(x => IstDaAbStufe(x.Knoten, md, Modellstufe(a.Betrieb.Stufe)))
-            .OrderBy(x => Array.IndexOf(BedienungTafeln, x.Tafel)).Select(x => BedienungName(x.Tafel, x.Name)).Distinct())
+            .OrderBy(x => Array.IndexOf(BedienungTafeln, x.Tafel)).Select(x => BedienungName(a.Stil, x.Tafel, x.Name)).Distinct())
         : "";
 
     /// <summary>Gibt es den Knoten in dieser Betriebsstufe? Nicht, wenn er selbst oder einer seiner Vorfahren (der Laden, der Turm) erst später dazukommt (<see cref="ModellRaumDaten.StufenKnoten"/>).</summary>
@@ -1103,7 +1128,7 @@ public partial class Stadtansicht
         switch (teile[0])
         {
             case "bedienung" when teile.Length >= 3:
-                return (BedienungName(teile[1], teile[2]), teile[1] switch
+                return (BedienungName(a.Stil, teile[1], teile[2]), teile[1] switch
                 {
                     "Personal" => "Klick: Arbeiter einstellen, befördern, entlassen, Lohn und Prämie",
                     "Produktion" => "Klick: Waren herstellen und Arbeiter zuteilen",
@@ -1117,7 +1142,7 @@ public partial class Stadtansicht
             case "tuer" when teile.Length >= 3:
                 return (teile[2] switch
                 {
-                    "Lager" => "Tür zum Lager", "Saege" => "Tür zur Sägehalle", "Huette" => "Tür zur Bauhütte", "Laden" => "Tür zum Laden", "Turm" => "Tür zum Laborturm",
+                    "Lager" => "Tür zum Lager", "Saege" => "Tür zur Sägehalle", "Huette" => "Tür zur Bauhütte", "Laden" => "Tür zum Laden", "Turm" => "Tür zum Laborturm", "Pavillon" => "Tür zum Duftpavillon",
                     _ => "Tür zum Werkraum",
                 }, "Klick: Raum wechseln");
             case "einrichtung" when teile.Length >= 2:

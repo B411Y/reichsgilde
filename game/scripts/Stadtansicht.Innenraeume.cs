@@ -1290,6 +1290,13 @@ public partial class Stadtansicht
         "Gegengift" => new Color(0.30f, 0.62f, 0.55f),
         "Theriak" => new Color(0.38f, 0.20f, 0.12f),        // dunkler Sud
         "Zinnober" => new Color(0.82f, 0.18f, 0.10f),
+        "Politur" => new Color(0.74f, 0.52f, 0.22f),           // goldbraun
+        "Blume der Zwietracht" => new Color(0.55f, 0.28f, 0.72f), // violett
+        "Giftdolch" => new Color(0.40f, 0.68f, 0.18f),         // giftgrün
+        "Moschusduft" => new Color(0.46f, 0.25f, 0.18f),       // dunkles Rotbraun
+        "Fechterduft" => new Color(0.28f, 0.45f, 0.68f),       // Stahlblau
+        "Heiligenduft" => new Color(0.93f, 0.88f, 0.68f),      // helles Elfenbein mit Gold
+        "Schattendolch" => new Color(0.24f, 0.14f, 0.36f),     // tiefes Violettschwarz
         _ => Streufarbe(ware),
     };
 
