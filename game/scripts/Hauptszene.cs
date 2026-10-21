@@ -962,7 +962,7 @@ public partial class Hauptszene : Node
                 TafelnSchliessen();
                 _familientafel.Oeffnen();
                 return true;
-            case Stadtansicht.RaumAmt or Stadtansicht.RaumKontor or Stadtansicht.RaumWerk or Stadtansicht.RaumLager or Stadtansicht.RaumSaege or Stadtansicht.RaumHuette or Stadtansicht.RaumLaden or Stadtansicht.RaumTurm or Stadtansicht.RaumPavillon:
+            case Stadtansicht.RaumAmt or Stadtansicht.RaumKontor or Stadtansicht.RaumWerk or Stadtansicht.RaumLager or Stadtansicht.RaumSaege or Stadtansicht.RaumHuette or Stadtansicht.RaumLaden or Stadtansicht.RaumTurm or Stadtansicht.RaumPavillon or Stadtansicht.RaumKueche or Stadtansicht.RaumSaal:
                 return true;
             default:
                 return false;

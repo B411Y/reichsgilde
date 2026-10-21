@@ -23,7 +23,9 @@ figur_mensch.glb geben; extras „requisit“ – das Werkzeug statt dem der Bew
 figur_mensch.glb sein), Stellplätze „Lager_<n>“ und Werkstücke „Werkstueck_<n>“ lückenlos ab 1; alle Anker und
 Blickpunkte liegen in einem Raum. Die Lage rechnet die Knotenhierarchie mit ein. Ein Werkstück darf statt eines leeren
 Knotens ein Netz sein (beim Alchimisten die Flüssigkeit, die das Spiel färbt); Stellplätze der Auslage „Auslage_<n>“ (im
-Laden) und Dampfquellen „Dampf_<n>“ sind freiwillig, gibt es sie, laufen sie lückenlos ab 1.
+Laden) und Dampfquellen „Dampf_<n>“ sind freiwillig, gibt es sie, laufen sie lückenlos ab 1. Ebenso freiwillig (Wirt): Plätze
+der Gäste „Gast_<n>“, „Gast_<Gruppe>_<n>“ (je Gruppe lückenlos ab 1), zu jedem ein „Krug_…“ mit derselben Endung, und Plätze
+des Barden „Barde_<n>“.
 Ein Raum mit extras „stufe“ (z. B. die Sägehalle des Tischlers ab Stufe 3, Laden und Turm des Alchimisten) gibt es erst ab
 dieser Stufe: Anker darin und Türen dorthin brauchen mindestens dieselbe „stufe“. Späne „Spaene1“–„Spaene3“ (falls vorhanden) sind lückenlos und
 standardmäßig aus. Hat die Datei Animationen, muss eine „Arbeit“ heißen; sie darf weder Räume noch Stufen, Anker oder
@@ -166,6 +168,7 @@ def innen(pfad, g):
             fehler.append(f"{art}_<n>: Nummern müssen lückenlos ab 1 laufen, gefunden {sorted(nummern)}")
     print("Arbeitsplätze {}, Stellplätze {}, Werkstücke {}, Auslage {}, Dampf {}".format(
         *(len(reihen[a]) for a in ("Arbeit", "Lager", "Werkstueck", "Auslage", "Dampf"))))
+    fehler += innen_gaeste(knoten)
     for art in ("Personal", "Produktion", "Lager", "Einrichten", "Karren"):
         if not any(n.startswith(f"Bedienung_{art}_") for n in knoten):
             fehler.append(f"keine Bedienung „Bedienung_{art}_…“")
@@ -185,12 +188,35 @@ def innen(pfad, g):
     return fehler
 
 
-ANKER = ("Blick_", "Arbeit_", "Lager_", "Werkstueck_", "Licht_", "Auslage_", "Dampf_")
+ANKER = ("Blick_", "Arbeit_", "Lager_", "Werkstueck_", "Licht_", "Auslage_", "Dampf_", "Gast_", "Krug_", "Barde_")
 
 
 def ist_anker(g, name, i):
     """Anker und Blickpunkte sind leere Knoten; nur ein Werkstück darf ein Netz sein."""
     return name.startswith(ANKER) and ("mesh" not in g["nodes"][i] or name.startswith("Werkstueck_"))
+
+
+def innen_gaeste(knoten):
+    """Plätze der Gäste (Gast_<n>, Gast_<Gruppe>_<n>) je Gruppe lückenlos ab 1, zu jedem ein Krug mit derselben Endung;
+    Plätze des Barden (Barde_<n>) lückenlos ab 1."""
+    fehler = []
+    gruppen = {}
+    for name in knoten:
+        treffer = re.fullmatch(r"(Gast|Barde)_(?:(\D\w*?)_)?(\d+)", name)
+        if treffer:
+            gruppen.setdefault((treffer.group(1), treffer.group(2) or ""), []).append(int(treffer.group(3)))
+            if treffer.group(1) == "Gast" and "Krug_" + name[5:] not in knoten:
+                fehler.append(f"{name}: Krug_{name[5:]} fehlt")
+        elif name.startswith(("Gast_", "Barde_")):
+            fehler.append(f"{name}: Name muss Gast_<n>, Gast_<Gruppe>_<n> oder Barde_<n> sein")
+        if name.startswith("Krug_") and "Gast_" + name[5:] not in knoten:
+            fehler.append(f"{name}: Gast_{name[5:]} fehlt")
+    for (art, gruppe), nummern in sorted(gruppen.items()):
+        if sorted(nummern) != list(range(1, len(nummern) + 1)):
+            fehler.append(f"{art}_{gruppe + '_' if gruppe else ''}<n>: Nummern müssen lückenlos ab 1 laufen, gefunden {sorted(nummern)}")
+    if gruppen:
+        print("Gäste und Barde: " + ", ".join(f"{art}_{gruppe + '_' if gruppe else ''}1–{len(n)}" for (art, gruppe), n in sorted(gruppen.items())))
+    return fehler
 
 
 def innen_stufen(g, knoten, welt, raeume, raum_bei):

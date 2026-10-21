@@ -61,19 +61,21 @@ public sealed class Werkstattwesen
     {
         if (Daten is not { } d) return;
         var beginn = zeit.StundeDieEndete * 60;
-        if (beginn < Stadtwirtschaft.Arbeitsbeginn || beginn >= Stadtwirtschaft.Arbeitsbeginn + _w.Daten.Allgemein.Arbeitsminuten) return;
         var jetzt = zeit.VergangeneMinuten;
-        var stundenImJahr = _w.Daten.Allgemein.Arbeitsminuten / 60.0;
         foreach (var b in _w.Betriebe.Where(b => b.HatWerkstattregeln && b.Konto.IstAktiv && b.Belegt > 0).ToList())
         {
-            if (b.UmbauMinuten == 0) Unfaelle(b, d, jetzt, stundenImJahr);
+            if (!b.IstArbeitszeit(beginn)) continue; // jeder Betrieb in seiner Arbeitszeit (Wirtshaus bis 22 Uhr)
+            if (b.UmbauMinuten == 0) Unfaelle(b, d, jetzt, b.Arbeitsminuten / 60.0);
             Laune(b, d, jetzt);
         }
     }
 
-    /// <summary>Gefahr je Arbeiter und Jahr in diesem Betrieb (nach Beruf, mit Schürzen).</summary>
+    /// <summary>
+    /// Gefahr je Arbeiter und Jahr in diesem Betrieb (nach Beruf, mit Schürzen). Die Daten gelten für die übliche Arbeitszeit,
+    /// je Stunde gleich: Wer länger arbeitet (Wirtshaus bis 22 Uhr), verletzt sich im Jahr öfter (× <see cref="Wirtschaftsdaten.Schichtfaktor"/>).
+    /// </summary>
     public double UnfallGefahr(Betrieb b) =>
-        Daten is { } d && b.HatWerkstattregeln ? d.Unfall.Gefahr.GetValueOrDefault(b.Artdaten.Beruf) * b.UnfallFaktor : 0;
+        Daten is { } d && b.HatWerkstattregeln ? d.Unfall.Gefahr.GetValueOrDefault(b.Artdaten.Beruf) * b.UnfallFaktor * _w.Daten.Schichtfaktor(b.Art) : 0;
 
     private void Unfaelle(Betrieb b, WerkstattDaten d, long jetzt, double stundenImJahr)
     {
@@ -253,7 +255,7 @@ public sealed class Werkstattwesen
         var a = b.ArbeiterNr(befehl.Arbeiter)!;
         var zu = Daten!.Befoerderung.Zu;
         b.Befoerdern(a, zu);
-        var lohn = _w.Daten.Arbeitskraefte[zu].Kosten * b.LohnFaktor;
+        var lohn = _w.Daten.Lohn(zu, b.Art) * b.LohnFaktor;
         _w.Melden($"{b.Name}: {Daten.Befoerderung.Von} Nr. {a.Nummer} ist nun {zu}.");
         return Befehlsergebnis.Ok($"{b.Name}: Nr. {a.Nummer} ist nun {zu} – Lohn ab jetzt {Zahlenformat.Ganz(lohn)} {Waehrung} im Jahr.");
     }

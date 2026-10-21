@@ -1,5 +1,5 @@
 {
-  "version": 41,
+  "version": 43,
   "gesundheit": {
     "medicusKosten": 120,
     "medicusKostenPest": 300,
@@ -879,9 +879,9 @@
     "Duftwerkstatt":    { "name": "Duftwerkstatt",    "beruf": "Parfumeur", "ort": "Werkstatt", "stufe": 2, "plaetze": 3, "fixkosten": 120, "produkte": [ "Politur", "Blume der Zwietracht", "Giftdolch", "Moschusduft", "Fechterduft" ], "standardprodukt": "Moschusduft", "startkarren": "Handkarren", "ausbau": "Parfumerie", "ausbauKosten": 5000 },
     "Parfumerie":       { "name": "Parfumerie",       "beruf": "Parfumeur", "ort": "Werkstatt", "stufe": 3, "plaetze": 4, "fixkosten": 180, "produkte": [ "Politur", "Blume der Zwietracht", "Giftdolch", "Moschusduft", "Fechterduft", "Heiligenduft", "Schattendolch" ], "standardprodukt": "Heiligenduft", "startkarren": "Handkarren" },
     "Duftgarten":       { "name": "Duftgarten",       "beruf": "Parfumeur", "ort": "Umland",    "plaetze": 3, "fixkosten": 400, "rohstoffe": [ "Lavendel", "Jasmin" ], "startkarren": "Ochsenkarren" },
-    "Schaenke":         { "name": "Schänke",          "beruf": "Wirt",      "ort": "Werkstatt", "stufe": 1, "plaetze": 2, "fixkosten": 80,  "kaufpreis": 3500, "produkte": [ "Weingeist", "Körnermahlzeit", "Dünnbier" ], "standardprodukt": "Körnermahlzeit", "startkarren": "Handkarren", "ausbau": "Wirtshaus", "ausbauKosten": 2500 },
-    "Wirtshaus":        { "name": "Wirtshaus",        "beruf": "Wirt",      "ort": "Werkstatt", "stufe": 2, "plaetze": 3, "fixkosten": 120, "produkte": [ "Weingeist", "Körnermahlzeit", "Dünnbier", "Starkbier", "Kräuterlikör" ], "standardprodukt": "Starkbier", "startkarren": "Handkarren", "ausbau": "Gasthaus", "ausbauKosten": 5000 },
-    "Gasthaus":         { "name": "Gasthaus",         "beruf": "Wirt",      "ort": "Werkstatt", "stufe": 3, "plaetze": 4, "fixkosten": 180, "produkte": [ "Weingeist", "Körnermahlzeit", "Dünnbier", "Starkbier", "Kräuterlikör", "Festbier", "Schädelbrand" ], "standardprodukt": "Festbier", "startkarren": "Handkarren" },
+    "Schaenke":         { "name": "Schänke",          "beruf": "Wirt",      "ort": "Werkstatt", "stufe": 1, "plaetze": 2, "fixkosten": 80,  "kaufpreis": 3500, "produkte": [ "Weingeist", "Körnermahlzeit", "Dünnbier" ], "standardprodukt": "Körnermahlzeit", "startkarren": "Handkarren", "ausbau": "Wirtshaus", "ausbauKosten": 2500, "arbeitsminuten": 840 },
+    "Wirtshaus":        { "name": "Wirtshaus",        "beruf": "Wirt",      "ort": "Werkstatt", "stufe": 2, "plaetze": 3, "fixkosten": 120, "produkte": [ "Weingeist", "Körnermahlzeit", "Dünnbier", "Starkbier", "Kräuterlikör" ], "standardprodukt": "Starkbier", "startkarren": "Handkarren", "ausbau": "Gasthaus", "ausbauKosten": 5000, "arbeitsminuten": 840 },
+    "Gasthaus":         { "name": "Gasthaus",         "beruf": "Wirt",      "ort": "Werkstatt", "stufe": 3, "plaetze": 4, "fixkosten": 180, "produkte": [ "Weingeist", "Körnermahlzeit", "Dünnbier", "Starkbier", "Kräuterlikör", "Festbier", "Schädelbrand" ], "standardprodukt": "Festbier", "startkarren": "Handkarren", "arbeitsminuten": 840 },
     "Bauernhof":        { "name": "Bauernhof",        "beruf": "Wirt",      "ort": "Umland",    "plaetze": 3, "fixkosten": 400, "rohstoffe": [ "Gerste", "Roggen" ], "startkarren": "Ochsenkarren" },
     "Kirche":           { "name": "Kirche",           "beruf": "Prediger",  "ort": "Werkstatt", "stufe": 1, "plaetze": 2, "fixkosten": 80,  "kaufpreis": 3500, "produkte": [ "Papier", "Kerze", "Lehrschrift" ], "standardprodukt": "Kerze", "startkarren": "Handkarren", "ausbau": "Dom", "ausbauKosten": 2500 },
     "Dom":              { "name": "Dom",              "beruf": "Prediger",  "ort": "Werkstatt", "stufe": 2, "plaetze": 3, "fixkosten": 120, "produkte": [ "Papier", "Kerze", "Lehrschrift", "Hetzschrift", "Psalter" ], "standardprodukt": "Psalter", "startkarren": "Handkarren", "ausbau": "Kathedrale", "ausbauKosten": 5000 },
@@ -1040,6 +1040,15 @@
         { "kennung": "Werkzeug2", "name": "Meisterwerkzeug", "preis": 800, "abStufe": 2, "voraussetzung": "Werkzeug1", "wirkung": { "zeitFaktor": 0.9 } },
         { "kennung": "Glasflakons", "name": "Venezianische Glasflakons", "preis": 350, "abStufe": 1, "wirkung": { "zeitFaktor": 0.9, "waren": ["Moschusduft", "Fechterduft", "Heiligenduft"] } },
         { "kennung": "Regale", "name": "Flakonregale", "preis": 200, "abStufe": 1, "wirkung": { "lagerPlus": 20 } },
+        { "kennung": "Loeschfass", "name": "Löschfass", "preis": 100, "abStufe": 1, "wirkung": { "brandFaktor": 0.5 } },
+        { "kennung": "Eisentuer", "name": "Eisentür", "preis": 300, "abStufe": 1, "wirkung": { "einbruchFaktor": 0.5 } },
+        { "kennung": "Handschuhe", "name": "Lederhandschuhe", "preis": 80, "abStufe": 1, "wirkung": { "unfallFaktor": 0.5 } }
+      ],
+      "Wirt": [
+        { "kennung": "Werkzeug1", "name": "Gutes Werkzeug", "preis": 300, "abStufe": 1, "wirkung": { "zeitFaktor": 0.9 } },
+        { "kennung": "Werkzeug2", "name": "Meisterwerkzeug", "preis": 800, "abStufe": 2, "voraussetzung": "Werkzeug1", "wirkung": { "zeitFaktor": 0.9 } },
+        { "kennung": "Braupfanne", "name": "Kupferne Braupfanne", "preis": 350, "abStufe": 1, "wirkung": { "zeitFaktor": 0.9, "waren": ["Dünnbier", "Starkbier", "Festbier"] } },
+        { "kennung": "Regale", "name": "Fassregale", "preis": 200, "abStufe": 1, "wirkung": { "lagerPlus": 20 } },
         { "kennung": "Loeschfass", "name": "Löschfass", "preis": 100, "abStufe": 1, "wirkung": { "brandFaktor": 0.5 } },
         { "kennung": "Eisentuer", "name": "Eisentür", "preis": 300, "abStufe": 1, "wirkung": { "einbruchFaktor": 0.5 } },
         { "kennung": "Handschuhe", "name": "Lederhandschuhe", "preis": 80, "abStufe": 1, "wirkung": { "unfallFaktor": 0.5 } }

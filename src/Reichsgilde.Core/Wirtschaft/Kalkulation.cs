@@ -44,14 +44,14 @@ public static class Kalkulation
 
     /// <summary>
     /// Erwarteter Jahresertrag einer Arbeitskraft in diesem Betrieb:
-    /// Leistung (× Völkerbonus) × Arbeitsminuten × Wert je Minute − Lohn − Risiko × Schaden.
+    /// Leistung (× Völkerbonus) × Arbeitsminuten des Betriebs × Wert je Minute − Lohn (für diese Schicht) − Risiko × Schaden.
     /// </summary>
     public static double Jahresertrag(Stadtwirtschaft w, Betrieb betrieb, string arbeitskraft)
     {
         var kraft = w.Daten.Arbeitskraefte[arbeitskraft];
         return kraft.TempoAm(betrieb.Ort) * w.VolksFaktor(betrieb.Konto, betrieb.Artdaten.Beruf) // Völkerbonus des Hauses
-               * w.Daten.Allgemein.Arbeitsminuten * WertJeArbeitsminute(w, betrieb)
-               - kraft.Kosten
+               * betrieb.Arbeitsminuten * WertJeArbeitsminute(w, betrieb)
+               - w.Daten.Lohn(arbeitskraft, betrieb.Art)
                - kraft.Risiko * kraft.Schaden;
     }
 
@@ -84,9 +84,11 @@ public static class Kalkulation
         var ort = d.Ort;
         var wertJeMinute = d.OhneProduktion ? w.WertOhneWare(d)
             : (d.IstWerkstatt ? d.Produkte : d.Rohstoffe).Max(ware => GewinnJeArbeitsminute(w, ware));
+        var minuten = w.Daten.Arbeitsminuten(art);
+        var schicht = w.Daten.Schichtfaktor(art); // Lohn je Stunde gleich: die längere Schicht im Wirtshaus kostet mehr
         var besterKopf = w.Daten.Arbeitskraefte.Values
             .Where(k => k.IstErlaubt(geltend, ort))
-            .Select(k => k.TempoAm(ort) * leistung * w.Daten.Allgemein.Arbeitsminuten * wertJeMinute - k.Kosten - k.Risiko * k.Schaden)
+            .Select(k => k.TempoAm(ort) * leistung * minuten * wertJeMinute - k.Kosten * schicht - k.Risiko * k.Schaden)
             .DefaultIfEmpty(0)
             .Max();
         return Math.Max(0, besterKopf) * w.Daten.Plaetze(art) - w.Daten.Fixkosten(art);

@@ -12,11 +12,11 @@ Inhalt je Datei (Blender: Z oben, Blick nach -Y; im Spiel Y oben, Blick nach +Z)
     Koerper_Mann    Wams bis zur Mitte des Oberschenkels, Beinkleid, Schuhe, Gürtel; beim Zwerg mit Bart
     Koerper_Frau    Kleid bis über die Knöchel, Zopf
     Trachtteile     Strohhut, Barett, Kapuze, Haube, Schleier, Schuerze, Kiepe, Buendel, Tasche, Stab, Hacke, Hammer,
-                    Hobel, Saege, Drechseleisen, Schlaegel, Meissel, Stoessel, Kelle, Flakon
+                    Hobel, Saege, Drechseleisen, Schlaegel, Meissel, Stoessel, Kelle, Flakon, Krug, Laute
                     – standardmäßig aus, das Spiel blendet sie je Rolle ein (wie heute `TrachtVon`; das Werkzeug bei der
                     passenden Bewegung: Hammer beim Hämmern, Hobel beim Hobeln, Säge beim Sägen, Drechseleisen beim Drechseln,
                     Schlägel und Meißel beim Behauen und Bildhauen, Stößel beim Mörsern, Kelle beim Rühren, Flakon beim
-                    Mischen)
+                    Mischen, Krug beim Zapfen und Trinken, Laute bei „Laute“)
     Bewegungen      Stehen, Gehen, Eilen, Gebeugt, Tragen, Sitzen, Reden, Hacken, Buecken, Hueten,
                     Ziehen (Handkarren), Kutschieren (auf dem Bock),
                     Haemmern, Blasebalg, Schleifen (stehend), Feinarbeit (sitzend) – Arbeit in der Schmiede,
@@ -29,11 +29,15 @@ Inhalt je Datei (Blender: Z oben, Blick nach -Y; im Spiel Y oben, Blick nach +Z)
                     Flamme, richtet sich auf und prüft den Tropfen an der Vorlage; ruhig) – Arbeit beim Alchimisten,
                     Mischen (aus dem Flakon in das Mischglas gießen, den Flakon schwenken; die Linke hält das Glas),
                     Pressen (beide Hände am Querhebel der Spindelpresse: ihn hinüberschieben und zurückziehen, dabei je
-                    einen Schritt zur Seite; die Wurzel verschiebt sich dazu seitlich) – Arbeit beim Parfumeur
+                    einen Schritt zur Seite; die Wurzel verschiebt sich dazu seitlich) – Arbeit beim Parfumeur,
+                    Zapfen (den Krug unter den Zapfhahn halten, die Linke dreht den Hahn auf und zu, den vollen Krug auf der
+                    Theke abstellen) – Arbeit beim Wirt, Trinken (im Sitzen: den Krug vom Tisch an den Mund heben, trinken,
+                    absetzen; für die Gäste, das Spiel versetzt die Phase je Gast), Laute (der Barde steht und spielt)
                     – jede eine Schleife am Ort (ohne Vorwärtsbewegung; das Spiel schiebt die Figur)
                     Die Werkstatt-Bewegungen zielen mit den Händen (beim Drechseln auch mit dem rechten Fuß) auf feste
-                    Höhen (ARBEITSHOEHEN, PEDAL, VORLAGE, MISCHGLAS, PRESSE – wie in schmied_innen.glb, tischler_innen.glb,
-                    steinmetz_innen.glb, alchimist_innen.glb und parfumeur_innen.glb): Jedes Volk erreicht sie
+                    Höhen (ARBEITSHOEHEN, PEDAL, VORLAGE, MISCHGLAS, PRESSE, ZAPFHAHN, KRUG_TISCH – wie in schmied_innen.glb,
+                    tischler_innen.glb, steinmetz_innen.glb, alchimist_innen.glb, parfumeur_innen.glb und wirt_innen.glb):
+                    Jedes Volk erreicht sie
                     mit eigenen Arm- und Beinwinkeln (`arm_ik`, `arm_ziel`, `bein_ik`).
 Material: alle Teile (Körper, Trachtteile, Werkzeug) tragen nur ein Material „Figur“ – eine Figur ist so ein
 Zeichenaufruf statt sechs. Je Ecke stehen zwei Angaben im Netz, je Fläche konstant:
@@ -61,6 +65,10 @@ bs.FARBEN.update({
     "Geflecht": (0.56, 0.44, 0.27),
     "Auge": (0.08, 0.07, 0.07),
     "Flakonglas": (0.56, 0.46, 0.74),      # lila Glas des Flakons beim Mischen (deckend gemalt)
+    "Krugton": (0.62, 0.58, 0.50),         # Steinzeugkrug des Wirts, salzglasiert
+    "Krugblau": (0.25, 0.32, 0.52),        # blau bemalte Bänder am Krug
+    "Lautenholz": (0.55, 0.32, 0.16),      # gewölbter Bauch der Laute aus Spänen
+    "Lautendecke": (0.84, 0.70, 0.46),     # Decke aus heller Fichte
 })
 
 FPS = 24
@@ -77,7 +85,7 @@ VOELKER = {
 }
 ZONEN = {"Gewand": 1, "Beinkleid": 2, "Haut": 3, "Haar": 4, "Kopfbedeckung": 5}   # alle übrigen Stoffe: Zone 0
 TRACHT = ["Strohhut", "Barett", "Kapuze", "Haube", "Schleier", "Schuerze", "Kiepe", "Buendel", "Tasche", "Stab", "Hacke", "Hammer",
-          "Hobel", "Saege", "Drechseleisen", "Schlaegel", "Meissel", "Stoessel", "Kelle", "Flakon"]
+          "Hobel", "Saege", "Drechseleisen", "Schlaegel", "Meissel", "Stoessel", "Kelle", "Flakon", "Krug", "Laute"]
 HAMMER = 0.3          # vom Mittelpunkt der Hand bis zur Mitte des Hammerkopfs, in Verlängerung des Unterarms
 # Wo die Hände bei der Arbeit sind (Meter vor dem Fußpunkt der Figur, Höhe über dem Boden) – passend zu den Ankern
 # im Innenraum: Amboss 0,68 m vor der Figur, Bahn 0,86 m hoch; Hebel des Blasebalgs 0,42 m vor ihr, 1,36 m hoch;
@@ -113,6 +121,19 @@ KELLE_GRIFF = 0.3                      # beim Rühren greift die Linke den Stiel
 MISCHGLAS = (-0.1, 0.42, 0.97)
 FLAKON_MUND = 0.096                    # Mund des Flakons über der Mitte der Hand (aufrecht gehalten)
 PRESSE = {"abstand": 1.05, "hoehe": 1.0, "rechts": 0.6, "links": 0.78, "winkel": 18.0}
+# Wirt (wirt_innen.glb): Theke 1,05 m hoch, ihre Hinterkante 0,28 m vor der Figur. Auf der Theke rechts vor ihr liegt das
+# Zapffass, aus seinem Boden ragt der Hahn zur Figur: Tülle bei ZAPFHAHN, das Küken (der Griff zum Drehen) bei HAHN_GRIFF;
+# den vollen Krug stellt sie bei KRUG_AB ab (Mitte des Bodens). Der Krug: Halbmesser `r`, Höhe `h`; beim Halten liegt die
+# Mitte seines Bodens `seite` zur Innenseite der Faust (nach links) und `tief` unter der Mitte der Hand.
+THEKE = 1.05
+ZAPFHAHN = (-0.22, 0.55, 1.26)
+HAHN_GRIFF = (-0.25, 0.55, 1.39)
+KRUG_AB = (0.14, 0.5, THEKE)
+KRUG = {"r": 0.046, "h": 0.15, "seite": 0.078, "tief": 0.07}
+# Gäste: Mitte des Bodens des Krugs auf dem Tisch (seitlich, vor, Höhe über der Sitzhöhe – die Hüfte im Sitzen liegt auf
+# Kniehöhe − 2 cm, beim Menschen 0,48 m; der Tisch ist dann 0,78 m hoch). Das Spiel hebt kleine Völker auf die Sitzhöhe des
+# Menschen (wie bei der Feinarbeit), so steht der Krug bei jedem Volk auf demselben Tisch.
+KRUG_TISCH = (-0.16, 0.4, 0.3)
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -295,6 +316,32 @@ def tracht(name, st, p):
             unten = hand_z - HAMMER
             n.stab((xr, 0, hand_z + 0.06), (xr, 0, unten + 0.02), 0.032, 0.032, st["Holz"])
             n.quader((xr, -0.015, unten), (0.065, 0.17, 0.065), st["Eisen"])
+    elif name == "Laute":
+        t.netz.alle = True
+        with t.an("Ruecken") as n:        # vor dem Bauch, der Hals schräg nach links oben (die Linke greift ihn)
+            c, a, f, k = laute_lage(p)
+            q = a.cross(f)
+            profil = [(-0.2, 0.03), (-0.17, 0.09), (-0.1, 0.13), (-0.02, 0.135), (0.06, 0.105), (0.11, 0.065), (0.14, 0.03)]
+            teile = 6
+
+            def bauch(u, r, j):           # gewölbter Bauch aus Spänen hinter der flachen Decke (j: 0 … teile über die Rückseite)
+                w = math.pi * j / teile
+                return c + a * (u * k) + q * (r * k * math.cos(w)) - f * (r * k * 0.8 * math.sin(w))
+            for (u0, r0), (u1, r1) in zip(profil, profil[1:]):
+                for j in range(teile):
+                    quad = [bauch(u0, r0, j), bauch(u0, r0, j + 1), bauch(u1, r1, j + 1), bauch(u1, r1, j)]
+                    n.vieleck_nach(quad, sum(quad, Vector()) / 4 - (c + a * ((u0 + u1) / 2 * k)), st["Lautenholz"])
+            rand = [bauch(u, r, 0) for u, r in profil] + [bauch(u, r, teile) for u, r in reversed(profil)]
+            n.vieleck_nach(rand, f, st["Lautendecke"])                       # flache Decke
+            n.vieleck_nach([c + a * (k * (0.02 + 0.032 * math.cos(w))) + q * (k * 0.032 * math.sin(w)) + f * 0.003
+                            for w in (2 * math.pi * j / 8 for j in range(8))], f, st["Auge"])          # Rosette
+            n.stab(c - a * 0.12 * k - q * 0.05 * k + f * 0.008, c - a * 0.12 * k + q * 0.05 * k + f * 0.008, 0.014, 0.014,
+                   st["Lautenholz"], quer=f)                                 # Steg
+            hals0, hals1 = c + a * 0.13 * k - f * 0.012 * k, c + a * 0.45 * k - f * 0.012 * k
+            n.stab(hals0, hals1, 0.045 * k, 0.03 * k, st["Lautenholz"], quer=f)                   # Hals mit Griffbrett
+            n.stab(hals0 + f * 0.017 * k, hals1 + f * 0.017 * k, 0.04 * k, 0.004, st["Auge"], quer=f)
+            knick = (a - f * 0.9).normalized()                               # Wirbelkasten, nach hinten abgeknickt
+            n.stab(hals1, hals1 + knick * 0.14 * k, 0.04 * k, 0.03 * k, st["Lautenholz"], quer=f)
     elif name == "Saege":
         t.netz.alle = True                # dreht sich mit dem Arm: auch Flächen, die in Ruhe nach unten zeigen
         with t.an("Unterarm_R") as n:     # Blatt verlängert den Unterarm (in Ruhe nach unten), die Zähne auf der Seite +y
@@ -307,7 +354,7 @@ def tracht(name, st, p):
 
 REQUISITEN = {"Hobel": ("Hobeln", 0.3), "Drechseleisen": ("Drechseln", 0.5), "Meissel": ("Behauen", 0.55),
               "Schlaegel": ("Behauen", 0.55), "Stoessel": ("Moersern", 0.0), "Kelle": ("Ruehren", 0.0),
-              "Flakon": ("Mischen", 0.0)}   # Bewegung, Phase
+              "Flakon": ("Mischen", 0.0), "Krug": ("Zapfen", 0.0)}   # Bewegung, Phase
 
 
 def requisit(name, st, p, ske):
@@ -372,6 +419,21 @@ def requisit(name, st, p, ske):
             for (u0, r0), (u1, r1) in zip(profil, profil[1:]):
                 drehteil(n, zurueck @ (hand + Vector((0, 0, u0))), achse, u1 - u0, r0, r1,
                          st["Gold"] if u0 == 0.074 else st["Flakonglas"], deckel=(u0 == profil[0][0], u1 == FLAKON_MUND))
+        elif name == "Krug":                      # Steinzeugkrug, aufrecht, der Henkel in der Faust: Bauch zur Innenseite der Hand
+            boden = hand + Vector((KRUG["seite"], 0, -KRUG["tief"]))
+            achse = zurueck.to_3x3() @ Vector((0, 0, 1))
+            r, h = KRUG["r"], KRUG["h"]
+            profil = [(0.0, r * 0.82), (0.012, r * 0.9), (h * 0.45, r), (h * 0.85, r * 0.86), (h * 0.9, r * 0.9), (h, r * 0.88)]
+            for (u0, r0), (u1, r1) in zip(profil, profil[1:]):
+                drehteil(n, zurueck @ (boden + Vector((0, 0, u0))), achse, u1 - u0, r0, r1,
+                         st["Krugblau"] if u0 in (0.012, h * 0.85) else st["Krugton"], deckel=(u0 == 0.0, False))
+            drehteil(n, zurueck @ (boden + Vector((0, 0, h - 0.012))), achse, 0.004, r * 0.84, r * 0.84, st["Haar"],
+                     deckel=(False, True))                                  # Bier (dunkel) knapp unter dem Rand
+            quer = zurueck.to_3x3() @ Vector((0, 1, 0))
+            griff = [Vector((-r * 0.9, 0, h * 0.82)), Vector((-KRUG["seite"], 0, KRUG["tief"] + 0.035)),
+                     Vector((-KRUG["seite"], 0, KRUG["tief"] - 0.035)), Vector((-r * 0.9, 0, h * 0.2))]
+            for a, b in zip(griff, griff[1:]):                             # Henkel: von der Wand durch die Faust zurück
+                n.stab(zurueck @ (boden + a), zurueck @ (boden + b), 0.022, 0.014, st["Krugton"], quer=quer)
         else:                                     # Drechseleisen: Heft hinter der Hand, Klinge bis an das Werkstück
             vor, hoehe = ARBEITSHOEHEN["Drehbank"]
             spitze = Vector((0.02, -(vor - 0.01), hoehe))
@@ -739,6 +801,9 @@ def haltung(name, phase, p):
         r.update(winkel)
     elif name == "Pressen":                                             # Querhebel der Spindelpresse hinüber und zurück
         winkel, hoch = pressen(phase, p)
+        r.update(winkel)
+    elif name in ("Zapfen", "Trinken", "Laute"):                        # Wirt: zapfen, Gäste trinken, der Barde spielt
+        winkel, hoch = {"Zapfen": zapfen, "Trinken": trinken, "Laute": laute}[name](phase, p)
         r.update(winkel)
     elif name == "Hueten":
         r["Oberarm_R"] = (-28, 0, -10)                                   # hält den Stab vor sich
@@ -1269,6 +1334,261 @@ def pressen(phase, p):
     return r, hoch
 
 
+# ── Wirt: Zapfen und Trinken (der Krug starr in der rechten Faust, sein Boden bzw. sein Mund wird geführt), Laute (am Rücken) ──
+
+def _rumpf_lage(p, pose, hoch, kopf=False):
+    """Wie unterarm_lage für den Rücken (mit `kopf` für den Kopf): Matrix, die einen Punkt am Rumpf bzw. Kopf aus der Ruhelage in
+    die Haltung bringt (Koordinaten der Figur in Blender, Blick −Y)."""
+    from mathutils import Euler
+    kette = [("Wurzel", (0, 0, p["huefte"])), ("Ruecken", (0, 0, p["huefte"]))]
+    if kopf:
+        kette.append(("Kopf", (0, 0, p["schulter"] + p["hals"])))
+    m, vorher = Matrix.Identity(4), None
+    for name, k in kette:
+        ruhe = _ruhe(Vector(k), False)
+        lokal = Euler(pose.get(name, (0.0, 0.0, 0.0)), "XYZ").to_matrix().to_4x4()
+        if name == "Wurzel":
+            lokal = Matrix.Translation((0, hoch, 0)) @ lokal
+        m = (ruhe if vorher is None else m @ vorher.inverted() @ ruhe) @ lokal
+        vorher = ruhe
+    return m @ vorher.inverted()
+
+
+def _mund_ruhe(p):
+    """Mitte des Mundes in der Ruhelage (Blender): vorn am Kopf, unter der Nase."""
+    r = p["kopf"]
+    return Vector((0, -r * 0.92, p["schulter"] + p["hals"] + r * 0.95 - r * 0.42))
+
+
+def _faust_fuer(p, r, hoch, punkt_ruhe, ziel, start, rolle=0.0, seite="R"):
+    """Hand der Seite so führen, dass `punkt_ruhe` (ein Punkt am Unterarm in der Ruhelage, etwa der Boden des Krugs) bei `ziel`
+    (seitlich, vor, Höhe) liegt; der Unterarm ist dabei um `rolle` Grad um seine Achse gedreht. Setzt den Arm in `r` und gibt
+    die Hand zurück."""
+    faust = Vector(start)
+    for _ in range(40):
+        r[f"Oberarm_{seite}"], unter = arm_genau(p, r, hoch, seite, tuple(faust))
+        r[f"Unterarm_{seite}"] = _rolle(unter, rolle) if rolle else unter
+        fehler = Vector(ziel) - _figur(unterarm_lage(p, _bogen(r), hoch, seite) @ punkt_ruhe)
+        if fehler.length < 2e-4:
+            break
+        faust += fehler * 0.6
+    return faust
+
+
+def _zapfen_rumpf(stand, p):
+    """Rumpf, Beine und Hüfte einer Haltung beim Zapfen: „warten“ (aufrecht), „zapf“ (zum Hahn rechts gedreht), „ab“ (nach
+    links zur Abstellstelle)."""
+    lehne, drehung = {"warten": (6, 0), "zapf": (11, -12), "ab": (10, 8)}[stand]
+    hoch = -0.012
+    r = {"Ruecken": (lehne, drehung, 0), "Kopf": (20 - lehne, -0.5 * drehung, 0)}
+    return r, hoch
+
+
+def _zapfen_mix(a, b, t, p):
+    """Rumpf zwischen zwei Haltungen des Zapfens."""
+    (ra, ha), (rb, hb) = _zapfen_rumpf(a, p), _zapfen_rumpf(b, p)
+    return {k: tuple(x + (y - x) * t for x, y in zip(ra[k], rb[k])) for k in ra}, ha + (hb - ha) * t
+
+
+def _zapfen_warten(p):
+    """Rechte Hand beim Warten (mit dem leeren Krug über der Theke) und linke Hand auf der Theke."""
+    k = p["schulter"] / VOELKER["mensch"]["schulter"]
+    return Vector((-0.12, 0.33, THEKE + 0.12 + 0.05 * (k - 1))), Vector((0.2, 0.36, THEKE + 0.035))
+
+
+_KRUG = {}
+
+
+def krug_ruhe(p):
+    """Boden und Mund (Mitte) des Krugs in der Ruhelage des rechten Unterarms (Blender). Gebaut ist er in der Haltung von
+    REQUISITEN (Zapfen, Phase 0: „warten“, aufrecht in der Faust)."""
+    schluessel = tuple(sorted(p.items()))
+    if schluessel not in _KRUG:
+        r, hoch = _zapfen_rumpf("warten", p)
+        rechts, _ = _zapfen_warten(p)
+        r["Oberarm_R"], r["Unterarm_R"] = arm_genau(p, r, hoch, "R", tuple(rechts))
+        lage = unterarm_lage(p, _bogen(r), hoch, "R")
+        boden = lage @ hand_ruhe(p, "R") + Vector((KRUG["seite"], 0, -KRUG["tief"]))
+        _KRUG[schluessel] = (lage.inverted() @ boden, lage.inverted() @ (boden + Vector((0, 0, KRUG["h"]))))
+    return _KRUG[schluessel]
+
+
+_ZAPFEN = {}
+
+
+def zapfen_faeuste(p):
+    """Rechte Hand in den drei Haltungen des Zapfens: warten (fest), zapf (der Boden des Krugs 2 cm unter der Tülle) und ab
+    (der Boden auf der Theke bei KRUG_AB)."""
+    schluessel = tuple(sorted(p.items()))
+    if schluessel not in _ZAPFEN:
+        warten, _ = _zapfen_warten(p)
+        boden = krug_ruhe(p)[0]
+        faeuste = {"warten": warten}
+        for stand, ziel in (("zapf", (ZAPFHAHN[0], ZAPFHAHN[1], ZAPFHAHN[2] - KRUG["h"] - 0.02)),
+                            ("ab", (KRUG_AB[0], KRUG_AB[1], KRUG_AB[2] + 0.004))):
+            r, hoch = _zapfen_rumpf(stand, p)
+            faeuste[stand] = _faust_fuer(p, r, hoch, boden, ziel, warten)
+        _ZAPFEN[schluessel] = faeuste
+    return _ZAPFEN[schluessel]
+
+
+def zapfen(phase, p):
+    """Zapfen (4 s): warten (0–0,1), den Krug unter den Hahn führen (bis 0,24), die Linke greift das Küken (bis 0,26) und dreht
+    es auf (bis 0,32), füllen (bis 0,6), zudrehen (bis 0,66), den vollen Krug nach links tragen und auf der Theke abstellen (bis
+    0,84), stehen lassen (bis 0,9), den nächsten nehmen (zurück nach „warten“). Das Raummodell lässt in derselben Zeit Bier aus
+    der Tülle laufen (wirt_innen). Gibt (Winkel in Grad, Hüfte)."""
+    faeuste = zapfen_faeuste(p)
+    warten_l = _zapfen_warten(p)[1]
+    folge = ((0.1, "warten", "warten"), (0.24, "warten", "zapf"), (0.66, "zapf", "zapf"), (0.84, "zapf", "ab"),
+             (0.9, "ab", "ab"), (1.0, "ab", "warten"))
+    anfang = 0.0
+    for ende, a, b in folge:
+        if phase <= ende:
+            t = weich((phase - anfang) / (ende - anfang)) if a != b else 0.0
+            break
+        anfang = ende
+    r, hoch = _zapfen_mix(a, b, t, p)
+    rechts = faeuste[a].lerp(faeuste[b], t)
+    if (a, b) == ("zapf", "ab"):
+        rechts += Vector((0, -0.04, 0.08)) * math.sin(math.pi * t)                  # im Bogen über die Theke
+    zu, auf = Vector(HAHN_GRIFF), Vector(HAHN_GRIFF) + Vector((0.01, -0.025, -0.02))
+    if phase < 0.12:
+        links = warten_l
+    elif phase < 0.26:
+        links = warten_l.lerp(zu, weich((phase - 0.12) / 0.14))
+    elif phase < 0.32:
+        links = zu.lerp(auf, weich((phase - 0.26) / 0.06))
+    elif phase < 0.6:
+        links = auf
+    elif phase < 0.66:
+        links = auf.lerp(zu, weich((phase - 0.6) / 0.06))
+    elif phase < 0.8:
+        links = zu.lerp(warten_l, weich((phase - 0.66) / 0.14))
+    else:
+        links = warten_l
+    r["Oberarm_R"], r["Unterarm_R"] = arm_genau(p, r, hoch, "R", tuple(rechts))
+    r["Oberarm_L"], r["Unterarm_L"] = arm_genau(p, r, hoch, "L", tuple(links))
+    if 0.32 <= phase < 0.6:                                                        # schaut in den Krug
+        r["Kopf"] = (r["Kopf"][0] + 6 * math.sin(math.pi * (phase - 0.32) / 0.28), r["Kopf"][1], 0)
+    for seite, vor, z in (("L", 0.05, 5), ("R", -0.03, -5)):
+        ober, unter = bein_ik(p, hoch, vor, 0.0)
+        r[f"Oberschenkel_{seite}"], r[f"Unterschenkel_{seite}"] = (ober, 0, z), (unter, 0, 0)
+    return r, hoch
+
+
+def _trinken_rumpf(stand, p, phase=0.0):
+    """Rumpf, Beine und Hüfte im Sitzen beim Trinken: „tisch“ (vorgeneigt, der Krug auf dem Tisch) oder „mund“ (aufgerichtet,
+    der Kopf in den Nacken)."""
+    hoch = -(p["huefte"] - (p["knie"] - 0.02)) + 0.004 * math.sin(2 * math.pi * phase)
+    lehne, kopf = {"tisch": (10, 8), "mund": (-2, -16)}[stand]
+    r = {"Ruecken": (lehne, 0, 0), "Kopf": (kopf, 0, 0)}
+    r["Oberschenkel_L"], r["Oberschenkel_R"] = (-86, 0, 7), (-86, 0, -7)
+    r["Unterschenkel_L"], r["Unterschenkel_R"] = (84, 0, 0), (80, 0, 0)
+    return r, hoch
+
+
+_TRINKEN = {}
+
+
+def trinken_faeuste(p):
+    """Rechte Hand und Drehung des Unterarms (Grad) beim Trinken: „tisch“ – der Boden des Krugs auf dem Tisch (KRUG_TISCH) –
+    und „mund“ – der Mund des Krugs an den Lippen, der Krug so gekippt, dass er möglichst steil zum Gesicht zeigt."""
+    schluessel = tuple(sorted(p.items()))
+    if schluessel not in _TRINKEN:
+        boden, mund_k = krug_ruhe(p)
+        sitz = p["knie"] - 0.02
+
+        def drehen(r, hoch, punkt, ziel, start, soll, rollen):
+            """Hand und Drehung des Unterarms, bei denen `punkt` des Krugs bei `ziel` liegt und seine Achse am besten `soll` folgt."""
+            beste = None
+            for rolle in rollen:
+                faust = _faust_fuer(p, r, hoch, punkt, ziel, start, rolle)
+                lage = unterarm_lage(p, _bogen(r), hoch, "R")
+                achse = (_figur(lage @ mund_k) - _figur(lage @ boden)).normalized()
+                wert = achse.dot(soll) - 5 * (_figur(lage @ punkt) - Vector(ziel)).length
+                if beste is None or wert > beste[0]:
+                    beste = (wert, faust, float(rolle))
+            return beste[1], beste[2]
+        r, hoch = _trinken_rumpf("tisch", p)
+        start = Vector((KRUG_TISCH[0] - KRUG["seite"], KRUG_TISCH[1], sitz + KRUG_TISCH[2] + KRUG["tief"]))
+        tisch = drehen(r, hoch, boden, (KRUG_TISCH[0], KRUG_TISCH[1], sitz + KRUG_TISCH[2] + 0.004), start, Vector((0, 0, 1)),
+                       range(-60, 61, 10))                                        # aufrecht auf dem Tisch
+        r, hoch = _trinken_rumpf("mund", p)
+        lippen = _figur(_rumpf_lage(p, _bogen(r), hoch, kopf=True) @ _mund_ruhe(p))
+        mund = drehen(r, hoch, mund_k, lippen + Vector((0, 0.035, 0.005)), lippen + Vector((-0.08, 0.1, -0.1)),
+                      Vector((0, -math.sin(math.radians(60)), math.cos(math.radians(60)))), range(-90, 91, 10))   # steil zum Gesicht
+        _TRINKEN[schluessel] = {"tisch": tisch, "mund": mund}
+    return _TRINKEN[schluessel]
+
+
+def trinken(phase, p):
+    """Trinken im Sitzen (4 s): der Krug auf dem Tisch, die Linke redet mit (0–0,3), den Krug an den Mund heben (bis 0,44),
+    trinken – Kopf in den Nacken (bis 0,62), absetzen (bis 0,76), ruhen. Gibt (Winkel in Grad, Hüfte)."""
+    faeuste = trinken_faeuste(p)
+    folge = ((0.3, "tisch", "tisch"), (0.44, "tisch", "mund"), (0.62, "mund", "mund"), (0.76, "mund", "tisch"),
+             (1.0, "tisch", "tisch"))
+    anfang = 0.0
+    for ende, a, b in folge:
+        if phase <= ende:
+            t = weich((phase - anfang) / (ende - anfang)) if a != b else 0.0
+            break
+        anfang = ende
+    ra, ha = _trinken_rumpf(a, p, phase)
+    rb, hb = _trinken_rumpf(b, p, phase)
+    r = {k: tuple(x + (y - x) * t for x, y in zip(ra[k], rb[k])) for k in ra}
+    hoch = ha + (hb - ha) * t
+    (fa, wa), (fb, wb) = faeuste[a], faeuste[b]
+    rechts, rolle = fa.lerp(fb, t), wa + (wb - wa) * t
+    if a == b == "mund":                                                          # beim Trinken kippt der Krug weiter
+        u = (phase - anfang) / (ende - anfang)
+        rolle += 8 * math.sin(math.pi * u) * (1 if wa >= faeuste["tisch"][1] else -1)
+        r["Kopf"] = (r["Kopf"][0] - 4 * math.sin(math.pi * u), 0, 0)
+    if a != b:                                                                     # im Bogen: nicht durch die Tischkante
+        rechts += Vector((0, -0.05, 0.03)) * math.sin(math.pi * t)
+    r["Oberarm_R"], unter = arm_genau(p, r, hoch, "R", tuple(rechts))
+    r["Unterarm_R"] = _rolle(unter, rolle) if rolle else unter
+    sitz = p["knie"] - 0.02
+    links = Vector((0.2, 0.34, sitz + KRUG_TISCH[2] + 0.035))
+    if phase < 0.3:                                                                # die Linke redet mit
+        u = phase / 0.3
+        links += Vector((-0.04, -0.06, 0.16)) * math.sin(math.pi * u) + Vector((0.03, 0, 0.03)) * math.sin(3 * math.pi * u)
+    r["Oberarm_L"], r["Unterarm_L"] = arm_genau(p, r, hoch, "L", tuple(links))
+    return r, hoch
+
+
+def laute_lage(p):
+    """Lage der Laute am Rumpf in der Ruhelage (Blender): Mitte der Decke `c` vor dem Bauch etwas rechts, Längsachse `a` (zum
+    Hals: nach links oben), Richtung der Decke `f` (nach vorn, leicht hoch), Maßstab `k` (nach der Schulterhöhe des Volks)."""
+    k = p["schulter"] / VOELKER["mensch"]["schulter"]
+    hu, sc = p["huefte"], p["schulter"]
+    c = Vector((-0.07 * k, -(p["tiefe"] + 0.12 * k), hu + (sc - hu) * 0.42))
+    a = Vector((0.8, -0.1, 0.56)).normalized()
+    f = Vector((0, -1, 0.2))
+    f = (f - a * f.dot(a)).normalized()
+    return c, a, f, k
+
+
+def laute(phase, p):
+    """Laute (2 s): Der Barde steht, wiegt sich und wippt; die Rechte schlägt viermal die Saiten über der Rosette (quer zu den
+    Saiten), die Linke greift am Hals und wandert ein wenig. Die Laute hängt am Rücken (Trachtteil), die Hände folgen ihr. Gibt
+    (Winkel in Grad, Hüfte)."""
+    s = math.sin(2 * math.pi * phase)
+    hoch = -0.01 - 0.008 * abs(math.sin(4 * math.pi * phase))
+    r = {"Ruecken": (4 + 1.5 * s, 6, 2 * s), "Kopf": (14, 10, -6 + 4 * s)}
+    lage = _rumpf_lage(p, _bogen(r), hoch)
+    c, a, f, k = laute_lage(p)
+    q = a.cross(f)
+    schlag = math.sin(8 * math.pi * phase)
+    rechts = c - a * 0.05 * k + f * 0.06 * k + q * 0.035 * k * schlag
+    links = c + a * (0.3 + 0.04 * math.sin(2 * math.pi * phase + 0.5)) * k - f * 0.01 * k - q * 0.03 * k
+    r["Oberarm_R"], r["Unterarm_R"] = arm_genau(p, r, hoch, "R", tuple(_figur(lage @ rechts)))
+    r["Oberarm_L"], r["Unterarm_L"] = arm_genau(p, r, hoch, "L", tuple(_figur(lage @ links)))
+    for seite, vor, z in (("L", 0.07, 6), ("R", -0.05, -6)):
+        ober, unter = bein_ik(p, hoch, vor, 0.0)
+        r[f"Oberschenkel_{seite}"], r[f"Unterschenkel_{seite}"] = (ober, 0, z), (unter, 0, 0)
+    return r, hoch
+
+
 BEWEGUNGEN = {   # Name: Dauer in Sekunden (eine Schleife)
     "Stehen": 3.0, "Gehen": 1.0, "Eilen": 0.7, "Gebeugt": 1.4, "Tragen": 1.2, "Sitzen": 3.0, "Reden": 2.0,
     "Hacken": 1.3, "Buecken": 2.4, "Hueten": 4.0, "Ziehen": 1.3, "Kutschieren": 1.0,
@@ -1277,6 +1597,7 @@ BEWEGUNGEN = {   # Name: Dauer in Sekunden (eine Schleife)
     "Behauen": 1.0, "Bildhauen": 1.6,
     "Moersern": 2.0, "Ruehren": 2.4, "Destillieren": 4.0,
     "Mischen": 3.0, "Pressen": 3.0,
+    "Zapfen": 4.0, "Trinken": 4.0, "Laute": 2.0,
 }
 
 
@@ -1521,7 +1842,7 @@ def vorschau_bewegungen(schnell):
         teile = {"Hueten": ["Stab"], "Tragen": ["Buendel"], "Hacken": ["Hacke", "Strohhut"], "Haemmern": ["Hammer"],
                  "Hobeln": ["Hobel"], "Saegen": ["Saege"], "Drechseln": ["Drechseleisen"], "Behauen": ["Schlaegel", "Meissel"],
                  "Bildhauen": ["Schlaegel", "Meissel"], "Moersern": ["Stoessel"], "Ruehren": ["Kelle"],
-                 "Mischen": ["Flakon"]}.get(name, [])
+                 "Mischen": ["Flakon"], "Zapfen": ["Krug"], "Trinken": ["Krug"], "Laute": ["Laute"]}.get(name, [])
         wahl = [o for o in objekte if o.type == "MESH" and o.name.split(".")[0] in teile + ["Koerper_Mann"]]
         sy = ((len(reihen) - 1) / 2 - r) * abstand
         for k, ph in enumerate(phasen):
@@ -1537,7 +1858,7 @@ def vorschau_bewegungen(schnell):
         alle.append(beschriftung(name, Vector(((-2.3) * 0.7071 - sy * 0.7071, (-2.3) * 0.7071 + sy * 0.7071, 0.9))))
     bs.vorschau_buehne(None, ziel_hoehe=0.9, ausschnitt=22.0 * len(reihen) / 12, schnell=schnell)
     szene = bpy.context.scene
-    szene.render.resolution_x, szene.render.resolution_y = 960, int(1728 * len(reihen) / 12)    # unter 3 MB
+    szene.render.resolution_x, szene.render.resolution_y = 900, int(1620 * len(reihen) / 12)    # unter 3 MB
     szene.render.image_settings.color_mode = "RGB"                      # ohne Alphakanal und stark gepackt: kleinere Datei
     szene.render.image_settings.compression = 100
     print(bs.rendern("figuren-bewegungen", lambda o: o in alle))
@@ -1548,7 +1869,7 @@ def arbeitsplatz(name, ort, st, p, phase=0.0):
     Seite ist −y. `phase`: Stand der Bewegung (der Querhebel der Presse schwenkt mit)."""
     netz = bs.Netz("_Hilfe")
     holz, eisen = st["Holz"], st["Eisen"]
-    if name in ("Sitzen", "Kutschieren", "Feinarbeit"):                  # Bank bzw. Hocker unter der Hüfte
+    if name in ("Sitzen", "Kutschieren", "Feinarbeit", "Trinken"):       # Bank bzw. Hocker unter der Hüfte
         netz.quader(ort + Vector((0, 0, p["knie"] - 0.06)), (0.5, 0.5, 0.08), holz)
         for dx in (-0.2, 0.2):
             netz.quader(ort + Vector((dx, 0, (p["knie"] - 0.1) / 2)), (0.06, 0.4, p["knie"] - 0.1), holz)
@@ -1635,6 +1956,20 @@ def arbeitsplatz(name, ort, st, p, phase=0.0):
         ende = Vector((-(a - 0.95 * math.cos(w)), -0.95 * math.sin(w), 0))
         netz.stab(achse + Vector((0, 0, h)) - (ende - Vector((-a, 0, 0))), ort + ende + Vector((0, 0, h)), 0.07, 0.07, holz)
         netz.quader(achse + Vector((0, 0, 0.3)), (0.7, 0.7, 0.6), st["Holz alt"])
+    elif name == "Zapfen":                                              # Theke, darauf das Zapffass mit dem Hahn
+        netz.quader(ort + Vector((-0.28 - 0.325, 0, THEKE / 2)), (0.65, 1.6, THEKE), holz)
+        sx, sv, sh = ZAPFHAHN
+        for x0 in (-sx + 0.08,):
+            netz.stab(ort + Vector((-sv, x0, sh + 0.16)), ort + Vector((-sv, x0 + 0.7, sh + 0.16)), 0.48, 0.48, st["Holz alt"],
+                      quer=(0, 0, 1))
+        netz.stab(ort + Vector((-sv, -sx + 0.08, sh + 0.04)), ort + Vector((-sv, -sx, sh + 0.04)), 0.03, 0.03, st["Gold"])
+        netz.stab(ort + Vector((-sv, -sx, sh + 0.04)), ort + Vector((-sv, -sx, sh)), 0.025, 0.025, st["Gold"])
+    elif name == "Trinken":                                             # Tisch vor der Bank
+        sitz = p["knie"] - 0.02
+        hoehe = sitz + KRUG_TISCH[2]
+        netz.quader(ort + Vector((-0.6, 0, hoehe - 0.03)), (0.8, 1.4, 0.06), holz)
+        for dy in (-0.6, 0.6):
+            netz.quader(ort + Vector((-0.6, dy, (hoehe - 0.06) / 2)), (0.6, 0.06, hoehe - 0.06), holz)
     return netz.objekt() if netz.dreiecke() else None
 
 

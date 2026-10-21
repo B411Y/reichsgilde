@@ -341,7 +341,7 @@ public partial class BetriebsVerwaltung : VBoxContainer
             anzahl.Text = jetzt.ToString();
             minus.Disabled = jetzt == 0;
             plus.Disabled = b.Belegt >= b.Plaetze || !daten.IstErlaubt(w.Statut, b.Ort);
-            info.Text = $"Lohn {Zahlenformat.Ganz(daten.Kosten)} · Ertrag ≈ {Zahlenformat.MitVorzeichen(Kalkulation.Jahresertrag(w, b, kraft))}/Jahr"
+            info.Text = $"Lohn {Zahlenformat.Ganz(w.Daten.Lohn(kraft, b.Art))} · Ertrag ≈ {Zahlenformat.MitVorzeichen(Kalkulation.Jahresertrag(w, b, kraft))}/Jahr"
                         + (daten.Risiko > 0 ? $" · Risiko {Zahlenformat.Ganz(daten.Risiko * 100)} %" : "");
         }
 

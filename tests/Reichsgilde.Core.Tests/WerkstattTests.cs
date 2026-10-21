@@ -86,6 +86,18 @@ static class WerkstattTests
         return (w, k, s);
     }
 
+    /// <summary>Ein Haus mit Schänke ohne Karren, Lager mit Gerste und Roggen gefüllt, Dünnbier für die Gäste (sie nehmen, wovon am meisten da ist).</summary>
+    static (Stadtwirtschaft W, Konto K, Betrieb S) Schaenke(Simulation sim, double vermoegen = 20_000)
+    {
+        var w = sim.Wirtschaft!;
+        var k = w.KontoEroeffnen("Familie Krug", startvermoegen: vermoegen);
+        var s = w.BetriebEroeffnen("Schänke am Kornmarkt", Betriebsart.Schaenke, k, startkarren: "");
+        s.Einlagern("Gerste", 40);
+        s.Einlagern("Roggen", 40);
+        s.Einlagern("Dünnbier", 100);
+        return (w, k, s);
+    }
+
     static void BisUhrzeit(Simulation sim, int stunde)
     {
         while (sim.Zeit.UhrzeitInMinuten < stunde * 60) sim.Tick();
@@ -122,7 +134,7 @@ static class WerkstattTests
         ("Werkstatt: Daten – Abschnitt „werkstatt“ mit drei Lohnstufen und genau den sieben Stücken des Schmieds (Kennungen wie im Raummodell)", () =>
         {
             var d = Daten.Value.Werkstatt!;
-            Pruefe.Gleich(41, Daten.Value.Version);
+            Pruefe.Gleich(43, Daten.Value.Version);
             Pruefe.Ungefaehr(1, d.Stufe(Lohnstufe.Ueblich).LohnFaktor, 1e-12);
             Pruefe.Gleich(0.0, d.Stufe(Lohnstufe.Ueblich).Laune);
             Pruefe.Wahr(d.Stufe(Lohnstufe.Knapp).LohnFaktor < 1 && d.Stufe(Lohnstufe.Gut).LohnFaktor > 1, "Lohnfaktoren");
@@ -795,6 +807,96 @@ static class WerkstattTests
             Pruefe.Ungefaehr(50 * 0.81, s.MinutenJeStueck("Blume der Zwietracht"), 1e-9);
             // Der Duftgarten gehört auch zum Parfumeur, ist aber keine Werkstatt.
             var g = w.BetriebEroeffnen("Duftgarten Rosenhain", Betriebsart.Duftgarten, k, startkarren: "");
+            Pruefe.Gleich(0, w.Werkstaetten.Einrichtungsliste(g).Count);
+            Abgelehnt(w, k, new EinrichtungKaufen(g.Name, "Regale"), "kein Stück „Regale“");
+            Pruefe.Gleich(0.0, w.Werkstaetten.UnfallGefahr(g));
+        }),
+
+        ("Werkstatt: Daten – der Wirt hat sieben Stücke (Kennungen wie im Raummodell) zu den Preisen des Schmieds, mit Braupfanne statt Blasebalg und Handschuhen statt Schürzen", () =>
+        {
+            var d = Daten.Value.Werkstatt!;
+            var wirt = d.EinrichtungFuer("Wirt");
+            Pruefe.Gleich("Werkzeug1 Werkzeug2 Braupfanne Regale Loeschfass Eisentuer Handschuhe", string.Join(" ", wirt.Select(e => e.Kennung)));
+            Pruefe.Gleich("Gutes Werkzeug, Meisterwerkzeug, Kupferne Braupfanne, Fassregale, Löschfass, Eisentür, Lederhandschuhe",
+                string.Join(", ", wirt.Select(e => e.Name)));
+            foreach (var e in wirt.Where(e => e.Kennung != "Braupfanne"))
+            {
+                var schmied = d.Stueck("Schmied", e.Kennung == "Handschuhe" ? "Schuerzen" : e.Kennung)!;
+                Pruefe.Gleich(schmied.Preis, e.Preis, $"Preis {e.Kennung}");
+                Pruefe.Gleich(schmied.Wirkung.Text(), e.Wirkung.Text(), $"Wirkung {e.Kennung}");
+            }
+            Pruefe.Gleich(350.0, d.Stueck("Wirt", "Braupfanne")!.Preis);
+            Pruefe.Gleich("Werkzeug1", d.Stueck("Wirt", "Werkzeug2")!.Voraussetzung);
+            Pruefe.Gleich(2, d.Stueck("Wirt", "Werkzeug2")!.AbStufe);
+            Pruefe.Gleich("Dünnbier Starkbier Festbier", string.Join(" ", d.Stueck("Wirt", "Braupfanne")!.Wirkung.Waren));
+            foreach (var ware in d.Stueck("Wirt", "Braupfanne")!.Wirkung.Waren)
+                Pruefe.Wahr(Daten.Value.Art(Betriebsart.Gasthaus).Produkte.Contains(ware), $"Ware {ware} braut der Wirt");
+            Pruefe.Ungefaehr(0.5, d.Stueck("Wirt", "Handschuhe")!.Wirkung.UnfallFaktor, 1e-12);
+        }),
+
+        ("Werkstatt: Wirt – Werkzeug spart Zeit bei allen Waren, die Braupfanne nur bei Dünnbier, Starkbier, Festbier; Fassregale geben Lager", () =>
+        {
+            var sim = NeueSimulation();
+            var (w, k, s) = Schaenke(sim, vermoegen: 5_000);
+            Pruefe.Wahr(w.Werkstaetten.Einrichtungsliste(s) is { Count: 7 } l && l.All(e => !e.Gekauft), "sieben Stücke, keins gekauft");
+            Ok(w, k, new EinrichtungKaufen(s.Name, "Braupfanne"));
+            Pruefe.Ungefaehr(4_650, k.Vermoegen, 1e-9);
+            Pruefe.Ungefaehr(350, k.Laufend.Investitionen, 1e-9);
+            Pruefe.Ungefaehr(35 * 0.9, s.MinutenJeStueck("Dünnbier"), 1e-9);
+            Pruefe.Ungefaehr(30, s.MinutenJeStueck("Körnermahlzeit"), 1e-9); // gebraut wird nur Bier
+            Pruefe.Ungefaehr(30, s.MinutenJeStueck("Weingeist"), 1e-9);
+            Ok(w, k, new EinrichtungKaufen(s.Name, "Werkzeug1"));
+            Pruefe.Ungefaehr(35 * 0.81, s.MinutenJeStueck("Dünnbier"), 1e-9);
+            Pruefe.Ungefaehr(30 * 0.9, s.MinutenJeStueck("Körnermahlzeit"), 1e-9);
+            Pruefe.Gleich(40, s.LagerKapazitaetJeWare);
+            Ok(w, k, new EinrichtungKaufen(s.Name, "Regale"));
+            Pruefe.Gleich(60, s.LagerKapazitaetJeWare);
+            foreach (var kennung in new[] { "Loeschfass", "Eisentuer", "Handschuhe" }) Ok(w, k, new EinrichtungKaufen(s.Name, kennung));
+            Pruefe.Gleich((0.5, 0.5, 0.5), (s.BrandFaktor, s.EinbruchFaktor, s.UnfallFaktor));
+            Pruefe.Ungefaehr(5_000 - 350 - 300 - 200 - 100 - 300 - 80, k.Vermoegen, 1e-9);
+            Abgelehnt(w, k, new EinrichtungKaufen(s.Name, "Schuerzen"), "kein Stück „Schuerzen“");
+            Abgelehnt(w, k, new EinrichtungKaufen(s.Name, "Glasflakons"), "kein Stück „Glasflakons“");
+            Abgelehnt(w, k, new EinrichtungKaufen(s.Name, "Werkzeug2"), "erst ab Stufe 2");
+            Ok(w, k, new ProduktWaehlen(s.Name, "Körnermahlzeit"));
+            Ok(w, k, new PersonalSetzen(s.Name, "Geselle", 1));
+            BisUhrzeit(sim, 14); // die Gäste ab 12 Uhr trinken Dünnbier (davon ist am meisten da)
+            Pruefe.Wahr(s.ImLager("Körnermahlzeit") == 13, $"Körnermahlzeit mit Werkzeug: {s.ImLager("Körnermahlzeit")} (360 / 27 ≈ 13,3; ohne Werkzeug 360 / 30 = 12)");
+            var liste = w.Werkstaetten.Einrichtungsliste(s);
+            Pruefe.Gleich("10 % weniger Zeit je Stück (Dünnbier, Starkbier, Festbier)", liste.Single(e => e.Kennung == "Braupfanne").Wirkung);
+            Pruefe.Gleich("Kupferne Braupfanne", liste.Single(e => e.Kennung == "Braupfanne").Name);
+            Pruefe.Gleich("Fassregale", liste.Single(e => e.Kennung == "Regale").Name);
+            Pruefe.Gleich("20 mehr Lager je Ware", liste.Single(e => e.Kennung == "Regale").Wirkung);
+            Pruefe.Gleich("Lederhandschuhe", liste.Single(e => e.Kennung == "Handschuhe").Name);
+            Pruefe.Gleich("Unfälle halb so oft", liste.Single(e => e.Kennung == "Handschuhe").Wirkung);
+            Pruefe.Ungefaehr(0.02 * 0.5 * 840 / 720, w.Werkstaetten.UnfallGefahr(s), 1e-12); // Gefahr des Wirts je Arbeiter und Jahr – je Stunde gleich, die Schicht geht bis 22 Uhr
+        }),
+
+        ("Werkstatt: Wirt – Meisterwerkzeug erst ab dem Wirtshaus und nur mit gutem Werkzeug; die Einrichtung gilt in allen drei Stufen, nicht auf dem Bauernhof", () =>
+        {
+            var sim = NeueSimulation();
+            var (w, k, s) = Schaenke(sim);
+            Ok(w, k, new EinrichtungKaufen(s.Name, "Regale"));
+            Ok(w, k, new EinrichtungKaufen(s.Name, "Braupfanne"));
+            Abgelehnt(w, k, new EinrichtungKaufen(s.Name, "Werkzeug2"), "erst ab Stufe 2");
+            s.Ausbauen(Betriebsart.Wirtshaus, 0);
+            Pruefe.Gleich(7, w.Werkstaetten.Einrichtungsliste(s).Count);
+            Pruefe.Wahr(s.HatEinrichtung("Regale") && s.LagerKapazitaetJeWare == 60, "Fassregale nach dem Ausbau");
+            Abgelehnt(w, k, new EinrichtungKaufen(s.Name, "Werkzeug2"), "Erst braucht es: Gutes Werkzeug");
+            Ok(w, k, new EinrichtungKaufen(s.Name, "Werkzeug1"));
+            Ok(w, k, new EinrichtungKaufen(s.Name, "Werkzeug2"));
+            Pruefe.Ungefaehr(50 * 0.729, s.MinutenJeStueck("Starkbier"), 1e-9);
+            Pruefe.Ungefaehr(60 * 0.81, s.MinutenJeStueck("Kräuterlikör"), 1e-9);
+            s.Ausbauen(Betriebsart.Gasthaus, 0);
+            Pruefe.Gleich(3, s.Stufe);
+            var liste = w.Werkstaetten.Einrichtungsliste(s);
+            Pruefe.Gleich(7, liste.Count);
+            Pruefe.Gleich("Werkzeug1 Werkzeug2 Braupfanne Regale", string.Join(" ", liste.Where(e => e.Gekauft).Select(e => e.Kennung)));
+            Pruefe.Ungefaehr(80 * 0.729, s.MinutenJeStueck("Festbier"), 1e-9);
+            Pruefe.Ungefaehr(35 * 0.729, s.MinutenJeStueck("Dünnbier"), 1e-9);
+            Pruefe.Ungefaehr(100 * 0.81, s.MinutenJeStueck("Schädelbrand"), 1e-9);
+            Pruefe.Ungefaehr(30 * 0.81, s.MinutenJeStueck("Körnermahlzeit"), 1e-9);
+            // Der Bauernhof gehört auch zum Wirt, ist aber keine Werkstatt.
+            var g = w.BetriebEroeffnen("Bauernhof Krug", Betriebsart.Bauernhof, k, startkarren: "");
             Pruefe.Gleich(0, w.Werkstaetten.Einrichtungsliste(g).Count);
             Abgelehnt(w, k, new EinrichtungKaufen(g.Name, "Regale"), "kein Stück „Regale“");
             Pruefe.Gleich(0.0, w.Werkstaetten.UnfallGefahr(g));
