@@ -66,7 +66,7 @@ public partial class Stadtansicht
 
     /// <summary>
     /// Welche Teile der Figur zu welcher Bewegung der Werkstatt gehören (eines oder mehrere): Hammer beim Hämmern, Hobel beim Hobeln, Säge beim Sägen,
-    /// Drechseleisen beim Drechseln, Schlägel und Meißel beim Behauen und Bildhauen, Stößel beim Mörsern, Kelle beim Rühren, Flakon beim Mischen, Krug beim Zapfen und Trinken, Laute beim Spielen (Destillieren, Pressen und der Blasebalg brauchen keins). Ein Arbeitsplatz im Innenraum kann sie mit seinen extras „requisit“ ersetzen.
+    /// Drechseleisen beim Drechseln, Schlägel und Meißel beim Behauen und Bildhauen, Stößel beim Mörsern, Kelle beim Rühren, Flakon beim Mischen, Krug beim Zapfen und Trinken, Laute beim Spielen, Dochtstab beim Kerzenziehen, Sieb beim Schöpfen, Feder beim Schreiben (Destillieren, Pressen und der Blasebalg brauchen keins). Ein Arbeitsplatz im Innenraum kann sie mit seinen extras „requisit“ ersetzen.
     /// </summary>
     private static readonly Dictionary<string, string[]> WerkstattWerkzeug = new()
     {
@@ -74,6 +74,7 @@ public partial class Stadtansicht
         ["Behauen"] = new[] { "Schlaegel", "Meissel" }, ["Bildhauen"] = new[] { "Schlaegel", "Meissel" },
         ["Moersern"] = new[] { "Stoessel" }, ["Ruehren"] = new[] { "Kelle" }, ["Mischen"] = new[] { "Flakon" },
         ["Zapfen"] = new[] { "Krug" }, ["Trinken"] = new[] { "Krug" }, ["Laute"] = new[] { "Laute" },
+        ["Kerzenziehen"] = new[] { "Dochtstab" }, ["Schoepfen"] = new[] { "Sieb" }, ["Schreiben"] = new[] { "Feder" },
     };
 
     /// <summary>Namen aller Werkzeugteile der Figuren (die übrigen Teile, die kein Kleid und keine Last sind, werden gelöscht).</summary>
@@ -169,7 +170,7 @@ public partial class Stadtansicht
         f.Dauer = Math.Max(0.1, f.Spieler.GetAnimation(bewegung).Length - SchleifenAnfang);
         f.Phase = (Streuung(f.Nummer, 131) & 0xFFFF) / 65536.0 * f.Dauer;
         f.Neu = true;
-        f.Langsam = bewegung is "Stehen" or "Sitzen" or "Hueten";
+        f.Langsam = bewegung is "Stehen" or "Sitzen" or "Hueten" or "Beten" or "Knien";
         if (f.Hacke is not null) f.Hacke.Visible = bewegung == "Hacken";
         var sichtbar = werkzeug ?? (WerkstattWerkzeug.TryGetValue(bewegung, out var teile) ? teile : Array.Empty<string>());
         foreach (var (name, teil) in f.Werkzeuge) teil.Visible = sichtbar.Contains(name);
