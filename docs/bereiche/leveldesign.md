@@ -135,7 +135,7 @@ Fahrplan (vom Nutzer am 21.10.2026 bestätigt, je Schritt ein PR; Stand wird hie
 | Schritt | Inhalt | Stand |
 |---|---|---|
 | 1 Grundgerüst | Knopf im Hauptmenü, Karte laden und zeigen, Gebäude aus dem Katalog setzen, verschieben, drehen, löschen, Live-Prüfung, Speichern, Rückgängig | fertig (PR #168) |
-| 2 Wege und Flächen | Wege mit Kurven zeichnen, Kreuzungen rasten ein, Gassennetz live; Bauzonen und Waldflächen als Vielecke | in Arbeit (PR #170) |
+| 2 Wege und Flächen | Wege mit Kurven zeichnen, Kreuzungen rasten ein, Gassennetz live; Bauzonen und Waldflächen als Vielecke | fertig (PR #170) |
 | 3 Rest der Karte | Mauer und Tore, Startbelegung, Knopf „Karte ausprobieren“ | offen |
 | 4 Umzug | Greybox und Köln übernehmen, der Editor wird die Quelle, Python-Werkzeug fällt weg | offen |
 | 5 Später | Gelände mit Höhen, Wasser, Wegbelag; Freigabe für Spieler | offen |
