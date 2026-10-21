@@ -923,7 +923,7 @@ def ladenschild(netz, st):
     netz.vieleck_nach([M @ Vector(p) for p in ((-0.035, 0.063, 2.76), (0.035, 0.063, 2.76), (0.035, 0.063, 2.86), (-0.035, 0.063, 2.86))],
                       n, st["Laden lila"])
     netz.vieleck_nach([M @ Vector(p) for p in ((-0.05, 0.064, 2.86), (0.05, 0.064, 2.86), (0.05, 0.064, 2.9), (-0.05, 0.064, 2.9))],
-                      n, st["Gold"])
+                      n, st["Messing"])
     for s in (-1, 1):
         netz.stab(M @ Vector((s * 0.5, 0.03, 2.93)), M @ Vector((s * 0.5, 0.03, H_LADEN)), 0.02, 0.02, st["Eisen"])
 
