@@ -1054,3 +1054,21 @@ Bürgermeister 18/20 → 16/20 (im Schnitt ab Jahr 14,2 → 13,4), Stand am Ende
 **Regel:** `werkstatt.einrichtung.Alchimist` (Datenversion 39), gleiche Stücke und Preise wie beim Schmied, statt des Blasebalgs der **kupferne Destillierhelm** (350): −10 % Zeit für Kräuterschnaps, Rosenwasser, Gegengift und Theriak (nicht für Farbe, Heilsalbe, Zinnober). Mit gutem Werkzeug und Destillierhelm braucht ein Kräuterschnaps 15 × 0,81 ≈ 12 statt 15 Minuten, ein Geselle schafft in 6 Stunden 29 statt 24. Die Kräuterregale (`Regale`) geben 60 statt 40 Lager je Ware, die Lederhandschuhe (`Handschuhe`, 80) halbieren die Unfälle wie die Schürzen der anderen Werkstätten (Gefahr des Alchimisten 3 % → 1,5 % je Arbeiter und Jahr). Gilt in Tinkturei, Kräuterladen und Alchimistenstube, nicht im Kräutergarten.
 
 **Keine Messung:** Die KI-Häuser kaufen keine Einrichtung, in `messen` ändert sich nichts.
+
+## Keine Werkstätten zum Kauf in der Stadt (PR #162)
+
+**Regel:** Datenversion 40. Unter `liegenschaften` stehen nur noch die neun Umlandbetriebe zur Pacht; die zehn Werkstätten der Stadt (Gießerei an der Südgasse … Wechselstube am Markt) sind gestrichen. Neue Werkstätten entstehen durch Bauen, frei werden welche durch Verkauf oder Untergang eines Hauses. Der Preis der Stufe 1 steht jetzt als `kaufpreis` an der Betriebsart (3.500, Schmugglerloch 3.000) – unverändert gegenüber den gestrichenen Liegenschaften, also gleicher Neubaupreis und gleicher Wert beim Verkauf.
+
+**Messung** (gemessen auf main `3086bda` + PR #162, 30 Jahre, 20 Startwerte, Spieler Mensch passiv, KI ausgewogen; Vermögen Ø am Ende):
+
+| Haus | ohne Karte vorher | ohne Karte nachher | Greybox vorher | Greybox nachher |
+|---|---|---|---|---|
+| Eisenbart (Schmied, von der KI geführt) | 161.736 | 129.647 (−20 %) | 161.916 | 156.555 (−3 %) |
+| Eichwald (Tischler) | 96.795 | 88.479 (−9 %) | 96.186 | 111.613 (+16 %) |
+| Kieselbach (Steinmetz) | 143.128 | 127.439 (−11 %) | 144.285 | 148.035 (+3 %) |
+| Betrieb gekauft/gepachtet | 164 | 120 | 164 | 119 (+ 57 Werkstätten neu gebaut) |
+| Stand am Ende | Edler 11, Freiherr 48, Reichsgraf 1 | Edler 7, Freiherr 53 | Edler 11, Freiherr 48, Reichsgraf 1 | Edler 17, Freiherr 43 |
+
+- **Greybox** (die Karte des Spiels): Die KI baut die fehlenden Werkstätten neu, statt sie zu kaufen (57 Neubauten statt 45 Käufe). Im Mittel der drei Häuser +3 % – sie bleibt ähnlich, eine Anpassung der KI ist nicht nötig. Eichwald gewinnt am meisten (+16 %, er lernt öfter Parfumeur und Prediger); einzeln untersucht ist das nicht – die Neubauten stehen nah am Markt, und Reihenfolge und Zeitpunkt der Erwerbe verschieben sich. Eisenbart verliert etwas, weil ein Neubau ein Jahr ohne Einnahmen bleibt.
+- **Mit den neuen Kernzonen K1–K3** (die frei gewordene Fläche in der Stadt wird Bauland, Entscheidung des Nutzers; gemessen auf main `3086bda` + Funktions-Branch `4c08c0e`, `messen 30 20 greybox`): Eisenbart 156.891 (−3 % gegen vorher), Eichwald 100.413 (+4 %), Kieselbach 149.875 (+4 %), im Mittel +1 %. Gekauft/gepachtet 119, Werkstätten neu gebaut 57, Stadthöfe neu gebaut 60 statt 42 (vorher 56), weil ein Stadthof nun auch in Kernlage Platz findet. Stand am Ende Edler 1, Freiherr 59 (vorher Edler 11, Freiherr 48, Reichsgraf 1): Mehr Häuser kommen zum Freiherrn, keins mehr zum Reichsgrafen. Bürgermeister 17/20. Das ist der Stand, mit dem PR #162 gemergt wird.
+- **Ohne Karte** (`messen 30 20`): Hier wird nicht gebaut, die KI kann nur noch Umland pachten oder freie Werkstätten toter Häuser kaufen. Deshalb −9 bis −20 %. Das Spiel startet immer mit der Greybox-Karte; die Messung ohne Karte zeigt nur, wie viel der Werkstattkauf vorher ausgemacht hat.

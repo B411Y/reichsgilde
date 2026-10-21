@@ -130,19 +130,27 @@ public sealed partial class Stadtwirtschaft
     }
 
     /// <summary>
-    /// Die Liegenschaft aus den Daten, nach der sich ein Betrieb richtet: die gleichnamige, sonst die günstigste derselben Art.
-    /// So kostet die Startgießerei am Weinmarkt so viel wie die Gießerei an der Südgasse – ohne neues Feld in den Daten.
+    /// Die Liegenschaft aus den Daten, nach der sich ein Betrieb richtet (Mindeststand): die gleichnamige, sonst die günstigste derselben Art.
+    /// Werkstätten in der Stadt stehen seit Datenversion 40 nicht mehr unter „liegenschaften“ – für sie gibt es meist keine (dann Bürger).
     /// </summary>
     internal LiegenschaftDaten? Vorbild(string name, Betriebsart grundart) =>
         Daten.Liegenschaften.FirstOrDefault(l => l.Name == name)
         ?? Daten.Liegenschaften.Where(l => l.Art == grundart).OrderBy(l => l.Kaufpreis).ThenBy(l => l.Name, StringComparer.Ordinal).FirstOrDefault();
 
-    /// <summary>Kaufpreis der Stufe 1. Gibt es keine Liegenschaft dieser Art, gilt die günstigste Werkstatt der Stadt; Umland wird gepachtet (0).</summary>
+    /// <summary>
+    /// Kaufpreis der Stufe 1: der der gleichnamigen Liegenschaft, sonst der der Art („kaufpreis“ unter „betriebsarten“), sonst der
+    /// der günstigsten Liegenschaft dieser Art, sonst der der günstigsten Werkstatt der Stadt. Umland wird gepachtet (0).
+    /// So kostet die Startgießerei am Weinmarkt so viel wie eine neu gebaute Gießerei.
+    /// </summary>
     internal double Grundpreis(string name, Betriebsart grundart)
     {
+        if (Daten.Liegenschaften.FirstOrDefault(l => l.Name == name) is { } gleichnamig) return gleichnamig.Kaufpreis;
+        var art = Daten.Art(grundart);
+        if (!art.InDerStadt) return 0;
+        if (art.Kaufpreis > 0) return art.Kaufpreis;
         if (Vorbild(name, grundart) is { } l) return l.Kaufpreis;
-        if (!Daten.Art(grundart).InDerStadt) return 0;
-        return Daten.Liegenschaften.Where(x => x.Kaufpreis > 0).Select(x => x.Kaufpreis).DefaultIfEmpty(0).Min();
+        return Daten.Betriebsarten.Values.Select(x => x.Kaufpreis).Concat(Daten.Liegenschaften.Select(x => x.Kaufpreis))
+            .Where(p => p > 0).DefaultIfEmpty(0).Min();
     }
 
     /// <summary>Welcher Meistergrad für eine Werkstatt dieser Art (Stufe) nötig ist.</summary>

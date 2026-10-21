@@ -12,6 +12,7 @@ So wird eingetragen (damit sich die Chats nie an derselben Stelle treffen):
 
 - (–) Reichskarte zum Wechsel zwischen den Städten (Idee, später)
 - Level-Editor (Grundsatz siehe „Level-Editor und Wege“): vor dem Start Umfang (Gelände, Wasser, Bauzonen, feste Gebäude), Kartenformat 2 und Reihenfolge klären – Vorschlag: Wegegraph im Kern, Wege in der Darstellung, dann der Editor
+- Greybox: Die Lagen der Stadt stehen doppelt – im Code der Stadtansicht (`Stadtplan`, `Gassen`, `Abzweige`, `KulissePlaetze`) und im Kartenwerkzeug `tools/karten/greybox.py`, das sie nachbildet. Vorschlag: Die Stadtansicht liest Werkstattplätze, Gassen und Kulissenhäuser aus `greybox.json` (wie schon die Wohnhausplätze und Bauzonen), dann ist das Werkzeug die einzige Quelle
 
 ## Entscheidungen
 
@@ -81,3 +82,21 @@ Noch nicht begonnen; festgehalten, damit niemand weiter Arbeit in die Greybox-We
 | Wege zeichnen | Punkte setzen, das Werkzeug legt eine glatte Kurve hindurch; Kreuzungen rasten ein; Mindestbreite je Wegklasse. Vorschlag des Teamleiters. | 19.10.2026 |
 | Belag | Verkehr tritt einen Trampelpfad zum Fahrweg mit Spurrillen aus, wenig Verkehr lässt ihn verwildern; Kies und Pflaster sind ein Bauauftrag, den der Rat oder der Spieler bezahlt. Der Belag wirkt auf das Tempo der Karren und bei Regen. Entschieden vom Nutzer. | 19.10.2026 |
 | Gegenverkehr | Nur sichtbar: Rechtsverkehr, Fußgänger am Rand, Karren in der Mitte, Ausweichen macht die Darstellung. Der Kern rechnet Fahrzeiten aus einem groben Wegegraphen (Länge, Klasse, Belag), ohne Stau (passt zu „Zwei Ebenen“ in `docs/LEVELDESIGN.md`, Wege und Wegfindung). Entschieden vom Nutzer. | 19.10.2026 |
+
+### Werkstattplätze 16 × 14 m in der Greybox (PR #162)
+
+| Thema | Entscheidung | Datum |
+|---|---|---|
+| Plätze | Jeder Werkstattplatz der Greybox wird 16 × 14 m groß (so groß sind die Werkstattmodelle); wo es eng wird, rücken Nachbarn auseinander oder ein Einwohnerhaus entfällt. Die Plätze der 10 gestrichenen Werkstätten zum Kauf werden frei. Karte wie immer aus dem Kartenwerkzeug, Stadtplan und Gassen ziehen mit. Entschieden vom Nutzer. | 20.10.2026 |
+| Umsetzung: Plätze | Vier Werkstätten in der Stadt, Stadtplan-Punkt (Tür nach Süden): Weinmarkt (−23 \| 17), Gießerei Eisenbart (22 \| 14), Tischlerei Eichwald (22 \| −12, zieht von hinter dem Weinmarkt an die Ostgasse), Maurerei Kieselbach (25 \| −28). Kein Einwohnerhaus entfällt; drei Kulissenhäuser ziehen aus dem Süden an die Ringgasse im Norden und Westen (siehe „Kernzonen in der Stadt“). Tabelle in `docs/LEVELDESIGN.md`, „Greybox-Karte“. | 20.10.2026 |
+| Umsetzung: Karte | `greybox.json`: Werkstätten 16 × 14 m, `punkt` = Mitte der Fläche (1 m hinter dem Stadtplan-Punkt), Gassen vom Hof am Vorplatz entlang zum Markt, Domgasse ab den Domstufen, Dom mit Westturm (12,5 × 30,2 m), Kulissenhäuser 8 × 8,5 m. Neue Prüfungen im Werkzeug: Werkstätten ohne Überlappung, 2 m Abstand, nicht auf Straße oder Mauer, Hof im Vorplatz mit eigener Gasse; keine Gasse über ein Haus. | 20.10.2026 |
+| Umsetzung: Darstellung | `Stadtplan`, `Gassen` (Weinmarkt: `WeinmarktGasse`) und `KulissePlaetze` auf die neuen Plätze, die Stichgassen (`RingAnschluesse`) entfallen; Bauplatz-Zaun und Klickfläche eines freien Werkstattplatzes 16 × 14 m. Die Lagen stehen weiter doppelt (Stadtansicht und `greybox.py`) – zusammenführen später, siehe „Offen“. | 20.10.2026 |
+
+### Kernzonen in der Stadt (PR #162)
+
+| Thema | Entscheidung | Datum |
+|---|---|---|
+| Bauzonen in der Stadt | Die frei gewordene Fläche der gestrichenen Werkstätten wird Bauzone in Kernlage (Variante b, Entscheidung des Nutzers). Platz für drei Werkstätten (16 × 14 m, Eingang an der Ringgasse) und vier Wohnhäuser. | 21.10.2026 |
+| Lage | Drei Zonen im Süden der Stadt: `K1` hinter der Gießerei Eisenbart (2 Werkstätten), `K2` südlich vom Markt (1 Werkstatt, 1 Wohnhaus an der Gasse der Gießerei Eisenbart), `K3` hinter dem Weinmarkt (3 Wohnhäuser). Der Norden (zwischen Dom, Rathaus und Ringgasse nur 8 m tief) bleibt ohne Zone. Zusammen 11 Bauzonen. | 21.10.2026 |
+| Platz dafür | Der Weinmarkt rückt 2 m nach Westen (−23 \| 17), seine Gasse läuft nach Westen und an der Ringgasse entlang zur Westgasse; die Gasse der Gießerei Eisenbart läuft am Markt entlang. Die Stichgassen vom Südring entfallen. Drei Kulissenhäuser ziehen an die Ringgasse im Norden (−8 \| −32), (1 \| −32) und Westen (−32 \| −14). Keine Werkstatt wird gedreht, alle Türen zeigen weiter nach Süden. | 21.10.2026 |
+| Probeplan | Sieben Stellen dazu (3 Werkstätten, 4 Wohnhäuser in K1 bis K3), die alte Wohnhaus-Stelle in K1 entfällt: 21 statt 15 Gebäude. | 21.10.2026 |

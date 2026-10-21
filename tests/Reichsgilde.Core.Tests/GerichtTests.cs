@@ -228,7 +228,8 @@ static class GerichtTests
             var sim = NeueSimulation();
             var w = sim.Wirtschaft!;
             var klaeger = Haus(w, "Familie Klage");
-            var ki = Haus(w, "Haus Angeklagt", vermoegen: 20_000);
+            // Unter 80 % der Patrizier-Schwelle (16.000) – sonst spart die ausgewogene KI auf den Stand und schenkt nichts.
+            var ki = Haus(w, "Haus Angeklagt", vermoegen: 15_000);
             // Hohe Bestechung → hohe drohende Buße (2400). Dann lohnt die Verteidigung auch unter Beobachtung:
             // ≈ 440 Gulden für zwei Richter × Risiko 4 (Spitzel findet in diesen Testdaten jede Spur) < 2400.
             BeweiseSammeln(sim, klaeger, ki, 2, 400);
