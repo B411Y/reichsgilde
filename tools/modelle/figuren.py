@@ -3,7 +3,7 @@
     blender -b --python tools/modelle/figuren.py        oder
     python tools/modelle/figuren.py [--schnell] [--ohne-bilder] [--nur-bewegungen]
 
-Schreibt game/assets/modelle/figur_mensch.glb, figur_zwerg.glb, figur_elb.glb, figur_halbling.glb
+Schreibt game/assets/modelle/figuren/figur_mensch.glb, figur_zwerg.glb, figur_elb.glb, figur_halbling.glb
 und Vorschaubilder nach docs/modelle/ (figuren.png: alle Körper und Trachten, figuren-bewegungen.png: die Bewegungen).
 
 Inhalt je Datei (Blender: Z oben, Blick nach -Y; im Spiel Y oben, Blick nach +Z):
@@ -1175,7 +1175,7 @@ def zonen_setzen(netze):
 
 def exportieren(name, objekte):
     import bpy
-    pfad = os.path.join(bs.MODELLE, name + ".glb")
+    pfad = bs.modellpfad(name)
     for o in bpy.context.scene.objects:
         o.select_set(o in objekte)
     bpy.ops.export_scene.gltf(
@@ -1422,7 +1422,7 @@ def beschriftung(text, ort):
     kurve.size = 0.62
     kurve.align_x, kurve.align_y = "RIGHT", "CENTER"
     try:
-        kurve.font = bpy.data.fonts.load(os.path.join(bs.WURZEL, "game", "assets", "schriften", "Alegreya-Variabel.ttf"),
+        kurve.font = bpy.data.fonts.load(os.path.join(bs.WURZEL, "game", "assets", "oberflaeche", "schriften", "Alegreya-Variabel.ttf"),
                                          check_existing=True)
     except RuntimeError:
         pass

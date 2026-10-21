@@ -4,7 +4,7 @@ Alchimistenstube der achteckige Laborturm; Stufen Tinkturei, Kräuterladen, Alch
     blender -b --python tools/modelle/alchimist_innen.py -- [--schnell] [--ohne-bilder]
     python tools/modelle/alchimist_innen.py [--schnell] [--ohne-bilder]
 
-Schreibt game/assets/modelle/alchimist_innen.glb und Bilder nach docs/modelle/ (alchimist_innen-blicke.png: das Bild jedes
+Schreibt game/assets/modelle/innen/alchimist_innen.glb und Bilder nach docs/modelle/ (alchimist_innen-blicke.png: das Bild jedes
 Blickpunkts, alchimist_innen-stufen.png: Erdgeschoss von oben je Stufe, alchimist_innen-grundriss.png: Erdgeschoss und
 Dachboden mit Ankern).
 

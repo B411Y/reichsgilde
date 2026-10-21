@@ -3,7 +3,7 @@
     blender -b --python tools/modelle/grube.py        oder
     python tools/modelle/grube.py [--schnell] [--ohne-bilder]
 
-Schreibt game/assets/modelle/grube.glb und Bilder nach docs/modelle/.
+Schreibt game/assets/modelle/umland/grube.glb und Bilder nach docs/modelle/.
 
 Objekte im GLB (siehe landbau.py):
     Haus        Felshang mit Stollenmundloch und Türstock, Gleis aus Bohlen, Abraumhalde, Schuppen

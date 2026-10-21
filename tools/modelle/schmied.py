@@ -3,7 +3,7 @@
     blender -b --python tools/modelle/schmied.py        oder
     python tools/modelle/schmied.py [--schnell] [--ohne-bilder]
 
-Schreibt game/assets/modelle/schmied.glb und Bilder nach docs/modelle/.
+Schreibt game/assets/modelle/gebaeude/schmied.glb und Bilder nach docs/modelle/.
 
 Objekte im GLB:
     Haus        die Schmiedehalle, in jeder Stufe gleich

@@ -64,7 +64,7 @@ def uebersicht(schnell=False, luft=0.5):
     ausschnitt = orte[-1] - orte[0] + (breiten[0] + breiten[-1]) / 2 + 2.0     # Bildbreite in Metern
     for i, (name, _) in enumerate(WOHNHAEUSER):
         vorher = set(bpy.data.objects)
-        bpy.ops.import_scene.gltf(filepath=os.path.join(bs.MODELLE, name + ".glb"))
+        bpy.ops.import_scene.gltf(filepath=bs.modellpfad(name))
         for o in set(bpy.data.objects) - vorher:
             if o.parent is None:      # quer zur Blickrichtung aufreihen, damit sich keins verdeckt
                 o.location.x += (orte[i] - mitte) * 0.7071
@@ -84,7 +84,7 @@ def uebersicht(schnell=False, luft=0.5):
         zeichnen = ImageDraw.Draw(bild)
         groesse = int(26 * bild.size[0] / 1600)
         try:                       # Schrift des Spiels (Alegreya, OFL) – kennt Umlaute
-            schrift = ImageFont.truetype(os.path.join(bs.WURZEL, "game", "assets", "schriften", "Alegreya-Variabel.ttf"), groesse)
+            schrift = ImageFont.truetype(os.path.join(bs.WURZEL, "game", "assets", "oberflaeche", "schriften", "Alegreya-Variabel.ttf"), groesse)
         except OSError:
             schrift = ImageFont.load_default()
         breite = bild.size[0]

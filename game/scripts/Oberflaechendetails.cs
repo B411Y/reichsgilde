@@ -24,10 +24,10 @@ namespace Reichsgilde;
 /// </summary>
 internal sealed class Oberflaechendetails
 {
-    private const string ShaderPfad = "res://shader/oberflaeche.gdshader";
-    private const string FigurShaderPfad = "res://shader/figur.gdshader";
-    private const string ArtenPfad = "res://assets/oberflaeche/materialarten.json";
-    private const string StrukturenPfad = "res://assets/oberflaeche/strukturen.png";
+    private const string ShaderPfad = "res://assets/shader/oberflaeche.gdshader";
+    private const string FigurShaderPfad = "res://assets/shader/figur.gdshader";
+    private const string ArtenPfad = "res://daten/materialarten.json";
+    private const string StrukturenPfad = "res://assets/texturen/strukturen.png";
 
     /// <summary>Diese Materialien leuchten oder spiegeln und behalten ihr Aussehen (Namen wie in <c>docs/bereiche/darstellung.md</c>).</summary>
     private static readonly HashSet<string> Behalten = new() { "Glut", "Fenster", "Glas", "Wasser" };

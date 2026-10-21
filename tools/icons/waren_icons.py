@@ -3,7 +3,7 @@
 Zeichnet die Waren-Icons von Reichsgilde als 32×32-Pixel-Art (eigene Grafiken, MIT-Lizenz wie das Projekt).
 
 Aufruf (aus dem Projektordner):
-    python3 tools/icons/waren_icons.py              # schreibt game/assets/waren/<ware>.png
+    python3 tools/icons/waren_icons.py              # schreibt game/assets/oberflaeche/icons/<ware>.png
     python3 tools/icons/waren_icons.py --vorschau x.png   # zusätzlich eine vergrößerte Übersicht
 
 Jede Ware ist eine kleine Zeichenfunktion aus Grundformen (Rechteck, Ellipse, Linie, Vieleck).
@@ -783,7 +783,7 @@ def zeichnen(funktion):
 
 def main():
     wurzel = os.path.join(os.path.dirname(__file__), "..", "..")
-    ziel = os.path.join(wurzel, "game", "assets", "waren")
+    ziel = os.path.join(wurzel, "game", "assets", "oberflaeche", "icons")
     os.makedirs(ziel, exist_ok=True)
     bilder = {}
     for name, f in WAREN.items():

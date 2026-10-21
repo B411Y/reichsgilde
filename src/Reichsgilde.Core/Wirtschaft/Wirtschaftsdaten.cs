@@ -46,7 +46,7 @@ public static class FronstatutTexte
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-//  Die Datenklassen entsprechen 1:1 dem Aufbau von game/data/wirtschaft.json.
+//  Die Datenklassen entsprechen 1:1 dem Aufbau von game/daten/wirtschaft.json.
 //  Der JSON-Leser ordnet "grundpreis" automatisch der Eigenschaft Grundpreis zu.
 // ─────────────────────────────────────────────────────────────────────────────
 
@@ -131,7 +131,7 @@ public sealed class WirtschaftsdatenFehler : Exception
 }
 
 /// <summary>
-/// Alle Zahlen des Wirtschaftsmodells, geladen aus game/data/wirtschaft.json.
+/// Alle Zahlen des Wirtschaftsmodells, geladen aus game/daten/wirtschaft.json.
 /// Die Datei entsteht mit dem Balancing-Rechner (Export „Werte kopieren").
 /// </summary>
 public sealed class Wirtschaftsdaten

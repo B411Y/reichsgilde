@@ -3,7 +3,7 @@
     blender -b --python tools/modelle/natur_buesche.py        oder
     python tools/modelle/natur_buesche.py [--schnell] [--ohne-bilder]
 
-Schreibt game/assets/modelle/natur_buesche.glb und docs/modelle/natur_buesche.png.
+Schreibt game/assets/modelle/natur/natur_buesche.glb und docs/modelle/natur_buesche.png.
 
 Knoten (Ursprung je in der Mitte am Boden):
     Hasel1–2        mehrere Ballen aus dünnen Stämmchen (2,5–3 m)

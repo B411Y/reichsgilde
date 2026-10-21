@@ -577,7 +577,7 @@ public partial class Stadtansicht : Node3D
     /// Die Datei des Werkstatt-Modells eines Berufs aus dem Gebäudekatalog (<c>schmied</c>, <c>geldleiher</c> …). Die Modelle sind 16 × 14 m groß
     /// (mit Vorplatz) und haben ihren Ursprung in der Mitte der Fläche, die Front 2 m hinter der Vorderkante (siehe <see cref="ModellEinsetzen"/>).
     /// </summary>
-    private string WerkstattModellDatei(string beruf) => Katalog?.Werkstatt(beruf)?.Modell ?? beruf.ToLowerInvariant();
+    private string WerkstattModellDatei(string beruf) => Katalog?.Werkstatt(beruf)?.Modell ?? "gebaeude/" + beruf.ToLowerInvariant();
 
     /// <summary>Die Betriebsstufe der Modelle (Knoten „Stufe1“ bis „Stufe3“).</summary>
     private static int Modellstufe(int stufe) => Math.Clamp(stufe, 1, 3);

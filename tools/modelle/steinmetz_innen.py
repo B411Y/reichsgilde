@@ -4,7 +4,7 @@ Stufen Maurerei, Steinschneiderei, Steinmetzhütte.
     blender -b --python tools/modelle/steinmetz_innen.py -- [--schnell] [--ohne-bilder]
     python tools/modelle/steinmetz_innen.py [--schnell] [--ohne-bilder]
 
-Schreibt game/assets/modelle/steinmetz_innen.glb und Bilder nach docs/modelle/ (steinmetz_innen-blicke.png: das Bild jedes
+Schreibt game/assets/modelle/innen/steinmetz_innen.glb und Bilder nach docs/modelle/ (steinmetz_innen-blicke.png: das Bild jedes
 Blickpunkts, steinmetz_innen-stufen.png: Erdgeschoss von oben je Stufe, steinmetz_innen-grundriss.png: Erdgeschoss und
 Dachboden mit Ankern).
 

@@ -87,7 +87,7 @@ public partial class Stadtansicht
 
     private void SchwarmAnlegen(bool tauben, Vector3 heimat, float reichweite)
     {
-        if (Modell(tauben ? "vogel_taube" : "vogel_spatz") is not { } szene || _vogelEbene is null) return;
+        if (Modell(tauben ? "tiere/vogel_taube" : "tiere/vogel_spatz") is not { } szene || _vogelEbene is null) return;
         var schwarm = new Schwarm { Tauben = tauben, Heimat = heimat, Reichweite = reichweite, Warten = _vogelZufall.RandfRange(2, 20) };
         var anzahl = _vogelZufall.RandiRange(3, 5);
         var plaetze = DachplaetzeVerteilen(schwarm, Enumerable.Repeat(heimat, anzahl).ToList());

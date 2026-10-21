@@ -3,7 +3,7 @@
     blender -b --python tools/modelle/klosterhof.py        oder
     python tools/modelle/klosterhof.py [--schnell] [--ohne-bilder]
 
-Schreibt game/assets/modelle/klosterhof.glb und Bilder nach docs/modelle/.
+Schreibt game/assets/modelle/umland/klosterhof.glb und Bilder nach docs/modelle/.
 
 Objekte im GLB (siehe landbau.py):
     Haus        Zellenhaus aus Bruchstein mit Schieferdach und Dachreiter (Glocke), Gemüsebeete, Bienenstand

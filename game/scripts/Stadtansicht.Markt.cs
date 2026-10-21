@@ -113,7 +113,7 @@ public partial class Stadtansicht
     /// (Hauptmenü), liegt auf jedem Stand eine andere Auslage.</summary>
     private void StandAufbauen(Transform3D lage, int nummer)
     {
-        if (ModellEinsetzen("marktstaende", this, lage.Origin, new ModellZustand()) is not { } modell) return;
+        if (ModellEinsetzen("gebaeude/marktstaende", this, lage.Origin, new ModellZustand()) is not { } modell) return;
         modell.Wurzel.Basis = lage.Basis;
         var stand = new StandAnsicht { Wurzel = modell.Wurzel };
         var form = StandFormen[nummer % StandFormen.Length];

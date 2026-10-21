@@ -4,7 +4,7 @@ Fläche 16 × 14 m.
     blender -b --python tools/modelle/alchimist.py        oder
     python tools/modelle/alchimist.py [--schnell] [--ohne-bilder] [--nur-anker] [--nur-nacht]
 
-Schreibt game/assets/modelle/alchimist.glb und Bilder nach docs/modelle/.
+Schreibt game/assets/modelle/gebaeude/alchimist.glb und Bilder nach docs/modelle/.
 
 Objekte im GLB (wie bei Schmied, Tischler und Steinmetz):
     Haus        das Laboratorium, verputzt, in jeder Stufe gleich

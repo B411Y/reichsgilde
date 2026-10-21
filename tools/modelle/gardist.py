@@ -3,7 +3,7 @@
     blender -b --python tools/modelle/gardist.py        oder
     python tools/modelle/gardist.py [--schnell] [--ohne-bilder] [--nur-anker] [--nur-nacht]
 
-Schreibt game/assets/modelle/gardist.glb und Bilder nach docs/modelle/.
+Schreibt game/assets/modelle/gebaeude/gardist.glb und Bilder nach docs/modelle/.
 
 Objekte im GLB (wie bei den anderen Werkstätten):
     Haus        die Kaserne mit Torhaus und Wehrturm, in jeder Stufe gleich

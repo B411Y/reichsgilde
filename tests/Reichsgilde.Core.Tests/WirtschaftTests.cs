@@ -9,18 +9,22 @@ using Reichsgilde.Core.Zeit;
 /// </summary>
 static class Datenpfad
 {
-    /// <summary>Sucht game/data/wirtschaft.json, egal von wo aus die Tests gestartet werden.</summary>
+    /// <summary>Sucht game/daten/wirtschaft.json, egal von wo aus die Tests gestartet werden.</summary>
     public static string Wirtschaft()
     {
         var ordner = new DirectoryInfo(AppContext.BaseDirectory);
         while (ordner is not null)
         {
-            var pfad = Path.Combine(ordner.FullName, "game", "data", "wirtschaft.json");
+            var pfad = Path.Combine(ordner.FullName, "game", "daten", "wirtschaft.json");
             if (File.Exists(pfad)) return pfad;
             ordner = ordner.Parent;
         }
-        throw new FileNotFoundException("game/data/wirtschaft.json wurde nicht gefunden.");
+        throw new FileNotFoundException("game/daten/wirtschaft.json wurde nicht gefunden.");
     }
+
+    /// <summary>Die Karte game/karten/&lt;kennung&gt;.json (neben game/daten/).</summary>
+    public static string Karte(string kennung) =>
+        Path.Combine(Path.GetDirectoryName(Path.GetDirectoryName(Wirtschaft()))!, "karten", kennung + ".json");
 
     /// <summary>
     /// Die echten Daten ohne Aktionspunkte – für Tests, die eine Mechanik (Rat, Gericht …) mit vielen Zügen
@@ -72,7 +76,7 @@ static class WirtschaftTests
     public static IEnumerable<(string, Action)> Alle() => new (string, Action)[]
     {
         // ── Daten ───────────────────────────────────────────────────────────
-        ("Wirtschaftsdaten: game/data/wirtschaft.json wird geladen und ist gültig", () =>
+        ("Wirtschaftsdaten: game/daten/wirtschaft.json wird geladen und ist gültig", () =>
         {
             var d = Daten.Value;
             Pruefe.Gleich(63, d.Waren.Count); // 9 Schmied, 8 Tischler, 9 Steinmetz, 9 Alchimist (mit Kräuterschnaps), 9 Wirt, 9 Prediger, 9 Parfumeur, Gold (nur Handel)

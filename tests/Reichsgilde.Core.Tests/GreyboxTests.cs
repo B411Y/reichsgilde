@@ -5,14 +5,14 @@ using Reichsgilde.Core.Partie;
 using Reichsgilde.Core.Wirtschaft;
 
 /// <summary>
-/// Die Greybox-Karte (game/data/karten/greybox.json, Bereich Leveldesign) mit den Bauregeln des Kerns:
+/// Die Greybox-Karte (game/karten/greybox.json, Bereich Leveldesign) mit den Bauregeln des Kerns:
 /// Wohnhausplätze in Konto-Reihenfolge, der Probeplan des Kartenwerkzeugs ist gültig, Abwandlungen davon nicht.
 /// </summary>
 static class GreyboxTests
 {
     static readonly Lazy<Wirtschaftsdaten> Daten = new(() => Wirtschaftsdaten.AusJson(Datenpfad.OhneAktionspunkte()));
 
-    static string Pfad => Path.Combine(Path.GetDirectoryName(Datenpfad.Wirtschaft())!, "karten", "greybox.json");
+    static string Pfad => Datenpfad.Karte("greybox");
 
     static Stadtkarte Karte() => Stadtkarte.AusDatei(Pfad);
 

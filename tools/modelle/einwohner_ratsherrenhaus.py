@@ -3,7 +3,7 @@
     blender -b --python tools/modelle/einwohner_ratsherrenhaus.py        oder
     python tools/modelle/einwohner_ratsherrenhaus.py [--schnell] [--ohne-bilder] [--nur-anker] [--nur-nacht]
 
-Schreibt game/assets/modelle/einwohner_ratsherrenhaus.glb und Bilder nach docs/modelle/.
+Schreibt game/assets/modelle/gebaeude/einwohner_ratsherrenhaus.glb und Bilder nach docs/modelle/.
 
 Objekte im GLB:
     Variante1   grauer Haustein, Treppengiebel, Schieferdach, Kastenerker in der Mitte

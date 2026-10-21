@@ -6,7 +6,7 @@ using Reichsgilde.Core.Wirtschaft;
 namespace Reichsgilde.Core.Bauen;
 
 // ═════════════════════════════════════════════════════════════════════════════
-//  Die Kartendatei einer Stadt (game/data/karten/<kennung>.json, Format 2)
+//  Die Kartendatei einer Stadt (game/karten/<kennung>.json, Format 2)
 //
 //  Erzeugt vom Kartenwerkzeug des Leveldesigns (tools/karten/), beschrieben in docs/LEVELDESIGN.md, „Kartenformat 2“.
 //  Die Karte ist die einzige Quelle dafür, WO etwas steht: Gebäude (mit Verweis auf den Gebäudekatalog), Mauern mit Toren,
@@ -421,12 +421,12 @@ public sealed class Stadtkarte
     /// <summary>Liest Karte und Katalog aus Dateien (für Tests und Werkzeuge).</summary>
     public static Stadtkarte AusDatei(string pfad, string katalogPfad) => AusJson(File.ReadAllText(pfad), Gebaeudekatalog.AusDatei(katalogPfad));
 
-    /// <summary>Liest die Karte aus einer Datei, mit dem Katalog an seinem Platz: <c>karten/greybox.json</c> → <c>katalog.json</c> daneben.</summary>
+    /// <summary>Liest die Karte aus einer Datei, mit dem Katalog an seinem Platz: <c>karten/greybox.json</c> → <c>daten/katalog.json</c> daneben.</summary>
     public static Stadtkarte AusDatei(string pfad) => AusDatei(pfad, KatalogZu(pfad));
 
-    /// <summary>Wo der Katalog zu einer Kartendatei liegt: <c>game/data/karten/x.json</c> → <c>game/data/katalog.json</c>.</summary>
+    /// <summary>Wo der Katalog zu einer Kartendatei liegt: <c>game/karten/x.json</c> → <c>game/daten/katalog.json</c>.</summary>
     public static string KatalogZu(string kartenpfad) =>
-        Path.Combine(Path.GetDirectoryName(Path.GetDirectoryName(Path.GetFullPath(kartenpfad)))!, "katalog.json");
+        Path.Combine(Path.GetDirectoryName(Path.GetDirectoryName(Path.GetFullPath(kartenpfad)))!, "daten", "katalog.json");
 
     /// <summary>
     /// Löst die Gebäude im Katalog auf und prüft, was Kern und Darstellung brauchen. Die Kartenregeln selbst (Straßenabstand, Tore,

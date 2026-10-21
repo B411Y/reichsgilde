@@ -3,7 +3,7 @@
     blender -b --python tools/modelle/natur_boden.py        oder
     python tools/modelle/natur_boden.py [--schnell] [--ohne-bilder]
 
-Schreibt game/assets/modelle/natur_boden.glb und docs/modelle/natur_boden.png.
+Schreibt game/assets/modelle/natur/natur_boden.glb und docs/modelle/natur_boden.png.
 
 Knoten (Ursprung je in der Mitte am Boden, alle unter 1,6 m):
     Farn1–2             Wedel im Kreis

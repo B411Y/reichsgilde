@@ -192,7 +192,7 @@ def bild(name, objekte, spalten, abstand, ziel_hoehe=1.5, ausschnitt=30.0, zeile
     zeichnen = ImageDraw.Draw(bild)
     w, h = bild.size
     try:
-        schrift = ImageFont.truetype(os.path.join(bs.WURZEL, "game", "assets", "schriften", "Alegreya-Variabel.ttf"),
+        schrift = ImageFont.truetype(os.path.join(bs.WURZEL, "game", "assets", "oberflaeche", "schriften", "Alegreya-Variabel.ttf"),
                                      int(h / 42))
     except OSError:
         schrift = ImageFont.load_default()

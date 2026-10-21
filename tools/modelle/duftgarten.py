@@ -3,7 +3,7 @@
     blender -b --python tools/modelle/duftgarten.py        oder
     python tools/modelle/duftgarten.py [--schnell] [--ohne-bilder]
 
-Schreibt game/assets/modelle/duftgarten.glb und Bilder nach docs/modelle/.
+Schreibt game/assets/modelle/umland/duftgarten.glb und Bilder nach docs/modelle/.
 
 Objekte im GLB (siehe landbau.py):
     Haus        verputzte Gärtnerhütte mit Ziegeldach, Beetreihen, Laubengang aus Latten, Trockenmauer

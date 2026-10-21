@@ -3,7 +3,7 @@
     blender -b --python tools/modelle/prediger.py        oder
     python tools/modelle/prediger.py [--schnell] [--ohne-bilder] [--nur-anker] [--nur-nacht]
 
-Schreibt game/assets/modelle/prediger.glb und Bilder nach docs/modelle/.
+Schreibt game/assets/modelle/gebaeude/prediger.glb und Bilder nach docs/modelle/.
 
 Objekte im GLB (wie bei den anderen Werkstätten):
     Haus        die Kirche mit Glockenturm, in jeder Stufe gleich

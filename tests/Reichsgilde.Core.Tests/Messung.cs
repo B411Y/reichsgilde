@@ -21,7 +21,7 @@ static class Messung
         var daten = Wirtschaftsdaten.AusDatei(Datenpfad.Wirtschaft());
         var mitKarte = args.Contains("greybox");
         args = args.Where(a => a != "greybox").ToArray();
-        var kartenpfad = Path.Combine(Path.GetDirectoryName(Datenpfad.Wirtschaft())!, "karten", "greybox.json");
+        var kartenpfad = Datenpfad.Karte("greybox");
         // Bauen und Verkaufen der KI-Häuser (Spiel-KI, PR #108): gezählt über ihre Meldungen
         var bauen = new SortedDictionary<string, int>(StringComparer.Ordinal);
         var staendeKi = new SortedDictionary<string, int>(StringComparer.Ordinal);

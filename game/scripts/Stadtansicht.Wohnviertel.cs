@@ -156,9 +156,9 @@ public partial class Stadtansicht
     /// <summary>Die Modelle der Einwohnerhäuser je Hausart aus dem Gebäudekatalog (Konventionen in <c>docs/bereiche/darstellung.md</c>).</summary>
     private string EinwohnerDatei(Hausart art) => Katalog?.Einwohnerhaus(art.ToString())?.Modell ?? art switch
     {
-        Hausart.Ratsherrenhaus => "einwohner_ratsherrenhaus",
-        Hausart.Buergerhaus => "einwohner_buergerhaus",
-        _ => "einwohner_wohnhaus",
+        Hausart.Ratsherrenhaus => "gebaeude/einwohner_ratsherrenhaus",
+        Hausart.Buergerhaus => "gebaeude/einwohner_buergerhaus",
+        _ => "gebaeude/einwohner_wohnhaus",
     };
 
     /// <summary>Wo die Hausfront im Modell liegt (z): Ratsherren- und Bürgerhaus bei +3 (Fläche 8 × 10 m), einfaches Haus bei +2 (6 × 8 m) – jeweils 2 m Vorplatz davor.</summary>

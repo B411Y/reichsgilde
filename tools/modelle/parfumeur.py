@@ -3,7 +3,7 @@
     blender -b --python tools/modelle/parfumeur.py        oder
     python tools/modelle/parfumeur.py [--schnell] [--ohne-bilder] [--nur-anker] [--nur-nacht]
 
-Schreibt game/assets/modelle/parfumeur.glb und Bilder nach docs/modelle/.
+Schreibt game/assets/modelle/gebaeude/parfumeur.glb und Bilder nach docs/modelle/.
 
 Objekte im GLB (wie bei den anderen Werkstätten):
     Haus        das Fachwerkhaus mit Zwerchhaus und dem Destillierkessel, in jeder Stufe gleich

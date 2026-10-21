@@ -86,9 +86,8 @@ static class BauenTests
         for (var i = 0; i < minuten; i++) sim.Tick();
     }
 
-    /// <summary>Sucht game/data/karten/&lt;kennung&gt;.json, egal von wo aus die Tests gestartet werden.</summary>
-    static string Kartenpfad(string kennung) =>
-        Path.Combine(Path.GetDirectoryName(Datenpfad.Wirtschaft())!, "karten", kennung + ".json");
+    /// <summary>Sucht game/karten/&lt;kennung&gt;.json, egal von wo aus die Tests gestartet werden.</summary>
+    static string Kartenpfad(string kennung) => Datenpfad.Karte(kennung);
 
     public static IEnumerable<(string, Action)> Alle() => new (string, Action)[]
     {

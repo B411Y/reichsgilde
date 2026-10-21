@@ -3,7 +3,7 @@
     blender -b --python tools/modelle/bauernhof.py        oder
     python tools/modelle/bauernhof.py [--schnell] [--ohne-bilder]
 
-Schreibt game/assets/modelle/bauernhof.glb und Bilder nach docs/modelle/.
+Schreibt game/assets/modelle/umland/bauernhof.glb und Bilder nach docs/modelle/.
 
 Objekte im GLB (siehe landbau.py):
     Haus        Scheune in Fachwerk mit Ziegeldach und Tor, Bockwindmühle (Bock, Mühlenhaus, Flügelgitter, Steert),

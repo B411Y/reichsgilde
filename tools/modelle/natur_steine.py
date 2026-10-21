@@ -3,7 +3,7 @@
     blender -b --python tools/modelle/natur_steine.py        oder
     python tools/modelle/natur_steine.py [--schnell] [--ohne-bilder]
 
-Schreibt game/assets/modelle/natur_steine.glb und docs/modelle/natur_steine.png.
+Schreibt game/assets/modelle/natur/natur_steine.glb und docs/modelle/natur_steine.png.
 
 Knoten (Ursprung je in der Mitte am Boden):
     Kiesel1–3           eine Handvoll kleiner Steine (bis 0,25 m)

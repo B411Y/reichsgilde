@@ -80,7 +80,7 @@ public partial class Stadtansicht
         var (baustein, lage) = UmlandModell(p, betrieb.Art);
         var gruppe = new Node3D { Name = "Umland", Transform = lage };
         AddChild(gruppe);
-        var datei = baustein?.Modell ?? "grube";
+        var datei = baustein?.Modell ?? "umland/grube";
         var modell = ModellEinsetzen(datei, gruppe, Vector3.Zero, new ModellZustand(Besitzer: besitzer), betrieb.Name);
         var (anker, _, masse) = UmlandAnkerImModell(datei);
 
@@ -119,7 +119,7 @@ public partial class Stadtansicht
     private void UmlandPlatzZeigen(LiegenschaftDaten frei, Platz p, Node3D gruppe)
     {
         var (baustein, lage) = UmlandModell(p, frei.Art);
-        var datei = baustein?.Modell ?? "grube";
+        var datei = baustein?.Modell ?? "umland/grube";
         var modell = new Node3D { Name = "Umland", Transform = lage };
         gruppe.AddChild(modell);
         ModellEinsetzen(datei, modell, Vector3.Zero, new ModellZustand(Leerstand: true));

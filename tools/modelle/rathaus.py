@@ -3,7 +3,7 @@
     blender -b --python tools/modelle/rathaus.py        oder
     python tools/modelle/rathaus.py [--schnell] [--ohne-bilder] [--nur-anker] [--nur-nacht]
 
-Schreibt game/assets/modelle/rathaus.glb und Bilder nach docs/modelle/.
+Schreibt game/assets/modelle/gebaeude/rathaus.glb und Bilder nach docs/modelle/.
 
 Objekte im GLB:
     Haus        das ganze Rathaus (die Räume zeigt das Spiel wie bisher in der Raumansicht, die Hülle ist geschlossen)

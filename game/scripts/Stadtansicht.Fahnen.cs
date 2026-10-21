@@ -4,7 +4,7 @@ namespace Reichsgilde;
 
 /// <summary>
 /// Fahnen im Wind (Teil der <c>partial class Stadtansicht</c>): Das Tuch ist ein feines Netz (8 × 4 Felder) mit dem Shader
-/// <c>res://shader/fahne.gdshader</c>, der es im Wind biegt – ohne Skript je Bild. Der Wind ist für alle Fahnen gleich
+/// <c>res://assets/shader/fahne.gdshader</c>, der es im Wind biegt – ohne Skript je Bild. Der Wind ist für alle Fahnen gleich
 /// (globale Shader-Uniforms <c>wind_richtung</c> und <c>wind_staerke</c> in <c>project.godot</c>).
 ///
 /// Das Netz liegt in der Ebene XY: der Mast bei X = 0, das freie Ende bei X = Länge, die Mitte in Höhe 0. Der Shader schlägt
@@ -12,7 +12,7 @@ namespace Reichsgilde;
 /// </summary>
 public partial class Stadtansicht
 {
-    private const string FahnenShaderPfad = "res://shader/fahne.gdshader";
+    private const string FahnenShaderPfad = "res://assets/shader/fahne.gdshader";
 
     /// <summary>Felder des Netzes entlang der Länge und über die Höhe. Höhe gerade, damit die Kerbe eine Ecke trifft.</summary>
     private const int FahnenFelderLaenge = 8, FahnenFelderHoehe = 4;

@@ -3,7 +3,7 @@
     blender -b --python tools/modelle/dom.py        oder
     python tools/modelle/dom.py [--schnell] [--ohne-bilder] [--nur-anker] [--nur-nacht]
 
-Schreibt game/assets/modelle/dom.glb und Bilder nach docs/modelle/.
+Schreibt game/assets/modelle/gebaeude/dom.glb und Bilder nach docs/modelle/.
 
 Objekte im GLB (der Dom hat einen Innenraum, in den man wie bisher hineinsieht):
     Wand_vorne, Wand_hinten,   die vier Wände des Langhauses, jede mit Strebepfeilern und Fenstern innen und außen –

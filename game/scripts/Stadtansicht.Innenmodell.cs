@@ -29,10 +29,10 @@ public partial class Stadtansicht
     /// <summary>Welche Datei den Innenraum eines Werkstils stellt (null: noch der alte Raum aus Grundkörpern). Pro neuem Beruf eine Zeile mehr.</summary>
     private static string? InnenModellDatei(Werkstil stil) => stil switch
     {
-        Werkstil.Giesserei => "schmied_innen",
-        Werkstil.Tischlerei => "tischler_innen",
-        Werkstil.Maurerei => "steinmetz_innen",
-        Werkstil.Tinkturei => "alchimist_innen",
+        Werkstil.Giesserei => "innen/schmied_innen",
+        Werkstil.Tischlerei => "innen/tischler_innen",
+        Werkstil.Maurerei => "innen/steinmetz_innen",
+        Werkstil.Tinkturei => "innen/alchimist_innen",
         _ => null,
     };
 

@@ -5,7 +5,7 @@ Köln – erste Stadtkarte von Reichsgilde (Pilot, Bereich Leveldesign).
 Aufruf (aus dem Projektordner):
     python3 tools/karten/koeln.py
 
-Schreibt game/data/karten/koeln.json (Kartenformat 2) und docs/karten/koeln.svg, aber nur, wenn alle Kartenregeln
+Schreibt game/karten/koeln.json (Kartenformat 2) und docs/karten/koeln.svg, aber nur, wenn alle Kartenregeln
 erfüllt sind (siehe karte.py, „Prüfungen“).
 
 Entstanden aus der Planungsskizze (1000 × 720 Skizzenpunkte). Die Skizze wird hier in Meter umgerechnet:
@@ -191,7 +191,7 @@ for kennung, pts in [("U1", [(200, 262), (380, 288), (380, 372), (200, 382)]),
     k.bauzone(kennung, "umland", ml(pts))
 
 # ── Gebäude ──────────────────────────────────────────────────────────────────
-# Bausteine aus dem Gebäudekatalog (game/data/katalog.json); `punkt` ist die Mitte der Grundfläche.
+# Bausteine aus dem Gebäudekatalog (game/daten/katalog.json); `punkt` ist die Mitte der Grundfläche.
 k.gebaeude("Markt", "markt", "Heumarkt", m(*MARKT))
 k.gebaeude("Rathaus", "rathaus", "Rathaus", m(568, 318))
 k.gebaeude("Hafen", "hafen", "Hafen mit Kran", m(597, 300))
