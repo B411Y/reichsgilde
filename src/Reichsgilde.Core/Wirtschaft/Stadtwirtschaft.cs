@@ -411,12 +411,15 @@ public sealed partial class Stadtwirtschaft
         return rivale;
     }
 
-    /// <summary>Ist zu dieser Uhrzeit Arbeitszeit?</summary>
+    /// <summary>Ist zu dieser Uhrzeit die übliche Arbeitszeit (8–20 Uhr; Markt, Rathaus, Kontor)?</summary>
     public bool IstArbeitszeit(Spielzeit zeit)
     {
         var uhr = zeit.UhrzeitInMinuten;
         return uhr >= Arbeitsbeginn && uhr < Arbeitsbeginn + Daten.Allgemein.Arbeitsminuten;
     }
+
+    /// <summary>Ist zu dieser Uhrzeit Arbeitszeit in diesem Betrieb? Im Wirtshaus bis 22 Uhr (<see cref="Betrieb.Arbeitsende"/>).</summary>
+    public bool IstArbeitszeit(Betrieb betrieb, Spielzeit zeit) => betrieb.IstArbeitszeit(zeit.UhrzeitInMinuten);
 
     /// <summary>Eine Spielminute. Wird von der Simulation VOR dem Weiterstellen der Uhr aufgerufen.</summary>
     internal void Tick(Spielzeit zeit)
@@ -430,9 +433,10 @@ public sealed partial class Stadtwirtschaft
         if (zeit.MinuteImTag % 60 == 0 && zeit.MinuteImTag > 0)
             StundeVorbei(zeit);
 
-        if (IstArbeitszeit(zeit))
-            foreach (var betrieb in _betriebe)
-                // Handwerkskunst des Oberhaupts; im Pestjahr fehlt ein Teil der Arbeitskräfte
+        // Jeder Betrieb in seiner Arbeitszeit (im Wirtshaus bis 22 Uhr).
+        // Handwerkskunst des Oberhaupts; im Pestjahr fehlt ein Teil der Arbeitskräfte
+        foreach (var betrieb in _betriebe)
+            if (IstArbeitszeit(betrieb, zeit))
             {
                 var volk = VolksFaktor(betrieb.Konto, betrieb.Artdaten.Beruf); // Zwerge schmieden besser, Elben predigen besser …
                 betrieb.Arbeitsminute(Melden, Familien.LeistungsFaktor(betrieb.Konto) * volk * (1 - Gesundheit.Krankenstand), volk);

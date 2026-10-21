@@ -735,7 +735,7 @@ public partial class Stadtansicht
     private void InnenSpaeneAktualisieren(ModellRaumDaten md, Betrieb b, Spielzeit zeit)
     {
         if (md.Spaene.All(x => x is null)) return;
-        var arbeitsminuten = _simulation?.Wirtschaft?.Daten.Allgemein.Arbeitsminuten ?? 720;
+        var arbeitsminuten = b.Arbeitsminuten;
         var gearbeitet = b.Belegt > 0
             ? Math.Clamp(zeit.UhrzeitInMinuten - Stadtwirtschaft.Arbeitsbeginn, 0, arbeitsminuten) - b.StillstandMinuten
             : 0;
