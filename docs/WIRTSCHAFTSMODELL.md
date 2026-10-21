@@ -1067,6 +1067,18 @@ Bürgermeister 18/20 → 16/20 (im Schnitt ab Jahr 14,2 → 13,4), Stand am Ende
 
 **Messung** (`messen 30 20`, Mensch, ausgewogen, gemessen auf main `f859c9f` + PR #166): **zeichengleich** mit main (Eisenbart Ø 129.647, Eichwald 88.479, Kieselbach 127.439, Bürgermeister 18/20). Die KI-Häuser kaufen keine Einrichtung, und die Abfrage liest nur.
 
+**Arbeitszeit im Wirtshaus 8–22 Uhr** (Datenversion 43, Wunsch des Nutzers): `betriebsarten.<Art>.arbeitsminuten` = 840 für Schänke, Wirtshaus und Gasthaus (sonst `allgemein.arbeitsminuten` = 720). Herstellung ×14/12, Lohn je Stunde gleich (×14/12), Unfälle je Stunde gleich. Je Arbeitskraft ist der Gewinn damit genau 14/12 des bisherigen (Leistung und Lohn wachsen gleich, Risiko 0); der Gästeausschank bleibt, wie er war.
+
+| Betrieb (Startpreise, voll belegt, `ErwarteterJahresgewinn`) | vorher | nachher | Vergleich (bester anderer Beruf derselben Stufe) |
+|---|---|---|---|
+| Schänke (Stufe 1) | 1.092 | 1.287 | Tinkturei, Siederei 1.221 |
+| Wirtshaus (Stufe 2) | 2.312 | 2.717 | Steinschneiderei 2.499 |
+| Gasthaus (Stufe 3) | 3.428 | 4.029 | Goldschmiede 4.081 |
+
+Der Wirt rückt damit vom unteren Mittelfeld an die Spitze, ohne davonzuziehen.
+
+**Messung** (gemessen auf main `f859c9f` + Funktions-Branch `f78f1e1` + diese Änderung): `messen 30 20` **zeichengleich** (in der Standardkarte baut kein Haus eine Schänke; die KI pachtet als Wirt nur den Bauernhof). `messen 30 20 greybox` (dort bauen die KI-Häuser Werkstätten und kommen bis zum Gasthaus, Schädelbrand 15 → 17 bei Eisenbart): Eisenbart Ø 156.891 → 162.279 (+3,4 %), Eichwald 100.413 → 102.862 (+2,4 %, ohne Wirt), Kieselbach 149.875 → 155.313 (+3,6 %; Gewinn im letzten Jahr 10.242 → 12.333), Bürgermeister 17/20 wie vorher, Stand am Ende Edler 1, Freiherr 59 → Edler 2, Freiherr 54, Reichsgraf 4 (bei Eisenbart als Spieler 2 von 20 Partien Reichsgraf). Die Unterschiede liegen nahe am Rauschen (andere Zufallsfolge, weil die Wirtshäuser abends weiter würfeln); kein Haus zieht davon, bankrott 0.
+
 ## Keine Werkstätten zum Kauf in der Stadt (PR #162)
 
 **Regel:** Datenversion 40. Unter `liegenschaften` stehen nur noch die neun Umlandbetriebe zur Pacht; die zehn Werkstätten der Stadt (Gießerei an der Südgasse … Wechselstube am Markt) sind gestrichen. Neue Werkstätten entstehen durch Bauen, frei werden welche durch Verkauf oder Untergang eines Hauses. Der Preis der Stufe 1 steht jetzt als `kaufpreis` an der Betriebsart (3.500, Schmugglerloch 3.000) – unverändert gegenüber den gestrichenen Liegenschaften, also gleicher Neubaupreis und gleicher Wert beim Verkauf.

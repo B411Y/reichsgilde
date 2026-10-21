@@ -267,6 +267,18 @@ public sealed class Wirtschaftsdaten
     /// <summary>Arbeitsplätze einer Betriebsart.</summary>
     public int Plaetze(Betriebsart art) => Art(art).Plaetze;
 
+    /// <summary>Arbeitsminuten je Spieljahr in dieser Betriebsart (ohne eigenen Wert: <c>allgemein.arbeitsminuten</c>).</summary>
+    public int Arbeitsminuten(Betriebsart art) => Art(art).Arbeitsminuten ?? Allgemein.Arbeitsminuten;
+
+    /// <summary>
+    /// Wie lang die Schicht in dieser Betriebsart im Verhältnis zur üblichen ist (Wirtshaus 840 ÷ 720 = 14/12).
+    /// Die Löhne unter „arbeitskraefte“ gelten für die übliche Arbeitszeit – mit diesem Faktor ist der Lohn je Stunde überall gleich.
+    /// </summary>
+    public double Schichtfaktor(Betriebsart art) => Arbeitsminuten(art) / (double)Allgemein.Arbeitsminuten;
+
+    /// <summary>Lohn einer Arbeitskraft für ein Jahr in dieser Betriebsart (übliche Lohnstufe, mit dem <see cref="Schichtfaktor"/>).</summary>
+    public double Lohn(string arbeitskraft, Betriebsart art) => Arbeitskraefte[arbeitskraft].Kosten * Schichtfaktor(art);
+
     private static readonly JsonSerializerOptions Optionen = new()
     {
         PropertyNameCaseInsensitive = true,
@@ -373,6 +385,16 @@ public sealed class Wirtschaftsdaten
                 }
                 if (d.AusbauKosten < 0) f.Add($"betriebsarten.{art}.ausbauKosten darf nicht negativ sein.");
             }
+            if (d.Arbeitsminuten is { } am)
+            {
+                if (am <= 0 || Stadtwirtschaft.Arbeitsbeginn + am > Zeit.Spielzeit.TagesendeMinute)
+                    f.Add($"betriebsarten.{art}.arbeitsminuten muss zwischen 1 und {Zeit.Spielzeit.TagesendeMinute - Stadtwirtschaft.Arbeitsbeginn} liegen – gespielt wird bis 22 Uhr.");
+                // Diebe, Wache und Schreiber rechnen ihren Ertrag je Minute aus Jahreswerten über die übliche Arbeitszeit.
+                if (d.OhneProduktion) f.Add($"betriebsarten.{art}: Eine eigene Arbeitszeit (arbeitsminuten) gibt es nur für Betriebe mit Ware.");
+            }
+            // Der Lohn wird am Jahresende nach der Art abgerechnet, die dann gilt – ein Ausbau darf die Schicht nicht ändern.
+            if (d.Ausbau is { } nach && Betriebsarten.ContainsKey(nach) && Arbeitsminuten(nach) != Arbeitsminuten(art))
+                f.Add($"betriebsarten.{art}: Nach dem Ausbau zu {nach} muss die Arbeitszeit (arbeitsminuten) gleich bleiben.");
             if (d.Kaufpreis < 0) f.Add($"betriebsarten.{art}.kaufpreis darf nicht negativ sein.");
             if (d.Kaufpreis > 0 && (!d.InDerStadt || d.Stufe != 1))
                 f.Add($"betriebsarten.{art}: Einen kaufpreis haben nur Werkstätten der Stufe 1 – Umland wird gepachtet, höhere Stufen entstehen durch Ausbau.");

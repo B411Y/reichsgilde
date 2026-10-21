@@ -134,7 +134,7 @@ static class WerkstattTests
         ("Werkstatt: Daten – Abschnitt „werkstatt“ mit drei Lohnstufen und genau den sieben Stücken des Schmieds (Kennungen wie im Raummodell)", () =>
         {
             var d = Daten.Value.Werkstatt!;
-            Pruefe.Gleich(42, Daten.Value.Version);
+            Pruefe.Gleich(43, Daten.Value.Version);
             Pruefe.Ungefaehr(1, d.Stufe(Lohnstufe.Ueblich).LohnFaktor, 1e-12);
             Pruefe.Gleich(0.0, d.Stufe(Lohnstufe.Ueblich).Laune);
             Pruefe.Wahr(d.Stufe(Lohnstufe.Knapp).LohnFaktor < 1 && d.Stufe(Lohnstufe.Gut).LohnFaktor > 1, "Lohnfaktoren");
@@ -868,7 +868,7 @@ static class WerkstattTests
             Pruefe.Gleich("20 mehr Lager je Ware", liste.Single(e => e.Kennung == "Regale").Wirkung);
             Pruefe.Gleich("Lederhandschuhe", liste.Single(e => e.Kennung == "Handschuhe").Name);
             Pruefe.Gleich("Unfälle halb so oft", liste.Single(e => e.Kennung == "Handschuhe").Wirkung);
-            Pruefe.Ungefaehr(0.02 * 0.5, w.Werkstaetten.UnfallGefahr(s), 1e-12); // Gefahr des Wirts je Arbeiter und Jahr
+            Pruefe.Ungefaehr(0.02 * 0.5 * 840 / 720, w.Werkstaetten.UnfallGefahr(s), 1e-12); // Gefahr des Wirts je Arbeiter und Jahr – je Stunde gleich, die Schicht geht bis 22 Uhr
         }),
 
         ("Werkstatt: Wirt – Meisterwerkzeug erst ab dem Wirtshaus und nur mit gutem Werkzeug; die Einrichtung gilt in allen drei Stufen, nicht auf dem Bauernhof", () =>

@@ -305,7 +305,7 @@ public sealed class KiRivale
         if (beste.Kraft is null) return;
 
         // Löhne werden erst am Jahresende fällig – trotzdem keine Einstellung, wenn sie die Reserve auffressen.
-        var lohn = _w.Daten.Arbeitskraefte[beste.Kraft].Kosten;
+        var lohn = _w.Daten.Lohn(beste.Kraft, betrieb.Art); // im Wirtshaus für die längere Schicht
         var bezahlbar = (int)Math.Floor((Konto.Vermoegen - Profil.Reserve / 2) / lohn);
         var anzahl = Math.Min(frei, bezahlbar);
         if (anzahl <= 0) return;
@@ -1654,7 +1654,7 @@ public sealed class KiRivale
     private double HoechsterLohn(Betriebsart art)
     {
         var ort = _w.Daten.Art(art).Ort;
-        return _w.Daten.Arbeitskraefte.Values.Where(k => k.IstErlaubt(_w.Statut, ort)).Select(k => k.Kosten).DefaultIfEmpty(0).Max();
+        return _w.Daten.Arbeitskraefte.Values.Where(k => k.IstErlaubt(_w.Statut, ort)).Select(k => k.Kosten).DefaultIfEmpty(0).Max() * _w.Daten.Schichtfaktor(art);
     }
 
     private void KarrenNachkaufen(Betrieb betrieb)
@@ -1662,7 +1662,7 @@ public sealed class KiRivale
         if (betrieb.Belegt == 0 || betrieb.Karren.Count >= Profil.MaxKarrenJeBetrieb)
             return;
 
-        var anteil = betrieb.StillstandMinutenVorjahr / (double)_w.Daten.Allgemein.Arbeitsminuten;
+        var anteil = betrieb.StillstandMinutenVorjahr / (double)betrieb.Arbeitsminuten;
         if (anteil < Profil.StillstandFuerKarrenkauf)
             return;
 

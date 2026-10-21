@@ -55,6 +55,12 @@ public sealed class BetriebsartDaten
     /// vorher galt der Kaufpreis einer freien Werkstatt dieser Art unter „liegenschaften“). 0 = nicht angegeben.
     /// </summary>
     public double Kaufpreis { get; init; }
+
+    /// <summary>
+    /// Arbeitsminuten je Spieljahr in dieser Betriebsart, ab 08:00 gezählt (ab Datenversion 43; null = <c>allgemein.arbeitsminuten</c>).
+    /// Im Wirtshaus 840 = bis 22 Uhr, so lange wie die Gäste bleiben. Der Lohn gilt je Stunde: wer länger arbeitet, kostet mehr.
+    /// </summary>
+    public int? Arbeitsminuten { get; init; }
 }
 
 /// <summary>

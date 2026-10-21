@@ -61,7 +61,7 @@ public sealed class PersonalAnzeige : InnenTafel
         var einstellen = Reihe(Inhalt);
         var voll = b.Belegt >= b.Plaetze;
         foreach (var (kraft, daten) in w.Daten.Arbeitskraefte.Where(k => k.Value.IstErlaubt(w.Statut, b.Ort)))
-            Knopf(einstellen, $"{kraft} einstellen · Lohn {Zahlenformat.Ganz(daten.Kosten)}", () => Befehlen(new ArbeiterEinstellen(b.Name, kraft)),
+            Knopf(einstellen, $"{kraft} einstellen · Lohn {Zahlenformat.Ganz(w.Daten.Lohn(kraft, b.Art))}", () => Befehlen(new ArbeiterEinstellen(b.Name, kraft)),
                 voll ? $"Alle {b.Plaetze} Plätze sind besetzt." : null);
         if (voll) Text(Inhalt, $"Alle {b.Plaetze} Plätze sind besetzt – ein Ausbau der Werkstatt schafft mehr.", 12, Grau);
 

@@ -188,6 +188,15 @@ public sealed class Betrieb
 
     public int Plaetze => _art.Plaetze;
 
+    /// <summary>Arbeitsminuten je Spieljahr (Tag) in diesem Betrieb: 720 = 8–20 Uhr, im Wirtshaus 840 = 8–22 Uhr.</summary>
+    public int Arbeitsminuten => _daten.Arbeitsminuten(Art);
+
+    /// <summary>Feierabend in Minuten nach Mitternacht (20:00 = 1200, im Wirtshaus 22:00 = 1320).</summary>
+    public int Arbeitsende => Stadtwirtschaft.Arbeitsbeginn + Arbeitsminuten;
+
+    /// <summary>Ist zu dieser Uhrzeit (Minuten nach Mitternacht) Arbeitszeit in diesem Betrieb?</summary>
+    public bool IstArbeitszeit(int uhrzeitInMinuten) => uhrzeitInMinuten >= Stadtwirtschaft.Arbeitsbeginn && uhrzeitInMinuten < Arbeitsende;
+
     /// <summary>Werkstatt (stellt Produkte her) – sonst Umlandbetrieb (fördert Rohstoffe) oder ein Betrieb ohne Ware.</summary>
     public bool IstWerkstatt => _art.IstWerkstatt;
 
@@ -335,8 +344,8 @@ public sealed class Betrieb
     /// <summary>Faktor auf den Lohn bei der jetzigen Lohnstufe.</summary>
     public double LohnFaktor => HatWerkstattregeln ? _daten.Werkstatt!.Stufe(Lohnstufe).LohnFaktor : 1;
 
-    /// <summary>Löhne für ein ganzes Jahr bei der jetzigen Belegung und Lohnstufe (ohne Wächter).</summary>
-    public double Lohnkosten => _belegung.Sum(b => b.Value * _daten.Arbeitskraefte[b.Key].Kosten) * LohnFaktor;
+    /// <summary>Löhne für ein ganzes Jahr bei der jetzigen Belegung und Lohnstufe (ohne Wächter; mit der Länge der Schicht).</summary>
+    public double Lohnkosten => _belegung.Sum(b => b.Value * _daten.Lohn(b.Key, Art)) * LohnFaktor;
 
     /// <summary>Nach einem Unfall ist die Laune aller hier bis zu dieser Spielminute gedrückt (null = kein Unfall).</summary>
     public long? UnfallLauneBis { get; internal set; }
@@ -842,7 +851,7 @@ public sealed class Betrieb
         foreach (var (name, anzahl) in _belegung)
         {
             var kraft = _daten.Arbeitskraefte[name];
-            PersonalBuchen(anzahl * kraft.Kosten * lohnFaktor);
+            PersonalBuchen(anzahl * _daten.Lohn(name, Art) * lohnFaktor); // je Stunde gleich: die längere Schicht im Wirtshaus kostet mehr
 
             // Jede unfreie Arbeitskraft hat ihr eigenes Risiko.
             for (var i = 0; i < anzahl; i++)

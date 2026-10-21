@@ -692,7 +692,8 @@ public partial class Stadtansicht : Node3D
         {
             if (betrieb.InDerStadt && (betrieb.Stufe != ansicht.GezeigteStufe || (betrieb.UmbauMinuten > 0) != ansicht.GezeigterUmbau))
                 StufeZeigen(ansicht);
-            var arbeitet = arbeitszeit && betrieb.Belegt > 0 && betrieb.Stillstand is null;
+            var hierArbeitszeit = w.IstArbeitszeit(betrieb, zeit); // im Wirtshaus bis 22 Uhr
+            var arbeitet = hierArbeitszeit && betrieb.Belegt > 0 && betrieb.Stillstand is null;
             // Der Feuerkorb des Wachturms brennt auch nachts, solange ein Gardist Wache hält
             var glueht = arbeitet || (betrieb.Art == Betriebsart.Wachturm && betrieb.Belegt > 0 && betrieb.Stillstand is null && _fensterLicht > 0);
             if (ansicht.Modell is { Glut.Length: > 0 } modell && ansicht.Glueht != glueht)
@@ -701,7 +702,7 @@ public partial class Stadtansicht : Node3D
                 GlutSetzen(modell, glueht);
             }
             if (ansicht == _innen)
-                InnenAktualisieren(ansicht, zeit, arbeitszeit, arbeitet, delta);
+                InnenAktualisieren(ansicht, zeit, hierArbeitszeit, arbeitet, delta);
 
             var fahrzeit = w.Daten.Logistik.FahrzeitAb(betrieb.Ort);
             for (var i = 0; i < betrieb.Karren.Count; i++)
@@ -782,7 +783,10 @@ public partial class Stadtansicht : Node3D
             var zeit = _simulation.Zeit;
             var arbeitszeit = w.IstArbeitszeit(zeit);
             if (ansicht is BetriebsAnsicht b)
-                InnenAktualisieren(b, zeit, arbeitszeit, arbeitszeit && b.Betrieb.Belegt > 0 && b.Betrieb.Stillstand is null, 0);
+            {
+                var hierArbeitszeit = w.IstArbeitszeit(b.Betrieb, zeit); // im Wirtshaus bis 22 Uhr
+                InnenAktualisieren(b, zeit, hierArbeitszeit, hierArbeitszeit && b.Betrieb.Belegt > 0 && b.Betrieb.Stillstand is null, 0);
+            }
             else if (ansicht is SonderbauAnsicht s)
                 SonderbauAktualisieren(s, zeit, arbeitszeit, 0);
         }
