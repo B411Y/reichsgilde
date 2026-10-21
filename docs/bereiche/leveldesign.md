@@ -100,3 +100,16 @@ Noch nicht begonnen; festgehalten, damit niemand weiter Arbeit in die Greybox-We
 | Lage | Drei Zonen im Süden der Stadt: `K1` hinter der Gießerei Eisenbart (2 Werkstätten), `K2` südlich vom Markt (1 Werkstatt, 1 Wohnhaus an der Gasse der Gießerei Eisenbart), `K3` hinter dem Weinmarkt (3 Wohnhäuser). Der Norden (zwischen Dom, Rathaus und Ringgasse nur 8 m tief) bleibt ohne Zone. Zusammen 11 Bauzonen. | 21.10.2026 |
 | Platz dafür | Der Weinmarkt rückt 2 m nach Westen (−23 \| 17), seine Gasse läuft nach Westen und an der Ringgasse entlang zur Westgasse; die Gasse der Gießerei Eisenbart läuft am Markt entlang. Die Stichgassen vom Südring entfallen. Drei Kulissenhäuser ziehen an die Ringgasse im Norden (−8 \| −32), (1 \| −32) und Westen (−32 \| −14). Keine Werkstatt wird gedreht, alle Türen zeigen weiter nach Süden. | 21.10.2026 |
 | Probeplan | Sieben Stellen dazu (3 Werkstätten, 4 Wohnhäuser in K1 bis K3), die alte Wohnhaus-Stelle in K1 entfällt: 21 statt 15 Gebäude. | 21.10.2026 |
+
+### Gebäudekatalog und Karte als einzige Quelle (PR #163)
+
+| Thema | Entscheidung | Datum |
+|---|---|---|
+| Ziel | Vorstufe zum Level-Editor: Alles, was in Stadt und Umland steht, kommt aus der Kartendatei; der Code kennt keine festen Lagen mehr (heute doppelt in `Stadtansicht*.cs` und `tools/karten/greybox.py`). Ein verschobenes oder neues Gebäude ist nur ein Eintrag in der Karte. | 21.10.2026 |
+| Katalog | Eine Datei `game/data/katalog.json` für alle Karten: je Baustein Kennung, Art (Werkstatt, Wohnhaus, Einwohnerhaus, Kulisse, Sonderbau, Mauerteil, Umland, Umlandstelle, Natur …), Modelldatei, Grundfläche, bei Werkstätten der Beruf. Anker (Tür, Hof, Karren) liest das Spiel wie heute aus dem Modell. Neue Modelle trägt der Modell-Agent gleich ein; ein Prüfwerkzeug vergleicht Katalog und Modelle. | 21.10.2026 |
+| Karte | Kartenformat 2: Die Karte sagt nur, **wo** etwas steht (Katalog-Kennung, Punkt, Drehung, Name), dazu Mauer, Tore, Wege, Bauzonen, Wald- und Streuflächen, Umland. Werkstattplätze bleiben Plätze; das Modell folgt dem Beruf des Betriebs. | 21.10.2026 |
+| Gassennetz | Aus den Wegen der Karte; jede Tür, jeder Hof und jede Umlandstelle wird automatisch mit dem nächsten Weg verbunden. | 21.10.2026 |
+| Natur | Waldflächen und Streugebiete als Vielecke mit Dichte, Mischung der Arten und Startwert; einzelne Bäume dürfen zusätzlich gesetzt werden. | 21.10.2026 |
+| Startbelegung | Die Karte legt die Häuser am Start fest (Name, Wohnhaus, Startbetriebe mit Platz und Betriebsart) und den Startplatz des Spielers je Beruf; der Kern liest das statt der festen Namen. | 21.10.2026 |
+| Werkzeug | Bis zum Level-Editor erzeugt weiter das Python-Werkzeug (`tools/karten/`) die Karten und prüft die Regeln. | 21.10.2026 |
+
