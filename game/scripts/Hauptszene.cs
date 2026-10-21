@@ -76,7 +76,7 @@ namespace Reichsgilde;
 public partial class Hauptszene : Node
 {
     private const int MaxProtokollZeilen = 5;
-    private const string WirtschaftsdatenPfad = "res://daten/wirtschaft.json";
+    public const string WirtschaftsdatenPfad = "res://daten/wirtschaft.json";
 
     private Simulation _simulation = null!;
     private readonly List<string> _protokoll = new();
@@ -282,9 +282,8 @@ public partial class Hauptszene : Node
             if (_gerichtssaal.Visible) _gerichtssaal.Aufbauen(); // Urteile und Spitzelberichte
             if (_hinterzimmer.Visible) _hinterzimmer.Aufbauen();
             if (_spieler is null || _simulation.IstBeendet) return;
-            // Automatisch speichern – überschreibt jedes Jahr denselben Spielstand.
-            var (pfad, meldung) = Spielstaende.Speichern(_simulation, _spieler, Spielstaende.AutoDatei);
-            if (pfad is null) Protokollieren(meldung);
+            // Automatisch speichern – überschreibt jedes Jahr denselben Spielstand (nicht in einer Probepartie der Kartenwerkstatt).
+            if (!_probepartie && Spielstaende.Speichern(_simulation, _spieler, Spielstaende.AutoDatei) is (null, var meldung)) Protokollieren(meldung);
             _jahresbericht.Zeigen(_simulation, _spieler);
             if (BeiJahresberichtPausieren) _simulation.Takt.IstPausiert = true;
         };
@@ -584,6 +583,7 @@ public partial class Hauptszene : Node
     {
         // 1. Kommt die Szene aus dem Hauptmenü? Dann liegt dort ein Auftrag: laden oder neue Partie.
         var (einstellungen, neu, ladePfad) = Partiewahl.Abholen();
+        if (ProbepartieAbholen() is { } probe) return probe; // „Karte ausprobieren“ aus der Kartenwerkstatt (Hauptszene.Probepartie.cs)
         if (optionen.TryGetValue("laden", out var datei)) // Startoption für Tests: Spielstand direkt laden
             ladePfad = $"{Spielstaende.Ordner}/{datei}";
         if (ladePfad is not null)
@@ -656,6 +656,7 @@ public partial class Hauptszene : Node
             _menueListe.Visible = !_menueListe.Visible;
         });
         Hauptmenue.Knopf(_menueKnoepfe, "Einstellungen", EinstellungenOeffnen);
+        ProbeKnopfBauen(); // „Zurück zur Kartenwerkstatt“ in einer Probepartie (Hauptszene.Probepartie.cs)
         Hauptmenue.Knopf(_menueKnoepfe, "Zum Hauptmenü", () => GetTree().ChangeSceneToFile("res://scenes/Hauptmenue.tscn"));
         Hauptmenue.Knopf(_menueKnoepfe, "Spiel beenden", () => GetTree().Quit());
 

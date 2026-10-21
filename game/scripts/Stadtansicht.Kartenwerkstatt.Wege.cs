@@ -12,11 +12,12 @@ namespace Reichsgilde;
 /// jeder Änderung an Wegen oder Gebäuden entsteht das Gassennetz der Werkstatt neu (<see cref="NetzBauen"/>): die Wege und, wie im Spiel, die
 /// kurzen Stücke von Höfen, Karrenplätzen, Toren und vom Markt zum nächsten Weg. Der Schalter „Gassennetz“ zeigt es.
 ///
-/// <b>Werkzeug „Weg“.</b> Punkte klicken; die Vorschau zeigt die Kurve (<see cref="Wegkurve.Verlauf"/>) bis zur Maus. Liegt der erste oder der letzte
-/// Punkt näher als <see cref="Kartenentwurf.Fangradius"/> an einem Hof eines Werkstattplatzes oder einem anderen Weg, rastet er dort ein (weißer
-/// Ring an der Maus); Punkte dazwischen bleiben, wo sie sind.
-/// Doppelklick oder Enter legt den Weg an (<see cref="Kartenentwurf.WegAnlegen"/>), Esc bricht ab, die Rücktaste nimmt den letzten Punkt weg.
-/// Eine Gasse, die an einem Hof endet, wird umgedreht: Nach der Werkstattnorm beginnt die Gasse am Hof.
+/// <b>Werkzeug „Weg“.</b> Punkte klicken; die Vorschau zeigt die Kurve (<see cref="Wegkurve.Verlauf"/>) bis zur Maus. Wo der erste und der letzte
+/// Punkt einrasten, sagt der Kern (<see cref="Kartenentwurf.Einrasten"/>): am Hof eines Werkstattplatzes, in der Mitte eines Tores, an einem
+/// Halteplatz (Karrenplatz eines Umlandbetriebs, Gatter einer Arbeitsstelle, <see cref="Halteplaetze"/>), sonst an einem anderen Weg; Punkte
+/// dazwischen rasten nur in Tore ein (<see cref="Kartenentwurf.TorEinrasten"/>). Der Ring an der Maus zeigt das Ziel in seiner Farbe
+/// (<see cref="Fangfarbe"/>). Doppelklick oder Enter legt den Weg an (<see cref="Kartenentwurf.WegAnlegen"/> – eine Gasse, die an einem Hof
+/// endet, dreht der Kern um), Esc bricht ab, die Rücktaste nimmt den letzten Punkt weg.
 ///
 /// <b>Bearbeiten.</b> Ein gewählter Weg zeigt seine Stützpunkte als Griffe (<see cref="GriffeBauen"/>): Ziehen verschiebt (die Enden rasten ein),
 /// ein Klick auf die Linie fügt einen ein (gleich weiterziehbar), Entf löscht den gewählten Griff. Flächen nutzen dieselben Griffe für ihre Ecken.
@@ -143,8 +144,8 @@ public partial class Stadtansicht
 
     /// <summary>
     /// Baut das Gassennetz der Werkstatt aus den Wegen des Entwurfs und hängt, wie das Spiel (<see cref="Anschliessen"/>), den Markt, die Tore,
-    /// die Höfe der Werkstattplätze und die Karrenplätze der Umlandbetriebe mit einem kurzen Stück an den nächsten Weg (Höfe und Karrenplätze
-    /// gezeichnet wie im Spiel). Türen der Häuser kommen im Spiel dazu, hier nicht.
+    /// die Höfe der Werkstattplätze, die Karrenplätze der Umlandbetriebe und die Gatter der Arbeitsstellen mit einem kurzen Stück an den nächsten
+    /// Weg (gezeichnet wie im Spiel). Türen der Häuser kommen im Spiel dazu, hier nicht.
     /// </summary>
     private void NetzBauen()
     {
@@ -178,12 +179,14 @@ public partial class Stadtansicht
             }
         }
         if (_marktHalb > 0 && !_wsNetz.Knoten.Any(k => k.DistanceTo(_markt) < Gassennetz.Fang)) Anhaengen(_markt, null, ueberDenMarkt: false);
-        foreach (var tor in _tore) Anhaengen(tor.Ort, null);
+        foreach (var tor in _entwurf.Mauern.SelectMany(m => m.Tore)) Anhaengen(V3(tor.Punkt), null);
         foreach (var g in _entwurf.Gebaeude)
         {
             if (g.Art == Bausteinart.Werkstattplatz && g.Hof is { } hof) Anhaengen(V3(hof), HofwegBreite);
             else if (g.Art == Bausteinart.Umlandbetrieb && g.Baustein?.Modell is { } datei)
                 Anhaengen(ModellLage(g) * UmlandAnkerImModell(datei).Karren with { Y = 0 }, KarrenwegBreite);
+            else if (g.Art == Bausteinart.Umlandstelle && g.Baustein?.Modell is { } stelle)
+                Anhaengen(ModellLage(g) * UmlandAnkerImModell(stelle).Tuer with { Y = 0 }, FusswegBreite); // das Gatter der Arbeitsstelle
         }
         NetzAnsichtBauen();
     }
@@ -205,28 +208,36 @@ public partial class Stadtansicht
     //  Einrasten
     // ═════════════════════════════════════════════════════════════════════════
 
-    /// <summary>Ein eingerasteter Punkt: wo, ob an einem Hof (dann nicht noch einmal am Weg einrasten) und ob überhaupt.</summary>
-    private readonly record struct Fang(Vector2 Ort, bool Gefangen, bool Hof);
+    /// <summary>
+    /// Wo ein Wegende einrastet – der Kern sagt es (<see cref="Kartenentwurf.Einrasten"/>: Hof, Tor, Halteplatz, sonst ein Weg, jeweils das nächste
+    /// Ziel); null: nirgends. <paramref name="ausser"/>: der Weg, der bearbeitet wird.
+    /// </summary>
+    private Wegfang? Fangen(Vector2 p, EntwurfWeg? ausser = null) => _entwurf?.Einrasten(p.X, p.Y, ausser);
+
+    /// <summary>Wo ein Punkt zwischen Anfang und Ende einrastet: nur in der Mitte eines Tores (null: bleibt, wo er ist).</summary>
+    private Wegfang? Zwischenpunkt(Vector2 p) => _entwurf?.TorEinrasten(p.X, p.Y);
+
+    /// <summary>Die Farbe des Rings je Ziel: Weg weiß, Hof orange, Tor blau, Halteplatz grün.</summary>
+    private static Color Fangfarbe(Fangziel ziel) => ziel switch
+    {
+        Fangziel.Hof => new Color(1f, 0.62f, 0.2f),
+        Fangziel.Tor => Torblau,
+        Fangziel.Halteplatz => new Color(0.45f, 0.95f, 0.4f),
+        _ => Colors.White,
+    };
 
     /// <summary>
-    /// Wo ein Wegpunkt einrastet: am Hof eines Werkstattplatzes (dort beginnt seine Gasse), sonst an einem Weg (<see cref="Kartenentwurf.Einrasten"/>:
-    /// Stützpunkt vor Linie) – jeweils näher als <see cref="Kartenentwurf.Fangradius"/>. <paramref name="ausser"/>: der Weg, der bearbeitet wird.
+    /// Die Halteplätze eines Gebäudes, die nur die Modelle kennen (<see cref="Kartenentwurf.Fangpunkte"/>): der Karrenplatz eines Umlandbetriebs
+    /// („Anker_Karren“) und das Gatter einer Arbeitsstelle („Anker_Tuer“) – dieselben Punkte, die das Spiel ans Gassennetz hängt.
     /// </summary>
-    private Fang Fangen(Vector2 p, EntwurfWeg? ausser = null)
+    private IEnumerable<Kartenort> Halteplaetze(EntwurfGebaeude g)
     {
-        if (_entwurf is null) return new Fang(p, false, false);
-        Kartenort? hof = null;
-        var abstand = Kartenentwurf.Fangradius;
-        foreach (var g in _entwurf.Gebaeude)
-            if (g.Art == Bausteinart.Werkstattplatz && g.Hof is { } h && h.Abstand(new Kartenort(p.X, p.Y)) is var d && d <= abstand)
-                (hof, abstand) = (h, d);
-        if (hof is { } ort) return new Fang(V2(ort), true, true);
-        return _entwurf.Einrasten(p.X, p.Y, ausser) is { } fang ? new Fang(V2(fang.Ort), true, false) : new Fang(p, false, false);
+        if (g.Baustein?.Modell is not { } datei) yield break;
+        if (g.Art == Bausteinart.Umlandbetrieb) yield return Ort(ModellLage(g) * UmlandAnkerImModell(datei).Karren);
+        else if (g.Art == Bausteinart.Umlandstelle) yield return Ort(ModellLage(g) * UmlandAnkerImModell(datei).Tuer);
     }
 
-    /// <summary>Ist der Punkt der Hof eines Werkstattplatzes?</summary>
-    private bool IstHof(Kartenort p) =>
-        _entwurf?.Gebaeude.Any(g => g.Art == Bausteinart.Werkstattplatz && g.Hof is { } h && h.Abstand(p) < 1e-3) == true;
+    private static Kartenort Ort(Vector3 p) => new(p.X, p.Z);
 
     // ═════════════════════════════════════════════════════════════════════════
     //  Werkzeug „Weg“
@@ -239,8 +250,8 @@ public partial class Stadtansicht
         if (maus is { } m)
         {
             var fang = Fangen(m);
-            FangmarkeZeigen(fang.Gefangen ? fang.Ort : null);
-            punkte.Add(fang.Ort);
+            if (fang is { } f) FangmarkeZeigen(V2(f.Ort), Fangfarbe(f.Ziel));
+            punkte.Add(fang is { } g ? V2(g.Ort) : m);
         }
         var breite = (float)Kartenweg.Standardbreite(WerkstattWegklasse);
         if (punkte.Count >= 2)
@@ -254,29 +265,21 @@ public partial class Stadtansicht
     /// <summary>Legt den gezeichneten Weg an (ein Schritt, siehe <see cref="WerkstattWegAnlegen"/>) und wählt ihn.</summary>
     private void WegFertig()
     {
-        _wsPunkte[^1] = Fangen(_wsPunkte[^1]).Ort; // das Ende rastet ein wie in der Vorschau (am Hof; an Wegen rastet der Kern es ohnehin)
         var punkte = _wsPunkte.Select(p => new Kartenort(p.X, p.Y)).ToList();
         _wsPunkte.Clear();
         if (WerkstattWegAnlegen(WerkstattWegklasse, punkte, WerkstattGlatt) is { } neu) WerkstattWaehlen(neu);
     }
 
     /// <summary>
-    /// Legt einen Weg an (ein Schritt). Endet eine Gasse an einem Hof und beginnt nicht an einem, wird sie umgedreht (Werkstattnorm: die Gasse
-    /// beginnt am Hof); der Hof bleibt genau, wo er ist – rastet der Kern ihn an einen nahen Weg, wird er zurückgesetzt (ein zweiter Schritt).
-    /// Null, wenn es nicht ging (die Meldung steht unten).
+    /// Legt einen Weg an (ein Schritt): Anfang und Ende rasten im Kern ein (Hof, Tor, Halteplatz, Weg), Punkte dazwischen in Tore; eine Gasse,
+    /// die an einem Hof endet und nicht an einem beginnt, dreht der Kern um (Werkstattnorm: die Gasse beginnt am Hof). Null, wenn es nicht ging
+    /// (die Meldung steht unten).
     /// </summary>
     public EntwurfWeg? WerkstattWegAnlegen(Wegklasse klasse, List<Kartenort> punkte, bool glatt)
     {
         if (_entwurf is not { } e || punkte.Count < 2) return null;
-        if (klasse == Wegklasse.Gasse && !IstHof(Gerundet(punkte[0])) && IstHof(Gerundet(punkte[^1]))) punkte.Reverse();
-        var hof = IstHof(Gerundet(punkte[0])) ? Gerundet(punkte[0]) : (Kartenort?)null;
-        var neu = Befehl(() => e.WegAnlegen(klasse, punkte, glatt));
-        if (neu is not null && hof is { } h && neu.Punkte[0] != h) Befehl(() => e.StuetzpunktVerschieben(neu, 0, h.X, h.Z, einrasten: false));
-        return neu;
+        return Befehl(() => e.WegAnlegen(klasse, punkte, glatt));
     }
-
-    /// <summary>Ein Punkt auf 5 cm wie in der Datei.</summary>
-    private static Kartenort Gerundet(Kartenort p) => new(Kartenraster.Punkt(p.X), Kartenraster.Punkt(p.Z));
 
     // ═════════════════════════════════════════════════════════════════════════
     //  Griffe: Stützpunkte des gewählten Weges, Ecken der gewählten Fläche
@@ -290,10 +293,10 @@ public partial class Stadtansicht
 
     private Node3D? _wsGriffe;
     private readonly List<(Griff Griff, Vector3 Ort, MeshInstance3D Knoten)> _wsGriffListe = new();
-    private StandardMaterial3D? _griffGold, _griffWeiss, _griffAussparung;
+    private StandardMaterial3D? _griffGold, _griffWeiss, _griffAussparung, _griffTor;
     private CylinderMesh? _griffNetz;
 
-    /// <summary>Die Griffe des gewählten Weges bzw. der gewählten Fläche neu (nach Auswahl und nach jeder Änderung an ihr).</summary>
+    /// <summary>Die Griffe des gewählten Weges, der gewählten Fläche bzw. Mauer neu (nach Auswahl und nach jeder Änderung daran).</summary>
     private void GriffeBauen()
     {
         _wsGriffeNeu = false;
@@ -304,6 +307,7 @@ public partial class Stadtansicht
             _griffGold = ImmerSichtbar(Transparent(Auswahlgold, 1));
             _griffWeiss = ImmerSichtbar(Transparent(Colors.White, 1));
             _griffAussparung = ImmerSichtbar(Transparent(new Color(0.95f, 0.55f, 0.2f), 1));
+            _griffTor = ImmerSichtbar(Transparent(Torblau, 1));
             _griffNetz = new CylinderMesh { TopRadius = 1, BottomRadius = 1, Height = 0.15f, RadialSegments = 16 };
         }
         foreach (var (_, _, knoten) in _wsGriffListe) knoten.QueueFree();
@@ -312,6 +316,7 @@ public partial class Stadtansicht
         {
             EntwurfWeg w => new[] { (-1, w.Punkte) },
             EntwurfFlaeche f => f.Aussparungen.Select((a, i) => (i, a)).Prepend((-1, f.Ecken)).ToArray(),
+            EntwurfMauer m => new[] { (-1, m.Ecken), (TorGriffe, (IReadOnlyList<Kartenort>)m.Tore.Select(t => t.Punkt).ToList()) },
             _ => Array.Empty<(int, IReadOnlyList<Kartenort>)>(),
         };
         foreach (var (vieleck, punkte) in vielecke)
@@ -322,7 +327,7 @@ public partial class Stadtansicht
                 var knoten = new MeshInstance3D
                 {
                     Mesh = _griffNetz, Position = ort, CastShadow = GeometryInstance3D.ShadowCastingSetting.Off,
-                    MaterialOverride = griff == _wsGriff ? _griffWeiss : vieleck >= 0 ? _griffAussparung : _griffGold,
+                    MaterialOverride = griff == _wsGriff ? _griffWeiss : vieleck == TorGriffe ? _griffTor : vieleck >= 0 ? _griffAussparung : _griffGold,
                 };
                 _wsGriffe.AddChild(knoten);
                 _wsGriffListe.Add((griff, ort, knoten));
@@ -380,9 +385,6 @@ public partial class Stadtansicht
 
         /// <summary>Die vorläufige Lage (eingerastet).</summary>
         public Vector2 Ort { get; set; }
-
-        /// <summary>Beim Ziehen eines Wegendes: am Hof eingerastet (dann rastet der Kern es nicht noch einmal am Weg ein).</summary>
-        public bool AmHof { get; set; }
     }
 
     private Teilziehvorgang? _wsTeilZiehen;
@@ -400,9 +402,9 @@ public partial class Stadtansicht
             {
                 var punkte = w.Punkte.Select(V2).ToList();
                 var ende = t.Art == Ziehart.Griff && (t.Index == 0 || t.Index == punkte.Count - 1);
-                var fang = ende ? Fangen(m, w) : new Fang(m, false, false);
-                FangmarkeZeigen(fang.Gefangen ? fang.Ort : null);
-                (t.Ort, t.AmHof) = (fang.Ort, fang.Hof);
+                var fang = ende ? Fangen(m, w) : Zwischenpunkt(m);
+                if (fang is { } f) FangmarkeZeigen(V2(f.Ort), Fangfarbe(f.Ziel));
+                t.Ort = fang is { } g ? V2(g.Ort) : m;
                 if (t.Art == Ziehart.Griff) punkte[t.Index] = t.Ort;
                 else punkte.Insert(t.Index, t.Ort);
                 var verlauf = Wegkurve.Verlauf(punkte.Select(p => new double[] { p.X, p.Y }).ToList(), w.IstGlatt).Punkte;
@@ -411,6 +413,9 @@ public partial class Stadtansicht
                 VorschauPunkte(new[] { t.Ort }, Colors.White);
                 break;
             }
+            case EntwurfMauer mauer:
+                MauerZiehenNachfuehren(t, mauer, m); // Stadtansicht.Kartenwerkstatt.Mauern.cs
+                break;
             case EntwurfFlaeche f when t.Art != Ziehart.Ganz:
             {
                 t.Ort = Eckpunkt(f, m);
@@ -452,8 +457,7 @@ public partial class Stadtansicht
         {
             case EntwurfWeg w when t.Art == Ziehart.Griff:
                 if (!t.Aktiv) return;
-                var ende = t.Index == 0 || t.Index == w.Punkte.Count - 1;
-                Befehl(() => e.StuetzpunktVerschieben(w, t.Index, x, z, einrasten: ende && !t.AmHof));
+                Befehl(() => e.StuetzpunktVerschieben(w, t.Index, x, z)); // Enden rasten ein wie beim Anlegen, Punkte dazwischen in Tore
                 griff = new Griff(-1, t.Index);
                 break;
             case EntwurfWeg w:
@@ -477,6 +481,9 @@ public partial class Stadtansicht
             case EntwurfPflanze p:
                 if (t.Aktiv && t.Ort != t.Anfang) Befehl(() => e.PflanzeVerschieben(p, p.X + t.Ort.X - t.Anfang.X, p.Z + t.Ort.Y - t.Anfang.Y));
                 break;
+            case EntwurfMauer mauer:
+                griff = MauerZiehenBeenden(t, mauer);
+                break;
         }
         if (griff is not null && ReferenceEquals(WerkstattGewaehlt, t.Teil))
         {
@@ -493,6 +500,7 @@ public partial class Stadtansicht
         if (t.Teil is EntwurfFlaeche f && _wsFlaechen.TryGetValue(f, out var knoten)) knoten.Position = Vector3.Zero;
         if (_wsGriffe is not null) _wsGriffe.Position = Vector3.Zero;
         if (t.Teil is EntwurfPflanze p && _wsPflanzen.TryGetValue(p, out var pflanze)) pflanze.Position = V3(p.Punkt);
+        if (t.Teil is EntwurfMauer m && _wsMauern.TryGetValue(m, out var mauer)) mauer.Visible = true;
     }
 
     // ═════════════════════════════════════════════════════════════════════════
@@ -546,14 +554,16 @@ public partial class Stadtansicht
         VorschauDreiecke(ecken.ToArray(), farbe);
     }
 
-    /// <summary>Der weiße Ring an der Stelle, an der ein Punkt einrastet (null: verstecken).</summary>
+    /// <summary>Versteckt den Ring.</summary>
     private void FangmarkeZeigen(Vector2? ort)
     {
-        if (ort is null)
-        {
-            if (_wsFangmarke is not null) _wsFangmarke.Visible = false;
-            return;
-        }
+        if (ort is { } p) FangmarkeZeigen(p, Colors.White);
+        else if (_wsFangmarke is not null) _wsFangmarke.Visible = false;
+    }
+
+    /// <summary>Der Ring an der Stelle, an der ein Punkt einrastet, in der Farbe des Ziels (<see cref="Fangfarbe"/>).</summary>
+    private void FangmarkeZeigen(Vector2 ort, Color farbe)
+    {
         if (_wsFangmarke is null)
         {
             _wsFangmarke = new MeshInstance3D
@@ -563,8 +573,9 @@ public partial class Stadtansicht
             };
             AddChild(_wsFangmarke);
         }
+        ((StandardMaterial3D)_wsFangmarke.MaterialOverride).AlbedoColor = new Color(farbe, 0.95f);
         _wsFangmarke.Visible = true;
-        _wsFangmarke.Position = new Vector3(ort.Value.X, 0.3f, ort.Value.Y);
+        _wsFangmarke.Position = new Vector3(ort.X, 0.3f, ort.Y);
         _wsFangmarke.Scale = Vector3.One * Mathf.Max(0.8f, MeterJePixel * 12);
     }
 }
