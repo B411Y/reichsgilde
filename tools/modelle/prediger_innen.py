@@ -2089,7 +2089,7 @@ def platz_marken(z, raeume):
 def vorschau(schnell):
     """Bilder nach docs/modelle/: prediger_innen-blicke.png (jeder Blickpunkt in Stufe 3 mit aller Einrichtung, Tropfen aus dem
     Sieb), prediger_innen-stufen.png (Kirchenschiff und Sakristei von oben je Stufe) und prediger_innen-grundriss.png
-    (Erdgeschoss, Krypta, Skriptorium und Schatzkammer mit den Ankern: Arbeitsplätze magenta, Stellplätze türkis, Werkstücke
+    (Kirchenschiff und Sakristei, Krypta, Skriptorium, Schatzkammer mit den Ankern: Arbeitsplätze magenta, Stellplätze türkis, Werkstücke
     orange, Blickpunkte gelb, Gläubige blau, Prediger lila, Beichte weiß)."""
     import bpy
     szene, kam = ia.buehne(schnell, lampe=80, fuell=[(0, 0, H_KIRCHE - 0.6, 420, 1), (0, 3.5, 3.0, 160, 1),
@@ -2133,15 +2133,17 @@ def vorschau(schnell):
                                                         "Gläubige blau, Prediger lila, Beichte weiß"),
                                ({"Lager"}, (CX0 - WAND, TR_X1 + 0.2, CY0 - 0.6, PODEST_Y1 + 0.3), Z_KRYPTA + 2.4,
                                 "Krypta (ohne Gewölbe): Stellplätze türkis, Blickpunkte gelb"),
-                               ({"Skriptorium", "Schatzkammer"}, (TX0 - WAND, RX1 + WAND_S, RY0 - WAND_S, TY1 + WAND_S), 4.0,
-                                "Skriptorium (Stufe 2) und Schatzkammer (Stufe 3), ohne Decken")):
+                               ({"Skriptorium"}, (RX0 - WAND, RX1 + WAND_S, RY0 - WAND_S, RY1 + WAND_S), 4.0,
+                                "Skriptorium (ab Stufe 2, ohne Decke)"),
+                               ({"Schatzkammer"}, (TX0 - 0.8, TX1 + 0.8, TY0 - WAND, TY1 + WAND_S), 4.0,
+                                "Schatzkammer (ab Stufe 3, ohne Gewölbe)")):
         von_oben(r)
         liste = ia.marken(z, raeume) + platz_marken(z, raeume)
         ia.zeigen(szene, 3, True, decke=False, raeume=raeume)
         teile.append(bs.rendern_einzeln(f"_{NAME}-{'-'.join(sorted(raeume))}", text))
         for o in liste:
             bpy.data.objects.remove(o)
-    print(bs.zusammensetzen(NAME + "-grundriss", teile, spalten=3))
+    print(bs.zusammensetzen(NAME + "-grundriss", teile, spalten=2))
     ai.verkleinern(NAME + "-blicke", 0.85)
 
 
