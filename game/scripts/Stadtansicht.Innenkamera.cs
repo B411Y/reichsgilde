@@ -317,6 +317,12 @@ public partial class Stadtansicht
             var punkt = arbeiter.Halter.GlobalPosition + Vector3.Up * 1.0f;
             if (!_raumKamera.IsPositionBehind(punkt) && rahmen.HasPoint(_raumKamera.UnprojectPosition(punkt))) neu.Add(arbeiter.Nummer);
         }
+        foreach (var dieb in md.Diebe.Values) // die Diebe im Versteck (Stadtansicht.Innendiebe.cs) stehen nicht unter den Arbeitsplätzen
+        {
+            if (dieb.Platz is null || !dieb.Halter.Visible || !IstImGezeigtenRaum(dieb.Halter)) continue;
+            var punkt = dieb.Halter.GlobalPosition + Vector3.Up * (dieb.Platz.Bewegung == "Schlafen" ? 0.3f : 1.0f);
+            if (!_raumKamera.IsPositionBehind(punkt) && rahmen.HasPoint(_raumKamera.UnprojectPosition(punkt))) neu.Add(dieb.Nummer);
+        }
         if (neu.SetEquals(_gewaehlt)) return;
         _gewaehlt.Clear();
         _gewaehlt.UnionWith(neu);

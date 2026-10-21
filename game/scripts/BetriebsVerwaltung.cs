@@ -540,7 +540,7 @@ public partial class BetriebsVerwaltung : VBoxContainer
             $"Taschendiebe – tagsüber am Markt, steuerfrei: ≈ {jahr} {waehrung} je Geselle und Jahr. Dieses Jahr: {Buch(diebe.DiesesJahr(b.Konto))}",
         };
         if (diebe.Vorjahr(b.Konto) is { } vorjahr) zeilen.Add($"Vorjahr: {Buch(vorjahr)}");
-        zeilen.Add($"Fangchance ≈ {Zahlenformat.Kommazahl(diebe.Fangchance(b.Konto, b.Stufe) * 100)} % je Dieb und Stunde – wer erwischt wird, kommt in den Turm, " +
+        zeilen.Add($"Fangchance ≈ {Zahlenformat.Kommazahl(diebe.Fangchance(b) * 100)} % je Dieb und Stunde – wer erwischt wird, kommt in den Turm, " +
                    "und ein anderes Haus erfährt, wem er diente.");
         zeilen.Add($"Nachts {d.AuftraegeJeStufe[b.Stufe - 1]} {(d.AuftraegeJeStufe[b.Stufe - 1] == 1 ? "Auftrag" : "Aufträge")} (im Hinterzimmer): Einbruch, Auskundschaften" +
                    (b.Stufe >= d.Schutzgeld.AbStufe ? ", Schutzgeld" : "") + (b.Stufe >= d.Entfuehrung.AbStufe ? ", Entführung" : "") + ".");
