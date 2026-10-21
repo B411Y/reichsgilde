@@ -140,7 +140,7 @@ public partial class Stadtansicht
     /// Die Arbeitsstellen der Einwohner (Bausteine der Art „umlandstelle“): Weide (Koppel, Gatter, Tränke), Feld (Furchen, Vogelscheuche) und Wald
     /// (Tannen, Linde, Reisig) sind Knoten eines Baukastens (<c>umland_stellen.glb</c>); jeder steht an seiner Lage in der Karte, die Vorderseite
     /// (+Z, dort liegt „Anker_Tuer“, das Gatter) zum Weg. Das Gatter hängt mit einem Fußweg am nächsten Weg, im Netz geht es weiter bis zur Mitte
-    /// der Stelle. Die Bäume des Waldes kommen aus dem Modell; um die Stelle wächst sonst nichts (<see cref="NaturFrei"/>).
+    /// der Stelle. Die Bäume des Waldes kommen aus dem Modell; um die Stelle wächst sonst nichts (<see cref="Naturfreiraum"/>).
     /// </summary>
     private void UmlandstellenBauen(Stadtkarte karte)
     {
