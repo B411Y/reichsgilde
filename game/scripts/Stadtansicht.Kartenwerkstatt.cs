@@ -7,22 +7,59 @@ using Reichsgilde.Core.Kartenwerkstatt;
 
 namespace Reichsgilde;
 
+/// <summary>Was ein Klick in die Stadt der Kartenwerkstatt gerade tut.</summary>
+public enum Werkstattwerkzeug
+{
+    /// <summary>Wählen und Ziehen (Gebäude, Wege, Flächen, Pflanzen, Griffe).</summary>
+    Auswahl,
+
+    /// <summary>Ein Gebäude des Katalogs setzen (Umriss an der Maus).</summary>
+    Baustein,
+
+    /// <summary>Eine einzelne Pflanze des Katalogs setzen.</summary>
+    Pflanze,
+
+    /// <summary>Einen Weg zeichnen: Punkte klicken, Doppelklick oder Enter beendet.</summary>
+    Weg,
+
+    /// <summary>Eine Bauzone zeichnen: Ecken klicken, Doppelklick schließt.</summary>
+    Bauzone,
+
+    Wald,
+    Streu,
+
+    /// <summary>Eine Aussparung in der gewählten Naturfläche zeichnen.</summary>
+    Aussparung,
+
+    /// <summary>Pflanzen entlang eines gezogenen Strichs streuen.</summary>
+    Pinsel,
+
+    /// <summary>Pflanzen im Kreis unter dem Strich löschen.</summary>
+    Radierer,
+}
+
 /// <summary>
 /// Die Kartenwerkstatt (Level-Editor) in der Stadtansicht – ein Teil der <c>partial class Stadtansicht</c>. Die Szene „Kartenwerkstatt“
-/// (<see cref="Kartenwerkstatt"/>) hat Tafeln, Dateien und Startoptionen; hier liegt alles, was in der 3D-Welt passiert.
+/// (<see cref="Kartenwerkstatt"/>) hat Tafeln, Dateien und Startoptionen; hier liegt alles, was in der 3D-Welt passiert:
+///   • diese Datei: Aufbau, Gebäude als „Stücke“, Auswahl, Werkzeuge, Eingabe;
+///   • Stadtansicht.Kartenwerkstatt.Wege.cs: Wege zeichnen und bearbeiten (Stützpunkte), Gassennetz, Einrasten;
+///   • Stadtansicht.Kartenwerkstatt.Flaechen.cs: Bauzonen und Naturflächen als Vielecke (Ecken), Vorschau beim Zeichnen;
+///   • Stadtansicht.Kartenwerkstatt.Natur.cs: die Natur der Flächen live, einzelne Pflanzen, Pinsel und Radierer.
 ///
-/// <b>Zeichnen.</b> Boden, Mauern, Wege und Natur kommen aus denselben Methoden wie im Spiel (Stadtansicht.Karte.cs), einmal beim Öffnen.
-/// Jedes Gebäude des Entwurfs dagegen ist ein eigenes „Stück“: ein Knoten an Punkt und Drehung der Karte mit Modell, Klickfläche, Namen
-/// und Markierung. Ändert ein Befehl ein Gebäude (Ereignis <see cref="Kartenentwurf.Geaendert"/>), wird nur sein Stück neu gebaut.
+/// <b>Zeichnen.</b> Boden und Mauern kommen aus denselben Methoden wie im Spiel (Stadtansicht.Karte.cs), einmal beim Öffnen. Jeder
+/// bearbeitbare Teil des Entwurfs (Gebäude, Weg, Bauzone, Naturfläche, Pflanze) hat einen eigenen Knoten; ändert ein Befehl einen Teil
+/// (Ereignis <see cref="Kartenentwurf.Geaendert"/>), wird nur sein Knoten neu gebaut. Was davon abhängt – die Natur der Flächen in der
+/// Nähe, das Gassennetz, die rote Markierung der Fehler –, erledigt <see cref="WerkstattAktualisieren"/> einmal am Ende des Bildes.
 /// Werkstattplätze zeigen das Werkstattmodell des Schmieds (Stufe 1, ohne Hausfarbe): Alle Werkstätten haben dieselbe Normfläche
 /// 16 × 14 m, und ein Haus zeigt Abstände und Höhe besser als ein flacher Bauplatz-Zaun. Wohnhausplätze zeigen Fachwerkhäuser (ein
 /// Doppelplatz zwei), Einwohnerplätze ein Einwohnerhaus, alle anderen das Modell ihres Bausteins (ohne Modell ein grauer Block).
 ///
-/// <b>Bedienen.</b> Ein Baustein des Katalogs gewählt (<see cref="WerkstattBausteinWaehlen"/>): Sein Umriss folgt der Maus auf dem
-/// 1-m-Raster, Q/E dreht in 15°-Schritten, mit gehaltener Alt-Taste frei; grün = an dieser Stelle kein Fehler
-/// (<see cref="Kartenpruefung.PruefeStelle"/>), rot = mit dem ersten Fehler als Text. Klick setzt. Sonst wählt ein Klick ein Stück
-/// (goldener Rahmen), Ziehen verschiebt es (ein Rückgängig-Schritt je Ziehen), Q/E dreht das gewählte, Entf löscht es. Stücke mit Fehler
-/// (<see cref="Kartenentwurf.FehlerhafteGebaeude"/>) leuchten rot. Die Kamera dreht hier mit Strg+Q/E oder Bild↑/Bild↓.
+/// <b>Bedienen.</b> Das Werkzeug (<see cref="Kartenwerkzeug"/>) sagt, was ein Klick tut. Mit „Auswahl“ wählt ein Klick einen Teil
+/// (Gebäude vor Pflanzen vor Wegen vor Flächen), Ziehen verschiebt Gebäude, Pflanzen und die gewählte Fläche (ein Rückgängig-Schritt je
+/// Ziehen); ein gewählter Weg oder eine gewählte Fläche zeigt Griffe an Stützpunkten bzw. Ecken. Ein Baustein des Katalogs: Sein Umriss folgt
+/// der Maus auf dem 1-m-Raster, Q/E dreht in 15°-Schritten, mit gehaltener Alt-Taste frei; grün = an dieser Stelle kein Fehler
+/// (<see cref="Kartenpruefung.PruefeStelle"/>), rot = mit dem ersten Fehler als Text. Teile mit Fehler leuchten rot. Die Kamera dreht
+/// hier mit Strg+Q/E oder Bild↑/Bild↓.
 /// </summary>
 public partial class Stadtansicht
 {
@@ -54,19 +91,28 @@ public partial class Stadtansicht
     /// <summary>Gesperrt, solange die Oberfläche eine Rückfrage zeigt: Klicks und Tasten gehen dann nicht an die Karte.</summary>
     public bool WerkstattGesperrt { get; set; }
 
-    /// <summary>Kennung des gewählten Gebäudes (null: keins).</summary>
-    public string? WerkstattAuswahl { get; private set; }
+    /// <summary>Der gewählte Teil (Gebäude, Weg, Bauzone, Naturfläche, Pflanze) – null: keiner.</summary>
+    public EntwurfTeil? WerkstattGewaehlt { get; private set; }
 
-    /// <summary>Die Auswahl hat sich geändert (Klick, Setzen, Löschen) – die Tafel rechts zeigt das neue Stück.</summary>
-    public event Action<string?>? WerkstattAuswahlGeaendert;
+    /// <summary>Kennung des gewählten Gebäudes (null: keins oder ein anderer Teil gewählt).</summary>
+    public string? WerkstattAuswahl => (WerkstattGewaehlt as EntwurfGebaeude)?.Kennung;
 
-    /// <summary>Der Baustein, der gerade gesetzt wird (null: keiner).</summary>
+    /// <summary>Die Auswahl hat sich geändert (Klick, Setzen, Löschen) – die Tafel rechts zeigt den neuen Teil.</summary>
+    public event Action<EntwurfTeil?>? WerkstattAuswahlGeaendert;
+
+    /// <summary>Was ein Klick tut (<see cref="WerkstattWerkzeugWaehlen"/>).</summary>
+    public Werkstattwerkzeug Kartenwerkzeug { get; private set; }
+
+    /// <summary>Der Baustein des Katalogs, der gerade gesetzt wird (Gebäude oder Pflanze; null: keiner).</summary>
     public string? WerkstattBaustein { get; private set; }
 
-    /// <summary>Das Setzen wurde beendet (Esc, Rechtsklick) – der Katalog hebt die Wahl auf.</summary>
-    public event Action? WerkstattSetzenBeendet;
+    /// <summary>Das Werkzeug wurde in der Stadt beendet (Esc, Rechtsklick, fertige Aussparung) – der Katalog hebt die Wahl auf.</summary>
+    public event Action? WerkstattWerkzeugBeendet;
 
-    /// <summary>Die Drehung des Umrisses beim Setzen (Grad).</summary>
+    /// <summary>Eine Meldung für die Leiste unten (Text, ob Fehler) – etwa, wenn ein Befehl nicht ging.</summary>
+    public event Action<string, bool>? WerkstattMeldung;
+
+    /// <summary>Die Drehung des Umrisses beim Setzen (Grad), auch für Pflanzen.</summary>
     public double WerkstattDrehung { get; set; }
 
     // ═════════════════════════════════════════════════════════════════════════
@@ -74,8 +120,8 @@ public partial class Stadtansicht
     // ═════════════════════════════════════════════════════════════════════════
 
     /// <summary>
-    /// Zeichnet einen Entwurf: Boden, Mauern, Wege, Natur und Bauzonen (halbtransparent) wie im Spiel, dazu jedes Gebäude als Stück.
-    /// Einmal je Szene – ein anderer Entwurf lädt die Szene neu. Licht fest auf hellen Mittag, ohne Passanten, Karren und Vögel.
+    /// Zeichnet einen Entwurf: Boden und Mauern wie im Spiel, dazu jeden Teil des Entwurfs mit eigenem Knoten. Einmal je Szene – ein anderer
+    /// Entwurf lädt die Szene neu. Licht fest auf hellen Mittag, ohne Passanten, Karren und Vögel.
     /// </summary>
     public void EntwurfZeigen(Kartenentwurf entwurf)
     {
@@ -90,10 +136,7 @@ public partial class Stadtansicht
             _kartenRahmen = _kartenRahmen.Merge(new Rect2((float)x0, (float)z0, (float)(x1 - x0), (float)(z1 - z0))).Grow(30);
             BodenLegen(karte);
             foreach (var mauer in karte.Mauern) MauerAusKarte(mauer);
-            WegeAnlegen(karte);
-            NaturAusKarte(karte);
             KameraAusKarte(karte);
-            Baumodus = true; // die Bauzonen der Karte als farbige Flächen mit Raster (Stadtansicht.Bauen.cs)
         }
         else Flaeche(Vector3.Zero, new Vector2(520, 480), Wiese, -0.05f);
         if (entwurf.Groesse is not null) KartenrandZeichnen(entwurf.Grenzen());
@@ -101,14 +144,17 @@ public partial class Stadtansicht
         _stueckeKnoten = new Node3D { Name = "Stuecke" };
         AddChild(_stueckeKnoten);
         foreach (var g in entwurf.Gebaeude) StueckBauen(g);
-        FehlerZeigen();
+        WegeAufbauen();      // Stadtansicht.Kartenwerkstatt.Wege.cs
+        FlaechenAufbauen();  // Stadtansicht.Kartenwerkstatt.Flaechen.cs
+        PflanzenAufbauen();  // Stadtansicht.Kartenwerkstatt.Natur.cs
+        _wsFehlerNeu = true;
         entwurf.Geaendert += EntwurfGeaendert;
         LichtNachUhrzeit(12 * 60, 100); // heller Mittag, sofort ohne Überblenden
     }
 
     /// <summary>
-    /// Die Karte für Boden, Mauern, Wege und Natur: der Entwurf, wie der Kern ihn zum Spielen liest. Hat er Fehler, die der Leser nicht
-    /// annimmt (z. B. einen unbekannten Baustein), ohne die Gebäude – dann wächst die Natur auch dort, wo Gebäude stehen.
+    /// Die Karte für Boden und Mauern: der Entwurf, wie der Kern ihn zum Spielen liest. Hat er Fehler, die der Leser nicht annimmt (z. B. einen
+    /// unbekannten Baustein), ohne die Gebäude.
     /// </summary>
     private static Stadtkarte? HintergrundVon(Kartenentwurf entwurf)
     {
@@ -126,7 +172,7 @@ public partial class Stadtansicht
         }
         catch (Exception ex) when (ex is KartenFehler or JsonException)
         {
-            GD.PushWarning($"Kartenwerkstatt: Die Karte „{entwurf.Kennung}“ lässt sich nicht zeichnen ({ex.Message}) – nur die Gebäude erscheinen.");
+            GD.PushWarning($"Kartenwerkstatt: Die Karte „{entwurf.Kennung}“ lässt sich nicht zeichnen ({ex.Message}) – nur die Teile des Entwurfs erscheinen.");
             return null;
         }
     }
@@ -145,28 +191,105 @@ public partial class Stadtansicht
     }
 
     // ═════════════════════════════════════════════════════════════════════════
-    //  Stücke
+    //  Änderungen: den Teil neu bauen, den Rest am Ende des Bildes
     // ═════════════════════════════════════════════════════════════════════════
+
+    /// <summary>Was am Ende des Bildes nachzuziehen ist: Fehlerfarben, Griffe des gewählten Teils.</summary>
+    private bool _wsFehlerNeu, _wsGriffeNeu;
+
+    /// <summary>
+    /// Wo jedes Hindernis der Natur (Gebäude, Weg, Bauzone) zuletzt lag – das Rechteck mit dem Rand, in dem es die Natur verdrängt: Ändert es sich,
+    /// wird die Natur am alten und am neuen Ort neu gestreut.
+    /// </summary>
+    private readonly Dictionary<EntwurfTeil, Rect2> _wsBereiche = new();
 
     private void EntwurfGeaendert(Kartenaenderung a)
     {
-        switch (a.Art)
+        var weg = a.Art == Aenderungsart.Geloescht;
+        if (_wsBereiche.Remove(a.Objekt, out var alt)) NaturBereichVormerken(alt);
+        switch (a.Objekt)
         {
-            case Aenderungsart.Gesetzt:
-                StueckBauen(a.Gebaeude);
+            case EntwurfGebaeude g:
+                StueckEntfernen(g);
+                if (!weg) StueckBauen(g);
+                _wsNetzNeu = true; // Höfe und Karrenplätze hängen am Netz
                 break;
-            case Aenderungsart.Geloescht:
-                StueckEntfernen(a.Gebaeude);
-                if (WerkstattAuswahl == a.Gebaeude.Kennung) WerkstattWaehlen(null);
+            case EntwurfWeg w:
+                WegBauen(w, weg);
+                _wsNetzNeu = true;
                 break;
-            case Aenderungsart.Geaendert:
-                // Neu bauen statt nur verschieben: Maßstab, Name und Baustein können sich mitgeändert haben
-                StueckEntfernen(a.Gebaeude);
-                StueckBauen(a.Gebaeude);
+            case EntwurfFlaeche f:
+                FlaecheBauen(f, weg);
+                break;
+            case EntwurfPflanze p:
+                PflanzeBauen(p, weg);
                 break;
         }
-        FehlerZeigen();
+        if (!weg && a.Objekt is not (EntwurfPflanze or EntwurfNaturflaeche) && BereichVon(a.Objekt) is { } neu)
+        {
+            _wsBereiche[a.Objekt] = neu;
+            NaturBereichVormerken(neu);
+        }
+        if (ReferenceEquals(a.Objekt, WerkstattGewaehlt))
+        {
+            if (weg) WerkstattWaehlen((EntwurfTeil?)null);
+            else
+            {
+                TeilMarkieren(a.Objekt);
+                _wsGriffeNeu = true;
+            }
+        }
+        _wsFehlerNeu = true;
     }
+
+    /// <summary>
+    /// Nach allen Änderungen eines Bildes (aus <see cref="WerkstattAktualisieren"/>): Natur der betroffenen Flächen neu streuen, Gassennetz neu,
+    /// Fehlerfarben, Griffe.
+    /// </summary>
+    private void Nachziehen()
+    {
+        NaturNachziehen();
+        if (_wsNetzNeu) NetzBauen();
+        if (_wsFehlerNeu) FehlerZeigen();
+        if (_wsGriffeNeu) GriffeBauen();
+    }
+
+    /// <summary>Das Rechteck, in dem ein Teil die Natur verdrängt (mit Rand); null für Pflanzen und leere Teile.</summary>
+    private Rect2? BereichVon(EntwurfTeil t)
+    {
+        var rand = (float)Naturfreiraum.Abstand + 1;
+        switch (t)
+        {
+            case EntwurfGebaeude g when Naturhindernis.Von(g.Baustein, g.X, g.Z, g.Drehung, g.Massstab, Modellmass) is { } h:
+            {
+                var r = Mathf.Sqrt((float)(h.HalbX * h.HalbX + h.HalbZ * h.HalbZ)) + rand;
+                return new Rect2((float)g.X - r, (float)g.Z - r, 2 * r, 2 * r);
+            }
+            case EntwurfWeg w when w.Verlauf.Count > 0:
+                return Rahmen(w.Verlauf).Grow((float)w.BreiteWirksam / 2 + rand);
+            case EntwurfFlaeche f when f.Ecken.Count > 0:
+                return Rahmen(f.Ecken).Grow(rand);
+        }
+        return null;
+    }
+
+    private static Rect2 Rahmen(IEnumerable<Kartenort> punkte)
+    {
+        Rect2? r = null;
+        foreach (var p in punkte)
+        {
+            var q = new Vector2((float)p.X, (float)p.Z);
+            r = r is { } x ? x.Expand(q) : new Rect2(q, Vector2.Zero);
+        }
+        return r ?? new Rect2();
+    }
+
+    private static Vector2 V2(Kartenort p) => new((float)p.X, (float)p.Z);
+    private static Vector3 V3(Kartenort p, float hoehe = 0) => new((float)p.X, hoehe, (float)p.Z);
+
+    // ═════════════════════════════════════════════════════════════════════════
+    //  Stücke (Gebäude)
+    // ═════════════════════════════════════════════════════════════════════════
 
     private void StueckEntfernen(EntwurfGebaeude g)
     {
@@ -199,7 +322,9 @@ public partial class Stadtansicht
         var (markierung, rahmen, fuellung) = MarkierungBauen(groesse, wurzel);
         var stueck = new Stueck { Wurzel = wurzel, Modell = modell, Markierung = markierung, Rahmen = rahmen, Fuellung = fuellung };
         _stuecke[g] = stueck;
+        if (_entwurf?.FehlerhafteGebaeude.Contains(g.Kennung) == true) FehlerUeberzug(stueck, true);
         MarkierungSetzen(g, stueck);
+        if (BereichVon(g) is { } bereich) _wsBereiche[g] = bereich;
     }
 
     /// <summary>Das Modell eines Stücks nach der Art seines Bausteins, lokal: Mitte der Grundfläche im Ursprung, Vorderseite nach +z.</summary>
@@ -277,6 +402,15 @@ public partial class Stadtansicht
         }
     }
 
+    /// <summary>Wo das Modell eines Gebäudes des Entwurfs steht (wie <see cref="ModellLage"/> für die Karte).</summary>
+    private static Transform3D ModellLage(EntwurfGebaeude g)
+    {
+        var m = (float)g.Massstab;
+        var drehung = new Basis(Vector3.Up, Mathf.DegToRad((float)g.Drehung));
+        var versatz = g.Baustein?.Versatz is { Length: 2 } v ? new Vector3((float)v[0], 0, (float)v[1]) * m : Vector3.Zero;
+        return new Transform3D(drehung.Scaled(Vector3.One * m), new Vector3((float)g.X, 0, (float)g.Z) + drehung * versatz);
+    }
+
     // ═════════════════════════════════════════════════════════════════════════
     //  Markierung: gewählt (gold) und Fehler (rot)
     // ═════════════════════════════════════════════════════════════════════════
@@ -321,7 +455,7 @@ public partial class Stadtansicht
     /// <summary>Zeigt Rahmen und roten Überzug eines Stücks nach Auswahl und Fehlern.</summary>
     private void MarkierungSetzen(EntwurfGebaeude g, Stueck s)
     {
-        var gewaehlt = WerkstattAuswahl == g.Kennung;
+        var gewaehlt = ReferenceEquals(WerkstattGewaehlt, g);
         s.Markierung.Visible = gewaehlt || s.Fehlerhaft;
         foreach (var teil in s.Rahmen) teil.MaterialOverride = s.Fehlerhaft ? _rahmenRot : _rahmenGold;
         s.Fuellung.MaterialOverride = s.Fehlerhaft ? _flaecheRot : _flaecheGold;
@@ -329,24 +463,61 @@ public partial class Stadtansicht
         if (gewaehlt && s.Fehlerhaft) s.Fuellung.MaterialOverride = _flaecheGold;
     }
 
-    /// <summary>Nach jeder Änderung: Welche Stücke haben einen Fehler? Nur wo sich das ändert, wird der Überzug umgeschaltet.</summary>
-    private void FehlerZeigen()
+    private void FehlerUeberzug(Stueck s, bool fehlerhaft)
     {
-        if (_entwurf is null) return;
         _fehlerUeberzug ??= new StandardMaterial3D
         {
             AlbedoColor = new Color(Fehlerrot, 0.42f), Transparency = BaseMaterial3D.TransparencyEnum.Alpha,
             ShadingMode = BaseMaterial3D.ShadingModeEnum.Unshaded,
         };
+        s.Fehlerhaft = fehlerhaft;
+        foreach (var teil in s.Modell.FindChildren("*", nameof(MeshInstance3D), true, false).OfType<MeshInstance3D>())
+            teil.MaterialOverlay = fehlerhaft ? _fehlerUeberzug : null;
+    }
+
+    /// <summary>Die Wege, Flächen und Pflanzen mit einem Fehler (aus <see cref="Befund.Andere"/>).</summary>
+    private readonly HashSet<EntwurfTeil> _wsFehlerTeile = new(ReferenceEqualityComparer.Instance);
+
+    /// <summary>Nach jeder Änderung: Welche Teile haben einen Fehler? Nur wo sich das ändert, wird umgefärbt.</summary>
+    private void FehlerZeigen()
+    {
+        _wsFehlerNeu = false;
+        if (_entwurf is null) return;
         var fehlerhaft = _entwurf.FehlerhafteGebaeude;
         foreach (var (g, s) in _stuecke)
         {
             var neu = fehlerhaft.Contains(g.Kennung);
             if (neu == s.Fehlerhaft) continue;
-            s.Fehlerhaft = neu;
-            foreach (var teil in s.Modell.FindChildren("*", nameof(MeshInstance3D), true, false).OfType<MeshInstance3D>())
-                teil.MaterialOverlay = neu ? _fehlerUeberzug : null;
+            FehlerUeberzug(s, neu);
             MarkierungSetzen(g, s);
+        }
+        var andere = new HashSet<EntwurfTeil>(_entwurf.Befunde.Where(b => b.Schwere == Schwere.Fehler).SelectMany(b => b.Andere), ReferenceEqualityComparer.Instance);
+        var wechsel = _wsFehlerTeile.Where(t => !andere.Contains(t)).Concat(andere.Where(t => !_wsFehlerTeile.Contains(t))).ToList();
+        _wsFehlerTeile.Clear();
+        _wsFehlerTeile.UnionWith(andere);
+        foreach (var t in wechsel) TeilMarkieren(t);
+    }
+
+    /// <summary>Hat der Teil (Weg, Fläche, Pflanze) einen Fehler?</summary>
+    private bool Fehlerhaft(EntwurfTeil t) => _wsFehlerTeile.Contains(t);
+
+    /// <summary>Zeichnet die Markierung eines Teils neu (gewählt: gold, Fehler: rot).</summary>
+    private void TeilMarkieren(EntwurfTeil t)
+    {
+        switch (t)
+        {
+            case EntwurfGebaeude g when _stuecke.TryGetValue(g, out var s):
+                MarkierungSetzen(g, s);
+                break;
+            case EntwurfWeg w:
+                WegMarkieren(w);
+                break;
+            case EntwurfFlaeche f:
+                FlaecheMarkieren(f);
+                break;
+            case EntwurfPflanze p:
+                PflanzeMarkieren(p);
+                break;
         }
     }
 
@@ -354,21 +525,174 @@ public partial class Stadtansicht
     //  Auswahl und Kamera
     // ═════════════════════════════════════════════════════════════════════════
 
-    /// <summary>Wählt ein Gebäude (null: keins) – mit <paramref name="hinfahren"/> fährt die Kamera hin.</summary>
-    public void WerkstattWaehlen(string? kennung, bool hinfahren = false)
+    /// <summary>Wählt ein Gebäude über seine Kennung (null: nichts) – mit <paramref name="hinfahren"/> fährt die Kamera hin.</summary>
+    public void WerkstattWaehlen(string? kennung, bool hinfahren = false) => WerkstattWaehlen(_entwurf?.GebaeudeMit(kennung), hinfahren);
+
+    /// <summary>Wählt einen Teil (null: nichts) – mit <paramref name="hinfahren"/> fährt die Kamera hin.</summary>
+    public void WerkstattWaehlen(EntwurfTeil? teil, bool hinfahren = false)
     {
-        if (_entwurf?.GebaeudeMit(kennung) is null) kennung = null;
-        var vorher = WerkstattAuswahl;
-        WerkstattAuswahl = kennung;
-        Auswahl = kennung is null ? null : "stueck:" + kennung; // der Name bleibt sichtbar
-        foreach (var (g, s) in _stuecke)
-            if (g.Kennung == vorher || g.Kennung == kennung) MarkierungSetzen(g, s);
-        if (hinfahren && _entwurf?.GebaeudeMit(kennung) is { } gebaeude) WerkstattHinfahren(gebaeude.Punkt);
-        if (vorher != kennung) WerkstattAuswahlGeaendert?.Invoke(kennung);
+        if (teil is not null && _entwurf?.Enthaelt(teil) != true) teil = null;
+        var vorher = WerkstattGewaehlt;
+        WerkstattGewaehlt = teil;
+        _wsGriff = null;
+        Auswahl = teil is EntwurfGebaeude g ? StueckKennung(g) : null; // der Name bleibt sichtbar
+        if (vorher is not null && !ReferenceEquals(vorher, teil)) TeilMarkieren(vorher);
+        if (teil is not null) TeilMarkieren(teil);
+        GriffeBauen();
+        if (hinfahren && teil is not null) WerkstattHinfahren(MitteVon(teil));
+        if (!ReferenceEquals(vorher, teil)) WerkstattAuswahlGeaendert?.Invoke(teil);
     }
+
+    /// <summary>Wo ein Teil liegt (zum Hinfahren): Punkt, Mitte des Verlaufs, Mitte der Fläche.</summary>
+    public static Kartenort MitteVon(EntwurfTeil t) => t switch
+    {
+        EntwurfGebaeude g => g.Punkt,
+        EntwurfPflanze p => p.Punkt,
+        EntwurfWeg { Verlauf.Count: > 0 } w => w.Verlauf[w.Verlauf.Count / 2],
+        EntwurfFlaeche { Ecken.Count: > 0 } f => new Kartenort(f.Ecken.Average(e => e.X), f.Ecken.Average(e => e.Z)),
+        _ => default,
+    };
 
     /// <summary>Fährt die Kamera zu einem Ort der Karte (Zoom bleibt).</summary>
     public void WerkstattHinfahren(Kartenort ort) => Kamerafahrt(new Vector3((float)ort.X, 0, (float)ort.Z), _kamera.Size);
+
+    /// <summary>Wo ein Ort der Karte auf dem Bildschirm liegt (für Klicktests, <c>--werkstatt-bildpunkte</c>), gerundet auf ganze Bildpunkte.</summary>
+    public string WerkstattBildpunkt(double x, double z)
+    {
+        var p = _kamera.UnprojectPosition(new Vector3((float)x, 0, (float)z));
+        return $"{Mathf.RoundToInt(p.X)},{Mathf.RoundToInt(p.Y)}";
+    }
+
+    /// <summary>Meter je Bildpunkt bei diesem Zoom (die sichtbare Höhe entspricht <c>_kamera.Size</c>).</summary>
+    private float MeterJePixel => _kamera.Size / GetViewport().GetVisibleRect().Size.Y;
+
+    /// <summary>Der Boden unter der Maus – null über einer Tafel, bei gesperrter Werkstatt oder außerhalb.</summary>
+    private Vector2? MausBoden()
+    {
+        if (WerkstattGesperrt || GetViewport().GuiGetHoveredControl() is not null) return null;
+        return BodenpunktBei(GetViewport().GetMousePosition());
+    }
+
+    // ═════════════════════════════════════════════════════════════════════════
+    //  Werkzeug
+    // ═════════════════════════════════════════════════════════════════════════
+
+    /// <summary>Ein anderes Werkzeug wurde gewählt (die Tafel rechts zeigt bei Pinsel und Radierer deren Regler).</summary>
+    public event Action? WerkstattWerkzeugGeaendert;
+
+    /// <summary>
+    /// Wählt das Werkzeug: <paramref name="baustein"/> ist bei <see cref="Werkstattwerkzeug.Baustein"/> und <see cref="Werkstattwerkzeug.Pflanze"/>
+    /// die Kennung im Katalog. Eine Aussparung braucht eine gewählte Naturfläche – ohne sie bleibt die Auswahl (false). Laufendes Zeichnen und Ziehen
+    /// werden abgebrochen.
+    /// </summary>
+    public bool WerkstattWerkzeugWaehlen(Werkstattwerkzeug werkzeug, string? baustein = null)
+    {
+        ZiehenAbbrechen();
+        TeilZiehenAbbrechen();
+        ZeichnenAbbrechen();
+        StrichAbbrechen();
+        var b = _entwurf?.Katalog.Finde(baustein);
+        if (werkzeug == Werkstattwerkzeug.Baustein && (b is null || b.Art == Bausteinart.Natur)) werkzeug = Werkstattwerkzeug.Auswahl;
+        if (werkzeug == Werkstattwerkzeug.Pflanze && b is not { Art: Bausteinart.Natur }) werkzeug = Werkstattwerkzeug.Auswahl;
+        var ok = true;
+        if (werkzeug == Werkstattwerkzeug.Aussparung && WerkstattGewaehlt is not EntwurfNaturflaeche)
+        {
+            WerkstattMeldung?.Invoke("Für eine Aussparung erst eine Wald- oder Streufläche wählen.", true);
+            werkzeug = Werkstattwerkzeug.Auswahl;
+            ok = false;
+        }
+        Kartenwerkzeug = werkzeug;
+        WerkstattBaustein = werkzeug is Werkstattwerkzeug.Baustein or Werkstattwerkzeug.Pflanze ? baustein : null;
+        _wsGeprueft = null;
+        if (werkzeug != Werkstattwerkzeug.Baustein && _wsUmriss is not null) _wsUmriss.Visible = false;
+        if (werkzeug != Werkstattwerkzeug.Pflanze) PflanzenGeistAus();
+        if (werkzeug is not (Werkstattwerkzeug.Pinsel or Werkstattwerkzeug.Radierer)) PinselAus();
+        WerkstattWerkzeugGeaendert?.Invoke();
+        return ok;
+    }
+
+    /// <summary>Wählt einen Baustein zum Setzen (null: Setzen beenden) – eine Natur-Art setzt Pflanzen. Die Auswahl bleibt.</summary>
+    public void WerkstattBausteinWaehlen(string? katalog)
+    {
+        var b = _entwurf?.Katalog.Finde(katalog);
+        WerkstattWerkzeugWaehlen(b is null ? Werkstattwerkzeug.Auswahl : b.Art == Bausteinart.Natur ? Werkstattwerkzeug.Pflanze : Werkstattwerkzeug.Baustein, katalog);
+    }
+
+    /// <summary>Beendet das Werkzeug aus der Stadt heraus (Esc, Rechtsklick) – zurück zur Auswahl, der Katalog hebt seine Wahl auf.</summary>
+    private void WerkzeugBeenden()
+    {
+        WerkstattWerkzeugWaehlen(Werkstattwerkzeug.Auswahl);
+        WerkstattWerkzeugBeendet?.Invoke();
+    }
+
+    /// <summary>Führt einen Befehl aus; geht er nicht (der Teil ist inzwischen weg, zu wenige Punkte …), steht der Grund unten in der Leiste.</summary>
+    private T? Befehl<T>(Func<T> befehl)
+    {
+        try
+        {
+            return befehl();
+        }
+        catch (ArgumentException fehler)
+        {
+            WerkstattMeldung?.Invoke(fehler.Message.Split(" (Parameter")[0], true);
+            return default;
+        }
+    }
+
+    private void Befehl(Action befehl) => Befehl(() => { befehl(); return true; });
+
+    // ═════════════════════════════════════════════════════════════════════════
+    //  Jedes Bild
+    // ═════════════════════════════════════════════════════════════════════════
+
+    /// <summary>Für Startoptionen: Der Umriss des gewählten Bausteins steht an dieser Stelle (Meter), bis die Maus bewegt wird.</summary>
+    public void WerkstattUmrissSetzen(double x, double z) => _wsOrt = new Vector2((float)x, (float)z);
+
+    /// <summary>Nur für Startoptionen: Umriss, Pinsel und Vorschau stehen hier, bis die Maus bewegt wird.</summary>
+    private Vector2? _wsOrt;
+
+    /// <summary>Jedes Bild (aus der Szene): Änderungen nachziehen, dann Umriss, Vorschau, Griffe und Pinsel der Maus nachführen.</summary>
+    public void WerkstattAktualisieren()
+    {
+        if (_entwurf is null) return;
+        Nachziehen();
+        GriffeSkalieren();
+        var maus = _wsOrt ?? MausBoden();
+        VorschauLeeren();
+        if (_wsZiehen is { Aktiv: true } z)
+        {
+            ZiehenNachfuehren(z);
+            return;
+        }
+        if (_wsTeilZiehen is { } t)
+        {
+            TeilZiehenNachfuehren(t, maus);
+            return;
+        }
+        switch (Kartenwerkzeug)
+        {
+            case Werkstattwerkzeug.Baustein when WerkstattBaustein is { } katalog:
+                if (maus is { } ort)
+                {
+                    var (x, zz) = Einrasten(ort.X, ort.Y);
+                    UmrissZeigen(katalog, x, zz, WerkstattDrehung, 1, null);
+                }
+                else if (_wsUmriss is not null) _wsUmriss.Visible = false;
+                break;
+            case Werkstattwerkzeug.Pflanze:
+                PflanzenGeistZeigen(maus);
+                break;
+            case Werkstattwerkzeug.Weg:
+                WegVorschau(maus);
+                break;
+            case Werkstattwerkzeug.Bauzone or Werkstattwerkzeug.Wald or Werkstattwerkzeug.Streu or Werkstattwerkzeug.Aussparung:
+                FlaechenVorschau(maus);
+                break;
+            case Werkstattwerkzeug.Pinsel or Werkstattwerkzeug.Radierer:
+                PinselZeigen(maus);
+                break;
+        }
+    }
 
     // ═════════════════════════════════════════════════════════════════════════
     //  Setzen: der Umriss an der Maus
@@ -379,47 +703,10 @@ public partial class Stadtansicht
     private StandardMaterial3D? _wsFarbe, _wsVorplatzFarbe, _wsKoerperFarbe, _wsPfeilFarbe;
     private Label3D? _wsText;
 
-    /// <summary>Nur für Startoptionen: Der Umriss steht hier, bis die Maus bewegt wird.</summary>
-    private Vector2? _wsOrt;
-
     /// <summary>Was zuletzt geprüft wurde (Baustein, Punkt, Drehung, Kennung) und mit welchem Ergebnis – geprüft wird nur, wenn sich das ändert.</summary>
     private (string Katalog, double X, double Z, double Drehung, double Massstab, string? Kennung)? _wsGeprueft;
 
     private string? _wsGrund;
-
-    /// <summary>Wählt einen Baustein zum Setzen (null: Setzen beenden). Die Auswahl eines Stücks bleibt.</summary>
-    public void WerkstattBausteinWaehlen(string? katalog)
-    {
-        ZiehenAbbrechen();
-        WerkstattBaustein = _entwurf?.Katalog.Finde(katalog) is null ? null : katalog;
-        _wsGeprueft = null;
-        if (WerkstattBaustein is null && _wsUmriss is not null) _wsUmriss.Visible = false;
-    }
-
-    /// <summary>Für Startoptionen: Der Umriss des gewählten Bausteins steht an dieser Stelle (Meter), bis die Maus bewegt wird.</summary>
-    public void WerkstattUmrissSetzen(double x, double z) => _wsOrt = new Vector2((float)x, (float)z);
-
-    /// <summary>Jedes Bild (aus der Szene): Umriss beim Setzen und beim Ziehen nachführen.</summary>
-    public void WerkstattAktualisieren()
-    {
-        if (_entwurf is null) return;
-        if (_wsZiehen is { Aktiv: true } z)
-        {
-            ZiehenNachfuehren(z);
-            return;
-        }
-        if (WerkstattBaustein is not { } katalog) return;
-        var ort = _wsOrt;
-        if (ort is null && !WerkstattGesperrt && GetViewport().GuiGetHoveredControl() is null)
-            ort = BodenpunktBei(GetViewport().GetMousePosition());
-        if (ort is null)
-        {
-            if (_wsUmriss is not null) _wsUmriss.Visible = false;
-            return;
-        }
-        var (x, zz) = Einrasten(ort.Value.X, ort.Value.Y);
-        UmrissZeigen(katalog, x, zz, WerkstattDrehung, 1, null);
-    }
 
     /// <summary>Auf das 1-m-Raster – mit gehaltener Alt-Taste frei (der Kern rundet dann auf 5 cm).</summary>
     private static (double X, double Z) Einrasten(double x, double z) =>
@@ -481,7 +768,7 @@ public partial class Stadtansicht
     }
 
     // ═════════════════════════════════════════════════════════════════════════
-    //  Ziehen
+    //  Ziehen eines Gebäudes
     // ═════════════════════════════════════════════════════════════════════════
 
     /// <summary>Ein Stück, das gerade gezogen wird: wo die Maus anfasste, der Abstand zur Mitte und die vorläufige Lage.</summary>
@@ -522,7 +809,7 @@ public partial class Stadtansicht
         if (!z.Aktiv) return;
         var g = z.Gebaeude;
         if (Kartenraster.Punkt(z.X) != g.X || Kartenraster.Punkt(z.Z) != g.Z || Kartenraster.Drehung(z.Drehung) != g.Drehung)
-            _entwurf.Versetzen(g.Kennung, z.X, z.Z, z.Drehung); // baut das Stück neu (EntwurfGeaendert)
+            Befehl(() => _entwurf.Versetzen(g.Kennung, z.X, z.Z, z.Drehung)); // baut das Stück neu (EntwurfGeaendert)
         else if (_stuecke.TryGetValue(g, out var s))
         {
             s.Wurzel.Position = new Vector3((float)g.X, 0, (float)g.Z);
@@ -549,78 +836,197 @@ public partial class Stadtansicht
 
     /// <summary>
     /// Die Eingabe der Kartenwerkstatt – vor der Kamera (wie <see cref="BauEingabe"/>). Gibt true zurück, wenn verbraucht. Mausrad, rechte
-    /// Maustaste und Strg+Q/E bleiben bei der Kamera.
+    /// Maustaste und Strg+Q/E bleiben bei der Kamera, Strg+Z/Y/S bei der Szene.
     /// </summary>
     private bool WerkstattEingabe(InputEvent eingabe)
     {
         if (_entwurf is null) return false;
         if (WerkstattGesperrt) return eingabe is InputEventMouseButton { ButtonIndex: MouseButton.Left };
+        // Das Mausrad über einer Tafel, die nicht (mehr) rollen kann, zoomt nicht die Kamera
+        if (eingabe is InputEventMouseButton { ButtonIndex: MouseButton.WheelUp or MouseButton.WheelDown } && GetViewport().GuiGetHoveredControl() is not null) return true;
+        var zeichnet = Kartenwerkzeug is Werkstattwerkzeug.Weg or Werkstattwerkzeug.Bauzone or Werkstattwerkzeug.Wald
+            or Werkstattwerkzeug.Streu or Werkstattwerkzeug.Aussparung;
         switch (eingabe)
         {
             case InputEventKey { Pressed: true, Keycode: Key.Q or Key.E, CtrlPressed: false } taste:
-                StueckDrehen(taste.Keycode == Key.Q ? 1 : -1, taste.AltPressed, taste.Echo);
+                Drehen(taste.Keycode == Key.Q ? 1 : -1, taste.AltPressed, taste.Echo);
                 return true;
             case InputEventKey { Pressed: true, Echo: false, Keycode: Key.Pageup or Key.Pagedown } taste:
                 _zielDrehung += taste.Keycode == Key.Pageup ? -90 : 90; // die Kamera (Q/E drehen hier das Stück)
                 return true;
-            case InputEventKey { Pressed: true, Echo: false, Keycode: Key.Delete } when _wsZiehen is null && WerkstattAuswahl is { } weg:
-                _entwurf.Loeschen(weg);
+            case InputEventKey { Pressed: true, Keycode: Key.Enter or Key.KpEnter } when zeichnet:
+                ZeichnenBeenden();
+                return true;
+            case InputEventKey { Pressed: true, Keycode: Key.Backspace } when zeichnet && _wsPunkte.Count > 0:
+                _wsPunkte.RemoveAt(_wsPunkte.Count - 1);
+                return true;
+            case InputEventKey { Pressed: true, Echo: false, Keycode: Key.Delete } when _wsZiehen is null && _wsTeilZiehen is null:
+                Loeschen();
                 return true;
             case InputEventKey { Pressed: true, Echo: false, Keycode: Key.Escape }:
                 if (_wsZiehen is not null) ZiehenAbbrechen();
-                else if (WerkstattBaustein is not null) { WerkstattBausteinWaehlen(null); WerkstattSetzenBeendet?.Invoke(); }
-                else if (WerkstattAuswahl is not null) WerkstattWaehlen(null);
+                else if (_wsTeilZiehen is not null) TeilZiehenAbbrechen();
+                else if (_wsStrich is not null) StrichAbbrechen();
+                else if (_wsPunkte.Count > 0) ZeichnenAbbrechen();
+                else if (Kartenwerkzeug != Werkstattwerkzeug.Auswahl) WerkzeugBeenden();
+                else if (_wsGriff is not null) { _wsGriff = null; GriffeBauen(); }
+                else if (WerkstattGewaehlt is not null) WerkstattWaehlen((EntwurfTeil?)null);
                 else return false;
                 return true;
             case InputEventMouseButton { ButtonIndex: MouseButton.Left, Pressed: true } klick:
-                LinksDruecken(klick.Position);
+                LinksDruecken(klick.Position, klick.DoubleClick);
                 return true;
             case InputEventMouseButton { ButtonIndex: MouseButton.Left, Pressed: false }:
                 ZiehenBeenden();
+                TeilZiehenBeenden();
+                StrichBeenden();
                 return true;
             case InputEventMouseButton { ButtonIndex: MouseButton.Right } rechts:
                 if (rechts.Pressed) _wsRechtsGezogen = 0;
-                else if (_wsRechtsGezogen < 6 && WerkstattBaustein is not null) { WerkstattBausteinWaehlen(null); WerkstattSetzenBeendet?.Invoke(); }
+                else if (_wsRechtsGezogen < 6 && Kartenwerkzeug != Werkstattwerkzeug.Auswahl && _wsPunkte.Count == 0 && _wsStrich is null) WerkzeugBeenden();
                 return false; // das Ziehen der Kamera läuft weiter
             case InputEventMouseMotion bewegung:
                 _wsOrt = null;
                 if (Input.IsMouseButtonPressed(MouseButton.Right)) _wsRechtsGezogen += bewegung.Relative.Length();
                 if (_wsZiehen is { Aktiv: false } z && bewegung.Position.DistanceTo(z.Start) > ZiehSchwelle) z.Aktiv = true;
+                if (_wsTeilZiehen is { Aktiv: false } t && bewegung.Position.DistanceTo(t.Start) > ZiehSchwelle) t.Aktiv = true;
+                StrichWeiter(bewegung.Position);
                 return false;
         }
         return false;
     }
 
-    /// <summary>Linke Maustaste: beim Setzen das Stück setzen, sonst ein Stück wählen (und vielleicht ziehen) oder die Auswahl aufheben.</summary>
-    private void LinksDruecken(Vector2 maus)
+    /// <summary>Linke Maustaste: was sie tut, sagt das Werkzeug.</summary>
+    private void LinksDruecken(Vector2 maus, bool doppelklick)
     {
         if (_entwurf is null) return;
-        if (WerkstattBaustein is { } katalog)
+        var boden = BodenpunktBei(maus);
+        switch (Kartenwerkzeug)
         {
-            if (_wsUmriss is not { Visible: true }) return;
-            var g = _entwurf.Setzen(katalog, _wsUmriss.Position.X, _wsUmriss.Position.Z, WerkstattDrehung);
-            WerkstattWaehlen(g.Kennung);
-            return;
+            case Werkstattwerkzeug.Baustein when WerkstattBaustein is { } katalog:
+                // wo der Umriss steht (Startoption) – sonst, wo geklickt wurde (der Umriss folgt der Maus erst im nächsten Bild)
+                var (x, z) = _wsOrt is null && boden is { } b ? Einrasten(b.X, b.Y) : _wsUmriss is { Visible: true } u ? (u.Position.X, u.Position.Z) : (double.NaN, 0);
+                if (double.IsNaN(x)) return;
+                if (Befehl(() => _entwurf.Setzen(katalog, x, z, WerkstattDrehung)) is { } g) WerkstattWaehlen(g);
+                return;
+            case Werkstattwerkzeug.Pflanze when WerkstattBaustein is { } art && boden is { } ort:
+                if (Befehl(() => _entwurf.PflanzeSetzen(art, ort.X, ort.Y, WerkstattDrehung)) is { } p) WerkstattWaehlen(p);
+                return;
+            case Werkstattwerkzeug.Weg or Werkstattwerkzeug.Bauzone or Werkstattwerkzeug.Wald or Werkstattwerkzeug.Streu or Werkstattwerkzeug.Aussparung:
+                ZeichnenKlick(maus, boden, doppelklick); // Stadtansicht.Kartenwerkstatt.Flaechen.cs
+                return;
+            case Werkstattwerkzeug.Pinsel or Werkstattwerkzeug.Radierer:
+                StrichBeginnen(maus); // Stadtansicht.Kartenwerkstatt.Natur.cs
+                return;
         }
-        var kennung = KennungBei(maus) is { } k && k.StartsWith("stueck:") ? k["stueck:".Length..] : null;
-        WerkstattWaehlen(kennung);
-        if (_entwurf.GebaeudeMit(kennung) is not { } gebaeude || BodenpunktBei(maus) is not { } boden) return;
-        _wsZiehen = new Ziehvorgang
-        {
-            Gebaeude = gebaeude, Start = maus, Versatz = new Vector2((float)gebaeude.X - boden.X, (float)gebaeude.Z - boden.Y),
-            X = gebaeude.X, Z = gebaeude.Z, Drehung = gebaeude.Drehung,
-        };
+        AuswahlKlick(maus, boden);
     }
 
     /// <summary>
-    /// Q/E: dreht, was gerade bewegt wird – den Umriss beim Setzen, das gezogene Stück oder (als Befehl) das gewählte. In 15°-Schritten auf das
-    /// Raster, mit Alt um 1°. <paramref name="richtung"/> +1 = gegen den Uhrzeigersinn (von oben), −1 = mit ihm.
+    /// Ein Klick mit dem Werkzeug „Auswahl“: zuerst die Griffe des gewählten Teils (ziehen), dann die Linie des gewählten Weges bzw. der Rand der
+    /// gewählten Fläche (Stützpunkt bzw. Ecke einfügen, gleich weiterziehen), dann Gebäude, Pflanzen, Wege, das Innere der gewählten Fläche
+    /// (ganze Fläche ziehen), Bauzonen und Naturflächen. Ein Klick ins Leere hebt die Auswahl auf.
     /// </summary>
-    private void StueckDrehen(int richtung, bool frei, bool wiederholt)
+    private void AuswahlKlick(Vector2 maus, Vector2? boden)
+    {
+        if (_entwurf is null) return;
+        if (GriffBei(maus) is { } griff && WerkstattGewaehlt is { } gewaehlt)
+        {
+            _wsGriff = griff;
+            GriffeBauen();
+            TeilZiehenBeginnen(gewaehlt, Ziehart.Griff, maus, boden ?? Vector2.Zero, griff.Vieleck, griff.Index);
+            return;
+        }
+        if (boden is not { } p)
+        {
+            WerkstattWaehlen((EntwurfTeil?)null);
+            return;
+        }
+        var toleranz = Mathf.Max(0.6f, MeterJePixel * 8);
+        if (WerkstattGewaehlt is EntwurfWeg gewaehlterWeg && AufWeg(gewaehlterWeg, p, toleranz))
+        {
+            var (index, _, _) = gewaehlterWeg.NaechsteStelle(new Kartenort(p.X, p.Y));
+            TeilZiehenBeginnen(gewaehlterWeg, Ziehart.Einfuegen, maus, p, -1, index);
+            return;
+        }
+        if (WerkstattGewaehlt is EntwurfFlaeche gewaehlteFlaeche && AmRand(gewaehlteFlaeche, p, toleranz) is var (vieleck, kante))
+        {
+            TeilZiehenBeginnen(gewaehlteFlaeche, Ziehart.Einfuegen, maus, p, vieleck, kante + 1);
+            return;
+        }
+        var kennung = KennungBei(maus) is { } k && k.StartsWith("stueck:") ? k["stueck:".Length..] : null;
+        if (_entwurf.GebaeudeMit(kennung) is { } gebaeude)
+        {
+            WerkstattWaehlen(gebaeude);
+            _wsZiehen = new Ziehvorgang
+            {
+                Gebaeude = gebaeude, Start = maus, Versatz = new Vector2((float)gebaeude.X - p.X, (float)gebaeude.Z - p.Y),
+                X = gebaeude.X, Z = gebaeude.Z, Drehung = gebaeude.Drehung,
+            };
+            return;
+        }
+        if (PflanzeBei(p, toleranz) is { } pflanze)
+        {
+            WerkstattWaehlen(pflanze);
+            TeilZiehenBeginnen(pflanze, Ziehart.Ganz, maus, p, -1, -1);
+            return;
+        }
+        if (WegBei(p, toleranz) is { } weg)
+        {
+            WerkstattWaehlen(weg);
+            return;
+        }
+        if (WerkstattGewaehlt is EntwurfFlaeche innen && InFlaeche(innen, p))
+        {
+            TeilZiehenBeginnen(innen, Ziehart.Ganz, maus, p, -1, -1);
+            return;
+        }
+        WerkstattWaehlen(FlaecheBei(p));
+    }
+
+    /// <summary>Entf: den gewählten Griff (Stützpunkt, Ecke) – ohne Griff den gewählten Teil.</summary>
+    private void Loeschen()
+    {
+        if (_entwurf is null || WerkstattGewaehlt is not { } teil) return;
+        if (_wsGriff is { } griff)
+        {
+            switch (teil)
+            {
+                case EntwurfWeg w when !Befehl(() => _entwurf.StuetzpunktLoeschen(w, griff.Index)):
+                    WerkstattMeldung?.Invoke("Ein Weg braucht mindestens zwei Stützpunkte – Entf ohne gewählten Griff löscht den ganzen Weg.", true);
+                    return;
+                case EntwurfNaturflaeche f when griff.Vieleck >= 0 && f.Aussparungen[griff.Vieleck].Count <= 3:
+                    Befehl(() => _entwurf.AussparungLoeschen(f, griff.Vieleck)); // eine Aussparung mit drei Ecken: weg mit ihr
+                    break;
+                case EntwurfFlaeche f when !Befehl(() => _entwurf.EckeLoeschen(f, griff.Index, griff.Vieleck)):
+                    WerkstattMeldung?.Invoke("Eine Fläche braucht mindestens drei Ecken – Entf ohne gewählten Griff löscht die ganze Fläche.", true);
+                    return;
+            }
+            _wsGriff = null;
+            _wsGriffeNeu = true;
+            return;
+        }
+        switch (teil)
+        {
+            case EntwurfGebaeude g: Befehl(() => _entwurf.Loeschen(g.Kennung)); break;
+            case EntwurfWeg w: Befehl(() => _entwurf.WegLoeschen(w)); break;
+            case EntwurfFlaeche f: Befehl(() => _entwurf.FlaecheLoeschen(f)); break;
+            case EntwurfPflanze p: Befehl(() => _entwurf.PflanzeLoeschen(p)); break;
+        }
+    }
+
+    /// <summary>
+    /// Q/E: dreht, was gerade bewegt wird – den Umriss beim Setzen, das gezogene Stück, die Pflanze an der Maus oder (als Befehl) das gewählte
+    /// Gebäude bzw. die gewählte Pflanze. In 15°-Schritten auf das Raster, mit Alt um 1°. <paramref name="richtung"/> +1 = gegen den
+    /// Uhrzeigersinn (von oben), −1 = mit ihm.
+    /// </summary>
+    private void Drehen(int richtung, bool frei, bool wiederholt)
     {
         double Weiter(double grad) => frei ? Kartenraster.Drehung(grad + richtung) : Kartenraster.DrehungRunden(grad + richtung * Kartenraster.Drehschritt);
         if (_wsZiehen is { } z) z.Drehung = Weiter(z.Drehung);
-        else if (WerkstattBaustein is not null) WerkstattDrehung = Weiter(WerkstattDrehung);
-        else if (!wiederholt && _entwurf?.GebaeudeMit(WerkstattAuswahl) is { } g) _entwurf.Drehen(g.Kennung, Weiter(g.Drehung)); // gehaltene Taste: kein Befehl je Wiederholung
+        else if (Kartenwerkzeug is Werkstattwerkzeug.Baustein or Werkstattwerkzeug.Pflanze) WerkstattDrehung = Weiter(WerkstattDrehung);
+        else if (wiederholt || _entwurf is null) return; // gehaltene Taste: kein Befehl je Wiederholung
+        else if (WerkstattGewaehlt is EntwurfGebaeude g) Befehl(() => _entwurf.Drehen(g.Kennung, Weiter(g.Drehung)));
+        else if (WerkstattGewaehlt is EntwurfPflanze p) Befehl(() => _entwurf.PflanzeDrehen(p, Weiter(p.Drehung)));
     }
 }

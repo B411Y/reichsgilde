@@ -7,7 +7,7 @@ namespace Reichsgilde;
 /// <summary>
 /// Die Natur vor der Stadt – ein Teil der <c>partial class Stadtansicht</c>.
 ///
-/// Wald und Streu kommen aus den Natur-Flächen der Karte (<see cref="NaturAusKarte"/>); jede Art ist ein Baustein des Katalogs, ein Knoten in einem
+/// Wald und Streu kommen aus den Natur-Flächen der Karte (<see cref="NaturAusKarte"/>, verteilt vom Kern); jede Art ist ein Baustein des Katalogs, ein Knoten in einem
 /// der Baukästen <c>natur_baeume</c>, <c>natur_buesche</c>, <c>natur_boden</c>, <c>natur_steine</c> und <c>natur_holz</c> (je Art und Variante ein
 /// Knoten, der Fuß im Nullpunkt; Konventionen in <c>docs/bereiche/darstellung.md</c>). Alles steht fest aus dem Startwert der Fläche (gleich bei
 /// jedem Start), jede Art ist ein <see cref="MultiMeshInstance3D"/>: Hunderte Teile kosten nur ein paar Zeichenaufrufe.
@@ -92,135 +92,33 @@ public partial class Stadtansicht
     // ═════════════════════════════════════════════════════════════════════════
 
     /// <summary>
-    /// Die Natur der Karte (<c>natur</c>): Jede Fläche bekommt so viele Streupunkte, wie ihre Dichte (je 1.000 m² des Teils, der in keiner Aussparung liegt) sagt,
-    /// gleich verteilt aus ihrem Startwert – gleiche Karte, gleiches Bild. An jedem Punkt wählt der Zufall eine Gruppe nach Gewicht; jeder ihrer
-    /// Teile setzt seine Anzahl Kopien einer Art (nach Gewicht) in eine Scheibe mit dem Radius der Gruppe, mit eigener Variante, Drehung und Größe.
-    /// Auf Wegen, Gebäuden, Bauzonen, in Aussparungen und in der Stadt wächst nichts (<see cref="NaturFrei"/>). Dazu die einzeln gesetzten Pflanzen.
+    /// Die Natur der Karte (<c>natur</c>): Wo welche Pflanze steht, rechnet der Kern (<see cref="NaturVerteilung.Alle"/>) – dieselbe Rechnung
+    /// zeigt die Kartenwerkstatt. Jede Fläche bekommt so viele Streupunkte, wie ihre Dichte sagt, gleich verteilt aus ihrem Startwert; an jedem
+    /// Punkt eine Gruppe nach Gewicht, ihre Teile in einer Scheibe mit dem Radius der Gruppe. Auf Wegen, Gebäuden, Bauzonen, in Aussparungen und
+    /// in der Stadt wächst nichts (<see cref="Naturfreiraum"/>); dazu die einzeln gesetzten Pflanzen. Hier wird nur noch gezeichnet.
     /// </summary>
     private void NaturAusKarte(Stadtkarte karte)
     {
-        foreach (var flaeche in karte.Natur.Flaechen)
-            NaturFlaeche(flaeche);
-        foreach (var pflanze in karte.Natur.Pflanzen)
-        {
-            if (Katalog?.Finde(pflanze.Katalog) is not { Modell: { } datei, Knoten: { } knoten } art) continue;
-            var ort = Punkt3(pflanze.Punkt);
-            var variante = pflanze.Variante > 0 ? Math.Min(pflanze.Variante, art.Varianten)
-                : (int)(Streuung((int)(ort.X * 100), (long)(ort.Z * 100)) % (uint)art.Varianten) + 1;
-            NaturSetzen(datei, knoten + variante, ort, Mathf.DegToRad((float)pflanze.Drehung), (float)pflanze.Massstab);
-        }
+        foreach (var lage in NaturVerteilung.Alle(karte, Modellmass)) NaturSetzen(lage);
         NaturAufbauen();
     }
 
-    private void NaturFlaeche(Naturflaeche flaeche)
+    /// <summary>Merkt eine Pflanze des Kerns vor: Modell und Knoten der Art mit der Variante („Tanne2“), Drehung in Grad, Größe.</summary>
+    private void NaturSetzen(Pflanzenlage lage)
     {
-        var aussen = flaeche.Flaeche.Where(p => p is { Length: 2 }).Select(Punkt2).ToArray();
-        if (aussen.Length < 3 || flaeche.Gruppen.Count == 0 || Katalog is not { } katalog) return;
-        var loecher = flaeche.Aussparungen.Select(l => l.Where(p => p is { Length: 2 }).Select(Punkt2).ToArray()).Where(l => l.Length >= 3).ToList();
-        var rahmen = new Rect2(aussen[0], Vector2.Zero);
-        foreach (var p in aussen) rahmen = rahmen.Expand(p);
-        bool InFlaeche(Vector2 p) => Geometry2D.IsPointInPolygon(p, aussen) && !loecher.Any(l => Geometry2D.IsPointInPolygon(p, l));
-        var anzahl = (int)Math.Round(flaeche.Dichte * Inhalt(rahmen, InFlaeche) / 1000);
-
-        var zufall = new Random(flaeche.Startwert);
-        for (var n = 0; n < anzahl; n++)
-        {
-            // Streupunkt: gleich verteilt in der Fläche (Würfeln im umschließenden Rechteck, bis er drin liegt)
-            var punkt = rahmen.GetCenter();
-            for (var versuch = 0; versuch < 200; versuch++)
-            {
-                punkt = rahmen.Position + new Vector2((float)zufall.NextDouble(), (float)zufall.NextDouble()) * rahmen.Size;
-                if (InFlaeche(punkt)) break;
-            }
-            var gruppe = NachGewicht(flaeche.Gruppen, g => g.Gewicht, zufall);
-            var mitte = new Vector3(punkt.X, 0, punkt.Y);
-            var frei = NaturFrei(mitte); // der Zufall läuft auch für verworfene Punkte gleich weiter: Eine neue Straße verschiebt keine anderen Bäume
-            foreach (var teil in gruppe.Teile)
-            {
-                var (von, bis) = teil.Anzahl is { Length: 2 } a ? (a[0], Math.Max(a[0], a[1])) : (1, 1);
-                var kopien = von + zufall.Next(bis - von + 1);
-                for (var i = 0; i < kopien; i++)
-                {
-                    var winkel = zufall.NextDouble() * Math.Tau;
-                    var abstand = Math.Sqrt(zufall.NextDouble()) * gruppe.Radius;
-                    var p = mitte + new Vector3((float)(Math.Cos(winkel) * abstand), 0, (float)(Math.Sin(winkel) * abstand));
-                    var art = katalog.Finde(NachGewicht(teil.Arten.ToList(), x => x.Value, zufall).Key);
-                    var variante = zufall.Next(Math.Max(1, art?.Varianten ?? 1)) + 1;
-                    var drehung = (float)(zufall.NextDouble() * Math.Tau);
-                    var groesse = 0.85f + (float)zufall.NextDouble() * 0.3f;
-                    if (!frei || art is not { Modell: { } datei, Knoten: { } knoten } || !InFlaeche(new Vector2(p.X, p.Z)) || !NaturFrei(p)) continue;
-                    NaturSetzen(datei, knoten + variante, p, drehung, groesse);
-                }
-            }
-        }
+        if (lage.Art is not { Modell: { } datei, Knoten: { } knoten }) return;
+        NaturSetzen(datei, knoten + lage.Variante, new Vector3((float)lage.X, 0, (float)lage.Z), Mathf.DegToRad((float)lage.Drehung), (float)lage.Massstab);
     }
 
     /// <summary>
-    /// Wie groß der Teil des Rechtecks ist, der „drin“ liegt (m²) – gezählt auf einem Raster von etwa 20.000 Punkten. So zählen Aussparungen, die
-    /// sich überdecken oder über den Rand der Fläche hinausragen, richtig: drin ist, was in der Fläche und in keiner Aussparung liegt.
+    /// Die halben Maße eines Modells um seinen Ursprung (ohne Maßstab) – für den Kern, der die Modelle nicht kennt: Umlandbetriebe und
+    /// -stellen sind größer als ihre Fläche im Katalog (Gelände, Zaun, Beete), und um das ganze Modell bleibt die Natur frei.
     /// </summary>
-    private static float Inhalt(Rect2 rahmen, Func<Vector2, bool> drin)
+    private (double X, double Z)? Modellmass(Baustein b)
     {
-        var schritt = Mathf.Max(0.5f, Mathf.Sqrt(rahmen.Size.X * rahmen.Size.Y / 20000f));
-        var zaehler = 0;
-        for (var x = rahmen.Position.X + schritt / 2; x < rahmen.End.X; x += schritt)
-            for (var z = rahmen.Position.Y + schritt / 2; z < rahmen.End.Y; z += schritt)
-                if (drin(new Vector2(x, z))) zaehler++;
-        return zaehler * schritt * schritt;
-    }
-
-    /// <summary>Wählt einen Eintrag nach seinem Gewicht (Gewichte ≤ 0 zählen nicht; sind alle 0, der erste).</summary>
-    private static T NachGewicht<T>(IReadOnlyList<T> liste, Func<T, double> gewicht, Random zufall)
-    {
-        var summe = liste.Sum(x => Math.Max(0, gewicht(x)));
-        var wurf = zufall.NextDouble() * summe;
-        foreach (var x in liste)
-        {
-            wurf -= Math.Max(0, gewicht(x));
-            if (wurf < 0) return x;
-        }
-        return liste[0];
-    }
-
-    /// <summary>So viel Abstand (Meter) hält die Natur zu Gebäuden, Bauzonen und zum Rand der Wege.</summary>
-    private const float NaturAbstand = 3;
-
-    /// <summary>So viel Abstand (Meter) hält die Natur zur Mauer.</summary>
-    private const float NaturAbstandMauer = 6;
-
-    /// <summary>
-    /// Darf hier etwas wachsen? Nicht in der Stadt und dicht an der Mauer, nicht auf einem Weg (mit Rand), nicht auf einem Gebäude der Karte – bei
-    /// Umlandbetrieben und Arbeitsstellen so groß, wie das Modell wirklich ist, beim Felsberg auf der Ellipse in seiner Fläche –, nicht auf einer
-    /// Bauzone (dort wird gebaut, nicht gepflanzt).
-    /// </summary>
-    private bool NaturFrei(Vector3 p)
-    {
-        if (_karte is null) return false;
-        if (InDerStadt(p) || AbstandZurMauer(p) < NaturAbstandMauer) return false;
-        foreach (var (von, bis, breite) in _wegStrecken)
-            if (AbstandZurStrecke(p, von, bis) < breite / 2 + NaturAbstand) return false;
-        foreach (var g in _karte.Gebaeude)
-            if (AufGebaeude(g, p)) return false;
-        return !_karte.Bauzonen.Any(z => z.Abstand(p.X, p.Z) < NaturAbstand);
-    }
-
-    /// <summary>Liegt der Punkt auf der Fläche eines Gebäudes der Karte (mit <see cref="NaturAbstand"/> Rand)?</summary>
-    private bool AufGebaeude(Kartengebaeude g, Vector3 p)
-    {
-        var groesse = GroesseVon(g);
-        if (groesse == Vector2.Zero) return false;
-        var lokal = new Basis(Vector3.Up, DrehungVon(g)).Inverse() * (p - Punkt3(g.Punkt));
-        if (g.Art == Bausteinart.Berg) // der Felsberg: die Ellipse in seiner Fläche, ohne Rand
-            return Mathf.Pow(lokal.X / (groesse.X / 2), 2) + Mathf.Pow(lokal.Z / (groesse.Y / 2), 2) < 1;
-        var halb = groesse / 2;
-        if (g.Art is Bausteinart.Umlandbetrieb or Bausteinart.Umlandstelle && g.Baustein?.Modell is { } datei)
-        {
-            // Die Modelle im Umland sind größer als ihre belegte Fläche (Gelände, Zaun, Beete): ihr ganzer Quader zählt
-            var masse = UmlandAnkerImModell(datei).Masse;
-            var m = (float)g.Massstab;
-            halb = new Vector2(Mathf.Max(halb.X, Mathf.Max(-masse.Position.X, masse.End.X) * m), Mathf.Max(halb.Y, Mathf.Max(-masse.Position.Z, masse.End.Z) * m));
-        }
-        return Mathf.Abs(lokal.X) < halb.X + NaturAbstand && Mathf.Abs(lokal.Z) < halb.Y + NaturAbstand;
+        if (b.Modell is not { } datei) return null;
+        var masse = UmlandAnkerImModell(datei).Masse;
+        return (Mathf.Max(-masse.Position.X, masse.End.X), Mathf.Max(-masse.Position.Z, masse.End.Z));
     }
 
     // ═════════════════════════════════════════════════════════════════════════

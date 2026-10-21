@@ -6,9 +6,10 @@ namespace Reichsgilde;
 
 /// <summary>
 /// Die Tafeln der Kartenwerkstatt – ein Teil der <c>partial class Kartenwerkstatt</c>: oben die Leiste (Neu, Öffnen, Speichern, Prüfen,
-/// Rückgängig/Wiederholen, Zurück), links der Katalog nach Art, rechts die Eigenschaften des gewählten Gebäudes und darunter die Fehlerliste,
+/// Rückgängig/Wiederholen, Gassennetz, Zurück), links der Katalog (Wege, Flächen, Gebäude nach Art, Natur), rechts die Eigenschaften des gewählten
+/// Teils (Kartenwerkstatt.Eigenschaften.cs für Wege, Flächen, Pflanzen und den Pinsel) und darunter die Fehlerliste,
 /// unten Meldung und Tastenhilfe. Dazu die Rückfragen (Neu, Öffnen, Speichern unter, ungespeicherte Änderungen) in der Mitte.
-/// Stil wie die Tafeln im Spiel (dunkles Holz, goldene Überschriften); jede Änderung an einem Gebäude ist ein Befehl des Entwurfs.
+/// Stil wie die Tafeln im Spiel (dunkles Holz, goldene Überschriften); jede Änderung an einem Teil ist ein Befehl des Entwurfs.
 /// </summary>
 public partial class Kartenwerkstatt
 {
@@ -20,7 +21,7 @@ public partial class Kartenwerkstatt
 
     private const int Katalogbreite = 270, Rechtsbreite = 370, Rand = 16, ObenAb = 92, UntenBis = 76;
 
-    /// <summary>Die Gruppen des Katalogs links: Überschrift und die Arten, die dazugehören (Reihenfolge wie im Fahrplan).</summary>
+    /// <summary>Die Gruppen der Gebäude im Katalog links: Überschrift und die Arten, die dazugehören (Reihenfolge wie im Fahrplan).</summary>
     private static readonly (string Titel, string[] Arten)[] Katalogteile =
     {
         ("Werkstattplätze", new[] { Bausteinart.Werkstattplatz }),
@@ -29,16 +30,26 @@ public partial class Kartenwerkstatt
         ("Sonderbauten", new[] { Bausteinart.Sonderbau }),
         ("Kulissen", new[] { Bausteinart.Kulisse }),
         ("Umland", new[] { Bausteinart.Umlandbetrieb, Bausteinart.Umlandstelle }),
-        ("Natur und Gelände", new[] { Bausteinart.Berg }),
+        ("Gelände", new[] { Bausteinart.Berg }),
     };
 
-    private Label _titel = null!, _quelle = null!, _status = null!, _pruefKopf = null!;
-    private Button _rueckgaengig = null!, _wiederholen = null!;
-    private VBoxContainer _eigenschaften = null!, _fehlerListe = null!;
-    private readonly Dictionary<string, Button> _katalogKnoepfe = new();
+    /// <summary>Die Wegarten im Katalog (Reihenfolge: von der Landstraße zum Fußweg).</summary>
+    private static readonly Wegklasse[] Wegarten =
+        { Wegklasse.Land, Wegklasse.Haupt, Wegklasse.Ring, Wegklasse.Wall, Wegklasse.Gasse, Wegklasse.Feldweg, Wegklasse.Fussweg, Wegklasse.Leinpfad };
 
-    // Die Felder des gezeigten Gebäudes (bleiben stehen, solange dasselbe gewählt ist – sonst spränge der Fokus weg)
-    private string? _gezeigt;
+    private Label _titel = null!, _quelle = null!, _status = null!, _pruefKopf = null!, _hilfe = null!;
+    private Button _rueckgaengig = null!, _wiederholen = null!;
+    private CheckButton _netzSchalter = null!;
+    private VBoxContainer _eigenschaften = null!, _fehlerListe = null!;
+
+    /// <summary>
+    /// Die Knöpfe des Katalogs nach Schlüssel: Gebäude und Pflanzen nach ihrer Kennung, dazu „weg:&lt;klasse&gt;“, „bauzone:&lt;lage&gt;“, „wald“,
+    /// „streu“, „aussparung“, „pinsel“, „radierer“ (auch die Werte der Startoption <c>--werkstatt-werkzeug</c>).
+    /// </summary>
+    private readonly Dictionary<string, (Button Knopf, Action Waehlen)> _katalogKnoepfe = new();
+
+    // Der gezeigte Teil (die Felder bleiben stehen, solange derselbe gewählt ist – sonst spränge der Fokus weg); Pinsel: PinselTafel
+    private object? _gezeigt;
     private LineEdit? _nameFeld, _betriebFeld;
     private Label? _punktText;
     private SpinBox? _drehFeld, _massstabFeld;
@@ -115,6 +126,20 @@ public partial class Kartenwerkstatt
         _rueckgaengig = Knopf(zeile, "Rückgängig", () => _entwurf.Rueckgaengig());
         _wiederholen = Knopf(zeile, "Wiederholen", () => _entwurf.Wiederholen());
         zeile.AddChild(new VSeparator());
+        _netzSchalter = new CheckButton
+        {
+            Text = "Gassennetz", FocusMode = Control.FocusModeEnum.None,
+            TooltipText = "Zeigt das Gassennetz, auf dem Passanten und Karren laufen (pink, Knoten gelb) – mit den Stücken von Höfen, Karrenplätzen und Toren zum nächsten Weg",
+        };
+        _netzSchalter.AddThemeFontSizeOverride("font_size", 15);
+        _netzSchalter.Toggled += an =>
+        {
+            _stadt.WerkstattNetzSichtbar = an;
+            if (an) Melden(_stadt.WerkstattNetzTeile <= 1 ? "Gassennetz: alles ist verbunden." : $"Gassennetz: {_stadt.WerkstattNetzTeile} getrennte Teile – nicht jedes Ziel ist erreichbar.",
+                _stadt.WerkstattNetzTeile > 1);
+        };
+        zeile.AddChild(_netzSchalter);
+        zeile.AddChild(new VSeparator());
 
         var mitte = new VBoxContainer { SizeFlagsHorizontal = Control.SizeFlags.ExpandFill };
         mitte.AddThemeConstantOverride("separation", 0);
@@ -133,49 +158,112 @@ public partial class Kartenwerkstatt
         (tafel.OffsetLeft, tafel.OffsetTop, tafel.OffsetRight, tafel.OffsetBottom) = (Rand, ObenAb, Rand + Katalogbreite, -UntenBis);
         _oberflaeche.AddChild(tafel);
         Hauptmenue.Text(spalte, "Katalog", 20, Gold);
-        Hauptmenue.Text(spalte, "Baustein wählen, dann in die Stadt klicken. Esc oder Rechtsklick: fertig.", 12, Grau, umbruchBreite: Katalogbreite - 30);
+        Hauptmenue.Text(spalte, "Werkzeug wählen, dann in die Stadt klicken. Esc oder Rechtsklick: fertig.", 12, Grau, umbruchBreite: Katalogbreite - 30);
         var rolle = new ScrollContainer { SizeFlagsVertical = Control.SizeFlags.ExpandFill, HorizontalScrollMode = ScrollContainer.ScrollMode.Disabled };
         spalte.AddChild(rolle);
         var liste = new VBoxContainer { SizeFlagsHorizontal = Control.SizeFlags.ExpandFill };
         liste.AddThemeConstantOverride("separation", 3);
         rolle.AddChild(liste);
         var gruppe = new ButtonGroup { AllowUnpress = true };
+
+        void Kopf(string titel)
+        {
+            var kopf = Hauptmenue.Text(liste, titel, 15, Gold);
+            kopf.CustomMinimumSize = new Vector2(0, 26);
+            kopf.VerticalAlignment = VerticalAlignment.Bottom;
+        }
+        void Eintrag(string schluessel, string text, string tipp, Werkstattwerkzeug werkzeug, Action? vorher = null, string? baustein = null)
+        {
+            var knopf = new Button
+            {
+                Text = text, ToggleMode = true, ButtonGroup = gruppe, FocusMode = Control.FocusModeEnum.None,
+                Alignment = HorizontalAlignment.Left, ClipText = true, TooltipText = tipp,
+            };
+            knopf.AddThemeFontSizeOverride("font_size", 14);
+            void Waehlen()
+            {
+                vorher?.Invoke();
+                if (!_stadt.WerkstattWerkzeugWaehlen(werkzeug, baustein)) knopf.SetPressedNoSignal(false);
+            }
+            knopf.Pressed += () =>
+            {
+                if (knopf.ButtonPressed) Waehlen();
+                else _stadt.WerkstattWerkzeugWaehlen(Werkstattwerkzeug.Auswahl);
+            };
+            liste.AddChild(knopf);
+            _katalogKnoepfe[schluessel] = (knopf, Waehlen);
+        }
+
+        // Wege: je Art ein Werkzeug, dazu der Schalter gerade/glatt
+        Kopf("Wege");
+        var glatt = new CheckButton { Text = "Glatte Kurve", ButtonPressed = _stadt.WerkstattGlatt, FocusMode = Control.FocusModeEnum.None,
+            TooltipText = "An: eine weiche Kurve durch die Punkte. Aus: gerade Strecken von Punkt zu Punkt." };
+        glatt.AddThemeFontSizeOverride("font_size", 14);
+        glatt.Toggled += an => _stadt.WerkstattGlatt = an;
+        liste.AddChild(glatt);
+        foreach (var klasse in Wegarten)
+            Eintrag("weg:" + klasse.ToString().ToLowerInvariant(), $"{Kartenweg.Anzeigename(klasse)} · {Breite(Kartenweg.Standardbreite(klasse))}",
+                $"Breite {Breite(Kartenweg.Standardbreite(klasse))}, mindestens {Breite(Kartenweg.Mindestbreite(klasse))}"
+                + (Kartenweg.TraegtKarren(klasse) ? " · Karren fahren hier" : " · nur zu Fuß") + " – Punkte klicken, Doppelklick oder Enter beendet",
+                Werkstattwerkzeug.Weg, () => _stadt.WerkstattWegklasse = klasse);
+
+        // Flächen
+        Kopf("Flächen");
+        foreach (var lage in new[] { Lage.Kern, Lage.Mauerring, Lage.Vorstadt, Lage.Umland })
+            Eintrag("bauzone:" + lage.ToString().ToLowerInvariant(), $"Bauzone {Stadtansicht.LageName(lage)}",
+                "Hier dürfen Spieler und KI bauen – Ecken klicken (auf dem 2-m-Raster), Doppelklick schließt", Werkstattwerkzeug.Bauzone,
+                () => _stadt.WerkstattZonenlage = lage);
+        Eintrag("wald", "Waldfläche", "Mischwald (Tanne, Eiche, Buche) – Ecken klicken, Doppelklick schließt; rechts Dichte und Mischung", Werkstattwerkzeug.Wald);
+        Eintrag("streu", "Streufläche", "Büsche, Gras, Steine und Holz locker verstreut – Ecken klicken, Doppelklick schließt", Werkstattwerkzeug.Streu);
+        Eintrag("aussparung", "Aussparung", "Ein Loch in der gewählten Wald- oder Streufläche – dort wächst nichts", Werkstattwerkzeug.Aussparung);
+
+        // Gebäude
         foreach (var (titel, arten) in Katalogteile)
         {
             var bausteine = _entwurf.Katalog.Bausteine.Where(b => arten.Contains(b.Art)).ToList();
             if (bausteine.Count == 0) continue;
-            var kopf = Hauptmenue.Text(liste, titel, 15, Gold);
-            kopf.CustomMinimumSize = new Vector2(0, 26);
-            kopf.VerticalAlignment = VerticalAlignment.Bottom;
+            Kopf(titel);
             foreach (var b in bausteine)
             {
                 var masse = b.Groesse is { Length: 2 } g ? $"{Kartenschreiber.Zahl(g[0])} × {Kartenschreiber.Zahl(g[1])} m" : "ohne Grundfläche";
-                var knopf = new Button
-                {
-                    Text = b.Anzeigename, ToggleMode = true, ButtonGroup = gruppe, FocusMode = Control.FocusModeEnum.None,
-                    Alignment = HorizontalAlignment.Left, ClipText = true,
-                    TooltipText = $"{b.Kennung} · Grundfläche {masse} (mit 2 m Vorplatz vorn)" + (b.Modell is { } m ? $" · Modell {m}" : " · noch ohne Modell"),
-                };
-                knopf.AddThemeFontSizeOverride("font_size", 14);
-                var kennung = b.Kennung;
-                knopf.Pressed += () => _stadt.WerkstattBausteinWaehlen(knopf.ButtonPressed ? kennung : null);
-                liste.AddChild(knopf);
-                _katalogKnoepfe[kennung] = knopf;
+                Eintrag(b.Kennung, b.Anzeigename,
+                    $"{b.Kennung} · Grundfläche {masse} (mit 2 m Vorplatz vorn)" + (b.Modell is { } m ? $" · Modell {m}" : " · noch ohne Modell"),
+                    Werkstattwerkzeug.Baustein, baustein: b.Kennung);
             }
         }
+
+        // Natur: Pinsel, Radierer und jede Art einzeln
+        Kopf("Natur");
+        Eintrag("pinsel", "Pinsel", "Mit gedrückter Maus malen – beim Loslassen wachsen dort Pflanzen (Radius, Dichte und Arten rechts)", Werkstattwerkzeug.Pinsel);
+        Eintrag("radierer", "Radierer", "Mit gedrückter Maus über einzelne Pflanzen fahren – beim Loslassen sind sie weg", Werkstattwerkzeug.Radierer);
+        foreach (var b in _entwurf.Katalog.Bausteine.Where(b => b.Art == Bausteinart.Natur))
+            Eintrag(b.Kennung, ArtName(b), $"{b.Kennung} · {b.Varianten} Variante(n) · Modell {b.Modell} – Klick setzt eine Pflanze, Q/E dreht",
+                Werkstattwerkzeug.Pflanze, baustein: b.Kennung);
     }
 
-    /// <summary>Wählt einen Baustein wie ein Klick im Katalog (für die Startoption <c>--werkstatt-umriss</c>).</summary>
-    private void KatalogWaehlen(string kennung)
+    private static string Breite(double meter) => $"{Kartenschreiber.Zahl(Math.Round(meter, 2)).Replace('.', ',')} m";
+
+    /// <summary>Anzeigename einer Natur-Art: Name aus dem Katalog, sonst der Knoten des Modells („Tanne“), sonst die Kennung.</summary>
+    private static string ArtName(Baustein b) => !string.IsNullOrWhiteSpace(b.Name) ? b.Name! : b.Knoten ?? b.Kennung;
+
+    private string ArtName(string kennung) => _entwurf.Katalog.Finde(kennung) is { } b ? ArtName(b) : kennung;
+
+    /// <summary>
+    /// Wählt ein Werkzeug wie ein Klick im Katalog (Startoptionen <c>--werkstatt-umriss</c>, <c>--werkstatt-werkzeug</c>): Schlüssel wie in
+    /// <see cref="_katalogKnoepfe"/>; „weg“ allein ist die Gasse, „bauzone“ allein die Vorstadt.
+    /// </summary>
+    private void KatalogWaehlen(string schluessel)
     {
-        if (!_katalogKnoepfe.TryGetValue(kennung, out var knopf)) throw new ArgumentException($"Den Baustein „{kennung}“ gibt es im Katalog nicht.");
-        knopf.SetPressedNoSignal(true);
-        _stadt.WerkstattBausteinWaehlen(kennung);
+        schluessel = schluessel switch { "weg" => "weg:gasse", "bauzone" => "bauzone:vorstadt", "flaeche" => "wald", _ => schluessel };
+        if (!_katalogKnoepfe.TryGetValue(schluessel, out var eintrag)) throw new ArgumentException($"Das Werkzeug „{schluessel}“ gibt es im Katalog nicht.");
+        KatalogWahlAufheben();
+        eintrag.Knopf.SetPressedNoSignal(true);
+        eintrag.Waehlen();
     }
 
     private void KatalogWahlAufheben()
     {
-        foreach (var knopf in _katalogKnoepfe.Values) knopf.SetPressedNoSignal(false);
+        foreach (var (knopf, _) in _katalogKnoepfe.Values) knopf.SetPressedNoSignal(false);
     }
 
     private void RechtsBauen()
@@ -207,10 +295,25 @@ public partial class Kartenwerkstatt
         _oberflaeche.AddChild(tafel);
         _status = Hauptmenue.Text(spalte, "", 13, Gruen, zentriert: true);
         _status.Visible = false;
-        Hauptmenue.Text(spalte,
-            "Klick wählt · Ziehen verschiebt · Q/E dreht (15°, mit Alt 1°) · Alt: frei verschieben · Entf löscht · Esc bricht ab · Strg+Z/Y rückgängig/wiederholen · Strg+S speichert\n" +
-            "Mausrad Zoom · rechte Maustaste oder WASD verschieben die Kamera · Strg+Q/E oder Bild auf/ab drehen sie · Alt zeigt alle Namen",
-            12, Grau, zentriert: true);
+        _hilfe = Hauptmenue.Text(spalte, "", 12, Grau, zentriert: true);
+        HilfeZeigen();
+    }
+
+    /// <summary>Die Tastenhilfe unten nach dem Werkzeug; die zweite Zeile (Kamera) bleibt.</summary>
+    private void HilfeZeigen()
+    {
+        var zeile = _stadt.Kartenwerkzeug switch
+        {
+            Werkstattwerkzeug.Baustein => "Klick setzt · Q/E dreht (15°, mit Alt 1°) · Alt: frei verschieben · Esc oder Rechtsklick: fertig",
+            Werkstattwerkzeug.Pflanze => "Klick setzt die Pflanze · Q/E dreht · Esc oder Rechtsklick: fertig",
+            Werkstattwerkzeug.Weg => "Punkte klicken · Doppelklick oder Enter: fertig · Rücktaste: letzter Punkt weg · Esc bricht ab · weißer Ring: rastet an einem Weg oder Hof ein",
+            Werkstattwerkzeug.Bauzone or Werkstattwerkzeug.Wald or Werkstattwerkzeug.Streu or Werkstattwerkzeug.Aussparung =>
+                "Ecken klicken · Doppelklick, Enter oder Klick auf die erste Ecke schließt · Rücktaste: letzte Ecke weg · Esc bricht ab",
+            Werkstattwerkzeug.Pinsel => "Mit gedrückter Maus malen – Loslassen streut Pflanzen · Radius, Dichte und Arten rechts · Esc bricht ab",
+            Werkstattwerkzeug.Radierer => "Mit gedrückter Maus über einzelne Pflanzen fahren – Loslassen löscht sie (die Natur der Flächen bleibt) · Esc bricht ab",
+            _ => "Klick wählt · Ziehen verschiebt · Griffe ziehen, Klick auf Linie oder Rand fügt ein · Q/E dreht · Entf löscht Griff oder Teil · Esc hebt auf · Strg+Z/Y · Strg+S",
+        };
+        _hilfe.Text = zeile + "\nMausrad Zoom · rechte Maustaste oder WASD verschieben die Kamera · Strg+Q/E oder Bild auf/ab drehen sie · Alt zeigt alle Namen";
     }
 
     // ═════════════════════════════════════════════════════════════════════════
@@ -221,7 +324,8 @@ public partial class Kartenwerkstatt
     private void Auffrischen()
     {
         var name = _entwurf.Stadt.Length > 0 ? _entwurf.Stadt : "Ohne Namen";
-        _titel.Text = $"{name} · {_entwurf.Kennung} · {_entwurf.Gebaeude.Count} Gebäude";
+        _titel.Text = $"{name} · {_entwurf.Kennung} · {_entwurf.Gebaeude.Count} Gebäude, {_entwurf.Wege.Count} Wege, "
+                      + $"{_entwurf.Bauzonen.Count + _entwurf.Naturflaechen.Count} Flächen, {_entwurf.Pflanzen.Count} Pflanzen";
         var quelle = _nurLesen ? $"{_pfad} – mitgeliefert, nur lesen (Speichern legt eine eigene Datei an)"
             : _pfad ?? "neue Karte, noch nicht gespeichert";
         _quelle.Text = quelle + (_entwurf.Geschichte.IstGeaendert ? " · ungespeicherte Änderungen" : "");
@@ -268,7 +372,9 @@ public partial class Kartenwerkstatt
                 Text = (istFehler ? "Fehler: " : "Hinweis: ") + b.Text, Flat = true, Alignment = HorizontalAlignment.Left,
                 AutowrapMode = TextServer.AutowrapMode.WordSmart, FocusMode = Control.FocusModeEnum.None,
                 CustomMinimumSize = new Vector2(Rechtsbreite - 46, 0),
-                TooltipText = b.Gebaeude.Count > 0 ? $"Regel „{b.Regel}“ · {string.Join(", ", b.Gebaeude)} – Klick wählt und zeigt" : $"Regel „{b.Regel}“",
+                TooltipText = b.Gebaeude.Count + b.Andere.Count > 0
+                    ? $"Regel „{b.Regel}“ · {string.Join(", ", b.Gebaeude.Concat(b.Andere.Select(t => t.Bezeichnung)))} – Klick wählt und zeigt"
+                    : $"Regel „{b.Regel}“",
             };
             knopf.AddThemeFontSizeOverride("font_size", 13);
             knopf.AddThemeColorOverride("font_color", istFehler ? Rot : Grau);
@@ -278,10 +384,11 @@ public partial class Kartenwerkstatt
         }
     }
 
+    /// <summary>Klick auf einen Befund: wählt das erste betroffene Gebäude (sonst den ersten Weg, die erste Fläche oder Pflanze) und fährt hin.</summary>
     private void BefundZeigen(Befund b)
     {
-        var kennung = b.Gebaeude.FirstOrDefault();
-        if (kennung is not null) _stadt.WerkstattWaehlen(kennung, hinfahren: b.Ort is null);
+        EntwurfTeil? teil = _entwurf.GebaeudeMit(b.Gebaeude.FirstOrDefault()) ?? b.Andere.FirstOrDefault();
+        if (teil is not null) _stadt.WerkstattWaehlen(teil, hinfahren: b.Ort is null);
         if (b.Ort is { } ort) _stadt.WerkstattHinfahren(ort);
     }
 
@@ -295,18 +402,29 @@ public partial class Kartenwerkstatt
     /// </summary>
     private void EigenschaftenZeigen(bool neu)
     {
-        var g = _entwurf.GebaeudeMit(_stadt.WerkstattAuswahl);
-        if (!neu && g is not null && g.Kennung == _gezeigt)
+        if (_stadt.Kartenwerkzeug is Werkstattwerkzeug.Pinsel or Werkstattwerkzeug.Radierer)
         {
-            WerteSetzen(g);
+            if (neu || _gezeigt != PinselMarke) PinselTafel(); // Kartenwerkstatt.Eigenschaften.cs
+            return;
+        }
+        var teil = _stadt.WerkstattGewaehlt;
+        if (!neu && teil is not null && ReferenceEquals(teil, _gezeigt))
+        {
+            if (teil is EntwurfGebaeude gezeigt) WerteSetzen(gezeigt);
+            else if (!EingabeOffen()) TeilTafel(teil); // Kartenwerkstatt.Eigenschaften.cs
             return;
         }
         UiHilfe.KinderEntfernen(_eigenschaften);
-        (_gezeigt, _nameFeld, _betriebFeld, _punktText, _drehFeld, _massstabFeld, _lageWahl, _konfessionWahl) = (g?.Kennung, null, null, null, null, null, null, null);
-        if (g is null)
+        (_gezeigt, _nameFeld, _betriebFeld, _punktText, _drehFeld, _massstabFeld, _lageWahl, _konfessionWahl) = (teil, null, null, null, null, null, null, null);
+        if (teil is null)
         {
-            Hauptmenue.Text(_eigenschaften, "Kein Gebäude gewählt. Klickt ein Gebäude an – oder wählt links einen Baustein und klickt in die Stadt.",
+            Hauptmenue.Text(_eigenschaften, "Nichts gewählt. Klickt ein Gebäude, einen Weg, eine Fläche oder eine Pflanze an – oder wählt links ein Werkzeug und klickt in die Stadt.",
                 14, Grau, umbruchBreite: Rechtsbreite - 30);
+            return;
+        }
+        if (teil is not EntwurfGebaeude g)
+        {
+            TeilTafel(teil);
             return;
         }
         var kennung = g.Kennung;
