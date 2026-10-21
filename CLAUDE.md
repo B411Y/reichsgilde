@@ -61,6 +61,11 @@ Gilt, wenn ein Chat als **Teamleiter** Teammitglieder (Agenten) startet. Alle ü
 - **Nach „fertig“:** Ein Mitglied pusht nur noch auf Anweisung des Teamleiters. Sind alle Teile im Funktions-Branch, macht der Teamleiter dort den gemeinsamen Klicktest, schreibt die Übersicht für den Nutzer in den PR-Text, stellt den PR auf „bereit“, wartet die CI ab, mergt nach `main` (siehe „Mergen durch den Teamleiter“) und meldet dem Nutzer „gemergt: #…“.
 - **Modelle:** Für den Kern und die Spiel-KI Opus: Simulation, Spielstände und Tests vertragen keine Fehler. Für Oberfläche und Darstellung Sonnet, denn sie folgen vorhandenen Mustern, und Tests, CI und Klicktest fangen Fehler ab. Für Kleinkram (Doku-Korrektur, main einmergen, CI abwarten) und zum Durchsuchen des Codes vor den Designfragen Haiku. Wird die Arbeit eines Bereichs mit einem kleineren Modell schlechter, kommt er zurück auf Opus.
 - **Aufräumen:** Am Ende beendet der Teamleiter die Teammitglieder, entfernt die Worktrees und Mitglieder-Branches der gemergten Funktion und fasst für den Nutzer zusammen, was offen bleibt.
+- **Sorgfalt** (Wunsch des Nutzers, 21.10.2026: Er erwartet fehlerfreie Arbeit, Fehler haben Konsequenzen). Diese Prüfschritte sind Pflicht:
+  - **Vor dem Löschen eines Mitglieder-Branches** prüfen, dass sein letzter Commit im Funktions-Branch ist: `git merge-base --is-ancestor origin/<mitglieder-branch> <funktions-branch>`. Fehlt er, erst einmergen.
+  - **Nach jedem Merge** die betroffenen Tabellen in `docs/bereiche/*.md` auf doppelte Zeilen und Leerzeilen mitten in der Tabelle prüfen.
+  - **Hintergrundarbeit selbst prüfen** (läuft der Prozess noch, wann wurde die Ausgabedatei geschrieben), statt auf eine Meldung zu warten.
+  - **Vor dem Klicktest** den neuesten Stand aller Mitglieder einmergen und das Projekt neu importieren (`--headless --import --path game`).
 
 ## Feste Regeln
 
