@@ -19,6 +19,7 @@ So wird eingetragen (damit sich die Chats nie an derselben Stelle treffen):
 - (von Infra) Zum Leck beim Beenden, Befund vom 16.10.2026: Einmal kam statt des Lecks ein Absturz (Rückgabewert 139, „36 ObjectDB instances leaked“, „1 resources still in use“) ganz ohne Ausgabe von Godots Absturzbehandlung. Die Fälle häuften sich am 16.10. zwischen 18:10 und 19:30 UTC, im Vergleich danach 0 von 16 Läufen (mit und ohne PR #100). Ausgeschlossen: Waren-Icons (im Rauchtest wird keins geladen) und Wappen. PR #100 gibt die Schriften beim Beenden frei – eine Absicherung, nicht bewiesen. Seit PR #101 zeigt ein Absturz oder Hänger die Rückverfolgung aller Fäden (Anmerkung im Lauf, Artefakt „Rauchtest-Protokoll“): Steht dort der Faden „.NET Finalizer“, gibt die Müllabfuhr von C# ein Godot-Objekt zu spät frei
 - (–) Einrichtung für die anderen Berufe (Tischler, Steinmetz, Alchimist, Parfumeur, Wirt, Prediger) – bisher nur der Schmied hat Stücke; Schürzen und Löschfass fehlen dort also noch (PR #152)
 - (–) Unfälle und Laune im Umland (Grube, Steinbruch …) und in Betrieben ohne Ware – bisher nur in Werkstätten mit Ware (PR #152)
+- (Nutzer) Ohne Karte (`messen 30 20`, Köln) kann die KI seit Datenversion 40 keine Werkstatt mehr kaufen oder bauen, nur Umland pachten: Vermögen der KI-Häuser −9 bis −20 % (PR #162). Das Spiel startet immer mit der Greybox, deshalb keine Änderung; sollte eine Stadt ohne Bauzonen je gespielt werden, braucht es eine Entscheidung (z. B. Werkstätten dort wieder unter `liegenschaften` oder Bauen auch ohne Karte)
 
 ## Entscheidungen
 
