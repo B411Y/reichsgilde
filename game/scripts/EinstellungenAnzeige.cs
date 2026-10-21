@@ -43,7 +43,7 @@ public sealed class EinstellungenAnzeige
     /// <summary>Die Voreinstellungen mit Erklärung (Werte: <see cref="Fenster.StufeVon"/>).</summary>
     private static readonly (Voreinstellung Stufe, string Erklaerung)[] Voreinstellungen =
     {
-        (Voreinstellung.Niedrig, "Für schwache Grafikkarten: FSR 2.2 mit 67 %, FXAA, kleine Schatten, keine Umgebungsverdeckung, kein Bloom, Oberflächen ohne Struktur, halb so viel Streu und Passanten."),
+        (Voreinstellung.Niedrig, "Für schwache Grafikkarten: FXAA, kleine Schatten, keine Umgebungsverdeckung, kein Bloom, Oberflächen ohne Struktur, halb so viel Streu und Passanten."),
         (Voreinstellung.Mittel, "SMAA, mittlere Schatten, wenig Umgebungsverdeckung, Bloom, Oberflächendetails, Wolkenschatten; drei Viertel der Streu und Passanten."),
         (Voreinstellung.Hoch, "Das empfohlene Bild: SMAA, große Schatten, Umgebungsverdeckung, Bloom, Oberflächendetails, leichte Miniatur-Unschärfe, Wolkenschatten und einfacher Morgendunst."),
         (Voreinstellung.Ultra, "Für starke Grafikkarten: wie Hoch, dazu MSAA 4×, feinste Umgebungsverdeckung, indirektes Licht und Morgendunst mit Lichtstrahlen."),

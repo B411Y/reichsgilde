@@ -30,8 +30,9 @@ public partial class Fenster
     /// </summary>
     public static Grafikstufe StufeVon(Voreinstellung v) => v switch
     {
+        // Ohne FSR: Auf der T400 kostete FSR 2.2 mit 67 % in Niedrig mehr, als es sparte (GPU 10,3 gegen 8,7 ms je Bild).
         Voreinstellung.Niedrig => new(Kantenglaettung.Fxaa, Schattenqualitaet.Niedrig, Umgebungsverdeckung.Aus, false, false,
-                                      true, 67, false, 50, 50, Feinheiten.Nah, Miniaturunschaerfe.Aus, false, Morgendunst.Aus),
+                                      false, StandardRenderaufloesung, false, 50, 50, Feinheiten.Nah, Miniaturunschaerfe.Aus, false, Morgendunst.Aus),
         Voreinstellung.Mittel => new(Kantenglaettung.Smaa, Schattenqualitaet.Mittel, Umgebungsverdeckung.Niedrig, false, true,
                                      false, StandardRenderaufloesung, true, 75, 75, Feinheiten.Mittel, Miniaturunschaerfe.Aus, true, Morgendunst.Aus),
         Voreinstellung.Ultra => new(Kantenglaettung.Msaa4, Schattenqualitaet.Hoch, Umgebungsverdeckung.Hoch, true, true,
@@ -215,7 +216,7 @@ public partial class Fenster
     /// </summary>
     private void DynamischRegeln(double delta)
     {
-        if (DynamischeAufloesung <= 0) return;
+        if (DynamischeAufloesung <= 0 || _auto is not null) return; // die automatische Wahl misst in voller Auflösung
         var gpu = GpuZeit();
         if (gpu <= 0) return;
         _dynamischGlatt = _dynamischGlatt <= 0 ? gpu : Mathf.Lerp(_dynamischGlatt, gpu, 0.05f);
@@ -416,7 +417,6 @@ public partial class Fenster
         public double Zeit = -AutoVorlauf;
         public readonly List<float> Zeiten = new();
         public readonly List<string> Protokoll = new();
-        public Grafikstufe Vorher;
     }
 
     private static Autowahl? _auto;
@@ -440,7 +440,9 @@ public partial class Fenster
     {
         if (_instanz is null || _auto is not null) return;
         if (DisplayServer.GetName() == "headless") return;
-        _auto = new Autowahl { Vorher = AktuelleStufe, Zeit = ErsterStart ? -AutoVorlauf : -0.5 };
+        _auto = new Autowahl { Zeit = ErsterStart ? -AutoVorlauf : -0.5 };
+        DynamischerAnteil = DynamischMax;
+        _dynamischWarten = DynamischRuhe;
         Messen(true);
         _instanz.HinweisZeigen("Die Grafik wird für diesen Rechner eingestellt …", 30); // bis das Ergebnis den Hinweis ablöst
         VoreinstellungSetzen(Voreinstellung.Ultra, speichern: false);
