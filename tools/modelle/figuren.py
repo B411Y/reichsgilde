@@ -101,7 +101,7 @@ VOELKER = {
 ZONEN = {"Gewand": 1, "Beinkleid": 2, "Haut": 3, "Haar": 4, "Kopfbedeckung": 5}   # alle übrigen Stoffe: Zone 0
 TRACHT = ["Strohhut", "Barett", "Kapuze", "Haube", "Schleier", "Schuerze", "Kiepe", "Buendel", "Tasche", "Stab", "Hacke", "Hammer",
           "Hobel", "Saege", "Drechseleisen", "Schlaegel", "Meissel", "Stoessel", "Kelle", "Flakon", "Krug", "Laute", "Feder", "Sieb",
-          "Dochtstab"]
+          "Dochtstab", "Dietrich", "Muenzbeutel"]
 HAMMER = 0.3          # vom Mittelpunkt der Hand bis zur Mitte des Hammerkopfs, in Verlängerung des Unterarms
 # Wo die Hände bei der Arbeit sind (Meter vor dem Fußpunkt der Figur, Höhe über dem Boden) – passend zu den Ankern
 # im Innenraum: Amboss 0,68 m vor der Figur, Bahn 0,86 m hoch; Hebel des Blasebalgs 0,42 m vor ihr, 1,36 m hoch;
@@ -165,6 +165,14 @@ BUETTE = {"vor": 0.52, "rand": 0.92, "brei": 0.84, "fern": 0.64, "nah": 0.40, "t
 # des Tintenhorns rechts am Pult; die Platte ist um `neigung` Grad zur Figur geneigt.
 SCHREIBEN = {"blatt": (0.07, 0.40, 0.40), "zeile": 0.13, "horn": (-0.22, 0.33, 0.37), "neigung": 30.0}
 KANZEL = (0.46, 0.95)        # Predigen: Brüstung der Kanzel (vor der Figur, Höhe über dem Boden der Kanzel)
+# Dieb (dieb_innen.glb). Knacken am Übungsbrett: das Schlüsselloch (seitlich, vor, Höhe) auf der Vorderseite des Bretts; der
+# Dietrich ragt `dietrich` Meter aus der Faust und steckt `tief` im Schloss, die Linke liegt flach bei `hand_l` auf dem Brett.
+# Zählen am Zähltisch (sitzend; Höhen über der Sitzhöhe wie beim Trinken, der Tisch ist also 0,78 m hoch): der Münzhaufen vor
+# der Figur rechts, der Beutel links (Mitte seines Bodens auf dem Tisch), die Linke hält ihn am Hals offen. Schlafen: auf dem
+# Rücken, die Hüfte `tiefe` + 1 cm über dem Anker (Oberkante des Strohsacks), der Kopf hinter dem Anker, die Füße vorn.
+KNACKEN = {"schloss": (-0.03, 0.40, 1.02), "dietrich": 0.11, "tief": 0.015, "hand_l": (0.17, 0.375, 1.1)}
+ZAEHLEN = {"haufen": (-0.12, 0.40, 0.30), "beutel": (0.16, 0.30, 0.30)}
+MUENZBEUTEL = {"r": 0.05, "h": 0.08, "hals": 0.03}   # Beutel: Halbmesser und Höhe des Bauchs, darüber der offene Hals
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -386,7 +394,7 @@ def tracht(name, st, p):
 REQUISITEN = {"Hobel": ("Hobeln", 0.3), "Drechseleisen": ("Drechseln", 0.5), "Meissel": ("Behauen", 0.55),
               "Schlaegel": ("Behauen", 0.55), "Stoessel": ("Moersern", 0.0), "Kelle": ("Ruehren", 0.0),
               "Flakon": ("Mischen", 0.0), "Krug": ("Zapfen", 0.0), "Feder": ("Schreiben", 0.0), "Sieb": ("Schoepfen", 0.0),
-              "Dochtstab": ("Kerzenziehen", 0.0)}   # Bewegung, Phase
+              "Dochtstab": ("Kerzenziehen", 0.0), "Dietrich": ("Knacken", 0.3), "Muenzbeutel": ("Zaehlen", 0.0)}   # Bewegung, Phase
 
 
 def requisit(name, st, p, ske):
@@ -396,7 +404,7 @@ def requisit(name, st, p, ske):
     der Lage des Unterarms in die Ruhelage zurückgerechnet. Es hängt starr am Unterarm und folgt ihm durch die ganze Bewegung."""
     import bpy
     bewegung, phase = REQUISITEN[name]
-    seite = "L" if name == "Meissel" else "R"
+    seite = "L" if name in ("Meissel", "Muenzbeutel") else "R"
     pose_setzen(ske, *haltung(bewegung, phase, p))
     bpy.context.view_layer.update()
     knochen = f"Unterarm_{seite}"
@@ -514,6 +522,37 @@ def requisit(name, st, p, ske):
                     ecken = [zurueck @ e for e in ecken]
                     n.vieleck(ecken, st["Gaensefeder"])
                     n.vieleck(list(reversed(ecken)), st["Gaensefeder"])
+        elif name == "Dietrich":                  # Haken aus Eisendraht: der Griff (Ring) in der Faust, die Spitze im Schloss
+            s, v, h = KNACKEN["schloss"]
+            spitze = _blender((s, v + KNACKEN["tief"], h))
+            d = (spitze - hand).normalized()
+            quer = d.cross(Vector((0, 0, 1))).normalized()
+            oben = quer.cross(d)
+            q3 = zurueck.to_3x3() @ quer
+            n.stab(zurueck @ (hand - d * 0.035), zurueck @ (spitze - d * 0.012), 0.004, 0.004, eisen, quer=q3)
+            n.stab(zurueck @ (spitze - d * 0.012), zurueck @ (spitze + oben * 0.008), 0.004, 0.004, eisen, quer=q3)   # Haken
+            for k in range(6):                                                                        # Ring hinten
+                w0, w1 = 2 * math.pi * k / 6, 2 * math.pi * (k + 1) / 6
+                mitte = hand - d * 0.05
+                a = mitte + (quer * math.cos(w0) + oben * math.sin(w0)) * 0.016
+                b = mitte + (quer * math.cos(w1) + oben * math.sin(w1)) * 0.016
+                n.stab(zurueck @ a, zurueck @ b, 0.005, 0.005, eisen, quer=zurueck.to_3x3() @ d)
+        elif name == "Muenzbeutel":               # Lederbeutel aufrecht auf dem Tisch, oben offen; die linke Faust hält ihn an der Seite
+            m = MUENZBEUTEL
+            bs_, bv, bh = ZAEHLEN["beutel"]
+            boden = _blender((bs_, bv, p["knie"] - 0.02 + bh + 0.002))
+            achse = zurueck.to_3x3() @ Vector((0, 0, 1))
+            r, h, oben = m["r"], m["h"], m["h"] + m["hals"]
+            profil = [(0.0, r * 0.6), (0.02, r * 0.92), (h * 0.5, r), (h, r * 0.8), (h + m["hals"] * 0.7, r * 0.62), (oben, r * 0.8)]
+            for (u0, r0), (u1, r1) in zip(profil, profil[1:]):
+                drehteil(n, zurueck @ (boden + Vector((0, 0, u0))), achse, u1 - u0, r0, r1, st["Leder"], n=8,
+                         deckel=(u0 == 0.0, False))
+            drehteil(n, zurueck @ (boden + Vector((0, 0, oben - 0.012))), achse, 0.002, r * 0.64, r * 0.64, st["Kohle"], n=8,
+                     deckel=(False, True))                                                     # dunkle Öffnung
+            drehteil(n, zurueck @ (boden + Vector((0, 0, h + 0.006))), achse, 0.008, r * 0.72, r * 0.7, st["Seil"], n=8,
+                     deckel=(False, False))                                                    # Zugband
+            n.stab(zurueck @ (boden + Vector((-r * 0.7, -0.01, h + 0.01))), zurueck @ (boden + Vector((-r * 1.0, -0.03, h - 0.05))),
+                   0.006, 0.006, st["Seil"])
         else:                                     # Drechseleisen: Heft hinter der Hand, Klinge bis an das Werkstück
             vor, hoehe = ARBEITSHOEHEN["Drehbank"]
             spitze = Vector((0.02, -(vor - 0.01), hoehe))
@@ -887,6 +926,9 @@ def haltung(name, phase, p):
         r.update(winkel)
     elif name in PREDIGER:                                              # Prediger: Kerzen ziehen, schöpfen, schreiben, predigen, beten
         winkel, hoch = PREDIGER[name](phase, p)
+        r.update(winkel)
+    elif name in DIEB:                                                  # Dieb: Schloss knacken, Beute zählen, schlafen
+        winkel, hoch = DIEB[name](phase, p)
         r.update(winkel)
     elif name == "Hueten":
         r["Oberarm_R"] = (-28, 0, -10)                                   # hält den Stab vor sich
@@ -1962,6 +2004,135 @@ PREDIGER = {"Kerzenziehen": kerzenziehen, "Schoepfen": schoepfen, "Schreiben": s
             "Knien": knien}
 
 
+# ── Dieb: Schloss knacken, Beute zählen, schlafen ────────────────────────────────────────────────────────────────────────
+
+def _knacken_rumpf(p):
+    """Neigung des Rumpfs (Grad) und Hüfte beim Knacken: Wer größer ist, beugt sich zum Schloss hinunter, der Kopf nah am Brett;
+    Zwerge und Halblinge stehen fast aufrecht."""
+    ueber = p["schulter"] - KNACKEN["schloss"][2]
+    return max(0.0, min(11.0, ueber * 30.0)), -max(0.0, min(0.03, (ueber - 0.3) * 0.15))
+
+
+def knacken(phase, p):
+    """Knacken (4 s, stehend am Übungsbrett): den Dietrich ins Schloss führen (0–0,1), stochern und horchen – der Kopf dreht das
+    rechte Ohr zum Brett (bis 0,7) –, das Schloss springt: ein kurzer Ruck (bis 0,78), den Dietrich herausziehen (bis 0,9), kurz
+    ansehen, wieder ansetzen. Die Linke liegt flach auf dem Brett. Gibt (Winkel in Grad, Hüfte)."""
+    s, v, h = KNACKEN["schloss"]
+    ein = Vector((s - 0.005, v + KNACKEN["tief"] - KNACKEN["dietrich"], h - 0.012))
+    aus = ein + Vector((0.01, -0.08, -0.03))
+    if phase < 0.1:
+        t = 1 - weich(phase / 0.1)
+    elif phase < 0.78:
+        t = 0.0
+    elif phase < 0.9:
+        t = weich((phase - 0.78) / 0.12)
+    else:
+        t = 1.0
+    rechts = ein.lerp(aus, t)
+    horchen = weich((phase - 0.08) / 0.12) * (1 - weich((phase - 0.72) / 0.12))
+    if 0.12 < phase < 0.7:                                                         # stochern: kleine, schnelle Bewegungen
+        u = (phase - 0.12) / 0.58
+        rechts += Vector((0.002 * math.sin(14 * math.pi * u), 0.0, 0.004 * math.sin(22 * math.pi * u)))
+    elif 0.7 <= phase < 0.78:                                                      # das Schloss springt: kurzer Ruck nach oben
+        rechts += Vector((0.0, 0.0, 0.01 * math.sin(math.pi * (phase - 0.7) / 0.08)))
+    lehne, hoch = _knacken_rumpf(p)
+    lehne += 3 * horchen
+    r = {"Ruecken": (lehne, 4 + 4 * horchen, 0),
+         "Kopf": (10 - 0.5 * lehne + 6 * horchen + 2 * math.sin(2 * math.pi * phase), 32 * horchen, 14 * horchen)}
+    r["Oberarm_R"], r["Unterarm_R"] = arm_genau(p, r, hoch, "R", tuple(rechts))
+    links = Vector(KNACKEN["hand_l"]) + Vector((0, 0, 0.004 * math.sin(2 * math.pi * phase)))
+    r["Oberarm_L"], r["Unterarm_L"] = arm_genau(p, r, hoch, "L", tuple(links))
+    for seite, vor, z in (("L", 0.08, 5), ("R", -0.05, -5)):
+        o, u = bein_ik(p, hoch, vor, 0.0)
+        r[f"Oberschenkel_{seite}"], r[f"Unterschenkel_{seite}"] = (o, 0, z), (u, 0, 0)
+    return r, hoch
+
+
+def _zaehlen_punkte(p):
+    """Wohin die Rechte beim Zählen greift (seitlich, vor, Höhe): in den Haufen (zwei Stellen), über die Öffnung des Beutels und
+    der Scheitel des Bogens dazwischen; dazu die Linke an der Seite des Beutels."""
+    sitz = p["knie"] - 0.02
+    hs, hv, hh = ZAEHLEN["haufen"]
+    bs_, bv, bh = ZAEHLEN["beutel"]
+    tisch = sitz + hh
+    oben = tisch + MUENZBEUTEL["h"] + MUENZBEUTEL["hals"]
+    return {"haufen": Vector((hs, hv - 0.02, tisch + 0.035)), "haufen2": Vector((hs + 0.05, hv - 0.05, tisch + 0.035)),
+            "beutel": Vector((bs_ - 0.02, bv, oben + 0.035)), "bogen": Vector(((hs + bs_) / 2, (hv + bv) / 2 - 0.02, oben + 0.07)),
+            "links": Vector((bs_ + 0.075, bv - 0.01, tisch + MUENZBEUTEL["h"] * 0.6))}
+
+
+def zaehlen(phase, p):
+    """Zählen (4 s, sitzend am Zähltisch): mit den Fingern im Münzhaufen zählen (0–0,1), eine Handvoll über den Beutel heben
+    (bis 0,22), hineinfallen lassen (bis 0,36), zurück in den Haufen (bis 0,48), zählen, die nächste Handvoll (bis 0,84), zurück.
+    Die Linke hält den Beutel aufrecht und offen; der Kopf folgt der Rechten. Gibt (Winkel in Grad, Hüfte)."""
+    q = _zaehlen_punkte(p)
+    folge = ((0.0, "haufen"), (0.1, "haufen"), (0.22, "bogen"), (0.3, "beutel"), (0.36, "bogen"), (0.48, "haufen2"), (0.58, "haufen2"),
+             (0.7, "bogen"), (0.78, "beutel"), (0.84, "bogen"), (1.0, "haufen"))
+    for (a, pa), (b, pb) in zip(folge, folge[1:]):
+        if phase <= b:
+            t = weich((phase - a) / (b - a)) if pa != pb else 0.0
+            break
+    rechts = q[pa].lerp(q[pb], t)
+    if pa == pb and pa.startswith("haufen"):                                       # zählen: die Finger tippen
+        rechts += Vector((0.0, 0.0, 0.012 * abs(math.sin(6 * math.pi * (phase - a) / (b - a)))))
+    s = math.sin(2 * math.pi * phase)
+    hoch = -(p["huefte"] - (p["knie"] - 0.02)) + 0.003 * s
+    lehne = 16 + 1.5 * s
+    r = {"Ruecken": (lehne, 0, 0), "Kopf": (26 - lehne * 0.5, 70 * (rechts.x - 0.02), 0)}
+    r["Oberschenkel_L"], r["Oberschenkel_R"] = (-86, 0, 7), (-86, 0, -7)
+    r["Unterschenkel_L"], r["Unterschenkel_R"] = (84, 0, 0), (82, 0, 0)
+    r["Oberarm_R"], r["Unterarm_R"] = arm_genau(p, r, hoch, "R", tuple(rechts))
+    r["Oberarm_L"], r["Unterarm_L"] = arm_genau(p, r, hoch, "L", tuple(q["links"]))
+    return r, hoch
+
+
+_SCHLAFEN = {}
+
+
+def schlaf_arme(p):
+    """Winkel (Grad) des linken Arms beim Schlafen – Oberarm (X, Y, Z) und Unterarm (X) –, damit die Hand auf dem Bauch liegt (vor
+    der Hüfte zum Kopf hin, knapp links der Mitte, auf der Bauchdecke) und der Ellbogen neben dem Rumpf auf dem Strohsack bleibt;
+    gesucht in einem groben, dann feinen Raster. Der rechte Arm ist das Spiegelbild (Y und Z mit umgekehrtem Vorzeichen)."""
+    import itertools
+    schluessel = tuple(sorted(p.items()))
+    if schluessel not in _SCHLAFEN:
+        pose, hoch = {"Wurzel": (-90, 0, 0), "Ruecken": (8, 0, 0)}, p["tiefe"] + 0.01 - p["huefte"]
+        k = p["schulter"] / VOELKER["mensch"]["schulter"]
+        ziel = Vector((0.07 * k, -0.17 * k, 2 * p["tiefe"] + 0.05))
+        xs = p["schulterbreite"] + 0.01
+        ell_ruhe = Vector((xs, 0, p["schulter"] - 0.03 - p["oberarm"]))
+
+        def guete(w):
+            m = unterarm_lage(p, _bogen({**pose, "Oberarm_L": w[:3], "Unterarm_L": (w[3], 0, 0)}), hoch, "L")
+            hand, ell = _figur(m @ hand_ruhe(p, "L")), _figur(m @ ell_ruhe)
+            return ((hand - ziel).length + 2 * max(0.0, 0.11 - ell.z) + max(0.0, 0.95 * xs - ell.x)
+                    + 0.5 * max(0.0, ell.x - xs - 0.1))
+        beste = min(itertools.product(range(-60, 11, 6), range(-90, 91, 6), range(-30, 41, 6), range(-140, 1, 6)), key=guete)
+        for schritt in (3, 1):
+            beste = min(itertools.product(*[(w - schritt, w, w + schritt) for w in beste]), key=guete)
+        _SCHLAFEN[schluessel] = beste
+    return _SCHLAFEN[schluessel]
+
+
+def schlafen(phase, p):
+    """Schlafen (4 s, auf dem Rücken liegend): ruhig atmen – die Brust hebt und senkt sich –, der Kopf leicht erhöht wie auf einem
+    Strohkissen, das linke Knie angezogen, die Hände auf dem Bauch. Die Wurzel kippt nach hinten: Die Hüfte liegt `tiefe` + 1 cm
+    über dem Fußpunkt (Oberkante des Strohsacks), der Kopf hinter ihm, die Füße zeigen in Blickrichtung. Gibt (Winkel in Grad,
+    Hüfte)."""
+    s = math.sin(2 * math.pi * phase)
+    hoch = p["tiefe"] + 0.01 - p["huefte"] + 0.002 * s
+    r = {"Wurzel": (-90, 0, 0), "Ruecken": (8 + 1.2 * s, 0, 0), "Kopf": (14 - 0.8 * s, 0, 3)}
+    ox, oy, oz, ux = schlaf_arme(p)
+    r["Oberarm_L"], r["Unterarm_L"] = (ox, oy, oz), (ux - 1.5 * s, 0, 0)          # die Hände heben sich mit dem Atem
+    r["Oberarm_R"], r["Unterarm_R"] = (ox, -oy, -oz), (ux - 1.5 * s, 0, 0)
+    r["Oberschenkel_L"], r["Unterschenkel_L"] = (-25, 0, 6), (55, 0, 0)
+    r["Oberschenkel_R"], r["Unterschenkel_R"] = (-3, 0, -4), (6, 0, 0)
+    return r, hoch
+
+
+DIEB = {"Knacken": knacken, "Zaehlen": zaehlen, "Schlafen": schlafen}
+
+
 BEWEGUNGEN = {   # Name: Dauer in Sekunden (eine Schleife)
     "Stehen": 3.0, "Gehen": 1.0, "Eilen": 0.7, "Gebeugt": 1.4, "Tragen": 1.2, "Sitzen": 3.0, "Reden": 2.0,
     "Hacken": 1.3, "Buecken": 2.4, "Hueten": 4.0, "Ziehen": 1.3, "Kutschieren": 1.0,
@@ -1972,6 +2143,7 @@ BEWEGUNGEN = {   # Name: Dauer in Sekunden (eine Schleife)
     "Mischen": 3.0, "Pressen": 3.0,
     "Zapfen": 4.0, "Trinken": 4.0, "Laute": 2.0,
     "Kerzenziehen": 4.0, "Schoepfen": 4.0, "Schreiben": 4.0, "Predigen": 6.0, "Beten": 4.0, "Knien": 4.0,
+    "Knacken": 4.0, "Zaehlen": 4.0, "Schlafen": 4.0,
 }
 
 
@@ -2217,7 +2389,7 @@ def vorschau_bewegungen(schnell):
                  "Hobeln": ["Hobel"], "Saegen": ["Saege"], "Drechseln": ["Drechseleisen"], "Behauen": ["Schlaegel", "Meissel"],
                  "Bildhauen": ["Schlaegel", "Meissel"], "Moersern": ["Stoessel"], "Ruehren": ["Kelle"],
                  "Mischen": ["Flakon"], "Zapfen": ["Krug"], "Trinken": ["Krug"], "Laute": ["Laute"], "Kerzenziehen": ["Dochtstab"],
-                 "Schoepfen": ["Sieb"], "Schreiben": ["Feder"]}.get(name, [])
+                 "Schoepfen": ["Sieb"], "Schreiben": ["Feder"], "Knacken": ["Dietrich"], "Zaehlen": ["Muenzbeutel"]}.get(name, [])
         wahl = [o for o in objekte if o.type == "MESH" and o.name.split(".")[0] in teile + ["Koerper_Mann"]]
         sy = ((len(reihen) - 1) / 2 - r) * abstand
         for k, ph in enumerate(phasen):
@@ -2233,7 +2405,7 @@ def vorschau_bewegungen(schnell):
         alle.append(beschriftung(name, Vector(((-2.3) * 0.7071 - sy * 0.7071, (-2.3) * 0.7071 + sy * 0.7071, 0.9))))
     bs.vorschau_buehne(None, ziel_hoehe=0.9, ausschnitt=22.0 * len(reihen) / 12, schnell=schnell)
     szene = bpy.context.scene
-    f = 0.9                                                             # unter 3 MB: Ausschnitt gleich, weniger Bildpunkte
+    f = 0.86                                                            # unter 3 MB: Ausschnitt gleich, weniger Bildpunkte
     szene.render.resolution_x, szene.render.resolution_y = round(900 * f), round(1620 * len(reihen) / 12 * f)
     szene.render.image_settings.color_mode = "RGB"                      # ohne Alphakanal und stark gepackt: kleinere Datei
     szene.render.image_settings.compression = 100
@@ -2245,7 +2417,7 @@ def arbeitsplatz(name, ort, st, p, phase=0.0):
     Seite ist −y. `phase`: Stand der Bewegung (der Querhebel der Presse schwenkt mit)."""
     netz = bs.Netz("_Hilfe")
     holz, eisen = st["Holz"], st["Eisen"]
-    if name in ("Sitzen", "Kutschieren", "Feinarbeit", "Trinken", "Schreiben", "Beten"):   # Bank bzw. Hocker unter der Hüfte
+    if name in ("Sitzen", "Kutschieren", "Feinarbeit", "Trinken", "Schreiben", "Beten", "Zaehlen"):   # Bank bzw. Hocker unter der Hüfte
         netz.quader(ort + Vector((0, 0, p["knie"] - 0.06)), (0.5, 0.5, 0.08), holz)
         for dx in (-0.2, 0.2):
             netz.quader(ort + Vector((dx, 0, (p["knie"] - 0.1) / 2)), (0.06, 0.4, p["knie"] - 0.1), holz)
@@ -2369,6 +2541,19 @@ def arbeitsplatz(name, ort, st, p, phase=0.0):
         netz.quader(ort + Vector((-vor - 0.05, 0, h / 2)), (0.1, 1.2, h), st["Holz alt"])
     elif name == "Knien":                                               # Kniebank unter den Knien und Unterschenkeln
         netz.quader(ort + Vector((0.2, 0, -0.02)), (0.6, 0.6, 0.04), st["Holz alt"])
+    elif name == "Knacken":                                             # Übungsbrett mit dem Schloss vor der Figur
+        sx, sv, sh = KNACKEN["schloss"]
+        netz.quader(ort + Vector((-sv - 0.03, 0, 1.0)), (0.06, 1.0, 1.2), st["Holz alt"])
+        netz.quader(ort + Vector((-sv + 0.006, -sx, sh)), (0.012, 0.09, 0.12), eisen)
+    elif name == "Zaehlen":                                             # Tisch vor der Bank, darauf der Münzhaufen
+        sitz = p["knie"] - 0.02
+        hs, hv, hh = ZAEHLEN["haufen"]
+        netz.quader(ort + Vector((-0.6, 0, sitz + hh - 0.03)), (0.8, 1.4, 0.06), holz)
+        for dy in (-0.6, 0.6):
+            netz.quader(ort + Vector((-0.6, dy, (sitz + hh - 0.06) / 2)), (0.6, 0.06, sitz + hh - 0.06), holz)
+        bs.achteck(netz, st, ort + Vector((-hv, -hs, sitz + hh)), 0.07, 0.0, 0.03, "Gold")
+    elif name == "Schlafen":                                            # Strohsack unter dem Körper
+        netz.quader(ort + Vector((-0.05, 0, -0.06)), (2.0, 0.8, 0.12), st["Heu"])
     return netz.objekt() if netz.dreiecke() else None
 
 
