@@ -14,7 +14,8 @@ namespace Reichsgilde;
 /// </summary>
 public partial class Stadtansicht
 {
-    private enum GastTisch { Raum, Wuerfel, Stamm, Barde }
+    /// <summary>Wo ein Sitzplatz liegt: bei den Gästen der Schänke Schankstube, Würfeltisch, Stammtisch und Bühne; im Kirchenschiff Bank, Kanzel und Kniebank (Stadtansicht.Innenglaeubige.cs).</summary>
+    private enum GastTisch { Raum, Wuerfel, Stamm, Barde, Bank, Kanzel, Beichte }
 
     /// <summary>Ein Sitzplatz (oder die Bühne des Barden) und die Figur, die gerade darauf sitzt. Die Figur wird beim ersten Gebrauch gebaut und bleibt dann dieselbe.</summary>
     private sealed class GastPlatz

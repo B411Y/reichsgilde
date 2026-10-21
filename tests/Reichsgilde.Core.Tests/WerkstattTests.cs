@@ -98,6 +98,17 @@ static class WerkstattTests
         return (w, k, s);
     }
 
+    /// <summary>Ein Haus mit Kirche ohne Karren, Lager mit Lumpen und Wachs gefüllt.</summary>
+    static (Stadtwirtschaft W, Konto K, Betrieb B) Kirche(Simulation sim, double vermoegen = 20_000)
+    {
+        var w = sim.Wirtschaft!;
+        var k = w.KontoEroeffnen("Familie Psalm", startvermoegen: vermoegen);
+        var b = w.BetriebEroeffnen("Kirche am Weinmarkt", Betriebsart.Kirche, k, startkarren: "");
+        b.Einlagern("Lumpen", 40);
+        b.Einlagern("Wachs", 40);
+        return (w, k, b);
+    }
+
     static void BisUhrzeit(Simulation sim, int stunde)
     {
         while (sim.Zeit.UhrzeitInMinuten < stunde * 60) sim.Tick();
@@ -134,7 +145,7 @@ static class WerkstattTests
         ("Werkstatt: Daten – Abschnitt „werkstatt“ mit drei Lohnstufen und genau den sieben Stücken des Schmieds (Kennungen wie im Raummodell)", () =>
         {
             var d = Daten.Value.Werkstatt!;
-            Pruefe.Gleich(43, Daten.Value.Version);
+            Pruefe.Gleich(44, Daten.Value.Version);
             Pruefe.Ungefaehr(1, d.Stufe(Lohnstufe.Ueblich).LohnFaktor, 1e-12);
             Pruefe.Gleich(0.0, d.Stufe(Lohnstufe.Ueblich).Laune);
             Pruefe.Wahr(d.Stufe(Lohnstufe.Knapp).LohnFaktor < 1 && d.Stufe(Lohnstufe.Gut).LohnFaktor > 1, "Lohnfaktoren");
@@ -897,6 +908,97 @@ static class WerkstattTests
             Pruefe.Ungefaehr(30 * 0.81, s.MinutenJeStueck("Körnermahlzeit"), 1e-9);
             // Der Bauernhof gehört auch zum Wirt, ist aber keine Werkstatt.
             var g = w.BetriebEroeffnen("Bauernhof Krug", Betriebsart.Bauernhof, k, startkarren: "");
+            Pruefe.Gleich(0, w.Werkstaetten.Einrichtungsliste(g).Count);
+            Abgelehnt(w, k, new EinrichtungKaufen(g.Name, "Regale"), "kein Stück „Regale“");
+            Pruefe.Gleich(0.0, w.Werkstaetten.UnfallGefahr(g));
+        }),
+
+        ("Werkstatt: Daten – der Prediger hat sieben Stücke (Kennungen wie im Raummodell) zu den Preisen des Schmieds, mit Gänsekielen statt Blasebalg und Handschuhen statt Schürzen", () =>
+        {
+            var d = Daten.Value.Werkstatt!;
+            var prediger = d.EinrichtungFuer("Prediger");
+            Pruefe.Gleich("Werkzeug1 Werkzeug2 Gaensekiele Regale Loeschfass Eisentuer Handschuhe", string.Join(" ", prediger.Select(e => e.Kennung)));
+            Pruefe.Gleich("Gutes Werkzeug, Meisterwerkzeug, Gänsekiele und Lapislazuli, Bücherregale, Löschfass, Eisentür, Lederhandschuhe",
+                string.Join(", ", prediger.Select(e => e.Name)));
+            foreach (var e in prediger.Where(e => e.Kennung != "Gaensekiele"))
+            {
+                var schmied = d.Stueck("Schmied", e.Kennung == "Handschuhe" ? "Schuerzen" : e.Kennung)!;
+                Pruefe.Gleich(schmied.Preis, e.Preis, $"Preis {e.Kennung}");
+                Pruefe.Gleich(schmied.Wirkung.Text(), e.Wirkung.Text(), $"Wirkung {e.Kennung}");
+            }
+            Pruefe.Gleich(350.0, d.Stueck("Prediger", "Gaensekiele")!.Preis);
+            Pruefe.Gleich("Werkzeug1", d.Stueck("Prediger", "Werkzeug2")!.Voraussetzung);
+            Pruefe.Gleich(2, d.Stueck("Prediger", "Werkzeug2")!.AbStufe);
+            Pruefe.Gleich("Lehrschrift Psalter Stundenbuch", string.Join(" ", d.Stueck("Prediger", "Gaensekiele")!.Wirkung.Waren));
+            foreach (var ware in d.Stueck("Prediger", "Gaensekiele")!.Wirkung.Waren)
+                Pruefe.Wahr(Daten.Value.Art(Betriebsart.Kathedrale).Produkte.Contains(ware), $"Ware {ware} schreibt der Prediger");
+            Pruefe.Ungefaehr(0.5, d.Stueck("Prediger", "Handschuhe")!.Wirkung.UnfallFaktor, 1e-12);
+            Pruefe.Wahr(d.Stueck("Prediger", "Schuerzen") is null, "Der Prediger hat Handschuhe, keine Schürzen");
+        }),
+
+        ("Werkstatt: Prediger – Werkzeug spart Zeit bei allen Waren, die Gänsekiele nur bei Lehrschrift, Psalter, Stundenbuch; Bücherregale geben Lager", () =>
+        {
+            var sim = NeueSimulation();
+            var (w, k, b) = Kirche(sim, vermoegen: 5_000);
+            Pruefe.Wahr(w.Werkstaetten.Einrichtungsliste(b) is { Count: 7 } l && l.All(e => !e.Gekauft), "sieben Stücke, keins gekauft");
+            Ok(w, k, new EinrichtungKaufen(b.Name, "Gaensekiele"));
+            Pruefe.Ungefaehr(4_650, k.Vermoegen, 1e-9);
+            Pruefe.Ungefaehr(350, k.Laufend.Investitionen, 1e-9);
+            Pruefe.Ungefaehr(60 * 0.9, b.MinutenJeStueck("Lehrschrift"), 1e-9);
+            Pruefe.Ungefaehr(30, b.MinutenJeStueck("Papier"), 1e-9); // die Kiele schreiben, sie schöpfen kein Papier
+            Pruefe.Ungefaehr(40, b.MinutenJeStueck("Kerze"), 1e-9);
+            Ok(w, k, new EinrichtungKaufen(b.Name, "Werkzeug1"));
+            Pruefe.Ungefaehr(60 * 0.81, b.MinutenJeStueck("Lehrschrift"), 1e-9);
+            Pruefe.Ungefaehr(30 * 0.9, b.MinutenJeStueck("Papier"), 1e-9);
+            Pruefe.Gleich(40, b.LagerKapazitaetJeWare);
+            Ok(w, k, new EinrichtungKaufen(b.Name, "Regale"));
+            Pruefe.Gleich(60, b.LagerKapazitaetJeWare);
+            foreach (var kennung in new[] { "Loeschfass", "Eisentuer", "Handschuhe" }) Ok(w, k, new EinrichtungKaufen(b.Name, kennung));
+            Pruefe.Gleich((0.5, 0.5, 0.5), (b.BrandFaktor, b.EinbruchFaktor, b.UnfallFaktor));
+            Pruefe.Ungefaehr(5_000 - 350 - 300 - 200 - 100 - 300 - 80, k.Vermoegen, 1e-9);
+            Abgelehnt(w, k, new EinrichtungKaufen(b.Name, "Schuerzen"), "kein Stück „Schuerzen“");
+            Abgelehnt(w, k, new EinrichtungKaufen(b.Name, "Braupfanne"), "kein Stück „Braupfanne“");
+            Abgelehnt(w, k, new EinrichtungKaufen(b.Name, "Werkzeug2"), "erst ab Stufe 2");
+            Ok(w, k, new ProduktWaehlen(b.Name, "Papier"));
+            Ok(w, k, new PersonalSetzen(b.Name, "Geselle", 1));
+            BisUhrzeit(sim, 14);
+            Pruefe.Wahr(b.ImLager("Papier") == 13, $"Papier mit Werkzeug: {b.ImLager("Papier")} (360 / 27 ≈ 13,3; ohne Werkzeug 360 / 30 = 12)");
+            var liste = w.Werkstaetten.Einrichtungsliste(b);
+            Pruefe.Gleich("10 % weniger Zeit je Stück (Lehrschrift, Psalter, Stundenbuch)", liste.Single(e => e.Kennung == "Gaensekiele").Wirkung);
+            Pruefe.Gleich("Gänsekiele und Lapislazuli", liste.Single(e => e.Kennung == "Gaensekiele").Name);
+            Pruefe.Gleich("Bücherregale", liste.Single(e => e.Kennung == "Regale").Name);
+            Pruefe.Gleich("20 mehr Lager je Ware", liste.Single(e => e.Kennung == "Regale").Wirkung);
+            Pruefe.Gleich("Lederhandschuhe", liste.Single(e => e.Kennung == "Handschuhe").Name);
+            Pruefe.Gleich("Unfälle halb so oft", liste.Single(e => e.Kennung == "Handschuhe").Wirkung);
+            Pruefe.Ungefaehr(0.02 * 0.5, w.Werkstaetten.UnfallGefahr(b), 1e-12); // Gefahr des Predigers je Arbeiter und Jahr
+        }),
+
+        ("Werkstatt: Prediger – Meisterwerkzeug erst ab dem Dom und nur mit gutem Werkzeug; die Einrichtung gilt in allen drei Stufen, nicht auf dem Klosterhof", () =>
+        {
+            var sim = NeueSimulation();
+            var (w, k, b) = Kirche(sim);
+            Ok(w, k, new EinrichtungKaufen(b.Name, "Regale"));
+            Ok(w, k, new EinrichtungKaufen(b.Name, "Gaensekiele"));
+            Abgelehnt(w, k, new EinrichtungKaufen(b.Name, "Werkzeug2"), "erst ab Stufe 2");
+            b.Ausbauen(Betriebsart.Dom, 0);
+            Pruefe.Gleich(7, w.Werkstaetten.Einrichtungsliste(b).Count);
+            Pruefe.Wahr(b.HatEinrichtung("Regale") && b.LagerKapazitaetJeWare == 60, "Bücherregale nach dem Ausbau");
+            Abgelehnt(w, k, new EinrichtungKaufen(b.Name, "Werkzeug2"), "Erst braucht es: Gutes Werkzeug");
+            Ok(w, k, new EinrichtungKaufen(b.Name, "Werkzeug1"));
+            Ok(w, k, new EinrichtungKaufen(b.Name, "Werkzeug2"));
+            Pruefe.Ungefaehr(70 * 0.729, b.MinutenJeStueck("Psalter"), 1e-9);
+            Pruefe.Ungefaehr(50 * 0.81, b.MinutenJeStueck("Hetzschrift"), 1e-9); // Hetze schreibt sich ohne Lapislazuli
+            b.Ausbauen(Betriebsart.Kathedrale, 0);
+            Pruefe.Gleich(3, b.Stufe);
+            var liste = w.Werkstaetten.Einrichtungsliste(b);
+            Pruefe.Gleich(7, liste.Count);
+            Pruefe.Gleich("Werkzeug1 Werkzeug2 Gaensekiele Regale", string.Join(" ", liste.Where(e => e.Gekauft).Select(e => e.Kennung)));
+            Pruefe.Ungefaehr(100 * 0.729, b.MinutenJeStueck("Stundenbuch"), 1e-9);
+            Pruefe.Ungefaehr(60 * 0.729, b.MinutenJeStueck("Lehrschrift"), 1e-9);
+            Pruefe.Ungefaehr(80 * 0.81, b.MinutenJeStueck("Reliquiar"), 1e-9);
+            Pruefe.Ungefaehr(40 * 0.81, b.MinutenJeStueck("Kerze"), 1e-9);
+            // Der Klosterhof gehört auch zum Prediger, ist aber keine Werkstatt.
+            var g = w.BetriebEroeffnen("Klosterhof Psalm", Betriebsart.Klosterhof, k, startkarren: "");
             Pruefe.Gleich(0, w.Werkstaetten.Einrichtungsliste(g).Count);
             Abgelehnt(w, k, new EinrichtungKaufen(g.Name, "Regale"), "kein Stück „Regale“");
             Pruefe.Gleich(0.0, w.Werkstaetten.UnfallGefahr(g));
