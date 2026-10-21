@@ -26,8 +26,8 @@ import re
 
 FORMAT = 2
 RASTER = 2.0                       # Rasterfeld in Metern (entschieden 16.10.2026)
-KARRENSTRASSEN = {"land", "haupt", "ring", "wall"}
-WEGKLASSEN = KARRENSTRASSEN | {"gasse", "leinpfad"}
+KARRENSTRASSEN = {"land", "haupt", "ring", "wall", "feldweg"}   # feldweg, fussweg: seit der Kartenwerkstatt (Schritt 2)
+WEGKLASSEN = KARRENSTRASSEN | {"gasse", "leinpfad", "fussweg"}
 ZONENARTEN = {"kern", "mauerring", "vorstadt", "umland"}
 WURZEL = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 KATALOGDATEI = os.path.join(WURZEL, "game", "daten", "katalog.json")
@@ -592,7 +592,8 @@ GEBAEUDEFARBEN = {"sonderbau": "#8E8F88", "werkstattplatz": "#B58A5A", "umlandbe
                   "kulisse": "#9DB287", "einwohnerplatz": "#CFE0C0", "wohnhausplatz": "#A3262A", "berg": "#BDB3A0"}
 NATURFARBEN = {"wald": "#7F9B6A", "streu": "#C4CFA8"}
 STRICH = {"land": (2.0, "6 3", "#4B5258"), "haupt": (2.6, None, "#1F2326"), "ring": (2.2, None, "#1F2326"),
-          "wall": (1.6, None, "#4B5258"), "gasse": (1.0, "3 2", "#4B5258"), "leinpfad": (0.8, "1 2", "#4E7A96")}
+          "wall": (1.6, None, "#4B5258"), "gasse": (1.0, "3 2", "#4B5258"), "leinpfad": (0.8, "1 2", "#4E7A96"),
+          "feldweg": (1.4, "4 2", "#7A6A4F"), "fussweg": (0.8, "2 2", "#7A6A4F")}
 
 def vorschau(pfad, katalog=None):
     k = json.load(open(pfad, encoding="utf-8"))

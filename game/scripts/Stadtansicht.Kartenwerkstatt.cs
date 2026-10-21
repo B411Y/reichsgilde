@@ -150,19 +150,24 @@ public partial class Stadtansicht
 
     private void EntwurfGeaendert(Kartenaenderung a)
     {
+        if (a.Gebaeude is not { } g) // Wege, Flächen und Pflanzen zeichnet die Werkstatt in Schritt 2
+        {
+            FehlerZeigen();
+            return;
+        }
         switch (a.Art)
         {
             case Aenderungsart.Gesetzt:
-                StueckBauen(a.Gebaeude);
+                StueckBauen(g);
                 break;
             case Aenderungsart.Geloescht:
-                StueckEntfernen(a.Gebaeude);
-                if (WerkstattAuswahl == a.Gebaeude.Kennung) WerkstattWaehlen(null);
+                StueckEntfernen(g);
+                if (WerkstattAuswahl == g.Kennung) WerkstattWaehlen(null);
                 break;
             case Aenderungsart.Geaendert:
                 // Neu bauen statt nur verschieben: Maßstab, Name und Baustein können sich mitgeändert haben
-                StueckEntfernen(a.Gebaeude);
-                StueckBauen(a.Gebaeude);
+                StueckEntfernen(g);
+                StueckBauen(g);
                 break;
         }
         FehlerZeigen();
