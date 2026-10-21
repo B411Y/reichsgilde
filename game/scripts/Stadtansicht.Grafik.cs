@@ -175,8 +175,17 @@ public partial class Stadtansicht
     //  Morgendunst und Lichtstrahlen
     // ═════════════════════════════════════════════════════════════════════════
 
-    /// <summary>Dichte des volumetrischen Dunstes am Boden (morgens, voll) und wie schnell er nach oben dünner wird.</summary>
-    private const float DunstDichte = 0.14f, DunstAbfall = 0.3f;
+    /// <summary>
+    /// Dichte des volumetrischen Dunstes am Boden (morgens, voll) und wie schnell er nach oben dünner wird: Abfall 0,7 je Meter heißt
+    /// in 3 m Höhe noch 12 %, in 5 m 3 % – der Dunst liegt flach über Feldern und Gassen, Dächer und Mauerkronen stehen darüber.
+    /// </summary>
+    private const float DunstDichte = 0.16f, DunstAbfall = 0.7f;
+
+    /// <summary>Innerhalb der Stadtmauer nimmt ein zweites Volumen mit negativer Dichte so viel weg, dass nur ein leichter Schleier bleibt.</summary>
+    private const float DunstStadtAnteil = 0.35f;
+
+    /// <summary>Farbe der Dunsttröpfchen: kühl-grau. Im Gegenlicht der Morgensonne wird der Dunst von selbst zartgolden.</summary>
+    private static readonly Color DunstFarbe = new(0.7f, 0.8f, 0.95f);
 
     /// <summary>Höhennebel der niedrigen Stufe: bis zu dieser Höhe (Meter) und wie dicht darunter.</summary>
     private const float DunstHoehe = 3f, DunstHoehenDichte = 0.055f;
@@ -192,7 +201,8 @@ public partial class Stadtansicht
 
     private void DunstEinrichten()
     {
-        _dunstStoff = new FogMaterial { Density = 0, HeightFalloff = DunstAbfall, EdgeFade = 0.1f };
+        _dunstStoff = new FogMaterial { Density = 0, HeightFalloff = DunstAbfall, EdgeFade = 0.1f, Albedo = DunstFarbe };
+        _stadtDunstStoff = new FogMaterial { Density = 0, HeightFalloff = DunstAbfall, EdgeFade = 0.15f, Albedo = DunstFarbe };
         _dunstVolumen = new FogVolume
         {
             Name = "Morgendunst",
@@ -204,16 +214,47 @@ public partial class Stadtansicht
         AddChild(_dunstVolumen);
     }
 
+    private FogMaterial _stadtDunstStoff = null!;
+    private readonly List<FogVolume> _stadtDunst = new();
+
     /// <summary>
-    /// Wie dicht der Dunst um diese Uhrzeit ist (1 = voller Morgendunst): ab 5 Uhr dicht über den Feldern, um 6 bis 7 Uhr am dichtesten,
-    /// bis 9:30 aufgelöst; am Tag ein Hauch (damit die Sonne Lichtbahnen hat), ab 18 Uhr wieder leicht. Um 22 und um 5 Uhr gleich,
+    /// Je Stadtmauer ein Kasten über ihrem umschließenden Rechteck (etwas eingerückt, weich auslaufend) mit negativer Dichte: In der Stadt
+    /// bleibt ein Schleier, vor der Mauer liegt der volle Dunst über Feldern und Wiesen. Angelegt, sobald die Karte ihre Mauern kennt.
+    /// </summary>
+    private void StadtDunstAnlegen()
+    {
+        if (_stadtDunst.Count == _mauerFlaechen.Count) return;
+        foreach (var alt in _stadtDunst) alt.QueueFree();
+        _stadtDunst.Clear();
+        foreach (var flaeche in _mauerFlaechen)
+        {
+            var rahmen = new Rect2(flaeche[0], Vector2.Zero);
+            foreach (var p in flaeche) rahmen = rahmen.Expand(p);
+            var mitte = rahmen.GetCenter();
+            var volumen = new FogVolume
+            {
+                Name = "Stadtdunst",
+                Shape = RenderingServer.FogVolumeShape.Box,
+                Size = new Vector3(rahmen.Size.X + 6, 60, rahmen.Size.Y + 6),
+                Position = new Vector3(mitte.X, 0, mitte.Y),
+                Material = _stadtDunstStoff,
+                Visible = _dunstVolumen.Visible,
+            };
+            AddChild(volumen);
+            _stadtDunst.Add(volumen);
+        }
+    }
+
+    /// <summary>
+    /// Wie dicht der Dunst um diese Uhrzeit ist (1 = voller Morgendunst): von 5 bis 6:20 Uhr am dichtesten, gegen 8 Uhr fast
+    /// aufgelöst; am Tag ein Hauch (damit die Sonne Lichtbahnen hat), ab 18 Uhr wieder leicht. Um 22 und um 5 Uhr gleich,
     /// denn dort springt die Uhr ins nächste Jahr.
     /// </summary>
     private static float DunstUm(float stunde)
     {
-        var morgen = 1 - Mathf.SmoothStep(7f, 9.5f, stunde);
+        var morgen = 1 - Mathf.SmoothStep(6.3f, 8.3f, stunde);
         var abend = 0.3f * Mathf.SmoothStep(18f, 20.5f, stunde);
-        return Mathf.Max(Mathf.Max(morgen, abend), 0.08f);
+        return Mathf.Max(Mathf.Max(morgen, abend), 0.05f);
     }
 
     private void DunstAnwenden()
@@ -226,14 +267,14 @@ public partial class Stadtansicht
         umgebung.VolumetricFogDetailSpread = 1; // Schichten gleich tief: Die Stadt liegt weit vor der Kamera, nicht direkt davor
         umgebung.VolumetricFogAnisotropy = 0.5f; // Licht streut nach vorn: zur Sonne hin heller
         umgebung.VolumetricFogTemporalReprojectionEnabled = true;
-        umgebung.VolumetricFogAmbientInject = 1; // auch das Himmelslicht hellt den Dunst auf, nicht nur die Sonne
-        umgebung.VolumetricFogAlbedo = new Color(0.95f, 0.93f, 0.9f);
+        umgebung.VolumetricFogAmbientInject = 0.5f; // auch das Himmelslicht hellt den Dunst auf, nicht nur die Sonne
         umgebung.FogEnabled = stufe == Morgendunst.Niedrig;
         umgebung.FogMode = Godot.Environment.FogModeEnum.Exponential;
         umgebung.FogDensity = 0;             // nur nach Höhe, nicht nach Abstand (die Kamera ist orthografisch)
         umgebung.FogHeight = DunstHoehe;
         umgebung.FogSkyAffect = 0;
         _dunstVolumen.Visible = stufe == Morgendunst.Hoch;
+        foreach (var v in _stadtDunst) v.Visible = stufe == Morgendunst.Hoch;
         _raumUmgebung.VolumetricFogEnabled = stufe == Morgendunst.Hoch;
         _raumUmgebung.VolumetricFogDensity = RaumDunstDichte;
         _raumUmgebung.VolumetricFogLength = 40;
@@ -262,6 +303,7 @@ public partial class Stadtansicht
     {
         LichtbahnenImRaum();
         if (Fenster.AktuellerDunst == Morgendunst.Aus) return;
+        StadtDunstAnlegen();
         var stunde = _letzteLichtUhrzeit >= 0 ? _letzteLichtUhrzeit / 60f : 12f; // im Hauptmenü (ohne Uhr): Mittag
         var anteil = DunstUm(stunde);
         if (Mathf.Abs(anteil - _dunstAnteil) < 0.005f) return;
@@ -269,6 +311,7 @@ public partial class Stadtansicht
         var umgebung = _umgebung.Environment;
         _dunstVolumen.Position = new Vector3(_kameraDrehung.Position.X, 0, _kameraDrehung.Position.Z);
         _dunstStoff.Density = DunstDichte * anteil;
+        _stadtDunstStoff.Density = -DunstDichte * anteil * (1 - DunstStadtAnteil);
         // Der einfache Nebel leuchtet nicht selbst und wird nicht beleuchtet: Er bekommt die Farbe, die ein weißes Tuch in diesem
         // Licht hätte – Umgebungslicht und etwas Sonne (morgens rosig und gedämpft, mittags hell, nachts dunkelblau).
         var licht = umgebung.AmbientLightColor * umgebung.AmbientLightEnergy + _sonne.LightColor * _sonne.LightEnergy * 0.35f;

@@ -220,7 +220,7 @@ Die Tafel **Einstellungen** (Hauptmenü und Spielmenü) hat fünf Reiter. Jede �
 - **Bloom** mit Stärke wie bisher.
 - **Miniatur-Unschärfe** (Aus, Leicht, Stark): Oben und unten im Bild wird die Stadt weich, die Mitte bleibt scharf – wie ein Foto eines Modells (Tilt-Shift); von nahem stärker als von weit. Räume und Tafeln bleiben scharf.
 - **Wolkenschatten:** Schatten einzelner Wolken ziehen langsam mit dem Wind über Felder, Gassen und Dächer, nur bei Sonne.
-- **Morgendunst und Lichtstrahlen** (Aus, Niedrig, Hoch): morgens liegt Dunst über den Feldern und Gassen, bis halb zehn löst er sich auf, abends kommt ein Hauch zurück. In der hohen Stufe ist es echter Nebel in der Luft: Die tief stehende Sonne zieht Lichtbahnen hindurch, Mauern und Häuser werfen Schatten hinein, und in den Räumen glimmt der Staub um Glut und Fenster.
+- **Morgendunst und Lichtstrahlen** (Aus, Niedrig, Hoch): morgens liegt Dunst flach über Feldern und Wiesen, in der Stadt nur ein leichter Schleier; gegen 8 Uhr ist er fast weg, abends kommt ein Hauch zurück. In der hohen Stufe ist es echter Nebel in der Luft: Die tief stehende Sonne zieht Lichtbahnen hindurch, Mauern und Häuser werfen Schatten hinein, und in den Räumen glimmt der Staub um Glut und Fenster.
 - **Farbstimmung:** Tonemapping „Linear (bisher)“ oder AgX (helle Stellen laufen weich aus, ruhigere Farben), dazu Helligkeit, Kontrast und Sättigung und ein Knopf zum Zurücksetzen.
 - **Fahnen bewegen** an/aus: Aus hängen alle Fahnen still.
 
