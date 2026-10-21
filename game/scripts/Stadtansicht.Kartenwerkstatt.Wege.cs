@@ -458,7 +458,7 @@ public partial class Stadtansicht
                 break;
             case EntwurfWeg w:
                 if (t.Aktiv) Befehl(() => e.StuetzpunktEinfuegen(w, t.Index, x, z));
-                var index = t.Aktiv ? t.Index : Befehl(() => e.StuetzpunktEinfuegenBei(w, t.Anfang.X, t.Anfang.Y));
+                var index = t.Aktiv ? t.Index : Befehl<int?>(() => e.StuetzpunktEinfuegenBei(w, t.Anfang.X, t.Anfang.Y)) ?? -1;
                 griff = index >= 0 ? new Griff(-1, index) : null;
                 break;
             case EntwurfFlaeche f when t.Art == Ziehart.Griff:
@@ -468,7 +468,7 @@ public partial class Stadtansicht
                 break;
             case EntwurfFlaeche f when t.Art == Ziehart.Einfuegen:
                 if (t.Aktiv) Befehl(() => e.EckeEinfuegen(f, t.Index, x, z, t.Vieleck));
-                var ecke = t.Aktiv ? t.Index : Befehl(() => e.EckeEinfuegenBei(f, t.Anfang.X, t.Anfang.Y, t.Vieleck));
+                var ecke = t.Aktiv ? t.Index : Befehl<int?>(() => e.EckeEinfuegenBei(f, t.Anfang.X, t.Anfang.Y, t.Vieleck)) ?? -1;
                 griff = ecke >= 0 ? new Griff(t.Vieleck, ecke) : null;
                 break;
             case EntwurfFlaeche f:

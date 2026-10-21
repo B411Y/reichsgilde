@@ -491,10 +491,10 @@ public partial class Stadtansicht
             FehlerUeberzug(s, neu);
             MarkierungSetzen(g, s);
         }
-        var andere = _entwurf.Befunde.Where(b => b.Schwere == Schwere.Fehler).SelectMany(b => b.Andere).ToHashSet(ReferenceEqualityComparer.Instance);
-        var wechsel = _wsFehlerTeile.Where(t => !andere.Contains(t)).Concat(andere.Cast<EntwurfTeil>().Where(t => !_wsFehlerTeile.Contains(t))).ToList();
+        var andere = new HashSet<EntwurfTeil>(_entwurf.Befunde.Where(b => b.Schwere == Schwere.Fehler).SelectMany(b => b.Andere), ReferenceEqualityComparer.Instance);
+        var wechsel = _wsFehlerTeile.Where(t => !andere.Contains(t)).Concat(andere.Where(t => !_wsFehlerTeile.Contains(t))).ToList();
         _wsFehlerTeile.Clear();
-        foreach (EntwurfTeil t in andere) _wsFehlerTeile.Add(t);
+        _wsFehlerTeile.UnionWith(andere);
         foreach (var t in wechsel) TeilMarkieren(t);
     }
 

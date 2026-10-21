@@ -263,7 +263,8 @@ public partial class Kartenwerkstatt
 
     /// <summary>
     /// Ein Schieberegler mit dem Wert daneben. Übernommen (<paramref name="fertig"/>) wird beim Loslassen – ein Schritt je Ziehen, nicht je
-    /// Bildpunkt –, ein Klick auf die Leiste oder die Pfeiltasten gleich.
+    /// Bildpunkt –, ein Klick auf die Leiste oder die Pfeiltasten gleich. Das Loslassen fragt jedes Bild die Maustaste ab: Das Signal
+    /// <c>DragEnded</c> kam im Klicktest (Xvfb) nicht an, und ein verlorenes Loslassen hieße eine verlorene Änderung.
     /// </summary>
     private static HBoxContainer Schieber(double min, double max, double schritt, double wert, Func<double, string> text, Action<double> fertig, string? tipp = null)
     {
@@ -277,18 +278,31 @@ public partial class Kartenwerkstatt
         };
         var anzeige = Wert(text(wert));
         anzeige.CustomMinimumSize = new Vector2(96, 0);
-        var zieht = false;
-        regler.DragStarted += () => zieht = true;
-        regler.DragEnded += geaendert =>
+        double? vorher = null; // der Wert beim Anfassen, solange gezogen wird
+        void Loslassen()
         {
-            zieht = false;
-            if (geaendert) fertig(regler.Value);
-        };
+            if (vorher is not { } alt) return;
+            vorher = null;
+            if (regler.Value != alt) fertig(regler.Value);
+        }
+        regler.DragStarted += () => vorher ??= regler.Value;
+        regler.DragEnded += _ => Loslassen();
         regler.ValueChanged += v =>
         {
             anzeige.Text = text(v);
-            if (!zieht) fertig(v);
+            if (vorher is null) fertig(v);
         };
+        // Beim Anfassen springt der Wert schon (Klick neben den Griff) – der Wert vor dem Anfassen ist dann der vorige
+        regler.GuiInput += e =>
+        {
+            if (e is InputEventMouseButton { ButtonIndex: MouseButton.Left, Pressed: true }) vorher ??= regler.Value;
+        };
+        regler.Ready += () => regler.GetTree().ProcessFrame += Abfragen;
+        regler.TreeExiting += () => regler.GetTree().ProcessFrame -= Abfragen;
+        void Abfragen()
+        {
+            if (vorher is not null && !Input.IsMouseButtonPressed(MouseButton.Left)) Loslassen();
+        }
         zeile.AddChild(regler);
         zeile.AddChild(anzeige);
         return zeile;
