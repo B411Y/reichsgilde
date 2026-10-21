@@ -373,6 +373,9 @@ public sealed class Wirtschaftsdaten
                 }
                 if (d.AusbauKosten < 0) f.Add($"betriebsarten.{art}.ausbauKosten darf nicht negativ sein.");
             }
+            if (d.Kaufpreis < 0) f.Add($"betriebsarten.{art}.kaufpreis darf nicht negativ sein.");
+            if (d.Kaufpreis > 0 && (!d.InDerStadt || d.Stufe != 1))
+                f.Add($"betriebsarten.{art}: Einen kaufpreis haben nur Werkstätten der Stufe 1 – Umland wird gepachtet, höhere Stufen entstehen durch Ausbau.");
         }
         foreach (var (name, b) in Berufe)
         {

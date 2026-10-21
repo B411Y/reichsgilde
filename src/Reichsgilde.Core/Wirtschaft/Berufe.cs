@@ -49,6 +49,12 @@ public sealed class BetriebsartDaten
 
     /// <summary>Gulden für den Umbau zur nächsten Stufe.</summary>
     public double AusbauKosten { get; init; }
+
+    /// <summary>
+    /// Werkstatt der Stufe 1: was sie kostet – beim Neubau und als Grundlage ihres Werts beim Verkauf (ab Datenversion 40;
+    /// vorher galt der Kaufpreis einer freien Werkstatt dieser Art unter „liegenschaften“). 0 = nicht angegeben.
+    /// </summary>
+    public double Kaufpreis { get; init; }
 }
 
 /// <summary>

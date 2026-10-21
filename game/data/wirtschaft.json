@@ -1,5 +1,5 @@
 {
-  "version": 39,
+  "version": 40,
   "gesundheit": {
     "medicusKosten": 120,
     "medicusKostenPest": 300,
@@ -859,42 +859,42 @@
     "Gardist": { "werkstatt": "Wachhaus", "umland": "Wachturm", "voelker": { "Mensch": 0.05, "Elb": -0.05, "Halbling": -0.05 }, "lehrgeld": 500, "beschreibung": "Kein Handwerk, keine Ware: Die Stadt zahlt den Wachleuten Sold. Nachts gehen sie Streife – Einbrüche und Brandanschläge misslingen öfter, Zeugen sehen mehr. Razzien bringen Beweise und Diebesgut, verurteilte Täter Kopfgeld; gegen Lohn begleitet die Stadtwache Karren ins Umland, und ein Wachturm hält die Landstraße sicherer. Ein Haus der Wache ist überall gern gesehen." }
   },
   "betriebsarten": {
-    "Giesserei":     { "name": "Gießerei",     "beruf": "Schmied",  "ort": "Werkstatt", "stufe": 1, "plaetze": 2, "fixkosten": 80,  "produkte": [ "Beschlag", "Rapier", "Silberring" ], "standardprodukt": "Silberring", "startkarren": "Handkarren", "ausbau": "Schmiede", "ausbauKosten": 2500 },
+    "Giesserei":     { "name": "Gießerei",     "beruf": "Schmied",  "ort": "Werkstatt", "stufe": 1, "plaetze": 2, "fixkosten": 80,  "kaufpreis": 3500, "produkte": [ "Beschlag", "Rapier", "Silberring" ], "standardprodukt": "Silberring", "startkarren": "Handkarren", "ausbau": "Schmiede", "ausbauKosten": 2500 },
     "Schmiede":      { "name": "Schmiede",     "beruf": "Schmied",  "ort": "Werkstatt", "stufe": 2, "plaetze": 3, "fixkosten": 120, "produkte": [ "Beschlag", "Rapier", "Silberring", "Werkzeug", "Silberkette" ], "standardprodukt": "Silberkette", "startkarren": "Handkarren", "ausbau": "Goldschmiede", "ausbauKosten": 5000 },
     "Goldschmiede":  { "name": "Goldschmiede", "beruf": "Schmied",  "ort": "Werkstatt", "stufe": 3, "plaetze": 4, "fixkosten": 180, "produkte": [ "Beschlag", "Rapier", "Silberring", "Werkzeug", "Silberkette", "Goldkette", "Prunkschwert" ], "standardprodukt": "Goldkette", "startkarren": "Handkarren" },
     "Mine":          { "name": "Grube",        "beruf": "Schmied",  "ort": "Umland",    "plaetze": 3, "fixkosten": 400, "rohstoffe": [ "Eisen", "Silber" ], "startkarren": "Ochsenkarren" },
-    "Tischlerei":    { "name": "Tischlerei",   "beruf": "Tischler", "ort": "Werkstatt", "stufe": 1, "plaetze": 2, "fixkosten": 80,  "produkte": [ "Holzzapfen", "Schemel", "Truhe" ], "standardprodukt": "Schemel", "startkarren": "Handkarren", "ausbau": "Drechslerei", "ausbauKosten": 2500 },
+    "Tischlerei":    { "name": "Tischlerei",   "beruf": "Tischler", "ort": "Werkstatt", "stufe": 1, "plaetze": 2, "fixkosten": 80,  "kaufpreis": 3500, "produkte": [ "Holzzapfen", "Schemel", "Truhe" ], "standardprodukt": "Schemel", "startkarren": "Handkarren", "ausbau": "Drechslerei", "ausbauKosten": 2500 },
     "Drechslerei":   { "name": "Drechslerei",  "beruf": "Tischler", "ort": "Werkstatt", "stufe": 2, "plaetze": 3, "fixkosten": 120, "produkte": [ "Holzzapfen", "Schemel", "Truhe", "Gehstock", "Armbrust" ], "standardprodukt": "Armbrust", "startkarren": "Handkarren", "ausbau": "Saegewerk", "ausbauKosten": 5000 },
     "Saegewerk":     { "name": "Sägewerk",     "beruf": "Tischler", "ort": "Werkstatt", "stufe": 3, "plaetze": 4, "fixkosten": 180, "produkte": [ "Holzzapfen", "Schemel", "Truhe", "Gehstock", "Armbrust", "Schrank", "Prunktruhe" ], "standardprodukt": "Schrank", "startkarren": "Handkarren" },
     "Holzfaellerei": { "name": "Holzschlag",   "beruf": "Tischler", "ort": "Umland",    "plaetze": 3, "fixkosten": 400, "rohstoffe": [ "Holz" ], "startkarren": "Ochsenkarren" },
-    "Maurerei":         { "name": "Maurerei",         "beruf": "Steinmetz", "ort": "Werkstatt", "stufe": 1, "plaetze": 2, "fixkosten": 80,  "produkte": [ "Schleifziegel", "Grabstein", "Mühlstein" ], "standardprodukt": "Grabstein", "startkarren": "Handkarren", "ausbau": "Steinschneiderei", "ausbauKosten": 2500 },
+    "Maurerei":         { "name": "Maurerei",         "beruf": "Steinmetz", "ort": "Werkstatt", "stufe": 1, "plaetze": 2, "fixkosten": 80,  "kaufpreis": 3500, "produkte": [ "Schleifziegel", "Grabstein", "Mühlstein" ], "standardprodukt": "Grabstein", "startkarren": "Handkarren", "ausbau": "Steinschneiderei", "ausbauKosten": 2500 },
     "Steinschneiderei": { "name": "Steinschneiderei", "beruf": "Steinmetz", "ort": "Werkstatt", "stufe": 2, "plaetze": 3, "fixkosten": 120, "produkte": [ "Schleifziegel", "Grabstein", "Mühlstein", "Säule", "Taufbecken" ], "standardprodukt": "Taufbecken", "startkarren": "Handkarren", "ausbau": "Steinmetzhuette", "ausbauKosten": 5000 },
     "Steinmetzhuette":  { "name": "Steinmetzhütte",   "beruf": "Steinmetz", "ort": "Werkstatt", "stufe": 3, "plaetze": 4, "fixkosten": 180, "produkte": [ "Schleifziegel", "Grabstein", "Mühlstein", "Säule", "Taufbecken", "Steinfigur", "Grabmal" ], "standardprodukt": "Steinfigur", "startkarren": "Handkarren" },
     "Steinbruch":       { "name": "Steinbruch",       "beruf": "Steinmetz", "ort": "Umland",    "plaetze": 3, "fixkosten": 400, "rohstoffe": [ "Bruchstein", "Granit" ], "startkarren": "Ochsenkarren" },
-    "Tinkturei":        { "name": "Tinkturei",        "beruf": "Alchimist", "ort": "Werkstatt", "stufe": 1, "plaetze": 2, "fixkosten": 80,  "produkte": [ "Farbe", "Kräuterschnaps", "Heilsalbe" ], "standardprodukt": "Heilsalbe", "startkarren": "Handkarren", "ausbau": "Kraeuterladen", "ausbauKosten": 2500 },
+    "Tinkturei":        { "name": "Tinkturei",        "beruf": "Alchimist", "ort": "Werkstatt", "stufe": 1, "plaetze": 2, "fixkosten": 80,  "kaufpreis": 3500, "produkte": [ "Farbe", "Kräuterschnaps", "Heilsalbe" ], "standardprodukt": "Heilsalbe", "startkarren": "Handkarren", "ausbau": "Kraeuterladen", "ausbauKosten": 2500 },
     "Kraeuterladen":    { "name": "Kräuterladen",     "beruf": "Alchimist", "ort": "Werkstatt", "stufe": 2, "plaetze": 3, "fixkosten": 120, "produkte": [ "Farbe", "Kräuterschnaps", "Heilsalbe", "Rosenwasser", "Gegengift" ], "standardprodukt": "Gegengift", "startkarren": "Handkarren", "ausbau": "Alchimistenstube", "ausbauKosten": 5000 },
     "Alchimistenstube": { "name": "Alchimistenstube", "beruf": "Alchimist", "ort": "Werkstatt", "stufe": 3, "plaetze": 4, "fixkosten": 180, "produkte": [ "Farbe", "Kräuterschnaps", "Heilsalbe", "Rosenwasser", "Gegengift", "Theriak", "Zinnober" ], "standardprodukt": "Theriak", "startkarren": "Handkarren" },
     "Kraeutergarten":   { "name": "Kräutergarten",    "beruf": "Alchimist", "ort": "Umland",    "plaetze": 3, "fixkosten": 400, "rohstoffe": [ "Kräuter", "Kröte" ], "startkarren": "Ochsenkarren" },
-    "Siederei":         { "name": "Siederei",         "beruf": "Parfumeur", "ort": "Werkstatt", "stufe": 1, "plaetze": 2, "fixkosten": 80,  "produkte": [ "Politur", "Blume der Zwietracht", "Giftdolch" ], "standardprodukt": "Giftdolch", "startkarren": "Handkarren", "ausbau": "Duftwerkstatt", "ausbauKosten": 2500 },
+    "Siederei":         { "name": "Siederei",         "beruf": "Parfumeur", "ort": "Werkstatt", "stufe": 1, "plaetze": 2, "fixkosten": 80,  "kaufpreis": 3500, "produkte": [ "Politur", "Blume der Zwietracht", "Giftdolch" ], "standardprodukt": "Giftdolch", "startkarren": "Handkarren", "ausbau": "Duftwerkstatt", "ausbauKosten": 2500 },
     "Duftwerkstatt":    { "name": "Duftwerkstatt",    "beruf": "Parfumeur", "ort": "Werkstatt", "stufe": 2, "plaetze": 3, "fixkosten": 120, "produkte": [ "Politur", "Blume der Zwietracht", "Giftdolch", "Moschusduft", "Fechterduft" ], "standardprodukt": "Moschusduft", "startkarren": "Handkarren", "ausbau": "Parfumerie", "ausbauKosten": 5000 },
     "Parfumerie":       { "name": "Parfumerie",       "beruf": "Parfumeur", "ort": "Werkstatt", "stufe": 3, "plaetze": 4, "fixkosten": 180, "produkte": [ "Politur", "Blume der Zwietracht", "Giftdolch", "Moschusduft", "Fechterduft", "Heiligenduft", "Schattendolch" ], "standardprodukt": "Heiligenduft", "startkarren": "Handkarren" },
     "Duftgarten":       { "name": "Duftgarten",       "beruf": "Parfumeur", "ort": "Umland",    "plaetze": 3, "fixkosten": 400, "rohstoffe": [ "Lavendel", "Jasmin" ], "startkarren": "Ochsenkarren" },
-    "Schaenke":         { "name": "Schänke",          "beruf": "Wirt",      "ort": "Werkstatt", "stufe": 1, "plaetze": 2, "fixkosten": 80,  "produkte": [ "Weingeist", "Körnermahlzeit", "Dünnbier" ], "standardprodukt": "Körnermahlzeit", "startkarren": "Handkarren", "ausbau": "Wirtshaus", "ausbauKosten": 2500 },
+    "Schaenke":         { "name": "Schänke",          "beruf": "Wirt",      "ort": "Werkstatt", "stufe": 1, "plaetze": 2, "fixkosten": 80,  "kaufpreis": 3500, "produkte": [ "Weingeist", "Körnermahlzeit", "Dünnbier" ], "standardprodukt": "Körnermahlzeit", "startkarren": "Handkarren", "ausbau": "Wirtshaus", "ausbauKosten": 2500 },
     "Wirtshaus":        { "name": "Wirtshaus",        "beruf": "Wirt",      "ort": "Werkstatt", "stufe": 2, "plaetze": 3, "fixkosten": 120, "produkte": [ "Weingeist", "Körnermahlzeit", "Dünnbier", "Starkbier", "Kräuterlikör" ], "standardprodukt": "Starkbier", "startkarren": "Handkarren", "ausbau": "Gasthaus", "ausbauKosten": 5000 },
     "Gasthaus":         { "name": "Gasthaus",         "beruf": "Wirt",      "ort": "Werkstatt", "stufe": 3, "plaetze": 4, "fixkosten": 180, "produkte": [ "Weingeist", "Körnermahlzeit", "Dünnbier", "Starkbier", "Kräuterlikör", "Festbier", "Schädelbrand" ], "standardprodukt": "Festbier", "startkarren": "Handkarren" },
     "Bauernhof":        { "name": "Bauernhof",        "beruf": "Wirt",      "ort": "Umland",    "plaetze": 3, "fixkosten": 400, "rohstoffe": [ "Gerste", "Roggen" ], "startkarren": "Ochsenkarren" },
-    "Kirche":           { "name": "Kirche",           "beruf": "Prediger",  "ort": "Werkstatt", "stufe": 1, "plaetze": 2, "fixkosten": 80,  "produkte": [ "Papier", "Kerze", "Lehrschrift" ], "standardprodukt": "Kerze", "startkarren": "Handkarren", "ausbau": "Dom", "ausbauKosten": 2500 },
+    "Kirche":           { "name": "Kirche",           "beruf": "Prediger",  "ort": "Werkstatt", "stufe": 1, "plaetze": 2, "fixkosten": 80,  "kaufpreis": 3500, "produkte": [ "Papier", "Kerze", "Lehrschrift" ], "standardprodukt": "Kerze", "startkarren": "Handkarren", "ausbau": "Dom", "ausbauKosten": 2500 },
     "Dom":              { "name": "Dom",              "beruf": "Prediger",  "ort": "Werkstatt", "stufe": 2, "plaetze": 3, "fixkosten": 120, "produkte": [ "Papier", "Kerze", "Lehrschrift", "Hetzschrift", "Psalter" ], "standardprodukt": "Psalter", "startkarren": "Handkarren", "ausbau": "Kathedrale", "ausbauKosten": 5000 },
     "Kathedrale":       { "name": "Kathedrale",       "beruf": "Prediger",  "ort": "Werkstatt", "stufe": 3, "plaetze": 4, "fixkosten": 180, "produkte": [ "Papier", "Kerze", "Lehrschrift", "Hetzschrift", "Psalter", "Stundenbuch", "Reliquiar" ], "standardprodukt": "Stundenbuch", "startkarren": "Handkarren" },
     "Klosterhof":       { "name": "Klosterhof",       "beruf": "Prediger",  "ort": "Umland",    "plaetze": 3, "fixkosten": 400, "rohstoffe": [ "Lumpen", "Wachs" ], "startkarren": "Ochsenkarren" },
-    "Schmugglerloch":   { "name": "Schmugglerloch",   "beruf": "Dieb",      "ort": "Werkstatt", "stufe": 1, "plaetze": 4, "fixkosten": 80,  "startkarren": "Handkarren", "ausbau": "Unterschlupf", "ausbauKosten": 2500 },
+    "Schmugglerloch":   { "name": "Schmugglerloch",   "beruf": "Dieb",      "ort": "Werkstatt", "stufe": 1, "plaetze": 4, "fixkosten": 80,  "kaufpreis": 3000, "startkarren": "Handkarren", "ausbau": "Unterschlupf", "ausbauKosten": 2500 },
     "Unterschlupf":     { "name": "Unterschlupf",     "beruf": "Dieb",      "ort": "Werkstatt", "stufe": 2, "plaetze": 6, "fixkosten": 120, "startkarren": "Handkarren", "ausbau": "Diebesgilde", "ausbauKosten": 5000 },
     "Diebesgilde":      { "name": "Diebesgilde",      "beruf": "Dieb",      "ort": "Werkstatt", "stufe": 3, "plaetze": 8, "fixkosten": 180, "startkarren": "Handkarren" },
-    "Wachhaus":         { "name": "Wachhaus",         "beruf": "Gardist",   "ort": "Werkstatt", "stufe": 1, "plaetze": 4, "fixkosten": 80,  "startkarren": "", "ausbau": "Stadtwache", "ausbauKosten": 2500 },
+    "Wachhaus":         { "name": "Wachhaus",         "beruf": "Gardist",   "ort": "Werkstatt", "stufe": 1, "plaetze": 4, "fixkosten": 80,  "kaufpreis": 3500, "startkarren": "", "ausbau": "Stadtwache", "ausbauKosten": 2500 },
     "Stadtwache":       { "name": "Stadtwache",       "beruf": "Gardist",   "ort": "Werkstatt", "stufe": 2, "plaetze": 6, "fixkosten": 120, "startkarren": "", "ausbau": "Garnison", "ausbauKosten": 5000 },
     "Garnison":         { "name": "Garnison",         "beruf": "Gardist",   "ort": "Werkstatt", "stufe": 3, "plaetze": 8, "fixkosten": 180, "startkarren": "" },
     "Wachturm":         { "name": "Wachturm",         "beruf": "Gardist",   "ort": "Umland",    "plaetze": 3, "fixkosten": 400, "startkarren": "" },
-    "Wechselstube":     { "name": "Wechselstube",     "beruf": "Geldleiher", "ort": "Werkstatt", "stufe": 1, "plaetze": 2, "fixkosten": 80,  "startkarren": "", "ausbau": "Geldleihe", "ausbauKosten": 2500 },
+    "Wechselstube":     { "name": "Wechselstube",     "beruf": "Geldleiher", "ort": "Werkstatt", "stufe": 1, "plaetze": 2, "fixkosten": 80,  "kaufpreis": 3500, "startkarren": "", "ausbau": "Geldleihe", "ausbauKosten": 2500 },
     "Geldleihe":        { "name": "Geldleihe",        "beruf": "Geldleiher", "ort": "Werkstatt", "stufe": 2, "plaetze": 3, "fixkosten": 120, "startkarren": "", "ausbau": "Bankhaus", "ausbauKosten": 5000 },
     "Bankhaus":         { "name": "Bankhaus",         "beruf": "Geldleiher", "ort": "Werkstatt", "stufe": 3, "plaetze": 4, "fixkosten": 180, "startkarren": "" }
   },
@@ -1056,12 +1056,6 @@
   },
   "liegenschaften": [
     {
-      "name": "Gießerei an der Südgasse",
-      "art": "Giesserei",
-      "kaufpreis": 3500,
-      "mindestStand": "Bürger"
-    },
-    {
       "name": "Grube am Silberberg",
       "art": "Mine",
       "kaufpreis": 0,
@@ -1074,21 +1068,9 @@
       "mindestStand": "Bürger"
     },
     {
-      "name": "Tischlerei am Holzmarkt",
-      "art": "Tischlerei",
-      "kaufpreis": 3500,
-      "mindestStand": "Bürger"
-    },
-    {
       "name": "Holzschlag im Eichenforst",
       "art": "Holzfaellerei",
       "kaufpreis": 0,
-      "mindestStand": "Bürger"
-    },
-    {
-      "name": "Maurerei an der Stadtmauer",
-      "art": "Maurerei",
-      "kaufpreis": 3500,
       "mindestStand": "Bürger"
     },
     {
@@ -1098,21 +1080,9 @@
       "mindestStand": "Bürger"
     },
     {
-      "name": "Tinkturei am Domplatz",
-      "art": "Tinkturei",
-      "kaufpreis": 3500,
-      "mindestStand": "Bürger"
-    },
-    {
       "name": "Kräutergarten am Bach",
       "art": "Kraeutergarten",
       "kaufpreis": 0,
-      "mindestStand": "Bürger"
-    },
-    {
-      "name": "Siederei an der Seifengasse",
-      "art": "Siederei",
-      "kaufpreis": 3500,
       "mindestStand": "Bürger"
     },
     {
@@ -1122,21 +1092,9 @@
       "mindestStand": "Bürger"
     },
     {
-      "name": "Schänke am Fischmarkt",
-      "art": "Schaenke",
-      "kaufpreis": 3500,
-      "mindestStand": "Bürger"
-    },
-    {
       "name": "Bauernhof an der Mühle",
       "art": "Bauernhof",
       "kaufpreis": 0,
-      "mindestStand": "Bürger"
-    },
-    {
-      "name": "Kirche an der Westmauer",
-      "art": "Kirche",
-      "kaufpreis": 3500,
       "mindestStand": "Bürger"
     },
     {
@@ -1146,27 +1104,9 @@
       "mindestStand": "Bürger"
     },
     {
-      "name": "Wachhaus an der Torstraße",
-      "art": "Wachhaus",
-      "kaufpreis": 3500,
-      "mindestStand": "Bürger"
-    },
-    {
       "name": "Wachturm an der Landstraße",
       "art": "Wachturm",
       "kaufpreis": 0,
-      "mindestStand": "Bürger"
-    },
-    {
-      "name": "Schmugglerloch am Osttor",
-      "art": "Schmugglerloch",
-      "kaufpreis": 3000,
-      "mindestStand": "Bürger"
-    },
-    {
-      "name": "Wechselstube am Markt",
-      "art": "Wechselstube",
-      "kaufpreis": 3500,
       "mindestStand": "Bürger"
     }
   ],

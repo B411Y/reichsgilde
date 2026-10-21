@@ -544,7 +544,7 @@ public sealed class Bauwesen
     /// <summary>Wohnhaus-Neubau: Hauswert der Zielstufe minus Hauswert des alten Hauses, nie unter 0.</summary>
     private double WohnhausKosten(Konto konto, int stufe) => Math.Max(0, _w.Wohnen.WertDerStufe(stufe) - _w.Wohnen.Hauswert(konto));
 
-    /// <summary>Werkstatt-Neubau: so viel wie eine freie Werkstatt der Stufe 1 (die günstigste dieser Art, sonst die günstigste der Stadt).</summary>
+    /// <summary>Werkstatt-Neubau: der Kaufpreis der Stufe 1 (<c>kaufpreis</c> der Art, siehe <see cref="Stadtwirtschaft.Grundpreis"/>).</summary>
     public double WerkstattPreis(Betriebsart art) => _w.Grundpreis("", art);
 
     private string MindestStand(Betriebsart art) =>
