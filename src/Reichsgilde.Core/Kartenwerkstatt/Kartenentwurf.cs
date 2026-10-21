@@ -13,8 +13,9 @@ namespace Reichsgilde.Core.Kartenwerkstatt;
 //  Darstellung lesen (vorlage, fiktion, vorkommen, probeplan …). Gespeichert ergibt er dieselbe Datei wieder (Kartenschreiber).
 //
 //  Bearbeitbar sind die Gebäude (Schritt 1), die Wege, Bauzonen, Naturflächen und einzelnen Pflanzen (Schritt 2, EntwurfTeile.cs und
-//  Kartenentwurf.Wege.cs, Kartenentwurf.Flaechen.cs). Alles Übrige (Mauern, Start, Wasser, Kamera …) liegt als JSON im Entwurf und
-//  wird für die Prüfung einmal in die Typen der Stadtkarte gelesen (Kartenmauer …).
+//  Kartenentwurf.Wege.cs, Kartenentwurf.Flaechen.cs), die Mauern mit Toren und die Startbelegung (Schritt 3, Kartenentwurf.Mauern.cs und
+//  Kartenentwurf.Start.cs). Alles Übrige (Wasser, Kamera …) liegt als JSON im Entwurf und wird für die Prüfung einmal in die Typen der
+//  Stadtkarte gelesen (Gewaesser …).
 //  Geändert wird nur über Befehle (Setzen, Verschieben, Drehen …), damit Rückgängig und Wiederholen immer stimmen.
 // ═════════════════════════════════════════════════════════════════════════════
 
@@ -182,6 +183,8 @@ public readonly record struct Kartenaenderung(Aenderungsart Art, EntwurfTeil Obj
     public EntwurfBauzone? Bauzone => Objekt as EntwurfBauzone;
     public EntwurfNaturflaeche? Naturflaeche => Objekt as EntwurfNaturflaeche;
     public EntwurfPflanze? Pflanze => Objekt as EntwurfPflanze;
+    public EntwurfMauer? Mauer => Objekt as EntwurfMauer;
+    public EntwurfStart? Start => Objekt as EntwurfStart;
 }
 
 /// <summary>Ein Fundort eines Rohstoffbetriebs (<c>vorkommen</c> der Datei; nur das Werkzeug und die Prüfung lesen ihn).</summary>
@@ -206,6 +209,8 @@ public sealed partial class Kartenentwurf
     private readonly List<EntwurfBauzone> _bauzonen;
     private readonly List<EntwurfNaturflaeche> _naturflaechen;
     private readonly List<EntwurfPflanze> _pflanzen;
+    private readonly List<EntwurfMauer> _mauern;
+    private readonly EntwurfStart _start;
 
     /// <summary>Änderungen des laufenden Befehls – gemeldet erst, wenn die Geschichte den Schritt kennt (<see cref="MeldungenAusloesen"/>).</summary>
     private readonly List<Kartenaenderung> _ausstehend = new();
@@ -230,10 +235,11 @@ public sealed partial class Kartenentwurf
     public event Action<Kartenaenderung>? Geaendert;
 
     private Kartenentwurf(JsonObject daten, List<EntwurfGebaeude> gebaeude, Stadtkarte teile, Gebaeudekatalog katalog,
-        List<EntwurfWeg> wege, List<EntwurfBauzone> bauzonen, List<EntwurfNaturflaeche> naturflaechen, List<EntwurfPflanze> pflanzen)
+        List<EntwurfWeg> wege, List<EntwurfBauzone> bauzonen, List<EntwurfNaturflaeche> naturflaechen, List<EntwurfPflanze> pflanzen,
+        List<EntwurfMauer> mauern, EntwurfStart start)
     {
         (_daten, _gebaeude, _teile, Katalog) = (daten, gebaeude, teile, katalog);
-        (_wege, _bauzonen, _naturflaechen, _pflanzen) = (wege, bauzonen, naturflaechen, pflanzen);
+        (_wege, _bauzonen, _naturflaechen, _pflanzen, _mauern, _start) = (wege, bauzonen, naturflaechen, pflanzen, mauern, start);
         foreach (var g in _gebaeude) g.Baustein = katalog.Finde(g.Katalog);
         foreach (var p in _pflanzen) p.Baustein = katalog.Finde(p.Katalog);
         Geschichte = new Kartengeschichte(this);
@@ -266,7 +272,6 @@ public sealed partial class Kartenentwurf
     /// <summary>Die Wege in der Reihenfolge der Datei.</summary>
     public IReadOnlyList<EntwurfWeg> Wege => _wege;
 
-    public IReadOnlyList<Kartenmauer> Mauern => _teile.Mauern;
     public IReadOnlyList<EntwurfBauzone> Bauzonen => _bauzonen;
 
     /// <summary>Die Wald- und Streuflächen (<c>natur.flaechen</c>).</summary>
@@ -279,7 +284,6 @@ public sealed partial class Kartenentwurf
     public IReadOnlyList<Gelaende> Gelaende => _teile.Gelaende;
     public IReadOnlyList<Hafen> Haefen => _teile.Haefen;
     public IReadOnlyList<Uebergang> Uebergaenge => _teile.Uebergaenge;
-    public Startbelegung? Start => _teile.Start;
     public Kartenkamera? Kamera => _teile.Kamera;
     public IReadOnlyList<Kartenvorkommen> Vorkommen { get; }
     public IReadOnlyList<Probeplatz> Probeplan { get; }
@@ -305,7 +309,7 @@ public sealed partial class Kartenentwurf
     {
         if (Groesse is var (b, t)) return (-b / 2, -t / 2, b / 2, t / 2);
         var punkte = _gebaeude.SelectMany(g => g.Ecken() is { Count: > 0 } e ? e : new[] { g.Punkt })
-            .Concat(_wege.SelectMany(w => w.Punkte))
+            .Concat(_wege.SelectMany(w => w.Punkte)).Concat(_mauern.SelectMany(m => m.Ecken))
             .Concat(Gelaende.SelectMany(g => g.Flaeche).Concat(Wasser.SelectMany(w => (w.Linie ?? new()).Concat(w.Flaeche ?? new()))).Select(Kartenort.Aus))
             .ToList();
         if (punkte.Count == 0) return (-50, -50, 50, 50);
@@ -345,10 +349,13 @@ public sealed partial class Kartenentwurf
         if (daten["natur"] is not (null or JsonObject)) throw new KartenFehler(new[] { "natur ist kein Objekt." });
         var flaechen = Teilleser.Liste<Naturflaeche>(daten["natur"]?["flaechen"], "Naturfläche").Select(x => EntwurfNaturflaeche.Aus(x.Wert, x.Vorlage)).ToList();
         var pflanzen = Teilleser.Liste<Pflanze>(daten["natur"]?["pflanzen"], "Pflanze").Select(x => EntwurfPflanze.Aus(x.Wert, x.Vorlage)).ToList();
+        var mauern = Teilleser.Liste<Kartenmauer>(daten["mauern"], "Mauer").Select(x => EntwurfMauer.Aus(x.Wert, x.Vorlage)).ToList();
+        if (daten["start"] is not (null or JsonObject)) throw new KartenFehler(new[] { "start ist kein Objekt." });
+        var start = EntwurfStart.Aus(daten["start"]?.DeepClone() as JsonObject, Teilleser.Einzeln<Startbelegung>(daten["start"], "start"));
 
         // Die übrigen Teile mit dem Leser der Stadtkarte (ohne Prüfung)
         var rest = daten.DeepClone().AsObject();
-        foreach (var k in new[] { "gebaeude", "wege", "bauzonen", "natur" }) rest.Remove(k);
+        foreach (var k in new[] { "gebaeude", "wege", "bauzonen", "natur", "mauern", "start" }) rest.Remove(k);
         Stadtkarte teile;
         try
         {
@@ -359,20 +366,22 @@ public sealed partial class Kartenentwurf
         {
             throw new KartenFehler(new[] { $"Die Karte ist nicht lesbar ({ex.Path}): {ex.Message}" });
         }
-        return new Kartenentwurf(MitAbschnitten(daten), gebaeude, teile, katalog, wege, bauzonen, flaechen, pflanzen);
+        return new Kartenentwurf(MitAbschnitten(daten), gebaeude, teile, katalog, wege, bauzonen, flaechen, pflanzen, mauern, start);
     }
 
     /// <summary>Abschnitte, die der Entwurf schreibt, auch wenn die Datei sie (noch) nicht hat – in dieser Reihenfolge der Datei.</summary>
-    private static readonly string[] Reihenfolge = { "format", "kennung", "stadt", "vorlage", "einheit", "achsen", "raster", "groesse", "gebaeude", "mauern", "wege", "bauzonen", "natur" };
+    private static readonly string[] Reihenfolge =
+        { "format", "kennung", "stadt", "vorlage", "einheit", "achsen", "raster", "groesse", "gebaeude", "mauern", "wege", "bauzonen", "natur", "start" };
 
     /// <summary>
-    /// Fehlen <c>wege</c>, <c>bauzonen</c> oder <c>natur</c>, bekommen sie einen leeren Platz an ihrer Stelle der Reihenfolge (null) –
-    /// geschrieben werden sie nur, wenn sie etwas enthalten. So landet ein erster Weg in Köln-artigen Dateien an der richtigen Stelle.
+    /// Fehlen <c>mauern</c>, <c>wege</c>, <c>bauzonen</c>, <c>natur</c> oder <c>start</c>, bekommen sie einen leeren Platz an ihrer Stelle der
+    /// Reihenfolge (null) – geschrieben werden sie nur, wenn sie etwas enthalten. So landet ein erster Weg in Köln-artigen Dateien an der
+    /// richtigen Stelle.
     /// </summary>
     private static JsonObject MitAbschnitten(JsonObject daten)
     {
         var liste = daten.Select(e => (e.Key, Wert: e.Value?.DeepClone())).ToList();
-        foreach (var fehlt in new[] { "wege", "bauzonen", "natur" }.Where(k => !daten.ContainsKey(k)))
+        foreach (var fehlt in new[] { "mauern", "wege", "bauzonen", "natur", "start" }.Where(k => !daten.ContainsKey(k)))
         {
             var davor = Reihenfolge.TakeWhile(k => k != fehlt).ToHashSet();
             var i = liste.FindLastIndex(e => davor.Contains(e.Key));
@@ -394,7 +403,8 @@ public sealed partial class Kartenentwurf
             ["gebaeude"] = new JsonArray(), ["mauern"] = new JsonArray(), ["wege"] = new JsonArray(), ["bauzonen"] = new JsonArray(),
         };
         return new Kartenentwurf(MitAbschnitten(daten), new List<EntwurfGebaeude>(), new Stadtkarte { Kennung = kennung, Stadt = stadt }, katalog,
-            new List<EntwurfWeg>(), new List<EntwurfBauzone>(), new List<EntwurfNaturflaeche>(), new List<EntwurfPflanze>());
+            new List<EntwurfWeg>(), new List<EntwurfBauzone>(), new List<EntwurfNaturflaeche>(), new List<EntwurfPflanze>(), new List<EntwurfMauer>(),
+            new EntwurfStart());
     }
 
     /// <summary>
@@ -412,10 +422,19 @@ public sealed partial class Kartenentwurf
                 case "gebaeude":
                     aus[k] = Liste(_gebaeude);
                     continue;
-                case "wege" or "bauzonen":
+                case "wege" or "bauzonen" or "mauern":
                     // ein leerer Platz (die Datei hatte den Abschnitt nicht) bleibt leer, solange nichts darin steht
-                    var teile = k == "wege" ? _wege.Cast<EntwurfTeil>().ToList() : _bauzonen.Cast<EntwurfTeil>().ToList();
+                    var teile = k switch
+                    {
+                        "wege" => _wege.Cast<EntwurfTeil>().ToList(),
+                        "bauzonen" => _bauzonen.Cast<EntwurfTeil>().ToList(),
+                        _ => _mauern.Cast<EntwurfTeil>().ToList(),
+                    };
                     if (v is not null || teile.Count > 0) aus[k] = Liste(teile);
+                    continue;
+                case "start":
+                    // ohne Inhalt fällt start weg (dann gilt im Spiel der Ersatz) – wie beim Werkzeug
+                    if (!_start.IstLeer) aus[k] = _start.AlsJson();
                     continue;
                 case "natur":
                     if (_naturflaechen.Count == 0 && _pflanzen.Count == 0) continue; // wie das Werkzeug: leere Natur fällt weg
@@ -568,7 +587,9 @@ public sealed partial class Kartenentwurf
         Kartenteil.Weg => _wege,
         Kartenteil.Bauzone => _bauzonen,
         Kartenteil.Naturflaeche => _naturflaechen,
-        _ => _pflanzen,
+        Kartenteil.Mauer => _mauern,
+        Kartenteil.Pflanze => _pflanzen,
+        _ => throw new ArgumentException($"„{t.Bezeichnung}“ steht in keiner Liste.", nameof(t)),
     };
 
     /// <summary>Steht der Teil (dieses Objekt) im Entwurf?</summary>
@@ -577,6 +598,7 @@ public sealed partial class Kartenentwurf
     /// <summary>Die Stelle des Teils in seiner Liste (−1: nicht im Entwurf).</summary>
     internal int IndexVon(EntwurfTeil t)
     {
+        if (t is EntwurfStart) return ReferenceEquals(t, _start) ? 0 : -1;
         var l = Liste(t);
         for (var i = 0; i < l.Count; i++)
             if (ReferenceEquals(l[i], t)) return i;
