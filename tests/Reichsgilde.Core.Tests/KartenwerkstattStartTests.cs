@@ -417,6 +417,18 @@ static class KartenwerkstattStartTests
             Pruefe.Gleich(Text("greybox"), e.ZuJson(), "alles zurückgenommen: die Greybox Byte für Byte");
         }),
 
+        ("Start: Köln ohne Startbelegung – die erste landet hinter „uebergaenge“ (wie das Werkzeug schreibt); zurückgenommen fällt sie wieder weg", () =>
+        {
+            var e = Oeffnen("koeln");
+            Pruefe.Wahr(e.Start.IstLeer, "Köln hat keine Startbelegung");
+            e.HausHinzufuegen();
+            var json = e.ZuJson();
+            var (ue, st, vo) = (json.IndexOf("\n \"uebergaenge\""), json.IndexOf("\n \"start\""), json.IndexOf("\n \"vorkommen\""));
+            Pruefe.Wahr(ue > 0 && ue < st && st < vo, $"Reihenfolge uebergaenge {ue} < start {st} < vorkommen {vo}");
+            e.Rueckgaengig();
+            Pruefe.Gleich(Text("koeln"), e.ZuJson());
+        }),
+
         ("Start: Prüfung – Haus ohne Wohnhaus, Platz doppelt, Betriebsart passt nicht, Name doppelt, Startplatz fehlt, Ware, kein Haus", () =>
         {
             Kartenentwurf Neu()

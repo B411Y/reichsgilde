@@ -17,12 +17,10 @@ So wird eingetragen (damit sich die Chats nie an derselben Stelle treffen):
 - Felsberg im Katalog 52 × 38 m, das Modell `berg_grube` nur 45 × 32,5 m; mit dem Rand überdecken die Felsberge der Gruben Eisenbart und Silberberg Bauernhof und Duftgarten (Hinweis im Werkzeug). Vorschlag an Kern/Modell: Katalogfläche 46 × 34 m
 - Greybox mit weniger als 8 Häusern: Auf den Wohnhausplätzen 5 bis 8 standen bisher Einwohnerhäuser; Format 2 hat dort keine Einwohnerplätze. Ob unbenutzte Wohnhausplätze Einwohner aufnehmen, entscheiden Darstellung und Kern
 - Kartenwerkstatt: Die Klickfläche eines Gebäudes ist ein Kasten über der ganzen Grundfläche (bis 12 m hoch); im Schrägblick fängt sie Klicks auf den Boden dahinter – eine Bauzone oder ein Weg hinter einem Haus lässt sich dort nicht anklicken (Ausweg: woanders klicken, Liste rechts). Vorschlag für Schritt 3: Klickfläche nur über dem Haus (ohne Vorplatz) und mit der Höhe des Modells
-- Kartenwerkstatt: Wegenden rasten im Kern nur an Wegen ein. Die Werkstatt rastet zusätzlich an Höfen von Werkstattplätzen ein; zieht der Kern einen Hof an einen Weg, der näher als 2 m liegt, setzt die Werkstatt ihn in einem zweiten Rückgängig-Schritt zurück. Vorschlag an den Kern: Höfe in `Einrasten` und `WegAnlegen` kennen
-- Kartenwerkstatt: „Mischung“ einer Streufläche macht aus ihren Gruppen (Büsche mit Kraut, Steine mit Gras …) eine einfache Mischung, je Streupunkt eine Pflanze (`MischungSetzen`); Gruppen mit Radius und Anzahl lassen sich noch nicht bearbeiten
-- Kartenwerkstatt: Eine neue Waldfläche (Dichte 2,4 je 1.000 m² wie die Greybox, je Streupunkt ein Baum) wirkt klein sehr licht – 1.300 m² tragen 3 Bäume. Vorschlag: Vorlage dichter (etwa 8) oder Gruppen mit Radius
 - Kartenwerkstatt: Das Gassennetz der Werkstatt hängt Markt, Tore, Höfe und Karrenplätze an, aber nicht die Türen von Rathaus, Dom und Häusern und nicht die Gatter der Arbeitsstellen (im Spiel schon) – „alles verbunden“ heißt dort also nur: alle Wege und diese Ziele
 - Kartenwerkstatt: Das Raster einer Bauzone zeigt jedes Feld, dessen Mitte in der Zone liegt, mit allen vier Kanten – an schrägen Rändern ragt es über die Fläche hinaus (wie im Baumodus des Spiels)
 - (von Kern) Köln: Die Bauzone M5 kreuzt sich selbst – die schließende Kante von (−82 | −30) zurück nach (−114 | −44) kreuzt bei (−112,4 | −43,3) die zweite Kante; die Kartenwerkstatt meldet es als Hinweis (PR #170). Im Werkzeug die Ecken ordnen
+- (von Kern) Köln: St. Gereon (`Gereon`) und der Leerstand `L1` stehen auf der Stadtmauer (das Haus weniger als 1 m von der Mauerlinie); die Kartenwerkstatt meldet es seit PR #172 als Hinweis (mit den Stadtregeln wäre es ein Fehler). Im Werkzeug verschieben oder die Mauer dort führen
 
 ## Entscheidungen
 

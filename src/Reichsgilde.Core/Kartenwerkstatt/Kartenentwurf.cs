@@ -369,9 +369,12 @@ public sealed partial class Kartenentwurf
         return new Kartenentwurf(MitAbschnitten(daten), gebaeude, teile, katalog, wege, bauzonen, flaechen, pflanzen, mauern, start);
     }
 
-    /// <summary>Abschnitte, die der Entwurf schreibt, auch wenn die Datei sie (noch) nicht hat – in dieser Reihenfolge der Datei.</summary>
+    /// <summary>Die Abschnitte in der Reihenfolge, in der das Werkzeug sie schreibt (karte.py) – bis <c>start</c>, dem letzten, den der Entwurf anlegen kann.</summary>
     private static readonly string[] Reihenfolge =
-        { "format", "kennung", "stadt", "vorlage", "einheit", "achsen", "raster", "groesse", "gebaeude", "mauern", "wege", "bauzonen", "natur", "start" };
+    {
+        "format", "kennung", "stadt", "vorlage", "einheit", "achsen", "raster", "groesse", "gebaeude", "mauern", "wege", "bauzonen", "natur",
+        "wasser", "gelaende", "haefen", "uebergaenge", "start",
+    };
 
     /// <summary>
     /// Fehlen <c>mauern</c>, <c>wege</c>, <c>bauzonen</c>, <c>natur</c> oder <c>start</c>, bekommen sie einen leeren Platz an ihrer Stelle der
