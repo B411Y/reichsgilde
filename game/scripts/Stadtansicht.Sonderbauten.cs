@@ -129,7 +129,7 @@ public partial class Stadtansicht
         var flaeche = GroesseVon(g);
         var a = SonderbauAnlegen("Rathaus", string.IsNullOrEmpty(g.Name) ? "Rathaus" : g.Name, p, new Vector3(flaeche.X, 10, flaeche.Y), new Vector3(0, 26, 0),
             zoom: 21, reichweite: 12, raumansicht: true, drehung: drehung);
-        var huelle = ModellEinsetzen(g.Baustein?.Modell ?? "rathaus", this, p, new ModellZustand(), "Rathaus");
+        var huelle = ModellEinsetzen(g.Baustein?.Modell ?? "gebaeude/rathaus", this, p, new ModellZustand(), "Rathaus");
         if (huelle is not null) huelle.Wurzel.Transform = lage;
         a.Huelle = huelle?.Wurzel;
         a.ZusatzKlicks.Add(Klickflaeche("Rathaus", lage * new Vector3(6.2f, 17, 3.2f), new Vector3(4.2f, 14, 4.2f), drehung: drehung)); // der Uhrturm
@@ -361,7 +361,7 @@ public partial class Stadtansicht
         var a = SonderbauAnlegen("Dom", string.IsNullOrEmpty(g.Name) ? "Dom" : g.Name, p, new Vector3(11.5f, 13, 24.6f), basis * new Vector3(0, 46, 13),
             zoom: 27, reichweite: 15, drehung: drehung);
         a.Innen!.Transform = new Transform3D(basis, p - basis * p); // Innenraum um die Mitte gedreht (seine Teile stehen bei p + Lage im Dom)
-        var huelle = ModellEinsetzen(g.Baustein?.Modell ?? "dom", this, p, new ModellZustand(), "Dom");
+        var huelle = ModellEinsetzen(g.Baustein?.Modell ?? "gebaeude/dom", this, p, new ModellZustand(), "Dom");
         if (huelle is not null)
         {
             huelle.Wurzel.Transform = lage;

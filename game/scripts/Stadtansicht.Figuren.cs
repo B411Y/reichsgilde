@@ -56,12 +56,12 @@ public partial class Stadtansicht
     /// Orks und Oger haben noch kein eigenes Modell: vorerst ein größerer Mensch.</summary>
     private static (string Datei, float Huefte, float Knie, Vector3 Groesse) FigurMasse(Volk volk) => volk switch
     {
-        Volk.Zwerg => ("figur_zwerg", 0.58f, 0.31f, Vector3.One),
-        Volk.Elb => ("figur_elb", 1.04f, 0.57f, Vector3.One),
-        Volk.Halbling => ("figur_halbling", 0.53f, 0.29f, Vector3.One),
-        Volk.Ork => ("figur_mensch", 0.92f, 0.50f, new Vector3(1.18f, 1.1f, 1.18f)),
-        Volk.Oger => ("figur_mensch", 0.92f, 0.50f, new Vector3(1.45f, 1.35f, 1.45f)),
-        _ => ("figur_mensch", 0.92f, 0.50f, Vector3.One),
+        Volk.Zwerg => ("figuren/figur_zwerg", 0.58f, 0.31f, Vector3.One),
+        Volk.Elb => ("figuren/figur_elb", 1.04f, 0.57f, Vector3.One),
+        Volk.Halbling => ("figuren/figur_halbling", 0.53f, 0.29f, Vector3.One),
+        Volk.Ork => ("figuren/figur_mensch", 0.92f, 0.50f, new Vector3(1.18f, 1.1f, 1.18f)),
+        Volk.Oger => ("figuren/figur_mensch", 0.92f, 0.50f, new Vector3(1.45f, 1.35f, 1.45f)),
+        _ => ("figuren/figur_mensch", 0.92f, 0.50f, Vector3.One),
     };
 
     /// <summary>
@@ -84,7 +84,7 @@ public partial class Stadtansicht
     /// <summary>Der Export aus Blender hält die erste Pose ein Bild lang (Blender beginnt bei Bild 1): Die Schleife läuft erst ab hier.</summary>
     private const double SchleifenAnfang = 1.0 / 24;
 
-    private const string FigurShaderPfad = "res://shader/figur.gdshader";
+    private const string FigurShaderPfad = "res://assets/shader/figur.gdshader";
 
     /// <summary>Das eine Material aller Figuren (PR #149: Zone in UV.x, feste Farbe in COLOR).</summary>
     private static ShaderMaterial? _figurStoff;

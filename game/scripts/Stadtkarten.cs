@@ -4,7 +4,7 @@ using Reichsgilde.Core.Bauen;
 namespace Reichsgilde;
 
 /// <summary>
-/// Die Karten der Städte aus <c>game/data/karten/&lt;kennung&gt;.json</c> (res://) mit dem Gebäudekatalog <c>game/data/katalog.json</c>.
+/// Die Karten der Städte aus <c>game/karten/&lt;kennung&gt;.json</c> (res://) mit dem Gebäudekatalog <c>game/daten/katalog.json</c>.
 /// Wie <c>wirtschaft.json</c> liest Godot die Dateien, der Kern bekommt nur den Text (<see cref="Stadtkarte.AusJson"/>).
 ///
 /// Jede Karte wird einmal gelesen und gemerkt: Die Hauptszene braucht sie beim Erstellen oder Laden der Partie, das Hauptmenü
@@ -18,19 +18,19 @@ public static class Stadtkarten
     public const string Vorgabe = "greybox";
 
     /// <summary>Der Gebäudekatalog für alle Karten (was ein Baustein ist: Modell, Grundfläche).</summary>
-    public const string KatalogPfad = "res://data/katalog.json";
+    public const string KatalogPfad = "res://daten/katalog.json";
 
     private static readonly Dictionary<string, Stadtkarte?> _karten = new();
 
     /// <summary>Die Karte der Greybox-Stadt, oder null (mit Fehlermeldung), wenn sie fehlt oder fehlerhaft ist.</summary>
     public static Stadtkarte? Greybox => Laden(Vorgabe);
 
-    /// <summary>Die Karte <c>res://data/karten/&lt;kennung&gt;.json</c>, oder null (mit Fehlermeldung), wenn sie fehlt oder fehlerhaft ist.</summary>
+    /// <summary>Die Karte <c>res://karten/&lt;kennung&gt;.json</c>, oder null (mit Fehlermeldung), wenn sie fehlt oder fehlerhaft ist.</summary>
     public static Stadtkarte? Laden(string kennung)
     {
         if (_karten.TryGetValue(kennung, out var gemerkt)) return gemerkt;
         Stadtkarte? karte = null;
-        var pfad = $"res://data/karten/{kennung}.json";
+        var pfad = $"res://karten/{kennung}.json";
         try
         {
             var json = Godot.FileAccess.FileExists(pfad) ? Godot.FileAccess.GetFileAsString(pfad) : "";

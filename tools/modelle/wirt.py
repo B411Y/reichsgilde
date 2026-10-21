@@ -3,7 +3,7 @@
     blender -b --python tools/modelle/wirt.py        oder
     python tools/modelle/wirt.py [--schnell] [--ohne-bilder] [--nur-anker] [--nur-nacht]
 
-Schreibt game/assets/modelle/wirt.glb und Bilder nach docs/modelle/.
+Schreibt game/assets/modelle/gebaeude/wirt.glb und Bilder nach docs/modelle/.
 
 Objekte im GLB (wie bei den anderen Werkstätten):
     Haus        der Gasthof in L-Form, in jeder Stufe gleich

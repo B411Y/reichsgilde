@@ -3,7 +3,7 @@
     blender -b --python tools/modelle/voegel.py        oder
     python tools/modelle/voegel.py [--schnell] [--ohne-bilder]
 
-Schreibt game/assets/modelle/vogel_taube.glb und vogel_spatz.glb und docs/modelle/voegel.png.
+Schreibt game/assets/modelle/tiere/vogel_taube.glb und vogel_spatz.glb und docs/modelle/voegel.png.
 
 Inhalt je Datei (Blender: Z oben, Blick nach -Y; im Spiel Y oben, Blick nach +Z; Ursprung zwischen den Füßen):
     Skelett         Koerper, Kopf, Fluegel_L, Fluegel_R, Schwanz – jeder Teil starr an einem Knochen

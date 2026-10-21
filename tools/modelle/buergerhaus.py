@@ -3,7 +3,7 @@
     blender -b --python tools/modelle/buergerhaus.py        oder
     python tools/modelle/buergerhaus.py [--schnell] [--ohne-bilder]
 
-Schreibt game/assets/modelle/buergerhaus.glb und Bilder nach docs/modelle/.
+Schreibt game/assets/modelle/gebaeude/buergerhaus.glb und Bilder nach docs/modelle/.
 
 Objekte im GLB:
     Haus        das Haus selbst

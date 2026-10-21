@@ -3,7 +3,7 @@
     blender -b --python tools/modelle/schmied_innen.py -- [--schnell] [--ohne-bilder]
     python tools/modelle/schmied_innen.py [--schnell] [--ohne-bilder]
 
-Schreibt game/assets/modelle/schmied_innen.glb und Bilder nach docs/modelle/ (schmied_innen-blicke.png: das Bild
+Schreibt game/assets/modelle/innen/schmied_innen.glb und Bilder nach docs/modelle/ (schmied_innen-blicke.png: das Bild
 jedes Blickpunkts, schmied_innen-stufen.png: Erdgeschoss von oben je Stufe, schmied_innen-grundriss.png: Erdgeschoss
 und Dachboden mit Ankern).
 

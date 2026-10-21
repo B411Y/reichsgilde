@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Prüft den Gebäudekatalog game/data/katalog.json gegen die Modelle in game/assets/modelle/ (Bereich Leveldesign). Braucht kein Blender.
+Prüft den Gebäudekatalog game/daten/katalog.json gegen die Modelle in game/assets/modelle/ (Bereich Leveldesign). Braucht kein Blender.
 
 Aufruf (aus dem Projektordner):
     python3 tools/karten/katalog_pruefen.py            # Fehler und Warnungen

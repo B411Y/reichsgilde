@@ -3,7 +3,7 @@
     blender -b --python tools/modelle/einwohner_wohnhaus.py        oder
     python tools/modelle/einwohner_wohnhaus.py [--schnell] [--ohne-bilder] [--nur-anker] [--nur-nacht]
 
-Schreibt game/assets/modelle/einwohner_wohnhaus.glb und Bilder nach docs/modelle/.
+Schreibt game/assets/modelle/gebaeude/einwohner_wohnhaus.glb und Bilder nach docs/modelle/.
 
 Objekte im GLB:
     Variante1   Fachwerk mit Lehmputz, Ziegeldach, Schleppgaube

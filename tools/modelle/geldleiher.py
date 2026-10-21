@@ -3,7 +3,7 @@
     blender -b --python tools/modelle/geldleiher.py        oder
     python tools/modelle/geldleiher.py [--schnell] [--ohne-bilder] [--nur-anker] [--nur-nacht]
 
-Schreibt game/assets/modelle/geldleiher.glb und Bilder nach docs/modelle/.
+Schreibt game/assets/modelle/gebaeude/geldleiher.glb und Bilder nach docs/modelle/.
 
 Objekte im GLB (wie bei den anderen Werkstätten):
     Haus        das Kaufmannshaus mit Laubengang, in jeder Stufe gleich

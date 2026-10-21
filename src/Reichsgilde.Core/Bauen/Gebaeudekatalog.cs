@@ -5,7 +5,7 @@ using Reichsgilde.Core.Wirtschaft;
 namespace Reichsgilde.Core.Bauen;
 
 // ═════════════════════════════════════════════════════════════════════════════
-//  Der Gebäudekatalog (game/data/katalog.json) – beschrieben in docs/LEVELDESIGN.md, „Gebäudekatalog“
+//  Der Gebäudekatalog (game/daten/katalog.json) – beschrieben in docs/LEVELDESIGN.md, „Gebäudekatalog“
 //
 //  Eine Datei für alle Karten: Je Baustein steht hier, WAS er ist (Art, Modelldatei, Grundfläche …).
 //  Die Karte sagt nur, WO er steht (Katalog-Kennung, Punkt, Drehung, Name – siehe Stadtkarte).
@@ -80,7 +80,7 @@ public sealed class Baustein
     /// <summary>Anzeigename für Werkzeug und Editor (z. B. „Grube“). Fehlt er, gilt die Kennung.</summary>
     public string? Name { get; init; }
 
-    /// <summary>Modelldatei unter <c>game/assets/modelle/</c> ohne „.glb“. Fehlt bei Plätzen (Werkstatt-, Wohnhaus-, Einwohnerplatz) und beim Markt aus Teilen.</summary>
+    /// <summary>Modelldatei unter <c>game/assets/modelle/</c> mit Unterordner, ohne „.glb“ (<c>gebaeude/schmied</c>). Fehlt bei Plätzen (Werkstatt-, Wohnhaus-, Einwohnerplatz) und beim Markt aus Teilen.</summary>
     public string? Modell { get; init; }
 
     /// <summary>Knoten im Modell, wenn die Datei ein Baukasten ist (z. B. „Weide“ in <c>umland_stellen</c>, „Tanne“ in <c>natur_baeume</c>).</summary>

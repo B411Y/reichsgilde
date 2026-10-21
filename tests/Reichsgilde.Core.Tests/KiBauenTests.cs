@@ -13,7 +13,7 @@ static class KiBauenTests
 {
     static readonly Lazy<Wirtschaftsdaten> Daten = new(() => Wirtschaftsdaten.AusJson(Datenpfad.OhneAktionspunkte()));
 
-    static string Kartenpfad => Path.Combine(Path.GetDirectoryName(Datenpfad.Wirtschaft())!, "karten", "greybox.json");
+    static string Kartenpfad => Datenpfad.Karte("greybox");
 
     static (Simulation Sim, Stadtwirtschaft W) Greybox(Wirtschaftsdaten? daten = null)
     {

@@ -5,7 +5,7 @@ Jedes Modell hat ein eigenes Skript in diesem Ordner und läuft auf zwei Wegen:
     blender -b --python tools/modelle/<name>.py        Blender als Programm
     python tools/modelle/<name>.py                     Blender als Python-Modul (pip install bpy)
 
-Es schreibt game/assets/modelle/<name>.glb und Vorschaubilder nach docs/modelle/.
+Es schreibt game/assets/modelle/<unterordner>/<name>.glb (siehe unterordner()) und Vorschaubilder nach docs/modelle/.
 
 Koordinaten beim Bauen (Blender): Meter, Z oben, Vorderseite des Hauses nach -Y.
 Der glTF-Export macht daraus Y oben und Vorderseite +Z – so, wie das Spiel es braucht.
@@ -30,6 +30,10 @@ from mathutils import Matrix, Vector
 WURZEL = os.path.abspath(os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", ".."))
 MODELLE = os.path.join(WURZEL, "game", "assets", "modelle")
 VORSCHAU = os.path.join(WURZEL, "docs", "modelle")
+
+# Modelle der Umlandbetriebe, des Felsbergs und der Umlandstellen (Unterordner umland/); ein neues Umlandmodell gehört hier dazu.
+UMLAND_MODELLE = {"grube", "holzschlag", "steinbruch", "kraeutergarten", "duftgarten", "bauernhof", "klosterhof", "wachturm",
+                  "berg_grube", "umland_stellen"}
 
 KAMERA_NEIGUNG = 40.0        # Grad, wie im Spiel
 UNSICHTBAR_Z = -0.77         # Normale mit z darunter (> 50° nach unten) sieht die Kamera nie
@@ -1111,11 +1115,11 @@ _MATERIALARTEN = None
 
 def materialart(name):
     """Oberflächendetails: Struktur des Materials `name` als Zahl (0 keine, 1 Holz, 2 Bretter, 3 Mauer, 4 Fels, 5 Ziegel,
-    6 Stroh, 7 Schiefer, 8 Laub, 9 Boden) nach game/assets/oberflaeche/materialarten.json – dieselbe Tabelle liest das Spiel."""
+    6 Stroh, 7 Schiefer, 8 Laub, 9 Boden) nach game/daten/materialarten.json – dieselbe Tabelle liest das Spiel."""
     global _MATERIALARTEN
     if _MATERIALARTEN is None:
         import json
-        with open(os.path.join(WURZEL, "game", "assets", "oberflaeche", "materialarten.json"), encoding="utf-8") as f:
+        with open(os.path.join(WURZEL, "game", "daten", "materialarten.json"), encoding="utf-8") as f:
             _MATERIALARTEN = json.load(f)
     t = _MATERIALARTEN
     name = name.split(".")[0]
@@ -1208,10 +1212,28 @@ def farben_zusammenlegen(objekte, behalten=BENANNTE_STOFFE):
     return len(vorher), len(nachher)
 
 
+def unterordner(name):
+    """Unterordner des Modells `name` unter game/assets/modelle/ – nach Art getrennt, wie der Gebäudekatalog sie nennt
+    („gebaeude/schmied“): innen (…_innen), natur (natur_…), figuren (figur_…), fahrzeuge (karren_…), tiere (vogel_…),
+    umland (UMLAND_MODELLE), sonst gebaeude (Wohn- und Einwohnerhäuser, Werkstätten, Sonderbauten, Markt)."""
+    if name.endswith("_innen"):
+        return "innen"
+    for anfang, ordner in (("natur_", "natur"), ("figur_", "figuren"), ("karren_", "fahrzeuge"), ("vogel_", "tiere")):
+        if name.startswith(anfang):
+            return ordner
+    return "umland" if name in UMLAND_MODELLE else "gebaeude"
+
+
+def modellpfad(name):
+    """Pfad der Datei game/assets/modelle/<unterordner>/<name>.glb (der Ordner wird angelegt)."""
+    ordner = os.path.join(MODELLE, unterordner(name))
+    os.makedirs(ordner, exist_ok=True)
+    return os.path.join(ordner, name + ".glb")
+
+
 def exportieren(name, objekte):
-    """GLB nach game/assets/modelle/<name>.glb – Y oben, Vorderseite +Z, nur diese Objekte."""
-    os.makedirs(MODELLE, exist_ok=True)
-    pfad = os.path.join(MODELLE, name + ".glb")
+    """GLB nach game/assets/modelle/<unterordner>/<name>.glb – Y oben, Vorderseite +Z, nur diese Objekte."""
+    pfad = modellpfad(name)
     mit_kindern = set(objekte) | {k for o in objekte for k in o.children_recursive}
     for o in bpy.context.scene.objects:
         o.select_set(o in mit_kindern)
@@ -1550,7 +1572,7 @@ def nebeneinander(name, bilder, texte):
         gesamt.paste(t.crop((rand, 0, w - rand, h)), (i * (w - 2 * rand), 0))
     zeichnen = ImageDraw.Draw(gesamt)
     try:
-        schrift = ImageFont.truetype(os.path.join(WURZEL, "game", "assets", "schriften", "Alegreya-Variabel.ttf"), int(h / 30))
+        schrift = ImageFont.truetype(os.path.join(WURZEL, "game", "assets", "oberflaeche", "schriften", "Alegreya-Variabel.ttf"), int(h / 30))
     except OSError:
         schrift = ImageFont.load_default()
     for i, text in enumerate(texte):

@@ -3,7 +3,7 @@
     blender -b --python tools/modelle/holzschlag.py        oder
     python tools/modelle/holzschlag.py [--schnell] [--ohne-bilder]
 
-Schreibt game/assets/modelle/holzschlag.glb und Bilder nach docs/modelle/.
+Schreibt game/assets/modelle/umland/holzschlag.glb und Bilder nach docs/modelle/.
 
 Objekte im GLB (siehe landbau.py):
     Haus        Blockhütte mit Schindeldach, Tannen am Rand, Baumstümpfe, Reisighaufen

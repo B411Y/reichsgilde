@@ -3,7 +3,7 @@
     blender -b --python tools/modelle/tischler.py        oder
     python tools/modelle/tischler.py [--schnell] [--ohne-bilder] [--nur-anker] [--nur-nacht]
 
-Schreibt game/assets/modelle/tischler.glb und Bilder nach docs/modelle/.
+Schreibt game/assets/modelle/gebaeude/tischler.glb und Bilder nach docs/modelle/.
 
 Objekte im GLB (wie beim Schmied):
     Haus        die Werkstatt mit dem Giebel zur Gasse, in jeder Stufe gleich

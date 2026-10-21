@@ -3,7 +3,7 @@
     blender -b --python tools/modelle/dieb.py        oder
     python tools/modelle/dieb.py [--schnell] [--ohne-bilder] [--nur-anker] [--nur-nacht]
 
-Schreibt game/assets/modelle/dieb.glb und Bilder nach docs/modelle/.
+Schreibt game/assets/modelle/gebaeude/dieb.glb und Bilder nach docs/modelle/.
 
 Objekte im GLB (wie bei den anderen Werkstätten):
     Haus        das Diebesnest, heruntergekommen, in jeder Stufe gleich

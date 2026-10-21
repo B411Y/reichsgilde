@@ -3,7 +3,7 @@
     blender -b --python tools/modelle/wachturm.py        oder
     python tools/modelle/wachturm.py [--schnell] [--ohne-bilder]
 
-Schreibt game/assets/modelle/wachturm.glb und Bilder nach docs/modelle/.
+Schreibt game/assets/modelle/umland/wachturm.glb und Bilder nach docs/modelle/.
 
 Objekte im GLB (siehe landbau.py):
     Haus        quadratischer Turm aus Bruchstein mit Eckquadern, Schießscharten, Tür über einer Treppe,

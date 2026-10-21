@@ -15,7 +15,7 @@ Gemeinsame Bausteine in Blender-Koordinaten (Z oben, die Vorderseite eines Raums
                     Kranbalken und Himmel dahinter
     pruefbericht    Dreiecke je Knoten und je Stufe, deckungsgleiche Flächen; vorschau: Bilder der Blickpunkte und Grundrisse
 
-Materialarten für die Oberflächendetails (game/assets/oberflaeche/materialarten.json): Wo die Form die Struktur schon zeigt –
+Materialarten für die Oberflächendetails (game/daten/materialarten.json): Wo die Form die Struktur schon zeigt –
 Steine, Ziegel, Bretter mit Fugen –, heißen die Materialien so, dass die Tabelle „keine“ liefert (Kalkputz, Moertel,
 Bruch …, Ziegelboden …, Diele …): Die Oberflächendetails legen dort keine zweite Struktur darüber. Balken („Fachwerk“, „Holz“) behalten die Holzmaserung, der Lehmboden („Erde hell“) die Bodentupfen.
 """

@@ -3,7 +3,7 @@
     blender -b --python tools/modelle/karren.py        oder
     python tools/modelle/karren.py [--schnell] [--ohne-bilder]
 
-Schreibt game/assets/modelle/karren_hand.glb, karren_ochse.glb, karren_krieg.glb und Bilder nach docs/modelle/.
+Schreibt game/assets/modelle/fahrzeuge/karren_hand.glb, karren_ochse.glb, karren_krieg.glb und Bilder nach docs/modelle/.
 
 Inhalt je Datei (Blender: Z oben, Fahrtrichtung -Y; im Spiel Y oben, Fahrtrichtung +Z; Ursprung unter der Radachse
 des Wagens auf dem Boden):

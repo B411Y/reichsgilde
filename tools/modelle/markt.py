@@ -3,7 +3,7 @@
     blender -b --python tools/modelle/markt.py        oder
     python tools/modelle/markt.py [--schnell] [--ohne-bilder]
 
-Schreibt game/assets/modelle/marktplatz.glb und marktstaende.glb, Bilder nach docs/modelle/.
+Schreibt game/assets/modelle/gebaeude/marktplatz.glb und marktstaende.glb, Bilder nach docs/modelle/.
 
 marktplatz.glb (24 × 24 m, Ursprung in der Mitte des Platzes = `Marktplatz` im Spiel):
     Platz               Pflaster mit Fugen, Brunnen mit Säule und Wasserspeiern, Marktkreuz, drei Bänke

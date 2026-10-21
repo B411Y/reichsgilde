@@ -3,7 +3,7 @@
     blender -b --python tools/modelle/umland_stellen.py        oder
     python tools/modelle/umland_stellen.py [--schnell] [--ohne-bilder]
 
-Schreibt game/assets/modelle/umland_stellen.glb und Bilder nach docs/modelle/.
+Schreibt game/assets/modelle/umland/umland_stellen.glb und Bilder nach docs/modelle/.
 
 Objekte im GLB, jedes mit eigenem Ursprung im Nullpunkt (Mitte der Stelle, wie `Umlandstellen` im Spiel):
     Weide   Koppel 14 × 10 m mit Zaun und Gatter, Tränke, zwei Büsche, Weidestein

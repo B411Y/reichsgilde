@@ -3,7 +3,7 @@ using Godot;
 namespace Reichsgilde;
 
 /// <summary>
-/// Die gemeinsame Einsetz-Hilfe für Modelle aus Blender (<c>game/assets/modelle/*.glb</c>) – zehnter Teil der <c>partial class Stadtansicht</c>.
+/// Die gemeinsame Einsetz-Hilfe für Modelle aus Blender (<c>game/assets/modelle/&lt;unterordner&gt;/*.glb</c>) – zehnter Teil der <c>partial class Stadtansicht</c>.
 /// Wohnhäuser der Spielhäuser, Einwohnerhäuser und Werkstätten setzen ihre Modelle alle über <see cref="ModellEinsetzen"/> ein:
 /// Laden (jede Datei nur einmal), Zustände nach Namen schalten, Hausfarbe, Ruß, Fahne, Fensterlicht und Ankerpunkte.
 /// Konventionen der Modelle: <c>docs/bereiche/darstellung.md</c>.
@@ -17,7 +17,8 @@ public partial class Stadtansicht
     private readonly Dictionary<string, PackedScene?> _modellSzenen = new();
 
     /// <summary>
-    /// Das Modell <c>res://assets/modelle/&lt;datei&gt;.glb</c>, einmal geladen. Fehlt die Datei, meldet das Spiel einen Fehler
+    /// Das Modell <c>res://assets/modelle/&lt;datei&gt;.glb</c>, einmal geladen; <paramref name="datei"/> nennt den Unterordner mit
+    /// (<c>gebaeude/schmied</c>, wie <c>modell</c> im Gebäudekatalog). Fehlt die Datei, meldet das Spiel einen Fehler
     /// (der Rauchtest schlägt an) und gibt null zurück – es gibt keinen Rückfall auf Grundkörper.
     /// </summary>
     private PackedScene? Modell(string datei)

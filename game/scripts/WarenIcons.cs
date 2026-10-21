@@ -3,7 +3,7 @@ using Godot;
 namespace Reichsgilde;
 
 /// <summary>
-/// Die Pixel-Icons der Waren (32 × 32, erzeugt mit tools/icons/waren_icons.py, liegen in res://assets/waren/).
+/// Die Pixel-Icons der Waren (32 × 32, erzeugt mit tools/icons/waren_icons.py, liegen in res://assets/oberflaeche/icons/).
 /// Fehlt ein Icon (z. B. eine neue Ware in den Daten), zeigt das Spiel einen Platzhalter mit dem Anfangsbuchstaben.
 /// </summary>
 public static class WarenIcons
@@ -17,7 +17,7 @@ public static class WarenIcons
     public static Texture2D? Icon(string ware)
     {
         if (Zwischenspeicher.TryGetValue(ware, out var bild)) return bild;
-        var pfad = "res://assets/waren/" + Dateiname(ware);
+        var pfad = "res://assets/oberflaeche/icons/" + Dateiname(ware);
         bild = ResourceLoader.Exists(pfad) ? GD.Load<Texture2D>(pfad) : null;
         Zwischenspeicher[ware] = bild;
         return bild;

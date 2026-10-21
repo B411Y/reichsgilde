@@ -15,7 +15,7 @@ static class KartenformatTests
     static readonly Lazy<Wirtschaftsdaten> Daten = new(() => Wirtschaftsdaten.AusJson(Datenpfad.OhneAktionspunkte()));
 
     static string Datenordner => Path.GetDirectoryName(Datenpfad.Wirtschaft())!;
-    static string GreyboxPfad => Path.Combine(Datenordner, "karten", "greybox.json");
+    static string GreyboxPfad => Datenpfad.Karte("greybox");
     static Gebaeudekatalog Katalog() => Gebaeudekatalog.AusDatei(Path.Combine(Datenordner, "katalog.json"));
     static Stadtkarte Greybox() => Stadtkarte.AusDatei(GreyboxPfad);
 
@@ -36,9 +36,9 @@ static class KartenformatTests
             Pruefe.Gleich(Bausteinart.Werkstattplatz, k.Finde("werkstattplatz")!.Art);
             Pruefe.Wahr(k.Finde("werkstattplatz")!.Modell is null, "Ein Werkstattplatz hat kein festes Modell");
             Pruefe.Gleich("grube", k.Umland(Betriebsart.Mine)!.Kennung);
-            Pruefe.Gleich("tischler", k.Werkstatt("Tischler")!.Modell);
-            Pruefe.Gleich("stadthof", k.Wohnhaus(4)!.Modell);
-            Pruefe.Gleich("einwohner_ratsherrenhaus", k.Einwohnerhaus("Ratsherrenhaus")!.Modell);
+            Pruefe.Gleich("gebaeude/tischler", k.Werkstatt("Tischler")!.Modell);
+            Pruefe.Gleich("gebaeude/stadthof", k.Wohnhaus(4)!.Modell);
+            Pruefe.Gleich("gebaeude/einwohner_ratsherrenhaus", k.Einwohnerhaus("Ratsherrenhaus")!.Modell);
             Pruefe.Gleich(3, k.Finde("tanne")!.Varianten);
             Pruefe.Gleich(-2.85, k.Finde("dom")!.Versatz![1]);
             Pruefe.Wahr(k.Finde("schloss") is null, "unbekannte Kennung");
@@ -52,15 +52,17 @@ static class KartenformatTests
 
         ("Katalog: Modelle und Katalog passen zusammen – jedes Modell des Katalogs gibt es, jedes Modell der Stadt steht im Katalog", () =>
         {
+            // Modelle liegen in Unterordnern (gebaeude/, umland/ …); der Katalog nennt sie mit Unterordner: „gebaeude/schmied“.
             var ordner = Path.Combine(Path.GetDirectoryName(Datenordner)!, "assets", "modelle");
-            var dateien = Directory.GetFiles(ordner, "*.glb").Select(Path.GetFileNameWithoutExtension).OfType<string>().ToHashSet();
+            var dateien = Directory.GetFiles(ordner, "*.glb", SearchOption.AllDirectories)
+                .Select(d => Path.GetRelativePath(ordner, d).Replace('\\', '/')[..^".glb".Length]).ToHashSet();
             var k = Katalog();
             foreach (var b in k.Bausteine.Where(b => b.Modell is not null))
                 Pruefe.Wahr(dateien.Contains(b.Modell!), $"Baustein „{b.Kennung}“: Modell {b.Modell}.glb fehlt");
             // Nicht in der Stadt aufgestellt: Figuren, Karren, Vögel, Innenräume; die Marktstände gehören zum Markt.
             var imKatalog = k.Bausteine.Select(b => b.Modell).OfType<string>().ToHashSet();
-            var fehlen = dateien.Where(d => !imKatalog.Contains(d) && !d.StartsWith("figur_") && !d.StartsWith("karren_") && !d.StartsWith("vogel_")
-                                            && !d.EndsWith("_innen") && d != "marktstaende").ToList();
+            var fehlen = dateien.Where(d => !imKatalog.Contains(d) && !d.StartsWith("figuren/") && !d.StartsWith("fahrzeuge/") && !d.StartsWith("tiere/")
+                                            && !d.StartsWith("innen/") && d != "gebaeude/marktstaende").ToList();
             Pruefe.Wahr(fehlen.Count == 0, "Modelle ohne Baustein im Katalog: " + string.Join(", ", fehlen));
         }),
 
@@ -213,7 +215,7 @@ static class KartenformatTests
             Pruefe.Gleich(11, w.Karte.Bauzonen.Count);
             Pruefe.Gleich(string.Join(" | ", sim.Wirtschaft!.Bauen.Grundstuecke.Select(g => $"{g.Kennung} {g.Grundriss} {g.Besitzer?.Inhaber}")),
                           string.Join(" | ", w.Bauen.Grundstuecke.Select(g => $"{g.Kennung} {g.Grundriss} {g.Besitzer?.Inhaber}")));
-            var koeln = Stadtkarte.AusDatei(Path.Combine(Datenordner, "karten", "koeln.json"));
+            var koeln = Stadtkarte.AusDatei(Datenpfad.Karte("koeln"));
             Pruefe.WirftMitMeldung(() => Speicherung.Laden(alt, koeln), "gehört zur Karte „greybox“");
         }),
 

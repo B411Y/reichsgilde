@@ -62,7 +62,7 @@ public partial class Stadtansicht
             var vielfach = new MultiMesh { TransformFormat = MultiMesh.TransformFormatEnum.Transform3D, Mesh = netz, InstanceCount = lagen.Count };
             for (var i = 0; i < lagen.Count; i++) vielfach.SetInstanceTransform(i, lagen[i]);
             // Bäume und Büsche haben eine kahle Fassung „<Name>_Winter“ (Tanne, Ginster und Wacholder nicht): im Winter tauscht JahreszeitSetzen das Netz
-            if ((datei is "natur_baeume" or "natur_buesche") && NaturNetz(datei, knoten + "_Winter", pflicht: false) is { } winter)
+            if ((datei is "natur/natur_baeume" or "natur/natur_buesche") && NaturNetz(datei, knoten + "_Winter", pflicht: false) is { } winter)
             {
                 _naturWinter.Add((vielfach, netz, winter));
                 if (_jahreszeit == Jahreszeit.Winter) vielfach.Mesh = winter;
@@ -71,7 +71,7 @@ public partial class Stadtansicht
             {
                 Name = knoten,
                 Multimesh = vielfach,
-                CastShadow = datei == "natur_boden" ? GeometryInstance3D.ShadowCastingSetting.Off : GeometryInstance3D.ShadowCastingSetting.On,
+                CastShadow = datei == "natur/natur_boden" ? GeometryInstance3D.ShadowCastingSetting.Off : GeometryInstance3D.ShadowCastingSetting.On,
             });
         }
         _naturLagen.Clear();

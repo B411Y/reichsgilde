@@ -3,7 +3,7 @@
     blender -b --python tools/modelle/natur_holz.py        oder
     python tools/modelle/natur_holz.py [--schnell] [--ohne-bilder]
 
-Schreibt game/assets/modelle/natur_holz.glb und docs/modelle/natur_holz.png.
+Schreibt game/assets/modelle/natur/natur_holz.glb und docs/modelle/natur_holz.png.
 
 Knoten (Ursprung je in der Mitte am Boden):
     Totholz1–2      umgestürzter Stamm mit Wurzelteller (1) oder abgebrochen mit Pilzen (2), 4–5 m

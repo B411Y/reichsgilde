@@ -3,7 +3,7 @@
     blender -b --python tools/modelle/einwohner_buergerhaus.py        oder
     python tools/modelle/einwohner_buergerhaus.py [--schnell] [--ohne-bilder] [--nur-anker] [--nur-nacht]
 
-Schreibt game/assets/modelle/einwohner_buergerhaus.glb und Bilder nach docs/modelle/.
+Schreibt game/assets/modelle/gebaeude/einwohner_buergerhaus.glb und Bilder nach docs/modelle/.
 
 Objekte im GLB:
     Variante1   heller Kalkputz, Fachwerkgiebel, Ziegeldach

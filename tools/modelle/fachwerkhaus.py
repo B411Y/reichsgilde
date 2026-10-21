@@ -3,7 +3,7 @@
     blender -b --python tools/modelle/fachwerkhaus.py        oder
     python tools/modelle/fachwerkhaus.py [--schnell] [--ohne-bilder]
 
-Schreibt game/assets/modelle/fachwerkhaus.glb und Bilder nach docs/modelle/.
+Schreibt game/assets/modelle/gebaeude/fachwerkhaus.glb und Bilder nach docs/modelle/.
 
 Objekte im GLB wie beim Bürgerhaus: Haus, Wappen, Fahne, Leerstand und Geruest (die beiden
 letzten standardmäßig aus).

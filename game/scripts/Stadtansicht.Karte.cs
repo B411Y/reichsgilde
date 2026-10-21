@@ -231,7 +231,7 @@ public partial class Stadtansicht
         var linie = mauer.Linie.Select(Punkt3).ToList();
         if (linie.Count < 2) return;
         var mitte = linie.Aggregate(Vector3.Zero, (s, p) => s + p) / linie.Count;
-        var datei = Katalog?.Finde(mauer.Katalog)?.Modell ?? "stadtmauer";
+        var datei = Katalog?.Finde(mauer.Katalog)?.Modell ?? "gebaeude/stadtmauer";
         MauerAufbauen(datei, linie, mauer.Geschlossen, mitte, mauer.Tore.Select(t => (t.Name, Punkt3(t.Punkt))).ToList());
     }
 

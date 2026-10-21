@@ -3,7 +3,7 @@
     blender -b --python tools/modelle/steinbruch.py        oder
     python tools/modelle/steinbruch.py [--schnell] [--ohne-bilder]
 
-Schreibt game/assets/modelle/steinbruch.glb und Bilder nach docs/modelle/.
+Schreibt game/assets/modelle/umland/steinbruch.glb und Bilder nach docs/modelle/.
 
 Objekte im GLB (siehe landbau.py):
     Haus        abgetreppte Bruchwand mit hellen Schnittflächen, Felsen, Schuppen aus Bruchstein, Splitt

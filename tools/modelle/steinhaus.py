@@ -3,7 +3,7 @@
     blender -b --python tools/modelle/steinhaus.py        oder
     python tools/modelle/steinhaus.py [--schnell] [--ohne-bilder]
 
-Schreibt game/assets/modelle/steinhaus.glb und Bilder nach docs/modelle/.
+Schreibt game/assets/modelle/gebaeude/steinhaus.glb und Bilder nach docs/modelle/.
 
 Objekte im GLB wie bei den anderen Wohnhäusern: Haus, Wappen, Fahne, Leerstand und Geruest
 (die beiden letzten standardmäßig aus).

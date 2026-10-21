@@ -3,7 +3,7 @@
     blender -b --python tools/modelle/kraeutergarten.py        oder
     python tools/modelle/kraeutergarten.py [--schnell] [--ohne-bilder]
 
-Schreibt game/assets/modelle/kraeutergarten.glb und Bilder nach docs/modelle/.
+Schreibt game/assets/modelle/umland/kraeutergarten.glb und Bilder nach docs/modelle/.
 
 Objekte im GLB (siehe landbau.py):
     Haus        Gärtnerhütte in Fachwerk mit Strohdach, vier Beete mit Holzeinfassung, Krötenteich mit Schilf,

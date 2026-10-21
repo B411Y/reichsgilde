@@ -1,6 +1,6 @@
 """Prüft eine GLB-Datei gegen die Konventionen der Gebäudemodelle. Braucht kein Blender.
 
-    python tools/modelle/pruefen.py game/assets/modelle/fachwerkhaus.glb 8 10
+    python tools/modelle/pruefen.py game/assets/modelle/gebaeude/fachwerkhaus.glb 8 10
 
 Gibt Knoten, Materialien, Dreiecke je Knoten und die Ausdehnung (Y oben, Vorderseite +Z) aus
 und meldet Verstöße: Material „Hausfarbe“ fehlt, Modell ragt über die belegte Fläche oder
@@ -118,7 +118,7 @@ def innen(pfad, g):
         return next((r for r, (lo, hi) in raeume.items() if all(lo[k] - 1e-3 <= p[k] <= hi[k] + 1e-3 for k in range(3))), None)
 
     bewegungen, teile = None, None
-    figur = os.path.join(os.path.dirname(os.path.abspath(pfad)), "figur_mensch.glb")
+    figur = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(pfad))), "figuren", "figur_mensch.glb")   # neben innen/
     if os.path.exists(figur):
         figur_glb = lesen(figur)
         bewegungen = {a["name"] for a in figur_glb.get("animations", [])}

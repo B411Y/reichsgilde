@@ -3,7 +3,7 @@ using Godot;
 namespace Reichsgilde;
 
 /// <summary>
-/// Die Schriften des Spiels (beide frei unter der SIL Open Font License, Lizenztexte in res://assets/schriften/):
+/// Die Schriften des Spiels (beide frei unter der SIL Open Font License, Lizenztexte in res://assets/oberflaeche/schriften/):
 ///   • <b>Alegreya</b> – Buchschrift für allen Text in Tafeln, Knöpfen und Listen,
 ///   • <b>Germania One</b> – gebrochene Schrift für Überschriften und die Namen in der Stadt.
 ///
@@ -33,7 +33,7 @@ public static class Schriften
     /// </summary>
     public static FontVariation Text => _text ??= new FontVariation
     {
-        BaseFont = GD.Load<FontFile>("res://assets/schriften/Alegreya-Variabel.ttf"),
+        BaseFont = GD.Load<FontFile>("res://assets/oberflaeche/schriften/Alegreya-Variabel.ttf"),
         VariationOpentype = new Godot.Collections.Dictionary { { Kennzeichen("wght"), 500 } },
         OpentypeFeatures = new Godot.Collections.Dictionary { { Kennzeichen("lnum"), 1 }, { Kennzeichen("tnum"), 1 } },
     };
@@ -43,7 +43,7 @@ public static class Schriften
 
     public static FontVariation Ueberschrift => _ueberschrift ??= new FontVariation
     {
-        BaseFont = GD.Load<FontFile>("res://assets/schriften/GermaniaOne-Regular.ttf"),
+        BaseFont = GD.Load<FontFile>("res://assets/oberflaeche/schriften/GermaniaOne-Regular.ttf"),
         // Fehlt Germania ein Zeichen (z. B. „×“), springt Alegreya ein statt eines leeren Kästchens.
         Fallbacks = new Godot.Collections.Array<Font> { Text },
     };

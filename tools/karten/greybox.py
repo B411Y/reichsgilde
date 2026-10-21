@@ -5,7 +5,7 @@ Greybox-Stadt – die Platzhalter-Stadt des Spiels als Kartendatei (Kartenformat
 Aufruf (aus dem Projektordner):
     python3 tools/karten/greybox.py
 
-Schreibt game/data/karten/greybox.json und docs/karten/greybox.svg (dazu greybox-belegung.svg), aber nur, wenn alle
+Schreibt game/karten/greybox.json und docs/karten/greybox.svg (dazu greybox-belegung.svg), aber nur, wenn alle
 Regeln erfüllt sind (siehe karte.py und „Prüfungen der Greybox“ unten).
 
 Seit PR #163 ist diese Karte die **einzige Quelle** dafür, wo in der Greybox-Stadt etwas steht: Die Stadtansicht zeichnet Mauer, Wege,
@@ -218,7 +218,7 @@ for name, (x, z) in werkstatt_mitte.items():
 umland_drehung, umland_hof = {}, {}
 for name, (p, abzweig) in UMLAND.items():
     umland_drehung[name] = HANDDREHUNG.get(name, drehung_zu(abzweig[0] - p[0], abzweig[1] - p[1]))
-    ax, az = anker(UMLANDKATALOG[name.split(" ")[0]], "Anker_Karren")
+    ax, az = anker(k.katalog[UMLANDKATALOG[name.split(" ")[0]]]["modell"], "Anker_Karren")
     dx, dz = dreh(ax, az, umland_drehung[name])
     umland_hof[name] = (p[0] + dx, p[1] + dz)
 
@@ -233,7 +233,7 @@ for name, (p, abzweig) in UMLAND.items():
 
 # Fußwege zu Weide, Feld und Wald: von der Weststraße bis ans Gatter („Anker_Tuer“ in umland_stellen.glb)
 stelle_drehung = {name: drehung_zu(zugang[0] - mitte[0], zugang[1] - mitte[1]) for name, (_, mitte, zugang) in UMLANDSTELLEN.items()}
-gatter_lokal = anker("umland_stellen", "Anker_Tuer")
+gatter_lokal = anker(k.katalog["weide"]["modell"], "Anker_Tuer")      # Weide, Feld und Wald: ein Baukasten
 for name, (_, mitte, zugang) in UMLANDSTELLEN.items():
     dx, dz = dreh(*gatter_lokal, stelle_drehung[name])
     k.weg(f"Fußweg {name}", "gasse", [zugang, (mitte[0] + dx, mitte[1] + dz)], breite=2)

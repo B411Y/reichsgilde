@@ -6,7 +6,7 @@ https://creativecommons.org/licenses/by/4.0/deed.de (Vertragstext: https://creat
 
 Dazu gehören:
 
-- alles unter `game/assets/` – außer den Schriften in `game/assets/schriften/` (SIL Open Font License 1.1, Lizenztexte dort)
+- alles unter `game/assets/` – außer den Schriften in `game/assets/oberflaeche/schriften/` (SIL Open Font License 1.1, Lizenztexte dort)
 - die Texte und Bilder unter `docs/` und die Bilder, die die README einbindet
 
 Der Code steht unter der [MIT-Lizenz](LICENSE), auch die Skripte unter `tools/`, die Icons, Modelle und Karten erzeugen.

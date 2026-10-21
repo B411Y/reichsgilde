@@ -4,7 +4,7 @@ Tischlerei, Drechslerei, Sägewerk.
     blender -b --python tools/modelle/tischler_innen.py -- [--schnell] [--ohne-bilder]
     python tools/modelle/tischler_innen.py [--schnell] [--ohne-bilder]
 
-Schreibt game/assets/modelle/tischler_innen.glb und Bilder nach docs/modelle/ (tischler_innen-blicke.png: das Bild jedes
+Schreibt game/assets/modelle/innen/tischler_innen.glb und Bilder nach docs/modelle/ (tischler_innen-blicke.png: das Bild jedes
 Blickpunkts, tischler_innen-stufen.png: Erdgeschoss von oben je Stufe, tischler_innen-grundriss.png: Erdgeschoss und
 Dachboden mit Ankern).
 
@@ -1202,7 +1202,7 @@ def exportieren(objekte, name=NAME):
     """GLB mit der Animation „Arbeit“ (wie bausteine.exportieren, aber mit Animationen aus den NLA-Spuren); mit UV für die
     Materialart je Fläche (Oberflächendetails). `name`: Datei (auch für steinmetz_innen)."""
     import bpy
-    pfad = os.path.join(bs.MODELLE, name + ".glb")
+    pfad = bs.modellpfad(name)
     mit_kindern = set(objekte) | {k for o in objekte for k in o.children_recursive}
     for o in bpy.context.scene.objects:
         o.select_set(o in mit_kindern)

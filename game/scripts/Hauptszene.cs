@@ -66,7 +66,7 @@ namespace Reichsgilde;
 public partial class Hauptszene : Node
 {
     private const int MaxProtokollZeilen = 5;
-    private const string WirtschaftsdatenPfad = "res://data/wirtschaft.json";
+    private const string WirtschaftsdatenPfad = "res://daten/wirtschaft.json";
 
     private Simulation _simulation = null!;
     private readonly List<string> _protokoll = new();
@@ -720,7 +720,7 @@ public partial class Hauptszene : Node
         if (!_simulation.IstBeendet) _simulation.Takt.IstPausiert = _warPausiertVorMenue;
     }
 
-    /// <summary>Liest game/data/wirtschaft.json. Bei Fehlern: Meldung ins Protokoll und null.</summary>
+    /// <summary>Liest game/daten/wirtschaft.json. Bei Fehlern: Meldung ins Protokoll und null.</summary>
     private Wirtschaftsdaten? WirtschaftsdatenLaden()
     {
         try

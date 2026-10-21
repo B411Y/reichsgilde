@@ -311,10 +311,16 @@ reichsgilde/
 ├── game/                           Das Godot-Projekt (Darstellung, Szenen, Eingabe)
 │   ├── project.godot
 │   ├── Reichsgilde.csproj
-│   ├── data/wirtschaft.json        Alle Zahlen des Wirtschaftsmodells (aus dem Balancing-Rechner)
-│   ├── data/katalog.json           Gebäudekatalog: was jeder Baustein ist (Modell, Grundfläche)
-│   ├── data/karten/                Stadtkarten als JSON, Format 2: wo alles steht (erzeugt von tools/karten)
-│   ├── assets/waren/               Pixel-Icons der Waren (32 × 32, erzeugt von tools/icons)
+│   ├── daten/                      Datentabellen: wirtschaft.json (alle Zahlen des Wirtschaftsmodells),
+│   │                               katalog.json (Gebäudekatalog: Modell, Grundfläche), materialarten.json
+│   ├── karten/                     Stadtkarten als JSON, Format 2: wo alles steht (erzeugt von tools/karten)
+│   ├── assets/                     Dateien nach Art getrennt:
+│   │   ├── modelle/                3D-Modelle (.glb, aus tools/modelle) in gebaeude/, innen/, umland/,
+│   │   │                           natur/, figuren/, fahrzeuge/, tiere/
+│   │   ├── texturen/               Strukturen der Oberflächendetails (aus tools/oberflaeche)
+│   │   ├── shader/                 Shader (Fahnen, Figuren, Oberflächendetails)
+│   │   ├── oberflaeche/            Spieloberfläche: icons/ (Waren-Icons aus tools/icons), schriften/, wappen/
+│   │   └── audio/                  musik/, geraeusche/ (noch leer)
 │   ├── scenes/                     Szenen (.tscn)
 │   └── scripts/                    C#-Skripte, die an Szenen hängen
 ├── src/Reichsgilde.Core/           Simulationskern – die reine Spiellogik, OHNE Godot
@@ -335,6 +341,8 @@ reichsgilde/
 ├── tests/Reichsgilde.Core.Tests/   Automatische Tests für den Simulationskern
 ├── tools/icons/waren_icons.py      Zeichnet die Waren-Icons (Python + Pillow)
 ├── tools/karten/                   Kartenwerkzeug und ein Skript je Stadt (prüft die Kartenregeln)
+├── tools/modelle/                  Blender-Skripte, eines je Modell (schreiben nach game/assets/modelle/<unterordner>/)
+├── tools/oberflaeche/texturen.py   Strukturen der Oberflächendetails (Python + numpy)
 ├── docs/
 │   ├── ARCHITEKTUR.md              Wie der Code aufgebaut ist und warum
 │   ├── bereiche/                   Offene Punkte und neue Entscheidungen je Bereich (Kern, Spiel-KI, Darstellung …)
@@ -370,4 +378,4 @@ Nach jedem Merge auf `main` hält die Action **„PRs aktuell halten“** ([`.gi
 
 ## Lizenz
 
-Code: [MIT](LICENSE), auch die Skripte, die Icons und Modelle zeichnen. Grafiken, 3D-Modelle, Icons, Bilder und Texte: [CC BY 4.0](LICENSE-INHALTE.md) – frei nutzbar, auch kommerziell, mit Namensnennung. Schriften: **Alegreya** (The Alegreya Project Authors) und **Germania One** (John Vargas Beltrán), beide unter der [SIL Open Font License 1.1](game/assets/schriften/) – die Lizenztexte liegen neben den Schriftdateien. Dieses Projekt verwendet **keine** Grafiken, Sounds, Texte oder sonstigen Inhalte aus „Die Gilde“ – das Original dient nur als Vorbild für Spielmechaniken.
+Code: [MIT](LICENSE), auch die Skripte, die Icons und Modelle zeichnen. Grafiken, 3D-Modelle, Icons, Bilder und Texte: [CC BY 4.0](LICENSE-INHALTE.md) – frei nutzbar, auch kommerziell, mit Namensnennung. Schriften: **Alegreya** (The Alegreya Project Authors) und **Germania One** (John Vargas Beltrán), beide unter der [SIL Open Font License 1.1](game/assets/oberflaeche/schriften/) – die Lizenztexte liegen neben den Schriftdateien. Dieses Projekt verwendet **keine** Grafiken, Sounds, Texte oder sonstigen Inhalte aus „Die Gilde“ – das Original dient nur als Vorbild für Spielmechaniken.

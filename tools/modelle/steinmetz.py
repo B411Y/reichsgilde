@@ -4,7 +4,7 @@ Fläche 16 × 14 m.
     blender -b --python tools/modelle/steinmetz.py        oder
     python tools/modelle/steinmetz.py [--schnell] [--ohne-bilder] [--nur-anker] [--nur-nacht]
 
-Schreibt game/assets/modelle/steinmetz.glb und Bilder nach docs/modelle/.
+Schreibt game/assets/modelle/gebaeude/steinmetz.glb und Bilder nach docs/modelle/.
 
 Objekte im GLB (wie beim Schmied und Tischler):
     Haus        die Werkstatt, massiv aus Bruchstein, in jeder Stufe gleich

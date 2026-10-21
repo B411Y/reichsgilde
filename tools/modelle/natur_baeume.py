@@ -3,7 +3,7 @@
     blender -b --python tools/modelle/natur_baeume.py        oder
     python tools/modelle/natur_baeume.py [--schnell] [--ohne-bilder]
 
-Schreibt game/assets/modelle/natur_baeume.glb und docs/modelle/natur_baeume.png.
+Schreibt game/assets/modelle/natur/natur_baeume.glb und docs/modelle/natur_baeume.png.
 
 Knoten (Ursprung je am Stammfuß, Höhe in Klammern):
     Tanne1–3        Nadelbaum mit gestuften Kegeln (11, 8, 6 m) – wie bisher im Spiel, aber ausgearbeitet

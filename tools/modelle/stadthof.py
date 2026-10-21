@@ -3,7 +3,7 @@
     blender -b --python tools/modelle/stadthof.py        oder
     python tools/modelle/stadthof.py [--schnell] [--ohne-bilder] [--nur-anker] [--nur-nacht]
 
-Schreibt game/assets/modelle/stadthof.glb und Bilder nach docs/modelle/.
+Schreibt game/assets/modelle/gebaeude/stadthof.glb und Bilder nach docs/modelle/.
 
 Objekte im GLB wie bei den anderen Wohnhäusern: Haus, Wappen, Fahne, Leerstand und Geruest
 (die beiden letzten standardmäßig aus), dazu der Anker „Anker_Tuer“.

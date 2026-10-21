@@ -2,7 +2,7 @@
 
     python tools/oberflaeche/texturen.py        (braucht nur numpy; z. B. mit dem Python von Blender)
 
-Schreibt game/assets/oberflaeche/strukturen.png: elf Schichten untereinander (512 × 5632), die Godot als Texture2DArray
+Schreibt game/assets/texturen/strukturen.png: elf Schichten untereinander (512 × 5632), die Godot als Texture2DArray
 lädt (strukturen.png.import: slices/vertical=11). Jede Schicht ist ein Material:
     0 Holz (Balken)  1 Bretter  2 Mauer  3 Fels  4 Ziegel  5 Stroh  6 Schiefer  7 Laub  8 Boden
     9 Pflaster (Mauer von oben gesehen)  10 Flecken (großflächige Unterschiede, für alle Arten)
@@ -11,8 +11,8 @@ Kanäle je Pixel, alle um 128 als „nichts“ (der Shader rechnet (Wert − 128
     G  Farbton      (+ wärmer, − kühler)
     B  Neigung der Fläche in U-Richtung (Normal-Map x)
     A  Neigung der Fläche in V-Richtung (Normal-Map y; V zeigt im Bild nach unten)
-Bedeutung und Stärke im Spiel: game/shader/oberflaeche.gdshader. Welche Materialart welches Material bekommt:
-game/assets/oberflaeche/materialarten.json.
+Bedeutung und Stärke im Spiel: game/assets/shader/oberflaeche.gdshader. Welche Materialart welches Material bekommt:
+game/daten/materialarten.json.
 
 Die Strukturen sind bewusst dezent: Die Grundfarbe der Modelle bleibt bestimmend, die Schicht gibt nur Unterschiede
 von Stein zu Stein, weiche Fugen, Maserung und eine leichte Unebenheit im Licht.
@@ -24,7 +24,7 @@ import zlib
 import numpy as np
 
 N = 512
-ZIEL = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "..", "game", "assets", "oberflaeche")
+ZIEL = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "..", "game", "assets", "texturen")
 V, U = np.mgrid[0:N, 0:N] / N          # 0..1, U nach rechts, V nach unten – Muster mit ganzen Perioden sind kachelbar
 
 

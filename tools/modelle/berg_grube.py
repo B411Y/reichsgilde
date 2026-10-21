@@ -3,7 +3,7 @@
     blender -b --python tools/modelle/berg_grube.py        oder
     python tools/modelle/berg_grube.py [--schnell] [--ohne-bilder]
 
-Schreibt game/assets/modelle/berg_grube.glb und docs/modelle/berg_grube.png.
+Schreibt game/assets/modelle/umland/berg_grube.glb und docs/modelle/berg_grube.png.
 
 Inhalt: ein Knoten „Berg“ im Koordinatensystem von grube.glb (Ursprung in der Mitte der Grubenfläche, im Spiel +Z
 zur Straße, der Berg liegt nach −Z). Grundfläche etwa x −24 … 19 und z −39 … −4, Hauptgipfel 11,5 m bei (2|−22),

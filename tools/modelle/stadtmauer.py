@@ -3,7 +3,7 @@
     blender -b --python tools/modelle/stadtmauer.py        oder
     python tools/modelle/stadtmauer.py [--schnell] [--ohne-bilder] [--nur-anker] [--nur-nacht]
 
-Schreibt game/assets/modelle/stadtmauer.glb und Bilder nach docs/modelle/.
+Schreibt game/assets/modelle/gebaeude/stadtmauer.glb und Bilder nach docs/modelle/.
 
 Objekte im GLB – jedes Bauteil liegt mit seinem eigenen Ursprung im Nullpunkt, das Spiel setzt Kopien entlang
 der Mauerlinien der Karte (gerade Strecken, Ecken und Tore; auch für gebogene Mauern wie in Köln):

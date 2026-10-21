@@ -6,8 +6,8 @@ Eine Stadt ist ein eigenes Skript (z. B. koeln.py), das mit den Bausteinen hier 
 Dieses Werkzeug
   • rastet alle Punkte ein (Bauzonen auf das 2-m-Raster),
   • prüft die Kartenregeln aus docs/LEVELDESIGN.md (z. B. „jede Bauzone liegt an einer Karrenstraße“)
-    und die Karte gegen den Gebäudekatalog game/data/katalog.json,
-  • schreibt die Kartendatei game/data/karten/<kennung>.json im Kartenformat 2
+    und die Karte gegen den Gebäudekatalog game/daten/katalog.json,
+  • schreibt die Kartendatei game/karten/<kennung>.json im Kartenformat 2
   • und ein Vorschaubild docs/karten/<kennung>.svg, das nur aus der JSON-Datei (und dem Katalog) gezeichnet wird.
 
 Kartenformat 2 (seit 21.10.2026, docs/LEVELDESIGN.md, „Kartenformat 2“): Die Karte sagt nur, WO etwas steht – je Gebäude die
@@ -30,7 +30,7 @@ KARRENSTRASSEN = {"land", "haupt", "ring", "wall"}
 WEGKLASSEN = KARRENSTRASSEN | {"gasse", "leinpfad"}
 ZONENARTEN = {"kern", "mauerring", "vorstadt", "umland"}
 WURZEL = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-KATALOGDATEI = os.path.join(WURZEL, "game", "data", "katalog.json")
+KATALOGDATEI = os.path.join(WURZEL, "game", "daten", "katalog.json")
 
 # Bausteine dieser Arten stehen unter `gebaeude`; `mauer` steht unter `mauern`, `natur` unter `natur`. Werkstatt, Wohnhaus und
 # Einwohnerhaus wählt das Spiel nach Beruf, Stufe und Hausart – sie stehen nie in einer Karte.
@@ -540,7 +540,7 @@ class Karte:
             for f in fehler:
                 print("FEHLER:", f)
             raise SystemExit(f"{kennung}: {len(fehler)} Regelverstöße, nichts geschrieben")
-        pfad = os.path.join(WURZEL, "game", "data", "karten", f"{kennung}.json")
+        pfad = os.path.join(WURZEL, "game", "karten", f"{kennung}.json")
         os.makedirs(os.path.dirname(pfad), exist_ok=True)
         with open(pfad, "w", encoding="utf-8") as f:
             f.write(json_kompakt(self.daten()) + "\n")
@@ -550,7 +550,7 @@ class Karte:
             f.write(vorschau(pfad, self.katalog))
         with open(svg.replace(".svg", "-belegung.svg"), "w", encoding="utf-8") as f:
             f.write(vorschau(pfad, self.katalog).replace("</svg>", ebene + "\n</svg>"))
-        print(f"   geschrieben: game/data/karten/{kennung}.json, docs/karten/{kennung}.svg, {kennung}-belegung.svg")
+        print(f"   geschrieben: game/karten/{kennung}.json, docs/karten/{kennung}.svg, {kennung}-belegung.svg")
 
 
 def json_kompakt(d, breite=190):
