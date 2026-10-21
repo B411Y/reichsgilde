@@ -82,7 +82,7 @@ public partial class Stadtansicht
     // ═════════════════════════════════════════════════════════════════════════
 
     /// <summary>
-    /// Die Natur der Karte (<c>natur</c>): Jede Fläche bekommt so viele Streupunkte, wie ihre Dichte (je 1.000 m², Fläche ohne Aussparungen) sagt,
+    /// Die Natur der Karte (<c>natur</c>): Jede Fläche bekommt so viele Streupunkte, wie ihre Dichte (je 1.000 m² des Teils, der in keiner Aussparung liegt) sagt,
     /// gleich verteilt aus ihrem Startwert – gleiche Karte, gleiches Bild. An jedem Punkt wählt der Zufall eine Gruppe nach Gewicht; jeder ihrer
     /// Teile setzt seine Anzahl Kopien einer Art (nach Gewicht) in eine Scheibe mit dem Radius der Gruppe, mit eigener Variante, Drehung und Größe.
     /// Auf Wegen, Gebäuden, Bauzonen, in Aussparungen und in der Stadt wächst nichts (<see cref="NaturFrei"/>). Dazu die einzeln gesetzten Pflanzen.
@@ -107,11 +107,10 @@ public partial class Stadtansicht
         var aussen = flaeche.Flaeche.Where(p => p is { Length: 2 }).Select(Punkt2).ToArray();
         if (aussen.Length < 3 || flaeche.Gruppen.Count == 0 || Katalog is not { } katalog) return;
         var loecher = flaeche.Aussparungen.Select(l => l.Where(p => p is { Length: 2 }).Select(Punkt2).ToArray()).Where(l => l.Length >= 3).ToList();
-        var inhalt = Mathf.Abs(Flaecheninhalt(aussen)) - loecher.Sum(l => Mathf.Abs(Flaecheninhalt(l)));
-        var anzahl = (int)Math.Round(flaeche.Dichte * Math.Max(0, inhalt) / 1000);
         var rahmen = new Rect2(aussen[0], Vector2.Zero);
         foreach (var p in aussen) rahmen = rahmen.Expand(p);
         bool InFlaeche(Vector2 p) => Geometry2D.IsPointInPolygon(p, aussen) && !loecher.Any(l => Geometry2D.IsPointInPolygon(p, l));
+        var anzahl = (int)Math.Round(flaeche.Dichte * Inhalt(rahmen, InFlaeche) / 1000);
 
         var zufall = new Random(flaeche.Startwert);
         for (var n = 0; n < anzahl; n++)
@@ -144,6 +143,20 @@ public partial class Stadtansicht
                 }
             }
         }
+    }
+
+    /// <summary>
+    /// Wie groß der Teil des Rechtecks ist, der „drin“ liegt (m²) – gezählt auf einem Raster von etwa 20.000 Punkten. So zählen Aussparungen, die
+    /// sich überdecken oder über den Rand der Fläche hinausragen, richtig: drin ist, was in der Fläche und in keiner Aussparung liegt.
+    /// </summary>
+    private static float Inhalt(Rect2 rahmen, Func<Vector2, bool> drin)
+    {
+        var schritt = Mathf.Max(0.5f, Mathf.Sqrt(rahmen.Size.X * rahmen.Size.Y / 20000f));
+        var zaehler = 0;
+        for (var x = rahmen.Position.X + schritt / 2; x < rahmen.End.X; x += schritt)
+            for (var z = rahmen.Position.Y + schritt / 2; z < rahmen.End.Y; z += schritt)
+                if (drin(new Vector2(x, z))) zaehler++;
+        return zaehler * schritt * schritt;
     }
 
     /// <summary>Wählt einen Eintrag nach seinem Gewicht (Gewichte ≤ 0 zählen nicht; sind alle 0, der erste).</summary>
