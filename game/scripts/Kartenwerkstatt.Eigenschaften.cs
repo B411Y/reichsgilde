@@ -233,9 +233,9 @@ public partial class Kartenwerkstatt
         var zeile = new HBoxContainer();
         zeile.AddThemeConstantOverride("separation", 6);
         _eigenschaften.AddChild(zeile);
-        zeile.AddChild(Klein($"  Teil {t + 1}: Anzahl"));
+        zeile.AddChild(Klein($"Teil {t + 1} · Anzahl"));
         zeile.AddChild(Zahl(0, 50, 1, von, "", v => _entwurf.GruppenteilSetzen(f, g, t, Arten(), (int)v, Math.Max((int)v, Anzahl().Item2)), "So viele mindestens"));
-        zeile.AddChild(Klein("bis"));
+        zeile.AddChild(Klein("–"));
         zeile.AddChild(Zahl(0, 50, 1, bis, "", b => _entwurf.GruppenteilSetzen(f, g, t, Arten(), Math.Min(Anzahl().Item1, (int)b), (int)b), "So viele höchstens"));
         Knopf(zeile, "×", () =>
         {
@@ -246,7 +246,7 @@ public partial class Kartenwerkstatt
         _eigenschaften.AddChild(arten);
         foreach (var (art, gewicht) in teil.Arten)
         {
-            var name = Klein("    " + ArtName(art));
+            var name = Klein(ArtName(art));
             arten.AddChild(name);
             arten.AddChild(Zahl(0, 100, 0.1, gewicht, "", w =>
             {
@@ -281,7 +281,8 @@ public partial class Kartenwerkstatt
     /// <summary>Ein kleines Zahlenfeld, das bei jeder Änderung (Pfeile, Enter, Verlassen) übernimmt.</summary>
     private static Zahlfeld Zahl(double min, double max, double schritt, double wert, string einheit, Action<double> uebernehmen, string tipp)
     {
-        var feld = new Zahlfeld { MinValue = min, MaxValue = max, Step = schritt, Value = wert, Suffix = einheit, TooltipText = tipp, CustomMinimumSize = new Vector2(72, 0) };
+        var feld = new Zahlfeld { MinValue = min, MaxValue = max, Step = schritt, Value = wert, Suffix = einheit, TooltipText = tipp, CustomMinimumSize = new Vector2(60, 0) };
+        feld.GetLineEdit().AddThemeConstantOverride("minimum_character_width", 3);
         feld.ValueChanged += wert => uebernehmen(wert);
         return feld;
     }

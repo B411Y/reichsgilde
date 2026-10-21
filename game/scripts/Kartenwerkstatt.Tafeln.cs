@@ -284,7 +284,7 @@ public partial class Kartenwerkstatt
         // Eigenschaften und Start teilen sich einen Rollbereich (Streu-Gruppen und acht Häuser werden lang); die Fehlerliste bleibt darunter
         _inhaltRolle = new ScrollContainer
         {
-            SizeFlagsVertical = Control.SizeFlags.ExpandFill, SizeFlagsStretchRatio = 3.5f, HorizontalScrollMode = ScrollContainer.ScrollMode.Disabled,
+            SizeFlagsVertical = Control.SizeFlags.ExpandFill, SizeFlagsStretchRatio = 3.5f, HorizontalScrollMode = ScrollContainer.ScrollMode.Auto, // nie breiter als die Tafel
         };
         spalte.AddChild(_inhaltRolle);
         var inhalt = new VBoxContainer { SizeFlagsHorizontal = Control.SizeFlags.ExpandFill };

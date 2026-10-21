@@ -46,8 +46,11 @@ public partial class Kartenwerkstatt : Node
     /// <summary>Die Startoptionen gelten nur für den ersten Start der Szene, nicht nach Öffnen oder Neu.</summary>
     private static bool _startoptionenErledigt;
 
-    /// <summary>Was die Werkstatt während einer Probepartie aufhebt: Entwurf, Datei, Kamera und Auswahl (null: keine Probepartie).</summary>
-    private static (Kartenentwurf Entwurf, string? Pfad, bool NurLesen, (Vector3, float, float) Kamera, EntwurfTeil? Auswahl)? _probe;
+    /// <summary>
+    /// Was die Werkstatt während einer Probepartie aufhebt: Entwurf, Datei, Kamera, Auswahl und die Tafel rechts (Start offen, aufgeklapptes
+    /// Haus) – null: keine Probepartie.
+    /// </summary>
+    private static (Kartenentwurf Entwurf, string? Pfad, bool NurLesen, (Vector3, float, float) Kamera, EntwurfTeil? Auswahl, bool Start, int Haus)? _probe;
 
     /// <summary>Die aufgestellte Probepartie, bis die Hauptszene sie abholt.</summary>
     private static (Reichsgilde.Core.Simulation Simulation, Konto Spieler)? _probepartie;
@@ -103,6 +106,8 @@ public partial class Kartenwerkstatt : Node
         {
             _stadt.WerkstattKamera = wieder.Kamera;
             _stadt.WerkstattWaehlen(wieder.Auswahl);
+            _startHaus = wieder.Haus;
+            if (wieder.Start) ReiterWaehlen(true);
             meldung = "Zurück aus der Probepartie – die Karte ist, wie sie war, mit Rückgängig.";
         }
         Auffrischen();
@@ -286,7 +291,7 @@ public partial class Kartenwerkstatt : Node
             Melden($"Ausprobieren geht nicht: {ex.Message}", fehler: true);
             return;
         }
-        _probe = (_entwurf, _pfad, _nurLesen, _stadt.WerkstattKamera, _stadt.WerkstattGewaehlt);
+        _probe = (_entwurf, _pfad, _nurLesen, _stadt.WerkstattKamera, _stadt.WerkstattGewaehlt, _startOffen, _startHaus);
         GetTree().ChangeSceneToFile(Spielszene);
     }
 

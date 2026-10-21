@@ -34,6 +34,9 @@ public partial class Kartenwerkstatt
 
     private bool _startVorgemerkt;
 
+    /// <summary>Das aufgeklappte Haus beim nächsten Aufbau in den sichtbaren Teil rollen (nach „Haus hinzufügen“).</summary>
+    private bool _hausZeigen;
+
     // ═════════════════════════════════════════════════════════════════════════
     //  Reiter
     // ═════════════════════════════════════════════════════════════════════════
@@ -123,7 +126,7 @@ public partial class Kartenwerkstatt
         var dazu = Knopf(kopf, "Haus hinzufügen", () =>
         {
             var neu = _entwurf.HausHinzufuegen();
-            if (neu >= 0) _startHaus = neu;
+            if (neu >= 0) (_startHaus, _hausZeigen) = (neu, true);
             StartZeigen();
         }, "Ein neues KI-Haus mit freiem Namen, freier Farbe, freiem Wappen und dem ersten freien Wohnhausplatz");
         dazu.Disabled = Start.Haeuser.Count >= Kartenentwurf.HoechstensHaeuser;
@@ -207,7 +210,10 @@ public partial class Kartenwerkstatt
             if (!auf && h.Wohnhaus is { } w) _stadt.WerkstattWaehlen(w, hinfahren: true);
         };
         _startTafel.AddChild(knopf);
-        if (auf) HausEinzelheiten(i, h);
+        if (!auf) return;
+        HausEinzelheiten(i, h);
+        if (_hausZeigen) SichtbarMachen(knopf);
+        _hausZeigen = false;
     }
 
     private string Zusammenfassung(EntwurfHaus h)
@@ -319,7 +325,14 @@ public partial class Kartenwerkstatt
             _neuerBetrieb = null;
             StartZeigen();
         });
+        SichtbarMachen(zeile);
     }
+
+    /// <summary>Rollt die Tafel rechts so, dass das Feld zu sehen ist (erst nach dem Aufbau – vorher kennt es seine Lage nicht).</summary>
+    private void SichtbarMachen(Control feld) => Callable.From(() =>
+    {
+        if (IsInstanceValid(feld) && feld.IsInsideTree()) _inhaltRolle.EnsureControlVisible(feld);
+    }).CallDeferred();
 
     // ── Plätze ───────────────────────────────────────────────────────────────
 

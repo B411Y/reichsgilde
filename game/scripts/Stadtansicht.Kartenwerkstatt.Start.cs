@@ -150,7 +150,7 @@ public partial class Stadtansicht
         }
         _wsPlatzText.Show();
         _wsPlatzText.Position = V3(unter.Punkt, 14);
-        _wsPlatzText.Text = grund ?? $"{unter.Name} – Klick wählt";
+        _wsPlatzText.Text = grund ?? "Klick wählt";
         _wsPlatzText.Modulate = farbe.Lightened(0.35f);
     }
 
