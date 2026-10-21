@@ -25,7 +25,8 @@ Blickpunkte liegen in einem Raum. Die Lage rechnet die Knotenhierarchie mit ein.
 Knotens ein Netz sein (beim Alchimisten die Flüssigkeit, die das Spiel färbt); Stellplätze der Auslage „Auslage_<n>“ (im
 Laden) und Dampfquellen „Dampf_<n>“ sind freiwillig, gibt es sie, laufen sie lückenlos ab 1. Ebenso freiwillig (Wirt): Plätze
 der Gäste „Gast_<n>“, „Gast_<Gruppe>_<n>“ (je Gruppe lückenlos ab 1), zu jedem ein „Krug_…“ mit derselben Endung, und Plätze
-des Barden „Barde_<n>“.
+des Barden „Barde_<n>“; ebenso (Prediger) Plätze der Gläubigen „Glaeubig_<n>“ (mit extras „sitzhoehe“), des Predigers auf der
+Kanzel „Predigt_<n>“ und der Beichte „Beichte_<n>“, je lückenlos ab 1.
 Ein Raum mit extras „stufe“ (z. B. die Sägehalle des Tischlers ab Stufe 3, Laden und Turm des Alchimisten) gibt es erst ab
 dieser Stufe: Anker darin und Türen dorthin brauchen mindestens dieselbe „stufe“. Späne „Spaene1“–„Spaene3“ (falls vorhanden) sind lückenlos und
 standardmäßig aus. Hat die Datei Animationen, muss eine „Arbeit“ heißen; sie darf weder Räume noch Stufen, Anker oder
@@ -169,6 +170,7 @@ def innen(pfad, g):
     print("Arbeitsplätze {}, Stellplätze {}, Werkstücke {}, Auslage {}, Dampf {}".format(
         *(len(reihen[a]) for a in ("Arbeit", "Lager", "Werkstueck", "Auslage", "Dampf"))))
     fehler += innen_gaeste(knoten)
+    fehler += innen_glaeubige(g, knoten)
     for art in ("Personal", "Produktion", "Lager", "Einrichten", "Karren"):
         if not any(n.startswith(f"Bedienung_{art}_") for n in knoten):
             fehler.append(f"keine Bedienung „Bedienung_{art}_…“")
@@ -188,7 +190,8 @@ def innen(pfad, g):
     return fehler
 
 
-ANKER = ("Blick_", "Arbeit_", "Lager_", "Werkstueck_", "Licht_", "Auslage_", "Dampf_", "Gast_", "Krug_", "Barde_")
+ANKER = ("Blick_", "Arbeit_", "Lager_", "Werkstueck_", "Licht_", "Auslage_", "Dampf_", "Gast_", "Krug_", "Barde_", "Glaeubig_", "Predigt_",
+         "Beichte_")
 
 
 def ist_anker(g, name, i):
@@ -216,6 +219,27 @@ def innen_gaeste(knoten):
             fehler.append(f"{art}_{gruppe + '_' if gruppe else ''}<n>: Nummern müssen lückenlos ab 1 laufen, gefunden {sorted(nummern)}")
     if gruppen:
         print("Gäste und Barde: " + ", ".join(f"{art}_{gruppe + '_' if gruppe else ''}1–{len(n)}" for (art, gruppe), n in sorted(gruppen.items())))
+    return fehler
+
+
+def innen_glaeubige(g, knoten):
+    """Plätze der Gläubigen (Glaeubig_<n>, mit extras „sitzhoehe“), des Predigers (Predigt_<n>) und der Beichte (Beichte_<n>),
+    je lückenlos ab 1."""
+    fehler = []
+    reihen = {"Glaeubig": [], "Predigt": [], "Beichte": []}
+    for name, i in knoten.items():
+        treffer = re.fullmatch(r"(Glaeubig|Predigt|Beichte)_(\d+)", name)
+        if treffer:
+            reihen[treffer.group(1)].append(int(treffer.group(2)))
+            if treffer.group(1) == "Glaeubig" and "sitzhoehe" not in g["nodes"][i].get("extras", {}):
+                fehler.append(f"{name}: extras „sitzhoehe“ fehlt")
+        elif name.startswith(("Glaeubig_", "Predigt_", "Beichte_")):
+            fehler.append(f"{name}: Name muss Glaeubig_<n>, Predigt_<n> oder Beichte_<n> sein")
+    for art, nummern in reihen.items():
+        if sorted(nummern) != list(range(1, len(nummern) + 1)):
+            fehler.append(f"{art}_<n>: Nummern müssen lückenlos ab 1 laufen, gefunden {sorted(nummern)}")
+    if any(reihen.values()):
+        print("Gläubige, Kanzel, Beichte: " + ", ".join(f"{art}_1–{len(n)}" for art, n in reihen.items() if n))
     return fehler
 
 

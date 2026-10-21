@@ -12,11 +12,13 @@ Inhalt je Datei (Blender: Z oben, Blick nach -Y; im Spiel Y oben, Blick nach +Z)
     Koerper_Mann    Wams bis zur Mitte des Oberschenkels, Beinkleid, Schuhe, Gürtel; beim Zwerg mit Bart
     Koerper_Frau    Kleid bis über die Knöchel, Zopf
     Trachtteile     Strohhut, Barett, Kapuze, Haube, Schleier, Schuerze, Kiepe, Buendel, Tasche, Stab, Hacke, Hammer,
-                    Hobel, Saege, Drechseleisen, Schlaegel, Meissel, Stoessel, Kelle, Flakon, Krug, Laute
+                    Hobel, Saege, Drechseleisen, Schlaegel, Meissel, Stoessel, Kelle, Flakon, Krug, Laute, Feder, Sieb,
+                    Dochtstab
                     – standardmäßig aus, das Spiel blendet sie je Rolle ein (wie heute `TrachtVon`; das Werkzeug bei der
                     passenden Bewegung: Hammer beim Hämmern, Hobel beim Hobeln, Säge beim Sägen, Drechseleisen beim Drechseln,
                     Schlägel und Meißel beim Behauen und Bildhauen, Stößel beim Mörsern, Kelle beim Rühren, Flakon beim
-                    Mischen, Krug beim Zapfen und Trinken, Laute bei „Laute“)
+                    Mischen, Krug beim Zapfen und Trinken, Laute bei „Laute“, Dochtstab beim Kerzenziehen, Sieb beim
+                    Schöpfen, Feder beim Schreiben)
     Bewegungen      Stehen, Gehen, Eilen, Gebeugt, Tragen, Sitzen, Reden, Hacken, Buecken, Hueten,
                     Ziehen (Handkarren), Kutschieren (auf dem Bock),
                     Haemmern, Blasebalg, Schleifen (stehend), Feinarbeit (sitzend) – Arbeit in der Schmiede,
@@ -32,11 +34,18 @@ Inhalt je Datei (Blender: Z oben, Blick nach -Y; im Spiel Y oben, Blick nach +Z)
                     einen Schritt zur Seite; die Wurzel verschiebt sich dazu seitlich) – Arbeit beim Parfumeur,
                     Zapfen (den Krug unter den Zapfhahn halten, die Linke dreht den Hahn auf und zu, den vollen Krug auf der
                     Theke abstellen) – Arbeit beim Wirt, Trinken (im Sitzen: den Krug vom Tisch an den Mund heben, trinken,
-                    absetzen; für die Gäste, das Spiel versetzt die Phase je Gast), Laute (der Barde steht und spielt)
+                    absetzen; für die Gäste, das Spiel versetzt die Phase je Gast), Laute (der Barde steht und spielt),
+                    Kerzenziehen (den Dochtstab mit beiden Händen in den Wachstrog senken, heben, abtropfen lassen),
+                    Schoepfen (das Sieb schräg hinten in die Bütte tauchen, unter dem Brei zur Figur ziehen, heben, schütteln,
+                    abtropfen lassen), Schreiben (sitzend am Pult: eine Zeile mit der Feder, die Feder ins Tintenhorn) – Arbeit
+                    beim Prediger, Predigen (auf der Kanzel: die Hände auf der Brüstung, die Rechte weist nach oben, beide Arme
+                    öffnen sich zur Gemeinde), Beten (sitzend, die Hände gefaltet) und Knien (kniend, die Hände gefaltet; am
+                    Beichtstuhl) – für Prediger und Gläubige
                     – jede eine Schleife am Ort (ohne Vorwärtsbewegung; das Spiel schiebt die Figur)
                     Die Werkstatt-Bewegungen zielen mit den Händen (beim Drechseln auch mit dem rechten Fuß) auf feste
-                    Höhen (ARBEITSHOEHEN, PEDAL, VORLAGE, MISCHGLAS, PRESSE, ZAPFHAHN, KRUG_TISCH – wie in schmied_innen.glb,
-                    tischler_innen.glb, steinmetz_innen.glb, alchimist_innen.glb, parfumeur_innen.glb und wirt_innen.glb):
+                    Höhen (ARBEITSHOEHEN, PEDAL, VORLAGE, MISCHGLAS, PRESSE, ZAPFHAHN, KRUG_TISCH, KERZEN, BUETTE, SCHREIBEN,
+                    KANZEL – wie in schmied_innen.glb, tischler_innen.glb, steinmetz_innen.glb, alchimist_innen.glb,
+                    parfumeur_innen.glb, wirt_innen.glb und prediger_innen.glb):
                     Jedes Volk erreicht sie
                     mit eigenen Arm- und Beinwinkeln (`arm_ik`, `arm_ziel`, `bein_ik`).
 Material: alle Teile (Körper, Trachtteile, Werkzeug) tragen nur ein Material „Figur“ – eine Figur ist so ein
@@ -69,6 +78,12 @@ bs.FARBEN.update({
     "Krugblau": (0.25, 0.32, 0.52),        # blau bemalte Bänder am Krug
     "Lautenholz": (0.55, 0.32, 0.16),      # gewölbter Bauch der Laute aus Spänen
     "Lautendecke": (0.84, 0.70, 0.46),     # Decke aus heller Fichte
+    "Kerzenwachs": (0.90, 0.84, 0.64),     # frisch gezogene Kerzen am Dochtstab (Bienenwachs)
+    "Docht": (0.78, 0.74, 0.64),
+    "Gaensefeder": (0.92, 0.90, 0.84),     # Fahne der Schreibfeder
+    "Federkiel": (0.80, 0.72, 0.52),
+    "Siebgitter": (0.62, 0.50, 0.30),      # Messingdraht der Schöpfform
+    "Papierbrei": (0.88, 0.86, 0.80),      # nasser Bogen auf dem Sieb
 })
 
 FPS = 24
@@ -85,7 +100,8 @@ VOELKER = {
 }
 ZONEN = {"Gewand": 1, "Beinkleid": 2, "Haut": 3, "Haar": 4, "Kopfbedeckung": 5}   # alle übrigen Stoffe: Zone 0
 TRACHT = ["Strohhut", "Barett", "Kapuze", "Haube", "Schleier", "Schuerze", "Kiepe", "Buendel", "Tasche", "Stab", "Hacke", "Hammer",
-          "Hobel", "Saege", "Drechseleisen", "Schlaegel", "Meissel", "Stoessel", "Kelle", "Flakon", "Krug", "Laute"]
+          "Hobel", "Saege", "Drechseleisen", "Schlaegel", "Meissel", "Stoessel", "Kelle", "Flakon", "Krug", "Laute", "Feder", "Sieb",
+          "Dochtstab"]
 HAMMER = 0.3          # vom Mittelpunkt der Hand bis zur Mitte des Hammerkopfs, in Verlängerung des Unterarms
 # Wo die Hände bei der Arbeit sind (Meter vor dem Fußpunkt der Figur, Höhe über dem Boden) – passend zu den Ankern
 # im Innenraum: Amboss 0,68 m vor der Figur, Bahn 0,86 m hoch; Hebel des Blasebalgs 0,42 m vor ihr, 1,36 m hoch;
@@ -134,6 +150,21 @@ KRUG = {"r": 0.046, "h": 0.15, "seite": 0.078, "tief": 0.07}
 # Kniehöhe − 2 cm, beim Menschen 0,48 m; der Tisch ist dann 0,78 m hoch). Das Spiel hebt kleine Völker auf die Sitzhöhe des
 # Menschen (wie bei der Feinarbeit), so steht der Krug bei jedem Volk auf demselben Tisch.
 KRUG_TISCH = (-0.16, 0.4, 0.3)
+# Prediger (prediger_innen.glb). Kerzenziehen am Wachstrog: Mitte `vor` vor der Figur, Rand `rand`, Wachs `wachs` hoch; der
+# Dochtstab liegt quer in beiden Fäusten, die Kerzen hängen `kerze` Meter darunter und tauchen `tief` ins Wachs (Mensch; die
+# anderen Völker mit dem Quadrat ihrer Schulterhöhe: Halblinge ziehen kurze Kerzen, sonst kämen sie nicht über den Rand). Schöpfen an der Bütte: Mitte `vor`, Rand `rand`, Brei `brei` hoch; das Sieb (die
+# Schöpfform, `sieb` tief, so breit wie die Schultern) taucht bei `fern` ein, wird `unter` dem Brei bis `nah` zur Figur gezogen,
+# `ueber` dem Rand geschüttelt und tropft bei `tropf` ab. Kerzen und Sieb bleiben dabei waagrecht: Die Unterarme behalten in der
+# ganzen Bewegung ihre Richtung, Neigung und Knie gleichen die Höhe aus (`beide_haende`).
+KERZEN = {"vor": 0.46, "rand": 0.84, "wachs": 0.77, "kerze": 0.30, "tief": 0.2}
+KERZE_R = 0.013
+BUETTE = {"vor": 0.52, "rand": 0.92, "brei": 0.84, "fern": 0.64, "nah": 0.40, "tropf": 0.44, "unter": 0.06, "ueber": 0.10,
+          "sieb": 0.30}
+# Schreiben (sitzend am Schreibpult): Spitze der Feder am Anfang der Zeile (seitlich, vor, Höhe über der Sitzhöhe – wie beim
+# Trinken hebt das Spiel kleine Völker auf die Sitzhöhe des Menschen), die Zeile läuft `zeile` Meter nach rechts; die Mündung
+# des Tintenhorns rechts am Pult; die Platte ist um `neigung` Grad zur Figur geneigt.
+SCHREIBEN = {"blatt": (0.07, 0.40, 0.40), "zeile": 0.13, "horn": (-0.22, 0.33, 0.37), "neigung": 30.0}
+KANZEL = (0.46, 0.95)        # Predigen: Brüstung der Kanzel (vor der Figur, Höhe über dem Boden der Kanzel)
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -354,7 +385,8 @@ def tracht(name, st, p):
 
 REQUISITEN = {"Hobel": ("Hobeln", 0.3), "Drechseleisen": ("Drechseln", 0.5), "Meissel": ("Behauen", 0.55),
               "Schlaegel": ("Behauen", 0.55), "Stoessel": ("Moersern", 0.0), "Kelle": ("Ruehren", 0.0),
-              "Flakon": ("Mischen", 0.0), "Krug": ("Zapfen", 0.0)}   # Bewegung, Phase
+              "Flakon": ("Mischen", 0.0), "Krug": ("Zapfen", 0.0), "Feder": ("Schreiben", 0.0), "Sieb": ("Schoepfen", 0.0),
+              "Dochtstab": ("Kerzenziehen", 0.0)}   # Bewegung, Phase
 
 
 def requisit(name, st, p, ske):
@@ -434,6 +466,54 @@ def requisit(name, st, p, ske):
                      Vector((-KRUG["seite"], 0, KRUG["tief"] - 0.035)), Vector((-r * 0.9, 0, h * 0.2))]
             for a, b in zip(griff, griff[1:]):                             # Henkel: von der Wand durch die Faust zurück
                 n.stab(zurueck @ (boden + a), zurueck @ (boden + b), 0.022, 0.014, st["Krugton"], quer=quer)
+        elif name == "Dochtstab":                 # quer in beiden Fäusten (die Linke am anderen Ende), darunter fünf Kerzen an Dochten
+            k = p["schulter"] / VOELKER["mensch"]["schulter"]
+            breit = -hand.x
+            oben = zurueck.to_3x3() @ Vector((0, 0, 1))
+            n.stab(zurueck @ (hand - Vector((0.08, 0, 0))), zurueck @ Vector((breit + 0.08, hand.y, hand.z)), 0.024, 0.024, holz,
+                   quer=oben)
+            laenge = KERZEN["kerze"] * k * k
+            for j in range(5):
+                x = hand.x + 0.07 + (2 * breit - 0.14) * j / 4
+                docht = Vector((x, hand.y, hand.z - 0.012))
+                n.stab(zurueck @ docht, zurueck @ (docht - Vector((0, 0, 0.03))), 0.005, 0.005, st["Docht"],
+                       quer=zurueck.to_3x3() @ Vector((0, 1, 0)))
+                fuss = docht - Vector((0, 0, 0.03 + laenge))
+                profil = ((0.0, 0.004), (0.018, KERZE_R * 1.25), (laenge - 0.01, KERZE_R * 0.85), (laenge, KERZE_R * 0.5))
+                for (u0, r0), (u1, r1) in zip(profil, profil[1:]):
+                    drehteil(n, zurueck @ (fuss + Vector((0, 0, u0))), oben, u1 - u0, r0, r1, st["Kerzenwachs"], n=6,
+                             deckel=(False, u1 == laenge))
+        elif name == "Sieb":                      # Schöpfform waagrecht zwischen den Fäusten: Rahmen, Deckel, Stege, Gitter, nasser Bogen
+            breit, tief = -hand.x + 0.035, BUETTE["sieb"] / 2
+            M = zurueck @ Matrix.Translation((0, hand.y, hand.z - 0.015))                     # x quer, y vor (−), z oben; z 0 = Gitter
+            for sx in (-1, 1):
+                n.quader((sx * breit, 0, 0.0), (0.03, 2 * tief + 0.03, 0.035), holz, M)
+                n.quader((sx * (breit - 0.006), 0, 0.03), (0.022, 2 * tief + 0.02, 0.025), st["Holz alt"], M)    # Deckel
+            for sy in (-1, 1):
+                n.quader((0, sy * tief, 0.0), (2 * breit - 0.03, 0.03, 0.035), holz, M)
+                n.quader((0, sy * (tief - 0.006), 0.03), (2 * breit - 0.042, 0.022, 0.025), st["Holz alt"], M)
+            for j in range(5):                                                                  # Stege unter dem Gitter
+                n.quader((-breit + 2 * breit * (j + 1) / 6, 0, -0.012), (0.012, 2 * tief - 0.02, 0.02), holz, M)
+            for z, b, stoff in ((0.0, 0.0, "Siebgitter"), (0.005, 0.016, "Papierbrei")):
+                ecken = [M @ Vector((x * (breit - b), y * (tief - b), z)) for x, y in ((-1, -1), (1, -1), (1, 1), (-1, 1))]
+                n.vieleck(ecken, st[stoff])
+                if not b:
+                    n.vieleck(list(reversed(ecken)), st[stoff])
+        elif name == "Feder":                     # Gänsekiel: die Spitze auf dem Blatt, durch die Faust nach hinten oben, dann die Fahne
+            spitze = _blender(_schreiben_spitze(0.0, p)[0])
+            d = (hand - spitze).normalized()
+            quer = d.cross(Vector((0, 0, 1))).normalized()
+            q3 = zurueck.to_3x3() @ quer
+            n.stab(zurueck @ spitze, zurueck @ (spitze + d * 0.012), 0.002, 0.004, st["Kohle"], quer=q3)
+            n.stab(zurueck @ (spitze + d * 0.012), zurueck @ (hand + d * 0.06), 0.007, 0.007, st["Federkiel"], quer=q3)
+            fahne = [(0.03, 0.0), (0.07, 0.016), (0.15, 0.022), (0.21, 0.012), (0.24, 0.0)]       # (ab der Faust, Breite)
+            for (u0, b0), (u1, b1) in zip(fahne, fahne[1:]):
+                for s, f in ((1, 1.0), (-1, 0.7)):
+                    ecken = [hand + d * u0 + quer * s * 0.002, hand + d * u1 + quer * s * 0.002]
+                    ecken += [hand + d * u + quer * s * (0.002 + b * f) for u, b in ((u1, b1), (u0, b0)) if b > 0]
+                    ecken = [zurueck @ e for e in ecken]
+                    n.vieleck(ecken, st["Gaensefeder"])
+                    n.vieleck(list(reversed(ecken)), st["Gaensefeder"])
         else:                                     # Drechseleisen: Heft hinter der Hand, Klinge bis an das Werkstück
             vor, hoehe = ARBEITSHOEHEN["Drehbank"]
             spitze = Vector((0.02, -(vor - 0.01), hoehe))
@@ -804,6 +884,9 @@ def haltung(name, phase, p):
         r.update(winkel)
     elif name in ("Zapfen", "Trinken", "Laute"):                        # Wirt: zapfen, Gäste trinken, der Barde spielt
         winkel, hoch = {"Zapfen": zapfen, "Trinken": trinken, "Laute": laute}[name](phase, p)
+        r.update(winkel)
+    elif name in PREDIGER:                                              # Prediger: Kerzen ziehen, schöpfen, schreiben, predigen, beten
+        winkel, hoch = PREDIGER[name](phase, p)
         r.update(winkel)
     elif name == "Hueten":
         r["Oberarm_R"] = (-28, 0, -10)                                   # hält den Stab vor sich
@@ -1589,6 +1672,296 @@ def laute(phase, p):
     return r, hoch
 
 
+# ── Prediger: Kerzenziehen und Schöpfen (beide Fäuste halten ein Gerät quer), Schreiben, Predigen, Beten, Knien ──────────
+
+def _beide_haende(p, vor, hoehe, unter):
+    """Beide Hände in der Ebene ihrer Schultern `vor` Meter vor dem Fußpunkt auf `hoehe`, die Unterarme in der Welt `unter` Grad
+    aus der Senkrechten nach vorn gehoben (0 hängend, 90 waagrecht): Alle Knochen drehen nur um die Querachse, so bleibt, was die
+    Fäuste quer halten (Dochtstab, Sieb), in jeder Haltung gleich ausgerichtet. Die Höhe gleichen die Neigung des Rumpfs und die
+    Kniebeuge aus (je mehr Neigung, desto tiefer die Hüfte); gewählt wird die kleinste Neigung, bei der der Ellbogen nach vorn
+    knickt. Gibt (Neigung, Hüfte, Oberarm, Unterarm, Fehler in Metern, ob es die kleinste Neigung überhaupt ist) – Winkel in Grad
+    wie arm_ik."""
+    rumpf, l1, l2 = p["schulter"] - 0.03 - p["huefte"], p["oberarm"], p["unterarm"] * 0.72 + 0.06
+    b = math.radians(unter)
+    ex, ez = vor - l2 * math.sin(b), hoehe + l2 * math.cos(b)          # dort muss der Ellbogen sein
+    tief = 0.28 * p["huefte"] / VOELKER["mensch"]["huefte"]
+
+    def schulter(lehne):
+        w = math.radians(lehne)
+        hoch = -tief * weich((lehne - 5) / 45)
+        return rumpf * math.sin(w), p["huefte"] + hoch + rumpf * math.cos(w), hoch
+
+    def abstand(lehne):
+        sx, sz, _ = schulter(lehne)
+        return math.hypot(ex - sx, ez - sz) - l1
+
+    def oberarm(lehne):
+        sx, sz, _ = schulter(lehne)
+        return math.atan2(ex - sx, -(ez - sz))
+
+    def knickt_vor(lehne):
+        return -0.05 <= b - oberarm(lehne) <= math.radians(150)
+    lehnen = [-10.0 + 0.25 * k for k in range(361)]
+    wurzeln = []
+    for l0, l1_ in zip(lehnen, lehnen[1:]):
+        if (abstand(l0) <= 0) == (abstand(l1_) <= 0):
+            continue
+        a_, b_ = l0, l1_
+        for _ in range(40):
+            m = (a_ + b_) / 2
+            a_, b_ = (a_, m) if (abstand(a_) <= 0) != (abstand(m) <= 0) else (m, b_)
+        wurzeln.append((a_ + b_) / 2)
+    gute = [w for w in wurzeln if knickt_vor(w)]
+    if gute:
+        lehne, fehler, erste = gute[0], 0.0, gute[0] == wurzeln[0]
+    else:                                                              # nicht erreichbar: so nah wie möglich
+        lehne = min(lehnen, key=lambda l: abs(abstand(l)) + (0.0 if knickt_vor(l) else 1.0))
+        fehler, erste = abs(abstand(lehne)), False
+    a = math.degrees(oberarm(lehne))
+    return lehne, schulter(lehne)[2], -(a + lehne), -(unter - a), fehler, erste
+
+
+_UNTERARM = {}
+
+
+def _unterarm_fest(name, p, ziel):
+    """Richtung der Unterarme (Grad aus der Senkrechten) für eine Bewegung mit quer gehaltenem Gerät, je Volk eigen und in der
+    ganzen Bewegung fest: Die Fäuste müssen in jeder Phase ihr Ziel `ziel(phase)` = (vor, Höhe) treffen, die Neigung darf nicht
+    springen (immer die kleinste Lösung), und unter allen solchen Richtungen gilt die, bei der sich der Rumpf am wenigsten neigt
+    und die Knie am wenigsten beugen."""
+    schluessel = (name, tuple(sorted(p.items())))
+    if schluessel not in _UNTERARM:
+        beste = None
+        for unter in range(0, 121, 2):
+            erg = [_beide_haende(p, *ziel(k / 96), unter) for k in range(97)]
+            fehler = sum(e[4] for e in erg) / len(erg) + sum(0.05 for e in erg if not e[5])
+            sprung = max(abs(a[0] - b[0]) for a, b in zip(erg, erg[1:]))
+            wert = 20 * fehler + (1.0 if sprung > 10 else 0.0) + max(abs(e[0]) for e in erg) / 60 + 3 * max(-e[1] for e in erg)
+            if beste is None or wert < beste[0]:
+                beste = (wert, unter)
+        _UNTERARM[schluessel] = beste[1]
+    return _UNTERARM[schluessel]
+
+
+def _quer_halten(name, p, phase, ziel, kopf):
+    """Haltung mit beiden Fäusten bei ziel(phase) = (vor, Höhe) und fester Richtung der Unterarme (_unterarm_fest), Füße flach
+    am Boden, der Kopf um `kopf` Grad zum Gerät geneigt. Gibt (Winkel in Grad, Hüfte)."""
+    unter = _unterarm_fest(name, p, ziel)
+    lehne, hoch, ober, unter_k = _beide_haende(p, *ziel(phase), unter)[:4]
+    r = {"Ruecken": (lehne, 0, 0), "Kopf": (kopf - 0.6 * lehne, 0, 0)}
+    for seite in ("L", "R"):
+        r[f"Oberarm_{seite}"], r[f"Unterarm_{seite}"] = (ober, 0, 0), (unter_k, 0, 0)
+    for seite, v, z in (("L", 0.06, 4), ("R", -0.04, -4)):
+        o, u = bein_ik(p, hoch, v, 0.0)
+        r[f"Oberschenkel_{seite}"], r[f"Unterschenkel_{seite}"] = (o, 0, z), (u, 0, 0)
+    return r, hoch
+
+
+def kerzen_hoehen(p):
+    """Höhe der Fäuste (des Dochtstabs) beim Kerzenziehen: über dem Trog (die Kerzen 5 cm über dem Rand) und eingetaucht."""
+    k2 = (p["schulter"] / VOELKER["mensch"]["schulter"]) ** 2
+    unter = 0.042 + KERZEN["kerze"] * k2                                     # Faust bis zur Unterkante der Kerzen
+    return KERZEN["rand"] + 0.05 + unter, KERZEN["wachs"] - KERZEN["tief"] * k2 + unter
+
+
+def kerzen_ziel(phase, p):
+    """Fäuste beim Kerzenziehen (vor, Höhe): Die Kerzen hängen über dem Wachstrog (0–0,1), sinken langsam hinein (bis 0,3),
+    bleiben im Wachs (bis 0,42), werden herausgehoben (bis 0,6) und tropfen ab (bis 1)."""
+    oben, unten = kerzen_hoehen(p)
+    if phase < 0.1:
+        h = oben
+    elif phase < 0.3:
+        h = oben + (unten - oben) * weich((phase - 0.1) / 0.2)
+    elif phase < 0.42:
+        h = unten
+    elif phase < 0.6:
+        h = unten + (oben - unten) * weich((phase - 0.42) / 0.18)
+    else:
+        h = oben
+    return KERZEN["vor"], h
+
+
+def kerzenziehen(phase, p):
+    """Kerzenziehen (4 s, kerzen_ziel): den Dochtstab mit beiden Fäusten senken, die Kerzen ins Wachs tauchen, heben, abtropfen
+    lassen. Gibt (Winkel in Grad, Hüfte)."""
+    return _quer_halten("Kerzenziehen", p, phase, lambda ph: kerzen_ziel(ph, p), 34)
+
+
+def schoepf_punkte(p):
+    """Lagen der Fäuste beim Schöpfen (vor, Höhe); das Gitter des Siebs liegt 1,5 cm unter ihnen."""
+    b = BUETTE
+    oben, unten = b["rand"] + b["ueber"] + 0.015, b["brei"] - b["unter"] + 0.015
+    return {"tropf": (b["tropf"], oben), "fern": (b["fern"], unten), "nah": (b["nah"], unten)}
+
+
+def schoepf_ziel(phase, p):
+    """Fäuste beim Schöpfen (vor, Höhe): vom Abtropfen schräg nach hinten unten, hinten in den Brei tauchen (0–0,22), unter dem
+    Brei zur Figur ziehen (bis 0,4), waagrecht herausheben (bis 0,5), schütteln – vor und zurück, damit sich die Fasern
+    verfilzen (bis 0,64), abtropfen lassen (bis 1). Das Sieb bleibt dabei immer über dem Inneren der Bütte."""
+    punkte = schoepf_punkte(p)
+    folge = ((0.22, "tropf", "fern"), (0.4, "fern", "nah"), (0.5, "nah", "tropf"), (1.0, "tropf", "tropf"))
+    anfang = 0.0
+    for ende, a, b in folge:
+        if phase <= ende:
+            t = weich((phase - anfang) / (ende - anfang)) if a != b else 0.0
+            break
+        anfang = ende
+    (va, ha), (vb, hb) = punkte[a], punkte[b]
+    v, h = va + (vb - va) * t, ha + (hb - ha) * t
+    if 0.5 <= phase < 0.64:
+        v += 0.025 * math.sin(2 * math.pi * 3 * (phase - 0.5) / 0.14)
+    return v, h
+
+
+def schoepfen(phase, p):
+    """Schöpfen (4 s, schoepf_ziel): das Sieb waagrecht durch die Bütte ziehen, schütteln, abtropfen lassen – dann lässt das
+    Raummodell Tropfen aus dem Sieb fallen (prediger_innen). Gibt (Winkel in Grad, Hüfte)."""
+    return _quer_halten("Schoepfen", p, phase, lambda ph: schoepf_ziel(ph, p), 30)
+
+
+def _schreiben_rumpf(phase, p):
+    """Sitzen am Pult: Hüfte auf Sitzhöhe, vorgeneigt, der Kopf über dem Blatt."""
+    hoch = -(p["huefte"] - (p["knie"] - 0.02)) + 0.003 * math.sin(2 * math.pi * phase)
+    r = {"Ruecken": (16, 0, 0), "Kopf": (24, 0, 0)}
+    r["Oberschenkel_L"], r["Oberschenkel_R"] = (-86, 0, 6), (-86, 0, -6)
+    r["Unterschenkel_L"], r["Unterschenkel_R"] = (84, 0, 0), (80, 0, 0)
+    return r, hoch
+
+
+def _schreiben_spitze(phase, p):
+    """Spitze der Feder (seitlich, vor, Höhe) zur Phase und wie weit der Blick beim Tintenhorn ist (0 … 1): eine Zeile schreiben
+    (0–0,5; kleine Auf- und Abstriche, zwischen den Wörtern kurz abgesetzt), die Feder ins Tintenhorn tauchen (bis 0,74), zurück
+    an den Anfang der nächsten Zeile (bis 0,86), ansetzen und kurz innehalten."""
+    sitz = p["knie"] - 0.02
+    n = math.radians(SCHREIBEN["neigung"])
+    hoch_auf_blatt = Vector((0, math.cos(n), math.sin(n)))                       # auf dem Blatt nach oben (weg von der Figur)
+    ab = Vector((0, -math.sin(n), math.cos(n)))                                  # vom Blatt weg (zur Figur und hoch)
+    s0, v0, h0 = SCHREIBEN["blatt"]
+    start = Vector((s0, v0, sitz + h0))
+    ende = start - Vector((SCHREIBEN["zeile"], 0, 0))
+    hs, hv, hh = SCHREIBEN["horn"]
+    horn_oben, horn_tief = Vector((hs, hv, sitz + hh + 0.04)), Vector((hs, hv, sitz + hh - 0.03))
+    if phase < 0.5:
+        u = phase / 0.5
+        return (start.lerp(ende, u) + hoch_auf_blatt * 0.006 * math.sin(2 * math.pi * 12 * u)
+                + ab * 0.004 * max(0.0, math.sin(2 * math.pi * 3 * u)) ** 4), 0.0
+    wege = ((0.6, ende, horn_oben, 0.0, 1.0), (0.66, horn_oben, horn_tief, 1.0, 1.0), (0.74, horn_tief, horn_oben, 1.0, 1.0),
+            (0.86, horn_oben, start + ab * 0.02, 1.0, 0.0), (0.92, start + ab * 0.02, start, 0.0, 0.0), (1.0, start, start, 0.0, 0.0))
+    anfang = 0.5
+    for bis, a, b, blick_a, blick_b in wege:
+        if phase <= bis:
+            t = weich((phase - anfang) / (bis - anfang))
+            bogen = ab * 0.03 * math.sin(math.pi * t) if bis == 0.6 else Vector()
+            return a.lerp(b, t) + bogen, blick_a + (blick_b - blick_a) * t
+        anfang = bis
+    return start, 0.0
+
+
+_FEDER = {}
+
+
+def feder_ruhe(p):
+    """Spitze der Feder in der Ruhelage des rechten Unterarms (Blender) und die Faust beim Ansetzen (seitlich, vor, Höhe): Gebaut
+    ist die Feder in der Haltung von REQUISITEN (Schreiben, Phase 0: die Spitze am Anfang der Zeile, die Faust 3 cm rechts, 6 cm
+    näher und 6,5 cm höher)."""
+    schluessel = tuple(sorted(p.items()))
+    if schluessel not in _FEDER:
+        r, hoch = _schreiben_rumpf(0.0, p)
+        spitze = _schreiben_spitze(0.0, p)[0]
+        hand = spitze + Vector((-0.03, -0.06, 0.065))
+        r["Oberarm_R"], r["Unterarm_R"] = arm_genau(p, r, hoch, "R", tuple(hand))
+        lage = unterarm_lage(p, _bogen(r), hoch, "R")
+        _FEDER[schluessel] = (lage.inverted() @ _blender(spitze), hand)
+    return _FEDER[schluessel]
+
+
+def schreiben(phase, p):
+    """Schreiben (4 s, sitzend am Pult): Die Rechte führt die Spitze der Feder (_schreiben_spitze), die Linke hält das Blatt, der
+    Kopf folgt der Feder und dreht sich zum Tintenhorn. Gibt (Winkel in Grad, Hüfte)."""
+    r, hoch = _schreiben_rumpf(phase, p)
+    spitze_ruhe, hand0 = feder_ruhe(p)
+    ziel, horn = _schreiben_spitze(phase, p)
+    start = _schreiben_spitze(0.0, p)[0]
+    _faust_fuer(p, r, hoch, spitze_ruhe, tuple(ziel), hand0 + (ziel - start))
+    sitz = p["knie"] - 0.02
+    links = Vector((0.18, 0.37, sitz + 0.37)) + Vector((0, 0.01, 0.005)) * math.sin(2 * math.pi * phase)
+    r["Oberarm_L"], r["Unterarm_L"] = arm_genau(p, r, hoch, "L", tuple(links))
+    zeile = min(1.0, phase / 0.5) if phase < 0.5 else 0.0
+    r["Kopf"] = (24 + 4 * horn, -14 * horn - 6 * zeile + 3, 0)
+    return r, hoch
+
+
+def _predigt_folge(p):
+    """Schlüsselhaltungen beim Predigen: (Phase, rechte Hand, linke Hand, Neigung, Drehung des Rumpfs, Kopf nicken, Kopf drehen).
+    Hände als (seitlich, vor, Höhe); auf der Brüstung der Kanzel (KANZEL) liegen sie bei jedem Volk gleich hoch."""
+    k = p["schulter"] / VOELKER["mensch"]["schulter"]
+    sc = p["schulter"]
+    vor, h = KANZEL
+    br, bl = Vector((-0.2 * k, vor, h + 0.03)), Vector((0.2 * k, vor, h + 0.03))
+    oben = Vector((-0.1 * k, 0.34 * k, sc + 0.36 * k))
+    offen_r, offen_l = Vector((-0.46 * k, 0.3 * k, sc - 0.1 * k)), Vector((0.42 * k, 0.3 * k, sc - 0.14 * k))
+    weiter = Vector((0, 0.04 * k, 0.04 * k))
+    return ((0.0, br, bl, 5, 0, 10, 0), (0.14, br, bl, 5, 0, 6, 16), (0.3, oben, bl, 1, -6, -10, -4),
+            (0.44, oben + Vector((0.02 * k, 0.03 * k, 0.03 * k)), bl, 0, -8, -12, -10), (0.6, offen_r, offen_l, 2, -14, 0, -20),
+            (0.74, offen_r + weiter, offen_l + weiter, 2, 12, 0, 20), (0.88, br, bl, 6, 0, 12, 0), (1.0, br, bl, 5, 0, 10, 0))
+
+
+def predigen(phase, p):
+    """Predigen (6 s, stehend auf der Kanzel): die Hände auf der Brüstung, der Blick über die Gemeinde (0–0,14), die Rechte weist
+    nach oben (bis 0,44), beide Arme öffnen sich zur Gemeinde, der Rumpf dreht sich von rechts nach links (bis 0,74), zurück auf
+    die Brüstung. Gibt (Winkel in Grad, Hüfte)."""
+    folge = _predigt_folge(p)
+    for a, b in zip(folge, folge[1:]):
+        if phase <= b[0]:
+            t = weich((phase - a[0]) / (b[0] - a[0]))
+            break
+    rechts, links = a[1].lerp(b[1], t), a[2].lerp(b[2], t)
+    lehne, dreh, nick, kopf = (a[i] + (b[i] - a[i]) * t for i in range(3, 7))
+    hoch = -0.008
+    r = {"Ruecken": (lehne, dreh, 0), "Kopf": (nick, kopf - 0.5 * dreh, 0)}
+    r["Oberarm_R"], r["Unterarm_R"] = arm_genau(p, r, hoch, "R", tuple(rechts))
+    r["Oberarm_L"], r["Unterarm_L"] = arm_genau(p, r, hoch, "L", tuple(links))
+    for seite, vor, z in (("L", 0.06, 5), ("R", -0.04, -5)):
+        o, u = bein_ik(p, hoch, vor, 0.0)
+        r[f"Oberschenkel_{seite}"], r[f"Unterschenkel_{seite}"] = (o, 0, z), (u, 0, 0)
+    return r, hoch
+
+
+def _gefaltet(p, r, hoch):
+    """Die Hände vor der Brust gefaltet (die Fäuste berühren sich), nach der Hüfte der Haltung."""
+    k = p["schulter"] / VOELKER["mensch"]["schulter"]
+    h = p["huefte"] + hoch + 0.6 * (p["schulter"] - p["huefte"])
+    for seite, s in (("L", 1), ("R", -1)):
+        r[f"Oberarm_{seite}"], r[f"Unterarm_{seite}"] = arm_genau(p, r, hoch, seite, (s * 0.028 * k, 0.21 * k, h))
+
+
+def beten(phase, p):
+    """Beten (4 s, sitzend auf der Bank): die Hände gefaltet, der Kopf geneigt, ruhiges Atmen. Gibt (Winkel in Grad, Hüfte)."""
+    s = math.sin(2 * math.pi * phase)
+    hoch = -(p["huefte"] - (p["knie"] - 0.02)) + 0.003 * s
+    r = {"Ruecken": (5 + 1.5 * s, 0, 0), "Kopf": (20 + 3 * s, 0, 0)}
+    r["Oberschenkel_L"], r["Oberschenkel_R"] = (-88, 0, 4), (-88, 0, -4)
+    r["Unterschenkel_L"], r["Unterschenkel_R"] = (88, 0, 0), (88, 0, 0)
+    _gefaltet(p, r, hoch)
+    return r, hoch
+
+
+def knien(phase, p):
+    """Knien (4 s, etwa am Beichtstuhl): auf beiden Knien, die Unterschenkel liegen nach hinten, die Hände gefaltet, der Kopf
+    geneigt; die Knie 6,5 cm über dem Fußpunkt (dort liegt die Kniebank). Gibt (Winkel in Grad, Hüfte)."""
+    s = math.sin(2 * math.pi * phase)
+    hoch = 0.065 - p["knie"] + 0.003 * s
+    r = {"Ruecken": (3 + 1.0 * s, 0, 0), "Kopf": (22 + 3 * s, 0, 0)}
+    r["Oberschenkel_L"], r["Oberschenkel_R"] = (-4, 0, 3), (-4, 0, -3)
+    r["Unterschenkel_L"], r["Unterschenkel_R"] = (92, 0, 0), (92, 0, 0)
+    _gefaltet(p, r, hoch)
+    return r, hoch
+
+
+PREDIGER = {"Kerzenziehen": kerzenziehen, "Schoepfen": schoepfen, "Schreiben": schreiben, "Predigen": predigen, "Beten": beten,
+            "Knien": knien}
+
+
 BEWEGUNGEN = {   # Name: Dauer in Sekunden (eine Schleife)
     "Stehen": 3.0, "Gehen": 1.0, "Eilen": 0.7, "Gebeugt": 1.4, "Tragen": 1.2, "Sitzen": 3.0, "Reden": 2.0,
     "Hacken": 1.3, "Buecken": 2.4, "Hueten": 4.0, "Ziehen": 1.3, "Kutschieren": 1.0,
@@ -1598,6 +1971,7 @@ BEWEGUNGEN = {   # Name: Dauer in Sekunden (eine Schleife)
     "Moersern": 2.0, "Ruehren": 2.4, "Destillieren": 4.0,
     "Mischen": 3.0, "Pressen": 3.0,
     "Zapfen": 4.0, "Trinken": 4.0, "Laute": 2.0,
+    "Kerzenziehen": 4.0, "Schoepfen": 4.0, "Schreiben": 4.0, "Predigen": 6.0, "Beten": 4.0, "Knien": 4.0,
 }
 
 
@@ -1842,7 +2216,8 @@ def vorschau_bewegungen(schnell):
         teile = {"Hueten": ["Stab"], "Tragen": ["Buendel"], "Hacken": ["Hacke", "Strohhut"], "Haemmern": ["Hammer"],
                  "Hobeln": ["Hobel"], "Saegen": ["Saege"], "Drechseln": ["Drechseleisen"], "Behauen": ["Schlaegel", "Meissel"],
                  "Bildhauen": ["Schlaegel", "Meissel"], "Moersern": ["Stoessel"], "Ruehren": ["Kelle"],
-                 "Mischen": ["Flakon"], "Zapfen": ["Krug"], "Trinken": ["Krug"], "Laute": ["Laute"]}.get(name, [])
+                 "Mischen": ["Flakon"], "Zapfen": ["Krug"], "Trinken": ["Krug"], "Laute": ["Laute"], "Kerzenziehen": ["Dochtstab"],
+                 "Schoepfen": ["Sieb"], "Schreiben": ["Feder"]}.get(name, [])
         wahl = [o for o in objekte if o.type == "MESH" and o.name.split(".")[0] in teile + ["Koerper_Mann"]]
         sy = ((len(reihen) - 1) / 2 - r) * abstand
         for k, ph in enumerate(phasen):
@@ -1858,7 +2233,8 @@ def vorschau_bewegungen(schnell):
         alle.append(beschriftung(name, Vector(((-2.3) * 0.7071 - sy * 0.7071, (-2.3) * 0.7071 + sy * 0.7071, 0.9))))
     bs.vorschau_buehne(None, ziel_hoehe=0.9, ausschnitt=22.0 * len(reihen) / 12, schnell=schnell)
     szene = bpy.context.scene
-    szene.render.resolution_x, szene.render.resolution_y = 900, int(1620 * len(reihen) / 12)    # unter 3 MB
+    f = 0.9                                                             # unter 3 MB: Ausschnitt gleich, weniger Bildpunkte
+    szene.render.resolution_x, szene.render.resolution_y = round(900 * f), round(1620 * len(reihen) / 12 * f)
     szene.render.image_settings.color_mode = "RGB"                      # ohne Alphakanal und stark gepackt: kleinere Datei
     szene.render.image_settings.compression = 100
     print(bs.rendern("figuren-bewegungen", lambda o: o in alle))
@@ -1869,7 +2245,7 @@ def arbeitsplatz(name, ort, st, p, phase=0.0):
     Seite ist −y. `phase`: Stand der Bewegung (der Querhebel der Presse schwenkt mit)."""
     netz = bs.Netz("_Hilfe")
     holz, eisen = st["Holz"], st["Eisen"]
-    if name in ("Sitzen", "Kutschieren", "Feinarbeit", "Trinken"):       # Bank bzw. Hocker unter der Hüfte
+    if name in ("Sitzen", "Kutschieren", "Feinarbeit", "Trinken", "Schreiben", "Beten"):   # Bank bzw. Hocker unter der Hüfte
         netz.quader(ort + Vector((0, 0, p["knie"] - 0.06)), (0.5, 0.5, 0.08), holz)
         for dx in (-0.2, 0.2):
             netz.quader(ort + Vector((dx, 0, (p["knie"] - 0.1) / 2)), (0.06, 0.4, p["knie"] - 0.1), holz)
@@ -1970,6 +2346,29 @@ def arbeitsplatz(name, ort, st, p, phase=0.0):
         netz.quader(ort + Vector((-0.6, 0, hoehe - 0.03)), (0.8, 1.4, 0.06), holz)
         for dy in (-0.6, 0.6):
             netz.quader(ort + Vector((-0.6, dy, (hoehe - 0.06) / 2)), (0.6, 0.06, hoehe - 0.06), holz)
+    elif name == "Kerzenziehen":                                        # Herd mit dem Wachstrog, darin das Wachs
+        vor = KERZEN["vor"]
+        netz.quader(ort + Vector((-vor, 0, (KERZEN["rand"] - 0.2) / 2)), (0.5, 1.0, KERZEN["rand"] - 0.2), st["Bruchstein dunkel"])
+        netz.quader(ort + Vector((-vor, 0, KERZEN["rand"] - 0.1)), (0.34, 0.92, 0.2), eisen)
+        netz.quader(ort + Vector((-vor, 0, KERZEN["wachs"])), (0.3, 0.86, 0.01), st["Kerzenwachs"])
+    elif name == "Schoepfen":                                           # Bütte mit dem Brei
+        b = BUETTE
+        netz.quader(ort + Vector((-b["vor"], 0, b["rand"] / 2)), (0.78, 1.0, b["rand"]), st["Holz alt"])
+        netz.quader(ort + Vector((-b["vor"], 0, b["brei"])), (0.7, 0.92, b["rand"] - b["brei"]), st["Papierbrei"])
+    elif name == "Schreiben":                                           # Pult mit schräger Platte vor dem Hocker, Tintenhorn
+        sitz = p["knie"] - 0.02
+        s0, v0, h0 = SCHREIBEN["blatt"]
+        n = math.radians(SCHREIBEN["neigung"])
+        mitte = ort + Vector((-v0 - 0.02, 0, sitz + h0 - 0.012))
+        netz.quader((0, 0, 0), (0.5, 0.7, 0.024), holz, Matrix.Translation(mitte) @ Matrix.Rotation(n, 4, "Y"))
+        netz.quader(ort + Vector((-v0 - 0.05, 0, (sitz + h0 - 0.12) / 2)), (0.3, 0.6, sitz + h0 - 0.12), holz)
+        hs, hv, hh = SCHREIBEN["horn"]
+        bs.achteck(netz, st, ort + Vector((-hv, -hs, sitz + hh - 0.1)), 0.025, 0.0, 0.1, "Holz alt")
+    elif name == "Predigen":                                            # Brüstung der Kanzel vor der Figur
+        vor, h = KANZEL
+        netz.quader(ort + Vector((-vor - 0.05, 0, h / 2)), (0.1, 1.2, h), st["Holz alt"])
+    elif name == "Knien":                                               # Kniebank unter den Knien und Unterschenkeln
+        netz.quader(ort + Vector((0.2, 0, -0.02)), (0.6, 0.6, 0.04), st["Holz alt"])
     return netz.objekt() if netz.dreiecke() else None
 
 
