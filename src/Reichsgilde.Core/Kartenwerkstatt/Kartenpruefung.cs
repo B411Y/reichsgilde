@@ -145,7 +145,7 @@ public static class Kartenpruefung
         private readonly Pruefregeln _r;
         private readonly List<Befund> _b = new();
         private readonly List<(EntwurfWeg Weg, Kartenort[] Linie, double Breite, Rahmen Rahmen)> _wege;
-        private readonly List<(Kartenmauer Mauer, Kartenort[] Linie, Rahmen Rahmen)> _mauern;
+        private readonly List<(EntwurfMauer Mauer, Kartenort[] Linie, Rahmen Rahmen)> _mauern;
         private readonly List<(EntwurfBauzone Zone, Kartenort[] Flaeche, Rahmen Rahmen)> _zonen;
         private Dictionary<EntwurfBauzone, HashSet<(int, int)>>? _felder;
         private readonly Kartenort[]? _stadtgebiet;
@@ -157,13 +157,11 @@ public static class Kartenpruefung
             // Wege mit ihrem Verlauf (bei glatten Wegen die abgetastete Kurve) – so sehen Spiel und Bauwesen sie
             _wege = e.Wege.Where(w => w.Punkte.Count > 0).Select(w => (w, l: w.Verlauf.ToArray())).Select(x => (x.w, x.l, x.w.BreiteWirksam, Rahmen.Um(x.l))).ToList();
             // Mauerlinien, geschlossene mit dem ersten Punkt hinten dran
-            _mauern = e.Mauern.Where(m => m.Linie.Count > 0)
-                .Select(m => (m, m.Linie.Select(Kartenort.Aus).Concat(m.Geschlossen ? new[] { Kartenort.Aus(m.Linie[0]) } : Array.Empty<Kartenort>()).ToArray()))
-                .Select(x => (x.m, x.Item2, Rahmen.Um(x.Item2))).ToList();
+            _mauern = e.Mauern.Where(m => m.Ecken.Count > 0).Select(m => (m, l: m.Linie.ToArray())).Select(x => (x.m, x.l, Rahmen.Um(x.l))).ToList();
             _zonen = e.Bauzonen.Where(z => z.Ecken.Count > 0).Select(z => (z, z.Ecken.ToArray(), Rahmen.Um(z.Ecken))).ToList();
             // Die Stadt: innerhalb der ersten geschlossenen Mauer (Greybox: ±50 m)
-            if (e.Mauern.FirstOrDefault(m => m.Geschlossen && m.Linie.Count >= 3) is { } stadtmauer)
-                _stadtgebiet = stadtmauer.Linie.Select(Kartenort.Aus).ToArray();
+            if (e.Mauern.FirstOrDefault(m => m.Geschlossen && m.Ecken.Count >= 3) is { } stadtmauer)
+                _stadtgebiet = stadtmauer.Ecken.ToArray();
         }
 
         private IEnumerable<(EntwurfWeg Weg, Kartenort[] Linie, double Breite, Rahmen Rahmen)> Karrenwege => _wege.Where(w => w.Weg.IstKarrenstrasse);
@@ -231,7 +229,7 @@ public static class Kartenpruefung
             Haefen();
             Natur();
             Pflanzen();
-            if (_e.Start is { } s) Start(s);
+            Start();
             Wegenetz();
             return _b;
         }
@@ -268,6 +266,7 @@ public static class Kartenpruefung
                 Fehler("betrieb", $"{Wer(g)}: Ein Umlandbetrieb braucht den Namen seines Betriebs.", ort, g.Kennung);
             if (g.Groesse is null || g.Massstab <= 0) return;
 
+            AufMauer(g);
             if (b.Art == Bausteinart.Werkstattplatz) Werkstatthof(g);
             if (!_r.Stadtregeln) return;
 
@@ -303,7 +302,7 @@ public static class Kartenpruefung
                 Fehler("eingang", $"{Wer(g)}: Der Eingang liegt nicht an einem Weg (höchstens 1,5 m vom Wegrand).", eingang, g.Kennung);
         }
 
-        /// <summary>Werkstattplatz: Greybox-Maße, eigene Gasse am Hof, nicht auf der Mauer (greybox.py, Regel 5).</summary>
+        /// <summary>Werkstattplatz: Greybox-Maße, eigene Gasse am Hof (greybox.py, Regel 5; „nicht auf der Mauer“ prüft <see cref="AufMauer"/>).</summary>
         private void Werkstatt(EntwurfGebaeude g)
         {
             if (_r.Werkstattnorm)
@@ -316,10 +315,25 @@ public static class Kartenpruefung
                 if (!_wege.Any(x => x.Weg.Klasse == Wegklasse.Gasse && x.Linie[0].Abstand(hof) < 1e-3))
                     Fehler("gasse", $"{Wer(g)}: Keine Gasse beginnt am Hof {hof}.", hof, g.Kennung);
             }
+        }
+
+        /// <summary>
+        /// Kein Gebäude steht auf einer Mauer: das Haus (ohne Vorplatz) mindestens 1 m von der Mauerlinie (greybox.py, Regel 5, für Werkstätten;
+        /// seit Schritt 3 für alle Gebäude außer Felsbergen, deren Rand ohnehin über Nachbarn läuft). Mit den Stadtregeln ein Fehler, sonst ein
+        /// Hinweis (in Köln stehen St. Gereon und ein Leerstand auf der Mauer).
+        /// </summary>
+        private void AufMauer(EntwurfGebaeude g)
+        {
+            if (g.Art == Bausteinart.Berg) return;
             var haus = g.Ecken(ohneVorplatz: true);
-            foreach (var (m, linie, _) in _mauern)
-                if (Kartengeometrie.AbstandVielecke(haus, linie, false) < 1)
-                    Fehler("mauer", $"{Wer(g)}: Die Werkstatt steht auf der Mauer „{m.Name}“.", g.Punkt, g.Kennung);
+            var rahmen = Rahmen.Um(haus);
+            foreach (var (m, linie, mr) in _mauern)
+                if (rahmen.Abstand(mr) < 1 && Kartengeometrie.AbstandVielecke(haus, linie, false) < 1)
+                {
+                    var text = $"{Wer(g)} steht auf der Mauer „{m.Name}“.";
+                    if (_r.Stadtregeln) FehlerAn("mauer", text, g.Punkt, new[] { m }, g.Kennung);
+                    else HinweisAn("mauer", text, g.Punkt, new[] { m }, g.Kennung);
+                }
         }
 
         /// <summary>Keine Gasse läuft über ein Haus der Stadt, keine Straße über eine Werkstatt (greybox.py, Regel 6).</summary>
@@ -580,34 +594,37 @@ public static class Kartenpruefung
 
         /// <summary>
         /// Mauern: Baukasten im Katalog, die Stadtmauer geschlossen bzw. offen, jedes Tor auf seiner Linie, Wege kreuzen nur an einem Tor
-        /// (karte.py, Regel 7).
+        /// (karte.py, Regel 7); eine Mauer ohne Tor ist ein Hinweis (niemand kommt hinein oder hinaus).
         /// </summary>
         private void Mauern()
         {
             for (var i = 0; i < _e.Mauern.Count; i++)
             {
                 var m = _e.Mauern[i];
-                var ort = m.Linie.Count > 0 ? Kartenort.Aus(m.Linie[0]) : (Kartenort?)null;
-                if (m.Linie.Count < 2) Fehler("mauer", $"Mauer „{m.Name}“: Die Linie braucht mindestens zwei Punkte.", ort);
+                var ort = m.Ecken.Count > 0 ? m.Ecken[0] : (Kartenort?)null;
+                var teil = new[] { m };
+                if (m.Ecken.Count < 2) FehlerAn("mauer", $"Mauer „{m.Name}“: Die Linie braucht mindestens zwei Punkte.", ort, teil);
+                else if (m.Geschlossen && m.Ecken.Count < 3) FehlerAn("mauer", $"Mauer „{m.Name}“: Eine geschlossene Mauer braucht mindestens drei Ecken.", ort, teil);
                 if (_e.Katalog.Finde(m.Katalog) is not { Art: Bausteinart.Mauer })
-                    Fehler("mauer", $"Mauer „{m.Name}“: Den Mauer-Baukasten „{m.Katalog}“ gibt es im Katalog nicht.", ort);
+                    FehlerAn("mauer", $"Mauer „{m.Name}“: Den Mauer-Baukasten „{m.Katalog}“ gibt es im Katalog nicht.", ort, teil);
                 if (i == 0 && _r.MauerGeschlossen is { } soll && m.Geschlossen != soll)
-                    Fehler("mauer", $"Mauer „{m.Name}“: In dieser Karte ist die Stadtmauer {(soll ? "geschlossen" : "offen")}.", ort);
+                    FehlerAn("mauer", $"Mauer „{m.Name}“: In dieser Karte ist die Stadtmauer {(soll ? "geschlossen" : "offen")}.", ort, teil);
+                if (m.Tore.Count == 0 && m.Ecken.Count >= 2)
+                    HinweisAn("mauer-tor", $"Mauer „{m.Name}“ hat kein Tor – Wege und Karren kommen nicht hindurch.", ort, teil);
             }
             foreach (var (m, linie, _) in _mauern)
             {
-                var tore = m.Tore.Where(t => t.Punkt is { Length: 2 }).Select(t => (t, Ort: Kartenort.Aus(t.Punkt))).ToList();
-                foreach (var (t, ort) in tore)
+                foreach (var t in m.Tore)
                 {
-                    var n = Kartengeometrie.AbstandLinie(ort, linie);
-                    if (n > Tornah) Fehler("tor", $"Tor „{t.Name}“: {M(n)} m neben der Linie der Mauer „{m.Name}“ (höchstens {M(Tornah)} m).", ort);
+                    var n = Kartengeometrie.AbstandLinie(t.Punkt, linie);
+                    if (n > Tornah) FehlerAn("tor", $"Tor „{t.Name}“: {M(n)} m neben der Linie der Mauer „{m.Name}“ (höchstens {M(Tornah)} m).", t.Punkt, new[] { m });
                 }
                 foreach (var (w, wl, _, _) in _wege)
                     for (var a = 0; a + 1 < wl.Length; a++)
                         for (var c = 0; c + 1 < linie.Length; c++)
                             if (Kartengeometrie.Schnitt(wl[a], wl[a + 1], linie[c], linie[c + 1]) is { } s
-                                && (tore.Count == 0 ? double.MaxValue : tore.Min(t => s.Abstand(t.Ort))) > 3)
-                                FehlerAn("tor", $"„{w.Name}“ kreuzt die Mauer „{m.Name}“ ohne Tor bei {s}.", s, new[] { w });
+                                && (m.Tore.Count == 0 ? double.MaxValue : m.Tore.Min(t => s.Abstand(t.Punkt))) > 3)
+                                FehlerAn("tor", $"„{w.Name}“ kreuzt die Mauer „{m.Name}“ ohne Tor bei {s}.", s, new EntwurfTeil[] { w, m });
             }
         }
 
@@ -733,51 +750,86 @@ public static class Kartenpruefung
             }
         }
 
-        /// <summary>Die Startbelegung: Plätze gibt es und sie haben die richtige Art, nichts doppelt (karte.py, Regel 10, und Stadtkarte.Pruefen).</summary>
-        private void Start(Startbelegung s)
+        /// <summary>
+        /// Die Startbelegung (karte.py, Regel 10, und Stadtkarte.Pruefen; seit Schritt 3 mehr): Plätze gibt es und sie haben die richtige Art,
+        /// nichts doppelt; der Spieler hat einen Startplatz und ein Wohnhaus, jedes Haus ein Wohnhaus und mindestens einen Betrieb; ein bis acht
+        /// KI-Häuser; die Betriebsart passt zum Platz (Werkstattplatz: Werkstatt der Stufe 1 in der Stadt), die erste Ware zur Betriebsart, der
+        /// Beruf eines Startplatzes gibt es (die drei letzten nur mit <see cref="Kartenentwurf.Daten"/>). Ohne Startbelegung gilt im Spiel der
+        /// Ersatz ohne Plätze – mit den Stadtregeln ein Fehler (der Spieler hätte keinen Startplatz), sonst ein Hinweis (Köln).
+        /// </summary>
+        private void Start()
         {
+            var s = _e.Start;
+            var teil = new EntwurfTeil[] { s };
+            if (s.IstLeer)
+            {
+                var text = "Start: Die Karte hat keine Startbelegung – der Startplatz des Spielers fehlt, im Spiel gälten die drei Häuser des Ersatzes ohne Plätze.";
+                if (_r.Stadtregeln) FehlerAn("start-fehlt", text, null, teil);
+                else HinweisAn("start-fehlt", text, null, teil);
+                return;
+            }
+            var daten = _e.Daten;
             var nachKennung = _e.Gebaeude.GroupBy(g => g.Kennung).ToDictionary(g => g.Key, g => g.First());
-            EntwurfGebaeude? Platz(string? k) => k is null ? null : nachKennung.GetValueOrDefault(k);
+            EntwurfGebaeude? Platz(string? k) => k is null ? null : nachKennung!.GetValueOrDefault(k);
             Kartenort? Ort(string? k) => Platz(k)?.Punkt;
             string[] Betroffen(string? k) => Platz(k) is { } g ? new[] { g.Kennung } : Array.Empty<string>();
+            void StartFehler(string text, string? kennung) => FehlerAn("start", text, Ort(kennung), teil, Betroffen(kennung));
 
             void Wohnhaus(string wer, string? kennung)
             {
-                if (kennung is not null && Platz(kennung) is not { Art: Bausteinart.Wohnhausplatz })
-                    Fehler("start", $"Start, {wer}: „{kennung}“ ist kein Wohnhausplatz der Karte.", Ort(kennung), Betroffen(kennung));
+                if (kennung is null) StartFehler($"Start, {wer}: Es fehlt das Wohnhaus.", null);
+                else if (Platz(kennung) is not { Art: Bausteinart.Wohnhausplatz })
+                    StartFehler($"Start, {wer}: „{kennung}“ ist kein Wohnhausplatz der Karte.", kennung);
             }
-            Wohnhaus("Spieler", s.Spieler.Wohnhaus);
-            foreach (var (beruf, w) in s.Spieler.JeBeruf.Prepend(new("", s.Spieler.Werkstatt)))
+            Wohnhaus("Spieler", s.SpielerWohnhaus);
+            if (s.SpielerWerkstatt is null) StartFehler("Start, Spieler: Der Startplatz der Werkstatt fehlt.", null);
+            foreach (var (beruf, w) in s.JeBeruf.Select(e => (e.Key, (EntwurfStartplatz?)e.Value)).Prepend(("", s.SpielerWerkstatt)))
+            {
+                if (w is null) continue;
+                var wer = $"Start, Spieler{(beruf == "" ? "" : $" ({beruf})")}";
                 if (Platz(w.Platz) is not { Art: Bausteinart.Werkstattplatz })
-                    Fehler("start", $"Start, Spieler{(beruf == "" ? "" : $" ({beruf})")}: „{w.Platz}“ ist kein Werkstattplatz der Karte.", Ort(w.Platz), Betroffen(w.Platz));
+                    StartFehler($"{wer}: „{w.Platz}“ ist kein Werkstattplatz der Karte.", w.Platz);
+                if (beruf != "" && daten is not null && !daten.Berufe.ContainsKey(beruf))
+                    StartFehler($"{wer}: Den Beruf „{beruf}“ gibt es nicht.", w.Platz);
+            }
+            if (s.SpielerFarbe is { } sf && !IstFarbe(sf)) StartFehler($"Start, Spieler: Die Farbe „{sf}“ ist nicht #rrggbb.", null);
 
+            if (s.Haeuser.Count == 0) StartFehler("Start: Es braucht mindestens ein KI-Haus (das erste spielt immer mit).", null);
+            if (s.Haeuser.Count > Kartenentwurf.HoechstensHaeuser) StartFehler($"Start: Höchstens {Kartenentwurf.HoechstensHaeuser} KI-Häuser, nicht {s.Haeuser.Count}.", null);
             foreach (var h in s.Haeuser)
             {
-                if (string.IsNullOrWhiteSpace(h.Name)) Fehler("start", "Start: Ein Haus hat keinen Namen.", null);
+                if (string.IsNullOrWhiteSpace(h.Name)) StartFehler("Start: Ein Haus hat keinen Namen.", null);
                 Wohnhaus(h.Name, h.Wohnhaus);
-                if (h.Wappen.Fehler() is { } wf) Fehler("start", $"Start, {h.Name}: {wf}", null);
-                if (h.Betriebe.Count == 0) Fehler("start", $"Start, {h.Name}: Ein Haus braucht mindestens einen Betrieb.", null);
+                if (h.Wappen.Fehler() is { } wf) StartFehler($"Start, {h.Name}: {wf}", null);
+                if (h.Farbe is { } hf && !IstFarbe(hf)) StartFehler($"Start, {h.Name}: Die Farbe „{hf}“ ist nicht #rrggbb.", null);
+                if (h.Betriebe.Count == 0) StartFehler($"Start, {h.Name}: Ein Haus braucht mindestens einen Betrieb.", null);
                 foreach (var b in h.Betriebe)
                 {
                     var platz = Platz(b.Platz);
                     if (platz is not { Art: Bausteinart.Werkstattplatz or Bausteinart.Umlandbetrieb })
-                        Fehler("start", $"Start, {h.Name}: „{b.Platz}“ ist weder Werkstattplatz noch Umlandbetrieb der Karte.", Ort(b.Platz), Betroffen(b.Platz));
+                        StartFehler($"Start, {h.Name}: „{b.Platz}“ ist weder Werkstattplatz noch Umlandbetrieb der Karte.", b.Platz);
                     else if (string.IsNullOrWhiteSpace(platz.Betrieb))
-                        Fehler("start", $"Start, {h.Name}: Am Platz „{b.Platz}“ fehlt der Name des Betriebs.", platz.Punkt, platz.Kennung);
+                        StartFehler($"Start, {h.Name}: Am Platz „{b.Platz}“ fehlt der Name des Betriebs.", b.Platz);
                     else if (platz.Art == Bausteinart.Umlandbetrieb && platz.Baustein!.BetriebsartWert != b.Art)
-                        Fehler("start", $"Start, {h.Name}: Auf „{b.Platz}“ steht {platz.Baustein.Anzeigename}, kein Platz für {b.Art}.", platz.Punkt, platz.Kennung);
+                        StartFehler($"Start, {h.Name}: Auf „{b.Platz}“ steht {platz.Baustein.Anzeigename}, kein Platz für {b.Art}.", b.Platz);
+                    else if (platz.Art == Bausteinart.Werkstattplatz && daten is not null && !_e.BetriebsartenFuer(platz).Contains(b.Art))
+                        StartFehler($"Start, {h.Name}: {b.Art} ist keine Werkstatt der Stufe 1 in der Stadt – sie passt nicht auf den Werkstattplatz „{b.Platz}“.", b.Platz);
+                    if (b.Produkt is { } ware && daten is not null && daten.KenntArt(b.Art) && !daten.Art(b.Art).Produkte.Contains(ware))
+                        StartFehler($"Start, {h.Name}: {b.Art} stellt „{ware}“ nicht her.", b.Platz);
                 }
             }
             foreach (var doppelt in s.Haeuser.GroupBy(h => h.Name).Where(x => x.Count() > 1))
-                Fehler("start", $"Start: Das Haus „{doppelt.Key}“ steht doppelt.", null);
+                StartFehler($"Start: Das Haus „{doppelt.Key}“ steht doppelt.", null);
             foreach (var doppelt in s.Haeuser.GroupBy(h => h.Wappen).Where(x => x.Count() > 1))
-                Fehler("start", $"Start: Zwei Häuser führen dasselbe Wappen ({string.Join(", ", doppelt.Select(h => h.Name))}).", null);
-            var spielerPlaetze = s.Spieler.JeBeruf.Values.Prepend(s.Spieler.Werkstatt).Select(w => w.Platz).Distinct();
+                StartFehler($"Start: Zwei Häuser führen dasselbe Wappen ({string.Join(", ", doppelt.Select(h => h.Name))}).", null);
+            var spielerPlaetze = s.JeBeruf.Select(e => e.Value.Platz).Concat(s.SpielerWerkstatt is { } sw ? new[] { sw.Platz } : Array.Empty<string>()).Distinct();
             foreach (var doppelt in s.Haeuser.SelectMany(h => h.Betriebe.Select(b => b.Platz)).Concat(spielerPlaetze).GroupBy(p => p).Where(x => x.Count() > 1))
-                Fehler("start", $"Start: Der Platz „{doppelt.Key}“ ist mehrfach vergeben.", Ort(doppelt.Key), Betroffen(doppelt.Key));
-            foreach (var doppelt in s.Haeuser.Select(h => h.Wohnhaus).Prepend(s.Spieler.Wohnhaus).OfType<string>().GroupBy(p => p).Where(x => x.Count() > 1))
-                Fehler("start", $"Start: Der Wohnhausplatz „{doppelt.Key}“ ist mehrfach vergeben.", Ort(doppelt.Key), Betroffen(doppelt.Key));
+                StartFehler($"Start: Der Platz „{doppelt.Key}“ ist mehrfach vergeben.", doppelt.Key);
+            foreach (var doppelt in s.Haeuser.Select(h => h.Wohnhaus).Prepend(s.SpielerWohnhaus).OfType<string>().GroupBy(p => p).Where(x => x.Count() > 1))
+                StartFehler($"Start: Der Wohnhausplatz „{doppelt.Key}“ ist mehrfach vergeben.", doppelt.Key);
         }
+
+        private static bool IstFarbe(string f) => Regex.IsMatch(f, "^#[0-9a-fA-F]{6}$");
 
         /// <summary>
         /// Das Wegenetz hängt zusammen: Kreuzungen und Berührungen (1 m), Brücken und Fähren verbinden (karte.py, Regel 11). Ein Weg hängt in
