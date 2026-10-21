@@ -31,6 +31,11 @@ static class WirtTests
         while (sim.Zeit.Jahr == jahr) sim.Tick();
     }
 
+    static void BisUhrzeit(Simulation sim, int stunde)
+    {
+        while (sim.Zeit.UhrzeitInMinuten < stunde * 60) sim.Tick();
+    }
+
     /// <summary>Eine Schänke der gewünschten Art mit Personal und Bier im Lager, ohne Karren.</summary>
     static (Stadtwirtschaft W, Konto K, Betrieb S) Wirt(Simulation sim, Betriebsart art = Betriebsart.Schaenke, int bier = 200, string name = "Familie Krug")
     {
@@ -190,6 +195,118 @@ static class WirtTests
             Pruefe.Wahr(g.BardeGebucht(ks), "Barde vergessen");
             for (var i = 0; i < 60; i++) { sim.Tick(); kopie.Tick(); }
             Pruefe.Gleich(w.Gastwirtschaft.DiesesJahr(s), g.DiesesJahr(ks)); // gleicher Verlauf
+        }),
+
+        ("Gäste im Raum: keine vor 12 Uhr, nachmittags die Gäste einer Stunde, abends doppelt so viele – höchstens 12 Plätze", () =>
+        {
+            var sim = NeueSimulation();
+            var (w, _, s) = Wirt(sim);
+            var g = w.Gastwirtschaft;
+            Pruefe.Gleich(0, g.GaesteJetzt(s)); // 5 Uhr
+            BisUhrzeit(sim, 11);
+            Pruefe.Gleich(0, g.GaesteJetzt(s));
+            BisUhrzeit(sim, 12);
+            Pruefe.Gleich(9, g.GaesteJetzt(s)); // allein in der Stadt: 120 × 1/14 ≈ 8,6
+            BisUhrzeit(sim, 18);
+            Pruefe.Gleich(12, g.GaesteJetzt(s)); // 120 × 2/14 ≈ 17,1 – gedeckelt
+            Pruefe.Gleich(17, g.GaesteJetzt(s, hoechstens: 40));
+            Pruefe.Gleich(5, g.GaesteJetzt(s, hoechstens: 5));
+        }),
+
+        ("Gäste im Raum: Bei Konkurrenz nach Anziehung, abends mehr als mittags; das Wirtshaus hat mehr als die Schänke", () =>
+        {
+            var sim = NeueSimulation();
+            var (w, _, schaenke) = Wirt(sim, name: "Familie Krug");
+            var (_, _, wirtshaus) = Wirt(sim, Betriebsart.Wirtshaus, name: "Familie Humpen");
+            var g = w.Gastwirtschaft;
+            BisUhrzeit(sim, 12);
+            var mittags = (g.GaesteJetzt(schaenke), g.GaesteJetzt(wirtshaus));
+            Pruefe.Gleich((int)Math.Round(g.ErwarteteGaeste(schaenke) / 14, MidpointRounding.AwayFromZero), mittags.Item1);
+            Pruefe.Wahr(mittags.Item1 >= 1 && mittags.Item2 > mittags.Item1, $"mittags {mittags}");
+            BisUhrzeit(sim, 18);
+            var abends = (g.GaesteJetzt(schaenke), g.GaesteJetzt(wirtshaus));
+            Pruefe.Gleich((int)Math.Round(g.ErwarteteGaeste(wirtshaus) * 2 / 14, MidpointRounding.AwayFromZero), abends.Item2);
+            Pruefe.Wahr(abends.Item1 > mittags.Item1 && abends.Item2 > mittags.Item2 && abends.Item2 <= 12, $"mittags {mittags}, abends {abends}");
+        }),
+
+        ("Gäste im Raum: Ohne Ausschankware im Lager, ohne Arbeiter oder ohne Gastwirtschaft sitzt niemand", () =>
+        {
+            var sim = NeueSimulation();
+            var (w, k, s) = Wirt(sim, bier: 0);
+            var g = w.Gastwirtschaft;
+            BisUhrzeit(sim, 12);
+            Pruefe.Gleich(0, g.GaesteJetzt(s));
+            s.Einlagern("Weingeist", 10); // Zwischenware, kein Ausschank
+            Pruefe.Gleich(0, g.GaesteJetzt(s));
+            s.Einlagern("Körnermahlzeit", 10);
+            Pruefe.Gleich(9, g.GaesteJetzt(s));
+            Pruefe.Wahr(w.Ausfuehren(k, new PersonalSetzen(s.Name, "Geselle", 0)).Erfolg, "Geselle entlassen");
+            Pruefe.Gleich(0, g.GaesteJetzt(s));
+            Pruefe.Wahr(!g.BardeSpielt(s) && !g.WuerfeltischBesetzt(s) && !g.StammtischBesetzt(s), "leere Schänke");
+
+            var ohne = new Simulation(Partieeinstellungen.Standard with { Siegbedingung = Siegbedingung.Endlos, Zufallsstartwert = 1400 },
+                wirtschaftsdaten: Wirtschaftsdaten.AusJson(File.ReadAllText(Datenpfad.Wirtschaft()).Replace("\"gastwirtschaft\":", "\"gastwirtschaftAlt\":")));
+            var (w2, _, s2) = Wirt(ohne);
+            BisUhrzeit(ohne, 18);
+            Pruefe.Wahr(!w2.Gastwirtschaft.IstAktiv, "Gastwirtschaft aktiv");
+            Pruefe.Gleich(0, w2.Gastwirtschaft.GaesteJetzt(s2));
+            Pruefe.Wahr(!w2.Gastwirtschaft.BardeSpielt(s2) && !w2.Gastwirtschaft.StammtischBesetzt(s2), "ohne Gastwirtschaft");
+        }),
+
+        ("Gäste im Raum: Der Barde spielt nur, wenn er gebucht ist, und erst ab 18 Uhr – dann sitzen anderthalbmal so viele", () =>
+        {
+            var sim = NeueSimulation();
+            var (w, k, s) = Wirt(sim);
+            var g = w.Gastwirtschaft;
+            BisUhrzeit(sim, 12);
+            Pruefe.Wahr(!g.BardeSpielt(s), "ohne Buchung");
+            Pruefe.Wahr(w.Ausfuehren(k, new BardeEinladen(s.Name)).Erfolg, "Barde");
+            Pruefe.Wahr(!g.BardeSpielt(s), "mittags");
+            Pruefe.Gleich(9, g.GaesteJetzt(s));
+            BisUhrzeit(sim, 18);
+            Pruefe.Wahr(g.BardeSpielt(s), "abends");
+            Pruefe.Gleich(26, g.GaesteJetzt(s, hoechstens: 40)); // 120 × 2/14 × 1,5 ≈ 25,7
+            Pruefe.Gleich(12, g.GaesteJetzt(s));
+        }),
+
+        ("Gäste im Raum: Würfeltisch besetzt, wenn er steht und Gäste da sind; Stammtisch erst im Gasthaus und nur abends", () =>
+        {
+            var sim = NeueSimulation();
+            var (w, _, schaenke) = Wirt(sim, name: "Familie Krug");
+            var (_, k2, wirtshaus) = Wirt(sim, Betriebsart.Wirtshaus, name: "Familie Humpen");
+            var (_, _, gasthaus) = Wirt(sim, Betriebsart.Gasthaus, name: "Familie Kanne");
+            var g = w.Gastwirtschaft;
+            Pruefe.Wahr(w.Ausfuehren(k2, new WuerfeltischAufstellen(wirtshaus.Name, true)).Erfolg, "Würfeltisch");
+            Pruefe.Wahr(!g.WuerfeltischBesetzt(wirtshaus), "vor 12 Uhr");
+            BisUhrzeit(sim, 12);
+            Pruefe.Wahr(g.GaesteJetzt(wirtshaus) >= 2 && g.WuerfeltischBesetzt(wirtshaus), $"Würfeltisch mit {g.GaesteJetzt(wirtshaus)} Gästen");
+            Pruefe.Wahr(!g.WuerfeltischBesetzt(schaenke) && !g.WuerfeltischBesetzt(gasthaus), "ohne Würfeltisch");
+            Pruefe.Wahr(!g.StammtischBesetzt(gasthaus), "Stammtisch mittags");
+            BisUhrzeit(sim, 18);
+            Pruefe.Wahr(g.StammtischBesetzt(gasthaus), "Stammtisch abends im Gasthaus");
+            Pruefe.Wahr(!g.StammtischBesetzt(wirtshaus) && !g.StammtischBesetzt(schaenke), "Stammtisch erst ab Stufe 3");
+        }),
+
+        ("Gäste im Raum: Die Abfragen ändern nichts – ein Jahr mit ständigen Abfragen verläuft zeichengleich", () =>
+        {
+            string Spielen(bool abfragen)
+            {
+                var sim = NeueSimulation();
+                var (w, k, s) = Wirt(sim, Betriebsart.Gasthaus);
+                Pruefe.Wahr(w.Ausfuehren(k, new BardeEinladen(s.Name)).Erfolg, "Barde");
+                var summe = 0;
+                while (sim.Zeit.Jahr == Reichsgilde.Core.Zeit.Spielzeit.StartJahr)
+                {
+                    sim.Tick();
+                    if (!abfragen) continue;
+                    foreach (var b in w.Betriebe.Where(b => b.IstSchaenke))
+                        summe += w.Gastwirtschaft.GaesteJetzt(b) + (w.Gastwirtschaft.BardeSpielt(b) ? 1 : 0)
+                                 + (w.Gastwirtschaft.WuerfeltischBesetzt(b) ? 1 : 0) + (w.Gastwirtschaft.StammtischBesetzt(b) ? 1 : 0);
+                }
+                Pruefe.Wahr(!abfragen || summe > 0, "keine Gäste gesehen");
+                return Speicherung.Speichern(sim, k, new DateTime(2026, 10, 21, 12, 0, 0));
+            }
+            Pruefe.Gleich(Spielen(false), Spielen(true));
         }),
     };
 }

@@ -185,6 +185,44 @@ public sealed class Gastwirtschaft
     public double AnsehenAbzug(Konto konto) =>
         IstAktiv && _w.Betriebe.Any(b => b.Konto == konto && _wuerfeltisch.Contains(b.Name)) ? Daten.Wuerfeltisch.Ansehen : 0;
 
+    // ── Abfragen für die Darstellung (nur lesend, ohne Zufall) ───────────────
+
+    /// <summary>So viele Gäste zeigt der Raum höchstens, wenn die Darstellung nichts anderes vorgibt.</summary>
+    public const int SitzplaetzeImRaum = 12;
+
+    private int StundeJetzt => _w.Uhr.UhrzeitInMinuten / 60;
+
+    /// <summary>Geöffnet und etwas zum Ausschenken da: Schänke besetzt, Haus im Spiel, ab <see cref="GastwirtschaftDaten.OeffnetUm"/>.</summary>
+    private bool SchenktAus(Betrieb b, int stunde) =>
+        IstAktiv && Gewicht(stunde) > 0 && Schaenken.Contains(b) && Daten.Ausschank.Any(x => b.ImLager(x) > 0);
+
+    /// <summary>
+    /// Wie viele Gäste gerade in dieser Schänke sitzen – für die Darstellung, abgeleitet aus dem Gästemodell:
+    /// Ein Gast bleibt etwa eine Stunde, also sitzen so viele, wie in dieser Stunde kommen:
+    /// <see cref="ErwarteteGaeste"/> × Gewicht(Stunde) ÷ ΣGewicht, abends mit Barde × (1 + barde.gaeste),
+    /// gerundet, mindestens 1 und höchstens <paramref name="hoechstens"/>.
+    /// 0 vor <see cref="GastwirtschaftDaten.OeffnetUm"/>, ohne Arbeiter, wenn das Haus nicht mehr spielt
+    /// und wenn keine Ausschankware im Lager ist (dann würde jeder Gast abgewiesen).
+    /// </summary>
+    public int GaesteJetzt(Betrieb b, int hoechstens = SitzplaetzeImRaum)
+    {
+        var stunde = StundeJetzt;
+        if (!SchenktAus(b, stunde)) return 0;
+        var gaeste = ErwarteteGaeste(b) * Gewicht(stunde) / GewichtSumme;
+        if (_barde.Contains(b.Name) && IstAbend(stunde)) gaeste *= 1 + Daten.Barde.Gaeste;
+        return Math.Clamp((int)Math.Round(gaeste, MidpointRounding.AwayFromZero), 1, Math.Max(1, hoechstens));
+    }
+
+    /// <summary>Der Barde spielt gerade: gebucht, ab <see cref="GastwirtschaftDaten.AbendAb"/>, und die Schänke ist besetzt.</summary>
+    public bool BardeSpielt(Betrieb b) =>
+        IstAktiv && _barde.Contains(b.Name) && IstAbend(StundeJetzt) && Schaenken.Contains(b);
+
+    /// <summary>Am Würfeltisch wird gerade gespielt: aufgestellt (ab Stufe 2) und mindestens zwei Gäste da.</summary>
+    public bool WuerfeltischBesetzt(Betrieb b) => HatWuerfeltisch(b) && GaesteJetzt(b) >= 2;
+
+    /// <summary>Am Stammtisch sitzen gerade die Ratsherren: ab Stufe 3, abends, wenn ausgeschenkt wird.</summary>
+    public bool StammtischBesetzt(Betrieb b) => HatStammtisch(b) && IstAbend(StundeJetzt) && SchenktAus(b, StundeJetzt);
+
     // ── Ablauf ──────────────────────────────────────────────────────────────
 
     /// <summary>Jede volle Stunde: Gäste der vergangenen Stunde kehren ein.</summary>

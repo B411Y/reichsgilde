@@ -1061,6 +1061,12 @@ Bürgermeister 18/20 → 16/20 (im Schnitt ab Jahr 14,2 → 13,4), Stand am Ende
 
 **Keine Messung:** Die KI-Häuser kaufen keine Einrichtung, in `messen` ändert sich nichts.
 
+## Einrichtung und Gäste des Wirts (PR #166)
+
+**Regel:** `werkstatt.einrichtung.Wirt` (Datenversion 42), gleiche Stücke und Preise wie beim Parfumeur, statt der Glasflakons die **kupferne Braupfanne** (350): −10 % Zeit für Dünnbier, Starkbier und Festbier (nicht für Weingeist, Körnermahlzeit, Kräuterlikör, Schädelbrand). Mit gutem Werkzeug und Braupfanne braucht ein Festbier 80 × 0,81 ≈ 65 statt 80 Minuten. Die Fassregale (`Regale`) geben 60 statt 40 Lager je Ware, die Lederhandschuhe (`Handschuhe`, 80) halbieren die Unfälle (Gefahr des Wirts 2 % → 1 % je Arbeiter und Jahr). Gilt in Schänke, Wirtshaus und Gasthaus, nicht auf dem Bauernhof. Dazu kommt eine lesende Abfrage, wie viele Gäste gerade in einer Schänke sitzen (`Gastwirtschaft.GaesteJetzt`); sie ändert am Gästesystem nichts.
+
+**Messung** (`messen 30 20`, Mensch, ausgewogen, gemessen auf main `f859c9f` + PR #166): **zeichengleich** mit main (Eisenbart Ø 129.647, Eichwald 88.479, Kieselbach 127.439, Bürgermeister 18/20). Die KI-Häuser kaufen keine Einrichtung, und die Abfrage liest nur.
+
 ## Keine Werkstätten zum Kauf in der Stadt (PR #162)
 
 **Regel:** Datenversion 40. Unter `liegenschaften` stehen nur noch die neun Umlandbetriebe zur Pacht; die zehn Werkstätten der Stadt (Gießerei an der Südgasse … Wechselstube am Markt) sind gestrichen. Neue Werkstätten entstehen durch Bauen, frei werden welche durch Verkauf oder Untergang eines Hauses. Der Preis der Stufe 1 steht jetzt als `kaufpreis` an der Betriebsart (3.500, Schmugglerloch 3.000) – unverändert gegenüber den gestrichenen Liegenschaften, also gleicher Neubaupreis und gleicher Wert beim Verkauf.
