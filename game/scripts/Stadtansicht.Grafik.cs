@@ -70,8 +70,8 @@ public partial class Stadtansicht
     /// </summary>
     private static (float Fern, float Nah, float Uebergang, float Menge) TiltShiftWerte(Miniaturunschaerfe stufe) => stufe switch
     {
-        Miniaturunschaerfe.Stark => (0.18f, 0.35f, 0.55f, 0.16f),
-        _ => (0.35f, 0.55f, 0.7f, 0.08f),
+        Miniaturunschaerfe.Stark => (0.18f, 0.5f, 0.55f, 0.16f),
+        _ => (0.35f, 0.8f, 0.7f, 0.08f),
     };
 
     /// <summary>
@@ -106,7 +106,7 @@ public partial class Stadtansicht
     private const float WolkenPeriode = 512f;
 
     /// <summary>Wie weit die Wolken je echter Sekunde ziehen (Meter) und wie dunkel ihr Schatten höchstens macht (Anteil).</summary>
-    private const float WolkenTempo = 2.5f, WolkenDunkel = 0.32f;
+    private const float WolkenTempo = 2.5f, WolkenDunkel = 0.42f;
 
     /// <summary>
     /// Ein Decal über der ganzen Stadt: Es färbt alles darunter (Boden, Dächer, Wände, Figuren) zum Schwarz hin, so weit die Wolke dicht
@@ -182,7 +182,11 @@ public partial class Stadtansicht
     private const float DunstHoehe = 3f, DunstHoehenDichte = 0.055f;
 
     /// <summary>Feiner Staub in der Luft der Raumansicht (nur Stufe Hoch): macht das Licht der Fenster als Bahn sichtbar.</summary>
-    private const float RaumDunstDichte = 0.012f;
+    private const float RaumDunstDichte = 0.025f;
+
+    /// <summary>So viel heller als ihr Licht im Raum leuchten die Fensterlichter im Staub (Godots <c>LightVolumetricFogEnergy</c>, Grundwert 1):
+    /// Die Lichtbahn soll zu sehen sein, ohne dass der ganze Raum neblig wird.</summary>
+    private const float RaumLichtbahn = 8f;
 
     private float _dunstAnteil = -1;
 
@@ -235,11 +239,28 @@ public partial class Stadtansicht
         _raumUmgebung.VolumetricFogLength = 40;
         _raumUmgebung.VolumetricFogAlbedo = new Color(0.9f, 0.85f, 0.75f);
         _raumUmgebung.VolumetricFogTemporalReprojectionEnabled = true;
+        _raumUmgebung.VolumetricFogAmbientInject = 0.3f; // der Staub hellt den Raum etwas auf, statt ihn zu verdunkeln
         _dunstAnteil = -1;
+        _lichtbahnenFuer = null;
+    }
+
+    private Raum? _lichtbahnenFuer;
+
+    /// <summary>
+    /// In der Raumansicht: Die Fensterlichter (<see cref="SpotLight3D"/> im Modell) bekommen eine kräftige Lichtbahn im Staub. Einmal je
+    /// Raum, denn das Durchsuchen der Einrichtung kostet etwas.
+    /// </summary>
+    private void LichtbahnenImRaum()
+    {
+        if (_raum is null || _raum == _lichtbahnenFuer || _innen?.Innen is not { } innen) return;
+        _lichtbahnenFuer = _raum;
+        foreach (var licht in innen.FindChildren("*", nameof(SpotLight3D), true, false).OfType<SpotLight3D>())
+            licht.LightVolumetricFogEnergy = Fenster.AktuellerDunst == Morgendunst.Hoch ? RaumLichtbahn : 1f;
     }
 
     private void DunstNachUhrzeit()
     {
+        LichtbahnenImRaum();
         if (Fenster.AktuellerDunst == Morgendunst.Aus) return;
         var stunde = _letzteLichtUhrzeit >= 0 ? _letzteLichtUhrzeit / 60f : 12f; // im Hauptmenü (ohne Uhr): Mittag
         var anteil = DunstUm(stunde);

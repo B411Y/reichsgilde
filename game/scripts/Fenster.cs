@@ -304,8 +304,8 @@ public partial class Fenster : Node
         if (speichern) Speichern("vollbild", vollbild);
     }
 
-    /// <summary>Kurzer Hinweis oben in der Mitte, verschwindet nach fünf Sekunden – in Menü und Spiel.</summary>
-    private void HinweisZeigen(string text)
+    /// <summary>Kurzer Hinweis oben in der Mitte, verschwindet nach <paramref name="sekunden"/> Sekunden – in Menü und Spiel.</summary>
+    private void HinweisZeigen(string text, double sekunden = 5)
     {
         if (_hinweis is null)
         {
@@ -329,7 +329,7 @@ public partial class Fenster : Node
         _hinweis.Text = text;
         _hinweis.Show();
         var nummer = ++_hinweisNummer; // nur der jüngste Hinweis blendet aus
-        GetTree().CreateTimer(5).Timeout += () => { if (nummer == _hinweisNummer) _hinweis?.Hide(); };
+        GetTree().CreateTimer(sekunden).Timeout += () => { if (nummer == _hinweisNummer) _hinweis?.Hide(); };
     }
 }
 

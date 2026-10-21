@@ -209,7 +209,7 @@ public partial class Fenster
 
     /// <summary>
     /// Ruhig geregelt statt jedes Bild: Die GPU-Zeit je Bild wird über etwa eine Sekunde geglättet. Liegt sie über 90 % der Zeit, die
-    /// die Ziel-Bildrate erlaubt, geht die Auflösung einen Schritt herunter; liegt sie so tief, dass auch der nächste Schritt hinauf
+    /// die Ziel-Bildrate erlaubt, geht die Auflösung einen Schritt (5 %, weit darüber 10 %) herunter; liegt sie so tief, dass auch der nächste Schritt hinauf
     /// noch unter 75 % bliebe, einen Schritt hinauf. Dazwischen bleibt sie stehen – das verhindert ein Pumpen. Die GPU-Zeit
     /// (nicht die Bildrate) ist das Maß, denn VSync und Bildratenbegrenzung halten die Bildrate fest, auch wenn Luft wäre.
     /// </summary>
@@ -222,12 +222,12 @@ public partial class Fenster
         _dynamischWarten -= delta;
         if (_dynamischWarten > 0) return;
         var budget = 1000f / DynamischeAufloesung;
-        const float schritt = 0.05f;
+        var schritt = _dynamischGlatt > 1.3f * budget ? 0.1f : 0.05f; // weit drüber: doppelter Schritt, damit es nicht ewig dauert
         var neu = DynamischerAnteil;
         // Die Arbeit wächst etwa mit der Zahl der Bildpunkte, also mit dem Quadrat des Anteils.
         if (_dynamischGlatt > 0.9f * budget) neu = DynamischerAnteil - schritt;
         else if (_dynamischGlatt * Mathf.Pow((DynamischerAnteil + schritt) / DynamischerAnteil, 2) < 0.75f * budget) neu = DynamischerAnteil + schritt;
-        neu = Mathf.Clamp(Mathf.Snapped(neu, schritt), DynamischMin, DynamischMax);
+        neu = Mathf.Clamp(Mathf.Snapped(neu, 0.05f), DynamischMin, DynamischMax);
         if (Mathf.IsEqualApprox(neu, DynamischerAnteil)) return;
         GD.Print($"Dynamische Auflösung: {DynamischerAnteil * 100:0} % → {neu * 100:0} % (GPU {_dynamischGlatt:0.0} ms je Bild, Ziel {budget:0.0} ms bei {DynamischeAufloesung} Bildern/s)");
         DynamischerAnteil = neu;
@@ -442,7 +442,7 @@ public partial class Fenster
         if (DisplayServer.GetName() == "headless") return;
         _auto = new Autowahl { Vorher = AktuelleStufe, Zeit = ErsterStart ? -AutoVorlauf : -0.5 };
         Messen(true);
-        _instanz.HinweisZeigen("Die Grafik wird für diesen Rechner eingestellt …");
+        _instanz.HinweisZeigen("Die Grafik wird für diesen Rechner eingestellt …", 30); // bis das Ergebnis den Hinweis ablöst
         VoreinstellungSetzen(Voreinstellung.Ultra, speichern: false);
     }
 
@@ -467,7 +467,7 @@ public partial class Fenster
             GD.Print("Automatische Wahl der Grafik: " + AutomatischErgebnis);
             _auto = null;
             Messen(DynamischeAufloesung > 0 || _messungLaeuft);
-            HinweisZeigen($"Grafik: Voreinstellung „{Name(stufe)}“ gewählt. Ändern unter Einstellungen.");
+            HinweisZeigen($"Grafik: Voreinstellung „{Name(stufe)}“ gewählt. Ändern unter Einstellungen.", 8);
             return;
         }
         a.Stufe--;
