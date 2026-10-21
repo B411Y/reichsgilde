@@ -77,6 +77,7 @@ So wird eingetragen (damit sich die Chats nie an derselben Stelle treffen):
 - Grafikeinstellungen: Die Messung ist prozessorgebunden (Bildzeit ≈ GPU-Zeit + 25 ms auf dem mitbenutzten Rechner); die Stufen auf einem Rechner mit schnellem Prozessor und anderen Grafikkarten nachmessen und die Grenze der automatischen Wahl (11,7 ms GPU-Zeit) prüfen
 - Grafikeinstellungen: Bewegung beurteilen – Wolkenschatten (2,5 m/s), Miniatur-Unschärfe beim Zoomen, dynamische Auflösung (sichtbare Sprünge bei jedem Schritt?) und der Morgendunst beim Kameraschwenk (zeitliche Glättung des volumetrischen Nebels) zeigen Standbilder nicht
 - Grafikeinstellungen: Miniatur-Unschärfe macht Label3D-Beschriftungen am oberen und unteren Bildrand weich; falls das stört, die Namen auf eine eigene Ebene ohne Tiefenunschärfe legen
+- Grafikeinstellungen: Die Kartenwerkstatt (PR #168) nutzt dieselbe Stadtansicht und zeigt darum auch Miniatur-Unschärfe, Wolkenschatten und Dunst (Klicktest `--kartenwerkstatt=greybox`, Bild `grafik/bilder/kartenwerkstatt-1.png`); beim Bauen von Karten stören Unschärfe am Rand und Wolken auf den Zonen eher – dort abschalten, falls der Nutzer es wünscht
 
 ## Entscheidungen
 
