@@ -280,7 +280,7 @@ def destille(netz, st, anker):
     darauf die kupferne Brennblase mit offenem Füllstutzen, der Helm (Mohrenkopf) und das Kühlrohr mit Kühlmantel hinunter zur
     gläsernen Vorlage auf einem Schemel rechts vor der Figur. Gibt Werkstueck_2 (Flüssigkeit im Stutzen, mit Destillat_2 und
     Tropfen) und den Tropfen zurück."""
-    vor_o, hoehe_o = fg.ARBEITSHOEHEN["Ofen"]
+    hoehe_o = fg.ARBEITSHOEHEN["Ofen"][1]
     tuer_u = (W2.y - 0.12) - HERD.y                               # Feuertür 12 cm rechts der Figur (örtlich x = Welt +y)
     glut, n, M = ai.ofen_mit_tuer(netz, st, HERD, HERD_B, HERD_T, HERD_H, tuer_u, (0.13, 0.43, 0.26), vorn=(-1, 0))
     anker.append(licht(glut, (n.x, n.y, 0), "Glut"))
@@ -1562,7 +1562,7 @@ def main():
                 (WX0 - WAND, WX1 + WAND, WY0 - WAND, WY1 + WAND), DACH, {"Werk", "Laden", "Pavillon"}, bild=1 + int(0.9 * FPS),
                 lampe=80, fuell=[(0, 0, H_WERK - 0.4, 170, 1), (0, 0.3, Z_LAGER + 3.0, 90, 1),
                                  ((LX0 + LX1) / 2, (LY0 + LY1) / 2, H_LADEN - 0.4, 120, 2), (PM.x, PM.y, H_PAV - 0.6, 170, 3)])
-    ai.verkleinern(NAME + "-blicke", 0.875)
+    ai.verkleinern(NAME + "-blicke", 0.85)
 
 
 if __name__ == "__main__":
