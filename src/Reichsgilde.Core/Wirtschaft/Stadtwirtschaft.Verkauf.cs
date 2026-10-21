@@ -50,7 +50,26 @@ public sealed partial class Stadtwirtschaft
     public IEnumerable<LiegenschaftDaten> FreieLiegenschaften =>
         Daten.Liegenschaften.Where(l => _abgegeben.All(a => a.Name != l.Name))
             .Concat(_abgegeben)
-            .Where(l => _betriebe.All(b => b.Name != l.Name));
+            .Where(l => _betriebe.All(b => b.Name != l.Name) && !_ohnePlatz.Contains(l.Name));
+
+    /// <summary>Werkstätten zum Kauf, für die die Karte keinen Platz mehr hat (alte Spielstände) – sie sind nicht mehr zu haben.</summary>
+    private readonly HashSet<string> _ohnePlatz = new();
+
+    /// <summary>
+    /// Nach dem Laden (Karte, Konten und Betriebe stehen): Werkstätten in der Stadt, für die die Karte keinen Platz mehr hat, bekommen
+    /// ein Grundstück in einer Bauzone (<see cref="Bauen.Bauwesen.OhnePlatzEinordnen"/>); freie Werkstätten ohne Platz sind nicht mehr
+    /// zu haben. Betrifft alte Spielstände mit den zehn Werkstätten zum Kauf, die seit PR #162 gestrichen sind. Gibt die Namen der
+    /// Betriebe zurück, für die keine Stelle frei war (sie arbeiten weiter, nur ohne Bild).
+    /// </summary>
+    internal IReadOnlyList<string> PlaetzeNachDemLaden()
+    {
+        if (Karte is null) return Array.Empty<string>();
+        Betriebsart Stufe1(Betrieb b) => Daten.Berufe.TryGetValue(b.Artdaten.Beruf, out var beruf) ? beruf.Werkstatt : b.Art;
+        var ohne = Bauen.OhnePlatzEinordnen(_betriebe.Where(b => b.InDerStadt).Select(b => (b.Name, Stufe1(b))).ToList());
+        foreach (var l in FreieLiegenschaften.Where(l => Daten.KenntArt(l.Art) && Daten.Art(l.Art).InDerStadt && Bauen.PlatzVon(l.Name) is null).ToList())
+            _ohnePlatz.Add(l.Name);
+        return ohne;
+    }
 
     /// <summary>
     /// Ein Haus hat einen Betrieb verkauft oder eine Pacht gekündigt. Der Betrieb gehört niemandem mehr
@@ -58,8 +77,8 @@ public sealed partial class Stadtwirtschaft
     /// </summary>
     public event Action<Betrieb, LiegenschaftDaten>? BetriebAbgegeben;
 
-    private LiegenschaftDaten? Liegenschaft(string name) =>
-        _abgegeben.FirstOrDefault(x => x.Name == name) ?? Daten.Liegenschaften.FirstOrDefault(x => x.Name == name);
+    private LiegenschaftDaten? Liegenschaft(string name) => _ohnePlatz.Contains(name) ? null
+        : _abgegeben.FirstOrDefault(x => x.Name == name) ?? Daten.Liegenschaften.FirstOrDefault(x => x.Name == name);
 
     /// <summary>Warum dieses Haus die Liegenschaft nicht erwerben kann (null = es geht).</summary>
     public string? LiegenschaftErwerbVerboten(Konto konto, string name)

@@ -10,11 +10,24 @@ public enum Grundstuecksart
     /// <summary>Wohnhaus eines Hauses – bewohnt, leerstehend oder im Bau.</summary>
     Wohnhaus,
 
-    /// <summary>Eine neu gebaute Werkstatt (die Werkstätten der Karte stehen in <see cref="Stadtkarte.Feste"/>).</summary>
+    /// <summary>Eine neu gebaute Werkstatt (die Werkstattplätze der Karte stehen in <see cref="Stadtkarte.Gebaeude"/>).</summary>
     Werkstatt,
 
     /// <summary>Freier Bauplatz nach einem Abriss – Wiese mit Pflöcken, für jeden bebaubar.</summary>
     Bauplatz,
+}
+
+/// <summary>
+/// Wo ein Betrieb steht: auf einem festen Platz der Karte (<see cref="Gebaeude"/>: Werkstattplatz oder Umlandbetrieb) oder auf einem
+/// Grundstück (<see cref="Grundstueck"/>: neu gebaute Werkstatt). Genau eins von beiden ist gesetzt.
+/// </summary>
+public sealed record Betriebsplatz(string Betrieb, Kartengebaeude? Gebaeude, Grundstueck? Grundstueck)
+{
+    /// <summary>Mitte der Fläche [x, z].</summary>
+    public (double X, double Z) Punkt => Gebaeude is { } g ? (g.Punkt[0], g.Punkt[1]) : (Grundstueck!.Grundriss.X, Grundstueck.Grundriss.Z);
+
+    /// <summary>Drehung in Grad wie Godot <c>Rotation.Y</c> (0 = Vorderseite nach Süden).</summary>
+    public double DrehungGrad => Gebaeude?.Drehung ?? Grundstueck!.Grundriss.Drehung * 90;
 }
 
 /// <summary>Was auf einer Baustelle gerade geschieht.</summary>
@@ -207,6 +220,15 @@ public sealed class Bauwesen
     public Grundstueck? Werkstatt(string betrieb) =>
         _grundstuecke.FirstOrDefault(g => g.Art == Grundstuecksart.Werkstatt && g.Betrieb == betrieb);
 
+    /// <summary>
+    /// Wo ein Betrieb (oder eine freie Liegenschaft) steht: sein fester Platz in der Karte (<see cref="Stadtkarte.PlatzVon"/>) oder das
+    /// Grundstück einer neu gebauten Werkstatt. Null ohne Karte oder wenn die Karte den Namen nicht kennt.
+    /// </summary>
+    public Betriebsplatz? PlatzVon(string betrieb) =>
+        Karte?.PlatzVon(betrieb) is { } fest ? new Betriebsplatz(betrieb, fest, null)
+        : Werkstatt(betrieb) is { } g ? new Betriebsplatz(betrieb, null, g)
+        : null;
+
     /// <summary>Freie Bauplätze nach Abriss.</summary>
     public IEnumerable<Grundstueck> Bauplaetze => _grundstuecke.Where(g => g.Art == Grundstuecksart.Bauplatz);
 
@@ -358,9 +380,9 @@ public sealed class Bauwesen
         foreach (var anderes in _grundstuecke.Where(x => x.Art != Grundstuecksart.Bauplatz))
             if (g.Ueberlappt(anderes.Grundriss))
                 return $"Hier steht schon {Bezeichnung(anderes)}.";
-        foreach (var fest in karte.Feste)
+        foreach (var fest in karte.Gebaeude)
         {
-            if (fest.Art == "wohnhaus" && _grundstuecke.Any(x => x.Kennung == fest.Kennung)) continue; // vergebener Startplatz: als Grundstück geprüft
+            if (fest.Art == Bausteinart.Wohnhausplatz && _grundstuecke.Any(x => x.Kennung == fest.Kennung)) continue; // vergebener Startplatz: als Grundstück geprüft
             if (fest.Grundriss is { } fg && g.Ueberlappt(fg))
                 return $"Hier steht {(fest.Name != "" ? fest.Name : "ein fester Bau")}.";
         }
@@ -392,9 +414,13 @@ public sealed class Bauwesen
     /// Leer, wenn das Haus das Gebäude gar nicht bauen darf (<see cref="BauherrVerboten"/>). Für die KI, die nur selten fragt:
     /// Auf der Greybox prüft es einige tausend Stellen (Rechenzeit siehe Test „Bauorte“).
     /// </summary>
-    public IReadOnlyList<BauBefehl> Bauorte(Konto konto, BauBefehl vorlage)
+    public IReadOnlyList<BauBefehl> Bauorte(Konto konto, BauBefehl vorlage) =>
+        BauherrVerboten(konto, vorlage) is not null ? Array.Empty<BauBefehl>() : FreieOrte(vorlage);
+
+    /// <summary>Wie <see cref="Bauorte"/>, aber ohne Bauherrn: nur die Prüfung des Platzes (<see cref="PlatzVerboten"/>).</summary>
+    private IReadOnlyList<BauBefehl> FreieOrte(BauBefehl vorlage)
     {
-        if (BauherrVerboten(konto, vorlage) is not null || Mass(vorlage) is not { } mass) return Array.Empty<BauBefehl>();
+        if (!IstAktiv || Mass(vorlage) is not { } mass) return Array.Empty<BauBefehl>();
         var d = Daten!;
         var orte = new List<BauBefehl>();
         var geprueft = new HashSet<(double, double, int)>();
@@ -595,7 +621,7 @@ public sealed class Bauwesen
 
     private bool Vergeben(string name) =>
         _w.Betriebe.Any(b => b.Name == name) || _w.Daten.Liegenschaften.Any(l => l.Name == name) || _w.FreieLiegenschaften.Any(l => l.Name == name)
-        || _grundstuecke.Any(g => g.Betrieb == name) || Karte?.Feste.Any(f => f.Name == name) == true;
+        || _grundstuecke.Any(g => g.Betrieb == name) || Karte?.Gebaeude.Any(f => f.Name == name || f.Betrieb == name) == true;
 
     /// <summary>
     /// Wo eine neue Werkstatt liegt, kurz und mit passender Präposition – nach dem Namen der nächsten Karrenstraße:
@@ -806,6 +832,34 @@ public sealed class Bauwesen
         if (nummer < 0 || nummer >= plaetze.Count || _grundstuecke.Any(g => g.Kennung == plaetze[nummer].Kennung)) return;
         var g = Neu(plaetze[nummer].Grundriss!.Value, Grundstuecksart.Wohnhaus, plaetze[nummer].Kennung, plaetze[nummer].Lage);
         g.Besitzer = k;
+    }
+
+    /// <summary>
+    /// Nach dem Laden: Werkstätten in der Stadt, für die die Karte keinen Platz mehr hat (alte Spielstände, z. B. die zehn Werkstätten
+    /// zum Kauf, die seit PR #162 gestrichen sind), bekommen ein Grundstück an der ersten freien Stelle der Bauzonen – wie eine fertig
+    /// gebaute Werkstatt (<see cref="FreieOrte"/>, feste Reihenfolge, also bei jedem Laden gleich). Gibt die Namen zurück, für die
+    /// keine Stelle frei war. Ohne Bauwesen geschieht nichts.
+    /// </summary>
+    internal List<string> OhnePlatzEinordnen(IEnumerable<(string Name, Betriebsart Art)> werkstaetten)
+    {
+        var ohne = new List<string>();
+        if (!IstAktiv) return ohne;
+        foreach (var (name, art) in werkstaetten)
+        {
+            if (PlatzVon(name) is not null) continue;
+            if (FreieOrte(new WerkstattBauen(art, 0, 0, 0)).FirstOrDefault() is not { } ort)
+            {
+                ohne.Add(name);
+                continue;
+            }
+            var g = Neu(Grundriss(ort), Grundstuecksart.Werkstatt, null);
+            g.Betrieb = name;
+            g.Betriebsart = art;
+            // Bauplätze unter der Werkstatt sind vergeben (wie beim Neubau).
+            foreach (var platz in Bauplaetze.Where(p => p.Grundriss.Ueberlappt(g.Grundriss)).ToList())
+                _grundstuecke.Remove(platz);
+        }
+        return ohne;
     }
 
     internal BauenStand? Sichern(Func<Konto, int> nummer) => !IstAktiv ? null : new BauenStand

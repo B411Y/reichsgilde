@@ -1,5 +1,6 @@
 using Godot;
 using Reichsgilde.Core;
+using Reichsgilde.Core.Bauen;
 using Reichsgilde.Core.Glaube;
 using Reichsgilde.Core.Politik;
 using Reichsgilde.Core.Wirtschaft;
@@ -11,8 +12,9 @@ namespace Reichsgilde;
 /// Rathaus (Raumansicht) und Dom (Diorama) – dritter Teil der Stadtansicht.
 ///
 /// Beide sind keine Betriebe, nutzen aber dasselbe Gerüst wie die Werkstätten (<see cref="InnenAnsicht"/>):
-/// ein Knoten „Innen". Von außen stehen die Modelle <c>rathaus.glb</c> und <c>dom.glb</c> (Stadtansicht.Modelle.cs); beim Dom sind Dach, Turm
-/// und die vier Wände eigene Knoten des Modells, die beim Hineinsehen ausgeblendet werden. Die Ansicht liest nur Abfragen des Kerns.
+/// ein Knoten „Innen". Von außen stehen die Modelle <c>rathaus.glb</c> und <c>dom.glb</c> (Stadtansicht.Modelle.cs) an ihrer Lage in der Karte, auch
+/// gedreht; beim Dom sind Dach, Turm und die vier Wände eigene Knoten des Modells, die beim Hineinsehen ausgeblendet werden. Die Ansicht liest nur
+/// Abfragen des Kerns.
 ///
 /// Rathaus – vier Räume, jeder mit fester Ansicht (Raumansicht, siehe Stadtansicht.Raeume.cs):
 ///   • Ratssaal (West): Hufeisentisch mit den sieben Ämtern. Häuser im Amt sitzen in ihrer Farbe da,
@@ -48,8 +50,9 @@ public partial class Stadtansicht
     /// und der leere Knoten „Innen“ für die Einrichtung. Beim Rathaus liegt er unter der Stadt (Raumansicht).
     /// </summary>
     /// <param name="klick">Größe der Klickfläche des Gebäudes (Mitte auf halber Höhe über <paramref name="p"/>).</param>
+    /// <param name="drehung">Drehung des Gebäudes um die Hochachse (Bogenmaß) – die Klickfläche dreht sich mit.</param>
     private SonderbauAnsicht SonderbauAnlegen(string kennung, string titel, Vector3 p, Vector3 klick, Vector3 schildOrt, float zoom, float reichweite,
-        bool raumansicht = false)
+        bool raumansicht = false, float drehung = 0)
     {
         var ansicht = new SonderbauAnsicht
         {
@@ -60,7 +63,7 @@ public partial class Stadtansicht
             Zoom = zoom,
             Reichweite = reichweite,
         };
-        ansicht.Aussenklick = Klickflaeche(kennung, p + new Vector3(0, klick.Y / 2, 0), klick);
+        ansicht.Aussenklick = Klickflaeche(kennung, p + new Vector3(0, klick.Y / 2, 0), klick, drehung: drehung);
         var innen = new Node3D { Name = "Innen_" + kennung, Visible = false };
         if (raumansicht) innen.Position = new Vector3(0, RaumTiefe, 0); // Räume unter der Stadt, jeder mit eigener Bühne (RaumAnlegen)
         AddChild(innen);
@@ -116,14 +119,20 @@ public partial class Stadtansicht
     //  Rathaus
     // ═════════════════════════════════════════════════════════════════════════
 
-    private void RathausBauen(Vector3 p)
+    private void RathausBauen(Kartengebaeude g)
     {
-        // Außen das Modell rathaus.glb: Markthalle mit Ratssaal in Fachwerk (16 × 10 m, Markt bei +Z) und Uhrturm vorn rechts, 23,6 m hoch.
+        // Außen das Modell rathaus.glb: Markthalle mit Ratssaal in Fachwerk (16 × 10 m, Vorderseite +Z zum Markt) und Uhrturm vorn rechts, 23,6 m hoch.
         // Innen vier Räume (Raumansicht, je 40 m auseinander); das Haus bleibt dabei in der Stadt stehen.
-        var a = SonderbauAnlegen("Rathaus", "Rathaus", p, new Vector3(16, 10, 10), new Vector3(0, 26, 0), zoom: 21, reichweite: 12, raumansicht: true);
-        var huelle = ModellEinsetzen("rathaus", this, p, new ModellZustand(), "Rathaus");
+        var lage = ModellLage(g);
+        var p = lage.Origin;
+        var drehung = DrehungVon(g);
+        var flaeche = GroesseVon(g);
+        var a = SonderbauAnlegen("Rathaus", string.IsNullOrEmpty(g.Name) ? "Rathaus" : g.Name, p, new Vector3(flaeche.X, 10, flaeche.Y), new Vector3(0, 26, 0),
+            zoom: 21, reichweite: 12, raumansicht: true, drehung: drehung);
+        var huelle = ModellEinsetzen(g.Baustein?.Modell ?? "rathaus", this, p, new ModellZustand(), "Rathaus");
+        if (huelle is not null) huelle.Wurzel.Transform = lage;
         a.Huelle = huelle?.Wurzel;
-        a.ZusatzKlicks.Add(Klickflaeche("Rathaus", p + new Vector3(6.2f, 17, 3.2f), new Vector3(4.2f, 14, 4.2f))); // der Uhrturm
+        a.ZusatzKlicks.Add(Klickflaeche("Rathaus", lage * new Vector3(6.2f, 17, 3.2f), new Vector3(4.2f, 14, 4.2f), drehung: drehung)); // der Uhrturm
 
         var innen = a.Innen!;
         var holz = Material(Holz);
@@ -340,15 +349,23 @@ public partial class Stadtansicht
     //  Dom
     // ═════════════════════════════════════════════════════════════════════════
 
-    private void DomBauen(Vector3 p)
+    private void DomBauen(Kartengebaeude g)
     {
         // Außen das Modell dom.glb, Ursprung in der Mitte des Langhauses (10 × 22 m, Wände 12 m hoch; innen x −4,5 … 4,5, z −10,5 … 10,5;
-        // Chor im Norden). Der Westturm steht vor dem Portal im Süden. Hineinsehen: Dach und Turm aus, dazu die Wände zur Kamera.
-        var a = SonderbauAnlegen("Dom", "Dom", p, new Vector3(11.5f, 13, 24.6f), new Vector3(0, 46, 13), zoom: 27, reichweite: 15);
-        var huelle = ModellEinsetzen("dom", this, p, new ModellZustand(), "Dom");
+        // Chor hinten, ungedreht im Norden), 2,85 m hinter der Mitte der Fläche (versatz im Katalog). Der Westturm steht vor dem Portal (vorne).
+        // Hineinsehen: Dach und Turm aus, dazu die Wände zur Kamera. Der Innenraum ist um die Mitte gebaut und dreht sich als Ganzes mit.
+        var lage = ModellLage(g);
+        var p = lage.Origin;
+        var drehung = DrehungVon(g);
+        var basis = new Basis(Vector3.Up, drehung);
+        var a = SonderbauAnlegen("Dom", string.IsNullOrEmpty(g.Name) ? "Dom" : g.Name, p, new Vector3(11.5f, 13, 24.6f), basis * new Vector3(0, 46, 13),
+            zoom: 27, reichweite: 15, drehung: drehung);
+        a.Innen!.Transform = new Transform3D(basis, p - basis * p); // Innenraum um die Mitte gedreht (seine Teile stehen bei p + Lage im Dom)
+        var huelle = ModellEinsetzen(g.Baustein?.Modell ?? "dom", this, p, new ModellZustand(), "Dom");
         if (huelle is not null)
         {
-            var dach = new Node3D { Name = "Dach_Dom", Position = p };
+            huelle.Wurzel.Transform = lage;
+            var dach = new Node3D { Name = "Dach_Dom", Transform = lage };
             AddChild(dach);
             foreach (var teil in new[] { "Dach", "Turm" })
                 if (huelle.Wurzel.FindChild(teil, false, false) is { } knoten)
@@ -358,10 +375,10 @@ public partial class Stadtansicht
                 }
             a.Dach = dach;
             foreach (var (name, aussen) in new[] { ("Wand_vorne", Vector3.Back), ("Wand_hinten", Vector3.Forward), ("Wand_links", Vector3.Left), ("Wand_rechts", Vector3.Right) })
-                if (huelle.Wurzel.FindChild(name, false, false) is Node3D wand) a.Waende.Add((wand, aussen));
+                if (huelle.Wurzel.FindChild(name, false, false) is Node3D wand) a.Waende.Add((wand, basis * aussen));
             a.Huelle = huelle.Wurzel;
         }
-        a.ZusatzKlicks.Add(Klickflaeche("Dom", p + new Vector3(0, 21, 14.5f), new Vector3(7.5f, 42, 7)));   // der Westturm
+        a.ZusatzKlicks.Add(Klickflaeche("Dom", p + basis * new Vector3(0, 21, 14.5f), new Vector3(7.5f, 42, 7), drehung: drehung));   // der Westturm
         // Boden und Licht im Innern: das Modell hat keinen Boden
         Quader(p + new Vector3(0, 0.05f, 0), new Vector3(9, 0.1f, 21), Material(Steinboden), a.Innen);
         foreach (var versatz in new[] { -0.25f, 0.25f })

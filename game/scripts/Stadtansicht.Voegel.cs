@@ -77,10 +77,10 @@ public partial class Stadtansicht
         // Stadt: je drei Schwärme Tauben und Spatzen; Umland: an jeder Stelle und bei jedem Betrieb draußen ein Spatzen- oder Taubenschwarm.
         for (var i = 0; i < 3; i++)
         {
-            SchwarmAnlegen(true, Marktplatz, Mauerrand);
-            SchwarmAnlegen(false, Marktplatz, Mauerrand);
+            SchwarmAnlegen(true, _markt, StadtReichweite);
+            SchwarmAnlegen(false, _markt, StadtReichweite);
         }
-        var draussen = Umlandstellen.Values.Concat(Stadtplan.Values.Where(p => Mathf.Max(Mathf.Abs(p.X), Mathf.Abs(p.Z)) > Mauerrand + 5)).Distinct().ToList();
+        var draussen = VogelplaetzeDraussen();
         for (var i = 0; i < draussen.Count; i++)
             SchwarmAnlegen(i % 3 == 0, draussen[i], 30);
     }
@@ -211,6 +211,18 @@ public partial class Stadtansicht
         return punkte.ToArray();
     }
 
+    /// <summary>
+    /// Die Heimat der Schwärme draußen: jede Arbeitsstelle der Einwohner und jeder Umlandbetrieb der Karte (ob bewirtschaftet oder nicht),
+    /// in der Reihenfolge der Karte.
+    /// </summary>
+    private List<Vector3> VogelplaetzeDraussen() => _karte is null ? new List<Vector3>()
+        : _karte.GebaeudeDerArt(Reichsgilde.Core.Bauen.Bausteinart.Umlandstelle).Concat(_karte.GebaeudeDerArt(Reichsgilde.Core.Bauen.Bausteinart.Umlandbetrieb))
+                .Select(g => Punkt3(g.Punkt)).Where(p => !InDerStadt(p)).Distinct().ToList();
+
+    /// <summary>So weit fliegen die Schwärme der Stadt um den Markt: die halbe Ausdehnung der Mauer (50 m in der Greybox), ohne Mauer 50 m.</summary>
+    private float StadtReichweite => _mauerFlaechen.Count == 0 ? 50
+        : _mauerFlaechen.SelectMany(f => f).Aggregate(new Rect2(_mauerFlaechen[0][0], Vector2.Zero), (r, p) => r.Expand(p)) is var r ? Mathf.Max(r.Size.X, r.Size.Y) / 2 : 50;
+
     /// <summary>Boden zum Picken: Marktplatz (um den Brunnen), Knoten des Gassennetzes, rund um Umlandstellen und Betriebe draußen.</summary>
     private void BodenpunkteSammeln()
     {
@@ -218,10 +230,10 @@ public partial class Stadtansicht
         for (var i = 0; i < 16; i++)
         {
             var w = i * Mathf.Tau / 16;
-            _bodenpunkte.Add(Marktplatz + new Vector3(Mathf.Cos(w), 0, Mathf.Sin(w)) * (i % 2 == 0 ? 3f : 5.5f));
+            _bodenpunkte.Add(_markt + new Vector3(Mathf.Cos(w), 0, Mathf.Sin(w)) * (i % 2 == 0 ? 3f : 5.5f));
         }
         _bodenpunkte.AddRange(_netz.Knoten);
-        foreach (var p in Umlandstellen.Values.Concat(Stadtplan.Values.Where(p => Mathf.Max(Mathf.Abs(p.X), Mathf.Abs(p.Z)) > Mauerrand + 5)))
+        foreach (var p in VogelplaetzeDraussen())
             for (var i = 0; i < 6; i++)
                 _bodenpunkte.Add(p + new Vector3(_vogelZufall.RandfRange(-12, 12), 0, _vogelZufall.RandfRange(-12, 12)));
     }

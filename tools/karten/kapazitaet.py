@@ -7,7 +7,8 @@ braucht eine Seite an einer Straße. Deshalb setzt dieses Modul die Gebäude pro
 
   1. Jede Bauzone in der Stadt wird in Rasterfelder zerlegt (Mittelpunkt liegt in der Zone).
   2. Für jedes Feld steht fest, wie weit die nächste Karrenstraße und die nächste Gasse entfernt sind.
-  3. Feste Bauten (Startgrundstücke, Dom, Kirchen, Leerstand) belegen ihre Felder zuerst.
+  3. Alle Gebäude der Karte (Startplätze, Dom, Kirchen, Leerstand …) belegen ihre Felder zuerst – die Grundfläche aus dem
+     Gebäudekatalog, bei schräger Drehung das umschließende Rechteck (wie im Kern).
   4. Dann setzt das Modul die Gebäude der Reihe nach, größte zuerst. Jedes nimmt den ersten freien Platz,
      der möglichst nah an der Straße liegt („gierig“). Werkstätten brauchen eine Karrenstraße, Wohnhäuser
      dürfen auch an einer Gasse stehen (Entscheidung 16.10.2026).
@@ -18,7 +19,7 @@ also eher streng, und das ist gewollt.
 """
 import math
 
-from karte import RASTER, KARRENSTRASSEN, abstand_strecke
+from karte import RASTER, KARRENSTRASSEN, abstand_strecke, groesse_von
 
 # Gebäudegrößen in Rasterfeldern (Breite, Tiefe), entschieden 16.10.2026 – docs/LEVELDESIGN.md, „Gebäudegrößen“
 GEBAEUDE = {
@@ -76,8 +77,9 @@ def _rechteck_felder(mitte, breite, tiefe, richtung):
 
 
 class Belegung:
-    def __init__(self, karte):
+    def __init__(self, karte, katalog):
         self.k = karte
+        self.katalog = katalog
         self.zone = {}                      # Feld → Zonenart
         for z in karte["bauzonen"]:
             if z["art"] not in STADTZONEN:
@@ -98,23 +100,23 @@ class Belegung:
         self.frei = set(self.zone)
         self.gesetzt = []                    # (Art, Felder)
 
-    def fest_belegen(self, markt=(0, 0)):
-        """Feste Bauten nehmen ihre Felder zuerst weg."""
-        for f in self.k["feste"]:
-            x, z = f["punkt"]
-            if f["art"] == "start":
-                ex, ez = f["eingang"]; d = math.hypot(x - ex, z - ez) or 1
-                breite, tiefe = f["groesse"]
-                felder = _rechteck_felder((x, z), breite, tiefe, ((x - ex) / d, (z - ez) / d))
-            elif f["kennung"] == "Dom":
-                felder = _rechteck_felder((x, z + 3), 12, 28, (0, 1))
-            elif f["art"] in ("kirche", "leerstand"):
-                felder = _rechteck_felder((x, z), 16, 14, (0, 1))
+    def fest_belegen(self):
+        """Die Gebäude der Karte nehmen ihre Felder zuerst weg (Grundfläche aus dem Katalog)."""
+        for g in self.k["gebaeude"]:
+            gr = groesse_von(g, self.katalog)
+            if gr is None:
+                continue
+            breite, tiefe = gr
+            w = math.radians(g["drehung"])
+            if g["drehung"] % 90:             # schräg: das umschließende Rechteck mit Drehung 0, wie der Kern
+                c, s = abs(math.cos(w)), abs(math.sin(w))
+                breite, tiefe, richtung = breite * c + tiefe * s, breite * s + tiefe * c, (0, 1)
             else:
-                continue                      # Marktviertel und Hafen liegen außerhalb der Bauzonen
-            felder &= set(self.zone)
-            self.frei -= felder
-            self.gesetzt.append(("fest", felder))
+                richtung = (round(math.sin(w)), round(math.cos(w)))
+            felder = _rechteck_felder(g["punkt"], breite, tiefe, richtung) & set(self.zone)
+            if felder:
+                self.frei -= felder
+                self.gesetzt.append(("fest", felder))
 
     def setzen(self, art, erlaubt=None):
         """Setzt ein Gebäude; `erlaubt` schränkt die Zonenarten ein (z. B. Stadthof nicht in der Vorstadt)."""
