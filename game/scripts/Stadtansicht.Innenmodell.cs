@@ -9,9 +9,9 @@ namespace Reichsgilde;
 /// Innenräume aus Blender-Modellen – elfter Teil der <c>partial class Stadtansicht</c> (PR #152).
 ///
 /// Ein Beruf bekommt seinen Innenraum, indem <see cref="InnenModellDatei"/> eine Datei nennt (Schmied: <c>schmied_innen.glb</c>, Tischler:
-/// <c>tischler_innen.glb</c>, Steinmetz: <c>steinmetz_innen.glb</c>, Alchimist: <c>alchimist_innen.glb</c>, Parfumeur: <c>parfumeur_innen.glb</c>). Alles Weitere liest dieses Gerüst aus den Knotennamen des Modells (Verträge: <c>docs/bereiche/darstellung.md</c>):
+/// <c>tischler_innen.glb</c>, Steinmetz: <c>steinmetz_innen.glb</c>, Alchimist: <c>alchimist_innen.glb</c>, Parfumeur: <c>parfumeur_innen.glb</c>, Wirt: <c>wirt_innen.glb</c>). Alles Weitere liest dieses Gerüst aus den Knotennamen des Modells (Verträge: <c>docs/bereiche/darstellung.md</c>):
 /// <list type="bullet">
-/// <item><c>Raum_Werk</c>, <c>Raum_Lager</c>, <c>Raum_Saege</c>, <c>Raum_Huette</c>, <c>Raum_Laden</c>, <c>Raum_Turm</c>, <c>Raum_Pavillon</c> – die Räume (glTF-extras „stufe“ auf dem Raumknoten: erst ab dieser Betriebsstufe da,
+/// <item><c>Raum_Werk</c>, <c>Raum_Lager</c>, <c>Raum_Saege</c>, <c>Raum_Huette</c>, <c>Raum_Laden</c>, <c>Raum_Turm</c>, <c>Raum_Pavillon</c>, <c>Raum_Kueche</c>, <c>Raum_Saal</c> – die Räume (glTF-extras „stufe“ auf dem Raumknoten: erst ab dieser Betriebsstufe da,
 /// so die Sägehalle des Tischlers, die Bauhütte des Steinmetzen und der Duftpavillon des Parfumeurs ab Stufe 3, siehe <see cref="ModellRaeume"/>); <c>Blick_&lt;Raum&gt;_&lt;0|L1|R1|O1|U1…&gt;</c> – feste Blickpunkte der Kamera (Stadtansicht.Innenkamera.cs)</item>
 /// <item><b>Stufenregel:</b> jeder Knoten mit extras „stufe“ &gt; 1 ist erst ab dieser Betriebsstufe sichtbar (<see cref="ModellRaumDaten.StufenKnoten"/>); ausgenommen sind die Anker mit eigener Regel
 /// (<c>Arbeit_</c>, <c>Werkstueck_</c>, <c>Licht_</c>, <c>Dampf_</c>, <c>Auslage_</c>, <c>Blick_</c>), die ihre Stufe selbst auswerten</item>
@@ -21,6 +21,8 @@ namespace Reichsgilde;
 /// <item><c>Spaene1</c>–<c>Spaene3</c> – Hobelspäne, höchstens einer sichtbar, nach der Arbeit des Tages; die Animation „Arbeit“ des Modells läuft als Schleife, solange gearbeitet wird</item>
 /// <item><c>Werkstueck_&lt;n&gt;</c> mit Netzen aus dem Material „Fluessigkeit“ (Mörser, Kessel, Kolben): die Flüssigkeit selbst ist das Stück in Arbeit und hat die Farbe der Ware;
 /// <c>Dampf_&lt;n&gt;</c> – Dampf über dem Gefäß, solange an seinem Arbeitsplatz gearbeitet wird; <c>Auslage_&lt;n&gt;</c> – Regalplätze im Laden, je Fertigware eine Reihe Flaschen und Tiegel nach dem Lager</item>
+/// <item><c>Gast_&lt;n&gt;</c>, <c>Gast_Wuerfel_&lt;n&gt;</c>, <c>Gast_Stamm_&lt;n&gt;</c>, <c>Barde_1</c> – Sitzplätze der Gäste und Standort des Barden in der Schänke; wer dort sitzt, bestimmt die Gastwirtschaft des Kerns
+/// (Stadtansicht.Innengaeste.cs); <c>Krug_&lt;n&gt;</c> – wo der Krug auf dem Tisch steht (den hält die Figur selbst, der Anker bleibt leer)</item>
 /// </list>
 /// Der Raum folgt dem Kern: Stufe, Einrichtung, Glut, Arbeiter, Werkstücke und Warenstapel werden nur angefasst, wenn sich etwas geändert hat.
 /// </summary>
@@ -34,6 +36,7 @@ public partial class Stadtansicht
         Werkstil.Maurerei => "innen/steinmetz_innen",
         Werkstil.Tinkturei => "innen/alchimist_innen",
         Werkstil.Siederei => "innen/parfumeur_innen",
+        Werkstil.Schaenke => "innen/wirt_innen",
         _ => null,
     };
 
@@ -45,12 +48,14 @@ public partial class Stadtansicht
     private static (string Kennung, string Schluessel, string Name, int Vorgabe)[] ModellRaeume(Werkstil stil) => new[]
     {
         (RaumWerk, "Werk", WerkraumName(stil), 1),
-        (RaumLager, "Lager", "Lager", 1),
+        (RaumKueche, "Kueche", "Küche", 1),
+        (RaumLager, "Lager", stil == Werkstil.Schaenke ? "Fasskeller" : "Lager", 1),
         (RaumSaege, "Saege", "Sägehalle", 3),
         (RaumHuette, "Huette", "Bauhütte", 3),
         (RaumLaden, "Laden", "Laden", 2),
         (RaumTurm, "Turm", "Laborturm", 3),
         (RaumPavillon, "Pavillon", "Duftpavillon", 3),
+        (RaumSaal, "Saal", "Saal", 3),
     };
 
     /// <summary>
@@ -65,6 +70,7 @@ public partial class Stadtansicht
         [(Werkstil.Maurerei, "Saegen")] = 1.0,       // die rechte Hand führt den Rahmen der Steinsäge
         [(Werkstil.Maurerei, "Schleifen")] = 1.2,    // der Fuß tritt den Tritt, die Kurbel dreht den Schleifstein
         [(Werkstil.Siederei, "Pressen")] = 3.0,      // die Hände liegen am Querhebel, die Spindel der Presse dreht genau nach der Bewegung
+        [(Werkstil.Schaenke, "Zapfen")] = 4.0,       // Hahn und Strahl in der Animation „Arbeit“ folgen der Linken des Zapfers
     };
 
     /// <summary>Mit so vielen Kisten steht ein volles Lager einer Ware (Höhe der Warenstapel).</summary>
@@ -168,6 +174,10 @@ public partial class Stadtansicht
         /// <summary>Dampf über Kessel, Kolben und Athanor; sein Material (ein weicher Fleck, im Raum nach der Tageshelligkeit getönt).</summary>
         public List<DampfQuelle> Dampf { get; } = new();
         public List<Node3D> DampfAnker { get; } = new();
+        /// <summary>Die Sitzplätze der Gäste (<c>Gast_&lt;n&gt;</c>, <c>Gast_Wuerfel_&lt;n&gt;</c>, <c>Gast_Stamm_&lt;n&gt;</c>) und der Platz des Barden (<c>Barde_1</c>), nach Tisch und Nummer geordnet; siehe Stadtansicht.Innengaeste.cs.</summary>
+        public List<GastPlatz> Gaeste { get; } = new();
+        public GastenStand GaesteStand { get; set; } = new(-1, 0, 0, false);
+        public double GaesteZeit { get; set; }
         public StandardMaterial3D? DampfStoff { get; set; }
         /// <summary>Die Bedienungsstücke des Raums (Tafel, Name) in der Reihenfolge der Tafeln – für den Hinweis beim Betreten.</summary>
         public List<(string Tafel, string Name, Node3D Knoten)> Bedienungen { get; } = new();
@@ -253,6 +263,7 @@ public partial class Stadtansicht
             anker.AddChild(plan.Werkstueck);
         }
         md.Plaetze.Sort((x, y) => x.Nr.CompareTo(y.Nr));
+        md.Gaeste.Sort((x, y) => x.Tisch != y.Tisch ? x.Tisch.CompareTo(y.Tisch) : x.Nr.CompareTo(y.Nr));
         DampfAnlegen(wurzel, md);
         md.Auslageplaetze.Sort((x, y) => NummerImNamen(x).CompareTo(NummerImNamen(y)));
         RaumEbeneUebernehmen(wurzel); // alles, was bis hier im Modell steht, auch Lichter, Werkstücke und Dampf
@@ -356,6 +367,9 @@ public partial class Stadtansicht
                 break;
             case "Dampf" when teile.Length == 2:
                 md.DampfAnker.Add(knoten);
+                break;
+            case "Gast" or "Barde" when GastPlatzVon(knoten) is { } gastplatz:
+                md.Gaeste.Add(gastplatz);
                 break;
             case "Licht" when teile.Length == 2:
                 InnenLichtAnlegen(md, knoten);
@@ -520,8 +534,8 @@ public partial class Stadtansicht
         var liste => liste.Split(',', StringSplitOptions.TrimEntries | StringSplitOptions.RemoveEmptyEntries),
     };
 
-    /// <summary>Raumschlüssel in der Reihenfolge ihrer Render-Ebene (11 bis 16): Jeder Raum eines Modells hat seine eigene.</summary>
-    private static readonly string[] RaumEbenen = { "Werk", "Lager", "Saege", "Huette", "Laden", "Turm", "Pavillon" };
+    /// <summary>Raumschlüssel in der Reihenfolge ihrer Render-Ebene (11 bis 19): Jeder Raum eines Modells hat seine eigene.</summary>
+    private static readonly string[] RaumEbenen = { "Werk", "Lager", "Saege", "Huette", "Laden", "Turm", "Pavillon", "Kueche", "Saal" };
 
     /// <summary>
     /// Legt alles unter <paramref name="knoten"/> auf die Render-Ebene seines Raums und lässt jedes Licht nur diese Ebene beleuchten. Die Räume liegen
@@ -658,6 +672,7 @@ public partial class Stadtansicht
             InnenAnimationSetzen(md, !arbeitet ? AnimationStand.Ruht : _simulation!.Takt.IstPausiert ? AnimationStand.Haelt : AnimationStand.Laeuft, delta);
 
         InnenArbeiterAktualisieren(a, md, b, stufe, arbeitszeit, arbeitet, delta);
+        InnenGaesteAktualisieren(a, md, b, delta);
         InnenDampfAktualisieren(md, stufe, arbeitet);
         InnenLagerAktualisieren(a, md, b);
         InnenAuslageAktualisieren(a, md, b);
@@ -1100,6 +1115,7 @@ public partial class Stadtansicht
         ("Lager", "Quader") => "Quaderstapel",
         ("Lager", "Kraeuter") => "Kräuterbündel",
         ("Lager", "Koerbe") => "Blütenkörbe",
+        ("Lager", "Faesser") => "Fässer",
         ("Produktion", "Kessel") when stil == Werkstil.Siederei => "Brennkessel",
         (_, "Kraeutertisch") => "Kräutertisch",
         _ => ding,
@@ -1142,12 +1158,16 @@ public partial class Stadtansicht
             case "tuer" when teile.Length >= 3:
                 return (teile[2] switch
                 {
-                    "Lager" => "Tür zum Lager", "Saege" => "Tür zur Sägehalle", "Huette" => "Tür zur Bauhütte", "Laden" => "Tür zum Laden", "Turm" => "Tür zum Laborturm", "Pavillon" => "Tür zum Duftpavillon",
+                    "Lager" => "Tür zum Lager", "Saege" => "Tür zur Sägehalle", "Huette" => "Tür zur Bauhütte", "Laden" => "Tür zum Laden", "Turm" => "Tür zum Laborturm", "Pavillon" => "Tür zum Duftpavillon", "Kueche" => "Tür zur Küche", "Saal" => "Tür zum Saal",
                     _ => "Tür zum Werkraum",
                 }, "Klick: Raum wechseln");
             case "einrichtung" when teile.Length >= 2:
                 var stueck = w?.Werkstaetten.Einrichtungsliste(a.Betrieb).FirstOrDefault(e => e.Kennung == teile[1]);
                 return (stueck?.Name ?? teile[1], stueck is null ? "" : "Eingerichtet: " + stueck.Wirkung);
+            case "gast":
+                return ("Gast", "");
+            case "barde":
+                return ("Barde", "spielt zur Laute");
             case "ware" when teile.Length >= 2:
                 var kapazitaet = a.Betrieb.LagerKapazitaetJeWare;
                 return (teile[1], $"{a.Betrieb.ImLager(teile[1])} von {kapazitaet} im Lager");
