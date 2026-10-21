@@ -6,7 +6,10 @@ namespace Reichsgilde.Core.Kartenwerkstatt;
 //  Jede Änderung am Entwurf ist ein Befehl, der weiß, wie er sich ausführt und wie er sich zurücknimmt. Die Geschichte hält die
 //  ausgeführten Befehle (höchstens 200); Rückgängig nimmt den letzten zurück, Wiederholen führt ihn erneut aus. Ein neuer Befehl
 //  nach einem Rückgängig verwirft, was wiederholbar war – wie in jedem Zeichenprogramm.
-//  Schritt 2 und 3 (Wege, Flächen, Mauer, Start) bekommen eigene Befehle nach demselben Muster.
+//  Drei Grundbefehle reichen für alle Teile der Karte (Gebäude, Wege, Bauzonen, Naturflächen, Pflanzen): Setzen, Löschen und Ändern
+//  (Werte vorher/nachher). Was in einem Schritt zusammengehört (ein Weg und der Stützpunkt, an dem er beim Nachbarn einrastet; ein
+//  Pinselstrich mit vielen Pflanzen), bündelt der Sammelbefehl. Die Änderungen meldet der Entwurf erst, wenn die Geschichte den Schritt
+//  eingetragen hat – so zeigt ein Knopf „Rückgängig“ im Ereignis schon den neuen Stand.
 // ═════════════════════════════════════════════════════════════════════════════
 
 /// <summary>Eine Änderung am Entwurf, die sich zurücknehmen lässt.</summary>
@@ -19,28 +22,47 @@ public interface IKartenbefehl
     void Zuruecknehmen(Kartenentwurf entwurf);
 }
 
-/// <summary>Ein neues Gebäude an einer Stelle der Reihenfolge.</summary>
-internal sealed class GebaeudeSetzen(EntwurfGebaeude gebaeude, int index) : IKartenbefehl
+/// <summary>Ein neuer Teil (Gebäude, Weg, Fläche, Pflanze) an einer Stelle seiner Liste.</summary>
+internal sealed class TeilSetzen(EntwurfTeil teil, int index) : IKartenbefehl
 {
-    public string Beschreibung => $"{gebaeude.Name} gesetzt";
-    public void Ausfuehren(Kartenentwurf entwurf) => entwurf.Einfuegen(gebaeude, index);
-    public void Zuruecknehmen(Kartenentwurf entwurf) => entwurf.Entfernen(gebaeude);
+    public string Beschreibung => $"{teil.Bezeichnung} gesetzt";
+    public void Ausfuehren(Kartenentwurf entwurf) => entwurf.Einfuegen(teil, index);
+    public void Zuruecknehmen(Kartenentwurf entwurf) => entwurf.Entfernen(teil);
 }
 
-/// <summary>Ein Gebäude weg; zurückgenommen steht es wieder an seiner Stelle der Reihenfolge.</summary>
-internal sealed class GebaeudeLoeschen(EntwurfGebaeude gebaeude, int index) : IKartenbefehl
+/// <summary>Ein Teil weg; zurückgenommen steht er wieder an seiner Stelle der Reihenfolge.</summary>
+internal sealed class TeilLoeschen(EntwurfTeil teil, int index) : IKartenbefehl
 {
-    public string Beschreibung => $"{gebaeude.Name} gelöscht";
-    public void Ausfuehren(Kartenentwurf entwurf) => entwurf.Entfernen(gebaeude);
-    public void Zuruecknehmen(Kartenentwurf entwurf) => entwurf.Einfuegen(gebaeude, index);
+    public string Beschreibung => $"{teil.Bezeichnung} gelöscht";
+    public void Ausfuehren(Kartenentwurf entwurf) => entwurf.Entfernen(teil);
+    public void Zuruecknehmen(Kartenentwurf entwurf) => entwurf.Einfuegen(teil, index);
 }
 
-/// <summary>Werte eines Gebäudes vorher und nachher (Punkt, Drehung, Name, Betrieb …); das Gebäude selbst bleibt dasselbe Objekt.</summary>
-internal sealed class GebaeudeAendern(string beschreibung, EntwurfGebaeude gebaeude, EntwurfGebaeude vorher, EntwurfGebaeude nachher) : IKartenbefehl
+/// <summary>Werte eines Teils vorher und nachher (Punkt, Name, Stützpunkte, Ecken …); der Teil selbst bleibt dasselbe Objekt.</summary>
+internal sealed class TeilAendern(string beschreibung, EntwurfTeil teil, EntwurfTeil vorher, EntwurfTeil nachher) : IKartenbefehl
 {
     public string Beschreibung => beschreibung;
-    public void Ausfuehren(Kartenentwurf entwurf) => entwurf.Uebernehmen(gebaeude, nachher);
-    public void Zuruecknehmen(Kartenentwurf entwurf) => entwurf.Uebernehmen(gebaeude, vorher);
+    public void Ausfuehren(Kartenentwurf entwurf) => entwurf.Uebernehmen(teil, nachher);
+    public void Zuruecknehmen(Kartenentwurf entwurf) => entwurf.Uebernehmen(teil, vorher);
+
+    /// <summary>Derselbe Befehl mit anderer Beschreibung.</summary>
+    public TeilAendern Benannt(string text) => new(text, teil, vorher, nachher);
+}
+
+/// <summary>Mehrere Befehle als ein Schritt (zurückgenommen in umgekehrter Reihenfolge).</summary>
+internal sealed class Sammelbefehl(string beschreibung, IReadOnlyList<IKartenbefehl> befehle) : IKartenbefehl
+{
+    public string Beschreibung => beschreibung;
+
+    public void Ausfuehren(Kartenentwurf entwurf)
+    {
+        foreach (var b in befehle) b.Ausfuehren(entwurf);
+    }
+
+    public void Zuruecknehmen(Kartenentwurf entwurf)
+    {
+        for (var i = befehle.Count - 1; i >= 0; i--) befehle[i].Zuruecknehmen(entwurf);
+    }
 }
 
 /// <summary>Rückgängig und Wiederholen für einen Entwurf.</summary>
@@ -103,6 +125,7 @@ public sealed class Kartengeschichte
             _boden = _zurueck.First!.Value;
             _zurueck.RemoveFirst();
         }
+        _entwurf.MeldungenAusloesen();
     }
 
     public bool Rueckgaengig()
@@ -111,6 +134,7 @@ public sealed class Kartengeschichte
         _zurueck.RemoveLast();
         letzter.Value.Zuruecknehmen(_entwurf);
         _vor.Push(letzter.Value);
+        _entwurf.MeldungenAusloesen();
         return true;
     }
 
@@ -119,6 +143,7 @@ public sealed class Kartengeschichte
         if (!_vor.TryPop(out var befehl)) return false;
         befehl.Ausfuehren(_entwurf);
         _zurueck.AddLast(befehl);
+        _entwurf.MeldungenAusloesen();
         return true;
     }
 }

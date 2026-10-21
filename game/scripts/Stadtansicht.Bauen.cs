@@ -416,73 +416,75 @@ public partial class Stadtansicht
         _bauzonen = new Node3D { Name = "Bauzonen", Visible = false };
         AddChild(_bauzonen);
         if (_karte is not { } karte) return;
-        var raster = (float)karte.Raster;
-        foreach (var zone in karte.Bauzonen)
+        foreach (var zone in karte.Bauzonen) BauzoneZeichnen(zone, (float)karte.Raster, _bauzonen);
+    }
+
+    /// <summary>Eine Bauzone als farbige Fläche (Farbe der Lage) mit ihrem Raster und der Beschriftung „Kennung · Lage“ – auch für die Kartenwerkstatt.</summary>
+    private void BauzoneZeichnen(Bauzone zone, float raster, Node3D eltern)
+    {
+        var farbe = LageFarbe(zone.Art);
+        var punkte = zone.Flaeche.Select(p => new Vector2((float)p[0], (float)p[1])).ToArray();
+        var dreiecke = Geometry2D.TriangulatePolygon(punkte);
+        if (dreiecke.Length == 0) return;
+
+        // Fläche
+        var flaeche = new ArrayMesh();
+        var arrays = new Godot.Collections.Array();
+        arrays.Resize((int)Mesh.ArrayType.Max);
+        arrays[(int)Mesh.ArrayType.Vertex] = punkte.Select(p => new Vector3(p.X, 0, p.Y)).ToArray();
+        arrays[(int)Mesh.ArrayType.Index] = dreiecke;
+        flaeche.AddSurfaceFromArrays(Mesh.PrimitiveType.Triangles, arrays);
+        eltern.AddChild(new MeshInstance3D
         {
-            var farbe = LageFarbe(zone.Art);
-            var punkte = zone.Flaeche.Select(p => new Vector2((float)p[0], (float)p[1])).ToArray();
-            var dreiecke = Geometry2D.TriangulatePolygon(punkte);
-            if (dreiecke.Length == 0) continue;
+            Mesh = flaeche,
+            Position = new Vector3(0, 0.08f, 0),
+            MaterialOverride = Transparent(farbe, 0.34f),
+        });
 
-            // Fläche
-            var flaeche = new ArrayMesh();
-            var arrays = new Godot.Collections.Array();
-            arrays.Resize((int)Mesh.ArrayType.Max);
-            arrays[(int)Mesh.ArrayType.Vertex] = punkte.Select(p => new Vector3(p.X, 0, p.Y)).ToArray();
-            arrays[(int)Mesh.ArrayType.Index] = dreiecke;
-            flaeche.AddSurfaceFromArrays(Mesh.PrimitiveType.Triangles, arrays);
-            _bauzonen.AddChild(new MeshInstance3D
-            {
-                Mesh = flaeche,
-                Position = new Vector3(0, 0.08f, 0),
-                MaterialOverride = Transparent(farbe, 0.34f),
-            });
-
-            // Raster: die Kanten aller Rasterfelder, deren Mitte in der Zone liegt (jede Kante nur einmal)
-            var (minX, maxX) = (punkte.Min(p => p.X), punkte.Max(p => p.X));
-            var (minZ, maxZ) = (punkte.Min(p => p.Y), punkte.Max(p => p.Y));
-            var kanten = new HashSet<(int, int, int, int)>();
-            var linien = new List<Vector3>();
-            void Kante(int ax, int az, int bx, int bz)
-            {
-                if (!kanten.Add((ax, az, bx, bz))) return;
-                linien.Add(new Vector3(ax * raster, 0, az * raster));
-                linien.Add(new Vector3(bx * raster, 0, bz * raster));
-            }
-            for (var x = Mathf.Floor(minX / raster) * raster; x < maxX; x += raster)
-                for (var z = Mathf.Floor(minZ / raster) * raster; z < maxZ; z += raster)
-                {
-                    if (!zone.Enthaelt(x + raster / 2, z + raster / 2)) continue;
-                    var (ix, iz) = ((int)Mathf.Round(x / raster), (int)Mathf.Round(z / raster));
-                    Kante(ix, iz, ix + 1, iz);
-                    Kante(ix, iz + 1, ix + 1, iz + 1);
-                    Kante(ix, iz, ix, iz + 1);
-                    Kante(ix + 1, iz, ix + 1, iz + 1);
-                }
-            if (linien.Count > 0)
-            {
-                var gitter = new ArrayMesh();
-                var la = new Godot.Collections.Array();
-                la.Resize((int)Mesh.ArrayType.Max);
-                la[(int)Mesh.ArrayType.Vertex] = linien.ToArray();
-                gitter.AddSurfaceFromArrays(Mesh.PrimitiveType.Lines, la);
-                _bauzonen.AddChild(new MeshInstance3D
-                {
-                    Mesh = gitter,
-                    Position = new Vector3(0, 0.1f, 0),
-                    MaterialOverride = new StandardMaterial3D
-                    {
-                        AlbedoColor = new Color(farbe.Lightened(0.35f), 0.8f), Transparency = BaseMaterial3D.TransparencyEnum.Alpha,
-                        ShadingMode = BaseMaterial3D.ShadingModeEnum.Unshaded,
-                    },
-                });
-            }
-
-            // Beschriftung in der Mitte der Zone
-            var mitte = new Vector3((minX + maxX) / 2, 0, (minZ + maxZ) / 2);
-            var label = Beschriftung($"{zone.Kennung} · {LageName(zone.Art)}", mitte + new Vector3(0, 5, 0), 36, _bauzonen);
-            label.Modulate = farbe.Lightened(0.5f);
+        // Raster: die Kanten aller Rasterfelder, deren Mitte in der Zone liegt (jede Kante nur einmal)
+        var (minX, maxX) = (punkte.Min(p => p.X), punkte.Max(p => p.X));
+        var (minZ, maxZ) = (punkte.Min(p => p.Y), punkte.Max(p => p.Y));
+        var kanten = new HashSet<(int, int, int, int)>();
+        var linien = new List<Vector3>();
+        void Kante(int ax, int az, int bx, int bz)
+        {
+            if (!kanten.Add((ax, az, bx, bz))) return;
+            linien.Add(new Vector3(ax * raster, 0, az * raster));
+            linien.Add(new Vector3(bx * raster, 0, bz * raster));
         }
+        for (var x = Mathf.Floor(minX / raster) * raster; x < maxX; x += raster)
+            for (var z = Mathf.Floor(minZ / raster) * raster; z < maxZ; z += raster)
+            {
+                if (!zone.Enthaelt(x + raster / 2, z + raster / 2)) continue;
+                var (ix, iz) = ((int)Mathf.Round(x / raster), (int)Mathf.Round(z / raster));
+                Kante(ix, iz, ix + 1, iz);
+                Kante(ix, iz + 1, ix + 1, iz + 1);
+                Kante(ix, iz, ix, iz + 1);
+                Kante(ix + 1, iz, ix + 1, iz + 1);
+            }
+        if (linien.Count > 0)
+        {
+            var gitter = new ArrayMesh();
+            var la = new Godot.Collections.Array();
+            la.Resize((int)Mesh.ArrayType.Max);
+            la[(int)Mesh.ArrayType.Vertex] = linien.ToArray();
+            gitter.AddSurfaceFromArrays(Mesh.PrimitiveType.Lines, la);
+            eltern.AddChild(new MeshInstance3D
+            {
+                Mesh = gitter,
+                Position = new Vector3(0, 0.1f, 0),
+                MaterialOverride = new StandardMaterial3D
+                {
+                    AlbedoColor = new Color(farbe.Lightened(0.35f), 0.8f), Transparency = BaseMaterial3D.TransparencyEnum.Alpha,
+                    ShadingMode = BaseMaterial3D.ShadingModeEnum.Unshaded,
+                },
+            });
+        }
+
+        // Beschriftung in der Mitte der Zone
+        var mitte = new Vector3((minX + maxX) / 2, 0, (minZ + maxZ) / 2);
+        var label = Beschriftung($"{zone.Kennung} · {LageName(zone.Art)}", mitte + new Vector3(0, 5, 0), 36, eltern);
+        label.Modulate = farbe.Lightened(0.5f);
     }
 
     // ═════════════════════════════════════════════════════════════════════════

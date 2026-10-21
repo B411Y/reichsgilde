@@ -1117,6 +1117,71 @@ public partial class Stadtansicht : Node3D
         eltern.AddChild(weg);
     }
 
+    /// <summary>
+    /// Ein Weg als ein flaches Band entlang einer Linie (glatte Kurven): oben auf derselben Höhe wie die Quader von <see cref="WegStueck"/>,
+    /// an den Enden um ein Viertel der Breite länger wie sie. Weniger als zwei Punkte: nichts.
+    /// </summary>
+    private void WegBand(IReadOnlyList<Vector3> punkte, float breite, Node3D eltern)
+    {
+        if (punkte.Count < 2) return;
+        var linie = punkte.Select(p => new Vector2(p.X, p.Z)).ToList();
+        // an beiden Enden verlängern (wie die Quader)
+        linie[0] -= (linie[1] - linie[0]).Normalized() * breite * 0.25f;
+        linie[^1] += (linie[^1] - linie[^2]).Normalized() * breite * 0.25f;
+        var ecken = BandDreiecke(linie, breite / 2, WegHoehe);
+        if (ecken.Length == 0) return;
+        var arrays = new Godot.Collections.Array();
+        arrays.Resize((int)Mesh.ArrayType.Max);
+        arrays[(int)Mesh.ArrayType.Vertex] = ecken;
+        arrays[(int)Mesh.ArrayType.Normal] = ecken.Select(_ => Vector3.Up).ToArray();
+        var netz = new ArrayMesh();
+        netz.AddSurfaceFromArrays(Mesh.PrimitiveType.Triangles, arrays);
+        eltern.AddChild(new MeshInstance3D { Name = "Wegband", Mesh = netz, MaterialOverride = Material(Weg) });
+    }
+
+    /// <summary>Höhe der Oberseite eines Weges (die Quader von <see cref="WegStueck"/>: Mitte 0,04 m, 6 cm dick).</summary>
+    private const float WegHoehe = 0.07f;
+
+    /// <summary>
+    /// Die Dreiecke eines flachen Bandes um eine Linie (x, z) in der Höhe <paramref name="hoehe"/>, je drei Ecken, mit der Vorderseite nach
+    /// oben. An den Knicken liegen die Ränder auf der Winkelhalbierenden (so überlappen sich die Stücke nicht – wichtig für Durchsichtiges;
+    /// in sehr spitzen Knicken höchstens dreifach so weit).
+    /// </summary>
+    private static Vector3[] BandDreiecke(IReadOnlyList<Vector2> linie, float halb, float hoehe)
+    {
+        // doppelte Punkte (ein Knick ohne Länge) weglassen – ihre Richtung wäre Zufall
+        linie = linie.Where((p, i) => i == 0 || p.DistanceTo(linie[i - 1]) > 0.01f).ToList();
+        if (linie.Count < 2) return Array.Empty<Vector3>();
+        var links = new Vector2[linie.Count];
+        var rechts = new Vector2[linie.Count];
+        for (var i = 0; i < linie.Count; i++)
+        {
+            var vor = i > 0 ? (linie[i] - linie[i - 1]).Normalized() : Vector2.Zero;
+            var nach = i + 1 < linie.Count ? (linie[i + 1] - linie[i]).Normalized() : Vector2.Zero;
+            var richtung = (vor + nach).Normalized();
+            if (richtung == Vector2.Zero) richtung = nach != Vector2.Zero ? nach : vor != Vector2.Zero ? vor : Vector2.Right;
+            var quer = new Vector2(-richtung.Y, richtung.X);
+            var bezug = nach != Vector2.Zero ? nach : vor;
+            var gehrung = Mathf.Min(3, 1 / Mathf.Max(0.33f, Mathf.Abs(quer.Dot(new Vector2(-bezug.Y, bezug.X)))));
+            links[i] = linie[i] + quer * halb * gehrung;
+            rechts[i] = linie[i] - quer * halb * gehrung;
+        }
+        var ecken = new List<Vector3>();
+        for (var i = 0; i + 1 < linie.Count; i++)
+            foreach (var (a, b, c) in new[] { (links[i], rechts[i], links[i + 1]), (rechts[i], rechts[i + 1], links[i + 1]) })
+                Dreieck(ecken, a, b, c, hoehe);
+        return ecken.ToArray();
+    }
+
+    /// <summary>Ein flaches Dreieck, Vorderseite nach oben: in (x, z) gerechnet gegen den Uhrzeigersinn (wie bei <see cref="Vieleck"/>).</summary>
+    private static void Dreieck(List<Vector3> ecken, Vector2 a, Vector2 b, Vector2 c, float hoehe)
+    {
+        if ((b - a).Cross(c - a) < 0) (b, c) = (c, b);
+        ecken.Add(new Vector3(a.X, hoehe, a.Y));
+        ecken.Add(new Vector3(b.X, hoehe, b.Y));
+        ecken.Add(new Vector3(c.X, hoehe, c.Y));
+    }
+
     /// <summary>Unsichtbarer Körper, damit Mausklicks das Gebäude treffen (um die Hochachse gedreht wie das Gebäude). Die Form lässt sich abschalten (Innenansicht).</summary>
     private CollisionShape3D Klickflaeche(string kennung, Vector3 mitte, Vector3 groesse, Node3D? eltern = null, float drehung = 0)
     {

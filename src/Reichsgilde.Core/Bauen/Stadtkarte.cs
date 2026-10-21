@@ -28,7 +28,10 @@ public enum Lage
     Umland,
 }
 
-/// <summary>Klasse eines Weges (LEVELDESIGN §5). Land-, Haupt-, Ring- und Wallstraße tragen Karren, Gassen und Leinpfade nur Fußgänger.</summary>
+/// <summary>
+/// Klasse eines Weges (LEVELDESIGN §5). Land-, Haupt-, Ring- und Wallstraße und Feldweg tragen Karren, Gassen, Leinpfade und Fußwege nur
+/// Fußgänger. In der Datei kleingeschrieben („land“, „fussweg“).
+/// </summary>
 public enum Wegklasse
 {
     Land,
@@ -37,34 +40,106 @@ public enum Wegklasse
     Wall,
     Gasse,
     Leinpfad,
+
+    /// <summary>Unbefestigter Weg im Umland, zu Hof, Grube oder Feld (Karren fahren hier; seit der Kartenwerkstatt, Schritt 2).</summary>
+    Feldweg,
+
+    /// <summary>Pfad nur für Fußgänger, etwa zu Weide und Wald (seit der Kartenwerkstatt, Schritt 2).</summary>
+    Fussweg,
 }
 
-/// <summary>Ein Weg der Karte: Name, Klasse und Mittellinie als Punktfolge.</summary>
+/// <summary>
+/// Ein Weg der Karte: Name, Klasse und Stützpunkte der Mittellinie. Ohne <see cref="Kurve"/> verbinden gerade Strecken die Punkte, mit
+/// <c>"glatt"</c> eine weiche Kurve (<see cref="Wegkurve"/>); gerechnet wird immer mit dem <see cref="Verlauf"/>.
+/// </summary>
 public sealed class Kartenweg
 {
     public string Name { get; init; } = "";
     public Wegklasse Klasse { get; init; }
 
-    /// <summary>Die Mittellinie, je Punkt [x, z].</summary>
+    /// <summary>Die Stützpunkte der Mittellinie, je Punkt [x, z].</summary>
     public List<double[]> Linie { get; init; } = new();
 
     /// <summary>Gefahrenfaktor um 1,0 (Vorschlag Leveldesign, noch ohne Wirkung).</summary>
     public double Gefahr { get; init; } = 1;
 
-    /// <summary>Gezeichnete Breite in Metern (0 = die Darstellung wählt nach der Klasse).</summary>
+    /// <summary>Gezeichnete Breite in Metern (0 = nach der Klasse, <see cref="Standardbreite"/>).</summary>
     public double Breite { get; init; }
+
+    /// <summary>„glatt“: weiche Kurve durch die Stützpunkte; null: gerade Strecken (wie bis zur Kartenwerkstatt, Schritt 2).</summary>
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public string? Kurve { get; init; }
+
+    /// <summary>Läuft der Weg als weiche Kurve?</summary>
+    [JsonIgnore]
+    public bool IstGlatt => Kurve == Wegkurve.Glatt;
+
+    private Wegverlauf? _verlauf;
+
+    /// <summary>
+    /// Die Mittellinie, wie Spiel, Prüfung und Bauwesen sie sehen: gerade = die Stützpunkte, glatt = die Kurve, etwa alle Meter ein Punkt
+    /// (<see cref="Wegkurve.Verlauf"/>).
+    /// </summary>
+    [JsonIgnore]
+    public IReadOnlyList<double[]> Verlauf => (_verlauf ??= Wegkurve.Verlauf(Linie, IstGlatt)).Punkte;
+
+    /// <summary>Die Länge des Verlaufs in Metern.</summary>
+    [JsonIgnore]
+    public double Laenge => Wegkurve.Laenge(Verlauf);
+
+    /// <summary>Die gezeichnete Breite: aus der Karte, sonst nach der Klasse.</summary>
+    [JsonIgnore]
+    public double BreiteWirksam => Breite > 0 ? Breite : Standardbreite(Klasse);
 
     /// <summary>Fahren hier Karren? (Werkstätten brauchen ihren Eingang an einer Karrenstraße.)</summary>
     [JsonIgnore]
-    public bool IstKarrenstrasse => Klasse is Wegklasse.Land or Wegklasse.Haupt or Wegklasse.Ring or Wegklasse.Wall;
+    public bool IstKarrenstrasse => TraegtKarren(Klasse);
 
-    /// <summary>Kürzester Abstand eines Punktes zur Mittellinie (Meter).</summary>
+    /// <summary>Fahren auf Wegen dieser Klasse Karren?</summary>
+    public static bool TraegtKarren(Wegklasse k) => k is Wegklasse.Land or Wegklasse.Haupt or Wegklasse.Ring or Wegklasse.Wall or Wegklasse.Feldweg;
+
+    /// <summary>Breite eines Weges ohne Angabe in der Karte (Meter) – wie die Stadtansicht sie zeichnet.</summary>
+    public static double Standardbreite(Wegklasse k) => k switch
+    {
+        Wegklasse.Haupt => 5,
+        Wegklasse.Land or Wegklasse.Wall => 4,
+        Wegklasse.Ring or Wegklasse.Gasse or Wegklasse.Feldweg => 3,
+        _ => 2, // Leinpfad, Fußweg
+    };
+
+    /// <summary>
+    /// So schmal darf ein Weg dieser Klasse höchstens werden (Meter; LEVELDESIGN „Wege und Wegfindung“): Karrenstraßen 4 m (Ring 3 m), Feldweg
+    /// 3 m, Gasse 2 m, Leinpfad und Fußweg 1,5 m. Die Greybox hält das ein (Landstraßen 4 m, Fußwege als Gasse 2 m).
+    /// </summary>
+    public static double Mindestbreite(Wegklasse k) => k switch
+    {
+        Wegklasse.Land or Wegklasse.Haupt or Wegklasse.Wall => 4,
+        Wegklasse.Ring or Wegklasse.Feldweg => 3,
+        Wegklasse.Gasse => 2,
+        _ => 1.5, // Leinpfad, Fußweg
+    };
+
+    /// <summary>Anzeigename der Klasse („Landstraße“, „Fußweg“ …).</summary>
+    public static string Anzeigename(Wegklasse k) => k switch
+    {
+        Wegklasse.Land => "Landstraße",
+        Wegklasse.Haupt => "Hauptstraße",
+        Wegklasse.Ring => "Ringstraße",
+        Wegklasse.Wall => "Wallstraße",
+        Wegklasse.Gasse => "Gasse",
+        Wegklasse.Leinpfad => "Leinpfad",
+        Wegklasse.Feldweg => "Feldweg",
+        _ => "Fußweg",
+    };
+
+    /// <summary>Kürzester Abstand eines Punktes zur Mittellinie (Meter, auf dem <see cref="Verlauf"/>).</summary>
     public double Abstand(double x, double z)
     {
+        var linie = Verlauf;
         var best = double.MaxValue;
-        for (var i = 0; i + 1 < Linie.Count; i++)
-            best = Math.Min(best, Geometrie.AbstandZurStrecke(x, z, Linie[i][0], Linie[i][1], Linie[i + 1][0], Linie[i + 1][1]));
-        return Linie.Count == 1 ? Math.Sqrt(Math.Pow(x - Linie[0][0], 2) + Math.Pow(z - Linie[0][1], 2)) : best;
+        for (var i = 0; i + 1 < linie.Count; i++)
+            best = Math.Min(best, Geometrie.AbstandZurStrecke(x, z, linie[i][0], linie[i][1], linie[i + 1][0], linie[i + 1][1]));
+        return linie.Count == 1 ? Math.Sqrt(Math.Pow(x - linie[0][0], 2) + Math.Pow(z - linie[0][1], 2)) : best;
     }
 }
 
@@ -449,6 +524,7 @@ public sealed class Stadtkarte
         {
             if (w.Linie.Count < 2) f.Add($"Weg „{w.Name}“: Die Linie braucht mindestens zwei Punkte.");
             if (!Linie(w.Linie)) f.Add($"Weg „{w.Name}“: Jeder Punkt hat genau zwei Zahlen [x, z].");
+            if (w.Kurve is not null && !w.IstGlatt) f.Add($"Weg „{w.Name}“: kurve ist „{Wegkurve.Glatt}“ oder fehlt (nicht „{w.Kurve}“).");
         }
         foreach (var z in Bauzonen)
         {
