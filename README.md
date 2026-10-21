@@ -34,6 +34,7 @@
 | 🗝️ | [Unterwelt und Gericht](#unterwelt) | Banden, Einbruch, Brand, Erpressung – und dagegen Wächter, Spitzel, Beweise, Anklage und Kerker. |
 | 👥 | [Einwohner](#einwohner) | 25 Einwohner je Haus mit Rolle und Tagesablauf; sie füllen Schänken und Kirchen und kaufen am Markt. |
 | 🤖 | [KI-Häuser](#ki) | Bis zu drei Rivalen mit Charakter, die nach denselben Regeln spielen wie du – ohne Schummelei. |
+| 🗺️ | [Kartenwerkstatt](#kartenwerkstatt) | Level-Editor im Spiel: Karten öffnen, Gebäude aus dem Katalog setzen, verschieben, drehen und löschen, Prüfung nach den Kartenregeln live, Rückgängig, Speichern. |
 
 Ein Klick auf ein Thema springt zu seinem Abschnitt im **Spielbuch** weiter unten; dort lässt er sich aufklappen.
 
@@ -333,6 +334,24 @@ Hast du mindestens 3 Beweise, kannst du **Schweigegeld erpressen**. Der Brief se
 **KI-Rivale.** Haus Eisenbart wird von einer KI geführt, die nach denselben Regeln und mit denselben Informationen spielt wie du (keine Schummelei). Sie stellt ihre Gießerei auf das jeweils einträglichste Produkt um, teilt die Förderung der Grube nach den Preisen auf, besetzt freie Plätze mit der besten erlaubten Arbeitskraft (auch nach einem neuen Statut), wählt Eskorten nach erwartetem Raubverlust und kauft Karren, wenn ein Betrieb zu oft stillsteht. Jede Entscheidung erscheint im Protokoll und im Kontor.
 
 **Bauen, Leerstand, Verkauf.** Braucht ein KI-Haus für den nächsten Stand ein größeres Wohnhaus, nimmt es den günstigsten Weg: einen **Leerstand**, wenn er billiger ist als Ausbau oder Neubau – aber erst, wenn er **ein ganzes Spieljahr** leer stand, damit du zuerst zugreifen kannst. Sonst baut es aus oder, für Stadtpalais und Stadthof in einer Stadt mit Bauzonen, **neu** (schon ab 80 % der Schwelle, weil der Bau zwei Jahre dauert). Als Schnäppchen kauft die KI nie, und sie reißt nichts ab. Eine **Werkstatt** baut sie neu, wenn sich das besser rechnet als jede freie – das Baujahr ohne Einnahmen zählt mit, gebaut wird möglichst nah am Markt. Einen Betrieb, der **zwei ganze Jahre in Folge Verlust** macht (mit dem Lagerbestand gerechnet), verkauft sie; ein Jahr, in dem er mindestens ein Viertel der Zeit ohne Personal stand, zählt dabei nicht. Vor dem **Bankrott** verkauft sie ab der Jahresmitte den schwächsten Betrieb, dessen Erlös das Minus deckt – reicht keiner allein, den schwächsten, bis es reicht. Danach kauft sie dasselbe Handwerk am selben Ort fünf Jahre nicht zurück.
+
+</details>
+
+<a id="kartenwerkstatt"></a>
+<details>
+<summary><b>Kartenwerkstatt</b> – Level-Editor: Karten bauen und prüfen</summary>
+
+**Öffnen.** Im Hauptmenü führt **Kartenwerkstatt** in den Level-Editor. Er zeigt die Stadt genau wie das Spiel – Gebäude, Wege, Mauer, Natur, dazu die Bauzonen halbtransparent –, aber ohne Simulation, immer bei hellem Mittag. Zu Beginn liegt die Greybox auf dem Tisch. **Öffnen** zeigt die eigenen Karten (Ordner `karten` neben den Spielständen, z. B. `~/.local/share/godot/app_userdata/Reichsgilde/karten`) und die mitgelieferten Greybox und Köln; die mitgelieferten lassen sich nur lesen – **Speichern** fragt dann nach einem Namen und legt eine eigene Datei an. **Neu** legt eine leere Karte an (Kennung, Name der Stadt, Breite und Tiefe in Metern). **Zurück zum Hauptmenü**, Neu und Öffnen fragen nach, wenn noch etwas ungespeichert ist.
+
+**Setzen.** Links steht der Katalog nach Art (Werkstattplätze, Wohnhausplätze, Einwohnerplätze, Sonderbauten, Kulissen, Umland, Natur und Gelände). Ein Klick wählt einen Baustein, sein Umriss folgt der Maus auf dem 1-m-Raster; **Q/E** drehen ihn in 15°-Schritten (mit **Alt** um 1°), mit gehaltener **Alt**-Taste rastet er nicht ein. **Grün** heißt: hier verletzt er keine Regel, **rot** nennt den ersten Fehler. Ein Klick setzt das Gebäude (auch auf Rot – der Fehler steht dann in der Liste), **Esc** oder ein Rechtsklick beenden das Setzen. Werkstattplätze zeigen das Werkstattmodell des Schmieds, Wohnhausplätze Fachwerkhäuser, Einwohnerplätze ein Einwohnerhaus, alles andere sein eigenes Modell (Kirche und Hafen noch einen grauen Block).
+
+**Bearbeiten.** Ein Klick wählt ein Gebäude (goldener Rahmen um die Grundfläche, die Linie darin ist die Kante des 2-m-Vorplatzes). **Ziehen** verschiebt es, Q/E drehen es dabei mit – ein Loslassen ist ein Rückgängig-Schritt. **Q/E** drehen das gewählte, **Entf** löscht es. Rechts stehen seine Eigenschaften: Name, Baustein, Kennung (bleibt fest, Spielstände verweisen darauf), Punkt, Drehung, Maßstab und – je nach Art – Betrieb, Lage oder Konfession; jede Änderung lässt sich zurücknehmen. **Strg+Z** / **Strg+Y** (oder die Knöpfe oben, der Tooltip sagt, was zurückgenommen wird) gehen bis zu 200 Schritte zurück und vor, **Strg+S** speichert.
+
+**Prüfen.** Nach jeder Änderung prüft der Kern die ganze Karte nach den Kartenregeln. Gebäude mit einem Fehler leuchten rot; rechts unten steht die Liste, Fehler zuerst, dann Hinweise. Ein Klick auf einen Eintrag wählt das Gebäude und fährt die Kamera hin. Speichern geht immer, auch mit Fehlern.
+
+**Kamera.** Mausrad zoomt, rechte Maustaste oder WASD verschieben, **Strg+Q/E** oder **Bild auf/ab** drehen (Q/E allein drehen hier das Gebäude). **Alt** zeigt alle Namen.
+
+Was noch fehlt (Wege, Bauzonen und Wald zeichnen, Mauer und Tore, „Karte ausprobieren“), kommt in den nächsten Schritten – Fahrplan in `docs/bereiche/leveldesign.md`.
 
 </details>
 

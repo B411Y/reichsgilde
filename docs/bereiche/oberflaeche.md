@@ -71,3 +71,9 @@ So wird eingetragen (damit sich die Chats nie an derselben Stelle treffen):
 | Größe der Oberfläche | Regler 75–200 % in Schritten zu 5 %, wirkt über `ContentScaleFactor` des Hauptfensters auf alle Tafeln, Schriften und Knöpfe; beim Ziehen erst beim Loslassen angewendet (sonst wüchse die Tafel unter der Maus). | 21.10.2026 |
 | Farbfilter | Für das ganze Bild mit Oberfläche (Wappen, Besitzerfarben, Warenzeichen tragen Farbe), nicht nur für die 3D-Ansicht: Protanopie, Deuteranopie, Tritanopie als Daltonisierung. | 21.10.2026 |
 | Fahnen | „Fahnen bewegen“ als Schalter im Reiter Stimmung (aus: `wind_staerke` 0). | 21.10.2026 |
+### Kartenwerkstatt (PR #168)
+
+| Thema | Entscheidung | Datum |
+|---|---|---|
+| Tafeln | Feste Seitentafeln über die ganze Höhe (links Katalog, rechts Eigenschaften und Fehlerliste, jede mit eigenem Rollbereich), oben eine Leiste über die ganze Breite, unten Meldung und Tastenhilfe. Stil wie Bau- und Auswahltafel; Rückfragen wie das Spielmenü (goldener Rand) auf einem dunklen Schleier, der Klicks auf die Stadt abfängt; Esc schließt sie. | 21.10.2026 |
+| Textfelder | Name und Betrieb werden beim Verlassen des Feldes übernommen (Enter oder ein Klick daneben, auch in die Stadt); solange darin geschrieben wird, verschieben WASD die Kamera nicht (gilt jetzt in jeder Stadtansicht, auch mit gedrückter Strg-Taste). | 21.10.2026 |

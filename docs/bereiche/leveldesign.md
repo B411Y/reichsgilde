@@ -16,6 +16,10 @@ So wird eingetragen (damit sich die Chats nie an derselben Stelle treffen):
 - Greybox: Vier Wege im Umland laufen über die Fläche eines Umlandbetriebs (Klosterhof-Weg über den Kräutergarten, Bauernhof-Abzweig über den Wachturm, Kräutergarten-Weg und Klosterhof-Abzweig über die Grube am Silberberg) – so zeichnet die Stadtansicht sie seit jeher; das Werkzeug meldet es als Hinweis. Vorschlag: mit dem Level-Editor die Wege dort neu führen
 - Felsberg im Katalog 52 × 38 m, das Modell `berg_grube` nur 45 × 32,5 m; mit dem Rand überdecken die Felsberge der Gruben Eisenbart und Silberberg Bauernhof und Duftgarten (Hinweis im Werkzeug). Vorschlag an Kern/Modell: Katalogfläche 46 × 34 m
 - Greybox mit weniger als 8 Häusern: Auf den Wohnhausplätzen 5 bis 8 standen bisher Einwohnerhäuser; Format 2 hat dort keine Einwohnerplätze. Ob unbenutzte Wohnhausplätze Einwohner aufnehmen, entscheiden Darstellung und Kern
+- Kartenwerkstatt: Natur und Wege werden nur beim Öffnen gezeichnet – wo ein Gebäude hingezogen wird, bleiben die Bäume stehen (und wo es wegging, bleibt eine Lücke). Mit Schritt 2 (Wege und Flächen) neu zeichnen, wenn sich etwas ändert
+- Kartenwerkstatt: einzelne Pflanzen (`natur.pflanzen`) und Waldflächen fehlen im Katalog links (der Kern setzt nur Bausteine aus `gebaeude`) – kommt mit Schritt 2
+- Kartenwerkstatt: Das Schließen des Fensters (X) fragt noch nicht nach ungespeicherten Änderungen; nur „Zurück zum Hauptmenü“, Neu und Öffnen tun es
+- Kartenwerkstatt: In der Greybox ist jeder neue Werkstattplatz rot („Keine Gasse beginnt am Hof“, Werkstattnorm), bis Schritt 2 Wege zeichnen kann; ebenso ein Gebäude in einer Bauzone (2 m Abstand) – beides ist Absicht der Regeln, aber beim Ausprobieren überraschend
 
 ## Entscheidungen
 
@@ -121,3 +125,26 @@ Noch nicht begonnen; festgehalten, damit niemand weiter Arbeit in die Greybox-We
 | Umsetzung: Natur der Greybox | Der Waldring genau so, wie die Stadtansicht ihn mit `NachAussen` verschob (die Schneisen der Verschiebung gehören jetzt zum Wald), geteilt bei x = −20: östlich Tannenwald, westlich Mischwald mit Eichen und Buchen; Streu im Umland und Kopfweiden am Bach beim Kräutergarten mit den Dichten von bisher. Stadt mit 6 m Rand und Vorstadt sind Aussparungen. | 21.10.2026 |
 | Umsetzung: Köln | `koeln.py` schreibt Format 2 (Startgrundstück = Werkstatt- und Wohnhausplatz, rechtwinklig). Dom, Antoniterkirche und Leerstand L2 standen auf Startgrundstücken und rücken ein paar Meter; die Kapazität passt weiter. | 21.10.2026 |
 
+### Kartenwerkstatt (Level-Editor), Schritt 1: Grundgerüst (PR #168)
+
+Fahrplan (vom Nutzer am 21.10.2026 bestätigt, je Schritt ein PR; Stand wird hier nachgeführt):
+
+| Schritt | Inhalt | Stand |
+|---|---|---|
+| 1 Grundgerüst | Knopf im Hauptmenü, Karte laden und zeigen, Gebäude aus dem Katalog setzen, verschieben, drehen, löschen, Live-Prüfung, Speichern, Rückgängig | fertig (PR #168) |
+| 2 Wege und Flächen | Wege mit Kurven zeichnen, Kreuzungen rasten ein, Gassennetz live; Bauzonen und Waldflächen als Vielecke | offen |
+| 3 Rest der Karte | Mauer und Tore, Startbelegung, Knopf „Karte ausprobieren“ | offen |
+| 4 Umzug | Greybox und Köln übernehmen, der Editor wird die Quelle, Python-Werkzeug fällt weg | offen |
+| 5 Später | Gelände mit Höhen, Wasser, Wegbelag; Freigabe für Spieler | offen |
+
+| Thema | Entscheidung | Datum |
+|---|---|---|
+| Ort | Im Spiel als eigene Szene „Kartenwerkstatt“, erreichbar über einen Knopf im Hauptmenü (Grundsatz vom 19.10.2026 bestätigt): gleiche Darstellung, gleiche Regeln, gleiches Kartenformat, später für Spieler freigebbar. | 21.10.2026 |
+| Bedienung | Links der Katalog nach Art (Werkstattplätze, Wohnhausplätze, Sonderbauten, Kulissen, Umland, Natur), rechts die Eigenschaften des gewählten Stücks (Name, Drehung, Betrieb) und die Fehlerliste, oben Neu, Öffnen, Speichern, Prüfen, Rückgängig/Wiederholen. Kamera wie im Spiel, Tafeln im Stil der Spieloberfläche. | 21.10.2026 |
+| Setzen | 1-m-Raster, Drehung mit Q/E in 15°-Schritten, mit gehaltener Alt-Taste frei. Umriss grün = passt, rot = Fehler. | 21.10.2026 |
+| Prüfung | Live; fehlerhafte Stücke leuchten rot, rechts eine Fehlerliste (Klick springt hin). Speichern geht immer; „Karte ausprobieren“ (Schritt 3) nur ohne Fehler. Die Prüfungen wandern aus `tools/karten/` nach C# in den Kern. | 21.10.2026 |
+| Speicherort | Bis Schritt 4 öffnet der Editor Greybox und Köln nur lesend und speichert eigene Karten im Benutzerordner (wie Spielstände); so überschreibt er nie, was das Python-Werkzeug erzeugt. | 21.10.2026 |
+| Szene (Umsetzung) | `scenes/Kartenwerkstatt.tscn` mit `Kartenwerkstatt.cs` (Dateien, Tasten, Startoptionen), `Kartenwerkstatt.Tafeln.cs` (Leiste, Katalog, Eigenschaften, Fehlerliste, Rückfragen) und `Stadtansicht.Kartenwerkstatt.cs` (Stücke, Umriss, Auswahl, Ziehen). Startet mit der Greybox (nur lesen); Öffnen und Neu laden die Szene neu. | 21.10.2026 |
+| Werkstattplätze (Umsetzung) | Zeigen das Werkstattmodell des Schmieds (Stufe 1, ohne Hausfarbe), nicht den Bauplatz-Zaun: Alle Werkstätten haben die Normfläche 16 × 14 m, und ein Haus zeigt Höhe und Abstände besser. Wohnhausplätze zeigen Fachwerkhäuser (ein Doppelplatz zwei), Einwohnerplätze ein Einwohnerhaus (ab 8 m Breite Bürgerhaus), Kirche und Hafen einen grauen Block. | 21.10.2026 |
+| Tasten (Umsetzung) | Q/E drehen das Stück (15°, mit Alt 1°), die Kamera dreht mit Strg+Q/E oder Bild auf/ab. Entf löscht, Esc beendet Setzen bzw. Ziehen bzw. die Auswahl, Rechtsklick ohne Ziehen beendet das Setzen. Strg+Z, Strg+Y (auch Strg+Umschalt+Z), Strg+S. Ein Klick auf Rot setzt trotzdem – der Fehler steht dann in der Liste. | 21.10.2026 |
+| Hintergrund (Umsetzung) | Boden, Mauern, Wege und Natur zeichnet die Werkstatt einmal beim Öffnen; ein verschobenes Gebäude lässt Bäume und Wege, wo sie waren. | 21.10.2026 |

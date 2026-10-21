@@ -10,7 +10,7 @@ using Reichsgilde.Core.Zeit;
 namespace Reichsgilde;
 
 /// <summary>
-/// Das Hauptmenü: Neue Partie (mit Einstellungen), Partie laden, Beenden.
+/// Das Hauptmenü: Neue Partie (mit Einstellungen), Partie laden, Einstellungen, Kartenwerkstatt (Level-Editor), Beenden.
 /// Im Hintergrund steht die Stadt, die Kamera dreht sich langsam um sie herum.
 ///
 /// Wird das Spiel mit Startoptionen aufgerufen (z. B. „-- --tempo=8"), geht es ohne Menü direkt
@@ -59,10 +59,14 @@ public partial class Hauptmenue : Node
 
     public override void _Ready()
     {
-        if (OS.GetCmdlineUserArgs().Length > 0)
+        if (OS.GetCmdlineUserArgs().Length > 0 && !_startoptionenGenutzt)
         {
-            // Startoptionen → Test- oder Prüflauf: Menü überspringen.
-            CallDeferred(MethodName.SpielStarten);
+            // Startoptionen → Test- oder Prüflauf: Menü überspringen (nur beim ersten Mal – „Zurück zum Hauptmenü“ zeigt dann das Menü).
+            _startoptionenGenutzt = true;
+            if (OS.GetCmdlineUserArgs().Any(a => a.StartsWith("--kartenwerkstatt")))
+                Callable.From(() => GetTree().ChangeSceneToFile(Kartenwerkstatt.Szene)).CallDeferred();
+            else
+                CallDeferred(MethodName.SpielStarten);
             return;
         }
 
@@ -86,6 +90,9 @@ public partial class Hauptmenue : Node
 
     private void SpielStarten() => GetTree().ChangeSceneToFile(Spielszene);
 
+    /// <summary>Die Startoptionen haben das Menü schon einmal übersprungen.</summary>
+    private static bool _startoptionenGenutzt;
+
     private void Zeigen(PanelContainer tafel)
     {
         foreach (var t in new[] { _start, _neu, _laden, _einstellungen.Tafel })
@@ -106,6 +113,8 @@ public partial class Hauptmenue : Node
         Knopf(spalte, "Neue Partie", () => Zeigen(_neu));
         Knopf(spalte, "Partie laden", () => { _liste.Auffrischen(); _ladeFehler.Text = ""; Zeigen(_laden); });
         Knopf(spalte, "Einstellungen", () => { _einstellungen.Auffrischen(); Zeigen(_einstellungen.Tafel); });
+        Knopf(spalte, "Kartenwerkstatt", () => GetTree().ChangeSceneToFile(Kartenwerkstatt.Szene)).TooltipText =
+            "Karten bauen und prüfen: Gebäude setzen, verschieben, drehen – Greybox und Köln öffnen (nur lesen), eigene Karten speichern";
         Knopf(spalte, "Beenden", () => GetTree().Quit());
 
         Text(spalte, "Hobby- und Lernprojekt · Open Source (MIT) · Greybox-Grafik", 11, new Color(0.6f, 0.6f, 0.6f), zentriert: true);

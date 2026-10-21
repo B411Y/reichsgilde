@@ -326,7 +326,7 @@ public partial class Stadtansicht : Node3D
         // die Simulation erst nach diesem _Ready.
         Callable.From(() =>
         {
-            if (_simulation is not null) return;
+            if (_simulation is not null || _entwurf is not null) return; // Partie oder Kartenwerkstatt (Stadtansicht.Kartenwerkstatt.cs)
             KarteAufbauen(Stadtkarten.Greybox);
             WohnhaeuserPruefen();
         }).CallDeferred();
@@ -901,7 +901,8 @@ public partial class Stadtansicht : Node3D
             return; // feste Ansicht: im Raum wird nicht verschoben
         }
 
-        // Verschieben mit Tastatur
+        // Verschieben mit Tastatur – nicht beim Schreiben in ein Textfeld und nicht mit Strg (Strg+S speichert in der Kartenwerkstatt)
+        if (GetViewport().GuiGetFocusOwner() is LineEdit or TextEdit || Input.IsKeyPressed(Key.Ctrl)) return;
         var richtung = Vector2.Zero;
         if (Input.IsKeyPressed(Key.W) || Input.IsKeyPressed(Key.Up)) richtung.Y -= 1;
         if (Input.IsKeyPressed(Key.S) || Input.IsKeyPressed(Key.Down)) richtung.Y += 1;
@@ -936,7 +937,7 @@ public partial class Stadtansicht : Node3D
             RaumEingabe(eingabe);
             return;
         }
-        if (BauEingabe(eingabe)) // Baumodus: R dreht, Klick setzt (Stadtansicht.Bauen.cs)
+        if (BauEingabe(eingabe) || WerkstattEingabe(eingabe)) // Baumodus: R dreht, Klick setzt (Stadtansicht.Bauen.cs); Kartenwerkstatt (Stadtansicht.Kartenwerkstatt.cs)
         {
             GetViewport().SetInputAsHandled();
             return;
