@@ -20,6 +20,7 @@ So wird eingetragen (damit sich die Chats nie an derselben Stelle treffen):
 - Kartenwerkstatt: einzelne Pflanzen (`natur.pflanzen`) und Waldflächen fehlen im Katalog links (der Kern setzt nur Bausteine aus `gebaeude`) – kommt mit Schritt 2
 - Kartenwerkstatt: Das Schließen des Fensters (X) fragt noch nicht nach ungespeicherten Änderungen; nur „Zurück zum Hauptmenü“, Neu und Öffnen tun es
 - Kartenwerkstatt: In der Greybox ist jeder neue Werkstattplatz rot („Keine Gasse beginnt am Hof“, Werkstattnorm), bis Schritt 2 Wege zeichnen kann; ebenso ein Gebäude in einer Bauzone (2 m Abstand) – beides ist Absicht der Regeln, aber beim Ausprobieren überraschend
+- (von Kern) Köln: Die Bauzone M5 kreuzt sich selbst – die schließende Kante von (−82 | −30) zurück nach (−114 | −44) kreuzt bei (−112,4 | −43,3) die zweite Kante; die Kartenwerkstatt meldet es als Hinweis (PR #170). Im Werkzeug die Ecken ordnen
 
 ## Entscheidungen
 

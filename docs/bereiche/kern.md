@@ -228,6 +228,21 @@ So wird eingetragen (damit sich die Chats nie an derselben Stelle treffen):
 | Schreiben | `ZuJson()` schreibt im Zeilenformat des Werkzeugs (`json_kompakt`): Greybox und Köln öffnen und unverändert schreiben ergibt Byte für Byte dieselbe Datei. Neue Karten bekommen das Feld `groesse` [Breite, Tiefe] um den Ursprung (Format bleibt 2, der Kern liest es nicht). | 21.10.2026 |
 | Messung | Simulation unverändert (nur `Stadtkarte.Optionen` ist jetzt `internal`, damit der Entwurf dieselben Leseregeln nutzt). `messen 30 20 greybox` auf main `f04ee7a` + diesem Branch: Ausgabe zeichengleich mit main. | 21.10.2026 |
 
+### Kartenwerkstatt Schritt 2 (PR #170)
+
+| Thema | Entscheidung | Datum |
+|---|---|---|
+| Wegkurve | Neues Feld `kurve` am Weg: `"glatt"` = zentripetale Catmull-Rom-Kurve durch alle Stützpunkte, je Stück in gleich lange Teile von höchstens 1 m abgetastet (`Bauen/Wegkurve.cs`); fehlt es, bleibt der Weg gerade (Greybox und Köln unverändert, Rundreise Byte für Byte). `Kartenweg.Verlauf`/`Laenge` sind die Linie, mit der Bauwesen (`Abstand`), Prüfung und Darstellung rechnen. Im Spielstand steht `Kurve` nur, wenn gesetzt. | 21.10.2026 |
+| Wegklassen und Breiten | Neu `feldweg` (trägt Karren) und `fussweg`. Mindestbreite: Land/Haupt/Wall 4 m, Ring und Feldweg 3, Gasse 2, Leinpfad und Fußweg 1,5 – statt der vorgeschlagenen 6/4/3/1,5, weil die Greybox sonst Fehler hätte (Landstraßen 4 m, Fußwege als Gasse 2 m). Standardbreite wie bisher die Stadtansicht, Feldweg 3, Fußweg 2. | 21.10.2026 |
+| Entwurf | Wege, Bauzonen, Naturflächen und Pflanzen sind `EntwurfTeil`e (veränderbar nur über Befehle, das Objekt bleibt dasselbe). Jeder merkt sich seinen Eintrag der Datei: Felder bleiben an ihrer Stelle, unbekannte bleiben erhalten, eine fehlende `natur` kommt hinter `bauzonen`. Alle Befehle bestehen aus Setzen, Löschen, Ändern (Werte vorher/nachher) und dem Sammelbefehl. | 21.10.2026 |
+| Einrasten | Fangradius 2 m; ein Stützpunkt geht vor der Linie. Rastet ein Wegende auf der Linie eines anderen ein, bekommt der andere dort im selben Schritt einen Stützpunkt (auf 5 cm gerundet, beide Wege haben denselben Punkt). Nur Anfang und Ende rasten ein (beim Anlegen und beim Verschieben). | 21.10.2026 |
+| Ereignis | `Geaendert` kommt erst, nachdem die Geschichte den Schritt eingetragen hat (Rückmeldung der Spielseite); ein Befehl mit mehreren Teilen meldet je Teil eine Änderung. `Kartenaenderung.Gebaeude` ist jetzt nullbar. | 21.10.2026 |
+| Kennungen | `KennungVon` fasst mehrere Trenner zu einem „_“ zusammen („Bürgerhaus (Kulisse)“ → „Buergerhaus_Kulisse“). Bestehende Kennungen schreibt die Werkstatt nie neu; in Greybox und Köln kommt „__“ nicht vor. | 21.10.2026 |
+| Natur-Verteilung | `NaturVerteilung` und `Naturfreiraum` im Kern (`Bauen/NaturVerteilung.cs`) mit derselben Reihenfolge der Würfe wie `Stadtansicht.Natur.cs` (System.Random mit dem Startwert, Inhalt auf etwa 20.000 Rasterpunkten); Drehung in Grad statt Bogenmaß. Die Modellmaße der Umlandbetriebe kennt nur die Darstellung: Sie gibt sie als `modellmass` mit, ohne sie zählt die Katalogfläche. Der Inhalt wird zeilenweise gezählt (gleiches Ergebnis wie das Strahlverfahren je Punkt): Tannenwald der Greybox neu streuen 2,6 ms, ganze Natur 12 ms. | 21.10.2026 |
+| Pinsel | Pflanzen in einem Band um den Strich, Dichte je 1.000 m² des Bandes (mindestens eine), Mindestabstand 0,6 × √(1.000 / Dichte) m auch zu schon gesetzten Pflanzen, frei wie die Natur; ohne Startwert einer aus dem ersten Punkt und der Zahl der Pflanzen. Gespeichert werden die Pflanzen mit fester Variante, Drehung auf 0,1°, Maßstab auf 0,01. | 21.10.2026 |
+| Prüfung | Neue Regeln `weg-punkte`, `weg-breite`, `kurve-ueber-haus` (nur glatte Wege; gerade prüfen die bisherigen Regeln), `zone-form`, `zone-kennung` (Fehler), `flaeche-kreuzt` und `pflanze-frei` (Hinweise). Befunde nennen betroffene Wege, Flächen und Pflanzen (`Befund.Andere`). Das Wegenetz vergleicht Wege statt einzelner Strecken (glatte Kurven haben viele). Greybox: 0 Fehler, dieselben 7 Hinweise; Köln: 0 Fehler. | 21.10.2026 |
+| Messung | `messen 30 20 greybox` auf main `b58a1d5` + diesem Branch: Ausgabe zeichengleich mit main (Bauwesen rechnet auf dem Verlauf, die Greybox-Wege sind gerade). | 21.10.2026 |
+
 ## Messungen
 
 Messungen des Kerns stehen in `docs/WIRTSCHAFTSMODELL.md` (nur der Kern schreibt dort).
