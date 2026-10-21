@@ -20,6 +20,8 @@ So wird eingetragen (damit sich die Chats nie an derselben Stelle treffen):
 - (–) Einrichtung für die anderen Berufe (Tischler, Steinmetz, Alchimist, Parfumeur, Wirt, Prediger) – bisher nur der Schmied hat Stücke; Schürzen und Löschfass fehlen dort also noch (PR #152)
 - (–) Unfälle und Laune im Umland (Grube, Steinbruch …) und in Betrieben ohne Ware – bisher nur in Werkstätten mit Ware (PR #152)
 - (Nutzer) Ohne Karte (`messen 30 20`, Köln) baut die KI nicht, und seit Datenversion 40 gibt es dort keine Werkstatt mehr zu kaufen außer verkauften oder denen untergegangener Häuser: Vermögen der KI-Häuser −9 bis −20 % (PR #162). Das Spiel startet immer mit der Greybox, deshalb keine Änderung; sollte eine Stadt ohne Bauzonen je gespielt werden, braucht es eine Entscheidung (z. B. Werkstätten dort wieder unter `liegenschaften` oder Bauen auch ohne Karte)
+- Umlandmodelle sind größer als ihre Fläche im Katalog (Grube, Holzschlag, Steinbruch, Klosterhof 22 × 18 statt 16 × 14 bzw. 18 × 16; Gärten 20 × 16 statt 16 × 14; Bauernhof 26 × 20 statt 20 × 16; Wachturm 12 × 12 statt 4 × 4). Entweder die Modelle schrumpfen oder die Bauzonen rücken ab und der Katalog nimmt die Modellmaße – dann neu messen (PR #163)
+- Köln hat noch keine Startbelegung (`start`) und keine Umlandbetriebe als Gebäude; bis dahin gilt dort der Ersatz ohne Plätze (PR #163)
 
 ## Entscheidungen
 
@@ -185,6 +187,16 @@ So wird eingetragen (damit sich die Chats nie an derselben Stelle treffen):
 | Liegenschaften | Die 10 Werkstätten zum Kauf in der Stadt (Gießerei an der Südgasse, Tischlerei am Holzmarkt, Maurerei an der Stadtmauer, Tinkturei am Domplatz, Siederei an der Seifengasse, Schänke am Fischmarkt, Kirche an der Westmauer, Wachhaus an der Torstraße, Schmugglerloch am Osttor, Wechselstube am Markt) werden aus `liegenschaften` gestrichen. Die 9 im Umland bleiben (Rohstoffe). Neue Werkstätten gibt es weiter über „Bauen“. Entschieden vom Nutzer. | 20.10.2026 |
 | Datenversion 40 | Liegenschaften gestrichen; der Preis der Stufe 1 (Neubau, Wert beim Verkauf) steht nun als `kaufpreis` an der Betriebsart (3.500, Schmugglerloch 3.000), gleiche Werte wie vorher. Alte Spielstände bringen ihre Daten mit und behalten die früheren Werkstätten. Messung (main `3086bda` + PR #162, ausgewogen, Ø Vermögen): Greybox Eisenbart 161.916 → 156.555, Eichwald 96.186 → 111.613, Kieselbach 144.285 → 148.035 (die KI baut 57 Werkstätten neu statt 45 zu kaufen); ohne Karte −9 bis −20 %, weil dort nicht gebaut wird. Keine Änderung an der KI (siehe `docs/WIRTSCHAFTSMODELL.md`). | 20.10.2026 |
 | Kernzonen K1–K3 | Messung mit den neuen Kernzonen (main `3086bda` + Funktions-Branch `4c08c0e`, greybox, ausgewogen): Eisenbart 156.891, Eichwald 100.413, Kieselbach 149.875 – im Mittel +1 % gegen vorher (main). Stadthöfe neu gebaut 60 statt 56, am Ende Freiherr 59 / Edler 1 statt Freiherr 48 / Edler 11 / Reichsgraf 1. Keine Änderung an der KI. GreyboxTests: 11 Bauzonen, Probeplan 21 (8 Werkstätten), Stadthof am Mauerring oder in Kernlage. | 21.10.2026 |
+
+### Kartenformat 2 und Gebäudekatalog: Kern (PR #163)
+
+| Thema | Entscheidung | Datum |
+|---|---|---|
+| Leser | Der Kern liest nur Format 2 (`Stadtkarte`) und den Katalog (`Gebaeudekatalog`, `game/data/katalog.json`); Format 1 nicht mehr. Greybox und Köln wurden einmalig umgestellt, danach schreibt sie das Kartenwerkzeug. Der Katalog liegt mit der Karte im Spielstand. | 21.10.2026 |
+| Belegte Fläche | Jedes Gebäude mit Größe belegt seine Fläche fürs Bauen, schräg gedreht das umschließende Rechteck. Umlandbetriebe belegen wie bisher die Fläche aus LEVELDESIGN „Gebäudegrößen“ (Grube 16 × 14 …), nicht die größeren Modellmaße (22 × 18 …) – sonst überdecken Holzschlag und Steinbruch Stellen des Probeplans, und die Messung ändert sich. | 21.10.2026 |
+| Start | `Partieaufbau` nimmt die KI-Häuser aus `start` der Karte (Name, Volk, Geschlecht, Wappen, Wohnhaus, Startbetriebe auf Plätzen; Produkt optional); der Name eines Betriebs steht am Platz (`betrieb`). Gesellen und Umlandkräfte bleiben Regel des Kerns (2 bzw. 3, Orks nach Statut). Ohne Karte gilt `Startbelegung.Ersatz` mit den bisherigen drei Häusern. Die Aufrufreihenfolge bleibt (erstes KI-Konto vor der Familie des Spielers), damit die Zufallszahlen gleich bleiben. Ein Haus, dessen Betriebsart die Daten nicht kennen, spielt nicht mit. | 21.10.2026 |
+| Alte Spielstände | Karte in Format 1 im Spielstand → Kartendatei derselben `kennung` (andere Kennung: Fehlermeldung). Werkstätten in der Stadt ohne Platz bekommen beim Laden ein Grundstück an der ersten freien Stelle der Bauzonen (fertig gebaut, gespeichert wie ein Neubau, also beim nächsten Laden derselbe Platz); freie Werkstätten zum Kauf ohne Platz (Daten vor Version 40) sind nicht mehr zu haben. | 21.10.2026 |
+| Messung | `messen 30 20 greybox` auf main `ac32342` + diesem Branch: Ausgabe zeichengleich mit main (Eisenbart Ø 156.891, Eichwald 100.413, Kieselbach 149.875). | 21.10.2026 |
 
 ## Messungen
 
