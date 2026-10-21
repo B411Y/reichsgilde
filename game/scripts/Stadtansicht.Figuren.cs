@@ -66,13 +66,14 @@ public partial class Stadtansicht
 
     /// <summary>
     /// Welche Teile der Figur zu welcher Bewegung der Werkstatt gehören (eines oder mehrere): Hammer beim Hämmern, Hobel beim Hobeln, Säge beim Sägen,
-    /// Drechseleisen beim Drechseln, Schlägel und Meißel beim Behauen und Bildhauen, Stößel beim Mörsern, Kelle beim Rühren, Flakon beim Mischen (Destillieren, Pressen und der Blasebalg brauchen keins). Ein Arbeitsplatz im Innenraum kann sie mit seinen extras „requisit“ ersetzen.
+    /// Drechseleisen beim Drechseln, Schlägel und Meißel beim Behauen und Bildhauen, Stößel beim Mörsern, Kelle beim Rühren, Flakon beim Mischen, Krug beim Zapfen und Trinken, Laute beim Spielen (Destillieren, Pressen und der Blasebalg brauchen keins). Ein Arbeitsplatz im Innenraum kann sie mit seinen extras „requisit“ ersetzen.
     /// </summary>
     private static readonly Dictionary<string, string[]> WerkstattWerkzeug = new()
     {
         ["Haemmern"] = new[] { "Hammer" }, ["Hobeln"] = new[] { "Hobel" }, ["Saegen"] = new[] { "Saege" }, ["Drechseln"] = new[] { "Drechseleisen" },
         ["Behauen"] = new[] { "Schlaegel", "Meissel" }, ["Bildhauen"] = new[] { "Schlaegel", "Meissel" },
         ["Moersern"] = new[] { "Stoessel" }, ["Ruehren"] = new[] { "Kelle" }, ["Mischen"] = new[] { "Flakon" },
+        ["Zapfen"] = new[] { "Krug" }, ["Trinken"] = new[] { "Krug" }, ["Laute"] = new[] { "Laute" },
     };
 
     /// <summary>Namen aller Werkzeugteile der Figuren (die übrigen Teile, die kein Kleid und keine Last sind, werden gelöscht).</summary>

@@ -1297,6 +1297,13 @@ public partial class Stadtansicht
         "Fechterduft" => new Color(0.28f, 0.45f, 0.68f),       // Stahlblau
         "Heiligenduft" => new Color(0.93f, 0.88f, 0.68f),      // helles Elfenbein mit Gold
         "Schattendolch" => new Color(0.24f, 0.14f, 0.36f),     // tiefes Violettschwarz
+        "Weingeist" => new Color(0.80f, 0.88f, 0.90f),         // klar, ein Hauch Blau
+        "Körnermahlzeit" => new Color(0.74f, 0.58f, 0.28f),    // Brei-Ocker
+        "Dünnbier" => new Color(0.90f, 0.76f, 0.34f),          // helles Gold
+        "Starkbier" => new Color(0.62f, 0.34f, 0.10f),         // Bernstein
+        "Kräuterlikör" => new Color(0.32f, 0.58f, 0.22f),      // Grün
+        "Festbier" => new Color(0.78f, 0.40f, 0.12f),          // Rotgold
+        "Schädelbrand" => new Color(0.44f, 0.20f, 0.14f),      // trübes Rotbraun
         _ => Streufarbe(ware),
     };
 
