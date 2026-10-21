@@ -80,6 +80,7 @@ NAME = "wirt_innen"
 STUFEN = ("Schänke", "Wirtshaus", "Gasthaus")
 
 bs.FARBEN.update({
+    "Schankrot": (0.45, 0.10, 0.14),       # weinrote Akzente wie außen (wirt.py), hier matt gemalt
     "Kranzgruen": (0.22, 0.38, 0.17),       # Schankzeichen: Kranz aus Tannengrün
     "Kranzgruen dunkel": (0.14, 0.27, 0.12),
     "Schildocker": (0.78, 0.58, 0.24),      # Wirtshausschild
@@ -296,7 +297,7 @@ def theke(netz, st):
         u0 = x0 + (x1 - x0) * k / n + 0.07
         u1 = x0 + (x1 - x0) * (k + 1) / n - 0.07
         netz.vieleck_nach([(u0, y0 - 0.002, 0.24), (u1, y0 - 0.002, 0.24), (u1, y0 - 0.002, h - 0.2), (u0, y0 - 0.002, h - 0.2)],
-                          (0, -1, 0), st["Weinrot"])
+                          (0, -1, 0), st["Schankrot"])
         netz.quader(((u0 + u1) / 2, y0 - 0.008, h - 0.17), (u1 - u0 + 0.06, 0.012, 0.04), st["Fachwerk"], ohne=("+y",))
         netz.quader(((u0 + u1) / 2, y0 - 0.008, 0.21), (u1 - u0 + 0.06, 0.012, 0.04), st["Fachwerk"], ohne=("+y",))
     netz.quader(((x0 + x1) / 2 - 0.03, y1 - 0.05, 0.5), (x1 - x0 - 0.06, 0.3, 0.03), st["Holz alt"])        # Bord darunter
@@ -408,7 +409,7 @@ def fasslager_hinten(netz, st):
             x += 0.15
     # Wirtshausschild
     si.q(netz, st, M, (0, 0.03, 2.5), (1.1, 0.06, 0.5), "Schildocker", ohne=("-y",))
-    si.q(netz, st, M, (0, 0.045, 2.5), (1.18, 0.03, 0.58), "Weinrot", ohne=("-y", "+y"))
+    si.q(netz, st, M, (0, 0.045, 2.5), (1.18, 0.03, 0.58), "Schankrot", ohne=("-y", "+y"))
     n = M.to_3x3() @ Vector((0, 1, 0))
     umriss = [(-0.12, 2.32), (0.1, 2.32), (0.13, 2.36), (0.13, 2.62), (0.15, 2.66), (-0.14, 2.66), (-0.12, 2.62)]
     netz.vieleck_nach([M @ Vector((x, 0.062, z)) for x, z in umriss], n, st["Holz alt"])               # Bierkrug
@@ -440,7 +441,7 @@ def kranz(netz, st, mitte):
         netz.stab(p, mitte + Vector((0, 0, H_WERK - 0.26 - mitte.z)), 0.012, 0.012, st["Seil"])
         q = Vector((-math.sin(w), math.cos(w), 0))
         netz.vieleck_nach([p - q * 0.03, p + q * 0.03, p + q * 0.02 - Vector((0, 0, 0.32)), p - q * 0.04 - Vector((0, 0, 0.28))],
-                          Vector((math.cos(w), math.sin(w), 0)), st["Weinrot"])
+                          Vector((math.cos(w), math.sin(w), 0)), st["Schankrot"])
     netz.alle = alle
 
 
@@ -531,7 +532,7 @@ def wuerfeltisch(st, anker):
         netz.quader((0, 0, 0), (0.022, 0.022, 0.022), st["Wuerfel"], Matrix.Translation(p) @ Matrix.Rotation(zufall.uniform(0, 1.5), 4, "Z"))
     for k in range(6):
         scheibe(netz, st, m + Vector((zufall.uniform(-0.25, 0.25), zufall.uniform(0.05, 0.3), 0)), 0.013, 0.782 + 0.003 * (k % 2),
-                "Gold" if k % 3 else "Zinn", n=6)
+                "Messing" if k % 3 else "Zinn", n=6)
     kerze = m + Vector((-0.18, 0.18, 0.78))
     drehkoerper(netz, st, kerze, [(0.0, 0.035), (0.03, 0.03), (0.03, 0.015), (0.12, 0.015)], "Kerze", n=6)
     drehkoerper(netz, st, kerze + Vector((0, 0, 0.12)), [(0.0, 0.0), (0.01, 0.01), (0.04, 0.0)], "Glut", n=5)
@@ -627,7 +628,7 @@ def braukessel(netz, st, anker):
     profil = [(0.6, 0.5), (0.95, 0.47), (0.98, 0.5), (0.98, 0.46)]                        # Kupferkessel mit Wulst
     drehkoerper(netz, st, k, profil, "Kupferblech", n=16)
     drehkoerper(netz, st, k, [(0.8, 0.455), (0.98, 0.46)], "Kupferblech", n=16, innen=True)
-    scheibe(netz, st, k, 0.455, 0.8, "Kupfer", n=16)
+    scheibe(netz, st, k, 0.455, 0.8, "Kupferblech", n=16)
     # Feuerloch nach −x mit Glut
     for z0, z1, w in ((0.0, 0.32, 0.18),):
         tuer = [k + Vector((-0.605, -w, z0 + 0.06)), k + Vector((-0.605, w, z0 + 0.06)), k + Vector((-0.605, w, z1)),
@@ -755,7 +756,7 @@ def vorraete(netz, st):
             for j in range(7):
                 p = Vector((x + 0.03 * (j % 2) - 0.015, y + 0.02 * ((j + 1) % 2), 2.5 - 0.07 * j))
                 drehkoerper(netz, st, p - Vector((0, 0, 0.04)), [(0.0, 0.01), (0.03, 0.038), (0.06, 0.02), (0.08, 0.0)], "Zwiebel", n=6)
-            netz.stab((x, y, 2.55), (x, y, 2.04), 0.03, 0.02, st["Stroh"])
+            netz.stab((x, y, 2.55), (x, y, 2.04), 0.03, 0.02, st["Heu"])
     netz.alle = alle
 
 
