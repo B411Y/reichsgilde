@@ -13,12 +13,12 @@ Inhalt je Datei (Blender: Z oben, Blick nach -Y; im Spiel Y oben, Blick nach +Z)
     Koerper_Frau    Kleid bis über die Knöchel, Zopf
     Trachtteile     Strohhut, Barett, Kapuze, Haube, Schleier, Schuerze, Kiepe, Buendel, Tasche, Stab, Hacke, Hammer,
                     Hobel, Saege, Drechseleisen, Schlaegel, Meissel, Stoessel, Kelle, Flakon, Krug, Laute, Feder, Sieb,
-                    Dochtstab
+                    Dochtstab, Dietrich, Muenzbeutel
                     – standardmäßig aus, das Spiel blendet sie je Rolle ein (wie heute `TrachtVon`; das Werkzeug bei der
                     passenden Bewegung: Hammer beim Hämmern, Hobel beim Hobeln, Säge beim Sägen, Drechseleisen beim Drechseln,
                     Schlägel und Meißel beim Behauen und Bildhauen, Stößel beim Mörsern, Kelle beim Rühren, Flakon beim
                     Mischen, Krug beim Zapfen und Trinken, Laute bei „Laute“, Dochtstab beim Kerzenziehen, Sieb beim
-                    Schöpfen, Feder beim Schreiben)
+                    Schöpfen, Feder beim Schreiben, Dietrich beim Knacken, Muenzbeutel beim Zählen)
     Bewegungen      Stehen, Gehen, Eilen, Gebeugt, Tragen, Sitzen, Reden, Hacken, Buecken, Hueten,
                     Ziehen (Handkarren), Kutschieren (auf dem Bock),
                     Haemmern, Blasebalg, Schleifen (stehend), Feinarbeit (sitzend) – Arbeit in der Schmiede,
@@ -40,12 +40,15 @@ Inhalt je Datei (Blender: Z oben, Blick nach -Y; im Spiel Y oben, Blick nach +Z)
                     abtropfen lassen), Schreiben (sitzend am Pult: eine Zeile mit der Feder, die Feder ins Tintenhorn) – Arbeit
                     beim Prediger, Predigen (auf der Kanzel: die Hände auf der Brüstung, die Rechte weist nach oben, beide Arme
                     öffnen sich zur Gemeinde), Beten (sitzend, die Hände gefaltet) und Knien (kniend, die Hände gefaltet; am
-                    Beichtstuhl) – für Prediger und Gläubige
+                    Beichtstuhl) – für Prediger und Gläubige,
+                    Knacken (den Dietrich ins Schloss am Übungsbrett führen, stochern und horchen, die Linke flach auf dem
+                    Brett), Zaehlen (sitzend: Münzen vom Haufen in den offenen Beutel in der Linken), Schlafen (auf dem Rücken
+                    liegend, ruhig atmend; die Wurzel kippt um −90°) – für die Diebe
                     – jede eine Schleife am Ort (ohne Vorwärtsbewegung; das Spiel schiebt die Figur)
                     Die Werkstatt-Bewegungen zielen mit den Händen (beim Drechseln auch mit dem rechten Fuß) auf feste
                     Höhen (ARBEITSHOEHEN, PEDAL, VORLAGE, MISCHGLAS, PRESSE, ZAPFHAHN, KRUG_TISCH, KERZEN, BUETTE, SCHREIBEN,
-                    KANZEL – wie in schmied_innen.glb, tischler_innen.glb, steinmetz_innen.glb, alchimist_innen.glb,
-                    parfumeur_innen.glb, wirt_innen.glb und prediger_innen.glb):
+                    KANZEL, KNACKEN, ZAEHLEN – wie in schmied_innen.glb, tischler_innen.glb, steinmetz_innen.glb,
+                    alchimist_innen.glb, parfumeur_innen.glb, wirt_innen.glb, prediger_innen.glb und dieb_innen.glb):
                     Jedes Volk erreicht sie
                     mit eigenen Arm- und Beinwinkeln (`arm_ik`, `arm_ziel`, `bein_ik`).
 Material: alle Teile (Körper, Trachtteile, Werkzeug) tragen nur ein Material „Figur“ – eine Figur ist so ein
@@ -2014,9 +2017,10 @@ def _knacken_rumpf(p):
 
 
 def knacken(phase, p):
-    """Knacken (4 s, stehend am Übungsbrett): den Dietrich ins Schloss führen (0–0,1), stochern und horchen – der Kopf dreht das
-    rechte Ohr zum Brett (bis 0,7) –, das Schloss springt: ein kurzer Ruck (bis 0,78), den Dietrich herausziehen (bis 0,9), kurz
-    ansehen, wieder ansetzen. Die Linke liegt flach auf dem Brett. Gibt (Winkel in Grad, Hüfte)."""
+    """Knacken (4 s, stehend am Übungsbrett): den Dietrich ins Schloss führen (0–0,1), stochern und horchen – kleine Bewegungen der
+    Hand, der Unterarm dreht ein wenig hin und her, der Kopf dreht das rechte Ohr zum Brett (bis 0,7) –, das Schloss springt: den
+    Dietrich drehen (bis 0,78), herausziehen (bis 0,9), kurz ansehen, wieder ansetzen. Die Linke liegt flach auf dem Brett. Gibt
+    (Winkel in Grad, Hüfte)."""
     s, v, h = KNACKEN["schloss"]
     ein = Vector((s - 0.005, v + KNACKEN["tief"] - KNACKEN["dietrich"], h - 0.012))
     aus = ein + Vector((0.01, -0.08, -0.03))
@@ -2030,16 +2034,20 @@ def knacken(phase, p):
         t = 1.0
     rechts = ein.lerp(aus, t)
     horchen = weich((phase - 0.08) / 0.12) * (1 - weich((phase - 0.72) / 0.12))
+    rolle = 0.0
     if 0.12 < phase < 0.7:                                                         # stochern: kleine, schnelle Bewegungen
         u = (phase - 0.12) / 0.58
         rechts += Vector((0.002 * math.sin(14 * math.pi * u), 0.0, 0.004 * math.sin(22 * math.pi * u)))
-    elif 0.7 <= phase < 0.78:                                                      # das Schloss springt: kurzer Ruck nach oben
-        rechts += Vector((0.0, 0.0, 0.01 * math.sin(math.pi * (phase - 0.7) / 0.08)))
+        rolle = 6 * math.sin(10 * math.pi * u)
+    elif 0.7 <= phase < 0.78:                                                      # das Schloss springt: den Dietrich drehen
+        rechts += Vector((0.0, 0.0, 0.006 * math.sin(math.pi * (phase - 0.7) / 0.08)))
+        rolle = 28 * math.sin(math.pi * (phase - 0.7) / 0.08)
     lehne, hoch = _knacken_rumpf(p)
     lehne += 3 * horchen
     r = {"Ruecken": (lehne, 4 + 4 * horchen, 0),
          "Kopf": (10 - 0.5 * lehne + 6 * horchen + 2 * math.sin(2 * math.pi * phase), 32 * horchen, 14 * horchen)}
-    r["Oberarm_R"], r["Unterarm_R"] = arm_genau(p, r, hoch, "R", tuple(rechts))
+    r["Oberarm_R"], unter = arm_genau(p, r, hoch, "R", tuple(rechts))
+    r["Unterarm_R"] = _rolle(unter, rolle) if rolle else unter
     links = Vector(KNACKEN["hand_l"]) + Vector((0, 0, 0.004 * math.sin(2 * math.pi * phase)))
     r["Oberarm_L"], r["Unterarm_L"] = arm_genau(p, r, hoch, "L", tuple(links))
     for seite, vor, z in (("L", 0.08, 5), ("R", -0.05, -5)):
@@ -2553,7 +2561,7 @@ def arbeitsplatz(name, ort, st, p, phase=0.0):
             netz.quader(ort + Vector((-0.6, dy, (sitz + hh - 0.06) / 2)), (0.6, 0.06, sitz + hh - 0.06), holz)
         bs.achteck(netz, st, ort + Vector((-hv, -hs, sitz + hh)), 0.07, 0.0, 0.03, "Gold")
     elif name == "Schlafen":                                            # Strohsack unter dem Körper
-        netz.quader(ort + Vector((-0.05, 0, -0.06)), (2.0, 0.8, 0.12), st["Heu"])
+        netz.quader(ort + Vector((-0.05, 0, -0.06)), (2.0, 0.8, 0.12), st["Leinen"])
     return netz.objekt() if netz.dreiecke() else None
 
 

@@ -689,6 +689,31 @@ def faelscherpult(netz, st, M):
     drehkoerper(netz, st, M @ Vector((0.1, 0.85, 0)), [(0.0, 0.16), (0.4, 0.14), (0.4, 0.17), (0.45, 0.17)], "Holz alt", n=8)
 
 
+def stube_kram(netz, st):
+    """Was in der Stube sonst herumliegt: an Haken neben dem Pult zwei dunkle Umhänge und ein Hut, in der Ecke rechts der Haustür
+    ein Fass, Säcke und ein gestohlener Kerzenleuchter, auf dem Boden ein umgekippter Becher und ein Napf."""
+    M = si.rahmen(-2.35, WY0, 0)                                           # Haken mit Umhängen
+    si.q(netz, st, M, (0, 0.03, 1.78), (0.8, 0.05, 0.08), "Fachwerk", ohne=("-y",))
+    for k, x in enumerate((-0.25, 0.22)):
+        netz.stab(M @ Vector((x, 0.03, 1.76)), M @ Vector((x, 0.13, 1.79)), 0.025, 0.025, st["Holz"])
+        flach(netz, st, [(-0.2, 1.78), (0.2, 1.78), (0.28, 1.2), (0.22, 0.7 + 0.1 * k), (-0.24, 0.66 + 0.1 * k), (-0.3, 1.2)],
+              M @ Matrix.Translation((x, 0.1, 0)) @ Matrix.Rotation(0.08 * (k * 2 - 1), 4, "Y"), 0.04,
+              ("Lappen dunkel", "Gildenblau dunkel")[k])
+        drehkoerper(netz, st, M @ Vector((x, 0.13, 1.8)), [(0.0, 0.07), (0.1, 0.06), (0.14, 0.0)], ("Lappen dunkel", "Gildenblau dunkel")[k], n=6)
+    drehkoerper(netz, st, M @ Vector((0.0, 0.16, 1.82)), [(0.0, 0.16), (0.012, 0.16), (0.012, 0.08), (0.1, 0.07), (0.11, 0.0)],
+                "Hutfilz", n=10)
+    ecke = Vector((4.35, -3.0, 0))                                         # Fass, Säcke, Kerzenleuchter in der Ecke
+    bs.fass(netz, st, ecke, r=0.28, h=0.8, reifen=(0.12, 0.6))
+    bs.rund_oben(netz, st, ecke, 0.26, 0.801, "Holz alt")
+    for k, (dx, dy) in enumerate(((-0.6, 0.05), (-0.25, 0.42))):
+        drehkoerper(netz, st, ecke + Vector((dx, dy, 0)), [(0.0, 0.2), (0.22, 0.25), (0.45, 0.2), (0.55, 0.09), (0.62, 0.05)], "Sack", n=8)
+    leuchter = ecke + Vector((0.0, 0.0, 0.8))
+    drehkoerper(netz, st, leuchter, [(0.0, 0.07), (0.02, 0.06), (0.04, 0.018), (0.34, 0.015), (0.36, 0.04), (0.39, 0.04)], "Messing", n=8)
+    scheibe(netz, st, (0.9, 1.9), 0.066, 0.03, "Wasser", n=8)                                              # Napf
+    drehkoerper(netz, st, Vector((0.9, 1.9, 0)), [(0.0, 0.08), (0.04, 0.09), (0.04, 0.07), (0.005, 0.06)], "Holz alt", n=8)
+    netz.stab((-0.55, -1.0, 0.04), (-0.43, -0.92, 0.05), 0.08, 0.08, st["Krugton"])                         # umgekippter Becher
+
+
 def verbrettert(netz, st):
     """Stufe 1 und 2: Die Öffnung zur Gildenhalle ist mit Brettern vernagelt – dunkle Rückseite, senkrechte Bretter, zwei quer."""
     o = Oe(GILDENTUER_X, 0.0, TUER_B, TUER_H)
@@ -1198,6 +1223,7 @@ def bauen():
     werkzeug_dieb(teil("Einrichtung_Werkzeug2"), st, M_wz, 2)
     si.q(werk, st, M_wz, (0.42, 0.18, 1.0), (0.8, 0.36, 0.03), "Holz alt")       # Brett unter der Werkzeugwand
     verkleidungstruhe(teil("Einrichtung_Verkleidung"), st, si.rahmen(0.45, WY1, 180))
+    stube_kram(werk, st)
     si.loeschfass(teil("Einrichtung_Loeschfass"), st, Vector((-4.55, 1.55, 0)))
     wi.handschuhe(teil("Einrichtung_Handschuhe"), st, si.rahmen(-0.45, WY0, 0))
     with wirtskeller():
