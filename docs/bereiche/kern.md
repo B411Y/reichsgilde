@@ -216,6 +216,13 @@ So wird eingetragen (damit sich die Chats nie an derselben Stelle treffen):
 | Daten | `werkstatt.einrichtung.Wirt` mit den Kennungen `Werkzeug1`, `Werkzeug2`, `Braupfanne` (Name „Kupferne Braupfanne“, 350 Gulden, −10 % Zeit für Dünnbier, Starkbier, Festbier), `Regale` (Name „Fassregale“), `Loeschfass`, `Eisentuer`, `Handschuhe` (Name „Lederhandschuhe“, 80 Gulden) – wie die Knoten `Einrichtung_<Kennung>` im Raummodell. Gilt für Schänke, Wirtshaus und Gasthaus, nicht für den Bauernhof (keine Werkstatt). **Datenversion 42.** Messung zeichengleich (WIRTSCHAFTSMODELL). | 21.10.2026 |
 | Gästeabfrage | In `Reichsgilde.Core.Wirtschaft.Gastwirtschaft` (über `Stadtwirtschaft.Gastwirtschaft`), nur lesend, ohne Zufall, zur aktuellen Uhrzeit (`Stadtwirtschaft.Uhr`): `int GaesteJetzt(Betrieb b, int hoechstens = SitzplaetzeImRaum)` (`SitzplaetzeImRaum` = 12), `bool BardeSpielt(Betrieb b)`, `bool WuerfeltischBesetzt(Betrieb b)`, `bool StammtischBesetzt(Betrieb b)`. **Formel:** Ein Gast bleibt etwa eine Stunde, also sitzen so viele, wie in dieser Stunde kommen: `ErwarteteGaeste(b) × Gewicht(Stunde) ÷ ΣGewicht` (Gewicht 0 vor 12 Uhr, 1 nachmittags, 2 ab 18 Uhr; ΣGewicht = 14), abends mit gebuchtem Barden × 1,5; gerundet, mindestens 1, höchstens `hoechstens`. 0, wenn geschlossen, ohne Arbeiter, das Haus nicht mehr spielt oder keine Ausschankware im Lager ist. Beispiel: eine Schänke allein in der Stadt 9 Gäste mittags, 17 abends (gedeckelt 12). Barde spielt: gebucht, ab 18 Uhr, Schänke besetzt. Würfeltisch besetzt: aufgestellt (ab Stufe 2) und mindestens 2 Gäste. Stammtisch besetzt: ab Stufe 3, ab 18 Uhr, wenn ausgeschenkt wird. | 21.10.2026 |
 
+### Einrichtung und Gläubige des Predigers (PR #167)
+
+| Thema | Entscheidung | Datum |
+|---|---|---|
+| Stücke | Der Prediger bekommt erstmals Einrichtung wie die anderen Werkstätten, eigenes Stück: Gänsekiele und Lapislazuli (−10 % Zeit für Lehrschrift, Psalter, Stundenbuch). Dazu Gutes Werkzeug, Meisterwerkzeug (ab Stufe 2, braucht Gutes Werkzeug), Regale (60 statt 40 je Ware), Löschfass, Eisentür, Lederhandschuhe. Gleiche Preise. | 21.10.2026 |
+| Gläubige im Raum | Die Darstellung zeigt Gläubige nach Tageszeit (Messe um 10 Uhr voll, sonst wenige Betende, ab und zu eine Beichte, Predigt auf der Kanzel während der Messe); der Kern liefert dafür eine öffentliche, nur lesende Abfrage aus dem bestehenden Kirchenwesen (`kirche`), ohne dessen Werte zu ändern. | 21.10.2026 |
+
 ## Messungen
 
 Messungen des Kerns stehen in `docs/WIRTSCHAFTSMODELL.md` (nur der Kern schreibt dort).
