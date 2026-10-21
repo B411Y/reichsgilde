@@ -65,10 +65,18 @@ public partial class Kartenwerkstatt : Node
         _entwurf.Geaendert += a =>
         {
             AuffrischenVormerken();
-            if (a.Gebaeude.Kennung == _stadt.WerkstattAuswahl) EigenschaftenZeigen(neu: false);
+            if (ReferenceEquals(a.Objekt, _stadt.WerkstattGewaehlt)) EigenschaftenZeigen(neu: false);
         };
         _stadt.WerkstattAuswahlGeaendert += _ => EigenschaftenZeigen(neu: true);
-        _stadt.WerkstattSetzenBeendet += KatalogWahlAufheben;
+        _stadt.WerkstattWerkzeugBeendet += KatalogWahlAufheben;
+        _stadt.WerkstattWerkzeugGeaendert += () =>
+        {
+            EigenschaftenZeigen(neu: true);
+            HilfeZeigen();
+        };
+        _stadt.WerkstattMeldung += (text, fehler) => Melden(text, fehler);
+        _stadt.WerkstattNaturGestreut += () => EigenschaftenZeigen(neu: false);
+        GetTree().AutoAcceptQuit = false; // das Schließen des Fensters fragt nach ungespeicherten Änderungen (_Notification)
         Auffrischen();
         EigenschaftenZeigen(neu: true);
         if (meldung is not null) Melden(meldung);
@@ -77,11 +85,19 @@ public partial class Kartenwerkstatt : Node
 
     public override void _Process(double delta) => _stadt.WerkstattAktualisieren();
 
+    public override void _ExitTree() => GetTree().AutoAcceptQuit = true;
+
+    /// <summary>Das Fenster soll schließen (X): bei ungespeicherten Änderungen erst fragen.</summary>
+    public override void _Notification(int was)
+    {
+        if (was == NotificationWMCloseRequest) MitRueckfrage(() => GetTree().Quit());
+    }
+
     private bool _auffrischenVorgemerkt;
 
     /// <summary>
-    /// Kopf und Fehlerliste erst am Ende des Bildes auffrischen: Der Entwurf meldet eine Änderung, bevor seine Geschichte den Schritt kennt
-    /// (Rückgängig wäre sonst noch gesperrt), und mehrere Änderungen in einem Bild (Startoptionen) bauen die Liste nur einmal.
+    /// Kopf und Fehlerliste einmal am Ende des Bildes auffrischen: Ein Befehl kann viele Teile ändern (der Pinsel setzt Dutzende Pflanzen, jede
+    /// meldet sich einzeln), und mehrere Befehle in einem Bild (Startoptionen) bauen die Liste so nur einmal.
     /// </summary>
     private void AuffrischenVormerken()
     {
@@ -245,9 +261,39 @@ public partial class Kartenwerkstatt : Node
 
     private static double Zahl(string text) => double.Parse(text, System.Globalization.CultureInfo.InvariantCulture);
 
+    /// <summary>„art,x1,z1;x2,z2;…[,wort]“ → Art, Punkte und das Wort am Ende (oder null).</summary>
+    private static (string Art, List<Kartenort> Punkte, string? Wort) Liste(string eintrag)
+    {
+        var t = eintrag.Replace(';', ',').Split(',', StringSplitOptions.RemoveEmptyEntries);
+        var rest = t.Length > 1 && !double.TryParse(t[^1], System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out _) ? t[^1] : null;
+        var zahlen = t.Skip(1).Take(t.Length - 1 - (rest is null ? 0 : 1)).Select(Zahl).ToList();
+        var punkte = Enumerable.Range(0, zahlen.Count / 2).Select(i => new Kartenort(zahlen[2 * i], zahlen[2 * i + 1])).ToList();
+        return (t[0], punkte, rest);
+    }
+
+    private EntwurfTeil AussparungUndFlaeche(EntwurfNaturflaeche f, List<Kartenort> punkte)
+    {
+        _entwurf.AussparungAnlegen(f, punkte);
+        return f;
+    }
+
+    /// <summary>Ein Teil aus der Startoption <c>--werkstatt-auswahl</c>: „weg:&lt;Name&gt;“, „zone:&lt;Kennung&gt;“, „natur:&lt;Name&gt;“, sonst die Kennung eines Gebäudes.</summary>
+    private EntwurfTeil? TeilVon(string text)
+    {
+        var (art, name) = text.Contains(':') ? (text[..text.IndexOf(':')], text[(text.IndexOf(':') + 1)..].Replace('_', ' ')) : ("", text);
+        return art switch
+        {
+            "weg" => _entwurf.Wege.FirstOrDefault(w => w.Name == name),
+            "zone" => _entwurf.Bauzonen.FirstOrDefault(z => z.Kennung == name),
+            "natur" => _entwurf.Naturflaechen.FirstOrDefault(n => n.Name == name),
+            _ => _entwurf.GebaeudeMit(text),
+        };
+    }
+
     /// <summary>
-    /// Die Schritte der Startoptionen in fester Reihenfolge: setzen, versetzen, rückgängig, auswahl, speichern, umriss, dann Kamera und Tafeln
-    /// (Liste in <c>CLAUDE.md</c>, „Bauen, testen, ausprobieren“).
+    /// Die Schritte der Startoptionen in fester Reihenfolge: setzen, weg, flaeche, pinsel, radierer, versetzen, rückgängig, auswahl, speichern,
+    /// umriss, werkzeug, netz, dann Kamera und Tafeln (Liste in <c>CLAUDE.md</c>, „Bauen, testen, ausprobieren“). Mehrere Wege, Flächen und Striche
+    /// trennt „|“, Punkte „;“.
     /// </summary>
     private void StartoptionenAusfuehren(Dictionary<string, string> o)
     {
@@ -260,6 +306,45 @@ public partial class Kartenwerkstatt : Node
                     var g = _entwurf.Setzen(t[0], Zahl(t[1]), Zahl(t[2]), t.Length > 3 ? Zahl(t[3]) : 0);
                     _stadt.WerkstattWaehlen(g.Kennung);
                 }
+            // --werkstatt-weg=gasse,x1,z1;x2,z2;…[,gerade]
+            if (o.TryGetValue("werkstatt-weg", out var wege))
+                foreach (var eintrag in wege.Split('|', StringSplitOptions.RemoveEmptyEntries))
+                {
+                    var (art, punkte, wort) = Liste(eintrag);
+                    var klasse = Enum.Parse<Wegklasse>(art, ignoreCase: true);
+                    if (_stadt.WerkstattWegAnlegen(klasse, punkte, wort != "gerade") is { } w) _stadt.WerkstattWaehlen(w);
+                }
+            // --werkstatt-flaeche=wald|streu|bauzone:<lage>|aussparung,x1,z1;x2,z2;…
+            if (o.TryGetValue("werkstatt-flaeche", out var flaechen))
+                foreach (var eintrag in flaechen.Split('|', StringSplitOptions.RemoveEmptyEntries))
+                {
+                    var (art, punkte, _) = Liste(eintrag);
+                    EntwurfTeil? neu = art switch
+                    {
+                        "wald" or "streu" => _entwurf.NaturflaecheAnlegen(art, punkte),
+                        "aussparung" when _stadt.WerkstattGewaehlt is EntwurfNaturflaeche f => AussparungUndFlaeche(f, punkte),
+                        _ when art.StartsWith("bauzone") => _entwurf.BauzoneAnlegen(art.Contains(':') ? Enum.Parse<Lage>(art.Split(':')[1], true) : Lage.Vorstadt, punkte),
+                        _ => throw new ArgumentException($"Unbekannte Fläche „{art}“ (wald, streu, bauzone:<lage>, aussparung nach einer Naturfläche)."),
+                    };
+                    _stadt.WerkstattWaehlen(neu);
+                }
+            // --werkstatt-pinsel=eiche+hasel,radius,dichte,x1,z1;x2,z2;…
+            if (o.TryGetValue("werkstatt-pinsel", out var pinsel))
+                foreach (var eintrag in pinsel.Split('|', StringSplitOptions.RemoveEmptyEntries))
+                {
+                    var t = eintrag.Split(',', 4);
+                    _stadt.PinselArten.Clear();
+                    foreach (var art in t[0].Split('+')) _stadt.PinselArten[art] = 1;
+                    (_stadt.PinselRadius, _stadt.PinselDichte) = (Zahl(t[1]), Zahl(t[2]));
+                    _stadt.WerkstattStreuen(Liste("-," + t[3]).Punkte);
+                }
+            // --werkstatt-radierer=radius,x1,z1;x2,z2;…
+            if (o.TryGetValue("werkstatt-radierer", out var radierer))
+            {
+                var t = radierer.Split(',', 2);
+                _stadt.PinselRadius = Zahl(t[0]);
+                _stadt.WerkstattRadieren(Liste("-," + t[1]).Punkte);
+            }
             if (o.TryGetValue("werkstatt-versetzen", out var versetzen))
             {
                 var t = versetzen.Split(',');
@@ -268,7 +353,7 @@ public partial class Kartenwerkstatt : Node
             }
             if (o.TryGetValue("werkstatt-rueckgaengig", out var zurueck))
                 for (var i = 0; i < int.Parse(zurueck); i++) _entwurf.Rueckgaengig();
-            if (o.TryGetValue("werkstatt-auswahl", out var auswahl)) _stadt.WerkstattWaehlen(auswahl, hinfahren: true);
+            if (o.TryGetValue("werkstatt-auswahl", out var auswahl)) _stadt.WerkstattWaehlen(TeilVon(auswahl), hinfahren: true);
             if (o.TryGetValue("werkstatt-speichern", out var datei) && Dateiname(datei) is { } name) SpeichernNach($"{Ordner}/{name}");
             if (o.TryGetValue("werkstatt-umriss", out var umriss))
             {
@@ -277,6 +362,8 @@ public partial class Kartenwerkstatt : Node
                 _stadt.WerkstattDrehung = t.Length > 3 ? Zahl(t[3]) : 0;
                 _stadt.WerkstattUmrissSetzen(Zahl(t[1]), Zahl(t[2]));
             }
+            if (o.TryGetValue("werkstatt-werkzeug", out var werkzeug)) KatalogWaehlen(werkzeug);
+            if (o.GetValueOrDefault("werkstatt-netz") == "1") _netzSchalter.ButtonPressed = true;
         }
         catch (Exception ex) when (ex is ArgumentException or FormatException or IndexOutOfRangeException)
         {
@@ -294,7 +381,15 @@ public partial class Kartenwerkstatt : Node
             else if (dialog == "oeffnen") OeffnenZeigen();
             else if (dialog == "speichern") SpeichernUnterZeigen();
             else if (dialog == "zurueck") ZurueckZumMenue();
+            else if (dialog == "schliessen") _Notification((int)NotificationWMCloseRequest);
         }
         if (o.GetValueOrDefault("ui") == "0") _oberflaeche.Visible = false;
+        // --werkstatt-bildpunkte=x1,z1;x2,z2;…: schreibt nach 1,5 s, wo diese Orte auf dem Bildschirm liegen (für Klicks mit xdotool)
+        if (o.TryGetValue("werkstatt-bildpunkte", out var orte))
+            GetTree().CreateTimer(1.5).Timeout += () =>
+            {
+                foreach (var ort in Liste("-," + orte).Punkte)
+                    GD.Print($"Bildpunkt {Kartenschreiber.Zahl(ort.X)},{Kartenschreiber.Zahl(ort.Z)} -> {_stadt.WerkstattBildpunkt(ort.X, ort.Z)}");
+            };
     }
 }

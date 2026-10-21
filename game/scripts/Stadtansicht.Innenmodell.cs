@@ -9,9 +9,9 @@ namespace Reichsgilde;
 /// Innenräume aus Blender-Modellen – elfter Teil der <c>partial class Stadtansicht</c> (PR #152).
 ///
 /// Ein Beruf bekommt seinen Innenraum, indem <see cref="InnenModellDatei"/> eine Datei nennt (Schmied: <c>schmied_innen.glb</c>, Tischler:
-/// <c>tischler_innen.glb</c>, Steinmetz: <c>steinmetz_innen.glb</c>, Alchimist: <c>alchimist_innen.glb</c>, Parfumeur: <c>parfumeur_innen.glb</c>, Wirt: <c>wirt_innen.glb</c>, Prediger: <c>prediger_innen.glb</c>). Alles Weitere liest dieses Gerüst aus den Knotennamen des Modells (Verträge: <c>docs/bereiche/darstellung.md</c>):
+/// <c>tischler_innen.glb</c>, Steinmetz: <c>steinmetz_innen.glb</c>, Alchimist: <c>alchimist_innen.glb</c>, Parfumeur: <c>parfumeur_innen.glb</c>, Wirt: <c>wirt_innen.glb</c>, Prediger: <c>prediger_innen.glb</c>, Dieb: <c>dieb_innen.glb</c>). Alles Weitere liest dieses Gerüst aus den Knotennamen des Modells (Verträge: <c>docs/bereiche/darstellung.md</c>):
 /// <list type="bullet">
-/// <item><c>Raum_Werk</c>, <c>Raum_Lager</c>, <c>Raum_Saege</c>, <c>Raum_Huette</c>, <c>Raum_Laden</c>, <c>Raum_Turm</c>, <c>Raum_Pavillon</c>, <c>Raum_Kueche</c>, <c>Raum_Saal</c>, <c>Raum_Kirche</c>, <c>Raum_Skriptorium</c>, <c>Raum_Schatzkammer</c> – die Räume (glTF-extras „stufe“ auf dem Raumknoten: erst ab dieser Betriebsstufe da,
+/// <item><c>Raum_Werk</c>, <c>Raum_Lager</c>, <c>Raum_Saege</c>, <c>Raum_Huette</c>, <c>Raum_Laden</c>, <c>Raum_Turm</c>, <c>Raum_Pavillon</c>, <c>Raum_Kueche</c>, <c>Raum_Saal</c>, <c>Raum_Kirche</c>, <c>Raum_Skriptorium</c>, <c>Raum_Schatzkammer</c>, <c>Raum_Schlafboden</c>, <c>Raum_Gildenhalle</c> – die Räume (glTF-extras „stufe“ auf dem Raumknoten: erst ab dieser Betriebsstufe da,
 /// so die Sägehalle des Tischlers, die Bauhütte des Steinmetzen und der Duftpavillon des Parfumeurs ab Stufe 3, siehe <see cref="ModellRaeume"/>); <c>Blick_&lt;Raum&gt;_&lt;0|L1|R1|O1|U1…&gt;</c> – feste Blickpunkte der Kamera (Stadtansicht.Innenkamera.cs)</item>
 /// <item><b>Stufenregel:</b> jeder Knoten mit extras „stufe“ &gt; 1 ist erst ab dieser Betriebsstufe sichtbar (<see cref="ModellRaumDaten.StufenKnoten"/>); ausgenommen sind die Anker mit eigener Regel
 /// (<c>Arbeit_</c>, <c>Werkstueck_</c>, <c>Licht_</c>, <c>Dampf_</c>, <c>Auslage_</c>, <c>Blick_</c>), die ihre Stufe selbst auswerten</item>
@@ -25,6 +25,8 @@ namespace Reichsgilde;
 /// (Stadtansicht.Innengaeste.cs); <c>Krug_&lt;n&gt;</c> – wo der Krug auf dem Tisch steht (den hält die Figur selbst, der Anker bleibt leer)</item>
 /// <item><c>Glaeubig_&lt;n&gt;</c> (Sitzplätze auf den Bänken, Füllreihenfolge vorn → hinten), <c>Predigt_1</c> (Kanzel) und <c>Beichte_1</c> (Kniebank) – Plätze der Gläubigen und des Predigers im Kirchenschiff;
 /// wer dort sitzt, steht und kniet, sagt das Kirchenwesen des Kerns (Stadtansicht.Innenglaeubige.cs)</item>
+/// <item><c>Dieb_&lt;n&gt;</c> (Plätze nach Tätigkeit: Ueben, Planen, Zaehlen, Schleifen, Schlafen) und <c>Meister_1</c> (Thron in der Gildenhalle) – Plätze der Diebe im Versteck; auf ihnen stehen die echten Arbeiter,
+/// wer daheim ist und was er tut, sagt das Diebeswesen des Kerns (Stadtansicht.Innendiebe.cs)</item>
 /// </list>
 /// Der Raum folgt dem Kern: Stufe, Einrichtung, Glut, Arbeiter, Werkstücke und Warenstapel werden nur angefasst, wenn sich etwas geändert hat.
 /// </summary>
@@ -40,6 +42,7 @@ public partial class Stadtansicht
         Werkstil.Siederei => "innen/parfumeur_innen",
         Werkstil.Schaenke => "innen/wirt_innen",
         Werkstil.Kirche => "innen/prediger_innen",
+        Werkstil.Diebesnest => "innen/dieb_innen",
         _ => null,
     };
 
@@ -51,9 +54,9 @@ public partial class Stadtansicht
     private static (string Kennung, string Schluessel, string Name, int Vorgabe)[] ModellRaeume(Werkstil stil) => new[]
     {
         (RaumKirche, "Kirche", "Kirchenschiff", 1),
-        (RaumWerk, "Werk", stil == Werkstil.Kirche ? "Sakristei" : WerkraumName(stil), 1),
+        (RaumWerk, "Werk", stil switch { Werkstil.Kirche => "Sakristei", Werkstil.Diebesnest => "Diebesstube", _ => WerkraumName(stil) }, 1),
         (RaumKueche, "Kueche", "Küche", 1),
-        (RaumLager, "Lager", stil switch { Werkstil.Schaenke => "Fasskeller", Werkstil.Kirche => "Krypta", _ => "Lager" }, 1),
+        (RaumLager, "Lager", stil switch { Werkstil.Schaenke => "Fasskeller", Werkstil.Kirche => "Krypta", Werkstil.Diebesnest => "Beutekeller", _ => "Lager" }, 1),
         (RaumSaege, "Saege", "Sägehalle", 3),
         (RaumHuette, "Huette", "Bauhütte", 3),
         (RaumLaden, "Laden", "Laden", 2),
@@ -62,6 +65,8 @@ public partial class Stadtansicht
         (RaumSaal, "Saal", "Saal", 3),
         (RaumSkriptorium, "Skriptorium", "Skriptorium", 2),
         (RaumSchatzkammer, "Schatzkammer", "Schatzkammer", 3),
+        (RaumSchlafboden, "Schlafboden", "Schlafboden", 2),
+        (RaumGildenhalle, "Gildenhalle", "Gildenhalle", 3),
     };
 
     /// <summary>
@@ -78,6 +83,7 @@ public partial class Stadtansicht
         [(Werkstil.Siederei, "Pressen")] = 3.0,      // die Hände liegen am Querhebel, die Spindel der Presse dreht genau nach der Bewegung
         [(Werkstil.Schaenke, "Zapfen")] = 4.0,       // Hahn und Strahl in der Animation „Arbeit“ folgen der Linken des Zapfers
         [(Werkstil.Kirche, "Schoepfen")] = 4.0,      // die Tropfen aus dem Sieb fallen, wenn die Figur es zum Abtropfen hält
+        [(Werkstil.Diebesnest, "Schleifen")] = 1.2,  // der Schleifstein im Raum dreht sich genau einmal je Schleife des Messerschleifers (Plätze Dieb_<n>, Stadtansicht.Innendiebe.cs)
     };
 
     /// <summary>Mit so vielen Kisten steht ein volles Lager einer Ware (Höhe der Warenstapel).</summary>
@@ -189,6 +195,15 @@ public partial class Stadtansicht
         public List<GastPlatz> Glaeubige { get; } = new();
         public GlaeubigenStand GlaeubigenStand { get; set; } = new(-1, false, false);
         public double GlaeubigenZeit { get; set; }
+        /// <summary>Die Plätze der Diebe (<c>Dieb_&lt;n&gt;</c>, <c>Meister_1</c>) und die Diebe darauf (nach Nummer des Arbeiters); siehe Stadtansicht.Innendiebe.cs.</summary>
+        public List<DiebPlatz> Diebesplaetze { get; } = new();
+        public Dictionary<int, ModellDieb> Diebe { get; } = new();
+        public string? DiebStand { get; set; }
+        public double DiebZeit { get; set; }
+        /// <summary>Ist gerade jemand wach im Haus (daheim, nicht schlafend)? Dann brennen Kerzen und Lampen auch außerhalb der Arbeitszeit.</summary>
+        public bool DiebWach { get; set; }
+        /// <summary>Steht jemand am Schleifbock oder am Zähltisch? Nur dann dreht sich der Schleifstein und pendelt die Waage.</summary>
+        public bool DiebBewegtRaum { get; set; }
         public StandardMaterial3D? DampfStoff { get; set; }
         /// <summary>Die Bedienungsstücke des Raums (Tafel, Name) in der Reihenfolge der Tafeln – für den Hinweis beim Betreten.</summary>
         public List<(string Tafel, string Name, Node3D Knoten)> Bedienungen { get; } = new();
@@ -276,6 +291,7 @@ public partial class Stadtansicht
         md.Plaetze.Sort((x, y) => x.Nr.CompareTo(y.Nr));
         md.Gaeste.Sort((x, y) => x.Tisch != y.Tisch ? x.Tisch.CompareTo(y.Tisch) : x.Nr.CompareTo(y.Nr));
         md.Glaeubige.Sort((x, y) => x.Tisch != y.Tisch ? x.Tisch.CompareTo(y.Tisch) : x.Nr.CompareTo(y.Nr));
+        md.Diebesplaetze.Sort((x, y) => x.Gruppe != y.Gruppe ? string.CompareOrdinal(x.Gruppe, y.Gruppe) : x.Reihe.CompareTo(y.Reihe));
         DampfAnlegen(wurzel, md);
         md.Auslageplaetze.Sort((x, y) => NummerImNamen(x).CompareTo(NummerImNamen(y)));
         RaumEbeneUebernehmen(wurzel); // alles, was bis hier im Modell steht, auch Lichter, Werkstücke und Dampf
@@ -385,6 +401,9 @@ public partial class Stadtansicht
                 break;
             case "Glaeubig" or "Predigt" or "Beichte" when GlaeubigPlatzVon(knoten) is { } glaeubigplatz:
                 md.Glaeubige.Add(glaeubigplatz);
+                break;
+            case "Dieb" or "Meister" when DiebPlatzVon(knoten) is { } diebplatz:
+                md.Diebesplaetze.Add(diebplatz);
                 break;
             case "Licht" when teile.Length == 2:
                 InnenLichtAnlegen(md, knoten);
@@ -569,7 +588,13 @@ public partial class Stadtansicht
             else RaumEbeneUebernehmen(kind);
     }
 
-    private static uint RaumEbene(string schluessel) => 1u << (10 + Math.Max(0, Array.IndexOf(RaumEbenen, schluessel)));
+    /// <summary>
+    /// Räume, die sich die Render-Ebene eines anderen Raums teilen (22 von 32 Ebenen sind belegt): Sie stehen nie im selben Modell wie dieser Raum, ein Modell sieht also nie
+    /// zwei Räume auf derselben Ebene. Schlafboden und Gildenhalle des Diebs teilen sich die Ebene von Laden (Parfumeur, ab Stufe 2) und Saal (Wirt, ab Stufe 3).
+    /// </summary>
+    private static readonly Dictionary<string, string> RaumEbeneGeteilt = new() { ["Schlafboden"] = "Laden", ["Gildenhalle"] = "Saal" };
+
+    private static uint RaumEbene(string schluessel) => 1u << (10 + Math.Max(0, Array.IndexOf(RaumEbenen, RaumEbeneGeteilt.GetValueOrDefault(schluessel, schluessel))));
 
     private static void EbeneSetzen(Node knoten, uint ebene)
     {
@@ -647,6 +672,12 @@ public partial class Stadtansicht
             foreach (var stoff in md.Hausfarben) stoff.AlbedoColor = a.Farbe;
         }
 
+        if (md.Diebesplaetze.Count > 0) // der Dieb: wer gerade im Haus ist, bestimmt der Kern (Diebeswesen.AnwesenheitJetzt); wach heißt: Kerzen brennen, der Schleifstein dreht
+        {
+            InnenDiebeAktualisieren(a, md, b, stufe, delta);
+            arbeitet |= md.DiebWach;
+        }
+
         var einrichtung = string.Join(",", b.Einrichtung.OrderBy(x => x));
         if (einrichtung != md.EinrichtungStand)
         {
@@ -684,9 +715,9 @@ public partial class Stadtansicht
 
         InnenSpaeneAktualisieren(md, b, zeit);
         if (md.Animation is not null)
-            InnenAnimationSetzen(md, !arbeitet ? AnimationStand.Ruht : _simulation!.Takt.IstPausiert ? AnimationStand.Haelt : AnimationStand.Laeuft, delta);
+            InnenAnimationSetzen(md, !(md.Diebesplaetze.Count > 0 ? md.DiebBewegtRaum : arbeitet) ? AnimationStand.Ruht : _simulation!.Takt.IstPausiert ? AnimationStand.Haelt : AnimationStand.Laeuft, delta);
 
-        InnenArbeiterAktualisieren(a, md, b, stufe, arbeitszeit, arbeitet, delta);
+        if (md.Diebesplaetze.Count == 0) InnenArbeiterAktualisieren(a, md, b, stufe, arbeitszeit, arbeitet, delta);
         InnenGaesteAktualisieren(a, md, b, delta);
         InnenGlaeubigeAktualisieren(a, md, b, delta);
         InnenDampfAktualisieren(md, stufe, arbeitet);
@@ -1128,6 +1159,8 @@ public partial class Stadtansicht
     private static string BedienungName(Werkstil stil, string tafel, string ding) => (tafel, ding) switch
     {
         ("Personal", _) => "Personalbuch",
+        ("Auftraege", _) => "Kartentisch – Aufträge",
+        ("Lager", "Beute") => "Diebesgut",
         ("Karren", _) => "Hoftor",
         ("Einrichten", _) => "Werkzeugwand",
         ("Lager", "Bretter") => "Bretterstapel",
@@ -1155,7 +1188,7 @@ public partial class Stadtansicht
     private static bool IstDaAbStufe(Node knoten, ModellRaumDaten md, int stufe) =>
         md.StufenKnoten.All(x => stufe >= x.AbStufe || !(x.Knoten == knoten || x.Knoten.IsAncestorOf(knoten)));
 
-    private static readonly string[] BedienungTafeln = { "Personal", "Produktion", "Lager", "Karren", "Einrichten" };
+    private static readonly string[] BedienungTafeln = { "Personal", "Auftraege", "Produktion", "Lager", "Karren", "Einrichten" };
 
     /// <summary>Der Text zum Schild an der Maus: erste Zeile der Name, darunter in kleiner Schrift, was ein Klick tut. Leer: nichts anzeigen.</summary>
     private (string Name, string Hinweis) InnenText(BetriebsAnsicht a, string tag)
@@ -1168,6 +1201,7 @@ public partial class Stadtansicht
                 return (BedienungName(a.Stil, teile[1], teile[2]), teile[1] switch
                 {
                     "Personal" => "Klick: Arbeiter einstellen, befördern, entlassen, Lohn und Prämie",
+                    "Auftraege" => "Klick: Aufträge, Banden und Erpresserbriefe im Hinterzimmer",
                     "Produktion" => "Klick: Waren herstellen und Arbeiter zuteilen",
                     "Lager" => "Klick: Bestand und Zurückhalten",
                     "Karren" => "Klick: Karren des Hauses",
@@ -1179,7 +1213,7 @@ public partial class Stadtansicht
             case "tuer" when teile.Length >= 3:
                 return (teile[2] switch
                 {
-                    "Lager" => "Tür zum Lager", "Saege" => "Tür zur Sägehalle", "Huette" => "Tür zur Bauhütte", "Laden" => "Tür zum Laden", "Turm" => "Tür zum Laborturm", "Pavillon" => "Tür zum Duftpavillon", "Kueche" => "Tür zur Küche", "Saal" => "Tür zum Saal", "Kirche" => "Tür ins Kirchenschiff", "Skriptorium" => "Tür zum Skriptorium", "Schatzkammer" => "Tür zur Schatzkammer",
+                    "Lager" => "Tür zum Lager", "Saege" => "Tür zur Sägehalle", "Huette" => "Tür zur Bauhütte", "Laden" => "Tür zum Laden", "Turm" => "Tür zum Laborturm", "Pavillon" => "Tür zum Duftpavillon", "Kueche" => "Tür zur Küche", "Saal" => "Tür zum Saal", "Kirche" => "Tür ins Kirchenschiff", "Skriptorium" => "Tür zum Skriptorium", "Schatzkammer" => "Tür zur Schatzkammer", "Schlafboden" => "Leiter zum Schlafboden", "Gildenhalle" => "Tür zur Gildenhalle",
                     _ => "Tür zum Werkraum",
                 }, "Klick: Raum wechseln");
             case "einrichtung" when teile.Length >= 2:
@@ -1199,6 +1233,7 @@ public partial class Stadtansicht
             case "arbeiter" when teile.Length >= 2 && int.TryParse(teile[1], out var nr):
                 var zeile = w?.Werkstaetten.Arbeiterliste(a.Betrieb).FirstOrDefault(z => z.Nummer == nr);
                 if (zeile is null) return ("", "");
+                if (a.Modellraum is { Diebesplaetze.Count: > 0 } diebraum) return DiebText(diebraum, zeile, _gewaehlt.Contains(nr));
                 return ($"{zeile.Arbeitskraft} Nr. {zeile.Nummer}", $"arbeitet an: {zeile.Ware} · Laune {Zahlenformat.Ganz(zeile.Laune)}"
                                                                     + (_gewaehlt.Contains(nr) ? " · ausgewählt" : ""));
         }

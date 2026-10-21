@@ -29,10 +29,14 @@ public enum Schwere
 
 /// <summary>
 /// Ein Befund der Prüfung: Schwere, Regel (kurze Kennung, z. B. „ueberlappung“), Text auf Deutsch, die betroffenen Gebäude (Kennungen,
-/// zum Rot-Zeichnen) und ein Ort zum Hinspringen (null, wenn es keinen gibt, z. B. bei der Startbelegung ohne Platz).
+/// zum Rot-Zeichnen), ein Ort zum Hinspringen (null, wenn es keinen gibt, z. B. bei der Startbelegung ohne Platz) und die betroffenen
+/// übrigen Teile (Wege, Bauzonen, Naturflächen, Pflanzen – zum Rot-Zeichnen; leer, wenn es nur um Gebäude geht).
 /// </summary>
-public sealed record Befund(Schwere Schwere, string Regel, string Text, IReadOnlyList<string> Gebaeude, Kartenort? Ort)
+public sealed record Befund(Schwere Schwere, string Regel, string Text, IReadOnlyList<string> Gebaeude, Kartenort? Ort, IReadOnlyList<EntwurfTeil>? Teile = null)
 {
+    /// <summary>Die betroffenen Wege, Flächen und Pflanzen (nie null).</summary>
+    public IReadOnlyList<EntwurfTeil> Andere => Teile ?? Array.Empty<EntwurfTeil>();
+
     public override string ToString() => (Schwere == Schwere.Hinweis ? "Hinweis: " : "") + Text;
 }
 
@@ -129,10 +133,10 @@ public static class Kartenpruefung
     }
 
     /// <summary>Gezeichnete Breite eines Weges: aus der Karte, sonst nach der Klasse (wie die Stadtansicht).</summary>
-    public static double BreiteVon(Kartenweg w) => w.Breite > 0 ? w.Breite : w.Klasse switch
-    {
-        Wegklasse.Haupt => 5, Wegklasse.Land or Wegklasse.Wall => 4, Wegklasse.Ring => 3, Wegklasse.Gasse => 3, _ => 2,
-    };
+    public static double BreiteVon(Kartenweg w) => w.BreiteWirksam;
+
+    /// <summary>Ab so vielen Metern Abstand zur Mitte eines Weges steht eine Pflanze nicht mehr „auf“ ihm (Rand zur halben Breite).</summary>
+    public const double PflanzeAmWeg = 0.5;
 
     /// <summary>Ein Prüflauf: bereitet Wege, Mauern und Zonen einmal vor.</summary>
     private sealed class Lauf
@@ -140,33 +144,32 @@ public static class Kartenpruefung
         private readonly Kartenentwurf _e;
         private readonly Pruefregeln _r;
         private readonly List<Befund> _b = new();
-        private readonly List<(Kartenweg Weg, Kartenort[] Linie, double Breite, Rahmen Rahmen)> _wege;
+        private readonly List<(EntwurfWeg Weg, Kartenort[] Linie, double Breite, Rahmen Rahmen)> _wege;
         private readonly List<(Kartenmauer Mauer, Kartenort[] Linie, Rahmen Rahmen)> _mauern;
-        private readonly List<(Bauzone Zone, Kartenort[] Flaeche, Rahmen Rahmen)> _zonen;
-        private Dictionary<Bauzone, HashSet<(int, int)>>? _felder;
+        private readonly List<(EntwurfBauzone Zone, Kartenort[] Flaeche, Rahmen Rahmen)> _zonen;
+        private Dictionary<EntwurfBauzone, HashSet<(int, int)>>? _felder;
         private readonly Kartenort[]? _stadtgebiet;
         private readonly Dictionary<EntwurfGebaeude, (IReadOnlyList<Kartenort> Ecken, Rahmen Rahmen)> _ecken = new(ReferenceEqualityComparer.Instance);
 
         public Lauf(Kartenentwurf e)
         {
             (_e, _r) = (e, e.Regeln);
-            _wege = e.Wege.Where(w => w.Linie.Count > 0).Select(w => w.Linie.Select(Kartenort.Aus).ToArray())
-                .Zip(e.Wege.Where(w => w.Linie.Count > 0), (l, w) => (w, l, BreiteVon(w), Rahmen.Um(l))).ToList();
+            // Wege mit ihrem Verlauf (bei glatten Wegen die abgetastete Kurve) – so sehen Spiel und Bauwesen sie
+            _wege = e.Wege.Where(w => w.Punkte.Count > 0).Select(w => (w, l: w.Verlauf.ToArray())).Select(x => (x.w, x.l, x.w.BreiteWirksam, Rahmen.Um(x.l))).ToList();
             // Mauerlinien, geschlossene mit dem ersten Punkt hinten dran
             _mauern = e.Mauern.Where(m => m.Linie.Count > 0)
                 .Select(m => (m, m.Linie.Select(Kartenort.Aus).Concat(m.Geschlossen ? new[] { Kartenort.Aus(m.Linie[0]) } : Array.Empty<Kartenort>()).ToArray()))
                 .Select(x => (x.m, x.Item2, Rahmen.Um(x.Item2))).ToList();
-            _zonen = e.Bauzonen.Where(z => z.Flaeche.Count > 0).Select(z => z.Flaeche.Select(Kartenort.Aus).ToArray())
-                .Zip(e.Bauzonen.Where(z => z.Flaeche.Count > 0), (f, z) => (z, f, Rahmen.Um(f))).ToList();
+            _zonen = e.Bauzonen.Where(z => z.Ecken.Count > 0).Select(z => (z, z.Ecken.ToArray(), Rahmen.Um(z.Ecken))).ToList();
             // Die Stadt: innerhalb der ersten geschlossenen Mauer (Greybox: ±50 m)
             if (e.Mauern.FirstOrDefault(m => m.Geschlossen && m.Linie.Count >= 3) is { } stadtmauer)
                 _stadtgebiet = stadtmauer.Linie.Select(Kartenort.Aus).ToArray();
         }
 
-        private IEnumerable<(Kartenweg Weg, Kartenort[] Linie, double Breite, Rahmen Rahmen)> Karrenwege => _wege.Where(w => w.Weg.IstKarrenstrasse);
+        private IEnumerable<(EntwurfWeg Weg, Kartenort[] Linie, double Breite, Rahmen Rahmen)> Karrenwege => _wege.Where(w => w.Weg.IstKarrenstrasse);
 
         /// <summary>Die Rasterfelder jeder Bauzone (einmal je Lauf).</summary>
-        private Dictionary<Bauzone, HashSet<(int, int)>> Felder => _felder ??= _zonen.ToDictionary(z => z.Zone, z => FelderVon(z.Flaeche));
+        private Dictionary<EntwurfBauzone, HashSet<(int, int)>> Felder => _felder ??= _zonen.ToDictionary(z => z.Zone, z => FelderVon(z.Flaeche));
 
         private IReadOnlyList<Kartenort> Ecken(EntwurfGebaeude g) => Flaeche(g).Ecken;
 
@@ -179,7 +182,7 @@ public static class Kartenpruefung
         }
 
         /// <summary>Der kürzeste Abstand von p zu einer Linie unter den Wegen – Wege, deren Rahmen schon weiter weg ist als der beste, rechnet er nicht genau.</summary>
-        private static double NaechsterWeg(Kartenort p, IEnumerable<(Kartenweg Weg, Kartenort[] Linie, double Breite, Rahmen Rahmen)> wege)
+        private static double NaechsterWeg(Kartenort p, IEnumerable<(EntwurfWeg Weg, Kartenort[] Linie, double Breite, Rahmen Rahmen)> wege)
         {
             var best = double.MaxValue;
             var punkt = new Rahmen(p.X, p.Z, p.X, p.Z);
@@ -193,6 +196,13 @@ public static class Kartenpruefung
 
         private void Fehler(string regel, string text, Kartenort? ort, params string[] gebaeude) => _b.Add(new Befund(Schwere.Fehler, regel, text, gebaeude, ort));
         private void Hinweis(string regel, string text, Kartenort? ort, params string[] gebaeude) => _b.Add(new Befund(Schwere.Hinweis, regel, text, gebaeude, ort));
+
+        /// <summary>Ein Fehler an Wegen, Flächen oder Pflanzen (die Darstellung zeichnet sie rot), dazu betroffene Gebäude.</summary>
+        private void FehlerAn(string regel, string text, Kartenort? ort, IReadOnlyList<EntwurfTeil> teile, params string[] gebaeude) =>
+            _b.Add(new Befund(Schwere.Fehler, regel, text, gebaeude, ort, teile));
+
+        private void HinweisAn(string regel, string text, Kartenort? ort, IReadOnlyList<EntwurfTeil> teile, params string[] gebaeude) =>
+            _b.Add(new Befund(Schwere.Hinweis, regel, text, gebaeude, ort, teile));
 
         private static string Wer(EntwurfGebaeude g) => g.Name == g.Kennung || g.Name == "" ? g.Kennung : $"{g.Kennung} ({g.Name})";
         private static string M(double x) => Kartenschreiber.Zahl(Math.Round(x, 1)).Replace('.', ',');
@@ -210,6 +220,8 @@ public static class Kartenpruefung
                 Fehler("betrieb", $"Der Betrieb „{doppelt.Key}“ steht an mehreren Plätzen ({string.Join(", ", doppelt.Select(g => g.Kennung))}).",
                     doppelt.First().Punkt, doppelt.Select(g => g.Kennung).ToArray());
 
+            Wege();
+            ZonenFormen();
             Bauzonen();
             if (_r.Stadtregeln) Probeplan();
             if (_r.Wohnhausplaetze > 0) WohnhausplaetzeZaehlen();
@@ -218,6 +230,7 @@ public static class Kartenpruefung
             Mauern();
             Haefen();
             Natur();
+            Pflanzen();
             if (_e.Start is { } s) Start(s);
             Wegenetz();
             return _b;
@@ -323,7 +336,7 @@ public static class Kartenpruefung
                 if (gasse && Kartengeometrie.AbstandVielecke(haus, new[] { linie[0] }, false) < 3) continue;
                 var a = Kartengeometrie.AbstandVielecke(haus, linie, false);
                 if (a < breite / 2)
-                    Fehler("weg-ueber-haus", $"„{w.Name}“ läuft über {Wer(g)}: {M(a)} m zur Mitte, {M(breite)} m breit.", g.Punkt, g.Kennung);
+                    FehlerAn("weg-ueber-haus", $"„{w.Name}“ läuft über {Wer(g)}: {M(a)} m zur Mitte, {M(breite)} m breit.", g.Punkt, new[] { w }, g.Kennung);
             }
         }
 
@@ -342,11 +355,11 @@ public static class Kartenpruefung
                 if (w.Name == $"Weg zu {g.Name}" || w.Name == $"Fußweg {g.Name}")
                 {
                     if (linie.Take(linie.Length - 1).Any(p => Kartengeometrie.ImVieleck(p, flaeche)))
-                        Fehler("umlandweg", $"„{w.Name}“ kommt nicht von vorn an den Halteplatz von {Wer(g)}.", linie[^1], g.Kennung);
+                        FehlerAn("umlandweg", $"„{w.Name}“ kommt nicht von vorn an den Halteplatz von {Wer(g)}.", linie[^1], new[] { w }, g.Kennung);
                     continue;
                 }
                 if (Kartengeometrie.AbstandVielecke(haus, linie, false) < breite / 2)
-                    Hinweis("weg-ueber-umland", $"„{w.Name}“ läuft über {Wer(g)}.", g.Punkt, g.Kennung);
+                    HinweisAn("weg-ueber-umland", $"„{w.Name}“ läuft über {Wer(g)}.", g.Punkt, new[] { w }, g.Kennung);
             }
         }
 
@@ -360,7 +373,7 @@ public static class Kartenpruefung
                 if (rahmen.Abstand(zr) >= AbstandFeste) continue;
                 var a = Kartengeometrie.AbstandVielecke(flaeche, ecken);
                 if (a < AbstandFeste)
-                    Fehler("zone-gebaeude", $"Bauzone {z.Kennung}: nur {M(a)} m zu {Wer(g)}, mindestens {M(AbstandFeste)} m.", g.Punkt, g.Kennung);
+                    FehlerAn("zone-gebaeude", $"Bauzone {z.Kennung}: nur {M(a)} m zu {Wer(g)}, mindestens {M(AbstandFeste)} m.", g.Punkt, new[] { z }, g.Kennung);
             }
         }
 
@@ -399,28 +412,28 @@ public static class Kartenpruefung
                 var mitte = Kartengeometrie.Mitte(flaeche);
                 if (karren.Count == 0)
                 {
-                    Fehler("zone-anschluss", $"Bauzone {z.Kennung}: Die Karte hat keine Karrenstraße.", mitte);
+                    FehlerAn("zone-anschluss", $"Bauzone {z.Kennung}: Die Karte hat keine Karrenstraße.", mitte, new[] { z });
                     continue;
                 }
                 var n = flaeche.Min(p => NaechsterWeg(p, karren));
                 if (n > Anschluss)
-                    Fehler("zone-anschluss", $"Bauzone {z.Kennung}: Die nächste Karrenstraße ist {M(n)} m entfernt (höchstens {M(Anschluss)} m).", mitte);
+                    FehlerAn("zone-anschluss", $"Bauzone {z.Kennung}: Die nächste Karrenstraße ist {M(n)} m entfernt (höchstens {M(Anschluss)} m).", mitte, new[] { z });
                 if (!_r.Stadtregeln) continue;
 
                 foreach (var p in flaeche.Where(p => Kartengeometrie.Mod(p.X, _e.Raster) != 0 || Kartengeometrie.Mod(p.Z, _e.Raster) != 0))
-                    Fehler("zone-raster", $"Bauzone {z.Kennung}: Die Ecke {p} liegt nicht auf dem {M(_e.Raster)}-m-Raster.", p);
+                    FehlerAn("zone-raster", $"Bauzone {z.Kennung}: Die Ecke {p} liegt nicht auf dem {M(_e.Raster)}-m-Raster.", p, new[] { z });
                 foreach (var (w, linie, breite, wr) in _wege)
                 {
                     if (zr.Abstand(wr) >= breite / 2 + AbstandStrasse) continue;
                     var a = Kartengeometrie.AbstandVielecke(flaeche, linie, false);
                     if (a < breite / 2 + AbstandStrasse)
-                        Fehler("zone-weg", $"Bauzone {z.Kennung}: nur {M(a)} m zur Mitte von „{w.Name}“ (Weg {M(breite)} m breit, mindestens {M(breite / 2 + AbstandStrasse)} m).", mitte);
+                        FehlerAn("zone-weg", $"Bauzone {z.Kennung}: nur {M(a)} m zur Mitte von „{w.Name}“ (Weg {M(breite)} m breit, mindestens {M(breite / 2 + AbstandStrasse)} m).", mitte, new EntwurfTeil[] { z, w });
                 }
                 foreach (var (m, linie, mr) in _mauern)
                 {
                     if (zr.Abstand(mr) >= AbstandMauer) continue;
                     var a = Kartengeometrie.AbstandVielecke(flaeche, linie, false);
-                    if (a < AbstandMauer) Fehler("zone-mauer", $"Bauzone {z.Kennung}: nur {M(a)} m zur Mauer „{m.Name}“, mindestens {M(AbstandMauer)} m.", mitte);
+                    if (a < AbstandMauer) FehlerAn("zone-mauer", $"Bauzone {z.Kennung}: nur {M(a)} m zur Mauer „{m.Name}“, mindestens {M(AbstandMauer)} m.", mitte, new[] { z });
                 }
                 // nächster Straßenrand: Wege, deren Rahmen schon weiter weg ist als der beste bisher, braucht es nicht genau
                 var rand = double.MaxValue;
@@ -428,15 +441,15 @@ public static class Kartenpruefung
                     if (zr.Abstand(w.Rahmen) - w.Breite / 2 < rand)
                         rand = Math.Min(rand, Kartengeometrie.AbstandVielecke(flaeche, w.Linie, false) - w.Breite / 2);
                 if (rand > Anschluss)
-                    Fehler("zone-anschluss", $"Bauzone {z.Kennung}: Die nächste Karrenstraße ist {M(rand)} m vom Straßenrand entfernt (höchstens {M(Anschluss)} m).", mitte);
+                    FehlerAn("zone-anschluss", $"Bauzone {z.Kennung}: Die nächste Karrenstraße ist {M(rand)} m vom Straßenrand entfernt (höchstens {M(Anschluss)} m).", mitte, new[] { z });
             }
             if (!_r.Stadtregeln) return;
             var felder = _zonen.Select(z => (z.Zone, Felder: Felder[z.Zone])).ToList();
             for (var i = 0; i < felder.Count; i++)
                 for (var j = i + 1; j < felder.Count; j++)
                     if (felder[i].Felder.Overlaps(felder[j].Felder))
-                        Fehler("zone-ueberlappung", $"Die Bauzonen {felder[i].Zone.Kennung} und {felder[j].Zone.Kennung} überlappen.",
-                            Kartengeometrie.Mitte(_zonen[i].Flaeche));
+                        FehlerAn("zone-ueberlappung", $"Die Bauzonen {felder[i].Zone.Kennung} und {felder[j].Zone.Kennung} überlappen.",
+                            Kartengeometrie.Mitte(_zonen[i].Flaeche), new[] { felder[i].Zone, felder[j].Zone });
         }
 
         /// <summary>Die Rasterfelder, deren Mitte in der Fläche liegt.</summary>
@@ -594,7 +607,7 @@ public static class Kartenpruefung
                         for (var c = 0; c + 1 < linie.Length; c++)
                             if (Kartengeometrie.Schnitt(wl[a], wl[a + 1], linie[c], linie[c + 1]) is { } s
                                 && (tore.Count == 0 ? double.MaxValue : tore.Min(t => s.Abstand(t.Ort))) > 3)
-                                Fehler("tor", $"„{w.Name}“ kreuzt die Mauer „{m.Name}“ ohne Tor bei {s}.", s);
+                                FehlerAn("tor", $"„{w.Name}“ kreuzt die Mauer „{m.Name}“ ohne Tor bei {s}.", s, new[] { w });
             }
         }
 
@@ -611,25 +624,113 @@ public static class Kartenpruefung
             }
         }
 
-        /// <summary>Natur: Flächen mit Dichte und Gruppen, jede Art ein Natur-Baustein des Katalogs (karte.py, Regel 9).</summary>
+        /// <summary>
+        /// Natur: Flächen mit mindestens drei Ecken, Dichte und Gruppen, jede Art ein Natur-Baustein des Katalogs (karte.py, Regel 9); Umriss
+        /// und Aussparungen kreuzen sich nicht selbst; einzelne Pflanzen aus dem Katalog.
+        /// </summary>
         private void Natur()
         {
             bool IstNatur(string k) => _e.Katalog.Finde(k) is { Art: Bausteinart.Natur };
-            foreach (var n in _e.Natur.Flaechen)
+            foreach (var n in _e.Naturflaechen)
             {
-                var ort = n.Flaeche.Count > 0 ? Kartengeometrie.Mitte(n.Flaeche.Select(Kartenort.Aus).ToList()) : (Kartenort?)null;
-                if (n.Flaeche.Count < 3) Fehler("natur", $"Naturfläche „{n.Name}“: Die Fläche braucht mindestens drei Punkte.", ort);
-                if (n.Dichte <= 0 || n.Gruppen.Count == 0) Fehler("natur", $"Naturfläche „{n.Name}“: Dichte oder Gruppen fehlen.", ort);
-                foreach (var teil in n.Gruppen.SelectMany(g => g.Teile))
+                var ort = n.Ecken.Count > 0 ? Kartengeometrie.Mitte(n.Ecken) : (Kartenort?)null;
+                var teil = new[] { n };
+                if (n.Ecken.Count < 3) FehlerAn("natur", $"Naturfläche „{n.Name}“: Die Fläche braucht mindestens drei Punkte.", ort, teil);
+                if (n.Dichte <= 0 || n.Gruppen.Count == 0) FehlerAn("natur", $"Naturfläche „{n.Name}“: Dichte oder Gruppen fehlen.", ort, teil);
+                foreach (var t in n.Gruppen.SelectMany(g => g.Teile))
                 {
-                    if (teil.Anzahl is not { Length: 2 } a || a[0] < 0 || a[1] < a[0])
-                        Fehler("natur", $"Naturfläche „{n.Name}“: anzahl ist [von, bis] mit 0 ≤ von ≤ bis.", ort);
-                    foreach (var art in teil.Arten.Keys.Where(k => !IstNatur(k)))
-                        Fehler("natur", $"Naturfläche „{n.Name}“: „{art}“ ist keine Natur-Art im Katalog.", ort);
+                    if (t.Anzahl is not { Length: 2 } a || a[0] < 0 || a[1] < a[0])
+                        FehlerAn("natur", $"Naturfläche „{n.Name}“: anzahl ist [von, bis] mit 0 ≤ von ≤ bis.", ort, teil);
+                    foreach (var art in t.Arten.Keys.Where(k => !IstNatur(k)))
+                        FehlerAn("natur", $"Naturfläche „{n.Name}“: „{art}“ ist keine Natur-Art im Katalog.", ort, teil);
+                }
+                SelbstSchnitt($"Naturfläche „{n.Name}“", n.Ecken, n);
+                for (var i = 0; i < n.Aussparungen.Count; i++)
+                {
+                    if (n.Aussparungen[i].Count < 3) FehlerAn("natur", $"Naturfläche „{n.Name}“: Aussparung {i + 1} braucht mindestens drei Punkte.", ort, teil);
+                    SelbstSchnitt($"Naturfläche „{n.Name}“, Aussparung {i + 1}", n.Aussparungen[i], n);
                 }
             }
-            foreach (var p in _e.Natur.Pflanzen.Where(p => !IstNatur(p.Katalog)))
-                Fehler("natur", $"Pflanze bei {Kartenort.Aus(p.Punkt)}: „{p.Katalog}“ ist keine Natur-Art im Katalog.", Kartenort.Aus(p.Punkt));
+            foreach (var p in _e.Pflanzen.Where(p => !IstNatur(p.Katalog)))
+                FehlerAn("natur", $"Pflanze bei {p.Punkt}: „{p.Katalog}“ ist keine Natur-Art im Katalog.", p.Punkt, new[] { p });
+        }
+
+        /// <summary>
+        /// Ein Vieleck kreuzt sich selbst (zwei Kanten, die nicht benachbart sind, schneiden sich) – ein Hinweis mit dem Schnittpunkt: Der Kern
+        /// rechnet mit solchen Flächen weiter (was „drin“ ist, entscheidet das Strahlverfahren), gemeint ist es aber selten so. Köln hat eine
+        /// solche Bauzone (M5) aus dem Werkzeug.
+        /// </summary>
+        private void SelbstSchnitt(string wer, IReadOnlyList<Kartenort> poly, EntwurfTeil teil)
+        {
+            var n = poly.Count;
+            if (n < 4) return;
+            for (var i = 0; i < n; i++)
+                for (var j = i + 2; j < n; j++)
+                {
+                    if (i == 0 && j == n - 1) continue; // die letzte Kante grenzt an die erste
+                    if (Kartengeometrie.Schnitt(poly[i], poly[(i + 1) % n], poly[j], poly[(j + 1) % n]) is { } s)
+                    {
+                        HinweisAn("flaeche-kreuzt", $"{wer}: Der Umriss kreuzt sich selbst bei {s}.", s, new[] { teil });
+                        return;
+                    }
+                }
+        }
+
+        /// <summary>
+        /// Wege: mindestens zwei Punkte, nicht schmaler als die Mindestbreite der Klasse; eine glatte Kurve läuft über kein Haus (außer dem, an
+        /// dessen Tür oder Hof sie beginnt oder endet). Gerade Wege prüfen die Regeln oben (Gassen über Häusern, Wege über Umlandbetrieben).
+        /// </summary>
+        private void Wege()
+        {
+            foreach (var w in _e.Wege)
+            {
+                var ort = w.Punkte.Count > 0 ? w.Punkte[0] : (Kartenort?)null;
+                if (w.Punkte.Count < 2)
+                    FehlerAn("weg-punkte", $"„{w.Name}“: Ein Weg braucht mindestens zwei Punkte.", ort, new[] { w });
+                if (w.Breite > 0 && w.Breite < w.Mindestbreite - 1e-9)
+                    FehlerAn("weg-breite", $"„{w.Name}“: {M(w.Breite)} m breit, eine {Kartenweg.Anzeigename(w.Klasse)} hat mindestens {M(w.Mindestbreite)} m.", ort, new[] { w });
+            }
+            foreach (var (w, linie, breite, wr) in _wege.Where(x => x.Weg.IstGlatt && x.Linie.Length >= 2))
+                foreach (var g in _e.Gebaeude)
+                {
+                    var haus = g.Ecken(ohneVorplatz: true);
+                    if (haus.Count == 0 || g.Art == Bausteinart.Sonderbau && g.Katalog == "markt") continue;
+                    if (Rahmen.Um(haus).Abstand(wr) >= breite / 2) continue;
+                    // Ein Weg, der an diesem Haus beginnt oder endet (Tür, Hof, Halteplatz), gehört zu ihm.
+                    if (Kartengeometrie.AbstandVielecke(Ecken(g), new[] { linie[0] }, false) < 3
+                        || Kartengeometrie.AbstandVielecke(Ecken(g), new[] { linie[^1] }, false) < 3) continue;
+                    var a = Kartengeometrie.AbstandVielecke(haus, linie, false);
+                    if (a < breite / 2)
+                        FehlerAn("kurve-ueber-haus", $"Die Kurve von „{w.Name}“ läuft über {Wer(g)}: {M(a)} m zur Mitte, {M(breite)} m breit.", g.Punkt, new[] { w }, g.Kennung);
+                }
+        }
+
+        /// <summary>Bauzonen: Kennung eindeutig, mindestens drei Ecken, der Umriss kreuzt sich nicht selbst.</summary>
+        private void ZonenFormen()
+        {
+            foreach (var z in _e.Bauzonen)
+            {
+                if (z.Ecken.Count < 3)
+                    FehlerAn("zone-form", $"Bauzone {z.Kennung}: Die Fläche braucht mindestens drei Punkte.", z.Ecken.Count > 0 ? z.Ecken[0] : null, new[] { z });
+                SelbstSchnitt($"Bauzone {z.Kennung}", z.Ecken, z);
+            }
+            foreach (var doppelt in _e.Bauzonen.GroupBy(z => z.Kennung).Where(x => x.Count() > 1))
+                FehlerAn("zone-kennung", $"Die Bauzone „{doppelt.Key}“ gibt es {doppelt.Count()}-mal.", Kartengeometrie.Mitte(doppelt.First().Ecken), doppelt.ToArray());
+        }
+
+        /// <summary>Eine einzeln gesetzte Pflanze auf einem Gebäude oder einem Weg (Hinweis: Sie steht dort trotzdem).</summary>
+        private void Pflanzen()
+        {
+            if (_e.Pflanzen.Count == 0) return;
+            var gebaeude = _e.Gebaeude.Select(g => (g, h: Naturhindernis.Von(g.Baustein, g.X, g.Z, g.Drehung, g.Massstab))).Where(x => x.h is not null).ToList();
+            foreach (var p in _e.Pflanzen)
+            {
+                var auf = gebaeude.FirstOrDefault(x => x.h!.Value.Enthaelt(p.X, p.Z, 0)).g;
+                if (auf is not null)
+                    HinweisAn("pflanze-frei", $"{p.Bezeichnung} bei {p.Punkt} steht auf {Wer(auf)}.", p.Punkt, new[] { p }, auf.Kennung);
+                else if (_wege.FirstOrDefault(w => Kartengeometrie.AbstandLinie(p.Punkt, w.Linie) < w.Breite / 2 + PflanzeAmWeg) is { Weg: not null } weg)
+                    HinweisAn("pflanze-frei", $"{p.Bezeichnung} bei {p.Punkt} steht auf „{weg.Weg.Name}“.", p.Punkt, new EntwurfTeil[] { p, weg.Weg });
+            }
         }
 
         /// <summary>Die Startbelegung: Plätze gibt es und sie haben die richtige Art, nichts doppelt (karte.py, Regel 10, und Stadtkarte.Pruefen).</summary>
@@ -678,40 +779,55 @@ public static class Kartenpruefung
                 Fehler("start", $"Start: Der Wohnhausplatz „{doppelt.Key}“ ist mehrfach vergeben.", Ort(doppelt.Key), Betroffen(doppelt.Key));
         }
 
-        /// <summary>Das Wegenetz hängt zusammen: Kreuzungen und Berührungen (1 m), Brücken und Fähren verbinden (karte.py, Regel 11).</summary>
+        /// <summary>
+        /// Das Wegenetz hängt zusammen: Kreuzungen und Berührungen (1 m), Brücken und Fähren verbinden (karte.py, Regel 11). Ein Weg hängt in
+        /// sich zusammen; verglichen werden nur Wege, deren Rahmen sich nahe kommen (glatte Kurven haben viele kurze Strecken).
+        /// </summary>
         private void Wegenetz()
         {
             const double fang = 1;
-            var strecken = new List<(Kartenort A, Kartenort B, string Name)>();
-            foreach (var (w, l, _, _) in _wege)
-                for (var i = 0; i + 1 < l.Length; i++) strecken.Add((l[i], l[i + 1], w.Name));
+            var linien = _wege.Where(w => w.Linie.Length >= 2).Select(w => (Name: w.Weg.Name, w.Linie, w.Rahmen, Weg: (EntwurfWeg?)w.Weg)).ToList();
             foreach (var u in _e.Uebergaenge)
-                strecken.Add((Kartenort.Aus(u.Von), Kartenort.Aus(u.Bis), u.Name));
-            if (strecken.Count == 0) return;
+            {
+                var l = new[] { Kartenort.Aus(u.Von), Kartenort.Aus(u.Bis) };
+                linien.Add((u.Name, l, Rahmen.Um(l), null));
+            }
+            if (linien.Count == 0) return;
 
-            var eltern = Enumerable.Range(0, strecken.Count).ToArray();
+            var eltern = Enumerable.Range(0, linien.Count).ToArray();
             int Wurzel(int i)
             {
                 while (eltern[i] != i) i = eltern[i] = eltern[eltern[i]];
                 return i;
             }
-            for (var i = 0; i < strecken.Count; i++)
+            for (var i = 0; i < linien.Count; i++)
+                for (var j = i + 1; j < linien.Count; j++)
+                    if (Wurzel(i) != Wurzel(j) && linien[i].Rahmen.Abstand(linien[j].Rahmen) <= fang && Beruehren(linien[i].Linie, linien[j].Linie, fang))
+                        eltern[Wurzel(i)] = Wurzel(j);
+            // das größte Teil (nach Zahl der Strecken) gilt als das Netz, die übrigen sind abgetrennt
+            var teile = Enumerable.Range(0, linien.Count).GroupBy(Wurzel).OrderByDescending(t => t.Sum(i => linien[i].Linie.Length - 1)).ToList();
+            if (teile.Count <= 1) return;
+            var ab = teile.Skip(1).SelectMany(t => t).ToList();
+            FehlerAn("wegenetz", $"Das Wegenetz zerfällt in {teile.Count} Teile; abgetrennt u. a.: {string.Join(", ", ab.Select(i => linien[i].Name).Distinct().Take(3).Select(n => $"„{n}“"))}.",
+                linien[teile[1].First()].Linie[0], ab.Select(i => linien[i].Weg).OfType<EntwurfTeil>().ToList());
+        }
+
+        /// <summary>Kommen sich zwei Linien auf <paramref name="fang"/> Meter nahe (Kreuzung oder Berührung)?</summary>
+        private static bool Beruehren(Kartenort[] p, Kartenort[] q, double fang)
+        {
+            for (var i = 0; i + 1 < p.Length; i++)
             {
-                var (a, b, _) = strecken[i];
-                for (var j = i + 1; j < strecken.Count; j++)
+                var (a, b) = (p[i], p[i + 1]);
+                for (var j = 0; j + 1 < q.Length; j++)
                 {
-                    var (c, d, _) = strecken[j];
+                    var (c, d) = (q[j], q[j + 1]);
                     if (Math.Max(a.X, b.X) + fang < Math.Min(c.X, d.X) || Math.Max(c.X, d.X) + fang < Math.Min(a.X, b.X)
                         || Math.Max(a.Z, b.Z) + fang < Math.Min(c.Z, d.Z) || Math.Max(c.Z, d.Z) + fang < Math.Min(a.Z, b.Z))
                         continue;
-                    if (Kartengeometrie.AbstandStrecken(a, b, c, d) <= fang) eltern[Wurzel(i)] = Wurzel(j);
+                    if (Kartengeometrie.AbstandStrecken(a, b, c, d) <= fang) return true;
                 }
             }
-            var teile = Enumerable.Range(0, strecken.Count).GroupBy(Wurzel).OrderByDescending(t => t.Count()).ToList();
-            if (teile.Count <= 1) return;
-            var ab = teile.Skip(1).SelectMany(t => t).Select(i => strecken[i].Name).Distinct().ToList();
-            Fehler("wegenetz", $"Das Wegenetz zerfällt in {teile.Count} Teile; abgetrennt u. a.: {string.Join(", ", ab.Take(3).Select(n => $"„{n}“"))}.",
-                strecken[teile[1].First()].A);
+            return false;
         }
     }
 

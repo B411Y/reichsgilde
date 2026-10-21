@@ -89,7 +89,8 @@ public sealed class WerkstattDaten
                 var w = e.Wirkung;
                 if (w.ZeitFaktor is <= 0 or > 1) f.Add($"{wo}.wirkung.zeitFaktor muss größer 0 und höchstens 1 sein.");
                 if (w.LagerPlus < 0) f.Add($"{wo}.wirkung.lagerPlus darf nicht negativ sein.");
-                foreach (var (name, faktor) in new[] { ("unfallFaktor", w.UnfallFaktor), ("brandFaktor", w.BrandFaktor), ("einbruchFaktor", w.EinbruchFaktor) })
+                foreach (var (name, faktor) in new[] { ("unfallFaktor", w.UnfallFaktor), ("brandFaktor", w.BrandFaktor), ("einbruchFaktor", w.EinbruchFaktor),
+                             ("einbruchBonus", w.EinbruchBonus), ("fangFaktor", w.FangFaktor), ("spurenFaktor", w.SpurenFaktor) })
                     if (faktor is < 0 or > 1) f.Add($"{wo}.wirkung.{name} muss zwischen 0 und 1 liegen.");
                 foreach (var ware in w.Waren.Where(x => !waren.ContainsKey(x)))
                     f.Add($"{wo}.wirkung.waren: Die Ware „{ware}“ gibt es nicht.");
@@ -196,6 +197,21 @@ public sealed class EinrichtungWirkung
     /// <summary>Faktor auf die Erfolgschance von Diebstahl und Einbruch ins Lager.</summary>
     public double EinbruchFaktor { get; init; } = 1;
 
+    /// <summary>
+    /// Dieb: So viel höher ist die Erfolgschance der eigenen Einbrüche – absolut wie <c>dieb.einbruch.chanceBonus</c>
+    /// (0,1 = +10 Prozentpunkte vor Wächter und Patrouille). Mehrere Stücke zählen zusammen.
+    /// </summary>
+    public double EinbruchBonus { get; init; }
+
+    /// <summary>Dieb: Faktor auf die Chance, dass ein Taschendieb am Markt erwischt wird (0,75 = 25 % seltener).</summary>
+    public double FangFaktor { get; init; } = 1;
+
+    /// <summary>
+    /// Dieb: Faktor auf die Spuren des Hauses – Zeugen der eigenen nächtlichen Aufträge und Beweise, die Auskundschafter
+    /// und Razzien bei ihm finden (0,75 = 25 % seltener).
+    /// </summary>
+    public double SpurenFaktor { get; init; } = 1;
+
     public bool GiltFuer(string ware) => Waren.Count == 0 || Waren.Contains(ware);
 
     /// <summary>Die Wirkung in einem Satz für die Oberfläche.</summary>
@@ -208,6 +224,9 @@ public sealed class EinrichtungWirkung
         if (UnfallFaktor < 1) teile.Add(UnfallFaktor == 0.5 ? "Unfälle halb so oft" : $"Unfälle {Zahlenformat.Ganz((1 - UnfallFaktor) * 100)} % seltener");
         if (BrandFaktor < 1) teile.Add($"Feuer {Zahlenformat.Ganz((1 - BrandFaktor) * 100)} % seltener");
         if (EinbruchFaktor < 1) teile.Add($"Diebstahl und Einbruch {Zahlenformat.Ganz((1 - EinbruchFaktor) * 100)} % seltener");
+        if (EinbruchBonus > 0) teile.Add($"+{Zahlenformat.Ganz(EinbruchBonus * 100)} % Erfolg beim Einbruch");
+        if (FangFaktor < 1) teile.Add($"Taschendiebe {Zahlenformat.Ganz((1 - FangFaktor) * 100)} % seltener gefasst");
+        if (SpurenFaktor < 1) teile.Add($"Zeugen und Beweise {Zahlenformat.Ganz((1 - SpurenFaktor) * 100)} % seltener");
         return teile.Count == 0 ? "keine Wirkung" : string.Join(", ", teile);
     }
 }

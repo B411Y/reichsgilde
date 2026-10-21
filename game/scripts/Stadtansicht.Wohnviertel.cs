@@ -207,15 +207,21 @@ public partial class Stadtansicht
 
     private static bool WegenetzZeigen => OS.GetCmdlineUserArgs().Contains("--wegenetz=1");
 
-    private void NetzZeichnen()
+    private void NetzZeichnen() => NetzZeichnen(_netz, this);
+
+    /// <summary>
+    /// Zeichnet ein Gassennetz: Kanten pink, Knoten gelb – auch die Kartenwerkstatt (Schalter „Gassennetz“), dort <paramref name="immerSichtbar"/>
+    /// über allem, sonst verdecken die Häuser am Ring die Gassen.
+    /// </summary>
+    private void NetzZeichnen(Gassennetz netz, Node3D eltern, bool immerSichtbar = false)
     {
-        var linie = Stoff(new Color(1f, 0.15f, 0.6f));
+        var linie = immerSichtbar ? ImmerSichtbar(Transparent(new Color(1f, 0.15f, 0.6f), 0.9f)) : Stoff(new Color(1f, 0.15f, 0.6f));
         linie.ShadingMode = BaseMaterial3D.ShadingModeEnum.Unshaded;
-        foreach (var (von, bis) in _netz.Kanten)
+        foreach (var (von, bis) in netz.Kanten)
         {
             var laenge = von.DistanceTo(bis);
             if (laenge < 0.01f) continue;
-            AddChild(new MeshInstance3D
+            eltern.AddChild(new MeshInstance3D
             {
                 Mesh = new BoxMesh { Size = new Vector3(0.35f, 0.1f, laenge) },
                 MaterialOverride = linie,
@@ -223,9 +229,9 @@ public partial class Stadtansicht
                 Rotation = new Vector3(0, Mathf.Atan2(bis.X - von.X, bis.Z - von.Z), 0),
             });
         }
-        var punkt = Stoff(new Color(1f, 0.9f, 0.1f));
+        var punkt = immerSichtbar ? ImmerSichtbar(Transparent(new Color(1f, 0.9f, 0.1f), 0.95f)) : Stoff(new Color(1f, 0.9f, 0.1f));
         punkt.ShadingMode = BaseMaterial3D.ShadingModeEnum.Unshaded;
-        foreach (var k in _netz.Knoten)
-            AddChild(new MeshInstance3D { Mesh = new SphereMesh { Radius = 0.45f, Height = 0.9f }, MaterialOverride = punkt, Position = k + new Vector3(0, 0.4f, 0) });
+        foreach (var k in netz.Knoten)
+            eltern.AddChild(new MeshInstance3D { Mesh = new SphereMesh { Radius = 0.45f, Height = 0.9f }, MaterialOverride = punkt, Position = k + new Vector3(0, 0.4f, 0) });
     }
 }

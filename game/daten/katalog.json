@@ -41,7 +41,7 @@
     {"kennung": "brennnessel", "art": "natur", "name": "Brennnessel", "modell": "natur/natur_boden", "knoten": "Brennnessel", "varianten": 1},
     {"kennung": "pilze", "art": "natur", "name": "Pilze", "modell": "natur/natur_boden", "knoten": "Pilze", "varianten": 1},
     {"kennung": "wildblumen", "art": "natur", "name": "Wildblumen", "modell": "natur/natur_boden", "knoten": "Wildblumen", "varianten": 1},
-    {"kennung": "maulwurfshuegel", "art": "natur", "name": "Maulwurfshuegel", "modell": "natur/natur_boden", "knoten": "Maulwurfshuegel", "varianten": 1},
+    {"kennung": "maulwurfshuegel", "art": "natur", "name": "Maulwurfshügel", "modell": "natur/natur_boden", "knoten": "Maulwurfshuegel", "varianten": 1},
     {"kennung": "schilf", "art": "natur", "name": "Schilf", "modell": "natur/natur_boden", "knoten": "Schilf", "varianten": 1},
     {"kennung": "felsbrocken", "art": "natur", "name": "Felsbrocken", "modell": "natur/natur_steine", "knoten": "Felsbrocken", "varianten": 2},
     {"kennung": "findling", "art": "natur", "name": "Findling", "modell": "natur/natur_steine", "knoten": "Findling", "varianten": 2},

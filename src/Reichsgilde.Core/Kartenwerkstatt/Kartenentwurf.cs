@@ -12,14 +12,18 @@ namespace Reichsgilde.Core.Kartenwerkstatt;
 //  veränderbar, darf Fehler enthalten (die Prüfung zeigt sie), und er hält ALLES aus der Datei – auch Felder, die weder Kern noch
 //  Darstellung lesen (vorlage, fiktion, vorkommen, probeplan …). Gespeichert ergibt er dieselbe Datei wieder (Kartenschreiber).
 //
-//  Schritt 1 bearbeitet nur die Gebäude. Alles Übrige (Wege, Mauern, Bauzonen, Natur, Start, Wasser, Kamera …) liegt als JSON im
-//  Entwurf und wird für die Prüfung einmal in die Typen der Stadtkarte gelesen (Kartenweg, Kartenmauer …).
+//  Bearbeitbar sind die Gebäude (Schritt 1), die Wege, Bauzonen, Naturflächen und einzelnen Pflanzen (Schritt 2, EntwurfTeile.cs und
+//  Kartenentwurf.Wege.cs, Kartenentwurf.Flaechen.cs). Alles Übrige (Mauern, Start, Wasser, Kamera …) liegt als JSON im Entwurf und
+//  wird für die Prüfung einmal in die Typen der Stadtkarte gelesen (Kartenmauer …).
 //  Geändert wird nur über Befehle (Setzen, Verschieben, Drehen …), damit Rückgängig und Wiederholen immer stimmen.
 // ═════════════════════════════════════════════════════════════════════════════
 
 /// <summary>Ein Gebäude im Entwurf: dieselben Felder wie <see cref="Kartengebaeude"/>, aber veränderbar (nur über die Befehle des Entwurfs).</summary>
-public sealed class EntwurfGebaeude
+public sealed class EntwurfGebaeude : EntwurfTeil
 {
+    public override Kartenteil Teil => Kartenteil.Gebaeude;
+    public override string Bezeichnung => Name;
+
     /// <summary>Eindeutig in der Karte. Spielstände und <c>start</c> verweisen darauf – die Werkstatt ändert sie nicht.</summary>
     public string Kennung { get; internal set; } = "";
 
@@ -83,6 +87,12 @@ public sealed class EntwurfGebaeude
     /// <summary>Mitte der Vorderkante (Eingang eines Wohnhausplatzes).</summary>
     public Kartenort? Eingang => Groesse is var (_, t) ? Lokal(0, t / 2) : null;
 
+    internal override EntwurfTeil KopieTeil() => Kopie();
+    internal override void UebernimmTeil(EntwurfTeil werte) => Uebernimm((EntwurfGebaeude)werte);
+
+    internal override bool GleicheWerte(EntwurfTeil anderer) => anderer is EntwurfGebaeude b && X == b.X && Z == b.Z && Drehung == b.Drehung
+        && Name == b.Name && Massstab == b.Massstab && Betrieb == b.Betrieb && Lage == b.Lage && Konfession == b.Konfession && Katalog == b.Katalog;
+
     internal EntwurfGebaeude Kopie() => new()
     {
         Kennung = Kennung, Katalog = Katalog, Name = Name, X = X, Z = Z, Drehung = Drehung, Massstab = Massstab, Betrieb = Betrieb,
@@ -98,7 +108,7 @@ public sealed class EntwurfGebaeude
     }
 
     /// <summary>Das Gebäude als Eintrag der Datei (Felder in der Reihenfolge des Werkzeugs, freiwillige nur, wenn gesetzt).</summary>
-    internal JsonObject AlsJson()
+    internal override JsonObject AlsJson()
     {
         var o = new JsonObject
         {
@@ -143,21 +153,36 @@ public sealed class EntwurfGebaeude
     }
 }
 
-/// <summary>Was sich am Entwurf geändert hat (für die Darstellung: nur dieses Gebäude neu zeichnen).</summary>
+/// <summary>Was sich am Entwurf geändert hat (für die Darstellung: nur diesen Teil neu zeichnen).</summary>
 public enum Aenderungsart
 {
-    /// <summary>Das Gebäude ist neu in der Karte (auch: ein Löschen wurde zurückgenommen).</summary>
+    /// <summary>Der Teil ist neu in der Karte (auch: ein Löschen wurde zurückgenommen).</summary>
     Gesetzt,
 
-    /// <summary>Das Gebäude ist weg (auch: ein Setzen wurde zurückgenommen).</summary>
+    /// <summary>Der Teil ist weg (auch: ein Setzen wurde zurückgenommen).</summary>
     Geloescht,
 
-    /// <summary>Punkt, Drehung, Name, Betrieb … des Gebäudes haben sich geändert.</summary>
+    /// <summary>Punkt, Drehung, Name, Stützpunkte, Ecken … des Teils haben sich geändert (das Objekt bleibt dasselbe).</summary>
     Geaendert,
 }
 
-/// <summary>Eine Änderung am Entwurf: welche Art, welches Gebäude.</summary>
-public readonly record struct Kartenaenderung(Aenderungsart Art, EntwurfGebaeude Gebaeude);
+/// <summary>
+/// Eine Änderung am Entwurf: welche Art, welcher Teil (Gebäude, Weg, Bauzone, Naturfläche, Pflanze). Ein Befehl kann mehrere Teile ändern
+/// (ein Weg rastet am Nachbarn ein, der Pinsel setzt viele Pflanzen) – dann kommt je Teil eine Änderung, alle erst, wenn die Geschichte
+/// den Schritt kennt.
+/// </summary>
+public readonly record struct Kartenaenderung(Aenderungsart Art, EntwurfTeil Objekt)
+{
+    public Kartenteil Teil => Objekt.Teil;
+
+    /// <summary>Das Gebäude – oder null, wenn sich ein anderer Teil geändert hat.</summary>
+    public EntwurfGebaeude? Gebaeude => Objekt as EntwurfGebaeude;
+
+    public EntwurfWeg? Weg => Objekt as EntwurfWeg;
+    public EntwurfBauzone? Bauzone => Objekt as EntwurfBauzone;
+    public EntwurfNaturflaeche? Naturflaeche => Objekt as EntwurfNaturflaeche;
+    public EntwurfPflanze? Pflanze => Objekt as EntwurfPflanze;
+}
 
 /// <summary>Ein Fundort eines Rohstoffbetriebs (<c>vorkommen</c> der Datei; nur das Werkzeug und die Prüfung lesen ihn).</summary>
 public sealed record Kartenvorkommen(string Kennung, string Betrieb, Kartenort Punkt);
@@ -171,12 +196,19 @@ public sealed record Probeplatz(string Art, string Zone, Kartenort Punkt, double
 /// <see cref="Loeschen"/>, <see cref="Umbenennen"/> …, jeweils mit <see cref="Rueckgaengig"/> und <see cref="Wiederholen"/>) und
 /// mit <see cref="ZuJson"/> wieder geschrieben. Kennt Godot nicht.
 /// </summary>
-public sealed class Kartenentwurf
+public sealed partial class Kartenentwurf
 {
     /// <summary>Alle Felder der Datei in ihrer Reihenfolge; unter „gebaeude“ stehen die Gebäude erst beim Schreiben (<see cref="ZuJson"/>).</summary>
     private readonly JsonObject _daten;
 
     private readonly List<EntwurfGebaeude> _gebaeude;
+    private readonly List<EntwurfWeg> _wege;
+    private readonly List<EntwurfBauzone> _bauzonen;
+    private readonly List<EntwurfNaturflaeche> _naturflaechen;
+    private readonly List<EntwurfPflanze> _pflanzen;
+
+    /// <summary>Änderungen des laufenden Befehls – gemeldet erst, wenn die Geschichte den Schritt kennt (<see cref="MeldungenAusloesen"/>).</summary>
+    private readonly List<Kartenaenderung> _ausstehend = new();
 
     /// <summary>Die übrigen Teile der Karte in den Typen der Stadtkarte (für Prüfung und Darstellung), gelesen beim Öffnen.</summary>
     private readonly Stadtkarte _teile;
@@ -191,13 +223,19 @@ public sealed class Kartenentwurf
     /// <summary>Welche Regeln die Prüfung anlegt – nach der Kennung der Karte (<see cref="Pruefregeln.Fuer"/>), änderbar.</summary>
     public Pruefregeln Regeln { get; set; }
 
-    /// <summary>Nach jedem Befehl, jedem Rückgängig und jedem Wiederholen: welches Gebäude sich wie geändert hat.</summary>
+    /// <summary>
+    /// Nach jedem Befehl, jedem Rückgängig und jedem Wiederholen: welcher Teil sich wie geändert hat. Kommt erst, wenn die Geschichte den
+    /// Schritt kennt – <see cref="Kartengeschichte.KannRueckgaengig"/> und <see cref="Kartengeschichte.IstGeaendert"/> sind schon neu.
+    /// </summary>
     public event Action<Kartenaenderung>? Geaendert;
 
-    private Kartenentwurf(JsonObject daten, List<EntwurfGebaeude> gebaeude, Stadtkarte teile, Gebaeudekatalog katalog)
+    private Kartenentwurf(JsonObject daten, List<EntwurfGebaeude> gebaeude, Stadtkarte teile, Gebaeudekatalog katalog,
+        List<EntwurfWeg> wege, List<EntwurfBauzone> bauzonen, List<EntwurfNaturflaeche> naturflaechen, List<EntwurfPflanze> pflanzen)
     {
         (_daten, _gebaeude, _teile, Katalog) = (daten, gebaeude, teile, katalog);
+        (_wege, _bauzonen, _naturflaechen, _pflanzen) = (wege, bauzonen, naturflaechen, pflanzen);
         foreach (var g in _gebaeude) g.Baustein = katalog.Finde(g.Katalog);
+        foreach (var p in _pflanzen) p.Baustein = katalog.Finde(p.Katalog);
         Geschichte = new Kartengeschichte(this);
         Regeln = Pruefregeln.Fuer(Kennung);
         Vorkommen = LiesVorkommen();
@@ -225,10 +263,18 @@ public sealed class Kartenentwurf
     /// <summary>Die Gebäude in der Reihenfolge der Datei (die Reihenfolge zählt bei Einwohnerplätzen).</summary>
     public IReadOnlyList<EntwurfGebaeude> Gebaeude => _gebaeude;
 
-    public IReadOnlyList<Kartenweg> Wege => _teile.Wege;
+    /// <summary>Die Wege in der Reihenfolge der Datei.</summary>
+    public IReadOnlyList<EntwurfWeg> Wege => _wege;
+
     public IReadOnlyList<Kartenmauer> Mauern => _teile.Mauern;
-    public IReadOnlyList<Bauzone> Bauzonen => _teile.Bauzonen;
-    public Kartennatur Natur => _teile.Natur;
+    public IReadOnlyList<EntwurfBauzone> Bauzonen => _bauzonen;
+
+    /// <summary>Die Wald- und Streuflächen (<c>natur.flaechen</c>).</summary>
+    public IReadOnlyList<EntwurfNaturflaeche> Naturflaechen => _naturflaechen;
+
+    /// <summary>Die einzeln gesetzten Pflanzen (<c>natur.pflanzen</c>).</summary>
+    public IReadOnlyList<EntwurfPflanze> Pflanzen => _pflanzen;
+
     public IReadOnlyList<Gewaesser> Wasser => _teile.Wasser;
     public IReadOnlyList<Gelaende> Gelaende => _teile.Gelaende;
     public IReadOnlyList<Hafen> Haefen => _teile.Haefen;
@@ -259,8 +305,8 @@ public sealed class Kartenentwurf
     {
         if (Groesse is var (b, t)) return (-b / 2, -t / 2, b / 2, t / 2);
         var punkte = _gebaeude.SelectMany(g => g.Ecken() is { Count: > 0 } e ? e : new[] { g.Punkt })
-            .Concat(Wege.SelectMany(w => w.Linie).Concat(Gelaende.SelectMany(g => g.Flaeche))
-                .Concat(Wasser.SelectMany(w => (w.Linie ?? new()).Concat(w.Flaeche ?? new()))).Select(Kartenort.Aus))
+            .Concat(_wege.SelectMany(w => w.Punkte))
+            .Concat(Gelaende.SelectMany(g => g.Flaeche).Concat(Wasser.SelectMany(w => (w.Linie ?? new()).Concat(w.Flaeche ?? new()))).Select(Kartenort.Aus))
             .ToList();
         if (punkte.Count == 0) return (-50, -50, 50, 50);
         return (punkte.Min(p => p.X) - 10, punkte.Min(p => p.Z) - 10, punkte.Max(p => p.X) + 10, punkte.Max(p => p.Z) + 10);
@@ -293,20 +339,46 @@ public sealed class Kartenentwurf
         else if (daten.ContainsKey("gebaeude"))
             throw new KartenFehler(new[] { "gebaeude ist keine Liste." });
 
-        // Die übrigen Teile mit dem Leser der Stadtkarte (ohne Gebäude, ohne Prüfung)
-        var ohneGebaeude = daten.DeepClone().AsObject();
-        ohneGebaeude.Remove("gebaeude");
+        // Wege, Bauzonen und Natur: je Eintrag in den Typen der Stadtkarte gelesen, der Eintrag selbst bleibt als Vorlage fürs Schreiben
+        var wege = Teilleser.Liste<Kartenweg>(daten["wege"], "Weg").Select(x => EntwurfWeg.Aus(x.Wert, x.Vorlage)).ToList();
+        var bauzonen = Teilleser.Liste<Bauzone>(daten["bauzonen"], "Bauzone").Select(x => EntwurfBauzone.Aus(x.Wert, x.Vorlage)).ToList();
+        if (daten["natur"] is not (null or JsonObject)) throw new KartenFehler(new[] { "natur ist kein Objekt." });
+        var flaechen = Teilleser.Liste<Naturflaeche>(daten["natur"]?["flaechen"], "Naturfläche").Select(x => EntwurfNaturflaeche.Aus(x.Wert, x.Vorlage)).ToList();
+        var pflanzen = Teilleser.Liste<Pflanze>(daten["natur"]?["pflanzen"], "Pflanze").Select(x => EntwurfPflanze.Aus(x.Wert, x.Vorlage)).ToList();
+
+        // Die übrigen Teile mit dem Leser der Stadtkarte (ohne Prüfung)
+        var rest = daten.DeepClone().AsObject();
+        foreach (var k in new[] { "gebaeude", "wege", "bauzonen", "natur" }) rest.Remove(k);
         Stadtkarte teile;
         try
         {
-            teile = JsonSerializer.Deserialize<Stadtkarte>(ohneGebaeude.ToJsonString(), Stadtkarte.Optionen)
+            teile = JsonSerializer.Deserialize<Stadtkarte>(rest.ToJsonString(), Stadtkarte.Optionen)
                     ?? throw new KartenFehler(new[] { "Die Datei ist leer." });
         }
         catch (JsonException ex)
         {
             throw new KartenFehler(new[] { $"Die Karte ist nicht lesbar ({ex.Path}): {ex.Message}" });
         }
-        return new Kartenentwurf(daten, gebaeude, teile, katalog);
+        return new Kartenentwurf(MitAbschnitten(daten), gebaeude, teile, katalog, wege, bauzonen, flaechen, pflanzen);
+    }
+
+    /// <summary>Abschnitte, die der Entwurf schreibt, auch wenn die Datei sie (noch) nicht hat – in dieser Reihenfolge der Datei.</summary>
+    private static readonly string[] Reihenfolge = { "format", "kennung", "stadt", "vorlage", "einheit", "achsen", "raster", "groesse", "gebaeude", "mauern", "wege", "bauzonen", "natur" };
+
+    /// <summary>
+    /// Fehlen <c>wege</c>, <c>bauzonen</c> oder <c>natur</c>, bekommen sie einen leeren Platz an ihrer Stelle der Reihenfolge (null) –
+    /// geschrieben werden sie nur, wenn sie etwas enthalten. So landet ein erster Weg in Köln-artigen Dateien an der richtigen Stelle.
+    /// </summary>
+    private static JsonObject MitAbschnitten(JsonObject daten)
+    {
+        var liste = daten.Select(e => (e.Key, Wert: e.Value?.DeepClone())).ToList();
+        foreach (var fehlt in new[] { "wege", "bauzonen", "natur" }.Where(k => !daten.ContainsKey(k)))
+        {
+            var davor = Reihenfolge.TakeWhile(k => k != fehlt).ToHashSet();
+            var i = liste.FindLastIndex(e => davor.Contains(e.Key));
+            liste.Insert(i < 0 ? liste.Count : i + 1, (fehlt, null));
+        }
+        return new JsonObject(liste.Select(e => new KeyValuePair<string, JsonNode?>(e.Key, e.Wert)));
     }
 
     /// <summary>
@@ -321,7 +393,8 @@ public sealed class Kartenentwurf
             ["groesse"] = new JsonArray(JsonValue.Create(breite), JsonValue.Create(tiefe)),
             ["gebaeude"] = new JsonArray(), ["mauern"] = new JsonArray(), ["wege"] = new JsonArray(), ["bauzonen"] = new JsonArray(),
         };
-        return new Kartenentwurf(daten, new List<EntwurfGebaeude>(), new Stadtkarte { Kennung = kennung, Stadt = stadt }, katalog);
+        return new Kartenentwurf(MitAbschnitten(daten), new List<EntwurfGebaeude>(), new Stadtkarte { Kennung = kennung, Stadt = stadt }, katalog,
+            new List<EntwurfWeg>(), new List<EntwurfBauzone>(), new List<EntwurfNaturflaeche>(), new List<EntwurfPflanze>());
     }
 
     /// <summary>
@@ -331,15 +404,30 @@ public sealed class Kartenentwurf
     public string ZuJson()
     {
         var aus = new JsonObject();
+        static JsonArray Liste(IEnumerable<EntwurfTeil> teile) => new(teile.Select(t => (JsonNode)t.AlsJson()).ToArray());
         foreach (var (k, v) in _daten)
         {
-            if (k == "gebaeude")
+            switch (k)
             {
-                aus[k] = new JsonArray(_gebaeude.Select(g => (JsonNode)g.AlsJson()).ToArray());
-                continue;
+                case "gebaeude":
+                    aus[k] = Liste(_gebaeude);
+                    continue;
+                case "wege" or "bauzonen":
+                    // ein leerer Platz (die Datei hatte den Abschnitt nicht) bleibt leer, solange nichts darin steht
+                    var teile = k == "wege" ? _wege.Cast<EntwurfTeil>().ToList() : _bauzonen.Cast<EntwurfTeil>().ToList();
+                    if (v is not null || teile.Count > 0) aus[k] = Liste(teile);
+                    continue;
+                case "natur":
+                    if (_naturflaechen.Count == 0 && _pflanzen.Count == 0) continue; // wie das Werkzeug: leere Natur fällt weg
+                    var natur = new JsonObject();
+                    foreach (var (nk, nv) in v as JsonObject ?? new JsonObject())
+                        natur[nk] = nk is "flaechen" or "pflanzen" ? null : nv?.DeepClone();
+                    natur["flaechen"] = Liste(_naturflaechen);
+                    natur["pflanzen"] = Liste(_pflanzen);
+                    aus[k] = natur;
+                    continue;
             }
             if (Freiwillig.Contains(k) && v is null or JsonArray { Count: 0 } or JsonObject { Count: 0 }) continue;
-            if (k == "natur" && v is JsonObject n && n["flaechen"] is JsonArray { Count: 0 } && n["pflanzen"] is JsonArray { Count: 0 }) continue;
             aus[k] = v?.DeepClone();
         }
         return Kartenschreiber.Kompakt(aus);
@@ -375,7 +463,7 @@ public sealed class Kartenentwurf
             Kennung = NeueKennung(b), Katalog = katalog, Name = NamensVorschlag(b), Baustein = b,
             X = Kartenraster.Punkt(x), Z = Kartenraster.Punkt(z), Drehung = Kartenraster.Drehung(drehung),
         };
-        Geschichte.Ausfuehren(new GebaeudeSetzen(g, _gebaeude.Count));
+        Geschichte.Ausfuehren(new TeilSetzen(g, _gebaeude.Count));
         return g;
     }
 
@@ -408,7 +496,7 @@ public sealed class Kartenentwurf
     public void Loeschen(string kennung)
     {
         var g = GebaeudeMit(kennung) ?? throw new ArgumentException($"Kein Gebäude „{kennung}“.", nameof(kennung));
-        Geschichte.Ausfuehren(new GebaeudeLoeschen(g, _gebaeude.IndexOf(g)));
+        Geschichte.Ausfuehren(new TeilLoeschen(g, _gebaeude.IndexOf(g)));
     }
 
     public bool Rueckgaengig() => Geschichte.Rueckgaengig();
@@ -418,15 +506,23 @@ public sealed class Kartenentwurf
     private void Aendern(string kennung, string was, Action<EntwurfGebaeude> aenderung)
     {
         var g = GebaeudeMit(kennung) ?? throw new ArgumentException($"Kein Gebäude „{kennung}“.", nameof(kennung));
-        var nachher = g.Kopie();
-        aenderung(nachher);
-        if (Gleich(g, nachher)) return;
-        Geschichte.Ausfuehren(new GebaeudeAendern($"{g.Name} {was}", g, g.Kopie(), nachher));
+        Aendern(g, was, aenderung);
     }
 
-    private static bool Gleich(EntwurfGebaeude a, EntwurfGebaeude b) =>
-        a.X == b.X && a.Z == b.Z && a.Drehung == b.Drehung && a.Name == b.Name && a.Massstab == b.Massstab && a.Betrieb == b.Betrieb
-        && a.Lage == b.Lage && a.Konfession == b.Konfession && a.Katalog == b.Katalog;
+    /// <summary>Ändert einen Teil über eine Kopie (ein Schritt „{Bezeichnung} {was}“); ändert sich nichts, entsteht kein Schritt.</summary>
+    private void Aendern<T>(T teil, string was, Action<T> aenderung) where T : EntwurfTeil
+    {
+        if (Aenderung(teil, aenderung) is { } befehl) Geschichte.Ausfuehren(befehl.Benannt($"{teil.Bezeichnung} {was}"));
+    }
+
+    /// <summary>Der Befehl, der einen Teil wie angegeben ändert – null, wenn sich nichts ändert (zum Bündeln in einem Schritt).</summary>
+    private TeilAendern? Aenderung<T>(T teil, Action<T> aenderung) where T : EntwurfTeil
+    {
+        if (!Enthaelt(teil)) throw new ArgumentException($"„{teil.Bezeichnung}“ gehört nicht (mehr) zu diesem Entwurf.", nameof(teil));
+        var nachher = (T)teil.KopieTeil();
+        aenderung(nachher);
+        return nachher.GleicheWerte(teil) ? null : new TeilAendern("", teil, teil.KopieTeil(), nachher);
+    }
 
     /// <summary>„Werkstattplatz1“, „Werkstattplatz2“ … – die kleinste freie Nummer hinter der Kennung aus dem Namen des Bausteins.</summary>
     private string NeueKennung(Baustein b)
@@ -448,39 +544,78 @@ public sealed class Kartenentwurf
         return $"{b.Anzeigename} {n}";
     }
 
-    /// <summary>Kennung aus einem Namen wie im Werkzeug (<c>kennung_von</c>): Umlaute umschrieben, sonst nur Buchstaben und Ziffern.</summary>
+    /// <summary>
+    /// Kennung aus einem Namen wie im Werkzeug (<c>kennung_von</c>): Umlaute umschrieben, sonst nur Buchstaben und Ziffern, alles andere „_“ –
+    /// mehrere Zeichen hintereinander werden ein „_“ („Bürgerhaus (Kulisse)“ → „Buergerhaus_Kulisse“). Bestehende Kennungen ändert das nicht.
+    /// </summary>
     public static string KennungVon(string name)
     {
         foreach (var (a, b) in new[] { ("ä", "ae"), ("ö", "oe"), ("ü", "ue"), ("ß", "ss"), ("Ä", "Ae"), ("Ö", "Oe"), ("Ü", "Ue") })
             name = name.Replace(a, b);
-        return new string(name.Select(c => char.IsLetterOrDigit(c) ? c : '_').ToArray()).Trim('_');
+        var t = new System.Text.StringBuilder();
+        foreach (var c in name)
+            if (char.IsLetterOrDigit(c)) t.Append(c);
+            else if (t.Length > 0 && t[^1] != '_') t.Append('_');
+        return t.ToString().Trim('_');
     }
 
     // ── Für die Befehle ──────────────────────────────────────────────────────
 
-    internal void Einfuegen(EntwurfGebaeude g, int index)
+    /// <summary>Die Liste, in der ein Teil dieser Art steht.</summary>
+    private System.Collections.IList Liste(EntwurfTeil t) => t.Teil switch
     {
-        _gebaeude.Insert(Math.Min(index, _gebaeude.Count), g);
-        Melden(new Kartenaenderung(Aenderungsart.Gesetzt, g));
+        Kartenteil.Gebaeude => _gebaeude,
+        Kartenteil.Weg => _wege,
+        Kartenteil.Bauzone => _bauzonen,
+        Kartenteil.Naturflaeche => _naturflaechen,
+        _ => _pflanzen,
+    };
+
+    /// <summary>Steht der Teil (dieses Objekt) im Entwurf?</summary>
+    public bool Enthaelt(EntwurfTeil t) => IndexVon(t) >= 0;
+
+    /// <summary>Die Stelle des Teils in seiner Liste (−1: nicht im Entwurf).</summary>
+    internal int IndexVon(EntwurfTeil t)
+    {
+        var l = Liste(t);
+        for (var i = 0; i < l.Count; i++)
+            if (ReferenceEquals(l[i], t)) return i;
+        return -1;
     }
 
-    internal void Entfernen(EntwurfGebaeude g)
+    internal void Einfuegen(EntwurfTeil t, int index)
     {
-        _gebaeude.Remove(g);
-        Melden(new Kartenaenderung(Aenderungsart.Geloescht, g));
+        var l = Liste(t);
+        l.Insert(Math.Min(index, l.Count), t);
+        Vormerken(new Kartenaenderung(Aenderungsart.Gesetzt, t));
     }
 
-    internal void Uebernehmen(EntwurfGebaeude g, EntwurfGebaeude werte)
+    internal void Entfernen(EntwurfTeil t)
     {
-        g.Uebernimm(werte);
-        g.Baustein = Katalog.Finde(g.Katalog);
-        Melden(new Kartenaenderung(Aenderungsart.Geaendert, g));
+        Liste(t).RemoveAt(IndexVon(t));
+        Vormerken(new Kartenaenderung(Aenderungsart.Geloescht, t));
     }
 
-    private void Melden(Kartenaenderung a)
+    internal void Uebernehmen(EntwurfTeil t, EntwurfTeil werte)
+    {
+        t.UebernimmTeil(werte);
+        if (t is EntwurfGebaeude g) g.Baustein = Katalog.Finde(g.Katalog);
+        if (t is EntwurfPflanze p) p.Baustein = Katalog.Finde(p.Katalog);
+        Vormerken(new Kartenaenderung(Aenderungsart.Geaendert, t));
+    }
+
+    private void Vormerken(Kartenaenderung a)
     {
         _befunde = null;
-        Geaendert?.Invoke(a);
+        _ausstehend.Add(a);
+    }
+
+    /// <summary>Meldet die Änderungen des letzten Befehls (aus der Geschichte, nachdem sie den Schritt eingetragen hat).</summary>
+    internal void MeldungenAusloesen()
+    {
+        var liste = _ausstehend.ToList();
+        _ausstehend.Clear();
+        foreach (var a in liste) Geaendert?.Invoke(a);
     }
 
     // ── Lesen der Felder, die die Stadtkarte nicht kennt ─────────────────────

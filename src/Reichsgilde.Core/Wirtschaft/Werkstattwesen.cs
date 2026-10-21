@@ -146,10 +146,16 @@ public sealed class Werkstattwesen
         return null;
     }
 
+    /// <summary>
+    /// Kann dieser Betrieb Einrichtung haben? Werkstätten mit Ware und die Betriebe des Diebes (Schmugglerloch, Unterschlupf,
+    /// Diebesgilde) – nicht das Umland (Klosterhof, Bauernhof …), die Wache oder der Schreiber.
+    /// </summary>
+    public bool KannEinrichtung(Betrieb b) => b.IstWerkstatt || _w.Diebe.IstDiebesbetrieb(b);
+
     /// <summary>Alle Stücke, die eine Werkstatt dieses Berufs haben kann – gekauft oder mit Preis und Verbotsgrund.</summary>
     public IReadOnlyList<EinrichtungZeile> Einrichtungsliste(Betrieb b)
     {
-        if (Daten is not { } d || !b.IstWerkstatt) return Array.Empty<EinrichtungZeile>();
+        if (Daten is not { } d || !KannEinrichtung(b)) return Array.Empty<EinrichtungZeile>();
         return d.EinrichtungFuer(b.Artdaten.Beruf)
             .Select(e => new EinrichtungZeile(e.Kennung, e.Name, e.Preis, e.AbStufe, e.Voraussetzung, e.Wirkung.Text(),
                 b.HatEinrichtung(e.Kennung), b.HatEinrichtung(e.Kennung) ? null : EinrichtungVerboten(b, e.Kennung)))
@@ -212,7 +218,7 @@ public sealed class Werkstattwesen
     public string? EinrichtungVerboten(Betrieb b, string kennung)
     {
         if (Daten is not { } d) return "In dieser Stadt gibt es keine Einrichtung zu kaufen.";
-        if (!b.IstWerkstatt || d.Stueck(b.Artdaten.Beruf, kennung) is not { } e)
+        if (!KannEinrichtung(b) || d.Stueck(b.Artdaten.Beruf, kennung) is not { } e)
             return $"Für {b.Name} gibt es kein Stück „{kennung}“.";
         if (b.HatEinrichtung(kennung)) return $"{b.Name} hat schon: {e.Name}.";
         if (b.Stufe < e.AbStufe) return $"{e.Name} gibt es erst ab Stufe {e.AbStufe} – {b.Name} ist Stufe {b.Stufe}.";
