@@ -52,12 +52,6 @@ public partial class Stadtansicht
     /// <summary>Wo das Spiel die Bewohner eines Kulissenhauses empfängt: Kulisse (Gebäude der Karte) → Haustür im Gassennetz.</summary>
     private readonly Dictionary<Kartengebaeude, Vector3> _kulissenTueren = new();
 
-    /// <summary>Gezeichnete Breite eines Weges ohne Angabe in der Karte (Meter) – nach seiner Klasse.</summary>
-    private static float StandardBreite(Wegklasse klasse) => klasse switch
-    {
-        Wegklasse.Haupt => 5, Wegklasse.Land or Wegklasse.Wall => 4, Wegklasse.Ring => 3, Wegklasse.Gasse => 3, _ => 2,
-    };
-
     /// <summary>Breite des Stücks, das einen Werkstatthof, einen Karrenplatz oder ein Gatter an den nächsten Weg hängt (wie die Gassen, Land- und Fußwege).</summary>
     private const float HofwegBreite = 3.5f, KarrenwegBreite = 4f, FusswegBreite = 2f;
 
@@ -95,17 +89,6 @@ public partial class Stadtansicht
 
     /// <summary>Liegt der Punkt innerhalb einer Stadtmauer?</summary>
     public bool InDerStadt(Vector3 p) => _mauerFlaechen.Any(f => Geometry2D.IsPointInPolygon(new Vector2(p.X, p.Z), f));
-
-    /// <summary>Der kleinste Abstand zu einer Mauerlinie (Meter; unendlich ohne Mauer).</summary>
-    private float AbstandZurMauer(Vector3 p)
-    {
-        var q = new Vector2(p.X, p.Z);
-        var best = float.MaxValue;
-        foreach (var f in _mauerFlaechen)
-            for (var i = 0; i < f.Length; i++)
-                best = Mathf.Min(best, q.DistanceTo(Geometry2D.GetClosestPointToSegment(q, f[i], f[(i + 1) % f.Length])));
-        return best;
-    }
 
     // ═════════════════════════════════════════════════════════════════════════
     //  Aufbau
@@ -290,7 +273,7 @@ public partial class Stadtansicht
 
     /// <summary>
     /// Ein Felsberg (hinter einer Grube): das Modell <c>berg_grube</c> an seiner Lage. Er ist viel größer als die Fläche der Grube (45 × 32 m, bis
-    /// 16 m hoch); sein Maßstab verkleinert ihn, wo er sonst nicht neben die Nachbarn passt. Auf ihm wächst nichts (<see cref="NaturFrei"/>).
+    /// 16 m hoch); sein Maßstab verkleinert ihn, wo er sonst nicht neben die Nachbarn passt. Auf ihm wächst nichts (<see cref="Naturfreiraum"/>).
     /// </summary>
     private void BergBauen(Kartengebaeude g)
     {
@@ -306,21 +289,62 @@ public partial class Stadtansicht
     //  Wege und Gassennetz
     // ═════════════════════════════════════════════════════════════════════════
 
-    /// <summary>Zeichnet jeden Weg der Karte (Breite aus der Karte, sonst nach der Klasse) und legt ihn ins Gassennetz; Kreuzungen verbinden sich von selbst.</summary>
+    /// <summary>
+    /// Zeichnet jeden Weg der Karte (Breite aus der Karte, sonst nach der Klasse) und legt ihn ins Gassennetz; Kreuzungen verbinden sich von selbst.
+    /// Gerechnet wird mit dem Verlauf (<see cref="Kartenweg.Verlauf"/>): ohne <c>kurve</c> die Stützpunkte, mit <c>"glatt"</c> die weiche Kurve.
+    /// </summary>
     private void WegeAnlegen(Stadtkarte karte)
     {
         foreach (var weg in karte.Wege)
         {
-            var punkte = weg.Linie.Where(p => p is { Length: 2 }).Select(Punkt3).ToArray();
+            var punkte = weg.Verlauf.Where(p => p is { Length: 2 }).Select(Punkt3).ToArray();
             if (punkte.Length < 2) continue;
-            var breite = weg.Breite > 0 ? (float)weg.Breite : StandardBreite(weg.Klasse);
-            for (var i = 0; i + 1 < punkte.Length; i++)
-            {
-                WegZiehen(punkte[i], punkte[i + 1], breite);
-                _wegStrecken.Add((punkte[i], punkte[i + 1], breite));
-            }
-            _netz.Weg(punkte);
+            var breite = (float)weg.BreiteWirksam;
+            WegZeichnen(punkte, breite, weg.IstGlatt);
+            for (var i = 0; i + 1 < punkte.Length; i++) _wegStrecken.Add((punkte[i], punkte[i + 1], breite));
+            _netz.Weg(weg.IstGlatt ? NetzPunkte(punkte) : punkte);
         }
+    }
+
+    /// <summary>
+    /// Zeichnet einen Weg: gerade Strecken als je ein flacher Quader (wie seit jeher), eine glatte Kurve als ein Band (<see cref="WegBand"/>) –
+    /// die vielen kurzen Stücke der Kurve als Quader lägen übereinander. Über den Marktplatz führt keiner (<see cref="OhneMarktplatz"/>).
+    /// </summary>
+    private void WegZeichnen(IReadOnlyList<Vector3> punkte, float breite, bool glatt, Node3D? eltern = null)
+    {
+        if (!glatt)
+        {
+            for (var i = 0; i + 1 < punkte.Count; i++) WegZiehen(punkte[i], punkte[i + 1], breite, eltern);
+            return;
+        }
+        var lauf = new List<Vector3>();
+        for (var i = 0; i + 1 < punkte.Count; i++)
+        {
+            var (von, bis) = (punkte[i], punkte[i + 1]);
+            if (OhneMarktplatz(von, bis, breite) is { } stuecke)
+            {
+                WegBand(lauf, breite, eltern ?? this);
+                lauf.Clear();
+                foreach (var (a, b) in stuecke) WegStueck(a, b, breite, eltern ?? this);
+                continue;
+            }
+            if (lauf.Count == 0) lauf.Add(von);
+            lauf.Add(bis);
+        }
+        WegBand(lauf, breite, eltern ?? this);
+    }
+
+    /// <summary>
+    /// Die Punkte einer Kurve fürs Gassennetz: etwa alle 2 m einer (die Kurve ist alle Meter abgetastet; so viele Knoten bräuchte nur die
+    /// Wegsuche, und Punkte unter <see cref="Gassennetz.Fang"/> legte das Netz ohnehin zusammen). Anfang und Ende bleiben.
+    /// </summary>
+    private static Vector3[] NetzPunkte(IReadOnlyList<Vector3> punkte)
+    {
+        var liste = new List<Vector3> { punkte[0] };
+        for (var i = 1; i < punkte.Count - 1; i++)
+            if (punkte[i].DistanceTo(liste[^1]) >= 2 && punkte[i].DistanceTo(punkte[^1]) >= 2) liste.Add(punkte[i]);
+        liste.Add(punkte[^1]);
+        return liste.ToArray();
     }
 
     /// <summary>
