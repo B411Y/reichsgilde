@@ -814,3 +814,13 @@ So wird eingetragen (damit sich die Chats nie an derselben Stelle treffen):
 | Innenraum Prediger, 10 Uhr (Raum aus Grundkörpern) | 35,0 | 18,4 | 28,5 ms | 11,2 ms | |
 
 Folgerungen: FSR 2.2 lohnt sich auf der T400 kaum (67 %: −0,8 ms bei Hoch, in Niedrig sogar +1,6 ms – die Rechenpässe von FSR kosten fast so viel, wie die kleinere Auflösung spart); Niedrig ist darum ohne FSR. Am teuersten sind Schatten Hoch (+6,4 ms gegen Niedrig), MSAA 4×, SSIL und SSAO Hoch (je 4–5 ms). Die Zeichenaufrufe liegen bei Hoch bei 2900–3100 je Bild (die Wolken und der Dunst ändern daran nichts). Die automatische Wahl wählt auf der T400 bei 1080p Niedrig.
+
+### Innenraum des Diebs (PR #171)
+
+| Thema | Entscheidung | Datum |
+|---|---|---|
+| Räume | Diebesstube als Hauptraum (Kartentisch mit Stadtplan, Übungsbrett mit Schlössern, Zähltisch, Schleifbock, verhängte Fenster, Kerzen), Beutekeller als Lager (Diebesgut, Hehlerware, Falltür zum Fluchttunnel), ab Stufe 2 Schlafboden mit Verkleidungen an der Leine, ab Stufe 3 Gildenhalle (Schwurtisch, Wappen der Gilde, Thron des Meisterdiebs). | 21.10.2026 |
+| Anwesenheit | Nach Tageszeit wie bei Wirt und Kirche: tagsüber sind die meisten als Taschendiebe auf dem Markt, ein oder zwei üben im Raum; abends kommen alle zurück, zählen Beute und schmieden Pläne; nachts ist unterwegs, wer einen Auftrag hat. Braucht eine kleine Abfrage im Kern. | 21.10.2026 |
+| Tätigkeiten | Schloss knacken am Übungsbrett (neu), Beute zählen am Tisch (neu, sitzend), Pläne schmieden am Kartentisch (Gesten vom Predigen), Messer schleifen (vom Schmied); ab Stufe 3 der Meisterdieb auf seinem Stuhl in der Gildenhalle. | 21.10.2026 |
+| Modell | `innen/dieb_innen.glb` vom Modell-Agenten, Regeln wie die anderen Innenräume. Render-Ebenen werden knapp (22 von 32): Räume, die nie im selben Modell stehen, teilen sich eine Ebene. | 21.10.2026 |
+

@@ -235,6 +235,13 @@ So wird eingetragen (damit sich die Chats nie an derselben Stelle treffen):
 | Schreiben | `ZuJson()` schreibt im Zeilenformat des Werkzeugs (`json_kompakt`): Greybox und Köln öffnen und unverändert schreiben ergibt Byte für Byte dieselbe Datei. Neue Karten bekommen das Feld `groesse` [Breite, Tiefe] um den Ursprung (Format bleibt 2, der Kern liest es nicht). | 21.10.2026 |
 | Messung | Simulation unverändert (nur `Stadtkarte.Optionen` ist jetzt `internal`, damit der Entwurf dieselben Leseregeln nutzt). `messen 30 20 greybox` auf main `f04ee7a` + diesem Branch: Ausgabe zeichengleich mit main. | 21.10.2026 |
 
+### Einrichtung und Anwesenheit des Diebs (PR #171)
+
+| Thema | Entscheidung | Datum |
+|---|---|---|
+| Stücke | Der Dieb stellt nichts her, seine Einrichtung wirkt auf die Gaunerei: Dietriche (+10 % Erfolg beim Einbruch), Meisterdietriche (ab Stufe 2, braucht Dietriche, nochmals +10 %), Verkleidungstruhe (Taschendiebe werden 25 % seltener gefasst), Hehlerkammer (Beutelager +20), Löschfass, Eisentür, Lederhandschuhe (weniger Spuren: Zeugen und Beweise seltener). Preise wie bei den anderen Werkstätten. | 21.10.2026 |
+| Anwesenheit | Die Darstellung zeigt nach Tageszeit, wer im Unterschlupf ist; der Kern liefert dafür eine öffentliche, nur lesende Abfrage (wer ist gerade als Taschendieb auf dem Markt, wer nachts mit einem Auftrag unterwegs, wer daheim). | 21.10.2026 |
+
 ## Messungen
 
 Messungen des Kerns stehen in `docs/WIRTSCHAFTSMODELL.md` (nur der Kern schreibt dort).
