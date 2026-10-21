@@ -92,7 +92,7 @@ static class GreyboxTests
             var k = Karte();
             Pruefe.Gleich("greybox", k.Kennung);
             Pruefe.Gleich(8, k.Wohnhausplaetze.Count);
-            Pruefe.Gleich(9, k.Bauzonen.Count);
+            Pruefe.Gleich(11, k.Bauzonen.Count); // dazu K1–K3 auf den Plätzen der früheren Werkstätten zum Kauf (PR #162)
             Pruefe.Gleich(Lage.Mauerring, k.Bauzonen.Single(z => z.Kennung == "M1").Art); // vor der Westmauer, bewusst Mauerring (siehe „fiktion“)
             Pruefe.Wahr(k.Feste.Where(f => f.Art == "werkstatt").All(f => f.Grundriss is not null), "jede Werkstatt hat eine Fläche");
 
@@ -116,7 +116,7 @@ static class GreyboxTests
         {
             var (_, w) = MitKarte();
             var plan = Probeplan();
-            Pruefe.Gleich(15, plan.Count);
+            Pruefe.Gleich(21, plan.Count);
             foreach (var p in plan)
                 Pruefe.Gleich(null, w.Bauen.PlatzVerboten(p.Befehl()), $"{p.Art} in {p.Zone} bei {p.X}/{p.Z}, {p.Grad}°");
             foreach (var p in plan.Where(p => p.Art == "Stadthof"))
@@ -130,8 +130,8 @@ static class GreyboxTests
                 var e = w.Ausfuehren(bauherr, p.Befehl());
                 Pruefe.Wahr(e.Erfolg, $"{p.Art} in {p.Zone}: {e.Meldung}");
             }
-            Pruefe.Gleich(5, w.Bauen.Grundstuecke.Count(g => g.Art == Grundstuecksart.Werkstatt));
-            Pruefe.Gleich(5, w.Bauen.Grundstuecke.Select(g => g.Betrieb).Where(b => b is not null).Distinct().Count()); // eindeutige Namen
+            Pruefe.Gleich(8, w.Bauen.Grundstuecke.Count(g => g.Art == Grundstuecksart.Werkstatt));
+            Pruefe.Gleich(8, w.Bauen.Grundstuecke.Select(g => g.Betrieb).Where(b => b is not null).Distinct().Count()); // eindeutige Namen
         }),
 
         ("Greybox: Abwandlungen des Probeplans werden abgewiesen – auf der Straße, auf einem Gebäude, außerhalb, Stadthof in der Vorstadt, Werkstatt an der Gasse", () =>
@@ -143,7 +143,7 @@ static class GreyboxTests
                 var (vx, vz) = p.Vorne;
                 Pruefe.Wahr(b.PlatzVerboten(p.Befehl(8 * vx, 8 * vz)) is not null, $"{p.Art} in {p.Zone} 8 m auf die Straße geschoben");
                 Pruefe.Wahr(b.PlatzVerboten(p.Befehl(300, 0)) is not null, $"{p.Art} in {p.Zone} weit draußen");
-                if (p.Art == "Werkstatt")
+                if (p.Art == "Werkstatt" && Karte().ZoneBei(p.X, p.Z)!.Art != Lage.Kern) // in Kernlage darf dort auch ein Stadthof stehen
                     Pruefe.Gleich("Ein Stadthof steht nur in Kernlage oder am Mauerring.", b.PlatzVerboten(new WohnhausBauen(4, p.X, p.Z, p.Grad / 90)));
             }
             // Auf einer Werkstatt der Karte
@@ -234,8 +234,8 @@ static class GreyboxTests
                             Pruefe.Gleich(w.Bauen.PlatzVerboten(befehl) is null, gefunden.Contains((befehl.X, befehl.Z, d)), $"{befehl}");
                         }
             }
-            // Ein Stadthof nur am Mauerring (in Kernlage ist in der Greybox kein Platz dafür).
-            Pruefe.Wahr(orte[3].All(o => w.Karte!.ZoneBei(o.X, o.Z)!.Art == Lage.Mauerring), "Stadthof außerhalb des Mauerrings");
+            // Ein Stadthof nur am Mauerring oder in Kernlage (K1–K3), nie in der Vorstadt.
+            Pruefe.Wahr(orte[3].All(o => w.Karte!.ZoneBei(o.X, o.Z)!.Art is Lage.Mauerring or Lage.Kern), "Stadthof in der Vorstadt");
             // Wer nicht bauen darf, bekommt keine Bauorte.
             Pruefe.Gleich(0, w.Bauen.Bauorte(spieler, new WohnhausBauen(4, 0, 0, 0)).Count);
         }),
