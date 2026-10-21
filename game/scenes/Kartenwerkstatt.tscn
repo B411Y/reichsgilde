@@ -1,0 +1,11 @@
+[gd_scene format=3]
+
+[ext_resource type="Script" path="res://scripts/Kartenwerkstatt.cs" id="1_werkstatt"]
+[ext_resource type="Script" path="res://scripts/Stadtansicht.cs" id="2_stadt"]
+
+[node name="Kartenwerkstatt" type="Node"]
+script = ExtResource("1_werkstatt")
+
+[node name="Stadt" type="Node3D" parent="."]
+unique_name_in_owner = true
+script = ExtResource("2_stadt")

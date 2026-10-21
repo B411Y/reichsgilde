@@ -388,7 +388,7 @@ public sealed class Stadtkarte
         return name.Length > vorn.Length + hinten.Length && name.StartsWith(vorn, StringComparison.Ordinal) && name.EndsWith(hinten, StringComparison.Ordinal);
     }
 
-    private static readonly JsonSerializerOptions Optionen = new()
+    internal static readonly JsonSerializerOptions Optionen = new()
     {
         PropertyNameCaseInsensitive = true,
         ReadCommentHandling = JsonCommentHandling.Skip,
