@@ -1,5 +1,5 @@
 {
-  "version": 40,
+  "version": 41,
   "gesundheit": {
     "medicusKosten": 120,
     "medicusKostenPest": 300,
@@ -1031,6 +1031,15 @@
         { "kennung": "Werkzeug2", "name": "Meisterwerkzeug", "preis": 800, "abStufe": 2, "voraussetzung": "Werkzeug1", "wirkung": { "zeitFaktor": 0.9 } },
         { "kennung": "Destillierhelm", "name": "Kupferner Destillierhelm", "preis": 350, "abStufe": 1, "wirkung": { "zeitFaktor": 0.9, "waren": ["Kräuterschnaps", "Rosenwasser", "Gegengift", "Theriak"] } },
         { "kennung": "Regale", "name": "Kräuterregale", "preis": 200, "abStufe": 1, "wirkung": { "lagerPlus": 20 } },
+        { "kennung": "Loeschfass", "name": "Löschfass", "preis": 100, "abStufe": 1, "wirkung": { "brandFaktor": 0.5 } },
+        { "kennung": "Eisentuer", "name": "Eisentür", "preis": 300, "abStufe": 1, "wirkung": { "einbruchFaktor": 0.5 } },
+        { "kennung": "Handschuhe", "name": "Lederhandschuhe", "preis": 80, "abStufe": 1, "wirkung": { "unfallFaktor": 0.5 } }
+      ],
+      "Parfumeur": [
+        { "kennung": "Werkzeug1", "name": "Gutes Werkzeug", "preis": 300, "abStufe": 1, "wirkung": { "zeitFaktor": 0.9 } },
+        { "kennung": "Werkzeug2", "name": "Meisterwerkzeug", "preis": 800, "abStufe": 2, "voraussetzung": "Werkzeug1", "wirkung": { "zeitFaktor": 0.9 } },
+        { "kennung": "Glasflakons", "name": "Venezianische Glasflakons", "preis": 350, "abStufe": 1, "wirkung": { "zeitFaktor": 0.9, "waren": ["Moschusduft", "Fechterduft", "Heiligenduft"] } },
+        { "kennung": "Regale", "name": "Flakonregale", "preis": 200, "abStufe": 1, "wirkung": { "lagerPlus": 20 } },
         { "kennung": "Loeschfass", "name": "Löschfass", "preis": 100, "abStufe": 1, "wirkung": { "brandFaktor": 0.5 } },
         { "kennung": "Eisentuer", "name": "Eisentür", "preis": 300, "abStufe": 1, "wirkung": { "einbruchFaktor": 0.5 } },
         { "kennung": "Handschuhe", "name": "Lederhandschuhe", "preis": 80, "abStufe": 1, "wirkung": { "unfallFaktor": 0.5 } }
