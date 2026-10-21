@@ -281,9 +281,9 @@ public partial class Stadtansicht : Node3D
     private static readonly Vector3 Weststrasse = new(-118, 0, 6);
 
     /// <summary>
-    /// Die Startwerkstatt des Spielers „… am Weinmarkt“: ein Platz für alle Berufe, südlich der Westgasse zwischen Dom und Ringgasse.
+    /// Die Startwerkstatt des Spielers „… am Weinmarkt“: ein Platz für alle Berufe, südlich der Westgasse an der Ringgasse.
     /// </summary>
-    private static readonly Vector3 Weinmarkt = new(-21, 0, 17);
+    private static readonly Vector3 Weinmarkt = new(-23, 0, 17);
 
     /// <summary>
     /// Der Stadtplan: Wo steht welcher Betrieb? Die Namen sind dieselben wie in der Simulation und in wirtschaft.json
@@ -326,13 +326,16 @@ public partial class Stadtansicht : Node3D
     /// </summary>
     private static readonly Dictionary<string, Vector3[]> Gassen = new()
     {
-        ["Gießerei Eisenbart"] = new Vector3[] { new(12, 0, 19.5f) },                      // nach Westen am Vorplatz entlang
+        ["Gießerei Eisenbart"] = new Vector3[] { new(12, 0, 19.5f), new(12, 0, 12) },     // nach Westen am Vorplatz, dann am Markt entlang
         ["Tischlerei Eichwald"] = new Vector3[] { new(12.5f, 0, -6.5f) },                  // nach Westen bis an den Markt
         ["Maurerei Kieselbach"] = new Vector3[] { new(11, 0, -22.5f), new(11, 0, -13) },  // zwischen Rathaus und Eichwald nach Süden
     };
 
-    /// <summary>Die Gasse vom Weinmarkt (für jeden Startberuf derselbe Platz): nach Osten am Vorplatz entlang, dann zum Markt.</summary>
-    private static readonly Vector3[] WeinmarktGasse = { new(-10.5f, 0, 22.5f) };
+    /// <summary>
+    /// Die Gasse vom Weinmarkt (für jeden Startberuf derselbe Platz): nach Westen am Vorplatz entlang, an der Ringgasse nach Norden und
+    /// über die Westgasse zum Markt – östlich und südlich davon liegen Bauzonen.
+    /// </summary>
+    private static readonly Vector3[] WeinmarktGasse = { new(-34, 0, 22.5f), new(-34, 0, 6), WestgasseKnick };
 
     private static Vector3[] Gasse(string name, Vector3 p) =>
         Gassen.GetValueOrDefault(name) ?? (p == Weinmarkt ? WeinmarktGasse : new[] { new Vector3(p.X * 0.45f, 0, p.Z * 0.45f) });

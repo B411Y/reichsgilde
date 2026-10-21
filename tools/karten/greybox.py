@@ -16,11 +16,11 @@ und Darstellung ohne Umrechnung arbeiten. Quellen im Spielcode:
   • Mauer, Tore, Türme, Marktpflaster:  Stadtansicht.cs (Stadtmauer, _Ready)
   • Ringgasse, Ringplätze, Vorstadt:    Stadtansicht.Wohnviertel.cs
   • Doppelplätze der Spielhäuser:       Stadtansicht.Spielhaeuser.cs (SpielhausPlaetze)
-Ändert sich dort etwas, muss dieses Skript nachziehen (die Zahlen unten tragen den Stand vom 20.10.2026).
+Ändert sich dort etwas, muss dieses Skript nachziehen (die Zahlen unten tragen den Stand vom 21.10.2026).
 
 Werkstätten in der Stadt gibt es seit 20.10.2026 nur noch vier (Startwerkstatt am Weinmarkt und die drei Rivalen), jede auf
-16 × 14 m wie ihr Modell; die Werkstätten zum Kauf sind gestrichen, ihre Plätze leer. Innerhalb der Mauer liegt nur die Kernzone
-K1 (ein Wohnhaus), die übrigen Bauzonen vor dem Westtor und an der Straße zum Steinbruch am Felsenhang (siehe „Bauzonen“).
+16 × 14 m wie ihr Modell; die Werkstätten zum Kauf sind gestrichen. Wo sie im Süden der Stadt standen, liegen seit 21.10.2026 die
+Kernzonen K1 bis K3, die übrigen Bauzonen vor dem Westtor und an der Straße zum Steinbruch am Felsenhang (siehe „Bauzonen“).
 """
 import math
 import os
@@ -50,13 +50,13 @@ MARKTPFLASTER = 24.0
 
 # Stadtansicht.Stadtplan: Mitte des Grundstücks je Liegenschaft (Name wie in wirtschaft.json)
 STADTPLAN = {
-    "Gießerei am Weinmarkt": (-21, 17), "Tischlerei am Weinmarkt": (-21, 17), "Gießerei Eisenbart": (22, 14),
-    "Tischlerei Eichwald": (22, -12), "Maurerei am Weinmarkt": (-21, 17), "Maurerei Kieselbach": (25, -28),
-    "Steinbruch Kieselbach": (74, 66), "Steinbruch am Felsenhang": (-6, -80), "Tinkturei am Weinmarkt": (-21, 17),
-    "Kräutergarten am Bach": (106, 70), "Schänke am Weinmarkt": (-21, 17),
-    "Bauernhof an der Mühle": (124, -62), "Kirche am Weinmarkt": (-21, 17),
-    "Schmugglerloch am Weinmarkt": (-21, 17), "Wachhaus am Weinmarkt": (-21, 17),
-    "Wechselstube am Weinmarkt": (-21, 17), "Siederei am Weinmarkt": (-21, 17),
+    "Gießerei am Weinmarkt": (-23, 17), "Tischlerei am Weinmarkt": (-23, 17), "Gießerei Eisenbart": (22, 14),
+    "Tischlerei Eichwald": (22, -12), "Maurerei am Weinmarkt": (-23, 17), "Maurerei Kieselbach": (25, -28),
+    "Steinbruch Kieselbach": (74, 66), "Steinbruch am Felsenhang": (-6, -80), "Tinkturei am Weinmarkt": (-23, 17),
+    "Kräutergarten am Bach": (106, 70), "Schänke am Weinmarkt": (-23, 17),
+    "Bauernhof an der Mühle": (124, -62), "Kirche am Weinmarkt": (-23, 17),
+    "Schmugglerloch am Weinmarkt": (-23, 17), "Wachhaus am Weinmarkt": (-23, 17),
+    "Wechselstube am Weinmarkt": (-23, 17), "Siederei am Weinmarkt": (-23, 17),
     "Duftgarten am Lavendelhang": (124, 8), "Wachturm an der Landstraße": (80, -10),
     "Klosterhof am Osthang": (134, 80), "Grube Eisenbart": (102, -12), "Grube am Silberberg": (100, 32),
     "Grube im Tannenwald": (82, -66), "Holzschlag Eichwald": (-92, -30), "Holzschlag im Eichenforst": (-94, 46),
@@ -65,8 +65,8 @@ STADTPLAN = {
 # Stadtansicht.Gassen: Knicke der Gasse vom Hof eines Werkstattplatzes zum Markt, je Platz (Weinmarkt: ein Platz für zehn
 # Berufe). Die Gasse läuft vom Hof (5,5 m vor dem Stadtplan-Punkt) an der Vorderseite entlang und dann zum Markt, nie durch ein Haus.
 GASSEN_KNICKE = {
-    "Weinmarkt": [(-10.5, 22.5)],                        # nach Osten am Vorplatz entlang, dann zum Markt
-    "Gießerei Eisenbart": [(12, 19.5)],                  # nach Westen am Vorplatz entlang, dann zum Markt
+    "Weinmarkt": [(-34, 22.5), (-34, 6), (-12, 6)],      # nach Westen, an der Ringgasse entlang nach Norden, dann die Westgasse
+    "Gießerei Eisenbart": [(12, 19.5), (12, 12)],        # nach Westen am Vorplatz entlang, am Markt entlang nach Norden
     "Tischlerei Eichwald": [(12.5, -6.5)],               # nach Westen bis an den Markt
     "Maurerei Kieselbach": [(11, -22.5), (11, -13)],     # zwischen Rathaus und Eichwald nach Süden
 }
@@ -193,8 +193,6 @@ k.weg("Westgasse", "haupt", [(0, 0), WESTGASSE_KNICK, (-38, 6), WESTTOR], breite
 k.weg("Weststraße", "land", [WESTTOR, WESTSTRASSE], breite=4)
 r = RINGGASSE
 k.weg("Ringgasse", "ring", [(-r, -r), (r, -r), (r, r), (-r, r), (-r, -r)], breite=3)
-k.weg("Stichgasse Süd 1", "gasse", [(12, r), GASSEN_KNICKE["Gießerei Eisenbart"][0]], breite=3)   # vom Ring zur Gasse der Gießerei Eisenbart
-k.weg("Stichgasse Süd 2", "gasse", [(-21, r), (-21, 17 + HOF_VORN)], breite=3)                    # vom Ring zum Hof am Weinmarkt
 k.weg("Domgasse", "gasse", [(-20, 4.2), (-20, WESTGASSE_KNICK[1])], breite=2.5)   # von den Stufen vor dem Domportal zur Westgasse
 k.weg("Vorstadtgasse", "gasse", [(64, -42.5), (64, 42.5)], breite=3)     # kreuzt die Landstraße, gezeichnet so weit Häuser an ihr stehen
 
@@ -264,8 +262,10 @@ for name, p in STADTPLAN.items():
 for name, (mitte, groesse, _) in UMLANDSTELLEN.items():
     gebaeude(f"Stelle{name}", "umlandstelle", f"{name} der Einwohner", mitte, list(groesse), eingang=False)
 
-# Die vier alten Häuser der Kulisse (Wohnhaeuser(), Modell einwohner_buergerhaus, 7,6 × 8,1 m um die Mitte) – sie stehen immer
-for n, (p, vorne) in enumerate([((10, -29), (0, 1)), ((-4, 29), (0, 1)), ((5, 29), (0, 1)), ((-13, 29), (0, 1))], start=1):
+# Die vier alten Häuser der Kulisse (Wohnhaeuser(), Modell einwohner_buergerhaus, 7,6 × 8,1 m um die Mitte) – sie stehen immer.
+# Seit dem 21.10.2026 stehen drei davon an der Ringgasse im Norden und Westen (der Süden ist Bauzone).
+KULISSE = [((10, -29), (0, 1)), ((-8, -32), (0, -1)), ((1, -32), (0, -1)), ((-32, -14), (-1, 0))]
+for n, (p, vorne) in enumerate(KULISSE, start=1):
     gebaeude(f"Kulisse{n}", "einwohnerhaus", f"Haus der Kulisse {n}", p, [8, 8.5], drehung_von(vorne))
 
 # Doppelplätze der Spielhäuser am Ring: die Wohnhaus-Startplätze, in der Reihenfolge der Konten (Spieler zuerst)
@@ -299,8 +299,11 @@ for i in range(int((46 - 5) / VORSTADT_BREITE)):
 # Zonen ihr in Stufen.
 HOF = "M1" if HOF_ZONE_ALS_MAUERRING else "V4"
 ZONEN = [
-    # Kern: innerhalb der Ringgasse, Südostecke zwischen Gießerei Eisenbart und Ringgasse
-    ("K1", "kern", [(28, 22), (36, 22), (36, 36), (28, 36)]),
+    # Kern: der Süden innerhalb der Ringgasse, wo bis 20.10.2026 Werkstätten zum Kauf und drei Kulissenhäuser standen. Werkstätten
+    # stehen mit dem Eingang an der Ringgasse (Karrenstraße), Wohnhäuser auch an der Gasse der Gießerei Eisenbart.
+    ("K1", "kern", [(4, 22), (36, 22), (36, 36), (4, 36)]),                                     # hinter der Gießerei Eisenbart
+    ("K2", "kern", [(-12, 14), (8, 14), (8, 22), (4, 22), (4, 36), (-12, 36)]),                 # südlich vom Markt
+    ("K3", "kern", [(-36, 26), (-12, 26), (-12, 36), (-36, 36)]),                               # hinter dem Weinmarkt
     # Vor dem Westtor an der Weststraße (Karrenstraße, z = 6) und am Weg zum Holzschlag im Eichenforst
     ("V1", "vorstadt", [(-118, -12), (-92, -12), (-92, 2), (-118, 2)]),               # Nordseite am Ende der Straße
     ("V2", "vorstadt", [(-120, 10), (-104, 10), (-104, 24), (-120, 24)]),             # Südseite, links vom Weg zum Eichenforst
@@ -329,7 +332,9 @@ PLAN = [
     ("Werkstatt", "V7", -32, -66, -16, -52, 180), ("Wohnhaus", "V7", -42, -62, -34, -52, 180),
     ("Wohnhaus", "V8", -56, -78, -48, -68, 0), ("Wohnhaus", "V8", -48, -82, -40, -72, 0), ("Wohnhaus", "V8", -40, -84, -32, -74, 0),
     ("Werkstatt", "V8", -32, -96, -16, -82, 0),
-    ("Wohnhaus", "K1", 28, 26, 36, 36, 0),
+    ("Werkstatt", "K1", 4, 22, 20, 36, 0), ("Werkstatt", "K1", 20, 22, 36, 36, 0),
+    ("Werkstatt", "K2", -12, 22, 4, 36, 0), ("Wohnhaus", "K2", -2, 14, 8, 22, 90),
+    ("Wohnhaus", "K3", -36, 26, -28, 36, 0), ("Wohnhaus", "K3", -28, 26, -20, 36, 0), ("Wohnhaus", "K3", -20, 26, -12, 36, 0),
 ]
 k.d["probeplan"] = []
 for art, zone, x0, z0, x1, z1, drehung in PLAN:
