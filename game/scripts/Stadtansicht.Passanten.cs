@@ -186,8 +186,10 @@ public partial class Stadtansicht
         p.Knoten.Visible = punkt is not null;
         if (punkt is not { } q || p.Figur is not { } figur) return;
         p.Knoten.Position = q;
-        // Im Umland bei der Arbeit: auf dem Feld hacken, im Wald Holz aufheben, auf der Weide hüten – in irgendeine Richtung
-        var arbeit = ort.Ort == Stadtort.Umland && ort.Stelle is { } s ? StellenArt(s) switch { "Feld" => "Hacken", "Wald" => "Buecken", "Weide" => "Hueten", _ => null } : null;
+        // Im Umland bei der Arbeit: auf dem Feld hacken, im Wald Holz aufheben, auf der Weide hüten – in irgendeine Richtung (nur an einer Stelle,
+        // die die Karte hat: Eine Karte ohne Weide oder Feld, etwa eine neue aus der Kartenwerkstatt, schickt die Leute trotzdem dorthin)
+        var arbeit = ort.Ort == Stadtort.Umland && ort.Stelle is { } s && _umlandstellen.ContainsKey(s)
+            ? StellenArt(s) switch { "Feld" => "Hacken", "Wald" => "Buecken", "Weide" => "Hueten", _ => null } : null;
         if (arbeit is not null)
             p.Knoten.Rotation = new Vector3(0, UmlandPlatz(ort.Stelle!, Streuung(e.Nummer, Verweilzeit(ort, e))).Blick, 0);
         BewegungSetzen(figur, arbeit ?? "Stehen");

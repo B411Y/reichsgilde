@@ -260,7 +260,8 @@ static class KartenwerkstattTests
             Pruefe.Gleich(Pruefregeln.Standard, e.Regeln);
             Pruefe.Gleich((400.0, 300.0), e.Groesse);
             Pruefe.Gleich((-200.0, -150.0, 200.0, 150.0), e.Grenzen());
-            Pruefe.Wahr(!e.HatFehler, "leere Karte ohne Fehler:\n  " + Liste(e.Befunde));
+            // Einziger Fehler einer leeren Karte: Ihr fehlt die Startbelegung (seit Schritt 3 – ohne sie hätte der Spieler keinen Startplatz).
+            Pruefe.Wahr(Fehler(e) is [{ Regel: "start-fehlt" }], "leere Karte nur ohne Startbelegung:\n  " + Liste(e.Befunde));
             e.Setzen("markt", 0, 0);
             var w = e.Setzen("werkstattplatz", 20, 0, 90);
             Pruefe.Wahr(e.FehlerhafteGebaeude.Contains(w.Kennung), "Werkstatt ohne Weg ist ein Fehler");

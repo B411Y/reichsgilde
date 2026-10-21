@@ -6,9 +6,10 @@ namespace Reichsgilde;
 
 /// <summary>
 /// Die Tafeln der Kartenwerkstatt – ein Teil der <c>partial class Kartenwerkstatt</c>: oben die Leiste (Neu, Öffnen, Speichern, Prüfen,
-/// Rückgängig/Wiederholen, Gassennetz, Zurück), links der Katalog (Wege, Flächen, Gebäude nach Art, Natur), rechts die Eigenschaften des gewählten
-/// Teils (Kartenwerkstatt.Eigenschaften.cs für Wege, Flächen, Pflanzen und den Pinsel) und darunter die Fehlerliste,
-/// unten Meldung und Tastenhilfe. Dazu die Rückfragen (Neu, Öffnen, Speichern unter, ungespeicherte Änderungen) in der Mitte.
+/// Karte ausprobieren, Rückgängig/Wiederholen, Gassennetz, Zurück), links der Katalog (Wege, Flächen, Mauer, Gebäude nach Art, Natur), rechts
+/// zwei Reiter: „Eigenschaften“ des gewählten Teils (Kartenwerkstatt.Eigenschaften.cs für Wege, Flächen, Pflanzen, Mauern und den Pinsel) und
+/// „Start“ (Kartenwerkstatt.Start.cs), darunter die Fehlerliste; unten Meldung und Tastenhilfe. Dazu die Rückfragen (Neu, Öffnen, Speichern
+/// unter, ungespeicherte Änderungen, Karte ausprobieren) in der Mitte.
 /// Stil wie die Tafeln im Spiel (dunkles Holz, goldene Überschriften); jede Änderung an einem Teil ist ein Befehl des Entwurfs.
 /// </summary>
 public partial class Kartenwerkstatt
@@ -19,7 +20,7 @@ public partial class Kartenwerkstatt
     private static readonly Color Gruen = new(0.55f, 0.85f, 0.5f);
     private static readonly Color Hell = new(0.92f, 0.88f, 0.80f);
 
-    private const int Katalogbreite = 270, Rechtsbreite = 370, Rand = 16, ObenAb = 92, UntenBis = 76;
+    private const int Katalogbreite = 270, Rechtsbreite = 400, Rand = 16, ObenAb = 92, UntenBis = 76;
 
     /// <summary>Die Gruppen der Gebäude im Katalog links: Überschrift und die Arten, die dazugehören (Reihenfolge wie im Fahrplan).</summary>
     private static readonly (string Titel, string[] Arten)[] Katalogteile =
@@ -38,13 +39,13 @@ public partial class Kartenwerkstatt
         { Wegklasse.Land, Wegklasse.Haupt, Wegklasse.Ring, Wegklasse.Wall, Wegklasse.Gasse, Wegklasse.Feldweg, Wegklasse.Fussweg, Wegklasse.Leinpfad };
 
     private Label _titel = null!, _quelle = null!, _status = null!, _pruefKopf = null!, _hilfe = null!;
-    private Button _rueckgaengig = null!, _wiederholen = null!;
+    private Button _rueckgaengig = null!, _wiederholen = null!, _probeKnopf = null!;
     private CheckButton _netzSchalter = null!;
     private VBoxContainer _eigenschaften = null!, _fehlerListe = null!;
 
     /// <summary>
     /// Die Knöpfe des Katalogs nach Schlüssel: Gebäude und Pflanzen nach ihrer Kennung, dazu „weg:&lt;klasse&gt;“, „bauzone:&lt;lage&gt;“, „wald“,
-    /// „streu“, „aussparung“, „pinsel“, „radierer“ (auch die Werte der Startoption <c>--werkstatt-werkzeug</c>).
+    /// „streu“, „aussparung“, „mauer“, „tor“, „pinsel“, „radierer“ (auch die Werte der Startoption <c>--werkstatt-werkzeug</c>).
     /// </summary>
     private readonly Dictionary<string, (Button Knopf, Action Waehlen)> _katalogKnoepfe = new();
 
@@ -122,6 +123,7 @@ public partial class Kartenwerkstatt
         Knopf(zeile, "Speichern", Speichern, "In die eigene Datei unter user://karten speichern (Strg+S)");
         Knopf(zeile, "Speichern unter", SpeichernUnterZeigen, "Unter einem neuen Namen in user://karten speichern");
         Knopf(zeile, "Prüfen", Pruefen, "Die ganze Karte nach den Kartenregeln prüfen (läuft nach jeder Änderung von selbst)");
+        _probeKnopf = Knopf(zeile, "Karte ausprobieren", AusprobierenZeigen);
         zeile.AddChild(new VSeparator());
         _rueckgaengig = Knopf(zeile, "Rückgängig", () => _entwurf.Rueckgaengig());
         _wiederholen = Knopf(zeile, "Wiederholen", () => _entwurf.Wiederholen());
@@ -217,6 +219,12 @@ public partial class Kartenwerkstatt
         Eintrag("streu", "Streufläche", "Büsche, Gras, Steine und Holz locker verstreut – Ecken klicken, Doppelklick schließt", Werkstattwerkzeug.Streu);
         Eintrag("aussparung", "Aussparung", "Ein Loch in der gewählten Wald- oder Streufläche – dort wächst nichts", Werkstattwerkzeug.Aussparung);
 
+        // Mauer und Tore
+        Kopf("Mauer");
+        Eintrag("mauer", "Mauer", "Ecken klicken (gerade Stücke) – Klick auf die erste Ecke schließt den Ring, Doppelklick oder Enter lässt sie offen. Türme setzt das Spiel selbst.",
+            Werkstattwerkzeug.Mauer);
+        Eintrag("tor", "Tor", "Klick auf eine Mauer setzt dort ein Tor (es rastet auf die Linie); ein Weg durch das Tor rastet in seiner Mitte ein", Werkstattwerkzeug.Tor);
+
         // Gebäude
         foreach (var (titel, arten) in Katalogteile)
         {
@@ -272,10 +280,21 @@ public partial class Kartenwerkstatt
         (tafel.AnchorLeft, tafel.AnchorTop, tafel.AnchorRight, tafel.AnchorBottom) = (1, 0, 1, 1);
         (tafel.OffsetLeft, tafel.OffsetTop, tafel.OffsetRight, tafel.OffsetBottom) = (-Rand - Rechtsbreite, ObenAb, -Rand, -UntenBis);
         _oberflaeche.AddChild(tafel);
-        Hauptmenue.Text(spalte, "Eigenschaften", 20, Gold);
-        _eigenschaften = new VBoxContainer();
+        ReiterBauen(spalte); // Kartenwerkstatt.Start.cs
+        // Eigenschaften und Start teilen sich einen Rollbereich (Streu-Gruppen und acht Häuser werden lang); die Fehlerliste bleibt darunter
+        _inhaltRolle = new ScrollContainer
+        {
+            SizeFlagsVertical = Control.SizeFlags.ExpandFill, SizeFlagsStretchRatio = 3.5f, HorizontalScrollMode = ScrollContainer.ScrollMode.Auto, // nie breiter als die Tafel
+        };
+        spalte.AddChild(_inhaltRolle);
+        var inhalt = new VBoxContainer { SizeFlagsHorizontal = Control.SizeFlags.ExpandFill };
+        _inhaltRolle.AddChild(inhalt);
+        _eigenschaften = new VBoxContainer { SizeFlagsHorizontal = Control.SizeFlags.ExpandFill };
         _eigenschaften.AddThemeConstantOverride("separation", 6);
-        spalte.AddChild(_eigenschaften);
+        inhalt.AddChild(_eigenschaften);
+        _startTafel = new VBoxContainer { SizeFlagsHorizontal = Control.SizeFlags.ExpandFill, Visible = false };
+        _startTafel.AddThemeConstantOverride("separation", 6);
+        inhalt.AddChild(_startTafel);
         spalte.AddChild(new HSeparator());
         Hauptmenue.Text(spalte, "Prüfung", 20, Gold);
         _pruefKopf = Hauptmenue.Text(spalte, "", 14, Grau, umbruchBreite: Rechtsbreite - 30);
@@ -306,11 +325,14 @@ public partial class Kartenwerkstatt
         {
             Werkstattwerkzeug.Baustein => "Klick setzt · Q/E dreht (15°, mit Alt 1°) · Alt: frei verschieben · Esc oder Rechtsklick: fertig",
             Werkstattwerkzeug.Pflanze => "Klick setzt die Pflanze · Q/E dreht · Esc oder Rechtsklick: fertig",
-            Werkstattwerkzeug.Weg => "Punkte klicken · Doppelklick oder Enter: fertig · Rücktaste: letzter Punkt weg · Esc bricht ab · weißer Ring: rastet an einem Weg oder Hof ein",
+            Werkstattwerkzeug.Weg => "Punkte klicken · Doppelklick oder Enter: fertig · Rücktaste: letzter Punkt weg · Esc bricht ab · Ring: rastet ein (weiß Weg, orange Hof, blau Tor, grün Halteplatz)",
             Werkstattwerkzeug.Bauzone or Werkstattwerkzeug.Wald or Werkstattwerkzeug.Streu or Werkstattwerkzeug.Aussparung =>
                 "Ecken klicken · Doppelklick, Enter oder Klick auf die erste Ecke schließt · Rücktaste: letzte Ecke weg · Esc bricht ab",
             Werkstattwerkzeug.Pinsel => "Mit gedrückter Maus malen – Loslassen streut Pflanzen · Radius, Dichte und Arten rechts · Esc bricht ab",
             Werkstattwerkzeug.Radierer => "Mit gedrückter Maus über einzelne Pflanzen fahren – Loslassen löscht sie (die Natur der Flächen bleibt) · Esc bricht ab",
+            Werkstattwerkzeug.Mauer => "Ecken klicken (1-m-Raster, Alt: frei) · Klick auf die erste Ecke schließt den Ring · Doppelklick oder Enter: offen fertig · Rücktaste: letzte Ecke weg · Esc bricht ab",
+            Werkstattwerkzeug.Tor => "Klick auf eine Mauer setzt ein Tor · Esc oder Rechtsklick: fertig",
+            Werkstattwerkzeug.Platz => (_stadt.WerkstattPlatzHinweis ?? "Einen Platz anklicken") + " · grün: passt · Esc oder Rechtsklick bricht ab",
             _ => "Klick wählt · Ziehen verschiebt · Griffe ziehen, Klick auf Linie oder Rand fügt ein · Q/E dreht · Entf löscht Griff oder Teil · Esc hebt auf · Strg+Z/Y · Strg+S",
         };
         _hilfe.Text = zeile + "\nMausrad Zoom · rechte Maustaste oder WASD verschieben die Kamera · Strg+Q/E oder Bild auf/ab drehen sie · Alt zeigt alle Namen";
@@ -334,6 +356,11 @@ public partial class Kartenwerkstatt
         _rueckgaengig.TooltipText = g.RueckgaengigText is { } r ? $"Rückgängig: {r} (Strg+Z)" : "Nichts rückgängig zu machen (Strg+Z)";
         _wiederholen.Disabled = !g.KannWiederholen;
         _wiederholen.TooltipText = g.WiederholenText is { } w ? $"Wiederholen: {w} (Strg+Y)" : "Nichts zu wiederholen (Strg+Y)";
+        var fehler = _entwurf.Befunde.Count(b => b.Schwere == Schwere.Fehler);
+        _probeKnopf.Disabled = fehler > 0 || _daten is null;
+        _probeKnopf.TooltipText = _daten is null ? "Ohne Wirtschaftsdaten lässt sich keine Partie aufstellen."
+            : fehler > 0 ? $"Erst die {(fehler == 1 ? "Fehler" : $"{fehler} Fehler")} der Prüfung beheben (Liste rechts) – dann lässt sich die Karte ausprobieren."
+            : "Eine neue Partie auf dieser Karte starten, wie sie gerade ist – Esc im Spiel führt zurück, hier bleibt alles erhalten.";
         FehlerlisteZeigen();
     }
 
@@ -384,12 +411,18 @@ public partial class Kartenwerkstatt
         }
     }
 
-    /// <summary>Klick auf einen Befund: wählt das erste betroffene Gebäude (sonst den ersten Weg, die erste Fläche oder Pflanze) und fährt hin.</summary>
+    /// <summary>
+    /// Klick auf einen Befund: wählt das erste betroffene Gebäude (sonst den ersten Weg, die erste Fläche, Mauer oder Pflanze) und fährt hin; ein
+    /// Befund der Startbelegung öffnet die Tafel „Start“.
+    /// </summary>
     private void BefundZeigen(Befund b)
     {
-        EntwurfTeil? teil = _entwurf.GebaeudeMit(b.Gebaeude.FirstOrDefault()) ?? b.Andere.FirstOrDefault();
+        var start = b.Andere.Any(t => t is EntwurfStart);
+        if (start) ReiterWaehlen(true);
+        EntwurfTeil? teil = _entwurf.GebaeudeMit(b.Gebaeude.FirstOrDefault()) ?? b.Andere.FirstOrDefault(t => t is not EntwurfStart);
         if (teil is not null) _stadt.WerkstattWaehlen(teil, hinfahren: b.Ort is null);
         if (b.Ort is { } ort) _stadt.WerkstattHinfahren(ort);
+        if (start && !_startOffen) ReiterWaehlen(true);
     }
 
     // ═════════════════════════════════════════════════════════════════════════
@@ -632,6 +665,41 @@ public partial class Kartenwerkstatt
         Liste("Mitgeliefert (nur lesen)", Mitgeliefert, true, "Keine gefunden.");
         spalte.MoveChild(fehler, spalte.GetChildCount() - 1);
         Hauptmenue.Knopf(spalte, "Abbrechen", DialogSchliessen);
+        DialogZeigen(tafel);
+    }
+
+    /// <summary>„Karte ausprobieren“: den Beruf wählen, dann startet eine Partie auf dem Entwurf (nur ohne Fehler, siehe <see cref="Ausprobieren"/>).</summary>
+    private void AusprobierenZeigen()
+    {
+        if (_probeKnopf.Disabled)
+        {
+            Melden(_probeKnopf.TooltipText, fehler: true);
+            return;
+        }
+        var (tafel, spalte) = Hauptmenue.Tafel(480);
+        Hauptmenue.Text(spalte, "Karte ausprobieren", 26, Gold, zentriert: true);
+        Hauptmenue.Text(spalte, $"Eine neue Partie auf „{_entwurf.Stadt}“, so wie die Karte gerade ist – mit "
+            + (_entwurf.Start.Haeuser.Count == 0 ? "den drei Häusern des Spiels" : $"{_entwurf.Start.Haeuser.Count} KI-Häusern")
+            + ". Nichts wird gespeichert. Zurück geht es im Spiel mit Esc → „Zurück zur Kartenwerkstatt“; hier ist dann alles wie vorher, auch Rückgängig.",
+            15, Hell, umbruchBreite: 420);
+        var raster = new GridContainer { Columns = 2 };
+        raster.AddThemeConstantOverride("h_separation", 14);
+        spalte.AddChild(raster);
+        var berufe = Berufe(); // Kartenwerkstatt.Start.cs
+        var beruf = new OptionButton { FocusMode = Control.FocusModeEnum.None };
+        foreach (var b in berufe)
+            beruf.AddItem(b + (_entwurf.Start.StartplatzFuer(b) is { } platz ? $" – {_entwurf.GebaeudeMit(platz.Platz)?.Name ?? platz.Platz}" : ""));
+        beruf.Select(Math.Max(0, berufe.ToList().IndexOf("Schmied")));
+        Zeile(raster, "Als", beruf);
+        var knoepfe = new HBoxContainer { Alignment = BoxContainer.AlignmentMode.Center };
+        knoepfe.AddThemeConstantOverride("separation", 12);
+        spalte.AddChild(knoepfe);
+        Hauptmenue.Knopf(knoepfe, "Ausprobieren", () =>
+        {
+            DialogSchliessen();
+            Ausprobieren(berufe[Math.Max(0, beruf.Selected)]);
+        });
+        Hauptmenue.Knopf(knoepfe, "Abbrechen", DialogSchliessen);
         DialogZeigen(tafel);
     }
 

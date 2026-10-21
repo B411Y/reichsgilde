@@ -36,6 +36,15 @@ public enum Werkstattwerkzeug
 
     /// <summary>Pflanzen im Kreis unter dem Strich löschen.</summary>
     Radierer,
+
+    /// <summary>Eine Mauer zeichnen: Ecken klicken, Klick auf die erste schließt, Doppelklick oder Enter lässt sie offen.</summary>
+    Mauer,
+
+    /// <summary>Ein Tor auf eine Mauer setzen.</summary>
+    Tor,
+
+    /// <summary>Einen Platz für die Startbelegung wählen (Wohnhaus, Betrieb, Startplatz – die Tafel „Start“ sagt, wofür).</summary>
+    Platz,
 }
 
 /// <summary>
@@ -44,19 +53,24 @@ public enum Werkstattwerkzeug
 ///   • diese Datei: Aufbau, Gebäude als „Stücke“, Auswahl, Werkzeuge, Eingabe;
 ///   • Stadtansicht.Kartenwerkstatt.Wege.cs: Wege zeichnen und bearbeiten (Stützpunkte), Gassennetz, Einrasten;
 ///   • Stadtansicht.Kartenwerkstatt.Flaechen.cs: Bauzonen und Naturflächen als Vielecke (Ecken), Vorschau beim Zeichnen;
-///   • Stadtansicht.Kartenwerkstatt.Natur.cs: die Natur der Flächen live, einzelne Pflanzen, Pinsel und Radierer.
+///   • Stadtansicht.Kartenwerkstatt.Natur.cs: die Natur der Flächen live, einzelne Pflanzen, Pinsel und Radierer;
+///   • Stadtansicht.Kartenwerkstatt.Mauern.cs: Mauern und Tore zeichnen und bearbeiten;
+///   • Stadtansicht.Kartenwerkstatt.Start.cs: die Startbelegung in der Karte (Farben der Häuser) und das Wählen eines Platzes dafür.
 ///
-/// <b>Zeichnen.</b> Boden und Mauern kommen aus denselben Methoden wie im Spiel (Stadtansicht.Karte.cs), einmal beim Öffnen. Jeder
-/// bearbeitbare Teil des Entwurfs (Gebäude, Weg, Bauzone, Naturfläche, Pflanze) hat einen eigenen Knoten; ändert ein Befehl einen Teil
+/// <b>Zeichnen.</b> Der Boden kommt aus derselben Methode wie im Spiel (Stadtansicht.Karte.cs), einmal beim Öffnen. Jeder
+/// bearbeitbare Teil des Entwurfs (Gebäude, Weg, Bauzone, Naturfläche, Pflanze, Mauer) hat einen eigenen Knoten; ändert ein Befehl einen Teil
 /// (Ereignis <see cref="Kartenentwurf.Geaendert"/>), wird nur sein Knoten neu gebaut. Was davon abhängt – die Natur der Flächen in der
 /// Nähe, das Gassennetz, die rote Markierung der Fehler –, erledigt <see cref="WerkstattAktualisieren"/> einmal am Ende des Bildes.
 /// Werkstattplätze zeigen das Werkstattmodell des Schmieds (Stufe 1, ohne Hausfarbe): Alle Werkstätten haben dieselbe Normfläche
 /// 16 × 14 m, und ein Haus zeigt Abstände und Höhe besser als ein flacher Bauplatz-Zaun. Wohnhausplätze zeigen Fachwerkhäuser (ein
-/// Doppelplatz zwei), Einwohnerplätze ein Einwohnerhaus, alle anderen das Modell ihres Bausteins (ohne Modell ein grauer Block).
+/// Doppelplatz zwei), Einwohnerplätze ein Einwohnerhaus, alle anderen das Modell ihres Bausteins (ohne Modell ein grauer Block). Ist ein
+/// Platz am Start belegt, trägt das Modell die Farbe des Hauses (ein Startbetrieb auch das Modell seiner Werkstatt), dazu eine Fahne
+/// (Stadtansicht.Kartenwerkstatt.Start.cs).
 ///
 /// <b>Bedienen.</b> Das Werkzeug (<see cref="Kartenwerkzeug"/>) sagt, was ein Klick tut. Mit „Auswahl“ wählt ein Klick einen Teil
-/// (Gebäude vor Pflanzen vor Wegen vor Flächen), Ziehen verschiebt Gebäude, Pflanzen und die gewählte Fläche (ein Rückgängig-Schritt je
-/// Ziehen); ein gewählter Weg oder eine gewählte Fläche zeigt Griffe an Stützpunkten bzw. Ecken. Ein Baustein des Katalogs: Sein Umriss folgt
+/// (<see cref="AuswahlKlick"/>), Ziehen verschiebt Gebäude, Pflanzen und die gewählte Fläche (ein Rückgängig-Schritt je Ziehen); ein gewählter
+/// Weg, eine gewählte Fläche oder Mauer zeigt Griffe an Stützpunkten, Ecken und Toren. Ein Gebäude trifft der Klick nur dort, wo sein Modell ist
+/// (<see cref="StueckKlickflaeche"/>): Im Schrägblick bleiben Boden, Wege und Flächen hinter einem Haus erreichbar. Ein Baustein des Katalogs: Sein Umriss folgt
 /// der Maus auf dem 1-m-Raster, Q/E dreht in 15°-Schritten, mit gehaltener Alt-Taste frei; grün = an dieser Stelle kein Fehler
 /// (<see cref="Kartenpruefung.PruefeStelle"/>), rot = mit dem ersten Fehler als Text. Teile mit Fehler leuchten rot. Die Kamera dreht
 /// hier mit Strg+Q/E oder Bild↑/Bild↓.
@@ -83,6 +97,9 @@ public partial class Stadtansicht
         public required MeshInstance3D[] Rahmen { get; init; }
         public required MeshInstance3D Fuellung { get; init; }
         public bool Fehlerhaft { get; set; }
+
+        /// <summary>Wer den Platz am Start nutzt, wie das Stück es zeigt (null: niemand) – ändert sich das, wird das Stück neu gebaut.</summary>
+        public Belegungsanzeige? Belegung { get; init; }
     }
 
     /// <summary>Kennung der Klickfläche eines Stücks (Präfix „stueck:“, damit sie sich nicht mit dem Spiel mischt).</summary>
@@ -120,8 +137,9 @@ public partial class Stadtansicht
     // ═════════════════════════════════════════════════════════════════════════
 
     /// <summary>
-    /// Zeichnet einen Entwurf: Boden und Mauern wie im Spiel, dazu jeden Teil des Entwurfs mit eigenem Knoten. Einmal je Szene – ein anderer
-    /// Entwurf lädt die Szene neu. Licht fest auf hellen Mittag, ohne Passanten, Karren und Vögel.
+    /// Zeichnet einen Entwurf: den Boden wie im Spiel, dazu jeden Teil des Entwurfs mit eigenem Knoten. Einmal je Szene – ein anderer
+    /// Entwurf lädt die Szene neu. Licht fest auf hellen Mittag, ohne Passanten, Karren und Vögel. Beim Verlassen der Szene löst
+    /// <see cref="WerkstattLoesen"/> die Stadtansicht wieder vom Entwurf (er kann sie überleben: „Karte ausprobieren“).
     /// </summary>
     public void EntwurfZeigen(Kartenentwurf entwurf)
     {
@@ -132,28 +150,32 @@ public partial class Stadtansicht
         if (_karte is { } karte)
         {
             LagenLesen(karte);
+            // Mauern, ihr Pflaster und die Tore kommen aus dem Entwurf und folgen jeder Änderung (Stadtansicht.Kartenwerkstatt.Mauern.cs)
+            _mauerFlaechen.Clear();
+            _tore.Clear();
             var (x0, z0, x1, z1) = entwurf.Grenzen();
             _kartenRahmen = _kartenRahmen.Merge(new Rect2((float)x0, (float)z0, (float)(x1 - x0), (float)(z1 - z0))).Grow(30);
             BodenLegen(karte);
-            foreach (var mauer in karte.Mauern) MauerAusKarte(mauer);
             KameraAusKarte(karte);
         }
         else Flaeche(Vector3.Zero, new Vector2(520, 480), Wiese, -0.05f);
         if (entwurf.Groesse is not null) KartenrandZeichnen(entwurf.Grenzen());
 
+        entwurf.Fangpunkte = Halteplaetze; // Karrenplätze und Gatter aus den Modellen (Stadtansicht.Kartenwerkstatt.Wege.cs)
         _stueckeKnoten = new Node3D { Name = "Stuecke" };
         AddChild(_stueckeKnoten);
         foreach (var g in entwurf.Gebaeude) StueckBauen(g);
         WegeAufbauen();      // Stadtansicht.Kartenwerkstatt.Wege.cs
         FlaechenAufbauen();  // Stadtansicht.Kartenwerkstatt.Flaechen.cs
         PflanzenAufbauen();  // Stadtansicht.Kartenwerkstatt.Natur.cs
+        MauernAufbauen();    // Stadtansicht.Kartenwerkstatt.Mauern.cs
         _wsFehlerNeu = true;
         entwurf.Geaendert += EntwurfGeaendert;
         LichtNachUhrzeit(12 * 60, 100); // heller Mittag, sofort ohne Überblenden
     }
 
     /// <summary>
-    /// Die Karte für Boden und Mauern: der Entwurf, wie der Kern ihn zum Spielen liest. Hat er Fehler, die der Leser nicht annimmt (z. B. einen
+    /// Die Karte für den Boden: der Entwurf, wie der Kern ihn zum Spielen liest. Hat er Fehler, die der Leser nicht annimmt (z. B. einen
     /// unbekannten Baustein), ohne die Gebäude.
     /// </summary>
     private static Stadtkarte? HintergrundVon(Kartenentwurf entwurf)
@@ -224,6 +246,13 @@ public partial class Stadtansicht
             case EntwurfPflanze p:
                 PflanzeBauen(p, weg);
                 break;
+            case EntwurfMauer m:
+                MauerBauen(m, weg);
+                _wsNetzNeu = true; // die Tore hängen am Netz
+                break;
+            case EntwurfStart:
+                _wsBelegungNeu = true; // Stadtansicht.Kartenwerkstatt.Start.cs
+                break;
         }
         if (!weg && a.Objekt is not (EntwurfPflanze or EntwurfNaturflaeche) && BereichVon(a.Objekt) is { } neu)
         {
@@ -243,18 +272,19 @@ public partial class Stadtansicht
     }
 
     /// <summary>
-    /// Nach allen Änderungen eines Bildes (aus <see cref="WerkstattAktualisieren"/>): Natur der betroffenen Flächen neu streuen, Gassennetz neu,
-    /// Fehlerfarben, Griffe.
+    /// Nach allen Änderungen eines Bildes (aus <see cref="WerkstattAktualisieren"/>): Stücke mit geänderter Startbelegung neu, Natur der betroffenen
+    /// Flächen neu streuen, Gassennetz neu, Fehlerfarben, Griffe.
     /// </summary>
     private void Nachziehen()
     {
+        if (_wsBelegungNeu) BelegungNachziehen();
         NaturNachziehen();
         if (_wsNetzNeu) NetzBauen();
         if (_wsFehlerNeu) FehlerZeigen();
         if (_wsGriffeNeu) GriffeBauen();
     }
 
-    /// <summary>Das Rechteck, in dem ein Teil die Natur verdrängt (mit Rand); null für Pflanzen und leere Teile.</summary>
+    /// <summary>Das Rechteck, in dem ein Teil die Natur verdrängt (mit Rand; bei einer Mauer die ganze Stadt darin); null für Pflanzen und leere Teile.</summary>
     private Rect2? BereichVon(EntwurfTeil t)
     {
         var rand = (float)Naturfreiraum.Abstand + 1;
@@ -269,6 +299,8 @@ public partial class Stadtansicht
                 return Rahmen(w.Verlauf).Grow((float)w.BreiteWirksam / 2 + rand);
             case EntwurfFlaeche f when f.Ecken.Count > 0:
                 return Rahmen(f.Ecken).Grow(rand);
+            case EntwurfMauer m when m.Ecken.Count > 0:
+                return Rahmen(m.Ecken).Grow((float)Naturfreiraum.AbstandMauer + 1);
         }
         return null;
     }
@@ -296,7 +328,10 @@ public partial class Stadtansicht
         if (_stuecke.Remove(g, out var s)) KnotenEntfernen(s.Wurzel);
     }
 
-    /// <summary>Baut das Stück eines Gebäudes: Modell nach Art (siehe Kopf der Datei), Klickfläche über der Grundfläche, Name, Markierung.</summary>
+    /// <summary>
+    /// Baut das Stück eines Gebäudes: Modell nach Art (siehe Kopf der Datei) in der Farbe seiner Startbelegung, Klickfläche auf dem Modell, Name,
+    /// Markierung, die Fahne der Belegung.
+    /// </summary>
     private void StueckBauen(EntwurfGebaeude g)
     {
         if (_stueckeKnoten is null) return;
@@ -310,33 +345,39 @@ public partial class Stadtansicht
         var modell = new Node3D { Name = "Modell" };
         wurzel.AddChild(modell);
         var groesse = g.Groesse is var (b, t) ? new Vector2((float)b, (float)t) : new Vector2(4, 4);
-        StueckModell(g, modell, groesse);
+        var belegung = BelegungsanzeigeVon(g); // Stadtansicht.Kartenwerkstatt.Start.cs
+        StueckModell(g, modell, groesse, belegung);
 
-        // Klickfläche und Name: so hoch wie das Modell (flache wie der Markt mindestens 2 m; Häuser höchstens 12 m, sonst fängt ihre Klickfläche
-        // im Schrägblick die Klicks auf die Nachbarn dahinter; Sonderbauten und Berge bis 30 m)
-        var hoehe = Mathf.Clamp(MasseImModell(modell).End.Y, 2, g.Art is Bausteinart.Sonderbau or Bausteinart.Berg ? 30 : 12);
+        // Name so hoch wie das Modell (flache wie der Markt mindestens 2 m, höchstens 30 m)
+        var hoehe = Mathf.Clamp(MasseImModell(modell).End.Y, 2, 30);
         var kennung = StueckKennung(g);
-        Klickflaeche(kennung, new Vector3(0, hoehe / 2, 0), new Vector3(groesse.X, hoehe, groesse.Y), wurzel);
-        Beschriftung(g.Name, new Vector3(0, hoehe + 4, 0), 44, wurzel, kennung);
+        StueckKlickflaeche(kennung, modell, wurzel);
+        var name = Beschriftung(belegung is { } bel ? $"{g.Name}\n{bel.Text}" : g.Name, new Vector3(0, hoehe + 4, 0), 44, wurzel, kennung);
+        if (belegung is { } farbig) name.Modulate = farbig.Farbe.Lightened(0.55f);
 
         var (markierung, rahmen, fuellung) = MarkierungBauen(groesse, wurzel);
-        var stueck = new Stueck { Wurzel = wurzel, Modell = modell, Markierung = markierung, Rahmen = rahmen, Fuellung = fuellung };
+        if (belegung is { } anzeige) BelegungsfahneBauen(groesse, anzeige, wurzel); // Stadtansicht.Kartenwerkstatt.Start.cs
+        var stueck = new Stueck { Wurzel = wurzel, Modell = modell, Markierung = markierung, Rahmen = rahmen, Fuellung = fuellung, Belegung = belegung };
         _stuecke[g] = stueck;
         if (_entwurf?.FehlerhafteGebaeude.Contains(g.Kennung) == true) FehlerUeberzug(stueck, true);
         MarkierungSetzen(g, stueck);
         if (BereichVon(g) is { } bereich) _wsBereiche[g] = bereich;
     }
 
-    /// <summary>Das Modell eines Stücks nach der Art seines Bausteins, lokal: Mitte der Grundfläche im Ursprung, Vorderseite nach +z.</summary>
-    private void StueckModell(EntwurfGebaeude g, Node3D modell, Vector2 groesse)
+    /// <summary>
+    /// Das Modell eines Stücks nach der Art seines Bausteins, lokal: Mitte der Grundfläche im Ursprung, Vorderseite nach +z. Mit Startbelegung in
+    /// der Farbe des Hauses; ein Werkstattplatz zeigt dann die Werkstatt seines Startbetriebs (sonst die des Schmieds).
+    /// </summary>
+    private void StueckModell(EntwurfGebaeude g, Node3D modell, Vector2 groesse, Belegungsanzeige? belegung)
     {
         var m = (float)g.Massstab;
         var versatz = g.Baustein?.Versatz is { Length: 2 } v ? new Vector3((float)v[0], 0, (float)v[1]) * m : Vector3.Zero;
         var stabil = g.Kennung.Sum(c => c); // eine feste Zahl je Kennung für Variante und Hausfarbe (string.GetHashCode ändert sich je Start)
+        var besitzer = belegung?.Modellfarbe;
         switch (g.Art)
         {
             case Bausteinart.Werkstattplatz:
-                Einsetzen(WerkstattModellDatei("Schmied"), new ModellZustand(Stufe: 1));
+                Einsetzen(WerkstattModellDatei(belegung?.Beruf ?? "Schmied"), new ModellZustand(Stufe: 1, Besitzer: besitzer));
                 break;
             case Bausteinart.Wohnhausplatz when Katalog?.Wohnhaus(0) is { Modell: { } datei } fachwerk:
             {
@@ -345,7 +386,7 @@ public partial class Stadtansicht
                 var breite = groesse.X / anzahl;
                 for (var i = 0; i < anzahl; i++)
                     ModellEinsetzen(datei, modell, new Vector3(-groesse.X / 2 + breite * (i + 0.5f), 0, groesse.Y / 2 - ModellFront(fachwerk)),
-                        new ModellZustand(Variante: (stabil + i) % 3 + 1, Besitzer: Hausfarben[(stabil + i) % Hausfarben.Length]));
+                        new ModellZustand(Variante: (stabil + i) % 3 + 1, Besitzer: besitzer ?? Hausfarben[(stabil + i) % Hausfarben.Length]));
                 break;
             }
             case Bausteinart.Einwohnerplatz:
@@ -362,7 +403,7 @@ public partial class Stadtansicht
                 Einsetzen(datei, new ModellZustand(Variante: stabil % 3 + 1, Besitzer: Hausfarben[stabil % Hausfarben.Length]));
                 break;
             default:
-                if (g.Baustein?.Modell is { } eigenes) Einsetzen(eigenes, new ModellZustand());
+                if (g.Baustein?.Modell is { } eigenes) Einsetzen(eigenes, new ModellZustand(Besitzer: besitzer));
                 else Block();
                 break;
         }
@@ -401,6 +442,52 @@ public partial class Stadtansicht
             Dach(mitte + new Vector3(0, hoehe, 0), new Vector3(haus.X + 0.4f, 3, haus.Y + 0.4f), Material(Schiefer), quer: true, modell);
         }
     }
+
+    // ═════════════════════════════════════════════════════════════════════════
+    //  Klickflächen: so genau wie das Modell
+    // ═════════════════════════════════════════════════════════════════════════
+
+    /// <summary>Die konvexe Hülle je Netz eines Modells (Punkte im Raum des Netzes) – einmal gerechnet, alle Stücke mit demselben Netz teilen sie.</summary>
+    private readonly Dictionary<Mesh, Vector3[]> _wsHuellen = new();
+
+    /// <summary>
+    /// Die Klickfläche eines Stücks: je sichtbarem Netz des Modells seine konvexe Hülle (ein Haus: Wände und Dach, ein Baum seine Krone). So trifft
+    /// ein Klick das Gebäude nur dort, wo es zu sehen ist, und im Schrägblick bleiben Boden, Wege und Flächen hinter einem Haus erreichbar – vorher
+    /// war es ein Kasten über der ganzen Grundfläche bis 12 m Höhe. Ohne jedes Netz (das Modell fehlt) ein flacher Kasten in der Mitte.
+    /// </summary>
+    private void StueckKlickflaeche(string kennung, Node3D modell, Node3D wurzel)
+    {
+        var koerper = new StaticBody3D { Name = "Klickflaeche" };
+        koerper.SetMeta("kennung", kennung);
+        wurzel.AddChild(koerper);
+        foreach (var teil in modell.FindChildren("*", nameof(MeshInstance3D), true, false).OfType<MeshInstance3D>())
+        {
+            if (teil.Mesh is not { } netz || !teil.IsVisibleInTree()) continue;
+            if (!_wsHuellen.TryGetValue(netz, out var huelle))
+                _wsHuellen[netz] = huelle = netz.CreateConvexShape(clean: true, simplify: false)?.Points ?? Array.Empty<Vector3>();
+            if (huelle.Length < 4) continue; // flach oder leer: keine Hülle
+            var lage = LageUnter(wurzel, teil);
+            koerper.AddChild(new CollisionShape3D { Shape = new ConvexPolygonShape3D { Points = huelle.Select(p => lage * p).ToArray() } });
+        }
+        if (koerper.GetChildCount() == 0)
+            koerper.AddChild(new CollisionShape3D { Shape = new BoxShape3D { Size = new Vector3(4, 2, 4) }, Position = new Vector3(0, 1, 0) });
+    }
+
+    /// <summary>Das Gebäude, dessen Modell an dieser Bildschirmstelle zuerst getroffen wird, und wie hoch über dem Boden (null: keins).</summary>
+    private (EntwurfGebaeude Gebaeude, float Hoehe)? StueckTreffer(Vector2 maus)
+    {
+        var von = _kamera.ProjectRayOrigin(maus);
+        var treffer = GetWorld3D().DirectSpaceState.IntersectRay(PhysicsRayQueryParameters3D.Create(von, von + _kamera.ProjectRayNormal(maus) * 2000));
+        if (treffer.Count == 0 || treffer["collider"].As<Node>() is not { } koerper || !koerper.HasMeta("kennung")) return null;
+        var kennung = koerper.GetMeta("kennung").AsString();
+        if (!kennung.StartsWith("stueck:") || _entwurf?.GebaeudeMit(kennung["stueck:".Length..]) is not { } g) return null;
+        return (g, treffer["position"].AsVector3().Y);
+    }
+
+    /// <summary>Das Gebäude, auf dessen Grundfläche (mit Vorplatz) der Punkt liegt – das kleinste, wenn mehrere (null: keins).</summary>
+    private EntwurfGebaeude? GebaeudeAufGrund(Vector2 p) => _entwurf?.Gebaeude
+        .Where(g => g.Groesse is not null && Geometry2D.IsPointInPolygon(p, g.Ecken().Select(V2).ToArray()))
+        .OrderBy(g => g.Groesse!.Value.Breite * g.Groesse.Value.Tiefe).FirstOrDefault();
 
     /// <summary>Wo das Modell eines Gebäudes des Entwurfs steht (wie <see cref="ModellLage"/> für die Karte).</summary>
     private static Transform3D ModellLage(EntwurfGebaeude g)
@@ -518,6 +605,9 @@ public partial class Stadtansicht
             case EntwurfPflanze p:
                 PflanzeMarkieren(p);
                 break;
+            case EntwurfMauer m:
+                MauerMarkieren(m);
+                break;
         }
     }
 
@@ -543,18 +633,43 @@ public partial class Stadtansicht
         if (!ReferenceEquals(vorher, teil)) WerkstattAuswahlGeaendert?.Invoke(teil);
     }
 
-    /// <summary>Wo ein Teil liegt (zum Hinfahren): Punkt, Mitte des Verlaufs, Mitte der Fläche.</summary>
+    /// <summary>Wo ein Teil liegt (zum Hinfahren): Punkt, Mitte des Verlaufs, Mitte der Fläche bzw. der Ecken einer Mauer.</summary>
     public static Kartenort MitteVon(EntwurfTeil t) => t switch
     {
         EntwurfGebaeude g => g.Punkt,
         EntwurfPflanze p => p.Punkt,
         EntwurfWeg { Verlauf.Count: > 0 } w => w.Verlauf[w.Verlauf.Count / 2],
         EntwurfFlaeche { Ecken.Count: > 0 } f => new Kartenort(f.Ecken.Average(e => e.X), f.Ecken.Average(e => e.Z)),
+        EntwurfMauer { Ecken.Count: > 0 } m => new Kartenort(m.Ecken.Average(e => e.X), m.Ecken.Average(e => e.Z)),
         _ => default,
     };
 
     /// <summary>Fährt die Kamera zu einem Ort der Karte (Zoom bleibt).</summary>
     public void WerkstattHinfahren(Kartenort ort) => Kamerafahrt(new Vector3((float)ort.X, 0, (float)ort.Z), _kamera.Size);
+
+    /// <summary>Wohin die Kamera blickt, wie weit gezoomt und wie gedreht – damit die Werkstatt nach „Karte ausprobieren“ genauso weitermacht.</summary>
+    public (Vector3 Punkt, float Zoom, float Drehung) WerkstattKamera
+    {
+        get => (_kameraDrehung.Position, _kamera.Size, _zielDrehung);
+        set
+        {
+            _kameraDrehung.Position = value.Punkt;
+            _kamera.Size = Mathf.Clamp(value.Zoom, KameraMinZoom, KameraMaxZoom);
+            _zielDrehung = value.Drehung;
+            _kameraDrehung.RotationDegrees = new Vector3(0, _zielDrehung, 0);
+        }
+    }
+
+    /// <summary>
+    /// Löst die Stadtansicht vom Entwurf, wenn die Szene geht: Der Entwurf kann sie überleben („Karte ausprobieren“ hält ihn samt Rückgängig für
+    /// die Rückkehr) und darf dann keine Ereignisse an eine freigegebene Stadtansicht schicken.
+    /// </summary>
+    public void WerkstattLoesen()
+    {
+        if (_entwurf is null) return;
+        _entwurf.Geaendert -= EntwurfGeaendert;
+        _entwurf.Fangpunkte = null;
+    }
 
     /// <summary>Wo ein Ort der Karte auf dem Bildschirm liegt (für Klicktests, <c>--werkstatt-bildpunkte</c>), gerundet auf ganze Bildpunkte.</summary>
     public string WerkstattBildpunkt(double x, double z)
@@ -607,6 +722,7 @@ public partial class Stadtansicht
         if (werkzeug != Werkstattwerkzeug.Baustein && _wsUmriss is not null) _wsUmriss.Visible = false;
         if (werkzeug != Werkstattwerkzeug.Pflanze) PflanzenGeistAus();
         if (werkzeug is not (Werkstattwerkzeug.Pinsel or Werkstattwerkzeug.Radierer)) PinselAus();
+        if (werkzeug != Werkstattwerkzeug.Platz) PlatzwahlAus(); // Stadtansicht.Kartenwerkstatt.Start.cs
         WerkstattWerkzeugGeaendert?.Invoke();
         return ok;
     }
@@ -690,6 +806,15 @@ public partial class Stadtansicht
                 break;
             case Werkstattwerkzeug.Pinsel or Werkstattwerkzeug.Radierer:
                 PinselZeigen(maus);
+                break;
+            case Werkstattwerkzeug.Mauer:
+                MauerVorschau(maus);
+                break;
+            case Werkstattwerkzeug.Tor:
+                TorVorschau(maus);
+                break;
+            case Werkstattwerkzeug.Platz:
+                PlatzVorschau(maus);
                 break;
         }
     }
@@ -845,7 +970,7 @@ public partial class Stadtansicht
         // Das Mausrad über einer Tafel, die nicht (mehr) rollen kann, zoomt nicht die Kamera
         if (eingabe is InputEventMouseButton { ButtonIndex: MouseButton.WheelUp or MouseButton.WheelDown } && GetViewport().GuiGetHoveredControl() is not null) return true;
         var zeichnet = Kartenwerkzeug is Werkstattwerkzeug.Weg or Werkstattwerkzeug.Bauzone or Werkstattwerkzeug.Wald
-            or Werkstattwerkzeug.Streu or Werkstattwerkzeug.Aussparung;
+            or Werkstattwerkzeug.Streu or Werkstattwerkzeug.Aussparung or Werkstattwerkzeug.Mauer;
         switch (eingabe)
         {
             case InputEventKey { Pressed: true, Keycode: Key.Q or Key.E, CtrlPressed: false } taste:
@@ -912,20 +1037,29 @@ public partial class Stadtansicht
             case Werkstattwerkzeug.Pflanze when WerkstattBaustein is { } art && boden is { } ort:
                 if (Befehl(() => _entwurf.PflanzeSetzen(art, ort.X, ort.Y, WerkstattDrehung)) is { } p) WerkstattWaehlen(p);
                 return;
-            case Werkstattwerkzeug.Weg or Werkstattwerkzeug.Bauzone or Werkstattwerkzeug.Wald or Werkstattwerkzeug.Streu or Werkstattwerkzeug.Aussparung:
+            case Werkstattwerkzeug.Weg or Werkstattwerkzeug.Bauzone or Werkstattwerkzeug.Wald or Werkstattwerkzeug.Streu or Werkstattwerkzeug.Aussparung
+                or Werkstattwerkzeug.Mauer:
                 ZeichnenKlick(maus, boden, doppelklick); // Stadtansicht.Kartenwerkstatt.Flaechen.cs
                 return;
             case Werkstattwerkzeug.Pinsel or Werkstattwerkzeug.Radierer:
                 StrichBeginnen(maus); // Stadtansicht.Kartenwerkstatt.Natur.cs
+                return;
+            case Werkstattwerkzeug.Tor:
+                TorKlick(boden); // Stadtansicht.Kartenwerkstatt.Mauern.cs
+                return;
+            case Werkstattwerkzeug.Platz:
+                PlatzKlick(maus, boden); // Stadtansicht.Kartenwerkstatt.Start.cs
                 return;
         }
         AuswahlKlick(maus, boden);
     }
 
     /// <summary>
-    /// Ein Klick mit dem Werkzeug „Auswahl“: zuerst die Griffe des gewählten Teils (ziehen), dann die Linie des gewählten Weges bzw. der Rand der
-    /// gewählten Fläche (Stützpunkt bzw. Ecke einfügen, gleich weiterziehen), dann Gebäude, Pflanzen, Wege, das Innere der gewählten Fläche
-    /// (ganze Fläche ziehen), Bauzonen und Naturflächen. Ein Klick ins Leere hebt die Auswahl auf.
+    /// Ein Klick mit dem Werkzeug „Auswahl“: zuerst die Griffe des gewählten Teils (ziehen), dann die Linie des gewählten Weges, der Rand der
+    /// gewählten Fläche bzw. ein Tor oder die Linie der gewählten Mauer (Stützpunkt bzw. Ecke einfügen, gleich weiterziehen). Dann, was unter der
+    /// Maus liegt: ein Gebäude, dessen Modell über dem Boden getroffen wird (<see cref="StueckTreffer"/>), ein Tor, eine Pflanze, ein Weg, ein
+    /// flaches Gebäude (Feld, Weide), eine Mauer, die Grundfläche eines Gebäudes, das Innere der gewählten Fläche (ganze Fläche ziehen), Bauzonen
+    /// und Naturflächen. Ein Klick ins Leere hebt die Auswahl auf.
     /// </summary>
     private void AuswahlKlick(Vector2 maus, Vector2? boden)
     {
@@ -954,15 +1088,33 @@ public partial class Stadtansicht
             TeilZiehenBeginnen(gewaehlteFlaeche, Ziehart.Einfuegen, maus, p, vieleck, kante + 1);
             return;
         }
-        var kennung = KennungBei(maus) is { } k && k.StartsWith("stueck:") ? k["stueck:".Length..] : null;
-        if (_entwurf.GebaeudeMit(kennung) is { } gebaeude)
+        if (WerkstattGewaehlt is EntwurfMauer gewaehlteMauer)
         {
-            WerkstattWaehlen(gebaeude);
-            _wsZiehen = new Ziehvorgang
+            if (_entwurf.TorBei(p.X, p.Y, VorschauTorBreite / 2) is var (torMauer, tor, _) && ReferenceEquals(torMauer, gewaehlteMauer))
             {
-                Gebaeude = gebaeude, Start = maus, Versatz = new Vector2((float)gebaeude.X - p.X, (float)gebaeude.Z - p.Y),
-                X = gebaeude.X, Z = gebaeude.Z, Drehung = gebaeude.Drehung,
-            };
+                _wsGriff = new Griff(TorGriffe, tor);
+                GriffeBauen();
+                TeilZiehenBeginnen(gewaehlteMauer, Ziehart.Griff, maus, p, TorGriffe, tor);
+                return;
+            }
+            if (ReferenceEquals(MauerBei(p, toleranz), gewaehlteMauer))
+            {
+                TeilZiehenBeginnen(gewaehlteMauer, Ziehart.Einfuegen, maus, p, -1, gewaehlteMauer.NaechsteStelle(new Kartenort(p.X, p.Y)).Strecke + 1);
+                return;
+            }
+        }
+        var treffer = StueckTreffer(maus);
+        if (treffer is { Hoehe: >= 0.6f } hoch)
+        {
+            GebaeudeZiehenBeginnen(hoch.Gebaeude, maus, p);
+            return;
+        }
+        if (_entwurf.TorBei(p.X, p.Y, Mathf.Max((float)Kartenentwurf.Torfang, toleranz)) is var (mauer, torNummer, _))
+        {
+            WerkstattWaehlen(mauer);
+            _wsGriff = new Griff(TorGriffe, torNummer);
+            GriffeBauen();
+            TeilZiehenBeginnen(mauer, Ziehart.Griff, maus, p, TorGriffe, torNummer);
             return;
         }
         if (PflanzeBei(p, toleranz) is { } pflanze)
@@ -976,12 +1128,33 @@ public partial class Stadtansicht
             WerkstattWaehlen(weg);
             return;
         }
+        if ((treffer?.Gebaeude ?? (MauerBei(p, toleranz) is null ? GebaeudeAufGrund(p) : null)) is { } gebaeude)
+        {
+            GebaeudeZiehenBeginnen(gebaeude, maus, p);
+            return;
+        }
+        if (MauerBei(p, toleranz) is { } mauerLinie)
+        {
+            WerkstattWaehlen(mauerLinie);
+            return;
+        }
         if (WerkstattGewaehlt is EntwurfFlaeche innen && InFlaeche(innen, p))
         {
             TeilZiehenBeginnen(innen, Ziehart.Ganz, maus, p, -1, -1);
             return;
         }
         WerkstattWaehlen(FlaecheBei(p));
+    }
+
+    /// <summary>Wählt ein Gebäude und hält es zum Ziehen fest (ein Ziehen beginnt erst nach ein paar Bildpunkten).</summary>
+    private void GebaeudeZiehenBeginnen(EntwurfGebaeude gebaeude, Vector2 maus, Vector2 boden)
+    {
+        WerkstattWaehlen(gebaeude);
+        _wsZiehen = new Ziehvorgang
+        {
+            Gebaeude = gebaeude, Start = maus, Versatz = new Vector2((float)gebaeude.X - boden.X, (float)gebaeude.Z - boden.Y),
+            X = gebaeude.X, Z = gebaeude.Z, Drehung = gebaeude.Drehung,
+        };
     }
 
     /// <summary>Entf: den gewählten Griff (Stützpunkt, Ecke) – ohne Griff den gewählten Teil.</summary>
@@ -992,6 +1165,8 @@ public partial class Stadtansicht
         {
             switch (teil)
             {
+                case EntwurfMauer m when !MauerGriffLoeschen(m, griff): // Stadtansicht.Kartenwerkstatt.Mauern.cs
+                    return;
                 case EntwurfWeg w when !Befehl(() => _entwurf.StuetzpunktLoeschen(w, griff.Index)):
                     WerkstattMeldung?.Invoke("Ein Weg braucht mindestens zwei Stützpunkte – Entf ohne gewählten Griff löscht den ganzen Weg.", true);
                     return;
@@ -1012,6 +1187,7 @@ public partial class Stadtansicht
             case EntwurfWeg w: Befehl(() => _entwurf.WegLoeschen(w)); break;
             case EntwurfFlaeche f: Befehl(() => _entwurf.FlaecheLoeschen(f)); break;
             case EntwurfPflanze p: Befehl(() => _entwurf.PflanzeLoeschen(p)); break;
+            case EntwurfMauer m: Befehl(() => _entwurf.MauerLoeschen(m)); break;
         }
     }
 

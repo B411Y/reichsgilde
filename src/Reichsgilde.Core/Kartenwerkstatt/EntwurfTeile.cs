@@ -22,6 +22,12 @@ public enum Kartenteil
     Bauzone,
     Naturflaeche,
     Pflanze,
+
+    /// <summary>Eine Mauer mit ihren Toren (Schritt 3).</summary>
+    Mauer,
+
+    /// <summary>Die Startbelegung (Schritt 3; nur einmal je Karte).</summary>
+    Start,
 }
 
 /// <summary>Ein bearbeitbarer Teil des Entwurfs (Gebäude, Weg, Bauzone, Naturfläche, Pflanze).</summary>
@@ -432,5 +438,19 @@ internal static class Teilleser
             }
         }
         return aus;
+    }
+
+    /// <summary>Liest ein einzelnes Objekt (z. B. <c>start</c>) in einen Typ der Stadtkarte; null, wenn es fehlt.</summary>
+    public static T? Einzeln<T>(JsonNode? knoten, string wo) where T : class
+    {
+        if (knoten is null) return null;
+        try
+        {
+            return knoten.Deserialize<T>(Stadtkarte.Optionen);
+        }
+        catch (JsonException ex)
+        {
+            throw new KartenFehler(new[] { $"{wo} ist nicht lesbar ({ex.Path}): {ex.Message}" });
+        }
     }
 }

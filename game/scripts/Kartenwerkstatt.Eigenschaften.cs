@@ -5,7 +5,7 @@ using Reichsgilde.Core.Kartenwerkstatt;
 namespace Reichsgilde;
 
 /// <summary>
-/// Die Tafel rechts für Wege, Flächen und Pflanzen und die Regler von Pinsel und Radierer – ein Teil der <c>partial class Kartenwerkstatt</c>
+/// Die Tafel rechts für Wege, Flächen (Streuflächen mit ihren Gruppen), Pflanzen und Mauern und die Regler von Pinsel und Radierer – ein Teil der <c>partial class Kartenwerkstatt</c>
 /// (die Gebäude stehen in Kartenwerkstatt.Tafeln.cs). Jede Änderung in einem Feld ist ein Befehl des Entwurfs; ändert sich der gezeigte Teil
 /// (auch durch Rückgängig), wird die Tafel neu gebaut – außer, in einem Textfeld wird gerade geschrieben.
 /// </summary>
@@ -17,7 +17,7 @@ public partial class Kartenwerkstatt
     /// <summary>Wird in der Tafel gerade geschrieben (ein Text- oder Zahlenfeld hat den Fokus)?</summary>
     private bool EingabeOffen() => GetViewport().GuiGetFocusOwner() is { } fokus && _eigenschaften.IsAncestorOf(fokus);
 
-    /// <summary>Baut die Tafel für einen Weg, eine Fläche oder eine Pflanze.</summary>
+    /// <summary>Baut die Tafel für einen Weg, eine Fläche, eine Pflanze oder eine Mauer.</summary>
     private void TeilTafel(EntwurfTeil teil)
     {
         UiHilfe.KinderEntfernen(_eigenschaften);
@@ -32,6 +32,7 @@ public partial class Kartenwerkstatt
             case EntwurfBauzone z: BauzonenTafel(z, raster); break;
             case EntwurfNaturflaeche f: NaturTafel(f, raster); break;
             case EntwurfPflanze p: PflanzenTafel(p, raster); break;
+            case EntwurfMauer m: MauerTafel(m, raster); break;
         }
         var knoepfe = new HBoxContainer();
         knoepfe.AddThemeConstantOverride("separation", 8);
@@ -48,6 +49,7 @@ public partial class Kartenwerkstatt
             case EntwurfWeg w: _entwurf.WegLoeschen(w); break;
             case EntwurfFlaeche f: _entwurf.FlaecheLoeschen(f); break;
             case EntwurfPflanze p: _entwurf.PflanzeLoeschen(p); break;
+            case EntwurfMauer m: _entwurf.MauerLoeschen(m); break;
         }
     }
 
@@ -119,7 +121,7 @@ public partial class Kartenwerkstatt
         art.Select(f.Art == "streu" ? 1 : 0);
         art.ItemSelected += i => _entwurf.NaturArtSetzen(f, i == 1 ? "streu" : "wald");
         Zeile(raster, "Art", art);
-        Zeile(raster, "Dichte", Schieber(0, Math.Max(10, f.Dichte), 0.1, f.Dichte, d => $"{Komma(d, "0.0")} /1000 m²", d => _entwurf.DichteSetzen(f, d),
+        Zeile(raster, "Dichte", Schieber(0, Math.Max(30, f.Dichte), 0.1, f.Dichte, d => $"{Komma(d, "0.0")} /1000 m²", d => _entwurf.DichteSetzen(f, d),
             "Streupunkte je 1.000 m² (ein Wald: je Punkt ein Baum; Streu: je Punkt ein Grüppchen)"));
         var wuerfeln = new HBoxContainer();
         wuerfeln.AddThemeConstantOverride("separation", 8);
@@ -130,6 +132,24 @@ public partial class Kartenwerkstatt
         Zeile(raster, "Startwert", wuerfeln);
         Zeile(raster, "Pflanzen", Wert($"{_stadt.WerkstattNaturAnzahl(f)} – unter Wegen, Gebäuden und Bauzonen bleibt es frei"));
 
+        if (f.Art == "wald") MischungTafel(f);
+        else GruppenTafel(f);
+
+        Hauptmenue.Text(_eigenschaften, $"Aussparungen: {f.Aussparungen.Count}", 15, Gold);
+        var zeile = new HBoxContainer();
+        zeile.AddThemeConstantOverride("separation", 8);
+        _eigenschaften.AddChild(zeile);
+        Knopf(zeile, "Aussparung zeichnen", () => KatalogWaehlen("aussparung"), "Ecken klicken, Doppelklick schließt – dort wächst nichts");
+        for (var i = 0; i < f.Aussparungen.Count; i++)
+        {
+            var nummer = i;
+            Knopf(zeile, $"{i + 1} löschen", () => _entwurf.AussparungLoeschen(f, nummer), $"Aussparung {i + 1} entfernen");
+        }
+    }
+
+    /// <summary>Die Mischung eines Waldes: je Art ein Regler (Anteil), „Art hinzufügen“.</summary>
+    private void MischungTafel(EntwurfNaturflaeche f)
+    {
         Hauptmenue.Text(_eigenschaften, "Mischung", 15, Gold);
         var mischung = f.Mischung.OrderByDescending(e => e.Value).ToList();
         var regler = new Dictionary<string, HSlider>();
@@ -162,19 +182,156 @@ public partial class Kartenwerkstatt
         };
         _eigenschaften.AddChild(dazu);
         if (f.Gruppen.Count > 1 || f.Gruppen.Any(g => g.Teile.Count > 1))
-            Hauptmenue.Text(_eigenschaften, "Diese Fläche mischt in Gruppen (Büsche mit Kraut, Steine mit Gras …). Wer die Mischung hier ändert, macht daraus eine einfache: je Streupunkt eine Pflanze.",
-                12, Grau, umbruchBreite: Rechtsbreite - 30);
+            Hauptmenue.Text(_eigenschaften, "Dieser Wald mischt in Gruppen. Wer die Mischung hier ändert, macht daraus eine einfache: je Streupunkt ein Baum. Gruppen bearbeitet ihr, wenn ihr die Art auf „Streufläche“ stellt.",
+                12, Grau, umbruchBreite: Rechtsbreite - 44);
+    }
 
-        Hauptmenue.Text(_eigenschaften, $"Aussparungen: {f.Aussparungen.Count}", 15, Gold);
+    /// <summary>
+    /// Die Gruppen einer Streufläche einzeln: Je Streupunkt wird eine Gruppe nach ihrem Gewicht gewählt, ihre Teile liegen in einer Scheibe mit dem
+    /// Radius; jeder Teil hat Arten (mit Gewicht, 0 nimmt die Art heraus) und eine Anzahl von–bis. Jede Änderung ist ein Befehl.
+    /// </summary>
+    private void GruppenTafel(EntwurfNaturflaeche f)
+    {
+        Hauptmenue.Text(_eigenschaften, "Gruppen", 15, Gold);
+        Hauptmenue.Text(_eigenschaften, "An jedem Streupunkt wächst eine Gruppe (nach Gewicht gewählt): ihre Teile verteilt in einer Scheibe mit dem Radius.",
+            12, Grau, umbruchBreite: Rechtsbreite - 44);
+        for (var gi = 0; gi < f.Gruppen.Count; gi++)
+        {
+            var g = gi;
+            var gruppe = f.Gruppen[g];
+            var kopf = new HBoxContainer();
+            kopf.AddThemeConstantOverride("separation", 6);
+            _eigenschaften.AddChild(kopf);
+            var titel = Hauptmenue.Text(kopf, $"Gruppe {g + 1}", 14, Hell);
+            titel.SizeFlagsHorizontal = Control.SizeFlags.ExpandFill;
+            Knopf(kopf, "×", () =>
+            {
+                if (!_entwurf.GruppeEntfernen(f, g)) Melden("Eine Fläche braucht mindestens eine Gruppe – sonst wächst dort nichts.", fehler: true);
+            }, "Die Gruppe entfernen");
+            var werte = new HBoxContainer();
+            werte.AddThemeConstantOverride("separation", 6);
+            _eigenschaften.AddChild(werte);
+            werte.AddChild(Klein("Gewicht"));
+            werte.AddChild(Zahl(0, 100, 0.1, gruppe.Gewicht, "", w => _entwurf.GruppeSetzen(f, g, w, f.Gruppen[g].Radius), "Wie oft diese Gruppe gewählt wird (im Verhältnis zu den anderen)"));
+            werte.AddChild(Klein("Radius"));
+            werte.AddChild(Zahl(0, 30, 0.5, gruppe.Radius, "m", r => _entwurf.GruppeSetzen(f, g, f.Gruppen[g].Gewicht, r), "Halbmesser der Scheibe um den Streupunkt (0: alles genau darauf)"));
+            for (var ti = 0; ti < gruppe.Teile.Count; ti++) GruppenteilZeile(f, g, ti);
+            Knopf(_eigenschaften, "+ Teil", () => _entwurf.GruppenteilHinzufuegen(f, g, new Dictionary<string, double> { ["gras"] = 1 }, 1, 2),
+                "Ein weiterer Teil der Gruppe (Gras, 1–2 Stück – danach anpassen)");
+            _eigenschaften.AddChild(new HSeparator());
+        }
+        Knopf(_eigenschaften, "+ Gruppe", () => _entwurf.GruppeHinzufuegen(f), "Eine neue Gruppe: Gras, 1–3 Stück im Radius 2 m");
+    }
+
+    /// <summary>Ein Teil einer Gruppe: Anzahl von–bis, je Art ein Gewicht (0 nimmt sie heraus), „+ Art“, Entfernen.</summary>
+    private void GruppenteilZeile(EntwurfNaturflaeche f, int g, int t)
+    {
+        var teil = f.Gruppen[g].Teile[t];
+        Dictionary<string, double> Arten() => new(f.Gruppen[g].Teile[t].Arten);
+        (int, int) Anzahl() => (f.Gruppen[g].Teile[t].Anzahl[0], f.Gruppen[g].Teile[t].Anzahl.Length > 1 ? f.Gruppen[g].Teile[t].Anzahl[1] : f.Gruppen[g].Teile[t].Anzahl[0]);
+        var (von, bis) = Anzahl();
         var zeile = new HBoxContainer();
-        zeile.AddThemeConstantOverride("separation", 8);
+        zeile.AddThemeConstantOverride("separation", 6);
         _eigenschaften.AddChild(zeile);
-        Knopf(zeile, "Aussparung zeichnen", () => KatalogWaehlen("aussparung"), "Ecken klicken, Doppelklick schließt – dort wächst nichts");
-        for (var i = 0; i < f.Aussparungen.Count; i++)
+        zeile.AddChild(Klein($"Teil {t + 1} · Anzahl"));
+        zeile.AddChild(Zahl(0, 50, 1, von, "", v => _entwurf.GruppenteilSetzen(f, g, t, Arten(), (int)v, Math.Max((int)v, Anzahl().Item2)), "So viele mindestens"));
+        zeile.AddChild(Klein("–"));
+        zeile.AddChild(Zahl(0, 50, 1, bis, "", b => _entwurf.GruppenteilSetzen(f, g, t, Arten(), Math.Min(Anzahl().Item1, (int)b), (int)b), "So viele höchstens"));
+        Knopf(zeile, "×", () =>
+        {
+            if (!_entwurf.GruppenteilEntfernen(f, g, t)) Melden("Der letzte Teil einer Gruppe bleibt – entfernt sonst die ganze Gruppe.", fehler: true);
+        }, "Den Teil entfernen");
+        var arten = new GridContainer { Columns = 4 };
+        arten.AddThemeConstantOverride("h_separation", 4);
+        _eigenschaften.AddChild(arten);
+        foreach (var (art, gewicht) in teil.Arten)
+        {
+            var name = Klein(ArtName(art));
+            arten.AddChild(name);
+            arten.AddChild(Zahl(0, 100, 0.1, gewicht, "", w =>
+            {
+                var neu = Arten();
+                neu[art] = w;
+                if (neu.Values.All(x => x <= 0)) Melden("Ein Teil braucht mindestens eine Art mit Gewicht über 0.", fehler: true);
+                else _entwurf.GruppenteilSetzen(f, g, t, neu, Anzahl().Item1, Anzahl().Item2);
+            }, "Gewicht der Art in diesem Teil (0 nimmt sie heraus)"));
+        }
+        var dazu = new OptionButton { FocusMode = Control.FocusModeEnum.None, TooltipText = "Eine weitere Art in diesen Teil (Gewicht 1)" };
+        dazu.AddItem("+ Art …", -1);
+        var andere = _entwurf.Katalog.Bausteine.Where(b => b.Art == Bausteinart.Natur && !teil.Arten.ContainsKey(b.Kennung)).ToList();
+        foreach (var b in andere) dazu.AddItem(ArtName(b));
+        dazu.ItemSelected += i =>
+        {
+            if (i <= 0) return;
+            var neu = Arten();
+            neu[andere[(int)i - 1].Kennung] = 1;
+            _entwurf.GruppenteilSetzen(f, g, t, neu, Anzahl().Item1, Anzahl().Item2);
+        };
+        _eigenschaften.AddChild(dazu);
+    }
+
+    private static Label Klein(string text)
+    {
+        var label = new Label { Text = text, VerticalAlignment = VerticalAlignment.Center };
+        label.AddThemeFontSizeOverride("font_size", 13);
+        label.AddThemeColorOverride("font_color", Grau);
+        return label;
+    }
+
+    /// <summary>Ein kleines Zahlenfeld, das bei jeder Änderung (Pfeile, Enter, Verlassen) übernimmt.</summary>
+    private static Zahlfeld Zahl(double min, double max, double schritt, double wert, string einheit, Action<double> uebernehmen, string tipp)
+    {
+        var feld = new Zahlfeld { MinValue = min, MaxValue = max, Step = schritt, Value = wert, Suffix = einheit, TooltipText = tipp, CustomMinimumSize = new Vector2(60, 0) };
+        feld.GetLineEdit().AddThemeConstantOverride("minimum_character_width", 3);
+        feld.ValueChanged += wert => uebernehmen(wert);
+        return feld;
+    }
+
+    // ═════════════════════════════════════════════════════════════════════════
+    //  Mauer und Tore
+    // ═════════════════════════════════════════════════════════════════════════
+
+    private void MauerTafel(EntwurfMauer m, GridContainer raster)
+    {
+        Zeile(raster, "Name", Textfeld(m.Name, text => _entwurf.MauerUmbenennen(m, text)));
+        var geschlossen = new CheckBox { Text = "geschlossen (Ring)", ButtonPressed = m.Geschlossen, FocusMode = Control.FocusModeEnum.None,
+            TooltipText = "An: die letzte Ecke läuft zurück zur ersten. Aus: die Mauer endet offen (wie Köln am Rhein)." };
+        geschlossen.Toggled += an =>
+        {
+            if (!_entwurf.MauerGeschlossenSetzen(m, an))
+            {
+                Melden("Ein Ring braucht mindestens drei Ecken.", fehler: true);
+                geschlossen.SetPressedNoSignal(m.Geschlossen);
+            }
+        };
+        Zeile(raster, "Verlauf", geschlossen);
+        var laenge = 0.0;
+        for (var i = 0; i < m.Strecken; i++) laenge += m.Strecke(i).A.Abstand(m.Strecke(i).B);
+        Zeile(raster, "Länge", Wert($"{Math.Round(laenge)} m · {m.Ecken.Count} Ecken"));
+        Zeile(raster, "Türme", Wert($"{m.Plan.Ecktuerme.Count} Ecktürme, {m.Plan.Tuerme.Count} Mauertürme – setzt das Spiel (an Knicken ab {Mauerplan.EckturmAbWinkel:0}°, etwa alle {Mauerplan.TurmAbstand:0} m)"));
+
+        Hauptmenue.Text(_eigenschaften, m.Tore.Count == 0 ? "Tore: noch keins" : $"Tore: {m.Tore.Count}", 15, Gold);
+        for (var i = 0; i < m.Tore.Count; i++)
         {
             var nummer = i;
-            Knopf(zeile, $"{i + 1} löschen", () => _entwurf.AussparungLoeschen(f, nummer), $"Aussparung {i + 1} entfernen");
+            var tor = m.Tore[i];
+            var zeile = new HBoxContainer();
+            zeile.AddThemeConstantOverride("separation", 6);
+            _eigenschaften.AddChild(zeile);
+            var name = Textfeld(tor.Name, text => _entwurf.TorUmbenennen(m, nummer, text), "Name des Tors (Passanten, Wege und die Prüfung nennen es so)");
+            name.SizeFlagsHorizontal = Control.SizeFlags.ExpandFill;
+            zeile.AddChild(name);
+            var nachts = new CheckBox { Text = "schließt nachts", ButtonPressed = tor.SchliesstNachts, FocusMode = Control.FocusModeEnum.None,
+                TooltipText = "Nachts zu: Gauner kommen dann nicht hindurch" };
+            nachts.AddThemeFontSizeOverride("font_size", 13);
+            nachts.Toggled += an => _entwurf.TorSchliesstNachtsSetzen(m, nummer, an);
+            zeile.AddChild(nachts);
+            Knopf(zeile, "→", () => _stadt.WerkstattHinfahren(tor.Punkt), "Hinfahren");
+            Knopf(zeile, "×", () => _entwurf.TorLoeschen(m, nummer), "Das Tor löschen");
         }
+        Knopf(_eigenschaften, "Tor setzen", () => KatalogWaehlen("tor"), "Werkzeug „Tor“: Klick auf die Mauer setzt ein Tor");
+        Hauptmenue.Text(_eigenschaften, "Griffe: Ecken gold, Tore blau. Ziehen verschiebt (Tore gleiten an der Mauer entlang), Klick auf die Linie fügt eine Ecke ein, Entf löscht den gewählten Griff.",
+            12, Grau, umbruchBreite: Rechtsbreite - 44);
     }
 
     // ═════════════════════════════════════════════════════════════════════════
