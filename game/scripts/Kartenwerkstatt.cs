@@ -65,7 +65,7 @@ public partial class Kartenwerkstatt : Node
         _entwurf.Geaendert += a =>
         {
             AuffrischenVormerken();
-            if (a.Gebaeude.Kennung == _stadt.WerkstattAuswahl) EigenschaftenZeigen(neu: false);
+            if (a.Gebaeude?.Kennung is { } k && k == _stadt.WerkstattAuswahl) EigenschaftenZeigen(neu: false);
         };
         _stadt.WerkstattAuswahlGeaendert += _ => EigenschaftenZeigen(neu: true);
         _stadt.WerkstattSetzenBeendet += KatalogWahlAufheben;
