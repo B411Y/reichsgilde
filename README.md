@@ -26,6 +26,7 @@
 | 🚪 | [Gebäude betreten](#gebaeude) | Werkstätten, eigenes Wohnhaus, Rathaus und Dom von innen – mit Arbeitern, Familie, Ratsherren und Gläubigen aus der Simulation. |
 | 🏗️ | [Bauen und Leerstand](#bauen) | Bauzonen, Wohnhaus und Werkstatt frei bauen (Umriss an der Maus, Rückfrage mit Preis und Bauzeit), leere Häuser kaufen, sanieren oder abreißen, Baustellen und Bauplätze. |
 | ⏳ | [Partie und Spieltag](#partie) | Ein Spieltag von 5 bis 22 Uhr ist ein Spieljahr. Hauptmenü, Speichern und Laden, Aktionspunkte für persönliche Handlungen. |
+| ⚙️ | [Einstellungen](#einstellungen) | Grafik-Voreinstellungen von Niedrig bis Ultra, beim ersten Start automatisch gewählt; Bildrate, dynamische Auflösung, Miniatur-Unschärfe, Wolkenschatten, Morgendunst mit Lichtstrahlen, Farbstimmung; Größe der Oberfläche und Farbfilter für Farbsehschwäche. |
 | ⚖️ | [Wirtschaft und Handel](#wirtschaft) | Marktpreise nach Angebot und Nachfrage, Betriebe, Karren und Stadttore, Handel von Hand, Expansion, Meistergrade und Gebäudestufen. |
 | ⚒️ | [Berufe](#berufe) | Zehn Berufe – Schmied, Tischler, Steinmetz, Alchimist, Wirt, Prediger, Dieb, Gardist, Geldleiher, Parfumeur – mit eigenen Waren und Kniffen. |
 | 🛡️ | [Haus und Dynastie](#haus) | Wappen, Heirat, Kinder, Erbfolge, Talente, Krankheiten und Pest, ein Wohnhaus vom Fachwerkhaus bis zum Stadthof. |
@@ -60,7 +61,7 @@ Spielstände liegen unter `%APPDATA%\Godot\app_userdata\Reichsgilde\spielstaende
 - **Bauen** (Knopf im Kontor): Gebäude wählen, dann folgt ein Umriss der Maus – **grün** = hier erlaubt, **rot** = nicht (der Grund steht dabei) · **R** = drehen · **Klick** = setzen (danach Rückfrage) · **Rechtsklick** oder **Esc** = zurück
 - **Esc** = Rückfrage oder Baumodus schließen → Tafel schließen → Gebäude verlassen → Auswahl schließen → Spielmenü (Speichern, Laden, Hauptmenü)
 - **F11** = Vollbild ein/aus (wird gespeichert).
-- **Einstellungen** (Knopf im Hauptmenü und im Spielmenü, Esc): Vollbild, **Oberflächendetails** (Schalter, Standard An), **Kantenglättung** – Aus, FXAA, SMAA (Standard), TAA, MSAA 2×/4×/8× – und **Schattenqualität** – Niedrig, Mittel, Hoch (Standard) – **Bloom** (Schalter und Stärkeregler 0–100 %, Standard An mit 50 %), **Umgebungsverdeckung** (Aus, Niedrig, Mittel als Standard, Hoch), **Indirektes Licht (SSIL)** (Standard Aus) und **FSR 2.2 (Hochskalierung)** (Standard Aus, dann mit Regler „Renderauflösung“ 25–100 %, Standard 67 %; solange FSR an ist, ist die Kantenglättung ausgegraut), je mit kurzer Erklärung. Die Wahl wirkt sofort und wird gespeichert. Niedrig hilft schwachen Grafikkarten (kleinere Schattenkarte, weniger Proben je Bildpunkt). Das Fenster lässt sich frei ziehen: Ein größeres Fenster zeigt mehr Stadt, Tafeln, die nicht hineinpassen, bekommen Scrollbalken (Mausrad über der Tafel rollt sie).
+- **Einstellungen** (Knopf im Hauptmenü und im Spielmenü, Esc): fünf Reiter – Voreinstellung, Leistung, Bild, Stimmung, Barrierefreiheit – mit kurzer Erklärung zu jedem Regler (alles im Spielbuch unter [Einstellungen](#einstellungen)). Die Wahl wirkt sofort und wird gespeichert. Das Fenster lässt sich frei ziehen: Ein größeres Fenster zeigt mehr Stadt, Tafeln, die nicht hineinpassen, bekommen Scrollbalken (Mausrad über der Tafel rollt sie).
   Hinweis: Startet man das Spiel im Godot-Editor, läuft es im Reiter „Game“ eingebettet. Dort bestimmt der Editor die Fenstergröße, und Vollbild ist nicht möglich. Zum Testen im eigenen Fenster das Einbetten im Reiter „Game“ ausschalten.
 
 </details>
@@ -114,7 +115,7 @@ Die Reichsstadt ist als begehbare Schrägansicht zu sehen: Mauer (100 × 100 m) 
 
 **Oberflächendetails.** Die Modelle behalten ihre Farben und bekommen eine feine Struktur je Material: Mauern zeigen Quader mit leichten Farbunterschieden und weichen Fugen, Mauerkronen und Gassen Kopfsteinpflaster, Balken und Bretter Maserung mit Ästen, Dächer einzelne Ziegel oder Schieferplatten mit etwas Abnutzung und Stroh seine Halme, Bäume Blätter, Wiesen und Wege Körnung und große, unregelmäßige Flecken; dazu eine leichte Unebenheit im Licht. Das gilt in der Stadt, im Umland und in den Innenräumen, auch für Neubauten, neue Karren und Figuren, für die Farben der Besitzer und die Jahreszeiten. Glut, Fensterlicht, Glas und Wasser behalten ihr Aussehen; wo ein Modell Steine oder Dielen schon als Form hat, kommt keine zweite Struktur dazu. In den Einstellungen lassen sich die Details für schwache Rechner abschalten (Standard: an); dann zeigen die Modelle nur ihre Farben (auf der Testkarte NVIDIA T400 sind die Details etwa 6 % der Bilder je Sekunde wert, die Zahl der Zeichenaufrufe bleibt gleich). Zum Ausprobieren: `--oberflaeche=Aus`.
 
-**Fahnen im Wind.** Alle Fahnen der Stadt flattern: auf den Wohnhäusern, am Wachturm, am Schilderhäuschen der Wache und auf den Werkstätten. Das Tuch hängt am Mast fest und schlägt am freien Ende am stärksten aus; Falten fangen Licht und Schatten. Jede Fahne flattert in ihrem eigenen Takt. Die Grafikkarte rechnet das mit einem kleinen Programm (Shader), der Wind ist für alle gleich und fest.
+**Fahnen im Wind.** Alle Fahnen der Stadt flattern: auf den Wohnhäusern, am Wachturm, am Schilderhäuschen der Wache und auf den Werkstätten. Das Tuch hängt am Mast fest und schlägt am freien Ende am stärksten aus; Falten fangen Licht und Schatten. Jede Fahne flattert in ihrem eigenen Takt. Die Grafikkarte rechnet das mit einem kleinen Programm (Shader), der Wind ist für alle gleich und fest. In den Einstellungen (Reiter Stimmung) lassen sich die Fahnen anhalten.
 
 **Verkaufte Werkstätten.** Wer eine Werkstatt verkauft, lässt das Haus stehen: in seiner Stufe, aber ohne Wappen und Fahne, Tor und Fenster vernagelt, die Scheiben dunkel, davor das ockerfarbene Schild „zu verkaufen“. Ein Klick darauf bietet es zum Kauf an; betreten lässt es sich erst wieder nach dem Kauf. Eine gekündigte Pacht wird wieder leere Grube bzw. freier Umlandplatz mit grünem Schild.
 
@@ -194,6 +195,39 @@ Die Reichsstadt ist als begehbare Schrägansicht zu sehen: Mauer (100 × 100 m) 
 - Ein geladener Spielstand läuft exakt so weiter, wie er gespeichert wurde.
 
 **Aktionspunkte.** Jedes Haus bekommt zum Jahreswechsel **4 Aktionspunkte** (im Hauptmenü 1–12 einstellbar) und kann bis zu 12 ansparen. Persönliche Handlungen kosten AP: Werben, Heiraten, einen Ratsherrn beschenken, sich bewerben, einen Spitzel ansetzen, eine Bande anheuern (je 1), Statut-Antrag, Anklage, Erpresserbrief, Konvertieren, Antrag zum Stadtglauben (je 2), Bekehrungspredigt (1). Mit übrigen AP übt das Oberhaupt ein Talent: ½ Stern je Übung, je Talent einmal im Jahr; es kostet 2 AP unter 3 Sternen, 4 AP unter 5 und 6 AP darüber. Die Wirtschaft (Betriebe, Personal, Karren, Wächter, Stand, Liegenschaften) bleibt frei. Haus Eisenbart hat dieselben AP und setzt Prioritäten nach seinem Charakter.
+
+</details>
+
+<a id="einstellungen"></a>
+<details>
+<summary><b>Einstellungen</b> – Voreinstellungen, Leistung, Bild, Stimmung, Barrierefreiheit</summary>
+
+Die Tafel **Einstellungen** (Hauptmenü und Spielmenü) hat fünf Reiter. Jede Änderung wirkt sofort und wird gespeichert.
+
+**Voreinstellung.** Niedrig, Mittel, Hoch und Ultra stellen alle Regler für Leistung und Bild auf einmal ein, dazu die teuren Stimmungen (Miniatur-Unschärfe, Wolkenschatten, Morgendunst). Ändert man danach einen Regler, steht dort „Eigene“. Beim **ersten Start** misst das Spiel im Hintergrund des Hauptmenüs ein paar Sekunden lang, wie schnell der Rechner die Stadt zeichnet, und wählt die höchste Stufe, die flüssig bleibt (60 Bilder je Sekunde mit Reserve); ein Hinweis oben nennt die Wahl. Der Knopf **Automatisch wählen** misst später noch einmal. Hier steht auch der Schalter **Vollbild** (F11).
+
+| Stufe | Kanten | Schatten | Verdeckung | Bloom | FSR 2.2 | Oberflächen | Natur, Passanten | Unschärfe | Wolken | Morgendunst |
+|---|---|---|---|---|---|---|---|---|---|---|
+| Niedrig | FXAA | Niedrig | Aus | Aus | Aus | Aus | 50 %, Feinheiten nah | Aus | Aus | Aus |
+| Mittel | SMAA | Mittel | Niedrig | An | Aus | An | 75 %, Feinheiten mittel | Aus | An | Aus |
+| Hoch | SMAA | Hoch | Mittel | An | Aus | An | 100 % | Leicht | An | Niedrig |
+| Ultra | MSAA 4× | Hoch | Hoch, mit indirektem Licht | An | Aus | An | 100 % | Leicht | An | Hoch |
+
+**Leistung.** **Bildrate begrenzen** (30, 60, 90, 120, 144 Bilder je Sekunde oder unbegrenzt) spart Strom. **VSync** Aus, An (Standard) oder Adaptiv (wartet nur, solange das Spiel schnell genug ist). **Dynamische Auflösung** mit einer Ziel-Bildrate: Wird es eng, rechnet das Spiel das 3D-Bild in Schritten bis auf 50 % kleiner und holt es auf volle Größe – mit FSR 2.2, wenn es an ist, sonst einfach vergrößert; geregelt wird ruhig, höchstens alle zwei Sekunden ein Schritt. **FSR 2.2** mit Renderauflösung wie bisher. **Detailstufe:** Natur-Dichte (Anteil von Gras, Büschen, Steinen und Holz, Bäume dünnen nur halb so stark aus), Passanten (wie viele Einwohner als Figur zu sehen sind – die Stadt rechnet weiter mit allen) und Sichtweite der Feinheiten (bis zu welchem Zoom Bodenpflanzen, Kiesel und Holz gezeichnet werden).
+
+**Bild.** Oberflächendetails, Kantenglättung, **Nachschärfen** (0–100: holt feine Kanten zurück, die Glättung oder Hochskalierung weich gemacht haben; Tafeln und Schrift bleiben unberührt), Schattenqualität, Umgebungsverdeckung und indirektes Licht (siehe „Stadt und Ansicht“).
+
+**Stimmung.**
+- **Bloom** mit Stärke wie bisher.
+- **Miniatur-Unschärfe** (Aus, Leicht, Stark): Oben und unten im Bild wird die Stadt weich, die Mitte bleibt scharf – wie ein Foto eines Modells (Tilt-Shift); von nahem stärker als von weit. Räume und Tafeln bleiben scharf.
+- **Wolkenschatten:** Schatten einzelner Wolken ziehen langsam mit dem Wind über Felder, Gassen und Dächer, nur bei Sonne.
+- **Morgendunst und Lichtstrahlen** (Aus, Niedrig, Hoch): morgens liegt Dunst flach über Feldern und Wiesen, in der Stadt nur ein leichter Schleier; gegen 8 Uhr ist er fast weg, abends kommt ein Hauch zurück. In der hohen Stufe ist es echter Nebel in der Luft: Die tief stehende Sonne zieht Lichtbahnen hindurch, Mauern und Häuser werfen Schatten hinein, und in den Räumen glimmt der Staub um Glut und Fenster.
+- **Farbstimmung:** Tonemapping „Linear (bisher)“ oder AgX (helle Stellen laufen weich aus, ruhigere Farben), dazu Helligkeit, Kontrast und Sättigung und ein Knopf zum Zurücksetzen.
+- **Fahnen bewegen** an/aus: Aus hängen alle Fahnen still.
+
+**Barrierefreiheit.** **Größe der Oberfläche** (75–200 %): alle Tafeln, Schriften und Knöpfe größer oder kleiner, die Stadt bleibt scharf. **Farbfilter** für Farbsehschwäche (Protanopie, Deuteranopie, Tritanopie): Farben, die sich für das betroffene Auge kaum unterscheiden, werden in Helligkeit und andere Farbtöne verschoben – im ganzen Bild mit Tafeln, Wappen und Warenzeichen.
+
+Zum Ausprobieren (gilt nur für diesen Start): `--voreinstellung=Ultra`, `--tiltshift=Stark`, `--startstunde=6 --dunst=Hoch`, `--tonemapping=Agx`, `--uigroesse=150`, `--farbfilter=Deuteranopie`, `--dynamisch=60`, `--einstellungen=1 --reiter=Stimmung`. `--messung=30` misst 30 Sekunden lang Bilder je Sekunde und schreibt sie ins Protokoll.
 
 </details>
 

@@ -59,6 +59,14 @@ public partial class Stadtansicht
         foreach (var ((datei, knoten), lagen) in _naturLagen)
         {
             if (NaturNetz(datei, knoten) is not { } netz) continue;
+            // Gemischt (immer gleich): Die Einstellung „Natur-Dichte“ zeigt nur die ersten Kopien (Stadtansicht.Grafik.cs), und die sollen
+            // über alle Flächen verteilt sein, nicht die erste Fläche ganz und die letzte gar nicht.
+            var mischer = new Random(lagen.Count * 7919 + knoten.Length);
+            for (var i = lagen.Count - 1; i > 0; i--)
+            {
+                var j = mischer.Next(i + 1);
+                (lagen[i], lagen[j]) = (lagen[j], lagen[i]);
+            }
             var vielfach = new MultiMesh { TransformFormat = MultiMesh.TransformFormatEnum.Transform3D, Mesh = netz, InstanceCount = lagen.Count };
             for (var i = 0; i < lagen.Count; i++) vielfach.SetInstanceTransform(i, lagen[i]);
             // Bäume und Büsche haben eine kahle Fassung „<Name>_Winter“ (Tanne, Ginster und Wacholder nicht): im Winter tauscht JahreszeitSetzen das Netz
@@ -67,12 +75,14 @@ public partial class Stadtansicht
                 _naturWinter.Add((vielfach, netz, winter));
                 if (_jahreszeit == Jahreszeit.Winter) vielfach.Mesh = winter;
             }
-            natur.AddChild(new MultiMeshInstance3D
+            var teil = new MultiMeshInstance3D
             {
                 Name = knoten,
                 Multimesh = vielfach,
                 CastShadow = datei == "natur/natur_boden" ? GeometryInstance3D.ShadowCastingSetting.Off : GeometryInstance3D.ShadowCastingSetting.On,
-            });
+            };
+            natur.AddChild(teil);
+            NaturDetailMelden(teil, datei); // Natur-Dichte und Sichtweite der Feinheiten (Stadtansicht.Grafik.cs)
         }
         _naturLagen.Clear();
     }

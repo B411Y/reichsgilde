@@ -11,7 +11,6 @@ So wird eingetragen (damit sich die Chats nie an derselben Stelle treffen):
 ## Offen
 
 - Aufklappmenüs (`OptionButton`) erscheinen im Klicktest unter Xvfb/opengl3 nicht auf dem Bildschirmfoto (auch nicht in den Einstellungen, Kantenglättung): Auswahlen lassen sich dort nur per Code prüfen; zu klären, ob es am Rechner oder am Thema liegt
-- (von Darstellung) Einstellung „Fahnen bewegen an/aus“ in `EinstellungenAnzeige`: globale Shader-Uniform `wind_staerke` auf 0 setzen (`RenderingServer.GlobalShaderParameterSet`; bei 0 hängen die Fahnen still) oder 0,5 – PR #129
 - (von Kern) Oberfläche im Holzschnitt-Stil (Entscheidung in `kern.md`, „Grafikstil Holzschnitt“): Tafeln, Fenster, Rahmen, Knöpfe, Schmuck und das Hauptmenü nach und nach umstellen – Umriss, Schraffur, kolorierte Flächen, Papier- oder Pergamentgrund. Die Waren-Icons sind der erste Schritt (PR #113; neue Marktplatz-Icons macht der Nutzer gerade mit Gemini).
 
 ## Entscheidungen
@@ -63,6 +62,15 @@ So wird eingetragen (damit sich die Chats nie an derselben Stelle treffen):
 | Ort | Eigene Zeile direkt unter „Nachfrage der Stadt“: „<Warengruppe>: Die Einwohner fragen 7 % mehr/weniger nach“. Nur für Waren im Warenkorb (`Warengruppe` nicht null), also Fertigwaren und Heilmittel. | 17.10.2026 |
 | Zahl | Die Wirkung auf die Nachfrage, `kopplung.markt × (Warenkorbfaktor − 1)`, ganz gerundet. Rundet sie auf 0 %, steht „wie üblich“ da, damit die Gruppe immer zu sehen ist. | 17.10.2026 |
 
+### Tafel Einstellungen mit Reitern, Größe der Oberfläche, Farbfilter (PR #169)
+
+| Thema | Entscheidung | Datum |
+|---|---|---|
+| Gliederung | Fünf Reiter oben in der Tafel (Knöpfe in einer Reihe, der gewählte in Gold): Voreinstellung (mit „Automatisch wählen“ und Vollbild), Leistung, Bild, Stimmung, Barrierefreiheit. Jeder Regler mit grauem Hinweistext wie bisher; die Tafel ist 560 Pixel breit und rollt, wenn ein Reiter nicht ins Fenster passt. Startoption `--reiter=<Name>` mit `--einstellungen=1`. | 21.10.2026 |
+| Voreinstellung „Eigene“ | Steht in der Auswahl, lässt sich aber nicht wählen: Sie erscheint von selbst, sobald ein Regler von allen Stufen abweicht, und verschwindet, wenn er zurückgestellt wird. | 21.10.2026 |
+| Größe der Oberfläche | Regler 75–200 % in Schritten zu 5 %, wirkt über `ContentScaleFactor` des Hauptfensters auf alle Tafeln, Schriften und Knöpfe; beim Ziehen erst beim Loslassen angewendet (sonst wüchse die Tafel unter der Maus). | 21.10.2026 |
+| Farbfilter | Für das ganze Bild mit Oberfläche (Wappen, Besitzerfarben, Warenzeichen tragen Farbe), nicht nur für die 3D-Ansicht: Protanopie, Deuteranopie, Tritanopie als Daltonisierung. | 21.10.2026 |
+| Fahnen | „Fahnen bewegen“ als Schalter im Reiter Stimmung (aus: `wind_staerke` 0). | 21.10.2026 |
 ### Kartenwerkstatt (PR #168)
 
 | Thema | Entscheidung | Datum |
