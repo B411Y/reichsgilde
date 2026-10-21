@@ -62,3 +62,10 @@ So wird eingetragen (damit sich die Chats nie an derselben Stelle treffen):
 |---|---|---|
 | Ort | Eigene Zeile direkt unter „Nachfrage der Stadt“: „<Warengruppe>: Die Einwohner fragen 7 % mehr/weniger nach“. Nur für Waren im Warenkorb (`Warengruppe` nicht null), also Fertigwaren und Heilmittel. | 17.10.2026 |
 | Zahl | Die Wirkung auf die Nachfrage, `kopplung.markt × (Warenkorbfaktor − 1)`, ganz gerundet. Rundet sie auf 0 %, steht „wie üblich“ da, damit die Gruppe immer zu sehen ist. | 17.10.2026 |
+
+### Kartenwerkstatt (PR #168)
+
+| Thema | Entscheidung | Datum |
+|---|---|---|
+| Tafeln | Feste Seitentafeln über die ganze Höhe (links Katalog, rechts Eigenschaften und Fehlerliste, jede mit eigenem Rollbereich), oben eine Leiste über die ganze Breite, unten Meldung und Tastenhilfe. Stil wie Bau- und Auswahltafel; Rückfragen wie das Spielmenü (goldener Rand) auf einem dunklen Schleier, der Klicks auf die Stadt abfängt; Esc schließt sie. | 21.10.2026 |
+| Textfelder | Name und Betrieb werden beim Verlassen des Feldes übernommen (Enter oder ein Klick daneben, auch in die Stadt); solange darin geschrieben wird, verschieben WASD die Kamera nicht (gilt jetzt in jeder Stadtansicht, auch mit gedrückter Strg-Taste). | 21.10.2026 |

@@ -22,7 +22,7 @@ public partial class Stadtansicht
     /// <summary>Die Karte, die die Stadtansicht zeichnet (null: keine geladen – dann gibt es nur die Wiese).</summary>
     private Stadtkarte? _karte;
     private bool _karteGebaut;
-    private Gebaeudekatalog? Katalog => _karte?.Katalog;
+    private Gebaeudekatalog? Katalog => _karte?.Katalog ?? _entwurf?.Katalog;
 
     /// <summary>Mitte des Marktplatzes (Ursprung, wenn die Karte keinen Markt hat) und die Lage seines Modells.</summary>
     private Vector3 _markt;
