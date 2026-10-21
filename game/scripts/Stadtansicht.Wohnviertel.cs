@@ -23,13 +23,6 @@ public partial class Stadtansicht
     /// <summary>Die Ringgasse läuft innen an der Mauer entlang, dort, wo früher die alte Mauer stand (±38 m).</summary>
     private const float Ringgasse = 38;
 
-    /// <summary>Stichwege vom Ring nach innen, wo zwischen den Bauplätzen Platz ist (vom Ring zur nächsten Gasse).</summary>
-    private static readonly Vector3[][] RingAnschluesse =
-    {
-        new Vector3[] { new(12, 0, Ringgasse), new(12, 0, 19.5f) },      // Süden: zur Gasse der Gießerei Eisenbart (ihr Knick)
-        new Vector3[] { new(-21, 0, Ringgasse), new(-21, 0, 22.5f) },    // Süden: zum Hof am Weinmarkt
-    };
-
     /// <summary>Wo das Gassennetz an Rathaus und Dom beginnt: vor dem Rundbogen der Markthalle, in dem der Anker des Modells liegt (x −1,8), und am Fuß der Stufen vor dem Domportal.</summary>
     public static readonly Vector3 RathausTuer = new(-1.8f, 0, -14.5f);
     public static readonly Vector3 DomTuer = new(-20, 0, 4.2f);
@@ -78,13 +71,12 @@ public partial class Stadtansicht
     //  Gassennetz
     // ═════════════════════════════════════════════════════════════════════════
 
-    /// <summary>Baut Ringgasse, Stichwege und Umlandstellen und das ganze Gassennetz (einmal beim Start).</summary>
+    /// <summary>Baut Ringgasse und Umlandstellen und das ganze Gassennetz (einmal beim Start).</summary>
     private void WohnviertelAnlegen()
     {
-        // Ringgasse und Stichwege zeichnen
+        // Ringgasse zeichnen
         var ecken = new[] { new Vector3(-Ringgasse, 0, -Ringgasse), new Vector3(Ringgasse, 0, -Ringgasse), new Vector3(Ringgasse, 0, Ringgasse), new Vector3(-Ringgasse, 0, Ringgasse) };
         for (var i = 0; i < 4; i++) WegZiehen(ecken[i], ecken[(i + 1) % 4], 3);
-        foreach (var stich in RingAnschluesse) WegZiehen(stich[0], stich[1], 3);
         WegZiehen(DomTuer, new Vector3(DomTuer.X, 0, WestgasseKnick.Z), 2.5f);
 
         UmlandstellenBauen();
@@ -98,7 +90,6 @@ public partial class Stadtansicht
         n.Weg(Marktplatz, Osttor, Landstrasse);
         n.Weg(Marktplatz, WestgasseKnick, new Vector3(-38, 0, 6), Westtor, Weststrasse);
         n.Weg(ecken[0], ecken[1], ecken[2], ecken[3], ecken[0]);
-        foreach (var stich in RingAnschluesse) n.Weg(stich);
         n.Weg(RathausTuer, Marktplatz);
         n.Weg(DomTuer, new Vector3(DomTuer.X, 0, WestgasseKnick.Z));
 
@@ -299,9 +290,9 @@ public partial class Stadtansicht
     private static readonly List<Hausplatz> _kulissePlaetze = new()
     {
         new Hausplatz(new Vector3(10, 0, -29), Vector3.Back, true),
-        new Hausplatz(new Vector3(-4, 0, 29), Vector3.Back, true),
-        new Hausplatz(new Vector3(5, 0, 29), Vector3.Back, true),
-        new Hausplatz(new Vector3(-13, 0, 29), Vector3.Back, true), // in der Reihe mit den beiden davor, südöstlich vom Weinmarkt
+        new Hausplatz(new Vector3(-8, 0, -32), Vector3.Forward, true), // nördlich vom Rathaus, Tür zur Ringgasse
+        new Hausplatz(new Vector3(1, 0, -32), Vector3.Forward, true),
+        new Hausplatz(new Vector3(-32, 0, -14), Vector3.Left, true),   // westlich vom Dom, Tür zur Ringgasse
     };
     private static List<Hausplatz> KulissePlaetze() => _kulissePlaetze;
 

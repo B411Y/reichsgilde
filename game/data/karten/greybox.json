@@ -85,26 +85,6 @@
    "breite": 3
   },
   {
-   "name": "Stichgasse Süd 1",
-   "klasse": "gasse",
-   "linie": [
-    [12.0, 38.0],
-    [12.0, 19.5]
-   ],
-   "gefahr": 1.0,
-   "breite": 3
-  },
-  {
-   "name": "Stichgasse Süd 2",
-   "klasse": "gasse",
-   "linie": [
-    [-21.0, 38.0],
-    [-21.0, 22.5]
-   ],
-   "gefahr": 1.0,
-   "breite": 3
-  },
-  {
    "name": "Domgasse",
    "klasse": "gasse",
    "linie": [
@@ -128,8 +108,10 @@
    "name": "Gasse Weinmarkt",
    "klasse": "gasse",
    "linie": [
-    [-21.0, 22.5],
-    [-10.5, 22.5],
+    [-23.0, 22.5],
+    [-34.0, 22.5],
+    [-34.0, 6.0],
+    [-12.0, 6.0],
     [0.0, 0.0]
    ],
    "gefahr": 1.0,
@@ -141,6 +123,7 @@
    "linie": [
     [22.0, 19.5],
     [12.0, 19.5],
+    [12.0, 12.0],
     [0.0, 0.0]
    ],
    "gefahr": 1.0,
@@ -376,10 +359,32 @@
    "kennung": "K1",
    "art": "kern",
    "flaeche": [
-    [28.0, 22.0],
+    [4.0, 22.0],
     [36.0, 22.0],
     [36.0, 36.0],
-    [28.0, 36.0]
+    [4.0, 36.0]
+   ]
+  },
+  {
+   "kennung": "K2",
+   "art": "kern",
+   "flaeche": [
+    [-12.0, 14.0],
+    [8.0, 14.0],
+    [8.0, 22.0],
+    [4.0, 22.0],
+    [4.0, 36.0],
+    [-12.0, 36.0]
+   ]
+  },
+  {
+   "kennung": "K3",
+   "art": "kern",
+   "flaeche": [
+    [-36.0, 26.0],
+    [-12.0, 26.0],
+    [-12.0, 36.0],
+    [-36.0, 36.0]
    ]
   },
   {
@@ -558,8 +563,8 @@
    "kennung": "Giesserei_am_Weinmarkt",
    "art": "werkstatt",
    "name": "Gießerei am Weinmarkt",
-   "punkt": [-21.0, 16.0],
-   "eingang": [-21.0, 23.0],
+   "punkt": [-23.0, 16.0],
+   "eingang": [-23.0, 23.0],
    "groesse": [16, 14],
    "drehung": 0
   },
@@ -567,8 +572,8 @@
    "kennung": "Tischlerei_am_Weinmarkt",
    "art": "werkstatt",
    "name": "Tischlerei am Weinmarkt",
-   "punkt": [-21.0, 16.0],
-   "eingang": [-21.0, 23.0],
+   "punkt": [-23.0, 16.0],
+   "eingang": [-23.0, 23.0],
    "groesse": [16, 14],
    "drehung": 0
   },
@@ -576,8 +581,8 @@
    "kennung": "Maurerei_am_Weinmarkt",
    "art": "werkstatt",
    "name": "Maurerei am Weinmarkt",
-   "punkt": [-21.0, 16.0],
-   "eingang": [-21.0, 23.0],
+   "punkt": [-23.0, 16.0],
+   "eingang": [-23.0, 23.0],
    "groesse": [16, 14],
    "drehung": 0
   },
@@ -585,8 +590,8 @@
    "kennung": "Tinkturei_am_Weinmarkt",
    "art": "werkstatt",
    "name": "Tinkturei am Weinmarkt",
-   "punkt": [-21.0, 16.0],
-   "eingang": [-21.0, 23.0],
+   "punkt": [-23.0, 16.0],
+   "eingang": [-23.0, 23.0],
    "groesse": [16, 14],
    "drehung": 0
   },
@@ -594,8 +599,8 @@
    "kennung": "Schaenke_am_Weinmarkt",
    "art": "werkstatt",
    "name": "Schänke am Weinmarkt",
-   "punkt": [-21.0, 16.0],
-   "eingang": [-21.0, 23.0],
+   "punkt": [-23.0, 16.0],
+   "eingang": [-23.0, 23.0],
    "groesse": [16, 14],
    "drehung": 0
   },
@@ -603,8 +608,8 @@
    "kennung": "Kirche_am_Weinmarkt",
    "art": "werkstatt",
    "name": "Kirche am Weinmarkt",
-   "punkt": [-21.0, 16.0],
-   "eingang": [-21.0, 23.0],
+   "punkt": [-23.0, 16.0],
+   "eingang": [-23.0, 23.0],
    "groesse": [16, 14],
    "drehung": 0
   },
@@ -612,8 +617,8 @@
    "kennung": "Schmugglerloch_am_Weinmarkt",
    "art": "werkstatt",
    "name": "Schmugglerloch am Weinmarkt",
-   "punkt": [-21.0, 16.0],
-   "eingang": [-21.0, 23.0],
+   "punkt": [-23.0, 16.0],
+   "eingang": [-23.0, 23.0],
    "groesse": [16, 14],
    "drehung": 0
   },
@@ -621,8 +626,8 @@
    "kennung": "Wachhaus_am_Weinmarkt",
    "art": "werkstatt",
    "name": "Wachhaus am Weinmarkt",
-   "punkt": [-21.0, 16.0],
-   "eingang": [-21.0, 23.0],
+   "punkt": [-23.0, 16.0],
+   "eingang": [-23.0, 23.0],
    "groesse": [16, 14],
    "drehung": 0
   },
@@ -630,8 +635,8 @@
    "kennung": "Wechselstube_am_Weinmarkt",
    "art": "werkstatt",
    "name": "Wechselstube am Weinmarkt",
-   "punkt": [-21.0, 16.0],
-   "eingang": [-21.0, 23.0],
+   "punkt": [-23.0, 16.0],
+   "eingang": [-23.0, 23.0],
    "groesse": [16, 14],
    "drehung": 0
   },
@@ -639,8 +644,8 @@
    "kennung": "Siederei_am_Weinmarkt",
    "art": "werkstatt",
    "name": "Siederei am Weinmarkt",
-   "punkt": [-21.0, 16.0],
-   "eingang": [-21.0, 23.0],
+   "punkt": [-23.0, 16.0],
+   "eingang": [-23.0, 23.0],
    "groesse": [16, 14],
    "drehung": 0
   },
@@ -816,28 +821,28 @@
    "kennung": "Kulisse2",
    "art": "einwohnerhaus",
    "name": "Haus der Kulisse 2",
-   "punkt": [-4.0, 29.0],
-   "eingang": [-4.0, 33.25],
+   "punkt": [-8.0, -32.0],
+   "eingang": [-8.0, -36.25],
    "groesse": [8, 8.5],
-   "drehung": 0
+   "drehung": 180
   },
   {
    "kennung": "Kulisse3",
    "art": "einwohnerhaus",
    "name": "Haus der Kulisse 3",
-   "punkt": [5.0, 29.0],
-   "eingang": [5.0, 33.25],
+   "punkt": [1.0, -32.0],
+   "eingang": [1.0, -36.25],
    "groesse": [8, 8.5],
-   "drehung": 0
+   "drehung": 180
   },
   {
    "kennung": "Kulisse4",
    "art": "einwohnerhaus",
    "name": "Haus der Kulisse 4",
-   "punkt": [-13.0, 29.0],
-   "eingang": [-13.0, 33.25],
+   "punkt": [-32.0, -14.0],
+   "eingang": [-36.25, -14.0],
    "groesse": [8, 8.5],
-   "drehung": 0
+   "drehung": 270
   },
   {
    "kennung": "Wohnhaus1",
@@ -1410,9 +1415,51 @@
    "drehung": 0
   },
   {
-   "art": "Wohnhaus",
+   "art": "Werkstatt",
    "zone": "K1",
-   "punkt": [32.0, 31.0],
+   "punkt": [12.0, 29.0],
+   "groesse": [16, 14],
+   "drehung": 0
+  },
+  {
+   "art": "Werkstatt",
+   "zone": "K1",
+   "punkt": [28.0, 29.0],
+   "groesse": [16, 14],
+   "drehung": 0
+  },
+  {
+   "art": "Werkstatt",
+   "zone": "K2",
+   "punkt": [-4.0, 29.0],
+   "groesse": [16, 14],
+   "drehung": 0
+  },
+  {
+   "art": "Wohnhaus",
+   "zone": "K2",
+   "punkt": [3.0, 18.0],
+   "groesse": [8, 10],
+   "drehung": 90
+  },
+  {
+   "art": "Wohnhaus",
+   "zone": "K3",
+   "punkt": [-32.0, 31.0],
+   "groesse": [8, 10],
+   "drehung": 0
+  },
+  {
+   "art": "Wohnhaus",
+   "zone": "K3",
+   "punkt": [-24.0, 31.0],
+   "groesse": [8, 10],
+   "drehung": 0
+  },
+  {
+   "art": "Wohnhaus",
+   "zone": "K3",
+   "punkt": [-16.0, 31.0],
    "groesse": [8, 10],
    "drehung": 0
   }
