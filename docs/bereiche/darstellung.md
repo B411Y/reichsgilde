@@ -70,6 +70,7 @@ So wird eingetragen (damit sich die Chats nie an derselben Stelle treffen):
 - Köln (`--karte=koeln`) zeichnet nur, was die Karte hat: Wasser, Gelände, Häfen und Übergänge fehlen (der Rhein ist Wiese), Kirche und Hafen haben kein Modell (grauer Block mit Namen), ohne `start` stehen die Betriebe der drei Häuser nirgends (Warnung „keinen Platz“), das Gassennetz zerfällt in zwei Teile, die Einwohner haben keine Plätze vor der Mauer
 - Karren fahren den kürzesten Weg im ganzen Gassennetz, auch über Gassen und Fußwege (wie bisher die Werkstattgassen); eine Gewichtung nach Wegklasse (Karren nur auf Karrenstraßen, wo es geht) fehlt noch
 - Endet ein Weg der Karte nicht am Anker (Karrenplatz, Gatter), zeichnet das Spiel ein Verbindungsstück und lässt den Rest des Weges stehen – läuft der Weg ins Modell hinein, ist das in der Karte zu korrigieren
+- Innenraum des Parfumeurs: Die Form der Auslage im Laden hängt im Code am Werkstil (`AuslageBauen`: Siederei = Flakons und Phiolen); ein weiterer Beruf mit eigener Form braucht dort eine Zeile, besser wäre eine Angabe im Modell (extras „form“ am `Auslage_<n>`). Die Pressen-Bewegung (Wurzel ±0,21 m seitlich) ist nur mit Menschen im Klicktest geprüft, nicht mit Zwergen, Elben und Halblingen am Hebel der Presse.
 
 ## Entscheidungen
 
