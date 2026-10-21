@@ -693,3 +693,9 @@ So wird eingetragen (damit sich die Chats nie an derselben Stelle treffen):
 | Kamera | Beim Start aus `kamera` der Karte (Punkt, Zoom, Drehung zur gewohnten Blickrichtung dazu), sonst die Mitte aller Gebäude. Verschieben bis 12 m über das Rechteck aller Gebäude, Wege und Mauern hinaus (vorher fest −110 … 145 × −100 … 100). | 21.10.2026 |
 | Startoption | `--karte=<kennung>` startet eine neue Partie auf `game/data/karten/<kennung>.json` (nur für diesen Start); `Stadtkarten.Laden(kennung)` liest und merkt jede Karte. Das Hauptmenü nimmt Rivalennamen, Rivalenwappen und die Zeilen der Rivalenwahl aus der Startbelegung der Greybox-Karte. | 21.10.2026 |
 | Verbliebene Konstanten | Nur darstellerische Werte und Maße innerhalb der Modelle: Farben, Wegbreiten nach Klasse, Hof 0,5 m vor der Kante, Haustür 0,8 m vor der Wand, Hausfront im Einwohnermodell (+3/+2 m), Klickflächen von Werkstatt (14 × 10 × 12 m), Uhrturm und Westturm, Lage des Marktkreuzes im Modell, Arbeitsplätze und Hindernisse in `umland_stellen.glb` (Wald, Weide, Furchen), Abstände der Natur, Baukasten-Maße der Mauer, Kameragrenzen und Zoom. Innenräume (`InnenModellDatei`) sind nicht Teil der Karte. | 21.10.2026 |
+
+### Ordnerstruktur nach Dateiart (PR #164)
+
+| Thema | Entscheidung | Datum |
+|---|---|---|
+| Ordner | Wunsch des Nutzers, wie in Spielen üblich nach Art getrennt: `game/karten/` (Kartendateien), `game/daten/` (wirtschaft.json, katalog.json), `game/assets/modelle/` mit Unterordnern `gebaeude/`, `innen/`, `umland/`, `natur/`, `figuren/`, `fahrzeuge/`, `tiere/`, `game/assets/texturen/` (Oberflächenstrukturen), `game/assets/audio/` (`musik/`, `geraeusche/`, leer bis Sound kommt), `game/assets/oberflaeche/` (`icons/`, `wappen/`, `schriften/`), `game/assets/shader/`. `scenes/` und `scripts/` bleiben. Eigener PR direkt nach #163. | 21.10.2026 |
