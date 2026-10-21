@@ -175,7 +175,7 @@ public partial class Stadtansicht
     private const float WieseRand = 120;
 
     /// <summary>Eine flache Fläche in Form eines Vielecks (Pflaster in der Mauer). Die UV-Koordinaten laufen wie bei einer Ebene von 0 bis 1 über das umschließende Rechteck.</summary>
-    private void Vieleck(Vector2[] punkte, Color farbe, float hoehe)
+    private void Vieleck(Vector2[] punkte, Color farbe, float hoehe, Node3D? eltern = null)
     {
         var dreiecke = Geometry2D.TriangulatePolygon(punkte);
         if (dreiecke.Length == 0) return;
@@ -193,7 +193,7 @@ public partial class Stadtansicht
         arrays[(int)Mesh.ArrayType.Index] = dreiecke;
         var netz = new ArrayMesh();
         netz.AddSurfaceFromArrays(Mesh.PrimitiveType.Triangles, arrays);
-        AddChild(new MeshInstance3D { Name = "Pflaster", Mesh = netz, MaterialOverride = Material(farbe) });
+        (eltern ?? this).AddChild(new MeshInstance3D { Name = "Pflaster", Mesh = netz, MaterialOverride = Material(farbe) });
     }
 
     /// <summary>Flächeninhalt eines Vielecks mit Vorzeichen (Gaußsche Trapezformel): positiv, wenn die Punkte in (x, z) gegen den Uhrzeigersinn laufen.</summary>
@@ -208,15 +208,15 @@ public partial class Stadtansicht
         return summe / 2;
     }
 
-    /// <summary>Eine Mauer der Karte aus ihrem Baukasten (Stadtansicht.Mauer.cs); die Feldseite zeigt von der Mitte ihrer Punkte weg.</summary>
+    /// <summary>Eine Mauer der Karte aus ihrem Baukasten nach dem <see cref="Mauerplan"/> des Kerns (Stadtansicht.Mauer.cs).</summary>
     private void MauerAusKarte(Kartenmauer mauer)
     {
-        var linie = mauer.Linie.Select(Punkt3).ToList();
-        if (linie.Count < 2) return;
-        var mitte = linie.Aggregate(Vector3.Zero, (s, p) => s + p) / linie.Count;
-        var datei = Katalog?.Finde(mauer.Katalog)?.Modell ?? "gebaeude/stadtmauer";
-        MauerAufbauen(datei, linie, mauer.Geschlossen, mitte, mauer.Tore.Select(t => (t.Name, Punkt3(t.Punkt))).ToList());
+        if (mauer.Linie.Count < 2) return;
+        MauerAufbauen(MauerDatei(mauer.Katalog), Mauerplan.Von(mauer), this, spiel: true);
     }
+
+    /// <summary>Das Modell des Mauer-Baukastens (Kennung im Katalog).</summary>
+    private string MauerDatei(string katalog) => Katalog?.Finde(katalog)?.Modell ?? "gebaeude/stadtmauer";
 
     /// <summary>
     /// Die Sonderbauten der Karte: Rathaus und Dom mit Innenraum (Stadtansicht.Sonderbauten.cs), je das erste der Karte. Andere Sonderbauten mit

@@ -6,16 +6,49 @@ namespace Reichsgilde.Core.Kartenwerkstatt;
 //  Wege im Kartenentwurf: anlegen, Stützpunkte bearbeiten, Eigenschaften, Kreuzungen (Einrasten)
 //
 //  Ein Weg wird aus Stützpunkten gezeichnet; mit „glatt“ läuft eine weiche Kurve hindurch (Wegkurve). Beginnt oder endet ein Weg an einem
-//  anderen (näher als der Fangradius), rastet er ein: auf dessen Stützpunkt, sonst auf den nächsten Punkt seiner Linie – dort bekommt der
-//  andere Weg im selben Schritt einen Stützpunkt, damit sich beide wirklich treffen (das Gassennetz verbindet nur gemeinsame Punkte sicher).
-//  Punkte landen auf 5 cm wie in der Datei.
+//  Ziel (näher als der Fangradius), rastet er ein – zuerst an einem Ziel, das kein Weg ist: dem Hof eines Werkstattplatzes, der Mitte eines
+//  Tores (Torfang) oder einem Halteplatz, den die Darstellung nennt (Karrenplätze, Gatter); sonst an einem anderen Weg: auf dessen
+//  Stützpunkt, sonst auf den nächsten Punkt seiner Linie – dort bekommt der andere Weg im selben Schritt einen Stützpunkt, damit sich beide
+//  wirklich treffen (das Gassennetz verbindet nur gemeinsame Punkte sicher). Punkte dazwischen rasten nur in Tore ein (ein Weg durch das
+//  Tor). Punkte landen auf 5 cm wie in der Datei.
 // ═════════════════════════════════════════════════════════════════════════════
 
+/// <summary>Woran ein Punkt einrastet.</summary>
+public enum Fangziel
+{
+    /// <summary>Ein Stützpunkt eines anderen Weges.</summary>
+    Stuetzpunkt,
+
+    /// <summary>Ein Punkt auf der Linie eines anderen Weges (er bekommt dort einen Stützpunkt).</summary>
+    Linie,
+
+    /// <summary>Der Hof eines Werkstattplatzes (dort beginnt seine Gasse).</summary>
+    Hof,
+
+    /// <summary>Die Mitte eines Tores.</summary>
+    Tor,
+
+    /// <summary>Ein Halteplatz, den die Darstellung nennt (<see cref="Kartenentwurf.Fangpunkte"/>: Karrenplätze, Gatter).</summary>
+    Halteplatz,
+}
+
 /// <summary>
-/// Wo ein Punkt an einem Weg einrastet: der Weg, der Ort (auf 5 cm), der Stützpunkt, wenn es einer ist (sonst null: ein Punkt auf der Linie,
-/// der Weg bekommt dort beim Einrasten einen Stützpunkt), und der Abstand vom gefragten Punkt.
+/// Wo ein Punkt einrastet: der Weg (null bei Hof, Tor, Halteplatz), der Ort (auf 5 cm), der Stützpunkt, wenn es einer ist (null: ein Punkt
+/// auf der Linie – der Weg bekommt dort beim Einrasten einen Stützpunkt – oder kein Weg), und der Abstand vom gefragten Punkt. Dazu woran
+/// (<see cref="Ziel"/>) und, je nach Ziel, das Gebäude (Hof, Halteplatz) bzw. Mauer und Tor.
 /// </summary>
-public readonly record struct Wegfang(EntwurfWeg Weg, Kartenort Ort, int? Stuetzpunkt, double Abstand);
+public readonly record struct Wegfang(EntwurfWeg? Weg, Kartenort Ort, int? Stuetzpunkt, double Abstand)
+{
+    public Fangziel Ziel { get; init; }
+    public EntwurfGebaeude? Gebaeude { get; init; }
+    public EntwurfMauer? Mauer { get; init; }
+
+    /// <summary>Index des Tores in <see cref="EntwurfMauer.Tore"/> (nur bei <see cref="Fangziel.Tor"/>).</summary>
+    public int? Tor { get; init; }
+
+    /// <summary>Rastet der Punkt an einem Weg ein (Stützpunkt oder Linie)?</summary>
+    public bool AmWeg => Weg is not null;
+}
 
 public sealed partial class Kartenentwurf
 {
@@ -23,13 +56,62 @@ public sealed partial class Kartenentwurf
     public const double Fangradius = 2;
 
     /// <summary>
-    /// Wo der Punkt (x, z) an einem Weg einrastet – null, wenn kein Weg näher als <paramref name="fangradius"/> liegt. Ein Stützpunkt im
-    /// Fangradius geht vor (der nächste), sonst der nächste Punkt einer Linie (des Verlaufs). <paramref name="ausser"/> zählt nicht mit
-    /// (der Weg, der gerade bearbeitet wird). Für die Vorschau beim Zeichnen; die Befehle rasten genauso ein.
+    /// Weitere Fangpunkte eines Gebäudes, die nur die Darstellung kennt (Karrenplätze und Gatter der Umlandbetriebe aus den Modellen) – null:
+    /// keine. Wegenden rasten dort ein wie an einem Hof (<see cref="Fangziel.Halteplatz"/>).
+    /// </summary>
+    public Func<EntwurfGebaeude, IEnumerable<Kartenort>>? Fangpunkte { get; set; }
+
+    /// <summary>
+    /// Wo das Ende eines Weges am Punkt (x, z) einrastet – null, wenn nichts näher als <paramref name="fangradius"/> liegt. Zuerst die Ziele,
+    /// die kein Weg sind (das nächste): Hof eines Werkstattplatzes, Mitte eines Tores (bis <see cref="Torfang"/>), Halteplatz
+    /// (<see cref="Fangpunkte"/>); läuft durch die Tormitte schon ein Weg, rastet das Ende dort an ihm ein (<see cref="Wegfang.Tor"/> ist dann
+    /// gesetzt). Sonst ein Weg: ein Stützpunkt im Fangradius geht vor (der nächste), sonst der nächste Punkt einer Linie (des Verlaufs).
+    /// <paramref name="ausser"/> zählt nicht mit (der Weg, der gerade bearbeitet wird). Für die Vorschau beim Zeichnen; die Befehle
+    /// rasten genauso ein.
     /// </summary>
     public Wegfang? Einrasten(double x, double z, EntwurfWeg? ausser = null, double fangradius = Fangradius)
     {
         var p = new Kartenort(x, z);
+        if (ZielFangen(p, fangradius) is not { } ziel) return WegFangen(p, ausser, fangradius);
+        // Läuft schon ein Weg durch die Tormitte, rastet das Ende an ihm ein (Stützpunkt bzw. Linie) – so hängt der neue Weg im Netz.
+        if (ziel.Ziel == Fangziel.Tor && WegFangen(ziel.Ort, ausser, 0.05) is { } weg)
+            return weg with { Abstand = ziel.Abstand, Mauer = ziel.Mauer, Tor = ziel.Tor };
+        return ziel;
+    }
+
+    /// <summary>Wo ein Stützpunkt zwischen Anfang und Ende einrastet: nur in der Mitte eines Tores (bis <see cref="Torfang"/>), sonst null.</summary>
+    public Wegfang? TorEinrasten(double x, double z) =>
+        TorBei(x, z) is var (m, tor, d) ? new Wegfang(null, m.Tore[tor].Punkt, null, d) { Ziel = Fangziel.Tor, Mauer = m, Tor = tor } : null;
+
+    /// <summary>Das nächste Ziel, das kein Weg ist (Hof, Tor, Halteplatz) – null, wenn keins nah genug liegt.</summary>
+    private Wegfang? ZielFangen(Kartenort p, double fangradius)
+    {
+        Wegfang? best = null;
+        void Pruefe(Kartenort ort, double radius, Func<double, Wegfang> fang)
+        {
+            var d = p.Abstand(ort);
+            if (d <= radius && (best is null || d < best.Value.Abstand)) best = fang(d);
+        }
+        foreach (var g in _gebaeude)
+        {
+            if (g.Art == Bausteinart.Werkstattplatz && g.Hof is { } hof)
+                Pruefe(hof, fangradius, d => new Wegfang(null, Gerundet(hof), null, d) { Ziel = Fangziel.Hof, Gebaeude = g });
+            if (Fangpunkte is not null)
+                foreach (var halt in Fangpunkte(g))
+                    Pruefe(halt, fangradius, d => new Wegfang(null, Gerundet(halt), null, d) { Ziel = Fangziel.Halteplatz, Gebaeude = g });
+        }
+        foreach (var m in _mauern)
+            for (var i = 0; i < m.Tore.Count; i++)
+            {
+                var tor = i;
+                Pruefe(m.Tore[i].Punkt, Math.Max(fangradius, Torfang), d => new Wegfang(null, m.Tore[tor].Punkt, null, d) { Ziel = Fangziel.Tor, Mauer = m, Tor = tor });
+            }
+        return best;
+    }
+
+    /// <summary>Wo der Punkt an einem anderen Weg einrastet (Stützpunkt vor Linie) – null, wenn keiner nah genug liegt.</summary>
+    private Wegfang? WegFangen(Kartenort p, EntwurfWeg? ausser, double fangradius)
+    {
         Wegfang? stuetz = null, linie = null;
         foreach (var w in _wege)
         {
@@ -42,7 +124,7 @@ public sealed partial class Kartenentwurf
             if (stuetz is not null) continue; // ein Stützpunkt schlägt jede Linie
             var (_, ort, abstand) = w.NaechsteStelle(p);
             if (abstand <= fangradius && (linie is null || abstand < linie.Value.Abstand))
-                linie = new Wegfang(w, Gerundet(ort), null, abstand);
+                linie = new Wegfang(w, Gerundet(ort), null, abstand) { Ziel = Fangziel.Linie };
         }
         return stuetz ?? linie;
     }
@@ -52,7 +134,9 @@ public sealed partial class Kartenentwurf
     /// <summary>
     /// Legt einen Weg an: Klasse, Stützpunkte (mindestens zwei verschiedene), glatt oder gerade, Name (Vorgabe: Anzeigename der Klasse mit
     /// Nummer), Breite (0 = <see cref="Kartenweg.Standardbreite"/>; nie unter der <see cref="Kartenweg.Mindestbreite"/>). Mit
-    /// <paramref name="einrasten"/> rasten Anfang und Ende an anderen Wegen ein (<see cref="Einrasten"/>); ein Schritt.
+    /// <paramref name="einrasten"/> rasten Anfang und Ende ein (<see cref="Einrasten"/>: Hof, Tor, Halteplatz, andere Wege), die Punkte
+    /// dazwischen nur in Tore; eine Gasse, die an einem Hof endet und nicht an einem beginnt, wird umgedreht (Werkstattnorm: die Gasse beginnt
+    /// am Hof). Ein Schritt.
     /// </summary>
     /// <exception cref="ArgumentException">Mit weniger als zwei verschiedenen Punkten.</exception>
     public EntwurfWeg WegAnlegen(Wegklasse klasse, IReadOnlyList<Kartenort> punkte, bool glatt = true, string? name = null, double breite = 0, bool einrasten = true)
@@ -69,10 +153,14 @@ public sealed partial class Kartenentwurf
         if (einrasten)
         {
             var nachbarn = new Dictionary<EntwurfWeg, EntwurfWeg>(ReferenceEqualityComparer.Instance);
-            liste[0] = Rasten(liste[0], null, nachbarn);
-            liste[^1] = Rasten(liste[^1], null, nachbarn);
+            var (anfangHof, endeHof) = (false, false);
+            (liste[0], anfangHof) = Rasten(liste[0], null, nachbarn);
+            (liste[^1], endeHof) = Rasten(liste[^1], null, nachbarn);
+            for (var i = 1; i < liste.Count - 1; i++)
+                if (TorEinrasten(liste[i].X, liste[i].Z) is { } tor) liste[i] = tor.Ort;
             liste = OhneDoppelte(liste);
             if (liste.Count < 2) throw new ArgumentException("Beide Enden rasten am selben Punkt ein.", nameof(punkte));
+            if (klasse == Wegklasse.Gasse && endeHof && !anfangHof) liste.Reverse();
             befehle.AddRange(NachbarBefehle(nachbarn));
         }
         weg.PunkteSetzen(liste);
@@ -82,15 +170,16 @@ public sealed partial class Kartenentwurf
     }
 
     /// <summary>
-    /// Verschiebt einen Stützpunkt. Mit <paramref name="einrasten"/> rastet ein Anfangs- oder Endpunkt an anderen Wegen ein (der Nachbar bekommt
-    /// dort im selben Schritt einen Stützpunkt).
+    /// Verschiebt einen Stützpunkt. Mit <paramref name="einrasten"/> rastet ein Anfangs- oder Endpunkt ein wie beim Anlegen (an einem Weg bekommt
+    /// der Nachbar dort im selben Schritt einen Stützpunkt), ein Punkt dazwischen nur in ein Tor.
     /// </summary>
     public void StuetzpunktVerschieben(EntwurfWeg weg, int index, double x, double z, bool einrasten = true)
     {
         Pruefen(weg, index, weg.Punkte.Count);
         var ort = Gerundet(new Kartenort(x, z));
         var nachbarn = new Dictionary<EntwurfWeg, EntwurfWeg>(ReferenceEqualityComparer.Instance);
-        if (einrasten && (index == 0 || index == weg.Punkte.Count - 1)) ort = Rasten(ort, weg, nachbarn);
+        if (einrasten && (index == 0 || index == weg.Punkte.Count - 1)) ort = Rasten(ort, weg, nachbarn).Ort;
+        else if (einrasten && TorEinrasten(ort.X, ort.Z) is { } tor) ort = tor.Ort;
         var eigener = Aenderung(weg, w => w.PunkteSetzen(w.Punkte.Select((p, i) => i == index ? ort : p)));
         Buendeln($"{weg.Bezeichnung}: Stützpunkt verschoben", eigener, NachbarBefehle(nachbarn));
     }
@@ -153,19 +242,20 @@ public sealed partial class Kartenentwurf
     // ── Hilfen ───────────────────────────────────────────────────────────────
 
     /// <summary>
-    /// Rastet einen Punkt ein: auf einem Stützpunkt bleibt der Nachbar, wie er ist; auf einer Linie bekommt eine Kopie des Nachbarn (in
-    /// <paramref name="nachbarn"/>, für mehrere Enden am selben Weg) dort einen Stützpunkt.
+    /// Rastet ein Wegende ein (<see cref="Einrasten"/>): an Hof, Tor, Halteplatz oder einem Stützpunkt bleibt der Rest, wie er ist; auf einer
+    /// Linie bekommt eine Kopie des Nachbarn (in <paramref name="nachbarn"/>, für mehrere Enden am selben Weg) dort einen Stützpunkt. Gibt auch
+    /// zurück, ob das Ende an einem Hof liegt.
     /// </summary>
-    private Kartenort Rasten(Kartenort p, EntwurfWeg? ausser, Dictionary<EntwurfWeg, EntwurfWeg> nachbarn)
+    private (Kartenort Ort, bool Hof) Rasten(Kartenort p, EntwurfWeg? ausser, Dictionary<EntwurfWeg, EntwurfWeg> nachbarn)
     {
-        if (Einrasten(p.X, p.Z, ausser) is not { } fang) return p;
-        if (fang.Stuetzpunkt is not null) return fang.Ort;
-        if (!nachbarn.TryGetValue(fang.Weg, out var kopie)) nachbarn[fang.Weg] = kopie = (EntwurfWeg)fang.Weg.KopieTeil();
+        if (Einrasten(p.X, p.Z, ausser) is not { } fang) return (p, false);
+        if (fang.Weg is not { } weg || fang.Stuetzpunkt is not null) return (fang.Ort, fang.Ziel == Fangziel.Hof);
+        if (!nachbarn.TryGetValue(weg, out var kopie)) nachbarn[weg] = kopie = (EntwurfWeg)weg.KopieTeil();
         var (index, ort, _) = kopie.NaechsteStelle(fang.Ort);
         ort = Gerundet(ort);
         if (!kopie.Punkte.Any(q => q.Abstand(ort) < 1e-3))
             kopie.PunkteSetzen(kopie.Punkte.Take(index).Append(ort).Concat(kopie.Punkte.Skip(index)));
-        return ort;
+        return (ort, false);
     }
 
     private static IEnumerable<IKartenbefehl> NachbarBefehle(Dictionary<EntwurfWeg, EntwurfWeg> nachbarn) =>

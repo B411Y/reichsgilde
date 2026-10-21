@@ -14,8 +14,13 @@ public sealed partial class Kartenentwurf
 {
     // ── Vorlagen für neue Naturflächen ───────────────────────────────────────
 
-    /// <summary>Dichte einer neuen Waldfläche (Bäume je 1.000 m², wie die Wälder der Greybox).</summary>
-    public const double WaldDichte = 2.4;
+    /// <summary>
+    /// Dichte einer neuen Waldfläche (Bäume je 1.000 m², je Streupunkt ein Baum). Die Wälder der Greybox haben 2,4 (unverändert); eine kleine
+    /// neue Fläche wirkte damit licht (1.300 m² trugen 3 Bäume). Die Kronen der Baummodelle sind 3–4 m (Tanne) bis 8 m (Eiche) breit, im
+    /// Mischwald der Vorlage im Mittel etwa 25 m² Kronenfläche: Bei 10 Bäumen je 1.000 m² (ein Baum je 10 × 10 m) ist von oben ein Viertel
+    /// des Bodens bedeckt, im Schrägblick der Kamera schließt sich das Bild fast.
+    /// </summary>
+    public const double WaldDichte = 10;
 
     /// <summary>Dichte einer neuen Streufläche (Streupunkte je 1.000 m², wie die Streu der Greybox).</summary>
     public const double StreuDichte = 2.9;
@@ -104,6 +109,74 @@ public sealed partial class Kartenentwurf
 
     /// <summary>Ersetzt die Gruppen (für eine eigene Mischung mit Radius und Anzahl je Teil).</summary>
     public void GruppenSetzen(EntwurfNaturflaeche f, IReadOnlyList<Naturgruppe> gruppen) => Aendern(f, "Mischung geändert", n => n.GruppenSetzen(gruppen));
+
+    // ── Gruppen einzeln (Streu: Büsche mit Kraut, Steine mit Gras …) ─────────
+    //  Eine Gruppe ist eine Vorlage für einen Streupunkt: Gewicht (wie oft sie gewählt wird), Radius der Scheibe und ihre Teile (je Teil
+    //  Arten mit Gewicht und Anzahl [von, bis]). Die Befehle ändern eine Gruppe oder einen Teil, die übrigen bleiben, wie sie sind.
+
+    /// <summary>
+    /// Fügt eine Gruppe hinten an und gibt ihren Index zurück. Ohne Angabe: Gewicht 1, Radius 2 m, ein Teil mit <paramref name="art"/> (Vorgabe
+    /// Gras) und 1 bis 3 Stück.
+    /// </summary>
+    public int GruppeHinzufuegen(EntwurfNaturflaeche f, Naturgruppe? gruppe = null, string art = "gras")
+    {
+        var neu = gruppe ?? Gruppe(1, 2, (Arten(art), 1, 3));
+        Aendern(f, "Gruppe hinzugefügt", n => n.GruppenSetzen(n.Gruppen.Append(neu)));
+        return f.Gruppen.Count - 1;
+    }
+
+    /// <summary>Entfernt eine Gruppe; false (kein Schritt), wenn es die letzte ist (eine Fläche ohne Gruppe streut nichts – ein Fehler).</summary>
+    public bool GruppeEntfernen(EntwurfNaturflaeche f, int gruppe)
+    {
+        Pruefen(f, gruppe, f.Gruppen.Count);
+        if (f.Gruppen.Count <= 1) return false;
+        Aendern(f, "Gruppe entfernt", n => n.GruppenSetzen(n.Gruppen.Where((_, i) => i != gruppe)));
+        return true;
+    }
+
+    /// <summary>Gewicht (nicht negativ, auf 0,01) und Radius (Meter, nicht negativ, auf 0,1) einer Gruppe; die Teile bleiben.</summary>
+    public void GruppeSetzen(EntwurfNaturflaeche f, int gruppe, double gewicht, double radius)
+    {
+        Pruefen(f, gruppe, f.Gruppen.Count);
+        GruppeAendern(f, gruppe, "Gruppe geändert", g => new Naturgruppe { Gewicht = Math.Round(Math.Max(0, gewicht), 2), Radius = Math.Round(Math.Max(0, radius), 1), Teile = g.Teile });
+    }
+
+    /// <summary>Fügt einer Gruppe einen Teil an (Arten mit Gewicht, Anzahl [von, bis]) und gibt seinen Index zurück.</summary>
+    public int GruppenteilHinzufuegen(EntwurfNaturflaeche f, int gruppe, IReadOnlyDictionary<string, double> arten, int von = 1, int bis = 1)
+    {
+        Pruefen(f, gruppe, f.Gruppen.Count);
+        var teil = NeuerTeil(arten, von, bis);
+        GruppeAendern(f, gruppe, "Teil hinzugefügt", g => new Naturgruppe { Gewicht = g.Gewicht, Radius = g.Radius, Teile = g.Teile.Append(teil).ToList() });
+        return f.Gruppen[gruppe].Teile.Count - 1;
+    }
+
+    /// <summary>Ändert einen Teil einer Gruppe: Arten mit Gewicht (Gewicht 0 fällt weg) und Anzahl [von, bis] (0 ≤ von ≤ bis).</summary>
+    public void GruppenteilSetzen(EntwurfNaturflaeche f, int gruppe, int teil, IReadOnlyDictionary<string, double> arten, int von, int bis)
+    {
+        Pruefen(f, gruppe, f.Gruppen.Count);
+        Pruefen(f, teil, f.Gruppen[gruppe].Teile.Count);
+        var neu = NeuerTeil(arten, von, bis);
+        GruppeAendern(f, gruppe, "Teil geändert", g => new Naturgruppe { Gewicht = g.Gewicht, Radius = g.Radius, Teile = g.Teile.Select((t, i) => i == teil ? neu : t).ToList() });
+    }
+
+    /// <summary>Entfernt einen Teil; false (kein Schritt), wenn es der letzte der Gruppe ist (dann die Gruppe entfernen).</summary>
+    public bool GruppenteilEntfernen(EntwurfNaturflaeche f, int gruppe, int teil)
+    {
+        Pruefen(f, gruppe, f.Gruppen.Count);
+        Pruefen(f, teil, f.Gruppen[gruppe].Teile.Count);
+        if (f.Gruppen[gruppe].Teile.Count <= 1) return false;
+        GruppeAendern(f, gruppe, "Teil entfernt", g => new Naturgruppe { Gewicht = g.Gewicht, Radius = g.Radius, Teile = g.Teile.Where((_, i) => i != teil).ToList() });
+        return true;
+    }
+
+    private void GruppeAendern(EntwurfNaturflaeche f, int gruppe, string was, Func<Naturgruppe, Naturgruppe> aenderung) =>
+        Aendern(f, was, n => n.GruppenSetzen(n.Gruppen.Select((g, i) => i == gruppe ? aenderung(g) : g)));
+
+    private static Naturteil NeuerTeil(IReadOnlyDictionary<string, double> arten, int von, int bis)
+    {
+        von = Math.Max(0, von);
+        return new Naturteil { Arten = arten.Where(a => a.Value > 0).ToDictionary(a => a.Key, a => a.Value), Anzahl = new[] { von, Math.Max(von, bis) } };
+    }
 
     /// <summary>
     /// Setzt die Mischung der Arten (Art → Gewicht). Hat die Fläche eine Gruppe mit einem Teil (ein Wald), bekommt dieser Teil die neuen Arten
@@ -288,7 +361,7 @@ public sealed partial class Kartenentwurf
         _wege.Where(w => w.Punkte.Count >= 2).Select(w => (w.VerlaufRoh, w.BreiteWirksam)),
         _gebaeude.Select(g => Naturhindernis.Von(g.Baustein, g.X, g.Z, g.Drehung, g.Massstab, modellmass)).OfType<Naturhindernis>(),
         _bauzonen.Select(z => (IReadOnlyList<double[]>)EntwurfTeil.Roh(z.Ecken)),
-        Mauern.Select(m => (IReadOnlyList<double[]>)m.Linie));
+        _mauern.Select(m => (IReadOnlyList<double[]>)EntwurfTeil.Roh(m.Ecken)));
 
     /// <summary>Die Pflanzen einer Naturfläche, wie das Spiel sie zeigt (deterministisch aus Fläche, Startwert und Freiraum).</summary>
     public List<Pflanzenlage> NaturVon(EntwurfNaturflaeche f, Naturfreiraum frei) => NaturVerteilung.Flaeche(f.AlsNaturflaeche(), Katalog, frei);
