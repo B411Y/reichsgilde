@@ -169,6 +169,8 @@ Die Reichsstadt ist als begehbare Schrägansicht zu sehen: Mauer (100 × 100 m) 
 - **Baustelle:** Fundament, Mauern, die mit der Bauzeit hochwachsen, zuletzt der Dachstuhl, dazu Gerüst und Holzstapel. Ein Klick nennt, was entsteht und wann es fertig ist; ist es fertig, folgt die Auswahl dem neuen Haus.
 - **Bauplatz:** Wiese mit Pflöcken und Schnur, nach einem Abriss. Hier darf jeder bauen, was hineinpasst, auch außerhalb der Bauzonen. Ein **Wohnhausplatz** (der Platz eines abgerissenen Hauses der Karte) nimmt jedes Wohnhaus jeder Stufe auf – es passt sich der Fläche und ihrer Drehung an; eine Werkstatt darf dort nicht stehen.
 
+**Alte Spielstände.** Seit die Karte alles festlegt, was in der Stadt steht (Kartenformat 2), lädt ein alter Spielstand mit der aktuellen Karte. Eine Werkstatt, deren Platz es nicht mehr gibt (etwa eine der früheren Werkstätten zum Kauf), zieht dabei an die erste freie Stelle einer Bauzone; freie Werkstätten zum Kauf ohne Platz gibt es nicht mehr.
+
 **Leerstand.** Das Wohnhaus eines bankrotten oder erloschenen Hauses bleibt vernagelt stehen. Ein Klick darauf zeigt zwei Knöpfe: **Kaufen und sanieren** (50 % des Hauswerts plus 20 % Sanierung, abzüglich eures alten Hauses; 4 Stunden, dann zieht ihr ein; nur, wenn das Haus größer ist als eures) und **Abreißen lassen** (50 % plus Abrisskosten; danach ein Bauplatz für jeden). Beide fragen vorher mit der ganzen Rechnung nach; geht etwas nicht, ist der Knopf gesperrt und der Grund steht in der Tafel.
 
 **Zum Ausprobieren** (Startoptionen nach `--`, siehe `CLAUDE.md`): `--bauen=1` öffnet den Baumodus, `--bauen=wohnhaus:1 --bauort=-96,-3,0 --bauklick=1` setzt den Umriss auf eine Probestelle und öffnet die Rückfrage, `--bauklick=2 --spulen=1100` baut gleich und lässt die Bauzeit ablaufen.
@@ -310,7 +312,8 @@ reichsgilde/
 │   ├── project.godot
 │   ├── Reichsgilde.csproj
 │   ├── data/wirtschaft.json        Alle Zahlen des Wirtschaftsmodells (aus dem Balancing-Rechner)
-│   ├── data/karten/                Stadtkarten als JSON (erzeugt von tools/karten, vom Spiel noch nicht gelesen)
+│   ├── data/katalog.json           Gebäudekatalog: was jeder Baustein ist (Modell, Grundfläche)
+│   ├── data/karten/                Stadtkarten als JSON, Format 2: wo alles steht (erzeugt von tools/karten)
 │   ├── assets/waren/               Pixel-Icons der Waren (32 × 32, erzeugt von tools/icons)
 │   ├── scenes/                     Szenen (.tscn)
 │   └── scripts/                    C#-Skripte, die an Szenen hängen

@@ -1,5 +1,5 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="-391.5 -245 672 490" font-family="sans-serif">
-<title>Köln – Kartendatei Format 1 (Vorschau)</title>
+<title>Köln – Kartendatei Format 2 (Vorschau)</title>
 <rect x="-391.5" y="-245" width="672" height="490" fill="#E6E8E1"/>
 <polygon points="-283.5,-85 -146.5,-111 -140,91.5 -277,91.5" fill="#DCD5A6" opacity="0.8"/>
 <polygon points="36,45.5 114,52 120.5,169.5 55.5,169.5" fill="#DCD5A6" opacity="0.8"/>
@@ -121,35 +121,93 @@
 <text x="68.5" y="-45.5" font-size="6" text-anchor="middle" fill="#1F2326">Deutzer Nordtor</text>
 <rect x="135" y="-8" width="6" height="6" fill="#1F2326"/>
 <text x="138" y="-10" font-size="6" text-anchor="middle" fill="#1F2326">Deutzer Osttor</text>
-<circle cx="0" cy="0" r="3.5" fill="#1F2326"/><text x="5" y="2" font-size="6" fill="#1F2326">Heumarkt</text>
-<circle cx="-11" cy="-27.5" r="3.5" fill="#1F2326"/><text x="-6" y="-25.5" font-size="6" fill="#1F2326">Rathaus</text>
-<circle cx="8" cy="-39" r="3.5" fill="#1F2326"/><text x="13" y="-37" font-size="6" fill="#1F2326">Hafen mit Kran</text>
-<circle cx="-4.5" cy="-109.5" r="3.5" fill="#1F2326"/><text x="0.5" y="-107.5" font-size="6" fill="#1F2326">Dom (Baustelle mit Kran)</text>
-<circle cx="-91.5" cy="-94.5" r="3.5" fill="#1F2326"/><text x="-86.5" y="-92.5" font-size="6" fill="#1F2326">St. Gereon</text>
-<circle cx="-6.5" cy="117.5" r="3.5" fill="#1F2326"/><text x="-1.5" y="119.5" font-size="6" fill="#1F2326">St. Severin</text>
-<circle cx="-85" cy="52" r="3.5" fill="#1F2326"/><text x="-80" y="54" font-size="6" fill="#1F2326">Antoniterkirche</text>
-<rect x="-66" y="113.5" width="8" height="8" fill="none" stroke="#6B6E66" stroke-dasharray="2 1.5"/>
-<rect x="-89" y="17.5" width="8" height="8" fill="none" stroke="#6B6E66" stroke-dasharray="2 1.5"/>
-<rect x="116.5" y="18" width="8" height="8" fill="none" stroke="#6B6E66" stroke-dasharray="2 1.5"/>
-<rect x="-323.5" y="159" width="8" height="8" fill="none" stroke="#6B6E66" stroke-dasharray="2 1.5"/>
-<rect x="-22" y="-97.5" width="10" height="10" fill="#A3262A"/><text x="-17" y="-90" font-size="7" text-anchor="middle" fill="#fff" font-weight="bold">1</text>
-<rect x="-59" y="-82" width="10" height="10" fill="#A3262A"/><text x="-54" y="-74.5" font-size="7" text-anchor="middle" fill="#fff" font-weight="bold">2</text>
-<rect x="-83.5" y="-56.5" width="10" height="10" fill="#A3262A"/><text x="-78.5" y="-49" font-size="7" text-anchor="middle" fill="#fff" font-weight="bold">3</text>
-<rect x="-98" y="-19" width="10" height="10" fill="#A3262A"/><text x="-93" y="-11.5" font-size="7" text-anchor="middle" fill="#fff" font-weight="bold">4</text>
-<rect x="-96" y="17.5" width="10" height="10" fill="#A3262A"/><text x="-91" y="25" font-size="7" text-anchor="middle" fill="#fff" font-weight="bold">5</text>
-<rect x="-86" y="43" width="10" height="10" fill="#A3262A"/><text x="-81" y="50.5" font-size="7" text-anchor="middle" fill="#fff" font-weight="bold">6</text>
-<rect x="-59" y="72" width="10" height="10" fill="#A3262A"/><text x="-54" y="79.5" font-size="7" text-anchor="middle" fill="#fff" font-weight="bold">7</text>
-<rect x="-17" y="88" width="10" height="10" fill="#A3262A"/><text x="-12" y="95.5" font-size="7" text-anchor="middle" fill="#fff" font-weight="bold">8</text>
-<polygon points="-296.5,125.5 -291.5,130.5 -296.5,135.5 -301.5,130.5" fill="#FFFFFF" stroke="#1F2326"/><text x="-289.5" y="132.5" font-size="6" fill="#1F2326">Holzschlag</text>
-<polygon points="-238,190.5 -233,195.5 -238,200.5 -243,195.5" fill="#FFFFFF" stroke="#1F2326"/><text x="-231" y="197.5" font-size="6" fill="#1F2326">Holzschlag</text>
-<polygon points="160,27.5 165,32.5 160,37.5 155,32.5" fill="#FFFFFF" stroke="#1F2326"/><text x="167" y="34.5" font-size="6" fill="#1F2326">Holzschlag</text>
-<polygon points="218.5,60 223.5,65 218.5,70 213.5,65" fill="#FFFFFF" stroke="#1F2326"/><text x="225.5" y="67" font-size="6" fill="#1F2326">Holzschlag</text>
-<polygon points="186,-109.5 191,-104.5 186,-99.5 181,-104.5" fill="#FFFFFF" stroke="#1F2326"/><text x="193" y="-102.5" font-size="6" fill="#1F2326">Mine</text>
-<polygon points="238,-63.5 243,-58.5 238,-53.5 233,-58.5" fill="#FFFFFF" stroke="#1F2326"/><text x="245" y="-56.5" font-size="6" fill="#1F2326">Mine</text>
-<polygon points="205.5,-168 210.5,-163 205.5,-158 200.5,-163" fill="#FFFFFF" stroke="#1F2326"/><text x="212.5" y="-161" font-size="6" fill="#1F2326">Mine</text>
-<polygon points="192.5,177.5 197.5,182.5 192.5,187.5 187.5,182.5" fill="#FFFFFF" stroke="#1F2326"/><text x="199.5" y="184.5" font-size="6" fill="#1F2326">Steinbruch</text>
-<polygon points="244.5,210 249.5,215 244.5,220 239.5,215" fill="#FFFFFF" stroke="#1F2326"/><text x="251.5" y="217" font-size="6" fill="#1F2326">Steinbruch</text>
-<polygon points="-336,192 -331,197 -336,202 -341,197" fill="#FFFFFF" stroke="#1F2326"/><text x="-329" y="199" font-size="6" fill="#1F2326">Steinbruch</text>
+<polygon points="-12.00,-12.00 12.00,-12.00 12.00,12.00 -12.00,12.00" fill="#8E8F88" stroke="#1F2326" stroke-width="0.3"/>
+<circle cx="0.00" cy="12.00" r="0.9" fill="#A3262A"/>
+<text x="0" y="1" font-size="3" text-anchor="middle" fill="#1F2326">Heumarkt</text>
+<polygon points="-19.00,-32.50 -3.00,-32.50 -3.00,-22.50 -19.00,-22.50" fill="#8E8F88" stroke="#1F2326" stroke-width="0.3"/>
+<circle cx="-11.00" cy="-22.50" r="0.9" fill="#A3262A"/>
+<text x="-11" y="-26.5" font-size="3" text-anchor="middle" fill="#1F2326">Rathaus</text>
+<polygon points="0.00,-46.00 16.00,-46.00 16.00,-32.00 0.00,-32.00" fill="#8E8F88" stroke="#1F2326" stroke-width="0.3"/>
+<circle cx="8.00" cy="-32.00" r="0.9" fill="#A3262A"/>
+<text x="8" y="-38" font-size="3" text-anchor="middle" fill="#1F2326">Hafen mit Kran</text>
+<polygon points="-10.75,-126.10 1.75,-126.10 1.75,-95.90 -10.75,-95.90" fill="#8E8F88" stroke="#1F2326" stroke-width="0.3"/>
+<circle cx="-4.50" cy="-95.90" r="0.9" fill="#A3262A"/>
+<text x="-4.5" y="-110" font-size="3" text-anchor="middle" fill="#1F2326">Dom (Baustelle mit Kran)</text>
+<polygon points="-99.50,-101.50 -83.50,-101.50 -83.50,-87.50 -99.50,-87.50" fill="#8E8F88" stroke="#1F2326" stroke-width="0.3"/>
+<circle cx="-91.50" cy="-87.50" r="0.9" fill="#A3262A"/>
+<text x="-91.5" y="-93.5" font-size="3" text-anchor="middle" fill="#1F2326">St. Gereon</text>
+<polygon points="-14.50,110.50 1.50,110.50 1.50,124.50 -14.50,124.50" fill="#8E8F88" stroke="#1F2326" stroke-width="0.3"/>
+<circle cx="-6.50" cy="124.50" r="0.9" fill="#A3262A"/>
+<text x="-6.5" y="118.5" font-size="3" text-anchor="middle" fill="#1F2326">St. Severin</text>
+<polygon points="-104.50,48.00 -88.50,48.00 -88.50,62.00 -104.50,62.00" fill="#8E8F88" stroke="#1F2326" stroke-width="0.3"/>
+<circle cx="-96.50" cy="62.00" r="0.9" fill="#A3262A"/>
+<text x="-96.5" y="56" font-size="3" text-anchor="middle" fill="#1F2326">Antoniterkirche</text>
+<polygon points="-70.00,110.50 -54.00,110.50 -54.00,124.50 -70.00,124.50" fill="#9DB287" stroke="#1F2326" stroke-width="0.3"/>
+<circle cx="-62.00" cy="124.50" r="0.9" fill="#A3262A"/>
+<polygon points="-76.00,13.00 -60.00,13.00 -60.00,27.00 -76.00,27.00" fill="#9DB287" stroke="#1F2326" stroke-width="0.3"/>
+<circle cx="-68.00" cy="27.00" r="0.9" fill="#A3262A"/>
+<polygon points="112.50,15.00 128.50,15.00 128.50,29.00 112.50,29.00" fill="#9DB287" stroke="#1F2326" stroke-width="0.3"/>
+<circle cx="120.50" cy="29.00" r="0.9" fill="#A3262A"/>
+<polygon points="-327.50,156.00 -311.50,156.00 -311.50,170.00 -327.50,170.00" fill="#9DB287" stroke="#1F2326" stroke-width="0.3"/>
+<circle cx="-319.50" cy="170.00" r="0.9" fill="#A3262A"/>
+<polygon points="-29.00,-99.50 -13.00,-99.50 -13.00,-85.50 -29.00,-85.50" fill="#B58A5A" stroke="#1F2326" stroke-width="0.3"/>
+<circle cx="-21.00" cy="-85.50" r="0.9" fill="#A3262A"/>
+<text x="-21" y="-91.5" font-size="3" text-anchor="middle" fill="#1F2326">Startgrundstück 1, Werkstatt</text>
+<polygon points="-13.00,-95.50 -5.00,-95.50 -5.00,-85.50 -13.00,-85.50" fill="#A3262A" stroke="#1F2326" stroke-width="0.3"/>
+<circle cx="-9.00" cy="-85.50" r="0.9" fill="#fff"/>
+<text x="-9" y="-89" font-size="4" text-anchor="middle" fill="#fff" font-weight="bold">S1_Wohnhaus</text>
+<polygon points="-66.00,-84.00 -50.00,-84.00 -50.00,-70.00 -66.00,-70.00" fill="#B58A5A" stroke="#1F2326" stroke-width="0.3"/>
+<circle cx="-58.00" cy="-70.00" r="0.9" fill="#A3262A"/>
+<text x="-58" y="-76" font-size="3" text-anchor="middle" fill="#1F2326">Startgrundstück 2, Werkstatt</text>
+<polygon points="-50.00,-80.00 -42.00,-80.00 -42.00,-70.00 -50.00,-70.00" fill="#A3262A" stroke="#1F2326" stroke-width="0.3"/>
+<circle cx="-46.00" cy="-70.00" r="0.9" fill="#fff"/>
+<text x="-46" y="-73.5" font-size="4" text-anchor="middle" fill="#fff" font-weight="bold">S2_Wohnhaus</text>
+<polygon points="-85.50,-39.50 -85.50,-55.50 -71.50,-55.50 -71.50,-39.50" fill="#B58A5A" stroke="#1F2326" stroke-width="0.3"/>
+<circle cx="-71.50" cy="-47.50" r="0.9" fill="#A3262A"/>
+<text x="-78.5" y="-46.5" font-size="3" text-anchor="middle" fill="#1F2326">Startgrundstück 3, Werkstatt</text>
+<polygon points="-81.50,-55.50 -81.50,-63.50 -71.50,-63.50 -71.50,-55.50" fill="#A3262A" stroke="#1F2326" stroke-width="0.3"/>
+<circle cx="-71.50" cy="-59.50" r="0.9" fill="#fff"/>
+<text x="-76.5" y="-58" font-size="4" text-anchor="middle" fill="#fff" font-weight="bold">S3_Wohnhaus</text>
+<polygon points="-100.00,-2.00 -100.00,-18.00 -86.00,-18.00 -86.00,-2.00" fill="#B58A5A" stroke="#1F2326" stroke-width="0.3"/>
+<circle cx="-86.00" cy="-10.00" r="0.9" fill="#A3262A"/>
+<text x="-93" y="-9" font-size="3" text-anchor="middle" fill="#1F2326">Startgrundstück 4, Werkstatt</text>
+<polygon points="-96.00,-18.00 -96.00,-26.00 -86.00,-26.00 -86.00,-18.00" fill="#A3262A" stroke="#1F2326" stroke-width="0.3"/>
+<circle cx="-86.00" cy="-22.00" r="0.9" fill="#fff"/>
+<text x="-91" y="-20.5" font-size="4" text-anchor="middle" fill="#fff" font-weight="bold">S4_Wohnhaus</text>
+<polygon points="-98.00,34.50 -98.00,18.50 -84.00,18.50 -84.00,34.50" fill="#B58A5A" stroke="#1F2326" stroke-width="0.3"/>
+<circle cx="-84.00" cy="26.50" r="0.9" fill="#A3262A"/>
+<text x="-91" y="27.5" font-size="3" text-anchor="middle" fill="#1F2326">Startgrundstück 5, Werkstatt</text>
+<polygon points="-94.00,18.50 -94.00,10.50 -84.00,10.50 -84.00,18.50" fill="#A3262A" stroke="#1F2326" stroke-width="0.3"/>
+<circle cx="-84.00" cy="14.50" r="0.9" fill="#fff"/>
+<text x="-89" y="16" font-size="4" text-anchor="middle" fill="#fff" font-weight="bold">S5_Wohnhaus</text>
+<polygon points="-88.00,60.00 -88.00,44.00 -74.00,44.00 -74.00,60.00" fill="#B58A5A" stroke="#1F2326" stroke-width="0.3"/>
+<circle cx="-74.00" cy="52.00" r="0.9" fill="#A3262A"/>
+<text x="-81" y="53" font-size="3" text-anchor="middle" fill="#1F2326">Startgrundstück 6, Werkstatt</text>
+<polygon points="-84.00,44.00 -84.00,36.00 -74.00,36.00 -74.00,44.00" fill="#A3262A" stroke="#1F2326" stroke-width="0.3"/>
+<circle cx="-74.00" cy="40.00" r="0.9" fill="#fff"/>
+<text x="-79" y="41.5" font-size="4" text-anchor="middle" fill="#fff" font-weight="bold">S6_Wohnhaus</text>
+<polygon points="-42.00,84.00 -58.00,84.00 -58.00,70.00 -42.00,70.00" fill="#B58A5A" stroke="#1F2326" stroke-width="0.3"/>
+<circle cx="-50.00" cy="70.00" r="0.9" fill="#A3262A"/>
+<text x="-50" y="78" font-size="3" text-anchor="middle" fill="#1F2326">Startgrundstück 7, Werkstatt</text>
+<polygon points="-58.00,80.00 -66.00,80.00 -66.00,70.00 -58.00,70.00" fill="#A3262A" stroke="#1F2326" stroke-width="0.3"/>
+<circle cx="-62.00" cy="70.00" r="0.9" fill="#fff"/>
+<text x="-62" y="76.5" font-size="4" text-anchor="middle" fill="#fff" font-weight="bold">S7_Wohnhaus</text>
+<polygon points="-0.00,100.00 -16.00,100.00 -16.00,86.00 0.00,86.00" fill="#B58A5A" stroke="#1F2326" stroke-width="0.3"/>
+<circle cx="-8.00" cy="86.00" r="0.9" fill="#A3262A"/>
+<text x="-8" y="94" font-size="3" text-anchor="middle" fill="#1F2326">Startgrundstück 8, Werkstatt</text>
+<polygon points="-16.00,96.00 -24.00,96.00 -24.00,86.00 -16.00,86.00" fill="#A3262A" stroke="#1F2326" stroke-width="0.3"/>
+<circle cx="-20.00" cy="86.00" r="0.9" fill="#fff"/>
+<text x="-20" y="92.5" font-size="4" text-anchor="middle" fill="#fff" font-weight="bold">S8_Wohnhaus</text>
+<polygon points="-296.5,125.5 -291.5,130.5 -296.5,135.5 -301.5,130.5" fill="#FFFFFF" stroke="#1F2326" opacity="0.8"/><text x="-289.5" y="132.5" font-size="6" fill="#1F2326">Holzschlag</text>
+<polygon points="-238,190.5 -233,195.5 -238,200.5 -243,195.5" fill="#FFFFFF" stroke="#1F2326" opacity="0.8"/><text x="-231" y="197.5" font-size="6" fill="#1F2326">Holzschlag</text>
+<polygon points="160,27.5 165,32.5 160,37.5 155,32.5" fill="#FFFFFF" stroke="#1F2326" opacity="0.8"/><text x="167" y="34.5" font-size="6" fill="#1F2326">Holzschlag</text>
+<polygon points="218.5,60 223.5,65 218.5,70 213.5,65" fill="#FFFFFF" stroke="#1F2326" opacity="0.8"/><text x="225.5" y="67" font-size="6" fill="#1F2326">Holzschlag</text>
+<polygon points="186,-109.5 191,-104.5 186,-99.5 181,-104.5" fill="#FFFFFF" stroke="#1F2326" opacity="0.8"/><text x="193" y="-102.5" font-size="6" fill="#1F2326">Mine</text>
+<polygon points="238,-63.5 243,-58.5 238,-53.5 233,-58.5" fill="#FFFFFF" stroke="#1F2326" opacity="0.8"/><text x="245" y="-56.5" font-size="6" fill="#1F2326">Mine</text>
+<polygon points="205.5,-168 210.5,-163 205.5,-158 200.5,-163" fill="#FFFFFF" stroke="#1F2326" opacity="0.8"/><text x="212.5" y="-161" font-size="6" fill="#1F2326">Mine</text>
+<polygon points="192.5,177.5 197.5,182.5 192.5,187.5 187.5,182.5" fill="#FFFFFF" stroke="#1F2326" opacity="0.8"/><text x="199.5" y="184.5" font-size="6" fill="#1F2326">Steinbruch</text>
+<polygon points="244.5,210 249.5,215 244.5,220 239.5,215" fill="#FFFFFF" stroke="#1F2326" opacity="0.8"/><text x="251.5" y="217" font-size="6" fill="#1F2326">Steinbruch</text>
+<polygon points="-336,192 -331,197 -336,202 -341,197" fill="#FFFFFF" stroke="#1F2326" opacity="0.8"/><text x="-329" y="199" font-size="6" fill="#1F2326">Steinbruch</text>
 <text x="-11" y="-65" font-size="6" text-anchor="middle" fill="#6B6E66">K1</text>
 <text x="-7" y="-113" font-size="6" text-anchor="middle" fill="#6B6E66">M1</text>
 <text x="-33" y="-105" font-size="6" text-anchor="middle" fill="#6B6E66">M2</text>
