@@ -205,6 +205,13 @@ So wird eingetragen (damit sich die Chats nie an derselben Stelle treffen):
 | Stücke | Wie bei den anderen Werkstätten, eigenes Stück: Venezianische Glasflakons (−10 % Zeit für Moschusduft, Fechterduft, Heiligenduft). Dazu Gutes Werkzeug, Meisterwerkzeug (ab Stufe 2, braucht Gutes Werkzeug), Regale (60 statt 40 je Ware), Löschfass, Eisentür, Lederhandschuhe. Gleiche Preise. Nur Daten. | 21.10.2026 |
 | Daten | `werkstatt.einrichtung.Parfumeur` mit den Kennungen `Werkzeug1`, `Werkzeug2`, `Glasflakons` (Name „Venezianische Glasflakons“, 350 Gulden), `Regale` (Name „Flakonregale“), `Loeschfass`, `Eisentuer`, `Handschuhe` (Name „Lederhandschuhe“, 80 Gulden) – wie die Knoten `Einrichtung_<Kennung>` im Raummodell. Gilt für Siederei, Duftwerkstatt und Parfumerie, nicht für den Duftgarten (keine Werkstatt). **Datenversion 41.** Keine Messung: Die KI-Häuser kaufen keine Einrichtung. | 21.10.2026 |
 
+### Einrichtung und Gäste des Wirts (PR #166)
+
+| Thema | Entscheidung | Datum |
+|---|---|---|
+| Stücke | Wie bei den anderen Werkstätten, eigenes Stück: Kupferne Braupfanne (−10 % Zeit für Dünnbier, Starkbier, Festbier). Dazu Gutes Werkzeug, Meisterwerkzeug (ab Stufe 2, braucht Gutes Werkzeug), Regale (60 statt 40 je Ware), Löschfass, Eisentür, Lederhandschuhe. Gleiche Preise. | 21.10.2026 |
+| Gäste im Raum | Die Darstellung zeigt Gäste nach Tageszeit; der Kern liefert dafür eine öffentliche Abfrage, wie viele Gäste gerade in einer Schänke sitzen (und ob der Barde spielt), abgeleitet aus dem bestehenden Gästesystem (`gastwirtschaft`), ohne dessen Werte zu ändern. | 21.10.2026 |
+
 ## Messungen
 
 Messungen des Kerns stehen in `docs/WIRTSCHAFTSMODELL.md` (nur der Kern schreibt dort).
