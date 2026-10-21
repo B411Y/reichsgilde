@@ -359,7 +359,8 @@ public partial class Stadtansicht
 
     /// <summary>
     /// Wo steht der Betrieb? Die Werkstätten der Karte stehen im <see cref="Stadtplan"/>. Eine neu gebaute liegt auf ihrem Grundstück:
-    /// Das Werkstattmodell (10 × 8 m) sitzt mit seiner Front 2 m hinter der Vorderkante der Fläche, <paramref name="drehung"/> ist
+    /// Die Front des Werkstattmodells (16 × 14 m mit Vorplatz) steht 2 m hinter der Vorderkante der Fläche, <paramref name="mitte"/> ist wie im Stadtplan
+    /// der Punkt 4 m hinter der Front (1 m vor der Mitte der Fläche), <paramref name="drehung"/> ist
     /// die Drehung der Fläche (0 = Eingang nach Süden). Gibt false zurück, wenn der Betrieb nirgends einen Platz hat.
     /// </summary>
     private bool PlatzVon(string betrieb, out Vector3 mitte, out int drehung)

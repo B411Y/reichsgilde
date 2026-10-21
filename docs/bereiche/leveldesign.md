@@ -12,6 +12,8 @@ So wird eingetragen (damit sich die Chats nie an derselben Stelle treffen):
 
 - (–) Reichskarte zum Wechsel zwischen den Städten (Idee, später)
 - Level-Editor (Grundsatz siehe „Level-Editor und Wege“): vor dem Start Umfang (Gelände, Wasser, Bauzonen, feste Gebäude), Kartenformat 2 und Reihenfolge klären – Vorschlag: Wegegraph im Kern, Wege in der Darstellung, dann der Editor
+- Greybox: Die Lagen der Stadt stehen doppelt – im Code der Stadtansicht (`Stadtplan`, `Gassen`, `Abzweige`, `KulissePlaetze`, `RingAnschluesse`) und im Kartenwerkzeug `tools/karten/greybox.py`, das sie nachbildet. Vorschlag: Die Stadtansicht liest Werkstattplätze, Gassen und Kulissenhäuser aus `greybox.json` (wie schon die Wohnhausplätze und Bauzonen), dann ist das Werkzeug die einzige Quelle
+- Greybox: Die frei gewordenen Plätze der gestrichenen Werkstätten (Nordwesten am Dom, um das Rathaus, Süden am Markt) könnten Kernzonen werden – Platz für etwa drei Werkstätten und vier Wohnhäuser in der Stadt; ändert Zonenzahl und Probeplan, braucht eine Messung des Kerns
 
 ## Entscheidungen
 
@@ -87,4 +89,7 @@ Noch nicht begonnen; festgehalten, damit niemand weiter Arbeit in die Greybox-We
 | Thema | Entscheidung | Datum |
 |---|---|---|
 | Plätze | Jeder Werkstattplatz der Greybox wird 16 × 14 m groß (so groß sind die Werkstattmodelle); wo es eng wird, rücken Nachbarn auseinander oder ein Einwohnerhaus entfällt. Die Plätze der 10 gestrichenen Werkstätten zum Kauf werden frei. Karte wie immer aus dem Kartenwerkzeug, Stadtplan und Gassen ziehen mit. Entschieden vom Nutzer. | 20.10.2026 |
+| Umsetzung: Plätze | Vier Werkstätten in der Stadt, Stadtplan-Punkt (Tür nach Süden): Weinmarkt (−21 \| 17), Gießerei Eisenbart (22 \| 14), Tischlerei Eichwald (22 \| −12, zieht von hinter dem Weinmarkt an die Ostgasse), Maurerei Kieselbach (25 \| −28). Kein Einwohnerhaus entfällt; das Kulissenhaus (−29 \| 18) rückt nach (−13 \| 29) in die Reihe am Südring. Tabelle in `docs/LEVELDESIGN.md`, „Greybox-Karte“. | 20.10.2026 |
+| Umsetzung: Karte | `greybox.json`: Werkstätten 16 × 14 m, `punkt` = Mitte der Fläche (1 m hinter dem Stadtplan-Punkt), Gassen vom Hof am Vorplatz entlang zum Markt, Stichgassen Süd 1 und 2 zu Eisenbart und Weinmarkt, Domgasse ab den Domstufen, Dom mit Westturm (12,5 × 30,2 m), Kulissenhäuser 8 × 8,5 m, `K1` 4 m nach Süden (z 22 … 36). Neue Prüfungen im Werkzeug: Werkstätten ohne Überlappung, 2 m Abstand, nicht auf Straße oder Mauer, Hof im Vorplatz mit eigener Gasse; keine Gasse über ein Haus. | 20.10.2026 |
+| Umsetzung: Darstellung | `Stadtplan`, `Gassen` (Weinmarkt: `WeinmarktGasse`), `RingAnschluesse` und `KulissePlaetze` auf die neuen Plätze; Bauplatz-Zaun und Klickfläche eines freien Werkstattplatzes 16 × 14 m. Die Lagen stehen weiter doppelt (Stadtansicht und `greybox.py`) – zusammenführen später, siehe „Offen“. | 20.10.2026 |
 
