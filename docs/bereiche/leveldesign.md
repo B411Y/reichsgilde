@@ -132,7 +132,7 @@ Fahrplan (vom Nutzer am 21.10.2026 bestätigt, je Schritt ein PR; Stand wird hie
 | Schritt | Inhalt | Stand |
 |---|---|---|
 | 1 Grundgerüst | Knopf im Hauptmenü, Karte laden und zeigen, Gebäude aus dem Katalog setzen, verschieben, drehen, löschen, Live-Prüfung, Speichern, Rückgängig | fertig (PR #168) |
-| 2 Wege und Flächen | Wege mit Kurven zeichnen, Kreuzungen rasten ein, Gassennetz live; Bauzonen und Waldflächen als Vielecke | offen |
+| 2 Wege und Flächen | Wege mit Kurven zeichnen, Kreuzungen rasten ein, Gassennetz live; Bauzonen und Waldflächen als Vielecke | in Arbeit (PR #170) |
 | 3 Rest der Karte | Mauer und Tore, Startbelegung, Knopf „Karte ausprobieren“ | offen |
 | 4 Umzug | Greybox und Köln übernehmen, der Editor wird die Quelle, Python-Werkzeug fällt weg | offen |
 | 5 Später | Gelände mit Höhen, Wasser, Wegbelag; Freigabe für Spieler | offen |
@@ -148,3 +148,13 @@ Fahrplan (vom Nutzer am 21.10.2026 bestätigt, je Schritt ein PR; Stand wird hie
 | Werkstattplätze (Umsetzung) | Zeigen das Werkstattmodell des Schmieds (Stufe 1, ohne Hausfarbe), nicht den Bauplatz-Zaun: Alle Werkstätten haben die Normfläche 16 × 14 m, und ein Haus zeigt Höhe und Abstände besser. Wohnhausplätze zeigen Fachwerkhäuser (ein Doppelplatz zwei), Einwohnerplätze ein Einwohnerhaus (ab 8 m Breite Bürgerhaus), Kirche und Hafen einen grauen Block. | 21.10.2026 |
 | Tasten (Umsetzung) | Q/E drehen das Stück (15°, mit Alt 1°), die Kamera dreht mit Strg+Q/E oder Bild auf/ab. Entf löscht, Esc beendet Setzen bzw. Ziehen bzw. die Auswahl, Rechtsklick ohne Ziehen beendet das Setzen. Strg+Z, Strg+Y (auch Strg+Umschalt+Z), Strg+S. Ein Klick auf Rot setzt trotzdem – der Fehler steht dann in der Liste. | 21.10.2026 |
 | Hintergrund (Umsetzung) | Boden, Mauern, Wege und Natur zeichnet die Werkstatt einmal beim Öffnen; ein verschobenes Gebäude lässt Bäume und Wege, wo sie waren. | 21.10.2026 |
+
+### Kartenwerkstatt, Schritt 2: Wege und Flächen (PR #170)
+
+| Thema | Entscheidung | Datum |
+|---|---|---|
+| Wege zeichnen | Wegart wählen (Landstraße, Gasse, Feldweg, Fußweg), Punkte klicken, das Werkzeug legt eine weiche Kurve hindurch; Doppelklick oder Enter beendet. Endet oder beginnt ein Weg an einem anderen, rastet er dort als Kreuzung ein. Gespeichert werden die Stützpunkte; Spiel und Kern rechnen dieselbe Kurve. | 21.10.2026 |
+| Wege bearbeiten | Ein gewählter Weg zeigt seine Stützpunkte: Ziehen verschiebt, Klick auf die Linie fügt einen ein, Entf löscht einen. Rechts Name, Art und Breite (nicht unter der Mindestbreite der Art). Alles mit Rückgängig. | 21.10.2026 |
+| Flächen | Bauzonen, Wald- und Streuflächen als Vielecke: Ecken klicken, Doppelklick schließt; Ecken ziehen, einfügen, löschen; Aussparungen ebenso. Naturflächen haben rechts Dichte, Mischung der Arten und Startwert; die Natur wird live neu gestreut, unter Gebäuden und Wegen bleibt sie automatisch frei. | 21.10.2026 |
+| Einzelne Pflanzen | Im Katalog unter Natur jede Art einzeln (setzen wie ein Gebäude) und ein Pinsel, der beim Ziehen locker Bäume oder Büsche verteilt (Größe und Dichte als Regler). | 21.10.2026 |
+
