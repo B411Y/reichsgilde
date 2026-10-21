@@ -136,6 +136,42 @@ public sealed record Diebesbrief(Diebesbriefart Art, Konto Dieb, Konto Opfer, do
 /// <summary>Was die Taschendiebe eines Hauses in einem Jahr gemacht haben.</summary>
 public sealed record Diebesbuch(double Beute, int Faenge);
 
+/// <summary>Wo ein Dieb gerade ist (für die Darstellung des Unterschlupfs).</summary>
+public enum Diebesort
+{
+    /// <summary>Im eigenen Betrieb (Schmugglerloch, Unterschlupf, Diebesgilde).</summary>
+    Daheim,
+    /// <summary>Als Taschendieb auf dem Markt (in der Arbeitszeit).</summary>
+    Markt,
+    /// <summary>Nachts mit einem eigenen Auftrag unterwegs (Einbruch, Auskundschaften, Entführung, Brand).</summary>
+    Auftrag,
+}
+
+/// <summary>Was ein Dieb gerade tut.</summary>
+public enum Diebestaetigkeit
+{
+    /// <summary>Am Markt: Hände in fremden Taschen.</summary>
+    Taschendiebstahl,
+    /// <summary>Unterwegs mit einem Auftrag (welcher: <see cref="Diebesstand.Auftrag"/>).</summary>
+    Auftrag,
+    /// <summary>Daheim: Griffe üben (an der Übungspuppe).</summary>
+    Ueben,
+    /// <summary>Daheim: Dietriche und Messer schleifen.</summary>
+    Schleifen,
+    /// <summary>Daheim: die Beute zählen (abends).</summary>
+    Zaehlen,
+    /// <summary>Daheim: den nächsten Bruch planen (abends).</summary>
+    Planen,
+    /// <summary>Auf dem Schlafboden (ab Stufe 2).</summary>
+    Schlafen,
+    /// <summary>Der Meisterdieb sitzt in der Gildenhalle (Stufe 3).</summary>
+    Vorsitzen,
+}
+
+/// <summary>Ein Arbeiter eines Diebesbetriebs: wo er gerade ist, was er tut und ob er der Meisterdieb ist.</summary>
+/// <param name="Auftrag">Nur bei <see cref="Diebesort.Auftrag"/>: was er heute Nacht tut.</param>
+public sealed record Diebesstand(Arbeiter Arbeiter, Diebesort Ort, Diebestaetigkeit Taetigkeit, bool Meisterdieb, Diebesstueck? Auftrag);
+
 // ─────────────────────────────────────────────────────────────────────────────
 //  Teilsystem
 // ─────────────────────────────────────────────────────────────────────────────
@@ -161,6 +197,10 @@ public sealed class Diebeswesen
     private readonly List<Diebesbrief> _briefe = new();
     private readonly Dictionary<Konto, Diebesbuch> _diesesJahr = new();
     private readonly Dictionary<Konto, Diebesbuch> _vorjahr = new();
+
+    // Nur für die Anwesenheit: welche Aufträge die Leute welches Verstecks in dieser Nacht ausgeführt haben (nicht gespeichert).
+    private readonly Dictionary<string, List<Diebesstueck>> _heuteNacht = new(StringComparer.Ordinal);
+    private int _heuteNachtJahr = -1;
 
     public Diebeswesen(Stadtwirtschaft w, DiebDaten? daten, int zufallsstartwert)
     {
@@ -198,6 +238,12 @@ public sealed class Diebeswesen
     /// <summary>Chance je Diebesstunde, erwischt zu werden – „Bei Nacht und Nebel" des Oberhaupts hilft.</summary>
     public double Fangchance(Konto k, int stufe) =>
         Daten.Taschendiebstahl.FangJeStunde * Faktor(Daten.Taschendiebstahl.FangJeStufe, stufe) * _w.Familien.ZeugenFaktor(k);
+
+    /// <summary>Fangchance je Diebesstunde in diesem Betrieb – mit der Verkleidungstruhe (Einrichtung) seltener.</summary>
+    public double Fangchance(Betrieb b) => Fangchance(b.Konto, b.Stufe) * b.FangFaktor;
+
+    /// <summary>Faktor auf die Spuren dieses Hauses (Lederhandschuhe im Versteck: 0,75; ohne Versteck 1).</summary>
+    public double SpurenFaktor(Konto k) => Versteck(k)?.SpurenFaktor ?? 1;
 
     /// <summary>Ansehensverlust für ein Haus, das einen Betrieb des Diebes führt.</summary>
     public double AnsehenAbzug(Konto k) => IstAktiv && _w.Betriebe.Any(b => b.Konto == k && IstDiebesbetrieb(b)) ? Daten.Ansehen : 0;
@@ -241,12 +287,16 @@ public sealed class Diebeswesen
     public int EinbruchStueck(Konto k) =>
         _w.Gauner.Daten.Diebstahl.HoechstensStueck + Daten.Einbruch.StueckJeStufe * Math.Max(0, (Versteck(k)?.Stufe ?? 1) - 1);
 
-    /// <summary>Erfolgschance eines eigenen Einbruchs – besser als eine Bande, Wächter halbieren sie trotzdem.</summary>
+    /// <summary>
+    /// Erfolgschance eines eigenen Einbruchs – besser als eine Bande, Wächter halbieren sie trotzdem.
+    /// Dietriche im Versteck zählen wie der Bonus der eigenen Leute (absolut, vor dem Wächter).
+    /// </summary>
     public double Einbruchchance(Betrieb b, Konto dieb)
     {
         var g = _w.Gauner.Daten;
         var schutz = b.Waechter ? g.WaechterSchutz : 1;
-        return Math.Min(0.95, (g.Diebstahl.Chance + Daten.Einbruch.ChanceBonus) * schutz + _w.Familien.NachtBonus(dieb)) * _w.Wache.Patrouillefaktor(b) * b.EinbruchFaktor;
+        var bonus = Daten.Einbruch.ChanceBonus + (Versteck(dieb)?.EinbruchBonus ?? 0);
+        return Math.Min(0.95, (g.Diebstahl.Chance + bonus) * schutz + _w.Familien.NachtBonus(dieb)) * _w.Wache.Patrouillefaktor(b) * b.EinbruchFaktor;
     }
 
     /// <summary>Die wertvollste Ware im Lager – so viel, wie die eigenen Leute tragen.</summary>
@@ -283,7 +333,101 @@ public sealed class Diebeswesen
     public double DrohenderBrand(Konto opfer, Konto dieb) =>
         Brandziel(opfer) is { } b ? Brandchance(b, dieb) * _w.Gauner.Sabotageschaden(b) : 0;
 
+    /// <summary>Chance je unbekannter Tat des Ziels, dass Auskundschafter einen Beweis finden – Lederhandschuhe des Ziels senken sie.</summary>
+    public double Auskundschaftchance(Konto dieb, Konto ziel) =>
+        Math.Min(0.95, Daten.Auskundschaften.Chance + _w.Familien.NachtBonus(dieb)) * SpurenFaktor(ziel);
+
+    /// <summary>
+    /// Chance, dass ein Zeuge die eigenen Leute bei einem nächtlichen Auftrag erkennt: wie bei einer Bande, beim Einbruch
+    /// × <c>dieb.einbruch.zeugenFaktor</c>, mit Lederhandschuhen im eigenen Versteck × deren Spurenfaktor.
+    /// </summary>
+    public double Zeugenchance(Diebesstueck art, Betrieb? b, bool erfolg, Konto dieb) =>
+        _w.Gauner.Zeugenchance(b, erfolg, dieb) * (art == Diebesstueck.Einbruch ? Daten.Einbruch.ZeugenFaktor : 1) * SpurenFaktor(dieb);
+
     public double Entfuehrungschance(Konto dieb) => Math.Min(0.95, Daten.Entfuehrung.Chance + _w.Familien.NachtBonus(dieb)) * _w.Wache.Patrouillefaktor(null);
+
+    // ── Anwesenheit (für die Darstellung, nur lesend) ───────────────────────
+
+    /// <summary>
+    /// Der Meisterdieb einer Diebesgilde (Stufe 3): der dienstälteste Arbeiter, der kein Lehrling ist – nur, wenn noch
+    /// jemand anderes für ihn auf den Markt geht. Sonst null.
+    /// </summary>
+    public Arbeiter? Meisterdieb(Betrieb b) =>
+        IstDiebesbetrieb(b) && b.Stufe >= 3 && b.Belegt >= 2
+            ? b.Arbeiter.Where(a => a.Arbeitskraft != "Lehrling").OrderBy(a => a.EingestelltUm).ThenBy(a => a.Nummer).FirstOrDefault()
+            : null;
+
+    /// <summary>Sitzt der Meisterdieb gerade in der Gildenhalle (8–22 Uhr, wenn er nicht selbst mit einem Auftrag unterwegs ist)?</summary>
+    public bool MeisterdiebInGildenhalle(Betrieb b) => AnwesenheitJetzt(b).Any(s => s.Taetigkeit == Diebestaetigkeit.Vorsitzen);
+
+    /// <summary>
+    /// Wo jeder Arbeiter dieses Diebesbetriebs gerade ist und was er tut – zur aktuellen Uhrzeit, ohne Zufall, ändert nichts
+    /// (leer, wenn es kein Diebesbetrieb ist). Regeln (Stunde h der Uhr, Stufe s des Betriebs):
+    ///   • Arbeitszeit (8–20 Uhr): Taschendiebe am Markt. Reihum bleiben 1 (ab 2 Leuten) oder 2 (ab 4 Leuten) daheim
+    ///     und üben oder schleifen; wer, wechselt jede Stunde. Ruht die Arbeit (Umbau, Brand, Haus aufgelöst), sind alle daheim.
+    ///   • Ab 20 Uhr: So viele, wie das Versteck heute Nacht Aufträge ausgeführt hat, sind mit einem Auftrag unterwegs
+    ///     (Gesellen vor Lehrlingen, dann nach Nummer; der Meisterdieb zuletzt) – bis Tagesende. Die anderen sind daheim:
+    ///     um 20 Uhr zählen sie Beute oder planen, ab 21 Uhr schlafen sie (ab Stufe 2 auf dem Schlafboden; im
+    ///     Schmugglerloch zählen und planen sie weiter).
+    ///   • Vor 8 Uhr: ab Stufe 2 schlafen bis 7 Uhr, danach (im Schmugglerloch von 5 Uhr an) üben oder schleifen.
+    ///   • Stufe 3: Der <see cref="Meisterdieb"/> sitzt von 8 bis 22 Uhr in der Gildenhalle (Vorsitzen) und geht nicht auf den Markt.
+    /// Daheim wechselt die Tätigkeit je Arbeiter und Stunde: gerade Summe aus Nummer und Stunde = Üben bzw. Zählen, sonst Schleifen bzw. Planen.
+    /// Die Simulation zählt die Beute weiter für alle Arbeiter – die Abfrage verteilt sie nur fürs Bild.
+    /// Die Aufträge der Nacht merkt sich der Kern nicht im Spielstand: Nach dem Laden zwischen 20 und 22 Uhr sind alle daheim.
+    /// </summary>
+    public IReadOnlyList<Diebesstand> AnwesenheitJetzt(Betrieb b)
+    {
+        if (!IstDiebesbetrieb(b) || b.Belegt == 0) return Array.Empty<Diebesstand>();
+        var uhr = _w.Uhr.UhrzeitInMinuten;
+        var h = uhr / 60;
+        var meister = Meisterdieb(b);
+        var leute = b.Arbeiter.OrderBy(a => a.Nummer).ToList();
+        var uebrige = leute.Where(a => a != meister).ToList();
+
+        // Nachts unterwegs: so viele, wie das Versteck heute Nacht Aufträge hatte.
+        var unterwegs = new Dictionary<Arbeiter, Diebesstueck>();
+        if (uhr >= Spielzeit.TagesbeginnMinute + Unterwelt.Nachtstunde && _heuteNachtJahr == _w.Uhr.Jahr
+            && _heuteNacht.TryGetValue(b.Name, out var auftraege))
+        {
+            var reihe = uebrige.OrderBy(a => a.Arbeitskraft == "Lehrling" ? 1 : 0).ThenBy(a => a.Nummer).ToList();
+            if (meister is not null) reihe.Add(meister);
+            for (var i = 0; i < Math.Min(auftraege.Count, reihe.Count); i++) unterwegs[reihe[i]] = auftraege[i];
+        }
+
+        var amMarkt = b.IstArbeitszeit(uhr) && b.Konto.IstAktiv && b.UmbauMinuten == 0 && b.SabotageMinuten == 0;
+        var n = uebrige.Count;
+        var daheimTags = n >= 4 ? 2 : n >= 2 ? 1 : 0;
+        var liste = new List<Diebesstand>(leute.Count);
+        foreach (var a in leute)
+        {
+            var istMeister = a == meister;
+            if (unterwegs.TryGetValue(a, out var art))
+            {
+                liste.Add(new Diebesstand(a, Diebesort.Auftrag, Diebestaetigkeit.Auftrag, istMeister, art));
+                continue;
+            }
+            Diebestaetigkeit taetigkeit;
+            var gerade = (a.Nummer + h) % 2 == 0;
+            if (istMeister && uhr >= Stadtwirtschaft.Arbeitsbeginn)
+                taetigkeit = Diebestaetigkeit.Vorsitzen;
+            else if (b.IstArbeitszeit(uhr))
+            {
+                var platz = ((uebrige.IndexOf(a) - h) % n + n) % n; // reihum: jede Stunde rückt die Reihe eins weiter
+                if (amMarkt && platz >= daheimTags)
+                {
+                    liste.Add(new Diebesstand(a, Diebesort.Markt, Diebestaetigkeit.Taschendiebstahl, istMeister, null));
+                    continue;
+                }
+                taetigkeit = gerade ? Diebestaetigkeit.Ueben : Diebestaetigkeit.Schleifen;
+            }
+            else if (uhr >= b.Arbeitsende)
+                taetigkeit = b.Stufe >= 2 && h >= 21 ? Diebestaetigkeit.Schlafen : gerade ? Diebestaetigkeit.Zaehlen : Diebestaetigkeit.Planen;
+            else
+                taetigkeit = b.Stufe >= 2 && h < 7 ? Diebestaetigkeit.Schlafen : gerade ? Diebestaetigkeit.Ueben : Diebestaetigkeit.Schleifen;
+            liste.Add(new Diebesstand(a, Diebesort.Daheim, taetigkeit, istMeister, null));
+        }
+        return liste;
+    }
 
     // ── Taschendiebe (jede volle Stunde) ────────────────────────────────────
 
@@ -304,7 +448,7 @@ public sealed class Diebeswesen
             var buch = DiesesJahr(k);
             _diesesJahr[k] = buch with { Beute = buch.Beute + beute };
 
-            var fang = 1 - Math.Pow(1 - Math.Min(1, Fangchance(k, b.Stufe)), minuten / 60);
+            var fang = 1 - Math.Pow(1 - Math.Min(1, Fangchance(b)), minuten / 60);
             if (_zufall.NextDouble() >= fang) continue;
 
             // Einer wird erwischt: Er kommt in den Turm – und ein Bürger, der ihn erkannt hat, erzählt einem Haus, wem er dient.
@@ -435,7 +579,13 @@ public sealed class Diebeswesen
 
     internal void Nacht()
     {
+        _heuteNacht.Clear();
+        _heuteNachtJahr = _w.Uhr.Jahr;
         if (!IstAktiv || !_w.Gauner.IstAktiv || !_w.Justiz.IstAktiv) { _auftraege.Clear(); return; }
+        // Für die Anwesenheit: Wer zieht heute Nacht los? (Liest nur – kein Zufall, keine Wirkung.)
+        foreach (var a in _auftraege)
+            if (a.Dieb.IstAktiv && a.Ziel.IstAktiv && Versteck(a.Dieb) is { } v)
+                (_heuteNacht.TryGetValue(v.Name, out var liste) ? liste : _heuteNacht[v.Name] = new()).Add(a.Art);
         foreach (var a in _auftraege.ToList())
         {
             if (!a.Dieb.IstAktiv || !a.Ziel.IstAktiv) continue;
@@ -484,12 +634,12 @@ public sealed class Diebeswesen
         }
         else
             oeffentlich = $"Einbruchsversuch in {b.Name} – die Diebe wurden verscheucht{(b.Waechter ? " (der Wächter war wachsam)" : "")}.";
-        Spur(a, Vergehen.Diebstahl, b.Name, wert, b, erfolg, oeffentlich, Daten.Einbruch.ZeugenFaktor);
+        Spur(a, Vergehen.Diebstahl, b.Name, wert, b, erfolg, oeffentlich);
     }
 
     private void Ausspaehen(Diebesauftrag a)
     {
-        var chance = Math.Min(0.95, Daten.Auskundschaften.Chance + _w.Familien.NachtBonus(a.Dieb));
+        var chance = Auskundschaftchance(a.Dieb, a.Ziel); // Lederhandschuhe im Versteck des Ziels: weniger Spuren
         var gefunden = 0;
         foreach (var spur in _w.Justiz.SpurenVon(a.Ziel).OrderBy(s => s.Nummer).ToList())
         {
@@ -542,15 +692,15 @@ public sealed class Diebeswesen
         }
         else
             oeffentlich = $"Brandanschlag auf {b.Name} vereitelt{(b.Waechter ? " – der Wächter hat das Feuer bemerkt" : "")}.";
-        Spur(a, Vergehen.Sabotage, b.Name, schaden, b, erfolg, oeffentlich, 1);
+        Spur(a, Vergehen.Sabotage, b.Name, schaden, b, erfolg, oeffentlich);
     }
 
     /// <summary>Spur fürs Gericht, öffentliche Nachricht – und vielleicht ein Zeuge.</summary>
-    private void Spur(Diebesauftrag a, Vergehen vergehen, string betroffener, double betrag, Betrieb? b, bool erfolg, string oeffentlich, double zeugenFaktor = 1)
+    private void Spur(Diebesauftrag a, Vergehen vergehen, string betroffener, double betrag, Betrieb? b, bool erfolg, string oeffentlich)
     {
         if (b is not null) _w.Gauner.AngriffMerken(b.Name);
         var spur = _w.Justiz.TatMelden(a.Dieb, vergehen, betroffener, betrag);
-        var zeuge = _zufall.NextDouble() < _w.Gauner.Zeugenchance(b, erfolg, a.Dieb) * zeugenFaktor;
+        var zeuge = _zufall.NextDouble() < Zeugenchance(a.Art, b, erfolg, a.Dieb);
         if (zeuge && spur is not null)
         {
             _w.Justiz.BeweisGeben(a.Ziel, spur);

@@ -330,6 +330,15 @@ public sealed class Betrieb
     /// <summary>Faktor auf die Erfolgschance von Diebstahl und Einbruch ins Lager (Eisentür).</summary>
     public double EinbruchFaktor => Einrichtungsstuecke.Aggregate(1.0, (f, e) => f * e.Wirkung.EinbruchFaktor);
 
+    /// <summary>Dieb: so viel höher die Erfolgschance der eigenen Einbrüche (Dietriche: +0,1, mit Meisterdietrichen +0,2).</summary>
+    public double EinbruchBonus => Einrichtungsstuecke.Sum(e => e.Wirkung.EinbruchBonus);
+
+    /// <summary>Dieb: Faktor auf die Fangchance der Taschendiebe (Verkleidungstruhe: 0,75).</summary>
+    public double FangFaktor => Einrichtungsstuecke.Aggregate(1.0, (f, e) => f * e.Wirkung.FangFaktor);
+
+    /// <summary>Dieb: Faktor auf Zeugen und Beweise gegen das Haus (Lederhandschuhe: 0,75).</summary>
+    public double SpurenFaktor => Einrichtungsstuecke.Aggregate(1.0, (f, e) => f * e.Wirkung.SpurenFaktor);
+
     internal void EinrichtungHinzufuegen(string kennung)
     {
         _einrichtung.Add(kennung);

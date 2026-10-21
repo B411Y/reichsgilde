@@ -255,6 +255,9 @@ public sealed class Wachwesen
     public double Razziachance(Konto k) =>
         Math.Min(0.95, Daten.Razzia.Chance + Daten.Razzia.ChanceJeStufe * Math.Max(0, (Wachstube(k)?.Stufe ?? 1) - 1));
 
+    /// <summary>Chance je unbekannter Tat bei diesem Haus – haben seine Diebe Lederhandschuhe, finden sich weniger Spuren.</summary>
+    public double Razziachance(Konto wache, Konto ziel) => Razziachance(wache) * _w.Diebe.SpurenFaktor(ziel);
+
     public string? RazziaVerboten(Konto wache, Konto ziel)
     {
         if (!IstAktiv) return "In dieser Stadt gibt es keine Wache.";
@@ -269,7 +272,7 @@ public sealed class Wachwesen
     {
         if (RazziaVerboten(wache, ziel) is { } grund) return Befehlsergebnis.Abgelehnt(grund);
         Buchen(wache, x => x with { Razzien = x.Razzien + 1 });
-        var chance = Razziachance(wache);
+        var chance = Razziachance(wache, ziel);
         var beweise = 0;
         foreach (var spur in _w.Justiz.SpurenVon(ziel).OrderBy(s => s.Nummer).ToList())
         {
