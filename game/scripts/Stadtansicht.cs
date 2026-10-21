@@ -319,6 +319,7 @@ public partial class Stadtansicht : Node3D
         Fenster.BloomGeaendert += BloomNachfuehren;
         VerdeckungNachfuehren(); // Umgebungsverdeckung und indirektes Licht (Stadtansicht.Licht.cs)
         Fenster.VerdeckungGeaendert += VerdeckungNachfuehren;
+        GrafikEinrichten(); // Unschärfe, Wolken, Dunst, Farbstimmung, Detailstufe (Stadtansicht.Grafik.cs)
 
         // Die Stadt selbst kommt aus der Karte (Stadtansicht.Karte.cs): mit Partie aus Verbinden (die Karte der Partie), ohne Partie (Hauptmenü)
         // die Greybox-Karte, und eine Mustermischung füllt die Wohnplätze. Erst nach dem Aufbau der Szene prüfen, denn die Hauptszene verbindet
@@ -408,6 +409,7 @@ public partial class Stadtansicht : Node3D
     {
         Fenster.BloomGeaendert -= BloomNachfuehren;
         Fenster.VerdeckungGeaendert -= VerdeckungNachfuehren;
+        GrafikAufgeben();
         OberflaecheAufgeben();
         if (_wirtschaft is not null) _wirtschaft.BetriebAbgegeben -= BetriebEntfernen;
     }
@@ -881,6 +883,7 @@ public partial class Stadtansicht : Node3D
     {
         SchattenNachfuehren(); // Zoom, Fenstergröße oder Schattenqualität geändert? (Stadtansicht.Licht.cs)
         OberflaecheBild();     // umgefärbte Materialien der Oberflächendetails nachziehen (Stadtansicht.Oberflaechendetails.cs)
+        GrafikBild(delta);     // Unschärfe nach Zoom, Wolken, Dunst nach Uhrzeit (Stadtansicht.Grafik.cs)
 
         // Beschriftungen mitskalieren, damit sie bei jedem Zoom gleich groß wirken.
         var massstab = _raum is not null ? RaumSchildMassstab : _kamera.Size / BezugsZoom;

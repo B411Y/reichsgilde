@@ -4,15 +4,16 @@ namespace Reichsgilde;
 
 /// <summary>
 /// Anzeige-Einstellungen: Fenster oder Vollbild (auch F11, überall), die Kantenglättung, die Schattenqualität, der Bloom,
-/// die Umgebungsverdeckung (SSAO), das indirekte Licht (SSIL), die Hochskalierung mit FSR 2.2 und die Oberflächendetails.
+/// die Umgebungsverdeckung (SSAO), das indirekte Licht (SSIL), die Hochskalierung mit FSR 2.2 und die Oberflächendetails;
+/// dazu (Fenster.Grafik.cs) Voreinstellungen, Bildrate, VSync, dynamische Auflösung, Detailstufe, Stimmung und Barrierefreiheit.
 /// Geändert werden sie im Fenster „Einstellungen“ (<see cref="EinstellungenAnzeige"/>), gespeichert in
 /// <c>user://einstellungen.cfg</c> und beim Start wieder angewendet.
 ///
 /// Läuft als Autoload (project.godot → [autoload]): Godot legt den Knoten beim Start einmal an und behält
 /// ihn über alle Szenenwechsel. So gilt F11 im Hauptmenü wie im Spiel, und die Einstellung wird nur einmal geladen.
 ///
-/// Die Oberfläche hat eine feste Pixelgröße: Ein größeres Fenster zeigt mehr Stadt, Tafeln, die nicht
-/// passen, rollen (<see cref="Rollbereich"/>). Eine Mindestgröße gibt es bewusst nicht.
+/// Die Oberfläche hat eine feste Pixelgröße (mal der Einstellung „Größe der Oberfläche“): Ein größeres Fenster zeigt mehr Stadt,
+/// Tafeln, die nicht passen, rollen (<see cref="Rollbereich"/>). Eine Mindestgröße gibt es bewusst nicht.
 /// </summary>
 public partial class Fenster : Node
 {
@@ -62,7 +63,18 @@ public partial class Fenster : Node
                   speichern: false);
         // Alte Dateien ohne den Schlüssel: Oberflächendetails an. Die Schlüssel „holzschnitt“ und „umriss“ älterer Fassungen bleiben ungelesen.
         OberflaechendetailsSetzen(!geladen || einstellungen.GetValue("anzeige", "oberflaechendetails", true).AsBool(), speichern: false);
+        _filter = new Bildfilter();
+        AddChild(_filter);
+        GrafikLaden(einstellungen, geladen); // die Einstellungen ab PR #169 (Fenster.Grafik.cs)
+
+        // Erster Start: Das Spiel misst kurz im Hintergrund des Hauptmenüs und wählt die Voreinstellung selbst. Nicht bei
+        // Startoptionen (Klick- und Prüfläufe sollen gleiche Bilder liefern); dort startet --automatisch=1 die Wahl.
+        ErsterStart = !geladen;
+        if (ErsterStart && OS.GetCmdlineUserArgs().Length == 0) AutomatischWaehlen();
     }
+
+    /// <summary>Schärfe- und Farbfilter über dem Bild (Fenster.Grafik.cs).</summary>
+    private Bildfilter? _filter;
 
     // ── Kantenglättung ──────────────────────────────────────────────────────
 
@@ -223,12 +235,9 @@ public partial class Fenster : Node
     {
         FsrAn = an;
         Renderaufloesung = Math.Clamp(prozent, 25, 100);
-        if (_instanz?.GetTree().Root is { } fenster)
-        {
-            fenster.Scaling3DMode = an ? Viewport.Scaling3DModeEnum.Fsr2 : Viewport.Scaling3DModeEnum.Bilinear;
-            fenster.Scaling3DScale = an ? Renderaufloesung / 100f : 1f;
-        }
+        SkalierungAnwenden(); // mit der dynamischen Auflösung und der Schärfe (Fenster.Grafik.cs)
         KantenglaettungAnwenden();
+        _instanz?._filter?.Auffrischen(); // mit FSR schärft FSR selbst, ohne der Bildfilter
         if (speichern)
         {
             Speichern("fsr", FsrAn);
