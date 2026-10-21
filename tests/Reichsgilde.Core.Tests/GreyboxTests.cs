@@ -94,7 +94,7 @@ static class GreyboxTests
             Pruefe.Gleich(8, k.Wohnhausplaetze.Count);
             Pruefe.Gleich(11, k.Bauzonen.Count); // dazu K1–K3 auf den Plätzen der früheren Werkstätten zum Kauf (PR #162)
             Pruefe.Gleich(Lage.Mauerring, k.Bauzonen.Single(z => z.Kennung == "M1").Art); // vor der Westmauer, bewusst Mauerring (siehe „fiktion“)
-            Pruefe.Wahr(k.Feste.Where(f => f.Art == "werkstatt").All(f => f.Grundriss is not null), "jede Werkstatt hat eine Fläche");
+            Pruefe.Wahr(k.GebaeudeDerArt(Bausteinart.Werkstattplatz).All(f => f.Grundriss is not null), "jeder Werkstattplatz hat eine Fläche");
 
             var (sim, spieler) = Partieaufbau.Erstellen(Partieeinstellungen.Standard, Daten.Value, new NeuePartie(), karte: k);
             var w = sim.Wirtschaft!;
@@ -106,9 +106,9 @@ static class GreyboxTests
             Pruefe.Gleich(3, w.Bauen.Wohnhaus(w.Konten[3])!.Grundriss.Drehung); // 270° → Westen
             foreach (var f in k.Wohnhausplaetze.Where(f => f.Kennung is not null))
             {
-                var grad = (int)(System.Text.Json.Nodes.JsonNode.Parse(File.ReadAllText(Pfad))!["feste"]!.AsArray()
+                var grad = (int)(System.Text.Json.Nodes.JsonNode.Parse(File.ReadAllText(Pfad))!["gebaeude"]!.AsArray()
                     .Single(x => (string)x!["kennung"]! == f.Kennung)!["drehung"]!);
-                Pruefe.Gleich(grad / 90, f.Grundriss!.Value.Drehung, $"Drehung von {f.Kennung} aus dem Eingang = Grad / 90");
+                Pruefe.Gleich((grad / 90 % 4 + 4) % 4, f.Grundriss!.Value.Drehung, $"Drehung von {f.Kennung} = Grad / 90");
             }
         }),
 
@@ -147,7 +147,7 @@ static class GreyboxTests
                     Pruefe.Gleich("Ein Stadthof steht nur in Kernlage oder am Mauerring.", b.PlatzVerboten(new WohnhausBauen(4, p.X, p.Z, p.Grad / 90)));
             }
             // Auf einer Werkstatt der Karte
-            var giesserei = Karte().Feste.First(f => f.Name == "Gießerei Eisenbart").Grundriss!.Value;
+            var giesserei = Karte().PlatzVon("Gießerei Eisenbart")!.Grundriss!.Value;
             Pruefe.Wahr(b.PlatzVerboten(new WohnhausBauen(1, giesserei.X, giesserei.Z, 0)) is not null, "auf der Gießerei Eisenbart");
 
             // Rücken zur Straße: mindestens ein Gebäude des Probeplans hat hinter sich keine Straße – umgedreht wird es abgewiesen.
@@ -165,7 +165,7 @@ static class GreyboxTests
             foreach (var weg in json["wege"]!.AsArray().Where(x => strassen.Contains((string)x!["name"]!)))
                 weg!["klasse"] = "gasse";
             var sim2 = new Simulation(Partieeinstellungen.Standard with { Siegbedingung = Siegbedingung.Endlos }, wirtschaftsdaten: Daten.Value);
-            sim2.Wirtschaft!.KarteSetzen(Stadtkarte.AusJson(json.ToJsonString()));
+            sim2.Wirtschaft!.KarteSetzen(Stadtkarte.AusJson(json.ToJsonString(), Gebaeudekatalog.AusDatei(Stadtkarte.KatalogZu(Pfad))));
             Pruefe.Wahr(strassen.Contains("Weststraße"), "Weststraße");
             Pruefe.Wahr(sim2.Wirtschaft.Bauen.PlatzVerboten(werkstatt.Befehl())?.Contains("Karrenstraße") == true, "Werkstatt an der Gasse");
             Pruefe.Gleich(null, sim2.Wirtschaft.Bauen.PlatzVerboten(wohnhaus.Befehl()));

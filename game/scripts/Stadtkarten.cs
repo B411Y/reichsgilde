@@ -16,6 +16,9 @@ public static class Stadtkarten
     /// <summary>Die Karte der Greybox-Stadt – die fest im Code gezeichnete Stadt. Köln folgt später.</summary>
     public const string GreyboxPfad = "res://data/karten/greybox.json";
 
+    /// <summary>Der Gebäudekatalog für alle Karten (was ein Baustein ist: Modell, Grundfläche).</summary>
+    public const string KatalogPfad = "res://data/katalog.json";
+
     private static Stadtkarte? _greybox;
     private static bool _geladen;
 
@@ -29,10 +32,13 @@ public static class Stadtkarten
             try
             {
                 var json = Godot.FileAccess.GetFileAsString(GreyboxPfad);
+                var katalog = Godot.FileAccess.GetFileAsString(KatalogPfad);
                 if (string.IsNullOrEmpty(json))
                     GD.PushError($"Die Karte {GreyboxPfad} wurde nicht gefunden – ohne sie wird nicht gebaut.");
+                else if (string.IsNullOrEmpty(katalog))
+                    GD.PushError($"Der Gebäudekatalog {KatalogPfad} wurde nicht gefunden – ohne ihn wird nicht gebaut.");
                 else
-                    _greybox = Stadtkarte.AusJson(json);
+                    _greybox = Stadtkarte.AusJson(json, Gebaeudekatalog.AusJson(katalog));
             }
             catch (KartenFehler fehler)
             {
