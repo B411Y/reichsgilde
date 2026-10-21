@@ -82,6 +82,11 @@ public partial class Stadtansicht
         {
             if (!_passanten.TryGetValue(e.Nummer, out var p))
                 _passanten[e.Nummer] = p = PassantBauen(e);
+            if (!PassantGezeigt(e.Nummer)) // Einstellung „Menge der Passanten“ (Stadtansicht.Grafik.cs)
+            {
+                PassantVerbergen(p, e.Nummer);
+                continue;
+            }
 
             // Wo die Figur ist, sagt ihr eigener Laufplan (siehe LaufPlanen): vor dem Losgehen am alten Ort,
             // nach der Ankunft am neuen, dazwischen unterwegs.
