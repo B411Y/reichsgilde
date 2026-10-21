@@ -81,6 +81,7 @@ STUFEN = ("Schänke", "Wirtshaus", "Gasthaus")
 
 bs.FARBEN.update({
     "Schankrot": (0.45, 0.10, 0.14),       # weinrote Akzente wie außen (wirt.py), hier matt gemalt
+    "Rauchfang": (0.44, 0.40, 0.35),        # verrußter Lehm am Rauchfang des Herds
     "Kranzgruen": (0.22, 0.38, 0.17),       # Schankzeichen: Kranz aus Tannengrün
     "Kranzgruen dunkel": (0.14, 0.27, 0.12),
     "Schildocker": (0.78, 0.58, 0.24),      # Wirtshausschild
@@ -137,7 +138,7 @@ STUTZEN = BLASE + Vector((-0.6 * 0.255, -0.8 * 0.255, 0))          # offener Fü
 BLICKE = {
     "Blick_Werk_0": ((0.6, -3.2, 2.6), (-1.0, 2.6, 0.9)),          # Theke mit Zapffass, Tische, Kranz
     "Blick_Werk_L1": ((3.6, -2.4, 2.6), (-4.4, 0.0, 0.9)),         # Kamin, Tische
-    "Blick_Werk_L2": ((1.8, -0.6, 2.6), (-3.8, 3.6, 0.6)),         # hinter die Theke: Fässer, Falltür
+    "Blick_Werk_L2": ((0.6, 2.9, 2.5), (-4.2, 3.3, 0.1)),          # hinter die Theke: Zapfplatz, Fässer, Falltür
     "Blick_Werk_R1": ((-3.4, -2.8, 2.6), (4.4, 2.2, 0.9)),         # Küchentür, Treppe zum Saal, Pult
     "Blick_Werk_R2": ((-0.6, 1.4, 2.5), (4.0, -3.0, 0.7)),         # die dunkle Ecke mit dem Würfeltisch
     "Blick_Kueche_0": ((7.5, -1.7, 2.6), (7.5, 3.8, 0.9)),         # Braukessel, Herd mit Rauchfang
@@ -164,8 +165,8 @@ KUECHE_OEFFNUNGEN = {
     "hinten": [Oe(7.4, 1.4, 0.7, 0.9)],
     "links": [Oe(KUECHENTUER_Y, 0.0, TUER_B, TUER_H)],
 }
-SAAL_FENSTER = {"vorne": [Oe(x, 0.85, 0.75, 1.45) for x in (-2.8, 0.0, 2.8)], "links": [Oe(-1.0, 0.85, 0.75, 1.45)],
-                "rechts": [Oe(0.0, 0.85, 0.75, 1.45)]}
+SAAL_FENSTER = {"vorne": [Oe(x, 1.15, 0.75, 1.3) for x in (-2.8, 0.0, 2.8)], "links": [Oe(-1.0, 1.15, 0.75, 1.3)],
+                "rechts": [Oe(0.0, 1.15, 0.75, 1.3)]}                              # über der Täfelung
 SCHILDER = {"Tuer_Werk_Lager": "Treppe in den Fasskeller", "Tuer_Lager_Werk": "Treppe hinauf in die Schankstube",
             "Tuer_Werk_Kueche": "Tür zur Küche", "Tuer_Kueche_Werk": "Tür zur Schankstube",
             "Tuer_Werk_Saal": "Treppe zum Saal", "Tuer_Saal_Werk": "Treppe hinunter in die Schankstube"}
@@ -389,8 +390,14 @@ def zapf_bewegung(strahl, kueken):
 def fasslager_hinten(netz, st):
     """Hinter der Theke: liegende Fässer auf einem Lager an der Rückwand, darüber ein Bord mit Krügen und Zinntellern und das
     Wirtshausschild (Ocker mit Bierkrug, weinroter Rand)."""
-    for x in (-2.95, -2.2):
-        pi.fass_liegend(netz, st, Vector((x, WY1 - 0.34, 0.42)), r=0.3, laenge=0.6)
+    for x in (-2.85, -2.15):                                                              # auf einem Bock über der Theke zu sehen
+        pi.fass_liegend(netz, st, Vector((x, WY1 - 0.34, 0.98)), r=0.3, laenge=0.6)
+    for dx in (-0.2, 0.2):
+        for x in (-2.85, -2.15):
+            for y in (WY1 - 0.6, WY1 - 0.1):
+                netz.quader((x + dx, y, 0.32), (0.08, 0.08, 0.64), st["Holz"])
+    for y in (WY1 - 0.6, WY1 - 0.1):
+        netz.quader((-2.5, y, 0.6), (1.2, 0.06, 0.06), st["Holz alt"])
     M = si.rahmen(-2.0, WY1, 180)
     si.q(netz, st, M, (0, 0.14, 1.72), (2.4, 0.28, 0.04), "Holz alt", ohne=("-y",))
     for x in (-1.0, 1.0):
@@ -670,9 +677,9 @@ def herd(netz, st, anker):
     for x in (x0 - 0.03, x1 + 0.03):
         netz.quader((x, (y0 + y1) / 2 - 0.04, za - 0.15), (0.1, y1 - y0 - 0.08, 0.2), st["Holz alt"])
     netz.vieleck_nach([(x0 - 0.1, y0 - 0.03, za), (x1 + 0.1, y0 - 0.03, za), (x1 - 0.35, y1 - 0.35, H_KUECHE),
-                       (x0 + 0.35, y1 - 0.35, H_KUECHE)], (0, -1, 0.6), st["Russputz"])
+                       (x0 + 0.35, y1 - 0.35, H_KUECHE)], (0, -1, 0.6), st["Rauchfang"])
     for x, xo, s in ((x0 - 0.1, x0 + 0.35, -1), (x1 + 0.1, x1 - 0.35, 1)):
-        netz.vieleck_nach([(x, y0 - 0.03, za), (x, y1, za), (xo, y1, H_KUECHE), (xo, y1 - 0.35, H_KUECHE)], (s, -0.2, 0.3), st["Russputz"])
+        netz.vieleck_nach([(x, y0 - 0.03, za), (x, y1, za), (xo, y1, H_KUECHE), (xo, y1 - 0.35, H_KUECHE)], (s, -0.2, 0.3), st["Rauchfang"])
     alle, netz.alle = netz.alle, True
     netz.vieleck_nach([(x0 - 0.1, y0 - 0.03, za), (x1 + 0.1, y0 - 0.03, za), (x1 + 0.1, y1, za), (x0 - 0.1, y1, za)], (0, 0, -1), st["Russ"])
     netz.alle = alle
@@ -719,7 +726,7 @@ def brennblase(st, anker):
 def vorraete(netz, st):
     """Küchenkram: Hackklotz mit Beil, Anrichte mit Brot, Zwiebeln und Messer, Malzsäcke, Brennholz; an Haken unter einem
     Deckenbalken Schinken und Zwiebelzöpfe."""
-    hk = Vector((7.2, 0.5, 0))
+    hk = Vector((5.4, 0.25, 0))
     bs.fass(netz, st, hk, r=0.3, h=0.72, reifen=(), stoff="Holz alt")
     bs.rund_oben(netz, st, hk, 0.27, 0.721, "Schnittholz", n=8)
     netz.stab(hk + Vector((0.05, -0.05, 0.71)), hk + Vector((0.2, -0.15, 1.05)), 0.035, 0.035, st["Holz"])        # Beil
@@ -1179,9 +1186,9 @@ def bauen():
     kellerfaesser(teil("Bedienung_Lager_Faesser", "Lager"), st)
     fassregale(teil("Einrichtung_Regale", "Lager"), st)
     keller_kram(lager, st)
-    for x in (-1.5, 1.6):
-        p = Vector((x, 2.9, Z_KELLER + 1.95))
-        ti.laterne(lager, st, p, Z_KELLER + gewoelbe_z(2.9) + 0.02)
+    for x in (0.0, 1.6):
+        p = Vector((x, 2.3, Z_KELLER + 2.12))
+        ti.laterne(lager, st, p, Z_KELLER + gewoelbe_z(2.3) + 0.02)
         setzen(licht(p - Vector((0, 0, 0.15)), (0, 0, -1), "Lampe"), "Lager")
     setzen(licht(Vector((CX1 - 0.15, 2.9, Z_KELLER + 1.85)), (-1, 0, 0), "Fenster"), "Lager")
     nummer = 1

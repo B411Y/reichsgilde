@@ -1858,7 +1858,7 @@ def vorschau_bewegungen(schnell):
         alle.append(beschriftung(name, Vector(((-2.3) * 0.7071 - sy * 0.7071, (-2.3) * 0.7071 + sy * 0.7071, 0.9))))
     bs.vorschau_buehne(None, ziel_hoehe=0.9, ausschnitt=22.0 * len(reihen) / 12, schnell=schnell)
     szene = bpy.context.scene
-    szene.render.resolution_x, szene.render.resolution_y = 960, int(1728 * len(reihen) / 12)    # unter 3 MB
+    szene.render.resolution_x, szene.render.resolution_y = 900, int(1620 * len(reihen) / 12)    # unter 3 MB
     szene.render.image_settings.color_mode = "RGB"                      # ohne Alphakanal und stark gepackt: kleinere Datei
     szene.render.image_settings.compression = 100
     print(bs.rendern("figuren-bewegungen", lambda o: o in alle))
