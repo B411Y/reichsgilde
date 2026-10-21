@@ -121,3 +121,23 @@ Noch nicht begonnen; festgehalten, damit niemand weiter Arbeit in die Greybox-We
 | Umsetzung: Natur der Greybox | Der Waldring genau so, wie die Stadtansicht ihn mit `NachAussen` verschob (die Schneisen der Verschiebung gehören jetzt zum Wald), geteilt bei x = −20: östlich Tannenwald, westlich Mischwald mit Eichen und Buchen; Streu im Umland und Kopfweiden am Bach beim Kräutergarten mit den Dichten von bisher. Stadt mit 6 m Rand und Vorstadt sind Aussparungen. | 21.10.2026 |
 | Umsetzung: Köln | `koeln.py` schreibt Format 2 (Startgrundstück = Werkstatt- und Wohnhausplatz, rechtwinklig). Dom, Antoniterkirche und Leerstand L2 standen auf Startgrundstücken und rücken ein paar Meter; die Kapazität passt weiter. | 21.10.2026 |
 
+### Kartenwerkstatt (Level-Editor), Schritt 1: Grundgerüst (PR #168)
+
+Fahrplan (vom Nutzer am 21.10.2026 bestätigt, je Schritt ein PR; Stand wird hier nachgeführt):
+
+| Schritt | Inhalt | Stand |
+|---|---|---|
+| 1 Grundgerüst | Knopf im Hauptmenü, Karte laden und zeigen, Gebäude aus dem Katalog setzen, verschieben, drehen, löschen, Live-Prüfung, Speichern, Rückgängig | in Arbeit (PR #168) |
+| 2 Wege und Flächen | Wege mit Kurven zeichnen, Kreuzungen rasten ein, Gassennetz live; Bauzonen und Waldflächen als Vielecke | offen |
+| 3 Rest der Karte | Mauer und Tore, Startbelegung, Knopf „Karte ausprobieren“ | offen |
+| 4 Umzug | Greybox und Köln übernehmen, der Editor wird die Quelle, Python-Werkzeug fällt weg | offen |
+| 5 Später | Gelände mit Höhen, Wasser, Wegbelag; Freigabe für Spieler | offen |
+
+| Thema | Entscheidung | Datum |
+|---|---|---|
+| Ort | Im Spiel als eigene Szene „Kartenwerkstatt“, erreichbar über einen Knopf im Hauptmenü (Grundsatz vom 19.10.2026 bestätigt): gleiche Darstellung, gleiche Regeln, gleiches Kartenformat, später für Spieler freigebbar. | 21.10.2026 |
+| Bedienung | Links der Katalog nach Art (Werkstattplätze, Wohnhausplätze, Sonderbauten, Kulissen, Umland, Natur), rechts die Eigenschaften des gewählten Stücks (Name, Drehung, Betrieb) und die Fehlerliste, oben Neu, Öffnen, Speichern, Prüfen, Rückgängig/Wiederholen. Kamera wie im Spiel, Tafeln im Stil der Spieloberfläche. | 21.10.2026 |
+| Setzen | 1-m-Raster, Drehung mit Q/E in 15°-Schritten, mit gehaltener Alt-Taste frei. Umriss grün = passt, rot = Fehler. | 21.10.2026 |
+| Prüfung | Live; fehlerhafte Stücke leuchten rot, rechts eine Fehlerliste (Klick springt hin). Speichern geht immer; „Karte ausprobieren“ (Schritt 3) nur ohne Fehler. Die Prüfungen wandern aus `tools/karten/` nach C# in den Kern. | 21.10.2026 |
+| Speicherort | Bis Schritt 4 öffnet der Editor Greybox und Köln nur lesend und speichert eigene Karten im Benutzerordner (wie Spielstände); so überschreibt er nie, was das Python-Werkzeug erzeugt. | 21.10.2026 |
+
