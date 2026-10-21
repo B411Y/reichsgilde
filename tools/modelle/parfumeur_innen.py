@@ -72,7 +72,7 @@ import sys
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import bausteine as bs  # noqa: E402
 from bausteine import Matrix, Vector  # noqa: E402
-import alchimist_innen as ai  # noqa: E402  (Drehkörper, Scheiben, Flaschen, Bündel, Tiegel, Ofen mit Feuertür, Werkbank, Werkzeug)
+import alchimist_innen as ai  # noqa: E402  (Drehkörper, Scheiben, Flaschen, Tiegel, Ofen mit Feuertür, Werkbank, Werkzeug)
 import figuren as fg  # noqa: E402  (Mischglas, Vorlage, Presse, Arbeitshöhen der Bewegungen)
 import innenausbau as ia  # noqa: E402  (Böden, Decke, Treppe, Dachboden, Prüfbericht, Vorschau)
 import schmied_innen as si  # noqa: E402  (Wände, Pult, Türen, Werkzeugwand, Kisten, Löschfass, Anker)
@@ -84,6 +84,11 @@ STUFEN = ("Siederei", "Duftwerkstatt", "Parfumerie")
 bs.FARBEN.update({
     "Lavendel": (0.55, 0.43, 0.78),         # wie außen (parfumeur.py)
     "Lavendel trocken": (0.49, 0.43, 0.60),
+    "Lavendel dunkel": (0.40, 0.29, 0.62),  # Körnung der Lavendelähren in den Blütenbündeln
+    "Lavendel trocken dunkel": (0.37, 0.31, 0.47),
+    "Stiel graugruen": (0.44, 0.50, 0.37),  # Stiele der Bündel
+    "Stiel trocken": (0.53, 0.52, 0.37),
+    "Rose dunkel": (0.44, 0.10, 0.15),      # getrocknete Rosenknospen
     "Jasmin": (0.96, 0.95, 0.88),
     "Laden lila": (0.42, 0.30, 0.58),       # lila Akzente wie die Fensterläden außen
     "Messing": (0.80, 0.64, 0.30),
@@ -265,10 +270,110 @@ def flakon(netz, st, fuss, h=0.16, r=0.045, stoff="Flakon blau", form=0, n=6):
     scheibe(netz, st, fuss, profil[-1][1], z + h, "Messing", n=n)
 
 
+def quer_zu(d):
+    """Zwei Einheitsvektoren senkrecht zu `d` und zueinander."""
+    u = d.cross(Vector((0, 0, 1)) if abs(d.z) < 0.9 else Vector((1, 0, 0))).normalized()
+    return u, d.cross(u)
+
+
+def rohr(netz, st, a, d, profil, stoffe, n=3, dreh=0.0, versatz=0.0):
+    """Dünner Körper entlang der Achse von `a` in Richtung `d`: profil = [(t, r)] mit t in Metern ab `a`, r = 0 ist eine
+    Spitze. `stoffe`: ein Stoff oder einer je Abschnitt; jeder Ring ist um `versatz` weitergedreht (Körnung der Ähren)."""
+    a, d = Vector(a), Vector(d).normalized()
+    u, v = quer_zu(d)
+    ringe = [[a + d * t + (u * math.cos(dreh + versatz * i + 2 * math.pi * k / n)
+                           + v * math.sin(dreh + versatz * i + 2 * math.pi * k / n)) * r for k in range(n)]
+             for i, (t, r) in enumerate(profil)]
+    for i in range(len(profil) - 1):
+        m = st[stoffe if isinstance(stoffe, str) else stoffe[i]]
+        achse = a + d * ((profil[i][0] + profil[i + 1][0]) / 2)
+        for k in range(n):
+            j = (k + 1) % n
+            if profil[i + 1][1] == 0:
+                punkte = [ringe[i][k], ringe[i][j], ringe[i + 1][0]]
+            elif profil[i][1] == 0:
+                punkte = [ringe[i][0], ringe[i + 1][j], ringe[i + 1][k]]
+            else:
+                punkte = [ringe[i][k], ringe[i][j], ringe[i + 1][j], ringe[i + 1][k]]
+            aussen = sum(punkte, Vector()) / len(punkte) - achse
+            netz.vieleck_nach(punkte, aussen - d * aussen.dot(d), m)
+
+
+def sternbluete(netz, st, mitte, richtung, r, stoff="Jasmin", dreh=0.0):
+    """Jasminblüte: fünf spitze Blütenblätter (je ein Dreieck) um `mitte`, die offene Blüte schaut nach `richtung`."""
+    nrm = Vector(richtung).normalized()
+    u, v = quer_zu(nrm)
+    p = lambda w, rr: mitte + (u * math.cos(w) + v * math.sin(w)) * rr   # noqa: E731
+    for k in range(5):
+        w = dreh + 2 * math.pi * k / 5
+        netz.vieleck_nach([p(w - math.pi / 5, r * 0.3), p(w, r), p(w + math.pi / 5, r * 0.3)], nrm, st[stoff])
+
+
+def blatt(netz, st, fuss, richtung, laenge, breite, stoff):
+    """Schmales Blatt als Raute (zwei Dreiecke) vom Stiel bei `fuss` in `richtung`."""
+    d = Vector(richtung).normalized()
+    seite = quer_zu(d)[0] * (breite / 2)
+    netz.vieleck_nach([fuss, fuss + d * (laenge * 0.45) + seite, fuss + d * laenge, fuss + d * (laenge * 0.45) - seite],
+                      d.cross(seite), st[stoff])
+
+
+def halm(netz, st, a, b, breite, stoff, quer):
+    """Stiel als schmales Band (zwei Dreiecke, das Material ist beidseitig) von `a` nach `b`; die Breite liegt waagrecht in
+    Richtung `quer` – abwechselnd x und y, so ist aus jeder Richtung ein Teil der Stiele breit zu sehen."""
+    a, b = Vector(a), Vector(b)
+    d = (b - a).normalized()
+    q = Vector(quer) - d * Vector(quer).dot(d)
+    q = q.normalized() * (breite / 2)
+    netz.vieleck_nach([a - q, a + q, b + q, b - q], d.cross(q), st[stoff])
+
+
+def bluetenbuendel(netz, st, oben, laenge, stoff, band="Laden lila", stiele=9):
+    """Getrockneter Blumenstrauß kopfüber (eigene Form, alchimist_innen.buendel bleibt für die Kräuter des Alchimisten): die
+    Stiele oben von einem Band gebunden, darunter aufgefächert, unten die Blüten – Lavendel als schmale Ähren mit Körnung
+    (zwei Lila-Töne, die Ringe gegeneinander verdreht), Jasmin als Büschel weißer Sternblüten mit einem Blatt, Rosen als
+    Knospen mit Kelchblatt. Länge, Fächer und Richtung jedes Stiels sind zufällig, der Startwert kommt aus dem Ort: Jeder
+    Export ergibt dieselben Bündel."""
+    oben = Vector(oben)
+    zufall = random.Random(round(oben.x * 1000) * 7919 + round(oben.y * 1000) * 104729 + round(oben.z * 1000))
+    alle, netz.alle = netz.alle, True                    # die Bündel hängen über der Kamera: auch Flächen nach unten
+    art = stoff if stoff in ("Jasmin", "Rose") else "Lavendel"
+    stiel = {"Lavendel": "Stiel graugruen", "Jasmin": "Kraut", "Rose": "Rosenblatt"}[art]
+    if stoff == "Lavendel trocken":
+        stiel = "Stiel trocken"
+    drehkoerper(netz, st, oben - Vector((0, 0, 0.05)), [(0.0, 0.016), (0.025, 0.016)], band, n=5, dreh=zufall.uniform(0, 1.3))
+    w0 = zufall.uniform(0, 2 * math.pi)
+    for i in range(stiele):
+        w = w0 + 2.4 * i + zufall.uniform(-0.3, 0.3)                            # Goldener Winkel: gleichmäßig verteilt
+        rb = laenge * (0.2 * math.sqrt((i + 0.5) / stiele) + zufall.uniform(0.0, 0.05))   # innen kurz, außen weit gefächert
+        start = oben + Vector((0.005 * math.cos(w), 0.005 * math.sin(w), zufall.uniform(-0.012, 0.004)))
+        ende = oben + Vector((rb * math.cos(w), rb * math.sin(w), -laenge * zufall.uniform(0.75, 1.0)))
+        d = (ende - start).normalized()
+        aussen = Vector((math.cos(w), math.sin(w), 0))
+        quer = (1, 0, 0) if i % 2 else (0, 1, 0)
+        if art == "Lavendel":
+            kopf = laenge * zufall.uniform(0.26, 0.34)
+            halm(netz, st, start, ende - d * kopf, 0.007, stiel, quer)
+            toene = (stoff, stoff + " dunkel")
+            rohr(netz, st, ende - d * kopf, d, [(0.0, 0.007), (kopf * 0.4, 0.014), (kopf, 0.0)],
+                 toene if zufall.random() < 0.5 else toene[::-1], dreh=zufall.uniform(0, 2), versatz=math.pi / 3)
+        elif art == "Jasmin":
+            halm(netz, st, start, ende, 0.006, stiel, quer)
+            blatt(netz, st, ende - d * 0.07, aussen * 0.8 - d * 0.6, 0.055, 0.02, "Rosenblatt")
+            for k in range(3):
+                seite = Vector((math.cos(w + 2.1 * k), math.sin(w + 2.1 * k), 0))
+                sternbluete(netz, st, ende + seite * 0.016 - d * (0.018 * k), seite + aussen * 0.5 + Vector((0, 0, -0.35)),
+                            zufall.uniform(0.022, 0.027), dreh=zufall.uniform(0, 1.2))
+        else:
+            halm(netz, st, start, ende - d * 0.05, 0.006, stiel, quer)
+            rohr(netz, st, ende - d * 0.05, d, [(0.0, 0.006), (0.02, 0.018), (0.05, 0.0)], ("Rose", "Rose dunkel"),
+                 dreh=zufall.uniform(0, 2), versatz=math.pi / 3)
+            blatt(netz, st, ende - d * 0.055, aussen - d * 0.3, 0.04, 0.016, "Rosenblatt")
+    netz.alle = alle
+
+
 def buendel_band(netz, st, oben, laenge, stoff, band="Laden lila"):
-    """Blütenbündel kopfüber (alchimist_innen.buendel) mit einem lila Band um die Stiele."""
-    ai.buendel(netz, st, oben, laenge=laenge, stoff=stoff)
-    drehkoerper(netz, st, Vector(oben) - Vector((0, 0, laenge * 0.22 + 0.03)), [(0.0, 0.043), (0.03, 0.043)], band, n=5)
+    """Blütenbündel kopfüber mit einem lila Band um die Stiele."""
+    bluetenbuendel(netz, st, oben, laenge, stoff, band)
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -777,8 +882,8 @@ def leinen_mit_buendeln(netz, st, z):
         netz.stab((WX0 + 1.4, y, h), (WX1 - 1.4, y, h), 0.015, 0.015, st["Seil"])
         x = WX0 + 1.7
         while x < WX1 - 1.6:
-            ai.buendel(netz, st, (x, y, h - 0.01), laenge=zufall.uniform(0.26, 0.38),
-                       stoff=("Lavendel trocken", "Jasmin", "Lavendel", "Rose", "Lavendel trocken")[int(x * 7) % 5])
+            bluetenbuendel(netz, st, (x, y, h - 0.01), zufall.uniform(0.26, 0.38),
+                           ("Lavendel trocken", "Jasmin", "Lavendel", "Rose", "Lavendel trocken")[int(x * 7) % 5], "Seil", stiele=5)
             x += zufall.uniform(0.32, 0.5)
 
 
