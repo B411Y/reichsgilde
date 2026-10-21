@@ -1,3 +1,4 @@
+using Reichsgilde.Core.Bauen;
 using Reichsgilde.Core.Dynastie;
 using Reichsgilde.Core.Glaube;
 using Reichsgilde.Core.Ki;
@@ -42,13 +43,14 @@ public enum KiCharakter
 }
 
 /// <summary>
-/// Stellt eine neue Partie auf: das Haus des Spielers mit der Werkstatt seines Startberufs, Haus Eisenbart
-/// (Zwerge, Schmiede: Gießerei und Grube) und – je nach Zahl der Rivalen – Haus Eichwald (Elben, Tischler:
-/// Tischlerei und Holzschlag) und Haus Kieselbach (Halblinge, Steinmetze: Maurerei und Steinbruch),
-/// alle von der KI geführt. Alle Oberhäupter beginnen ledig.
+/// Stellt eine neue Partie auf: das Haus des Spielers mit der Werkstatt seines Startberufs und – je nach Zahl der Rivalen – die
+/// KI-Häuser aus dem Abschnitt „start“ der Karte (<see cref="Startbelegung"/>), alle von der KI geführt. Ohne Karte gilt
+/// <see cref="Startbelegung.Ersatz"/>: Haus Eisenbart (Zwerge, Schmiede: Gießerei und Grube), Haus Eichwald (Elben, Tischler:
+/// Tischlerei und Holzschlag) und Haus Kieselbach (Halblinge, Steinmetze: Maurerei und Steinbruch). Alle Oberhäupter beginnen ledig.
 /// </summary>
 public static class Partieaufbau
 {
+    /// <summary>Der erste KI-Rivale im Ersatz ohne Karte (die Greybox-Karte führt dieselben drei Häuser).</summary>
     public const string Rivalenname = "Haus Eisenbart";
 
     /// <summary>Der zweite KI-Rivale: ein Elbenhaus von Tischlern.</summary>
@@ -60,7 +62,7 @@ public static class Partieaufbau
     public const string DritterRivale = "Haus Kieselbach";
     public const Volk DritterRivaleVolk = Volk.Halbling;
 
-    /// <summary>Alle Namen, die schon ein Rivale trägt.</summary>
+    /// <summary>Alle Namen, die schon ein Rivale trägt – im Ersatz ohne Karte (mit Karte: <see cref="Startbelegung.Rivalennamen"/>).</summary>
     public static readonly IReadOnlyList<string> Rivalennamen = new[] { Rivalenname, ZweiterRivale, DritterRivale };
 
     /// <summary>„Hammerschmid“, „Familie Hammerschmid“ und „Haus Hammerschmid“ → „Haus Hammerschmid“ – alle Häuser heißen gleich gebaut.</summary>
@@ -79,20 +81,23 @@ public static class Partieaufbau
 
     /// <returns>Die Simulation und das Konto des Spielers.</returns>
     /// <param name="startzeit">Abweichender Startzeitpunkt (zum Testen); ohne Angabe Frühling 1400, 05:00.</param>
-    /// <param name="karte">Die Karte der Stadt (game/data/karten/…): Wohnhausplätze in Konto-Reihenfolge, Bauzonen. Ohne Karte wird nicht gebaut.</param>
+    /// <param name="karte">Die Karte der Stadt (game/data/karten/…): Belegung am Start (<see cref="Stadtkarte.Start"/>), Wohnhausplätze,
+    /// Bauzonen. Ohne Karte gilt <see cref="Startbelegung.Ersatz"/>, und es wird nicht gebaut.</param>
     public static (Simulation Simulation, Konto Spieler) Erstellen(Partieeinstellungen einstellungen, Wirtschaftsdaten daten, NeuePartie neu,
-        Spielzeit? startzeit = null, Bauen.Stadtkarte? karte = null)
+        Spielzeit? startzeit = null, Stadtkarte? karte = null)
     {
+        var start = karte?.Startbelegung ?? Startbelegung.Ersatz;
         var name = Hausname(neu.Familienname);
-        if (Rivalennamen.Contains(name))
+        if (start.Rivalennamen.Contains(name))
             throw new ArgumentException($"„{name}“ ist schon der Name eines Rivalen.");
         var wappen = neu.Wappen ?? Wappen.Vorlagen[0];
         if (wappen.Fehler() is { } wappenFehler)
             throw new ArgumentException(wappenFehler);
-        if (Wappen.Rivalenwappen.Contains(wappen))
+        if (start.Rivalenwappen.Contains(wappen))
             throw new ArgumentException("Dieses Wappen führt schon ein KI-Haus.");
-        if (neu.Rivalen is < 1 or > 3)
-            throw new ArgumentException("Es spielen ein bis drei KI-Häuser mit.");
+        if (neu.Rivalen < 1 || neu.Rivalen > start.Haeuser.Count)
+            throw new ArgumentException(start.Haeuser.Count == 1 ? "Hier spielt genau ein KI-Haus mit."
+                : $"Es spielen ein bis {Zahlwort(start.Haeuser.Count)} KI-Häuser mit.");
 
         var simulation = new Simulation(einstellungen, startzeit, daten);
         var w = simulation.Wirtschaft!;
@@ -105,51 +110,52 @@ public static class Partieaufbau
             : throw new ArgumentException($"Den Beruf „{neu.Beruf}“ gibt es nicht.");
         var spieler = w.KontoEroeffnen(name, startvermoegen: neu.Startvermoegen);
         spieler.Wappen = wappen;
-        var werkstatt = w.BetriebEroeffnen($"{daten.Art(startArt).Name} am Weinmarkt", startArt, spieler);
+        var werkstatt = w.BetriebEroeffnen(start.Spieler.WerkstattFuer(neu.Beruf).NameFuer(daten.Art(startArt).Name), startArt, spieler);
         w.Einstellen(werkstatt, "Geselle", 2);
 
-        var rivale = w.KontoEroeffnen(Rivalenname);
-        rivale.Wappen = Wappen.Eisenbart;
-        if (w.Familien.IstAktiv)
+        // Orks nur, wenn das Startstatut sie im Umland erlaubt (Statut B oder C) – sonst Bergleute (bzw. die Kraft des Umlandbetriebs).
+        var orks = daten.Arbeitskraefte.TryGetValue("Ork", out var ork) && ork.IstErlaubt(w.Statut, Arbeitsort.Umland);
+
+        // Die KI-Häuser in der Reihenfolge der Karte; das erste spielt immer mit. Sein Konto entsteht noch vor der Familie des Spielers
+        // (so war die Reihenfolge schon vor der Karte – die Zufallszahlen der Familien bleiben dieselben).
+        var haeuser = start.Haeuser.Take(neu.Rivalen).Where(h => h.Betriebe.All(b => daten.KenntArt(b.Art))).ToList();
+        var konten = new Dictionary<Starthaus, Konto>();
+        Konto KontoVon(Starthaus h)
         {
-            w.Familien.Gruenden(spieler, neu.Volk, neu.Geschlecht, neu.Vorname, glaube: neu.Glaube);
-            w.Familien.Gruenden(rivale, RivalenVolk, Geschlecht.Mann);
+            if (konten.TryGetValue(h, out var k)) return k;
+            k = konten[h] = w.KontoEroeffnen(h.Name);
+            k.Wappen = h.Wappen;
+            return k;
         }
-        var rivalenGiesserei = w.BetriebEroeffnen("Gießerei Eisenbart", Betriebsart.Giesserei, rivale);
-        rivalenGiesserei.Produkt = "Rapier";
-        w.Einstellen(rivalenGiesserei, "Geselle", 2);
-        var grube = w.BetriebEroeffnen("Grube Eisenbart", Betriebsart.Mine, rivale);
-        // Orks nur, wenn das Startstatut sie im Umland erlaubt (Statut B oder C) – sonst Bergleute.
-        var bergleute = daten.Arbeitskraefte.TryGetValue("Ork", out var ork) && ork.IstErlaubt(w.Statut, Arbeitsort.Umland) ? "Ork" : "Bergmann";
-        w.Einstellen(grube, bergleute, 3);
-
-        // Ab jetzt führt die KI Haus Eisenbart: Produkt, Förderung, Personal, Eskorten, Karren, Stand, Expansion.
-        w.KiAnmelden(rivale, ProfilFuer(neu.Rivale));
-
-        // Haus Eichwald (Elben, Tischler) und Haus Kieselbach (Halblinge, Steinmetze) – ebenfalls von der KI geführt.
-        if (neu.Rivalen >= 2)
-            HausAufstellen(w, daten, ZweiterRivale, ZweiterRivaleVolk, Geschlecht.Frau, "Tischler", "Eichwald", bergleute, neu.Rivale, Wappen.Eichwald);
-        if (neu.Rivalen >= 3)
-            HausAufstellen(w, daten, DritterRivale, DritterRivaleVolk, Geschlecht.Mann, "Steinmetz", "Kieselbach", bergleute, neu.Rivale, Wappen.Kieselbach);
+        if (haeuser.Count > 0) KontoVon(haeuser[0]);
+        if (w.Familien.IstAktiv)
+            w.Familien.Gruenden(spieler, neu.Volk, neu.Geschlecht, neu.Vorname, glaube: neu.Glaube);
+        foreach (var h in haeuser)
+            HausAufstellen(w, daten, karte, h, KontoVon(h), orks ? "Ork" : null, neu.Rivale);
         return (simulation, spieler);
     }
 
-    /// <summary>Ein KI-Haus mit Werkstatt und Umlandbetrieb seines Berufs („Tischlerei Eichwald", „Holzschlag Eichwald").
-    /// Fehlt der Beruf in den Daten (alte Daten), spielt das Haus nicht mit.</summary>
-    private static void HausAufstellen(Stadtwirtschaft w, Wirtschaftsdaten daten, string name, Volk volk, Geschlecht geschlecht,
-        string beruf, string kurzname, string umlandKraft, KiCharakter charakter, Wappen wappen)
+    private static string Zahlwort(int n) => n switch { 2 => "zwei", 3 => "drei", 4 => "vier", 5 => "fünf", 6 => "sechs", 7 => "sieben", _ => n.ToString() };
+
+    /// <summary>
+    /// Ein KI-Haus mit seinen Startbetrieben („Gießerei Eisenbart“ mit zwei Gesellen, „Grube Eisenbart“ mit drei Umlandkräften),
+    /// ab jetzt von der KI geführt. Der Name eines Betriebs steht am Platz der Karte, ohne Karte im Ersatz.
+    /// </summary>
+    private static void HausAufstellen(Stadtwirtschaft w, Wirtschaftsdaten daten, Stadtkarte? karte, Starthaus h, Konto konto, string? umlandKraft,
+        KiCharakter charakter)
     {
-        if (!daten.Berufe.TryGetValue(beruf, out var b)) return;
-        var konto = w.KontoEroeffnen(name);
-        konto.Wappen = wappen;
         if (w.Familien.IstAktiv)
-            w.Familien.Gruenden(konto, volk, geschlecht);
-        var werkstatt = w.BetriebEroeffnen($"{daten.Art(b.Werkstatt).Name} {kurzname}", b.Werkstatt, konto);
-        w.Einstellen(werkstatt, "Geselle", 2);
-        if (b.Umland is { } umlandArt)
+            w.Familien.Gruenden(konto, h.Volk, h.Geschlecht);
+        foreach (var b in h.Betriebe)
         {
-            var umland = w.BetriebEroeffnen($"{daten.Art(umlandArt).Name} {kurzname}", umlandArt, konto);
-            w.Einstellen(umland, umlandKraft, 3);
+            var art = daten.Art(b.Art);
+            var name = karte?.GebaeudeMit(b.Platz)?.Betrieb ?? (b.ErsatzName ?? "{art} " + Familie.NachnameAus(h.Name)).Replace("{art}", art.Name);
+            var betrieb = w.BetriebEroeffnen(name, b.Art, konto);
+            if (b.Produkt is { } produkt) betrieb.Produkt = produkt;
+            if (art.InDerStadt)
+                w.Einstellen(betrieb, "Geselle", 2);
+            else
+                w.Einstellen(betrieb, umlandKraft ?? "Bergmann", 3);
         }
         w.KiAnmelden(konto, ProfilFuer(charakter));
     }

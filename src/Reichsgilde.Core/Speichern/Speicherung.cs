@@ -57,7 +57,8 @@ public static class Speicherung
     public static Speicherstand Kopf(string json) => Lesen(json) with { Wirtschaft = null, Daten = null, Karte = null };
 
     /// <summary>Stellt eine Partie aus einem Spielstand wieder her.</summary>
-    /// <param name="karte">Die Karte der Stadt für Spielstände, die noch keine mitgespeichert haben (sonst gilt die gespeicherte).</param>
+    /// <param name="karte">Die Karte der Stadt für Spielstände, die noch keine mitgespeichert haben oder eine in Format 1 (dann muss die
+    /// Kennung passen); sonst gilt die gespeicherte. Werkstätten, für die die Karte keinen Platz hat, bekommen beim Laden einen.</param>
     /// <returns>Die Simulation und das Konto des menschlichen Spielers (falls gespeichert).</returns>
     /// <exception cref="SpielstandFehler">Wenn die Datei nicht passt – mit verständlicher Begründung.</exception>
     public static (Simulation Simulation, Konto? Spieler) Laden(string json, Bauen.Stadtkarte? karte = null)
@@ -66,7 +67,15 @@ public static class Speicherung
 
         if (stand.Daten is { } daten && daten.Pruefen() is { Count: > 0 } fehler)
             throw new SpielstandFehler("Die Wirtschaftsdaten im Spielstand sind fehlerhaft:\n  • " + string.Join("\n  • ", fehler));
-        if (stand.Karte is { } gespeichert && gespeichert.Pruefen() is { Count: > 0 } kartenfehler)
+        var gespeichert = stand.Karte;
+        if (gespeichert is { Format: < Bauen.Stadtkarte.BekanntesFormat })
+        {
+            // Karte in Format 1 (bis 21.10.2026): Sie kommt neu aus der Kartendatei derselben Stadt. Die Grundstücke stehen im Spielstand.
+            if (karte is not null && karte.Kennung != gespeichert.Kennung)
+                throw new SpielstandFehler($"Der Spielstand gehört zur Karte „{gespeichert.Kennung}“, geladen werden sollte „{karte.Kennung}“.");
+            gespeichert = null;
+        }
+        if (gespeichert is not null && gespeichert.Pruefen() is { Count: > 0 } kartenfehler)
             throw new SpielstandFehler("Die Karte im Spielstand ist fehlerhaft:\n  • " + string.Join("\n  • ", kartenfehler));
 
         try
@@ -79,8 +88,9 @@ public static class Speicherung
             Konto? spieler = null;
             if (simulation.Wirtschaft is { } w && stand.Wirtschaft is { } ws)
             {
-                if ((stand.Karte ?? karte) is { } k) w.KarteSetzen(k);
+                if ((gespeichert ?? karte) is { } k) w.KarteSetzen(k);
                 w.Wiederherstellen(ws);
+                w.PlaetzeNachDemLaden();
                 if (stand.Spielerkonto is int nummer && nummer >= 0 && nummer < w.Konten.Count)
                     spieler = w.Konten[nummer];
             }

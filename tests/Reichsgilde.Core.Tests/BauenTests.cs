@@ -11,18 +11,31 @@ using Reichsgilde.Core.Wirtschaft;
 /// Die Testkarte ist klein und rechtwinklig, damit man die Zahlen im Kopf nachrechnen kann:
 ///   • Hauptstraße (Karrenstraße) entlang z = 0, Gerbergasse entlang x = −60 (nach Süden).
 ///   • Nördlich der Hauptstraße vier Wohnhausplätze (16 × 10, Eingang nach Süden), Mitte bei x = −30, −10, 10, 30, z = −9
-///     (W1 und W2 in der Datei vertauscht, die „reihenfolge“ stellt sie richtig; W2 mit „lage“).
-///   • Südlich: Kernzone K1 (x −40…40, z 4…40) mit der „Gießerei am Weinmarkt“ (16 × 14 um 0/30),
+///     (W2 mit „lage“). Ohne Abschnitt „start“ gilt die Reihenfolge der Datei und die Startbelegung ohne Karte.
+///   • Südlich: Kernzone K1 (x −40…40, z 4…40) mit dem Werkstattplatz „Weinmarkt“ (16 × 14 um 0/30),
 ///     Vorstadt V1 an der Gasse (x −56…−42, z 20…60), Umland U1 (x 60…100, z 4…40).
 /// </summary>
 static class BauenTests
 {
     static readonly Lazy<Wirtschaftsdaten> Daten = new(() => Wirtschaftsdaten.AusJson(Datenpfad.OhneAktionspunkte()));
 
+    /// <summary>Der kleine Katalog der Testkarte: Markt, Wohnhausplatz 16 × 10, Werkstattplatz 16 × 14 und der Mauer-Baukasten.</summary>
+    public const string KatalogJson = """
+    {
+      "format": 1,
+      "bausteine": [
+        { "kennung": "markt", "art": "sonderbau", "groesse": [10, 10] },
+        { "kennung": "wohnhausplatz", "art": "wohnhausplatz", "groesse": [16, 10] },
+        { "kennung": "werkstattplatz", "art": "werkstattplatz", "groesse": [16, 14] },
+        { "kennung": "stadtmauer", "art": "mauer", "modell": "stadtmauer" }
+      ]
+    }
+    """;
+
     public const string KarteJson = """
     {
-      "format": 1, "kennung": "test", "stadt": "Teststadt", "raster": 2.0,
-      "mauer": { "linie": [[-120, -50], [120, -50]] },
+      "format": 2, "kennung": "test", "stadt": "Teststadt", "raster": 2.0,
+      "mauern": [ { "name": "Stadtmauer", "linie": [[-120, -50], [120, -50]] } ],
       "wege": [
         { "name": "Hauptstraße", "klasse": "haupt", "linie": [[-100, 0], [100, 0]] },
         { "name": "Gerbergasse", "klasse": "gasse", "linie": [[-60, 0], [-60, 70]] }
@@ -32,18 +45,20 @@ static class BauenTests
         { "kennung": "V1", "art": "vorstadt", "flaeche": [[-56, 20], [-42, 20], [-42, 60], [-56, 60]] },
         { "kennung": "U1", "art": "umland", "flaeche": [[60, 4], [100, 4], [100, 40], [60, 40]] }
       ],
-      "feste": [
-        { "kennung": "Markt", "art": "sonderbau", "name": "Markt", "punkt": [0, -30] },
-        { "kennung": "W2", "art": "wohnhaus", "name": "Wohnhausplatz 2", "punkt": [-10, -9], "eingang": [-10, -3], "groesse": [16, 10], "reihenfolge": 2, "lage": "mauerring" },
-        { "kennung": "W1", "art": "wohnhaus", "name": "Wohnhausplatz 1", "punkt": [-30, -9], "eingang": [-30, -3], "groesse": [16, 10], "reihenfolge": 1 },
-        { "kennung": "W3", "art": "wohnhaus", "name": "Wohnhausplatz 3", "punkt": [10, -9], "eingang": [10, -3], "groesse": [16, 10] },
-        { "kennung": "W4", "art": "wohnhaus", "name": "Wohnhausplatz 4", "punkt": [30, -9], "eingang": [30, -3], "groesse": [16, 10] },
-        { "kennung": "G1", "art": "werkstatt", "name": "Gießerei am Weinmarkt", "punkt": [0, 30], "eingang": [0, 40], "groesse": [16, 14] }
+      "gebaeude": [
+        { "kennung": "Markt", "katalog": "markt", "name": "Markt", "punkt": [0, -30] },
+        { "kennung": "W1", "katalog": "wohnhausplatz", "name": "Wohnhausplatz 1", "punkt": [-30, -9] },
+        { "kennung": "W2", "katalog": "wohnhausplatz", "name": "Wohnhausplatz 2", "punkt": [-10, -9], "lage": "mauerring" },
+        { "kennung": "W3", "katalog": "wohnhausplatz", "name": "Wohnhausplatz 3", "punkt": [10, -9] },
+        { "kennung": "W4", "katalog": "wohnhausplatz", "name": "Wohnhausplatz 4", "punkt": [30, -9] },
+        { "kennung": "G1", "katalog": "werkstattplatz", "name": "Weinmarkt", "punkt": [0, 30] }
       ]
     }
     """;
 
-    static Stadtkarte Karte() => Stadtkarte.AusJson(KarteJson);
+    static Gebaeudekatalog Katalog() => Gebaeudekatalog.AusJson(KatalogJson);
+
+    static Stadtkarte Karte() => Stadtkarte.AusJson(KarteJson, Katalog());
 
     static Simulation NeueSimulation() =>
         new(Partieeinstellungen.Standard with { Siegbedingung = Siegbedingung.Endlos }, wirtschaftsdaten: Daten.Value);
@@ -77,10 +92,10 @@ static class BauenTests
 
     public static IEnumerable<(string, Action)> Alle() => new (string, Action)[]
     {
-        ("Karte: Köln wird gelesen – Wege mit Klasse, Bauzonen, feste Bauten; Startgrundstücke mit Fläche und Drehung", () =>
+        ("Karte: Köln wird gelesen – Wege mit Klasse, Bauzonen, Gebäude aus dem Katalog; Startgrundstücke als Werkstatt- und Wohnhausplatz", () =>
         {
             var k = Stadtkarte.AusDatei(Kartenpfad("koeln"));
-            Pruefe.Gleich(1, k.Format);
+            Pruefe.Gleich(2, k.Format);
             Pruefe.Gleich("koeln", k.Kennung);
             Pruefe.Gleich(2.0, k.Raster);
             Pruefe.Gleich(41, k.Wege.Count);
@@ -89,15 +104,20 @@ static class BauenTests
             Pruefe.Gleich(28, k.Bauzonen.Count);
             Pruefe.Gleich(6, k.Bauzonen.Count(z => z.Art == Lage.Kern));
             Pruefe.Gleich(6, k.Bauzonen.Count(z => z.Art == Lage.Umland));
-            Pruefe.Gleich(19, k.Feste.Count);
-            Pruefe.Gleich(0, k.Wohnhausplaetze.Count); // Köln hat (noch) keine eigenen Wohnhausplätze
+            Pruefe.Wahr(k.Gebaeude.All(g => g.Baustein is not null), "jedes Gebäude ist im Katalog aufgelöst");
+            Pruefe.Gleich(8, k.Wohnhausplaetze.Count);
+            Pruefe.Gleich(8, k.GebaeudeDerArt(Bausteinart.Werkstattplatz).Count());
+            Pruefe.Gleich(2, k.Mauern.Count); // Stadtmauer und Deutzer Mauer
+            Pruefe.Gleich(9, k.Mauern.Sum(m => m.Tore.Count));
+            Pruefe.Wahr(k.Wasser.Any(x => x.Name == "Rhein") && k.Uebergaenge.Count == 2 && k.Haefen.Count == 1, "Rhein, Brücke, Fähre, Hafen");
+            Pruefe.Wahr(k.Start is null, "Köln hat noch keine eigene Startbelegung");
+            Pruefe.Gleich(Partieaufbau.Rivalenname, k.Startbelegung.Haeuser[0].Name); // also der Ersatz
 
-            var s1 = k.Feste.Single(f => f.Kennung == "S1").Grundriss!.Value; // punkt (−17, −92,5), Eingang nach Süden, 24 × 14
+            var s1 = k.GebaeudeMit("S1_Werkstatt")!.Grundriss!.Value; // Eingang nach Süden, 16 × 14 im Startgrundstück (−17 | −92,5)
             Pruefe.Gleich(0, s1.Drehung);
-            Pruefe.Gleich(12.0, s1.HalbX);
+            Pruefe.Gleich(8.0, s1.HalbX);
             Pruefe.Gleich(7.0, s1.HalbZ);
-            Pruefe.Wahr(k.Feste.Single(f => f.Kennung == "Markt").Grundriss is null, "Der offene Markt blockiert nichts");
-            Pruefe.Wahr(k.Feste.Single(f => f.Kennung == "Gereon").Grundriss is { Breite: 16, Tiefe: 14 }, "Kirche ohne Größe: 16 × 14 wie im Kapazitätswerkzeug");
+            Pruefe.Wahr(k.GebaeudeMit("Gereon")!.Grundriss is { Breite: 16, Tiefe: 14 }, "Kirche 16 × 14 wie im Kapazitätswerkzeug");
 
             var k1 = k.Bauzonen.Single(z => z.Kennung == "K1");
             var (mx, mz) = (k1.Flaeche.Average(p => p[0]), k1.Flaeche.Average(p => p[1]));
@@ -106,12 +126,21 @@ static class BauenTests
             Pruefe.Gleich(Lage.Umland, k.ZoneBei(-400, 300)!.Art); // weit draußen: die nächste Zone
         }),
 
-        ("Karte: Fehler werden gemeldet – kaputtes JSON, Wohnhausplatz ohne Größe, zu neues Format", () =>
+        ("Karte: Fehler werden gemeldet – kaputtes JSON, altes und zu neues Format, unbekannter Baustein, fehlender Katalog", () =>
         {
-            Pruefe.WirftMitMeldung(() => Stadtkarte.AusJson("{ \"format\": 1, "), "Kein gültiges JSON");
-            Pruefe.WirftMitMeldung(() => Stadtkarte.AusJson("""{ "format": 1, "feste": [ { "kennung": "W1", "art": "wohnhaus", "punkt": [0, 0] } ] }"""), "groesse fehlt");
-            Pruefe.WirftMitMeldung(() => Stadtkarte.AusJson("""{ "format": 2 }"""), "neuer als dieser Leser");
-            Pruefe.WirftMitMeldung(() => Stadtkarte.AusJson("""{ "wege": [ { "name": "X", "klasse": "autobahn", "linie": [[0,0],[1,1]] } ] }"""), "Kein gültiges JSON");
+            var katalog = Katalog();
+            Pruefe.WirftMitMeldung(() => Stadtkarte.AusJson("{ \"format\": 2, ", katalog), "Kein gültiges JSON");
+            Pruefe.WirftMitMeldung(() => Stadtkarte.AusJson("""{ "format": 1 }""", katalog), "Format 1 wird nicht mehr gelesen");
+            Pruefe.WirftMitMeldung(() => Stadtkarte.AusJson("""{ "format": 3 }""", katalog), "neuer als dieser Leser");
+            Pruefe.WirftMitMeldung(() => Stadtkarte.AusJson("""{ "wege": [ { "name": "X", "klasse": "autobahn", "linie": [[0,0],[1,1]] } ] }""", katalog), "Kein gültiges JSON");
+            Pruefe.WirftMitMeldung(() => Stadtkarte.AusJson("""{ "gebaeude": [ { "kennung": "X", "katalog": "schloss", "punkt": [0, 0] } ] }""", katalog),
+                "Den Baustein „schloss“ gibt es im Katalog nicht");
+            Pruefe.WirftMitMeldung(() => Stadtkarte.AusJson("""{ "gebaeude": [ { "kennung": "W", "katalog": "wohnhausplatz", "punkt": [0, 0], "drehung": 45 } ] }""", katalog),
+                "rechtwinklig");
+            Pruefe.WirftMitMeldung(() => Stadtkarte.AusJson("""{ "mauern": [ { "name": "M", "linie": [[0, 0], [1, 0]], "katalog": "zaun" } ] }""", katalog),
+                "Mauer-Baukasten „zaun“");
+            var ohne = System.Text.Json.JsonSerializer.Deserialize<Stadtkarte>("{}")!;
+            Pruefe.Wahr(ohne.Pruefen().Contains("Der Gebäudekatalog fehlt."), "ohne Katalog");
         }),
 
         ("Grundriss: Drehung, Ausdehnung, Raster, Felder und Vorplatz", () =>
@@ -177,7 +206,7 @@ static class BauenTests
             Pruefe.Wahr(b.PlatzVerboten(new WerkstattBauen(Betriebsart.Giesserei, -24, 11, 0))!.Contains("Karrenstraße"), "Rücken zur Straße");
             Pruefe.Wahr(b.PlatzVerboten(new WerkstattBauen(Betriebsart.Giesserei, -23, 11, 2))!.Contains("Raster"), "neben dem Raster");
             Pruefe.Gleich(new WerkstattBauen(Betriebsart.Giesserei, -24, 11, 2), b.Einrasten(new WerkstattBauen(Betriebsart.Giesserei, -23.4, 10.2, 2)));
-            Pruefe.Gleich("Hier steht Gießerei am Weinmarkt.", b.PlatzVerboten(new WerkstattBauen(Betriebsart.Giesserei, 0, 25, 2)));
+            Pruefe.Gleich("Hier steht Weinmarkt.", b.PlatzVerboten(new WerkstattBauen(Betriebsart.Giesserei, 0, 25, 2)));
             Pruefe.Wahr(b.PlatzVerboten(new WerkstattBauen(Betriebsart.Giesserei, -24, -31, 0))!.Contains("keine Bauzone"), "nördlich der Straße ist keine Zone");
             Pruefe.Gleich("Im Umland wird nicht gebaut.", b.PlatzVerboten(new WerkstattBauen(Betriebsart.Giesserei, 80, 11, 2)));
             Pruefe.Wahr(b.PlatzVerboten(new WerkstattBauen(Betriebsart.Giesserei, 34, 11, 2))!.Contains("keine Bauzone"), "ragt aus der Zone");
