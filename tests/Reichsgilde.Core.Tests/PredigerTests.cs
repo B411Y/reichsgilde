@@ -24,10 +24,23 @@ static class PredigerTests
         while (sim.Zeit.Jahr == jahr) sim.Tick();
     }
 
+    /// <summary>Das Jahr zu Ende spielen und nach jedem Tick <paramref name="nachTick"/> aufrufen.</summary>
+    static void JahrBeendenMit(Simulation sim, Action nachTick)
+    {
+        var jahr = sim.Zeit.Jahr;
+        while (sim.Zeit.Jahr == jahr) { sim.Tick(); nachTick(); }
+    }
+
     /// <summary>Bis nach der Messe (10 Uhr; die Partie beginnt um 6).</summary>
     static void NachDerMesse(Simulation sim)
     {
         for (var i = 0; i < 5 * 60 + 1; i++) sim.Tick(); // 05:00 → 10:01
+    }
+
+    /// <summary>Bis zu dieser Uhrzeit (Minuten nach Mitternacht) am selben Tag.</summary>
+    static void BisMinute(Simulation sim, int minute)
+    {
+        while (sim.Zeit.UhrzeitInMinuten < minute) sim.Tick();
     }
 
     /// <summary>Eine Kirche der gewünschten Art mit Personal, ohne Karren.</summary>
@@ -235,6 +248,113 @@ static class PredigerTests
             Pruefe.Gleich(w.Kirchenwesen.Vorjahr(kirche), kw.Kirchenwesen.Vorjahr(kk));
             Pruefe.Gleich(w.Kirchenwesen.Beichtwissen(spieler, rivale).Count(), kw.Kirchenwesen.Beichtwissen(kopieSpieler!, kr).Count());
             Pruefe.Gleich(w.Kirchenwesen.GehetztBis(rivale), kw.Kirchenwesen.GehetztBis(kr));
+        }),
+
+        ("Gläubige im Raum: nachts keine, zur Messe (9:30–11 Uhr) voll, sonst wenige Betende – höchstens 16 Plätze; gepredigt wird 10–11 Uhr", () =>
+        {
+            var sim = NeueSimulation();
+            var (w, _, b) = Prediger(sim);
+            var kw = w.Kirchenwesen;
+            Pruefe.Gleich(0, kw.GlaeubigeJetzt(b)); // vor 8 Uhr
+            BisMinute(sim, 8 * 60);
+            Pruefe.Gleich(3, kw.GlaeubigeJetzt(b)); // allein in der Stadt: 200 ÷ 8 × 0,125 ≈ 3,1
+            BisMinute(sim, 9 * 60 + 29);
+            Pruefe.Gleich(3, kw.GlaeubigeJetzt(b));
+            Pruefe.Wahr(!kw.MesseLaeuft(b), "9:29");
+            BisMinute(sim, 9 * 60 + 30);
+            Pruefe.Gleich(16, kw.GlaeubigeJetzt(b)); // 200 ÷ 8 = 25 – gedeckelt
+            Pruefe.Gleich(25, kw.GlaeubigeJetzt(b, hoechstens: 40));
+            Pruefe.Gleich(5, kw.GlaeubigeJetzt(b, hoechstens: 5));
+            Pruefe.Wahr(!kw.MesseLaeuft(b), "9:30 – die Gläubigen kommen, gepredigt wird ab 10");
+            BisMinute(sim, 10 * 60);
+            Pruefe.Wahr(kw.MesseLaeuft(b), "10:00");
+            Pruefe.Gleich(16, kw.GlaeubigeJetzt(b));
+            BisMinute(sim, 10 * 60 + 59);
+            Pruefe.Wahr(kw.MesseLaeuft(b) && kw.GlaeubigeJetzt(b) == 16, "10:59");
+            BisMinute(sim, 11 * 60);
+            Pruefe.Wahr(!kw.MesseLaeuft(b), "11:00");
+            Pruefe.Gleich(3, kw.GlaeubigeJetzt(b));
+            BisMinute(sim, 15 * 60);
+            Pruefe.Gleich(3, kw.GlaeubigeJetzt(b));
+            BisMinute(sim, 19 * 60 + 59);
+            Pruefe.Gleich(3, kw.GlaeubigeJetzt(b));
+            BisMinute(sim, 20 * 60);
+            Pruefe.Gleich(0, kw.GlaeubigeJetzt(b)); // Feierabend
+            Pruefe.Wahr(!kw.MesseLaeuft(b) && !kw.BeichteJetzt(b), "abends");
+        }),
+
+        ("Gläubige im Raum: Bei Konkurrenz nach Anziehung – der Dom hat mehr als die Kirche; ohne Arbeiter keine Gläubigen und keine Messe; ohne Kirchenwesen und auf dem Klosterhof nichts", () =>
+        {
+            var sim = NeueSimulation();
+            var (w, k, kirche) = Prediger(sim, name: "Familie Psalm");
+            var (_, _, dom) = Prediger(sim, Betriebsart.Dom, name: "Familie Weihrauch");
+            var kw = w.Kirchenwesen;
+            BisMinute(sim, 8 * 60);
+            Pruefe.Gleich((1, 2), (kw.GlaeubigeJetzt(kirche), kw.GlaeubigeJetzt(dom))); // 80 bzw. 120 Gläubige ÷ 8 × 0,125
+            BisMinute(sim, 10 * 60);
+            var messe = (kw.GlaeubigeJetzt(kirche), kw.GlaeubigeJetzt(dom));
+            Pruefe.Gleich((int)Math.Round(kw.ErwarteteGlaeubige(kirche) / 8, MidpointRounding.AwayFromZero), messe.Item1);
+            Pruefe.Gleich((int)Math.Round(kw.ErwarteteGlaeubige(dom) / 8, MidpointRounding.AwayFromZero), messe.Item2);
+            Pruefe.Wahr(messe.Item2 > messe.Item1 && messe.Item1 > 2, $"zur Messe {messe}");
+            Pruefe.Wahr(kw.MesseLaeuft(kirche) && kw.MesseLaeuft(dom), "Messe in beiden");
+            Pruefe.Wahr(w.Ausfuehren(k, new PersonalSetzen(kirche.Name, "Geselle", 0)).Erfolg, "Geselle entlassen");
+            Pruefe.Gleich(0, kw.GlaeubigeJetzt(kirche));
+            Pruefe.Wahr(!kw.MesseLaeuft(kirche) && !kw.BeichteJetzt(kirche), "leere Kirche");
+            Pruefe.Gleich(16, kw.GlaeubigeJetzt(dom)); // jetzt allein in der Stadt
+            var hof = w.BetriebEroeffnen("Klosterhof Weihrauch", Betriebsart.Klosterhof, dom.Konto, startkarren: "");
+            Pruefe.Wahr(kw.GlaeubigeJetzt(hof) == 0 && !kw.MesseLaeuft(hof) && !kw.BeichteJetzt(hof), "Klosterhof");
+
+            var ohne = new Simulation(Partieeinstellungen.Standard with { Siegbedingung = Siegbedingung.Endlos, Zufallsstartwert = 1400 },
+                wirtschaftsdaten: Wirtschaftsdaten.AusJson(File.ReadAllText(Datenpfad.Wirtschaft()).Replace("\"kirche\": {", "\"kircheAlt\": {")));
+            var (w2, _, b2) = Prediger(ohne);
+            BisMinute(ohne, 10 * 60);
+            Pruefe.Wahr(!w2.Kirchenwesen.IstAktiv, "Kirchenwesen aktiv");
+            Pruefe.Wahr(w2.Kirchenwesen.GlaeubigeJetzt(b2) == 0 && !w2.Kirchenwesen.MesseLaeuft(b2) && !w2.Kirchenwesen.BeichteJetzt(b2), "ohne Kirchenwesen");
+        }),
+
+        ("Gläubige im Raum: Gebeichtet wird in festen Viertelstunden der Arbeitszeit, je nach Beichtchance – nie zur Messe", () =>
+        {
+            string Beichtzeiten(Wirtschaftsdaten daten)
+            {
+                var sim = NeueSimulation(daten);
+                var (w, _, b) = Prediger(sim);
+                var zeiten = new List<string>();
+                while (sim.Zeit.UhrzeitInMinuten < 22 * 60 - 1)
+                {
+                    var minute = sim.Zeit.UhrzeitInMinuten;
+                    var beichte = w.Kirchenwesen.BeichteJetzt(b);
+                    if (minute % 15 == 0 && beichte) zeiten.Add($"{minute / 60}:{minute % 60:00}");
+                    // in jeder Viertelstunde dasselbe
+                    if (minute % 15 != 0) Pruefe.Gleich(zeiten.Contains($"{minute / 60}:{minute / 15 * 15 % 60:00}"), beichte, $"{minute / 60}:{minute % 60:00}");
+                    sim.Tick();
+                }
+                return string.Join(" ", zeiten);
+            }
+            Pruefe.Gleich("8:30 9:00 11:00 11:45 13:00 14:15 15:00 16:15 17:00 18:15 19:30", Beichtzeiten(Daten.Value)); // Chance 0,25: 11 von 42
+            var immer = Beichtzeiten(Redselig.Value).Split(' ');
+            Pruefe.Gleich(48 - 6, immer.Length); // 8–20 Uhr ohne 9:30–11 Uhr
+            Pruefe.Wahr(immer.First() == "8:00" && immer.Last() == "19:45" && !immer.Contains("9:30") && !immer.Contains("10:45") && immer.Contains("11:00"), string.Join(" ", immer));
+        }),
+
+        ("Gläubige im Raum: Die Abfragen ändern nichts – ein Jahr mit ständigen Abfragen verläuft zeichengleich", () =>
+        {
+            string Spielen(bool abfragen)
+            {
+                var sim = NeueSimulation();
+                var (w, k, b) = Prediger(sim, Betriebsart.Dom, name: "Familie Psalm");
+                Prediger(sim, name: "Familie Weihrauch");
+                var summe = 0;
+                for (var jahr = 0; jahr < 2; jahr++)
+                    JahrBeendenMit(sim, () =>
+                    {
+                        if (!abfragen) return;
+                        foreach (var x in w.Betriebe)
+                            summe += w.Kirchenwesen.GlaeubigeJetzt(x) + (w.Kirchenwesen.MesseLaeuft(x) ? 1 : 0) + (w.Kirchenwesen.BeichteJetzt(x) ? 1 : 0);
+                    });
+                Pruefe.Wahr(!abfragen || summe > 0, "keine Gläubigen gesehen");
+                return Speicherung.Speichern(sim, k, new DateTime(2026, 10, 21, 12, 0, 0));
+            }
+            Pruefe.Gleich(Spielen(false), Spielen(true));
         }),
     };
 }
