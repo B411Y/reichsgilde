@@ -32,7 +32,7 @@ public partial class Stadtansicht
     private sealed record Raum(string Kennung, string Name, Vector3 Mitte, Vector3 Masse, Func<bool>? Zugaenglich = null, List<Blickpunkt>? Blicke = null);
 
     /// <summary>Kennungen der Werkstatträume (Klick in der Raumansicht).</summary>
-    public const string RaumWerk = "raum:werk", RaumLager = "raum:lager", RaumSaege = "raum:saege", RaumHuette = "raum:huette", RaumLaden = "raum:laden", RaumTurm = "raum:turm", RaumPavillon = "raum:pavillon", RaumKueche = "raum:kueche", RaumSaal = "raum:saal", RaumKontor = "raum:kontor", RaumWohnstube = "raum:wohnstube";
+    public const string RaumWerk = "raum:werk", RaumLager = "raum:lager", RaumSaege = "raum:saege", RaumHuette = "raum:huette", RaumLaden = "raum:laden", RaumTurm = "raum:turm", RaumPavillon = "raum:pavillon", RaumKueche = "raum:kueche", RaumSaal = "raum:saal", RaumKirche = "raum:kirche", RaumSkriptorium = "raum:skriptorium", RaumSchatzkammer = "raum:schatzkammer", RaumKontor = "raum:kontor", RaumWohnstube = "raum:wohnstube";
 
     /// <summary>So tief unter der Stadt liegen die Räume.</summary>
     private const float RaumTiefe = -200f;
@@ -69,7 +69,7 @@ public partial class Stadtansicht
             AmbientLightEnergy = 0.45f,
         };
         // Perspektive (Fluchtpunkte) statt der Schrägansicht der Stadt: Man steht im Raum.
-        _raumKamera = new Camera3D { Name = "Raumkamera", Fov = 50, Near = 0.1f, Far = 120, Environment = _raumUmgebung };
+        _raumKamera = new Camera3D { Name = "Raumkamera", Fov = 50, Near = 0.1f, Far = 120, Environment = _raumUmgebung, CullMask = uint.MaxValue }; // alle Ebenen: jeder Raum eines Modells hat seine eigene (bis Ebene 22)
         AddChild(_raumKamera);
         _fensterglas = Material(new Color(0.2f, 0.22f, 0.26f));
         _fensterglas.EmissionEnabled = true;

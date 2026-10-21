@@ -1304,6 +1304,13 @@ public partial class Stadtansicht
         "Kräuterlikör" => new Color(0.32f, 0.58f, 0.22f),      // Grün
         "Festbier" => new Color(0.78f, 0.40f, 0.12f),          // Rotgold
         "Schädelbrand" => new Color(0.44f, 0.20f, 0.14f),      // trübes Rotbraun
+        "Papier" => new Color(0.86f, 0.84f, 0.78f),            // helles Grau-Beige
+        "Kerze" => new Color(0.93f, 0.82f, 0.38f),             // Wachsgelb
+        "Lehrschrift" => new Color(0.45f, 0.30f, 0.18f),       // brauner Einband
+        "Hetzschrift" => new Color(0.72f, 0.20f, 0.14f),       // Rot
+        "Psalter" => new Color(0.12f, 0.16f, 0.36f),           // Dunkelblau
+        "Stundenbuch" => new Color(0.12f, 0.30f, 0.68f),       // Lapisblau (mit Gold)
+        "Reliquiar" => new Color(0.60f, 0.10f, 0.28f),         // Rubinrot der Emailfelder (das Gehäuse ist vergoldet)
         _ => Streufarbe(ware),
     };
 

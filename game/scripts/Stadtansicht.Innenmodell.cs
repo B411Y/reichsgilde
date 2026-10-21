@@ -9,9 +9,9 @@ namespace Reichsgilde;
 /// Innenräume aus Blender-Modellen – elfter Teil der <c>partial class Stadtansicht</c> (PR #152).
 ///
 /// Ein Beruf bekommt seinen Innenraum, indem <see cref="InnenModellDatei"/> eine Datei nennt (Schmied: <c>schmied_innen.glb</c>, Tischler:
-/// <c>tischler_innen.glb</c>, Steinmetz: <c>steinmetz_innen.glb</c>, Alchimist: <c>alchimist_innen.glb</c>, Parfumeur: <c>parfumeur_innen.glb</c>, Wirt: <c>wirt_innen.glb</c>). Alles Weitere liest dieses Gerüst aus den Knotennamen des Modells (Verträge: <c>docs/bereiche/darstellung.md</c>):
+/// <c>tischler_innen.glb</c>, Steinmetz: <c>steinmetz_innen.glb</c>, Alchimist: <c>alchimist_innen.glb</c>, Parfumeur: <c>parfumeur_innen.glb</c>, Wirt: <c>wirt_innen.glb</c>, Prediger: <c>prediger_innen.glb</c>). Alles Weitere liest dieses Gerüst aus den Knotennamen des Modells (Verträge: <c>docs/bereiche/darstellung.md</c>):
 /// <list type="bullet">
-/// <item><c>Raum_Werk</c>, <c>Raum_Lager</c>, <c>Raum_Saege</c>, <c>Raum_Huette</c>, <c>Raum_Laden</c>, <c>Raum_Turm</c>, <c>Raum_Pavillon</c>, <c>Raum_Kueche</c>, <c>Raum_Saal</c> – die Räume (glTF-extras „stufe“ auf dem Raumknoten: erst ab dieser Betriebsstufe da,
+/// <item><c>Raum_Werk</c>, <c>Raum_Lager</c>, <c>Raum_Saege</c>, <c>Raum_Huette</c>, <c>Raum_Laden</c>, <c>Raum_Turm</c>, <c>Raum_Pavillon</c>, <c>Raum_Kueche</c>, <c>Raum_Saal</c>, <c>Raum_Kirche</c>, <c>Raum_Skriptorium</c>, <c>Raum_Schatzkammer</c> – die Räume (glTF-extras „stufe“ auf dem Raumknoten: erst ab dieser Betriebsstufe da,
 /// so die Sägehalle des Tischlers, die Bauhütte des Steinmetzen und der Duftpavillon des Parfumeurs ab Stufe 3, siehe <see cref="ModellRaeume"/>); <c>Blick_&lt;Raum&gt;_&lt;0|L1|R1|O1|U1…&gt;</c> – feste Blickpunkte der Kamera (Stadtansicht.Innenkamera.cs)</item>
 /// <item><b>Stufenregel:</b> jeder Knoten mit extras „stufe“ &gt; 1 ist erst ab dieser Betriebsstufe sichtbar (<see cref="ModellRaumDaten.StufenKnoten"/>); ausgenommen sind die Anker mit eigener Regel
 /// (<c>Arbeit_</c>, <c>Werkstueck_</c>, <c>Licht_</c>, <c>Dampf_</c>, <c>Auslage_</c>, <c>Blick_</c>), die ihre Stufe selbst auswerten</item>
@@ -23,6 +23,8 @@ namespace Reichsgilde;
 /// <c>Dampf_&lt;n&gt;</c> – Dampf über dem Gefäß, solange an seinem Arbeitsplatz gearbeitet wird; <c>Auslage_&lt;n&gt;</c> – Regalplätze im Laden, je Fertigware eine Reihe Flaschen und Tiegel nach dem Lager</item>
 /// <item><c>Gast_&lt;n&gt;</c>, <c>Gast_Wuerfel_&lt;n&gt;</c>, <c>Gast_Stamm_&lt;n&gt;</c>, <c>Barde_1</c> – Sitzplätze der Gäste und Standort des Barden in der Schänke; wer dort sitzt, bestimmt die Gastwirtschaft des Kerns
 /// (Stadtansicht.Innengaeste.cs); <c>Krug_&lt;n&gt;</c> – wo der Krug auf dem Tisch steht (den hält die Figur selbst, der Anker bleibt leer)</item>
+/// <item><c>Glaeubig_&lt;n&gt;</c> (Sitzplätze auf den Bänken, Füllreihenfolge vorn → hinten), <c>Predigt_1</c> (Kanzel) und <c>Beichte_1</c> (Kniebank) – Plätze der Gläubigen und des Predigers im Kirchenschiff;
+/// wer dort sitzt, steht und kniet, sagt das Kirchenwesen des Kerns (Stadtansicht.Innenglaeubige.cs)</item>
 /// </list>
 /// Der Raum folgt dem Kern: Stufe, Einrichtung, Glut, Arbeiter, Werkstücke und Warenstapel werden nur angefasst, wenn sich etwas geändert hat.
 /// </summary>
@@ -37,6 +39,7 @@ public partial class Stadtansicht
         Werkstil.Tinkturei => "innen/alchimist_innen",
         Werkstil.Siederei => "innen/parfumeur_innen",
         Werkstil.Schaenke => "innen/wirt_innen",
+        Werkstil.Kirche => "innen/prediger_innen",
         _ => null,
     };
 
@@ -47,15 +50,18 @@ public partial class Stadtansicht
     /// </summary>
     private static (string Kennung, string Schluessel, string Name, int Vorgabe)[] ModellRaeume(Werkstil stil) => new[]
     {
-        (RaumWerk, "Werk", WerkraumName(stil), 1),
+        (RaumKirche, "Kirche", "Kirchenschiff", 1),
+        (RaumWerk, "Werk", stil == Werkstil.Kirche ? "Sakristei" : WerkraumName(stil), 1),
         (RaumKueche, "Kueche", "Küche", 1),
-        (RaumLager, "Lager", stil == Werkstil.Schaenke ? "Fasskeller" : "Lager", 1),
+        (RaumLager, "Lager", stil switch { Werkstil.Schaenke => "Fasskeller", Werkstil.Kirche => "Krypta", _ => "Lager" }, 1),
         (RaumSaege, "Saege", "Sägehalle", 3),
         (RaumHuette, "Huette", "Bauhütte", 3),
         (RaumLaden, "Laden", "Laden", 2),
         (RaumTurm, "Turm", "Laborturm", 3),
         (RaumPavillon, "Pavillon", "Duftpavillon", 3),
         (RaumSaal, "Saal", "Saal", 3),
+        (RaumSkriptorium, "Skriptorium", "Skriptorium", 2),
+        (RaumSchatzkammer, "Schatzkammer", "Schatzkammer", 3),
     };
 
     /// <summary>
@@ -71,6 +77,7 @@ public partial class Stadtansicht
         [(Werkstil.Maurerei, "Schleifen")] = 1.2,    // der Fuß tritt den Tritt, die Kurbel dreht den Schleifstein
         [(Werkstil.Siederei, "Pressen")] = 3.0,      // die Hände liegen am Querhebel, die Spindel der Presse dreht genau nach der Bewegung
         [(Werkstil.Schaenke, "Zapfen")] = 4.0,       // Hahn und Strahl in der Animation „Arbeit“ folgen der Linken des Zapfers
+        [(Werkstil.Kirche, "Schoepfen")] = 4.0,      // die Tropfen aus dem Sieb fallen, wenn die Figur es zum Abtropfen hält
     };
 
     /// <summary>Mit so vielen Kisten steht ein volles Lager einer Ware (Höhe der Warenstapel).</summary>
@@ -178,6 +185,10 @@ public partial class Stadtansicht
         public List<GastPlatz> Gaeste { get; } = new();
         public GastenStand GaesteStand { get; set; } = new(-1, 0, 0, false);
         public double GaesteZeit { get; set; }
+        /// <summary>Die Plätze der Gläubigen (<c>Glaeubig_&lt;n&gt;</c>), des Predigers (<c>Predigt_1</c>) und der Beichte (<c>Beichte_1</c>), nach Nummer geordnet; siehe Stadtansicht.Innenglaeubige.cs.</summary>
+        public List<GastPlatz> Glaeubige { get; } = new();
+        public GlaeubigenStand GlaeubigenStand { get; set; } = new(-1, false, false);
+        public double GlaeubigenZeit { get; set; }
         public StandardMaterial3D? DampfStoff { get; set; }
         /// <summary>Die Bedienungsstücke des Raums (Tafel, Name) in der Reihenfolge der Tafeln – für den Hinweis beim Betreten.</summary>
         public List<(string Tafel, string Name, Node3D Knoten)> Bedienungen { get; } = new();
@@ -264,6 +275,7 @@ public partial class Stadtansicht
         }
         md.Plaetze.Sort((x, y) => x.Nr.CompareTo(y.Nr));
         md.Gaeste.Sort((x, y) => x.Tisch != y.Tisch ? x.Tisch.CompareTo(y.Tisch) : x.Nr.CompareTo(y.Nr));
+        md.Glaeubige.Sort((x, y) => x.Tisch != y.Tisch ? x.Tisch.CompareTo(y.Tisch) : x.Nr.CompareTo(y.Nr));
         DampfAnlegen(wurzel, md);
         md.Auslageplaetze.Sort((x, y) => NummerImNamen(x).CompareTo(NummerImNamen(y)));
         RaumEbeneUebernehmen(wurzel); // alles, was bis hier im Modell steht, auch Lichter, Werkstücke und Dampf
@@ -370,6 +382,9 @@ public partial class Stadtansicht
                 break;
             case "Gast" or "Barde" when GastPlatzVon(knoten) is { } gastplatz:
                 md.Gaeste.Add(gastplatz);
+                break;
+            case "Glaeubig" or "Predigt" or "Beichte" when GlaeubigPlatzVon(knoten) is { } glaeubigplatz:
+                md.Glaeubige.Add(glaeubigplatz);
                 break;
             case "Licht" when teile.Length == 2:
                 InnenLichtAnlegen(md, knoten);
@@ -534,8 +549,8 @@ public partial class Stadtansicht
         var liste => liste.Split(',', StringSplitOptions.TrimEntries | StringSplitOptions.RemoveEmptyEntries),
     };
 
-    /// <summary>Raumschlüssel in der Reihenfolge ihrer Render-Ebene (11 bis 19): Jeder Raum eines Modells hat seine eigene.</summary>
-    private static readonly string[] RaumEbenen = { "Werk", "Lager", "Saege", "Huette", "Laden", "Turm", "Pavillon", "Kueche", "Saal" };
+    /// <summary>Raumschlüssel in der Reihenfolge ihrer Render-Ebene (11 bis 22): Jeder Raum eines Modells hat seine eigene.</summary>
+    private static readonly string[] RaumEbenen = { "Werk", "Lager", "Saege", "Huette", "Laden", "Turm", "Pavillon", "Kueche", "Saal", "Kirche", "Skriptorium", "Schatzkammer" };
 
     /// <summary>
     /// Legt alles unter <paramref name="knoten"/> auf die Render-Ebene seines Raums und lässt jedes Licht nur diese Ebene beleuchten. Die Räume liegen
@@ -673,6 +688,7 @@ public partial class Stadtansicht
 
         InnenArbeiterAktualisieren(a, md, b, stufe, arbeitszeit, arbeitet, delta);
         InnenGaesteAktualisieren(a, md, b, delta);
+        InnenGlaeubigeAktualisieren(a, md, b, delta);
         InnenDampfAktualisieren(md, stufe, arbeitet);
         InnenLagerAktualisieren(a, md, b);
         InnenAuslageAktualisieren(a, md, b);
@@ -751,11 +767,14 @@ public partial class Stadtansicht
     /// <summary>
     /// Farbe des Werkstücks auf der Werkbank. Meist die Farbe der Ware; in der Tischlerei ist das Stück Holz: der Ton der Ware „Holz“, in der Maurerei Stein: der Ton
     /// der Ware „Granit“, jeweils nur zu einem Zehntel zur Warenfarbe getönt, damit man den Wechsel der Ware noch ahnt (ein hellblauer Klotz auf dem Stamm wirkte wie ein Fremdkörper).
+    /// Ebenso beim Prediger an den beiden Plätzen der Sakristei: Wachs im Trog (Platz 1) und Papierbrei in der Bütte (Platz 2) – die Arbeiter wechseln die Ware, aber der Brei wäre sonst wachsgelb, sobald dort Kerzen gezogen werden.
     /// </summary>
-    private static Color WerkstueckFarbe(Werkstil stil, string ware) => stil switch
+    private static Color WerkstueckFarbe(Werkstil stil, int platz, string ware) => (stil, platz) switch
     {
-        Werkstil.Tischlerei => Warenfarbe("Holz").Lerp(Warenfarbe(ware), 0.1f),
-        Werkstil.Maurerei => Warenfarbe("Granit").Lerp(Warenfarbe(ware), 0.1f),
+        (Werkstil.Tischlerei, _) => Warenfarbe("Holz").Lerp(Warenfarbe(ware), 0.1f),
+        (Werkstil.Maurerei, _) => Warenfarbe("Granit").Lerp(Warenfarbe(ware), 0.1f),
+        (Werkstil.Kirche, 1) => Warenfarbe("Kerze").Lerp(Warenfarbe(ware), 0.1f),   // das Wachs im Trog bleibt Wachs, wer auch immer am Platz arbeitet
+        (Werkstil.Kirche, 2) => Warenfarbe("Papier").Lerp(Warenfarbe(ware), 0.1f),  // der Brei in der Bütte bleibt Papierbrei; Buch (3) und Reliquiar (4) tragen die Farbe der Ware
         _ => Warenfarbe(ware),
     };
 
@@ -817,7 +836,7 @@ public partial class Stadtansicht
             if (ware != "" && ware != platz.WerkstueckWare)
             {
                 platz.WerkstueckWare = ware;
-                platz.WerkstueckStoff!.AlbedoColor = WerkstueckFarbe(a.Stil, ware);
+                platz.WerkstueckStoff!.AlbedoColor = WerkstueckFarbe(a.Stil, platz.Nr, ware);
             }
         }
     }
@@ -854,7 +873,7 @@ public partial class Stadtansicht
                 continue;
             }
             // Wer sitzt (Feinarbeit), hat die Hüfte auf Sitzhöhe des Menschen: kleine Völker sitzen höher, Orks tiefer (wie die Sitzenden im Dom).
-            if (platz.Bewegung == "Feinarbeit") halter.Position = new Vector3(0, SitzKniehoehe - figur.Kniehoehe, 0);
+            if (platz.Bewegung is "Feinarbeit" or "Schreiben") halter.Position = new Vector3(0, SitzKniehoehe - figur.Kniehoehe, 0);
             var koerper = new StaticBody3D();
             koerper.SetMeta("innen", "arbeiter:" + zeile.Nummer);
             var form = new CollisionShape3D { Shape = new CapsuleShape3D { Radius = 0.38f, Height = 1.75f }, Position = new Vector3(0, 0.88f, 0) };
@@ -1116,6 +1135,8 @@ public partial class Stadtansicht
         ("Lager", "Kraeuter") => "Kräuterbündel",
         ("Lager", "Koerbe") => "Blütenkörbe",
         ("Lager", "Faesser") => "Fässer",
+        ("Produktion", "Kerzen") when stil == Werkstil.Kirche => "Wachsherd",
+        ("Produktion", "Buette") => "Bütte",
         ("Produktion", "Kessel") when stil == Werkstil.Siederei => "Brennkessel",
         (_, "Kraeutertisch") => "Kräutertisch",
         _ => ding,
@@ -1158,7 +1179,7 @@ public partial class Stadtansicht
             case "tuer" when teile.Length >= 3:
                 return (teile[2] switch
                 {
-                    "Lager" => "Tür zum Lager", "Saege" => "Tür zur Sägehalle", "Huette" => "Tür zur Bauhütte", "Laden" => "Tür zum Laden", "Turm" => "Tür zum Laborturm", "Pavillon" => "Tür zum Duftpavillon", "Kueche" => "Tür zur Küche", "Saal" => "Tür zum Saal",
+                    "Lager" => "Tür zum Lager", "Saege" => "Tür zur Sägehalle", "Huette" => "Tür zur Bauhütte", "Laden" => "Tür zum Laden", "Turm" => "Tür zum Laborturm", "Pavillon" => "Tür zum Duftpavillon", "Kueche" => "Tür zur Küche", "Saal" => "Tür zum Saal", "Kirche" => "Tür ins Kirchenschiff", "Skriptorium" => "Tür zum Skriptorium", "Schatzkammer" => "Tür zur Schatzkammer",
                     _ => "Tür zum Werkraum",
                 }, "Klick: Raum wechseln");
             case "einrichtung" when teile.Length >= 2:
@@ -1168,6 +1189,10 @@ public partial class Stadtansicht
                 return ("Gast", "");
             case "barde":
                 return ("Barde", "spielt zur Laute");
+            case "glaeubiger":
+                return ("Gläubiger", "");
+            case "prediger":
+                return ("Prediger", "predigt von der Kanzel");
             case "ware" when teile.Length >= 2:
                 var kapazitaet = a.Betrieb.LagerKapazitaetJeWare;
                 return (teile[1], $"{a.Betrieb.ImLager(teile[1])} von {kapazitaet} im Lager");
