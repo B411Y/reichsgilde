@@ -136,7 +136,7 @@ Fahrplan (vom Nutzer am 21.10.2026 bestätigt, je Schritt ein PR; Stand wird hie
 |---|---|---|
 | 1 Grundgerüst | Knopf im Hauptmenü, Karte laden und zeigen, Gebäude aus dem Katalog setzen, verschieben, drehen, löschen, Live-Prüfung, Speichern, Rückgängig | fertig (PR #168) |
 | 2 Wege und Flächen | Wege mit Kurven zeichnen, Kreuzungen rasten ein, Gassennetz live; Bauzonen und Waldflächen als Vielecke | fertig (PR #170) |
-| 3 Rest der Karte | Mauer und Tore, Startbelegung, Knopf „Karte ausprobieren“ | offen |
+| 3 Rest der Karte | Mauer und Tore, Startbelegung, Knopf „Karte ausprobieren“ | in Arbeit (PR #172) |
 | 4 Umzug | Greybox und Köln übernehmen, der Editor wird die Quelle, Python-Werkzeug fällt weg | offen |
 | 5 Später | Gelände mit Höhen, Wasser, Wegbelag; Freigabe für Spieler | offen |
 
@@ -167,3 +167,13 @@ Fahrplan (vom Nutzer am 21.10.2026 bestätigt, je Schritt ein PR; Stand wird hie
 | Pflanzen, Pinsel (Umsetzung) | Jede Natur-Art einzeln im Katalog (Klick setzt, Q/E dreht); Pinsel mit Radius 6 m, 30 Pflanzen je 1.000 m², Eiche, Buche, Hasel, Holunder vorgewählt (rechts änderbar, Arten nach Baukasten gruppiert); Radierer mit demselben Radius löscht nur einzeln gesetzte Pflanzen. | 21.10.2026 |
 | Gassennetz (Umsetzung) | Schalter „Gassennetz“ in der Leiste; das Netz der Werkstatt entsteht nach jeder Änderung an Wegen oder Gebäuden neu (Wege, Markt, Tore, Höfe, Karrenplätze; die Stücke zu Höfen und Karrenplätzen gezeichnet wie im Spiel) und wird über allem gezeigt. Die Leiste unten meldet, ob alles verbunden ist. | 21.10.2026 |
 | Hintergrund (Umsetzung) | Ersetzt „Hintergrund“ aus Schritt 1: Nur Boden und Mauern zeichnet die Werkstatt einmal beim Öffnen; Wege, Flächen, Natur und Pflanzen folgen jeder Änderung. Glatte Wege zeichnet auch das Spiel als ein Band (`WegBand`), gerade wie bisher als Quader. | 21.10.2026 |
+
+### Kartenwerkstatt, Schritt 3: Mauer, Tore, Startbelegung, Ausprobieren (PR #172)
+
+| Thema | Entscheidung | Datum |
+|---|---|---|
+| Mauer und Tore | Ecken der Mauer klicken (gerade Stücke), Doppelklick schließt sie oder lässt sie offen (wie Köln am Rhein). Türme setzt das Spiel selbst an die Ecken und etwa alle 35 m, wie heute. Ein Klick auf die Mauer setzt dort ein Tor; ein Weg durch das Tor rastet ein. Ecken und Tore lassen sich ziehen und löschen. | 21.10.2026 |
+| Startbelegung | Tafel „Start“: Liste der Häuser (bis 8, für bis zu 8 Spieler) mit Name, Volk, Farbe, Wappen; „Wohnhaus wählen“ und „Betrieb hinzufügen“ per Klick auf einen Platz in der Karte, dann Betriebsart wählen; dazu der Startplatz des Spielers je Beruf. Die Karte zeigt die Belegung farbig. | 21.10.2026 |
+| Karte ausprobieren | Startet eine neue Partie auf dem Entwurf, wie er gerade ist (nur ohne Fehler); ein Knopf oder Esc im Spielmenü führt zurück in die Kartenwerkstatt, alles ist noch da, auch Rückgängig. Der Beruf für den Test ist wählbar. | 21.10.2026 |
+| Mitgenommen | Klickflächen der Gebäude (fangen im Schrägblick keine Klicks auf den Boden dahinter mehr), Höfe beim Einrasten im Kern, Streu-Gruppen einzeln bearbeiten, dichtere neue Wälder (Vorgabe höher, Greybox unverändert). | 21.10.2026 |
+
