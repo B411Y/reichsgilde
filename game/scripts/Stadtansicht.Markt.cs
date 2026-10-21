@@ -1,11 +1,13 @@
 using Godot;
+using Reichsgilde.Core.Bauen;
 using Reichsgilde.Core.Wirtschaft;
 
 namespace Reichsgilde;
 
 /// <summary>
-/// Der Marktplatz (Teil der <c>partial class Stadtansicht</c>): <c>marktplatz.glb</c> mit Pflaster, Brunnen, Marktkreuz und Bänken,
-/// auf jedem „Anker_Stand&lt;n&gt;“ ein Stand aus <c>marktstaende.glb</c> (PR #143).
+/// Der Marktplatz (Teil der <c>partial class Stadtansicht</c>): das Modell des Bausteins „markt“ (<c>marktplatz.glb</c>) mit Pflaster, Brunnen,
+/// Marktkreuz und Bänken an seiner Lage in der Karte (auch gedreht), auf jedem „Anker_Stand&lt;n&gt;“ ein Stand aus <c>marktstaende.glb</c> (PR #143).
+/// Wo das Pflaster liegt, rechnet die Ansicht in Koordinaten des Platzes (<see cref="MarktLokal"/>).
 ///
 /// Auslagen: Ein Stand zeigt die Waren eines Handwerks. Zuerst bekommen die einen Stand, die in den letzten 17 Spielstunden etwas auf den
 /// Markt gebracht haben (<see cref="Marktstand.SpielerAngebotImJahr"/> – Verkäufe der Spieler und KI-Häuser), die übrigen Stände füllt die
@@ -65,10 +67,11 @@ public partial class Stadtansicht
     /// <summary>Was auf dem Pflaster im Weg steht (Brunnen, Marktkreuz, Bänke, Stände): Mitte und Radius in Metern, ohne Abstand für die Figur.</summary>
     private readonly List<(Vector3 Mitte, float Radius)> _marktHindernisse = new();
 
-    private void Marktstaende()
+    private void Marktstaende(Kartengebaeude markt)
     {
-        if (ModellEinsetzen("marktplatz", this, Marktplatz, new ModellZustand()) is { } platz)
+        if (markt.Baustein?.Modell is { } datei && ModellEinsetzen(datei, this, Vector3.Zero, new ModellZustand()) is { } platz)
         {
+            platz.Wurzel.Transform = _marktLage;
             var anker = platz.Wurzel.GetChildren().OfType<Node3D>().Where(k => k.Name.ToString().StartsWith("Anker_"))
                              .ToDictionary(k => k.Name.ToString(), k => platz.Wurzel.Transform * k.Transform);
             for (var n = 1; anker.TryGetValue($"Anker_Stand{n}", out var lage); n++)
@@ -92,8 +95,11 @@ public partial class Stadtansicht
                 _marktstellen.Add(new Marktstelle(_rundgang[i], 0, "Gehen", Rundgang: i));
         }
         _marktBelegt = Enumerable.Repeat(-1, _marktstellen.Count).ToArray();
-        Klickflaeche("Marktplatz", new Vector3(0, 1, 0), new Vector3(22, 2, 22));
-        Beschriftung("Marktplatz", new Vector3(0, 6, 0), 56, kennung: "Marktplatz");
+        // Klickfläche (das Pflaster ohne Rand) und Name: Die Kennung „Marktplatz“ öffnet die Preistafel (Hauptszene)
+        var mitte = new Node3D { Name = "Markt", Transform = new Transform3D(_marktLage.Basis.Orthonormalized(), _markt) };
+        AddChild(mitte);
+        Klickflaeche("Marktplatz", new Vector3(0, 1, 0), new Vector3(2 * _marktHalb - 2, 2, 2 * _marktHalb - 2), mitte);
+        Beschriftung(markt.Name, new Vector3(0, 6, 0), 56, mitte, "Marktplatz");
     }
 
     /// <summary>Blickrichtung eines Ankers als Drehung einer Figur: Anker blicken nach −Z, Figuren nach +Z.</summary>
@@ -239,28 +245,16 @@ public partial class Stadtansicht
         _ => null,
     };
 
-    /// <summary>Halbe Seitenlänge des Marktplatzes (Pflaster des Modells, 24 × 24 m).</summary>
-    private const float MarktplatzHalb = 12f;
-
     /// <summary>
     /// Die Teile eines Weges außerhalb des Marktplatzes (Liang-Barsky-Schnitt mit dem Quadrat), damit kein Weg über das Pflaster gezogen
     /// wird. Ein Wegstück ragt um ein Viertel seiner Breite über seine Enden hinaus, darum ist das Quadrat entsprechend größer.
     /// Null, wenn der Weg den Platz nicht berührt.
     /// </summary>
-    private static List<(Vector3 Von, Vector3 Bis)>? OhneMarktplatz(Vector3 von, Vector3 bis, float breite)
+    private List<(Vector3 Von, Vector3 Bis)>? OhneMarktplatz(Vector3 von, Vector3 bis, float breite)
     {
-        var halb = MarktplatzHalb + breite * 0.25f;
+        if (_marktHalb <= 0 || QuadratSchnitt(MarktLokal(von), MarktLokal(bis), _marktHalb + breite * 0.25f) is not { } schnitt) return null;
+        var (t0, t1) = schnitt;
         var d = bis - von;
-        float t0 = 0, t1 = 1;
-        foreach (var (p, q) in new[] { (-d.X, von.X - Marktplatz.X + halb), (d.X, Marktplatz.X + halb - von.X),
-                                       (-d.Z, von.Z - Marktplatz.Z + halb), (d.Z, Marktplatz.Z + halb - von.Z) })
-        {
-            if (Mathf.IsZeroApprox(p)) { if (q < 0) return null; continue; }
-            var t = q / p;
-            if (p < 0) t0 = Mathf.Max(t0, t);
-            else t1 = Mathf.Min(t1, t);
-        }
-        if (t0 >= t1) return null;
         var stuecke = new List<(Vector3, Vector3)>();
         if (t0 * d.Length() > 0.01f) stuecke.Add((von, von + d * t0));
         if ((1 - t1) * d.Length() > 0.01f) stuecke.Add((von + d * t1, bis));
@@ -288,11 +282,12 @@ public partial class Stadtansicht
             foreach (var ecke in teil.Mesh.GetFaces())
             {
                 var p = lage * ecke;
-                if (p.Y > 0.1f && new Vector2(p.X, p.Z).Length() < 4f) brunnen = Mathf.Max(brunnen, new Vector2(p.X, p.Z).Length());
+                var abstand = new Vector2(p.X - _markt.X, p.Z - _markt.Z).Length();
+                if (p.Y > 0.1f && abstand < 4f) brunnen = Mathf.Max(brunnen, abstand);
             }
         }
-        _marktHindernisse.Add((Vector3.Zero, Mathf.Max(brunnen, 2f)));
-        _marktHindernisse.Add((new Vector3(-10.4f, 0, 10.4f), 1.0f));
+        _marktHindernisse.Add((_markt, Mathf.Max(brunnen, 2f)));
+        _marktHindernisse.Add((_marktLage * new Vector3(-10.4f, 0, 10.4f), 1.0f)); // das Marktkreuz (Lage im Modell)
         for (var n = 1; anker.TryGetValue($"Anker_Sitz{2 * n - 1}", out var a) && anker.TryGetValue($"Anker_Sitz{2 * n}", out var b); n++)
         {
             var mitte = (a.Origin + b.Origin) / 2;
@@ -303,15 +298,26 @@ public partial class Stadtansicht
     }
 
     /// <summary>Liegt der Punkt auf dem Pflaster des Marktplatzes?</summary>
-    private static bool AufDemPflaster(Vector3 p) => Mathf.Abs(p.X - Marktplatz.X) <= MarktplatzHalb && Mathf.Abs(p.Z - Marktplatz.Z) <= MarktplatzHalb;
+    private bool AufDemPflaster(Vector3 p)
+    {
+        if (_marktHalb <= 0) return false;
+        var lokal = MarktLokal(p);
+        return Mathf.Abs(lokal.X) <= _marktHalb && Mathf.Abs(lokal.Z) <= _marktHalb;
+    }
 
     /// <summary>Der Teil der Strecke von <paramref name="a"/> nach <paramref name="b"/> (Anteile 0 bis 1), der auf dem Pflaster liegt. Null, wenn keiner.</summary>
-    private static (float Von, float Bis)? ImPflaster(Vector3 a, Vector3 b)
+    private (float Von, float Bis)? ImPflaster(Vector3 a, Vector3 b) =>
+        _marktHalb > 0 ? QuadratSchnitt(MarktLokal(a), MarktLokal(b), _marktHalb) : null;
+
+    /// <summary>
+    /// Wo die Strecke a–b (Koordinaten des Platzes) das Quadrat mit der halben Seite <paramref name="halb"/> um den Ursprung betritt und verlässt
+    /// (Anteile 0 bis 1, Liang-Barsky). Null, wenn sie es nicht berührt. Die Anteile gelten auch für dieselbe Strecke in Koordinaten der Stadt.
+    /// </summary>
+    private static (float Von, float Bis)? QuadratSchnitt(Vector3 a, Vector3 b, float halb)
     {
         var d = b - a;
         float t0 = 0, t1 = 1;
-        foreach (var (p, q) in new[] { (-d.X, a.X - Marktplatz.X + MarktplatzHalb), (d.X, Marktplatz.X + MarktplatzHalb - a.X),
-                                       (-d.Z, a.Z - Marktplatz.Z + MarktplatzHalb), (d.Z, Marktplatz.Z + MarktplatzHalb - a.Z) })
+        foreach (var (p, q) in new[] { (-d.X, a.X + halb), (d.X, halb - a.X), (-d.Z, a.Z + halb), (d.Z, halb - a.Z) })
         {
             if (Mathf.IsZeroApprox(p)) { if (q < 0) return null; continue; }
             var t = q / p;

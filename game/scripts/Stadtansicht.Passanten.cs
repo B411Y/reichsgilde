@@ -182,7 +182,7 @@ public partial class Stadtansicht
         if (punkt is not { } q || p.Figur is not { } figur) return;
         p.Knoten.Position = q;
         // Im Umland bei der Arbeit: auf dem Feld hacken, im Wald Holz aufheben, auf der Weide hüten – in irgendeine Richtung
-        var arbeit = ort.Ort == Stadtort.Umland ? ort.Stelle switch { "Feld" => "Hacken", "Wald" => "Buecken", "Weide" => "Hueten", _ => null } : null;
+        var arbeit = ort.Ort == Stadtort.Umland && ort.Stelle is { } s ? StellenArt(s) switch { "Feld" => "Hacken", "Wald" => "Buecken", "Weide" => "Hueten", _ => null } : null;
         if (arbeit is not null)
             p.Knoten.Rotation = new Vector3(0, UmlandPlatz(ort.Stelle!, Streuung(e.Nummer, Verweilzeit(ort, e))).Blick, 0);
         BewegungSetzen(figur, arbeit ?? "Stehen");
@@ -298,11 +298,11 @@ public partial class Stadtansicht
         {
             Stadtort.Heim when _haustueren.TryGetValue(a.Haus, out var tuer) => _netz.Knoten[tuer],
             Stadtort.Schaenke or Stadtort.Kirche when a.Betrieb is { } b && HofVon(b) is { } hof => hof,
-            Stadtort.Kirche => DomTuer,
-            Stadtort.Rathaus => RathausTuer,
-            Stadtort.Tor => Osttor,
-            Stadtort.Umland when a.Stelle is { } s && Umlandstellen.TryGetValue(s, out var u) => u,
-            _ => Marktplatz,
+            Stadtort.Kirche => _domTuer ?? _markt,
+            Stadtort.Rathaus => _rathausTuer ?? _markt,
+            Stadtort.Tor when _tore.Count > 0 => _tore[0].Ort,
+            Stadtort.Umland when a.Stelle is { } s && _umlandstellen.TryGetValue(s, out var u) => Punkt3(u.Punkt),
+            _ => _markt,
         };
         return _netz.KnotenBei(punkt);
     }
@@ -421,12 +421,13 @@ public partial class Stadtansicht
         {
             // Markt (nur, wenn alle Stellen besetzt sind): zwischen den Ständen (Marktplatz 24 × 24 m), nicht in Brunnen, Kreuz, Bank oder Stand
             Stadtort.Markt => FreierPunktAufDemMarkt(zahl),
-            // Tor: vor dem Osttor neben der Straße
-            Stadtort.Tor => Osttor + new Vector3(3 + Teil(0) * 4, 0, (Teil(16) < 0.5f ? -1 : 1) * (3 + Teil(8) * 2)),
+            // Tor: vor dem ersten Tor der Karte (Greybox: Osttor) neben der Straße
+            Stadtort.Tor when _tore.Count > 0 => _tore[0].Ort + _tore[0].Aussen * (3 + Teil(0) * 4)
+                                                 + _tore[0].Aussen.Cross(Vector3.Up) * ((Teil(16) < 0.5f ? -1 : 1) * (3 + Teil(8) * 2)),
             // Umland: auf der Weide, zwischen den Furchen, bei Reisig und Stümpfen im Wald (UmlandPlatz)
-            Stadtort.Umland when a.Stelle is { } s && Umlandstellen.ContainsKey(s) => UmlandPlatz(s, zahl).Ort,
+            Stadtort.Umland when a.Stelle is { } s && _umlandstellen.ContainsKey(s) => UmlandPlatz(s, zahl).Ort,
             // Gasse: irgendwo auf einer Gasse in der Stadt
-            _ => GassenLage(e, zeitpunkt)?.Punkt ?? Marktplatz,
+            _ => GassenLage(e, zeitpunkt)?.Punkt ?? _markt,
         };
     }
 
@@ -447,12 +448,12 @@ public partial class Stadtansicht
     /// Feld zwischen zwei Furchen, längs der Reihe; Wald an einem Stumpf oder beim Reisig; Weide irgendwo in der Koppel, nicht in Tränke, Busch oder Stein.
     /// Fest aus der Zahl (Nummer und Zeitpunkt). Die Lage im Modell wird mit der Drehung der Stelle in die Stadt gedreht.
     /// </summary>
-    private static (Vector3 Ort, float Blick) UmlandPlatz(string stelle, uint zahl)
+    private (Vector3 Ort, float Blick) UmlandPlatz(string stelle, uint zahl)
     {
         float Teil(int verschiebung) => ((zahl >> verschiebung) & 0xFF) / 255f; // 0 … 1
         Vector2 lokal;
         float blick;
-        switch (stelle)
+        switch (StellenArt(stelle))
         {
             case "Feld":
                 // Gassen zwischen den sechs Furchen (Furchen bei x = −6 + 2,4 · i, längs z), die Vogelscheuche steht bei (5,6 | −1)
@@ -477,9 +478,12 @@ public partial class Stadtansicht
                 blick = Teil(24) * Mathf.Tau;
                 break;
         }
-        var drehung = UmlandstelleDrehung(stelle);
-        return (Umlandstellen[stelle] + new Basis(Vector3.Up, drehung) * new Vector3(lokal.X, 0, lokal.Y), drehung + blick);
+        var g = _umlandstellen[stelle];
+        return (ModellLage(g) * new Vector3(lokal.X, 0, lokal.Y), DrehungVon(g) + blick);
     }
+
+    /// <summary>Welcher Teil von <c>umland_stellen.glb</c> eine Stelle ist („Weide“, „Feld“, „Wald“ – der Knoten ihres Bausteins): Danach richten sich Plätze und Bewegung.</summary>
+    private string StellenArt(string stelle) => _umlandstellen.TryGetValue(stelle, out var g) ? g.Baustein?.Knoten ?? stelle : stelle;
 
     /// <summary>Ein Punkt zwischen den Ständen, an dem nichts steht: bis zu acht feste Versuche aus der Zahl, sonst der erste.</summary>
     private Vector3 FreierPunktAufDemMarkt(uint zahl)
@@ -488,7 +492,7 @@ public partial class Stadtansicht
         for (var versuch = 0; versuch < 8; versuch++)
         {
             var z = versuch == 0 ? zahl : Streuung((int)zahl, 900 + versuch);
-            var punkt = RingUmMitte(Marktplatz, 3f, 10.5f, (z & 0xFFFF) / 65535f, ((z >> 16) & 0xFFFF) / 65535f);
+            var punkt = RingUmMitte(_markt, 3f, _marktHalb - 1.5f, (z & 0xFFFF) / 65535f, ((z >> 16) & 0xFFFF) / 65535f);
             if (versuch == 0) erster = punkt;
             if (!_marktHindernisse.Any(h => new Vector2(punkt.X - h.Mitte.X, punkt.Z - h.Mitte.Z).Length() < h.Radius + Wegrand)) return punkt;
         }
@@ -514,7 +518,7 @@ public partial class Stadtansicht
         var wahl = (zahl & 0xFFFF) / 65535f;
         var stelle = ((zahl >> 16) & 0xFFFF) / 65535f;
         _gassenInDerStadt ??= _netz.Kanten.Where(k => InDerStadt(k.Von) && InDerStadt(k.Bis) && k.Von.DistanceTo(k.Bis) > 3
-                                                 && k.Von.Length() > 13 && k.Bis.Length() > 13) // nicht auf dem Markt
+                                                 && AbstandZumPflaster(k.Von) > 1 && AbstandZumPflaster(k.Bis) > 1) // nicht auf dem Markt
                                      // nach Lage geordnet: Die Kanten liegen in einem HashSet, gleiche Nummer soll nach dem Laden gleiche Gasse sein
                                      .OrderBy(k => k.Von.X).ThenBy(k => k.Von.Z).ThenBy(k => k.Bis.X).ThenBy(k => k.Bis.Z).ToList();
         if (_gassenInDerStadt.Count == 0) return null;
@@ -733,12 +737,12 @@ public partial class Stadtansicht
         };
         string wo;
         if (_passanten.TryGetValue(e.Nummer, out var p) && p.Stand is null && e.Weg is { } weg && minute < p.LaufEnde)
-            wo = $"unterwegs {OrtText(weg.Nach, ew, mitZu: true)} (an etwa {new Reichsgilde.Core.Zeit.Spielzeit((long)Math.Ceiling(p.LaufEnde)).UhrzeitText} Uhr)";
+            wo = $"unterwegs {OrtText(weg.Nach, mitZu: true)} (an etwa {new Reichsgilde.Core.Zeit.Spielzeit((long)Math.Ceiling(p.LaufEnde)).UhrzeitText} Uhr)";
         else
-            wo = OrtText(e.Aufenthalt, ew, mitZu: false);
+            wo = OrtText(e.Aufenthalt, mitZu: false);
         var haus = ew.Wohnhaeuser.FirstOrDefault(h => h.Nummer == e.Wohnhaus) is { } stadthaus
             ? $"Wohnt in einem {(stadthaus.Art switch { Hausart.Ratsherrenhaus => "Ratsherrenhaus", Hausart.Buergerhaus => "Bürgerhaus", _ => "einfachen Haus" })}"
-              + (_hausplaetze.TryGetValue(stadthaus.Nummer, out var platz) && !platz.Ring && !KulissePlaetze().Contains(platz) ? " in der Vorstadt" : " am Mauerring")
+              + (_hausplaetze.TryGetValue(stadthaus.Nummer, out var platz) && !InDerStadt(platz.Mitte) ? " in der Vorstadt" : " in der Stadt")
             : null;
         var stimmung = e.Stimmung switch { >= 75 => "zufrieden", >= 55 => "gut gelaunt", >= 35 => "mürrisch", _ => "unzufrieden" };
         return string.Join("\n", new string?[]
@@ -752,7 +756,7 @@ public partial class Stadtansicht
         }.OfType<string>()); // ohne Haus fällt die Zeile weg
     }
 
-    private static string OrtText(Aufenthalt a, Einwohnerschaft ew, bool mitZu) => a.Ort switch
+    private string OrtText(Aufenthalt a, bool mitZu) => a.Ort switch
     {
         Stadtort.Heim => mitZu ? "nach Hause" : "zu Hause",
         Stadtort.Markt => mitZu ? "zum Markt" : "am Markt",
@@ -760,7 +764,7 @@ public partial class Stadtansicht
         Stadtort.Schaenke => (mitZu ? "zur " : "in der ") + (a.Betrieb ?? "Schänke"),
         Stadtort.Kirche => a.Betrieb is { } k ? (mitZu ? "zur " : "in der ") + k : (mitZu ? "zum Dom" : "im Dom"),
         Stadtort.Rathaus => mitZu ? "zum Rathaus" : "im Rathaus",
-        Stadtort.Tor => mitZu ? "zum Osttor" : "am Osttor",
+        Stadtort.Tor => (mitZu ? "zum " : "am ") + (_tore.Count > 0 ? _tore[0].Name : "Tor"),
         Stadtort.Umland => (mitZu ? "hinaus " : "draußen ") + (a.Stelle switch { "Weide" => mitZu ? "auf die Weide" : "auf der Weide", "Feld" => mitZu ? "aufs Feld" : "auf dem Feld", "Wald" => mitZu ? "in den Wald" : "im Wald", _ => "im Umland" }),
         _ => a.Ort.ToString(),
     };

@@ -59,9 +59,7 @@ public partial class Stadtansicht
                 // Die Plätze der Karte hängen die Haustür ans Gassennetz (wie die alten Spielhäuser); Neubauten bleiben außen vor.
                 if (g.Kennung is not null && g.Art == Grundstuecksart.Wohnhaus)
                 {
-                    var tuer = new Vector3((float)g.Grundriss.Eingang.X, 0, (float)g.Grundriss.Eingang.Z);
-                    var knoten = _netz.Anschliessen(tuer);
-                    if (knoten >= 0) _netz.Weg(_netz.Knoten[knoten], tuer);
+                    AnWegAnschliessen(new Vector3((float)g.Grundriss.Eingang.X, 0, (float)g.Grundriss.Eingang.Z));
                 }
             }
             if (bild.Stand == stand) continue;
@@ -358,36 +356,14 @@ public partial class Stadtansicht
     // ═════════════════════════════════════════════════════════════════════════
 
     /// <summary>
-    /// Wo steht der Betrieb? Die Werkstätten der Karte stehen im <see cref="Stadtplan"/>. Eine neu gebaute liegt auf ihrem Grundstück:
-    /// Die Front des Werkstattmodells (16 × 14 m mit Vorplatz) steht 2 m hinter der Vorderkante der Fläche, <paramref name="mitte"/> ist wie im Stadtplan
-    /// der Punkt 4 m hinter der Front (1 m vor der Mitte der Fläche), <paramref name="drehung"/> ist
-    /// die Drehung der Fläche (0 = Eingang nach Süden). Gibt false zurück, wenn der Betrieb nirgends einen Platz hat.
-    /// </summary>
-    private bool PlatzVon(string betrieb, out Vector3 mitte, out int drehung)
-    {
-        drehung = 0;
-        if (Stadtplan.TryGetValue(betrieb, out mitte)) return true;
-        if (_wirtschaft?.Bauen.Werkstatt(betrieb) is { } g)
-        {
-            var gr = g.Grundriss;
-            var abstand = (float)gr.Tiefe / 2 - VorplatzVon(gr) - 4f; // Modellmitte relativ zur Flächenmitte, zur Front hin
-            mitte = Mitte3(gr) + new Vector3((float)gr.Vorne.X, 0, (float)gr.Vorne.Z) * abstand;
-            drehung = gr.Drehung;
-            return true;
-        }
-        mitte = Vector3.Zero;
-        return false;
-    }
-
-    /// <summary>
     /// Dreht ein fertig gebautes Gebäude um <paramref name="mitte"/> (die Bausteine hängen mit festen Weltkoordinaten an der Gruppe):
-    /// Sie wandern in einen gedrehten Knoten unter der Gruppe. Gibt die Drehung als Basis zurück, damit die Außenrichtungen der Wände
-    /// folgen können. Die Räume im Innern (<paramref name="ausser"/>) liegen 200 m unter der Stadt und werden nicht mitgedreht:
-    /// Die Raumkamera blickt fest nach Norden.
+    /// Sie wandern in einen gedrehten Knoten unter der Gruppe. <paramref name="drehung"/> ist der Winkel um die Hochachse im Bogenmaß
+    /// (wie <c>Rotation.Y</c>, beliebig). Gibt die Drehung als Basis zurück, damit die Außenrichtungen der Wände folgen können. Die Räume im
+    /// Innern (<paramref name="ausser"/>) liegen 200 m unter der Stadt und werden nicht mitgedreht: Die Raumkamera blickt fest nach Norden.
     /// </summary>
-    private static Basis UmMitteDrehen(Node3D gruppe, Vector3 mitte, int drehung, Node? ausser = null)
+    private static Basis UmMitteDrehen(Node3D gruppe, Vector3 mitte, float drehung, Node? ausser = null)
     {
-        var basis = new Basis(Vector3.Up, drehung * Mathf.Pi / 2);
+        var basis = new Basis(Vector3.Up, drehung);
         if (drehung == 0) return basis;
         var huelle = new Node3D { Name = "Gedreht" };
         foreach (var kind in gruppe.GetChildren())
@@ -399,28 +375,6 @@ public partial class Stadtansicht
         huelle.Transform = new Transform3D(basis, mitte - basis * mitte);
         gruppe.AddChild(huelle);
         return basis;
-    }
-
-    /// <summary>Der Hof vor der Tür einer Werkstatt: die Stelle, wo Karren losfahren und Gäste ankommen (null, wenn der Betrieb nirgends steht).</summary>
-    private Vector3? HofVon(string betrieb)
-    {
-        if (Stadtplan.TryGetValue(betrieb, out var p)) return p + new Vector3(0, 0, 5.5f);
-        if (_wirtschaft?.Bauen.Werkstatt(betrieb) is { } g) return new Vector3((float)g.Grundriss.Eingang.X, 0, (float)g.Grundriss.Eingang.Z);
-        return null;
-    }
-
-    /// <summary>Der Weg einer neuen Werkstatt zum Markt: vom Hof an der Vorderkante der Fläche über das Gassennetz.</summary>
-    private (Vector3 Hof, Vector3[] Weg) WerkstattWeg(string betrieb)
-    {
-        var gr = _wirtschaft!.Bauen.Werkstatt(betrieb)!.Grundriss;
-        var hof = new Vector3((float)gr.Eingang.X, 0, (float)gr.Eingang.Z);
-        var knoten = _netz.Anschliessen(hof);
-        if (knoten >= 0) _netz.Weg(_netz.Knoten[knoten], hof); // der Hof hängt am Netz: Gäste und Karren finden hin
-        var pfad = knoten >= 0 ? _netz.Pfad(knoten, _netz.KnotenBei(Marktplatz)) : Array.Empty<Vector3>();
-        var weg = new List<Vector3> { hof };
-        weg.AddRange(pfad);
-        if (weg.Count < 2) weg.Add(Marktplatz);
-        return (hof, weg.ToArray());
     }
 
     // ═════════════════════════════════════════════════════════════════════════
@@ -457,14 +411,11 @@ public partial class Stadtansicht
         }
     }
 
-    /// <summary>Die Karte der Stadt (aus dem Kern, sonst die geladene Greybox-Karte).</summary>
-    private Stadtkarte? KarteDerStadt => _wirtschaft?.Karte ?? Stadtkarten.Greybox;
-
     private void BauzonenBauen()
     {
         _bauzonen = new Node3D { Name = "Bauzonen", Visible = false };
         AddChild(_bauzonen);
-        if (KarteDerStadt is not { } karte) return;
+        if (_karte is not { } karte) return;
         var raster = (float)karte.Raster;
         foreach (var zone in karte.Bauzonen)
         {

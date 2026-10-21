@@ -214,10 +214,7 @@ public partial class Hauptmenue : Node
         Zeile(raster, "Die KI-Häuser spielen", _rivale);
 
         _rivalen = new OptionButton { FocusMode = Control.FocusModeEnum.None };
-        _rivalen.AddItem("Haus Eisenbart (Schmiede)", 1);
-        _rivalen.AddItem("Eisenbart und Eichwald (Tischler)", 2);
-        _rivalen.AddItem("Eisenbart, Eichwald und Kieselbach (Steinmetz)", 3);
-        _rivalen.Select(2);
+        RivalenWahlFuellen();
         Zeile(raster, "Rivalen", _rivalen);
 
         var startwertZeile = new HBoxContainer();
@@ -332,11 +329,33 @@ public partial class Hauptmenue : Node
         _wappenText.AddThemeColorOverride("font_color", problem is null ? new Color(0.75f, 0.72f, 0.65f) : Rot);
     }
 
+    /// <summary>Wer am Start in der Stadt lebt: die Belegung der Karte, mit der eine neue Partie beginnt (ohne Karte die eingebaute).</summary>
+    private static Startbelegung Startbelegung => Stadtkarten.Greybox?.Startbelegung ?? Startbelegung.Ersatz;
+
+    /// <summary>
+    /// Die Wahl der Rivalen: die KI-Häuser der Karte in ihrer Reihenfolge – das erste spielt immer mit, jede weitere Zeile nimmt das nächste dazu
+    /// („Eisenbart und Eichwald (Tischlerei)“; in Klammern die Werkstatt des neuen Hauses). Vorgewählt sind alle.
+    /// </summary>
+    private void RivalenWahlFuellen()
+    {
+        var karte = Stadtkarten.Greybox;
+        var haeuser = Startbelegung.Haeuser;
+        static string Kurz(string name) => name.StartsWith("Haus ") ? name[5..] : name;
+        for (var n = 1; n <= haeuser.Count; n++)
+        {
+            var namen = haeuser.Take(n).Select(h => Kurz(h.Name)).ToList();
+            var text = n == 1 ? haeuser[0].Name : string.Join(", ", namen.SkipLast(1)) + " und " + namen[^1];
+            var werkstatt = haeuser[n - 1].Betriebe.FirstOrDefault() is { } b ? karte?.GebaeudeMit(b.Platz)?.Betrieb?.Split(' ')[0] : null;
+            _rivalen.AddItem(werkstatt is null ? text : $"{text} ({werkstatt})", n);
+        }
+        if (haeuser.Count > 0) _rivalen.Select(haeuser.Count - 1);
+    }
+
     /// <summary>Warum dieses Wappen nicht geht – oder null.</summary>
     private string? WappenProblem()
     {
         if (_wappen.Fehler() is { } fehler) return fehler;
-        if (Wappen.Rivalenwappen.Contains(_wappen))
+        if (Startbelegung.Rivalenwappen.Contains(_wappen))
             return "Dieses Wappen führt schon ein KI-Haus – ändert eine Farbe.";
         return null;
     }
@@ -394,7 +413,7 @@ public partial class Hauptmenue : Node
         };
         var fehler = einstellungen.Pruefen().ToList();
         var hausname = Partieaufbau.Hausname(_familie.Text);
-        if (Partieaufbau.Rivalennamen.Contains(hausname))
+        if (Startbelegung.Rivalennamen.Contains(hausname))
             fehler.Add($"„{hausname}“ ist der Name eines Rivalen – wählt bitte einen anderen.");
         if (WappenProblem() is { } wappenFehler)
             fehler.Add(wappenFehler);
