@@ -160,8 +160,8 @@ public partial class Stadtansicht
     // ═════════════════════════════════════════════════════════════════════════
 
     /// <summary>
-    /// Ein Klick beim Zeichnen: setzt einen Punkt (Wege rasten ein, Bauzonen auf das Raster). Doppelklick beendet; bei Flächen auch ein Klick auf
-    /// die erste Ecke.
+    /// Ein Klick beim Zeichnen: setzt einen Punkt (Wege rasten ein, Bauzonen auf das Raster der Karte, Mauern auf 1 m). Doppelklick beendet; bei
+    /// Flächen und Mauern auch ein Klick auf die erste Ecke (eine Mauer wird dann geschlossen, mit Doppelklick bleibt sie offen).
     /// </summary>
     private void ZeichnenKlick(Vector2 maus, Vector2? boden, bool doppelklick)
     {
@@ -174,17 +174,27 @@ public partial class Stadtansicht
         var weg = Kartenwerkzeug == Werkstattwerkzeug.Weg;
         if (!weg && _wsPunkte.Count >= 3 && _kamera.UnprojectPosition(new Vector3(_wsPunkte[0].X, 0, _wsPunkte[0].Y)).DistanceTo(maus) <= 10)
         {
-            ZeichnenBeenden();
+            ZeichnenBeenden(ersteEcke: true);
             return;
         }
-        // Wege rasten nur am Anfang ein (das Ende beim Anlegen): ein Punkt dazwischen, der neben einer Gasse liegt, bleibt, wo er ist
-        var p = weg ? _wsPunkte.Count == 0 ? Fangen(b).Ort : b : Eckpunkt(null, b);
+        // Der Anfang eines Weges rastet ein wie im Kern (Hof, Tor, Halteplatz, Weg), Punkte dazwischen nur in Tore (das Ende rastet beim Anlegen):
+        // ein Punkt dazwischen, der neben einer Gasse liegt, bleibt, wo er ist
+        var p = Kartenwerkzeug switch
+        {
+            Werkstattwerkzeug.Weg when _wsPunkte.Count == 0 => Fangen(b) is { } f ? V2(f.Ort) : b,
+            Werkstattwerkzeug.Weg => Zwischenpunkt(b) is { } t ? V2(t.Ort) : b,
+            Werkstattwerkzeug.Mauer => Mauerpunkt(b),
+            _ => Eckpunkt(null, b),
+        };
         if (_wsPunkte.Count > 0 && _wsPunkte[^1].DistanceTo(p) < 0.05f) return;
         _wsPunkte.Add(p);
     }
 
-    /// <summary>Doppelklick, Enter: legt den Weg bzw. die Fläche an (ein Schritt). Zu wenige Punkte: eine Meldung, die Punkte bleiben.</summary>
-    private void ZeichnenBeenden()
+    /// <summary>
+    /// Doppelklick, Enter, Klick auf die erste Ecke (<paramref name="ersteEcke"/>): legt den Weg, die Fläche bzw. die Mauer an (ein Schritt; eine
+    /// Mauer nur nach dem Klick auf die erste Ecke geschlossen). Zu wenige Punkte: eine Meldung, die Punkte bleiben.
+    /// </summary>
+    private void ZeichnenBeenden(bool ersteEcke = false)
     {
         if (_entwurf is null) return;
         var werkzeug = Kartenwerkzeug;
@@ -192,6 +202,11 @@ public partial class Stadtansicht
         {
             if (_wsPunkte.Count < 2) WerkstattMeldung?.Invoke("Ein Weg braucht mindestens zwei Punkte.", true);
             else WegFertig(); // Stadtansicht.Kartenwerkstatt.Wege.cs
+            return;
+        }
+        if (werkzeug == Werkstattwerkzeug.Mauer)
+        {
+            MauerFertig(geschlossen: ersteEcke); // Stadtansicht.Kartenwerkstatt.Mauern.cs
             return;
         }
         if (_wsPunkte.Count < 3)
@@ -239,7 +254,7 @@ public partial class Stadtansicht
         }
         VorschauVieleck(punkte, farbe, geschlossen: punkte.Count >= 3);
         VorschauPunkte(_wsPunkte, Colors.White);
-        if (schliesst) FangmarkeZeigen(_wsPunkte[0]);
+        if (schliesst) FangmarkeZeigen(_wsPunkte[0], Colors.White);
     }
 
     /// <summary>Ein Vieleck als Vorschau: Füllung (wenn es sich zerlegen lässt) und Rand.</summary>

@@ -1,6 +1,7 @@
 using Godot;
 using Reichsgilde.Core.Bauen;
 using Reichsgilde.Core.Kartenwerkstatt;
+using Reichsgilde.Core.Wirtschaft;
 
 namespace Reichsgilde;
 
@@ -10,13 +11,20 @@ namespace Reichsgilde;
 /// jeweils mit Rückgängig und Wiederholen, dazu die Prüfung nach den Kartenregeln (live) und das Speichern im Kartenformat 2.
 ///
 /// Aufgaben verteilt:
-///   • diese Datei: Öffnen und Speichern, Tasten, Rückfragen, Startoptionen;
-///   • Kartenwerkstatt.Tafeln.cs: Leiste oben, Katalog links, Eigenschaften und Fehlerliste rechts;
-///   • Stadtansicht.Kartenwerkstatt.cs: alles in der 3D-Welt (Gebäude zeichnen, Umriss, Auswahl, Ziehen).
+///   • diese Datei: Öffnen und Speichern, „Karte ausprobieren“ und die Rückkehr, Tasten, Startoptionen;
+///   • Kartenwerkstatt.Tafeln.cs: Leiste oben, Katalog links, Eigenschaften der Gebäude und Fehlerliste rechts, Rückfragen;
+///   • Kartenwerkstatt.Eigenschaften.cs: die Tafel rechts für Wege, Flächen (mit Streu-Gruppen), Pflanzen, Mauern und den Pinsel;
+///   • Kartenwerkstatt.Start.cs: die Tafel „Start“ (Startbelegung: Spieler und KI-Häuser);
+///   • Stadtansicht.Kartenwerkstatt*.cs: alles in der 3D-Welt (Gebäude, Wege, Flächen, Natur, Mauern, Belegung, Auswahl, Ziehen).
 ///
 /// Speicherort (Entscheidung vom 21.10.2026): Die mitgelieferten Karten (<c>game/karten/</c>, also Greybox und Köln) öffnet die Werkstatt
 /// nur lesend; gespeichert wird nur im Benutzerordner <c>user://karten/</c> (wie die Spielstände). So überschreibt sie nie, was das
 /// Python-Werkzeug erzeugt. Eine andere Karte zu öffnen (oder eine neue) lädt die Szene neu – so beginnt die Stadtansicht immer leer.
+///
+/// „Karte ausprobieren“ (nur ohne Fehler): Der Kern stellt auf dem Entwurf, wie er gerade ist, eine neue Partie auf
+/// (<see cref="Kartenentwurf.Ausprobieren"/>); die Hauptszene holt sie ab (<see cref="ProbeAbholen"/>), spielt sie ohne Auto-Stand und führt
+/// über das Spielmenü zurück (<see cref="ZurueckAusDerProbe"/>). Der Entwurf wartet so lange im „Briefkasten“ samt Rückgängig-Geschichte,
+/// Kamera und Auswahl.
 /// </summary>
 public partial class Kartenwerkstatt : Node
 {
@@ -38,7 +46,18 @@ public partial class Kartenwerkstatt : Node
     /// <summary>Die Startoptionen gelten nur für den ersten Start der Szene, nicht nach Öffnen oder Neu.</summary>
     private static bool _startoptionenErledigt;
 
+    /// <summary>Was die Werkstatt während einer Probepartie aufhebt: Entwurf, Datei, Kamera und Auswahl (null: keine Probepartie).</summary>
+    private static (Kartenentwurf Entwurf, string? Pfad, bool NurLesen, (Vector3, float, float) Kamera, EntwurfTeil? Auswahl)? _probe;
+
+    /// <summary>Die aufgestellte Probepartie, bis die Hauptszene sie abholt.</summary>
+    private static (Reichsgilde.Core.Simulation Simulation, Konto Spieler)? _probepartie;
+
+    private const string Spielszene = "res://scenes/Hauptszene.tscn";
+
     private Kartenentwurf _entwurf = null!;
+
+    /// <summary>Die Wirtschaftsdaten (<c>wirtschaft.json</c>) – für Betriebsarten und Waren der Startbelegung und zum Ausprobieren (null: nicht lesbar).</summary>
+    private Wirtschaftsdaten? _daten;
 
     /// <summary>Woher die Karte kommt (null: neu, noch nie gespeichert) und ob die Datei nur gelesen werden darf (mitgeliefert).</summary>
     private string? _pfad;
@@ -55,37 +74,75 @@ public partial class Kartenwerkstatt : Node
         var optionen = _startoptionenErledigt ? new Dictionary<string, string>() : Startoptionen();
         _startoptionenErledigt = true;
         string? meldung = null;
+        var zurueck = _auftrag is null ? _probe : null; // zurück aus der Probepartie (oder über das Hauptmenü wieder hier): weiter wie vorher
+        _probe = null;
+        if (zurueck is { } r) _auftrag = (r.Entwurf, r.Pfad, r.NurLesen);
         if (_auftrag is not { } auftrag)
             (auftrag, meldung) = Startkarte(optionen.GetValueOrDefault("kartenwerkstatt"));
         _auftrag = null;
         (_entwurf, _pfad, _nurLesen) = auftrag;
+        (_daten, var datenFehler) = DatenLaden();
+        _entwurf.Daten ??= _daten; // Betriebsarten je Platz und die Prüfung der Startbelegung
 
         _stadt.EntwurfZeigen(_entwurf);
         OberflaecheBauen(); // Kartenwerkstatt.Tafeln.cs
-        _entwurf.Geaendert += a =>
-        {
-            AuffrischenVormerken();
-            if (ReferenceEquals(a.Objekt, _stadt.WerkstattGewaehlt)) EigenschaftenZeigen(neu: false);
-        };
-        _stadt.WerkstattAuswahlGeaendert += _ => EigenschaftenZeigen(neu: true);
+        _entwurf.Geaendert += EntwurfGeaendert;
+        _stadt.WerkstattAuswahlGeaendert += AuswahlGeaendert;
         _stadt.WerkstattWerkzeugBeendet += KatalogWahlAufheben;
         _stadt.WerkstattWerkzeugGeaendert += () =>
         {
+            // ein Werkzeug des Katalogs zeigt seine Tafel unter „Eigenschaften“ (Pinsel); die Wahl eines Platzes gehört zur Tafel „Start“
+            if (_startOffen && _stadt.Kartenwerkzeug is not (Werkstattwerkzeug.Auswahl or Werkstattwerkzeug.Platz)) ReiterWaehlen(false);
             EigenschaftenZeigen(neu: true);
             HilfeZeigen();
         };
         _stadt.WerkstattMeldung += (text, fehler) => Melden(text, fehler);
         _stadt.WerkstattNaturGestreut += () => EigenschaftenZeigen(neu: false);
         GetTree().AutoAcceptQuit = false; // das Schließen des Fensters fragt nach ungespeicherten Änderungen (_Notification)
+        if (zurueck is { } wieder)
+        {
+            _stadt.WerkstattKamera = wieder.Kamera;
+            _stadt.WerkstattWaehlen(wieder.Auswahl);
+            meldung = "Zurück aus der Probepartie – die Karte ist, wie sie war, mit Rückgängig.";
+        }
         Auffrischen();
         EigenschaftenZeigen(neu: true);
         if (meldung is not null) Melden(meldung);
+        else if (datenFehler is not null) Melden(datenFehler, fehler: true);
         StartoptionenAusfuehren(optionen);
     }
 
     public override void _Process(double delta) => _stadt.WerkstattAktualisieren();
 
-    public override void _ExitTree() => GetTree().AutoAcceptQuit = true;
+    /// <summary>Die Szene geht (Hauptmenü, Öffnen, Ausprobieren): Der Entwurf kann sie überleben – also alle Ereignisse an ihn lösen.</summary>
+    public override void _ExitTree()
+    {
+        GetTree().AutoAcceptQuit = true;
+        _entwurf.Geaendert -= EntwurfGeaendert;
+        _stadt.WerkstattLoesen();
+    }
+
+    private void EntwurfGeaendert(Kartenaenderung a)
+    {
+        AuffrischenVormerken();
+        if (ReferenceEquals(a.Objekt, _stadt.WerkstattGewaehlt)) EigenschaftenZeigen(neu: false);
+        if (a.Objekt is EntwurfStart) StartVormerken(); // Kartenwerkstatt.Start.cs
+    }
+
+    /// <summary>Liest <c>wirtschaft.json</c> (wie die Hauptszene) – oder nennt den Grund, warum es nicht geht.</summary>
+    private static (Wirtschaftsdaten? Daten, string? Fehler) DatenLaden()
+    {
+        try
+        {
+            var json = Godot.FileAccess.GetFileAsString(Hauptszene.WirtschaftsdatenPfad);
+            return string.IsNullOrEmpty(json) ? (null, $"{Hauptszene.WirtschaftsdatenPfad} fehlt – ohne sie kennt die Startbelegung keine Betriebsarten.")
+                : (Wirtschaftsdaten.AusJson(json), null);
+        }
+        catch (WirtschaftsdatenFehler fehler)
+        {
+            return (null, fehler.Message);
+        }
+    }
 
     /// <summary>Das Fenster soll schließen (X): bei ungespeicherten Änderungen erst fragen.</summary>
     public override void _Notification(int was)
@@ -206,6 +263,45 @@ public partial class Kartenwerkstatt : Node
     }
 
     // ═════════════════════════════════════════════════════════════════════════
+    //  Karte ausprobieren
+    // ═════════════════════════════════════════════════════════════════════════
+
+    /// <summary>
+    /// Stellt auf dem Entwurf eine neue Partie mit diesem Beruf auf (<see cref="Kartenentwurf.Ausprobieren"/>) und wechselt in die Hauptszene; der
+    /// Entwurf wartet samt Rückgängig, Kamera und Auswahl auf die Rückkehr. Geht es nicht (Fehler in der Karte), steht der Grund unten.
+    /// </summary>
+    private void Ausprobieren(string beruf)
+    {
+        if (_daten is null)
+        {
+            Melden("Ohne Wirtschaftsdaten lässt sich keine Partie aufstellen.", fehler: true);
+            return;
+        }
+        try
+        {
+            _probepartie = _entwurf.Ausprobieren(_daten, beruf);
+        }
+        catch (Exception ex) when (ex is InvalidOperationException or KartenFehler or ArgumentException)
+        {
+            Melden($"Ausprobieren geht nicht: {ex.Message}", fehler: true);
+            return;
+        }
+        _probe = (_entwurf, _pfad, _nurLesen, _stadt.WerkstattKamera, _stadt.WerkstattGewaehlt);
+        GetTree().ChangeSceneToFile(Spielszene);
+    }
+
+    /// <summary>Für die Hauptszene: die aufgestellte Probepartie (einmal; null, wenn keine wartet).</summary>
+    public static (Reichsgilde.Core.Simulation Simulation, Konto Spieler)? ProbeAbholen()
+    {
+        var partie = _probepartie;
+        _probepartie = null;
+        return partie;
+    }
+
+    /// <summary>Für die Hauptszene (Spielmenü einer Probepartie): zurück in die Kartenwerkstatt zum Entwurf, wie er war.</summary>
+    public static void ZurueckAusDerProbe(SceneTree baum) => baum.ChangeSceneToFile(Szene);
+
+    // ═════════════════════════════════════════════════════════════════════════
     //  Tasten
     // ═════════════════════════════════════════════════════════════════════════
 
@@ -277,7 +373,10 @@ public partial class Kartenwerkstatt : Node
         return f;
     }
 
-    /// <summary>Ein Teil aus der Startoption <c>--werkstatt-auswahl</c>: „weg:&lt;Name&gt;“, „zone:&lt;Kennung&gt;“, „natur:&lt;Name&gt;“, sonst die Kennung eines Gebäudes.</summary>
+    /// <summary>
+    /// Ein Teil aus der Startoption <c>--werkstatt-auswahl</c>: „weg:&lt;Name&gt;“, „zone:&lt;Kennung&gt;“, „natur:&lt;Name&gt;“, „mauer:&lt;Name&gt;“,
+    /// sonst die Kennung eines Gebäudes.
+    /// </summary>
     private EntwurfTeil? TeilVon(string text)
     {
         var (art, name) = text.Contains(':') ? (text[..text.IndexOf(':')], text[(text.IndexOf(':') + 1)..].Replace('_', ' ')) : ("", text);
@@ -286,14 +385,15 @@ public partial class Kartenwerkstatt : Node
             "weg" => _entwurf.Wege.FirstOrDefault(w => w.Name == name),
             "zone" => _entwurf.Bauzonen.FirstOrDefault(z => z.Kennung == name),
             "natur" => _entwurf.Naturflaechen.FirstOrDefault(n => n.Name == name),
+            "mauer" => _entwurf.Mauern.FirstOrDefault(m => m.Name == name),
             _ => _entwurf.GebaeudeMit(text),
         };
     }
 
     /// <summary>
-    /// Die Schritte der Startoptionen in fester Reihenfolge: setzen, weg, flaeche, pinsel, radierer, versetzen, rückgängig, auswahl, speichern,
-    /// umriss, werkzeug, netz, dann Kamera und Tafeln (Liste in <c>CLAUDE.md</c>, „Bauen, testen, ausprobieren“). Mehrere Wege, Flächen und Striche
-    /// trennt „|“, Punkte „;“.
+    /// Die Schritte der Startoptionen in fester Reihenfolge: setzen, mauer, tor, weg, flaeche, pinsel, radierer, start, versetzen, rückgängig,
+    /// auswahl, speichern, umriss, werkzeug, netz, dann Kamera, Tafeln und zuletzt ausprobieren (Liste in <c>CLAUDE.md</c>, „Bauen, testen,
+    /// ausprobieren“). Mehrere Wege, Flächen, Mauern, Tore, Striche und Startbefehle trennt „|“, Punkte „;“.
     /// </summary>
     private void StartoptionenAusfuehren(Dictionary<string, string> o)
     {
@@ -305,6 +405,23 @@ public partial class Kartenwerkstatt : Node
                     var t = eintrag.Split(',');
                     var g = _entwurf.Setzen(t[0], Zahl(t[1]), Zahl(t[2]), t.Length > 3 ? Zahl(t[3]) : 0);
                     _stadt.WerkstattWaehlen(g.Kennung);
+                }
+            // --werkstatt-mauer=x1,z1;x2,z2;…[,offen] (ohne „offen“ ab drei Ecken geschlossen)
+            if (o.TryGetValue("werkstatt-mauer", out var mauern))
+                foreach (var eintrag in mauern.Split('|', StringSplitOptions.RemoveEmptyEntries))
+                {
+                    var (_, punkte, wort) = Liste("-," + eintrag);
+                    _stadt.WerkstattWaehlen(_entwurf.MauerAnlegen(punkte, geschlossen: wort != "offen" && punkte.Count >= 3));
+                }
+            // --werkstatt-tor=x,z|x,z (auf die nächste Mauer bis 10 m)
+            if (o.TryGetValue("werkstatt-tor", out var tore))
+                foreach (var eintrag in tore.Split('|', StringSplitOptions.RemoveEmptyEntries))
+                {
+                    var t = eintrag.Split(',');
+                    var (x, z) = (Zahl(t[0]), Zahl(t[1]));
+                    var fang = _entwurf.MauerBei(x, z, 10) ?? throw new ArgumentException($"Bei {eintrag} liegt keine Mauer (bis 10 m).");
+                    _entwurf.TorSetzen(fang.Mauer, x, z);
+                    _stadt.WerkstattWaehlen(fang.Mauer);
                 }
             // --werkstatt-weg=gasse,x1,z1;x2,z2;…[,gerade]
             if (o.TryGetValue("werkstatt-weg", out var wege))
@@ -345,6 +462,8 @@ public partial class Kartenwerkstatt : Node
                 _stadt.PinselRadius = Zahl(t[0]);
                 _stadt.WerkstattRadieren(Liste("-," + t[1]).Punkte);
             }
+            if (o.TryGetValue("werkstatt-start", out var start))
+                foreach (var befehl in start.Split('|', StringSplitOptions.RemoveEmptyEntries)) StartBefehl(befehl);
             if (o.TryGetValue("werkstatt-versetzen", out var versetzen))
             {
                 var t = versetzen.Split(',');
@@ -375,15 +494,24 @@ public partial class Kartenwerkstatt : Node
             _stadt.KameraSetzen((float)Zahl(t[0]), (float)Zahl(t[1]), t.Length > 2 ? (float)Zahl(t[2]) : null);
         }
         if (o.TryGetValue("drehung", out var drehung) && int.TryParse(drehung, out var viertel)) _stadt.Drehen(viertel, sofort: true);
+        if (o.GetValueOrDefault("werkstatt-tafel") == "start") ReiterWaehlen(true);
+        if (o.TryGetValue("werkstatt-haus", out var haus) && int.TryParse(haus, out var hausNummer))
+        {
+            _startHaus = hausNummer - 1;
+            if (_startOffen) StartZeigen();
+        }
         if (o.GetValueOrDefault("werkstatt-dialog") is { } dialog)
         {
-            if (dialog == "neu") NeuZeigen();
+            if (dialog == "ausprobieren") AusprobierenZeigen();
+            else if (dialog == "neu") NeuZeigen();
             else if (dialog == "oeffnen") OeffnenZeigen();
             else if (dialog == "speichern") SpeichernUnterZeigen();
             else if (dialog == "zurueck") ZurueckZumMenue();
             else if (dialog == "schliessen") _Notification((int)NotificationWMCloseRequest);
         }
         if (o.GetValueOrDefault("ui") == "0") _oberflaeche.Visible = false;
+        // --werkstatt-ausprobieren=<Beruf>: gleich eine Probepartie starten (nach allen anderen Schritten)
+        if (o.TryGetValue("werkstatt-ausprobieren", out var probeBeruf)) Callable.From(() => Ausprobieren(probeBeruf)).CallDeferred();
         // --werkstatt-bildpunkte=x1,z1;x2,z2;…: schreibt nach 1,5 s, wo diese Orte auf dem Bildschirm liegen (für Klicks mit xdotool)
         if (o.TryGetValue("werkstatt-bildpunkte", out var orte))
             GetTree().CreateTimer(1.5).Timeout += () =>
@@ -391,5 +519,28 @@ public partial class Kartenwerkstatt : Node
                 foreach (var ort in Liste("-," + orte).Punkte)
                     GD.Print($"Bildpunkt {Kartenschreiber.Zahl(ort.X)},{Kartenschreiber.Zahl(ort.Z)} -> {_stadt.WerkstattBildpunkt(ort.X, ort.Z)}");
             };
+    }
+
+    /// <summary>
+    /// Ein Schritt der Startoption <c>--werkstatt-start</c>: „haus[:Name]“, „wohnhaus:&lt;Haus&gt;:&lt;Kennung&gt;“, „betrieb:&lt;Haus&gt;:&lt;Platz&gt;:&lt;Art&gt;[:&lt;Ware&gt;]“,
+    /// „farbe:&lt;Haus&gt;:#rrggbb“, „spieler:&lt;Platz&gt;[:&lt;Beruf&gt;]“, „spielerwohnhaus:&lt;Kennung&gt;“, „spielerfarbe:#rrggbb“, „entfernen:&lt;Haus&gt;“ – Häuser
+    /// mit ihrer Nummer ab 1.
+    /// </summary>
+    private void StartBefehl(string befehl)
+    {
+        var t = befehl.Split(':');
+        int Haus(int i) => int.Parse(t[i]) - 1;
+        switch (t[0])
+        {
+            case "haus": _startHaus = _entwurf.HausHinzufuegen(t.Length > 1 ? t[1].Replace('_', ' ') : null); break;
+            case "wohnhaus": _entwurf.HausWohnhausSetzen(Haus(1), t[2]); break;
+            case "betrieb": _entwurf.BetriebHinzufuegen(Haus(1), t[2], Enum.Parse<Betriebsart>(t[3], ignoreCase: true), t.Length > 4 ? t[4] : null); break;
+            case "farbe": _entwurf.HausFarbeSetzen(Haus(1), t[2]); break;
+            case "spieler": _entwurf.SpielerStartplatzSetzen(t[1], t.Length > 2 ? t[2] : null); break;
+            case "spielerwohnhaus": _entwurf.SpielerWohnhausSetzen(t[1]); break;
+            case "spielerfarbe": _entwurf.SpielerFarbeSetzen(t[1]); break;
+            case "entfernen": _entwurf.HausEntfernen(Haus(1)); break;
+            default: throw new ArgumentException($"Unbekannter Startbefehl „{t[0]}“ (haus, wohnhaus, betrieb, farbe, spieler, spielerwohnhaus, spielerfarbe, entfernen).");
+        }
     }
 }
