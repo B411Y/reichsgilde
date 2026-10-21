@@ -335,14 +335,14 @@ public partial class Stadtansicht
     }
 
     /// <summary>
-    /// Die Punkte einer Kurve fürs Gassennetz: ohne Punkte, die dichter als 0,8 m am vorigen liegen (das Netz legt Punkte unter
-    /// <see cref="Gassennetz.Fang"/> zusammen – eine Kante von einem Knoten zu sich selbst wäre die Folge). Anfang und Ende bleiben.
+    /// Die Punkte einer Kurve fürs Gassennetz: etwa alle 2 m einer (die Kurve ist alle Meter abgetastet; so viele Knoten bräuchte nur die
+    /// Wegsuche, und Punkte unter <see cref="Gassennetz.Fang"/> legte das Netz ohnehin zusammen). Anfang und Ende bleiben.
     /// </summary>
     private static Vector3[] NetzPunkte(IReadOnlyList<Vector3> punkte)
     {
         var liste = new List<Vector3> { punkte[0] };
         for (var i = 1; i < punkte.Count - 1; i++)
-            if (punkte[i].DistanceTo(liste[^1]) >= 0.8f && punkte[i].DistanceTo(punkte[^1]) >= 0.8f) liste.Add(punkte[i]);
+            if (punkte[i].DistanceTo(liste[^1]) >= 2 && punkte[i].DistanceTo(punkte[^1]) >= 2) liste.Add(punkte[i]);
         liste.Add(punkte[^1]);
         return liste.ToArray();
     }

@@ -1149,6 +1149,8 @@ public partial class Stadtansicht : Node3D
     /// </summary>
     private static Vector3[] BandDreiecke(IReadOnlyList<Vector2> linie, float halb, float hoehe)
     {
+        // doppelte Punkte (ein Knick ohne Länge) weglassen – ihre Richtung wäre Zufall
+        linie = linie.Where((p, i) => i == 0 || p.DistanceTo(linie[i - 1]) > 0.01f).ToList();
         if (linie.Count < 2) return Array.Empty<Vector3>();
         var links = new Vector2[linie.Count];
         var rechts = new Vector2[linie.Count];
