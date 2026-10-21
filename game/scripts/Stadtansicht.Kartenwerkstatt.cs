@@ -288,8 +288,9 @@ public partial class Stadtansicht
     /// <summary>Ein Rahmen um die Grundfläche und eine Linie an der Kante des Vorplatzes (2 m hinter der Vorderkante), dazu eine leichte Füllung.</summary>
     private (Node3D Knoten, MeshInstance3D[] Rahmen, MeshInstance3D Fuellung) MarkierungBauen(Vector2 groesse, Node3D wurzel)
     {
-        _rahmenGold ??= Transparent(Auswahlgold, 0.95f);
-        _rahmenRot ??= Transparent(Fehlerrot, 0.95f);
+        // Der Rahmen scheint durch die Häuser (ohne Tiefentest) – sonst verdecken sie im Schrägblick die hintere Hälfte und Nachbarn den Rest
+        _rahmenGold ??= ImmerSichtbar(Transparent(Auswahlgold, 0.95f));
+        _rahmenRot ??= ImmerSichtbar(Transparent(Fehlerrot, 0.95f));
         _flaecheGold ??= Transparent(Auswahlgold, 0.18f);
         _flaecheRot ??= Transparent(Fehlerrot, 0.28f);
         var knoten = new Node3D { Name = "Markierung", Visible = false };
@@ -308,6 +309,13 @@ public partial class Stadtansicht
         var fuellung = Quader(new Vector3(0, 0.12f, 0), new Vector3(groesse.X, 0.08f, groesse.Y), _flaecheGold, knoten);
         foreach (var teil in rahmen.Append(fuellung)) teil.CastShadow = GeometryInstance3D.ShadowCastingSetting.Off;
         return (knoten, rahmen, fuellung);
+    }
+
+    private static StandardMaterial3D ImmerSichtbar(StandardMaterial3D stoff)
+    {
+        stoff.NoDepthTest = true;
+        stoff.RenderPriority = 1;
+        return stoff;
     }
 
     /// <summary>Zeigt Rahmen und roten Überzug eines Stücks nach Auswahl und Fehlern.</summary>
