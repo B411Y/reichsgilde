@@ -12,10 +12,11 @@ Inhalt je Datei (Blender: Z oben, Blick nach -Y; im Spiel Y oben, Blick nach +Z)
     Koerper_Mann    Wams bis zur Mitte des Oberschenkels, Beinkleid, Schuhe, Gürtel; beim Zwerg mit Bart
     Koerper_Frau    Kleid bis über die Knöchel, Zopf
     Trachtteile     Strohhut, Barett, Kapuze, Haube, Schleier, Schuerze, Kiepe, Buendel, Tasche, Stab, Hacke, Hammer,
-                    Hobel, Saege, Drechseleisen, Schlaegel, Meissel, Stoessel, Kelle
+                    Hobel, Saege, Drechseleisen, Schlaegel, Meissel, Stoessel, Kelle, Flakon
                     – standardmäßig aus, das Spiel blendet sie je Rolle ein (wie heute `TrachtVon`; das Werkzeug bei der
                     passenden Bewegung: Hammer beim Hämmern, Hobel beim Hobeln, Säge beim Sägen, Drechseleisen beim Drechseln,
-                    Schlägel und Meißel beim Behauen und Bildhauen, Stößel beim Mörsern, Kelle beim Rühren)
+                    Schlägel und Meißel beim Behauen und Bildhauen, Stößel beim Mörsern, Kelle beim Rühren, Flakon beim
+                    Mischen)
     Bewegungen      Stehen, Gehen, Eilen, Gebeugt, Tragen, Sitzen, Reden, Hacken, Buecken, Hueten,
                     Ziehen (Handkarren), Kutschieren (auf dem Bock),
                     Haemmern, Blasebalg, Schleifen (stehend), Feinarbeit (sitzend) – Arbeit in der Schmiede,
@@ -25,11 +26,14 @@ Inhalt je Datei (Blender: Z oben, Blick nach -Y; im Spiel Y oben, Blick nach +Z)
                     Brust- bis Kopfhöhe) – Arbeit beim Steinmetz,
                     Moersern (Stößel kreist im Mörser und stößt, die Linke hält den Mörser), Ruehren (mit langer Kelle im
                     Kessel, die Linke greift den Stiel), Destillieren (bückt sich zur Feuertür der Destille und regelt die
-                    Flamme, richtet sich auf und prüft den Tropfen an der Vorlage; ruhig) – Arbeit beim Alchimisten
+                    Flamme, richtet sich auf und prüft den Tropfen an der Vorlage; ruhig) – Arbeit beim Alchimisten,
+                    Mischen (aus dem Flakon in das Mischglas gießen, den Flakon schwenken; die Linke hält das Glas),
+                    Pressen (beide Hände am Querhebel der Spindelpresse: ihn hinüberschieben und zurückziehen, dabei je
+                    einen Schritt zur Seite; die Wurzel verschiebt sich dazu seitlich) – Arbeit beim Parfumeur
                     – jede eine Schleife am Ort (ohne Vorwärtsbewegung; das Spiel schiebt die Figur)
                     Die Werkstatt-Bewegungen zielen mit den Händen (beim Drechseln auch mit dem rechten Fuß) auf feste
-                    Höhen (ARBEITSHOEHEN, PEDAL, VORLAGE – wie in schmied_innen.glb, tischler_innen.glb, steinmetz_innen.glb
-                    und alchimist_innen.glb): Jedes Volk erreicht sie
+                    Höhen (ARBEITSHOEHEN, PEDAL, VORLAGE, MISCHGLAS, PRESSE – wie in schmied_innen.glb, tischler_innen.glb,
+                    steinmetz_innen.glb, alchimist_innen.glb und parfumeur_innen.glb): Jedes Volk erreicht sie
                     mit eigenen Arm- und Beinwinkeln (`arm_ik`, `arm_ziel`, `bein_ik`).
 Material: alle Teile (Körper, Trachtteile, Werkzeug) tragen nur ein Material „Figur“ – eine Figur ist so ein
 Zeichenaufruf statt sechs. Je Ecke stehen zwei Angaben im Netz, je Fläche konstant:
@@ -56,6 +60,7 @@ bs.FARBEN.update({
     "Leinen": (0.84, 0.81, 0.72),
     "Geflecht": (0.56, 0.44, 0.27),
     "Auge": (0.08, 0.07, 0.07),
+    "Flakonglas": (0.56, 0.46, 0.74),      # lila Glas des Flakons beim Mischen (deckend gemalt)
 })
 
 FPS = 24
@@ -72,7 +77,7 @@ VOELKER = {
 }
 ZONEN = {"Gewand": 1, "Beinkleid": 2, "Haut": 3, "Haar": 4, "Kopfbedeckung": 5}   # alle übrigen Stoffe: Zone 0
 TRACHT = ["Strohhut", "Barett", "Kapuze", "Haube", "Schleier", "Schuerze", "Kiepe", "Buendel", "Tasche", "Stab", "Hacke", "Hammer",
-          "Hobel", "Saege", "Drechseleisen", "Schlaegel", "Meissel", "Stoessel", "Kelle"]
+          "Hobel", "Saege", "Drechseleisen", "Schlaegel", "Meissel", "Stoessel", "Kelle", "Flakon"]
 HAMMER = 0.3          # vom Mittelpunkt der Hand bis zur Mitte des Hammerkopfs, in Verlängerung des Unterarms
 # Wo die Hände bei der Arbeit sind (Meter vor dem Fußpunkt der Figur, Höhe über dem Boden) – passend zu den Ankern
 # im Innenraum: Amboss 0,68 m vor der Figur, Bahn 0,86 m hoch; Hebel des Blasebalgs 0,42 m vor ihr, 1,36 m hoch;
@@ -102,6 +107,12 @@ FAUST = {"Stoessel": (-0.01, -0.05, 0.19),   # rechte Faust gegenüber der Spitz
          "Kelle": (-0.10, -0.36, 0.52)}      # Haltung von REQUISITEN: Stößel fast senkrecht, Kelle steil von oben in den Kessel
                                              # (die Kelle beim Menschen; kleinere Völker halten sie tiefer, siehe _faust)
 KELLE_GRIFF = 0.3                      # beim Rühren greift die Linke den Stiel so weit unter der rechten Faust
+# Parfumeur (parfumeur_innen.glb): Mitte der Öffnung des Mischglases auf dem Mischtisch (seitlich, vor, Höhe) – die Rechte gießt
+# aus dem Flakon hinein, die Linke hält das Glas. Spindelpresse: Achse der Spindel `abstand` vor der Figur (Mitte des Hubs),
+# Querhebel in `hoehe`, die Rechte greift ihn `rechts`, die Linke `links` von der Achse; er schwenkt um ±`winkel` Grad.
+MISCHGLAS = (-0.1, 0.42, 0.97)
+FLAKON_MUND = 0.096                    # Mund des Flakons über der Mitte der Hand (aufrecht gehalten)
+PRESSE = {"abstand": 1.05, "hoehe": 1.0, "rechts": 0.6, "links": 0.78, "winkel": 18.0}
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -295,14 +306,15 @@ def tracht(name, st, p):
 
 
 REQUISITEN = {"Hobel": ("Hobeln", 0.3), "Drechseleisen": ("Drechseln", 0.5), "Meissel": ("Behauen", 0.55),
-              "Schlaegel": ("Behauen", 0.55), "Stoessel": ("Moersern", 0.0), "Kelle": ("Ruehren", 0.0)}   # Bewegung, Phase
+              "Schlaegel": ("Behauen", 0.55), "Stoessel": ("Moersern", 0.0), "Kelle": ("Ruehren", 0.0),
+              "Flakon": ("Mischen", 0.0)}   # Bewegung, Phase
 
 
 def requisit(name, st, p, ske):
     """Werkzeug in der Hand für eine Bewegung (REQUISITEN): in deren Haltung gebaut – Hobel flach auf dem Brett,
     Drechseleisen von der Hand zum Werkstück, Meißel (linke Hand) mit der Schneide auf dem Block, Klüpfel mit dem Kopf auf dem
-    Meißel, Stößel von der Faust in die Mulde, Kelle von der Faust schräg in den Kessel – und mit der Lage des Unterarms in die
-    Ruhelage zurückgerechnet. Es hängt starr am Unterarm und folgt ihm durch die ganze Bewegung."""
+    Meißel, Stößel von der Faust in die Mulde, Kelle von der Faust schräg in den Kessel, Flakon aufrecht in der Faust – und mit
+    der Lage des Unterarms in die Ruhelage zurückgerechnet. Es hängt starr am Unterarm und folgt ihm durch die ganze Bewegung."""
     import bpy
     bewegung, phase = REQUISITEN[name]
     seite = "L" if name == "Meissel" else "R"
@@ -353,6 +365,13 @@ def requisit(name, st, p, ske):
             quer = zurueck.to_3x3() @ Vector((1, 0, 0))
             n.stab(zurueck @ (hand - d * 0.1), zurueck @ (spitze - d * 0.16), 0.032, 0.032, holz, quer=quer)
             n.stab(zurueck @ (spitze - d * 0.2), zurueck @ spitze, 0.09, 0.016, st["Holz alt"], quer=quer)   # Blatt
+        elif name == "Flakon":                    # gläserner Flakon, aufrecht in der Faust: Bauch, Schulter, Hals mit Goldring, Lippe
+            achse = zurueck.to_3x3() @ Vector((0, 0, 1))
+            profil = [(-0.15, 0.03), (-0.135, 0.046), (-0.02, 0.046), (0.025, 0.034), (0.045, 0.012), (0.074, 0.011),
+                      (0.084, 0.016), (FLAKON_MUND, 0.014)]                 # die Faust hält ihn an der Schulter
+            for (u0, r0), (u1, r1) in zip(profil, profil[1:]):
+                drehteil(n, zurueck @ (hand + Vector((0, 0, u0))), achse, u1 - u0, r0, r1,
+                         st["Gold"] if u0 == 0.074 else st["Flakonglas"], deckel=(u0 == profil[0][0], u1 == FLAKON_MUND))
         else:                                     # Drechseleisen: Heft hinter der Hand, Klinge bis an das Werkstück
             vor, hoehe = ARBEITSHOEHEN["Drehbank"]
             spitze = Vector((0.02, -(vor - 0.01), hoehe))
@@ -715,6 +734,12 @@ def haltung(name, phase, p):
     elif name == "Destillieren":                                        # Flamme regeln, Tropfen prüfen
         winkel, hoch = destillieren(phase, p)
         r.update(winkel)
+    elif name == "Mischen":                                             # aus dem Flakon ins Mischglas gießen, schwenken
+        winkel, hoch = mischen(phase, p)
+        r.update(winkel)
+    elif name == "Pressen":                                             # Querhebel der Spindelpresse hinüber und zurück
+        winkel, hoch = pressen(phase, p)
+        r.update(winkel)
     elif name == "Hueten":
         r["Oberarm_R"] = (-28, 0, -10)                                   # hält den Stab vor sich
         r["Unterarm_R"] = (-55, 0, 0)
@@ -737,10 +762,10 @@ def _ruhe(kopf, unten):
     return m
 
 
-def unterarm_lage(p, pose, hoch, seite):
+def unterarm_lage(p, pose, hoch, seite, seitlich=0.0):
     """Matrix, die einen Punkt am Unterarm der Seite „L“/„R“ aus der Ruhelage in die Haltung bringt – dieselbe Rechnung wie
     Blender (Wurzel, Ruecken, Oberarm, Unterarm; Euler XYZ im Knochen). `pose`: {Knochen: (x, y, z) im Bogenmaß} wie aus
-    `haltung`, `hoch`: Hüfte. Koordinaten der Figur in Blender (Blick −Y)."""
+    `haltung`, `hoch`: Hüfte, `seitlich`: Wurzel zur Seite verschoben (+ links). Koordinaten der Figur in Blender (Blick −Y)."""
     from mathutils import Euler
     sc, hu = p["schulter"], p["huefte"]
     xs = (1 if seite == "L" else -1) * (p["schulterbreite"] + 0.01)
@@ -751,7 +776,7 @@ def unterarm_lage(p, pose, hoch, seite):
         ruhe = _ruhe(Vector(kopf), unten)
         lokal = Euler(pose.get(name, (0.0, 0.0, 0.0)), "XYZ").to_matrix().to_4x4()
         if name == "Wurzel":
-            lokal = Matrix.Translation((0, hoch, 0)) @ lokal
+            lokal = Matrix.Translation((seitlich, hoch, 0)) @ lokal
         m = (ruhe if vorher is None else m @ vorher.inverted() @ ruhe) @ lokal
         vorher = ruhe
     return m @ vorher.inverted()
@@ -1061,6 +1086,189 @@ def destillieren(phase, p):
     return r, hoch
 
 
+# ── Parfumeur: Mischen (Flakon starr in der rechten Faust, sein Mund wird geführt) und Pressen (Querhebel, Schritt zur Seite) ──
+
+def _rolle(unter, rolle):
+    """Winkel des Unterarms (Grad, Euler XYZ wie Blender), um `rolle` Grad um seine eigene Achse gedreht: erst die Drehung um
+    die Achse des Knochens, dann die Beugung. Die Hand liegt auf der Achse und bleibt, wo sie ist – nur, was sie hält, kippt."""
+    from mathutils import Euler
+    alt = Euler(tuple(math.radians(w) for w in unter), "XYZ")
+    m = alt.to_matrix() @ Euler((0.0, math.radians(rolle), 0.0), "XYZ").to_matrix()
+    return tuple(math.degrees(w) for w in m.to_euler("XYZ", alt))
+
+
+_FLAKON = {}
+
+
+def flakon_ruhe(p):
+    """Mund des Flakons in der Ruhelage des rechten Unterarms (Blender), dazu das Vorzeichen der Drehung um die Achse des
+    Unterarms, die ihn zum Mischglas (zur linken Seite der Figur) kippt. Gebaut ist er in der Haltung von REQUISITEN (aufrecht,
+    FLAKON_MUND über der Mitte der Hand)."""
+    schluessel = tuple(sorted(p.items()))
+    if schluessel not in _FLAKON:
+        r, hoch, _, _ = _mischen_ziele(REQUISITEN["Flakon"][1], p)
+        lage = unterarm_lage(p, _bogen(r), hoch, "R")
+        mund = lage.inverted() @ (lage @ hand_ruhe(p, "R") + Vector((0, 0, FLAKON_MUND)))
+        probe = {**r, "Unterarm_R": _rolle(r["Unterarm_R"], 40.0)}
+        links = _figur(unterarm_lage(p, _bogen(probe), hoch, "R") @ mund).x > _figur(lage @ mund).x
+        _FLAKON[schluessel] = (mund, 1.0 if links else -1.0)
+    return _FLAKON[schluessel]
+
+
+def _mischen_ziele(phase, p):
+    """Rumpf, Beine, linke Hand am Glas und – wo sie frei geführt wird – die rechte Hand für Mischen: (Winkel in Grad, Hüfte,
+    Ziel, (Rolle, Halten, Mund)). Ziel: ("hand", Punkt) – Mitte der Hand –, ("mund", Punkt) – Mund des Flakons – oder
+    ("uebergang", t) zwischen Halten und Gießen; Rolle: Kippung des Flakons in Grad. Halten (0–0,1), zum Glas heben und kippen
+    (bis 0,24), gießen (bis 0,46), zurück (bis 0,58), den Flakon in zwei kleinen Runden schwenken (bis 0,94), halten."""
+    s_g, v_g, h_g = MISCHGLAS
+    k = p["schulter"] / VOELKER["mensch"]["schulter"]
+    halt = Vector((s_g - 0.11, 0.3, 0.94 + 0.08 * k))                 # aufrecht rechts neben dem Glas
+    mund = Vector((s_g - 0.01, v_g, h_g + 0.05))                      # über der Öffnung des Glases
+    giessen = 0.0
+    if phase < 0.1:
+        ziel, rolle = ("hand", halt), 0.0
+    elif phase < 0.24:
+        t = weich((phase - 0.1) / 0.14)
+        ziel, rolle, giessen = ("uebergang", t), 68.0 * t, t
+    elif phase < 0.46:
+        t = weich((phase - 0.24) / 0.22)
+        ziel, rolle, giessen = ("mund", mund), 68.0 + 16.0 * math.sin(math.pi * t), 1.0
+    elif phase < 0.58:
+        t = 1 - weich((phase - 0.46) / 0.12)
+        ziel, rolle, giessen = ("uebergang", t), 68.0 * t, t
+    elif phase < 0.94:
+        u = (phase - 0.58) / 0.36
+        w = 4 * math.pi * u
+        h = math.sin(math.pi * u)
+        ziel = ("hand", halt + Vector((0.03 * (math.cos(w) - 1) * h, 0.03 * math.sin(w) * h, 0.05 * h)))
+        rolle = 12.0 * math.sin(w) * h
+    else:
+        ziel, rolle = ("hand", halt), 0.0
+    lehne, hoch = 12 + 6 * giessen, -0.015
+    r = {"Ruecken": (lehne, 5 * giessen, 0), "Kopf": (24 - lehne, 6 * giessen, 0)}
+    r["Oberschenkel_L"], r["Oberschenkel_R"] = (-6, 0, 5), (4, 0, -5)
+    r["Unterschenkel_L"], r["Unterschenkel_R"] = (8, 0, 0), (5, 0, 0)
+    r["Oberarm_L"], r["Unterarm_L"] = arm_genau(p, r, hoch, "L", (s_g + 0.075, v_g + 0.01, h_g - 0.07))
+    if ziel[0] == "hand":
+        r["Oberarm_R"], r["Unterarm_R"] = arm_genau(p, r, hoch, "R", tuple(ziel[1]))
+    return r, hoch, ziel, (rolle, halt, mund)
+
+
+def _faust_fuer_mund(p, r, hoch, rolle, mund, start):
+    """Rechte Hand so führen, dass der Mund des Flakons (um `rolle` Grad gekippt) bei `mund` liegt. Setzt den rechten Arm in
+    `r` und gibt die Hand zurück."""
+    mund_ruhe, vorzeichen = flakon_ruhe(p)
+    faust = Vector(start)
+    for _ in range(40):
+        r["Oberarm_R"], unter = arm_genau(p, r, hoch, "R", tuple(faust))
+        r["Unterarm_R"] = _rolle(unter, vorzeichen * rolle)
+        fehler = mund - _figur(unterarm_lage(p, _bogen(r), hoch, "R") @ mund_ruhe)
+        if fehler.length < 2e-4:
+            break
+        faust += fehler * 0.6
+    return faust
+
+
+_GIESSEN = {}
+
+
+def mischen(phase, p):
+    """Mischen: Der Flakon (starr in der rechten Faust, gebaut beim Halten) gießt mit dem Mund genau über der Öffnung des
+    Mischglases (MISCHGLAS), danach schwenkt die Figur ihn; die Linke hält das Glas. Gibt (Winkel in Grad, Hüfte)."""
+    r, hoch, ziel, (rolle, halt, mund) = _mischen_ziele(phase, p)
+    vorzeichen = flakon_ruhe(p)[1]
+    if ziel[0] == "mund":
+        _faust_fuer_mund(p, r, hoch, rolle, ziel[1], halt)
+    elif ziel[0] == "uebergang":                                        # zwischen Halten und Gießen: Hand und Kippung mischen
+        schluessel = tuple(sorted(p.items()))
+        if schluessel not in _GIESSEN:                                  # Hand beim Beginn des Gießens (Rumpf ganz geneigt)
+            r1, hoch1, _, _ = _mischen_ziele(0.24, p)
+            _GIESSEN[schluessel] = _faust_fuer_mund(p, r1, hoch1, 68.0, mund, halt)
+        r["Oberarm_R"], unter = arm_genau(p, r, hoch, "R", tuple(halt.lerp(_GIESSEN[schluessel], ziel[1])))
+        r["Unterarm_R"] = _rolle(unter, vorzeichen * rolle)
+    elif rolle:
+        r["Unterarm_R"] = _rolle(r["Unterarm_R"], vorzeichen * rolle)
+    return r, hoch
+
+
+def presse_winkel(phase):
+    """Schwenk des Querhebels der Spindelpresse in Grad (+: zur linken Seite der Figur): halten (0–0,1), hinüberschieben (bis
+    0,45), halten (bis 0,55), zurückziehen (bis 0,9), halten. Das Raummodell dreht die Spindel genau so (parfumeur_innen)."""
+    w = PRESSE["winkel"]
+    if phase < 0.1:
+        return -w
+    if phase < 0.45:
+        return -w + 2 * w * weich((phase - 0.1) / 0.35)
+    if phase < 0.55:
+        return w
+    if phase < 0.9:
+        return w - 2 * w * weich((phase - 0.55) / 0.35)
+    return -w
+
+
+def _presse_seitlich(winkel):
+    """Seitliche Lage der Wurzel bei diesem Schwenk: Die Figur bleibt vor der Mitte zwischen ihren Händen am Hebel."""
+    return (PRESSE["rechts"] + PRESSE["links"]) / 2 * math.sin(math.radians(winkel))
+
+
+def _presse_fuesse(phase, p):
+    """Füße beim Pressen: {Seite: (seitlich, Hub)}. Der Fuß in Schubrichtung tritt zuerst zur Seite, der andere folgt;
+    beim Zurückziehen umgekehrt."""
+    breit = p["hueftbreite"] * 0.7 + 0.03
+    a, b = _presse_seitlich(-PRESSE["winkel"]), _presse_seitlich(PRESSE["winkel"])
+    lage = {"L": (a + breit, 0.0), "R": (a - breit, 0.0)}
+    for anfang, von, nach, vorn in ((0.1, a, b, "L"), (0.55, b, a, "R")):
+        if phase < anfang:
+            break
+        u = min(1.0, (phase - anfang) / 0.35)
+        for seite, u0 in ((vorn, 0.0), ("R" if vorn == "L" else "L", 0.42)):
+            t = weich((u - u0) / 0.58)
+            lage[seite] = ((breit if seite == "L" else -breit) + von + (nach - von) * t, 0.07 * math.sin(math.pi * t))
+    return lage
+
+
+def seitlich(name, phase, p):
+    """Seitliche Verschiebung der Wurzel (Meter, + zur linken Seite der Figur) – nur beim Pressen, sonst 0."""
+    return _presse_seitlich(presse_winkel(phase)) if name == "Pressen" else 0.0
+
+
+def pressen(phase, p):
+    """Pressen: Beide Hände am Querhebel der Spindelpresse (PRESSE), der um ±winkel schwenkt; die Wurzel geht seitlich mit
+    (`seitlich`), die Füße treten zur Seite (bein_ik in der zur Seite gekippten Ebene des Beins, Oberschenkel Z kippt sie).
+    Gibt (Winkel in Grad, Hüfte)."""
+    w = presse_winkel(phase)
+    sx = _presse_seitlich(w)
+    a = PRESSE["abstand"]
+    if 0.1 <= phase < 0.45:
+        kraft = math.sin(math.pi * (phase - 0.1) / 0.35)
+    elif 0.55 <= phase < 0.9:
+        kraft = math.sin(math.pi * (phase - 0.55) / 0.35)
+    else:
+        kraft = 0.0
+    fuesse = _presse_fuesse(phase, p)
+    xb = p["hueftbreite"] * 0.7
+    vor = {"L": 0.05, "R": -0.03}
+    beine = (p["huefte"] - 0.06) * 0.97                                # Knie immer ein wenig gebeugt
+    hoch = -0.025
+    for seite, (fs, hub) in fuesse.items():
+        ds = fs - (sx + (xb if seite == "L" else -xb))
+        hoch = min(hoch, math.sqrt(max(0.0, beine ** 2 - ds ** 2 - vor[seite] ** 2)) + hub - (p["huefte"] - 0.06))
+    drehung = -0.7 * math.degrees(math.atan2(sx, a))                  # der Rumpf bleibt zur Spindel gedreht
+    lehne = 10 + 5 * kraft
+    r = {"Ruecken": (lehne, drehung, 0), "Kopf": (12 - lehne * 0.6, -0.5 * drehung, 0)}
+    for seite, (fs, hub) in fuesse.items():
+        ds = fs - (sx + (xb if seite == "L" else -xb))
+        dz = 0.06 + hub - (p["huefte"] + hoch)
+        ober, unter = bein_ik(p, 0.0, vor[seite], p["huefte"] - 0.06 - math.hypot(ds, dz))
+        r[f"Oberschenkel_{seite}"] = (ober, 0, math.degrees(math.atan2(-ds, -dz)))
+        r[f"Unterschenkel_{seite}"] = (unter, 0, 0)
+    for seite in ("R", "L"):
+        rh = PRESSE["rechts" if seite == "R" else "links"]
+        ziel = (rh * math.sin(math.radians(w)) - sx, a - rh * math.cos(math.radians(w)), PRESSE["hoehe"])
+        r[f"Oberarm_{seite}"], r[f"Unterarm_{seite}"] = arm_genau(p, r, hoch, seite, ziel)
+    return r, hoch
+
+
 BEWEGUNGEN = {   # Name: Dauer in Sekunden (eine Schleife)
     "Stehen": 3.0, "Gehen": 1.0, "Eilen": 0.7, "Gebeugt": 1.4, "Tragen": 1.2, "Sitzen": 3.0, "Reden": 2.0,
     "Hacken": 1.3, "Buecken": 2.4, "Hueten": 4.0, "Ziehen": 1.3, "Kutschieren": 1.0,
@@ -1068,15 +1276,16 @@ BEWEGUNGEN = {   # Name: Dauer in Sekunden (eine Schleife)
     "Hobeln": 1.2, "Saegen": 1.0, "Drechseln": 1.0, "Gatter": 2.0,
     "Behauen": 1.0, "Bildhauen": 1.6,
     "Moersern": 2.0, "Ruehren": 2.4, "Destillieren": 4.0,
+    "Mischen": 3.0, "Pressen": 3.0,
 }
 
 
-def pose_setzen(ob, pose, hoch):
+def pose_setzen(ob, pose, hoch, seitlich=0.0):
     for pb in ob.pose.bones:
         pb.rotation_euler = pose.get(pb.name, (0.0, 0.0, 0.0))
         pb.location = (0.0, 0.0, 0.0)
-    # Die Wurzel zeigt nach oben (lokales Y = Welt-Z): Hüfthöhe über ihr lokales Y
-    ob.pose.bones["Wurzel"].location = (0.0, hoch, 0.0)
+    # Die Wurzel zeigt nach oben (lokales Y = Welt-Z): Hüfthöhe über ihr lokales Y, seitlich über ihr lokales X (+ links)
+    ob.pose.bones["Wurzel"].location = (seitlich, hoch, 0.0)
 
 
 def bewegungen_anlegen(ob, p):
@@ -1088,7 +1297,7 @@ def bewegungen_anlegen(ob, p):
         ob.animation_data.action = act
         for f in range(0, bilder + 1, 2):
             pose, hoch = haltung(name, (f % bilder) / bilder, p)
-            pose_setzen(ob, pose, hoch)
+            pose_setzen(ob, pose, hoch, seitlich(name, (f % bilder) / bilder, p))
             for pb in ob.pose.bones:
                 pb.keyframe_insert("rotation_euler", frame=f + 1)
             ob.pose.bones["Wurzel"].keyframe_insert("location", frame=f + 1)
@@ -1311,7 +1520,8 @@ def vorschau_bewegungen(schnell):
     for r, name in enumerate(reihen):
         teile = {"Hueten": ["Stab"], "Tragen": ["Buendel"], "Hacken": ["Hacke", "Strohhut"], "Haemmern": ["Hammer"],
                  "Hobeln": ["Hobel"], "Saegen": ["Saege"], "Drechseln": ["Drechseleisen"], "Behauen": ["Schlaegel", "Meissel"],
-                 "Bildhauen": ["Schlaegel", "Meissel"], "Moersern": ["Stoessel"], "Ruehren": ["Kelle"]}.get(name, [])
+                 "Bildhauen": ["Schlaegel", "Meissel"], "Moersern": ["Stoessel"], "Ruehren": ["Kelle"],
+                 "Mischen": ["Flakon"]}.get(name, [])
         wahl = [o for o in objekte if o.type == "MESH" and o.name.split(".")[0] in teile + ["Koerper_Mann"]]
         sy = ((len(reihen) - 1) / 2 - r) * abstand
         for k, ph in enumerate(phasen):
@@ -1319,9 +1529,9 @@ def vorschau_bewegungen(schnell):
             sx = (k - 1.5) * 1.1
             ort = Vector((sx * 0.7071 - sy * 0.7071, sx * 0.7071 + sy * 0.7071, 0))
             neu, kopien = kopie(ske, wahl, ort, dreh=math.radians(-90))     # Seitenansicht: Blick nach links im Bild (−x)
-            pose_setzen(neu, *haltung(name, ph, p))
+            pose_setzen(neu, *haltung(name, ph, p), seitlich(name, ph, p))
             alle += kopien
-            hilfe = arbeitsplatz(name, ort, st, p)
+            hilfe = arbeitsplatz(name, ort, st, p, ph)
             if hilfe is not None:
                 alle.append(hilfe)
         alle.append(beschriftung(name, Vector(((-2.3) * 0.7071 - sy * 0.7071, (-2.3) * 0.7071 + sy * 0.7071, 0.9))))
@@ -1333,8 +1543,9 @@ def vorschau_bewegungen(schnell):
     print(bs.rendern("figuren-bewegungen", lambda o: o in alle))
 
 
-def arbeitsplatz(name, ort, st, p):
-    """Fürs Bild: was vor der Figur steht (Bank, Amboss, Hebel, Schleifstein, Tisch); die Figur blickt nach −x."""
+def arbeitsplatz(name, ort, st, p, phase=0.0):
+    """Fürs Bild: was vor der Figur steht (Bank, Amboss, Hebel, Schleifstein, Tisch); die Figur blickt nach −x, ihre linke
+    Seite ist −y. `phase`: Stand der Bewegung (der Querhebel der Presse schwenkt mit)."""
     netz = bs.Netz("_Hilfe")
     holz, eisen = st["Holz"], st["Eisen"]
     if name in ("Sitzen", "Kutschieren", "Feinarbeit"):                  # Bank bzw. Hocker unter der Hüfte
@@ -1411,6 +1622,19 @@ def arbeitsplatz(name, ort, st, p):
         bs.achteck(netz, st, ort + Vector((-sv, -sx, 0.45)), 0.13, 0.0, 0.26, "Elixier")
         bs.achteck(netz, st, ort + Vector((-sv, -sx, 0.45)), 0.03, 0.26, 0.5, "Elixier")
         netz.quader(ort + Vector((-sv, -sx, 0.22)), (0.3, 0.3, 0.44), holz)
+    elif name == "Mischen":                                             # Tisch, darauf das Mischglas
+        sg, vg, hg = MISCHGLAS
+        netz.quader(ort + Vector((-vg - 0.1, 0, 0.75)), (0.6, 1.2, 0.06), holz)
+        bs.achteck(netz, st, ort + Vector((-vg, -sg, 0.78)), 0.06, 0.0, hg - 0.78, "Elixier")
+        bs.rund_oben(netz, st, ort + Vector((-vg, -sg, 0)), 0.05, hg - 0.02, "Loch")
+    elif name == "Pressen":                                             # Spindel und Querhebel (schwenkt mit der Phase)
+        a, h = PRESSE["abstand"], PRESSE["hoehe"]
+        w = math.radians(presse_winkel(phase))
+        achse = ort + Vector((-a, 0, 0))
+        netz.stab(achse + Vector((0, 0, 0.6)), achse + Vector((0, 0, 1.9)), 0.12, 0.12, holz)
+        ende = Vector((-(a - 0.95 * math.cos(w)), -0.95 * math.sin(w), 0))
+        netz.stab(achse + Vector((0, 0, h)) - (ende - Vector((-a, 0, 0))), ort + ende + Vector((0, 0, h)), 0.07, 0.07, holz)
+        netz.quader(achse + Vector((0, 0, 0.3)), (0.7, 0.7, 0.6), st["Holz alt"])
     return netz.objekt() if netz.dreiecke() else None
 
 
