@@ -5,7 +5,7 @@ Köln – erste Stadtkarte von Reichsgilde (Pilot, Bereich Leveldesign).
 Aufruf (aus dem Projektordner):
     python3 tools/karten/koeln.py
 
-Schreibt game/data/karten/koeln.json und docs/karten/koeln.svg, aber nur, wenn alle Kartenregeln
+Schreibt game/data/karten/koeln.json (Kartenformat 2) und docs/karten/koeln.svg, aber nur, wenn alle Kartenregeln
 erfüllt sind (siehe karte.py, „Prüfungen“).
 
 Entstanden aus der Planungsskizze (1000 × 720 Skizzenpunkte). Die Skizze wird hier in Meter umgerechnet:
@@ -18,7 +18,7 @@ import sys
 
 sys.dont_write_bytecode = True   # keinen __pycache__-Ordner im Repo anlegen
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-from karte import Karte, abstand_strecke  # noqa: E402
+from karte import Karte, dreh  # noqa: E402
 
 # ── Umrechnung Skizze → Meter ────────────────────────────────────────────────
 MARKT = (585, 360)                 # Heumarkt in der Skizze = Ursprung im Spiel
@@ -109,17 +109,18 @@ k.wasser("bach", "Strunde", linie=ml([(1000, 190), (900, 172), (780, 205), (700,
 k.wasser("see", "Altrheinarm", flaeche=ml([(380 + 78 * math.cos(t / 12 * 2 * math.pi), 72 + 24 * math.sin(t / 12 * 2 * math.pi)) for t in range(12)]))
 
 # ── Mauer und Tore ───────────────────────────────────────────────────────────
-# Die Mauer endet an den beiden Ufertürmen (nicht in der Flussmitte), sonst kreuzt der Leinpfad sie ohne Tor.
-k.mauer(ml([UFER_NORD] + [(MAUER_MITTE[0] - MAUER_R * math.sin(a), MAUER_MITTE[1] - MAUER_R * math.cos(a))
-                          for a in (i / 32 * math.pi for i in range(1, 32))] + [UFER_SUED]))
+# Die Mauer endet an den beiden Ufertürmen (nicht in der Flussmitte), sonst kreuzt der Leinpfad sie ohne Tor. Sie ist offen
+# (zum Rhein hin), die Ufertürme stehen als Tore an ihren Enden.
+k.mauer("Stadtmauer", ml([UFER_NORD] + [(MAUER_MITTE[0] - MAUER_R * math.sin(a), MAUER_MITTE[1] - MAUER_R * math.cos(a))
+                                        for a in (i / 32 * math.pi for i in range(1, 32))] + [UFER_SUED]))
 for name, x, y in TORE:
-    k.tor(name, m(x, y))
-k.tor("Kunibertsturm (Ufer)", m(*UFER_NORD)); k.tor("Bayenturm (Ufer)", m(*UFER_SUED))
+    k.tor("Stadtmauer", name, m(x, y))
+k.tor("Stadtmauer", "Kunibertsturm (Ufer)", m(*UFER_NORD)); k.tor("Stadtmauer", "Bayenturm (Ufer)", m(*UFER_SUED))
 
 # Deutz: befestigter Brückenkopf am rechten Ufer, zum Rhein hin offen (dort liegt die Brücke).
-k.nebenmauer("Deutzer Mauer", ml([(652, 296), (795, 300), (798, 412), (652, 418)]))
-k.tor("Deutzer Nordtor", m(690, 298))     # Mülheimer Weg
-k.tor("Deutzer Osttor", m(796.5, 352))    # Bensberger Straße
+k.mauer("Deutzer Mauer", ml([(652, 296), (795, 300), (798, 412), (652, 418)]))
+k.tor("Deutzer Mauer", "Deutzer Nordtor", m(690, 298))     # Mülheimer Weg
+k.tor("Deutzer Mauer", "Deutzer Osttor", m(796.5, 352))    # Bensberger Straße
 
 # ── Wege in der Stadt ────────────────────────────────────────────────────────
 for (name, x, y) in TORE:
@@ -189,23 +190,27 @@ for kennung, pts in [("U1", [(200, 262), (380, 288), (380, 372), (200, 382)]),
                      ("U6", [(692, 215), (800, 225), (790, 290), (698, 286)])]:
     k.bauzone(kennung, "umland", ml(pts))
 
-# ── Feste Plätze ─────────────────────────────────────────────────────────────
-k.fest("Markt", "sonderbau", "Heumarkt", m(*MARKT))
-k.fest("Rathaus", "sonderbau", "Rathaus", m(568, 318))
-k.fest("Hafen", "sonderbau", "Hafen mit Kran", m(597, 300))
+# ── Gebäude ──────────────────────────────────────────────────────────────────
+# Bausteine aus dem Gebäudekatalog (game/data/katalog.json); `punkt` ist die Mitte der Grundfläche.
+k.gebaeude("Markt", "markt", "Heumarkt", m(*MARKT))
+k.gebaeude("Rathaus", "rathaus", "Rathaus", m(568, 318))
+k.gebaeude("Hafen", "hafen", "Hafen mit Kran", m(597, 300))
 # Kaimauer am linken Ufer zwischen Dom und Heumarkt: das Ufer des Rheins, 23 Skizzenpunkte westlich der Flussmitte.
 kai = [(x - 23, y) for x, y in rhein if 235 <= y <= 345]
 k.hafen("Kölner Hafen", ml(kai), [m(*naechster((597, y), kai)) for y in (252, 270, 288, 306, 324)],
         m(*naechster((597, 300), kai)))
-k.fest("Dom", "sonderbau", "Dom (Baustelle mit Kran)", m(578, 192))
-k.fest("Gereon", "kirche", "St. Gereon", m(445, 215), konfession="katholisch")
-k.fest("Severin", "kirche", "St. Severin", m(575, 540), konfession="katholisch")
-k.fest("Antoniter", "kirche", "Antoniterkirche", m(455, 440), konfession="evangelisch")
-for kennung, x, y in [("L1", 490, 540), ("L2", 455, 393), ("L3", 770, 394), ("L4", 95, 610)]:
-    k.fest(kennung, "leerstand", "Ruine" if kennung == "L4" else "Leerstand", m(x, y))
+k.gebaeude("Dom", "dom", "Dom (Baustelle mit Kran)", m(578, 190))   # 1,3 m nördlicher als in Format 1: sonst auf dem Startgrundstück 1
+k.gebaeude("Gereon", "kirche", "St. Gereon", m(445, 215), konfession="katholisch")
+k.gebaeude("Severin", "kirche", "St. Severin", m(575, 540), konfession="katholisch")
+k.gebaeude("Antoniter", "kirche", "Antoniterkirche", m(437, 444), konfession="evangelisch")   # bis Format 1 (455|440) auf Startgrundstück 6
+# L2 stand bis Format 1 bei (455|393) auf Startgrundstück 5
+for kennung, x, y in [("L1", 490, 540), ("L2", 481, 391), ("L3", 770, 394), ("L4", 95, 610)]:
+    k.gebaeude(kennung, "leerstand", "Ruine" if kennung == "L4" else "Leerstand", m(x, y))
 
-# Startgrundstücke: je Haus ein Grundstück für Wohnhaus und Werkstatt, Eingang am Mittleren Ring.
-# In den beiden breitesten Abschnitten liegen zwei, in den übrigen je eines – alle gleich weit vom Markt.
+# Startgrundstücke: je Haus ein Grundstück (24 × 14 m) mit Werkstattplatz (16 m, links) und Wohnhausplatz (8 × 10 m, rechts, mit der
+# Vorderkante bündig), Eingang am Mittleren Ring. In den beiden breitesten Abschnitten liegen zwei, in den übrigen je eines – alle
+# gleich weit vom Markt. Wohnhausplätze stehen rechtwinklig: Das Grundstück dreht sich in die Himmelsrichtung, die dem Ring am nächsten
+# kommt, und beide Plätze bekommen diese Drehung.
 spannen = [(WINKEL[i], WINKEL[i + 1]) for i in range(len(WINKEL) - 1)]
 breiteste = set(sorted(range(len(spannen)), key=lambda i: spannen[i][0] - spannen[i][1])[:2])
 start_winkel = []
@@ -213,8 +218,12 @@ for i, (a1, a2) in enumerate(spannen):
     am = (a1 + a2) / 2
     start_winkel += [(a1 + am) / 2, (am + a2) / 2] if i in breiteste else [am]
 for n, a in enumerate(sorted(start_winkel), start=1):
-    k.fest(f"S{n}", "start", f"Startgrundstück {n}", m(*punkt(a, RING_MITTE + 14)),
-           eingang=m(*punkt(a, RING_MITTE)), groesse=[24, 14])   # Werkstatt 16 m + Wohnhaus 8 m nebeneinander
+    mitte, eingang = m(*punkt(a, RING_MITTE + 14)), m(*punkt(a, RING_MITTE))
+    dx, dz = eingang[0] - mitte[0], eingang[1] - mitte[1]
+    grad = ((1 if dx > 0 else 3) if abs(dx) > abs(dz) else (0 if dz >= 0 else 2)) * 90
+    for teil, katalog, lx, lz in (("Werkstatt", "werkstattplatz", -4, 0), ("Wohnhaus", "wohnhausplatz", 8, 2)):
+        wx, wz = dreh(lx, lz, grad)
+        k.gebaeude(f"S{n}_{teil}", katalog, f"Startgrundstück {n}, {teil}", (round(mitte[0] + wx, 1), round(mitte[1] + wz, 1)), grad)
 
 # ── Was von der Vorlage abweicht ─────────────────────────────────────────────
 k.fiktion("Rheinbrücke Heumarkt–Deutz: im Mittelalter gab es keine feste Brücke, nur Fähren.")
@@ -225,4 +234,4 @@ k.fiktion("Antoniterkirche als evangelische Kirche: im Spiel gibt es beide Konfe
 
 if __name__ == "__main__":
     print("Köln:")
-    k.schreiben()
+    k.schreiben(mauer_geschlossen=False)
