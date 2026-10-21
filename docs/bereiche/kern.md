@@ -226,7 +226,7 @@ So wird eingetragen (damit sich die Chats nie an derselben Stelle treffen):
 | Raster | Punkte landen in der Datei immer auf 5 cm, Drehungen auf 0,1° zwischen 0 und 360 (wie das Werkzeug schreibt). Das 1-m-Raster und die 15°-Schritte rechnet `Kartenraster`; ob gerundet wird, entscheidet die Darstellung (Alt = frei). | 21.10.2026 |
 | Prüfung | `Kartenpruefung` rechnet die Regeln aus `karte.py` (alle Karten) und `greybox.py` (Stadtregeln) mit derselben Geometrie nach; Befunde mit Schwere, Regel, Text, betroffenen Gebäuden und Ort. Welche Regeln gelten, sagt `Pruefregeln.Fuer(kennung)`: Greybox wie `greybox.py`, Köln wie `koeln.py` (ohne Kapazität), neue Karten die Stadtregeln ohne die Greybox-Besonderheiten (16 × 14 m nach Süden, Gasse am Hof, 8 Wohnhausplätze, Mindestzahlen im Probeplan). Stand: Greybox 0 Fehler und dieselben 7 Hinweise wie das Werkzeug, Köln 0 Fehler. | 21.10.2026 |
 | Schreiben | `ZuJson()` schreibt im Zeilenformat des Werkzeugs (`json_kompakt`): Greybox und Köln öffnen und unverändert schreiben ergibt Byte für Byte dieselbe Datei. Neue Karten bekommen das Feld `groesse` [Breite, Tiefe] um den Ursprung (Format bleibt 2, der Kern liest es nicht). | 21.10.2026 |
-| Messung | Simulation unverändert (nur `Stadtkarte.Optionen` ist jetzt `internal`, damit der Entwurf dieselben Leseregeln nutzt). | 21.10.2026 |
+| Messung | Simulation unverändert (nur `Stadtkarte.Optionen` ist jetzt `internal`, damit der Entwurf dieselben Leseregeln nutzt). `messen 30 20 greybox` auf main `f04ee7a` + diesem Branch: Ausgabe zeichengleich mit main. | 21.10.2026 |
 
 ## Messungen
 
