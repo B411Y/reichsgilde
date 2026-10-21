@@ -1085,6 +1085,23 @@ Der Wirt rückt damit vom unteren Mittelfeld an die Spitze, ohne davonzuziehen.
 
 **Messung** (`messen 30 20`, Mensch, ausgewogen, gemessen auf main `f04ee7a` + Funktions-Branch `e7bec62` + diese Änderung): **zeichengleich** mit main (Eisenbart Ø 129.647, Eichwald 88.479, Kieselbach 127.439, Bürgermeister 18/20), obwohl die KI-Häuser in 17 von 60 Fällen Prediger werden: Sie kaufen keine Einrichtung, und die Abfrage liest nur (ohne den Messefaktor der Bürger-KI, der bei jedem Aufruf mitlernt).
 
+## Einrichtung und Anwesenheit des Diebs (PR #171)
+
+**Regel:** `werkstatt.einrichtung.Dieb` (Datenversion 45), Preise wie bei den Werkstätten. Der Dieb stellt nichts her, seine Stücke wirken auf die Gaunerei, und zwar aus dem Versteck (bester Diebesbetrieb mit Leuten):
+
+| Stück (Kennung) | Preis | Wirkung |
+|---|---|---|
+| Dietriche (`Werkzeug1`) | 300 | Einbruchchance +0,10 absolut, wie `dieb.einbruch.chanceBonus`: (0,7 + 0,1 + 0,1) × Wächter 0,5 × Patrouille × Eisentür des Ziels, Deckel 95 %. Ohne Wächter 0,8 → 0,9, mit Wächter 0,4 → 0,45 |
+| Meisterdietriche (`Werkzeug2`, ab Unterschlupf, braucht Dietriche) | 800 | nochmals +0,10: ohne Wächter 0,95 (Deckel, statt 1,0), mit Wächter 0,5 |
+| Verkleidungstruhe (`Verkleidung`) | 350 | Fangchance der Taschendiebe × 0,75 (Schmugglerloch 1,2 % → 0,9 % je Diebesstunde) |
+| Hehlerkammer (`Regale`) | 200 | Lager +20 je Ware (60 statt 40): mehr Einbruchsbeute bleibt im eigenen Lager statt beim Hehler (50 % des Preises) |
+| Löschfass, Eisentür | 100, 300 | wie bei den Werkstätten: Feuer bzw. Diebstahl und Einbruch halb so oft |
+| Lederhandschuhe (`Handschuhe`) | 80 | Spuren × 0,75: Zeugen der eigenen Aufträge (Einbruch 25 % × 0,75 × 0,75 ≈ 14 % statt 18,75 %), Beweise beim Auskundschaften (40 % → 30 % je Tat) und bei der Razzia gegen das Haus. Unfälle hat der Dieb nicht. |
+
+Absolut statt ×1,1, weil der Bonus der eigenen Leute (`chanceBonus`) schon so rechnet; „+10 %“ heißt im ganzen Diebeswesen zehn Prozentpunkte. Die Meisterdietriche lohnen sich deshalb vor allem gegen Häuser mit Wächter oder Eisentür. Dazu eine lesende Abfrage, wer gerade daheim, am Markt oder auf Auftrag ist (`Diebeswesen.AnwesenheitJetzt`), nur fürs Bild: Die Beute rechnet weiter mit allen Arbeitern.
+
+**Messung** (`messen 30 20` und `messen 30 20 greybox`, gemessen auf main `08eb15e` + Branch `0d823f8`): beide Ausgaben **zeichengleich** mit main (Eisenbart Ø 129.647 bzw. 162.279, Bürgermeister 18/20 bzw. 17/20). Ohne gekaufte Einrichtung sind die neuen Faktoren genau 1 bzw. der Bonus 0, die Abfrage würfelt nicht. Die KI kauft keine Einrichtung (und lernt den Dieb nur wagemutig, in den Messungen also nie).
+
 ## Keine Werkstätten zum Kauf in der Stadt (PR #162)
 
 **Regel:** Datenversion 40. Unter `liegenschaften` stehen nur noch die neun Umlandbetriebe zur Pacht; die zehn Werkstätten der Stadt (Gießerei an der Südgasse … Wechselstube am Markt) sind gestrichen. Neue Werkstätten entstehen durch Bauen, frei werden welche durch Verkauf oder Untergang eines Hauses. Der Preis der Stufe 1 steht jetzt als `kaufpreis` an der Betriebsart (3.500, Schmugglerloch 3.000) – unverändert gegenüber den gestrichenen Liegenschaften, also gleicher Neubaupreis und gleicher Wert beim Verkauf.
