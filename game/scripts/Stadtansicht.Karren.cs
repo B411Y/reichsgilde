@@ -155,7 +155,7 @@ public partial class Stadtansicht
     }
 
     /// <summary>Wie weit (Chebyshev-Abstand von der Platzmitte, Meter) die Karren am Markt halten: Das Pflaster reicht bis 12 m, die Tiere stehen am Rand.</summary>
-    private const float KarrenHaltAmMarkt = MarktplatzHalb + 3.5f;
+    private float KarrenHaltAmMarkt => _marktHalb + 3.5f;
 
     private readonly System.Runtime.CompilerServices.ConditionalWeakTable<Vector3[], Vector3[]> _karrenWege = new();
 
@@ -172,9 +172,13 @@ public partial class Stadtansicht
     /// an dem Punkt ab, an dem er das Quadrat mit der halben Seite <paramref name="halb"/> um die Platzmitte betritt. Beginnt der Weg schon darin
     /// (ein Betrieb am Markt) oder berührt er den Platz nicht, bleibt er, wie er ist.
     /// </summary>
-    private static Vector3[] KarrenWegBisPlatzrand(Vector3[] weg, float halb)
+    private Vector3[] KarrenWegBisPlatzrand(Vector3[] weg, float halb)
     {
-        float Rand(Vector3 p) => Math.Max(Math.Abs(p.X - Marktplatz.X), Math.Abs(p.Z - Marktplatz.Z));
+        float Rand(Vector3 p) // in Koordinaten des Platzes (er darf gedreht sein)
+        {
+            var lokal = MarktLokal(p);
+            return Math.Max(Math.Abs(lokal.X), Math.Abs(lokal.Z));
+        }
         if (weg.Length < 2 || Rand(weg[0]) < halb) return weg;
         var gekuerzt = new List<Vector3> { weg[0] };
         for (var i = 0; i + 1 < weg.Length; i++)

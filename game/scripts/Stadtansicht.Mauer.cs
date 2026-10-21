@@ -5,11 +5,11 @@ namespace Reichsgilde;
 /// <summary>
 /// Die Stadtmauer – elfter Teil der <c>partial class Stadtansicht</c>.
 ///
-/// <c>stadtmauer.glb</c> ist ein Baukasten (siehe <c>docs/bereiche/darstellung.md</c>): „Mauerstueck“, „Mauerturm“, „Eckturm“ und „Tor“,
+/// Der Mauer-Baukasten des Katalogs (<c>stadtmauer.glb</c>, siehe <c>docs/bereiche/darstellung.md</c>): „Mauerstueck“, „Mauerturm“, „Eckturm“ und „Tor“,
 /// jedes mit dem Ursprung im Nullpunkt, lokal X entlang der Mauer, +Z zur Feldseite. <see cref="MauerAufbauen"/> setzt sie für eine beliebige
 /// Mauerlinie zusammen: Mauerstücke entlang jeder Strecke, ein Eckturm an jedem Knick, dazwischen etwa alle 35 m ein Mauerturm,
-/// an jedem Tor die Torburg. Die Greybox-Stadt ruft es mit ihrem Quadrat auf (<see cref="Stadtmauer"/>); eine Karte mit anderer Mauer
-/// (Köln: Halbkreis mit Toren) braucht nur ihre Punktfolge und ihre Tore.
+/// an jedem Tor die Torburg. Jede Mauer der Karte (<c>mauern</c>: Punktfolge, offen oder geschlossen, mit Toren) ruft es auf
+/// (<see cref="MauerAusKarte"/>) – das Quadrat der Greybox-Stadt ebenso wie der Halbkreis von Köln.
 ///
 /// Die vielen gleichen Teile (Mauerstücke, Mauertürme, Ecktürme) sind je Teil ein <see cref="MultiMeshInstance3D"/>: Die Grafikkarte zeichnet
 /// alle Kopien in einem Aufruf je Material, statt hundert einzelner Knoten.
@@ -28,26 +28,16 @@ public partial class Stadtansicht
     /// <summary>Ab diesem Knick (Grad) bekommt ein Punkt der Mauerlinie einen Eckturm; flachere Knicke laufen nur durch.</summary>
     private const float EckturmAbWinkel = 12;
 
-    /// <summary>Die Mauer der Greybox-Stadt: ein Quadrat bei ±<see cref="Mauerrand"/> mit Osttor und Westtor.</summary>
-    private void Stadtmauer()
-    {
-        const float rand = Mauerrand;
-        MauerAufbauen(
-            new[] { new Vector3(-rand, 0, -rand), new Vector3(rand, 0, -rand), new Vector3(rand, 0, rand), new Vector3(-rand, 0, rand) },
-            geschlossen: true, Vector3.Zero,
-            new[] { ("Osttor", Osttor), ("Westtor", Westtor) });
-    }
-
     /// <summary>
-    /// Baut eine Mauer aus dem Baukasten <c>stadtmauer.glb</c>.
+    /// Baut eine Mauer aus dem Baukasten <paramref name="datei"/> (<c>stadtmauer.glb</c>).
     /// </summary>
     /// <param name="linie">Die Punkte der Mauerlinie in Metern; jeder Punkt ist ein Knick oder ein Ende.</param>
     /// <param name="geschlossen">Ob die letzte Strecke zum ersten Punkt zurückläuft (Ring) oder die Linie offen endet (Halbkreis am Fluss).</param>
     /// <param name="stadtmitte">Ein Punkt in der Stadt – bestimmt, welche Seite der Mauer die Feldseite ist (die von ihm abgewandte).</param>
     /// <param name="tore">Die Tore mit Namen (Kennung wie beim Anklicken) und Ort; ein Tor sitzt auf der Strecke, der es am nächsten liegt.</param>
-    private void MauerAufbauen(IReadOnlyList<Vector3> linie, bool geschlossen, Vector3 stadtmitte, IReadOnlyList<(string Name, Vector3 Ort)> tore)
+    private void MauerAufbauen(string datei, IReadOnlyList<Vector3> linie, bool geschlossen, Vector3 stadtmitte, IReadOnlyList<(string Name, Vector3 Ort)> tore)
     {
-        if (Modell("stadtmauer")?.Instantiate<Node3D>() is not { } kasten) return;
+        if (Modell(datei)?.Instantiate<Node3D>() is not { } kasten) return;
         var stueckNetz = (kasten.FindChild("Mauerstueck", true, false) as MeshInstance3D)?.Mesh;
         var turmNetz = (kasten.FindChild("Mauerturm", true, false) as MeshInstance3D)?.Mesh;
         var eckNetz = (kasten.FindChild("Eckturm", true, false) as MeshInstance3D)?.Mesh;
@@ -57,7 +47,7 @@ public partial class Stadtansicht
         kasten.Free();
         if (stueckNetz is null || turmNetz is null || eckNetz is null || torNetz is null)
         {
-            GD.PushError("Modell unvollständig: res://assets/modelle/stadtmauer.glb braucht Mauerstueck, Mauerturm, Eckturm und Tor.");
+            GD.PushError($"Modell unvollständig: res://assets/modelle/{datei}.glb braucht Mauerstueck, Mauerturm, Eckturm und Tor.");
             return;
         }
 

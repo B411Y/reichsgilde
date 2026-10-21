@@ -40,16 +40,16 @@ public partial class Stadtansicht : Node3D
     private static readonly Color Ziegel = new(0.55f, 0.25f, 0.18f);
     private static readonly Color Schiefer = new(0.28f, 0.30f, 0.34f);
     private static readonly Color Holz = new(0.36f, 0.25f, 0.16f);
-    private static readonly Color Spieler = new(0.20f, 0.42f, 0.72f);
+    private static readonly Color Spieler = new(0.20f, 0.42f, 0.72f); // nur ohne Farbe in der Karte (Besitzerfarbe) und für die Ständetafel im Rathaus
     private static readonly Color Rivale = new(0.70f, 0.20f, 0.16f);
-    private static readonly Color ZweiterRivale = new(0.22f, 0.55f, 0.28f);
-    private static readonly Color DritterRivale = new(0.85f, 0.68f, 0.18f);
     private static readonly Color Bruchstein = new(0.68f, 0.65f, 0.60f);
     private static readonly Color Kraut = new(0.30f, 0.52f, 0.25f);
     private static readonly Color Wasser = new(0.25f, 0.42f, 0.55f);
     private static readonly Color Morsch = new(0.33f, 0.29f, 0.25f);
 
     private const float KameraMinZoom = 25f;
+    /// <summary>So weit (Meter) darf die Kamera über das Rechteck aller Gebäude, Wege und Mauern der Karte hinaus verschoben werden.</summary>
+    private const float KameraRand = 12f;
     private const float KameraMaxZoom = 140f;
     private const float InnenZoom = 15f;
     private const float InnenMinZoom = 10f;
@@ -257,130 +257,50 @@ public partial class Stadtansicht : Node3D
     /// <summary>Eine Figur: Körper, der bewegliche Arm (mit Werkzeug), ihr Takt, was sie tut und wo der Arm ruht.</summary>
     private sealed record Arbeiterfigur(Node3D Koerper, Node3D Arm, float Takt, Bewegung Art, Vector3 ArmRuhe);
 
-    // Feste Punkte der Stadt (Meter). Der Marktplatz liegt im Ursprung.
-    public static readonly Vector3 Marktplatz = Vector3.Zero;
-    public static readonly Vector3 Osttor = new(50, 0, 0);
-    public static readonly Vector3 Westtor = new(-50, 0, 6); // etwas nach Süden, damit die Weststraße an der Kirche an der Westmauer vorbeiführt
-
-    /// <summary>Halbe Seitenlänge der Stadtmauer (Meter). Die Stadt reicht von −50 bis +50.</summary>
-    public const float Mauerrand = 50;
-
-    /// <summary>Ende der Landstraße vor dem Osttor.</summary>
-    private static readonly Vector3 Landstrasse = new(90, 0, -2);
-
     /// <summary>
-    /// Hier zweigen die Wege zu Gruben, Höfen und Gärten von der Landstraße ab – erst hinter der Vorstadt,
-    /// damit zwischen Osttor und Kreuzung Platz für Häuser bleibt. Karren fahren Hof → Abzweig → Wegkreuz → Osttor.
+    /// Wo ein Betrieb steht: Mitte seiner Fläche, Drehung (Bogenmaß wie <c>Rotation.Y</c>), Breite und Tiefe der Fläche und – auf einem festen Platz –
+    /// das Gebäude der Karte. Neu gebaute Werkstätten stehen auf ihrem Grundstück (dann ohne Gebäude).
     /// </summary>
-    public static readonly Vector3 Wegkreuz = new(76, 0, -1.3f);
-
-    /// <summary>Ende der Weststraße vor dem Westtor (noch ohne Ziel – für spätere Erweiterungen).</summary>
-    /// <summary>Die Westgasse knickt hier nach Westen ab – nördlich vorbei am Weinmarkt, südlich am Dom.</summary>
-    private static readonly Vector3 WestgasseKnick = new(-12, 0, 6);
-
-    private static readonly Vector3 Weststrasse = new(-118, 0, 6);
-
-    /// <summary>
-    /// Die Startwerkstatt des Spielers „… am Weinmarkt“: ein Platz für alle Berufe, südlich der Westgasse an der Ringgasse.
-    /// </summary>
-    private static readonly Vector3 Weinmarkt = new(-23, 0, 17);
-
-    /// <summary>
-    /// Der Stadtplan: Wo steht welcher Betrieb? Die Namen sind dieselben wie in der Simulation und in wirtschaft.json
-    /// („liegenschaften"). Ein neuer Bauplatz braucht hier einen Eintrag. In der Stadt ist der Punkt die Mitte des alten
-    /// 10 × 8-m-Hauses: Die Werkstatt belegt 16 × 14 m von 8 m dahinter bis 6 m davor (Vorplatz), x ± 8 m, die Tür zeigt nach Süden.
-    /// Dieselben Plätze stehen in <c>game/data/karten/greybox.json</c> (Kartenwerkzeug <c>tools/karten/greybox.py</c>, dort mit der Mitte der Fläche).
-    /// </summary>
-    public static readonly Dictionary<string, Vector3> Stadtplan = new()
+    private sealed record Platz(Vector3 Mitte, float Drehung, Vector2 Groesse, Reichsgilde.Core.Bauen.Kartengebaeude? Gebaeude)
     {
-        ["Gießerei am Weinmarkt"] = Weinmarkt,
-        ["Tischlerei am Weinmarkt"] = Weinmarkt, // derselbe Platz – je nach Startberuf
-        ["Gießerei Eisenbart"] = new(22, 0, 14),       // südlich der Ostgasse
-        ["Tischlerei Eichwald"] = new(22, 0, -12),     // nördlich der Ostgasse, Tür zur Ostgasse
-        ["Maurerei am Weinmarkt"] = Weinmarkt,
-        ["Maurerei Kieselbach"] = new(25, 0, -28),     // hinter der Tischlerei Eichwald an der Ringgasse
-        ["Steinbruch Kieselbach"] = new(74, 0, 66),
-        ["Steinbruch am Felsenhang"] = new(-6, 0, -80),
-        ["Tinkturei am Weinmarkt"] = Weinmarkt,
-        ["Kräutergarten am Bach"] = new(106, 0, 70),
-        ["Schänke am Weinmarkt"] = Weinmarkt,
-        ["Bauernhof an der Mühle"] = new(124, 0, -62),
-        ["Kirche am Weinmarkt"] = Weinmarkt,
-        ["Schmugglerloch am Weinmarkt"] = Weinmarkt,
-        ["Wachhaus am Weinmarkt"] = Weinmarkt,
-        ["Wechselstube am Weinmarkt"] = Weinmarkt,
-        ["Siederei am Weinmarkt"] = Weinmarkt,
-        ["Duftgarten am Lavendelhang"] = new(124, 0, 8),
-        ["Wachturm an der Landstraße"] = new(80, 0, -10),
-        ["Klosterhof am Osthang"] = new(134, 0, 80),     // südöstlich hinter dem Kräutergarten – vor keinem Berg versteckt
-        ["Grube Eisenbart"] = new(102, 0, -12),
-        ["Grube am Silberberg"] = new(100, 0, 32),
-        ["Grube im Tannenwald"] = new(82, 0, -66),
-        ["Holzschlag Eichwald"] = new(-92, 0, -30),       // im Wald vor dem Westtor, nördlich der Weststraße
-        ["Holzschlag im Eichenforst"] = new(-94, 0, 46),  // im Wald vor dem Westtor, südlich der Weststraße
-    };
+        public Basis Basis => new(Vector3.Up, Drehung);
 
-    /// <summary>
-    /// Werkstätten erreichen den Markt über eine Gasse: vom Hof vor der Tür am Vorplatz entlang und dann zum Markt, nie durch ein Haus
-    /// (der Reihe nach, vom Betrieb zum Markt). Ohne Eintrag geht die Gasse auf knapp halbem Weg zur Mitte.
-    /// </summary>
-    private static readonly Dictionary<string, Vector3[]> Gassen = new()
-    {
-        ["Gießerei Eisenbart"] = new Vector3[] { new(12, 0, 19.5f), new(12, 0, 12) },     // nach Westen am Vorplatz, dann am Markt entlang
-        ["Tischlerei Eichwald"] = new Vector3[] { new(12.5f, 0, -6.5f) },                  // nach Westen bis an den Markt
-        ["Maurerei Kieselbach"] = new Vector3[] { new(11, 0, -22.5f), new(11, 0, -13) },  // zwischen Rathaus und Eichwald nach Süden
-    };
+        /// <summary>Ein Punkt der Fläche in Koordinaten der Stadt (x nach rechts, z zur Vorderseite, von der Mitte).</summary>
+        public Vector3 Lokal(Vector3 lokal) => Mitte + Basis * lokal;
 
-    /// <summary>
-    /// Die Gasse vom Weinmarkt (für jeden Startberuf derselbe Platz): nach Westen am Vorplatz entlang, an der Ringgasse nach Norden und
-    /// über die Westgasse zum Markt – östlich und südlich davon liegen Bauzonen.
-    /// </summary>
-    private static readonly Vector3[] WeinmarktGasse = { new(-34, 0, 22.5f), new(-34, 0, 6), WestgasseKnick };
-
-    private static Vector3[] Gasse(string name, Vector3 p) =>
-        Gassen.GetValueOrDefault(name) ?? (p == Weinmarkt ? WeinmarktGasse : new[] { new Vector3(p.X * 0.45f, 0, p.Z * 0.45f) });
-
-    /// <summary>Weg vom Betrieb über die Gasse(n) zum Markt ziehen.</summary>
-    private void GasseZiehen(Vector3 p, Vector3[] gasse, Node3D? eltern = null)
-    {
-        var punkte = gasse.Prepend(p).Append(Marktplatz).ToList();
-        for (var i = 0; i + 1 < punkte.Count; i++)
-            WegZiehen(punkte[i], punkte[i + 1], 3.5f, eltern);
+        /// <summary>Der Hof im Vorplatz, wo die Gasse beginnt, Karren losfahren und Gäste ankommen.</summary>
+        public Vector3 Hof => Lokal(new Vector3(0, 0, Groesse.Y / 2 - HofVorKante));
     }
 
-    /// <summary>Gruben liegen vor der Stadt: Hier zweigt ihr Weg von der Straße ab, die zum Osttor führt.</summary>
-    private static readonly Dictionary<string, Vector3> Abzweige = new()
+    /// <summary>
+    /// Der Platz eines Betriebs (oder einer freien Liegenschaft): der feste Platz der Karte oder das Grundstück einer neu gebauten Werkstatt
+    /// (Abfrage des Kerns <c>Bauwesen.PlatzVon</c>). Null, wenn er nirgends steht.
+    /// </summary>
+    private Platz? PlatzVon(string betrieb)
     {
-        ["Grube Eisenbart"] = new(90, 0, -2),
-        ["Grube am Silberberg"] = new(86, 0, 18),
-        ["Grube im Tannenwald"] = new(80, 0, -26),
-        ["Holzschlag Eichwald"] = new(-84, 0, 6),         // an der Weststraße
-        ["Holzschlag im Eichenforst"] = new(-102, 0, 6),  // an der Weststraße
-        ["Steinbruch Kieselbach"] = new(80, 0, 26),
-        ["Steinbruch am Felsenhang"] = new(-62, 0, -58), // vom Westtor um die Nordwestecke der Mauer herum
-        ["Kräutergarten am Bach"] = new(86, 0, 18),
-        ["Bauernhof an der Mühle"] = new(80, 0, -26),
-        ["Klosterhof am Osthang"] = new(98, 0, 57),      // auf dem Weg zum Kräutergarten
-        ["Wachturm an der Landstraße"] = new(80, 0, -1), // direkt an der Landstraße
-        ["Duftgarten am Lavendelhang"] = Landstrasse,      // am Ende der Landstraße weiter nach Osten
-    };
+        var platz = _wirtschaft?.Bauen.PlatzVon(betrieb)
+                    ?? (_karte?.PlatzVon(betrieb) is { } fest ? new Reichsgilde.Core.Bauen.Betriebsplatz(betrieb, fest, null) : null);
+        if (platz is null) return null;
+        var (x, z) = platz.Punkt;
+        var groesse = platz.Gebaeude is { } g ? GroesseVon(g)
+            : new Vector2((float)platz.Grundstueck!.Grundriss.Breite, (float)platz.Grundstueck.Grundriss.Tiefe);
+        return new Platz(new Vector3((float)x, 0, (float)z), Mathf.DegToRad((float)platz.DrehungGrad), groesse, platz.Gebaeude);
+    }
 
-    /// <summary>Was vor dem Westtor liegt – die übrigen Plätze vor der Stadt erreicht man durch das Osttor.</summary>
-    private static readonly HashSet<string> ImWesten = new() { "Holzschlag Eichwald", "Holzschlag im Eichenforst", "Steinbruch am Felsenhang" };
+    /// <summary>Der Hof vor der Tür einer Werkstatt: die Stelle, wo Karren losfahren und Gäste ankommen (null, wenn der Betrieb nirgends steht).</summary>
+    private Vector3? HofVon(string betrieb) => PlatzVon(betrieb)?.Hof;
 
-    /// <summary>Wo der Weg eines Platzes vor der Stadt an die Straße zum Tor stößt: Wegkreuz im Osten, Westtor im Westen.</summary>
-    private static Vector3 Kreuz(string name) => ImWesten.Contains(name) ? Westtor : Wegkreuz;
-
-    /// <summary>Liegt der Abzweig schon auf der Land- bzw. Weststraße? Dann braucht er keinen eigenen Weg zum Kreuz.</summary>
-    private static bool AnDerStrasse(string name, Vector3 abzweig) => ImWesten.Contains(name)
-        ? AbstandZurStrecke(abzweig, Westtor, Weststrasse) <= 1
-        : AbstandZurStrecke(abzweig, Osttor, Landstrasse) <= 1;
-
-    /// <summary>Der Weg eines Karrens vom Hof zum Markt – durch das Tor, das zu seinem Platz gehört.</summary>
-    private static Vector3[] WegZumMarktVon(string name, Vector3 hof, Vector3 abzweig) => ImWesten.Contains(name)
-        ? new[] { hof, abzweig, Westtor, new Vector3(-38, 0, 6), WestgasseKnick, Marktplatz }
-        : new[] { hof, abzweig, Wegkreuz, Osttor, Marktplatz };
-
+    /// <summary>
+    /// Der Weg vom <paramref name="start"/> (Hof, Karrenplatz) über das Gassennetz bis zur Mitte des Marktplatzes – für die Karren. Hängt der Start
+    /// noch nicht am Netz (eine neu gebaute Werkstatt), bekommt er sein Stück zum nächsten Weg (gezeichnet in <paramref name="breite"/>).
+    /// </summary>
+    private Vector3[] MarktWeg(Vector3 start, float breite)
+    {
+        var von = AnWegAnschliessen(start, breite);
+        var nach = MarktKnoten();
+        var pfad = nach >= 0 ? _netz.Pfad(von, nach) : Array.Empty<Vector3>();
+        return pfad.Length >= 2 ? pfad : new[] { start, _markt };
+    }
 
     /// <summary>Freie Bauplätze und Gruben, die noch niemandem gehören: Name → ihre Darstellung.</summary>
     private readonly Dictionary<string, Node3D> _freiePlaetze = new();
@@ -400,28 +320,15 @@ public partial class Stadtansicht : Node3D
         VerdeckungNachfuehren(); // Umgebungsverdeckung und indirektes Licht (Stadtansicht.Licht.cs)
         Fenster.VerdeckungGeaendert += VerdeckungNachfuehren;
 
-        Flaeche(new Vector3(20, 0, 0), new Vector2(520, 480), Wiese, -0.05f); // groß genug, dass auch ganz herausgezoomt kein Himmel am Rand zu sehen ist
-        Flaeche(Vector3.Zero, new Vector2(2 * Mauerrand, 2 * Mauerrand), Pflaster, 0f);
-
-        Stadtmauer();
-        Marktstaende();       // Marktplatz, Stände und Auslagen: Stadtansicht.Markt.cs
-        RathausBauen(new Vector3(0, 0, -20)); // Rathaus und Dom mit Innenraum: Stadtansicht.Sonderbauten.cs
-        DomBauen(new Vector3(-20, 0, -14));
-        Wohnhaeuser();
-        WohnviertelAnlegen(); // Ringgasse, Umlandstellen, Gassennetz: Stadtansicht.Wohnviertel.cs
-        Wald();
-
-        // Wege: Ostgasse zum Tor und hinaus zur Grube; Westgasse zum Westtor (die Weststraße führt noch nirgends hin)
-        WegZiehen(Marktplatz, Osttor, 5);
-        WegZiehen(Osttor, Landstrasse, 4);
-        WegZiehen(Marktplatz, WestgasseKnick, 5);
-        WegZiehen(WestgasseKnick, new Vector3(-38, 0, 6), 5);
-        WegZiehen(new Vector3(-38, 0, 6), Westtor, 5);
-        WegZiehen(Westtor, Weststrasse, 4);
-
-        // Ohne Simulation (Hauptmenü) füllt eine Mustermischung den Ring. Erst nach dem Aufbau der Szene prüfen,
-        // denn die Hauptszene verbindet die Simulation erst nach diesem _Ready.
-        Callable.From(() => { if (_simulation is null) WohnhaeuserPruefen(); }).CallDeferred();
+        // Die Stadt selbst kommt aus der Karte (Stadtansicht.Karte.cs): mit Partie aus Verbinden (die Karte der Partie), ohne Partie (Hauptmenü)
+        // die Greybox-Karte, und eine Mustermischung füllt die Wohnplätze. Erst nach dem Aufbau der Szene prüfen, denn die Hauptszene verbindet
+        // die Simulation erst nach diesem _Ready.
+        Callable.From(() =>
+        {
+            if (_simulation is not null) return;
+            KarteAufbauen(Stadtkarten.Greybox);
+            WohnhaeuserPruefen();
+        }).CallDeferred();
     }
 
     private void UmgebungUndLicht()
@@ -457,66 +364,8 @@ public partial class Stadtansicht : Node3D
             Position = new Vector3(0, 0, KameraAbstand), // Near und Far folgen dem Zoom (SchattenNachfuehren)
         };
         neigung.AddChild(_kamera);
-        _kameraDrehung.Position = new Vector3(24, 0, -6); // Stadt und Grube im Blick
-        RaumKameraAufbauen();
+        RaumKameraAufbauen(); // wohin die Kamera beim Start blickt, sagt die Karte (KameraAusKarte)
     }
-
-    /// <summary>
-    /// Die vier Kulissenhäuser (<see cref="KulissePlaetze"/>, Tür zur nächsten Gasse) als Modell <c>einwohner_buergerhaus</c> – Variante und
-    /// gedeckte Hausfarbe nach der Reihenfolge wie bei den Einwohnerhäusern (<see cref="Hausfarben"/>). Die Einwohner, die dort wohnen,
-    /// gehen weiter zur Haustür im Gassennetz (Wohnviertel.cs); einen Anker braucht es nicht.
-    /// </summary>
-    private void Wohnhaeuser()
-    {
-        var i = 0;
-        foreach (var platz in KulissePlaetze())
-        {
-            var gruppe = new Node3D { Name = $"Kulissenhaus_{i}", Position = platz.Mitte, Rotation = new Vector3(0, Mathf.Atan2(platz.Vorne.X, platz.Vorne.Z), 0) };
-            AddChild(gruppe);
-            // Die Hauswand steht 3 m von der Mitte entfernt zur Gasse hin (wie die Wand des alten Quaders), das Modell also mitten auf dem Platz.
-            const float wand = 3f;
-            ModellEinsetzen(EinwohnerDatei(Reichsgilde.Core.Buerger.Hausart.Buergerhaus), gruppe, new Vector3(0, 0, wand - EinwohnerFront(Reichsgilde.Core.Buerger.Hausart.Buergerhaus)),
-                new ModellZustand(Variante: i % 3 + 1, Besitzer: Hausfarben[i % Hausfarben.Length]));
-            i++;
-        }
-    }
-
-    /// <summary>
-    /// Die Stadt war früher 72 m breit (Mauer bei ±36), jetzt 100 m (±50). Alles, was vor der alten Mauer lag,
-    /// rückt dafür um 14 m nach außen – so bleibt die Umgebung, wie sie war, nur mit einem neuen Ring innen.
-    /// Die Plätze im Stadtplan sind schon umgerechnet; die Bäume werden hier mit derselben Regel verschoben,
-    /// damit der Zufall (Startwert 1400) dieselben Bäume liefert.
-    /// </summary>
-    private static Vector3 NachAussen(Vector3 p)
-    {
-        const float alt = 36, dazu = Mauerrand - alt, vorstadt = 20;
-        static float Schieben(float w) => w > alt ? w + dazu : w < -alt ? w - dazu : w;
-        // Im Osten rückt alles noch einmal 20 m weiter – Platz für die Vorstadt vor dem Osttor.
-        return new Vector3(p.X > alt ? p.X + dazu + vorstadt : Schieben(p.X), p.Y, Schieben(p.Z));
-    }
-
-    /// <summary>Liegt dieser Punkt in der Stadt, auf einem Betrieb, einer Arbeitsstelle oder einem Weg? Dort wächst nichts.</summary>
-    private static bool ImWegFuerWald(Vector3 p)
-    {
-        if (Mathf.Abs(p.X) < Mauerrand + 6 && Mathf.Abs(p.Z) < Mauerrand + 6) return true; // in der Stadt oder dicht an der Mauer
-        if (AufBerg(p)) return true; // der Felsberg hinter einer Grube (Stadtansicht.Umland.cs)
-        if (Mathf.Abs(p.Z - Osttor.Z) < 6 && p.X > 0) return true;  // Landstraße vom Osttor
-        if (p.X > Mauerrand && p.X < Wegkreuz.X + 4 && Mathf.Abs(p.Z) < VorstadtRand + 6) return true; // Vorstadt
-        if (Mathf.Abs(p.Z - Westtor.Z) < 6 && p.X < 0) return true; // Weststraße vom Westtor
-        foreach (var (name, stelle) in Umlandstellen)
-            if (p.DistanceTo(stelle) < 11 || AbstandZurStrecke(p, UmlandZugaenge[name], stelle) < 4) return true; // Weide, Feld und Wald (der hat eigene Bäume) samt Fußweg
-        foreach (var (name, abzweig) in Abzweige)
-        {
-            var platz = Stadtplan[name];
-            if (p.DistanceTo(platz) < 19) return true; // das Modell des Betriebs (Bauernhof 26 × 20 m) mit etwas Rand, auch gedreht
-            if (AbstandZurStrecke(p, Kreuz(name), abzweig) < 5 || AbstandZurStrecke(p, abzweig, platz) < 5) return true;
-        }
-        return false;
-    }
-
-    /// <summary>Liegt der Punkt auf einer Bauzone der Karte (mit 3 m Rand für den Baum)? Dort wird gebaut, nicht gepflanzt.</summary>
-    private static bool AufBauzone(Vector3 p) =>
-        Stadtkarten.Greybox?.Bauzonen.Any(z => z.Abstand(p.X, p.Z) < 3) == true;
 
     private static float AbstandZurStrecke(Vector3 p, Vector3 a, Vector3 b)
     {
@@ -530,21 +379,26 @@ public partial class Stadtansicht : Node3D
     // ═════════════════════════════════════════════════════════════════════════
 
     /// <summary>
-    /// Stellt die Betriebe der Simulation in die Stadt – jeden an seinen Platz laut <see cref="Stadtplan"/>.
-    /// Freie Liegenschaften werden als Bauplatz bzw. leere Grube mit Schild gezeigt.
+    /// Zeichnet die Stadt der Partie (ihre Karte, Stadtansicht.Karte.cs) und stellt die Betriebe der Simulation hinein – jeden an seinen Platz
+    /// (<see cref="PlatzVon"/>). Freie Liegenschaften werden als Bauplatz bzw. leere Grube mit Schild gezeigt.
     /// </summary>
     public void Verbinden(Simulation simulation, Konto spieler)
     {
         _simulation = simulation;
         _spielerKonto = spieler;
-        if (simulation.Wirtschaft is not { } w) return;
+        if (simulation.Wirtschaft is not { } w)
+        {
+            KarteAufbauen(Stadtkarten.Greybox);
+            return;
+        }
+        _wirtschaft = w;
+        KarteAufbauen(w.Karte ?? Stadtkarten.Greybox); // vor den Betrieben: Ihre Wege hängen am Gassennetz der Karte
         foreach (var betrieb in w.Betriebe)
             BetriebHinzufuegen(betrieb);
         foreach (var frei in w.FreieLiegenschaften)
             FreienPlatzZeigen(frei);
         WohnhausRaeumeAnlegen(); // Wohnstube und Kontor im eigenen Wohnhaus (Stadtansicht.Wohnhaus.cs)
         // Verkauf und Kündigung zeigt die Stadt selbst; den Erwerb meldet die Hauptszene (BetriebHinzufuegen).
-        _wirtschaft = w;
         w.BetriebAbgegeben += BetriebEntfernen;
     }
 
@@ -564,9 +418,9 @@ public partial class Stadtansicht : Node3D
     public void BetriebHinzufuegen(Betrieb betrieb)
     {
         if (_betriebe.ContainsKey(betrieb)) return;
-        if (!PlatzVon(betrieb.Name, out var platz, out var drehung))
+        if (PlatzVon(betrieb.Name) is not { } platz)
         {
-            GD.PushWarning($"Für „{betrieb.Name}“ gibt es keinen Platz im Stadtplan – er wird nicht gezeigt.");
+            GD.PushWarning($"Für „{betrieb.Name}“ gibt es keinen Platz in der Karte – er wird nicht gezeigt.");
             return;
         }
         // Stand hier ein freier Platz (Bauplatz, leere Grube oder leeres Haus), weicht er dem neuen Betrieb.
@@ -576,30 +430,26 @@ public partial class Stadtansicht : Node3D
 
         var spieler = betrieb.Konto == _spielerKonto;
         var farbe = Besitzerfarbe(betrieb.Konto);
-        var abzweig = Abzweige.GetValueOrDefault(betrieb.Name, Wegkreuz + new Vector3(10, 0, 0));
         var vorher = GetChildCount(); // alles ab hier gehört zum Betrieb und kommt in seine Gruppe
-        // Werkstätten nach Beruf (eine ausgebaute Drechslerei bleibt eine Tischlerwerkstatt), Umland nach Art
-        // Neu gebaut (nicht im Stadtplan): Platz, Drehung und Weg zum Markt kommen vom Grundstück
-        var neuerWeg = betrieb.InDerStadt && !Stadtplan.ContainsKey(betrieb.Name) ? WerkstattWeg(betrieb.Name) : ((Vector3 Hof, Vector3[] Weg)?)null;
+        // Werkstätten nach Beruf (eine ausgebaute Drechslerei bleibt eine Tischlerwerkstatt), Umland nach dem Baustein seines Platzes
         var ansicht = betrieb.InDerStadt
-            ? WerkstattBauen(betrieb, platz, farbe, StilVon(betrieb.Artdaten.Beruf), neuerWeg)
-            : UmlandBauen(betrieb, platz, farbe, abzweig);
+            ? WerkstattBauen(betrieb, platz, farbe, StilVon(betrieb.Artdaten.Beruf))
+            : UmlandBauen(betrieb, platz, farbe);
         ansicht.Spieler = spieler;
         ansicht.Farbe = farbe;
         ansicht.Gruppe = InGruppe("Betrieb_" + betrieb.Name.Replace(" ", "_"), vorher);
-        if (drehung != 0)
+        if (betrieb.InDerStadt && platz.Drehung != 0)
         {
             // Eine gedrehte Werkstatt: Gebäude samt Innenraum um die Mitte drehen, die Wände schauen mit
-            var basis = UmMitteDrehen(ansicht.Gruppe, platz, drehung, ansicht.Innen);
+            var basis = UmMitteDrehen(ansicht.Gruppe, platz.Mitte, platz.Drehung, ansicht.Innen);
             for (var i = 0; i < ansicht.Waende.Count; i++)
                 ansicht.Waende[i] = (ansicht.Waende[i].Wand, basis * ansicht.Waende[i].Aussen);
         }
-        if (neuerWeg is { } nw) WegZiehen(nw.Weg[0], nw.Weg[1], 3.5f, ansicht.Gruppe); // vom Hof auf die nächste Gasse
         if (KarrenAnker(betrieb.Name) is { } halt)
         {
             // Karren starten und halten am „Anker_Karren“ des Modells (erst jetzt, nach dem Drehen, liegt er an seinem Platz) und fahren von dort zum Hof und weiter
             ansicht.Hof = halt;
-            ansicht.WegZumMarkt = ansicht.WegZumMarkt.Prepend(halt).ToArray();
+            if (ansicht.WegZumMarkt[0].DistanceTo(halt) > 0.1f) ansicht.WegZumMarkt = ansicht.WegZumMarkt.Prepend(halt).ToArray();
         }
         _betriebe[betrieb] = ansicht;
     }
@@ -649,10 +499,16 @@ public partial class Stadtansicht : Node3D
         FreienPlatzZeigen(frei);
     }
 
-    /// <summary>Farbe der Fahnen und Karren: Spieler blau, Haus Eisenbart rot, Haus Eichwald grün, Haus Kieselbach ocker.</summary>
-    private Color Besitzerfarbe(Konto konto) =>
-        konto == _spielerKonto ? Spieler : konto.Inhaber == Partieaufbau.ZweiterRivale ? ZweiterRivale
-        : konto.Inhaber == Partieaufbau.DritterRivale ? DritterRivale : Rivale;
+    /// <summary>
+    /// Farbe der Fahnen, Dächer und Karren eines Hauses: aus der Startbelegung der Karte (Spieler blau, Haus Eisenbart rot, Haus Eichwald grün,
+    /// Haus Kieselbach ocker in der Greybox); ein Haus ohne Farbe in der Karte ist rot, der Spieler blau.
+    /// </summary>
+    private Color Besitzerfarbe(Konto konto)
+    {
+        var istSpieler = konto == _spielerKonto;
+        var text = (_karte?.Startbelegung ?? Startbelegung.Ersatz).Farbe(konto.Inhaber, istSpieler);
+        return text is not null && Color.HtmlIsValid(text) ? Color.FromHtml(text) : istSpieler ? Spieler : Rivale;
+    }
 
     /// <summary>Kennung eines freien Platzes für Mausklicks.</summary>
     public static string LiegenschaftKennung(string name) => "liegenschaft:" + name;
@@ -663,35 +519,38 @@ public partial class Stadtansicht : Node3D
     /// </summary>
     private void FreienPlatzZeigen(LiegenschaftDaten frei)
     {
-        if (!PlatzVon(frei.Name, out var p, out var drehung)) return;
-        if (frei.Bebaut && _simulation?.Wirtschaft?.Daten.Art(frei.Art) is { InDerStadt: true } art)
+        if (PlatzVon(frei.Name) is not { } p) return;
+        var art = _simulation?.Wirtschaft?.Daten.Art(frei.Art);
+        if (frei.Bebaut && art is { InDerStadt: true })
         {
-            LeeresHausZeigen(frei, p, art, drehung); // verkaufte Werkstatt: Das Haus steht noch
+            LeeresHausZeigen(frei, p, art); // verkaufte Werkstatt: Das Haus steht noch
             return;
         }
         var gruppe = new Node3D { Name = "Frei_" + frei.Name.Replace(" ", "_") };
         AddChild(gruppe);
-        if (UmlandModelle.ContainsKey(frei.Art))
+        if (art is { InDerStadt: false })
         {
-            UmlandPlatzZeigen(frei, p, gruppe); // Modell mit „Leerstand“, Weg, Schild, Klickfläche und Beschriftung
+            UmlandPlatzZeigen(frei, p, gruppe); // Modell mit „Leerstand“, Schild, Klickfläche und Beschriftung
             _freiePlaetze[frei.Name] = gruppe;
             return;
         }
-        // Zaun um das Grundstück (16 × 14 m: 8 m hinter p bis 6 m davor, wie die Fläche des Werkstattmodells) und ein Haufen Bauholz
+        // Zaun um das Grundstück (die ganze Fläche mit Vorplatz) und ein Haufen Bauholz
         var holz = Material(Holz);
+        var (hb, ht) = (p.Groesse.X / 2, p.Groesse.Y / 2);
+        var m = p.Mitte;
         foreach (var (mitte, groesse) in new[]
         {
-            (new Vector3(0, 0.5f, -8), new Vector3(16, 1, 0.15f)), (new Vector3(0, 0.5f, 6), new Vector3(16, 1, 0.15f)),
-            (new Vector3(-8, 0.5f, -1), new Vector3(0.15f, 1, 14)), (new Vector3(8, 0.5f, -1), new Vector3(0.15f, 1, 14)),
+            (new Vector3(0, 0.5f, -ht), new Vector3(2 * hb, 1, 0.15f)), (new Vector3(0, 0.5f, ht), new Vector3(2 * hb, 1, 0.15f)),
+            (new Vector3(-hb, 0.5f, 0), new Vector3(0.15f, 1, 2 * ht)), (new Vector3(hb, 0.5f, 0), new Vector3(0.15f, 1, 2 * ht)),
         })
-            Quader(p + mitte, groesse, holz, gruppe);
-        Quader(p + new Vector3(-2, 0.3f, 1), new Vector3(3, 0.6f, 1.2f), holz, gruppe);
-        GasseZiehen(p, Gasse(frei.Name, p), gruppe);
+            Quader(m + mitte, groesse, holz, gruppe);
+        Quader(m + new Vector3(-2, 0.3f, 2), new Vector3(3, 0.6f, 1.2f), holz, gruppe);
 
-        Verkaufsschild(p + new Vector3(-6, 0, 6.6f), frei.IstPacht, gruppe);
-        Klickflaeche(LiegenschaftKennung(frei.Name), p + new Vector3(0, 2, -1), new Vector3(16, 4, 14), gruppe);
+        Verkaufsschild(m + new Vector3(-6, 0, ht + 0.6f), frei.IstPacht, gruppe);
+        Klickflaeche(LiegenschaftKennung(frei.Name), m + new Vector3(0, 2, 0), new Vector3(2 * hb, 4, 2 * ht), gruppe);
         Beschriftung($"{frei.Name}\n{(frei.IstPacht ? "zu verpachten" : "zu verkaufen")}",
-            p + new Vector3(0, 6, 0), 36, gruppe, LiegenschaftKennung(frei.Name));
+            m + new Vector3(0, 6, 1), 36, gruppe, LiegenschaftKennung(frei.Name));
+        UmMitteDrehen(gruppe, m, p.Drehung);
         _freiePlaetze[frei.Name] = gruppe;
     }
 
@@ -715,15 +574,10 @@ public partial class Stadtansicht : Node3D
     private readonly Dictionary<string, (Vector3 Mitte, Node3D Gruppe, Node3D Dach)> _leereHaeuser = new();
 
     /// <summary>
-    /// Die Werkstätten sind Modelle aus Blender (<c>schmied.glb</c> usw., Fläche 16 × 14 m, Front bei z = +5 von der Mitte, siehe
-    /// <see cref="ModellEinsetzen"/>). <c>p</c> ist die Mitte des alten 10 × 8-m-Hauses, dessen Front bei z = +4 stand und an der Gasse
-    /// bzw. am Vorplatz hängt – das Modell sitzt deshalb einen Meter weiter hinten, damit seine Front am selben Fleck steht (bei einem Neubau
-    /// ist <c>p</c> schon so berechnet, <see cref="PlatzVon"/>). Gebäude und Gruppe drehen sich später um <c>p</c>.
+    /// Die Datei des Werkstatt-Modells eines Berufs aus dem Gebäudekatalog (<c>schmied</c>, <c>geldleiher</c> …). Die Modelle sind 16 × 14 m groß
+    /// (mit Vorplatz) und haben ihren Ursprung in der Mitte der Fläche, die Front 2 m hinter der Vorderkante (siehe <see cref="ModellEinsetzen"/>).
     /// </summary>
-    private static readonly Vector3 WerkstattModellVersatz = new(0, 0, -1);
-
-    /// <summary>Die Datei des Werkstatt-Modells: der Beruf in Kleinbuchstaben (<c>schmied</c>, <c>geldleiher</c> …).</summary>
-    private static string WerkstattModellDatei(string beruf) => beruf.ToLowerInvariant();
+    private string WerkstattModellDatei(string beruf) => Katalog?.Werkstatt(beruf)?.Modell ?? beruf.ToLowerInvariant();
 
     /// <summary>Die Betriebsstufe der Modelle (Knoten „Stufe1“ bis „Stufe3“).</summary>
     private static int Modellstufe(int stufe) => Math.Clamp(stufe, 1, 3);
@@ -733,23 +587,21 @@ public partial class Stadtansicht : Node3D
     /// ohne Wappen, Fahne und Besitzerfarbe, davor das ockerfarbene Schild. Kein Innenraum – betreten
     /// lässt es sich erst wieder, wenn es jemand gekauft hat (dann weicht es dem neuen Betrieb, <see cref="BetriebHinzufuegen"/>).
     /// </summary>
-    private void LeeresHausZeigen(LiegenschaftDaten frei, Vector3 p, BetriebsartDaten art, int drehung = 0)
+    private void LeeresHausZeigen(LiegenschaftDaten frei, Platz p, BetriebsartDaten art)
     {
-        const float tiefe = 8;
         var vorher = GetChildCount(); // alles ab hier kommt in die Gruppe des leeren Hauses
-        var modell = ModellEinsetzen(WerkstattModellDatei(art.Beruf), this, p + WerkstattModellVersatz,
+        var modell = ModellEinsetzen(WerkstattModellDatei(art.Beruf), this, p.Mitte,
                                      new ModellZustand(Stufe: Modellstufe(art.Stufe), Leerstand: true));
-        Verkaufsschild(p + new Vector3(3.5f, 0, tiefe / 2 + 1.6f), frei.IstPacht); // rechts vom Tor: links stehen in den Modellen Vordach und Karrenplatz
-        if (Stadtplan.ContainsKey(frei.Name)) GasseZiehen(p, Gasse(frei.Name, p)); // neu gebaute Werkstätten haben ihren Weg vom Grundstück
+        Verkaufsschild(p.Mitte + new Vector3(3.5f, 0, p.Groesse.Y / 2 - 0.4f), frei.IstPacht); // rechts vom Tor: links stehen in den Modellen Vordach und Karrenplatz
 
         var kennung = LiegenschaftKennung(frei.Name);
-        Klickflaeche(kennung, p + new Vector3(0, 5, 0), new Vector3(14, 10, 14)); // das Gebäude des Modells mit dem Schild vor der Tür
+        Klickflaeche(kennung, p.Mitte + new Vector3(0, 5, 0), new Vector3(14, 10, 14)); // das Gebäude des Modells mit dem Schild vor der Tür
         Beschriftung($"{frei.Name}\n{(frei.IstPacht ? "zu verpachten" : "zu verkaufen")}",
-            p + new Vector3(0, 13, 0), 36, kennung: kennung);
+            p.Mitte + new Vector3(0, 13, 1), 36, kennung: kennung);
         var gruppe = InGruppe("Leer_" + frei.Name.Replace(" ", "_"), vorher);
-        UmMitteDrehen(gruppe, p, drehung); // eine neu gebaute, gedrehte Werkstatt
+        UmMitteDrehen(gruppe, p.Mitte, p.Drehung); // eine gedrehte Werkstatt
         _freiePlaetze[frei.Name] = gruppe;
-        _leereHaeuser[frei.Name] = (p, gruppe, modell?.Wurzel ?? gruppe);
+        _leereHaeuser[frei.Name] = (p.Mitte, gruppe, modell?.Wurzel ?? gruppe);
     }
 
     /// <summary>Entfernt einen Knoten samt Kindern – und vergisst seine Beschriftungen, die sonst ins Leere zeigen.</summary>
@@ -766,28 +618,27 @@ public partial class Stadtansicht : Node3D
     /// </summary>
     private enum Werkstil { Giesserei, Tischlerei, Maurerei, Tinkturei, Schaenke, Kirche, Diebesnest, Wache, Bank, Siederei }
 
-    private BetriebsAnsicht WerkstattBauen(Betrieb betrieb, Vector3 p, Color besitzer, Werkstil stil = Werkstil.Giesserei,
-                                           (Vector3 Hof, Vector3[] Weg)? neuerPlatz = null)
+    /// <summary>
+    /// Eine Werkstatt auf ihrem Platz: das Modell des Berufs in der Mitte der Fläche (ungedreht; <see cref="BetriebHinzufuegen"/> dreht die ganze
+    /// Gruppe), Klickfläche, Schild und Innenraum. Die Karren fahren vom Hof über das Gassennetz zum Markt (<see cref="MarktWeg"/>).
+    /// </summary>
+    private BetriebsAnsicht WerkstattBauen(Betrieb betrieb, Platz p, Color besitzer, Werkstil stil = Werkstil.Giesserei)
     {
         const float breite = 10, tiefe = 8, dicke = 0.4f;
-        var modell = ModellEinsetzen(WerkstattModellDatei(betrieb.Artdaten.Beruf), this, p + WerkstattModellVersatz,
+        var modell = ModellEinsetzen(WerkstattModellDatei(betrieb.Artdaten.Beruf), this, p.Mitte,
                                      new ModellZustand(Stufe: Modellstufe(betrieb.Stufe), Geruest: betrieb.UmbauMinuten > 0, Besitzer: besitzer), betrieb.Name);
 
         // Klickfläche: das Gebäude des Modells (Halle und Anbauten), nicht der Hof ringsum
-        Klickflaeche(BetriebsKennung(betrieb), p + WerkstattModellVersatz + new Vector3(0, 5, 0), new Vector3(14, 10, 12));
-        var schild = Beschriftung(betrieb.Name, p + new Vector3(0, 13, 0), 44, kennung: BetriebsKennung(betrieb));
+        Klickflaeche(BetriebsKennung(betrieb), p.Mitte + new Vector3(0, 5, 0), new Vector3(14, 10, 12));
+        var schild = Beschriftung(betrieb.Name, p.Mitte + new Vector3(0, 13, 1), 44, kennung: BetriebsKennung(betrieb));
 
-        // Weg zur nächsten Gasse und dann zum Markt (eine neu gebaute Werkstatt: über das Gassennetz, gezeichnet von BetriebHinzufuegen)
-        var hof = neuerPlatz?.Hof ?? p + new Vector3(0, 0, 5.5f);
-        var gasse = Gasse(betrieb.Name, p);
-        if (neuerPlatz is null) GasseZiehen(p, gasse);
-
+        var hof = p.Hof;
         var ansicht = new BetriebsAnsicht
         {
             Betrieb = betrieb,
-            Mitte = p,
+            Mitte = p.Mitte,
             Hof = hof,
-            WegZumMarkt = neuerPlatz?.Weg ?? gasse.Prepend(hof).Append(Marktplatz).ToArray(),
+            WegZumMarkt = MarktWeg(hof, HofwegBreite), // eine neu gebaute Werkstatt bekommt hier ihr Stück zur nächsten Gasse
             Modell = modell,
             Schild = schild,
             Dach = modell?.Wurzel,
@@ -1067,7 +918,8 @@ public partial class Stadtansicht : Node3D
             _kameraDrehung.Position = new Vector3(Mathf.Clamp(neu.X, m.X - r, m.X + r), 0, Mathf.Clamp(neu.Z, m.Z - r, m.Z + r));
             return;
         }
-        _kameraDrehung.Position = new Vector3(Mathf.Clamp(neu.X, -110, 145), 0, Mathf.Clamp(neu.Z, -100, 100));
+        var rahmen = _kartenRahmen.Grow(KameraRand); // die Kamera bleibt bei der Karte
+        _kameraDrehung.Position = new Vector3(Mathf.Clamp(neu.X, rahmen.Position.X, rahmen.End.X), 0, Mathf.Clamp(neu.Z, rahmen.Position.Y, rahmen.End.Y));
     }
 
     public override void _UnhandledInput(InputEvent eingabe)
@@ -1234,7 +1086,6 @@ public partial class Stadtansicht : Node3D
     /// <summary>Ein flacher Weg zwischen zwei Punkten. Über den Marktplatz führt keiner – dort liegt das Pflaster des Modells (Stadtansicht.Markt.cs).</summary>
     private void WegZiehen(Vector3 von, Vector3 bis, float breite, Node3D? eltern = null)
     {
-        _strassen.Add((von, bis, breite));
         // Gruppen (Betrieb, freier Platz) liegen beim Ziehen noch im Ursprung: Ihre Wege sind in Koordinaten der Stadt.
         if ((eltern is null || eltern.Transform.IsEqualApprox(Transform3D.Identity)) && OhneMarktplatz(von, bis, breite) is { } stuecke)
         {
@@ -1258,10 +1109,10 @@ public partial class Stadtansicht : Node3D
         eltern.AddChild(weg);
     }
 
-    /// <summary>Unsichtbarer Körper, damit Mausklicks das Gebäude treffen. Die Form lässt sich abschalten (Innenansicht).</summary>
-    private CollisionShape3D Klickflaeche(string kennung, Vector3 mitte, Vector3 groesse, Node3D? eltern = null)
+    /// <summary>Unsichtbarer Körper, damit Mausklicks das Gebäude treffen (um die Hochachse gedreht wie das Gebäude). Die Form lässt sich abschalten (Innenansicht).</summary>
+    private CollisionShape3D Klickflaeche(string kennung, Vector3 mitte, Vector3 groesse, Node3D? eltern = null, float drehung = 0)
     {
-        var koerper = new StaticBody3D { Position = mitte };
+        var koerper = new StaticBody3D { Position = mitte, Rotation = new Vector3(0, drehung, 0) };
         koerper.SetMeta("kennung", kennung);
         var form = new CollisionShape3D { Shape = new BoxShape3D { Size = groesse } };
         koerper.AddChild(form);

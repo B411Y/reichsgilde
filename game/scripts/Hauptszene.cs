@@ -632,7 +632,7 @@ public partial class Hauptszene : Node
         var (simulation, spieler) = Partieaufbau.Erstellen(einstellungen ?? Partieeinstellungen.Standard, daten,
             neu ?? new NeuePartie(Startvermoegen: startvermoegen, Beruf: optionen.GetValueOrDefault("beruf", "Schmied"),
                 Glaube: optionen.TryGetValue("glaube", out var g) && Enum.TryParse<Reichsgilde.Core.Glaube.Konfession>(g, true, out var konfession) ? konfession : null),
-            start, Stadtkarten.Greybox);
+            start, optionen.TryGetValue("karte", out var karte) ? Stadtkarten.Laden(karte) : Stadtkarten.Greybox); // --karte=koeln: eine andere Karte, nur für diesen Start
         SimulationVerbinden(simulation, spieler);
         return simulation;
     }
@@ -781,7 +781,7 @@ public partial class Hauptszene : Node
         _verwaltung.Verbinden(simulation, spieler);
         _bauFrage.Verbinden(simulation, spieler);
         _bau.Verbinden(simulation, spieler, _stadt);
-        // Die Stadtansicht stellt jeden Betrieb an seinen Platz im Stadtplan und zeigt die freien Plätze.
+        // Die Stadtansicht zeichnet die Karte der Partie, stellt jeden Betrieb an seinen Platz und zeigt die freien Plätze.
         _stadt.Verbinden(simulation, spieler);
         w.BetriebErworben += betrieb =>
         {

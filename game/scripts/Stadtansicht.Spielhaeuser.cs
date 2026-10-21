@@ -10,57 +10,32 @@ namespace Reichsgilde;
 /// einen laufenden Ausbau (<c>FertigAb</c>) und einen Brandschaden (<c>WohnhausInstandBis</c>). Die Darstellung liest das
 /// jedes Bild, baut das Haus aber nur neu, wenn sich etwas davon ändert.
 ///
-/// Jedes Spielhaus bekommt einen <b>Doppelplatz am Ring</b> (zwei Plätze nebeneinander, 17 m Front) – die Lagen nächst
-/// dem Markt. So passen auch Stadtpalais und Hof. Diese Plätze fehlen den Einwohnern, deren Häuser rücken weiter
-/// nach außen bzw. in die Vorstadt.
+/// Jedes Spielhaus bekommt einen <b>Wohnhausplatz der Karte</b> (in der Greybox ein Doppelplatz am Ring, 17 m Front); welchen, legt der Kern
+/// fest (Grundstücke, Stadtansicht.Bauen.cs). So passen auch Stadtpalais und Hof. Wohnhausplätze ohne Spielhaus nehmen Einwohnerhäuser auf
+/// (Stadtansicht.Wohnviertel.cs).
 /// </summary>
 public partial class Stadtansicht
 {
-    private List<Hausplatz>? _spielhausPlaetze;
+    /// <summary>So viele Spielhäuser zeigt das Hauptmenü zur Zierde.</summary>
+    private const int MusterSpielhaeuser = 4;
 
     /// <summary>
-    /// Die Doppelplätze der Spielhäuser am Ring: je zwei benachbarte Ringplätze derselben Seite, die nächsten am Markt zuerst.
-    /// Die Karte (Wohnhausplätze in <c>greybox.json</c>) bildet diese Plätze ab; hier werden sie nur noch gebraucht, um sie den
-    /// Einwohnern wegzunehmen (<see cref="BelegteRingplaetze"/>) und für die Muster-Häuser im Hauptmenü.
-    /// Gibt die Mitte (zwischen den beiden Plätzen) zurück.
+    /// Im Hauptmenü: Spielhäuser in verschiedenen Stufen auf den ersten Wohnhausplätzen der Karte, in den Farben der Startbelegung (Spieler, dann die
+    /// KI-Häuser), damit man sieht, was es gibt.
     /// </summary>
-    private List<Hausplatz> SpielhausPlaetze(int anzahl)
-    {
-        if (_spielhausPlaetze is not null) return _spielhausPlaetze;
-        var ring = RingPlaetze();
-        var paare = new List<(Hausplatz A, Hausplatz B, Hausplatz Mitte)>();
-        for (var i = 0; i + 1 < ring.Count; i++)
-        {
-            var (a, b) = (ring[i], ring[i + 1]);
-            if (a.Vorne != b.Vorne || a.Mitte.DistanceTo(b.Mitte) > PlatzBreite + 0.1f) continue;
-            paare.Add((a, b, new Hausplatz((a.Mitte + b.Mitte) / 2, a.Vorne, true)));
-        }
-        var gewaehlt = new List<(Hausplatz A, Hausplatz B, Hausplatz Mitte)>();
-        foreach (var paar in paare.OrderBy(p => p.Mitte.Mitte.Length()).ThenBy(p => p.Mitte.Mitte.X).ThenBy(p => p.Mitte.Mitte.Z))
-        {
-            if (gewaehlt.Count >= anzahl) break;
-            if (gewaehlt.Any(g => g.A == paar.A || g.A == paar.B || g.B == paar.A || g.B == paar.B)) continue;
-            gewaehlt.Add(paar);
-        }
-        BelegteRingplaetze = gewaehlt.SelectMany(g => new[] { g.A, g.B }).ToHashSet();
-        return _spielhausPlaetze = gewaehlt.Select(g => g.Mitte).ToList();
-    }
-
-    /// <summary>Ringplätze, die ein Spielhaus belegt – die bekommen keine Einwohner.</summary>
-    private HashSet<Hausplatz> BelegteRingplaetze { get; set; } = new();
-
-    /// <summary>Wie viele Spielhäuser einen Platz brauchen: alle Konten, sobald es Wohnhäuser gibt; im Hauptmenü vier zur Zierde.</summary>
-    private int AnzahlSpielhaeuser() =>
-        _simulation?.Wirtschaft is { } w ? (w.Wohnen.IstAktiv ? w.Konten.Count : 0) : 4;
-
-    /// <summary>Im Hauptmenü: vier Spielhäuser in verschiedenen Stufen, damit man sieht, was es gibt.</summary>
     private void SpielhaeuserMuster()
     {
-        var plaetze = SpielhausPlaetze(4);
-        var farben = new[] { Spieler, Rivale, ZweiterRivale, DritterRivale };
+        if (_karte is null) return;
+        var start = _karte.Startbelegung;
+        var farben = start.Haeuser.Select(h => h.Farbe).Prepend(start.Spieler.Farbe).ToList();
+        var plaetze = _karte.Wohnhausplaetze.Take(MusterSpielhaeuser).ToList();
         for (var i = 0; i < plaetze.Count; i++)
-            SpielhausModell(plaetze[i].Mitte, Mathf.Atan2(plaetze[i].Vorne.X, plaetze[i].Vorne.Z), DoppelplatzBreite, PlatzTiefe, PlatzTiefe / 2,
-                            4 - i, false, false, false, farben[i], null, null);
+        {
+            var g = plaetze[i];
+            var groesse = GroesseVon(g);
+            var farbe = i < farben.Count && farben[i] is { } text && Color.HtmlIsValid(text) ? Color.FromHtml(text) : i == 0 ? Spieler : Rivale;
+            SpielhausModell(Punkt3(g.Punkt), DrehungVon(g), groesse.X, groesse.Y, groesse.Y / 2, Math.Max(0, 4 - i), false, false, false, farbe, null, null);
+        }
     }
 
     public static string WohnhausKennung(Konto k) => "wohnhaus:" + k.Inhaber;
@@ -68,9 +43,6 @@ public partial class Stadtansicht
     // ═════════════════════════════════════════════════════════════════════════
     //  Modelle der Stufen
     // ═════════════════════════════════════════════════════════════════════════
-
-    /// <summary>Breite eines Doppelplatzes am Ring – so breit sind auch die Wohnhausplätze der Karte (17 m).</summary>
-    private const float DoppelplatzBreite = 17f;
 
     /// <summary>
     /// Baut das Wohnhaus einer Stufe auf einer Fläche (Vorderseite lokal +Z, zur Gasse): die Plätze der Karte sind 17 × 8 m
@@ -86,11 +58,11 @@ public partial class Stadtansicht
     {
         var g = new Node3D { Name = "Spielhaus", Position = mitte, Rotation = new Vector3(0, drehungY, 0) };
         AddChild(g);
-        if (stufe >= 0 && stufe < WohnhausDateien.Length)
-            ModellEinsetzen(WohnhausDateien[stufe], g, new Vector3(0, 0, vorne - ModellFront(stufe)),
+        if (Katalog?.Wohnhaus(stufe) is { Modell: { } datei } baustein)
+            ModellEinsetzen(datei, g, new Vector3(0, 0, vorne - ModellFront(baustein)),
                 new ModellZustand(Geruest: imBau || brand, Leerstand: leer, Brand: brand, Besitzer: farbe), ankerKennung ?? kennung);
         else
-            GD.PushError($"Wohnhaus-Stufe {stufe} gibt es nicht.");
+            GD.PushError($"Das Wohnhaus der Stufe {stufe} fehlt im Gebäudekatalog.");
 
         if (kennung is not null)
         {
@@ -105,18 +77,12 @@ public partial class Stadtansicht
     //  Lage der Wohnhaus-Modelle (Einsetzen: Stadtansicht.Modelle.cs)
     // ═════════════════════════════════════════════════════════════════════════
 
-    /// <summary>Dateien der Wohnhaus-Modelle je Stufe (alle fünf sind Pflicht).</summary>
-    private static readonly string[] WohnhausDateien = { "fachwerkhaus", "buergerhaus", "steinhaus", "stadtpalais", "stadthof" };
-
-    /// <summary>Tiefe der belegten Fläche je Stufe in Metern, inklusive 2 m Vorplatz (LEVELDESIGN, Gebäudegrößen).</summary>
-    private static readonly float[] ModellTiefe = { 10, 10, 10, 10, 14 };
-
     /// <summary>
-    /// Wo die Hausfront in den Modellen liegt: Der Ursprung ist die Mitte der belegten Fläche, davon 2 m Vorplatz – die Front liegt
-    /// also bei z = Tiefe/2 − 2 (+3 bei 10 m, +5 beim Stadthof). Auf einem Neubau sitzt das Modell damit genau in der Mitte; auf den
-    /// Wohnhausplätzen der Karte (8 m tief, Front an der Gasse) steht die Front an der Gasse und der Rest ragt nach hinten.
+    /// Wo die Hausfront in den Modellen liegt: Der Ursprung ist die Mitte der belegten Fläche (Tiefe aus dem Gebäudekatalog, mit Vorplatz),
+    /// davon 2 m Vorplatz – die Front liegt also bei z = Tiefe/2 − 2 (+3 bei 10 m, +5 beim Stadthof). Auf einem Neubau sitzt das Modell damit
+    /// genau in der Mitte; auf den Wohnhausplätzen der Karte (8 m tief, Front an der Gasse) steht die Front an der Gasse und der Rest ragt nach hinten.
     /// </summary>
-    private static float ModellFront(int stufe) => ModellTiefe[stufe] / 2 - 2;
+    private static float ModellFront(Reichsgilde.Core.Bauen.Baustein baustein) => (float)(baustein.Groesse?[1] ?? 10) / 2 - Vorplatz;
 
     // ═════════════════════════════════════════════════════════════════════════
     //  Auswahltafel
