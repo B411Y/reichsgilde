@@ -87,7 +87,6 @@ So wird eingetragen (damit sich die Chats nie an derselben Stelle treffen):
 - (Dieb) Die Taschendiebe am Markt und die Diebe bei einem Auftrag sieht man in der Stadt nicht: Die Passanten kennen sie nicht, im Raum fehlen sie einfach. Der Kern gibt `Diebesort.Markt` und `Auftrag` schon her, ein Passant „Dieb“ am Markt (mit Fangchance sichtbar) wäre eine Aufgabe für Darstellung und Spiel-KI zusammen.
 - (Dieb) Der Kartentisch öffnet das ganze Hinterzimmer (Banden, Briefe, Wächter): Ein eigenes, kleineres Fenster nur für die Aufträge des Hauses (die `Diebesstueck`-Nachtaufträge des Verstecks) wäre übersichtlicher.
 - (Dieb) Die Hover-Hervorhebung der Figuren (warme Schicht) färbt die dunklen Diebe fast gelb; für die Gildenhalle und die Stube wäre eine schwächere Schicht schöner (gilt für alle Figuren im Raum).
-- (Dieb) Schlafplätze gibt es erst ab Stufe 2 (Schlafboden): Diebe, die in Stufe 1 laut Kern schlafen, zeigt das Spiel nicht oder als „unterwegs“ – Designfrage an den Nutzer, nicht im Modell geraten.
 - (Dieb) Der Kartentisch ist so hoch wie die Brüstung der Kanzel (0,95 m), weil Planen die Gesten von „Predigen“ nutzt: Halblinge und Zwerge haben die Platte etwa auf Kinnhöhe und heben die Arme (siehe die offene Frage der Arbeitshöhen).
 
 ## Entscheidungen
