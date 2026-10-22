@@ -228,11 +228,11 @@ static partial class Balancingbericht
         return new JsonObject
         {
             ["erklaerung"] = "Der Spieler (Schmied, Mensch) wird von der KI mit demselben Profil wie die KI-Häuser geführt („Bezugsspieler“: gleiche Strategie, " +
-                             "keine Einrichtung, keine Prämien, üblicher Lohn – so spielt heute jedes KI-Haus). Schwierigkeit „Normal“: Alle beginnen gleich " +
+                             "Einrichtung wie die KI, keine Prämien, üblicher Lohn – so spielt heute jedes KI-Haus). Schwierigkeit „Normal“: Alle beginnen gleich " +
                              "mit einer Werkstatt und zwei Gesellen (PR #177); unter „schwer“ derselbe Vergleich, wenn die KI-Häuser mit Werkstatt und " +
                              "Umlandbetrieb (5 Arbeiter) beginnen. Verhältnis = " +
                              "Reinvermögen eines KI-Hauses ÷ Reinvermögen des Bezugsspielers derselben Partie; davongezogen > 2, abgeschlagen < 0,5. " +
-                             "Rang des Bezugs: 1 = reichstes Haus. Hinweis: Die KI kauft keine Einrichtung, zahlt keine Prämien und nimmt keine Kredite.",
+                             "Rang des Bezugs: 1 = reichstes Haus. Hinweis: Die KI zahlt keine Prämien und nimmt keine Kredite; Einrichtung kauft sie zum Jahresende, wenn sie sich in höchstens 4 Jahren bezahlt macht (PR #177).",
             ["n"] = laeufe.Count,
             ["bezug"] = JeJahr(e.Stich, j => Kennzahl(laeufe.Select(r => r.Spieler.Im(j).Rein))),
             ["bezugStandAmEnde"] = Staende(laeufe.Select(r => r.Spieler), daten),
@@ -380,7 +380,8 @@ static partial class Balancingbericht
                              "Stücke ohne Gulden-Wirkung (Lager, Razzia, Streife, Geleit, Spuren, Kreditrahmen …) ohne Zahl. Simuliert: Der Spieler kauft alle " +
                              "Ertragsstücke der Stufe 1 am Start (kürzere Zeit, weniger Lohn, mehr Rahmen oder Wechsel) und wird wie im Abschnitt Berufe geführt; " +
                              "Vergleich mit derselben Partie ohne Einrichtung (gleicher Startwert): Mehrgewinn = Mittel der Jahre 1 bis " + y + ". " +
-                             "Die KI-Häuser kaufen keine Einrichtung.",
+                             "Seit PR #177 kaufen die KI-Häuser und der KI-geführte Spieler Einrichtung zum Jahresende (höchstens 4 Jahre bis bezahlt) – auch in der " +
+                             "Vergleichspartie ohne Einrichtung am Start; der Mehrgewinn zeigt deshalb nur den Vorsprung durch den früheren Kauf.",
             ["gemessenSabotagenJeBetriebUndJahr"] = R(sabotagen, 4),
             ["gemessenRaubJeBetriebUndJahr"] = R(raub, 1),
             ["statisch"] = statisch,

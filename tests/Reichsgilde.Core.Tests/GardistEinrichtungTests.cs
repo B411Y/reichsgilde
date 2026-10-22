@@ -78,10 +78,10 @@ static class GardistEinrichtungTests
 
     public static IEnumerable<(string, Action)> Alle() => new (string, Action)[]
     {
-        ("Gardist-Einrichtung: Daten – sieben Stücke mit den Kennungen des Raummodells, Preise wie bei den Werkstätten, Datenversion 48", () =>
+        ("Gardist-Einrichtung: Daten – sieben Stücke mit den Kennungen des Raummodells, Preise wie bei den Werkstätten, Datenversion 49", () =>
         {
             var d = Daten.Value.Werkstatt!;
-            Pruefe.Gleich(48, Daten.Value.Version);
+            Pruefe.Gleich(49, Daten.Value.Version);
             var wache = d.EinrichtungFuer("Gardist");
             Pruefe.Gleich("Werkzeug1 Werkzeug2 Hunde Kettenhemd Regale Loeschfass Eisentuer", string.Join(" ", wache.Select(e => e.Kennung)));
             Pruefe.Gleich("Hellebarden, Armbrüste, Wachhunde, Kettenhemden, Waffenkammer, Löschfass, Eisentür", string.Join(", ", wache.Select(e => e.Name)));
