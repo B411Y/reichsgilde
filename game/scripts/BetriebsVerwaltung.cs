@@ -445,9 +445,16 @@ public partial class BetriebsVerwaltung : VBoxContainer
     /// <summary>Sold, Patrouille (Stadt) bzw. Schutz der Landstraße (Wachturm), Kopfgeld, Geleitgeld und Razzien.</summary>
     private void WachstubeAktualisieren(Betrieb b, Stadtwirtschaft w)
     {
-        var wache = w.Wache;
-        _wacheText.Visible = wache.IstWachbetrieb(b);
+        _wacheText.Visible = w.Wache.IstWachbetrieb(b);
         if (!_wacheText.Visible) return;
+        var text = string.Join("\n", WacheZeilen(b, w));
+        if (_wacheText.Text != text) _wacheText.Text = text;
+    }
+
+    /// <summary>Die Zeilen zur Wache eines Hauses (Sold, Streife, Razzien, Geleit, Ansehen) – im Bedienfeld und auf der Tafel des Wachplans (<see cref="WachplanAnzeige"/>).</summary>
+    public static List<string> WacheZeilen(Betrieb b, Stadtwirtschaft w)
+    {
+        var wache = w.Wache;
         var d = wache.Daten;
         var waehrung = w.Daten.Allgemein.Waehrung;
         string Buch(Reichsgilde.Core.Ordnung.Wachbuch x) =>
@@ -471,8 +478,7 @@ public partial class BetriebsVerwaltung : VBoxContainer
         else
             zeilen.Add($"Landstraße: Banden überfallen Karren auf allen Umlandwegen {Zahlenformat.Ganz((1 - wache.Landstrassenfaktor) * 100)} % seltener.");
         zeilen.Add($"Ein Haus der Wache: {Zahlenformat.Ganz(d.Ansehen)} Ansehen mehr.");
-        var text = string.Join("\n", zeilen);
-        if (_wacheText.Text != text) _wacheText.Text = text;
+        return zeilen;
     }
 
     /// <summary>Kasse und Rahmen, Stadtzinsen und Wechsel, der Zins für Häuser und die offenen Kredite des Hauses.</summary>

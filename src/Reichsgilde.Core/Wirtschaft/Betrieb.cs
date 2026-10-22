@@ -339,6 +339,15 @@ public sealed class Betrieb
     /// <summary>Dieb: Faktor auf Zeugen und Beweise gegen das Haus (Lederhandschuhe: 0,75).</summary>
     public double SpurenFaktor => Einrichtungsstuecke.Aggregate(1.0, (f, e) => f * e.Wirkung.SpurenFaktor);
 
+    /// <summary>Wache: so viel höher die Chance je Tat bei einer Razzia (Hellebarden: +0,1, mit Armbrüsten +0,2).</summary>
+    public double RazziaBonus => Einrichtungsstuecke.Sum(e => e.Wirkung.RazziaBonus);
+
+    /// <summary>Wache: Faktor auf den Schutz der Streife dieses Hauses (Wachhunde: 1,25).</summary>
+    public double StreifenFaktor => Einrichtungsstuecke.Aggregate(1.0, (f, e) => f * e.Wirkung.StreifenFaktor);
+
+    /// <summary>Wache: Faktor auf die Erfolgschance von Überfällen auf Karren, die dieses Haus geleitet (Kettenhemden: 0,8).</summary>
+    public double GeleitFaktor => Einrichtungsstuecke.Aggregate(1.0, (f, e) => f * e.Wirkung.GeleitFaktor);
+
     internal void EinrichtungHinzufuegen(string kennung)
     {
         _einrichtung.Add(kennung);
@@ -350,8 +359,11 @@ public sealed class Betrieb
     /// <summary>Wie gut der Betrieb zahlt (nur Werkstätten; sonst immer üblich).</summary>
     public Lohnstufe Lohnstufe { get; internal set; } = Lohnstufe.Ueblich;
 
-    /// <summary>Faktor auf den Lohn bei der jetzigen Lohnstufe.</summary>
-    public double LohnFaktor => HatWerkstattregeln ? _daten.Werkstatt!.Stufe(Lohnstufe).LohnFaktor : 1;
+    /// <summary>Faktor auf den Lohn bei der jetzigen Lohnstufe – mal der Einrichtung (Waffenkammer der Wache: 0,9).</summary>
+    public double LohnFaktor => (HatWerkstattregeln ? _daten.Werkstatt!.Stufe(Lohnstufe).LohnFaktor : 1) * EinrichtungLohnFaktor;
+
+    /// <summary>Faktor der Einrichtung auf die Lohnkosten (Waffenkammer der Wache: 0,9; sonst 1).</summary>
+    public double EinrichtungLohnFaktor => Einrichtungsstuecke.Aggregate(1.0, (f, e) => f * e.Wirkung.LohnFaktor);
 
     /// <summary>Löhne für ein ganzes Jahr bei der jetzigen Belegung und Lohnstufe (ohne Wächter; mit der Länge der Schicht).</summary>
     public double Lohnkosten => _belegung.Sum(b => b.Value * _daten.Lohn(b.Key, Art)) * LohnFaktor;

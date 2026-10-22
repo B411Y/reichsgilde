@@ -9,6 +9,7 @@ namespace Reichsgilde.Core.Wirtschaft;
 ///   2. Welche Bande?                 Zufällig nach Gewicht – Banditen aller Völker, oft gemischt,
 ///                                    dazu wilde Ork-Rotten und Oger
 ///   3. Gelingt der Überfall?         Chance = Stärke der Bande × (1 − Schutz der Eskorte), höchstens 100 %
+///                                    (Geleit der Wache mit Kettenhemden: × 0,8)
 ///
 /// Gelingt er, ist die Ladung verloren. Ihr Marktwert wird in der Jahresrechnung als „Raub" vermerkt.
 /// </summary>
@@ -27,7 +28,7 @@ internal static class Ueberfall
         var bande = BandeWaehlen(daten.Banden, w.Zufall);
         // Kampf des Oberhaupts: seine Leute verteidigen die Karren mit.
         var schutz = Math.Min(0.95, eskorte.Schutz + w.Familien.KampfSchutz(karren.Heimat.Konto));
-        var erfolgschance = Math.Min(1, bande.Staerke * (1 - schutz));
+        var erfolgschance = Math.Min(1, bande.Staerke * (1 - schutz) * w.Wache.UeberfallFaktor(eskorte));
         var wer = $"{(bande.Wild ? "Eine wilde " : "Eine Bande „")}{bande.Name}{(bande.Wild ? "" : "“")} ({bande.ZusammensetzungText})";
         var wo = karren.Zustand == KarrenZustand.ZumMarkt ? $"auf dem Weg von {karren.Heimat.Name} zum Markt" : $"auf dem Rückweg nach {karren.Heimat.Name}";
 

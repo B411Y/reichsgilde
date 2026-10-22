@@ -90,8 +90,10 @@ public sealed class WerkstattDaten
                 if (w.ZeitFaktor is <= 0 or > 1) f.Add($"{wo}.wirkung.zeitFaktor muss größer 0 und höchstens 1 sein.");
                 if (w.LagerPlus < 0) f.Add($"{wo}.wirkung.lagerPlus darf nicht negativ sein.");
                 foreach (var (name, faktor) in new[] { ("unfallFaktor", w.UnfallFaktor), ("brandFaktor", w.BrandFaktor), ("einbruchFaktor", w.EinbruchFaktor),
-                             ("einbruchBonus", w.EinbruchBonus), ("fangFaktor", w.FangFaktor), ("spurenFaktor", w.SpurenFaktor) })
+                             ("einbruchBonus", w.EinbruchBonus), ("fangFaktor", w.FangFaktor), ("spurenFaktor", w.SpurenFaktor),
+                             ("razziaBonus", w.RazziaBonus), ("geleitFaktor", w.GeleitFaktor), ("lohnFaktor", w.LohnFaktor) })
                     if (faktor is < 0 or > 1) f.Add($"{wo}.wirkung.{name} muss zwischen 0 und 1 liegen.");
+                if (w.StreifenFaktor is < 1 or > 2) f.Add($"{wo}.wirkung.streifenFaktor muss zwischen 1 und 2 liegen.");
                 foreach (var ware in w.Waren.Where(x => !waren.ContainsKey(x)))
                     f.Add($"{wo}.wirkung.waren: Die Ware „{ware}“ gibt es nicht.");
             }
@@ -212,6 +214,27 @@ public sealed class EinrichtungWirkung
     /// </summary>
     public double SpurenFaktor { get; init; } = 1;
 
+    /// <summary>
+    /// Wache: So viel höher ist die Chance je Tat, bei einer Razzia einen Beweis zu finden – absolut wie
+    /// <c>wache.razzia.chanceJeStufe</c> (0,1 = +10 Prozentpunkte; Deckel 95 %). Mehrere Stücke zählen zusammen.
+    /// </summary>
+    public double RazziaBonus { get; init; }
+
+    /// <summary>
+    /// Wache: Faktor auf den Schutz, den die Streife dieses Wachhauses gibt (1,25 = 25 % mehr) – vor dem Deckel
+    /// <c>wache.patrouille.hoechstens</c>. Geprüft zwischen 1 und 2.
+    /// </summary>
+    public double StreifenFaktor { get; init; } = 1;
+
+    /// <summary>Wache: Faktor auf die Erfolgschance von Überfällen auf Karren mit dem Geleit dieses Hauses (0,8 = 20 % seltener).</summary>
+    public double GeleitFaktor { get; init; } = 1;
+
+    /// <summary>
+    /// Faktor auf die Lohnkosten der Leute dieses Betriebs (0,9 = 10 % weniger) – Waffenkammer der Wache: eigene Ausrüstung
+    /// im Haus, kein Ausrüstungsgeld. Nicht der Sold, den die Stadt dem Haus zahlt.
+    /// </summary>
+    public double LohnFaktor { get; init; } = 1;
+
     public bool GiltFuer(string ware) => Waren.Count == 0 || Waren.Contains(ware);
 
     /// <summary>Die Wirkung in einem Satz für die Oberfläche.</summary>
@@ -227,6 +250,10 @@ public sealed class EinrichtungWirkung
         if (EinbruchBonus > 0) teile.Add($"+{Zahlenformat.Ganz(EinbruchBonus * 100)} % Erfolg beim Einbruch");
         if (FangFaktor < 1) teile.Add($"Taschendiebe {Zahlenformat.Ganz((1 - FangFaktor) * 100)} % seltener gefasst");
         if (SpurenFaktor < 1) teile.Add($"Zeugen und Beweise {Zahlenformat.Ganz((1 - SpurenFaktor) * 100)} % seltener");
+        if (RazziaBonus > 0) teile.Add($"+{Zahlenformat.Ganz(RazziaBonus * 100)} % Beweise bei Razzien");
+        if (StreifenFaktor > 1) teile.Add($"Streife schützt {Zahlenformat.Ganz((StreifenFaktor - 1) * 100)} % mehr");
+        if (LohnFaktor < 1) teile.Add($"Lohn der Leute {Zahlenformat.Ganz((1 - LohnFaktor) * 100)} % niedriger");
+        if (GeleitFaktor < 1) teile.Add($"Überfälle auf das Geleit {Zahlenformat.Ganz((1 - GeleitFaktor) * 100)} % seltener erfolgreich");
         return teile.Count == 0 ? "keine Wirkung" : string.Join(", ", teile);
     }
 }
