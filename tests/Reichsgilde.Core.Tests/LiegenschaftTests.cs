@@ -138,12 +138,16 @@ static class LiegenschaftTests
             Pruefe.Wahr(!w.Ausfuehren(b, new LiegenschaftErwerben("Burg Drachenfels")).Erfolg, "unbekannte Liegenschaft angenommen");
         }),
 
-        ("Erwartung: Eine Grube unter Statut B bringt mehr als eine Werkstatt", () =>
+        // Bis PR #177 brachte eine Grube unter Statut B mehr als eine Werkstatt. Seit die Fertigwaren teurer sind, damit ein Betrieb in etwa
+        // 10 Jahren Bürger wird (Z2), bringt sie etwa gleich viel (1.878 gegen 1.966 zu Startpreisen); der Anreiz für Statut B bleibt die Grube unter A.
+        ("Erwartung: Eine Grube unter Statut B bringt deutlich mehr als unter A und etwa so viel wie eine Werkstatt", () =>
         {
             var w = NeueSimulation().Wirtschaft!;
-            var grube = Kalkulation.ErwarteterJahresgewinn(w, Betriebsart.Mine);
+            var grube = Kalkulation.ErwarteterJahresgewinn(w, Betriebsart.Mine, Fronstatut.Bestienfron);
+            var grubeA = Kalkulation.ErwarteterJahresgewinn(w, Betriebsart.Mine, Fronstatut.FreieStadt);
             var werkstatt = Kalkulation.ErwarteterJahresgewinn(w, Betriebsart.Giesserei);
-            Pruefe.Wahr(grube > werkstatt && werkstatt > 0, $"Grube {grube:0}, Werkstatt {werkstatt:0}");
+            Pruefe.Wahr(grube > grubeA * 1.3 && grubeA > 0, $"Grube unter B {grube:0}, unter A {grubeA:0}");
+            Pruefe.Wahr(grube > werkstatt * 0.9 && werkstatt > 0, $"Grube {grube:0}, Werkstatt {werkstatt:0}");
         }),
 
         ("KI expandiert als Bürger – aber nur bis zu ihrer Höchstzahl an Betrieben", () =>
