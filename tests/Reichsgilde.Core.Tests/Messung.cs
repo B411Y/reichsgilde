@@ -39,6 +39,8 @@ static class Messung
         var charakter = args.Length > 4 ? Enum.Parse<KiCharakter>(args[4]) : KiCharakter.Ausgewogen;
         int gaunerstuecke = 0, kerker = 0;
         var gaunerJeArt = new SortedDictionary<string, int>(StringComparer.Ordinal); // Banden der KI je Art und Ziel
+        var einrichtungKi = new SortedDictionary<string, int>(StringComparer.Ordinal); // von der KI gekaufte Einrichtung je Stück
+        var kiHaeuser = 0;
         double gaunerBilanz = 0, schadenSpieler = 0;
         int urteileSchuldig = 0, urteileFrei = 0, amtVerloren = 0;
         double bestechung = 0;
@@ -75,10 +77,14 @@ static class Messung
             if (w0(sim) is { } w2)
             {
                 var kiNamen = w2.Rivalen.Select(r => r.Konto.Inhaber + ": ").ToList();
+                kiHaeuser += kiNamen.Count;
                 void Zaehlen(string was) => bauen[was] = bauen.GetValueOrDefault(was) + 1;
                 w2.Meldung += m =>
                 {
                     if (!kiNamen.Any(m.StartsWith)) return;
+                    // „Haus Eichwald: kauft Einrichtung für Tischlerei Eichwald: Gutes Werkzeug (300 Gulden) – …“ → je Stück
+                    if (m.Split(": kauft Einrichtung für ") is [_, var rest] && rest.Split(" – ")[0].Split(": ")[^1].Split(" (")[0] is var stueck)
+                        einrichtungKi[stueck] = einrichtungKi.GetValueOrDefault(stueck) + 1;
                     if (m.Contains("kauft das leerstehende")) Zaehlen("Leerstand gekauft");
                     else if (m.Contains("baut ein neues Wohnhaus, ein ")) Zaehlen($"Wohnhaus neu gebaut ({m.Split("baut ein neues Wohnhaus, ein ")[1].Split(' ')[0]})");
                     else if (m.Contains(" neu (") && m.Contains("keine freie Werkstatt")) Zaehlen("Werkstatt neu gebaut");
@@ -222,6 +228,8 @@ static class Messung
         if (mitKarte || bauen.Count > 0)
             Console.WriteLine($"  KI-Häuser bauen und verkaufen{(mitKarte ? " (Greybox-Karte)" : "")} (Summe über alle Partien): " +
                               (bauen.Count == 0 ? "nichts" : string.Join(", ", bauen.Select(x => $"{x.Key} {x.Value}×"))));
+        Console.WriteLine($"  Einrichtung der KI: Ø {(kiHaeuser > 0 ? (double)einrichtungKi.Values.Sum() / kiHaeuser : 0):N1} Stücke je KI-Haus in {jahre} Jahren (Summe je Stück: " +
+                          (einrichtungKi.Count == 0 ? "keine" : string.Join(", ", einrichtungKi.Select(x => $"{x.Key} {x.Value}×"))) + ")");
         Console.WriteLine($"  Stand der KI-Häuser am Ende (alle Partien): {string.Join(", ", staendeKi.Select(x => $"{x.Key} {x.Value}"))}; bankrott {bankrottKi}");
         Console.WriteLine("  Sparjahre der KI zum Jahresende (Ø je Partie, längste Folge in einer Partie): " +
                           string.Join(", ", sparjahre.Select(x => $"{x.Key} {(double)x.Value.Jahre / startwerte:N1} (längste {x.Value.Laengste})")));

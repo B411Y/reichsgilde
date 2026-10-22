@@ -1524,6 +1524,9 @@
     "beharrung": 5,
     "messe": 2
   },
+  "ki": {
+    "einrichtung": { "hoechstensJahre": 4, "charakterJahre": 0.5, "reserveFaktor": 2 }
+  },
   "handel": { "aufschlag": 0.10, "marktVon": 8, "marktBis": 20 },
   "glaube": {
     "voelker": {

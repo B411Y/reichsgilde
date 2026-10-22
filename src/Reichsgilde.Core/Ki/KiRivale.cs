@@ -56,6 +56,7 @@ public sealed record KiProfil(
 ///   einmal am Tag       • Politik im Rat, Brautschau, Gericht (Spitzel, Anklage, Verteidigung)
 ///                       • zur eigenen Baustunde: Bauplatz für ein neues Wohnhaus oder eine neue Werkstatt suchen
 ///   zum Jahresende      • Karren kaufen, wenn ein Betrieb zu oft stillstand
+///                       • Einrichtung kaufen, die sich schnell bezahlt macht (je Betrieb höchstens ein Stück)
 ///                       • Verlustjahre der Betriebe zählen (verkauft wird in den Stunden danach)
 ///
 /// Jede Entscheidung wird als Meldung ausgegeben, damit der Spieler sie nachvollziehen kann.
@@ -202,6 +203,7 @@ public sealed class KiRivale
         _gaunereienImJahr = 0;
         foreach (var betrieb in Betriebe.ToList())
             KarrenNachkaufen(betrieb);
+        EinrichtungKaufen();
     }
 
     private static string Prozent(double anteil) => $"{Zahlenformat.Ganz(anteil * 100)} %";
@@ -650,6 +652,54 @@ public sealed class KiRivale
                 $"baut {b.Name} aus – Stufe {neu.Stufe}, {neu.Name} ({Zahlenformat.Ganz(kosten)} {waehrung}, " +
                 $"erwartet ≈ {Zahlenformat.Ganz(mehr)} {waehrung} mehr im Jahr).");
             return; // höchstens ein Umbau je Stunde
+        }
+    }
+
+    /// <summary>
+    /// So viele Jahre darf es höchstens dauern, bis sich ein Stück Einrichtung bezahlt macht (<c>ki.einrichtung.hoechstensJahre</c>):
+    /// Die Vorsichtige (kürzere <see cref="KiProfil.MaxAmortisationJahre"/> als der Standard) wartet <c>charakterJahre</c> weniger,
+    /// die Wagemutige (längere) so viel mehr. null: Die KI kauft keine Einrichtung (Abschnitt fehlt).
+    /// </summary>
+    public double? EinrichtungHoechstensJahre =>
+        _w.Daten.Ki?.Einrichtung is { } d
+            ? d.HoechstensJahre + d.CharakterJahre * Math.Sign(Profil.MaxAmortisationJahre - KiProfil.Standard.MaxAmortisationJahre)
+            : null;
+
+    /// <summary>
+    /// Zum Jahresende (nach den Löhnen, mit dem Schaden des abgeschlossenen Jahres) Einrichtung kaufen – Entscheidung des Nutzers
+    /// (Balancing 1): wenn sich ein Stück in höchstens <see cref="EinrichtungHoechstensJahre"/> Jahren bezahlt macht.
+    ///   • Je Betrieb das erlaubte Stück mit der kürzesten Amortisation (<see cref="Werkstattwesen.Amortisationsjahre"/>:
+    ///     Preis ÷ erwarteter Mehrgewinn zu heutigen Preisen). Schutzstücke (Eisentür, Löschfass) rechnen mit dem Schaden
+    ///     des Vorjahres – wer nicht bestohlen wurde, kauft keine Eisentür.
+    ///   • Höchstens ein Stück je Betrieb und Jahr, die Betriebe mit der kürzesten Amortisation zuerst.
+    ///   • Nach dem Kauf bleibt <c>reserveFaktor</c> × <see cref="KiProfil.Reserve"/> als Bargeld (Löhne, Expansion).
+    ///   • Nicht in Not und nicht, solange die Vorsichtige auf den Stand spart (wie Ausbau und Expansion). Ein Betrieb mit
+    ///     Verlust bekommt trotzdem Einrichtung – oft fehlt ihm gerade die Eisentür, und beim Verkauf zählt sie zum Wert.
+    /// </summary>
+    private void EinrichtungKaufen()
+    {
+        if (EinrichtungHoechstensJahre is not { } grenze || !_w.Werkstaetten.IstAktiv || InNot || (Spart && Profil.Gaunerei <= 0)) return;
+        var reserve = _w.Daten.Ki!.Einrichtung!.ReserveFaktor * Profil.Reserve;
+        var ww = _w.Werkstaetten;
+        var plan = Betriebe
+            .Where(ww.KannEinrichtung)
+            .Select(b => ww.Einrichtungsliste(b)
+                .Where(e => !e.Gekauft && e.Verboten is null)
+                .Select(e => (Betrieb: b, Stueck: e, Jahre: ww.Amortisationsjahre(b, e.Kennung)))
+                .Where(x => x.Jahre is { } j && j <= grenze)
+                .OrderBy(x => x.Jahre).ThenBy(x => x.Stueck.Preis).ThenBy(x => x.Stueck.Kennung, StringComparer.Ordinal)
+                .FirstOrDefault())
+            .Where(x => x.Betrieb is not null)
+            .OrderBy(x => x.Jahre).ThenBy(x => x.Betrieb.Name, StringComparer.Ordinal)
+            .ToList();
+        var waehrung = _w.Daten.Allgemein.Waehrung;
+        foreach (var (b, e, jahre) in plan)
+        {
+            if (Konto.Vermoegen - e.Preis < reserve) continue; // ein billigeres Stück eines anderen Betriebs geht vielleicht noch
+            var mehr = ww.ErwarteterMehrgewinnJeJahr(b, e.Kennung);
+            Befehlen(new Reichsgilde.Core.Wirtschaft.EinrichtungKaufen(b.Name, e.Kennung),
+                $"kauft Einrichtung für {b.Name}: {e.Name} ({Zahlenformat.Ganz(e.Preis)} {waehrung}) – " +
+                $"erwartet ≈ {Zahlenformat.Ganz(mehr)} {waehrung} mehr im Jahr, bezahlt in {Zahlenformat.Kommazahl(jahre!.Value)} Jahren.");
         }
     }
 
