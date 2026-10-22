@@ -26,7 +26,11 @@ Knotens ein Netz sein (beim Alchimisten die Flüssigkeit, die das Spiel färbt);
 Laden) und Dampfquellen „Dampf_<n>“ sind freiwillig, gibt es sie, laufen sie lückenlos ab 1. Ebenso freiwillig (Wirt): Plätze
 der Gäste „Gast_<n>“, „Gast_<Gruppe>_<n>“ (je Gruppe lückenlos ab 1), zu jedem ein „Krug_…“ mit derselben Endung, und Plätze
 des Barden „Barde_<n>“; ebenso (Prediger) Plätze der Gläubigen „Glaeubig_<n>“ (mit extras „sitzhoehe“), des Predigers auf der
-Kanzel „Predigt_<n>“ und der Beichte „Beichte_<n>“, je lückenlos ab 1.
+Kanzel „Predigt_<n>“ und der Beichte „Beichte_<n>“, je lückenlos ab 1; ebenso (Dieb) Plätze der Diebe „Dieb_<n>“ und des
+Meisterdiebs „Meister_<n>“, je lückenlos ab 1, mit extras „taetigkeit“ und „bewegung“ (die Bewegung muss es in figur_mensch.glb
+geben; sitzende Bewegungen brauchen „sitzhoehe“). Hat ein Innenraum Plätze der Diebe, stellt er keine Ware her: Arbeitsplätze
+und Werkstücke sind dann nicht nötig, und statt der Bedienung für die Produktion genügt eine für die Aufträge
+(„Bedienung_Auftraege_…“).
 Ein Raum mit extras „stufe“ (z. B. die Sägehalle des Tischlers ab Stufe 3, Laden und Turm des Alchimisten) gibt es erst ab
 dieser Stufe: Anker darin und Türen dorthin brauchen mindestens dieselbe „stufe“. Späne „Spaene1“–„Spaene3“ (falls vorhanden) sind lückenlos und
 standardmäßig aus. Hat die Datei Animationen, muss eine „Arbeit“ heißen; sie darf weder Räume noch Stufen, Anker oder
@@ -164,15 +168,19 @@ def innen(pfad, g):
         if f"Blick_{raum}_0" not in knoten:
             fehler.append(f"Blickpunkt „Blick_{raum}_0“ fehlt")
     fehler += innen_stufen(g, knoten, welt, raeume, raum_bei)
+    ohne_ware = any(re.fullmatch(r"Dieb_\d+", n) for n in knoten)
     for art, nummern in reihen.items():
-        if sorted(nummern) != list(range(1, len(nummern) + 1)) or (not nummern and art not in ("Auslage", "Dampf")):
+        frei = ("Auslage", "Dampf") + (("Arbeit", "Werkstueck") if ohne_ware else ())
+        if sorted(nummern) != list(range(1, len(nummern) + 1)) or (not nummern and art not in frei):
             fehler.append(f"{art}_<n>: Nummern müssen lückenlos ab 1 laufen, gefunden {sorted(nummern)}")
     print("Arbeitsplätze {}, Stellplätze {}, Werkstücke {}, Auslage {}, Dampf {}".format(
         *(len(reihen[a]) for a in ("Arbeit", "Lager", "Werkstueck", "Auslage", "Dampf"))))
     fehler += innen_gaeste(knoten)
     fehler += innen_glaeubige(g, knoten)
+    fehler += innen_diebe(g, knoten, bewegungen)
     for art in ("Personal", "Produktion", "Lager", "Einrichten", "Karren"):
-        if not any(n.startswith(f"Bedienung_{art}_") for n in knoten):
+        ersatz = "Auftraege" if art == "Produktion" and ohne_ware else art
+        if not any(n.startswith((f"Bedienung_{art}_", f"Bedienung_{ersatz}_")) for n in knoten):
             fehler.append(f"keine Bedienung „Bedienung_{art}_…“")
     for name in knoten:
         tuer = re.fullmatch(r"Tuer_(.+?)_(.+)", name)
@@ -191,7 +199,8 @@ def innen(pfad, g):
 
 
 ANKER = ("Blick_", "Arbeit_", "Lager_", "Werkstueck_", "Licht_", "Auslage_", "Dampf_", "Gast_", "Krug_", "Barde_", "Glaeubig_", "Predigt_",
-         "Beichte_")
+         "Beichte_", "Dieb_", "Meister_")
+SITZEND = ("Sitzen", "Kutschieren", "Feinarbeit", "Trinken", "Schreiben", "Beten", "Zaehlen")   # Bewegungen im Sitzen
 
 
 def ist_anker(g, name, i):
@@ -240,6 +249,36 @@ def innen_glaeubige(g, knoten):
             fehler.append(f"{art}_<n>: Nummern müssen lückenlos ab 1 laufen, gefunden {sorted(nummern)}")
     if any(reihen.values()):
         print("Gläubige, Kanzel, Beichte: " + ", ".join(f"{art}_1–{len(n)}" for art, n in reihen.items() if n))
+    return fehler
+
+
+def innen_diebe(g, knoten, bewegungen):
+    """Plätze der Diebe (Dieb_<n>) und des Meisterdiebs (Meister_<n>), je lückenlos ab 1, mit extras „taetigkeit“ und „bewegung“
+    (die es in figur_mensch.glb gibt); sitzende brauchen „sitzhoehe“. Druckt je Tätigkeit die Plätze in Füllreihenfolge."""
+    fehler = []
+    reihen = {"Dieb": [], "Meister": []}
+    taetigkeiten = {}
+    for name, i in knoten.items():
+        treffer = re.fullmatch(r"(Dieb|Meister)_(\d+)", name)
+        if not treffer:
+            if name.startswith(("Dieb_", "Meister_")):
+                fehler.append(f"{name}: Name muss Dieb_<n> oder Meister_<n> sein")
+            continue
+        reihen[treffer.group(1)].append(int(treffer.group(2)))
+        extras = g["nodes"][i].get("extras", {})
+        for feld in ("taetigkeit", "bewegung"):
+            if feld not in extras:
+                fehler.append(f"{name}: extras „{feld}“ fehlt")
+        if bewegungen is not None and extras.get("bewegung") not in bewegungen:
+            fehler.append(f"{name}: Bewegung „{extras.get('bewegung')}“ gibt es in figur_mensch.glb nicht")
+        if extras.get("bewegung") in SITZEND and "sitzhoehe" not in extras:
+            fehler.append(f"{name}: sitzt („{extras.get('bewegung')}“), extras „sitzhoehe“ fehlt")
+        taetigkeiten.setdefault(extras.get("taetigkeit"), []).append((extras.get("platz", 0), name, extras.get("bewegung")))
+    for art, nummern in reihen.items():
+        if sorted(nummern) != list(range(1, len(nummern) + 1)):
+            fehler.append(f"{art}_<n>: Nummern müssen lückenlos ab 1 laufen, gefunden {sorted(nummern)}")
+    for taetigkeit, liste in sorted(taetigkeiten.items(), key=lambda e: str(e[0])):
+        print(f"Tätigkeit {taetigkeit}: " + ", ".join(f"{n} ({b})" for _, n, b in sorted(liste)))
     return fehler
 
 

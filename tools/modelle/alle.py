@@ -28,7 +28,7 @@ FLAECHEN = {"fachwerkhaus": (8, 10), "buergerhaus": (8, 10), "steinhaus": (8, 10
             "stadthof": (16, 14)}
 WERKSTAETTEN = ["schmied", "tischler", "steinmetz", "alchimist", "wirt", "prediger", "dieb", "gardist", "geldleiher",
                 "parfumeur"]          # je Beruf ein Modell mit Stufe1–Stufe3
-INNENRAEUME = ["schmied_innen", "tischler_innen", "steinmetz_innen", "alchimist_innen", "parfumeur_innen", "wirt_innen", "prediger_innen"]      # je Beruf ein Innenraum: Räume, Stufen, Bedienung, Einrichtung, Blickpunkte, Arbeitsplätze
+INNENRAEUME = ["schmied_innen", "tischler_innen", "steinmetz_innen", "alchimist_innen", "parfumeur_innen", "wirt_innen", "prediger_innen", "dieb_innen"]      # je Beruf ein Innenraum: Räume, Stufen, Bedienung, Einrichtung, Blickpunkte, Arbeitsplätze
 EINWOHNERHAEUSER = ["einwohner_ratsherrenhaus", "einwohner_buergerhaus", "einwohner_wohnhaus"]      # je Hausart ein Modell mit Variante1–Variante3
 SONDERBAUTEN = ["dom", "rathaus", "stadtmauer"]          # Gebäude der Stadt: ohne Zustände und Hausfarbe
 UMLAND = ["grube", "holzschlag", "steinbruch", "kraeutergarten", "duftgarten", "bauernhof", "klosterhof",
