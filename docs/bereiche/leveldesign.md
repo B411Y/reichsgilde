@@ -139,8 +139,12 @@ Fahrplan (vom Nutzer am 21.10.2026 bestätigt, je Schritt ein PR; Stand wird hie
 | 1 Grundgerüst | Knopf im Hauptmenü, Karte laden und zeigen, Gebäude aus dem Katalog setzen, verschieben, drehen, löschen, Live-Prüfung, Speichern, Rückgängig | fertig (PR #168) |
 | 2 Wege und Flächen | Wege mit Kurven zeichnen, Kreuzungen rasten ein, Gassennetz live; Bauzonen und Waldflächen als Vielecke | fertig (PR #170) |
 | 3 Rest der Karte | Mauer und Tore, Startbelegung, Knopf „Karte ausprobieren“ | fertig (PR #172) |
-| 4 Umzug | Greybox und Köln übernehmen, der Editor wird die Quelle, Python-Werkzeug fällt weg | offen |
-| 5 Später | Gelände mit Höhen, Wasser, Wegbelag; Freigabe für Spieler | offen |
+| 4 Umzug | Greybox und Köln übernehmen, der Editor wird die Quelle; Python-Werkzeug fällt weg, dafür ein C#-Kartenskript (`tools/Kartenbau`: bauen, prüfen, Vorschau) | in Arbeit (PR #174) |
+| 5a Kartengröße und Rand | Größe einstellbar (z. B. 400 × 300 m bis 2 × 2 km), Kamera bleibt innerhalb, dahinter eine Randlandschaft, die in Dunst verblasst – nie Himmel | offen |
+| 5b Gelände | Höhenraster (~2 m) mit Pinseln: Heben, Senken, Glätten, Ebnen, Rauschen; Fundamente unter Gebäuden automatisch geebnet, steile Hänge für Bauzonen gesperrt, Wege folgen dem Gelände | offen |
+| 5c Wasser | Flüsse und Bäche als Linie mit Breite (Zeichenrichtung = Fließrichtung, Strömung), Seen als Fläche mit Wasserstand (still), Ufer automatisch ausgehoben; Wasser ist Hindernis, Brücken, Furten, Fähren, Häfen am Ufer | offen |
+| 5d Wegbelag | Trampelpfad bis Pflaster, wirkt auf Karren | offen |
+| 6 Freigabe | Kartenwerkstatt für Spieler | offen |
 
 | Thema | Entscheidung | Datum |
 |---|---|---|
@@ -184,3 +188,12 @@ Fahrplan (vom Nutzer am 21.10.2026 bestätigt, je Schritt ein PR; Stand wird hie
 | Ausprobieren (Umsetzung) | Knopf „Karte ausprobieren“ in der Leiste, mit Fehlern gesperrt (der Tooltip nennt den Grund); die Rückfrage wählt den Beruf (Berufe mit Werkstatt der Stufe 1, dahinter der Startplatz). Die Werkstatt stellt die Partie mit `Ausprobieren` auf und legt sie mit Entwurf, Datei, Kamera, Auswahl und Reiter in einen statischen Briefkasten; die Hauptszene holt sie ab (`Hauptszene.Probepartie.cs`): Hinweis „Probepartie … – Esc → Zurück zur Kartenwerkstatt“ oben, kein Auto-Stand, im Spielmenü der Knopf „Zurück zur Kartenwerkstatt“. Auch über „Zum Hauptmenü“ und den Knopf „Kartenwerkstatt“ kommt der Entwurf zurück. | 21.10.2026 |
 | Klickflächen (Umsetzung) | Die Klickfläche eines Stücks sind die konvexen Hüllen der sichtbaren Netze seines Modells (statt eines Kastens bis 12 m über der ganzen Grundfläche). Reihenfolge eines Klicks: Griffe, Linie/Rand des gewählten Teils, Modell über 0,6 m getroffen, Tor, Pflanze, Weg, flaches Modell (Feld, Weide), Mauer, Grundfläche eines Gebäudes, Fläche. Klicktest Greybox (Zoom 45): ein Klick knapp hinter die Gießerei Eisenbart wählte vorher die Gießerei, jetzt die Ostgasse dahinter. | 21.10.2026 |
 | Streu-Gruppen (Umsetzung) | Bei einer Waldfläche bleibt die „Mischung“ (Regler je Art), eine Streufläche zeigt ihre Gruppen einzeln: Gewicht, Radius, je Teil Anzahl von–bis und Arten mit Gewicht (0 nimmt eine heraus, „+ Art“), „+ Teil“, „+ Gruppe“, „ד – jede Änderung ein Befehl. Der Regler „Dichte“ reicht bis 30 je 1.000 m² (neue Wälder beginnen mit 10). | 21.10.2026 |
+
+### Kartenwerkstatt, Schritt 4: Umzug und Kartenskript (PR #174)
+
+| Thema | Entscheidung | Datum |
+|---|---|---|
+| Python-Werkzeug | Wird gelöscht (zweite Kopie der Regeln, läuft schon heute auseinander). Ersatz: ein C#-Kartenskript `tools/Kartenbau` mit denselben Befehlen und Prüfungen aus dem Kern wie die Kartenwerkstatt: Karten per Code anlegen (Grundriss nach historischem Vorbild), prüfen und Vorschaubilder erzeugen. So legt Claude den Grundriss von Köln und den rund 7 weiteren Städten per Skript an, der Nutzer verfeinert in der Kartenwerkstatt; beide arbeiten an derselben Kartendatei. Entschieden vom Nutzer. | 22.10.2026 |
+| Quelle | Die Kartendateien unter `game/karten/` sind die Quelle; die Kartenwerkstatt speichert in der Entwicklung direkt dorthin (im fertigen Spiel weiter nur in den Benutzerordner). Die Regel „Kartendatei nur aus dem Skript, nie von Hand“ wird zu „nur aus Kartenwerkstatt oder Kartenskript“. | 22.10.2026 |
+| Gelände, Wasser, Rand (Grundsatz für Schritt 5) | Gelände als Höhenraster mit Pinseln, Fundamente automatisch, Hangsperre für Bauzonen, Wege folgen dem Gelände; Flüsse als Linie mit Fließrichtung und Strömung, Seen als Fläche mit Wasserstand, Ufer ausgehoben; Wasser als Hindernis mit Brücken, Furten, Fähren und Häfen; Kartengröße einstellbar, Kamera begrenzt, Randlandschaft dahinter. Entschieden vom Nutzer, umgesetzt in den Schritten 5a–5c. | 22.10.2026 |
+
