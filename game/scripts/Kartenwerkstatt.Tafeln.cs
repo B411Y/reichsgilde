@@ -39,7 +39,7 @@ public partial class Kartenwerkstatt
         { Wegklasse.Land, Wegklasse.Haupt, Wegklasse.Ring, Wegklasse.Wall, Wegklasse.Gasse, Wegklasse.Feldweg, Wegklasse.Fussweg, Wegklasse.Leinpfad };
 
     private Label _titel = null!, _quelle = null!, _status = null!, _pruefKopf = null!, _hilfe = null!;
-    private Button _rueckgaengig = null!, _wiederholen = null!, _probeKnopf = null!;
+    private Button _rueckgaengig = null!, _wiederholen = null!, _probeKnopf = null!, _speichernKnopf = null!;
     private CheckButton _netzSchalter = null!;
     private VBoxContainer _eigenschaften = null!, _fehlerListe = null!;
 
@@ -48,6 +48,9 @@ public partial class Kartenwerkstatt
     /// „streu“, „aussparung“, „mauer“, „tor“, „pinsel“, „radierer“ (auch die Werte der Startoption <c>--werkstatt-werkzeug</c>).
     /// </summary>
     private readonly Dictionary<string, (Button Knopf, Action Waehlen)> _katalogKnoepfe = new();
+
+    /// <summary>Der Rollbereich des Katalogs (ein Werkzeug, das nicht von Hand gewählt wird, rollt dorthin).</summary>
+    private ScrollContainer _katalogRolle = null!;
 
     // Der gezeigte Teil (die Felder bleiben stehen, solange derselbe gewählt ist – sonst spränge der Fokus weg); Pinsel: PinselTafel
     private object? _gezeigt;
@@ -119,9 +122,11 @@ public partial class Kartenwerkstatt
         zeile.AddThemeConstantOverride("separation", 8);
         spalte.AddChild(zeile);
         Knopf(zeile, "Neu", NeuZeigen, "Eine neue, leere Karte anlegen");
-        Knopf(zeile, "Öffnen", OeffnenZeigen, "Eine eigene Karte öffnen – oder Greybox und Köln (nur lesen)");
-        Knopf(zeile, "Speichern", Speichern, "In die eigene Datei unter user://karten speichern (Strg+S)");
-        Knopf(zeile, "Speichern unter", SpeichernUnterZeigen, "Unter einem neuen Namen in user://karten speichern");
+        Knopf(zeile, "Öffnen", OeffnenZeigen, Entwicklung ? "Eine Karte des Spiels (game/karten) oder eine eigene öffnen"
+            : "Eine eigene Karte öffnen – oder eine Karte des Spiels (nur lesen)");
+        _speichernKnopf = Knopf(zeile, "Speichern", Speichern); // Tooltip nach der Quelle (Auffrischen)
+        Knopf(zeile, "Speichern unter", SpeichernUnterZeigen, Entwicklung ? "Unter einem neuen Namen speichern – in game/karten oder im Benutzerordner"
+            : "Unter einem neuen Namen im Benutzerordner speichern");
         Knopf(zeile, "Prüfen", Pruefen, "Die ganze Karte nach den Kartenregeln prüfen (läuft nach jeder Änderung von selbst)");
         _probeKnopf = Knopf(zeile, "Karte ausprobieren", AusprobierenZeigen);
         zeile.AddChild(new VSeparator());
@@ -161,7 +166,7 @@ public partial class Kartenwerkstatt
         _oberflaeche.AddChild(tafel);
         Hauptmenue.Text(spalte, "Katalog", 20, Gold);
         Hauptmenue.Text(spalte, "Werkzeug wählen, dann in die Stadt klicken. Esc oder Rechtsklick: fertig.", 12, Grau, umbruchBreite: Katalogbreite - 30);
-        var rolle = new ScrollContainer { SizeFlagsVertical = Control.SizeFlags.ExpandFill, HorizontalScrollMode = ScrollContainer.ScrollMode.Disabled };
+        var rolle = _katalogRolle = new ScrollContainer { SizeFlagsVertical = Control.SizeFlags.ExpandFill, HorizontalScrollMode = ScrollContainer.ScrollMode.Disabled };
         spalte.AddChild(rolle);
         var liste = new VBoxContainer { SizeFlagsHorizontal = Control.SizeFlags.ExpandFill };
         liste.AddThemeConstantOverride("separation", 3);
@@ -257,7 +262,8 @@ public partial class Kartenwerkstatt
     private string ArtName(string kennung) => _entwurf.Katalog.Finde(kennung) is { } b ? ArtName(b) : kennung;
 
     /// <summary>
-    /// Wählt ein Werkzeug wie ein Klick im Katalog (Startoptionen <c>--werkstatt-umriss</c>, <c>--werkstatt-werkzeug</c>): Schlüssel wie in
+    /// Wählt ein Werkzeug wie ein Klick im Katalog und rollt den Katalog dorthin (Startoptionen <c>--werkstatt-umriss</c>, <c>--werkstatt-werkzeug</c>,
+    /// Klick auf einen Befund, Knöpfe der Tafel rechts): Schlüssel wie in
     /// <see cref="_katalogKnoepfe"/>; „weg“ allein ist die Gasse, „bauzone“ allein die Vorstadt.
     /// </summary>
     private void KatalogWaehlen(string schluessel)
@@ -267,6 +273,7 @@ public partial class Kartenwerkstatt
         KatalogWahlAufheben();
         eintrag.Knopf.SetPressedNoSignal(true);
         eintrag.Waehlen();
+        Callable.From(() => _katalogRolle.EnsureControlVisible(eintrag.Knopf)).CallDeferred(); // nach dem Aufbau der Tafel (Startoptionen)
     }
 
     private void KatalogWahlAufheben()
@@ -298,6 +305,7 @@ public partial class Kartenwerkstatt
         spalte.AddChild(new HSeparator());
         Hauptmenue.Text(spalte, "Prüfung", 20, Gold);
         _pruefKopf = Hauptmenue.Text(spalte, "", 14, Grau, umbruchBreite: Rechtsbreite - 30);
+        _pruefKopf.MouseFilter = Control.MouseFilterEnum.Stop; // der Tooltip nennt die Regeln der Karte
         var rolle = new ScrollContainer { SizeFlagsVertical = Control.SizeFlags.ExpandFill, HorizontalScrollMode = ScrollContainer.ScrollMode.Disabled };
         spalte.AddChild(rolle);
         _fehlerListe = new VBoxContainer { SizeFlagsHorizontal = Control.SizeFlags.ExpandFill };
@@ -333,7 +341,7 @@ public partial class Kartenwerkstatt
             Werkstattwerkzeug.Mauer => "Ecken klicken (1-m-Raster, Alt: frei) · Klick auf die erste Ecke schließt den Ring · Doppelklick oder Enter: offen fertig · Rücktaste: letzte Ecke weg · Esc bricht ab",
             Werkstattwerkzeug.Tor => "Klick auf eine Mauer setzt ein Tor · Esc oder Rechtsklick: fertig",
             Werkstattwerkzeug.Platz => (_stadt.WerkstattPlatzHinweis ?? "Einen Platz anklicken") + " · grün: passt · Esc oder Rechtsklick bricht ab",
-            _ => "Klick wählt · Ziehen verschiebt · Griffe ziehen, Klick auf Linie oder Rand fügt ein · Q/E dreht · Entf löscht Griff oder Teil · Esc hebt auf · Strg+Z/Y · Strg+S",
+            _ => "Klick wählt · Ziehen verschiebt (Mauer: mit Umschalt) · Griffe ziehen, Klick auf Linie oder Rand fügt ein · Q/E dreht · Entf löscht Griff oder Teil · Esc hebt auf · Strg+Z/Y · Strg+S",
         };
         _hilfe.Text = zeile + "\nMausrad Zoom · rechte Maustaste oder WASD verschieben die Kamera · Strg+Q/E oder Bild auf/ab drehen sie · Alt zeigt alle Namen";
     }
@@ -348,9 +356,14 @@ public partial class Kartenwerkstatt
         var name = _entwurf.Stadt.Length > 0 ? _entwurf.Stadt : "Ohne Namen";
         _titel.Text = $"{name} · {_entwurf.Kennung} · {_entwurf.Gebaeude.Count} Gebäude, {_entwurf.Wege.Count} Wege, "
                       + $"{_entwurf.Bauzonen.Count + _entwurf.Naturflaechen.Count} Flächen, {_entwurf.Pflanzen.Count} Pflanzen";
-        var quelle = _nurLesen ? $"{_pfad} – mitgeliefert, nur lesen (Speichern legt eine eigene Datei an)"
-            : _pfad ?? "neue Karte, noch nicht gespeichert";
+        var quelle = _pfad is not { } pfad ? "neue Karte, noch nicht gespeichert"
+            : _nurLesen ? $"Spielkarte {Anzeigepfad(pfad)} – nur lesen (Speichern legt eine eigene Datei an)"
+            : IstSpielkarte(pfad) ? $"Spielkarte – wird direkt gespeichert · {Anzeigepfad(pfad)}"
+            : $"Eigene Karte · {Anzeigepfad(pfad)}";
         _quelle.Text = quelle + (_entwurf.Geschichte.IstGeaendert ? " · ungespeicherte Änderungen" : "");
+        _speichernKnopf.TooltipText = _pfad is null || _nurLesen ? "Die Karte hat noch keine eigene Datei – fragt nach dem Namen (Strg+S)"
+            : IstSpielkarte(_pfad) ? $"Direkt in {Anzeigepfad(_pfad)} speichern – das Spiel startet mit dieser Karte (Strg+S; beim ersten Mal mit Rückfrage)"
+            : $"In {Anzeigepfad(_pfad)} speichern (Strg+S)";
         var g = _entwurf.Geschichte;
         _rueckgaengig.Disabled = !g.KannRueckgaengig;
         _rueckgaengig.TooltipText = g.RueckgaengigText is { } r ? $"Rückgängig: {r} (Strg+Z)" : "Nichts rückgängig zu machen (Strg+Z)";
@@ -371,13 +384,45 @@ public partial class Kartenwerkstatt
         _status.Visible = text.Length > 0;
     }
 
+    /// <summary>
+    /// „Prüfen“: die ganze Karte nach den Regeln (läuft sonst nach jeder Änderung von selbst) und die Kapazität frisch gerechnet – die Prüfung nach
+    /// jeder Änderung nimmt sie aus dem Zwischenspeicher des Entwurfs (neu nur, wenn sich ein Gebäude, ein Weg oder eine Bauzone ändert).
+    /// </summary>
     private void Pruefen()
     {
         Auffrischen();
         var fehler = _entwurf.Befunde.Count(b => b.Schwere == Schwere.Fehler);
         var hinweise = _entwurf.Befunde.Count - fehler;
-        Melden(fehler + hinweise == 0 ? "Prüfung: Die Karte hält alle Regeln ein." : $"Prüfung: {fehler} Fehler, {hinweise} Hinweise – rechts in der Liste.", fehler > 0);
+        var text = fehler + hinweise == 0 ? "Prüfung: Die Karte hält alle Regeln ein." : $"Prüfung: {fehler} Fehler, {hinweise} Hinweise – rechts in der Liste.";
+        if (_entwurf.Regeln.Kapazitaet is { } schwere)
+        {
+            var uhr = System.Diagnostics.Stopwatch.StartNew();
+            var frisch = Kapazitaetspruefung.Pruefen(_entwurf, schwere);
+            text += $" Kapazität neu gerechnet ({uhr.ElapsedMilliseconds} ms): "
+                    + (frisch.Befunde.Count == 0 ? "alles passt." : $"{frisch.Befunde.Count} {(frisch.Befunde.Count == 1 ? "Gebäudeart passt" : "Gebäudearten passen")} nicht ganz.");
+        }
+        Melden(text, fehler > 0);
     }
+
+    /// <summary>Das Symbol der Kapazität in der Fehlerliste: 3 × 3 Rasterfelder (wie eine Bauzone) in der Farbe der Schwere – je Farbe einmal gebaut.</summary>
+    private static Texture2D KapazitaetsSymbol(Color farbe)
+    {
+        if (_symbole.TryGetValue(farbe, out var symbol)) return symbol;
+        var bild = Image.CreateEmpty(18, 18, false, Image.Format.Rgba8);
+        for (var i = 0; i < 3; i++)
+            for (var j = 0; j < 3; j++)
+                bild.FillRect(new Rect2I(1 + i * 6, 1 + j * 6, 5, 5), i == 1 && j == 1 ? farbe.Darkened(0.45f) : farbe);
+        return _symbole[farbe] = ImageTexture.CreateFromImage(bild);
+    }
+
+    private static readonly Dictionary<Color, Texture2D> _symbole = new();
+
+    /// <summary>Was die Kapazitätsprüfung prüft und ihr Bericht (Zeilen wie <c>tools/Kartenbau pruefen</c>) – für Tooltips.</summary>
+    private string KapazitaetsBericht(Schwere schwere) =>
+        "Kapazität: Passen die Gebäude einer Partie mit 8 Häusern in die Bauzonen der Stadt?\n"
+        + "Die Prüfung setzt sie probeweise auf das Raster – Werkstätten an Karrenstraßen, Wohnhäuser auch an Gassen:\n"
+        + string.Join("\n", _entwurf.Kapazitaetsrechnung(schwere).Bericht.Select(z => "  " + z))
+        + "\nKlick zeigt in der Karte, wo die Prüfung die Gebäude unterbringt\n(noch ein Klick oder Esc blendet es aus).";
 
     /// <summary>So viele Befunde zeigt die Liste höchstens (eine kaputte Karte kann Hunderte haben).</summary>
     private const int ListenGrenze = 150;
@@ -391,6 +436,11 @@ public partial class Kartenwerkstatt
         var hinweise = befunde.Count - fehler;
         _pruefKopf.Text = befunde.Count == 0 ? "Keine Fehler, keine Hinweise." : $"{fehler} Fehler, {hinweise} Hinweise" + (befunde.Count > ListenGrenze ? $" (die ersten {ListenGrenze})" : "");
         _pruefKopf.AddThemeColorOverride("font_color", fehler > 0 ? Rot : befunde.Count > 0 ? Grau : Gruen);
+        var regeln = _entwurf.Regeln;
+        _pruefKopf.TooltipText = $"Regeln dieser Karte ({_entwurf.Kennung}): allgemeine Kartenregeln"
+            + (regeln.Stadtregeln ? ", Stadtregeln" : "") + (regeln.Werkstattnorm ? ", Werkstattnorm der Greybox" : "")
+            + (regeln.Startgrundstuecke > 0 ? $", {regeln.Startgrundstuecke} Startgrundstücke" : "")
+            + (regeln.Kapazitaet is { } k ? $", Kapazität als {(k == Schwere.Fehler ? "Fehler" : "Hinweis")}" : ", Kapazität nicht (der Probeplan prüft)");
         foreach (var b in befunde.Take(ListenGrenze))
         {
             var istFehler = b.Schwere == Schwere.Fehler;
@@ -408,7 +458,46 @@ public partial class Kartenwerkstatt
             knopf.AddThemeColorOverride("font_hover_color", Hell);
             knopf.Pressed += () => BefundZeigen(b);
             _fehlerListe.AddChild(knopf);
+            if (b.Regel == "kapazitaet")
+            {
+                knopf.Icon = KapazitaetsSymbol(istFehler ? Rot : Grau);
+                knopf.TooltipText = KapazitaetsBericht(b.Schwere);
+            }
+            else if (b.Regel == "einwohnerplaetze")
+                knopf.TooltipText = "Einwohnerhäuser (die Häuser der Bürger der Stadt) stehen im Spiel auf Einwohnerplätzen\n"
+                    + "und auf Wohnhausplätzen, die am Start niemand bewohnt. Fehlen beide, stehen alle auf einem Platz.\n"
+                    + "Es fehlen Einwohnerplätze an den Gassen: im Katalog links unter „Einwohnerplätze“\n"
+                    + "(am Ring 8,5 × 8 m, in der Vorstadt 7,5 × 6,2 m), die Vorderseite zur Gasse. Klick wählt das Werkzeug.";
         }
+        // Gilt die Kapazität und passt alles, steht sie trotzdem in der Liste (grün) – mit ihrem Bericht
+        if (regeln.Kapazitaet is { } schwere && befunde.All(b => b.Regel != "kapazitaet"))
+        {
+            var knopf = new Button
+            {
+                Text = "Kapazität: Die Gebäude einer Partie mit 8 Häusern passen in die Bauzonen der Stadt.", Flat = true, Alignment = HorizontalAlignment.Left,
+                AutowrapMode = TextServer.AutowrapMode.WordSmart, FocusMode = Control.FocusModeEnum.None, CustomMinimumSize = new Vector2(Rechtsbreite - 46, 0),
+                Icon = KapazitaetsSymbol(Gruen), TooltipText = KapazitaetsBericht(schwere),
+            };
+            knopf.AddThemeFontSizeOverride("font_size", 13);
+            knopf.AddThemeColorOverride("font_color", Gruen);
+            knopf.AddThemeColorOverride("font_hover_color", Hell);
+            knopf.Pressed += () => KapazitaetUmschalten(schwere);
+            _fehlerListe.AddChild(knopf);
+        }
+    }
+
+    /// <summary>Blendet die Belegung der Kapazitätsprüfung in der Karte ein oder aus (mit der Legende unten).</summary>
+    private void KapazitaetUmschalten(Schwere schwere)
+    {
+        if (_stadt.WerkstattKapazitaetSichtbar)
+        {
+            _stadt.WerkstattKapazitaetZeigen(null);
+            Melden("");
+            return;
+        }
+        _stadt.WerkstattKapazitaetZeigen(_entwurf.Kapazitaetsrechnung(schwere));
+        Melden("Kapazität: dunkelgrau steht schon, rot Werkstätten, gelb Ratsherrenhäuser, weiß Bürgerhäuser, grün Wohnhäuser der Einwohner, "
+               + "violett Stadthöfe, rosa Stadtpalais (Reserve) – freie Felder in der Farbe der Bauzone. Esc oder eine Änderung blendet es aus.");
     }
 
     /// <summary>
@@ -417,6 +506,17 @@ public partial class Kartenwerkstatt
     /// </summary>
     private void BefundZeigen(Befund b)
     {
+        if (b.Regel == "kapazitaet")
+        {
+            KapazitaetUmschalten(b.Schwere);
+            return;
+        }
+        if (b.Regel == "einwohnerplaetze" && _entwurf.Katalog.Bausteine.FirstOrDefault(x => x.Art == Bausteinart.Einwohnerplatz) is { } platz)
+        {
+            KatalogWaehlen(platz.Kennung);
+            Melden($"Werkzeug „{platz.Anzeigename}“: an eine Gasse klicken, die Vorderseite (Pfeil) zur Gasse – Q/E dreht.");
+            return;
+        }
         var start = b.Andere.Any(t => t is EntwurfStart);
         if (start) ReiterWaehlen(true);
         EntwurfTeil? teil = _entwurf.GebaeudeMit(b.Gebaeude.FirstOrDefault()) ?? b.Andere.FirstOrDefault(t => t is not EntwurfStart);
@@ -498,9 +598,9 @@ public partial class Kartenwerkstatt
         if (g.Art is Bausteinart.Wohnhausplatz or Bausteinart.Einwohnerplatz)
         {
             _lageWahl = new OptionButton { FocusMode = Control.FocusModeEnum.None, TooltipText = "Ohne Angabe gilt die nächste Bauzone" };
-            _lageWahl.AddItem("nach Bauzone", -1);
+            _lageWahl.AddItem("nach Bauzone", NachBauzone);
             foreach (var lage in Enum.GetValues<Lage>()) _lageWahl.AddItem(Stadtansicht.LageName(lage), (int)lage);
-            _lageWahl.ItemSelected += i => _entwurf.LageSetzen(kennung, _lageWahl!.GetItemId((int)i) is var id and >= 0 ? (Lage)id : null);
+            _lageWahl.ItemSelected += i => _entwurf.LageSetzen(kennung, _lageWahl!.GetItemId((int)i) is var id and not NachBauzone ? (Lage)id : null);
             Zeile(raster, "Lage", _lageWahl);
         }
         if (g.Art == Bausteinart.Sonderbau)
@@ -521,6 +621,9 @@ public partial class Kartenwerkstatt
 
     private static readonly string[] Konfessionen = { "keine", "katholisch", "evangelisch" };
 
+    /// <summary>Kennung des Eintrags „nach Bauzone“ in der Wahl der Lage (−1 hieße für Godot „Kennung = Platz in der Liste“, also 0 wie Kern).</summary>
+    private const int NachBauzone = 100;
+
     /// <summary>Die Werte in die Felder, ohne Befehle auszulösen; ein Textfeld, in dem gerade geschrieben wird, bleibt, wie es ist.</summary>
     private void WerteSetzen(EntwurfGebaeude g)
     {
@@ -529,7 +632,7 @@ public partial class Kartenwerkstatt
         if (_punktText is not null) _punktText.Text = $"x {Kartenschreiber.Zahl(g.X)} · z {Kartenschreiber.Zahl(g.Z)} m";
         _drehFeld?.SetValueNoSignal(g.Drehung);
         _massstabFeld?.SetValueNoSignal(g.Massstab);
-        _lageWahl?.Select(_lageWahl.GetItemIndex(g.Lage is { } l ? (int)l : -1));
+        _lageWahl?.Select(_lageWahl.GetItemIndex(g.Lage is { } l ? (int)l : NachBauzone));
         _konfessionWahl?.Select(Math.Max(0, Array.IndexOf(Konfessionen, g.Konfession ?? "keine")));
     }
 
@@ -661,8 +764,9 @@ public partial class Kartenwerkstatt
                 knopf.Alignment = HorizontalAlignment.Left;
             }
         }
+        if (Entwicklung) Liste("Karten des Spiels (game/karten – Speichern schreibt direkt dorthin)", Mitgeliefert, false, "Keine gefunden.");
         Liste("Eigene Karten", Ordner, false, $"Noch keine – gespeichert wird im Ordner {ProjectSettings.GlobalizePath(Ordner)}.");
-        Liste("Mitgeliefert (nur lesen)", Mitgeliefert, true, "Keine gefunden.");
+        if (!Entwicklung) Liste("Karten des Spiels (nur lesen)", Mitgeliefert, true, "Keine gefunden.");
         spalte.MoveChild(fehler, spalte.GetChildCount() - 1);
         Hauptmenue.Knopf(spalte, "Abbrechen", DialogSchliessen);
         DialogZeigen(tafel);
@@ -703,11 +807,30 @@ public partial class Kartenwerkstatt
         DialogZeigen(tafel);
     }
 
+    /// <summary>
+    /// „Speichern unter“: Name und – in der Entwicklung – der Ordner: <c>game/karten/</c> (eine Karte des Spiels, <c>--karte=&lt;name&gt;</c>) oder
+    /// der Benutzerordner. Vorgewählt ist der Ordner der offenen Datei. Eine andere vorhandene Datei überschreibt erst nach einer Rückfrage.
+    /// </summary>
     private void SpeichernUnterZeigen()
     {
         var (tafel, spalte) = Hauptmenue.Tafel(480);
         Hauptmenue.Text(spalte, "Speichern unter", 26, Gold, zentriert: true);
-        Hauptmenue.Text(spalte, $"Im Ordner {ProjectSettings.GlobalizePath(Ordner)}", 13, Grau, umbruchBreite: 420);
+        var ordner = Entwicklung && IstSpielkarte(_pfad) ? Mitgeliefert : Ordner;
+        var wahl = new OptionButton { FocusMode = Control.FocusModeEnum.None, Visible = Entwicklung };
+        wahl.AddItem("Karten des Spiels (game/karten)");
+        wahl.AddItem("Eigene Karten (Benutzerordner)");
+        wahl.Selected = ordner == Mitgeliefert ? 0 : 1;
+        spalte.AddChild(wahl);
+        var ort = Hauptmenue.Text(spalte, "", 13, Grau, umbruchBreite: 420);
+        void OrtZeigen() => ort.Text = ordner == Mitgeliefert
+            ? $"Im Ordner {ProjectSettings.GlobalizePath(Mitgeliefert)} bei den Karten des Spiels – Git zeigt die Änderung."
+            : $"Im Ordner {ProjectSettings.GlobalizePath(Ordner)}";
+        OrtZeigen();
+        wahl.ItemSelected += i =>
+        {
+            ordner = i == 0 ? Mitgeliefert : Ordner;
+            OrtZeigen();
+        };
         var vorschlag = !_nurLesen && _pfad is { } p ? p.GetFile() : _entwurf.Kennung + ".json";
         var name = new LineEdit { Text = vorschlag, SelectAllOnFocus = true };
         spalte.AddChild(name);
@@ -718,10 +841,19 @@ public partial class Kartenwerkstatt
         void Los()
         {
             if (Dateiname(name.Text) is not { } datei) { fehler.Text = "Der Name braucht mindestens einen Buchstaben."; return; }
-            var pfad = $"{Ordner}/{datei}";
+            var pfad = $"{ordner}/{datei}";
             if (Godot.FileAccess.FileExists(pfad) && pfad != _pfad)
-                Rueckfrage("Datei überschreiben?", $"Die Karte {datei} gibt es schon. Überschreiben?", "Überschreiben", () => SpeichernNach(pfad));
-            else if (SpeichernNach(pfad)) DialogSchliessen();
+                Rueckfrage("Datei überschreiben?", $"Die Karte {Anzeigepfad(pfad)} gibt es schon. Überschreiben?", "Überschreiben", () =>
+                {
+                    if (IstSpielkarte(pfad)) _ueberschreibenBestaetigt.Add(pfad);
+                    SpeichernNach(pfad);
+                });
+            else if (pfad == _pfad && IstSpielkarte(pfad) && !_ueberschreibenBestaetigt.Contains(pfad)) SpielkarteUeberschreiben(pfad, () => { });
+            else if (SpeichernNach(pfad))
+            {
+                if (IstSpielkarte(pfad)) _ueberschreibenBestaetigt.Add(pfad); // neu angelegt: weiter ohne Rückfrage
+                DialogSchliessen();
+            }
         }
         name.TextSubmitted += _ => Los();
         Hauptmenue.Knopf(knoepfe, "Speichern", Los);

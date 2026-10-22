@@ -330,7 +330,8 @@ public partial class Kartenwerkstatt
             Knopf(zeile, "×", () => _entwurf.TorLoeschen(m, nummer), "Das Tor löschen");
         }
         Knopf(_eigenschaften, "Tor setzen", () => KatalogWaehlen("tor"), "Werkzeug „Tor“: Klick auf die Mauer setzt ein Tor");
-        Hauptmenue.Text(_eigenschaften, "Griffe: Ecken gold, Tore blau. Ziehen verschiebt (Tore gleiten an der Mauer entlang), Klick auf die Linie fügt eine Ecke ein, Entf löscht den gewählten Griff.",
+        Hauptmenue.Text(_eigenschaften, "Griffe: Ecken gold, Tore blau. Ziehen verschiebt (Tore gleiten an der Mauer entlang), Klick auf die Linie fügt eine Ecke ein, Entf löscht den gewählten Griff. "
+            + "Umschalt + Ziehen an der Linie verschiebt die ganze Mauer. Ein Weg durch ein Tor folgt ihm.",
             12, Grau, umbruchBreite: Rechtsbreite - 44);
     }
 

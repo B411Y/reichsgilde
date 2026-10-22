@@ -10,8 +10,10 @@ namespace Reichsgilde;
 ///
 /// <b>Zeigen.</b> Wer einen Platz am Start nutzt (<see cref="Kartenentwurf.Belegung"/>), sieht man am Stück: Das Modell trägt die Farbe des Hauses
 /// (Dach, Fahne), ein Werkstattplatz mit Startbetrieb zeigt die Werkstatt dieses Berufs, und an der vorderen linken Ecke steht eine hohe Fahne
-/// in der Hausfarbe – beim Spieler gold mit Schwalbenschwanz (ein Rahmen wäre mit Auswahl und Fehlern zu verwechseln). Unter der Maus (oder mit
-/// Alt) steht unter dem Namen, wem der Platz gehört. Ändert sich die Belegung, werden nur die Stücke neu gebaut, deren Anzeige sich ändert.
+/// in der Hausfarbe – beim Spieler weiß mit goldenem Rand und Schwalbenschwanz, in keiner Hausfarbe zu verwechseln (vorher gold, wie das gelbe
+/// Haus Kieselbach; ein Rahmen wäre mit Auswahl und Fehlern zu verwechseln). Das Modell des Spielers trägt seine Farbe aus der Startbelegung,
+/// ohne sie das Blau des Spiels (<see cref="Spieler"/>). Unter der Maus (oder mit Alt) steht unter dem Namen, wem der Platz gehört. Ändert sich
+/// die Belegung, werden nur die Stücke neu gebaut, deren Anzeige sich ändert.
 ///
 /// <b>Platz wählen.</b> Die Tafel „Start“ fragt mit <see cref="WerkstattPlatzWaehlen"/> nach einem Platz (Wohnhaus, Betrieb, Startplatz): Die
 /// passenden Plätze tragen einen grünen Rahmen, unter der Maus grün oder rot mit dem Grund; ein Klick auf einen passenden übergibt ihn, Esc oder
@@ -20,12 +22,15 @@ namespace Reichsgilde;
 public partial class Stadtansicht
 {
     /// <summary>
-    /// Wie ein belegter Platz aussieht: Farbe der Fahne (Spieler gold), Farbe des Modells (die Hausfarbe, beim Spieler seine Farbe, sonst gold),
+    /// Wie ein belegter Platz aussieht: Farbe der Fahne (Spieler weiß), Farbe des Modells (die Hausfarbe, beim Spieler seine Farbe, sonst blau),
     /// Text unter dem Namen, der Beruf, dessen Werkstatt ein Werkstattplatz zeigt (null: die des Schmieds), und ob es der Spieler ist.
     /// </summary>
     private readonly record struct Belegungsanzeige(Color Farbe, Color Modellfarbe, string Text, string? Beruf, bool Spieler = false);
 
     private static readonly Color Mastholz = new(0.32f, 0.24f, 0.16f);
+
+    /// <summary>Die Fahne des Spielers: weiß mit goldenem Rand (und Schwalbenschwanz) – keine Hausfarbe ist weiß.</summary>
+    private static readonly Color SpielerFahne = new(0.97f, 0.96f, 0.92f), SpielerFahnenrand = new(0.86f, 0.64f, 0.14f);
 
     /// <summary>Hat sich die Startbelegung geändert? (Am Ende des Bildes werden die betroffenen Stücke neu gebaut.)</summary>
     private bool _wsBelegungNeu;
@@ -47,7 +52,7 @@ public partial class Stadtansicht
                 _ when b.Beruf is { } beruf => $"Spieler · Startplatz {beruf}",
                 _ => "Spieler · Startplatz",
             };
-            anzeige = new Belegungsanzeige(Auswahlgold, Farbe(start.SpielerFarbe) ?? Auswahlgold, text, b.Beruf, Spieler: true);
+            anzeige = new Belegungsanzeige(SpielerFahne, Farbe(start.SpielerFarbe) ?? Spieler, text, b.Beruf, Spieler: true);
         }
         else
         {
@@ -64,7 +69,7 @@ public partial class Stadtansicht
         return liste.Count > 1 ? anzeige with { Farbe = Fehlerrot, Text = anzeige.Text + $" (und {liste.Count - 1} weitere – doppelt vergeben)" } : anzeige;
     }
 
-    /// <summary>Die Fahne der Belegung an der vorderen linken Ecke der Grundfläche: Mast und Tuch in der Hausfarbe, beim Spieler mit Schwalbenschwanz.</summary>
+    /// <summary>Die Fahne der Belegung an der vorderen linken Ecke der Grundfläche: Mast und Tuch in der Hausfarbe, beim Spieler weiß mit goldenem Rand und Schwalbenschwanz.</summary>
     private void BelegungsfahneBauen(Vector2 groesse, Belegungsanzeige b, Node3D wurzel)
     {
         const float hoehe = 11;
@@ -75,7 +80,8 @@ public partial class Stadtansicht
             Name = "Mast", Mesh = new CylinderMesh { TopRadius = 0.12f, BottomRadius = 0.16f, Height = hoehe, RadialSegments = 8 },
             Position = new Vector3(0, hoehe / 2, 0), MaterialOverride = Material(Mastholz),
         });
-        FahnenTuchAmMast(new Vector3(0, hoehe - 1.5f, 0), Vector3.Right, 4.5f, 2.8f, b.Farbe, fahne, kerbe: b.Spieler ? 1.4f : 0);
+        FahnenTuchAmMast(new Vector3(0, hoehe - 1.5f, 0), Vector3.Right, 4.5f, 2.8f, b.Farbe, fahne, kerbe: b.Spieler ? 1.4f : 0,
+            rand: b.Spieler ? SpielerFahnenrand : null);
     }
 
     /// <summary>Am Ende des Bildes nach einer Änderung der Startbelegung: jedes Stück, dessen Anzeige sich ändert, neu bauen.</summary>

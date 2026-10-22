@@ -625,10 +625,12 @@ public partial class Hauptszene : Node
             start = new Spielzeit(Math.Clamp(stunde * 60 - Spielzeit.TagesbeginnMinute, 0, Spielzeit.MinutenProTag - 1));
         double? startvermoegen = optionen.TryGetValue("vermoegen", out var v) && double.TryParse(v, out var betrag) ? betrag : null;
 
+        var karte = optionen.TryGetValue("karte", out var kennung) ? Stadtkarten.Laden(kennung) : Stadtkarten.Greybox; // --karte=koeln: eine andere Karte, nur für diesen Start
         var (simulation, spieler) = Partieaufbau.Erstellen(einstellungen ?? Partieeinstellungen.Standard, daten,
             neu ?? new NeuePartie(Startvermoegen: startvermoegen, Beruf: optionen.GetValueOrDefault("beruf", "Schmied"),
-                Glaube: optionen.TryGetValue("glaube", out var g) && Enum.TryParse<Reichsgilde.Core.Glaube.Konfession>(g, true, out var konfession) ? konfession : null),
-            start, optionen.TryGetValue("karte", out var karte) ? Stadtkarten.Laden(karte) : Stadtkarten.Greybox); // --karte=koeln: eine andere Karte, nur für diesen Start
+                Glaube: optionen.TryGetValue("glaube", out var g) && Enum.TryParse<Reichsgilde.Core.Glaube.Konfession>(g, true, out var konfession) ? konfession : null,
+                Rivalen: (karte?.Startbelegung ?? Startbelegung.Ersatz).Haeuser.Count), // alle KI-Häuser der Karte, wie im Menü vorgewählt (Probestadt: zwei)
+            start, karte);
         SimulationVerbinden(simulation, spieler);
         return simulation;
     }
