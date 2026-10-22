@@ -13,13 +13,14 @@ Inhalt je Datei (Blender: Z oben, Blick nach -Y; im Spiel Y oben, Blick nach +Z)
     Koerper_Frau    Kleid bis über die Knöchel, Zopf
     Trachtteile     Strohhut, Barett, Kapuze, Haube, Schleier, Schuerze, Kiepe, Buendel, Tasche, Stab, Hacke, Hammer,
                     Hobel, Saege, Drechseleisen, Schlaegel, Meissel, Stoessel, Kelle, Flakon, Krug, Laute, Feder, Sieb,
-                    Dochtstab, Dietrich, Muenzbeutel, Lappen, Uebungsschwert
+                    Dochtstab, Dietrich, Muenzbeutel, Lappen, Uebungsschwert, Rechenpfennig, Muenze
                     – standardmäßig aus, das Spiel blendet sie je Rolle ein (wie heute `TrachtVon`; das Werkzeug bei der
                     passenden Bewegung: Hammer beim Hämmern, Hobel beim Hobeln, Säge beim Sägen, Drechseleisen beim Drechseln,
                     Schlägel und Meißel beim Behauen und Bildhauen, Stößel beim Mörsern, Kelle beim Rühren, Flakon beim
                     Mischen, Krug beim Zapfen und Trinken, Laute bei „Laute“, Dochtstab beim Kerzenziehen, Sieb beim
                     Schöpfen, Feder beim Schreiben, Dietrich beim Knacken, Muenzbeutel beim Zählen, Lappen (samt Helm auf dem
-                    Schoß) beim Putzen, Uebungsschwert beim Fechten)
+                    Schoß) beim Putzen, Uebungsschwert beim Fechten, Rechenpfennig (samt Blatt in der Linken) beim Rechnen,
+                    Muenze beim Wiegen)
     Bewegungen      Stehen, Gehen, Eilen, Gebeugt, Tragen, Sitzen, Reden, Hacken, Buecken, Hueten,
                     Ziehen (Handkarren), Kutschieren (auf dem Bock),
                     Haemmern, Blasebalg, Schleifen (stehend), Feinarbeit (sitzend) – Arbeit in der Schmiede,
@@ -47,13 +48,16 @@ Inhalt je Datei (Blender: Z oben, Blick nach -Y; im Spiel Y oben, Blick nach +Z)
                     liegend, ruhig atmend; die Wurzel kippt um −90°) – für die Diebe,
                     Putzen (sitzend: der Lappen kreist über dem Helm auf dem Schoß, die Linke hält ihn am Rand, zwischendurch
                     den Glanz prüfen), Fechten (stehend vor der Strohpuppe: Grundstellung, ausholen, Hieb an ihre Schulter,
-                    Stich im Ausfallschritt an ihre Brust) – für die Wache
+                    Stich im Ausfallschritt an ihre Brust) – für die Wache,
+                    Rechnen (sitzend am Rechentuch: das Blatt lesen, einen Rechenpfennig auf der Linie schieben, den nächsten
+                    eine Linie höher legen), Wiegen (stehend an der Balkenwaage: eine Münze vom Stapel auf die rechte Schale,
+                    den Balken beobachten, abnehmen, zu den geprüften legen) – für den Geldleiher
                     – jede eine Schleife am Ort (ohne Vorwärtsbewegung; das Spiel schiebt die Figur)
                     Die Werkstatt-Bewegungen zielen mit den Händen (beim Drechseln auch mit dem rechten Fuß) auf feste
                     Höhen (ARBEITSHOEHEN, PEDAL, VORLAGE, MISCHGLAS, PRESSE, ZAPFHAHN, KRUG_TISCH, KERZEN, BUETTE, SCHREIBEN,
-                    KANZEL, KNACKEN, ZAEHLEN, PUTZEN, FECHTEN – wie in schmied_innen.glb, tischler_innen.glb,
+                    KANZEL, KNACKEN, ZAEHLEN, PUTZEN, FECHTEN, RECHNEN, WIEGEN – wie in schmied_innen.glb, tischler_innen.glb,
                     steinmetz_innen.glb, alchimist_innen.glb, parfumeur_innen.glb, wirt_innen.glb, prediger_innen.glb,
-                    dieb_innen.glb und gardist_innen.glb):
+                    dieb_innen.glb, gardist_innen.glb und geldleiher_innen.glb):
                     Jedes Volk erreicht sie
                     mit eigenen Arm- und Beinwinkeln (`arm_ik`, `arm_ziel`, `bein_ik`).
 Material: alle Teile (Körper, Trachtteile, Werkzeug) tragen nur ein Material „Figur“ – eine Figur ist so ein
@@ -2745,7 +2749,7 @@ def vorschau_bewegungen(schnell):
         alle.append(beschriftung(name, Vector(((-2.3) * 0.7071 - sy * 0.7071, (-2.3) * 0.7071 + sy * 0.7071, 0.9))))
     bs.vorschau_buehne(None, ziel_hoehe=0.9, ausschnitt=22.0 * len(reihen) / 12, schnell=schnell)
     szene = bpy.context.scene
-    f = 0.83                                                            # unter 3 MB: Ausschnitt gleich, weniger Bildpunkte
+    f = 0.8                                                             # unter 3 MB: Ausschnitt gleich, weniger Bildpunkte
     szene.render.resolution_x, szene.render.resolution_y = round(900 * f), round(1620 * len(reihen) / 12 * f)
     szene.render.image_settings.color_mode = "RGB"                      # ohne Alphakanal und stark gepackt: kleinere Datei
     szene.render.image_settings.compression = 100
