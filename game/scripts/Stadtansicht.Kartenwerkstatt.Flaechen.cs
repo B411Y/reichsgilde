@@ -14,6 +14,10 @@ namespace Reichsgilde;
 /// <b>Werkzeuge „Bauzone“, „Waldfläche“, „Streufläche“, „Aussparung“</b> (und das Zeichnen der Wege, das dieselben Punkte sammelt): Ecken klicken,
 /// Doppelklick, Enter oder ein Klick auf die erste Ecke schließt; Esc bricht ab, die Rücktaste nimmt die letzte Ecke weg. Bauzonen rasten auf das
 /// Raster der Karte (2 m). Die Aussparung gehört zur gewählten Naturfläche; danach ist wieder die Auswahl dran.
+///
+/// <b>Kapazität.</b> Auf Wunsch (Klick auf den Kapazitäts-Befund der Prüfung) zeigt die Werkstatt, wie die Kapazitätsprüfung des Kerns die Gebäude
+/// einer Partie mit 8 Häusern in die Bauzonen der Stadt setzt (<see cref="WerkstattKapazitaetZeigen"/>): jedes Rasterfeld in der Farbe seines
+/// Gebäudes, jedes Gebäude mit Rahmen; bis zur nächsten Änderung.
 /// </summary>
 public partial class Stadtansicht
 {
@@ -263,5 +267,70 @@ public partial class Stadtansicht
         if (punkte.Count >= 3) VorschauDreiecke(VieleckDreiecke(punkte, 0.17f), new Color(farbe, 0.3f));
         var rand = geschlossen ? Geschlossen(punkte) : punkte;
         if (rand.Count >= 2) VorschauDreiecke(BandDreiecke(rand, Mathf.Max(0.15f, MeterJePixel * 1.5f), 0.2f), new Color(farbe.Lightened(0.3f), 0.95f));
+    }
+
+    // ═════════════════════════════════════════════════════════════════════════
+    //  Kapazität: wo die Prüfung die Gebäude unterbringt
+    // ═════════════════════════════════════════════════════════════════════════
+
+    private Node3D? _wsKapazitaet;
+
+    /// <summary>Zeigt die Werkstatt gerade die Belegung der Kapazitätsprüfung?</summary>
+    public bool WerkstattKapazitaetSichtbar => _wsKapazitaet is not null;
+
+    /// <summary>
+    /// Die Farbe je Gebäudeart der Kapazitätsprüfung (Schlüssel wie <see cref="Kapazitaetspruefung.Groessen"/>, „fest“ = schon auf der Karte) – keine
+    /// davon ist eine Farbe der Lagen (Kern orange, Mauerring blau, Vorstadt türkis), damit sie sich auf den Bauzonen abheben.
+    /// </summary>
+    public static Color KapazitaetsFarbe(string art) => art switch
+    {
+        "fest" => new Color(0.25f, 0.25f, 0.25f),
+        "Werkstatt" => new Color(0.9f, 0.15f, 0.12f),
+        "Ratsherrenhaus" => new Color(1f, 0.85f, 0.15f),
+        "Einwohner-Bürgerhaus" => new Color(0.97f, 0.97f, 0.95f),
+        "Einwohner-Wohnhaus" => new Color(0.5f, 0.95f, 0.25f),
+        "Stadthof" => new Color(0.6f, 0.25f, 0.95f),
+        _ => new Color(1f, 0.45f, 0.75f), // Stadtpalais
+    };
+
+    /// <summary>
+    /// Zeigt die Belegung einer Kapazitätsprüfung über der Karte (null: wieder weg): jedes belegte Rasterfeld etwas eingerückt in der Farbe seines
+    /// Gebäudes (<see cref="KapazitaetsFarbe"/>), um jedes gesetzte Gebäude ein Rahmen; freie Felder bleiben in der Farbe ihrer Bauzone. Über allem
+    /// (ohne Tiefentest), damit Felder unter Häusern zu sehen sind. Die nächste Änderung am Entwurf blendet es aus (es gälte nicht mehr).
+    /// </summary>
+    public void WerkstattKapazitaetZeigen(Kapazitaet? k)
+    {
+        if (_wsKapazitaet is not null) KnotenEntfernen(_wsKapazitaet);
+        _wsKapazitaet = null;
+        if (k is null) return;
+        _wsKapazitaet = new Node3D { Name = "Kapazitaet" };
+        AddChild(_wsKapazitaet);
+        var r = (float)k.Raster;
+        const float einzug = 0.15f;
+        foreach (var gruppe in k.Plaetze.GroupBy(p => p.Art))
+        {
+            var felder = new List<Vector3>();
+            var rahmen = new List<Vector3>();
+            foreach (var platz in gruppe)
+            {
+                foreach (var (i, j) in platz.Felder)
+                {
+                    var (a, b) = (new Vector2(i * r + einzug, j * r + einzug), new Vector2((i + 1) * r - einzug, (j + 1) * r - einzug));
+                    Dreieck(felder, a, new Vector2(b.X, a.Y), b, 0.22f);
+                    Dreieck(felder, a, b, new Vector2(a.X, b.Y), 0.22f);
+                }
+                if (gruppe.Key == "fest" || platz.Felder.Count == 0) continue;
+                var (i0, i1, j0, j1) = (platz.Felder.Min(f => f.I), platz.Felder.Max(f => f.I) + 1, platz.Felder.Min(f => f.J), platz.Felder.Max(f => f.J) + 1);
+                rahmen.AddRange(BandDreiecke(new List<Vector2> { new(i0 * r, j0 * r), new(i1 * r, j0 * r), new(i1 * r, j1 * r), new(i0 * r, j1 * r), new(i0 * r, j0 * r) }, 0.2f, 0.24f));
+            }
+            var farbe = KapazitaetsFarbe(gruppe.Key);
+            foreach (var (ecken, alpha, farbton) in new[] { (felder, 0.75f, farbe), (rahmen, 0.95f, farbe.Darkened(0.4f)) })
+            {
+                if (ecken.Count == 0) continue;
+                var netz = DurchsichtigesNetz(ecken.ToArray(), farbton, alpha);
+                ImmerSichtbar((StandardMaterial3D)netz.MaterialOverride);
+                _wsKapazitaet.AddChild(netz);
+            }
+        }
     }
 }

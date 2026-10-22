@@ -19,23 +19,31 @@ public partial class Stadtansicht
 
     private static Shader? _fahnenShader;
     private readonly Dictionary<(float Laenge, float Hoehe, float Kerbe), ArrayMesh> _fahnenNetze = new();
-    private readonly Dictionary<(Color Farbe, bool Wand), ShaderMaterial> _fahnenStoffe = new();
+    private readonly Dictionary<(Color Farbe, bool Wand, Color? Rand), ShaderMaterial> _fahnenStoffe = new();
     /// <summary>Zu jedem Modell-Mesh: das Mesh ohne Tuch und die Lage des neuen Tuchs (einmal ermittelt).</summary>
     private readonly Dictionary<Mesh, (ArrayMesh OhneTuch, FahnenLage Tuch)?> _modellFahnen = new();
 
     /// <summary>Wo das Tuch einer Modell-Fahne sitzt: Mastpunkt, Achsen und Maße im Raum des Knotens „Fahne“.</summary>
     private readonly record struct FahnenLage(Vector3 Mast, Vector3 Laengsachse, Vector3 Hoehenachse, float Laenge, float Hoehe, float Kerbe);
 
+    /// <summary>Breite des Randes (Meter), wenn ein Tuch einen hat (<see cref="FahnenStoff"/>).</summary>
+    private const float FahnenRandBreite = 0.4f;
+
     /// <summary>Der Fahnen-Stoff in einer Farbe – je Farbe nur einmal, alle Fahnen dieser Farbe teilen ihn.
-    /// <paramref name="wand"/>: Wandbehang, der nur von der Wand weg ausschlägt.</summary>
-    private ShaderMaterial FahnenStoff(Color farbe, bool wand = false)
+    /// <paramref name="wand"/>: Wandbehang, der nur von der Wand weg ausschlägt; <paramref name="rand"/>: ein Rand ringsum in dieser Farbe.</summary>
+    private ShaderMaterial FahnenStoff(Color farbe, bool wand = false, Color? rand = null)
     {
-        if (_fahnenStoffe.TryGetValue((farbe, wand), out var stoff)) return stoff;
+        if (_fahnenStoffe.TryGetValue((farbe, wand, rand), out var stoff)) return stoff;
         _fahnenShader ??= GD.Load<Shader>(FahnenShaderPfad);
         stoff = new ShaderMaterial { Shader = _fahnenShader };
         stoff.SetShaderParameter("farbe", farbe);
         stoff.SetShaderParameter("wandbehang", wand);
-        return _fahnenStoffe[(farbe, wand)] = stoff;
+        if (rand is { } r)
+        {
+            stoff.SetShaderParameter("rand_farbe", r);
+            stoff.SetShaderParameter("rand_breite", FahnenRandBreite);
+        }
+        return _fahnenStoffe[(farbe, wand, rand)] = stoff;
     }
 
     /// <summary>
@@ -95,7 +103,7 @@ public partial class Stadtansicht
     /// Das Tuch steht dann in der Ebene beider Achsen; der Wind schlägt es senkrecht dazu aus.
     /// </summary>
     private MeshInstance3D FahnenTuch(Vector3 mast, Vector3 laengsachse, Vector3 hoehenachse, float laenge, float hoehe, Color farbe,
-        Node3D? eltern = null, float kerbe = 0, bool wand = false)
+        Node3D? eltern = null, float kerbe = 0, bool wand = false, Color? rand = null)
     {
         laengsachse = laengsachse.Normalized();
         hoehenachse = hoehenachse.Normalized();
@@ -103,7 +111,7 @@ public partial class Stadtansicht
         {
             Name = "Tuch",
             Mesh = FahnenNetz(laenge, hoehe, kerbe),
-            MaterialOverride = FahnenStoff(farbe, wand),
+            MaterialOverride = FahnenStoff(farbe, wand, rand),
             Transform = new Transform3D(new Basis(laengsachse, hoehenachse, laengsachse.Cross(hoehenachse)), mast),
             CastShadow = GeometryInstance3D.ShadowCastingSetting.On,
         };
@@ -112,8 +120,8 @@ public partial class Stadtansicht
     }
 
     /// <summary>Ein Tuch an einem senkrechten Mast: weht in Richtung <paramref name="weg"/> (±X oder ±Z) vom Mast fort, Oberkante bei <paramref name="mast"/>.Y + <paramref name="hoehe"/> / 2.</summary>
-    private MeshInstance3D FahnenTuchAmMast(Vector3 mast, Vector3 weg, float laenge, float hoehe, Color farbe, Node3D? eltern = null, float kerbe = 0)
-        => FahnenTuch(mast, weg, Vector3.Up, laenge, hoehe, farbe, eltern, kerbe);
+    private MeshInstance3D FahnenTuchAmMast(Vector3 mast, Vector3 weg, float laenge, float hoehe, Color farbe, Node3D? eltern = null, float kerbe = 0, Color? rand = null)
+        => FahnenTuch(mast, weg, Vector3.Up, laenge, hoehe, farbe, eltern, kerbe, rand: rand);
 
     /// <summary>
     /// Ein Tuch, das von einer Stange herabhängt (Wandbehang): fest an der Oberkante bei <paramref name="oben"/> (Mitte der Kante),
