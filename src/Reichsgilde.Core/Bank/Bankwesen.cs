@@ -135,6 +135,55 @@ public sealed class Kredit
     public double Tilgungsrate => JahreOffen <= 1 ? Rest : Rest / JahreOffen;
 }
 
+/// <summary>Wer in der Geldleihe Kunde ist.</summary>
+public enum Kundenart
+{
+    /// <summary>Ein auswärtiger Kaufmann am Wechseltisch.</summary>
+    Kaufmann,
+    /// <summary>Ein Bürger am Schalter, der Geld leiht oder zurückzahlt.</summary>
+    Buerger,
+    /// <summary>Ein vornehmer Kunde im Empfang (ab Stufe 3): ein Haus mit Kredit oder ein Patrizier.</summary>
+    Vornehm,
+}
+
+/// <summary>Weshalb ein Kunde gekommen ist.</summary>
+public enum Kundenanliegen
+{
+    /// <summary>Kaufmann: Münzen wechseln.</summary>
+    Wechseln,
+    /// <summary>Bürger: Geld aus der Kasse leihen.</summary>
+    Leihen,
+    /// <summary>Bürger: Geld zurückzahlen.</summary>
+    Zurueckzahlen,
+    /// <summary>Vornehm: ein Haus, das bei diesem Geldleiher einen Kredit hat.</summary>
+    Kredit,
+    /// <summary>Vornehm: ein Patrizier lässt sich beraten.</summary>
+    Beraten,
+}
+
+/// <summary>Ein Kunde in der Geldleihe, gerade jetzt.</summary>
+/// <param name="Platz">Platz innerhalb seiner Art, ab 0 (Wechseltisch, Schalter, Empfang) – höchstens die Plätze im Raum.</param>
+/// <param name="Haus">Bei vornehmen Kunden das Haus, sonst null.</param>
+public sealed record Bankkunde(Kundenart Art, int Platz, Kundenanliegen Anliegen, Konto? Haus);
+
+/// <summary>Was ein Schreiber gerade tut.</summary>
+public enum Schreibertaetigkeit
+{
+    /// <summary>Bedient Kunden (welche: <see cref="Schreiberstand.Bedient"/>).</summary>
+    Bedienen,
+    /// <summary>Rechnet Zinsen auf dem Rechenbrett.</summary>
+    Rechnen,
+    /// <summary>Wiegt Münzen.</summary>
+    Wiegen,
+    /// <summary>Schreibt ins Hauptbuch (ab Stufe 2).</summary>
+    Hauptbuch,
+    /// <summary>Zählt die Kasse.</summary>
+    Zaehlen,
+}
+
+/// <summary>Was ein Schreiber der Geldleihe gerade tut; beim Bedienen, welche Kunden (Wechseltisch, Schalter, Empfang).</summary>
+public sealed record Schreiberstand(Arbeiter Arbeiter, Schreibertaetigkeit Taetigkeit, Kundenart? Bedient);
+
 // ─────────────────────────────────────────────────────────────────────────────
 //  Teilsystem
 // ─────────────────────────────────────────────────────────────────────────────
@@ -192,11 +241,14 @@ public sealed class Bankwesen
 
     public double Kasse(Betrieb b) => _kassen.GetValueOrDefault(b.Name);
 
+    /// <summary>So viel Kapital betreut ein Schreiber (Geselle) in diesem Betrieb – nach Stufe, mit der Einrichtung (Rechenbretter, Hauptbücher).</summary>
+    public double RahmenJeSchreiber(Betrieb b) => IstAktiv ? Daten.Rahmen.JeSchreiber * Stufenwert(Daten.Rahmen.JeStufe, b.Stufe) * b.RahmenFaktor : 0;
+
     /// <summary>So viel Kapital können die Schreiber bei voller Besetzung (lauter Gesellen) betreuen.</summary>
-    public double RahmenVoll(Betrieb b) => IstAktiv ? Daten.Rahmen.JeSchreiber * Stufenwert(Daten.Rahmen.JeStufe, b.Stufe) * b.Plaetze : 0;
+    public double RahmenVoll(Betrieb b) => RahmenJeSchreiber(b) * b.Plaetze;
 
     /// <summary>So viel Kapital betreuen die Schreiber mit der jetzigen Belegschaft.</summary>
-    public double Rahmen(Betrieb b) => IstAktiv ? Daten.Rahmen.JeSchreiber * Stufenwert(Daten.Rahmen.JeStufe, b.Stufe) * b.LeistungProMinute : 0;
+    public double Rahmen(Betrieb b) => RahmenJeSchreiber(b) * b.LeistungProMinute;
 
     /// <summary>Der Zins, den dieses Haus für Kredite an Häuser verlangt.</summary>
     public double Zinssatz(Konto k) => _zinssaetze.GetValueOrDefault(k, IstAktiv ? Daten.Kredit.ZinsStandard : 0);
@@ -220,6 +272,24 @@ public sealed class Bankwesen
         var ausfall = Daten.Rahmen.JeSchreiber * Stufenwert(Daten.Rahmen.JeStufe, stufe) * Daten.Ausfall.Chance * Daten.Ausfall.Anteil / _w.Daten.Allgemein.Arbeitsminuten;
         return (zins + WechselJeMinute * Stufenwert(Daten.Wechsel.JeStufe, stufe)) * (1 - _w.Daten.Allgemein.Umsatzsteuer) - ausfall;
     }
+
+    /// <summary>Wie <see cref="WertJeMinute(int)"/>, mit der Einrichtung dieses Betriebs (Rahmen, Wechselgebühr, Ausfall).</summary>
+    public double WertJeMinute(Betrieb b)
+    {
+        if (!IstAktiv) return 0;
+        var rahmen = RahmenJeSchreiber(b) / _w.Daten.Allgemein.Arbeitsminuten;
+        var zins = rahmen * Daten.Stadtzins;
+        var ausfall = rahmen * Daten.Ausfall.Chance * Daten.Ausfall.Anteil * b.AusfallFaktor;
+        var wechsel = WechselJeMinute * Stufenwert(Daten.Wechsel.JeStufe, b.Stufe) * b.WechselFaktor;
+        return (zins + wechsel) * (1 - _w.Daten.Allgemein.Umsatzsteuer) - ausfall;
+    }
+
+    /// <summary>
+    /// Faktor auf den Verlust, wenn ein Haus mit einem Kredit dieses Geldleihers aus dem Spiel geht: die beste Pfandkammer
+    /// seiner Geldleihen (auch ohne Schreiber – das Pfand liegt im Haus); ohne 1.
+    /// </summary>
+    public double AusfallFaktor(Konto geber) =>
+        _w.Betriebe.Where(b => b.Konto == geber && IstBankbetrieb(b)).Select(b => b.AusfallFaktor).DefaultIfEmpty(1).Min();
 
     /// <summary>Zusätzliche AP je Runde für die beste eigene Geldleihe.</summary>
     public int ApBonus(Konto k) => IstAktiv && k.IstAktiv && _w.Betriebe.Where(b => b.Konto == k && IstBankbetrieb(b)).Select(b => b.Stufe).DefaultIfEmpty(0).Max() is var s and > 0
@@ -399,9 +469,11 @@ public sealed class Bankwesen
         foreach (var (b, minuten) in arbeit)
         {
             // Die Schreiber betreuen in dieser Stunde den Rahmen ihrer Arbeitszeit; Zins je Jahr auf die Arbeitsminuten verteilt.
-            var rahmen = Daten.Rahmen.JeSchreiber * Stufenwert(Daten.Rahmen.JeStufe, b.Stufe) * minuten / 60;
+            // Die Einrichtung wirkt nur auf diesen Betrieb: Rechenbretter und Hauptbücher auf den Rahmen, die Goldwaage auf die
+            // Gebühr (nach dem Deckel – sie nimmt den anderen Geldleihern keinen Wechsel weg).
+            var rahmen = RahmenJeSchreiber(b) * minuten / 60;
             var zins = Math.Min(Kasse(b), rahmen) * Daten.Stadtzins * 60 / _w.Daten.Allgemein.Arbeitsminuten;
-            var wechsel = minuten * Stufenwert(Daten.Wechsel.JeStufe, b.Stufe) * proMinute * deckel;
+            var wechsel = minuten * Stufenwert(Daten.Wechsel.JeStufe, b.Stufe) * proMinute * deckel * b.WechselFaktor;
             if (zins + wechsel <= 0) continue;
             b.UmsatzBuchen(zins + wechsel);
             b.SteuerBuchen((zins + wechsel) * steuer);
@@ -425,11 +497,11 @@ public sealed class Bankwesen
         if (!IstAktiv) return;
         ZinsenAuflaufen(); // die letzte Stunde des Jahres
         var waehrung = _w.Daten.Allgemein.Waehrung;
-        // Stadtkunden fallen aus.
+        // Stadtkunden fallen aus. Die Pfandkammer mindert den Verlust, nicht die Chance (gleicher Zufall mit und ohne).
         foreach (var b in _w.Betriebe.Where(b => IstBankbetrieb(b) && Kasse(b) > 0).OrderBy(b => b.Name, StringComparer.Ordinal).ToList())
         {
             if (_zufall.NextDouble() >= Daten.Ausfall.Chance) continue;
-            var verlust = Kasse(b) * Daten.Ausfall.Anteil;
+            var verlust = Kasse(b) * Daten.Ausfall.Anteil * b.AusfallFaktor;
             _kassen[b.Name] = Kasse(b) - verlust;
             b.Konto.ForderungAbschreiben(verlust);
             Buchen(b.Konto, x => x with { Ausfall = x.Ausfall + verlust });
@@ -440,9 +512,14 @@ public sealed class Bankwesen
         {
             if (!k.Nehmer.IstAktiv)
             {
-                k.Geber.ForderungAbschreiben(k.Rest);
-                Buchen(k.Geber, x => x with { Ausfall = x.Ausfall + k.Rest });
-                _w.Melden($"{k.Nehmer.Inhaber} ist aus dem Spiel – {k.Geber.Inhaber} verliert {Zahlenformat.Ganz(k.Rest)} {waehrung} Kredit.");
+                // Mit einer Pfandkammer bleibt dem Geldleiher das Pfand: Dieser Teil des Rests kommt zurück ins Bargeld.
+                var verlust = k.Rest * AusfallFaktor(k.Geber);
+                var pfand = k.Rest - verlust;
+                if (pfand > 0) k.Geber.Zurueckerhalten(pfand);
+                k.Geber.ForderungAbschreiben(verlust);
+                Buchen(k.Geber, x => x with { Ausfall = x.Ausfall + verlust });
+                _w.Melden($"{k.Nehmer.Inhaber} ist aus dem Spiel – {k.Geber.Inhaber} verliert {Zahlenformat.Ganz(verlust)} {waehrung} Kredit" +
+                          (pfand > 0 ? $" (das Pfand bringt {Zahlenformat.Ganz(pfand)})." : "."));
                 _kredite.Remove(k);
                 continue;
             }
@@ -466,6 +543,143 @@ public sealed class Bankwesen
         foreach (var (konto, buch) in _diesesJahr) _vorjahr[konto] = buch;
         _diesesJahr.Clear();
     }
+
+    // ── Kunden und Schreiber (für die Darstellung, nur lesend) ──────────────
+
+    /// <summary>So viele Kaufleute haben am Wechseltisch Platz.</summary>
+    public const int HoechstensKaufleute = 4;
+
+    /// <summary>So viele Bürger haben am Schalter Platz.</summary>
+    public const int HoechstensBuerger = 2;
+
+    /// <summary>So viele vornehme Kunden haben im Empfang Platz (nur Stufe 3).</summary>
+    public const int HoechstensVornehme = 3;
+
+    /// <summary>Wechselumsatz je Stunde, für den ein Kaufmann am Tisch steht (Gulden).</summary>
+    public const double UmsatzJeKaufmann = 10_000;
+
+    /// <summary>Chance je Viertelstunde und Platz am Schalter, dass ein Bürger da ist – bei voll genutzter Kasse.</summary>
+    public const double BuergerChance = 0.5;
+
+    /// <summary>Chance je Stunde, dass ein Haus mit Kredit bei diesem Geldleiher im Empfang sitzt.</summary>
+    public const double KreditnehmerChance = 0.5;
+
+    /// <summary>Chance je Stunde, dass ein Patrizier im Empfang sitzt.</summary>
+    public const double PatrizierChance = 0.25;
+
+    private const double GoldenerSchnitt = 0.6180339887498949;
+    private const double Wurzel2 = 0.4142135623730951; // Nachkommateil von √2: eine zweite, unabhängige Folge
+
+    private static double Nachkomma(double x) => x - Math.Floor(x);
+
+    /// <summary>Ruht die Arbeit (Umbau, nach einem Anschlag, Haus aus dem Spiel), gibt es keine Kunden.</summary>
+    private bool ImDienst(Betrieb b) => IstBankbetrieb(b) && b.Belegt > 0 && b.Konto.IstAktiv && b.UmbauMinuten == 0 && b.SabotageMinuten == 0;
+
+    /// <summary>Andrang am Wechseltisch je Stunde: Kaufleute nach Tageszeit – vormittags ist Markt.</summary>
+    private static double Marktgewicht(int stunde) => stunde switch
+    {
+        >= 9 and < 13 => 1.5,
+        >= 17 => 0.5,
+        _ => 1,
+    };
+
+    /// <summary>
+    /// Wie viele Kaufleute im Mittel einer Arbeitsstunde an diesem Wechseltisch stehen: der Umsatz des Marktes je Stunde,
+    /// davon der Anteil dieser Schreiber am Wechsel der Stadt (wie in der Simulation: Schreiber × Stufenfaktor, geteilt
+    /// durch die übrigen Geldleiher oder mindestens den Bedarf), geteilt durch <see cref="UmsatzJeKaufmann"/>.
+    /// </summary>
+    private double Kaufleute(Betrieb b)
+    {
+        double Gewicht(Betrieb x) => x.LeistungProMinute * Stufenwert(Daten.Wechsel.JeStufe, x.Stufe);
+        var alle = _w.Betriebe.Where(ImDienst).Sum(Gewicht);
+        var anteil = Gewicht(b) / Math.Max(alle, Daten.Wechsel.BedarfSchreiber);
+        return Marktvolumen / (_w.Daten.Allgemein.Arbeitsminuten / 60.0) * anteil / UmsatzJeKaufmann;
+    }
+
+    /// <summary>
+    /// Wer gerade Kunde in dieser Geldleihe ist – zur aktuellen Uhrzeit, ohne Zufall, ändert nichts. Leer außerhalb der
+    /// Arbeitszeit (8–20 Uhr), ohne Schreiber, wenn das Haus nicht mehr spielt und solange die Arbeit ruht (Umbau, Anschlag).
+    /// Regeln (Stunde h, Viertelstunde q seit Mitternacht):
+    ///   • Kaufleute am Wechseltisch: <see cref="Kaufleute"/> × Tageszeit (9–13 Uhr Markt × 1,5, ab 17 Uhr × 0,5, sonst × 1),
+    ///     gerundet, mindestens 1, höchstens <see cref="HoechstensKaufleute"/> – keine, wenn der Markt nichts umsetzt.
+    ///   • Bürger am Schalter: Platz 0 ist besetzt, wenn der Nachkommateil von q × 0,618… unter c liegt, Platz 1 mit
+    ///     q × 0,414…; c = <see cref="BuergerChance"/> × genutzte Kasse (Kasse bis zum Rahmen ÷ Rahmen bei voller Besetzung).
+    ///     Unter c ÷ 2 leiht er, sonst zahlt er zurück. Leere Kasse: keine Bürger.
+    ///   • Vornehme im Empfang (nur Stufe 3, nur im Kontor des Hauses): zuerst die Häuser mit Kredit bei diesem Geldleiher
+    ///     (nach Kreditnummer), dann die Patrizier der Stadt; der i-te ist da, wenn der Nachkommateil von
+    ///     h × 0,618… + i × 0,414… unter <see cref="KreditnehmerChance"/> bzw. <see cref="PatrizierChance"/> liegt;
+    ///     höchstens <see cref="HoechstensVornehme"/>.
+    /// Die Simulation rechnet Zins und Wechsel unverändert – die Kunden sind nur fürs Bild.
+    /// </summary>
+    public IReadOnlyList<Bankkunde> KundenJetzt(Betrieb b)
+    {
+        var uhr = _w.Uhr.UhrzeitInMinuten;
+        if (!ImDienst(b) || !b.IstArbeitszeit(uhr)) return Array.Empty<Bankkunde>();
+        var h = uhr / 60;
+        var q = uhr / 15;
+        var liste = new List<Bankkunde>();
+
+        var kaufleute = Kaufleute(b) * Marktgewicht(h);
+        var n = kaufleute <= 0 ? 0 : Math.Clamp((int)Math.Round(kaufleute, MidpointRounding.AwayFromZero), 1, HoechstensKaufleute);
+        for (var i = 0; i < n; i++) liste.Add(new Bankkunde(Kundenart.Kaufmann, i, Kundenanliegen.Wechseln, null));
+
+        var voll = RahmenVoll(b);
+        var genutzt = voll > 0 ? Math.Min(1, Math.Min(Kasse(b), Rahmen(b)) / voll) : 0;
+        var c = BuergerChance * genutzt;
+        for (var platz = 0; platz < HoechstensBuerger; platz++)
+        {
+            var v = Nachkomma(q * (platz == 0 ? GoldenerSchnitt : Wurzel2));
+            if (v < c) liste.Add(new Bankkunde(Kundenart.Buerger, platz, v < c / 2 ? Kundenanliegen.Leihen : Kundenanliegen.Zurueckzahlen, null));
+        }
+
+        if (b.Stufe >= 3 && Kontor(b.Konto) == b)
+        {
+            var reich = _w.Daten.StandStufe("Patrizier");
+            var kandidaten = KrediteVon(b.Konto).Where(k => k.Nehmer.IstAktiv).OrderBy(k => k.Nummer)
+                .Select(k => (Haus: k.Nehmer, Anliegen: Kundenanliegen.Kredit, Chance: KreditnehmerChance)).ToList();
+            if (reich >= 0)
+                kandidaten.AddRange(_w.Konten.Where(k => k.IstAktiv && k != b.Konto && k.Stand >= reich && kandidaten.All(x => x.Haus != k))
+                    .Select(k => (Haus: k, Anliegen: Kundenanliegen.Beraten, Chance: PatrizierChance)));
+            var platz = 0;
+            for (var i = 0; i < kandidaten.Count && platz < HoechstensVornehme; i++)
+                if (Nachkomma(h * GoldenerSchnitt + i * Wurzel2) < kandidaten[i].Chance)
+                    liste.Add(new Bankkunde(Kundenart.Vornehm, platz++, kandidaten[i].Anliegen, kandidaten[i].Haus));
+        }
+        return liste;
+    }
+
+    /// <summary>
+    /// Was jeder Schreiber dieser Geldleihe gerade tut – zur aktuellen Uhrzeit, ohne Zufall, ändert nichts. Leer außerhalb der
+    /// Arbeitszeit (dann sind sie daheim) und ohne Schreiber. Regeln (Stunde h):
+    ///   • Bedienen: Je Art Kunden, die gerade da sind (<see cref="KundenJetzt"/>), bedient sie einer – erst der Empfang, dann
+    ///     der Wechseltisch, dann der Schalter; Gesellen vor Lehrlingen, dann nach Nummer.
+    ///   • Die übrigen (j = Platz unter ihnen, nach Nummer) reihum Rechnen, Wiegen, Zählen (ab Stufe 2 Rechnen, Wiegen,
+    ///     Hauptbuch, Zählen) – Eintrag (j + h) der Reihe, jede Stunde rückt sie weiter.
+    /// </summary>
+    public IReadOnlyList<Schreiberstand> SchreiberJetzt(Betrieb b)
+    {
+        var uhr = _w.Uhr.UhrzeitInMinuten;
+        if (!IstBankbetrieb(b) || b.Belegt == 0 || !b.IstArbeitszeit(uhr)) return Array.Empty<Schreiberstand>();
+        var h = uhr / 60;
+        var kunden = KundenJetzt(b);
+        var gruppen = new[] { Kundenart.Vornehm, Kundenart.Kaufmann, Kundenart.Buerger }.Where(a => kunden.Any(k => k.Art == a)).ToList();
+        var bediener = new Dictionary<Arbeiter, Kundenart>();
+        var reihe = b.Arbeiter.OrderBy(a => a.Arbeitskraft == "Lehrling" ? 1 : 0).ThenBy(a => a.Nummer).ToList();
+        for (var i = 0; i < Math.Min(gruppen.Count, reihe.Count); i++) bediener[reihe[i]] = gruppen[i];
+
+        var reihum = b.Stufe >= 2 ? MitHauptbuch : OhneHauptbuch;
+        var liste = new List<Schreiberstand>(b.Belegt);
+        var j = 0;
+        foreach (var a in b.Arbeiter.OrderBy(a => a.Nummer))
+            liste.Add(bediener.TryGetValue(a, out var art)
+                ? new Schreiberstand(a, Schreibertaetigkeit.Bedienen, art)
+                : new Schreiberstand(a, reihum[(j++ + h) % reihum.Length], null));
+        return liste;
+    }
+
+    private static readonly Schreibertaetigkeit[] OhneHauptbuch = { Schreibertaetigkeit.Rechnen, Schreibertaetigkeit.Wiegen, Schreibertaetigkeit.Zaehlen };
+    private static readonly Schreibertaetigkeit[] MitHauptbuch =
+        { Schreibertaetigkeit.Rechnen, Schreibertaetigkeit.Wiegen, Schreibertaetigkeit.Hauptbuch, Schreibertaetigkeit.Zaehlen };
 
     // ── Speichern ───────────────────────────────────────────────────────────
 

@@ -1119,6 +1119,23 @@ Razzia absolut statt × 1,1, weil die Razzia je Stufe schon so rechnet. Kettenhe
 
 **Messung** (`messen 30 20` und `messen 30 20 greybox`, gemessen auf main `1b3cb20` + Branch `b45018a`, mit der Waffenkammer nochmals auf `061c98c`): beide Ausgaben **zeichengleich** mit main (Eisenbart Ø 129.647 bzw. 162.279, Bürgermeister 18/20 bzw. 17/20). Ohne gekaufte Einrichtung sind die neuen Faktoren genau 1 bzw. der Bonus 0, die Abfragen würfeln nicht. Die KI kauft keine Einrichtung.
 
+## Einrichtung und Kunden des Geldleihers (PR #175)
+
+**Regel:** `werkstatt.einrichtung.Geldleiher` (Datenversion 47), Preise wie bei den Werkstätten, für Wechselstube, Geldleihe und Bankhaus. Der Geldleiher stellt nichts her, seine Stücke wirken auf das Bankgeschäft dieses Betriebs:
+
+| Stück (Kennung) | Preis | Wirkung |
+|---|---|---|
+| Rechenbretter (`Werkzeug1`) | 300 | Rahmen je Schreiber × 1,1: Wechselstube mit 2 Gesellen 4.000 → 4.400 Gulden betreute Kasse, Stadtzinsen 480 → 528 im Jahr (volle Kasse) |
+| Hauptbücher (`Werkzeug2`, ab Geldleihe, braucht Rechenbretter) | 800 | nochmals × 1,1, zusammen × 1,21: Geldleihe 2.500 → 3.025 je Schreiber, Bankhaus 3.000 → 3.630 (4 Gesellen 12.000 → 14.520, Zins 1.440 → 1.742) |
+| Goldwaage (`Goldwaage`) | 350 | Wechselgebühr dieses Betriebs × 1,1 (nach dem Deckel der Stadt, anderen Geldleihern geht nichts verloren): je Geselle etwa +66 Gulden im Jahr vor Steuer (Markt wie zum Start) |
+| Pfandkammer (`Pfandkammer`) | 350 | Verlust bei Ausfall × 0,75: Stadtkunden 10 % → 7,5 % der Kasse (erwartet bei 4.000 Kasse 80 → 60 im Jahr); geht ein Haus mit Kredit aus dem Spiel, bringt das Pfand 25 % des Rests zurück (2.000 Rest: 2.000 → 1.500 Verlust) |
+| Kassenschrank (`Kassenschrank`) | 200 | Diebstahl und Einbruch in den Betrieb halb so oft (mit Eisentür ein Viertel). Einen Diebstahl aus der Kasse gibt es nicht – die Geldleihe hat kein Lager, der Schrank ist daher kaum spürbar (offen im Bereich Kern) |
+| Löschfass, Eisentür | 100, 300 | wie bei den Werkstätten |
+
+Rechenbretter und Hauptbücher multipliziert wie Werkzeug und Meisterwerkzeug der Werkstätten (1,21 statt 1,2). Dazu lesende Abfragen für den Raum: Kunden (`Bankwesen.KundenJetzt`: Kaufleute am Wechseltisch nach Marktumsatz und Tageszeit, Bürger am Schalter nach der genutzten Kasse, ab dem Bankhaus Kreditnehmer und Patrizier im Empfang) und was die Schreiber tun (`SchreiberJetzt`) – nur fürs Bild, Zins und Wechsel rechnen unverändert.
+
+**Messung** (`messen 30 20` und `messen 30 20 greybox`, gemessen auf main `f2d7d60` + Branch `ee2174b`): beide Ausgaben **zeichengleich** mit main (Eisenbart Ø 129.647 bzw. 162.279, Bürgermeister 18/20 bzw. 17/20). Ohne gekaufte Einrichtung sind die neuen Faktoren genau 1, die Abfragen würfeln nicht. Die KI kauft keine Einrichtung.
+
 ## Keine Werkstätten zum Kauf in der Stadt (PR #162)
 
 **Regel:** Datenversion 40. Unter `liegenschaften` stehen nur noch die neun Umlandbetriebe zur Pacht; die zehn Werkstätten der Stadt (Gießerei an der Südgasse … Wechselstube am Markt) sind gestrichen. Neue Werkstätten entstehen durch Bauen, frei werden welche durch Verkauf oder Untergang eines Hauses. Der Preis der Stufe 1 steht jetzt als `kaufpreis` an der Betriebsart (3.500, Schmugglerloch 3.000) – unverändert gegenüber den gestrichenen Liegenschaften, also gleicher Neubaupreis und gleicher Wert beim Verkauf.
