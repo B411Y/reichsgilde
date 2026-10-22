@@ -339,6 +339,15 @@ public sealed class Betrieb
     /// <summary>Dieb: Faktor auf Zeugen und Beweise gegen das Haus (Lederhandschuhe: 0,75).</summary>
     public double SpurenFaktor => Einrichtungsstuecke.Aggregate(1.0, (f, e) => f * e.Wirkung.SpurenFaktor);
 
+    /// <summary>Wache: so viel höher die Chance je Tat bei einer Razzia (Hellebarden: +0,1, mit Armbrüsten +0,2).</summary>
+    public double RazziaBonus => Einrichtungsstuecke.Sum(e => e.Wirkung.RazziaBonus);
+
+    /// <summary>Wache: Faktor auf den Schutz der Streife dieses Hauses (Wachhunde: 1,25).</summary>
+    public double StreifenFaktor => Einrichtungsstuecke.Aggregate(1.0, (f, e) => f * e.Wirkung.StreifenFaktor);
+
+    /// <summary>Wache: Faktor auf die Erfolgschance von Überfällen auf Karren, die dieses Haus geleitet (Kettenhemden: 0,8).</summary>
+    public double GeleitFaktor => Einrichtungsstuecke.Aggregate(1.0, (f, e) => f * e.Wirkung.GeleitFaktor);
+
     internal void EinrichtungHinzufuegen(string kennung)
     {
         _einrichtung.Add(kennung);

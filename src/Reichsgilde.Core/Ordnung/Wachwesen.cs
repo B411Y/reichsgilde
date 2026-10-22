@@ -1,3 +1,4 @@
+using Reichsgilde.Core.Justiz;
 using Reichsgilde.Core.Speichern;
 using Reichsgilde.Core.Wirtschaft;
 using Reichsgilde.Core.Zeit;
@@ -98,6 +99,53 @@ public sealed class WacheDaten
 /// <summary>Was die Wache eines Hauses in einem Jahr verdient hat.</summary>
 public sealed record Wachbuch(double Sold, double Kopfgeld, double Geleitgeld, int Razzien);
 
+/// <summary>Wo ein Wachmann gerade ist (für die Darstellung der Wache).</summary>
+public enum Wachort
+{
+    /// <summary>Im eigenen Wachhaus (Wachhaus, Stadtwache, Garnison).</summary>
+    Daheim,
+    /// <summary>Auf Streife in der Stadt.</summary>
+    Patrouille,
+    /// <summary>Begleitet einen Karren mit dem Geleit der Wache (welchen: <see cref="Wachstand.Karren"/>).</summary>
+    Geleit,
+}
+
+/// <summary>Was ein Wachmann gerade tut.</summary>
+public enum Wachtaetigkeit
+{
+    /// <summary>Auf Streife in der Stadt.</summary>
+    Streife,
+    /// <summary>Unterwegs als Geleit eines Karrens.</summary>
+    Geleit,
+    /// <summary>Daheim: Rüstung und Waffen putzen.</summary>
+    Putzen,
+    /// <summary>Daheim: Fechten üben (ab Stufe 2, auf dem Fechtboden).</summary>
+    Fechten,
+    /// <summary>Daheim: würfeln (abends).</summary>
+    Wuerfeln,
+    /// <summary>Daheim: Klingen und Hellebarden schärfen.</summary>
+    Schaerfen,
+    /// <summary>Daheim: das Wachbuch führen.</summary>
+    Wachbuch,
+    /// <summary>Daheim: schlafen (nachts).</summary>
+    Schlafen,
+    /// <summary>Der Hauptmann sitzt in der Hauptmannsstube (Stufe 3).</summary>
+    Befehligen,
+}
+
+/// <summary>Ein Arbeiter eines Wachhauses: wo er gerade ist, was er tut und ob er der Hauptmann ist.</summary>
+/// <param name="Karren">Nur bei <see cref="Wachort.Geleit"/>: der Karren, den er begleitet.</param>
+public sealed record Wachstand(Arbeiter Arbeiter, Wachort Ort, Wachtaetigkeit Taetigkeit, bool Hauptmann, Karren? Karren);
+
+/// <summary>
+/// Ein Gauner in der Arrestzelle der Wache: ein Taschendieb, den die Leute dieses Hauses dieses Jahr am Markt gefasst haben.
+/// </summary>
+/// <param name="Herkunft">Das Haus, dem er dient.</param>
+/// <param name="Betroffener">Wem er in die Tasche gegriffen hat (ein Einwohner oder „Bürger am Markt“).</param>
+/// <param name="Betrag">Die Beute dieser Stunde, für die er angeklagt werden kann.</param>
+/// <param name="Spur">Nummer der Spur beim Stadtgericht (fest, auch nach dem Laden).</param>
+public sealed record Gefangener(Konto Herkunft, Vergehen Vergehen, string Betroffener, double Betrag, int Spur);
+
 // ─────────────────────────────────────────────────────────────────────────────
 //  Teilsystem
 // ─────────────────────────────────────────────────────────────────────────────
@@ -157,9 +205,12 @@ public sealed class Wachwesen
         ? Daten.Sold.JeMinute * Daten.Sold.JeStufe[Math.Clamp(stufe - 1, 0, Daten.Sold.JeStufe.Count - 1)] * (1 - _w.Daten.Allgemein.Umsatzsteuer)
         : 0;
 
-    /// <summary>Wie stark die Streife schützt: Anteil, um den nächtliche Taten in der Stadt seltener gelingen.</summary>
+    /// <summary>
+    /// Wie stark die Streife schützt: Anteil, um den nächtliche Taten in der Stadt seltener gelingen. Wachhunde (Einrichtung)
+    /// zählen die Leute ihres Hauses × 1,25; der Deckel <c>wache.patrouille.hoechstens</c> gilt danach.
+    /// </summary>
     public double Patrouilleschutz => IstAktiv
-        ? Math.Min(Daten.Patrouille.Hoechstens, Daten.Patrouille.SchutzJeWachmann * Wachhaeuser.Sum(b => b.LeistungProMinute))
+        ? Math.Min(Daten.Patrouille.Hoechstens, Daten.Patrouille.SchutzJeWachmann * Wachhaeuser.Sum(b => b.LeistungProMinute * b.StreifenFaktor))
         : 0;
 
     /// <summary>Faktor auf die Erfolgschance einer Tat gegen diesen Betrieb (1 = keine Streife; im Umland wirkt sie nicht).</summary>
@@ -226,12 +277,40 @@ public sealed class Wachwesen
 
     // ── Geleitschutz ────────────────────────────────────────────────────────
 
-    /// <summary>Wer gerade Geleitschutz stellt: das Haus mit der höchsten Wachstube (ab der nötigen Stufe) – oder null.</summary>
-    public Konto? Geleitgeber => IstAktiv
+    /// <summary>Das Wachhaus, das gerade Geleitschutz stellt: die höchste Wachstube (ab der nötigen Stufe, dann die vollste) – oder null.</summary>
+    public Betrieb? Geleitstube => IstAktiv
         ? Wachhaeuser.Where(b => b.Stufe >= Daten.Geleit.AbStufe)
             .OrderByDescending(b => b.Stufe).ThenByDescending(b => b.Belegt).ThenBy(b => b.Name, StringComparer.Ordinal)
-            .Select(b => b.Konto).FirstOrDefault()
+            .FirstOrDefault()
         : null;
+
+    /// <summary>Wer gerade Geleitschutz stellt: das Haus der <see cref="Geleitstube"/> – oder null.</summary>
+    public Konto? Geleitgeber => Geleitstube?.Konto;
+
+    /// <summary>Faktor auf die Erfolgschance von Überfällen auf Karren mit dem Geleit der Wache (Kettenhemden in der Geleitstube: 0,8).</summary>
+    public double GeleitFaktor => Geleitstube?.GeleitFaktor ?? 1;
+
+    /// <summary>Faktor auf die Erfolgschance eines Überfalls auf einen Karren mit dieser Eskorte (1, wenn es nicht die der Wache ist).</summary>
+    public double UeberfallFaktor(EskorteDaten eskorte) => eskorte.Wache ? GeleitFaktor : 1;
+
+    /// <summary>
+    /// Die Karren, die gerade mit dem Geleit der Wache fahren: Eskorte <c>wache.geleit.eskorte</c>, beladen (nur dann wird das
+    /// Geleit bezahlt) und unterwegs – auf dem Hinweg auch vor dem geschlossenen Tor, auf dem Rückweg erst, wenn er losgefahren ist.
+    /// Leer, wenn niemand Geleit stellt. Nach Heimat und Name geordnet.
+    /// </summary>
+    public IReadOnlyList<Karren> GeleitKarren
+    {
+        get
+        {
+            if (Geleitgeber is null) return Array.Empty<Karren>();
+            var zeit = _w.Uhr;
+            return _w.Betriebe.SelectMany(b => b.Karren)
+                .Where(k => k.Eskorte == Daten.Geleit.Eskorte && k.Ladung.Count > 0
+                            && (k.Zustand == KarrenZustand.ZumMarkt || (k.Zustand == KarrenZustand.ZumBetrieb && !k.WartetAmTor(zeit))))
+                .OrderBy(k => k.Heimat.Name, StringComparer.Ordinal).ThenBy(k => k.Name, StringComparer.Ordinal)
+                .ToList();
+        }
+    }
 
     /// <summary>Gibt es diese Eskorte gerade? Die der Wache nur, wenn ein Haus sie stellt.</summary>
     public bool EskorteVerfuegbar(string name) =>
@@ -252,8 +331,12 @@ public sealed class Wachwesen
     public int FreieRazzien(Konto k) =>
         Wachstube(k) is { } s ? Math.Max(0, Daten.Razzia.JeStufe[Math.Clamp(s.Stufe - 1, 0, Daten.Razzia.JeStufe.Count - 1)] - DiesesJahr(k).Razzien) : 0;
 
+    /// <summary>
+    /// Chance je unbekannter Tat, bei einer Razzia einen Beweis zu finden: Grundchance + je Stufe über 1, dazu Hellebarden und
+    /// Armbrüste der Wachstube (absolut, je +0,1); höchstens 95 %.
+    /// </summary>
     public double Razziachance(Konto k) =>
-        Math.Min(0.95, Daten.Razzia.Chance + Daten.Razzia.ChanceJeStufe * Math.Max(0, (Wachstube(k)?.Stufe ?? 1) - 1));
+        Math.Min(0.95, Daten.Razzia.Chance + Daten.Razzia.ChanceJeStufe * Math.Max(0, (Wachstube(k)?.Stufe ?? 1) - 1) + (Wachstube(k)?.RazziaBonus ?? 0));
 
     /// <summary>Chance je unbekannter Tat bei diesem Haus – haben seine Diebe Lederhandschuhe, finden sich weniger Spuren.</summary>
     public double Razziachance(Konto wache, Konto ziel) => Razziachance(wache) * _w.Diebe.SpurenFaktor(ziel);
@@ -301,6 +384,126 @@ public sealed class Wachwesen
                        }.Where(x => x is not null)) + ".");
         _w.Melden(text);
         return Befehlsergebnis.Ok(text);
+    }
+
+    // ── Anwesenheit (für die Darstellung, nur lesend) ───────────────────────
+
+    /// <summary>So viele Gefangene zeigt die Arrestzelle höchstens (die zuletzt gefassten).</summary>
+    public const int HoechstensGefangene = 6;
+
+    /// <summary>
+    /// Der Hauptmann einer Garnison (Stufe 3): der dienstälteste Arbeiter, der kein Lehrling ist – nur, wenn er noch
+    /// jemanden zu befehligen hat. Sonst null.
+    /// </summary>
+    public Arbeiter? Hauptmann(Betrieb b) =>
+        IstWachbetrieb(b) && b.InDerStadt && b.Stufe >= 3 && b.Belegt >= 2
+            ? b.Arbeiter.Where(a => a.Arbeitskraft != "Lehrling").OrderBy(a => a.EingestelltUm).ThenBy(a => a.Nummer).FirstOrDefault()
+            : null;
+
+    /// <summary>Sitzt der Hauptmann gerade in der Hauptmannsstube (8–22 Uhr)?</summary>
+    public bool HauptmannInStube(Betrieb b) => AnwesenheitJetzt(b).Any(s => s.Taetigkeit == Wachtaetigkeit.Befehligen);
+
+    /// <summary>
+    /// Wo jeder Arbeiter dieses Wachhauses gerade ist und was er tut – zur aktuellen Uhrzeit, ohne Zufall, ändert nichts
+    /// (leer, wenn es kein Wachhaus in der Stadt ist oder niemand dort arbeitet). Regeln (Stunde h der Uhr, Stufe s):
+    ///   • Geleit: Stellt dieses Haus das Geleit (<see cref="Geleitstube"/>), begleitet je Karren aus <see cref="GeleitKarren"/>
+    ///     einer ihn (Gesellen vor Lehrlingen, dann nach Nummer; nie der Hauptmann) – zu jeder Uhrzeit.
+    ///   • Streife: Von den übrigen (ohne Hauptmann) sind in der Arbeitszeit (8–20 Uhr) die Hälfte (aufgerundet) auf
+    ///     Patrouille, sonst (5–8 und 20–22 Uhr) ein Viertel (gerundet: 1 → 0, 2–5 → 1, 6–8 → 2). Wer, wechselt alle zwei
+    ///     Stunden (Wachwechsel zur geraden Stunde): Die Reihe nach Nummer rückt eins weiter. Ruht der Dienst (Umbau, Brand,
+    ///     Haus aufgelöst), geht niemand auf Streife.
+    ///   • Daheim (j = Platz unter denen, die gerade daheim sind, nach Nummer): in der Arbeitszeit reihum Putzen, Schärfen,
+    ///     Wachbuch (ab Stufe 2 Fechten, Putzen, Schärfen, Wachbuch) – Eintrag (j + h) der Reihe; um 20 Uhr Würfeln (j + h
+    ///     gerade) oder Putzen, ab 21 Uhr Schlafen; vor 7 Uhr Schlafen, um 7 Uhr Putzen (j + h gerade) oder Schärfen.
+    ///   • Stufe 3: Der <see cref="Hauptmann"/> sitzt von 8 bis 22 Uhr in der Hauptmannsstube (Befehligen).
+    /// Die Simulation rechnet den Schutz der Streife weiter mit allen Arbeitern – die Abfrage verteilt sie nur fürs Bild.
+    /// </summary>
+    public IReadOnlyList<Wachstand> AnwesenheitJetzt(Betrieb b)
+    {
+        if (!IstWachbetrieb(b) || !b.InDerStadt || b.Belegt == 0) return Array.Empty<Wachstand>();
+        var uhr = _w.Uhr.UhrzeitInMinuten;
+        var h = uhr / 60;
+        var hauptmann = Hauptmann(b);
+        var leute = b.Arbeiter.OrderBy(a => a.Nummer).ToList();
+        var uebrige = leute.Where(a => a != hauptmann).ToList();
+
+        // Geleit: je Karren einer, solange dieses Haus das Geleit stellt.
+        var geleit = new Dictionary<Arbeiter, Karren>();
+        if (Geleitstube == b)
+        {
+            var karren = GeleitKarren;
+            var reihe = uebrige.OrderBy(a => a.Arbeitskraft == "Lehrling" ? 1 : 0).ThenBy(a => a.Nummer).ToList();
+            for (var i = 0; i < Math.Min(karren.Count, reihe.Count); i++) geleit[reihe[i]] = karren[i];
+        }
+
+        // Streife: tags die Hälfte, nachts ein Viertel der übrigen; alle zwei Stunden rückt die Reihe weiter.
+        var wache = uebrige.Where(a => !geleit.ContainsKey(a)).ToList();
+        var n = wache.Count;
+        var tag = b.IstArbeitszeit(uhr);
+        var dienst = b.Konto.IstAktiv && b.UmbauMinuten == 0 && b.SabotageMinuten == 0;
+        var streife = !dienst || n == 0 ? 0 : tag ? (n + 1) / 2 : (n + 2) / 4;
+        var wechsel = h / 2;
+
+        var liste = new List<Wachstand>(leute.Count);
+        var daheim = 0; // Platz unter denen, die gerade daheim sind – so tun zwei Leute daheim nicht dasselbe
+        foreach (var a in leute)
+        {
+            var istHauptmann = a == hauptmann;
+            if (geleit.TryGetValue(a, out var k))
+            {
+                liste.Add(new Wachstand(a, Wachort.Geleit, Wachtaetigkeit.Geleit, false, k));
+                continue;
+            }
+            var platz = wache.IndexOf(a);
+            if (platz >= 0 && ((platz - wechsel) % n + n) % n < streife)
+            {
+                liste.Add(new Wachstand(a, Wachort.Patrouille, Wachtaetigkeit.Streife, false, null));
+                continue;
+            }
+            if (istHauptmann && uhr >= Stadtwirtschaft.Arbeitsbeginn)
+            {
+                liste.Add(new Wachstand(a, Wachort.Daheim, Wachtaetigkeit.Befehligen, true, null));
+                continue;
+            }
+            var j = daheim++;
+            var gerade = (j + h) % 2 == 0;
+            Wachtaetigkeit taetigkeit;
+            if (tag)
+            {
+                var reihum = b.Stufe >= 2 ? TagMitFechtboden : TagOhneFechtboden;
+                taetigkeit = reihum[(j + h) % reihum.Length];
+            }
+            else if (uhr >= b.Arbeitsende)
+                taetigkeit = h >= 21 ? Wachtaetigkeit.Schlafen : gerade ? Wachtaetigkeit.Wuerfeln : Wachtaetigkeit.Putzen;
+            else
+                taetigkeit = h < 7 ? Wachtaetigkeit.Schlafen : gerade ? Wachtaetigkeit.Putzen : Wachtaetigkeit.Schaerfen;
+            liste.Add(new Wachstand(a, Wachort.Daheim, taetigkeit, istHauptmann, null));
+        }
+        return liste;
+    }
+
+    private static readonly Wachtaetigkeit[] TagOhneFechtboden = { Wachtaetigkeit.Putzen, Wachtaetigkeit.Schaerfen, Wachtaetigkeit.Wachbuch };
+    private static readonly Wachtaetigkeit[] TagMitFechtboden = { Wachtaetigkeit.Fechten, Wachtaetigkeit.Putzen, Wachtaetigkeit.Schaerfen, Wachtaetigkeit.Wachbuch };
+
+    /// <summary>
+    /// Wer in der Arrestzelle dieses Wachhauses sitzt: die Taschendiebe, für die das Haus dieses Jahr einen Beweis hat – so
+    /// kommt der Beweis zur Wache, die einen Taschendieb am Markt fasst. Die zuletzt gefassten zuerst, höchstens
+    /// <see cref="HoechstensGefangene"/>. Nur in der <see cref="Wachstube"/> des Hauses; am Gerichtstag (Jahreswechsel) wird
+    /// die Zelle leer. Abgeleitet aus den Spuren des Stadtgerichts, die im Spielstand stehen – nach dem Laden dieselbe Liste.
+    /// Ohne Gericht leer. Selten zählt mit, was das Haus anders erfahren hat (z. B. bei einer eigenen Razzia).
+    /// Bei einer Razzia fasst die Wache niemanden: Sie findet Beweise und beschlagnahmt Diebesgut.
+    /// </summary>
+    public IReadOnlyList<Gefangener> Gefangene(Betrieb b)
+    {
+        if (!IstAktiv || !_w.Justiz.IstAktiv || Wachstube(b.Konto) != b) return Array.Empty<Gefangener>();
+        var jahr = _w.Jahr;
+        return _w.Konten.Where(k => k != b.Konto)
+            .SelectMany(k => _w.Justiz.SpurenVon(k))
+            .Where(s => s.Art == Vergehen.Taschendiebstahl && s.Jahr == jahr && _w.Justiz.KenntSpur(b.Konto, s))
+            .OrderByDescending(s => s.Nummer)
+            .Take(HoechstensGefangene)
+            .Select(s => new Gefangener(s.Taeter, s.Art, s.Betroffener, s.Betrag, s.Nummer))
+            .ToList();
     }
 
     // ── Jahresende ──────────────────────────────────────────────────────────
