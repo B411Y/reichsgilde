@@ -80,15 +80,15 @@ static class DiebEinrichtungTests
 
     public static IEnumerable<(string, Action)> Alle() => new (string, Action)[]
     {
-        ("Dieb-Einrichtung: Daten – sieben Stücke mit den Kennungen des Raummodells, Preise wie bei den Werkstätten, Datenversion 47", () =>
+        ("Dieb-Einrichtung: Daten – sieben Stücke mit den Kennungen des Raummodells, Preise wie bei den Werkstätten, Datenversion 48", () =>
         {
             var d = Daten.Value.Werkstatt!;
-            Pruefe.Gleich(47, Daten.Value.Version);
+            Pruefe.Gleich(48, Daten.Value.Version);
             var dieb = d.EinrichtungFuer("Dieb");
             Pruefe.Gleich("Werkzeug1 Werkzeug2 Verkleidung Regale Loeschfass Eisentuer Handschuhe", string.Join(" ", dieb.Select(e => e.Kennung)));
             Pruefe.Gleich("Dietriche, Meisterdietriche, Verkleidungstruhe, Hehlerkammer, Löschfass, Eisentür, Lederhandschuhe",
                 string.Join(", ", dieb.Select(e => e.Name)));
-            Pruefe.Gleich("300 800 350 200 100 300 80", string.Join(" ", dieb.Select(e => e.Preis)));
+            Pruefe.Gleich("300 800 350 200 100 150 80", string.Join(" ", dieb.Select(e => e.Preis))); // Eisentür 150 seit PR #177
             Pruefe.Gleich("Werkzeug1", d.Stueck("Dieb", "Werkzeug2")!.Voraussetzung);
             Pruefe.Gleich(2, d.Stueck("Dieb", "Werkzeug2")!.AbStufe);
             Pruefe.Ungefaehr(0.1, d.Stueck("Dieb", "Werkzeug1")!.Wirkung.EinbruchBonus, 1e-12);
