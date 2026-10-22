@@ -1963,7 +1963,7 @@ def vorschau(schnell):
         for o in liste:
             bpy.data.objects.remove(o)
     print(bs.zusammensetzen(NAME + "-grundriss", teile, spalten=2))
-    ai.verkleinern(NAME + "-blicke", 0.85)
+    ai.verkleinern(NAME + "-blicke", 0.7)                                       # 19 Blickpunkte: unter 3 MB
 
 
 def main():
