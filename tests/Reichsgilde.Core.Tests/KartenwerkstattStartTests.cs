@@ -602,7 +602,10 @@ static class KartenwerkstattStartTests
             var baeume = e.NaturVon(f, e.Freiraum()).Count;
             Pruefe.Wahr(baeume is >= 10 and <= 15, $"1.296 m² tragen {baeume} Bäume (vorher 3)");
             Pruefe.Gleich(Kartenentwurf.StreuDichte, e.NaturflaecheAnlegen("streu", new[] { O(-100, -100), O(-60, -100), O(-60, -60) }).Dichte);
-            Pruefe.Wahr(Oeffnen("greybox").Naturflaechen.Where(n => n.Art == "wald").All(n => n.Dichte == 2.4), "Greybox-Wälder unverändert");
+            // die Wälder der Greybox selbst (seit Schritt 5a hat sie im Randstreifen dazu Waldstücke des Rand-Vorschlags mit der neuen Dichte)
+            var greybox = Oeffnen("greybox");
+            Pruefe.Wahr(greybox.Naturflaechen.Where(n => n.Art == "wald" && Kartenrechteck.Um(n.Ecken)!.Value.Ueberdeckt(greybox.Kartengrenzen.Spielfeld))
+                .All(n => n.Dichte == 2.4), "Greybox-Wälder unverändert");
         }),
     };
 }
