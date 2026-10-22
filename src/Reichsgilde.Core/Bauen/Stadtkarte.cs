@@ -8,7 +8,7 @@ namespace Reichsgilde.Core.Bauen;
 // ═════════════════════════════════════════════════════════════════════════════
 //  Die Kartendatei einer Stadt (game/karten/<kennung>.json, Format 2)
 //
-//  Erzeugt vom Kartenwerkzeug des Leveldesigns (tools/karten/), beschrieben in docs/LEVELDESIGN.md, „Kartenformat 2“.
+//  Geschrieben von der Kartenwerkstatt oder dem Kartenskript (tools/Kartenbau), beschrieben in docs/LEVELDESIGN.md, „Kartenformat 2“.
 //  Die Karte ist die einzige Quelle dafür, WO etwas steht: Gebäude (mit Verweis auf den Gebäudekatalog), Mauern mit Toren,
 //  Wege, Bauzonen, Natur, Wasser und die Belegung am Start. WAS ein Gebäude ist (Modell, Grundfläche), steht im Katalog.
 //  Der Kern rechnet mit Wegen, Bauzonen, Gebäudeflächen, Wohnhausplätzen und dem Start; alles Übrige liest er nur

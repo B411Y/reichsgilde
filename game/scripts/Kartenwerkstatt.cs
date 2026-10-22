@@ -17,9 +17,12 @@ namespace Reichsgilde;
 ///   • Kartenwerkstatt.Start.cs: die Tafel „Start“ (Startbelegung: Spieler und KI-Häuser);
 ///   • Stadtansicht.Kartenwerkstatt*.cs: alles in der 3D-Welt (Gebäude, Wege, Flächen, Natur, Mauern, Belegung, Auswahl, Ziehen).
 ///
-/// Speicherort (Entscheidung vom 21.10.2026): Die mitgelieferten Karten (<c>game/karten/</c>, also Greybox und Köln) öffnet die Werkstatt
-/// nur lesend; gespeichert wird nur im Benutzerordner <c>user://karten/</c> (wie die Spielstände). So überschreibt sie nie, was das
-/// Python-Werkzeug erzeugt. Eine andere Karte zu öffnen (oder eine neue) lädt die Szene neu – so beginnt die Stadtansicht immer leer.
+/// Speicherort (Entscheidung vom 22.10.2026, Schritt 4): Die Karten des Spiels in <c>game/karten/</c> (Greybox, Köln, Probestadt …) sind die
+/// Quelle. In der Entwicklung (<see cref="Entwicklung"/>: das Spiel läuft mit einem Editor-Build von Godot aus dem Projektordner) speichert die
+/// Werkstatt eine solche „Spielkarte“ direkt dorthin zurück – beim ersten Speichern je Karte und Sitzung mit Rückfrage; „Speichern unter“ bietet
+/// <c>game/karten/</c> und den Benutzerordner <c>user://karten/</c>. Im exportierten Spiel sind die Spielkarten nur zu lesen, gespeichert wird
+/// nur im Benutzerordner (wie die Spielstände). Eine andere Karte zu öffnen (oder eine neue) lädt die Szene neu – so beginnt die Stadtansicht
+/// immer leer.
 ///
 /// „Karte ausprobieren“ (nur ohne Fehler): Der Kern stellt auf dem Entwurf, wie er gerade ist, eine neue Partie auf
 /// (<see cref="Kartenentwurf.Ausprobieren"/>); die Hauptszene holt sie ab (<see cref="ProbeAbholen"/>), spielt sie ohne Auto-Stand und führt
@@ -34,8 +37,25 @@ public partial class Kartenwerkstatt : Node
     /// <summary>Hier speichert die Werkstatt (Linux: ~/.local/share/godot/app_userdata/Reichsgilde/karten).</summary>
     public const string Ordner = "user://karten";
 
-    /// <summary>Die Karten, die mit dem Spiel kommen – nur lesen.</summary>
+    /// <summary>Die Karten des Spiels (<c>game/karten/</c>) – in der Entwicklung schreibt die Werkstatt direkt hierher, sonst nur lesen.</summary>
     private const string Mitgeliefert = "res://karten";
+
+    /// <summary>
+    /// Läuft das Spiel in der Entwicklung, also mit einem Editor-Build von Godot aus dem Projektordner (<c>godot --path game</c> oder F5 im
+    /// Editor)? Dann ist <c>res://</c> der Ordner <c>game/</c> auf der Platte und beschreibbar. Die Prüfung: Godot setzt das Merkmal „editor“ in
+    /// jedem Editor-Build – auch ohne geöffneten Editor –, nie in einer Exportvorlage (dort „template“); dazu muss <c>game/karten/</c> als Ordner
+    /// auf der Platte liegen (im Export steckt <c>res://</c> in der .pck-Datei).
+    /// </summary>
+    public static bool Entwicklung { get; } = OS.HasFeature("editor") && DirAccess.DirExistsAbsolute(ProjectSettings.GlobalizePath(Mitgeliefert));
+
+    /// <summary>Ist der Pfad eine Karte des Spiels (<c>res://karten/…</c>)?</summary>
+    private static bool IstSpielkarte(string? pfad) => pfad?.StartsWith(Mitgeliefert + "/") == true;
+
+    /// <summary>Wie ein Pfad in Meldungen erscheint: Spielkarten als <c>game/karten/x.json</c>, sonst der ganze Pfad auf der Platte.</summary>
+    private static string Anzeigepfad(string pfad) => IstSpielkarte(pfad) ? "game/" + pfad["res://".Length..] : ProjectSettings.GlobalizePath(pfad);
+
+    /// <summary>Die Spielkarten, deren Überschreiben in dieser Sitzung schon bestätigt ist (statisch: überlebt Öffnen und „Karte ausprobieren“).</summary>
+    private static readonly HashSet<string> _ueberschreibenBestaetigt = new();
 
     /// <summary>
     /// Was die Szene beim nächsten Laden öffnet (Öffnen und Neu laden die Szene neu). Statisch, damit es den Szenenwechsel überlebt –
@@ -62,7 +82,7 @@ public partial class Kartenwerkstatt : Node
     /// <summary>Die Wirtschaftsdaten (<c>wirtschaft.json</c>) – für Betriebsarten und Waren der Startbelegung und zum Ausprobieren (null: nicht lesbar).</summary>
     private Wirtschaftsdaten? _daten;
 
-    /// <summary>Woher die Karte kommt (null: neu, noch nie gespeichert) und ob die Datei nur gelesen werden darf (mitgeliefert).</summary>
+    /// <summary>Woher die Karte kommt (null: neu, noch nie gespeichert) und ob die Datei nur gelesen werden darf (Spielkarte im exportierten Spiel).</summary>
     private string? _pfad;
     private bool _nurLesen;
 
@@ -179,14 +199,14 @@ public partial class Kartenwerkstatt : Node
     private static Gebaeudekatalog KatalogLaden() => Gebaeudekatalog.AusJson(Godot.FileAccess.GetFileAsString(Stadtkarten.KatalogPfad));
 
     /// <summary>
-    /// Die Karte beim ersten Start: aus der Startoption (<c>greybox</c>, <c>koeln</c>, <c>neu</c> oder eine Datei <c>x.json</c> aus
-    /// <c>user://karten/</c>), sonst die Greybox. Lässt sie sich nicht öffnen, eine leere Karte mit der Meldung warum.
+    /// Die Karte beim ersten Start: aus der Startoption (eine Spielkarte wie <c>greybox</c>, <c>koeln</c>, <c>probestadt</c>, dazu <c>neu</c> oder
+    /// eine Datei <c>x.json</c> aus <c>user://karten/</c>), sonst die Greybox. Lässt sie sich nicht öffnen, eine leere Karte mit der Meldung warum.
     /// </summary>
     private static ((Kartenentwurf, string?, bool) Auftrag, string? Meldung) Startkarte(string? wahl)
     {
         wahl ??= Stadtkarten.Vorgabe;
         if (wahl == "neu") return ((Kartenentwurf.Neu("neustadt", "Neustadt", 300, 300, KatalogLaden()), null, false), null);
-        var (pfad, nurLesen) = wahl.EndsWith(".json") ? ($"{Ordner}/{wahl}", false) : ($"{Mitgeliefert}/{wahl}.json", true);
+        var (pfad, nurLesen) = wahl.EndsWith(".json") ? ($"{Ordner}/{wahl}", false) : ($"{Mitgeliefert}/{wahl}.json", !Entwicklung);
         var (entwurf, fehler) = Lesen(pfad);
         if (entwurf is not null) return ((entwurf, pfad, nurLesen), null);
         return ((Kartenentwurf.Neu("neustadt", "Neustadt", 300, 300, KatalogLaden()), null, false), fehler);
@@ -213,27 +233,44 @@ public partial class Kartenwerkstatt : Node
         GetTree().ReloadCurrentScene();
     }
 
-    /// <summary>Speichern (Strg+S): in die eigene Datei; eine mitgelieferte oder neue Karte fragt nach dem Namen.</summary>
+    /// <summary>
+    /// Speichern (Strg+S): in die eigene Datei; eine Spielkarte in der Entwicklung direkt nach <c>game/karten/</c> (beim ersten Mal je Sitzung mit
+    /// Rückfrage), eine neue oder nur lesbare Karte fragt nach dem Namen.
+    /// </summary>
     private void Speichern()
     {
         if (_pfad is null || _nurLesen) SpeichernUnterZeigen();
+        else if (IstSpielkarte(_pfad) && !_ueberschreibenBestaetigt.Contains(_pfad)) SpielkarteUeberschreiben(_pfad, () => { });
         else SpeichernNach(_pfad);
     }
 
-    /// <summary>Schreibt die Karte nach <paramref name="pfad"/> (unter <c>user://karten/</c>) und merkt den Stand als gespeichert.</summary>
+    /// <summary>Die Rückfrage vor dem ersten Speichern einer Spielkarte in dieser Sitzung; „Überschreiben“ speichert und merkt die Zusage.</summary>
+    private void SpielkarteUeberschreiben(string pfad, Action danach)
+    {
+        Rueckfrage("Spielkarte überschreiben?",
+            $"„{_entwurf.Stadt}“ wird direkt in {Anzeigepfad(pfad)} gespeichert – eine Karte des Spiels; Git zeigt die Änderung. "
+            + "In dieser Sitzung fragt die Werkstatt für diese Karte nicht noch einmal.",
+            "Überschreiben", () =>
+            {
+                _ueberschreibenBestaetigt.Add(pfad);
+                if (SpeichernNach(pfad)) danach();
+            });
+    }
+
+    /// <summary>Schreibt die Karte nach <paramref name="pfad"/> (<c>user://karten/</c> oder eine Spielkarte) und merkt den Stand als gespeichert.</summary>
     private bool SpeichernNach(string pfad)
     {
-        DirAccess.MakeDirRecursiveAbsolute(Ordner);
+        DirAccess.MakeDirRecursiveAbsolute(pfad.GetBaseDir());
         using var datei = Godot.FileAccess.Open(pfad, Godot.FileAccess.ModeFlags.Write);
         if (datei is null)
         {
-            Melden($"Speichern fehlgeschlagen: {Godot.FileAccess.GetOpenError()}", fehler: true);
+            Melden($"Speichern fehlgeschlagen ({Anzeigepfad(pfad)}): {Godot.FileAccess.GetOpenError()}", fehler: true);
             return false;
         }
         datei.StoreString(_entwurf.ZuJson());
         _entwurf.Geschichte.Gespeichert();
         (_pfad, _nurLesen) = (pfad, false);
-        Melden($"Gespeichert: {ProjectSettings.GlobalizePath(pfad)}");
+        Melden(IstSpielkarte(pfad) ? $"Gespeichert: {Anzeigepfad(pfad)} (Spielkarte – „git diff“ zeigt, was sich geändert hat)" : $"Gespeichert: {Anzeigepfad(pfad)}");
         Auffrischen();
         return true;
     }
@@ -247,7 +284,7 @@ public partial class Kartenwerkstatt : Node
         return name.Length == 0 ? null : name + ".json";
     }
 
-    /// <summary>Die eigenen Karten im Benutzerordner und die mitgelieferten: Pfad und Anzeige („Köln – koeln.json“).</summary>
+    /// <summary>Die Karten eines Ordners (Benutzerordner oder Spielkarten): Pfad und Anzeige („Köln – koeln.json“).</summary>
     private static List<(string Pfad, string Text)> Karten(string ordner)
     {
         var liste = new List<(string, string)>();
@@ -478,7 +515,16 @@ public partial class Kartenwerkstatt : Node
             if (o.TryGetValue("werkstatt-rueckgaengig", out var zurueck))
                 for (var i = 0; i < int.Parse(zurueck); i++) _entwurf.Rueckgaengig();
             if (o.TryGetValue("werkstatt-auswahl", out var auswahl)) _stadt.WerkstattWaehlen(TeilVon(auswahl), hinfahren: true);
-            if (o.TryGetValue("werkstatt-speichern", out var datei) && Dateiname(datei) is { } name) SpeichernNach($"{Ordner}/{name}");
+            // --werkstatt-speichern=<datei>: unter diesem Namen im Benutzerordner; =1 wie Strg+S (Spielkarte mit Rückfrage), =direkt ohne sie
+            if (o.TryGetValue("werkstatt-speichern", out var datei))
+            {
+                if (datei is "1" or "direkt" && _pfad is { } eigene && !_nurLesen)
+                {
+                    if (datei == "direkt") _ueberschreibenBestaetigt.Add(eigene);
+                    Speichern();
+                }
+                else if (Dateiname(datei) is { } name) SpeichernNach($"{Ordner}/{name}");
+            }
             if (o.TryGetValue("werkstatt-umriss", out var umriss))
             {
                 var t = umriss.Split(',');

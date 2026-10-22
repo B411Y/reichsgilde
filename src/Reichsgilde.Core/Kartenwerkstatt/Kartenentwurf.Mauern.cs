@@ -9,7 +9,9 @@ namespace Reichsgilde.Core.Kartenwerkstatt;
 //  Eine Mauer ist eine Linie aus geraden Stücken (Ecken), offen (Köln am Rhein) oder geschlossen (Ring). Türme setzt das Spiel selbst
 //  (Mauerplan: Ecktürme an jedem Knick, Mauertürme etwa alle 35 m, nicht in Toren) – der Entwurf speichert nur Ecken und Tore.
 //  Ein Tor liegt immer auf der Linie: Setzen und Verschieben legen es auf die nächste Stelle der Mauer. Ändern sich die Ecken, wandern
-//  die Tore mit (bleiben an derselben Stelle ihrer Strecke bzw. kommen auf die nächste Stelle der neuen Linie).
+//  die Tore mit (bleiben an derselben Stelle ihrer Strecke bzw. kommen auf die nächste Stelle der neuen Linie). Seit Schritt 4 wandert ein
+//  Weg durch das Tor mit: Jeder Stützpunkt, der in der Tormitte lag, folgt dem Tor – im selben Schritt (ein Rückgängig nimmt beides zurück),
+//  sonst kreuzte der Weg danach die Mauer ohne Tor.
 // ═════════════════════════════════════════════════════════════════════════════
 
 /// <summary>Ein Tor einer Mauer im Entwurf: Name, Ort (auf der Mauerlinie, auf 5 cm) und ob es nachts schließt.</summary>
@@ -199,7 +201,7 @@ public sealed partial class Kartenentwurf
     {
         Pruefen(m, ecke, m.Ecken.Count);
         var ort = Gerundet(new Kartenort(x, z));
-        Aendern(m, "Ecke verschoben", n =>
+        MauerAendern(m, "Ecke verschoben", n =>
         {
             var anteile = n.Tore.Select(t => n.NaechsteStelle(t.Punkt)).ToList();
             n.EckenSetzen(n.Ecken.Select((p, i) => i == ecke ? ort : p));
@@ -212,7 +214,7 @@ public sealed partial class Kartenentwurf
     {
         Pruefen(m, index, m.Ecken.Count + 1);
         var ort = Gerundet(new Kartenort(x, z));
-        Aendern(m, "Ecke eingefügt", n =>
+        MauerAendern(m, "Ecke eingefügt", n =>
         {
             n.EckenSetzen(n.Ecken.Take(index).Append(ort).Concat(n.Ecken.Skip(index)));
             ToreAufLinie(n);
@@ -235,7 +237,7 @@ public sealed partial class Kartenentwurf
     {
         Pruefen(m, ecke, m.Ecken.Count);
         if (m.Ecken.Count <= (m.Geschlossen ? 3 : 2)) return false;
-        Aendern(m, "Ecke gelöscht", n =>
+        MauerAendern(m, "Ecke gelöscht", n =>
         {
             n.EckenSetzen(n.Ecken.Where((_, i) => i != ecke));
             ToreAufLinie(n);
@@ -243,8 +245,8 @@ public sealed partial class Kartenentwurf
         return true;
     }
 
-    /// <summary>Verschiebt die ganze Mauer mit ihren Toren um (dx, dz) Meter.</summary>
-    public void MauerVerschieben(EntwurfMauer m, double dx, double dz) => Aendern(m, "verschoben", n =>
+    /// <summary>Verschiebt die ganze Mauer mit ihren Toren (und den Wegen durch die Tore, nur dort) um (dx, dz) Meter.</summary>
+    public void MauerVerschieben(EntwurfMauer m, double dx, double dz) => MauerAendern(m, "verschoben", n =>
     {
         n.EckenSetzen(n.Ecken.Select(p => Gerundet(new Kartenort(p.X + dx, p.Z + dz))));
         n.ToreSetzen(n.Tore.Select(t => t with { X = Kartenraster.Punkt(t.X + dx), Z = Kartenraster.Punkt(t.Z + dz) }));
@@ -258,7 +260,7 @@ public sealed partial class Kartenentwurf
     {
         Pruefen(m, 0, 1);
         if (geschlossen && m.Ecken.Count < 3) return false;
-        Aendern(m, geschlossen ? "geschlossen" : "geöffnet", n =>
+        MauerAendern(m, geschlossen ? "geschlossen" : "geöffnet", n =>
         {
             n.Geschlossen = geschlossen;
             ToreAufLinie(n);
@@ -291,7 +293,7 @@ public sealed partial class Kartenentwurf
         return m.Tore.Count - 1;
     }
 
-    /// <summary>Verschiebt ein Tor entlang der Mauer: auf die Stelle der Linie, die (x, z) am nächsten ist.</summary>
+    /// <summary>Verschiebt ein Tor entlang der Mauer: auf die Stelle der Linie, die (x, z) am nächsten ist (ein Weg durch das Tor folgt).</summary>
     public void TorVerschieben(EntwurfMauer m, int tor, double x, double z)
     {
         Pruefen(m, tor, m.Tore.Count);
@@ -314,8 +316,32 @@ public sealed partial class Kartenentwurf
     private void TorAendern(EntwurfMauer m, int tor, string was, Func<EntwurfTor, EntwurfTor> aenderung)
     {
         Pruefen(m, tor, m.Tore.Count);
-        if (Aenderung(m, n => n.ToreSetzen(n.Tore.Select((t, i) => i == tor ? aenderung(t) : t))) is { } befehl)
-            Geschichte.Ausfuehren(befehl.Benannt($"{m.Tore[tor].Name} {was}"));
+        MauerAendern(m, was, n => n.ToreSetzen(n.Tore.Select((t, i) => i == tor ? aenderung(t) : t)), $"{m.Tore[tor].Name} {was}");
+    }
+
+    /// <summary>
+    /// Ändert eine Mauer über eine Kopie (ein Schritt „{Mauer} {was}“ bzw. <paramref name="beschreibung"/>). Wandert dabei ein Tor, folgt
+    /// jeder Stützpunkt eines Weges, der in seiner Mitte lag (auf 1 mm), im selben Schritt. Ändert sich nichts, entsteht kein Schritt.
+    /// </summary>
+    private void MauerAendern(EntwurfMauer m, string was, Action<EntwurfMauer> aenderung, string? beschreibung = null)
+    {
+        if (Aenderung(m, aenderung) is not { } eigener) return;
+        var vorher = m.Tore;
+        var nachher = ((EntwurfMauer)eigener.Nachher).Tore;
+        var wege = new Dictionary<EntwurfWeg, EntwurfWeg>(ReferenceEqualityComparer.Instance);
+        // Die Befehle hier ändern die Zahl der Tore nicht; ihre Reihenfolge bleibt.
+        for (var i = 0; i < Math.Min(vorher.Count, nachher.Count); i++)
+        {
+            var (alt, neu) = (vorher[i].Punkt, nachher[i].Punkt);
+            if (alt.Abstand(neu) < 1e-6) continue;
+            foreach (var w in _wege.Where(w => w.Punkte.Any(p => p.Abstand(alt) < 1e-3)))
+            {
+                if (!wege.TryGetValue(w, out var kopie)) wege[w] = kopie = (EntwurfWeg)w.KopieTeil();
+                kopie.PunkteSetzen(kopie.Punkte.Select(p => p.Abstand(alt) < 1e-3 ? neu : p).ToList());
+            }
+        }
+        var weitere = wege.Select(x => (IKartenbefehl)new TeilAendern($"{x.Key.Bezeichnung}: Weg im Tor", x.Key, x.Key.KopieTeil(), x.Value));
+        Buendeln(beschreibung ?? $"{m.Bezeichnung} {was}", eigener, weitere);
     }
 
     /// <summary>Das Tor an derselben Stelle (Anteil) seiner Strecke – gibt es die Strecke nicht mehr, auf die nächste Stelle der Linie.</summary>

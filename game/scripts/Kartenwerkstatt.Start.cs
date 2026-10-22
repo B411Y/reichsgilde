@@ -114,8 +114,8 @@ public partial class Kartenwerkstatt
         UiHilfe.KinderEntfernen(_startTafel);
         if (_startHaus >= Start.Haeuser.Count) _startHaus = Start.Haeuser.Count - 1;
         if (_neuerBetrieb is { } nb && (nb.Haus >= Start.Haeuser.Count || _entwurf.GebaeudeMit(nb.Platz) is null)) _neuerBetrieb = null;
-        Hauptmenue.Text(_startTafel, "Wer am Start wo wohnt und arbeitet. Plätze wählt ihr mit einem Klick in die Karte; dort leuchtet die Belegung in den Hausfarben, der Spieler gold.",
-            12, Grau, umbruchBreite: Rechtsbreite - 44);
+        Hauptmenue.Text(_startTafel, "Wer am Start wo wohnt und arbeitet. Plätze wählt ihr mit einem Klick in die Karte; dort tragen die Häuser die Hausfarbe und eine hohe Fahne: "
+            + "KI-Häuser in ihrer Farbe, der Spieler weiß mit goldenem Rand und Schwalbenschwanz.", 12, Grau, umbruchBreite: Rechtsbreite - 44);
         SpielerTeil();
         _startTafel.AddChild(new HSeparator());
         var kopf = new HBoxContainer();
