@@ -14,14 +14,14 @@ An diesen Zielen werden alle Zahlen gemessen. Ändert sich eine Zahl, muss das Z
 | # | Ziel | Entwurf 1 erfüllt? | Stand nach Balancing 1 (PR #177) |
 |---|---|---|---|
 | Z1 | Eine Gießerei mit 2 Gesellen ist bei ausgeglichenem Markt profitabel, mit etwa **1.300–1.700** Gulden pro Jahr (angehoben am 22.10.2026, PR #177, Entscheidung des Nutzers – vorher 600–900; passt zu Z2) | ✔ 627 (1 Rivale) bis 878 (kein Rivale), damals Ziel 600–900 | ✔ 1.317 (1 Rivale) bis 1.551 (kein Rivale) |
-| Z2 | Den Titel **Bürger** (10.000 Gulden Vermögen) erreicht man mit einem einzigen Betrieb nach **8–12 Jahren** (bei 15 Min./Jahr also 2–3 Stunden Spielzeit). Wer expandiert, schafft es schneller. | ✔ 10 Jahre | ✔ Schmied Ø 9,8 Jahre, Greybox 116 von 120 Partien im Ziel (Messung 1: 18,2) |
+| Z2 | Den Titel **Bürger** (10.000 Gulden Vermögen) erreicht man mit einem einzigen Betrieb nach **8–12 Jahren** (bei 15 Min./Jahr also 2–3 Stunden Spielzeit). Wer expandiert, schafft es schneller. | ✔ 10 Jahre | ✔ Schmied Ø 8,2 Jahre mit Einrichtungskauf, Greybox 80 von 120 Partien im Ziel, die übrigen schneller (Messung 2 ohne Einrichtung: 9,8; Messung 1: 18,2) |
 | Z3 | Konkurrenz ist spürbar: Mehr Anbieter drücken den Preis allmählich, ohne dass er sofort einbricht. Bei Überangebot lohnt es sich, auf ein anderes Produkt auszuweichen. | ✔ Silberring 878 → 627 → 437 → 163 bei 0/30/60/120 Konkurrenzstück | ✔ Preisformel unverändert; zwei Gießereien je 1.317 statt 1.551 allein |
 | Z4 | Ein einzelner Spieler kann den Markt allein nicht beherrschen, weil die Stadt viele andere Anbieter hat | ✔ eine Werkstatt deckt ca. 20 % der Nachfrage | ✔ unverändert (bei vier Häusern Einwohnerfaktor 1) |
 | Z5 | **Statut B** (Ork-Fron im Umland) ist für Minenbesitzer deutlich lukrativer (+40–50 %). Das gibt ihnen ein starkes Motiv, im Rat dafür zu werben. | ✔ Mine 1.139 → 1.613 (+42 %) | ✔ Grube 947 → 1.365 (+44 %), Rohstoffe unverändert |
 | Z6 | **Statut C** lohnt sich in Gulden mäßig (+15–25 %), kostet aber Ansehen und birgt Aufstandsgefahr | ✔ Gießerei 627 → 750 (+20 %), plus Risiken außerhalb der Gulden-Rechnung | ✘ 0 % zu Startpreisen (vor PR #177 schon +2 %): der Geselle bleibt die beste Kraft |
 | Z7 | Zwischenprodukte (Beschlag) lohnen sich weniger als Fertigwaren, sind aber nicht defizitär. So entsteht ein Zulieferer-Markt zwischen den Berufen. | ✔ 393 statt 878 | ✔ Beschlag 682 gegen Silberring 1.966 (Startpreise) |
 
-Einzelheiten zum Stand nach Balancing 1: Abschnitt „Balancing-Messung 2 (PR #177)“. „Eine Grube unter Statut B bringt mehr als eine Werkstatt“ ist seit PR #177 kein Ziel mehr (Entscheidung des Nutzers vom 22.10.2026); es bleibt Z5.
+Einzelheiten zum Stand nach Balancing 1: Abschnitte „Balancing-Messung 2 (PR #177)“ und „Balancing-Messung 3 (PR #177)“ (nach dem Einrichtungskauf der KI nachjustiert, Datenversion 49: alle zehn Berufe simuliert im Band ±15 %, 8 gegen 3 Häuser −9 %, KI ÷ gleiche Strategie 1,47). „Eine Grube unter Statut B bringt mehr als eine Werkstatt“ ist seit PR #177 kein Ziel mehr (Entscheidung des Nutzers vom 22.10.2026); es bleibt Z5.
 
 ## 2. Zeitbasis
 
@@ -1394,3 +1394,80 @@ Die Erwartung „eine Grube unter Statut B bringt mehr als eine Werkstatt“ (Li
 | Greybox, jetzt | 148.254 | 142.556 | 154.716 | 13/20 | Freiherr 60; kein Bankrott |
 
 Die drei Häuser liegen jetzt dichter beieinander (Eichwald holt auf, die Tischlerwaren sind teurer). Sie beginnen ohne Umland (Meistergrad 3 und Stufe 2 nach 8–9 Jahren); nach 30 Jahren hat Eisenbart ohne Karte gleich viel wie mit dem alten Start, in der Greybox 9 % weniger. Ohne Karte bauen sie weiter nicht (offener Punkt in `kern.md`).
+
+## Balancing-Messung 3 (PR #177)
+
+Nach Messung 2 kauft die KI Einrichtung (Spiel-KI, „KI kauft Einrichtung (PR #177)“ in `docs/bereiche/spiel-ki.md`: zum Jahresende, wenn sich ein Stück in höchstens 4 Jahren bezahlt macht) – die KI-Häuser **und** der von der KI geführte Messspieler. Die gemeinsame Messung des Funktions-Branches (`125a073`, Datenversion 48) zeigte vier Berufe außerhalb des Bandes; sie sind hier nachjustiert. Gemessen auf main `821bc97` + Branch `f5674fd`, **Datenversion 49**: `messen bericht 20 30` (1.200 Partien, 15 Minuten) → `docs/messungen/balancing-2026-10-22-3.json` (Messung 1 und 2 bleiben daneben).
+
+**Ursache** (Diagnose je Beruf, 16 Startwerte, dieselbe Fassung mit und ohne Abschnitt `ki`; Zuwachs des Vermögens nach 20 Jahren durch den Einrichtungskauf): Schmied +6.850, Wirt +9.830, Tischler +12.750, Dieb +1.180, Gardist +1.060. Jede Werkstatt kauft Gutes Werkzeug (Jahr ≈ 2), Lederschürzen bzw. -handschuhe, ihr Sonderstück und mit Stufe 2 das Meisterwerkzeug – ihre Waren entstehen dann in 0,81 bzw. 0,73 der Zeit. Tischler und Wirt verkaufen das Mehr ohne großen Preisdruck (Armbrust, Gehstock; Starkbier vor allem im eigenen Ausschank). Kein einzelnes Stück ist der Grund: Leimofen und Braupfanne mit Zeit × 0,95 statt × 0,9 nähmen nur 1.500 bzw. 400 Gulden weg. Dieb und Gardist haben fast keine Einrichtung mit Gulden-Wirkung (Dietriche, Verkleidung, Hunde, Kettenhemden ohne Rechnung; nur die Waffenkammer, 88 im Jahr) – sie bleiben zurück, wenn alle anderen zulegen.
+
+**Was sich geändert hat** (vorher → nachher):
+1. **Tischler**, Waren ab Stufe 2 ×1,08 statt ×1,2 (gegen die Preise vor PR #177): Gehstock 90 → 81, Armbrust 234 → 211, Schrank 372 → 335, Prunktruhe 463 → 417. Waren der Stufe 1 bleiben (×1,28).
+2. **Wirt**, Waren ab Stufe 2 ×0,97: Starkbier 138 → 134, Kräuterlikör 170 → 165, Festbier 225 → 218, Schädelbrand 375 → 364. Der Ausschank folgt dem Grundpreis (× 1,2). Stufe 1 bleibt – der Wirt kommt ohnehin spät zum Bürger.
+3. **Dieb**, Beute der Taschendiebe je Stufe 1 / 1,2 / 1,4 statt 1 / 1,1 / 1,3 (je Minute weiter 1,0): Der Dieb ist früh schnell (Bürger 7,5 Jahre) und fällt nach dem Ausbau zurück; deshalb nur die Stufen 2 und 3.
+4. **Gardist**, Sold 0,73 statt 0,68 je Minute (Stufen weiter × 1 / 1,1 / 1,3): Er liegt in jedem Stichjahr unter dem Mittel.
+
+Probeläufe (30 Startwerte, Zuwachs nach 20 Jahren): Tischler ×1,1 −4.070; Wirt ×0,97 −2.840; Dieb Stufen 1,2 / 1,4 +3.270; Gardist Sold 0,72 +2.740, Sold je Stufe 1,2 / 1,4 +2.280.
+
+### Die vier Leitzahlen
+
+| Kennzahl | Messung 2 (ohne KI-Einrichtung) | gemeinsame Messung (`125a073`, mit KI-Einrichtung) | Messung 3 (Datenversion 49) |
+|---|---|---|---|
+| Jahre bis Bürger (Schmied, ein Betrieb, Ziel 8–12) | Ø 9,8; Greybox im Ziel 116 von 120 | Ø 8,2; Greybox im Ziel 80 von 120 | **Ø 8,2**, erreicht 30 von 30; Greybox im Ziel 80 von 120 (die übrigen schon in Jahr 6–7), Probestadt Ø 9,5 (78 von 90) |
+| Berufe im Band ±15 % (simuliert, 20 Jahre) | 10 von 10 (−9 … +9 %) | 6 von 10 (−23 … +31 %) | **10 von 10** (−12,5 … +8,5 %) |
+| KI ÷ gleiche Strategie (Median nach 20 Jahren) | 1,46 | 1,60; 25 von 90 über 2× | **1,47**; 17 von 90 über 2×, keins unter ½, keins bankrott. Bei „Schwer“ 1,79 (vorher 2,03) |
+| 8 gegen 3 Häuser (Vermögen je Haus, 20 Jahre) | −13 % | −12 % | **−9 %** (69.797 gegen 77.001) |
+
+### Berufe
+
+**Simuliert** (ein Betrieb, KI geführt mit Einrichtungskauf, 20 Jahre, 30 Startwerte; Mittel des Zuwachses 21.124, vorher 21.296):
+
+| Beruf | Vermögen 5 / 10 / 20 J. | Zuwachs gegen Mittel | vorher (`125a073`) | Gewinn Ø je Jahr | Bürger Ø Jahr | Stufe 2 Ø Jahr |
+|---|---|---|---|---|---|---|
+| Schmied | 6.513 / 12.495 / 26.410 | +6,1 % | +2,1 % | 2.434 | 8,2 | 11,6 |
+| Tischler | 6.788 / 11.836 / 26.916 | **+8,5 %** | +31,2 % | 2.466 | 8,9 | 11,3 |
+| Steinmetz | 4.853 / 9.735 / 25.356 | +1,1 % | −0,4 % | 2.335 | 11,1 | 12,2 |
+| Alchimist | 7.966 / 11.959 / 26.520 | +6,6 % | +8,9 % | 2.472 | 8,4 | 11,3 |
+| Wirt | 5.936 / 8.269 / 26.019 | **+4,2 %** | +19,5 % | 2.345 | 13,4 | 10,9 |
+| Prediger | 6.839 / 13.434 / 22.475 | −12,5 % | −10,2 % | 2.216 | 8,5 | 11,8 |
+| Dieb (ausgewogen: Taschendiebe) | 8.835 / 12.312 / 24.104 | **−4,8 %** | −19,9 % | 2.534 | 7,5 | 12,0 |
+| Parfumeur | 7.340 / 11.831 / 25.779 | +3,1 % | −2,8 % | 2.403 | 8,6 | 12,5 |
+| Geldleiher | 8.345 / 11.746 / 23.410 | −8,1 % | −5,6 % | 2.141 | 8,2 | 12,0 |
+| Gardist | 7.322 / 11.978 / 24.253 | **−4,1 %** | −22,7 % | 1.918 | 9,0 | 11,1 |
+| Dieb wagemutig (nicht im Mittel) | 8.657 / 5.644 / 19.867 | −24,9 % | −36,9 % | 2.688 | 9,9 | 12,2 |
+
+Der Fehler des Mittels liegt nach 20 Jahren bei 490–880 Gulden (2–4 %). Prediger (−12,5 %) und Geldleiher (−8,1 %) wurden nicht verändert: Der Prediger hat 18.475 statt 19.113 Zuwachs – innerhalb des Fehlers des Mittels (875); er lag schon in Messung 2 unter dem Mittel (−6,6 %). Der Wirt kommt weiter spät zum Bürger (13,4 Jahre, im Ziel 3 von 30), holt nach dem Ausbau auf.
+
+**Statisch** (Startpreise, voll mit Gesellen; Mittel 1.706 / 3.042 / 4.942): außerhalb ±15 % liegen Schmied Stufe 1 (+15 %), Wirt (−23 / −16 / −23 %), Parfumeur (+28 / +22 / +21 %), Geldleiher Stufe 1 (−15 %), Gardist (−39 / −39 / −34 %, ohne Geleit- und Kopfgeld) und neu der Dieb ab Stufe 2 (+23 / +24 %; die Rechnung kennt weder Fang noch Gericht – der Dieb zahlt im Mittel 686 im Jahr ans Gericht). Der Tischler ist jetzt in allen Stufen im Band (Stufe 3 vorher +22 %, jetzt −6 %).
+
+### Völker, Startfairness, Häuser, Gauner
+
+- **Völker** (Zuwachs gegen Menschen): Schmied Zwerg +23,1 %, Elb +8,3 %, Halbling −13,1 % (Bonus +5 / 0 / −5); Parfumeur Zwerg −12,6 %, Elb +13,8 %, Halbling −3,5 % (Bonus −5 / +5 / 0). Seit dem Einrichtungskauf verstärkt sich der Bonus beim Schmied (Messung 2: Zwerg +6 %); die Völkerboni bleiben (Entscheidung).
+- **Startfairness:** Greybox Spieler mit einem Betrieb 26.410, KI-Häuser 79.083 (−67 %); Probestadt 25.154 gegen 70.265. Wohnhausplatz weiter 0 %.
+- **1, 3, 5, 8 Häuser** (Messstadt): je Haus 118.807 / 77.001 / 77.537 / 69.797 nach 20 Jahren, Preisindex 0,846 / 0,865 / 0,869 / 0,875 – 8 gegen 3 Häuser −9 %.
+- **KI-Stärke:** Bezug 54.061, KI-Häuser 79.558 (Median 1,47); die KI führt nach 20 Jahren Ø 5 Betriebe; Stand am Ende Bezug Patrizier 4 / Edler 26, KI Patrizier 1 / Edler 89.
+- **Gauner, Wache, Bank:** Dieb ausgewogen 2.534 im Jahr ohne, 2.655 mit Wachhaus; wagemutig 2.688 / 2.814. Wache: Sold 2.797 (vorher 2.614), Geleitgeld 328, Kopfgeld 39 im Jahr; Raub und Schaden je KI-Haus 450 ohne, 365 mit Wachhaus (−19 %). Bank: Kasse 7.412, Zins 898, Wechsel 3.550. Kredite weiter 0.
+- **Einrichtung simuliert:** Der Vergleich „mit Einrichtung am Start – ohne“ misst seit dem Einrichtungskauf der KI nur noch den Vorsprung durch den früheren Kauf (die Vergleichspartie kauft dieselben Stücke zum Jahresende nach); die kleinen Mehrgewinne dort (−3 bis 121 im Jahr) sind deshalb kein Befund über die Stücke.
+
+### Ziele Z1–Z7
+
+| Ziel | Messung 3 |
+|---|---|
+| Z1 Gießerei 2 Gesellen, 1.300–1.700 | erfüllt, unverändert (Schmiedewaren nicht verändert): 1.551 allein, 1.317 mit einem Rivalen (Referenzprobe, Test) |
+| Z2 Bürger mit einem Betrieb in 8–12 Jahren | erfüllt: Schmied Ø 8,2 (30 von 30); Greybox 80 von 120 im Ziel, die übrigen schneller |
+| Z3 Konkurrenz drückt den Preis allmählich | erfüllt (Formel unverändert) |
+| Z4 ein Spieler beherrscht den Markt nicht | erfüllt (Mengen unverändert; bei 4 Häusern Einwohnerfaktor 1) |
+| Z5 Statut B für Minen +40–50 % | erfüllt (Rohstoffe unverändert, Grube 947 → 1.365, +44 %) |
+| Z6 Statut C +15–25 % | verfehlt wie vorher (offener Punkt) |
+| Z7 Zwischenwaren weniger, nicht defizitär | erfüllt (Beschlag und Silberring unverändert, 682 gegen 1.966) |
+
+**`messen 30 20` und `messen 30 20 greybox`** (30 Jahre, 20 Startwerte, Spieler Mensch passiv, KI ausgewogen mit Einrichtungskauf; gemessen auf main `821bc97` + Branch `6b27965`, dieselben Werte), Vermögen Ø am Ende:
+
+| | Eisenbart | Eichwald | Kieselbach | Bürgermeister | Stand am Ende | Einrichtung je KI-Haus |
+|---|---|---|---|---|---|---|
+| ohne Karte, Messung 2 (ohne KI-Einrichtung) | 129.713 | 113.081 | 123.643 | 13/20 | Freiherr 58, Edler 2 | – |
+| ohne Karte, jetzt | 165.223 | 118.112 | 158.764 | 16/20 | Freiherr 60; kein Bankrott | Ø 4,8 Stücke |
+| Greybox, Messung 2 | 148.254 | 142.556 | 154.716 | 13/20 | Freiherr 60 | – |
+| Greybox, jetzt | 179.507 | 166.212 | 185.639 | 15/20 | Freiherr 34, Reichsgraf 26; kein Bankrott | Ø 8,8 Stücke |
+
+Der Einrichtungskauf hebt alle drei Häuser um 20–30 %; Eichwald (Tischler) legt ohne Karte am wenigsten zu, weil seine Waren ab Stufe 2 billiger sind.
