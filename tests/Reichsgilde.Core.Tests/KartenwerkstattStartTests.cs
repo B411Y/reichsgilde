@@ -237,7 +237,10 @@ static class KartenwerkstattStartTests
                 e.TorSetzen(m, m.Ecken[1].X, m.Ecken[1].Z + 3);
                 e.MauerEckeVerschieben(m, 1, m.Ecken[1].X + 2, m.Ecken[1].Z);
                 e.MauerUmbenennen(m, "Neue Mauer");
-                Pruefe.Wahr(meldungen.All(x => x.Teil == Kartenteil.Mauer && ReferenceEquals(x.Mauer, m)), "Ereignis für die Mauer");
+                // seit Schritt 4 wandern Wege durch ein Tor mit, wenn die Ecke das Tor verschiebt – dann auch ihr Ereignis (geändert)
+                Pruefe.Wahr(meldungen.Where(x => x.Teil != Kartenteil.Weg).All(x => x.Teil == Kartenteil.Mauer && ReferenceEquals(x.Mauer, m))
+                            && meldungen.Any(x => ReferenceEquals(x.Mauer, m))
+                            && meldungen.Where(x => x.Teil == Kartenteil.Weg).All(x => x.Art == Aenderungsart.Geaendert), "Ereignis für die Mauer (und Wege im Tor)");
                 while (e.Rueckgaengig()) { }
                 Pruefe.Gleich(Text(kennung), e.ZuJson(), kennung);
             }

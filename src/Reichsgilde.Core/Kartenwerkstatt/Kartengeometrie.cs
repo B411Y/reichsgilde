@@ -11,8 +11,8 @@ public readonly record struct Kartenort(double X, double Z)
 }
 
 /// <summary>
-/// Rechenhilfen für Punkte, Strecken und Vielecke – genau wie im Kartenwerkzeug (<c>tools/karten/karte.py</c>, Abschnitt „Geometrie“),
-/// damit C# und Python dieselben Befunde liefern.
+/// Rechenhilfen für Punkte, Strecken und Vielecke – genau wie im alten Kartenwerkzeug (bis Schritt 4 <c>karte.py</c>, Abschnitt „Geometrie“),
+/// damit die Befunde beim Umzug nach C# dieselben blieben.
 /// </summary>
 public static class Kartengeometrie
 {

@@ -6,7 +6,7 @@ using System.Text.Json.Nodes;
 namespace Reichsgilde.Core.Kartenwerkstatt;
 
 // ═════════════════════════════════════════════════════════════════════════════
-//  Schreibt eine Kartendatei so, wie das Python-Werkzeug sie schreibt (tools/karten/karte.py, json_kompakt)
+//  Schreibt eine Kartendatei so, wie das Python-Werkzeug bis Schritt 4 sie schrieb (karte.py, json_kompakt)
 //
 //  Einrückung mit einem Leerzeichen je Ebene; was in eine Zeile von höchstens 190 Zeichen passt (ein Gebäude, ein Tor, ein Weg),
 //  steht in einer Zeile, lange Punktfolgen mit mehreren Punkten je Zeile. Ganze Zahlen ohne „.0“, Umlaute im Klartext.
