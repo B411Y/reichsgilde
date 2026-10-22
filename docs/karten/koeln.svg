@@ -1,6 +1,7 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="-391.5 -245 672 490" font-family="sans-serif">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="-700 -500 1300 1050" font-family="sans-serif">
 <title>Köln – Kartendatei (Vorschau)</title>
-<rect x="-391.5" y="-245" width="672" height="490" fill="#E6E8E1"/>
+<rect x="-700" y="-500" width="1300" height="1050" fill="#D6DACF"/>
+<rect x="-400" y="-200" width="700" height="450" fill="#E6E8E1"/>
 <polygon points="-283.5,-85 -146.5,-111 -140,91.5 -277,91.5" fill="#DCD5A6" opacity="0.8"/>
 <polygon points="36,45.5 114,52 120.5,169.5 55.5,169.5" fill="#DCD5A6" opacity="0.8"/>
 <polygon points="140,-195.5 270.5,-208.5 270.5,-13 160,-19.5" fill="#C9BFA6" opacity="0.8"/>
@@ -411,4 +412,5 @@
 <text x="92" y="102" font-size="6" text-anchor="middle" fill="#6B6E66">U4</text>
 <text x="-2" y="192" font-size="6" text-anchor="middle" fill="#6B6E66">U5</text>
 <text x="104" y="-69" font-size="6" text-anchor="middle" fill="#6B6E66">U6</text>
+<rect x="-400" y="-200" width="700" height="450" fill="none" stroke="#6B6E66" stroke-width="1.2" stroke-dasharray="8 4"/>
 </svg>

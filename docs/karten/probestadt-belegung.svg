@@ -36,46 +36,66 @@
 <polygon points="328,77 329,110 308,136 257,135 231,105 215,69 240,36 260,32 299,18 324,48" fill="#7F9B6A" opacity="0.55" mask="url(#natur15)"/>
 <mask id="natur16"><rect x="-500" y="-450" width="1000" height="900" fill="#fff"/></mask>
 <polygon points="482,63 461,113 442,128 397,113 376,92 372,45 402,13 429,31 461,28" fill="#7F9B6A" opacity="0.55" mask="url(#natur16)"/>
-<pattern id="feld0" patternUnits="userSpaceOnUse" width="6" height="6" patternTransform="rotate(-86.9)"><rect width="6" height="6" fill="#A9B8CF"/><line x1="0" y1="0" x2="0" y2="6" stroke="#8C7A4F" stroke-width="0.4"/></pattern>
-<polygon points="-324,-296 -254,-296 -254,-155 -324,-155" fill="url(#feld0)" opacity="0.8"/>
-<pattern id="feld1" patternUnits="userSpaceOnUse" width="9" height="9" patternTransform="rotate(-188.6)"><rect width="9" height="9" fill="#D6BE7E"/><line x1="0" y1="0" x2="0" y2="9" stroke="#8C7A4F" stroke-width="0.4"/></pattern>
-<polygon points="-250,-296 -173,-296 -173,-155 -250,-155" fill="url(#feld1)" opacity="0.8"/>
-<pattern id="feld2" patternUnits="userSpaceOnUse" width="7.5" height="7.5" patternTransform="rotate(-89.4)"><rect width="7.5" height="7.5" fill="#E3CB7A"/><line x1="0" y1="0" x2="0" y2="7.5" stroke="#8C7A4F" stroke-width="0.4"/></pattern>
-<polygon points="-157,-445 -89,-445 -89,-306 -157,-306" fill="url(#feld2)" opacity="0.8"/>
-<pattern id="feld3" patternUnits="userSpaceOnUse" width="6.5" height="6.5" patternTransform="rotate(-169.6)"><rect width="6.5" height="6.5" fill="#CFCB92"/><line x1="0" y1="0" x2="0" y2="6.5" stroke="#8C7A4F" stroke-width="0.4"/></pattern>
-<polygon points="-85,-445 -9,-445 -9,-306 -85,-306" fill="url(#feld3)" opacity="0.8"/>
-<pattern id="feld4" patternUnits="userSpaceOnUse" width="6" height="6" patternTransform="rotate(-78.5)"><rect width="6" height="6" fill="#D6BE7E"/><line x1="0" y1="0" x2="0" y2="6" stroke="#8C7A4F" stroke-width="0.4"/></pattern>
-<polygon points="8,-441 159,-441 159,-310 8,-310" fill="url(#feld4)" opacity="0.8"/>
-<pattern id="feld5" patternUnits="userSpaceOnUse" width="9.5" height="9.5" patternTransform="rotate(-170.9)"><rect width="9.5" height="9.5" fill="#D6BE7E"/><line x1="0" y1="0" x2="0" y2="9.5" stroke="#8C7A4F" stroke-width="0.4"/></pattern>
-<polygon points="5,-296 163,-296 163,-159 5,-159" fill="url(#feld5)" opacity="0.8"/>
-<pattern id="feld6" patternUnits="userSpaceOnUse" width="6" height="6" patternTransform="rotate(-173.7)"><rect width="6" height="6" fill="#E3CB7A"/><line x1="0" y1="0" x2="0" y2="6" stroke="#8C7A4F" stroke-width="0.4"/></pattern>
-<polygon points="170,-445 252,-445 252,-308 170,-308" fill="url(#feld6)" opacity="0.8"/>
-<pattern id="feld7" patternUnits="userSpaceOnUse" width="8.5" height="8.5" patternTransform="rotate(-263.3)"><rect width="8.5" height="8.5" fill="#D6BE7E"/><line x1="0" y1="0" x2="0" y2="8.5" stroke="#8C7A4F" stroke-width="0.4"/></pattern>
-<polygon points="256,-445 329,-445 329,-308 256,-308" fill="url(#feld7)" opacity="0.8"/>
-<pattern id="feld8" patternUnits="userSpaceOnUse" width="7.5" height="7.5" patternTransform="rotate(-169.4)"><rect width="7.5" height="7.5" fill="#B9C99A"/><line x1="0" y1="0" x2="0" y2="7.5" stroke="#8C7A4F" stroke-width="0.4"/></pattern>
-<polygon points="174,-292 261,-292 261,-155 174,-155" fill="url(#feld8)" opacity="0.8"/>
-<pattern id="feld9" patternUnits="userSpaceOnUse" width="9.5" height="9.5" patternTransform="rotate(-265.5)"><rect width="9.5" height="9.5" fill="#CFCB92"/><line x1="0" y1="0" x2="0" y2="9.5" stroke="#8C7A4F" stroke-width="0.4"/></pattern>
-<polygon points="265,-292 328,-292 328,-155 265,-155" fill="url(#feld9)" opacity="0.8"/>
-<pattern id="feld10" patternUnits="userSpaceOnUse" width="7.5" height="7.5" patternTransform="rotate(-180.6)"><rect width="7.5" height="7.5" fill="#D6BE7E"/><line x1="0" y1="0" x2="0" y2="7.5" stroke="#8C7A4F" stroke-width="0.4"/></pattern>
-<polygon points="-325,304 -259,304 -259,443 -325,443" fill="url(#feld10)" opacity="0.8"/>
-<pattern id="feld11" patternUnits="userSpaceOnUse" width="8.5" height="8.5" patternTransform="rotate(-267.7)"><rect width="8.5" height="8.5" fill="#CFCB92"/><line x1="0" y1="0" x2="0" y2="8.5" stroke="#8C7A4F" stroke-width="0.4"/></pattern>
-<polygon points="-255,304 -174,304 -174,443 -255,443" fill="url(#feld11)" opacity="0.8"/>
-<pattern id="feld12" patternUnits="userSpaceOnUse" width="8.5" height="8.5" patternTransform="rotate(-189.2)"><rect width="8.5" height="8.5" fill="#A9B8CF"/><line x1="0" y1="0" x2="0" y2="8.5" stroke="#8C7A4F" stroke-width="0.4"/></pattern>
-<polygon points="-164,155 -7,155 -7,294 -164,294" fill="url(#feld12)" opacity="0.8"/>
-<pattern id="feld13" patternUnits="userSpaceOnUse" width="8" height="8" patternTransform="rotate(-80.1)"><rect width="8" height="8" fill="#CFCB92"/><line x1="0" y1="0" x2="0" y2="8" stroke="#8C7A4F" stroke-width="0.4"/></pattern>
-<polygon points="171,160 324,160 324,296 171,296" fill="url(#feld13)" opacity="0.8"/>
-<pattern id="feld14" patternUnits="userSpaceOnUse" width="10" height="10" patternTransform="rotate(-188.7)"><rect width="10" height="10" fill="#E0D39A"/><line x1="0" y1="0" x2="0" y2="10" stroke="#8C7A4F" stroke-width="0.4"/></pattern>
-<polygon points="174,309 330,309 330,442 174,442" fill="url(#feld14)" opacity="0.8"/>
-<pattern id="feld15" patternUnits="userSpaceOnUse" width="9.5" height="9.5" patternTransform="rotate(-84.6)"><rect width="9.5" height="9.5" fill="#D6BE7E"/><line x1="0" y1="0" x2="0" y2="9.5" stroke="#8C7A4F" stroke-width="0.4"/></pattern>
-<polygon points="342,154 404,154 404,295 342,295" fill="url(#feld15)" opacity="0.8"/>
-<pattern id="feld16" patternUnits="userSpaceOnUse" width="8.5" height="8.5" patternTransform="rotate(-183.9)"><rect width="8.5" height="8.5" fill="#D6BE7E"/><line x1="0" y1="0" x2="0" y2="8.5" stroke="#8C7A4F" stroke-width="0.4"/></pattern>
-<polygon points="408,154 490,154 490,295 408,295" fill="url(#feld16)" opacity="0.8"/>
-<pattern id="feld17" patternUnits="userSpaceOnUse" width="6.5" height="6.5" patternTransform="rotate(-353.4)"><rect width="6.5" height="6.5" fill="#CFCB92"/><line x1="0" y1="0" x2="0" y2="6.5" stroke="#8C7A4F" stroke-width="0.4"/></pattern>
-<polygon points="-493,-140 -354,-140 -354,-6 -493,-6" fill="url(#feld17)" opacity="0.8"/>
-<pattern id="feld18" patternUnits="userSpaceOnUse" width="7.5" height="7.5" patternTransform="rotate(-86)"><rect width="7.5" height="7.5" fill="#A9B8CF"/><line x1="0" y1="0" x2="0" y2="7.5" stroke="#8C7A4F" stroke-width="0.4"/></pattern>
-<polygon points="-346,-142 -205,-142 -205,-4 -346,-4" fill="url(#feld18)" opacity="0.8"/>
-<pattern id="feld19" patternUnits="userSpaceOnUse" width="7" height="7" patternTransform="rotate(-5.1)"><rect width="7" height="7" fill="#D6BE7E"/><line x1="0" y1="0" x2="0" y2="7" stroke="#8C7A4F" stroke-width="0.4"/></pattern>
-<polygon points="-345,7 -207,7 -207,144 -345,144" fill="url(#feld19)" opacity="0.8"/>
+<defs><pattern id="feld0" patternUnits="userSpaceOnUse" width="6" height="6" patternTransform="rotate(-86.9)"><line x1="0" y1="0" x2="0" y2="6" stroke="#8C7A4F" stroke-width="0.4"/></pattern></defs>
+<polygon points="-324,-296 -254,-296 -254,-155 -324,-155" fill="#A9B8CF" opacity="0.8"/>
+<polygon points="-324,-296 -254,-296 -254,-155 -324,-155" fill="url(#feld0)"/>
+<defs><pattern id="feld1" patternUnits="userSpaceOnUse" width="9" height="9" patternTransform="rotate(-188.6)"><line x1="0" y1="0" x2="0" y2="9" stroke="#8C7A4F" stroke-width="0.4"/></pattern></defs>
+<polygon points="-250,-296 -173,-296 -173,-155 -250,-155" fill="#D6BE7E" opacity="0.8"/>
+<polygon points="-250,-296 -173,-296 -173,-155 -250,-155" fill="url(#feld1)"/>
+<defs><pattern id="feld2" patternUnits="userSpaceOnUse" width="7.5" height="7.5" patternTransform="rotate(-89.4)"><line x1="0" y1="0" x2="0" y2="7.5" stroke="#8C7A4F" stroke-width="0.4"/></pattern></defs>
+<polygon points="-157,-445 -89,-445 -89,-306 -157,-306" fill="#E3CB7A" opacity="0.8"/>
+<polygon points="-157,-445 -89,-445 -89,-306 -157,-306" fill="url(#feld2)"/>
+<defs><pattern id="feld3" patternUnits="userSpaceOnUse" width="6.5" height="6.5" patternTransform="rotate(-169.6)"><line x1="0" y1="0" x2="0" y2="6.5" stroke="#8C7A4F" stroke-width="0.4"/></pattern></defs>
+<polygon points="-85,-445 -9,-445 -9,-306 -85,-306" fill="#CFCB92" opacity="0.8"/>
+<polygon points="-85,-445 -9,-445 -9,-306 -85,-306" fill="url(#feld3)"/>
+<defs><pattern id="feld4" patternUnits="userSpaceOnUse" width="6" height="6" patternTransform="rotate(-78.5)"><line x1="0" y1="0" x2="0" y2="6" stroke="#8C7A4F" stroke-width="0.4"/></pattern></defs>
+<polygon points="8,-441 159,-441 159,-310 8,-310" fill="#D6BE7E" opacity="0.8"/>
+<polygon points="8,-441 159,-441 159,-310 8,-310" fill="url(#feld4)"/>
+<defs><pattern id="feld5" patternUnits="userSpaceOnUse" width="9.5" height="9.5" patternTransform="rotate(-170.9)"><line x1="0" y1="0" x2="0" y2="9.5" stroke="#8C7A4F" stroke-width="0.4"/></pattern></defs>
+<polygon points="5,-296 163,-296 163,-159 5,-159" fill="#D6BE7E" opacity="0.8"/>
+<polygon points="5,-296 163,-296 163,-159 5,-159" fill="url(#feld5)"/>
+<defs><pattern id="feld6" patternUnits="userSpaceOnUse" width="6" height="6" patternTransform="rotate(-173.7)"><line x1="0" y1="0" x2="0" y2="6" stroke="#8C7A4F" stroke-width="0.4"/></pattern></defs>
+<polygon points="170,-445 252,-445 252,-308 170,-308" fill="#E3CB7A" opacity="0.8"/>
+<polygon points="170,-445 252,-445 252,-308 170,-308" fill="url(#feld6)"/>
+<defs><pattern id="feld7" patternUnits="userSpaceOnUse" width="8.5" height="8.5" patternTransform="rotate(-263.3)"><line x1="0" y1="0" x2="0" y2="8.5" stroke="#8C7A4F" stroke-width="0.4"/></pattern></defs>
+<polygon points="256,-445 329,-445 329,-308 256,-308" fill="#D6BE7E" opacity="0.8"/>
+<polygon points="256,-445 329,-445 329,-308 256,-308" fill="url(#feld7)"/>
+<defs><pattern id="feld8" patternUnits="userSpaceOnUse" width="7.5" height="7.5" patternTransform="rotate(-169.4)"><line x1="0" y1="0" x2="0" y2="7.5" stroke="#8C7A4F" stroke-width="0.4"/></pattern></defs>
+<polygon points="174,-292 261,-292 261,-155 174,-155" fill="#B9C99A" opacity="0.8"/>
+<polygon points="174,-292 261,-292 261,-155 174,-155" fill="url(#feld8)"/>
+<defs><pattern id="feld9" patternUnits="userSpaceOnUse" width="9.5" height="9.5" patternTransform="rotate(-265.5)"><line x1="0" y1="0" x2="0" y2="9.5" stroke="#8C7A4F" stroke-width="0.4"/></pattern></defs>
+<polygon points="265,-292 328,-292 328,-155 265,-155" fill="#CFCB92" opacity="0.8"/>
+<polygon points="265,-292 328,-292 328,-155 265,-155" fill="url(#feld9)"/>
+<defs><pattern id="feld10" patternUnits="userSpaceOnUse" width="7.5" height="7.5" patternTransform="rotate(-180.6)"><line x1="0" y1="0" x2="0" y2="7.5" stroke="#8C7A4F" stroke-width="0.4"/></pattern></defs>
+<polygon points="-325,304 -259,304 -259,443 -325,443" fill="#D6BE7E" opacity="0.8"/>
+<polygon points="-325,304 -259,304 -259,443 -325,443" fill="url(#feld10)"/>
+<defs><pattern id="feld11" patternUnits="userSpaceOnUse" width="8.5" height="8.5" patternTransform="rotate(-267.7)"><line x1="0" y1="0" x2="0" y2="8.5" stroke="#8C7A4F" stroke-width="0.4"/></pattern></defs>
+<polygon points="-255,304 -174,304 -174,443 -255,443" fill="#CFCB92" opacity="0.8"/>
+<polygon points="-255,304 -174,304 -174,443 -255,443" fill="url(#feld11)"/>
+<defs><pattern id="feld12" patternUnits="userSpaceOnUse" width="8.5" height="8.5" patternTransform="rotate(-189.2)"><line x1="0" y1="0" x2="0" y2="8.5" stroke="#8C7A4F" stroke-width="0.4"/></pattern></defs>
+<polygon points="-164,155 -7,155 -7,294 -164,294" fill="#A9B8CF" opacity="0.8"/>
+<polygon points="-164,155 -7,155 -7,294 -164,294" fill="url(#feld12)"/>
+<defs><pattern id="feld13" patternUnits="userSpaceOnUse" width="8" height="8" patternTransform="rotate(-80.1)"><line x1="0" y1="0" x2="0" y2="8" stroke="#8C7A4F" stroke-width="0.4"/></pattern></defs>
+<polygon points="171,160 324,160 324,296 171,296" fill="#CFCB92" opacity="0.8"/>
+<polygon points="171,160 324,160 324,296 171,296" fill="url(#feld13)"/>
+<defs><pattern id="feld14" patternUnits="userSpaceOnUse" width="10" height="10" patternTransform="rotate(-188.7)"><line x1="0" y1="0" x2="0" y2="10" stroke="#8C7A4F" stroke-width="0.4"/></pattern></defs>
+<polygon points="174,309 330,309 330,442 174,442" fill="#E0D39A" opacity="0.8"/>
+<polygon points="174,309 330,309 330,442 174,442" fill="url(#feld14)"/>
+<defs><pattern id="feld15" patternUnits="userSpaceOnUse" width="9.5" height="9.5" patternTransform="rotate(-84.6)"><line x1="0" y1="0" x2="0" y2="9.5" stroke="#8C7A4F" stroke-width="0.4"/></pattern></defs>
+<polygon points="342,154 404,154 404,295 342,295" fill="#D6BE7E" opacity="0.8"/>
+<polygon points="342,154 404,154 404,295 342,295" fill="url(#feld15)"/>
+<defs><pattern id="feld16" patternUnits="userSpaceOnUse" width="8.5" height="8.5" patternTransform="rotate(-183.9)"><line x1="0" y1="0" x2="0" y2="8.5" stroke="#8C7A4F" stroke-width="0.4"/></pattern></defs>
+<polygon points="408,154 490,154 490,295 408,295" fill="#D6BE7E" opacity="0.8"/>
+<polygon points="408,154 490,154 490,295 408,295" fill="url(#feld16)"/>
+<defs><pattern id="feld17" patternUnits="userSpaceOnUse" width="6.5" height="6.5" patternTransform="rotate(-353.4)"><line x1="0" y1="0" x2="0" y2="6.5" stroke="#8C7A4F" stroke-width="0.4"/></pattern></defs>
+<polygon points="-493,-140 -354,-140 -354,-6 -493,-6" fill="#CFCB92" opacity="0.8"/>
+<polygon points="-493,-140 -354,-140 -354,-6 -493,-6" fill="url(#feld17)"/>
+<defs><pattern id="feld18" patternUnits="userSpaceOnUse" width="7.5" height="7.5" patternTransform="rotate(-86)"><line x1="0" y1="0" x2="0" y2="7.5" stroke="#8C7A4F" stroke-width="0.4"/></pattern></defs>
+<polygon points="-346,-142 -205,-142 -205,-4 -346,-4" fill="#A9B8CF" opacity="0.8"/>
+<polygon points="-346,-142 -205,-142 -205,-4 -346,-4" fill="url(#feld18)"/>
+<defs><pattern id="feld19" patternUnits="userSpaceOnUse" width="7" height="7" patternTransform="rotate(-5.1)"><line x1="0" y1="0" x2="0" y2="7" stroke="#8C7A4F" stroke-width="0.4"/></pattern></defs>
+<polygon points="-345,7 -207,7 -207,144 -345,144" fill="#D6BE7E" opacity="0.8"/>
+<polygon points="-345,7 -207,7 -207,144 -345,144" fill="url(#feld19)"/>
 <polygon points="76,-4 184,-4 184,-42 76,-42" fill="#E2DCC6" stroke="#6B6E66" stroke-width="0.4"/>
 <polygon points="76,4 184,4 184,42 76,42" fill="#E2DCC6" stroke="#6B6E66" stroke-width="0.4"/>
 <polygon points="-76,-4 -184,-4 -184,-42 -76,-42" fill="#E2DCC6" stroke="#6B6E66" stroke-width="0.4"/>
