@@ -25,6 +25,16 @@ public static class Stadtkarten
     /// <summary>Die Karte der Greybox-Stadt, oder null (mit Fehlermeldung), wenn sie fehlt oder fehlerhaft ist.</summary>
     public static Stadtkarte? Greybox => Laden(Vorgabe);
 
+    /// <summary>Die Kennung der Karte, mit der eine neue Partie beginnt: aus der Startoption <c>--karte=&lt;kennung&gt;</c>, sonst <see cref="Vorgabe"/>.</summary>
+    public static string StartKennung =>
+        OS.GetCmdlineUserArgs().LastOrDefault(a => a.StartsWith("--karte="))?["--karte=".Length..] is { Length: > 0 } k ? k : Vorgabe;
+
+    /// <summary>
+    /// Die Karte einer neuen Partie (<see cref="StartKennung"/>) – Hauptmenü (Rivalen, Namen, Wappen) und Hauptszene nehmen dieselbe, sonst böte
+    /// das Menü mit <c>--karte=probestadt</c> die drei Häuser der Greybox an.
+    /// </summary>
+    public static Stadtkarte? Startkarte => Laden(StartKennung);
+
     /// <summary>Die Karte <c>res://karten/&lt;kennung&gt;.json</c>, oder null (mit Fehlermeldung), wenn sie fehlt oder fehlerhaft ist.</summary>
     public static Stadtkarte? Laden(string kennung)
     {
