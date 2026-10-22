@@ -308,6 +308,65 @@ public sealed class Werkstattwesen
     internal double Einrichtungswert(string beruf, IEnumerable<string> kennungen) =>
         Daten is { } d ? kennungen.Sum(k => d.Stueck(beruf, k)?.Preis ?? 0) : 0;
 
+    // ── Was ein Stück einbringt (für die KI und die Anzeige) ────────────────
+
+    /// <summary>
+    /// Was dieses Stück dem Betrieb im Jahr mehr einbringt – zu heutigen Preisen, mit den Arbeitern, die jetzt da sind, und ihren Waren.
+    /// 0: schon gekauft, kein Stück dieses Betriebs, ohne Wirkung in Gulden (Regale, Dietriche, Kassenschrank …) oder kein Vorteil
+    /// bei der jetzigen Arbeit (der Blasebalg hilft nur, wenn eine begünstigte Ware gemacht wird). Die Rechnung je Wirkung:
+    /// <list type="bullet">
+    /// <item>kürzere Zeit je Stück: je Arbeiter Leistung (mit Völkerbonus) × Arbeitsminuten × Gewinn je Minute seiner Ware
+    /// × (1 ÷ Zeitfaktor mit dem Stück − 1 ÷ Zeitfaktor ohne)</item>
+    /// <item>weniger Lohn (Waffenkammer): Lohnkosten × (1 − Lohnfaktor)</item>
+    /// <item>seltener Unfälle (Schürzen): Wert der Arbeit × Unfallgefahr × verlorener Teil des Tages ((Stunden − 1) ÷ 2 ÷ Stunden) × (1 − Unfallfaktor)</item>
+    /// <item>Eisentür, Löschfass: was Diebe bzw. Feuer diesem Betrieb im Vorjahr genommen haben (<see cref="Betriebsrechnung.Raub"/>,
+    /// <see cref="Betriebsrechnung.Brandschaden"/>) × (1 − Faktor) – wer nie bestohlen wurde, hat nichts davon</item>
+    /// <item>Geldleiher: mehr Rahmen (nur so weit die Kasse reicht), mehr Wechselgebühr, weniger Ausfall der Kasse (<see cref="Bank.Bankwesen"/>)</item>
+    /// </list>
+    /// Mehr Stück drücken den Preis – das rechnet die Abfrage nicht mit (wie <see cref="Kalkulation.ErwarteterJahresgewinn"/>).
+    /// </summary>
+    public double ErwarteterMehrgewinnJeJahr(Betrieb b, string kennung)
+    {
+        if (Daten is not { } d || !KannEinrichtung(b) || b.HatEinrichtung(kennung) || d.Stueck(b.Artdaten.Beruf, kennung) is not { } e) return 0;
+        var wi = e.Wirkung;
+        var mehr = 0.0;
+        if (b.IstWerkstatt && wi.ZeitFaktor < 1)
+            mehr += Arbeitswert(b, ware => wi.GiltFuer(ware) ? 1 / wi.ZeitFaktor - 1 : 0);
+        if (wi.LohnFaktor < 1)
+            mehr += b.Lohnkosten * (1 - wi.LohnFaktor);
+        if (wi.UnfallFaktor < 1 && b.IstWerkstatt)
+        {
+            var stunden = b.Arbeitsminuten / 60.0;
+            mehr += Arbeitswert(b, _ => 1) * UnfallGefahr(b) * (stunden - 1) / 2 / stunden * (1 - wi.UnfallFaktor);
+        }
+        if (wi.EinbruchFaktor < 1)
+            mehr += (b.Vorjahr?.Raub ?? 0) * (1 - wi.EinbruchFaktor);
+        if (wi.BrandFaktor < 1)
+            mehr += (b.Vorjahr?.Brandschaden ?? 0) * (1 - wi.BrandFaktor);
+        if (_w.Bank.IstBankbetrieb(b))
+            mehr += _w.Bank.MehrgewinnJeJahr(b, wi);
+        return Math.Max(0, mehr);
+    }
+
+    /// <summary>Nach wie vielen Jahren sich das Stück bezahlt macht: Preis ÷ <see cref="ErwarteterMehrgewinnJeJahr"/> – null ohne Mehrgewinn.</summary>
+    public double? Amortisationsjahre(Betrieb b, string kennung) =>
+        Daten?.Stueck(b.Artdaten.Beruf, kennung) is { } e && ErwarteterMehrgewinnJeJahr(b, kennung) is var mehr and > 0 ? e.Preis / mehr : null;
+
+    /// <summary>
+    /// Wert der Arbeit eines Jahres in dieser Werkstatt, je Ware gewichtet: Σ je Arbeiter Leistung (mit Völkerbonus) × Arbeitsminuten
+    /// × Gewinn je Minute seiner Ware (mit der Einrichtung) × <paramref name="gewicht"/>(Ware).
+    /// </summary>
+    private double Arbeitswert(Betrieb b, Func<string, double> gewicht)
+    {
+        var volk = _w.VolksFaktor(b.Konto, b.Artdaten.Beruf);
+        return b.Arbeiter.Sum(a =>
+        {
+            var ware = b.WareVon(a);
+            return _w.Daten.Arbeitskraefte[a.Arbeitskraft].TempoAm(b.Ort) * volk * b.Arbeitsminuten
+                   * Kalkulation.GewinnJeArbeitsminute(_w, ware) / b.ZeitFaktor(ware) * gewicht(ware);
+        });
+    }
+
     // ── Speichern ───────────────────────────────────────────────────────────
 
     internal long Wuerfe => _zufall.Wuerfe;

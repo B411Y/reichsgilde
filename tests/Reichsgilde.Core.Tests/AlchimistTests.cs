@@ -75,7 +75,7 @@ static class AlchimistTests
         {
             foreach (var reich in new[] { false, true })
             {
-                var (sim, _) = Partieaufbau.Erstellen(Partieeinstellungen.Standard with { Siegbedingung = Siegbedingung.Endlos, Zufallsstartwert = 9 },
+                var (sim, _) = Partieaufbau.Erstellen(Partieeinstellungen.Standard with { Siegbedingung = Siegbedingung.Endlos, Zufallsstartwert = 9, Schwierigkeit = Schwierigkeit.Schwer },
                     Daten.Value, new NeuePartie(Rivalen: 1));
                 var w = sim.Wirtschaft!;
                 var eisenbart = w.Rivalen[0].Konto;

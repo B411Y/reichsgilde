@@ -10,8 +10,9 @@ static class SpeicherTests
     static readonly Lazy<Wirtschaftsdaten> Daten = new(() => Wirtschaftsdaten.AusDatei(Datenpfad.Wirtschaft()));
     static readonly DateTime Zeitpunkt = new(2026, 10, 13, 12, 0, 0);
 
-    static (Simulation Sim, Konto Spieler) NeuePartie(int startwert = 1400, KiCharakter rivale = KiCharakter.Ausgewogen) =>
-        Partieaufbau.Erstellen(Partieeinstellungen.Standard with { Zufallsstartwert = startwert, Siegbedingung = Siegbedingung.Endlos },
+    static (Simulation Sim, Konto Spieler) NeuePartie(int startwert = 1400, KiCharakter rivale = KiCharakter.Ausgewogen,
+        Schwierigkeit schwierigkeit = Schwierigkeit.Normal) =>
+        Partieaufbau.Erstellen(Partieeinstellungen.Standard with { Zufallsstartwert = startwert, Siegbedingung = Siegbedingung.Endlos, Schwierigkeit = schwierigkeit },
             Daten.Value, new NeuePartie(Rivale: rivale));
 
     static void Ticken(Simulation sim, long minuten)
@@ -47,7 +48,7 @@ static class SpeicherTests
         {
             // Der wichtigste Test: Vergisst das Speichern irgendein Feld (Markt-Fenster, Karren-Wartezeit,
             // Zufallswürfe, KI-Gedächtnis …), laufen die beiden Partien auseinander.
-            var (original, spieler) = NeuePartie(startwert: 4711, rivale: KiCharakter.Wagemutig);
+            var (original, spieler) = NeuePartie(startwert: 4711, rivale: KiCharakter.Wagemutig, Schwierigkeit.Schwer); // reiche KI: mehr geschieht
             Ticken(original, (long)(3.5 * Spielzeit.MinutenProTag) + 333);
             var (kopie, kopieSpieler) = Speicherung.Laden(Speicherung.Speichern(original, spieler, Zeitpunkt));
 
@@ -103,7 +104,7 @@ static class SpeicherTests
 
         ("Partieaufbau: Unter Statut A arbeiten Bergleute statt Orks in der Grube", () =>
         {
-            var (sim, _) = Partieaufbau.Erstellen(Partieeinstellungen.Standard with { StartStatut = Fronstatut.FreieStadt },
+            var (sim, _) = Partieaufbau.Erstellen(Partieeinstellungen.Standard with { StartStatut = Fronstatut.FreieStadt, Schwierigkeit = Schwierigkeit.Schwer },
                 Daten.Value, new NeuePartie());
             var grube = sim.Wirtschaft!.Betriebe.Single(b => b.Name == "Grube Eisenbart");
             Pruefe.Gleich(3, grube.Belegung.GetValueOrDefault("Bergmann"));

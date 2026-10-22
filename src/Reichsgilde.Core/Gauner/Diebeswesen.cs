@@ -624,7 +624,7 @@ public sealed class Diebeswesen
             if (hehler > 0) a.Dieb.Gaunerkosten(-hehler);
             if (wert > 0)
             {
-                a.Ziel.Raub(wert);
+                b.RaubBuchen(wert);
                 oeffentlich = $"Einbruch in {b.Name}: {string.Join(" und ", beute.Select(x => $"{x.Stueck} {x.Ware}"))} gestohlen (Wert {Zahlenformat.Ganz(wert)}).";
                 _w.Gauner.Melden(a.Dieb, $"Eure Leute bringen aus {b.Name} Ware für {Zahlenformat.Ganz(wert)} ins {versteck!.Artdaten.Name}" +
                                          (hehler > 0 ? $" – was nicht ins Lager passt, nimmt der Hehler für {Zahlenformat.Ganz(hehler)}." : "."));
@@ -686,6 +686,7 @@ public sealed class Diebeswesen
         if (erfolg)
         {
             schaden = _w.Gauner.Sabotageschaden(b);
+            b.BrandBuchen(schaden);
             b.Sabotieren(g.Sabotage.StillstandMinuten);
             b.SchadenBuchen(g.Sabotage.Reparatur);
             oeffentlich = $"Feuer in {b.Name}! Wer kein Schutzgeld zahlt … {g.Sabotage.StillstandMinuten / 60} Arbeitsstunden Stillstand, Reparatur {Zahlenformat.Ganz(g.Sabotage.Reparatur)}.";

@@ -303,6 +303,17 @@ public sealed partial class Stadtwirtschaft
         _abgegeben.Add(FreieLiegenschaft(name, art, Grundpreis("", art), mindestStand));
     }
 
+    /// <summary>
+    /// Ein Startbetrieb der Karte, den beim Start niemand bekommt (Schwierigkeit „Normal“: der Umlandbetrieb eines KI-Hauses):
+    /// Er steht frei wie ein gekündigter Betrieb – Umland zur Pacht, eine Werkstatt zum Kaufpreis ihrer Art, ab dem Stand ihres Vorbilds.
+    /// </summary>
+    internal void StartbetriebFreigeben(string name, Betriebsart art)
+    {
+        var stand = Vorbild(name, Grundart(art).Art)?.MindestStand ?? Daten.Staende[Math.Min(1, Daten.Staende.Count - 1)].Name;
+        _abgegeben.RemoveAll(x => x.Name == name);
+        _abgegeben.Add(FreieLiegenschaft(name, art, Wert(name, art), stand));
+    }
+
     /// <summary>Eine neue Werkstatt ist fertig gebaut – für die Darstellung wie ein Kauf (<see cref="BetriebErworben"/>).</summary>
     internal void ErworbenMelden(Betrieb betrieb) => BetriebErworben?.Invoke(betrieb);
 

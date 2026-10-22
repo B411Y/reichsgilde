@@ -656,6 +656,10 @@ public sealed record BetriebsrechnungStand
     public double Steuer { get; init; }
     public double Schaden { get; init; }
     public double Transport { get; init; }
+
+    /// <summary>Von Dieben geholt (Ware bzw. Kasse) und Schaden durch Feuer – nur zur Information (0 in alten Spielständen).</summary>
+    public double Raub { get; init; }
+    public double Brandschaden { get; init; }
 }
 
 public sealed record KarrenStand

@@ -98,8 +98,9 @@ static class TischlerTests
             Pruefe.Gleich(3, w.Rivalen.Count);
             var eichwald = w.Konten.Single(k => k.Inhaber == Partieaufbau.ZweiterRivale);
             Pruefe.Gleich(Partieaufbau.ZweiterRivaleVolk, w.Familien.Von(eichwald)!.Volk);
-            Pruefe.Wahr(w.Betriebe.Where(b => b.Konto == eichwald).Select(b => b.Art).OrderBy(a => a)
-                .SequenceEqual(new[] { Betriebsart.Tischlerei, Betriebsart.Holzfaellerei }), "Betriebe von Eichwald");
+            // Normal (Vorgabe): Eichwald beginnt wie der Spieler mit einer Werkstatt, sein Holzschlag ist frei zur Pacht.
+            Pruefe.Wahr(w.Betriebe.Where(b => b.Konto == eichwald).Select(b => b.Art).SequenceEqual(new[] { Betriebsart.Tischlerei }), "Betriebe von Eichwald");
+            Pruefe.Wahr(w.FreieLiegenschaften.Any(l => l.Name == "Holzschlag Eichwald" && l.IstPacht), "Holzschlag Eichwald frei");
 
             var (sim1, _) = Partieaufbau.Erstellen(Partieeinstellungen.Standard, Daten.Value, new NeuePartie(Rivalen: 1));
             Pruefe.Gleich(1, sim1.Wirtschaft!.Rivalen.Count);
@@ -108,7 +109,7 @@ static class TischlerTests
 
         ("KI Eichwald: Holzschlag liefert Holz, die Tischlerei verkauft Tischlerwaren – mit Gewinn", () =>
         {
-            var (sim, _) = Partieaufbau.Erstellen(Partieeinstellungen.Standard with { Siegbedingung = Siegbedingung.Endlos },
+            var (sim, _) = Partieaufbau.Erstellen(Partieeinstellungen.Standard with { Siegbedingung = Siegbedingung.Endlos, Schwierigkeit = Schwierigkeit.Schwer },
                 Daten.Value, new NeuePartie());
             var w = sim.Wirtschaft!;
             var eichwald = w.Konten.Single(k => k.Inhaber == Partieaufbau.ZweiterRivale);
