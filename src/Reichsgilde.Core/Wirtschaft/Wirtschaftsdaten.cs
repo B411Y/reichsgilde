@@ -365,6 +365,7 @@ public sealed class Wirtschaftsdaten
         foreach (var (art, d) in Betriebsarten)
         {
             if (d.Plaetze < 1) f.Add($"betriebsarten.{art}.plaetze muss mindestens 1 sein.");
+            if (d.ErfahrungFaktor is < 0 or > 1) f.Add($"betriebsarten.{art}.erfahrungFaktor muss zwischen 0 und 1 liegen.");
             if (d.Fixkosten < 0) f.Add($"betriebsarten.{art}.fixkosten darf nicht negativ sein.");
             if (Berufe.Count > 0 && !Berufe.ContainsKey(d.Beruf)) f.Add($"betriebsarten.{art}: Den Beruf „{d.Beruf}“ gibt es nicht.");
             if (d.Startkarren != "" && !Logistik.Karren.ContainsKey(d.Startkarren)) f.Add($"betriebsarten.{art}: Den Karren „{d.Startkarren}“ gibt es nicht.");

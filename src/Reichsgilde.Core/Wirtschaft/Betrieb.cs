@@ -690,7 +690,7 @@ public sealed class Betrieb
         {
             // Diebe verdienen nicht nach Handwerkskunst – gezählt wird die Arbeitszeit der Leute, mit dem Geschick ihres Volkes.
             _fortschritt += leistungProMinute * volksFaktor;
-            Konto.ErfahrungSammeln(_art.Beruf, leistungProMinute * volksFaktor / 60);
+            Konto.ErfahrungSammeln(_art.Beruf, leistungProMinute * volksFaktor / 60 * _art.ErfahrungFaktor);
             Stillstand = null;
             _letzterStillstand = null;
             return;
@@ -755,7 +755,7 @@ public sealed class Betrieb
                 Auslagern(zutat, menge);
             Einlagern(ware, 1);
             Konto.Hergestellt(ware);
-            Konto.ErfahrungSammeln(_art.Beruf, zeit / 60);
+            Konto.ErfahrungSammeln(_art.Beruf, zeit / 60 * _art.ErfahrungFaktor);
             fortschritt -= zeit;
         }
         _fortschrittJeWare[ware] = fortschritt;
@@ -784,7 +784,7 @@ public sealed class Betrieb
             }
             Einlagern(ware, 1);
             Konto.Hergestellt(ware);
-            Konto.ErfahrungSammeln(_art.Beruf, zeit / 60);
+            Konto.ErfahrungSammeln(_art.Beruf, zeit / 60 * _art.ErfahrungFaktor);
             fortschritt -= zeit;
         }
         return null;

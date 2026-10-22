@@ -470,7 +470,7 @@ static class WerkstattTests
             Pruefe.Gleich(60, t.LagerKapazitaetJeWare);
             foreach (var kennung in new[] { "Loeschfass", "Eisentuer", "Schuerzen" }) Ok(w, k, new EinrichtungKaufen(t.Name, kennung));
             Pruefe.Gleich((0.5, 0.5, 0.5), (t.BrandFaktor, t.EinbruchFaktor, t.UnfallFaktor));
-            Pruefe.Ungefaehr(5_000 - 350 - 300 - 200 - 100 - 300 - 80, k.Vermoegen, 1e-9);
+            Pruefe.Ungefaehr(5_000 - 350 - 300 - 200 - 100 - 150 - 80, k.Vermoegen, 1e-9); // Eisentür 150 seit PR #177
             Abgelehnt(w, k, new EinrichtungKaufen(t.Name, "Blasebalg"), "kein Stück „Blasebalg“");
             Abgelehnt(w, k, new EinrichtungKaufen(t.Name, "Werkzeug2"), "erst ab Stufe 2");
             Ok(w, k, new ProduktWaehlen(t.Name, "Truhe"));
@@ -549,7 +549,7 @@ static class WerkstattTests
             Pruefe.Gleich(60, m.LagerKapazitaetJeWare);
             foreach (var kennung in new[] { "Loeschfass", "Eisentuer", "Schuerzen" }) Ok(w, k, new EinrichtungKaufen(m.Name, kennung));
             Pruefe.Gleich((0.5, 0.5, 0.5), (m.BrandFaktor, m.EinbruchFaktor, m.UnfallFaktor));
-            Pruefe.Ungefaehr(5_000 - 350 - 300 - 200 - 100 - 300 - 80, k.Vermoegen, 1e-9);
+            Pruefe.Ungefaehr(5_000 - 350 - 300 - 200 - 100 - 150 - 80, k.Vermoegen, 1e-9); // Eisentür 150 seit PR #177
             Abgelehnt(w, k, new EinrichtungKaufen(m.Name, "Leimzwingen"), "kein Stück „Leimzwingen“");
             Abgelehnt(w, k, new EinrichtungKaufen(m.Name, "Werkzeug2"), "erst ab Stufe 2");
             Ok(w, k, new ProduktWaehlen(m.Name, "Mühlstein"));
@@ -631,7 +631,7 @@ static class WerkstattTests
             Pruefe.Gleich(60, t.LagerKapazitaetJeWare);
             foreach (var kennung in new[] { "Loeschfass", "Eisentuer", "Handschuhe" }) Ok(w, k, new EinrichtungKaufen(t.Name, kennung));
             Pruefe.Gleich((0.5, 0.5, 0.5), (t.BrandFaktor, t.EinbruchFaktor, t.UnfallFaktor));
-            Pruefe.Ungefaehr(5_000 - 350 - 300 - 200 - 100 - 300 - 80, k.Vermoegen, 1e-9);
+            Pruefe.Ungefaehr(5_000 - 350 - 300 - 200 - 100 - 150 - 80, k.Vermoegen, 1e-9); // Eisentür 150 seit PR #177
             Abgelehnt(w, k, new EinrichtungKaufen(t.Name, "Schuerzen"), "kein Stück „Schuerzen“");
             Abgelehnt(w, k, new EinrichtungKaufen(t.Name, "Flaschenzug"), "kein Stück „Flaschenzug“");
             Abgelehnt(w, k, new EinrichtungKaufen(t.Name, "Werkzeug2"), "erst ab Stufe 2");
@@ -748,7 +748,7 @@ static class WerkstattTests
             Pruefe.Gleich(60, s.LagerKapazitaetJeWare);
             foreach (var kennung in new[] { "Loeschfass", "Eisentuer", "Handschuhe" }) Ok(w, k, new EinrichtungKaufen(s.Name, kennung));
             Pruefe.Gleich((0.5, 0.5, 0.5), (s.BrandFaktor, s.EinbruchFaktor, s.UnfallFaktor));
-            Pruefe.Ungefaehr(5_000 - 350 - 300 - 200 - 100 - 300 - 80, k.Vermoegen, 1e-9);
+            Pruefe.Ungefaehr(5_000 - 350 - 300 - 200 - 100 - 150 - 80, k.Vermoegen, 1e-9); // Eisentür 150 seit PR #177
             Abgelehnt(w, k, new EinrichtungKaufen(s.Name, "Schuerzen"), "kein Stück „Schuerzen“");
             Abgelehnt(w, k, new EinrichtungKaufen(s.Name, "Destillierhelm"), "kein Stück „Destillierhelm“");
             Abgelehnt(w, k, new EinrichtungKaufen(s.Name, "Werkzeug2"), "erst ab Stufe 2");
@@ -864,7 +864,7 @@ static class WerkstattTests
             Pruefe.Gleich(60, s.LagerKapazitaetJeWare);
             foreach (var kennung in new[] { "Loeschfass", "Eisentuer", "Handschuhe" }) Ok(w, k, new EinrichtungKaufen(s.Name, kennung));
             Pruefe.Gleich((0.5, 0.5, 0.5), (s.BrandFaktor, s.EinbruchFaktor, s.UnfallFaktor));
-            Pruefe.Ungefaehr(5_000 - 350 - 300 - 200 - 100 - 300 - 80, k.Vermoegen, 1e-9);
+            Pruefe.Ungefaehr(5_000 - 350 - 300 - 200 - 100 - 150 - 80, k.Vermoegen, 1e-9); // Eisentür 150 seit PR #177
             Abgelehnt(w, k, new EinrichtungKaufen(s.Name, "Schuerzen"), "kein Stück „Schuerzen“");
             Abgelehnt(w, k, new EinrichtungKaufen(s.Name, "Glasflakons"), "kein Stück „Glasflakons“");
             Abgelehnt(w, k, new EinrichtungKaufen(s.Name, "Werkzeug2"), "erst ab Stufe 2");
@@ -955,7 +955,7 @@ static class WerkstattTests
             Pruefe.Gleich(60, b.LagerKapazitaetJeWare);
             foreach (var kennung in new[] { "Loeschfass", "Eisentuer", "Handschuhe" }) Ok(w, k, new EinrichtungKaufen(b.Name, kennung));
             Pruefe.Gleich((0.5, 0.5, 0.5), (b.BrandFaktor, b.EinbruchFaktor, b.UnfallFaktor));
-            Pruefe.Ungefaehr(5_000 - 350 - 300 - 200 - 100 - 300 - 80, k.Vermoegen, 1e-9);
+            Pruefe.Ungefaehr(5_000 - 350 - 300 - 200 - 100 - 150 - 80, k.Vermoegen, 1e-9); // Eisentür 150 seit PR #177
             Abgelehnt(w, k, new EinrichtungKaufen(b.Name, "Schuerzen"), "kein Stück „Schuerzen“");
             Abgelehnt(w, k, new EinrichtungKaufen(b.Name, "Braupfanne"), "kein Stück „Braupfanne“");
             Abgelehnt(w, k, new EinrichtungKaufen(b.Name, "Werkzeug2"), "erst ab Stufe 2");

@@ -77,18 +77,19 @@ static class DiebTests
             Pruefe.WirftMitMeldung(() => Wirtschaftsdaten.AusJson(falsch), "nur ein Betrieb des Diebes");
         }),
 
-        ("Taschendiebe: 4 Gesellen bringen an einem Arbeitstag 4 × 720 × 0,8 Gulden – steuerfrei, mit Erfahrung im Beruf", () =>
+        ("Taschendiebe: 4 Gesellen bringen an einem Arbeitstag 4 × 720 × 1,0 Gulden – steuerfrei, mit halber Erfahrung im Beruf (vier Plätze)", () =>
         {
             var sim = NeueSimulation(Unerwischt.Value);
             var (w, k, b) = Dieb(sim);
             var umsatz = k.Laufend.Umsatz;
             BisNachDerNacht(sim);
-            Pruefe.Ungefaehr(4 * 720 * 0.8, w.Diebe.DiesesJahr(k).Beute, 1e-6);
-            Pruefe.Ungefaehr(umsatz + 4 * 720 * 0.8, k.Laufend.Umsatz, 1e-6);
+            // PR #177: Beute 0,8 → 1,0 je Minute; Erfahrung × 0,5 (erfahrungFaktor – doppelt so viele Plätze wie eine Werkstatt)
+            Pruefe.Ungefaehr(4 * 720 * 1.0, w.Diebe.DiesesJahr(k).Beute, 1e-6);
+            Pruefe.Ungefaehr(umsatz + 4 * 720 * 1.0, k.Laufend.Umsatz, 1e-6);
             Pruefe.Gleich(0.0, k.Laufend.Steuer);
-            Pruefe.Ungefaehr(48, k.Erfahrung("Dieb"), 1e-6);
-            Pruefe.Ungefaehr(0.8 * 1.3, w.Diebe.WertJeMinute(3), 1e-12);
-            Pruefe.Ungefaehr(720 * 0.8 - 220, Kalkulation.Jahresertrag(w, b, "Geselle"), 1e-6);
+            Pruefe.Ungefaehr(24, k.Erfahrung("Dieb"), 1e-6);
+            Pruefe.Ungefaehr(1.0 * 1.3, w.Diebe.WertJeMinute(3), 1e-12);
+            Pruefe.Ungefaehr(720 * 1.0 - 220, Kalkulation.Jahresertrag(w, b, "Geselle"), 1e-6);
         }),
 
         ("Fang: Ein erwischter Dieb kommt in den Turm (Lehrling zuerst) – ein anderes Haus hat einen Beweis", () =>

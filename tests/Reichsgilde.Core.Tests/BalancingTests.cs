@@ -147,6 +147,17 @@ static class BalancingTests
             }
         }),
 
+        ("Erfahrung: Diebe und Wache sammeln je Mann halb so viel (erfahrungFaktor 0,5 – doppelt so viele Plätze wie eine Werkstatt); geprüft 0 bis 1", () =>
+        {
+            var d = Daten.Value;
+            foreach (var art in new[] { Betriebsart.Schmugglerloch, Betriebsart.Unterschlupf, Betriebsart.Diebesgilde, Betriebsart.Wachhaus, Betriebsart.Stadtwache, Betriebsart.Garnison })
+                Pruefe.Ungefaehr(0.5, d.Art(art).ErfahrungFaktor, 1e-12);
+            foreach (var art in new[] { Betriebsart.Giesserei, Betriebsart.Wechselstube, Betriebsart.Kirche, Betriebsart.Mine, Betriebsart.Wachturm })
+                Pruefe.Ungefaehr(1, d.Art(art).ErfahrungFaktor, 1e-12);
+            var json = File.ReadAllText(Datenpfad.Wirtschaft()).Replace("\"ausbauKosten\": 2500, \"erfahrungFaktor\": 0.5 }", "\"ausbauKosten\": 2500, \"erfahrungFaktor\": 1.5 }");
+            Pruefe.WirftMitMeldung(() => Wirtschaftsdaten.AusJson(json), "erfahrungFaktor muss zwischen 0 und 1 liegen");
+        }),
+
         ("Einrichtung: Mehrgewinn je Jahr – Werkzeug = Leistung × Arbeitsminuten × Gewinn je Minute × (1 ÷ 0,9 − 1); gekauft oder ohne Gulden-Wirkung 0", () =>
         {
             var sim = NeueSimulation();
@@ -214,7 +225,8 @@ static class BalancingTests
             Pruefe.Wahr(w.Ausfuehren(k, new KasseEinlegen(b.Name, 2 * rahmen)).Erfolg, "Kasse füllen");
             var kasse = bank.Kasse(b);
             Pruefe.Ungefaehr(rahmen * 0.1 * d.Stadtzins * jahresanteil * nachSteuer, w.Werkstaetten.ErwarteterMehrgewinnJeJahr(b, "Werkzeug1"), 1e-6);
-            Pruefe.Ungefaehr(kasse * d.Ausfall.Chance * d.Ausfall.Anteil * 0.25, w.Werkstaetten.ErwarteterMehrgewinnJeJahr(b, "Pfandkammer"), 1e-6);
+            var pfandkammer = w.Werkstaetten.Daten!.Stueck("Geldleiher", "Pfandkammer")!.Wirkung.AusfallFaktor;
+            Pruefe.Ungefaehr(kasse * d.Ausfall.Chance * d.Ausfall.Anteil * (1 - pfandkammer), w.Werkstaetten.ErwarteterMehrgewinnJeJahr(b, "Pfandkammer"), 1e-6);
             Pruefe.Gleich(0.0, w.Werkstaetten.ErwarteterMehrgewinnJeJahr(b, "Kassenschrank"), "Kreditrahmen ohne Gulden-Wirkung");
             Pruefe.Wahr(w.Werkstaetten.ErwarteterMehrgewinnJeJahr(b, "Goldwaage") > 0, "Goldwaage: mehr Wechselgebühr");
         }),

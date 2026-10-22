@@ -142,12 +142,12 @@ static class GlaubeTests
             var (_, kath) = Prediger(sim, "Familie Rom", Konfession.Katholisch);
             var w = sim.Wirtschaft!;
             Pruefe.Ungefaehr(200, w.Kirchenwesen.ErwarteteGlaeubige(kath), 1e-9);
-            Pruefe.Ungefaehr(200 * 0.55 * 2.5 + 200 * 0.45 * 2.5 * 0.5, w.Kirchenwesen.ErwarteteKollekte(kath), 1e-9);
+            Pruefe.Ungefaehr(200 * 0.55 * 2.2 + 200 * 0.45 * 2.2 * 0.5, w.Kirchenwesen.ErwarteteKollekte(kath), 1e-9); // 2,2 je Gläubigem seit PR #177
             var (_, ev) = Prediger(sim, "Familie Wittenberg", Konfession.Evangelisch);
             for (var i = 0; i < 5 * 60 + 1; i++) sim.Tick(); // nach der Messe um 10 Uhr
             Pruefe.Ungefaehr(110, w.Kirchenwesen.DiesesJahr(kath).Glaeubige, 1e-9);
             Pruefe.Ungefaehr(90, w.Kirchenwesen.DiesesJahr(ev).Glaeubige, 1e-9);
-            Pruefe.Ungefaehr(225, w.Kirchenwesen.DiesesJahr(ev).Kollekte, 1e-9);
+            Pruefe.Ungefaehr(90 * 2.2, w.Kirchenwesen.DiesesJahr(ev).Kollekte, 1e-9);
         }),
 
         ("Bekehrungspredigt: nur Prediger, einmal im Jahr; +4 Punkte × Rhetorik für die eigene Gemeinde, +3 Gunst bei Ratsherren des Glaubens; die Anteile kehren jährlich um 10 % zurück", () =>
@@ -271,7 +271,7 @@ static class GlaubeTests
             var (k, kirche) = Prediger(sim, "Familie Rom", Konfession.Katholisch);
             var w = sim.Wirtschaft!;
             Pruefe.Gleich(0.0, w.Glaube.Naehe(w.Rat.Ratsherren[0], k));
-            Pruefe.Ungefaehr(500, w.Kirchenwesen.ErwarteteKollekte(kirche), 1e-9);
+            Pruefe.Ungefaehr(440, w.Kirchenwesen.ErwarteteKollekte(kirche), 1e-9); // 200 × 2,2 seit PR #177
             Pruefe.Wahr(!w.Ausfuehren(k, new Bekehrungspredigt()).Erfolg, "Predigt ohne Glauben");
             Pruefe.Wahr(!w.Ausfuehren(k, new Konvertieren(Konfession.Evangelisch)).Erfolg, "Konvertieren ohne Glauben");
         }),

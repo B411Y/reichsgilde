@@ -87,7 +87,7 @@
     },
     "Rapier": {
       "typ": "Fertigprodukt",
-      "grundpreis": 110,
+      "grundpreis": 141,
       "zeit": 60,
       "zutaten": {
         "Eisen": 1,
@@ -98,7 +98,7 @@
     },
     "Silberring": {
       "typ": "Fertigprodukt",
-      "grundpreis": 90,
+      "grundpreis": 115,
       "zeit": 50,
       "zutaten": {
         "Eisen": 1,
@@ -125,7 +125,7 @@
     },
     "Schemel": {
       "typ": "Fertigprodukt",
-      "grundpreis": 95,
+      "grundpreis": 122,
       "zeit": 45,
       "zutaten": { "Holz": 2, "Holzzapfen": 1 },
       "nachfrage": 150,
@@ -133,7 +133,7 @@
     },
     "Truhe": {
       "typ": "Fertigprodukt",
-      "grundpreis": 140,
+      "grundpreis": 179,
       "zeit": 75,
       "zutaten": { "Holz": 2, "Beschlag": 1 },
       "nachfrage": 120,
@@ -149,7 +149,7 @@
     },
     "Werkzeug": {
       "typ": "Fertigprodukt",
-      "grundpreis": 125,
+      "grundpreis": 140,
       "zeit": 50,
       "zutaten": { "Eisen": 2, "Holzzapfen": 1 },
       "nachfrage": 100,
@@ -157,7 +157,7 @@
     },
     "Silberkette": {
       "typ": "Fertigprodukt",
-      "grundpreis": 195,
+      "grundpreis": 218,
       "zeit": 60,
       "zutaten": { "Silber": 2, "Eisen": 1, "Beschlag": 1 },
       "nachfrage": 100,
@@ -165,7 +165,7 @@
     },
     "Goldkette": {
       "typ": "Fertigprodukt",
-      "grundpreis": 321,
+      "grundpreis": 360,
       "zeit": 80,
       "zutaten": { "Gold": 2, "Silber": 1, "Politur": 1 },
       "nachfrage": 60,
@@ -173,7 +173,7 @@
     },
     "Prunkschwert": {
       "typ": "Fertigprodukt",
-      "grundpreis": 340,
+      "grundpreis": 381,
       "zeit": 100,
       "zutaten": { "Eisen": 2, "Gold": 1, "Beschlag": 1, "Schleifziegel": 1 },
       "nachfrage": 50,
@@ -181,7 +181,7 @@
     },
     "Gehstock": {
       "typ": "Fertigprodukt",
-      "grundpreis": 75,
+      "grundpreis": 90,
       "zeit": 40,
       "zutaten": { "Holz": 3 },
       "nachfrage": 120,
@@ -189,7 +189,7 @@
     },
     "Armbrust": {
       "typ": "Fertigprodukt",
-      "grundpreis": 195,
+      "grundpreis": 234,
       "zeit": 70,
       "zutaten": { "Holz": 2, "Holzzapfen": 1, "Beschlag": 1 },
       "nachfrage": 80,
@@ -197,7 +197,7 @@
     },
     "Schrank": {
       "typ": "Fertigprodukt",
-      "grundpreis": 310,
+      "grundpreis": 372,
       "zeit": 100,
       "zutaten": { "Holz": 4, "Holzzapfen": 1, "Farbe": 1, "Beschlag": 1 },
       "nachfrage": 50,
@@ -205,7 +205,7 @@
     },
     "Prunktruhe": {
       "typ": "Fertigprodukt",
-      "grundpreis": 386,
+      "grundpreis": 463,
       "zeit": 100,
       "zutaten": { "Holz": 3, "Beschlag": 2, "Gold": 1, "Politur": 1 },
       "nachfrage": 50,
@@ -237,7 +237,7 @@
     },
     "Grabstein": {
       "typ": "Fertigprodukt",
-      "grundpreis": 105,
+      "grundpreis": 124,
       "zeit": 50,
       "zutaten": { "Granit": 2 },
       "nachfrage": 150,
@@ -245,7 +245,7 @@
     },
     "Mühlstein": {
       "typ": "Fertigprodukt",
-      "grundpreis": 140,
+      "grundpreis": 165,
       "zeit": 60,
       "zutaten": { "Bruchstein": 2, "Schleifziegel": 1 },
       "nachfrage": 120,
@@ -253,7 +253,7 @@
     },
     "Säule": {
       "typ": "Fertigprodukt",
-      "grundpreis": 190,
+      "grundpreis": 205,
       "zeit": 60,
       "zutaten": { "Bruchstein": 4, "Schleifziegel": 1 },
       "nachfrage": 100,
@@ -261,7 +261,7 @@
     },
     "Taufbecken": {
       "typ": "Fertigprodukt",
-      "grundpreis": 240,
+      "grundpreis": 259,
       "zeit": 70,
       "zutaten": { "Granit": 3, "Schleifziegel": 1 },
       "nachfrage": 100,
@@ -269,7 +269,7 @@
     },
     "Steinfigur": {
       "typ": "Fertigprodukt",
-      "grundpreis": 420,
+      "grundpreis": 454,
       "zeit": 100,
       "zutaten": { "Granit": 3, "Schleifziegel": 1, "Werkzeug": 1 },
       "nachfrage": 50,
@@ -277,7 +277,7 @@
     },
     "Grabmal": {
       "typ": "Fertigprodukt",
-      "grundpreis": 450,
+      "grundpreis": 486,
       "zeit": 100,
       "zutaten": { "Granit": 4, "Schleifziegel": 2, "Gold": 1 },
       "nachfrage": 50,
@@ -309,7 +309,7 @@
     },
     "Heilsalbe": {
       "typ": "Fertigprodukt",
-      "grundpreis": 95,
+      "grundpreis": 116,
       "zeit": 50,
       "zutaten": { "Kräuter": 2, "Kröte": 1 },
       "nachfrage": 150,
@@ -317,7 +317,7 @@
     },
     "Rosenwasser": {
       "typ": "Fertigprodukt",
-      "grundpreis": 100,
+      "grundpreis": 115,
       "zeit": 50,
       "zutaten": { "Kräuter": 4 },
       "nachfrage": 100,
@@ -325,7 +325,7 @@
     },
     "Gegengift": {
       "typ": "Fertigprodukt",
-      "grundpreis": 185,
+      "grundpreis": 213,
       "zeit": 70,
       "zutaten": { "Kräuter": 2, "Kröte": 2, "Silber": 1 },
       "nachfrage": 100,
@@ -333,7 +333,7 @@
     },
     "Theriak": {
       "typ": "Fertigprodukt",
-      "grundpreis": 280,
+      "grundpreis": 322,
       "zeit": 100,
       "zutaten": { "Kräuter": 3, "Kröte": 2, "Gold": 1 },
       "nachfrage": 50,
@@ -341,7 +341,7 @@
     },
     "Zinnober": {
       "typ": "Fertigprodukt",
-      "grundpreis": 315,
+      "grundpreis": 362,
       "zeit": 100,
       "zutaten": { "Farbe": 2, "Silber": 1, "Schleifziegel": 1 },
       "nachfrage": 50,
@@ -461,7 +461,7 @@
     },
     "Hetzschrift": {
       "typ": "Fertigprodukt",
-      "grundpreis": 176,
+      "grundpreis": 185,
       "zeit": 50,
       "zutaten": { "Papier": 2, "Farbe": 1 },
       "nachfrage": 60,
@@ -469,7 +469,7 @@
     },
     "Psalter": {
       "typ": "Fertigprodukt",
-      "grundpreis": 285,
+      "grundpreis": 299,
       "zeit": 70,
       "zutaten": { "Papier": 4, "Beschlag": 1 },
       "nachfrage": 80,
@@ -477,7 +477,7 @@
     },
     "Stundenbuch": {
       "typ": "Fertigprodukt",
-      "grundpreis": 470,
+      "grundpreis": 494,
       "zeit": 100,
       "zutaten": { "Papier": 5, "Gold": 1, "Farbe": 2 },
       "nachfrage": 40,
@@ -485,7 +485,7 @@
     },
     "Reliquiar": {
       "typ": "Fertigprodukt",
-      "grundpreis": 275,
+      "grundpreis": 289,
       "zeit": 80,
       "zutaten": { "Silber": 2, "Gold": 1, "Holzzapfen": 1 },
       "nachfrage": 50,
@@ -525,7 +525,7 @@
     },
     "Blume der Zwietracht": {
       "typ": "Fertigprodukt",
-      "grundpreis": 95,
+      "grundpreis": 124,
       "zeit": 50,
       "zutaten": { "Lavendel": 2, "Jasmin": 1 },
       "nachfrage": 150,
@@ -533,7 +533,7 @@
     },
     "Giftdolch": {
       "typ": "Fertigprodukt",
-      "grundpreis": 118,
+      "grundpreis": 153,
       "zeit": 50,
       "zutaten": { "Eisen": 1, "Politur": 1 },
       "nachfrage": 150,
@@ -541,7 +541,7 @@
     },
     "Moschusduft": {
       "typ": "Fertigprodukt",
-      "grundpreis": 185,
+      "grundpreis": 226,
       "zeit": 70,
       "zutaten": { "Jasmin": 2, "Lavendel": 1, "Weingeist": 1 },
       "nachfrage": 100,
@@ -549,7 +549,7 @@
     },
     "Fechterduft": {
       "typ": "Fertigprodukt",
-      "grundpreis": 176,
+      "grundpreis": 215,
       "zeit": 60,
       "zutaten": { "Jasmin": 2, "Politur": 1 },
       "nachfrage": 100,
@@ -557,7 +557,7 @@
     },
     "Heiligenduft": {
       "typ": "Fertigprodukt",
-      "grundpreis": 315,
+      "grundpreis": 384,
       "zeit": 100,
       "zutaten": { "Lavendel": 2, "Jasmin": 2, "Politur": 1, "Weingeist": 1 },
       "nachfrage": 50,
@@ -565,7 +565,7 @@
     },
     "Schattendolch": {
       "typ": "Fertigprodukt",
-      "grundpreis": 320,
+      "grundpreis": 390,
       "zeit": 100,
       "zutaten": { "Eisen": 2, "Beschlag": 2, "Politur": 1 },
       "nachfrage": 50,
@@ -887,12 +887,12 @@
     "Dom":              { "name": "Dom",              "beruf": "Prediger",  "ort": "Werkstatt", "stufe": 2, "plaetze": 3, "fixkosten": 120, "produkte": [ "Papier", "Kerze", "Lehrschrift", "Hetzschrift", "Psalter" ], "standardprodukt": "Psalter", "startkarren": "Handkarren", "ausbau": "Kathedrale", "ausbauKosten": 5000 },
     "Kathedrale":       { "name": "Kathedrale",       "beruf": "Prediger",  "ort": "Werkstatt", "stufe": 3, "plaetze": 4, "fixkosten": 180, "produkte": [ "Papier", "Kerze", "Lehrschrift", "Hetzschrift", "Psalter", "Stundenbuch", "Reliquiar" ], "standardprodukt": "Stundenbuch", "startkarren": "Handkarren" },
     "Klosterhof":       { "name": "Klosterhof",       "beruf": "Prediger",  "ort": "Umland",    "plaetze": 3, "fixkosten": 400, "rohstoffe": [ "Lumpen", "Wachs" ], "startkarren": "Ochsenkarren" },
-    "Schmugglerloch":   { "name": "Schmugglerloch",   "beruf": "Dieb",      "ort": "Werkstatt", "stufe": 1, "plaetze": 4, "fixkosten": 80,  "kaufpreis": 3000, "startkarren": "Handkarren", "ausbau": "Unterschlupf", "ausbauKosten": 2500 },
-    "Unterschlupf":     { "name": "Unterschlupf",     "beruf": "Dieb",      "ort": "Werkstatt", "stufe": 2, "plaetze": 6, "fixkosten": 120, "startkarren": "Handkarren", "ausbau": "Diebesgilde", "ausbauKosten": 5000 },
-    "Diebesgilde":      { "name": "Diebesgilde",      "beruf": "Dieb",      "ort": "Werkstatt", "stufe": 3, "plaetze": 8, "fixkosten": 180, "startkarren": "Handkarren" },
-    "Wachhaus":         { "name": "Wachhaus",         "beruf": "Gardist",   "ort": "Werkstatt", "stufe": 1, "plaetze": 4, "fixkosten": 80,  "kaufpreis": 3500, "startkarren": "", "ausbau": "Stadtwache", "ausbauKosten": 2500 },
-    "Stadtwache":       { "name": "Stadtwache",       "beruf": "Gardist",   "ort": "Werkstatt", "stufe": 2, "plaetze": 6, "fixkosten": 120, "startkarren": "", "ausbau": "Garnison", "ausbauKosten": 5000 },
-    "Garnison":         { "name": "Garnison",         "beruf": "Gardist",   "ort": "Werkstatt", "stufe": 3, "plaetze": 8, "fixkosten": 180, "startkarren": "" },
+    "Schmugglerloch":   { "name": "Schmugglerloch",   "beruf": "Dieb",      "ort": "Werkstatt", "stufe": 1, "plaetze": 4, "fixkosten": 80,  "kaufpreis": 3000, "startkarren": "Handkarren", "ausbau": "Unterschlupf", "ausbauKosten": 2500, "erfahrungFaktor": 0.5 },
+    "Unterschlupf":     { "name": "Unterschlupf",     "beruf": "Dieb",      "ort": "Werkstatt", "stufe": 2, "plaetze": 6, "fixkosten": 120, "startkarren": "Handkarren", "ausbau": "Diebesgilde", "ausbauKosten": 5000, "erfahrungFaktor": 0.5 },
+    "Diebesgilde":      { "name": "Diebesgilde",      "beruf": "Dieb",      "ort": "Werkstatt", "stufe": 3, "plaetze": 8, "fixkosten": 180, "startkarren": "Handkarren", "erfahrungFaktor": 0.5 },
+    "Wachhaus":         { "name": "Wachhaus",         "beruf": "Gardist",   "ort": "Werkstatt", "stufe": 1, "plaetze": 4, "fixkosten": 80,  "kaufpreis": 3500, "startkarren": "", "ausbau": "Stadtwache", "ausbauKosten": 2500, "erfahrungFaktor": 0.5 },
+    "Stadtwache":       { "name": "Stadtwache",       "beruf": "Gardist",   "ort": "Werkstatt", "stufe": 2, "plaetze": 6, "fixkosten": 120, "startkarren": "", "ausbau": "Garnison", "ausbauKosten": 5000, "erfahrungFaktor": 0.5 },
+    "Garnison":         { "name": "Garnison",         "beruf": "Gardist",   "ort": "Werkstatt", "stufe": 3, "plaetze": 8, "fixkosten": 180, "startkarren": "", "erfahrungFaktor": 0.5 },
     "Wachturm":         { "name": "Wachturm",         "beruf": "Gardist",   "ort": "Umland",    "plaetze": 3, "fixkosten": 400, "startkarren": "" },
     "Wechselstube":     { "name": "Wechselstube",     "beruf": "Geldleiher", "ort": "Werkstatt", "stufe": 1, "plaetze": 2, "fixkosten": 80,  "kaufpreis": 3500, "startkarren": "", "ausbau": "Geldleihe", "ausbauKosten": 2500 },
     "Geldleihe":        { "name": "Geldleihe",        "beruf": "Geldleiher", "ort": "Werkstatt", "stufe": 2, "plaetze": 3, "fixkosten": 120, "startkarren": "", "ausbau": "Bankhaus", "ausbauKosten": 5000 },
@@ -901,7 +901,7 @@
   "gastwirtschaft": {
     "beruf": "Wirt",
     "ausschank": [ "Körnermahlzeit", "Dünnbier", "Starkbier", "Kräuterlikör", "Festbier", "Schädelbrand" ],
-    "aufschlag": 1.25,
+    "aufschlag": 1.2,
     "gaesteJeJahr": 120,
     "oeffnetUm": 12,
     "abendAb": 18,
@@ -918,7 +918,7 @@
     "beruf": "Prediger",
     "messeUm": 10,
     "glaeubigeJeJahr": 200,
-    "spendeJeGlaeubigem": 2.5,
+    "spendeJeGlaeubigem": 2.2,
     "anziehungJeStufe": [ 1, 1.5, 2 ],
     "anziehungJeAnsehen": 0.0125,
     "anziehungJeRhetorik": 0.1,
@@ -931,7 +931,7 @@
   "wache": {
     "beruf": "Gardist",
     "ansehen": 3,
-    "sold": { "jeMinute": 0.75, "jeStufe": [ 1, 1.1, 1.3 ] },
+    "sold": { "jeMinute": 0.68, "jeStufe": [ 1, 1.1, 1.3 ] },
     "patrouille": { "schutzJeWachmann": 0.025, "hoechstens": 0.4, "zeugenAnteil": 0.5 },
     "wachturm": { "schutz": 0.3, "hoechstens": 0.6 },
     "razzia": { "jeStufe": [ 1, 2, 3 ], "chance": 0.5, "chanceJeStufe": 0.1 },
@@ -943,7 +943,7 @@
     "stadtzins": 0.12,
     "rahmen": { "jeSchreiber": 2000, "jeStufe": [ 1, 1.25, 1.5 ] },
     "ausfall": { "chance": 0.2, "anteil": 0.1 },
-    "wechsel": { "gebuehr": 0.007, "bedarfSchreiber": 6, "jeStufe": [ 1, 1.2, 1.4 ] },
+    "wechsel": { "gebuehr": 0.0068, "bedarfSchreiber": 6, "jeStufe": [ 1, 1.2, 1.4 ] },
     "kredit": { "zinsStandard": 0.12, "zinsMindestens": 0.04, "zinsHoechstens": 0.5, "hoechstJeStufe": [ 3000, 6000, 12000 ], "kreditwuerdigAnteil": 0.5, "laufzeitHoechstens": 5, "pfandAnteil": 0.75 },
     "wucher": { "ab": 0.2, "ansehen": 5 },
     "einbruch": { "anteil": 0.05, "hoechstens": 500 },
@@ -966,7 +966,7 @@
     "beruf": "Dieb",
     "ansehen": 3,
     "auftraegeJeStufe": [ 1, 2, 3 ],
-    "taschendiebstahl": { "beuteJeMinute": 0.8, "beuteJeStufe": [ 1, 1.1, 1.3 ], "fangJeStunde": 0.012, "fangJeStufe": [ 1, 0.8, 0.6 ] },
+    "taschendiebstahl": { "beuteJeMinute": 1.0, "beuteJeStufe": [ 1, 1.1, 1.3 ], "fangJeStunde": 0.012, "fangJeStufe": [ 1, 0.8, 0.6 ] },
     "einbruch": { "abStufe": 1, "chanceBonus": 0.1, "stueckJeStufe": 6, "zeugenFaktor": 0.75 },
     "auskundschaften": { "abStufe": 1, "chance": 0.4 },
     "schutzgeld": { "abStufe": 2, "sabotageBonus": 0.1 },
@@ -1006,7 +1006,7 @@
         { "kennung": "Blasebalg", "name": "Großer Blasebalg", "preis": 350, "abStufe": 1, "wirkung": { "zeitFaktor": 0.9, "waren": ["Beschlag", "Rapier", "Werkzeug", "Prunkschwert"] } },
         { "kennung": "Regale", "name": "Regale", "preis": 200, "abStufe": 1, "wirkung": { "lagerPlus": 20 } },
         { "kennung": "Loeschfass", "name": "Löschfass", "preis": 100, "abStufe": 1, "wirkung": { "brandFaktor": 0.5 } },
-        { "kennung": "Eisentuer", "name": "Eisentür", "preis": 300, "abStufe": 1, "wirkung": { "einbruchFaktor": 0.5 } },
+        { "kennung": "Eisentuer", "name": "Eisentür", "preis": 150, "abStufe": 1, "wirkung": { "einbruchFaktor": 0.5 } },
         { "kennung": "Schuerzen", "name": "Lederschürzen", "preis": 80, "abStufe": 1, "wirkung": { "unfallFaktor": 0.5 } }
       ],
       "Tischler": [
@@ -1015,7 +1015,7 @@
         { "kennung": "Leimzwingen", "name": "Leimofen und Zwingen", "preis": 350, "abStufe": 1, "wirkung": { "zeitFaktor": 0.9, "waren": ["Truhe", "Schrank", "Prunktruhe", "Armbrust"] } },
         { "kennung": "Regale", "name": "Holzgestell", "preis": 200, "abStufe": 1, "wirkung": { "lagerPlus": 20 } },
         { "kennung": "Loeschfass", "name": "Löschfass", "preis": 100, "abStufe": 1, "wirkung": { "brandFaktor": 0.5 } },
-        { "kennung": "Eisentuer", "name": "Eisentür", "preis": 300, "abStufe": 1, "wirkung": { "einbruchFaktor": 0.5 } },
+        { "kennung": "Eisentuer", "name": "Eisentür", "preis": 150, "abStufe": 1, "wirkung": { "einbruchFaktor": 0.5 } },
         { "kennung": "Schuerzen", "name": "Lederschürzen", "preis": 80, "abStufe": 1, "wirkung": { "unfallFaktor": 0.5 } }
       ],
       "Steinmetz": [
@@ -1024,7 +1024,7 @@
         { "kennung": "Flaschenzug", "name": "Flaschenzug", "preis": 350, "abStufe": 1, "wirkung": { "zeitFaktor": 0.9, "waren": ["Mühlstein", "Säule", "Taufbecken", "Grabmal"] } },
         { "kennung": "Regale", "name": "Steingestell", "preis": 200, "abStufe": 1, "wirkung": { "lagerPlus": 20 } },
         { "kennung": "Loeschfass", "name": "Löschfass", "preis": 100, "abStufe": 1, "wirkung": { "brandFaktor": 0.5 } },
-        { "kennung": "Eisentuer", "name": "Eisentür", "preis": 300, "abStufe": 1, "wirkung": { "einbruchFaktor": 0.5 } },
+        { "kennung": "Eisentuer", "name": "Eisentür", "preis": 150, "abStufe": 1, "wirkung": { "einbruchFaktor": 0.5 } },
         { "kennung": "Schuerzen", "name": "Lederschürzen", "preis": 80, "abStufe": 1, "wirkung": { "unfallFaktor": 0.5 } }
       ],
       "Alchimist": [
@@ -1033,7 +1033,7 @@
         { "kennung": "Destillierhelm", "name": "Kupferner Destillierhelm", "preis": 350, "abStufe": 1, "wirkung": { "zeitFaktor": 0.9, "waren": ["Kräuterschnaps", "Rosenwasser", "Gegengift", "Theriak"] } },
         { "kennung": "Regale", "name": "Kräuterregale", "preis": 200, "abStufe": 1, "wirkung": { "lagerPlus": 20 } },
         { "kennung": "Loeschfass", "name": "Löschfass", "preis": 100, "abStufe": 1, "wirkung": { "brandFaktor": 0.5 } },
-        { "kennung": "Eisentuer", "name": "Eisentür", "preis": 300, "abStufe": 1, "wirkung": { "einbruchFaktor": 0.5 } },
+        { "kennung": "Eisentuer", "name": "Eisentür", "preis": 150, "abStufe": 1, "wirkung": { "einbruchFaktor": 0.5 } },
         { "kennung": "Handschuhe", "name": "Lederhandschuhe", "preis": 80, "abStufe": 1, "wirkung": { "unfallFaktor": 0.5 } }
       ],
       "Parfumeur": [
@@ -1042,7 +1042,7 @@
         { "kennung": "Glasflakons", "name": "Venezianische Glasflakons", "preis": 350, "abStufe": 1, "wirkung": { "zeitFaktor": 0.9, "waren": ["Moschusduft", "Fechterduft", "Heiligenduft"] } },
         { "kennung": "Regale", "name": "Flakonregale", "preis": 200, "abStufe": 1, "wirkung": { "lagerPlus": 20 } },
         { "kennung": "Loeschfass", "name": "Löschfass", "preis": 100, "abStufe": 1, "wirkung": { "brandFaktor": 0.5 } },
-        { "kennung": "Eisentuer", "name": "Eisentür", "preis": 300, "abStufe": 1, "wirkung": { "einbruchFaktor": 0.5 } },
+        { "kennung": "Eisentuer", "name": "Eisentür", "preis": 150, "abStufe": 1, "wirkung": { "einbruchFaktor": 0.5 } },
         { "kennung": "Handschuhe", "name": "Lederhandschuhe", "preis": 80, "abStufe": 1, "wirkung": { "unfallFaktor": 0.5 } }
       ],
       "Wirt": [
@@ -1051,7 +1051,7 @@
         { "kennung": "Braupfanne", "name": "Kupferne Braupfanne", "preis": 350, "abStufe": 1, "wirkung": { "zeitFaktor": 0.9, "waren": ["Dünnbier", "Starkbier", "Festbier"] } },
         { "kennung": "Regale", "name": "Fassregale", "preis": 200, "abStufe": 1, "wirkung": { "lagerPlus": 20 } },
         { "kennung": "Loeschfass", "name": "Löschfass", "preis": 100, "abStufe": 1, "wirkung": { "brandFaktor": 0.5 } },
-        { "kennung": "Eisentuer", "name": "Eisentür", "preis": 300, "abStufe": 1, "wirkung": { "einbruchFaktor": 0.5 } },
+        { "kennung": "Eisentuer", "name": "Eisentür", "preis": 150, "abStufe": 1, "wirkung": { "einbruchFaktor": 0.5 } },
         { "kennung": "Handschuhe", "name": "Lederhandschuhe", "preis": 80, "abStufe": 1, "wirkung": { "unfallFaktor": 0.5 } }
       ],
       "Prediger": [
@@ -1060,7 +1060,7 @@
         { "kennung": "Gaensekiele", "name": "Gänsekiele und Lapislazuli", "preis": 350, "abStufe": 1, "wirkung": { "zeitFaktor": 0.9, "waren": ["Lehrschrift", "Psalter", "Stundenbuch"] } },
         { "kennung": "Regale", "name": "Bücherregale", "preis": 200, "abStufe": 1, "wirkung": { "lagerPlus": 20 } },
         { "kennung": "Loeschfass", "name": "Löschfass", "preis": 100, "abStufe": 1, "wirkung": { "brandFaktor": 0.5 } },
-        { "kennung": "Eisentuer", "name": "Eisentür", "preis": 300, "abStufe": 1, "wirkung": { "einbruchFaktor": 0.5 } },
+        { "kennung": "Eisentuer", "name": "Eisentür", "preis": 150, "abStufe": 1, "wirkung": { "einbruchFaktor": 0.5 } },
         { "kennung": "Handschuhe", "name": "Lederhandschuhe", "preis": 80, "abStufe": 1, "wirkung": { "unfallFaktor": 0.5 } }
       ],
       "Dieb": [
@@ -1069,7 +1069,7 @@
         { "kennung": "Verkleidung", "name": "Verkleidungstruhe", "preis": 350, "abStufe": 1, "wirkung": { "fangFaktor": 0.75 } },
         { "kennung": "Regale", "name": "Hehlerkammer", "preis": 200, "abStufe": 1, "wirkung": { "lagerPlus": 20 } },
         { "kennung": "Loeschfass", "name": "Löschfass", "preis": 100, "abStufe": 1, "wirkung": { "brandFaktor": 0.5 } },
-        { "kennung": "Eisentuer", "name": "Eisentür", "preis": 300, "abStufe": 1, "wirkung": { "einbruchFaktor": 0.5 } },
+        { "kennung": "Eisentuer", "name": "Eisentür", "preis": 150, "abStufe": 1, "wirkung": { "einbruchFaktor": 0.5 } },
         { "kennung": "Handschuhe", "name": "Lederhandschuhe", "preis": 80, "abStufe": 1, "wirkung": { "spurenFaktor": 0.75 } }
       ],
       "Gardist": [
@@ -1079,16 +1079,16 @@
         { "kennung": "Kettenhemd", "name": "Kettenhemden", "preis": 350, "abStufe": 1, "wirkung": { "geleitFaktor": 0.8 } },
         { "kennung": "Regale", "name": "Waffenkammer", "preis": 200, "abStufe": 1, "wirkung": { "lohnFaktor": 0.9 } },
         { "kennung": "Loeschfass", "name": "Löschfass", "preis": 100, "abStufe": 1, "wirkung": { "brandFaktor": 0.5 } },
-        { "kennung": "Eisentuer", "name": "Eisentür", "preis": 300, "abStufe": 1, "wirkung": { "einbruchFaktor": 0.5 } }
+        { "kennung": "Eisentuer", "name": "Eisentür", "preis": 150, "abStufe": 1, "wirkung": { "einbruchFaktor": 0.5 } }
       ],
       "Geldleiher": [
         { "kennung": "Werkzeug1", "name": "Rechenbretter", "preis": 300, "abStufe": 1, "wirkung": { "rahmenFaktor": 1.1 } },
-        { "kennung": "Werkzeug2", "name": "Hauptbücher", "preis": 800, "abStufe": 2, "voraussetzung": "Werkzeug1", "wirkung": { "rahmenFaktor": 1.1 } },
+        { "kennung": "Werkzeug2", "name": "Hauptbücher", "preis": 350, "abStufe": 2, "voraussetzung": "Werkzeug1", "wirkung": { "rahmenFaktor": 1.1 } },
         { "kennung": "Goldwaage", "name": "Goldwaage", "preis": 350, "abStufe": 1, "wirkung": { "wechselFaktor": 1.1 } },
-        { "kennung": "Pfandkammer", "name": "Pfandkammer", "preis": 350, "abStufe": 1, "wirkung": { "ausfallFaktor": 0.75 } },
+        { "kennung": "Pfandkammer", "name": "Pfandkammer", "preis": 150, "abStufe": 1, "wirkung": { "ausfallFaktor": 0.5 } },
         { "kennung": "Kassenschrank", "name": "Kassenschrank", "preis": 200, "abStufe": 1, "wirkung": { "kreditFaktor": 1.25 } },
         { "kennung": "Loeschfass", "name": "Löschfass", "preis": 100, "abStufe": 1, "wirkung": { "brandFaktor": 0.5 } },
-        { "kennung": "Eisentuer", "name": "Eisentür", "preis": 300, "abStufe": 1, "wirkung": { "einbruchFaktor": 0.5 } }
+        { "kennung": "Eisentuer", "name": "Eisentür", "preis": 150, "abStufe": 1, "wirkung": { "einbruchFaktor": 0.5 } }
       ]
     }
   },
@@ -1109,7 +1109,7 @@
     ],
     "leerstand": { "kauf": 0.5, "sanierung": 0.2, "abriss": 0.1, "abrissMindestens": 100, "abrissMinuten": 240 }
   },
-  "stadt": { "einwohnerGrund": 50, "einwohnerJeHaus": 25, "bezugHaeuser": 4 },
+  "stadt": { "einwohnerGrund": 100, "einwohnerJeHaus": 25, "bezugHaeuser": 4 },
   "liegenschaften": [
     {
       "name": "Grube am Silberberg",
