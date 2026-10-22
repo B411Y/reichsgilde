@@ -40,7 +40,17 @@
   {"kennung": "Einwohnerplatz_am_Ring17", "katalog": "einwohnerplatz_ring", "name": "Einwohnerplatz am Ring 17", "punkt": [-14.25, 48], "drehung": 180},
   {"kennung": "Einwohnerplatz_am_Ring18", "katalog": "einwohnerplatz_ring", "name": "Einwohnerplatz am Ring 18", "punkt": [-23.75, 48], "drehung": 180},
   {"kennung": "Einwohnerplatz_am_Ring19", "katalog": "einwohnerplatz_ring", "name": "Einwohnerplatz am Ring 19", "punkt": [-33.25, 48], "drehung": 180},
-  {"kennung": "Einwohnerplatz_am_Ring20", "katalog": "einwohnerplatz_ring", "name": "Einwohnerplatz am Ring 20", "punkt": [-42.75, 48], "drehung": 180}
+  {"kennung": "Einwohnerplatz_am_Ring20", "katalog": "einwohnerplatz_ring", "name": "Einwohnerplatz am Ring 20", "punkt": [-42.75, 48], "drehung": 180},
+  {"kennung": "Einwohnerplatz_in_der_Vorstadt1", "katalog": "einwohnerplatz_vorstadt", "name": "Einwohnerplatz in der Vorstadt", "punkt": [170.5, -51.1], "drehung": 0},
+  {"kennung": "Einwohnerplatz_in_der_Vorstadt2", "katalog": "einwohnerplatz_vorstadt", "name": "Einwohnerplatz in der Vorstadt 2", "punkt": [161.5, -51.1], "drehung": 0},
+  {"kennung": "Einwohnerplatz_in_der_Vorstadt3", "katalog": "einwohnerplatz_vorstadt", "name": "Einwohnerplatz in der Vorstadt 3", "punkt": [152.5, -51.1], "drehung": 0},
+  {"kennung": "Einwohnerplatz_in_der_Vorstadt4", "katalog": "einwohnerplatz_vorstadt", "name": "Einwohnerplatz in der Vorstadt 4", "punkt": [143.5, -51.1], "drehung": 0},
+  {"kennung": "Einwohnerplatz_in_der_Vorstadt5", "katalog": "einwohnerplatz_vorstadt", "name": "Einwohnerplatz in der Vorstadt 5", "punkt": [134.5, -51.1], "drehung": 0},
+  {"kennung": "Einwohnerplatz_in_der_Vorstadt6", "katalog": "einwohnerplatz_vorstadt", "name": "Einwohnerplatz in der Vorstadt 6", "punkt": [125.5, -51.1], "drehung": 0},
+  {"kennung": "Einwohnerplatz_in_der_Vorstadt7", "katalog": "einwohnerplatz_vorstadt", "name": "Einwohnerplatz in der Vorstadt 7", "punkt": [116.5, -51.1], "drehung": 0},
+  {"kennung": "Einwohnerplatz_in_der_Vorstadt8", "katalog": "einwohnerplatz_vorstadt", "name": "Einwohnerplatz in der Vorstadt 8", "punkt": [107.5, -51.1], "drehung": 0},
+  {"kennung": "Einwohnerplatz_in_der_Vorstadt9", "katalog": "einwohnerplatz_vorstadt", "name": "Einwohnerplatz in der Vorstadt 9", "punkt": [98.5, -51.1], "drehung": 0},
+  {"kennung": "Einwohnerplatz_in_der_Vorstadt10", "katalog": "einwohnerplatz_vorstadt", "name": "Einwohnerplatz in der Vorstadt 10", "punkt": [89.5, -51.1], "drehung": 0}
  ],
  "mauern": [
   {
