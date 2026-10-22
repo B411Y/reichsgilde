@@ -80,10 +80,10 @@ static class DiebEinrichtungTests
 
     public static IEnumerable<(string, Action)> Alle() => new (string, Action)[]
     {
-        ("Dieb-Einrichtung: Daten – sieben Stücke mit den Kennungen des Raummodells, Preise wie bei den Werkstätten, Datenversion 45", () =>
+        ("Dieb-Einrichtung: Daten – sieben Stücke mit den Kennungen des Raummodells, Preise wie bei den Werkstätten, Datenversion 46", () =>
         {
             var d = Daten.Value.Werkstatt!;
-            Pruefe.Gleich(45, Daten.Value.Version);
+            Pruefe.Gleich(46, Daten.Value.Version);
             var dieb = d.EinrichtungFuer("Dieb");
             Pruefe.Gleich("Werkzeug1 Werkzeug2 Verkleidung Regale Loeschfass Eisentuer Handschuhe", string.Join(" ", dieb.Select(e => e.Kennung)));
             Pruefe.Gleich("Dietriche, Meisterdietriche, Verkleidungstruhe, Hehlerkammer, Löschfass, Eisentür, Lederhandschuhe",
@@ -118,7 +118,7 @@ static class DiebEinrichtungTests
             Pruefe.Gleich(3, fehler.Count);
         }),
 
-        ("Dieb-Einrichtung: Schmugglerloch kann Einrichtung kaufen (Anschaffung), Wachhaus und Klosterhof nicht; Meisterdietriche erst ab Stufe 2", () =>
+        ("Dieb-Einrichtung: Schmugglerloch kann Einrichtung kaufen (Anschaffung), Wachturm und Klosterhof nicht; Meisterdietriche erst ab Stufe 2", () =>
         {
             var sim = NeueSimulation(Unerwischt.Value);
             var (w, k, b) = Dieb(sim, vermoegen: 5_000);
@@ -134,7 +134,7 @@ static class DiebEinrichtungTests
             Pruefe.Ungefaehr(300, w.Werkstaetten.Einrichtungswert(b), 1e-9);
 
             var wk = w.KontoEroeffnen("Haus Wacht", startvermoegen: 5_000);
-            var wache = w.BetriebEroeffnen("Wachhaus Wacht", Betriebsart.Wachhaus, wk, startkarren: "");
+            var wache = w.BetriebEroeffnen("Wachturm Wacht", Betriebsart.Wachturm, wk, startkarren: ""); // das Wachhaus in der Stadt hat Einrichtung (GardistEinrichtungTests)
             var hof = w.BetriebEroeffnen("Klosterhof Wacht", Betriebsart.Klosterhof, wk, startkarren: "");
             foreach (var x in new[] { wache, hof })
             {

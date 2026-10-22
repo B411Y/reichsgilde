@@ -58,14 +58,15 @@ public static class Kalkulation
     /// <summary>
     /// Erwartete Kosten einer beladenen Umland-Fahrt mit dieser Eskorte:
     /// Eskortenlohn + Chance auf Überfall × Erfolgschance der Banden × Wert der Ladung × Vorsicht.
-    /// Gerechnet wird mit der Tageschance (nachts ist sie höher).
+    /// Gerechnet wird mit der Tageschance (nachts ist sie höher); beim Geleit der Wache mit ihren Kettenhemden.
     /// </summary>
     public static double ErwarteteFahrtkosten(Stadtwirtschaft w, string eskorte, double ladungswert, double vorsicht = 1)
     {
         var l = w.Daten.Logistik;
         var schutz = l.Eskorten[eskorte].Schutz;
+        var faktor = w.Wache.UeberfallFaktor(l.Eskorten[eskorte]);
         var gewichte = l.Banden.Sum(b => b.Gewicht);
-        var erfolg = gewichte <= 0 ? 0 : l.Banden.Sum(b => b.Gewicht * Math.Min(1, b.Staerke * (1 - schutz))) / gewichte;
+        var erfolg = gewichte <= 0 ? 0 : l.Banden.Sum(b => b.Gewicht * Math.Min(1, b.Staerke * (1 - schutz) * faktor)) / gewichte;
         var verlust = Math.Min(1, l.Ueberfall.ChanceTag) * erfolg * ladungswert;
         return l.Eskorten[eskorte].KostenJeFahrt + verlust * vorsicht;
     }

@@ -472,7 +472,7 @@ public sealed class Unterwelt
 
         var d = Daten;
         var schutz = Math.Min(0.95, eskorte.Schutz + _w.Familien.KampfSchutz(karren.Heimat.Konto));
-        var erfolg = _zufall.NextDouble() < Staerke(h.Auftraggeber) * (1 - schutz);
+        var erfolg = _zufall.NextDouble() < Staerke(h.Auftraggeber) * (1 - schutz) * _w.Wache.UeberfallFaktor(eskorte);
         double wert = 0;
         string oeffentlich;
         if (erfolg)
