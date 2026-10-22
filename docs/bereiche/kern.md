@@ -315,6 +315,19 @@ So wird eingetragen (damit sich die Chats nie an derselben Stelle treffen):
 | Umfang | Berufe gleichwertig (alle zehn je Stufe in einem fairen Band, auch Dieb, Gardist, Geldleiher, Prediger; Wirt an der Spitze prüfen); Startfairness und 1–8 Häuser (Startplätze, Völker, Startgeld, Nachfrage und Preise bei 1/3/5/8 Häusern, Tempo zum Bürger 8–12 Jahre); KI-Stärke und Einrichtung (KI weder davonziehend noch bankrott, KI kauft Einrichtung und nutzt Prämien, Einrichtung macht sich in einigen Jahren bezahlt); Gauner, Wache, Bank (Dieb gegen Wache, Kassendiebstahl, Kredite und Wucher). | 22.10.2026 |
 | Messbericht | `messen bericht [Jahre] [Startwerte]` (Vorgabe 20 / 20; gemessen 20 / 30, 1.170 Partien, 12 Minuten) schreibt `docs/messungen/balancing-2026-10-22.json`: Berufe statisch und simuliert (Spieler mit einem Betrieb, von der KI geführt), Völker, Startfairness (Greybox, Probestadt, Wohnhausplätze rotiert), 1/3/5/8 Häuser in der neuen Messstadt (Kartenskript), KI-Stärke gegen einen Bezugsspieler mit KI-Strategie, Einrichtung, Gauner/Wache/Bank. Zusammenfassung und Befunde: `docs/WIRTSCHAFTSMODELL.md`, „Balancing-Messung 1“. Kein Wert geändert. | 22.10.2026 |
 
+### Balancing 1 (PR #177)
+
+| Thema | Entscheidung | Datum |
+|---|---|---|
+| Start | Alle Häuser starten gleich wie der Spieler (eine Werkstatt, 2 Arbeiter), fair für bis zu 8 Spieler. Beim Partiestart wählbar: Schwierigkeit „Schwer“ gibt den KI-Häusern den bisherigen Vorsprung (Werkstatt und Umlandbetrieb). | 22.10.2026 |
+| Bürger-Ziel Z2 | Ziel bleibt 8–12 Jahre: Gewinne heben, bis ein Betrieb im Mittel in etwa 10 Jahren Bürger wird; dazu prüfen, warum Gericht (−472 im Jahr) und Familie (−318 im Jahr) so viel kosten. | 22.10.2026 |
+| Berufe | Zur Mitte: Starke senken, Schwache heben, Ziel alle zehn im Band ±15 % (simuliert), erst nach dem gleichen Start messen. | 22.10.2026 |
+| Mehr Häuser | Die Nachfrage richtet sich nach den Einwohnern der Stadt; Ziel: Vermögen je Haus bei 8 Häusern höchstens 15 % unter 3 Häusern. | 22.10.2026 |
+| KI | Die KI lernt, Einrichtung zu kaufen (wenn sie sich in höchstens 4 Jahren bezahlt macht). Kredite nimmt sie weiter nicht. | 22.10.2026 |
+| Einrichtung | Nur die Ausreißer anpassen: Pfandkammer (17,5 Jahre), Hauptbücher (10,3), Eisentür (7,9). | 22.10.2026 |
+| Gauner | Wache bleibt wie gemessen. Neu: Ein gelungener Einbruch in einen Bankbetrieb holt einen Teil der Kasse (etwa 5 %, höchstens 500 Gulden). | 22.10.2026 |
+| Ablauf | Ein Funktions-PR, in Schritten gemessen; nach jedem Schritt ein neuer Bericht auf der Berichtsseite. Der Nutzer mergt (wirtschaft.json). | 22.10.2026 |
+
 ## Messungen
 
 Messungen des Kerns stehen in `docs/WIRTSCHAFTSMODELL.md` (nur der Kern schreibt dort).
