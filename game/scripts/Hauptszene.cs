@@ -105,6 +105,7 @@ public partial class Hauptszene : Node
     private LagerAnzeige _lagerTafel = null!;
     private KarrenAnzeige _karrenTafel = null!;
     private EinrichtenAnzeige _einrichtenTafel = null!;
+    private WachplanAnzeige _wachplanTafel = null!;
     /// <summary>Die Tafeln der Bedienung im Innenraum (rechts im Bild, damit der Raum frei bleibt).</summary>
     private InnenTafel[] _innenTafeln = null!;
     private VerkaufAnzeige _verkauf = null!;
@@ -456,7 +457,7 @@ public partial class Hauptszene : Node
     }
 
     /// <summary>
-    /// Baut die fünf Tafeln der Bedienung im Innenraum und hängt sie rechts ins Bild, mittig in der Höhe und mit Luft über der Raumleiste.
+    /// Baut die sechs Tafeln der Bedienung im Innenraum und hängt sie rechts ins Bild, mittig in der Höhe und mit Luft über der Raumleiste.
     /// </summary>
     private void InnenTafelnBauen()
     {
@@ -465,7 +466,8 @@ public partial class Hauptszene : Node
         _lagerTafel = new LagerAnzeige();
         _karrenTafel = new KarrenAnzeige();
         _einrichtenTafel = new EinrichtenAnzeige();
-        _innenTafeln = new InnenTafel[] { _personalTafel, _produktionTafel, _lagerTafel, _karrenTafel, _einrichtenTafel };
+        _wachplanTafel = new WachplanAnzeige();
+        _innenTafeln = new InnenTafel[] { _personalTafel, _produktionTafel, _lagerTafel, _karrenTafel, _einrichtenTafel, _wachplanTafel };
         var rand = new MarginContainer { MouseFilter = Control.MouseFilterEnum.Ignore };
         rand.SetAnchorsAndOffsetsPreset(Control.LayoutPreset.FullRect);
         rand.AddThemeConstantOverride("margin_left", 16);
@@ -482,7 +484,7 @@ public partial class Hauptszene : Node
         GetNode<CanvasLayer>("Oberflaeche").AddChild(rand);
     }
 
-    /// <summary>Öffnet die Tafel zu einem Gegenstand im Raum (Personal, Produktion, Lager, Karren, Einrichten) – nur für die eigene Werkstatt.</summary>
+    /// <summary>Öffnet die Tafel zu einem Gegenstand im Raum (Personal, Produktion, Lager, Karren, Einrichten, Wachplan) – nur für die eigene Werkstatt.</summary>
     private void InnenTafelOeffnen(string tafel)
     {
         if (_stadt.InnenBetrieb is not { } betrieb) return;
@@ -504,6 +506,7 @@ public partial class Hauptszene : Node
             "lager" => _lagerTafel,
             "karren" => _karrenTafel,
             "einrichten" => _einrichtenTafel,
+            "wache" => _wachplanTafel,
             _ => null,
         };
         if (ziel is null) return;
@@ -959,7 +962,7 @@ public partial class Hauptszene : Node
                 TafelnSchliessen();
                 _familientafel.Oeffnen();
                 return true;
-            case Stadtansicht.RaumAmt or Stadtansicht.RaumKontor or Stadtansicht.RaumWerk or Stadtansicht.RaumLager or Stadtansicht.RaumSaege or Stadtansicht.RaumHuette or Stadtansicht.RaumLaden or Stadtansicht.RaumTurm or Stadtansicht.RaumPavillon or Stadtansicht.RaumKueche or Stadtansicht.RaumSaal or Stadtansicht.RaumKirche or Stadtansicht.RaumSkriptorium or Stadtansicht.RaumSchatzkammer or Stadtansicht.RaumSchlafboden or Stadtansicht.RaumGildenhalle:
+            case Stadtansicht.RaumAmt or Stadtansicht.RaumKontor or Stadtansicht.RaumWerk or Stadtansicht.RaumLager or Stadtansicht.RaumSaege or Stadtansicht.RaumHuette or Stadtansicht.RaumLaden or Stadtansicht.RaumTurm or Stadtansicht.RaumPavillon or Stadtansicht.RaumKueche or Stadtansicht.RaumSaal or Stadtansicht.RaumKirche or Stadtansicht.RaumSkriptorium or Stadtansicht.RaumSchatzkammer or Stadtansicht.RaumSchlafboden or Stadtansicht.RaumGildenhalle or Stadtansicht.RaumZelle or Stadtansicht.RaumUebung or Stadtansicht.RaumHauptmann:
                 return true;
             default:
                 return false;

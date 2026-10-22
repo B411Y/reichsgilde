@@ -12,12 +12,15 @@ public sealed class KarrenAnzeige : InnenTafel
 {
     private readonly BetriebsVerwaltung _karren = new() { NurKarren = true };
     private readonly Label _name;
+    private readonly Label _keine;
 
     public KarrenAnzeige() : base(700)
     {
         Hauptmenue.Text(Inhalt, "Karrenhof", 24, Gold, zentriert: true);
         _name = Hauptmenue.Text(Inhalt, "", 14, Hell, zentriert: true);
         Inhalt.AddChild(new HSeparator());
+        _keine = Hauptmenue.Text(Inhalt, "Dieses Haus hat nichts zu fahren. Die Wache begleitet gegen Lohn die Karren anderer Häuser (Wachplan).", 13, Grau, umbruchBreite: 620);
+        _keine.Visible = false;
         Inhalt.AddChild(_karren);
         _karren.HandelGewuenscht += HandelMelden;
         _karren.Gemeldet += Melden;
@@ -37,6 +40,7 @@ public sealed class KarrenAnzeige : InnenTafel
     protected override void Aufbauen(Stadtwirtschaft w, Betrieb b)
     {
         _name.Text = $"{b.Name} · {b.Artdaten.Name}";
+        _keine.Visible = w.Wache.IstWachbetrieb(b) || w.Bank.IstBankbetrieb(b); // wie im Bedienfeld: Wache und Geldleihe haben keine Karren
         _karren.Zeigen(b);
     }
 

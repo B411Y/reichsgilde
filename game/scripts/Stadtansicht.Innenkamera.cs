@@ -323,6 +323,12 @@ public partial class Stadtansicht
             var punkt = dieb.Halter.GlobalPosition + Vector3.Up * (dieb.Platz.Bewegung == "Schlafen" ? 0.3f : 1.0f);
             if (!_raumKamera.IsPositionBehind(punkt) && rahmen.HasPoint(_raumKamera.UnprojectPosition(punkt))) neu.Add(dieb.Nummer);
         }
+        foreach (var wache in md.Wachen.Values) // ebenso die Wachleute im Wachhaus (Stadtansicht.Innenwache.cs)
+        {
+            if (wache.Platz is null || !wache.Halter.Visible || !IstImGezeigtenRaum(wache.Halter)) continue;
+            var punkt = wache.Halter.GlobalPosition + Vector3.Up * (wache.Platz.Bewegung == "Schlafen" ? 0.3f : 1.0f);
+            if (!_raumKamera.IsPositionBehind(punkt) && rahmen.HasPoint(_raumKamera.UnprojectPosition(punkt))) neu.Add(wache.Nummer);
+        }
         if (neu.SetEquals(_gewaehlt)) return;
         _gewaehlt.Clear();
         _gewaehlt.UnionWith(neu);
