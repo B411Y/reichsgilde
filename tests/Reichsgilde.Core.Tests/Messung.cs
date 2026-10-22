@@ -11,6 +11,7 @@ using Reichsgilde.Core.Wirtschaft;
 ///          … -- messen 30 20 Mensch gericht   (der Spieler setzt jedes Jahr einen Spitzel auf den Rivalen und klagt, sobald es reicht)
 ///          … -- messen 30 20 Mensch - Wagemutig   (fünftes Argument: Charakter des Rivalen)
 ///          … -- messen 30 20 greybox   („greybox“ an beliebiger Stelle: mit der Greybox-Karte – Bauen, Leerstand, Neubau)
+///          … -- messen bericht 20 20   (Balancing-Bericht als JSON in docs/messungen/, siehe Balancingbericht.cs)
 /// </summary>
 static class Messung
 {
@@ -18,6 +19,9 @@ static class Messung
 
     public static int Dynastie(string[] args)
     {
+        // Balancing-Bericht (PR #176): … -- messen bericht [Jahre] [Startwerte] [--karte=…] – siehe Balancingbericht.cs
+        if (args.Length > 0 && args[0] == "bericht")
+            return Balancingbericht.Erstellen(args[1..]);
         var daten = Wirtschaftsdaten.AusDatei(Datenpfad.Wirtschaft());
         var mitKarte = args.Contains("greybox");
         args = args.Where(a => a != "greybox").ToArray();
