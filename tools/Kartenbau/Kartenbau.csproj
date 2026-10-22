@@ -1,0 +1,17 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <!--
+    Kartenskript von Reichsgilde (Bereich Leveldesign): Stadtkarten per Code anlegen, prüfen und als Vorschaubild zeichnen.
+    Benutzt dieselben Befehle und Prüfungen des Kerns wie die Kartenwerkstatt im Spiel (src/Reichsgilde.Core/Kartenwerkstatt).
+    Aufruf und Befehle: docs/LEVELDESIGN.md, Abschnitt „Kartenskript“, oder Program.cs.
+  -->
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net8.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <RootNamespace>Reichsgilde.Kartenbau</RootNamespace>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\Reichsgilde.Core\Reichsgilde.Core.csproj" />
+  </ItemGroup>
+</Project>

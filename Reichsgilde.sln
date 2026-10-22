@@ -9,6 +9,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Reichsgilde.Core", "src\Rei
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Reichsgilde.Core.Tests", "tests\Reichsgilde.Core.Tests\Reichsgilde.Core.Tests.csproj", "{703764BE-E1C7-4E25-96DF-7C9D47B1413E}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Kartenbau", "tools\Kartenbau\Kartenbau.csproj", "{1868ECBF-8BEF-4A39-9912-F36404EFA5E0}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -34,5 +36,11 @@ Global
 		{703764BE-E1C7-4E25-96DF-7C9D47B1413E}.ExportDebug|Any CPU.Build.0 = Debug|Any CPU
 		{703764BE-E1C7-4E25-96DF-7C9D47B1413E}.ExportRelease|Any CPU.ActiveCfg = Release|Any CPU
 		{703764BE-E1C7-4E25-96DF-7C9D47B1413E}.ExportRelease|Any CPU.Build.0 = Release|Any CPU
+		{1868ECBF-8BEF-4A39-9912-F36404EFA5E0}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{1868ECBF-8BEF-4A39-9912-F36404EFA5E0}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{1868ECBF-8BEF-4A39-9912-F36404EFA5E0}.ExportDebug|Any CPU.ActiveCfg = Debug|Any CPU
+		{1868ECBF-8BEF-4A39-9912-F36404EFA5E0}.ExportDebug|Any CPU.Build.0 = Debug|Any CPU
+		{1868ECBF-8BEF-4A39-9912-F36404EFA5E0}.ExportRelease|Any CPU.ActiveCfg = Release|Any CPU
+		{1868ECBF-8BEF-4A39-9912-F36404EFA5E0}.ExportRelease|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 EndGlobal

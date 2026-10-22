@@ -7,10 +7,11 @@ namespace Reichsgilde.Core.Kartenwerkstatt;
 // ═════════════════════════════════════════════════════════════════════════════
 //  Die Kartenregeln in C# – damit die Kartenwerkstatt live prüft, was bisher nur das Python-Werkzeug prüfte
 //
-//  Quelle der Regeln: tools/karten/karte.py („Prüfungen nach den Kartenregeln“, gelten für jede Karte) und tools/karten/greybox.py
-//  („Prüfungen der Greybox“: Abstände der Bauzonen, Werkstätten der Stadt, Gassen über Häusern, Wege über Umlandbetrieben).
-//  Die Rechnung ist dieselbe (Kartengeometrie), damit beide Seiten dieselben Befunde liefern. Nicht übernommen ist die
-//  Kapazitätsprüfung für Köln (tools/karten/kapazitaet.py) – sie bleibt bis zum Umzug (Schritt 4) im Werkzeug.
+//  Herkunft der Regeln: das Python-Werkzeug bis Schritt 4 (tools/karten/karte.py, „Prüfungen nach den Kartenregeln“, für jede Karte;
+//  tools/karten/greybox.py, „Prüfungen der Greybox“: Abstände der Bauzonen, Werkstätten der Stadt, Gassen über Häusern, Wege über
+//  Umlandbetrieben; tools/karten/kapazitaet.py, die Kapazität). Seit Schritt 4 (PR #174) gibt es nur noch diese Regeln: Die
+//  Kartenwerkstatt und das Kartenskript tools/Kartenbau prüfen beide hiermit. Die Kapazität rechnet Kapazitaetspruefung.cs, den Katalog
+//  gegen die Modelle prüft Katalogpruefung.cs (nur das Kartenskript, er hängt an keiner Karte).
 //
 //  Zwei Wege hinein:
 //    • Pruefen(entwurf)        – die ganze Karte, nach jedem Befehl (Fehlerliste, rote Gebäude),
@@ -72,18 +73,24 @@ public sealed record Pruefregeln
     public int MindestWohnhaeuser { get; init; }
     public int MindestStadthoefe { get; init; }
 
-    /// <summary>Für neue Karten: allgemeine Regeln und Stadtregeln.</summary>
-    public static readonly Pruefregeln Standard = new() { Stadtregeln = true };
+    /// <summary>
+    /// Wie schwer es wiegt, wenn die Gebäude einer Partie mit 8 Häusern nicht in die Bauzonen passen (<see cref="Kapazitaetspruefung"/>); null =
+    /// nicht prüfen (Greybox: dort prüft der Probeplan). Köln: Fehler; neue Karten: Hinweis, damit eine kleine Karte sich ausprobieren lässt.
+    /// </summary>
+    public Schwere? Kapazitaet { get; init; }
 
-    /// <summary>Wie <c>tools/karten/greybox.py</c>.</summary>
+    /// <summary>Für neue Karten: allgemeine Regeln und Stadtregeln, die Kapazität als Hinweis.</summary>
+    public static readonly Pruefregeln Standard = new() { Stadtregeln = true, Kapazitaet = Schwere.Hinweis };
+
+    /// <summary>Wie bisher <c>tools/karten/greybox.py</c> (statt der Kapazität der Probeplan).</summary>
     public static readonly Pruefregeln Greybox = new()
     {
         MauerGeschlossen = true, Stadtregeln = true, Werkstattnorm = true, Wohnhausplaetze = 8,
         MindestWerkstaetten = 6, MindestWohnhaeuser = 8, MindestStadthoefe = 2,
     };
 
-    /// <summary>Wie <c>tools/karten/koeln.py</c> (ohne die Kapazität, die bleibt im Werkzeug).</summary>
-    public static readonly Pruefregeln Koeln = new() { Startgrundstuecke = 8, MauerGeschlossen = false };
+    /// <summary>Wie bisher <c>tools/karten/koeln.py</c>: 8 Startgrundstücke, die Stadtmauer offen (am Rhein), die Kapazität ein Fehler.</summary>
+    public static readonly Pruefregeln Koeln = new() { Startgrundstuecke = 8, MauerGeschlossen = false, Kapazitaet = Schwere.Fehler };
 
     /// <summary>Die Regeln zu einer Kartenkennung.</summary>
     public static Pruefregeln Fuer(string kennung) => kennung switch
@@ -231,7 +238,19 @@ public static class Kartenpruefung
             Pflanzen();
             Start();
             Wegenetz();
+            Einwohnerplaetze();
+            if (_r.Kapazitaet is { } schwere) _b.AddRange(_e.Kapazitaetsrechnung(schwere).Befunde);
             return _b;
+        }
+
+        /// <summary>
+        /// Eine Karte ohne Einwohnerplätze ist erlaubt (Köln hat keine), aber im Spiel teilen sich dann alle Einwohnerhäuser einen Platz – ein
+        /// Hinweis, damit das beim Bauen einer neuen Stadt nicht übersehen wird.
+        /// </summary>
+        private void Einwohnerplaetze()
+        {
+            if (_e.Gebaeude.All(g => g.Art != Bausteinart.Einwohnerplatz))
+                Hinweis("einwohnerplaetze", "Die Karte hat keine Einwohnerplätze – im Spiel stehen dann alle Einwohnerhäuser an einem Platz.", null);
         }
 
         public List<Befund> Stelle(EntwurfGebaeude probe, EntwurfGebaeude? alt)

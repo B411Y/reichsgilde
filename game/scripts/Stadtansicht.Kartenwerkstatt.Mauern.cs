@@ -18,6 +18,9 @@ namespace Reichsgilde;
 ///
 /// <b>Bearbeiten.</b> Eine gewählte Mauer zeigt Griffe an den Ecken (gold) und an den Toren (blau): Ecken ziehen, ein Klick auf die Linie fügt
 /// eine Ecke ein (gleich weiterziehbar), Tore gleiten beim Ziehen an der Mauer entlang; Entf löscht den gewählten Griff, ohne Griff die Mauer.
+/// Mit gehaltener Umschalttaste verschiebt Ziehen an der Linie die ganze Mauer samt Toren (ein Schritt, <see cref="Kartenentwurf.MauerVerschieben"/>).
+/// Wandert dabei ein Tor, folgt ein Weg durch seine Mitte (der Kern ändert ihn im selben Schritt und meldet ihn; schon beim Ziehen zeigt die
+/// Vorschau ihn mit, <see cref="TorwegeVorschau"/>).
 /// </summary>
 public partial class Stadtansicht
 {
@@ -203,10 +206,23 @@ public partial class Stadtansicht
     //  Ziehen von Ecken und Toren
     // ═════════════════════════════════════════════════════════════════════════
 
-    /// <summary>Jedes Bild beim Ziehen eines Griffs der Mauer: die vorläufige Lage und der Plan damit als Vorschau (die Mauer selbst ist so lange versteckt).</summary>
+    /// <summary>
+    /// Jedes Bild beim Ziehen an der Mauer: die vorläufige Lage und der Plan damit als Vorschau (die Mauer selbst ist so lange versteckt), dazu die
+    /// Wege, die einem wandernden Tor folgen. Die ganze Mauer (Umschalt) rückt dagegen mitsamt ihren Griffen auf dem 1-m-Raster mit der Maus.
+    /// </summary>
     private void MauerZiehenNachfuehren(Teilziehvorgang t, EntwurfMauer m, Vector2 maus)
     {
-        if (_wsMauern.TryGetValue(m, out var knoten)) knoten.Visible = false;
+        _wsMauern.TryGetValue(m, out var knoten);
+        if (t.Art == Ziehart.Ganz)
+        {
+            var d = Mauerpunkt(maus - t.Anfang); // auf ganze Meter (mit Alt frei): die Ecken bleiben auf dem Raster
+            t.Ort = t.Anfang + d;
+            if (knoten is not null) knoten.Position = new Vector3(d.X, 0, d.Y);
+            if (_wsGriffe is not null) _wsGriffe.Position = new Vector3(d.X, 0, d.Y);
+            TorwegeVorschau(m, m.Tore.Select(x => V2(x.Punkt) + d).ToList());
+            return;
+        }
+        if (knoten is not null) knoten.Visible = false;
         var ecken = m.Ecken.Select(V2).ToList();
         var tore = m.Tore.Select(x => (x.Name, V2(x.Punkt))).ToList();
         if (t.Vieleck == TorGriffe)
@@ -219,16 +235,100 @@ public partial class Stadtansicht
             t.Ort = Mauerpunkt(maus);
             if (t.Art == Ziehart.Griff) ecken[t.Index] = t.Ort;
             else ecken.Insert(t.Index, t.Ort);
+            tore = ToreNachher(m, ecken, t.Art == Ziehart.Griff).Select((ort, i) => (tore[i].Name, ort)).ToList();
         }
         PlanVorschau(PlanVon(ecken, m.Geschlossen, tore));
         VorschauPunkte(new[] { t.Ort }, Colors.White);
+        TorwegeVorschau(m, tore.Select(x => x.Item2).ToList());
     }
 
-    /// <summary>Loslassen eines Griffs der Mauer: Ecke verschieben bzw. einfügen, Tor verschieben (ein Schritt) – gibt den Griff zurück, der gewählt bleibt.</summary>
+    /// <summary>
+    /// Wohin die Tore wandern, wenn die Ecken so liegen (wie der Kern): Nach dem Verschieben einer Ecke bleibt jedes Tor an derselben Stelle seiner
+    /// Strecke (<paramref name="gleicheStrecken"/>), nach dem Einfügen einer Ecke kommt es auf die nächste Stelle der neuen Linie.
+    /// </summary>
+    private static List<Vector2> ToreNachher(EntwurfMauer m, List<Vector2> ecken, bool gleicheStrecken)
+    {
+        var linie = m.Geschlossen && ecken.Count > 2 ? ecken.Append(ecken[0]).ToList() : ecken;
+        var tore = new List<Vector2>();
+        foreach (var tor in m.Tore)
+        {
+            if (gleicheStrecken && m.NaechsteStelle(tor.Punkt) is var (strecke, _, anteil, _) && strecke + 1 < linie.Count)
+            {
+                tore.Add(linie[strecke].Lerp(linie[strecke + 1], (float)anteil));
+                continue;
+            }
+            var p = V2(tor.Punkt);
+            var beste = p;
+            var abstand = float.MaxValue;
+            for (var i = 0; i + 1 < linie.Count; i++)
+            {
+                var q = Geometry2D.GetClosestPointToSegment(p, linie[i], linie[i + 1]);
+                if (q.DistanceTo(p) < abstand) (beste, abstand) = (q, q.DistanceTo(p));
+            }
+            tore.Add(beste);
+        }
+        return tore;
+    }
+
+    /// <summary>Die Wege, die beim Ziehen versteckt sind, weil die Vorschau sie an ihrem neuen Ort zeigt.</summary>
+    private readonly HashSet<EntwurfWeg> _wsTorwegeVersteckt = new(ReferenceEqualityComparer.Instance);
+
+    /// <summary>
+    /// Vorschau der Wege durch wandernde Tore: Jeder Stützpunkt, der in der Mitte eines Tores liegt, rückt mit ihm (wie der Kern beim Loslassen,
+    /// <c>MauerAendern</c>); der Weg selbst ist so lange versteckt. <paramref name="nachher"/>: die Tore in derselben Reihenfolge wie <c>m.Tore</c>.
+    /// </summary>
+    private void TorwegeVorschau(EntwurfMauer m, IReadOnlyList<Vector2> nachher)
+    {
+        if (_entwurf is null) return;
+        var neu = new Dictionary<EntwurfWeg, List<Vector2>>(ReferenceEqualityComparer.Instance);
+        for (var i = 0; i < Math.Min(m.Tore.Count, nachher.Count); i++)
+        {
+            var alt = m.Tore[i].Punkt;
+            if (V2(alt).DistanceTo(nachher[i]) < 1e-3f) continue;
+            foreach (var w in _entwurf.Wege.Where(w => w.Punkte.Any(p => p.Abstand(alt) < 1e-3)))
+            {
+                if (!neu.TryGetValue(w, out var punkte)) neu[w] = punkte = w.Punkte.Select(V2).ToList();
+                for (var j = 0; j < punkte.Count; j++)
+                    if (w.Punkte[j].Abstand(alt) < 1e-3) punkte[j] = nachher[i];
+            }
+        }
+        TorwegeZeigen(neu.Keys);
+        foreach (var (w, punkte) in neu)
+        {
+            var verlauf = Wegkurve.Verlauf(punkte.Select(p => new double[] { p.X, p.Y }).ToList(), w.IstGlatt).Punkte;
+            VorschauDreiecke(BandDreiecke(verlauf.Select(p => new Vector2((float)p[0], (float)p[1])).ToList(), (float)w.BreiteWirksam / 2, 0.18f),
+                new Color(1f, 0.9f, 0.55f, 0.55f));
+        }
+    }
+
+    /// <summary>Versteckt genau diese Wege (die übrigen, vorher versteckten werden wieder sichtbar) – leer: alle wieder zeigen.</summary>
+    private void TorwegeZeigen(IEnumerable<EntwurfWeg> verstecken)
+    {
+        var liste = verstecken.ToHashSet(ReferenceEqualityComparer.Instance);
+        foreach (var w in _wsTorwegeVersteckt.Where(w => !liste.Contains(w)))
+            if (_wsWege.TryGetValue(w, out var knoten)) knoten.Visible = true;
+        _wsTorwegeVersteckt.Clear();
+        foreach (var w in liste.OfType<EntwurfWeg>())
+        {
+            if (_wsWege.TryGetValue(w, out var knoten)) knoten.Visible = false;
+            _wsTorwegeVersteckt.Add(w);
+        }
+    }
+
+    /// <summary>
+    /// Loslassen an der Mauer: Ecke verschieben bzw. einfügen, Tor verschieben, ganze Mauer verschieben (je ein Schritt) – gibt den Griff zurück,
+    /// der gewählt bleibt.
+    /// </summary>
     private Griff? MauerZiehenBeenden(Teilziehvorgang t, EntwurfMauer m)
     {
         var e = _entwurf!;
         var (x, z) = ((double)t.Ort.X, (double)t.Ort.Y);
+        if (t.Art == Ziehart.Ganz)
+        {
+            var d = t.Ort - t.Anfang;
+            if (t.Aktiv && d.Length() > 0.01f) Befehl(() => e.MauerVerschieben(m, Math.Round(d.X, 2), Math.Round(d.Y, 2)));
+            return null;
+        }
         if (t.Vieleck == TorGriffe)
         {
             if (t.Aktiv) Befehl(() => e.TorVerschieben(m, t.Index, x, z));

@@ -68,7 +68,7 @@ public enum Werkstattwerkzeug
 /// (Stadtansicht.Kartenwerkstatt.Start.cs).
 ///
 /// <b>Bedienen.</b> Das Werkzeug (<see cref="Kartenwerkzeug"/>) sagt, was ein Klick tut. Mit „Auswahl“ wählt ein Klick einen Teil
-/// (<see cref="AuswahlKlick"/>), Ziehen verschiebt Gebäude, Pflanzen und die gewählte Fläche (ein Rückgängig-Schritt je Ziehen); ein gewählter
+/// (<see cref="AuswahlKlick"/>), Ziehen verschiebt Gebäude, Pflanzen, die gewählte Fläche und mit Umschalt eine Mauer (ein Rückgängig-Schritt je Ziehen); ein gewählter
 /// Weg, eine gewählte Fläche oder Mauer zeigt Griffe an Stützpunkten, Ecken und Toren. Ein Gebäude trifft der Klick nur dort, wo sein Modell ist
 /// (<see cref="StueckKlickflaeche"/>): Im Schrägblick bleiben Boden, Wege und Flächen hinter einem Haus erreichbar. Ein Baustein des Katalogs: Sein Umriss folgt
 /// der Maus auf dem 1-m-Raster, Q/E dreht in 15°-Schritten, mit gehaltener Alt-Taste frei; grün = an dieser Stelle kein Fehler
@@ -228,6 +228,7 @@ public partial class Stadtansicht
     private void EntwurfGeaendert(Kartenaenderung a)
     {
         var weg = a.Art == Aenderungsart.Geloescht;
+        if (a.Objekt is EntwurfGebaeude or EntwurfWeg or EntwurfBauzone) WerkstattKapazitaetZeigen(null); // gälte nicht mehr (Stadtansicht.Kartenwerkstatt.Flaechen.cs)
         if (_wsBereiche.Remove(a.Objekt, out var alt)) NaturBereichVormerken(alt);
         switch (a.Objekt)
         {
@@ -996,6 +997,7 @@ public partial class Stadtansicht
                 else if (Kartenwerkzeug != Werkstattwerkzeug.Auswahl) WerkzeugBeenden();
                 else if (_wsGriff is not null) { _wsGriff = null; GriffeBauen(); }
                 else if (WerkstattGewaehlt is not null) WerkstattWaehlen((EntwurfTeil?)null);
+                else if (WerkstattKapazitaetSichtbar) WerkstattKapazitaetZeigen(null);
                 else return false;
                 return true;
             case InputEventMouseButton { ButtonIndex: MouseButton.Left, Pressed: true } klick:
@@ -1055,7 +1057,8 @@ public partial class Stadtansicht
     }
 
     /// <summary>
-    /// Ein Klick mit dem Werkzeug „Auswahl“: zuerst die Griffe des gewählten Teils (ziehen), dann die Linie des gewählten Weges, der Rand der
+    /// Ein Klick mit dem Werkzeug „Auswahl“: mit gehaltener Umschalttaste auf eine Mauer wählt sie und zieht sie ganz (Stadtansicht.Kartenwerkstatt.Mauern.cs);
+    /// sonst zuerst die Griffe des gewählten Teils (ziehen), dann die Linie des gewählten Weges, der Rand der
     /// gewählten Fläche bzw. ein Tor oder die Linie der gewählten Mauer (Stützpunkt bzw. Ecke einfügen, gleich weiterziehen). Dann, was unter der
     /// Maus liegt: ein Gebäude, dessen Modell über dem Boden getroffen wird (<see cref="StueckTreffer"/>), ein Tor, eine Pflanze, ein Weg, ein
     /// flaches Gebäude (Feld, Weide), eine Mauer, die Grundfläche eines Gebäudes, das Innere der gewählten Fläche (ganze Fläche ziehen), Bauzonen
@@ -1064,6 +1067,13 @@ public partial class Stadtansicht
     private void AuswahlKlick(Vector2 maus, Vector2? boden)
     {
         if (_entwurf is null) return;
+        var toleranz = Mathf.Max(0.6f, MeterJePixel * 8);
+        if (Input.IsKeyPressed(Key.Shift) && boden is { } ganz && MauerBei(ganz, toleranz) is { } ganzeMauer)
+        {
+            WerkstattWaehlen(ganzeMauer);
+            TeilZiehenBeginnen(ganzeMauer, Ziehart.Ganz, maus, ganz, -1, -1);
+            return;
+        }
         if (GriffBei(maus) is { } griff && WerkstattGewaehlt is { } gewaehlt)
         {
             _wsGriff = griff;
@@ -1076,7 +1086,6 @@ public partial class Stadtansicht
             WerkstattWaehlen((EntwurfTeil?)null);
             return;
         }
-        var toleranz = Mathf.Max(0.6f, MeterJePixel * 8);
         if (WerkstattGewaehlt is EntwurfWeg gewaehlterWeg && AufWeg(gewaehlterWeg, p, toleranz))
         {
             var (index, _, _) = gewaehlterWeg.NaechsteStelle(new Kartenort(p.X, p.Y));

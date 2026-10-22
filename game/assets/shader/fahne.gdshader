@@ -15,6 +15,9 @@ uniform float rauheit : hint_range(0.0, 1.0) = 0.9;
 uniform bool wandbehang = false;
 // Ausschlag am freien Ende in Teilen der Fahnenlänge (bei Windstärke 1)
 uniform float ausschlag = 0.16;
+// Ein Rand ringsum in dieser Farbe, Breite in Metern (0 = keiner; die Spielerfahne der Kartenwerkstatt: weiß mit goldenem Rand)
+uniform vec4 rand_farbe : source_color = vec4(0.85, 0.62, 0.12, 1.0);
+uniform float rand_breite = 0.0;
 
 // Stärke des Flatterns: ein leichter Grundwind, dazu der Wind; bei Windstärke 0 hängt das Tuch still
 float wirkung() {
@@ -62,6 +65,11 @@ void vertex() {
 
 void fragment() {
 	ALBEDO = farbe.rgb;
+	if (rand_breite > 0.0) {
+		// Abstand zur nächsten Kante in Metern (am Schwalbenschwanz läuft u = 1 an der Kerbe entlang, dort wird der Rand etwas schmaler)
+		float kante = min(min(UV.x, 1.0 - UV.x) * UV2.x, min(UV.y, 1.0 - UV.y) * UV2.y);
+		if (kante < rand_breite) ALBEDO = rand_farbe.rgb;
+	}
 	ROUGHNESS = rauheit;
 	SPECULAR = 0.25;
 }

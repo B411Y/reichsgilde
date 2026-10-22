@@ -244,8 +244,7 @@ public sealed partial class Kartenentwurf
         foreach (var p in _pflanzen) p.Baustein = katalog.Finde(p.Katalog);
         Geschichte = new Kartengeschichte(this);
         Regeln = Pruefregeln.Fuer(Kennung);
-        Vorkommen = LiesVorkommen();
-        Probeplan = LiesProbeplan();
+        _kamera = teile.Kamera;
     }
 
     // ── Kopf der Karte ───────────────────────────────────────────────────────
@@ -284,9 +283,19 @@ public sealed partial class Kartenentwurf
     public IReadOnlyList<Gelaende> Gelaende => _teile.Gelaende;
     public IReadOnlyList<Hafen> Haefen => _teile.Haefen;
     public IReadOnlyList<Uebergang> Uebergaenge => _teile.Uebergaenge;
-    public Kartenkamera? Kamera => _teile.Kamera;
-    public IReadOnlyList<Kartenvorkommen> Vorkommen { get; }
-    public IReadOnlyList<Probeplatz> Probeplan { get; }
+    public Kartenkamera? Kamera => _kamera;
+    public IReadOnlyList<Kartenvorkommen> Vorkommen => _vorkommen ??= LiesVorkommen();
+    public IReadOnlyList<Probeplatz> Probeplan => _probeplan ??= LiesProbeplan();
+
+    /// <summary>Der Text <c>vorlage</c> (wonach die Karte entstanden ist) oder "".</summary>
+    public string Vorlage => Text("vorlage");
+
+    /// <summary>Die Abweichungen von der Vorlage (<c>fiktion</c>).</summary>
+    public IReadOnlyList<string> Fiktion => (_daten["fiktion"] as JsonArray ?? new JsonArray()).Select(f => (string?)f ?? "").ToList();
+
+    private Kartenkamera? _kamera;
+    private List<Kartenvorkommen>? _vorkommen;
+    private List<Probeplatz>? _probeplan;
 
     /// <summary>Das Gebäude mit dieser Kennung – oder null.</summary>
     public EntwurfGebaeude? GebaeudeMit(string? kennung) => kennung is null ? null : _gebaeude.FirstOrDefault(g => g.Kennung == kennung);
@@ -296,6 +305,15 @@ public sealed partial class Kartenentwurf
     /// Die Darstellung liest sie nach <see cref="Geaendert"/>.
     /// </summary>
     public IReadOnlyList<Befund> Befunde => _befunde ??= Kartenpruefung.Pruefen(this);
+
+    /// <summary>
+    /// Die Kapazitätsprüfung dieses Entwurfs (<see cref="Kapazitaetspruefung"/>) – aus dem Zwischenspeicher, bis sich ein Gebäude, ein Weg oder
+    /// eine Bauzone ändert (nur davon hängt sie ab; in Köln dauert sie einige 10 ms).
+    /// </summary>
+    public Kapazitaet Kapazitaetsrechnung(Schwere schwere = Schwere.Fehler) =>
+        _kapazitaet is { } k && k.Schwere == schwere ? k.Ergebnis : (_kapazitaet = (schwere, Kapazitaetspruefung.Pruefen(this, schwere))).Value.Ergebnis;
+
+    private (Schwere Schwere, Kapazitaet Ergebnis)? _kapazitaet;
 
     /// <summary>Hat die Karte Fehler (Hinweise zählen nicht)?</summary>
     public bool HatFehler => Befunde.Any(b => b.Schwere == Schwere.Fehler);
@@ -369,11 +387,11 @@ public sealed partial class Kartenentwurf
         return new Kartenentwurf(MitAbschnitten(daten), gebaeude, teile, katalog, wege, bauzonen, flaechen, pflanzen, mauern, start);
     }
 
-    /// <summary>Die Abschnitte in der Reihenfolge, in der das Werkzeug sie schreibt (karte.py) – bis <c>start</c>, dem letzten, den der Entwurf anlegen kann.</summary>
+    /// <summary>Die Abschnitte in der Reihenfolge, in der das alte Werkzeug sie schrieb (karte.py), dahinter die Felder für Kartenskripte (kamera, vorkommen, fiktion, probeplan).</summary>
     private static readonly string[] Reihenfolge =
     {
         "format", "kennung", "stadt", "vorlage", "einheit", "achsen", "raster", "groesse", "gebaeude", "mauern", "wege", "bauzonen", "natur",
-        "wasser", "gelaende", "haefen", "uebergaenge", "start",
+        "wasser", "gelaende", "haefen", "uebergaenge", "start", "kamera", "vorkommen", "fiktion", "probeplan",
     };
 
     /// <summary>
@@ -632,6 +650,7 @@ public sealed partial class Kartenentwurf
     private void Vormerken(Kartenaenderung a)
     {
         _befunde = null;
+        if (a.Teil is Kartenteil.Gebaeude or Kartenteil.Weg or Kartenteil.Bauzone) _kapazitaet = null;
         _ausstehend.Add(a);
     }
 
@@ -641,6 +660,52 @@ public sealed partial class Kartenentwurf
         var liste = _ausstehend.ToList();
         _ausstehend.Clear();
         foreach (var a in liste) Geaendert?.Invoke(a);
+    }
+
+    // ── Kopf der Karte für Kartenskripte ─────────────────────────────────────
+    //  Vorlage, Fiktion, Kamera und Vorkommen bearbeitet die Kartenwerkstatt (noch) nicht; ein Kartenskript (tools/Kartenbau) setzt sie beim
+    //  Anlegen einer Stadt. Diese Aufrufe sind kein Schritt in der Geschichte (kein Rückgängig) und melden keine Änderung.
+
+    /// <summary>Wonach die Karte entstanden ist (Feld <c>vorlage</c>, z. B. „das spätmittelalterliche Köln am linken Rheinufer“).</summary>
+    public void VorlageSetzen(string text) => FeldSetzen("vorlage", text);
+
+    /// <summary>Hängt eine Abweichung von der Vorlage an (Feld <c>fiktion</c>).</summary>
+    public void FiktionHinzufuegen(string text)
+    {
+        if (_daten["fiktion"] is not JsonArray liste) FeldSetzen("fiktion", liste = new JsonArray());
+        liste.Add(text);
+    }
+
+    /// <summary>Der Blick beim Start: Punkt der Stadt, Zoom (Größe des Bildausschnitts in Metern) und Drehung (0 = wie heute).</summary>
+    public void KameraSetzen(Kartenort punkt, double zoom, double drehung = 0)
+    {
+        var p = Gerundet(punkt);
+        FeldSetzen("kamera", new JsonObject { ["punkt"] = EntwurfTeil.JsonPunkt(p), ["zoom"] = zoom, ["drehung"] = drehung });
+        _kamera = new Kartenkamera { Punkt = new[] { p.X, p.Z }, Zoom = zoom, Drehung = drehung };
+    }
+
+    /// <summary>Ein fester Ort für einen Rohstoffbetrieb (Mine, Steinbruch, Holzschlag) – die Prüfung verlangt dort einen Weg (Feld <c>vorkommen</c>).</summary>
+    public void VorkommenHinzufuegen(string kennung, string betrieb, Kartenort punkt)
+    {
+        if (_daten["vorkommen"] is not JsonArray liste) FeldSetzen("vorkommen", liste = new JsonArray());
+        liste.Add(new JsonObject { ["kennung"] = kennung, ["betrieb"] = betrieb, ["punkt"] = EntwurfTeil.JsonPunkt(Gerundet(punkt)) });
+        (_vorkommen, _befunde) = (null, null);
+    }
+
+    /// <summary>Setzt ein Feld des Kopfes; ein neues kommt an seine Stelle der <see cref="Reihenfolge"/> (wie <see cref="MitAbschnitten"/>).</summary>
+    private void FeldSetzen(string feld, JsonNode? wert)
+    {
+        if (_daten.ContainsKey(feld))
+        {
+            _daten[feld] = wert;
+            return;
+        }
+        var liste = _daten.ToList();
+        _daten.Clear();
+        var davor = Reihenfolge.TakeWhile(k => k != feld).ToHashSet();
+        var i = liste.FindLastIndex(e => davor.Contains(e.Key));
+        liste.Insert(i < 0 ? liste.Count : i + 1, new(feld, wert));
+        foreach (var (k, v) in liste) _daten[k] = v;
     }
 
     // ── Lesen der Felder, die die Stadtkarte nicht kennt ─────────────────────

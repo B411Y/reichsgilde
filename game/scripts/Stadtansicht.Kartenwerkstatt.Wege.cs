@@ -500,7 +500,8 @@ public partial class Stadtansicht
         if (t.Teil is EntwurfFlaeche f && _wsFlaechen.TryGetValue(f, out var knoten)) knoten.Position = Vector3.Zero;
         if (_wsGriffe is not null) _wsGriffe.Position = Vector3.Zero;
         if (t.Teil is EntwurfPflanze p && _wsPflanzen.TryGetValue(p, out var pflanze)) pflanze.Position = V3(p.Punkt);
-        if (t.Teil is EntwurfMauer m && _wsMauern.TryGetValue(m, out var mauer)) mauer.Visible = true;
+        if (t.Teil is EntwurfMauer m && _wsMauern.TryGetValue(m, out var mauer)) (mauer.Visible, mauer.Position) = (true, Vector3.Zero);
+        TorwegeZeigen(Array.Empty<EntwurfWeg>()); // Wege, die der Vorschau eines wandernden Tores folgten (Stadtansicht.Kartenwerkstatt.Mauern.cs)
     }
 
     // ═════════════════════════════════════════════════════════════════════════
