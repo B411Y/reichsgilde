@@ -32,7 +32,7 @@ public partial class Stadtansicht
     private sealed record Raum(string Kennung, string Name, Vector3 Mitte, Vector3 Masse, Func<bool>? Zugaenglich = null, List<Blickpunkt>? Blicke = null);
 
     /// <summary>Kennungen der Werkstatträume (Klick in der Raumansicht).</summary>
-    public const string RaumWerk = "raum:werk", RaumLager = "raum:lager", RaumSaege = "raum:saege", RaumHuette = "raum:huette", RaumLaden = "raum:laden", RaumTurm = "raum:turm", RaumPavillon = "raum:pavillon", RaumKueche = "raum:kueche", RaumSaal = "raum:saal", RaumKirche = "raum:kirche", RaumSkriptorium = "raum:skriptorium", RaumSchatzkammer = "raum:schatzkammer", RaumSchlafboden = "raum:schlafboden", RaumGildenhalle = "raum:gildenhalle", RaumZelle = "raum:zelle", RaumUebung = "raum:uebung", RaumHauptmann = "raum:hauptmann", RaumKontor = "raum:kontor", RaumWohnstube = "raum:wohnstube";
+    public const string RaumWerk = "raum:werk", RaumLager = "raum:lager", RaumSaege = "raum:saege", RaumHuette = "raum:huette", RaumLaden = "raum:laden", RaumTurm = "raum:turm", RaumPavillon = "raum:pavillon", RaumKueche = "raum:kueche", RaumSaal = "raum:saal", RaumKirche = "raum:kirche", RaumSkriptorium = "raum:skriptorium", RaumSchatzkammer = "raum:schatzkammer", RaumSchlafboden = "raum:schlafboden", RaumGildenhalle = "raum:gildenhalle", RaumZelle = "raum:zelle", RaumUebung = "raum:uebung", RaumHauptmann = "raum:hauptmann", RaumPfand = "raum:pfand", RaumBankkontor = "raum:bankkontor", RaumEmpfang = "raum:empfang", RaumTresor = "raum:tresor", RaumKontor = "raum:kontor", RaumWohnstube = "raum:wohnstube";
 
     /// <summary>So tief unter der Stadt liegen die Räume.</summary>
     private const float RaumTiefe = -200f;

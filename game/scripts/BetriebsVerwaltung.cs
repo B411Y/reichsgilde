@@ -28,6 +28,9 @@ public partial class BetriebsVerwaltung : VBoxContainer
     /// <summary>Nur der Abschnitt „Karren“ (Kaufen, Zustand, Handel): so steht er als Tafel am Hoftor im Innenraum (<see cref="KarrenAnzeige"/>).</summary>
     public bool NurKarren { get; init; }
 
+    /// <summary>Nur der Abschnitt „Geldleihe“ (Kasse, Rahmen, Zins für Häuser, offene Kredite): so steht er als Tafel am Hauptbuchpult im Innenraum (<see cref="BankAnzeige"/>).</summary>
+    public bool NurBank { get; init; }
+
     /// <summary>Wessen Betriebe dieses Feld bedienen darf.</summary>
     public Konto? Spieler => _spieler;
     private Betrieb? _betrieb;
@@ -238,6 +241,9 @@ public partial class BetriebsVerwaltung : VBoxContainer
         if (NurKarren)
             foreach (var kind in GetChildren().OfType<Control>().Where(k => k != _karrenKopf && k != _karren && k != _karrenKauf))
                 kind.Visible = false;
+        if (NurBank)
+            foreach (var kind in GetChildren().OfType<Control>().Where(k => k != _bankstube))
+                kind.Visible = false;
         Visible = false;
     }
 
@@ -304,6 +310,11 @@ public partial class BetriebsVerwaltung : VBoxContainer
         if (NurKarren)
         {
             KarrenAktualisieren(b, w);
+            return;
+        }
+        if (NurBank)
+        {
+            BankstubeAktualisieren(b, w);
             return;
         }
 
@@ -494,7 +505,7 @@ public partial class BetriebsVerwaltung : VBoxContainer
             + (x.Ausfall > 0 ? $" · Ausfälle {Zahlenformat.Ganz(x.Ausfall)}" : "");
         var kasse = bank.Kasse(b);
         var voll = bank.RahmenVoll(b);
-        var jahr = Zahlenformat.Ganz(bank.WertJeMinute(b.Stufe) * w.Daten.Allgemein.Arbeitsminuten);
+        var jahr = Zahlenformat.Ganz(bank.WertJeMinute(b) * w.Daten.Allgemein.Arbeitsminuten);
         var zeilen = new List<string>
         {
             $"Geldleihe – die Schreiber verleihen das Geld der Kasse an Bürger ({Zahlenformat.Ganz(d.Stadtzins * 100)} % im Jahr) und wechseln Münzen am Markt: " +
@@ -507,7 +518,7 @@ public partial class BetriebsVerwaltung : VBoxContainer
         zeilen.Add($"Jedes Jahr fallen mit {Zahlenformat.Ganz(d.Ausfall.Chance * 100)} % Kunden aus – dann sind {Zahlenformat.Ganz(d.Ausfall.Anteil * 100)} % der Kasse verloren.");
         var kredite = bank.KrediteVon(b.Konto).ToList();
         zeilen.Add(kredite.Count == 0
-            ? $"Kredite an Häuser: keine. Andere Häuser leihen im Kontor – höchstens {Zahlenformat.Ganz(bank.FreierKreditrahmen(b.Konto))} {waehrung} sind noch frei."
+            ? $"Kredite an Häuser: keine. Andere Häuser leihen im Kontor – höchstens {Zahlenformat.Ganz(bank.FreierKreditrahmen(b.Konto))} {waehrung} sind noch frei (Obergrenze {Zahlenformat.Ganz(bank.Kredithoechstbetrag(b.Konto))})."
             : "Kredite an Häuser: " + string.Join(" · ", kredite.Select(k =>
                 $"{k.Nehmer.Inhaber} {Zahlenformat.Ganz(k.Rest)} zu {Zahlenformat.Ganz(k.Satz * 100)} %, noch {k.JahreOffen} {(k.JahreOffen == 1 ? "Jahr" : "Jahre")}" + (k.IstWucher ? " (Wucher!)" : ""))));
         zeilen.Add($"Über {Zahlenformat.Ganz(d.Wucher.Ab * 100)} % ist Wucher: eine Spur fürs Gericht, der Schuldner hat den Beweis, {Zahlenformat.Ganz(d.Wucher.Ansehen)} Ansehen weniger. " +

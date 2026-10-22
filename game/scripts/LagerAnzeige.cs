@@ -16,13 +16,18 @@ public sealed class LagerAnzeige : InnenTafel
         b.Zutaten.Keys.Concat(b.Artdaten.Produkte).Append(b.Produkt).Concat(b.Lager.Keys).Where(x => !string.IsNullOrEmpty(x)).Distinct().ToList();
 
     protected override string Stand(Stadtwirtschaft w, Betrieb b) =>
-        b.LagerKapazitaetJeWare + "|" + b.HatEinrichtung("Regale") + "|" + string.Join(";", Waren(b).Select(x => $"{x}:{b.ImLager(x)}:{b.HaeltZurueck(x)}"));
+        b.LagerKapazitaetJeWare + "|" + b.HatEinrichtung("Regale") + "|" + (w.Bank.IstBankbetrieb(b) ? $"{Math.Round(w.Bank.Kasse(b))}:{Math.Round(w.Bank.Rahmen(b))}:{string.Join(",", b.Einrichtung.OrderBy(x => x))}" : "") + "|" + string.Join(";", Waren(b).Select(x => $"{x}:{b.ImLager(x)}:{b.HaeltZurueck(x)}"));
 
     protected override void Aufbauen(Stadtwirtschaft w, Betrieb b)
     {
         if (w.Wache.IstWachbetrieb(b))
         {
             WaffenkammerAufbauen(w, b);
+            return;
+        }
+        if (w.Bank.IstBankbetrieb(b))
+        {
+            TresorAufbauen(w, b);
             return;
         }
         var zutaten = b.Zutaten.Keys.ToHashSet();
@@ -56,5 +61,21 @@ public sealed class LagerAnzeige : InnenTafel
         if (regale is null) return;
         Text(Inhalt, regale.Gekauft ? $"{regale.Name} (gekauft): {regale.Wirkung}" : $"{regale.Name} ({Zahlenformat.Ganz(regale.Preis)} {w.Daten.Allgemein.Waehrung}, an der Waffenwand unter „Einrichtung“): {regale.Wirkung}",
             14, regale.Gekauft ? Gruen : Hell, 660);
+    }
+
+    /// <summary>Der Tresor der Geldleihe: keine Waren, nur die Kasse – dazu, was Pfandkammer, Kassenschrank und Eisentür schützen.</summary>
+    private void TresorAufbauen(Stadtwirtschaft w, Betrieb b)
+    {
+        var bank = w.Bank;
+        var waehrung = w.Daten.Allgemein.Waehrung;
+        Kopf("Tresor", b, "Hier lagert keine Ware, nur das Geld der Kasse.");
+        Text(Inhalt, $"Kasse: {Zahlenformat.Ganz(bank.Kasse(b))} {waehrung} · die Schreiber betreuen davon {Zahlenformat.Ganz(bank.Rahmen(b))}, voll besetzt {Zahlenformat.Ganz(bank.RahmenVoll(b))}", 14, Hell, 660);
+        Text(Inhalt, "Einzahlen und Abheben: am Hauptbuchpult in der Wechselstube.", 12, Grau, 660);
+        foreach (var kennung in new[] { "Pfandkammer", "Kassenschrank", "Eisentuer" })
+        {
+            if (w.Werkstaetten.Einrichtungsliste(b).FirstOrDefault(e => e.Kennung == kennung) is not { } stueck) continue;
+            Text(Inhalt, stueck.Gekauft ? $"{stueck.Name} (gekauft): {stueck.Wirkung}" : $"{stueck.Name} ({Zahlenformat.Ganz(stueck.Preis)} {waehrung}, am Wandschrank unter „Einrichtung“): {stueck.Wirkung}",
+                14, stueck.Gekauft ? Gruen : Hell, 660);
+        }
     }
 }
