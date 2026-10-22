@@ -12,5 +12,7 @@
   </PropertyGroup>
   <ItemGroup>
     <ProjectReference Include="..\..\src\Reichsgilde.Core\Reichsgilde.Core.csproj" />
+    <!-- Das Kartenskript (Stadtskripte, Schreiben mit Schreibschutz, Vorschau) – KartenbauTests.cs -->
+    <ProjectReference Include="..\..\tools\Kartenbau\Kartenbau.csproj" />
   </ItemGroup>
 </Project>

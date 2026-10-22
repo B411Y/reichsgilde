@@ -1,0 +1,117 @@
+{
+ "format": 2,
+ "kennung": "probestadt",
+ "stadt": "Probestadt",
+ "vorlage": "Muster für Stadtskripte (tools/Kartenbau/Staedte/Probestadt.cs), kein historisches Vorbild",
+ "einheit": "Meter",
+ "achsen": "x = Osten, z = Süden (−z = Norden), Ursprung am Marktplatz",
+ "raster": 2,
+ "groesse": [400, 300],
+ "gebaeude": [
+  {"kennung": "Marktplatz1", "katalog": "markt", "name": "Marktplatz", "punkt": [0, 0], "drehung": 0},
+  {"kennung": "Rathaus1", "katalog": "rathaus", "name": "Rathaus", "punkt": [0, -19], "drehung": 0},
+  {"kennung": "Kirche1", "katalog": "kirche", "name": "Kirche", "punkt": [0, 22], "drehung": 180},
+  {"kennung": "Werkstattplatz1", "katalog": "werkstattplatz", "name": "Werkstattplatz", "punkt": [-30, -10], "drehung": 0},
+  {"kennung": "Werkstattplatz2", "katalog": "werkstattplatz", "name": "Werkstattplatz 2", "punkt": [32, -10], "drehung": 0, "betrieb": "Tischlerei Ahlbeck"},
+  {"kennung": "Werkstattplatz3", "katalog": "werkstattplatz", "name": "Werkstattplatz 3", "punkt": [-30, 10], "drehung": 180},
+  {"kennung": "Werkstattplatz4", "katalog": "werkstattplatz", "name": "Werkstattplatz 4", "punkt": [32, 10], "drehung": 180, "betrieb": "Gießerei Brendel"},
+  {"kennung": "Wohnhausplatz1", "katalog": "wohnhausplatz", "name": "Wohnhaus Nord 1", "punkt": [-10, -35], "drehung": 180},
+  {"kennung": "Wohnhausplatz2", "katalog": "wohnhausplatz", "name": "Wohnhaus Nord 2", "punkt": [0, -35], "drehung": 180},
+  {"kennung": "Wohnhausplatz3", "katalog": "wohnhausplatz", "name": "Wohnhaus Nord 3", "punkt": [10, -35], "drehung": 180},
+  {"kennung": "Wohnhausplatz4", "katalog": "wohnhausplatz", "name": "Wohnhaus Süd 1", "punkt": [10, 35], "drehung": 0},
+  {"kennung": "Wohnhausplatz5", "katalog": "wohnhausplatz", "name": "Wohnhaus Süd 2", "punkt": [0, 35], "drehung": 0},
+  {"kennung": "Wohnhausplatz6", "katalog": "wohnhausplatz", "name": "Wohnhaus Süd 3", "punkt": [-10, 35], "drehung": 0},
+  {"kennung": "Einwohnerplatz_am_Ring1", "katalog": "einwohnerplatz_ring", "name": "Einwohnerplatz am Ring", "punkt": [-42.75, -48], "drehung": 0},
+  {"kennung": "Einwohnerplatz_am_Ring2", "katalog": "einwohnerplatz_ring", "name": "Einwohnerplatz am Ring 2", "punkt": [-33.25, -48], "drehung": 0},
+  {"kennung": "Einwohnerplatz_am_Ring3", "katalog": "einwohnerplatz_ring", "name": "Einwohnerplatz am Ring 3", "punkt": [-23.75, -48], "drehung": 0},
+  {"kennung": "Einwohnerplatz_am_Ring4", "katalog": "einwohnerplatz_ring", "name": "Einwohnerplatz am Ring 4", "punkt": [-14.25, -48], "drehung": 0},
+  {"kennung": "Einwohnerplatz_am_Ring5", "katalog": "einwohnerplatz_ring", "name": "Einwohnerplatz am Ring 5", "punkt": [-4.75, -48], "drehung": 0},
+  {"kennung": "Einwohnerplatz_am_Ring6", "katalog": "einwohnerplatz_ring", "name": "Einwohnerplatz am Ring 6", "punkt": [4.75, -48], "drehung": 0},
+  {"kennung": "Einwohnerplatz_am_Ring7", "katalog": "einwohnerplatz_ring", "name": "Einwohnerplatz am Ring 7", "punkt": [14.25, -48], "drehung": 0},
+  {"kennung": "Einwohnerplatz_am_Ring8", "katalog": "einwohnerplatz_ring", "name": "Einwohnerplatz am Ring 8", "punkt": [23.75, -48], "drehung": 0},
+  {"kennung": "Einwohnerplatz_am_Ring9", "katalog": "einwohnerplatz_ring", "name": "Einwohnerplatz am Ring 9", "punkt": [33.25, -48], "drehung": 0},
+  {"kennung": "Einwohnerplatz_am_Ring10", "katalog": "einwohnerplatz_ring", "name": "Einwohnerplatz am Ring 10", "punkt": [42.75, -48], "drehung": 0},
+  {"kennung": "Einwohnerplatz_am_Ring11", "katalog": "einwohnerplatz_ring", "name": "Einwohnerplatz am Ring 11", "punkt": [42.75, 48], "drehung": 180},
+  {"kennung": "Einwohnerplatz_am_Ring12", "katalog": "einwohnerplatz_ring", "name": "Einwohnerplatz am Ring 12", "punkt": [33.25, 48], "drehung": 180},
+  {"kennung": "Einwohnerplatz_am_Ring13", "katalog": "einwohnerplatz_ring", "name": "Einwohnerplatz am Ring 13", "punkt": [23.75, 48], "drehung": 180},
+  {"kennung": "Einwohnerplatz_am_Ring14", "katalog": "einwohnerplatz_ring", "name": "Einwohnerplatz am Ring 14", "punkt": [14.25, 48], "drehung": 180},
+  {"kennung": "Einwohnerplatz_am_Ring15", "katalog": "einwohnerplatz_ring", "name": "Einwohnerplatz am Ring 15", "punkt": [4.75, 48], "drehung": 180},
+  {"kennung": "Einwohnerplatz_am_Ring16", "katalog": "einwohnerplatz_ring", "name": "Einwohnerplatz am Ring 16", "punkt": [-4.75, 48], "drehung": 180},
+  {"kennung": "Einwohnerplatz_am_Ring17", "katalog": "einwohnerplatz_ring", "name": "Einwohnerplatz am Ring 17", "punkt": [-14.25, 48], "drehung": 180},
+  {"kennung": "Einwohnerplatz_am_Ring18", "katalog": "einwohnerplatz_ring", "name": "Einwohnerplatz am Ring 18", "punkt": [-23.75, 48], "drehung": 180},
+  {"kennung": "Einwohnerplatz_am_Ring19", "katalog": "einwohnerplatz_ring", "name": "Einwohnerplatz am Ring 19", "punkt": [-33.25, 48], "drehung": 180},
+  {"kennung": "Einwohnerplatz_am_Ring20", "katalog": "einwohnerplatz_ring", "name": "Einwohnerplatz am Ring 20", "punkt": [-42.75, 48], "drehung": 180}
+ ],
+ "mauern": [
+  {
+   "name": "Stadtmauer",
+   "linie": [[-70, -55], [70, -55], [70, 55], [-70, 55]],
+   "geschlossen": true,
+   "katalog": "stadtmauer",
+   "tore": [{"name": "Westtor", "punkt": [-70, 0], "schliesstNachts": true}, {"name": "Osttor", "punkt": [70, 0], "schliesstNachts": true}]
+  }
+ ],
+ "wege": [
+  {"name": "Hauptstraße", "klasse": "haupt", "linie": [[-70, 0], [70, 0]], "gefahr": 1, "breite": 5},
+  {"name": "Ringstraße", "klasse": "ring", "linie": [[-57, -42], [57, -42], [57, 42], [-57, 42], [-57, -42]], "gefahr": 1, "breite": 3},
+  {"name": "Landstraße nach Osten", "klasse": "land", "linie": [[70, 0], [190, 0]], "gefahr": 1, "breite": 4},
+  {"name": "Landstraße nach Westen", "klasse": "land", "linie": [[-70, 0], [-190, 0]], "gefahr": 1, "breite": 4},
+  {"name": "Feldweg Ost-Nord", "klasse": "feldweg", "linie": [[190, 0], [190, -46], [76, -46]], "gefahr": 1, "breite": 3},
+  {"name": "Feldweg Ost-Süd", "klasse": "feldweg", "linie": [[190, 0], [190, 46], [76, 46]], "gefahr": 1, "breite": 3},
+  {"name": "Feldweg West-Nord", "klasse": "feldweg", "linie": [[-190, 0], [-190, -46], [-76, -46]], "gefahr": 1, "breite": 3},
+  {"name": "Feldweg West-Süd", "klasse": "feldweg", "linie": [[-190, 0], [-190, 46], [-76, 46]], "gefahr": 1, "breite": 3},
+  {"name": "Waldweg", "klasse": "fussweg", "linie": [[-190, -46], [-165, -78], [-140, -100], [-130, -132]], "gefahr": 1, "breite": 2, "kurve": "glatt"}
+ ],
+ "bauzonen": [
+  {"kennung": "VON", "art": "vorstadt", "flaeche": [[76, -4], [184, -4], [184, -42], [76, -42]]},
+  {"kennung": "VOS", "art": "vorstadt", "flaeche": [[76, 4], [184, 4], [184, 42], [76, 42]]},
+  {"kennung": "VWN", "art": "vorstadt", "flaeche": [[-76, -4], [-184, -4], [-184, -42], [-76, -42]]},
+  {"kennung": "VWS", "art": "vorstadt", "flaeche": [[-76, 4], [-184, 4], [-184, 42], [-76, 42]]}
+ ],
+ "natur": {
+  "flaechen": [
+   {
+    "name": "Wald im Nordwesten",
+    "art": "wald",
+    "flaeche": [[-195, -145], [-60, -145], [-60, -72], [-120, -60], [-195, -60]],
+    "dichte": 10,
+    "startwert": 1000,
+    "gruppen": [{"gewicht": 1, "radius": 0, "teile": [{"arten": {"tanne": 0.55, "eiche": 0.3, "buche": 0.15}, "anzahl": [1, 1]}]}]
+   },
+   {
+    "name": "Wald im Südosten",
+    "art": "wald",
+    "flaeche": [[60, 70], [195, 60], [195, 145], [40, 145]],
+    "dichte": 10,
+    "startwert": 1001,
+    "gruppen": [{"gewicht": 1, "radius": 0, "teile": [{"arten": {"tanne": 0.55, "eiche": 0.3, "buche": 0.15}, "anzahl": [1, 1]}]}]
+   }
+  ],
+  "pflanzen": []
+ },
+ "start": {
+  "spieler": {"wohnhaus": "Wohnhausplatz2", "farbe": "#336bb8", "werkstatt": {"platz": "Werkstattplatz1", "name": "{art} am Werkstattplatz"}},
+  "haeuser": [
+   {
+    "name": "Haus Ahlbeck",
+    "volk": "Mensch",
+    "geschlecht": "Mann",
+    "wappen": {"teilung": "Geteilt", "farbe1": "Blau", "farbe2": "Gold", "figur": "Stern"},
+    "farbe": "#b33329",
+    "wohnhaus": "Wohnhausplatz1",
+    "betriebe": [{"platz": "Werkstattplatz2", "art": "Tischlerei"}]
+   },
+   {
+    "name": "Haus Brendel",
+    "volk": "Mensch",
+    "geschlecht": "Mann",
+    "wappen": {"teilung": "Gespalten", "farbe1": "Silber", "farbe2": "Rot", "figur": "Schluessel"},
+    "farbe": "#388c47",
+    "wohnhaus": "Wohnhausplatz3",
+    "betriebe": [{"platz": "Werkstattplatz4", "art": "Giesserei"}]
+   }
+  ]
+ },
+ "kamera": {"punkt": [0, 0], "zoom": 110, "drehung": 0},
+ "fiktion": ["Ganz erfunden: eine kleine Stadt zum Ausprobieren von Kartenskript, Prüfung und Partie."]
+}

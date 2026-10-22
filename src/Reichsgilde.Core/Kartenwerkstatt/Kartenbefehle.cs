@@ -47,6 +47,9 @@ internal sealed class TeilAendern(string beschreibung, EntwurfTeil teil, Entwurf
 
     /// <summary>Derselbe Befehl mit anderer Beschreibung.</summary>
     public TeilAendern Benannt(string text) => new(text, teil, vorher, nachher);
+
+    /// <summary>Die Werte nachher (zum Vergleich, bevor der Befehl ausgeführt wird; nicht ändern).</summary>
+    public EntwurfTeil Nachher => nachher;
 }
 
 /// <summary>Mehrere Befehle als ein Schritt (zurückgenommen in umgekehrter Reihenfolge).</summary>
