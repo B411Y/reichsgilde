@@ -215,6 +215,7 @@ public partial class Stadtansicht
         if (jahreszeit == _jahreszeit) return;
         _jahreszeit = jahreszeit;
         foreach (var (stoff, sommer) in _laubStoffe) LaubFaerben(stoff, sommer);
+        FeldJahreszeit(); // die Äcker liegen im Winter kahl da (Stadtansicht.Rand.cs)
 
         var winter = jahreszeit == Jahreszeit.Winter;
         foreach (var (vielfach, sommerNetz, winterNetz) in _naturWinter) vielfach.Mesh = OberflaecheNetz(winter ? winterNetz : sommerNetz); // mit Struktur, wenn die Oberflächendetails an sind

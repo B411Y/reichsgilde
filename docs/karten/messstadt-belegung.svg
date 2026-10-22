@@ -1,9 +1,10 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="-240 -170 480 340" font-family="sans-serif">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="-540 -470 1080 940" font-family="sans-serif">
 <title>Messstadt – Kartendatei (Vorschau, Belegung)</title>
+<rect x="-540" y="-470" width="1080" height="940" fill="#D6DACF"/>
 <rect x="-240" y="-170" width="480" height="340" fill="#E6E8E1"/>
-<mask id="natur0"><rect x="-240" y="-170" width="480" height="340" fill="#fff"/></mask>
+<mask id="natur0"><rect x="-540" y="-470" width="1080" height="940" fill="#fff"/></mask>
 <polygon points="-235,-165 -60,-165 -60,-125 -235,-125" fill="#7F9B6A" opacity="0.55" mask="url(#natur0)"/>
-<mask id="natur1"><rect x="-240" y="-170" width="480" height="340" fill="#fff"/></mask>
+<mask id="natur1"><rect x="-540" y="-470" width="1080" height="940" fill="#fff"/></mask>
 <polygon points="60,125 235,125 235,165 60,165" fill="#7F9B6A" opacity="0.55" mask="url(#natur1)"/>
 <polygon points="96,-4 214,-4 214,-52 96,-52" fill="#E2DCC6" stroke="#6B6E66" stroke-width="0.4"/>
 <polygon points="96,4 214,4 214,52 96,52" fill="#E2DCC6" stroke="#6B6E66" stroke-width="0.4"/>
@@ -380,25 +381,26 @@
 <text x="155" y="28" font-size="6" text-anchor="middle" fill="#6B6E66">VOS</text>
 <text x="-155" y="-28" font-size="6" text-anchor="middle" fill="#6B6E66">VWN</text>
 <text x="-155" y="28" font-size="6" text-anchor="middle" fill="#6B6E66">VWS</text>
-<rect x="-236.5" y="-166.5" width="84" height="67.2" fill="#fff" opacity="0.8"/>
-<rect x="-233" y="-163" width="5.6" height="5.6" fill="#336bb8" stroke="#1F2326" stroke-width="0.3"/>
-<text x="-224.6" y="-158.1" font-size="5.6" fill="#1F2326">Spieler</text>
-<rect x="-233" y="-156" width="5.6" height="5.6" fill="#b33329" stroke="#1F2326" stroke-width="0.3"/>
-<text x="-224.6" y="-151.1" font-size="5.6" fill="#1F2326">Haus Ahlbeck</text>
-<rect x="-233" y="-149" width="5.6" height="5.6" fill="#388c47" stroke="#1F2326" stroke-width="0.3"/>
-<text x="-224.6" y="-144.1" font-size="5.6" fill="#1F2326">Haus Brendel</text>
-<rect x="-233" y="-142" width="5.6" height="5.6" fill="#d9ad2e" stroke="#1F2326" stroke-width="0.3"/>
-<text x="-224.6" y="-137.1" font-size="5.6" fill="#1F2326">Haus Dornbusch</text>
-<rect x="-233" y="-135" width="5.6" height="5.6" fill="#7a4a9e" stroke="#1F2326" stroke-width="0.3"/>
-<text x="-224.6" y="-130.1" font-size="5.6" fill="#1F2326">Haus Falkner</text>
-<rect x="-233" y="-128" width="5.6" height="5.6" fill="#2e8c8c" stroke="#1F2326" stroke-width="0.3"/>
-<text x="-224.6" y="-123.1" font-size="5.6" fill="#1F2326">Haus Grünwald</text>
-<rect x="-233" y="-121" width="5.6" height="5.6" fill="#c26a1f" stroke="#1F2326" stroke-width="0.3"/>
-<text x="-224.6" y="-116.1" font-size="5.6" fill="#1F2326">Haus Hollerbach</text>
-<rect x="-233" y="-114" width="5.6" height="5.6" fill="#5c5c5c" stroke="#1F2326" stroke-width="0.3"/>
-<text x="-224.6" y="-109.1" font-size="5.6" fill="#1F2326">Haus Lindenau</text>
-<rect x="-233" y="-107" width="5.6" height="5.6" fill="#a3476b" stroke="#1F2326" stroke-width="0.3"/>
-<text x="-224.6" y="-102.1" font-size="5.6" fill="#1F2326">Haus Rabenstein</text>
+<rect x="-240" y="-170" width="480" height="340" fill="none" stroke="#6B6E66" stroke-width="1.2" stroke-dasharray="8 4"/>
+<rect x="-532.5" y="-462.5" width="180" height="144" fill="#fff" opacity="0.8"/>
+<rect x="-525" y="-455" width="12" height="12" fill="#336bb8" stroke="#1F2326" stroke-width="0.3"/>
+<text x="-507" y="-444.5" font-size="12" fill="#1F2326">Spieler</text>
+<rect x="-525" y="-440" width="12" height="12" fill="#b33329" stroke="#1F2326" stroke-width="0.3"/>
+<text x="-507" y="-429.5" font-size="12" fill="#1F2326">Haus Ahlbeck</text>
+<rect x="-525" y="-425" width="12" height="12" fill="#388c47" stroke="#1F2326" stroke-width="0.3"/>
+<text x="-507" y="-414.5" font-size="12" fill="#1F2326">Haus Brendel</text>
+<rect x="-525" y="-410" width="12" height="12" fill="#d9ad2e" stroke="#1F2326" stroke-width="0.3"/>
+<text x="-507" y="-399.5" font-size="12" fill="#1F2326">Haus Dornbusch</text>
+<rect x="-525" y="-395" width="12" height="12" fill="#7a4a9e" stroke="#1F2326" stroke-width="0.3"/>
+<text x="-507" y="-384.5" font-size="12" fill="#1F2326">Haus Falkner</text>
+<rect x="-525" y="-380" width="12" height="12" fill="#2e8c8c" stroke="#1F2326" stroke-width="0.3"/>
+<text x="-507" y="-369.5" font-size="12" fill="#1F2326">Haus Grünwald</text>
+<rect x="-525" y="-365" width="12" height="12" fill="#c26a1f" stroke="#1F2326" stroke-width="0.3"/>
+<text x="-507" y="-354.5" font-size="12" fill="#1F2326">Haus Hollerbach</text>
+<rect x="-525" y="-350" width="12" height="12" fill="#5c5c5c" stroke="#1F2326" stroke-width="0.3"/>
+<text x="-507" y="-339.5" font-size="12" fill="#1F2326">Haus Lindenau</text>
+<rect x="-525" y="-335" width="12" height="12" fill="#a3476b" stroke="#1F2326" stroke-width="0.3"/>
+<text x="-507" y="-324.5" font-size="12" fill="#1F2326">Haus Rabenstein</text>
 <rect x="-214" y="-52" width="2" height="2" fill="#8C5A2B" opacity="0.75"/>
 <rect x="-214" y="-50" width="2" height="2" fill="#8C5A2B" opacity="0.75"/>
 <rect x="-214" y="-48" width="2" height="2" fill="#8C5A2B" opacity="0.75"/>

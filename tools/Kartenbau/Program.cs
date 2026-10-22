@@ -13,6 +13,9 @@ namespace Reichsgilde.Kartenbau;
 //    dotnet run --project tools/Kartenbau -- vorschau <karte|datei> [--belegung]  docs/karten/<kennung>.svg (und -belegung.svg) zeichnen
 //    dotnet run --project tools/Kartenbau -- bauen <skript> [--ueberschreiben]    ein Stadtskript ausführen → game/karten/<kennung>.json
 //    dotnet run --project tools/Kartenbau -- liste                                die Stadtskripte
+//    dotnet run --project tools/Kartenbau -- groesse <karte> [<breite> <tiefe> [<mitteX> <mitteZ>]] [--rand=<m>]
+//                                                   Größe des Spielfelds (ohne Zahlen: aus dem Inhalt abgeleitet) und Randbreite in die Karte schreiben
+//    dotnet run --project tools/Kartenbau -- randvorschlag <karte> [<startwert>]   Felder und Waldstücke im Randstreifen vorschlagen (ersetzt einen früheren)
 //  <karte> ist die Kennung einer Karte in game/karten/ (greybox, koeln …), <datei> ein Pfad zu einer .json-Datei.
 //  Rückgabe: 0 = in Ordnung, 1 = die Karte hat Fehler, 2 = falscher Aufruf (oder die Datei gibt es schon).
 //
@@ -42,6 +45,9 @@ public static class Program
                 "vorschau" when ziel is not null => Befehle.Vorschau(ordner, ziel, schalter.Contains("--belegung"), Console.Out),
                 "bauen" when ziel is not null => Befehle.Bauen(ordner, ziel, schalter.Contains("--ueberschreiben"), Console.Out),
                 "liste" => Befehle.Liste(Console.Out),
+                "groesse" when ziel is not null && Zahlen(worte.Skip(2)) is { Count: 0 or 2 or 4 } z =>
+                    Befehle.Groesse(ordner, ziel, z, Wert(args, "--rand"), Console.Out),
+                "randvorschlag" when ziel is not null && Zahlen(worte.Skip(2)) is { Count: 0 or 1 } z => Befehle.Randvorschlag(ordner, ziel, z.Count == 1 ? (int)z[0] : null, Console.Out),
                 _ => Hilfe(),
             };
         }
@@ -57,6 +63,23 @@ public static class Program
         }
     }
 
+    /// <summary>Die Zahlen unter den Worten (Punkt als Dezimaltrenner) – null, wenn ein Wort keine Zahl ist.</summary>
+    private static List<double>? Zahlen(IEnumerable<string> worte)
+    {
+        var liste = new List<double>();
+        foreach (var w in worte)
+        {
+            if (!double.TryParse(w, NumberStyles.Float, CultureInfo.InvariantCulture, out var x)) return null;
+            liste.Add(x);
+        }
+        return liste;
+    }
+
+    /// <summary>Der Wert eines Schalters „--name=zahl“ – oder null.</summary>
+    private static double? Wert(IEnumerable<string> args, string name) =>
+        args.FirstOrDefault(a => a.StartsWith(name + "=", StringComparison.Ordinal)) is { } a
+        && double.TryParse(a[(name.Length + 1)..], NumberStyles.Float, CultureInfo.InvariantCulture, out var x) ? x : null;
+
     private static int Hilfe()
     {
         Console.WriteLine("""
@@ -66,6 +89,9 @@ public static class Program
               vorschau <karte|datei> [--belegung]  Vorschaubild docs/karten/<kennung>.svg (mit --belegung auch -belegung.svg)
               bauen <skript> [--ueberschreiben]    Stadtskript ausführen und game/karten/<kennung>.json schreiben
               liste                               die Stadtskripte
+              groesse <karte> [<breite> <tiefe> [<mitteX> <mitteZ>]] [--rand=<m>]
+                                                  Größe des Spielfelds (ohne Zahlen: aus dem Inhalt abgeleitet) und Randbreite schreiben
+              randvorschlag <karte> [<startwert>]  Felder und Waldstücke im Randstreifen vorschlagen (ersetzt einen früheren Vorschlag)
 
             <karte> ist eine Kennung aus game/karten/ (z. B. greybox, koeln), <datei> ein Pfad zu einer .json-Datei.
             """);
@@ -86,12 +112,16 @@ public static class Befehle
     /// <summary>Öffnet eine Karte: Kennung (game/karten/&lt;kennung&gt;.json) oder Pfad.</summary>
     public static Kartenentwurf Oeffnen(Projektordner o, string karte, Gebaeudekatalog katalog, Wirtschaftsdaten daten)
     {
-        var pfad = karte.EndsWith(".json", StringComparison.OrdinalIgnoreCase) || karte.Contains('/') || karte.Contains('\\') ? Path.GetFullPath(karte) : o.Karte(karte);
+        var pfad = PfadVon(o, karte);
         if (!File.Exists(pfad)) throw new FileNotFoundException($"Die Karte {pfad} gibt es nicht.", pfad);
         var e = Kartenentwurf.AusJson(File.ReadAllText(pfad), katalog);
         e.Daten = daten;
         return e;
     }
+
+    /// <summary>Der Pfad zu einer Karte: Kennung (game/karten/&lt;kennung&gt;.json) oder Pfad zu einer .json-Datei.</summary>
+    private static string PfadVon(Projektordner o, string karte) =>
+        karte.EndsWith(".json", StringComparison.OrdinalIgnoreCase) || karte.Contains('/') || karte.Contains('\\') ? Path.GetFullPath(karte) : o.Karte(karte);
 
     /// <summary><c>pruefen</c>: Regeln und Kapazität der Karte, dazu der Katalog gegen die Modelle. 1, wenn es einen Fehler gibt.</summary>
     public static int Pruefen(Projektordner o, string karte, TextWriter aus)
@@ -158,6 +188,34 @@ public static class Befehle
         geschrieben.AddRange(VorschauSchreiben(e, vorschauordner, belegung: true));
         aus.WriteLine("   geschrieben: " + string.Join(", ", geschrieben.Select(p => o is null ? p : Relativ(o, p))));
         return 0;
+    }
+
+    /// <summary>
+    /// <c>groesse</c>: schreibt Größe und Mitte des Spielfelds (<paramref name="zahlen"/>: keine = so, wie die Karte sie hat – bei einer Karte ohne
+    /// Größe aus dem Inhalt abgeleitet; Breite und Tiefe; dazu die Mitte) und die Randbreite (ohne Angabe die der Karte) in die Kartendatei,
+    /// mit Vorschaubildern – nur ohne Fehler. Alles Übrige der Datei bleibt, wie es ist.
+    /// </summary>
+    public static int Groesse(Projektordner o, string karte, IReadOnlyList<double> zahlen, double? rand, TextWriter aus)
+    {
+        var (katalog, daten) = Laden(o);
+        var e = Oeffnen(o, karte, katalog, daten);
+        var k = e.Kopf;
+        var (b, t) = zahlen.Count >= 2 ? (zahlen[0], zahlen[1]) : (k.Breite, k.Tiefe);
+        e.GroesseSetzen(b, t, zahlen.Count == 4 ? new Kartenort(zahlen[2], zahlen[3]) : k.Mitte);
+        e.RandbreiteSetzen(rand ?? k.Randbreite);
+        var g = e.Kartengrenzen;
+        aus.WriteLine($"{e.Kennung}: Spielfeld {Kartenschreiber.Zahl(g.Breite)} × {Kartenschreiber.Zahl(g.Tiefe)} m um {g.Mitte}, Rand {Kartenschreiber.Zahl(g.Randbreite)} m");
+        return Schreiben(e, PfadVon(o, karte), o.Vorschauen, true, aus, o);
+    }
+
+    /// <summary><c>randvorschlag</c>: schlägt Felder und Waldstücke im Randstreifen vor (<see cref="Kartenentwurf.RandVorschlagen"/>) und schreibt die Karte – nur ohne Fehler.</summary>
+    public static int Randvorschlag(Projektordner o, string karte, int? startwert, TextWriter aus)
+    {
+        var (katalog, daten) = Laden(o);
+        var e = Oeffnen(o, karte, katalog, daten);
+        var neu = e.RandVorschlagen(startwert);
+        aus.WriteLine($"{e.Kennung}: {neu.Count(f => f is EntwurfFeld)} Felder, {neu.Count(f => f is EntwurfNaturflaeche)} Wald- und Streuflächen im Rand vorgeschlagen");
+        return Schreiben(e, PfadVon(o, karte), o.Vorschauen, true, aus, o);
     }
 
     /// <summary><c>liste</c>: die Stadtskripte mit Kennung und Beschreibung.</summary>

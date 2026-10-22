@@ -156,11 +156,12 @@ public static class Kartenpruefung
         private readonly List<(EntwurfBauzone Zone, Kartenort[] Flaeche, Rahmen Rahmen)> _zonen;
         private Dictionary<EntwurfBauzone, HashSet<(int, int)>>? _felder;
         private readonly Kartenort[]? _stadtgebiet;
+        private readonly Kartengrenzen _grenzen;
         private readonly Dictionary<EntwurfGebaeude, (IReadOnlyList<Kartenort> Ecken, Rahmen Rahmen)> _ecken = new(ReferenceEqualityComparer.Instance);
 
         public Lauf(Kartenentwurf e)
         {
-            (_e, _r) = (e, e.Regeln);
+            (_e, _r, _grenzen) = (e, e.Regeln, e.Kartengrenzen);
             // Wege mit ihrem Verlauf (bei glatten Wegen die abgetastete Kurve) – so sehen Spiel und Bauwesen sie
             _wege = e.Wege.Where(w => w.Punkte.Count > 0).Select(w => (w, l: w.Verlauf.ToArray())).Select(x => (x.w, x.l, x.w.BreiteWirksam, Rahmen.Um(x.l))).ToList();
             // Mauerlinien, geschlossene mit dem ersten Punkt hinten dran
@@ -235,7 +236,9 @@ public static class Kartenpruefung
             Mauern();
             Haefen();
             Natur();
+            Feldflaechen();
             Pflanzen();
+            Grenzen();
             Start();
             Wegenetz();
             Einwohnerplaetze();
@@ -285,6 +288,7 @@ public static class Kartenpruefung
                 Fehler("betrieb", $"{Wer(g)}: Ein Umlandbetrieb braucht den Namen seines Betriebs.", ort, g.Kennung);
             if (g.Groesse is null || g.Massstab <= 0) return;
 
+            ImSpielfeld(g);
             AufMauer(g);
             if (b.Art == Bausteinart.Werkstattplatz) Werkstatthof(g);
             if (!_r.Stadtregeln) return;
@@ -297,6 +301,19 @@ public static class Kartenpruefung
             }
             else if (b.Art is Bausteinart.Umlandbetrieb or Bausteinart.Umlandstelle) WegeUeberUmland(g);
             ZonenAbstand(g);
+        }
+
+        /// <summary>
+        /// Ein Gebäude steht ganz im Spielfeld (Schritt 5a): teilweise außerhalb der Karte ist es ein Fehler „ausserhalb“, im Randstreifen ein
+        /// Fehler „rand“ – dort ist nur Natur, Felder und Wege erlaubt.
+        /// </summary>
+        private void ImSpielfeld(EntwurfGebaeude g)
+        {
+            var ecken = Ecken(g);
+            if (ecken.Any(p => !_grenzen.InDerKarte(p.X, p.Z)))
+                Fehler("ausserhalb", $"{Wer(g)} liegt (teilweise) außerhalb der Karte.", g.Punkt, g.Kennung);
+            else if (ecken.Any(p => !_grenzen.ImSpielfeld(p.X, p.Z)))
+                Fehler("rand", $"{Wer(g)} steht (teilweise) im Randstreifen – dort sind nur Natur, Felder und Wege erlaubt.", g.Punkt, g.Kennung);
         }
 
         /// <summary>Der Hof eines Werkstattplatzes liegt höchstens 7 m von der Mitte eines Weges (karte.py, Regel 3).</summary>
@@ -689,6 +706,88 @@ public static class Kartenpruefung
             }
             foreach (var p in _e.Pflanzen.Where(p => !IstNatur(p.Katalog)))
                 FehlerAn("natur", $"Pflanze bei {p.Punkt}: „{p.Katalog}“ ist keine Natur-Art im Katalog.", p.Punkt, new[] { p });
+        }
+
+        /// <summary>
+        /// Felder (Schritt 5a): mindestens drei Ecken, Streifen und Stücklänge in ihren Grenzen, mindestens eine bekannte Frucht mit Gewicht, jede
+        /// Frucht bekannt; Umriss und Aussparungen kreuzen sich nicht selbst (Hinweis).
+        /// </summary>
+        private void Feldflaechen()
+        {
+            foreach (var f in _e.Felder)
+            {
+                var ort = f.Ecken.Count > 0 ? Kartengeometrie.Mitte(f.Ecken) : (Kartenort?)null;
+                var teil = new[] { f };
+                var wer = $"Feld „{f.Bezeichnung}“";
+                if (f.Ecken.Count < 3) FehlerAn("feld", $"{wer}: Die Fläche braucht mindestens drei Punkte.", ort, teil);
+                if (f.Streifen < FeldVerteilung.StreifenMin || f.Streifen > FeldVerteilung.StreifenMax)
+                    FehlerAn("feld", $"{wer}: Streifen {M(f.Streifen)} m breit, erlaubt {M(FeldVerteilung.StreifenMin)} bis {M(FeldVerteilung.StreifenMax)} m.", ort, teil);
+                if (f.Laenge < FeldVerteilung.LaengeMin || f.Laenge > FeldVerteilung.LaengeMax)
+                    FehlerAn("feld", $"{wer}: Stücke {M(f.Laenge)} m lang, erlaubt {M(FeldVerteilung.LaengeMin)} bis {M(FeldVerteilung.LaengeMax)} m.", ort, teil);
+                foreach (var k in f.Fruechte.Keys.Where(k => !FeldVerteilung.Fruechte.ContainsKey(k)))
+                    FehlerAn("feld", $"{wer}: Eine Frucht „{k}“ gibt es nicht.", ort, teil);
+                if (!f.Fruechte.Any(x => x.Value > 0 && FeldVerteilung.Fruechte.ContainsKey(x.Key)))
+                    FehlerAn("feld", $"{wer}: Es fehlt eine Frucht mit Gewicht.", ort, teil);
+                SelbstSchnitt(wer, f.Ecken, f);
+                for (var i = 0; i < f.Aussparungen.Count; i++)
+                {
+                    if (f.Aussparungen[i].Count < 3) FehlerAn("feld", $"{wer}: Aussparung {i + 1} braucht mindestens drei Punkte.", ort, teil);
+                    SelbstSchnitt($"{wer}, Aussparung {i + 1}", f.Aussparungen[i], f);
+                }
+            }
+        }
+
+        /// <summary>
+        /// Größe und Grenzen (Schritt 5a): Das Spielfeld ist 400 × 300 bis 2.000 × 2.000 m groß, der Rand 100 bis 600 m breit. Bespielbares
+        /// (Bauzonen, Mauern mit Toren, Vorkommen, Häfen, Übergänge) liegt ganz im Spielfeld, sonst „rand“ bzw. „ausserhalb“ (Gebäude prüft
+        /// <see cref="ImSpielfeld"/>); Wege, Natur, Felder, Pflanzen, Wasser und Gelände dürfen in den Rand, aber nicht aus der Karte hinaus;
+        /// der Kamera-Start liegt im Spielfeld.
+        /// </summary>
+        private void Grenzen()
+        {
+            var g = _grenzen;
+            if (g.Breite < Kartengrenzen.MinBreite - 1e-9 || g.Tiefe < Kartengrenzen.MinTiefe - 1e-9 || g.Breite > Kartengrenzen.MaxSeite + 1e-9 || g.Tiefe > Kartengrenzen.MaxSeite + 1e-9)
+                Fehler("groesse", $"Die Karte ist {M(g.Breite)} × {M(g.Tiefe)} m groß, erlaubt sind {M(Kartengrenzen.MinBreite)} × {M(Kartengrenzen.MinTiefe)} " +
+                                  $"bis {M(Kartengrenzen.MaxSeite)} × {M(Kartengrenzen.MaxSeite)} m.", null);
+            if (g.Randbreite < Kartengrenzen.RandMin - 1e-9 || g.Randbreite > Kartengrenzen.RandMax + 1e-9)
+                Fehler("groesse", $"Der Randstreifen ist {M(g.Randbreite)} m breit, erlaubt sind {M(Kartengrenzen.RandMin)} bis {M(Kartengrenzen.RandMax)} m.", null);
+
+            // Bespielbares: ganz im Spielfeld
+            void Spiel(string wer, IEnumerable<Kartenort> punkte, EntwurfTeil? teil = null)
+            {
+                var liste = punkte.ToList();
+                var aussen = liste.Cast<Kartenort?>().FirstOrDefault(p => !g.InDerKarte(p!.Value.X, p.Value.Z));
+                var imRand = liste.Cast<Kartenort?>().FirstOrDefault(p => !g.ImSpielfeld(p!.Value.X, p.Value.Z));
+                var teile = teil is null ? Array.Empty<EntwurfTeil>() : new[] { teil };
+                if (aussen is { } a) FehlerAn("ausserhalb", $"{wer} liegt (teilweise) außerhalb der Karte, etwa bei {a}.", a, teile);
+                else if (imRand is { } r) FehlerAn("rand", $"{wer} liegt (teilweise) im Randstreifen, etwa bei {r} – dort sind nur Natur, Felder und Wege erlaubt.", r, teile);
+            }
+            foreach (var z in _e.Bauzonen) Spiel($"Bauzone {z.Kennung}", z.Ecken, z);
+            foreach (var m in _e.Mauern) Spiel($"Mauer „{m.Name}“", m.Ecken.Concat(m.Tore.Select(t => t.Punkt)), m);
+            foreach (var v in _e.Vorkommen) Spiel($"Vorkommen {v.Kennung}", new[] { v.Punkt });
+            foreach (var h in _e.Haefen)
+                Spiel(h.Name, EntwurfTeil.Orte(h.Kante).Concat(EntwurfTeil.Orte(h.Anleger)).Concat(EntwurfTeil.Orte(h.Kran is null ? null : new[] { h.Kran })));
+            foreach (var u in _e.Uebergaenge) Spiel(u.Name, EntwurfTeil.Orte(new[] { u.Von, u.Bis }));
+
+            // Alles andere: in der Karte (der Rand gehört dazu)
+            void Karte(string wer, IEnumerable<Kartenort> punkte, EntwurfTeil? teil = null)
+            {
+                foreach (var p in punkte)
+                    if (!g.InDerKarte(p.X, p.Z))
+                    {
+                        FehlerAn("ausserhalb", $"{wer} reicht über die Karte hinaus, etwa bei {p}.", p, teil is null ? Array.Empty<EntwurfTeil>() : new[] { teil });
+                        return;
+                    }
+            }
+            foreach (var w in _e.Wege) Karte($"„{w.Name}“", w.Verlauf, w);
+            foreach (var n in _e.Naturflaechen) Karte($"Naturfläche „{n.Name}“", n.Ecken, n);
+            foreach (var f in _e.Felder) Karte($"Feld „{f.Bezeichnung}“", f.Ecken, f);
+            foreach (var p in _e.Pflanzen) Karte($"{p.Bezeichnung}", new[] { p.Punkt }, p);
+            foreach (var w in _e.Wasser) Karte(w.Name, EntwurfTeil.Orte(w.Linie).Concat(EntwurfTeil.Orte(w.Flaeche)));
+            foreach (var x in _e.Gelaende) Karte(x.Name, EntwurfTeil.Orte(x.Flaeche));
+
+            if (_e.Kamera is { Punkt: { Length: 2 } k } && !g.ImSpielfeld(k[0], k[1]))
+                Fehler("kamera", $"Der Kamera-Start {new Kartenort(k[0], k[1])} liegt außerhalb des Spielfelds.", new Kartenort(k[0], k[1]));
         }
 
         /// <summary>

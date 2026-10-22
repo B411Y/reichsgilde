@@ -43,19 +43,26 @@ public partial class Stadtansicht
     /// <summary>Am Ende des Bildes: die vorgemerkten Flächen und alle in der Nähe geänderter Hindernisse neu streuen, mit einem Freiraum für alle.</summary>
     private void NaturNachziehen()
     {
-        if (_entwurf is null || (_wsNaturNeu.Count == 0 && _wsNaturBereiche.Count == 0)) return;
+        if (_entwurf is null || (_wsNaturNeu.Count == 0 && _wsFelderNeu.Count == 0 && _wsNaturBereiche.Count == 0)) return;
         foreach (var f in _entwurf.Naturflaechen)
         {
             if (f.Ecken.Count == 0 || _wsNaturNeu.Contains(f)) continue;
             var rahmen = Rahmen(f.Ecken).Grow(NaturUeberstand);
             if (_wsNaturBereiche.Any(b => b.Intersects(rahmen))) _wsNaturNeu.Add(f);
         }
+        foreach (var f in _entwurf.Felder) // auch die Äcker weichen Gebäuden, Wegen und Bauzonen aus (Stadtansicht.Kartenwerkstatt.Felder.cs)
+        {
+            if (f.Ecken.Count == 0 || _wsFelderNeu.Contains(f)) continue;
+            if (_wsNaturBereiche.Any(b => b.Intersects(Rahmen(f.Ecken).Grow(FeldUeberstand)))) _wsFelderNeu.Add(f);
+        }
         _wsNaturBereiche.Clear();
-        if (_wsNaturNeu.Count == 0) return;
+        if (_wsNaturNeu.Count == 0 && _wsFelderNeu.Count == 0) return;
         var frei = _entwurf.Freiraum(Modellmass);
         foreach (var f in _wsNaturNeu.Where(_entwurf.Enthaelt).ToList()) NaturStreuen(f, frei);
-        var gewaehlt = WerkstattGewaehlt is EntwurfNaturflaeche g && _wsNaturNeu.Contains(g);
+        foreach (var f in _wsFelderNeu.Where(_entwurf.Enthaelt).ToList()) FeldStreuen(f, frei);
+        var gewaehlt = WerkstattGewaehlt is EntwurfNaturflaeche g && _wsNaturNeu.Contains(g) || WerkstattGewaehlt is EntwurfFeld h && _wsFelderNeu.Contains(h);
         _wsNaturNeu.Clear();
+        _wsFelderNeu.Clear();
         if (gewaehlt) WerkstattNaturGestreut?.Invoke();
     }
 

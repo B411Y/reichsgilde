@@ -855,6 +855,12 @@ public partial class Stadtansicht : Node3D
 
     private void Kamerafahrt(Vector3 ziel, float zoom)
     {
+        if (_innen is null)
+        {
+            // draußen bleibt das Ziel im Spielfeld und der Zoom unter dem größten (Stadtansicht.Rand.cs)
+            if (KameraRechteck() is { } r) ziel = new Vector3(Mathf.Clamp(ziel.X, (float)r.X0, (float)r.X1), 0, Mathf.Clamp(ziel.Z, (float)r.Z0, (float)r.Z1));
+            zoom = Mathf.Min(zoom, KameraGroessterZoom());
+        }
         _kamerafahrt?.Kill();
         _kamerafahrt = CreateTween().SetParallel().SetTrans(Tween.TransitionType.Sine).SetEase(Tween.EaseType.InOut);
         _kamerafahrt.TweenProperty(_kameraDrehung, "position", ziel, 0.6);
@@ -865,7 +871,7 @@ public partial class Stadtansicht : Node3D
     public void KameraSetzen(float x, float z, float? zoom = null)
     {
         _kameraDrehung.Position = new Vector3(x, 0, z);
-        if (zoom is { } z2) _kamera.Size = Mathf.Clamp(z2, KameraMinZoom, KameraMaxZoom);
+        if (zoom is { } z2) _kamera.Size = Mathf.Clamp(z2, KameraMinZoom, KameraGroessterZoom());
     }
 
     /// <summary>Dreht die Kamera um ganze Vierteldrehungen (+1 = 90° gegen den Uhrzeigersinn von oben).</summary>
@@ -884,6 +890,7 @@ public partial class Stadtansicht : Node3D
         SchattenNachfuehren(); // Zoom, Fenstergröße oder Schattenqualität geändert? (Stadtansicht.Licht.cs)
         OberflaecheBild();     // umgefärbte Materialien der Oberflächendetails nachziehen (Stadtansicht.Oberflaechendetails.cs)
         GrafikBild(delta);     // Unschärfe nach Zoom, Wolken, Dunst nach Uhrzeit (Stadtansicht.Grafik.cs)
+        DunstFarbeNachfuehren(); // der Dunst am Kartenrand in der Farbe des Himmels (Stadtansicht.Rand.cs)
 
         // Beschriftungen mitskalieren, damit sie bei jedem Zoom gleich groß wirken.
         var massstab = _raum is not null ? RaumSchildMassstab : _kamera.Size / BezugsZoom;
@@ -894,6 +901,7 @@ public partial class Stadtansicht : Node3D
         // Sanft auf die Zieldrehung zudrehen (Q/E)
         var aktuell = _kameraDrehung.RotationDegrees.Y;
         _kameraDrehung.RotationDegrees = new Vector3(0, Mathf.LerpAngle(Mathf.DegToRad(aktuell), Mathf.DegToRad(_zielDrehung), (float)Math.Min(1, delta * 8)) * 180 / Mathf.Pi, 0);
+        KameraGrenzenAnwenden(delta); // zurückfedern, Zoom begrenzen (Stadtansicht.Rand.cs)
         if (_innen is { Raumansicht: false }) Aufschneiden(_innen);
         if (_raum is not null)
         {
@@ -926,7 +934,12 @@ public partial class Stadtansicht : Node3D
             _kameraDrehung.Position = new Vector3(Mathf.Clamp(neu.X, m.X - r, m.X + r), 0, Mathf.Clamp(neu.Z, m.Z - r, m.Z + r));
             return;
         }
-        var rahmen = _kartenRahmen.Grow(KameraRand); // die Kamera bleibt bei der Karte
+        if (KameraRechteck() is not null)
+        {
+            _kameraDrehung.Position = KameraGebremst(_kameraDrehung.Position, neu); // das Spielfeld der Karte, am Rand weich gebremst (Stadtansicht.Rand.cs)
+            return;
+        }
+        var rahmen = _kartenRahmen.Grow(KameraRand); // ohne Karte: bei den Gebäuden bleiben
         _kameraDrehung.Position = new Vector3(Mathf.Clamp(neu.X, rahmen.Position.X, rahmen.End.X), 0, Mathf.Clamp(neu.Z, rahmen.Position.Y, rahmen.End.Y));
     }
 
@@ -976,7 +989,7 @@ public partial class Stadtansicht : Node3D
     private void Zoomen(float faktor)
     {
         _kamerafahrt?.Kill(); // Mausrad unterbricht eine laufende Kamerafahrt
-        var (min, max) = _innen is null ? (KameraMinZoom, KameraMaxZoom) : (InnenMinZoom, InnenMaxZoom);
+        var (min, max) = _innen is null ? (KameraMinZoom, KameraGroessterZoom()) : (InnenMinZoom, InnenMaxZoom);
         _kamera.Size = Mathf.Clamp(_kamera.Size * faktor, min, max);
     }
 

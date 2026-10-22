@@ -28,6 +28,12 @@ public enum Kartenteil
 
     /// <summary>Die Startbelegung (Schritt 3; nur einmal je Karte).</summary>
     Start,
+
+    /// <summary>Eine Feldfläche (Schritt 5a).</summary>
+    Feld,
+
+    /// <summary>Der Kopf der Karte: Größe, Mitte, Randbreite, Kamera-Start (Schritt 5a; nur einmal je Karte).</summary>
+    Kopf,
 }
 
 /// <summary>Ein bearbeitbarer Teil des Entwurfs (Gebäude, Weg, Bauzone, Naturfläche, Pflanze).</summary>
@@ -216,7 +222,13 @@ public abstract class EntwurfFlaeche : EntwurfTeil
     /// <summary>Die Ecken des Umrisses (<paramref name="aussparung"/> = −1) oder einer Aussparung.</summary>
     public IReadOnlyList<Kartenort> Vieleck(int aussparung = -1) => aussparung < 0 ? _ecken : Aussparungen[aussparung];
 
+    /// <summary>Kann die Fläche Aussparungen haben (Naturflächen und Felder, keine Bauzonen)?</summary>
+    public virtual bool KannAussparungen => false;
+
     internal abstract void VieleckSetzen(int aussparung, IEnumerable<Kartenort> ecken);
+
+    internal virtual void AussparungenSetzen(IEnumerable<IEnumerable<Kartenort>> aussparungen) =>
+        throw new ArgumentException($"„{Bezeichnung}“ hat keine Aussparungen.");
 }
 
 /// <summary>Eine Bauzone im Entwurf: Kennung, Lage, Ecken auf dem Raster der Karte.</summary>
@@ -275,6 +287,7 @@ public sealed class EntwurfNaturflaeche : EntwurfFlaeche
     private JsonNode? _gruppenText;
 
     public override IReadOnlyList<IReadOnlyList<Kartenort>> Aussparungen => _aussparungen;
+    public override bool KannAussparungen => true;
     public IReadOnlyList<Naturgruppe> Gruppen => _gruppen;
 
     /// <summary>
@@ -307,7 +320,7 @@ public sealed class EntwurfNaturflaeche : EntwurfFlaeche
         else _aussparungen[aussparung] = ecken.ToList();
     }
 
-    internal void AussparungenSetzen(IEnumerable<IEnumerable<Kartenort>> aussparungen) => _aussparungen = aussparungen.Select(a => a.ToList()).ToList();
+    internal override void AussparungenSetzen(IEnumerable<IEnumerable<Kartenort>> aussparungen) => _aussparungen = aussparungen.Select(a => a.ToList()).ToList();
 
     internal void GruppenSetzen(IEnumerable<Naturgruppe> gruppen)
     {
@@ -363,6 +376,157 @@ public sealed class EntwurfNaturflaeche : EntwurfFlaeche
             ["anzahl"] = new JsonArray(t.Anzahl.Select(x => (JsonNode)JsonValue.Create(x)).ToArray()),
         }).ToArray()),
     }).ToArray());
+}
+
+// ═════════════════════════════════════════════════════════════════════════════
+//  Feldfläche (Schritt 5a)
+// ═════════════════════════════════════════════════════════════════════════════
+
+/// <summary>
+/// Eine Feldfläche im Entwurf: Umriss, Aussparungen, Richtung der Streifen (Grad), Streifenbreite und Stücklänge (Meter), Startwert und
+/// Früchte mit Gewicht. Die Äcker rechnet <see cref="FeldVerteilung"/> (über <see cref="Kartenentwurf.FelderVon"/>).
+/// </summary>
+public sealed class EntwurfFeld : EntwurfFlaeche
+{
+    public override Kartenteil Teil => Kartenteil.Feld;
+    public override string Bezeichnung => Name == "" ? "Feld" : Name;
+
+    public string Name { get; internal set; } = "";
+
+    /// <summary>Richtung der Streifen in Grad (0 = Nord–Süd, 90 = Ost–West), 0 bis unter 360.</summary>
+    public double Richtung { get; internal set; }
+
+    /// <summary>Breite eines Ackerstreifens (Meter).</summary>
+    public double Streifen { get; internal set; } = FeldVerteilung.StreifenVorgabe;
+
+    /// <summary>Mittlere Länge eines Ackerstücks (Meter).</summary>
+    public double Laenge { get; internal set; } = FeldVerteilung.LaengeVorgabe;
+
+    public int Startwert { get; internal set; }
+
+    private List<List<Kartenort>> _aussparungen = new();
+    private Dictionary<string, double> _fruechte = new();
+
+    public override IReadOnlyList<IReadOnlyList<Kartenort>> Aussparungen => _aussparungen;
+    public override bool KannAussparungen => true;
+
+    /// <summary>Frucht → Gewicht (Kennungen aus <see cref="FeldVerteilung.Fruechte"/>), in der Reihenfolge der Datei.</summary>
+    public IReadOnlyDictionary<string, double> Fruechte => _fruechte;
+
+    internal override void VieleckSetzen(int aussparung, IEnumerable<Kartenort> ecken)
+    {
+        if (aussparung < 0) _ecken = ecken.ToList();
+        else _aussparungen[aussparung] = ecken.ToList();
+    }
+
+    internal override void AussparungenSetzen(IEnumerable<IEnumerable<Kartenort>> aussparungen) => _aussparungen = aussparungen.Select(a => a.ToList()).ToList();
+
+    internal void FruechteSetzen(IEnumerable<KeyValuePair<string, double>> fruechte) => _fruechte = fruechte.ToDictionary(f => f.Key, f => f.Value);
+
+    /// <summary>Die Fläche in den Typen der Stadtkarte (für <see cref="FeldVerteilung"/>).</summary>
+    public Feldflaeche AlsFeldflaeche() => new()
+    {
+        Name = Name, Flaeche = Roh(_ecken), Aussparungen = _aussparungen.Select(Roh).ToList(), Richtung = Richtung, Streifen = Streifen,
+        Laenge = Laenge, Startwert = Startwert, Fruechte = new Dictionary<string, double>(_fruechte),
+    };
+
+    internal static EntwurfFeld Aus(Feldflaeche f, JsonObject? vorlage) => new()
+    {
+        Name = f.Name, _ecken = Orte(f.Flaeche), _aussparungen = f.Aussparungen.Select(Orte).ToList(), Richtung = f.Richtung, Streifen = f.Streifen,
+        Laenge = f.Laenge, Startwert = f.Startwert, _fruechte = new Dictionary<string, double>(f.Fruechte), Vorlage = vorlage,
+    };
+
+    internal override EntwurfTeil KopieTeil() => new EntwurfFeld
+    {
+        Name = Name, _ecken = _ecken.ToList(), _aussparungen = _aussparungen.Select(a => a.ToList()).ToList(), Richtung = Richtung, Streifen = Streifen,
+        Laenge = Laenge, Startwert = Startwert, _fruechte = new Dictionary<string, double>(_fruechte), Vorlage = Vorlage,
+    };
+
+    internal override void UebernimmTeil(EntwurfTeil werte)
+    {
+        var o = (EntwurfFeld)werte;
+        (Name, Richtung, Streifen, Laenge, Startwert, Vorlage) = (o.Name, o.Richtung, o.Streifen, o.Laenge, o.Startwert, o.Vorlage);
+        _ecken = o._ecken.ToList();
+        _aussparungen = o._aussparungen.Select(a => a.ToList()).ToList();
+        _fruechte = new Dictionary<string, double>(o._fruechte);
+    }
+
+    internal override bool GleicheWerte(EntwurfTeil anderer) => anderer is EntwurfFeld o && Name == o.Name && Richtung == o.Richtung
+        && Streifen == o.Streifen && Laenge == o.Laenge && Startwert == o.Startwert && _ecken.SequenceEqual(o._ecken)
+        && _aussparungen.Count == o._aussparungen.Count && _aussparungen.Zip(o._aussparungen).All(x => x.First.SequenceEqual(x.Second))
+        && _fruechte.SequenceEqual(o._fruechte);
+
+    internal override JsonObject AlsJson() => Zusammensetzen(Vorlage,
+        ("name", Name), ("flaeche", JsonPunkte(_ecken)),
+        ("aussparungen", _aussparungen.Count == 0 ? null : new JsonArray(_aussparungen.Select(a => (JsonNode)JsonPunkte(a)).ToArray())),
+        ("richtung", Richtung), ("streifen", Streifen), ("laenge", Laenge), ("startwert", Startwert),
+        ("fruechte", new JsonObject(_fruechte.Select(f => new KeyValuePair<string, JsonNode?>(f.Key, JsonValue.Create(f.Value))))));
+}
+
+// ═════════════════════════════════════════════════════════════════════════════
+//  Kopf der Karte (Schritt 5a)
+// ═════════════════════════════════════════════════════════════════════════════
+
+/// <summary>
+/// Der Kopf der Karte als Teil (einmal je Entwurf, wie die Startbelegung): Größe und Mitte des Spielfelds, Breite des Randstreifens und der
+/// Blick beim Start. Geändert über <see cref="Kartenentwurf.GroesseSetzen"/>, <see cref="Kartenentwurf.RandbreiteSetzen"/> und
+/// <see cref="Kartenentwurf.KameraStartSetzen"/> – mit Rückgängig; die Änderung meldet der Entwurf wie jede andere (Teil <see cref="Kartenteil.Kopf"/>).
+/// </summary>
+public sealed class EntwurfKopf : EntwurfTeil
+{
+    public override Kartenteil Teil => Kartenteil.Kopf;
+    public override string Bezeichnung => "Karte";
+
+    /// <summary>Breite (x) und Tiefe (z) des Spielfelds in Metern.</summary>
+    public double Breite { get; internal set; }
+
+    public double Tiefe { get; internal set; }
+
+    /// <summary>Mitte des Spielfelds (ohne Angabe in der Datei der Ursprung).</summary>
+    public Kartenort Mitte { get; internal set; }
+
+    /// <summary>Breite des Randstreifens in Metern.</summary>
+    public double Randbreite { get; internal set; } = Kartengrenzen.RandVorgabe;
+
+    /// <summary>Der Blick beim Start – null: keiner in der Datei (das Spiel schaut auf die Mitte der Gebäude).</summary>
+    public Kartenkamera? Kamera { get; internal set; }
+
+    /// <summary>Steht die Größe in der Datei? (Ohne Angabe ist sie aus dem Inhalt abgeleitet und wird erst geschrieben, wenn sie gesetzt wird.)</summary>
+    public bool GroesseInDatei { get; internal set; }
+
+    internal bool MitteInDatei { get; set; }
+    internal bool RandInDatei { get; set; }
+
+    /// <summary>Spielfeld, Rand und Kamera-Grenzen.</summary>
+    public Kartengrenzen Grenzen => new(Breite, Tiefe, Mitte, Randbreite);
+
+    internal override EntwurfTeil KopieTeil() => new EntwurfKopf
+    {
+        Breite = Breite, Tiefe = Tiefe, Mitte = Mitte, Randbreite = Randbreite, Kamera = Kamera, GroesseInDatei = GroesseInDatei,
+        MitteInDatei = MitteInDatei, RandInDatei = RandInDatei, Vorlage = Vorlage,
+    };
+
+    internal override void UebernimmTeil(EntwurfTeil werte)
+    {
+        var o = (EntwurfKopf)werte;
+        (Breite, Tiefe, Mitte, Randbreite, Kamera, Vorlage) = (o.Breite, o.Tiefe, o.Mitte, o.Randbreite, o.Kamera, o.Vorlage);
+        (GroesseInDatei, MitteInDatei, RandInDatei) = (o.GroesseInDatei, o.MitteInDatei, o.RandInDatei);
+    }
+
+    internal override bool GleicheWerte(EntwurfTeil anderer) => anderer is EntwurfKopf o && Breite == o.Breite && Tiefe == o.Tiefe
+        && Mitte == o.Mitte && Randbreite == o.Randbreite && GroesseInDatei == o.GroesseInDatei && MitteInDatei == o.MitteInDatei
+        && RandInDatei == o.RandInDatei && GleicheKamera(Kamera, o.Kamera);
+
+    private static bool GleicheKamera(Kartenkamera? a, Kartenkamera? b) => a is null || b is null
+        ? a is null && b is null
+        : a.Punkt.SequenceEqual(b.Punkt) && a.Zoom == b.Zoom && a.Drehung == b.Drehung;
+
+    /// <summary>Der Blick beim Start als Eintrag der Datei (<c>kamera</c>); unbekannte Felder aus der Datei bleiben (Vorlage).</summary>
+    internal JsonObject? KameraAlsJson() => Kamera is not { } k ? null : Zusammensetzen(Vorlage,
+        ("punkt", new JsonArray(k.Punkt.Select(x => (JsonNode)JsonValue.Create(x)).ToArray())), ("zoom", k.Zoom), ("drehung", k.Drehung));
+
+    /// <summary>Der Kopf steht nicht als ein Eintrag in der Datei, sondern in mehreren Feldern (Kartenentwurf.ZuJson).</summary>
+    internal override JsonObject AlsJson() => throw new InvalidOperationException("Der Kopf der Karte wird über Kartenentwurf.ZuJson geschrieben.");
 }
 
 // ═════════════════════════════════════════════════════════════════════════════

@@ -14,8 +14,8 @@ namespace Reichsgilde.Core.Kartenwerkstatt;
 //
 //  Bearbeitbar sind die Gebäude (Schritt 1), die Wege, Bauzonen, Naturflächen und einzelnen Pflanzen (Schritt 2, EntwurfTeile.cs und
 //  Kartenentwurf.Wege.cs, Kartenentwurf.Flaechen.cs), die Mauern mit Toren und die Startbelegung (Schritt 3, Kartenentwurf.Mauern.cs und
-//  Kartenentwurf.Start.cs). Alles Übrige (Wasser, Kamera …) liegt als JSON im Entwurf und wird für die Prüfung einmal in die Typen der
-//  Stadtkarte gelesen (Gewaesser …).
+//  Kartenentwurf.Start.cs), Größe, Randstreifen, Kamera-Start und Felder (Schritt 5a, EntwurfKopf, EntwurfFeld und Kartenentwurf.Rand.cs).
+//  Alles Übrige (Wasser, Gelände …) liegt als JSON im Entwurf und wird für die Prüfung einmal in die Typen der Stadtkarte gelesen (Gewaesser …).
 //  Geändert wird nur über Befehle (Setzen, Verschieben, Drehen …), damit Rückgängig und Wiederholen immer stimmen.
 // ═════════════════════════════════════════════════════════════════════════════
 
@@ -185,6 +185,8 @@ public readonly record struct Kartenaenderung(Aenderungsart Art, EntwurfTeil Obj
     public EntwurfPflanze? Pflanze => Objekt as EntwurfPflanze;
     public EntwurfMauer? Mauer => Objekt as EntwurfMauer;
     public EntwurfStart? Start => Objekt as EntwurfStart;
+    public EntwurfFeld? Feld => Objekt as EntwurfFeld;
+    public EntwurfKopf? Kopf => Objekt as EntwurfKopf;
 }
 
 /// <summary>Ein Fundort eines Rohstoffbetriebs (<c>vorkommen</c> der Datei; nur das Werkzeug und die Prüfung lesen ihn).</summary>
@@ -211,6 +213,8 @@ public sealed partial class Kartenentwurf
     private readonly List<EntwurfPflanze> _pflanzen;
     private readonly List<EntwurfMauer> _mauern;
     private readonly EntwurfStart _start;
+    private readonly List<EntwurfFeld> _felder;
+    private readonly EntwurfKopf _kopf;
 
     /// <summary>Änderungen des laufenden Befehls – gemeldet erst, wenn die Geschichte den Schritt kennt (<see cref="MeldungenAusloesen"/>).</summary>
     private readonly List<Kartenaenderung> _ausstehend = new();
@@ -236,15 +240,55 @@ public sealed partial class Kartenentwurf
 
     private Kartenentwurf(JsonObject daten, List<EntwurfGebaeude> gebaeude, Stadtkarte teile, Gebaeudekatalog katalog,
         List<EntwurfWeg> wege, List<EntwurfBauzone> bauzonen, List<EntwurfNaturflaeche> naturflaechen, List<EntwurfPflanze> pflanzen,
-        List<EntwurfMauer> mauern, EntwurfStart start)
+        List<EntwurfMauer> mauern, EntwurfStart start, List<EntwurfFeld> felder)
     {
         (_daten, _gebaeude, _teile, Katalog) = (daten, gebaeude, teile, katalog);
-        (_wege, _bauzonen, _naturflaechen, _pflanzen, _mauern, _start) = (wege, bauzonen, naturflaechen, pflanzen, mauern, start);
+        (_wege, _bauzonen, _naturflaechen, _pflanzen, _mauern, _start, _felder) = (wege, bauzonen, naturflaechen, pflanzen, mauern, start, felder);
         foreach (var g in _gebaeude) g.Baustein = katalog.Finde(g.Katalog);
         foreach (var p in _pflanzen) p.Baustein = katalog.Finde(p.Katalog);
         Geschichte = new Kartengeschichte(this);
         Regeln = Pruefregeln.Fuer(Kennung);
-        _kamera = teile.Kamera;
+        _kopf = KopfAus(teile);
+    }
+
+    /// <summary>
+    /// Der Kopf aus der Datei: Größe, Mitte und Rand, wie sie dort stehen; ohne Größe (Karten vor Schritt 5a) aus dem Inhalt abgeleitet
+    /// (<see cref="Kartengrenzen.Ableiten"/>) – geschrieben wird sie dann erst, wenn sie jemand setzt.
+    /// </summary>
+    private EntwurfKopf KopfAus(Stadtkarte teile)
+    {
+        var kopf = new EntwurfKopf { Kamera = teile.Kamera, Vorlage = _daten["kamera"]?.DeepClone() as JsonObject };
+        if (teile.Rand is { } r && r > 0) (kopf.Randbreite, kopf.RandInDatei) = (r, true);
+        if (teile.Mitte is { Length: 2 } m) (kopf.Mitte, kopf.MitteInDatei) = (new Kartenort(m[0], m[1]), true);
+        if (teile.Groesse is { Length: 2 } g)
+        {
+            (kopf.Breite, kopf.Tiefe, kopf.GroesseInDatei) = (g[0], g[1], true);
+            return kopf;
+        }
+        var (spiel, rest) = InhaltFuerGrenzen(kopf.Kamera);
+        var abgeleitet = Kartengrenzen.Ableiten(spiel, rest, kopf.Randbreite);
+        (kopf.Breite, kopf.Tiefe, kopf.Mitte) = (abgeleitet.Breite, abgeleitet.Tiefe, abgeleitet.Mitte);
+        return kopf;
+    }
+
+    /// <summary>
+    /// Was ins Spielfeld gehört (Gebäude, Mauern mit Toren, Bauzonen, Vorkommen, Häfen, Übergänge, der Kamera-Start) und was auch im Rand
+    /// liegen darf (Wege, Natur, Felder, Pflanzen, Wasser, Gelände) – als Punkte, für <see cref="Kartengrenzen.Ableiten"/>.
+    /// </summary>
+    private (List<Kartenort> Spiel, List<Kartenort> Uebriges) InhaltFuerGrenzen(Kartenkamera? kamera)
+    {
+        static IEnumerable<Kartenort> Orte(IEnumerable<double[]>? p) => EntwurfTeil.Orte(p);
+        var spiel = _gebaeude.SelectMany(g => g.Ecken() is { Count: > 0 } e ? e : new[] { g.Punkt })
+            .Concat(_mauern.SelectMany(m => m.Ecken.Concat(m.Tore.Select(t => t.Punkt)))).Concat(_bauzonen.SelectMany(z => z.Ecken))
+            .Concat(Vorkommen.Select(v => v.Punkt))
+            .Concat(_teile.Haefen.SelectMany(h => Orte(h.Kante).Concat(Orte(h.Anleger)).Concat(Orte(h.Kran is null ? null : new[] { h.Kran }))))
+            .Concat(_teile.Uebergaenge.SelectMany(u => Orte(new[] { u.Von, u.Bis }))).Concat(Orte(kamera is null ? null : new[] { kamera.Punkt }))
+            .ToList();
+        var rest = _wege.SelectMany(w => w.Verlauf).Concat(_naturflaechen.SelectMany(n => n.Ecken)).Concat(_felder.SelectMany(f => f.Ecken))
+            .Concat(_pflanzen.Select(p => p.Punkt))
+            .Concat(_teile.Wasser.SelectMany(w => Orte(w.Linie).Concat(Orte(w.Flaeche)))).Concat(_teile.Gelaende.SelectMany(x => Orte(x.Flaeche)))
+            .ToList();
+        return (spiel, rest);
     }
 
     // ── Kopf der Karte ───────────────────────────────────────────────────────
@@ -257,11 +301,16 @@ public sealed partial class Kartenentwurf
     public double Raster => _teile.Raster;
 
     /// <summary>
-    /// Größe der Karte [Breite in x, Tiefe in z] um den Ursprung (Feld <c>groesse</c>, nur bei Karten aus der Werkstatt). Fehlt sie,
-    /// null – dann zeigt <see cref="Grenzen"/>, wie weit die Karte reicht.
+    /// Größe des Spielfelds [Breite in x, Tiefe in z] um seine Mitte (Feld <c>groesse</c>). Seit Schritt 5a hat jede Karte eine: Fehlt sie in der
+    /// Datei, ist sie aus dem Inhalt abgeleitet (<see cref="EntwurfKopf.GroesseInDatei"/> ist dann false). Nie null.
     /// </summary>
-    public (double Breite, double Tiefe)? Groesse =>
-        _daten["groesse"] is JsonArray { Count: 2 } g ? (g[0]!.GetValue<double>(), g[1]!.GetValue<double>()) : null;
+    public (double Breite, double Tiefe)? Groesse => (_kopf.Breite, _kopf.Tiefe);
+
+    /// <summary>Größe, Mitte, Randbreite und Kamera-Start als Teil (für Rückgängig und die Meldung <see cref="Kartenteil.Kopf"/>).</summary>
+    public EntwurfKopf Kopf => _kopf;
+
+    /// <summary>Spielfeld, Randstreifen und Kamera-Grenzen (<see cref="Bauen.Kartengrenzen"/>) – nach jeder Änderung des Kopfes neu.</summary>
+    public Kartengrenzen Kartengrenzen => _kopf.Grenzen;
 
     // ── Inhalt ───────────────────────────────────────────────────────────────
 
@@ -279,11 +328,15 @@ public sealed partial class Kartenentwurf
     /// <summary>Die einzeln gesetzten Pflanzen (<c>natur.pflanzen</c>).</summary>
     public IReadOnlyList<EntwurfPflanze> Pflanzen => _pflanzen;
 
+    /// <summary>Die Feldflächen (<c>natur.felder</c>, seit Schritt 5a).</summary>
+    public IReadOnlyList<EntwurfFeld> Felder => _felder;
+
     public IReadOnlyList<Gewaesser> Wasser => _teile.Wasser;
     public IReadOnlyList<Gelaende> Gelaende => _teile.Gelaende;
     public IReadOnlyList<Hafen> Haefen => _teile.Haefen;
     public IReadOnlyList<Uebergang> Uebergaenge => _teile.Uebergaenge;
-    public Kartenkamera? Kamera => _kamera;
+    /// <summary>Der Blick beim Start (Feld <c>kamera</c>) – oder null.</summary>
+    public Kartenkamera? Kamera => _kopf.Kamera;
     public IReadOnlyList<Kartenvorkommen> Vorkommen => _vorkommen ??= LiesVorkommen();
     public IReadOnlyList<Probeplatz> Probeplan => _probeplan ??= LiesProbeplan();
 
@@ -293,7 +346,6 @@ public sealed partial class Kartenentwurf
     /// <summary>Die Abweichungen von der Vorlage (<c>fiktion</c>).</summary>
     public IReadOnlyList<string> Fiktion => (_daten["fiktion"] as JsonArray ?? new JsonArray()).Select(f => (string?)f ?? "").ToList();
 
-    private Kartenkamera? _kamera;
     private List<Kartenvorkommen>? _vorkommen;
     private List<Probeplatz>? _probeplan;
 
@@ -322,16 +374,11 @@ public sealed partial class Kartenentwurf
     public IReadOnlySet<string> FehlerhafteGebaeude =>
         Befunde.Where(b => b.Schwere == Schwere.Fehler).SelectMany(b => b.Gebaeude).ToHashSet();
 
-    /// <summary>Wie weit die Karte reicht (x0, z0, x1, z1): aus <see cref="Groesse"/>, sonst aus Wegen, Gebäuden, Wasser und Gelände.</summary>
+    /// <summary>Das Spielfeld (x0, z0, x1, z1) – ohne den Randstreifen (die ganze Karte: <see cref="Kartengrenzen"/>.Aussen).</summary>
     public (double X0, double Z0, double X1, double Z1) Grenzen()
     {
-        if (Groesse is var (b, t)) return (-b / 2, -t / 2, b / 2, t / 2);
-        var punkte = _gebaeude.SelectMany(g => g.Ecken() is { Count: > 0 } e ? e : new[] { g.Punkt })
-            .Concat(_wege.SelectMany(w => w.Punkte)).Concat(_mauern.SelectMany(m => m.Ecken))
-            .Concat(Gelaende.SelectMany(g => g.Flaeche).Concat(Wasser.SelectMany(w => (w.Linie ?? new()).Concat(w.Flaeche ?? new()))).Select(Kartenort.Aus))
-            .ToList();
-        if (punkte.Count == 0) return (-50, -50, 50, 50);
-        return (punkte.Min(p => p.X) - 10, punkte.Min(p => p.Z) - 10, punkte.Max(p => p.X) + 10, punkte.Max(p => p.Z) + 10);
+        var s = Kartengrenzen.Spielfeld;
+        return (s.X0, s.Z0, s.X1, s.Z1);
     }
 
     // ── Öffnen, Neu, Schreiben ───────────────────────────────────────────────
@@ -368,6 +415,7 @@ public sealed partial class Kartenentwurf
         var flaechen = Teilleser.Liste<Naturflaeche>(daten["natur"]?["flaechen"], "Naturfläche").Select(x => EntwurfNaturflaeche.Aus(x.Wert, x.Vorlage)).ToList();
         var pflanzen = Teilleser.Liste<Pflanze>(daten["natur"]?["pflanzen"], "Pflanze").Select(x => EntwurfPflanze.Aus(x.Wert, x.Vorlage)).ToList();
         var mauern = Teilleser.Liste<Kartenmauer>(daten["mauern"], "Mauer").Select(x => EntwurfMauer.Aus(x.Wert, x.Vorlage)).ToList();
+        var felder = Teilleser.Liste<Feldflaeche>(daten["natur"]?["felder"], "Feld").Select(x => EntwurfFeld.Aus(x.Wert, x.Vorlage)).ToList();
         if (daten["start"] is not (null or JsonObject)) throw new KartenFehler(new[] { "start ist kein Objekt." });
         var start = EntwurfStart.Aus(daten["start"]?.DeepClone() as JsonObject, Teilleser.Einzeln<Startbelegung>(daten["start"], "start"));
 
@@ -384,25 +432,25 @@ public sealed partial class Kartenentwurf
         {
             throw new KartenFehler(new[] { $"Die Karte ist nicht lesbar ({ex.Path}): {ex.Message}" });
         }
-        return new Kartenentwurf(MitAbschnitten(daten), gebaeude, teile, katalog, wege, bauzonen, flaechen, pflanzen, mauern, start);
+        return new Kartenentwurf(MitAbschnitten(daten), gebaeude, teile, katalog, wege, bauzonen, flaechen, pflanzen, mauern, start, felder);
     }
 
     /// <summary>Die Abschnitte in der Reihenfolge, in der das alte Werkzeug sie schrieb (karte.py), dahinter die Felder für Kartenskripte (kamera, vorkommen, fiktion, probeplan).</summary>
     private static readonly string[] Reihenfolge =
     {
-        "format", "kennung", "stadt", "vorlage", "einheit", "achsen", "raster", "groesse", "gebaeude", "mauern", "wege", "bauzonen", "natur",
+        "format", "kennung", "stadt", "vorlage", "einheit", "achsen", "raster", "groesse", "mitte", "rand", "gebaeude", "mauern", "wege", "bauzonen", "natur",
         "wasser", "gelaende", "haefen", "uebergaenge", "start", "kamera", "vorkommen", "fiktion", "probeplan",
     };
 
     /// <summary>
-    /// Fehlen <c>mauern</c>, <c>wege</c>, <c>bauzonen</c>, <c>natur</c> oder <c>start</c>, bekommen sie einen leeren Platz an ihrer Stelle der
-    /// Reihenfolge (null) – geschrieben werden sie nur, wenn sie etwas enthalten. So landet ein erster Weg in Köln-artigen Dateien an der
-    /// richtigen Stelle.
+    /// Fehlen <c>mauern</c>, <c>wege</c>, <c>bauzonen</c>, <c>natur</c>, <c>start</c> oder die Felder des Kopfes (<c>groesse</c>, <c>mitte</c>,
+    /// <c>rand</c>, <c>kamera</c>), bekommen sie einen leeren Platz an ihrer Stelle der Reihenfolge (null) – geschrieben werden sie nur, wenn
+    /// sie etwas enthalten. So landet ein erster Weg in Köln-artigen Dateien an der richtigen Stelle.
     /// </summary>
     private static JsonObject MitAbschnitten(JsonObject daten)
     {
         var liste = daten.Select(e => (e.Key, Wert: e.Value?.DeepClone())).ToList();
-        foreach (var fehlt in new[] { "mauern", "wege", "bauzonen", "natur", "start" }.Where(k => !daten.ContainsKey(k)))
+        foreach (var fehlt in new[] { "groesse", "mitte", "rand", "mauern", "wege", "bauzonen", "natur", "start", "kamera" }.Where(k => !daten.ContainsKey(k)))
         {
             var davor = Reihenfolge.TakeWhile(k => k != fehlt).ToHashSet();
             var i = liste.FindLastIndex(e => davor.Contains(e.Key));
@@ -412,7 +460,9 @@ public sealed partial class Kartenentwurf
     }
 
     /// <summary>
-    /// Eine neue, leere Karte (Format 2) mit Kennung, Anzeigename und Größe in Metern (um den Ursprung = Marktplatz).
+    /// Eine neue, leere Karte (Format 2) mit Kennung, Anzeigename und Größe des Spielfelds in Metern (um den Ursprung = Marktplatz; die
+    /// Kartenwerkstatt beginnt mit 600 × 450 m, <see cref="Kartengrenzen.NeueBreite"/>). Der Randstreifen hat die Vorgabe (300 m). Die
+    /// Randlandschaft schlägt <see cref="RandVorschlagen"/> vor.
     /// </summary>
     public static Kartenentwurf Neu(string kennung, string stadt, double breite, double tiefe, Gebaeudekatalog katalog)
     {
@@ -423,9 +473,9 @@ public sealed partial class Kartenentwurf
             ["groesse"] = new JsonArray(JsonValue.Create(breite), JsonValue.Create(tiefe)),
             ["gebaeude"] = new JsonArray(), ["mauern"] = new JsonArray(), ["wege"] = new JsonArray(), ["bauzonen"] = new JsonArray(),
         };
-        return new Kartenentwurf(MitAbschnitten(daten), new List<EntwurfGebaeude>(), new Stadtkarte { Kennung = kennung, Stadt = stadt }, katalog,
-            new List<EntwurfWeg>(), new List<EntwurfBauzone>(), new List<EntwurfNaturflaeche>(), new List<EntwurfPflanze>(), new List<EntwurfMauer>(),
-            new EntwurfStart());
+        return new Kartenentwurf(MitAbschnitten(daten), new List<EntwurfGebaeude>(), new Stadtkarte { Kennung = kennung, Stadt = stadt, Groesse = new[] { breite, tiefe } },
+            katalog, new List<EntwurfWeg>(), new List<EntwurfBauzone>(), new List<EntwurfNaturflaeche>(), new List<EntwurfPflanze>(), new List<EntwurfMauer>(),
+            new EntwurfStart(), new List<EntwurfFeld>());
     }
 
     /// <summary>
@@ -458,13 +508,27 @@ public sealed partial class Kartenentwurf
                     if (!_start.IstLeer) aus[k] = _start.AlsJson();
                     continue;
                 case "natur":
-                    if (_naturflaechen.Count == 0 && _pflanzen.Count == 0) continue; // wie das Werkzeug: leere Natur fällt weg
+                    if (_naturflaechen.Count == 0 && _pflanzen.Count == 0 && _felder.Count == 0) continue; // wie das Werkzeug: leere Natur fällt weg
                     var natur = new JsonObject();
                     foreach (var (nk, nv) in v as JsonObject ?? new JsonObject())
-                        natur[nk] = nk is "flaechen" or "pflanzen" ? null : nv?.DeepClone();
+                        natur[nk] = nk is "flaechen" or "pflanzen" or "felder" ? null : nv?.DeepClone();
                     natur["flaechen"] = Liste(_naturflaechen);
                     natur["pflanzen"] = Liste(_pflanzen);
+                    if (_felder.Count > 0 || natur.ContainsKey("felder")) natur["felder"] = Liste(_felder); // ältere Karten haben keine
                     aus[k] = natur;
+                    continue;
+                // Kopf: nur, was in der Datei stand oder gesetzt wurde (eine abgeleitete Größe bleibt ungeschrieben, die Datei unverändert)
+                case "groesse":
+                    if (_kopf.GroesseInDatei) aus[k] = new JsonArray(JsonValue.Create(_kopf.Breite), JsonValue.Create(_kopf.Tiefe));
+                    continue;
+                case "mitte":
+                    if (_kopf.MitteInDatei) aus[k] = EntwurfTeil.JsonPunkt(_kopf.Mitte);
+                    continue;
+                case "rand":
+                    if (_kopf.RandInDatei) aus[k] = _kopf.Randbreite;
+                    continue;
+                case "kamera":
+                    if (_kopf.KameraAlsJson() is { } kamera) aus[k] = kamera;
                     continue;
             }
             if (Freiwillig.Contains(k) && v is null or JsonArray { Count: 0 } or JsonObject { Count: 0 }) continue;
@@ -610,6 +674,7 @@ public sealed partial class Kartenentwurf
         Kartenteil.Naturflaeche => _naturflaechen,
         Kartenteil.Mauer => _mauern,
         Kartenteil.Pflanze => _pflanzen,
+        Kartenteil.Feld => _felder,
         _ => throw new ArgumentException($"„{t.Bezeichnung}“ steht in keiner Liste.", nameof(t)),
     };
 
@@ -620,6 +685,7 @@ public sealed partial class Kartenentwurf
     internal int IndexVon(EntwurfTeil t)
     {
         if (t is EntwurfStart) return ReferenceEquals(t, _start) ? 0 : -1;
+        if (t is EntwurfKopf) return ReferenceEquals(t, _kopf) ? 0 : -1;
         var l = Liste(t);
         for (var i = 0; i < l.Count; i++)
             if (ReferenceEquals(l[i], t)) return i;
@@ -663,8 +729,9 @@ public sealed partial class Kartenentwurf
     }
 
     // ── Kopf der Karte für Kartenskripte ─────────────────────────────────────
-    //  Vorlage, Fiktion, Kamera und Vorkommen bearbeitet die Kartenwerkstatt (noch) nicht; ein Kartenskript (tools/Kartenbau) setzt sie beim
-    //  Anlegen einer Stadt. Diese Aufrufe sind kein Schritt in der Geschichte (kein Rückgängig) und melden keine Änderung.
+    //  Vorlage, Fiktion und Vorkommen bearbeitet die Kartenwerkstatt (noch) nicht; ein Kartenskript (tools/Kartenbau) setzt sie beim
+    //  Anlegen einer Stadt. Diese Aufrufe sind kein Schritt in der Geschichte (kein Rückgängig) und melden keine Änderung. (Größe, Rand und
+    //  Kamera-Start sind seit Schritt 5a Befehle mit Rückgängig: Kartenentwurf.Rand.cs.)
 
     /// <summary>Wonach die Karte entstanden ist (Feld <c>vorlage</c>, z. B. „das spätmittelalterliche Köln am linken Rheinufer“).</summary>
     public void VorlageSetzen(string text) => FeldSetzen("vorlage", text);
@@ -674,14 +741,6 @@ public sealed partial class Kartenentwurf
     {
         if (_daten["fiktion"] is not JsonArray liste) FeldSetzen("fiktion", liste = new JsonArray());
         liste.Add(text);
-    }
-
-    /// <summary>Der Blick beim Start: Punkt der Stadt, Zoom (Größe des Bildausschnitts in Metern) und Drehung (0 = wie heute).</summary>
-    public void KameraSetzen(Kartenort punkt, double zoom, double drehung = 0)
-    {
-        var p = Gerundet(punkt);
-        FeldSetzen("kamera", new JsonObject { ["punkt"] = EntwurfTeil.JsonPunkt(p), ["zoom"] = zoom, ["drehung"] = drehung });
-        _kamera = new Kartenkamera { Punkt = new[] { p.X, p.Z }, Zoom = zoom, Drehung = drehung };
     }
 
     /// <summary>Ein fester Ort für einen Rohstoffbetrieb (Mine, Steinbruch, Holzschlag) – die Prüfung verlangt dort einen Weg (Feld <c>vorkommen</c>).</summary>

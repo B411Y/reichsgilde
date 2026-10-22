@@ -14,7 +14,12 @@ public partial class Stadtansicht
     //  Laden
     // ═════════════════════════════════════════════════════════════════════════
 
-    private readonly Dictionary<string, PackedScene?> _modellSzenen = new();
+    /// <summary>
+    /// Die geladenen Modelle. Statisch, damit sie einen Szenenwechsel überleben (die Kartenwerkstatt lädt ihre Szene bei Öffnen und Neu neu): Ginge
+    /// der Verweis mit der alten Stadtansicht verloren, könnte der Müllsammler den C#-Mantel eines Modells einsammeln, das Godot noch im Zwischenspeicher
+    /// hält – das nächste <c>ResourceLoader.Load</c> in der neuen Szene wirft dann „Handle is not initialized“ (kam nach „Neu“ gelegentlich vor).
+    /// </summary>
+    private static readonly Dictionary<string, PackedScene?> _modellSzenen = new();
 
     /// <summary>
     /// Das Modell <c>res://assets/modelle/&lt;datei&gt;.glb</c>, einmal geladen; <paramref name="datei"/> nennt den Unterordner mit

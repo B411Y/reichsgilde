@@ -5,7 +5,7 @@ using Reichsgilde.Core.Kartenwerkstatt;
 namespace Reichsgilde;
 
 /// <summary>
-/// Die Tafel rechts für Wege, Flächen (Streuflächen mit ihren Gruppen), Pflanzen und Mauern und die Regler von Pinsel und Radierer – ein Teil der <c>partial class Kartenwerkstatt</c>
+/// Die Tafel rechts für Wege, Flächen (Streuflächen mit ihren Gruppen, Felder in Kartenwerkstatt.Karte.cs), Pflanzen und Mauern und die Regler von Pinsel und Radierer – ein Teil der <c>partial class Kartenwerkstatt</c>
 /// (die Gebäude stehen in Kartenwerkstatt.Tafeln.cs). Jede Änderung in einem Feld ist ein Befehl des Entwurfs; ändert sich der gezeigte Teil
 /// (auch durch Rückgängig), wird die Tafel neu gebaut – außer, in einem Textfeld wird gerade geschrieben.
 /// </summary>
@@ -31,6 +31,7 @@ public partial class Kartenwerkstatt
             case EntwurfWeg w: WegTafel(w, raster); break;
             case EntwurfBauzone z: BauzonenTafel(z, raster); break;
             case EntwurfNaturflaeche f: NaturTafel(f, raster); break;
+            case EntwurfFeld fe: FeldTafel(fe, raster); break; // Kartenwerkstatt.Karte.cs
             case EntwurfPflanze p: PflanzenTafel(p, raster); break;
             case EntwurfMauer m: MauerTafel(m, raster); break;
         }

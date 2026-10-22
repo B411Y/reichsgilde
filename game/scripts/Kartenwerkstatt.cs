@@ -15,6 +15,8 @@ namespace Reichsgilde;
 ///   • Kartenwerkstatt.Tafeln.cs: Leiste oben, Katalog links, Eigenschaften der Gebäude und Fehlerliste rechts, Rückfragen;
 ///   • Kartenwerkstatt.Eigenschaften.cs: die Tafel rechts für Wege, Flächen (mit Streu-Gruppen), Pflanzen, Mauern und den Pinsel;
 ///   • Kartenwerkstatt.Start.cs: die Tafel „Start“ (Startbelegung: Spieler und KI-Häuser);
+///   • Kartenwerkstatt.Karte.cs: der Reiter „Karte“ (Größe, Randstreifen, Rand vorschlagen, Kamera-Start) und die Tafel der Feldfläche;
+///   • Kartenwerkstatt.Karte.cs: der Reiter „Karte“ (Größe, Randstreifen, Rand vorschlagen, Kamera-Start) und die Tafel der Feldfläche;
 ///   • Stadtansicht.Kartenwerkstatt*.cs: alles in der 3D-Welt (Gebäude, Wege, Flächen, Natur, Mauern, Belegung, Auswahl, Ziehen).
 ///
 /// Speicherort (Entscheidung vom 22.10.2026, Schritt 4): Die Karten des Spiels in <c>game/karten/</c> (Greybox, Köln, Probestadt …) sind die
@@ -115,7 +117,7 @@ public partial class Kartenwerkstatt : Node
         _stadt.WerkstattWerkzeugGeaendert += () =>
         {
             // ein Werkzeug des Katalogs zeigt seine Tafel unter „Eigenschaften“ (Pinsel); die Wahl eines Platzes gehört zur Tafel „Start“
-            if (_startOffen && _stadt.Kartenwerkzeug is not (Werkstattwerkzeug.Auswahl or Werkstattwerkzeug.Platz)) ReiterWaehlen(false);
+            if ((_startOffen && _stadt.Kartenwerkzeug is not (Werkstattwerkzeug.Auswahl or Werkstattwerkzeug.Platz)) || (_karteOffen && _stadt.Kartenwerkzeug != Werkstattwerkzeug.Auswahl)) ReiterWaehlen(false);
             EigenschaftenZeigen(neu: true);
             HilfeZeigen();
         };
@@ -152,6 +154,7 @@ public partial class Kartenwerkstatt : Node
         AuffrischenVormerken();
         if (ReferenceEquals(a.Objekt, _stadt.WerkstattGewaehlt)) EigenschaftenZeigen(neu: false);
         if (a.Objekt is EntwurfStart) StartVormerken(); // Kartenwerkstatt.Start.cs
+        if (a.Objekt is EntwurfKopf) KarteWerteSetzen(); // Kartenwerkstatt.Karte.cs
     }
 
     /// <summary>Liest <c>wirtschaft.json</c> (wie die Hauptszene) – oder nennt den Grund, warum es nicht geht.</summary>
@@ -205,11 +208,23 @@ public partial class Kartenwerkstatt : Node
     private static ((Kartenentwurf, string?, bool) Auftrag, string? Meldung) Startkarte(string? wahl)
     {
         wahl ??= Stadtkarten.Vorgabe;
-        if (wahl == "neu") return ((Kartenentwurf.Neu("neustadt", "Neustadt", 300, 300, KatalogLaden()), null, false), null);
+        if (wahl == "neu") return ((NeueKarte("neustadt", "Neustadt", Kartengrenzen.NeueBreite, Kartengrenzen.NeueTiefe), null, false), null);
         var (pfad, nurLesen) = wahl.EndsWith(".json") ? ($"{Ordner}/{wahl}", false) : ($"{Mitgeliefert}/{wahl}.json", !Entwicklung);
         var (entwurf, fehler) = Lesen(pfad);
         if (entwurf is not null) return ((entwurf, pfad, nurLesen), null);
-        return ((Kartenentwurf.Neu("neustadt", "Neustadt", 300, 300, KatalogLaden()), null, false), fehler);
+        return ((NeueKarte("neustadt", "Neustadt", Kartengrenzen.NeueBreite, Kartengrenzen.NeueTiefe), null, false), fehler);
+    }
+
+    /// <summary>
+    /// Eine neue, leere Karte mit Randlandschaft: Der Kern schlägt Felder und Waldstücke für den Randstreifen vor (<see cref="Kartenentwurf.RandVorschlagen"/>);
+    /// der Vorschlag gilt als Ausgangsstand (nicht als Änderung), lässt sich aber mit Rückgängig wegnehmen.
+    /// </summary>
+    private static Kartenentwurf NeueKarte(string kennung, string stadt, double breite, double tiefe)
+    {
+        var entwurf = Kartenentwurf.Neu(kennung, stadt, breite, tiefe, KatalogLaden());
+        entwurf.RandVorschlagen();
+        entwurf.Geschichte.Gespeichert();
+        return entwurf;
     }
 
     /// <summary>Liest eine Kartendatei als Entwurf – oder nennt den Grund, warum es nicht geht.</summary>
@@ -409,14 +424,14 @@ public partial class Kartenwerkstatt : Node
         return (t[0], punkte, rest);
     }
 
-    private EntwurfTeil AussparungUndFlaeche(EntwurfNaturflaeche f, List<Kartenort> punkte)
+    private EntwurfTeil AussparungUndFlaeche(EntwurfFlaeche f, List<Kartenort> punkte)
     {
         _entwurf.AussparungAnlegen(f, punkte);
         return f;
     }
 
     /// <summary>
-    /// Ein Teil aus der Startoption <c>--werkstatt-auswahl</c>: „weg:&lt;Name&gt;“, „zone:&lt;Kennung&gt;“, „natur:&lt;Name&gt;“, „mauer:&lt;Name&gt;“,
+    /// Ein Teil aus der Startoption <c>--werkstatt-auswahl</c>: „weg:&lt;Name&gt;“, „zone:&lt;Kennung&gt;“, „natur:&lt;Name&gt;“, „feld:&lt;Name&gt;“, „mauer:&lt;Name&gt;“,
     /// sonst die Kennung eines Gebäudes.
     /// </summary>
     private EntwurfTeil? TeilVon(string text)
@@ -427,20 +442,30 @@ public partial class Kartenwerkstatt : Node
             "weg" => _entwurf.Wege.FirstOrDefault(w => w.Name == name),
             "zone" => _entwurf.Bauzonen.FirstOrDefault(z => z.Kennung == name),
             "natur" => _entwurf.Naturflaechen.FirstOrDefault(n => n.Name == name),
+            "feld" => _entwurf.Felder.FirstOrDefault(n => n.Name == name),
             "mauer" => _entwurf.Mauern.FirstOrDefault(m => m.Name == name),
             _ => _entwurf.GebaeudeMit(text),
         };
     }
 
     /// <summary>
-    /// Die Schritte der Startoptionen in fester Reihenfolge: setzen, mauer, tor, weg, flaeche, pinsel, radierer, start, versetzen, rückgängig,
-    /// auswahl, speichern, umriss, werkzeug, netz, dann Kamera, Tafeln und zuletzt ausprobieren (Liste in <c>CLAUDE.md</c>, „Bauen, testen,
+    /// Die Schritte der Startoptionen in fester Reihenfolge: groesse, randvorschlag, setzen, mauer, tor, weg, feld, flaeche, pinsel, radierer, start,
+    /// versetzen, rückgängig, auswahl, speichern, umriss, werkzeug, netz, dann Kamera (blick, drehung, kamerastart), Tafeln und zuletzt ausprobieren (Liste in <c>CLAUDE.md</c>, „Bauen, testen,
     /// ausprobieren“). Mehrere Wege, Flächen, Mauern, Tore, Striche und Startbefehle trennt „|“, Punkte „;“.
     /// </summary>
     private void StartoptionenAusfuehren(Dictionary<string, string> o)
     {
         try
         {
+            // --werkstatt-groesse=<breite>,<tiefe>[,<rand>] (400 × 300 bis 2.000 × 2.000, Rand 100 bis 600 m), --werkstatt-randvorschlag=1 (oder eine Zahl als Startwert)
+            if (o.TryGetValue("werkstatt-groesse", out var groesse))
+            {
+                var t = groesse.Split(',');
+                _entwurf.GroesseSetzen(Zahl(t[0]), Zahl(t[1]));
+                if (t.Length > 2) _entwurf.RandbreiteSetzen(Zahl(t[2]));
+            }
+            if (o.TryGetValue("werkstatt-randvorschlag", out var vorschlag))
+                _entwurf.RandVorschlagen(int.TryParse(vorschlag, out var startwert) && startwert > 1 ? startwert : null);
             if (o.TryGetValue("werkstatt-setzen", out var setzen))
                 foreach (var eintrag in setzen.Split(';', StringSplitOptions.RemoveEmptyEntries))
                 {
@@ -473,7 +498,14 @@ public partial class Kartenwerkstatt : Node
                     var klasse = Enum.Parse<Wegklasse>(art, ignoreCase: true);
                     if (_stadt.WerkstattWegAnlegen(klasse, punkte, wort != "gerade") is { } w) _stadt.WerkstattWaehlen(w);
                 }
-            // --werkstatt-flaeche=wald|streu|bauzone:<lage>|aussparung,x1,z1;x2,z2;…
+            // --werkstatt-feld=x1,z1;x2,z2;…[|…] (Feldflächen, die Streifen laufen längs der längsten Kante)
+            if (o.TryGetValue("werkstatt-feld", out var felder))
+                foreach (var eintrag in felder.Split('|', StringSplitOptions.RemoveEmptyEntries))
+                {
+                    var (_, punkte, _) = Liste("-," + eintrag);
+                    _stadt.WerkstattWaehlen(_entwurf.FeldAnlegen(punkte, null, Stadtansicht.FeldRichtungVon(punkte)));
+                }
+            // --werkstatt-flaeche=wald|streu|feld|bauzone:<lage>|aussparung,x1,z1;x2,z2;…
             if (o.TryGetValue("werkstatt-flaeche", out var flaechen))
                 foreach (var eintrag in flaechen.Split('|', StringSplitOptions.RemoveEmptyEntries))
                 {
@@ -481,9 +513,10 @@ public partial class Kartenwerkstatt : Node
                     EntwurfTeil? neu = art switch
                     {
                         "wald" or "streu" => _entwurf.NaturflaecheAnlegen(art, punkte),
-                        "aussparung" when _stadt.WerkstattGewaehlt is EntwurfNaturflaeche f => AussparungUndFlaeche(f, punkte),
+                        "feld" => _entwurf.FeldAnlegen(punkte, null, Stadtansicht.FeldRichtungVon(punkte)),
+                        "aussparung" when _stadt.WerkstattGewaehlt is EntwurfFlaeche { KannAussparungen: true } f => AussparungUndFlaeche(f, punkte),
                         _ when art.StartsWith("bauzone") => _entwurf.BauzoneAnlegen(art.Contains(':') ? Enum.Parse<Lage>(art.Split(':')[1], true) : Lage.Vorstadt, punkte),
-                        _ => throw new ArgumentException($"Unbekannte Fläche „{art}“ (wald, streu, bauzone:<lage>, aussparung nach einer Naturfläche)."),
+                        _ => throw new ArgumentException($"Unbekannte Fläche „{art}“ (wald, streu, feld, bauzone:<lage>, aussparung nach einer Wald-, Streu- oder Feldfläche)."),
                     };
                     _stadt.WerkstattWaehlen(neu);
                 }
@@ -545,7 +578,10 @@ public partial class Kartenwerkstatt : Node
             _stadt.KameraSetzen((float)Zahl(t[0]), (float)Zahl(t[1]), t.Length > 2 ? (float)Zahl(t[2]) : null);
         }
         if (o.TryGetValue("drehung", out var drehung) && int.TryParse(drehung, out var viertel)) _stadt.Drehen(viertel, sofort: true);
+        // --werkstatt-kamerastart=1: den Blick (nach --blick und --drehung) als Kamera-Start übernehmen
+        if (o.GetValueOrDefault("werkstatt-kamerastart") == "1") KameraStartUebernehmen();
         if (o.GetValueOrDefault("werkstatt-tafel") == "start") ReiterWaehlen(true);
+        else if (o.GetValueOrDefault("werkstatt-tafel") == "karte") KarteReiterWaehlen();
         if (o.TryGetValue("werkstatt-haus", out var haus) && int.TryParse(haus, out var hausNummer))
         {
             _startHaus = hausNummer - 1;

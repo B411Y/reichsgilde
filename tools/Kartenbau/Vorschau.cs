@@ -10,8 +10,9 @@ namespace Reichsgilde.Kartenbau;
 //
 //  Von oben, Norden oben, 1 Einheit = 1 Meter. Gebäude als ihre Grundfläche aus dem Katalog (gedreht, mal Maßstab) mit einem Punkt an der
 //  Mitte der Vorderseite; Wege mit ihrem Verlauf (glatte Wege als Kurve, wie im Spiel); Mauern aus dem Mauerplan des Kerns (Mauerstücke,
-//  Türme, Ecktürme, Torburgen, wie im Spiel); Bauzonen nach Lage, Naturflächen mit Aussparungen, Wasser, Gelände, Häfen. Die Startbelegung
-//  ist farbig: Jeder Platz eines Hauses hat dessen Farbe (Legende oben links).
+//  Türme, Ecktürme, Torburgen, wie im Spiel); Bauzonen nach Lage, Naturflächen mit Aussparungen, Felder mit ihren Streifen, Wasser, Gelände,
+//  Häfen. Das Bild zeigt die ganze Karte: den Randstreifen etwas dunkler, die Kante des Spielfelds gestrichelt (seit Schritt 5a). Die
+//  Startbelegung ist farbig: Jeder Platz eines Hauses hat dessen Farbe (Legende oben links).
 //  Die Belegung (<kennung>-belegung.svg) zeigt darüber, wie die Prüfung die Stadt füllt: die Kapazitätsprüfung (Köln, neue Karten) bzw. den
 //  Probeplan (Greybox).
 // ═════════════════════════════════════════════════════════════════════════════
@@ -23,7 +24,7 @@ public static class Vorschau
     {
         ["boden"] = "#E6E8E1", ["feld"] = "#DCD5A6", ["wald"] = "#9DB287", ["huegel"] = "#C9BFA6", ["wildnis"] = "#D9B79A",
         ["wasser"] = "#AFC7D5", ["wasserlinie"] = "#4E7A96", ["mauer"] = "#1F2326", ["zonenrand"] = "#6B6E66", ["start"] = "#A3262A",
-        ["fest"] = "#1F2326", ["vorkommen"] = "#FFFFFF", ["text"] = "#1F2326",
+        ["fest"] = "#1F2326", ["vorkommen"] = "#FFFFFF", ["text"] = "#1F2326", ["rand"] = "#D6DACF",
     };
 
     private static readonly Dictionary<Lage, string> Zonenfarben = new()
@@ -39,6 +40,12 @@ public static class Vorschau
     };
 
     private static readonly Dictionary<string, string> Naturfarben = new() { ["wald"] = "#7F9B6A", ["streu"] = "#C4CFA8" };
+
+    /// <summary>Farbe eines Feldes nach seiner Hauptfrucht (die mit dem größten Gewicht).</summary>
+    private static readonly Dictionary<string, string> Fruchtfarben = new()
+    {
+        ["weizen"] = "#E3CB7A", ["roggen"] = "#D6BE7E", ["gerste"] = "#E0D39A", ["hafer"] = "#CFCB92", ["flachs"] = "#A9B8CF", ["brache"] = "#B9C99A",
+    };
 
     /// <summary>Strich je Wegklasse: Breite, Strichelung, Farbe.</summary>
     private static (double Breite, string? Strich, string Farbe) Strich(Wegklasse k) => k switch
@@ -71,7 +78,9 @@ public static class Vorschau
         void Zeile(string s) => o.Append(s).Append('\n');
         Zeile($"<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"{F(x0)} {F(z0)} {F(x1 - x0)} {F(z1 - z0)}\" font-family=\"sans-serif\">");
         Zeile($"<title>{X(e.Stadt)} – Kartendatei (Vorschau{(belegung ? ", Belegung" : "")})</title>");
-        Zeile($"<rect x=\"{F(x0)}\" y=\"{F(z0)}\" width=\"{F(x1 - x0)}\" height=\"{F(z1 - z0)}\" fill=\"{Farben["boden"]}\"/>");
+        Zeile($"<rect x=\"{F(x0)}\" y=\"{F(z0)}\" width=\"{F(x1 - x0)}\" height=\"{F(z1 - z0)}\" fill=\"{Farben["rand"]}\"/>");
+        var spielfeld = e.Kartengrenzen.Spielfeld;
+        Zeile($"<rect x=\"{F(spielfeld.X0)}\" y=\"{F(spielfeld.Z0)}\" width=\"{F(spielfeld.Breite)}\" height=\"{F(spielfeld.Tiefe)}\" fill=\"{Farben["boden"]}\"/>");
 
         foreach (var g in e.Gelaende)
             Zeile($"<polygon points=\"{Punkte(g.Flaeche.Select(Kartenort.Aus))}\" fill=\"{Farben.GetValueOrDefault(g.Art, "#ccc")}\" opacity=\"0.8\"/>");
@@ -83,6 +92,26 @@ public static class Vorschau
             Zeile($"<mask id=\"natur{i}\"><rect x=\"{F(x0)}\" y=\"{F(z0)}\" width=\"{F(x1 - x0)}\" height=\"{F(z1 - z0)}\" fill=\"#fff\"/>"
                   + string.Concat(f.Aussparungen.Select(a => $"<polygon points=\"{Punkte(a)}\" fill=\"#000\"/>")) + "</mask>");
             Zeile($"<polygon points=\"{Punkte(f.Ecken)}\" fill=\"{Naturfarben.GetValueOrDefault(f.Art, "#9DB287")}\" opacity=\"{(f.Art == "wald" ? "0.55" : "0.35")}\" mask=\"url(#natur{i})\"/>");
+        }
+        // Felder: Fläche in der Farbe der Hauptfrucht, darüber die Streifen in ihrer Richtung (ein Muster je Feld), Aussparungen als Maske
+        for (var i = 0; i < e.Felder.Count; i++)
+        {
+            var f = e.Felder[i];
+            if (f.Ecken.Count < 3) continue;
+            var frucht = f.Fruechte.OrderByDescending(x => x.Value).Select(x => x.Key).FirstOrDefault() ?? "";
+            var w = Math.Max(1, f.Streifen);
+            // Muster aus senkrechten Linien (entlang y = z); rotate(−richtung) dreht sie in die Richtung der Streifen (sin, cos)
+            Zeile($"<defs><pattern id=\"feld{i}\" patternUnits=\"userSpaceOnUse\" width=\"{F(w)}\" height=\"{F(w)}\" patternTransform=\"rotate({F(-f.Richtung)})\">"
+                  + $"<line x1=\"0\" y1=\"0\" x2=\"0\" y2=\"{F(w)}\" stroke=\"#8C7A4F\" stroke-width=\"0.4\"/></pattern></defs>");
+            var maske = "";
+            if (f.Aussparungen.Count > 0)
+            {
+                Zeile($"<mask id=\"feldmaske{i}\"><rect x=\"{F(x0)}\" y=\"{F(z0)}\" width=\"{F(x1 - x0)}\" height=\"{F(z1 - z0)}\" fill=\"#fff\"/>"
+                      + string.Concat(f.Aussparungen.Select(a => $"<polygon points=\"{Punkte(a)}\" fill=\"#000\"/>")) + "</mask>");
+                maske = $" mask=\"url(#feldmaske{i})\"";
+            }
+            Zeile($"<polygon points=\"{Punkte(f.Ecken)}\" fill=\"{Fruchtfarben.GetValueOrDefault(frucht, Farben["feld"])}\" opacity=\"0.8\"{maske}/>");
+            Zeile($"<polygon points=\"{Punkte(f.Ecken)}\" fill=\"url(#feld{i})\"{maske}/>");
         }
         foreach (var z in e.Bauzonen.Where(z => z.Ecken.Count >= 3))
             Zeile($"<polygon points=\"{Punkte(z.Ecken)}\" fill=\"{Zonenfarben[z.Art]}\" stroke=\"{Farben["zonenrand"]}\" stroke-width=\"0.4\"/>");
@@ -125,22 +154,20 @@ public static class Vorschau
             var m = Kartengeometrie.Mitte(z.Ecken);
             Zeile($"<text x=\"{F(Math.Round(m.X))}\" y=\"{F(Math.Round(m.Z))}\" font-size=\"6\" text-anchor=\"middle\" fill=\"{Farben["zonenrand"]}\">{X(z.Kennung)}</text>");
         }
+        // die Kante des Spielfelds: dahinter der Randstreifen (nicht bespielbar)
+        Zeile($"<rect x=\"{F(spielfeld.X0)}\" y=\"{F(spielfeld.Z0)}\" width=\"{F(spielfeld.Breite)}\" height=\"{F(spielfeld.Tiefe)}\" fill=\"none\" " +
+              $"stroke=\"{Farben["zonenrand"]}\" stroke-width=\"1.2\" stroke-dasharray=\"8 4\"/>");
         Legende(e, x0, z0, x1 - x0, Zeile);
         if (belegung) Belegung(e, Zeile);
         Zeile("</svg>");
         return o.ToString();
     }
 
-    /// <summary>Wie weit das Bild reicht: alle Gebäude, Wege, Mauern, Wasser und Gelände mit 10 m Rand (bei einer Karte mit Größe deren Rahmen).</summary>
+    /// <summary>Wie weit das Bild reicht: die ganze Karte, Spielfeld und Randstreifen (seit Schritt 5a hat jede Karte eine Größe).</summary>
     private static (double X0, double Z0, double X1, double Z1) Grenzen(Kartenentwurf e)
     {
-        if (e.Groesse is not null) return e.Grenzen();
-        var punkte = e.Gebaeude.SelectMany(g => g.Ecken() is { Count: > 0 } ecken ? ecken : new[] { g.Punkt })
-            .Concat(e.Wege.SelectMany(w => w.Verlauf)).Concat(e.Mauern.SelectMany(m => m.Ecken))
-            .Concat(e.Gelaende.SelectMany(g => g.Flaeche).Concat(e.Wasser.SelectMany(w => (w.Linie ?? new()).Concat(w.Flaeche ?? new()))).Select(Kartenort.Aus))
-            .ToList();
-        if (punkte.Count == 0) return (-50, -50, 50, 50);
-        return (punkte.Min(p => p.X) - 10, punkte.Min(p => p.Z) - 10, punkte.Max(p => p.X) + 10, punkte.Max(p => p.Z) + 10);
+        var a = e.Kartengrenzen.Aussen;
+        return (a.X0, a.Z0, a.X1, a.Z1);
     }
 
     /// <summary>Mauern aus dem Mauerplan: Mauerstücke (dick), Ecktürme und Mauertürme (Kreise), Torburgen (Rechtecke quer zur Mauer) mit Namen.</summary>

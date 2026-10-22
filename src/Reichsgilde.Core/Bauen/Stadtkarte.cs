@@ -1,5 +1,6 @@
 using System.Text.Json;
 using System.Text.Json.Serialization;
+using Reichsgilde.Core.Kartenwerkstatt;
 using Reichsgilde.Core.Partie;
 using Reichsgilde.Core.Wirtschaft;
 
@@ -313,11 +314,43 @@ public sealed class Pflanze
     public int Variante { get; init; }
 }
 
-/// <summary>Die Natur der Karte: Flächen mit Dichte und Mischung, dazu einzelne Pflanzen.</summary>
+/// <summary>
+/// Eine Feldfläche (seit der Kartenwerkstatt, Schritt 5a; vor allem für den Randstreifen): ein Vieleck, das die Darstellung in Ackerstreifen
+/// teilt (<see cref="FeldVerteilung"/>) – Streifen von <see cref="Streifen"/> Metern Breite in Richtung <see cref="Richtung"/>, in Stücke von
+/// etwa <see cref="Laenge"/> Metern geschnitten, jedes Stück mit einer Frucht nach Gewicht. Nur Bild, keine Wirkung auf die Partie.
+/// </summary>
+public sealed class Feldflaeche
+{
+    public string Name { get; init; } = "";
+    public List<double[]> Flaeche { get; init; } = new();
+
+    /// <summary>Löcher im Vieleck (dort kein Acker).</summary>
+    public List<List<double[]>> Aussparungen { get; init; } = new();
+
+    /// <summary>Richtung der Streifen in Grad wie Godot <c>Rotation.Y</c>: 0 = die Streifen laufen Nord–Süd (entlang z), 90 = Ost–West.</summary>
+    public double Richtung { get; init; }
+
+    /// <summary>Breite eines Ackerstreifens in Metern.</summary>
+    public double Streifen { get; init; } = FeldVerteilung.StreifenVorgabe;
+
+    /// <summary>Mittlere Länge eines Stücks in Metern (jedes Stück zwischen 60 und 140 % davon).</summary>
+    public double Laenge { get; init; } = FeldVerteilung.LaengeVorgabe;
+
+    /// <summary>Startwert des Zufalls – gleiche Fläche, gleiche Äcker.</summary>
+    public int Startwert { get; init; }
+
+    /// <summary>Frucht → Gewicht (<see cref="FeldVerteilung.Fruechte"/>: weizen, roggen, gerste, hafer, flachs, brache).</summary>
+    public Dictionary<string, double> Fruechte { get; init; } = new();
+}
+
+/// <summary>Die Natur der Karte: Flächen mit Dichte und Mischung, einzelne Pflanzen und Felder.</summary>
 public sealed class Kartennatur
 {
     public List<Naturflaeche> Flaechen { get; init; } = new();
     public List<Pflanze> Pflanzen { get; init; } = new();
+
+    /// <summary>Feldflächen (seit Schritt 5a; fehlt in älteren Karten).</summary>
+    public List<Feldflaeche> Felder { get; init; } = new();
 }
 
 /// <summary>Fluss, Bach (Linie mit Breite) oder See (Fläche).</summary>
@@ -354,6 +387,17 @@ public sealed class Uebergang
     public string Name { get; init; } = "";
     public double[] Von { get; init; } = { 0, 0 };
     public double[] Bis { get; init; } = { 0, 0 };
+}
+
+/// <summary>
+/// Ein Fundort eines Rohstoffbetriebs (<c>vorkommen</c> der Datei). Der Kern liest ihn nur für die Größe einer Karte ohne <c>groesse</c>
+/// (<see cref="Stadtkarte.Kartengrenzen"/>) – damit Spielstand und Kartenwerkstatt dieselbe ableiten.
+/// </summary>
+public sealed class Vorkommenstelle
+{
+    public string Kennung { get; init; } = "";
+    public string Betrieb { get; init; } = "";
+    public double[] Punkt { get; init; } = { 0, 0 };
 }
 
 /// <summary>Der Blick beim Start der Partie.</summary>
@@ -404,10 +448,53 @@ public sealed class Stadtkarte
     public List<Hafen> Haefen { get; init; } = new();
     public List<Uebergang> Uebergaenge { get; init; } = new();
 
+    /// <summary>Fundorte der Rohstoffbetriebe (nur für <see cref="Kartengrenzen"/> gelesen).</summary>
+    public List<Vorkommenstelle> Vorkommen { get; init; } = new();
+
     /// <summary>Wer am Start wo wohnt und arbeitet – null: <see cref="Partie.Startbelegung.Ersatz"/>.</summary>
     public Startbelegung? Start { get; init; }
 
     public Kartenkamera? Kamera { get; init; }
+
+    /// <summary>
+    /// [Breite in x, Tiefe in z] des Spielfelds in Metern (seit der Kartenwerkstatt, Schritt 5a: 400 × 300 bis 2.000 × 2.000 in 50-m-Schritten).
+    /// Fehlt sie (ältere Karten und Spielstände), leitet <see cref="Kartengrenzen"/> sie aus dem Inhalt ab.
+    /// </summary>
+    public double[]? Groesse { get; init; }
+
+    /// <summary>Mitte des Spielfelds [x, z]; fehlt sie, liegt das Spielfeld um den Ursprung (den Marktplatz).</summary>
+    public double[]? Mitte { get; init; }
+
+    /// <summary>Breite des Randstreifens um das Spielfeld in Metern; fehlt sie, <see cref="Bauen.Kartengrenzen.RandVorgabe"/> (300).</summary>
+    public double? Rand { get; init; }
+
+    private Kartengrenzen? _grenzen;
+
+    /// <summary>
+    /// Spielfeld, Randstreifen und Kamera-Grenzen der Karte (<see cref="Bauen.Kartengrenzen"/>): aus <see cref="Groesse"/>, <see cref="Mitte"/> und
+    /// <see cref="Rand"/>, ohne Größe aus dem Inhalt abgeleitet (wie die Kartenwerkstatt).
+    /// </summary>
+    [JsonIgnore]
+    public Kartengrenzen Kartengrenzen => _grenzen ??= GrenzenRechnen();
+
+    private Kartengrenzen GrenzenRechnen()
+    {
+        var rand = Rand is > 0 ? Rand.Value : Bauen.Kartengrenzen.RandVorgabe;
+        if (Groesse is { Length: 2 } g && g[0] > 0 && g[1] > 0)
+            return new Kartengrenzen(g[0], g[1], Mitte is { Length: 2 } m ? new Kartenort(m[0], m[1]) : default, rand);
+        static IEnumerable<Kartenort> Orte(IEnumerable<double[]>? p) => (p ?? Enumerable.Empty<double[]>()).Where(x => x is { Length: 2 }).Select(Kartenort.Aus);
+        var spiel = Gebaeude.SelectMany(x => Bauen.Kartengrenzen.GebaeudeEcken(x.Baustein, x.Punkt[0], x.Punkt[1], x.Drehung, x.Massstab) is { Count: > 0 } e
+                ? e : Orte(new[] { x.Punkt }))
+            .Concat(Mauern.SelectMany(m => Orte(m.Linie).Concat(Orte(m.Tore.Select(t => t.Punkt)))))
+            .Concat(Bauzonen.SelectMany(z => Orte(z.Flaeche))).Concat(Orte(Vorkommen.Select(v => v.Punkt)))
+            .Concat(Haefen.SelectMany(h => Orte(h.Kante).Concat(Orte(h.Anleger)).Concat(Orte(h.Kran is null ? null : new[] { h.Kran }))))
+            .Concat(Uebergaenge.SelectMany(u => Orte(new[] { u.Von, u.Bis }))).Concat(Orte(Kamera is null ? null : new[] { Kamera.Punkt }));
+        var rest = Wege.SelectMany(w => Orte(w.Verlauf))
+            .Concat(Natur.Flaechen.SelectMany(n => Orte(n.Flaeche))).Concat(Natur.Felder.SelectMany(n => Orte(n.Flaeche)))
+            .Concat(Orte(Natur.Pflanzen.Select(p => p.Punkt)))
+            .Concat(Wasser.SelectMany(w => Orte(w.Linie).Concat(Orte(w.Flaeche)))).Concat(Gelaende.SelectMany(x => Orte(x.Flaeche)));
+        return Bauen.Kartengrenzen.Ableiten(spiel, rest, rand);
+    }
 
     /// <summary>Der Gebäudekatalog, mit dem die Karte gelesen wurde (steht nicht in der Kartendatei, aber im Spielstand).</summary>
     [JsonInclude]
@@ -579,6 +666,17 @@ public sealed class Stadtkarte
         if (Katalog is not null)
             foreach (var p in Natur.Pflanzen.Where(p => !IstNatur(p.Katalog)))
                 f.Add($"Pflanze bei [{string.Join(", ", p.Punkt)}]: Den Natur-Baustein „{p.Katalog}“ gibt es im Katalog nicht.");
+
+        foreach (var n in Natur.Felder)
+        {
+            var wer = $"Feld „{n.Name}“";
+            if (n.Flaeche.Count < 3 || !Linie(n.Flaeche)) f.Add($"{wer}: Die Fläche braucht mindestens drei Punkte [x, z].");
+            if (n.Streifen <= 0 || n.Laenge <= 0) f.Add($"{wer}: streifen und laenge müssen größer als 0 sein.");
+        }
+        if (Groesse is not null && (Groesse.Length != 2 || Groesse.Any(x => x <= 0))) f.Add("groesse ist [Breite, Tiefe] mit zwei Zahlen größer als 0.");
+        if (Mitte is not null && !Punkt(Mitte)) f.Add("mitte hat genau zwei Zahlen [x, z].");
+        if (Rand is <= 0) f.Add("rand muss größer als 0 sein.");
+        _grenzen = null; // die Gebäude haben jetzt ihren Baustein (für die abgeleitete Größe)
 
         if (Start is { } s) StartPruefen(s, f);
         return f;
