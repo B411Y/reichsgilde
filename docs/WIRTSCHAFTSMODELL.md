@@ -21,6 +21,8 @@ An diesen Zielen werden alle Zahlen gemessen. Ändert sich eine Zahl, muss das Z
 | Z6 | **Statut C** lohnt sich in Gulden mäßig (+15–25 %), kostet aber Ansehen und birgt Aufstandsgefahr | ✔ Gießerei 627 → 750 (+20 %), plus Risiken außerhalb der Gulden-Rechnung |
 | Z7 | Zwischenprodukte (Beschlag) lohnen sich weniger als Fertigwaren, sind aber nicht defizitär. So entsteht ein Zulieferer-Markt zwischen den Berufen. | ✔ 393 statt 878 |
 
+Stand nach Balancing 1 (PR #177, Abschnitt „Balancing-Messung 2“): Z2 erfüllt (Schmied mit einem Betrieb Bürger nach Ø 10 Jahren). Dafür gilt Z1 nicht mehr (die Referenz-Gießerei bringt 1.551 statt 848 im Jahr – höhere Preise der Fertigwaren, damit nach Familie, Gericht und Ausbau genug bleibt). Z3, Z4, Z5 und Z7 unverändert erfüllt; Z6 war schon vorher verfehlt (Statut C +2 %, jetzt 0 %).
+
 ## 2. Zeitbasis
 
 - **1 Spieljahr = 1 Spieltag = 15 Minuten Echtzeit** (siehe Entscheidungsprotokoll).
@@ -612,7 +614,7 @@ Von der KI erlernte Berufe (in 20 Partien): Eisenbart → Alchimist 10×, → St
 | Festbier (3) | 3 Gerste + 1 Weingeist + 1 Holzzapfen | 80 | 225 | 1,26 | 281 |
 | Schädelbrand (3) | 1 Roggen + 3 Weingeist + 1 Beschlag + 1 Holzzapfen | 100 | 375 | 1,27 | 469 |
 
-\* am Markt, zu Grundpreisen nach Steuer. Im Ausschank (Grundpreis × 1,25) bringt jede Ware rund ein Drittel mehr – aber nur so viel, wie Gäste kommen.
+\* am Markt, zu Grundpreisen nach Steuer. Im Ausschank (Grundpreis × 1,25) bringt jede Ware rund ein Drittel mehr – aber nur so viel, wie Gäste kommen. **Seit PR #177:** Ausschank × 1,2 (Körnermahlzeit 60, Festbier 270) – der Wirt lag an der Spitze („Balancing-Messung 2“).
 
 **Gäste:** 120 je Jahr für die ganze Stadt, Stunden 12–17 einfach, 18–23 doppelt gewichtet (40 nachmittags, 80 abends). Eine Schänke mit 2 Gesellen macht etwa 45 Körnermahlzeiten im Jahr – allein in der Stadt verkauft sie alles im Haus.
 
@@ -636,7 +638,7 @@ Von der KI erlernte Berufe (in 20 Partien): Eisenbart → Alchimist 10×, → St
 
 \* am Markt, zu Grundpreisen nach Steuer – im Band der anderen Berufe (Stufe 3: 1,54–1,83).
 
-**Kirche:** Stufe 1–3 (2/3/4 Plätze, Fixkosten 80/120/180, Ausbau 2.500/5.000). Messe um 10 Uhr: 200 Gläubige × 2,5 Gulden = 500 Gulden Kollekte im Jahr für die ganze Stadt, verteilt nach Anziehung = Stufe (1/1,5/2) × (1 + Ansehen × 0,0125) × (1 + Rhetorik × 0,1). Ablass: 250 + 0,5 × Tatwert. Beichte 25 % je fremde Tat, Beichtbruch als Spur über 200 Gulden. Hetzschrift −5 Ansehen.
+**Kirche:** Stufe 1–3 (2/3/4 Plätze, Fixkosten 80/120/180, Ausbau 2.500/5.000). Messe um 10 Uhr: 200 Gläubige × 2,5 Gulden = 500 Gulden Kollekte im Jahr (seit PR #177: × 2,2 = 440) für die ganze Stadt, verteilt nach Anziehung = Stufe (1/1,5/2) × (1 + Ansehen × 0,0125) × (1 + Rhetorik × 0,1). Ablass: 250 + 0,5 × Tatwert. Beichte 25 % je fremde Tat, Beichtbruch als Spur über 200 Gulden. Hetzschrift −5 Ansehen.
 
 **Balance-Lehre:** Eine Lehrschrift ohne AP und ohne Obergrenze hob die Talente der KI nach 30 Jahren von 12,1 auf 20,3 Sterne und das Vermögen um ein Drittel. Darum: 1 AP, höchstens 3 Sterne, und die KI liest nur mit AP, die sonst verfielen.
 
@@ -652,7 +654,7 @@ Von der KI erlernte Berufe (in 20 Partien): Eisenbart → Alchimist 10×, → St
 | 2 | Unterschlupf (2.500) | 6 | 120 | 634 | 0,96 % | 2 | Schutzgeld |
 | 3 | Diebesgilde (5.000) | 8 | 180 | 749 | 0,72 % | 3 | Entführung |
 
-Erwarteter Jahresgewinn voll mit Gesellen (Lohn 220): Schmugglerloch ≈ 1.344, also etwas über der Kirche (1.150); dafür −3 Ansehen, Fänge und Spuren.
+Erwarteter Jahresgewinn voll mit Gesellen (Lohn 220): Schmugglerloch ≈ 1.344, also etwas über der Kirche (1.150); dafür −3 Ansehen, Fänge und Spuren. **Seit PR #177:** Beute 1,0 statt 0,8 je Minute (720 je Geselle und Jahr in Stufe 1), dafür halbe Erfahrung je Mann (`erfahrungFaktor` 0,5 – vier statt zwei Plätze).
 
 **Einbruch** mit eigenen Leuten: Chance 0,7 + 0,1 (Wächter ×0,5), 12 / 18 / 24 Stück, Beute ins eigene Lager (Karren verkauft sie zum Marktpreis), Überlauf zum Hehler (50 %), Zeugen ×0,75. **Schutzgeld**: Brand im teuersten Betrieb des Opfers (Chance 0,6 + 0,1). **Entführung**: 55 %, nie das Oberhaupt.
 
@@ -683,7 +685,7 @@ Standardmessung (ausgewogen) praktisch unverändert: 124.400 / 94.500 / 116.000 
 | 3 | Garnison (5.000) | 8 | 180 | 667 | 3 | 70 % |
 | Umland | Wachturm (Pacht) | 3 | 400 | 513 | – | – |
 
-Erwarteter Jahresgewinn voll mit Gesellen (Lohn 220): Wachhaus ≈ 1.090 (knapp unter der Kirche, ohne Fänge und Spuren), Wachturm ≈ 480 – er lohnt sich über den Schutz der eigenen Karren und den Geleitschutz.
+Erwarteter Jahresgewinn voll mit Gesellen (Lohn 220): Wachhaus ≈ 1.090 (knapp unter der Kirche, ohne Fänge und Spuren), Wachturm ≈ 480 – er lohnt sich über den Schutz der eigenen Karren und den Geleitschutz. **Seit PR #177:** Sold 0,68 statt 0,75 je Minute (465 je Geselle und Jahr nach Steuer in Stufe 1) und halbe Erfahrung je Wachmann (`erfahrungFaktor` 0,5) – mit vier Leuten erreichte das Haus die Meistergrade doppelt so schnell (Stufe 2 in Jahr 6 statt 11).
 
 **Patrouille:** 4 Gesellen im Wachhaus = 10 % weniger Erfolg für Diebstahl, Sabotage, Einbruch, Brand und Entführung in der Stadt, Zeugen +5 %. **Wachturm** voll besetzt: Überfallchance der Banden × 0,7.
 
@@ -709,7 +711,7 @@ Wache je Jahr: Sold Ø 4.383 (mit Ausbau), Geleitgeld 234, 1,56 Razzien. Die Wac
 | 2 | Geldleihe (2.500) | 3 | 120 | 2.500 | 1,2 | 6.000 | +1 |
 | 3 | Bankhaus (5.000) | 4 | 180 | 3.000 | 1,4 | 12.000 | +2 |
 
-Je Geselle und Jahr bei voller Kasse (Start, nach Steuer und Ausfall): ≈ 814 Gulden – davon Zins 240 − Ausfall 40, der Rest Wechsel. Erwarteter Jahresgewinn der Wechselstube voll besetzt (Lohn 220): ≈ 1.110, also wie Kirche (1.150) und Wachhaus (1.090); dafür bindet sie 4.000 Gulden in der Kasse.
+Je Geselle und Jahr bei voller Kasse (Start, nach Steuer und Ausfall): ≈ 814 Gulden – davon Zins 240 − Ausfall 40, der Rest Wechsel. **Seit PR #177:** Wechselgebühr 0,68 % statt 0,7 %; ein gelungener Diebstahl oder Einbruch holt 5 % der Kasse, höchstens 500 Gulden. Erwarteter Jahresgewinn der Wechselstube voll besetzt (Lohn 220): ≈ 1.110, also wie Kirche (1.150) und Wachhaus (1.090); dafür bindet sie 4.000 Gulden in der Kasse.
 
 **Kredit an Häuser:** Zins `Rest × Satz / 24` je Stunde, am Jahresende Zins + Rest / offene Jahre. Pfändung: teuerste Lagerware zu 75 % des Marktpreises. Wucher ab 20 %: Spurwert (Satz − 20 %) × Betrag × Jahre.
 
@@ -1020,7 +1022,7 @@ Was es bringt: Eine Stimme kippt knappe Fälle. Bei einer Wahl mit 5 Wählern ma
 
 ## Werkstatt wie in Gilde 1 (PR #152)
 
-**Regel:** Abschnitt `werkstatt` (Datenversion 36). Jeder Arbeiter hat eine eigene Ware, eine Werkstatt stellt mehrere Waren zugleich her. Lohnstufen knapp/üblich/gut = Lohn × 0,8 / 1 / 1,25, Laune-Ziel 25 / 50 / 75; die Laune läuft 3 Punkte je Arbeitsstunde aufs Ziel, Tempo = 1 + 0,2 × (Laune − 50) / 50. Prämie 30 Gulden je Arbeiter, +20 aufs Ziel für einen Spieltag. Unfall je Arbeiter und Jahr: Schmied 5 %, Steinmetz und Tischler 4 %, Alchimist und Parfumeur 3 %, Wirt und Prediger 2 %; Ausfall für den Rest des Tages (bis zum Jahreswechsel) mit Lohn, Lederschürzen halbieren die Gefahr. Einrichtung des Schmieds: Werkzeug −10 % Zeit (300), Meisterwerkzeug nochmals −10 % (800, ab Stufe 2), Blasebalg −10 % für Eisenwaren (350), Regale +20 Lager (200), Löschfass Feuer ×0,5 (100), Eisentür Diebstahl ×0,5 (300), Lederschürzen (80).
+**Regel:** Abschnitt `werkstatt` (Datenversion 36). Jeder Arbeiter hat eine eigene Ware, eine Werkstatt stellt mehrere Waren zugleich her. Lohnstufen knapp/üblich/gut = Lohn × 0,8 / 1 / 1,25, Laune-Ziel 25 / 50 / 75; die Laune läuft 3 Punkte je Arbeitsstunde aufs Ziel, Tempo = 1 + 0,2 × (Laune − 50) / 50. Prämie 30 Gulden je Arbeiter, +20 aufs Ziel für einen Spieltag. Unfall je Arbeiter und Jahr: Schmied 5 %, Steinmetz und Tischler 4 %, Alchimist und Parfumeur 3 %, Wirt und Prediger 2 %; Ausfall für den Rest des Tages (bis zum Jahreswechsel) mit Lohn, Lederschürzen halbieren die Gefahr. Einrichtung des Schmieds: Werkzeug −10 % Zeit (300), Meisterwerkzeug nochmals −10 % (800, ab Stufe 2), Blasebalg −10 % für Eisenwaren (350), Regale +20 Lager (200), Löschfass Feuer ×0,5 (100), Eisentür Diebstahl ×0,5 (300; seit PR #177: 150), Lederschürzen (80).
 
 Was es bringt (Gießerei, 2 Gesellen, Silberring ≈ 48 Gulden Spanne je Stück, 14,4 Stück je Geselle und Jahr ≈ 690 Gulden):
 - **Guter Lohn** kostet 2 × 55 = 110 Gulden mehr, Laune 75 bringt +10 % Tempo ≈ 140 Gulden – lohnt knapp, bei teuren Waren (Goldkette, Prunkschwert) deutlich. **Knapper Lohn** spart 88 Gulden, kostet −10 % Tempo ≈ 140 und droht nach einem Unfall mit Kündigung.
@@ -1095,7 +1097,7 @@ Der Wirt rückt damit vom unteren Mittelfeld an die Spitze, ohne davonzuziehen.
 | Meisterdietriche (`Werkzeug2`, ab Unterschlupf, braucht Dietriche) | 800 | nochmals +0,10: ohne Wächter 0,95 (Deckel, statt 1,0), mit Wächter 0,5 |
 | Verkleidungstruhe (`Verkleidung`) | 350 | Fangchance der Taschendiebe × 0,75 (Schmugglerloch 1,2 % → 0,9 % je Diebesstunde) |
 | Hehlerkammer (`Regale`) | 200 | Lager +20 je Ware (60 statt 40): mehr Einbruchsbeute bleibt im eigenen Lager statt beim Hehler (50 % des Preises) |
-| Löschfass, Eisentür | 100, 300 | wie bei den Werkstätten: Feuer bzw. Diebstahl und Einbruch halb so oft |
+| Löschfass, Eisentür | 100, 300 (Eisentür seit PR #177: 150) | wie bei den Werkstätten: Feuer bzw. Diebstahl und Einbruch halb so oft |
 | Lederhandschuhe (`Handschuhe`) | 80 | Spuren × 0,75: Zeugen der eigenen Aufträge (Einbruch 25 % × 0,75 × 0,75 ≈ 14 % statt 18,75 %), Beweise beim Auskundschaften (40 % → 30 % je Tat) und bei der Razzia gegen das Haus. Unfälle hat der Dieb nicht. |
 
 Absolut statt ×1,1, weil der Bonus der eigenen Leute (`chanceBonus`) schon so rechnet; „+10 %“ heißt im ganzen Diebeswesen zehn Prozentpunkte. Die Meisterdietriche lohnen sich deshalb vor allem gegen Häuser mit Wächter oder Eisentür. Dazu eine lesende Abfrage, wer gerade daheim, am Markt oder auf Auftrag ist (`Diebeswesen.AnwesenheitJetzt`), nur fürs Bild: Die Beute rechnet weiter mit allen Arbeitern.
@@ -1113,7 +1115,7 @@ Absolut statt ×1,1, weil der Bonus der eigenen Leute (`chanceBonus`) schon so r
 | Wachhunde (`Hunde`) | 350 | Die Leute des Hauses zählen × 1,25 im Schutz der Streife: 4 Gesellen 10 % → 12,5 % weniger Erfolg nächtlicher Taten in der Stadt, Zeugen +5 % → +6,25 %. Der Deckel `patrouille.hoechstens` (40 %) gilt danach |
 | Kettenhemden (`Kettenhemd`) | 350 | Überfälle (Banden und Hinterhalte) auf Karren mit dem Geleit der Wache gelingen × 0,8: mit der Eskorte „Stadtwache“ (Schutz 0,8) Bande der Stärke 1,0 20 % → 16 %. Es zählt die Wachstube, die das Geleit stellt |
 | Waffenkammer (`Regale`) | 200 | Lohn der eigenen Wachleute × 0,9 (eigene Ausrüstung, kein Ausrüstungsgeld): 4 Gesellen 880 → 792 Gulden im Jahr; der Sold der Stadt bleibt. Zuerst als „Lager +20“ geplant, aber die Wache lagert nichts |
-| Löschfass, Eisentür | 100, 300 | wie bei den Werkstätten: Feuer bzw. Diebstahl und Einbruch im Wachhaus halb so oft |
+| Löschfass, Eisentür | 100, 300 (Eisentür seit PR #177: 150) | wie bei den Werkstätten: Feuer bzw. Diebstahl und Einbruch im Wachhaus halb so oft |
 
 Razzia absolut statt × 1,1, weil die Razzia je Stufe schon so rechnet. Kettenhemden auf den Erfolg der Räuber statt auf den Schutz: Schutz × 1,2 wäre 0,96 und läge am Deckel 95 %, Überfälle gelängen dann 75 % statt 20 % seltener. Dazu lesende Abfragen, wer gerade auf Streife, im Geleit oder daheim ist (`Wachwesen.AnwesenheitJetzt`), und wer in der Arrestzelle sitzt (`Gefangene`, die Taschendiebe des Jahres mit Beweis beim Haus) – nur fürs Bild: Der Schutz der Streife rechnet weiter mit allen Arbeitern.
 
@@ -1126,11 +1128,11 @@ Razzia absolut statt × 1,1, weil die Razzia je Stufe schon so rechnet. Kettenhe
 | Stück (Kennung) | Preis | Wirkung |
 |---|---|---|
 | Rechenbretter (`Werkzeug1`) | 300 | Rahmen je Schreiber × 1,1: Wechselstube mit 2 Gesellen 4.000 → 4.400 Gulden betreute Kasse, Stadtzinsen 480 → 528 im Jahr (volle Kasse) |
-| Hauptbücher (`Werkzeug2`, ab Geldleihe, braucht Rechenbretter) | 800 | nochmals × 1,1, zusammen × 1,21: Geldleihe 2.500 → 3.025 je Schreiber, Bankhaus 3.000 → 3.630 (4 Gesellen 12.000 → 14.520, Zins 1.440 → 1.742) |
+| Hauptbücher (`Werkzeug2`, ab Geldleihe, braucht Rechenbretter) | 800 (seit PR #177: 350) | nochmals × 1,1, zusammen × 1,21: Geldleihe 2.500 → 3.025 je Schreiber, Bankhaus 3.000 → 3.630 (4 Gesellen 12.000 → 14.520, Zins 1.440 → 1.742) |
 | Goldwaage (`Goldwaage`) | 350 | Wechselgebühr dieses Betriebs × 1,1 (nach dem Deckel der Stadt, anderen Geldleihern geht nichts verloren): je Geselle etwa +66 Gulden im Jahr vor Steuer (Markt wie zum Start) |
-| Pfandkammer (`Pfandkammer`) | 350 | Verlust bei Ausfall × 0,75: Stadtkunden 10 % → 7,5 % der Kasse (erwartet bei 4.000 Kasse 80 → 60 im Jahr); geht ein Haus mit Kredit aus dem Spiel, bringt das Pfand 25 % des Rests zurück (2.000 Rest: 2.000 → 1.500 Verlust) |
+| Pfandkammer (`Pfandkammer`) | 350 (seit PR #177: 150, Verlust × 0,5 – Stadtkunden 10 % → 5 %, das Pfand bringt 50 % zurück) | Verlust bei Ausfall × 0,75: Stadtkunden 10 % → 7,5 % der Kasse (erwartet bei 4.000 Kasse 80 → 60 im Jahr); geht ein Haus mit Kredit aus dem Spiel, bringt das Pfand 25 % des Rests zurück (2.000 Rest: 2.000 → 1.500 Verlust) |
 | Kassenschrank (`Kassenschrank`) | 200 | Kredite an Häuser bis × 1,25 (`kredit.hoechstJeStufe` nach der Stufe des Kontors): Wechselstube 3.000 → 3.750, Geldleihe 6.000 → 7.500, Bankhaus 12.000 → 15.000. Es zählt der beste Kassenschrank des Hauses (wie die Pfandkammer). Entscheidung des Nutzers statt „Diebstahl aus der Kasse halbiert“ – den gibt es nicht |
-| Löschfass, Eisentür | 100, 300 | wie bei den Werkstätten |
+| Löschfass, Eisentür | 100, 300 (Eisentür seit PR #177: 150) | wie bei den Werkstätten |
 
 Rechenbretter und Hauptbücher multipliziert wie Werkzeug und Meisterwerkzeug der Werkstätten (1,21 statt 1,2). Dazu lesende Abfragen für den Raum: Kunden (`Bankwesen.KundenJetzt`: Kaufleute am Wechseltisch nach Marktumsatz und Tageszeit, Bürger am Schalter nach der genutzten Kasse, ab dem Bankhaus Kreditnehmer und Patrizier im Empfang) und was die Schreiber tun (`SchreiberJetzt`) – nur fürs Bild, Zins und Wechsel rechnen unverändert.
 
@@ -1277,3 +1279,118 @@ Ohne Gulden-Wirkung (keine Zahl): Regale, Dietriche, Verkleidung, Hellebarden, A
 7. **KI-Stärke:** Die KI zieht immer davon und geht nie bankrott – Hauptursache ist der Start (Befund 1); sie nutzt weder Einrichtung noch Prämien noch Kredite.
 8. **Einrichtung** macht sich schnell bezahlt (Werkzeug, Meisterwerkzeug, Spezialstücke 1–2,5 Jahre statisch, 2–5 Jahre simuliert); langsam Lederschürzen (4–10 J.), Eisentür (8 J.), Pfandkammer (17,5 J.), Hauptbücher (10 J.), Rechenbretter (8 J.); das Löschfass wirkt nie, weil die KI keine Sabotage in Auftrag gibt.
 9. **Gauner, Wache, Bank:** Ein Wachhaus ändert den Gewinn des Diebs kaum (+3 % / −5 %, im Rauschen) – die Taschendiebe sind vor der Wache sicher; dafür −27 % Raub und Schaden bei den anderen Häusern. Kredite und Wucher kommen ohne Spieler nie vor.
+
+## Balancing-Messung 2 (PR #177)
+
+Die Werte nach den Entscheidungen des Nutzers zu „Balancing 1“ (`docs/bereiche/kern.md`), gemessen auf main `821bc97` + Branch `efecab2`, **Datenversion 48**. Aufruf wie bei Messung 1: `messen bericht 20 30` (1.200 Partien, 13,3 Minuten) → `docs/messungen/balancing-2026-10-22-2.json` (Messung 1 bleibt daneben). Neu im Bericht: die Schwierigkeit im Messaufbau, unter `kiStaerke.schwer` derselbe Vergleich mit dem Start „Schwer“, je Hausstufe der Messstadt der `einwohnerfaktorAmStart`.
+
+**Was sich geändert hat** (Einzelheiten in `kern.md`, „Balancing 1 (PR #177)“):
+1. **Gleicher Start** (Schwierigkeit „Normal“, Vorgabe): Jedes KI-Haus beginnt wie der Spieler mit einer Werkstatt und zwei Gesellen; seine Umlandbetriebe stehen zur Pacht. „Schwer“ ist der alte Start.
+2. **Nachfrage nach Einwohnern** (Abschnitt `stadt`):
+   ```
+   Einwohner        = einwohnerGrund (100) + einwohnerJeHaus (25) × Häuser, die wirtschaften
+   Einwohnerfaktor  = Einwohner ÷ (100 + 25 × bezugHaeuser 4) = Einwohner ÷ 200
+   Nachfrage        = Nachfrage der Ware × Einwohnerfaktor × Faktor der Bürger-KI
+   Grundversorgung  = Nachfrage der Ware × Einwohnerfaktor × NPC-Anteil
+   ```
+   „Wirtschaften“ heißt: im Spiel und mindestens ein Arbeiter. Häuser 1 / 2 / 3 / 4 / 5 / 8: Faktor 0,625 / 0,75 / 0,875 / 1 / 1,125 / 1,5. Weil die Grundversorgung mitwächst, ändert eine größere Stadt die Preise ohne Spieler nicht; sie hat Platz für mehr Häuser. Ein Haus bringt im Mittel 25 Einwohner mit – so viele, wie die Bürger-KI je Haus ansiedelt; die wirklichen Arbeiter zählen nicht einzeln, sonst schüfe jeder neue Arbeiter mehr Nachfrage, als er herstellt (ein Geselle macht Ware für ≈ 1.000 Gulden, ein Einwohner von 200 trüge ≈ 0,5 % des Marktes, ≈ 3.500 Gulden). Mit `einwohnerGrund` 50 (erster Versuch) verdiente ein Haus unter 8 Häusern 32 % **mehr** als unter 3 – 100 hält beide nah beieinander und eine Stadt mit einem Rivalen nicht zu klein.
+3. **Preise der Fertigwaren** je Beruf (Waren der Stufe 1 / Waren ab Stufe 2): Schmied ×1,28 / ×1,12, Tischler ×1,28 / ×1,2, Steinmetz ×1,18 / ×1,08, Alchimist ×1,22 / ×1,15, Parfumeur ×1,3 / ×1,22, Prediger ×1 / ×1,05, Wirt ×1. Rohstoffe, Zwischenwaren und Heilmittel bleiben.
+4. **Berufe ohne Ware:** Ausschank ×1,2 statt ×1,25, Kollekte 2,2 statt 2,5 je Gläubigem, Wechselgebühr 0,68 % statt 0,7 %, Taschendiebe 1,0 statt 0,8 je Minute, Sold 0,68 statt 0,75 je Minute; Diebe und Wache sammeln je Mann halb so viel Erfahrung (`erfahrungFaktor` 0,5).
+5. **Einrichtung:** Eisentür 150 statt 300, Hauptbücher 350 statt 800, Pfandkammer 150 statt 350 und Verlust × 0,5 statt × 0,75.
+6. **Einbruch in die Kasse:** 5 % der Kasse, höchstens 500 Gulden (`geldleiher.einbruch`).
+
+### Die vier Leitzahlen
+
+| Kennzahl | Messung 1 (PR #176) | Messung 2 (PR #177) |
+|---|---|---|
+| Jahre bis Bürger (Schmied, ein Betrieb, Ziel 8–12) | Ø 18,2, erreicht 22 von 30; Greybox im Ziel 4 von 120 | **Ø 9,8**, erreicht 30 von 30; Greybox im Ziel **116 von 120**, Probestadt Ø 11,9 (60 von 90) |
+| Berufe im Band ±15 % (simuliert, 20 Jahre) | 3 von 10 (−77 … +135 %) | **10 von 10** (−9 … +9 %) |
+| KI ÷ gleiche Strategie (Median nach 20 Jahren) | 11; 90 von 90 KI-Häusern über 2× | **1,46**; 16 von 90 über 2×, keins unter ½, keins bankrott. Bei „Schwer“ 2,34 (67 von 90) |
+| 8 gegen 3 Häuser (Vermögen je Haus, 20 Jahre) | −24 % (feste Nachfrage) | **−13 %** (Einwohnerfaktor 1,5 gegen 0,875) |
+
+### Berufe
+
+**Simuliert** (ein Betrieb, KI geführt, 20 Jahre, 30 Startwerte; Mittel des Zuwachses 14.818 statt 11.603):
+
+| Beruf | Vermögen 5 / 10 / 20 J. | Zuwachs gegen Mittel | Gewinn Ø je Jahr | Bürger Ø Jahr | Stufe 2 Ø Jahr |
+|---|---|---|---|---|---|
+| Schmied | 6.552 / 10.999 / 19.038 | +1,5 % (vorher −42 %) | 1.963 | 9,8 | 11,6 |
+| Tischler | 6.958 / 9.515 / 18.838 | +0,1 % (−39 %) | 1.966 | 10,9 | 11,4 |
+| Steinmetz | 4.854 / 8.898 / 18.528 | −2,0 % (−12 %) | 1.840 | 12,6 | 12,1 |
+| Alchimist | 7.688 / 10.478 / 17.846 | −6,6 % (−47 %) | 1.875 | 9,9 | 11,2 |
+| Wirt | 5.849 / 7.116 / 19.405 | +4,0 % (+66 %) | 1.966 | 14,1 | 11,0 |
+| Prediger | 7.083 / 12.064 / 17.833 | −6,6 % (+1 %) | 1.832 | 9,5 | 11,7 |
+| Dieb (ausgewogen: Taschendiebe) | 8.869 / 11.983 / 20.081 | +8,5 % (−5 %) | 2.347 | 7,0 | 12,0 |
+| Parfumeur | 7.680 / 10.596 / 17.486 | −9,0 % (−77 %) | 1.896 | 9,4 | 12,2 |
+| Geldleiher | 8.302 / 10.456 / 19.708 | +6,0 % (+20 %) | 1.852 | 9,2 | 12,1 |
+| Gardist | 6.484 / 9.871 / 19.412 | +4,0 % (+135 %) | 1.648 | 11,8 | 11,0 (vorher 6,0) |
+| Dieb wagemutig (nicht im Mittel) | 7.625 / 4.668 / 14.891 | −26,5 % | 2.658 | 10,9 | 12,2 |
+
+Der Wirt kommt langsamer zum Bürger (14,1 Jahre), holt aber nach dem Ausbau auf; der Dieb kommt schnell hin (7,0), hat dann aber mehr Gerichtskosten (−729 im Jahr).
+
+**Statisch** (Startpreise, voll mit Gesellen; Mittel 1.694 / 3.073 / 5.037): außerhalb ±15 % liegen noch Schmied Stufe 1 (+16 %), Tischler Stufe 3 (+22 %), Parfumeur (+29 / +20 / +18 %), Wirt Stufe 1 und 3 (−22 / −18 %) und der Gardist (−47 / −47 / −42 %). Die Rechnung lässt beim Gardisten Geleitgeld (≈ 317 im Jahr) und Kopfgeld (≈ 60) weg und beim Wirt den Ausschank fast ganz (Ausschankpreis = Grundpreis × 1,2 ≈ Startpreis am Markt); der Parfumeur verdient in der Partie weniger, als die Startpreise versprechen. Simuliert liegen alle drei im Band – deshalb wurde nicht weiter verschoben.
+
+**Gericht und Familie** (Auftrag zu Z2: Fehler oder gewollt?): Kein Fehler. Ein Haus mit einem Betrieb zahlt im Mittel ≈ 350 im Jahr für die Familie (Haushalt Mensch 50 je Erwachsenem, 40 je Kind, Werbung um eine Braut ≈ 600 und die Hochzeit 300 einmalig) und ≈ 470 für das Gericht. Das Gericht sind fast ganz die eigenen Entscheidungen der KI, die den Messspieler führt (Diagnose über 5 × 20 Jahre): 70 Spitzel zu je 300 Gulden (≈ 210 im Jahr, „auf das stärkste andere Haus, einmal im Jahr“), 11 Anklagen (Gebühr 100), 9 Bußen nach eigenen Diebstählen gegen reichere Häuser und 2 Entschädigungen. Ein Mensch, der keine Spitzel bezahlt, spart den größten Teil davon. → mögliche Designfrage an die Spiel-KI.
+
+### Völker
+
+| Beruf | Mensch | Zwerg | Elb | Halbling |
+|---|---|---|---|---|
+| Schmied (Bonus 0 / +5 / 0 / −5 %) | 15.038 | +6,1 % | −2,0 % | −16,8 % |
+| Parfumeur (Bonus 0 / −5 / +5 / 0 %) | 13.486 | −9,5 % | +17,1 % | −2,3 % |
+
+Deutlich näher an den Boni als in Messung 1 (dort bis ±45 %); der Halbling-Schmied und der Elb-Parfumeur weichen noch um das Dreifache ihres Bonus ab (Fehler des Mittels etwa ±5 %). Die Völkerboni blieben unverändert (Entscheidung).
+
+### Startfairness, Häuser und KI-Stärke
+
+- **Startfairness:** Greybox 120 Partien – Spieler mit einem Betrieb 19.038, KI-Häuser (gleicher Start, mit Expansion) Eisenbart 64.600, Eichwald 53.292, Kieselbach 63.728; Probestadt Spieler 17.493, Ahlbeck 53.543, Brendel 48.823. Der Wohnhausplatz ändert weiter nichts (0 %).
+- **1, 3, 5, 8 Häuser** (Messstadt, nur Werkstatt am Start):
+
+| KI-Häuser | Einwohnerfaktor | Vermögen je Haus (20 J.) | Gewinn je Haus im Jahr 20 | Preisindex | gegen 3 Häuser |
+|---|---|---|---|---|---|
+| 1 | 0,625 | 101.870 | 13.930 | 0,847 | +68 % |
+| 3 | 0,875 | 60.690 | 11.822 | 0,859 | – |
+| 5 | 1,125 | 58.355 | 10.253 | 0,867 | −4 % |
+| 8 | 1,5 | 52.749 | 9.897 | 0,875 | **−13 %** |
+
+  Kein Bankrott, 4 erloschene Häuser bei 8.
+- **KI-Stärke** (Greybox, Bezugsspieler mit der Strategie der KI): Bezug 41.678, KI-Häuser 61.030 (Median 1,46), Stand am Ende Bezug Patrizier 23 / Edler 7, KI Patrizier 25 / Edler 65; die KI-Häuser führen 1 / 3 / 5 Betriebe in Jahr 5 / 10 / 20 (erst als Bürger wird gepachtet und gebaut). Bei „Schwer“: Bezug 40.481, KI 89.910 (Median 2,34).
+
+### Einrichtung
+
+| Stück (statisch) | Preis | Mehrgewinn im Jahr | bis bezahlt |
+|---|---|---|---|
+| Eisentür (alle Berufe) | 150 (300) | 37 (gemessener Raub 73 Gulden je Betrieb und Jahr × (1 − 0,5)) | **4,1 J.** (vorher 7,9) |
+| Hauptbücher (Geldleihe, Rahmen nochmals × 1,1: 3 Schreiber × 2.500 × 1,1 = 8.250 → 9.075 betreute Kasse, Zins 12 % nach Steuer − Ausfall 2 %) | 350 (800) | 78 | **4,5 J.** (10,3) |
+| Pfandkammer (Wechselstube, volle Kasse 4.000: Ausfall 20 % × 10 % = 2 % = 80 im Jahr, davon die Hälfte) | 150 (350) | 40 | **3,7 J.** (17,5) |
+
+Die **Eisentür** wirkt nur, wenn eingebrochen wird: Ihr Wert ist der gemessene Raub je Betrieb und Jahr (Diebstähle des Hinterzimmers und Einbrüche der Diebe unter der Strategie der KI) mal 0,5. Die Abfrage für die KI (`Werkstattwesen.ErwarteterMehrgewinnJeJahr`) rechnet dasselbe mit dem Raub des eigenen Betriebs im Vorjahr – ein Haus, das nie bestohlen wurde, kauft keine. **Simuliert** (Werkzeug und Spezialstück am Start, 650): 2,7–5,0 Jahre bis bezahlt, Geldleiher (Rechenbretter, Goldwaage, Pfandkammer, 800) 4,7, Gardist (Waffenkammer) 2,7. Über 5 Jahre bleiben statisch Rechenbretter (8 J., nicht Teil der Entscheidung), Lederhandschuhe von Wirt und Prediger (9–10 J.) und das Löschfass (die KI gibt fast keine Sabotage in Auftrag).
+
+### Gauner, Wache, Bank
+
+Dieb ausgewogen 2.347 im Jahr ohne, 2.489 mit Wachhaus; wagemutig 2.658 / 2.685. Wache: Sold 2.612, Geleitgeld 317, Kopfgeld 60 im Jahr; Raub und Schaden je KI-Haus 461 ohne, 389 mit Wachhaus (−16 %). Bank (Jahr 20): Kasse 7.325, Stadtzinsen 895, Wechsel 3.211. Kredite weiter 0 in 1.200 Partien. Hinterzimmer: Diebstahl 1,32 je Partie und Jahr zu 54 %.
+
+### Ziele Z1–Z7
+
+| Ziel | Messung 2 |
+|---|---|
+| Z1 Gießerei 2 Gesellen 600–900 | **verfehlt:** Referenzprobe 1.551 (vorher 848), statisch zu Startpreisen 1.966 – Folge der höheren Preise für Z2 |
+| Z2 Bürger mit einem Betrieb in 8–12 Jahren | **erfüllt:** Schmied Ø 9,8, Greybox 116 von 120 im Ziel |
+| Z3 Konkurrenz drückt den Preis allmählich | erfüllt (Formel unverändert; zwei Gießereien je 1.317 statt 1.551 allein) |
+| Z4 ein Spieler beherrscht den Markt nicht | erfüllt (Mengen unverändert; bei 4 Häusern Einwohnerfaktor 1) |
+| Z5 Statut B für Minen +40–50 % | erfüllt (Grube 947 → 1.365, +44 %, Rohstoffe unverändert) |
+| Z6 Statut C +15–25 % | verfehlt wie schon vorher (statisch +2 %, jetzt 0 %: bei höheren Warenwerten bleibt der Geselle die beste Kraft) |
+| Z7 Zwischenwaren weniger, nicht defizitär | erfüllt (Beschlag 682 gegen Silberring 1.966 im Jahr) |
+
+Die Erwartung „eine Grube unter Statut B bringt mehr als eine Werkstatt“ (LiegenschaftTests) gilt nicht mehr: Grube 1.878, Gießerei 1.966 zu Startpreisen.
+
+**`messen 30 20` und `messen 30 20 greybox`** (30 Jahre, 20 Startwerte, Spieler Mensch passiv, KI ausgewogen, jetzt mit dem Normal-Start; gemessen auf main `821bc97` + Branch `efecab2`), Vermögen Ø am Ende:
+
+| | Eisenbart | Eichwald | Kieselbach | Bürgermeister | Stand am Ende |
+|---|---|---|---|---|---|
+| ohne Karte, vorher (zuletzt zeichengleich seit PR #166) | 129.647 | 88.479 | 127.439 | 18/20 | |
+| ohne Karte, jetzt | 129.713 | 113.081 | 123.643 | 13/20 | Freiherr 58, Edler 2; kein Bankrott |
+| Greybox, vorher | 162.279 | | | 17/20 | |
+| Greybox, jetzt | 148.254 | 142.556 | 154.716 | 13/20 | Freiherr 60; kein Bankrott |
+
+Die drei Häuser liegen jetzt dichter beieinander (Eichwald holt auf, die Tischlerwaren sind teurer). Sie beginnen ohne Umland (Meistergrad 3 und Stufe 2 nach 8–9 Jahren); nach 30 Jahren hat Eisenbart ohne Karte gleich viel wie mit dem alten Start, in der Greybox 9 % weniger. Ohne Karte bauen sie weiter nicht (offener Punkt in `kern.md`).
