@@ -387,7 +387,7 @@ public sealed partial class Kartenentwurf
         return new Kartenentwurf(MitAbschnitten(daten), gebaeude, teile, katalog, wege, bauzonen, flaechen, pflanzen, mauern, start);
     }
 
-    /// <summary>Die Abschnitte in der Reihenfolge, in der das Werkzeug sie schreibt (karte.py) – bis <c>start</c>, dem letzten, den der Entwurf anlegen kann.</summary>
+    /// <summary>Die Abschnitte in der Reihenfolge, in der das alte Werkzeug sie schrieb (karte.py), dahinter die Felder für Kartenskripte (kamera, vorkommen, fiktion, probeplan).</summary>
     private static readonly string[] Reihenfolge =
     {
         "format", "kennung", "stadt", "vorlage", "einheit", "achsen", "raster", "groesse", "gebaeude", "mauern", "wege", "bauzonen", "natur",

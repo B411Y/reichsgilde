@@ -367,6 +367,8 @@ Hast du mindestens 3 Beweise, kannst du **Schweigegeld erpressen**. Der Brief se
 
 **Prüfen.** Nach jeder Änderung prüft der Kern die ganze Karte nach den Kartenregeln. Gebäude, Wege, Flächen, Mauern und Pflanzen mit einem Fehler leuchten rot; rechts unten steht die Liste, Fehler zuerst, dann Hinweise. Ein Klick auf einen Eintrag wählt das Betroffene und fährt die Kamera hin. Speichern geht immer, auch mit Fehlern. Das Schließen des Fensters fragt nach, wenn noch etwas ungespeichert ist.
 
+**Kartenskript.** Neben der Werkstatt gibt es ein Kartenskript für die Kommandozeile, das dieselben Prüfungen nutzt: `dotnet run --project tools/Kartenbau -- pruefen koeln` prüft eine Karte (Regeln, Kapazität für 8 Häuser, Gebäudekatalog gegen die Modelle), `vorschau greybox --belegung` zeichnet die Vorschaubilder in `docs/karten/`, `bauen probestadt` legt eine Stadt aus ihrem Stadtskript an (`tools/Kartenbau/Staedte/`) – nie über eine vorhandene Karte, außer mit `--ueberschreiben`. So entsteht der Grundriss einer Stadt per Skript, verfeinert wird er in der Werkstatt. Die Probestadt aus dem Muster-Skript lässt sich spielen: `--karte=probestadt`. Mehr in `docs/LEVELDESIGN.md`, „Kartenskript“.
+
 **Kamera.** Mausrad zoomt, rechte Maustaste oder WASD verschieben, **Strg+Q/E** oder **Bild auf/ab** drehen (Q/E allein drehen hier das Gebäude oder die Pflanze). **Alt** zeigt alle Namen.
 
 Als Nächstes zieht die Kartenwerkstatt Greybox und Köln ganz zu sich (Schritt 4: der Editor wird die Quelle der Karten) – Fahrplan in `docs/bereiche/leveldesign.md`.
@@ -380,13 +382,13 @@ Als Nächstes zieht die Kartenwerkstatt Greybox und Köln ganz zu sich (Schritt 
 
 ```
 reichsgilde/
-├── Reichsgilde.sln                 Projektmappe – fasst alle drei C#-Projekte zusammen
+├── Reichsgilde.sln                 Projektmappe – fasst alle vier C#-Projekte zusammen
 ├── game/                           Das Godot-Projekt (Darstellung, Szenen, Eingabe)
 │   ├── project.godot
 │   ├── Reichsgilde.csproj
 │   ├── daten/                      Datentabellen: wirtschaft.json (alle Zahlen des Wirtschaftsmodells),
 │   │                               katalog.json (Gebäudekatalog: Modell, Grundfläche), materialarten.json
-│   ├── karten/                     Stadtkarten als JSON, Format 2: wo alles steht (erzeugt von tools/karten)
+│   ├── karten/                     Stadtkarten als JSON, Format 2: wo alles steht (aus Kartenwerkstatt oder tools/Kartenbau)
 │   ├── assets/                     Dateien nach Art getrennt:
 │   │   ├── modelle/                3D-Modelle (.glb, aus tools/modelle) in gebaeude/, innen/, umland/,
 │   │   │                           natur/, figuren/, fahrzeuge/, tiere/
@@ -413,7 +415,7 @@ reichsgilde/
 │   └── Zeit/                       Spielzeit, Taktgeber, Kalender
 ├── tests/Reichsgilde.Core.Tests/   Automatische Tests für den Simulationskern
 ├── tools/icons/waren_icons.py      Zeichnet die Waren-Icons (Python + Pillow)
-├── tools/karten/                   Kartenwerkzeug und ein Skript je Stadt (prüft die Kartenregeln)
+├── tools/Kartenbau/                Kartenskript (C#): Städte per Skript anlegen, prüfen, Vorschaubilder zeichnen
 ├── tools/modelle/                  Blender-Skripte, eines je Modell (schreiben nach game/assets/modelle/<unterordner>/)
 ├── tools/oberflaeche/texturen.py   Strukturen der Oberflächendetails (Python + numpy)
 ├── docs/

@@ -76,7 +76,8 @@ public static class Program
 /// <summary>Die Befehle des Kartenskripts (Ausgabe in einen <see cref="TextWriter"/>, damit die Tests sie aufrufen können).</summary>
 public static class Befehle
 {
-    private static readonly CultureInfo Deutsch = CultureInfo.GetCultureInfo("de-DE");
+    /// <summary>Ganze Zahl mit Tausenderpunkt („1.072“) – ohne Kulturdaten, die nicht überall installiert sind.</summary>
+    private static string Tausend(double x) => x.ToString("N0", CultureInfo.InvariantCulture).Replace(',', '.');
 
     /// <summary>Der Gebäudekatalog und die Wirtschaftsdaten des Projekts (einmal je Lauf).</summary>
     private static (Gebaeudekatalog Katalog, Wirtschaftsdaten Daten) Laden(Projektordner o) =>
@@ -208,8 +209,8 @@ public static class Befehle
         foreach (var g in e.Bauzonen.GroupBy(z => z.Art).OrderBy(g => g.Key.ToString().ToLowerInvariant(), StringComparer.Ordinal))
         {
             var flaeche = g.Sum(z => Flaeche(z.Ecken));
-            aus.WriteLine($"   Bauzonen {g.Key.ToString().ToLowerInvariant()}: {g.Count()}, {flaeche.ToString("N0", Deutsch)} m², " +
-                          $"{((int)(flaeche / (e.Raster * e.Raster))).ToString("N0", Deutsch)} Rasterfelder");
+            aus.WriteLine($"   Bauzonen {g.Key.ToString().ToLowerInvariant()}: {g.Count()}, {Tausend(flaeche)} m², " +
+                          $"{Tausend((int)(flaeche / (e.Raster * e.Raster)))} Rasterfelder");
         }
         var fehler = befunde.Where(b => b.Schwere == Schwere.Fehler).ToList();
         foreach (var b in fehler) aus.WriteLine($"FEHLER: {b.Text}");

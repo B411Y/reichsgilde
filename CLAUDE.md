@@ -41,7 +41,7 @@ Jeder Chat bekommt im Prompt einen Bereich. Dateien außerhalb des eigenen Berei
 | **Spiel-KI** | `src/Reichsgilde.Core/Ki/**` (KI-Häuser, `KiRivale.cs`), `src/Reichsgilde.Core/Buerger/**` (Bürger-KI), eigene Testdateien (`Ki*Tests.cs`, `Buerger*Tests.cs`) |
 | **Darstellung** | `game/scripts/Stadtansicht*.cs`, Szenen, Modelle, Licht, Kamera |
 | **Oberfläche** | Tafeln und Fenster in `game/scripts/*Anzeige.cs`, `Hauptmenue.cs`, `Hauptszene.cs` |
-| **Leveldesign** | `docs/LEVELDESIGN.md` (Kartenregeln), `tools/karten/**` (Kartenwerkzeug, ein Skript je Stadt), `game/karten/*.json` (Kartendateien, nur vom Werkzeug erzeugt), `docs/karten/*.svg` (Vorschau). Regeln mit Wirkung auf die Simulation entscheidet der Kern. |
+| **Leveldesign** | `docs/LEVELDESIGN.md` (Kartenregeln), `tools/Kartenbau/**` (Kartenskript, ein Stadtskript je Stadt), `game/karten/*.json` (Kartendateien, nur aus Kartenwerkstatt oder Kartenskript), `docs/karten/*.svg` (Vorschau). Regeln mit Wirkung auf die Simulation entscheidet der Kern. |
 | später z. B. Sound | wird hier ergänzt, sobald es den Chat gibt |
 
 Nur der Kern-Chat ändert: `game/daten/wirtschaft.json`, `Stadtwirtschaft.cs`, `Speicherstand.cs`. Braucht ein anderer Bereich dort etwas: im PR-Text beschreiben und den Nutzer fragen.
@@ -86,6 +86,7 @@ dotnet build Reichsgilde.sln
 dotnet run -c Release --project tests/Reichsgilde.Core.Tests          # alle Tests
 dotnet run -c Release --project tests/Reichsgilde.Core.Tests -- messen 30 20   # Messung: 30 Jahre, 20 Startwerte
 dotnet run -c Release --project tests/Reichsgilde.Core.Tests -- messen 30 20 greybox   # dieselbe Messung mit der Greybox-Karte (Bauen, Leerstand, Neubau)
+dotnet run --project tools/Kartenbau -- pruefen koeln        # Kartenskript: Karte prüfen (auch vorschau <karte> --belegung, bauen <stadtskript>, liste)
 ```
 
 Klicktest: Godot 4.7.2 mono (Linux) von den offiziellen Godot-Releases auf GitHub laden, Projekt einmal importieren (`--headless --import --path game`), dann unter Xvfb starten (`--rendering-driver opengl3 --path game -- <Optionen>`) und Bildschirmfotos selbst ansehen. Für Schatten und Kantenglättung stattdessen `--rendering-driver vulkan` (Paket `mesa-vulkan-drivers`): Das ist der Forward+-Renderer des Spiels, `opengl3` zeigt dort andere Ergebnisse.
