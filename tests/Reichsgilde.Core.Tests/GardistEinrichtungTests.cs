@@ -78,14 +78,14 @@ static class GardistEinrichtungTests
 
     public static IEnumerable<(string, Action)> Alle() => new (string, Action)[]
     {
-        ("Gardist-Einrichtung: Daten – sieben Stücke mit den Kennungen des Raummodells, Preise wie bei den Werkstätten, Datenversion 47", () =>
+        ("Gardist-Einrichtung: Daten – sieben Stücke mit den Kennungen des Raummodells, Preise wie bei den Werkstätten, Datenversion 48", () =>
         {
             var d = Daten.Value.Werkstatt!;
-            Pruefe.Gleich(47, Daten.Value.Version);
+            Pruefe.Gleich(48, Daten.Value.Version);
             var wache = d.EinrichtungFuer("Gardist");
             Pruefe.Gleich("Werkzeug1 Werkzeug2 Hunde Kettenhemd Regale Loeschfass Eisentuer", string.Join(" ", wache.Select(e => e.Kennung)));
             Pruefe.Gleich("Hellebarden, Armbrüste, Wachhunde, Kettenhemden, Waffenkammer, Löschfass, Eisentür", string.Join(", ", wache.Select(e => e.Name)));
-            Pruefe.Gleich("300 800 350 350 200 100 300", string.Join(" ", wache.Select(e => e.Preis)));
+            Pruefe.Gleich("300 800 350 350 200 100 150", string.Join(" ", wache.Select(e => e.Preis))); // Eisentür 150 seit PR #177
             Pruefe.Gleich("1 2 1 1 1 1 1", string.Join(" ", wache.Select(e => e.AbStufe)));
             Pruefe.Gleich("Werkzeug1", d.Stueck("Gardist", "Werkzeug2")!.Voraussetzung);
             Pruefe.Ungefaehr(0.1, d.Stueck("Gardist", "Werkzeug1")!.Wirkung.RazziaBonus, 1e-12);

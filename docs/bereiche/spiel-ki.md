@@ -11,6 +11,9 @@ So wird eingetragen (damit sich die Chats nie an derselben Stelle treffen):
 ## Offen
 
 - (von Kern) Die KI-Häuser nutzen die Werkstatt wie in Gilde 1 noch nicht ganz (PR #152): Sie zahlen üblichen Lohn ohne Prämie, teilen keine Arbeiter einzeln zu und befördern keine Lehrlinge (Einrichtung kaufen sie seit PR #177). Abfragen: `Stadtwirtschaft.Werkstaetten` (`UnfallGefahr`, `BefoerdernVerboten`), Befehle `LohnstufeSetzen`, `ArbeiterBefoerdern`.
+- (von Kern) Die KI-Häuser nutzen die Werkstatt wie in Gilde 1 noch nicht (PR #152): Sie zahlen üblichen Lohn ohne Prämie, kaufen keine Einrichtung (z. B. Lederschürzen 80 Gulden gegen Unfälle, Werkzeug) und teilen keine Arbeiter einzeln zu, befördern keine Lehrlinge. Abfragen: `Stadtwirtschaft.Werkstaetten` (`Einrichtungsliste`, `EinrichtungVerboten`, `UnfallGefahr`), Befehle `EinrichtungKaufen`, `LohnstufeSetzen`, `ArbeiterBefoerdern`.
+- (von Kern) Die KI setzt fast jedes Jahr einen Spitzel (300 Gulden) auf das stärkste andere Haus an, auch mit nur einem Betrieb: Beim Messspieler des Balancing-Berichts ≈ 210 im Jahr, rund ein Zehntel des Gewinns (PR #177, WIRTSCHAFTSMODELL „Balancing-Messung 2“). Vorschlag: an Gewinn oder Rang koppeln.
+- (von Kern) Abfrage für den Kauf von Einrichtung (PR #177): `Werkstattwesen.ErwarteterMehrgewinnJeJahr(Betrieb, kennung)` und `Amortisationsjahre(…)`; Eisentür und Löschfass bringen nur etwas nach Raub bzw. Brand im Vorjahr (`Betriebsrechnung.Raub`, `Brandschaden`). Seit PR #177 holt ein Einbruch beim Geldleiher Geld aus der Kasse – `Unterwelt.ErwarteterGewinn` und `Diebeswesen.ErwarteterEinbruch` rechnen es schon mit.
 
 ## Entscheidungen
 

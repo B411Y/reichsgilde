@@ -37,11 +37,25 @@ static class Datenpfad
         knoten.AsObject().Remove("aktionspunkte");
         return knoten.ToJsonString();
     }
+
+    /// <summary>
+    /// Die echten Daten ohne Abschnitt „stadt“: Die Nachfrage ist fest wie in „waren“ (Einwohnerfaktor 1, die Bezugsstadt mit vier Häusern) –
+    /// für Proben mit nur einem oder zwei Häusern, die die Referenzwerte des Wirtschaftsmodells nachrechnen.
+    /// </summary>
+    public static string OhneStadt()
+    {
+        var knoten = System.Text.Json.Nodes.JsonNode.Parse(File.ReadAllText(Wirtschaft()),
+            documentOptions: new System.Text.Json.JsonDocumentOptions { CommentHandling = System.Text.Json.JsonCommentHandling.Skip, AllowTrailingCommas = true })!;
+        knoten.AsObject().Remove("stadt");
+        return knoten.ToJsonString();
+    }
 }
 
 static class WirtschaftTests
 {
-    static readonly Lazy<Wirtschaftsdaten> Daten = new(() => Wirtschaftsdaten.AusDatei(Datenpfad.Wirtschaft()));
+    // Die Referenzwerte (Abschnitt 7 und 9 des Wirtschaftsmodells) gelten in der Bezugsstadt: Nachfrage wie in den Daten.
+    // Die Proben hier haben nur ein oder zwei Häuser – mit dem Abschnitt „stadt“ wäre ihre Stadt kleiner (PR #177).
+    static readonly Lazy<Wirtschaftsdaten> Daten = new(() => Wirtschaftsdaten.AusJson(Datenpfad.OhneStadt()));
 
     static Simulation NeueSimulation(Fronstatut statut = Fronstatut.Bestienfron, int startwert = 1400) =>
         new(Partieeinstellungen.Standard with { StartStatut = statut, Zufallsstartwert = startwert, Siegbedingung = Siegbedingung.Endlos },
@@ -81,7 +95,7 @@ static class WirtschaftTests
             var d = Daten.Value;
             Pruefe.Gleich(63, d.Waren.Count); // 9 Schmied, 8 Tischler, 9 Steinmetz, 9 Alchimist (mit Kräuterschnaps), 9 Wirt, 9 Prediger, 9 Parfumeur, Gold (nur Handel)
             Pruefe.Gleich(5, d.Arbeitskraefte.Count);
-            Pruefe.Gleich(90.0, d.Waren["Silberring"].Grundpreis);
+            Pruefe.Gleich(115.0, d.Waren["Silberring"].Grundpreis); // 90 × 1,28 seit PR #177
             Pruefe.Gleich(42.0, d.ZutatenZumGrundpreis("Silberring"));
             Pruefe.Gleich(true, d.Arbeitskraefte["Ork"].IstErlaubt(Fronstatut.Bestienfron, Arbeitsort.Umland));
             Pruefe.Gleich(false, d.Arbeitskraefte["Ork"].IstErlaubt(Fronstatut.Bestienfron, Arbeitsort.Werkstatt));
@@ -123,18 +137,19 @@ static class WirtschaftTests
         {
             var markt = new Markt(Daten.Value);
             var ring = markt["Silberring"];
-            Pruefe.Ungefaehr(90 * Math.Sqrt(150.0 / 105), ring.Preis, 0.01); // nur NPC-Angebot: knapp
+            var gp = ring.Grundpreis;
+            Pruefe.Ungefaehr(gp * Math.Sqrt(150.0 / 105), ring.Preis, 0.01); // nur NPC-Angebot: knapp
             ring.Verkaufen(45);                                               // 105 + 45 = 150 = Nachfrage
-            Pruefe.Ungefaehr(90, ring.Preis, 0.01);
+            Pruefe.Ungefaehr(gp, ring.Preis, 0.01);
             ring.Verkaufen(150);                                              // Angebot 300 = doppelt
-            Pruefe.Ungefaehr(90 * Math.Sqrt(0.5), ring.Preis, 0.01);
+            Pruefe.Ungefaehr(gp * Math.Sqrt(0.5), ring.Preis, 0.01);
         }),
 
         ("Markt: Preis bleibt in den Grenzen (50 % bis 200 %)", () =>
         {
             var markt = new Markt(Daten.Value);
             markt["Rapier"].Verkaufen(5000);
-            Pruefe.Ungefaehr(55, markt["Rapier"].Preis, 0.01);
+            Pruefe.Ungefaehr(markt["Rapier"].Grundpreis * 0.5, markt["Rapier"].Preis, 0.01);
         }),
 
         ("Markt: Verkäufe zählen genau 17 Spielstunden lang (05–22 Uhr = ein Jahr)", () =>
@@ -178,27 +193,31 @@ static class WirtschaftTests
         // Fuhrenverkauf erzielt etwas bessere Preise (das 24-h-Fenster zählt vor einer Fuhre weniger
         // Angebot); die Mine verliert Ware an Banditen. Die Tests sichern diese Werte gegen ungewollte
         // Änderungen ab (±5 %).
-        ("Gießerei allein, 2 Gesellen, Silberring: Gewinn ≈ 848 Gulden/Jahr", () =>
+        //   • Balancing 1 (PR #177): Fertigwaren des Schmieds × 1,28 (Silberring 90 → 115), damit ein Betrieb in etwa
+        //     10 Jahren Bürger wird (Z2) – Gießerei 848 → 1.551, Lehrling 289 → 543, Konkurrenz 649 → 1.317; Z1 ist dafür
+        //     auf 1.300–1.700 angehoben (Entscheidung des Nutzers vom 22.10.2026). Die Grube bleibt bei 947 / 1.365.
+        ("Gießerei allein, 2 Gesellen, Silberring: Gewinn ≈ 1.551 Gulden/Jahr", () =>
         {
             var sim = NeueSimulation();
             var w = sim.Wirtschaft!;
             var konto = w.KontoEroeffnen("Spieler");
             var g = w.BetriebEroeffnen("Gießerei", Betriebsart.Giesserei, konto);
             w.Einstellen(g, "Geselle", 2);
-            Pruefe.Ungefaehr(848, MittlererGewinn(sim, konto).Gewinn, 0.05);
+            Pruefe.Ungefaehr(1551, MittlererGewinn(sim, konto).Gewinn, 0.05);
         }),
 
-        ("Gießerei, 1 Lehrling, Silberring: Gewinn ≈ 289 Gulden/Jahr", () =>
+        ("Gießerei, 1 Lehrling, Silberring: Gewinn ≈ 543 Gulden/Jahr", () =>
         {
             var sim = NeueSimulation();
             var w = sim.Wirtschaft!;
             var konto = w.KontoEroeffnen("Spieler");
             w.Einstellen(w.BetriebEroeffnen("Gießerei", Betriebsart.Giesserei, konto), "Lehrling", 1);
-            Pruefe.Ungefaehr(289, MittlererGewinn(sim, konto).Gewinn, 0.05);
+            Pruefe.Ungefaehr(543, MittlererGewinn(sim, konto).Gewinn, 0.05);
         }),
 
         // Seit dem Warenkorb der Einwohner (PR #91) fragen sie günstige Schmiedewaren wie den Silberring rund 7 % mehr nach: 611 → 649.
-        ("Konkurrenz: Zwei Gießereien teilen sich den Silberring-Markt, je ≈ 649 Gulden", () =>
+        // Seit Balancing 1 (PR #177, Silberring 90 → 115): 649 → 1.317.
+        ("Konkurrenz: Zwei Gießereien teilen sich den Silberring-Markt, je ≈ 1.317 Gulden", () =>
         {
             var sim = NeueSimulation();
             var w = sim.Wirtschaft!;
@@ -206,7 +225,7 @@ static class WirtschaftTests
             var rivale = w.KontoEroeffnen("Rivale");
             w.Einstellen(w.BetriebEroeffnen("Gießerei Spieler", Betriebsart.Giesserei, spieler), "Geselle", 2);
             w.Einstellen(w.BetriebEroeffnen("Gießerei Rivale", Betriebsart.Giesserei, rivale), "Geselle", 2);
-            Pruefe.Ungefaehr(649, MittlererGewinn(sim, spieler).Gewinn, 0.05);
+            Pruefe.Ungefaehr(1317, MittlererGewinn(sim, spieler).Gewinn, 0.05);
             Pruefe.Ungefaehr(spieler.Vermoegen, rivale.Vermoegen, 0.08); // ±8 %: Seit PR #152 trifft ein Unfall die beiden zufällig verschieden oft
         }),
 

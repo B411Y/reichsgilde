@@ -48,7 +48,7 @@ static class GardistTests
             Pruefe.WirftMitMeldung(() => Wirtschaftsdaten.AusJson(falsch), "\"wache\": true");
         }),
 
-        ("Sold: 4 Gesellen bekommen an einem Arbeitstag 4 × 720 × 0,75 Gulden (versteuert) – das Haus ist beliebt", () =>
+        ("Sold: 4 Gesellen bekommen an einem Arbeitstag 4 × 720 × 0,68 Gulden (versteuert), halbe Erfahrung (vier Plätze) – das Haus ist beliebt", () =>
         {
             var sim = NeueSimulation();
             var w = sim.Wirtschaft!;
@@ -59,10 +59,11 @@ static class GardistTests
             Pruefe.Ungefaehr(ansehen + 3, w.Rat.Ansehen(k), 1e-9);
             Pruefe.Gleich(0, b.Karren.Count);
             for (var i = 0; i < 16 * 60; i++) sim.Tick(); // bis 21 Uhr – die Arbeitszeit (8–20 Uhr) ist abgerechnet
-            Pruefe.Ungefaehr(4 * 720 * 0.75, w.Wache.DiesesJahr(k).Sold, 1e-6);
-            Pruefe.Ungefaehr(4 * 720 * 0.75 * 0.05, k.Laufend.Steuer, 1e-6);
-            Pruefe.Ungefaehr(48, k.Erfahrung("Gardist"), 1e-6);
-            Pruefe.Ungefaehr(0.75 * 0.95 * 720 - 220, Kalkulation.Jahresertrag(w, b, "Geselle"), 1e-6);
+            // PR #177: Sold 0,75 → 0,68 je Minute; Erfahrung × 0,5 (erfahrungFaktor – doppelt so viele Plätze wie eine Werkstatt)
+            Pruefe.Ungefaehr(4 * 720 * 0.68, w.Wache.DiesesJahr(k).Sold, 1e-6);
+            Pruefe.Ungefaehr(4 * 720 * 0.68 * 0.05, k.Laufend.Steuer, 1e-6);
+            Pruefe.Ungefaehr(24, k.Erfahrung("Gardist"), 1e-6);
+            Pruefe.Ungefaehr(0.68 * 0.95 * 720 - 220, Kalkulation.Jahresertrag(w, b, "Geselle"), 1e-6);
         }),
 
         ("Patrouille: 4 Wachleute senken nächtliche Taten in der Stadt um 10 % und sehen öfter zu – im Umland nicht", () =>

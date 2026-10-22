@@ -125,9 +125,20 @@ public sealed class Unterwelt
     public double Staerke(Konto? auftraggeber) =>
         Math.Min(1, Daten.Ueberfall.Staerke + (auftraggeber is null ? 0 : _w.Familien.KampfUeberfall(auftraggeber)));
 
-    /// <summary>Was ein Diebstahl im Mittel einbringt: Hehlerpreis × Chance − Kosten.</summary>
+    /// <summary>Was ein Diebstahl im Mittel einbringt: (Hehlerpreis + Geld aus der Kasse eines Geldleihers) × Chance − Kosten.</summary>
     public double ErwarteterGewinn(Betrieb b, Konto? auftraggeber = null) =>
-        MoeglicheBeute(b).Sum(x => x.Wert) * Daten.HehlerAnteil * Erfolgschance(Gaunerstueck.Diebstahl, b, auftraggeber) - Daten.Diebstahl.Kosten;
+        (MoeglicheBeute(b).Sum(x => x.Wert) * Daten.HehlerAnteil + (_w.Bank.IstAktiv ? _w.Bank.Kassenbeute(b) : 0))
+        * Erfolgschance(Gaunerstueck.Diebstahl, b, auftraggeber) - Daten.Diebstahl.Kosten;
+
+    /// <summary>„3 Rapier und 2 Silberring (Wert 412)“, „120 Gulden aus der Kasse“ oder beides – für die öffentliche Meldung.</summary>
+    internal string Diebesgut(IReadOnlyCollection<(string Ware, int Stueck, double Wert)> beute, double kasse)
+    {
+        var teile = new List<string>();
+        if (beute.Count > 0)
+            teile.Add($"{string.Join(" und ", beute.Select(x => $"{x.Stueck} {x.Ware}"))} (Wert {Zahlenformat.Ganz(beute.Sum(x => x.Wert))})");
+        if (kasse > 0) teile.Add($"{Zahlenformat.Ganz(kasse)} {_w.Daten.Allgemein.Waehrung} aus der Kasse");
+        return string.Join(" und ", teile);
+    }
 
     /// <summary>Was eine Sabotage dem Opfer im Mittel kostet: entgangene Arbeit + Reparatur.</summary>
     public double ErwarteterSchaden(Betrieb b, Konto? auftraggeber = null) =>
@@ -358,13 +369,19 @@ public sealed class Unterwelt
             var beute = MoeglicheBeute(b);
             foreach (var (ware, stueck, _) in beute)
                 b.Auslagern(ware, stueck);
-            wert = beute.Sum(x => x.Wert);
+            var waren = beute.Sum(x => x.Wert);
+            // Beim Geldleiher liegt Geld in der Kasse – Bargeld braucht keinen Hehler, der Auftraggeber bekommt es ganz.
+            var kasse = _w.Bank.IstAktiv ? _w.Bank.KasseBestehlen(b) : 0;
+            wert = waren + kasse;
             if (wert > 0)
             {
                 b.RaubBuchen(wert);
-                a.Auftraggeber.Gaunerkosten(-wert * d.HehlerAnteil);
-                oeffentlich = $"Einbruch in {b.Name}: {string.Join(" und ", beute.Select(x => $"{x.Stueck} {x.Ware}"))} gestohlen (Wert {Zahlenformat.Ganz(wert)}).";
-                Ereignis(a.Auftraggeber, $"Eure Diebe haben in {b.Name} Ware für {Zahlenformat.Ganz(wert)} erbeutet – der Hehler zahlt {Zahlenformat.Ganz(wert * d.HehlerAnteil)}.");
+                a.Auftraggeber.Gaunerkosten(-(waren * d.HehlerAnteil + kasse));
+                oeffentlich = $"Einbruch in {b.Name}: {Diebesgut(beute, kasse)} gestohlen.";
+                Ereignis(a.Auftraggeber, kasse > 0 && waren <= 0
+                    ? $"Eure Diebe haben aus der Kasse von {b.Name} {Zahlenformat.Ganz(kasse)} {_w.Daten.Allgemein.Waehrung} geholt."
+                    : $"Eure Diebe haben in {b.Name} Ware für {Zahlenformat.Ganz(waren)} erbeutet – der Hehler zahlt {Zahlenformat.Ganz(waren * d.HehlerAnteil)}" +
+                      (kasse > 0 ? $", dazu {Zahlenformat.Ganz(kasse)} {_w.Daten.Allgemein.Waehrung} aus der Kasse." : "."));
             }
             else
                 oeffentlich = $"Einbruch in {b.Name} – doch das Lager war leer.";

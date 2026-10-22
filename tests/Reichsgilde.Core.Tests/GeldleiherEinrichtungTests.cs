@@ -85,27 +85,27 @@ static class GeldleiherEinrichtungTests
 
     public static IEnumerable<(string, Action)> Alle() => new (string, Action)[]
     {
-        ("Geldleiher-Einrichtung: Daten – sieben Stücke mit den Kennungen des Raummodells, Preise wie bei den Werkstätten, Datenversion 47", () =>
+        ("Geldleiher-Einrichtung: Daten – sieben Stücke mit den Kennungen des Raummodells, Preise wie bei den Werkstätten, Datenversion 48", () =>
         {
             var d = Daten.Value.Werkstatt!;
-            Pruefe.Gleich(47, Daten.Value.Version);
+            Pruefe.Gleich(48, Daten.Value.Version);
             var bank = d.EinrichtungFuer("Geldleiher");
             Pruefe.Gleich("Werkzeug1 Werkzeug2 Goldwaage Pfandkammer Kassenschrank Loeschfass Eisentuer", string.Join(" ", bank.Select(e => e.Kennung)));
             Pruefe.Gleich("Rechenbretter, Hauptbücher, Goldwaage, Pfandkammer, Kassenschrank, Löschfass, Eisentür", string.Join(", ", bank.Select(e => e.Name)));
-            Pruefe.Gleich("300 800 350 350 200 100 300", string.Join(" ", bank.Select(e => e.Preis)));
+            Pruefe.Gleich("300 350 350 150 200 100 150", string.Join(" ", bank.Select(e => e.Preis))); // PR #177: Hauptbücher 350, Pfandkammer 150, Eisentür 150
             Pruefe.Gleich("1 2 1 1 1 1 1", string.Join(" ", bank.Select(e => e.AbStufe)));
             Pruefe.Gleich("Werkzeug1", d.Stueck("Geldleiher", "Werkzeug2")!.Voraussetzung);
             Pruefe.Ungefaehr(1.1, d.Stueck("Geldleiher", "Werkzeug1")!.Wirkung.RahmenFaktor, 1e-12);
             Pruefe.Ungefaehr(1.1, d.Stueck("Geldleiher", "Werkzeug2")!.Wirkung.RahmenFaktor, 1e-12);
             Pruefe.Ungefaehr(1.1, d.Stueck("Geldleiher", "Goldwaage")!.Wirkung.WechselFaktor, 1e-12);
-            Pruefe.Ungefaehr(0.75, d.Stueck("Geldleiher", "Pfandkammer")!.Wirkung.AusfallFaktor, 1e-12);
+            Pruefe.Ungefaehr(0.5, d.Stueck("Geldleiher", "Pfandkammer")!.Wirkung.AusfallFaktor, 1e-12); // PR #177: halbiert statt −25 %
             Pruefe.Ungefaehr(1.25, d.Stueck("Geldleiher", "Kassenschrank")!.Wirkung.KreditFaktor, 1e-12);
             Pruefe.Ungefaehr(1, d.Stueck("Geldleiher", "Kassenschrank")!.Wirkung.EinbruchFaktor, 1e-12);
             Pruefe.Ungefaehr(0.5, d.Stueck("Geldleiher", "Loeschfass")!.Wirkung.BrandFaktor, 1e-12);
             Pruefe.Ungefaehr(0.5, d.Stueck("Geldleiher", "Eisentuer")!.Wirkung.EinbruchFaktor, 1e-12);
             Pruefe.Gleich("Rahmen je Schreiber 10 % größer", d.Stueck("Geldleiher", "Werkzeug1")!.Wirkung.Text());
             Pruefe.Gleich("Wechselgebühren 10 % höher", d.Stueck("Geldleiher", "Goldwaage")!.Wirkung.Text());
-            Pruefe.Gleich("Verlust bei Ausfall eines Kunden 25 % kleiner", d.Stueck("Geldleiher", "Pfandkammer")!.Wirkung.Text());
+            Pruefe.Gleich("Verlust bei Ausfall eines Kunden 50 % kleiner", d.Stueck("Geldleiher", "Pfandkammer")!.Wirkung.Text());
             Pruefe.Gleich("Kredite an Häuser bis 25 % höher", d.Stueck("Geldleiher", "Kassenschrank")!.Wirkung.Text());
             // Die anderen Berufe kennen die neuen Wirkungen nicht: Ihre Stücke bleiben ohne.
             foreach (var (beruf, liste) in d.Einrichtung.Where(x => x.Key != "Geldleiher"))
@@ -194,7 +194,7 @@ static class GeldleiherEinrichtungTests
             Pruefe.Wahr(wertMit > wertOhne, $"Wert je Minute mit Goldwaage {wertMit} > {wertOhne}");
         }),
 
-        ("Geldleiher-Einrichtung: Pfandkammer – fallen Stadtkunden aus, sind 7,5 % statt 10 % der Kasse verloren (gleicher Zufall)", () =>
+        ("Geldleiher-Einrichtung: Pfandkammer – fallen Stadtkunden aus, sind 5 % statt 10 % der Kasse verloren (gleicher Zufall)", () =>
         {
             foreach (var pfand in new[] { false, true })
             {
@@ -203,13 +203,13 @@ static class GeldleiherEinrichtungTests
                 if (pfand) Ok(w, k, new EinrichtungKaufen(b.Name, "Pfandkammer"));
                 Ok(w, k, new KasseEinlegen(b.Name, 3_000));
                 JahrBeenden(sim);
-                var verlust = pfand ? 225 : 300;
+                var verlust = pfand ? 150 : 300;
                 Pruefe.Ungefaehr(3_000 - verlust, w.Bank.Kasse(b), 1e-9);
                 Pruefe.Ungefaehr(verlust, w.Bank.Vorjahr(k)!.Ausfall, 1e-9);
             }
         }),
 
-        ("Geldleiher-Einrichtung: Pfandkammer – geht ein Schuldner aus dem Spiel, bringt das Pfand 25 % des Rests zurück; es zählt die beste Pfandkammer des Hauses", () =>
+        ("Geldleiher-Einrichtung: Pfandkammer – geht ein Schuldner aus dem Spiel, bringt das Pfand 50 % des Rests zurück; es zählt die beste Pfandkammer des Hauses", () =>
         {
             (double Vermoegen, double Ausfall, double Forderungen) Lauf(bool pfand)
             {
@@ -218,20 +218,20 @@ static class GeldleiherEinrichtungTests
                 // Die Pfandkammer steht in einer zweiten Wechselstube ohne Schreiber – das Pfand liegt trotzdem im Haus.
                 var zweite = w.BetriebEroeffnen("Wechselstube am Hafen", Betriebsart.Wechselstube, geber, startkarren: "");
                 if (pfand) Ok(w, geber, new EinrichtungKaufen(zweite.Name, "Pfandkammer"));
-                Pruefe.Ungefaehr(pfand ? 0.75 : 1, w.Bank.AusfallFaktor(geber), 1e-12);
+                Pruefe.Ungefaehr(pfand ? 0.5 : 1, w.Bank.AusfallFaktor(geber), 1e-12);
                 var nehmer = w.KontoEroeffnen("Haus Eisenbart", startvermoegen: 4_000);
                 Ok(w, nehmer, new KreditAufnehmen(geber.Inhaber, 2_000, 3));
                 nehmer.IstBankrott = true;
                 JahrBeenden(sim);
                 Pruefe.Gleich<object?>(null, w.Bank.KreditVon(nehmer));
-                return (geber.Vermoegen + (pfand ? 350 : 0), w.Bank.Vorjahr(geber)!.Ausfall, geber.Forderungen);
+                return (geber.Vermoegen + (pfand ? 150 : 0), w.Bank.Vorjahr(geber)!.Ausfall, geber.Forderungen);
             }
             var ohne = Lauf(false);
             var mit = Lauf(true);
             Pruefe.Ungefaehr(2_000, ohne.Ausfall, 1e-9);
-            Pruefe.Ungefaehr(1_500, mit.Ausfall, 1e-9);
+            Pruefe.Ungefaehr(1_000, mit.Ausfall, 1e-9);
             Pruefe.Wahr(Math.Abs(mit.Forderungen) < 1e-9 && Math.Abs(ohne.Forderungen) < 1e-9, "keine Forderung bleibt stehen");
-            Pruefe.Ungefaehr(ohne.Vermoegen + 500, mit.Vermoegen, 1e-9); // das Pfand: 25 % von 2.000 zurück ins Bargeld
+            Pruefe.Ungefaehr(ohne.Vermoegen + 1_000, mit.Vermoegen, 1e-9); // das Pfand: 50 % von 2.000 zurück ins Bargeld
         }),
 
         ("Geldleiher-Einrichtung: Kassenschrank – Kredite an Häuser bis ×1,25 (Wechselstube 3.000 → 3.750, Bankhaus 12.000 → 15.000); es zählt der beste Kassenschrank des Hauses; ohne bleibt alles", () =>
@@ -295,7 +295,7 @@ static class GeldleiherEinrichtungTests
 
         ("Geldleiher-Kunden: Wechselstube – Kaufleute nach Marktumsatz und Tageszeit (vormittags Markt, abends weniger), Bürger nur mit Kasse, keine Vornehmen; außerhalb der Arbeitszeit niemand", () =>
         {
-            var sim = NeueSimulation();
+            var sim = NeueSimulation(Wirtschaftsdaten.AusJson(Datenpfad.OhneStadt())); // Marktumsatz der Bezugsstadt (≈ 700.000) – mit einem Haus wäre die Stadt kleiner
             var (w, k, b) = Geldleihe(sim);
             Pruefe.Gleich(0, w.Bank.KundenJetzt(b).Count); // 05:00
             BisUhrzeit(sim, 7, 59);

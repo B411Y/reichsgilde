@@ -182,6 +182,8 @@ public sealed class Konto
     internal void Zurueckerhalten(double betrag) { Vermoegen += betrag; Forderungen -= betrag; }
     /// <summary>Ein Schuldner fällt aus: Die Forderung ist verloren (Schaden), das Bargeld bleibt.</summary>
     internal void ForderungAbschreiben(double betrag) { Forderungen -= betrag; Laufend.Schaden += betrag; }
+    /// <summary>Diebe haben Geld aus der Kasse geholt: Die Forderung ist fort, gebucht wie gestohlene Lagerware (<see cref="Raub"/>), nicht als Schaden.</summary>
+    internal void ForderungGestohlen(double betrag) => Forderungen -= betrag;
     internal void KreditErhalten(double betrag) { Vermoegen += betrag; Schulden += betrag; }
     internal void KreditTilgen(double betrag) { Vermoegen -= betrag; Schulden -= betrag; }
     internal void Zinsen(double betrag) { Vermoegen -= betrag; Laufend.Zinsen += betrag; }

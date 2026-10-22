@@ -77,7 +77,7 @@ static class PredigerTests
             Pruefe.WirftMitMeldung(() => Wirtschaftsdaten.AusJson(json), "„Flugblatt“ gibt es nicht");
         }),
 
-        ("Messe: um 10 Uhr kommen die 200 Gläubigen des Jahres und spenden je 2,5 Gulden – steuerfrei an den Prediger", () =>
+        ("Messe: um 10 Uhr kommen die 200 Gläubigen des Jahres und spenden je 2,2 Gulden – steuerfrei an den Prediger", () =>
         {
             var sim = NeueSimulation();
             var (w, k, b) = Prediger(sim);
@@ -87,8 +87,8 @@ static class PredigerTests
             sim.Tick(); sim.Tick();
             var buch = w.Kirchenwesen.DiesesJahr(b);
             Pruefe.Ungefaehr(200, buch.Glaeubige, 1e-9);
-            Pruefe.Ungefaehr(500, buch.Kollekte, 1e-9);
-            Pruefe.Ungefaehr(vorher + 500, k.Laufend.Umsatz, 1e-9);
+            Pruefe.Ungefaehr(440, buch.Kollekte, 1e-9); // 2,2 je Gläubigem seit PR #177
+            Pruefe.Ungefaehr(vorher + 440, k.Laufend.Umsatz, 1e-9);
         }),
 
         ("Messe: Gläubige verteilen sich nach Anziehung – ein Dom (Stufe 2) zieht anderthalbmal so viele wie eine Kirche; ohne Personal keine Messe", () =>

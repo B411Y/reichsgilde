@@ -92,6 +92,72 @@ static class BalancingTests
             Pruefe.Gleich(Schwierigkeit.Normal, Speicherung.Laden(alt.ToJsonString()).Simulation.Einstellungen.Schwierigkeit);
         }),
 
+        ("Einwohner: Nachfrage und Grundversorgung wachsen mit den Häusern, die wirtschaften – bei vier Häusern wie in den Daten", () =>
+        {
+            var d = Daten.Value.Stadt!;
+            Pruefe.Gleich(4, d.BezugHaeuser);
+            var (sim, spieler) = Partieaufbau.Erstellen(Endlos(), Daten.Value, new NeuePartie());
+            var w = sim.Wirtschaft!;
+            Pruefe.Gleich(4, w.WirtschaftendeHaeuser);
+            Pruefe.Ungefaehr(1, w.Markt.Einwohnerfaktor, 1e-12);
+            Pruefe.Ungefaehr(d.EinwohnerGrund + 4 * d.EinwohnerJeHaus, w.Einwohner, 1e-9);
+            var rapier = w.Markt["Rapier"];
+            var daten = Daten.Value.Waren["Rapier"];
+            Pruefe.Ungefaehr(daten.Nachfrage, rapier.Grundnachfrage, 1e-9);
+
+            // Ein Haus ohne Arbeiter zählt nicht; ein Haus mehr mit Personal schon – ab der nächsten Minute.
+            var neu = w.KontoEroeffnen("Familie Neu");
+            var g = w.BetriebEroeffnen("Gießerei Neu", Betriebsart.Giesserei, neu, startkarren: "");
+            sim.Tick();
+            Pruefe.Gleich(4, w.WirtschaftendeHaeuser);
+            w.Einstellen(g, "Geselle", 1);
+            sim.Tick();
+            Pruefe.Gleich(5, w.WirtschaftendeHaeuser);
+            var faktor = d.Faktor(5);
+            Pruefe.Ungefaehr((d.EinwohnerGrund + 5 * d.EinwohnerJeHaus) / (d.EinwohnerGrund + 4 * d.EinwohnerJeHaus), faktor, 1e-12);
+            Pruefe.Ungefaehr(faktor, w.Markt.Einwohnerfaktor, 1e-12);
+            Pruefe.Ungefaehr(daten.Nachfrage * faktor, rapier.Grundnachfrage, 1e-9);
+            Pruefe.Ungefaehr(daten.Nachfrage * faktor * daten.NpcAnteil + rapier.SpielerAngebotImJahr, rapier.Gesamtangebot, 1e-9);
+            Pruefe.Ungefaehr(rapier.Grundnachfrage * rapier.NachfrageFaktor, rapier.Nachfrage, 1e-9);
+
+            // Nach dem Laden gilt derselbe Faktor, ohne Abschnitt „stadt“ ist er 1.
+            var (kopie, _) = Speicherung.Laden(Speicherung.Speichern(sim, spieler));
+            Pruefe.Ungefaehr(faktor, kopie.Wirtschaft!.Markt.Einwohnerfaktor, 1e-12);
+            var ohne = new Simulation(Endlos(), wirtschaftsdaten: Wirtschaftsdaten.AusJson(Datenpfad.OhneStadt())).Wirtschaft!;
+            var k = ohne.KontoEroeffnen("Familie Allein");
+            ohne.Einstellen(ohne.BetriebEroeffnen("Gießerei Allein", Betriebsart.Giesserei, k, startkarren: ""), "Geselle", 2);
+            ohne.EinwohnerZaehlen();
+            Pruefe.Ungefaehr(1, ohne.Markt.Einwohnerfaktor, 1e-12);
+            Pruefe.Gleich(0.0, ohne.Einwohner);
+        }),
+
+        ("Einwohner: Daten werden geprüft (nicht negativ, Bezug mindestens ein Haus)", () =>
+        {
+            var json = File.ReadAllText(Datenpfad.Wirtschaft());
+            foreach (var (falsch, meldung) in new[]
+                     {
+                         ("\"stadt\": { \"einwohnerGrund\": -1, \"einwohnerJeHaus\": 25, \"bezugHaeuser\": 4 }", "nicht negativ"),
+                         ("\"stadt\": { \"einwohnerGrund\": 50, \"einwohnerJeHaus\": 25, \"bezugHaeuser\": 0 }", "bezugHaeuser"),
+                         ("\"stadt\": { \"einwohnerGrund\": 0, \"einwohnerJeHaus\": 0, \"bezugHaeuser\": 4 }", "keine Nachfrage"),
+                     })
+            {
+                var geaendert = System.Text.RegularExpressions.Regex.Replace(json, "\n  \"stadt\": \\{[^}]*\\}", "\n  " + falsch); // nur der Abschnitt oben, nicht glaube.stadt
+                Pruefe.Wahr(geaendert != json, "Abschnitt stadt ersetzt");
+                Pruefe.WirftMitMeldung(() => Wirtschaftsdaten.AusJson(geaendert), meldung);
+            }
+        }),
+
+        ("Erfahrung: Diebe und Wache sammeln je Mann halb so viel (erfahrungFaktor 0,5 – doppelt so viele Plätze wie eine Werkstatt); geprüft 0 bis 1", () =>
+        {
+            var d = Daten.Value;
+            foreach (var art in new[] { Betriebsart.Schmugglerloch, Betriebsart.Unterschlupf, Betriebsart.Diebesgilde, Betriebsart.Wachhaus, Betriebsart.Stadtwache, Betriebsart.Garnison })
+                Pruefe.Ungefaehr(0.5, d.Art(art).ErfahrungFaktor, 1e-12);
+            foreach (var art in new[] { Betriebsart.Giesserei, Betriebsart.Wechselstube, Betriebsart.Kirche, Betriebsart.Mine, Betriebsart.Wachturm })
+                Pruefe.Ungefaehr(1, d.Art(art).ErfahrungFaktor, 1e-12);
+            var json = File.ReadAllText(Datenpfad.Wirtschaft()).Replace("\"ausbauKosten\": 2500, \"erfahrungFaktor\": 0.5 }", "\"ausbauKosten\": 2500, \"erfahrungFaktor\": 1.5 }");
+            Pruefe.WirftMitMeldung(() => Wirtschaftsdaten.AusJson(json), "erfahrungFaktor muss zwischen 0 und 1 liegen");
+        }),
+
         ("Einrichtung: Mehrgewinn je Jahr – Werkzeug = Leistung × Arbeitsminuten × Gewinn je Minute × (1 ÷ 0,9 − 1); gekauft oder ohne Gulden-Wirkung 0", () =>
         {
             var sim = NeueSimulation();
@@ -159,7 +225,8 @@ static class BalancingTests
             Pruefe.Wahr(w.Ausfuehren(k, new KasseEinlegen(b.Name, 2 * rahmen)).Erfolg, "Kasse füllen");
             var kasse = bank.Kasse(b);
             Pruefe.Ungefaehr(rahmen * 0.1 * d.Stadtzins * jahresanteil * nachSteuer, w.Werkstaetten.ErwarteterMehrgewinnJeJahr(b, "Werkzeug1"), 1e-6);
-            Pruefe.Ungefaehr(kasse * d.Ausfall.Chance * d.Ausfall.Anteil * 0.25, w.Werkstaetten.ErwarteterMehrgewinnJeJahr(b, "Pfandkammer"), 1e-6);
+            var pfandkammer = w.Werkstaetten.Daten!.Stueck("Geldleiher", "Pfandkammer")!.Wirkung.AusfallFaktor;
+            Pruefe.Ungefaehr(kasse * d.Ausfall.Chance * d.Ausfall.Anteil * (1 - pfandkammer), w.Werkstaetten.ErwarteterMehrgewinnJeJahr(b, "Pfandkammer"), 1e-6);
             Pruefe.Gleich(0.0, w.Werkstaetten.ErwarteterMehrgewinnJeJahr(b, "Kassenschrank"), "Kreditrahmen ohne Gulden-Wirkung");
             Pruefe.Wahr(w.Werkstaetten.ErwarteterMehrgewinnJeJahr(b, "Goldwaage") > 0, "Goldwaage: mehr Wechselgebühr");
         }),

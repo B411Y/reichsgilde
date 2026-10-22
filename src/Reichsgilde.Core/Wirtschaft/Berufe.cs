@@ -61,6 +61,13 @@ public sealed class BetriebsartDaten
     /// Im Wirtshaus 840 = bis 22 Uhr, so lange wie die Gäste bleiben. Der Lohn gilt je Stunde: wer länger arbeitet, kostet mehr.
     /// </summary>
     public int? Arbeitsminuten { get; init; }
+
+    /// <summary>
+    /// Faktor auf die Erfahrung, die die Leute dieses Betriebs dem Haus bringen (Vorgabe 1; ab Datenversion 48). Diebe und Wache haben
+    /// doppelt so viele Plätze wie eine Werkstatt derselben Stufe (4/6/8 statt 2/3/4) und deshalb 0,5 – sonst erreichte ihr Haus die
+    /// Meistergrade doppelt so schnell (PR #177).
+    /// </summary>
+    public double ErfahrungFaktor { get; init; } = 1;
 }
 
 /// <summary>
