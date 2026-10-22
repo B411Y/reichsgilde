@@ -339,7 +339,7 @@ public partial class Hauptmenue : Node
     }
 
     /// <summary>Wer am Start in der Stadt lebt: die Belegung der Karte, mit der eine neue Partie beginnt (ohne Karte die eingebaute).</summary>
-    private static Startbelegung Startbelegung => Stadtkarten.Greybox?.Startbelegung ?? Startbelegung.Ersatz;
+    private static Startbelegung Startbelegung => Stadtkarten.Startkarte?.Startbelegung ?? Startbelegung.Ersatz;
 
     /// <summary>
     /// Die Wahl der Rivalen: die KI-Häuser der Karte in ihrer Reihenfolge – das erste spielt immer mit, jede weitere Zeile nimmt das nächste dazu
@@ -347,7 +347,7 @@ public partial class Hauptmenue : Node
     /// </summary>
     private void RivalenWahlFuellen()
     {
-        var karte = Stadtkarten.Greybox;
+        var karte = Stadtkarten.Startkarte;
         var haeuser = Startbelegung.Haeuser;
         static string Kurz(string name) => name.StartsWith("Haus ") ? name[5..] : name;
         for (var n = 1; n <= haeuser.Count; n++)
