@@ -230,6 +230,26 @@
 <circle cx="-33.25" cy="44" r="0.9" fill="#A3262A"/>
 <polygon points="-38.5,52 -47,52 -47,44 -38.5,44" fill="#CFE0C0" stroke="#1F2326" stroke-width="0.3"/>
 <circle cx="-42.75" cy="44" r="0.9" fill="#A3262A"/>
+<polygon points="166.75,-54.2 174.25,-54.2 174.25,-48 166.75,-48" fill="#CFE0C0" stroke="#1F2326" stroke-width="0.3"/>
+<circle cx="170.5" cy="-48" r="0.9" fill="#A3262A"/>
+<polygon points="157.75,-54.2 165.25,-54.2 165.25,-48 157.75,-48" fill="#CFE0C0" stroke="#1F2326" stroke-width="0.3"/>
+<circle cx="161.5" cy="-48" r="0.9" fill="#A3262A"/>
+<polygon points="148.75,-54.2 156.25,-54.2 156.25,-48 148.75,-48" fill="#CFE0C0" stroke="#1F2326" stroke-width="0.3"/>
+<circle cx="152.5" cy="-48" r="0.9" fill="#A3262A"/>
+<polygon points="139.75,-54.2 147.25,-54.2 147.25,-48 139.75,-48" fill="#CFE0C0" stroke="#1F2326" stroke-width="0.3"/>
+<circle cx="143.5" cy="-48" r="0.9" fill="#A3262A"/>
+<polygon points="130.75,-54.2 138.25,-54.2 138.25,-48 130.75,-48" fill="#CFE0C0" stroke="#1F2326" stroke-width="0.3"/>
+<circle cx="134.5" cy="-48" r="0.9" fill="#A3262A"/>
+<polygon points="121.75,-54.2 129.25,-54.2 129.25,-48 121.75,-48" fill="#CFE0C0" stroke="#1F2326" stroke-width="0.3"/>
+<circle cx="125.5" cy="-48" r="0.9" fill="#A3262A"/>
+<polygon points="112.75,-54.2 120.25,-54.2 120.25,-48 112.75,-48" fill="#CFE0C0" stroke="#1F2326" stroke-width="0.3"/>
+<circle cx="116.5" cy="-48" r="0.9" fill="#A3262A"/>
+<polygon points="103.75,-54.2 111.25,-54.2 111.25,-48 103.75,-48" fill="#CFE0C0" stroke="#1F2326" stroke-width="0.3"/>
+<circle cx="107.5" cy="-48" r="0.9" fill="#A3262A"/>
+<polygon points="94.75,-54.2 102.25,-54.2 102.25,-48 94.75,-48" fill="#CFE0C0" stroke="#1F2326" stroke-width="0.3"/>
+<circle cx="98.5" cy="-48" r="0.9" fill="#A3262A"/>
+<polygon points="85.75,-54.2 93.25,-54.2 93.25,-48 85.75,-48" fill="#CFE0C0" stroke="#1F2326" stroke-width="0.3"/>
+<circle cx="89.5" cy="-48" r="0.9" fill="#A3262A"/>
 <text x="130" y="-23" font-size="6" text-anchor="middle" fill="#6B6E66">VON</text>
 <text x="130" y="23" font-size="6" text-anchor="middle" fill="#6B6E66">VOS</text>
 <text x="-130" y="-23" font-size="6" text-anchor="middle" fill="#6B6E66">VWN</text>

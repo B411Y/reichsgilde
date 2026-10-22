@@ -12,7 +12,7 @@ namespace Reichsgilde.Kartenbau.Staedte;
 //  Aufbau (Meter, x = Osten, z = Süden, der Markt bei 0 | 0):
 //    • Mauerring 140 × 110 m mit Westtor und Osttor, die Hauptstraße von Tor zu Tor über den Markt, eine Ringstraße 13 m innerhalb der Mauer.
 //    • Am Markt Rathaus und Kirche, an der Hauptstraße vier Werkstattplätze, an der Ringstraße innen sechs Wohnhausplätze, außen (zur Mauer)
-//      die Einwohnerplätze.
+//      die Einwohnerplätze am Ring; zehn Einwohnerplätze der Vorstadt am Feldweg im Nordosten.
 //    • Vor jedem Tor die Landstraße und beiderseits ein Feldweg; dazwischen vier Bauzonen der Vorstadt (Platz für eine Partie mit 8 Häusern,
 //      siehe Kapazitätsprüfung).
 //    • Wald im Nordwesten und Südosten, ein Waldweg als weiche Kurve.
@@ -72,6 +72,8 @@ public sealed class Probestadt : Stadtskript
         wohnhaeuser.AddRange(Haeuserreihe("wohnhausplatz", P(50, rz), P(-50, rz), links: false, rand, luecke: 2, hoechstens: 3, name: "Wohnhaus Süd"));
         Haeuserreihe("einwohnerplatz_ring", P(-rx + 6, -rz), P(rx - 6, -rz), links: true, rand, luecke: 1);
         Haeuserreihe("einwohnerplatz_ring", P(rx - 6, rz), P(-rx + 6, rz), links: true, rand, luecke: 1);
+        // Einwohnerplätze der Vorstadt (das Spiel stellt einen Teil der Einwohnerhäuser vor die Mauer): am Feldweg Ost-Nord, nach Norden
+        Haeuserreihe("einwohnerplatz_vorstadt", P(Ende - 6, -FeldwegZ), P(MauerX + 6, -FeldwegZ), links: false, 2, luecke: 1.5, hoechstens: 10);
 
         // ── Bauzonen der Vorstadt zwischen Landstraße und Feldweg ────────────
         foreach (var seite in new[] { 1, -1 })
