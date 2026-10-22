@@ -835,3 +835,12 @@ Folgerungen: FSR 2.2 lohnt sich auf der T400 kaum (67 %: −0,8 ms bei Hoch, in 
 | Licht und Raumanimation | Kerzen, Lampen und Glut brennen auch außerhalb der Arbeitszeit, solange jemand im Haus wach ist (nicht nur Schlafende); sonst bleibt es dunkel. Schleifstein und Waage laufen, solange jemand am Schleifbock oder Zähltisch steht. | 21.10.2026 |
 | Kartentisch und Einrichtung | `Bedienung_Auftraege_Karte` („Kartentisch – Aufträge“) öffnet das Hinterzimmer (`GaunerAnzeige`), der Beutekeller heißt „Diebesgut“. Einrichtung und Lager öffnen wie bei den Werkstätten (die Tafeln hingen nie an `IstWerkstatt`, der Kern gibt die Liste über `KannEinrichtung`); die Fangchance im Verwaltungsfenster rechnet über `Diebe.Fangchance(b)` die Verkleidungstruhe mit. | 21.10.2026 |
 
+### Innenraum des Gardisten (PR #173)
+
+| Thema | Entscheidung | Datum |
+|---|---|---|
+| Räume | Wachstube als Hauptraum (Würfeltisch, Wachbuch, Waffenständer, Kamin, Stadtwappen), Waffenkammer als Lager (Hellebarden, Rüstungen, Schilde), Arrestzelle (Gitter, Stroh, gefasste Gauner), ab Stufe 2 Übungshalle (Strohpuppen, Fechtboden, Zielscheibe), ab Stufe 3 Hauptmannsstube (Schreibtisch, Stadtplan, Hauptmann). | 22.10.2026 |
+| Anwesenheit | Nach Schichten wie beim Dieb: Ein Teil ist auf Patrouille (tags und nachts im Wechsel), wer Geleit gibt, ist mit dem Karren unterwegs; daheim würfeln, putzen, üben oder schlafen die anderen. In der Arrestzelle sitzen die Gauner, die die Wache zuletzt gefasst hat. Braucht eine kleine Abfrage im Kern. | 22.10.2026 |
+| Tätigkeiten | Rüstung putzen (neu, sitzend), Fechten an der Strohpuppe (neu, ab Stufe 2), Würfeln (Zählen vom Dieb), Waffen schärfen (Schleifen), Wachbuch führen (Schreiben vom Prediger), Schlafen (vom Dieb); Gefangene sitzen auf dem Stroh. | 22.10.2026 |
+| Modell | `innen/gardist_innen.glb` vom Modell-Agenten, Regeln wie die anderen Innenräume; neue Räume teilen sich Render-Ebenen mit Räumen anderer Berufe. | 22.10.2026 |
+

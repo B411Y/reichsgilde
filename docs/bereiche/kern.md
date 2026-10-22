@@ -272,6 +272,13 @@ So wird eingetragen (damit sich die Chats nie an derselben Stelle treffen):
 | Natur | Streu-Gruppen einzeln: `GruppeHinzufuegen`, `GruppeEntfernen` (nicht die letzte), `GruppeSetzen` (Gewicht, Radius), `GruppenteilHinzufuegen`, `GruppenteilSetzen` (Arten mit Gewicht, Anzahl), `GruppenteilEntfernen` (nicht den letzten). `WaldDichte` 2,4 → 10: Die Kronen der Baummodelle sind 3–4 m (Tanne) bis 8 m (Eiche) breit, im Mischwald der Vorlage im Mittel etwa 25 m²; bei 10 je 1.000 m² ist von oben ein Viertel bedeckt, im Schrägblick schließt sich das Bild fast (vorgeschlagen waren 6–8; das zeigt der Klicktest). Die Greybox bleibt bei 2,4 (dort stehen nach dem Freiraum im Tannenwald nur 25 Bäume). | 21.10.2026 |
 | Messung | `messen 30 20 greybox` auf main `2a6bdfe` + diesem Branch: Ausgabe zeichengleich mit main (die Simulation ist nicht berührt). | 21.10.2026 |
 
+### Einrichtung und Anwesenheit des Gardisten (PR #173)
+
+| Thema | Entscheidung | Datum |
+|---|---|---|
+| Stücke | Die Wache stellt nichts her, ihre Einrichtung wirkt auf die Wache: Hellebarden (Razzia +10 %), Armbrüste (ab Stufe 2, braucht Hellebarden, Razzia nochmals +10 %), Wachhunde (Patrouillen schützen 25 % mehr), Kettenhemden (Geleit 20 % stärker gegen Überfälle), Waffenkammer (Lager +20), Löschfass, Eisentür. Preise wie bei den anderen Werkstätten. | 22.10.2026 |
+| Anwesenheit | Die Darstellung zeigt nach Schichten, wer in der Wache ist (Patrouille tags und nachts im Wechsel, Geleit unterwegs, daheim würfeln, putzen, üben, schlafen) und welche Gauner zuletzt gefasst in der Arrestzelle sitzen; der Kern liefert dafür eine öffentliche, nur lesende Abfrage. | 22.10.2026 |
+
 ## Messungen
 
 Messungen des Kerns stehen in `docs/WIRTSCHAFTSMODELL.md` (nur der Kern schreibt dort).
