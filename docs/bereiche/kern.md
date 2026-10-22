@@ -295,6 +295,13 @@ So wird eingetragen (damit sich die Chats nie an derselben Stelle treffen):
 | Kartenskript | `tools/Kartenbau` (Konsole, referenziert nur den Kern; die Tests referenzieren es). `bauen` schreibt nur ohne Fehler und nie über eine vorhandene Datei ohne `--ueberschreiben` (Rückgabe 2). Muster `Probestadt`: ohne Fehler und Hinweise, eine Partie läuft im Test ein Spieljahr. Das Python-Werkzeug `tools/karten/` ist gelöscht; Greybox und Köln sind unverändert (byte-gleich), ihre Dateien sind die Quelle. | 22.10.2026 |
 | Messung | `messen 30 20 greybox` auf main `1b3cb20` + diesem Branch: Ausgabe zeichengleich mit main (die Simulation ist nicht berührt). | 22.10.2026 |
 
+### Einrichtung und Kunden des Geldleihers (PR #175)
+
+| Thema | Entscheidung | Datum |
+|---|---|---|
+| Stücke | Der Geldleiher stellt nichts her, seine Einrichtung wirkt auf das Bankgeschäft: Rechenbretter (Rahmen je Schreiber +10 %), Hauptbücher (ab Stufe 2, braucht Rechenbretter, nochmals +10 %), Goldwaage (Wechselgebühren +10 %), Pfandkammer (bei Ausfall eines Kunden 25 % weniger Verlust), Kassenschrank (halbiert Diebstahl aus der Kasse), Löschfass, Eisentür. Preise wie bei den anderen Werkstätten. | 22.10.2026 |
+| Kunden im Raum | Die Darstellung zeigt die Schreiber während der Arbeitszeit und Kunden nach Tageszeit (Kaufleute am Wechseltisch, Bürger beim Leihen oder Zurückzahlen, ab Stufe 3 vornehme Kunden im Empfang); der Kern liefert dafür eine öffentliche, nur lesende Abfrage. | 22.10.2026 |
+
 ## Messungen
 
 Messungen des Kerns stehen in `docs/WIRTSCHAFTSMODELL.md` (nur der Kern schreibt dort).
