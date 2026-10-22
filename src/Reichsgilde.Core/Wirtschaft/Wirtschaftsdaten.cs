@@ -220,6 +220,9 @@ public sealed class Wirtschaftsdaten
     /// <summary>Einwohner der Stadt mit Tagesablauf – Bürger-KI (ab Datenversion 25). Fehlt der Abschnitt, gibt es keine Einwohner.</summary>
     public Reichsgilde.Core.Buerger.BuergerDaten? Buerger { get; init; }
 
+    /// <summary>Werte der KI-Häuser (Spiel-KI), z. B. wann sie Einrichtung kaufen. Fehlt der Abschnitt, kauft die KI keine Einrichtung.</summary>
+    public Reichsgilde.Core.Ki.KiDaten? Ki { get; init; }
+
     /// <summary>
     /// Einwohner und Nachfrage der Stadt (ab Datenversion 48, PR #177): Die Nachfrage richtet sich nach den Einwohnern, und die wachsen
     /// mit den Häusern. Fehlt der Abschnitt, ist die Nachfrage fest wie in „waren“.
@@ -421,6 +424,7 @@ public sealed class Wirtschaftsdaten
         Meistergrade?.Pruefen(f, Aktionspunkte?.Hoechstens ?? int.MaxValue);
         Gastwirtschaft?.Pruefen(f, Waren, Berufe);
         Buerger?.Pruefen(f);
+        Ki?.Pruefen(f);
         if (Buerger is { Kopplung.Schaenke: > 0 } bk && Gastwirtschaft is { } gw &&
             bk.Handlungen.TryGetValue(Reichsgilde.Core.Buerger.Handlung.Einkehren, out var einkehr) && einkehr.Von != gw.OeffnetUm)
             f.Add($"buerger.handlungen.Einkehren.von ({einkehr.Von}) muss bei Kopplung an die Schänke gastwirtschaft.oeffnetUm ({gw.OeffnetUm}) sein.");

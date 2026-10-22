@@ -10,6 +10,7 @@ So wird eingetragen (damit sich die Chats nie an derselben Stelle treffen):
 
 ## Offen
 
+- (von Kern) Die KI-Häuser nutzen die Werkstatt wie in Gilde 1 noch nicht ganz (PR #152): Sie zahlen üblichen Lohn ohne Prämie, teilen keine Arbeiter einzeln zu und befördern keine Lehrlinge (Einrichtung kaufen sie seit PR #177). Abfragen: `Stadtwirtschaft.Werkstaetten` (`UnfallGefahr`, `BefoerdernVerboten`), Befehle `LohnstufeSetzen`, `ArbeiterBefoerdern`.
 - (von Kern) Die KI-Häuser nutzen die Werkstatt wie in Gilde 1 noch nicht (PR #152): Sie zahlen üblichen Lohn ohne Prämie, kaufen keine Einrichtung (z. B. Lederschürzen 80 Gulden gegen Unfälle, Werkzeug) und teilen keine Arbeiter einzeln zu, befördern keine Lehrlinge. Abfragen: `Stadtwirtschaft.Werkstaetten` (`Einrichtungsliste`, `EinrichtungVerboten`, `UnfallGefahr`), Befehle `EinrichtungKaufen`, `LohnstufeSetzen`, `ArbeiterBefoerdern`.
 - (von Kern) Die KI setzt fast jedes Jahr einen Spitzel (300 Gulden) auf das stärkste andere Haus an, auch mit nur einem Betrieb: Beim Messspieler des Balancing-Berichts ≈ 210 im Jahr, rund ein Zehntel des Gewinns (PR #177, WIRTSCHAFTSMODELL „Balancing-Messung 2“). Vorschlag: an Gewinn oder Rang koppeln.
 - (von Kern) Abfrage für den Kauf von Einrichtung (PR #177): `Werkstattwesen.ErwarteterMehrgewinnJeJahr(Betrieb, kennung)` und `Amortisationsjahre(…)`; Eisentür und Löschfass bringen nur etwas nach Raub bzw. Brand im Vorjahr (`Betriebsrechnung.Raub`, `Brandschaden`). Seit PR #177 holt ein Einbruch beim Geldleiher Geld aus der Kasse – `Unterwelt.ErwarteterGewinn` und `Diebeswesen.ErwarteterEinbruch` rechnen es schon mit.
@@ -95,6 +96,17 @@ So wird eingetragen (damit sich die Chats nie an derselben Stelle treffen):
 |---|---|---|
 | Rollen | **Keine Abneigung:** Arme (Tagelöhner, Knecht, Hirte, Feldarbeiter, Holzsammler, Bettler) kaufen günstige Waren ×1,15, teure aber ×1,0 statt ×0,85; Ratsherren und Bürgersöhne teure ×1,3, günstige ×1,0 statt ×0,85. Die meisten Einkaufenden sind arm, und die ausgebauten Werkstätten stellen vor allem teure Waren her – die Abneigung kostete die Häuser 3–6 % Vermögen nach 30 Jahren, jetzt etwa die Hälfte. Völker, Mönche und Spanne (±10 %) bleiben. Entschieden vom Nutzer. Damit ist der offene Punkt des Kerns („Kalibrierung prüfen“) erledigt. | 18.10.2026 |
 | Verworfen | Spanne halbieren (±5 %): in der Messung nicht besser (im Rauschen), und die Völker sind kaum noch zu sehen. Die Nachfrage nach dem Umsatz der Häuser statt nach den Daten gewichten: Eichwald −11 %, und Speichern/Laden mitten in der Stunde liefe nicht mehr gleich weiter. | 18.10.2026 |
+
+### KI kauft Einrichtung (PR #177)
+
+| Thema | Entscheidung | Datum |
+|---|---|---|
+| Regel | Die KI-Häuser kaufen Einrichtung, wenn sich ein Stück in **höchstens 4 Jahren** bezahlt macht (Preis ÷ `Werkstattwesen.ErwarteterMehrgewinnJeJahr`, zu heutigen Preisen mit den Arbeitern und Waren von jetzt). Kredite nimmt die KI weiter nicht. Entschieden vom Nutzer (Balancing 1). | 22.10.2026 |
+| Zeitpunkt | **Zum Jahresende** (`KiRivale.Jahresende`, nach Löhnen und Abschluss): Das Vorjahr mit Raub und Brandschaden ist dann abgeschlossen, das Bargeld am niedrigsten. Je Betrieb **höchstens ein Stück**, das mit der kürzesten Amortisation (bei Gleichstand das billigere); die Betriebe mit der kürzesten Amortisation zuerst. So braucht es kein neues Feld im Spielstand. | 22.10.2026 |
+| Reserve | Nach dem Kauf bleibt **2 × Reserve** des Profils als Bargeld (vorsichtig 5.000, ausgewogen 3.000, wagemutig 1.600). Reicht es für ein Stück nicht, darf ein billigeres eines anderen Betriebs noch. Nicht in Not (`InNot`) und nicht, solange die Vorsichtige auf den Stand spart (wie Ausbau und Expansion). | 22.10.2026 |
+| Charakter | Grenze 4 Jahre ± 0,5: **vorsichtig 3,5, ausgewogen 4, wagemutig 4,5** (erkannt an `MaxAmortisationJahre` des Profils gegenüber dem Standard). | 22.10.2026 |
+| Schutzstücke | Eisentür und Löschfass nur, wenn ihr Mehrgewinn (Schaden des Vorjahres × (1 − Faktor)) das hergibt. Auch ein Betrieb mit Verlust bekommt Einrichtung – oft fehlt ihm gerade die Eisentür, und beim Verkauf zählt sie zum Wert. | 22.10.2026 |
+| Werte | Eigener Abschnitt `ki.einrichtung` in `wirtschaft.json` (`hoechstensJahre` 4, `charakterJahre` 0,5, `reserveFaktor` 2), gelesen als `KiDaten` (`Ki/KiDaten.cs`). Fehlt der Abschnitt, kauft die KI keine Einrichtung. Andockstellen: Feld `Ki` und `Ki?.Pruefen` in `Wirtschaftsdaten`, der Abschnitt in `wirtschaft.json` (ohne neue Datenversion), eine Zählzeile in `Messung.cs`. | 22.10.2026 |
 
 ## Messungen
 
@@ -227,3 +239,23 @@ Gemessen auf main `1209ff2` + PR #127, `messen 30 20` (Spieler Mensch, passiv), 
 - Eisenbart und Kieselbach verlieren nur noch 0–4 %. **Eichwald** (Tischler) bleibt bei etwa −6 %: Schrank und Prunktruhe sind teure Holzwaren, die außer Ratsherren und Bürgersöhnen niemand bevorzugt, und Holzwaren sind nur bei Halblingen beliebt. Das ist die gewollte Färbung der Standardstadt.
 - Die wagemutigen Zeilen schwanken stark (Kieselbach +15 % bisher ist Rauschen der Gaunerstücke, nicht der Warenkorb).
 - Stand der KI-Häuser am Ende (Köln, ausgewogen): Edler 3, Freiherr 57 (bisher Edler 5, Freiherr 55); kein Haus bankrott. Alle Tests unverändert grün, auch „Zwei Gießereien teilen sich den Silberring-Markt“.
+
+### KI kauft Einrichtung (PR #177)
+
+Gemessen auf main `821bc97` + Funktions-Branch `phase5/balancing-1` mit Kern Schritt 0 (`4f0d587`: gleicher Start, Abfrage Mehrgewinn) + diese Änderung – **noch vor** den neuen Preisen des Kerns (Datenversion 48, billigere Eisentür, Hauptbücher, Pfandkammer). `messen 30 20 Mensch x <Charakter>`, 20 Partien × 30 Jahre, drei KI-Häuser je Partie (60 Häuser). „Ohne“ = dieselbe Fassung ohne Abschnitt `ki` in `wirtschaft.json`. Vermögen Ø am Ende:
+
+| Charakter | Haus | ohne | mit Einrichtung |
+|---|---|---|---|
+| ausgewogen | Eisenbart | 78.147 | 92.552 (+18 %) |
+| | Eichwald | 65.606 | 88.841 (+35 %) |
+| | Kieselbach | 74.232 | 99.685 (+34 %) |
+| vorsichtig | Eisenbart | 77.768 | 87.440 (+12 %) |
+| | Eichwald | 72.336 | 90.726 (+25 %) |
+| | Kieselbach | 108.087 | 126.220 (+17 %) |
+| wagemutig | Eisenbart | 56.466 | 73.726 (+31 %) |
+| | Eichwald | 34.810 | 59.147 (+70 %) |
+| | Kieselbach | 37.617 | 53.067 (+41 %) |
+
+- **Gekaufte Stücke** je KI-Haus in 30 Jahren: ausgewogen Ø 4,9, vorsichtig Ø 3,8, wagemutig Ø 5,0. Jedes Haus kauft Gutes Werkzeug, Meisterwerkzeug (ab Stufe 2), Lederschürzen und das Sonderstück seines Handwerks (Blasebalg, Leimofen, Flaschenzug); die Eisentür 52-mal (ausgewogen) bzw. 60-mal (wagemutig), bei den Vorsichtigen nie – dort stiehlt kein KI-Haus. Regale, Löschfass und die Stücke der Umlandbetriebe nie (keine Gulden-Wirkung, kein Brand bzw. keine Einrichtung).
+- **Stand am Ende:** ausgewogen Edler 58, Patrizier 2 → Edler 29, Freiherr 31; vorsichtig Edler 34, Freiherr 23, Gemeiner 3 → Edler 16, Freiherr 41, Gemeiner 3; wagemutig Edler 28, Patrizier 32 → Edler 55, Freiherr 4, Patrizier 1. Kein Haus bankrott.
+- Die Werkzeuge (10 % schneller je Stück, für alle Waren) machen sich deutlich unter 4 Jahren bezahlt; der große Zuwachs zeigt, dass die Einrichtung für jeden lohnt, der sie kauft – auch für den Spieler. Die gemeinsame Messung mit den neuen Kern-Werten macht der Teamleiter.
