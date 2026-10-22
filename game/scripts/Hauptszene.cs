@@ -51,6 +51,7 @@ namespace Reichsgilde;
 ///   --markt=1          gleich zu Beginn das Marktfenster öffnen
 ///   --verkaufen=1      gleich zu Beginn die Rückfrage zum Verkauf der eigenen Werkstatt öffnen (=2: vorher eine freie
 ///                      Liegenschaft dazukaufen und bis Mittag laufen lassen, damit der Verkauf erlaubt ist und Ware im Lager liegt)
+///   --schwierigkeit=<Normal|Schwer>  Schwierigkeit der neuen Partie nur für diesen Start (Normal: KI-Häuser starten wie der Spieler, Schwer: mit Vorsprung)
 ///   --einstellungen=1  gleich zu Beginn das Fenster „Einstellungen“ öffnen
 ///   --kanten=<Art>     Kantenglättung nur für diesen Start (Aus, Fxaa, Smaa, Taa, Msaa2, Msaa4, Msaa8)
 ///   --schatten=<Stufe> Schattenqualität nur für diesen Start (Niedrig, Mittel, Hoch)
@@ -308,7 +309,7 @@ public partial class Hauptszene : Node
         };
 
         var minuten = _simulation.Takt.RundenDauerSekunden / 60;
-        _hinweis.Text = $"1 Spieljahr = {minuten:0} Min. · {_simulation.Einstellungen.SiegbedingungText}\n"
+        _hinweis.Text = $"1 Spieljahr = {minuten:0} Min. · {_simulation.Einstellungen.SiegbedingungText} · Schwierigkeit {_simulation.Einstellungen.Schwierigkeit}\n"
                       + "Leertaste Pause · 1–4 Tempo (5–6 Test) · Mausrad Zoom\nRechte Maustaste/WASD verschieben · Q/E drehen · Alt: alle Namen\n"
                       + "Doppelklick auf Werkstatt, Wohnhaus, Rathaus oder Dom = hineingehen · Esc zurück bzw. Spielmenü";
 
@@ -639,7 +640,10 @@ public partial class Hauptszene : Node
             Glaube: optionen.TryGetValue("glaube", out var g) && Enum.TryParse<Reichsgilde.Core.Glaube.Konfession>(g, true, out var konfession) ? konfession : null,
             Rivalen: haeuser);
         if (neu.Rivalen > haeuser) neu = neu with { Rivalen = haeuser };
-        var (simulation, spieler) = Partieaufbau.Erstellen(einstellungen ?? Partieeinstellungen.Standard, daten, neu, start, karte);
+        einstellungen ??= Partieeinstellungen.Standard;
+        if (optionen.TryGetValue("schwierigkeit", out var stufe) && Enum.TryParse<Schwierigkeit>(stufe, true, out var schwierigkeit))
+            einstellungen = einstellungen with { Schwierigkeit = schwierigkeit }; // --schwierigkeit=Schwer: nur für diesen Start
+        var (simulation, spieler) = Partieaufbau.Erstellen(einstellungen, daten, neu, start, karte);
         SimulationVerbinden(simulation, spieler);
         return simulation;
     }
