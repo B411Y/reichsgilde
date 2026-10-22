@@ -27,11 +27,13 @@ Laden) und Dampfquellen „Dampf_<n>“ sind freiwillig, gibt es sie, laufen sie
 der Gäste „Gast_<n>“, „Gast_<Gruppe>_<n>“ (je Gruppe lückenlos ab 1), zu jedem ein „Krug_…“ mit derselben Endung, und Plätze
 des Barden „Barde_<n>“; ebenso (Prediger) Plätze der Gläubigen „Glaeubig_<n>“ (mit extras „sitzhoehe“), des Predigers auf der
 Kanzel „Predigt_<n>“ und der Beichte „Beichte_<n>“, je lückenlos ab 1; ebenso (Dieb) Plätze der Diebe „Dieb_<n>“ und des
-Meisterdiebs „Meister_<n>“ und (Gardist) Plätze der Wachen „Wache_<n>“, der Gefangenen „Gefangen_<n>“ und des Hauptmanns
-„Hauptmann_<n>“, je lückenlos ab 1, mit extras „taetigkeit“ und „bewegung“ (die Bewegung muss es in figur_mensch.glb geben;
-sitzende Bewegungen brauchen „sitzhoehe“). Hat ein Innenraum Plätze der Diebe oder der Wachen, stellt er keine Ware her:
-Arbeitsplätze und Werkstücke sind dann nicht nötig, und statt der Bedienung für die Produktion genügt eine für die Aufträge
-(„Bedienung_Auftraege_…“, Dieb) bzw. die Wache („Bedienung_Wache_…“, Gardist).
+Meisterdiebs „Meister_<n>“, (Gardist) Plätze der Wachen „Wache_<n>“, der Gefangenen „Gefangen_<n>“ und des Hauptmanns
+„Hauptmann_<n>“ und (Geldleiher) Plätze der Schreiber „Schreiber_<n>“, je lückenlos ab 1, mit extras „taetigkeit“ und
+„bewegung“ (die Bewegung muss es in figur_mensch.glb geben; sitzende Bewegungen brauchen „sitzhoehe“); ebenso (Geldleiher)
+Plätze der Kunden „Kunde_<Gruppe>_<n>“ (je Gruppe lückenlos ab 1, mit extras „bewegung“, sitzend mit „sitzhoehe“). Hat ein
+Innenraum Plätze der Diebe, der Wachen oder der Schreiber, stellt er keine Ware her: Arbeitsplätze und Werkstücke sind dann nicht
+nötig, und statt der Bedienung für die Produktion genügt eine für die Aufträge („Bedienung_Auftraege_…“, Dieb), die Wache
+(„Bedienung_Wache_…“, Gardist) bzw. die Bank („Bedienung_Bank_…“, Geldleiher).
 Ein Raum mit extras „stufe“ (z. B. die Sägehalle des Tischlers ab Stufe 3, Laden und Turm des Alchimisten) gibt es erst ab
 dieser Stufe: Anker darin und Türen dorthin brauchen mindestens dieselbe „stufe“. Späne „Spaene1“–„Spaene3“ (falls vorhanden) sind lückenlos und
 standardmäßig aus. Hat die Datei Animationen, muss eine „Arbeit“ heißen; sie darf weder Räume noch Stufen, Anker oder
@@ -169,7 +171,7 @@ def innen(pfad, g):
         if f"Blick_{raum}_0" not in knoten:
             fehler.append(f"Blickpunkt „Blick_{raum}_0“ fehlt")
     fehler += innen_stufen(g, knoten, welt, raeume, raum_bei)
-    ohne_ware = any(re.fullmatch(r"(Dieb|Wache)_\d+", n) for n in knoten)
+    ohne_ware = any(re.fullmatch(r"(Dieb|Wache|Schreiber)_\d+", n) for n in knoten)
     for art, nummern in reihen.items():
         frei = ("Auslage", "Dampf") + (("Arbeit", "Werkstueck") if ohne_ware else ())
         if sorted(nummern) != list(range(1, len(nummern) + 1)) or (not nummern and art not in frei):
@@ -179,8 +181,9 @@ def innen(pfad, g):
     fehler += innen_gaeste(knoten)
     fehler += innen_glaeubige(g, knoten)
     fehler += innen_diebe(g, knoten, bewegungen)
+    fehler += innen_kunden(g, knoten, bewegungen)
     for art in ("Personal", "Produktion", "Lager", "Einrichten", "Karren"):
-        ersatz = ("Auftraege", "Wache") if art == "Produktion" and ohne_ware else (art,)
+        ersatz = ("Auftraege", "Wache", "Bank") if art == "Produktion" and ohne_ware else (art,)
         if not any(n.startswith((f"Bedienung_{art}_",) + tuple(f"Bedienung_{e}_" for e in ersatz)) for n in knoten):
             fehler.append(f"keine Bedienung „Bedienung_{art}_…“")
     for name in knoten:
@@ -199,10 +202,10 @@ def innen(pfad, g):
     return fehler
 
 
-PLAETZE = ("Dieb", "Meister", "Wache", "Gefangen", "Hauptmann")   # Plätze mit extras „taetigkeit“ und „bewegung“
+PLAETZE = ("Dieb", "Meister", "Wache", "Gefangen", "Hauptmann", "Schreiber")   # Plätze mit extras „taetigkeit“ und „bewegung“
 ANKER = ("Blick_", "Arbeit_", "Lager_", "Werkstueck_", "Licht_", "Auslage_", "Dampf_", "Gast_", "Krug_", "Barde_", "Glaeubig_", "Predigt_",
-         "Beichte_") + tuple(p + "_" for p in PLAETZE)
-SITZEND = ("Sitzen", "Kutschieren", "Feinarbeit", "Trinken", "Schreiben", "Beten", "Zaehlen", "Putzen")   # Bewegungen im Sitzen
+         "Beichte_", "Kunde_") + tuple(p + "_" for p in PLAETZE)
+SITZEND = ("Sitzen", "Kutschieren", "Feinarbeit", "Trinken", "Schreiben", "Beten", "Zaehlen", "Putzen", "Rechnen")   # im Sitzen
 
 
 def ist_anker(g, name, i):
@@ -255,8 +258,8 @@ def innen_glaeubige(g, knoten):
 
 
 def innen_diebe(g, knoten, bewegungen):
-    """Plätze der Diebe (Dieb_<n>), des Meisterdiebs (Meister_<n>), der Wachen (Wache_<n>), der Gefangenen (Gefangen_<n>) und
-    des Hauptmanns (Hauptmann_<n>), je lückenlos ab 1, mit extras „taetigkeit“ und „bewegung“ (die es in figur_mensch.glb gibt);
+    """Plätze der Diebe (Dieb_<n>), des Meisterdiebs (Meister_<n>), der Wachen (Wache_<n>), der Gefangenen (Gefangen_<n>),
+    des Hauptmanns (Hauptmann_<n>) und der Schreiber (Schreiber_<n>), je lückenlos ab 1, mit extras „taetigkeit“ und „bewegung“ (die es in figur_mensch.glb gibt);
     sitzende brauchen „sitzhoehe“. Druckt je Tätigkeit die Plätze in Füllreihenfolge."""
     fehler = []
     reihen = {p: [] for p in PLAETZE}
@@ -282,6 +285,33 @@ def innen_diebe(g, knoten, bewegungen):
             fehler.append(f"{art}_<n>: Nummern müssen lückenlos ab 1 laufen, gefunden {sorted(nummern)}")
     for taetigkeit, liste in sorted(taetigkeiten.items(), key=lambda e: str(e[0])):
         print(f"Tätigkeit {taetigkeit}: " + ", ".join(f"{n} ({b})" for _, n, b in sorted(liste)))
+    return fehler
+
+
+def innen_kunden(g, knoten, bewegungen):
+    """Plätze der Kunden (Kunde_<Gruppe>_<n>) je Gruppe lückenlos ab 1, mit extras „bewegung“ (die es in figur_mensch.glb gibt);
+    sitzende brauchen „sitzhoehe“."""
+    fehler = []
+    gruppen = {}
+    for name, i in knoten.items():
+        treffer = re.fullmatch(r"Kunde_([A-Za-z]\w*?)_(\d+)", name)
+        if not treffer:
+            if name.startswith("Kunde_"):
+                fehler.append(f"{name}: Name muss Kunde_<Gruppe>_<n> sein")
+            continue
+        gruppen.setdefault(treffer.group(1), []).append(int(treffer.group(2)))
+        extras = g["nodes"][i].get("extras", {})
+        if "bewegung" not in extras:
+            fehler.append(f"{name}: extras „bewegung“ fehlt")
+        elif bewegungen is not None and extras["bewegung"] not in bewegungen:
+            fehler.append(f"{name}: Bewegung „{extras['bewegung']}“ gibt es in figur_mensch.glb nicht")
+        if extras.get("bewegung") in SITZEND and "sitzhoehe" not in extras:
+            fehler.append(f"{name}: sitzt („{extras.get('bewegung')}“), extras „sitzhoehe“ fehlt")
+    for gruppe, nummern in sorted(gruppen.items()):
+        if sorted(nummern) != list(range(1, len(nummern) + 1)):
+            fehler.append(f"Kunde_{gruppe}_<n>: Nummern müssen lückenlos ab 1 laufen, gefunden {sorted(nummern)}")
+    if gruppen:
+        print("Kunden: " + ", ".join(f"Kunde_{gruppe}_1–{len(n)}" for gruppe, n in sorted(gruppen.items())))
     return fehler
 
 
