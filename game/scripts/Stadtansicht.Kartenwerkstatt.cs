@@ -28,7 +28,10 @@ public enum Werkstattwerkzeug
     Wald,
     Streu,
 
-    /// <summary>Eine Aussparung in der gewählten Naturfläche zeichnen.</summary>
+    /// <summary>Eine Feldfläche zeichnen (Äcker, vor allem im Randstreifen): Ecken klicken, Doppelklick schließt.</summary>
+    Feld,
+
+    /// <summary>Eine Aussparung in der gewählten Wald-, Streu- oder Feldfläche zeichnen.</summary>
     Aussparung,
 
     /// <summary>Pflanzen entlang eines gezogenen Strichs streuen.</summary>
@@ -158,8 +161,7 @@ public partial class Stadtansicht
             BodenLegen(karte);
             KameraAusKarte(karte);
         }
-        else Flaeche(Vector3.Zero, new Vector2(520, 480), Wiese, -0.05f);
-        if (entwurf.Groesse is not null) KartenrandZeichnen(entwurf.Grenzen());
+        else BodenBauen(entwurf.Kartengrenzen); // Boden, Dunst und Kartenrand (Stadtansicht.Rand.cs)
 
         entwurf.Fangpunkte = Halteplaetze; // Karrenplätze und Gatter aus den Modellen (Stadtansicht.Kartenwerkstatt.Wege.cs)
         _stueckeKnoten = new Node3D { Name = "Stuecke" };
@@ -254,8 +256,11 @@ public partial class Stadtansicht
             case EntwurfStart:
                 _wsBelegungNeu = true; // Stadtansicht.Kartenwerkstatt.Start.cs
                 break;
+            case EntwurfKopf:
+                _wsRandNeu = true; // Größe, Rand oder Kamera-Start geändert: Boden, Dunst und Kartenrand neu (Stadtansicht.Kartenwerkstatt.Felder.cs)
+                break;
         }
-        if (!weg && a.Objekt is not (EntwurfPflanze or EntwurfNaturflaeche) && BereichVon(a.Objekt) is { } neu)
+        if (!weg && a.Objekt is not (EntwurfPflanze or EntwurfNaturflaeche or EntwurfFeld or EntwurfKopf) && BereichVon(a.Objekt) is { } neu)
         {
             _wsBereiche[a.Objekt] = neu;
             NaturBereichVormerken(neu);
@@ -279,6 +284,7 @@ public partial class Stadtansicht
     private void Nachziehen()
     {
         if (_wsBelegungNeu) BelegungNachziehen();
+        if (_wsRandNeu) RandNeuBauen();
         NaturNachziehen();
         if (_wsNetzNeu) NetzBauen();
         if (_wsFehlerNeu) FehlerZeigen();
@@ -711,9 +717,9 @@ public partial class Stadtansicht
         if (werkzeug == Werkstattwerkzeug.Baustein && (b is null || b.Art == Bausteinart.Natur)) werkzeug = Werkstattwerkzeug.Auswahl;
         if (werkzeug == Werkstattwerkzeug.Pflanze && b is not { Art: Bausteinart.Natur }) werkzeug = Werkstattwerkzeug.Auswahl;
         var ok = true;
-        if (werkzeug == Werkstattwerkzeug.Aussparung && WerkstattGewaehlt is not EntwurfNaturflaeche)
+        if (werkzeug == Werkstattwerkzeug.Aussparung && WerkstattGewaehlt is not EntwurfFlaeche { KannAussparungen: true })
         {
-            WerkstattMeldung?.Invoke("Für eine Aussparung erst eine Wald- oder Streufläche wählen.", true);
+            WerkstattMeldung?.Invoke("Für eine Aussparung erst eine Wald-, Streu- oder Feldfläche wählen.", true);
             werkzeug = Werkstattwerkzeug.Auswahl;
             ok = false;
         }
@@ -802,7 +808,7 @@ public partial class Stadtansicht
             case Werkstattwerkzeug.Weg:
                 WegVorschau(maus);
                 break;
-            case Werkstattwerkzeug.Bauzone or Werkstattwerkzeug.Wald or Werkstattwerkzeug.Streu or Werkstattwerkzeug.Aussparung:
+            case Werkstattwerkzeug.Bauzone or Werkstattwerkzeug.Wald or Werkstattwerkzeug.Streu or Werkstattwerkzeug.Feld or Werkstattwerkzeug.Aussparung:
                 FlaechenVorschau(maus);
                 break;
             case Werkstattwerkzeug.Pinsel or Werkstattwerkzeug.Radierer:
@@ -971,7 +977,7 @@ public partial class Stadtansicht
         // Das Mausrad über einer Tafel, die nicht (mehr) rollen kann, zoomt nicht die Kamera
         if (eingabe is InputEventMouseButton { ButtonIndex: MouseButton.WheelUp or MouseButton.WheelDown } && GetViewport().GuiGetHoveredControl() is not null) return true;
         var zeichnet = Kartenwerkzeug is Werkstattwerkzeug.Weg or Werkstattwerkzeug.Bauzone or Werkstattwerkzeug.Wald
-            or Werkstattwerkzeug.Streu or Werkstattwerkzeug.Aussparung or Werkstattwerkzeug.Mauer;
+            or Werkstattwerkzeug.Streu or Werkstattwerkzeug.Feld or Werkstattwerkzeug.Aussparung or Werkstattwerkzeug.Mauer;
         switch (eingabe)
         {
             case InputEventKey { Pressed: true, Keycode: Key.Q or Key.E, CtrlPressed: false } taste:
@@ -1039,8 +1045,8 @@ public partial class Stadtansicht
             case Werkstattwerkzeug.Pflanze when WerkstattBaustein is { } art && boden is { } ort:
                 if (Befehl(() => _entwurf.PflanzeSetzen(art, ort.X, ort.Y, WerkstattDrehung)) is { } p) WerkstattWaehlen(p);
                 return;
-            case Werkstattwerkzeug.Weg or Werkstattwerkzeug.Bauzone or Werkstattwerkzeug.Wald or Werkstattwerkzeug.Streu or Werkstattwerkzeug.Aussparung
-                or Werkstattwerkzeug.Mauer:
+            case Werkstattwerkzeug.Weg or Werkstattwerkzeug.Bauzone or Werkstattwerkzeug.Wald or Werkstattwerkzeug.Streu or Werkstattwerkzeug.Feld
+                or Werkstattwerkzeug.Aussparung or Werkstattwerkzeug.Mauer:
                 ZeichnenKlick(maus, boden, doppelklick); // Stadtansicht.Kartenwerkstatt.Flaechen.cs
                 return;
             case Werkstattwerkzeug.Pinsel or Werkstattwerkzeug.Radierer:
@@ -1179,7 +1185,7 @@ public partial class Stadtansicht
                 case EntwurfWeg w when !Befehl(() => _entwurf.StuetzpunktLoeschen(w, griff.Index)):
                     WerkstattMeldung?.Invoke("Ein Weg braucht mindestens zwei Stützpunkte – Entf ohne gewählten Griff löscht den ganzen Weg.", true);
                     return;
-                case EntwurfNaturflaeche f when griff.Vieleck >= 0 && f.Aussparungen[griff.Vieleck].Count <= 3:
+                case EntwurfFlaeche { KannAussparungen: true } f when griff.Vieleck >= 0 && f.Aussparungen[griff.Vieleck].Count <= 3:
                     Befehl(() => _entwurf.AussparungLoeschen(f, griff.Vieleck)); // eine Aussparung mit drei Ecken: weg mit ihr
                     break;
                 case EntwurfFlaeche f when !Befehl(() => _entwurf.EckeLoeschen(f, griff.Index, griff.Vieleck)):

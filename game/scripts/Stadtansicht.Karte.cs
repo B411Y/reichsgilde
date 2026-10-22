@@ -119,6 +119,7 @@ public partial class Stadtansicht
         UmlandstellenBauen(karte); // Stadtansicht.Umland.cs
         Anschliessen(karte);
         NaturAusKarte(karte); // Stadtansicht.Natur.cs
+        FelderAusKarte(karte); // Stadtansicht.Rand.cs
         KameraAusKarte(karte);
         if (_netz.Teile() != 1)
             GD.PushWarning($"Gassennetz der Karte „{karte.Kennung}“: {_netz.Teile()} getrennte Teile – nicht jedes Ziel ist erreichbar.");
@@ -158,21 +159,15 @@ public partial class Stadtansicht
     }
 
     /// <summary>
-    /// Wiese unter allem (so weit über die Karte hinaus, dass auch ganz herausgezoomt kein Himmel am Rand zu sehen ist) und das Pflaster
-    /// in jeder Mauer.
+    /// Boden und Dunst um die ganze Karte (Spielfeld und Randstreifen, dazu <see cref="RandZugabe"/> darüber hinaus – so sieht die Kamera am Rand
+    /// auch ganz herausgezoomt weder Himmel noch eine Kante; Stadtansicht.Rand.cs) und das Pflaster in jeder Mauer.
     /// </summary>
     private void BodenLegen(Stadtkarte karte)
     {
-        var rahmen = _kartenRahmen;
-        foreach (var p in karte.Natur.Flaechen.SelectMany(f => f.Flaeche)) rahmen = rahmen.Expand(Punkt2(p));
-        rahmen = rahmen.Grow(WieseRand);
-        Flaeche(new Vector3(rahmen.GetCenter().X, 0, rahmen.GetCenter().Y), rahmen.Size, Wiese, -0.05f);
+        BodenBauen(_entwurf?.Kartengrenzen ?? karte.Kartengrenzen);
         foreach (var flaeche in _mauerFlaechen)
             Vieleck(flaeche, Pflaster, 0f);
     }
-
-    /// <summary>So weit reicht die Wiese über Gebäude, Wege und Natur der Karte hinaus (Meter).</summary>
-    private const float WieseRand = 120;
 
     /// <summary>Eine flache Fläche in Form eines Vielecks (Pflaster in der Mauer). Die UV-Koordinaten laufen wie bei einer Ebene von 0 bis 1 über das umschließende Rechteck.</summary>
     private void Vieleck(Vector2[] punkte, Color farbe, float hoehe, Node3D? eltern = null)
@@ -442,7 +437,7 @@ public partial class Stadtansicht
         if (karte.Kamera is { } k)
         {
             _kameraDrehung.Position = Punkt3(k.Punkt);
-            if (k.Zoom > 0) _kamera.Size = Mathf.Clamp((float)k.Zoom, KameraMinZoom, KameraMaxZoom);
+            if (k.Zoom > 0) _kamera.Size = Mathf.Clamp((float)k.Zoom, KameraMinZoom, KameraGroessterZoom());
             _zielDrehung += (float)k.Drehung;
             _kameraDrehung.RotationDegrees = new Vector3(0, _zielDrehung, 0);
             return;

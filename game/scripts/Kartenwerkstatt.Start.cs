@@ -20,7 +20,7 @@ namespace Reichsgilde;
 public partial class Kartenwerkstatt
 {
     private VBoxContainer _startTafel = null!;
-    private Button _reiterEigenschaften = null!, _reiterStart = null!;
+    private Button _reiterEigenschaften = null!, _reiterStart = null!, _reiterKarte = null!;
     private ScrollContainer _inhaltRolle = null!;
 
     /// <summary>Zeigt die Tafel rechts die Startbelegung (statt der Eigenschaften)?</summary>
@@ -41,24 +41,25 @@ public partial class Kartenwerkstatt
     //  Reiter
     // ═════════════════════════════════════════════════════════════════════════
 
-    /// <summary>Die Reiter oben in der Tafel rechts: „Eigenschaften“ (des gewählten Teils) und „Start“ (Startbelegung).</summary>
+    /// <summary>Die Reiter oben in der Tafel rechts: „Eigenschaften“ (des gewählten Teils), „Start“ (Startbelegung) und „Karte“ (Größe, Rand, Kamera-Start).</summary>
     private void ReiterBauen(VBoxContainer spalte)
     {
         var zeile = new HBoxContainer();
         zeile.AddThemeConstantOverride("separation", 6);
         spalte.AddChild(zeile);
         var gruppe = new ButtonGroup();
-        Button Reiter(string text, bool start, string tipp)
+        Button Reiter(string text, Action wahl, string tipp)
         {
             var knopf = new Button { Text = text, ToggleMode = true, ButtonGroup = gruppe, FocusMode = Control.FocusModeEnum.None, TooltipText = tipp,
                 SizeFlagsHorizontal = Control.SizeFlags.ExpandFill, CustomMinimumSize = new Vector2(0, 34) };
             knopf.AddThemeFontSizeOverride("font_size", 16);
-            knopf.Pressed += () => ReiterWaehlen(start);
+            knopf.Pressed += wahl;
             zeile.AddChild(knopf);
             return knopf;
         }
-        _reiterEigenschaften = Reiter("Eigenschaften", false, "Was das gewählte Stück ist: Name, Lage, Werte");
-        _reiterStart = Reiter("Start", true, "Startbelegung: wo der Spieler und die KI-Häuser am Start wohnen und arbeiten");
+        _reiterEigenschaften = Reiter("Eigenschaften", () => ReiterWaehlen(false), "Was das gewählte Stück ist: Name, Lage, Werte");
+        _reiterStart = Reiter("Start", () => ReiterWaehlen(true), "Startbelegung: wo der Spieler und die KI-Häuser am Start wohnen und arbeiten");
+        _reiterKarte = Reiter("Karte", KarteReiterWaehlen, "Die Karte als Ganzes: Größe, Randstreifen, Randlandschaft, Kamera-Start");
         _reiterEigenschaften.SetPressedNoSignal(true);
     }
 
@@ -66,9 +67,11 @@ public partial class Kartenwerkstatt
     private void ReiterWaehlen(bool start)
     {
         _startOffen = start;
+        _karteOffen = false;
         (start ? _reiterStart : _reiterEigenschaften).SetPressedNoSignal(true);
         _eigenschaften.Visible = !start;
         _startTafel.Visible = start;
+        _karteTafel.Visible = false;
         if (start) StartZeigen();
         _inhaltRolle.ScrollVertical = 0;
     }
@@ -86,7 +89,7 @@ public partial class Kartenwerkstatt
             EigenschaftenZeigen(neu: true);
             return;
         }
-        if (_startOffen && _stadt.Kartenwerkzeug != Werkstattwerkzeug.Platz) ReiterWaehlen(false);
+        if ((_startOffen && _stadt.Kartenwerkzeug != Werkstattwerkzeug.Platz) || _karteOffen) ReiterWaehlen(false);
         EigenschaftenZeigen(neu: true);
     }
 

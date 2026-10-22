@@ -87,3 +87,14 @@ So wird eingetragen (damit sich die Chats nie an derselben Stelle treffen):
 | Startoption | `--schwierigkeit=Normal\|Schwer` überschreibt die Stufe nur für diesen Start (auch ohne Menü, dann sonst Normal). | 22.10.2026 |
 | Anzeige im Spiel | Die Hinweiszeile oben links nennt die Stufe hinter der Siegbedingung (bei geladenen Ständen die gespeicherte). Eine eigene Einstellungsliste gibt es im Spiel sonst nicht. | 22.10.2026 |
 | Freie Umlandbetriebe | Bei Normal erscheinen die Umlandbetriebe der KI-Häuser ohne Änderung der Darstellung als „zu verpachten“ (Schild, Beschriftung, Auswahltafel mit Pacht-Knopf); geprüft an Grube und Holzschlag im Klicktest. | 22.10.2026 |
+
+### Kartenwerkstatt: Größe, Rand und Felder (PR #178)
+
+| Thema | Entscheidung | Datum |
+|---|---|---|
+| Reiter „Karte“ | Dritter Reiter rechts neben „Eigenschaften“ und „Start“: Breite (400 bis 2.000 m), Tiefe (300 bis 2.000 m), Randstreifen (100 bis 600 m), jeweils in 50-m-Schritten (Zahlfeld, ein Befehl je Änderung; das Feld zeigt danach, was der Kern daraus gemacht hat), „Rand vorschlagen“, „Kamera-Start übernehmen“, ein Schalter für die Kartenrandlinien. Ein Prüfbefund zu Größe, Rand oder Kamera-Start öffnet den Reiter | 22.10.2026 |
+| Rand vorschlagen | Jedes Mal ein anderer Vorschlag (Zufallswert), nur die erste Karte hat den festen Vorschlag der Kennung. Liegen Flächen ganz im Rand, die er ersetzt, fragt die Werkstatt vorher („Randlandschaft ersetzen?“ mit der Zahl); Rückgängig holt alles zurück | 22.10.2026 |
+| Kamera-Start | Der aktuelle Blick (Punkt, Zoom, Drehung relativ zur gewohnten Blickrichtung). Liegt der Blickpunkt im Rand (die Werkstatt darf bis zur Außenkante), rückt er an den Rand des Spielfelds und die Meldung sagt es | 22.10.2026 |
+| Neue Karte | 600 × 450 m (Zahlfeld 400 bis 2.000, Schritt 50) mit dem Rand-Vorschlag als Ausgangsstand: Er gilt nicht als Änderung (kein „ungespeichert“), Rückgängig nimmt ihn weg | 22.10.2026 |
+| Feldfläche | Werkzeug im Katalog unter „Flächen“; Tafel: Name, Richtung (0° = Nord–Süd), Streifenbreite, Länge der Stücke, je Frucht ein Regler für den Anteil (0 nimmt sie heraus, mindestens eine bleibt), Startwert mit „Neu würfeln“, Zahl der Acker-Stücke, Aussparungen. „Aussparung“ gilt jetzt für Wald-, Streu- und Feldflächen | 22.10.2026 |
+| Startoptionen | `--werkstatt-groesse=<b>,<t>[,<rand>]`, `--werkstatt-randvorschlag=1` (oder eine Zahl als Startwert), `--werkstatt-feld=x,z;…` (Flächen mit `\|`), `--werkstatt-flaeche=feld,…`, `--werkstatt-kamerastart=1`, `--werkstatt-tafel=karte`, `--werkstatt-auswahl=feld:<Name>`, `--werkstatt-werkzeug=feldflaeche` (Liste in `CLAUDE.md`) | 22.10.2026 |
