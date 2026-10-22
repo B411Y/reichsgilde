@@ -95,9 +95,243 @@
     "dichte": 10,
     "startwert": 1001,
     "gruppen": [{"gewicht": 1, "radius": 0, "teile": [{"arten": {"tanne": 0.55, "eiche": 0.3, "buche": 0.15}, "anzahl": [1, 1]}]}]
+   },
+   {
+    "name": "Wald im Rand",
+    "art": "wald",
+    "flaeche": [[-350, -386], [-366, -355], [-389, -314], [-443, -321], [-468, -338], [-487, -382], [-455, -411], [-444, -426], [-395, -422], [-366, -403]],
+    "dichte": 10,
+    "startwert": 1002,
+    "gruppen": [{"gewicht": 1, "radius": 0, "teile": [{"arten": {"tanne": 0.55, "eiche": 0.3, "buche": 0.15}, "anzahl": [1, 1]}]}]
+   },
+   {
+    "name": "Wald im Rand 2",
+    "art": "wald",
+    "flaeche": [[-365, -218], [-365, -192], [-386, -163], [-438, -176], [-469, -189], [-477, -228], [-466, -250], [-432, -269], [-399, -282], [-374, -253]],
+    "dichte": 10,
+    "startwert": 1003,
+    "gruppen": [{"gewicht": 1, "radius": 0, "teile": [{"arten": {"tanne": 0.55, "eiche": 0.3, "buche": 0.15}, "anzahl": [1, 1]}]}]
+   },
+   {
+    "name": "Wald im Rand 3",
+    "art": "wald",
+    "flaeche": [[-196, -388], [-216, -334], [-283, -317], [-301, -362], [-301, -388], [-269, -443], [-211, -429]],
+    "dichte": 10,
+    "startwert": 1004,
+    "gruppen": [{"gewicht": 1, "radius": 0, "teile": [{"arten": {"tanne": 0.55, "eiche": 0.3, "buche": 0.15}, "anzahl": [1, 1]}]}]
+   },
+   {
+    "name": "Wald im Rand 4",
+    "art": "wald",
+    "flaeche": [[475, -378], [438, -333], [389, -311], [359, -361], [362, -410], [398, -426], [452, -414]],
+    "dichte": 10,
+    "startwert": 1005,
+    "gruppen": [{"gewicht": 1, "radius": 0, "teile": [{"arten": {"tanne": 0.55, "eiche": 0.3, "buche": 0.15}, "anzahl": [1, 1]}]}]
+   },
+   {
+    "name": "Wald im Rand 5",
+    "art": "wald",
+    "flaeche": [[478, -227], [464, -201], [426, -168], [393, -178], [359, -185], [360, -217], [367, -244], [387, -284], [427, -269], [469, -256]],
+    "dichte": 10,
+    "startwert": 1006,
+    "gruppen": [{"gewicht": 1, "radius": 0, "teile": [{"arten": {"tanne": 0.55, "eiche": 0.3, "buche": 0.15}, "anzahl": [1, 1]}]}]
+   },
+   {
+    "name": "Wald im Rand 6",
+    "art": "wald",
+    "flaeche": [[-342, 375], [-387, 413], [-425, 433], [-466, 393], [-464, 349], [-434, 323], [-382, 322]],
+    "dichte": 10,
+    "startwert": 1007,
+    "gruppen": [{"gewicht": 1, "radius": 0, "teile": [{"arten": {"tanne": 0.55, "eiche": 0.3, "buche": 0.15}, "anzahl": [1, 1]}]}]
+   },
+   {
+    "name": "Wald im Rand 7",
+    "art": "wald",
+    "flaeche": [[-197, 229], [-203, 245], [-242, 273], [-260, 286], [-300, 257], [-303, 222], [-289, 193], [-267, 179], [-242, 179], [-205, 186]],
+    "dichte": 10,
+    "startwert": 1008,
+    "gruppen": [{"gewicht": 1, "radius": 0, "teile": [{"arten": {"tanne": 0.55, "eiche": 0.3, "buche": 0.15}, "anzahl": [1, 1]}]}]
+   },
+   {
+    "name": "Wald im Rand 8",
+    "art": "wald",
+    "flaeche": [[-20, 378], [-33, 428], [-101, 431], [-136, 390], [-141, 363], [-101, 317], [-48, 319]],
+    "dichte": 10,
+    "startwert": 1009,
+    "gruppen": [{"gewicht": 1, "radius": 0, "teile": [{"arten": {"tanne": 0.55, "eiche": 0.3, "buche": 0.15}, "anzahl": [1, 1]}]}]
+   },
+   {
+    "name": "Wald im Rand 9",
+    "art": "wald",
+    "flaeche": [[155, 232], [114, 273], [85, 283], [52, 265], [24, 226], [31, 189], [85, 155], [123, 189]],
+    "dichte": 10,
+    "startwert": 1010,
+    "gruppen": [{"gewicht": 1, "radius": 0, "teile": [{"arten": {"tanne": 0.55, "eiche": 0.3, "buche": 0.15}, "anzahl": [1, 1]}]}]
+   },
+   {
+    "name": "Wald im Rand 10",
+    "art": "wald",
+    "flaeche": [[145, 376], [124, 413], [86, 423], [34, 424], [27, 378], [42, 328], [94, 326], [115, 331]],
+    "dichte": 10,
+    "startwert": 1011,
+    "gruppen": [{"gewicht": 1, "radius": 0, "teile": [{"arten": {"tanne": 0.55, "eiche": 0.3, "buche": 0.15}, "anzahl": [1, 1]}]}]
+   },
+   {
+    "name": "Wald im Rand 11",
+    "art": "wald",
+    "flaeche": [[-361, 73], [-374, 98], [-404, 123], [-430, 120], [-468, 103], [-484, 67], [-473, 31], [-447, 24], [-395, 17], [-375, 49]],
+    "dichte": 10,
+    "startwert": 1012,
+    "gruppen": [{"gewicht": 1, "radius": 0, "teile": [{"arten": {"tanne": 0.55, "eiche": 0.3, "buche": 0.15}, "anzahl": [1, 1]}]}]
+   },
+   {
+    "name": "Streu im Rand",
+    "art": "streu",
+    "flaeche": [[330, -70], [314, -45], [285, -21], [257, -35], [233, -52], [216, -80], [234, -119], [262, -129], [296, -119], [315, -104]],
+    "dichte": 2.9,
+    "startwert": 1013,
+    "gruppen": [
+     {
+      "gewicht": 0.34,
+      "radius": 3.5,
+      "teile": [
+       {"arten": {"hasel": 1, "holunder": 1, "brombeere": 1, "ginster": 1, "wacholder": 1}, "anzahl": [2, 4]},
+       {"arten": {"farn": 1, "gras": 1, "brennnessel": 1, "pilze": 1, "wildblumen": 1}, "anzahl": [2, 4]}
+      ]
+     },
+     {"gewicht": 0.2, "radius": 2.5, "teile": [{"arten": {"felsbrocken": 1, "findling": 1, "kiesel": 1, "lesesteinhaufen": 1}, "anzahl": [2, 4]}, {"arten": {"gras": 1}, "anzahl": [1, 3]}]},
+     {"gewicht": 0.14, "radius": 2.5, "teile": [{"arten": {"stumpf": 1, "totholz": 1, "reisighaufen": 1}, "anzahl": [1, 3]}, {"arten": {"farn": 1}, "anzahl": [1, 3]}]},
+     {"gewicht": 0.32, "radius": 4, "teile": [{"arten": {"wildblumen": 1}, "anzahl": [2, 5]}, {"arten": {"gras": 1}, "anzahl": [3, 6]}]}
+    ]
+   },
+   {
+    "name": "Wald im Rand 12",
+    "art": "wald",
+    "flaeche": [[473, -81], [465, -44], [427, -12], [390, -20], [371, -81], [381, -128], [423, -140], [463, -118]],
+    "dichte": 10,
+    "startwert": 1014,
+    "gruppen": [{"gewicht": 1, "radius": 0, "teile": [{"arten": {"tanne": 0.55, "eiche": 0.3, "buche": 0.15}, "anzahl": [1, 1]}]}]
+   },
+   {
+    "name": "Wald im Rand 13",
+    "art": "wald",
+    "flaeche": [[328, 77], [329, 110], [308, 136], [257, 135], [231, 105], [215, 69], [240, 36], [260, 32], [299, 18], [324, 48]],
+    "dichte": 10,
+    "startwert": 1015,
+    "gruppen": [{"gewicht": 1, "radius": 0, "teile": [{"arten": {"tanne": 0.55, "eiche": 0.3, "buche": 0.15}, "anzahl": [1, 1]}]}]
+   },
+   {
+    "name": "Wald im Rand 14",
+    "art": "wald",
+    "flaeche": [[482, 63], [461, 113], [442, 128], [397, 113], [376, 92], [372, 45], [402, 13], [429, 31], [461, 28]],
+    "dichte": 10,
+    "startwert": 1016,
+    "gruppen": [{"gewicht": 1, "radius": 0, "teile": [{"arten": {"tanne": 0.55, "eiche": 0.3, "buche": 0.15}, "anzahl": [1, 1]}]}]
    }
   ],
-  "pflanzen": []
+  "pflanzen": [],
+  "felder": [
+   {
+    "name": "Feld",
+    "flaeche": [[-324, -296], [-254, -296], [-254, -155], [-324, -155]],
+    "richtung": 86.9,
+    "streifen": 6,
+    "laenge": 50,
+    "startwert": 2000,
+    "fruechte": {"flachs": 1, "brache": 0.3}
+   },
+   {"name": "Feld 2", "flaeche": [[-250, -296], [-173, -296], [-173, -155], [-250, -155]], "richtung": 188.6, "streifen": 9, "laenge": 35, "startwert": 2001, "fruechte": {"roggen": 1}},
+   {
+    "name": "Feld 3",
+    "flaeche": [[-157, -445], [-89, -445], [-89, -306], [-157, -306]],
+    "richtung": 89.4,
+    "streifen": 7.5,
+    "laenge": 45,
+    "startwert": 2002,
+    "fruechte": {"weizen": 1, "roggen": 0.3}
+   },
+   {
+    "name": "Feld 4",
+    "flaeche": [[-85, -445], [-9, -445], [-9, -306], [-85, -306]],
+    "richtung": 169.6,
+    "streifen": 6.5,
+    "laenge": 40,
+    "startwert": 2003,
+    "fruechte": {"hafer": 1, "gerste": 0.6}
+   },
+   {"name": "Feld 5", "flaeche": [[8, -441], [159, -441], [159, -310], [8, -310]], "richtung": 78.5, "streifen": 6, "laenge": 35, "startwert": 2004, "fruechte": {"roggen": 1}},
+   {
+    "name": "Feld 6",
+    "flaeche": [[5, -296], [163, -296], [163, -159], [5, -159]],
+    "richtung": 170.9,
+    "streifen": 9.5,
+    "laenge": 50,
+    "startwert": 2005,
+    "fruechte": {"roggen": 1, "hafer": 0.7, "brache": 0.4}
+   },
+   {
+    "name": "Feld 7",
+    "flaeche": [[170, -445], [252, -445], [252, -308], [170, -308]],
+    "richtung": 173.7,
+    "streifen": 6,
+    "laenge": 45,
+    "startwert": 2006,
+    "fruechte": {"weizen": 1, "roggen": 0.3}
+   },
+   {"name": "Feld 8", "flaeche": [[256, -445], [329, -445], [329, -308], [256, -308]], "richtung": 263.3, "streifen": 8.5, "laenge": 50, "startwert": 2007, "fruechte": {"roggen": 1}},
+   {"name": "Feld 9", "flaeche": [[174, -292], [261, -292], [261, -155], [174, -155]], "richtung": 169.4, "streifen": 7.5, "laenge": 55, "startwert": 2008, "fruechte": {"brache": 1}},
+   {
+    "name": "Feld 10",
+    "flaeche": [[265, -292], [328, -292], [328, -155], [265, -155]],
+    "richtung": 265.5,
+    "streifen": 9.5,
+    "laenge": 55,
+    "startwert": 2009,
+    "fruechte": {"hafer": 1, "gerste": 0.6}
+   },
+   {"name": "Feld 11", "flaeche": [[-325, 304], [-259, 304], [-259, 443], [-325, 443]], "richtung": 180.6, "streifen": 7.5, "laenge": 35, "startwert": 2010, "fruechte": {"roggen": 1}},
+   {
+    "name": "Feld 12",
+    "flaeche": [[-255, 304], [-174, 304], [-174, 443], [-255, 443]],
+    "richtung": 267.7,
+    "streifen": 8.5,
+    "laenge": 35,
+    "startwert": 2011,
+    "fruechte": {"hafer": 1, "gerste": 0.6}
+   },
+   {
+    "name": "Feld 13",
+    "flaeche": [[-164, 155], [-7, 155], [-7, 294], [-164, 294]],
+    "richtung": 189.2,
+    "streifen": 8.5,
+    "laenge": 35,
+    "startwert": 2012,
+    "fruechte": {"flachs": 1, "brache": 0.3}
+   },
+   {"name": "Feld 14", "flaeche": [[171, 160], [324, 160], [324, 296], [171, 296]], "richtung": 80.1, "streifen": 8, "laenge": 50, "startwert": 2013, "fruechte": {"hafer": 1, "gerste": 0.6}},
+   {"name": "Feld 15", "flaeche": [[174, 309], [330, 309], [330, 442], [174, 442]], "richtung": 188.7, "streifen": 10, "laenge": 60, "startwert": 2014, "fruechte": {"gerste": 1}},
+   {"name": "Feld 16", "flaeche": [[342, 154], [404, 154], [404, 295], [342, 295]], "richtung": 84.6, "streifen": 9.5, "laenge": 55, "startwert": 2015, "fruechte": {"roggen": 1}},
+   {"name": "Feld 17", "flaeche": [[408, 154], [490, 154], [490, 295], [408, 295]], "richtung": 183.9, "streifen": 8.5, "laenge": 50, "startwert": 2016, "fruechte": {"roggen": 1}},
+   {
+    "name": "Feld 18",
+    "flaeche": [[-493, -140], [-354, -140], [-354, -6], [-493, -6]],
+    "richtung": 353.4,
+    "streifen": 6.5,
+    "laenge": 35,
+    "startwert": 2017,
+    "fruechte": {"hafer": 1, "gerste": 0.6}
+   },
+   {
+    "name": "Feld 19",
+    "flaeche": [[-346, -142], [-205, -142], [-205, -4], [-346, -4]],
+    "richtung": 86,
+    "streifen": 7.5,
+    "laenge": 45,
+    "startwert": 2018,
+    "fruechte": {"flachs": 1, "brache": 0.3}
+   },
+   {"name": "Feld 20", "flaeche": [[-345, 7], [-207, 7], [-207, 144], [-345, 144]], "richtung": 5.1, "streifen": 7, "laenge": 60, "startwert": 2019, "fruechte": {"roggen": 1}}
+  ]
  },
  "start": {
   "spieler": {"wohnhaus": "Wohnhausplatz2", "farbe": "#336bb8", "werkstatt": {"platz": "Werkstattplatz1", "name": "{art} am Werkstattplatz"}},

@@ -6,6 +6,8 @@
  "einheit": "Meter",
  "achsen": "x = Osten, z = Süden (−z = Norden), Ursprung am Marktplatz – Weltkoordinaten der Stadtansicht in Metern (Godot x/z, y = oben)",
  "raster": 2,
+ "groesse": [400, 300],
+ "rand": 300,
  "gebaeude": [
   {"kennung": "Markt", "katalog": "markt", "name": "Marktplatz", "punkt": [0, 0], "drehung": 0},
   {"kennung": "Rathaus", "katalog": "rathaus", "name": "Rathaus", "punkt": [0, -20], "drehung": 0},

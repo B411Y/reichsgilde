@@ -6,6 +6,9 @@
  "einheit": "Meter",
  "achsen": "x = Osten, z = Süden (−z = Norden), Ursprung am Marktplatz",
  "raster": 2,
+ "groesse": [700, 450],
+ "mitte": [-50, 25],
+ "rand": 300,
  "gebaeude": [
   {"kennung": "Markt", "katalog": "markt", "name": "Heumarkt", "punkt": [0, 0], "drehung": 0},
   {"kennung": "Rathaus", "katalog": "rathaus", "name": "Rathaus", "punkt": [-11, -27.5], "drehung": 0},

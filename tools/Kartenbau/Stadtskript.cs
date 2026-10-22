@@ -27,8 +27,17 @@ public abstract class Stadtskript
     /// <summary>Eine Zeile für die Liste der Skripte.</summary>
     public virtual string Beschreibung => "";
 
-    /// <summary>Größe der Karte in Metern um den Ursprung (Marktplatz): Breite in x, Tiefe in z.</summary>
+    /// <summary>Größe des Spielfelds in Metern um den Ursprung (Marktplatz): Breite in x, Tiefe in z (400 × 300 bis 2.000 × 2.000).</summary>
     public virtual (double Breite, double Tiefe) Groesse => (400, 300);
+
+    /// <summary>Breite des Randstreifens um das Spielfeld (Meter, 100–600; ohne Angabe die Vorgabe 300, dann steht sie nicht in der Datei).</summary>
+    public virtual double? Rand => null;
+
+    /// <summary>
+    /// Startwert für den Rand-Vorschlag (Felder und Waldstücke im Randstreifen, <see cref="Kartenentwurf.RandVorschlagen"/>), den das Skript nach
+    /// <see cref="Anlegen"/> macht – null: keiner (der Randstreifen bleibt Wiese, bis jemand ihn gestaltet).
+    /// </summary>
+    public virtual int? RandVorschlag => null;
 
     /// <summary>Der Entwurf, an dem <see cref="Anlegen"/> arbeitet.</summary>
     protected Kartenentwurf E { get; private set; } = null!;
@@ -41,7 +50,9 @@ public abstract class Stadtskript
     {
         E = Kartenentwurf.Neu(Kennung, Stadt, Groesse.Breite, Groesse.Tiefe, katalog);
         E.Daten = daten;
+        if (Rand is { } rand) E.RandbreiteSetzen(rand);
         Anlegen();
+        if (RandVorschlag is { } startwert) E.RandVorschlagen(startwert);
         return E;
     }
 

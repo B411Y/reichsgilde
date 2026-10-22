@@ -15,7 +15,7 @@ namespace Reichsgilde.Kartenbau.Staedte;
 //      die Einwohnerplätze am Ring; zehn Einwohnerplätze der Vorstadt am Feldweg im Nordosten.
 //    • Vor jedem Tor die Landstraße und beiderseits ein Feldweg; dazwischen vier Bauzonen der Vorstadt (Platz für eine Partie mit 8 Häusern,
 //      siehe Kapazitätsprüfung).
-//    • Wald im Nordwesten und Südosten, ein Waldweg als weiche Kurve.
+//    • Wald im Nordwesten und Südosten, ein Waldweg als weiche Kurve; im Randstreifen (300 m) Felder und Waldstücke aus dem Rand-Vorschlag.
 //    • Start: der Spieler und zwei KI-Häuser (Tischlerei, Gießerei).
 // ═════════════════════════════════════════════════════════════════════════════
 
@@ -25,6 +25,7 @@ public sealed class Probestadt : Stadtskript
     public override string Stadt => "Probestadt";
     public override string Beschreibung => "kleines Muster: Mauerring, zwei Tore, Markt, 4 Werkstatt- und 6 Wohnhausplätze, Vorstadt, Wald, 2 KI-Häuser";
     public override (double Breite, double Tiefe) Groesse => (400, 300);
+    public override int? RandVorschlag => 1;
 
     private const double MauerX = 70, MauerZ = 55;   // Mauerring bei x = ±70, z = ±55
     private const double Ring = 13;                  // Ringstraße so weit innerhalb der Mauer
@@ -98,6 +99,6 @@ public sealed class Probestadt : Stadtskript
         var giesser = E.HausHinzufuegen("Haus Brendel");
         E.BetriebHinzufuegen(giesser, werkstaetten[3].Kennung, Betriebsart.Giesserei);
 
-        E.KameraSetzen(P(0, 0), 110);
+        E.KameraStartSetzen(P(0, 0), 110);
     }
 }

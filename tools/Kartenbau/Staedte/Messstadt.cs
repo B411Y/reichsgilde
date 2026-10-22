@@ -141,7 +141,7 @@ public sealed class Messstadt : Stadtskript
             E.BetriebHinzufuegen(haus, umlandKi[i].Kennung, h.Umland);
         }
 
-        E.KameraSetzen(P(0, 0), 140);
+        E.KameraStartSetzen(P(0, 0), 140);
     }
 
     /// <summary>Ein Umlandbetrieb mit der Vorderseite zum Umlandweg: <paramref name="nord"/> −1 nördlich des Nordwegs, +1 südlich des Südwegs.</summary>
