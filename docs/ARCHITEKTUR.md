@@ -245,6 +245,7 @@ Ein KI-Rivale (`src/Reichsgilde.Core/Ki/KiRivale.cs`) führt ein Konto und alle 
 | jede volle Stunde | Personal | Freie Plätze mit der erlaubten Arbeitskraft mit dem höchsten Jahresertrag besetzen: Tempo × 720 Min. × Wert je Minute − Lohn − Risiko × Schaden |
 | jede volle Stunde | Eskorte | Geringste erwartete Kosten: Eskortenlohn + Überfallchance × Erfolgschance der Banden × Ladungswert × Vorsicht |
 | Jahresende | Karren kaufen | Wenn der Betrieb im Vorjahr mehr als 20 % der Arbeitszeit stillstand und die Reserve es erlaubt |
+| Jahresende | Einrichtung kaufen (PR #177) | Je Betrieb das erlaubte Stück mit der kürzesten `Werkstattwesen.Amortisationsjahre` (Preis ÷ `ErwarteterMehrgewinnJeJahr`), wenn sie höchstens `EinrichtungHoechstensJahre` beträgt (`ki.einrichtung.hoechstensJahre` ± `charakterJahre` nach `MaxAmortisationJahre` des Profils) und danach `reserveFaktor` × Reserve bleibt; nicht in Not, nicht wenn die Vorsichtige spart. Ohne Abschnitt `ki` (`KiDaten`) kauft die KI keine Einrichtung. |
 
 **Werkstatt zum Handwerk (PR #60):** Hat ein KI-Haus von einem Handwerk nur den Umlandbetrieb (Bauernhof, Klosterhof, Duftgarten), kauft `Expandieren` die Werkstatt dazu – auch wenn `BetriebeHoechstens` schon erreicht ist (`NurUmland`, `HatWerkstattFuer`). Andere Käufe bleiben an die Höchstzahl gebunden.
 
