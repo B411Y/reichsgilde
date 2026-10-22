@@ -13,13 +13,14 @@ Inhalt je Datei (Blender: Z oben, Blick nach -Y; im Spiel Y oben, Blick nach +Z)
     Koerper_Frau    Kleid bis über die Knöchel, Zopf
     Trachtteile     Strohhut, Barett, Kapuze, Haube, Schleier, Schuerze, Kiepe, Buendel, Tasche, Stab, Hacke, Hammer,
                     Hobel, Saege, Drechseleisen, Schlaegel, Meissel, Stoessel, Kelle, Flakon, Krug, Laute, Feder, Sieb,
-                    Dochtstab, Dietrich, Muenzbeutel, Lappen, Uebungsschwert
+                    Dochtstab, Dietrich, Muenzbeutel, Lappen, Uebungsschwert, Rechenpfennig, Muenze
                     – standardmäßig aus, das Spiel blendet sie je Rolle ein (wie heute `TrachtVon`; das Werkzeug bei der
                     passenden Bewegung: Hammer beim Hämmern, Hobel beim Hobeln, Säge beim Sägen, Drechseleisen beim Drechseln,
                     Schlägel und Meißel beim Behauen und Bildhauen, Stößel beim Mörsern, Kelle beim Rühren, Flakon beim
                     Mischen, Krug beim Zapfen und Trinken, Laute bei „Laute“, Dochtstab beim Kerzenziehen, Sieb beim
                     Schöpfen, Feder beim Schreiben, Dietrich beim Knacken, Muenzbeutel beim Zählen, Lappen (samt Helm auf dem
-                    Schoß) beim Putzen, Uebungsschwert beim Fechten)
+                    Schoß) beim Putzen, Uebungsschwert beim Fechten, Rechenpfennig (samt Blatt in der Linken) beim Rechnen,
+                    Muenze beim Wiegen)
     Bewegungen      Stehen, Gehen, Eilen, Gebeugt, Tragen, Sitzen, Reden, Hacken, Buecken, Hueten,
                     Ziehen (Handkarren), Kutschieren (auf dem Bock),
                     Haemmern, Blasebalg, Schleifen (stehend), Feinarbeit (sitzend) – Arbeit in der Schmiede,
@@ -47,13 +48,16 @@ Inhalt je Datei (Blender: Z oben, Blick nach -Y; im Spiel Y oben, Blick nach +Z)
                     liegend, ruhig atmend; die Wurzel kippt um −90°) – für die Diebe,
                     Putzen (sitzend: der Lappen kreist über dem Helm auf dem Schoß, die Linke hält ihn am Rand, zwischendurch
                     den Glanz prüfen), Fechten (stehend vor der Strohpuppe: Grundstellung, ausholen, Hieb an ihre Schulter,
-                    Stich im Ausfallschritt an ihre Brust) – für die Wache
+                    Stich im Ausfallschritt an ihre Brust) – für die Wache,
+                    Rechnen (sitzend am Rechentuch: das Blatt lesen, einen Rechenpfennig auf der Linie schieben, den nächsten
+                    eine Linie höher legen), Wiegen (stehend an der Balkenwaage: eine Münze vom Stapel auf die rechte Schale,
+                    den Balken beobachten, abnehmen, zu den geprüften legen) – für den Geldleiher
                     – jede eine Schleife am Ort (ohne Vorwärtsbewegung; das Spiel schiebt die Figur)
                     Die Werkstatt-Bewegungen zielen mit den Händen (beim Drechseln auch mit dem rechten Fuß) auf feste
                     Höhen (ARBEITSHOEHEN, PEDAL, VORLAGE, MISCHGLAS, PRESSE, ZAPFHAHN, KRUG_TISCH, KERZEN, BUETTE, SCHREIBEN,
-                    KANZEL, KNACKEN, ZAEHLEN, PUTZEN, FECHTEN – wie in schmied_innen.glb, tischler_innen.glb,
+                    KANZEL, KNACKEN, ZAEHLEN, PUTZEN, FECHTEN, RECHNEN, WIEGEN – wie in schmied_innen.glb, tischler_innen.glb,
                     steinmetz_innen.glb, alchimist_innen.glb, parfumeur_innen.glb, wirt_innen.glb, prediger_innen.glb,
-                    dieb_innen.glb und gardist_innen.glb):
+                    dieb_innen.glb, gardist_innen.glb und geldleiher_innen.glb):
                     Jedes Volk erreicht sie
                     mit eigenen Arm- und Beinwinkeln (`arm_ik`, `arm_ziel`, `bein_ik`).
 Material: alle Teile (Körper, Trachtteile, Werkzeug) tragen nur ein Material „Figur“ – eine Figur ist so ein
@@ -95,6 +99,8 @@ bs.FARBEN.update({
     "Putzlappen": (0.80, 0.76, 0.66),      # Lappen beim Rüstungputzen
     "Blankeisen": (0.52, 0.53, 0.55),      # geputzter Helm (deckend gemalt, kein Metall: die Figur hat ein Material)
     "Schwertholz": (0.70, 0.58, 0.40),     # Klinge des hölzernen Übungsschwerts (Esche)
+    "Rechenpfennig": (0.80, 0.64, 0.30),   # Rechenpfennig aus Messing
+    "Postenblatt": (0.86, 0.82, 0.70),     # Blatt mit den Posten beim Rechnen
 })
 
 FPS = 24
@@ -112,7 +118,7 @@ VOELKER = {
 ZONEN = {"Gewand": 1, "Beinkleid": 2, "Haut": 3, "Haar": 4, "Kopfbedeckung": 5}   # alle übrigen Stoffe: Zone 0
 TRACHT = ["Strohhut", "Barett", "Kapuze", "Haube", "Schleier", "Schuerze", "Kiepe", "Buendel", "Tasche", "Stab", "Hacke", "Hammer",
           "Hobel", "Saege", "Drechseleisen", "Schlaegel", "Meissel", "Stoessel", "Kelle", "Flakon", "Krug", "Laute", "Feder", "Sieb",
-          "Dochtstab", "Dietrich", "Muenzbeutel", "Lappen", "Uebungsschwert"]
+          "Dochtstab", "Dietrich", "Muenzbeutel", "Lappen", "Uebungsschwert", "Rechenpfennig", "Muenze"]
 HAMMER = 0.3          # vom Mittelpunkt der Hand bis zur Mitte des Hammerkopfs, in Verlängerung des Unterarms
 # Wo die Hände bei der Arbeit sind (Meter vor dem Fußpunkt der Figur, Höhe über dem Boden) – passend zu den Ankern
 # im Innenraum: Amboss 0,68 m vor der Figur, Bahn 0,86 m hoch; Hebel des Blasebalgs 0,42 m vor ihr, 1,36 m hoch;
@@ -192,6 +198,17 @@ MUENZBEUTEL = {"r": 0.05, "h": 0.08, "hals": 0.03}   # Beutel: Halbmesser und H�
 # Kuppe.
 FECHTEN = {"puppe": 1.2, "leib": 0.22, "unten": 0.85, "oben": 1.55, "schwert": 0.72}
 PUTZEN = {"r": 0.105, "h": 0.13, "krempe": 0.16, "kreis": 0.045}
+# Geldleiher (geldleiher_innen.glb). Rechnen am Rechentisch (sitzend; Höhen über der Sitzhöhe wie beim Zählen, der Tisch `tisch`
+# darüber, also 0,78 m hoch): Auf dem Rechentuch laufen `linien` Linien quer vor der Figur, `linie` Meter auseinander, die erste `vor` Meter vor
+# ihr; die Rechte legt einen Rechenpfennig (Halbmesser `pfennig`) von Linie zu Linie, die Mitte der Hand liegt `hand` über ihm.
+# Die Linke hält das Blatt mit den Posten bei `blatt` (seitlich, vor, Höhe über der Sitzhöhe). Wiegen am Wägetisch (stehend, der
+# Tisch `tisch` hoch): Die Balkenwaage steht `vor` Meter vor der Figur, ihr Balken dreht sich `achse` über dem Tisch, die Schalen
+# hängen `arm` links und rechts davon, ihr Boden `schale` über dem Tisch (Halbmesser `schale_r`); die Münzen auf dem Tisch rechts
+# daneben: ungeprüft bei `stapel`, geprüft bei `geprueft` (seitlich, vor). Die Münze (Halbmesser `muenze`) liegt `hand` unter der
+# Mitte der Hand.
+RECHNEN = {"tisch": 0.3, "vor": 0.3, "linie": 0.055, "linien": 5, "pfennig": 0.011, "hand": 0.03, "blatt": (0.21, 0.3, 0.43)}
+WIEGEN = {"tisch": 0.9, "vor": 0.42, "achse": 0.34, "arm": 0.14, "schale": 0.1, "schale_r": 0.055, "stapel": (-0.33, 0.3),
+          "geprueft": (-0.31, 0.52), "muenze": 0.012, "hand": 0.03}
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -423,7 +440,7 @@ REQUISITEN = {"Hobel": ("Hobeln", 0.3), "Drechseleisen": ("Drechseln", 0.5), "Me
               "Schlaegel": ("Behauen", 0.55), "Stoessel": ("Moersern", 0.0), "Kelle": ("Ruehren", 0.0),
               "Flakon": ("Mischen", 0.0), "Krug": ("Zapfen", 0.0), "Feder": ("Schreiben", 0.0), "Sieb": ("Schoepfen", 0.0),
               "Dochtstab": ("Kerzenziehen", 0.0), "Dietrich": ("Knacken", 0.3), "Muenzbeutel": ("Zaehlen", 0.0),
-              "Lappen": ("Putzen", 0.0)}   # Bewegung, Phase
+              "Lappen": ("Putzen", 0.0), "Rechenpfennig": ("Rechnen", 0.0), "Muenze": ("Wiegen", 0.0)}   # Bewegung, Phase
 
 
 def requisit(name, st, p, ske):
@@ -591,7 +608,12 @@ def requisit(name, st, p, ske):
                 n.vieleck([zurueck @ e for e in reversed(ecken)], st["Putzlappen"])
             n.stab(zurueck @ (lappen + Vector((0.03, 0.02, 0.005))), zurueck @ (lappen + Vector((0.07, 0.05, -0.045))), 0.04, 0.006,
                    st["Putzlappen"])                                                           # ein Zipfel hängt herab
-        else:                                     # Drechseleisen: Heft hinter der Hand, Klinge bis an das Werkstück
+        elif name in ("Rechenpfennig", "Muenze"):  # flache Münze unter der Mitte der rechten Hand (zwischen Daumen und Fingern)
+            r, tief, stoff = ((RECHNEN["pfennig"], RECHNEN["hand"], "Rechenpfennig") if name == "Rechenpfennig"
+                              else (WIEGEN["muenze"], WIEGEN["hand"], "Gold"))
+            fuss = hand - Vector((0, 0, tief - 0.001))                                    # 1 mm über Tuch bzw. Schale
+            drehteil(n, zurueck @ fuss, zurueck.to_3x3() @ Vector((0, 0, 1)), 0.003, r, r, st[stoff], n=8)
+        else:                                    # Drechseleisen: Heft hinter der Hand, Klinge bis an das Werkstück
             vor, hoehe = ARBEITSHOEHEN["Drehbank"]
             spitze = Vector((0.02, -(vor - 0.01), hoehe))
             achse = (spitze - hand).normalized()
@@ -603,6 +625,25 @@ def requisit(name, st, p, ske):
         becken = ske.pose.bones["Wurzel"].matrix @ ske.data.bones["Wurzel"].matrix_local.inverted()
         with t.an("Wurzel") as n:
             putzhelm(n, st, p, becken.inverted())
+    if name == "Rechenpfennig":                   # das Blatt mit den Posten in der Linken, oben von der Figur weg geneigt
+        hin_l = ske.pose.bones["Unterarm_L"].matrix @ ske.data.bones["Unterarm_L"].matrix_local.inverted()
+        zur_l = hin_l.inverted()
+        hand_l = hin_l @ Vector((p["schulterbreite"] + 0.01, 0, hand_z))
+        auf = Vector((0, -math.sin(math.radians(35)), math.cos(math.radians(35))))    # das Blatt hinauf (vorn ist −y)
+        zu = auf.cross(Vector((1, 0, 0))).normalized()                                  # zur Figur (Schrift)
+        unten = hand_l + Vector((0, 0, -0.02))
+
+        def ecke(x, u, w=0.0):
+            return zur_l @ (unten + Vector((x, 0, 0)) + auf * u + zu * w)
+        with t.an("Unterarm_L") as n:
+            blatt = [ecke(0.03, 0.0), ecke(-0.12, 0.0), ecke(-0.12, 0.2), ecke(0.03, 0.2)]
+            n.vieleck(blatt, st["Postenblatt"])
+            n.vieleck(list(reversed(blatt)), st["Postenblatt"])
+            for k in range(6):                                                         # Posten in Tinte
+                u = 0.16 - 0.025 * k
+                laenge = 0.1 - 0.025 * (k % 3)
+                n.vieleck_nach([ecke(-0.01, u, 0.001), ecke(-0.01 - laenge, u, 0.001), ecke(-0.01 - laenge, u + 0.006, 0.001),
+                                ecke(-0.01, u + 0.006, 0.001)], zur_l.to_3x3() @ zu, st["Kohle"])
     pose_setzen(ske, {}, 0.0)
     bpy.context.view_layer.update()
     return t
@@ -974,6 +1015,9 @@ def haltung(name, phase, p):
         r.update(winkel)
     elif name in GARDIST:                                               # Wache: Rüstung putzen, fechten
         winkel, hoch = GARDIST[name](phase, p)
+        r.update(winkel)
+    elif name in GELDLEIHER:                                            # Geldleiher: rechnen, Münzen wiegen
+        winkel, hoch = GELDLEIHER[name](phase, p)
         r.update(winkel)
     elif name == "Hueten":
         r["Oberarm_R"] = (-28, 0, -10)                                   # hält den Stab vor sich
@@ -2321,6 +2365,115 @@ def fechten(phase, p):
 GARDIST = {"Putzen": putzen, "Fechten": fechten}
 
 
+# ── Geldleiher: rechnen, wiegen ──────────────────────────────────────────────────────────────────────────────────────────
+
+def rechen_punkte(p):
+    """Wohin die Rechte beim Rechnen greift (seitlich, vor, Höhe; die Mitte der Hand RECHNEN „hand“ über dem Rechenpfennig auf dem
+    Tuch): „a“ und „b“ auf der ersten Linie, „c“ auf der zweiten, „d“ auf der dritten, „ruhe“ rechts neben den Linien."""
+    r = RECHNEN
+    z = p["knie"] - 0.02 + r["tisch"] + r["hand"]
+
+    def linie(k):
+        return r["vor"] + r["linie"] * k
+    return {"a": Vector((-0.17, linie(0), z)), "b": Vector((-0.04, linie(0), z)), "c": Vector((-0.12, linie(1), z)),
+            "d": Vector((-0.12, linie(2), z)), "ruhe": Vector((-0.22, linie(1) - 0.02, z + 0.02))}
+
+
+RECHEN_FOLGE = ((0.0, "a"), (0.1, "a"), (0.24, "b"), (0.3, "b"), (0.42, "c"), (0.48, "c"), (0.6, "d"), (0.66, "d"), (0.74, "ruhe"),
+                (0.9, "ruhe"), (1.0, "a"))
+RECHEN_SCHIEBEN = {("a", "b"), ("c", "d")}       # auf dem Tuch geschoben; sonst hebt die Hand den Pfennig im Bogen
+
+
+def rechnen(phase, p):
+    """Rechnen (4 s, sitzend am Rechentisch): Die Linke hält das Blatt mit den Posten, die Figur liest (0–0,1), schiebt einen
+    Rechenpfennig mit der Rechten auf der ersten Linie nach links (bis 0,24), hebt den nächsten von der zweiten Linie auf die dritte
+    (bis 0,6, der Übertrag), legt die Hand neben das Tuch und liest ab 0,7 den nächsten Posten, zurück. Der Kopf folgt der Rechten
+    und dreht sich zum Lesen zum Blatt. Gibt (Winkel in Grad, Hüfte)."""
+    q = rechen_punkte(p)
+    for (a, pa), (b, pb) in zip(RECHEN_FOLGE, RECHEN_FOLGE[1:]):
+        if phase <= b:
+            t = weich((phase - a) / (b - a)) if pa != pb else 0.0
+            break
+    rechts = q[pa].lerp(q[pb], t)
+    if pa != pb and (pa, pb) not in RECHEN_SCHIEBEN:
+        rechts += Vector((0, 0, 0.05 * math.sin(math.pi * t)))
+    lesen = weich(1 - phase / 0.1) if phase < 0.5 else weich((phase - 0.7) / 0.08)      # liest von 0,7 bis zum Anfang
+    s = math.sin(2 * math.pi * phase)
+    hoch = -(p["huefte"] - (p["knie"] - 0.02)) + 0.003 * s
+    lehne = 15 + 1.5 * s - 4 * lesen
+    bs_, bv, bh = RECHNEN["blatt"]
+    links = Vector((bs_, bv, p["knie"] - 0.02 + bh)) + Vector((-0.01, -0.02, 0.04)) * lesen + Vector((0, 0.004, 0.003)) * s
+    blick = 70 * (rechts.x - 0.02) * (1 - lesen) + 24 * lesen
+    r = {"Ruecken": (lehne, 0, 0), "Kopf": (26 - lehne * 0.5 + 4 * lesen, blick, 6 * lesen)}
+    r["Oberschenkel_L"], r["Oberschenkel_R"] = (-86, 0, 7), (-86, 0, -7)
+    r["Unterschenkel_L"], r["Unterschenkel_R"] = (84, 0, 0), (82, 0, 0)
+    r["Oberarm_R"], r["Unterarm_R"] = arm_genau(p, r, hoch, "R", tuple(rechts))
+    r["Oberarm_L"], r["Unterarm_L"] = arm_genau(p, r, hoch, "L", tuple(links))
+    return r, hoch
+
+
+def waage_winkel(phase):
+    """Neigung des Waagbalkens beim Wiegen (Grad, + = die Schale rechts der Figur sinkt): Bei 0,32 liegt die Münze auf der rechten
+    Schale, der Balken schwingt aus und steht bei 0,7 wieder waagrecht (die Münze ist vollwichtig); bei 0,76 nimmt die Figur sie
+    ab, der Balken nickt kurz zur anderen Seite. geldleiher_innen bewegt den Balken danach (Animation „Arbeit“)."""
+    if 0.32 <= phase < 0.7:
+        t = (phase - 0.32) / 0.38
+        return 7.0 * (1 - t) * math.exp(-2.0 * t) * math.sin(2 * math.pi * 2.0 * t)
+    if 0.76 <= phase < 0.92:
+        t = (phase - 0.76) / 0.16
+        return -2.5 * (1 - t) * math.sin(2 * math.pi * 1.5 * t)
+    return 0.0
+
+
+def wiege_punkte(p):
+    """Wohin die Rechte beim Wiegen greift (seitlich, vor, Höhe; die Münze WIEGEN „hand“ unter der Mitte der Hand): auf den
+    Stapel, über die rechte Schale und hinein, daneben zum Warten, auf die geprüften Münzen; dazu die Linke flach auf dem Tisch."""
+    w = WIEGEN
+    t, h = w["tisch"], w["hand"]
+    schale = Vector((-w["arm"], w["vor"], t + w["schale"] + 0.004 + h))
+    return {"stapel": Vector((w["stapel"][0], w["stapel"][1], t + 0.024 + h)), "ueber": schale + Vector((0, 0, 0.06)), "schale": schale,
+            "warten": schale + Vector((-0.07, -0.08, 0.07)), "geprueft": Vector((w["geprueft"][0], w["geprueft"][1], t + 0.012 + h)),
+            "links": Vector((0.2, 0.28, t + 0.035))}
+
+
+WIEGE_FOLGE = ((0.0, "stapel"), (0.08, "stapel"), (0.2, "ueber"), (0.27, "schale"), (0.32, "schale"), (0.4, "warten"),
+               (0.66, "warten"), (0.72, "schale"), (0.76, "schale"), (0.86, "geprueft"), (0.9, "geprueft"), (1.0, "stapel"))
+WIEGE_BOGEN = {("stapel", "ueber"), ("schale", "geprueft"), ("geprueft", "stapel")}   # mit der Münze im Bogen über den Tisch
+
+
+def wiegen(phase, p):
+    """Wiegen (4 s, stehend am Wägetisch): eine Münze vom Stapel nehmen (0–0,08), über die rechte Schale der Balkenwaage führen und
+    hineinlegen (bis 0,32), die Hand zurückziehen und den schwingenden Balken beobachten (bis 0,66, waage_winkel), die Münze
+    wieder abnehmen (bis 0,76) und zu den geprüften legen (bis 0,9), zurück zum Stapel. Die Linke liegt auf dem Tisch. Wer größer
+    ist, beugt sich zur Waage hinunter. Gibt (Winkel in Grad, Hüfte)."""
+    q = wiege_punkte(p)
+    for (a, pa), (b, pb) in zip(WIEGE_FOLGE, WIEGE_FOLGE[1:]):
+        if phase <= b:
+            t = weich((phase - a) / (b - a)) if pa != pb else 0.0
+            break
+    rechts = q[pa].lerp(q[pb], t)
+    if (pa, pb) in WIEGE_BOGEN:
+        rechts += Vector((0, 0, 0.05 * math.sin(math.pi * t)))
+    if pa == pb == "stapel":                                                       # eine Münze abheben: die Finger tippen
+        rechts += Vector((0, 0, 0.01 * abs(math.sin(2 * math.pi * (phase - a) / (b - a)))))
+    schauen = weich((phase - 0.34) / 0.06) * (1 - weich((phase - 0.66) / 0.06))
+    ueber = p["schulter"] - (WIEGEN["tisch"] + WIEGEN["achse"])
+    lehne = max(0.0, min(12.0, ueber * 25.0)) + 4 * schauen
+    hoch = -max(0.0, min(0.03, (ueber - 0.3) * 0.15))
+    s = math.sin(2 * math.pi * phase)
+    r = {"Ruecken": (lehne + 0.8 * s, -4, 0),
+         "Kopf": (14 - 0.5 * lehne + 10 * schauen, 50 * (rechts.x + 0.05) * (1 - schauen) + 6 * schauen, 0)}
+    r["Oberarm_R"], r["Unterarm_R"] = arm_genau(p, r, hoch, "R", tuple(rechts))
+    r["Oberarm_L"], r["Unterarm_L"] = arm_genau(p, r, hoch, "L", tuple(q["links"] + Vector((0, 0, 0.003 * s))))
+    for seite, vor, z in (("L", 0.07, 5), ("R", -0.04, -5)):
+        o, u = bein_ik(p, hoch, vor, 0.0)
+        r[f"Oberschenkel_{seite}"], r[f"Unterschenkel_{seite}"] = (o, 0, z), (u, 0, 0)
+    return r, hoch
+
+
+GELDLEIHER = {"Rechnen": rechnen, "Wiegen": wiegen}
+
+
 BEWEGUNGEN = {   # Name: Dauer in Sekunden (eine Schleife)
     "Stehen": 3.0, "Gehen": 1.0, "Eilen": 0.7, "Gebeugt": 1.4, "Tragen": 1.2, "Sitzen": 3.0, "Reden": 2.0,
     "Hacken": 1.3, "Buecken": 2.4, "Hueten": 4.0, "Ziehen": 1.3, "Kutschieren": 1.0,
@@ -2333,6 +2486,7 @@ BEWEGUNGEN = {   # Name: Dauer in Sekunden (eine Schleife)
     "Kerzenziehen": 4.0, "Schoepfen": 4.0, "Schreiben": 4.0, "Predigen": 6.0, "Beten": 4.0, "Knien": 4.0,
     "Knacken": 4.0, "Zaehlen": 4.0, "Schlafen": 4.0,
     "Putzen": 4.0, "Fechten": 2.4,
+    "Rechnen": 4.0, "Wiegen": 4.0,
 }
 
 
@@ -2579,7 +2733,7 @@ def vorschau_bewegungen(schnell):
                  "Bildhauen": ["Schlaegel", "Meissel"], "Moersern": ["Stoessel"], "Ruehren": ["Kelle"],
                  "Mischen": ["Flakon"], "Zapfen": ["Krug"], "Trinken": ["Krug"], "Laute": ["Laute"], "Kerzenziehen": ["Dochtstab"],
                  "Schoepfen": ["Sieb"], "Schreiben": ["Feder"], "Knacken": ["Dietrich"], "Zaehlen": ["Muenzbeutel"],
-                 "Putzen": ["Lappen"], "Fechten": ["Uebungsschwert"]}.get(name, [])
+                 "Putzen": ["Lappen"], "Fechten": ["Uebungsschwert"], "Rechnen": ["Rechenpfennig"], "Wiegen": ["Muenze"]}.get(name, [])
         wahl = [o for o in objekte if o.type == "MESH" and o.name.split(".")[0] in teile + ["Koerper_Mann"]]
         sy = ((len(reihen) - 1) / 2 - r) * abstand
         for k, ph in enumerate(phasen):
@@ -2595,7 +2749,7 @@ def vorschau_bewegungen(schnell):
         alle.append(beschriftung(name, Vector(((-2.3) * 0.7071 - sy * 0.7071, (-2.3) * 0.7071 + sy * 0.7071, 0.9))))
     bs.vorschau_buehne(None, ziel_hoehe=0.9, ausschnitt=22.0 * len(reihen) / 12, schnell=schnell)
     szene = bpy.context.scene
-    f = 0.83                                                            # unter 3 MB: Ausschnitt gleich, weniger Bildpunkte
+    f = 0.8                                                             # unter 3 MB: Ausschnitt gleich, weniger Bildpunkte
     szene.render.resolution_x, szene.render.resolution_y = round(900 * f), round(1620 * len(reihen) / 12 * f)
     szene.render.image_settings.color_mode = "RGB"                      # ohne Alphakanal und stark gepackt: kleinere Datei
     szene.render.image_settings.compression = 100
@@ -2607,7 +2761,7 @@ def arbeitsplatz(name, ort, st, p, phase=0.0):
     Seite ist −y. `phase`: Stand der Bewegung (der Querhebel der Presse schwenkt mit)."""
     netz = bs.Netz("_Hilfe")
     holz, eisen = st["Holz"], st["Eisen"]
-    if name in ("Sitzen", "Kutschieren", "Feinarbeit", "Trinken", "Schreiben", "Beten", "Zaehlen", "Putzen"):   # Bank bzw. Hocker
+    if name in ("Sitzen", "Kutschieren", "Feinarbeit", "Trinken", "Schreiben", "Beten", "Zaehlen", "Putzen", "Rechnen"):   # Bank, Hocker
         netz.quader(ort + Vector((0, 0, p["knie"] - 0.06)), (0.5, 0.5, 0.08), holz)
         for dx in (-0.2, 0.2):
             netz.quader(ort + Vector((dx, 0, (p["knie"] - 0.1) / 2)), (0.06, 0.4, p["knie"] - 0.1), holz)
@@ -2751,6 +2905,31 @@ def arbeitsplatz(name, ort, st, p, phase=0.0):
         netz.quader(puppe + Vector((0, 0, 1.42)), (0.08, 1.0, 0.08), st["Holz alt"])
         bs.achteck(netz, st, puppe, f["leib"], f["unten"], f["oben"], "Heu", n=8)
         bs.achteck(netz, st, puppe, 0.14, f["oben"] + 0.05, f["oben"] + 0.33, "Heu", n=8)
+    elif name == "Rechnen":                                             # Tisch vor der Bank, Rechentuch mit Linien und Pfennigen
+        r = RECHNEN
+        tisch = p["knie"] - 0.02 + r["tisch"]
+        netz.quader(ort + Vector((-0.6, 0, tisch - 0.03)), (0.8, 1.4, 0.06), holz)
+        for dy in (-0.6, 0.6):
+            netz.quader(ort + Vector((-0.6, dy, (tisch - 0.06) / 2)), (0.6, 0.06, tisch - 0.06), holz)
+        netz.quader(ort + Vector((-r["vor"] - 0.11, 0.0, tisch + 0.001)), (0.36, 0.5, 0.002), st["Kraut"])
+        for k in range(r["linien"]):
+            netz.quader(ort + Vector((-r["vor"] - r["linie"] * k, 0.0, tisch + 0.0025)), (0.004, 0.46, 0.001), st["Stadtweiss"])
+    elif name == "Wiegen":                                              # Wägetisch, Balkenwaage (der Balken neigt sich mit der Phase)
+        w = WIEGEN
+        t = w["tisch"]
+        netz.quader(ort + Vector((-w["vor"], 0, t - 0.03)), (0.7, 1.2, 0.06), holz)
+        netz.quader(ort + Vector((-w["vor"], 0, (t - 0.06) / 2)), (0.5, 1.0, t - 0.06), st["Holz alt"])
+        fuss = ort + Vector((-w["vor"], 0, t))
+        netz.stab(fuss, fuss + Vector((0, 0, w["achse"])), 0.03, 0.03, st["Gold"])
+        neig = math.radians(waage_winkel(phase))
+        for sx in (-1, 1):                                              # sx −1: Schale rechts der Figur (+y im Bild)
+            ende = fuss + Vector((0, -sx * w["arm"] * math.cos(neig), w["achse"] + sx * w["arm"] * math.sin(neig)))
+            netz.stab(fuss + Vector((0, 0, w["achse"])), ende, 0.012, 0.012, st["Gold"])
+            boden = Vector((ende.x, ende.y, t + w["schale"] + (ende.z - t - w["achse"])))
+            netz.stab(ende, boden, 0.004, 0.004, st["Gold"])
+            bs.achteck(netz, st, boden, w["schale_r"], 0.0, 0.012, "Gold")
+        sx, sv = w["stapel"]
+        bs.achteck(netz, st, ort + Vector((-sv, -sx, t)), 0.014, 0.0, 0.024, "Gold")
     return netz.objekt() if netz.dreiecke() else None
 
 

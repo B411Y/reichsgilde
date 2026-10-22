@@ -1,5 +1,5 @@
 {
-  "version": 46,
+  "version": 47,
   "gesundheit": {
     "medicusKosten": 120,
     "medicusKostenPest": 300,
@@ -1077,6 +1077,15 @@
         { "kennung": "Hunde", "name": "Wachhunde", "preis": 350, "abStufe": 1, "wirkung": { "streifenFaktor": 1.25 } },
         { "kennung": "Kettenhemd", "name": "Kettenhemden", "preis": 350, "abStufe": 1, "wirkung": { "geleitFaktor": 0.8 } },
         { "kennung": "Regale", "name": "Waffenkammer", "preis": 200, "abStufe": 1, "wirkung": { "lohnFaktor": 0.9 } },
+        { "kennung": "Loeschfass", "name": "Löschfass", "preis": 100, "abStufe": 1, "wirkung": { "brandFaktor": 0.5 } },
+        { "kennung": "Eisentuer", "name": "Eisentür", "preis": 300, "abStufe": 1, "wirkung": { "einbruchFaktor": 0.5 } }
+      ],
+      "Geldleiher": [
+        { "kennung": "Werkzeug1", "name": "Rechenbretter", "preis": 300, "abStufe": 1, "wirkung": { "rahmenFaktor": 1.1 } },
+        { "kennung": "Werkzeug2", "name": "Hauptbücher", "preis": 800, "abStufe": 2, "voraussetzung": "Werkzeug1", "wirkung": { "rahmenFaktor": 1.1 } },
+        { "kennung": "Goldwaage", "name": "Goldwaage", "preis": 350, "abStufe": 1, "wirkung": { "wechselFaktor": 1.1 } },
+        { "kennung": "Pfandkammer", "name": "Pfandkammer", "preis": 350, "abStufe": 1, "wirkung": { "ausfallFaktor": 0.75 } },
+        { "kennung": "Kassenschrank", "name": "Kassenschrank", "preis": 200, "abStufe": 1, "wirkung": { "kreditFaktor": 1.25 } },
         { "kennung": "Loeschfass", "name": "Löschfass", "preis": 100, "abStufe": 1, "wirkung": { "brandFaktor": 0.5 } },
         { "kennung": "Eisentuer", "name": "Eisentür", "preis": 300, "abStufe": 1, "wirkung": { "einbruchFaktor": 0.5 } }
       ]

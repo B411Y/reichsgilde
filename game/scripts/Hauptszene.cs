@@ -34,7 +34,7 @@ namespace Reichsgilde;
 ///   --innen=1          direkt in der Innenansicht der eigenen Werkstatt starten (--innen=Rathaus, --innen=Dom bzw. --innen=wohnhaus:<Inhaber>: dort)
 ///   --raum=2           mit --innen: gleich im zweiten Raum der Raumleiste (Werkstatt: 1 Werkraum, 2 Lager; Wohnhaus: 1 Wohnstube, 2 Kontor)
 ///   --innenblick=L1    mit --innen: gleich auf diesem Blickpunkt des Raums stehen (0 = Mitte, L1, L2, R1, R2, O1, U1 – was das Modell hat)
-///   --tafel=personal   mit --innen: gleich eine Tafel der Bedienung öffnen (personal, produktion, lager, karren, einrichten)
+///   --tafel=personal   mit --innen: gleich eine Tafel der Bedienung öffnen (personal, produktion, lager, karren, einrichten, wache, bank)
 ///   --arbeiter=1,2     mit --innen: diese Arbeiter im Raum auswählen (Nummern wie im Personalbuch)
 ///   --einrichtung=Werkzeug1,Regale  der eigenen Werkstatt gleich diese Einrichtung kaufen (mit --vermoegen=5000)
 ///   --einstellen=Lehrling,Geselle   der eigenen Werkstatt gleich diese Arbeiter einstellen
@@ -42,7 +42,7 @@ namespace Reichsgilde;
 ///   --verwalten=1      das Bedienfeld der eigenen Gießerei gleich öffnen
 ///   --karren=Ochsenkarren,Kriegskarren  der eigenen Gießerei gleich diese Karren dazukaufen (mit --vermoegen=5000; Handkarren, Ochsenkarren, Kriegskarren)
 ///   --vermoegen=12000  Startvermögen des Spielers setzen (zum Ausprobieren des Aufstiegs)
-///   --beruf=Steinmetz  Startberuf der Testpartie (Schmied, Tischler, Steinmetz, Alchimist, Wirt, Prediger, Dieb, Gardist)
+///   --beruf=Steinmetz  Startberuf der Testpartie (Schmied, Tischler, Steinmetz, Alchimist, Wirt, Prediger, Dieb, Gardist, Geldleiher)
 ///   --bericht=1        gleich zu Beginn einen Jahresbericht zeigen (zum Testen der Anzeige)
 ///   --rat=1            gleich zu Beginn die Ratskammer öffnen
 ///   --familie=1        gleich zu Beginn die Familientafel öffnen
@@ -106,6 +106,7 @@ public partial class Hauptszene : Node
     private KarrenAnzeige _karrenTafel = null!;
     private EinrichtenAnzeige _einrichtenTafel = null!;
     private WachplanAnzeige _wachplanTafel = null!;
+    private BankAnzeige _bankTafel = null!;
     /// <summary>Die Tafeln der Bedienung im Innenraum (rechts im Bild, damit der Raum frei bleibt).</summary>
     private InnenTafel[] _innenTafeln = null!;
     private VerkaufAnzeige _verkauf = null!;
@@ -457,7 +458,7 @@ public partial class Hauptszene : Node
     }
 
     /// <summary>
-    /// Baut die sechs Tafeln der Bedienung im Innenraum und hängt sie rechts ins Bild, mittig in der Höhe und mit Luft über der Raumleiste.
+    /// Baut die sieben Tafeln der Bedienung im Innenraum und hängt sie rechts ins Bild, mittig in der Höhe und mit Luft über der Raumleiste.
     /// </summary>
     private void InnenTafelnBauen()
     {
@@ -467,7 +468,8 @@ public partial class Hauptszene : Node
         _karrenTafel = new KarrenAnzeige();
         _einrichtenTafel = new EinrichtenAnzeige();
         _wachplanTafel = new WachplanAnzeige();
-        _innenTafeln = new InnenTafel[] { _personalTafel, _produktionTafel, _lagerTafel, _karrenTafel, _einrichtenTafel, _wachplanTafel };
+        _bankTafel = new BankAnzeige();
+        _innenTafeln = new InnenTafel[] { _personalTafel, _produktionTafel, _lagerTafel, _karrenTafel, _einrichtenTafel, _wachplanTafel, _bankTafel };
         var rand = new MarginContainer { MouseFilter = Control.MouseFilterEnum.Ignore };
         rand.SetAnchorsAndOffsetsPreset(Control.LayoutPreset.FullRect);
         rand.AddThemeConstantOverride("margin_left", 16);
@@ -484,7 +486,7 @@ public partial class Hauptszene : Node
         GetNode<CanvasLayer>("Oberflaeche").AddChild(rand);
     }
 
-    /// <summary>Öffnet die Tafel zu einem Gegenstand im Raum (Personal, Produktion, Lager, Karren, Einrichten, Wachplan) – nur für die eigene Werkstatt.</summary>
+    /// <summary>Öffnet die Tafel zu einem Gegenstand im Raum (Personal, Produktion, Lager, Karren, Einrichten, Wachplan, Bankgeschäft) – nur für die eigene Werkstatt.</summary>
     private void InnenTafelOeffnen(string tafel)
     {
         if (_stadt.InnenBetrieb is not { } betrieb) return;
@@ -507,6 +509,7 @@ public partial class Hauptszene : Node
             "karren" => _karrenTafel,
             "einrichten" => _einrichtenTafel,
             "wache" => _wachplanTafel,
+            "bank" => _bankTafel,
             _ => null,
         };
         if (ziel is null) return;
@@ -967,7 +970,7 @@ public partial class Hauptszene : Node
                 TafelnSchliessen();
                 _familientafel.Oeffnen();
                 return true;
-            case Stadtansicht.RaumAmt or Stadtansicht.RaumKontor or Stadtansicht.RaumWerk or Stadtansicht.RaumLager or Stadtansicht.RaumSaege or Stadtansicht.RaumHuette or Stadtansicht.RaumLaden or Stadtansicht.RaumTurm or Stadtansicht.RaumPavillon or Stadtansicht.RaumKueche or Stadtansicht.RaumSaal or Stadtansicht.RaumKirche or Stadtansicht.RaumSkriptorium or Stadtansicht.RaumSchatzkammer or Stadtansicht.RaumSchlafboden or Stadtansicht.RaumGildenhalle or Stadtansicht.RaumZelle or Stadtansicht.RaumUebung or Stadtansicht.RaumHauptmann:
+            case Stadtansicht.RaumAmt or Stadtansicht.RaumKontor or Stadtansicht.RaumWerk or Stadtansicht.RaumLager or Stadtansicht.RaumSaege or Stadtansicht.RaumHuette or Stadtansicht.RaumLaden or Stadtansicht.RaumTurm or Stadtansicht.RaumPavillon or Stadtansicht.RaumKueche or Stadtansicht.RaumSaal or Stadtansicht.RaumKirche or Stadtansicht.RaumSkriptorium or Stadtansicht.RaumSchatzkammer or Stadtansicht.RaumSchlafboden or Stadtansicht.RaumGildenhalle or Stadtansicht.RaumZelle or Stadtansicht.RaumUebung or Stadtansicht.RaumHauptmann or Stadtansicht.RaumPfand or Stadtansicht.RaumBankkontor or Stadtansicht.RaumEmpfang or Stadtansicht.RaumTresor:
                 return true;
             default:
                 return false;

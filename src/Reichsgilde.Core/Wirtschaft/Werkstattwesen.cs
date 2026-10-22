@@ -148,10 +148,11 @@ public sealed class Werkstattwesen
 
     /// <summary>
     /// Kann dieser Betrieb Einrichtung haben? Werkstätten mit Ware, die Betriebe des Diebes (Schmugglerloch, Unterschlupf,
-    /// Diebesgilde) und die Wache in der Stadt (Wachhaus, Stadtwache, Garnison) – nicht das Umland (Klosterhof, Bauernhof,
-    /// Wachturm …) oder der Schreiber.
+    /// Diebesgilde), die Wache in der Stadt (Wachhaus, Stadtwache, Garnison) und der Geldleiher (Wechselstube, Geldleihe,
+    /// Bankhaus) – nicht das Umland (Klosterhof, Bauernhof, Wachturm …) oder der Schreiber.
     /// </summary>
-    public bool KannEinrichtung(Betrieb b) => b.IstWerkstatt || _w.Diebe.IstDiebesbetrieb(b) || (_w.Wache.IstWachbetrieb(b) && b.InDerStadt);
+    public bool KannEinrichtung(Betrieb b) =>
+        b.IstWerkstatt || _w.Diebe.IstDiebesbetrieb(b) || (_w.Wache.IstWachbetrieb(b) && b.InDerStadt) || _w.Bank.IstBankbetrieb(b);
 
     /// <summary>Alle Stücke, die eine Werkstatt dieses Berufs haben kann – gekauft oder mit Preis und Verbotsgrund.</summary>
     public IReadOnlyList<EinrichtungZeile> Einrichtungsliste(Betrieb b)

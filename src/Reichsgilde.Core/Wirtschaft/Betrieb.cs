@@ -348,6 +348,18 @@ public sealed class Betrieb
     /// <summary>Wache: Faktor auf die Erfolgschance von Überfällen auf Karren, die dieses Haus geleitet (Kettenhemden: 0,8).</summary>
     public double GeleitFaktor => Einrichtungsstuecke.Aggregate(1.0, (f, e) => f * e.Wirkung.GeleitFaktor);
 
+    /// <summary>Geldleiher: Faktor auf den Rahmen je Schreiber (Rechenbretter: 1,1, mit Hauptbüchern 1,21).</summary>
+    public double RahmenFaktor => Einrichtungsstuecke.Aggregate(1.0, (f, e) => f * e.Wirkung.RahmenFaktor);
+
+    /// <summary>Geldleiher: Faktor auf die Wechselgebühr (Goldwaage: 1,1).</summary>
+    public double WechselFaktor => Einrichtungsstuecke.Aggregate(1.0, (f, e) => f * e.Wirkung.WechselFaktor);
+
+    /// <summary>Geldleiher: Faktor auf den Verlust bei Ausfall eines Kunden (Pfandkammer: 0,75).</summary>
+    public double AusfallFaktor => Einrichtungsstuecke.Aggregate(1.0, (f, e) => f * e.Wirkung.AusfallFaktor);
+
+    /// <summary>Geldleiher: Faktor auf den Höchstbetrag der Kredite an Häuser (Kassenschrank: 1,25).</summary>
+    public double KreditFaktor => Einrichtungsstuecke.Aggregate(1.0, (f, e) => f * e.Wirkung.KreditFaktor);
+
     internal void EinrichtungHinzufuegen(string kennung)
     {
         _einrichtung.Add(kennung);
