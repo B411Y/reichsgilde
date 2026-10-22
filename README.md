@@ -428,6 +428,7 @@ reichsgilde/
 │   ├── bilder/                     Bilder für diese Seite
 │   ├── ENTSCHEIDUNGEN.md           Archiv der Grundsatzentscheidungen bis 16.10.2026, Phasenplan
 │   ├── LEVELDESIGN.md              Kartenregeln und Städte
+│   ├── messungen/                  Balancing-Berichte als JSON (messen bericht, siehe WIRTSCHAFTSMODELL.md)
 │   └── WIRTSCHAFTSMODELL.md        Zahlen und Messungen je Beruf und Balance-Änderung
 ├── CLAUDE.md                       Arbeitsregeln für die Claude-Chats, die am Projekt arbeiten
 └── .github/                        Automatische Prüfung auf Windows und Linux, Vorlage für PR-Texte
