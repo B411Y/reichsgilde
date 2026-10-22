@@ -359,8 +359,11 @@ public sealed class Betrieb
     /// <summary>Wie gut der Betrieb zahlt (nur Werkstätten; sonst immer üblich).</summary>
     public Lohnstufe Lohnstufe { get; internal set; } = Lohnstufe.Ueblich;
 
-    /// <summary>Faktor auf den Lohn bei der jetzigen Lohnstufe.</summary>
-    public double LohnFaktor => HatWerkstattregeln ? _daten.Werkstatt!.Stufe(Lohnstufe).LohnFaktor : 1;
+    /// <summary>Faktor auf den Lohn bei der jetzigen Lohnstufe – mal der Einrichtung (Waffenkammer der Wache: 0,9).</summary>
+    public double LohnFaktor => (HatWerkstattregeln ? _daten.Werkstatt!.Stufe(Lohnstufe).LohnFaktor : 1) * EinrichtungLohnFaktor;
+
+    /// <summary>Faktor der Einrichtung auf die Lohnkosten (Waffenkammer der Wache: 0,9; sonst 1).</summary>
+    public double EinrichtungLohnFaktor => Einrichtungsstuecke.Aggregate(1.0, (f, e) => f * e.Wirkung.LohnFaktor);
 
     /// <summary>Löhne für ein ganzes Jahr bei der jetzigen Belegung und Lohnstufe (ohne Wächter; mit der Länge der Schicht).</summary>
     public double Lohnkosten => _belegung.Sum(b => b.Value * _daten.Lohn(b.Key, Art)) * LohnFaktor;
