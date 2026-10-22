@@ -92,7 +92,9 @@ static class GardistEinrichtungTests
             Pruefe.Ungefaehr(0.1, d.Stueck("Gardist", "Werkzeug2")!.Wirkung.RazziaBonus, 1e-12);
             Pruefe.Ungefaehr(1.25, d.Stueck("Gardist", "Hunde")!.Wirkung.StreifenFaktor, 1e-12);
             Pruefe.Ungefaehr(0.8, d.Stueck("Gardist", "Kettenhemd")!.Wirkung.GeleitFaktor, 1e-12);
-            Pruefe.Gleich(20, d.Stueck("Gardist", "Regale")!.Wirkung.LagerPlus);
+            Pruefe.Ungefaehr(0.9, d.Stueck("Gardist", "Regale")!.Wirkung.LohnFaktor, 1e-12);
+            Pruefe.Gleich(0, d.Stueck("Gardist", "Regale")!.Wirkung.LagerPlus);
+            Pruefe.Gleich("Lohn der Leute 10 % niedriger", d.Stueck("Gardist", "Regale")!.Wirkung.Text());
             Pruefe.Ungefaehr(0.5, d.Stueck("Gardist", "Loeschfass")!.Wirkung.BrandFaktor, 1e-12);
             Pruefe.Ungefaehr(0.5, d.Stueck("Gardist", "Eisentuer")!.Wirkung.EinbruchFaktor, 1e-12);
             Pruefe.Gleich("+10 % Beweise bei Razzien", d.Stueck("Gardist", "Werkzeug1")!.Wirkung.Text());
@@ -100,10 +102,10 @@ static class GardistEinrichtungTests
             Pruefe.Gleich("Überfälle auf das Geleit 20 % seltener erfolgreich", d.Stueck("Gardist", "Kettenhemd")!.Wirkung.Text());
             // Die anderen Berufe kennen die neuen Wirkungen nicht: Ihre Stücke bleiben ohne.
             foreach (var (beruf, liste) in d.Einrichtung.Where(x => x.Key != "Gardist"))
-                Pruefe.Wahr(liste.All(e => e.Wirkung is { RazziaBonus: 0, StreifenFaktor: 1, GeleitFaktor: 1 }), $"{beruf}: keine Wirkung der Wache");
+                Pruefe.Wahr(liste.All(e => e.Wirkung is { RazziaBonus: 0, StreifenFaktor: 1, GeleitFaktor: 1, LohnFaktor: 1 }), $"{beruf}: keine Wirkung der Wache");
         }),
 
-        ("Gardist-Einrichtung: Daten werden geprüft (Razzia-Bonus und Geleitfaktor zwischen 0 und 1, Streifenfaktor zwischen 1 und 2)", () =>
+        ("Gardist-Einrichtung: Daten werden geprüft (Razzia-Bonus, Geleit- und Lohnfaktor zwischen 0 und 1, Streifenfaktor zwischen 1 und 2)", () =>
         {
             var fehler = Fehlerliste(() => DatenMit(a =>
             {
@@ -111,12 +113,14 @@ static class GardistEinrichtungTests
                 a[2]!["wirkung"]!["streifenFaktor"] = 0.9;
                 a[3]!["wirkung"]!["geleitFaktor"] = -0.1;
                 a[4]!["wirkung"]!["streifenFaktor"] = 2.5;
+                a[5]!["wirkung"]!["lohnFaktor"] = 1.2;
             }));
             Pruefe.Wahr(fehler.Any(f => f.Contains("Gardist.Werkzeug1.wirkung.razziaBonus")), string.Join(" | ", fehler));
             Pruefe.Wahr(fehler.Any(f => f.Contains("Gardist.Hunde.wirkung.streifenFaktor muss zwischen 1 und 2")), string.Join(" | ", fehler));
             Pruefe.Wahr(fehler.Any(f => f.Contains("Gardist.Kettenhemd.wirkung.geleitFaktor")), string.Join(" | ", fehler));
             Pruefe.Wahr(fehler.Any(f => f.Contains("Gardist.Regale.wirkung.streifenFaktor")), string.Join(" | ", fehler));
-            Pruefe.Gleich(4, fehler.Count);
+            Pruefe.Wahr(fehler.Any(f => f.Contains("Gardist.Loeschfass.wirkung.lohnFaktor")), string.Join(" | ", fehler));
+            Pruefe.Gleich(5, fehler.Count);
         }),
 
         ("Gardist-Einrichtung: Wachhaus, Stadtwache und Garnison können Einrichtung kaufen (Anschaffung), der Wachturm nicht; Armbrüste erst ab Stufe 2 und nach den Hellebarden; die Einrichtung bleibt beim Ausbau", () =>
@@ -143,7 +147,8 @@ static class GardistEinrichtungTests
             Pruefe.Ungefaehr(850, w.Werkstaetten.Einrichtungswert(b), 1e-9);
 
             b.Ausbauen(Betriebsart.Stadtwache, 0);
-            Pruefe.Wahr(b.HatEinrichtung("Werkzeug1") && b.HatEinrichtung("Hunde") && b.HatEinrichtung("Regale"), "Einrichtung nach dem Ausbau");
+            Pruefe.Wahr(b.HatEinrichtung("Werkzeug1") && b.HatEinrichtung("Hunde") && b.HatEinrichtung("Regale") && Math.Abs(b.LohnFaktor - 0.9) < 1e-12,
+                "Einrichtung nach dem Ausbau");
             Ok(w, k, new EinrichtungKaufen(b.Name, "Werkzeug2"));
             Pruefe.Ungefaehr(0.2, b.RazziaBonus, 1e-12);
 
@@ -264,19 +269,46 @@ static class GardistEinrichtungTests
             Pruefe.Wahr(erbeutet[0] > 300 && Math.Abs(verhaeltnis - 0.8) < 0.08, $"Überfälle gelungen: ohne {erbeutet[0]}, mit Kettenhemden {erbeutet[1]} (× {verhaeltnis:0.00})");
         }),
 
-        ("Gardist-Einrichtung: Waffenkammer +20 Lager, Löschfass und Eisentür halbieren Feuer und Einbruch im Wachhaus", () =>
+        ("Gardist-Einrichtung: Waffenkammer – Lohn der Wachleute ×0,9 (am Jahresende gebucht), der Sold der Stadt bleibt", () =>
+        {
+            foreach (var kammer in new[] { false, true })
+            {
+                var sim = NeueSimulation(startwert: 19);
+                var (w, k, b) = Wache(sim);
+                var lohn = b.Lohnkosten;
+                Pruefe.Ungefaehr(4 * w.Daten.Lohn("Geselle", b.Art), lohn, 1e-9);
+                if (kammer)
+                {
+                    Ok(w, k, new EinrichtungKaufen(b.Name, "Regale"));
+                    Pruefe.Ungefaehr(0.9, b.LohnFaktor, 1e-12);
+                    Pruefe.Ungefaehr(lohn * 0.9, b.Lohnkosten, 1e-9);
+                }
+                JahrBeenden(sim);
+                Pruefe.Ungefaehr(lohn * (kammer ? 0.9 : 1), k.Vorjahr!.Personal, 1e-6);
+                Pruefe.Wahr(w.Wache.Vorjahr(k)!.Sold > 0, "Sold der Stadt");
+            }
+            // Mit oder ohne Kammer: Der Sold ist derselbe.
+            string Sold(bool kammer)
+            {
+                var sim = NeueSimulation(startwert: 19);
+                var (w, k, b) = Wache(sim);
+                if (kammer) Ok(w, k, new EinrichtungKaufen(b.Name, "Regale"));
+                JahrBeenden(sim);
+                return $"{w.Wache.Vorjahr(k)!.Sold:R}";
+            }
+            Pruefe.Gleich(Sold(false), Sold(true));
+        }),
+
+        ("Gardist-Einrichtung: Löschfass und Eisentür halbieren Feuer und Einbruch im Wachhaus", () =>
         {
             var sim = NeueSimulation();
             var (w, k, b) = Wache(sim);
-            var lager = b.LagerKapazitaetJeWare;
             var feuer = w.Gauner.Erfolgschance(Gaunerstueck.Sabotage, b);
             var einbruch = w.Gauner.Erfolgschance(Gaunerstueck.Diebstahl, b);
             var dieb = w.KontoEroeffnen("Familie Elster", startvermoegen: 5_000);
             var brand = w.Diebe.Brandchance(b, dieb);
-            Ok(w, k, new EinrichtungKaufen(b.Name, "Regale"));
             Ok(w, k, new EinrichtungKaufen(b.Name, "Loeschfass"));
             Ok(w, k, new EinrichtungKaufen(b.Name, "Eisentuer"));
-            Pruefe.Gleich(lager + 20, b.LagerKapazitaetJeWare);
             Pruefe.Ungefaehr(feuer * 0.5, w.Gauner.Erfolgschance(Gaunerstueck.Sabotage, b), 1e-15);
             Pruefe.Ungefaehr(einbruch * 0.5, w.Gauner.Erfolgschance(Gaunerstueck.Diebstahl, b), 1e-15);
             Pruefe.Ungefaehr(brand * 0.5, w.Diebe.Brandchance(b, dieb), 1e-15);
