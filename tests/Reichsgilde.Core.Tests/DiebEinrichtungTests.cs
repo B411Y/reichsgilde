@@ -80,10 +80,10 @@ static class DiebEinrichtungTests
 
     public static IEnumerable<(string, Action)> Alle() => new (string, Action)[]
     {
-        ("Dieb-Einrichtung: Daten – sieben Stücke mit den Kennungen des Raummodells, Preise wie bei den Werkstätten, Datenversion 46", () =>
+        ("Dieb-Einrichtung: Daten – sieben Stücke mit den Kennungen des Raummodells, Preise wie bei den Werkstätten, Datenversion 47", () =>
         {
             var d = Daten.Value.Werkstatt!;
-            Pruefe.Gleich(46, Daten.Value.Version);
+            Pruefe.Gleich(47, Daten.Value.Version);
             var dieb = d.EinrichtungFuer("Dieb");
             Pruefe.Gleich("Werkzeug1 Werkzeug2 Verkleidung Regale Loeschfass Eisentuer Handschuhe", string.Join(" ", dieb.Select(e => e.Kennung)));
             Pruefe.Gleich("Dietriche, Meisterdietriche, Verkleidungstruhe, Hehlerkammer, Löschfass, Eisentür, Lederhandschuhe",
