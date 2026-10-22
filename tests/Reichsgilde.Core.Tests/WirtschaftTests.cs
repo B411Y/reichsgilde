@@ -194,8 +194,8 @@ static class WirtschaftTests
         // Angebot); die Mine verliert Ware an Banditen. Die Tests sichern diese Werte gegen ungewollte
         // Änderungen ab (±5 %).
         //   • Balancing 1 (PR #177): Fertigwaren des Schmieds × 1,28 (Silberring 90 → 115), damit ein Betrieb in etwa
-        //     10 Jahren Bürger wird (Z2) – Gießerei 848 → 1.551, Lehrling 289 → 543, Konkurrenz 649 → 1.317; Z1 (600–900) gilt
-        //     damit nicht mehr (Wirtschaftsmodell, „Balancing-Messung 2“). Die Grube bleibt bei 947 / 1.365.
+        //     10 Jahren Bürger wird (Z2) – Gießerei 848 → 1.551, Lehrling 289 → 543, Konkurrenz 649 → 1.317; Z1 ist dafür
+        //     auf 1.300–1.700 angehoben (Entscheidung des Nutzers vom 22.10.2026). Die Grube bleibt bei 947 / 1.365.
         ("Gießerei allein, 2 Gesellen, Silberring: Gewinn ≈ 1.551 Gulden/Jahr", () =>
         {
             var sim = NeueSimulation();

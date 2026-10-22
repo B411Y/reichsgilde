@@ -11,17 +11,17 @@ Am Anfang stand ein interaktiver Balancing-Rechner (ein Claude-Artefakt, nicht �
 
 An diesen Zielen werden alle Zahlen gemessen. Ändert sich eine Zahl, muss das Ziel weiter erfüllt sein, oder wir passen das Ziel bewusst an.
 
-| # | Ziel | Entwurf 1 erfüllt? |
-|---|---|---|
-| Z1 | Eine Gießerei mit 2 Gesellen ist bei ausgeglichenem Markt profitabel, mit etwa 600–900 Gulden pro Jahr | ✔ 627 (1 Rivale) bis 878 (kein Rivale) |
-| Z2 | Den Titel **Bürger** (10.000 Gulden Vermögen) erreicht man mit einem einzigen Betrieb nach **8–12 Jahren** (bei 15 Min./Jahr also 2–3 Stunden Spielzeit). Wer expandiert, schafft es schneller. | ✔ 10 Jahre |
-| Z3 | Konkurrenz ist spürbar: Mehr Anbieter drücken den Preis allmählich, ohne dass er sofort einbricht. Bei Überangebot lohnt es sich, auf ein anderes Produkt auszuweichen. | ✔ Silberring 878 → 627 → 437 → 163 bei 0/30/60/120 Konkurrenzstück |
-| Z4 | Ein einzelner Spieler kann den Markt allein nicht beherrschen, weil die Stadt viele andere Anbieter hat | ✔ eine Werkstatt deckt ca. 20 % der Nachfrage |
-| Z5 | **Statut B** (Ork-Fron im Umland) ist für Minenbesitzer deutlich lukrativer (+40–50 %). Das gibt ihnen ein starkes Motiv, im Rat dafür zu werben. | ✔ Mine 1.139 → 1.613 (+42 %) |
-| Z6 | **Statut C** lohnt sich in Gulden mäßig (+15–25 %), kostet aber Ansehen und birgt Aufstandsgefahr | ✔ Gießerei 627 → 750 (+20 %), plus Risiken außerhalb der Gulden-Rechnung |
-| Z7 | Zwischenprodukte (Beschlag) lohnen sich weniger als Fertigwaren, sind aber nicht defizitär. So entsteht ein Zulieferer-Markt zwischen den Berufen. | ✔ 393 statt 878 |
+| # | Ziel | Entwurf 1 erfüllt? | Stand nach Balancing 1 (PR #177) |
+|---|---|---|---|
+| Z1 | Eine Gießerei mit 2 Gesellen ist bei ausgeglichenem Markt profitabel, mit etwa **1.300–1.700** Gulden pro Jahr (angehoben am 22.10.2026, PR #177, Entscheidung des Nutzers – vorher 600–900; passt zu Z2) | ✔ 627 (1 Rivale) bis 878 (kein Rivale), damals Ziel 600–900 | ✔ 1.317 (1 Rivale) bis 1.551 (kein Rivale) |
+| Z2 | Den Titel **Bürger** (10.000 Gulden Vermögen) erreicht man mit einem einzigen Betrieb nach **8–12 Jahren** (bei 15 Min./Jahr also 2–3 Stunden Spielzeit). Wer expandiert, schafft es schneller. | ✔ 10 Jahre | ✔ Schmied Ø 9,8 Jahre, Greybox 116 von 120 Partien im Ziel (Messung 1: 18,2) |
+| Z3 | Konkurrenz ist spürbar: Mehr Anbieter drücken den Preis allmählich, ohne dass er sofort einbricht. Bei Überangebot lohnt es sich, auf ein anderes Produkt auszuweichen. | ✔ Silberring 878 → 627 → 437 → 163 bei 0/30/60/120 Konkurrenzstück | ✔ Preisformel unverändert; zwei Gießereien je 1.317 statt 1.551 allein |
+| Z4 | Ein einzelner Spieler kann den Markt allein nicht beherrschen, weil die Stadt viele andere Anbieter hat | ✔ eine Werkstatt deckt ca. 20 % der Nachfrage | ✔ unverändert (bei vier Häusern Einwohnerfaktor 1) |
+| Z5 | **Statut B** (Ork-Fron im Umland) ist für Minenbesitzer deutlich lukrativer (+40–50 %). Das gibt ihnen ein starkes Motiv, im Rat dafür zu werben. | ✔ Mine 1.139 → 1.613 (+42 %) | ✔ Grube 947 → 1.365 (+44 %), Rohstoffe unverändert |
+| Z6 | **Statut C** lohnt sich in Gulden mäßig (+15–25 %), kostet aber Ansehen und birgt Aufstandsgefahr | ✔ Gießerei 627 → 750 (+20 %), plus Risiken außerhalb der Gulden-Rechnung | ✘ 0 % zu Startpreisen (vor PR #177 schon +2 %): der Geselle bleibt die beste Kraft |
+| Z7 | Zwischenprodukte (Beschlag) lohnen sich weniger als Fertigwaren, sind aber nicht defizitär. So entsteht ein Zulieferer-Markt zwischen den Berufen. | ✔ 393 statt 878 | ✔ Beschlag 682 gegen Silberring 1.966 (Startpreise) |
 
-Stand nach Balancing 1 (PR #177, Abschnitt „Balancing-Messung 2“): Z2 erfüllt (Schmied mit einem Betrieb Bürger nach Ø 10 Jahren). Dafür gilt Z1 nicht mehr (die Referenz-Gießerei bringt 1.551 statt 848 im Jahr – höhere Preise der Fertigwaren, damit nach Familie, Gericht und Ausbau genug bleibt). Z3, Z4, Z5 und Z7 unverändert erfüllt; Z6 war schon vorher verfehlt (Statut C +2 %, jetzt 0 %).
+Einzelheiten zum Stand nach Balancing 1: Abschnitt „Balancing-Messung 2 (PR #177)“. „Eine Grube unter Statut B bringt mehr als eine Werkstatt“ ist seit PR #177 kein Ziel mehr (Entscheidung des Nutzers vom 22.10.2026); es bleibt Z5.
 
 ## 2. Zeitbasis
 
@@ -1374,7 +1374,7 @@ Dieb ausgewogen 2.347 im Jahr ohne, 2.489 mit Wachhaus; wagemutig 2.658 / 2.685.
 
 | Ziel | Messung 2 |
 |---|---|
-| Z1 Gießerei 2 Gesellen 600–900 | **verfehlt:** Referenzprobe 1.551 (vorher 848), statisch zu Startpreisen 1.966 – Folge der höheren Preise für Z2 |
+| Z1 Gießerei 2 Gesellen (am 22.10.2026 angehoben auf 1.300–1.700, vorher 600–900) | erfüllt: Referenzprobe 1.551 allein, 1.317 mit einem Rivalen (vorher 848 / 649); statisch zu Startpreisen 1.966 |
 | Z2 Bürger mit einem Betrieb in 8–12 Jahren | **erfüllt:** Schmied Ø 9,8, Greybox 116 von 120 im Ziel |
 | Z3 Konkurrenz drückt den Preis allmählich | erfüllt (Formel unverändert; zwei Gießereien je 1.317 statt 1.551 allein) |
 | Z4 ein Spieler beherrscht den Markt nicht | erfüllt (Mengen unverändert; bei 4 Häusern Einwohnerfaktor 1) |
@@ -1382,7 +1382,7 @@ Dieb ausgewogen 2.347 im Jahr ohne, 2.489 mit Wachhaus; wagemutig 2.658 / 2.685.
 | Z6 Statut C +15–25 % | verfehlt wie schon vorher (statisch +2 %, jetzt 0 %: bei höheren Warenwerten bleibt der Geselle die beste Kraft) |
 | Z7 Zwischenwaren weniger, nicht defizitär | erfüllt (Beschlag 682 gegen Silberring 1.966 im Jahr) |
 
-Die Erwartung „eine Grube unter Statut B bringt mehr als eine Werkstatt“ (LiegenschaftTests) gilt nicht mehr: Grube 1.878, Gießerei 1.966 zu Startpreisen.
+Die Erwartung „eine Grube unter Statut B bringt mehr als eine Werkstatt“ (LiegenschaftTests) ist kein Ziel mehr (Entscheidung des Nutzers, Option A: Rohstoffe bleiben): Grube 1.878, Gießerei 1.966 zu Startpreisen. Der Test prüft nun Z5 – die Grube bringt unter B deutlich mehr als unter A (1.878 gegen 1.313).
 
 **`messen 30 20` und `messen 30 20 greybox`** (30 Jahre, 20 Startwerte, Spieler Mensch passiv, KI ausgewogen, jetzt mit dem Normal-Start; gemessen auf main `821bc97` + Branch `efecab2`), Vermögen Ø am Ende:
 
