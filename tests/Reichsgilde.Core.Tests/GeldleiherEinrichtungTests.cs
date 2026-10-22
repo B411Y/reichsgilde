@@ -85,10 +85,10 @@ static class GeldleiherEinrichtungTests
 
     public static IEnumerable<(string, Action)> Alle() => new (string, Action)[]
     {
-        ("Geldleiher-Einrichtung: Daten – sieben Stücke mit den Kennungen des Raummodells, Preise wie bei den Werkstätten, Datenversion 47", () =>
+        ("Geldleiher-Einrichtung: Daten – sieben Stücke mit den Kennungen des Raummodells, Preise wie bei den Werkstätten, Datenversion 48", () =>
         {
             var d = Daten.Value.Werkstatt!;
-            Pruefe.Gleich(47, Daten.Value.Version);
+            Pruefe.Gleich(48, Daten.Value.Version);
             var bank = d.EinrichtungFuer("Geldleiher");
             Pruefe.Gleich("Werkzeug1 Werkzeug2 Goldwaage Pfandkammer Kassenschrank Loeschfass Eisentuer", string.Join(" ", bank.Select(e => e.Kennung)));
             Pruefe.Gleich("Rechenbretter, Hauptbücher, Goldwaage, Pfandkammer, Kassenschrank, Löschfass, Eisentür", string.Join(", ", bank.Select(e => e.Name)));
@@ -295,7 +295,7 @@ static class GeldleiherEinrichtungTests
 
         ("Geldleiher-Kunden: Wechselstube – Kaufleute nach Marktumsatz und Tageszeit (vormittags Markt, abends weniger), Bürger nur mit Kasse, keine Vornehmen; außerhalb der Arbeitszeit niemand", () =>
         {
-            var sim = NeueSimulation();
+            var sim = NeueSimulation(Wirtschaftsdaten.AusJson(Datenpfad.OhneStadt())); // Marktumsatz der Bezugsstadt (≈ 700.000) – mit einem Haus wäre die Stadt kleiner
             var (w, k, b) = Geldleihe(sim);
             Pruefe.Gleich(0, w.Bank.KundenJetzt(b).Count); // 05:00
             BisUhrzeit(sim, 7, 59);

@@ -37,11 +37,25 @@ static class Datenpfad
         knoten.AsObject().Remove("aktionspunkte");
         return knoten.ToJsonString();
     }
+
+    /// <summary>
+    /// Die echten Daten ohne Abschnitt „stadt“: Die Nachfrage ist fest wie in „waren“ (Einwohnerfaktor 1, die Bezugsstadt mit vier Häusern) –
+    /// für Proben mit nur einem oder zwei Häusern, die die Referenzwerte des Wirtschaftsmodells nachrechnen.
+    /// </summary>
+    public static string OhneStadt()
+    {
+        var knoten = System.Text.Json.Nodes.JsonNode.Parse(File.ReadAllText(Wirtschaft()),
+            documentOptions: new System.Text.Json.JsonDocumentOptions { CommentHandling = System.Text.Json.JsonCommentHandling.Skip, AllowTrailingCommas = true })!;
+        knoten.AsObject().Remove("stadt");
+        return knoten.ToJsonString();
+    }
 }
 
 static class WirtschaftTests
 {
-    static readonly Lazy<Wirtschaftsdaten> Daten = new(() => Wirtschaftsdaten.AusDatei(Datenpfad.Wirtschaft()));
+    // Die Referenzwerte (Abschnitt 7 und 9 des Wirtschaftsmodells) gelten in der Bezugsstadt: Nachfrage wie in den Daten.
+    // Die Proben hier haben nur ein oder zwei Häuser – mit dem Abschnitt „stadt“ wäre ihre Stadt kleiner (PR #177).
+    static readonly Lazy<Wirtschaftsdaten> Daten = new(() => Wirtschaftsdaten.AusJson(Datenpfad.OhneStadt()));
 
     static Simulation NeueSimulation(Fronstatut statut = Fronstatut.Bestienfron, int startwert = 1400) =>
         new(Partieeinstellungen.Standard with { StartStatut = statut, Zufallsstartwert = startwert, Siegbedingung = Siegbedingung.Endlos },

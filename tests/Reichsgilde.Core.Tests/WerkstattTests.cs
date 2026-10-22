@@ -145,7 +145,7 @@ static class WerkstattTests
         ("Werkstatt: Daten – Abschnitt „werkstatt“ mit drei Lohnstufen und genau den sieben Stücken des Schmieds (Kennungen wie im Raummodell)", () =>
         {
             var d = Daten.Value.Werkstatt!;
-            Pruefe.Gleich(47, Daten.Value.Version);
+            Pruefe.Gleich(48, Daten.Value.Version);
             Pruefe.Ungefaehr(1, d.Stufe(Lohnstufe.Ueblich).LohnFaktor, 1e-12);
             Pruefe.Gleich(0.0, d.Stufe(Lohnstufe.Ueblich).Laune);
             Pruefe.Wahr(d.Stufe(Lohnstufe.Knapp).LohnFaktor < 1 && d.Stufe(Lohnstufe.Gut).LohnFaktor > 1, "Lohnfaktoren");

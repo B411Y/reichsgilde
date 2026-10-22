@@ -221,6 +221,12 @@ public sealed class Wirtschaftsdaten
     public Reichsgilde.Core.Buerger.BuergerDaten? Buerger { get; init; }
 
     /// <summary>
+    /// Einwohner und Nachfrage der Stadt (ab Datenversion 48, PR #177): Die Nachfrage richtet sich nach den Einwohnern, und die wachsen
+    /// mit den Häusern. Fehlt der Abschnitt, ist die Nachfrage fest wie in „waren“.
+    /// </summary>
+    public StadtDaten? Stadt { get; init; }
+
+    /// <summary>
     /// Werkstatt wie in Gilde 1: Lohnstufen, Prämie, Laune, Unfälle, Beförderung und Einrichtung je Beruf (ab Datenversion 36).
     /// Fehlt der Abschnitt, arbeiten alle mit neutraler Laune, ohne Unfälle und ohne Einrichtung.
     /// </summary>
@@ -435,6 +441,7 @@ public sealed class Wirtschaftsdaten
         Wohnen?.Pruefen(f, Staende.Count);
         Bauen?.Pruefen(f, Wohnen);
         Verkauf.Pruefen(f);
+        Stadt?.Pruefen(f);
         Werkstatt?.Pruefen(f, Berufe, Waren, Arbeitskraefte);
 
         if (Staende.Count == 0) f.Add("Es sind keine Stände definiert.");
@@ -473,4 +480,40 @@ public sealed class Wirtschaftsdaten
     /// <summary>Zutatenkosten eines Stücks zu Grundpreisen.</summary>
     public double ZutatenZumGrundpreis(string ware) =>
         Waren[ware].Zutaten.Sum(z => Waren[z.Key].Grundpreis * z.Value);
+}
+
+/// <summary>
+/// Einwohner der Stadt und ihre Nachfrage (Abschnitt „stadt“, PR #177):
+/// <code>
+/// Einwohner        = einwohnerGrund + einwohnerJeHaus × Häuser, die wirtschaften (im Spiel, mit mindestens einem Arbeiter)
+/// Einwohnerfaktor  = Einwohner ÷ (einwohnerGrund + einwohnerJeHaus × bezugHaeuser)
+/// </code>
+/// Nachfrage und Grundversorgung (Nachfrage × NPC-Anteil) jeder Ware wachsen mit dem Einwohnerfaktor. Bei <c>bezugHaeuser</c> Häusern
+/// (Spieler und drei KI-Häuser) ist er 1 – die Nachfrage in „waren“ gilt für diese Stadt. Ein Haus bringt im Mittel
+/// <c>einwohnerJeHaus</c> Einwohner mit (Familie, Gesinde, Arbeiter mit ihren Familien – so viele, wie die Bürger-KI je Haus ansiedelt);
+/// die wirklichen Arbeiter zählen bewusst nicht einzeln, sonst schüfe jeder neue Arbeiter mehr Nachfrage, als er herstellt.
+/// </summary>
+public sealed class StadtDaten
+{
+    /// <summary>Einwohner, die von keinem Haus leben (Tagelöhner, Geistliche, Bauern vor den Toren …).</summary>
+    public double EinwohnerGrund { get; init; }
+
+    /// <summary>Einwohner, die jedes wirtschaftende Haus mitbringt.</summary>
+    public double EinwohnerJeHaus { get; init; }
+
+    /// <summary>So viele Häuser hat die Stadt, für die die Nachfrage in „waren“ gilt.</summary>
+    public int BezugHaeuser { get; init; } = 4;
+
+    /// <summary>Einwohner bei so vielen Häusern.</summary>
+    public double Einwohner(int haeuser) => EinwohnerGrund + EinwohnerJeHaus * haeuser;
+
+    /// <summary>Faktor auf Nachfrage und Grundversorgung bei so vielen Häusern.</summary>
+    public double Faktor(int haeuser) => Einwohner(haeuser) / Einwohner(BezugHaeuser);
+
+    public void Pruefen(List<string> f)
+    {
+        if (EinwohnerGrund < 0 || EinwohnerJeHaus < 0) f.Add("stadt: einwohnerGrund und einwohnerJeHaus dürfen nicht negativ sein.");
+        if (BezugHaeuser < 1) f.Add("stadt.bezugHaeuser muss mindestens 1 sein.");
+        if (EinwohnerGrund <= 0 && EinwohnerJeHaus <= 0) f.Add("stadt: Ohne Einwohner gäbe es keine Nachfrage (einwohnerGrund oder einwohnerJeHaus größer als 0).");
+    }
 }

@@ -315,8 +315,9 @@ public sealed class Diebeswesen
         return beute;
     }
 
-    /// <summary>Was ein eigener Einbruch im Mittel bringt: Warenwert × Chance (verkauft am Markt, nicht beim Hehler).</summary>
-    public double ErwarteterEinbruch(Betrieb b, Konto dieb) => MoeglicheBeute(b, dieb).Sum(x => x.Wert) * Einbruchchance(b, dieb);
+    /// <summary>Was ein eigener Einbruch im Mittel bringt: (Warenwert + Geld aus der Kasse eines Geldleihers) × Chance (Ware am Markt verkauft, nicht beim Hehler).</summary>
+    public double ErwarteterEinbruch(Betrieb b, Konto dieb) =>
+        (MoeglicheBeute(b, dieb).Sum(x => x.Wert) + (_w.Bank.IstAktiv ? _w.Bank.Kassenbeute(b) : 0)) * Einbruchchance(b, dieb);
 
     /// <summary>Der Betrieb, in dem ein Feuer das Opfer am meisten kostet.</summary>
     public Betrieb? Brandziel(Konto opfer) => _w.Betriebe.Where(b => b.Konto == opfer)
@@ -620,14 +621,21 @@ public sealed class Diebeswesen
                 if (behalten > 0) versteck.Einlagern(ware, behalten);
                 hehler += (stueck - behalten) * _w.Markt[ware].Preis * _w.Gauner.Daten.HehlerAnteil;
             }
-            wert = beute.Sum(x => x.Wert);
-            if (hehler > 0) a.Dieb.Gaunerkosten(-hehler);
+            var waren = beute.Sum(x => x.Wert);
+            // Beim Geldleiher liegt Geld in der Kasse – es geht ohne Hehler ins Bargeld der Diebe.
+            var kasse = _w.Bank.IstAktiv ? _w.Bank.KasseBestehlen(b) : 0;
+            wert = waren + kasse;
+            if (hehler + kasse > 0) a.Dieb.Gaunerkosten(-(hehler + kasse));
             if (wert > 0)
             {
                 b.RaubBuchen(wert);
-                oeffentlich = $"Einbruch in {b.Name}: {string.Join(" und ", beute.Select(x => $"{x.Stueck} {x.Ware}"))} gestohlen (Wert {Zahlenformat.Ganz(wert)}).";
-                _w.Gauner.Melden(a.Dieb, $"Eure Leute bringen aus {b.Name} Ware für {Zahlenformat.Ganz(wert)} ins {versteck!.Artdaten.Name}" +
-                                         (hehler > 0 ? $" – was nicht ins Lager passt, nimmt der Hehler für {Zahlenformat.Ganz(hehler)}." : "."));
+                oeffentlich = $"Einbruch in {b.Name}: {_w.Gauner.Diebesgut(beute, kasse)} gestohlen.";
+                var waehrung = _w.Daten.Allgemein.Waehrung;
+                _w.Gauner.Melden(a.Dieb, waren <= 0
+                    ? $"Eure Leute holen aus der Kasse von {b.Name} {Zahlenformat.Ganz(kasse)} {waehrung}."
+                    : $"Eure Leute bringen aus {b.Name} Ware für {Zahlenformat.Ganz(waren)} ins {versteck!.Artdaten.Name}" +
+                      (hehler > 0 ? $" – was nicht ins Lager passt, nimmt der Hehler für {Zahlenformat.Ganz(hehler)}" : "") +
+                      (kasse > 0 ? $", dazu {Zahlenformat.Ganz(kasse)} {waehrung} aus der Kasse." : "."));
             }
             else
                 oeffentlich = $"Einbruch in {b.Name} – doch das Lager war leer.";

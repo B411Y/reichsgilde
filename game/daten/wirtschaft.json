@@ -1,5 +1,5 @@
 {
-  "version": 47,
+  "version": 48,
   "gesundheit": {
     "medicusKosten": 120,
     "medicusKostenPest": 300,
@@ -946,6 +946,7 @@
     "wechsel": { "gebuehr": 0.007, "bedarfSchreiber": 6, "jeStufe": [ 1, 1.2, 1.4 ] },
     "kredit": { "zinsStandard": 0.12, "zinsMindestens": 0.04, "zinsHoechstens": 0.5, "hoechstJeStufe": [ 3000, 6000, 12000 ], "kreditwuerdigAnteil": 0.5, "laufzeitHoechstens": 5, "pfandAnteil": 0.75 },
     "wucher": { "ab": 0.2, "ansehen": 5 },
+    "einbruch": { "anteil": 0.05, "hoechstens": 500 },
     "apJeStufe": [ 0, 1, 2 ]
   },
   "parfum": {
@@ -1108,6 +1109,7 @@
     ],
     "leerstand": { "kauf": 0.5, "sanierung": 0.2, "abriss": 0.1, "abrissMindestens": 100, "abrissMinuten": 240 }
   },
+  "stadt": { "einwohnerGrund": 50, "einwohnerJeHaus": 25, "bezugHaeuser": 4 },
   "liegenschaften": [
     {
       "name": "Grube am Silberberg",
