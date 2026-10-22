@@ -268,7 +268,7 @@ public partial class Stadtansicht
     private bool IstImGezeigtenRaum(Node knoten)
     {
         var schluessel = RaumSchluesselVon(knoten);
-        return schluessel == "" || _raum is null || "raum:" + schluessel.ToLowerInvariant() == _raum.Kennung;
+        return schluessel == "" || _raum is null || RaumKennungVon(schluessel) == _raum.Kennung;
     }
 
     // ═════════════════════════════════════════════════════════════════════════
@@ -291,7 +291,7 @@ public partial class Stadtansicht
                 BedienungAngeklickt?.Invoke("Lager", teile[1]);
                 break;
             case "tuer" when teile.Length >= 3:
-                RaumWaehlen("raum:" + teile[2].ToLowerInvariant());
+                RaumWaehlen(RaumKennungVon(teile[2]));
                 break;
             case "arbeiter" when teile.Length >= 2 && int.TryParse(teile[1], out var nr):
                 if (!dazu) _gewaehlt.Clear();
@@ -322,6 +322,12 @@ public partial class Stadtansicht
             if (dieb.Platz is null || !dieb.Halter.Visible || !IstImGezeigtenRaum(dieb.Halter)) continue;
             var punkt = dieb.Halter.GlobalPosition + Vector3.Up * (dieb.Platz.Bewegung == "Schlafen" ? 0.3f : 1.0f);
             if (!_raumKamera.IsPositionBehind(punkt) && rahmen.HasPoint(_raumKamera.UnprojectPosition(punkt))) neu.Add(dieb.Nummer);
+        }
+        foreach (var schreiber in md.Schreiber.Values) // ebenso die Schreiber in der Wechselstube (Stadtansicht.Innenbank.cs)
+        {
+            if (schreiber.Platz is null || !schreiber.Halter.Visible || !IstImGezeigtenRaum(schreiber.Halter)) continue;
+            var punkt = schreiber.Halter.GlobalPosition + Vector3.Up * 1.0f;
+            if (!_raumKamera.IsPositionBehind(punkt) && rahmen.HasPoint(_raumKamera.UnprojectPosition(punkt))) neu.Add(schreiber.Nummer);
         }
         foreach (var wache in md.Wachen.Values) // ebenso die Wachleute im Wachhaus (Stadtansicht.Innenwache.cs)
         {
