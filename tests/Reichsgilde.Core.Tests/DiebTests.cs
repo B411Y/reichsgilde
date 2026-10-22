@@ -88,7 +88,7 @@ static class DiebTests
             Pruefe.Ungefaehr(umsatz + 4 * 720 * 1.0, k.Laufend.Umsatz, 1e-6);
             Pruefe.Gleich(0.0, k.Laufend.Steuer);
             Pruefe.Ungefaehr(24, k.Erfahrung("Dieb"), 1e-6);
-            Pruefe.Ungefaehr(1.0 * 1.3, w.Diebe.WertJeMinute(3), 1e-12);
+            Pruefe.Ungefaehr(1.0 * 1.4, w.Diebe.WertJeMinute(3), 1e-12); // Stufe 3 × 1,4 (vorher 1,3; nach dem KI-Einrichtungskauf, PR #177)
             Pruefe.Ungefaehr(720 * 1.0 - 220, Kalkulation.Jahresertrag(w, b, "Geselle"), 1e-6);
         }),
 
