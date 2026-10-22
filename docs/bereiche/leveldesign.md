@@ -140,7 +140,7 @@ Fahrplan (vom Nutzer am 21.10.2026 bestätigt, je Schritt ein PR; Stand wird hie
 | 1 Grundgerüst | Knopf im Hauptmenü, Karte laden und zeigen, Gebäude aus dem Katalog setzen, verschieben, drehen, löschen, Live-Prüfung, Speichern, Rückgängig | fertig (PR #168) |
 | 2 Wege und Flächen | Wege mit Kurven zeichnen, Kreuzungen rasten ein, Gassennetz live; Bauzonen und Waldflächen als Vielecke | fertig (PR #170) |
 | 3 Rest der Karte | Mauer und Tore, Startbelegung, Knopf „Karte ausprobieren“ | fertig (PR #172) |
-| 4 Umzug | Greybox und Köln übernehmen, der Editor wird die Quelle; Python-Werkzeug fällt weg, dafür ein C#-Kartenskript (`tools/Kartenbau`: bauen, prüfen, Vorschau) | in Arbeit (PR #174) |
+| 4 Umzug | Greybox und Köln übernehmen, der Editor wird die Quelle; Python-Werkzeug fällt weg, dafür ein C#-Kartenskript (`tools/Kartenbau`: bauen, prüfen, Vorschau) | fertig (PR #174) |
 | 5a Kartengröße und Rand | Größe einstellbar (z. B. 400 × 300 m bis 2 × 2 km), Kamera bleibt innerhalb, dahinter eine Randlandschaft, die in Dunst verblasst – nie Himmel | offen |
 | 5b Gelände | Höhenraster (~2 m) mit Pinseln: Heben, Senken, Glätten, Ebnen, Rauschen; Fundamente unter Gebäuden automatisch geebnet, steile Hänge für Bauzonen gesperrt, Wege folgen dem Gelände | offen |
 | 5c Wasser | Flüsse und Bäche als Linie mit Breite (Zeichenrichtung = Fließrichtung, Strömung), Seen als Fläche mit Wasserstand (still), Ufer automatisch ausgehoben; Wasser ist Hindernis, Brücken, Furten, Fähren, Häfen am Ufer | offen |
