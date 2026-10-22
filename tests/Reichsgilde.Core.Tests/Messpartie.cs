@@ -24,7 +24,7 @@ enum Bezugsart
     /// <summary>Die KI wie ein KI-Haus, aber mit genau einem Betrieb (<see cref="KiProfil.MaxBetriebe"/> = 0): Personal, Ware, Meisterprüfung,
     /// Ausbau, Stand, Familie und Politik nach den Regeln der KI – nur keine Expansion.</summary>
     EinBetrieb,
-    /// <summary>Die KI mit demselben Profil wie die KI-Häuser („Bezugsspieler“: gleiche Strategie, ohne Einrichtung und Prämien).</summary>
+    /// <summary>Die KI mit demselben Profil wie die KI-Häuser („Bezugsspieler“: gleiche Strategie, Einrichtung wie die KI, ohne Prämien).</summary>
     WieKi,
     /// <summary>Niemand: Der Spieler entlässt am Start alle Arbeiter und tut nichts (zählt nicht als Haus, z. B. in der Messstadt).</summary>
     Geist,
