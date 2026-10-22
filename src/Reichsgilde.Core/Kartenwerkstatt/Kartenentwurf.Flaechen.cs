@@ -3,7 +3,8 @@ using Reichsgilde.Core.Bauen;
 namespace Reichsgilde.Core.Kartenwerkstatt;
 
 // ═════════════════════════════════════════════════════════════════════════════
-//  Flächen und Natur im Kartenentwurf: Bauzonen, Wald- und Streuflächen (Vielecke mit Aussparungen), einzelne Pflanzen und der Pinsel
+//  Flächen und Natur im Kartenentwurf: Bauzonen, Wald- und Streuflächen (Vielecke mit Aussparungen), Felder (seit Schritt 5a), einzelne
+//  Pflanzen und der Pinsel
 //
 //  Ecken landen auf 5 cm, die Ecken einer Bauzone auf dem Raster der Karte (2 m) – so verlangt es das Format. Die Natur einer Fläche
 //  rechnet NaturVerteilung: Die Darstellung fragt nach jeder Änderung NaturVon(…) und zeichnet das Ergebnis; unter Gebäuden, Wegen und
@@ -109,6 +110,63 @@ public sealed partial class Kartenentwurf
 
     /// <summary>Ersetzt die Gruppen (für eine eigene Mischung mit Radius und Anzahl je Teil).</summary>
     public void GruppenSetzen(EntwurfNaturflaeche f, IReadOnlyList<Naturgruppe> gruppen) => Aendern(f, "Mischung geändert", n => n.GruppenSetzen(gruppen));
+
+    // ── Felder (Schritt 5a) ──────────────────────────────────────────────────
+    //  Eine Feldfläche ist ein Vieleck, das in Ackerstreifen geteilt wird (FeldVerteilung). Ecken, Aussparungen, Verschieben und Löschen wie
+    //  bei jeder Fläche (unten); hier, was nur Felder haben: Richtung, Streifenbreite und Stücklänge, Früchte, Startwert.
+
+    /// <summary>Die Früchte einer neuen Feldfläche: Winterkorn, Sommerkorn und Brache wie in der Dreifelderwirtschaft.</summary>
+    public static IReadOnlyDictionary<string, double> VorlageFruechte => new Dictionary<string, double> { ["roggen"] = 1, ["hafer"] = 1, ["brache"] = 0.5 };
+
+    /// <summary>
+    /// Legt eine Feldfläche an: Ecken (mindestens drei verschiedene), Name (Vorgabe „Feld“ mit Nummer), Richtung der Streifen in Grad (0 = Nord–Süd),
+    /// Streifen 8 m, Stücke um 40 m, Früchte aus der Vorlage (<see cref="VorlageFruechte"/>), Startwert = der größte der Felder + 1 (oder 2000).
+    /// </summary>
+    /// <exception cref="ArgumentException">Mit weniger als drei verschiedenen Ecken.</exception>
+    public EntwurfFeld FeldAnlegen(IReadOnlyList<Kartenort> ecken, string? name = null, double richtung = 0)
+    {
+        var f = NeuesFeld(ecken, name, richtung, _felder.Select(x => x.Name), _felder.Count == 0 ? 2000 : _felder.Max(x => x.Startwert) + 1);
+        Geschichte.Ausfuehren(new TeilSetzen(f, _felder.Count));
+        return f;
+    }
+
+    private EntwurfFeld NeuesFeld(IReadOnlyList<Kartenort> ecken, string? name, double richtung, IEnumerable<string> namen, int startwert)
+    {
+        var f = new EntwurfFeld
+        {
+            Name = string.IsNullOrWhiteSpace(name) ? FreierName("Feld", namen) : name, Richtung = Kartenraster.Drehung(richtung), Startwert = startwert,
+        };
+        f.FruechteSetzen(VorlageFruechte);
+        f.VieleckSetzen(-1, Ecken(ecken, f));
+        if (f.Ecken.Count < 3) throw new ArgumentException("Eine Fläche braucht mindestens drei verschiedene Ecken.", nameof(ecken));
+        return f;
+    }
+
+    public void FeldUmbenennen(EntwurfFeld f, string name) => Aendern(f, "umbenannt", n => n.Name = name);
+
+    /// <summary>Richtung der Streifen in Grad (0 = Nord–Süd, 90 = Ost–West), auf 0,1°.</summary>
+    public void FeldRichtungSetzen(EntwurfFeld f, double richtung) => Aendern(f, "gedreht", n => n.Richtung = Kartenraster.Drehung(richtung));
+
+    /// <summary>
+    /// Breite der Ackerstreifen (3–30 m, auf 0,5 m) und mittlere Länge der Stücke (10–200 m, auf ganze Meter).
+    /// </summary>
+    public void FeldStreifenSetzen(EntwurfFeld f, double streifen, double laenge) => Aendern(f, "Streifen geändert", n =>
+    {
+        n.Streifen = Math.Clamp(Math.Round(streifen * 2) / 2, FeldVerteilung.StreifenMin, FeldVerteilung.StreifenMax);
+        n.Laenge = Math.Clamp(Math.Round(laenge), FeldVerteilung.LaengeMin, FeldVerteilung.LaengeMax);
+    });
+
+    /// <summary>Die Früchte mit Gewicht (nur bekannte, <see cref="FeldVerteilung.Fruechte"/>; Gewicht auf 0,01, 0 nimmt eine heraus).</summary>
+    /// <exception cref="ArgumentException">Bei einer unbekannten Frucht.</exception>
+    public void FeldFruechteSetzen(EntwurfFeld f, IReadOnlyDictionary<string, double> fruechte)
+    {
+        foreach (var k in fruechte.Keys.Where(k => !FeldVerteilung.Fruechte.ContainsKey(k)))
+            throw new ArgumentException($"Eine Frucht „{k}“ gibt es nicht (bekannt: {string.Join(", ", FeldVerteilung.Fruechte.Keys)}).", nameof(fruechte));
+        Aendern(f, "Früchte geändert", n => n.FruechteSetzen(fruechte.Select(x => KeyValuePair.Create(x.Key, Math.Round(x.Value, 2))).Where(x => x.Value > 0)));
+    }
+
+    /// <summary>Neuer Startwert: dieselben Früchte, andere Stücke („neu würfeln“).</summary>
+    public void FeldStartwertSetzen(EntwurfFeld f, int startwert) => Aendern(f, "neu gewürfelt", n => n.Startwert = startwert);
 
     // ── Gruppen einzeln (Streu: Büsche mit Kraut, Steine mit Gras …) ─────────
     //  Eine Gruppe ist eine Vorlage für einen Streupunkt: Gewicht (wie oft sie gewählt wird), Radius der Scheibe und ihre Teile (je Teil
@@ -249,23 +307,24 @@ public sealed partial class Kartenentwurf
         for (var i = 0; i < n.Aussparungen.Count; i++) n.VieleckSetzen(i, n.Aussparungen[i].Select(Weiter).ToList());
     });
 
-    /// <summary>Legt in einer Naturfläche eine Aussparung an (mindestens drei verschiedene Ecken) und gibt ihren Index zurück.</summary>
-    /// <exception cref="ArgumentException">Mit weniger als drei verschiedenen Ecken.</exception>
-    public int AussparungAnlegen(EntwurfNaturflaeche f, IReadOnlyList<Kartenort> ecken)
+    /// <summary>Legt in einer Naturfläche oder einem Feld eine Aussparung an (mindestens drei verschiedene Ecken) und gibt ihren Index zurück.</summary>
+    /// <exception cref="ArgumentException">Mit weniger als drei verschiedenen Ecken oder in einer Bauzone.</exception>
+    public int AussparungAnlegen(EntwurfFlaeche f, IReadOnlyList<Kartenort> ecken)
     {
+        if (!f.KannAussparungen) throw new ArgumentException($"„{f.Bezeichnung}“ kann keine Aussparungen haben.", nameof(f));
         var liste = Ecken(ecken, f);
         if (liste.Count < 3) throw new ArgumentException("Eine Aussparung braucht mindestens drei verschiedene Ecken.", nameof(ecken));
         Aendern(f, "Aussparung angelegt", n => n.AussparungenSetzen(n.Aussparungen.Append(liste)));
         return f.Aussparungen.Count - 1;
     }
 
-    public void AussparungLoeschen(EntwurfNaturflaeche f, int aussparung)
+    public void AussparungLoeschen(EntwurfFlaeche f, int aussparung)
     {
         Pruefen(f, aussparung, f.Aussparungen.Count);
         Aendern(f, "Aussparung gelöscht", n => n.AussparungenSetzen(n.Aussparungen.Where((_, i) => i != aussparung)));
     }
 
-    /// <summary>Löscht eine Bauzone oder Naturfläche (Rückgängig setzt sie an dieselbe Stelle zurück).</summary>
+    /// <summary>Löscht eine Bauzone, Naturfläche oder Feldfläche (Rückgängig setzt sie an dieselbe Stelle zurück).</summary>
     public void FlaecheLoeschen(EntwurfFlaeche f) => TeilEntfernen(f);
 
     private static IReadOnlyList<Kartenort> VieleckVon(EntwurfFlaeche f, int aussparung)
@@ -368,6 +427,16 @@ public sealed partial class Kartenentwurf
 
     /// <summary>Wie die Pflanze gezeichnet wird (Variante 0 fest aus dem Ort) – null, wenn ihr Baustein keine Natur des Katalogs ist.</summary>
     public Pflanzenlage? LageVon(EntwurfPflanze p) => NaturVerteilung.Einzeln(p.AlsPflanze(), Katalog);
+
+    /// <summary>Die Äcker einer Feldfläche, wie das Spiel sie zeigt (deterministisch aus Fläche, Startwert und Freiraum, <see cref="FeldVerteilung"/>).</summary>
+    public List<Feldparzelle> FelderVon(EntwurfFeld f, Naturfreiraum frei) => FeldVerteilung.Flaeche(f.AlsFeldflaeche(), frei);
+
+    /// <summary>Alle Äcker des Entwurfs, Feldfläche für Feldfläche.</summary>
+    public List<Feldparzelle> FelderAlle(Func<Baustein, (double X, double Z)?>? modellmass = null)
+    {
+        var frei = Freiraum(modellmass);
+        return _felder.SelectMany(f => FelderVon(f, frei)).ToList();
+    }
 
     /// <summary>Alle Pflanzen des Entwurfs: die Flächen in ihrer Reihenfolge, dann die einzeln gesetzten.</summary>
     public List<Pflanzenlage> NaturAlle(Func<Baustein, (double X, double Z)?>? modellmass = null)
