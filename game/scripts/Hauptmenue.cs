@@ -52,6 +52,8 @@ public partial class Hauptmenue : Node
     private OptionButton _beruf = null!;
     private OptionButton _rivalen = null!;
     private OptionButton _rivale = null!;
+    private OptionButton _schwierigkeit = null!;
+    private Label _schwierigkeitHinweis = null!;
     private SpinBox _startwert = null!;
     private Label _fehler = null!;
     private Control _endjahrZeile = null!;
@@ -226,6 +228,17 @@ public partial class Hauptmenue : Node
         RivalenWahlFuellen();
         Zeile(raster, "Rivalen", _rivalen);
 
+        _schwierigkeit = new OptionButton { FocusMode = Control.FocusModeEnum.None };
+        _schwierigkeit.AddItem("Normal", (int)Schwierigkeit.Normal);
+        _schwierigkeit.AddItem("Schwer", (int)Schwierigkeit.Schwer);
+        _schwierigkeit.ItemSelected += _ => SchwierigkeitHinweisZeigen();
+        Zeile(raster, "Schwierigkeit", _schwierigkeit);
+        _schwierigkeitHinweis = new Label { CustomMinimumSize = new Vector2(280, 0), AutowrapMode = TextServer.AutowrapMode.WordSmart };
+        _schwierigkeitHinweis.AddThemeFontSizeOverride("font_size", 12);
+        _schwierigkeitHinweis.AddThemeColorOverride("font_color", new Color(0.72f, 0.72f, 0.72f));
+        Zeile(raster, "", _schwierigkeitHinweis);
+        SchwierigkeitHinweisZeigen();
+
         var startwertZeile = new HBoxContainer();
         _startwert = Zahl(0, 999_999, 1, 1400);
         startwertZeile.AddChild(_startwert);
@@ -394,6 +407,14 @@ public partial class Hauptmenue : Node
         _volkHinweis.Text = $"{text} Glaube: {glaube} – im Rat schätzen Ratsherren Glaubensbrüder (7 katholisch, 6 evangelisch).";
     }
 
+    /// <summary>Was die gewählte Schwierigkeit bedeutet – eine Zeile unter der Auswahl.</summary>
+    private void SchwierigkeitHinweisZeigen() =>
+        _schwierigkeitHinweis.Text = (Schwierigkeit)_schwierigkeit.GetSelectedId() switch
+        {
+            Schwierigkeit.Schwer => "Die KI-Häuser starten mit Vorsprung: Werkstatt und Umlandbetrieb (Grube, Holzschlag, Steinbruch).",
+            _ => "Alle Häuser starten gleich: eine Werkstatt mit zwei Gesellen. Die Umlandbetriebe der KI stehen frei zur Pacht.",
+        };
+
     /// <summary>Endjahr bzw. Zielvermögen nur zeigen, wenn die gewählte Siegbedingung sie braucht.</summary>
     private void SiegFelderZeigen()
     {
@@ -418,6 +439,7 @@ public partial class Hauptmenue : Node
             RundenDauerMinuten = _dauer.Value,
             AktionspunkteProRunde = (int)_aktionspunkte.Value,
             StartStatut = (Fronstatut)_statut.GetSelectedId(),
+            Schwierigkeit = (Schwierigkeit)_schwierigkeit.GetSelectedId(),
             Zufallsstartwert = (int)_startwert.Value,
         };
         var fehler = einstellungen.Pruefen().ToList();

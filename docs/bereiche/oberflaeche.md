@@ -77,3 +77,12 @@ So wird eingetragen (damit sich die Chats nie an derselben Stelle treffen):
 |---|---|---|
 | Tafeln | Feste Seitentafeln über die ganze Höhe (links Katalog, rechts Eigenschaften und Fehlerliste, jede mit eigenem Rollbereich), oben eine Leiste über die ganze Breite, unten Meldung und Tastenhilfe. Stil wie Bau- und Auswahltafel; Rückfragen wie das Spielmenü (goldener Rand) auf einem dunklen Schleier, der Klicks auf die Stadt abfängt; Esc schließt sie. | 21.10.2026 |
 | Textfelder | Name und Betrieb werden beim Verlassen des Feldes übernommen (Enter oder ein Klick daneben, auch in die Stadt); solange darin geschrieben wird, verschieben WASD die Kamera nicht (gilt jetzt in jeder Stadtansicht, auch mit gedrückter Strg-Taste). | 21.10.2026 |
+
+### Schwierigkeit beim Partiestart (PR #177)
+
+| Thema | Entscheidung | Datum |
+|---|---|---|
+| Auswahl im Menü | Zeile „Schwierigkeit“ (Normal, Schwer) unter „Rivalen“ im Dialog „Neue Partie“, Vorgabe Normal; darunter wie beim Volk eine graue Hinweiszeile, die sich mit der Wahl ändert. Die Stufe geht in `Partieeinstellungen.Schwierigkeit`. | 22.10.2026 |
+| Startoption | `--schwierigkeit=Normal\|Schwer` überschreibt die Stufe nur für diesen Start (auch ohne Menü, dann sonst Normal). | 22.10.2026 |
+| Anzeige im Spiel | Die Hinweiszeile oben links nennt die Stufe hinter der Siegbedingung (bei geladenen Ständen die gespeicherte). Eine eigene Einstellungsliste gibt es im Spiel sonst nicht. | 22.10.2026 |
+| Freie Umlandbetriebe | Bei Normal erscheinen die Umlandbetriebe der KI-Häuser ohne Änderung der Darstellung als „zu verpachten“ (Schild, Beschriftung, Auswahltafel mit Pacht-Knopf); geprüft an Grube und Holzschlag im Klicktest. | 22.10.2026 |

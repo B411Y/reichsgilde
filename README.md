@@ -192,7 +192,7 @@ Die Reichsstadt ist als begehbare Schrägansicht zu sehen: Mauer (100 × 100 m) 
 **Spieltag wie im Original: 05:00 bis 22:00 Uhr.** Ein Spieltag ist ein Spieljahr. Er beginnt um 5 Uhr mit der Zunftglocke, gearbeitet wird von 8 bis 20 Uhr, von 20 bis 22 Uhr ist Dunkle Nacht (die Gauner ziehen um 20 Uhr los), um 22 Uhr kommt die Jahresrechnung, und das nächste Jahr beginnt wieder um 5 Uhr. Ein Jahr dauert weiter 15 Minuten Echtzeit (eine Spielstunde ≈ 53 Sekunden). Spielstände aus der Zeit des 24-Stunden-Tags lassen sich nicht mehr laden.
 
 **Hauptmenü, Speichern und Laden.**
-- Das Spiel startet im Hauptmenü. Unter „Neue Partie“ wählst du Wappen und Hausname, Siegbedingung, Dauer eines Spieljahres, Startstatut, Startvermögen, den Charakter des Rivalen und den Zufallsstartwert.
+- Das Spiel startet im Hauptmenü. Unter „Neue Partie“ wählst du Wappen und Hausname, Siegbedingung, Dauer eines Spieljahres, Startstatut, Startvermögen, den Charakter des Rivalen, die **Schwierigkeit** und den Zufallsstartwert. Bei **Normal** (Vorgabe) starten alle Häuser gleich – eine Werkstatt mit zwei Gesellen –, und die Umlandbetriebe der KI-Häuser (Grube, Holzschlag, Steinbruch) stehen als freie Liegenschaften zur Pacht; bei **Schwer** beginnen die KI-Häuser mit Werkstatt und Umlandbetrieb. Zum Ausprobieren: `--schwierigkeit=Normal|Schwer`. Die gewählte Stufe steht in der Hinweiszeile oben links.
 - Im Spiel öffnet **Esc** das Spielmenü: Weiterspielen, Speichern, Laden, Hauptmenü, Beenden.
 - Nach jedem Jahresbericht wird automatisch gespeichert.
 - Ein geladener Spielstand läuft exakt so weiter, wie er gespeichert wurde.
