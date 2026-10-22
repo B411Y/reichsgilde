@@ -31,6 +31,7 @@ public partial class Stadtansicht
     private readonly List<Vector2> _wsPunkte = new();
 
     private static readonly Color Waldgruen = new(0.18f, 0.55f, 0.2f);
+    private static readonly Color Feldgold = new(0.9f, 0.74f, 0.25f);
     private static readonly Color Streugruen = new(0.62f, 0.68f, 0.25f);
     private static readonly Color Aussparungsbraun = new(0.62f, 0.38f, 0.18f);
 
@@ -44,6 +45,7 @@ public partial class Stadtansicht
         AddChild(_wsFlaechenKnoten);
         foreach (var z in _entwurf!.Bauzonen) FlaecheBauen(z, false);
         foreach (var f in _entwurf.Naturflaechen) FlaecheBauen(f, false);
+        foreach (var f in _entwurf.Felder) FlaecheBauen(f, false);
     }
 
     /// <summary>Die Grundfarbe einer Fläche: Bauzone nach ihrer Lage, Wald grün, Streu olivgrün.</summary>
@@ -51,6 +53,7 @@ public partial class Stadtansicht
     {
         EntwurfBauzone z => LageFarbe(z.Art),
         EntwurfNaturflaeche { Art: "streu" } => Streugruen,
+        EntwurfFeld => Feldgold,
         _ => Waldgruen,
     };
 
@@ -63,8 +66,13 @@ public partial class Stadtansicht
             if (weg) NaturEntfernen(natur);
             else _wsNaturNeu.Add(natur);
         }
+        if (f is EntwurfFeld feld)
+        {
+            if (weg) FeldEntfernen(feld);
+            else _wsFelderNeu.Add(feld);
+        }
         if (weg || _wsFlaechenKnoten is null || f.Ecken.Count < 3) return;
-        var knoten = new Node3D { Name = f is EntwurfBauzone ? "Bauzone" : "Naturflaeche" };
+        var knoten = new Node3D { Name = f is EntwurfBauzone ? "Bauzone" : f is EntwurfFeld ? "Feldflaeche" : "Naturflaeche" };
         _wsFlaechenKnoten.AddChild(knoten);
         _wsFlaechen[f] = knoten;
         if (f is EntwurfBauzone zone)
@@ -72,7 +80,7 @@ public partial class Stadtansicht
             BauzoneZeichnen(zone.AlsBauzone(), (float)_entwurf!.Raster, knoten); // Stadtansicht.Bauen.cs
             if (BereichVon(zone) is { } bereich) _wsBereiche[zone] = bereich;
         }
-        else knoten.AddChild(DurchsichtigesNetz(VieleckDreiecke(f.Ecken.Select(V2).ToList(), 0.09f), FlaechenFarbe(f), 0.12f));
+        else if (f is not EntwurfFeld) knoten.AddChild(DurchsichtigesNetz(VieleckDreiecke(f.Ecken.Select(V2).ToList(), 0.09f), FlaechenFarbe(f), 0.12f)); // ein Feld zeigt seine Äcker selbst
         FlaecheMarkieren(f);
     }
 
@@ -100,6 +108,11 @@ public partial class Stadtansicht
         if (gewaehlt && f is EntwurfNaturflaeche natur)
         {
             var name = Beschriftung($"{natur.Bezeichnung} · {(natur.Art == "streu" ? "Streufläche" : "Waldfläche")}", V3(MitteVon(f)) + new Vector3(0, 5, 0), 36, markierung);
+            name.Modulate = farbe.Lightened(0.4f);
+        }
+        else if (gewaehlt && f is EntwurfFeld feld)
+        {
+            var name = Beschriftung(feld.Name.StartsWith("Feld") ? feld.Name : $"{feld.Bezeichnung} · Feld", V3(MitteVon(f)) + new Vector3(0, 5, 0), 36, markierung);
             name.Modulate = farbe.Lightened(0.4f);
         }
     }
@@ -151,7 +164,7 @@ public partial class Stadtansicht
     {
         static float Groesse(EntwurfFlaeche f) => Mathf.Abs(Flaecheninhalt(f.Ecken.Select(V2).ToList()));
         return _entwurf!.Bauzonen.Where(z => InFlaeche(z, p)).OrderBy(Groesse).FirstOrDefault()
-            ?? (EntwurfFlaeche?)_entwurf.Naturflaechen.Where(f => InFlaeche(f, p)).OrderBy(Groesse).FirstOrDefault();
+            ?? (EntwurfFlaeche?)_entwurf.Naturflaechen.Cast<EntwurfFlaeche>().Concat(_entwurf.Felder).Where(f => InFlaeche(f, p)).OrderBy(Groesse).FirstOrDefault();
     }
 
     /// <summary>Eine Ecke an der Maus: bei Bauzonen auf dem Raster der Karte, sonst, wo sie ist (der Kern rundet auf 5 cm).</summary>
@@ -229,7 +242,10 @@ public partial class Stadtansicht
             case Werkstattwerkzeug.Wald or Werkstattwerkzeug.Streu when Befehl(() => e.NaturflaecheAnlegen(werkzeug == Werkstattwerkzeug.Wald ? "wald" : "streu", ecken)) is { } natur:
                 WerkstattWaehlen(natur);
                 break;
-            case Werkstattwerkzeug.Aussparung when WerkstattGewaehlt is EntwurfNaturflaeche f:
+            case Werkstattwerkzeug.Feld when Befehl(() => e.FeldAnlegen(ecken, null, FeldRichtungVon(ecken))) is { } feld:
+                WerkstattWaehlen(feld);
+                break;
+            case Werkstattwerkzeug.Aussparung when WerkstattGewaehlt is EntwurfFlaeche { KannAussparungen: true } f:
                 Befehl(() => e.AussparungAnlegen(f, ecken));
                 WerkzeugBeenden(); // die Fläche bleibt gewählt
                 break;
@@ -247,6 +263,7 @@ public partial class Stadtansicht
         {
             Werkstattwerkzeug.Bauzone => LageFarbe(WerkstattZonenlage),
             Werkstattwerkzeug.Streu => Streugruen,
+            Werkstattwerkzeug.Feld => Feldgold,
             Werkstattwerkzeug.Aussparung => Aussparungsbraun,
             _ => Waldgruen,
         };

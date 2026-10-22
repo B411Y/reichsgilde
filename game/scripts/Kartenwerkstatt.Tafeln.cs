@@ -45,7 +45,8 @@ public partial class Kartenwerkstatt
 
     /// <summary>
     /// Die Knöpfe des Katalogs nach Schlüssel: Gebäude und Pflanzen nach ihrer Kennung, dazu „weg:&lt;klasse&gt;“, „bauzone:&lt;lage&gt;“, „wald“,
-    /// „streu“, „aussparung“, „mauer“, „tor“, „pinsel“, „radierer“ (auch die Werte der Startoption <c>--werkstatt-werkzeug</c>).
+    /// „streu“, „feldflaeche“ (ein Baustein „feld“ gibt es schon: die Arbeitsstelle im Umland), „aussparung“, „mauer“, „tor“, „pinsel“, „radierer“
+    /// (auch die Werte der Startoption <c>--werkstatt-werkzeug</c>).
     /// </summary>
     private readonly Dictionary<string, (Button Knopf, Action Waehlen)> _katalogKnoepfe = new();
 
@@ -222,7 +223,9 @@ public partial class Kartenwerkstatt
                 () => _stadt.WerkstattZonenlage = lage);
         Eintrag("wald", "Waldfläche", "Mischwald (Tanne, Eiche, Buche) – Ecken klicken, Doppelklick schließt; rechts Dichte und Mischung", Werkstattwerkzeug.Wald);
         Eintrag("streu", "Streufläche", "Büsche, Gras, Steine und Holz locker verstreut – Ecken klicken, Doppelklick schließt", Werkstattwerkzeug.Streu);
-        Eintrag("aussparung", "Aussparung", "Ein Loch in der gewählten Wald- oder Streufläche – dort wächst nichts", Werkstattwerkzeug.Aussparung);
+        Eintrag("feldflaeche", "Feldfläche", "Äcker in Streifen mit Furchen, jedes Stück mit einer Frucht – vor allem für den Randstreifen. Ecken klicken, Doppelklick schließt; rechts Richtung, Streifen und Früchte",
+            Werkstattwerkzeug.Feld);
+        Eintrag("aussparung", "Aussparung", "Ein Loch in der gewählten Wald-, Streu- oder Feldfläche – dort wächst nichts", Werkstattwerkzeug.Aussparung);
 
         // Mauer und Tore
         Kopf("Mauer");
@@ -302,6 +305,9 @@ public partial class Kartenwerkstatt
         _startTafel = new VBoxContainer { SizeFlagsHorizontal = Control.SizeFlags.ExpandFill, Visible = false };
         _startTafel.AddThemeConstantOverride("separation", 6);
         inhalt.AddChild(_startTafel);
+        _karteTafel = new VBoxContainer { SizeFlagsHorizontal = Control.SizeFlags.ExpandFill, Visible = false };
+        _karteTafel.AddThemeConstantOverride("separation", 6);
+        inhalt.AddChild(_karteTafel);
         spalte.AddChild(new HSeparator());
         Hauptmenue.Text(spalte, "Prüfung", 20, Gold);
         _pruefKopf = Hauptmenue.Text(spalte, "", 14, Grau, umbruchBreite: Rechtsbreite - 30);
@@ -334,7 +340,7 @@ public partial class Kartenwerkstatt
             Werkstattwerkzeug.Baustein => "Klick setzt · Q/E dreht (15°, mit Alt 1°) · Alt: frei verschieben · Esc oder Rechtsklick: fertig",
             Werkstattwerkzeug.Pflanze => "Klick setzt die Pflanze · Q/E dreht · Esc oder Rechtsklick: fertig",
             Werkstattwerkzeug.Weg => "Punkte klicken · Doppelklick oder Enter: fertig · Rücktaste: letzter Punkt weg · Esc bricht ab · Ring: rastet ein (weiß Weg, orange Hof, blau Tor, grün Halteplatz)",
-            Werkstattwerkzeug.Bauzone or Werkstattwerkzeug.Wald or Werkstattwerkzeug.Streu or Werkstattwerkzeug.Aussparung =>
+            Werkstattwerkzeug.Bauzone or Werkstattwerkzeug.Wald or Werkstattwerkzeug.Streu or Werkstattwerkzeug.Feld or Werkstattwerkzeug.Aussparung =>
                 "Ecken klicken · Doppelklick, Enter oder Klick auf die erste Ecke schließt · Rücktaste: letzte Ecke weg · Esc bricht ab",
             Werkstattwerkzeug.Pinsel => "Mit gedrückter Maus malen – Loslassen streut Pflanzen · Radius, Dichte und Arten rechts · Esc bricht ab",
             Werkstattwerkzeug.Radierer => "Mit gedrückter Maus über einzelne Pflanzen fahren – Loslassen löscht sie (die Natur der Flächen bleibt) · Esc bricht ab",
@@ -355,7 +361,7 @@ public partial class Kartenwerkstatt
     {
         var name = _entwurf.Stadt.Length > 0 ? _entwurf.Stadt : "Ohne Namen";
         _titel.Text = $"{name} · {_entwurf.Kennung} · {_entwurf.Gebaeude.Count} Gebäude, {_entwurf.Wege.Count} Wege, "
-                      + $"{_entwurf.Bauzonen.Count + _entwurf.Naturflaechen.Count} Flächen, {_entwurf.Pflanzen.Count} Pflanzen";
+                      + $"{_entwurf.Bauzonen.Count + _entwurf.Naturflaechen.Count + _entwurf.Felder.Count} Flächen, {_entwurf.Pflanzen.Count} Pflanzen";
         var quelle = _pfad is not { } pfad ? "neue Karte, noch nicht gespeichert"
             : _nurLesen ? $"Spielkarte {Anzeigepfad(pfad)} – nur lesen (Speichern legt eine eigene Datei an)"
             : IstSpielkarte(pfad) ? $"Spielkarte – wird direkt gespeichert · {Anzeigepfad(pfad)}"
@@ -515,6 +521,12 @@ public partial class Kartenwerkstatt
         {
             KatalogWaehlen(platz.Kennung);
             Melden($"Werkzeug „{platz.Anzeigename}“: an eine Gasse klicken, die Vorderseite (Pfeil) zur Gasse – Q/E dreht.");
+            return;
+        }
+        if (b.Regel is "groesse" or "kamera" || b.Andere.Any(t => t is EntwurfKopf))
+        {
+            KarteReiterWaehlen(); // die Größe und der Kamera-Start stehen im Reiter „Karte“
+            if (b.Ort is { } kopfOrt) _stadt.WerkstattHinfahren(kopfOrt);
             return;
         }
         var start = b.Andere.Any(t => t is EntwurfStart);
@@ -723,10 +735,14 @@ public partial class Kartenwerkstatt
         Zeile(raster, "Kennung", kennung);
         var stadt = new LineEdit { Text = "Neustadt" };
         Zeile(raster, "Name der Stadt", stadt);
-        var breite = new Zahlfeld { MinValue = 60, MaxValue = 2000, Step = 10, Value = 300, Suffix = "m", Rounded = true, TooltipText = "Von West nach Ost (x), um den Marktplatz" };
+        var breite = new Zahlfeld { MinValue = Kartengrenzen.MinBreite, MaxValue = Kartengrenzen.MaxSeite, Step = Kartengrenzen.Schritt, Value = Kartengrenzen.NeueBreite, Suffix = "m", Rounded = true,
+            TooltipText = "Das Spielfeld von West nach Ost (x), um den Marktplatz – 400 bis 2.000 m in 50-m-Schritten. Darum liegt der Randstreifen." };
         Zeile(raster, "Breite", breite);
-        var tiefe = new Zahlfeld { MinValue = 60, MaxValue = 2000, Step = 10, Value = 300, Suffix = "m", Rounded = true, TooltipText = "Von Nord nach Süd (z), um den Marktplatz" };
+        var tiefe = new Zahlfeld { MinValue = Kartengrenzen.MinTiefe, MaxValue = Kartengrenzen.MaxSeite, Step = Kartengrenzen.Schritt, Value = Kartengrenzen.NeueTiefe, Suffix = "m", Rounded = true,
+            TooltipText = "Das Spielfeld von Nord nach Süd (z), um den Marktplatz – 300 bis 2.000 m in 50-m-Schritten" };
         Zeile(raster, "Tiefe", tiefe);
+        Hauptmenue.Text(spalte, "Um das Spielfeld liegt ein Randstreifen von 300 m (im Reiter „Karte“ einstellbar); die neue Karte bekommt dort gleich einen Vorschlag aus Feldern und Wäldern, den man übermalen kann.",
+            13, Grau, umbruchBreite: 420);
         var fehler = Hauptmenue.Text(spalte, "", 14, Rot, umbruchBreite: 420);
         var knoepfe = new HBoxContainer { Alignment = BoxContainer.AlignmentMode.Center };
         knoepfe.AddThemeConstantOverride("separation", 12);
@@ -736,7 +752,7 @@ public partial class Kartenwerkstatt
             var k = Kartenentwurf.KennungVon(kennung.Text.Trim()).ToLowerInvariant();
             if (k.Length == 0) { fehler.Text = "Die Kennung braucht mindestens einen Buchstaben."; return; }
             if (stadt.Text.Trim().Length == 0) { fehler.Text = "Die Stadt braucht einen Namen."; return; }
-            var neu = Kartenentwurf.Neu(k, stadt.Text.Trim(), breite.Value, tiefe.Value, KatalogLaden());
+            var neu = NeueKarte(k, stadt.Text.Trim(), breite.Value, tiefe.Value);
             MitRueckfrage(() => Wechseln(neu, null, false));
         });
         Hauptmenue.Knopf(knoepfe, "Abbrechen", DialogSchliessen);
