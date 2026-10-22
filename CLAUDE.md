@@ -86,6 +86,7 @@ dotnet build Reichsgilde.sln
 dotnet run -c Release --project tests/Reichsgilde.Core.Tests          # alle Tests
 dotnet run -c Release --project tests/Reichsgilde.Core.Tests -- messen 30 20   # Messung: 30 Jahre, 20 Startwerte
 dotnet run -c Release --project tests/Reichsgilde.Core.Tests -- messen 30 20 greybox   # dieselbe Messung mit der Greybox-Karte (Bauen, Leerstand, Neubau)
+dotnet run -c Release --project tests/Reichsgilde.Core.Tests -- messen bericht 20 20   # Balancing-Bericht (Berufe, Völker, Startfairness, 1/3/5/8 Häuser, KI, Einrichtung, Gauner): JSON nach docs/messungen/, parallel; --teile=1,4 nur einzelne Abschnitte
 dotnet run --project tools/Kartenbau -- pruefen koeln        # Kartenskript: Karte prüfen (auch vorschau <karte> --belegung, bauen <stadtskript>, liste)
 ```
 

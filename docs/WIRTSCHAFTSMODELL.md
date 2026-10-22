@@ -1154,3 +1154,126 @@ Rechenbretter und Hauptbücher multipliziert wie Werkzeug und Meisterwerkzeug de
 - **Mit den neuen Kernzonen K1–K3** (die frei gewordene Fläche in der Stadt wird Bauland, Entscheidung des Nutzers; gemessen auf main `3086bda` + Funktions-Branch `4c08c0e`, `messen 30 20 greybox`): Eisenbart 156.891 (−3 % gegen vorher), Eichwald 100.413 (+4 %), Kieselbach 149.875 (+4 %), im Mittel +1 %. Gekauft/gepachtet 119, Werkstätten neu gebaut 57, Stadthöfe neu gebaut 60 statt 42 (vorher 56), weil ein Stadthof nun auch in Kernlage Platz findet. Stand am Ende Edler 1, Freiherr 59 (vorher Edler 11, Freiherr 48, Reichsgraf 1): Mehr Häuser kommen zum Freiherrn, keins mehr zum Reichsgrafen. Bürgermeister 17/20. Das ist der Stand, mit dem PR #162 gemergt wird.
 - **Kartenformat 2 und Gebäudekatalog** (PR #163; gemessen auf main `ac32342` + Funktions-Branch `824ceb2` mit der Karte aus dem Werkzeug, `messen 30 20 greybox`): Ausgabe zeichengleich mit main – Eisenbart 156.891, Eichwald 100.413, Kieselbach 149.875. Die verschobenen Gebäude (Steinbruch am Felsenhang 1,5 m, Kulisse 0,5 m), die Rathausgasse und die geknickten Wege berühren keine Bauzone und keine Stelle, an der die KI baut; Fahrzeiten rechnet der Kern noch nicht aus den Weglängen.
 - **Ohne Karte** (`messen 30 20`): Hier wird nicht gebaut, die KI kann nur noch Umland pachten oder freie Werkstätten toter Häuser kaufen. Deshalb −9 bis −20 %. Das Spiel startet immer mit der Greybox-Karte; die Messung ohne Karte zeigt nur, wie viel der Werkstattkauf vorher ausgemacht hat.
+
+## Balancing-Messung 1 (PR #176)
+
+**Kein Wert geändert** – nur gemessen, damit der Nutzer danach entscheidet (Entscheidungen zur Balancing-Runde in `docs/bereiche/kern.md`). Gemessen auf main `24cfdc8` + Branch `efeb7b7`, Datenversion 47.
+
+**Aufruf:** `dotnet run -c Release --project tests/Reichsgilde.Core.Tests -- messen bericht 20 30` (20 Jahre, 30 Startwerte 101 … 3.030; Vorgabe `messen bericht` = 20 Jahre, 20 Startwerte). Weitere Schalter: `--karte=<kennung>` (Karte der Abschnitte Berufe, KI-Stärke, Einrichtung, Gauner; Vorgabe `greybox`), `--teile=1,4` (nur diese Abschnitte), `--parallel=n`, `--datei=<pfad>`. **Laufzeit** auf dem Entwicklungsrechner (4 Kerne, 8 Fäden): 1.170 Partien in 12,4 Minuten (mit 20 Startwerten 780 Partien in 8,3 Minuten). Die Partien laufen parallel; jede liest eigene Daten und Karte, das Ergebnis ist Wurf für Wurf dasselbe wie nacheinander (Test). `messen 30 20` und `messen 30 20 greybox` sind unverändert (der Kern ist nicht angefasst).
+
+**Ergebnis:** `docs/messungen/balancing-2026-10-22.json`. Oben `bericht`, `datum`, `mainCommit`, `commit`, `datenversion`, `aufruf`, `parameter` (Jahre, Startwerte, Stichjahre 5/10/20, Karte, Band ±15 %, Startvermögen), `partien`, `partienMitFehler`, `laufzeitSekunden`; dann je Abschnitt ein Objekt mit `erklaerung`: `berufe` (`statisch`, `statischMittelJeStufe`, `simuliert`, `simuliertMittel`), `voelker` (`zeilen`), `startfairness` (`karten` mit `start`, `jeHaus`, `jeWohnhausplatz`, Jahre bis Bürger), `haeuser` (`stufen` 1/3/5/8 mit `alleHaeuser`, `jeHaus`, `markt`, `preisindex`; `druck`), `kiStaerke`, `einrichtung` (`statisch`, `simuliert`), `gaunerWacheBank` (`dieb`, `wache`, `bank`, `gaunereiHinterzimmer`, `gaunereiEigeneDiebe`) und `befunde` (Sätze mit Zahlen). Jede Kennzahl hat `n`, `mittel`, `streuung`, `fehlerMittel` (Streuung ÷ √n), `min`, `q10`, `q25`, `median`, `q75`, `q90`, `max`; Werte nach Stichjahr unter `"5"`, `"10"`, `"20"`.
+
+**Wie gemessen wird** (Einzelheiten in den Feldern `erklaerung`):
+- **Spieler mit einem Betrieb:** Der Spieler beginnt mit der Werkstatt seines Berufs (Mensch, Startvermögen 4.000) und wird von der KI geführt wie ein KI-Haus (ausgewogen), aber ohne Expansion (`MaxBetriebe` 0): Personal, Ware, Meisterprüfung und **Ausbau nach den Regeln der KI** (sobald Grad und Rechnung es erlauben), Stand, Familie, Politik. Keine Einrichtung, keine Prämien. Gegen die drei KI-Häuser der Greybox.
+- **Bezugsspieler** (KI-Stärke): der Spieler mit genau dem Profil der KI-Häuser (auch Expansion).
+- **Messstadt** (`docs/LEVELDESIGN.md`, „Kartenskript“): die ersten n von acht KI-Häusern, der Spieler entlässt seine Arbeiter und zählt nicht.
+- „Zuwachs“ = Reinvermögen − Startvermögen. „Gewinn“ = Betriebsgewinn des Jahres (Umsatz mit Beute, Sold, Zins, Kollekte, Ausschank − Zutaten, Löhne, Unterhalt, Steuer, Schaden, Transport). Amt, Familie, Gericht, Investitionen zerlegt `jeJahrImMittel`.
+
+### Berufe
+
+**Statisch** (erwarteter Jahresgewinn eines neuen Betriebs, voll mit Gesellen, Startpreise, `Kalkulation.ErwarteterJahresgewinn`; Prediger + Kollekte als einzige Kirche, Wirt + Ausschank als einzige Schänke, beides Schätzung):
+
+| Beruf | Stufe 1 | Stufe 2 | Stufe 3 |
+|---|---|---|---|
+| Schmied | 1.148 (−10 %) | 2.393 (−3 %) | 4.081 (0 %) |
+| Tischler | 1.026 (**−20 %**) | 2.156 (−13 %) | 3.647 (−11 %) |
+| Steinmetz | 1.214 (−5 %) | 2.499 (+1 %) | 4.008 (−2 %) |
+| Alchimist | 1.221 (−5 %) | 2.449 (−1 %) | 3.895 (−5 %) |
+| Wirt (+ Ausschank 312 / 862 / 1.405) | 1.600 (**+25 %**) | 3.579 (**+45 %**) | 5.434 (**+33 %**) |
+| Prediger (+ Kollekte 475) | 1.625 (**+27 %**) | 2.599 (+5 %) | 4.442 (+9 %) |
+| Dieb (Taschendiebe) | 1.344 (+5 %) | 2.362 (−5 %) | 4.050 (−1 %) |
+| Parfumeur | 1.221 (−5 %) | 2.164 (−13 %) | 3.708 (−9 %) |
+| Geldleiher (volle Kasse) | 1.342 (+5 %) | 2.600 (+5 %) | 4.230 (+3 %) |
+| Gardist (Sold) | 1.092 (−15 %) | 1.946 (**−21 %**) | 3.395 (**−17 %**) |
+| Mittel | 1.283 | 2.475 | 4.089 |
+
+**Simuliert** (ein Betrieb, 20 Jahre, 30 Startwerte; Fehler des Mittels beim Vermögen ±115 … ±1.010):
+
+| Beruf | Vermögen 5 / 10 / 20 J. | Zuwachs gegen Mittel (11.603) | Gewinn Ø je Jahr | Bürger (10.000) Ø Jahr, erreicht | Stufe 2 Ø Jahr |
+|---|---|---|---|---|---|
+| Schmied | 4.046 / 6.804 / 10.693 | **−42 %** | 1.321 | 18,2 (22/30) | 11,3 |
+| Tischler | 3.655 / 5.671 / 11.074 | **−39 %** | 1.316 | 18,1 (23/30) | 11,3 |
+| Steinmetz | 4.625 / 8.529 / 14.246 | −12 % | 1.568 | 15,6 (30/30) | 11,4 |
+| Alchimist | 4.894 / 5.909 / 10.189 | **−47 %** | 1.270 | 18,6 (18/30) | 11,2 |
+| Wirt | 6.171 / 8.234 / 23.287 | **+66 %** | 2.196 | 13,8 (30/30) | 11,1 |
+| Prediger | 7.686 / 13.427 / 15.669 | +1 % | 1.848 | 7,4 (30/30) | 11,7 |
+| Dieb (ausgewogen: nur Taschendiebe) | 7.124 / 8.550 / 14.996 | −5 % | 2.073 | 12,9 (30/30) | 6,0 |
+| Parfumeur | 4.048 / 4.791 / 6.645 | **−77 %** | 963 | 19,0 (3/30) | 13,0 |
+| Geldleiher | 7.566 / 9.754 / 17.965 | **+20 %** | 1.735 | 11,9 (30/30) | 12,1 |
+| Gardist | 8.745 / 13.218 / 31.262 | **+135 %** | 2.212 | 9,0 (30/30) | 6,0 |
+| Dieb wagemutig (nicht im Mittel) | 7.815 / 7.862 / 16.245 | +6 % | 2.462 | 12,3 (30/30) | 6,1 |
+
+Zum Vergleich die KI-Häuser in denselben Partien: Ø 60.000–67.000 nach 20 Jahren. Stufe 3 erreicht mit einem Betrieb niemand in 20 Jahren.
+
+### Völker
+
+Spieler mit einem Betrieb, jedes Volk, Vermögen nach 20 Jahren (Abstand des Zuwachses zum Menschen):
+
+| Beruf | Mensch | Zwerg | Elb | Halbling |
+|---|---|---|---|---|
+| Schmied (Bonus 0 / +5 / 0 / −5 %) | 10.693 | 13.733 (+45 %) | 10.663 (0 %) | 9.667 (−15 %) |
+| Parfumeur (Bonus 0 / −5 / +5 / 0 %) | 6.645 | 5.582 (−40 %) | 6.658 (+1 %) | 7.837 (+45 %) |
+
+### Startfairness
+
+| | Spieler | KI-Häuser |
+|---|---|---|
+| Start Greybox | 4.000 Gulden, 1 Werkstatt, 2 Gesellen, erwartet 1.148 im Jahr | je 4.000 Gulden, Werkstatt + Umland, 5 Arbeiter, erwartet 2.904–3.244 |
+| nach 20 Jahren (120 Partien: 4 Rotationen × 30) | 10.693, Bürger 116, Gemeiner 4 | Eisenbart 74.130 (Edler), Kieselbach 68.416, Eichwald 51.725 |
+| Probestadt (KI-Häuser nur mit Werkstatt, 90 Partien) | 9.838 | Ahlbeck (Tischler, Mensch) 14.678, Brendel (Schmied) 11.605 |
+
+Wohnhausplätze rotieren (jedes Haus auf jedem Platz): Das Vermögen ist **auf jedem Platz Wurf für Wurf gleich** (Abstand 0 %). Der Platz wirkt im Kern heute nicht – Fahrzeiten hängen an Stadt/Umland, nicht am Weg; Bürger kaufen am Markt; die Lage des Wohnhauses zählt nur beim Bauen. Jahre bis Bürger (Spieler mit einem Betrieb): Greybox Ø 18,2 (in 8–12 Jahren 4 von 120), Probestadt Ø 19,1 (0 von 90).
+
+### 1, 3, 5, 8 Häuser (Messstadt)
+
+| KI-Häuser | Vermögen je Haus 5 / 10 / 20 J. | Gewinn je Haus im Jahr 5 / 10 / 20 | Summe aller Häuser (20 J.) | Preisindex | gegen 1 Haus (20 J.) |
+|---|---|---|---|---|---|
+| 1 | 9.738 / 32.871 / 111.605 | 3.401 / 8.900 / 9.609 | 111.605 | 0,91 | – |
+| 3 | 6.547 / 17.389 / 67.718 | 2.081 / 5.114 / 9.264 | 203.155 | 0,885 | −39 % |
+| 5 | 5.634 / 15.846 / 58.371 | 1.177 / 4.406 / 9.198 | 291.856 | 0,852 | −48 % |
+| 8 | 5.548 / 15.022 / 51.453 | 1.337 / 4.267 / 8.075 | 411.627 | 0,811 | **−54 %** (gegen 3: −24 %) |
+
+Preisindex = Marktpreis ÷ Grundpreis, gewichtet mit den Verkäufen der Häuser (letztes Jahr). Bei 8 Häusern fallen vor allem die **Rohstoffe**: Holz 0,66, Silber 0,68, Granit 0,70, Eisen 0,74 – die Häuser stellen dort 47–61 % des Angebots. Fertigwaren bleiben bei 0,89–1,01 (Anteil der Häuser 26–40 %). Die Häuser mit **demselben Beruf** teilen sich ihre Märkte: zwei Tischler 19.932 und 32.945, zwei Steinmetze 37.171 und 41.891, zwei Schmiede 62.318 und 39.341, dagegen der einzige Wirt 102.952 und der einzige Alchimist 75.076. Kein Bankrott, 2 erloschene Häuser (bei 8).
+
+### KI-Stärke
+
+Bezugsspieler (Strategie der KI, Schmied) nach 20 Jahren 6.404 Gulden, die KI-Häuser 64.692 (Median des Verhältnisses 11). **Alle 90 KI-Häuser ziehen davon** (> 2×), keins bleibt zurück, keins geht bankrott oder erlischt; am Ende Patrizier 25, Edler 65 (Bezug: Bürger 28). Grund ist der Start, nicht die Strategie: Bis Jahr 10 gleicht der Bezug dem Spieler mit einem Betrieb (Liegenschaften und Neubau erst als Bürger), danach investiert er (Betriebe 1 → 2,5 in Jahr 20, Investitionen Ø 561 im Jahr) und liegt in Jahr 20 noch unter dem Spieler mit einem Betrieb (10.693). Die KI-Häuser führen 2,6 / 3,6 / 4,9 Betriebe (Jahr 5/10/20). Die KI kauft keine Einrichtung, zahlt keine Prämien und nimmt keine Kredite.
+
+### Einrichtung
+
+| Stück (statisch, Startpreise, voll mit Gesellen) | Preis | Mehrgewinn im Jahr | Amortisation |
+|---|---|---|---|
+| Gutes Werkzeug (alle sieben Werkstattberufe) | 300 | 172–209 | 1,4–1,7 J. |
+| Meisterwerkzeug (Stufe 2) | 800 | 359–445 | 1,8–2,2 J. |
+| Spezialstück (Blasebalg, Leimofen, Flaschenzug, Destillierhelm, Braupfanne, Gänsekiele) für die begünstigten Waren | 350 | 146–184 | 1,9–2,4 J. |
+| Glasflakons (erst ab der Duftwerkstatt eine begünstigte Ware) | 350 | 327 | 1,1 J. |
+| Lederschürzen/-handschuhe | 80 | 8–19 | 4,2–10,4 J. |
+| Eisentür (gemessener Raub 76 Gulden je Betrieb und Jahr) | 300 | 38 | 7,9 J. |
+| Löschfass (die KI gibt keine Sabotage in Auftrag) | 100 | 0 | – |
+| Geldleiher: Goldwaage / Rechenbretter / Hauptbücher / Pfandkammer | 350 / 300 / 800 / 350 | 149 / 38 / 78 / 20 | 2,4 / 8 / 10,3 / 17,5 J. |
+| Gardist: Waffenkammer | 200 | 88 | 2,3 J. |
+
+Ohne Gulden-Wirkung (keine Zahl): Regale, Dietriche, Verkleidung, Hellebarden, Armbrüste, Wachhunde, Kettenhemden, Kassenschrank. **Simuliert** (Werkzeug + Spezialstück am Start, 650 Gulden, gegen dieselbe Partie ohne, Jahre 1–10): Mehrgewinn 127 (Alchimist) bis 284 (Parfumeur) im Jahr, Amortisation 2,3–5,1 Jahre; Geldleiher (Rechenbretter, Goldwaage, Pfandkammer, 1.000) 146 → 6,9 Jahre; Gardist (Waffenkammer) 107 → 1,9 Jahre. Weniger als statisch: Mehr Stück drücken den Preis, und das Spezialstück hilft nur, wenn die begünstigte Ware gemacht wird.
+
+### Gauner, Wache, Bank
+
+| | ohne Wachhaus | mit Wachhaus (vier Gesellen beim ersten KI-Haus) |
+|---|---|---|
+| Dieb ausgewogen (nur Taschendiebe): Gewinn je Jahr, Beute, Fänge | 2.073, 3.418, 0,60 | 2.126, 3.402, 0,59 |
+| Dieb wagemutig (dazu Einbruch …): Gewinn je Jahr | 2.462 | 2.341 (−5 %) |
+
+- **Wache** (Spieler als Gardist): Sold 3.251, Geleitgeld 433, Kopfgeld 41 im Jahr, 1,06 Razzien im Jahr, Streife 13,7 % weniger Erfolg. Raub und Schaden je KI-Haus und Jahr 411 statt 561 (−27 %). Die Taschendiebe trifft die Wache praktisch nicht (Beute und Fänge gleich).
+- **Bank** (Spieler als Geldleiher, Jahr 20): Kasse 7.267, Stadtzinsen 887, Wechsel 2.997, Ausfall 175 – der Wechsel bringt drei Viertel. **Kredite: 0 in 1.170 Partien**, also auch kein Wucher – die KI nimmt keine Kredite.
+- **Gaunerei je Auftrag** (Hinterzimmer der KI, Partien mit dem Bezugsspieler): Diebstahl 1,16 Aufträge je Partie und Jahr zu 51 %, Einbruch ins Wohnhaus 0,41 zu 50 %; Sabotage, Überfall, Krötenschleim und Brandstiftung gibt die ausgewogene KI nicht in Auftrag. Eigene Diebe (wagemutig): Einbruch 0,92 je Jahr zu 50 %, Auskundschaften 0,55 zu 44 %, Brand nach verweigertem Schutzgeld 0,04 zu 35 %.
+
+### Befunde (ohne Änderung – Entscheidung beim Nutzer)
+
+1. **Startnachteil des Spielers:** Gleiches Startgeld, aber die KI-Häuser beginnen mit Werkstatt **und** Umland (5 Arbeiter, erwartet 2,5–2,8× so viel Gewinn) – nach 20 Jahren 6–11× so reich wie der Spieler mit derselben Strategie. Der größte Hebel für Fairness ist der Start, nicht die Werte der Berufe.
+2. **Z2 verfehlt:** Mit einem Betrieb wird man im Mittel erst nach 15–19 Jahren Bürger (Schmied 18,2, Ziel 8–12); nur Prediger (7,4), Gardist (9,0) und Geldleiher (11,9) liegen im oder am Ziel. Z2 stammt aus Entwurf 1 ohne KI-Konkurrenz.
+3. **Berufe außerhalb ±15 %** (simuliert, Zuwachs in 20 Jahren): zu stark Gardist (+135 %: früher Ausbau – 4 Wachleute sammeln doppelt so schnell Erfahrung, Stufe 2 in Jahr 6 statt 11 –, Sold ohne Preisdruck, wenig Gerichtskosten), Wirt (+66 %, statisch +25…+45 % mit Ausschank), Geldleiher (+20 %); zu schwach Parfumeur (−77 %, nur 3 von 30 werden Bürger), Alchimist (−47 %), Schmied (−42 %), Tischler (−39 %). Statisch zusätzlich Prediger Stufe 1 (+27 % mit Kollekte), Tischler Stufe 1 (−20 %), Gardist Stufe 2/3 (−21/−17 %). Die drei Startberufe der KI (Schmied, Tischler, Steinmetz) leiden unter der direkten Konkurrenz der KI-Häuser; Berufe ohne Ware (Sold, Beute, Zins) kennen keinen Preisdruck.
+4. **Völker wirken stärker als ±5 %:** Zwerg-Schmied +45 %, Halbling-Parfumeur +45 % (ohne Bonus), Zwerg-Parfumeur −40 % – Familie und Talente der Völker wirken mit (Fehler des Mittels etwa ±5 %).
+5. **Startplatz fair:** Der Wohnhausplatz ändert nichts; die Werkstattlage wirkt im Kern nicht.
+6. **8 Häuser:** Bei fester Nachfrage verdient ein Haus mit 8 Häusern 54 % weniger als allein und 24 % weniger als mit 3; die Rohstoffpreise fallen auf 0,66–0,74. Doppelte Berufe teilen sich den Markt (Tischler 20.000 gegen Wirt 103.000).
+7. **KI-Stärke:** Die KI zieht immer davon und geht nie bankrott – Hauptursache ist der Start (Befund 1); sie nutzt weder Einrichtung noch Prämien noch Kredite.
+8. **Einrichtung** macht sich schnell bezahlt (Werkzeug, Meisterwerkzeug, Spezialstücke 1–2,5 Jahre statisch, 2–5 Jahre simuliert); langsam Lederschürzen (4–10 J.), Eisentür (8 J.), Pfandkammer (17,5 J.), Hauptbücher (10 J.), Rechenbretter (8 J.); das Löschfass wirkt nie, weil die KI keine Sabotage in Auftrag gibt.
+9. **Gauner, Wache, Bank:** Ein Wachhaus ändert den Gewinn des Diebs kaum (+3 % / −5 %, im Rauschen) – die Taschendiebe sind vor der Wache sicher; dafür −27 % Raub und Schaden bei den anderen Häusern. Kredite und Wucher kommen ohne Spieler nie vor.
