@@ -283,6 +283,20 @@ public sealed partial class Stadtwirtschaft
         Einwohnerschaft = new Buerger.Einwohnerschaft(this, daten.Buerger, zufallsstartwert);
     }
 
+    // ── Einwohner und Nachfrage (PR #177) ───────────────────────────────────
+
+    /// <summary>Häuser, die in der Stadt wirtschaften: im Spiel und mit mindestens einem Arbeiter.</summary>
+    public int WirtschaftendeHaeuser => _konten.Count(k => k.IstAktiv && _betriebe.Any(b => b.Konto == k && b.Belegt > 0));
+
+    /// <summary>Einwohner der Stadt nach <see cref="StadtDaten"/> (0 ohne Abschnitt „stadt“).</summary>
+    public double Einwohner => Daten.Stadt?.Einwohner(WirtschaftendeHaeuser) ?? 0;
+
+    /// <summary>
+    /// Setzt den <see cref="Markt.Einwohnerfaktor"/> – zu Beginn jeder Minute und nach dem Laden. So gilt in einer Minute überall
+    /// derselbe Wert, und eine geladene Partie rechnet genau wie das Original weiter.
+    /// </summary>
+    internal void EinwohnerZaehlen() => Markt.Einwohnerfaktor = Daten.Stadt?.Faktor(WirtschaftendeHaeuser) ?? 1;
+
     /// <summary>Legt ein Konto an – mit dem Startvermögen aus den Daten oder einem eigenen (z. B. Schwierigkeitsgrad).</summary>
     public Konto KontoEroeffnen(string inhaber, int startjahr = Spielzeit.StartJahr, double? startvermoegen = null)
     {
@@ -424,6 +438,7 @@ public sealed partial class Stadtwirtschaft
     /// <summary>Eine Spielminute. Wird von der Simulation VOR dem Weiterstellen der Uhr aufgerufen.</summary>
     internal void Tick(Spielzeit zeit)
     {
+        EinwohnerZaehlen();
         if (zeit.MinuteImTag % 60 == 0 && zeit.VergangeneMinuten > 0)
             Markt.NeueStunde();
         else if (zeit.VergangeneMinuten > 0)
@@ -1071,6 +1086,7 @@ public sealed partial class Stadtwirtschaft
             Einwohnerschaft.Wiederherstellen(einwohnerStand);
         Werkstaetten.Wiederherstellen(s.WerkstattWuerfe);
         ToteBetriebeFreigeben(); // alte Spielstände: Betriebe toter Häuser standen still – nun stehen sie zum Verkauf
+        EinwohnerZaehlen();
     }
 
     public double HoechstesVermoegen => _konten.Count == 0 ? 0 : _konten.Max(k => k.Reinvermoegen);

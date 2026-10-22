@@ -18,18 +18,28 @@ public sealed class Marktstand
 {
     private readonly WareDaten _ware;
     private readonly AllgemeineDaten _allgemein;
+    private readonly Markt? _markt;
     private readonly double[] _verkaufteStueckProStunde = new double[Zeit.Spielzeit.StundenProTag + 1];
     private int _aktuellesFach;
     private int _minuteInStunde;
 
     public string Ware { get; }
 
-    public Marktstand(string ware, WareDaten daten, AllgemeineDaten allgemein)
+    public Marktstand(string ware, WareDaten daten, AllgemeineDaten allgemein) : this(ware, daten, allgemein, null) { }
+
+    internal Marktstand(string ware, WareDaten daten, AllgemeineDaten allgemein, Markt? markt)
     {
         Ware = ware;
         _ware = daten;
         _allgemein = allgemein;
+        _markt = markt;
     }
+
+    /// <summary>
+    /// Nachfrage der Stadt nach ihren Einwohnern: die Daten mal <see cref="Markt.Einwohnerfaktor"/> (PR #177). Danach richtet sich
+    /// auch die Grundversorgung – eine größere Stadt hat mehr Käufer und mehr Händler.
+    /// </summary>
+    public double Grundnachfrage => _ware.Nachfrage * (_markt?.Einwohnerfaktor ?? 1);
 
     /// <summary>Was Spieler und KI-Rivalen im letzten Spieljahr (17 Spielstunden) verkauft haben.</summary>
     public double SpielerAngebotImJahr
@@ -43,7 +53,7 @@ public sealed class Marktstand
     }
 
     /// <summary>Gesamtangebot pro Jahr: NPC-Grundversorgung plus Spieler.</summary>
-    public double Gesamtangebot => _ware.Nachfrage * _ware.NpcAnteil + SpielerAngebotImJahr;
+    public double Gesamtangebot => Grundnachfrage * _ware.NpcAnteil + SpielerAngebotImJahr;
 
     public double Preisfaktor => FaktorBei(0);
 
@@ -53,8 +63,8 @@ public sealed class Marktstand
     /// </summary>
     public double NachfrageFaktor { get; internal set; } = 1;
 
-    /// <summary>Nachfrage der Stadt im Jahr – die Daten mal <see cref="NachfrageFaktor"/>.</summary>
-    public double Nachfrage => _ware.Nachfrage * NachfrageFaktor;
+    /// <summary>Nachfrage der Stadt im Jahr – <see cref="Grundnachfrage"/> mal <see cref="NachfrageFaktor"/>.</summary>
+    public double Nachfrage => Grundnachfrage * NachfrageFaktor;
 
     /// <summary>Art der Ware aus den Daten (Rohstoff, Zwischenprodukt, Fertigprodukt, Heilmittel).</summary>
     public string Typ => _ware.Typ;
@@ -148,8 +158,14 @@ public sealed class Markt
     public Markt(Wirtschaftsdaten daten)
     {
         foreach (var (name, ware) in daten.Waren)
-            _staende[name] = new Marktstand(name, ware, daten.Allgemein);
+            _staende[name] = new Marktstand(name, ware, daten.Allgemein, this);
     }
+
+    /// <summary>
+    /// Faktor der Einwohner auf Nachfrage und Grundversorgung aller Waren (1 = wie in den Daten). Die Stadtwirtschaft setzt ihn
+    /// zu Beginn jeder Spielminute und nach dem Laden (<see cref="StadtDaten"/>).
+    /// </summary>
+    public double Einwohnerfaktor { get; internal set; } = 1;
 
     public Marktstand this[string ware] => _staende.TryGetValue(ware, out var stand)
         ? stand

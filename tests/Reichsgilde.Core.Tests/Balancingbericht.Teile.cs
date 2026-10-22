@@ -65,7 +65,7 @@ static partial class Balancingbericht
             var kiRein = hausMittel.Where(x => !x.Key.IstSpieler).Average(x => x.Value[letztes]);
             befunde.Add($"Startfairness {karte}: Wohnhausplatz verschiebt das Vermögen nach {letztes} Jahren um {Vz(platzSpanne.Min())} … {Vz(platzSpanne.Max())} % " +
                         $"(gegen das Mittel desselben Hauses, {anzahl + 1} Rotationen × {e.Startwerte} Startwerte); der Spieler mit einem Betrieb hat " +
-                        $"{Text(spielerRein)} Gulden, die KI-Häuser (Werkstatt + Umland, Expansion) im Mittel {Text(kiRein)} ({Vz(Abstand(spielerRein, kiRein))} %). " +
+                        $"{Text(spielerRein)} Gulden, die KI-Häuser (Start wie der Spieler, mit Expansion) im Mittel {Text(kiRein)} ({Vz(Abstand(spielerRein, kiRein))} %). " +
                         $"Bürger (Reinvermögen 10.000): Ø Jahr {Zahl((buerger.Count > 0 ? buerger.Average() : double.NaN), "0.0")}, im Ziel 8–12 Jahre {buerger.Count(x => x is >= 8 and <= 12)}/{spieler.Count}.");
             Console.WriteLine($"3 Startfairness {karte}: Plätze {string.Join(", ", jePlatz.Select(x => $"{x!["wohnhausplatz"]} {Vz((double)x["jahre"]![letztes.ToString()]!["gegenHausmittelProzent"]!["mittel"]!, 1)} %"))}");
         }
@@ -85,7 +85,7 @@ static partial class Balancingbericht
     //  4 Häuser: 1, 3, 5, 8 KI-Häuser in der Messstadt
     // ═════════════════════════════════════════════════════════════════════════
 
-    private static JsonObject Haeuser(Einstellung e, Func<Messaufbau, Partieergebnis> p, List<string> befunde)
+    private static JsonObject Haeuser(Einstellung e, Wirtschaftsdaten daten, Func<Messaufbau, Partieergebnis> p, List<string> befunde)
     {
         var stufen = new JsonArray();
         var letztes = e.Stich[^1];
@@ -130,9 +130,11 @@ static partial class Balancingbericht
             }).ToArray());
             var gewicht = waren.Sum(g => g.Sum(x => x.VerkauftHaeuser));
             preisindex[n] = gewicht > 0 ? waren.Sum(g => g.Sum(x => x.Preisfaktor * x.VerkauftHaeuser)) / gewicht : double.NaN;
+            // Der Spieler (ohne Arbeiter) wirtschaftet nicht – es zählen die n KI-Häuser (am Start; Bankrotte fallen später heraus).
+            var einwohnerfaktor = daten.Stadt?.Faktor(n) ?? 1;
             stufen.Add(new JsonObject
             {
-                ["haeuser"] = n, ["n"] = laeufe.Count,
+                ["haeuser"] = n, ["n"] = laeufe.Count, ["einwohnerfaktorAmStart"] = R(einwohnerfaktor, 3),
                 ["alleHaeuser"] = JeJahr(e.Stich, j => new JsonObject
                 {
                     ["reinvermoegen"] = Kennzahl(ki.Select(h => h.Im(j).Rein)), ["gewinn"] = Kennzahl(ki.Select(h => h.Im(j).Gewinn)),
@@ -144,7 +146,8 @@ static partial class Balancingbericht
                 ["preisindex"] = R(preisindex[n], 3),
                 ["markt"] = new JsonObject { ["jahr"] = letztes, ["waren"] = markt },
             });
-            Console.WriteLine($"  {n} Häuser: Ø {Text(mittelJeHaus[n][letztes])} je Haus, Gewinn Ø {Text(gewinnJeHaus[n][letztes])}, Preisindex {Zahl(preisindex[n], "0.000")}");
+            Console.WriteLine($"  {n} Häuser: Ø {Text(mittelJeHaus[n][letztes])} je Haus, Gewinn Ø {Text(gewinnJeHaus[n][letztes])}, Preisindex {Zahl(preisindex[n], "0.000")}, " +
+                              $"Einwohnerfaktor {Zahl(einwohnerfaktor, "0.00")}");
         }
         var druck = new JsonObject();
         if (mittelJeHaus.ContainsKey(1))
@@ -156,7 +159,7 @@ static partial class Balancingbericht
                     ["gewinnJeHausGegen1Prozent"] = R(Abstand(gewinnJeHaus[n][j], gewinnJeHaus[1][j]), 1),
                 });
         if (mittelJeHaus.ContainsKey(1) && mittelJeHaus.ContainsKey(8))
-            befunde.Add($"8 Häuser (Messstadt, feste Nachfrage): Vermögen je KI-Haus nach {letztes} Jahren {Text(mittelJeHaus[8][letztes])} statt " +
+            befunde.Add($"8 Häuser (Messstadt, {(daten.Stadt is null ? "feste Nachfrage" : $"Nachfrage nach Einwohnern ×{Zahl(daten.Stadt.Faktor(8), "0.00")} statt ×{Zahl(daten.Stadt.Faktor(3), "0.00")} bei 3")}): Vermögen je KI-Haus nach {letztes} Jahren {Text(mittelJeHaus[8][letztes])} statt " +
                         $"{Text(mittelJeHaus[1][letztes])} allein ({Vz(Abstand(mittelJeHaus[8][letztes], mittelJeHaus[1][letztes]))} %)" +
                         (mittelJeHaus.ContainsKey(3) ? $" und {Text(mittelJeHaus[3][letztes])} bei 3 Häusern ({Vz(Abstand(mittelJeHaus[8][letztes], mittelJeHaus[3][letztes]))} %)" : "") +
                         $"; Preisindex der verkauften Waren {Zahl(preisindex.GetValueOrDefault(1), "0.00")} → {Zahl(preisindex.GetValueOrDefault(8), "0.00")}.");
@@ -164,8 +167,9 @@ static partial class Balancingbericht
         {
             ["erklaerung"] = "Messstadt (tools/Kartenbau/Staedte/Messstadt.cs) mit den ersten n KI-Häusern der Karte (1: Schmied/Zwerg, 3: dazu Tischler/Elb " +
                              "und Steinmetz/Halbling wie in der Greybox, 5: dazu Alchimist/Mensch und Schmied/Mensch, 8: dazu Wirt/Halbling, Tischler/Mensch, " +
-                             "Steinmetz/Zwerg), jedes mit Werkstatt und Umlandbetrieb, Profil ausgewogen. Der Spieler entlässt am Start seine Arbeiter und zählt " +
-                             "nicht. Markt im letzten Stichjahr: Preisfaktor = Marktpreis ÷ Grundpreis im Mittel der Stunden; verkauft = Verkäufe aller Häuser " +
+                             "Steinmetz/Zwerg), jedes mit einer Werkstatt wie der Spieler (Schwierigkeit Normal), Profil ausgewogen. Der Spieler entlässt am Start " +
+                             "seine Arbeiter und zählt nicht – auch nicht für die Einwohner: Nachfrage und Grundversorgung × Einwohnerfaktor = (einwohnerGrund + " +
+                             "einwohnerJeHaus × n) ÷ (einwohnerGrund + einwohnerJeHaus × bezugHaeuser) (Abschnitt stadt, PR #177). Markt im letzten Stichjahr: Preisfaktor = Marktpreis ÷ Grundpreis im Mittel der Stunden; verkauft = Verkäufe aller Häuser " +
                              "im Jahr; Anteil der Häuser am Angebot = verkauft ÷ (Grundversorgung + verkauft); Anteile je Haus nach hergestellten Stück. " +
                              "Preisindex = Preisfaktor gewichtet mit den Verkäufen der Häuser. Druck: Vermögen bzw. Gewinn je Haus gegen 1 (und 3) Häuser.",
             ["stufen"] = stufen,
@@ -197,13 +201,38 @@ static partial class Balancingbericht
                     $"davongezogen (> 2×) {davon}/{verhaeltnisse.Count}, abgeschlagen (< ½) {abgeschlagen}/{verhaeltnisse.Count}, bankrott {bankrott}, erloschen {erloschen}" +
                     (einBetrieb.Count > 0 ? $"; gegen den Spieler mit einem Betrieb sind die KI-Häuser {Zahl(ki.Average(h => h.Im(letztes).Rein) / einBetrieb.Average(r => r.Spieler.Im(letztes).Rein), "0.0")}× so reich." : "."));
         Console.WriteLine($"5 KI-Stärke: Bezug Ø {Text(laeufe.Average(r => r.Spieler.Im(letztes).Rein))}, KI Ø {Text(ki.Average(h => h.Im(letztes).Rein))}, Rang des Bezugs Ø {Zahl(rang.Average(), "0.0")}");
+
+        // Zum Vergleich die Schwierigkeit „Schwer“: Die KI-Häuser beginnen mit Werkstatt und Umlandbetrieb (der Start vor PR #177).
+        var schwer = Gut(e.Werte.Select(s => alle.GetValueOrDefault(new Messaufbau(e.Karte, s, e.Jahre, Bezug: Bezugsart.WieKi, Schwierigkeit: Schwierigkeit.Schwer)))
+            .OfType<Partieergebnis>());
+        JsonObject? schwerObjekt = null;
+        if (schwer.Count > 0)
+        {
+            var kiSchwer = schwer.SelectMany(r => r.Ki).ToList();
+            var vSchwer = schwer.SelectMany(r => r.Ki.Select(h => Verhaeltnis(r, h, letztes))).Where(x => !double.IsNaN(x)).OrderBy(x => x).ToList();
+            befunde.Add($"KI-Stärke bei „Schwer“ (KI-Häuser mit Werkstatt und Umland): Bezug {Text(schwer.Average(r => r.Spieler.Im(letztes).Rein))}, " +
+                        $"KI-Häuser Ø {Text(kiSchwer.Average(h => h.Im(letztes).Rein))} (Verhältnis Median {Zahl(Quantil(vSchwer, 0.5), "0.00")}; " +
+                        $"davongezogen {vSchwer.Count(x => x > 2)}/{vSchwer.Count}).");
+            Console.WriteLine($"5 KI-Stärke Schwer: Bezug Ø {Text(schwer.Average(r => r.Spieler.Im(letztes).Rein))}, KI Ø {Text(kiSchwer.Average(h => h.Im(letztes).Rein))}, " +
+                              $"Verhältnis Median {Zahl(Quantil(vSchwer, 0.5), "0.00")}");
+            schwerObjekt = new JsonObject
+            {
+                ["n"] = schwer.Count,
+                ["bezug"] = JeJahr(e.Stich, j => Kennzahl(schwer.Select(r => r.Spieler.Im(j).Rein))),
+                ["kiHaeuser"] = JeJahr(e.Stich, j => Kennzahl(kiSchwer.Select(h => h.Im(j).Rein))),
+                ["verhaeltnisKiZuBezug"] = JeJahr(e.Stich, j => Kennzahl(schwer.SelectMany(r => r.Ki.Select(h => Verhaeltnis(r, h, j))), 2)),
+                ["davongezogen"] = new JsonObject { ["schwelle"] = 2, ["anzahl"] = vSchwer.Count(x => x > 2), ["von"] = vSchwer.Count },
+                ["kiBankrott"] = kiSchwer.Count(h => h.BankrottJahr is not null), ["kiErloschen"] = kiSchwer.Count(h => h.ErloschenJahr is not null),
+            };
+        }
         return new JsonObject
         {
             ["erklaerung"] = "Der Spieler (Schmied, Mensch) wird von der KI mit demselben Profil wie die KI-Häuser geführt („Bezugsspieler“: gleiche Strategie, " +
-                             "keine Einrichtung, keine Prämien, üblicher Lohn – so spielt heute jedes KI-Haus). Unterschied zu den KI-Häusern bleibt nur der Start: " +
-                             "Die KI-Häuser beginnen mit Werkstatt und Umlandbetrieb (5 Arbeiter), der Spieler mit einer Werkstatt (2 Gesellen). Verhältnis = " +
+                             "Einrichtung wie die KI, keine Prämien, üblicher Lohn – so spielt heute jedes KI-Haus). Schwierigkeit „Normal“: Alle beginnen gleich " +
+                             "mit einer Werkstatt und zwei Gesellen (PR #177); unter „schwer“ derselbe Vergleich, wenn die KI-Häuser mit Werkstatt und " +
+                             "Umlandbetrieb (5 Arbeiter) beginnen. Verhältnis = " +
                              "Reinvermögen eines KI-Hauses ÷ Reinvermögen des Bezugsspielers derselben Partie; davongezogen > 2, abgeschlagen < 0,5. " +
-                             "Rang des Bezugs: 1 = reichstes Haus. Hinweis: Die KI kauft keine Einrichtung, zahlt keine Prämien und nimmt keine Kredite.",
+                             "Rang des Bezugs: 1 = reichstes Haus. Hinweis: Die KI zahlt keine Prämien und nimmt keine Kredite; Einrichtung kauft sie zum Jahresende, wenn sie sich in höchstens 4 Jahren bezahlt macht (PR #177).",
             ["n"] = laeufe.Count,
             ["bezug"] = JeJahr(e.Stich, j => Kennzahl(laeufe.Select(r => r.Spieler.Im(j).Rein))),
             ["bezugStandAmEnde"] = Staende(laeufe.Select(r => r.Spieler), daten),
@@ -224,6 +253,7 @@ static partial class Balancingbericht
             ["abgeschlagen"] = new JsonObject { ["schwelle"] = 0.5, ["anzahl"] = abgeschlagen, ["von"] = verhaeltnisse.Count },
             ["kiBankrott"] = bankrott, ["kiErloschen"] = erloschen, ["kiStandAmEnde"] = Staende(ki, daten),
             ["spielerMitEinemBetrieb"] = einBetrieb.Count == 0 ? null : JeJahr(e.Stich, j => Kennzahl(einBetrieb.Select(r => r.Spieler.Im(j).Rein))),
+            ["schwer"] = schwerObjekt,
         };
     }
 
@@ -350,7 +380,8 @@ static partial class Balancingbericht
                              "Stücke ohne Gulden-Wirkung (Lager, Razzia, Streife, Geleit, Spuren, Kreditrahmen …) ohne Zahl. Simuliert: Der Spieler kauft alle " +
                              "Ertragsstücke der Stufe 1 am Start (kürzere Zeit, weniger Lohn, mehr Rahmen oder Wechsel) und wird wie im Abschnitt Berufe geführt; " +
                              "Vergleich mit derselben Partie ohne Einrichtung (gleicher Startwert): Mehrgewinn = Mittel der Jahre 1 bis " + y + ". " +
-                             "Die KI-Häuser kaufen keine Einrichtung.",
+                             "Seit PR #177 kaufen die KI-Häuser und der KI-geführte Spieler Einrichtung zum Jahresende (höchstens 4 Jahre bis bezahlt) – auch in der " +
+                             "Vergleichspartie ohne Einrichtung am Start; der Mehrgewinn zeigt deshalb nur den Vorsprung durch den früheren Kauf.",
             ["gemessenSabotagenJeBetriebUndJahr"] = R(sabotagen, 4),
             ["gemessenRaubJeBetriebUndJahr"] = R(raub, 1),
             ["statisch"] = statisch,

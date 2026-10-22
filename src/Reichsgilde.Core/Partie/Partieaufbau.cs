@@ -131,25 +131,35 @@ public static class Partieaufbau
         if (w.Familien.IstAktiv)
             w.Familien.Gruenden(spieler, neu.Volk, neu.Geschlecht, neu.Vorname, glaube: neu.Glaube);
         foreach (var h in haeuser)
-            HausAufstellen(w, daten, karte, h, KontoVon(h), orks ? "Ork" : null, neu.Rivale);
+            HausAufstellen(w, daten, karte, h, KontoVon(h), orks ? "Ork" : null, neu.Rivale, einstellungen.Schwierigkeit);
+        w.EinwohnerZaehlen(); // die Nachfrage der Stadt nach ihren Häusern – schon vor der ersten Minute
         return (simulation, spieler);
     }
 
     private static string Zahlwort(int n) => n switch { 2 => "zwei", 3 => "drei", 4 => "vier", 5 => "fünf", 6 => "sechs", 7 => "sieben", _ => n.ToString() };
 
     /// <summary>
-    /// Ein KI-Haus mit seinen Startbetrieben („Gießerei Eisenbart“ mit zwei Gesellen, „Grube Eisenbart“ mit drei Umlandkräften),
-    /// ab jetzt von der KI geführt. Der Name eines Betriebs steht am Platz der Karte, ohne Karte im Ersatz.
+    /// Ein KI-Haus mit seinen Startbetrieben, ab jetzt von der KI geführt. Der Name eines Betriebs steht am Platz der Karte, ohne Karte im Ersatz.
+    /// <see cref="Schwierigkeit.Normal"/>: nur die erste Werkstatt in der Stadt („Gießerei Eisenbart“ mit zwei Gesellen) – wie der Spieler;
+    /// die übrigen Startbetriebe stehen frei zur Pacht bzw. zum Kauf (<see cref="Stadtwirtschaft.StartbetriebFreigeben"/>).
+    /// <see cref="Schwierigkeit.Schwer"/>: alle Startbetriebe, dazu „Grube Eisenbart“ mit drei Umlandkräften.
     /// </summary>
     private static void HausAufstellen(Stadtwirtschaft w, Wirtschaftsdaten daten, Stadtkarte? karte, Starthaus h, Konto konto, string? umlandKraft,
-        KiCharakter charakter)
+        KiCharakter charakter, Schwierigkeit schwierigkeit)
     {
         if (w.Familien.IstAktiv)
             w.Familien.Gruenden(konto, h.Volk, h.Geschlecht);
+        // Bei „Normal“ nur die erste Werkstatt (hat ein Haus keine in der Stadt: seinen ersten Betrieb).
+        var erste = h.Betriebe.FirstOrDefault(b => daten.Art(b.Art).InDerStadt) ?? h.Betriebe.FirstOrDefault();
         foreach (var b in h.Betriebe)
         {
             var art = daten.Art(b.Art);
             var name = karte?.GebaeudeMit(b.Platz)?.Betrieb ?? (b.ErsatzName ?? "{art} " + Familie.NachnameAus(h.Name)).Replace("{art}", art.Name);
+            if (schwierigkeit == Schwierigkeit.Normal && b != erste)
+            {
+                w.StartbetriebFreigeben(name, b.Art);
+                continue;
+            }
             var betrieb = w.BetriebEroeffnen(name, b.Art, konto);
             if (b.Produkt is { } produkt) betrieb.Produkt = produkt;
             if (art.InDerStadt)

@@ -73,7 +73,7 @@ static class BalancingberichtTests
             Pruefe.Gleich(2, r.Spieler.StartArbeiter);
             Pruefe.Gleich(1, r.Spieler.Jahre[^1].Stufe);
             Pruefe.Wahr(r.Spieler.Jahre[^1].Gewinn > 0, $"die KI führt die Tischlerei mit Gewinn ({r.Spieler.Jahre[^1].Gewinn:0})");
-            Pruefe.Wahr(r.Ki.All(h => h.StartBetriebe == 2 && h.StartArbeiter == 5), "KI-Häuser: Werkstatt und Umland");
+            Pruefe.Wahr(r.Ki.All(h => h.StartBetriebe == 1 && h.StartArbeiter == 2), "KI-Häuser starten wie der Spieler (Normal)");
             Pruefe.Wahr(r.Markt.Count == 0, "ohne MarktMessen kein Markt");
         }),
 

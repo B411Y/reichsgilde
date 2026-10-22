@@ -24,7 +24,7 @@ enum Bezugsart
     /// <summary>Die KI wie ein KI-Haus, aber mit genau einem Betrieb (<see cref="KiProfil.MaxBetriebe"/> = 0): Personal, Ware, Meisterprüfung,
     /// Ausbau, Stand, Familie und Politik nach den Regeln der KI – nur keine Expansion.</summary>
     EinBetrieb,
-    /// <summary>Die KI mit demselben Profil wie die KI-Häuser („Bezugsspieler“: gleiche Strategie, ohne Einrichtung und Prämien).</summary>
+    /// <summary>Die KI mit demselben Profil wie die KI-Häuser („Bezugsspieler“: gleiche Strategie, Einrichtung wie die KI, ohne Prämien).</summary>
     WieKi,
     /// <summary>Niemand: Der Spieler entlässt am Start alle Arbeiter und tut nichts (zählt nicht als Haus, z. B. in der Messstadt).</summary>
     Geist,
@@ -36,6 +36,7 @@ enum Bezugsart
 /// <param name="Rotation">Die Wohnhausplätze von Spieler und KI-Häusern um so viele Plätze weiterreichen (Startfairness).</param>
 /// <param name="Einrichtung">Einrichtung, die der Spieler am Start für seine Werkstatt kauft (Kennungen mit Komma).</param>
 /// <param name="WachhausBeimErsten">Das erste KI-Haus bekommt am Start zusätzlich ein Wachhaus mit vier Gesellen (wie die Probe in Wirtschaftsmodell §27).</param>
+/// <param name="Schwierigkeit">Normal: Die KI-Häuser starten wie der Spieler; Schwer: mit Werkstatt und Umlandbetrieb (PR #177).</param>
 sealed record Messaufbau(
     string Karte,
     int Startwert,
@@ -48,7 +49,8 @@ sealed record Messaufbau(
     int Rotation = 0,
     string Einrichtung = "",
     bool WachhausBeimErsten = false,
-    bool MarktMessen = false);
+    bool MarktMessen = false,
+    Schwierigkeit Schwierigkeit = Schwierigkeit.Normal);
 
 /// <summary>Ein Haus am Ende eines Spieljahres.</summary>
 sealed class Jahreswert
@@ -161,7 +163,7 @@ static class Messpartie
         var anzahl = a.Rivalen > 0 ? a.Rivalen : (JsonNode.Parse(kartenText)!["start"]?["haeuser"]?.AsArray().Count ?? 1);
         var karte = Stadtkarte.AusJson(KarteRotiert(kartenText, a.Rotation, anzahl), Gebaeudekatalog.AusJson(q.Katalog));
         var (sim, spieler) = Partieaufbau.Erstellen(
-            Partieeinstellungen.Standard with { Zufallsstartwert = a.Startwert, Siegbedingung = Siegbedingung.Endlos },
+            Partieeinstellungen.Standard with { Zufallsstartwert = a.Startwert, Siegbedingung = Siegbedingung.Endlos, Schwierigkeit = a.Schwierigkeit },
             daten, new NeuePartie(Volk: a.Volk, Beruf: a.Beruf, Rivalen: anzahl), karte: karte);
         var w = sim.Wirtschaft!;
 
@@ -278,7 +280,7 @@ static class Messpartie
                     var wj = new Warenjahr
                     {
                         Ware = s.Ware, Typ = s.Typ, Grundpreis = s.Grundpreis, Preisfaktor = preise[s.Ware] / stunden,
-                        Nachfrage = nachfrage[s.Ware] / stunden, Npc = daten.Waren[s.Ware].Nachfrage * daten.Waren[s.Ware].NpcAnteil,
+                        Nachfrage = nachfrage[s.Ware] / stunden, Npc = s.Grundnachfrage * daten.Waren[s.Ware].NpcAnteil, // mit den Einwohnern (PR #177)
                         VerkauftHaeuser = verkauft.GetValueOrDefault(s.Ware),
                     };
                     foreach (var k in w.Konten)

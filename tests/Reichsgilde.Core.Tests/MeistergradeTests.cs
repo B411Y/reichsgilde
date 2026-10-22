@@ -170,7 +170,7 @@ static class MeistergradeTests
 
         ("KI: legt Prüfungen ab und baut ihre Werkstatt aus, sobald der Grad reicht", () =>
         {
-            var (sim, _) = Partieaufbau.Erstellen(Partieeinstellungen.Standard with { Siegbedingung = Siegbedingung.Endlos, Zufallsstartwert = 7 },
+            var (sim, _) = Partieaufbau.Erstellen(Partieeinstellungen.Standard with { Siegbedingung = Siegbedingung.Endlos, Zufallsstartwert = 7, Schwierigkeit = Schwierigkeit.Schwer },
                 Daten.Value, new NeuePartie());
             var w = sim.Wirtschaft!;
             var eisenbart = w.Rivalen[0].Konto;

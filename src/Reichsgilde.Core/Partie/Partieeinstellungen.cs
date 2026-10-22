@@ -21,6 +21,16 @@ public enum Siegbedingung
     Endlos,
 }
 
+/// <summary>Wie die KI-Häuser anfangen (Entscheidung des Nutzers zu PR #177). Beim Start der Partie wählbar.</summary>
+public enum Schwierigkeit
+{
+    /// <summary>Alle Häuser starten wie der Spieler: eine Werkstatt ihres Berufs mit zwei Gesellen, kein Umlandbetrieb.</summary>
+    Normal,
+
+    /// <summary>Die KI-Häuser starten mit allen Betrieben ihrer Startbelegung (Werkstatt und Umlandbetrieb) – der Start vor PR #177.</summary>
+    Schwer,
+}
+
 /// <summary>
 /// Alle Einstellungen, die beim Start einer Partie festgelegt werden.
 ///
@@ -43,6 +53,9 @@ public sealed record Partieeinstellungen
     public double RundenDauerMinuten { get; init; } = Taktgeber.StandardRundenDauerSekunden / 60;
 
     public Siegbedingung Siegbedingung { get; init; } = Siegbedingung.Endjahr;
+
+    /// <summary>Wie die KI-Häuser anfangen. Fehlt in alten Spielständen – dann Normal (wirkt nur beim Aufstellen der Partie).</summary>
+    public Schwierigkeit Schwierigkeit { get; init; } = Schwierigkeit.Normal;
 
     /// <summary>Nur für <see cref="Siegbedingung.Endjahr"/>: In diesem Jahr endet die Partie.</summary>
     public int Endjahr { get; init; } = 1600;

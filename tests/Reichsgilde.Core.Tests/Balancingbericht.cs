@@ -9,7 +9,7 @@ using Reichsgilde.Core.Partie;
 using Reichsgilde.Core.Wirtschaft;
 
 // ═════════════════════════════════════════════════════════════════════════════
-//  Balancing-Bericht (Messung, kein Test) – PR #176, „Balancing-Messung 1“ in docs/WIRTSCHAFTSMODELL.md
+//  Balancing-Bericht (Messung, kein Test) – PR #176 und #177, „Balancing-Messung 1“ bis „3“ in docs/WIRTSCHAFTSMODELL.md
 //
 //  Aufruf:  dotnet run -c Release --project tests/Reichsgilde.Core.Tests -- messen bericht [Jahre] [Startwerte] [--karte=greybox]
 //                                                                          [--teile=1,2,…] [--parallel=n] [--datei=pfad.json]
@@ -145,7 +145,7 @@ static partial class Balancingbericht
         Partieergebnis P(Messaufbau a) => ergebnisse[a];
         var bericht = new JsonObject
         {
-            ["bericht"] = "Balancing-Messung 1",
+            ["bericht"] = "Balancing-Messung 3",
             ["datum"] = DateTime.Now.ToString("yyyy-MM-dd"),
             ["mainCommit"] = Git("rev-parse --short origin/main"),
             ["commit"] = Git("rev-parse --short HEAD"),
@@ -165,7 +165,7 @@ static partial class Balancingbericht
         if (e.Teile.Contains(1)) bericht["berufe"] = Berufe(e, q, daten, P, befunde);
         if (e.Teile.Contains(2)) bericht["voelker"] = Voelker(e, daten, P, befunde);
         if (e.Teile.Contains(3)) bericht["startfairness"] = Startfairness(e, q, daten, P, befunde);
-        if (e.Teile.Contains(4)) bericht["haeuser"] = Haeuser(e, P, befunde);
+        if (e.Teile.Contains(4)) bericht["haeuser"] = Haeuser(e, daten, P, befunde);
         if (e.Teile.Contains(5)) bericht["kiStaerke"] = KiStaerke(e, daten, ergebnisse, P, befunde);
         if (e.Teile.Contains(6)) bericht["einrichtung"] = Einrichtung(e, q, daten, ergebnisse, P, befunde);
         if (e.Teile.Contains(7)) bericht["gaunerWacheBank"] = GaunerWacheBank(e, daten, ergebnisse, P, befunde);
@@ -210,6 +210,7 @@ static partial class Balancingbericht
                     break;
                 case 5:
                     yield return new Messaufbau(e.Karte, s, e.Jahre, Bezug: Bezugsart.WieKi);
+                    yield return new Messaufbau(e.Karte, s, e.Jahre, Bezug: Bezugsart.WieKi, Schwierigkeit: Schwierigkeit.Schwer);
                     break;
                 case 6:
                     foreach (var b in berufe)
@@ -443,8 +444,8 @@ static partial class Balancingbericht
                              "Zins und Wechsel, zu Startpreisen (erste Minute der Partie auf der Karte des Berichts); dazu für Prediger und Wirt Kollekte bzw. " +
                              "Ausschank (Schätzung). Abstand zum Mittel der zehn Berufe derselben Stufe. Simuliert: Der Spieler (Mensch) beginnt mit der Werkstatt " +
                              "seines Berufs und wird von der KI geführt wie ein KI-Haus (Profil ausgewogen), aber mit genau einem Betrieb (MaxBetriebe 0): Personal, " +
-                             "Ware, Meisterprüfung und Ausbau nach den Regeln der KI (Ausbau, sobald Meistergrad und Rechnung es erlauben), keine Expansion, " +
-                             "keine Einrichtung. Gegen die drei KI-Häuser der Karte. „Zuwachs“ = Reinvermögen − Startvermögen; Abstand zum Mittel der zehn Berufe. " +
+                             "Ware, Meisterprüfung, Ausbau und Einrichtung nach den Regeln der KI (Ausbau, sobald Meistergrad und Rechnung es erlauben; Einrichtung " +
+                             "zum Jahresende, wenn sie sich in höchstens 4 Jahren bezahlt macht, PR #177), keine Expansion. Gegen die drei KI-Häuser der Karte. „Zuwachs“ = Reinvermögen − Startvermögen; Abstand zum Mittel der zehn Berufe. " +
                              "Der Dieb nutzt unter der ausgewogenen KI nur die Taschendiebe (Einbruch und Schutzgeld nur wagemutig) – deshalb eine zweite Zeile, " +
                              "die nicht ins Mittel zählt. Menschen haben +5 % als Tischler und Gardist. „jeJahrImMittel“: Betriebsgewinn und was " +
                              "außerhalb der Betriebe dazukam (Amtseinkommen im Rat) oder abging (Familie, Geschenke, Gericht, Gaunerei, Investitionen wie " +

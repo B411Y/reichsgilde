@@ -66,6 +66,19 @@ public sealed class WucherDaten
     public double Ansehen { get; init; } = 5;
 }
 
+/// <summary>
+/// Einbruch in einen Bankbetrieb (Wechselstube, Geldleihe, Bankhaus; PR #177): Ein gelungener Diebstahl oder Einbruch holt einen Teil
+/// der Kasse. Fehlt der Abschnitt (alte Spielstände), bleibt die Kasse unberührt.
+/// </summary>
+public sealed class KasseneinbruchDaten
+{
+    /// <summary>Anteil der Kasse, den die Diebe mitnehmen (0,05 = 5 %).</summary>
+    public double Anteil { get; init; }
+
+    /// <summary>Höchstens so viele Gulden je Einbruch.</summary>
+    public double Hoechstens { get; init; }
+}
+
 /// <summary>Der Geldleiher: Kasse für Stadtkunden, Wechsel, Kredite an Häuser, zusätzliche AP.</summary>
 public sealed class GeldleiherDaten
 {
@@ -79,6 +92,7 @@ public sealed class GeldleiherDaten
     public WechselDaten Wechsel { get; init; } = new();
     public KreditDaten Kredit { get; init; } = new();
     public WucherDaten Wucher { get; init; } = new();
+    public KasseneinbruchDaten Einbruch { get; init; } = new();
 
     /// <summary>Zusätzliche AP je Runde nach der besten Stufe (Wechselstube, Geldleihe, Bankhaus).</summary>
     public List<int> ApJeStufe { get; init; } = new() { 0, 1, 2 };
@@ -89,11 +103,12 @@ public sealed class GeldleiherDaten
         if (Rahmen.JeStufe.Count < 3 || Wechsel.JeStufe.Count < 3 || Kredit.HoechstJeStufe.Count < 3 || ApJeStufe.Count < 3)
             f.Add("geldleiher: rahmen.jeStufe, wechsel.jeStufe, kredit.hoechstJeStufe und apJeStufe brauchen je einen Wert für Stufe 1, 2 und 3.");
         if (Rahmen.JeSchreiber < 0 || Wechsel.BedarfSchreiber <= 0 || Rahmen.JeStufe.Any(x => x < 0) || Wechsel.JeStufe.Any(x => x < 0)
-            || Kredit.HoechstJeStufe.Any(x => x < 0) || ApJeStufe.Any(x => x < 0) || Wucher.Ansehen < 0)
+            || Kredit.HoechstJeStufe.Any(x => x < 0) || ApJeStufe.Any(x => x < 0) || Wucher.Ansehen < 0 || Einbruch.Hoechstens < 0)
             f.Add("geldleiher: Rahmen, Bedarf, Höchstbeträge, AP und Ansehen dürfen nicht negativ sein (Bedarf größer als 0).");
         foreach (var (name, wert) in new[] { ("stadtzins", Stadtzins), ("ausfall.chance", Ausfall.Chance), ("ausfall.anteil", Ausfall.Anteil),
                      ("wechsel.gebuehr", Wechsel.Gebuehr), ("kredit.kreditwuerdigAnteil", Kredit.KreditwuerdigAnteil), ("kredit.pfandAnteil", Kredit.PfandAnteil),
-                     ("kredit.zinsMindestens", Kredit.ZinsMindestens), ("kredit.zinsHoechstens", Kredit.ZinsHoechstens), ("wucher.ab", Wucher.Ab) })
+                     ("kredit.zinsMindestens", Kredit.ZinsMindestens), ("kredit.zinsHoechstens", Kredit.ZinsHoechstens), ("wucher.ab", Wucher.Ab),
+                     ("einbruch.anteil", Einbruch.Anteil) })
             if (wert is < 0 or > 1) f.Add($"geldleiher.{name} muss zwischen 0 und 1 liegen.");
         if (Kredit.ZinsStandard < Kredit.ZinsMindestens || Kredit.ZinsStandard > Kredit.ZinsHoechstens)
             f.Add("geldleiher.kredit.zinsStandard muss zwischen zinsMindestens und zinsHoechstens liegen.");
@@ -101,8 +116,8 @@ public sealed class GeldleiherDaten
     }
 }
 
-/// <summary>Was die Geldleihe eines Hauses in einem Jahr eingenommen und verloren hat.</summary>
-public sealed record Bankbuch(double Stadtzinsen, double Wechsel, double Hauszinsen, double Ausfall);
+/// <summary>Was die Geldleihe eines Hauses in einem Jahr eingenommen und verloren hat (Gestohlen: von Dieben aus der Kasse; 0 in alten Spielständen).</summary>
+public sealed record Bankbuch(double Stadtzinsen, double Wechsel, double Hauszinsen, double Ausfall, double Gestohlen = 0);
 
 /// <summary>Ein Kredit eines Geldleihers an ein anderes Haus.</summary>
 public sealed class Kredit
@@ -282,6 +297,46 @@ public sealed class Bankwesen
         var ausfall = rahmen * Daten.Ausfall.Chance * Daten.Ausfall.Anteil * b.AusfallFaktor;
         var wechsel = WechselJeMinute * Stufenwert(Daten.Wechsel.JeStufe, b.Stufe) * b.WechselFaktor;
         return (zins + wechsel) * (1 - _w.Daten.Allgemein.Umsatzsteuer) - ausfall;
+    }
+
+    /// <summary>
+    /// Was ein gelungener Diebstahl oder Einbruch aus der Kasse dieses Bankbetriebs holt: Kasse × <c>einbruch.anteil</c>, höchstens
+    /// <c>einbruch.hoechstens</c> (0 bei anderen Betrieben).
+    /// </summary>
+    public double Kassenbeute(Betrieb b) => IstBankbetrieb(b) ? Math.Min(Kasse(b) * Daten.Einbruch.Anteil, Daten.Einbruch.Hoechstens) : 0;
+
+    /// <summary>Diebe holen <see cref="Kassenbeute"/> aus der Kasse – das Geld ist fort (Forderungen des Hauses sinken). Gibt den Betrag zurück.</summary>
+    internal double KasseBestehlen(Betrieb b)
+    {
+        var betrag = Kassenbeute(b);
+        if (betrag <= 0) return 0;
+        _kassen[b.Name] = Kasse(b) - betrag;
+        b.Konto.ForderungGestohlen(betrag);
+        Buchen(b.Konto, x => x with { Gestohlen = x.Gestohlen + betrag });
+        return betrag;
+    }
+
+    /// <summary>
+    /// Was ein Stück Einrichtung mit dieser Wirkung dem Bankbetrieb im Jahr mehr bringt, mit den Schreibern und der Kasse von jetzt
+    /// (für <see cref="Werkstattwesen.ErwarteterMehrgewinnJeJahr"/>): mehr Rahmen bringt Zins nur, so weit die Kasse ihn füllt;
+    /// die Wechselgebühr nach dem jetzigen Deckel der Stadt; die Pfandkammer mindert den erwarteten Ausfall der Kasse
+    /// (Kasse × Chance × Anteil). Zins und Wechsel nach Steuer.
+    /// </summary>
+    internal double MehrgewinnJeJahr(Betrieb b, EinrichtungWirkung wi)
+    {
+        if (!IstBankbetrieb(b)) return 0;
+        double Leistung(Betrieb x) => x.LeistungProMinute * _w.VolksFaktor(x.Konto, x.Artdaten.Beruf);
+        var leistung = Leistung(b);
+        var kasse = Kasse(b);
+        var rahmen = RahmenJeSchreiber(b) * leistung;
+        var zins = (Math.Min(kasse, rahmen * wi.RahmenFaktor) - Math.Min(kasse, rahmen)) * Daten.Stadtzins
+                   * b.Arbeitsminuten / _w.Daten.Allgemein.Arbeitsminuten;
+        var gewicht = _w.Betriebe.Where(x => IstBankbetrieb(x) && x.Konto.IstAktiv).Sum(x => Leistung(x) * Stufenwert(Daten.Wechsel.JeStufe, x.Stufe));
+        var deckel = gewicht > 0 ? Math.Min(1, Daten.Wechsel.BedarfSchreiber / gewicht) : 0;
+        var wechsel = b.Arbeitsminuten * leistung * Stufenwert(Daten.Wechsel.JeStufe, b.Stufe) * WechselJeMinute * deckel * b.WechselFaktor
+                      * (wi.WechselFaktor - 1);
+        var ausfall = kasse * Daten.Ausfall.Chance * Daten.Ausfall.Anteil * b.AusfallFaktor * (1 - wi.AusfallFaktor);
+        return (zins + wechsel) * (1 - _w.Daten.Allgemein.Umsatzsteuer) + ausfall;
     }
 
     /// <summary>
