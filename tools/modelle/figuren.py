@@ -13,12 +13,13 @@ Inhalt je Datei (Blender: Z oben, Blick nach -Y; im Spiel Y oben, Blick nach +Z)
     Koerper_Frau    Kleid bis über die Knöchel, Zopf
     Trachtteile     Strohhut, Barett, Kapuze, Haube, Schleier, Schuerze, Kiepe, Buendel, Tasche, Stab, Hacke, Hammer,
                     Hobel, Saege, Drechseleisen, Schlaegel, Meissel, Stoessel, Kelle, Flakon, Krug, Laute, Feder, Sieb,
-                    Dochtstab, Dietrich, Muenzbeutel
+                    Dochtstab, Dietrich, Muenzbeutel, Lappen, Uebungsschwert
                     – standardmäßig aus, das Spiel blendet sie je Rolle ein (wie heute `TrachtVon`; das Werkzeug bei der
                     passenden Bewegung: Hammer beim Hämmern, Hobel beim Hobeln, Säge beim Sägen, Drechseleisen beim Drechseln,
                     Schlägel und Meißel beim Behauen und Bildhauen, Stößel beim Mörsern, Kelle beim Rühren, Flakon beim
                     Mischen, Krug beim Zapfen und Trinken, Laute bei „Laute“, Dochtstab beim Kerzenziehen, Sieb beim
-                    Schöpfen, Feder beim Schreiben, Dietrich beim Knacken, Muenzbeutel beim Zählen)
+                    Schöpfen, Feder beim Schreiben, Dietrich beim Knacken, Muenzbeutel beim Zählen, Lappen (samt Helm auf dem
+                    Schoß) beim Putzen, Uebungsschwert beim Fechten)
     Bewegungen      Stehen, Gehen, Eilen, Gebeugt, Tragen, Sitzen, Reden, Hacken, Buecken, Hueten,
                     Ziehen (Handkarren), Kutschieren (auf dem Bock),
                     Haemmern, Blasebalg, Schleifen (stehend), Feinarbeit (sitzend) – Arbeit in der Schmiede,
@@ -43,12 +44,16 @@ Inhalt je Datei (Blender: Z oben, Blick nach -Y; im Spiel Y oben, Blick nach +Z)
                     Beichtstuhl) – für Prediger und Gläubige,
                     Knacken (den Dietrich ins Schloss am Übungsbrett führen, stochern und horchen, die Linke flach auf dem
                     Brett), Zaehlen (sitzend: Münzen vom Haufen in den offenen Beutel in der Linken), Schlafen (auf dem Rücken
-                    liegend, ruhig atmend; die Wurzel kippt um −90°) – für die Diebe
+                    liegend, ruhig atmend; die Wurzel kippt um −90°) – für die Diebe,
+                    Putzen (sitzend: der Lappen kreist über dem Helm auf dem Schoß, die Linke hält ihn am Rand, zwischendurch
+                    den Glanz prüfen), Fechten (stehend vor der Strohpuppe: Grundstellung, ausholen, Hieb an ihre Schulter,
+                    Stich im Ausfallschritt an ihre Brust) – für die Wache
                     – jede eine Schleife am Ort (ohne Vorwärtsbewegung; das Spiel schiebt die Figur)
                     Die Werkstatt-Bewegungen zielen mit den Händen (beim Drechseln auch mit dem rechten Fuß) auf feste
                     Höhen (ARBEITSHOEHEN, PEDAL, VORLAGE, MISCHGLAS, PRESSE, ZAPFHAHN, KRUG_TISCH, KERZEN, BUETTE, SCHREIBEN,
-                    KANZEL, KNACKEN, ZAEHLEN – wie in schmied_innen.glb, tischler_innen.glb, steinmetz_innen.glb,
-                    alchimist_innen.glb, parfumeur_innen.glb, wirt_innen.glb, prediger_innen.glb und dieb_innen.glb):
+                    KANZEL, KNACKEN, ZAEHLEN, PUTZEN, FECHTEN – wie in schmied_innen.glb, tischler_innen.glb,
+                    steinmetz_innen.glb, alchimist_innen.glb, parfumeur_innen.glb, wirt_innen.glb, prediger_innen.glb,
+                    dieb_innen.glb und gardist_innen.glb):
                     Jedes Volk erreicht sie
                     mit eigenen Arm- und Beinwinkeln (`arm_ik`, `arm_ziel`, `bein_ik`).
 Material: alle Teile (Körper, Trachtteile, Werkzeug) tragen nur ein Material „Figur“ – eine Figur ist so ein
@@ -87,6 +92,9 @@ bs.FARBEN.update({
     "Federkiel": (0.80, 0.72, 0.52),
     "Siebgitter": (0.62, 0.50, 0.30),      # Messingdraht der Schöpfform
     "Papierbrei": (0.88, 0.86, 0.80),      # nasser Bogen auf dem Sieb
+    "Putzlappen": (0.80, 0.76, 0.66),      # Lappen beim Rüstungputzen
+    "Blankeisen": (0.52, 0.53, 0.55),      # geputzter Helm (deckend gemalt, kein Metall: die Figur hat ein Material)
+    "Schwertholz": (0.70, 0.58, 0.40),     # Klinge des hölzernen Übungsschwerts (Esche)
 })
 
 FPS = 24
@@ -104,7 +112,7 @@ VOELKER = {
 ZONEN = {"Gewand": 1, "Beinkleid": 2, "Haut": 3, "Haar": 4, "Kopfbedeckung": 5}   # alle übrigen Stoffe: Zone 0
 TRACHT = ["Strohhut", "Barett", "Kapuze", "Haube", "Schleier", "Schuerze", "Kiepe", "Buendel", "Tasche", "Stab", "Hacke", "Hammer",
           "Hobel", "Saege", "Drechseleisen", "Schlaegel", "Meissel", "Stoessel", "Kelle", "Flakon", "Krug", "Laute", "Feder", "Sieb",
-          "Dochtstab", "Dietrich", "Muenzbeutel"]
+          "Dochtstab", "Dietrich", "Muenzbeutel", "Lappen", "Uebungsschwert"]
 HAMMER = 0.3          # vom Mittelpunkt der Hand bis zur Mitte des Hammerkopfs, in Verlängerung des Unterarms
 # Wo die Hände bei der Arbeit sind (Meter vor dem Fußpunkt der Figur, Höhe über dem Boden) – passend zu den Ankern
 # im Innenraum: Amboss 0,68 m vor der Figur, Bahn 0,86 m hoch; Hebel des Blasebalgs 0,42 m vor ihr, 1,36 m hoch;
@@ -176,6 +184,14 @@ KANZEL = (0.46, 0.95)        # Predigen: Brüstung der Kanzel (vor der Figur, H�
 KNACKEN = {"schloss": (-0.03, 0.40, 1.02), "dietrich": 0.11, "tief": 0.015, "hand_l": (0.17, 0.375, 1.1)}
 ZAEHLEN = {"haufen": (-0.12, 0.40, 0.30), "beutel": (0.16, 0.30, 0.30)}
 MUENZBEUTEL = {"r": 0.05, "h": 0.08, "hals": 0.03}   # Beutel: Halbmesser und Höhe des Bauchs, darüber der offene Hals
+# Gardist (gardist_innen.glb). Fechten an der Strohpuppe: ihre Achse `puppe` Meter vor der Figur, der Leib aus Stroh mit dem
+# Halbmesser `leib` von `unten` bis `oben` über dem Boden; der Hieb trifft die Schulter der Puppe, der Stich ihre Brust (die Höhen
+# nach der Schulter der Figur, zwischen `unten` und `oben`). Das Übungsschwert verlängert den rechten Unterarm: von der Mitte der
+# Hand bis zur Spitze `schwert` Meter. Putzen (sitzend): der Helm (Eisenhut, Halbmesser `r`, Kuppe `h` hoch, Krempe `krempe`)
+# liegt auf dem Schoß, seine Mitte etwas vor der Mitte der Oberschenkel; der Lappen kreist `kreis` Meter um die Achse über der
+# Kuppe.
+FECHTEN = {"puppe": 1.2, "leib": 0.22, "unten": 0.85, "oben": 1.55, "schwert": 0.72}
+PUTZEN = {"r": 0.105, "h": 0.13, "krempe": 0.16, "kreis": 0.045}
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -391,13 +407,23 @@ def tracht(name, st, p):
             n.prisma([(-0.06, -0.07), (-0.015, -0.62)] + zaehne + [(0.045, -0.07)], -0.003, 0.003, st["Eisen"],
                      matrix=Matrix.Translation((xr, 0, hand_z)))
             n.quader((xr, 0.0, hand_z + 0.01), (0.03, 0.11, 0.13), st["Holz"])                   # Griff um die Hand
+    elif name == "Uebungsschwert":
+        t.netz.alle = True                # dreht sich mit dem Arm
+        with t.an("Unterarm_R") as n:     # hölzernes Schwert: die Klinge verlängert den Unterarm (in Ruhe nach unten), Schneiden vorn
+            spitze = hand_z - FECHTEN["schwert"]                                                 # und hinten, die Parierstange quer dazu
+            n.quader((xr, 0.0, hand_z), (0.032, 0.034, 0.15), st["Leder"])                       # Griff in der Faust
+            n.quader((xr, 0.0, hand_z + 0.09), (0.045, 0.05, 0.035), st["Holz alt"])             # Knauf
+            n.quader((xr, 0.0, hand_z - 0.09), (0.036, 0.2, 0.03), st["Holz alt"])               # Parierstange
+            n.prisma([(-0.024, hand_z - 0.105), (0.024, hand_z - 0.105), (0.02, spitze + 0.07), (0.0, spitze),
+                      (-0.02, spitze + 0.07)], xr - 0.009, xr + 0.009, st["Schwertholz"])
     return t
 
 
 REQUISITEN = {"Hobel": ("Hobeln", 0.3), "Drechseleisen": ("Drechseln", 0.5), "Meissel": ("Behauen", 0.55),
               "Schlaegel": ("Behauen", 0.55), "Stoessel": ("Moersern", 0.0), "Kelle": ("Ruehren", 0.0),
               "Flakon": ("Mischen", 0.0), "Krug": ("Zapfen", 0.0), "Feder": ("Schreiben", 0.0), "Sieb": ("Schoepfen", 0.0),
-              "Dochtstab": ("Kerzenziehen", 0.0), "Dietrich": ("Knacken", 0.3), "Muenzbeutel": ("Zaehlen", 0.0)}   # Bewegung, Phase
+              "Dochtstab": ("Kerzenziehen", 0.0), "Dietrich": ("Knacken", 0.3), "Muenzbeutel": ("Zaehlen", 0.0),
+              "Lappen": ("Putzen", 0.0)}   # Bewegung, Phase
 
 
 def requisit(name, st, p, ske):
@@ -556,6 +582,15 @@ def requisit(name, st, p, ske):
                      deckel=(False, False))                                                    # Zugband
             n.stab(zurueck @ (boden + Vector((-r * 0.7, -0.01, h + 0.01))), zurueck @ (boden + Vector((-r * 1.0, -0.03, h - 0.05))),
                    0.006, 0.006, st["Seil"])
+        elif name == "Lappen":                    # zusammengeknüllter Lappen unter der rechten Hand, auf der Kuppe des Helms
+            lappen = hand - Vector((0, 0, PUTZEN_HAND))
+            for k, (dx, dy, dz, w) in enumerate(((0.0, 0.0, 0.0, 0.0), (0.012, -0.01, 0.008, 0.5), (-0.01, 0.012, 0.012, -0.4))):
+                ecken = [lappen + Vector((dx + 0.045 * math.cos(w + a), dy + 0.035 * math.sin(w + a), dz + 0.006 * math.sin(3 * a)))
+                         for a in (2 * math.pi * j / 6 for j in range(6))]
+                n.vieleck([zurueck @ e for e in ecken], st["Putzlappen"])
+                n.vieleck([zurueck @ e for e in reversed(ecken)], st["Putzlappen"])
+            n.stab(zurueck @ (lappen + Vector((0.03, 0.02, 0.005))), zurueck @ (lappen + Vector((0.07, 0.05, -0.045))), 0.04, 0.006,
+                   st["Putzlappen"])                                                           # ein Zipfel hängt herab
         else:                                     # Drechseleisen: Heft hinter der Hand, Klinge bis an das Werkstück
             vor, hoehe = ARBEITSHOEHEN["Drehbank"]
             spitze = Vector((0.02, -(vor - 0.01), hoehe))
@@ -564,6 +599,10 @@ def requisit(name, st, p, ske):
             n.stab(zurueck @ (hand - achse * 0.13), zurueck @ (hand + achse * 0.06), 0.035, 0.035, holz, quer=quer)
             n.stab(zurueck @ (hand + achse * 0.06), zurueck @ (hand + achse * 0.085), 0.045, 0.045, eisen, quer=quer)
             n.stab(zurueck @ (hand + achse * 0.085), zurueck @ spitze, 0.022, 0.012, eisen, quer=quer)
+    if name == "Lappen":                          # der Helm liegt auf dem Schoß: er hängt an der Wurzel (folgt der Hüfte)
+        becken = ske.pose.bones["Wurzel"].matrix @ ske.data.bones["Wurzel"].matrix_local.inverted()
+        with t.an("Wurzel") as n:
+            putzhelm(n, st, p, becken.inverted())
     pose_setzen(ske, {}, 0.0)
     bpy.context.view_layer.update()
     return t
@@ -932,6 +971,9 @@ def haltung(name, phase, p):
         r.update(winkel)
     elif name in DIEB:                                                  # Dieb: Schloss knacken, Beute zählen, schlafen
         winkel, hoch = DIEB[name](phase, p)
+        r.update(winkel)
+    elif name in GARDIST:                                               # Wache: Rüstung putzen, fechten
+        winkel, hoch = GARDIST[name](phase, p)
         r.update(winkel)
     elif name == "Hueten":
         r["Oberarm_R"] = (-28, 0, -10)                                   # hält den Stab vor sich
@@ -2141,6 +2183,144 @@ def schlafen(phase, p):
 DIEB = {"Knacken": knacken, "Zaehlen": zaehlen, "Schlafen": schlafen}
 
 
+# ── Gardist: Rüstung putzen, fechten ─────────────────────────────────────────────────────────────────────────────────────
+
+PUTZEN_HAND = 0.035          # die Mitte der Hand liegt so weit über der Mitte des Lappens
+
+
+def putzen_helm(p):
+    """Lage des Helms beim Putzen (sitzend): Mitte des Rands (seitlich, vor, Höhe) – auf den Oberschenkeln, etwas vor ihrer Mitte –,
+    Halbmesser und Höhe der Kuppe (PUTZEN)."""
+    sitz = p["knie"] - 0.02
+    vor = (p["huefte"] - p["knie"]) * 0.55 + 0.02
+    return Vector((0.0, vor, sitz + p["hueftbreite"] * 0.55)), PUTZEN["r"], PUTZEN["h"]
+
+
+def putzhelm(netz, st, p, M):
+    """Der Eisenhut auf dem Schoß (in der Haltung des Putzens gebaut, `M` rechnet in die Ruhelage zurück): Kuppe, Krempe, ein Grat
+    über die Mitte, innen dunkel."""
+    mitte, r, h = putzen_helm(p)
+    b = _blender(mitte)
+    oben = M.to_3x3() @ Vector((0, 0, 1))
+    profil = [(0.0, r), (0.35 * h, 0.97 * r), (0.65 * h, 0.83 * r), (0.88 * h, 0.52 * r), (h, 0.08 * r)]
+    for (u0, r0), (u1, r1) in zip(profil, profil[1:]):
+        drehteil(netz, M @ (b + Vector((0, 0, u0))), oben, u1 - u0, r0, r1, st["Blankeisen"], n=10, deckel=(False, u1 == h))
+    drehteil(netz, M @ (b - Vector((0, 0, 0.004))), oben, 0.008, PUTZEN["krempe"], PUTZEN["krempe"] * 0.97, st["Blankeisen"], n=12)
+    drehteil(netz, M @ (b - Vector((0, 0, 0.0045))), oben, 0.001, r * 0.95, r * 0.95, st["Kohle"], n=10, deckel=(True, False))
+    for s in (-1, 1):                                                       # Grat über die Kuppe
+        netz.stab(M @ (b + Vector((0, s * r * 0.98, 0.02))), M @ (b + Vector((0, s * r * 0.45, h * 0.86))), 0.012, 0.012, st["Eisen"])
+    netz.stab(M @ (b + Vector((0, -r * 0.45, h * 0.86))), M @ (b + Vector((0, r * 0.45, h * 0.86))), 0.012, 0.012, st["Eisen"])
+
+
+def _putzen_lappen(phase, p):
+    """Mitte des Lappens (seitlich, vor, Höhe) zur Phase und wie weit die Figur den Glanz prüft (0 … 1): dreimal um die Kuppe
+    reiben (0–0,6), die Hand heben und den Helm ansehen (bis 0,86), zurück an den Anfang."""
+    mitte, r, h = putzen_helm(p)
+    k = PUTZEN["kreis"]
+
+    def auf(a):
+        return mitte + Vector((k * math.cos(a), k * math.sin(a), h * math.sqrt(1 - (k / r) ** 2) + 0.012))
+    start = auf(0.0)
+    oben = start + Vector((-0.03, -0.06, 0.12))
+    if phase < 0.6:
+        return auf(2 * math.pi * 3 * phase / 0.6), 0.0
+    if phase < 0.72:
+        t = weich((phase - 0.6) / 0.12)
+        return start.lerp(oben, t), t
+    if phase < 0.86:
+        return oben, 1.0
+    t = weich((phase - 0.86) / 0.14)
+    return oben.lerp(start, t), 1 - t
+
+
+def putzen(phase, p):
+    """Putzen (4 s, sitzend auf der Bank): Der Helm liegt auf dem Schoß, die Linke hält ihn am Rand, die Rechte reibt mit dem
+    Lappen über die Kuppe; zwischendurch richtet sich die Figur auf und prüft den Glanz. Gibt (Winkel in Grad, Hüfte)."""
+    lappen, pruefen = _putzen_lappen(phase, p)
+    mitte, r_helm, _ = putzen_helm(p)
+    s = math.sin(2 * math.pi * phase)
+    hoch = -(p["huefte"] - (p["knie"] - 0.02)) + 0.003 * s
+    lehne = 22 - 9 * pruefen + 1.0 * s
+    r = {"Ruecken": (lehne, 0, 0), "Kopf": (26 - 16 * pruefen, -6 * pruefen, 4 * pruefen)}
+    r["Oberschenkel_L"], r["Oberschenkel_R"] = (-86, 0, 7), (-86, 0, -7)
+    r["Unterschenkel_L"], r["Unterschenkel_R"] = (84, 0, 0), (80, 0, 0)
+    r["Oberarm_R"], r["Unterarm_R"] = arm_genau(p, r, hoch, "R", tuple(lappen + Vector((0, 0, PUTZEN_HAND))))
+    links = mitte + Vector((r_helm + 0.035, -0.01, 0.035 + 0.004 * s))
+    r["Oberarm_L"], r["Unterarm_L"] = arm_genau(p, r, hoch, "L", tuple(links))
+    return r, hoch
+
+
+_FECHTEN = {}
+
+
+def _fechten_haltungen(p):
+    """Schlüsselhaltungen beim Fechten {Name: (Winkel in Grad, Hüfte)}: „wache“ (Grundstellung, die Spitze vor dem Gesicht der
+    Puppe), „ausholen“ (das Schwert über der rechten Schulter), „hieb“ (die Spitze an der Schulter der Puppe), „stich“ (im
+    Ausfallschritt, die Spitze an ihrer Brust, die Linke nach hinten); je Volk einmal gerechnet."""
+    schluessel = tuple(sorted(p.items()))
+    if schluessel in _FECHTEN:
+        return _FECHTEN[schluessel]
+    k = p["schulter"] / VOELKER["mensch"]["schulter"]
+    f = FECHTEN
+    vorn = f["puppe"] - f["leib"]                                       # Vorderseite des Strohleibs
+    hieb = max(f["unten"] + 0.15, min(f["oben"] - 0.1, p["schulter"] + 0.1))
+    stich = max(f["unten"] + 0.1, min(1.2, p["schulter"] - 0.22))
+
+    def beine(r, hoch, rechts, links):
+        for seite, vor, z in (("R", rechts, -5), ("L", links, 6)):
+            o, u = bein_ik(p, hoch, vor * k, 0.0)
+            r[f"Oberschenkel_{seite}"], r[f"Unterschenkel_{seite}"] = (o, 0, z), (u, 0, 0)
+
+    def stellung(lehne, dreh, kopf, hoch, rechts, links, spitze=None, arm_r=None, hand_l=None, arm_l=None):
+        r = {"Ruecken": (lehne, dreh, 0), "Kopf": kopf}
+        beine(r, hoch, rechts, links)
+        if spitze is not None:
+            r["Oberarm_R"], r["Unterarm_R"] = arm_genau(p, r, hoch, "R", spitze, extra=f["schwert"])
+        else:
+            r["Oberarm_R"], r["Unterarm_R"] = arm_r
+        if hand_l is not None:
+            r["Oberarm_L"], r["Unterarm_L"] = arm_genau(p, r, hoch, "L", hand_l)
+        else:
+            r["Oberarm_L"], r["Unterarm_L"] = arm_l
+        return r, hoch
+    huefte = p["huefte"]
+    _FECHTEN[schluessel] = {
+        "wache": stellung(6, -8, (-4, 7, 0), -0.03 * k, 0.16, -0.14, spitze=(-0.04, vorn - 0.12, p["schulter"] + 0.12),
+                          hand_l=(0.22 * k, 0.12 * k, huefte + 0.12 * k)),
+        "ausholen": stellung(2, -24, (-2, 20, 0), -0.035 * k, 0.16, -0.14, arm_r=((-162, 0, -22), (-95, 0, 0)),
+                             hand_l=(0.26 * k, 0.2 * k, huefte + 0.2 * k)),
+        "hieb": stellung(14, 16, (8, -12, 0), -0.06 * k, 0.26, -0.18, spitze=(0.07, vorn + 0.03, hieb),
+                         hand_l=(0.25 * k, 0.0, huefte + 0.1 * k)),
+        "stich": stellung(14, 4, (-6, 0, 0), -0.18 * k, 0.38, -0.48, spitze=(0.0, vorn + 0.05, stich),
+                          arm_l=((38, 0, 28), (-14, 0, 0))),
+    }
+    return _FECHTEN[schluessel]
+
+
+FECHT_FOLGE = ((0.0, "wache"), (0.14, "ausholen"), (0.2, "ausholen"), (0.28, "hieb"), (0.33, "hieb"), (0.46, "wache"),
+               (0.54, "wache"), (0.68, "stich"), (0.74, "stich"), (0.9, "wache"), (1.0, "wache"))   # Hieb trifft bei 0,28, Stich bei 0,68
+
+
+def fechten(phase, p):
+    """Fechten (2,4 s, stehend vor der Strohpuppe): aus der Grundstellung ausholen, ein schneller Hieb an die Schulter der Puppe
+    (trifft bei 0,28), zurück in die Grundstellung, Stich im Ausfallschritt an die Brust (trifft bei 0,68), zurück. Gibt (Winkel
+    in Grad, Hüfte)."""
+    haltungen = _fechten_haltungen(p)
+    for (a, na), (b, nb) in zip(FECHT_FOLGE, FECHT_FOLGE[1:]):
+        if phase <= b:
+            u = (phase - a) / (b - a)
+            t = u * u if (na, nb) == ("ausholen", "hieb") else weich(u)    # der Hieb beschleunigt bis zum Treffer
+            break
+    (ra, ha), (rb, hb) = haltungen[na], haltungen[nb]
+    r = {k: tuple(x + (y - x) * t for x, y in zip(ra[k], rb[k])) for k in ra}
+    s = math.sin(2 * math.pi * phase)
+    r["Ruecken"] = (r["Ruecken"][0] + 0.8 * s, r["Ruecken"][1], 0)
+    return r, ha + (hb - ha) * t
+
+
+GARDIST = {"Putzen": putzen, "Fechten": fechten}
+
+
 BEWEGUNGEN = {   # Name: Dauer in Sekunden (eine Schleife)
     "Stehen": 3.0, "Gehen": 1.0, "Eilen": 0.7, "Gebeugt": 1.4, "Tragen": 1.2, "Sitzen": 3.0, "Reden": 2.0,
     "Hacken": 1.3, "Buecken": 2.4, "Hueten": 4.0, "Ziehen": 1.3, "Kutschieren": 1.0,
@@ -2152,6 +2332,7 @@ BEWEGUNGEN = {   # Name: Dauer in Sekunden (eine Schleife)
     "Zapfen": 4.0, "Trinken": 4.0, "Laute": 2.0,
     "Kerzenziehen": 4.0, "Schoepfen": 4.0, "Schreiben": 4.0, "Predigen": 6.0, "Beten": 4.0, "Knien": 4.0,
     "Knacken": 4.0, "Zaehlen": 4.0, "Schlafen": 4.0,
+    "Putzen": 4.0, "Fechten": 2.4,
 }
 
 
@@ -2397,7 +2578,8 @@ def vorschau_bewegungen(schnell):
                  "Hobeln": ["Hobel"], "Saegen": ["Saege"], "Drechseln": ["Drechseleisen"], "Behauen": ["Schlaegel", "Meissel"],
                  "Bildhauen": ["Schlaegel", "Meissel"], "Moersern": ["Stoessel"], "Ruehren": ["Kelle"],
                  "Mischen": ["Flakon"], "Zapfen": ["Krug"], "Trinken": ["Krug"], "Laute": ["Laute"], "Kerzenziehen": ["Dochtstab"],
-                 "Schoepfen": ["Sieb"], "Schreiben": ["Feder"], "Knacken": ["Dietrich"], "Zaehlen": ["Muenzbeutel"]}.get(name, [])
+                 "Schoepfen": ["Sieb"], "Schreiben": ["Feder"], "Knacken": ["Dietrich"], "Zaehlen": ["Muenzbeutel"],
+                 "Putzen": ["Lappen"], "Fechten": ["Uebungsschwert"]}.get(name, [])
         wahl = [o for o in objekte if o.type == "MESH" and o.name.split(".")[0] in teile + ["Koerper_Mann"]]
         sy = ((len(reihen) - 1) / 2 - r) * abstand
         for k, ph in enumerate(phasen):
@@ -2413,7 +2595,7 @@ def vorschau_bewegungen(schnell):
         alle.append(beschriftung(name, Vector(((-2.3) * 0.7071 - sy * 0.7071, (-2.3) * 0.7071 + sy * 0.7071, 0.9))))
     bs.vorschau_buehne(None, ziel_hoehe=0.9, ausschnitt=22.0 * len(reihen) / 12, schnell=schnell)
     szene = bpy.context.scene
-    f = 0.86                                                            # unter 3 MB: Ausschnitt gleich, weniger Bildpunkte
+    f = 0.83                                                            # unter 3 MB: Ausschnitt gleich, weniger Bildpunkte
     szene.render.resolution_x, szene.render.resolution_y = round(900 * f), round(1620 * len(reihen) / 12 * f)
     szene.render.image_settings.color_mode = "RGB"                      # ohne Alphakanal und stark gepackt: kleinere Datei
     szene.render.image_settings.compression = 100
@@ -2425,7 +2607,7 @@ def arbeitsplatz(name, ort, st, p, phase=0.0):
     Seite ist −y. `phase`: Stand der Bewegung (der Querhebel der Presse schwenkt mit)."""
     netz = bs.Netz("_Hilfe")
     holz, eisen = st["Holz"], st["Eisen"]
-    if name in ("Sitzen", "Kutschieren", "Feinarbeit", "Trinken", "Schreiben", "Beten", "Zaehlen"):   # Bank bzw. Hocker unter der Hüfte
+    if name in ("Sitzen", "Kutschieren", "Feinarbeit", "Trinken", "Schreiben", "Beten", "Zaehlen", "Putzen"):   # Bank bzw. Hocker
         netz.quader(ort + Vector((0, 0, p["knie"] - 0.06)), (0.5, 0.5, 0.08), holz)
         for dx in (-0.2, 0.2):
             netz.quader(ort + Vector((dx, 0, (p["knie"] - 0.1) / 2)), (0.06, 0.4, p["knie"] - 0.1), holz)
@@ -2562,6 +2744,13 @@ def arbeitsplatz(name, ort, st, p, phase=0.0):
         bs.achteck(netz, st, ort + Vector((-hv, -hs, sitz + hh)), 0.07, 0.0, 0.03, "Gold")
     elif name == "Schlafen":                                            # Strohsack unter dem Körper
         netz.quader(ort + Vector((-0.05, 0, -0.06)), (2.0, 0.8, 0.12), st["Leinen"])
+    elif name == "Fechten":                                             # Strohpuppe: Pfahl, Leib, Kopf, Querholz
+        f = FECHTEN
+        puppe = ort + Vector((-f["puppe"], 0, 0))
+        netz.quader(puppe + Vector((0, 0, 0.95)), (0.1, 0.1, 1.9), st["Holz alt"])
+        netz.quader(puppe + Vector((0, 0, 1.42)), (0.08, 1.0, 0.08), st["Holz alt"])
+        bs.achteck(netz, st, puppe, f["leib"], f["unten"], f["oben"], "Heu", n=8)
+        bs.achteck(netz, st, puppe, 0.14, f["oben"] + 0.05, f["oben"] + 0.33, "Heu", n=8)
     return netz.objekt() if netz.dreiecke() else None
 
 
