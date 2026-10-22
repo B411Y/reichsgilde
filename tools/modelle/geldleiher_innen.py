@@ -1497,7 +1497,7 @@ def wandteppich(netz, st, wand, u0, u1, v0, v1):
     for t in range(14):
         a = 2 * math.pi * t / 14
         netz.vieleck_nach([wand.p(um, v0 + 1.25, 0.0445), wand.p(um + 0.32 * math.cos(a), v0 + 1.25 + 0.3 * math.sin(a), 0.0445),
-                           wand.p(um + 0.32 * math.cos(a + math.pi / 7), v0 + 1.25 + 0.3 * math.sin(a + math.pi / 7), 0.0445)], wand.n, st["Laub"])
+                           wand.p(um + 0.32 * math.cos(a + math.pi / 7), v0 + 1.25 + 0.3 * math.sin(a + math.pi / 7), 0.0445)], wand.n, st["Kartenwald"])
     for s in (-1, 1):                                                                       # zwei Hirsche
         c = (um + s * 0.48, v0 + 0.5)
         umriss = [(-0.18, 0.0), (0.16, 0.0), (0.2, 0.12), (0.26, 0.28), (0.32, 0.3), (0.3, 0.2), (0.22, 0.1), (0.18, 0.18), (-0.18, 0.18),
@@ -1556,7 +1556,7 @@ def empfang_einrichtung(netz, st, anker, kunden):
     for k, (dx, dy) in enumerate(((-0.25, -0.1), (0.3, -0.15), (-0.05, -0.22))):            # Pokale aus Silber
         p = m + Vector((dx, dy, oben))
         drehkoerper(netz, st, p, [(0.0, 0.035), (0.008, 0.03), (0.02, 0.008), (0.08, 0.007), (0.09, 0.03), (0.16, 0.04)], "Silber", n=8)
-        scheibe(netz, st, p, 0.034, p.z + 0.14, "Weinrot", n=8)
+        scheibe(netz, st, p, 0.034, p.z + 0.14, "Rose dunkel", n=8)
     muenzschale(netz, st, m + Vector((-0.22, 0.17, oben)), r=0.1, voll="Rose")             # Konfekt
     for (punkt, blick) in SESSEL_PLAETZE:
         sessel(netz, st, (punkt[0], punkt[1], 0), blick)
