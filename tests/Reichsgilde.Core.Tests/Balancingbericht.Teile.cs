@@ -138,6 +138,7 @@ static partial class Balancingbericht
                     ["reinvermoegen"] = Kennzahl(ki.Select(h => h.Im(j).Rein)), ["gewinn"] = Kennzahl(ki.Select(h => h.Im(j).Gewinn)),
                     ["summeReinvermoegen"] = Kennzahl(laeufe.Select(r => r.Ki.Sum(h => h.Im(j).Rein))),
                 }),
+                ["jeJahrImMittel"] = Zerlegung(ki),
                 ["jeHaus"] = jeHaus,
                 ["bankrott"] = ki.Count(h => h.BankrottJahr is not null), ["erloschen"] = ki.Count(h => h.ErloschenJahr is not null),
                 ["preisindex"] = R(preisindex[n], 3),
@@ -207,6 +208,10 @@ static partial class Balancingbericht
             ["bezug"] = JeJahr(e.Stich, j => Kennzahl(laeufe.Select(r => r.Spieler.Im(j).Rein))),
             ["bezugStandAmEnde"] = Staende(laeufe.Select(r => r.Spieler), daten),
             ["bezugRang"] = Kennzahl(rang, 2),
+            ["bezugBetriebe"] = JeJahr(e.Stich, j => Kennzahl(laeufe.Select(r => (double)r.Spieler.Im(j).Betriebe), 2)),
+            ["kiBetriebe"] = JeJahr(e.Stich, j => Kennzahl(ki.Select(h => (double)h.Im(j).Betriebe), 2)),
+            ["bezugJeJahrImMittel"] = Zerlegung(laeufe.Select(r => r.Spieler)),
+            ["kiJeJahrImMittel"] = Zerlegung(ki),
             ["kiHaeuser"] = JeJahr(e.Stich, j => Kennzahl(ki.Select(h => h.Im(j).Rein))),
             ["jeHaus"] = new JsonArray(ki.GroupBy(h => h.Name).Select(g => (JsonNode)new JsonObject
             {
@@ -243,7 +248,9 @@ static partial class Balancingbericht
             var stufen = Stufen(daten, beruf);
             foreach (var stueck in daten.Werkstatt?.EinrichtungFuer(beruf) ?? Array.Empty<EinrichtungDaten>())
             {
-                var art = stufen[Math.Clamp(stueck.AbStufe, 1, stufen.Count) - 1];
+                // ab der Stufe des Stücks – und, wenn es nur einige Waren schneller macht, ab der ersten Stufe mit einer davon (Glasflakons: Duftwerkstatt)
+                var art = stufen.Skip(Math.Clamp(stueck.AbStufe, 1, stufen.Count) - 1)
+                    .FirstOrDefault(a => stueck.Wirkung.ZeitFaktor >= 1 || daten.Art(a).Produkte.Any(stueck.Wirkung.GiltFuer), stufen[Math.Clamp(stueck.AbStufe, 1, stufen.Count) - 1]);
                 var d = daten.Art(art);
                 var vorher = new List<string>();
                 for (var v = stueck.Voraussetzung; v is not null; v = daten.Werkstatt!.Stueck(beruf, v)?.Voraussetzung) vorher.Insert(0, v);
@@ -257,17 +264,22 @@ static partial class Balancingbericht
                 var ohne = Probe(vorher);
                 var mit = Probe(vorher.Append(stueck.Kennung));
                 var minuten = daten.Arbeitsminuten(art);
+                var wi = stueck.Wirkung;
+                // Ein Stück, das nur einige Waren schneller macht (Blasebalg …), zählt mit der besten dieser Waren
+                var waren = d.Produkte.Where(x => wi.ZeitFaktor >= 1 || wi.GiltFuer(x)).ToList();
+                if (waren.Count == 0) waren = d.Produkte.ToList(); // Betriebe ohne Ware
                 double Wert(Betrieb b) => d.OhneProduktion
                     ? (w.Bank.IstAktiv && w.Bank.IstBankbetrieb(b) ? w.Bank.WertJeMinute(b) : w.WertOhneWare(d))
-                    : d.Produkte.Max(x => Kalkulation.GewinnJeArbeitsminute(w, x) / b.ZeitFaktor(x));
+                    : waren.Max(x => Kalkulation.GewinnJeArbeitsminute(w, x) / b.ZeitFaktor(x));
                 double Jahreswert(Betrieb b) => d.Plaetze * minuten * Wert(b);
-                var wi = stueck.Wirkung;
                 double? mehr = null;
                 string rechnung;
                 if (Math.Abs(Jahreswert(mit) - Jahreswert(ohne)) > 1e-6)
                 {
                     mehr = Jahreswert(mit) - Jahreswert(ohne);
-                    rechnung = "Plätze × Arbeitsminuten × Wert je Minute (bestes Produkt bzw. Bankgeschäft) mit − ohne das Stück, Startpreise, Gesellen";
+                    rechnung = "Plätze × Arbeitsminuten × Wert je Minute mit − ohne das Stück (bestes Produkt" +
+                               (waren.Count < d.Produkte.Count ? $" unter den begünstigten Waren: {string.Join(", ", waren)}" : "") +
+                               " bzw. Bankgeschäft), Startpreise, Gesellen";
                 }
                 else if (wi.LohnFaktor < 1)
                 {

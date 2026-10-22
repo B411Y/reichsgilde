@@ -54,6 +54,8 @@ sealed record Messaufbau(
 sealed class Jahreswert
 {
     public double Rein, Bar, Gewinn, Umsatz, Schaden, Raub;
+    /// <summary>Was außerhalb der Betriebe ins Vermögen ging (Vorjahr): Amt, Familie, Geschenke, Gericht, Gaunerei, Investitionen, Stand, Zinsen.</summary>
+    public double Amt, Familie, Geschenke, Gericht, Gaunerei, Investitionen, Standesgebuehren, Zinsen;
     public int Stand, Stufe, Betriebe;
     public bool Aktiv;
     /// <summary>Was der Beruf ohne Ware im Jahr brachte (Beute, Sold, Zinsen, Kollekte, Ausschank …), nur beim Spieler.</summary>
@@ -255,6 +257,9 @@ static class Messpartie
                 {
                     Rein = k.Reinvermoegen, Bar = k.Vermoegen, Gewinn = k.Vorjahr?.Gewinn ?? 0, Umsatz = k.Vorjahr?.Umsatz ?? 0,
                     Schaden = k.Vorjahr?.Schaden ?? 0, Raub = k.Vorjahr?.Raubwert ?? 0,
+                    Amt = k.Vorjahr?.Amtseinkommen ?? 0, Familie = k.Vorjahr?.Familie ?? 0, Geschenke = k.Vorjahr?.Geschenke ?? 0,
+                    Gericht = k.Vorjahr?.Gericht ?? 0, Gaunerei = k.Vorjahr?.Gaunerei ?? 0, Investitionen = k.Vorjahr?.Investitionen ?? 0,
+                    Standesgebuehren = k.Vorjahr?.Standesgebuehren ?? 0, Zinsen = k.Vorjahr?.Zinsen ?? 0,
                     Stand = k.Stand, Stufe = stufe, Betriebe = eigene.Count, Aktiv = k.IstAktiv,
                 };
                 if (h.IstSpieler) Sonderwerte(w, k, eigene, wert.Sonder);

@@ -37,7 +37,10 @@ static partial class Balancingbericht
     /// <summary>Häuser in der Messstadt (KI, die ersten n der Karte).</summary>
     public static readonly int[] Hausstufen = { 1, 3, 5, 8 };
 
-    /// <summary>Kennzahl einer Stichprobe: Anzahl, Mittel, Streuung (Standardabweichung), Minimum, Quantile 10/25/50/75/90 %, Maximum.</summary>
+    /// <summary>
+    /// Kennzahl einer Stichprobe: Anzahl, Mittel, Streuung (Standardabweichung), Fehler des Mittels (Streuung ÷ √n – ein Unterschied unter etwa
+    /// zwei solchen Fehlern kann Zufall sein), Minimum, Quantile 10/25/50/75/90 %, Maximum.
+    /// </summary>
     public static JsonObject Kennzahl(IEnumerable<double> werte, int nachkomma = 0)
     {
         var w = werte.Where(x => !double.IsNaN(x)).OrderBy(x => x).ToArray();
@@ -46,7 +49,8 @@ static partial class Balancingbericht
         var streuung = w.Length > 1 ? Math.Sqrt(w.Sum(x => (x - mittel) * (x - mittel)) / (w.Length - 1)) : 0;
         return new JsonObject
         {
-            ["n"] = w.Length, ["mittel"] = R(mittel, nachkomma), ["streuung"] = R(streuung, nachkomma), ["min"] = R(w[0], nachkomma),
+            ["n"] = w.Length, ["mittel"] = R(mittel, nachkomma), ["streuung"] = R(streuung, nachkomma),
+            ["fehlerMittel"] = R(streuung / Math.Sqrt(w.Length), nachkomma), ["min"] = R(w[0], nachkomma),
             ["q10"] = R(Quantil(w, 0.10), nachkomma), ["q25"] = R(Quantil(w, 0.25), nachkomma), ["median"] = R(Quantil(w, 0.5), nachkomma),
             ["q75"] = R(Quantil(w, 0.75), nachkomma), ["q90"] = R(Quantil(w, 0.90), nachkomma), ["max"] = R(w[^1], nachkomma),
         };
@@ -386,6 +390,7 @@ static partial class Balancingbericht
                     ["sonder"] = sonderSchluessel.Count == 0 ? null : new JsonObject(sonderSchluessel.Select(k =>
                         new KeyValuePair<string, JsonNode?>(k, R(laeufe.Average(r => r.Spieler.Im(j).Sonder.GetValueOrDefault(k)), 1)))),
                 }),
+                ["jeJahrImMittel"] = Zerlegung(laeufe.Select(r => r.Spieler)),
                 ["jahreBisBuerger"] = Kennzahl(laeufe.Where(r => r.Spieler.BuergerReinJahr is not null).Select(r => (double)r.Spieler.BuergerReinJahr!.Value), 1),
                 ["buergerErreicht"] = laeufe.Count(r => r.Spieler.BuergerReinJahr is not null),
                 ["jahreBisStandBuerger"] = Kennzahl(laeufe.Where(r => r.Spieler.BuergerStandJahr is not null).Select(r => (double)r.Spieler.BuergerStandJahr!.Value), 1),
@@ -441,11 +446,26 @@ static partial class Balancingbericht
                              "Ware, Meisterprüfung und Ausbau nach den Regeln der KI (Ausbau, sobald Meistergrad und Rechnung es erlauben), keine Expansion, " +
                              "keine Einrichtung. Gegen die drei KI-Häuser der Karte. „Zuwachs“ = Reinvermögen − Startvermögen; Abstand zum Mittel der zehn Berufe. " +
                              "Der Dieb nutzt unter der ausgewogenen KI nur die Taschendiebe (Einbruch und Schutzgeld nur wagemutig) – deshalb eine zweite Zeile, " +
-                             "die nicht ins Mittel zählt. Menschen haben +5 % als Tischler und Gardist.",
+                             "die nicht ins Mittel zählt. Menschen haben +5 % als Tischler und Gardist. „jeJahrImMittel“: Betriebsgewinn und was " +
+                             "außerhalb der Betriebe dazukam (Amtseinkommen im Rat) oder abging (Familie, Geschenke, Gericht, Gaunerei, Investitionen wie " +
+                             "Ausbau und Wohnhaus, Standesgebühren) – Mittel je Jahr über die ganze Partie.",
             ["statisch"] = new JsonArray(zeilen.Select(z => (JsonNode)z.Json).ToArray()),
             ["statischMittelJeStufe"] = mittelJeStufe,
             ["simuliert"] = sim,
             ["simuliertMittel"] = simMittel,
+        };
+    }
+
+    /// <summary>Woher das Vermögen kommt: Mittel je Jahr über die ganze Partie – Betriebsgewinn und was außerhalb der Betriebe hinzukam oder abging.</summary>
+    private static JsonObject Zerlegung(IEnumerable<Hausverlauf> haeuser)
+    {
+        var h = haeuser.ToList();
+        JsonNode? M(Func<Jahreswert, double> f) => R(h.Average(x => x.Jahre.Average(f)));
+        return new JsonObject
+        {
+            ["gewinn"] = M(x => x.Gewinn), ["amtseinkommen"] = M(x => x.Amt), ["familie"] = M(x => -x.Familie), ["geschenke"] = M(x => -x.Geschenke),
+            ["gericht"] = M(x => -x.Gericht), ["gaunerei"] = M(x => -x.Gaunerei), ["investitionen"] = M(x => -x.Investitionen),
+            ["standesgebuehren"] = M(x => -x.Standesgebuehren), ["zinsen"] = M(x => -x.Zinsen),
         };
     }
 
