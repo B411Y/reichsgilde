@@ -285,6 +285,29 @@ public sealed class Bankwesen
     }
 
     /// <summary>
+    /// Was ein Stück Einrichtung mit dieser Wirkung dem Bankbetrieb im Jahr mehr bringt, mit den Schreibern und der Kasse von jetzt
+    /// (für <see cref="Werkstattwesen.ErwarteterMehrgewinnJeJahr"/>): mehr Rahmen bringt Zins nur, so weit die Kasse ihn füllt;
+    /// die Wechselgebühr nach dem jetzigen Deckel der Stadt; die Pfandkammer mindert den erwarteten Ausfall der Kasse
+    /// (Kasse × Chance × Anteil). Zins und Wechsel nach Steuer.
+    /// </summary>
+    internal double MehrgewinnJeJahr(Betrieb b, EinrichtungWirkung wi)
+    {
+        if (!IstBankbetrieb(b)) return 0;
+        double Leistung(Betrieb x) => x.LeistungProMinute * _w.VolksFaktor(x.Konto, x.Artdaten.Beruf);
+        var leistung = Leistung(b);
+        var kasse = Kasse(b);
+        var rahmen = RahmenJeSchreiber(b) * leistung;
+        var zins = (Math.Min(kasse, rahmen * wi.RahmenFaktor) - Math.Min(kasse, rahmen)) * Daten.Stadtzins
+                   * b.Arbeitsminuten / _w.Daten.Allgemein.Arbeitsminuten;
+        var gewicht = _w.Betriebe.Where(x => IstBankbetrieb(x) && x.Konto.IstAktiv).Sum(x => Leistung(x) * Stufenwert(Daten.Wechsel.JeStufe, x.Stufe));
+        var deckel = gewicht > 0 ? Math.Min(1, Daten.Wechsel.BedarfSchreiber / gewicht) : 0;
+        var wechsel = b.Arbeitsminuten * leistung * Stufenwert(Daten.Wechsel.JeStufe, b.Stufe) * WechselJeMinute * deckel * b.WechselFaktor
+                      * (wi.WechselFaktor - 1);
+        var ausfall = kasse * Daten.Ausfall.Chance * Daten.Ausfall.Anteil * b.AusfallFaktor * (1 - wi.AusfallFaktor);
+        return (zins + wechsel) * (1 - _w.Daten.Allgemein.Umsatzsteuer) + ausfall;
+    }
+
+    /// <summary>
     /// Faktor auf den Verlust, wenn ein Haus mit einem Kredit dieses Geldleihers aus dem Spiel geht: die beste Pfandkammer
     /// seiner Geldleihen (auch ohne Schreiber – das Pfand liegt im Haus); ohne 1.
     /// </summary>

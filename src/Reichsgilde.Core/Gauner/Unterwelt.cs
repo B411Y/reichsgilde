@@ -361,7 +361,7 @@ public sealed class Unterwelt
             wert = beute.Sum(x => x.Wert);
             if (wert > 0)
             {
-                a.Ziel.Raub(wert);
+                b.RaubBuchen(wert);
                 a.Auftraggeber.Gaunerkosten(-wert * d.HehlerAnteil);
                 oeffentlich = $"Einbruch in {b.Name}: {string.Join(" und ", beute.Select(x => $"{x.Stueck} {x.Ware}"))} gestohlen (Wert {Zahlenformat.Ganz(wert)}).";
                 Ereignis(a.Auftraggeber, $"Eure Diebe haben in {b.Name} Ware für {Zahlenformat.Ganz(wert)} erbeutet – der Hehler zahlt {Zahlenformat.Ganz(wert * d.HehlerAnteil)}.");
@@ -384,6 +384,7 @@ public sealed class Unterwelt
         if (erfolg)
         {
             schaden = SabotageSchaden(b);
+            b.BrandBuchen(schaden);
             b.Sabotieren(d.Sabotage.StillstandMinuten);
             b.SchadenBuchen(d.Sabotage.Reparatur);
             oeffentlich = $"Anschlag auf {b.Name}: Feuer in der Werkstatt! {d.Sabotage.StillstandMinuten / 60} Arbeitsstunden Stillstand, " +

@@ -147,7 +147,7 @@ static class KartenformatTests
             json["start"]!["spieler"]!["jeBeruf"] = new JsonObject { ["Steinmetz"] = new JsonObject { ["platz"] = "Probeplatz", ["name"] = "{art} am Probeplatz" } };
             var karte = Stadtkarte.AusJson(json.ToJsonString(), Katalog());
 
-            var (sim, spieler) = Partieaufbau.Erstellen(Endlos, Daten.Value, new NeuePartie(Beruf: "Steinmetz", Rivalen: 2), karte: karte);
+            var (sim, spieler) = Partieaufbau.Erstellen(Endlos with { Schwierigkeit = Schwierigkeit.Schwer }, Daten.Value, new NeuePartie(Beruf: "Steinmetz", Rivalen: 2), karte: karte);
             var w = sim.Wirtschaft!;
             Pruefe.Gleich("Haus Hammerschmid, Haus Steinhauer, Haus Eichwald", string.Join(", ", w.Konten.Select(k => k.Inhaber)));
             var steinhauer = w.Konten[1];

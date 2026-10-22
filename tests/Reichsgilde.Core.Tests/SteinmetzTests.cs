@@ -55,7 +55,8 @@ static class SteinmetzTests
 
         ("Partieaufbau: Startberuf Steinmetz – Maurerei am Weinmarkt; drei Rivalen, Haus Kieselbach sind Halblinge und Steinmetze", () =>
         {
-            var (sim, spieler) = Partieaufbau.Erstellen(Partieeinstellungen.Standard, Daten.Value, new NeuePartie(Beruf: "Steinmetz"));
+            var (sim, spieler) = Partieaufbau.Erstellen(Partieeinstellungen.Standard with { Schwierigkeit = Schwierigkeit.Schwer }, Daten.Value,
+                new NeuePartie(Beruf: "Steinmetz"));
             var w = sim.Wirtschaft!;
             var eigene = w.Betriebe.Single(b => b.Konto == spieler);
             Pruefe.Gleich("Maurerei am Weinmarkt", eigene.Name);
@@ -74,7 +75,7 @@ static class SteinmetzTests
 
         ("KI Kieselbach: Steinbruch liefert Stein, die Maurerei verkauft Steinmetzwaren – mit Gewinn", () =>
         {
-            var (sim, _) = Partieaufbau.Erstellen(Partieeinstellungen.Standard with { Siegbedingung = Siegbedingung.Endlos },
+            var (sim, _) = Partieaufbau.Erstellen(Partieeinstellungen.Standard with { Siegbedingung = Siegbedingung.Endlos, Schwierigkeit = Schwierigkeit.Schwer },
                 Daten.Value, new NeuePartie());
             var w = sim.Wirtschaft!;
             var kieselbach = w.Konten.Single(k => k.Inhaber == Partieaufbau.DritterRivale);

@@ -115,19 +115,31 @@ public sealed class Betriebsrechnung
     public double Schaden { get; internal set; }
     public double Transport { get; internal set; }
 
+    /// <summary>
+    /// Was Diebe aus diesem Betrieb geholt haben: Marktwert der Lagerware, beim Geldleiher die Gulden aus der Kasse. Nur zur Information
+    /// (schon aus Lager bzw. Kasse verschwunden, kein Posten des Gewinns) – Grundlage für den Wert der Eisentür.
+    /// </summary>
+    public double Raub { get; internal set; }
+
+    /// <summary>
+    /// Was gelungene Anschläge (Feuer) diesen Betrieb gekostet haben: Reparatur und Stillstand, geschätzt beim Anschlag
+    /// (<see cref="Gauner.Unterwelt.Sabotageschaden"/>). Nur zur Information – Grundlage für den Wert des Löschfasses.
+    /// </summary>
+    public double Brandschaden { get; internal set; }
+
     /// <summary>Gewinn des Betriebs: Umsatz minus Zutaten, Personal, Unterhalt bzw. Pacht, Steuer, Schaden und Transport.</summary>
     public double Gewinn => Umsatz - Zutaten - Personal - Fixkosten - Steuer - Schaden - Transport;
 
     internal BetriebsrechnungStand Sichern() => new()
     {
         Jahr = Jahr, Ganzjaehrig = Ganzjaehrig, Umsatz = Umsatz, Zutaten = Zutaten, Personal = Personal, Fixkosten = Fixkosten,
-        Steuer = Steuer, Schaden = Schaden, Transport = Transport,
+        Steuer = Steuer, Schaden = Schaden, Transport = Transport, Raub = Raub, Brandschaden = Brandschaden,
     };
 
     internal static Betriebsrechnung Laden(BetriebsrechnungStand s) => new()
     {
         Jahr = s.Jahr, Ganzjaehrig = s.Ganzjaehrig, Umsatz = s.Umsatz, Zutaten = s.Zutaten, Personal = s.Personal, Fixkosten = s.Fixkosten,
-        Steuer = s.Steuer, Schaden = s.Schaden, Transport = s.Transport,
+        Steuer = s.Steuer, Schaden = s.Schaden, Transport = s.Transport, Raub = s.Raub, Brandschaden = s.Brandschaden,
     };
 }
 
@@ -476,6 +488,8 @@ public sealed class Betrieb
     internal void SteuerBuchen(double betrag) { Konto.Steuer(betrag); Laufend.Steuer += betrag; }
     internal void SchadenBuchen(double betrag) { Konto.Schaden(betrag); Laufend.Schaden += betrag; }
     internal void TransportBuchen(double betrag) { Konto.Transport(betrag); Laufend.Transport += betrag; }
+    internal void RaubBuchen(double wert) { Konto.Raub(wert); Laufend.Raub += wert; }
+    internal void BrandBuchen(double schaden) => Laufend.Brandschaden += schaden;
 
     /// <summary>Jahreswechsel (mit dem Konto): Die laufende Rechnung wird zum Vorjahr.</summary>
     internal void JahrAbschliessen(int neuesJahr)
