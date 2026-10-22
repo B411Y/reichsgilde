@@ -94,7 +94,8 @@ public sealed class WerkstattDaten
                              ("razziaBonus", w.RazziaBonus), ("geleitFaktor", w.GeleitFaktor), ("lohnFaktor", w.LohnFaktor),
                              ("ausfallFaktor", w.AusfallFaktor) })
                     if (faktor is < 0 or > 1) f.Add($"{wo}.wirkung.{name} muss zwischen 0 und 1 liegen.");
-                foreach (var (name, faktor) in new[] { ("streifenFaktor", w.StreifenFaktor), ("rahmenFaktor", w.RahmenFaktor), ("wechselFaktor", w.WechselFaktor) })
+                foreach (var (name, faktor) in new[] { ("streifenFaktor", w.StreifenFaktor), ("rahmenFaktor", w.RahmenFaktor), ("wechselFaktor", w.WechselFaktor),
+                             ("kreditFaktor", w.KreditFaktor) })
                     if (faktor is < 1 or > 2) f.Add($"{wo}.wirkung.{name} muss zwischen 1 und 2 liegen.");
                 foreach (var ware in w.Waren.Where(x => !waren.ContainsKey(x)))
                     f.Add($"{wo}.wirkung.waren: Die Ware „{ware}“ gibt es nicht.");
@@ -252,6 +253,12 @@ public sealed class EinrichtungWirkung
     /// </summary>
     public double AusfallFaktor { get; init; } = 1;
 
+    /// <summary>
+    /// Geldleiher: Faktor auf den Höchstbetrag, den das Haus an andere Häuser verleihen darf (<c>kredit.hoechstJeStufe</c>;
+    /// Kassenschrank 1,25 = 25 % mehr). Geprüft zwischen 1 und 2.
+    /// </summary>
+    public double KreditFaktor { get; init; } = 1;
+
     public bool GiltFuer(string ware) => Waren.Count == 0 || Waren.Contains(ware);
 
     /// <summary>Die Wirkung in einem Satz für die Oberfläche.</summary>
@@ -273,6 +280,7 @@ public sealed class EinrichtungWirkung
         if (GeleitFaktor < 1) teile.Add($"Überfälle auf das Geleit {Zahlenformat.Ganz((1 - GeleitFaktor) * 100)} % seltener erfolgreich");
         if (RahmenFaktor > 1) teile.Add($"Rahmen je Schreiber {Zahlenformat.Ganz((RahmenFaktor - 1) * 100)} % größer");
         if (WechselFaktor > 1) teile.Add($"Wechselgebühren {Zahlenformat.Ganz((WechselFaktor - 1) * 100)} % höher");
+        if (KreditFaktor > 1) teile.Add($"Kredite an Häuser bis {Zahlenformat.Ganz((KreditFaktor - 1) * 100)} % höher");
         if (AusfallFaktor < 1) teile.Add($"Verlust bei Ausfall eines Kunden {Zahlenformat.Ganz((1 - AusfallFaktor) * 100)} % kleiner");
         return teile.Count == 0 ? "keine Wirkung" : string.Join(", ", teile);
     }

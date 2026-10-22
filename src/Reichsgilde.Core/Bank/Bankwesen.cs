@@ -305,11 +305,25 @@ public sealed class Bankwesen
 
     public bool IstWucher(double satz) => IstAktiv && satz > Daten.Wucher.Ab + 1e-9;
 
+    /// <summary>
+    /// Faktor auf den Höchstbetrag der Kredite an Häuser: der beste Kassenschrank der Geldleihen von <paramref name="geber"/>
+    /// (auch ohne Schreiber, wie die Pfandkammer); ohne 1.
+    /// </summary>
+    public double KreditFaktor(Konto geber) =>
+        _w.Betriebe.Where(b => b.Konto == geber && IstBankbetrieb(b)).Select(b => b.KreditFaktor).DefaultIfEmpty(1).Max();
+
+    /// <summary>
+    /// So viel darf <paramref name="geber"/> insgesamt an Häuser verleihen: <c>kredit.hoechstJeStufe</c> nach der Stufe seines
+    /// Kontors × <see cref="KreditFaktor(Konto)"/> (0 ohne Kontor).
+    /// </summary>
+    public double Kredithoechstbetrag(Konto geber) =>
+        Kontor(geber) is { } b ? Stufenwert(Daten.Kredit.HoechstJeStufe, b.Stufe) * KreditFaktor(geber) : 0;
+
     /// <summary>So viel darf <paramref name="geber"/> noch an Häuser verleihen.</summary>
     public double FreierKreditrahmen(Konto geber)
     {
-        if (Kontor(geber) is not { } b) return 0;
-        var hoechst = Stufenwert(Daten.Kredit.HoechstJeStufe, b.Stufe) - KrediteVon(geber).Sum(c => c.Rest);
+        if (Kontor(geber) is null) return 0;
+        var hoechst = Kredithoechstbetrag(geber) - KrediteVon(geber).Sum(c => c.Rest);
         return Math.Max(0, Math.Min(hoechst, geber.Vermoegen));
     }
 

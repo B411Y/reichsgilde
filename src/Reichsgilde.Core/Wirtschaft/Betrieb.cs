@@ -357,6 +357,9 @@ public sealed class Betrieb
     /// <summary>Geldleiher: Faktor auf den Verlust bei Ausfall eines Kunden (Pfandkammer: 0,75).</summary>
     public double AusfallFaktor => Einrichtungsstuecke.Aggregate(1.0, (f, e) => f * e.Wirkung.AusfallFaktor);
 
+    /// <summary>Geldleiher: Faktor auf den Höchstbetrag der Kredite an Häuser (Kassenschrank: 1,25).</summary>
+    public double KreditFaktor => Einrichtungsstuecke.Aggregate(1.0, (f, e) => f * e.Wirkung.KreditFaktor);
+
     internal void EinrichtungHinzufuegen(string kennung)
     {
         _einrichtung.Add(kennung);

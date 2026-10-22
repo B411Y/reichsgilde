@@ -99,19 +99,20 @@ static class GeldleiherEinrichtungTests
             Pruefe.Ungefaehr(1.1, d.Stueck("Geldleiher", "Werkzeug2")!.Wirkung.RahmenFaktor, 1e-12);
             Pruefe.Ungefaehr(1.1, d.Stueck("Geldleiher", "Goldwaage")!.Wirkung.WechselFaktor, 1e-12);
             Pruefe.Ungefaehr(0.75, d.Stueck("Geldleiher", "Pfandkammer")!.Wirkung.AusfallFaktor, 1e-12);
-            Pruefe.Ungefaehr(0.5, d.Stueck("Geldleiher", "Kassenschrank")!.Wirkung.EinbruchFaktor, 1e-12);
+            Pruefe.Ungefaehr(1.25, d.Stueck("Geldleiher", "Kassenschrank")!.Wirkung.KreditFaktor, 1e-12);
+            Pruefe.Ungefaehr(1, d.Stueck("Geldleiher", "Kassenschrank")!.Wirkung.EinbruchFaktor, 1e-12);
             Pruefe.Ungefaehr(0.5, d.Stueck("Geldleiher", "Loeschfass")!.Wirkung.BrandFaktor, 1e-12);
             Pruefe.Ungefaehr(0.5, d.Stueck("Geldleiher", "Eisentuer")!.Wirkung.EinbruchFaktor, 1e-12);
             Pruefe.Gleich("Rahmen je Schreiber 10 % größer", d.Stueck("Geldleiher", "Werkzeug1")!.Wirkung.Text());
             Pruefe.Gleich("Wechselgebühren 10 % höher", d.Stueck("Geldleiher", "Goldwaage")!.Wirkung.Text());
             Pruefe.Gleich("Verlust bei Ausfall eines Kunden 25 % kleiner", d.Stueck("Geldleiher", "Pfandkammer")!.Wirkung.Text());
-            Pruefe.Gleich("Diebstahl und Einbruch 50 % seltener", d.Stueck("Geldleiher", "Kassenschrank")!.Wirkung.Text());
+            Pruefe.Gleich("Kredite an Häuser bis 25 % höher", d.Stueck("Geldleiher", "Kassenschrank")!.Wirkung.Text());
             // Die anderen Berufe kennen die neuen Wirkungen nicht: Ihre Stücke bleiben ohne.
             foreach (var (beruf, liste) in d.Einrichtung.Where(x => x.Key != "Geldleiher"))
-                Pruefe.Wahr(liste.All(e => e.Wirkung is { RahmenFaktor: 1, WechselFaktor: 1, AusfallFaktor: 1 }), $"{beruf}: keine Wirkung des Geldleihers");
+                Pruefe.Wahr(liste.All(e => e.Wirkung is { RahmenFaktor: 1, WechselFaktor: 1, AusfallFaktor: 1, KreditFaktor: 1 }), $"{beruf}: keine Wirkung des Geldleihers");
         }),
 
-        ("Geldleiher-Einrichtung: Daten werden geprüft (Rahmen- und Wechselfaktor zwischen 1 und 2, Ausfallfaktor zwischen 0 und 1)", () =>
+        ("Geldleiher-Einrichtung: Daten werden geprüft (Rahmen-, Wechsel- und Kreditfaktor zwischen 1 und 2, Ausfallfaktor zwischen 0 und 1)", () =>
         {
             var fehler = Fehlerliste(() => DatenMit(a =>
             {
@@ -119,12 +120,14 @@ static class GeldleiherEinrichtungTests
                 a[2]!["wirkung"]!["wechselFaktor"] = 2.5;
                 a[3]!["wirkung"]!["ausfallFaktor"] = 1.2;
                 a[4]!["wirkung"]!["rahmenFaktor"] = 3;
+                a[5]!["wirkung"]!["kreditFaktor"] = 0.5;
             }));
             Pruefe.Wahr(fehler.Any(f => f.Contains("Geldleiher.Werkzeug1.wirkung.rahmenFaktor muss zwischen 1 und 2")), string.Join(" | ", fehler));
             Pruefe.Wahr(fehler.Any(f => f.Contains("Geldleiher.Goldwaage.wirkung.wechselFaktor muss zwischen 1 und 2")), string.Join(" | ", fehler));
             Pruefe.Wahr(fehler.Any(f => f.Contains("Geldleiher.Pfandkammer.wirkung.ausfallFaktor muss zwischen 0 und 1")), string.Join(" | ", fehler));
             Pruefe.Wahr(fehler.Any(f => f.Contains("Geldleiher.Kassenschrank.wirkung.rahmenFaktor")), string.Join(" | ", fehler));
-            Pruefe.Gleich(4, fehler.Count);
+            Pruefe.Wahr(fehler.Any(f => f.Contains("Geldleiher.Loeschfass.wirkung.kreditFaktor muss zwischen 1 und 2")), string.Join(" | ", fehler));
+            Pruefe.Gleich(5, fehler.Count);
         }),
 
         ("Geldleiher-Einrichtung: Wechselstube, Geldleihe und Bankhaus können Einrichtung kaufen (Anschaffung); Hauptbücher erst ab Stufe 2 und nach den Rechenbrettern; die Einrichtung bleibt beim Ausbau", () =>
@@ -231,20 +234,48 @@ static class GeldleiherEinrichtungTests
             Pruefe.Ungefaehr(ohne.Vermoegen + 500, mit.Vermoegen, 1e-9); // das Pfand: 25 % von 2.000 zurück ins Bargeld
         }),
 
-        ("Geldleiher-Einrichtung: Kassenschrank halbiert Diebstahl und Einbruch (mit der Eisentür ein Viertel), das Löschfass das Feuer", () =>
+        ("Geldleiher-Einrichtung: Kassenschrank – Kredite an Häuser bis ×1,25 (Wechselstube 3.000 → 3.750, Bankhaus 12.000 → 15.000); es zählt der beste Kassenschrank des Hauses; ohne bleibt alles", () =>
+        {
+            var sim = NeueSimulation();
+            // Ohne Kassenschrank: der Höchstbetrag nach Stufe, genau wie bisher (so auch bei den KI-Häusern, die nichts kaufen).
+            foreach (var (art, hoechst) in new[] { (Betriebsart.Wechselstube, 3_000.0), (Betriebsart.Geldleihe, 6_000.0), (Betriebsart.Bankhaus, 12_000.0) })
+            {
+                var (w0, k0, _) = Geldleihe(sim, art, $"Probe {art}", geld: 50_000);
+                Pruefe.Gleich(1.0, w0.Bank.KreditFaktor(k0));
+                Pruefe.Gleich(hoechst, w0.Bank.Kredithoechstbetrag(k0));
+                Pruefe.Gleich(hoechst, w0.Bank.FreierKreditrahmen(k0));
+            }
+
+            var (w, k, b) = Geldleihe(sim, geld: 20_000);
+            var nehmer = w.KontoEroeffnen("Haus Eisenbart", startvermoegen: 40_000);
+            Abgelehnt(w, nehmer, new KreditAufnehmen(k.Inhaber, 3_500, 2), "höchstens 3.000");
+            // Der Kassenschrank steht in einer zweiten Wechselstube ohne Schreiber – er zählt trotzdem (der beste des Hauses).
+            var zweite = w.BetriebEroeffnen("Wechselstube am Hafen", Betriebsart.Wechselstube, k, startkarren: "");
+            Ok(w, k, new EinrichtungKaufen(zweite.Name, "Kassenschrank"));
+            Pruefe.Ungefaehr(1.25, w.Bank.KreditFaktor(k), 1e-12);
+            Pruefe.Ungefaehr(3_750, w.Bank.Kredithoechstbetrag(k), 1e-12);
+            Pruefe.Ungefaehr(3_750, w.Bank.Hoechstkredit(k, nehmer), 1e-12);
+            Abgelehnt(w, nehmer, new KreditAufnehmen(k.Inhaber, 3_800, 2), "höchstens 3.750");
+            Ok(w, nehmer, new KreditAufnehmen(k.Inhaber, 3_750, 2));
+            Pruefe.Ungefaehr(0, w.Bank.FreierKreditrahmen(k), 1e-12);
+            // Ausgebaut zum Bankhaus: 12.000 × 1,25.
+            b.Ausbauen(Betriebsart.Geldleihe, 0);
+            b.Ausbauen(Betriebsart.Bankhaus, 0);
+            Pruefe.Ungefaehr(15_000, w.Bank.Kredithoechstbetrag(k), 1e-12);
+            Pruefe.Ungefaehr(15_000 - 3_750, w.Bank.FreierKreditrahmen(k), 1e-12);
+        }),
+
+        ("Geldleiher-Einrichtung: Löschfass und Eisentür halbieren Feuer und Einbruch in der Geldleihe", () =>
         {
             var sim = NeueSimulation();
             var (w, k, b) = Geldleihe(sim);
             var diebstahl = w.Gauner.Erfolgschance(Gaunerstueck.Diebstahl, b);
             var feuer = w.Gauner.Erfolgschance(Gaunerstueck.Sabotage, b);
-            var dieb = w.KontoEroeffnen("Familie Elster", startvermoegen: 5_000);
-            var einbruch = w.Diebe.Einbruchchance(b, dieb);
             Ok(w, k, new EinrichtungKaufen(b.Name, "Kassenschrank"));
-            Pruefe.Ungefaehr(diebstahl * 0.5, w.Gauner.Erfolgschance(Gaunerstueck.Diebstahl, b), 1e-15);
-            Pruefe.Ungefaehr(einbruch * 0.5, w.Diebe.Einbruchchance(b, dieb), 1e-15);
+            Pruefe.Ungefaehr(diebstahl, w.Gauner.Erfolgschance(Gaunerstueck.Diebstahl, b), 1e-15); // der Kassenschrank schützt nicht
             Ok(w, k, new EinrichtungKaufen(b.Name, "Eisentuer"));
             Ok(w, k, new EinrichtungKaufen(b.Name, "Loeschfass"));
-            Pruefe.Ungefaehr(diebstahl * 0.25, w.Gauner.Erfolgschance(Gaunerstueck.Diebstahl, b), 1e-15);
+            Pruefe.Ungefaehr(diebstahl * 0.5, w.Gauner.Erfolgschance(Gaunerstueck.Diebstahl, b), 1e-15);
             Pruefe.Ungefaehr(feuer * 0.5, w.Gauner.Erfolgschance(Gaunerstueck.Sabotage, b), 1e-15);
         }),
 
@@ -421,6 +452,7 @@ static class GeldleiherEinrichtungTests
                 var (w, k, b) = Geldleihe(sim, Betriebsart.Bankhaus, geld: 40_000);
                 Ok(w, k, new EinrichtungKaufen(b.Name, "Werkzeug1"));
                 Ok(w, k, new EinrichtungKaufen(b.Name, "Goldwaage"));
+                Ok(w, k, new EinrichtungKaufen(b.Name, "Kassenschrank"));
                 Ok(w, k, new KasseEinlegen(b.Name, 15_000));
                 var nehmer = w.KontoEroeffnen("Haus Eisenbart", startvermoegen: 10_000);
                 Ok(w, nehmer, new KreditAufnehmen(k.Inhaber, 2_000, 2));
