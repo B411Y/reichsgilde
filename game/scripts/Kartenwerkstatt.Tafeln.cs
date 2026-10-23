@@ -233,6 +233,13 @@ public partial class Kartenwerkstatt
             Werkstattwerkzeug.Mauer);
         Eintrag("tor", "Tor", "Klick auf eine Mauer setzt dort ein Tor (es rastet auf die Linie); ein Weg durch das Tor rastet in seiner Mitte ein", Werkstattwerkzeug.Tor);
 
+        // Gelände (Schritt 5b): Pinsel und Rampe
+        Kopf("Gelände");
+        foreach (var (art, name, tipp) in Gelaendepinsel)
+            Eintrag("gelaende:" + art.ToString().ToLowerInvariant(), name, tipp + " – mit gedrückter Maus malen (Radius, Stärke und Kante rechts)",
+                Werkstattwerkzeug.Gelaende, () => _stadt.GelaendeArtWaehlen(art));
+        Eintrag("rampe", "Rampe", "Zwei Klicks: Anfang und Ende – dazwischen ein Band mit gleichmäßigem Gefälle (Breite rechts)", Werkstattwerkzeug.Rampe);
+
         // Gebäude
         foreach (var (titel, arten) in Katalogteile)
         {
@@ -256,6 +263,16 @@ public partial class Kartenwerkstatt
             Eintrag(b.Kennung, ArtName(b), $"{b.Kennung} · {b.Varianten} Variante(n) · Modell {b.Modell} – Klick setzt eine Pflanze, Q/E dreht",
                 Werkstattwerkzeug.Pflanze, baustein: b.Kennung);
     }
+
+    /// <summary>Die Geländepinsel im Katalog: Art, Name und was sie tun.</summary>
+    private static readonly (Pinselart Art, string Name, string Tipp)[] Gelaendepinsel =
+    {
+        (Pinselart.Heben, "Heben", "Hebt den Boden an (ein Hügel)"),
+        (Pinselart.Senken, "Senken", "Senkt den Boden ab (eine Mulde, ein Graben)"),
+        (Pinselart.Glaetten, "Glätten", "Gleicht Buckel aus, ohne die Höhe zu ändern"),
+        (Pinselart.Ebnen, "Ebnen", "Zieht alles auf die Höhe unter dem ersten Klick (eine Terrasse)"),
+        (Pinselart.Rauschen, "Rauschen", "Macht den Boden natürlich uneben (Buckel nach Startwert)"),
+    };
 
     private static string Breite(double meter) => $"{Kartenschreiber.Zahl(Math.Round(meter, 2)).Replace('.', ',')} m";
 
@@ -328,6 +345,7 @@ public partial class Kartenwerkstatt
         _oberflaeche.AddChild(tafel);
         _status = Hauptmenue.Text(spalte, "", 13, Gruen, zentriert: true);
         _status.Visible = false;
+        _bodenInfo = Hauptmenue.Text(spalte, " ", 13, Gold, zentriert: true); // „Höhe 12,4 m · Gefälle 6 %“ unter der Maus
         _hilfe = Hauptmenue.Text(spalte, "", 12, Grau, zentriert: true);
         HilfeZeigen();
     }
@@ -344,6 +362,8 @@ public partial class Kartenwerkstatt
                 "Ecken klicken · Doppelklick, Enter oder Klick auf die erste Ecke schließt · Rücktaste: letzte Ecke weg · Esc bricht ab",
             Werkstattwerkzeug.Pinsel => "Mit gedrückter Maus malen – Loslassen streut Pflanzen · Radius, Dichte und Arten rechts · Esc bricht ab",
             Werkstattwerkzeug.Radierer => "Mit gedrückter Maus über einzelne Pflanzen fahren – Loslassen löscht sie (die Natur der Flächen bleibt) · Esc bricht ab",
+            Werkstattwerkzeug.Gelaende => "Mit gedrückter Maus malen – Radius, Stärke und Kante rechts · Loslassen beendet den Strich (ein Schritt für Strg+Z) · Esc nimmt ihn zurück · Gelb: Hangsperre ab 8 %, rot ab 15 %",
+            Werkstattwerkzeug.Rampe => "Zwei Klicks: Anfang und Ende der Rampe · Breite und Kante rechts · Esc: erster Klick zurück · Rechtsklick: fertig",
             Werkstattwerkzeug.Mauer => "Ecken klicken (1-m-Raster, Alt: frei) · Klick auf die erste Ecke schließt den Ring · Doppelklick oder Enter: offen fertig · Rücktaste: letzte Ecke weg · Esc bricht ab",
             Werkstattwerkzeug.Tor => "Klick auf eine Mauer setzt ein Tor · Esc oder Rechtsklick: fertig",
             Werkstattwerkzeug.Platz => (_stadt.WerkstattPlatzHinweis ?? "Einen Platz anklicken") + " · grün: passt · Esc oder Rechtsklick bricht ab",
@@ -550,6 +570,11 @@ public partial class Kartenwerkstatt
         if (_stadt.Kartenwerkzeug is Werkstattwerkzeug.Pinsel or Werkstattwerkzeug.Radierer)
         {
             if (neu || _gezeigt != PinselMarke) PinselTafel(); // Kartenwerkstatt.Eigenschaften.cs
+            return;
+        }
+        if (_stadt.Kartenwerkzeug is Werkstattwerkzeug.Gelaende or Werkstattwerkzeug.Rampe)
+        {
+            if (neu || _gezeigt != GelaendeMarke) GelaendeTafel(); // Kartenwerkstatt.Eigenschaften.cs
             return;
         }
         var teil = _stadt.WerkstattGewaehlt;

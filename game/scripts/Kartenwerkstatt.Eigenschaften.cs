@@ -14,6 +14,9 @@ public partial class Kartenwerkstatt
     /// <summary>Steht in <see cref="_gezeigt"/>, solange die Tafel die Regler von Pinsel oder Radierer zeigt.</summary>
     private static readonly object PinselMarke = new();
 
+    /// <summary>Dasselbe für die Regler des Geländepinsels und der Rampe.</summary>
+    private static readonly object GelaendeMarke = new();
+
     /// <summary>Wird in der Tafel gerade geschrieben (ein Text- oder Zahlenfeld hat den Fokus)?</summary>
     private bool EingabeOffen() => GetViewport().GuiGetFocusOwner() is { } fokus && _eigenschaften.IsAncestorOf(fokus);
 
@@ -401,6 +404,56 @@ public partial class Kartenwerkstatt
                 arten.AddChild(kreuz);
             }
         Hauptmenue.Text(_eigenschaften, "Wege, Gebäude, Bauzonen und die Stadt bleiben frei; neue Pflanzen halten Abstand zu schon gesetzten.",
+            12, Grau, umbruchBreite: Rechtsbreite - 30);
+    }
+
+    // ═════════════════════════════════════════════════════════════════════════
+    //  Gelände: Pinsel und Rampe
+    // ═════════════════════════════════════════════════════════════════════════
+
+    private void GelaendeTafel()
+    {
+        UiHilfe.KinderEntfernen(_eigenschaften);
+        _gezeigt = GelaendeMarke;
+        var rampe = _stadt.Kartenwerkzeug == Werkstattwerkzeug.Rampe;
+        var art = _stadt.GelaendeArt;
+        Hauptmenue.Text(_eigenschaften, rampe ? "Rampe" : Gelaendepinsel.First(p => p.Art == art).Name, 17, Gold);
+        var raster = new GridContainer { Columns = 2 };
+        raster.AddThemeConstantOverride("h_separation", 10);
+        raster.AddThemeConstantOverride("v_separation", 6);
+        _eigenschaften.AddChild(raster);
+        if (rampe)
+        {
+            Zeile(raster, "Breite", Schieber(1, 40, 0.5, _stadt.RampeBreite, Breite, b => _stadt.RampeBreite = b, "Breite des Bandes mit gleichmäßigem Gefälle"));
+            Zeile(raster, "Kante", Schieber(0, 20, 0.5, _stadt.RampeKante, Breite, k => _stadt.RampeKante = k, "So weit läuft das Gelände seitlich weich in die Rampe aus"));
+            Hauptmenue.Text(_eigenschaften, "Das Band verbindet die Höhe unter dem ersten Klick mit der unter dem zweiten – mit gleichmäßigem Gefälle. Gut für Straßen am Hang. Gefälle über 15 % sperrt Bauplätze.",
+                12, Grau, umbruchBreite: Rechtsbreite - 30);
+            return;
+        }
+        Zeile(raster, "Radius", Schieber(1, 100, 1, _stadt.GelaendeRadius, Breite, r => _stadt.GelaendeRadius = r, "Halbmesser des Kreises an der Maus"));
+        if (art is Pinselart.Glaetten or Pinselart.Ebnen)
+            Zeile(raster, "Stärke", Schieber(0.05, 1, 0.05, _stadt.GelaendeStaerke, s => $"{s * 100:0} %", s => _stadt.GelaendeStaerke = s,
+                art == Pinselart.Ebnen ? "100 % ebnet ganz, weniger zieht den Boden nur ein Stück zur Zielhöhe" : "Wie stark Buckel je Tupfer ausgeglichen werden"));
+        else
+            Zeile(raster, "Stärke", Schieber(0.05, art == Pinselart.Rauschen ? 4 : 2, 0.05, _stadt.GelaendeStaerke, s => $"{Komma(s, "0.00")} m", s => _stadt.GelaendeStaerke = s,
+                art == Pinselart.Rauschen ? "Höhe der Buckel in Metern" : "Meter je Tupfer (ein Tupfer alle Radius/4 Meter entlang des Strichs)"));
+        Zeile(raster, "Kante", Schieber(0, 1, 0.05, _stadt.GelaendeKante, k => $"{k * 100:0} %", k => _stadt.GelaendeKante = k, "0 % hart bis zum Rand, 100 % weich vom Mittelpunkt an"));
+        if (art == Pinselart.Rauschen)
+        {
+            var start = new Zahlfeld { MinValue = 0, MaxValue = 99999, Step = 1, Value = _stadt.GelaendeStartwert, TooltipText = "Gleicher Startwert, gleiche Buckel" };
+            start.ValueChanged += w => _stadt.GelaendeStartwert = (int)w;
+            Zeile(raster, "Startwert", start);
+            Zeile(raster, "Maßstab", Schieber(4, 100, 1, _stadt.GelaendeMassstab, Breite, m => _stadt.GelaendeMassstab = m, "Größe der Buckel in Metern"));
+        }
+        var text = art switch
+        {
+            Pinselart.Heben => "Mit gedrückter Maus über den Boden fahren: Er steigt unter dem Pinsel.",
+            Pinselart.Senken => "Mit gedrückter Maus über den Boden fahren: Er sinkt unter dem Pinsel.",
+            Pinselart.Glaetten => "Gleicht kleine Unebenheiten aus; die großen Formen bleiben.",
+            Pinselart.Ebnen => "Der erste Klick bestimmt die Zielhöhe; alles im Strich wird dorthin gezogen – so entsteht eine Terrasse für Gebäude.",
+            _ => "Lässt kleine Hügel und Mulden wachsen. Ohne Zufall: gleicher Startwert, gleiche Buckel.",
+        };
+        Hauptmenue.Text(_eigenschaften, text + "\nWege und Mauern ebnen den Boden unter sich quer ein; Gebäude stehen auf dem höchsten Punkt unter ihrer Fläche, darunter wächst ein Sockel aus Bruchstein.",
             12, Grau, umbruchBreite: Rechtsbreite - 30);
     }
 

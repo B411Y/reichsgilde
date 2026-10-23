@@ -24,8 +24,9 @@ public partial class Stadtansicht
     private bool _karteGebaut;
     private Gebaeudekatalog? Katalog => _karte?.Katalog ?? _entwurf?.Katalog;
 
-    /// <summary>Mitte des Marktplatzes (Ursprung, wenn die Karte keinen Markt hat) und die Lage seines Modells.</summary>
+    /// <summary>Mitte des Marktplatzes (Ursprung, wenn die Karte keinen Markt hat) und die Lage seines Modells. <c>_markt</c> liegt immer auf y = 0 (das Gassennetz rechnet in der Ebene), <c>_marktY</c> ist die Höhe des Pflasters.</summary>
     private Vector3 _markt;
+    private float _marktY;
     private Transform3D _marktLage = Transform3D.Identity;
 
     /// <summary>Halbe Seitenlänge des Pflasters (aus dem Katalog, 12 m beim Greybox-Markt); 0 ohne Marktplatz.</summary>
@@ -79,12 +80,12 @@ public partial class Stadtansicht
     private static Vector3 AufFlaeche(Kartengebaeude g, Vector3 lokal) => Punkt3(g.Punkt) + new Basis(Vector3.Up, DrehungVon(g)) * lokal;
 
     /// <summary>Wo das Modell eines Gebäudes steht: Ursprung (Mitte der Fläche plus gedrehter <c>versatz</c>), Drehung und Maßstab.</summary>
-    private static Transform3D ModellLage(Kartengebaeude g)
+    private Transform3D ModellLage(Kartengebaeude g)
     {
         var m = (float)g.Massstab;
         var drehung = new Basis(Vector3.Up, DrehungVon(g));
         var versatz = g.Baustein?.Versatz is { Length: 2 } v ? new Vector3((float)v[0], 0, (float)v[1]) * m : Vector3.Zero;
-        return new Transform3D(drehung.Scaled(Vector3.One * m), Punkt3(g.Punkt) + drehung * versatz);
+        return new Transform3D(drehung.Scaled(Vector3.One * m), Punkt3(g.Punkt) + drehung * versatz + new Vector3(0, FundamentVon(g).Hoehe, 0)); // auf dem Fußboden des Fundaments
     }
 
     /// <summary>Liegt der Punkt innerhalb einer Stadtmauer?</summary>
@@ -108,8 +109,10 @@ public partial class Stadtansicht
             Flaeche(Vector3.Zero, new Vector2(520, 480), Wiese, -0.05f); // ohne Karte nur die Wiese (der Fehler ist schon gemeldet)
             return;
         }
+        _gelaende = karte.Gelaendeform; // der Boden: vor allem, was darauf steht (Stadtansicht.Gelaende.cs)
         LagenLesen(karte);
         BodenLegen(karte);
+        foreach (var g in karte.Gebaeude.Where(g => g.Art is not (Bausteinart.Wohnhausplatz or Bausteinart.Einwohnerplatz))) GebaeudeSockel(g); // Häuser bekommen ihren Sockel selbst
         foreach (var mauer in karte.Mauern) MauerAusKarte(mauer);
         if (karte.GebaeudeDerArt(Bausteinart.Sonderbau).FirstOrDefault(g => g.Katalog == "markt") is { } markt) Marktstaende(markt); // Stadtansicht.Markt.cs
         SonderbautenBauen(karte); // Rathaus, Dom und Bauten ohne eigene Ansicht
@@ -132,6 +135,7 @@ public partial class Stadtansicht
         {
             _marktLage = ModellLage(markt);
             _markt = Punkt3(markt.Punkt);
+            _marktY = FundamentVon(markt).Hoehe;
             _marktHalb = Mathf.Min(GroesseVon(markt).X, GroesseVon(markt).Y) / 2;
         }
         foreach (var mauer in karte.Mauern)
@@ -178,14 +182,26 @@ public partial class Stadtansicht
         foreach (var p in punkte) rahmen = rahmen.Expand(p);
         var arrays = new Godot.Collections.Array();
         arrays.Resize((int)Mesh.ArrayType.Max);
-        arrays[(int)Mesh.ArrayType.Vertex] = punkte.Select(p => new Vector3(p.X, hoehe, p.Y)).ToArray();
-        arrays[(int)Mesh.ArrayType.Normal] = punkte.Select(_ => Vector3.Up).ToArray();
-        arrays[(int)Mesh.ArrayType.TexUV] = punkte.Select(p => (p - rahmen.Position) / rahmen.Size).ToArray();
-        // Die Vorderseite soll nach oben schauen: Das ist bei Godot ein Dreieck, dessen Punkte in (x, z) gerechnet einen positiven Flächeninhalt haben.
-        for (var i = 0; i + 2 < dreiecke.Length; i += 3)
-            if (Flaecheninhalt(new[] { punkte[dreiecke[i]], punkte[dreiecke[i + 1]], punkte[dreiecke[i + 2]] }) < 0)
-                (dreiecke[i + 1], dreiecke[i + 2]) = (dreiecke[i + 2], dreiecke[i + 1]);
-        arrays[(int)Mesh.ArrayType.Index] = dreiecke;
+        if (BodenBewegt)
+        {
+            // auf Gelände in kleine Dreiecke zerlegt, jede Ecke auf dem Boden (ohne gemeinsame Ecken: einfach und für ein Pflaster genug)
+            var ecken = new List<Vector3>();
+            for (var i = 0; i + 2 < dreiecke.Length; i += 3) Dreieck(ecken, punkte[dreiecke[i]], punkte[dreiecke[i + 1]], punkte[dreiecke[i + 2]], hoehe + PflasterAmHang, PflasterSchritt); // etwas über dem Boden: sonst schaut er durch und es flimmert
+            arrays[(int)Mesh.ArrayType.Vertex] = ecken.ToArray();
+            arrays[(int)Mesh.ArrayType.Normal] = ecken.Select(e => BodenNormale(e.X, e.Z)).ToArray();
+            arrays[(int)Mesh.ArrayType.TexUV] = ecken.Select(e => (new Vector2(e.X, e.Z) - rahmen.Position) / rahmen.Size).ToArray();
+        }
+        else
+        {
+            arrays[(int)Mesh.ArrayType.Vertex] = punkte.Select(p => new Vector3(p.X, hoehe, p.Y)).ToArray();
+            arrays[(int)Mesh.ArrayType.Normal] = punkte.Select(_ => Vector3.Up).ToArray();
+            arrays[(int)Mesh.ArrayType.TexUV] = punkte.Select(p => (p - rahmen.Position) / rahmen.Size).ToArray();
+            // Die Vorderseite soll nach oben schauen: Das ist bei Godot ein Dreieck, dessen Punkte in (x, z) gerechnet einen positiven Flächeninhalt haben.
+            for (var i = 0; i + 2 < dreiecke.Length; i += 3)
+                if (Flaecheninhalt(new[] { punkte[dreiecke[i]], punkte[dreiecke[i + 1]], punkte[dreiecke[i + 2]] }) < 0)
+                    (dreiecke[i + 1], dreiecke[i + 2]) = (dreiecke[i + 2], dreiecke[i + 1]);
+            arrays[(int)Mesh.ArrayType.Index] = dreiecke;
+        }
         var netz = new ArrayMesh();
         netz.AddSurfaceFromArrays(Mesh.PrimitiveType.Triangles, arrays);
         (eltern ?? this).AddChild(new MeshInstance3D { Name = "Pflaster", Mesh = netz, MaterialOverride = Material(farbe) });
@@ -237,7 +253,7 @@ public partial class Stadtansicht
     {
         var groesse = GroesseVon(g);
         if (groesse == Vector2.Zero) return;
-        var gruppe = new Node3D { Name = "Platzhalter_" + g.Kennung, Transform = new Transform3D(new Basis(Vector3.Up, DrehungVon(g)), Punkt3(g.Punkt)) };
+        var gruppe = new Node3D { Name = "Platzhalter_" + g.Kennung, Transform = new Transform3D(new Basis(Vector3.Up, DrehungVon(g)), Punkt3(g.Punkt) + new Vector3(0, FundamentVon(g).Hoehe, 0)) };
         AddChild(gruppe);
         const float hoehe = 6;
         Quader(new Vector3(0, hoehe / 2, 0), new Vector3(groesse.X - 1, hoehe, groesse.Y - 1), Material(Bruchstein), gruppe);
@@ -307,7 +323,7 @@ public partial class Stadtansicht
     /// </summary>
     private void WegZeichnen(IReadOnlyList<Vector3> punkte, float breite, bool glatt, Node3D? eltern = null)
     {
-        if (!glatt)
+        if (!glatt && !BodenBewegt) // auf Gelände wird jeder Weg ein Band, das dem Boden folgt (Quader lägen nur gerade im Raum)
         {
             for (var i = 0; i + 1 < punkte.Count; i++) WegZiehen(punkte[i], punkte[i + 1], breite, eltern);
             return;
@@ -440,6 +456,7 @@ public partial class Stadtansicht
             if (k.Zoom > 0) _kamera.Size = Mathf.Clamp((float)k.Zoom, KameraMinZoom, KameraGroessterZoom());
             _zielDrehung += (float)k.Drehung;
             _kameraDrehung.RotationDegrees = new Vector3(0, _zielDrehung, 0);
+            KameraHoeheSofort();
             return;
         }
         var gebaeude = karte.Gebaeude.Select(g => Punkt2(g.Punkt)).ToList();
@@ -447,5 +464,6 @@ public partial class Stadtansicht
         var rahmen = new Rect2(gebaeude[0], Vector2.Zero);
         foreach (var p in gebaeude) rahmen = rahmen.Expand(p);
         _kameraDrehung.Position = new Vector3(rahmen.GetCenter().X, 0, rahmen.GetCenter().Y);
+        KameraHoeheSofort();
     }
 }

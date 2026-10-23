@@ -48,6 +48,12 @@ public enum Werkstattwerkzeug
 
     /// <summary>Einen Platz für die Startbelegung wählen (Wohnhaus, Betrieb, Startplatz – die Tafel „Start“ sagt, wofür).</summary>
     Platz,
+
+    /// <summary>Das Gelände mit einem Pinsel formen (Heben, Senken, Glätten, Ebnen, Rauschen – <see cref="Stadtansicht.GelaendeArt"/>): mit gedrückter Maus malen.</summary>
+    Gelaende,
+
+    /// <summary>Eine Rampe zwischen zwei Punkten: zwei Klicks.</summary>
+    Rampe,
 }
 
 /// <summary>
@@ -149,6 +155,7 @@ public partial class Stadtansicht
         if (_karteGebaut) return;
         _karteGebaut = true;
         _entwurf = entwurf;
+        _gelaende = entwurf.Gelaendeform; // folgt jeder Änderung des Entwurfs von selbst
         _karte = HintergrundVon(entwurf);
         if (_karte is { } karte)
         {
@@ -231,7 +238,9 @@ public partial class Stadtansicht
     {
         var weg = a.Art == Aenderungsart.Geloescht;
         if (a.Objekt is EntwurfGebaeude or EntwurfWeg or EntwurfBauzone) WerkstattKapazitaetZeigen(null); // gälte nicht mehr (Stadtansicht.Kartenwerkstatt.Flaechen.cs)
-        if (_wsBereiche.Remove(a.Objekt, out var alt)) NaturBereichVormerken(alt);
+        var hatteBereich = _wsBereiche.Remove(a.Objekt, out var alt);
+        if (hatteBereich) NaturBereichVormerken(alt);
+        if (!hatteBereich) alt = default;
         switch (a.Objekt)
         {
             case EntwurfGebaeude g:
@@ -259,6 +268,15 @@ public partial class Stadtansicht
             case EntwurfKopf:
                 _wsRandNeu = true; // Größe, Rand oder Kamera-Start geändert: Boden, Dunst und Kartenrand neu (Stadtansicht.Kartenwerkstatt.Felder.cs)
                 break;
+            case EntwurfGelaende:
+                if (a.Bereich is { } geaendert) GelaendeVormerken(geaendert); // Stadtansicht.Kartenwerkstatt.Gelaende.cs
+                break;
+        }
+        if (a.Objekt is EntwurfWeg or EntwurfMauer)
+        {
+            // Wege und Mauern legen ihr Bett ins Gelände: Der Boden unter dem alten und dem neuen Verlauf ändert sich
+            if (alt != default) GelaendeVormerken(RechteckVon(alt).Vergroessert(Gelaendeform.Glaettung + Gelaendeform.Mauerbett));
+            if (!weg && BereichVon(a.Objekt) is { } nach) GelaendeVormerken(RechteckVon(nach).Vergroessert(Gelaendeform.Glaettung + Gelaendeform.Mauerbett));
         }
         if (!weg && a.Objekt is not (EntwurfPflanze or EntwurfNaturflaeche or EntwurfFeld or EntwurfKopf) && BereichVon(a.Objekt) is { } neu)
         {
@@ -285,6 +303,7 @@ public partial class Stadtansicht
     {
         if (_wsBelegungNeu) BelegungNachziehen();
         if (_wsRandNeu) RandNeuBauen();
+        GelaendeNachziehen(); // vor der Natur: Sie liest die neue Höhe (Stadtansicht.Kartenwerkstatt.Gelaende.cs)
         NaturNachziehen();
         if (_wsNetzNeu) NetzBauen();
         if (_wsFehlerNeu) FehlerZeigen();
@@ -324,7 +343,8 @@ public partial class Stadtansicht
     }
 
     private static Vector2 V2(Kartenort p) => new((float)p.X, (float)p.Z);
-    private static Vector3 V3(Kartenort p, float hoehe = 0) => new((float)p.X, hoehe, (float)p.Z);
+    /// <summary>Ein Ort der Karte als Punkt der Welt, <paramref name="hoehe"/> Meter über dem Boden.</summary>
+    private Vector3 V3(Kartenort p, float hoehe = 0) => new((float)p.X, hoehe + BodenHoehe((float)p.X, (float)p.Z), (float)p.Z);
 
     // ═════════════════════════════════════════════════════════════════════════
     //  Stücke (Gebäude)
@@ -342,16 +362,18 @@ public partial class Stadtansicht
     private void StueckBauen(EntwurfGebaeude g)
     {
         if (_stueckeKnoten is null) return;
+        var fundament = g.Groesse is not null && _entwurf is not null ? _entwurf.Fundament(g) : default; // auf Gelände auf dem höchsten Punkt unter der Fläche
         var wurzel = new Node3D
         {
             Name = "Stueck_" + g.Kennung,
-            Position = new Vector3((float)g.X, 0, (float)g.Z),
+            Position = new Vector3((float)g.X, (float)fundament.Hoehe, (float)g.Z),
             Rotation = new Vector3(0, Mathf.DegToRad((float)g.Drehung), 0),
         };
         _stueckeKnoten.AddChild(wurzel);
         var modell = new Node3D { Name = "Modell" };
         wurzel.AddChild(modell);
         var groesse = g.Groesse is var (b, t) ? new Vector2((float)b, (float)t) : new Vector2(4, 4);
+        if (g.Groesse is not null) SockelBauen(wurzel, Vector3.Zero, 0, groesse, (float)fundament.Tiefe); // Bruchsteinsockel bis zum Boden (Stadtansicht.Gelaende.cs)
         var belegung = BelegungsanzeigeVon(g); // Stadtansicht.Kartenwerkstatt.Start.cs
         StueckModell(g, modell, groesse, belegung);
 
@@ -661,6 +683,7 @@ public partial class Stadtansicht
         set
         {
             _kameraDrehung.Position = value.Punkt;
+            KameraHoeheSofort();
             _kamera.Size = Mathf.Clamp(value.Zoom, KameraMinZoom, KameraMaxZoom);
             _zielDrehung = value.Drehung;
             _kameraDrehung.RotationDegrees = new Vector3(0, _zielDrehung, 0);
@@ -681,7 +704,7 @@ public partial class Stadtansicht
     /// <summary>Wo ein Ort der Karte auf dem Bildschirm liegt (für Klicktests, <c>--werkstatt-bildpunkte</c>), gerundet auf ganze Bildpunkte.</summary>
     public string WerkstattBildpunkt(double x, double z)
     {
-        var p = _kamera.UnprojectPosition(new Vector3((float)x, 0, (float)z));
+        var p = _kamera.UnprojectPosition(new Vector3((float)x, BodenHoehe((float)x, (float)z), (float)z));
         return $"{Mathf.RoundToInt(p.X)},{Mathf.RoundToInt(p.Y)}";
     }
 
@@ -713,6 +736,7 @@ public partial class Stadtansicht
         TeilZiehenAbbrechen();
         ZeichnenAbbrechen();
         StrichAbbrechen();
+        GelaendeWerkzeugAus(); // Stadtansicht.Kartenwerkstatt.Gelaende.cs
         var b = _entwurf?.Katalog.Finde(baustein);
         if (werkzeug == Werkstattwerkzeug.Baustein && (b is null || b.Art == Bausteinart.Natur)) werkzeug = Werkstattwerkzeug.Auswahl;
         if (werkzeug == Werkstattwerkzeug.Pflanze && b is not { Art: Bausteinart.Natur }) werkzeug = Werkstattwerkzeug.Auswahl;
@@ -814,6 +838,12 @@ public partial class Stadtansicht
             case Werkstattwerkzeug.Pinsel or Werkstattwerkzeug.Radierer:
                 PinselZeigen(maus);
                 break;
+            case Werkstattwerkzeug.Gelaende:
+                GelaendePinselZeigen(maus);
+                break;
+            case Werkstattwerkzeug.Rampe:
+                RampeZeigen(maus);
+                break;
             case Werkstattwerkzeug.Mauer:
                 MauerVorschau(maus);
                 break;
@@ -838,7 +868,7 @@ public partial class Stadtansicht
     /// <summary>Was zuletzt geprüft wurde (Baustein, Punkt, Drehung, Kennung) und mit welchem Ergebnis – geprüft wird nur, wenn sich das ändert.</summary>
     private (string Katalog, double X, double Z, double Drehung, double Massstab, string? Kennung)? _wsGeprueft;
 
-    private string? _wsGrund;
+    private string? _wsGrund, _wsHinweis;
 
     /// <summary>Auf das 1-m-Raster – mit gehaltener Alt-Taste frei (der Kern rundet dann auf 5 cm).</summary>
     private static (double X, double Z) Einrasten(double x, double z) =>
@@ -852,8 +882,9 @@ public partial class Stadtansicht
         if (_wsGeprueft != stand)
         {
             _wsGeprueft = stand;
-            _wsGrund = Kartenpruefung.PruefeStelle(_entwurf, katalog, x, z, drehung, massstab, kennung)
-                .FirstOrDefault(b => b.Schwere == Schwere.Fehler)?.Text;
+            var befunde = Kartenpruefung.PruefeStelle(_entwurf, katalog, x, z, drehung, massstab, kennung).ToList();
+            _wsGrund = befunde.FirstOrDefault(b => b.Schwere == Schwere.Fehler)?.Text;
+            _wsHinweis = _wsGrund is null ? befunde.FirstOrDefault(b => b.Schwere == Schwere.Hinweis)?.Text : null; // z. B. ein Hang von 8 bis 15 %: gelb
         }
         var groesse = baustein.Groesse is { Length: 2 } gr ? new Vector2((float)gr[0], (float)gr[1]) * (float)massstab : new Vector2(4, 4);
         if (_wsUmriss is null)
@@ -880,9 +911,9 @@ public partial class Stadtansicht
         const float hoehe = 6;
         var vorplatz = (float)Kartenpruefung.Vorplatz;
         _wsUmriss.Visible = true;
-        _wsUmriss.Position = new Vector3((float)x, 0, (float)z);
+        _wsUmriss.Position = new Vector3((float)x, FundamentVon(new Vector3((float)x, 0, (float)z), Mathf.DegToRad((float)drehung), groesse).Hoehe, (float)z); // auf Gelände wie das Haus stünde
         _wsUmriss.Rotation = new Vector3(0, Mathf.DegToRad((float)drehung), 0);
-        var farbe = _wsGrund is null ? new Color(0.35f, 0.9f, 0.35f) : new Color(0.95f, 0.28f, 0.25f);
+        var farbe = _wsGrund is not null ? new Color(0.95f, 0.28f, 0.25f) : _wsHinweis is not null ? new Color(0.96f, 0.80f, 0.25f) : new Color(0.35f, 0.9f, 0.35f);
         _wsFarbe!.AlbedoColor = new Color(farbe, 0.45f);
         _wsVorplatzFarbe!.AlbedoColor = new Color(farbe.Lightened(0.35f), 0.3f);
         _wsKoerperFarbe!.AlbedoColor = new Color(farbe, 0.16f);
@@ -895,7 +926,7 @@ public partial class Stadtansicht
         _wsKoerper.Position = new Vector3(0, hoehe / 2, -vorplatz / 2);
         _wsPfeil!.Position = new Vector3(0, 0.3f, groesse.Y / 2 - vorplatz / 2); // die Spitze zeigt zur Vorderseite (+z)
         _wsText!.Position = new Vector3(0, hoehe + 4, 0);
-        _wsText.Text = _wsGrund ?? (kennung is null ? $"{baustein.Anzeigename} – passt" : "passt");
+        _wsText.Text = _wsGrund ?? (_wsHinweis is not null ? "Hinweis: " + _wsHinweis : kennung is null ? $"{baustein.Anzeigename} – passt" : "passt");
         _wsText.Modulate = farbe.Lightened(0.35f);
     }
 
@@ -926,7 +957,7 @@ public partial class Stadtansicht
             (z.X, z.Z) = Einrasten(boden.X + z.Versatz.X, boden.Y + z.Versatz.Y);
         if (_stuecke.TryGetValue(z.Gebaeude, out var s))
         {
-            s.Wurzel.Position = new Vector3((float)z.X, 0, (float)z.Z);
+            s.Wurzel.Position = new Vector3((float)z.X, WerkstattFussboden(z.Gebaeude, z.X, z.Z, z.Drehung), (float)z.Z);
             s.Wurzel.Rotation = new Vector3(0, Mathf.DegToRad((float)z.Drehung), 0);
         }
         UmrissZeigen(z.Gebaeude.Katalog, z.X, z.Z, z.Drehung, z.Gebaeude.Massstab, z.Gebaeude.Kennung);
@@ -944,7 +975,7 @@ public partial class Stadtansicht
             Befehl(() => _entwurf.Versetzen(g.Kennung, z.X, z.Z, z.Drehung)); // baut das Stück neu (EntwurfGeaendert)
         else if (_stuecke.TryGetValue(g, out var s))
         {
-            s.Wurzel.Position = new Vector3((float)g.X, 0, (float)g.Z);
+            s.Wurzel.Position = new Vector3((float)g.X, WerkstattFussboden(g, g.X, g.Z, g.Drehung), (float)g.Z);
             s.Wurzel.Rotation = new Vector3(0, Mathf.DegToRad((float)g.Drehung), 0);
         }
     }
@@ -956,9 +987,13 @@ public partial class Stadtansicht
         _wsZiehen = null;
         if (_wsUmriss is not null) _wsUmriss.Visible = false;
         if (!_stuecke.TryGetValue(z.Gebaeude, out var s)) return;
-        s.Wurzel.Position = new Vector3((float)z.Gebaeude.X, 0, (float)z.Gebaeude.Z);
+        s.Wurzel.Position = new Vector3((float)z.Gebaeude.X, WerkstattFussboden(z.Gebaeude, z.Gebaeude.X, z.Gebaeude.Z, z.Gebaeude.Drehung), (float)z.Gebaeude.Z);
         s.Wurzel.Rotation = new Vector3(0, Mathf.DegToRad((float)z.Gebaeude.Drehung), 0);
     }
+
+    /// <summary>Die Höhe des Fußbodens eines Gebäudes des Entwurfs an einer Lage (beim Ziehen): der höchste Punkt des Bodens unter seiner Fläche; ohne Fläche oder auf flacher Karte 0.</summary>
+    private float WerkstattFussboden(EntwurfGebaeude g, double x, double z, double drehung) =>
+        g.Groesse is var (b, t) ? FundamentVon(new Vector3((float)x, 0, (float)z), Mathf.DegToRad((float)drehung), new Vector2((float)b, (float)t)).Hoehe : 0f;
 
     // ═════════════════════════════════════════════════════════════════════════
     //  Eingabe
@@ -999,6 +1034,8 @@ public partial class Stadtansicht
                 if (_wsZiehen is not null) ZiehenAbbrechen();
                 else if (_wsTeilZiehen is not null) TeilZiehenAbbrechen();
                 else if (_wsStrich is not null) StrichAbbrechen();
+                else if (_wsGelaendeStrich) GelaendeStrichAbbrechen();
+                else if (_wsRampeAnfang is not null) _wsRampeAnfang = null;
                 else if (_wsPunkte.Count > 0) ZeichnenAbbrechen();
                 else if (Kartenwerkzeug != Werkstattwerkzeug.Auswahl) WerkzeugBeenden();
                 else if (_wsGriff is not null) { _wsGriff = null; GriffeBauen(); }
@@ -1013,10 +1050,11 @@ public partial class Stadtansicht
                 ZiehenBeenden();
                 TeilZiehenBeenden();
                 StrichBeenden();
+                GelaendeStrichBeenden();
                 return true;
             case InputEventMouseButton { ButtonIndex: MouseButton.Right } rechts:
                 if (rechts.Pressed) _wsRechtsGezogen = 0;
-                else if (_wsRechtsGezogen < 6 && Kartenwerkzeug != Werkstattwerkzeug.Auswahl && _wsPunkte.Count == 0 && _wsStrich is null) WerkzeugBeenden();
+                else if (_wsRechtsGezogen < 6 && Kartenwerkzeug != Werkstattwerkzeug.Auswahl && _wsPunkte.Count == 0 && _wsStrich is null && !_wsGelaendeStrich) WerkzeugBeenden();
                 return false; // das Ziehen der Kamera läuft weiter
             case InputEventMouseMotion bewegung:
                 _wsOrt = null;
@@ -1024,6 +1062,7 @@ public partial class Stadtansicht
                 if (_wsZiehen is { Aktiv: false } z && bewegung.Position.DistanceTo(z.Start) > ZiehSchwelle) z.Aktiv = true;
                 if (_wsTeilZiehen is { Aktiv: false } t && bewegung.Position.DistanceTo(t.Start) > ZiehSchwelle) t.Aktiv = true;
                 StrichWeiter(bewegung.Position);
+                GelaendeStrichWeiter(bewegung.Position);
                 return false;
         }
         return false;
@@ -1051,6 +1090,12 @@ public partial class Stadtansicht
                 return;
             case Werkstattwerkzeug.Pinsel or Werkstattwerkzeug.Radierer:
                 StrichBeginnen(maus); // Stadtansicht.Kartenwerkstatt.Natur.cs
+                return;
+            case Werkstattwerkzeug.Gelaende:
+                GelaendeStrichBeginnen(maus); // Stadtansicht.Kartenwerkstatt.Gelaende.cs
+                return;
+            case Werkstattwerkzeug.Rampe:
+                RampeKlick(boden);
                 return;
             case Werkstattwerkzeug.Tor:
                 TorKlick(boden); // Stadtansicht.Kartenwerkstatt.Mauern.cs

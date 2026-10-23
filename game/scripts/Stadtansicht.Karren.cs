@@ -290,6 +290,8 @@ public partial class Stadtansicht
             blick = PunktAufWeg(weg, Math.Clamp(stelle + (karren.Zustand == KarrenZustand.ZumMarkt ? 0.02f : -0.02f), 0f, 1f));
         }
 
+        // Auf Gelände fährt der Karren auf dem Boden (Stadtansicht.Gelaende.cs)
+        ziel = AufFuss(ziel);
         // Das Ziel wandert dank des Minuten-Bruchteils schon stetig. Das kurze Hinterhergleiten
         // fängt nur noch echte Sprünge ab (Abfahrt vom Hof, Ankunft, Tempowechsel).
         knoten.Position = knoten.Position.Lerp(ziel, (float)Math.Min(1, delta * 10));
@@ -299,7 +301,14 @@ public partial class Stadtansicht
         {
             // Am Markt wendet der Karren, statt sich herumzuwerfen; ein neuer Karren steht gleich richtig
             var soll = Mathf.Atan2(richtung.X, richtung.Z);
-            knoten.Rotation = new Vector3(0, neu ? soll : Mathf.LerpAngle(knoten.Rotation.Y, soll, (float)Math.Min(1, delta * 6)), 0);
+            knoten.Rotation = new Vector3(0, neu ? soll : Mathf.LerpAngle(knoten.Rotation.Y, soll, (float)Math.Min(1, delta * 6)), 0); // das Nicken kommt gleich
+        }
+        if (BodenBewegt) // am Hang nickt der Karren mit dem Gefälle (3 m vor und hinter der Achse)
+        {
+            var vorne = new Vector3(Mathf.Sin(knoten.Rotation.Y), 0, Mathf.Cos(knoten.Rotation.Y));
+            var (vorn, hinten) = (BodenHoehe(knoten.Position + vorne * 1.5f), BodenHoehe(knoten.Position - vorne * 1.5f));
+            var nick = -Mathf.Atan2(vorn - hinten, 3f);
+            knoten.Rotation = new Vector3(nick, knoten.Rotation.Y, 0);
         }
 
         // Ladung nach der Zahl der geladenen Sorten, Plane darüber, Eskorte als Begleiter (nur beim Wechsel schalten)

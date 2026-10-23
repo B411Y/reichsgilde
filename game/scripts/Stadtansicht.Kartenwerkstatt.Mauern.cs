@@ -114,7 +114,7 @@ public partial class Stadtansicht
     }
 
     /// <summary>Ein Rechteck an einer Mauerlage: <paramref name="laenge"/> entlang der Mauer, <paramref name="tiefe"/> quer dazu.</summary>
-    private static void Rechteck(List<Vector3> ecken, Mauerlage l, float laenge, float tiefe)
+    private void Rechteck(List<Vector3> ecken, Mauerlage l, float laenge, float tiefe)
     {
         var mitte = new Vector2((float)l.X, (float)l.Z);
         var entlang = new Vector2((float)l.EntlangX, (float)l.EntlangZ) * laenge / 2;
@@ -133,7 +133,7 @@ public partial class Stadtansicht
         var schliesst = false;
         if (maus is { } m)
         {
-            schliesst = punkte.Count >= 3 && _kamera.UnprojectPosition(new Vector3(punkte[0].X, 0, punkte[0].Y)).DistanceTo(GetViewport().GetMousePosition()) <= 10;
+            schliesst = punkte.Count >= 3 && _kamera.UnprojectPosition(AufBoden(new Vector3(punkte[0].X, 0, punkte[0].Y))).DistanceTo(GetViewport().GetMousePosition()) <= 10;
             if (!schliesst) punkte.Add(Mauerpunkt(m));
         }
         if (punkte.Count >= 2) PlanVorschau(PlanVon(punkte, schliesst, Array.Empty<(string, Vector2)>()));

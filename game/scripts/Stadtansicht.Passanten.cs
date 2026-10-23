@@ -208,7 +208,7 @@ public partial class Stadtansicht
         var s = _marktstellen[stelle];
         var (ort, blick) = MarktstelleLage(stelle, minuteGenau);
         // Auf der Bank: die Hüfte auf Sitzhöhe – kleine Völker sitzen höher und lassen die Beine baumeln
-        if (s.Bewegung == "Sitzen") ort.Y = Mathf.Max(0, s.Ort.Y - (figur.Kniehoehe - 0.02f));
+        if (s.Bewegung == "Sitzen") ort.Y = Mathf.Max(_marktY, s.Ort.Y - (figur.Kniehoehe - 0.02f));
         p.Knoten.Position = ort;
         p.Knoten.Rotation = new Vector3(0, blick, 0);
         var takt = s.Rundgang >= 0 ? SchlenderTempo * (float)_simulation!.Takt.Tempo / (GehenTempo * figur.Beinfaktor) : 1;
@@ -243,7 +243,7 @@ public partial class Stadtansicht
             p.Knoten.Rotation = new Vector3(0, Mathf.Atan2(richtung.X, richtung.Z), 0);
             hier += new Vector3(-richtung.Z, 0, richtung.X) * p.Versatz; // rechts gehen, je nach Nummer etwas versetzt
         }
-        p.Knoten.Position = hier;
+        p.Knoten.Position = AufFuss(hier); // auf Gelände auf dem Boden (Stadtansicht.Gelaende.cs)
         p.Knoten.Visible = true;
         if (p.Figur is not { } figur) return;
         // Meter je echter Sekunde (mit Spieltempo)
@@ -424,7 +424,7 @@ public partial class Stadtansicht
     {
         var zahl = Streuung(e.Nummer, zeitpunkt);
         float Teil(int verschiebung) => ((zahl >> verschiebung) & 0xFFFF) / 65535f; // 0 … 1
-        return a.Ort switch
+        return AufFuss(a.Ort switch
         {
             // Markt (nur, wenn alle Stellen besetzt sind): zwischen den Ständen (Marktplatz 24 × 24 m), nicht in Brunnen, Kreuz, Bank oder Stand
             Stadtort.Markt => FreierPunktAufDemMarkt(zahl),
@@ -435,7 +435,7 @@ public partial class Stadtansicht
             Stadtort.Umland when a.Stelle is { } s && _umlandstellen.ContainsKey(s) => UmlandPlatz(s, zahl).Ort,
             // Gasse: irgendwo auf einer Gasse in der Stadt
             _ => GassenLage(e, zeitpunkt)?.Punkt ?? _markt,
-        };
+        });
     }
 
     /// <summary>Arbeitsplätze im Wald (Koordinaten im Modell, vorne +Z): bei den Stümpfen, am Reisig und am Holzstapel, mindestens 2 m von jeder Tanne.</summary>

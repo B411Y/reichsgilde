@@ -576,7 +576,7 @@ public partial class Stadtansicht
         }
         ((StandardMaterial3D)_wsFangmarke.MaterialOverride).AlbedoColor = new Color(farbe, 0.95f);
         _wsFangmarke.Visible = true;
-        _wsFangmarke.Position = new Vector3(ort.X, 0.3f, ort.Y);
+        _wsFangmarke.Position = new Vector3(ort.X, BodenHoehe(ort.X, ort.Y) + 0.3f, ort.Y);
         _wsFangmarke.Scale = Vector3.One * Mathf.Max(0.8f, MeterJePixel * 12);
     }
 }

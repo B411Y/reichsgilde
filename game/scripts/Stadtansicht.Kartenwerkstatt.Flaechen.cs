@@ -126,7 +126,7 @@ public partial class Stadtansicht
     }
 
     /// <summary>Die Dreiecke eines Vielecks (Vorderseite oben) – leer, wenn es sich nicht zerlegen lässt (etwa, weil es sich selbst schneidet).</summary>
-    private static Vector3[] VieleckDreiecke(List<Vector2> punkte, float hoehe)
+    private Vector3[] VieleckDreiecke(List<Vector2> punkte, float hoehe)
     {
         if (punkte.Count < 3) return Array.Empty<Vector3>();
         var feld = punkte.ToArray();
@@ -189,7 +189,7 @@ public partial class Stadtansicht
         }
         if (boden is not { } b) return;
         var weg = Kartenwerkzeug == Werkstattwerkzeug.Weg;
-        if (!weg && _wsPunkte.Count >= 3 && _kamera.UnprojectPosition(new Vector3(_wsPunkte[0].X, 0, _wsPunkte[0].Y)).DistanceTo(maus) <= 10)
+        if (!weg && _wsPunkte.Count >= 3 && _kamera.UnprojectPosition(AufBoden(new Vector3(_wsPunkte[0].X, 0, _wsPunkte[0].Y))).DistanceTo(maus) <= 10)
         {
             ZeichnenBeenden(ersteEcke: true);
             return;
@@ -270,7 +270,7 @@ public partial class Stadtansicht
         var schliesst = false;
         if (maus is { } m)
         {
-            schliesst = punkte.Count >= 3 && _kamera.UnprojectPosition(new Vector3(punkte[0].X, 0, punkte[0].Y)).DistanceTo(GetViewport().GetMousePosition()) <= 10;
+            schliesst = punkte.Count >= 3 && _kamera.UnprojectPosition(AufBoden(new Vector3(punkte[0].X, 0, punkte[0].Y))).DistanceTo(GetViewport().GetMousePosition()) <= 10;
             if (!schliesst) punkte.Add(Eckpunkt(null, m));
         }
         VorschauVieleck(punkte, farbe, geschlossen: punkte.Count >= 3);

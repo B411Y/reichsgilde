@@ -107,7 +107,7 @@ public partial class Stadtansicht
     private void NaturSetzen(Pflanzenlage lage)
     {
         if (lage.Art is not { Modell: { } datei, Knoten: { } knoten }) return;
-        NaturSetzen(datei, knoten + lage.Variante, new Vector3((float)lage.X, 0, (float)lage.Z), Mathf.DegToRad((float)lage.Drehung), (float)lage.Massstab);
+        NaturSetzen(datei, knoten + lage.Variante, new Vector3((float)lage.X, BodenHoehe((float)lage.X, (float)lage.Z), (float)lage.Z), Mathf.DegToRad((float)lage.Drehung), (float)lage.Massstab);
     }
 
     /// <summary>
