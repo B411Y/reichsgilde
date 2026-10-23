@@ -41,6 +41,7 @@ static class Messung
         var gaunerJeArt = new SortedDictionary<string, int>(StringComparer.Ordinal); // Banden der KI je Art und Ziel
         var einrichtungKi = new SortedDictionary<string, int>(StringComparer.Ordinal); // von der KI gekaufte Einrichtung je Stück
         var kiHaeuser = 0;
+        var wegebau = new SortedDictionary<string, double>(StringComparer.Ordinal); // Wegbelag: Aufträge und Meter je Stufe am Ende (Summe)
         double gaunerBilanz = 0, schadenSpieler = 0;
         int urteileSchuldig = 0, urteileFrei = 0, amtVerloren = 0;
         double bestechung = 0;
@@ -92,6 +93,7 @@ static class Messung
                     else if (m.Contains("um den Bankrott abzuwenden")) Zaehlen("verkauft vor dem Bankrott");
                     else if (m.Contains("Jahre in Folge Verlust")) Zaehlen("verkauft nach Verlustjahren");
                     else if (m.Contains("wollte, durfte aber nicht")) Zaehlen("abgelehnt");
+                    else if (m.Contains(": lässt einen Weg mit ")) Zaehlen("Weg ausgebaut");
                     else if (m.Contains("erwarteter Gewinn ≈") && (m.Contains(": kauft ") || m.Contains(": pachtet "))) Zaehlen("Betrieb gekauft/gepachtet");
                 };
             }
@@ -172,6 +174,10 @@ static class Messung
                     Zaehlen($"{ki.Inhaber.Replace("Haus ", "")} {w.Glaube.GlaubeVon(ki)?.ToString().ToLowerInvariant()}");
                 katholikenAnteil += w.Glaube.Anteil(Reichsgilde.Core.Glaube.Konfession.Katholisch);
             }
+            if (w.Wegebau.IstAktiv)
+                for (var weg = 0; weg < w.Karte!.Wege.Count; weg++)
+                    foreach (var a in w.Wegebau.Abschnitte(weg))
+                        wegebau[a.Stufe.ToString()] = wegebau.GetValueOrDefault(a.Stufe.ToString()) + a.Laenge;
             foreach (var ki in w.Rivalen.Select(r => r.Konto))
             {
                 staendeKi[w.StandVon(ki).Name] = staendeKi.GetValueOrDefault(w.StandVon(ki).Name) + 1;
@@ -228,6 +234,8 @@ static class Messung
         if (mitKarte || bauen.Count > 0)
             Console.WriteLine($"  KI-Häuser bauen und verkaufen{(mitKarte ? " (Greybox-Karte)" : "")} (Summe über alle Partien): " +
                               (bauen.Count == 0 ? "nichts" : string.Join(", ", bauen.Select(x => $"{x.Key} {x.Value}×"))));
+        if (wegebau.Count > 0)
+            Console.WriteLine("  Wegbelag am Ende (Ø Meter je Partie): " + string.Join(", ", wegebau.Select(x => $"{x.Key} {x.Value / startwerte:N0}")));
         Console.WriteLine($"  Einrichtung der KI: Ø {(kiHaeuser > 0 ? (double)einrichtungKi.Values.Sum() / kiHaeuser : 0):N1} Stücke je KI-Haus in {jahre} Jahren (Summe je Stück: " +
                           (einrichtungKi.Count == 0 ? "keine" : string.Join(", ", einrichtungKi.Select(x => $"{x.Key} {x.Value}×"))) + ")");
         Console.WriteLine($"  Stand der KI-Häuser am Ende (alle Partien): {string.Join(", ", staendeKi.Select(x => $"{x.Key} {x.Value}"))}; bankrott {bankrottKi}");

@@ -108,6 +108,15 @@ So wird eingetragen (damit sich die Chats nie an derselben Stelle treffen):
 | Schutzstücke | Eisentür und Löschfass nur, wenn ihr Mehrgewinn (Schaden des Vorjahres × (1 − Faktor)) das hergibt. Auch ein Betrieb mit Verlust bekommt Einrichtung – oft fehlt ihm gerade die Eisentür, und beim Verkauf zählt sie zum Wert. | 22.10.2026 |
 | Werte | Eigener Abschnitt `ki.einrichtung` in `wirtschaft.json` (`hoechstensJahre` 4, `charakterJahre` 0,5, `reserveFaktor` 2), gelesen als `KiDaten` (`Ki/KiDaten.cs`). Fehlt der Abschnitt, kauft die KI keine Einrichtung. Andockstellen: Feld `Ki` und `Ki?.Pruefen` in `Wirtschaftsdaten`, der Abschnitt in `wirtschaft.json` (ohne neue Datenversion), eine Zählzeile in `Messung.cs`. | 22.10.2026 |
 
+### KI baut Wege (PR #182)
+
+| Thema | Entscheidung | Datum |
+|---|---|---|
+| Regel | Die KI-Häuser lassen einen Weg mit Kies oder Pflaster ausbauen, wenn sich die gesparten Karrenminuten in **höchstens 5 Jahren** bezahlt machen (`Wegebau.ErsparteMinutenJeJahr` mit den Fahrten des Vorjahres × `wertJeKarrenminute` 1,5 Gulden). Entschieden vom Nutzer (Kartenwerkstatt, Schritt 5d), Werte vom Kern. | 24.10.2026 |
+| Ablauf | Zum Jahresende nach der Einrichtung, höchstens ein Abschnitt: zusammenhängende Stücke der eigenen Strecken zum Markt unter Kies bzw. Pflaster, je höchstens 100 m, der mit der kürzesten Amortisation. Danach bleibt 2 × Reserve; nicht in Not, nicht solange die Vorsichtige spart. Charakter ± 1 Jahr wie bei der Einrichtung. | 24.10.2026 |
+| Rat | Zum Antrag „Weg pflastern“ stimmt die KI dafür, wenn eigene Karren über den Abschnitt fahren oder dort viel Verkehr ist (die Stadt zahlt). | 24.10.2026 |
+| Andockstellen | `ki.wegebau` in `wirtschaft.json` (`KiWegebauDaten`), `KiRivale.WegAusbauen` und `StimmtFuerWegantrag`; gebaut vom Kern-Mitglied im Funktions-PR. | 24.10.2026 |
+
 ## Messungen
 
 Neue Messungen der Spiel-KI stehen hier (mit main-Commit), nicht mehr in `docs/WIRTSCHAFTSMODELL.md`. Ältere: dort bis §42 (Taschendiebe, PR #69).
