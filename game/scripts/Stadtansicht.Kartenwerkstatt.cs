@@ -270,6 +270,7 @@ public partial class Stadtansicht
                 StueckEntfernen(g);
                 if (!weg) StueckBauen(g);
                 _wsNetzNeu = true; // Höfe und Karrenplätze hängen am Netz
+                if (g.Baustein?.AmUfer == true) GewaesserGeaendert(g, weg); // ein Hafen: das Becken vor der Kaimauer (Stadtansicht.Kartenwerkstatt.Wasser.cs)
                 break;
             case EntwurfWeg w:
                 WegBauen(w, weg);

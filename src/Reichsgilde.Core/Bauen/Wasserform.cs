@@ -22,6 +22,11 @@ namespace Reichsgilde.Core.Bauen;
 //  Modelle). Im See fällt der Boden vom Ufer mit 30 % bis zur Tiefe ab, außen 1,5 m Ufer. Unter dem Kern eines Weges oder einer Mauer
 //  bleibt das Ufer stehen (der Weg führt bis ans Wasser, eine Brücke setzt dort an); das Flussbett selbst gräbt sich auch unter Wegen ein.
 //
+//  Ein Hafen (ein Gebäude am Ufer, Baustein.AmUfer) hat eine Kaimauer an seiner Rückseite. Wie im Modell steht sie im Wasser: Vor ihr ist
+//  das Ufer bis ins Wasser ausgehoben, ein Hafenbecken (so breit wie der Hafen und 1 m mehr je Seite, bis 1 m ins Wasser, mindestens 4 m vor
+//  der Kaimauer – so weit liegen die Kähne), sein Boden 1,5 m unter dem Spiegel des Gewässers davor. Das Becken zählt nicht als Gewässer
+//  (An, IstWasser, Prüfung und Wege sehen es nicht); es ändert nur den Boden, die Darstellung zeichnet darin Wasser (Becken).
+//
 //  Abfragen für Darstellung und Prüfung: Laeufe (je Fluss die Punkte mit Breite, Tiefe, Spiegel und Richtung), Seen (Umriss, Wasserstand),
 //  An(x, z) (welches Wasser, Spiegel, Strömung), IstWasser, Uferabstand, Ueberlappt (ein Umriss im Wasser). Die Tiefe am Ort (Spiegel minus
 //  Boden) gibt Gelaendeform.Wassertiefe.
@@ -32,6 +37,51 @@ namespace Reichsgilde.Core.Bauen;
 /// Spiegel (Höhe der Wasseroberfläche) und die Fließrichtung als Einheitsvektor.
 /// </summary>
 public readonly record struct Wasserpunkt(Kartenort Ort, double Stelle, double Breite, double Tiefe, double Spiegel, double RichtungX, double RichtungZ);
+
+/// <summary>
+/// Die Kaimauer eines Gebäudes am Ufer (der Hafen): seine Rückseite von <see cref="A"/> nach <see cref="B"/>; das Wasser liegt in Richtung
+/// (<see cref="NachX"/>, <see cref="NachZ"/>), einem Einheitsvektor.
+/// </summary>
+public readonly record struct Kaimauer(string Name, Kartenort A, Kartenort B, double NachX, double NachZ)
+{
+    /// <summary>Die Kaimauer eines Gebäudes mit Mitte (x, z), Drehung (Grad wie Godot <c>Rotation.Y</c>) und Grundfläche: seine Rückseite (lokal −z).</summary>
+    public static Kaimauer Von(string name, double x, double z, double drehung, double breite, double tiefe)
+    {
+        Kartenort Lokal(double lx, double lz)
+        {
+            var d = Kartengeometrie.Dreh(lx, lz, drehung);
+            return new Kartenort(x + d.X, z + d.Z);
+        }
+        var nach = Kartengeometrie.Dreh(0, -1, drehung);
+        return new Kaimauer(name, Lokal(-breite / 2, -tiefe / 2), Lokal(breite / 2, -tiefe / 2), nach.X, nach.Z);
+    }
+}
+
+/// <summary>Ein Hafenbecken vor einer Kaimauer (siehe Kopf der Datei): Umriss (Viereck), Spiegel des Gewässers davor und Höhe seines Bodens.</summary>
+public sealed class Hafenbecken
+{
+    public string Name { get; }
+
+    /// <summary>Die vier Ecken: an der Kaimauer links, rechts, draußen rechts, links.</summary>
+    public IReadOnlyList<Kartenort> Umriss { get; }
+
+    /// <summary>Die Höhe des Spiegels (des Gewässers vor der Kaimauer).</summary>
+    public double Spiegel { get; }
+
+    /// <summary>Die Höhe des Bodens im Becken (<see cref="Wasserform.BeckenTiefe"/> unter dem Spiegel).</summary>
+    public double Boden => Spiegel - Wasserform.BeckenTiefe;
+
+    public Kartenrechteck Bereich { get; }
+
+    internal Hafenbecken(string name, IReadOnlyList<Kartenort> umriss, double spiegel)
+    {
+        (Name, Umriss, Spiegel) = (name, umriss, spiegel);
+        Bereich = Kartenrechteck.Um(umriss)!.Value;
+    }
+
+    /// <summary>Liegt der Ort im Becken?</summary>
+    public bool Enthaelt(Kartenort p) => Bereich.Enthaelt(p) && Kartengeometrie.ImVieleck(p, Umriss);
+}
 
 /// <summary>Ein Fluss oder Bach, wie Darstellung und Prüfung ihn sehen (aus einem <see cref="Gewaesser"/> mit Linie).</summary>
 public sealed class Wasserlauf
@@ -259,18 +309,36 @@ public sealed class Wasserform
     /// </summary>
     public static double Uferbreite(double breite) => 0.5 + 1.5 * Freibord(breite);
 
+    /// <summary>So tief (Meter) liegt der Boden eines Hafenbeckens unter dem Spiegel.</summary>
+    public const double BeckenTiefe = 1.5;
+
+    /// <summary>So weit (Meter) reicht ein Hafenbecken mindestens vor die Kaimauer (dort liegen die Kähne) und so viel weiter ins Wasser.</summary>
+    public const double BeckenMindest = 4, BeckenImWasser = 1;
+
+    /// <summary>So viel (Meter) ist ein Hafenbecken auf jeder Seite breiter als die Kaimauer (die Kähne ragen darüber hinaus).</summary>
+    public const double BeckenRand = 1;
+
+    /// <summary>So weit (Meter) vor der Kaimauer beginnt das Becken (der Boden unter dem Hafen bleibt stehen).</summary>
+    public const double BeckenAbstand = 0.25;
+
+    /// <summary>So weit (Meter) vor der Kaimauer wird das Wasser gesucht – weiter weg gibt es kein Becken (die Prüfung erlaubt 3 m).</summary>
+    public const double BeckenSuche = 6;
+
     private readonly Hoehenraster _roh;
     private readonly Func<IReadOnlyList<Gewaesser>> _gewaesser;
-    private (List<Wasserlauf> Laeufe, List<Wassersee> Seen)? _stand;
+    private readonly Func<IReadOnlyList<Kaimauer>> _kaie;
+    private (List<Wasserlauf> Laeufe, List<Wassersee> Seen, List<Hafenbecken> Becken)? _stand;
 
     /// <param name="roh">Das gespeicherte Höhenraster (für den Spiegel).</param>
     /// <param name="gewaesser">Die Gewässer der Karte – wird nach jedem <see cref="AllesVeraltet"/> neu gefragt.</param>
-    public Wasserform(Hoehenraster roh, Func<IReadOnlyList<Gewaesser>> gewaesser) => (_roh, _gewaesser) = (roh, gewaesser);
+    /// <param name="kaie">Die Kaimauern der Häfen – ebenso; null: keine.</param>
+    public Wasserform(Hoehenraster roh, Func<IReadOnlyList<Gewaesser>> gewaesser, Func<IReadOnlyList<Kaimauer>>? kaie = null) =>
+        (_roh, _gewaesser, _kaie) = (roh, gewaesser, kaie ?? (() => Array.Empty<Kaimauer>()));
 
-    /// <summary>Gewässer oder Gelände haben sich geändert: beim nächsten Lesen alles neu.</summary>
+    /// <summary>Gewässer, Häfen oder Gelände haben sich geändert: beim nächsten Lesen alles neu.</summary>
     public void AllesVeraltet() => _stand = null;
 
-    private (List<Wasserlauf> Laeufe, List<Wassersee> Seen) Stand => _stand ??= Rechnen();
+    private (List<Wasserlauf> Laeufe, List<Wassersee> Seen, List<Hafenbecken> Becken) Stand => _stand ??= Rechnen();
 
     /// <summary>Die Flüsse und Bäche.</summary>
     public IReadOnlyList<Wasserlauf> Laeufe => Stand.Laeufe;
@@ -278,15 +346,57 @@ public sealed class Wasserform
     /// <summary>Die Seen und Teiche.</summary>
     public IReadOnlyList<Wassersee> Seen => Stand.Seen;
 
+    /// <summary>Die Hafenbecken vor den Kaimauern (kein Gewässer: nur Boden und Bild, siehe Kopf der Datei).</summary>
+    public IReadOnlyList<Hafenbecken> Becken => Stand.Becken;
+
     /// <summary>Hat die Karte kein Wasser?</summary>
     public bool IstLeer => Laeufe.Count == 0 && Seen.Count == 0;
 
-    /// <summary>Die Rechtecke um jedes Gewässer mit seinem Ufer (dort ändert es den Boden).</summary>
-    public IEnumerable<Kartenrechteck> Bereiche => Laeufe.Select(l => l.Bereich).Concat(Seen.Select(s => s.Bereich));
+    /// <summary>Die Rechtecke um jedes Gewässer mit seinem Ufer und um jedes Hafenbecken (dort ändern sie den Boden).</summary>
+    public IEnumerable<Kartenrechteck> Bereiche => Laeufe.Select(l => l.Bereich).Concat(Seen.Select(s => s.Bereich)).Concat(Becken.Select(b => b.Bereich));
 
     // ── Rechnen ──────────────────────────────────────────────────────────────
 
-    private (List<Wasserlauf>, List<Wassersee>) Rechnen()
+    private (List<Wasserlauf>, List<Wassersee>, List<Hafenbecken>) Rechnen()
+    {
+        var (laeufe, seen) = GewaesserRechnen();
+        _stand = (laeufe, seen, new List<Hafenbecken>()); // die Becken fragen An – das braucht die Gewässer schon
+        var becken = new List<Hafenbecken>();
+        if (laeufe.Count + seen.Count > 0)
+            foreach (var kai in _kaie())
+                if (BeckenRechnen(kai) is { } b) becken.Add(b);
+        return (laeufe, seen, becken);
+    }
+
+    /// <summary>
+    /// Das Becken vor einer Kaimauer: Links, in der Mitte und rechts wird das Wasser gesucht (alle 0,25 m bis <see cref="BeckenSuche"/>); das Becken reicht bis
+    /// <see cref="BeckenImWasser"/> ins Wasser, mindestens <see cref="BeckenMindest"/> weit. Kein Wasser vor der Mitte: kein Becken.
+    /// </summary>
+    private Hafenbecken? BeckenRechnen(Kaimauer kai)
+    {
+        var laenge = kai.A.Abstand(kai.B);
+        if (laenge <= 0) return null;
+        var (tx, tz) = ((kai.B.X - kai.A.X) / laenge, (kai.B.Z - kai.A.Z) / laenge);
+        Kartenort Ort(Kartenort von, double entlang, double hinaus) =>
+            new(von.X + tx * entlang + kai.NachX * hinaus, von.Z + tz * entlang + kai.NachZ * hinaus);
+        (double Abstand, double Spiegel)? Wasser(Kartenort von)
+        {
+            for (var s = 0.0; s <= BeckenSuche + 1e-9; s += 0.25)
+                if (An(Ort(von, 0, s).X, Ort(von, 0, s).Z) is { } w) return (s, w.Spiegel);
+            return null;
+        }
+        var mitte = Ort(kai.A, laenge / 2, 0);
+        if (Wasser(mitte) is not var (abstand, spiegel)) return null;
+        foreach (var rand in new[] { Ort(kai.A, -BeckenRand, 0), Ort(kai.B, BeckenRand, 0) })
+            abstand = Math.Max(abstand, Wasser(rand)?.Abstand ?? BeckenSuche);
+        var weit = Math.Max(abstand + BeckenImWasser, BeckenMindest);
+        return new Hafenbecken(kai.Name, new[]
+        {
+            Ort(kai.A, -BeckenRand, BeckenAbstand), Ort(kai.B, BeckenRand, BeckenAbstand), Ort(kai.B, BeckenRand, weit), Ort(kai.A, -BeckenRand, weit),
+        }, spiegel);
+    }
+
+    private (List<Wasserlauf>, List<Wassersee>) GewaesserRechnen()
     {
         var laeufe = new List<Wasserlauf>();
         var seen = new List<Wassersee>();
@@ -526,6 +636,8 @@ public sealed class Wasserform
             else if (!wegkern && boden > s.Wasserstand && rand < SeeUfer)
                 ziel = Math.Min(ziel, s.Wasserstand + (boden - s.Wasserstand) * Gelaendeform.Weich(rand / SeeUfer));
         }
+        foreach (var b in Becken)
+            if (b.Enthaelt(p)) ziel = Math.Min(ziel, b.Boden); // auch unter einem Weg: Die Kaimauer steht im Wasser
         return ziel;
     }
 }

@@ -59,11 +59,14 @@ public partial class Stadtansicht
             if (g is EntwurfFluss f) FlussMarkieren(f, false);
             _wsWasserBereiche[g] = GewaesserBereich(g);
         }
+        foreach (var g in _entwurf.Gebaeude)
+            if (g.Baustein?.AmUfer == true) _wsWasserBereiche[g] = GewaesserBereich(g); // Häfen: das Becken vor der Kaimauer
         foreach (var fa in _entwurf.Faehren) FaehreMarkieren(fa, false);
     }
 
     /// <summary>
-    /// Das Rechteck, in dem ein Gewässer das Gelände ändert: der Fluss samt Ufer und der Glättung des Spiegels (er folgt dem Gelände ±8 m), ein See samt Ufer. Weit genug,
+    /// Das Rechteck, in dem ein Gewässer das Gelände ändert: der Fluss samt Ufer und der Glättung des Spiegels (er folgt dem Gelände ±8 m), ein See samt Ufer, ein Hafen
+    /// samt Becken. Weit genug,
     /// dass nichts in der Nähe veraltet bleibt.
     /// </summary>
     private static Rect2 GewaesserBereich(EntwurfTeil g)
@@ -77,6 +80,8 @@ public partial class Stadtansicht
             }
             case EntwurfSee s when s.Ecken.Count > 0:
                 return Rahmen(s.Ecken).Grow((float)(Wasserform.SeeUfer + Wasserform.Glaettung + 4));
+            case EntwurfGebaeude h when h.Ecken().Count > 0: // ein Hafen mit seinem Becken
+                return Rahmen(h.Ecken()).Grow((float)(Wasserform.BeckenSuche + Wasserform.BeckenImWasser + Wasserform.BeckenRand + 4));
         }
         return new Rect2();
     }

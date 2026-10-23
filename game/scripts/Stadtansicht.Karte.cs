@@ -313,7 +313,7 @@ public partial class Stadtansicht
             var punkte = weg.Verlauf.Where(p => p is { Length: 2 }).Select(Punkt3).ToArray();
             if (punkte.Length < 2) continue;
             var breite = (float)weg.BreiteWirksam;
-            WegZeichnen(punkte, breite, weg.IstGlatt, luecken: WegLuecken(nummer)); // unter Brücken kein Band (Stadtansicht.Wasser.Uebergaenge.cs)
+            WegZeichnen(punkte, breite, weg.IstGlatt, luecken: WegLuecken(nummer), boden: WegBoden(nummer)); // unter Brücken kein Band, in Furten eben (Stadtansicht.Wasser.Uebergaenge.cs)
             for (var i = 0; i + 1 < punkte.Length; i++) _wegStrecken.Add((punkte[i], punkte[i + 1], breite));
             _netz.Weg(weg.IstGlatt ? NetzPunkte(punkte) : punkte);
         }
@@ -323,11 +323,12 @@ public partial class Stadtansicht
     /// Zeichnet einen Weg: gerade Strecken als je ein flacher Quader (wie seit jeher), eine glatte Kurve als ein Band (<see cref="WegBand"/>) –
     /// die vielen kurzen Stücke der Kurve als Quader lägen übereinander. Über den Marktplatz führt keiner (<see cref="OhneMarktplatz"/>).
     /// </summary>
-    private void WegZeichnen(IReadOnlyList<Vector3> punkte, float breite, bool glatt, Node3D? eltern = null, List<(float Von, float Bis)>? luecken = null)
+    private void WegZeichnen(IReadOnlyList<Vector3> punkte, float breite, bool glatt, Node3D? eltern = null, List<(float Von, float Bis)>? luecken = null,
+        Func<float, float, float>? boden = null)
     {
         if (luecken is { Count: > 0 }) // Brücken: Meter entlang des Weges ohne Band; die Läufe davor und dahinter wie ein Weg für sich
         {
-            foreach (var teilweg in WegOhneLuecken(punkte, luecken)) WegZeichnen(teilweg, breite, glatt, eltern);
+            foreach (var teilweg in WegOhneLuecken(punkte, luecken)) WegZeichnen(teilweg, breite, glatt, eltern, boden: boden);
             return;
         }
         if (!glatt && !BodenBewegt) // auf Gelände wird jeder Weg ein Band, das dem Boden folgt (Quader lägen nur gerade im Raum)
@@ -341,7 +342,7 @@ public partial class Stadtansicht
             var (von, bis) = (punkte[i], punkte[i + 1]);
             if (OhneMarktplatz(von, bis, breite) is { } stuecke)
             {
-                WegBand(lauf, breite, eltern ?? this);
+                WegBand(lauf, breite, eltern ?? this, boden);
                 lauf.Clear();
                 foreach (var (a, b) in stuecke) WegStueck(a, b, breite, eltern ?? this);
                 continue;
@@ -349,7 +350,7 @@ public partial class Stadtansicht
             if (lauf.Count == 0) lauf.Add(von);
             lauf.Add(bis);
         }
-        WegBand(lauf, breite, eltern ?? this);
+        WegBand(lauf, breite, eltern ?? this, boden);
     }
 
     /// <summary>
