@@ -166,6 +166,9 @@ public sealed class Gelaendeform
         /// <summary>Je Strecke der Linie: die Abstände der Profilpunkte vom Streckenanfang und ihre gemittelten Höhen.</summary>
         public readonly List<(double[] Stellen, double[] Hoehen)> Strecken = new();
 
+        /// <summary>Je Strecke die Orte ihrer Profilpunkte (der erste und der letzte sind die Punkte der Linie).</summary>
+        public readonly List<Kartenort[]> Orte = new();
+
         /// <summary>Die Höhe auf Strecke <paramref name="s"/>, <paramref name="weg"/> Meter nach ihrem Anfang.</summary>
         public double Hoehe(int s, double weg)
         {
@@ -186,6 +189,7 @@ public sealed class Gelaendeform
     {
         // alle Profilpunkte der Linie: Ort entlang der ganzen Linie und Rohhöhe
         var orte = new List<double>();
+        var punkteAlle = new List<Kartenort>();
         var roh = new List<double>();
         var jeStrecke = new List<(int Erster, int Anzahl, double Anfang)>();
         var entlang = 0.0;
@@ -198,8 +202,10 @@ public sealed class Gelaendeform
             for (var k = 0; k <= teile; k++)
             {
                 var t = (double)k / teile;
+                var p = k == teile ? b : new Kartenort(a.X + (b.X - a.X) * t, a.Z + (b.Z - a.Z) * t);
                 orte.Add(entlang + laenge * t);
-                roh.Add(Roh.Hoehe(a.X + (b.X - a.X) * t, a.Z + (b.Z - a.Z) * t));
+                punkteAlle.Add(p);
+                roh.Add(Roh.Hoehe(p.X, p.Z));
             }
             entlang += laenge;
         }
@@ -221,7 +227,10 @@ public sealed class Gelaendeform
         }
         var kette = new Profilkette();
         foreach (var (erster, anzahl, anfang) in jeStrecke)
+        {
             kette.Strecken.Add((orte.Skip(erster).Take(anzahl).Select(o => o - anfang).ToArray(), glatt.Skip(erster).Take(anzahl).ToArray()));
+            kette.Orte.Add(punkteAlle.Skip(erster).Take(anzahl).ToArray());
+        }
         return kette;
     }
 
@@ -238,6 +247,23 @@ public sealed class Gelaendeform
         var aus = new double[linie.Count];
         for (var k = 0; k < linie.Count; k++)
             aus[k] = k < kette.Strecken.Count ? kette.Hoehe(k, 0) : kette.Hoehe(kette.Strecken.Count - 1, double.MaxValue);
+        return aus;
+    }
+
+    /// <summary>
+    /// Das Längsprofil einer Linie als Punktfolge: höchstens alle 1 m ein Punkt (die Punkte der Linie sind dabei, keiner doppelt) mit der
+    /// Höhe, auf der das Wegband bzw. die Mauer liegt. Darüber legt die Darstellung das Band – auch eine gerade Straße mit nur zwei Punkten
+    /// folgt so dem Gelände. Ein Ring (<paramref name="geschlossen"/>) endet wieder an seinem ersten Punkt. Flach: alle Höhen 0.
+    /// </summary>
+    public IReadOnlyList<(Kartenort Ort, double Hoehe)> Profillinie(IReadOnlyList<Kartenort> linie, bool geschlossen = false)
+    {
+        if (linie.Count < 2) return linie.Select(p => (p, Roh.Hoehe(p.X, p.Z))).ToList();
+        var punkte = geschlossen && linie[0] != linie[^1] ? linie.Append(linie[0]).ToList() : linie.ToList();
+        var kette = Laengsprofil(punkte);
+        var aus = new List<(Kartenort, double)>();
+        for (var s = 0; s < kette.Strecken.Count; s++)
+            for (var k = s == 0 ? 0 : 1; k < kette.Orte[s].Length; k++)
+                aus.Add((kette.Orte[s][k], kette.Strecken[s].Hoehen[k]));
         return aus;
     }
 

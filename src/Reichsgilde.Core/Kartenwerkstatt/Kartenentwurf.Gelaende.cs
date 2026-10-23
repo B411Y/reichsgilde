@@ -168,8 +168,11 @@ public sealed partial class Kartenentwurf
     /// <summary>Das Fundament eines Gebäudes (ganze Grundfläche mit Vorplatz): Höhe des Bodens im Haus und Tiefe des Sockels.</summary>
     public Fundament Fundament(EntwurfGebaeude g) => _gelaende.Fundament(g.Ecken());
 
-    /// <summary>Das Höhenprofil eines Weges an den Punkten seines Verlaufs (<see cref="EntwurfWeg.Verlauf"/>) – darauf liegt das Wegband.</summary>
+    /// <summary>Das Höhenprofil eines Weges an den Punkten seines Verlaufs (<see cref="EntwurfWeg.Verlauf"/>).</summary>
     public double[] Profil(EntwurfWeg w) => _gelaende.Profil(w.Verlauf);
+
+    /// <summary>Das Längsprofil eines Weges höchstens alle 1 m (<see cref="Gelaendeform.Profillinie"/>) – darauf liegt das Wegband.</summary>
+    public IReadOnlyList<(Kartenort Ort, double Hoehe)> Profillinie(EntwurfWeg w) => _gelaende.Profillinie(w.Verlauf);
 
     /// <summary>Das Höhenprofil einer Mauer an ihren Ecken (ein Ring ohne den ersten Punkt am Schluss).</summary>
     public double[] Profil(EntwurfMauer m) => _gelaende.Profil(m.Ecken, m.Geschlossen);
