@@ -144,8 +144,8 @@ Fahrplan (vom Nutzer am 21.10.2026 bestätigt, je Schritt ein PR; Stand wird hie
 | 3 Rest der Karte | Mauer und Tore, Startbelegung, Knopf „Karte ausprobieren“ | fertig (PR #172) |
 | 4 Umzug | Greybox und Köln übernehmen, der Editor wird die Quelle; Python-Werkzeug fällt weg, dafür ein C#-Kartenskript (`tools/Kartenbau`: bauen, prüfen, Vorschau) | fertig (PR #174) |
 | 5a Kartengröße und Rand | Größe einstellbar (z. B. 400 × 300 m bis 2 × 2 km), Kamera bleibt innerhalb, dahinter eine Randlandschaft, die in Dunst verblasst – nie Himmel | fertig (PR #178) |
-| 5b Gelände | Höhenraster (~2 m) mit Pinseln: Heben, Senken, Glätten, Ebnen, Rauschen; Fundamente unter Gebäuden automatisch geebnet, steile Hänge für Bauzonen gesperrt, Wege folgen dem Gelände | in Arbeit (PR #179) |
-| 5c Wasser | Flüsse und Bäche als Linie mit Breite (Zeichenrichtung = Fließrichtung, Strömung), Seen als Fläche mit Wasserstand (still), Ufer automatisch ausgehoben; Wasser ist Hindernis, Brücken, Furten, Fähren, Häfen am Ufer | offen |
+| 5b Gelände | Höhenraster (~2 m) mit Pinseln: Heben, Senken, Glätten, Ebnen, Rauschen; Fundamente unter Gebäuden automatisch geebnet, steile Hänge für Bauzonen gesperrt, Wege folgen dem Gelände | fertig (PR #179) |
+| 5c Wasser | Flüsse und Bäche als Linie mit Breite (Zeichenrichtung = Fließrichtung, Strömung), Seen als Fläche mit Wasserstand (still), Ufer automatisch ausgehoben; Wasser ist Hindernis, Brücken, Furten, Fähren, Häfen am Ufer | in Arbeit (PR #180) |
 | 5d Wegbelag | Trampelpfad bis Pflaster, wirkt auf Karren | offen |
 | 6 Freigabe | Kartenwerkstatt für Spieler | offen |
 
@@ -238,3 +238,12 @@ Fahrplan (vom Nutzer am 21.10.2026 bestätigt, je Schritt ein PR; Stand wird hie
 | Fundament und Hangsperre (Umsetzung, Kern) | Fundament über die ganze Grundfläche mit Vorplatz (Ecken und Rasterpunkte darin): Höhe = höchster Punkt, Sockel bis zum tiefsten. Hangsperre am gespeicherten Raster (das Bett der Wege zählt nicht): steilstes Fenster zu 8 × 8 m, je Fenster eine Ebene durch 5 × 5 Punkte (kleine Buckel heben sich auf); für Werkstatt-, Wohnhaus-, Einwohnerplätze, Umlandbetriebe und -stellen und Bauzonen, nicht für Kulissen und Sonderbauten. | 23.10.2026 |
 | Steigung (Umsetzung, Kern) | `Karrennetz` aus den Karrenstraßen (Knoten alle 1 m entlang des Profils, Kreuzungen und Einmündungen bis 1 m), je Betrieb einmal der kürzeste Weg nach der Länge zum Markt (wie das Gassennetz der Darstellung); bergauf ab 6 % je Prozentpunkt +5 %, höchstens ×3, bergab wie eben (`logistik.steigung`, Datenversion 50). Fahrzeit = feste Fahrzeit × Mittel nach Länge, hin und zurück getrennt; kein neues Feld im Spielstand. Greybox flach: `messen 30 20` und `messen 30 20 greybox` zeichengleich. | 23.10.2026 |
 | Kartenskript und Probestadt (Umsetzung, Kern) | Befehle `gelaende <karte> <pinsel> <x,z;…>` und `rampe`, Stadtskript-Hilfen `Huegel` und `Rauschen`, Höhenlinien in der Vorschau (alle 2 m, alle 10 m kräftiger). Probestadt: Stadt flach, Hang nach Osten (Vorstadt bis 4 %), sieben Hügel bis 25 m und eine Senke im Rand, Rauschen 1,5 m rundherum; keine Fehler, keine Hinweise. | 23.10.2026 |
+
+### Kartenwerkstatt, Schritt 5c: Wasser (PR #180)
+
+| Thema | Entscheidung | Datum |
+|---|---|---|
+| Wasserformen | Fluss und Bach als Linie mit Breite je Stützpunkt; die Zeichenrichtung ist die Fließrichtung, die Strömung ist sichtbar, das Gelände darunter wird automatisch zum Bett ausgehoben. See und Teich als Fläche mit Wasserstand, Ufer ausgehoben. Entschieden vom Nutzer. | 23.10.2026 |
+| Übergänge | Brücken entstehen automatisch, wo ein Weg einen Fluss quert (Holz bis 20 m, Stein darüber). Furten bei flachen Bächen unter 0,5 m Tiefe, Karren werden dort langsamer. Fähren: eine Fährstelle verbindet zwei Wege über breite Flüsse, Karren warten (längere Fahrzeit). Häfen: Hafenplatz am Ufer als Umlandstelle, Handel per Schiff kommt später mit eigener Mechanik. Entschieden vom Nutzer. | 23.10.2026 |
+| Wirkung | Auf Wasser darf nichts gebaut werden (Fehler der Prüfung). Das Karrennetz aus 5b nutzt Brücken, Furten und Fähren mit ihren Zeiten. Keine neue Wirtschaftsregel. Entschieden vom Nutzer. | 23.10.2026 |
+| Modelle | Eigenes Blender-Skript `tools/modelle/wasser.py`: Holzbrücke als Bausteine (Joch 4 m, Endstück, Geländer, gereiht 4–20 m), Steinbrücke als Bausteine (Bogen 8 m, Pfeiler, Rampe, Brüstung, ab 20 m), Fähre mit Seilwinde und zwei Anlegestegen, Hafen (Holzkai, Poller, Tretradkran, Lagerschuppen, zwei Kähne), Furt- und Ufersteine. Je Teil unter 3.000 Dreiecke, der Hafen bis 12.000. Freigegeben vom Nutzer. | 23.10.2026 |
