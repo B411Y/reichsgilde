@@ -328,6 +328,10 @@ public partial class Stadtansicht
         public required float AnlegeA { get; init; }
         public required float AnlegeB { get; init; }
 
+        /// <summary>Wo die beiden Stege beginnen (Ursprung, Meter ab Von): Dazwischen liegt der Karren auf Steg und Prahm.</summary>
+        public required float StegA { get; init; }
+        public required float StegB { get; init; }
+
         public required Node3D? SeilAnkerA { get; init; }
         public required Node3D? SeilAnkerB { get; init; }
         public required Vector3 PfostenA { get; init; }
@@ -411,7 +415,7 @@ public partial class Stadtansicht
         }
         var ansicht = new FaehreAnsicht
         {
-            Wurzel = prahm, Von = von, Richtung = d, Laenge = laenge, Spiegel = spiegel, AnlegeA = anlegeA, AnlegeB = anlegeB,
+            Wurzel = prahm, Von = von, Richtung = d, Laenge = laenge, Spiegel = spiegel, AnlegeA = anlegeA, AnlegeB = anlegeB, StegA = uA, StegB = uB,
             SeilAnkerA = prahm.FindChild("Anker_Seil_A", true, false) as Node3D, SeilAnkerB = prahm.FindChild("Anker_Seil_B", true, false) as Node3D,
             PfostenA = Pfosten(stegA), PfostenB = Pfosten(stegB), SeilA = Seil("SeilA"), SeilB = Seil("SeilB"),
             Stelle = anlegeA, Ziel = anlegeA, Ruhe = 0,
@@ -445,8 +449,9 @@ public partial class Stadtansicht
                 var rel = new Vector2(k.Wurzel.Position.X, k.Wurzel.Position.Z) - f.Von;
                 var u = rel.Dot(f.Richtung);
                 if (u < -2 || u > f.Laenge + 2 || Mathf.Abs(rel.Dot(quer)) > 3f) continue;
-                if (u > f.AnlegeA && u < f.AnlegeB) { ziel = u; mitfahrt = true; break; }
-                ziel = u <= f.AnlegeA ? f.AnlegeA : f.AnlegeB;
+                // zwischen den Stegen (Ursprung A bis Ursprung B) fährt der Prahm unter dem Karren, sonst liegt er an dessen Ufer
+                if (u >= f.StegA && u <= f.StegB) { ziel = Mathf.Clamp(u, Mathf.Min(f.AnlegeA, f.AnlegeB), Mathf.Max(f.AnlegeA, f.AnlegeB)); mitfahrt = true; break; }
+                ziel = u < f.StegA ? f.AnlegeA : f.AnlegeB;
             }
             if (ziel is null)
             {

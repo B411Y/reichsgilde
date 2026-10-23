@@ -450,6 +450,9 @@ public partial class Stadtansicht
                     new ModellZustand(Variante: stabil % 3 + 1, Besitzer: Hausfarben[stabil % Hausfarben.Length]));
                 break;
             }
+            case Bausteinart.Umlandstelle when g.Baustein is { Modell: { } hafen } && hafen.StartsWith("wasser/"):
+                Einsetzen(hafen, new ModellZustand()); // der Hafen: das ganze Modell
+                break;
             case Bausteinart.Umlandstelle when g.Baustein is { Modell: { } datei } b:
                 StelleEinsetzen(datei, b.Knoten ?? g.Name);
                 break;

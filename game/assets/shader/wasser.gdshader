@@ -93,9 +93,10 @@ void fragment() {
 
 	// Himmel im Wasser: stärker bei flachem Blick (Fresnel) und im tiefen Wasser
 	float fresnel = pow(1.0 - clamp(dot(normalize(NORMAL), normalize(VIEW)), 0.0, 1.0), 3.0);
-	EMISSION = himmel * (0.10 + 0.55 * fresnel) * spiegelung * (0.5 + 0.5 * k) * (1.0 - schaum_menge);
+	vec3 himmel_blau = mix(himmel, vec3(dot(himmel, vec3(0.333))) * vec3(0.8, 1.0, 1.25), 0.45); // Abendrot spiegelt sich im Wasser nur gedämpft
+	EMISSION = himmel_blau * (0.12 + 0.55 * fresnel) * spiegelung * (0.65 + 0.35 * k) * (1.0 - schaum_menge);
 
 	// durchsichtig am Ufer und im Flachen, fast deckend in der Tiefe
 	float ufer = smoothstep(0.0, 0.14, tiefe);
-	ALPHA = clamp((mix(0.55, 0.95, k) + schaum_menge * 0.5) * ufer, 0.0, 1.0);
+	ALPHA = clamp((mix(0.7, 0.95, k) + schaum_menge * 0.5) * ufer, 0.0, 1.0);
 }

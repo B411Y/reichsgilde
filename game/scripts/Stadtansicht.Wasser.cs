@@ -111,10 +111,13 @@ public partial class Stadtansicht
             var halb = (float)pt.Breite / 2;
             var mitte = new Vector2((float)pt.Ort.X, (float)pt.Ort.Z);
             var strom = richtung * (float)lauf.Stroemung;
+            // Ein schmaler Bach ist schmaler als zwei Zellen des Bodens (2 m): Sein Bett ist im Netz nur eine flache Mulde, und der Spiegel schnitte sie in Stücken.
+            // Darum liegt das Wasser dort ein paar Zentimeter höher; es läuft am Ufer ohnehin durchsichtig aus.
+            var hub = Mathf.Clamp(0.2f - 0.02f * (float)pt.Breite, 0f, 0.15f);
             foreach (var seite in new[] { -1f, 1f })
             {
                 var o = mitte + quer * halb * FlussRandFaktor * seite;
-                ecken.Add(new Vector3(o.X, (float)pt.Spiegel, o.Y));
+                ecken.Add(new Vector3(o.X, (float)pt.Spiegel + hub, o.Y));
                 uv.Add(new Vector2(seite * FlussRandFaktor, (float)pt.Stelle));
                 uv2.Add(strom);
                 farben.Add(new Color((float)pt.Tiefe, halb, 0, 1));

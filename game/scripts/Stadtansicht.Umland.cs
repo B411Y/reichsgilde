@@ -151,6 +151,20 @@ public partial class Stadtansicht
             if (!kaesten.TryGetValue(datei, out var kasten)) kaesten[datei] = kasten = Modell(datei)?.Instantiate<Node3D>();
             if (kasten is null) continue;
             var knotenName = b.Knoten ?? g.Name;
+            if (datei.StartsWith("wasser/"))
+            {
+                // der Hafen: das ganze Modell (Kai, Tretrad, Kran, Ware, Kähne) und nicht nur sein Knoten „Hafen“ – Tretrad und Kähne bewegt Stadtansicht.Wasser.Uebergaenge.cs
+                if (ModellEinsetzen(datei, this, Vector3.Zero, new ModellZustand()) is { } hafen)
+                {
+                    hafen.Wurzel.Name = "Hafen_" + g.Kennung;
+                    hafen.Wurzel.Transform = ModellLage(g);
+                }
+                _umlandstellen[g.Name] = g;
+                var tuer = ModellLage(g) * UmlandAnkerImModell(datei).Tuer;
+                AnWegAnschliessen(tuer, FusswegBreite);
+                _netz.Weg(tuer with { Y = 0 }, Punkt3(g.Punkt));
+                continue;
+            }
             if (kasten.FindChild(knotenName, true, false) is not MeshInstance3D { Mesh: { } netz } teil)
             {
                 GD.PushError($"Modell unvollständig: res://assets/modelle/{datei}.glb hat keinen Knoten „{knotenName}“.");
