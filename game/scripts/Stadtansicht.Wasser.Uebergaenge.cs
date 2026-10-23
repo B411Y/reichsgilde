@@ -59,9 +59,6 @@ public partial class Stadtansicht
     //  Aufbau aus dem Wasserplan
     // ═════════════════════════════════════════════════════════════════════════
 
-    /// <summary>Holz: so weit (Meter) reicht das Endstück hinter dem Anfang der Brücke ins Land, Stein ebenso (die Rampe).</summary>
-    private const float HolzLand = 3f, SteinLand = 9f;
-
     private void UebergaengeVergessen()
     {
         _fahrflaechen.Clear();
@@ -88,8 +85,7 @@ public partial class Stadtansicht
     }
 
     /// <summary>
-    /// Die Stellen (Meter entlang des Verlaufs), an denen Weg <paramref name="weg"/> Brücke ist: Dort zeichnet <see cref="WegZeichnen"/> kein Band, auch nicht unter den
-    /// Endstücken und Rampen, die ein Stück ins Land reichen.
+    /// Die Stellen (Meter entlang des Verlaufs), an denen Weg <paramref name="weg"/> Brücke ist: Dort zeichnet <see cref="WegZeichnen"/> kein Band; der Wasserplan rechnet Endstücke und Rampen schon dazu.
     /// </summary>
     private List<(float Von, float Bis)> WegLuecken(int weg)
     {
@@ -98,8 +94,7 @@ public partial class Stadtansicht
         foreach (var q in plan.Querungen)
         {
             if (q.Weg != weg || !q.IstBruecke) continue;
-            var land = q.Art == Uebergangsart.Holzbruecke ? HolzLand : SteinLand;
-            luecken.Add(((float)q.VonStelle - land, (float)q.BisStelle + land));
+            luecken.Add(((float)q.VonStelle, (float)q.BisStelle)); // schon mit Endstück bzw. Rampe auf dem Land (Wasserplan)
         }
         return luecken;
     }
@@ -209,82 +204,68 @@ public partial class Stadtansicht
     private void BrueckeBauen(Node3D eltern, Wasserquerung q, Wasserform form)
     {
         var holz = q.Art == Uebergangsart.Holzbruecke;
-        var (a, b) = (V2(q.Anfang), V2(q.Ende));
-        var laenge = a.DistanceTo(b);
-        if (laenge < 2.5f) return;
-        var d = (b - a) / laenge;
-        float hA = (float)q.AnfangHoehe, hB = (float)q.EndeHoehe;
-        var phi = StromabDrehung(form, ref a, ref b, ref d, ref hA, ref hB);
-        var deck = (float)q.Deckhoehe;
-        var weite = laenge - 2f; // zwischen den Uferkanten (je 1 m Widerlager davor)
-        var uferA = a + d;
-        var uferB = b - d;
+        var (a, b) = (V2(q.UferA), V2(q.UferB)); // Uferkanten: dort setzen Endstück bzw. Rampe an, Y 0 der Teile ist die Uferhöhe
+        var weite = a.DistanceTo(b);
+        if (weite < 1f || q.Felder < 1) return;
+        var d = (b - a) / weite;
+        float h0 = 0, h1 = 0;
+        var phi = StromabDrehung(form, ref a, ref b, ref d, ref h0, ref h1);
+        var ufer = (float)q.Uferhoehe;
+        var feld = (float)q.Feldlaenge; // Joch bzw. Bogen: so lang, nach der Weite gerechnet (Modell 4 m bzw. 8 m)
         var gruppe = new Node3D { Name = (holz ? "Holzbruecke_" : "Steinbruecke_") + q.GewaesserName };
         eltern.AddChild(gruppe);
 
         if (holz)
         {
             const string datei = "wasser_holzbruecke";
-            const float hoehe = 0.6f; // Deck des Modells über der Uferkante
-            var felder = Math.Max(1, Mathf.RoundToInt(weite / 4f));
-            var s = weite / (4f * felder);
-            WasserTeil(datei, "Holz_Ende", gruppe, BausteinLage(uferA, EndeUnten(deck, hA, hoehe, out var syA), phi, new Vector3(1, syA, 1)));
-            WasserTeil(datei, "Holz_Ende", gruppe, BausteinLage(uferB, EndeUnten(deck, hB, hoehe, out var syB), phi + Mathf.Pi, new Vector3(1, syB, 1)));
-            for (var i = 0; i < felder; i++)
+            var streckung = new Vector3(feld / 4f, 1, 1);
+            WasserTeil(datei, "Holz_Ende", gruppe, BausteinLage(a, ufer, phi));
+            WasserTeil(datei, "Holz_Ende", gruppe, BausteinLage(b, ufer, phi + Mathf.Pi));
+            for (var i = 0; i < q.Felder; i++)
             {
-                var mitte = uferA + d * (weite * (i + 0.5f) / felder);
-                var streckung = new Vector3(s, 1, 1);
-                WasserTeil(datei, "Holz_Joch", gruppe, BausteinLage(mitte, deck - hoehe, phi, streckung));
-                WasserTeil(datei, "Holz_Gelaender", gruppe, BausteinLage(mitte, deck - hoehe, phi, streckung));
-                WasserTeil(datei, "Holz_Gelaender", gruppe, BausteinLage(mitte, deck - hoehe, phi + Mathf.Pi, streckung));
+                var mitte = a + d * (feld * (i + 0.5f));
+                WasserTeil(datei, "Holz_Joch", gruppe, BausteinLage(mitte, ufer, phi, streckung));
+                WasserTeil(datei, "Holz_Gelaender", gruppe, BausteinLage(mitte, ufer, phi, streckung));
+                WasserTeil(datei, "Holz_Gelaender", gruppe, BausteinLage(mitte, ufer, phi + Mathf.Pi, streckung));
             }
-            FahrflaecheBruecke(a, d, laenge, q, deck, hA, hB, flachVon: 0, rampe: HolzLand);
+            FahrflaecheBruecke(a, d, weite, q, flach: 1, rampe: 3);
         }
         else
         {
             const string datei = "wasser_steinbruecke";
-            const float hoehe = 1.4f;
-            var felder = Math.Max(1, Mathf.RoundToInt((weite + 2f) / 10f));
-            var s = Math.Max(0.4f, (weite - 2f * (felder - 1)) / (8f * felder));
-            WasserTeil(datei, "Stein_Rampe", gruppe, BausteinLage(uferA, EndeUnten(deck, hA, hoehe, out var syA), phi, new Vector3(1, syA, 1)));
-            WasserTeil(datei, "Stein_Rampe", gruppe, BausteinLage(uferB, EndeUnten(deck, hB, hoehe, out var syB), phi + Mathf.Pi, new Vector3(1, syB, 1)));
-            for (var i = 0; i < felder; i++)
+            var streckung = new Vector3(feld / 8f, 1, 1);
+            WasserTeil(datei, "Stein_Rampe", gruppe, BausteinLage(a, ufer, phi));
+            WasserTeil(datei, "Stein_Rampe", gruppe, BausteinLage(b, ufer, phi + Mathf.Pi));
+            for (var i = 0; i < q.Felder; i++)
             {
-                var mitte = uferA + d * (8f * s * (i + 0.5f) + 2f * i);
-                var streckung = new Vector3(s, 1, 1);
-                WasserTeil(datei, "Stein_Bogen", gruppe, BausteinLage(mitte, deck - hoehe, phi, streckung));
-                WasserTeil(datei, "Stein_Bruestung", gruppe, BausteinLage(mitte, deck - hoehe, phi, streckung));
-                WasserTeil(datei, "Stein_Bruestung", gruppe, BausteinLage(mitte, deck - hoehe, phi + Mathf.Pi, streckung));
-                if (i + 1 < felder)
-                    WasserTeil(datei, "Stein_Pfeiler", gruppe, BausteinLage(uferA + d * (8f * s * (i + 1) + 2f * i + 1f), deck - hoehe, phi)); // nie gedreht: Eisbrecher stromauf
+                var mitte = a + d * (i * (feld + 2f) + feld / 2f);
+                WasserTeil(datei, "Stein_Bogen", gruppe, BausteinLage(mitte, ufer, phi, streckung));
+                WasserTeil(datei, "Stein_Bruestung", gruppe, BausteinLage(mitte, ufer, phi, streckung));
+                WasserTeil(datei, "Stein_Bruestung", gruppe, BausteinLage(mitte, ufer, phi + Mathf.Pi, streckung));
+                if (i + 1 < q.Felder)
+                    WasserTeil(datei, "Stein_Pfeiler", gruppe, BausteinLage(a + d * (i * (feld + 2f) + feld + 1f), ufer, phi)); // nie gedreht: Eisbrecher stromauf
             }
-            FahrflaecheBruecke(a, d, laenge, q, deck, hA, hB, flachVon: -1, rampe: SteinLand - 1);
+            FahrflaecheBruecke(a, d, weite, q, flach: 2, rampe: 8);
         }
     }
 
     /// <summary>
-    /// Wo ein Endstück oder eine Rampe steht: Es hat oben die Höhe <paramref name="hoehe"/> des Modells über seinem Ursprung und unten (am Land) 0. Damit es unten auf dem
-    /// Gelände <paramref name="land"/> landet und oben das Deck trifft, wird es mit <paramref name="streckung"/> in der Höhe gestreckt; gibt die Höhe des Ursprungs zurück.
+    /// Das Deck einer Brücke als Fahrfläche: eben von <paramref name="flach"/> Metern vor der ersten bis hinter die zweite Uferkante (das Auflager bzw. Widerlager), dann je eine Rampe
+    /// der Länge <paramref name="rampe"/> hinab zur Uferhöhe (wie die Endstücke der Modelle: Holz 1 + 3 m, Stein 2 + 8 m).
     /// </summary>
-    private static float EndeUnten(float deck, float land, float hoehe, out float streckung)
+    private void FahrflaecheBruecke(Vector2 ufer, Vector2 d, float weite, Wasserquerung q, float flach, float rampe)
     {
-        streckung = Mathf.Clamp((deck - land) / hoehe, 0.15f, 8f);
-        return deck - hoehe * streckung;
-    }
-
-    /// <summary>Das Deck einer Brücke als Fahrfläche: eben von <paramref name="flachVon"/> bis zum Ende davor, dann je eine Rampe der Länge <paramref name="rampe"/> hinab zum Weg.</summary>
-    private void FahrflaecheBruecke(Vector2 start, Vector2 d, float laenge, Wasserquerung q, float deck, float hA, float hB, float flachVon, float rampe)
-    {
-        var land = rampe - flachVon; // so weit reicht die Rampe vor den Anfang
+        var (ueferhoehe, deck) = ((float)q.Uferhoehe, (float)q.Deckhoehe);
+        var land = flach + rampe;
         var halb = Mathf.Max(2.2f, (float)q.Breite / 2 + 0.6f);
         float? Hoehe(float u)
         {
-            u -= land; // u zählt jetzt ab dem Anfang der Brücke (die Fläche beginnt eine Rampe davor)
-            if (u < flachVon) return Mathf.Lerp(hA, deck, Mathf.Clamp((u - (flachVon - rampe)) / rampe, 0, 1));
-            if (u > laenge - flachVon) return Mathf.Lerp(hB, deck, Mathf.Clamp((laenge - flachVon + rampe - u) / rampe, 0, 1));
+            u -= land; // u zählt jetzt ab der ersten Uferkante
+            if (u < -flach) return Mathf.Lerp(ueferhoehe, deck, Mathf.Clamp((u + flach + rampe) / rampe, 0, 1));
+            if (u > weite + flach) return Mathf.Lerp(ueferhoehe, deck, Mathf.Clamp((weite + flach + rampe - u) / rampe, 0, 1));
             return deck;
         }
-        FahrflaecheMerken(start - d * land, d, laenge + 2 * land, halb, Hoehe);
+        FahrflaecheMerken(ufer - d * land, d, weite + 2 * land, halb, Hoehe);
     }
 
     // ═════════════════════════════════════════════════════════════════════════
@@ -367,32 +348,27 @@ public partial class Stadtansicht
         if (wA < 0 || wB - wA < 8f) return; // kein Wasser dazwischen (die Prüfung meldet es)
 
         var spiegel = (float)f.Spiegel;
-        var steghoehe = spiegel + 0.75f; // Oberkante am Land; am Ende des Stegs (7 m weiter, 0,5 m tiefer) liegt sie 0,3 m über dem Spiegel: auf Höhe des Prahms
-        float Ursprung(float kante, float vorzeichen) // auf dem Ufer, wo der Boden etwa die Höhe des Stegs erreicht (1,5 bis 8 m landeinwärts)
-        {
-            var u = kante;
-            for (var abstand = 1.5f; abstand <= 8f; abstand += 0.5f)
-            {
-                u = kante - vorzeichen * abstand;
-                if (BodenHoehe(von.X + d.X * u, von.Y + d.Y * u) >= steghoehe - 0.1f) break;
-            }
-            return Mathf.Clamp(u, 0, laenge);
-        }
-        var uA = Ursprung(wA, 1);
-        var uB = Ursprung(wB, -1);
+        // Die Stege stehen mit ihrer Landseite an den Uferkanten, die der Kern liefert (Uferkante: wo das Ufer ins Gelände übergeht)
+        var uA = Mathf.Clamp((V2(f.VonUferkante) - von).Dot(d), 0, laenge);
+        var uB = Mathf.Clamp((V2(f.BisUferkante) - von).Dot(d), 0, laenge);
+        if (uB - uA < 6f) return;
+        // Oberkante am Land: der Boden an der Uferkante, in den Grenzen, in denen das Ende des Stegs (7 m weiter, 0,5 m tiefer) noch ans Deck des Prahms (0,3 m über dem Spiegel) anschließt
+        float Land(float u) => Mathf.Clamp(BodenHoehe(von.X + d.X * u, von.Y + d.Y * u), spiegel + 0.55f, spiegel + 0.95f);
+        var hoeheA = Land(uA);
+        var hoeheB = Land(uB);
         var phi = Mathf.Atan2(-d.Y, d.X);
 
         var gruppe = new Node3D { Name = "Faehre_" + f.Name };
         eltern.AddChild(gruppe);
-        var stegA = WasserTeil("wasser_faehre", "Anlegesteg", gruppe, BausteinLage(von + d * uA, steghoehe, phi));
-        var stegB = WasserTeil("wasser_faehre", "Anlegesteg", gruppe, BausteinLage(von + d * uB, steghoehe, phi + Mathf.Pi));
+        var stegA = WasserTeil("wasser_faehre", "Anlegesteg", gruppe, BausteinLage(von + d * uA, hoeheA, phi));
+        var stegB = WasserTeil("wasser_faehre", "Anlegesteg", gruppe, BausteinLage(von + d * uB, hoeheB, phi + Mathf.Pi));
 
         // der Prahm: +Z stromab (die Seilführungen liegen dann stromauf)
         var (sx, sz, tempo) = form.Stroemung((von.X + bis.X) / 2, (von.Y + bis.Y) / 2);
         var phiF = tempo > 0.01 && Mathf.Sin(phi) * sx + Mathf.Cos(phi) * sz < 0 ? phi + Mathf.Pi : phi;
         var anlegeA = uA + 11.7f; // Steg 6 m + Mitte des Prahms 5,7 m dahinter
         var anlegeB = uB - 11.7f;
-        var prahm = WasserTeil("wasser_faehre", "Faehre", gruppe, BausteinLage(von + d * anlegeA, spiegel, phiF));
+        var prahm = WasserTeil("wasser_faehre", "Faehre", gruppe, BausteinLage(von + d * anlegeA, hoeheA - 0.75f, phiF)); // das Deck des Prahms (0,3 m) liegt auf dem Ende des Stegs
         if (stegA is null || stegB is null || prahm is null) return;
 
         // Pfosten: der stromauf liegende jedes Stegs (in Koordinaten der Stadt; der Steg steht in einer Gruppe ohne eigene Lage)
@@ -415,7 +391,7 @@ public partial class Stadtansicht
         }
         var ansicht = new FaehreAnsicht
         {
-            Wurzel = prahm, Von = von, Richtung = d, Laenge = laenge, Spiegel = spiegel, AnlegeA = anlegeA, AnlegeB = anlegeB, StegA = uA, StegB = uB,
+            Wurzel = prahm, Von = von, Richtung = d, Laenge = laenge, Spiegel = hoeheA - 0.75f, AnlegeA = anlegeA, AnlegeB = anlegeB, StegA = uA, StegB = uB,
             SeilAnkerA = prahm.FindChild("Anker_Seil_A", true, false) as Node3D, SeilAnkerB = prahm.FindChild("Anker_Seil_B", true, false) as Node3D,
             PfostenA = Pfosten(stegA), PfostenB = Pfosten(stegB), SeilA = Seil("SeilA"), SeilB = Seil("SeilB"),
             Stelle = anlegeA, Ziel = anlegeA, Ruhe = 0,
@@ -426,10 +402,10 @@ public partial class Stadtansicht
         // Stege und Prahm tragen: Steg 7 m lang (Oberkante fällt um 0,5 m), dazwischen das Deck des Prahms
         float? Deck(float u)
         {
-            float Steg(float x) => steghoehe + 0.05f - 0.5f * (x + 1) / 7f;
-            if (u >= uA - 1 && u <= uA + 6) return Steg(u - uA);
-            if (u >= uB - 6 && u <= uB + 1) return Steg(uB - u);
-            if (u > uA + 6 && u < uB - 6) return spiegel + 0.3f;
+            float Steg(float hoehe, float x) => hoehe + 0.05f - 0.5f * (x + 1) / 7f;
+            if (u >= uA - 1 && u <= uA + 6) return Steg(hoeheA, u - uA);
+            if (u >= uB - 6 && u <= uB + 1) return Steg(hoeheB, uB - u);
+            if (u > uA + 6 && u < uB - 6) return hoeheA - 0.75f + 0.3f;
             return null;
         }
         FahrflaecheMerken(von + d * (uA - 1), d, uB - uA + 2, 2.3f, u => Deck(u + uA - 1));
