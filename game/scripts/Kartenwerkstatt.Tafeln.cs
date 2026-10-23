@@ -243,7 +243,7 @@ public partial class Kartenwerkstatt
         Eintrag("wasser:teich", "Teich", "Wie der See, nur klein", Werkstattwerkzeug.See, () => _stadt.WerkstattSeeart = "teich");
         Eintrag("wasser:faehre", "Fährstelle", "Zwei Klicks, die Anleger an beiden Ufern – sie rasten an Wegen ein. Karren setzen mit der Fähre über (und warten dort länger).", Werkstattwerkzeug.Faehre);
         if (_entwurf.Katalog.Finde(Kartenentwurf.HafenKatalog) is { } hafen)
-            Eintrag("wasser:hafen", hafen.Anzeigename, "Ein Hafen am Ufer: die Vorderseite (Pfeil) zum Wasser, höchstens 3 m davon entfernt – Q/E dreht", Werkstattwerkzeug.Baustein, baustein: hafen.Kennung);
+            Eintrag("wasser:hafen", hafen.Anzeigename, "Ein Hafen am Ufer: die Rückseite (Kai) zum Wasser, höchstens 3 m davon entfernt, die Vorderseite (Pfeil) zum Weg – Q/E dreht", Werkstattwerkzeug.Baustein, baustein: hafen.Kennung);
 
         // Gelände (Schritt 5b): Pinsel und Rampe
         Kopf("Gelände");
