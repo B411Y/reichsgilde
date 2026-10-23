@@ -1,5 +1,5 @@
 {
-  "version": 50,
+  "version": 51,
   "gesundheit": {
     "medicusKosten": 120,
     "medicusKostenPest": 300,
@@ -677,6 +677,10 @@
       "abProzent": 6,
       "zuschlagJeProzent": 0.05,
       "hoechstensFaktor": 3
+    },
+    "wasser": {
+      "furtMinuten": 5,
+      "faehreMinuten": 30
     },
     "karren": {
       "Handkarren": {

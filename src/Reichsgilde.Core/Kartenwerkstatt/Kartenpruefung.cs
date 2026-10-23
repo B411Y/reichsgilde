@@ -12,7 +12,8 @@ namespace Reichsgilde.Core.Kartenwerkstatt;
 //  Umlandbetrieben; tools/karten/kapazitaet.py, die Kapazität). Seit Schritt 4 (PR #174) gibt es nur noch diese Regeln: Die
 //  Kartenwerkstatt und das Kartenskript tools/Kartenbau prüfen beide hiermit. Die Kapazität rechnet Kapazitaetspruefung.cs, den Katalog
 //  gegen die Modelle prüft Katalogpruefung.cs (nur das Kartenskript, er hängt an keiner Karte). Seit Schritt 5b (Gelände) dazu die
-//  Hangsperre (Regel „hang“) für Plätze und Bauzonen.
+//  Hangsperre (Regel „hang“) für Plätze und Bauzonen, seit Schritt 5c das Wasser (Gebäude und Bauzonen nicht im Wasser, Häfen am Ufer,
+//  Flüsse, Seen, Brücken, Fähren, Wege im See).
 //
 //  Zwei Wege hinein:
 //    • Pruefen(entwurf)        – die ganze Karte, nach jedem Befehl (Fehlerliste, rote Gebäude),
@@ -249,6 +250,7 @@ public static class Kartenpruefung
             Vorkommen();
             Mauern();
             Haefen();
+            Wasser();
             Natur();
             Feldflaechen();
             Pflanzen();
@@ -304,6 +306,7 @@ public static class Kartenpruefung
 
             ImSpielfeld(g);
             AmHang(g);
+            AmWasser(g);
             AufMauer(g);
             if (b.Art == Bausteinart.Werkstattplatz) Werkstatthof(g);
             if (!_r.Stadtregeln) return;
@@ -340,6 +343,26 @@ public static class Kartenpruefung
                 Fehler("hang", $"{Wer(g)} steht am Hang: {Prozent(hang.Gefaelle)} % Gefälle (höchstens {Prozent(HangFehler)} %).", hang.Ort, g.Kennung);
             else if (hang.Gefaelle > HangHinweis)
                 Hinweis("hang", $"{Wer(g)} steht am Hang: {Prozent(hang.Gefaelle)} % Gefälle – ab {Prozent(HangHinweis)} % wird der Sockel hoch.", hang.Ort, g.Kennung);
+        }
+
+        /// <summary>
+        /// Wasser (Schritt 5c): Kein Gebäude steht im Wasser – die Grundfläche mit Vorplatz überdeckt keinen Fluss und keinen See. Ein Gebäude am
+        /// Ufer (<see cref="Baustein.AmUfer"/>, der Hafen) nur ohne Vorplatz, dafür liegt die Mitte seiner Vorderseite höchstens
+        /// <see cref="Kartenentwurf.HafenUfer"/> Meter vom Wasser (Regel „ufer“).
+        /// </summary>
+        private void AmWasser(EntwurfGebaeude g)
+        {
+            var wasser = _e.Wasserform;
+            var ufer = g.Baustein!.AmUfer;
+            if (!wasser.IstLeer && wasser.Ueberlappt(ufer ? g.Ecken(ohneVorplatz: true) : Ecken(g)) is { } nass)
+                Fehler("wasser", $"{Wer(g)} steht im Wasser („{nass.Name}“ bei {nass.Ort}).", nass.Ort, g.Kennung);
+            if (!ufer || g.Eingang is not { } vorne) return;
+            var abstand = wasser.Uferabstand(vorne.X, vorne.Z);
+            if (abstand > Kartenentwurf.HafenUfer)
+                Fehler("ufer", abstand == double.MaxValue
+                    ? $"{Wer(g)} steht nicht am Ufer: Vor seiner Vorderseite {vorne} ist kein Wasser (höchstens {M(Kartenentwurf.HafenUfer)} m entfernt)."
+                    : $"{Wer(g)} steht nicht am Ufer: Die Vorderseite {vorne} liegt {M(abstand)} m vom Wasser (höchstens {M(Kartenentwurf.HafenUfer)} m).",
+                    vorne, g.Kennung);
         }
 
         /// <summary>Hangsperre für Bauzonen: die steilste Stelle in der Zone.</summary>
@@ -723,6 +746,85 @@ public static class Kartenpruefung
         }
 
         /// <summary>
+        /// Wasser (Schritt 5c): Flüsse mit mindestens zwei Punkten, Breite 0,5–300 m, Tiefe 0,1–20 m; ein Fluss, der sich mehr als 2 m ins Gelände
+        /// einschneidet, läuft wohl bergauf (Hinweis – der Spiegel steigt nie, siehe Wasserform). Seen mit mindestens drei Ecken, die sich nicht
+        /// selbst kreuzen (Hinweis); ein fester Wasserstand über dem Ufer (Hinweis). Keine Bauzone im Wasser. Brücken über 60 m (Hinweis), Wege, die
+        /// durchs Wasser laufen, ohne es zu queren (Hinweis), Wege durch einen See (Fehler). Fähren: beide Anleger an Land, höchstens 15 m vom
+        /// Wasser, dazwischen Wasser (sonst „Fähre ohne zwei Ufer“), an jedem Anleger ein Weg (Hinweis). Alte Brückeneinträge (Hinweis).
+        /// </summary>
+        private void Wasser()
+        {
+            var form = _e.Wasserform;
+            foreach (var f in _e.Fluesse)
+            {
+                var teil = new EntwurfTeil[] { f };
+                var wer = $"„{f.Bezeichnung}“";
+                var ort = f.Punkte.Count > 0 ? f.Punkte[0] : (Kartenort?)null;
+                if (f.Punkte.Count < 2) FehlerAn("fluss", $"{wer}: Ein Fluss braucht mindestens zwei Punkte.", ort, teil);
+                for (var i = 0; i < f.Punkte.Count; i++)
+                {
+                    if (f.BreiteAn(i) < Wasserform.MindestBreite || f.BreiteAn(i) > Wasserform.HoechstBreite)
+                        FehlerAn("fluss", $"{wer}: Am Punkt {f.Punkte[i]} ist er {M(f.BreiteAn(i))} m breit (erlaubt {M(Wasserform.MindestBreite)} bis {M(Wasserform.HoechstBreite)} m).", f.Punkte[i], teil);
+                    if (f.TiefeAn(i) < Wasserform.MindestTiefe || f.TiefeAn(i) > Wasserform.HoechstTiefe)
+                        FehlerAn("fluss", $"{wer}: Am Punkt {f.Punkte[i]} ist er {M(f.TiefeAn(i))} m tief (erlaubt {M(Wasserform.MindestTiefe)} bis {M(Wasserform.HoechstTiefe)} m).", f.Punkte[i], teil);
+                }
+            }
+            foreach (var l in form.Laeufe.Where(l => l.GroessterEinschnitt > Wasserform.Schluchtgrenze))
+                HinweisAn("fluss-bergauf", $"„{l.Name}“ läuft bergauf: Bei {l.EinschnittOrt} liegt der Spiegel {M(l.GroessterEinschnitt)} m unter dem Gelände, das Bett " +
+                                           "schneidet sich ein (Wasser fließt nie bergauf). Richtung umkehren oder das Gelände senken?", l.EinschnittOrt, new[] { _e.Gewaesser[l.Nummer] });
+            foreach (var s in _e.Seen)
+            {
+                var ort = s.Ecken.Count > 0 ? Kartengeometrie.Mitte(s.Ecken) : (Kartenort?)null;
+                if (s.Ecken.Count < 3) FehlerAn("see", $"„{s.Bezeichnung}“: Ein See braucht mindestens drei Ecken.", ort, new[] { s });
+                if (s.Tiefe is { } t && (t < Wasserform.MindestTiefe || t > Wasserform.HoechstTiefe))
+                    FehlerAn("see", $"„{s.Bezeichnung}“: {M(t)} m tief (erlaubt {M(Wasserform.MindestTiefe)} bis {M(Wasserform.HoechstTiefe)} m).", ort, new[] { s });
+                SelbstSchnitt($"„{s.Bezeichnung}“", s.Ecken, s);
+            }
+            foreach (var s in form.Seen.Where(s => !s.StandAutomatisch && s.Wasserstand > s.TiefstesUfer + 0.05))
+                HinweisAn("see-ufer", $"„{s.Name}“: Der Wasserstand ({M(s.Wasserstand)} m) liegt über dem Ufer bei {s.TiefstesUferOrt} ({M(s.TiefstesUfer)} m) – " +
+                                      "dort liefe der See über.", s.TiefstesUferOrt, new[] { _e.Gewaesser[s.Nummer] });
+            if (!form.IstLeer)
+                foreach (var (z, flaeche, _) in _zonen)
+                    if (flaeche.Length >= 3 && form.Ueberlappt(flaeche) is { } nass)
+                        FehlerAn("wasser", $"Bauzone {z.Kennung} liegt im Wasser („{nass.Name}“ bei {nass.Ort}).", nass.Ort, new[] { z });
+
+            var plan = _e.Wasserplan;
+            foreach (var q in plan.Querungen)
+            {
+                var weg = new EntwurfTeil[] { _e.Wege[q.Weg] };
+                if (q.IstBruecke && q.Laenge > Wasserplan.LangeBruecke)
+                    HinweisAn("bruecke-lang", $"„{q.WegName}“: Die Brücke über „{q.GewaesserName}“ bei {q.Mitte} ist {M(q.Laenge)} m lang (ab {M(Wasserplan.LangeBruecke)} m sehr lang).",
+                        q.Mitte, weg);
+                if (!q.Quert)
+                    HinweisAn("weg-im-wasser", $"„{q.WegName}“ läuft bei {q.Mitte} {M(q.Spannweite)} m durch „{q.GewaesserName}“, ohne ihn zu queren.", q.Mitte, weg);
+            }
+            foreach (var x in plan.Sperren)
+                FehlerAn("weg-see", $"„{x.WegName}“ läuft bei {x.Ort} durch „{x.See}“ – über einen See führt kein Weg (eine Fähre setzt über).", x.Ort,
+                    new[] { _e.Wege[x.Weg] });
+            foreach (var f in plan.Faehren)
+            {
+                var teil = new EntwurfTeil[] { _e.Faehren[f.Nummer] };
+                var wer = $"Fähre „{f.Name}“";
+                if (f.VonImWasser || f.BisImWasser)
+                    FehlerAn("faehre", $"{wer}: Der Anleger {(f.VonImWasser ? f.Von : f.Bis)} steht im Wasser – eine Fähre braucht zwei Ufer.", f.VonImWasser ? f.Von : f.Bis, teil);
+                else if (f.Gewaesser is null)
+                    FehlerAn("faehre", $"{wer}: Zwischen den Anlegern liegt kein Wasser – eine Fähre braucht zwei Ufer.", f.Von, teil);
+                else if (Math.Max(f.VonUfer, f.BisUfer) > Kartenentwurf.AnlegerUfer)
+                {
+                    var (p, d) = f.VonUfer >= f.BisUfer ? (f.Von, f.VonUfer) : (f.Bis, f.BisUfer);
+                    FehlerAn("faehre", $"{wer}: Der Anleger {p} steht {(d == double.MaxValue ? "weit" : M(d) + " m")} vom Wasser (höchstens {M(Kartenentwurf.AnlegerUfer)} m) " +
+                                       "– eine Fähre braucht zwei Ufer.", p, teil);
+                }
+                foreach (var p in new[] { f.Von, f.Bis })
+                    if (NaechsterWeg(p, _wege) > Karrennetz.Fang)
+                        HinweisAn("faehre-weg", $"{wer}: Am Anleger {p} endet kein Weg (höchstens {M(Karrennetz.Fang)} m) – so setzt niemand über.", p, teil);
+            }
+            foreach (var u in _e.Faehren.Where(u => !u.IstFaehre))
+                HinweisAn("bruecke-alt", $"„{u.Bezeichnung}“ (uebergaenge, art „{u.Art}“): Brücken entstehen seit Schritt 5c von selbst, wo ein Weg einen Fluss quert – " +
+                                         "der Eintrag zählt nur noch für das Wegenetz.", u.Von, new[] { u });
+        }
+
+        /// <summary>
         /// Natur: Flächen mit mindestens drei Ecken, Dichte und Gruppen, jede Art ein Natur-Baustein des Katalogs (karte.py, Regel 9); Umriss
         /// und Aussparungen kreuzen sich nicht selbst; einzelne Pflanzen aus dem Katalog.
         /// </summary>
@@ -812,7 +914,7 @@ public static class Kartenpruefung
             foreach (var v in _e.Vorkommen) Spiel($"Vorkommen {v.Kennung}", new[] { v.Punkt });
             foreach (var h in _e.Haefen)
                 Spiel(h.Name, EntwurfTeil.Orte(h.Kante).Concat(EntwurfTeil.Orte(h.Anleger)).Concat(EntwurfTeil.Orte(h.Kran is null ? null : new[] { h.Kran })));
-            foreach (var u in _e.Uebergaenge) Spiel(u.Name, EntwurfTeil.Orte(new[] { u.Von, u.Bis }));
+            foreach (var u in _e.Faehren) Spiel($"„{u.Bezeichnung}“", new[] { u.Von, u.Bis }, u);
 
             // Alles andere: in der Karte (der Rand gehört dazu)
             void Karte(string wer, IEnumerable<Kartenort> punkte, EntwurfTeil? teil = null)
@@ -828,7 +930,8 @@ public static class Kartenpruefung
             foreach (var n in _e.Naturflaechen) Karte($"Naturfläche „{n.Name}“", n.Ecken, n);
             foreach (var f in _e.Felder) Karte($"Feld „{f.Bezeichnung}“", f.Ecken, f);
             foreach (var p in _e.Pflanzen) Karte($"{p.Bezeichnung}", new[] { p.Punkt }, p);
-            foreach (var w in _e.Wasser) Karte(w.Name, EntwurfTeil.Orte(w.Linie).Concat(EntwurfTeil.Orte(w.Flaeche)));
+            foreach (var f in _e.Fluesse) Karte($"„{f.Bezeichnung}“", f.Punkte, f);
+            foreach (var s in _e.Seen) Karte($"„{s.Bezeichnung}“", s.Ecken, s);
             foreach (var x in _e.Gelaende) Karte(x.Name, EntwurfTeil.Orte(x.Flaeche));
 
             if (_e.Kamera is { Punkt: { Length: 2 } k } && !g.ImSpielfeld(k[0], k[1]))

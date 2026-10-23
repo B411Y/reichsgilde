@@ -353,14 +353,42 @@ public sealed class Kartennatur
     public List<Feldflaeche> Felder { get; init; } = new();
 }
 
-/// <summary>Fluss, Bach (Linie mit Breite) oder See (Fläche).</summary>
+/// <summary>
+/// Fluss, Bach (Linie) oder See, Teich (Fläche) – seit der Kartenwerkstatt, Schritt 5c (<see cref="Wasserform"/>, docs/LEVELDESIGN.md, „Wasser“).
+/// Ein Fluss fließt in Zeichenrichtung; jeder Stützpunkt ist [x, z], [x, z, breite] oder [x, z, breite, tiefe] (fehlt die Breite, gilt
+/// <see cref="Breite"/>, sonst die Vorgabe der Art; fehlt die Tiefe, gilt <see cref="Tiefe"/>, sonst eine aus der Breite). Ein See hat einen
+/// Umriss und einen Wasserstand (Höhe des Spiegels in Metern; fehlt er, liegt der Spiegel 0,4 m unter dem tiefsten Punkt des Ufers).
+/// </summary>
 public sealed class Gewaesser
 {
+    /// <summary>„fluss“, „bach“ (Linie) oder „see“, „teich“ (Fläche).</summary>
     public string Art { get; init; } = "";
     public string Name { get; init; } = "";
+
+    /// <summary>Fluss, Bach: die Stützpunkte der Mittellinie in Fließrichtung, je Punkt [x, z] mit optional Breite und Tiefe.</summary>
     public List<double[]>? Linie { get; init; }
+
+    /// <summary>Fluss, Bach: Breite für Punkte ohne eigene (0 = nach der Art, <see cref="Wasserform.Vorgabebreite"/>).</summary>
     public double Breite { get; init; }
+
+    /// <summary>Tiefe in Metern für Punkte ohne eigene (Fluss) bzw. die größte Tiefe (See); null = aus der Breite bzw. 2 m.</summary>
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public double? Tiefe { get; init; }
+
+    /// <summary>Fluss, Bach: Strömung in der Mitte in m/s; null = nach der Art (Bach 0,5, Fluss 1).</summary>
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public double? Stroemung { get; init; }
+
+    /// <summary>See, Teich: der Umriss.</summary>
     public List<double[]>? Flaeche { get; init; }
+
+    /// <summary>See, Teich: die Höhe des Wasserspiegels in Metern; null = 0,4 m unter dem tiefsten Punkt des Ufers.</summary>
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public double? Wasserstand { get; init; }
+
+    /// <summary>Ist es ein Fluss oder Bach (Linie)? Sonst ein See oder Teich (Fläche).</summary>
+    [JsonIgnore]
+    public bool IstLinie => Wasserform.IstFliessend(Art);
 }
 
 /// <summary>Gelände der Art „feld“, „wald“, „huegel“, „wildnis“ (Köln).</summary>
@@ -380,9 +408,14 @@ public sealed class Hafen
     public double[]? Kran { get; init; }
 }
 
-/// <summary>Brücke oder Fähre.</summary>
+/// <summary>
+/// Eine Fährstelle (<c>art</c> „faehre“, seit Schritt 5c): zwei Anleger <see cref="Von"/> und <see cref="Bis"/> an beiden Ufern, verbunden mit je
+/// einem Weg. Einträge mit „bruecke“ stammen aus Format 1 (Köln) – Brücken entstehen seit Schritt 5c von selbst, wo ein Weg einen Fluss quert.
+/// </summary>
 public sealed class Uebergang
 {
+    public const string Faehre = "faehre", Bruecke = "bruecke";
+
     public string Art { get; init; } = "";
     public string Name { get; init; } = "";
     public double[] Von { get; init; } = { 0, 0 };
@@ -478,14 +511,21 @@ public sealed class Stadtkarte
     private Gelaendeform? _gelaendeform;
 
     /// <summary>
-    /// Das Gelände, wie die Darstellung es zeichnet (<see cref="Bauen.Gelaendeform"/>): Höhe des Bodens mit dem Bett der Wege und Mauern,
-    /// Profile, Fundamente. Ohne <see cref="Hoehen"/> überall 0.
+    /// Das Gelände, wie die Darstellung es zeichnet (<see cref="Bauen.Gelaendeform"/>): Höhe des Bodens mit dem Bett der Wege, Mauern und
+    /// Gewässer, Profile, Fundamente, das Wasser (<see cref="Gelaendeform.Wasser"/>). Ohne <see cref="Hoehen"/> und Wasser überall 0.
     /// </summary>
     [JsonIgnore]
     public Gelaendeform Gelaendeform => _gelaendeform ??= new Gelaendeform(Hoehen ?? new Hoehenraster(),
         () => Wege.Where(w => w.Linie.Count >= 2).Select(w => new Bettlinie(w.Verlauf.Select(Kartenort.Aus).ToList(), w.BreiteWirksam))
             .Concat(Mauern.Where(m => m.Linie.Count >= 2).Select(m => new Bettlinie(m.Linie.Select(Kartenort.Aus).ToList(), Gelaendeform.Mauerbett, m.Geschlossen)))
-            .ToList());
+            .ToList(),
+        () => Wasser);
+
+    private Wasserplan? _wasserplan;
+
+    /// <summary>Brücken und Furten (wo Wege Flüsse queren), Fähren und Wege im See (<see cref="Bauen.Wasserplan"/>, Schritt 5c).</summary>
+    [JsonIgnore]
+    public Wasserplan Wasserplan => _wasserplan ??= Bauen.Wasserplan.Von(this);
 
     /// <summary>Das Fundament eines Gebäudes der Karte (ganze Grundfläche mit Vorplatz): Höhe des Bodens im Haus und Tiefe des Sockels.</summary>
     public Fundament Fundament(Kartengebaeude g) =>
@@ -505,7 +545,8 @@ public sealed class Stadtkarte
         var rand = Rand is > 0 ? Rand.Value : Bauen.Kartengrenzen.RandVorgabe;
         if (Groesse is { Length: 2 } g && g[0] > 0 && g[1] > 0)
             return new Kartengrenzen(g[0], g[1], Mitte is { Length: 2 } m ? new Kartenort(m[0], m[1]) : default, rand);
-        static IEnumerable<Kartenort> Orte(IEnumerable<double[]>? p) => (p ?? Enumerable.Empty<double[]>()).Where(x => x is { Length: 2 }).Select(Kartenort.Aus);
+        // [x, z] – ein Stützpunkt eines Flusses kann Breite und Tiefe dahinter haben
+        static IEnumerable<Kartenort> Orte(IEnumerable<double[]>? p) => (p ?? Enumerable.Empty<double[]>()).Where(x => x is { Length: >= 2 }).Select(Kartenort.Aus);
         var spiel = Gebaeude.SelectMany(x => Bauen.Kartengrenzen.GebaeudeEcken(x.Baustein, x.Punkt[0], x.Punkt[1], x.Drehung, x.Massstab) is { Count: > 0 } e
                 ? e : Orte(new[] { x.Punkt }))
             .Concat(Mauern.SelectMany(m => Orte(m.Linie).Concat(Orte(m.Tore.Select(t => t.Punkt)))))
@@ -695,6 +736,21 @@ public sealed class Stadtkarte
             var wer = $"Feld „{n.Name}“";
             if (n.Flaeche.Count < 3 || !Linie(n.Flaeche)) f.Add($"{wer}: Die Fläche braucht mindestens drei Punkte [x, z].");
             if (n.Streifen <= 0 || n.Laenge <= 0) f.Add($"{wer}: streifen und laenge müssen größer als 0 sein.");
+        }
+        foreach (var w in Wasser)
+        {
+            var wer = $"Gewässer „{w.Name}“";
+            if (!Wasserform.Arten.Contains(w.Art)) f.Add($"{wer}: Die Art „{w.Art}“ gibt es nicht (erlaubt: {string.Join(", ", Wasserform.Arten)}).");
+            else if (w.IstLinie && (w.Linie is not { Count: >= 2 } l || l.Any(p => p is not { Length: >= 2 and <= 4 })))
+                f.Add($"{wer}: linie braucht mindestens zwei Punkte [x, z] (mit Breite und Tiefe [x, z, breite, tiefe]).");
+            else if (!w.IstLinie && (w.Flaeche is not { Count: >= 3 } fl || !Linie(fl)))
+                f.Add($"{wer}: flaeche braucht mindestens drei Punkte [x, z].");
+            if (w.Breite < 0 || w.Tiefe is <= 0 || w.Stroemung is < 0) f.Add($"{wer}: breite, tiefe und stroemung dürfen nicht negativ sein (tiefe größer als 0).");
+        }
+        foreach (var u in Uebergaenge)
+        {
+            if (u.Art is not (Uebergang.Faehre or Uebergang.Bruecke)) f.Add($"Übergang „{u.Name}“: Die Art „{u.Art}“ gibt es nicht (faehre; bruecke aus Format 1).");
+            if (!Punkt(u.Von) || !Punkt(u.Bis)) f.Add($"Übergang „{u.Name}“: von und bis haben genau zwei Zahlen [x, z].");
         }
         if (Groesse is not null && (Groesse.Length != 2 || Groesse.Any(x => x <= 0))) f.Add("groesse ist [Breite, Tiefe] mit zwei Zahlen größer als 0.");
         if (Mitte is not null && !Punkt(Mitte)) f.Add("mitte hat genau zwei Zahlen [x, z].");

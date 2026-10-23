@@ -7,7 +7,8 @@ namespace Reichsgilde.Core.Kartenwerkstatt;
 //
 //  Ein Weg wird aus Stützpunkten gezeichnet; mit „glatt“ läuft eine weiche Kurve hindurch (Wegkurve). Beginnt oder endet ein Weg an einem
 //  Ziel (näher als der Fangradius), rastet er ein – zuerst an einem Ziel, das kein Weg ist: dem Hof eines Werkstattplatzes, der Mitte eines
-//  Tores (Torfang) oder einem Halteplatz, den die Darstellung nennt (Karrenplätze, Gatter); sonst an einem anderen Weg: auf dessen
+//  Tores (Torfang), einem Halteplatz, den die Darstellung nennt (Karrenplätze, Gatter), oder dem Anleger einer Fähre (seit Schritt 5c);
+//  sonst an einem anderen Weg: auf dessen
 //  Stützpunkt, sonst auf den nächsten Punkt seiner Linie – dort bekommt der andere Weg im selben Schritt einen Stützpunkt, damit sich beide
 //  wirklich treffen (das Gassennetz verbindet nur gemeinsame Punkte sicher). Punkte dazwischen rasten nur in Tore ein (ein Weg durch das
 //  Tor). Punkte landen auf 5 cm wie in der Datei.
@@ -30,10 +31,13 @@ public enum Fangziel
 
     /// <summary>Ein Halteplatz, den die Darstellung nennt (<see cref="Kartenentwurf.Fangpunkte"/>: Karrenplätze, Gatter).</summary>
     Halteplatz,
+
+    /// <summary>Ein Anleger einer Fährstelle (Schritt 5c).</summary>
+    Anleger,
 }
 
 /// <summary>
-/// Wo ein Punkt einrastet: der Weg (null bei Hof, Tor, Halteplatz), der Ort (auf 5 cm), der Stützpunkt, wenn es einer ist (null: ein Punkt
+/// Wo ein Punkt einrastet: der Weg (null bei Hof, Tor, Halteplatz, Anleger), der Ort (auf 5 cm), der Stützpunkt, wenn es einer ist (null: ein Punkt
 /// auf der Linie – der Weg bekommt dort beim Einrasten einen Stützpunkt – oder kein Weg), und der Abstand vom gefragten Punkt. Dazu woran
 /// (<see cref="Ziel"/>) und, je nach Ziel, das Gebäude (Hof, Halteplatz) bzw. Mauer und Tor.
 /// </summary>
@@ -42,6 +46,9 @@ public readonly record struct Wegfang(EntwurfWeg? Weg, Kartenort Ort, int? Stuet
     public Fangziel Ziel { get; init; }
     public EntwurfGebaeude? Gebaeude { get; init; }
     public EntwurfMauer? Mauer { get; init; }
+
+    /// <summary>Die Fährstelle (nur bei <see cref="Fangziel.Anleger"/>).</summary>
+    public EntwurfFaehre? Faehre { get; init; }
 
     /// <summary>Index des Tores in <see cref="EntwurfMauer.Tore"/> (nur bei <see cref="Fangziel.Tor"/>).</summary>
     public int? Tor { get; init; }
@@ -83,7 +90,7 @@ public sealed partial class Kartenentwurf
     public Wegfang? TorEinrasten(double x, double z) =>
         TorBei(x, z) is var (m, tor, d) ? new Wegfang(null, m.Tore[tor].Punkt, null, d) { Ziel = Fangziel.Tor, Mauer = m, Tor = tor } : null;
 
-    /// <summary>Das nächste Ziel, das kein Weg ist (Hof, Tor, Halteplatz) – null, wenn keins nah genug liegt.</summary>
+    /// <summary>Das nächste Ziel, das kein Weg ist (Hof, Tor, Halteplatz, Anleger) – null, wenn keins nah genug liegt.</summary>
     private Wegfang? ZielFangen(Kartenort p, double fangradius)
     {
         Wegfang? best = null;
@@ -106,6 +113,9 @@ public sealed partial class Kartenentwurf
                 var tor = i;
                 Pruefe(m.Tore[i].Punkt, Math.Max(fangradius, Torfang), d => new Wegfang(null, m.Tore[tor].Punkt, null, d) { Ziel = Fangziel.Tor, Mauer = m, Tor = tor });
             }
+        foreach (var f in _faehren.Where(f => f.IstFaehre))
+            foreach (var anleger in new[] { f.Von, f.Bis })
+                Pruefe(anleger, fangradius, d => new Wegfang(null, anleger, null, d) { Ziel = Fangziel.Anleger, Faehre = f });
         return best;
     }
 
@@ -134,7 +144,7 @@ public sealed partial class Kartenentwurf
     /// <summary>
     /// Legt einen Weg an: Klasse, Stützpunkte (mindestens zwei verschiedene), glatt oder gerade, Name (Vorgabe: Anzeigename der Klasse mit
     /// Nummer), Breite (0 = <see cref="Kartenweg.Standardbreite"/>; nie unter der <see cref="Kartenweg.Mindestbreite"/>). Mit
-    /// <paramref name="einrasten"/> rasten Anfang und Ende ein (<see cref="Einrasten"/>: Hof, Tor, Halteplatz, andere Wege), die Punkte
+    /// <paramref name="einrasten"/> rasten Anfang und Ende ein (<see cref="Einrasten"/>: Hof, Tor, Halteplatz, Anleger, andere Wege), die Punkte
     /// dazwischen nur in Tore; eine Gasse, die an einem Hof endet und nicht an einem beginnt, wird umgedreht (Werkstattnorm: die Gasse beginnt
     /// am Hof). Ein Schritt.
     /// </summary>

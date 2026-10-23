@@ -13,7 +13,9 @@ namespace Reichsgilde.Kartenbau;
 //  Türme, Ecktürme, Torburgen, wie im Spiel); Bauzonen nach Lage, Naturflächen mit Aussparungen, Felder mit ihren Streifen, Wasser, Gelände,
 //  Häfen. Das Bild zeigt die ganze Karte: den Randstreifen etwas dunkler, die Kante des Spielfelds gestrichelt (seit Schritt 5a). Die
 //  Startbelegung ist farbig: Jeder Platz eines Hauses hat dessen Farbe (Legende oben links). Gelände (seit Schritt 5b) als braune Höhenlinien
-//  des Bodens: alle 2 m (bei viel Höhenunterschied alle 5 m) eine dünne, alle 10 m eine kräftigere.
+//  des Bodens: alle 2 m (bei viel Höhenunterschied alle 5 m) eine dünne, alle 10 m eine kräftigere. Wasser (seit Schritt 5c) aus der
+//  Wasserform des Kerns: Flüsse mit ihrer Breite je Punkt und einem Pfeil in Fließrichtung, Seen; Brücken (Holz braun, Stein grau, mit
+//  Pfeilern), Furten (Trittsteine) und Fähren (gestrichelt, Anleger als Stege) aus dem Wasserplan.
 //  Die Belegung (<kennung>-belegung.svg) zeigt darüber, wie die Prüfung die Stadt füllt: die Kapazitätsprüfung (Köln, neue Karten) bzw. den
 //  Probeplan (Greybox).
 // ═════════════════════════════════════════════════════════════════════════════
@@ -117,13 +119,7 @@ public static class Vorschau
         Hoehenlinien(e, Zeile);
         foreach (var z in e.Bauzonen.Where(z => z.Ecken.Count >= 3))
             Zeile($"<polygon points=\"{Punkte(z.Ecken)}\" fill=\"{Zonenfarben[z.Art]}\" stroke=\"{Farben["zonenrand"]}\" stroke-width=\"0.4\"/>");
-        foreach (var w in e.Wasser)
-        {
-            if (w.Flaeche is { Count: > 0 } fl)
-                Zeile($"<polygon points=\"{Punkte(fl.Select(Kartenort.Aus))}\" fill=\"{Farben["wasser"]}\" stroke=\"{Farben["wasserlinie"]}\" stroke-width=\"0.6\"/>");
-            else if (w.Linie is { Count: > 0 } li)
-                Zeile($"<polyline points=\"{Punkte(li.Select(Kartenort.Aus))}\" fill=\"none\" stroke=\"{(w.Breite > 4 ? Farben["wasser"] : Farben["wasserlinie"])}\" stroke-width=\"{F(w.Breite)}\" stroke-linecap=\"round\"/>");
-        }
+        Wasser(e, Zeile);
         foreach (var w in e.Wege.Where(w => w.Punkte.Count >= 2))
         {
             var (b, strich, farbe) = Strich(w.Klasse);
@@ -139,9 +135,7 @@ public static class Vorschau
             foreach (var a in h.Anleger) Zeile($"<rect x=\"{F(a[0])}\" y=\"{F(a[1] - 1)}\" width=\"7\" height=\"2\" fill=\"#6B4E31\"/>");
             if (h.Kran is { Length: 2 } k) Zeile($"<circle cx=\"{F(k[0])}\" cy=\"{F(k[1])}\" r=\"2.5\" fill=\"none\" stroke=\"#1F2326\" stroke-width=\"1\"/>");
         }
-        foreach (var u in e.Uebergaenge)
-            Zeile($"<polyline points=\"{Punkte(new[] { Kartenort.Aus(u.Von), Kartenort.Aus(u.Bis) })}\" fill=\"none\" stroke=\"#1F2326\" " +
-                  $"stroke-width=\"{(u.Art == "bruecke" ? "4" : "1.2")}\"{(u.Art == "faehre" ? " stroke-dasharray=\"4 3\"" : "")}/>");
+        Uebergaenge(e, Zeile);
         Gebaeude(e, Zeile);
         foreach (var p in e.Pflanzen)
             Zeile($"<circle cx=\"{F(p.X)}\" cy=\"{F(p.Z)}\" r=\"1\" fill=\"#5F7F4F\"/>");
@@ -165,6 +159,62 @@ public static class Vorschau
         return o.ToString();
     }
 
+    /// <summary>
+    /// Das Wasser aus der Wasserform: je Fluss ein Band mit der Breite je Punkt (linkes Ufer hin, rechtes zurück) und ein Pfeil in der Mitte
+    /// in Fließrichtung, je See die Fläche.
+    /// </summary>
+    private static void Wasser(Kartenentwurf e, Action<string> zeile)
+    {
+        var form = e.Wasserform;
+        foreach (var s in form.Seen)
+            zeile($"<polygon points=\"{Punkte(s.Umriss)}\" fill=\"{Farben["wasser"]}\" stroke=\"{Farben["wasserlinie"]}\" stroke-width=\"0.6\"/>");
+        foreach (var l in form.Laeufe)
+        {
+            // jeden zweiten Meter ein Punkt genügt fürs Bild
+            var punkte = l.Punkte.Where((_, i) => i % 2 == 0 || i == l.Punkte.Count - 1).ToList();
+            Kartenort Ufer(Wasserpunkt w, int seite) => new(w.Ort.X - w.RichtungZ * w.Breite / 2 * seite, w.Ort.Z + w.RichtungX * w.Breite / 2 * seite);
+            var band = punkte.Select(w => Ufer(w, 1)).Concat(punkte.AsEnumerable().Reverse().Select(w => Ufer(w, -1)));
+            zeile($"<polygon points=\"{Punkte(band)}\" fill=\"{Farben["wasser"]}\" stroke=\"{Farben["wasserlinie"]}\" stroke-width=\"0.4\" stroke-linejoin=\"round\"/>");
+            // Pfeil in Fließrichtung in der Mitte des Laufs
+            var m = l.AnStelle(l.Laenge / 2);
+            var g = Math.Clamp(m.Breite, 3, 12);
+            var (vx, vz, qx, qz) = (m.RichtungX * g, m.RichtungZ * g, -m.RichtungZ * g * 0.5, m.RichtungX * g * 0.5);
+            zeile($"<polygon points=\"{F(m.Ort.X + vx)},{F(m.Ort.Z + vz)} {F(m.Ort.X - vx + qx)},{F(m.Ort.Z - vz + qz)} {F(m.Ort.X - vx - qx)},{F(m.Ort.Z - vz - qz)}\" " +
+                  $"fill=\"{Farben["wasserlinie"]}\" opacity=\"0.7\"/>");
+        }
+    }
+
+    /// <summary>Brücken (Holz braun, Stein grau, Pfeiler als Punkte), Furten (Trittsteine), Fähren (gestrichelt mit Stegen), alte Brückeneinträge (dick).</summary>
+    private static void Uebergaenge(Kartenentwurf e, Action<string> zeile)
+    {
+        var plan = e.Wasserplan;
+        foreach (var q in plan.Querungen)
+        {
+            if (q.Art == Uebergangsart.Furt)
+            {
+                var n = Math.Max(2, (int)Math.Round(q.Spannweite / 1.2));
+                for (var i = 0; i <= n; i++)
+                {
+                    var p = new Kartenort(q.Anfang.X + (q.Ende.X - q.Anfang.X) * i / n, q.Anfang.Z + (q.Ende.Z - q.Anfang.Z) * i / n);
+                    zeile($"<circle cx=\"{F(p.X)}\" cy=\"{F(p.Z)}\" r=\"0.45\" fill=\"#8E8F88\" stroke=\"#1F2326\" stroke-width=\"0.15\"/>");
+                }
+                continue;
+            }
+            var farbe = q.Art == Uebergangsart.Holzbruecke ? "#8A5A2B" : "#7D7F78";
+            zeile($"<polyline points=\"{Punkte(new[] { q.Anfang, q.Ende })}\" fill=\"none\" stroke=\"#1F2326\" stroke-width=\"{F(q.Breite + 1.2)}\"/>" +
+                  $"<polyline points=\"{Punkte(new[] { q.Anfang, q.Ende })}\" fill=\"none\" stroke=\"{farbe}\" stroke-width=\"{F(q.Breite + 0.4)}\"/>");
+            foreach (var p in q.Pfeiler) zeile($"<circle cx=\"{F(p.Ort.X)}\" cy=\"{F(p.Ort.Z)}\" r=\"0.6\" fill=\"#1F2326\"/>");
+        }
+        foreach (var f in plan.Faehren)
+        {
+            zeile($"<polyline points=\"{Punkte(new[] { f.Von, f.Bis })}\" fill=\"none\" stroke=\"#1F2326\" stroke-width=\"1.2\" stroke-dasharray=\"4 3\"/>");
+            foreach (var a in new[] { f.Von, f.Bis })
+                zeile($"<circle cx=\"{F(a.X)}\" cy=\"{F(a.Z)}\" r=\"1.6\" fill=\"#6B4E31\" stroke=\"#1F2326\" stroke-width=\"0.3\"/>");
+        }
+        foreach (var u in e.Faehren.Where(u => !u.IstFaehre))
+            zeile($"<polyline points=\"{Punkte(new[] { u.Von, u.Bis })}\" fill=\"none\" stroke=\"#1F2326\" stroke-width=\"4\"/>");
+    }
+
     /// <summary>Abstand der Punkte, an denen die Höhenlinien gerechnet werden (Meter).</summary>
     public const double Linienraster = 8;
 
@@ -175,7 +225,7 @@ public static class Vorschau
     private static void Hoehenlinien(Kartenentwurf e, Action<string> zeile)
     {
         var g = e.Gelaendeform;
-        if (g.IstFlach) return;
+        if (!g.HatHoehen) return; // ohne Höhen nur das Bett der Gewässer – das zeigt das Wasser selbst
         var a = e.Kartengrenzen.Aussen;
         var (nx, nz) = ((int)Math.Ceiling(a.Breite / Linienraster - 1e-9) + 1, (int)Math.Ceiling(a.Tiefe / Linienraster - 1e-9) + 1);
         double X(int i) => Math.Min(a.X0 + i * Linienraster, a.X1);
