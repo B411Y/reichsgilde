@@ -159,10 +159,7 @@ public partial class Stadtansicht
                     hafen.Wurzel.Name = "Hafen_" + g.Kennung;
                     hafen.Wurzel.Transform = ModellLage(g);
                 }
-                _umlandstellen[g.Name] = g;
-                var tuer = ModellLage(g) * UmlandAnkerImModell(datei).Tuer;
-                AnWegAnschliessen(tuer, FusswegBreite);
-                _netz.Weg(tuer with { Y = 0 }, Punkt3(g.Punkt));
+                // keine Arbeitsstelle der Einwohner (noch keine Wirtschaft am Hafen): nicht in _umlandstellen, nicht am Gassennetz
                 continue;
             }
             if (kasten.FindChild(knotenName, true, false) is not MeshInstance3D { Mesh: { } netz } teil)
