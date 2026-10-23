@@ -54,6 +54,15 @@ public enum Werkstattwerkzeug
 
     /// <summary>Eine Rampe zwischen zwei Punkten: zwei Klicks.</summary>
     Rampe,
+
+    /// <summary>Einen Fluss oder Bach zeichnen (Schritt 5c): Punkte klicken in Fließrichtung, Doppelklick oder Enter beendet.</summary>
+    Fluss,
+
+    /// <summary>Einen See oder Teich zeichnen: Ecken klicken, Doppelklick schließt.</summary>
+    See,
+
+    /// <summary>Eine Fährstelle setzen: zwei Klicks, die beiden Anleger.</summary>
+    Faehre,
 }
 
 /// <summary>
@@ -64,7 +73,8 @@ public enum Werkstattwerkzeug
 ///   • Stadtansicht.Kartenwerkstatt.Flaechen.cs: Bauzonen und Naturflächen als Vielecke (Ecken), Vorschau beim Zeichnen;
 ///   • Stadtansicht.Kartenwerkstatt.Natur.cs: die Natur der Flächen live, einzelne Pflanzen, Pinsel und Radierer;
 ///   • Stadtansicht.Kartenwerkstatt.Mauern.cs: Mauern und Tore zeichnen und bearbeiten;
-///   • Stadtansicht.Kartenwerkstatt.Start.cs: die Startbelegung in der Karte (Farben der Häuser) und das Wählen eines Platzes dafür.
+///   • Stadtansicht.Kartenwerkstatt.Start.cs: die Startbelegung in der Karte (Farben der Häuser) und das Wählen eines Platzes dafür;
+///   • Stadtansicht.Kartenwerkstatt.Wasser.cs: Flüsse, Seen und Fährstellen zeichnen, markieren und wählen (das Wasser selbst: Stadtansicht.Wasser.cs).
 ///
 /// <b>Zeichnen.</b> Der Boden kommt aus derselben Methode wie im Spiel (Stadtansicht.Karte.cs), einmal beim Öffnen. Jeder
 /// bearbeitbare Teil des Entwurfs (Gebäude, Weg, Bauzone, Naturfläche, Pflanze, Mauer) hat einen eigenen Knoten; ändert ein Befehl einen Teil
@@ -178,6 +188,7 @@ public partial class Stadtansicht
         FlaechenAufbauen();  // Stadtansicht.Kartenwerkstatt.Flaechen.cs
         PflanzenAufbauen();  // Stadtansicht.Kartenwerkstatt.Natur.cs
         MauernAufbauen();    // Stadtansicht.Kartenwerkstatt.Mauern.cs
+        WasserAufbauen();    // Stadtansicht.Kartenwerkstatt.Wasser.cs
         _wsFehlerNeu = true;
         entwurf.Geaendert += EntwurfGeaendert;
         LichtNachUhrzeit(12 * 60, 100); // heller Mittag, sofort ohne Überblenden
@@ -243,14 +254,28 @@ public partial class Stadtansicht
         if (!hatteBereich) alt = default;
         switch (a.Objekt)
         {
+            case EntwurfFluss fluss: // Gewässer vor den Flächen: Ein See ist auch eine Fläche
+                FlussMarkieren(fluss, weg);
+                GewaesserGeaendert(fluss, weg);
+                break;
+            case EntwurfSee see:
+                FlaecheBauen(see, weg);
+                GewaesserGeaendert(see, weg);
+                break;
+            case EntwurfFaehre faehre:
+                FaehreMarkieren(faehre, weg);
+                _wsWasserNeu = true;
+                break;
             case EntwurfGebaeude g:
                 StueckEntfernen(g);
                 if (!weg) StueckBauen(g);
                 _wsNetzNeu = true; // Höfe und Karrenplätze hängen am Netz
+                if (g.Baustein?.AmUfer == true) GewaesserGeaendert(g, weg); // ein Hafen: das Becken vor der Kaimauer (Stadtansicht.Kartenwerkstatt.Wasser.cs)
                 break;
             case EntwurfWeg w:
                 WegBauen(w, weg);
                 _wsNetzNeu = true;
+                if (!GewaesserLeer) _wsWasserNeu = true; // Brücken, Furten und Fähren hängen an den Wegen
                 break;
             case EntwurfFlaeche f:
                 FlaecheBauen(f, weg);
@@ -304,6 +329,7 @@ public partial class Stadtansicht
         if (_wsBelegungNeu) BelegungNachziehen();
         if (_wsRandNeu) RandNeuBauen();
         GelaendeNachziehen(); // vor der Natur: Sie liest die neue Höhe (Stadtansicht.Kartenwerkstatt.Gelaende.cs)
+        if (_wsWasserNeu || _wsWegeNeu) WasserNachziehen(); // Stadtansicht.Kartenwerkstatt.Wasser.cs
         NaturNachziehen();
         if (_wsNetzNeu) NetzBauen();
         if (_wsFehlerNeu) FehlerZeigen();
@@ -425,6 +451,9 @@ public partial class Stadtansicht
                     new ModellZustand(Variante: stabil % 3 + 1, Besitzer: Hausfarben[stabil % Hausfarben.Length]));
                 break;
             }
+            case Bausteinart.Umlandstelle when g.Baustein is { Modell: { } hafen } && hafen.StartsWith("wasser/"):
+                Einsetzen(hafen, new ModellZustand()); // der Hafen: das ganze Modell
+                break;
             case Bausteinart.Umlandstelle when g.Baustein is { Modell: { } datei } b:
                 StelleEinsetzen(datei, b.Knoten ?? g.Name);
                 break;
@@ -637,6 +666,12 @@ public partial class Stadtansicht
             case EntwurfMauer m:
                 MauerMarkieren(m);
                 break;
+            case EntwurfFluss fluss:
+                FlussMarkieren(fluss, false);
+                break;
+            case EntwurfFaehre faehre:
+                FaehreMarkieren(faehre, false);
+                break;
         }
     }
 
@@ -668,6 +703,8 @@ public partial class Stadtansicht
         EntwurfGebaeude g => g.Punkt,
         EntwurfPflanze p => p.Punkt,
         EntwurfWeg { Verlauf.Count: > 0 } w => w.Verlauf[w.Verlauf.Count / 2],
+        EntwurfFluss { Punkte.Count: > 0 } fl => fl.Verlauf[fl.Verlauf.Count / 2],
+        EntwurfFaehre fa => new Kartenort((fa.Von.X + fa.Bis.X) / 2, (fa.Von.Z + fa.Bis.Z) / 2),
         EntwurfFlaeche { Ecken.Count: > 0 } f => new Kartenort(f.Ecken.Average(e => e.X), f.Ecken.Average(e => e.Z)),
         EntwurfMauer { Ecken.Count: > 0 } m => new Kartenort(m.Ecken.Average(e => e.X), m.Ecken.Average(e => e.Z)),
         _ => default,
@@ -737,6 +774,7 @@ public partial class Stadtansicht
         ZeichnenAbbrechen();
         StrichAbbrechen();
         GelaendeWerkzeugAus(); // Stadtansicht.Kartenwerkstatt.Gelaende.cs
+        WasserWerkzeugAus();   // Stadtansicht.Kartenwerkstatt.Wasser.cs
         var b = _entwurf?.Katalog.Finde(baustein);
         if (werkzeug == Werkstattwerkzeug.Baustein && (b is null || b.Art == Bausteinart.Natur)) werkzeug = Werkstattwerkzeug.Auswahl;
         if (werkzeug == Werkstattwerkzeug.Pflanze && b is not { Art: Bausteinart.Natur }) werkzeug = Werkstattwerkzeug.Auswahl;
@@ -803,6 +841,7 @@ public partial class Stadtansicht
     {
         if (_entwurf is null) return;
         Nachziehen();
+        GriffAenderungMelden(); // Stadtansicht.Kartenwerkstatt.Wasser.cs
         GriffeSkalieren();
         var maus = _wsOrt ?? MausBoden();
         VorschauLeeren();
@@ -832,8 +871,15 @@ public partial class Stadtansicht
             case Werkstattwerkzeug.Weg:
                 WegVorschau(maus);
                 break;
-            case Werkstattwerkzeug.Bauzone or Werkstattwerkzeug.Wald or Werkstattwerkzeug.Streu or Werkstattwerkzeug.Feld or Werkstattwerkzeug.Aussparung:
+            case Werkstattwerkzeug.Bauzone or Werkstattwerkzeug.Wald or Werkstattwerkzeug.Streu or Werkstattwerkzeug.Feld or Werkstattwerkzeug.Aussparung
+                or Werkstattwerkzeug.See:
                 FlaechenVorschau(maus);
+                break;
+            case Werkstattwerkzeug.Fluss:
+                FlussVorschau(maus); // Stadtansicht.Kartenwerkstatt.Wasser.cs
+                break;
+            case Werkstattwerkzeug.Faehre:
+                FaehreVorschau(maus);
                 break;
             case Werkstattwerkzeug.Pinsel or Werkstattwerkzeug.Radierer:
                 PinselZeigen(maus);
@@ -1012,7 +1058,8 @@ public partial class Stadtansicht
         // Das Mausrad über einer Tafel, die nicht (mehr) rollen kann, zoomt nicht die Kamera
         if (eingabe is InputEventMouseButton { ButtonIndex: MouseButton.WheelUp or MouseButton.WheelDown } && GetViewport().GuiGetHoveredControl() is not null) return true;
         var zeichnet = Kartenwerkzeug is Werkstattwerkzeug.Weg or Werkstattwerkzeug.Bauzone or Werkstattwerkzeug.Wald
-            or Werkstattwerkzeug.Streu or Werkstattwerkzeug.Feld or Werkstattwerkzeug.Aussparung or Werkstattwerkzeug.Mauer;
+            or Werkstattwerkzeug.Streu or Werkstattwerkzeug.Feld or Werkstattwerkzeug.Aussparung or Werkstattwerkzeug.Mauer
+            or Werkstattwerkzeug.Fluss or Werkstattwerkzeug.See;
         switch (eingabe)
         {
             case InputEventKey { Pressed: true, Keycode: Key.Q or Key.E, CtrlPressed: false } taste:
@@ -1036,6 +1083,7 @@ public partial class Stadtansicht
                 else if (_wsStrich is not null) StrichAbbrechen();
                 else if (_wsGelaendeStrich) GelaendeStrichAbbrechen();
                 else if (_wsRampeAnfang is not null) _wsRampeAnfang = null;
+                else if (_wsFaehreStart is not null) _wsFaehreStart = null;
                 else if (_wsPunkte.Count > 0) ZeichnenAbbrechen();
                 else if (Kartenwerkzeug != Werkstattwerkzeug.Auswahl) WerkzeugBeenden();
                 else if (_wsGriff is not null) { _wsGriff = null; GriffeBauen(); }
@@ -1085,8 +1133,11 @@ public partial class Stadtansicht
                 if (Befehl(() => _entwurf.PflanzeSetzen(art, ort.X, ort.Y, WerkstattDrehung)) is { } p) WerkstattWaehlen(p);
                 return;
             case Werkstattwerkzeug.Weg or Werkstattwerkzeug.Bauzone or Werkstattwerkzeug.Wald or Werkstattwerkzeug.Streu or Werkstattwerkzeug.Feld
-                or Werkstattwerkzeug.Aussparung or Werkstattwerkzeug.Mauer:
+                or Werkstattwerkzeug.Aussparung or Werkstattwerkzeug.Mauer or Werkstattwerkzeug.Fluss or Werkstattwerkzeug.See:
                 ZeichnenKlick(maus, boden, doppelklick); // Stadtansicht.Kartenwerkstatt.Flaechen.cs
+                return;
+            case Werkstattwerkzeug.Faehre:
+                FaehreKlick(boden); // Stadtansicht.Kartenwerkstatt.Wasser.cs
                 return;
             case Werkstattwerkzeug.Pinsel or Werkstattwerkzeug.Radierer:
                 StrichBeginnen(maus); // Stadtansicht.Kartenwerkstatt.Natur.cs
@@ -1143,6 +1194,12 @@ public partial class Stadtansicht
             TeilZiehenBeginnen(gewaehlterWeg, Ziehart.Einfuegen, maus, p, -1, index);
             return;
         }
+        if (WerkstattGewaehlt is EntwurfFluss gewaehlterFluss && AufFluss(gewaehlterFluss, p, toleranz))
+        {
+            var (index, _, _) = gewaehlterFluss.NaechsteStelle(new Kartenort(p.X, p.Y));
+            TeilZiehenBeginnen(gewaehlterFluss, Ziehart.Einfuegen, maus, p, -1, index);
+            return;
+        }
         if (WerkstattGewaehlt is EntwurfFlaeche gewaehlteFlaeche && AmRand(gewaehlteFlaeche, p, toleranz) is var (vieleck, kante))
         {
             TeilZiehenBeginnen(gewaehlteFlaeche, Ziehart.Einfuegen, maus, p, vieleck, kante + 1);
@@ -1183,9 +1240,19 @@ public partial class Stadtansicht
             TeilZiehenBeginnen(pflanze, Ziehart.Ganz, maus, p, -1, -1);
             return;
         }
+        if (FaehreBei(p, toleranz) is { } faehre)
+        {
+            WerkstattWaehlen(faehre);
+            return;
+        }
         if (WegBei(p, toleranz) is { } weg)
         {
             WerkstattWaehlen(weg);
+            return;
+        }
+        if (FlussBei(p, toleranz) is { } fluss) // Wege und Brücken gehen vor (sie liegen über dem Wasser), dann der Fluss
+        {
+            WerkstattWaehlen(fluss);
             return;
         }
         if ((treffer?.Gebaeude ?? (MauerBei(p, toleranz) is null ? GebaeudeAufGrund(p) : null)) is { } gebaeude)
@@ -1230,6 +1297,12 @@ public partial class Stadtansicht
                 case EntwurfWeg w when !Befehl(() => _entwurf.StuetzpunktLoeschen(w, griff.Index)):
                     WerkstattMeldung?.Invoke("Ein Weg braucht mindestens zwei Stützpunkte – Entf ohne gewählten Griff löscht den ganzen Weg.", true);
                     return;
+                case EntwurfFluss fl when !Befehl(() => _entwurf.FlussPunktLoeschen(fl, griff.Index)):
+                    WerkstattMeldung?.Invoke("Ein Fluss braucht mindestens zwei Stützpunkte – Entf ohne gewählten Griff löscht den ganzen Fluss.", true);
+                    return;
+                case EntwurfFaehre:
+                    WerkstattMeldung?.Invoke("Eine Fährstelle hat immer zwei Anleger – Entf ohne gewählten Griff löscht sie ganz.", true);
+                    return;
                 case EntwurfFlaeche { KannAussparungen: true } f when griff.Vieleck >= 0 && f.Aussparungen[griff.Vieleck].Count <= 3:
                     Befehl(() => _entwurf.AussparungLoeschen(f, griff.Vieleck)); // eine Aussparung mit drei Ecken: weg mit ihr
                     break;
@@ -1245,6 +1318,8 @@ public partial class Stadtansicht
         {
             case EntwurfGebaeude g: Befehl(() => _entwurf.Loeschen(g.Kennung)); break;
             case EntwurfWeg w: Befehl(() => _entwurf.WegLoeschen(w)); break;
+            case EntwurfFluss or EntwurfSee: Befehl(() => _entwurf.GewaesserLoeschen(teil)); break;
+            case EntwurfFaehre fa: Befehl(() => _entwurf.FaehreLoeschen(fa)); break;
             case EntwurfFlaeche f: Befehl(() => _entwurf.FlaecheLoeschen(f)); break;
             case EntwurfPflanze p: Befehl(() => _entwurf.PflanzeLoeschen(p)); break;
             case EntwurfMauer m: Befehl(() => _entwurf.MauerLoeschen(m)); break;

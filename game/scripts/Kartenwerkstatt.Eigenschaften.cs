@@ -32,6 +32,9 @@ public partial class Kartenwerkstatt
         switch (teil)
         {
             case EntwurfWeg w: WegTafel(w, raster); break;
+            case EntwurfFluss fl: FlussTafel(fl, raster); break; // Kartenwerkstatt.Wasser.cs
+            case EntwurfSee se: SeeTafel(se, raster); break;
+            case EntwurfFaehre fa: FaehreTafel(fa, raster); break;
             case EntwurfBauzone z: BauzonenTafel(z, raster); break;
             case EntwurfNaturflaeche f: NaturTafel(f, raster); break;
             case EntwurfFeld fe: FeldTafel(fe, raster); break; // Kartenwerkstatt.Karte.cs
@@ -51,6 +54,8 @@ public partial class Kartenwerkstatt
         switch (teil)
         {
             case EntwurfWeg w: _entwurf.WegLoeschen(w); break;
+            case EntwurfFluss or EntwurfSee: _entwurf.GewaesserLoeschen(teil); break;
+            case EntwurfFaehre fa: _entwurf.FaehreLoeschen(fa); break;
             case EntwurfFlaeche f: _entwurf.FlaecheLoeschen(f); break;
             case EntwurfPflanze p: _entwurf.PflanzeLoeschen(p); break;
             case EntwurfMauer m: _entwurf.MauerLoeschen(m); break;

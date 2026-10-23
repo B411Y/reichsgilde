@@ -113,19 +113,21 @@ static class GelaendeTests
             }
         }),
 
-        ("Flache Karten: Greybox, Köln und Messstadt haben kein Gelände – gespeichert Byte für Byte dieselbe Datei, Boden überall 0", () =>
+        ("Flache Karten: Greybox, Köln und Messstadt haben kein Gelände – gespeichert Byte für Byte dieselbe Datei, Boden 0 (Köln: außer im Bett seines Wassers)", () =>
         {
             foreach (var kennung in new[] { "greybox", "koeln", "messstadt" })
             {
                 var e = Kartenentwurf.AusJson(Text(kennung), Katalog.Value);
-                Pruefe.Wahr(e.Gelaendeform.IstFlach && !Text(kennung).Contains("\"hoehen\""), kennung);
+                var nass = kennung == "koeln"; // Köln hat Rhein, Strunde und den Altrheinarm (Schritt 5c) – ihr Bett liegt im Boden
+                Pruefe.Wahr(!e.Gelaendeform.HatHoehen && e.Gelaendeform.IstFlach == !nass && !Text(kennung).Contains("\"hoehen\""), kennung);
                 Pruefe.Gleich(Text(kennung), e.ZuJson(), kennung);
-                Pruefe.Gleich(0.0, e.Gelaendeform.Hoehe(13, -7), kennung);
+                Pruefe.Gleich(0.0, e.Gelaendeform.Hoehe(-60, -20), kennung);
                 Pruefe.Wahr(e.Wege.All(w => e.Profil(w).All(h => h == 0)), "Profile 0");
-                Pruefe.Gleich(new Fundament(0, 0), e.Fundament(e.Gebaeude[0]));
+                var fern = e.Gebaeude.First(g => e.Wasserform.Uferabstand(g.X, g.Z) > 40);
+                Pruefe.Gleich(new Fundament(0, 0), e.Fundament(fern));
                 Pruefe.Wahr(e.Befunde.All(b => b.Regel != "hang"), kennung);
                 var karte = Stadtkarte.AusDatei(Datenpfad.Karte(kennung));
-                Pruefe.Wahr(karte.Hoehen is null && karte.Gelaendeform.IstFlach, kennung);
+                Pruefe.Wahr(karte.Hoehen is null && karte.Gelaendeform.IstFlach == !nass, kennung);
             }
             // Köln: die alte Liste „gelaende“ bleibt
             Pruefe.Wahr(Kartenentwurf.AusJson(Text("koeln"), Katalog.Value).Gelaende.Count > 0, "Köln: gelaende");
@@ -424,7 +426,7 @@ static class GelaendeTests
         ("Steigung bremst Karren: ab 6 % je Prozentpunkt 5 % länger, höchstens dreimal so lang; bergab und eben wie bisher", () =>
         {
             var s = Daten.Value.Logistik.Steigung!;
-            Pruefe.Gleich(50, Daten.Value.Version);
+            Pruefe.Gleich(51, Daten.Value.Version);
             Pruefe.Gleich(1.0, s.Faktor(0.06));
             Pruefe.Ungefaehr(1.2, s.Faktor(0.10), 1e-12);
             Pruefe.Gleich(3.0, s.Faktor(0.5));

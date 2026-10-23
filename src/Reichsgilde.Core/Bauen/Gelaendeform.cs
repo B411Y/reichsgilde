@@ -15,6 +15,10 @@ namespace Reichsgilde.Core.Bauen;
 //  Daraus fragt die Darstellung: die Höhe des Bodens (Hoehe, Ausschnitt für die Geländekacheln), das Profil eines Weges oder einer Mauer
 //  (Profil – das Wegband liegt darauf; im Bett hat der Boden genau diese Höhe) und das Fundament eines Gebäudes (Fundament: es steht auf
 //  dem höchsten Punkt seines Umrisses, darunter ein Sockel bis zum tiefsten). Die Prüfung fragt die Hangneigung eines Umrisses (Hang).
+//
+//  Seit Schritt 5c gräbt auch das Wasser sein Bett in dieselbe Schicht (Wasserform: Flussbett, See, weiches Ufer, Hafenbecken). Es kommt nach dem Bett
+//  der Wege: Im Fluss und im See gewinnt das Wasser, am Ufer der Kern eines Weges oder einer Mauer. Auch eine Karte ohne Höhen ist mit
+//  Wasser nicht mehr flach (IstFlach).
 // ═════════════════════════════════════════════════════════════════════════════
 
 /// <summary>Eine Linie, unter der das Gelände quer eingeebnet wird: Mittellinie, Breite des Betts (Meter), Ring oder offen.</summary>
@@ -46,6 +50,9 @@ public sealed class Gelaendeform
 
     private readonly Func<IReadOnlyList<Bettlinie>> _linien;
 
+    /// <summary>Die Gewässer mit Spiegel und Bett (Schritt 5c).</summary>
+    public Wasserform Wasser { get; }
+
     /// <summary>Boden minus Raster in cm – nur unter Wegen und Mauern ungleich 0.</summary>
     private readonly Hoehenraster _bett = new();
 
@@ -54,27 +61,54 @@ public sealed class Gelaendeform
 
     /// <param name="roh">Das gespeicherte Raster (die Form ändert es nie).</param>
     /// <param name="linien">Wege und Mauern – wird bei jedem Neurechnen gefragt.</param>
-    public Gelaendeform(Hoehenraster roh, Func<IReadOnlyList<Bettlinie>> linien) => (Roh, _linien) = (roh, linien);
+    /// <param name="gewaesser">Flüsse und Seen (Schritt 5c) – wird nach <see cref="WasserVeraltet"/> neu gefragt; null: kein Wasser.</param>
+    /// <param name="kaie">Die Kaimauern der Häfen (vor ihnen ein Hafenbecken, <see cref="Wasserform"/>) – ebenso; null: keine.</param>
+    public Gelaendeform(Hoehenraster roh, Func<IReadOnlyList<Bettlinie>> linien, Func<IReadOnlyList<Gewaesser>>? gewaesser = null,
+        Func<IReadOnlyList<Kaimauer>>? kaie = null)
+    {
+        (Roh, _linien) = (roh, linien);
+        Wasser = new Wasserform(roh, gewaesser ?? (() => Array.Empty<Gewaesser>()), kaie);
+    }
 
     /// <summary>Das gespeicherte Höhenraster, wie die Pinsel es ändern.</summary>
     public Hoehenraster Roh { get; }
 
-    /// <summary>Ist das Gelände ganz flach (kein Höhenpunkt ungleich 0)? Dann ist auch das Bett überall 0.</summary>
-    public bool IstFlach => Roh.IstLeer;
+    /// <summary>Ist das Gelände ganz flach (kein Höhenpunkt ungleich 0, kein Wasser)? Dann ist auch das Bett überall 0.</summary>
+    public bool IstFlach => Roh.IstLeer && Wasser.IstLeer;
+
+    /// <summary>Hat das gespeicherte Raster Höhen (ohne das Bett von Wegen und Wasser)? Nur dann gibt es Steigung und Hang.</summary>
+    public bool HatHoehen => !Roh.IstLeer;
 
     // ── Neu rechnen ──────────────────────────────────────────────────────────
 
     /// <summary>Wege oder Mauern haben sich geändert: das ganze Bett beim nächsten Lesen neu.</summary>
     public void AllesVeraltet() => _allesNeu = true;
 
-    /// <summary>Das Raster hat sich in diesem Rechteck geändert: das Bett dort (mit Reichweite der Profile) beim nächsten Lesen neu.</summary>
-    public void Veraltet(Kartenrechteck bereich) => _veraltet.Add(bereich);
+    /// <summary>
+    /// Das Raster hat sich in diesem Rechteck geändert: das Bett dort (mit Reichweite der Profile) beim nächsten Lesen neu. Berührt es ein
+    /// Gewässer, ändert sich dessen Spiegel womöglich auf ganzer Länge – dann das ganze Gewässer mit Ufer.
+    /// </summary>
+    public void Veraltet(Kartenrechteck bereich)
+    {
+        _veraltet.Add(bereich);
+        var nass = Wasser.Bereiche.Where(b => b.Ueberdeckt(bereich.Vergroessert(Wasserform.Glaettung))).ToList();
+        if (nass.Count == 0) return;
+        Wasser.AllesVeraltet();
+        _veraltet.AddRange(nass);
+    }
+
+    /// <summary>Ein Gewässer oder ein Hafen hat sich geändert (oder kam dazu, fiel weg): Spiegel, Becken und das ganze Bett beim nächsten Lesen neu.</summary>
+    public void WasserVeraltet()
+    {
+        Wasser.AllesVeraltet();
+        _allesNeu = true;
+    }
 
     /// <summary>Rechnet das Bett neu, wo es veraltet ist.</summary>
     private void Aktualisieren()
     {
         if (!_allesNeu && _veraltet.Count == 0) return;
-        if (Roh.IstLeer)
+        if (IstFlach)
         {
             // flach: das Profil ist überall 0, das Bett auch
             if (!_bett.IstLeer) _bett.BereichLeeren(int.MinValue / 2, int.MinValue / 2, int.MaxValue / 2, int.MaxValue / 2);
@@ -148,6 +182,32 @@ public sealed class Gelaendeform
             var boden = roh + (ziel * 100 - roh) * w;
             var unterschied = (int)Math.Round(boden - roh, MidpointRounding.AwayFromZero);
             if (unterschied != 0) _bett.WertSetzen(i, j, unterschied);
+        }
+        WasserbettRechnen(beste, nur);
+    }
+
+    /// <summary>
+    /// Gräbt das Bett der Gewässer in die Schicht (nach den Wegen): je Rasterpunkt im Bereich eines Gewässers der Boden mit Fluss, See und Ufer
+    /// (<see cref="Wasserform.Boden"/>); im Kern eines Weges oder einer Mauer (Gewicht 1 in <paramref name="wege"/>) bleibt das Ufer stehen.
+    /// </summary>
+    private void WasserbettRechnen(Dictionary<(int, int), (double Gewicht, double Abstand, double Ziel)> wege, (int I0, int J0, int I1, int J1)? nur)
+    {
+        if (Wasser.IstLeer) return;
+        var erledigt = new HashSet<(int, int)>();
+        foreach (var bereich in Wasser.Bereiche)
+        {
+            var (i0, j0, i1, j1) = Hoehenraster.Punkte(bereich);
+            if (nur is { } n) (i0, j0, i1, j1) = (Math.Max(i0, n.I0), Math.Max(j0, n.J0), Math.Min(i1, n.I1), Math.Min(j1, n.J1));
+            for (var j = j0; j <= j1; j++)
+                for (var i = i0; i <= i1; i++)
+                {
+                    if (!erledigt.Add((i, j))) continue;
+                    int roh = Roh.Wert(i, j);
+                    var boden = (roh + _bett.Wert(i, j)) / 100.0;
+                    var kern = wege.TryGetValue((i, j), out var weg) && weg.Gewicht >= 1;
+                    var ziel = Wasser.Boden(i * Hoehenraster.Abstand, j * Hoehenraster.Abstand, boden, kern);
+                    if (ziel < boden - 0.005) _bett.WertSetzen(i, j, (int)Math.Round(ziel * 100 - roh, MidpointRounding.AwayFromZero));
+                }
         }
     }
 
@@ -272,7 +332,7 @@ public sealed class Gelaendeform
     /// <summary>Die Höhe des Bodens in Metern (Raster mit Bett der Wege und Mauern), bilinear.</summary>
     public double Hoehe(double x, double z)
     {
-        if (Roh.IstLeer) return 0;
+        if (IstFlach) return 0;
         Aktualisieren();
         return Roh.Hoehe(x, z) + _bett.Hoehe(x, z);
     }
@@ -280,7 +340,7 @@ public sealed class Gelaendeform
     /// <summary>Die Höhe eines Rasterpunkts des Bodens in Metern.</summary>
     public double Punkthoehe(int i, int j)
     {
-        if (Roh.IstLeer) return 0;
+        if (IstFlach) return 0;
         Aktualisieren();
         return (Roh.Wert(i, j) + _bett.Wert(i, j)) / 100.0;
     }
@@ -288,11 +348,14 @@ public sealed class Gelaendeform
     /// <summary>Die Steigung des Bodens: Höhenänderung je Meter nach Osten (x) und Süden (z).</summary>
     public (double X, double Z) Steigung(double x, double z)
     {
-        if (Roh.IstLeer) return (0, 0);
+        if (IstFlach) return (0, 0);
         Aktualisieren();
         var (a, b) = (Roh.Steigung(x, z), _bett.Steigung(x, z));
         return (a.X + b.X, a.Z + b.Z);
     }
+
+    /// <summary>Die Wassertiefe am Ort (Spiegel minus Boden, Meter) – 0 an Land.</summary>
+    public double Wassertiefe(double x, double z) => Wasser.An(x, z) is { } w ? Math.Max(0, w.Spiegel - Hoehe(x, z)) : 0;
 
     /// <summary>Die Normale des Bodens (Einheitsvektor, Y nach oben).</summary>
     public (double X, double Y, double Z) Normale(double x, double z)
@@ -309,7 +372,7 @@ public sealed class Gelaendeform
     public float[] Ausschnitt(int i0, int j0, int breite, int tiefe)
     {
         var aus = Roh.Ausschnitt(i0, j0, breite, tiefe);
-        if (Roh.IstLeer) return aus;
+        if (IstFlach) return aus;
         Aktualisieren();
         var bett = _bett.Ausschnitt(i0, j0, breite, tiefe);
         for (var k = 0; k < aus.Length; k++) aus[k] += bett[k];
@@ -324,7 +387,7 @@ public sealed class Gelaendeform
     /// </summary>
     public Fundament Fundament(IReadOnlyList<Kartenort> umriss)
     {
-        if (Roh.IstLeer || umriss.Count == 0) return default;
+        if (IstFlach || umriss.Count == 0) return default;
         double hoch = double.MinValue, tief = double.MaxValue;
         foreach (var h in Proben(umriss, boden: true))
             (hoch, tief) = (Math.Max(hoch, h), Math.Min(tief, h));

@@ -72,7 +72,11 @@ public partial class Stadtansicht
         var knoten = new Node3D { Name = "Weg" };
         _wsWegeKnoten.AddChild(knoten);
         _wsWege[w] = knoten;
-        WegZeichnen(w.Verlauf.Select(p => V3(p)).ToArray(), (float)w.BreiteWirksam, w.IstGlatt, knoten);
+        var nummer = 0;
+        foreach (var anderer in _entwurf.Wege)
+            if (ReferenceEquals(anderer, w)) break;
+            else nummer++;
+        WegZeichnen(w.Verlauf.Select(p => V3(p)).ToArray(), (float)w.BreiteWirksam, w.IstGlatt, knoten, WegLuecken(nummer), WegBoden(nummer)); // unter Brücken kein Band, in Furten eben (Stadtansicht.Wasser.Uebergaenge.cs)
         WegMarkieren(w);
         if (BereichVon(w) is { } bereich) _wsBereiche[w] = bereich;
     }
@@ -188,6 +192,9 @@ public partial class Stadtansicht
             else if (g.Art == Bausteinart.Umlandstelle && g.Baustein?.Modell is { } stelle)
                 Anhaengen(ModellLage(g) * UmlandAnkerImModell(stelle).Tuer with { Y = 0 }, FusswegBreite); // das Gatter der Arbeitsstelle
         }
+        if (Uebergangsplan is { } plan)
+            foreach (var f in plan.Faehren)
+                if (f.UeberWasser > 1) _wsNetz.Faehre(new Vector3((float)f.Von.X, 0, (float)f.Von.Z), new Vector3((float)f.Bis.X, 0, (float)f.Bis.Z)); // Karren setzen über
         NetzAnsichtBauen();
     }
 
@@ -315,6 +322,8 @@ public partial class Stadtansicht
         var vielecke = WerkstattGewaehlt switch
         {
             EntwurfWeg w => new[] { (-1, w.Punkte) },
+            EntwurfFluss fl => new[] { (-1, fl.Punkte) },
+            EntwurfFaehre fa => new[] { (-1, (IReadOnlyList<Kartenort>)new[] { fa.Von, fa.Bis }) },
             EntwurfFlaeche f => f.Aussparungen.Select((a, i) => (i, a)).Prepend((-1, f.Ecken)).ToArray(),
             EntwurfMauer m => new[] { (-1, m.Ecken), (TorGriffe, (IReadOnlyList<Kartenort>)m.Tore.Select(t => t.Punkt).ToList()) },
             _ => Array.Empty<(int, IReadOnlyList<Kartenort>)>(),
@@ -416,6 +425,28 @@ public partial class Stadtansicht
             case EntwurfMauer mauer:
                 MauerZiehenNachfuehren(t, mauer, m); // Stadtansicht.Kartenwerkstatt.Mauern.cs
                 break;
+            case EntwurfFluss fluss:
+            {
+                var punkte = fluss.Punkte.Select(V2).ToList();
+                t.Ort = m;
+                if (t.Art == Ziehart.Griff) punkte[t.Index] = t.Ort;
+                else punkte.Insert(t.Index, t.Ort);
+                var verlauf = Wegkurve.Verlauf(punkte.Select(p => new double[] { p.X, p.Y }).ToList(), glatt: true).Punkte.Select(p => new Vector2((float)p[0], (float)p[1])).ToList();
+                VorschauDreiecke(BandDreiecke(verlauf, (float)fluss.BreiteWirksam / 2, 0.2f), new Color(Wasserblau, 0.5f));
+                VorschauDreiecke(PfeilDreiecke(verlauf, 14, 2f, p => BodenHoehe(p) + 0.35f), new Color(1f, 1f, 1f, 0.9f));
+                VorschauPunkte(new[] { t.Ort }, Colors.White);
+                break;
+            }
+            case EntwurfFaehre faehre:
+            {
+                var fang = Fangen(m);
+                if (fang is { } f) FangmarkeZeigen(V2(f.Ort), Fangfarbe(f.Ziel));
+                t.Ort = fang is { } g ? V2(g.Ort) : m;
+                var anderer = V2(faehre.Anleger(1 - t.Index));
+                VorschauDreiecke(BandDreiecke(new List<Vector2> { anderer, t.Ort }, 0.5f, 0.3f), new Color(Faehrorange, 0.8f));
+                VorschauPunkte(new[] { t.Ort }, Colors.White);
+                break;
+            }
             case EntwurfFlaeche f when t.Art != Ziehart.Ganz:
             {
                 t.Ort = Eckpunkt(f, m);
@@ -483,6 +514,21 @@ public partial class Stadtansicht
                 break;
             case EntwurfMauer mauer:
                 griff = MauerZiehenBeenden(t, mauer);
+                break;
+            case EntwurfFluss fluss when t.Art == Ziehart.Griff:
+                if (!t.Aktiv) return;
+                Befehl(() => e.FlussPunktVerschieben(fluss, t.Index, x, z));
+                griff = new Griff(-1, t.Index);
+                break;
+            case EntwurfFluss fluss:
+                if (t.Aktiv) Befehl(() => e.FlussPunktEinfuegen(fluss, t.Index, x, z));
+                var punkt = t.Aktiv ? t.Index : Befehl<int?>(() => e.FlussPunktEinfuegenBei(fluss, t.Anfang.X, t.Anfang.Y)) ?? -1;
+                griff = punkt >= 0 ? new Griff(-1, punkt) : null;
+                break;
+            case EntwurfFaehre faehre when t.Art == Ziehart.Griff:
+                if (!t.Aktiv) return;
+                Befehl(() => e.FaehreAnlegerVerschieben(faehre, t.Index, x, z)); // rastet an einem Weg ein
+                griff = new Griff(-1, t.Index);
                 break;
         }
         if (griff is not null && ReferenceEquals(WerkstattGewaehlt, t.Teil))

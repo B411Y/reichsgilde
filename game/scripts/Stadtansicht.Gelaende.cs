@@ -200,6 +200,7 @@ public partial class Stadtansicht
     private float FussHoehe(float x, float z)
     {
         if (!BodenBewegt) return 0f;
+        if (DeckHoehe(x, z) is { } deck) return deck; // Brücke, Steg, Fähre (Stadtansicht.Wasser.Uebergaenge.cs)
         if (_fundamente.Count > 0)
         {
             var p = new Vector2(x, z);
@@ -414,9 +415,10 @@ public partial class Stadtansicht
     /// Ein Vieleck (x, z), <paramref name="ueber"/> Meter über dem Boden, genau auf den Dreiecken des Netzes: Jede Zelle des Rasters (2 m) liegt im Vieleck
     /// ganz – dann sind es ihre zwei Dreiecke selbst –, ganz draußen – dann nichts – oder wird an seinem Rand mit den zwei Dreiecken zugeschnitten
     /// (<see cref="Geometry2D.IntersectPolygons"/>). So passt die Fläche ohne Riss auf den Boden (kein Teilen nach Gefühl wie bei <see cref="Dreieck"/>),
-    /// auch auf unruhigem Gelände. Gibt je drei Ecken ein Dreieck, Vorderseite nach oben.
+    /// auch auf unruhigem Gelände. Gibt je drei Ecken ein Dreieck, Vorderseite nach oben. Mit <paramref name="flach"/> liegen alle Ecken auf dieser Höhe
+    /// (die Fläche eines Sees: dieselben Zellen, aber waagrecht).
     /// </summary>
-    private List<Vector3> RasterDreiecke(Vector2[] vieleck, float ueber)
+    private List<Vector3> RasterDreiecke(Vector2[] vieleck, float ueber, float? flach = null)
     {
         var ecken = new List<Vector3>();
         if (vieleck.Length < 3) return ecken;
@@ -438,7 +440,7 @@ public partial class Stadtansicht
             }
         }
 
-        Vector3 Punkt(float x, float zz) => new(x, BodenHoehe(x, zz) + ueber, zz);
+        Vector3 Punkt(float x, float zz) => new(x, flach ?? BodenHoehe(x, zz) + ueber, zz); // flach: alle Ecken auf dieser Höhe (Wasserfläche)
         for (var j = j0; j <= j1; j++)
             for (var i = i0; i <= i1; i++)
             {

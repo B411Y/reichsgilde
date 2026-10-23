@@ -10,7 +10,11 @@ namespace Reichsgilde.Core.Wirtschaft;
 ///   • Hat die Karte Gelände, sucht der Kern einmal je Betrieb den kürzesten Weg über die Karrenstraßen vom Betrieb zum Markt
 ///     (<see cref="Karrennetz"/>) und mittelt die Bremse der Stücke (<see cref="SteigungDaten.Faktor(double)"/>) nach ihrer Länge – für
 ///     den Hinweg und, mit umgekehrtem Anstieg, für den Rückweg. Fahrzeit = feste Fahrzeit × Faktor, auf ganze Minuten.
-///   • Flache Karte, keine Karte, kein Abschnitt <c>steigung</c>, kein Platz oder kein Weg: die feste Fahrzeit, genau wie bisher.
+///   • Furten und Fähren (Schritt 5c, Abschnitt <c>logistik.wasser</c>, Datenversion 51): Führt der Weg durch eine Furt oder über eine Fähre,
+///     kommen deren Minuten dazu (<see cref="WasserDaten.Aufschlag"/>); Brücken kosten nichts. Der Weg selbst meidet Furt und Fähre, wenn
+///     es nicht zu weit herum geht (<see cref="Karrennetz.FurtKosten"/>, <see cref="Karrennetz.FaehreUmweg"/>).
+///   • Flache Karte ohne Furt und Fähre, keine Karte, kein Abschnitt <c>steigung</c> bzw. <c>wasser</c>, kein Platz oder kein Weg: die feste
+///     Fahrzeit, genau wie bisher.
 ///   • Nichts davon steht im Spielstand: Karte und Daten sind dieselben, also auch die Faktoren.
 /// </summary>
 public sealed partial class Stadtwirtschaft
@@ -28,11 +32,15 @@ public sealed partial class Stadtwirtschaft
     public int Fahrzeit(Betrieb betrieb, bool zumMarkt)
     {
         var basis = Daten.Logistik.FahrzeitAb(betrieb.Ort);
-        if (Daten.Logistik.Steigung is not { } steigung || Karte is not { } karte || karte.Gelaendeform.IstFlach) return basis;
+        if (Karte is not { } karte) return basis;
+        var steigung = karte.Gelaendeform.HatHoehen ? Daten.Logistik.Steigung : null;
+        var wasser = Daten.Logistik.Wasser is { } w && karte.Wasserplan.HaeltAuf ? w : null;
+        if (steigung is null && wasser is null) return basis;
         if (!_fahrzeiten.TryGetValue(betrieb, out var zeiten))
         {
             if (Fahrten(betrieb) is not var (hin, zurueck)) return basis; // noch kein Platz: nicht merken, er kann noch kommen
-            _fahrzeiten[betrieb] = zeiten = (Minuten(basis * steigung.Faktor(hin)), Minuten(basis * steigung.Faktor(zurueck)));
+            double Dauer(IReadOnlyList<Fahrtstueck> fahrt) => basis * (steigung?.Faktor(fahrt) ?? 1) + (wasser?.Aufschlag(fahrt) ?? 0);
+            _fahrzeiten[betrieb] = zeiten = (Minuten(Dauer(hin)), Minuten(Dauer(zurueck)));
         }
         return zumMarkt ? zeiten.Hin : zeiten.Zurueck;
 

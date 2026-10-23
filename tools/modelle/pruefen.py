@@ -13,6 +13,11 @@ Mit `--umland` (Grube, Holzschlag … Wachturm) braucht das Modell „Haus“, �
 Gerüst: Umlandbetriebe werden nicht ausgebaut.
 Mit `--natur` (Bäume, Büsche, Boden, Steine, Totholz) sind weder Hausfarbe noch Zustände noch Anker nötig; B und T
 sind dann die größte erlaubte Ausdehnung eines einzelnen Knotens (jeder steht mit dem Fuß im Nullpunkt).
+Mit `--wasser` (wasser_…glb: Brücken, Fähre, Hafen, Furt- und Ufersteine) sind weder Hausfarbe noch Zustände nötig; jedes Teil
+(Knoten ohne Eltern, mit seinen Kindern) hat höchstens 3.000 Dreiecke, eine Datei mit „Hafen“ insgesamt höchstens 12.000 und
+die Anker „Anker_Ufer“ und „Anker_Tuer“. Nichts reicht tiefer als 4,5 m unter die Uferkante. Hat ein Teil extras „laenge“ und
+„deckhoehe“, müssen seine zwei Anschlüsse („Anschluss_…“) genau „laenge“ auseinander liegen und die Anschlüsse zur Brücke
+(…_A, …_B, …_Bruecke) auf der Deckhöhe.
 Ankerpunkte („Anker_…“, leere Knoten) werden mit Lage und Blickrichtung gelistet; „Anker_Tuer“ ist Pflicht
 und jeder Anker muss auf der Fläche liegen.
 Mit `--innen` (Innenräume, z. B. schmied_innen.glb) gelten eigene Regeln: Räume „Raum_<Name>“, Stufe1–Stufe3, je Raum
@@ -367,7 +372,95 @@ def innen_spaene_und_animation(g, knoten):
     return fehler
 
 
+def wasser(g):
+    """Prüfung der Wasser-Bausteine (siehe oben). Gibt die Liste der Fehler zurück."""
+    fehler = []
+    welt = _welt(g)
+    knoten = g["nodes"]
+    print("Materialien:", ", ".join(m["name"] for m in g.get("materials", [])))
+
+    def dreiecke(i):
+        n = knoten[i]
+        eigen = sum(g["accessors"][p["indices"]]["count"] // 3 for p in g["meshes"][n["mesh"]]["primitives"]
+                    if "indices" in p) if "mesh" in n else 0
+        return eigen + sum(dreiecke(k) for k in n.get("children", []))
+
+    def nachfahren(i):
+        return [i] + [j for k in knoten[i].get("children", []) for j in nachfahren(k)]
+
+    def lage(i):
+        return [welt[i][r][3] for r in range(3)]
+    wurzeln = g["scenes"][g.get("scene", 0)]["nodes"]
+    hafen = any(knoten[i].get("name") == "Hafen" for i in wurzeln)
+    summe, tiefst = 0, 0.0
+    print(f"{'Teil':16s} {'Dreiecke':>8s}  Ausdehnung (Spiel: X, Y oben, Z)              extras")
+    for w in wurzeln:
+        n = knoten[w]
+        if "mesh" not in n:
+            continue
+        mins, maxs = [1e9] * 3, [-1e9] * 3
+        for i in nachfahren(w):
+            if "mesh" not in knoten[i]:
+                continue
+            for p in g["meshes"][knoten[i]["mesh"]]["primitives"]:
+                acc = g["accessors"][p["attributes"]["POSITION"]]
+                for x in (acc["min"][0], acc["max"][0]):
+                    for y in (acc["min"][1], acc["max"][1]):
+                        for z in (acc["min"][2], acc["max"][2]):
+                            e = [sum(welt[i][r][c] * v for c, v in enumerate((x, y, z, 1))) for r in range(3)]
+                            mins = [min(a, b) for a, b in zip(mins, e)]
+                            maxs = [max(a, b) for a, b in zip(maxs, e)]
+        d = dreiecke(w)
+        summe += d
+        tiefst = min(tiefst, mins[1])
+        print(f"{n['name']:16s} {d:8d}  X {mins[0]:6.2f}…{maxs[0]:6.2f}  Y {mins[1]:5.2f}…{maxs[1]:5.2f}  Z {mins[2]:6.2f}…{maxs[2]:6.2f}"
+              f"  {n.get('extras', '')}")
+        if d > 3000 and not hafen:
+            fehler.append(f"{n['name']}: {d} Dreiecke (höchstens 3.000)")
+        extras = n.get("extras", {})
+        anschluesse = [i for i in nachfahren(w) if knoten[i].get("name", "").startswith("Anschluss_")]
+        if "laenge" in extras and anschluesse:
+            if len(anschluesse) != 2:
+                fehler.append(f"{n['name']}: {len(anschluesse)} Anschlüsse statt 2")
+            else:
+                a, b = (lage(i) for i in anschluesse)
+                weite = math.hypot(a[0] - b[0], a[2] - b[2])
+                if abs(weite - extras["laenge"]) > 1e-3:
+                    fehler.append(f"{n['name']}: Anschlüsse {weite:.3f} m auseinander, laenge {extras['laenge']}")
+        for i in anschluesse:
+            name = knoten[i]["name"]
+            if "deckhoehe" in extras and name.endswith(("_A", "_B", "_Bruecke")) and abs(lage(i)[1] - extras["deckhoehe"]) > 1e-3:
+                fehler.append(f"{name}: Höhe {lage(i)[1]:.3f}, deckhoehe {extras['deckhoehe']}")
+    print(f"{'gesamt':16s} {summe:8d}")
+    if hafen and summe > 12000:
+        fehler.append(f"Hafen: {summe} Dreiecke (höchstens 12.000)")
+    if tiefst < -4.55:
+        fehler.append(f"reicht {-tiefst:.2f} m unter die Uferkante (höchstens 4,5)")
+    print("Anschlüsse und Anker (Spielkoordinaten, Blick = −Z):")
+    namen = set()
+    for i, n in enumerate(knoten):
+        if "mesh" in n or not n.get("name", "").startswith(("Anker_", "Anschluss_")):
+            continue
+        namen.add(n["name"])
+        p = lage(i)
+        m = welt[i]
+        gier = math.degrees(math.atan2(m[0][2], m[2][2]))      # −Z gedreht: Blick nach (−sin, −cos)
+        eltern = next((knoten[j]["name"] for j, e in enumerate(knoten) if i in e.get("children", [])), "–")
+        print(f"  {n['name']:24s} an {eltern:16s} X {p[0]:6.2f}  Y {p[1]:5.2f}  Z {p[2]:6.2f}  Blick nach ({-math.sin(math.radians(gier)):+.0f}, "
+              f"{-math.cos(math.radians(gier)):+.0f})")
+    if hafen:
+        for name in ("Anker_Ufer", "Anker_Tuer"):
+            if name not in namen:
+                fehler.append(f"Anker „{name}“ fehlt")
+    return fehler
+
+
 def main():
+    if "--wasser" in sys.argv:
+        pfad = [a for a in sys.argv[1:] if not a.startswith("--")][0]
+        fehler = wasser(lesen(pfad))
+        print("in Ordnung" if not fehler else "FEHLER:\n  " + "\n  ".join(fehler))
+        sys.exit(1 if fehler else 0)
     if "--innen" in sys.argv:
         pfad = [a for a in sys.argv[1:] if not a.startswith("--")][0]
         fehler = innen(pfad, lesen(pfad))

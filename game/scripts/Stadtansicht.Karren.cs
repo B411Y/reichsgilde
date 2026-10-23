@@ -261,21 +261,44 @@ public partial class Stadtansicht
     private (Fahrtprofil Hin, Fahrtprofil Zurueck)? FahrtprofileVon(Betrieb betrieb)
     {
         if (_fahrtprofile.TryGetValue(betrieb, out var bekannt)) return bekannt;
-        if (!BodenBewegt || _wirtschaft?.Daten.Logistik.Steigung is not { } steigung) return null;
-        if (_wirtschaft.Fahrten(betrieb) is not var (hin, zurueck)) return null; // noch kein Platz: nicht merken
+        if (!BodenBewegt || _wirtschaft is not { } wirtschaft) return null;
+        // Steigung bremst nur auf Karten mit Höhen; Furten und Fähren halten auf, wo es sie gibt (Schritt 5c, Abschnitt logistik.wasser)
+        var steigung = _gelaende is { HatHoehen: true } ? wirtschaft.Daten.Logistik.Steigung : null;
+        var wasser = wirtschaft.Karte?.Wasserplan.HaeltAuf == true ? wirtschaft.Daten.Logistik.Wasser : null;
+        if (steigung is null && wasser is null) return null;
+        if (wirtschaft.Fahrten(betrieb) is not var (hin, zurueck)) return null; // noch kein Platz: nicht merken
+        var basis = wirtschaft.Daten.Logistik.FahrzeitAb(betrieb.Ort);
         Fahrtprofil? Profil(IReadOnlyList<Reichsgilde.Core.Bauen.Fahrtstueck> fahrt)
         {
             var laenge = fahrt.Sum(s => s.Laenge);
             if (fahrt.Count == 0 || laenge <= 0) return null;
-            var gewicht = fahrt.Select(s => s.Laenge * steigung.Faktor(s.Steigung)).ToList();
-            var (zeit, weg) = (new double[fahrt.Count + 1], new double[fahrt.Count + 1]);
+            // Zeit in Spielminuten, wie der Kern sie rechnet: die feste Fahrzeit auf die Stücke nach Länge und Bremse verteilt, dazu die Minuten
+            // einer Furt (verteilt auf ihr Stück: langsam durchs Wasser) und einer Fähre (ein Stillstand vor dem Stück: der Karren wartet am Ufer)
+            var gewicht = fahrt.Select(s => s.Laenge * (steigung?.Faktor(s.Steigung) ?? 1)).ToList();
+            var summe = gewicht.Sum();
+            var (zeit, weg) = (new List<double> { 0 }, new List<double> { 0 });
+            var vorher = Reichsgilde.Core.Bauen.Fahrbahn.Strasse;
             for (var i = 0; i < fahrt.Count; i++)
             {
-                zeit[i + 1] = zeit[i] + gewicht[i] / gewicht.Sum();
-                weg[i + 1] = weg[i] + fahrt[i].Laenge / laenge;
+                var art = fahrt[i].Art;
+                var wartet = 0.0;
+                var langsam = 0.0;
+                if (art != vorher && wasser is not null)
+                {
+                    if (art == Reichsgilde.Core.Bauen.Fahrbahn.Faehre) wartet = wasser.FaehreMinuten;
+                    else if (art == Reichsgilde.Core.Bauen.Fahrbahn.Furt) langsam = wasser.FurtMinuten;
+                }
+                vorher = art;
+                if (wartet > 0)
+                {
+                    zeit.Add(zeit[^1] + wartet);
+                    weg.Add(weg[^1]);
+                }
+                zeit.Add(zeit[^1] + basis * gewicht[i] / summe + langsam);
+                weg.Add(weg[^1] + fahrt[i].Laenge / laenge);
             }
-            zeit[^1] = weg[^1] = 1; // gegen Rundungsfehler
-            return new Fahrtprofil(zeit, weg);
+            var (zeitSumme, wegSumme) = (zeit[^1], weg[^1]);
+            return new Fahrtprofil(zeit.Select(z => z / zeitSumme).ToArray(), weg.Select(w => w / wegSumme).ToArray());
         }
         var (h, z) = (Profil(hin), Profil(zurueck));
         return _fahrtprofile[betrieb] = h is null || z is null ? null : (h, z);
@@ -374,7 +397,7 @@ public partial class Stadtansicht
         if (BodenBewegt) // am Hang nickt der Karren mit dem Gefälle (3 m vor und hinter der Achse)
         {
             var vorne = new Vector3(Mathf.Sin(knoten.Rotation.Y), 0, Mathf.Cos(knoten.Rotation.Y));
-            var (vorn, hinten) = (BodenHoehe(knoten.Position + vorne * 1.5f), BodenHoehe(knoten.Position - vorne * 1.5f));
+            var (vorn, hinten) = (FahrHoehe(knoten.Position.X + vorne.X * 1.5f, knoten.Position.Z + vorne.Z * 1.5f), FahrHoehe(knoten.Position.X - vorne.X * 1.5f, knoten.Position.Z - vorne.Z * 1.5f)); // Brücken und Fähren tragen
             var nick = -Mathf.Atan2(vorn - hinten, 3f);
             knoten.Rotation = new Vector3(nick, knoten.Rotation.Y, 0);
         }

@@ -69,6 +69,11 @@ public sealed partial class Kartenentwurf
         _wege.Where(w => w.Punkte.Count >= 2).Select(w => new Bettlinie(w.Verlauf, w.BreiteWirksam))
             .Concat(_mauern.Where(m => m.Ecken.Count >= 2).Select(m => new Bettlinie(m.Ecken, Gelaendeform.Mauerbett, m.Geschlossen))).ToList();
 
+    /// <summary>Die Kaimauern der Häfen (Gebäude am Ufer): Vor ihnen hebt das Gelände ein Hafenbecken aus (<see cref="Wasserform"/>).</summary>
+    private IReadOnlyList<Kaimauer> Kaimauern() =>
+        _gebaeude.Where(g => g.Baustein?.AmUfer == true && g.Groesse is not null)
+            .Select(g => Kaimauer.Von(g.Name, g.X, g.Z, g.Drehung, g.Groesse!.Value.Breite, g.Groesse.Value.Tiefe)).ToList();
+
     // ── Pinsel ───────────────────────────────────────────────────────────────
 
     private Gelaendestrich? _strich;

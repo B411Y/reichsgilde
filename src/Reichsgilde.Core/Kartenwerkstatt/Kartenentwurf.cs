@@ -15,8 +15,10 @@ namespace Reichsgilde.Core.Kartenwerkstatt;
 //  Bearbeitbar sind die Gebäude (Schritt 1), die Wege, Bauzonen, Naturflächen und einzelnen Pflanzen (Schritt 2, EntwurfTeile.cs und
 //  Kartenentwurf.Wege.cs, Kartenentwurf.Flaechen.cs), die Mauern mit Toren und die Startbelegung (Schritt 3, Kartenentwurf.Mauern.cs und
 //  Kartenentwurf.Start.cs), Größe, Randstreifen, Kamera-Start und Felder (Schritt 5a, EntwurfKopf, EntwurfFeld und Kartenentwurf.Rand.cs) und das
-//  Gelände (Schritt 5b, Höhenraster mit Pinseln, Kartenentwurf.Gelaende.cs).
-//  Alles Übrige (Wasser, Gelände …) liegt als JSON im Entwurf und wird für die Prüfung einmal in die Typen der Stadtkarte gelesen (Gewaesser …).
+//  Gelände (Schritt 5b, Höhenraster mit Pinseln, Kartenentwurf.Gelaende.cs) und das Wasser (Schritt 5c: Flüsse, Seen, Fährstellen,
+//  Kartenentwurf.Wasser.cs).
+//  Alles Übrige (die alte Liste gelaende, Häfen aus Format 1 …) liegt als JSON im Entwurf und wird für die Prüfung einmal in die Typen der
+//  Stadtkarte gelesen.
 //  Geändert wird nur über Befehle (Setzen, Verschieben, Drehen …), damit Rückgängig und Wiederholen immer stimmen.
 // ═════════════════════════════════════════════════════════════════════════════
 
@@ -190,6 +192,9 @@ public readonly record struct Kartenaenderung(Aenderungsart Art, EntwurfTeil Obj
     public EntwurfFeld? Feld => Objekt as EntwurfFeld;
     public EntwurfKopf? Kopf => Objekt as EntwurfKopf;
     public EntwurfGelaende? Gelaende => Objekt as EntwurfGelaende;
+    public EntwurfFluss? Fluss => Objekt as EntwurfFluss;
+    public EntwurfSee? See => Objekt as EntwurfSee;
+    public EntwurfFaehre? Faehre => Objekt as EntwurfFaehre;
 }
 
 /// <summary>Ein Fundort eines Rohstoffbetriebs (<c>vorkommen</c> der Datei; nur das Werkzeug und die Prüfung lesen ihn).</summary>
@@ -218,6 +223,10 @@ public sealed partial class Kartenentwurf
     private readonly EntwurfStart _start;
     private readonly List<EntwurfFeld> _felder;
     private readonly EntwurfKopf _kopf;
+
+    /// <summary>Flüsse (<see cref="EntwurfFluss"/>) und Seen (<see cref="EntwurfSee"/>) in der Reihenfolge von <c>wasser</c>; Fährstellen (<c>uebergaenge</c>).</summary>
+    private readonly List<EntwurfTeil> _gewaesser;
+    private readonly List<EntwurfFaehre> _faehren;
 
     /// <summary>Das Höhenraster (Feld <c>hoehen</c>) und das Gelände mit dem Bett der Wege und Mauern (Kartenentwurf.Gelaende.cs).</summary>
     private readonly Hoehenraster _hoehen;
@@ -248,11 +257,12 @@ public sealed partial class Kartenentwurf
 
     private Kartenentwurf(JsonObject daten, List<EntwurfGebaeude> gebaeude, Stadtkarte teile, Gebaeudekatalog katalog,
         List<EntwurfWeg> wege, List<EntwurfBauzone> bauzonen, List<EntwurfNaturflaeche> naturflaechen, List<EntwurfPflanze> pflanzen,
-        List<EntwurfMauer> mauern, EntwurfStart start, List<EntwurfFeld> felder, Hoehenraster hoehen)
+        List<EntwurfMauer> mauern, EntwurfStart start, List<EntwurfFeld> felder, Hoehenraster hoehen, List<EntwurfTeil> gewaesser, List<EntwurfFaehre> faehren)
     {
         (_daten, _gebaeude, _teile, Katalog) = (daten, gebaeude, teile, katalog);
+        (_gewaesser, _faehren) = (gewaesser, faehren);
         _hoehen = hoehen;
-        _gelaende = new Gelaendeform(hoehen, Bettlinien);
+        _gelaende = new Gelaendeform(hoehen, Bettlinien, () => Wasser, Kaimauern);
         (_wege, _bauzonen, _naturflaechen, _pflanzen, _mauern, _start, _felder) = (wege, bauzonen, naturflaechen, pflanzen, mauern, start, felder);
         foreach (var g in _gebaeude) g.Baustein = katalog.Finde(g.Katalog);
         foreach (var p in _pflanzen) p.Baustein = katalog.Finde(p.Katalog);
@@ -292,11 +302,11 @@ public sealed partial class Kartenentwurf
             .Concat(_mauern.SelectMany(m => m.Ecken.Concat(m.Tore.Select(t => t.Punkt)))).Concat(_bauzonen.SelectMany(z => z.Ecken))
             .Concat(Vorkommen.Select(v => v.Punkt))
             .Concat(_teile.Haefen.SelectMany(h => Orte(h.Kante).Concat(Orte(h.Anleger)).Concat(Orte(h.Kran is null ? null : new[] { h.Kran }))))
-            .Concat(_teile.Uebergaenge.SelectMany(u => Orte(new[] { u.Von, u.Bis }))).Concat(Orte(kamera is null ? null : new[] { kamera.Punkt }))
+            .Concat(_faehren.SelectMany(u => new[] { u.Von, u.Bis })).Concat(Orte(kamera is null ? null : new[] { kamera.Punkt }))
             .ToList();
         var rest = _wege.SelectMany(w => w.Verlauf).Concat(_naturflaechen.SelectMany(n => n.Ecken)).Concat(_felder.SelectMany(f => f.Ecken))
             .Concat(_pflanzen.Select(p => p.Punkt))
-            .Concat(_teile.Wasser.SelectMany(w => Orte(w.Linie).Concat(Orte(w.Flaeche)))).Concat(_teile.Gelaende.SelectMany(x => Orte(x.Flaeche)))
+            .Concat(_gewaesser.SelectMany(g => g is EntwurfFluss f ? f.Punkte : ((EntwurfSee)g).Ecken)).Concat(_teile.Gelaende.SelectMany(x => Orte(x.Flaeche)))
             .ToList();
         return (spiel, rest);
     }
@@ -341,10 +351,10 @@ public sealed partial class Kartenentwurf
     /// <summary>Die Feldflächen (<c>natur.felder</c>, seit Schritt 5a).</summary>
     public IReadOnlyList<EntwurfFeld> Felder => _felder;
 
-    public IReadOnlyList<Gewaesser> Wasser => _teile.Wasser;
     public IReadOnlyList<Gelaende> Gelaende => _teile.Gelaende;
+
+    /// <summary>Häfen im alten Format (Kaimauer, Anleger, Kran; nur Köln). Neue Häfen sind Gebäude aus dem Katalog („hafenplatz“).</summary>
     public IReadOnlyList<Hafen> Haefen => _teile.Haefen;
-    public IReadOnlyList<Uebergang> Uebergaenge => _teile.Uebergaenge;
     /// <summary>Der Blick beim Start (Feld <c>kamera</c>) – oder null.</summary>
     public Kartenkamera? Kamera => _kopf.Kamera;
     public IReadOnlyList<Kartenvorkommen> Vorkommen => _vorkommen ??= LiesVorkommen();
@@ -429,10 +439,13 @@ public sealed partial class Kartenentwurf
         if (daten["start"] is not (null or JsonObject)) throw new KartenFehler(new[] { "start ist kein Objekt." });
         var start = EntwurfStart.Aus(daten["start"]?.DeepClone() as JsonObject, Teilleser.Einzeln<Startbelegung>(daten["start"], "start"));
         var hoehen = Hoehenraster.AusJson(daten["hoehen"]);
+        var gewaesser = Teilleser.Liste<Gewaesser>(daten["wasser"], "Gewässer")
+            .Select(x => x.Wert.IstLinie ? (EntwurfTeil)EntwurfFluss.Aus(x.Wert, x.Vorlage) : EntwurfSee.Aus(x.Wert, x.Vorlage)).ToList();
+        var faehren = Teilleser.Liste<Uebergang>(daten["uebergaenge"], "Übergang").Select(x => EntwurfFaehre.Aus(x.Wert, x.Vorlage)).ToList();
 
         // Die übrigen Teile mit dem Leser der Stadtkarte (ohne Prüfung)
         var rest = daten.DeepClone().AsObject();
-        foreach (var k in new[] { "gebaeude", "wege", "bauzonen", "natur", "mauern", "start", "hoehen" }) rest.Remove(k);
+        foreach (var k in new[] { "gebaeude", "wege", "bauzonen", "natur", "mauern", "start", "hoehen", "wasser", "uebergaenge" }) rest.Remove(k);
         Stadtkarte teile;
         try
         {
@@ -443,7 +456,7 @@ public sealed partial class Kartenentwurf
         {
             throw new KartenFehler(new[] { $"Die Karte ist nicht lesbar ({ex.Path}): {ex.Message}" });
         }
-        return new Kartenentwurf(MitAbschnitten(daten), gebaeude, teile, katalog, wege, bauzonen, flaechen, pflanzen, mauern, start, felder, hoehen);
+        return new Kartenentwurf(MitAbschnitten(daten), gebaeude, teile, katalog, wege, bauzonen, flaechen, pflanzen, mauern, start, felder, hoehen, gewaesser, faehren);
     }
 
     /// <summary>
@@ -457,14 +470,15 @@ public sealed partial class Kartenentwurf
     };
 
     /// <summary>
-    /// Fehlen <c>mauern</c>, <c>wege</c>, <c>bauzonen</c>, <c>natur</c>, <c>start</c>, <c>hoehen</c> oder die Felder des Kopfes (<c>groesse</c>,
+    /// Fehlen <c>mauern</c>, <c>wege</c>, <c>bauzonen</c>, <c>natur</c>, <c>wasser</c>, <c>uebergaenge</c>, <c>start</c>, <c>hoehen</c> oder die Felder des Kopfes (<c>groesse</c>,
     /// <c>mitte</c>, <c>rand</c>, <c>kamera</c>), bekommen sie einen leeren Platz an ihrer Stelle der Reihenfolge (null) – geschrieben werden sie
     /// nur, wenn sie etwas enthalten. So landet ein erster Weg in Köln-artigen Dateien an der richtigen Stelle.
     /// </summary>
     private static JsonObject MitAbschnitten(JsonObject daten)
     {
         var liste = daten.Select(e => (e.Key, Wert: e.Value?.DeepClone())).ToList();
-        foreach (var fehlt in new[] { "groesse", "mitte", "rand", "mauern", "wege", "bauzonen", "natur", "start", "kamera", "hoehen" }.Where(k => !daten.ContainsKey(k)))
+        foreach (var fehlt in new[] { "groesse", "mitte", "rand", "mauern", "wege", "bauzonen", "natur", "wasser", "uebergaenge", "start", "kamera", "hoehen" }
+                     .Where(k => !daten.ContainsKey(k)))
         {
             var davor = Reihenfolge.TakeWhile(k => k != fehlt).ToHashSet();
             var i = liste.FindLastIndex(e => davor.Contains(e.Key));
@@ -489,7 +503,7 @@ public sealed partial class Kartenentwurf
         };
         return new Kartenentwurf(MitAbschnitten(daten), new List<EntwurfGebaeude>(), new Stadtkarte { Kennung = kennung, Stadt = stadt, Groesse = new[] { breite, tiefe } },
             katalog, new List<EntwurfWeg>(), new List<EntwurfBauzone>(), new List<EntwurfNaturflaeche>(), new List<EntwurfPflanze>(), new List<EntwurfMauer>(),
-            new EntwurfStart(), new List<EntwurfFeld>(), new Hoehenraster());
+            new EntwurfStart(), new List<EntwurfFeld>(), new Hoehenraster(), new List<EntwurfTeil>(), new List<EntwurfFaehre>());
     }
 
     /// <summary>
@@ -516,6 +530,12 @@ public sealed partial class Kartenentwurf
                         _ => _mauern.Cast<EntwurfTeil>().ToList(),
                     };
                     if (v is not null || teile.Count > 0) aus[k] = Liste(teile);
+                    continue;
+                case "wasser":
+                    if (_gewaesser.Count > 0) aus[k] = Liste(_gewaesser); // leer fällt es weg wie beim Werkzeug
+                    continue;
+                case "uebergaenge":
+                    if (_faehren.Count > 0) aus[k] = Liste(_faehren);
                     continue;
                 case "start":
                     // ohne Inhalt fällt start weg (dann gilt im Spiel der Ersatz) – wie beim Werkzeug
@@ -693,6 +713,8 @@ public sealed partial class Kartenentwurf
         Kartenteil.Mauer => _mauern,
         Kartenteil.Pflanze => _pflanzen,
         Kartenteil.Feld => _felder,
+        Kartenteil.Gewaesser => _gewaesser,
+        Kartenteil.Faehre => _faehren,
         _ => throw new ArgumentException($"„{t.Bezeichnung}“ steht in keiner Liste.", nameof(t)),
     };
 
@@ -737,6 +759,8 @@ public sealed partial class Kartenentwurf
         _befunde = null;
         if (a.Teil is Kartenteil.Gebaeude or Kartenteil.Weg or Kartenteil.Bauzone) _kapazitaet = null;
         if (a.Teil is Kartenteil.Weg or Kartenteil.Mauer) _gelaende.AllesVeraltet(); // das Bett der Wege und Mauern
+        if (a.Teil == Kartenteil.Gewaesser || a.Objekt is EntwurfGebaeude { Baustein.AmUfer: true }) _gelaende.WasserVeraltet(); // Spiegel und Bett, Hafenbecken
+        if (a.Teil is Kartenteil.Weg or Kartenteil.Gewaesser or Kartenteil.Faehre or Kartenteil.Gelaende) _wasserplan = null; // Brücken, Furten, Fähren
         _ausstehend.Add(a);
     }
 

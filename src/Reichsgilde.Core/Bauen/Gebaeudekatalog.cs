@@ -58,6 +58,12 @@ public static class Bausteinart
     /// <summary>Modell eines Einwohnerhauses (Wohnhaus, Bürgerhaus, Ratsherrenhaus).</summary>
     public const string Einwohnerhaus = "einwohnerhaus";
 
+    /// <summary>
+    /// Baukasten für das, was am Wasser von selbst entsteht (Schritt 5c): Holz- und Steinbrücke, Fähre, Furt – das Spiel setzt die Teile
+    /// (Knoten) nach dem Wasserplan, sie stehen in keiner Karte.
+    /// </summary>
+    public const string Wasserbau = "wasserbau";
+
     /// <summary>Alle Arten, die in einer Karte unter <c>gebaeude</c> stehen dürfen.</summary>
     public static readonly IReadOnlySet<string> ImGebaeude = new HashSet<string>
     {
@@ -65,7 +71,7 @@ public static class Bausteinart
     };
 
     /// <summary>Alle Arten.</summary>
-    public static readonly IReadOnlySet<string> Alle = new HashSet<string>(ImGebaeude) { Mauer, Natur, Werkstatt, Wohnhaus, Einwohnerhaus };
+    public static readonly IReadOnlySet<string> Alle = new HashSet<string>(ImGebaeude) { Mauer, Natur, Werkstatt, Wohnhaus, Einwohnerhaus, Wasserbau };
 }
 
 /// <summary>Ein Baustein des Katalogs: was er ist, welches Modell, wie viel Boden er belegt.</summary>
@@ -118,6 +124,12 @@ public sealed class Baustein
 
     /// <summary>In welchen Lagen der Baustein stehen darf (für den Level-Editor; der Kern prüft es bei Karten nicht). Fehlt sie: überall.</summary>
     public List<Lage>? Lagen { get; init; }
+
+    /// <summary>
+    /// Steht am Ufer (Schritt 5c, der Hafen): mit der Rückseite zum Wasser – deren Mitte höchstens 3 m vom Wasser, die ganze Grundfläche an Land
+    /// (Prüfung „ufer“; das Modell hat den Weg vorn, Kai und Kähne hinten). Fehlt es: false.
+    /// </summary>
+    public bool AmUfer { get; init; }
 
     /// <summary>Die Betriebsart als Wert (null, wenn keine oder unbekannt).</summary>
     [JsonIgnore]
@@ -206,7 +218,7 @@ public sealed class Gebaeudekatalog
             if (string.IsNullOrWhiteSpace(b.Kennung)) { f.Add("Katalog: Ein Baustein hat keine Kennung."); continue; }
             if (!Bausteinart.Alle.Contains(b.Art))
                 f.Add($"{wer}: Die Art „{b.Art}“ gibt es nicht (erlaubt: {string.Join(", ", Bausteinart.Alle.Order(StringComparer.Ordinal))}).");
-            if (b.Art is not (Bausteinart.Mauer or Bausteinart.Natur) && b.Groesse is null)
+            if (b.Art is not (Bausteinart.Mauer or Bausteinart.Natur or Bausteinart.Wasserbau) && b.Groesse is null)
                 f.Add($"{wer}: groesse fehlt.");
             if (b.Groesse is { } g && (g.Length != 2 || g[0] <= 0 || g[1] <= 0))
                 f.Add($"{wer}: groesse ist [Breite, Tiefe], beide größer als 0.");
@@ -215,7 +227,7 @@ public sealed class Gebaeudekatalog
             if (b.Varianten < 1)
                 f.Add($"{wer}: varianten ist mindestens 1.");
             if (b.Art is Bausteinart.Kulisse or Bausteinart.Umlandbetrieb or Bausteinart.Umlandstelle or Bausteinart.Berg or Bausteinart.Mauer
-                    or Bausteinart.Natur or Bausteinart.Werkstatt or Bausteinart.Wohnhaus or Bausteinart.Einwohnerhaus
+                    or Bausteinart.Natur or Bausteinart.Werkstatt or Bausteinart.Wohnhaus or Bausteinart.Einwohnerhaus or Bausteinart.Wasserbau
                 && string.IsNullOrWhiteSpace(b.Modell))
                 f.Add($"{wer} ({b.Art}): modell fehlt.");
             if (b.Art == Bausteinart.Natur && string.IsNullOrWhiteSpace(b.Knoten))

@@ -37,6 +37,12 @@ public enum Kartenteil
 
     /// <summary>Das Gelände (Höhenraster, Schritt 5b; nur einmal je Karte) – die Änderung nennt das Rechteck (<see cref="Kartenaenderung.Bereich"/>).</summary>
     Gelaende,
+
+    /// <summary>Ein Fluss oder Bach (<see cref="EntwurfFluss"/>) bzw. ein See oder Teich (<see cref="EntwurfSee"/>), Schritt 5c.</summary>
+    Gewaesser,
+
+    /// <summary>Eine Fährstelle (<see cref="EntwurfFaehre"/>, Schritt 5c).</summary>
+    Faehre,
 }
 
 /// <summary>Ein bearbeitbarer Teil des Entwurfs (Gebäude, Weg, Bauzone, Naturfläche, Pflanze).</summary>
