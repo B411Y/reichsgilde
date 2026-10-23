@@ -17,6 +17,8 @@ namespace Reichsgilde.Kartenbau.Staedte;
 //      siehe Kapazitätsprüfung).
 //    • Wald im Nordwesten und Südosten, ein Waldweg als weiche Kurve; im Randstreifen (300 m) Felder und Waldstücke aus dem Rand-Vorschlag.
 //    • Start: der Spieler und zwei KI-Häuser (Tischlerei, Gießerei).
+//    • Gelände: die Stadt flach, nach Osten ein sanfter Hang hinauf (die östliche Vorstadt steigt bis 4 % an), im Randstreifen Hügel bis 25 m
+//      und rundherum natürliche Unebenheit. Unter keinem Platz mehr als 8 % Gefälle (die Prüfung meldet nichts).
 // ═════════════════════════════════════════════════════════════════════════════
 
 public sealed class Probestadt : Stadtskript
@@ -98,6 +100,18 @@ public sealed class Probestadt : Stadtskript
         E.BetriebHinzufuegen(tischler, werkstaetten[1].Kennung, Betriebsart.Tischlerei);
         var giesser = E.HausHinzufuegen("Haus Brendel");
         E.BetriebHinzufuegen(giesser, werkstaetten[3].Kennung, Betriebsart.Giesserei);
+
+        // ── Gelände: sanfter Hang an der östlichen Vorstadt, Hügel im Randstreifen, Unebenheit im Rand ──
+        Huegel(P(280, 0), 220, 6);          // höchstens 1,5 · 6 / 220 ≈ 4 % – die Mauer bei x = 70 liegt am Fuß
+        Huegel(P(-260, -340), 160, 18);
+        Huegel(P(180, -370), 170, 25);
+        Huegel(P(430, 60), 150, 15);
+        Huegel(P(-150, 360), 160, 20);
+        Huegel(P(-430, -60), 140, 14);
+        Huegel(P(380, 340), 150, 22);
+        Huegel(P(-380, 300), 120, -6);      // eine Senke im Südwesten
+        // Unebenheit: ein Strich rund um das Spielfeld, 170 m vor seiner Kante (der Pinsel endet genau an der Kante)
+        Rauschen(new[] { P(-370, -320), P(370, -320), P(370, 320), P(-370, 320), P(-370, -320) }, radius: 170, staerke: 1.5, massstab: 40, startwert: 11);
 
         E.KameraStartSetzen(P(0, 0), 110);
     }
