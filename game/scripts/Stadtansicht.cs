@@ -1153,14 +1153,14 @@ public partial class Stadtansicht : Node3D
     /// Ein Weg als ein flaches Band entlang einer Linie (glatte Kurven): oben auf derselben Höhe wie die Quader von <see cref="WegStueck"/>,
     /// an den Enden um ein Viertel der Breite länger wie sie. Weniger als zwei Punkte: nichts.
     /// </summary>
-    private void WegBand(IReadOnlyList<Vector3> punkte, float breite, Node3D eltern)
+    private void WegBand(IReadOnlyList<Vector3> punkte, float breite, Node3D eltern, Func<float, float, float>? boden = null)
     {
         if (punkte.Count < 2) return;
         var linie = punkte.Select(p => new Vector2(p.X, p.Z)).ToList();
         // an beiden Enden verlängern (wie die Quader)
         linie[0] -= (linie[1] - linie[0]).Normalized() * breite * 0.25f;
         linie[^1] += (linie[^1] - linie[^2]).Normalized() * breite * 0.25f;
-        var ecken = BandDreiecke(linie, breite / 2, WegHoehe);
+        var ecken = BandDreiecke(linie, breite / 2, WegHoehe, boden);
         if (ecken.Length == 0) return;
         var arrays = new Godot.Collections.Array();
         arrays.Resize((int)Mesh.ArrayType.Max);
@@ -1177,9 +1177,9 @@ public partial class Stadtansicht : Node3D
     /// <summary>
     /// Die Dreiecke eines flachen Bandes um eine Linie (x, z) in der Höhe <paramref name="hoehe"/>, je drei Ecken, mit der Vorderseite nach
     /// oben. An den Knicken liegen die Ränder auf der Winkelhalbierenden (so überlappen sich die Stücke nicht – wichtig für Durchsichtiges;
-    /// in sehr spitzen Knicken höchstens dreifach so weit).
+    /// in sehr spitzen Knicken höchstens dreifach so weit). <paramref name="boden"/> ersetzt die Höhe des Bodens (<see cref="BodenHoehe(float, float)"/>), etwa in einer Furt.
     /// </summary>
-    private Vector3[] BandDreiecke(IReadOnlyList<Vector2> linie, float halb, float hoehe)
+    private Vector3[] BandDreiecke(IReadOnlyList<Vector2> linie, float halb, float hoehe, Func<float, float, float>? boden = null)
     {
         // doppelte Punkte (ein Knick ohne Länge) weglassen – ihre Richtung wäre Zufall
         linie = linie.Where((p, i) => i == 0 || p.DistanceTo(linie[i - 1]) > 0.01f).ToList();
@@ -1202,7 +1202,7 @@ public partial class Stadtansicht : Node3D
         var ecken = new List<Vector3>();
         for (var i = 0; i + 1 < linie.Count; i++)
             foreach (var (a, b, c) in new[] { (links[i], rechts[i], links[i + 1]), (rechts[i], rechts[i + 1], links[i + 1]) })
-                Dreieck(ecken, a, b, c, hoehe);
+                Dreieck(ecken, a, b, c, hoehe, boden: boden);
         return ecken.ToArray();
     }
 
@@ -1233,7 +1233,7 @@ public partial class Stadtansicht : Node3D
     /// Ein Dreieck, Vorderseite nach oben: in (x, z) gerechnet gegen den Uhrzeigersinn (wie bei <see cref="Vieleck"/>), <paramref name="hoehe"/> Meter
     /// über dem Boden. Auf Gelände wird es in kleine Dreiecke geteilt (Kanten bis <see cref="DreieckSchritt"/> Meter), jede Ecke liegt auf dem Boden.
     /// </summary>
-    private void Dreieck(List<Vector3> ecken, Vector2 a, Vector2 b, Vector2 c, float hoehe, float schritt = DreieckSchritt)
+    private void Dreieck(List<Vector3> ecken, Vector2 a, Vector2 b, Vector2 c, float hoehe, float schritt = DreieckSchritt, Func<float, float, float>? boden = null)
     {
         if ((b - a).Cross(c - a) < 0) (b, c) = (c, b);
         if (!BodenBewegt)
@@ -1241,22 +1241,22 @@ public partial class Stadtansicht : Node3D
             DreieckFlach(ecken, a, b, c, hoehe);
             return;
         }
-        DreieckAmBoden(ecken, a, b, c, hoehe, schritt, 0);
+        DreieckAmBoden(ecken, a, b, c, hoehe, schritt, 0, boden ?? (Func<float, float, float>)BodenHoehe);
     }
 
-    private void DreieckAmBoden(List<Vector3> ecken, Vector2 a, Vector2 b, Vector2 c, float hoehe, float schritt, int tiefe)
+    private void DreieckAmBoden(List<Vector3> ecken, Vector2 a, Vector2 b, Vector2 c, float hoehe, float schritt, int tiefe, Func<float, float, float> boden)
     {
         var (ab, bc, ca) = (a.DistanceTo(b), b.DistanceTo(c), c.DistanceTo(a));
         var laengste = Mathf.Max(ab, Mathf.Max(bc, ca));
         if (laengste <= schritt || tiefe >= 24)
         {
-            foreach (var p in new[] { a, b, c }) ecken.Add(new Vector3(p.X, hoehe + BodenHoehe(p.X, p.Y), p.Y));
+            foreach (var p in new[] { a, b, c }) ecken.Add(new Vector3(p.X, hoehe + boden(p.X, p.Y), p.Y));
             return;
         }
         // an der längsten Kante in der Mitte teilen
-        if (laengste == ab) { var m = (a + b) / 2; DreieckAmBoden(ecken, a, m, c, hoehe, schritt, tiefe + 1); DreieckAmBoden(ecken, m, b, c, hoehe, schritt, tiefe + 1); }
-        else if (laengste == bc) { var m = (b + c) / 2; DreieckAmBoden(ecken, a, b, m, hoehe, schritt, tiefe + 1); DreieckAmBoden(ecken, a, m, c, hoehe, schritt, tiefe + 1); }
-        else { var m = (c + a) / 2; DreieckAmBoden(ecken, a, b, m, hoehe, schritt, tiefe + 1); DreieckAmBoden(ecken, m, b, c, hoehe, schritt, tiefe + 1); }
+        if (laengste == ab) { var m = (a + b) / 2; DreieckAmBoden(ecken, a, m, c, hoehe, schritt, tiefe + 1, boden); DreieckAmBoden(ecken, m, b, c, hoehe, schritt, tiefe + 1, boden); }
+        else if (laengste == bc) { var m = (b + c) / 2; DreieckAmBoden(ecken, a, b, m, hoehe, schritt, tiefe + 1, boden); DreieckAmBoden(ecken, a, m, c, hoehe, schritt, tiefe + 1, boden); }
+        else { var m = (c + a) / 2; DreieckAmBoden(ecken, a, b, m, hoehe, schritt, tiefe + 1, boden); DreieckAmBoden(ecken, m, b, c, hoehe, schritt, tiefe + 1, boden); }
     }
 
     /// <summary>Ein flaches Dreieck in der Höhe <paramref name="hoehe"/> (über y = 0, Vorderseite nach oben wie <see cref="Dreieck"/>): für Dunst und alles, was nicht dem Boden folgt.</summary>

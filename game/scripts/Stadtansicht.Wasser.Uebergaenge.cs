@@ -1,5 +1,6 @@
 using Godot;
 using Reichsgilde.Core.Bauen;
+using Reichsgilde.Core.Kartenwerkstatt;
 
 namespace Reichsgilde;
 
@@ -13,11 +14,12 @@ namespace Reichsgilde;
 /// Das Deck liegt auf <see cref="Wasserquerung.Deckhoehe"/>; die Endstücke und Rampen werden in der Höhe so gestreckt, dass sie unten auf dem Gelände am Weg landen.
 /// Stromauf ist beim Modell −Z: Die Brücke wird so gedreht, dass das stimmt.</item>
 /// <item>Wo eine Brücke steht, zeichnet der Weg kein Band (<see cref="WegLuecken"/>).</item>
-/// <item><b>Furt</b>: Trittsteine bzw. Schotter oder gesetzte Steine, auf dem Wasserspiegel, 4 m lang gereiht.</item>
+/// <item><b>Furt</b>: Trittsteine bzw. Schotter oder gesetzte Steine, auf dem Wasser, 4 m lang gereiht. Der Weg läuft eben durch die Furt (<see cref="FurtBoden"/>),
+/// das Wasser fließt darüber (Stadtansicht.Wasser.cs), Figuren und Karren gehen auf dem Weg.</item>
 /// <item><b>Fähre</b>: zwei Anlegestege, der Prahm und das Fährseil von den Pfosten zur Fähre. Die Fähre pendelt; kommt ein Karren zur Fährstelle, kommt sie zu
 /// ihm und fährt mit ihm hinüber (<see cref="FaehrenBewegen"/>).</item>
 /// <item><b>Fahrflächen</b> (<see cref="FussHoehe(float, float)"/>): Auf Brücken, Stegen und der Fähre stehen Figuren und Karren auf dem Deck, nicht im Wasser.</item>
-/// <item><b>Hafen</b>: Das Tretrad des Hafenmodells dreht sich langsam, die Kähne sitzen auf dem Wasserspiegel (<see cref="HafenBelebt"/>).</item>
+/// <item><b>Hafen</b>: Das Tretrad des Hafenmodells dreht sich langsam, die Kähne sitzen auf dem Wasserspiegel (<see cref="HafenBelebt"/>), auch im Hafenbecken vor der Kaimauer.</item>
 /// </list>
 /// </summary>
 public partial class Stadtansicht
@@ -272,12 +274,78 @@ public partial class Stadtansicht
     //  Furten
     // ═════════════════════════════════════════════════════════════════════════
 
+    /// <summary>So weit (Meter) reicht der ebene Weg einer Furt über die Uferkanten hinaus aufs Land.</summary>
+    private const float FurtZugabe = 1f;
+
+    /// <summary>Bis zu diesem Abstand (Meter) sucht <see cref="FurtBoden"/> den höchsten Punkt des Bodens – eine Zelle des Rasters (2 m), so fällt kein Dreieck des Weges in eine Grube.</summary>
+    private const float FurtUmkreis = 2f;
+
+    private IReadOnlyList<Wasserquerung>? _furtenVon;
+    private readonly List<(Vector2 A, Vector2 Richtung, float Laenge, float Halb, Rect2 Rahmen)> _furtStreifen = new();
+
+    /// <summary>Die Wegstreifen der Furten (von Uferkante zu Uferkante und <see cref="FurtZugabe"/> darüber hinaus, so breit wie der Weg) – neu, sobald der Wasserplan neu gerechnet hat.</summary>
+    private List<(Vector2 A, Vector2 Richtung, float Laenge, float Halb, Rect2 Rahmen)> FurtStreifen()
+    {
+        var querungen = Uebergangsplan?.Querungen;
+        if (ReferenceEquals(querungen, _furtenVon)) return _furtStreifen;
+        _furtenVon = querungen;
+        _furtStreifen.Clear();
+        foreach (var q in querungen ?? Array.Empty<Wasserquerung>())
+        {
+            if (q.Art != Uebergangsart.Furt) continue;
+            var (a, b) = (V2(q.Anfang), V2(q.Ende));
+            var laenge = a.DistanceTo(b);
+            if (laenge < 0.01f) continue;
+            var d = (b - a) / laenge;
+            var halb = (float)q.Breite / 2 + 0.5f;
+            var quer = new Vector2(-d.Y, d.X) * halb;
+            var (von, bis) = (a - d * FurtZugabe, b + d * FurtZugabe);
+            var rahmen = new Rect2(von + quer, Vector2.Zero).Expand(von - quer).Expand(bis + quer).Expand(bis - quer);
+            _furtStreifen.Add((von, d, laenge + 2 * FurtZugabe, halb, rahmen));
+        }
+        return _furtStreifen;
+    }
+
+    /// <summary>
+    /// Der Boden unter dem Weg einer Furt – null außerhalb. Das Raster kennt den Boden nur alle 2 m: Das Bett eines schmalen Baches ist darin eine Kette einzelner
+    /// Gruben, und das Wegband fiele stückweise hinein (es sähe zerrissen und versetzt aus). In der Furt gilt darum der höchste gezeichnete Boden im Umkreis von
+    /// <see cref="FurtUmkreis"/>: Über einen schmalen Bach läuft der Weg eben, durch einen breiten Fluss, dessen Bett das Raster zeigt, folgt er weiter dem Grund.
+    /// Das Wasser fließt über den Weg (<see cref="Wasserdeckel"/>), Figuren und Karren gehen auf ihm.
+    /// </summary>
+    private float? FurtBoden(float x, float z)
+    {
+        var p = new Vector2(x, z);
+        foreach (var (a, d, laenge, halb, rahmen) in FurtStreifen())
+        {
+            if (!rahmen.HasPoint(p)) continue;
+            var v = p - a;
+            var u = v.Dot(d);
+            if (u < 0 || u > laenge || Mathf.Abs(v.Dot(new Vector2(-d.Y, d.X))) > halb) continue;
+            var hoechst = float.MinValue;
+            for (var i = -2; i <= 2; i++)
+                for (var j = -2; j <= 2; j++)
+                    hoechst = Mathf.Max(hoechst, BodenHoehe(x + i * FurtUmkreis / 2, z + j * FurtUmkreis / 2));
+            return hoechst;
+        }
+        return null;
+    }
+
+    /// <summary>Der Boden, dem das Band von Weg <paramref name="weg"/> folgt: in seinen Furten <see cref="FurtBoden"/>; null, wenn er keine Furt hat (dann der Boden).</summary>
+    private Func<float, float, float>? WegBoden(int weg)
+    {
+        if (Uebergangsplan is not { } plan || !plan.Querungen.Any(q => q.Weg == weg && q.Art == Uebergangsart.Furt)) return null;
+        return (x, z) => FurtBoden(x, z) ?? BodenHoehe(x, z);
+    }
+
     private void FurtBauen(Node3D eltern, Wasserquerung q, Wasserform form)
     {
         var (a, b) = (V2(q.Anfang), V2(q.Ende));
         var laenge = a.DistanceTo(b);
         if (laenge < 0.5f) return;
         var d = (b - a) / laenge;
+        // Figuren und Karren gehen auf dem Weg durch die Furt (nicht in den Gruben des Rasters)
+        var start = a - d * FurtZugabe;
+        FahrflaecheMerken(start, d, laenge + 2 * FurtZugabe, (float)q.Breite / 2 + 0.5f, u => FurtBoden(start.X + d.X * u, start.Y + d.Y * u));
         float h0 = 0, h1 = 0;
         var phi = StromabDrehung(form, ref a, ref b, ref d, ref h0, ref h1);
         var gruppe = new Node3D { Name = "Furt_" + q.GewaesserName };
@@ -288,7 +356,10 @@ public partial class Stadtansicht
         {
             var mitte = a + d * (laenge * (i + 0.5f) / stuecke);
             var knoten = q.Karren ? (i % 2 == 0 ? "Furt3" : "Furt2") : "Furt1"; // Karren: gesetzte Steine und Schotterbänke, zu Fuß: Trittsteine
-            WasserTeil("wasser_steine", knoten, gruppe, BausteinLage(mitte, (float)(form.Spiegel(mitte.X, mitte.Y) ?? q.Spiegel), phi, new Vector3(s, 1, 1)));
+            // auf dem Wasser, wie es gezeichnet ist: auf dem Spiegel, über einem schmalen Bach knapp über dem Weg (Wasserdeckel)
+            var spiegel = (float)(form.Spiegel(mitte.X, mitte.Y) ?? q.Spiegel);
+            var weg = FurtBoden(mitte.X, mitte.Y) is { } boden ? boden + WegHoehe : float.MinValue;
+            WasserTeil("wasser_steine", knoten, gruppe, BausteinLage(mitte, Mathf.Max(spiegel, weg + WasserUeberBoden), phi, new Vector3(s, 1, 1)));
         }
     }
 
@@ -511,13 +582,22 @@ public partial class Stadtansicht
             for (var i = 0; i < h.Kaehne.Length; i++)
             {
                 var kahn = h.Kaehne[i];
-                if (!h.Gesetzt && GewaesserForm?.Spiegel(kahn.GlobalPosition.X, kahn.GlobalPosition.Z) is { } spiegel)
+                if (!h.Gesetzt && SpiegelMitBecken(kahn.GlobalPosition.X, kahn.GlobalPosition.Z) is { } spiegel)
                     h.KahnHoehen[i] = (float)spiegel - h.Wurzel.GlobalPosition.Y;
                 kahn.Position = new Vector3(kahn.Position.X, h.KahnHoehen[i] + 0.04f * Mathf.Sin((float)_wasserZeit * 0.9f + i * 2.1f), kahn.Position.Z);
                 kahn.Rotation = new Vector3(0.012f * Mathf.Sin((float)_wasserZeit * 0.7f + i), kahn.Rotation.Y, 0.015f * Mathf.Sin((float)_wasserZeit * 0.8f + i * 1.3f));
             }
             h.Gesetzt = true;
         }
+    }
+
+    /// <summary>Der Spiegel am Ort: im Fluss oder See, sonst im Hafenbecken (das zählt im Kern nicht als Gewässer); null an Land.</summary>
+    private double? SpiegelMitBecken(float x, float z)
+    {
+        if (GewaesserForm is not { } form) return null;
+        if (form.Spiegel(x, z) is { } spiegel) return spiegel;
+        var p = new Kartenort(x, z);
+        return form.Becken.FirstOrDefault(b => b.Enthaelt(p))?.Spiegel;
     }
 
     /// <summary>Alles Bewegte am Wasser, jedes Bild (aus <c>_Process</c>).</summary>

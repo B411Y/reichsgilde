@@ -262,7 +262,7 @@ public sealed partial class Kartenentwurf
         (_daten, _gebaeude, _teile, Katalog) = (daten, gebaeude, teile, katalog);
         (_gewaesser, _faehren) = (gewaesser, faehren);
         _hoehen = hoehen;
-        _gelaende = new Gelaendeform(hoehen, Bettlinien, () => Wasser);
+        _gelaende = new Gelaendeform(hoehen, Bettlinien, () => Wasser, Kaimauern);
         (_wege, _bauzonen, _naturflaechen, _pflanzen, _mauern, _start, _felder) = (wege, bauzonen, naturflaechen, pflanzen, mauern, start, felder);
         foreach (var g in _gebaeude) g.Baustein = katalog.Finde(g.Katalog);
         foreach (var p in _pflanzen) p.Baustein = katalog.Finde(p.Katalog);
@@ -759,7 +759,7 @@ public sealed partial class Kartenentwurf
         _befunde = null;
         if (a.Teil is Kartenteil.Gebaeude or Kartenteil.Weg or Kartenteil.Bauzone) _kapazitaet = null;
         if (a.Teil is Kartenteil.Weg or Kartenteil.Mauer) _gelaende.AllesVeraltet(); // das Bett der Wege und Mauern
-        if (a.Teil == Kartenteil.Gewaesser) _gelaende.WasserVeraltet(); // Spiegel und Bett
+        if (a.Teil == Kartenteil.Gewaesser || a.Objekt is EntwurfGebaeude { Baustein.AmUfer: true }) _gelaende.WasserVeraltet(); // Spiegel und Bett, Hafenbecken
         if (a.Teil is Kartenteil.Weg or Kartenteil.Gewaesser or Kartenteil.Faehre or Kartenteil.Gelaende) _wasserplan = null; // Brücken, Furten, Fähren
         _ausstehend.Add(a);
     }

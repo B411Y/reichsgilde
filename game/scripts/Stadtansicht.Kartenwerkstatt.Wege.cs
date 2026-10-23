@@ -76,7 +76,7 @@ public partial class Stadtansicht
         foreach (var anderer in _entwurf.Wege)
             if (ReferenceEquals(anderer, w)) break;
             else nummer++;
-        WegZeichnen(w.Verlauf.Select(p => V3(p)).ToArray(), (float)w.BreiteWirksam, w.IstGlatt, knoten, WegLuecken(nummer)); // unter Brücken kein Band (Stadtansicht.Wasser.Uebergaenge.cs)
+        WegZeichnen(w.Verlauf.Select(p => V3(p)).ToArray(), (float)w.BreiteWirksam, w.IstGlatt, knoten, WegLuecken(nummer), WegBoden(nummer)); // unter Brücken kein Band, in Furten eben (Stadtansicht.Wasser.Uebergaenge.cs)
         WegMarkieren(w);
         if (BereichVon(w) is { } bereich) _wsBereiche[w] = bereich;
     }

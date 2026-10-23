@@ -519,7 +519,9 @@ public sealed class Stadtkarte
         () => Wege.Where(w => w.Linie.Count >= 2).Select(w => new Bettlinie(w.Verlauf.Select(Kartenort.Aus).ToList(), w.BreiteWirksam))
             .Concat(Mauern.Where(m => m.Linie.Count >= 2).Select(m => new Bettlinie(m.Linie.Select(Kartenort.Aus).ToList(), Gelaendeform.Mauerbett, m.Geschlossen)))
             .ToList(),
-        () => Wasser);
+        () => Wasser,
+        () => Gebaeude.Where(g => g.Baustein is { AmUfer: true, Groesse: { Length: 2 } }).Select(g => Kaimauer.Von(g.Name, g.Punkt[0], g.Punkt[1], g.Drehung,
+            g.Baustein!.Groesse![0] * g.Massstab, g.Baustein.Groesse[1] * g.Massstab)).ToList());
 
     private Wasserplan? _wasserplan;
 

@@ -16,7 +16,7 @@ namespace Reichsgilde.Core.Bauen;
 //  (Profil – das Wegband liegt darauf; im Bett hat der Boden genau diese Höhe) und das Fundament eines Gebäudes (Fundament: es steht auf
 //  dem höchsten Punkt seines Umrisses, darunter ein Sockel bis zum tiefsten). Die Prüfung fragt die Hangneigung eines Umrisses (Hang).
 //
-//  Seit Schritt 5c gräbt auch das Wasser sein Bett in dieselbe Schicht (Wasserform: Flussbett, See, weiches Ufer). Es kommt nach dem Bett
+//  Seit Schritt 5c gräbt auch das Wasser sein Bett in dieselbe Schicht (Wasserform: Flussbett, See, weiches Ufer, Hafenbecken). Es kommt nach dem Bett
 //  der Wege: Im Fluss und im See gewinnt das Wasser, am Ufer der Kern eines Weges oder einer Mauer. Auch eine Karte ohne Höhen ist mit
 //  Wasser nicht mehr flach (IstFlach).
 // ═════════════════════════════════════════════════════════════════════════════
@@ -62,10 +62,12 @@ public sealed class Gelaendeform
     /// <param name="roh">Das gespeicherte Raster (die Form ändert es nie).</param>
     /// <param name="linien">Wege und Mauern – wird bei jedem Neurechnen gefragt.</param>
     /// <param name="gewaesser">Flüsse und Seen (Schritt 5c) – wird nach <see cref="WasserVeraltet"/> neu gefragt; null: kein Wasser.</param>
-    public Gelaendeform(Hoehenraster roh, Func<IReadOnlyList<Bettlinie>> linien, Func<IReadOnlyList<Gewaesser>>? gewaesser = null)
+    /// <param name="kaie">Die Kaimauern der Häfen (vor ihnen ein Hafenbecken, <see cref="Wasserform"/>) – ebenso; null: keine.</param>
+    public Gelaendeform(Hoehenraster roh, Func<IReadOnlyList<Bettlinie>> linien, Func<IReadOnlyList<Gewaesser>>? gewaesser = null,
+        Func<IReadOnlyList<Kaimauer>>? kaie = null)
     {
         (Roh, _linien) = (roh, linien);
-        Wasser = new Wasserform(roh, gewaesser ?? (() => Array.Empty<Gewaesser>()));
+        Wasser = new Wasserform(roh, gewaesser ?? (() => Array.Empty<Gewaesser>()), kaie);
     }
 
     /// <summary>Das gespeicherte Höhenraster, wie die Pinsel es ändern.</summary>
@@ -95,7 +97,7 @@ public sealed class Gelaendeform
         _veraltet.AddRange(nass);
     }
 
-    /// <summary>Ein Gewässer hat sich geändert (oder kam dazu, fiel weg): Spiegel und das ganze Bett beim nächsten Lesen neu.</summary>
+    /// <summary>Ein Gewässer oder ein Hafen hat sich geändert (oder kam dazu, fiel weg): Spiegel, Becken und das ganze Bett beim nächsten Lesen neu.</summary>
     public void WasserVeraltet()
     {
         Wasser.AllesVeraltet();

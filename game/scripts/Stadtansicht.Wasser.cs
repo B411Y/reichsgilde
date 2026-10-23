@@ -10,10 +10,13 @@ namespace Reichsgilde;
 /// (Stadtansicht.Gelaende.cs). Hier steht, was die Darstellung daraus macht:
 /// <list type="bullet">
 /// <item><b>Flüsse und Bäche</b> (<see cref="FlussNetz"/>): ein Band entlang der Mittellinie auf der Höhe des Spiegels (er fällt nur, steigt nie), etwas breiter als
-/// der Fluss – die Ränder verschwinden im Ufer. Die Eckenwerte (Tiefe, Breite, Strömung) lesen <c>wasser.gdshader</c>: Er färbt nach Tiefe, lässt das Ufer
+/// der Fluss – die Ränder verschwinden im Ufer. Wo der gezeichnete Boden das Bett nicht zeigt (ein schmaler Bach, eine Furt), liegt das Band knapp darüber
+/// (<see cref="Wasserdeckel"/>). Die Eckenwerte (Tiefe, Breite, Strömung) lesen <c>wasser.gdshader</c>: Er färbt nach Tiefe, lässt das Ufer
 /// durchsichtig und mit Schaum auslaufen und trägt Wellen mit der Strömung flussab.</item>
 /// <item><b>Seen und Teiche</b> (<see cref="SeeNetz"/>): eine Fläche genau über den Zellen des Bodens (<see cref="RasterDreiecke"/>) auf der Höhe des Wasserstands, die Tiefe
 /// an jeder Ecke aus dem Boden. Das Wasser liegt still.</item>
+/// <item><b>Hafenbecken</b> (<see cref="BeckenNetz"/>): vor der Kaimauer eines Hafens hebt der Kern das Ufer aus; darin liegt Wasser wie in einem See, auf dem Spiegel des
+/// Flusses davor, und läuft dort aus, wo der Fluss beginnt.</item>
 /// <item><b>Licht</b>: Sonne und Mond spiegeln sich über die Beleuchtung der Szene; den Himmel liefert die Farbe <c>himmel</c>, die <see cref="WasserFarbeNachfuehren"/> jedes
 /// Bild auf die Himmelsfarbe der Tageszeit setzt (die Szene hat keinen Himmel zum Spiegeln).</item>
 /// <item><b>Übergänge, Fähren, Hafen</b>: Stadtansicht.Wasser.Uebergaenge.cs.</item>
@@ -28,6 +31,9 @@ public partial class Stadtansicht
 
     /// <summary>Die Punkte des Bandes liegen so weit (Meter) auseinander (der Kern gibt einen Punkt je Meter).</summary>
     private const int FlussSchritt = 2;
+
+    /// <summary>So hoch (Meter) liegt das Wasser mindestens über dem gezeichneten Boden (und dem Weg einer Furt) in der Mitte des Bandes.</summary>
+    private const float WasserUeberBoden = 0.03f;
 
     private Node3D? _gewaesserKnoten;
     private static Shader? _wasserShader;
@@ -63,6 +69,9 @@ public partial class Stadtansicht
         foreach (var see in form.Seen)
             if (SeeNetz(see) is { } netz)
                 _gewaesserKnoten.AddChild(WasserInstanz("See_" + see.Name, netz));
+        foreach (var becken in form.Becken)
+            if (BeckenNetz(becken, form) is { } netz)
+                _gewaesserKnoten.AddChild(WasserInstanz("Becken_" + becken.Name, netz));
         if (Uebergangsplan is { } plan) UebergaengeBauen(_gewaesserKnoten, plan);
     }
 
@@ -111,13 +120,11 @@ public partial class Stadtansicht
             var halb = (float)pt.Breite / 2;
             var mitte = new Vector2((float)pt.Ort.X, (float)pt.Ort.Z);
             var strom = richtung * (float)lauf.Stroemung;
-            // Ein schmaler Bach ist schmaler als zwei Zellen des Bodens (2 m): Sein Bett ist im Netz nur eine flache Mulde, und der Spiegel schnitte sie in Stücken.
-            // Darum liegt das Wasser dort ein paar Zentimeter höher; es läuft am Ufer ohnehin durchsichtig aus.
-            var hub = Mathf.Clamp(0.2f - 0.02f * (float)pt.Breite, 0f, 0.15f);
+            var hoehe = Mathf.Max((float)pt.Spiegel, Wasserdeckel(mitte, richtung, halb));
             foreach (var seite in new[] { -1f, 1f })
             {
                 var o = mitte + quer * halb * FlussRandFaktor * seite;
-                ecken.Add(new Vector3(o.X, (float)pt.Spiegel + hub, o.Y));
+                ecken.Add(new Vector3(o.X, hoehe, o.Y));
                 uv.Add(new Vector2(seite * FlussRandFaktor, (float)pt.Stelle));
                 uv2.Add(strom);
                 farben.Add(new Color((float)pt.Tiefe, halb, 0, 1));
@@ -131,6 +138,28 @@ public partial class Stadtansicht
             indizes.AddRange(new[] { a, c, b, b, c, d });
         }
         return NetzAusFeldern(ecken, uv, uv2, farben, indizes);
+    }
+
+    /// <summary>
+    /// Wie hoch das Band an dieser Stelle mindestens liegen muss, damit der gezeichnete Boden nicht hindurchsticht: <see cref="WasserUeberBoden"/> über dem höchsten
+    /// Punkt des Bodens (in einer Furt: des Weges, <see cref="FurtBoden"/>) quer bis drei Viertel der halben Breite – so weit ist das Wasser deckend, weiter außen läuft es
+    /// durchsichtig aus – und längs bis zur nächsten Reihe. Der Boden ist nur alle 2 m bekannt: Das Bett eines schmalen oder schräg zum Raster laufenden Baches ist
+    /// im Netz eine Kette einzelner Gruben, und ein Spiegel darin zerfiele in Flecken. Wo das Raster das Bett zeigt (ein breiter Fluss), liegt der Boden tiefer als der
+    /// Spiegel, und es bleibt beim Spiegel.
+    /// </summary>
+    private float Wasserdeckel(Vector2 mitte, Vector2 richtung, float halb)
+    {
+        if (!BodenBewegt) return float.MinValue;
+        var quer = new Vector2(-richtung.Y, richtung.X);
+        var hoechst = float.MinValue;
+        foreach (var laengs in new[] { -1f, -0.5f, 0f, 0.5f, 1f })
+            foreach (var seite in new[] { -0.75f, -0.4f, 0f, 0.4f, 0.75f })
+            {
+                var p = mitte + richtung * (laengs * FlussSchritt / 2f) + quer * (seite * halb);
+                var boden = FurtBoden(p.X, p.Y) is { } weg ? weg + WegHoehe : BodenHoehe(p.X, p.Y);
+                hoechst = Mathf.Max(hoechst, boden);
+            }
+        return hoechst + WasserUeberBoden;
     }
 
     private static ArrayMesh NetzAusFeldern(List<Vector3> ecken, List<Vector2> uv, List<Vector2> uv2, List<Color> farben, List<int>? indizes)
@@ -170,6 +199,22 @@ public partial class Stadtansicht
             if (!tiefen.TryGetValue((e.X, e.Z), out var t)) tiefen[(e.X, e.Z)] = t = (float)_gelaende.Wassertiefe(e.X, e.Z);
             return new Color(t, 0, 0, 0);
         }).ToList();
+        return NetzAusFeldern(ecken, uv, uv2, farben, null);
+    }
+
+    /// <summary>
+    /// Das Wasser eines Hafenbeckens: wie ein See genau über den Zellen des Bodens, auf dem Spiegel des Gewässers vor der Kaimauer. Wo der Fluss beginnt, ist die Tiefe
+    /// der Ecke 0 – dort läuft das Becken durchsichtig aus, und das Band des Flusses übernimmt (sonst lägen zwei Wasserflächen übereinander).
+    /// </summary>
+    private ArrayMesh? BeckenNetz(Hafenbecken becken, Wasserform form)
+    {
+        if (_gelaende is null) return null;
+        var spiegel = (float)becken.Spiegel;
+        var ecken = RasterDreiecke(becken.Umriss.Select(o => new Vector2((float)o.X, (float)o.Z)).ToArray(), 0, spiegel);
+        if (ecken.Count == 0) return null;
+        var uv = ecken.Select(e => new Vector2(e.X, e.Z)).ToList();
+        var uv2 = ecken.Select(_ => Vector2.Zero).ToList();
+        var farben = ecken.Select(e => new Color(form.IstWasser(e.X, e.Z) ? 0 : Mathf.Max(0, spiegel - BodenHoehe(e.X, e.Z)), 0, 0, 0)).ToList();
         return NetzAusFeldern(ecken, uv, uv2, farben, null);
     }
 }
