@@ -7,18 +7,20 @@ namespace Reichsgilde.Core.Bauen;
 //
 //  Ein Fluss (oder Bach) ist eine Linie mit Breite je Stützpunkt; er fließt in Zeichenrichtung. Wie ein glatter Weg läuft er als weiche
 //  Kurve durch alle Stützpunkte (Wegkurve, etwa alle 1 m ein Punkt); Breite und Tiefe gehen zwischen zwei Stützpunkten gleichmäßig über.
-//  Sein Spiegel folgt dem Gelände: die Höhe des gespeicherten Rasters unter der Mitte, über ±8 m gemittelt, 0,4 m tiefer (Freibord) –
-//  aber nie höher als weiter oben am Fluss. Wasser fließt nicht bergauf: Steigt das Gelände in Fließrichtung an, bleibt der Spiegel auf
-//  seiner Höhe, und das Bett schneidet sich ein (wie ein Durchstich). Wie tief höchstens, steht in GroessterEinschnitt – die Prüfung
-//  meldet ab 2 m einen Hinweis („läuft bergauf?“). Das ist eine bewusste Entscheidung: Jeder Pinselstrich ändert das Gelände, ein harter
-//  Fehler würde beim Malen ständig aufleuchten; so bleibt der Fluss immer möglich, und man sieht, wo er sich eingräbt.
+//  Sein Spiegel folgt dem Gelände: die Höhe des gespeicherten Rasters unter der Mitte, über ±8 m gemittelt, um den Freibord tiefer (ein Bach
+//  0,4 m, je breiter, desto tiefer, ab 14 m Breite 1 m – so sind die Modelle von Brücke, Fähre und Hafen gebaut: Uferkante auf Höhe 0, Wasser
+//  1 m darunter) – aber nie höher als weiter oben am Fluss. Wasser fließt nicht bergauf: Steigt das Gelände in Fließrichtung an, bleibt der
+//  Spiegel auf seiner Höhe, und das Bett schneidet sich ein (wie ein Durchstich). Wie tief über den Freibord hinaus, steht in
+//  GroessterEinschnitt – die Prüfung meldet ab 1,6 m einen Hinweis („läuft bergauf?“). Das ist eine bewusste Entscheidung: Jeder
+//  Pinselstrich ändert das Gelände, ein harter Fehler würde beim Malen ständig aufleuchten; so bleibt der Fluss immer möglich, und man
+//  sieht, wo er sich eingräbt.
 //  Ein See (oder Teich) ist ein Vieleck mit einem Wasserstand (ohne Angabe 0,4 m unter dem tiefsten Punkt seines Ufers) und einer Tiefe.
 //
 //  Das Bett: Wie das Bett der Wege liegt es in der Schicht „Boden“ (Gelaendeform), das gespeicherte Raster bleibt unverändert. Im Fluss
-//  hat der Boden ein Querprofil (Parabel: am Rand der Spiegel, in der Mitte die Tiefe), daneben ein weiches Ufer (2 m + ein Fünftel der
-//  Breite), das vom Spiegel ins Gelände übergeht. Im See fällt der Boden vom Ufer mit 30 % bis zur Tiefe ab, außen dasselbe weiche Ufer
-//  (3 m). Unter dem Kern eines Weges oder einer Mauer bleibt das Ufer stehen (der Weg führt bis ans Wasser, eine Brücke setzt dort an);
-//  das Flussbett selbst gräbt sich auch unter Wegen ein.
+//  hat der Boden ein Querprofil (Parabel: am Rand der Spiegel, in der Mitte die Tiefe), daneben ein Ufer, das vom Spiegel bis zur
+//  Uferkante ins Gelände übergeht (0,5 m + das Anderthalbfache des Freibords breit: bei 1 m Freibord 2 m, steil wie die Böschung der
+//  Modelle). Im See fällt der Boden vom Ufer mit 30 % bis zur Tiefe ab, außen 1,5 m Ufer. Unter dem Kern eines Weges oder einer Mauer
+//  bleibt das Ufer stehen (der Weg führt bis ans Wasser, eine Brücke setzt dort an); das Flussbett selbst gräbt sich auch unter Wegen ein.
 //
 //  Abfragen für Darstellung und Prüfung: Laeufe (je Fluss die Punkte mit Breite, Tiefe, Spiegel und Richtung), Seen (Umriss, Wasserstand),
 //  An(x, z) (welches Wasser, Spiegel, Strömung), IstWasser, Uferabstand, Ueberlappt (ein Umriss im Wasser). Die Tiefe am Ort (Spiegel minus
@@ -52,8 +54,8 @@ public sealed class Wasserlauf
     public IReadOnlyList<int> Abschnitte { get; }
 
     /// <summary>
-    /// So tief (Meter) liegt der Spiegel höchstens unter dem Gelände (über ±8 m gemittelt) – mehr als der Freibord heißt: Hier stieg das Gelände
-    /// in Fließrichtung an, und das Bett schneidet sich ein. Dazu der Ort.
+    /// So tief (Meter) schneidet sich das Bett höchstens ein: wie weit der Spiegel unter dem Gelände (über ±8 m gemittelt) liegt, über den
+    /// Freibord hinaus – mehr als 0 heißt: Hier stieg das Gelände in Fließrichtung an. Dazu der Ort.
     /// </summary>
     public double GroessterEinschnitt { get; }
 
@@ -116,6 +118,14 @@ public sealed class Wasserlauf
         double M(double x, double y) => x + (y - x) * t;
         return new Wasserpunkt(new Kartenort(M(a.Ort.X, b.Ort.X), M(a.Ort.Z, b.Ort.Z)), M(a.Stelle, b.Stelle), M(a.Breite, b.Breite),
             M(a.Tiefe, b.Tiefe), M(a.Spiegel, b.Spiegel), a.RichtungX, a.RichtungZ);
+    }
+
+    /// <summary>Liegt der Punkt im Fluss oder an seinem Ufer (bis zur Uferkante, <see cref="Wasserform.Uferbreite"/>)?</summary>
+    public bool ImUfer(Kartenort p)
+    {
+        if (!Bereich.Enthaelt(p) || Naechste(p) is not ({ } k, { } t, { } d)) return false;
+        var w = Bei(k, t);
+        return d <= w.Breite / 2 + Wasserform.Uferbreite(w.Breite);
     }
 
     /// <summary>Der Punkt an der Stelle (Meter ab dem Anfang, geklemmt).</summary>
@@ -198,8 +208,14 @@ public readonly record struct Wasserstelle(Wasserlauf? Lauf, Wassersee? See, dou
 /// <summary>Alle Gewässer einer Karte mit Spiegel und Bett (siehe Kopf der Datei). Gehört zu einer <see cref="Gelaendeform"/>.</summary>
 public sealed class Wasserform
 {
-    /// <summary>So tief (Meter) liegt der Spiegel unter dem Gelände, wo nichts ihn zwingt (Fluss: unter der Mitte; See: am tiefsten Ufer).</summary>
-    public const double Freibord = 0.4;
+    /// <summary>So tief (Meter) liegt der Spiegel eines Sees ohne Wasserstand unter dem tiefsten Punkt seines Ufers.</summary>
+    public const double SeeFreibord = 0.4;
+
+    /// <summary>
+    /// So tief (Meter) liegt der Spiegel eines Flusses dieser Breite unter dem Gelände, wo nichts ihn zwingt: 0,3 m + ein Zwanzigstel der Breite,
+    /// 0,4 bis 1 m (Bach 3 m: 0,45 m; ab 14 m: 1 m wie in den Modellen von Brücke, Fähre und Hafen).
+    /// </summary>
+    public static double Freibord(double breite) => Math.Clamp(0.3 + 0.05 * breite, 0.4, 1);
 
     /// <summary>Über so viele Meter vor und hinter einer Stelle wird das Gelände unter einem Fluss gemittelt (Dreiecksgewicht).</summary>
     public const double Glaettung = 8;
@@ -210,11 +226,11 @@ public sealed class Wasserform
     /// <summary>Tiefe eines Sees ohne Angabe (Meter).</summary>
     public const double SeeTiefeVorgabe = 2;
 
-    /// <summary>Breite des weichen Ufers um einen See (Meter).</summary>
-    public const double SeeUfer = 3;
+    /// <summary>Breite des Ufers um einen See (Meter).</summary>
+    public const double SeeUfer = 1.5;
 
-    /// <summary>Ab so viel Einschnitt (Meter, Spiegel unter dem gemittelten Gelände) meldet die Prüfung einen Fluss, der bergauf läuft.</summary>
-    public const double Schluchtgrenze = 2;
+    /// <summary>Ab so viel Einschnitt (Meter über den Freibord hinaus) meldet die Prüfung einen Fluss, der bergauf läuft.</summary>
+    public const double Schluchtgrenze = 1.6;
 
     /// <summary>Schmaler und flacher geht es nicht (Meter).</summary>
     public const double MindestBreite = 0.5, MindestTiefe = 0.1;
@@ -237,8 +253,11 @@ public sealed class Wasserform
     /// <summary>Strömung ohne Angabe (m/s): Bach 0,5, Fluss 1.</summary>
     public static double VorgabeStroemung(string art) => art == "bach" ? 0.5 : 1;
 
-    /// <summary>Breite des weichen Ufers neben einem Fluss dieser Breite (Meter): 2 m + ein Fünftel der Breite.</summary>
-    public static double Uferbreite(double breite) => 2 + 0.2 * breite;
+    /// <summary>
+    /// Breite des Ufers neben einem Fluss dieser Breite (Meter): vom Wasser bis zur Uferkante, 0,5 m + das Anderthalbfache des Freibords
+    /// (Bach 1,6 m breit: 1,1 m; ab 14 m: 2 m).
+    /// </summary>
+    public static double Uferbreite(double breite) => 0.5 + 1.5 * Freibord(breite);
 
     private readonly Hoehenraster _roh;
     private readonly Func<IReadOnlyList<Gewaesser>> _gewaesser;
@@ -337,13 +356,14 @@ public sealed class Wasserform
         var (einschnitt, einschnittOrt) = (0.0, orte[0]);
         for (var k = 0; k < orte.Count; k++)
         {
-            spiegel = Math.Min(spiegel, glatt[k] - Freibord);
-            var unterGelaende = glatt[k] - spiegel;
-            if (unterGelaende > einschnitt) (einschnitt, einschnittOrt) = (unterGelaende, orte[k]);
             var a = Math.Min(verlauf.Abschnitte[k], stuetz.Count - 2);
             var t = Anteil(k);
             var (pa, pb) = (stuetz[a], stuetz[a + 1]);
             var breite = PunktBreite(g, pa) + (PunktBreite(g, pb) - PunktBreite(g, pa)) * t;
+            var freibord = Freibord(breite);
+            spiegel = Math.Min(spiegel, glatt[k] - freibord);
+            var zuTief = glatt[k] - freibord - spiegel;
+            if (zuTief > einschnitt) (einschnitt, einschnittOrt) = (zuTief, orte[k]);
             var tiefe = PunktTiefe(g, pa) + (PunktTiefe(g, pb) - PunktTiefe(g, pa)) * t;
             var (von, nach) = k + 1 < orte.Count ? (orte[k], orte[k + 1]) : (orte[k - 1], orte[k]);
             var laenge = von.Abstand(nach);
@@ -369,7 +389,7 @@ public sealed class Wasserform
                 if (h < tiefst) (tiefst, ort) = (h, p);
             }
         }
-        var stand = g.Wasserstand ?? tiefst - Freibord;
+        var stand = g.Wasserstand ?? tiefst - SeeFreibord;
         var tiefe = g.Tiefe is > 0 ? g.Tiefe.Value : SeeTiefeVorgabe;
         return new Wassersee(nummer, g.Name, g.Art, umriss, stand, g.Wasserstand is null, Math.Max(tiefe, MindestTiefe), tiefst, ort);
     }
@@ -402,6 +422,13 @@ public sealed class Wasserform
 
     /// <summary>Liegt der Ort im Wasser (Fluss, Bach, See, Teich)?</summary>
     public bool IstWasser(double x, double z) => An(x, z) is not null;
+
+    /// <summary>Liegt der Ort im Wasser oder an einem Ufer (bis zur Uferkante, wo das Ufer ins Gelände übergeht)?</summary>
+    public bool ImUfer(double x, double z)
+    {
+        var p = new Kartenort(x, z);
+        return Laeufe.Any(l => l.ImUfer(p)) || Seen.Any(s => s.Bereich.Enthaelt(p) && (s.Enthaelt(p) || s.Randabstand(p) <= SeeUfer));
+    }
 
     /// <summary>Liegt der Ort in einem See oder Teich?</summary>
     public bool ImSee(double x, double z) => Seen.Any(s => s.Enthaelt(new Kartenort(x, z)));

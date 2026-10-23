@@ -23,7 +23,7 @@ namespace Reichsgilde.Kartenbau;
 //                                                   einen Fluss oder Bach in Fließrichtung anlegen
 //    dotnet run --project tools/Kartenbau -- see <karte> <x,z;…> [--art=teich] [--name=] [--wasserstand=] [--tiefe=]   einen See oder Teich
 //    dotnet run --project tools/Kartenbau -- faehre <karte> <x,z> <x,z> [--name=]   eine Fährstelle (zwei Anleger, rasten an Wegen ein)
-//    dotnet run --project tools/Kartenbau -- hafen <karte> <x,z> <drehung> [--name=]   einen Hafenplatz (Vorderseite zum Wasser)
+//    dotnet run --project tools/Kartenbau -- hafen <karte> <x,z> <drehung> [--name=]   einen Hafenplatz (Rückseite zum Wasser)
 //    dotnet run --project tools/Kartenbau -- umbauen <umbau>                     ein Umbauskript (Umbauten/) auf seine Karte anwenden
 //  <karte> ist die Kennung einer Karte in game/karten/ (greybox, koeln …), <datei> ein Pfad zu einer .json-Datei.
 //  Rückgabe: 0 = in Ordnung, 1 = die Karte hat Fehler, 2 = falscher Aufruf (oder die Datei gibt es schon).
@@ -170,7 +170,7 @@ public static class Program
                                                   einen See (oder Teich); ohne Wasserstand 0,4 m unter dem tiefsten Ufer
               faehre <karte> <x,z> <x,z> [--name=…]   eine Fährstelle: zwei Anleger an beiden Ufern (rasten an Wegen ein)
               hafen <karte> <x,z> <drehung> [--name=…]
-                                                  einen Hafenplatz setzen – die Vorderseite (Drehung wie im Spiel) zum Wasser
+                                                  einen Hafenplatz setzen – die Rückseite (Kai) zum Wasser, Drehung wie im Spiel
               umbauen <umbau>                     ein Umbauskript (tools/Kartenbau/Umbauten) auf seine Karte anwenden
 
             <karte> ist eine Kennung aus game/karten/ (z. B. greybox, koeln), <datei> ein Pfad zu einer .json-Datei.

@@ -347,22 +347,22 @@ public static class Kartenpruefung
 
         /// <summary>
         /// Wasser (Schritt 5c): Kein Gebäude steht im Wasser – die Grundfläche mit Vorplatz überdeckt keinen Fluss und keinen See. Ein Gebäude am
-        /// Ufer (<see cref="Baustein.AmUfer"/>, der Hafen) nur ohne Vorplatz, dafür liegt die Mitte seiner Vorderseite höchstens
-        /// <see cref="Kartenentwurf.HafenUfer"/> Meter vom Wasser (Regel „ufer“).
+        /// Ufer (<see cref="Baustein.AmUfer"/>, der Hafen) steht mit der Rückseite am Wasser (das Modell: Weg von vorn, Kai und Kähne hinten): Die
+        /// Mitte seiner Rückseite liegt höchstens <see cref="Kartenentwurf.HafenUfer"/> Meter vom Wasser (Regel „ufer“).
         /// </summary>
         private void AmWasser(EntwurfGebaeude g)
         {
             var wasser = _e.Wasserform;
-            var ufer = g.Baustein!.AmUfer;
-            if (!wasser.IstLeer && wasser.Ueberlappt(ufer ? g.Ecken(ohneVorplatz: true) : Ecken(g)) is { } nass)
+            if (!wasser.IstLeer && wasser.Ueberlappt(Ecken(g)) is { } nass)
                 Fehler("wasser", $"{Wer(g)} steht im Wasser („{nass.Name}“ bei {nass.Ort}).", nass.Ort, g.Kennung);
-            if (!ufer || g.Eingang is not { } vorne) return;
-            var abstand = wasser.Uferabstand(vorne.X, vorne.Z);
+            if (!g.Baustein!.AmUfer || g.Groesse is not var (_, t)) return;
+            var hinten = g.Lokal(0, -t / 2);
+            var abstand = wasser.Uferabstand(hinten.X, hinten.Z);
             if (abstand > Kartenentwurf.HafenUfer)
                 Fehler("ufer", abstand == double.MaxValue
-                    ? $"{Wer(g)} steht nicht am Ufer: Vor seiner Vorderseite {vorne} ist kein Wasser (höchstens {M(Kartenentwurf.HafenUfer)} m entfernt)."
-                    : $"{Wer(g)} steht nicht am Ufer: Die Vorderseite {vorne} liegt {M(abstand)} m vom Wasser (höchstens {M(Kartenentwurf.HafenUfer)} m).",
-                    vorne, g.Kennung);
+                    ? $"{Wer(g)} steht nicht am Ufer: Hinter seiner Rückseite {hinten} ist kein Wasser (höchstens {M(Kartenentwurf.HafenUfer)} m entfernt)."
+                    : $"{Wer(g)} steht nicht am Ufer: Die Rückseite {hinten} liegt {M(abstand)} m vom Wasser (höchstens {M(Kartenentwurf.HafenUfer)} m).",
+                    hinten, g.Kennung);
         }
 
         /// <summary>Hangsperre für Bauzonen: die steilste Stelle in der Zone.</summary>
@@ -792,8 +792,8 @@ public static class Kartenpruefung
             foreach (var q in plan.Querungen)
             {
                 var weg = new EntwurfTeil[] { _e.Wege[q.Weg] };
-                if (q.IstBruecke && q.Laenge > Wasserplan.LangeBruecke)
-                    HinweisAn("bruecke-lang", $"„{q.WegName}“: Die Brücke über „{q.GewaesserName}“ bei {q.Mitte} ist {M(q.Laenge)} m lang (ab {M(Wasserplan.LangeBruecke)} m sehr lang).",
+                if (q.IstBruecke && q.Weite > Wasserplan.LangeBruecke)
+                    HinweisAn("bruecke-lang", $"„{q.WegName}“: Die Brücke über „{q.GewaesserName}“ bei {q.Mitte} spannt {M(q.Weite)} m von Ufer zu Ufer (ab {M(Wasserplan.LangeBruecke)} m sehr lang).",
                         q.Mitte, weg);
                 if (!q.Quert)
                     HinweisAn("weg-im-wasser", $"„{q.WegName}“ läuft bei {q.Mitte} {M(q.Spannweite)} m durch „{q.GewaesserName}“, ohne ihn zu queren.", q.Mitte, weg);

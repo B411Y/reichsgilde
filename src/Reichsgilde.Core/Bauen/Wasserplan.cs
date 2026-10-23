@@ -8,9 +8,13 @@ namespace Reichsgilde.Core.Bauen;
 //  Wo ein Weg einen Fluss oder Bach quert, entsteht automatisch ein Übergang – gesucht wird entlang des Wegverlaufs alle 0,5 m, ob der Ort
 //  im Wasser liegt; Anfang und Ende jeder Strecke im Wasser werden auf wenige Zentimeter genau eingegrenzt:
 //    • eine Furt, wenn der Fluss dort flacher als 0,5 m ist (Karren fahren hindurch, langsamer: logistik.wasser.furtMinuten),
-//    • sonst eine Brücke: aus Holz bis 20 m Spannweite (Joche alle 4 m), darüber aus Stein (Bögen bis 8 m, Pfeiler dazwischen). Die
-//      Brücke reicht je 1 m aufs Ufer (Widerlager); ihr Deck liegt auf der Höhe des Weges an beiden Enden, mindestens aber so hoch über
-//      dem Spiegel, dass ein Kahn hindurchpasst (Holz 0,6 m, Stein 1,5 m) – die Darstellung legt dann Rampen an.
+//    • sonst eine Brücke: aus Holz bis 20 m Spannweite über dem Wasser, darüber aus Stein.
+//  Gebaut wird sie wie die Modelle (game/assets/modelle/wasser/): Zwischen den beiden Uferkanten (wo das Ufer ins Gelände übergeht,
+//  Wasserform.Uferbreite) liegt die Weite W. Holz: n = max(1, round(W / 4)) Joche, je W / n lang, der Holm jedes Jochs in seiner Mitte; an
+//  jeder Uferkante ein Endstück, 4 m aufs Land. Stein: n = max(1, round((W + 2) / 10)) Bögen mit n − 1 Pfeilern zu 2 m dazwischen; an jeder
+//  Uferkante eine Rampe, 10 m aufs Land. Alle Teile sitzen mit ihrer Höhe 0 auf der Uferhöhe (Mittel der Weghöhe an beiden Uferkanten),
+//  das Deck liegt 0,6 m (Holz) bzw. 1,4 m (Stein) darüber. Zwischen Anfang und Ende (mit Endstücken bzw. Rampen) zeichnet die Darstellung
+//  statt des Wegbands die Brücke.
 //  Ein Weg durch einen See bekommt keinen Übergang: Dort ist er gesperrt (die Prüfung meldet einen Fehler, Karren fahren nicht hindurch).
 //  Eine Fährstelle (uebergaenge mit art „faehre“) verbindet zwei Anleger an beiden Ufern; Karren warten dort (logistik.wasser.faehreMinuten).
 //
@@ -56,17 +60,33 @@ public sealed record Wasserquerung
 
     public string GewaesserName { get; init; } = "";
 
-    /// <summary>Anfang und Ende auf der Mittellinie des Weges (bei einer Brücke mit 1 m Widerlager auf jedem Ufer).</summary>
+    /// <summary>
+    /// Anfang und Ende auf der Mittellinie des Weges: bei einer Brücke mit den Endstücken (Holz, 4 m) bzw. Rampen (Stein, 10 m) auf dem Land,
+    /// bei einer Furt die Uferkanten.
+    /// </summary>
     public Kartenort Anfang { get; init; }
 
     public Kartenort Ende { get; init; }
 
-    /// <summary>Anfang und Ende in Metern entlang des Wegverlaufs.</summary>
+    /// <summary>Anfang und Ende in Metern entlang des Wegverlaufs (dazwischen kein Wegband).</summary>
     public double VonStelle { get; init; }
 
     public double BisStelle { get; init; }
 
-    /// <summary>Wie weit der Weg über Wasser führt (Meter, ohne Widerlager).</summary>
+    /// <summary>Die beiden Uferkanten auf der Mittellinie des Weges (wo das Ufer ins Gelände übergeht) – dort setzen Endstücke und Rampen an.</summary>
+    public Kartenort UferA { get; init; }
+
+    public Kartenort UferB { get; init; }
+
+    /// <summary>Die Uferkanten in Metern entlang des Wegverlaufs.</summary>
+    public double UferAStelle { get; init; }
+
+    public double UferBStelle { get; init; }
+
+    /// <summary>Die Weite zwischen den Uferkanten (Meter) – darüber spannen Joche bzw. Bögen und Pfeiler.</summary>
+    public double Weite => UferBStelle - UferAStelle;
+
+    /// <summary>Wie weit der Weg über Wasser führt (Meter) – entscheidet Holz (bis 20 m) oder Stein.</summary>
     public double Spannweite { get; init; }
 
     /// <summary>Die Breite des Weges (Meter).</summary>
@@ -75,10 +95,13 @@ public sealed record Wasserquerung
     /// <summary>Grad wie <c>Rotation.Y</c> (0 = von Norden nach Süden, 90 = von Westen nach Osten).</summary>
     public double Richtung { get; init; }
 
-    /// <summary>Brücke: Höhe des Decks (Meter). Furt: Höhe der Sohle in der Mitte.</summary>
+    /// <summary>Die Uferhöhe (Meter): Mittel der Weghöhe an beiden Uferkanten – darauf sitzen die Teile der Brücke mit ihrer Höhe 0.</summary>
+    public double Uferhoehe { get; init; }
+
+    /// <summary>Brücke: Höhe des Decks (Uferhöhe + 0,6 m Holz bzw. 1,4 m Stein). Furt: Höhe der Sohle in der Mitte.</summary>
     public double Deckhoehe { get; init; }
 
-    /// <summary>Höhe des Weges (Längsprofil) an Anfang und Ende – liegt das Deck höher, braucht die Brücke Rampen.</summary>
+    /// <summary>Höhe des Weges (Längsprofil) an Anfang und Ende – dorthin führen Endstück bzw. Rampe hinab.</summary>
     public double AnfangHoehe { get; init; }
 
     public double EndeHoehe { get; init; }
@@ -88,11 +111,14 @@ public sealed record Wasserquerung
 
     public double Tiefe { get; init; }
 
-    /// <summary>Brücke: Pfeiler bzw. Joche zwischen den Feldern (Holz alle 4 m, Stein alle 8 m). Furt: keine.</summary>
+    /// <summary>Brücke: Holz die Holme der Joche (je in der Mitte eines Jochs), Stein die Pfeiler zwischen den Bögen (2 m breit). Furt: keine.</summary>
     public IReadOnlyList<Brueckenpfeiler> Pfeiler { get; init; } = Array.Empty<Brueckenpfeiler>();
 
-    /// <summary>Wie viele Felder (Holz: Joche zu 4 m, Stein: Bögen zu 8 m) die Brücke hat (Furt: 0).</summary>
+    /// <summary>Wie viele Joche (Holz) bzw. Bögen (Stein) die Brücke hat (Furt: 0).</summary>
     public int Felder { get; init; }
+
+    /// <summary>Die Länge eines Jochs bzw. Bogens (Meter): Holz W / n (Modell 4 m), Stein (W − 2 (n − 1)) / n (Modell 8 m) – so weit strecken.</summary>
+    public double Feldlaenge { get; init; }
 
     /// <summary>
     /// Quert der Weg das Gewässer wirklich (Anfang und Ende an verschiedenen Ufern)? Sonst streift er es nur oder läuft im Wasser entlang –
@@ -105,7 +131,7 @@ public sealed record Wasserquerung
 
     public bool IstBruecke => Art is Uebergangsart.Holzbruecke or Uebergangsart.Steinbruecke;
 
-    /// <summary>Die Länge über alles (Meter, mit Widerlagern).</summary>
+    /// <summary>Die Länge über alles (Meter, mit Endstücken bzw. Rampen).</summary>
     public double Laenge => BisStelle - VonStelle;
 
     public Kartenort Mitte => new((Anfang.X + Ende.X) / 2, (Anfang.Z + Ende.Z) / 2);
@@ -139,6 +165,14 @@ public sealed record Faehrverbindung
     public bool VonImWasser { get; init; }
     public bool BisImWasser { get; init; }
 
+    /// <summary>
+    /// Wo die Strecke von <see cref="Von"/> bzw. <see cref="Bis"/> aus die Uferkante erreicht (dort beginnt das Ufer) – dort steht der Anlegesteg
+    /// mit seiner Landseite; ohne Ufer auf der Strecke der Anleger selbst.
+    /// </summary>
+    public Kartenort VonUferkante { get; init; }
+
+    public Kartenort BisUferkante { get; init; }
+
     /// <summary>Abstand der Anleger zum Wasser (Meter; <see cref="double.MaxValue"/>: kein Wasser in der Nähe).</summary>
     public double VonUfer { get; init; }
 
@@ -160,16 +194,16 @@ public sealed class Wasserplan
     /// <summary>Bis zu dieser Spannweite (Meter) ist eine Brücke aus Holz, darüber aus Stein.</summary>
     public const double HolzBis = 20;
 
-    /// <summary>So weit reicht eine Brücke auf jedes Ufer (Meter).</summary>
-    public const double Widerlager = 1;
+    /// <summary>So weit reicht eine Brücke hinter der Uferkante aufs Land (Meter): das Endstück aus Holz, die Rampe aus Stein (wie die Modelle).</summary>
+    public const double HolzEnde = 4, SteinRampe = 10;
 
-    /// <summary>Feldlänge einer Holzbrücke (ein Joch) und einer Steinbrücke (ein Bogen), höchstens (Meter).</summary>
-    public const double HolzFeld = 4, SteinFeld = 8;
+    /// <summary>Länge eines Jochs (Holz) und eines Bogens (Stein) im Modell, Breite eines Steinpfeilers (Meter).</summary>
+    public const double HolzJoch = 4, SteinBogen = 8, SteinPfeiler = 2;
 
-    /// <summary>So hoch liegt das Deck mindestens über dem Spiegel (Meter).</summary>
-    public const double HolzLichte = 0.6, SteinLichte = 1.5;
+    /// <summary>So hoch liegt das Deck über der Uferhöhe (Meter), wie in den Modellen; die Fähre trägt ihr Deck 0,3 m über dem Wasser.</summary>
+    public const double HolzDeck = 0.6, SteinDeck = 1.4, FaehreDeck = 0.3;
 
-    /// <summary>Ab dieser Länge (Meter) meldet die Prüfung eine Brücke als sehr lang (Hinweis).</summary>
+    /// <summary>Ab dieser Weite zwischen den Uferkanten (Meter) meldet die Prüfung eine Brücke als sehr lang (Hinweis).</summary>
     public const double LangeBruecke = 60;
 
     /// <summary>In diesen Schritten (Meter) wird ein Weg auf Wasser abgetastet.</summary>
@@ -325,27 +359,60 @@ public sealed class Wasserplan
         var spannweite = bis - von;
         // (1 cm Spiel: die Grenzen sind auf 1 mm genau, eine 20 m breite Furt ist dann auch eine)
         var art = tiefe < FurtTiefe ? Uebergangsart.Furt : spannweite <= HolzBis + 0.01 ? Uebergangsart.Holzbruecke : Uebergangsart.Steinbruecke;
-        var furt = art == Uebergangsart.Furt;
-        var (a, b) = furt ? (von, bis) : (Math.Max(0, von - Widerlager), Math.Min(laenge, bis + Widerlager));
-        var (anfang, ende) = (OrtAn(v, stellen, a), OrtAn(v, stellen, b));
-        var (hA, hE) = (ProfilHoehe(v, a), ProfilHoehe(v, b));
-        var deck = furt ? spiegel - tiefe : Math.Max(Math.Max(hA, hE), spiegel + (art == Uebergangsart.Holzbruecke ? HolzLichte : SteinLichte));
-        var pfeiler = new List<Brueckenpfeiler>();
-        var felder = 0;
-        if (!furt)
+        // die Uferkanten: vom Wasser aus entlang des Weges, bis das Ufer ins Gelände übergeht
+        double Uferkante(double imWasser, double richtung)
         {
-            felder = Math.Max(1, (int)Math.Ceiling((b - a) / (art == Uebergangsart.Holzbruecke ? HolzFeld : SteinFeld) - 0.005));
-            for (var i = 1; i < felder; i++)
+            var aussen = imWasser;
+            while (aussen > 0 && aussen < laenge && lauf.ImUfer(OrtAn(v, stellen, aussen))) aussen = Math.Clamp(aussen + richtung * Abtastung, 0, laenge);
+            if (lauf.ImUfer(OrtAn(v, stellen, aussen))) return aussen; // der Weg endet im Ufer
+            var (innen, rand) = (imWasser, aussen);
+            for (var n = 0; n < 20 && Math.Abs(rand - innen) > 0.001; n++)
             {
-                var p = OrtAn(v, stellen, a + (b - a) * i / felder);
-                pfeiler.Add(new Brueckenpfeiler(p, _gelaende.Hoehe(p.X, p.Z)));
+                var m = (innen + rand) / 2;
+                if (lauf.ImUfer(OrtAn(v, stellen, m))) innen = m;
+                else rand = m;
             }
+            return (innen + rand) / 2;
         }
+        var (ua, ub) = (Uferkante(von, -1), Uferkante(bis, 1));
+        var weite = ub - ua;
+        var (a, b) = art switch
+        {
+            Uebergangsart.Furt => (ua, ub),
+            Uebergangsart.Holzbruecke => (Math.Max(0, ua - HolzEnde), Math.Min(laenge, ub + HolzEnde)),
+            _ => (Math.Max(0, ua - SteinRampe), Math.Min(laenge, ub + SteinRampe)),
+        };
+        var (anfang, ende) = (OrtAn(v, stellen, a), OrtAn(v, stellen, b));
+        var uferhoehe = (ProfilHoehe(v, ua) + ProfilHoehe(v, ub)) / 2;
+        var deck = art switch
+        {
+            Uebergangsart.Furt => spiegel - tiefe,
+            Uebergangsart.Holzbruecke => uferhoehe + HolzDeck,
+            _ => uferhoehe + SteinDeck,
+        };
+        // Holz: der Holm jedes Jochs in seiner Mitte; Stein: die Pfeiler zwischen den Bögen
+        var pfeilerStellen = new List<double>();
+        var (felder, feldlaenge) = (0, 0.0);
+        if (art == Uebergangsart.Holzbruecke)
+        {
+            felder = Math.Max(1, (int)Math.Round(weite / HolzJoch, MidpointRounding.AwayFromZero));
+            feldlaenge = weite / felder;
+            for (var i = 0; i < felder; i++) pfeilerStellen.Add(ua + (i + 0.5) * feldlaenge);
+        }
+        else if (art == Uebergangsart.Steinbruecke)
+        {
+            felder = Math.Max(1, (int)Math.Round((weite + SteinPfeiler) / (SteinBogen + SteinPfeiler), MidpointRounding.AwayFromZero));
+            feldlaenge = (weite - SteinPfeiler * (felder - 1)) / felder;
+            for (var i = 1; i < felder; i++) pfeilerStellen.Add(ua + i * (feldlaenge + SteinPfeiler) - SteinPfeiler / 2);
+        }
+        var pfeiler = pfeilerStellen.Select(x => OrtAn(v, stellen, x)).Select(p => new Brueckenpfeiler(p, _gelaende.Hoehe(p.X, p.Z))).ToList();
         return new Wasserquerung
         {
             Art = art, Weg = index, WegName = weg.Name, Gewaesser = lauf.Nummer, GewaesserName = lauf.Name, Anfang = anfang, Ende = ende,
-            VonStelle = a, BisStelle = b, Spannweite = spannweite, Breite = weg.Breite, Richtung = Richtung(anfang, ende), Deckhoehe = deck,
-            AnfangHoehe = hA, EndeHoehe = hE, Spiegel = spiegel, Tiefe = tiefe, Pfeiler = pfeiler, Felder = felder, Quert = quert, Karren = weg.Karren,
+            VonStelle = a, BisStelle = b, UferA = OrtAn(v, stellen, ua), UferB = OrtAn(v, stellen, ub), UferAStelle = ua, UferBStelle = ub,
+            Spannweite = spannweite, Breite = weg.Breite, Richtung = Richtung(anfang, ende), Uferhoehe = uferhoehe, Deckhoehe = deck,
+            AnfangHoehe = ProfilHoehe(v, a), EndeHoehe = ProfilHoehe(v, b), Spiegel = spiegel, Tiefe = tiefe, Pfeiler = pfeiler, Felder = felder,
+            Feldlaenge = feldlaenge, Quert = quert, Karren = weg.Karren,
         };
     }
 
@@ -388,11 +455,30 @@ public sealed class Wasserplan
             jeGewaesser[w.Nummer] = (alt.Meter + laenge / schritte, w.Spiegel, w.Name);
         }
         var haupt = jeGewaesser.Count == 0 ? ((double, double, string)?)null : jeGewaesser.Values.OrderByDescending(x => x.Meter).First();
+        // vom Anleger zur Uferkante: in Schritten, dann halbiert auf 1 mm
+        Kartenort Uferkante(Kartenort a, Kartenort b)
+        {
+            Kartenort Bei(double t) => new(a.X + (b.X - a.X) * t, a.Z + (b.Z - a.Z) * t);
+            if (laenge <= 0 || wasser.ImUfer(a.X, a.Z)) return a;
+            var schritt = Abtastung / laenge;
+            var t = 0.0;
+            while (t < 1 && !wasser.ImUfer(Bei(t + schritt).X, Bei(t + schritt).Z)) t += schritt;
+            if (t >= 1) return a;
+            var (land, ufer) = (t, Math.Min(1, t + schritt));
+            for (var n = 0; n < 20 && (ufer - land) * laenge > 0.001; n++)
+            {
+                var m = (land + ufer) / 2;
+                if (wasser.ImUfer(Bei(m).X, Bei(m).Z)) ufer = m;
+                else land = m;
+            }
+            return Bei((land + ufer) / 2);
+        }
         return new Faehrverbindung
         {
             Nummer = nummer, Name = u.Name, Von = von, Bis = bis, Gewaesser = haupt?.Item3, Laenge = laenge,
             UeberWasser = jeGewaesser.Values.Sum(x => x.Meter), Spiegel = haupt?.Item2 ?? 0, Richtung = Richtung(von, bis),
             VonImWasser = wasser.IstWasser(von.X, von.Z), BisImWasser = wasser.IstWasser(bis.X, bis.Z),
+            VonUferkante = Uferkante(von, bis), BisUferkante = Uferkante(bis, von),
             VonUfer = wasser.Uferabstand(von.X, von.Z), BisUfer = wasser.Uferabstand(bis.X, bis.Z),
         };
     }
