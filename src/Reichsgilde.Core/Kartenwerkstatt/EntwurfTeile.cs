@@ -117,11 +117,21 @@ public sealed class EntwurfWeg : EntwurfTeil
     public string? Kurve { get; internal set; }
 
     private List<Kartenort> _punkte = new();
+    private List<Belagstelle> _belag = new();
     private Wegverlauf? _verlauf;
     private Kartenort[]? _verlaufOrte;
 
     /// <summary>Die Stützpunkte (in der Datei: <c>linie</c>).</summary>
     public IReadOnlyList<Kartenort> Punkte => _punkte;
+
+    /// <summary>
+    /// Abschnitte mit anderem Belag als der Vorgabe der Klasse (in der Datei: <c>belag</c>; Schritt 5d) – geordnet, ohne Überlappung, nur
+    /// was von der Vorgabe abweicht (<see cref="Kartenentwurf.BelagSetzen(EntwurfWeg, double, double, Belagstufe)"/>).
+    /// </summary>
+    public IReadOnlyList<Belagstelle> Belag => _belag;
+
+    /// <summary>Der Startbelag als lückenlose Abschnitte von 0 bis zur Länge (für die Darstellung in der Kartenwerkstatt).</summary>
+    public IReadOnlyList<Belagabschnitt> BelagAbschnitte => Wegbelag.Startabschnitte(Klasse, Laenge, _belag);
 
     public bool IstGlatt => Kurve == Wegkurve.Glatt;
     public double BreiteWirksam => Breite > 0 ? Breite : Kartenweg.Standardbreite(Klasse);
@@ -146,6 +156,8 @@ public sealed class EntwurfWeg : EntwurfTeil
         _punkte = punkte.ToList();
         (_verlauf, _verlaufOrte) = (null, null);
     }
+
+    internal void BelagSetzen(IEnumerable<Belagstelle> belag) => _belag = belag.ToList();
 
     internal void KurveSetzen(string? kurve)
     {
@@ -180,18 +192,22 @@ public sealed class EntwurfWeg : EntwurfTeil
     }
 
     /// <summary>Der Weg in den Typen der Stadtkarte (für Werkzeuge, die mit <see cref="Kartenweg"/> rechnen).</summary>
-    public Kartenweg AlsKartenweg() => new() { Name = Name, Klasse = Klasse, Linie = Roh(_punkte), Gefahr = Gefahr, Breite = Breite, Kurve = Kurve };
+    public Kartenweg AlsKartenweg() => new()
+    {
+        Name = Name, Klasse = Klasse, Linie = Roh(_punkte), Gefahr = Gefahr, Breite = Breite, Kurve = Kurve, Belag = _belag.Count == 0 ? null : _belag.ToList(),
+    };
 
     internal static EntwurfWeg Aus(Kartenweg w, JsonObject? vorlage)
     {
         var e = new EntwurfWeg { Name = w.Name, Klasse = w.Klasse, Gefahr = w.Gefahr, Breite = w.Breite, Kurve = w.Kurve, Vorlage = vorlage };
         e.PunkteSetzen(Orte(w.Linie));
+        e._belag = w.Belag?.ToList() ?? new List<Belagstelle>();
         return e;
     }
 
     internal override EntwurfTeil KopieTeil()
     {
-        var k = new EntwurfWeg { Name = Name, Klasse = Klasse, Gefahr = Gefahr, Breite = Breite, Kurve = Kurve, Vorlage = Vorlage };
+        var k = new EntwurfWeg { Name = Name, Klasse = Klasse, Gefahr = Gefahr, Breite = Breite, Kurve = Kurve, Vorlage = Vorlage, _belag = _belag.ToList() };
         k.PunkteSetzen(_punkte);
         return k;
     }
@@ -202,16 +218,29 @@ public sealed class EntwurfWeg : EntwurfTeil
         (Name, Klasse, Gefahr, Breite, Vorlage) = (o.Name, o.Klasse, o.Gefahr, o.Breite, o.Vorlage);
         KurveSetzen(o.Kurve);
         PunkteSetzen(o._punkte);
+        _belag = o._belag.ToList();
     }
 
     internal override bool GleicheWerte(EntwurfTeil anderer) => anderer is EntwurfWeg o && Name == o.Name && Klasse == o.Klasse
-        && Gefahr == o.Gefahr && Breite == o.Breite && Kurve == o.Kurve && _punkte.SequenceEqual(o._punkte);
+        && Gefahr == o.Gefahr && Breite == o.Breite && Kurve == o.Kurve && _punkte.SequenceEqual(o._punkte)
+        && _belag.Select(b => (b.Von, b.Bis, b.Stufe, b.Zustand)).SequenceEqual(o._belag.Select(b => (b.Von, b.Bis, b.Stufe, b.Zustand)));
 
     internal override JsonObject AlsJson() => Zusammensetzen(Vorlage,
         ("name", Name), ("klasse", Klasse.ToString().ToLowerInvariant()), ("linie", JsonPunkte(_punkte)),
         ("gefahr", Vorlage is null || Vorlage.ContainsKey("gefahr") || Gefahr != 1 ? JsonValue.Create(Gefahr) : null),
         ("breite", Breite > 0 ? JsonValue.Create(Breite) : null),
-        ("kurve", Kurve is null ? null : JsonValue.Create(Kurve)));
+        ("kurve", Kurve is null ? null : JsonValue.Create(Kurve)),
+        ("belag", _belag.Count == 0 ? null : new JsonArray(_belag.Select(b => (JsonNode)BelagJson(b)).ToArray())));
+
+    /// <summary>Ein Abschnitt in der Datei: <c>{"von": 0, "bis": 40, "stufe": "pflaster"}</c> (ohne <c>bis</c>: bis zum Ende).</summary>
+    private static JsonObject BelagJson(Belagstelle b)
+    {
+        var o = new JsonObject { ["von"] = b.Von };
+        if (b.Bis is { } bis) o["bis"] = bis;
+        o["stufe"] = b.Stufe.ToString().ToLowerInvariant();
+        if (b.Zustand is { } z) o["zustand"] = z;
+        return o;
+    }
 }
 
 // ═════════════════════════════════════════════════════════════════════════════

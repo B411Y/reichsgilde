@@ -1,5 +1,5 @@
 {
-  "version": 51,
+  "version": 52,
   "gesundheit": {
     "medicusKosten": 120,
     "medicusKostenPest": 300,
@@ -41,6 +41,7 @@
       "KreditAufnehmen": 1,
       "MoschusSchenken": 1, "MoschusRatsherr": 1, "ZwietrachtSaeen": 1, "HeiligenduftStiften": 1, "Giftanschlag": 2,
       "Konvertieren": 2, "Bekehrungspredigt": 1, "StadtglaubeBeantragen": 2,
+      "WegPflasterBeantragen": 2,
       "BerufErlernen": 4
     }
   },
@@ -1118,6 +1119,26 @@
     ],
     "leerstand": { "kauf": 0.5, "sanierung": 0.2, "abriss": 0.1, "abrissMindestens": 100, "abrissMinuten": 240 }
   },
+  "wegebau": {
+    "tempo": { "Trampelpfad": 0.70, "Fahrweg": 0.85, "Kies": 0.95, "Pflaster": 1.00 },
+    "bezug": "Fahrweg",
+    "stueck": 5,
+    "verkehr": {
+      "halten": 5, "voll": 50, "hoechstensJeJahr": 0.5, "verwildern": 0.2,
+      "grundverkehr": { "Land": 40, "Haupt": 40 },
+      "fussRadius": 40, "fussGewicht": { "einwohnerplatz": 1, "wohnhausplatz": 2, "werkstattplatz": 2, "sonderbau": 5 }, "fussFaktor": 1
+    },
+    "verfall": { "Kies": 0.05, "Pflaster": 0.03 },
+    "verfallSchwelle": 0.25,
+    "preisJeMeter": { "Kies": 6, "Pflaster": 15 },
+    "bauzeitGrund": 60,
+    "bauzeitJeMeter": { "Kies": 1, "Pflaster": 2 },
+    "hoechstensMeter": 300,
+    "rat": {
+      "budgetJeJahr": 600, "kasseHoechstens": 3000, "marktRadius": 30, "ausbessernAb": 0.6, "hoechstensMeterJeJahr": 100,
+      "antragGunst": 10, "antragVerkehr": 30, "antragAnsehen": 5, "ansehenJahre": 5
+    }
+  },
   "stadt": { "einwohnerGrund": 100, "einwohnerJeHaus": 25, "bezugHaeuser": 4 },
   "liegenschaften": [
     {
@@ -1536,7 +1557,8 @@
     "messe": 2
   },
   "ki": {
-    "einrichtung": { "hoechstensJahre": 4, "charakterJahre": 0.5, "reserveFaktor": 2 }
+    "einrichtung": { "hoechstensJahre": 4, "charakterJahre": 0.5, "reserveFaktor": 2 },
+    "wegebau": { "hoechstensJahre": 5, "charakterJahre": 1, "wertJeKarrenminute": 1.5, "reserveFaktor": 2, "hoechstensMeter": 100 }
   },
   "handel": { "aufschlag": 0.10, "marktVon": 8, "marktBis": 20 },
   "glaube": {

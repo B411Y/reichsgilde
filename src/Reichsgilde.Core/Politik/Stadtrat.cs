@@ -132,6 +132,7 @@ public sealed class Stadtrat
                - _w.Bank.AnsehenAbzug(konto)            // ein Wucherkredit läuft
                + _w.Duft.AnsehenBonus(konto)            // Heiligenduft in der Kirche gestiftet
                + _w.Wohnen.AnsehenBonus(konto)          // ein stattliches Wohnhaus
+               + _w.Wegebau.AnsehenBonus(konto)         // ein Weg auf Antrag gepflastert
                - _w.Glaube.AnsehenAbzug(konto);         // gerade erst die Konfession gewechselt
     }
 
@@ -431,6 +432,7 @@ public sealed class Stadtrat
         _bewerbungen.Remove(konto);
         if (Antrag?.Antragsteller == konto) Antrag = null;
         _w.Glaube.Ausscheiden(konto);
+        _w.Wegebau.Ausscheiden(konto);
     }
 
     /// <summary>Nach einer Verurteilung rückt der bestochene Ratsherr öffentlich vom Haus ab.</summary>
@@ -468,6 +470,7 @@ public sealed class Stadtrat
             Abstimmen(antrag.Antragsteller, antrag.Statut, jahr);
         Antrag = null;
         _w.Glaube.Abstimmen(jahr, _letzteSitzung.Add); // der Stadtglaube nach dem Statut
+        _w.Wegebau.RatSitzung(jahr, _letzteSitzung.Add); // Antrag „Weg pflastern“, Pflaster der Stadt
 
         foreach (var amt in _aemter.OrderByDescending(a => a.Stufe).ThenBy(a => a.Name, StringComparer.Ordinal).ToList())
             Waehlen(amt, zufall, jahr);

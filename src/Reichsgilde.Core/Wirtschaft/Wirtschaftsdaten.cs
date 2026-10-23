@@ -202,6 +202,12 @@ public sealed class Wirtschaftsdaten
     /// <summary>Bauen in der Stadt: Raster, Größen, Bauzeiten, Preise für Leerstand (ab Datenversion 34). Fehlt der Abschnitt, wird nicht gebaut.</summary>
     public Bauen.BauDaten? Bauen { get; init; }
 
+    /// <summary>
+    /// Belag der Wege: Tempo der Karren, Austritt, Verfall, Bauaufträge, Pflaster des Stadtrats (ab Datenversion 52; Kartenwerkstatt, Schritt 5d).
+    /// Fehlt der Abschnitt, haben Wege im Spiel keinen Belag.
+    /// </summary>
+    public Bauen.WegebauDaten? Wegebau { get; init; }
+
     /// <summary>Handel von Hand per Karrenauftrag (ab Datenversion 24). Fehlt der Abschnitt, handeln nur die Verwalter.</summary>
     public HandelDaten? Handel { get; init; }
 
@@ -445,6 +451,7 @@ public sealed class Wirtschaftsdaten
         Handel?.Pruefen(f);
         Wohnen?.Pruefen(f, Staende.Count);
         Bauen?.Pruefen(f, Wohnen);
+        Wegebau?.Pruefen(f);
         Verkauf.Pruefen(f);
         Stadt?.Pruefen(f);
         Werkstatt?.Pruefen(f, Berufe, Waren, Arbeitskraefte);

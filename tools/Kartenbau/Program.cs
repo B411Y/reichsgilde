@@ -24,6 +24,7 @@ namespace Reichsgilde.Kartenbau;
 //    dotnet run --project tools/Kartenbau -- see <karte> <x,z;…> [--art=teich] [--name=] [--wasserstand=] [--tiefe=]   einen See oder Teich
 //    dotnet run --project tools/Kartenbau -- faehre <karte> <x,z> <x,z> [--name=]   eine Fährstelle (zwei Anleger, rasten an Wegen ein)
 //    dotnet run --project tools/Kartenbau -- hafen <karte> <x,z> <drehung> [--name=]   einen Hafenplatz (Rückseite zum Wasser)
+//    dotnet run --project tools/Kartenbau -- belag <karte> <weg> <stufe> [<von> <bis>]   Startbelag eines Weges (ganz oder von–bis Meter)
 //    dotnet run --project tools/Kartenbau -- umbauen <umbau>                     ein Umbauskript (Umbauten/) auf seine Karte anwenden
 //  <karte> ist die Kennung einer Karte in game/karten/ (greybox, koeln …), <datei> ein Pfad zu einer .json-Datei.
 //  Rückgabe: 0 = in Ordnung, 1 = die Karte hat Fehler, 2 = falscher Aufruf (oder die Datei gibt es schon).
@@ -71,6 +72,8 @@ public static class Program
                     Befehle.Faehre(ordner, ziel, a[0], b[0], Text(args, "--name"), Console.Out),
                 "hafen" when ziel is not null && worte.Count == 4 && Orte(worte[2]) is { Count: 1 } ort && Zahlen(worte.Skip(3)) is { Count: 1 } drehung =>
                     Befehle.Hafen(ordner, ziel, ort[0], drehung[0], Text(args, "--name"), Console.Out),
+                "belag" when ziel is not null && worte.Count is 4 or 6 && Zahlen(worte.Skip(4)) is { Count: 0 or 2 } bereich =>
+                    Befehle.Belag(ordner, ziel, worte[2], worte[3], bereich.Count == 2 ? (bereich[0], bereich[1]) : null, Console.Out),
                 "umbauen" when ziel is not null => Befehle.Umbauen(ordner, ziel, Console.Out),
                 _ => Hilfe(),
             };
@@ -171,6 +174,9 @@ public static class Program
               faehre <karte> <x,z> <x,z> [--name=…]   eine Fährstelle: zwei Anleger an beiden Ufern (rasten an Wegen ein)
               hafen <karte> <x,z> <drehung> [--name=…]
                                                   einen Hafenplatz setzen – die Rückseite (Kai) zum Wasser, Drehung wie im Spiel
+              belag <karte> <weg> <stufe> [<von> <bis>]
+                                                  Startbelag eines Weges: trampelpfad, fahrweg, kies, pflaster oder vorgabe (nach der Klasse);
+                                                  <weg> ist der Name (Leerzeichen als _) oder die Nummer, von–bis in Metern entlang des Weges
               umbauen <umbau>                     ein Umbauskript (tools/Kartenbau/Umbauten) auf seine Karte anwenden
 
             <karte> ist eine Kennung aus game/karten/ (z. B. greybox, koeln), <datei> ein Pfad zu einer .json-Datei.
@@ -389,6 +395,39 @@ public static class Befehle
         var g = e.Setzen(Kartenentwurf.HafenKatalog, ort.X, ort.Z, drehung);
         if (!string.IsNullOrWhiteSpace(name)) e.Umbenennen(g.Kennung, name);
         aus.WriteLine($"{e.Kennung}: {g.Kennung} ({g.Name}) bei {g.Punkt}, Drehung {Kartenschreiber.Zahl(g.Drehung)}");
+        return Schreiben(e, PfadVon(o, karte), o.Vorschauen, true, aus, o);
+    }
+
+    /// <summary>
+    /// <c>belag</c>: Startbelag eines Weges (Name mit _ für Leerzeichen, sonst Nummer in der Karte) – ganz oder von–bis Meter; „vorgabe“ setzt den
+    /// ganzen Weg bzw. den Abschnitt auf die Vorgabe der Klasse zurück. Dann schreiben – nur ohne Fehler.
+    /// </summary>
+    public static int Belag(Projektordner o, string karte, string wegname, string stufe, (double Von, double Bis)? bereich, TextWriter aus)
+    {
+        var (katalog, daten) = Laden(o);
+        var e = Oeffnen(o, karte, katalog, daten);
+        var name = wegname.Replace('_', ' ');
+        var weg = e.Wege.FirstOrDefault(w => w.Name == name)
+                  ?? (int.TryParse(wegname, NumberStyles.Integer, CultureInfo.InvariantCulture, out var nr) && nr >= 0 && nr < e.Wege.Count ? e.Wege[nr] : null);
+        if (weg is null)
+        {
+            aus.WriteLine($"Einen Weg „{name}“ gibt es in {e.Kennung} nicht.");
+            return 2;
+        }
+        Belagstufe? neu = null;
+        if (!stufe.Equals("vorgabe", StringComparison.OrdinalIgnoreCase))
+        {
+            if (!Enum.TryParse<Belagstufe>(stufe, ignoreCase: true, out var s) || int.TryParse(stufe, out _))
+            {
+                aus.WriteLine($"Eine Stufe „{stufe}“ gibt es nicht (trampelpfad, fahrweg, kies, pflaster, vorgabe).");
+                return 2;
+            }
+            neu = s;
+        }
+        if (bereich is { } b) e.BelagSetzen(weg, b.Von, b.Bis, neu ?? Wegbelag.Vorgabe(weg.Klasse));
+        else e.BelagSetzen(weg, neu);
+        aus.WriteLine($"{e.Kennung}: {weg.Bezeichnung} – " + string.Join(", ", weg.BelagAbschnitte.Select(a =>
+            $"{Kartenschreiber.Zahl(Math.Round(a.Von, 1))}–{Kartenschreiber.Zahl(Math.Round(a.Bis, 1))} m {Wegbelag.Anzeigename(a.Stufe)}")));
         return Schreiben(e, PfadVon(o, karte), o.Vorschauen, true, aus, o);
     }
 
