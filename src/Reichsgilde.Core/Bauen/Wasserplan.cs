@@ -289,10 +289,10 @@ public sealed class Wasserplan
         }
     }
 
-    /// <summary>Wo zwischen zwei Stellen das Wasser beginnt bzw. endet (Halbieren, auf 1 cm genau).</summary>
+    /// <summary>Wo zwischen zwei Stellen das Wasser beginnt bzw. endet (Halbieren, auf 1 mm genau).</summary>
     private double Grenze(IReadOnlyList<Kartenort> v, double[] stellen, double a, double b, (int, bool)? beiA)
     {
-        for (var n = 0; n < 12 && b - a > 0.01; n++)
+        for (var n = 0; n < 20 && b - a > 0.001; n++)
         {
             var m = (a + b) / 2;
             if (Wasser(OrtAn(v, stellen, m)) == beiA) a = m;
@@ -323,7 +323,8 @@ public sealed class Wasserplan
         var quert = Seite(von - 0.05) * Seite(bis + 0.05) < 0;
 
         var spannweite = bis - von;
-        var art = tiefe < FurtTiefe ? Uebergangsart.Furt : spannweite <= HolzBis ? Uebergangsart.Holzbruecke : Uebergangsart.Steinbruecke;
+        // (1 cm Spiel: die Grenzen sind auf 1 mm genau, eine 20 m breite Furt ist dann auch eine)
+        var art = tiefe < FurtTiefe ? Uebergangsart.Furt : spannweite <= HolzBis + 0.01 ? Uebergangsart.Holzbruecke : Uebergangsart.Steinbruecke;
         var furt = art == Uebergangsart.Furt;
         var (a, b) = furt ? (von, bis) : (Math.Max(0, von - Widerlager), Math.Min(laenge, bis + Widerlager));
         var (anfang, ende) = (OrtAn(v, stellen, a), OrtAn(v, stellen, b));
@@ -333,7 +334,7 @@ public sealed class Wasserplan
         var felder = 0;
         if (!furt)
         {
-            felder = Math.Max(1, (int)Math.Ceiling((b - a) / (art == Uebergangsart.Holzbruecke ? HolzFeld : SteinFeld) - 1e-9));
+            felder = Math.Max(1, (int)Math.Ceiling((b - a) / (art == Uebergangsart.Holzbruecke ? HolzFeld : SteinFeld) - 0.005));
             for (var i = 1; i < felder; i++)
             {
                 var p = OrtAn(v, stellen, a + (b - a) * i / felder);
