@@ -108,3 +108,15 @@ So wird eingetragen (damit sich die Chats nie an derselben Stelle treffen):
 | Leiste unten | Neue Zeile über der Tastenhilfe: „Höhe 12,4 m · Gefälle 6 %“ unter der Maus (leer über Tafeln; die Zeile behält ihre Höhe, damit die Leiste nicht springt). Die Tastenhilfe nennt für beide Werkzeuge Strich, Esc, Strg+Z und die Hangsperre (gelb ab 8 %, rot ab 15 %). | 23.10.2026 |
 | Strich | Mit gedrückter Maus (jede Mausbewegung ein Tupfer-Schritt des Kerns, das Gelände ändert sich sofort), Loslassen = ein Rückgängig-Schritt, Esc beendet und nimmt zurück (kein Schritt bleibt), Rechtsklick beendet das Werkzeug nicht während des Malens. Rampe: zwei Klicks, Esc nimmt den ersten zurück. | 23.10.2026 |
 | Startoptionen | `--werkstatt-gelaende=<pinsel>,<radius>,<staerke>,x,z;…` (Striche mit `\|`; Pinsel mit `:kante[:startwert[:massstab]]`), `--werkstatt-rampe=x1,z1;x2,z2,breite`, `--werkstatt-werkzeug=gelaende:<pinsel>` oder `rampe`. | 23.10.2026 |
+
+### Kartenwerkstatt, Schritt 5c: Wasser (PR #180)
+
+| Thema | Entscheidung | Datum |
+|---|---|---|
+| Katalog | Neue Gruppe „Wasser“ (nach „Mauer“, vor „Gelände“): Fluss · 12 m, Bach · 3 m, See, Teich, Fährstelle und – wenn der Katalog den Hafenplatz kennt – Hafen. Schlüssel `wasser:fluss`, `wasser:bach`, `wasser:see`, `wasser:teich`, `wasser:faehre`, `wasser:hafen` (Startoption `--werkstatt-werkzeug=…`). Fluss und Bach teilen das Werkzeug (nur die Art und die Vorgabebreite unterscheiden sie), See und Teich ebenso. | 23.10.2026 |
+| Tafel Werkzeug | Beim Fluss die Breite des neuen Flusses (Vorgabe nach Art), sonst nur ein Satz, wie es geht. Die Tastenhilfe unten nennt für alle drei Werkzeuge die Tasten (Fluss: Punkte in Fließrichtung, Doppelklick oder Enter, Rücktaste, Esc). | 23.10.2026 |
+| Tafel Fluss | Name, Art (Fluss, Bach), Breite und Tiefe des ganzen Laufs (Regler), Strömung (0 bis 5 m/s), Länge aus dem Kern, „Richtung umkehren“; darunter „Stützpunkt“ mit Nummernfeld (0 = keiner): Für den gewählten Punkt (Griff in der Stadt oder Nummer hier) Breite und Tiefe dort und „Wie der Fluss“, das die eigenen Werte wegnimmt. Ein Klick auf einen Griff in der Stadt baut die Tafel neu (`WerkstattGriffGeaendert`). | 23.10.2026 |
+| Tafel See | Name, Art (See, Teich), Wasserstand (Haken „automatisch“: 0,4 m unter dem tiefsten Ufer, folgt dem Gelände; sonst ein festes Zahlfeld, das beim Ausschalten den heutigen Wert nimmt), Tiefe (Regler), Fläche. | 23.10.2026 |
+| Tafel Fähre | Name, Länge, welches Gewässer sie quert (aus dem Wasserplan; ohne Gewässer der Hinweis, die Anleger an gegenüberliegende Ufer zu setzen), wie lange Karren warten (`logistik.wasser.faehreMinuten`). | 23.10.2026 |
+| Kopfzeile | „Titel · Kennung · … Gewässer, … Fähren“ zählt Gewässer und Fährstellen mit. | 23.10.2026 |
+| Startoptionen | `--werkstatt-fluss=<fluss\|bach>,<breite>,x,z;…` (Breite 0 = nach der Art, Flüsse mit `\|`), `--werkstatt-see=[teich:]x,z;…[,<wasserstand>]`, `--werkstatt-faehre=x1,z1;x2,z2` (nach den Wegen), `--werkstatt-auswahl=fluss:<Name>\|see:<Name>\|faehre:<Name>`, `--werkstatt-werkzeug=wasser:<fluss\|bach\|see\|teich\|faehre\|hafen>`. | 23.10.2026 |

@@ -122,6 +122,10 @@ public partial class Kartenwerkstatt : Node
             HilfeZeigen();
         };
         _stadt.WerkstattMeldung += (text, fehler) => Melden(text, fehler);
+        _stadt.WerkstattGriffGeaendert += () =>
+        {
+            if (_stadt.WerkstattGewaehlt is EntwurfFluss fluss && ReferenceEquals(_gezeigt, fluss) && !EingabeOffen()) TeilTafel(fluss); // Breite und Tiefe am gewählten Punkt
+        };
         _stadt.WerkstattNaturGestreut += () => EigenschaftenZeigen(neu: false);
         GetTree().AutoAcceptQuit = false; // das Schließen des Fensters fragt nach ungespeicherten Änderungen (_Notification)
         if (zurueck is { } wieder)
@@ -452,6 +456,9 @@ public partial class Kartenwerkstatt : Node
             "natur" => _entwurf.Naturflaechen.FirstOrDefault(n => n.Name == name),
             "feld" => _entwurf.Felder.FirstOrDefault(n => n.Name == name),
             "mauer" => _entwurf.Mauern.FirstOrDefault(m => m.Name == name),
+            "fluss" => _entwurf.Fluesse.FirstOrDefault(f => f.Bezeichnung == name),
+            "see" => _entwurf.Seen.FirstOrDefault(s => s.Bezeichnung == name),
+            "faehre" => _entwurf.Faehren.FirstOrDefault(f => f.Bezeichnung == name),
             _ => _entwurf.GebaeudeMit(text),
         };
     }
@@ -498,6 +505,23 @@ public partial class Kartenwerkstatt : Node
                     _entwurf.TorSetzen(fang.Mauer, x, z);
                     _stadt.WerkstattWaehlen(fang.Mauer);
                 }
+            // --werkstatt-fluss=<fluss|bach>,<breite>,x1,z1;x2,z2;…[|…] (Punkte in Fließrichtung; Breite 0 = nach der Art); --werkstatt-see=[teich:]x1,z1;x2,z2;…[,<wasserstand>][|…]
+            if (o.TryGetValue("werkstatt-fluss", out var fluesse))
+                foreach (var eintrag in fluesse.Split('|', StringSplitOptions.RemoveEmptyEntries))
+                {
+                    var t = eintrag.Split(',', 3);
+                    if (_stadt.WerkstattFlussAnlegen(t[0], Zahl(t[1]), Liste("-," + t[2]).Punkte) is { } fluss) _stadt.WerkstattWaehlen(fluss);
+                }
+            if (o.TryGetValue("werkstatt-see", out var seen))
+                foreach (var eintrag in seen.Split('|', StringSplitOptions.RemoveEmptyEntries))
+                {
+                    var art = eintrag.StartsWith("teich:") ? "teich" : "see";
+                    var zahlen = (art == "teich" ? eintrag["teich:".Length..] : eintrag).Replace(';', ',').Split(',', StringSplitOptions.RemoveEmptyEntries).Select(Zahl).ToList();
+                    double? wasserstand = zahlen.Count % 2 == 1 ? zahlen[^1] : null; // eine Zahl mehr als Paare: der Wasserstand
+                    if (wasserstand is not null) zahlen.RemoveAt(zahlen.Count - 1);
+                    var punkte = Enumerable.Range(0, zahlen.Count / 2).Select(i => new Kartenort(zahlen[2 * i], zahlen[2 * i + 1])).ToList();
+                    if (_stadt.WerkstattSeeAnlegen(art, punkte, wasserstand) is { } see) _stadt.WerkstattWaehlen(see);
+                }
             // --werkstatt-weg=gasse,x1,z1;x2,z2;…[,gerade]
             if (o.TryGetValue("werkstatt-weg", out var wege))
                 foreach (var eintrag in wege.Split('|', StringSplitOptions.RemoveEmptyEntries))
@@ -505,6 +529,13 @@ public partial class Kartenwerkstatt : Node
                     var (art, punkte, wort) = Liste(eintrag);
                     var klasse = Enum.Parse<Wegklasse>(art, ignoreCase: true);
                     if (_stadt.WerkstattWegAnlegen(klasse, punkte, wort != "gerade") is { } w) _stadt.WerkstattWaehlen(w);
+                }
+            // --werkstatt-faehre=x1,z1;x2,z2[|…]: eine Fährstelle (die Anleger rasten an Wegen ein; nach den Wegen)
+            if (o.TryGetValue("werkstatt-faehre", out var faehren))
+                foreach (var eintrag in faehren.Split('|', StringSplitOptions.RemoveEmptyEntries))
+                {
+                    var punkte = Liste("-," + eintrag).Punkte;
+                    if (punkte.Count >= 2 && _stadt.WerkstattFaehreSetzen(punkte[0], punkte[1]) is { } faehre) _stadt.WerkstattWaehlen(faehre);
                 }
             // --werkstatt-feld=x1,z1;x2,z2;…[|…] (Feldflächen, die Streifen laufen längs der längsten Kante)
             if (o.TryGetValue("werkstatt-feld", out var felder))

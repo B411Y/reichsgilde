@@ -299,7 +299,7 @@ public partial class Stadtansicht : Node3D
     {
         var von = AnWegAnschliessen(start, breite);
         var nach = MarktKnoten();
-        var pfad = nach >= 0 ? _netz.Pfad(von, nach) : Array.Empty<Vector3>();
+        var pfad = nach >= 0 ? _netz.Pfad(von, nach, faehren: true) : Array.Empty<Vector3>(); // Karren setzen mit Fähren über (Stadtansicht.Wasser.cs)
         return pfad.Length >= 2 ? pfad : new[] { start, _markt };
     }
 
@@ -899,6 +899,7 @@ public partial class Stadtansicht : Node3D
         OberflaecheBild();     // umgefärbte Materialien der Oberflächendetails nachziehen (Stadtansicht.Oberflaechendetails.cs)
         GrafikBild(delta);     // Unschärfe nach Zoom, Wolken, Dunst nach Uhrzeit (Stadtansicht.Grafik.cs)
         DunstFarbeNachfuehren(); // der Dunst am Kartenrand in der Farbe des Himmels (Stadtansicht.Rand.cs)
+        WasserBild(delta);       // Himmelsfarbe im Wasser, Fähren, Tretrad der Häfen (Stadtansicht.Wasser.Uebergaenge.cs)
 
         // Beschriftungen mitskalieren, damit sie bei jedem Zoom gleich groß wirken.
         var massstab = _raum is not null ? RaumSchildMassstab : _kamera.Size / BezugsZoom;

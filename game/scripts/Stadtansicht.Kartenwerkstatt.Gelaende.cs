@@ -232,6 +232,7 @@ public partial class Stadtansicht
         var bereich = Vereinigt(_wsGelaendeObjekte);
         _wsGelaendeObjekte.Clear();
         var rect = new Rect2((float)bereich.X0, (float)bereich.Z0, (float)bereich.Breite, (float)bereich.Tiefe).Grow(2);
+        if (!GewaesserLeer) _wsWasserNeu = true; // der Spiegel der Flüsse folgt dem Gelände (Brücken, Fähren mit ihm)
 
         foreach (var g in _entwurf.Gebaeude.ToList())
             if (BereichVon(g) is { } b && b.Intersects(rect) && _stuecke.ContainsKey(g))

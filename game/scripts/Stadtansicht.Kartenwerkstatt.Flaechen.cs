@@ -46,12 +46,14 @@ public partial class Stadtansicht
         foreach (var z in _entwurf!.Bauzonen) FlaecheBauen(z, false);
         foreach (var f in _entwurf.Naturflaechen) FlaecheBauen(f, false);
         foreach (var f in _entwurf.Felder) FlaecheBauen(f, false);
+        foreach (var s in _entwurf.Seen) FlaecheBauen(s, false); // das Wasser selbst zeichnet Stadtansicht.Wasser.cs
     }
 
     /// <summary>Die Grundfarbe einer Fläche: Bauzone nach ihrer Lage, Wald grün, Streu olivgrün.</summary>
     private static Color FlaechenFarbe(EntwurfFlaeche f) => f switch
     {
         EntwurfBauzone z => LageFarbe(z.Art),
+        EntwurfSee => Wasserblau,
         EntwurfNaturflaeche { Art: "streu" } => Streugruen,
         EntwurfFeld => Feldgold,
         _ => Waldgruen,
@@ -72,7 +74,7 @@ public partial class Stadtansicht
             else _wsFelderNeu.Add(feld);
         }
         if (weg || _wsFlaechenKnoten is null || f.Ecken.Count < 3) return;
-        var knoten = new Node3D { Name = f is EntwurfBauzone ? "Bauzone" : f is EntwurfFeld ? "Feldflaeche" : "Naturflaeche" };
+        var knoten = new Node3D { Name = f is EntwurfBauzone ? "Bauzone" : f is EntwurfFeld ? "Feldflaeche" : f is EntwurfSee ? "See" : "Naturflaeche" };
         _wsFlaechenKnoten.AddChild(knoten);
         _wsFlaechen[f] = knoten;
         if (f is EntwurfBauzone zone)
@@ -80,7 +82,7 @@ public partial class Stadtansicht
             BauzoneZeichnen(zone.AlsBauzone(), (float)_entwurf!.Raster, knoten); // Stadtansicht.Bauen.cs
             if (BereichVon(zone) is { } bereich) _wsBereiche[zone] = bereich;
         }
-        else if (f is not EntwurfFeld) knoten.AddChild(DurchsichtigesNetz(VieleckDreiecke(f.Ecken.Select(V2).ToList(), 0.09f), FlaechenFarbe(f), 0.12f)); // ein Feld zeigt seine Äcker selbst
+        else if (f is not (EntwurfFeld or EntwurfSee)) knoten.AddChild(DurchsichtigesNetz(VieleckDreiecke(f.Ecken.Select(V2).ToList(), 0.09f), FlaechenFarbe(f), 0.12f)); // ein Feld zeigt seine Äcker selbst
         FlaecheMarkieren(f);
     }
 
@@ -108,6 +110,12 @@ public partial class Stadtansicht
         if (gewaehlt && f is EntwurfNaturflaeche natur)
         {
             var name = Beschriftung($"{natur.Bezeichnung} · {(natur.Art == "streu" ? "Streufläche" : "Waldfläche")}", V3(MitteVon(f)) + new Vector3(0, 5, 0), 36, markierung);
+            name.Modulate = farbe.Lightened(0.4f);
+        }
+        else if (gewaehlt && f is EntwurfSee see)
+        {
+            var mitte = MitteVon(f);
+            var name = Beschriftung($"{see.Bezeichnung} · {Kartenentwurf.GewaesserName(see.Art)}", new Vector3((float)mitte.X, SpiegelBei(new Vector2((float)mitte.X, (float)mitte.Z)) + 4, (float)mitte.Z), 36, markierung);
             name.Modulate = farbe.Lightened(0.4f);
         }
         else if (gewaehlt && f is EntwurfFeld feld)
@@ -173,6 +181,7 @@ public partial class Stadtansicht
     {
         static float Groesse(EntwurfFlaeche f) => Mathf.Abs(Flaecheninhalt(f.Ecken.Select(V2).ToList()));
         return _entwurf!.Bauzonen.Where(z => InFlaeche(z, p)).OrderBy(Groesse).FirstOrDefault()
+            ?? (EntwurfFlaeche?)_entwurf.Seen.Where(s => InFlaeche(s, p)).OrderBy(Groesse).FirstOrDefault()
             ?? (EntwurfFlaeche?)_entwurf.Naturflaechen.Cast<EntwurfFlaeche>().Concat(_entwurf.Felder).Where(f => InFlaeche(f, p)).OrderBy(Groesse).FirstOrDefault();
     }
 
@@ -197,7 +206,7 @@ public partial class Stadtansicht
             return;
         }
         if (boden is not { } b) return;
-        var weg = Kartenwerkzeug == Werkstattwerkzeug.Weg;
+        var weg = Kartenwerkzeug is Werkstattwerkzeug.Weg or Werkstattwerkzeug.Fluss; // Linien schließen sich nicht
         if (!weg && _wsPunkte.Count >= 3 && _kamera.UnprojectPosition(AufBoden(new Vector3(_wsPunkte[0].X, 0, _wsPunkte[0].Y))).DistanceTo(maus) <= 10)
         {
             ZeichnenBeenden(ersteEcke: true);
@@ -210,6 +219,7 @@ public partial class Stadtansicht
             Werkstattwerkzeug.Weg when _wsPunkte.Count == 0 => Fangen(b) is { } f ? V2(f.Ort) : b,
             Werkstattwerkzeug.Weg => Zwischenpunkt(b) is { } t ? V2(t.Ort) : b,
             Werkstattwerkzeug.Mauer => Mauerpunkt(b),
+            Werkstattwerkzeug.Fluss => b,
             _ => Eckpunkt(null, b),
         };
         if (_wsPunkte.Count > 0 && _wsPunkte[^1].DistanceTo(p) < 0.05f) return;
@@ -235,6 +245,12 @@ public partial class Stadtansicht
             MauerFertig(geschlossen: ersteEcke); // Stadtansicht.Kartenwerkstatt.Mauern.cs
             return;
         }
+        if (werkzeug == Werkstattwerkzeug.Fluss)
+        {
+            if (_wsPunkte.Count < 2) WerkstattMeldung?.Invoke("Ein Fluss braucht mindestens zwei Punkte.", true);
+            else FlussFertig(); // Stadtansicht.Kartenwerkstatt.Wasser.cs
+            return;
+        }
         if (_wsPunkte.Count < 3)
         {
             WerkstattMeldung?.Invoke("Eine Fläche braucht mindestens drei Ecken.", true);
@@ -253,6 +269,9 @@ public partial class Stadtansicht
                 break;
             case Werkstattwerkzeug.Feld when Befehl(() => e.FeldAnlegen(ecken, null, FeldRichtungVon(ecken))) is { } feld:
                 WerkstattWaehlen(feld);
+                break;
+            case Werkstattwerkzeug.See when WerkstattSeeAnlegen(WerkstattSeeart, ecken) is { } see:
+                WerkstattWaehlen(see);
                 break;
             case Werkstattwerkzeug.Aussparung when WerkstattGewaehlt is EntwurfFlaeche { KannAussparungen: true } f:
                 Befehl(() => e.AussparungAnlegen(f, ecken));
@@ -274,6 +293,7 @@ public partial class Stadtansicht
             Werkstattwerkzeug.Streu => Streugruen,
             Werkstattwerkzeug.Feld => Feldgold,
             Werkstattwerkzeug.Aussparung => Aussparungsbraun,
+            Werkstattwerkzeug.See => Wasserblau,
             _ => Waldgruen,
         };
         var schliesst = false;
