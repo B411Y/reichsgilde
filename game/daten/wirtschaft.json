@@ -1,5 +1,5 @@
 {
-  "version": 49,
+  "version": 50,
   "gesundheit": {
     "medicusKosten": 120,
     "medicusKostenPest": 300,
@@ -672,6 +672,11 @@
     "tore": {
       "schliessenUm": 20,
       "torgeld": 15
+    },
+    "steigung": {
+      "abProzent": 6,
+      "zuschlagJeProzent": 0.05,
+      "hoechstensFaktor": 3
     },
     "karren": {
       "Handkarren": {

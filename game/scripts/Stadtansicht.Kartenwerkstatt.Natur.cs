@@ -105,8 +105,12 @@ public partial class Stadtansicht
     }
 
     /// <summary>Lage einer Pflanze des Kerns: Ort, Drehung (Grad) um die Hochachse, Größe.</summary>
-    private static Transform3D PflanzenLage(Pflanzenlage l) =>
-        new(new Basis(Vector3.Up, Mathf.DegToRad((float)l.Drehung)).Scaled(Vector3.One * (float)l.Massstab), new Vector3((float)l.X, 0, (float)l.Z));
+    private Transform3D PflanzenLage(Pflanzenlage l) =>
+        new(new Basis(Vector3.Up, Mathf.DegToRad((float)l.Drehung)).Scaled(Vector3.One * (float)l.Massstab), new Vector3((float)l.X, BodenHoehe((float)l.X, (float)l.Z), (float)l.Z));
+
+    /// <summary>Lage einer Pflanze im Knoten, der schon auf dem Boden steht (nur Drehung und Größe).</summary>
+    private static Transform3D PflanzenLageLokal(Pflanzenlage l) =>
+        new(new Basis(Vector3.Up, Mathf.DegToRad((float)l.Drehung)).Scaled(Vector3.One * (float)l.Massstab), Vector3.Zero);
 
     // ═════════════════════════════════════════════════════════════════════════
     //  Einzelne Pflanzen
@@ -128,7 +132,7 @@ public partial class Stadtansicht
         _wsPflanzenKnoten.AddChild(wurzel);
         _wsPflanzen[p] = wurzel;
         if (NaturNetz(datei, knoten + lage.Variante) is { } netz)
-            wurzel.AddChild(new MeshInstance3D { Name = "Netz", Mesh = netz, Transform = PflanzenLage(lage with { X = 0, Z = 0 }) });
+            wurzel.AddChild(new MeshInstance3D { Name = "Netz", Mesh = netz, Transform = PflanzenLageLokal(lage) });
         PflanzeMarkieren(p);
     }
 
@@ -180,7 +184,7 @@ public partial class Stadtansicht
         if (_wsGeist.GetParent() is null) AddChild(_wsGeist);
         _wsGeist.Mesh = netz;
         _wsGeist.Visible = true;
-        _wsGeist.Position = new Vector3(m.X, 0, m.Y);
+        _wsGeist.Position = new Vector3(m.X, BodenHoehe(m.X, m.Y), m.Y);
         _wsGeist.Rotation = new Vector3(0, Mathf.DegToRad((float)WerkstattDrehung), 0);
         VorschauPunkte(new[] { m }, Colors.White);
     }
@@ -297,7 +301,7 @@ public partial class Stadtansicht
         ((StandardMaterial3D)_wsPinselKreis.MaterialOverride).AlbedoColor = new Color(farbe, 0.9f);
         if (maus is { } m)
         {
-            _wsPinselKreis.Position = new Vector3(m.X, 0.3f, m.Y);
+            _wsPinselKreis.Position = new Vector3(m.X, BodenHoehe(m.X, m.Y) + 0.3f, m.Y);
             _wsPinselKreis.Scale = new Vector3((float)PinselRadius, 1, (float)PinselRadius);
         }
         if (_wsStrich is { Count: > 0 } strich && !radierer)

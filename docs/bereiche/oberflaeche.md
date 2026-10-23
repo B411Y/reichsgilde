@@ -98,3 +98,13 @@ So wird eingetragen (damit sich die Chats nie an derselben Stelle treffen):
 | Neue Karte | 600 × 450 m (Zahlfeld 400 bis 2.000, Schritt 50) mit dem Rand-Vorschlag als Ausgangsstand: Er gilt nicht als Änderung (kein „ungespeichert“), Rückgängig nimmt ihn weg | 22.10.2026 |
 | Feldfläche | Werkzeug im Katalog unter „Flächen“; Tafel: Name, Richtung (0° = Nord–Süd), Streifenbreite, Länge der Stücke, je Frucht ein Regler für den Anteil (0 nimmt sie heraus, mindestens eine bleibt), Startwert mit „Neu würfeln“, Zahl der Acker-Stücke, Aussparungen. „Aussparung“ gilt jetzt für Wald-, Streu- und Feldflächen | 22.10.2026 |
 | Startoptionen | `--werkstatt-groesse=<b>,<t>[,<rand>]`, `--werkstatt-randvorschlag=1` (oder eine Zahl als Startwert), `--werkstatt-feld=x,z;…` (Flächen mit `\|`), `--werkstatt-flaeche=feld,…`, `--werkstatt-kamerastart=1`, `--werkstatt-tafel=karte`, `--werkstatt-auswahl=feld:<Name>`, `--werkstatt-werkzeug=feldflaeche` (Liste in `CLAUDE.md`) | 22.10.2026 |
+
+### Kartenwerkstatt: Gelände (PR #179)
+
+| Thema | Entscheidung | Datum |
+|---|---|---|
+| Katalog | Neue Gruppe „Gelände“ (nach „Mauer“, vor den Gebäuden): Heben, Senken, Glätten, Ebnen, Rauschen und Rampe; Schlüssel `gelaende:<pinsel>` und `rampe` (Startoption `--werkstatt-werkzeug=…`). Die Wahl der Art stellt die Stärke auf ihre Vorgabe, wenn sich die Einheit ändert (Meter ↔ Prozent). | 23.10.2026 |
+| Tafel rechts | Wie beim Pinsel der Natur unter „Eigenschaften“: Radius (1 bis 100 m), Stärke (Heben, Senken: 0,05 bis 2 m je Tupfer; Rauschen bis 4 m; Glätten, Ebnen: 5 bis 100 %), Kante (0 % hart bis 100 % weich), beim Rauschen Startwert und Maßstab (4 bis 100 m), bei der Rampe Breite (1 bis 40 m) und Kante (0 bis 20 m). Die Werte gelten für den nächsten Strich; ein kurzer Text erklärt die Wirkung. | 23.10.2026 |
+| Leiste unten | Neue Zeile über der Tastenhilfe: „Höhe 12,4 m · Gefälle 6 %“ unter der Maus (leer über Tafeln; die Zeile behält ihre Höhe, damit die Leiste nicht springt). Die Tastenhilfe nennt für beide Werkzeuge Strich, Esc, Strg+Z und die Hangsperre (gelb ab 8 %, rot ab 15 %). | 23.10.2026 |
+| Strich | Mit gedrückter Maus (jede Mausbewegung ein Tupfer-Schritt des Kerns, das Gelände ändert sich sofort), Loslassen = ein Rückgängig-Schritt, Esc beendet und nimmt zurück (kein Schritt bleibt), Rechtsklick beendet das Werkzeug nicht während des Malens. Rampe: zwei Klicks, Esc nimmt den ersten zurück. | 23.10.2026 |
+| Startoptionen | `--werkstatt-gelaende=<pinsel>,<radius>,<staerke>,x,z;…` (Striche mit `\|`; Pinsel mit `:kante[:startwert[:massstab]]`), `--werkstatt-rampe=x1,z1;x2,z2,breite`, `--werkstatt-werkzeug=gelaende:<pinsel>` oder `rampe`. | 23.10.2026 |

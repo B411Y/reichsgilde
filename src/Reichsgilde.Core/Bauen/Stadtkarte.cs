@@ -468,6 +468,29 @@ public sealed class Stadtkarte
     /// <summary>Breite des Randstreifens um das Spielfeld in Metern; fehlt sie, <see cref="Bauen.Kartengrenzen.RandVorgabe"/> (300).</summary>
     public double? Rand { get; init; }
 
+    /// <summary>
+    /// Das Höhenraster (seit der Kartenwerkstatt, Schritt 5b; <see cref="Hoehenraster"/>) – null oder leer: flach. Steht im Spielstand in
+    /// derselben gepackten Form wie in der Kartendatei.
+    /// </summary>
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public Hoehenraster? Hoehen { get; init; }
+
+    private Gelaendeform? _gelaendeform;
+
+    /// <summary>
+    /// Das Gelände, wie die Darstellung es zeichnet (<see cref="Bauen.Gelaendeform"/>): Höhe des Bodens mit dem Bett der Wege und Mauern,
+    /// Profile, Fundamente. Ohne <see cref="Hoehen"/> überall 0.
+    /// </summary>
+    [JsonIgnore]
+    public Gelaendeform Gelaendeform => _gelaendeform ??= new Gelaendeform(Hoehen ?? new Hoehenraster(),
+        () => Wege.Where(w => w.Linie.Count >= 2).Select(w => new Bettlinie(w.Verlauf.Select(Kartenort.Aus).ToList(), w.BreiteWirksam))
+            .Concat(Mauern.Where(m => m.Linie.Count >= 2).Select(m => new Bettlinie(m.Linie.Select(Kartenort.Aus).ToList(), Gelaendeform.Mauerbett, m.Geschlossen)))
+            .ToList());
+
+    /// <summary>Das Fundament eines Gebäudes der Karte (ganze Grundfläche mit Vorplatz): Höhe des Bodens im Haus und Tiefe des Sockels.</summary>
+    public Fundament Fundament(Kartengebaeude g) =>
+        Gelaendeform.Fundament(Bauen.Kartengrenzen.GebaeudeEcken(g.Baustein, g.Punkt[0], g.Punkt[1], g.Drehung, g.Massstab));
+
     private Kartengrenzen? _grenzen;
 
     /// <summary>

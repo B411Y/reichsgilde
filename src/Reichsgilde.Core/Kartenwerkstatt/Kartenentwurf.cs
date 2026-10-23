@@ -14,7 +14,8 @@ namespace Reichsgilde.Core.Kartenwerkstatt;
 //
 //  Bearbeitbar sind die Gebäude (Schritt 1), die Wege, Bauzonen, Naturflächen und einzelnen Pflanzen (Schritt 2, EntwurfTeile.cs und
 //  Kartenentwurf.Wege.cs, Kartenentwurf.Flaechen.cs), die Mauern mit Toren und die Startbelegung (Schritt 3, Kartenentwurf.Mauern.cs und
-//  Kartenentwurf.Start.cs), Größe, Randstreifen, Kamera-Start und Felder (Schritt 5a, EntwurfKopf, EntwurfFeld und Kartenentwurf.Rand.cs).
+//  Kartenentwurf.Start.cs), Größe, Randstreifen, Kamera-Start und Felder (Schritt 5a, EntwurfKopf, EntwurfFeld und Kartenentwurf.Rand.cs) und das
+//  Gelände (Schritt 5b, Höhenraster mit Pinseln, Kartenentwurf.Gelaende.cs).
 //  Alles Übrige (Wasser, Gelände …) liegt als JSON im Entwurf und wird für die Prüfung einmal in die Typen der Stadtkarte gelesen (Gewaesser …).
 //  Geändert wird nur über Befehle (Setzen, Verschieben, Drehen …), damit Rückgängig und Wiederholen immer stimmen.
 // ═════════════════════════════════════════════════════════════════════════════
@@ -172,7 +173,8 @@ public enum Aenderungsart
 /// (ein Weg rastet am Nachbarn ein, der Pinsel setzt viele Pflanzen) – dann kommt je Teil eine Änderung, alle erst, wenn die Geschichte
 /// den Schritt kennt.
 /// </summary>
-public readonly record struct Kartenaenderung(Aenderungsart Art, EntwurfTeil Objekt)
+/// <param name="Bereich">Beim Gelände: das Rechteck (Meter), in dem sich Höhen geändert haben – nur dort neu zeichnen. Sonst null.</param>
+public readonly record struct Kartenaenderung(Aenderungsart Art, EntwurfTeil Objekt, Kartenrechteck? Bereich = null)
 {
     public Kartenteil Teil => Objekt.Teil;
 
@@ -187,6 +189,7 @@ public readonly record struct Kartenaenderung(Aenderungsart Art, EntwurfTeil Obj
     public EntwurfStart? Start => Objekt as EntwurfStart;
     public EntwurfFeld? Feld => Objekt as EntwurfFeld;
     public EntwurfKopf? Kopf => Objekt as EntwurfKopf;
+    public EntwurfGelaende? Gelaende => Objekt as EntwurfGelaende;
 }
 
 /// <summary>Ein Fundort eines Rohstoffbetriebs (<c>vorkommen</c> der Datei; nur das Werkzeug und die Prüfung lesen ihn).</summary>
@@ -216,6 +219,11 @@ public sealed partial class Kartenentwurf
     private readonly List<EntwurfFeld> _felder;
     private readonly EntwurfKopf _kopf;
 
+    /// <summary>Das Höhenraster (Feld <c>hoehen</c>) und das Gelände mit dem Bett der Wege und Mauern (Kartenentwurf.Gelaende.cs).</summary>
+    private readonly Hoehenraster _hoehen;
+    private readonly Gelaendeform _gelaende;
+    private readonly EntwurfGelaende _gelaendeTeil = new();
+
     /// <summary>Änderungen des laufenden Befehls – gemeldet erst, wenn die Geschichte den Schritt kennt (<see cref="MeldungenAusloesen"/>).</summary>
     private readonly List<Kartenaenderung> _ausstehend = new();
 
@@ -240,9 +248,11 @@ public sealed partial class Kartenentwurf
 
     private Kartenentwurf(JsonObject daten, List<EntwurfGebaeude> gebaeude, Stadtkarte teile, Gebaeudekatalog katalog,
         List<EntwurfWeg> wege, List<EntwurfBauzone> bauzonen, List<EntwurfNaturflaeche> naturflaechen, List<EntwurfPflanze> pflanzen,
-        List<EntwurfMauer> mauern, EntwurfStart start, List<EntwurfFeld> felder)
+        List<EntwurfMauer> mauern, EntwurfStart start, List<EntwurfFeld> felder, Hoehenraster hoehen)
     {
         (_daten, _gebaeude, _teile, Katalog) = (daten, gebaeude, teile, katalog);
+        _hoehen = hoehen;
+        _gelaende = new Gelaendeform(hoehen, Bettlinien);
         (_wege, _bauzonen, _naturflaechen, _pflanzen, _mauern, _start, _felder) = (wege, bauzonen, naturflaechen, pflanzen, mauern, start, felder);
         foreach (var g in _gebaeude) g.Baustein = katalog.Finde(g.Katalog);
         foreach (var p in _pflanzen) p.Baustein = katalog.Finde(p.Katalog);
@@ -418,10 +428,11 @@ public sealed partial class Kartenentwurf
         var felder = Teilleser.Liste<Feldflaeche>(daten["natur"]?["felder"], "Feld").Select(x => EntwurfFeld.Aus(x.Wert, x.Vorlage)).ToList();
         if (daten["start"] is not (null or JsonObject)) throw new KartenFehler(new[] { "start ist kein Objekt." });
         var start = EntwurfStart.Aus(daten["start"]?.DeepClone() as JsonObject, Teilleser.Einzeln<Startbelegung>(daten["start"], "start"));
+        var hoehen = Hoehenraster.AusJson(daten["hoehen"]);
 
         // Die übrigen Teile mit dem Leser der Stadtkarte (ohne Prüfung)
         var rest = daten.DeepClone().AsObject();
-        foreach (var k in new[] { "gebaeude", "wege", "bauzonen", "natur", "mauern", "start" }) rest.Remove(k);
+        foreach (var k in new[] { "gebaeude", "wege", "bauzonen", "natur", "mauern", "start", "hoehen" }) rest.Remove(k);
         Stadtkarte teile;
         try
         {
@@ -432,25 +443,28 @@ public sealed partial class Kartenentwurf
         {
             throw new KartenFehler(new[] { $"Die Karte ist nicht lesbar ({ex.Path}): {ex.Message}" });
         }
-        return new Kartenentwurf(MitAbschnitten(daten), gebaeude, teile, katalog, wege, bauzonen, flaechen, pflanzen, mauern, start, felder);
+        return new Kartenentwurf(MitAbschnitten(daten), gebaeude, teile, katalog, wege, bauzonen, flaechen, pflanzen, mauern, start, felder, hoehen);
     }
 
-    /// <summary>Die Abschnitte in der Reihenfolge, in der das alte Werkzeug sie schrieb (karte.py), dahinter die Felder für Kartenskripte (kamera, vorkommen, fiktion, probeplan).</summary>
+    /// <summary>
+    /// Die Abschnitte in der Reihenfolge, in der das alte Werkzeug sie schrieb (karte.py), dahinter die Felder für Kartenskripte (kamera, vorkommen,
+    /// fiktion, probeplan) und zuletzt das Höhenraster (hoehen, Schritt 5b – lange Zeilen, darum am Schluss).
+    /// </summary>
     private static readonly string[] Reihenfolge =
     {
         "format", "kennung", "stadt", "vorlage", "einheit", "achsen", "raster", "groesse", "mitte", "rand", "gebaeude", "mauern", "wege", "bauzonen", "natur",
-        "wasser", "gelaende", "haefen", "uebergaenge", "start", "kamera", "vorkommen", "fiktion", "probeplan",
+        "wasser", "gelaende", "haefen", "uebergaenge", "start", "kamera", "vorkommen", "fiktion", "probeplan", "hoehen",
     };
 
     /// <summary>
-    /// Fehlen <c>mauern</c>, <c>wege</c>, <c>bauzonen</c>, <c>natur</c>, <c>start</c> oder die Felder des Kopfes (<c>groesse</c>, <c>mitte</c>,
-    /// <c>rand</c>, <c>kamera</c>), bekommen sie einen leeren Platz an ihrer Stelle der Reihenfolge (null) – geschrieben werden sie nur, wenn
-    /// sie etwas enthalten. So landet ein erster Weg in Köln-artigen Dateien an der richtigen Stelle.
+    /// Fehlen <c>mauern</c>, <c>wege</c>, <c>bauzonen</c>, <c>natur</c>, <c>start</c>, <c>hoehen</c> oder die Felder des Kopfes (<c>groesse</c>,
+    /// <c>mitte</c>, <c>rand</c>, <c>kamera</c>), bekommen sie einen leeren Platz an ihrer Stelle der Reihenfolge (null) – geschrieben werden sie
+    /// nur, wenn sie etwas enthalten. So landet ein erster Weg in Köln-artigen Dateien an der richtigen Stelle.
     /// </summary>
     private static JsonObject MitAbschnitten(JsonObject daten)
     {
         var liste = daten.Select(e => (e.Key, Wert: e.Value?.DeepClone())).ToList();
-        foreach (var fehlt in new[] { "groesse", "mitte", "rand", "mauern", "wege", "bauzonen", "natur", "start", "kamera" }.Where(k => !daten.ContainsKey(k)))
+        foreach (var fehlt in new[] { "groesse", "mitte", "rand", "mauern", "wege", "bauzonen", "natur", "start", "kamera", "hoehen" }.Where(k => !daten.ContainsKey(k)))
         {
             var davor = Reihenfolge.TakeWhile(k => k != fehlt).ToHashSet();
             var i = liste.FindLastIndex(e => davor.Contains(e.Key));
@@ -475,7 +489,7 @@ public sealed partial class Kartenentwurf
         };
         return new Kartenentwurf(MitAbschnitten(daten), new List<EntwurfGebaeude>(), new Stadtkarte { Kennung = kennung, Stadt = stadt, Groesse = new[] { breite, tiefe } },
             katalog, new List<EntwurfWeg>(), new List<EntwurfBauzone>(), new List<EntwurfNaturflaeche>(), new List<EntwurfPflanze>(), new List<EntwurfMauer>(),
-            new EntwurfStart(), new List<EntwurfFeld>());
+            new EntwurfStart(), new List<EntwurfFeld>(), new Hoehenraster());
     }
 
     /// <summary>
@@ -529,6 +543,10 @@ public sealed partial class Kartenentwurf
                     continue;
                 case "kamera":
                     if (_kopf.KameraAlsJson() is { } kamera) aus[k] = kamera;
+                    continue;
+                case "hoehen":
+                    // nur Kacheln mit Punkten in der Karte (Spielfeld und Rand) und nicht ganz 0; ein flaches Gelände fällt weg
+                    if (_hoehen.AlsJson(Kartengrenzen.Aussen) is { } hoehen) aus[k] = hoehen;
                     continue;
             }
             if (Freiwillig.Contains(k) && v is null or JsonArray { Count: 0 } or JsonObject { Count: 0 }) continue;
@@ -686,6 +704,7 @@ public sealed partial class Kartenentwurf
     {
         if (t is EntwurfStart) return ReferenceEquals(t, _start) ? 0 : -1;
         if (t is EntwurfKopf) return ReferenceEquals(t, _kopf) ? 0 : -1;
+        if (t is EntwurfGelaende) return ReferenceEquals(t, _gelaendeTeil) ? 0 : -1;
         var l = Liste(t);
         for (var i = 0; i < l.Count; i++)
             if (ReferenceEquals(l[i], t)) return i;
@@ -717,6 +736,7 @@ public sealed partial class Kartenentwurf
     {
         _befunde = null;
         if (a.Teil is Kartenteil.Gebaeude or Kartenteil.Weg or Kartenteil.Bauzone) _kapazitaet = null;
+        if (a.Teil is Kartenteil.Weg or Kartenteil.Mauer) _gelaende.AllesVeraltet(); // das Bett der Wege und Mauern
         _ausstehend.Add(a);
     }
 

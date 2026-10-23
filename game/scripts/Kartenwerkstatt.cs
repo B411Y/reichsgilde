@@ -139,7 +139,15 @@ public partial class Kartenwerkstatt : Node
         StartoptionenAusfuehren(optionen);
     }
 
-    public override void _Process(double delta) => _stadt.WerkstattAktualisieren();
+    /// <summary>Die Zeile in der Leiste unten: Höhe und Gefälle des Bodens unter der Maus.</summary>
+    private Label _bodenInfo = null!;
+
+    public override void _Process(double delta)
+    {
+        _stadt.WerkstattAktualisieren();
+        var info = _stadt.WerkstattBodenInfo() ?? " "; // eine Leerstelle statt nichts: Die Leiste behält ihre Höhe
+        if (_bodenInfo.Text != info) _bodenInfo.Text = info;
+    }
 
     /// <summary>Die Szene geht (Hauptmenü, Öffnen, Ausprobieren): Der Entwurf kann sie überleben – also alle Ereignisse an ihn lösen.</summary>
     public override void _ExitTree()
@@ -537,6 +545,26 @@ public partial class Kartenwerkstatt : Node
                 _stadt.PinselRadius = Zahl(t[0]);
                 _stadt.WerkstattRadieren(Liste("-," + t[1]).Punkte);
             }
+            // --werkstatt-gelaende=<pinsel>,<radius>,<staerke>,x1,z1;x2,z2;…[|…]: ein Pinselstrich (ein Schritt); <pinsel> ist heben, senken, glaetten, ebnen
+            // oder rauschen, hinten mit :kante[:startwert[:massstab]] (Kante 0 … 1)
+            if (o.TryGetValue("werkstatt-gelaende", out var gelaende))
+                foreach (var eintrag in gelaende.Split('|', StringSplitOptions.RemoveEmptyEntries))
+                {
+                    var t = eintrag.Split(',', 4);
+                    var p = t[0].Split(':');
+                    if (!Enum.TryParse<Pinselart>(p[0], ignoreCase: true, out var art)) throw new ArgumentException($"Unbekannter Geländepinsel „{p[0]}“ (heben, senken, glaetten, ebnen, rauschen).");
+                    var gelaendepinsel = new Pinsel(art, Zahl(t[1]), Zahl(t[2]), p.Length > 1 ? Zahl(p[1]) : 0.5, p.Length > 2 ? (int)Zahl(p[2]) : 1, p.Length > 3 ? Zahl(p[3]) : 20);
+                    _entwurf.GelaendePinseln(gelaendepinsel, Liste("-," + t[3]).Punkte.Select(q => new Kartenort(q.X, q.Z)).ToList());
+                }
+            // --werkstatt-rampe=x1,z1;x2,z2,breite[|…]: eine Rampe (ein Schritt)
+            if (o.TryGetValue("werkstatt-rampe", out var rampen))
+                foreach (var eintrag in rampen.Split('|', StringSplitOptions.RemoveEmptyEntries))
+                {
+                    var teile = eintrag.Split(';');
+                    var von = teile[0].Split(',');
+                    var nach = teile[1].Split(',');
+                    _entwurf.Rampe(new Kartenort(Zahl(von[0]), Zahl(von[1])), new Kartenort(Zahl(nach[0]), Zahl(nach[1])), Zahl(nach[2]));
+                }
             if (o.TryGetValue("werkstatt-start", out var start))
                 foreach (var befehl in start.Split('|', StringSplitOptions.RemoveEmptyEntries)) StartBefehl(befehl);
             if (o.TryGetValue("werkstatt-versetzen", out var versetzen))

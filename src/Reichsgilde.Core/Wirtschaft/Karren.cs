@@ -223,13 +223,13 @@ public sealed class Karren
         }
         Zustand = KarrenZustand.ZumBetrieb;
         _rueckfahrtWartet = true;
-        Ankunft = TorWartenBis!.Value + w.Daten.Logistik.FahrzeitAb(Heimat.Ort);
+        Ankunft = TorWartenBis!.Value + w.Fahrzeit(Heimat, zumMarkt: false);
     }
 
     private void Losfahren(KarrenZustand ziel, Spielzeit zeit, Stadtwirtschaft w)
     {
         Zustand = ziel;
-        Ankunft = zeit.VergangeneMinuten + w.Daten.Logistik.FahrzeitAb(Heimat.Ort);
+        Ankunft = zeit.VergangeneMinuten + w.Fahrzeit(Heimat, zumMarkt: ziel == KarrenZustand.ZumMarkt);
 
         if (_ladung.Count == 0)
             return; // Leere Karren kosten nichts und lohnen keinen Überfall.

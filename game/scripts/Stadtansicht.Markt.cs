@@ -96,7 +96,7 @@ public partial class Stadtansicht
         }
         _marktBelegt = Enumerable.Repeat(-1, _marktstellen.Count).ToArray();
         // Klickfläche (das Pflaster ohne Rand) und Name: Die Kennung „Marktplatz“ öffnet die Preistafel (Hauptszene)
-        var mitte = new Node3D { Name = "Markt", Transform = new Transform3D(_marktLage.Basis.Orthonormalized(), _markt) };
+        var mitte = new Node3D { Name = "Markt", Transform = new Transform3D(_marktLage.Basis.Orthonormalized(), _markt + new Vector3(0, _marktY, 0)) };
         AddChild(mitte);
         Klickflaeche("Marktplatz", new Vector3(0, 1, 0), new Vector3(2 * _marktHalb - 2, 2, 2 * _marktHalb - 2), mitte);
         Beschriftung(markt.Name, new Vector3(0, 6, 0), 56, mitte, "Marktplatz");

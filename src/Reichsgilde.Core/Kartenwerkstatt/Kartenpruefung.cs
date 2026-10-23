@@ -11,7 +11,8 @@ namespace Reichsgilde.Core.Kartenwerkstatt;
 //  tools/karten/greybox.py, „Prüfungen der Greybox“: Abstände der Bauzonen, Werkstätten der Stadt, Gassen über Häusern, Wege über
 //  Umlandbetrieben; tools/karten/kapazitaet.py, die Kapazität). Seit Schritt 4 (PR #174) gibt es nur noch diese Regeln: Die
 //  Kartenwerkstatt und das Kartenskript tools/Kartenbau prüfen beide hiermit. Die Kapazität rechnet Kapazitaetspruefung.cs, den Katalog
-//  gegen die Modelle prüft Katalogpruefung.cs (nur das Kartenskript, er hängt an keiner Karte).
+//  gegen die Modelle prüft Katalogpruefung.cs (nur das Kartenskript, er hängt an keiner Karte). Seit Schritt 5b (Gelände) dazu die
+//  Hangsperre (Regel „hang“) für Plätze und Bauzonen.
 //
 //  Zwei Wege hinein:
 //    • Pruefen(entwurf)        – die ganze Karte, nach jedem Befehl (Fehlerliste, rote Gebäude),
@@ -122,6 +123,18 @@ public static class Kartenpruefung
     // Stadtregeln (greybox.py)
     public const double AbstandStrasse = 0.5, AbstandFeste = 2, AbstandMauer = 2, AbstandWerkstatt = 2;
 
+    /// <summary>
+    /// Hangsperre (Schritt 5b): Steht ein Platz oder eine Bauzone auf einem Hang mit mehr als 15 % Gefälle, ist das ein Fehler; ab 8 % ein
+    /// Hinweis (der Sockel wird hoch). Gemessen wird mit <see cref="Gelaendeform.Hang"/> (steilstes 8-×-8-m-Fenster unter dem Umriss).
+    /// </summary>
+    public const double HangFehler = 0.15, HangHinweis = 0.08;
+
+    /// <summary>Für diese Plätze gilt die Hangsperre (Bauzonen auch): Werkstatt-, Wohnhaus-, Einwohner- und Umlandplätze.</summary>
+    public static readonly IReadOnlySet<string> AmHangGesperrt = new HashSet<string>
+    {
+        Bausteinart.Werkstattplatz, Bausteinart.Wohnhausplatz, Bausteinart.Einwohnerplatz, Bausteinart.Umlandbetrieb, Bausteinart.Umlandstelle,
+    };
+
     /// <summary>Prüft die ganze Karte. Leer = keine Befunde.</summary>
     public static List<Befund> Pruefen(Kartenentwurf entwurf) => new Lauf(entwurf).Alles();
 
@@ -229,6 +242,7 @@ public static class Kartenpruefung
             Wege();
             ZonenFormen();
             Bauzonen();
+            ZonenAmHang();
             if (_r.Stadtregeln) Probeplan();
             if (_r.Wohnhausplaetze > 0) WohnhausplaetzeZaehlen();
             if (_r.Startgrundstuecke > 0) Startgrundstuecke();
@@ -289,6 +303,7 @@ public static class Kartenpruefung
             if (g.Groesse is null || g.Massstab <= 0) return;
 
             ImSpielfeld(g);
+            AmHang(g);
             AufMauer(g);
             if (b.Art == Bausteinart.Werkstattplatz) Werkstatthof(g);
             if (!_r.Stadtregeln) return;
@@ -315,6 +330,36 @@ public static class Kartenpruefung
             else if (ecken.Any(p => !_grenzen.ImSpielfeld(p.X, p.Z)))
                 Fehler("rand", $"{Wer(g)} steht (teilweise) im Randstreifen – dort sind nur Natur, Felder und Wege erlaubt.", g.Punkt, g.Kennung);
         }
+
+        /// <summary>Hangsperre (Schritt 5b): ein Platz auf mehr als 15 % Gefälle ist ein Fehler, ab 8 % ein Hinweis.</summary>
+        private void AmHang(EntwurfGebaeude g)
+        {
+            if (_e.Gelaendeform.IstFlach || !AmHangGesperrt.Contains(g.Art)) return;
+            var hang = _e.Gelaendeform.Hang(Ecken(g));
+            if (hang.Gefaelle > HangFehler)
+                Fehler("hang", $"{Wer(g)} steht am Hang: {Prozent(hang.Gefaelle)} % Gefälle (höchstens {Prozent(HangFehler)} %).", hang.Ort, g.Kennung);
+            else if (hang.Gefaelle > HangHinweis)
+                Hinweis("hang", $"{Wer(g)} steht am Hang: {Prozent(hang.Gefaelle)} % Gefälle – ab {Prozent(HangHinweis)} % wird der Sockel hoch.", hang.Ort, g.Kennung);
+        }
+
+        /// <summary>Hangsperre für Bauzonen: die steilste Stelle in der Zone.</summary>
+        private void ZonenAmHang()
+        {
+            if (_e.Gelaendeform.IstFlach) return;
+            foreach (var (z, flaeche, _) in _zonen)
+            {
+                if (flaeche.Length < 3) continue;
+                var hang = _e.Gelaendeform.Hang(flaeche);
+                if (hang.Gefaelle > HangFehler)
+                    FehlerAn("hang", $"Bauzone {z.Kennung}: {Prozent(hang.Gefaelle)} % Gefälle bei {hang.Ort} (höchstens {Prozent(HangFehler)} %).", hang.Ort, new[] { z });
+                else if (hang.Gefaelle > HangHinweis)
+                    HinweisAn("hang", $"Bauzone {z.Kennung}: {Prozent(hang.Gefaelle)} % Gefälle bei {hang.Ort} – ab {Prozent(HangHinweis)} % werden die Sockel hoch.",
+                        hang.Ort, new[] { z });
+            }
+        }
+
+        /// <summary>Ein Anteil als Prozent mit einer Stelle („12,5“).</summary>
+        private static string Prozent(double anteil) => M(anteil * 100);
 
         /// <summary>Der Hof eines Werkstattplatzes liegt höchstens 7 m von der Mitte eines Weges (karte.py, Regel 3).</summary>
         private void Werkstatthof(EntwurfGebaeude g)

@@ -34,6 +34,9 @@ public enum Kartenteil
 
     /// <summary>Der Kopf der Karte: Größe, Mitte, Randbreite, Kamera-Start (Schritt 5a; nur einmal je Karte).</summary>
     Kopf,
+
+    /// <summary>Das Gelände (Höhenraster, Schritt 5b; nur einmal je Karte) – die Änderung nennt das Rechteck (<see cref="Kartenaenderung.Bereich"/>).</summary>
+    Gelaende,
 }
 
 /// <summary>Ein bearbeitbarer Teil des Entwurfs (Gebäude, Weg, Bauzone, Naturfläche, Pflanze).</summary>

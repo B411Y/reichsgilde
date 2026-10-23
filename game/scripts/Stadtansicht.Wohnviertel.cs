@@ -188,8 +188,9 @@ public partial class Stadtansicht
     /// </summary>
     private void WohnhausModell(Hausart art, Hausplatz platz, int nummer)
     {
-        var gruppe = new Node3D { Name = $"Wohnhaus_{nummer}", Position = platz.Mitte, Rotation = new Vector3(0, platz.Drehung, 0) };
+        var gruppe = new Node3D { Name = $"Wohnhaus_{nummer}", Position = AufFundament(platz.Mitte, platz.Drehung, platz.Groesse), Rotation = new Vector3(0, platz.Drehung, 0) };
         AddChild(gruppe);
+        GruppenSockel(gruppe, platz.Drehung, platz.Groesse); // auf einem Hang auf einem Bruchsteinsockel (Stadtansicht.Gelaende.cs)
         var variante = art switch
         {
             Hausart.Wohnhaus => nummer % 3 == 0 ? 2 : nummer % 4 == 0 ? 3 : 1, // meist Fachwerk, jedes dritte verputzt, jedes vierte mit Schiefer

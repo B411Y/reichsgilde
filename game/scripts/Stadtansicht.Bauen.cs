@@ -135,8 +135,9 @@ public partial class Stadtansicht
     {
         var gr = g.Grundriss;
         var (breite, tiefe) = ((float)gr.Breite, (float)gr.Tiefe);
-        var wurzel = new Node3D { Name = $"Bauplatz_{g.Nummer}", Position = Mitte3(gr), Rotation = new Vector3(0, DrehungY(gr), 0) };
+        var wurzel = new Node3D { Name = $"Bauplatz_{g.Nummer}", Position = AufFundament(Mitte3(gr), DrehungY(gr), new Vector2(breite, tiefe)), Rotation = new Vector3(0, DrehungY(gr), 0) };
         AddChild(wurzel);
+        GruppenSockel(wurzel, DrehungY(gr), new Vector2(breite, tiefe));
         Platte(wurzel, new Vector3(0, 0.03f, 0), new Vector2(breite - 0.3f, tiefe - 0.3f), new Color(0.56f, 0.68f, 0.32f));
         Platte(wurzel, new Vector3(-breite * 0.15f, 0.04f, tiefe * 0.1f), new Vector2(breite * 0.3f, tiefe * 0.25f), new Color(0.42f, 0.34f, 0.22f)); // aufgewühlte Erde
         var holz = Stoff(Holz);
@@ -202,8 +203,9 @@ public partial class Stadtansicht
             return wurzel;
         }
 
-        wurzel = new Node3D { Name = $"Baustelle_{g.Nummer}", Position = Mitte3(gr), Rotation = new Vector3(0, DrehungY(gr), 0) };
+        wurzel = new Node3D { Name = $"Baustelle_{g.Nummer}", Position = AufFundament(Mitte3(gr), DrehungY(gr), new Vector2(breite, tiefe)), Rotation = new Vector3(0, DrehungY(gr), 0) };
         AddChild(wurzel);
+        GruppenSockel(wurzel, DrehungY(gr), new Vector2(breite, tiefe));
         // Maße des Gebäudes, das hier entsteht (bzw. des Rests, der abgerissen wird)
         var (hb, ht, hh, wand) = g.Art == Grundstuecksart.Werkstatt ? (10f, 8f, 6f, Fachwerk) : g.Stufe switch
         {
@@ -431,8 +433,16 @@ public partial class Stadtansicht
         var flaeche = new ArrayMesh();
         var arrays = new Godot.Collections.Array();
         arrays.Resize((int)Mesh.ArrayType.Max);
-        arrays[(int)Mesh.ArrayType.Vertex] = punkte.Select(p => new Vector3(p.X, 0, p.Y)).ToArray();
-        arrays[(int)Mesh.ArrayType.Index] = dreiecke;
+        if (BodenBewegt)
+        {
+            // auf Gelände genau auf den Dreiecken des Bodens (Stadtansicht.Gelaende.cs); die Fläche selbst liegt noch 8 cm höher (Position)
+            arrays[(int)Mesh.ArrayType.Vertex] = RasterDreiecke(punkte, ZoneAmHang).ToArray();
+        }
+        else
+        {
+            arrays[(int)Mesh.ArrayType.Vertex] = punkte.Select(p => new Vector3(p.X, 0, p.Y)).ToArray();
+            arrays[(int)Mesh.ArrayType.Index] = dreiecke;
+        }
         flaeche.AddSurfaceFromArrays(Mesh.PrimitiveType.Triangles, arrays);
         eltern.AddChild(new MeshInstance3D
         {
@@ -449,8 +459,8 @@ public partial class Stadtansicht
         void Kante(int ax, int az, int bx, int bz)
         {
             if (!kanten.Add((ax, az, bx, bz))) return;
-            linien.Add(new Vector3(ax * raster, 0, az * raster));
-            linien.Add(new Vector3(bx * raster, 0, bz * raster));
+            linien.Add(new Vector3(ax * raster, BodenHoehe(ax * raster, az * raster), az * raster));
+            linien.Add(new Vector3(bx * raster, BodenHoehe(bx * raster, bz * raster), bz * raster));
         }
         for (var x = Mathf.Floor(minX / raster) * raster; x < maxX; x += raster)
             for (var z = Mathf.Floor(minZ / raster) * raster; z < maxZ; z += raster)
@@ -482,7 +492,7 @@ public partial class Stadtansicht
         }
 
         // Beschriftung in der Mitte der Zone
-        var mitte = new Vector3((minX + maxX) / 2, 0, (minZ + maxZ) / 2);
+        var mitte = new Vector3((minX + maxX) / 2, BodenHoehe((minX + maxX) / 2, (minZ + maxZ) / 2), (minZ + maxZ) / 2);
         var label = Beschriftung($"{zone.Kennung} · {LageName(zone.Art)}", mitte + new Vector3(0, 5, 0), 36, eltern);
         label.Modulate = farbe.Lightened(0.5f);
     }
@@ -537,13 +547,8 @@ public partial class Stadtansicht
     /// <summary>Nur für den Klicktest (--bauort): Der Umriss sitzt an dieser Weltstelle, bis die Maus bewegt wird.</summary>
     public void BauOrtSetzen(double x, double z) => _bauOrt = new Vector2((float)x, (float)z);
 
-    /// <summary>Der Punkt auf dem Boden (y = 0) unter einer Bildschirmstelle.</summary>
-    private Vector2? BodenpunktBei(Vector2 bildschirm)
-    {
-        var von = _kamera.ProjectRayOrigin(bildschirm);
-        var richtung = _kamera.ProjectRayNormal(bildschirm);
-        return new Plane(Vector3.Up, 0).IntersectsRay(von, richtung) is { } p ? new Vector2(p.X, p.Z) : null;
-    }
+    /// <summary>Der Punkt auf dem Boden unter einer Bildschirmstelle (x, z) – auf hügeligem Boden dort, wo der Strahl das Gelände trifft (Stadtansicht.Gelaende.cs).</summary>
+    private Vector2? BodenpunktBei(Vector2 bildschirm) => BodenTrefferBei(bildschirm) is { } p ? new Vector2(p.X, p.Z) : null;
 
     /// <summary>Lesen der Eingabe beim Platzieren: R dreht, Klick setzt, Rechtsklick (ohne Ziehen) bricht ab. Gibt true zurück, wenn verbraucht.</summary>
     private bool BauEingabe(InputEvent eingabe)
@@ -615,7 +620,7 @@ public partial class Stadtansicht
             _bauText.Width = 520;
         }
         _bauUmriss.Visible = true;
-        _bauUmriss.Position = Mitte3(gr);
+        _bauUmriss.Position = AufFundament(Mitte3(gr), DrehungY(gr), new Vector2(breite, tiefe)); // auf Gelände auf der Höhe, auf der das Haus stünde
         _bauUmriss.Rotation = new Vector3(0, DrehungY(gr), 0);
         var farbe = BauGrund is null ? new Color(0.35f, 0.9f, 0.35f) : new Color(0.95f, 0.28f, 0.25f);
         _bauFarbe!.AlbedoColor = new Color(farbe, 0.45f);

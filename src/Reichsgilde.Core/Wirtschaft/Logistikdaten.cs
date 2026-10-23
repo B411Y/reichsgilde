@@ -91,6 +91,45 @@ public sealed class ToreDaten
     }
 }
 
+/// <summary>
+/// Wie Steigung die Karren bremst (Abschnitt "logistik.steigung", ab Datenversion 50; Kartenwerkstatt, Schritt 5b). Jedes Stück der Fahrt
+/// über die Karrenstraßen (<see cref="Bauen.Karrennetz"/>) dauert bergauf ab <see cref="AbProzent"/> Steigung länger: je Prozentpunkt darüber
+/// um <see cref="ZuschlagJeProzent"/>, höchstens das <see cref="HoechstensFaktor"/>-fache. Bergab und in der Ebene wie bisher. Die feste
+/// Fahrzeit des Arbeitsorts wird mit dem Mittel über die Strecke (nach Länge gewichtet) malgenommen – eine flache Karte bleibt genau, wie sie war.
+/// </summary>
+public sealed class SteigungDaten
+{
+    /// <summary>Ab dieser Steigung (Prozent) bremst es.</summary>
+    public double AbProzent { get; init; } = 6;
+
+    /// <summary>So viel länger je Prozentpunkt über <see cref="AbProzent"/> (0,05 = 5 %).</summary>
+    public double ZuschlagJeProzent { get; init; } = 0.05;
+
+    /// <summary>Höchstens so viel mal so lang dauert ein Stück.</summary>
+    public double HoechstensFaktor { get; init; } = 3;
+
+    /// <summary>Wie viel mal so lang ein Stück mit dieser Steigung (Anteil, 0,1 = 10 %; negativ = bergab) dauert.</summary>
+    public double Faktor(double steigung)
+    {
+        var prozent = steigung * 100;
+        return prozent <= AbProzent ? 1 : Math.Min(HoechstensFaktor, 1 + (prozent - AbProzent) * ZuschlagJeProzent);
+    }
+
+    /// <summary>Der Zeitfaktor einer ganzen Fahrt: die Faktoren der Stücke nach ihrer Länge gemittelt (1 ohne Stücke).</summary>
+    public double Faktor(IReadOnlyList<Bauen.Fahrtstueck> fahrt)
+    {
+        var laenge = fahrt.Sum(s => s.Laenge);
+        return laenge <= 0 ? 1 : fahrt.Sum(s => s.Laenge * Faktor(s.Steigung)) / laenge;
+    }
+
+    internal void Pruefen(List<string> f)
+    {
+        if (AbProzent < 0) f.Add("logistik.steigung.abProzent darf nicht negativ sein.");
+        if (ZuschlagJeProzent < 0) f.Add("logistik.steigung.zuschlagJeProzent darf nicht negativ sein.");
+        if (HoechstensFaktor < 1) f.Add("logistik.steigung.hoechstensFaktor muss mindestens 1 sein.");
+    }
+}
+
 /// <summary>Alle Logistik-Stellschrauben (Abschnitt "logistik").</summary>
 public sealed class LogistikDaten
 {
@@ -117,6 +156,9 @@ public sealed class LogistikDaten
     /// <summary>Stadttore mit Torschluss (null: keine Tore, wie vor Datenversion 30).</summary>
     public ToreDaten? Tore { get; init; }
 
+    /// <summary>Wie Steigung die Karren bremst (null: gar nicht, wie vor Datenversion 50).</summary>
+    public SteigungDaten? Steigung { get; init; }
+
     public int FahrzeitAb(Arbeitsort ort) => Fahrzeiten.GetValueOrDefault(ort.ToString(), 30);
 
     internal void Pruefen(List<string> f)
@@ -126,6 +168,7 @@ public sealed class LogistikDaten
                 f.Add($"logistik.fahrzeiten.{ort} fehlt oder ist nicht größer als 0.");
         if (LagerJeWare <= 0) f.Add("logistik.lagerJeWare muss größer als 0 sein.");
         Tore?.Pruefen(f);
+        Steigung?.Pruefen(f);
         if (AbfahrtAbFuellgrad is <= 0 or > 1) f.Add("logistik.abfahrtAbFuellgrad muss zwischen 0 und 1 liegen.");
         if (MaxWartezeitMinuten <= 0) f.Add("logistik.maxWartezeitMinuten muss größer als 0 sein.");
         if (Karren.Count == 0) f.Add("logistik.karren: Es ist kein Karrentyp definiert.");
