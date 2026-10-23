@@ -12,7 +12,8 @@ namespace Reichsgilde.Kartenbau;
 //  ihrem historischen Vorbild per Code; verfeinert wird er danach in der Kartenwerkstatt, die dieselbe Datei öffnet.
 //  Muster: Staedte/Probestadt.cs. Aufruf: dotnet run --project tools/Kartenbau -- bauen probestadt
 //
-//  Die Hilfen hier sind bewusst schlicht: eine Häuserreihe an einer geraden Straße, eine Ringgasse innerhalb der Mauer, ein Platz mit Umriss.
+//  Die Hilfen hier sind bewusst schlicht: eine Häuserreihe an einer geraden Straße, eine Ringgasse innerhalb der Mauer, ein Platz mit Umriss,
+//  ein Hügel und Rauschen für das Gelände (die Pinsel selbst: E.GelaendePinseln, E.Rampe).
 // ═════════════════════════════════════════════════════════════════════════════
 
 /// <summary>Eine Stadt als Skript. Unterklassen nennen Kennung, Name und Größe und legen in <see cref="Anlegen"/> alles an.</summary>
@@ -122,6 +123,21 @@ public abstract class Stadtskript
         var ecken = new[] { P(mitte.X - b, mitte.Z - t), P(mitte.X + b, mitte.Z - t), P(mitte.X + b, mitte.Z + t), P(mitte.X - b, mitte.Z + t) };
         return E.WegAnlegen(klasse, ecken.Append(ecken[0]).ToList(), glatt: false, name: name, breite: wegbreite, einrasten: false);
     }
+
+    /// <summary>
+    /// Ein Hügel (oder mit negativer <paramref name="hoehe"/> eine Senke): ein Tupfer des Geländepinsels Heben bzw. Senken mit ganz weicher
+    /// Kante – in der Mitte <paramref name="hoehe"/> Meter, zum <paramref name="radius"/> hin auslaufend. Das steilste Gefälle liegt auf halbem
+    /// Radius und ist etwa 1,5 · Höhe / Radius (6 m auf 200 m: 4,5 %). Ein Schritt.
+    /// </summary>
+    protected void Huegel(Kartenort mitte, double radius, double hoehe) =>
+        E.GelaendePinseln(new Pinsel(hoehe >= 0 ? Pinselart.Heben : Pinselart.Senken, radius, Math.Abs(hoehe), Kante: 1), new[] { mitte });
+
+    /// <summary>
+    /// Natürliche Unebenheit entlang eines Strichs (Geländepinsel Rauschen): Buckel von etwa <paramref name="massstab"/> Metern, bis zu
+    /// <paramref name="staerke"/> Meter nach oben und unten, aus dem Startwert. Ein Schritt.
+    /// </summary>
+    protected void Rauschen(IReadOnlyList<Kartenort> strich, double radius, double staerke, double massstab, int startwert, double kante = 0.6) =>
+        E.GelaendePinseln(new Pinsel(Pinselart.Rauschen, radius, staerke, kante, startwert, massstab), strich);
 
     /// <summary>
     /// Ein Vieleck um <paramref name="abstand"/> Meter versetzt: positiv nach außen, negativ nach innen. Jede Seite wandert parallel, die neuen

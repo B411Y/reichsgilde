@@ -12,7 +12,8 @@ namespace Reichsgilde.Kartenbau;
 //  Mitte der Vorderseite; Wege mit ihrem Verlauf (glatte Wege als Kurve, wie im Spiel); Mauern aus dem Mauerplan des Kerns (Mauerstücke,
 //  Türme, Ecktürme, Torburgen, wie im Spiel); Bauzonen nach Lage, Naturflächen mit Aussparungen, Felder mit ihren Streifen, Wasser, Gelände,
 //  Häfen. Das Bild zeigt die ganze Karte: den Randstreifen etwas dunkler, die Kante des Spielfelds gestrichelt (seit Schritt 5a). Die
-//  Startbelegung ist farbig: Jeder Platz eines Hauses hat dessen Farbe (Legende oben links).
+//  Startbelegung ist farbig: Jeder Platz eines Hauses hat dessen Farbe (Legende oben links). Gelände (seit Schritt 5b) als braune Höhenlinien
+//  des Bodens: alle 2 m (bei viel Höhenunterschied alle 5 m) eine dünne, alle 10 m eine kräftigere.
 //  Die Belegung (<kennung>-belegung.svg) zeigt darüber, wie die Prüfung die Stadt füllt: die Kapazitätsprüfung (Köln, neue Karten) bzw. den
 //  Probeplan (Greybox).
 // ═════════════════════════════════════════════════════════════════════════════
@@ -113,6 +114,7 @@ public static class Vorschau
             Zeile($"<polygon points=\"{Punkte(f.Ecken)}\" fill=\"{Fruchtfarben.GetValueOrDefault(frucht, Farben["feld"])}\" opacity=\"0.8\"{maske}/>");
             Zeile($"<polygon points=\"{Punkte(f.Ecken)}\" fill=\"url(#feld{i})\"{maske}/>");
         }
+        Hoehenlinien(e, Zeile);
         foreach (var z in e.Bauzonen.Where(z => z.Ecken.Count >= 3))
             Zeile($"<polygon points=\"{Punkte(z.Ecken)}\" fill=\"{Zonenfarben[z.Art]}\" stroke=\"{Farben["zonenrand"]}\" stroke-width=\"0.4\"/>");
         foreach (var w in e.Wasser)
@@ -161,6 +163,108 @@ public static class Vorschau
         if (belegung) Belegung(e, Zeile);
         Zeile("</svg>");
         return o.ToString();
+    }
+
+    /// <summary>Abstand der Punkte, an denen die Höhenlinien gerechnet werden (Meter).</summary>
+    public const double Linienraster = 8;
+
+    /// <summary>
+    /// Höhenlinien des Bodens (Gelände mit dem Bett der Wege): auf einem Raster von 8 m die Höhen lesen, je Zelle die Linien jeder Höhenstufe
+    /// durch die Zelle legen (Marching Squares; ein Sattel entscheidet sich nach dem Mittel der vier Ecken). Je Stufe ein Pfad. Flach: nichts.
+    /// </summary>
+    private static void Hoehenlinien(Kartenentwurf e, Action<string> zeile)
+    {
+        var g = e.Gelaendeform;
+        if (g.IstFlach) return;
+        var a = e.Kartengrenzen.Aussen;
+        var (nx, nz) = ((int)Math.Ceiling(a.Breite / Linienraster - 1e-9) + 1, (int)Math.Ceiling(a.Tiefe / Linienraster - 1e-9) + 1);
+        double X(int i) => Math.Min(a.X0 + i * Linienraster, a.X1);
+        double Z(int j) => Math.Min(a.Z0 + j * Linienraster, a.Z1);
+        var h = new double[nx, nz];
+        double min = double.MaxValue, max = double.MinValue;
+        for (var i = 0; i < nx; i++)
+            for (var j = 0; j < nz; j++)
+            {
+                h[i, j] = g.Hoehe(X(i), Z(j));
+                (min, max) = (Math.Min(min, h[i, j]), Math.Max(max, h[i, j]));
+            }
+        if (max - min < 0.5) return;
+        var abstand = max - min > 80 ? 5.0 : 2.0;
+        var stuecke = new SortedDictionary<int, List<(string, string)>>();
+        for (var i = 0; i + 1 < nx; i++)
+            for (var j = 0; j + 1 < nz; j++)
+            {
+                // Ecken im Uhrzeigersinn ab oben links, Kanten 0: oben, 1: rechts, 2: unten, 3: links
+                var ecken = new[] { (X(i), Z(j), h[i, j]), (X(i + 1), Z(j), h[i + 1, j]), (X(i + 1), Z(j + 1), h[i + 1, j + 1]), (X(i), Z(j + 1), h[i, j + 1]) };
+                var (lo, hi) = (ecken.Min(c => c.Item3), ecken.Max(c => c.Item3));
+                for (var stufe = (int)Math.Ceiling(lo / abstand); stufe * abstand <= hi; stufe++)
+                {
+                    var l = stufe * abstand;
+                    var schnitt = new (double X, double Z)?[4];
+                    for (var k = 0; k < 4; k++)
+                    {
+                        var (p, q) = (ecken[k], ecken[(k + 1) % 4]);
+                        if ((p.Item3 >= l) == (q.Item3 >= l)) continue;
+                        var t = (l - p.Item3) / (q.Item3 - p.Item3);
+                        schnitt[k] = (p.Item1 + (q.Item1 - p.Item1) * t, p.Item2 + (q.Item2 - p.Item2) * t);
+                    }
+                    var paare = new List<(int, int)>();
+                    var da = Enumerable.Range(0, 4).Where(k => schnitt[k] is not null).ToList();
+                    if (da.Count == 2) paare.Add((da[0], da[1]));
+                    else if (da.Count == 4)
+                    {
+                        // Sattel: Liegt die Mitte auf der Seite der Ecke oben links, hängen sie durch die Mitte zusammen
+                        var mitte = ecken.Average(c => c.Item3) >= l;
+                        if (mitte == ecken[0].Item3 >= l) paare.AddRange(new[] { (0, 1), (2, 3) });
+                        else paare.AddRange(new[] { (3, 0), (1, 2) });
+                    }
+                    if (paare.Count == 0) continue;
+                    if (!stuecke.TryGetValue(stufe, out var liste)) stuecke[stufe] = liste = new List<(string, string)>();
+                    foreach (var (k1, k2) in paare)
+                        liste.Add(($"{G(schnitt[k1]!.Value.X)} {G(schnitt[k1]!.Value.Z)}", $"{G(schnitt[k2]!.Value.X)} {G(schnitt[k2]!.Value.Z)}"));
+                }
+            }
+        foreach (var (stufe, liste) in stuecke)
+        {
+            var kraeftig = Math.Abs(stufe * abstand % 10) < 1e-9;
+            zeile($"<path d=\"{Verketten(liste)}\" fill=\"none\" stroke=\"#8C6A43\" stroke-width=\"{(kraeftig ? "0.9" : "0.4")}\" opacity=\"{(kraeftig ? "0.7" : "0.5")}\"/>");
+        }
+
+        static string G(double x) => (Math.Round(x, 1) + 0.0).ToString("0.#", CultureInfo.InvariantCulture);
+    }
+
+    /// <summary>Hängt Linienstücke mit gemeinsamen Enden zu Linienzügen zusammen (kürzerer Pfad): „M x z L x z x z …“ je Zug.</summary>
+    private static string Verketten(List<(string A, string B)> stuecke)
+    {
+        var an = new Dictionary<string, List<int>>();
+        for (var k = 0; k < stuecke.Count; k++)
+            foreach (var p in new[] { stuecke[k].A, stuecke[k].B })
+            {
+                if (!an.TryGetValue(p, out var l)) an[p] = l = new List<int>();
+                l.Add(k);
+            }
+        var benutzt = new bool[stuecke.Count];
+        string? Weiter(string p)
+        {
+            foreach (var k in an[p])
+                if (!benutzt[k])
+                {
+                    benutzt[k] = true;
+                    return stuecke[k].A == p ? stuecke[k].B : stuecke[k].A;
+                }
+            return null;
+        }
+        var d = new StringBuilder();
+        for (var k = 0; k < stuecke.Count; k++)
+        {
+            if (benutzt[k]) continue;
+            benutzt[k] = true;
+            var zug = new LinkedList<string>(new[] { stuecke[k].A, stuecke[k].B });
+            for (var p = Weiter(zug.Last!.Value); p is not null; p = Weiter(p)) zug.AddLast(p);
+            for (var p = Weiter(zug.First!.Value); p is not null; p = Weiter(p)) zug.AddFirst(p);
+            d.Append('M').Append(zug.First!.Value).Append('L').Append(string.Join(" ", zug.Skip(1)));
+        }
+        return d.ToString();
     }
 
     /// <summary>Wie weit das Bild reicht: die ganze Karte, Spielfeld und Randstreifen (seit Schritt 5a hat jede Karte eine Größe).</summary>

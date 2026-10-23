@@ -16,6 +16,9 @@ namespace Reichsgilde.Kartenbau;
 //    dotnet run --project tools/Kartenbau -- groesse <karte> [<breite> <tiefe> [<mitteX> <mitteZ>]] [--rand=<m>]
 //                                                   Größe des Spielfelds (ohne Zahlen: aus dem Inhalt abgeleitet) und Randbreite in die Karte schreiben
 //    dotnet run --project tools/Kartenbau -- randvorschlag <karte> [<startwert>]   Felder und Waldstücke im Randstreifen vorschlagen (ersetzt einen früheren)
+//    dotnet run --project tools/Kartenbau -- gelaende <karte> <pinsel> <x,z;x,z…> [--radius= --staerke= --kante= --startwert= --massstab=]
+//                                                   ein Strich mit einem Geländepinsel (heben, senken, glaetten, ebnen, rauschen)
+//    dotnet run --project tools/Kartenbau -- rampe <karte> <x,z> <x,z> <breite> [--kante=]   eine Rampe mit gleichmäßigem Gefälle
 //  <karte> ist die Kennung einer Karte in game/karten/ (greybox, koeln …), <datei> ein Pfad zu einer .json-Datei.
 //  Rückgabe: 0 = in Ordnung, 1 = die Karte hat Fehler, 2 = falscher Aufruf (oder die Datei gibt es schon).
 //
@@ -48,6 +51,11 @@ public static class Program
                 "groesse" when ziel is not null && Zahlen(worte.Skip(2)) is { Count: 0 or 2 or 4 } z =>
                     Befehle.Groesse(ordner, ziel, z, Wert(args, "--rand"), Console.Out),
                 "randvorschlag" when ziel is not null && Zahlen(worte.Skip(2)) is { Count: 0 or 1 } z => Befehle.Randvorschlag(ordner, ziel, z.Count == 1 ? (int)z[0] : null, Console.Out),
+                "gelaende" when ziel is not null && worte.Count == 4 && PinselVon(worte[2], args) is { } pinsel && Orte(worte[3]) is { Count: > 0 } strich =>
+                    Befehle.Gelaende(ordner, ziel, pinsel, strich, Console.Out),
+                "rampe" when ziel is not null && worte.Count == 5 && Orte(worte[2]) is { Count: 1 } von && Orte(worte[3]) is { Count: 1 } nach
+                             && Zahlen(worte.Skip(4)) is { Count: 1 } breite =>
+                    Befehle.Rampe(ordner, ziel, von[0], nach[0], breite[0], Wert(args, "--kante") ?? 4, Console.Out),
                 _ => Hilfe(),
             };
         }
@@ -75,6 +83,33 @@ public static class Program
         return liste;
     }
 
+    /// <summary>Orte „x,z;x,z;…“ (Punkt als Dezimaltrenner) – null, wenn einer nicht lesbar ist.</summary>
+    private static List<Kartenort>? Orte(string text)
+    {
+        var liste = new List<Kartenort>();
+        foreach (var teil in text.Split(';', StringSplitOptions.RemoveEmptyEntries))
+        {
+            if (Zahlen(teil.Split(',')) is not { Count: 2 } z) return null;
+            liste.Add(new Kartenort(z[0], z[1]));
+        }
+        return liste;
+    }
+
+    /// <summary>Der Pinsel aus seinem Namen (heben, senken, glaetten, ebnen, rauschen) und den Schaltern – null bei unbekanntem Namen.</summary>
+    private static Pinsel? PinselVon(string name, IEnumerable<string> args)
+    {
+        if (!Enum.TryParse<Pinselart>(name, ignoreCase: true, out var art) || int.TryParse(name, out _)) return null;
+        var p = new Pinsel(art);
+        return p with
+        {
+            Radius = Wert(args, "--radius") ?? p.Radius,
+            Staerke = Wert(args, "--staerke") ?? (art is Pinselart.Glaetten or Pinselart.Ebnen ? 1 : p.Staerke),
+            Kante = Wert(args, "--kante") ?? p.Kante,
+            Startwert = (int)(Wert(args, "--startwert") ?? p.Startwert),
+            Massstab = Wert(args, "--massstab") ?? p.Massstab,
+        };
+    }
+
     /// <summary>Der Wert eines Schalters „--name=zahl“ – oder null.</summary>
     private static double? Wert(IEnumerable<string> args, string name) =>
         args.FirstOrDefault(a => a.StartsWith(name + "=", StringComparison.Ordinal)) is { } a
@@ -92,6 +127,11 @@ public static class Program
               groesse <karte> [<breite> <tiefe> [<mitteX> <mitteZ>]] [--rand=<m>]
                                                   Größe des Spielfelds (ohne Zahlen: aus dem Inhalt abgeleitet) und Randbreite schreiben
               randvorschlag <karte> [<startwert>]  Felder und Waldstücke im Randstreifen vorschlagen (ersetzt einen früheren Vorschlag)
+              gelaende <karte> <pinsel> <x,z;x,z…> [--radius=10] [--staerke=…] [--kante=0.5] [--startwert=1] [--massstab=20]
+                                                  ein Strich mit einem Geländepinsel: heben, senken (Stärke in m je Tupfer, Vorgabe 0.25),
+                                                  glaetten, ebnen (Stärke 0–1, Vorgabe 1), rauschen (Stärke in m, Maßstab = Buckelgröße in m)
+              rampe <karte> <x,z> <x,z> <breite> [--kante=4]
+                                                  ein Band mit gleichmäßigem Gefälle von der Höhe am ersten zur Höhe am zweiten Punkt
 
             <karte> ist eine Kennung aus game/karten/ (z. B. greybox, koeln), <datei> ein Pfad zu einer .json-Datei.
             """);
@@ -215,6 +255,34 @@ public static class Befehle
         var e = Oeffnen(o, karte, katalog, daten);
         var neu = e.RandVorschlagen(startwert);
         aus.WriteLine($"{e.Kennung}: {neu.Count(f => f is EntwurfFeld)} Felder, {neu.Count(f => f is EntwurfNaturflaeche)} Wald- und Streuflächen im Rand vorgeschlagen");
+        return Schreiben(e, PfadVon(o, karte), o.Vorschauen, true, aus, o);
+    }
+
+    /// <summary><c>gelaende</c>: ein Strich mit einem Geländepinsel (<see cref="Kartenentwurf.GelaendePinseln"/>), dann schreiben – nur ohne Fehler.</summary>
+    public static int Gelaende(Projektordner o, string karte, Pinsel pinsel, IReadOnlyList<Kartenort> strich, TextWriter aus)
+    {
+        var (katalog, daten) = Laden(o);
+        var e = Oeffnen(o, karte, katalog, daten);
+        if (!e.GelaendePinseln(pinsel, strich))
+        {
+            aus.WriteLine($"{e.Kennung}: Der Strich ändert nichts (außerhalb der Karte?) – nichts geschrieben.");
+            return 0;
+        }
+        aus.WriteLine($"{e.Kennung}: {e.Geschichte.RueckgaengigText} ({strich.Count} Punkte, Radius {Kartenschreiber.Zahl(pinsel.Radius)} m)");
+        return Schreiben(e, PfadVon(o, karte), o.Vorschauen, true, aus, o);
+    }
+
+    /// <summary><c>rampe</c>: eine Rampe (<see cref="Kartenentwurf.Rampe"/>), dann schreiben – nur ohne Fehler.</summary>
+    public static int Rampe(Projektordner o, string karte, Kartenort von, Kartenort nach, double breite, double kante, TextWriter aus)
+    {
+        var (katalog, daten) = Laden(o);
+        var e = Oeffnen(o, karte, katalog, daten);
+        if (!e.Rampe(von, nach, breite, kante))
+        {
+            aus.WriteLine($"{e.Kennung}: Die Rampe ändert nichts – nichts geschrieben.");
+            return 0;
+        }
+        aus.WriteLine($"{e.Kennung}: Rampe von {von} nach {nach}, {Kartenschreiber.Zahl(breite)} m breit");
         return Schreiben(e, PfadVon(o, karte), o.Vorschauen, true, aus, o);
     }
 
