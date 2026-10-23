@@ -19,6 +19,10 @@ namespace Reichsgilde.Kartenbau.Staedte;
 //    • Start: der Spieler und zwei KI-Häuser (Tischlerei, Gießerei).
 //    • Gelände: die Stadt flach, nach Osten ein sanfter Hang hinauf (die östliche Vorstadt steigt bis 4 % an), im Randstreifen Hügel bis 25 m
 //      und rundherum natürliche Unebenheit. Unter keinem Platz mehr als 8 % Gefälle (die Prüfung meldet nichts).
+//    • Wasser (Schritt 5c): Ein Bach kommt vom Hügel im Nordwesten, quert den Waldweg in einer Furt, läuft an der Westmauer entlang (eine
+//      Holzbrücke trägt die Landstraße vor dem Westtor) und mündet im Süden in einen Fluss. Der Fluss kommt aus dem Südosten und fließt
+//      am Südrand des Spielfelds nach Westen ins Tal; ein Feldweg führt vom Westen zur Fähre, drüben weiter nach Süden. Ein Teich liegt im
+//      Nordosten am Hang.
 // ═════════════════════════════════════════════════════════════════════════════
 
 public sealed class Probestadt : Stadtskript
@@ -33,6 +37,9 @@ public sealed class Probestadt : Stadtskript
     private const double Ring = 13;                  // Ringstraße so weit innerhalb der Mauer
     private const double Ende = 190;                 // die Landstraßen enden bei x = ±190
     private const double FeldwegZ = 46;              // Feldwege hinter den Bauzonen der Vorstadt bei z = ±46
+    private const double BachX = -73.2;              // der Bach an der Westmauer (zwischen Mauer bei −70 und Bauzonen ab −76)
+    private const double FaehreX = -130;             // der Weg zur Fähre
+    private const double FaehreNord = 113, FaehreSued = 137;  // die Anleger, 4 m vom Fluss (Ufer bei z ≈ 117 und 133)
 
     protected override void Anlegen()
     {
@@ -112,6 +119,21 @@ public sealed class Probestadt : Stadtskript
         Huegel(P(-380, 300), 120, -6);      // eine Senke im Südwesten
         // Unebenheit: ein Strich rund um das Spielfeld, 170 m vor seiner Kante (der Pinsel endet genau an der Kante)
         Rauschen(new[] { P(-370, -320), P(370, -320), P(370, 320), P(-370, 320), P(-370, -320) }, radius: 170, staerke: 1.5, massstab: 40, startwert: 11);
+
+        // ── Wasser: Bach an der Westmauer (Furt am Waldweg, Holzbrücke vor dem Westtor), Fluss im Süden mit Fähre, Teich im Nordosten ──
+        var bach = E.FlussAnlegen(new[]
+        {
+            P(-330, -260), P(-210, -175), P(-140, -120), P(-95, -75), P(BachX, -45), P(BachX, -15), P(BachX, 15), P(BachX, 45), P(-95, 75), P(-110, 100), P(-115, 121),
+        }, "bach", 1.6, "Mühlbach");
+        E.FlussTiefeSetzen(bach, -1, 0.3);   // flach: am Waldweg eine Furt
+        E.FlussTiefeSetzen(bach, 5, 0.7);    // an der Landstraße tief genug für eine Brücke
+        E.FlussTiefeSetzen(bach, 6, 0.7);
+        var fluss = E.FlussAnlegen(new[] { P(495, 195), P(310, 170), P(130, 140), P(-100, 125), P(-230, 150), P(-320, 230), P(-380, 300) }, "fluss", 16, "Sandfluss");
+        E.FlussStroemungSetzen(fluss, 0.8);
+        E.WegAnlegen(Wegklasse.Feldweg, new[] { P(FaehreX, FeldwegZ), P(FaehreX, FaehreNord) }, glatt: false, name: "Weg zur Fähre");
+        E.WegAnlegen(Wegklasse.Feldweg, new[] { P(FaehreX, FaehreSued), P(FaehreX, 200), P(-150, 280), P(-160, 440) }, glatt: true, name: "Weg nach Süden");
+        E.FaehreSetzen(P(FaehreX, FaehreNord), P(FaehreX, FaehreSued), "Fähre am Sandfluss");
+        E.SeeAnlegen(new[] { P(110, -120), P(150, -115), P(155, -95), P(125, -85), P(105, -98) }, "teich", "Mühlenteich");
 
         E.KameraStartSetzen(P(0, 0), 110);
     }

@@ -404,7 +404,8 @@ static class WasserTests
                 Pruefe.Gleich(1, Befehle.Faehre(projekt, datei, O(100, 0), O(150, 0), "Fähre", aus));
                 Pruefe.Gleich(stand, File.ReadAllText(datei));
                 var k = Stadtkarte.AusDatei(datei, projekt.Katalog);
-                Pruefe.Wahr(k.Wasser.Count == 2 && k.Wasser[0].Linie![1].Length == 4, "Fluss mit Breite und Tiefe am Ende, Teich");
+                Pruefe.Wahr(k.Wasser.Single(w => w.Name == "Nordfluss").Linie![1].Length == 4 && k.Wasser.Any(w => w.Art == "teich" && w.Name == "Teich"),
+                    "Fluss mit Breite und Tiefe am Ende, Teich");
                 Pruefe.Wahr(k.Wasserplan.Querungen.Any(q => q.WegName == "Waldweg" && q.IstBruecke), "der Waldweg quert auf einer Brücke");
                 var svg = Reichsgilde.Kartenbau.Vorschau.Zeichnen(Kartenentwurf.AusJson(File.ReadAllText(datei), Katalog.Value));
                 Pruefe.Wahr(svg.Contains("#AFC7D5") && (svg.Contains("#7D7F78") || svg.Contains("#8A5A2B")), "Wasser und Brücke im Bild");
@@ -414,6 +415,20 @@ static class WasserTests
             {
                 if (Directory.Exists(ordner)) Directory.Delete(ordner, recursive: true);
             }
+        }),
+
+        ("Probestadt (Stadtskript): Bach mit Furt am Waldweg und Holzbrücke vor dem Westtor, Fluss mit Fähre, Teich – keine Fehler, keine Hinweise; die Datei ist das Skript", () =>
+        {
+            var e = new Probestadt().Bauen(Katalog.Value, Daten.Value);
+            Pruefe.Gleich(Text("probestadt"), e.ZuJson());
+            Pruefe.Wahr(e.Befunde.Count == 0, Liste(e.Befunde));
+            var plan = e.Wasserplan;
+            Pruefe.Wahr(plan.Querungen.Single(q => q.WegName == "Waldweg") is { Art: Uebergangsart.Furt, GewaesserName: "Mühlbach" }, "Furt");
+            Pruefe.Wahr(plan.Querungen.Single(q => q.WegName == "Landstraße nach Westen") is { Art: Uebergangsart.Holzbruecke, Karren: true }, "Holzbrücke");
+            Pruefe.Wahr(plan.Faehren.Single() is { Gewaesser: "Sandfluss", VonImWasser: false, BisImWasser: false }, "Fähre");
+            Pruefe.Wahr(e.Wasserform.Seen.Single().Name == "Mühlenteich" && e.Wasserform.Laeufe.All(l => l.GroessterEinschnitt < Wasserform.Schluchtgrenze), "Teich, nichts bergauf");
+            var netz = Karrennetz.Von(e.ZuStadtkarte());
+            Pruefe.Wahr(netz.Fahrt(O(-130, 60), O(-130, 200)).Any(x => x.Art == Fahrbahn.Faehre), "über die Fähre nach Süden");
         }),
 
         ("Köln (Umbau koeln-wasser): der Rhein fließt nach Norden, die Rheinbrücke ist eine Steinbrücke, die Fähre Mülheim verbindet beide Ufer", () =>

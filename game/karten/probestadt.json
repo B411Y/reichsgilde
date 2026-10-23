@@ -69,8 +69,10 @@
   {"name": "Feldweg Ost-Nord", "klasse": "feldweg", "linie": [[190, 0], [190, -46], [76, -46]], "gefahr": 1, "breite": 3},
   {"name": "Feldweg Ost-Süd", "klasse": "feldweg", "linie": [[190, 0], [190, 46], [76, 46]], "gefahr": 1, "breite": 3},
   {"name": "Feldweg West-Nord", "klasse": "feldweg", "linie": [[-190, 0], [-190, -46], [-76, -46]], "gefahr": 1, "breite": 3},
-  {"name": "Feldweg West-Süd", "klasse": "feldweg", "linie": [[-190, 0], [-190, 46], [-76, 46]], "gefahr": 1, "breite": 3},
-  {"name": "Waldweg", "klasse": "fussweg", "linie": [[-190, -46], [-165, -78], [-140, -100], [-130, -132]], "gefahr": 1, "breite": 2, "kurve": "glatt"}
+  {"name": "Feldweg West-Süd", "klasse": "feldweg", "linie": [[-190, 0], [-190, 46], [-130, 46], [-76, 46]], "gefahr": 1, "breite": 3},
+  {"name": "Waldweg", "klasse": "fussweg", "linie": [[-190, -46], [-165, -78], [-140, -100], [-130, -132]], "gefahr": 1, "breite": 2, "kurve": "glatt"},
+  {"name": "Weg zur Fähre", "klasse": "feldweg", "linie": [[-130, 46], [-130, 113]], "gefahr": 1, "breite": 3},
+  {"name": "Weg nach Süden", "klasse": "feldweg", "linie": [[-130, 137], [-130, 200], [-150, 280], [-160, 440]], "gefahr": 1, "breite": 3, "kurve": "glatt"}
  ],
  "bauzonen": [
   {"kennung": "VON", "art": "vorstadt", "flaeche": [[76, -4], [184, -4], [184, -42], [76, -42]]},
@@ -333,6 +335,18 @@
    {"name": "Feld 20", "flaeche": [[-345, 7], [-207, 7], [-207, 144], [-345, 144]], "richtung": 5.1, "streifen": 7, "laenge": 60, "startwert": 2019, "fruechte": {"roggen": 1}}
   ]
  },
+ "wasser": [
+  {
+   "art": "bach",
+   "name": "Mühlbach",
+   "linie": [[-330, -260], [-210, -175], [-140, -120], [-95, -75], [-73.2, -45], [-73.2, -15, 1.6, 0.7], [-73.2, 15, 1.6, 0.7], [-73.2, 45], [-95, 75], [-110, 100], [-115, 121]],
+   "breite": 1.6,
+   "tiefe": 0.3
+  },
+  {"art": "fluss", "name": "Sandfluss", "linie": [[495, 195], [310, 170], [130, 140], [-100, 125], [-230, 150], [-320, 230], [-380, 300]], "breite": 16, "stroemung": 0.8},
+  {"art": "teich", "name": "Mühlenteich", "flaeche": [[110, -120], [150, -115], [155, -95], [125, -85], [105, -98]]}
+ ],
+ "uebergaenge": [{"art": "faehre", "name": "Fähre am Sandfluss", "von": [-130, 113], "bis": [-130, 137]}],
  "start": {
   "spieler": {"wohnhaus": "Wohnhausplatz2", "farbe": "#336bb8", "werkstatt": {"platz": "Werkstattplatz1", "name": "{art} am Werkstattplatz"}},
   "haeuser": [
