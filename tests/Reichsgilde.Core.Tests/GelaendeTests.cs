@@ -320,13 +320,18 @@ static class GelaendeTests
             Pruefe.Ungefaehr(5.9, p[1], 0.01);
             Pruefe.Ungefaehr(2.0, g.Hoehe(20, -30), 1e-9);
             Pruefe.Ungefaehr(2.0, g.Hoehe(20, -28), 1e-9);  // quer eben
+            // die gerade Straße hat nur zwei Punkte – ihr Band folgt trotzdem dem Gelände: die Profillinie hat alle 1 m einen Punkt
+            var linie = e.Profillinie(laengs);
+            Pruefe.Gleich(121, linie.Count);
+            Pruefe.Wahr(linie.All(p => Math.Abs(p.Hoehe - g.Hoehe(p.Ort.X, p.Ort.Z)) < 0.01), "das Band liegt auf dem Boden (auf 1 cm; zwischen zwei Rasterpunkten bilinear)");
+            Pruefe.Ungefaehr(2.0, linie.Single(p => p.Ort.X == 20).Hoehe, 1e-9);
             // verschoben: das Bett geht mit
             e.WegVerschieben(quer, 20, 0);
             Pruefe.Ungefaehr(0.2, g.Punkthoehe(1, 0), 1e-9);
             Pruefe.Ungefaehr(2.0, g.Punkthoehe(11, 0), 1e-9);  // x = 22: im Bett auf der Höhe von x = 20
             // ein Pinselstrich neben dem Weg: das Bett rechnet um den Strich neu
             e.GelaendePinseln(new Pinsel(Pinselart.Heben, Radius: 6, Staerke: 1, Kante: 0), new[] { O(20, 40) });
-            Pruefe.Ungefaehr(3.0, g.Punkthoehe(10, 20), 0.15);  // die Mitte hebt sich (über 4 m gemittelt etwas weniger)
+            Pruefe.Ungefaehr(3.0, g.Punkthoehe(10, 20), 0.05);  // die Mitte hebt sich (über 4 m gemittelt etwas weniger)
             Pruefe.Ungefaehr(g.Punkthoehe(10, 20), g.Punkthoehe(11, 20), 1e-9);  // quer eben
             // Mauer: Bett 4 m
             var m = e.MauerAnlegen(new[] { O(-80, 80), O(80, 80) }, geschlossen: false);
@@ -387,6 +392,77 @@ static class GelaendeTests
             {
                 if (Directory.Exists(ordner)) Directory.Delete(ordner, recursive: true);
             }
+        }),
+
+        ("Karrennetz: Kreuzungen und Einmündungen verbunden, kürzester Weg nach Länge, Stücke mit Anstieg in Fahrtrichtung; getrennt: keine Fahrt", () =>
+        {
+            var e = Leer();
+            Hang(e, 0.1);
+            var g = e.Gelaendeform;
+            // ein Kreuz aus zwei Straßen, die sich mitten auf ihren Strecken schneiden, und eine Einmündung, die 0,6 m vor der Straße endet
+            var linien = new List<IReadOnlyList<Kartenort>>
+            {
+                new[] { O(-60, 0), O(60, 0) },
+                new[] { O(0, -50), O(0, 50) },
+                new[] { O(40, 40), O(40, 0.6) },
+                new[] { O(200, 200), O(250, 200) },  // ohne Verbindung
+            };
+            var netz = new Karrennetz(linien, g);
+            var fahrt = netz.Fahrt(O(-60, 0), O(0, 50));
+            Pruefe.Ungefaehr(110, fahrt.Sum(x => x.Laenge), 1e-6);
+            Pruefe.Ungefaehr(5.9, fahrt.Sum(x => x.Anstieg), 0.01);   // von x = −60 (Profil am Ende gemittelt: −5,9 m) hinauf auf x = 0
+            var bergauf = netz.Fahrt(O(-50, 3), O(40, 40));
+            Pruefe.Ungefaehr(90 + 40, bergauf.Sum(x => x.Laenge), 0.01);  // −50 → 40 an der Straße, dann 39,4 m die Einmündung hinauf
+            Pruefe.Wahr(bergauf.Sum(x => x.Anstieg) > 8, $"bergauf {bergauf.Sum(x => x.Anstieg):0.00} m");
+            var zurueck = netz.Fahrt(O(40, 40), O(-50, 3));
+            Pruefe.Ungefaehr(-bergauf.Sum(x => x.Anstieg), zurueck.Sum(x => x.Anstieg), 1e-9);
+            Pruefe.Gleich(0, netz.Fahrt(O(-60, 0), O(220, 200)).Count, "getrennt");
+            Pruefe.Ungefaehr(10, netz.Fahrt(O(-20, 1), O(-10, -1)).Sum(x => x.Laenge), 1e-9);   // an der Straße entlang
+            Pruefe.Ungefaehr(0.4, netz.Fahrt(O(-20.2, 1), O(-19.8, -1)).Sum(x => x.Laenge), 1e-9); // beide am selben 1-m-Stück
+        }),
+
+        ("Steigung bremst Karren: ab 6 % je Prozentpunkt 5 % länger, höchstens dreimal so lang; bergab und eben wie bisher", () =>
+        {
+            var s = Daten.Value.Logistik.Steigung!;
+            Pruefe.Gleich(50, Daten.Value.Version);
+            Pruefe.Gleich(1.0, s.Faktor(0.06));
+            Pruefe.Ungefaehr(1.2, s.Faktor(0.10), 1e-12);
+            Pruefe.Gleich(3.0, s.Faktor(0.5));
+            Pruefe.Gleich(1.0, s.Faktor(-0.3));
+            Pruefe.Ungefaehr((100 * 1.2 + 100 * 1) / 200, s.Faktor(new[] { new Fahrtstueck(100, 10), new Fahrtstueck(100, -10) }), 1e-12);
+            Pruefe.Gleich(1.0, s.Faktor(Array.Empty<Fahrtstueck>()));
+        }),
+
+        ("Fahrzeit der Karren: bergauf zum Markt länger, bergab zurück wie bisher; flache Wege und flache Karten genau die feste Fahrzeit", () =>
+        {
+            // Probestadt: der Markt auf einem Hügel (6 m, Radius 60) – die Werkstatt im Westen fährt die Hauptstraße hinauf
+            var e = new Probestadt().Bauen(Katalog.Value, Daten.Value);
+            e.GelaendePinseln(new Pinsel(Pinselart.Heben, 60, 6, Kante: 1), new[] { O(0, 0) });
+            var (sim, spieler) = e.Ausprobieren(Daten.Value, "Schmied");
+            var w = sim.Wirtschaft!;
+            var west = w.Betriebe.Single(b => b.Konto == spieler);   // der Spieler beginnt auf dem Werkstattplatz bei (−30 | −10)
+            var basis = Daten.Value.Logistik.FahrzeitAb(west.Ort);
+            var (hin, zurueck) = w.Fahrten(west)!.Value;
+            var faktor = Daten.Value.Logistik.Steigung!.Faktor(hin);
+            Pruefe.Wahr(faktor > 1.05, $"Faktor bergauf {faktor:0.000}");
+            Pruefe.Gleich((int)Math.Round(basis * faktor, MidpointRounding.AwayFromZero), w.Fahrzeit(west, zumMarkt: true));
+            Pruefe.Gleich(basis, w.Fahrzeit(west, zumMarkt: false), "bergab wie bisher");
+            Pruefe.Ungefaehr(-hin.Sum(x => x.Anstieg), zurueck.Sum(x => x.Anstieg), 1e-9);
+            Pruefe.Gleich(w.Uhr.UhrzeitInMinuten + w.Fahrzeit(west, true), w.AnkunftAmMarkt(west));
+            // ohne Hügel: die Werkstätten der flachen Stadt fahren genau die feste Zeit, obwohl die Karte Gelände hat
+            var f = new Probestadt().Bauen(Katalog.Value, Daten.Value);
+            var (simF, spielerF) = f.Ausprobieren(Daten.Value, "Schmied");
+            var wf = simF.Wirtschaft!;
+            Pruefe.Wahr(!wf.Karte!.Gelaendeform.IstFlach, "Probestadt hat Gelände");
+            foreach (var b in wf.Betriebe)
+                Pruefe.Gleich((basis, basis), (wf.Fahrzeit(b, true), wf.Fahrzeit(b, false)), b.Name);
+            // Greybox (flach): die feste Fahrzeit, ohne Netz zu bauen
+            var greybox = Stadtkarte.AusDatei(Datenpfad.Karte("greybox"));
+            Pruefe.Wahr(greybox.Gelaendeform.IstFlach, "Greybox flach");
+            // nach dem Laden dieselben Zeiten
+            var (geladen, _) = Speicherung.Laden(Speicherung.Speichern(sim, spieler));
+            var west2 = geladen.Wirtschaft!.Betriebe.Single(b => b.Name == west.Name);
+            Pruefe.Gleich(w.Fahrzeit(west, true), geladen.Wirtschaft.Fahrzeit(west2, true), "nach dem Laden");
         }),
 
         ("Spielstand: Das Gelände der Karte liegt im Spielstand und kommt beim Laden genauso wieder", () =>
