@@ -213,11 +213,72 @@ public partial class Stadtansicht
     /// Wie schnell der Karren gerade fährt (Meter je echter Sekunde): Weg zum Markt geteilt durch die Fahrzeit in Spielminuten,
     /// mal Spielminuten je Sekunde bei dem eingestellten Tempo. 0 bei Pause, am Betrieb und am geschlossenen Tor.
     /// </summary>
-    private float KarrenGeschwindigkeit(Karren karren, BetriebsAnsicht ansicht, int fahrzeit)
+    private float KarrenGeschwindigkeit(Karren karren, BetriebsAnsicht ansicht, int fahrzeit, float tempo = 1f)
     {
         if (karren.Zustand == KarrenZustand.AmBetrieb || fahrzeit <= 0 || _simulation is not { } sim || sim.Takt.IstPausiert || karren.WartetAmTor(sim.Zeit))
             return 0;
-        return WegLaenge(KarrenWeg(ansicht)) / fahrzeit * (float)sim.Takt.TicksProSekunde;
+        return WegLaenge(KarrenWeg(ansicht)) / fahrzeit * (float)sim.Takt.TicksProSekunde * tempo;
+    }
+
+    // ═════════════════════════════════════════════════════════════════════════
+    //  Steigung: bergauf langsamer
+    // ═════════════════════════════════════════════════════════════════════════
+
+    /// <summary>
+    /// Wie sich eine Fahrt auf ihre Zeit verteilt: Der Kern gibt die Stücke der Fahrt über die Karrenstraßen (Länge und Anstieg, <c>Stadtwirtschaft.Fahrten</c>) und
+    /// bremst jedes nach seiner Steigung (<c>SteigungDaten.Faktor</c>). Hier steht je Stück, wie viel der Zeit und wie viel des Weges bis zu seinem Ende vorbei
+    /// sind (je 0 … 1) – so lässt sich aus dem Anteil der Zeit der Anteil des Weges rechnen und umgekehrt, wie schnell der Karren dort ist.
+    /// </summary>
+    private sealed record Fahrtprofil(double[] Zeit, double[] Weg)
+    {
+        /// <summary>Wie weit (0 … 1) ist der Karren auf dem Weg, wenn dieser Anteil der Fahrzeit vorbei ist?</summary>
+        public float WegBei(double zeit)
+        {
+            var i = Stueck(zeit);
+            var t = (zeit - Zeit[i]) / Math.Max(1e-9, Zeit[i + 1] - Zeit[i]);
+            return (float)(Weg[i] + t * (Weg[i + 1] - Weg[i]));
+        }
+
+        /// <summary>Wie schnell (1 = so schnell wie im Durchschnitt der Fahrt) fährt er dort?</summary>
+        public float Tempo(double zeit)
+        {
+            var i = Stueck(zeit);
+            return (float)((Weg[i + 1] - Weg[i]) / Math.Max(1e-9, Zeit[i + 1] - Zeit[i]));
+        }
+
+        private int Stueck(double zeit)
+        {
+            zeit = Math.Clamp(zeit, 0, 1);
+            var i = Array.BinarySearch(Zeit, zeit);
+            if (i < 0) i = ~i - 1;
+            return Math.Clamp(i, 0, Zeit.Length - 2);
+        }
+    }
+
+    /// <summary>Hin- und Rückfahrt eines Betriebs (null: keine Steigung zu berücksichtigen – flache Karte, kein Abschnitt <c>steigung</c> oder keine Fahrt).</summary>
+    private readonly Dictionary<Betrieb, (Fahrtprofil Hin, Fahrtprofil Zurueck)?> _fahrtprofile = new(ReferenceEqualityComparer.Instance);
+
+    private (Fahrtprofil Hin, Fahrtprofil Zurueck)? FahrtprofileVon(Betrieb betrieb)
+    {
+        if (_fahrtprofile.TryGetValue(betrieb, out var bekannt)) return bekannt;
+        if (!BodenBewegt || _wirtschaft?.Daten.Logistik.Steigung is not { } steigung) return null;
+        if (_wirtschaft.Fahrten(betrieb) is not var (hin, zurueck)) return null; // noch kein Platz: nicht merken
+        Fahrtprofil? Profil(IReadOnlyList<Reichsgilde.Core.Bauen.Fahrtstueck> fahrt)
+        {
+            var laenge = fahrt.Sum(s => s.Laenge);
+            if (fahrt.Count == 0 || laenge <= 0) return null;
+            var gewicht = fahrt.Select(s => s.Laenge * steigung.Faktor(s.Steigung)).ToList();
+            var (zeit, weg) = (new double[fahrt.Count + 1], new double[fahrt.Count + 1]);
+            for (var i = 0; i < fahrt.Count; i++)
+            {
+                zeit[i + 1] = zeit[i] + gewicht[i] / gewicht.Sum();
+                weg[i + 1] = weg[i] + fahrt[i].Laenge / laenge;
+            }
+            zeit[^1] = weg[^1] = 1; // gegen Rundungsfehler
+            return new Fahrtprofil(zeit, weg);
+        }
+        var (h, z) = (Profil(hin), Profil(zurueck));
+        return _fahrtprofile[betrieb] = h is null || z is null ? null : (h, z);
     }
 
     /// <summary>
@@ -270,6 +331,7 @@ public partial class Stadtansicht
         float Stelle(float anteil) => Math.Clamp(Math.Min(anteil + versatz, 1f - spaet), 0f, 1f);
         Vector3 ziel;
         Vector3 blick;
+        var tempo = 1f; // wie schnell der Karren im Vergleich zum Durchschnitt seiner Fahrt ist (Steigung)
         if (karren.Zustand == KarrenZustand.AmBetrieb && ansicht.KarrenReihe is { } reihe)
         {
             // Umland: am Halteplatz stehen die Karren nebeneinander (4 m, Reihe aus Stadtansicht.Umland.cs), mittig um den Anker verteilt; bei der Abfahrt rücken sie auf den Weg
@@ -285,6 +347,12 @@ public partial class Stadtansicht
         {
             var rest = Math.Clamp((karren.Ankunft - jetztGenau) / fahrzeit, 0, 1);
             var anteil = (float)(karren.Zustand == KarrenZustand.ZumMarkt ? 1 - rest : rest);
+            if (FahrtprofileVon(ansicht.Betrieb) is var (hin, zurueck))
+            {
+                // bergauf dauert es länger: Aus dem Anteil der Zeit wird der Anteil des Weges (auf der Rückfahrt von der Marktseite aus gezählt)
+                anteil = karren.Zustand == KarrenZustand.ZumMarkt ? hin.WegBei(1 - rest) : 1 - zurueck.WegBei(1 - rest);
+                tempo = karren.Zustand == KarrenZustand.ZumMarkt ? hin.Tempo(1 - rest) : zurueck.Tempo(1 - rest);
+            }
             var stelle = Stelle(anteil);
             ziel = PunktAufWeg(weg, stelle);
             blick = PunktAufWeg(weg, Math.Clamp(stelle + (karren.Zustand == KarrenZustand.ZumMarkt ? 0.02f : -0.02f), 0f, 1f));
@@ -326,7 +394,7 @@ public partial class Stadtansicht
             gezeigt.Eskorte.Visible = eskortiert;
         }
 
-        var geschwindigkeit = KarrenGeschwindigkeit(karren, ansicht, fahrzeit);
+        var geschwindigkeit = KarrenGeschwindigkeit(karren, ansicht, fahrzeit, tempo);
         KarrenAnimieren(gezeigt, geschwindigkeit, delta);
         KarrenFahrerBewegen(gezeigt, geschwindigkeit, delta);
     }
