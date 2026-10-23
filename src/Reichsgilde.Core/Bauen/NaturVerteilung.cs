@@ -14,7 +14,7 @@ namespace Reichsgilde.Core.Bauen;
 //    • Strich(…)   – der Pinsel der Kartenwerkstatt: locker verteilte Pflanzen entlang eines gezogenen Strichs.
 //
 //  Frei bleibt (Naturfreiraum): die Stadt innerhalb der Mauern und 6 m vor der Mauer, jeder Weg mit 3 m Rand, jedes Gebäude mit 3 m Rand
-//  (ein Felsberg nur auf seiner Ellipse), jede Bauzone mit 3 m Rand. Ein verworfener Punkt würfelt trotzdem weiter: Eine neue Straße
+//  (ein Felsberg nur auf seiner Ellipse), jede Bauzone mit 3 m Rand, seit Schritt 5c jedes Gewässer mit 3 m Rand (Wasserform). Ein verworfener Punkt würfelt trotzdem weiter: Eine neue Straße
 //  verschiebt keine anderen Bäume.
 // ═════════════════════════════════════════════════════════════════════════════
 
@@ -101,12 +101,23 @@ public sealed class Naturfreiraum
         _mauern.AddRange(mauern.Where(m => m.Count >= 2));
     }
 
-    /// <summary>Der Freiraum einer Stadtkarte (Wege mit ihrem Verlauf, Gebäude mit ihrer Fläche, Bauzonen, Mauern).</summary>
+    /// <summary>Der Freiraum einer Stadtkarte (Wege mit ihrem Verlauf, Gebäude mit ihrer Fläche, Bauzonen, Mauern, Gewässer).</summary>
     public static Naturfreiraum Aus(Stadtkarte karte, Func<Baustein, (double X, double Z)?>? modellmass = null) => new(
-        karte.Wege.Where(w => w.Linie.Count >= 2).Select(w => (w.Verlauf, w.BreiteWirksam)),
+        karte.Wege.Where(w => w.Linie.Count >= 2).Select(w => (w.Verlauf, w.BreiteWirksam)).Concat(Flussstuecke(karte.Gelaendeform.Wasser)),
         karte.Gebaeude.Select(g => Naturhindernis.Von(g.Baustein, g.Punkt[0], g.Punkt[1], g.Drehung, g.Massstab, modellmass)).OfType<Naturhindernis>(),
-        karte.Bauzonen.Select(z => (IReadOnlyList<double[]>)z.Flaeche),
+        karte.Bauzonen.Select(z => (IReadOnlyList<double[]>)z.Flaeche).Concat(Seeflaechen(karte.Gelaendeform.Wasser)),
         karte.Mauern.Select(m => (IReadOnlyList<double[]>)m.Linie));
+
+    /// <summary>Die Flüsse als Stücke mit ihrer Breite (wie Wege: frei mit 3 m Rand).</summary>
+    public static IEnumerable<(IReadOnlyList<double[]> Linie, double Breite)> Flussstuecke(Wasserform wasser) =>
+        wasser.Laeufe.SelectMany(l => Enumerable.Range(0, Math.Max(0, l.Punkte.Count - 1)).Select(k => ((IReadOnlyList<double[]>)new[]
+        {
+            new[] { l.Punkte[k].Ort.X, l.Punkte[k].Ort.Z }, new[] { l.Punkte[k + 1].Ort.X, l.Punkte[k + 1].Ort.Z },
+        }, Math.Max(l.Punkte[k].Breite, l.Punkte[k + 1].Breite))));
+
+    /// <summary>Die Seen als Flächen (wie Bauzonen: frei mit 3 m Rand).</summary>
+    public static IEnumerable<IReadOnlyList<double[]>> Seeflaechen(Wasserform wasser) =>
+        wasser.Seen.Select(s => (IReadOnlyList<double[]>)s.Umriss.Select(p => new[] { p.X, p.Z }).ToList());
 
     private static void Eintragen(Dictionary<(int, int), List<int>> raster, int nummer, double x0, double z0, double x1, double z1)
     {

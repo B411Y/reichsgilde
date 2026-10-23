@@ -130,6 +130,48 @@ public sealed class SteigungDaten
     }
 }
 
+/// <summary>
+/// Wie Wasser die Karren aufhält (Abschnitt "logistik.wasser", ab Datenversion 51; Kartenwerkstatt, Schritt 5c). Fährt ein Karren über das
+/// Karrennetz (<see cref="Bauen.Karrennetz"/>) durch eine Furt, dauert die Fahrt <see cref="FurtMinuten"/> länger; setzt er mit einer Fähre über,
+/// <see cref="FaehreMinuten"/> (Warten und Überfahrt). Brücken kosten nichts. Eine Karte ohne Furt und Fähre bleibt genau, wie sie war.
+/// </summary>
+public sealed class WasserDaten
+{
+    /// <summary>So viele Spielminuten länger dauert eine Fahrt je Furt.</summary>
+    public int FurtMinuten { get; init; } = 5;
+
+    /// <summary>So viele Spielminuten länger dauert eine Fahrt je Fähre (warten und übersetzen).</summary>
+    public int FaehreMinuten { get; init; } = 30;
+
+    /// <summary>
+    /// Die Minuten, die eine Fahrt durch Furten und über Fähren länger dauert: je Furt bzw. Fähre einmal (mehrere Stücke hintereinander auf
+    /// derselben Fahrbahn sind ein Übergang).
+    /// </summary>
+    public int Aufschlag(IReadOnlyList<Bauen.Fahrtstueck> fahrt)
+    {
+        var minuten = 0;
+        var vorher = Bauen.Fahrbahn.Strasse;
+        foreach (var s in fahrt)
+        {
+            if (s.Art != vorher)
+                minuten += s.Art switch
+                {
+                    Bauen.Fahrbahn.Furt => FurtMinuten,
+                    Bauen.Fahrbahn.Faehre => FaehreMinuten,
+                    _ => 0,
+                };
+            vorher = s.Art;
+        }
+        return minuten;
+    }
+
+    internal void Pruefen(List<string> f)
+    {
+        if (FurtMinuten < 0) f.Add("logistik.wasser.furtMinuten darf nicht negativ sein.");
+        if (FaehreMinuten < 0) f.Add("logistik.wasser.faehreMinuten darf nicht negativ sein.");
+    }
+}
+
 /// <summary>Alle Logistik-Stellschrauben (Abschnitt "logistik").</summary>
 public sealed class LogistikDaten
 {
@@ -159,6 +201,9 @@ public sealed class LogistikDaten
     /// <summary>Wie Steigung die Karren bremst (null: gar nicht, wie vor Datenversion 50).</summary>
     public SteigungDaten? Steigung { get; init; }
 
+    /// <summary>Wie Furten und Fähren die Karren aufhalten (null: gar nicht, wie vor Datenversion 51).</summary>
+    public WasserDaten? Wasser { get; init; }
+
     public int FahrzeitAb(Arbeitsort ort) => Fahrzeiten.GetValueOrDefault(ort.ToString(), 30);
 
     internal void Pruefen(List<string> f)
@@ -169,6 +214,7 @@ public sealed class LogistikDaten
         if (LagerJeWare <= 0) f.Add("logistik.lagerJeWare muss größer als 0 sein.");
         Tore?.Pruefen(f);
         Steigung?.Pruefen(f);
+        Wasser?.Pruefen(f);
         if (AbfahrtAbFuellgrad is <= 0 or > 1) f.Add("logistik.abfahrtAbFuellgrad muss zwischen 0 und 1 liegen.");
         if (MaxWartezeitMinuten <= 0) f.Add("logistik.maxWartezeitMinuten muss größer als 0 sein.");
         if (Karren.Count == 0) f.Add("logistik.karren: Es ist kein Karrentyp definiert.");

@@ -97,7 +97,7 @@ static class BauenTests
             Pruefe.Gleich(2, k.Format);
             Pruefe.Gleich("koeln", k.Kennung);
             Pruefe.Gleich(2.0, k.Raster);
-            Pruefe.Gleich(41, k.Wege.Count);
+            Pruefe.Gleich(42, k.Wege.Count); // seit Schritt 5c mit der Rheinbrücke als Straße
             Pruefe.Wahr(k.Wege.Any(w => w.Klasse == Wegklasse.Gasse) && k.Wege.Any(w => w.Klasse == Wegklasse.Wall), "Gassen und Wallstraße fehlen");
             Pruefe.Gleich(k.Wege.Count(w => w.Klasse is Wegklasse.Land or Wegklasse.Haupt or Wegklasse.Ring or Wegklasse.Wall), k.Wege.Count(w => w.IstKarrenstrasse));
             Pruefe.Gleich(28, k.Bauzonen.Count);
@@ -108,7 +108,8 @@ static class BauenTests
             Pruefe.Gleich(8, k.GebaeudeDerArt(Bausteinart.Werkstattplatz).Count());
             Pruefe.Gleich(2, k.Mauern.Count); // Stadtmauer und Deutzer Mauer
             Pruefe.Gleich(9, k.Mauern.Sum(m => m.Tore.Count));
-            Pruefe.Wahr(k.Wasser.Any(x => x.Name == "Rhein") && k.Uebergaenge.Count == 2 && k.Haefen.Count == 1, "Rhein, Brücke, Fähre, Hafen");
+            Pruefe.Wahr(k.Wasser.Any(x => x.Name == "Rhein") && k.Uebergaenge.Count == 1 && k.Haefen.Count == 1, "Rhein, Fähre, Hafen");
+            Pruefe.Wahr(k.Wasserplan.Bruecken.Any(b => b.WegName == "Rheinbrücke" && b.Art == Uebergangsart.Steinbruecke), "Rheinbrücke aus Stein");
             Pruefe.Wahr(k.Start is null, "Köln hat noch keine eigene Startbelegung");
             Pruefe.Gleich(Partieaufbau.Rivalenname, k.Startbelegung.Haeuser[0].Name); // also der Ersatz
 
@@ -492,7 +493,7 @@ static class BauenTests
 
         ("Bauen: Daten werden geprüft – je Wohnhausstufe ein Eintrag, Maße auf dem Raster, Lagen nicht leer, nurNeubau nur ab dem Bürgerhaus", () =>
         {
-            Pruefe.Gleich(50, Daten.Value.Version);
+            Pruefe.Gleich(51, Daten.Value.Version);
             Pruefe.Gleich(5, Daten.Value.Bauen!.Wohnhaus.Count);
             Pruefe.Gleich((16.0, 14.0), (Daten.Value.Bauen.Werkstatt.Breite, Daten.Value.Bauen.Werkstatt.Tiefe));
             Pruefe.Gleich("False False False True True", string.Join(" ", Daten.Value.Bauen.Wohnhaus.Select(m => m.NurNeubau))); // Stadtpalais, Stadthof

@@ -19,6 +19,12 @@ namespace Reichsgilde.Kartenbau;
 //    dotnet run --project tools/Kartenbau -- gelaende <karte> <pinsel> <x,z;x,z…> [--radius= --staerke= --kante= --startwert= --massstab=]
 //                                                   ein Strich mit einem Geländepinsel (heben, senken, glaetten, ebnen, rauschen)
 //    dotnet run --project tools/Kartenbau -- rampe <karte> <x,z> <x,z> <breite> [--kante=]   eine Rampe mit gleichmäßigem Gefälle
+//    dotnet run --project tools/Kartenbau -- fluss <karte> <x,z[,breite[,tiefe]];…> [--art=bach] [--name=] [--breite=] [--tiefe=] [--stroemung=]
+//                                                   einen Fluss oder Bach in Fließrichtung anlegen
+//    dotnet run --project tools/Kartenbau -- see <karte> <x,z;…> [--art=teich] [--name=] [--wasserstand=] [--tiefe=]   einen See oder Teich
+//    dotnet run --project tools/Kartenbau -- faehre <karte> <x,z> <x,z> [--name=]   eine Fährstelle (zwei Anleger, rasten an Wegen ein)
+//    dotnet run --project tools/Kartenbau -- hafen <karte> <x,z> <drehung> [--name=]   einen Hafenplatz (Vorderseite zum Wasser)
+//    dotnet run --project tools/Kartenbau -- umbauen <umbau>                     ein Umbauskript (Umbauten/) auf seine Karte anwenden
 //  <karte> ist die Kennung einer Karte in game/karten/ (greybox, koeln …), <datei> ein Pfad zu einer .json-Datei.
 //  Rückgabe: 0 = in Ordnung, 1 = die Karte hat Fehler, 2 = falscher Aufruf (oder die Datei gibt es schon).
 //
@@ -56,6 +62,16 @@ public static class Program
                 "rampe" when ziel is not null && worte.Count == 5 && Orte(worte[2]) is { Count: 1 } von && Orte(worte[3]) is { Count: 1 } nach
                              && Zahlen(worte.Skip(4)) is { Count: 1 } breite =>
                     Befehle.Rampe(ordner, ziel, von[0], nach[0], breite[0], Wert(args, "--kante") ?? 4, Console.Out),
+                "fluss" when ziel is not null && worte.Count == 3 && Stuetzpunkte(worte[2]) is { Count: >= 2 } punkte =>
+                    Befehle.Fluss(ordner, ziel, punkte, Text(args, "--art") ?? "fluss", Text(args, "--name"), Wert(args, "--breite"), Wert(args, "--tiefe"),
+                        Wert(args, "--stroemung"), Console.Out),
+                "see" when ziel is not null && worte.Count == 3 && Orte(worte[2]) is { Count: >= 3 } ecken =>
+                    Befehle.See(ordner, ziel, ecken, Text(args, "--art") ?? "see", Text(args, "--name"), Wert(args, "--wasserstand"), Wert(args, "--tiefe"), Console.Out),
+                "faehre" when ziel is not null && worte.Count == 4 && Orte(worte[2]) is { Count: 1 } a && Orte(worte[3]) is { Count: 1 } b =>
+                    Befehle.Faehre(ordner, ziel, a[0], b[0], Text(args, "--name"), Console.Out),
+                "hafen" when ziel is not null && worte.Count == 4 && Orte(worte[2]) is { Count: 1 } ort && Zahlen(worte.Skip(3)) is { Count: 1 } drehung =>
+                    Befehle.Hafen(ordner, ziel, ort[0], drehung[0], Text(args, "--name"), Console.Out),
+                "umbauen" when ziel is not null => Befehle.Umbauen(ordner, ziel, Console.Out),
                 _ => Hilfe(),
             };
         }
@@ -95,6 +111,22 @@ public static class Program
         return liste;
     }
 
+    /// <summary>Stützpunkte eines Flusses „x,z[,breite[,tiefe]];…“ – null, wenn einer nicht lesbar ist.</summary>
+    private static List<(Kartenort Ort, double? Breite, double? Tiefe)>? Stuetzpunkte(string text)
+    {
+        var liste = new List<(Kartenort, double?, double?)>();
+        foreach (var teil in text.Split(';', StringSplitOptions.RemoveEmptyEntries))
+        {
+            if (Zahlen(teil.Split(',')) is not { Count: >= 2 and <= 4 } z) return null;
+            liste.Add((new Kartenort(z[0], z[1]), z.Count >= 3 ? z[2] : null, z.Count >= 4 ? z[3] : null));
+        }
+        return liste;
+    }
+
+    /// <summary>Der Text eines Schalters „--name=text“ – oder null.</summary>
+    private static string? Text(IEnumerable<string> args, string name) =>
+        args.FirstOrDefault(a => a.StartsWith(name + "=", StringComparison.Ordinal)) is { } a ? a[(name.Length + 1)..] : null;
+
     /// <summary>Der Pinsel aus seinem Namen (heben, senken, glaetten, ebnen, rauschen) und den Schaltern – null bei unbekanntem Namen.</summary>
     private static Pinsel? PinselVon(string name, IEnumerable<string> args)
     {
@@ -132,6 +164,14 @@ public static class Program
                                                   glaetten, ebnen (Stärke 0–1, Vorgabe 1), rauschen (Stärke in m, Maßstab = Buckelgröße in m)
               rampe <karte> <x,z> <x,z> <breite> [--kante=4]
                                                   ein Band mit gleichmäßigem Gefälle von der Höhe am ersten zur Höhe am zweiten Punkt
+              fluss <karte> <x,z[,breite[,tiefe]];…> [--art=bach] [--name=…] [--breite=…] [--tiefe=…] [--stroemung=…]
+                                                  einen Fluss (oder Bach) in Fließrichtung anlegen; Breite und Tiefe je Punkt oder für alle
+              see <karte> <x,z;…> [--art=teich] [--name=…] [--wasserstand=…] [--tiefe=…]
+                                                  einen See (oder Teich); ohne Wasserstand 0,4 m unter dem tiefsten Ufer
+              faehre <karte> <x,z> <x,z> [--name=…]   eine Fährstelle: zwei Anleger an beiden Ufern (rasten an Wegen ein)
+              hafen <karte> <x,z> <drehung> [--name=…]
+                                                  einen Hafenplatz setzen – die Vorderseite (Drehung wie im Spiel) zum Wasser
+              umbauen <umbau>                     ein Umbauskript (tools/Kartenbau/Umbauten) auf seine Karte anwenden
 
             <karte> ist eine Kennung aus game/karten/ (z. B. greybox, koeln), <datei> ein Pfad zu einer .json-Datei.
             """);
@@ -286,12 +326,85 @@ public static class Befehle
         return Schreiben(e, PfadVon(o, karte), o.Vorschauen, true, aus, o);
     }
 
-    /// <summary><c>liste</c>: die Stadtskripte mit Kennung und Beschreibung.</summary>
+    /// <summary><c>liste</c>: die Stadtskripte und Umbauten mit Kennung und Beschreibung.</summary>
     public static int Liste(TextWriter aus)
     {
         aus.WriteLine("Stadtskripte (tools/Kartenbau/Staedte):");
         foreach (var s in Stadtskript.Alle()) aus.WriteLine($"   {s.Kennung,-14} {s.Stadt} – {s.Beschreibung}");
+        aus.WriteLine("Umbauten (tools/Kartenbau/Umbauten):");
+        foreach (var u in Umbau.Alle()) aus.WriteLine($"   {u.Kennung,-14} {u.Karte} – {u.Beschreibung}");
         return 0;
+    }
+
+    /// <summary>
+    /// <c>fluss</c>: legt einen Fluss oder Bach an (<see cref="Kartenentwurf.FlussAnlegen"/>), mit Breite und Tiefe je Punkt bzw. für alle,
+    /// dann schreiben – nur ohne Fehler.
+    /// </summary>
+    public static int Fluss(Projektordner o, string karte, IReadOnlyList<(Kartenort Ort, double? Breite, double? Tiefe)> punkte, string art, string? name,
+        double? breite, double? tiefe, double? stroemung, TextWriter aus)
+    {
+        var (katalog, daten) = Laden(o);
+        var e = Oeffnen(o, karte, katalog, daten);
+        var f = e.FlussAnlegen(punkte.Select(p => p.Ort).ToList(), art, breite ?? 0, name);
+        if (f.Punkte.Count == punkte.Count)
+            for (var i = 0; i < punkte.Count; i++)
+            {
+                if (punkte[i].Breite is { } b) e.FlussBreiteSetzen(f, i, b);
+                if (punkte[i].Tiefe is { } t) e.FlussTiefeSetzen(f, i, t);
+            }
+        if (tiefe is { } ft) e.FlussTiefeSetzen(f, -1, ft);
+        if (stroemung is { } s) e.FlussStroemungSetzen(f, s);
+        var lauf = e.Wasserform.Laeufe.FirstOrDefault(l => l.Name == f.Name);
+        aus.WriteLine($"{e.Kennung}: {f.Bezeichnung} ({Kartenentwurf.GewaesserName(f.Art)}, {f.Punkte.Count} Punkte, {Kartenschreiber.Zahl(Math.Round(lauf?.Laenge ?? 0))} m lang)");
+        return Schreiben(e, PfadVon(o, karte), o.Vorschauen, true, aus, o);
+    }
+
+    /// <summary><c>see</c>: legt einen See oder Teich an (<see cref="Kartenentwurf.SeeAnlegen"/>), dann schreiben – nur ohne Fehler.</summary>
+    public static int See(Projektordner o, string karte, IReadOnlyList<Kartenort> ecken, string art, string? name, double? wasserstand, double? tiefe, TextWriter aus)
+    {
+        var (katalog, daten) = Laden(o);
+        var e = Oeffnen(o, karte, katalog, daten);
+        var s = e.SeeAnlegen(ecken, art, name, wasserstand, tiefe);
+        var see = e.Wasserform.Seen.FirstOrDefault(x => x.Name == s.Name);
+        aus.WriteLine($"{e.Kennung}: {s.Bezeichnung} ({Kartenentwurf.GewaesserName(s.Art)}, Wasserstand {Kartenschreiber.Zahl(Math.Round(see?.Wasserstand ?? 0, 2))} m" +
+                      $"{(s.Wasserstand is null ? " (vom Ufer)" : "")})");
+        return Schreiben(e, PfadVon(o, karte), o.Vorschauen, true, aus, o);
+    }
+
+    /// <summary><c>faehre</c>: setzt eine Fährstelle (<see cref="Kartenentwurf.FaehreSetzen"/>), dann schreiben – nur ohne Fehler.</summary>
+    public static int Faehre(Projektordner o, string karte, Kartenort von, Kartenort bis, string? name, TextWriter aus)
+    {
+        var (katalog, daten) = Laden(o);
+        var e = Oeffnen(o, karte, katalog, daten);
+        var f = e.FaehreSetzen(von, bis, name);
+        aus.WriteLine($"{e.Kennung}: {f.Bezeichnung} von {f.Von} nach {f.Bis}");
+        return Schreiben(e, PfadVon(o, karte), o.Vorschauen, true, aus, o);
+    }
+
+    /// <summary><c>hafen</c>: setzt einen Hafenplatz (Katalog „hafenplatz“), dann schreiben – nur ohne Fehler.</summary>
+    public static int Hafen(Projektordner o, string karte, Kartenort ort, double drehung, string? name, TextWriter aus)
+    {
+        var (katalog, daten) = Laden(o);
+        var e = Oeffnen(o, karte, katalog, daten);
+        var g = e.Setzen(Kartenentwurf.HafenKatalog, ort.X, ort.Z, drehung);
+        if (!string.IsNullOrWhiteSpace(name)) e.Umbenennen(g.Kennung, name);
+        aus.WriteLine($"{e.Kennung}: {g.Kennung} ({g.Name}) bei {g.Punkt}, Drehung {Kartenschreiber.Zahl(g.Drehung)}");
+        return Schreiben(e, PfadVon(o, karte), o.Vorschauen, true, aus, o);
+    }
+
+    /// <summary><c>umbauen</c>: wendet ein Umbauskript auf seine Karte an und schreibt sie – nur ohne Fehler.</summary>
+    public static int Umbauen(Projektordner o, string name, TextWriter aus)
+    {
+        if (Umbau.Finde(name) is not { } umbau)
+        {
+            aus.WriteLine($"Einen Umbau „{name}“ gibt es nicht.");
+            Liste(aus);
+            return 2;
+        }
+        var (katalog, daten) = Laden(o);
+        var e = Oeffnen(o, umbau.Karte, katalog, daten);
+        umbau.Anwenden(e, aus);
+        return Schreiben(e, PfadVon(o, umbau.Karte), o.Vorschauen, true, aus, o);
     }
 
     /// <summary>Schreibt die Vorschaubilder und gibt ihre Pfade zurück.</summary>

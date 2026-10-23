@@ -413,13 +413,13 @@ public sealed partial class Kartenentwurf
     // ── Natur verteilen (für die Darstellung) ────────────────────────────────
 
     /// <summary>
-    /// Wo im Entwurf nichts wächst: Stadt und Mauer, Wege (mit ihrem Verlauf und ihrer Breite), Gebäude, Bauzonen. Einmal je Änderung bauen
+    /// Wo im Entwurf nichts wächst: Stadt und Mauer, Wege (mit ihrem Verlauf und ihrer Breite), Gebäude, Bauzonen, Gewässer. Einmal je Änderung bauen
     /// und für alle Flächen nutzen; <paramref name="modellmass"/> wie bei <see cref="Naturhindernis.Von"/> (die Darstellung kennt die Modelle).
     /// </summary>
     public Naturfreiraum Freiraum(Func<Baustein, (double X, double Z)?>? modellmass = null) => new(
-        _wege.Where(w => w.Punkte.Count >= 2).Select(w => (w.VerlaufRoh, w.BreiteWirksam)),
+        _wege.Where(w => w.Punkte.Count >= 2).Select(w => (w.VerlaufRoh, w.BreiteWirksam)).Concat(Naturfreiraum.Flussstuecke(_gelaende.Wasser)),
         _gebaeude.Select(g => Naturhindernis.Von(g.Baustein, g.X, g.Z, g.Drehung, g.Massstab, modellmass)).OfType<Naturhindernis>(),
-        _bauzonen.Select(z => (IReadOnlyList<double[]>)EntwurfTeil.Roh(z.Ecken)),
+        _bauzonen.Select(z => (IReadOnlyList<double[]>)EntwurfTeil.Roh(z.Ecken)).Concat(Naturfreiraum.Seeflaechen(_gelaende.Wasser)),
         _mauern.Select(m => (IReadOnlyList<double[]>)EntwurfTeil.Roh(m.Ecken)));
 
     /// <summary>Die Pflanzen einer Naturfläche, wie das Spiel sie zeigt (deterministisch aus Fläche, Startwert und Freiraum).</summary>

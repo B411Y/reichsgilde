@@ -55,8 +55,8 @@ public static class Kartenschreiber
         return "[\n" + string.Join(",\n", liste.Select(v => innen + Ausgabe(v, tiefe + 1))) + "\n" + aussen + "]";
     }
 
-    /// <summary>Ein Punkt [x, z]: genau zwei Zahlen.</summary>
-    private static bool IstPunkt(JsonNode? v) => v is JsonArray { Count: 2 } a && a.All(z => z is JsonValue w && w.GetValueKind() == JsonValueKind.Number);
+    /// <summary>Ein Punkt [x, z] – oder ein Stützpunkt eines Flusses mit Breite und Tiefe (seit Schritt 5c): zwei bis vier Zahlen.</summary>
+    private static bool IstPunkt(JsonNode? v) => v is JsonArray { Count: >= 2 and <= 4 } a && a.All(z => z is JsonValue w && w.GetValueKind() == JsonValueKind.Number);
 
     /// <summary>Alles in einer Zeile, Trenner „, “ und „: “ (wie <c>json.dumps(…, separators=(", ", ": "))</c>).</summary>
     private static string Flach(JsonNode? x) => x switch
