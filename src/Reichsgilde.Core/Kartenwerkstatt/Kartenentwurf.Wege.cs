@@ -249,6 +249,41 @@ public sealed partial class Kartenentwurf
     /// <summary>Löscht einen Weg (Rückgängig setzt ihn an dieselbe Stelle der Reihenfolge zurück).</summary>
     public void WegLoeschen(EntwurfWeg weg) => TeilEntfernen(weg);
 
+    /// <summary>
+    /// Startbelag eines Abschnitts (Schritt 5d): von <paramref name="von"/> bis <paramref name="bis"/> Meter entlang des Verlaufs (auf 5 cm,
+    /// auf die Länge beschnitten) bekommt <paramref name="stufe"/>; ein Schritt mit Rückgängig. Gespeichert wird nur, was von der Vorgabe der
+    /// Klasse abweicht – Nachbarn mit gleichem Belag verschmelzen, ein Abschnitt bis zum Ende hat kein <c>bis</c>.
+    /// </summary>
+    public void BelagSetzen(EntwurfWeg weg, double von, double bis, Belagstufe stufe)
+    {
+        if (von > bis) (von, bis) = (bis, von);
+        var laenge = weg.Laenge;
+        von = Math.Clamp(Kartenraster.Punkt(von), 0, laenge);
+        bis = Math.Clamp(Kartenraster.Punkt(bis), 0, laenge);
+        if (bis - von < 0.05) return;
+        Aendern(weg, $"Belag {Wegbelag.Anzeigename(stufe)}", w =>
+        {
+            var neu = w.Belag.Append(new Belagstelle { Von = von, Bis = bis >= laenge - 0.05 ? null : bis, Stufe = stufe }).ToList();
+            w.BelagSetzen(BelagOrdnen(w.Klasse, laenge, neu));
+        });
+    }
+
+    /// <summary>Startbelag des ganzen Weges: <paramref name="stufe"/> überall, null = die Vorgabe der Klasse (das Feld entfällt).</summary>
+    public void BelagSetzen(EntwurfWeg weg, Belagstufe? stufe) =>
+        Aendern(weg, stufe is { } s ? $"Belag {Wegbelag.Anzeigename(s)}" : "Belag nach der Klasse", w =>
+            w.BelagSetzen(stufe is { } s && s != Wegbelag.Vorgabe(w.Klasse) ? new[] { new Belagstelle { Von = 0, Stufe = s } } : Array.Empty<Belagstelle>()));
+
+    /// <summary>Die Abschnitte, die von der Vorgabe abweichen, geordnet und ohne Überlappung (der letzte bis zum Ende ohne <c>bis</c>).</summary>
+    private static List<Belagstelle> BelagOrdnen(Wegklasse klasse, double laenge, IReadOnlyList<Belagstelle> stellen) =>
+        Wegbelag.Startabschnitte(klasse, laenge, stellen)
+            .Where(a => a.Stufe != Wegbelag.Vorgabe(klasse) || a.Zustand < 1)
+            .Select(a => new Belagstelle
+            {
+                Von = Kartenraster.Punkt(a.Von), Bis = a.Bis >= laenge - 0.05 ? null : Kartenraster.Punkt(a.Bis), Stufe = a.Stufe,
+                Zustand = Wegbelag.IstBefestigt(a.Stufe) && a.Zustand < 1 ? a.Zustand : null,
+            })
+            .ToList();
+
     // ── Hilfen ───────────────────────────────────────────────────────────────
 
     /// <summary>

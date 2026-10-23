@@ -71,6 +71,13 @@ public sealed class Kartenweg
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     public string? Kurve { get; init; }
 
+    /// <summary>
+    /// Wo der Weg einen anderen Belag hat als die Vorgabe seiner Klasse (<see cref="Wegbelag.Vorgabe"/>: Karrenstraßen Fahrweg, sonst
+    /// Trampelpfad) – Abschnitte in Metern entlang des <see cref="Verlauf"/>, spätere vor früheren (seit der Kartenwerkstatt, Schritt 5d).
+    /// </summary>
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public List<Belagstelle>? Belag { get; init; }
+
     /// <summary>Läuft der Weg als weiche Kurve?</summary>
     [JsonIgnore]
     public bool IstGlatt => Kurve == Wegkurve.Glatt;
@@ -678,6 +685,9 @@ public sealed class Stadtkarte
             if (w.Linie.Count < 2) f.Add($"Weg „{w.Name}“: Die Linie braucht mindestens zwei Punkte.");
             if (!Linie(w.Linie)) f.Add($"Weg „{w.Name}“: Jeder Punkt hat genau zwei Zahlen [x, z].");
             if (w.Kurve is not null && !w.IstGlatt) f.Add($"Weg „{w.Name}“: kurve ist „{Wegkurve.Glatt}“ oder fehlt (nicht „{w.Kurve}“).");
+            foreach (var b in w.Belag ?? new List<Belagstelle>())
+                if (b.Von < 0 || b.Bis is { } bis && bis <= b.Von || b.Zustand is < 0 or > 1 || !Enum.IsDefined(b.Stufe))
+                    f.Add($"Weg „{w.Name}“: Ein Belag braucht 0 ≤ von < bis, eine Stufe (trampelpfad, fahrweg, kies, pflaster) und zustand zwischen 0 und 1.");
         }
         foreach (var z in Bauzonen)
         {

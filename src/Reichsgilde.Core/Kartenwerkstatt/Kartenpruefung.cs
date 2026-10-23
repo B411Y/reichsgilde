@@ -972,6 +972,10 @@ public static class Kartenpruefung
                     FehlerAn("weg-punkte", $"„{w.Name}“: Ein Weg braucht mindestens zwei Punkte.", ort, new[] { w });
                 if (w.Breite > 0 && w.Breite < w.Mindestbreite - 1e-9)
                     FehlerAn("weg-breite", $"„{w.Name}“: {M(w.Breite)} m breit, eine {Kartenweg.Anzeigename(w.Klasse)} hat mindestens {M(w.Mindestbreite)} m.", ort, new[] { w });
+                // Belag (Schritt 5d): Ein Abschnitt hinter dem Ende wirkt nicht – etwa nachdem der Weg kürzer wurde.
+                foreach (var b in w.Belag.Where(b => w.Punkte.Count >= 2 && b.Von >= w.Laenge - 0.05))
+                    HinweisAn("belag", $"„{w.Name}“: Der Belag {Wegbelag.Anzeigename(b.Stufe)} ab {M(b.Von)} m liegt hinter dem Wegende ({M(w.Laenge)} m) – er wirkt nicht.",
+                        w.Punkte[^1], new[] { w });
             }
             foreach (var (w, linie, breite, wr) in _wege.Where(x => x.Weg.IstGlatt && x.Linie.Length >= 2))
                 foreach (var g in _e.Gebaeude)

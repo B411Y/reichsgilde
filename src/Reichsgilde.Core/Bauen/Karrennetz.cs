@@ -20,6 +20,9 @@ namespace Reichsgilde.Core.Bauen;
 //  Logistik rechnet die Minuten dazu); für die Wahl des Weges zählt ein Meter Furt wie 10 m Straße. Eine Fähre ist eine Kante zwischen
 //  ihren beiden Anlegern (sie verbindet die Straßen, die dort enden, und wird von keiner Straße geteilt); für die Wahl des Weges zählt sie
 //  wie 300 m Umweg. Ein Stück Straße in einem See fehlt im Netz (gesperrt) – anderes Wasser ohne Übergang liegt ohnehin nicht auf Straßen.
+//
+//  Belag (Schritt 5d): Jedes Stück einer Fahrt weiß, auf welchem Weg der Karte und an welcher Stelle es liegt – die Logistik liest dort den
+//  Belag (Wegebau). Gewählt wird der Weg weiter nach der Länge: Der Belag ändert sich im Spiel, die Strecke eines Betriebs nicht.
 // ═════════════════════════════════════════════════════════════════════════════
 
 /// <summary>Worauf ein Stück einer Fahrt liegt.</summary>
@@ -33,16 +36,25 @@ public enum Fahrbahn
 
 /// <summary>
 /// Eine Linie des Netzes: die Mittellinie einer Karrenstraße mit ihren Stellen am Wasser (Meter entlang der Linie: Brücke, Furt; null =
-/// gesperrt) – oder eine Fähre (zwei Punkte, die beiden Anleger).
+/// gesperrt) – oder eine Fähre (zwei Punkte, die beiden Anleger). <paramref name="Weg"/>: Nummer des Weges in der Karte (für den Belag,
+/// Schritt 5d), −1 ohne.
 /// </summary>
-public sealed record Netzlinie(IReadOnlyList<Kartenort> Linie, IReadOnlyList<(double Von, double Bis, Fahrbahn? Art)>? Stellen = null, bool IstFaehre = false);
+public sealed record Netzlinie(IReadOnlyList<Kartenort> Linie, IReadOnlyList<(double Von, double Bis, Fahrbahn? Art)>? Stellen = null, bool IstFaehre = false,
+    int Weg = -1);
 
 /// <summary>
 /// Ein Stück einer Fahrt: Länge in Metern und Anstieg in Metern (positiv = bergauf in Fahrtrichtung), dazu die Fahrbahn (Straße, Brücke,
-/// Furt, Fähre).
+/// Furt, Fähre). Für den Belag (Schritt 5d): auf welchem Weg der Karte (<see cref="Weg"/>, −1 bei einer Fähre oder ohne Karte) und an welcher
+/// Stelle (Meter entlang seines Verlaufs, die Mitte der Kante des Netzes – höchstens 1 m daneben).
 /// </summary>
 public readonly record struct Fahrtstueck(double Laenge, double Anstieg, Fahrbahn Art = Fahrbahn.Strasse)
 {
+    /// <summary>Nummer des Weges in der Karte (−1: Fähre oder unbekannt).</summary>
+    public int Weg { get; init; } = -1;
+
+    /// <summary>Meter entlang des Verlaufs des Weges.</summary>
+    public double Stelle { get; init; }
+
     /// <summary>Die Steigung als Anteil (0,1 = 10 %); 0 bei Länge 0.</summary>
     public double Steigung => Laenge > 0 ? Anstieg / Laenge : 0;
 }
@@ -63,10 +75,13 @@ public sealed class Karrennetz
 
     /// <summary>Die Linie, die den Knoten angelegt hat – Punkte derselben Linie verschmelzen nur, wenn sie gleich sind.</summary>
     private readonly List<int> _linieVon = new();
-    private readonly List<List<(int Ziel, double Laenge, double Anstieg, Fahrbahn Art, double Kosten)>> _nachbarn = new();
+    private readonly List<List<(int Ziel, double Laenge, double Anstieg, Fahrbahn Art, double Kosten, int Weg, double Stelle)>> _nachbarn = new();
 
-    /// <summary>Die Kanten einmal (von, nach, Anstieg von → nach, Fahrbahn, Kosten für die Wegwahl) – zum Anhängen eines Ortes.</summary>
-    private readonly List<(int A, int B, double Anstieg, Fahrbahn Art, double Kosten)> _kanten = new();
+    /// <summary>
+    /// Die Kanten einmal (von, nach, Anstieg von → nach, Fahrbahn, Kosten für die Wegwahl, Weg der Karte und Stelle der Mitte) – zum
+    /// Anhängen eines Ortes.
+    /// </summary>
+    private readonly List<(int A, int B, double Anstieg, Fahrbahn Art, double Kosten, int Weg, double Stelle)> _kanten = new();
 
     private readonly Dictionary<(long, long), List<int>> _raster = new();
 
@@ -84,7 +99,7 @@ public sealed class Karrennetz
             if (!w.IstKarrenstrasse || w.Linie.Count < 2) continue;
             var stellen = plan.Querungen.Where(q => q.Weg == i).Select(q => (q.VonStelle, q.BisStelle, (Fahrbahn?)(q.IstBruecke ? Fahrbahn.Bruecke : Fahrbahn.Furt)))
                 .Concat(plan.Sperren.Where(x => x.Weg == i).Select(x => (x.VonStelle, x.BisStelle, (Fahrbahn?)null))).ToList();
-            linien.Add(new Netzlinie(w.Verlauf.Select(Kartenort.Aus).ToList(), stellen.Count == 0 ? null : stellen));
+            linien.Add(new Netzlinie(w.Verlauf.Select(Kartenort.Aus).ToList(), stellen.Count == 0 ? null : stellen, Weg: i));
         }
         linien.AddRange(plan.Faehren.Select(f => new Netzlinie(new[] { f.Von, f.Bis }, IstFaehre: true)));
         return new Karrennetz(linien, karte.Gelaendeform);
@@ -104,12 +119,17 @@ public sealed class Karrennetz
         var linien = netzlinien.Select(n => n.Linie).ToList();
         // alle Strecken mit ihren Höhen an beiden Enden, ihrer Fahrbahn und ob andere Linien sie teilen dürfen (eine Fähre nicht)
         var strecken = new List<(Kartenort A, Kartenort B, double HA, double HB, int Linie, Fahrbahn Art, bool Teilbar)>();
+        var stelleVon = new List<(double Anfang, double Laenge)>(); // je Strecke: Meter entlang ihrer Linie am Anfang, Länge
         for (var l = 0; l < linien.Count; l++)
         {
             var n = netzlinien[l];
             if (n.IstFaehre)
             {
-                if (n.Linie.Count >= 2 && n.Linie[0].Abstand(n.Linie[^1]) > 1e-9) strecken.Add((n.Linie[0], n.Linie[^1], 0, 0, l, Fahrbahn.Faehre, false));
+                if (n.Linie.Count >= 2 && n.Linie[0].Abstand(n.Linie[^1]) > 1e-9)
+                {
+                    strecken.Add((n.Linie[0], n.Linie[^1], 0, 0, l, Fahrbahn.Faehre, false));
+                    stelleVon.Add((0, 0));
+                }
                 continue;
             }
             // das Profil höchstens alle 1 m (eine gerade Straße hat sonst nur ihre Endpunkte und läge flach über jedem Hügel)
@@ -129,7 +149,9 @@ public sealed class Karrennetz
                         if (a is { } x) art = x;
                         else gesperrt = true;
                     }
-                if (!gesperrt) strecken.Add((p[k].Ort, p[k + 1].Ort, p[k].Hoehe, p[k + 1].Hoehe, l, art, true));
+                if (gesperrt) continue;
+                strecken.Add((p[k].Ort, p[k + 1].Ort, p[k].Hoehe, p[k + 1].Hoehe, l, art, true));
+                stelleVon.Add((stelle - laenge, laenge));
             }
         }
         // je Strecke die Stellen (0 … 1), an denen sie geteilt wird: Kreuzungen und Straßenenden anderer Linien
@@ -174,8 +196,10 @@ public sealed class Karrennetz
         {
             var (a, b, ha, hb, linie, art, _) = strecken[s];
             var stellen = teilung[s].Distinct().OrderBy(t => t).ToList();
+            var weg = netzlinien[linie].Weg;
             var vorher = -1;
             var hVorher = 0.0;
+            var tVorher = 0.0;
             foreach (var t in stellen)
             {
                 var p = new Kartenort(a.X + (b.X - a.X) * t, a.Z + (b.Z - a.Z) * t);
@@ -190,11 +214,12 @@ public sealed class Karrennetz
                         Fahrbahn.Faehre => laenge + FaehreUmweg,
                         _ => laenge,
                     };
-                    _nachbarn[vorher].Add((k, laenge, h - hVorher, art, kosten));
-                    _nachbarn[k].Add((vorher, laenge, hVorher - h, art, kosten));
-                    _kanten.Add((vorher, k, h - hVorher, art, kosten));
+                    var mitte = stelleVon[s].Anfang + (tVorher + t) / 2 * stelleVon[s].Laenge;
+                    _nachbarn[vorher].Add((k, laenge, h - hVorher, art, kosten, weg, mitte));
+                    _nachbarn[k].Add((vorher, laenge, hVorher - h, art, kosten, weg, mitte));
+                    _kanten.Add((vorher, k, h - hVorher, art, kosten, weg, mitte));
                 }
-                (vorher, hVorher) = (k, h);
+                (vorher, hVorher, tVorher) = (k, h, t);
             }
         }
 
@@ -227,7 +252,7 @@ public sealed class Karrennetz
         if (best.Index >= 0) return best.Index;
         _knoten.Add(p);
         _linieVon.Add(linie);
-        _nachbarn.Add(new List<(int, double, double, Fahrbahn, double)>());
+        _nachbarn.Add(new List<(int, double, double, Fahrbahn, double, int, double)>());
         if (!_raster.TryGetValue((ci, cj), out var neu)) _raster[(ci, cj)] = neu = new List<int>();
         neu.Add(_knoten.Count - 1);
         return _knoten.Count - 1;
@@ -264,7 +289,7 @@ public sealed class Karrennetz
         var zLaenge = _knoten[z.A].Abstand(_knoten[z.B]);
         // beide auf derselben Kante: das Stück dazwischen
         if (start.Kante == ziel.Kante)
-            return new[] { new Fahrtstueck(Math.Abs(ziel.T - start.T) * sLaenge, (ziel.T - start.T) * s.Anstieg, s.Art) };
+            return new[] { new Fahrtstueck(Math.Abs(ziel.T - start.T) * sLaenge, (ziel.T - start.T) * s.Anstieg, s.Art) { Weg = s.Weg, Stelle = s.Stelle } };
 
         // Dijkstra nach den Kosten (Straße und Brücke: die Länge; Furt und Fähre teurer), begonnen an beiden Enden der Startkante
         var abstand = new double[_knoten.Count];
@@ -278,7 +303,7 @@ public sealed class Karrennetz
         while (offen.TryDequeue(out var k, out var d))
         {
             if (d > abstand[k]) continue;
-            foreach (var (n, _, _, _, kosten) in _nachbarn[k])
+            foreach (var (n, _, _, _, kosten, _, _) in _nachbarn[k])
                 if (d + kosten < abstand[n])
                 {
                     (abstand[n], vor[n]) = (d + kosten, k);
@@ -293,17 +318,19 @@ public sealed class Karrennetz
 
         var stuecke = new List<Fahrtstueck>();
         // das letzte Stück: vom Knoten auf der Zielkante bis zur Stelle
-        stuecke.Add(letzter == z.A ? new Fahrtstueck(ziel.T * zLaenge, ziel.T * z.Anstieg, z.Art) : new Fahrtstueck((1 - ziel.T) * zLaenge, -(1 - ziel.T) * z.Anstieg, z.Art));
+        stuecke.Add((letzter == z.A ? new Fahrtstueck(ziel.T * zLaenge, ziel.T * z.Anstieg, z.Art) : new Fahrtstueck((1 - ziel.T) * zLaenge, -(1 - ziel.T) * z.Anstieg, z.Art))
+            with { Weg = z.Weg, Stelle = z.Stelle });
         var knoten = letzter;
         while (vor[knoten] >= 0)
         {
             var v = vor[knoten];
             var kante = _nachbarn[v].Where(x => x.Ziel == knoten).OrderBy(x => x.Kosten).ThenBy(x => x.Laenge).First();
-            stuecke.Add(new Fahrtstueck(kante.Laenge, kante.Anstieg, kante.Art));
+            stuecke.Add(new Fahrtstueck(kante.Laenge, kante.Anstieg, kante.Art) { Weg = kante.Weg, Stelle = kante.Stelle });
             knoten = v;
         }
         // das erste Stück: von der Stelle auf der Startkante bis zu ihrem Knoten
-        stuecke.Add(knoten == s.A ? new Fahrtstueck(start.T * sLaenge, -start.T * s.Anstieg, s.Art) : new Fahrtstueck((1 - start.T) * sLaenge, (1 - start.T) * s.Anstieg, s.Art));
+        stuecke.Add((knoten == s.A ? new Fahrtstueck(start.T * sLaenge, -start.T * s.Anstieg, s.Art) : new Fahrtstueck((1 - start.T) * sLaenge, (1 - start.T) * s.Anstieg, s.Art))
+            with { Weg = s.Weg, Stelle = s.Stelle });
         stuecke.Reverse();
         return stuecke.Where(x => x.Laenge > 1e-9).ToList();
     }

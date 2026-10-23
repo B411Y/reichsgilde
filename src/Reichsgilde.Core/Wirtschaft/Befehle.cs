@@ -54,6 +54,19 @@ public sealed record WohnhausBauen(int Stufe, double X, double Z, int Drehung) :
 /// </summary>
 public sealed record WerkstattBauen(Betriebsart Art, double X, double Z, int Drehung) : BauBefehl(X, Z, Drehung);
 
+/// <summary>
+/// Einen Abschnitt eines Weges (Nummer in der Karte, <paramref name="Von"/> bis <paramref name="Bis"/> Meter entlang des Verlaufs, auf ganze
+/// Stücke erweitert) mit Kies oder Pflaster ausbauen lassen – Preis je Meter, Bauzeit; gleiche Stufe bessert aus. Karren fahren danach
+/// schneller. Vorab: <see cref="Bauen.Wegebau.Vorschau"/>.
+/// </summary>
+public sealed record WegAusbauen(int Weg, double Von, double Bis, Bauen.Belagstufe Stufe) : Befehl;
+
+/// <summary>
+/// Antrag im Rat, einen Abschnitt eines Weges aus der Wegekasse pflastern zu lassen (nur Ratsmitglieder, ein Antrag je Jahr; abgestimmt
+/// wird am Jahresende). Angenommen bringt er dem Antragsteller Ansehen. Vorab: <see cref="Bauen.Wegebau.AntragPrognose"/>.
+/// </summary>
+public sealed record WegPflasterBeantragen(int Weg, double Von, double Bis) : Befehl;
+
 /// <summary>Einen Hauswächter fürs Wohnhaus einstellen oder entlassen (kostet wie ein Betriebswächter).</summary>
 public sealed record HauswaechterSetzen(bool Angestellt) : Befehl;
 

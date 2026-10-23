@@ -75,6 +75,9 @@ public sealed partial class Stadtwirtschaft
     /// <summary>Grundstücke, Leerstand kaufen und abreißen, Neubau von Wohnhäusern und Werkstätten (braucht die <see cref="Karte"/>).</summary>
     public Bauen.Bauwesen Bauen { get; }
 
+    /// <summary>Belag der Wege: Austritt, Verfall, Bauaufträge, Pflaster des Stadtrats (braucht die <see cref="Karte"/> und „wegebau“).</summary>
+    public Bauen.Wegebau Wegebau { get; }
+
     /// <summary>Die Karte der Stadt: Wege, Bauzonen, feste Bauten, Wohnhausplätze (null: ohne Karte – dann wird nicht gebaut).</summary>
     public Bauen.Stadtkarte? Karte { get; private set; }
 
@@ -276,6 +279,7 @@ public sealed partial class Stadtwirtschaft
         Glaube = new Glaube.Glaubenswesen(this, daten.Glaube, zufallsstartwert);
         Wohnen = new Wohnen.Wohnungswesen(this, daten.Wohnen);
         Bauen = new Bauen.Bauwesen(this, daten.Bauen);
+        Wegebau = new Bauen.Wegebau(this, daten.Wegebau);
         Gesundheit = new Gesundheitswesen(this, daten.Gesundheit, zufallsstartwert);
         Gastwirtschaft = new Gastwirtschaft(this, daten.Gastwirtschaft);
         Werkstaetten = new Werkstattwesen(this, daten.Werkstatt, zufallsstartwert);
@@ -480,6 +484,7 @@ public sealed partial class Stadtwirtschaft
 
         Wohnen.Minute(zeit); // fertige Ausbauten der Wohnhäuser
         Bauen.Minute(zeit);  // fertige Baustellen: Umzug, neue Werkstätten, Bauplätze
+        Wegebau.Minute(zeit); // fertig ausgebaute Wege
 
         // Bürger-KI: Die Einwohner planen jede volle Stunde ihren Tag (lesen nur, eigener Zufall).
         Einwohnerschaft.Minute(zeit);
@@ -522,6 +527,7 @@ public sealed partial class Stadtwirtschaft
         foreach (var betrieb in _betriebe)
             betrieb.JahrAbschliessen(neuesJahr);
         SchuldenPruefen();
+        Wegebau.Jahresende(); // Verkehr des Jahres: Austritt, Verfall, Wegekasse – vor der Ratssitzung
         Gesundheit.Jahresende();  // Kranke sterben oder genesen – mit dem alten Jahr
         Familien.Jahreswechsel(); // Tod und Erbfall vor der Ratssitzung: Ein verwaistes Amt wird gleich neu besetzt
         Gesundheit.NeuesJahr();   // Pest und neue Krankheiten
@@ -636,6 +642,10 @@ public sealed partial class Stadtwirtschaft
             return LiegenschaftErwerbenAusfuehren(absender, liegenschaft.Name);
         if (befehl is BauBefehl bau)
             return Bauen.Bauen(absender, bau, Uhr);
+        if (befehl is WegAusbauen ausbau)
+            return Wegebau.Ausbauen(absender, ausbau.Weg, ausbau.Von, ausbau.Bis, ausbau.Stufe, Uhr);
+        if (befehl is WegPflasterBeantragen pflaster)
+            return Wegebau.Beantragen(absender, pflaster.Weg, pflaster.Von, pflaster.Bis);
         if (befehl is LeerstandKaufen or LeerstandAbreissen)
         {
             var hausName = befehl is LeerstandKaufen lk ? lk.Haus : ((LeerstandAbreissen)befehl).Haus;
@@ -1020,6 +1030,7 @@ public sealed partial class Stadtwirtschaft
         Abgegeben = AbgegebeneSichern(),
         Bauen = Bauen.Sichern(k => _konten.IndexOf(k)),
         WerkstattWuerfe = Werkstaetten.Wuerfe,
+        Wegebau = Wegebau.Sichern(k => _konten.IndexOf(k)),
     };
 
     /// <summary>
@@ -1085,6 +1096,7 @@ public sealed partial class Stadtwirtschaft
         if (s.Einwohner is { } einwohnerStand && Einwohnerschaft.IstAktiv)
             Einwohnerschaft.Wiederherstellen(einwohnerStand);
         Werkstaetten.Wiederherstellen(s.WerkstattWuerfe);
+        Wegebau.Wiederherstellen(s.Wegebau, _konten);
         ToteBetriebeFreigeben(); // alte Spielstände: Betriebe toter Häuser standen still – nun stehen sie zum Verkauf
         EinwohnerZaehlen();
     }
