@@ -22,19 +22,19 @@
 
 | | Thema | Was schon geht |
 |---|---|---|
-| 🏰 | [Stadt und Ansicht](#stadt) | Ummauerte Reichsstadt in drehbarer Schrägansicht, Einwohner laufen sichtbar durch die Gassen, Licht und Schatten folgen der Spieluhr; Mauerwerk, Ziegel, Stroh und Holz mit feiner Oberflächenstruktur. |
+| 🏰 | [Stadt und Ansicht](#stadt) | Ummauerte Reichsstadt in drehbarer Schrägansicht, Einwohner laufen sichtbar durch die Gassen, Licht und Schatten folgen der Spieluhr; Mauerwerk, Ziegel, Stroh und Holz mit feiner Oberflächenstruktur. Hügel und Hänge (Gebäude mit Bruchsteinsockel), Flüsse, Bäche und Seen mit Brücken, Furten, Fähren und Häfen, rundum Felder und Wald, die im Dunst verblassen. |
 | 🚪 | [Gebäude betreten](#gebaeude) | Werkstätten (alle zehn Berufe mit eigenem Innenraum), eigenes Wohnhaus, Rathaus und Dom von innen – mit Arbeitern, Kunden, Gästen, Familie, Ratsherren und Gläubigen aus der Simulation. |
 | 🏗️ | [Bauen und Leerstand](#bauen) | Bauzonen, Wohnhaus und Werkstatt frei bauen (Umriss an der Maus, Rückfrage mit Preis und Bauzeit), leere Häuser kaufen, sanieren oder abreißen, Baustellen und Bauplätze. |
-| ⏳ | [Partie und Spieltag](#partie) | Ein Spieltag von 5 bis 22 Uhr ist ein Spieljahr. Hauptmenü, Speichern und Laden, Aktionspunkte für persönliche Handlungen. |
+| ⏳ | [Partie und Spieltag](#partie) | Ein Spieltag von 5 bis 22 Uhr ist ein Spieljahr. Hauptmenü mit Schwierigkeit (Normal: alle Häuser starten gleich, Schwer: die KI mit Vorsprung), Speichern und Laden, Aktionspunkte für persönliche Handlungen. |
 | ⚙️ | [Einstellungen](#einstellungen) | Grafik-Voreinstellungen von Niedrig bis Ultra, beim ersten Start automatisch gewählt; Bildrate, dynamische Auflösung, Miniatur-Unschärfe, Wolkenschatten, Morgendunst mit Lichtstrahlen, Farbstimmung; Größe der Oberfläche und Farbfilter für Farbsehschwäche. |
-| ⚖️ | [Wirtschaft und Handel](#wirtschaft) | Marktpreise nach Angebot und Nachfrage, Betriebe, Karren und Stadttore, Handel von Hand, Expansion, Meistergrade und Gebäudestufen. |
+| ⚖️ | [Wirtschaft und Handel](#wirtschaft) | Marktpreise nach Angebot und Nachfrage, die mit den Einwohnern wächst; Betriebe, Karren (bergauf langsamer, über Brücken, Furten und Fähren), Handel von Hand, Expansion, Meistergrade, Gebäudestufen und Einrichtung. Ausgeglichen: Mit einem Betrieb wird man je nach Beruf nach rund 8 bis 13 Jahren Bürger, alle zehn Berufe liegen nah beieinander. |
 | ⚒️ | [Berufe](#berufe) | Zehn Berufe – Schmied, Tischler, Steinmetz, Alchimist, Wirt, Prediger, Dieb, Gardist, Geldleiher, Parfumeur – mit eigenen Waren und Kniffen. |
 | 🛡️ | [Haus und Dynastie](#haus) | Wappen, Heirat, Kinder, Erbfolge, Talente, Krankheiten und Pest, ein Wohnhaus vom Fachwerkhaus bis zum Stadthof. |
 | 👑 | [Stand, Rat und Glaube](#aufstieg) | Vom Gemeinen zum Reichsgrafen, Ämter im Stadtrat, Wahlen und Statut, katholisch, evangelisch oder Naturglaube. |
 | 🗝️ | [Unterwelt und Gericht](#unterwelt) | Banden, Einbruch, Brand, Erpressung – und dagegen Wächter, Spitzel, Beweise, Anklage und Kerker. |
 | 👥 | [Einwohner](#einwohner) | 25 Einwohner je Haus mit Rolle und Tagesablauf; sie füllen Schänken und Kirchen und kaufen am Markt. |
-| 🤖 | [KI-Häuser](#ki) | Bis zu drei Rivalen mit Charakter, die nach denselben Regeln spielen wie du – ohne Schummelei. |
-| 🗺️ | [Kartenwerkstatt](#kartenwerkstatt) | Level-Editor im Spiel: Karten öffnen, Gebäude aus dem Katalog setzen, verschieben, drehen und löschen, Wege mit Kurven zeichnen, Bauzonen, Wald-, Streu- und Feldflächen als Vielecke, Kartengröße, Randstreifen mit Randlandschaft und Kamera-Start, einzelne Pflanzen, Pinsel und Radierer, Mauern mit Türmen und Toren, Gelände mit Pinseln und Rampen (Hügel, Mulden, Hangsperre für Bauplätze), Wasser (Flüsse und Bäche mit Strömung, Seen und Teiche, Brücken, Furten, Fähren und Häfen), Startbelegung (Spieler und bis zu acht KI-Häuser), Natur und Gassennetz live, Prüfung nach den Kartenregeln (mit Kapazität), Rückgängig, Speichern direkt in die Karten des Spiels und „Karte ausprobieren“; dazu das Kartenskript `tools/Kartenbau`. |
+| 🤖 | [KI-Häuser](#ki) | Rivalen mit Charakter – so viele, wie die Karte vorsieht (bis zu acht) –, die nach denselben Regeln spielen wie du, ohne Schummelei: Sie bauen, expandieren, verkaufen und kaufen Einrichtung. |
+| 🗺️ | [Kartenwerkstatt](#kartenwerkstatt) | Level-Editor im Spiel: Gebäude aus dem Katalog, Wege mit Kurven, Mauern mit Toren, Bauzonen, Wald, Felder und Pflanzen; Kartengröße bis 2 × 2 km mit Randlandschaft, Gelände mit Pinseln (Hangsperre für Bauplätze), Wasser mit automatischen Brücken und Furten, Fähren und Häfen; Startbelegung für bis zu acht KI-Häuser, Prüfung nach den Kartenregeln, Rückgängig und „Karte ausprobieren“. Dazu das Kartenskript `tools/Kartenbau`. |
 
 Ein Klick auf ein Thema springt zu seinem Abschnitt im **Spielbuch** weiter unten; dort lässt er sich aufklappen.
 
@@ -405,9 +405,10 @@ reichsgilde/
 │   ├── karten/                     Stadtkarten als JSON, Format 2: wo alles steht (aus Kartenwerkstatt oder tools/Kartenbau)
 │   ├── assets/                     Dateien nach Art getrennt:
 │   │   ├── modelle/                3D-Modelle (.glb, aus tools/modelle) in gebaeude/, innen/, umland/,
-│   │   │                           natur/, figuren/, fahrzeuge/, tiere/
+│   │   │                           natur/, wasser/, figuren/, fahrzeuge/, tiere/
 │   │   ├── texturen/               Strukturen der Oberflächendetails (aus tools/oberflaeche)
-│   │   ├── shader/                 Shader (Fahnen, Figuren, Oberflächendetails)
+│   │   ├── shader/                 Shader (Fahnen, Figuren, Oberflächendetails, Wasser, Äcker, Randdunst,
+│   │   │                           Farbfilter, Schärfe)
 │   │   ├── oberflaeche/            Spieloberfläche: icons/ (Waren-Icons aus tools/icons), schriften/, wappen/
 │   │   └── audio/                  musik/, geraeusche/ (noch leer)
 │   ├── scenes/                     Szenen (.tscn)
@@ -415,17 +416,23 @@ reichsgilde/
 ├── src/Reichsgilde.Core/           Simulationskern – die reine Spiellogik, OHNE Godot
 │   ├── Simulation.cs
 │   ├── Bank/                       Geldleiher: Kasse, Wechsel, Kredite, Pfändung, Wucher
+│   ├── Bauen/                      Stadtkarte, Gebäudekatalog, Bauzonen, Gelände, Wasser, Karrennetz
+│   ├── Buerger/                    Bürger-KI: Einwohner mit Rolle und Tagesablauf
 │   ├── Duft/                       Parfumeur: Moschus, Zwietracht, Heiligenduft, Giftanschlag
 │   ├── Dynastie/                   Personen, Familien, Brautschau, Geburt, Tod und Erbfolge
 │   ├── Glaube/                     Konfessionen, Glaubensnähe im Rat, Bekehrung, Stadtglaube
 │   ├── Gauner/                     Unterwelt: Diebstahl, Sabotage, Überfall, Erpressung, Wächter
+│   ├── Gesundheit/                 Krankheiten, Pest, Behandlung
 │   ├── Justiz/                     Stadtgericht: Spuren, Spitzel, Beweise, Anklage, Urteil, Kerker
+│   ├── Kartenwerkstatt/            Level-Editor ohne Godot: Kartenentwurf, Befehle mit Rückgängig, Kartenprüfung
 │   ├── Ki/                         KI-Rivalen (Entscheidungen und ihr Charakter)
+│   ├── Kirche/                     Prediger: Kollekte, Ablass, Beichte
 │   ├── Ordnung/                    Stadtwache: Sold, Patrouille, Wachturm, Razzia, Kopfgeld, Geleitschutz
-│   ├── Partie/                     Partie-Einstellungen, Siegbedingung, Aktionspunkte
+│   ├── Partie/                     Partie-Einstellungen, Schwierigkeit, Startbelegung, Siegbedingung, Aktionspunkte
 │   ├── Politik/                    Stadtrat: Ämter, Wahlen, Gunst, Anträge zum Statut
 │   ├── Speichern/                  Spielstände als JSON
 │   ├── Wirtschaft/                 Markt, Betriebe, Lager, Karren, Überfälle, Konten, Fronstatut
+│   ├── Wohnen/                     Wohnhaus: Stufen, Ausbau, Unterhalt, Ansehen
 │   └── Zeit/                       Spielzeit, Taktgeber, Kalender
 ├── tests/Reichsgilde.Core.Tests/   Automatische Tests für den Simulationskern
 ├── tools/icons/waren_icons.py      Zeichnet die Waren-Icons (Python + Pillow)
