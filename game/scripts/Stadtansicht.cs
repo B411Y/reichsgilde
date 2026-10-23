@@ -284,7 +284,8 @@ public partial class Stadtansicht : Node3D
         var (x, z) = platz.Punkt;
         var groesse = platz.Gebaeude is { } g ? GroesseVon(g)
             : new Vector2((float)platz.Grundstueck!.Grundriss.Breite, (float)platz.Grundstueck.Grundriss.Tiefe);
-        return new Platz(new Vector3((float)x, 0, (float)z), Mathf.DegToRad((float)platz.DrehungGrad), groesse, platz.Gebaeude);
+        var drehung = Mathf.DegToRad((float)platz.DrehungGrad);
+        return new Platz(AufFundament(new Vector3((float)x, 0, (float)z), drehung, groesse), drehung, groesse, platz.Gebaeude); // Mitte auf der Höhe des Fußbodens
     }
 
     /// <summary>Der Hof vor der Tür einer Werkstatt: die Stelle, wo Karren losfahren und Gäste ankommen (null, wenn der Betrieb nirgends steht).</summary>
@@ -356,8 +357,9 @@ public partial class Stadtansicht : Node3D
         // Drehung (um die Hochachse) → Neigung (40° schräg von oben) → Kamera mit Abstand.
         _kameraDrehung = new Node3D { Name = "Kamerafuehrung", RotationDegrees = new Vector3(0, _zielDrehung, 0) };
         AddChild(_kameraDrehung);
-        var neigung = new Node3D { RotationDegrees = new Vector3(-KameraNeigung, 0, 0) };
+        var neigung = new Node3D { Name = "Kameraneigung", RotationDegrees = new Vector3(-KameraNeigung, 0, 0) };
         _kameraDrehung.AddChild(neigung);
+        _kameraNeigung = neigung; // ihre Höhe folgt dem Gelände (Stadtansicht.Gelaende.cs)
         _kamera = new Camera3D
         {
             Projection = Camera3D.ProjectionType.Orthogonal, // keine Fluchtpunkte = klassischer 2,5D-Look
@@ -627,6 +629,7 @@ public partial class Stadtansicht : Node3D
     private BetriebsAnsicht WerkstattBauen(Betrieb betrieb, Platz p, Color besitzer, Werkstil stil = Werkstil.Giesserei)
     {
         const float breite = 10, tiefe = 8, dicke = 0.4f;
+        if (p.Gebaeude is null) PlatzSockel(p.Mitte, p.Drehung, p.Groesse); // ein Neubau auf einem Grundstück; feste Plätze haben ihren Sockel aus der Karte
         var modell = ModellEinsetzen(WerkstattModellDatei(betrieb.Artdaten.Beruf), this, p.Mitte,
                                      new ModellZustand(Stufe: Modellstufe(betrieb.Stufe), Geruest: betrieb.UmbauMinuten > 0, Besitzer: besitzer), betrieb.Name);
 
@@ -706,9 +709,12 @@ public partial class Stadtansicht : Node3D
             if (ansicht == _innen)
                 InnenAktualisieren(ansicht, zeit, hierArbeitszeit, arbeitet, delta);
 
-            var fahrzeit = w.Daten.Logistik.FahrzeitAb(betrieb.Ort);
             for (var i = 0; i < betrieb.Karren.Count; i++)
+            {
+                // Hin- und Rückfahrt dauern auf Gelände verschieden lang (der Kern rechnet die Steigung ein, Stadtwirtschaft.Fahrzeit); in der Ebene gleich lang wie immer
+                var fahrzeit = w.Fahrzeit(betrieb, zumMarkt: betrieb.Karren[i].Zustand != KarrenZustand.ZumBetrieb);
                 KarrenBewegen(betrieb.Karren[i], i, ansicht, fahrzeit, zeit.VergangeneMinuten + bruchteil, delta, ansicht.Spieler);
+            }
         }
         if (_innen is SonderbauAnsicht sonderbau)
             SonderbauAktualisieren(sonderbau, zeit, arbeitszeit, delta);
@@ -861,6 +867,7 @@ public partial class Stadtansicht : Node3D
             if (KameraRechteck() is { } r) ziel = new Vector3(Mathf.Clamp(ziel.X, (float)r.X0, (float)r.X1), 0, Mathf.Clamp(ziel.Z, (float)r.Z0, (float)r.Z1));
             zoom = Mathf.Min(zoom, KameraGroessterZoom());
         }
+        ziel.Y = 0; // die Höhe trägt die Neigung (KameraHoeheNachfuehren)
         _kamerafahrt?.Kill();
         _kamerafahrt = CreateTween().SetParallel().SetTrans(Tween.TransitionType.Sine).SetEase(Tween.EaseType.InOut);
         _kamerafahrt.TweenProperty(_kameraDrehung, "position", ziel, 0.6);
@@ -871,6 +878,7 @@ public partial class Stadtansicht : Node3D
     public void KameraSetzen(float x, float z, float? zoom = null)
     {
         _kameraDrehung.Position = new Vector3(x, 0, z);
+        KameraHoeheSofort();
         if (zoom is { } z2) _kamera.Size = Mathf.Clamp(z2, KameraMinZoom, KameraGroessterZoom());
     }
 
@@ -902,6 +910,7 @@ public partial class Stadtansicht : Node3D
         var aktuell = _kameraDrehung.RotationDegrees.Y;
         _kameraDrehung.RotationDegrees = new Vector3(0, Mathf.LerpAngle(Mathf.DegToRad(aktuell), Mathf.DegToRad(_zielDrehung), (float)Math.Min(1, delta * 8)) * 180 / Mathf.Pi, 0);
         KameraGrenzenAnwenden(delta); // zurückfedern, Zoom begrenzen (Stadtansicht.Rand.cs)
+        KameraHoeheNachfuehren(delta); // mit dem Gelände steigen und fallen (Stadtansicht.Gelaende.cs)
         if (_innen is { Raumansicht: false }) Aufschneiden(_innen);
         if (_raum is not null)
         {
@@ -1120,13 +1129,22 @@ public partial class Stadtansicht : Node3D
     {
         var mitte = (von + bis) / 2;
         var laenge = von.DistanceTo(bis);
+        var gier = Mathf.Atan2(bis.X - von.X, bis.Z - von.Z);
         var weg = new MeshInstance3D
         {
             Mesh = new BoxMesh { Size = new Vector3(breite, 0.06f, laenge + breite * 0.5f) },
             MaterialOverride = Material(Weg),
             Position = new Vector3(mitte.X, 0.04f, mitte.Z),
-            Rotation = new Vector3(0, Mathf.Atan2(bis.X - von.X, bis.Z - von.Z), 0),
+            Rotation = new Vector3(0, gier, 0),
         };
+        if (BodenBewegt)
+        {
+            // am Hang: auf der Höhe des Bodens in der Mitte, entlang des Gefälles geneigt (gerechnet in der Ebene, nicht im Raum: von und bis sind unten)
+            var (ha, hb) = (BodenHoehe(von.X, von.Z), BodenHoehe(bis.X, bis.Z));
+            var waagerecht = new Vector2(bis.X - von.X, bis.Z - von.Z).Length();
+            weg.Position = new Vector3(mitte.X, (ha + hb) / 2 + 0.04f, mitte.Z);
+            weg.Basis = new Basis(Vector3.Up, gier) * new Basis(Vector3.Right, -Mathf.Atan2(hb - ha, Mathf.Max(0.001f, waagerecht)));
+        }
         eltern.AddChild(weg);
     }
 
@@ -1146,7 +1164,7 @@ public partial class Stadtansicht : Node3D
         var arrays = new Godot.Collections.Array();
         arrays.Resize((int)Mesh.ArrayType.Max);
         arrays[(int)Mesh.ArrayType.Vertex] = ecken;
-        arrays[(int)Mesh.ArrayType.Normal] = ecken.Select(_ => Vector3.Up).ToArray();
+        arrays[(int)Mesh.ArrayType.Normal] = ecken.Select(e => BodenNormale(e.X, e.Z)).ToArray();
         var netz = new ArrayMesh();
         netz.AddSurfaceFromArrays(Mesh.PrimitiveType.Triangles, arrays);
         eltern.AddChild(new MeshInstance3D { Name = "Wegband", Mesh = netz, MaterialOverride = Material(Weg) });
@@ -1160,11 +1178,12 @@ public partial class Stadtansicht : Node3D
     /// oben. An den Knicken liegen die Ränder auf der Winkelhalbierenden (so überlappen sich die Stücke nicht – wichtig für Durchsichtiges;
     /// in sehr spitzen Knicken höchstens dreifach so weit).
     /// </summary>
-    private static Vector3[] BandDreiecke(IReadOnlyList<Vector2> linie, float halb, float hoehe)
+    private Vector3[] BandDreiecke(IReadOnlyList<Vector2> linie, float halb, float hoehe)
     {
         // doppelte Punkte (ein Knick ohne Länge) weglassen – ihre Richtung wäre Zufall
         linie = linie.Where((p, i) => i == 0 || p.DistanceTo(linie[i - 1]) > 0.01f).ToList();
         if (linie.Count < 2) return Array.Empty<Vector3>();
+        if (BodenBewegt) linie = Verfeinert(linie, BandSchritt); // auf Gelände folgt das Band dem Boden: Punkte höchstens alle BandSchritt Meter
         var links = new Vector2[linie.Count];
         var rechts = new Vector2[linie.Count];
         for (var i = 0; i < linie.Count; i++)
@@ -1186,8 +1205,61 @@ public partial class Stadtansicht : Node3D
         return ecken.ToArray();
     }
 
-    /// <summary>Ein flaches Dreieck, Vorderseite nach oben: in (x, z) gerechnet gegen den Uhrzeigersinn (wie bei <see cref="Vieleck"/>).</summary>
-    private static void Dreieck(List<Vector3> ecken, Vector2 a, Vector2 b, Vector2 c, float hoehe)
+    /// <summary>Wie weit (Meter) auf Gelände die Punkte eines Bandes und die Kanten eines Dreiecks höchstens auseinander liegen.</summary>
+    private const float BandSchritt = 2f, DreieckSchritt = 4f;
+
+    /// <summary>
+    /// Das Pflaster der Stadt bedeckt den Boden ganz, aber unter den Wegen (7 cm): 3 cm über dem Boden, genau auf seinen Dreiecken (<see cref="RasterDreiecke"/>).
+    /// Bauzonen (durchscheinend, über allem) liegen ebenso 2 cm über ihrer Fläche.
+    /// </summary>
+    private const float PflasterAmHang = 0.03f, ZoneAmHang = 0.02f;
+
+    /// <summary>Die Linie mit zusätzlichen Punkten, so dass keine Strecke länger als <paramref name="schritt"/> ist (die Punkte der Linie bleiben).</summary>
+    private static List<Vector2> Verfeinert(IReadOnlyList<Vector2> linie, float schritt)
+    {
+        var aus = new List<Vector2> { linie[0] };
+        for (var i = 1; i < linie.Count; i++)
+        {
+            var (a, b) = (linie[i - 1], linie[i]);
+            var teile = Mathf.CeilToInt(a.DistanceTo(b) / schritt);
+            for (var k = 1; k < teile; k++) aus.Add(a.Lerp(b, (float)k / teile));
+            aus.Add(b);
+        }
+        return aus;
+    }
+
+    /// <summary>
+    /// Ein Dreieck, Vorderseite nach oben: in (x, z) gerechnet gegen den Uhrzeigersinn (wie bei <see cref="Vieleck"/>), <paramref name="hoehe"/> Meter
+    /// über dem Boden. Auf Gelände wird es in kleine Dreiecke geteilt (Kanten bis <see cref="DreieckSchritt"/> Meter), jede Ecke liegt auf dem Boden.
+    /// </summary>
+    private void Dreieck(List<Vector3> ecken, Vector2 a, Vector2 b, Vector2 c, float hoehe, float schritt = DreieckSchritt)
+    {
+        if ((b - a).Cross(c - a) < 0) (b, c) = (c, b);
+        if (!BodenBewegt)
+        {
+            DreieckFlach(ecken, a, b, c, hoehe);
+            return;
+        }
+        DreieckAmBoden(ecken, a, b, c, hoehe, schritt, 0);
+    }
+
+    private void DreieckAmBoden(List<Vector3> ecken, Vector2 a, Vector2 b, Vector2 c, float hoehe, float schritt, int tiefe)
+    {
+        var (ab, bc, ca) = (a.DistanceTo(b), b.DistanceTo(c), c.DistanceTo(a));
+        var laengste = Mathf.Max(ab, Mathf.Max(bc, ca));
+        if (laengste <= schritt || tiefe >= 24)
+        {
+            foreach (var p in new[] { a, b, c }) ecken.Add(new Vector3(p.X, hoehe + BodenHoehe(p.X, p.Y), p.Y));
+            return;
+        }
+        // an der längsten Kante in der Mitte teilen
+        if (laengste == ab) { var m = (a + b) / 2; DreieckAmBoden(ecken, a, m, c, hoehe, schritt, tiefe + 1); DreieckAmBoden(ecken, m, b, c, hoehe, schritt, tiefe + 1); }
+        else if (laengste == bc) { var m = (b + c) / 2; DreieckAmBoden(ecken, a, b, m, hoehe, schritt, tiefe + 1); DreieckAmBoden(ecken, a, m, c, hoehe, schritt, tiefe + 1); }
+        else { var m = (c + a) / 2; DreieckAmBoden(ecken, a, b, m, hoehe, schritt, tiefe + 1); DreieckAmBoden(ecken, m, b, c, hoehe, schritt, tiefe + 1); }
+    }
+
+    /// <summary>Ein flaches Dreieck in der Höhe <paramref name="hoehe"/> (über y = 0, Vorderseite nach oben wie <see cref="Dreieck"/>): für Dunst und alles, was nicht dem Boden folgt.</summary>
+    private static void DreieckFlach(List<Vector3> ecken, Vector2 a, Vector2 b, Vector2 c, float hoehe)
     {
         if ((b - a).Cross(c - a) < 0) (b, c) = (c, b);
         ecken.Add(new Vector3(a.X, hoehe, a.Y));

@@ -232,7 +232,10 @@ public partial class Stadtansicht
         _ => new(8192, RenderingServer.ShadowQuality.SoftHigh, 3f, 0.67f),                          // 16 Proben
     };
 
-    private (float Zoom, float Seiten, Schattenqualitaet Stufe)? _schattenFuer;
+    private (float Zoom, float Seiten, Schattenqualitaet Stufe, bool Gelaende)? _schattenFuer;
+
+    /// <summary>Auf Gelände liegen Hügel und Täler vor und hinter dem Blickpunkt: So viele Meter mehr Tiefe haben Near und Far dann (die Kamera sitzt auf der Höhe des Blickpunkts).</summary>
+    private const float GelaendeTiefe = 45f;
 
     // ═════════════════════════════════════════════════════════════════════════
     //  Bloom
@@ -365,7 +368,7 @@ public partial class Stadtansicht
     {
         var bild = GetViewport().GetVisibleRect().Size;
         var seiten = bild.Y > 0 ? bild.X / bild.Y : 16f / 9f;
-        var stand = (_kamera.Size, seiten, Fenster.AktuelleSchattenqualitaet);
+        var stand = (_kamera.Size, seiten, Fenster.AktuelleSchattenqualitaet, BodenBewegt);
         if (_schattenFuer == stand) return;
         _schattenFuer = stand;
 
@@ -374,8 +377,9 @@ public partial class Stadtansicht
         // am unteren Bildrand liegt noch HoechsterPunkt / sin(Neigung) näher. Hinten 10 m Luft für Gruben unter dem Boden.
         var neigung = Mathf.DegToRad(KameraNeigung);
         var boden = _kamera.Size / 2 / Mathf.Tan(neigung);
-        _kamera.Near = Mathf.Max(0.05f, KameraAbstand - boden - HoechsterPunkt / Mathf.Sin(neigung) - 2);
-        _kamera.Far = KameraAbstand + boden + 10;
+        var gelaende = BodenBewegt ? GelaendeTiefe : 0f;
+        _kamera.Near = Mathf.Max(0.05f, KameraAbstand - boden - (HoechsterPunkt + gelaende) / Mathf.Sin(neigung) - 2);
+        _kamera.Far = KameraAbstand + boden + 10 + gelaende / Mathf.Sin(neigung);
 
         // Den Bias rechnet Godot so: Bias / 100 · (Tiefe der Schattenkarte) · max(Weichzeichner · Filterradius, 1).
         // Die Tiefe der Karte ist 2 · Radius der Kugel um den Kameraausschnitt + Pancake (20 m). Umgekehrt ergibt das den

@@ -56,12 +56,28 @@ public partial class Stadtansicht
             eltern.AddChild(knoten);
             if (spiel) TorEinrichten(tor.Name, knoten, lage, teile.TorAnker);
         }
-        Vielfach("Mauerstuecke", teile.Stueck, plan.Stuecke.Select(s => new Transform3D(MauerBasis(s, (float)(s.Laenge / Mauerplan.MauerstueckLaenge)), MauerOrt(s))), eltern);
+        Vielfach("Mauerstuecke", teile.Stueck, plan.Stuecke.Select(s => new Transform3D(MauerStueckBasis(s), MauerOrt(s))), eltern);
         Vielfach("Mauertuerme", teile.Turm, plan.Tuerme.Select(t => new Transform3D(MauerBasis(t), MauerOrt(t))), eltern);
         Vielfach("Eckturme", teile.Eckturm, plan.Ecktuerme.Select(t => new Transform3D(MauerBasis(t), MauerOrt(t))), eltern);
     }
 
-    private static Vector3 MauerOrt(Mauerlage l) => new((float)l.X, 0, (float)l.Z);
+    /// <summary>Wo ein Teil der Mauer steht: auf dem Boden (die Mauer liegt in ihrem Bett, Stadtansicht.Gelaende.cs).</summary>
+    private Vector3 MauerOrt(Mauerlage l) => new((float)l.X, BodenHoehe((float)l.X, (float)l.Z), (float)l.Z);
+
+    /// <summary>Die Ausrichtung eines Mauerstücks (auf 4 m gestreckt wie der Plan sagt); am Hang entlang des Gefälles geneigt.</summary>
+    private Basis MauerStueckBasis(Mauerlage l)
+    {
+        var streckung = (float)(l.Laenge / Mauerplan.MauerstueckLaenge);
+        var basis = MauerBasis(l, streckung);
+        if (!BodenBewegt) return basis;
+        var halb = (float)l.Laenge / 2;
+        var entlang = new Vector3((float)l.EntlangX, 0, (float)l.EntlangZ);
+        var (x, z) = ((float)l.X, (float)l.Z);
+        var steigung = (BodenHoehe(x + entlang.X * halb, z + entlang.Z * halb) - BodenHoehe(x - entlang.X * halb, z - entlang.Z * halb)) / Mathf.Max(0.01f, (float)l.Laenge);
+        var neu = (entlang + new Vector3(0, steigung, 0)).Normalized();
+        var feld = new Vector3((float)l.FeldX, 0, (float)l.FeldZ);
+        return new Basis(neu * streckung, feld.Cross(neu), feld); // y = z × x
+    }
 
     /// <summary>Die Ausrichtung eines Teils: lokal X entlang der Mauer (gestreckt um <paramref name="streckung"/>), Y oben, Z zur Feldseite.</summary>
     private static Basis MauerBasis(Mauerlage l, float streckung = 1) =>

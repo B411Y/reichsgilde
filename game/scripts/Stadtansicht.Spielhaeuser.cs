@@ -56,8 +56,10 @@ public partial class Stadtansicht
                                    int stufe, bool imBau, bool brand, bool leer, Color? farbe, string? kennung, string? name, string? zusatz = null,
                                    string? ankerKennung = null)
     {
-        var g = new Node3D { Name = "Spielhaus", Position = mitte, Rotation = new Vector3(0, drehungY, 0) };
+        var flaeche = new Vector2(platzBreite, platzTiefe);
+        var g = new Node3D { Name = "Spielhaus", Position = AufFundament(mitte, drehungY, flaeche), Rotation = new Vector3(0, drehungY, 0) };
         AddChild(g);
+        GruppenSockel(g, drehungY, flaeche); // auf einem Hang steht das Haus auf einem Bruchsteinsockel (Stadtansicht.Gelaende.cs)
         if (Katalog?.Wohnhaus(stufe) is { Modell: { } datei } baustein)
             ModellEinsetzen(datei, g, new Vector3(0, 0, vorne - ModellFront(baustein)),
                 new ModellZustand(Geruest: imBau || brand, Leerstand: leer, Brand: brand, Besitzer: farbe), ankerKennung ?? kennung);

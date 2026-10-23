@@ -64,12 +64,7 @@ public partial class Stadtansicht
         AddChild(_randKnoten);
 
         var aussen = g.Aussen.Vergroessert(RandZugabe);
-        var mitte = aussen.Mitte;
-        _randKnoten.AddChild(new MeshInstance3D
-        {
-            Name = "Wiese", Mesh = new PlaneMesh { Size = new Vector2((float)aussen.Breite, (float)aussen.Tiefe) }, MaterialOverride = Material(Wiese),
-            Position = new Vector3((float)mitte.X, -0.05f, (float)mitte.Z),
-        });
+        GelaendeBauen(_randKnoten, g.Aussen, RandZugabe); // Stadtansicht.Gelaende.cs: die eine Ebene der flachen Karte oder die Kacheln des Geländes
         DunstBauen(g, aussen);
         if (_entwurf is not null) KartenrandZeichnen(g);
     }
@@ -81,11 +76,35 @@ public partial class Stadtansicht
             ? (g.Spielfeld.Vergroessert(DunstAnfang * g.Randbreite), (DunstVoll - DunstAnfang) * g.Randbreite)
             : (g.Aussen, WerkstattDunstBreite);
         var ecken = new List<Vector3>();
+        // Im Spiel auf hügeligem Boden folgt der Ring dem Gelände (Stadtansicht.Gelaende.cs), sonst läge er in den Hügeln des Randes unter dem Boden
+        var amBoden = BodenBewegt && _entwurf is null;
+        void Flach(double x0, double z0, double x1, double z1)
+        {
+            if (x1 - x0 < 0.01 || z1 - z0 < 0.01) return;
+            var (a, b, c, d) = (new Vector2((float)x0, (float)z0), new Vector2((float)x1, (float)z0), new Vector2((float)x1, (float)z1), new Vector2((float)x0, (float)z1));
+            DreieckFlach(ecken, a, b, c, DunstRingHoehe);
+            DreieckFlach(ecken, a, c, d, DunstRingHoehe);
+        }
         void Rechteck(double x0, double z0, double x1, double z1)
         {
-            var (a, b, c, d) = (new Vector2((float)x0, (float)z0), new Vector2((float)x1, (float)z0), new Vector2((float)x1, (float)z1), new Vector2((float)x0, (float)z1));
-            Dreieck(ecken, a, b, c, DunstRingHoehe);
-            Dreieck(ecken, a, c, d, DunstRingHoehe);
+            if (!amBoden)
+            {
+                Flach(x0, z0, x1, z1);
+                return;
+            }
+            // der Teil in der Karte folgt dem Boden, der Rest darum ist flach
+            var k = g.Aussen;
+            var (ix0, iz0, ix1, iz1) = (Math.Max(x0, k.X0), Math.Max(z0, k.Z0), Math.Min(x1, k.X1), Math.Min(z1, k.Z1));
+            if (ix0 >= ix1 || iz0 >= iz1)
+            {
+                Flach(x0, z0, x1, z1);
+                return;
+            }
+            Flach(x0, z0, x1, iz0);
+            Flach(x0, iz1, x1, z1);
+            Flach(x0, iz0, ix0, iz1);
+            Flach(ix1, iz0, x1, iz1);
+            DunstAmBoden(ecken, ix0, iz0, ix1, iz1);
         }
         Rechteck(aussen.X0, aussen.Z0, aussen.X1, innen.Z0);   // Norden, über die ganze Breite
         Rechteck(aussen.X0, innen.Z1, aussen.X1, aussen.Z1);   // Süden
@@ -104,6 +123,39 @@ public partial class Stadtansicht
         _dunstFarbe = new Color(-1, 0, 0); // DunstFarbeNachfuehren setzt sie im nächsten Bild
         DunstFarbeNachfuehren();
         _randKnoten!.AddChild(new MeshInstance3D { Name = "Randdunst", Mesh = netz, MaterialOverride = _dunstRing, CastShadow = GeometryInstance3D.ShadowCastingSetting.Off });
+    }
+
+    /// <summary>Größe der Zellen, in denen der Dunstring dem Gelände folgt (Meter).</summary>
+    private const double DunstZelle = 8;
+
+    /// <summary>
+    /// Ein Teil des Dunstrings über hügeligem Boden: Zellen von <see cref="DunstZelle"/> Metern, jede Ecke liegt <see cref="DunstRingHoehe"/> über dem
+    /// höchsten Punkt des Bodens in ihrer Umgebung (die vier Zellen um sie) – der Ring schwebt an Hängen ein wenig, schneidet aber nie in den Boden.
+    /// </summary>
+    private void DunstAmBoden(List<Vector3> ecken, double x0, double z0, double x1, double z1)
+    {
+        var nx = Math.Max(1, (int)Math.Ceiling((x1 - x0) / DunstZelle));
+        var nz = Math.Max(1, (int)Math.Ceiling((z1 - z0) / DunstZelle));
+        var (sx, sz) = ((x1 - x0) / nx, (z1 - z0) / nz);
+        var hoehe = new float[(nx + 1) * (nz + 1)];
+        for (var j = 0; j <= nz; j++)
+            for (var i = 0; i <= nx; i++)
+            {
+                var (cx, cz) = (x0 + i * sx, z0 + j * sz);
+                var spitze = float.MinValue;
+                // Proben im Abstand der Rasterpunkte (2 m) über die vier Zellen um die Ecke: Das Netz hat seine Gipfel nur an den Rasterpunkten
+                for (var pz = cz - sz; pz <= cz + sz + 1e-6; pz += Hoehenraster.Abstand)
+                    for (var px = cx - sx; px <= cx + sx + 1e-6; px += Hoehenraster.Abstand)
+                        spitze = Mathf.Max(spitze, BodenHoehe((float)Math.Clamp(px, x0, x1), (float)Math.Clamp(pz, z0, z1)));
+                hoehe[j * (nx + 1) + i] = spitze + DunstRingHoehe;
+            }
+        Vector3 V(int i, int j) => new((float)(x0 + i * sx), hoehe[j * (nx + 1) + i], (float)(z0 + j * sz));
+        for (var j = 0; j < nz; j++)
+            for (var i = 0; i < nx; i++)
+            {
+                var (a, b, c, d) = (V(i, j), V(i + 1, j), V(i + 1, j + 1), V(i, j + 1));
+                ecken.AddRange(new[] { a, b, c, a, c, d }); // gegen den Uhrzeigersinn in (x, z): Vorderseite nach oben
+            }
     }
 
     /// <summary>Jedes Bild: Der Dunst hat die Farbe des Himmels zur Tageszeit (die Beleuchtung stellt <c>BackgroundColor</c> ein).</summary>
@@ -283,6 +335,12 @@ public partial class Stadtansicht
     private const float FeldHoehe = 0.02f;
 
     /// <summary>
+    /// Auf Gelände folgen die Äcker dem Boden in Zellen bis zu dieser Größe (Meter) und liegen <see cref="FeldHoeheAmHang"/> darüber: Zwischen den Ecken einer
+    /// Zelle ist das Netz des Bodens (2-m-Dreiecke) etwas anders gebogen – bei 3 m Zellen bis etwa 5 cm auf unruhigem Boden, sonst schaute er durch die Äcker.
+    /// </summary>
+    private const float FeldZelle = 3f, FeldHoeheAmHang = 0.1f;
+
+    /// <summary>
     /// Baut die Äcker unter <paramref name="eltern"/>: je Frucht ein Netz aus flachen Vierecken (ein Viereck je Stück, Länge entlang der lokalen
     /// z-Achse) mit dem Material der Frucht. Furchen und Bewuchs sind im Shader; die Vertexdaten tragen den Ort im Stück (UV), seine Drehung (UV2),
     /// einen leichten Farbstich der Variante und die halbe Breite des Stücks (COLOR).
@@ -299,33 +357,43 @@ public partial class Stadtansicht
             foreach (var p in gruppe)
             {
                 var (b, l) = ((float)p.Breite / 2, (float)p.Laenge / 2);
-                var lokal = new[] { new Vector2(-b, -l), new Vector2(b, -l), new Vector2(b, l), new Vector2(-b, l) };
                 var winkel = Mathf.DegToRad((float)p.Drehung);
                 var basis = new Basis(Vector3.Up, winkel);
-                var anfang = ecken.Count;
                 // Farbstich aus Ort und Variante: gleiche Karte, gleiche Äcker (kein Zufall je Start)
                 var stich = 0.94f + 0.04f * ((p.Variante - 1) % 4) + 0.02f * Mathf.PosMod((float)(p.X * 0.071 - p.Z * 0.053), 1f);
                 var farbstich = new Color(stich, stich, stich * (p.Variante % 2 == 0 ? 1.02f : 0.97f), Mathf.Min(1f, b / 16f)); // Alpha: halbe Breite für die Furchen am Rand
-                foreach (var e in lokal)
-                {
-                    var welt = basis * new Vector3(e.X, 0, e.Y);
-                    ecken.Add(new Vector3((float)p.X + welt.X, FeldHoehe, (float)p.Z + welt.Z));
-                    uv.Add(e);
-                    uv2.Add(new Vector2(winkel, 0));
-                    farben.Add(farbstich);
-                }
-                // Vorderseite nach oben: in (x, z) gegen den Uhrzeigersinn (wie Dreieck/Vieleck)
+                // Auf flachem Boden ein Viereck je Stück; auf Gelände ein Gitter mit Zellen bis FeldZelle Meter, jede Ecke auf dem Boden
+                var (nx, nz) = BodenBewegt ? (Mathf.Max(1, Mathf.CeilToInt(2 * b / FeldZelle)), Mathf.Max(1, Mathf.CeilToInt(2 * l / FeldZelle))) : (1, 1);
+                var anfang = ecken.Count;
+                for (var iz = 0; iz <= nz; iz++)
+                    for (var ix = 0; ix <= nx; ix++)
+                    {
+                        var e = new Vector2(-b + 2 * b * ix / nx, -l + 2 * l * iz / nz);
+                        var welt = basis * new Vector3(e.X, 0, e.Y);
+                        var (wx, wz) = ((float)p.X + welt.X, (float)p.Z + welt.Z);
+                        ecken.Add(new Vector3(wx, BodenHoehe(wx, wz) + (BodenBewegt ? FeldHoeheAmHang : FeldHoehe), wz));
+                        uv.Add(e);
+                        uv2.Add(new Vector2(winkel, 0));
+                        farben.Add(farbstich);
+                    }
+                // Vorderseite nach oben: in (x, z) gegen den Uhrzeigersinn (wie Dreieck/Vieleck); die Drehung ändert die Richtung nicht, ein Blick auf die erste Zelle genügt
                 var a = new Vector2(ecken[anfang].X, ecken[anfang].Z);
                 var b1 = new Vector2(ecken[anfang + 1].X, ecken[anfang + 1].Z);
-                var c = new Vector2(ecken[anfang + 2].X, ecken[anfang + 2].Z);
-                if ((b1 - a).Cross(c - a) >= 0) indizes.AddRange(new[] { anfang, anfang + 1, anfang + 2, anfang, anfang + 2, anfang + 3 });
-                else indizes.AddRange(new[] { anfang, anfang + 2, anfang + 1, anfang, anfang + 3, anfang + 2 });
+                var c = new Vector2(ecken[anfang + nx + 2].X, ecken[anfang + nx + 2].Z);
+                var gegen = (b1 - a).Cross(c - a) >= 0;
+                for (var iz = 0; iz < nz; iz++)
+                    for (var ix = 0; ix < nx; ix++)
+                    {
+                        int v00 = anfang + iz * (nx + 1) + ix, v10 = v00 + 1, v01 = v00 + nx + 1, v11 = v01 + 1;
+                        if (gegen) indizes.AddRange(new[] { v00, v10, v11, v00, v11, v01 });
+                        else indizes.AddRange(new[] { v00, v11, v10, v00, v01, v11 });
+                    }
             }
             if (ecken.Count == 0) continue;
             var arrays = new Godot.Collections.Array();
             arrays.Resize((int)Mesh.ArrayType.Max);
             arrays[(int)Mesh.ArrayType.Vertex] = ecken.ToArray();
-            arrays[(int)Mesh.ArrayType.Normal] = ecken.Select(_ => Vector3.Up).ToArray();
+            arrays[(int)Mesh.ArrayType.Normal] = ecken.Select(e => BodenNormale(e.X, e.Z)).ToArray();
             arrays[(int)Mesh.ArrayType.TexUV] = uv.ToArray();
             arrays[(int)Mesh.ArrayType.TexUV2] = uv2.ToArray();
             arrays[(int)Mesh.ArrayType.Color] = farben.ToArray();
