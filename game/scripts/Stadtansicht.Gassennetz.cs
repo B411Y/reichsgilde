@@ -23,11 +23,25 @@ public sealed class Gassennetz
 
     private readonly List<Vector3> _knoten = new();
     private readonly HashSet<(int A, int B)> _kanten = new();
-    private List<(int Ziel, float Laenge)>[]? _nachbarn;
-    private readonly Dictionary<(int, int), Vector3[]> _pfade = new();
+
+    /// <summary>
+    /// Die Fähren (Kartenwerkstatt, Schritt 5c): Kanten über das Wasser zwischen zwei Anlegern. Nur Karren benutzen sie (<see cref="Pfad"/> mit
+    /// <c>faehren</c>); Passanten laufen nie darüber. Für die Wahl des Weges zählt eine Fähre wie <see cref="FaehreUmweg"/> Meter Umweg
+    /// (wie im Kern, <c>Karrennetz.FaehreUmweg</c>).
+    /// </summary>
+    private readonly HashSet<(int A, int B)> _faehren = new();
+
+    /// <summary>Für die Wahl des Weges zählt eine Fähre so viele Meter mehr als ihre Länge (wie <c>Karrennetz.FaehreUmweg</c> im Kern).</summary>
+    public const float FaehreUmweg = 300f;
+
+    private List<(int Ziel, float Laenge, float Kosten)>[]? _nachbarn, _nachbarnMitFaehren;
+    private readonly Dictionary<(int, int, bool), Vector3[]> _pfade = new();
 
     public IReadOnlyList<Vector3> Knoten => _knoten;
     public IEnumerable<(Vector3 Von, Vector3 Bis)> Kanten => _kanten.Select(k => (_knoten[k.A], _knoten[k.B]));
+
+    /// <summary>Die Fähren als Strecken (Anleger zu Anleger).</summary>
+    public IEnumerable<(Vector3 Von, Vector3 Bis)> FaehrKanten => _faehren.Select(k => (_knoten[k.A], _knoten[k.B]));
 
     /// <summary>Knoten an diesem Punkt (vorhandener in Fangweite oder neuer).</summary>
     public int KnotenBei(Vector3 p)
@@ -53,6 +67,15 @@ public sealed class Gassennetz
             KanteMitKreuzungen(KnotenBei(punkte[i]), KnotenBei(punkte[i + 1]));
     }
 
+    /// <summary>Legt eine Fähre zwischen zwei Anlegern an (die Punkte hängen am Netz der Wege; die Kante selbst teilt keine Straße).</summary>
+    public void Faehre(Vector3 von, Vector3 bis)
+    {
+        var (a, b) = (KnotenBei(von), KnotenBei(bis));
+        if (a == b) return;
+        _faehren.Add(Ordnen(a, b));
+        Geaendert();
+    }
+
     /// <summary>
     /// Der Knoten auf dem Netz, der diesem Punkt am nächsten liegt. Liegt der nächste Punkt mitten auf einer
     /// Kante, wird sie dort geteilt. Gibt -1 zurück, wenn das Netz leer ist.
@@ -71,13 +94,13 @@ public sealed class Gassennetz
         return Teilen(beste.Kante, beste.Punkt);
     }
 
-    /// <summary>Kürzester Weg als Punktfolge (Start und Ziel eingeschlossen). Leer, wenn es keinen gibt.</summary>
-    public Vector3[] Pfad(int von, int nach)
+    /// <summary>Kürzester Weg als Punktfolge (Start und Ziel eingeschlossen). Leer, wenn es keinen gibt. Mit <paramref name="faehren"/> (Karren) auch über Fähren.</summary>
+    public Vector3[] Pfad(int von, int nach, bool faehren = false)
     {
         if (von == nach) return new[] { _knoten[von] };
-        if (_pfade.TryGetValue((von, nach), out var gemerkt)) return gemerkt;
+        if (_pfade.TryGetValue((von, nach, faehren), out var gemerkt)) return gemerkt;
 
-        var nachbarn = Nachbarn();
+        var nachbarn = Nachbarn(faehren);
         var abstand = new float[_knoten.Count];
         var vorgaenger = new int[_knoten.Count];
         Array.Fill(abstand, float.MaxValue);
@@ -89,9 +112,9 @@ public sealed class Gassennetz
         {
             if (d > abstand[k]) continue; // veralteter Eintrag
             if (k == nach) break;
-            foreach (var (ziel, laenge) in nachbarn[k])
+            foreach (var (ziel, _, kosten) in nachbarn[k])
             {
-                var neu = d + laenge;
+                var neu = d + kosten;
                 if (neu >= abstand[ziel]) continue;
                 abstand[ziel] = neu;
                 vorgaenger[ziel] = k;
@@ -109,14 +132,14 @@ public sealed class Gassennetz
             liste.Reverse();
             pfad = liste.ToArray();
         }
-        _pfade[(von, nach)] = pfad;
+        _pfade[(von, nach, faehren)] = pfad;
         return pfad;
     }
 
-    /// <summary>Wie viele voneinander getrennte Teile das Netz hat (1 = alles hängt zusammen).</summary>
+    /// <summary>Wie viele voneinander getrennte Teile das Netz hat (1 = alles hängt zusammen); Fähren verbinden (für Karren).</summary>
     public int Teile()
     {
-        var nachbarn = Nachbarn();
+        var nachbarn = Nachbarn(true);
         var teil = new int[_knoten.Count];
         Array.Fill(teil, -1);
         var anzahl = 0;
@@ -127,7 +150,7 @@ public sealed class Gassennetz
             stapel.Push(start);
             teil[start] = anzahl;
             while (stapel.TryPop(out var k))
-                foreach (var (ziel, _) in nachbarn[k])
+                foreach (var (ziel, _, _) in nachbarn[k])
                     if (teil[ziel] < 0) { teil[ziel] = anzahl; stapel.Push(ziel); }
             anzahl++;
         }
@@ -204,22 +227,30 @@ public sealed class Gassennetz
 
     private void Geaendert()
     {
-        _nachbarn = null;
+        _nachbarn = _nachbarnMitFaehren = null;
         _pfade.Clear();
     }
 
-    private List<(int Ziel, float Laenge)>[] Nachbarn()
+    private List<(int Ziel, float Laenge, float Kosten)>[] Nachbarn(bool faehren = false)
     {
-        if (_nachbarn is not null) return _nachbarn;
-        _nachbarn = new List<(int, float)>[_knoten.Count];
-        for (var i = 0; i < _knoten.Count; i++) _nachbarn[i] = new();
+        if (faehren ? _nachbarnMitFaehren is not null : _nachbarn is not null) return faehren ? _nachbarnMitFaehren! : _nachbarn!;
+        var liste = new List<(int, float, float)>[_knoten.Count];
+        for (var i = 0; i < _knoten.Count; i++) liste[i] = new();
         foreach (var (a, b) in _kanten)
         {
             var laenge = _knoten[a].DistanceTo(_knoten[b]);
-            _nachbarn[a].Add((b, laenge));
-            _nachbarn[b].Add((a, laenge));
+            liste[a].Add((b, laenge, laenge));
+            liste[b].Add((a, laenge, laenge));
         }
-        return _nachbarn;
+        if (faehren)
+            foreach (var (a, b) in _faehren)
+            {
+                var laenge = _knoten[a].DistanceTo(_knoten[b]);
+                liste[a].Add((b, laenge, laenge + FaehreUmweg));
+                liste[b].Add((a, laenge, laenge + FaehreUmweg));
+            }
+        if (faehren) _nachbarnMitFaehren = liste; else _nachbarn = liste;
+        return liste;
     }
 
     private static (int, int) Ordnen(int a, int b) => a < b ? (a, b) : (b, a);

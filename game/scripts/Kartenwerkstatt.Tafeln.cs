@@ -233,6 +233,18 @@ public partial class Kartenwerkstatt
             Werkstattwerkzeug.Mauer);
         Eintrag("tor", "Tor", "Klick auf eine Mauer setzt dort ein Tor (es rastet auf die Linie); ein Weg durch das Tor rastet in seiner Mitte ein", Werkstattwerkzeug.Tor);
 
+        // Wasser (Schritt 5c): Flüsse und Bäche (Linie, in Fließrichtung), Seen und Teiche (Fläche), Fährstellen, Häfen
+        Kopf("Wasser");
+        Eintrag("wasser:fluss", $"Fluss · {Breite(Wasserform.Vorgabebreite("fluss"))}", "Punkte klicken, in Fließrichtung (die Pfeile zeigen sie) – Doppelklick oder Enter legt den Fluss an. Brücken entstehen, wo ein Weg ihn quert.",
+            Werkstattwerkzeug.Fluss, () => (_stadt.WerkstattFlussart, _stadt.WerkstattFlussbreite) = ("fluss", 0));
+        Eintrag("wasser:bach", $"Bach · {Breite(Wasserform.Vorgabebreite("bach"))}", "Wie der Fluss, aber schmal und flach: Wege führen durch eine Furt (unter 0,5 m Tiefe) oder über eine kleine Brücke",
+            Werkstattwerkzeug.Fluss, () => (_stadt.WerkstattFlussart, _stadt.WerkstattFlussbreite) = ("bach", 0));
+        Eintrag("wasser:see", "See", "Ecken klicken, Doppelklick schließt – eine stille Wasserfläche mit Wasserstand und Tiefe", Werkstattwerkzeug.See, () => _stadt.WerkstattSeeart = "see");
+        Eintrag("wasser:teich", "Teich", "Wie der See, nur klein", Werkstattwerkzeug.See, () => _stadt.WerkstattSeeart = "teich");
+        Eintrag("wasser:faehre", "Fährstelle", "Zwei Klicks, die Anleger an beiden Ufern – sie rasten an Wegen ein. Karren setzen mit der Fähre über (und warten dort länger).", Werkstattwerkzeug.Faehre);
+        if (_entwurf.Katalog.Finde(Kartenentwurf.HafenKatalog) is { } hafen)
+            Eintrag("wasser:hafen", hafen.Anzeigename, "Ein Hafen am Ufer: die Vorderseite (Pfeil) zum Wasser, höchstens 3 m davon entfernt – Q/E dreht", Werkstattwerkzeug.Baustein, baustein: hafen.Kennung);
+
         // Gelände (Schritt 5b): Pinsel und Rampe
         Kopf("Gelände");
         foreach (var (art, name, tipp) in Gelaendepinsel)
@@ -365,6 +377,9 @@ public partial class Kartenwerkstatt
             Werkstattwerkzeug.Gelaende => "Mit gedrückter Maus malen – Radius, Stärke und Kante rechts · Loslassen beendet den Strich (ein Schritt für Strg+Z) · Esc nimmt ihn zurück · Gelb: Hangsperre ab 8 %, rot ab 15 %",
             Werkstattwerkzeug.Rampe => "Zwei Klicks: Anfang und Ende der Rampe · Breite und Kante rechts · Esc: erster Klick zurück · Rechtsklick: fertig",
             Werkstattwerkzeug.Mauer => "Ecken klicken (1-m-Raster, Alt: frei) · Klick auf die erste Ecke schließt den Ring · Doppelklick oder Enter: offen fertig · Rücktaste: letzte Ecke weg · Esc bricht ab",
+            Werkstattwerkzeug.Fluss => "Punkte klicken, in Fließrichtung (Pfeile) · Doppelklick oder Enter: fertig · Rücktaste: letzter Punkt weg · Esc bricht ab",
+            Werkstattwerkzeug.See => "Ecken klicken · Doppelklick, Enter oder Klick auf die erste Ecke schließt · Rücktaste: letzte Ecke weg · Esc bricht ab",
+            Werkstattwerkzeug.Faehre => "Zwei Klicks: die Anleger an beiden Ufern (rasten an Wegen ein, der Ring zeigt wo) · Esc: erster Klick zurück · Rechtsklick: fertig",
             Werkstattwerkzeug.Tor => "Klick auf eine Mauer setzt ein Tor · Esc oder Rechtsklick: fertig",
             Werkstattwerkzeug.Platz => (_stadt.WerkstattPlatzHinweis ?? "Einen Platz anklicken") + " · grün: passt · Esc oder Rechtsklick bricht ab",
             _ => "Klick wählt · Ziehen verschiebt (Mauer: mit Umschalt) · Griffe ziehen, Klick auf Linie oder Rand fügt ein · Q/E dreht · Entf löscht Griff oder Teil · Esc hebt auf · Strg+Z/Y · Strg+S",
@@ -381,7 +396,8 @@ public partial class Kartenwerkstatt
     {
         var name = _entwurf.Stadt.Length > 0 ? _entwurf.Stadt : "Ohne Namen";
         _titel.Text = $"{name} · {_entwurf.Kennung} · {_entwurf.Gebaeude.Count} Gebäude, {_entwurf.Wege.Count} Wege, "
-                      + $"{_entwurf.Bauzonen.Count + _entwurf.Naturflaechen.Count + _entwurf.Felder.Count} Flächen, {_entwurf.Pflanzen.Count} Pflanzen";
+                      + $"{_entwurf.Bauzonen.Count + _entwurf.Naturflaechen.Count + _entwurf.Felder.Count} Flächen, {_entwurf.Pflanzen.Count} Pflanzen"
+                      + (_entwurf.Gewaesser.Count + _entwurf.Faehren.Count > 0 ? $", {_entwurf.Gewaesser.Count} Gewässer" + (_entwurf.Faehren.Count > 0 ? $", {_entwurf.Faehren.Count} Fähren" : "") : "");
         var quelle = _pfad is not { } pfad ? "neue Karte, noch nicht gespeichert"
             : _nurLesen ? $"Spielkarte {Anzeigepfad(pfad)} – nur lesen (Speichern legt eine eigene Datei an)"
             : IstSpielkarte(pfad) ? $"Spielkarte – wird direkt gespeichert · {Anzeigepfad(pfad)}"
@@ -575,6 +591,11 @@ public partial class Kartenwerkstatt
         if (_stadt.Kartenwerkzeug is Werkstattwerkzeug.Gelaende or Werkstattwerkzeug.Rampe)
         {
             if (neu || _gezeigt != GelaendeMarke) GelaendeTafel(); // Kartenwerkstatt.Eigenschaften.cs
+            return;
+        }
+        if (_stadt.Kartenwerkzeug is Werkstattwerkzeug.Fluss or Werkstattwerkzeug.See or Werkstattwerkzeug.Faehre)
+        {
+            if (neu || _gezeigt != WasserMarke) WasserWerkzeugTafel(); // Kartenwerkstatt.Wasser.cs
             return;
         }
         var teil = _stadt.WerkstattGewaehlt;

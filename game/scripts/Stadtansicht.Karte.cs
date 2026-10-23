@@ -119,6 +119,8 @@ public partial class Stadtansicht
         Kulissenhaeuser(karte);
         foreach (var berg in karte.GebaeudeDerArt(Bausteinart.Berg)) BergBauen(berg);
         WegeAnlegen(karte);
+        GewaesserBauen();    // Wasser, Brücken, Furten, Fähren (Stadtansicht.Wasser.cs)
+        FaehrenAnsNetz();    // Karren setzen mit Fähren über (Stadtansicht.Wasser.Uebergaenge.cs)
         UmlandstellenBauen(karte); // Stadtansicht.Umland.cs
         Anschliessen(karte);
         NaturAusKarte(karte); // Stadtansicht.Natur.cs
@@ -305,12 +307,13 @@ public partial class Stadtansicht
     /// </summary>
     private void WegeAnlegen(Stadtkarte karte)
     {
-        foreach (var weg in karte.Wege)
+        for (var nummer = 0; nummer < karte.Wege.Count; nummer++)
         {
+            var weg = karte.Wege[nummer];
             var punkte = weg.Verlauf.Where(p => p is { Length: 2 }).Select(Punkt3).ToArray();
             if (punkte.Length < 2) continue;
             var breite = (float)weg.BreiteWirksam;
-            WegZeichnen(punkte, breite, weg.IstGlatt);
+            WegZeichnen(punkte, breite, weg.IstGlatt, luecken: WegLuecken(nummer)); // unter Brücken kein Band (Stadtansicht.Wasser.Uebergaenge.cs)
             for (var i = 0; i + 1 < punkte.Length; i++) _wegStrecken.Add((punkte[i], punkte[i + 1], breite));
             _netz.Weg(weg.IstGlatt ? NetzPunkte(punkte) : punkte);
         }
@@ -320,8 +323,13 @@ public partial class Stadtansicht
     /// Zeichnet einen Weg: gerade Strecken als je ein flacher Quader (wie seit jeher), eine glatte Kurve als ein Band (<see cref="WegBand"/>) –
     /// die vielen kurzen Stücke der Kurve als Quader lägen übereinander. Über den Marktplatz führt keiner (<see cref="OhneMarktplatz"/>).
     /// </summary>
-    private void WegZeichnen(IReadOnlyList<Vector3> punkte, float breite, bool glatt, Node3D? eltern = null)
+    private void WegZeichnen(IReadOnlyList<Vector3> punkte, float breite, bool glatt, Node3D? eltern = null, List<(float Von, float Bis)>? luecken = null)
     {
+        if (luecken is { Count: > 0 }) // Brücken: Meter entlang des Weges ohne Band; die Läufe davor und dahinter wie ein Weg für sich
+        {
+            foreach (var teilweg in WegOhneLuecken(punkte, luecken)) WegZeichnen(teilweg, breite, glatt, eltern);
+            return;
+        }
         if (!glatt && !BodenBewegt) // auf Gelände wird jeder Weg ein Band, das dem Boden folgt (Quader lägen nur gerade im Raum)
         {
             for (var i = 0; i + 1 < punkte.Count; i++) WegZiehen(punkte[i], punkte[i + 1], breite, eltern);
