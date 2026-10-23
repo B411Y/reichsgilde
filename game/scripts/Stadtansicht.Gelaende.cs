@@ -140,6 +140,12 @@ public partial class Stadtansicht
             Rotation = new Vector3(0, drehung, 0),
         };
         eltern.AddChild(sockel);
+        // oben liegt das Pflaster (nicht der helle Bruchstein): So sieht der Sockel wie ein gepflasterter Vorplatz aus
+        sockel.AddChild(new MeshInstance3D
+        {
+            Name = "Pflaster", Mesh = new PlaneMesh { Size = new Vector2(groesse.X - 0.15f, groesse.Y - 0.15f) }, MaterialOverride = Material(Pflaster),
+            Position = new Vector3(0, hoehe / 2 + 0.02f, 0),
+        });
         return sockel;
     }
 
@@ -290,7 +296,7 @@ public partial class Stadtansicht
                 GelaendeKachelBauen(i, j);
     }
 
-    /// <summary>Wie fein eine Kachel gezeichnet wird: Schritt in Rasterpunkten (1 = jeder Punkt). Im Spiel weit vom Spielfeld gröber.</summary>
+    /// <summary>Wie fein eine Kachel gezeichnet wird: Schritt in Rasterpunkten (1 = jeder Punkt, 2 = jeder zweite). Im Spiel weit vom Spielfeld gröber.</summary>
     private int KachelSchritt(int ti, int tj)
     {
         if (!GelaendeGrob || _grenzen is null) return 1;
@@ -298,7 +304,7 @@ public partial class Stadtansicht
         var spielfeld = _grenzen.Spielfeld;
         var (mx, mz) = ((ti + 0.5) * kachel, (tj + 0.5) * kachel);
         var d = Math.Max(Math.Max(spielfeld.X0 - mx, mx - spielfeld.X1), Math.Max(spielfeld.Z0 - mz, mz - spielfeld.Z1)) - kachel / 2;
-        return d < 48 ? 1 : d < 192 ? 2 : 4;
+        return d < 64 ? 1 : 2; // nie gröber als 4 m: Äcker (10 cm über dem Boden) und Pflanzen liegen auf dem feinen Boden, das grobe Netz weicht auf unruhigem Gelände bis etwa 7 cm ab
     }
 
     /// <summary>Baut (oder ersetzt) eine Kachel des Bodens.</summary>
@@ -402,6 +408,63 @@ public partial class Stadtansicht
                 indizes.AddRange(new[] { a, b, d, a, d, c, a, d, b, a, c, d }); // beide Seiten
             }
         }
+    }
+
+    /// <summary>
+    /// Ein Vieleck (x, z), <paramref name="ueber"/> Meter über dem Boden, genau auf den Dreiecken des Netzes: Jede Zelle des Rasters (2 m) liegt im Vieleck
+    /// ganz – dann sind es ihre zwei Dreiecke selbst –, ganz draußen – dann nichts – oder wird an seinem Rand mit den zwei Dreiecken zugeschnitten
+    /// (<see cref="Geometry2D.IntersectPolygons"/>). So passt die Fläche ohne Riss auf den Boden (kein Teilen nach Gefühl wie bei <see cref="Dreieck"/>),
+    /// auch auf unruhigem Gelände. Gibt je drei Ecken ein Dreieck, Vorderseite nach oben.
+    /// </summary>
+    private List<Vector3> RasterDreiecke(Vector2[] vieleck, float ueber)
+    {
+        var ecken = new List<Vector3>();
+        if (vieleck.Length < 3) return ecken;
+        const float z = (float)Hoehenraster.Abstand;
+        var rahmen = new Rect2(vieleck[0], Vector2.Zero);
+        foreach (var p in vieleck) rahmen = rahmen.Expand(p);
+        var (i0, j0, i1, j1) = ((int)Mathf.Floor(rahmen.Position.X / z), (int)Mathf.Floor(rahmen.Position.Y / z), (int)Mathf.Floor(rahmen.End.X / z), (int)Mathf.Floor(rahmen.End.Y / z));
+
+        // Randzellen: alle, die eine Kante des Vielecks berührt (die Kanten in Schritten von einem halben Meter abgetastet)
+        var rand = new HashSet<(int, int)>();
+        for (var k = 0; k < vieleck.Length; k++)
+        {
+            var (a, b) = (vieleck[k], vieleck[(k + 1) % vieleck.Length]);
+            var teile = Mathf.Max(1, Mathf.CeilToInt(a.DistanceTo(b) / 0.5f));
+            for (var t = 0; t <= teile; t++)
+            {
+                var q = a.Lerp(b, (float)t / teile);
+                rand.Add(((int)Mathf.Floor(q.X / z), (int)Mathf.Floor(q.Y / z)));
+            }
+        }
+
+        Vector3 Punkt(float x, float zz) => new(x, BodenHoehe(x, zz) + ueber, zz);
+        for (var j = j0; j <= j1; j++)
+            for (var i = i0; i <= i1; i++)
+            {
+                var (x0, z0, x1, z1) = (i * z, j * z, (i + 1) * z, (j + 1) * z);
+                var (v00, v10, v11, v01) = (new Vector2(x0, z0), new Vector2(x1, z0), new Vector2(x1, z1), new Vector2(x0, z1));
+                if (!rand.Contains((i, j)))
+                {
+                    if (!Geometry2D.IsPointInPolygon(new Vector2(x0 + z / 2, z0 + z / 2), vieleck)) continue;
+                    foreach (var p in new[] { v00, v10, v11, v00, v11, v01 }) ecken.Add(Punkt(p.X, p.Y));
+                    continue;
+                }
+                foreach (var dreieck in new[] { new[] { v00, v10, v11 }, new[] { v00, v11, v01 } })
+                    foreach (var stueck in Geometry2D.IntersectPolygons(vieleck, dreieck))
+                    {
+                        var indizes = Geometry2D.TriangulatePolygon(stueck);
+                        for (var n = 0; n + 2 < indizes.Length; n += 3)
+                        {
+                            var (p, q, r) = (stueck[indizes[n]], stueck[indizes[n + 1]], stueck[indizes[n + 2]]);
+                            if ((q - p).Cross(r - p) < 0) (q, r) = (r, q); // Vorderseite nach oben
+                            ecken.Add(Punkt(p.X, p.Y));
+                            ecken.Add(Punkt(q.X, q.Y));
+                            ecken.Add(Punkt(r.X, r.Y));
+                        }
+                    }
+            }
+        return ecken;
     }
 
     // ═════════════════════════════════════════════════════════════════════════

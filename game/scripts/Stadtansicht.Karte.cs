@@ -184,9 +184,8 @@ public partial class Stadtansicht
         arrays.Resize((int)Mesh.ArrayType.Max);
         if (BodenBewegt)
         {
-            // auf Gelände in kleine Dreiecke zerlegt, jede Ecke auf dem Boden (ohne gemeinsame Ecken: einfach und für ein Pflaster genug)
-            var ecken = new List<Vector3>();
-            for (var i = 0; i + 2 < dreiecke.Length; i += 3) Dreieck(ecken, punkte[dreiecke[i]], punkte[dreiecke[i + 1]], punkte[dreiecke[i + 2]], hoehe + PflasterAmHang, PflasterSchritt); // etwas über dem Boden: sonst schaut er durch und es flimmert
+            // auf Gelände genau auf den Dreiecken des Bodens: kein Riss, nichts, das durchschaut (Stadtansicht.Gelaende.cs)
+            var ecken = RasterDreiecke(punkte, hoehe + PflasterAmHang);
             arrays[(int)Mesh.ArrayType.Vertex] = ecken.ToArray();
             arrays[(int)Mesh.ArrayType.Normal] = ecken.Select(e => BodenNormale(e.X, e.Z)).ToArray();
             arrays[(int)Mesh.ArrayType.TexUV] = ecken.Select(e => (new Vector2(e.X, e.Z) - rahmen.Position) / rahmen.Size).ToArray();

@@ -435,10 +435,8 @@ public partial class Stadtansicht
         arrays.Resize((int)Mesh.ArrayType.Max);
         if (BodenBewegt)
         {
-            // auf Gelände in kleine Dreiecke zerlegt, jede Ecke auf dem Boden
-            var ecken = new List<Vector3>();
-            for (var i = 0; i + 2 < dreiecke.Length; i += 3) Dreieck(ecken, punkte[dreiecke[i]], punkte[dreiecke[i + 1]], punkte[dreiecke[i + 2]], ZoneAmHang, ZoneSchritt); // die Fläche selbst liegt noch 8 cm höher (Position)
-            arrays[(int)Mesh.ArrayType.Vertex] = ecken.ToArray();
+            // auf Gelände genau auf den Dreiecken des Bodens (Stadtansicht.Gelaende.cs); die Fläche selbst liegt noch 8 cm höher (Position)
+            arrays[(int)Mesh.ArrayType.Vertex] = RasterDreiecke(punkte, ZoneAmHang).ToArray();
         }
         else
         {

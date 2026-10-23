@@ -1206,10 +1206,10 @@ public partial class Stadtansicht : Node3D
     private const float BandSchritt = 2f, DreieckSchritt = 4f;
 
     /// <summary>
-    /// Das Pflaster der Stadt bedeckt den Boden ganz, aber unter den Wegen (7 cm): Kanten bis 1 m (feiner als die 2-m-Zellen des Bodens, so bleibt der Fehler
-    /// unter 3 cm), 3 cm darüber. Bauzonen (durchscheinend, über allem) tragen sich auf 2-m-Zellen, 2 cm über ihrer Fläche.
+    /// Das Pflaster der Stadt bedeckt den Boden ganz, aber unter den Wegen (7 cm): 3 cm über dem Boden, genau auf seinen Dreiecken (<see cref="RasterDreiecke"/>).
+    /// Bauzonen (durchscheinend, über allem) liegen ebenso 2 cm über ihrer Fläche.
     /// </summary>
-    private const float PflasterSchritt = 1f, PflasterAmHang = 0.03f, ZoneSchritt = 2f, ZoneAmHang = 0.02f;
+    private const float PflasterAmHang = 0.03f, ZoneAmHang = 0.02f;
 
     /// <summary>Die Linie mit zusätzlichen Punkten, so dass keine Strecke länger als <paramref name="schritt"/> ist (die Punkte der Linie bleiben).</summary>
     private static List<Vector2> Verfeinert(IReadOnlyList<Vector2> linie, float schritt)

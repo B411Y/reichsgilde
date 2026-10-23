@@ -125,11 +125,20 @@ public partial class Stadtansicht
         return liste;
     }
 
+    /// <summary>Wie viel Boden das Rechteck um das Vieleck deckt (m²) – darüber zerlegt <see cref="VieleckDreiecke"/> grob statt Zelle für Zelle.</summary>
+    private static float GrossFlaeche(Vector2[] punkte)
+    {
+        var r = new Rect2(punkte[0], Vector2.Zero);
+        foreach (var p in punkte) r = r.Expand(p);
+        return r.Size.X * r.Size.Y;
+    }
+
     /// <summary>Die Dreiecke eines Vielecks (Vorderseite oben) – leer, wenn es sich nicht zerlegen lässt (etwa, weil es sich selbst schneidet).</summary>
     private Vector3[] VieleckDreiecke(List<Vector2> punkte, float hoehe)
     {
         if (punkte.Count < 3) return Array.Empty<Vector3>();
         var feld = punkte.ToArray();
+        if (BodenBewegt && feld.Length < 400 && GrossFlaeche(feld) < 150000) return RasterDreiecke(feld, hoehe).ToArray(); // genau auf dem Boden, ohne Risse (Stadtansicht.Gelaende.cs)
         var dreiecke = Geometry2D.TriangulatePolygon(feld);
         var ecken = new List<Vector3>();
         for (var i = 0; i + 2 < dreiecke.Length; i += 3) Dreieck(ecken, feld[dreiecke[i]], feld[dreiecke[i + 1]], feld[dreiecke[i + 2]], hoehe);
