@@ -126,8 +126,8 @@ public sealed class Baustein
     public List<Lage>? Lagen { get; init; }
 
     /// <summary>
-    /// Steht am Ufer (Schritt 5c, z. B. der Hafen): Die Vorderseite zeigt zum Wasser – ihre Mitte höchstens 3 m vom Wasser, die Grundfläche ohne
-    /// Vorplatz an Land (Prüfung „ufer“). Fehlt es: false.
+    /// Steht am Ufer (Schritt 5c, der Hafen): mit der Rückseite zum Wasser – deren Mitte höchstens 3 m vom Wasser, die ganze Grundfläche an Land
+    /// (Prüfung „ufer“; das Modell hat den Weg vorn, Kai und Kähne hinten). Fehlt es: false.
     /// </summary>
     public bool AmUfer { get; init; }
 

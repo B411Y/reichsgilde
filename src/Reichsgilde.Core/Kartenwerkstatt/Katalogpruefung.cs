@@ -53,7 +53,8 @@ public static class Katalogpruefung
             var namen = new List<string>();
             if (b.Knoten is { } knoten)
             {
-                namen = b.Art == Bausteinart.Natur ? Enumerable.Range(1, b.Varianten).Select(v => knoten + v).ToList() : new List<string> { knoten };
+                // Natur und Bausteine mit mehreren Varianten (die Furt) heißen „Knoten1“ … „KnotenN“
+                namen = b.Art == Bausteinart.Natur || b.Varianten > 1 ? Enumerable.Range(1, b.Varianten).Select(v => knoten + v).ToList() : new List<string> { knoten };
                 foreach (var n in namen.Where(n => !datei.HatKnoten(n)))
                     Melde(Schwere.Fehler, b, $"{b.Kennung}: Der Knoten „{n}“ fehlt in {modell}.glb.");
             }

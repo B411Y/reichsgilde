@@ -10,7 +10,7 @@ namespace Reichsgilde.Core.Kartenwerkstatt;
 //  eigene Breite und Tiefe haben; ohne gilt die des Flusses bzw. die Vorgabe der Art (Wasserform). Ein See ist eine Fläche wie eine
 //  Naturfläche (Ecken ziehen, einfügen, löschen über die Flächenbefehle) mit Wasserstand und Tiefe. Eine Fährstelle hat zwei Anleger; jeder
 //  rastet beim Setzen an einem Weg ein (der Weg bekommt dort einen Stützpunkt), und ein Weg, der an einem Anleger beginnt oder endet, rastet
-//  dort ein (Fangziel Anleger). Einen Hafen setzt man aus dem Katalog („hafenplatz“, Umlandstelle mit amUfer) – mit der Vorderseite zum Wasser.
+//  dort ein (Fangziel Anleger). Einen Hafen setzt man aus dem Katalog („hafenplatz“, Umlandstelle mit amUfer) – mit der Rückseite (Kai) zum Wasser.
 //  Brücken und Furten setzt niemand: Sie entstehen, wo ein Weg einen Fluss quert (Wasserplan).
 //  Jede Änderung ist ein Befehl mit Rückgängig; Gelände und Bett folgen von selbst (Gelaendeform.WasserVeraltet).
 // ═════════════════════════════════════════════════════════════════════════════
@@ -239,7 +239,7 @@ public sealed partial class Kartenentwurf
     /// <summary>So weit (Meter) darf ein Anleger höchstens vom Wasser stehen.</summary>
     public const double AnlegerUfer = 15;
 
-    /// <summary>So weit (Meter) darf die Vorderseite eines Gebäudes am Ufer (Hafen) höchstens vom Wasser stehen.</summary>
+    /// <summary>So weit (Meter) darf die Rückseite eines Gebäudes am Ufer (Hafen) höchstens vom Wasser stehen.</summary>
     public const double HafenUfer = 3;
 
     /// <summary>Anzeigename einer Gewässerart („Fluss“, „Bach“, „See“, „Teich“).</summary>

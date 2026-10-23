@@ -1,4 +1,3 @@
-using System.Text.Json.Nodes;
 using Reichsgilde.Core.Bauen;
 using Reichsgilde.Core.Kartenwerkstatt;
 using Reichsgilde.Core.Speichern;
@@ -16,23 +15,13 @@ static class WasserTests
     static readonly Lazy<Gebaeudekatalog> Katalog = new(() => Gebaeudekatalog.AusDatei(Path.Combine(Datenordner, "katalog.json")));
     static readonly Lazy<Wirtschaftsdaten> Daten = new(() => Wirtschaftsdaten.AusDatei(Datenpfad.Wirtschaft()));
 
-    /// <summary>Der Katalog mit einem Hafenplatz (Umlandstelle am Ufer, 24 × 16 m) – wie ihn der Katalog bekommt, sobald das Modell da ist.</summary>
-    static readonly Lazy<Gebaeudekatalog> MitHafen = new(() =>
-    {
-        var json = JsonNode.Parse(File.ReadAllText(Path.Combine(Datenordner, "katalog.json")))!.AsObject();
-        var bausteine = json["bausteine"]!.AsArray();
-        if (!bausteine.Any(b => (string?)b!["kennung"] == Kartenentwurf.HafenKatalog))
-            bausteine.Add(JsonNode.Parse("""{"kennung": "hafenplatz", "art": "umlandstelle", "name": "Hafen", "modell": "wasser/hafen", "knoten": "Hafen", "groesse": [24, 16], "amUfer": true}"""));
-        return Gebaeudekatalog.AusJson(json.ToJsonString());
-    });
-
     static string Text(string kennung) => File.ReadAllText(Datenpfad.Karte(kennung));
     static Kartenort O(double x, double z) => new(x, z);
     static string Liste(IEnumerable<Befund> befunde) => string.Join("\n  ", befunde.Select(b => b.ToString()));
     static List<Befund> Fehler(Kartenentwurf e) => e.Befunde.Where(b => b.Schwere == Schwere.Fehler).ToList();
 
     /// <summary>Eine leere Karte 400 × 300 m mit 300 m Rand.</summary>
-    static Kartenentwurf Leer(Gebaeudekatalog? katalog = null) => Kartenentwurf.Neu("probe", "Probe", 400, 300, katalog ?? Katalog.Value);
+    static Kartenentwurf Leer() => Kartenentwurf.Neu("probe", "Probe", 400, 300, Katalog.Value);
 
     /// <summary>Ein Fluss von West nach Ost entlang z = 0 (x −150 … 150).</summary>
     static EntwurfFluss Ostfluss(Kartenentwurf e, double breite, string art = "fluss") => e.FlussAnlegen(new[] { O(-150, 0), O(0, 0), O(150, 0) }, art, breite);
@@ -81,13 +70,18 @@ static class WasserTests
             var g = e.Gelaendeform;
             Pruefe.Wahr(!g.IstFlach && !g.HatHoehen && e.Hoehen.IstLeer, "Wasser ohne Höhen");
             var tiefe = Wasserform.Vorgabetiefe(6);
-            Pruefe.Ungefaehr(-Wasserform.Freibord - tiefe, g.Hoehe(0, 0), 0.006);                       // Mitte: Spiegel − Tiefe
-            Pruefe.Ungefaehr(-Wasserform.Freibord - tiefe * (1 - 4.0 / 9), g.Hoehe(0, 2), 0.006);     // 2 m neben der Mitte (Parabel)
-            Pruefe.Wahr(g.Hoehe(0, 4) > -Wasserform.Freibord && g.Hoehe(0, 4) < 0, $"Ufer {g.Hoehe(0, 4)}");
-            Pruefe.Gleich(0.0, g.Hoehe(0, 8));                                                         // hinter dem Ufer (3 + 3,2 m)
+            var freibord = Wasserform.Freibord(6);                                                       // 0,6 m
+            Pruefe.Ungefaehr(0.6, freibord, 1e-12);
+            Pruefe.Ungefaehr(-freibord - tiefe, g.Hoehe(0, 0), 0.006);                                  // Mitte: Spiegel − Tiefe
+            Pruefe.Ungefaehr(-freibord - tiefe * (1 - 4.0 / 9), g.Hoehe(0, 2), 0.006);                // 2 m neben der Mitte (Parabel)
+            Pruefe.Wahr(g.Hoehe(0, 4) > -freibord && g.Hoehe(0, 4) < 0, $"Ufer {g.Hoehe(0, 4)}");    // Ufer bis 3 + 1,4 m
+            Pruefe.Gleich(0.0, g.Hoehe(0, 6));                                                         // hinter der Uferkante
+            Pruefe.Wahr(g.Wasser.ImUfer(0, 4.3) && !g.Wasser.ImUfer(0, 4.5), "Uferkante bei 4,4 m");
+            Pruefe.Ungefaehr(1, Wasserform.Freibord(16), 1e-12);                                         // wie in den Modellen
+            Pruefe.Ungefaehr(0.4, Wasserform.Freibord(1.6), 1e-12);
             Pruefe.Ungefaehr(tiefe, g.Wassertiefe(0, 0), 0.006);
             Pruefe.Wahr(g.Wasser.IstWasser(0, 2.9) && !g.Wasser.IstWasser(0, 3.1), "Rand bei 3 m");
-            Pruefe.Ungefaehr(-0.4, g.Wasser.Spiegel(10, 1)!.Value, 1e-9);
+            Pruefe.Ungefaehr(-0.6, g.Wasser.Spiegel(10, 1)!.Value, 1e-9);
             var (sx, sz, tempo) = g.Wasser.Stroemung(0, 0);
             Pruefe.Wahr(Math.Abs(sx - 1) < 1e-9 && Math.Abs(sz) < 1e-9 && tempo == 1, $"Strömung ({sx}, {sz})");
             Pruefe.Ungefaehr(1 - 0.5 * (2.9 / 3) * (2.9 / 3), g.Wasser.Stroemung(0, 2.9).Tempo, 1e-6);
@@ -116,7 +110,7 @@ static class WasserTests
             lauf = e.Wasserform.Laeufe.Single();
             Pruefe.Wahr(lauf.Punkte[0].Ort == O(90, 0) && lauf.Punkte[^1].Spiegel < lauf.Punkte[0].Spiegel - 4, "fließt bergab");
             Pruefe.Wahr(lauf.Punkte.Zip(lauf.Punkte.Skip(1)).All(p => p.Second.Spiegel <= p.First.Spiegel), "nie bergauf");
-            Pruefe.Ungefaehr(Wasserform.Freibord, lauf.GroessterEinschnitt, 0.05);
+            Pruefe.Ungefaehr(0, lauf.GroessterEinschnitt, 0.05);
             Pruefe.Wahr(e.Befunde.All(b => b.Regel != "fluss-bergauf"), Liste(e.Befunde));
             // ein Pinselstrich am Fluss ändert Spiegel und Bett auf ganzer Länge
             var vorher = e.Gelaendeform.Hoehe(80, 0);
@@ -133,7 +127,7 @@ static class WasserTests
             var s = e.SeeAnlegen(new[] { O(-40, -30), O(40, -30), O(40, 30), O(-40, 30) });
             var see = e.Wasserform.Seen.Single();
             Pruefe.Wahr(see.StandAutomatisch && see.Art == "see" && see.Tiefe == Wasserform.SeeTiefeVorgabe, "Vorgaben");
-            Pruefe.Ungefaehr(-0.8 - Wasserform.Freibord, see.Wasserstand, 0.02);   // das tiefste Ufer bei x = −40: −0,8 m
+            Pruefe.Ungefaehr(-0.8 - Wasserform.SeeFreibord, see.Wasserstand, 0.02);   // das tiefste Ufer bei x = −40: −0,8 m
             Pruefe.Ungefaehr(see.Wasserstand - 2, e.Gelaendeform.Hoehe(0, 0), 0.01);
             Pruefe.Ungefaehr(see.Wasserstand - 0.3 * 2, e.Gelaendeform.Hoehe(0, -28), 0.01);  // 2 m vom Ufer: 0,6 m tief
             Pruefe.Wahr(e.Wasserform.ImSee(0, 0) && e.Wasserform.Stroemung(0, 0).Tempo == 0, "steht still");
@@ -161,20 +155,29 @@ static class WasserTests
             var furt = Querung(3, "bach");
             Pruefe.Wahr(furt.Art == Uebergangsart.Furt && furt.Quert && furt.Karren && furt.Pfeiler.Count == 0, $"Furt {furt}");
             Pruefe.Ungefaehr(3, furt.Spannweite, 0.02);
-            Pruefe.Ungefaehr(38.5, furt.VonStelle, 0.02);
+            Pruefe.Ungefaehr(40 - 1.5 - Wasserform.Uferbreite(3), furt.VonStelle, 0.02);   // die Furt reicht von Uferkante zu Uferkante
+            Pruefe.Ungefaehr(furt.UferAStelle, furt.VonStelle, 1e-9);
             Pruefe.Ungefaehr(furt.Spiegel - furt.Tiefe, furt.Deckhoehe, 1e-9);
             var holz = Querung(12, "fluss");
             Pruefe.Wahr(holz.Art == Uebergangsart.Holzbruecke && holz.IstBruecke, $"Holz {holz}");
             Pruefe.Ungefaehr(12, holz.Spannweite, 0.02);
-            Pruefe.Ungefaehr(14, holz.Laenge, 0.02);                    // je 1 m Widerlager
-            Pruefe.Gleich(4, holz.Felder);                             // Joche zu höchstens 4 m
-            Pruefe.Gleich(3, holz.Pfeiler.Count);
-            Pruefe.Ungefaehr(-0.4 + Wasserplan.HolzLichte, holz.Deckhoehe, 1e-9);
-            Pruefe.Wahr(holz.Pfeiler.All(p => p.Fuss < -1), "Pfeiler im Flussbett");
+            Pruefe.Ungefaehr(12 + 2 * 1.85, holz.Weite, 0.02);          // Uferkante zu Uferkante: Ufer 0,5 + 1,5 · 0,9 m
+            Pruefe.Ungefaehr(holz.Weite + 2 * Wasserplan.HolzEnde, holz.Laenge, 0.02);
+            Pruefe.Gleich(4, holz.Felder);                             // round(15,7 / 4) Joche
+            Pruefe.Ungefaehr(holz.Weite / 4, holz.Feldlaenge, 1e-9);
+            Pruefe.Gleich(4, holz.Pfeiler.Count);                      // ein Holm je Joch, in seiner Mitte
+            Pruefe.Ungefaehr(holz.Feldlaenge / 2, holz.Pfeiler[0].Ort.Abstand(holz.UferA), 0.01);
+            Pruefe.Ungefaehr(Wasserplan.HolzDeck, holz.Deckhoehe, 1e-9);  // Uferhöhe 0 + 0,6 m
+            Pruefe.Ungefaehr(-Wasserform.Freibord(12), holz.Spiegel, 1e-9);
+            Pruefe.Wahr(holz.Pfeiler.Skip(1).SkipLast(1).All(p => p.Fuss < holz.Spiegel) && holz.Pfeiler.All(p => p.Fuss < 0), "Holme im Flussbett, die äußeren am Ufer");
             Pruefe.Ungefaehr(0, holz.Richtung, 1e-6);                   // von Norden (z −40) nach Süden: +z ist 0° wie Rotation.Y
             var stein = Querung(30, "fluss");
-            Pruefe.Wahr(stein.Art == Uebergangsart.Steinbruecke && stein.Felder == 4 && stein.Pfeiler.Count == 3, $"Stein {stein}");
-            Pruefe.Ungefaehr(-0.4 + Wasserplan.SteinLichte, stein.Deckhoehe, 1e-9);
+            Pruefe.Wahr(stein.Art == Uebergangsart.Steinbruecke && stein.Felder == 4 && stein.Pfeiler.Count == 3, $"Stein {stein}");  // W 34: round(3,6)
+            Pruefe.Ungefaehr(34, stein.Weite, 0.02);
+            Pruefe.Ungefaehr((34 - 2 * 3) / 4.0, stein.Feldlaenge, 0.01);
+            Pruefe.Ungefaehr(34 + 2 * Wasserplan.SteinRampe, stein.Laenge, 0.02);
+            Pruefe.Ungefaehr(Wasserplan.SteinDeck, stein.Deckhoehe, 1e-9);
+            Pruefe.Ungefaehr(stein.Feldlaenge + 1, stein.Pfeiler[0].Ort.Abstand(stein.UferA), 0.01);  // Mitte des ersten Pfeilers
             var schraeg = Querung(12, "fluss", 45);
             Pruefe.Ungefaehr(12 * Math.Sqrt(2), schraeg.Spannweite, 0.05);
             Pruefe.Wahr(schraeg.Art == Uebergangsart.Holzbruecke, "17 m schräg: Holz");
@@ -198,9 +201,9 @@ static class WasserTests
             Pruefe.Gleich(0, s.Wasserplan.Querungen.Count);
         }),
 
-        ("Wasser: Prüfung – Gebäude und Bauzonen im Wasser sind Fehler (auch beim Ziehen), ein Hafen steht mit der Vorderseite am Ufer", () =>
+        ("Wasser: Prüfung – Gebäude und Bauzonen im Wasser sind Fehler (auch beim Ziehen), ein Hafen steht mit der Rückseite (Kai) am Ufer", () =>
         {
-            var e = Leer(MitHafen.Value);
+            var e = Leer();
             Ostfluss(e, 10);
             var platz = e.Setzen("werkstattplatz", 0, 10);   // 16 × 14 m: z 3 … 17, der Fluss reicht bis z = 5
             Pruefe.Wahr(Fehler(e).Any(b => b.Regel == "wasser" && b.Gebaeude.Contains(platz.Kennung)), Liste(e.Befunde));
@@ -210,15 +213,15 @@ static class WasserTests
             var zone = e.BauzoneAnlegen(Lage.Vorstadt, new[] { O(-60, 2), O(-40, 2), O(-40, -20), O(-60, -20) });
             Pruefe.Wahr(Fehler(e).Any(b => b.Regel == "wasser" && b.Andere.Contains(zone)), Liste(e.Befunde));
 
-            // Hafen 24 × 16 m: Drehung 180 = die Vorderseite nach Norden zum Fluss (Ufer bei z = 5)
-            var hafen = e.Setzen(Kartenentwurf.HafenKatalog, 60, 13, 180);
+            // Hafen 16 × 14 m: Drehung 0 = die Vorderseite (Weg) nach Süden, die Rückseite (Kai) nach Norden zum Fluss (Wasser bis z = 5)
+            var hafen = e.Setzen(Kartenentwurf.HafenKatalog, 60, 13, 0);   // Rückseite bei z = 6
             Pruefe.Wahr(!e.Befunde.Any(b => b.Gebaeude.Contains(hafen.Kennung) && b.Regel is "wasser" or "ufer"), Liste(e.Befunde));
-            e.Verschieben(hafen.Kennung, 60, 25);   // 12 m vom Wasser
-            Pruefe.Wahr(Fehler(e).Any(b => b.Regel == "ufer" && b.Gebaeude.Contains(hafen.Kennung)), Liste(e.Befunde));
-            e.Versetzen(hafen.Kennung, 60, 11, 0);  // falsch herum: das Lager stünde im Wasser, die Vorderseite am Land
+            e.Verschieben(hafen.Kennung, 60, 25);   // 13 m vom Wasser
+            Pruefe.Wahr(Fehler(e).Any(b => b.Regel == "ufer" && b.Gebaeude.Contains(hafen.Kennung) && b.Text.Contains("13 m")), Liste(e.Befunde));
+            e.Versetzen(hafen.Kennung, 60, 11, 180);  // falsch herum: der Hof stünde im Wasser, der Kai am Land
             Pruefe.Wahr(Fehler(e).Any(b => b.Regel == "wasser" && b.Gebaeude.Contains(hafen.Kennung)), Liste(e.Befunde));
-            Pruefe.Wahr(Fehler(e).Any(b => b.Regel == "ufer" && b.Gebaeude.Contains(hafen.Kennung)), "Vorderseite weg vom Wasser");
-            var trocken = Leer(MitHafen.Value);
+            Pruefe.Wahr(Fehler(e).Any(b => b.Regel == "ufer" && b.Gebaeude.Contains(hafen.Kennung)), "Rückseite weg vom Wasser");
+            var trocken = Leer();
             var h2 = trocken.Setzen(Kartenentwurf.HafenKatalog, 0, 0);
             Pruefe.Wahr(Fehler(trocken).Any(b => b.Regel == "ufer" && b.Gebaeude.Contains(h2.Kennung) && b.Text.Contains("kein Wasser")), Liste(trocken.Befunde));
         }),
@@ -234,6 +237,8 @@ static class WasserTests
             Pruefe.Wahr(!e.Befunde.Any(b => b.Regel.StartsWith("faehre")), Liste(e.Befunde));
             var info = e.Wasserplan.Faehren.Single();
             Pruefe.Wahr(info.Gewaesser == "Fluss" && Math.Abs(info.UeberWasser - 20) < 0.6 && info.Laenge == 24, $"{info}");
+            // die Stege stehen an der Uferkante (10 m + 2 m Ufer von der Mitte), der Anleger selbst 2 m davor auf dem Land
+            Pruefe.Wahr(info.VonUferkante.Abstand(O(0, -12)) < 0.01 && info.BisUferkante.Abstand(O(0, 12)) < 0.01, $"{info.VonUferkante} {info.BisUferkante}");
             e.FaehreAnlegerVerschieben(f, 1, 0, 5, einrasten: false);
             Pruefe.Wahr(Fehler(e).Any(b => b.Regel == "faehre" && b.Text.Contains("im Wasser") && b.Andere.Contains(f)), Liste(e.Befunde));
             e.FaehreAnlegerVerschieben(f, 1, 30, 40, einrasten: false);
@@ -417,7 +422,20 @@ static class WasserTests
             }
         }),
 
-        ("Probestadt (Stadtskript): Bach mit Furt am Waldweg und Holzbrücke vor dem Westtor, Fluss mit Fähre, Teich – keine Fehler, keine Hinweise; die Datei ist das Skript", () =>
+        ("Katalog: Wasser-Bausteine aus game/assets/modelle/wasser – Hafen (Umlandstelle am Ufer, 16 × 14 m), Brücken, Fähre, Furt, Ufersteine", () =>
+        {
+            var k = Katalog.Value;
+            Pruefe.Wahr(k.Finde(Kartenentwurf.HafenKatalog) is { Art: Bausteinart.Umlandstelle, AmUfer: true, Modell: "wasser/wasser_hafen", Knoten: "Hafen" } h
+                        && h.Groesse!.SequenceEqual(new double[] { 16, 14 }), "hafenplatz");
+            foreach (var (kennung, modell) in new[] { ("holzbruecke", "wasser_holzbruecke"), ("steinbruecke", "wasser_steinbruecke"), ("faehre", "wasser_faehre"), ("furt", "wasser_steine") })
+                Pruefe.Wahr(k.Finde(kennung) is { Art: Bausteinart.Wasserbau } b && b.Modell == "wasser/" + modell, kennung);
+            Pruefe.Wahr(k.Finde("furt")!.Varianten == 3 && k.Finde("ufersteine") is { Art: Bausteinart.Natur, Varianten: 3, Knoten: "Ufersteine" }, "Varianten");
+            Pruefe.Wahr(!Bausteinart.ImGebaeude.Contains(Bausteinart.Wasserbau), "Wasserbau steht in keiner Karte");
+            var befunde = Katalogpruefung.Pruefen(k, Projektordner.Finden()!.Modelle).Where(b => b.Gebaeude.Any(x => x is "hafenplatz" or "holzbruecke" or "steinbruecke" or "faehre" or "furt" or "ufersteine"));
+            Pruefe.Wahr(!befunde.Any(), Liste(befunde));
+        }),
+
+        ("Probestadt (Stadtskript): Bach mit Furt am Waldweg und Holzbrücke vor dem Westtor, Fluss mit Fähre und Hafen, Teich – keine Fehler, keine Hinweise; die Datei ist das Skript", () =>
         {
             var e = new Probestadt().Bauen(Katalog.Value, Daten.Value);
             Pruefe.Gleich(Text("probestadt"), e.ZuJson());
@@ -427,6 +445,9 @@ static class WasserTests
             Pruefe.Wahr(plan.Querungen.Single(q => q.WegName == "Landstraße nach Westen") is { Art: Uebergangsart.Holzbruecke, Karren: true }, "Holzbrücke");
             Pruefe.Wahr(plan.Faehren.Single() is { Gewaesser: "Sandfluss", VonImWasser: false, BisImWasser: false }, "Fähre");
             Pruefe.Wahr(e.Wasserform.Seen.Single().Name == "Mühlenteich" && e.Wasserform.Laeufe.All(l => l.GroessterEinschnitt < Wasserform.Schluchtgrenze), "Teich, nichts bergauf");
+            var hafen = e.Gebaeude.Single(g => g.Katalog == Kartenentwurf.HafenKatalog);
+            Pruefe.Wahr(hafen.Name == "Hafen am Sandfluss" && hafen.Drehung == 180, "Hafen am Nordufer, Kai nach Süden");
+            Pruefe.Wahr(plan.Querungen.Single(q => q.WegName == "Weg zum Hafen") is { Art: Uebergangsart.Furt }, "Zufahrt durch die Furt");
             var netz = Karrennetz.Von(e.ZuStadtkarte());
             Pruefe.Wahr(netz.Fahrt(O(-130, 60), O(-130, 200)).Any(x => x.Art == Fahrbahn.Faehre), "über die Fähre nach Süden");
         }),

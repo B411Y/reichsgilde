@@ -1,4 +1,5 @@
 using Reichsgilde.Core.Bauen;
+using Reichsgilde.Core.Kartenwerkstatt;
 using Reichsgilde.Core.Wirtschaft;
 
 namespace Reichsgilde.Kartenbau.Staedte;
@@ -21,8 +22,8 @@ namespace Reichsgilde.Kartenbau.Staedte;
 //      und rundherum natürliche Unebenheit. Unter keinem Platz mehr als 8 % Gefälle (die Prüfung meldet nichts).
 //    • Wasser (Schritt 5c): Ein Bach kommt vom Hügel im Nordwesten, quert den Waldweg in einer Furt, läuft an der Westmauer entlang (eine
 //      Holzbrücke trägt die Landstraße vor dem Westtor) und mündet im Süden in einen Fluss. Der Fluss kommt aus dem Südosten und fließt
-//      am Südrand des Spielfelds nach Westen ins Tal; ein Feldweg führt vom Westen zur Fähre, drüben weiter nach Süden. Ein Teich liegt im
-//      Nordosten am Hang.
+//      am Südrand des Spielfelds nach Westen ins Tal; ein Feldweg führt vom Westen zur Fähre, drüben weiter nach Süden, und zum Hafen am
+//      Nordufer. Ein Teich liegt im Nordosten am Hang.
 // ═════════════════════════════════════════════════════════════════════════════
 
 public sealed class Probestadt : Stadtskript
@@ -134,6 +135,10 @@ public sealed class Probestadt : Stadtskript
         E.WegAnlegen(Wegklasse.Feldweg, new[] { P(FaehreX, FaehreSued), P(FaehreX, 200), P(-150, 280), P(-160, 440) }, glatt: true, name: "Weg nach Süden");
         E.FaehreSetzen(P(FaehreX, FaehreNord), P(FaehreX, FaehreSued), "Fähre am Sandfluss");
         E.SeeAnlegen(new[] { P(110, -120), P(150, -115), P(155, -95), P(125, -85), P(105, -98) }, "teich", "Mühlenteich");
+        // Hafen am Nordufer: die Rückseite (Kai) nach Süden zum Wasser, die Zufahrt vom Weg zur Fähre (über den Mühlbach, eine Furt)
+        E.WegAnlegen(Wegklasse.Feldweg, new[] { P(FaehreX, 97), P(-90, 97) }, glatt: false, name: "Weg zum Hafen");
+        var hafen = E.Setzen(Kartenentwurf.HafenKatalog, -90, 108, 180);
+        E.Umbenennen(hafen.Kennung, "Hafen am Sandfluss");
 
         E.KameraStartSetzen(P(0, 0), 110);
     }
