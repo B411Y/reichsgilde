@@ -54,7 +54,7 @@ static class ArbeitszeitTests
         ("Arbeitszeit: Daten – Schänke, Wirtshaus und Gasthaus arbeiten 840 Minuten (8–22 Uhr), alle anderen 720 (8–20 Uhr); keine endet nach 22 Uhr", () =>
         {
             var d = Daten.Value;
-            Pruefe.Gleich(49, d.Version);
+            Pruefe.Gleich(50, d.Version);
             foreach (var art in new[] { Betriebsart.Schaenke, Betriebsart.Wirtshaus, Betriebsart.Gasthaus })
             {
                 Pruefe.Gleich(840, d.Arbeitsminuten(art));

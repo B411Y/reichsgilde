@@ -168,7 +168,7 @@ public sealed partial class Stadtwirtschaft
     public double HandKaufpreis(Konto konto, string ware, int stueck) => Markt[ware].HandKaufpreis(stueck, HandKaufFaktor(konto));
 
     /// <summary>Wann käme ein Karren dieses Betriebs am Markt an, wenn er jetzt losführe? (Uhrzeit in Minuten nach Mitternacht)</summary>
-    public int AnkunftAmMarkt(Betrieb betrieb) => Uhr.UhrzeitInMinuten + Daten.Logistik.FahrzeitAb(betrieb.Ort);
+    public int AnkunftAmMarkt(Betrieb betrieb) => Uhr.UhrzeitInMinuten + Fahrzeit(betrieb, zumMarkt: true);
 
     /// <summary>Warum dieser Handelsauftrag nicht geht – oder null.</summary>
     /// <param name="vormerken">Für einen Karren, der unterwegs ist: Zustand und Marktzeit werden erst beim Start geprüft.</param>
@@ -216,7 +216,7 @@ public sealed partial class Stadtwirtschaft
         if (unterwegs)
         {
             var zurueck = karren.Zustand == KarrenZustand.ZumBetrieb ? karren.Ankunft
-                : karren.Ankunft + Daten.Logistik.FahrzeitAb(betrieb.Ort);
+                : karren.Ankunft + Fahrzeit(betrieb, zumMarkt: false);
             var um = Uhr.UhrzeitInMinuten + (int)(zurueck - Uhr.VergangeneMinuten);
             karren.Vormerkung = new Vormerkung(new Dictionary<string, int>(befehl.Verkauf), new Dictionary<string, int>(befehl.Kauf));
             return Befehlsergebnis.Ok($"{karren.Name} ist unterwegs – der Auftrag ist vorgemerkt und startet, sobald er zurück ist (etwa {um / 60:00}:{um % 60:00}).");

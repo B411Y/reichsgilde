@@ -1471,3 +1471,9 @@ Der Fehler des Mittels liegt nach 20 Jahren bei 490–880 Gulden (2–4 %). Pred
 | Greybox, jetzt | 179.507 | 166.212 | 185.639 | 15/20 | Freiherr 34, Reichsgraf 26; kein Bankrott | Ø 8,8 Stücke |
 
 Der Einrichtungskauf hebt alle drei Häuser um 20–30 %; Eichwald (Tischler) legt ohne Karte am wenigsten zu, weil seine Waren ab Stufe 2 billiger sind.
+
+## Steigung bremst Karren (PR #179)
+
+**Regel:** Datenversion 50, neuer Abschnitt `logistik.steigung` = abProzent 6, zuschlagJeProzent 0,05, hoechstensFaktor 3. Hat die Karte Gelände (Kartenwerkstatt, Schritt 5b), fährt ein Karren über die Karrenstraßen den kürzesten Weg vom Platz seines Betriebs zum Markt (`Karrennetz`, einmal je Betrieb gerechnet). Jedes Stück dauert bergauf ab 6 % Steigung je Prozentpunkt darüber 5 % länger (10 % → ×1,2, 20 % → ×1,7, höchstens ×3); bergab und eben wie bisher. Die feste Fahrzeit (Werkstatt 30, Umland 120 Minuten) wird mit dem Mittel über die Strecke (nach Länge gewichtet) malgenommen, auf ganze Minuten – für den Hin- und den Rückweg getrennt. Eine flache Karte, ein Betrieb ohne Platz oder ohne Weg zum Markt fährt genau die feste Zeit. Nichts davon steht im Spielstand (es folgt aus Karte und Daten).
+
+**Messung:** Greybox und Messstadt bleiben flach – `messen 30 20` und `messen 30 20 greybox` (gemessen auf main `ce6d05f` + Branch `phase5/kartenwerkstatt-5b-kern`) sind vorher und nachher zeichengleich: ohne Karte Eisenbart 165.223, Eichwald 118.112, Kieselbach 158.764; Greybox 179.507, 166.212, 185.639. In der Probestadt liegen Stadt und Hauptstraße flach (Fahrzeiten unverändert); ein Test hebt den Markt auf einen Hügel von 6 m und prüft, dass die Werkstatt im Westen bergauf länger und bergab gleich lang fährt.
