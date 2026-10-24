@@ -153,6 +153,12 @@ public sealed class Gebaeudekatalog
 
     public List<Baustein> Bausteine { get; init; } = new();
 
+    /// <summary>Die Bodentexturen der Kartenwerkstatt (Schritt 5e): Name, Farbe, Deko (<see cref="Bodendeko"/>).</summary>
+    public List<Bodentexturdaten> Bodentexturen { get; init; } = new();
+
+    /// <summary>Der Eintrag einer Bodentextur – oder null.</summary>
+    public Bodentexturdaten? TexturDaten(Bodentextur t) => Bodentexturen.FirstOrDefault(d => d.Textur == t);
+
     private Dictionary<string, Baustein>? _nachKennung;
 
     /// <summary>Der Baustein mit dieser Kennung – oder null.</summary>
@@ -243,6 +249,19 @@ public sealed class Gebaeudekatalog
         }
         foreach (var doppelt in Bausteine.GroupBy(b => b.Kennung).Where(g => g.Count() > 1))
             f.Add($"Katalog: Die Kennung „{doppelt.Key}“ ist doppelt.");
+        foreach (var d in Bodentexturen)
+        {
+            var wer = $"Bodentextur „{d.Kennung}“";
+            if (d.Textur is null) f.Add($"{wer}: Die gibt es nicht (erlaubt: {string.Join(", ", Enum.GetValues<Bodentextur>().Select(Bodenraster.Kennung))}).");
+            if (d.Dichte < 0) f.Add($"{wer}: dichte ist mindestens 0.");
+            foreach (var (art, gewicht) in d.Deko)
+            {
+                if (Finde(art) is not { Art: Bausteinart.Natur }) f.Add($"{wer}: Die Deko „{art}“ ist kein Natur-Baustein des Katalogs.");
+                if (gewicht < 0) f.Add($"{wer}: Das Gewicht von „{art}“ ist mindestens 0.");
+            }
+        }
+        foreach (var doppelt in Bodentexturen.GroupBy(d => d.Kennung).Where(g => g.Count() > 1))
+            f.Add($"Katalog: Die Bodentextur „{doppelt.Key}“ ist doppelt.");
         return f;
     }
 }

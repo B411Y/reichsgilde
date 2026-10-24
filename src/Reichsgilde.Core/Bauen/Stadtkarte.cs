@@ -515,6 +515,13 @@ public sealed class Stadtkarte
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     public Hoehenraster? Hoehen { get; init; }
 
+    /// <summary>
+    /// Die Bodentexturen und die Dichte ihrer Deko (seit der Kartenwerkstatt, Schritt 5e; <see cref="Bodenraster"/>, Deko: <see cref="Bodendeko"/>)
+    /// – null oder leer: überall Wiese ohne Deko. Steht im Spielstand in derselben gepackten Form wie in der Kartendatei.
+    /// </summary>
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public Bodenraster? Boden { get; init; }
+
     private Gelaendeform? _gelaendeform;
 
     /// <summary>

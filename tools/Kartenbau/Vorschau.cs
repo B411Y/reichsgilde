@@ -85,6 +85,7 @@ public static class Vorschau
         var spielfeld = e.Kartengrenzen.Spielfeld;
         Zeile($"<rect x=\"{F(spielfeld.X0)}\" y=\"{F(spielfeld.Z0)}\" width=\"{F(spielfeld.Breite)}\" height=\"{F(spielfeld.Tiefe)}\" fill=\"{Farben["boden"]}\"/>");
 
+        Bodentexturen(e, Zeile);
         foreach (var g in e.Gelaende)
             Zeile($"<polygon points=\"{Punkte(g.Flaeche.Select(Kartenort.Aus))}\" fill=\"{Farben.GetValueOrDefault(g.Art, "#ccc")}\" opacity=\"0.8\"/>");
         // Natur: jede Fläche mit ihren Aussparungen als Maske, Wald kräftiger als Streu
@@ -213,6 +214,44 @@ public static class Vorschau
         }
         foreach (var u in e.Faehren.Where(u => !u.IstFaehre))
             zeile($"<polyline points=\"{Punkte(new[] { u.Von, u.Bis })}\" fill=\"none\" stroke=\"#1F2326\" stroke-width=\"4\"/>");
+    }
+
+    /// <summary>Kantenlänge der Felder, in denen die Vorschau die Bodentexturen zeigt (Meter).</summary>
+    public const double Bodenfeld = 4;
+
+    /// <summary>
+    /// Die gemalten Bodentexturen: je 4-m-Feld die stärkste Textur (in der Mitte des Feldes) in ihrer Farbe aus dem Katalog, gleiche Felder
+    /// einer Zeile zu einem Streifen zusammengefasst. Die Wiese bleibt ungezeichnet (der Grund).
+    /// </summary>
+    private static void Bodentexturen(Kartenentwurf e, Action<string> zeile)
+    {
+        var boden = e.Boden;
+        var aussen = e.Kartengrenzen.Aussen;
+        foreach (var k in boden.Kacheln.OrderBy(k => k.J).ThenBy(k => k.I))
+        {
+            var r = Bodenraster.KachelBereich(k);
+            var ende = r.X0 + Bodenraster.Kachel * Bodenraster.Abstand;
+            for (var z = r.Z0; z < r.Z0 + Bodenraster.Kachel; z += Bodenfeld)
+            {
+                (Bodentextur T, double X)? lauf = null;
+                void Schliessen(double bis)
+                {
+                    if (lauf is not { } l || l.T == Bodentextur.Wiese) return;
+                    var (a, b) = (Math.Max(l.X, aussen.X0), Math.Min(bis, aussen.X1));
+                    var (c, d) = (Math.Max(z, aussen.Z0), Math.Min(z + Bodenfeld, aussen.Z1));
+                    if (b <= a || d <= c) return;
+                    zeile($"<rect x=\"{F(a)}\" y=\"{F(c)}\" width=\"{F(b - a)}\" height=\"{F(d - c)}\" fill=\"{e.Katalog.TexturDaten(l.T)?.Farbe ?? "#888"}\" opacity=\"0.7\"/>");
+                }
+                for (var x = r.X0; x < ende; x += Bodenfeld)
+                {
+                    var t = boden.Textur(x + Bodenfeld / 2, z + Bodenfeld / 2);
+                    if (lauf?.T == t) continue;
+                    Schliessen(x);
+                    lauf = (t, x);
+                }
+                Schliessen(ende);
+            }
+        }
     }
 
     /// <summary>Abstand der Punkte, an denen die Höhenlinien gerechnet werden (Meter).</summary>
