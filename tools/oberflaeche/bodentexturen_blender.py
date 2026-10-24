@@ -1094,8 +1094,8 @@ def lehm(rng):
     x, y = raster()
     welle = fbm(91, [1.0, 0.35, 0.1])
     korn = rauschen(0.004, 92)
-    h = 0.008 * welle + 0.0006 * korn
-    for k in range(45):                                               # flache Tritte
+    h = 0.016 * welle + 0.0006 * korn
+    for k in range(70):                                               # flache Tritte
         cx, cy = rng.random() * K, rng.random() * K
         ddx = (x - cx + K / 2) % K - K / 2
         ddy = (y - cy + K / 2) % K - K / 2
@@ -1103,7 +1103,7 @@ def lehm(rng):
         u = ddx * np.cos(w) + ddy * np.sin(w)
         v = -ddx * np.sin(w) + ddy * np.cos(w)
         d = (u / 0.05) ** 2 + (v / 0.12) ** 2
-        h -= 0.002 * (1 - glatt(0.6, 1.0, d))
+        h -= 0.004 * (1 - glatt(0.6, 1.0, d))
     wx, wy = verzerrt(x, y, 0.06, [0.15, 0.05], 99)
     nummer, f1, f2, _, _ = zellen(wx, wy, 26, 93, 0.9)
     riss = f2 - f1
@@ -1111,16 +1111,20 @@ def lehm(rng):
     nummer2, g1, g2, _, _ = zellen(vx, vy, 70, 94, 0.9)
     riss2 = np.where(je_zelle(nummer2, 95, 4900) > 0.45, g2 - g1, 1.0)
     rissig = 0.3 + 0.7 * glatt(0.2, 0.45, fbm(96, [1.0, 0.35]))
-    breite = 0.002 + 0.003 * fbm(101, [0.3, 0.1])
+    breite = 0.003 + 0.0045 * fbm(101, [0.3, 0.1])
     tief = np.maximum(1 - glatt(0.0, breite, riss), 0.6 * (1 - glatt(0.0, 0.0018, riss2))) * rissig
     rand = glatt(breite, breite * 2, riss) * (1 - glatt(breite * 2, 0.025, riss)) * rissig
-    h = h - 0.005 * tief + 0.001 * rand
+    h = h - 0.008 * tief + 0.001 * rand
     getreten = glatt(0.45, 0.75, fbm(97, [0.5, 0.15]))
     ton = je_zelle(nummer, 98, 676)
     farbe = mische(srgb("#a07a50"), srgb("#b48c62"), 0.2 * glatt(0.4, 0.8, welle) + 0.4 * ton * rissig)
     farbe = mische(farbe, srgb("#8a6440"), 0.25 * getreten)
+    feucht = glatt(0.5, 0.8, fbm(103, [0.5, 0.2]))                     # große weiche Flecken, dunkler und feuchter
+    farbe = mische(farbe, srgb("#7a5838"), 0.3 * feucht)
     farbe = mische(farbe, srgb("#4a3420"), 0.85 * tief)
     farbe = mische(farbe, srgb("#c4a07a"), 0.3 * rand)
+    bleich = glatt(0.82, 0.95, fbm(104, [0.2, 0.06]))                  # einzelne hellere, ausgeblichene Stellen
+    farbe = mische(farbe, srgb("#d8c09a"), 0.5 * bleich * (1 - tief))
     farbe *= (0.9 + 0.2 * korn)[..., None]
     bunt = rauschen(0.003, 102)
     farbe = mische(farbe, srgb("#6a5440"), 0.4 * (bunt > 0.72))
@@ -1128,7 +1132,7 @@ def lehm(rng):
     bodennetz(h, farbe, 0.9 - 0.22 * getreten)
     teile = Teile()
     formen = [form_kugel(1, 900 + i, 0.5) for i in range(6)]
-    n = 4000
+    n = 7000
     px, py = rng.random(n) * K, rng.random(n) * K
     g = rng.uniform(0.005, 0.018, n)
     farbe = mische(srgb("#8a7a64"), srgb("#a08a6a"), rng.random(n))
