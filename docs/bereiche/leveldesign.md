@@ -151,7 +151,7 @@ Fahrplan (vom Nutzer am 21.10.2026 bestätigt, je Schritt ein PR; Stand wird hie
 | 5c Wasser | Flüsse und Bäche als Linie mit Breite (Zeichenrichtung = Fließrichtung, Strömung), Seen als Fläche mit Wasserstand (still), Ufer automatisch ausgehoben; Wasser ist Hindernis, Brücken, Furten, Fähren, Häfen am Ufer | fertig (PR #180) |
 | 5d Wegbelag | Trampelpfad bis Pflaster, wirkt auf Karren | fertig (PR #182) |
 | 5e Bodentexturen | Texturpinsel (Wiese, Erde, Fels, Kies, Waldboden, Sand, Schlamm/Ufer, Moos, Lehm, Pflasterfläche, Mist/Hof) mit passender Deko beim Malen | fertig (PR #183) |
-| 5f Editor-Oberfläche | Icon-Leiste nach Gruppen, Paletten mit Vorschaubildern, Tooltips, aufgeräumte Tafeln | in Arbeit (PR #184) |
+| 5f Editor-Oberfläche | Icon-Leiste nach Gruppen, Paletten mit Vorschaubildern, Tooltips, aufgeräumte Tafeln | fertig (PR #184) |
 | 6 Freigabe | Kartenwerkstatt für Spieler | offen |
 
 | Thema | Entscheidung | Datum |
