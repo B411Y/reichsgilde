@@ -7,6 +7,7 @@
         --proben=64        Cycles-Proben je Pixel
         --zwischen=<ordner> Zwischenspeicher der gebackenen Rohdaten (Vorgabe ~/.cache/reichsgilde/bodentexturen)
         --nur-packen       nichts backen, nur aus dem Zwischenspeicher packen und die Vorschau schreiben
+        --format=webp      WebP statt PNG schreiben (Farbe verlustbehaftet q95 mit verlustfreier Höhe, Normalen verlustfrei)
         --nah              dazu Nahaufnahmen über die Kachelecke in den Zwischenspeicher (vorschau/<name>_nah.jpg)
         --nahtprobe        statt zu backen prüfen, ob jede Textur nahtlos ist (mit --groesse=256 --proben=16)
 
@@ -48,6 +49,7 @@ _opt = dict(a[2:].split("=", 1) if "=" in a else (a[2:], "1") for a in _args)
 N = int(_opt.get("groesse", 1024))         # Pixel je Kante (und Maschen des Bodennetzes)
 PROBEN = int(_opt.get("proben", 64))
 ZWISCHEN = os.path.expanduser(_opt.get("zwischen", "~/.cache/reichsgilde/bodentexturen"))
+FORMAT = _opt.get("format", "png")
 UEBER = K / 2 if "nahtprobe" in _opt else 0.0   # für die Nahtprobe reicht die Szene eine halbe Kachel weiter
 
 
@@ -1349,6 +1351,28 @@ def png(pfad, bild):
                 + chunk(b"IDAT", zlib.compress(daten, 9)) + chunk(b"IEND", b""))
 
 
+def webp(pfad, bild, qualitaet):
+    """RGB(A) als WebP über Blender; Qualität 100 = verlustfrei. Ein verlustbehaftetes RGBA-WebP speichert Alpha
+    trotzdem verlustfrei. Gibt die größte Abweichung nach dem Zurücklesen je Kanal zurück (Prüfung)."""
+    h, w, k = bild.shape
+    img = bpy.data.images.new("webp", w, h, alpha=k == 4)
+    img.colorspace_settings.name = "Non-Color"
+    px = bild[::-1].astype(np.float32) / 255
+    if k == 3:
+        px = np.dstack([px, np.ones((h, w), np.float32)])
+    img.pixels.foreach_set(px.ravel())
+    img.file_format = "WEBP"
+    img.save(filepath=pfad, quality=qualitaet)
+    bpy.data.images.remove(img)
+    zurueck = bpy.data.images.load(pfad)
+    zurueck.colorspace_settings.name = "Non-Color"
+    q = np.empty(w * h * 4, np.float32)
+    zurueck.pixels.foreach_get(q)
+    bpy.data.images.remove(zurueck)
+    q = np.round(q.reshape(h, w, 4)[::-1, :, :k] * 255)
+    return np.abs(q - bild).reshape(-1, k).max(0), np.abs(q - bild).reshape(-1, k).mean(0)
+
+
 def jpeg(pfad, rgb, qualitaet=88):
     h, w, _ = rgb.shape
     img = bpy.data.images.new("vorschau", w, h, alpha=False)
@@ -1447,9 +1471,14 @@ def packen():
         print("nichts geschrieben:", f"es fehlen {', '.join(fehlt)}" if fehlt else "Probegröße")
     else:
         os.makedirs(ZIEL, exist_ok=True)
-        for datei, schichten in (("boden_farbe_hoehe.png", farben), ("boden_normal_rauheit.png", normalen)):
-            pfad = os.path.join(ZIEL, datei)
-            png(pfad, np.vstack(schichten))
+        for datei, schichten, qualitaet in (("boden_farbe_hoehe", farben, 95), ("boden_normal_rauheit", normalen, 100)):
+            if FORMAT == "webp":
+                pfad = os.path.join(ZIEL, datei + ".webp")
+                groesst, mittel = webp(pfad, np.vstack(schichten), qualitaet)
+                print(f"  WebP q{qualitaet}: Abweichung je Kanal höchstens {groesst}, im Mittel {mittel.round(2)}")
+            else:
+                pfad = os.path.join(ZIEL, datei + ".png")
+                png(pfad, np.vstack(schichten))
             print("geschrieben:", os.path.relpath(pfad, WURZEL), f"({os.path.getsize(pfad) / 1e6:.1f} MB)")
     ziel = VORSCHAU if N == 1024 else os.path.join(ZWISCHEN, "vorschau")
     os.makedirs(ziel, exist_ok=True)
