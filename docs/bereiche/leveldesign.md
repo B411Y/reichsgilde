@@ -149,7 +149,9 @@ Fahrplan (vom Nutzer am 21.10.2026 bestätigt, je Schritt ein PR; Stand wird hie
 | 5a Kartengröße und Rand | Größe einstellbar (z. B. 400 × 300 m bis 2 × 2 km), Kamera bleibt innerhalb, dahinter eine Randlandschaft, die in Dunst verblasst – nie Himmel | fertig (PR #178) |
 | 5b Gelände | Höhenraster (~2 m) mit Pinseln: Heben, Senken, Glätten, Ebnen, Rauschen; Fundamente unter Gebäuden automatisch geebnet, steile Hänge für Bauzonen gesperrt, Wege folgen dem Gelände | fertig (PR #179) |
 | 5c Wasser | Flüsse und Bäche als Linie mit Breite (Zeichenrichtung = Fließrichtung, Strömung), Seen als Fläche mit Wasserstand (still), Ufer automatisch ausgehoben; Wasser ist Hindernis, Brücken, Furten, Fähren, Häfen am Ufer | fertig (PR #180) |
-| 5d Wegbelag | Trampelpfad bis Pflaster, wirkt auf Karren | in Arbeit (PR #182) |
+| 5d Wegbelag | Trampelpfad bis Pflaster, wirkt auf Karren | fertig (PR #182) |
+| 5e Bodentexturen | Texturpinsel (Wiese, Erde, Fels, Kies, Waldboden, Sand, Schlamm/Ufer, Moos, Lehm, Pflasterfläche, Mist/Hof) mit passender Deko beim Malen | in Arbeit (PR #183) |
+| 5f Editor-Oberfläche | Icon-Leiste nach Gruppen, Paletten mit Vorschaubildern, Tooltips, aufgeräumte Tafeln | offen |
 | 6 Freigabe | Kartenwerkstatt für Spieler | offen |
 
 | Thema | Entscheidung | Datum |
@@ -271,3 +273,11 @@ Fahrplan (vom Nutzer am 21.10.2026 bestätigt, je Schritt ein PR; Stand wird hie
 | Austritt und Verfall (Umsetzung, Kern) | Zum Jahreswechsel, ohne Zufall: Verkehr eines Stücks = Karrenfahrten des Jahres auf der Strecke des Betriebs + Grundverkehr (Land, Haupt 40) + Fußverkehr (Gebäude bis 40 m: Einwohnerplatz 1, Wohnhaus- und Werkstattplatz 2, Sonderbau 5). Austritt ± (Verkehr − 5) ÷ 50 je Jahr (höchstens +0,5, −0,2): Trampelpfad bei 1 → Fahrweg, Fahrweg bei 0 → Trampelpfad. Verfall Kies 5 %, Pflaster 3 % je Jahr, unter 25 % eine Stufe zurück. | 24.10.2026 |
 | Bauauftrag, Stadtrat (Umsetzung, Kern) | Befehl `WegAusbauen(weg, von, bis, stufe)` (keine AP): auf 5-m-Stücke erweitert, höchstens 300 m, Kies 6 und Pflaster 15 Gulden je Meter, 60 Minuten + 1 bzw. 2 je Meter; gleiche Stufe bessert aus (zahlt, was am Zustand fehlt). Keine echte Stadtkasse im Kern: eine **Wegekasse** (600 Gulden im Jahr, höchstens 3.000); daraus bessert der Rat sein Kies und Pflaster an Hauptstraßen und Markt (30 m) aus und pflastert dort den Abschnitt mit dem meisten Verkehr (100 m im Jahr). Ratsantrag `WegPflasterBeantragen` (2 AP, ein Antrag je Jahr neben dem Statut): Ratsherren dafür bei Gunst ≥ 10 oder Verkehr ≥ 30, KI-Häuser bei eigener Strecke oder viel Verkehr, andere Häuser enthalten sich; angenommen zahlt die Wegekasse, der Antragsteller gewinnt 5 Ansehen für 5 Jahre. KI baut selbst (`docs/bereiche/spiel-ki.md`). | 24.10.2026 |
 | Kartenentwurf und Kartenskript (Umsetzung, Kern) | `BelagSetzen(weg, von, bis, stufe)` und `BelagSetzen(weg, stufe?)` mit Rückgängig, gespeichert nur die Abweichung von der Vorgabe; Hinweis `belag` für Abschnitte hinter dem Wegende. Kartenskript `belag <karte> <weg> <stufe|vorgabe> [<von> <bis>]`. Abfragen fürs Spiel: `Stadtwirtschaft.Wegebau` (`Abschnitte`, `Stueck`, `BelagBei`, `Verkehr`, `WegstelleBei`, `Baustellen`, `Vorschau`, `AntragPrognose`, Ereignis `BelagGeaendert`). | 24.10.2026 |
+
+### Kartenwerkstatt, Schritt 5e: Bodentexturen (PR #183)
+
+| Thema | Entscheidung | Datum |
+|---|---|---|
+| Fahrplan | Zwischen 5d und 6 kommen 5e (Texturpinsel mit Deko) und 5f (neue Editor-Oberfläche: links schmale Icon-Leiste je Gruppe mit aufklappbarer Palette, Gebäude als Vorschaubilder, Tooltips mit Name, Erklärung und Tastenkürzel, rechts Eigenschaften, oben Datei/Rückgängig/Ausprobieren, unten Statusleiste, Icons im Holzschnitt-Stil). Entschieden vom Nutzer. | 24.10.2026 |
+| Texturen | Elf Bodentexturen zum Malen: Wiese (Grundboden), Erde, Fels, Kies, Waldboden, Sand, Schlamm am Ufer, Moos, festgetretener Lehm, Kopfsteinpflaster als Fläche, Mist und Hof. Entschieden vom Nutzer. | 24.10.2026 |
+| Deko beim Malen | Jede Textur streut passende kleine Teile (Wiese: Grasbüschel, Wildblumen; Fels: Brocken, Findlinge; Kies: Kiesel; Waldboden: Farn, Pilze, Totholz; Schlamm: Schilf …), aus Startwert und Textur, nicht einzeln gespeichert, weicht Wegen und Gebäuden aus; Schalter „Deko streuen“ und Dichte im Pinsel. Die Natur-Pinsel für Bäume und Büsche bleiben. Entschieden vom Nutzer. | 24.10.2026 |
