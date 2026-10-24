@@ -24,7 +24,7 @@ public partial class Stadtansicht
     private bool BodenGemalt => BodenRaster is { IstLeer: false };
 
     /// <summary>Muss der Boden in Kacheln gezeichnet werden (Höhen oder Texturen)? Sonst genügt die eine Ebene.</summary>
-    private bool BodenKacheln => BodenBewegt || BodenGemalt;
+    private bool BodenKacheln => BodenBewegt || BodenGemalt || WegeschichtAn;
 
     /// <summary>Bild einer Geländekachel: ihre 128 Punkte plus je einer davor und dahinter, damit Übergänge über die Kante glatt bleiben.</summary>
     private const int BodenBild = KachelZellen * 2 + 2;
@@ -59,10 +59,15 @@ public partial class Stadtansicht
         return false;
     }
 
-    /// <summary>Der Stoff einer Geländekachel: die Wiese, oder der Boden-Shader mit den Gewichten der Kachel.</summary>
+    /// <summary>
+    /// Der Stoff einer Geländekachel: die Wiese, oder der Boden-Shader mit den Gewichten der Kachel und der Wegeschicht (Stadtansicht.Wegeschicht.cs).
+    /// Hat die Karte Wege, tragen alle Kacheln den Shader (eine Kachel ohne gemalten Punkt zeigt die Textur der Wiese) – sonst gäbe es Kanten zwischen Kacheln.
+    /// </summary>
     private Material KachelStoff(int ti, int tj)
     {
-        if (BodenRaster is not { IstLeer: false } raster || !BodenShaderLaden() || !BodenKachelGemalt(raster, ti, tj)) return Material(Wiese);
+        var raster = BodenRaster;
+        var gemalt = raster is { IstLeer: false } && BodenShaderLaden() && BodenKachelGemalt(raster, ti, tj);
+        if (!gemalt && !WegeschichtAn) return Material(Wiese);
         if (!_bodenStoffe.TryGetValue((ti, tj), out var eintrag))
         {
             var stoff = new ShaderMaterial { Shader = _bodenShader, ResourceName = $"Boden_{ti}_{tj}" };
@@ -72,7 +77,9 @@ public partial class Stadtansicht
             eintrag = (stoff, new ImageTexture[3]);
             _bodenStoffe[(ti, tj)] = eintrag;
         }
-        BodenBilderSetzen(raster, ti, tj, eintrag);
+        eintrag.Stoff.SetShaderParameter("gemalt", gemalt);
+        if (gemalt) BodenBilderSetzen(raster!, ti, tj, eintrag);
+        SchichtSetzen(ti, tj, eintrag.Stoff);
         return eintrag.Stoff;
     }
 
