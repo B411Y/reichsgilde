@@ -65,6 +65,7 @@ namespace Reichsgilde;
 ///   --voreinstellung=<Stufe> alle Grafikregler einer Voreinstellung (Niedrig, Mittel, Hoch, Ultra), nur für diesen Start; einzelne Optionen danach überschreiben sie
 ///   --bildrate=<Zahl>  Bildrate begrenzen (0 = unbegrenzt), --vsync=<Aus|An|Adaptiv>, --dynamisch=<Ziel-Bildrate|0> (dynamische Auflösung)
 ///   --natur=<25–100>   Natur-Dichte, --passanten=<25–100> Menge der Passanten, --feinheiten=<Nah|Mittel|Weit> Sichtweite der Feinheiten
+///   --boden=<Niedrig|Mittel|Hoch> Bodenqualität (Mischung der Bodentexturen, Normalen, Grasbüschel)
 ///   --tiltshift=<Aus|Leicht|Stark> Miniatur-Unschärfe, --wolken=<An|Aus> Wolkenschatten, --dunst=<Aus|Niedrig|Hoch> Morgendunst
 ///   --tonemapping=<Bisher|Agx>, --helligkeit=, --kontrast=, --saettigung=<Prozent> Farbstimmung, --schaerfe=<0–100> Nachschärfen, --fahnen=<An|Aus>
 ///   --uigroesse=<75–200> Größe der Oberfläche in Prozent, --farbfilter=<Aus|Protanopie|Deuteranopie|Tritanopie>

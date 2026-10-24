@@ -43,8 +43,8 @@ public sealed class EinstellungenAnzeige
     /// <summary>Die Voreinstellungen mit Erklärung (Werte: <see cref="Fenster.StufeVon"/>).</summary>
     private static readonly (Voreinstellung Stufe, string Erklaerung)[] Voreinstellungen =
     {
-        (Voreinstellung.Niedrig, "Für schwache Grafikkarten: FXAA, kleine Schatten, keine Umgebungsverdeckung, kein Bloom, Oberflächen ohne Struktur, halb so viel Streu und Passanten."),
-        (Voreinstellung.Mittel, "SMAA, mittlere Schatten, wenig Umgebungsverdeckung, Bloom, Oberflächendetails, Wolkenschatten; drei Viertel der Streu und Passanten."),
+        (Voreinstellung.Niedrig, "Für schwache Grafikkarten: FXAA, kleine Schatten, keine Umgebungsverdeckung, kein Bloom, Oberflächen ohne Struktur, einfacher Boden, halb so viel Streu und Passanten."),
+        (Voreinstellung.Mittel, "SMAA, mittlere Schatten, wenig Umgebungsverdeckung, Bloom, Oberflächendetails, Boden ohne Unebenheit im Licht, Wolkenschatten; drei Viertel der Streu und Passanten."),
         (Voreinstellung.Hoch, "Das empfohlene Bild: SMAA, große Schatten, Umgebungsverdeckung, Bloom, Oberflächendetails, leichte Miniatur-Unschärfe, Wolkenschatten und einfacher Morgendunst."),
         (Voreinstellung.Ultra, "Für starke Grafikkarten: wie Hoch, dazu MSAA 4×, feinste Umgebungsverdeckung, indirektes Licht und Morgendunst mit Lichtstrahlen."),
         (Voreinstellung.Eigene, "Eigene Wahl: Mindestens ein Regler weicht von den Stufen ab. Eine Stufe wählen stellt alle Regler wieder ein."),
@@ -63,6 +63,13 @@ public sealed class EinstellungenAnzeige
     private static readonly (Feinheiten Stufe, string Name)[] Sichtweiten =
     {
         (Feinheiten.Nah, "Nah"), (Feinheiten.Mittel, "Mittel"), (Feinheiten.Weit, "Weit (empfohlen)"),
+    };
+
+    private static readonly (Bodenqualitaet Stufe, string Name, string Erklaerung)[] Bodenstufen =
+    {
+        (Bodenqualitaet.Niedrig, "Niedrig", "Die Bodentexturen gehen weich ineinander über. Kostet am wenigsten."),
+        (Bodenqualitaet.Mittel, "Mittel", "Scharfe, unregelmäßige Grenzen (Gras wächst über die Erde, Steine ragen aus dem Kies) und keine sichtbaren Wiederholungen."),
+        (Bodenqualitaet.Hoch, "Hoch (empfohlen)", "Dazu Unebenheit und Glanz im Licht, Fels am Hang ohne Verzerrung und kleine Grasbüschel an den Grenzen der Wiese."),
     };
 
     private static readonly (Miniaturunschaerfe Stufe, string Name)[] Unschaerfen =
@@ -126,6 +133,8 @@ public sealed class EinstellungenAnzeige
     private readonly OptionButton _feinheiten;
     // Bild
     private readonly CheckButton _oberflaeche;
+    private readonly OptionButton _boden;
+    private readonly Label _bodenErklaerung;
     private readonly OptionButton _kanten;
     private readonly Label _erklaerung;
     private readonly HSlider _schaerfe;
@@ -282,6 +291,13 @@ public sealed class EinstellungenAnzeige
             Auffrischen();
         });
         Hinweis(s, "Mauerwerk, Ziegel, Stroh, Schiefer, Holzmaserung, Laub und Boden mit feiner Struktur und leichter Unebenheit im Licht. Aus: nur die Farben der Modelle – kostet weniger Grafikleistung.");
+        var bodenZeile = Zeile(s, "Boden");
+        _boden = Auswahl(bodenZeile, Bodenstufen.Select(b => b.Name), nummer =>
+        {
+            Fenster.BodenqualitaetSetzen(Bodenstufen[nummer].Stufe);
+            Auffrischen();
+        });
+        _bodenErklaerung = Hinweis(s, "");
         Abschnitt(s, "Kantenglättung");
         _kanten = Auswahl(s, Verfahren.Select(v => v.Name), nummer =>
         {
@@ -455,6 +471,9 @@ public sealed class EinstellungenAnzeige
         _feinheiten.Select(Array.FindIndex(Sichtweiten, f => f.Stufe == Fenster.AktuelleFeinheiten));
 
         _oberflaeche.SetPressedNoSignal(Fenster.OberflaechendetailsAn);
+        var boden = Array.FindIndex(Bodenstufen, b => b.Stufe == Fenster.AktuelleBodenqualitaet);
+        _boden.Select(boden);
+        _bodenErklaerung.Text = Bodenstufen[boden].Erklaerung;
         var nummer = Array.FindIndex(Verfahren, v => v.Art == Fenster.AktuelleKantenglaettung);
         _kanten.Select(nummer);
         _kanten.Disabled = Fenster.FsrAn; // FSR 2.2 glättet selbst; die Wahl bleibt gespeichert

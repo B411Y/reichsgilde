@@ -153,7 +153,14 @@ public partial class Stadtansicht
         var uhr = System.Diagnostics.Stopwatch.StartNew();
         var teile = SchichtTeile();
         var ergebnis = new (byte[] Bild, byte[] Info)?[liste.Count];
-        Parallel.For(0, liste.Count, k => ergebnis[k] = SchichtKachelRechnen(liste[k].I, liste[k].J, teile));
+        var bueschel = new Vector4[]?[liste.Count];
+        var raster = BodenRaster;
+        Parallel.For(0, liste.Count, k =>
+        {
+            ergebnis[k] = SchichtKachelRechnen(liste[k].I, liste[k].J, teile);
+            // Grasbüschel am Wegrand (Stadtansicht.Bueschel.cs), solange das Bild noch da ist
+            if (ergebnis[k] is { } d) bueschel[k] = BueschelAusWegen(liste[k].I, liste[k].J, d.Bild, d.Info, raster);
+        });
         for (var k = 0; k < liste.Count; k++)
         {
             var kachel = liste[k];
@@ -171,6 +178,7 @@ public partial class Stadtansicht
                 else _schichtKacheln[kachel] = (ImageTexture.CreateFromImage(bild), ImageTexture.CreateFromImage(info));
             }
             if (_gelaendeKacheln.TryGetValue(kachel, out var netz)) netz.MaterialOverride = KachelStoff(kachel.I, kachel.J);
+            BueschelWegeGesetzt(kachel, bueschel[k]);
         }
         if (alles) GD.Print($"Wegeschicht: {teile.Count} Teile, {_schichtKacheln.Count} von {liste.Count} Kacheln mit Wegen, {uhr.ElapsedMilliseconds} ms");
     }

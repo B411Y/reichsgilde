@@ -7,10 +7,14 @@ namespace Reichsgilde;
 /// Die Bodentexturen – ein Teil der <c>partial class Stadtansicht</c> (Kartenwerkstatt, Schritt 5e). Der Kern führt ein Bodenraster (alle 1 m ein
 /// Punkt, elf Texturen, <see cref="Bodenraster"/>); hier wird es gezeichnet:
 /// <list type="bullet">
-/// <item><b>Boden</b>: Die Geländekacheln (128 m, Stadtansicht.Gelaende.cs) bekommen, wo gemalt wurde, den Boden-Shader (<c>boden.gdshader</c>) statt der
-/// einfarbigen Wiese. Er mischt die elf Texturen (<c>boden.png</c>, <c>tools/oberflaeche/bodentexturen.py</c>) nach drei Gewichtsbildern je Kachel
-/// (<see cref="Bodenraster.Splat"/>). Eine Karte <b>ohne</b> Boden (Greybox, Köln) hat weder Bilder noch Shader und zeichnet wie bisher; auch eine Kachel
-/// ohne gemalten Punkt behält ihre Wiese. Ändert sich der Boden, werden nur die Bilder der betroffenen Kacheln ersetzt (<see cref="BodenStoffeNeu"/>).</item>
+/// <item><b>Boden</b>: Die Geländekacheln (128 m, Stadtansicht.Gelaende.cs) tragen den Boden-Shader (<c>boden.gdshaderinc</c>) statt der einfarbigen Wiese.
+/// Er mischt die elf Texturen (<c>boden.png</c>) nach drei Gewichtsbildern je Kachel (<see cref="Bodenraster.Splat"/>); eine Kachel ohne gemalten Punkt
+/// zeigt die Wiese (ohne Bilder). Ändert sich der Boden, werden nur die Bilder der betroffenen Kacheln ersetzt (<see cref="BodenStoffeNeu"/>).
+/// Nur eine ganz flache Karte ohne Wege und Texturen bleibt eine einfarbige Ebene.</item>
+/// <item><b>Qualität</b> (Schritt 5h, Einstellung „Boden“, <see cref="Fenster.AktuelleBodenqualitaet"/>): je Stufe ein Shader – <c>boden_niedrig</c>,
+/// <c>boden_mittel</c>, <c>boden</c> (Hoch, auch Ultra); sie binden denselben Code mit einer anderen <c>BODEN_STUFE</c> ein. Wechselt die Einstellung,
+/// bekommen alle Kacheln einen neuen Stoff (<see cref="BodenqualitaetNachfuehren"/>). In Hoch kommen Normalen und Rauheit aus <c>boden_nr.png</c>,
+/// wenn es sie gibt, dazu die Grasbüschel an den Grenzen der Wiese (Stadtansicht.Bueschel.cs).</item>
 /// <item><b>Deko</b> (<see cref="Bodendeko"/>): kleine Teile, die jede Textur streut (Gras, Steine, Farn, Schilf …) – dieselben Natur-Modelle und
 /// MultiMeshes wie die übrige Natur; im Spiel mit ihr im Aufbau (<see cref="NaturAusKarte"/>), in der Werkstatt je Bodenkachel (64 m) neu, wo sich etwas ändert.</item>
 /// </list>
@@ -29,22 +33,87 @@ public partial class Stadtansicht
     /// <summary>Bild einer Geländekachel: ihre 128 Punkte plus je einer davor und dahinter, damit Übergänge über die Kante glatt bleiben.</summary>
     private const int BodenBild = KachelZellen * 2 + 2;
 
-    private Shader? _bodenShader;
+    /// <summary>Die Shader je Stufe der Bodenqualität (Niedrig, Mittel, Hoch).</summary>
+    private readonly Shader?[] _bodenShader = new Shader?[3];
     private TextureLayered? _bodenTexturen;
+    private TextureLayered? _bodenNormalen;
     private bool _bodenShaderGeprueft;
+
+    /// <summary>Die Stufe, mit der die Stoffe der Kacheln gebaut sind.</summary>
+    private Bodenqualitaet _bodenStufe = Bodenqualitaet.Hoch;
+
+    /// <summary>Der Stoff der flachen Streifen um die Kacheln (nur Wiese): sonst endete die Textur der Wiese an der letzten Kachel.</summary>
+    private ShaderMaterial? _bodenRandStoff;
+
+    /// <summary>Texturen des Bodens (Texture2DArray je Datei, eine Schicht je Textur): Farbe und Höhe, dazu Normalen und Rauheit (fehlt die Datei, nimmt
+    /// Hoch die Höhe als Unebenheit).</summary>
+    private const string BodenTexturDatei = "res://assets/texturen/boden.png", BodenNormalenDatei = "res://assets/texturen/boden_nr.png";
 
     /// <summary>Der Stoff und die drei Gewichtsbilder je Geländekachel, die Texturen trägt.</summary>
     private readonly Dictionary<(int I, int J), (ShaderMaterial Stoff, ImageTexture[] Bilder)> _bodenStoffe = new();
 
     private bool BodenShaderLaden()
     {
-        if (_bodenShaderGeprueft) return _bodenShader is not null;
+        if (_bodenShaderGeprueft) return _bodenShader[0] is not null;
         _bodenShaderGeprueft = true;
-        const string shader = "res://assets/shader/boden.gdshader", texturen = "res://assets/texturen/boden.png";
-        if (!ResourceLoader.Exists(shader) || !ResourceLoader.Exists(texturen)) return false;
-        _bodenShader = GD.Load<Shader>(shader);
-        _bodenTexturen = GD.Load<TextureLayered>(texturen);
-        return _bodenShader is not null && _bodenTexturen is not null;
+        string[] shader = { "res://assets/shader/boden_niedrig.gdshader", "res://assets/shader/boden_mittel.gdshader", "res://assets/shader/boden.gdshader" };
+        if (shader.Any(d => !ResourceLoader.Exists(d)) || !ResourceLoader.Exists(BodenTexturDatei)) return false;
+        for (var i = 0; i < shader.Length; i++) _bodenShader[i] = GD.Load<Shader>(shader[i]);
+        _bodenTexturen = GD.Load<TextureLayered>(BodenTexturDatei);
+        if (ResourceLoader.Exists(BodenNormalenDatei)) _bodenNormalen = GD.Load<TextureLayered>(BodenNormalenDatei);
+        _bodenStufe = Fenster.AktuelleBodenqualitaet;
+        if (_bodenShader.Any(x => x is null) || _bodenTexturen is null)
+        {
+            _bodenShader[0] = null;
+            return false;
+        }
+        return true;
+    }
+
+    /// <summary>Ein neuer Stoff mit dem Boden-Shader der aktuellen Stufe und den Texturen (die Werte der Kachel setzt der Aufrufer).</summary>
+    private ShaderMaterial BodenStoffNeu(string name)
+    {
+        var stoff = new ShaderMaterial { Shader = _bodenShader[(int)_bodenStufe], ResourceName = name };
+        stoff.SetShaderParameter("texturen", _bodenTexturen);
+        if (_bodenStufe == Bodenqualitaet.Hoch && _bodenNormalen is not null)
+        {
+            stoff.SetShaderParameter("texturen_nr", _bodenNormalen);
+            stoff.SetShaderParameter("nr_da", true);
+        }
+        return stoff;
+    }
+
+    /// <summary>Der Stoff der flachen Streifen um die Kacheln: die Wiese des Boden-Shaders (ohne Bilder), oder die einfarbige, wenn er fehlt.</summary>
+    private Material BodenRandStoff()
+    {
+        if (!BodenShaderLaden()) return Material(Wiese);
+        if (_bodenRandStoff is null)
+        {
+            _bodenRandStoff = BodenStoffNeu("Boden_Rand");
+            _bodenRandStoff.SetShaderParameter("gemalt", false);
+        }
+        return _bodenRandStoff;
+    }
+
+    /// <summary>
+    /// Die Einstellung „Boden“ hat sich geändert (aus <see cref="GrafikNachfuehren"/>): Alle Kacheln und die Streifen bekommen einen Stoff mit dem Shader
+    /// der neuen Stufe (die Bilder der Kacheln werden neu geschrieben), die Grasbüschel erscheinen nur in Hoch.
+    /// </summary>
+    private void BodenqualitaetNachfuehren()
+    {
+        BueschelSichtbarkeit(); // Stadtansicht.Bueschel.cs
+        if (!_bodenShaderGeprueft || _bodenShader[0] is null || _bodenStufe == Fenster.AktuelleBodenqualitaet) return;
+        _bodenStufe = Fenster.AktuelleBodenqualitaet;
+        _bodenStoffe.Clear();
+        foreach (var ((i, j), kachel) in _gelaendeKacheln)
+            if (IsInstanceValid(kachel)) kachel.MaterialOverride = KachelStoff(i, j);
+        if (_bodenRandStoff is { } alt)
+        {
+            _bodenRandStoff = null;
+            var neu = BodenRandStoff();
+            foreach (var streifen in _bodenStreifen.Where(IsInstanceValid)) streifen.MaterialOverride = neu;
+            alt.Dispose();
+        }
     }
 
     /// <summary>Hat der Boden Punkte in der Geländekachel (samt dem Rand des Bildes)?</summary>
@@ -60,18 +129,18 @@ public partial class Stadtansicht
     }
 
     /// <summary>
-    /// Der Stoff einer Geländekachel: die Wiese, oder der Boden-Shader mit den Gewichten der Kachel und der Wegeschicht (Stadtansicht.Wegeschicht.cs).
-    /// Hat die Karte Wege, tragen alle Kacheln den Shader (eine Kachel ohne gemalten Punkt zeigt die Textur der Wiese) – sonst gäbe es Kanten zwischen Kacheln.
+    /// Der Stoff einer Geländekachel: der Boden-Shader mit den Gewichten der Kachel und der Wegeschicht (Stadtansicht.Wegeschicht.cs). Alle Kacheln tragen
+    /// ihn (eine Kachel ohne gemalten Punkt zeigt die Textur der Wiese, am Hang Fels) – sonst gäbe es Kanten zwischen Kacheln. Nur wenn der Shader fehlt
+    /// (kaputter Export), die einfarbige Wiese.
     /// </summary>
     private Material KachelStoff(int ti, int tj)
     {
+        if (!BodenShaderLaden()) return Material(Wiese);
         var raster = BodenRaster;
-        var gemalt = raster is { IstLeer: false } && BodenShaderLaden() && BodenKachelGemalt(raster, ti, tj);
-        if (!gemalt && !WegeschichtAn) return Material(Wiese);
+        var gemalt = raster is { IstLeer: false } && BodenKachelGemalt(raster, ti, tj);
         if (!_bodenStoffe.TryGetValue((ti, tj), out var eintrag))
         {
-            var stoff = new ShaderMaterial { Shader = _bodenShader, ResourceName = $"Boden_{ti}_{tj}" };
-            stoff.SetShaderParameter("texturen", _bodenTexturen);
+            var stoff = BodenStoffNeu($"Boden_{ti}_{tj}");
             stoff.SetShaderParameter("ursprung", new Vector2(ti * KachelZellen * 2 - 1, tj * KachelZellen * 2 - 1));
             stoff.SetShaderParameter("bildgroesse", (float)BodenBild);
             eintrag = (stoff, new ImageTexture[3]);
@@ -116,7 +185,10 @@ public partial class Stadtansicht
         var (a0, b0, a1, b1) = KachelBereich(_grenzen.Aussen);
         for (var j = Math.Max(j0, b0); j <= Math.Min(j1, b1); j++)
             for (var i = Math.Max(i0, a0); i <= Math.Min(i1, a1); i++)
+            {
                 if (_gelaendeKacheln.TryGetValue((i, j), out var kachel)) kachel.MaterialOverride = KachelStoff(i, j);
+                BueschelBodenGeaendert(i, j); // Grasbüschel an den Grenzen (Stadtansicht.Bueschel.cs)
+            }
     }
 
     // ═════════════════════════════════════════════════════════════════════════
