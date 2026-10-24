@@ -152,7 +152,7 @@ Fahrplan (vom Nutzer am 21.10.2026 bestätigt, je Schritt ein PR; Stand wird hie
 | 5d Wegbelag | Trampelpfad bis Pflaster, wirkt auf Karren | fertig (PR #182) |
 | 5e Bodentexturen | Texturpinsel (Wiese, Erde, Fels, Kies, Waldboden, Sand, Schlamm/Ufer, Moos, Lehm, Pflasterfläche, Mist/Hof) mit passender Deko beim Malen | fertig (PR #183) |
 | 5f Editor-Oberfläche | Icon-Leiste nach Gruppen, Paletten mit Vorschaubildern, Tooltips, aufgeräumte Tafeln | fertig (PR #184) |
-| 5g Wege-Engine | Wege in den Boden eingebacken (Wegeschicht als Abstandsfeld, Kreuzungen verschmelzen, Ränder je Belag) | in Arbeit (PR #185) |
+| 5g Wege-Engine | Wege in den Boden eingebacken (Wegeschicht als Abstandsfeld, Kreuzungen verschmelzen, Ränder je Belag) | fertig (PR #185) |
 | 5h Texturen überarbeiten | Bodentexturen gemeinsam mit dem Nutzer überarbeiten | offen |
 | 6 Freigabe | Kartenwerkstatt für Spieler | offen |
 
