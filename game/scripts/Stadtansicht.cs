@@ -436,6 +436,7 @@ public partial class Stadtansicht : Node3D
         if (_freiePlaetze.Remove(betrieb.Name, out var alt))
             KnotenEntfernen(alt);
         _leereHaeuser.Remove(betrieb.Name);
+        GrasPlatz(platz.Mitte, platz.Groesse); // der Grasteppich weicht dem Gebäude (Stadtansicht.Gras.cs)
 
         var spieler = betrieb.Konto == _spielerKonto;
         var farbe = Besitzerfarbe(betrieb.Konto);
@@ -529,6 +530,7 @@ public partial class Stadtansicht : Node3D
     private void FreienPlatzZeigen(LiegenschaftDaten frei)
     {
         if (PlatzVon(frei.Name) is not { } p) return;
+        GrasPlatz(p.Mitte, p.Groesse); // auf einem freien Werkstattplatz wächst wieder Gras (Stadtansicht.Gras.cs)
         var art = _simulation?.Wirtschaft?.Daten.Art(frei.Art);
         if (frei.Bebaut && art is { InDerStadt: true })
         {
