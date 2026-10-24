@@ -105,16 +105,11 @@ public partial class Stadtansicht
     {
         var r = groesse.Length() / 2 + 1;
         GrasBereichNeu(new Rect2(mitte.X - r, mitte.Z - r, 2 * r, 2 * r));
-        SchichtVeraltet(new Rect2(mitte.X - r, mitte.Z - r, 2 * r, 2 * r)); // ein freier Platz in der Stadt ist Wiese, kein Lehm (Stadtansicht.Wegeschicht.cs)
     }
 
     /// <summary>Ein Grundstück hat sich geändert (Stadtansicht.Bauen.cs): Haus, Baustelle oder Bauplatz.</summary>
-    private void GrasGrundstueck(Grundriss g)
-    {
-        var r = new Rect2((float)(g.X - g.HalbX) - 1, (float)(g.Z - g.HalbZ) - 1, (float)g.HalbX * 2 + 2, (float)g.HalbZ * 2 + 2);
-        GrasBereichNeu(r);
-        SchichtVeraltet(r); // ein Bauplatz in der Stadt ist Wiese (Stadtansicht.Wegeschicht.cs)
-    }
+    private void GrasGrundstueck(Grundriss g) =>
+        GrasBereichNeu(new Rect2((float)(g.X - g.HalbX) - 1, (float)(g.Z - g.HalbZ) - 1, (float)g.HalbX * 2 + 2, (float)g.HalbZ * 2 + 2));
 
     /// <summary>Äcker sind gebaut worden (Stadtansicht.Rand.cs): Dort wächst kein Gras.</summary>
     private void GrasAeckerMelden(Node3D knoten, IReadOnlyList<Feldparzelle> parzellen)
@@ -252,23 +247,20 @@ public partial class Stadtansicht
     /// <summary>
     /// Die Gebäude der Karte, unter denen kein Gras steht. In der Werkstatt und im Hauptmenü alle (dort steht auf jedem Platz ein Modell). Im Spiel
     /// (Schritt 5j) nur, was wirklich steht: Kulissen, Sonderbauten, Umland und die Werkstattplätze mit einem Betrieb oder einem leeren Haus –
-    /// freie Werkstatt-, Wohnhaus- und Einwohnerplätze tragen Gras; die Häuser darauf stehen in <see cref="GrasSperrflaechen"/>.
+    /// freie Werkstatt-, Wohnhaus- und Einwohnerplätze tragen Gras; die Häuser darauf stehen in <see cref="GrasSperrflaechen"/>. In der Mauer ist
+    /// Stadtlehm, dort wächst ohnehin keins (auch nicht auf freien Plätzen, Entscheidung des Nutzers).
     /// </summary>
     private Naturfreiraum? GrasFreiraum()
     {
         if (_entwurf is not null) return _entwurf.Freiraum(Modellmass);
         if (_karte is not { } karte) return null;
         if (_wirtschaft is null) return Naturfreiraum.Aus(karte, Modellmass);
-        var stehen = StehendeWerkstattplaetze();
+        var stehen = _betriebe.Keys.Select(b => b.Name).Concat(_leereHaeuser.Keys).Select(n => PlatzVon(n)?.Gebaeude).OfType<Kartengebaeude>().ToHashSet();
         var gebaeude = karte.Gebaeude
             .Where(g => g.Art is not (Bausteinart.Werkstattplatz or Bausteinart.Wohnhausplatz or Bausteinart.Einwohnerplatz) || stehen.Contains(g))
             .Select(g => Naturhindernis.Von(g.Baustein, g.Punkt[0], g.Punkt[1], g.Drehung, g.Massstab, Modellmass)).OfType<Naturhindernis>();
         return new Naturfreiraum(Array.Empty<(IReadOnlyList<double[]>, double)>(), gebaeude, Array.Empty<IReadOnlyList<double[]>>(), Array.Empty<IReadOnlyList<double[]>>());
     }
-
-    /// <summary>Die Werkstattplätze der Karte, auf denen im Spiel ein Gebäude steht (ein Betrieb oder ein leeres Haus); die übrigen sind frei (Zaun).</summary>
-    private HashSet<Kartengebaeude> StehendeWerkstattplaetze() =>
-        _betriebe.Keys.Select(b => b.Name).Concat(_leereHaeuser.Keys).Select(n => PlatzVon(n)?.Gebaeude).OfType<Kartengebaeude>().ToHashSet();
 
     /// <summary>
     /// Wo kein Gras steht, obwohl Wiese gemalt ist (als gedrehte Rechtecke: Mitte, Drehung wie <c>Rotation.Y</c>, halbe Breite und Tiefe): die Äcker

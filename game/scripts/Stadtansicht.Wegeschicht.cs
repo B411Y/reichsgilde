@@ -11,7 +11,7 @@ namespace Reichsgilde;
 /// <item><b>Schicht je Geländekachel</b> (<see cref="SchichtKachelRechnen"/>): ein Bild zu 0,25 m je Bildpunkt (514 × 514 mit Rand) mit dem Abstand zur
 /// nächsten Wegmitte (R), dem Abstand zum Wegrand (G, innen negativ) und der Belagstufe (B: 0 Trampelpfad, 1 Fahrweg, 2 Kies, 3 Pflaster, 4 Baustelle;
 /// an Abschnittsgrenzen fließend, Pflaster neben Erde hart; A frei). Ein zweites, grobes Bild (1 m) trägt Austritt, Zustand, den Stadtgrund (B: in der
-/// Mauer Lehm, freie Plätze ausgespart; Wege darauf sind gepflasterte Gassen) und den Abstand zur Erde (A, 0–4 m: dort Erde auf dem Pflaster).
+/// Mauer Lehm; Wege darauf sind gepflasterte Gassen) und den Abstand zur Erde (A, 0–4 m: dort Erde auf dem Pflaster).
 /// Ein drittes Bild (0,25 m) trägt die Spurlinien der Karren (Schritt 5j, Stadtansicht.Spurrillen.cs).</item>
 /// <item><b>Vereinigung:</b> Alle Wege und die Stücke zu Höfen, Karrenplätzen und Gattern (<see cref="SchichtAnschlussMerken"/>) gehen in ein
 /// Abstandsfeld ein. Innerhalb eines Weges gilt der kleinste Abstand, zwischen Wegen ein weiches Minimum (<see cref="SchichtRundung"/>):
@@ -72,8 +72,6 @@ public partial class Stadtansicht
         public float[] Stelle = Array.Empty<float>();
         public float Halb;
         public bool Flaeche;
-        /// <summary>Eine Fläche, die aus dem Stadtgrund ausgespart ist (ein freier Platz: Wiese statt Lehm).</summary>
-        public bool Loch;
         public Rect2 Rahmen;
 
         /// <summary>Belag je <see cref="SchichtBelagSchritt"/> Meter: Stufe (NaN = Lücke, etwa eine Brücke), Austritt, Zustand.</summary>
@@ -242,7 +240,6 @@ public partial class Stadtansicht
         var wege = teile.Where(t => !t.Flaeche).ToList();
         var (ecken, spuren) = SchichtKreuzungen(wege, teile.Where(t => t.Flaeche).Select(t => t.Linie).ToList());
         teile.AddRange(ecken);
-        teile.AddRange(SchichtLoecher().Select(l => SchichtFlaeche(l, loch: true)));
         return (teile, spuren);
     }
 
@@ -265,48 +262,8 @@ public partial class Stadtansicht
         return teil;
     }
 
-    private static Schichtteil SchichtFlaeche(Vector2[] ecken, bool loch = false) =>
-        new() { Linie = ecken, Flaeche = true, Loch = loch, Rahmen = Rahmen(ecken, SchichtRand)!.Value };
-
-    /// <summary>
-    /// Freie Plätze, die in der Stadt Wiese bleiben statt Lehm (Schritt 5j; der Grasteppich wächst dort): die Bauzonen und im Spiel die freien
-    /// Werkstattplätze, die Einwohner- und Wohnhausplätze ohne Haus und die Bauplätze des Kerns. In der Werkstatt stehen auf allen Plätzen Modelle.
-    /// </summary>
-    private List<Vector2[]> SchichtLoecher()
-    {
-        var liste = new List<Vector2[]>();
-        if (_entwurf is { } e)
-        {
-            liste.AddRange(e.Bauzonen.Select(z => z.Ecken.Select(V2).ToArray()));
-            return liste;
-        }
-        if (_karte is not { } karte) return liste;
-        liste.AddRange(karte.Bauzonen.Select(z => z.Flaeche.Select(Punkt2).ToArray()));
-        if (_wirtschaft is not { } w) return liste;
-        var stehen = StehendeWerkstattplaetze();
-        foreach (var g in karte.GebaeudeDerArt(Bausteinart.Werkstattplatz).Where(g => !stehen.Contains(g)))
-            if (Naturhindernis.Von(g.Baustein, g.Punkt[0], g.Punkt[1], g.Drehung, g.Massstab) is { } h)
-                liste.Add(Rechteck(new Vector2((float)h.X, (float)h.Z), Mathf.DegToRad((float)h.Drehung), new Vector2((float)h.HalbX, (float)h.HalbZ)));
-        if (_wohnhaeuserGebaut)
-        {
-            var (stadt, draussen) = Einwohnerplaetze();
-            foreach (var p in stadt.Concat(draussen).Where(p => !_gebautePlaetze.Contains(p) && !_hausplaetze.ContainsValue(p)))
-                liste.Add(Rechteck(new Vector2(p.Mitte.X, p.Mitte.Z), p.Drehung, p.Groesse / 2));
-        }
-        if (w.Bauen.IstAktiv)
-            foreach (var g in w.Bauen.Grundstuecke.Where(g => g.Zustand == Bauzustand.Bauplatz))
-                liste.Add(Rechteck(new Vector2((float)g.Grundriss.X, (float)g.Grundriss.Z), DrehungY(g.Grundriss),
-                    new Vector2((float)g.Grundriss.Breite / 2, (float)g.Grundriss.Tiefe / 2)));
-        return liste.Where(l => l.Length >= 3).ToList();
-    }
-
-    /// <summary>Die Ecken eines gedrehten Rechtecks (Drehung wie <c>Rotation.Y</c>).</summary>
-    private static Vector2[] Rechteck(Vector2 mitte, float drehung, Vector2 halb)
-    {
-        var (c, s) = (Mathf.Cos(drehung), Mathf.Sin(drehung));
-        return new[] { new Vector2(-1, -1), new Vector2(1, -1), new Vector2(1, 1), new Vector2(-1, 1) }
-            .Select(k => mitte + new Vector2(c * k.X * halb.X + s * k.Y * halb.Y, -s * k.X * halb.X + c * k.Y * halb.Y)).ToArray();
-    }
+    private static Schichtteil SchichtFlaeche(Vector2[] ecken) =>
+        new() { Linie = ecken, Flaeche = true, Rahmen = Rahmen(ecken, SchichtRand)!.Value };
 
     /// <summary>Stufe (0 Trampelpfad … 3 Pflaster, 4 Baustelle), Austritt und Zustand an einer Stelle; an Abschnittsgrenzen auf 3 m fließend (wie früher das Band).</summary>
     private static (float Stufe, float Austritt, float Zustand) SchichtBelag(IReadOnlyList<Belagabschnitt> stuecke, float s)
@@ -352,13 +309,12 @@ public partial class Stadtansicht
         var flaeche = new Rect2(gx0, gz0, gn * t, gn * t);
         float[]? rand = null, mitte = null, stufe = null, austritt = null, zustand = null;
         var pflaster = new List<Schichtteil>();
-        var loecher = new List<Schichtteil>();
         foreach (var teil in teile)
         {
             if (!teil.Rahmen.Intersects(flaeche)) continue;
             if (teil.Flaeche)
             {
-                (teil.Loch ? loecher : pflaster).Add(teil); // der Grund in der Mauer ist kein Weg: er kommt ins grobe Bild
+                pflaster.Add(teil); // der Grund in der Mauer ist kein Weg: er kommt ins grobe Bild
                 continue;
             }
             if (rand is null)
@@ -456,13 +412,6 @@ public partial class Stadtansicht
         // Pflaster als Grund (in der Mauer): Deckung je Meter, am Rand auf einem Meter weich
         var grund = new float[gm * gm];
         foreach (var f in pflaster) FlaecheDecken(f.Linie, ti * kachel - 1 - rg, tj * kachel - 1 - rg, gm, grund);
-        if (pflaster.Count > 0 && loecher.Count > 0)
-        {
-            // freie Plätze: Wiese statt Lehm (am Rand auf einem Meter weich)
-            var loch = new float[gm * gm];
-            foreach (var f in loecher) FlaecheDecken(f.Linie, ti * kachel - 1 - rg, tj * kachel - 1 - rg, gm, loch);
-            for (var i = 0; i < grund.Length; i++) grund[i] *= 1f - loch[i];
-        }
         // Erde, die auf Pflaster getragen wird: Punkte auf Pfad oder Fahrweg außerhalb der Stadt
         var erde = new bool[gm * gm];
         var erdeDa = false;

@@ -74,7 +74,6 @@ public partial class Stadtansicht
             _grundstuecksbilder.Remove(nummer);
             _grasBlickFuer = null;
             _grasAlles = true; // ein Grundstück ist weg (bebauter Bauplatz): selten, alles neu
-            _schichtAlles = true;
         }
         // Zieht der Spieler um, steht seine Wohnstube im neuen Haus: Die Kamera fährt dorthin, wenn er es betritt.
         if (_wohnhausAnsicht is not null && _spielerKonto is { } spieler && w.Bauen.Wohnhaus(spieler) is { } haus)
