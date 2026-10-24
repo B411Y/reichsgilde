@@ -51,6 +51,7 @@ Startoptionen (nach `--`):
 - `--passanten=<25–100>`
 - `--feinheiten=<Nah|Mittel|Weit>`
 - `--boden=<Niedrig|Mittel|Hoch>` (Bodenqualität: Mischung der Bodentexturen, Normalen, Grasbüschel)
+- `--gras=<Aus|Dicht|SehrDicht>` (Grasteppich: 3D-Halme auf der Wiese, nur für diesen Start)
 - `--tiltshift=<Aus|Leicht|Stark>`
 - `--wolken=<An|Aus>`
 - `--dunst=<Aus|Niedrig|Hoch>`

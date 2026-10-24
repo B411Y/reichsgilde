@@ -48,25 +48,36 @@ public partial class Stadtansicht
         _bueschelKnoten.Clear();
         _bueschelBodenAlles = true;
         _bueschelAlleBauen = true;
+        GrasVergessen(); // der Grasteppich hängt ebenso am Boden (Stadtansicht.Gras.cs)
     }
 
     /// <summary>Die Wegeschicht einer Kachel ist neu gerechnet (Stadtansicht.Wegeschicht.cs).</summary>
     private void BueschelWegeGesetzt((int I, int J) kachel, Vector4[]? kandidaten)
     {
+        GrasKachelNeu(kachel); // auch der Grasteppich liest die Wegeschicht (Stadtansicht.Gras.cs)
         if (kandidaten is { Length: > 0 }) _bueschelWeg[kachel] = kandidaten;
         else if (!_bueschelWeg.Remove(kachel)) return;
         _bueschelBauen.Add(kachel);
     }
 
     /// <summary>Der Boden einer Kachel hat sich geändert (Pinsel, Rückgängig): die Kandidaten der Grenzen neu.</summary>
-    private void BueschelBodenGeaendert(int ti, int tj) => _bueschelBodenNeu.Add((ti, tj));
+    private void BueschelBodenGeaendert(int ti, int tj)
+    {
+        _bueschelBodenNeu.Add((ti, tj));
+        GrasKachelNeu((ti, tj));
+    }
 
     /// <summary>Das Gelände einer Kachel hat sich geändert: Die Büschel stehen auf der neuen Höhe.</summary>
-    private void BueschelHoeheGeaendert(int ti, int tj) => _bueschelBauen.Add((ti, tj));
+    private void BueschelHoeheGeaendert(int ti, int tj)
+    {
+        _bueschelBauen.Add((ti, tj));
+        GrasKachelNeu((ti, tj));
+    }
 
     /// <summary>In der Werkstatt haben sich Hindernisse (Gebäude, Wege, Bauzonen, Mauer, Wasser) im Rechteck geändert: die Knoten dort neu.</summary>
     private void BueschelBereich(Rect2 r)
     {
+        GrasBereichNeu(r);
         const float kachel = KachelZellen * 2f;
         for (var j = Mathf.FloorToInt(r.Position.Y / kachel); j <= Mathf.FloorToInt(r.End.Y / kachel); j++)
             for (var i = Mathf.FloorToInt(r.Position.X / kachel); i <= Mathf.FloorToInt(r.End.X / kachel); i++)

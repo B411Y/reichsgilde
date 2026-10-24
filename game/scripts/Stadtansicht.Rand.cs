@@ -347,6 +347,7 @@ public partial class Stadtansicht
     /// </summary>
     private void FeldNetzeBauen(IReadOnlyList<Feldparzelle> parzellen, Node3D eltern)
     {
+        GrasAeckerMelden(eltern, parzellen); // über Äckern kein Grasteppich (Stadtansicht.Gras.cs)
         foreach (var gruppe in parzellen.GroupBy(p => p.Frucht))
         {
             var ecken = new List<Vector3>();

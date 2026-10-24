@@ -908,6 +908,7 @@ public partial class Stadtansicht : Node3D
         BelagBild();             // geänderte Wege neu zeichnen (Stadtansicht.Wegbelag.cs)
         WegeschichtBild();       // geänderte Kacheln der Wegeschicht neu rechnen (Stadtansicht.Wegeschicht.cs)
         BueschelBild();          // Grasbüschel an den Grenzen der Wiese nachziehen (Stadtansicht.Bueschel.cs)
+        GrasBild();              // Grasteppich: geänderte Kacheln, Felder im Bild (Stadtansicht.Gras.cs)
 
         // Beschriftungen mitskalieren, damit sie bei jedem Zoom gleich groß wirken.
         var massstab = _raum is not null ? RaumSchildMassstab : _kamera.Size / BezugsZoom;

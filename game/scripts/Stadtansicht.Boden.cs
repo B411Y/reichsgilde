@@ -76,6 +76,7 @@ public partial class Stadtansicht
     {
         var stoff = new ShaderMaterial { Shader = _bodenShader[(int)_bodenStufe], ResourceName = name };
         stoff.SetShaderParameter("texturen", _bodenTexturen);
+        stoff.SetShaderParameter("teppich", GrasAn ? 1f : 0f); // die Wiese unter dem Grasteppich (Stadtansicht.Gras.cs)
         if (_bodenStufe == Bodenqualitaet.Hoch && _bodenNormalen is not null)
         {
             stoff.SetShaderParameter("texturen_nr", _bodenNormalen);
@@ -92,6 +93,7 @@ public partial class Stadtansicht
         {
             _bodenRandStoff = BodenStoffNeu("Boden_Rand");
             _bodenRandStoff.SetShaderParameter("gemalt", false);
+            _bodenRandStoff.SetShaderParameter("teppich", 0f); // jenseits der Kacheln steht kein Grasteppich
         }
         return _bodenRandStoff;
     }
@@ -103,6 +105,7 @@ public partial class Stadtansicht
     private void BodenqualitaetNachfuehren()
     {
         BueschelSichtbarkeit(); // Stadtansicht.Bueschel.cs
+        GrasNachfuehren();      // Werte des Grasteppichs (Stadtansicht.Gras.cs)
         if (!_bodenShaderGeprueft || _bodenShader[0] is null || _bodenStufe == Fenster.AktuelleBodenqualitaet) return;
         _bodenStufe = Fenster.AktuelleBodenqualitaet;
         _bodenStoffe.Clear();
