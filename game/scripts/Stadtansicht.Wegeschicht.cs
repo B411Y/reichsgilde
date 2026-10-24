@@ -9,9 +9,10 @@ namespace Reichsgilde;
 /// sie sind wie im Warcraft-3-Editor in den Boden eingebacken:
 /// <list type="bullet">
 /// <item><b>Schicht je Geländekachel</b> (<see cref="SchichtKachelRechnen"/>): ein Bild zu 0,25 m je Bildpunkt (514 × 514 mit Rand) mit dem Abstand zur
-/// nächsten Wegmitte (R), dem Abstand zum Wegrand (G, innen negativ), der Belagstufe (B: 0 Trampelpfad, 1 Fahrweg, 2 Kies, 3 Pflaster, 4 Baustelle;
-/// an Abschnittsgrenzen fließend) und der Stärke der Spurrillen (A: an Kreuzungen und Wegenden 0). Ein zweites, grobes Bild (1 m) trägt Austritt,
-/// Zustand und das Pflaster in der Mauer als Grund (B) – darauf werden Wege zu Gassen im Pflaster.</item>
+/// nächsten Wegmitte (R), dem Abstand zum Wegrand (G, innen negativ) und der Belagstufe (B: 0 Trampelpfad, 1 Fahrweg, 2 Kies, 3 Pflaster, 4 Baustelle;
+/// an Abschnittsgrenzen fließend, Pflaster neben Erde hart; A frei). Ein zweites, grobes Bild (1 m) trägt Austritt, Zustand, den Stadtgrund (B: in der
+/// Mauer Lehm, freie Plätze ausgespart; Wege darauf sind gepflasterte Gassen) und den Abstand zur Erde (A, 0–4 m: dort Erde auf dem Pflaster).
+/// Ein drittes Bild (0,25 m) trägt die Spurlinien der Karren (Schritt 5j, Stadtansicht.Spurrillen.cs).</item>
 /// <item><b>Vereinigung:</b> Alle Wege und die Stücke zu Höfen, Karrenplätzen und Gattern (<see cref="SchichtAnschlussMerken"/>) gehen in ein
 /// Abstandsfeld ein. Innerhalb eines Weges gilt der kleinste Abstand, zwischen Wegen ein weiches Minimum (<see cref="SchichtRundung"/>):
 /// Kreuzungen verschmelzen von selbst, die Ecken runden sich. Wo zwei Wege sich decken, gewinnt der stärkere Belag (Pflaster vor Kies vor Fahrweg vor Pfad).
