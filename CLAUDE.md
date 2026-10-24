@@ -65,6 +65,7 @@ Gilt, wenn ein Chat als **Teamleiter** Teammitglieder (Agenten) startet. Alle ü
   - **Vor dem Löschen eines Mitglieder-Branches** prüfen, dass sein letzter Commit im Funktions-Branch ist: `git merge-base --is-ancestor origin/<mitglieder-branch> <funktions-branch>`. Fehlt er, erst einmergen.
   - **Nach jedem Merge** die betroffenen Tabellen in `docs/bereiche/*.md` auf doppelte Zeilen und Leerzeilen mitten in der Tabelle prüfen.
   - **Hintergrundarbeit selbst prüfen** (läuft der Prozess noch, wann wurde die Ausgabedatei geschrieben), statt auf eine Meldung zu warten.
+  - **Kein Leerlauf beim Warten** (Wunsch des Nutzers, 24.10.2026): Lange Befehle (Messung, Blender, Klicktest) im Vordergrund mit Zeitlimit laufen lassen oder im selben Zug warten, bis Prozessnummer (`kill -0 <pid>`) bzw. Ausgabedatei fertig sind – nie mit `pgrep -f` und einem Suchwort, das in der eigenen Befehlszeile steht (der Befehl findet sich selbst). Den Zug erst beenden, wenn das Ergebnis da ist; nicht auf eine Benachrichtigung warten. Der Teamleiter prüft, solange ein Team läuft, alle 15 Minuten, ob ein Mitglied untätig ist, obwohl seine Ausgabe fertig ist.
   - **Vor dem Klicktest** den neuesten Stand aller Mitglieder einmergen und das Projekt neu importieren (`--headless --import --path game`).
 
 ## Feste Regeln
