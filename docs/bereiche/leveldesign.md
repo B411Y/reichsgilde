@@ -154,6 +154,7 @@ Fahrplan (vom Nutzer am 21.10.2026 bestätigt, je Schritt ein PR; Stand wird hie
 | 5f Editor-Oberfläche | Icon-Leiste nach Gruppen, Paletten mit Vorschaubildern, Tooltips, aufgeräumte Tafeln | fertig (PR #184) |
 | 5g Wege-Engine | Wege in den Boden eingebacken (Wegeschicht als Abstandsfeld, Kreuzungen verschmelzen, Ränder je Belag) | fertig (PR #185) |
 | 5h Texturen überarbeiten | Bodentexturen gemeinsam mit dem Nutzer überarbeiten | fertig (PR #187) |
+| 5i Boden-Feinschliff | Gras-Teppich auf der ganzen Wiese, kräftigere Grenzen, lebendigerer Lehm | in Arbeit (PR #188) |
 | 6 Freigabe | Kartenwerkstatt für Spieler | offen |
 
 | Thema | Entscheidung | Datum |
@@ -311,3 +312,11 @@ Fahrplan (vom Nutzer am 21.10.2026 bestätigt, je Schritt ein PR; Stand wird hie
 | Texturen | Selbst gemalt in Blender per Skript, 1024 px, kachelbar, mit Farbe, Höhe, Normalen und Rauheit, im gemalt-realistischen Stil der 3D-Welt; eigenes Werk unter CC BY 4.0. Entschieden vom Nutzer. | 24.10.2026 |
 | Extras | Keine sichtbaren Wiederholungen (große Farb- und Helligkeitsflecken, gedrehte und verschobene Kacheln); ab etwa 35° Gefälle tritt Fels von selbst hervor, ohne Verzerrung am Hang; an Grenzen der Wiese zu Erde, Weg oder Kies stehen automatisch kleine 3D-Grasbüschel. Jahreszeit und Nässe kommen später als eigenes Thema. Entschieden vom Nutzer. | 24.10.2026 |
 | Leistung | Über die Grafik-Voreinstellung: Niedrig einfache Mischung wie heute, Mittel Höhenmischung, Hoch und Ultra alles mit Normalen, Büscheln und Extras; Ziel auf Hoch höchstens 10 % weniger Bilder pro Sekunde. Entschieden vom Nutzer. | 24.10.2026 |
+
+### Kartenwerkstatt, Schritt 5i: Boden-Feinschliff (PR #188)
+
+| Thema | Entscheidung | Datum |
+|---|---|---|
+| Anlass | Nach 5h ist der Unterschied zwischen Niedrig und Hoch aus Spielhöhe dezent (Urteil von Nutzer, Teamleiter und Strata). Nachrunde mit den empfohlenen Punkten. Entschieden vom Nutzer. | 24.10.2026 |
+| Grasteppich | Dichter Teppich aus kleinen 3D-Grashalmen auf der Grafikkarte, nur im sichtbaren Bereich um die Kamera, nach außen weich ausgeblendet, leicht im Wind; auf Hoch dicht, auf Ultra sehr dicht, auf Mittel und Niedrig aus. Ziel: auf Hoch zusammen mit 5h höchstens 10 % weniger Bilder pro Sekunde. Entschieden vom Nutzer. | 24.10.2026 |
+| Kontrast | Deutlich kräftiger, aber stimmig: breitere Überhänge (Gras ragt 20–40 cm über Erde und Weg), dunkle Schattenkante darunter, stärkere Hell-Dunkel-Flecken in der Wiese, kräftigere Normalen; die Wirkung soll auch aus Spielhöhe sichtbar sein. Dazu ein lebendigerer Lehm. Entschieden vom Nutzer. | 24.10.2026 |
