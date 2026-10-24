@@ -226,8 +226,9 @@ public partial class Stadtansicht
     private void GelaendeBauen(Node3D eltern, Kartenrechteck aussen, float zugabe)
     {
         _gelaendeKacheln.Clear();
+        _bodenStoffe.Clear();
         _gelaendeKnoten = null;
-        _bodenGebaut = BodenBewegt;
+        _bodenGebaut = BodenKacheln;
         var gross = aussen.Vergroessert(zugabe);
         if (!_bodenGebaut)
         {
@@ -282,7 +283,7 @@ public partial class Stadtansicht
     private void GelaendeKachelnNeu(Kartenrechteck bereich)
     {
         if (_randKnoten is null || _grenzen is null) return;
-        if (BodenBewegt != _bodenGebaut)
+        if (BodenKacheln != _bodenGebaut)
         {
             RandNeuBauen();
             return;
@@ -315,11 +316,12 @@ public partial class Stadtansicht
         var (netz, flach) = KachelNetz(ti, tj);
         if (!_gelaendeKacheln.TryGetValue((ti, tj), out var kachel))
         {
-            kachel = new MeshInstance3D { Name = $"Kachel_{ti}_{tj}", MaterialOverride = Material(Wiese) };
+            kachel = new MeshInstance3D { Name = $"Kachel_{ti}_{tj}" };
             _gelaendeKnoten.AddChild(kachel);
             _gelaendeKacheln[(ti, tj)] = kachel;
         }
         kachel.Mesh = netz;
+        kachel.MaterialOverride = KachelStoff(ti, tj); // Wiese oder Boden-Shader (Stadtansicht.Boden.cs)
         kachel.CastShadow = flach ? GeometryInstance3D.ShadowCastingSetting.Off : GeometryInstance3D.ShadowCastingSetting.On;
     }
 

@@ -17,6 +17,9 @@ public partial class Kartenwerkstatt
     /// <summary>Dasselbe für die Regler des Geländepinsels und der Rampe.</summary>
     private static readonly object GelaendeMarke = new();
 
+    /// <summary>Dasselbe für die Regler des Bodenpinsels.</summary>
+    private static readonly object BodenMarke = new();
+
     /// <summary>Wird in der Tafel gerade geschrieben (ein Text- oder Zahlenfeld hat den Fokus)?</summary>
     private bool EingabeOffen() => GetViewport().GuiGetFocusOwner() is { } fokus && _eigenschaften.IsAncestorOf(fokus);
 
@@ -507,6 +510,51 @@ public partial class Kartenwerkstatt
             _ => "Lässt kleine Hügel und Mulden wachsen. Ohne Zufall: gleicher Startwert, gleiche Buckel.",
         };
         Hauptmenue.Text(_eigenschaften, text + "\nWege und Mauern ebnen den Boden unter sich quer ein; Gebäude stehen auf dem höchsten Punkt unter ihrer Fläche, darunter wächst ein Sockel aus Bruchstein.",
+            12, Grau, umbruchBreite: Rechtsbreite - 30);
+    }
+
+    // ═════════════════════════════════════════════════════════════════════════
+    //  Boden: Texturpinsel und Radierer
+    // ═════════════════════════════════════════════════════════════════════════
+
+    private void BodenTafel()
+    {
+        UiHilfe.KinderEntfernen(_eigenschaften);
+        _gezeigt = BodenMarke;
+        var radierer = _stadt.BodenRadierer;
+        var kopf = new HBoxContainer();
+        kopf.AddThemeConstantOverride("separation", 8);
+        _eigenschaften.AddChild(kopf);
+        kopf.AddChild(new TextureRect { Texture = Farbfeld(radierer ? new Color(0.33f, 0.40f, 0.24f) : _stadt.BodenFarbe(_stadt.BodenArt)), StretchMode = TextureRect.StretchModeEnum.KeepCentered, MouseFilter = Control.MouseFilterEnum.Ignore });
+        Hauptmenue.Text(kopf, radierer ? "Boden-Radierer" : _stadt.BodenName(_stadt.BodenArt), 17, Gold);
+        var raster = new GridContainer { Columns = 2 };
+        raster.AddThemeConstantOverride("h_separation", 10);
+        raster.AddThemeConstantOverride("v_separation", 6);
+        _eigenschaften.AddChild(raster);
+        Zeile(raster, "Radius", Schieber(1, 100, 1, _stadt.BodenRadius, Breite, r => _stadt.BodenRadius = r, "Halbmesser des Kreises an der Maus"));
+        if (!radierer)
+            Zeile(raster, "Stärke", Schieber(0.05, 1, 0.05, _stadt.BodenStaerke, s => $"{s * 100:0} %", s => _stadt.BodenStaerke = s,
+                "100 % deckt ganz, weniger mischt die Textur nur leicht unter (mehrere Striche decken weiter)"));
+        Zeile(raster, "Kante", Schieber(0, 1, 0.05, _stadt.BodenKante, k => $"{k * 100:0} %", k => _stadt.BodenKante = k, "0 % hart bis zum Rand, 100 % weich vom Mittelpunkt an"));
+        if (radierer)
+        {
+            Hauptmenue.Text(_eigenschaften, "Malt die Wiese zurück und nimmt die Deko mit.", 12, Grau, umbruchBreite: Rechtsbreite - 30);
+            return;
+        }
+        var deko = new CheckBox { Text = "Deko streuen", ButtonPressed = _stadt.BodenDeko, FocusMode = Control.FocusModeEnum.None,
+            TooltipText = "Streut passende kleine Teile (Gras, Steine, Farn, Schilf …) auf die gemalte Fläche – aus dem Boden gerechnet, nicht einzeln gespeichert" };
+        deko.AddThemeFontSizeOverride("font_size", 14);
+        deko.Toggled += an => _stadt.BodenDeko = an;
+        _eigenschaften.AddChild(deko);
+        var dichte = new GridContainer { Columns = 2 };
+        dichte.AddThemeConstantOverride("h_separation", 10);
+        _eigenschaften.AddChild(dichte);
+        Zeile(dichte, "Dichte", Schieber(0, 2, 0.1, _stadt.BodenDichte, d => $"{Komma(d, "0.0")} ×", d => _stadt.BodenDichte = d, "Wie dicht die Deko steht: 1 normal, 2 doppelt, 0 gar nicht"));
+        var daten = _entwurf.Katalog.TexturDaten(_stadt.BodenArt);
+        var streut = daten is { Dichte: > 0 } && daten.Deko.Count > 0
+            ? "Streut: " + string.Join(", ", daten.Deko.Where(e => e.Value > 0).Select(e => ArtName(e.Key))) + "."
+            : "Diese Textur streut nichts.";
+        Hauptmenue.Text(_eigenschaften, streut + "\nWege, Gebäude, Bauzonen und Wasser bleiben frei. Die Deko ist nicht gespeichert, sondern wird aus dem Boden gerechnet.",
             12, Grau, umbruchBreite: Rechtsbreite - 30);
     }
 

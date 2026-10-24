@@ -601,6 +601,28 @@ public partial class Kartenwerkstatt : Node
                     var gelaendepinsel = new Pinsel(art, Zahl(t[1]), Zahl(t[2]), p.Length > 1 ? Zahl(p[1]) : 0.5, p.Length > 2 ? (int)Zahl(p[2]) : 1, p.Length > 3 ? Zahl(p[3]) : 20);
                     _entwurf.GelaendePinseln(gelaendepinsel, Liste("-," + t[3]).Punkte.Select(q => new Kartenort(q.X, q.Z)).ToList());
                 }
+            // --werkstatt-boden=<textur|radierer>,<radius>,<staerke>,x1,z1;x2,z2;…[,kante=<0–1>][,deko=aus][,dichte=<0–2>][|…]: ein Texturstrich (ein Schritt);
+            // <textur> ist eine Kennung wie waldboden oder sand
+            if (o.TryGetValue("werkstatt-boden", out var boeden))
+                foreach (var eintrag in boeden.Split('|', StringSplitOptions.RemoveEmptyEntries))
+                {
+                    var t = eintrag.Split(',', 4);
+                    var tail = System.Text.RegularExpressions.Regex.Match(t[3], ",(kante|deko|dichte)=");
+                    var punkte = Liste("-," + (tail.Success ? t[3][..tail.Index] : t[3])).Punkte.Select(q => new Kartenort(q.X, q.Z)).ToList();
+                    var (kante, deko, dichte) = (0.5, true, 1.0);
+                    if (tail.Success)
+                        foreach (var opt in t[3][(tail.Index + 1)..].Split(','))
+                        {
+                            var kv = opt.Split('=');
+                            if (kv[0] == "kante") kante = Zahl(kv[1]);
+                            else if (kv[0] == "deko") deko = kv[1] != "aus";
+                            else if (kv[0] == "dichte") dichte = Zahl(kv[1]);
+                        }
+                    var bodenpinsel = t[0] == "radierer"
+                        ? Bodenpinsel.Radierer(Zahl(t[1]), kante)
+                        : new Bodenpinsel(Bodenraster.TexturVon(t[0]) ?? throw new ArgumentException($"Unbekannte Bodentextur „{t[0]}“."), Zahl(t[1]), Zahl(t[2]), kante, deko, dichte);
+                    _stadt.WerkstattBodenMalen(bodenpinsel, punkte);
+                }
             // --werkstatt-rampe=x1,z1;x2,z2,breite[|…]: eine Rampe (ein Schritt)
             if (o.TryGetValue("werkstatt-rampe", out var rampen))
                 foreach (var eintrag in rampen.Split('|', StringSplitOptions.RemoveEmptyEntries))

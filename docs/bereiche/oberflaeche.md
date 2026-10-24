@@ -130,3 +130,12 @@ So wird eingetragen (damit sich die Chats nie an derselben Stelle treffen):
 | Ratstafel | Neuer Abschnitt „Wegbau der Stadt“ vor dem Stadtglauben: Wegekasse und der Antrag dieses Jahres mit Prognose; gestellt wird er an der Wegtafel. | 24.10.2026 |
 | Kartenwerkstatt | Wegtafel (Eigenschaften) mit Block „Belag“: Abschnitte als Liste, Stufe, Regler von und bis (Schieber der Werkstatt, übernimmt beim Loslassen), „Abschnitt setzen“, „Ganzer Weg“, „Vorgabe“; je ein Schritt der Geschichte (Strg+Z). | 24.10.2026 |
 | Startoptionen | `--auswahl=weg:<nr>[,<stelle>]` (Wegtafel, Kamera auf den Weg, Ort im Protokoll), `--wegausbau=<weg>,<von>,<bis>,<Kies\|Pflaster>[\|…]`, `--wegantrag=<weg>,<von>,<bis>`, `--werkstatt-belag=<weg>,<stufe>[,<von>,<bis>]` (in `CLAUDE.md`). | 24.10.2026 |
+
+### Kartenwerkstatt, Schritt 5e: Bodentexturen (PR #183)
+
+| Thema | Entscheidung | Datum |
+|---|---|---|
+| Katalog | Neue Gruppe „Boden“ nach dem Gelände: die elf Texturen mit Farbfeld (Farbe aus dem Katalog, 16 × 16 mit dunklem Rand als Symbol des Knopfs) und Name, dazu „Boden-Radierer“; der Tooltip nennt, was die Textur streut. Schlüssel `boden:<kennung>` und `boden:radierer` (`--werkstatt-werkzeug`). | 24.10.2026 |
+| Tafel | `BodenTafel`: Farbfeld und Name, **Radius** (1–100 m), **Stärke** (5–100 %), **Kante**, Schalter **Deko streuen**, **Dichte** (0–2 ×) und was die Textur streut; der Radierer hat nur Radius und Kante. Die Regler sind die der Werkstatt (übernehmen beim Loslassen). | 24.10.2026 |
+| Leiste | Unten steht „Höhe … · Gefälle … · Boden: <Textur>“, sobald irgendwo gemalt ist oder das Werkzeug gewählt ist. Hilfetext zum Werkzeug wie beim Gelände. | 24.10.2026 |
+| Startoptionen | `--werkstatt-boden=<textur\|radierer>,<radius>,<staerke>,x1,z1;…[,kante=][,deko=aus][,dichte=]` (ein Strich je Eintrag, mehrere mit `\|`), `--werkstatt-werkzeug=boden:<textur>` (in `CLAUDE.md`). | 24.10.2026 |
