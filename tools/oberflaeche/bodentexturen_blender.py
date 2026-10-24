@@ -7,7 +7,7 @@
         --proben=64        Cycles-Proben je Pixel
         --zwischen=<ordner> Zwischenspeicher der gebackenen Rohdaten (Vorgabe ~/.cache/reichsgilde/bodentexturen)
         --nur-packen       nichts backen, nur aus dem Zwischenspeicher packen und die Vorschau schreiben
-        --format=webp      WebP statt PNG schreiben (Farbe verlustbehaftet q95 mit verlustfreier Höhe, Normalen verlustfrei)
+        --format=png       PNG statt WebP schreiben (verlustfrei, aber 43 statt 28 MB)
         --nah              dazu Nahaufnahmen über die Kachelecke in den Zwischenspeicher (vorschau/<name>_nah.jpg)
         --nahtprobe        statt zu backen prüfen, ob jede Textur nahtlos ist (mit --groesse=256 --proben=16)
 
@@ -18,9 +18,11 @@ Kamera schaut senkrecht von oben (orthografisch, Bildausschnitt genau die Kachel
 Grundfarbe (Diffuse Color), Normale, Umgebungsverdeckung (AO) und zwei eigene Werte (AOV): Höhe und Rauheit.
 
 Schreibt nach game/assets/texturen/boden/ (Format: siehe unten und docs/bereiche/leveldesign.md, Schritt 5h):
-    boden_farbe_hoehe.png      1024 × 11264 RGBA: RGB Farbe (sRGB, leichte Verdeckung eingerechnet), A Höhe (0 tief … 1 hoch)
-    boden_normal_rauheit.png   1024 × 11264 RGB:  R/G Normale im Tangentenraum (OpenGL: G+ zeigt zum oberen Bildrand),
-                                                   B Rauheit (0 glatt … 1 matt)
+    boden_farbe_hoehe.webp     1024 × 11264 RGBA: RGB Farbe (sRGB, leichte Verdeckung eingerechnet; verlustbehaftet q95),
+                                                   A Höhe (1 tief … 255 hoch, verlustfrei; nie 0, weil WebP Farbe unter
+                                                   Alpha 0 verwerfen darf)
+    boden_normal_rauheit.webp  1024 × 11264 RGB:  R/G Normale im Tangentenraum (OpenGL: G+ zeigt zum oberen Bildrand),
+                                                   B Rauheit (0 glatt … 1 matt); verlustfrei
 Beide sind Texture2DArrays mit elf Schichten untereinander, Reihenfolge wie `Bodentextur` im Kern:
     0 Wiese  1 Erde  2 Fels  3 Kies  4 Waldboden  5 Sand  6 Schlamm  7 Moos  8 Lehm  9 Pflaster  10 Mist
 Das Pixelmittel jeder Farbschicht wird auf das der 5e-Textur (game/assets/texturen/boden.png) abgeglichen, damit die
@@ -49,7 +51,7 @@ _opt = dict(a[2:].split("=", 1) if "=" in a else (a[2:], "1") for a in _args)
 N = int(_opt.get("groesse", 1024))         # Pixel je Kante (und Maschen des Bodennetzes)
 PROBEN = int(_opt.get("proben", 64))
 ZWISCHEN = os.path.expanduser(_opt.get("zwischen", "~/.cache/reichsgilde/bodentexturen"))
-FORMAT = _opt.get("format", "png")
+FORMAT = _opt.get("format", "webp")
 UEBER = K / 2 if "nahtprobe" in _opt else 0.0   # für die Nahtprobe reicht die Szene eine halbe Kachel weiter
 
 
