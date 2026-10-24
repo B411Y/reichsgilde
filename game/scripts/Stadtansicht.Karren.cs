@@ -61,6 +61,9 @@ public partial class Stadtansicht
     /// <summary>So weit (Meter) stehen wartende Karren hintereinander: ein Ochsenkarren ist mit Ochse 5 m lang, ein Kriegskarren mit zwei Pferden 6 m.</summary>
     private const float KarrenAbstand = 7f;
 
+    /// <summary>So weit (Meter) neben der Mitte des Weges fahren die Karren: auf ihrer rechten Seite (Rechtsverkehr, Schritt 5d).</summary>
+    private const float KarrenSpur = 0.9f;
+
     private readonly HashSet<string> _karrenSchleifen = new();
 
     private KarrenAnsicht KarrenErzeugen(Karren karren, Color besitzer, int nummer)
@@ -261,11 +264,13 @@ public partial class Stadtansicht
     private (Fahrtprofil Hin, Fahrtprofil Zurueck)? FahrtprofileVon(Betrieb betrieb)
     {
         if (_fahrtprofile.TryGetValue(betrieb, out var bekannt)) return bekannt;
-        if (!BodenBewegt || _wirtschaft is not { } wirtschaft) return null;
-        // Steigung bremst nur auf Karten mit Höhen; Furten und Fähren halten auf, wo es sie gibt (Schritt 5c, Abschnitt logistik.wasser)
-        var steigung = _gelaende is { HatHoehen: true } ? wirtschaft.Daten.Logistik.Steigung : null;
+        if (_wirtschaft is not { } wirtschaft) return null;
+        // Steigung bremst nur auf Karten mit Höhen; Furten und Fähren halten auf, wo es sie gibt (Schritt 5c, Abschnitt logistik.wasser);
+        // der Belag der Wege bremst oder beschleunigt jedes Stück (Schritt 5d, Wegebau.Faktor – wie der Kern die Fahrzeit rechnet)
+        var steigung = BodenBewegt && _gelaende is { HatHoehen: true } ? wirtschaft.Daten.Logistik.Steigung : null;
         var wasser = wirtschaft.Karte?.Wasserplan.HaeltAuf == true ? wirtschaft.Daten.Logistik.Wasser : null;
-        if (steigung is null && wasser is null) return null;
+        var belag = wirtschaft.Wegebau.IstAktiv ? wirtschaft.Wegebau : null;
+        if (steigung is null && wasser is null && belag is null) return null;
         if (wirtschaft.Fahrten(betrieb) is not var (hin, zurueck)) return null; // noch kein Platz: nicht merken
         var basis = wirtschaft.Daten.Logistik.FahrzeitAb(betrieb.Ort);
         Fahrtprofil? Profil(IReadOnlyList<Reichsgilde.Core.Bauen.Fahrtstueck> fahrt)
@@ -274,7 +279,7 @@ public partial class Stadtansicht
             if (fahrt.Count == 0 || laenge <= 0) return null;
             // Zeit in Spielminuten, wie der Kern sie rechnet: die feste Fahrzeit auf die Stücke nach Länge und Bremse verteilt, dazu die Minuten
             // einer Furt (verteilt auf ihr Stück: langsam durchs Wasser) und einer Fähre (ein Stillstand vor dem Stück: der Karren wartet am Ufer)
-            var gewicht = fahrt.Select(s => s.Laenge * (steigung?.Faktor(s.Steigung) ?? 1)).ToList();
+            var gewicht = fahrt.Select(s => s.Laenge * (steigung?.Faktor(s.Steigung) ?? 1) * (belag?.Faktor(s) ?? 1)).ToList();
             var summe = gewicht.Sum();
             var (zeit, weg) = (new List<double> { 0 }, new List<double> { 0 });
             var vorher = Reichsgilde.Core.Bauen.Fahrbahn.Strasse;
@@ -379,6 +384,19 @@ public partial class Stadtansicht
             var stelle = Stelle(anteil);
             ziel = PunktAufWeg(weg, stelle);
             blick = PunktAufWeg(weg, Math.Clamp(stelle + (karren.Zustand == KarrenZustand.ZumMarkt ? 0.02f : -0.02f), 0f, 1f));
+        }
+
+        // Rechtsverkehr (Schritt 5d): unterwegs und am Markt halten sich die Karren rechts, so begegnen sich Hin- und Rückfahrt auf ihren Seiten
+        if (karren.Zustand != KarrenZustand.AmBetrieb && ansicht.KarrenReihe is null)
+        {
+            var fahrt = blick - ziel;
+            fahrt.Y = 0;
+            if (fahrt.LengthSquared() > 1e-6f)
+            {
+                var rechts = new Vector3(-fahrt.Z, 0, fahrt.X).Normalized() * KarrenSpur;
+                ziel += rechts;
+                blick += rechts;
+            }
         }
 
         // Auf Gelände fährt der Karren auf dem Boden (Stadtansicht.Gelaende.cs)

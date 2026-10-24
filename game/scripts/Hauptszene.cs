@@ -112,6 +112,7 @@ public partial class Hauptszene : Node
     private InnenTafel[] _innenTafeln = null!;
     private VerkaufAnzeige _verkauf = null!;
     private BauAnzeige _bau = null!;
+    private WegAnzeige _wegTafel = null!;
     private BauRueckfrage _bauFrage = null!;
     private Button _leerstandKaufen = null!;
     private Button _leerstandAbreissen = null!;
@@ -186,6 +187,8 @@ public partial class Hauptszene : Node
         ratMitte.AddChild(_bauFrage);
         _bau = new BauAnzeige();
         GetNode<CanvasLayer>("Oberflaeche").AddChild(_bau); // rechts, anstelle des Kontors
+        _wegTafel = new WegAnzeige();
+        GetNode<CanvasLayer>("Oberflaeche").AddChild(_wegTafel); // ebenfalls rechts: Belag und Ausbau eines angeklickten Weges
         _gerichtKnopf = GetNode<Button>("%GerichtKnopf");
         // Der Bericht sitzt in einem CenterContainer: Der hält ihn mittig, egal wie hoch er wird.
         var berichtMitte = Hauptmenue.Mitte();
@@ -234,6 +237,12 @@ public partial class Hauptszene : Node
         _kontor.MarktGewuenscht += MarktOeffnen;
         _kontor.BauenGewuenscht += BauenOeffnen;
         _bau.Geschlossen += () => { _bauFrage.Hide(); AuswahlAnzeigen(); };
+        _wegTafel.Gemeldet += Protokollieren;
+        _stadt.WegAngeklickt += (weg, stelle) =>
+        {
+            if (_bau.Aktiv || _stadt.RaumKennung is not null) return;
+            _wegTafel.Oeffnen(weg, stelle);
+        };
         _stadt.BauPlatzGewaehlt += befehl =>
         {
             _stadt.BauFest = true; // der Umriss bleibt stehen, bis die Rückfrage beantwortet ist
@@ -350,7 +359,23 @@ public partial class Hauptszene : Node
         _verkauf.Gemeldet += Protokollieren;
         _kontor.Gemeldet += Protokollieren;
         _kontor.VerwaltenGewuenscht += betrieb => { _auswahlKennung = Stadtansicht.BetriebsKennung(betrieb); AuswahlAnzeigen(); };
-        if (optionen.TryGetValue("auswahl", out var vorauswahl))
+        if (optionen.TryGetValue("auswahl", out var vorauswahl) && vorauswahl.StartsWith("weg:"))
+        {
+            // --auswahl=weg:<nr>[,<stelle>]: die Wegtafel (Belag, Ausbau, Antrag) für einen Weg der Karte öffnen
+            var teile = vorauswahl[4..].Split(',');
+            if (int.TryParse(teile[0], out var wegNr) && _stadt.WegMitte(wegNr) is var (nr, mitte))
+            {
+                var stelle = teile.Length > 1 && double.TryParse(teile[1], System.Globalization.CultureInfo.InvariantCulture, out var st) ? st : mitte;
+                _wegTafel.Oeffnen(nr, stelle);
+                if (_stadt.WegOrt(nr, stelle) is { } ort)
+                {
+                    GD.Print($"Weg {nr} ({_stadt.WegName(nr)}), Stelle {stelle:0} m: x {ort.X:0.#}, z {ort.Y:0.#}");
+                    if (!optionen.ContainsKey("blick")) _stadt.KameraSetzen(ort.X, ort.Y, 40f);
+                }
+            }
+            else Protokollieren("--auswahl=" + vorauswahl + ": diesen Weg gibt es nicht.");
+        }
+        else if (optionen.TryGetValue("auswahl", out vorauswahl))
             _auswahlKennung = vorauswahl.Replace('_', ' '); // Leerzeichen in Namen als _ (--auswahl=wohnhaus:Haus_Eisenbart)
         if (optionen.TryGetValue("drehung", out var d) && int.TryParse(d, out var drehung))
             _stadt.Drehen(drehung, sofort: true);
@@ -415,6 +440,7 @@ public partial class Hauptszene : Node
             }
             else _bauFrage.OeffnenLeerstand(leerKonto, leerstand == "abreissen"); // mit --auswahl=wohnhaus:<Inhaber>, Leerzeichen als _
         }
+        WegBefehleStarten(optionen);
         if (optionen.TryGetValue("spulen", out var spulen) && int.TryParse(spulen, out var ticks)) _spulen = ticks;
         if (optionen.TryGetValue("speichern", out var speichern)) _speichernAls = speichern;
         Fenster.StartoptionenAnwenden(optionen); // Grafik nur für diesen Start: --kanten, --voreinstellung, --dunst … (Fenster.Grafik.cs)
@@ -454,6 +480,7 @@ public partial class Hauptszene : Node
         _hinterzimmer.Hide();
         _markt.Hide();
         _verkauf.Hide();
+        _wegTafel.Schliessen();
         foreach (var tafel in _innenTafeln) tafel.Hide();
         if (_bauFrage.Visible) _bauFrage.Zurueck(); // der Umriss der Platzwahl wird wieder frei
     }
@@ -793,6 +820,7 @@ public partial class Hauptszene : Node
         _verwaltung.Verbinden(simulation, spieler);
         _bauFrage.Verbinden(simulation, spieler);
         _bau.Verbinden(simulation, spieler, _stadt);
+        _wegTafel.Verbinden(simulation, spieler, _stadt);
         // Die Stadtansicht zeichnet die Karte der Partie, stellt jeden Betrieb an seinen Platz und zeigt die freien Plätze.
         _stadt.Verbinden(simulation, spieler);
         w.BetriebErworben += betrieb =>
@@ -861,6 +889,8 @@ public partial class Hauptszene : Node
                 _bauFrage.Zurueck();
             else if (_bau.Aktiv)
                 _bau.Zurueck();
+            else if (_wegTafel.Aktiv)
+                _wegTafel.Schliessen();
             else if (_ratskammer.Visible)
                 _ratskammer.Hide();
             else if (_familientafel.Visible)
@@ -1148,6 +1178,36 @@ public partial class Hauptszene : Node
         if (optionen.TryGetValue("bauklick", out var klick) && int.TryParse(klick, out var art2)) _bauAutoKlick = art2;
     }
 
+    /// <summary>
+    /// Startoptionen zum Wegbelag: <c>--wegausbau=&lt;weg&gt;,&lt;von&gt;,&lt;bis&gt;,&lt;Kies|Pflaster&gt;</c> lässt einen Abschnitt auf Kosten des Spielers ausbauen,
+    /// <c>--wegantrag=&lt;weg&gt;,&lt;von&gt;,&lt;bis&gt;</c> stellt den Ratsantrag „Weg pflastern“ (Meter entlang des Verlaufs). Die Meldung steht im Protokoll.
+    /// </summary>
+    private void WegBefehleStarten(Dictionary<string, string> optionen)
+    {
+        if (_simulation.Wirtschaft is not { } w || _spieler is null) return;
+        double[]? Zahlen(string text, int anzahl) =>
+            text.Split(',').Take(anzahl).Select(t => double.TryParse(t, System.Globalization.CultureInfo.InvariantCulture, out var f) ? f : double.NaN).ToArray() is { } z && z.Length == anzahl && z.All(d => !double.IsNaN(d)) ? z : null;
+        if (optionen.TryGetValue("wegausbau", out var ausbau))
+        {
+            var teile = ausbau.Split(',');
+            if (teile.Length == 4 && Zahlen(string.Join(',', teile.Take(3)), 3) is { } z && Enum.TryParse<Belagstufe>(teile[3], true, out var stufe))
+            {
+                var ergebnis = w.Ausfuehren(_spieler, new WegAusbauen((int)z[0], z[1], z[2], stufe));
+                Protokollieren(ergebnis.Erfolg ? ergebnis.Meldung : "✗ " + ergebnis.Meldung);
+            }
+            else Protokollieren("--wegausbau=" + ausbau + ": gemeint ist <Weg>,<von>,<bis>,<Kies|Pflaster>.");
+        }
+        if (optionen.TryGetValue("wegantrag", out var antrag))
+        {
+            if (Zahlen(antrag, 3) is { } z)
+            {
+                var ergebnis = w.Ausfuehren(_spieler, new WegPflasterBeantragen((int)z[0], z[1], z[2]));
+                Protokollieren(ergebnis.Erfolg ? ergebnis.Meldung : "✗ " + ergebnis.Meldung);
+            }
+            else Protokollieren("--wegantrag=" + antrag + ": gemeint ist <Weg>,<von>,<bis>.");
+        }
+    }
+
     /// <summary>Nur für den Klicktest (--bauklick): Sobald der Umriss steht und grün ist, die Rückfrage öffnen oder gleich bauen.</summary>
     private void BauAutoKlickPruefen()
     {
@@ -1334,7 +1394,7 @@ public partial class Hauptszene : Node
     private void PlatzMachen()
     {
         _hinweis.Visible = !_auswahl.Visible && _stadt.RaumKennung is null;
-        var kontorSichtbar = _stadt.RaumKennung is null or Stadtansicht.RaumKontor && !_bau.Aktiv; // im Baumodus steht rechts die Bautafel
+        var kontorSichtbar = _stadt.RaumKennung is null or Stadtansicht.RaumKontor && !_bau.Aktiv && !_wegTafel.Aktiv; // im Baumodus steht rechts die Bautafel, bei einem Weg die Wegtafel
         if (_kontor.Visible != kontorSichtbar) _kontor.Visible = kontorSichtbar;
     }
 
