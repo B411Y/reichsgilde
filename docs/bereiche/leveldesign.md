@@ -151,7 +151,7 @@ Fahrplan (vom Nutzer am 21.10.2026 bestätigt, je Schritt ein PR; Stand wird hie
 | 5c Wasser | Flüsse und Bäche als Linie mit Breite (Zeichenrichtung = Fließrichtung, Strömung), Seen als Fläche mit Wasserstand (still), Ufer automatisch ausgehoben; Wasser ist Hindernis, Brücken, Furten, Fähren, Häfen am Ufer | fertig (PR #180) |
 | 5d Wegbelag | Trampelpfad bis Pflaster, wirkt auf Karren | fertig (PR #182) |
 | 5e Bodentexturen | Texturpinsel (Wiese, Erde, Fels, Kies, Waldboden, Sand, Schlamm/Ufer, Moos, Lehm, Pflasterfläche, Mist/Hof) mit passender Deko beim Malen | fertig (PR #183) |
-| 5f Editor-Oberfläche | Icon-Leiste nach Gruppen, Paletten mit Vorschaubildern, Tooltips, aufgeräumte Tafeln | offen |
+| 5f Editor-Oberfläche | Icon-Leiste nach Gruppen, Paletten mit Vorschaubildern, Tooltips, aufgeräumte Tafeln | fertig (PR #184) |
 | 6 Freigabe | Kartenwerkstatt für Spieler | offen |
 
 | Thema | Entscheidung | Datum |
@@ -285,3 +285,10 @@ Fahrplan (vom Nutzer am 21.10.2026 bestätigt, je Schritt ein PR; Stand wird hie
 | Texturpinsel (Umsetzung, Kern) | `Bodenpinsel`: Textur, Radius 0,5–100 m, Stärke 0–1, Kante, „Deko streuen“, Dichte 0–2. Tupfer alle Radius/4 m wie beim Gelände. Ein Punkt zählt je Strich nur einmal mit dem stärksten Tupfer: Ein Strich deckt gleichmäßig, ein zweiter deckt weiter. Stärke 1 deckt ganz. Radierer = Wiese mit Stärke 1 ohne Deko; leere Kacheln fallen weg. Ein Strich ist ein Schritt, im Rückgängig-Speicher nur die berührten Kacheln gepackt. | 24.10.2026 |
 | Deko (Umsetzung, Kern) | `Bodendeko`: je Textur ein am Boden verankertes Gitter mit einem Kandidaten je Zelle (Ort aus Startwert, Textur und Zelle). Er wird gesetzt mit der Wahrscheinlichkeit Anteil · Dekodichte. Ein Strich ändert nur die Deko unter ihm. Was und wie dicht eine Textur streut, steht im Katalog (`bodentexturen`: Wiese Gras/Wildblumen/Maulwurfshügel, Fels Brocken/Kiesel/Findling/Lesesteinhaufen, Kies Kiesel, Waldboden Farn/Pilze/Totholz/Reisig/Stumpf, Sand Kiesel/Gras, Schlamm Schilf/Ufersteine, Moos Farn/Pilze, Erde wenig Gras/Kiesel/Brennnessel, Mist Brennnessel, Lehm und Pflaster nichts). Deko nur, wo mit „Deko streuen“ gemalt wurde: Alte Karten bleiben ohne. Abstand 1 m zu Wegen, Gebäuden, Bauzonen und Wasser, 3 m zur Mauer; anders als Bäume darf Deko in der Stadt liegen. Gespeichert wird je Karte nur der Startwert. 2 × 2 km ganz bemalt: etwa 120.000 Teile in rund 1 s. | 24.10.2026 |
 | Kartenskript und Probestadt (Umsetzung, Kern) | Befehl `textur <karte> <textur oder radierer> <x,z;…>`, Stadtskript-Hilfen `Textur` und `TexturFlaeche`, die Vorschau färbt die stärkste Textur je 4-m-Feld in ihrer Katalogfarbe. Probestadt: Waldboden in beiden Wäldern, Sand und Schlamm am Sandfluss, Kies an der Fähre, Fels und Moos an zwei Hügeln, Erde und Mist eines Hofs im Osten. Greybox, Köln und Messstadt unverändert. | 24.10.2026 |
+
+### Kartenwerkstatt, Schritt 5f: Editor-Oberfläche (PR #184)
+
+| Thema | Entscheidung | Datum |
+|---|---|---|
+| Aufbau | Links eine schmale Leiste mit Icon-Knöpfen je Gruppe (Auswählen, Gelände, Boden, Wasser, Wege, Flächen und Natur, Gebäude, Mauer, Start, Prüfen); ein Klick klappt eine Palette mit Icons auf, Gebäude als kleine Vorschaubilder. Rechts nur die Eigenschaften des Gewählten, oben Datei, Rückgängig und Ausprobieren, unten eine Statusleiste. Entschieden vom Nutzer. | 24.10.2026 |
+| Tooltips und Icons | Jeder Knopf hat ein Icon und einen Tooltip mit Name, kurzer Erklärung und Tastenkürzel. Icons im Holzschnitt-Stil wie die Waren-Icons. Entschieden vom Nutzer. | 24.10.2026 |

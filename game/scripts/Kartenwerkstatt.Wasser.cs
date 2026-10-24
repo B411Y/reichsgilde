@@ -156,7 +156,7 @@ public partial class Kartenwerkstatt
 
     private void WasserWerkzeugTafel()
     {
-        UiHilfe.KinderEntfernen(_eigenschaften);
+        EigenschaftenLeeren();
         _gezeigt = WasserMarke;
         var werkzeug = _stadt.Kartenwerkzeug;
         var titel = werkzeug switch

@@ -428,6 +428,31 @@ public partial class Stadtansicht
     }
 
     /// <summary>
+    /// Das Modell eines Bausteins für das Vorschaubild der Palette (Kartenwerkstatt.Palette.cs): ohne Besitzer, Stufe 1 und Variante 1, ohne Wappen, Fahne
+    /// und Gerüst; ein Platz zeigt sein Haus (Werkstatt des Schmieds, Fachwerkhaus, Einwohnerhaus), eine Arbeitsstelle nur ihren Knoten. Null ohne Modell.
+    /// Der Aufrufer besitzt den Knoten; er wird nirgends in der Stadt gemeldet (keine Fenster, Kronen, Fahnen).
+    /// </summary>
+    public Node3D? WerkstattVorschaumodell(Baustein b)
+    {
+        var datei = b.Art switch
+        {
+            Bausteinart.Werkstattplatz => WerkstattModellDatei("Schmied"),
+            Bausteinart.Wohnhausplatz => Katalog?.Wohnhaus(0)?.Modell,
+            Bausteinart.Einwohnerplatz => EinwohnerDatei(b.Groesse is { Length: 2 } g && g[0] >= 8 ? Hausart.Buergerhaus : Hausart.Wohnhaus),
+            _ => b.Modell,
+        };
+        if (datei is null || Modell(datei) is not { } szene) return null;
+        var wurzel = szene.Instantiate<Node3D>();
+        foreach (var teil in wurzel.FindChildren("*", nameof(MeshInstance3D), true, false).OfType<MeshInstance3D>())
+        {
+            var name = teil.Name.ToString();
+            if (name is "Stufe2" or "Stufe3" or "Variante2" or "Variante3" or "Geruest" or "Leerstand" or "Wappen" or "Fahne") teil.Visible = false;
+            else if (b.Art == Bausteinart.Umlandstelle && b.Knoten is { } knoten && teil.GetParent() == wurzel) teil.Visible = name == knoten;
+        }
+        return wurzel;
+    }
+
+    /// <summary>
     /// Das Modell eines Stücks nach der Art seines Bausteins, lokal: Mitte der Grundfläche im Ursprung, Vorderseite nach +z. Mit Startbelegung in
     /// der Farbe des Hauses; ein Werkstattplatz zeigt dann die Werkstatt seines Startbetriebs (sonst die des Schmieds).
     /// </summary>

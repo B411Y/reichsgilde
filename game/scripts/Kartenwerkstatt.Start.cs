@@ -74,6 +74,7 @@ public partial class Kartenwerkstatt
         _karteTafel.Visible = false;
         if (start) StartZeigen();
         _inhaltRolle.ScrollVertical = 0;
+        GruppenMarkieren(); // Kartenwerkstatt.Palette.cs
     }
 
     /// <summary>Die Auswahl in der Karte hat sich geändert: Bei offener Tafel „Start“ klappt ein belegter Platz sein Haus auf, sonst die Eigenschaften.</summary>

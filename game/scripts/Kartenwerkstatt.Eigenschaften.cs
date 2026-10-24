@@ -26,7 +26,7 @@ public partial class Kartenwerkstatt
     /// <summary>Baut die Tafel für einen Weg, eine Fläche, eine Pflanze oder eine Mauer.</summary>
     private void TeilTafel(EntwurfTeil teil)
     {
-        UiHilfe.KinderEntfernen(_eigenschaften);
+        EigenschaftenLeeren();
         _gezeigt = teil;
         _stadt.WegStreckeMarkieren(null, 0, 0, 0); // die Markierung des Belag-Abschnitts gehört zum gewählten Weg (WegTafel)
         var raster = new GridContainer { Columns = 2 };
@@ -425,7 +425,7 @@ public partial class Kartenwerkstatt
 
     private void PinselTafel()
     {
-        UiHilfe.KinderEntfernen(_eigenschaften);
+        EigenschaftenLeeren();
         _gezeigt = PinselMarke;
         var radierer = _stadt.Kartenwerkzeug == Werkstattwerkzeug.Radierer;
         Hauptmenue.Text(_eigenschaften, radierer ? "Radierer" : "Pinsel", 17, Gold);
@@ -469,7 +469,7 @@ public partial class Kartenwerkstatt
 
     private void GelaendeTafel()
     {
-        UiHilfe.KinderEntfernen(_eigenschaften);
+        EigenschaftenLeeren();
         _gezeigt = GelaendeMarke;
         var rampe = _stadt.Kartenwerkzeug == Werkstattwerkzeug.Rampe;
         var art = _stadt.GelaendeArt;
@@ -519,7 +519,7 @@ public partial class Kartenwerkstatt
 
     private void BodenTafel()
     {
-        UiHilfe.KinderEntfernen(_eigenschaften);
+        EigenschaftenLeeren();
         _gezeigt = BodenMarke;
         var radierer = _stadt.BodenRadierer;
         var kopf = new HBoxContainer();

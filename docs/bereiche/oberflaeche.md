@@ -139,3 +139,13 @@ So wird eingetragen (damit sich die Chats nie an derselben Stelle treffen):
 | Tafel | `BodenTafel`: Farbfeld und Name, **Radius** (1–100 m), **Stärke** (5–100 %), **Kante**, Schalter **Deko streuen**, **Dichte** (0–2 ×) und was die Textur streut; der Radierer hat nur Radius und Kante. Die Regler sind die der Werkstatt (übernehmen beim Loslassen). | 24.10.2026 |
 | Leiste | Unten steht „Höhe … · Gefälle … · Boden: <Textur>“, sobald irgendwo gemalt ist oder das Werkzeug gewählt ist. Hilfetext zum Werkzeug wie beim Gelände. | 24.10.2026 |
 | Startoptionen | `--werkstatt-boden=<textur\|radierer>,<radius>,<staerke>,x1,z1;…[,kante=][,deko=aus][,dichte=]` (ein Strich je Eintrag, mehrere mit `\|`), `--werkstatt-werkzeug=boden:<textur>` (in `CLAUDE.md`). | 24.10.2026 |
+
+### Kartenwerkstatt, Schritt 5f: Editor-Oberfläche (PR #184)
+
+| Thema | Umsetzung | Datum |
+|---|---|---|
+| Aufbau | Kopfleiste (Datei, Rückgängig, Gassennetz, Ausprobieren), Gruppenleiste links mit zehn Icon-Knöpfen (Auswählen, Gelände, Boden, Wasser, Wege, Flächen und Natur, Gebäude, Mauer und Tore, Start, Prüfen), Palette daneben, rechts nur die Eigenschaften, unten die Statusleiste (`Kartenwerkstatt.Palette.cs`). Alle Startoptionen und Knöpfe der Tafeln wählen weiter über denselben Schlüssel. | 24.10.2026 |
+| Tasten | 1–0 wählen die Gruppen (nur ohne Strg, Alt, Umschalt; kein Konflikt mit Q/E, WASD, Entf, Esc, Strg+Z/Y/S). Die Taste steht klein am Knopf, im Tooltip und in der Palettenüberschrift; die Statusleiste nennt das Werkzeug als „Gruppe › Werkzeug“. | 24.10.2026 |
+| Icons | 45 Icons im Holzschnitt-Stil (Umriss, Schraffur unten rechts, Farbe leicht versetzt) aus `tools/icons/kartenwerkstatt_icons.py`; Boden-Texturen als Farbfeld mit Schraffur. Gebäude zeigen ein zur Laufzeit gerendertes Vorschaubild ihres Modells (statischer Zwischenspeicher). | 24.10.2026 |
+| Eigenschaften | Tafeln mit mindestens zwei Zwischenüberschriften klappen sie zu Abschnitten (Knopf mit „–“ und „+“); die Prüfliste ist ein eigener Gruppenknopf mit Zähler (F = Fehler, H = Hinweise). | 24.10.2026 |
+| Startoption | `--werkstatt-gruppe=<auswaehlen\|gelaende\|boden\|wasser\|wege\|flaechen\|gebaeude\|mauer\|start\|pruefen>` klappt eine Gruppe auf (für Klicktests). | 24.10.2026 |
