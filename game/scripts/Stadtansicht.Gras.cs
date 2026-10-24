@@ -10,11 +10,12 @@ namespace Reichsgilde;
 /// 3D-Halme, aber nur im Bild: Die Grafikkarte zeichnet ihn (<c>gras.gdshader</c>), hier wird nur vorbereitet, was sie dafür braucht. Einstellung
 /// „Gras“ (<see cref="Fenster.AktuellerGrasteppich"/>): Dicht in der Voreinstellung Hoch, Sehr dicht in Ultra, sonst aus. Nichts davon wird gespeichert.
 /// <list type="bullet">
-/// <item><b>Felder</b>: Der Boden ist in Felder zu 4 × 4 m geteilt. Jedes Feld zeichnet dasselbe Netz aus Büscheln (<see cref="GrasNetze"/>, sechs
-/// Stufen von 2 bis 64 Büscheln je m²); der Shader spiegelt es je Feld, setzt es auf den Boden und lässt weg, was nicht auf der Wiese steht.</item>
-/// <item><b>Kacheln</b> (<see cref="GrasKachelRechnen"/>, parallel): je Geländekachel (128 m) ein Bild zu 1 m mit der Dichte der Wiese (aus dem
-/// Bodenraster, ohne Gebäude, Grundstücke, Äcker, Wasser und Fels am Hang), der Höhe und der Normale des Bodens, dazu die Felder, auf denen
-/// überhaupt Gras wächst. Neu gerechnet wird nur, was sich ändert – dieselben Meldungen wie für die Grasbüschel (Stadtansicht.Bueschel.cs).</item>
+/// <item><b>Felder</b>: Der Boden ist in Felder zu 4 × 4 m geteilt. Jedes Feld zeichnet dasselbe Netz aus Büscheln (<see cref="GrasNetze"/>, Stufen
+/// von 1,5 bis 64 Büscheln je m²); der Shader spiegelt es je Feld, setzt es auf den Boden und lässt weg, was nicht auf der Wiese steht.</item>
+/// <item><b>Kacheln</b> (<see cref="GrasKachelRechnen"/>, parallel): je Geländekachel (128 m) zwei Bilder zu 1 m – Dichte der Wiese (aus dem
+/// Bodenraster, ohne Gebäude, Grundstücke, Bauzonen, Äcker, Wasser, Fels am Hang und Pflaster der Stadt), Höhe und Normale des Bodens; Makro-Flecken
+/// und Horste –, dazu die Felder, auf denen überhaupt Gras wächst. Neu gerechnet wird nur, was sich ändert – dieselben Meldungen wie für die
+/// Grasbüschel (Stadtansicht.Bueschel.cs).</item>
 /// <item><b>Im Bild</b> (<see cref="GrasImBild"/>): Je Kachel ein MultiMesh mit den Feldern, die die Kamera sieht (die Ecken des Bildes auf den Boden
 /// geworfen, bei der tiefsten und der höchsten Stelle der Kachel); neu nur, wenn sich Kamera, Zoom oder eine Kachel ändern. Mit dem Zoom wählt es das
 /// Netz: weit weg weniger, dafür breitere Halme – es stehen etwa gleich viele im Bild.</item>
@@ -26,18 +27,17 @@ public partial class Stadtansicht
     private const float GrasFeld = 4f;
     private const int GrasFelder = (int)(KachelZellen * 2 / GrasFeld);
 
-    /// <summary>Büschel je m² im kleinsten Netz; jedes weitere hat doppelt so viele (sechs Netze bis 64 je m²).</summary>
-    private const float GrasNetzDichte = 2f;
+    /// <summary>Büschel je m² der Netze eines Feldes (der Zoom wählt das kleinste, das genügt; die Schritte sind klein, weil jede Ecke Zeit kostet).</summary>
+    private static readonly float[] GrasNetzDichten = { 1.5f, 2, 2.5f, 3, 3.5f, 4, 5, 6, 7, 8, 10, 12, 16, 24, 32, 48, 64 };
 
     /// <summary>Rasterpunkte des Geländes (2 m), die eine Kachel für ihr Bild liest: einer davor, zwei dahinter.</summary>
     private const int GrasRaster = KachelZellen + 3;
-    private const int GrasNetzStufen = 6;
 
     /// <summary>Je Stufe der Einstellung: Büschel je m² beim Standard-Zoom und höchstens (nah), Höhe der Halme (Meter).</summary>
     private static (float Dichte, float Hoechstens, float Hoehe) GrasWerte(Grasteppich g) => g switch
     {
-        Grasteppich.SehrDicht => (12f, 64f, 0.38f),
-        _ => (6f, 32f, 0.36f),
+        Grasteppich.SehrDicht => (6f, 64f, 0.38f),
+        _ => (2.5f, 32f, 0.36f),
     };
 
     /// <summary>Die Netze der Felder (einmal gebaut, über Szenenwechsel gehalten wie die Shader).</summary>
@@ -49,7 +49,7 @@ public partial class Stadtansicht
     {
         public required ShaderMaterial Stoff;
         public required MultiMeshInstance3D Knoten;
-        public ImageTexture? Bild;
+        public ImageTexture? Bild, Farbe;
         /// <summary>Die Felder mit Gras (Nummer = Zeile · <see cref="GrasFelder"/> + Spalte).</summary>
         public int[] Felder = Array.Empty<int>();
         /// <summary>Tiefste und höchste Stelle des Bodens in der Kachel.</summary>
@@ -58,9 +58,13 @@ public partial class Stadtansicht
     }
 
     private readonly Dictionary<(int I, int J), GrasKachel> _grasKacheln = new();
+
+    /// <summary>Das grobe Bild der Wegeschicht je Kachel (Stadtansicht.Wegeschicht.cs, B = Pflaster als Grund): In der Stadt steht kein Gras.</summary>
+    private readonly Dictionary<(int I, int J), byte[]> _grasStadt = new();
     private readonly HashSet<(int I, int J)> _grasNeu = new();
     private bool _grasAlles = true;
     private Node3D? _grasWurzel;
+    private bool _grasMakroStark = true;
 
     /// <summary>Wofür die Felder im Bild zuletzt gewählt wurden (Kamera, Zoom, Bildgröße, Netz); null = neu wählen.</summary>
     private (Vector3 Ort, Vector3 Blick, float Zoom, Vector2 Bild, int Netz)? _grasBlickFuer;
@@ -129,6 +133,7 @@ public partial class Stadtansicht
     private void GrasNachfuehren()
     {
         foreach (var k in _grasKacheln.Values) GrasStoffWerte(k.Stoff);
+        if (_grasMakroStark != (Fenster.AktuelleBodenqualitaet == Bodenqualitaet.Hoch)) _grasAlles = true; // die Makro-Flecken stehen im Bild der Kacheln
         foreach (var (stoff, _) in _bodenStoffe.Values) stoff.SetShaderParameter("teppich", GrasAn ? 1f : 0f); // die Wiese darunter (boden.gdshaderinc)
         _grasBlickFuer = null;
     }
@@ -196,7 +201,6 @@ public partial class Stadtansicht
         stoff.SetShaderParameter("dichte", dichte);
         stoff.SetShaderParameter("dichte_max", hoechstens);
         stoff.SetShaderParameter("hoehe", hoehe);
-        stoff.SetShaderParameter("makro_stark", Fenster.AktuelleBodenqualitaet == Bodenqualitaet.Hoch); // wie der Boden darunter (boden_gemein.gdshaderinc)
     }
 
     // ═════════════════════════════════════════════════════════════════════════
@@ -216,11 +220,17 @@ public partial class Stadtansicht
         var raster = BodenRaster;
         Naturfreiraum? frei = _entwurf is not null ? _entwurf.Freiraum(Modellmass) : _karte is { } karte ? Naturfreiraum.Aus(karte, Modellmass) : null;
         var wasser = GrasWasser(GewaesserForm);
+        // Bauzonen wie Seen als Vielecke: Dort wird gebaut, die Natur lässt sie ebenso frei (und ihre farbige Fläche bleibt frei von Halmen)
+        if (_entwurf is not null) wasser.Seen.AddRange(_entwurf.Bauzonen.Select(z => z.Ecken.Select(e => new Vector2((float)e.X, (float)e.Z)).ToArray()));
+        else if (_karte is not null) wasser.Seen.AddRange(_karte.Bauzonen.Select(z => z.Flaeche.Select(e => new Vector2((float)e[0], (float)e[1])).ToArray()));
+        wasser.Seen.RemoveAll(v => v.Length < 3);
         var flaechen = GrasSperrflaechen();
         // die Höhen der Rasterpunkte je Kachel am Stück (der Kern rechnet das Bett der Wege dabei nach, das geht nicht parallel)
         var hoehen = liste.Select(k => BodenBewegt ? _gelaende!.Ausschnitt(k.I * KachelZellen - 1, k.J * KachelZellen - 1, GrasRaster, GrasRaster) : null).ToArray();
-        var ergebnis = new (float[] Daten, float Unten, float Oben, int[] Felder)[liste.Count];
-        Parallel.For(0, liste.Count, n => ergebnis[n] = GrasKachelRechnen(liste[n].I, liste[n].J, hoehen[n], raster, frei, wasser, flaechen));
+        var ergebnis = new (float[] Daten, byte[] Farbe, float Unten, float Oben, int[] Felder)[liste.Count];
+        var stadt = liste.Select(k => _grasStadt.GetValueOrDefault(k)).ToArray();
+        var stark = _grasMakroStark = Fenster.AktuelleBodenqualitaet == Bodenqualitaet.Hoch;
+        Parallel.For(0, liste.Count, n => ergebnis[n] = GrasKachelRechnen(liste[n].I, liste[n].J, hoehen[n], stadt[n], raster, frei, wasser, flaechen, stark));
         for (var n = 0; n < liste.Count; n++) GrasKachelSetzen(liste[n], ergebnis[n]);
         _grasBlickFuer = null;
         if (alles) GD.Print($"Grasteppich: {_grasKacheln.Count} Kacheln, {_grasKacheln.Values.Sum(k => k.Felder.Length)} Felder mit Gras, {uhr.ElapsedMilliseconds} ms");
@@ -280,9 +290,9 @@ public partial class Stadtansicht
     /// Das Bild einer Kachel (läuft parallel, liest nur): je Punkt (1 m, wie die Gewichte des Bodens: 130 × 130 ab einem Punkt vor der Kachel) Dichte der
     /// Wiese, Höhe und Normale des Bodens; dazu die tiefste und höchste Stelle und die Felder mit Gras.
     /// </summary>
-    private static (float[] Daten, float Unten, float Oben, int[] Felder) GrasKachelRechnen(int ti, int tj, float[]? hoehen, Bodenraster? raster,
+    private static (float[] Daten, byte[] Farbe, float Unten, float Oben, int[] Felder) GrasKachelRechnen(int ti, int tj, float[]? hoehen, byte[]? stadt, Bodenraster? raster,
         Naturfreiraum? frei, (List<(Vector2 Von, Vector2 Bis, float Halb)> Fluesse, List<Vector2[]> Seen) wasser,
-        List<(Vector2 Mitte, float Drehung, Vector2 Halb)> flaechen)
+        List<(Vector2 Mitte, float Drehung, Vector2 Halb)> flaechen, bool stark)
     {
         const int n = BodenBild;
         var (i0, j0) = (ti * KachelZellen * 2 - 1, tj * KachelZellen * 2 - 1);
@@ -291,6 +301,7 @@ public partial class Stadtansicht
         float H(int i, int j) => hoehen![(j - gj0) * GrasRaster + i - gi0];
         var splat = raster is { IstLeer: false } && BodenKachelGemalt(raster, ti, tj) ? raster.Splat(i0, j0, n, n, 0) : null;
         var daten = new float[n * n * 4];
+        var farbe = new byte[n * n * 4];
         var (unten, oben) = (float.MaxValue, float.MinValue);
         for (var b = 0; b < n; b++)
             for (var a = 0; a < n; a++)
@@ -311,11 +322,19 @@ public partial class Stadtansicht
                 }
                 var d = splat is null ? 1f : splat[o] / 255f; // Gruppe 0, R = Wiese
                 d *= 1f - Mathf.SmoothStep(0.86f, 0.8f, normale.Y); // Fels am Hang (boden.gdshaderinc: ab etwa 33°)
+                // Pflaster als Grund (Punkt k des groben Bildes liegt bei Kachel + k − 0,5 m, also gut einen halben Meter neben diesem): wie im Shader
+                if (stadt is not null) d *= 1f - Mathf.SmoothStep(0.3f, 0.6f, stadt[(Math.Min(b, SchichtInfoBild - 1) * SchichtInfoBild + Math.Min(a, SchichtInfoBild - 1)) * 4 + 2] / 255f);
                 if (d > 0f && frei is not null && frei.AufGebaeude(x, z, 0.4)) d = 0f;
                 daten[o] = d;
                 daten[o + 1] = h;
                 daten[o + 2] = normale.X;
                 daten[o + 3] = normale.Z;
+                // Makro-Flecken der Wiese (wie makro_farbe im Shader, als Faktor auf ihre Farbe, halbiert) und die Horste – hier einmal statt in jeder Ecke
+                var f = MakroFaktor(x, z, stark);
+                farbe[o] = Byte(f.X * 127.5f);
+                farbe[o + 1] = Byte(f.Y * 127.5f);
+                farbe[o + 2] = Byte(f.Z * 127.5f);
+                farbe[o + 3] = Byte(Mathf.SmoothStep(0.25f, 0.75f, Rausch(x * 0.33f + 4.7f, z * 0.33f + 4.7f)) * 255f);
                 if (a > 0 && b > 0 && a < n - 1 && b < n - 1)
                 {
                     unten = Mathf.Min(unten, h);
@@ -346,11 +365,14 @@ public partial class Stadtansicht
             var r = halb + 0.3f;
             Loeschen(von.Min(bis) - new Vector2(r, r), von.Max(bis) + new Vector2(r, r), p => AbstandZurStrecke(p, von, bis) < r);
         }
-        foreach (var see in wasser.Seen)
+        foreach (var see in wasser.Seen) // Seen und Bauzonen
         {
             var (von, bis) = (see[0], see[0]);
             foreach (var e in see) (von, bis) = (von.Min(e), bis.Max(e));
-            Loeschen(von, bis, p => ImVieleck(p, see));
+            // mit gut einem halben Meter Rand: Das Bild hat 1 m, und die Halme sollen nicht über den Rand einer Bauzone ragen
+            const float r = 0.7f;
+            Loeschen(von - new Vector2(1, 1), bis + new Vector2(1, 1), p => ImVieleck(p, see) || ImVieleck(p + new Vector2(r, 0), see) ||
+                ImVieleck(p - new Vector2(r, 0), see) || ImVieleck(p + new Vector2(0, r), see) || ImVieleck(p - new Vector2(0, r), see));
         }
         // Felder mit Gras: irgendein Punkt im Feld oder einen Meter daneben mit genug Wiese (Punkt k liegt bei Kachel − 1 m + k)
         var felder = new List<int>();
@@ -368,11 +390,31 @@ public partial class Stadtansicht
                         }
                 if (gras) felder.Add(fj * GrasFelder + fi);
             }
-        return (daten, unten, oben, felder.ToArray());
+        return (daten, farbe, unten, oben, felder.ToArray());
+    }
+
+    /// <summary>
+    /// Die Makro-Variation der Wiese an einem Ort als Faktor auf ihre Farbe: dieselbe Rechnung wie <c>makro_farbe</c> in <c>boden_gemein.gdshaderinc</c>
+    /// (mit Wiese = 1), damit die Halme die Flecken des Bodens darunter tragen.
+    /// </summary>
+    private static Vector3 MakroFaktor(float x, float z, bool stark)
+    {
+        float R(float s, float v) => Rausch(x * s + v, z * s + v);
+        var makro = R(0.011f, 0f) * 0.62f + R(0.037f, 7.3f) * 0.38f;
+        var trocken = Mathf.SmoothStep(0.45f, 0.8f, R(0.021f, 11.7f));
+        if (!stark)
+        {
+            var c0 = Vector3.One * Mathf.Lerp(0.86f, 1.1f, makro);
+            return c0.Lerp(c0 * new Vector3(1.1f, 1.03f, 0.8f), trocken * 0.7f);
+        }
+        var c = Vector3.One * Mathf.Lerp(0.78f, 1.15f, makro);
+        var mitte = R(0.11f, 3.1f) * 0.65f + R(0.29f, 5.7f) * 0.35f;
+        c *= new Vector3(0.78f, 0.86f, 0.74f).Lerp(new Vector3(1.13f, 1.1f, 0.9f), Mathf.SmoothStep(0.22f, 0.78f, mitte));
+        return c.Lerp(c * new Vector3(1.14f, 1.04f, 0.74f), trocken * 0.85f);
     }
 
     /// <summary>Gibt einer Kachel das neue Bild (Stoff und Knoten beim ersten Mal); ohne Gras wird ihr Knoten entfernt.</summary>
-    private void GrasKachelSetzen((int I, int J) kachel, (float[] Daten, float Unten, float Oben, int[] Felder) e)
+    private void GrasKachelSetzen((int I, int J) kachel, (float[] Daten, byte[] Farbe, float Unten, float Oben, int[] Felder) e)
     {
         if (e.Felder.Length == 0)
         {
@@ -396,12 +438,19 @@ public partial class Stadtansicht
             _grasKacheln[kachel] = k;
         }
         var bild = Image.CreateFromData(BodenBild, BodenBild, false, Image.Format.Rgbaf, MemoryMarshal.AsBytes(e.Daten.AsSpan()).ToArray());
+        var farbbild = Image.CreateFromData(BodenBild, BodenBild, false, Image.Format.Rgba8, e.Farbe);
         if (k.Bild is null)
         {
             k.Bild = ImageTexture.CreateFromImage(bild);
+            k.Farbe = ImageTexture.CreateFromImage(farbbild);
             k.Stoff.SetShaderParameter("grasbild", k.Bild);
+            k.Stoff.SetShaderParameter("grasfarbe", k.Farbe);
         }
-        else k.Bild.Update(bild);
+        else
+        {
+            k.Bild.Update(bild);
+            k.Farbe!.Update(farbbild);
+        }
         // die Wegeschicht der Kachel (Stadtansicht.Wegeschicht.cs)
         var wege = _schichtKacheln.TryGetValue(kachel, out var schicht);
         k.Stoff.SetShaderParameter("wege_an", wege);
@@ -434,7 +483,7 @@ public partial class Stadtansicht
         var (dichte, hoechstens, _) = GrasWerte(Fenster.AktuellerGrasteppich);
         var ziel = Mathf.Min(dichte * (95f / _kamera.Size) * (95f / _kamera.Size), hoechstens);
         var netz = 0;
-        while (netz < GrasNetzStufen - 1 && GrasNetzDichte * (1 << netz) < ziel) netz++;
+        while (netz < GrasNetzDichten.Length - 1 && GrasNetzDichten[netz] < ziel) netz++;
         var t = _kamera.GlobalTransform;
         var stand = (Ort: t.Origin.Snapped(Vector3.One * 0.5f), Blick: t.Basis.Z.Snapped(Vector3.One * 0.002f), Zoom: Mathf.Snapped(_kamera.Size, 0.25f), Bild: bildgroesse, Netz: netz);
         if (_grasBlickFuer == stand) return;
@@ -505,56 +554,66 @@ public partial class Stadtansicht
     // ═════════════════════════════════════════════════════════════════════════
 
     /// <summary>
-    /// Die Netze eines Feldes (4 × 4 m) je Stufe: das kleinste mit <see cref="GrasNetzDichte"/> Büscheln je m², jedes weitere doppelt so viele. Die
-    /// Büschel folgen einer Folge, die in jedem Anfangsstück gleichmäßig verteilt ist (R2-Folge, nach Roberts) – ein Netz ist der Anfang des nächsten,
-    /// und der Shader kann weit weg Büschel vom Ende her weglassen, ohne Lücken. Je Büschel drei bis fünf Halme aus der Mitte heraus geneigt, je Halm
-    /// ein Dreieck (Aufbau der Ecken in <c>gras.gdshader</c>).
+    /// Die Netze eines Feldes (4 × 4 m), je <see cref="GrasNetzDichten"/> eins. Die Büschel folgen einer Folge, die in jedem Anfangsstück gleichmäßig
+    /// verteilt ist (R2-Folge, nach Roberts) – ein Netz ist der Anfang des nächsten, und der Shader kann weit weg Büschel vom Ende her weglassen, ohne
+    /// Lücken. Ein Büschel ist ein Kranz aus drei oder vier Halmen: Die Fußpunkte liegen auf einem Kreis (Halbmesser 1, der Shader skaliert ihn) und
+    /// gehören je zwei Nachbarhalmen, die Spitze steht über der Mitte dazwischen und neigt sich nach außen. Ein Dreieck je Halm mit Index – die
+    /// Grafikkarte rechnet so nur zwei Ecken je Halm statt drei (die Zahl der Ecken bestimmt, was der Teppich kostet). Aufbau: <c>gras.gdshader</c>.
     /// </summary>
     private static ArrayMesh[] GrasNetze()
     {
-        var anzahl = (int)(GrasNetzDichte * GrasFeld * GrasFeld) << (GrasNetzStufen - 1);
+        var anzahl = (int)(GrasNetzDichten[^1] * GrasFeld * GrasFeld);
         var ecken = new List<Vector3>();
         var normalen = new List<Vector3>();
         var uv = new List<Vector2>();
         var uv2 = new List<Vector2>();
-        var bis = new int[anzahl + 1]; // Ecken bis zum Büschel
+        var indizes = new List<int>();
+        var bis = new int[anzahl + 1]; // Indizes bis zum Büschel
         var zufall = new Random(51);
         float Z() => (float)zufall.NextDouble();
         for (var i = 0; i < anzahl; i++)
         {
             var wurzel = new Vector2(Mathf.PosMod(0.5f + i * 0.7548776662f, 1f), Mathf.PosMod(0.5f + i * 0.5698402910f, 1f)) * GrasFeld;
             var rang = (i + 0.5f) / (GrasFeld * GrasFeld); // ab dieser Dichte (Büschel je m²) steht es
-            var halme = 3 + zufall.Next(3);
+            var halme = 3;
             var drehung = Z() * Mathf.Tau;
+            var anfang = ecken.Count;
+            void Ecke(Vector2 ort, float y, Vector2 richtung, float neigung)
+            {
+                ecken.Add(new Vector3(wurzel.X + ort.X, y, wurzel.Y + ort.Y));
+                normalen.Add(new Vector3(richtung.X, 0, richtung.Y));
+                uv.Add(new Vector2(neigung, rang));
+                uv2.Add(wurzel);
+            }
+            var winkel = Enumerable.Range(0, halme).Select(j => drehung + Mathf.Tau * (j + 0.35f * (Z() - 0.5f)) / halme).ToArray();
+            foreach (var w in winkel)
+            {
+                var r = new Vector2(Mathf.Cos(w), Mathf.Sin(w));
+                Ecke(r * (0.8f + 0.4f * Z()), 0f, r, 0f); // Fußpunkte
+            }
             for (var j = 0; j < halme; j++)
             {
-                var winkel = drehung + Mathf.Tau * (j + 0.3f * Z()) / halme;
-                var richtung = new Vector2(Mathf.Cos(winkel), Mathf.Sin(winkel));
-                var fuss = wurzel + richtung * (0.015f + 0.035f * Z());
-                var seite = richtung.Rotated(Mathf.Pi / 2 + (Z() - 0.5f) * 0.8f);
-                var neigung = richtung.Rotated((Z() - 0.5f) * 0.9f);
-                var schraeg = 0.12f + 0.33f * Z();
-                var hoch = 0.65f + 0.35f * Z();
-                foreach (var (y, n, u) in new[] { (0f, seite, -0.5f), (0f, seite, 0.5f), (hoch, neigung, schraeg) })
-                {
-                    ecken.Add(new Vector3(fuss.X, y, fuss.Y));
-                    normalen.Add(new Vector3(n.X, 0, n.Y));
-                    uv.Add(new Vector2(u, rang));
-                    uv2.Add(wurzel);
-                }
+                var (a, b) = (ecken[anfang + j], ecken[anfang + (j + 1) % halme]);
+                var mitte = new Vector2((a.X + b.X) / 2 - wurzel.X, (a.Z + b.Z) / 2 - wurzel.Y);
+                var aussen = mitte.Normalized().Rotated((Z() - 0.5f) * 0.6f);
+                Ecke(mitte, 0.65f + 0.35f * Z(), aussen, 0.15f + 0.3f * Z()); // Spitze
+                indizes.AddRange(new[] { anfang + j, anfang + (j + 1) % halme, anfang + halme + j });
             }
-            bis[i + 1] = ecken.Count;
+            bis[i + 1] = indizes.Count;
         }
-        var netze = new ArrayMesh[GrasNetzStufen];
-        for (var s = 0; s < GrasNetzStufen; s++)
+        var netze = new ArrayMesh[GrasNetzDichten.Length];
+        for (var s = 0; s < netze.Length; s++)
         {
-            var ende = bis[(int)(GrasNetzDichte * GrasFeld * GrasFeld) << s];
+            var ende = bis[(int)(GrasNetzDichten[s] * GrasFeld * GrasFeld)];
+            var teil = indizes.GetRange(0, ende).ToArray();
+            var eckenBis = teil.Max() + 1;
             var arrays = new Godot.Collections.Array();
             arrays.Resize((int)Mesh.ArrayType.Max);
-            arrays[(int)Mesh.ArrayType.Vertex] = ecken.GetRange(0, ende).ToArray();
-            arrays[(int)Mesh.ArrayType.Normal] = normalen.GetRange(0, ende).ToArray();
-            arrays[(int)Mesh.ArrayType.TexUV] = uv.GetRange(0, ende).ToArray();
-            arrays[(int)Mesh.ArrayType.TexUV2] = uv2.GetRange(0, ende).ToArray();
+            arrays[(int)Mesh.ArrayType.Vertex] = ecken.GetRange(0, eckenBis).ToArray();
+            arrays[(int)Mesh.ArrayType.Normal] = normalen.GetRange(0, eckenBis).ToArray();
+            arrays[(int)Mesh.ArrayType.TexUV] = uv.GetRange(0, eckenBis).ToArray();
+            arrays[(int)Mesh.ArrayType.TexUV2] = uv2.GetRange(0, eckenBis).ToArray();
+            arrays[(int)Mesh.ArrayType.Index] = teil;
             netze[s] = new ArrayMesh { ResourceName = $"Grasfeld_{s}" };
             netze[s].AddSurfaceFromArrays(Mesh.PrimitiveType.Triangles, arrays);
         }

@@ -164,7 +164,11 @@ public partial class Stadtansicht
         for (var k = 0; k < liste.Count; k++)
         {
             var kachel = liste[k];
-            if (ergebnis[k] is not { } daten) _schichtKacheln.Remove(kachel);
+            if (ergebnis[k] is not { } daten)
+            {
+                _schichtKacheln.Remove(kachel);
+                _grasStadt.Remove(kachel);
+            }
             else
             {
                 var bild = Image.CreateFromData(SchichtBild, SchichtBild, false, Image.Format.Rgba8, daten.Bild);
@@ -176,6 +180,7 @@ public partial class Stadtansicht
                     alt.Info.Update(info);
                 }
                 else _schichtKacheln[kachel] = (ImageTexture.CreateFromImage(bild), ImageTexture.CreateFromImage(info));
+                _grasStadt[kachel] = daten.Info; // Pflaster als Grund: dort kein Grasteppich (Stadtansicht.Gras.cs)
             }
             if (_gelaendeKacheln.TryGetValue(kachel, out var netz)) netz.MaterialOverride = KachelStoff(kachel.I, kachel.J);
             BueschelWegeGesetzt(kachel, bueschel[k]);
