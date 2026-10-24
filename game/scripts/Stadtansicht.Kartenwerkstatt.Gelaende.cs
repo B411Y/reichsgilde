@@ -196,7 +196,7 @@ public partial class Stadtansicht
         var (sx, sz) = BodenBewegt ? _gelaende!.Steigung(p.X, p.Y) : (0.0, 0.0);
         var gefaelle = Math.Sqrt(sx * sx + sz * sz) * 100;
         var kultur = System.Globalization.CultureInfo.GetCultureInfo("de-DE");
-        return $"Höhe {hoehe.ToString("0.0", kultur)} m · Gefälle {gefaelle.ToString("0", kultur)} %";
+        return $"Höhe {hoehe.ToString("0.0", kultur)} m · Gefälle {gefaelle.ToString("0", kultur)} %" + (BodenTexturInfo(p) is { } boden ? " · " + boden : "");
     }
 
     // ═════════════════════════════════════════════════════════════════════════

@@ -180,7 +180,7 @@ public partial class Kartenwerkstatt
             kopf.CustomMinimumSize = new Vector2(0, 26);
             kopf.VerticalAlignment = VerticalAlignment.Bottom;
         }
-        void Eintrag(string schluessel, string text, string tipp, Werkstattwerkzeug werkzeug, Action? vorher = null, string? baustein = null)
+        void Eintrag(string schluessel, string text, string tipp, Werkstattwerkzeug werkzeug, Action? vorher = null, string? baustein = null, Color? farbe = null)
         {
             var knopf = new Button
             {
@@ -188,6 +188,7 @@ public partial class Kartenwerkstatt
                 Alignment = HorizontalAlignment.Left, ClipText = true, TooltipText = tipp,
             };
             knopf.AddThemeFontSizeOverride("font_size", 14);
+            if (farbe is { } feld) knopf.Icon = Farbfeld(feld);
             void Waehlen()
             {
                 vorher?.Invoke();
@@ -252,6 +253,17 @@ public partial class Kartenwerkstatt
                 Werkstattwerkzeug.Gelaende, () => _stadt.GelaendeArtWaehlen(art));
         Eintrag("rampe", "Rampe", "Zwei Klicks: Anfang und Ende – dazwischen ein Band mit gleichmäßigem Gefälle (Breite rechts)", Werkstattwerkzeug.Rampe);
 
+        // Boden (Schritt 5e): die elf Texturen mit Farbfeld, dazu der Radierer
+        Kopf("Boden");
+        foreach (var d in _entwurf.Katalog.Bodentexturen.Where(d => d.Textur is not null))
+        {
+            var textur = d.Textur!.Value;
+            var streut = d.Dichte > 0 && d.Deko.Count > 0 ? "streut " + string.Join(", ", d.Deko.Where(e => e.Value > 0).Select(e => ArtName(e.Key))) : "streut nichts";
+            Eintrag("boden:" + d.Kennung, d.Name, $"{d.Name} malen – mit gedrückter Maus (Radius, Stärke, Kante und Deko rechts) · {streut}",
+                Werkstattwerkzeug.Boden, () => (_stadt.BodenArt, _stadt.BodenRadierer) = (textur, false), farbe: _stadt.BodenFarbe(textur));
+        }
+        Eintrag("boden:radierer", "Boden-Radierer", "Mit gedrückter Maus malen: zurück zur Wiese, ohne Deko", Werkstattwerkzeug.Boden, () => _stadt.BodenRadierer = true);
+
         // Gebäude
         foreach (var (titel, arten) in Katalogteile)
         {
@@ -285,6 +297,17 @@ public partial class Kartenwerkstatt
         (Pinselart.Ebnen, "Ebnen", "Zieht alles auf die Höhe unter dem ersten Klick (eine Terrasse)"),
         (Pinselart.Rauschen, "Rauschen", "Macht den Boden natürlich uneben (Buckel nach Startwert)"),
     };
+
+    /// <summary>Ein kleines Farbfeld mit dunklem Rand als Symbol eines Katalogknopfs.</summary>
+    private static ImageTexture Farbfeld(Color farbe)
+    {
+        const int n = 16;
+        var bild = Image.CreateEmpty(n, n, false, Image.Format.Rgba8);
+        bild.Fill(farbe);
+        for (var i = 0; i < n; i++)
+            foreach (var (x, y) in new[] { (i, 0), (i, n - 1), (0, i), (n - 1, i) }) bild.SetPixel(x, y, new Color(0.1f, 0.08f, 0.06f));
+        return ImageTexture.CreateFromImage(bild);
+    }
 
     private static string Breite(double meter) => $"{Kartenschreiber.Zahl(Math.Round(meter, 2)).Replace('.', ',')} m";
 
@@ -375,6 +398,7 @@ public partial class Kartenwerkstatt
             Werkstattwerkzeug.Pinsel => "Mit gedrückter Maus malen – Loslassen streut Pflanzen · Radius, Dichte und Arten rechts · Esc bricht ab",
             Werkstattwerkzeug.Radierer => "Mit gedrückter Maus über einzelne Pflanzen fahren – Loslassen löscht sie (die Natur der Flächen bleibt) · Esc bricht ab",
             Werkstattwerkzeug.Gelaende => "Mit gedrückter Maus malen – Radius, Stärke und Kante rechts · Loslassen beendet den Strich (ein Schritt für Strg+Z) · Esc nimmt ihn zurück · Gelb: Hangsperre ab 8 %, rot ab 15 %",
+            Werkstattwerkzeug.Boden => "Mit gedrückter Maus malen – Radius, Stärke, Kante und Deko rechts · Loslassen beendet den Strich (ein Schritt für Strg+Z) · Esc nimmt ihn zurück",
             Werkstattwerkzeug.Rampe => "Zwei Klicks: Anfang und Ende der Rampe · Breite und Kante rechts · Esc: erster Klick zurück · Rechtsklick: fertig",
             Werkstattwerkzeug.Mauer => "Ecken klicken (1-m-Raster, Alt: frei) · Klick auf die erste Ecke schließt den Ring · Doppelklick oder Enter: offen fertig · Rücktaste: letzte Ecke weg · Esc bricht ab",
             Werkstattwerkzeug.Fluss => "Punkte klicken, in Fließrichtung (Pfeile) · Doppelklick oder Enter: fertig · Rücktaste: letzter Punkt weg · Esc bricht ab",
@@ -591,6 +615,11 @@ public partial class Kartenwerkstatt
         if (_stadt.Kartenwerkzeug is Werkstattwerkzeug.Gelaende or Werkstattwerkzeug.Rampe)
         {
             if (neu || _gezeigt != GelaendeMarke) GelaendeTafel(); // Kartenwerkstatt.Eigenschaften.cs
+            return;
+        }
+        if (_stadt.Kartenwerkzeug == Werkstattwerkzeug.Boden)
+        {
+            if (neu || _gezeigt != BodenMarke) BodenTafel(); // Kartenwerkstatt.Eigenschaften.cs
             return;
         }
         if (_stadt.Kartenwerkzeug is Werkstattwerkzeug.Fluss or Werkstattwerkzeug.See or Werkstattwerkzeug.Faehre)

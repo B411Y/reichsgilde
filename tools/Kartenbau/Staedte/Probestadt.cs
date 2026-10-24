@@ -24,6 +24,8 @@ namespace Reichsgilde.Kartenbau.Staedte;
 //      Holzbrücke trägt die Landstraße vor dem Westtor) und mündet im Süden in einen Fluss. Der Fluss kommt aus dem Südosten und fließt
 //      am Südrand des Spielfelds nach Westen ins Tal; ein Feldweg führt vom Westen zur Fähre, drüben weiter nach Süden, und zum Hafen am
 //      Nordufer. Ein Teich liegt im Nordosten am Hang.
+//    • Bodentexturen (Schritt 5e): Waldboden in beiden Wäldern, Sand und Schlamm (mit Schilf) am Sandfluss, Kies an der Fähre, Fels und Moos
+//      an zwei Hügeln, Erde und Mist eines Hofs im Osten vor der Landstraße – zum Ausprobieren der Texturen und ihrer Deko.
 // ═════════════════════════════════════════════════════════════════════════════
 
 public sealed class Probestadt : Stadtskript
@@ -139,6 +141,18 @@ public sealed class Probestadt : Stadtskript
         E.WegAnlegen(Wegklasse.Feldweg, new[] { P(FaehreX, 97), P(-90, 97) }, glatt: false, name: "Weg zum Hafen");
         var hafen = E.Setzen(Kartenentwurf.HafenKatalog, -90, 108, 180);
         E.Umbenennen(hafen.Kennung, "Hafen am Sandfluss");
+
+        // ── Bodentexturen (Schritt 5e): Waldboden in den Wäldern, Sand und Schlamm am Sandfluss, Kies an der Fähre, Fels und Moos an den
+        //    Hügeln, ein Hof mit Erde und Mist im Osten ──
+        TexturFlaeche(Bodentextur.Waldboden, -185, -137, -70, -72, radius: 12);
+        TexturFlaeche(Bodentextur.Waldboden, 55, 75, 185, 137, radius: 12);
+        Textur(Bodentextur.Sand, new[] { P(310, 170), P(220, 155), P(130, 140) }, radius: 18, staerke: 0.9, kante: 0.4);
+        Textur(Bodentextur.Schlamm, new[] { P(130, 140), P(-100, 125), P(-230, 150), P(-320, 230) }, radius: 16, staerke: 0.8, kante: 0.4);
+        Textur(Bodentextur.Kies, new[] { P(FaehreX, FaehreNord - 2), P(FaehreX, FaehreSued + 2) }, radius: 5);
+        Textur(Bodentextur.Fels, new[] { P(180, -370) }, radius: 40, staerke: 0.9, kante: 0.8);
+        Textur(Bodentextur.Moos, new[] { P(-280, -350), P(-240, -330) }, radius: 25, staerke: 0.7, kante: 0.8);
+        Textur(Bodentextur.Erde, new[] { P(225, -65), P(245, -55) }, radius: 16, kante: 0.6);
+        Textur(Bodentextur.Mist, new[] { P(238, -60) }, radius: 6, kante: 0.5);
 
         E.KameraStartSetzen(P(0, 0), 110);
     }

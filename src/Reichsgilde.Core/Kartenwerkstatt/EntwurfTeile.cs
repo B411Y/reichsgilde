@@ -43,6 +43,9 @@ public enum Kartenteil
 
     /// <summary>Eine Fährstelle (<see cref="EntwurfFaehre"/>, Schritt 5c).</summary>
     Faehre,
+
+    /// <summary>Die Bodentexturen (Bodenraster, Schritt 5e; nur einmal je Karte) – die Änderung nennt das Rechteck (<see cref="Kartenaenderung.Bereich"/>).</summary>
+    Boden,
 }
 
 /// <summary>Ein bearbeitbarer Teil des Entwurfs (Gebäude, Weg, Bauzone, Naturfläche, Pflanze).</summary>

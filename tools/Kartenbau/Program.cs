@@ -18,6 +18,8 @@ namespace Reichsgilde.Kartenbau;
 //    dotnet run --project tools/Kartenbau -- randvorschlag <karte> [<startwert>]   Felder und Waldstücke im Randstreifen vorschlagen (ersetzt einen früheren)
 //    dotnet run --project tools/Kartenbau -- gelaende <karte> <pinsel> <x,z;x,z…> [--radius= --staerke= --kante= --startwert= --massstab=]
 //                                                   ein Strich mit einem Geländepinsel (heben, senken, glaetten, ebnen, rauschen)
+//    dotnet run --project tools/Kartenbau -- textur <karte> <textur|radierer> <x,z;x,z…> [--radius= --staerke= --kante= --deko=an|aus --dichte=]
+//                                                   ein Strich mit dem Texturpinsel (wiese, erde, fels, kies, waldboden, sand, schlamm, moos, lehm, pflaster, mist)
 //    dotnet run --project tools/Kartenbau -- rampe <karte> <x,z> <x,z> <breite> [--kante=]   eine Rampe mit gleichmäßigem Gefälle
 //    dotnet run --project tools/Kartenbau -- fluss <karte> <x,z[,breite[,tiefe]];…> [--art=bach] [--name=] [--breite=] [--tiefe=] [--stroemung=]
 //                                                   einen Fluss oder Bach in Fließrichtung anlegen
@@ -60,6 +62,8 @@ public static class Program
                 "randvorschlag" when ziel is not null && Zahlen(worte.Skip(2)) is { Count: 0 or 1 } z => Befehle.Randvorschlag(ordner, ziel, z.Count == 1 ? (int)z[0] : null, Console.Out),
                 "gelaende" when ziel is not null && worte.Count == 4 && PinselVon(worte[2], args) is { } pinsel && Orte(worte[3]) is { Count: > 0 } strich =>
                     Befehle.Gelaende(ordner, ziel, pinsel, strich, Console.Out),
+                "textur" when ziel is not null && worte.Count == 4 && BodenpinselVon(worte[2], args) is { } bodenpinsel && Orte(worte[3]) is { Count: > 0 } bodenstrich =>
+                    Befehle.Textur(ordner, ziel, bodenpinsel, bodenstrich, Console.Out),
                 "rampe" when ziel is not null && worte.Count == 5 && Orte(worte[2]) is { Count: 1 } von && Orte(worte[3]) is { Count: 1 } nach
                              && Zahlen(worte.Skip(4)) is { Count: 1 } breite =>
                     Befehle.Rampe(ordner, ziel, von[0], nach[0], breite[0], Wert(args, "--kante") ?? 4, Console.Out),
@@ -145,6 +149,24 @@ public static class Program
         };
     }
 
+    /// <summary>Der Texturpinsel aus dem Namen der Textur (oder „radierer“) und den Schaltern – null bei unbekanntem Namen oder --deko.</summary>
+    private static Bodenpinsel? BodenpinselVon(string name, IEnumerable<string> args)
+    {
+        var radierer = name.Equals("radierer", StringComparison.OrdinalIgnoreCase);
+        if (!radierer && Bodenraster.TexturVon(name) is null) return null;
+        var p = radierer ? Bodenpinsel.Radierer() : new Bodenpinsel(Bodenraster.TexturVon(name)!.Value);
+        var deko = Text(args, "--deko");
+        if (deko is not (null or "an" or "aus")) return null;
+        return p with
+        {
+            Radius = Wert(args, "--radius") ?? p.Radius,
+            Staerke = Wert(args, "--staerke") ?? p.Staerke,
+            Kante = Wert(args, "--kante") ?? p.Kante,
+            Deko = !radierer && deko != "aus",
+            Dichte = Wert(args, "--dichte") ?? p.Dichte,
+        };
+    }
+
     /// <summary>Der Wert eines Schalters „--name=zahl“ – oder null.</summary>
     private static double? Wert(IEnumerable<string> args, string name) =>
         args.FirstOrDefault(a => a.StartsWith(name + "=", StringComparison.Ordinal)) is { } a
@@ -165,6 +187,9 @@ public static class Program
               gelaende <karte> <pinsel> <x,z;x,z…> [--radius=10] [--staerke=…] [--kante=0.5] [--startwert=1] [--massstab=20]
                                                   ein Strich mit einem Geländepinsel: heben, senken (Stärke in m je Tupfer, Vorgabe 0.25),
                                                   glaetten, ebnen (Stärke 0–1, Vorgabe 1), rauschen (Stärke in m, Maßstab = Buckelgröße in m)
+              textur <karte> <textur|radierer> <x,z;x,z…> [--radius=5] [--staerke=1] [--kante=0.5] [--deko=an|aus] [--dichte=1]
+                                                  ein Strich mit dem Texturpinsel: wiese, erde, fels, kies, waldboden, sand, schlamm, moos,
+                                                  lehm, pflaster, mist (Stärke 0–1; Deko streuen mit Dichte 0–2) oder radierer (zurück zur Wiese)
               rampe <karte> <x,z> <x,z> <breite> [--kante=4]
                                                   ein Band mit gleichmäßigem Gefälle von der Höhe am ersten zur Höhe am zweiten Punkt
               fluss <karte> <x,z[,breite[,tiefe]];…> [--art=bach] [--name=…] [--breite=…] [--tiefe=…] [--stroemung=…]
@@ -310,6 +335,20 @@ public static class Befehle
         var (katalog, daten) = Laden(o);
         var e = Oeffnen(o, karte, katalog, daten);
         if (!e.GelaendePinseln(pinsel, strich))
+        {
+            aus.WriteLine($"{e.Kennung}: Der Strich ändert nichts (außerhalb der Karte?) – nichts geschrieben.");
+            return 0;
+        }
+        aus.WriteLine($"{e.Kennung}: {e.Geschichte.RueckgaengigText} ({strich.Count} Punkte, Radius {Kartenschreiber.Zahl(pinsel.Radius)} m)");
+        return Schreiben(e, PfadVon(o, karte), o.Vorschauen, true, aus, o);
+    }
+
+    /// <summary><c>textur</c>: ein Strich mit dem Texturpinsel (<see cref="Kartenentwurf.BodenMalen"/>), dann schreiben – nur ohne Fehler.</summary>
+    public static int Textur(Projektordner o, string karte, Bodenpinsel pinsel, IReadOnlyList<Kartenort> strich, TextWriter aus)
+    {
+        var (katalog, daten) = Laden(o);
+        var e = Oeffnen(o, karte, katalog, daten);
+        if (!e.BodenMalen(pinsel, strich))
         {
             aus.WriteLine($"{e.Kennung}: Der Strich ändert nichts (außerhalb der Karte?) – nichts geschrieben.");
             return 0;

@@ -140,6 +140,30 @@ public abstract class Stadtskript
         E.GelaendePinseln(new Pinsel(Pinselart.Rauschen, radius, staerke, kante, startwert, massstab), strich);
 
     /// <summary>
+    /// Ein Strich mit dem Texturpinsel (Kartenwerkstatt, Schritt 5e): <paramref name="textur"/> mit <paramref name="radius"/> Metern und
+    /// <paramref name="staerke"/> (0 … 1) entlang des Strichs, mit oder ohne Deko. Ein Schritt.
+    /// </summary>
+    protected void Textur(Bodentextur textur, IReadOnlyList<Kartenort> strich, double radius, double staerke = 1, double kante = 0.5, bool deko = true) =>
+        E.BodenMalen(new Bodenpinsel(textur, radius, staerke, kante, deko), strich);
+
+    /// <summary>
+    /// Eine Textur über ein Rechteck von (<paramref name="x0"/>, <paramref name="z0"/>) bis (<paramref name="x1"/>, <paramref name="z1"/>):
+    /// Zeile für Zeile hin und her im Abstand des Radius (ein Strich, ein Schritt), die Ränder weich.
+    /// </summary>
+    protected void TexturFlaeche(Bodentextur textur, double x0, double z0, double x1, double z1, double radius = 10, double staerke = 1)
+    {
+        var strich = new List<Kartenort>();
+        var hin = true;
+        for (var z = z0; z <= z1 + 1e-9; z += radius)
+        {
+            strich.Add(P(hin ? x0 : x1, z));
+            strich.Add(P(hin ? x1 : x0, z));
+            hin = !hin;
+        }
+        Textur(textur, strich, radius, staerke, kante: 0.7);
+    }
+
+    /// <summary>
     /// Ein Vieleck um <paramref name="abstand"/> Meter versetzt: positiv nach außen, negativ nach innen. Jede Seite wandert parallel, die neuen
     /// Ecken liegen auf den Schnittpunkten der Nachbarseiten (gerade Fortsetzungen: die Ecke wandert nur).
     /// </summary>
