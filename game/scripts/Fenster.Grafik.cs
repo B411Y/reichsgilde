@@ -22,7 +22,7 @@ public partial class Fenster
     public readonly record struct Grafikstufe(
         Kantenglaettung Kanten, Schattenqualitaet Schatten, Umgebungsverdeckung Verdeckung, bool Indirekt, bool Bloom,
         bool Fsr, int Renderaufloesung, bool Oberflaeche, int Natur, int Passanten, Feinheiten Feinheiten,
-        Miniaturunschaerfe Unschaerfe, bool Wolken, Morgendunst Dunst);
+        Miniaturunschaerfe Unschaerfe, bool Wolken, Morgendunst Dunst, Bodenqualitaet Boden);
 
     /// <summary>
     /// Die vier Stufen. Hoch entspricht den Grundwerten vor PR #169 (SMAA, Schatten Hoch, Verdeckung Mittel, Bloom), dazu der
@@ -32,13 +32,17 @@ public partial class Fenster
     {
         // Ohne FSR: Auf der T400 kostete FSR 2.2 mit 67 % in Niedrig mehr, als es sparte (GPU 10,3 gegen 8,7 ms je Bild).
         Voreinstellung.Niedrig => new(Kantenglaettung.Fxaa, Schattenqualitaet.Niedrig, Umgebungsverdeckung.Aus, false, false,
-                                      false, StandardRenderaufloesung, false, 50, 50, Feinheiten.Nah, Miniaturunschaerfe.Aus, false, Morgendunst.Aus),
+                                      false, StandardRenderaufloesung, false, 50, 50, Feinheiten.Nah, Miniaturunschaerfe.Aus, false, Morgendunst.Aus,
+                                      Bodenqualitaet.Niedrig),
         Voreinstellung.Mittel => new(Kantenglaettung.Smaa, Schattenqualitaet.Mittel, Umgebungsverdeckung.Niedrig, false, true,
-                                     false, StandardRenderaufloesung, true, 75, 75, Feinheiten.Mittel, Miniaturunschaerfe.Aus, true, Morgendunst.Aus),
+                                     false, StandardRenderaufloesung, true, 75, 75, Feinheiten.Mittel, Miniaturunschaerfe.Aus, true, Morgendunst.Aus,
+                                     Bodenqualitaet.Mittel),
         Voreinstellung.Ultra => new(Kantenglaettung.Msaa4, Schattenqualitaet.Hoch, Umgebungsverdeckung.Hoch, true, true,
-                                    false, StandardRenderaufloesung, true, 100, 100, Feinheiten.Weit, Miniaturunschaerfe.Leicht, true, Morgendunst.Hoch),
+                                    false, StandardRenderaufloesung, true, 100, 100, Feinheiten.Weit, Miniaturunschaerfe.Leicht, true, Morgendunst.Hoch,
+                                    Bodenqualitaet.Hoch),
         _ => new(Kantenglaettung.Smaa, Schattenqualitaet.Hoch, Umgebungsverdeckung.Mittel, false, true,
-                 false, StandardRenderaufloesung, true, 100, 100, Feinheiten.Weit, Miniaturunschaerfe.Leicht, true, Morgendunst.Niedrig),
+                 false, StandardRenderaufloesung, true, 100, 100, Feinheiten.Weit, Miniaturunschaerfe.Leicht, true, Morgendunst.Niedrig,
+                 Bodenqualitaet.Hoch),
     };
 
     /// <summary>Ohne gespeicherte Einstellungen (und bis die automatische Wahl fertig ist): Hoch.</summary>
@@ -48,7 +52,7 @@ public partial class Fenster
     public static Grafikstufe AktuelleStufe => new(
         AktuelleKantenglaettung, AktuelleSchattenqualitaet, AktuelleUmgebungsverdeckung, IndirektesLichtAn, BloomAn,
         FsrAn, Renderaufloesung, OberflaechendetailsAn, NaturDichte, PassantenMenge, AktuelleFeinheiten,
-        AktuelleUnschaerfe, WolkenschattenAn, AktuellerDunst);
+        AktuelleUnschaerfe, WolkenschattenAn, AktuellerDunst, AktuelleBodenqualitaet);
 
     /// <summary>
     /// Welche Voreinstellung die Regler gerade zeigen – „Eigene“, sobald einer abweicht. Gerechnet statt gespeichert: Stellt der
@@ -85,6 +89,7 @@ public partial class Fenster
         NaturDichteSetzen(s.Natur, speichern);
         PassantenMengeSetzen(s.Passanten, speichern);
         FeinheitenSetzen(s.Feinheiten, speichern);
+        BodenqualitaetSetzen(s.Boden, speichern);
         UnschaerfeSetzen(s.Unschaerfe, speichern);
         WolkenschattenSetzen(s.Wolken, speichern);
         DunstSetzen(s.Dunst, speichern);
@@ -125,6 +130,8 @@ public partial class Fenster
         FahnenSetzen(Wert("fahnen", true).AsBool(), false);
         OberflaechengroesseSetzen(Wert("uigroesse", 100).AsInt32(), false);
         FarbfilterSetzen(Art("farbfilter", Farbfilter.Aus), false);
+        // Bodenqualität (ab Schritt 5h): Fehlt sie in einer älteren Datei, die der Stufe, die die übrigen Regler zeigen – sonst stünde dort „Eigene“
+        BodenqualitaetSetzen(geladen && datei.HasSectionKey("anzeige", "boden") ? Art("boden", hoch.Boden) : BodenqualitaetPassend(), false);
         _sammeln = false;
     }
 
@@ -260,6 +267,32 @@ public partial class Fenster
         PassantenMenge = Math.Clamp(prozent, 25, 100);
         if (speichern) Speichern("passanten", PassantenMenge);
         Melden();
+    }
+
+    /// <summary>
+    /// Qualität des Bodens (Kartenwerkstatt, Schritt 5h; Stadtansicht.Boden.cs): Niedrig mischt die Bodentexturen einfach, Mittel mit Höhenmischung und
+    /// ohne sichtbare Wiederholung, Hoch dazu mit Normalen und Rauheit im Licht, dreiseitig abgetastet am Hang und mit Grasbüscheln an den Grenzen.
+    /// </summary>
+    public static Bodenqualitaet AktuelleBodenqualitaet { get; private set; } = Bodenqualitaet.Hoch;
+
+    public static void BodenqualitaetSetzen(Bodenqualitaet q, bool speichern = true)
+    {
+        AktuelleBodenqualitaet = q;
+        if (speichern) Speichern("boden", q.ToString());
+        Melden();
+    }
+
+    /// <summary>Die Bodenqualität der Voreinstellung, die die übrigen Regler gerade zeigen (Hoch, wenn keine passt).</summary>
+    private static Bodenqualitaet BodenqualitaetPassend()
+    {
+        foreach (var v in new[] { Voreinstellung.Niedrig, Voreinstellung.Mittel, Voreinstellung.Hoch, Voreinstellung.Ultra })
+        {
+            var stufe = StufeVon(v);
+            var jetzt = AktuelleStufe with { Boden = stufe.Boden };
+            if (!jetzt.Fsr) stufe = stufe with { Renderaufloesung = jetzt.Renderaufloesung };
+            if (stufe == jetzt) return stufe.Boden;
+        }
+        return Bodenqualitaet.Hoch;
     }
 
     /// <summary>Sichtweite der Feinheiten: bis zu welchem Zoom Bodenpflanzen, Steine und Holz gezeichnet werden, und ob Godot weit
@@ -592,6 +625,7 @@ public partial class Fenster
         if (Zahl("natur", out var natur)) NaturDichteSetzen(natur, speichern: false);
         if (Zahl("passanten", out var passanten)) PassantenMengeSetzen(passanten, speichern: false);
         if (Art<Feinheiten>("feinheiten", out var feinheiten)) FeinheitenSetzen(feinheiten, speichern: false);
+        if (Art<Bodenqualitaet>("boden", out var boden)) BodenqualitaetSetzen(boden, speichern: false);
         if (Art<Miniaturunschaerfe>("tiltshift", out var tiltshift)) UnschaerfeSetzen(tiltshift, speichern: false);
         if (optionen.TryGetValue("wolken", out var wolken)) WolkenschattenSetzen(An(wolken), speichern: false);
         if (Art<Morgendunst>("dunst", out var dunst)) DunstSetzen(dunst, speichern: false);
@@ -616,6 +650,9 @@ public enum VSync { Aus, An, Adaptiv }
 
 /// <summary>Sichtweite der Feinheiten (Bodenpflanzen, Steine, Holz; Werte: Stadtansicht.Grafik.cs).</summary>
 public enum Feinheiten { Nah, Mittel, Weit }
+
+/// <summary>Qualität des Bodens: wie die Bodentexturen gemischt und beleuchtet werden (Werte: <see cref="Fenster.BodenqualitaetSetzen"/>).</summary>
+public enum Bodenqualitaet { Niedrig, Mittel, Hoch }
 
 /// <summary>Stufen der Miniatur-Unschärfe (Tilt-Shift; Werte: Stadtansicht.Grafik.cs).</summary>
 public enum Miniaturunschaerfe { Aus, Leicht, Stark }

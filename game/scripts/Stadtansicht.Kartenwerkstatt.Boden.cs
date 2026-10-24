@@ -167,6 +167,7 @@ public partial class Stadtansicht
         if (_wsDekoBereiche.Count == 0 || _entwurf.BodenStrichLaeuft || _wsBodenStrich) return;
         var bereiche = _wsDekoBereiche.Select(b => b.Grow((float)Bodendeko.Rand + 1)).ToList();
         _wsDekoBereiche.Clear();
+        foreach (var b in bereiche) BueschelBereich(b); // auch die Grasbüschel weichen (Stadtansicht.Bueschel.cs)
         var kacheln = _entwurf.Boden.Kacheln.Concat(_wsBodenDeko.Keys).Distinct()
             .Where(k =>
             {
