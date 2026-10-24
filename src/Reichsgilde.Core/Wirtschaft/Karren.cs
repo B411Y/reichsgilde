@@ -230,6 +230,7 @@ public sealed class Karren
     {
         Zustand = ziel;
         Ankunft = zeit.VergangeneMinuten + w.Fahrzeit(Heimat, zumMarkt: ziel == KarrenZustand.ZumMarkt);
+        w.Wegebau.FahrtZaehlen(Heimat); // Verkehr auf den Wegen (Austritt)
 
         if (_ladung.Count == 0)
             return; // Leere Karren kosten nichts und lohnen keinen Überfall.

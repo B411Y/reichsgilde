@@ -108,6 +108,54 @@ public sealed record WirtschaftStand
 
     /// <summary>Würfe des Zufalls der Werkstätten (Unfälle; 0 in alten Spielständen).</summary>
     public long WerkstattWuerfe { get; init; }
+
+    /// <summary>Belag der Wege, Bauaufträge, Wegekasse (null: ohne Wegebau oder alter Spielstand – dann der Belag der Karte).</summary>
+    public WegebauStand? Wegebau { get; init; }
+}
+
+/// <summary>Der Belag der Wege im Spiel (siehe <see cref="Reichsgilde.Core.Bauen.Wegebau"/>).</summary>
+public sealed record WegebauStand
+{
+    /// <summary>Je Weg der Karte die Stücke als Läufe gleicher Werte (vom Anfang des Weges an).</summary>
+    public List<List<WegLaufStand>> Wege { get; init; } = new();
+
+    /// <summary>Einfache Karrenfahrten im laufenden Jahr je Betrieb.</summary>
+    public Dictionary<string, int> Fahrten { get; init; } = new();
+
+    public Dictionary<string, int> FahrtenVorjahr { get; init; } = new();
+    public List<WegbaustelleStand> Baustellen { get; init; } = new();
+    public double Wegekasse { get; init; }
+    public int? AntragKonto { get; init; }
+    public int AntragWeg { get; init; }
+    public double AntragVon { get; init; }
+    public double AntragBis { get; init; }
+
+    /// <summary>Kontonummer → bis zu welchem Jahr das Ansehen aus einem Antrag „Weg pflastern“ gilt.</summary>
+    public Dictionary<string, int> AnsehenBis { get; init; } = new();
+}
+
+/// <summary><see cref="Anzahl"/> Stücke hintereinander mit gleichen Werten.</summary>
+public sealed record WegLaufStand
+{
+    public int Anzahl { get; init; }
+    public Bauen.Belagstufe Stufe { get; init; }
+    public double Austritt { get; init; }
+    public double Zustand { get; init; }
+    public double Karren { get; init; }
+}
+
+/// <summary>Ein laufender Bauauftrag an einem Weg (Bauherr: Kontonummer, null = die Stadt).</summary>
+public sealed record WegbaustelleStand
+{
+    public int Weg { get; init; }
+    public double Von { get; init; }
+    public double Bis { get; init; }
+    public int VonStueck { get; init; }
+    public int BisStueck { get; init; }
+    public Bauen.Belagstufe Stufe { get; init; }
+    public int? Bauherr { get; init; }
+    public long FertigAb { get; init; }
+    public double Kosten { get; init; }
 }
 
 /// <summary>Die Grundstücke des Bauwesens (siehe <see cref="Reichsgilde.Core.Bauen.Bauwesen"/>).</summary>

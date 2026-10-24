@@ -1,5 +1,6 @@
 using Godot;
 using Reichsgilde.Core;
+using Reichsgilde.Core.Bauen;
 using Reichsgilde.Core.Glaube;
 using Reichsgilde.Core.Politik;
 using Reichsgilde.Core.Wirtschaft;
@@ -233,6 +234,9 @@ public partial class RatAnzeige : PanelContainer
         Hauptmenue.Text(_inhalt, "Ratsherren stimmen ihrer Haltung zu – einem Nachbarstatut nur, wenn eure Gunst bei ihnen " +
                                  $"mindestens {Zahlenformat.Ganz(rat.Daten.Gunst.SchwelleNachbarstatut)} beträgt.", 12, Grau, umbruchBreite: 670);
 
+        if (w.Wegebau.IstAktiv)
+            WegbauAbschnitt(w, rat, eigenesAmt);
+
         if (w.Glaube.IstAktiv)
             StadtglaubeAbschnitt(w, eigenesAmt);
 
@@ -244,6 +248,30 @@ public partial class RatAnzeige : PanelContainer
             foreach (var eintrag in rat.LetzteSitzung)
                 Hauptmenue.Text(_inhalt, "• " + eintrag, 13, null, umbruchBreite: 670);
         }
+    }
+
+    /// <summary>Wegbau der Stadt (Schritt 5d): die Wegekasse und der Antrag „Weg pflastern“ dieses Jahres (gestellt wird er an der Wegtafel: Weg anklicken).</summary>
+    private void WegbauAbschnitt(Stadtwirtschaft w, Stadtrat rat, Amt? eigenesAmt)
+    {
+        var bau = w.Wegebau;
+        var waehrung = w.Daten.Allgemein.Waehrung;
+        _inhalt.AddChild(new HSeparator());
+        Hauptmenue.Text(_inhalt, "Wegbau der Stadt", 16);
+        Hauptmenue.Text(_inhalt, $"Wegekasse: {Zahlenformat.Ganz(bau.Wegekasse)} {waehrung}. Die Stadt bessert ihr Pflaster aus und pflastert Hauptstraßen und Markt, wo am meisten gefahren wird.",
+            14, null, umbruchBreite: 670);
+        if (bau.Antrag is { } antrag && w.Karte is { } karte)
+        {
+            var (ja, nein, enthaltung, bm) = bau.AntragPrognose(antrag.Antragsteller, antrag.Weg, antrag.Von, antrag.Bis);
+            var durch = Stadtrat.IstAngenommen(ja, nein, bm);
+            var name = karte.Wege[antrag.Weg].Name is { Length: > 0 } n ? n : Kartenweg.Anzeigename(karte.Wege[antrag.Weg].Klasse);
+            Hauptmenue.Text(_inhalt, $"{antrag.Antragsteller.Inhaber} beantragt, {name} von {Zahlenformat.Ganz(antrag.Von)} bis {Zahlenformat.Ganz(antrag.Bis)} m zu pflastern. " +
+                                     $"Stand heute: {ja} dafür, {nein} dagegen{(enthaltung > 0 ? $", {enthaltung} Enthaltung" : "")} → {(durch ? "würde angenommen" : "würde abgelehnt")}.",
+                14, durch ? Gruen : Rot, umbruchBreite: 670);
+        }
+        else
+            Hauptmenue.Text(_inhalt, eigenesAmt is null ? "Es liegt kein Antrag vor. Anträge stellen nur Mitglieder des Rates."
+                : "Es liegt kein Antrag vor. Klickt in der Stadt einen Weg an: Dort stellt ihr den Antrag „Pflaster“ (Ansehen +" + Zahlenformat.Ganz(bau.Daten!.Rat.AntragAnsehen) + ", wenn er angenommen wird).",
+                13, Grau, umbruchBreite: 670);
     }
 
     /// <summary>Antrag zum Stadtglauben – wie das Statut, aber Ratsherren stimmen nach ihrem Glauben.</summary>

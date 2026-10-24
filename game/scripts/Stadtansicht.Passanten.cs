@@ -37,6 +37,9 @@ public partial class Stadtansicht
         public float Laenge { get; set; }
         /// <summary>Seitlicher Versatz (Meter), damit nicht alle auf derselben Linie laufen.</summary>
         public float Versatz { get; init; }
+
+        /// <summary>Wie weit (Meter) die Figur gerade zusätzlich an den Rand ausweicht, weil ein Karren naht (Schritt 5d).</summary>
+        public float Ausweichen { get; set; }
         /// <summary>Eigenes Gehtempo in Metern je echter Sekunde bei Tempo 1 (schlendern, normal, eilig).</summary>
         public float Gehtempo { get; init; }
         /// <summary>Wann die Figur für den aktuellen Weg losgeht und ankommt (Spielminuten, mit Bruchteil).</summary>
@@ -224,6 +227,9 @@ public partial class Stadtansicht
     /// <summary>Ab so viel Meter je Sekunde (mal Beinfaktor) eilt eine Figur statt zu gehen.</summary>
     private const float EilenAb = 2.0f;
 
+    /// <summary>Kommt ein Karren näher als so viel Meter, weicht eine Figur an den Rand aus.</summary>
+    private const float PassantenAusweichAbstand = 4.5f;
+
     /// <summary>
     /// Unterwegs: die Figur läuft im Gassennetz. Die Bewegung folgt dem Tempo, und ihr Takt passt dazu, damit die Füße nicht rutschen:
     /// Bettler und Alte gebeugt, wer schnell ist, eilt, wer eine Kiepe oder ein Bündel trägt, geht mit Last, die übrigen gehen.
@@ -241,7 +247,15 @@ public partial class Stadtansicht
         {
             richtung = richtung.Normalized();
             p.Knoten.Rotation = new Vector3(0, Mathf.Atan2(richtung.X, richtung.Z), 0);
-            hier += new Vector3(-richtung.Z, 0, richtung.X) * p.Versatz; // rechts gehen, je nach Nummer etwas versetzt
+            // Rechtsverkehr (Schritt 5d): am rechten Rand gehen, je nach Nummer etwas versetzt; naht ein Karren, weichen sie noch weiter aus
+            var naht = false;
+            foreach (var karrenAnsicht in _karren.Values)
+            {
+                var d = karrenAnsicht.Wurzel.Position - hier;
+                if (d.X * d.X + d.Z * d.Z < PassantenAusweichAbstand * PassantenAusweichAbstand) { naht = true; break; }
+            }
+            p.Ausweichen = Mathf.Lerp(p.Ausweichen, naht ? 1.0f : 0f, naht ? 0.12f : 0.04f);
+            hier += new Vector3(-richtung.Z, 0, richtung.X) * (0.55f + Mathf.Abs(p.Versatz) * 0.5f + p.Ausweichen);
         }
         p.Knoten.Position = AufFuss(hier); // auf Gelände auf dem Boden (Stadtansicht.Gelaende.cs)
         p.Knoten.Visible = true;

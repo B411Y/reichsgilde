@@ -464,7 +464,7 @@ public partial class Kartenwerkstatt : Node
     }
 
     /// <summary>
-    /// Die Schritte der Startoptionen in fester Reihenfolge: groesse, randvorschlag, setzen, mauer, tor, weg, feld, flaeche, pinsel, radierer, start,
+    /// Die Schritte der Startoptionen in fester Reihenfolge: groesse, randvorschlag, setzen, mauer, tor, fluss, see, weg, faehre, belag, feld, flaeche, pinsel, radierer, start,
     /// versetzen, rückgängig, auswahl, speichern, umriss, werkzeug, netz, dann Kamera (blick, drehung, kamerastart), Tafeln und zuletzt ausprobieren (Liste in <c>CLAUDE.md</c>, „Bauen, testen,
     /// ausprobieren“). Mehrere Wege, Flächen, Mauern, Tore, Striche und Startbefehle trennt „|“, Punkte „;“.
     /// </summary>
@@ -536,6 +536,20 @@ public partial class Kartenwerkstatt : Node
                 {
                     var punkte = Liste("-," + eintrag).Punkte;
                     if (punkte.Count >= 2 && _stadt.WerkstattFaehreSetzen(punkte[0], punkte[1]) is { } faehre) _stadt.WerkstattWaehlen(faehre);
+                }
+            // --werkstatt-belag=<weg>,<stufe>[,<von>,<bis>][|…]: Startbelag (Schritt 5d). <weg> ist die Nummer (ab 0, in der Reihenfolge der Wege) oder der Name (Leerzeichen als _),
+            // <stufe> trampelpfad, fahrweg, kies, pflaster oder vorgabe (Belag nach der Art); mit von und bis (Meter) nur dieser Abschnitt, sonst der ganze Weg; ein Schritt je Eintrag
+            if (o.TryGetValue("werkstatt-belag", out var belaege))
+                foreach (var eintrag in belaege.Split('|', StringSplitOptions.RemoveEmptyEntries))
+                {
+                    var t = eintrag.Split(',');
+                    var weg = int.TryParse(t[0], out var nr) && nr >= 0 && nr < _entwurf.Wege.Count ? _entwurf.Wege[nr]
+                        : _entwurf.Wege.FirstOrDefault(w => w.Name == t[0].Replace('_', ' ')) ?? throw new ArgumentException($"Den Weg „{t[0]}“ gibt es nicht.");
+                    if (t[1].Equals("vorgabe", StringComparison.OrdinalIgnoreCase)) _entwurf.BelagSetzen(weg, (Belagstufe?)null);
+                    else if (!Enum.TryParse<Belagstufe>(t[1], ignoreCase: true, out var stufe)) throw new ArgumentException($"Unbekannter Belag „{t[1]}“ (trampelpfad, fahrweg, kies, pflaster, vorgabe).");
+                    else if (t.Length >= 4) _entwurf.BelagSetzen(weg, Zahl(t[2]), Zahl(t[3]), stufe);
+                    else _entwurf.BelagSetzen(weg, stufe);
+                    _stadt.WerkstattWaehlen(weg);
                 }
             // --werkstatt-feld=x1,z1;x2,z2;…[|…] (Feldflächen, die Streifen laufen längs der längsten Kante)
             if (o.TryGetValue("werkstatt-feld", out var felder))

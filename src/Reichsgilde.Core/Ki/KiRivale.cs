@@ -204,6 +204,7 @@ public sealed class KiRivale
         foreach (var betrieb in Betriebe.ToList())
             KarrenNachkaufen(betrieb);
         EinrichtungKaufen();
+        WegAusbauen();
     }
 
     private static string Prozent(double anteil) => $"{Zahlenformat.Ganz(anteil * 100)} %";
@@ -701,6 +702,78 @@ public sealed class KiRivale
                 $"kauft Einrichtung für {b.Name}: {e.Name} ({Zahlenformat.Ganz(e.Preis)} {waehrung}) – " +
                 $"erwartet ≈ {Zahlenformat.Ganz(mehr)} {waehrung} mehr im Jahr, bezahlt in {Zahlenformat.Kommazahl(jahre!.Value)} Jahren.");
         }
+    }
+
+    /// <summary>
+    /// So viele Jahre darf es höchstens dauern, bis sich ein Wegausbau durch die schnelleren Fahrten der eigenen Karren bezahlt macht
+    /// (<c>ki.wegebau.hoechstensJahre</c>, nach Charakter wie bei der Einrichtung). null: Die KI baut keine Wege (Abschnitt fehlt).
+    /// </summary>
+    public double? WegebauHoechstensJahre =>
+        _w.Daten.Ki?.Wegebau is { } d
+            ? d.HoechstensJahre + d.CharakterJahre * Math.Sign(Profil.MaxAmortisationJahre - KiProfil.Standard.MaxAmortisationJahre)
+            : null;
+
+    /// <summary>
+    /// Zum Jahresende (nach der Einrichtung) einen Weg ausbauen lassen – Entscheidung des Nutzers (Kartenwerkstatt, Schritt 5d): wenn sich die
+    /// schnellere Fahrt der eigenen Karren in höchstens <see cref="WegebauHoechstensJahre"/> Jahren bezahlt macht.
+    ///   • Kandidaten: zusammenhängende Stücke der eigenen Strecken zum Markt, die schlechter als Kies bzw. Pflaster sind, je höchstens
+    ///     <c>ki.wegebau.hoechstensMeter</c> lang; je Kandidat Kies und Pflaster.
+    ///   • Nutzen: gesparte Karrenminuten im Jahr (<see cref="Bauen.Wegebau.ErsparteMinutenJeJahr"/>, mit den Fahrten des Vorjahres)
+    ///     × <c>ki.wegebau.wertJeKarrenminute</c>. Gebaut wird der Kandidat, der sich am schnellsten bezahlt macht – höchstens einer je Jahr.
+    ///   • Danach bleibt <c>reserveFaktor</c> × <see cref="KiProfil.Reserve"/> als Bargeld; nicht in Not und nicht, solange die Vorsichtige spart.
+    /// </summary>
+    private void WegAusbauen()
+    {
+        var wb = _w.Wegebau;
+        if (WegebauHoechstensJahre is not { } grenze || !wb.IstAktiv || InNot || (Spart && Profil.Gaunerei <= 0)) return;
+        var d = _w.Daten.Ki!.Wegebau!;
+        var reserve = d.ReserveFaktor * Profil.Reserve;
+        var hoechstens = Math.Max(1, (int)Math.Floor(d.HoechstensMeter / wb.Daten!.Stueck + 1e-9));
+        // die Stücke der eigenen Strecken, je Weg sortiert
+        var stuecke = new SortedDictionary<int, SortedSet<int>>();
+        foreach (var b in Betriebe.Where(b => wb.FahrtenVorjahr(b.Name) > 0).OrderBy(b => b.Name, StringComparer.Ordinal))
+            if (_w.Fahrten(b) is var (hin, _))
+                foreach (var s in hin.Where(s => s.Weg >= 0 && s.Art == Reichsgilde.Core.Bauen.Fahrbahn.Strasse))
+                {
+                    if (!stuecke.TryGetValue(s.Weg, out var menge)) stuecke[s.Weg] = menge = new SortedSet<int>();
+                    menge.Add(wb.StueckBei(s.Weg, s.Stelle));
+                }
+        (int Weg, double Von, double Bis, Reichsgilde.Core.Bauen.Belagstufe Stufe, double Kosten, double Jahre, double Minuten)? best = null;
+        foreach (var (weg, menge) in stuecke)
+            foreach (var stufe in new[] { Reichsgilde.Core.Bauen.Belagstufe.Kies, Reichsgilde.Core.Bauen.Belagstufe.Pflaster })
+            {
+                // zusammenhängende Läufe von Stücken unter dieser Stufe, in Teilen zu höchstens „hoechstens“ Stücken
+                var lauf = new List<int>();
+                foreach (var i in menge.Append(int.MaxValue))
+                {
+                    var passt = i != int.MaxValue && wb.Stueck(weg, i).Stufe < stufe;
+                    if (passt && (lauf.Count == 0 || i == lauf[^1] + 1) && lauf.Count < hoechstens)
+                    {
+                        lauf.Add(i);
+                        continue;
+                    }
+                    if (lauf.Count > 0)
+                    {
+                        var (von, bis) = (wb.Stueck(weg, lauf[0]).Von, wb.Stueck(weg, lauf[^1]).Bis);
+                        var v = wb.Vorschau(Konto, weg, von, bis, stufe);
+                        var minuten = wb.ErsparteMinutenJeJahr(Konto, weg, lauf[0], lauf[^1], stufe);
+                        var wert = minuten * d.WertJeKarrenminute;
+                        if (v.Verboten is null && wert > 0 && Konto.Vermoegen - v.Kosten >= reserve)
+                        {
+                            var jahre = v.Kosten / wert;
+                            if (jahre <= grenze && (best is null || jahre < best.Value.Jahre))
+                                best = (weg, von, bis, stufe, v.Kosten, jahre, minuten);
+                        }
+                    }
+                    lauf.Clear();
+                    if (passt) lauf.Add(i);
+                }
+            }
+        if (best is not { } x) return;
+        var waehrung = _w.Daten.Allgemein.Waehrung;
+        Befehlen(new Reichsgilde.Core.Wirtschaft.WegAusbauen(x.Weg, x.Von, x.Bis, x.Stufe),
+            $"lässt einen Weg mit {Reichsgilde.Core.Bauen.Wegbelag.Anzeigename(x.Stufe)} ausbauen ({Zahlenformat.Ganz(x.Kosten)} {waehrung}) – " +
+            $"die Karren sparen ≈ {Zahlenformat.Ganz(x.Minuten)} Minuten im Jahr, bezahlt in {Zahlenformat.Kommazahl(x.Jahre)} Jahren.");
     }
 
     /// <summary>
@@ -1435,6 +1508,19 @@ public sealed class KiRivale
     /// <summary>Stimme im Rat: dafür, wenn das beantragte Statut deutlich mehr bringt als das geltende.</summary>
     internal bool StimmtFuerStatut(Fronstatut statut) =>
         ErwartungUnter(statut) >= ErwartungUnter(_w.Statut) + Profil.StatutVorteil;
+
+    /// <summary>
+    /// Stimme im Rat zum Antrag „Weg pflastern“ (Kartenwerkstatt, Schritt 5d): dafür, wenn eigene Karren über den Abschnitt fahren oder dort
+    /// viel Verkehr ist (<c>wegebau.rat.antragVerkehr</c>) – die Stadt zahlt, nicht das Haus.
+    /// </summary>
+    internal bool StimmtFuerWegantrag(int weg, double von, double bis)
+    {
+        var wb = _w.Wegebau;
+        if (wb.MittlererVerkehr(weg, von, bis) >= wb.Daten!.Rat.AntragVerkehr) return true;
+        var (i0, i1) = (wb.StueckBei(weg, Math.Min(von, bis)), wb.StueckBei(weg, Math.Max(von, bis) - 1e-6));
+        return Betriebe.Any(b => _w.Fahrten(b) is var (hin, _) &&
+                                 hin.Any(s => s.Weg == weg && wb.StueckBei(weg, s.Stelle) is var i && i >= i0 && i <= i1));
+    }
 
     /// <summary>
     /// Stimme bei einer Wahl im Rat (die KI sitzt selbst im Rat, kandidiert aber nicht für dieses Amt).

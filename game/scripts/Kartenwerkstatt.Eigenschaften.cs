@@ -25,6 +25,7 @@ public partial class Kartenwerkstatt
     {
         UiHilfe.KinderEntfernen(_eigenschaften);
         _gezeigt = teil;
+        _stadt.WegStreckeMarkieren(null, 0, 0, 0); // die Markierung des Belag-Abschnitts gehört zum gewählten Weg (WegTafel)
         var raster = new GridContainer { Columns = 2 };
         raster.AddThemeConstantOverride("h_separation", 10);
         raster.AddThemeConstantOverride("v_separation", 6);
@@ -82,8 +83,55 @@ public partial class Kartenwerkstatt
         Zeile(raster, "Verlauf", glatt);
         Zeile(raster, "Länge", Wert($"{Math.Round(w.Laenge)} m · {w.Punkte.Count} Stützpunkte"));
         Zeile(raster, "Verkehr", Wert(w.IstKarrenstrasse ? "Karren und Fußgänger" : "nur Fußgänger"));
+        BelagZeilen(w, raster);
         Hauptmenue.Text(_eigenschaften, "Griffe ziehen verschiebt die Stützpunkte, ein Klick auf die Linie fügt einen ein, Entf löscht den gewählten.",
             12, Grau, umbruchBreite: Rechtsbreite - 30);
+    }
+
+    // ── Belag (Schritt 5d) ──
+
+    /// <summary>Welcher Weg, welche Stufe und welcher Abschnitt (Meter entlang) gerade für den Belag gewählt sind.</summary>
+    private EntwurfWeg? _belagWeg;
+    private Belagstufe _belagStufe = Belagstufe.Kies;
+    private double _belagVon, _belagBis;
+
+    /// <summary>
+    /// Der Startbelag des Weges: die Abschnitte als Liste, darunter Stufe, Abschnitt (zwei Regler, goldenes Band im Bild) und die Knöpfe
+    /// „Abschnitt setzen“, „ganzer Weg“ und „Vorgabe“ (Belag nach der Klasse). Jede Änderung ist ein Schritt der Geschichte (Strg+Z).
+    /// </summary>
+    private void BelagZeilen(EntwurfWeg w, GridContainer raster)
+    {
+        var laenge = w.Laenge;
+        if (!ReferenceEquals(_belagWeg, w))
+        {
+            _belagWeg = w;
+            _belagVon = 0;
+            _belagBis = Math.Round(laenge);
+        }
+        _belagBis = Math.Min(_belagBis, Math.Round(laenge));
+        var abschnitte = w.BelagAbschnitte;
+        var liste = new VBoxContainer();
+        foreach (var a in abschnitte)
+            liste.AddChild(Wert($"{Math.Round(a.Von)}–{Math.Round(a.Bis)} m: {Wegbelag.Anzeigename(a.Stufe)}"));
+        Zeile(raster, "Belag", liste);
+        if (w.Belag.Count == 0) Hauptmenue.Text(_eigenschaften, $"Ohne Angabe: {Wegbelag.Anzeigename(Wegbelag.Vorgabe(w.Klasse))} (Vorgabe der Art).", 12, Grau, umbruchBreite: Rechtsbreite - 30);
+
+        var stufe = new OptionButton { FocusMode = Control.FocusModeEnum.None, TooltipText = "Der Belag, mit dem das Spiel auf diesem Abschnitt beginnt" };
+        foreach (var s in Enum.GetValues<Belagstufe>()) stufe.AddItem(Wegbelag.Anzeigename(s), (int)s);
+        stufe.Select(stufe.GetItemIndex((int)_belagStufe));
+        stufe.ItemSelected += i => _belagStufe = (Belagstufe)stufe.GetItemId((int)i);
+        Zeile(raster, "Stufe", stufe);
+        void Markieren() => _stadt.WegStreckeMarkieren(w.Verlauf.Select(p => new Vector2((float)p.X, (float)p.Z)).ToList(), (float)w.BreiteWirksam, _belagVon, _belagBis);
+        Zeile(raster, "von", Schieber(0, Math.Max(1, Math.Round(laenge)), 1, _belagVon, Meter, wert => { _belagVon = wert; Markieren(); }, "Anfang des Abschnitts, in Metern entlang des Weges"));
+        Zeile(raster, "bis", Schieber(0, Math.Max(1, Math.Round(laenge)), 1, _belagBis, Meter, wert => { _belagBis = wert; Markieren(); }, "Ende des Abschnitts, in Metern entlang des Weges"));
+        Markieren();
+        var knoepfe = new HBoxContainer();
+        knoepfe.AddThemeConstantOverride("separation", 6);
+        _eigenschaften.AddChild(knoepfe);
+        Knopf(knoepfe, "Abschnitt setzen", () => _entwurf.BelagSetzen(w, Math.Min(_belagVon, _belagBis), Math.Max(_belagVon, _belagBis), _belagStufe),
+            "Den gewählten Abschnitt mit dieser Stufe belegen");
+        Knopf(knoepfe, "Ganzer Weg", () => _entwurf.BelagSetzen(w, _belagStufe), "Den ganzen Weg mit dieser Stufe belegen");
+        Knopf(knoepfe, "Vorgabe", () => _entwurf.BelagSetzen(w, (Belagstufe?)null), "Alle Abschnitte entfernen: der Belag richtet sich wieder nach der Art des Weges");
     }
 
     // ═════════════════════════════════════════════════════════════════════════
