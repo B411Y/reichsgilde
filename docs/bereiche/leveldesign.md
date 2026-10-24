@@ -153,7 +153,7 @@ Fahrplan (vom Nutzer am 21.10.2026 bestätigt, je Schritt ein PR; Stand wird hie
 | 5e Bodentexturen | Texturpinsel (Wiese, Erde, Fels, Kies, Waldboden, Sand, Schlamm/Ufer, Moos, Lehm, Pflasterfläche, Mist/Hof) mit passender Deko beim Malen | fertig (PR #183) |
 | 5f Editor-Oberfläche | Icon-Leiste nach Gruppen, Paletten mit Vorschaubildern, Tooltips, aufgeräumte Tafeln | fertig (PR #184) |
 | 5g Wege-Engine | Wege in den Boden eingebacken (Wegeschicht als Abstandsfeld, Kreuzungen verschmelzen, Ränder je Belag) | fertig (PR #185) |
-| 5h Texturen überarbeiten | Bodentexturen gemeinsam mit dem Nutzer überarbeiten | offen |
+| 5h Texturen überarbeiten | Bodentexturen gemeinsam mit dem Nutzer überarbeiten | fertig (PR #187) |
 | 6 Freigabe | Kartenwerkstatt für Spieler | offen |
 
 | Thema | Entscheidung | Datum |
@@ -302,3 +302,12 @@ Fahrplan (vom Nutzer am 21.10.2026 bestätigt, je Schritt ein PR; Stand wird hie
 | Ansatz | Wege werden nicht mehr als Bänder über den Boden gelegt, sondern wie im Warcraft-3-Editor in den Boden eingebacken: Aus dem Wegenetz entsteht eine feine Wegeschicht (etwa 0,25 m, Abstand zur Wegmitte und Belag), die der Boden-Shader wie die Texturen aus 5e mischt. Keine Überlappungen, keine Risse, kein Durchscheinen am Hang; Kreuzungen (T, X, Y) verschmelzen mit gerundeten Ecken; Spurrillen folgen der Fahrtrichtung; die Belagstufen aus 5d sind Schichten dieser Wegeschicht. Entschieden vom Nutzer. | 24.10.2026 |
 | Ränder | Je nach Belag: Pfad und Fahrweg weich und unregelmäßig mit niedergetretenem Gras, Kies streuend mit einzelnen Steinchen, Pflaster mit klarer Kante und Randsteinen; ein Pflasterweg geht nahtlos in Pflasterflächen (Markt, 5e) über. Entschieden vom Nutzer. | 24.10.2026 |
 | Fahrplan | Nach 5g kommt 5h: die Bodentexturen gemeinsam mit dem Nutzer überarbeiten; danach Schritt 6. Entschieden vom Nutzer. | 24.10.2026 |
+
+### Kartenwerkstatt, Schritt 5h: Texturen auf Oberklasse-Niveau (PR #187)
+
+| Thema | Entscheidung | Datum |
+|---|---|---|
+| Übergänge | Höhenmischung mit Rangfolge: Jede Textur hat eine Höhenkarte, an der Grenze gewinnt, was höher ist (Grashalme und -büschel wachsen über die Erde, Steine ragen aus dem Kies, Moos kriecht in Felsritzen); eine feste Rangfolge (Wiese über Erde, Erde über Fels …) sorgt für einen stets stimmigen Rand mit unregelmäßigem Überhang statt weichem Verlauf. Vorbild: Bodenübergänge im Warcraft-3-Editor. Entschieden vom Nutzer. | 24.10.2026 |
+| Texturen | Selbst gemalt in Blender per Skript, 1024 px, kachelbar, mit Farbe, Höhe, Normalen und Rauheit, im gemalt-realistischen Stil der 3D-Welt; eigenes Werk unter CC BY 4.0. Entschieden vom Nutzer. | 24.10.2026 |
+| Extras | Keine sichtbaren Wiederholungen (große Farb- und Helligkeitsflecken, gedrehte und verschobene Kacheln); ab etwa 35° Gefälle tritt Fels von selbst hervor, ohne Verzerrung am Hang; an Grenzen der Wiese zu Erde, Weg oder Kies stehen automatisch kleine 3D-Grasbüschel. Jahreszeit und Nässe kommen später als eigenes Thema. Entschieden vom Nutzer. | 24.10.2026 |
+| Leistung | Über die Grafik-Voreinstellung: Niedrig einfache Mischung wie heute, Mittel Höhenmischung, Hoch und Ultra alles mit Normalen, Büscheln und Extras; Ziel auf Hoch höchstens 10 % weniger Bilder pro Sekunde. Entschieden vom Nutzer. | 24.10.2026 |

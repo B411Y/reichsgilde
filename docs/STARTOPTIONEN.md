@@ -50,6 +50,7 @@ Startoptionen (nach `--`):
 - `--natur=<25–100>`
 - `--passanten=<25–100>`
 - `--feinheiten=<Nah|Mittel|Weit>`
+- `--boden=<Niedrig|Mittel|Hoch>` (Bodenqualität: Mischung der Bodentexturen, Normalen, Grasbüschel)
 - `--tiltshift=<Aus|Leicht|Stark>`
 - `--wolken=<An|Aus>`
 - `--dunst=<Aus|Niedrig|Hoch>`

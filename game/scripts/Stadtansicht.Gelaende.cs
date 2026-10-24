@@ -38,6 +38,9 @@ public partial class Stadtansicht
     private Node3D? _gelaendeKnoten;
     private readonly Dictionary<(int I, int J), MeshInstance3D> _gelaendeKacheln = new();
 
+    /// <summary>Die flachen Streifen ringsum (Stoff: <see cref="BodenRandStoff"/>).</summary>
+    private readonly List<MeshInstance3D> _bodenStreifen = new();
+
     /// <summary>Hatte der Boden beim letzten Aufbau Höhen? Wechselt das (erster Pinselstrich, Rückgängig bis zum Anfang), wird der Boden ganz neu gebaut.</summary>
     private bool _bodenGebaut;
 
@@ -227,7 +230,9 @@ public partial class Stadtansicht
     {
         _gelaendeKacheln.Clear();
         _bodenStoffe.Clear();
+        _bodenStreifen.Clear();
         _gelaendeKnoten = null;
+        BueschelVergessen(); // die Knoten der Grasbüschel hängen am Boden (Stadtansicht.Bueschel.cs)
         _bodenGebaut = BodenKacheln;
         var gross = aussen.Vergroessert(zugabe);
         if (!_bodenGebaut)
@@ -251,11 +256,13 @@ public partial class Stadtansicht
         void Streifen(string name, double x0, double z0, double x1, double z1)
         {
             if (x1 - x0 < 0.01 || z1 - z0 < 0.01) return;
-            eltern.AddChild(new MeshInstance3D
+            var streifen = new MeshInstance3D
             {
-                Name = name, Mesh = new PlaneMesh { Size = new Vector2((float)(x1 - x0), (float)(z1 - z0)) }, MaterialOverride = Material(Wiese),
+                Name = name, Mesh = new PlaneMesh { Size = new Vector2((float)(x1 - x0), (float)(z1 - z0)) }, MaterialOverride = BodenRandStoff(),
                 Position = new Vector3((float)(x0 + x1) / 2, 0f, (float)(z0 + z1) / 2),
-            });
+            };
+            eltern.AddChild(streifen);
+            _bodenStreifen.Add(streifen);
         }
         Streifen("Wiese_Nord", gross.X0, gross.Z0, gross.X1, k.Z0);
         Streifen("Wiese_Sued", gross.X0, k.Z1, gross.X1, gross.Z1);
@@ -322,6 +329,7 @@ public partial class Stadtansicht
         }
         kachel.Mesh = netz;
         kachel.MaterialOverride = KachelStoff(ti, tj); // Wiese oder Boden-Shader (Stadtansicht.Boden.cs)
+        BueschelHoeheGeaendert(ti, tj); // die Grasbüschel stehen auf der neuen Höhe (Stadtansicht.Bueschel.cs)
         kachel.CastShadow = flach ? GeometryInstance3D.ShadowCastingSetting.Off : GeometryInstance3D.ShadowCastingSetting.On;
     }
 

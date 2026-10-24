@@ -907,6 +907,7 @@ public partial class Stadtansicht : Node3D
         WasserBild(delta);       // Himmelsfarbe im Wasser, Fähren, Tretrad der Häfen (Stadtansicht.Wasser.Uebergaenge.cs)
         BelagBild();             // geänderte Wege neu zeichnen (Stadtansicht.Wegbelag.cs)
         WegeschichtBild();       // geänderte Kacheln der Wegeschicht neu rechnen (Stadtansicht.Wegeschicht.cs)
+        BueschelBild();          // Grasbüschel an den Grenzen der Wiese nachziehen (Stadtansicht.Bueschel.cs)
 
         // Beschriftungen mitskalieren, damit sie bei jedem Zoom gleich groß wirken.
         var massstab = _raum is not null ? RaumSchildMassstab : _kamera.Size / BezugsZoom;
