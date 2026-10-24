@@ -253,7 +253,7 @@ def weg_land(b):   weg(b, 12, SAND, rand=GRUEN)
 def weg_haupt(b):  weg(b, 10, STEIN, strich=True, rand=GRUEN)
 def weg_gasse(b):  weg(b, 8, WEISS, rand=GRUEN)
 def weg_feld(b):   weg(b, 6, ERDE, rand=GRUEN)
-def weg_fuss(b):   weg(b, 4, DUNKEL, strich=True)
+def weg_fuss(b):   weg(b, 4, ERDE, strich=True)
 
 
 # ── Flächen ───────────────────────────────────────────────────────────────────
@@ -262,6 +262,35 @@ def bauzone(b):
     b.v([(5, 16), (30, 8), (43, 20), (34, 42), (8, 38)], SAND)
     b.r(18, 22, 30, 32, WEISS)
     b.v([(16, 24), (24, 15), (32, 24)], DACH)
+
+def bauzone_kern(b):
+    """Kern: Steinfläche mit zwei Häuschen."""
+    b.v([(5, 16), (30, 8), (43, 20), (34, 42), (8, 38)], STEIN)
+    b.r(12, 20, 21, 29, WEISS)
+    b.v([(10, 22), (16.5, 14), (23, 22)], DACH)
+    b.r(26, 28, 34, 36, WEISS)
+    b.v([(24, 30), (30, 23), (36, 30)], DACH)
+
+def bauzone_mauerring(b):
+    """Mauerring: helle Fläche mit Häuschen hinter einem Stück Zinnenmauer am unteren Rand."""
+    b.v([(5, 14), (30, 6), (43, 18), (38, 38), (6, 36)], WEISS)
+    b.r(14, 15, 22, 23, SAND)
+    b.v([(12, 17), (18, 10), (24, 17)], DACH)
+    b.r(8, 27, 38, 35, STEIN)
+    for x in (9, 17, 25, 33):
+        b.r(x, 22, x + 5, 27, STEIN)
+    b.l([(8, 31), (38, 31)], 0.8, TINTE, umriss=False, schraffur=0)
+
+def bauzone_vorstadt(b):
+    """Vorstadt: Sandfläche mit einem Häuschen (wie die bisherige Bauzone)."""
+    bauzone(b)
+
+def bauzone_umland(b):
+    """Umland: grüne Fläche mit Zaun unten."""
+    b.v([(5, 16), (30, 8), (43, 20), (34, 42), (8, 38)], GRUEN)
+    b.l([(10, 31), (37, 30)], 1.4, HOLZ, schraffur=0)
+    for x in (12, 21, 30, 36):
+        b.l([(x, 28), (x, 36)], 1.6, BRAUN, schraffur=0)
 
 def wald(b):
     for x, y, h in ((13, 40, 22), (35, 40, 22), (24, 36, 28)):
@@ -378,7 +407,9 @@ ICONS = {
     'heben': heben, 'senken': senken, 'glaetten': glaetten, 'ebnen': ebnen, 'rauschen': rauschen, 'rampe': rampe,
     'radierer': radierer, 'pinsel': pinsel, 'pflanze': pflanze,
     'weg_land': weg_land, 'weg_haupt': weg_haupt, 'weg_gasse': weg_gasse, 'weg_feld': weg_feld, 'weg_fuss': weg_fuss,
-    'bauzone': bauzone, 'wald': wald, 'streu': streu, 'feld': feld, 'aussparung': aussparung, 'tor': tor,
+    'bauzone': bauzone, 'bauzone_kern': bauzone_kern, 'bauzone_mauerring': bauzone_mauerring,
+    'bauzone_vorstadt': bauzone_vorstadt, 'bauzone_umland': bauzone_umland,
+    'wald': wald, 'streu': streu, 'feld': feld, 'aussparung': aussparung, 'tor': tor,
     'fluss': fluss, 'bach': bach, 'see': see, 'teich': teich, 'faehre': faehre, 'hafen': hafen,
     'umland': umland,
     # Kopfleiste

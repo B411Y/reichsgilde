@@ -68,6 +68,7 @@ public partial class Stadtansicht
     private void WegBauen(EntwurfWeg w, bool weg)
     {
         if (_wsWege.Remove(w, out var alt)) KnotenEntfernen(alt);
+        SchichtTeilGeaendert(w, weg || w.Verlauf.Count < 2 ? null : w.Verlauf.Select(V2), (float)w.BreiteWirksam / 2); // Stadtansicht.Wegeschicht.cs
         if (weg || _wsWegeKnoten is null || w.Verlauf.Count < 2) return;
         var knoten = new Node3D { Name = "Weg" };
         _wsWegeKnoten.AddChild(knoten);
@@ -76,8 +77,7 @@ public partial class Stadtansicht
         foreach (var anderer in _entwurf.Wege)
             if (ReferenceEquals(anderer, w)) break;
             else nummer++;
-        if (BelagMoeglich) BelagBauen(w.Verlauf.Select(p => V3(p)).ToArray(), w.BelagAbschnitte, (float)w.BreiteWirksam, knoten, WegLuecken(nummer), WegBoden(nummer), null); // Stadtansicht.Wegbelag.cs
-        else WegZeichnen(w.Verlauf.Select(p => V3(p)).ToArray(), (float)w.BreiteWirksam, w.IstGlatt, knoten, WegLuecken(nummer), WegBoden(nummer)); // unter Brücken kein Band, in Furten eben (Stadtansicht.Wasser.Uebergaenge.cs)
+        if (!WegeschichtMoeglich) WegZeichnen(w.Verlauf.Select(p => V3(p)).ToArray(), (float)w.BreiteWirksam, w.IstGlatt, knoten, WegLuecken(nummer), WegBoden(nummer)); // unter Brücken kein Band, in Furten eben (Stadtansicht.Wasser.Uebergaenge.cs)
         WegMarkieren(w);
         if (BereichVon(w) is { } bereich) _wsBereiche[w] = bereich;
     }
@@ -166,6 +166,7 @@ public partial class Stadtansicht
             _wsNetz.Weg(w.IstGlatt ? NetzPunkte(punkte) : punkte);
         }
         foreach (var kind in _wsAnschluesse.GetChildren()) kind.QueueFree();
+        SchichtAnschluesseVergessen(); // Stadtansicht.Wegeschicht.cs
 
         void Anhaengen(Vector3 p, float? breite, bool ueberDenMarkt = true)
         {

@@ -152,6 +152,8 @@ Fahrplan (vom Nutzer am 21.10.2026 bestätigt, je Schritt ein PR; Stand wird hie
 | 5d Wegbelag | Trampelpfad bis Pflaster, wirkt auf Karren | fertig (PR #182) |
 | 5e Bodentexturen | Texturpinsel (Wiese, Erde, Fels, Kies, Waldboden, Sand, Schlamm/Ufer, Moos, Lehm, Pflasterfläche, Mist/Hof) mit passender Deko beim Malen | fertig (PR #183) |
 | 5f Editor-Oberfläche | Icon-Leiste nach Gruppen, Paletten mit Vorschaubildern, Tooltips, aufgeräumte Tafeln | fertig (PR #184) |
+| 5g Wege-Engine | Wege in den Boden eingebacken (Wegeschicht als Abstandsfeld, Kreuzungen verschmelzen, Ränder je Belag) | fertig (PR #185) |
+| 5h Texturen überarbeiten | Bodentexturen gemeinsam mit dem Nutzer überarbeiten | offen |
 | 6 Freigabe | Kartenwerkstatt für Spieler | offen |
 
 | Thema | Entscheidung | Datum |
@@ -292,3 +294,11 @@ Fahrplan (vom Nutzer am 21.10.2026 bestätigt, je Schritt ein PR; Stand wird hie
 |---|---|---|
 | Aufbau | Links eine schmale Leiste mit Icon-Knöpfen je Gruppe (Auswählen, Gelände, Boden, Wasser, Wege, Flächen und Natur, Gebäude, Mauer, Start, Prüfen); ein Klick klappt eine Palette mit Icons auf, Gebäude als kleine Vorschaubilder. Rechts nur die Eigenschaften des Gewählten, oben Datei, Rückgängig und Ausprobieren, unten eine Statusleiste. Entschieden vom Nutzer. | 24.10.2026 |
 | Tooltips und Icons | Jeder Knopf hat ein Icon und einen Tooltip mit Name, kurzer Erklärung und Tastenkürzel. Icons im Holzschnitt-Stil wie die Waren-Icons. Entschieden vom Nutzer. | 24.10.2026 |
+
+### Kartenwerkstatt, Schritt 5g: Wege-Engine (PR #185)
+
+| Thema | Entscheidung | Datum |
+|---|---|---|
+| Ansatz | Wege werden nicht mehr als Bänder über den Boden gelegt, sondern wie im Warcraft-3-Editor in den Boden eingebacken: Aus dem Wegenetz entsteht eine feine Wegeschicht (etwa 0,25 m, Abstand zur Wegmitte und Belag), die der Boden-Shader wie die Texturen aus 5e mischt. Keine Überlappungen, keine Risse, kein Durchscheinen am Hang; Kreuzungen (T, X, Y) verschmelzen mit gerundeten Ecken; Spurrillen folgen der Fahrtrichtung; die Belagstufen aus 5d sind Schichten dieser Wegeschicht. Entschieden vom Nutzer. | 24.10.2026 |
+| Ränder | Je nach Belag: Pfad und Fahrweg weich und unregelmäßig mit niedergetretenem Gras, Kies streuend mit einzelnen Steinchen, Pflaster mit klarer Kante und Randsteinen; ein Pflasterweg geht nahtlos in Pflasterflächen (Markt, 5e) über. Entschieden vom Nutzer. | 24.10.2026 |
+| Fahrplan | Nach 5g kommt 5h: die Bodentexturen gemeinsam mit dem Nutzer überarbeiten; danach Schritt 6. Entschieden vom Nutzer. | 24.10.2026 |

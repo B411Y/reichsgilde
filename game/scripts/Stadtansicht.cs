@@ -906,6 +906,7 @@ public partial class Stadtansicht : Node3D
         DunstFarbeNachfuehren(); // der Dunst am Kartenrand in der Farbe des Himmels (Stadtansicht.Rand.cs)
         WasserBild(delta);       // Himmelsfarbe im Wasser, Fähren, Tretrad der Häfen (Stadtansicht.Wasser.Uebergaenge.cs)
         BelagBild();             // geänderte Wege neu zeichnen (Stadtansicht.Wegbelag.cs)
+        WegeschichtBild();       // geänderte Kacheln der Wegeschicht neu rechnen (Stadtansicht.Wegeschicht.cs)
 
         // Beschriftungen mitskalieren, damit sie bei jedem Zoom gleich groß wirken.
         var massstab = _raum is not null ? RaumSchildMassstab : _kamera.Size / BezugsZoom;
@@ -1128,6 +1129,11 @@ public partial class Stadtansicht : Node3D
     /// <summary>Ein flacher Weg zwischen zwei Punkten. Über den Marktplatz führt keiner – dort liegt das Pflaster des Modells (Stadtansicht.Markt.cs).</summary>
     private void WegZiehen(Vector3 von, Vector3 bis, float breite, Node3D? eltern = null)
     {
+        if (WegeschichtMoeglich && _grenzen is not null)
+        {
+            SchichtAnschlussMerken(von, bis, breite); // in den Boden eingebacken (Stadtansicht.Wegeschicht.cs)
+            return;
+        }
         // Gruppen (Betrieb, freier Platz) liegen beim Ziehen noch im Ursprung: Ihre Wege sind in Koordinaten der Stadt.
         if ((eltern is null || eltern.Transform.IsEqualApprox(Transform3D.Identity)) && OhneMarktplatz(von, bis, breite) is { } stuecke)
         {

@@ -51,12 +51,13 @@ public partial class Stadtansicht
     private void MauerBauen(EntwurfMauer m, bool weg)
     {
         if (_wsMauern.Remove(m, out var alt)) KnotenEntfernen(alt);
+        SchichtTeilGeaendert(m, weg || m.Ecken.Count < 3 ? null : m.Ecken.Select(V2), 0); // Pflaster in der Wegeschicht (Stadtansicht.Wegeschicht.cs)
         if (weg || _wsMauernKnoten is null || m.Ecken.Count < 2) return;
         var knoten = new Node3D { Name = "Mauer" };
         _wsMauernKnoten.AddChild(knoten);
         _wsMauern[m] = knoten;
         // Pflaster in der Mauer wie im Spiel (eine offene Linie wird mit einer Geraden geschlossen)
-        if (m.Ecken.Count >= 3) Vieleck(m.Ecken.Select(V2).ToArray(), Pflaster, 0f, knoten);
+        if (m.Ecken.Count >= 3 && !WegeschichtMoeglich) Vieleck(m.Ecken.Select(V2).ToArray(), Pflaster, 0f, knoten);
         MauerAufbauen(MauerDatei(m.Katalog), m.Plan, knoten, spiel: false);
         MauerMarkieren(m);
         if (BereichVon(m) is { } bereich) _wsBereiche[m] = bereich;
