@@ -155,6 +155,7 @@ Fahrplan (vom Nutzer am 21.10.2026 bestätigt, je Schritt ein PR; Stand wird hie
 | 5g Wege-Engine | Wege in den Boden eingebacken (Wegeschicht als Abstandsfeld, Kreuzungen verschmelzen, Ränder je Belag) | fertig (PR #185) |
 | 5h Texturen überarbeiten | Bodentexturen gemeinsam mit dem Nutzer überarbeiten | fertig (PR #187) |
 | 5i Boden-Feinschliff | Gras-Teppich auf der ganzen Wiese, kräftigere Grenzen, lebendigerer Lehm | fertig (PR #188) |
+| 5j Wege und Stadtboden | Spurrillen biegen in Kurven ab, Erde verschmiert an Pflasterkanten, Lehm als Stadtboden, Gras auf leeren Grundstücken | in Arbeit (PR #189) |
 | 6 Freigabe | Kartenwerkstatt für Spieler | offen |
 
 | Thema | Entscheidung | Datum |
@@ -320,3 +321,13 @@ Fahrplan (vom Nutzer am 21.10.2026 bestätigt, je Schritt ein PR; Stand wird hie
 | Anlass | Nach 5h ist der Unterschied zwischen Niedrig und Hoch aus Spielhöhe dezent (Urteil von Nutzer, Teamleiter und Strata). Nachrunde mit den empfohlenen Punkten. Entschieden vom Nutzer. | 24.10.2026 |
 | Grasteppich | Dichter Teppich aus kleinen 3D-Grashalmen auf der Grafikkarte, nur im sichtbaren Bereich um die Kamera, nach außen weich ausgeblendet, leicht im Wind; auf Hoch dicht, auf Ultra sehr dicht, auf Mittel und Niedrig aus. Ziel: auf Hoch zusammen mit 5h höchstens 10 % weniger Bilder pro Sekunde. Entschieden vom Nutzer. | 24.10.2026 |
 | Kontrast | Deutlich kräftiger, aber stimmig: breitere Überhänge (Gras ragt 20–40 cm über Erde und Weg), dunkle Schattenkante darunter, stärkere Hell-Dunkel-Flecken in der Wiese, kräftigere Normalen; die Wirkung soll auch aus Spielhöhe sichtbar sein. Dazu ein lebendigerer Lehm. Entschieden vom Nutzer. | 24.10.2026 |
+
+### Kartenwerkstatt, Schritt 5j: Wege und Stadtboden (PR #189)
+
+| Thema | Entscheidung | Datum |
+|---|---|---|
+| Spurrillen an Kreuzungen | Karren fahren an T- und X-Kreuzungen nicht im rechten Winkel um die Ecke: Die Spurrillen biegen in weichen Kurven von einem Weg in den anderen ab (wie auf historischen Fotos ausgefahrener Wege), statt an der Kreuzung abzubrechen. Wunsch des Nutzers. | 24.10.2026 |
+| Übergang Pflaster–Erde | Wo ein Erdweg auf Pflaster trifft (Stadttor, Gassenende), verschmiert Erde unregelmäßig über die Pflasterkante – ein natürlicher Übergang statt einer harten Linie. Wunsch des Nutzers. | 24.10.2026 |
+| Stadtboden | Der allgemeine Grund innerhalb der Mauer wird festgetretener Lehm mit etwas Kies und Pfützenmulden; die Gassen bleiben Kopfsteinpflaster mit Randsteinen, der Marktplatz Plattenpflaster – deutlicher Kontrast. Historisch passend: im Spätmittelalter waren meist nur Hauptstraßen und Markt gepflastert. Entschieden vom Nutzer. | 24.10.2026 |
+| Gras auf Grundstücken | Der Grasteppich wächst auch auf freien Bau- und Wohnhausplätzen; erst wenn dort ein Gebäude steht (gebaut oder gesetzt), verschwindet er unter dem Gebäude. Wunsch des Nutzers. | 24.10.2026 |
+| Danach: Modell-Texturen | Alle 3D-Modelle bekommen Texturen auf dem Niveau der Böden über eine Material-Bibliothek in Blender (gebackene 1024-px-Materialien mit Farbe, Höhe, Normalen, Rauheit: Bruchstein, Quader, Putz, Fachwerkholz, Bretter, Dachziegel, Schiefer, Stroh, Metall, Stoff …), auf die vorhandenen Materialnamen der Modelle gelegt (Weltkoordinaten-Projektion, keine Nähte). In Gruppen, je ein PR mit Vorher/Nachher: Stadthäuser und Mauer; Kirche, Rathaus, Werkstätten; Umland und Natur; Innenräume; Figuren und Karren. Modellauftrag vom Nutzer freigegeben. | 24.10.2026 |
