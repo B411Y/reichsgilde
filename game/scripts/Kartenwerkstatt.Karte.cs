@@ -41,6 +41,7 @@ public partial class Kartenwerkstatt
         _karteTafel.Visible = true;
         KarteZeigen();
         _inhaltRolle.ScrollVertical = 0;
+        GruppenMarkieren(); // Kartenwerkstatt.Palette.cs
     }
 
     /// <summary>Baut die Tafel „Karte“ neu nach dem Stand des Entwurfs.</summary>

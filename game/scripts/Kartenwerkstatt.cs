@@ -12,7 +12,8 @@ namespace Reichsgilde;
 ///
 /// Aufgaben verteilt:
 ///   • diese Datei: Öffnen und Speichern, „Karte ausprobieren“ und die Rückkehr, Tasten, Startoptionen;
-///   • Kartenwerkstatt.Tafeln.cs: Leiste oben, Katalog links, Eigenschaften der Gebäude und Fehlerliste rechts, Rückfragen;
+///   • Kartenwerkstatt.Tafeln.cs: Kopfleiste, Eigenschaften der Gebäude und Prüfliste rechts, Rückfragen;
+///   • Kartenwerkstatt.Palette.cs: Gruppenleiste links (Tasten 1–0), Paletten mit Icons und Vorschaubildern, Kopfleiste, klappbare Abschnitte;
 ///   • Kartenwerkstatt.Eigenschaften.cs: die Tafel rechts für Wege, Flächen (mit Streu-Gruppen), Pflanzen, Mauern und den Pinsel;
 ///   • Kartenwerkstatt.Start.cs: die Tafel „Start“ (Startbelegung: Spieler und KI-Häuser);
 ///   • Kartenwerkstatt.Karte.cs: der Reiter „Karte“ (Größe, Randstreifen, Rand vorschlagen, Kamera-Start) und die Tafel der Feldfläche;
@@ -149,7 +150,8 @@ public partial class Kartenwerkstatt : Node
     public override void _Process(double delta)
     {
         _stadt.WerkstattAktualisieren();
-        var info = _stadt.WerkstattBodenInfo() ?? " "; // eine Leerstelle statt nichts: Die Leiste behält ihre Höhe
+        var boden = _stadt.WerkstattBodenInfo();
+        var info = $"Werkzeug: {_werkzeugName}" + (boden is null ? "" : " · " + boden); // Höhe, Gefälle und Boden unter der Maus
         if (_bodenInfo.Text != info) _bodenInfo.Text = info;
     }
 
@@ -402,6 +404,9 @@ public partial class Kartenwerkstatt : Node
                 break;
             case { CtrlPressed: true, Keycode: Key.S, Echo: false }:
                 Speichern();
+                break;
+            case { CtrlPressed: false, AltPressed: false, ShiftPressed: false, MetaPressed: false, Echo: false } when GruppeFuerTaste(taste.Keycode) is { } gruppe:
+                GruppeWaehlen(gruppe.Kennung); // 1–0: die Gruppen der Leiste links
                 break;
             default:
                 return;
@@ -661,6 +666,7 @@ public partial class Kartenwerkstatt : Node
                 _stadt.WerkstattUmrissSetzen(Zahl(t[1]), Zahl(t[2]));
             }
             if (o.TryGetValue("werkstatt-werkzeug", out var werkzeug)) KatalogWaehlen(werkzeug);
+            if (o.TryGetValue("werkstatt-gruppe", out var gruppe)) GruppeOeffnen(gruppe);
             if (o.GetValueOrDefault("werkstatt-netz") == "1") _netzSchalter.ButtonPressed = true;
         }
         catch (Exception ex) when (ex is ArgumentException or FormatException or IndexOutOfRangeException)
