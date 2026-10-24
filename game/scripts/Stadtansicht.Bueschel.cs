@@ -295,14 +295,14 @@ public partial class Stadtansicht
 
     // ── Das Rauschen des Boden-Shaders (hash, rausch in boden.gdshaderinc), damit die Büschel am selben Rand stehen ──
 
-    private static float Bruch(float v) => v - MathF.Floor(v);
-
     private static float Hash(float x, float y)
     {
-        x = Bruch(x * 123.34f);
-        y = Bruch(y * 456.21f);
-        var d = x * (x + 45.32f) + y * (y + 45.32f);
-        return Bruch((x + d) * (y + d));
+        unchecked
+        {
+            var (qx, qy) = ((uint)(int)MathF.Floor(x) * 1597334673u, (uint)(int)MathF.Floor(y) * 3812015801u);
+            var n = (qx ^ qy) * 1597334673u;
+            return (n >> 8) * (1f / 16777216f);
+        }
     }
 
     private static float Rausch(float x, float y)

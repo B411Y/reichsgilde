@@ -8,12 +8,12 @@ namespace Reichsgilde;
 /// Punkt, elf Texturen, <see cref="Bodenraster"/>); hier wird es gezeichnet:
 /// <list type="bullet">
 /// <item><b>Boden</b>: Die Geländekacheln (128 m, Stadtansicht.Gelaende.cs) tragen den Boden-Shader (<c>boden.gdshaderinc</c>) statt der einfarbigen Wiese.
-/// Er mischt die elf Texturen (<c>boden.png</c>) nach drei Gewichtsbildern je Kachel (<see cref="Bodenraster.Splat"/>); eine Kachel ohne gemalten Punkt
+/// Er mischt die elf Texturen (<c>boden_farbe_hoehe.webp</c>) nach drei Gewichtsbildern je Kachel (<see cref="Bodenraster.Splat"/>); eine Kachel ohne gemalten Punkt
 /// zeigt die Wiese (ohne Bilder). Ändert sich der Boden, werden nur die Bilder der betroffenen Kacheln ersetzt (<see cref="BodenStoffeNeu"/>).
 /// Nur eine ganz flache Karte ohne Wege und Texturen bleibt eine einfarbige Ebene.</item>
 /// <item><b>Qualität</b> (Schritt 5h, Einstellung „Boden“, <see cref="Fenster.AktuelleBodenqualitaet"/>): je Stufe ein Shader – <c>boden_niedrig</c>,
 /// <c>boden_mittel</c>, <c>boden</c> (Hoch, auch Ultra); sie binden denselben Code mit einer anderen <c>BODEN_STUFE</c> ein. Wechselt die Einstellung,
-/// bekommen alle Kacheln einen neuen Stoff (<see cref="BodenqualitaetNachfuehren"/>). In Hoch kommen Normalen und Rauheit aus <c>boden_nr.png</c>,
+/// bekommen alle Kacheln einen neuen Stoff (<see cref="BodenqualitaetNachfuehren"/>). In Hoch kommen Normalen und Rauheit aus <c>boden_normal_rauheit.webp</c>,
 /// wenn es sie gibt, dazu die Grasbüschel an den Grenzen der Wiese (Stadtansicht.Bueschel.cs).</item>
 /// <item><b>Deko</b> (<see cref="Bodendeko"/>): kleine Teile, die jede Textur streut (Gras, Steine, Farn, Schilf …) – dieselben Natur-Modelle und
 /// MultiMeshes wie die übrige Natur; im Spiel mit ihr im Aufbau (<see cref="NaturAusKarte"/>), in der Werkstatt je Bodenkachel (64 m) neu, wo sich etwas ändert.</item>
@@ -45,9 +45,10 @@ public partial class Stadtansicht
     /// <summary>Der Stoff der flachen Streifen um die Kacheln (nur Wiese): sonst endete die Textur der Wiese an der letzten Kachel.</summary>
     private ShaderMaterial? _bodenRandStoff;
 
-    /// <summary>Texturen des Bodens (Texture2DArray je Datei, eine Schicht je Textur): Farbe und Höhe, dazu Normalen und Rauheit (fehlt die Datei, nimmt
-    /// Hoch die Höhe als Unebenheit).</summary>
-    private const string BodenTexturDatei = "res://assets/texturen/boden.png", BodenNormalenDatei = "res://assets/texturen/boden_nr.png";
+    /// <summary>Texturen des Bodens (Texture2DArray je Datei, elf Schichten untereinander, <c>tools/oberflaeche/bodentexturen_blender.py</c>): RGB Farbe
+    /// und A Höhe, dazu RG Normale und B Rauheit (fehlt diese Datei, nimmt Hoch die Höhe als Unebenheit).</summary>
+    private const string BodenTexturDatei = "res://assets/texturen/boden/boden_farbe_hoehe.webp",
+                         BodenNormalenDatei = "res://assets/texturen/boden/boden_normal_rauheit.webp";
 
     /// <summary>Der Stoff und die drei Gewichtsbilder je Geländekachel, die Texturen trägt.</summary>
     private readonly Dictionary<(int I, int J), (ShaderMaterial Stoff, ImageTexture[] Bilder)> _bodenStoffe = new();

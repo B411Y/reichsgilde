@@ -7,7 +7,8 @@
 //
 // Gewichte je Punkt des Bodenrasters (1 m): Gruppe 0 = Wiese, Erde, Fels, Kies; Gruppe 1 = Waldboden, Sand, Schlamm, Moos; Gruppe 2 = Lehm,
 // Pflaster, Mist (RGBA8, zusammen 255). Das Bild einer Kachel beginnt einen Punkt vor ihr (130 × 130 Punkte), damit die Übergänge über
-// Kachelkanten glatt bleiben. Die Texturen (boden.png, Texture2DArray) tragen Farbe und in A die Höhe.
+// Kachelkanten glatt bleiben. Die Texturen (boden/boden_farbe_hoehe.webp, Texture2DArray) tragen Farbe und in A die Höhe,
+// boden_normal_rauheit.webp Normale und Rauheit.
 // Dazu die Wegeschicht (Schritt 5g, Stadtansicht.Wegeschicht.cs): je Kachel ein Bild zu 0,25 m mit Abstand zur Wegmitte (R, 0–10 m), Abstand zum
 // Wegrand (G, −6 … +2 m, innen negativ), Belagstufe (B, 0 Pfad … 3 Pflaster, 4 Baustelle) und Spurrillen (A), dazu grob (1 m) Austritt, Zustand
 // und Pflaster als Grund (B, in der Mauer). Spurrillen, Rinnen und Randsteine wirken als Unebenheit aufs Licht.
@@ -75,10 +76,13 @@ const float HANG_VOLL = 0.766;
 varying vec2 welt;
 varying vec3 welt_n;
 
+// Eine feste Zahl 0 … 1 je ganzzahligem Punkt. Mit ganzen Zahlen gerechnet: Ein Hash aus fract() reagiert so stark auf Rundung, dass
+// derselbe Gitterpunkt in zwei Nachbarzellen verschieden ausfallen kann – dann sieht man im Rauschen gerade Nähte.
+// Dieselbe Rechnung steht in Stadtansicht.Bueschel.cs (Hash).
 float hash(vec2 p) {
-	p = fract(p * vec2(123.34, 456.21));
-	p += dot(p, p + 45.32);
-	return fract(p.x * p.y);
+	uvec2 q = uvec2(ivec2(floor(p))) * uvec2(1597334673u, 3812015801u);
+	uint n = (q.x ^ q.y) * 1597334673u;
+	return float(n >> 8u) * (1.0 / 16777216.0);
 }
 
 float rausch(vec2 p) {
@@ -101,10 +105,11 @@ struct Schicht {
 };
 
 #if BODEN_STUFE >= 2
-// Aufbau von boden_nr.png: RG = Normale quer (0,5 = flach), B = Rauheit
+// Aufbau von boden_normal_rauheit.webp: RG = Normale im Tangentenraum (0,5 = flach; OpenGL, G+ zeigt zum oberen Bildrand), B = Rauheit.
+// Zurück kommt die Normale in Richtung der Bildachsen u (nach rechts) und v (nach unten, wie die UV-Koordinate) – G wird dafür umgedreht.
 vec3 nr_normale(vec4 t) {
 	vec2 xy = t.rg * 2.0 - 1.0;
-	return vec3(xy, sqrt(max(1.0 - dot(xy, xy), 0.0)));
+	return vec3(xy.x, -xy.y, sqrt(max(1.0 - dot(xy, xy), 0.0)));
 }
 
 float nr_rauheit(vec4 t) {
@@ -164,7 +169,7 @@ Schicht eben(int nr, vec2 p, vec3 n, vec2 dx, vec2 dy) {
 			t = normalize(mix(t, tb, m));
 			s.rau = mix(s.rau, nr_rauheit(nb), m);
 		}
-		// auf die Fläche des Geländes (UDN-Mischung): x quer nach Welt-X, y nach Welt-Z
+		// auf die Fläche des Geländes (UDN-Mischung): u nach Welt-X, v nach Welt-Z
 		s.n = normalize(vec3(t.x + n.x, n.y, t.y + n.z));
 	}
 #endif
