@@ -4,31 +4,23 @@ using Reichsgilde.Core.Bauen;
 namespace Reichsgilde;
 
 /// <summary>
-/// Der Belag der Wege (Kartenwerkstatt, Schritt 5d): Trampelpfad, Fahrweg mit Spurrillen, Kies und Pflaster, gezeichnet von <c>wegbelag.gdshader</c>.
+/// Der Belag der Wege (Kartenwerkstatt, Schritt 5d): Trampelpfad, Fahrweg mit Spurrillen, Kies und Pflaster. Seit Schritt 5g ist er in den Boden
+/// eingebacken (Stadtansicht.Wegeschicht.cs, <c>boden.gdshader</c>); hier bleibt, was auf dem Weg steht und wie man ihn anklickt:
 /// <list type="bullet">
-/// <item><b>Ein Band je Weg</b> (<see cref="BelagBauen"/>): alle 1 m ein Schnitt quer über den Weg; jeder Schnitt trägt die Gewichte der vier Stufen,
-/// Austritt und Zustand (Vertexdaten). An den Grenzen der Abschnitte gehen die Stufen auf 3 m ineinander über. Der Rand läuft weich ins
-/// Gelände aus – darum liegt unter dem Belag kein zweites, braunes Band. Brücken (<see cref="WegLuecken"/>) und der Marktplatz bleiben frei.</item>
-/// <item><b>Baustellen:</b> aufgewühlte Erde (zweite Fläche des Netzes) mit Absperrung an beiden Enden und Haufen von Kies und Steinen.</item>
 /// <item><b>Im Spiel</b> kommen die Stücke aus <c>Stadtwirtschaft.Wegebau</c> (alle 5 m Stufe, Austritt, Zustand); ändert sich der Belag
-/// (<c>BelagGeaendert</c>), werden nur die Wege neu gezeichnet, deren Stücke sich geändert haben. In der Kartenwerkstatt zeichnet jeder Weg seine
-/// Abschnitte (<c>EntwurfWeg.BelagAbschnitte</c>).</item>
+/// (<c>BelagGeaendert</c>), werden nur die Kacheln der Wege neu gerechnet, deren Stücke sich geändert haben. In der Kartenwerkstatt rechnet jeder Weg
+/// seine Abschnitte (<c>EntwurfWeg.BelagAbschnitte</c>).</item>
+/// <item><b>Baustellen:</b> Der Boden ist aufgewühlt (Stufe 4 der Schicht), dazu Absperrung an beiden Enden und Haufen von Kies und Steinen.</item>
 /// <item><b>Anklicken</b> (<see cref="WegAngeklickt"/>): Ein Klick auf freien Boden neben keinem Gebäude fragt <c>Wegebau.WegstelleBei</c>; die Tafel
 /// markiert den gewählten Abschnitt (<see cref="WegAuswahlMarkieren"/>).</item>
 /// </list>
 /// </summary>
 public partial class Stadtansicht
 {
-    /// <summary>Der Belag liegt 1,2 cm über dem Band der Wege (<see cref="WegHoehe"/>).</summary>
-    private const float BelagHoehe = WegHoehe + 0.012f;
+    /// <summary>Länge (Meter) der Übergänge zwischen zwei Abschnitten, je zur Hälfte auf jeder Seite.</summary>
+    private const float BelagUebergang = 1.5f;
 
-    /// <summary>Abstand der Schnitte (Meter) und Länge (Meter) der Übergänge zwischen zwei Abschnitten, je zur Hälfte auf jeder Seite.</summary>
-    private const float BelagSchritt = 1f, BelagUebergang = 1.5f;
-
-    private static Shader? _belagShader;
-    private ShaderMaterial? _belagStoff, _baustellenStoff;
-
-    /// <summary>Die gezeichneten Wege des Spiels: Knoten und Kennzeichen der Stücke (nur geänderte Wege werden neu gezeichnet).</summary>
+    /// <summary>Was auf den Wegen des Spiels steht (Baustellen) und das Kennzeichen ihrer Stücke (nur geänderte Wege werden neu gerechnet).</summary>
     private readonly Dictionary<int, (Node3D Knoten, string Zeichen)> _belagWege = new();
     private bool _belagVeraltet;
     private Node3D? _wegAuswahlKnoten;
@@ -36,26 +28,9 @@ public partial class Stadtansicht
     /// <summary>Ein Klick auf einen Weg: Nummer in <c>Karte.Wege</c> und Stelle (Meter entlang des Verlaufs).</summary>
     public event Action<int, double>? WegAngeklickt;
 
-    private ShaderMaterial BelagStoff(bool baustelle)
-    {
-        _belagShader ??= GD.Load<Shader>("res://assets/shader/wegbelag.gdshader");
-        if (baustelle) return _baustellenStoff ??= NeuerBelagStoff(1f, "Wegbaustelle");
-        return _belagStoff ??= NeuerBelagStoff(0f, "Wegbelag");
-    }
-
-    private ShaderMaterial NeuerBelagStoff(float baustelle, string name)
-    {
-        var stoff = new ShaderMaterial { Shader = _belagShader, ResourceName = name };
-        stoff.SetShaderParameter("baustelle", baustelle);
-        return stoff;
-    }
-
     // ═════════════════════════════════════════════════════════════════════════
     //  Zeichnen
     // ═════════════════════════════════════════════════════════════════════════
-
-    /// <summary>Hat die Ansicht einen Belag zu zeichnen? (Der Shader fehlt nur in einem kaputten Export.)</summary>
-    private static bool BelagMoeglich => ResourceLoader.Exists("res://assets/shader/wegbelag.gdshader");
 
     /// <summary>
     /// Die Stücke, die ein Weg des Spiels zeigt: die 5-m-Stücke des Wegebaus, ohne Wegebau (alte Karte ohne Abschnitt <c>wegebau</c>) der Startbelag der Karte.
@@ -69,7 +44,10 @@ public partial class Stadtansicht
         string.Join("|", stuecke.Select(s => $"{(int)s.Stufe}:{(int)Math.Round(s.Austritt * 20)}:{(int)Math.Round(s.Zustand * 20)}:{(s.Baustelle ? 1 : 0)}"))
         + "#" + string.Join("|", baustellen.Select(b => $"{b.Von:0.#}-{b.Bis:0.#}"));
 
-    /// <summary>Zeichnet den Belag eines Weges des Spiels in einen eigenen Knoten (<c>_belagWege</c>); ein vorhandener wird ersetzt.</summary>
+    /// <summary>
+    /// Ein Weg des Spiels ist neu oder sein Belag hat sich geändert: Seine Kacheln der Wegeschicht werden neu gerechnet, die Baustellen neu aufgestellt
+    /// (in einem eigenen Knoten, <c>_belagWege</c>).
+    /// </summary>
     private void WegBelagZeichnen(int nummer, IReadOnlyList<Vector3> verlauf, float breite, bool neuAuchGleich = false)
     {
         var stuecke = BelagStuecke(nummer);
@@ -77,7 +55,17 @@ public partial class Stadtansicht
         var zeichen = BelagZeichen(stuecke, baustellen);
         if (!neuAuchGleich && _belagWege.TryGetValue(nummer, out var alt) && alt.Zeichen == zeichen) return;
         if (_belagWege.Remove(nummer, out var weg)) KnotenEntfernen(weg.Knoten);
-        var knoten = BelagBauen(verlauf, stuecke, breite, this, WegLuecken(nummer), WegBoden(nummer), baustellen.Select(b => (b.Von, b.Bis)).ToList());
+        var linie = verlauf.Select(p => new Vector2(p.X, p.Z)).ToList();
+        if (Rahmen(linie, breite / 2) is { } rahmen) SchichtVeraltet(rahmen);
+        var knoten = new Node3D { Name = "Belag" };
+        AddChild(knoten);
+        if (linie.Count >= 2)
+        {
+            var stelle = new float[linie.Count];
+            for (var i = 1; i < linie.Count; i++) stelle[i] = stelle[i - 1] + linie[i].DistanceTo(linie[i - 1]);
+            var boden = WegBoden(nummer) ?? ((x, z) => BodenHoehe(x, z));
+            foreach (var b in baustellen) BaustelleAufstellen(knoten, linie, stelle, (float)b.Von, (float)b.Bis, breite, boden);
+        }
         _belagWege[nummer] = (knoten, zeichen);
     }
 
@@ -98,141 +86,6 @@ public partial class Stadtansicht
             var w = karte.Wege[i];
             var punkte = w.Verlauf.Where(p => p is { Length: 2 }).Select(Punkt3).ToArray();
             if (punkte.Length >= 2) WegBelagZeichnen(i, punkte, (float)w.BreiteWirksam);
-        }
-    }
-
-    /// <summary>
-    /// Baut das Band eines Weges: <paramref name="verlauf"/> (die Punkte des Verlaufs), <paramref name="stuecke"/> (lückenlos von 0 bis zur Länge),
-    /// <paramref name="luecken"/> (Meter ohne Band: Brücken), <paramref name="baustellen"/> (Meter: Absperrung und Haufen).
-    /// </summary>
-    private Node3D BelagBauen(IReadOnlyList<Vector3> verlauf, IReadOnlyList<Belagabschnitt> stuecke, float breite, Node3D eltern,
-        List<(float Von, float Bis)>? luecken, Func<float, float, float>? boden, IReadOnlyList<(double Von, double Bis)>? baustellen)
-    {
-        var knoten = new Node3D { Name = "Belag" };
-        eltern.AddChild(knoten);
-        var roh = verlauf.Select(p => new Vector2(p.X, p.Z)).ToList();
-        roh = roh.Where((p, i) => i == 0 || p.DistanceTo(roh[i - 1]) > 0.01f).ToList();
-        if (roh.Count < 2 || stuecke.Count == 0) return knoten;
-        var linie = Verfeinert(roh, BelagSchritt);
-        var stelle = new float[linie.Count];
-        for (var i = 1; i < linie.Count; i++) stelle[i] = stelle[i - 1] + linie[i].DistanceTo(linie[i - 1]);
-
-        // Ränder an den Knicken auf der Winkelhalbierenden (wie BandDreiecke), die Breite etwas größer: der Rand läuft weich aus
-        var halb = breite / 2 + 0.25f;
-        var links = new Vector2[linie.Count];
-        var rechts = new Vector2[linie.Count];
-        for (var i = 0; i < linie.Count; i++)
-        {
-            var vor = i > 0 ? (linie[i] - linie[i - 1]).Normalized() : Vector2.Zero;
-            var nach = i + 1 < linie.Count ? (linie[i + 1] - linie[i]).Normalized() : Vector2.Zero;
-            var richtung = (vor + nach).Normalized();
-            if (richtung == Vector2.Zero) richtung = nach != Vector2.Zero ? nach : vor != Vector2.Zero ? vor : Vector2.Right;
-            var quer = new Vector2(-richtung.Y, richtung.X);
-            var bezug = nach != Vector2.Zero ? nach : vor;
-            var gehrung = Mathf.Min(3, 1 / Mathf.Max(0.33f, Mathf.Abs(quer.Dot(new Vector2(-bezug.Y, bezug.X)))));
-            links[i] = linie[i] + quer * halb * gehrung;
-            rechts[i] = linie[i] - quer * halb * gehrung;
-        }
-
-        // Werte je Schnitt
-        var gewichte = new Color[linie.Count];
-        var austritt = new Vector2[linie.Count];
-        var bau = new bool[linie.Count];
-        for (var i = 0; i < linie.Count; i++) (gewichte[i], austritt[i], bau[i]) = BelagBei(stuecke, stelle[i], halb);
-
-        var hoehe = boden ?? (BodenBewegt ? BodenHoehe : (_, _) => 0f);
-        Vector3 Ecke(Vector2 p) => new(p.X, (BodenBewegt ? hoehe(p.X, p.Y) : 0f) + BelagHoehe, p.Y);
-        var flaechen = new[] { new BelagFlaeche(), new BelagFlaeche() };
-        for (var i = 0; i + 1 < linie.Count; i++)
-        {
-            var mitte = (stelle[i] + stelle[i + 1]) / 2;
-            if (luecken is not null && luecken.Any(l => mitte > l.Von && mitte < l.Bis)) continue;
-            var a3 = new Vector3(linie[i].X, 0, linie[i].Y);
-            var b3 = new Vector3(linie[i + 1].X, 0, linie[i + 1].Y);
-            if (OhneMarktplatz(a3, b3, breite) is { } rest && rest.Sum(r => r.Von.DistanceTo(r.Bis)) < a3.DistanceTo(b3) * 0.5f) continue; // auf dem Marktplatz liegt das Pflaster des Modells
-            var f = flaechen[bau[i] && bau[i + 1] ? 1 : 0];
-            var (la, ra, lb, rb) = (links[i], rechts[i], links[i + 1], rechts[i + 1]);
-            // zwei Dreiecke, Vorderseite oben; UV.y = Abstand von der Mitte (links +)
-            f.Viereck(Ecke(la), Ecke(ra), Ecke(lb), Ecke(rb), BodenNormale(linie[i].X, linie[i].Y), BodenNormale(linie[i + 1].X, linie[i + 1].Y),
-                (stelle[i], stelle[i + 1]), halb, (gewichte[i], gewichte[i + 1]), (austritt[i], austritt[i + 1]));
-        }
-
-        var netz = new ArrayMesh();
-        var stoffe = new List<ShaderMaterial>();
-        foreach (var (f, baustelle) in new[] { (flaechen[0], false), (flaechen[1], true) })
-        {
-            if (f.Ecken.Count == 0) continue;
-            var arrays = new Godot.Collections.Array();
-            arrays.Resize((int)Mesh.ArrayType.Max);
-            arrays[(int)Mesh.ArrayType.Vertex] = f.Ecken.ToArray();
-            arrays[(int)Mesh.ArrayType.Normal] = f.Normalen.ToArray();
-            arrays[(int)Mesh.ArrayType.Color] = f.Farben.ToArray();
-            arrays[(int)Mesh.ArrayType.TexUV] = f.Uv.ToArray();
-            arrays[(int)Mesh.ArrayType.TexUV2] = f.Uv2.ToArray();
-            netz.AddSurfaceFromArrays(Mesh.PrimitiveType.Triangles, arrays);
-            stoffe.Add(BelagStoff(baustelle));
-        }
-        for (var s = 0; s < stoffe.Count; s++) netz.SurfaceSetMaterial(s, stoffe[s]);
-        knoten.AddChild(new MeshInstance3D { Name = "Band", Mesh = netz, CastShadow = GeometryInstance3D.ShadowCastingSetting.Off });
-
-        if (baustellen is not null)
-            foreach (var (von, bis) in baustellen) BaustelleAufstellen(knoten, linie, stelle, (float)von, (float)bis, breite, hoehe);
-        return knoten;
-    }
-
-    /// <summary>Gewichte der Stufen (r Trampelpfad, g Fahrweg, b Kies; Pflaster = Rest, a = halbe Breite ÷ 8), Austritt/Zustand und Baustelle an einer Stelle; an Grenzen weich.</summary>
-    private static (Color Gewichte, Vector2 Austritt, bool Baustelle) BelagBei(IReadOnlyList<Belagabschnitt> stuecke, float s, float halbBreite)
-    {
-        var i = stuecke.Count - 1;
-        for (var k = 0; k < stuecke.Count; k++)
-            if (s < stuecke[k].Bis) { i = k; break; }
-        var (hier, nachbar, anteil) = (stuecke[i], -1, 0f);
-        if (s - (float)hier.Von < BelagUebergang && i > 0) (nachbar, anteil) = (i - 1, 0.5f * (1 - (s - (float)hier.Von) / BelagUebergang));
-        else if ((float)hier.Bis - s < BelagUebergang && i + 1 < stuecke.Count) (nachbar, anteil) = (i + 1, 0.5f * (1 - ((float)hier.Bis - s) / BelagUebergang));
-        var farbe = new Color(0, 0, 0, halbBreite / 8f);
-        void Zu(Belagabschnitt b, float gewicht)
-        {
-            switch (b.Stufe)
-            {
-                case Belagstufe.Trampelpfad: farbe.R += gewicht; break;
-                case Belagstufe.Fahrweg: farbe.G += gewicht; break;
-                case Belagstufe.Kies: farbe.B += gewicht; break;
-            }
-        }
-        Zu(hier, 1 - anteil);
-        var (a, z) = ((float)hier.Austritt * (1 - anteil), (float)hier.Zustand * (1 - anteil));
-        if (nachbar >= 0)
-        {
-            Zu(stuecke[nachbar], anteil);
-            a += (float)stuecke[nachbar].Austritt * anteil;
-            z += (float)stuecke[nachbar].Zustand * anteil;
-        }
-        return (farbe, new Vector2(a, z), hier.Baustelle);
-    }
-
-    /// <summary>Sammelt die Dreiecke einer Fläche des Belagnetzes.</summary>
-    private sealed class BelagFlaeche
-    {
-        public readonly List<Vector3> Ecken = new(), Normalen = new();
-        public readonly List<Color> Farben = new();
-        public readonly List<Vector2> Uv = new(), Uv2 = new();
-
-        public void Viereck(Vector3 la, Vector3 ra, Vector3 lb, Vector3 rb, Vector3 na, Vector3 nb, (float A, float B) stelle, float halb,
-            (Color A, Color B) farbe, (Vector2 A, Vector2 B) austritt)
-        {
-            // (la, ra, lb) und (ra, rb, lb): gegen den Uhrzeigersinn von oben gesehen, wenn die Linie nach +z läuft und „links“ bei −x liegt
-            foreach (var (p, n, s, q, f, a) in new[]
-            {
-                (la, na, stelle.A, halb, farbe.A, austritt.A), (lb, nb, stelle.B, halb, farbe.B, austritt.B), (ra, na, stelle.A, -halb, farbe.A, austritt.A),
-                (ra, na, stelle.A, -halb, farbe.A, austritt.A), (lb, nb, stelle.B, halb, farbe.B, austritt.B), (rb, nb, stelle.B, -halb, farbe.B, austritt.B),
-            })
-            {
-                Ecken.Add(p);
-                Normalen.Add(n);
-                Farben.Add(f);
-                Uv.Add(new Vector2(s, q));
-                Uv2.Add(a);
-            }
         }
     }
 
