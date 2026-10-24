@@ -372,7 +372,7 @@ public partial class Kartenwerkstatt
         Kopf("Flächen");
         foreach (var lage in new[] { Lage.Kern, Lage.Mauerring, Lage.Vorstadt, Lage.Umland })
             Eintrag("bauzone:" + lage.ToString().ToLowerInvariant(), $"Bauzone {Stadtansicht.LageName(lage)}",
-                "Hier dürfen Spieler und KI bauen – Ecken klicken (auf dem 2-m-Raster), Doppelklick schließt", Werkstattwerkzeug.Bauzone, "bauzone",
+                "Hier dürfen Spieler und KI bauen – Ecken klicken (auf dem 2-m-Raster), Doppelklick schließt", Werkstattwerkzeug.Bauzone, "bauzone_" + lage.ToString().ToLowerInvariant(),
                 () => _stadt.WerkstattZonenlage = lage);
         Eintrag("wald", "Waldfläche", "Mischwald (Tanne, Eiche, Buche) – Ecken klicken, Doppelklick schließt; rechts Dichte und Mischung", Werkstattwerkzeug.Wald, "wald");
         Eintrag("streu", "Streufläche", "Büsche, Gras, Steine und Holz locker verstreut – Ecken klicken, Doppelklick schließt", Werkstattwerkzeug.Streu, "streu");
