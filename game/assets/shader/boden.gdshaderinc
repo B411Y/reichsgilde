@@ -593,7 +593,7 @@ void fragment() {
 
 	// Makro-Variation: große Flecken heller und dunkler, auf der Wiese trockene (gelbliche) und satte Stellen – von weit oben keine Kacheln
 	fh.rgb = makro_farbe(fh.rgb, welt, wiese, BODEN_STUFE >= 2);
-	if (teppich > 0.0) fh.rgb *= 1.0 - teppich * wiese * mix(0.1, 0.24, gras_horst(welt));
+	if (teppich > 0.0 && wiese > 0.0) fh.rgb *= 1.0 - teppich * wiese * mix(0.1, 0.24, gras_horst(welt));
 
 	vec3 farbe = fh.rgb;
 	float hoehe = 0.0; // Unebenheit in Metern, wirkt nur aufs Licht (Wege; in Hoch ohne Normalenbild auch die Texturhöhe)

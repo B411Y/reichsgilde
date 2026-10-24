@@ -408,7 +408,7 @@ public partial class Stadtansicht
             return c0.Lerp(c0 * new Vector3(1.1f, 1.03f, 0.8f), trocken * 0.7f);
         }
         var c = Vector3.One * Mathf.Lerp(0.78f, 1.15f, makro);
-        var mitte = R(0.11f, 3.1f) * 0.65f + R(0.29f, 5.7f) * 0.35f;
+        var mitte = R(0.13f, 3.1f);
         c *= new Vector3(0.78f, 0.86f, 0.74f).Lerp(new Vector3(1.13f, 1.1f, 0.9f), Mathf.SmoothStep(0.22f, 0.78f, mitte));
         return c.Lerp(c * new Vector3(1.14f, 1.04f, 0.74f), trocken * 0.85f);
     }

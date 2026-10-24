@@ -18,8 +18,9 @@ float rausch(vec2 p) {
 }
 
 // Makro-Variation: große Flecken heller und dunkler (90 und 27 m), auf der Wiese (Anteil wiese) trockene, gelbliche Stellen – von weit oben
-// keine Kacheln. stark (Boden Hoch, Schritt 5i): kräftiger und auf der Wiese dazu ein mittlerer Maßstab (etwa 9 und 3,5 m) mit satten,
-// dunklen und mageren, hellen Stellen, damit die Wiese auch aus Spielhöhe lebendig wirkt.
+// keine Kacheln. stark (Boden Hoch, Schritt 5i): kräftiger und auf der Wiese dazu ein mittlerer Maßstab (etwa 8 m) mit satten,
+// dunklen und mageren, hellen Stellen, damit die Wiese auch aus Spielhöhe lebendig wirkt. Dieselbe Rechnung steht in Stadtansicht.Gras.cs
+// (MakroFaktor) für die Halme.
 vec3 makro_farbe(vec3 c, vec2 welt, float wiese, bool stark) {
 	float makro = rausch(welt * 0.011) * 0.62 + rausch(welt * 0.037 + 7.3) * 0.38;
 	float trocken = smoothstep(0.45, 0.8, rausch(welt * 0.021 + 11.7));
@@ -29,7 +30,7 @@ vec3 makro_farbe(vec3 c, vec2 welt, float wiese, bool stark) {
 	}
 	c *= mix(0.78, 1.15, makro);
 	if (wiese > 0.0) {
-		float mitte = rausch(welt * 0.11 + 3.1) * 0.65 + rausch(welt * 0.29 + 5.7) * 0.35;
+		float mitte = rausch(welt * 0.13 + 3.1);
 		vec3 satt = vec3(0.78, 0.86, 0.74);
 		vec3 mager = vec3(1.13, 1.1, 0.9);
 		c = mix(c, c * mix(satt, mager, smoothstep(0.22, 0.78, mitte)), wiese);
