@@ -112,6 +112,7 @@ So wird eingetragen (damit sich die Chats nie an derselben Stelle treffen):
 - Wegeschicht (Schritt 5g): Die Wege nehmen die Farben der Bodentexturen aus 5e (Erde, Kies, Pflaster, Lehm, Schlamm); das Pflaster in der Stadt ist dunkler als das alte, einfarbige und als der Marktplatz – beim Überarbeiten der Texturen (5h) mit abstimmen. Das Gras folgt nicht der Jahreszeit (wie der ganze Boden-Shader).
 - Wegeschicht (Schritt 5g): In der Werkstatt rechnet jede Änderung eines Weges die berührten Kacheln (128 m) neu, auch beim Ziehen eines Stützpunkts in jedem Bild – im Debug-Build etwa 25 ms je Kachel. Wird das bei großen Karten spürbar: nur alle paar Bilder oder nur den Ausschnitt um die Änderung rechnen.
 - Wegeschicht (Schritt 5g): In einer Furt liegt der Weg auf dem Grund unter dem Wasser (früher ein ebenes Band auf Höhe von `FurtBoden`); Figuren und Karren gehen weiter auf der Fahrfläche der Furt.
+- Jahreszeit und Nässe im Boden (Gras im Herbst gelblich, im Winter fahl; Boden am Wasser dunkler und feucht): eigenes Thema nach 5h (Wunsch des Nutzers, 24.10.2026).
 
 ## Entscheidungen
 
