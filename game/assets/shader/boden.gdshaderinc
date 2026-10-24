@@ -179,6 +179,25 @@ Schicht eben(int nr, vec2 p, vec3 n, vec2 dx, vec2 dy) {
 	return s;
 }
 
+// Eine Textur einfach von oben abtasten: ein Maßstab, ohne Kachel-Brechung (in Hoch mit Normale und Rauheit). Für den Stadtlehm, der ganze
+// Städte deckt: Er ist glatt genug, dass man keine Wiederholung sieht, und die Rauschen darüber brechen sie.
+Schicht eben_einfach(int nr, vec2 p, vec3 n, vec2 dx, vec2 dy) {
+	Schicht s;
+	vec3 uv = vec3(p / massstab, float(nr));
+	s.fh = textureGrad(texturen, uv, dx / massstab, dy / massstab);
+	s.n = n;
+	s.rau = 0.95;
+#if BODEN_STUFE >= 2
+	if (nr_da) {
+		vec4 q = textureGrad(texturen_nr, uv, dx / massstab, dy / massstab);
+		vec3 t = nr_normale(q);
+		s.rau = nr_rauheit(q);
+		s.n = normalize(vec3(t.x * NORMAL_STAERKE + n.x, n.y, t.y * NORMAL_STAERKE + n.z));
+	}
+#endif
+	return s;
+}
+
 #if BODEN_STUFE >= 2
 // Am Hang dreiseitig abtasten: von oben (mit Kachel-Brechung) und von den Seiten X und Z, gewichtet nach der Richtung des Geländes –
 // so wird ein steiler Hang nicht verzerrt. Auf fast ebenem Boden nur von oben.
@@ -269,27 +288,29 @@ float rillen(vec4 sp, float rb, float versatz) {
 	return max(a, b);
 }
 
-// Stadtlehm (Schritt 5j): der Grund in der Mauer – festgetretener Lehm (die Lehm-Textur, dunkler und grauer, mit Erde gefleckt), darin Flecken von
-// Kies und Pfützenmulden (feucht und dunkel, in der Mitte stehendes Wasser: glatt und eben). Die Mulden senken den Boden fürs Licht (hoehe).
+// Stadtlehm (Schritt 5j): der Grund in der Mauer – festgetretener Lehm (die Lehm-Textur, dunkler und grauer, mit erdigen Flecken), darin
+// Flecken mit Steinchen (getragener Kies, als Körner gezeichnet, ohne eigene Textur) und Pfützenmulden (feucht und dunkel, in der Mitte stehendes
+// Wasser: glatt und eben). Die Mulden senken den Boden fürs Licht (hoehe). Sparsam: eine Textur ohne Kachel-Brechung, fünf Rauschen – er deckt ganze Städte.
 Schicht stadtlehm(vec2 p, vec3 n, vec2 dx, vec2 dy, inout float hoehe) {
-	Schicht l = eben(T_LEHM, p, n, dx, dy);
+	Schicht l = eben_einfach(T_LEHM, p, n, dx, dy);
+	float gross = rausch(p * 0.011);
 	float n1 = rausch(p * 0.23 + 1.3);
 	float n2 = rausch(p * 1.1 + 5.1) - 0.5;
-	float n3 = rausch(p * 4.7 + 2.9) - 0.5;
 	vec3 c = l.fh.rgb;
-	c = mix(c, vec3(dot(c, vec3(0.3, 0.5, 0.2))), 0.38) * mix(0.76, 0.9, n1);    // festgetreten: grauer, dunkler
-	float fleck = smoothstep(0.6, 0.8, rausch(p * 0.4 + 9.2) + n3 * 0.3);
-	if (fleck > 0.0) c = mix(c, eben(T_ERDE, p, n, dx, dy).fh.rgb * 0.95, fleck * 0.4);   // dunklere, erdige Stellen
-	// Kies: kleine, lichte Flecken mit Steinchen (getragen, nicht geschüttet)
-	float kies = smoothstep(0.72, 0.84, rausch(p * 0.55 + 17.0) + n2 * 0.3 + n3 * 0.2);
+	c = mix(c, vec3(dot(c, vec3(0.3, 0.5, 0.2))), 0.38) * mix(0.76, 0.9, n1) * mix(0.9, 1.08, gross);   // festgetreten: grauer, dunkler
+	float fleck = smoothstep(0.62, 0.82, n1 + n2 * 0.25);
+	c = mix(c, c * vec3(0.72, 0.66, 0.62), fleck * 0.6);                                                 // dunklere, erdige Stellen
+	// Kies: Flecken mit hellen und dunklen Körnern (etwa 8 cm)
+	float kies = smoothstep(0.72, 0.84, rausch(p * 0.55 + 17.0) + n2 * 0.3);
 	if (kies > 0.0) {
-		Schicht k = eben(T_KIES, p, n, dx, dy);
-		c = mix(c, k.fh.rgb * 0.85, kies * 0.6);
-		l.n = normalize(mix(l.n, k.n, kies));
-		l.fh.a = mix(l.fh.a, k.fh.a, kies);
+		vec2 zelle = p * 12.0;
+		float h = hash(floor(zelle));
+		float korn = step(length(fract(zelle) - 0.5), 0.36) * step(1.0 - kies * 0.75, h);
+		c = mix(c, vec3(dot(c, vec3(0.33))) * mix(0.75, 1.35, hash(floor(zelle) + 7.0)), korn * 0.85);
+		hoehe += 0.012 * korn;
 	}
 	// Pfützenmulden: kleine Senken (einige Meter, selten), feucht am Rand, Wasser in der Mitte
-	float mulde = rausch(p * 0.27 + 31.0) * 0.75 + rausch(p * 0.9 + 7.7) * 0.25 + n3 * 0.04;
+	float mulde = rausch(p * 0.27 + 31.0) * 0.8 + (n2 + 0.5) * 0.2;
 	float feucht = smoothstep(0.73, 0.8, mulde);
 	float wasser = smoothstep(0.815, 0.83, mulde);
 	c *= 1.0 - 0.22 * feucht;
@@ -685,10 +706,9 @@ void fragment() {
 	if (wege_an) {
 		float e = ws.g * 8.0 - 6.0;
 		float kante = max(fwidth(e), 0.02); // außerhalb der Verzweigung: Ableitungen brauchen alle Nachbarpunkte
-		// in der Mauer (Schritt 5j): festgetretener Lehm als Grund, die Gassen sind gepflastert
-		if (info.b > 0.004) {
+		// in der Mauer (Schritt 5j): festgetretener Lehm als Grund, die Gassen sind gepflastert (mitten in einer Gasse sieht man den Lehm nicht)
+		if (info.b > 0.004 && e > -0.35) {
 			Schicht l = stadtlehm(welt, n, dpx.xz, dpy.xz, hoehe);
-			l.fh.rgb = makro_farbe(l.fh.rgb, welt, 0.0, false);
 			farbe = mix(farbe, l.fh.rgb, info.b);
 			fh.a = mix(fh.a, l.fh.a, info.b);
 			gr = mix(gr, RANG[T_LEHM], info.b);
