@@ -12,8 +12,10 @@
 // Kachelkanten glatt bleiben. Die Texturen (boden/boden_farbe_hoehe.webp, Texture2DArray) tragen Farbe und in A die Höhe,
 // boden_normal_rauheit.webp Normale und Rauheit.
 // Dazu die Wegeschicht (Schritt 5g, Stadtansicht.Wegeschicht.cs): je Kachel ein Bild zu 0,25 m mit Abstand zur Wegmitte (R, 0–10 m), Abstand zum
-// Wegrand (G, −6 … +2 m, innen negativ), Belagstufe (B, 0 Pfad … 3 Pflaster, 4 Baustelle) und Spurrillen (A), dazu grob (1 m) Austritt, Zustand
-// und Pflaster als Grund (B, in der Mauer). Spurrillen, Rinnen und Randsteine wirken als Unebenheit aufs Licht.
+// Wegrand (G, −6 … +2 m, innen negativ), Belagstufe (B, 0 Pfad … 3 Pflaster, 4 Baustelle; A frei), dazu grob (1 m) Austritt,
+// Zustand, Stadtgrund (B, in der Mauer) und Abstand zur Erde (A, 0–4 m). Schritt 5j: die Spurlinien in wege_spur (Rillen biegen an Kreuzungen in
+// Bögen ab), in der Mauer festgetretener Lehm mit gepflasterten Gassen, Erde verschmiert über Pflasterkanten. Spurrillen, Rinnen und Randsteine
+// wirken als Unebenheit aufs Licht.
 render_mode diffuse_burley, specular_schlick_ggx;
 
 #include "res://assets/shader/boden_gemein.gdshaderinc"
@@ -39,6 +41,8 @@ uniform bool gemalt = true;
 uniform bool wege_an = false;
 uniform sampler2D wege : filter_linear_mipmap, repeat_disable;
 uniform sampler2D wege_info : filter_linear, repeat_disable;
+// Spurlinien (Schritt 5j, Stadtansicht.Spurrillen.cs): Abstand zu den beiden nächsten (R, G) und ihre Stärke (B, A)
+uniform sampler2D wege_spur : filter_linear_mipmap, repeat_disable;
 // Welt-X/Z der Kachelecke
 uniform vec2 wege_ursprung = vec2(0.0);
 // Grasteppich an (Schritt 5i, Stadtansicht.Gras.cs): Die Wiese darunter wird in seinen Horsten dunkler (Schatten der Halme)
@@ -255,14 +259,58 @@ vec2 hmisch_schatten(float a, float ho, float ro, float hu, float ru, float brei
 	return vec2(m, (1.0 - smoothstep(0.0, SCHATTENKANTE, so - su)) * m);
 }
 
+// Spurrillen (Schritt 5j): die beiden nächsten Spurlinien aus wege_spur (R, G Abstand 0–2,55 m; B, A ihre Stärke, an freien Wegenden auslaufend).
+// Eine Rille liegt im Abstand SPUR (halbe Spurweite, wie SpurWeite in Stadtansicht.Spurrillen.cs) neben der Linie, rb = halbe Breite der Rille.
+// Mit zwei Linien kreuzen sich die Rillen eines Bogens und des geraden Weges, statt einander abzuschneiden.
+const float SPUR = 0.75;
+float rillen(vec4 sp, float rb, float versatz) {
+	float a = (1.0 - smoothstep(rb * 0.4, rb, abs(sp.r * 2.55 - SPUR + versatz))) * sp.b;
+	float b = (1.0 - smoothstep(rb * 0.4, rb, abs(sp.g * 2.55 - SPUR + versatz))) * sp.a;
+	return max(a, b);
+}
+
+// Stadtlehm (Schritt 5j): der Grund in der Mauer – festgetretener Lehm (die Lehm-Textur, dunkler und grauer, mit Erde gefleckt), darin Flecken von
+// Kies und Pfützenmulden (feucht und dunkel, in der Mitte stehendes Wasser: glatt und eben). Die Mulden senken den Boden fürs Licht (hoehe).
+Schicht stadtlehm(vec2 p, vec3 n, vec2 dx, vec2 dy, inout float hoehe) {
+	Schicht l = eben(T_LEHM, p, n, dx, dy);
+	float n1 = rausch(p * 0.23 + 1.3);
+	float n2 = rausch(p * 1.1 + 5.1) - 0.5;
+	float n3 = rausch(p * 4.7 + 2.9) - 0.5;
+	vec3 c = l.fh.rgb;
+	c = mix(c, vec3(dot(c, vec3(0.3, 0.5, 0.2))), 0.38) * mix(0.76, 0.9, n1);    // festgetreten: grauer, dunkler
+	float fleck = smoothstep(0.6, 0.8, rausch(p * 0.4 + 9.2) + n3 * 0.3);
+	if (fleck > 0.0) c = mix(c, eben(T_ERDE, p, n, dx, dy).fh.rgb * 0.95, fleck * 0.4);   // dunklere, erdige Stellen
+	// Kies: kleine, lichte Flecken mit Steinchen (getragen, nicht geschüttet)
+	float kies = smoothstep(0.72, 0.84, rausch(p * 0.55 + 17.0) + n2 * 0.3 + n3 * 0.2);
+	if (kies > 0.0) {
+		Schicht k = eben(T_KIES, p, n, dx, dy);
+		c = mix(c, k.fh.rgb * 0.85, kies * 0.6);
+		l.n = normalize(mix(l.n, k.n, kies));
+		l.fh.a = mix(l.fh.a, k.fh.a, kies);
+	}
+	// Pfützenmulden: kleine Senken (einige Meter, selten), feucht am Rand, Wasser in der Mitte
+	float mulde = rausch(p * 0.27 + 31.0) * 0.75 + rausch(p * 0.9 + 7.7) * 0.25 + n3 * 0.04;
+	float feucht = smoothstep(0.73, 0.8, mulde);
+	float wasser = smoothstep(0.815, 0.83, mulde);
+	c *= 1.0 - 0.22 * feucht;
+	c = mix(c, c * vec3(0.55, 0.6, 0.65), wasser);
+	l.rau = mix(mix(l.rau, 0.6, feucht), 0.06, wasser);
+	l.n = normalize(mix(l.n, n, wasser));
+	hoehe -= 0.05 * smoothstep(0.71, 0.83, mulde);
+	l.fh.rgb = c;
+	return l;
+}
+
 // Der Weg über dem Boden <grund> (Farbe und Höhe gh, Rang gr, Normale gn, Rauheit grau): Farbe (rgb) und Rauheit (a), die Normale in nw.
-// e = Abstand zum Rand (innen negativ), dm = Abstand zur Mitte, st = Stufe, rf = Stärke der Spurrillen, pb = Pflaster als Grund (gemalt oder
-// in der Mauer): Dort wird jeder Weg zur Gasse im Pflaster – dunkler, ausgefahren, mit einer Rinne am Rand –, ohne Erde, Gras und Randsteine.
+// e = Abstand zum Rand (innen negativ), dm = Abstand zur Mitte, st = Stufe, sp = Spurlinien (rillen), pb = gemaltes Pflaster
+// als Grund: Dort wird jeder Weg zur Gasse im Pflaster – dunkler, ausgefahren, mit einer Rinne am Rand –, ohne Erde, Gras und Randsteine.
+// sg = Stadtgrund (in der Mauer, Schritt 5j): Dort ist jeder Weg eine Gasse aus Kopfsteinpflaster mit Randsteinen über dem Lehm.
+// erdab = Abstand zur nächsten Erde (Pfad, Fahrweg; 0–4 m): Auf Pflaster in der Nähe liegt verschmierte Erde (Schritt 5j).
 // Ab Mittel mischen die Ränder von Pfad, Fahrweg und Kies wie der Boden nach Höhe und Rang: Gras wächst über den Rand, Steine ragen heraus.
 // Schritt 5i: Der Rand wird auf WEG_UEBERHANG Metern nach der Höhe entschieden (breiter, ausgefranster Überhang), davor liegt auf dem Weg eine
 // Schattenkante – beides nur, soweit der Boden daneben Wiese ist (gw).
-vec4 weg(vec3 p3, vec3 n, vec3 dpx, vec3 dpy, float kante, vec4 grund, float gr, float gw, float grau, float e, float dm, float st, float rf,
-		float austritt, float zustand, float pb, Schicht pflaster, bool pflaster_da, inout float hoehe, inout vec3 nw) {
+vec4 weg(vec3 p3, vec3 n, vec3 dpx, vec3 dpy, float kante, vec4 grund, float gr, float gw, float grau, float e, float dm, float st, vec4 sp,
+		float austritt, float zustand, float pb, float sg, float erdab, inout float hoehe, inout vec3 nw) {
 	vec2 p = p3.xz;
 	vec2 dx = dpx.xz;
 	vec2 dy = dpy.xz;
@@ -271,20 +319,33 @@ vec4 weg(vec3 p3, vec3 n, vec3 dpx, vec3 dpy, float kante, vec4 grund, float gr,
 	float w_fa = max(0.0, 1.0 - abs(st - 1.0));
 	float w_ki = max(0.0, 1.0 - abs(st - 2.0));
 	float w_bs = max(0.0, 1.0 - abs(st - 4.0));
-	float stadt = smoothstep(0.3, 0.7, pb);
-	float w_ga = (w_pd + w_fa + w_ki + w_pf) * stadt;
-	w_pd *= 1.0 - stadt; w_fa *= 1.0 - stadt; w_ki *= 1.0 - stadt; w_pf *= 1.0 - stadt;
+	// in der Stadt: jeder Weg gepflastert
+	float stadt = smoothstep(0.3, 0.7, sg);
+	w_pf += (w_pd + w_fa + w_ki) * stadt;
+	w_pd *= 1.0 - stadt; w_fa *= 1.0 - stadt; w_ki *= 1.0 - stadt;
+	// auf gemaltem Pflaster: Gasse im Pflaster
+	float im_gemalten = smoothstep(0.3, 0.7, pb) * (1.0 - stadt);
+	float w_ga = (w_pd + w_fa + w_ki + w_pf) * im_gemalten;
+	w_pd *= 1.0 - im_gemalten; w_fa *= 1.0 - im_gemalten; w_ki *= 1.0 - im_gemalten; w_pf *= 1.0 - im_gemalten;
 	float halb = max(dm - e, 0.3);
 	float n1 = rausch(p * 0.8) - 0.5;
 	float n2 = rausch(p * 3.3) - 0.5;
 	float n3 = rausch(p * 11.0) - 0.5;
 	float flecken = rausch(p * 0.35);
+	// Erde auf dem Pflaster: wie weit (1–3 m, entlang der Kante wechselnd), gelesen wird die Erde nur, wo sie liegen kann
+	float schmier_weit = mix(1.0, 3.0, rausch(p * 0.45 + 3.7));
+	bool schmier = w_pf > 0.0 && erdab < schmier_weit * 1.5;
 	// niedergetretenes Gras: dunkler, gelblicher, mit Flecken nackter Erde
 	Schicht erde;
 	erde.fh = vec4(0.0);
 	erde.n = n;
 	erde.rau = 0.95;
-	if (w_pd + w_fa + w_bs > 0.0) erde = eben(T_ERDE, p, n, dx, dy);
+	if (w_pd + w_fa + w_bs > 0.0 || schmier) erde = eben(T_ERDE, p, n, dx, dy);
+	Schicht ps;
+	ps.fh = vec4(0.0);
+	ps.n = n;
+	ps.rau = 0.95;
+	if (w_pf + w_ga > 0.0) ps = eben(T_PFLASTER, p, n, dx, dy);
 	vec3 getreten = grund.rgb * vec3(0.9, 0.86, 0.68);
 	vec3 farbe = vec3(0.0);
 	float rau = 0.0;
@@ -309,7 +370,8 @@ vec4 weg(vec3 p3, vec3 n, vec3 dpx, vec3 dpy, float kante, vec4 grund, float gr,
 		normale += mix(nw, erde.n, kern) * w_pd;
 	}
 
-	// ── Fahrweg: festgefahrene Erde, Spurrillen entlang der Fahrtrichtung (Linien gleichen Abstands zur Mitte), Gras in der Mitte ──
+	// ── Fahrweg: festgefahrene Erde, Spurrillen entlang der Fahrtrichtung (Linien gleichen Abstands zur Spurlinie, auch in den Bögen der
+	//    Kreuzungen), Gras in der Mitte ──
 	if (w_fa > 0.0) {
 		float en = e + n1 * 0.5 + n2 * 0.22 + n3 * 0.08;
 		float kern = 1.0 - smoothstep(-0.35, 0.05, en);
@@ -321,14 +383,14 @@ vec4 weg(vec3 p3, vec3 n, vec3 dpx, vec3 dpy, float kante, vec4 grund, float gr,
 		schatten = hs.y * gw;
 #endif
 		float tritt = 1.0 - smoothstep(-0.1, 0.9, en);
-		float spur = clamp(halb * 0.45, 0.45, 0.85);
 		float rb = mix(0.08, 0.17, austritt);
-		float rille = (1.0 - smoothstep(rb * 0.4, rb, abs(dm - spur + n2 * 0.06))) * rf * mix(0.35, 1.0, austritt);
+		float rille = rillen(sp, rb, n2 * 0.06) * mix(0.35, 1.0, austritt);
 		float streifen = rausch(vec2(dm * 9.0, (p.x + p.y) * 0.04));
 		vec3 f = erde.fh.rgb * mix(0.9, 1.08, streifen) * (0.94 + 0.12 * n3);
-		f *= 1.0 - 0.32 * rille;
-		float mitte = (1.0 - smoothstep(0.0, spur * 0.65, dm)) * (1.0 - austritt) * smoothstep(0.35, 0.65, flecken + 0.25 * n3) * rf;
+		// Gras zwischen den Rillen der nächsten Spurlinie
+		float mitte = (1.0 - smoothstep(0.0, SPUR * 0.65, sp.r * 2.55)) * (1.0 - austritt) * smoothstep(0.35, 0.65, flecken + 0.25 * n3) * sp.b;
 		f = mix(f, getreten, mitte * 0.8);
+		f *= 1.0 - 0.32 * rille;
 		vec3 boden = mix(grund.rgb, mix(getreten, erde.fh.rgb, step(0.66, flecken + n3 * 0.5) * 0.5), tritt);
 		farbe += mix(boden, f, kern) * (1.0 - SCHATTEN_DUNKEL * schatten) * w_fa;
 		rau += (mix(grau, erde.rau, kern) - 0.12 * rille) * w_fa; // in den Rillen steht Feuchte
@@ -362,42 +424,52 @@ vec4 weg(vec3 p3, vec3 n, vec3 dpx, vec3 dpy, float kante, vec4 grund, float gr,
 		normale += mix(nw, k.n, deckt) * w_ki;
 	}
 
-	// ── Pflaster: klare Kante, eine Reihe Randsteine; verfallen fehlen Steine ──
+	// ── Pflaster: klare Kante, eine Reihe Randsteine; verfallen fehlen Steine. In der Stadt die Gassen: dazu Schmutz und schwache Spuren.
+	//    Neben Erde (Stadttor, Ende eines Erdweges) liegt verschmierte Erde auf dem Pflaster, ausdünnend, in den Fugen länger ──
 	if (w_pf > 0.0) {
 		float b = kante;
 		float kern = 1.0 - smoothstep(-b, b, e);
-		Schicht ps = pflaster;
-		if (!pflaster_da) ps = eben(T_PFLASTER, p, n, dx, dy);
 		vec3 pf = ps.fh.rgb;
+		float fuge = 1.0 - smoothstep(0.25, 0.6, ps.fh.a); // tief zwischen den Steinen
+		if (stadt > 0.0) {
+			float schmutz = clamp(0.4 + 0.8 * (flecken - 0.5) + 0.3 * n2, 0.0, 1.0);
+			pf = mix(pf, pf * vec3(0.82, 0.77, 0.7), schmutz * stadt);
+			// Lehm in den Fugen am Rand der Gasse
+			pf = mix(pf, grund.rgb * 0.85, fuge * (1.0 - smoothstep(-1.2, -0.3, e + n2 * 0.4)) * 0.6 * stadt);
+			pf *= 1.0 - 0.18 * rillen(sp, 0.2, n2 * 0.05) * stadt;
+		}
 		// Randsteine: ein Streifen von 0,3 m an der Kante, Steine von etwa 0,5 m, grauer und gröber als das Pflaster
 		float randstein = (1.0 - smoothstep(-0.32 - b, -0.32 + b, e)) * kern;
 		vec2 rz = p * 2.2;
 		float ton = hash(floor(rz));
-		vec3 rs = vec3(dot(pf, vec3(0.33))) * mix(0.72, 0.95, ton) * vec3(1.0, 0.99, 0.96);
-		float fuge = 1.0 - smoothstep(0.0, 0.05, min(min(fract(rz.x), 1.0 - fract(rz.x)), min(fract(rz.y), 1.0 - fract(rz.y))));
-		rs = mix(rs, rs * 0.55, fuge * 0.7);
+		vec3 rs = vec3(dot(ps.fh.rgb, vec3(0.33))) * mix(0.72, 0.95, ton) * vec3(1.0, 0.99, 0.96);
+		float rfuge = 1.0 - smoothstep(0.0, 0.05, min(min(fract(rz.x), 1.0 - fract(rz.x)), min(fract(rz.y), 1.0 - fract(rz.y))));
+		rs = mix(rs, rs * 0.55, rfuge * 0.7);
 		float fugenrinne = 1.0 - smoothstep(0.0, 0.05, abs(e + 0.32));
 		rs = mix(rs, rs * 0.6, fugenrinne); // die Rinne zwischen Randstein und Pflaster
-		hoehe += (0.03 * randstein - 0.02 * fugenrinne * kern) * w_pf;
 		pf = mix(pf, rs, randstein);
 		float fehlt = step(zustand + 0.35, hash(floor(p * 3.0) + 23.0)) * step(zustand, 0.99);
 		if (fehlt > 0.0) pf = mix(eben(T_ERDE, p, n, dx, dy).fh.rgb * 0.85, grund.rgb, step(0.45, hash(floor(p * 3.0) + 31.0)));
+		float erdig = 0.0;
+		if (schmier) {
+			float x = erdab / schmier_weit; // 0 an der Erde, 1 am Ende des Schmiers
+			erdig = smoothstep(0.0, 0.25, (1.0 - x) * 0.9 + n2 * 0.5 + n3 * 0.3 + fuge * 0.5 - 0.2);
+			pf = mix(pf, erde.fh.rgb * mix(0.78, 0.95, n3 + 0.5), erdig);
+		}
+		hoehe += (0.03 * randstein - 0.02 * fugenrinne * kern) * (1.0 - erdig) * w_pf;
 		vec3 boden = mix(grund.rgb, grund.rgb * 0.8, 1.0 - smoothstep(0.0, 0.15, e)); // ein dunkler Saum vor der Kante
 		farbe += mix(boden, pf, kern) * w_pf;
-		rau += mix(grau, ps.rau - 0.07, kern) * w_pf;
-		normale += mix(nw, mix(ps.n, n, randstein), kern) * w_pf;
+		rau += mix(grau, mix(ps.rau - 0.07, erde.rau, erdig), kern) * w_pf;
+		normale += mix(nw, mix(mix(ps.n, n, randstein), erde.n, erdig), kern) * w_pf;
 	}
 
-	// ── Gasse im Pflaster: dunkler und schmutziger, ausgefahrene Spuren, eine Rinne am Rand ──
+	// ── Gasse im gemalten Pflaster: dunkler und schmutziger, ausgefahrene Spuren, eine Rinne am Rand ──
 	if (w_ga > 0.0) {
 		float kern = 1.0 - smoothstep(-kante, kante, e);
-		Schicht ps = pflaster;
-		if (!pflaster_da) ps = eben(T_PFLASTER, p, n, dx, dy);
 		vec3 pf = ps.fh.rgb;
 		float schmutz = clamp(0.45 + 0.7 * (flecken - 0.5) + 0.3 * n2, 0.0, 1.0);
 		vec3 gasse = mix(pf, pf * vec3(0.74, 0.69, 0.62), schmutz);
-		float spur = clamp(halb * 0.45, 0.45, 0.85);
-		float rille = (1.0 - smoothstep(0.06, 0.2, abs(dm - spur + n2 * 0.05))) * rf;
+		float rille = rillen(sp, 0.2, n2 * 0.05);
 		gasse *= 1.0 - 0.22 * rille;
 		hoehe -= 0.025 * rille * kern * w_ga;
 		vec3 f = mix(grund.rgb, gasse, kern);
@@ -446,9 +518,22 @@ void fragment() {
 	// die Wegeschicht zuerst: Ganz im Pflaster der Stadt braucht es den Boden darunter nicht
 	vec4 ws = vec4(1.0, 1.0, 0.25, 0.0);
 	vec4 info = vec4(0.0, 1.0, 0.0, 1.0);
+	vec4 sp = vec4(1.0, 1.0, 0.0, 0.0);
 	if (wege_an) {
 		ws = texture(wege, (welt - wege_ursprung + vec2(WEG_TEXEL)) / (WEG_BILD * WEG_TEXEL));
 		info = texture(wege_info, (welt - wege_ursprung + vec2(1.0)) / WEG_INFO);
+		sp = texture(wege_spur, (welt - wege_ursprung + vec2(WEG_TEXEL)) / (WEG_BILD * WEG_TEXEL));
+		// Wo eine Spurlinie endet oder eine andere an ihre Stelle tritt, springt der Wert zwischen zwei Bildpunkten der Schicht; gefiltert läge
+		// dort eine Rille quer über dem Weg. Ein echter Abstand ändert sich höchstens um einen Meter je Meter: steiler heißt Sprung, dort keine Rille.
+		vec2 meter = vec2(max(length(dpx.xz), 1e-4), max(length(dpy.xz), 1e-4));
+		vec4 steil = max(abs(dFdx(sp)) / meter.x, abs(dFdy(sp)) / meter.y) * vec4(2.55, 2.55, 1.0, 1.0);
+		sp.b *= 1.0 - smoothstep(1.4, 2.2, max(steil.r, steil.b * 2.0));
+		sp.a *= 1.0 - smoothstep(1.4, 2.2, max(steil.g, steil.a * 2.0));
+		// Pflaster stößt hart an Erde (Stadttor, Ende eines Pflasterstücks): Gefiltert läge dazwischen ein Streifen der Stufe 2 (Kies). Ein echter
+		// Übergang der Stufe ist flach (3 m); wo sie steil springt, gilt die nächste Seite.
+		float st = ws.b * 4.0;
+		float hart = smoothstep(2.0, 4.0, max(abs(dFdx(st)) / meter.x, abs(dFdy(st)) / meter.y));
+		if (st > 1.0 && st < 3.0) ws.b = mix(st, st < 2.0 ? 1.0 : 3.0, hart) * 0.25;
 	}
 	bool nur_stadt = info.b > 0.996;
 
@@ -600,23 +685,19 @@ void fragment() {
 	if (wege_an) {
 		float e = ws.g * 8.0 - 6.0;
 		float kante = max(fwidth(e), 0.02); // außerhalb der Verzweigung: Ableitungen brauchen alle Nachbarpunkte
-		// Pflaster in der Mauer: Grund wie gemaltes Pflaster (einmal gelesen, auch für Gassen und Pflasterwege)
-		Schicht ps;
-		ps.fh = vec4(0.0);
-		ps.n = n;
-		ps.rau = 0.95;
-		bool ps_da = info.b > 0.004;
-		if (ps_da) {
-			ps = eben(T_PFLASTER, welt, n, dpx.xz, dpy.xz);
-			farbe = mix(farbe, ps.fh.rgb, info.b);
-			fh.a = mix(fh.a, ps.fh.a, info.b);
-			gr = mix(gr, RANG[T_PFLASTER], info.b);
-			nw = normalize(mix(nw, ps.n, info.b));
-			pflaster = max(pflaster, info.b);
-			rau = mix(rau, min(ps.rau, 0.88), info.b);
+		// in der Mauer (Schritt 5j): festgetretener Lehm als Grund, die Gassen sind gepflastert
+		if (info.b > 0.004) {
+			Schicht l = stadtlehm(welt, n, dpx.xz, dpy.xz, hoehe);
+			l.fh.rgb = makro_farbe(l.fh.rgb, welt, 0.0, false);
+			farbe = mix(farbe, l.fh.rgb, info.b);
+			fh.a = mix(fh.a, l.fh.a, info.b);
+			gr = mix(gr, RANG[T_LEHM], info.b);
+			nw = normalize(mix(nw, l.n, info.b));
+			rau = mix(rau, l.rau, info.b);
 		}
 		if (e < 1.9) {
-			vec4 wg = weg(p3, n, dpx, dpy, kante, vec4(farbe, fh.a), gr, wiese, rau, e, ws.r * 10.0, ws.b * 4.0, ws.a, info.r, info.g, pflaster, ps, ps_da, hoehe, nw);
+			vec4 wg = weg(p3, n, dpx, dpy, kante, vec4(farbe, fh.a), gr, wiese, rau, e, ws.r * 10.0, ws.b * 4.0, sp, info.r, info.g, pflaster,
+					info.b, info.a * 4.0, hoehe, nw);
 			farbe = wg.rgb;
 			rau = wg.a;
 		}

@@ -109,9 +109,11 @@ public partial class Stadtansicht
             {
                 WohnhausModell(haus.Art, p, haus.Nummer);
                 _gebautePlaetze.Add(p);
+                GrasPlatz(p.Mitte, p.Groesse); // unter dem Haus kein Grasteppich (Stadtansicht.Gras.cs)
             }
             _haustueren[haus.Nummer] = AnWegAnschliessen(p.Mitte + p.Vorne * (p.Groesse.Y / 2 + VorplatzBreite));
         }
+        _schichtAlles = true; // freie Plätze in der Stadt sind Wiese (Stadtansicht.Wegeschicht.cs): erst jetzt steht fest, welche frei bleiben
         if (_netz.Teile() != 1)
             GD.PushWarning($"Gassennetz nach den Wohnhäusern: {_netz.Teile()} getrennte Teile.");
         if (WegenetzZeigen) NetzZeichnen();

@@ -44,7 +44,7 @@ public partial class Stadtansicht
     private const float SchichtBelagSchritt = 0.5f;
 
     /// <summary>Die Bilder der Schicht je Kachel, die einen Weg hat.</summary>
-    private readonly Dictionary<(int I, int J), (ImageTexture Bild, ImageTexture Info)> _schichtKacheln = new();
+    private readonly Dictionary<(int I, int J), (ImageTexture Bild, ImageTexture Info, ImageTexture Spur)> _schichtKacheln = new();
 
     /// <summary>Kacheln, die neu gerechnet werden müssen (oder alle).</summary>
     private readonly HashSet<(int I, int J)> _schichtVeraltet = new();
@@ -71,6 +71,8 @@ public partial class Stadtansicht
         public float[] Stelle = Array.Empty<float>();
         public float Halb;
         public bool Flaeche;
+        /// <summary>Eine Fläche, die aus dem Stadtgrund ausgespart ist (ein freier Platz: Wiese statt Lehm).</summary>
+        public bool Loch;
         public Rect2 Rahmen;
 
         /// <summary>Belag je <see cref="SchichtBelagSchritt"/> Meter: Stufe (NaN = Lücke, etwa eine Brücke), Austritt, Zustand.</summary>
@@ -151,13 +153,13 @@ public partial class Stadtansicht
         _schichtVeraltet.Clear();
 
         var uhr = System.Diagnostics.Stopwatch.StartNew();
-        var teile = SchichtTeile();
-        var ergebnis = new (byte[] Bild, byte[] Info)?[liste.Count];
+        var (teile, spuren) = SchichtTeile();
+        var ergebnis = new (byte[] Bild, byte[] Info, byte[] Spur)?[liste.Count];
         var bueschel = new Vector4[]?[liste.Count];
         var raster = BodenRaster;
         Parallel.For(0, liste.Count, k =>
         {
-            ergebnis[k] = SchichtKachelRechnen(liste[k].I, liste[k].J, teile);
+            ergebnis[k] = SchichtKachelRechnen(liste[k].I, liste[k].J, teile, spuren);
             // Grasbüschel am Wegrand (Stadtansicht.Bueschel.cs), solange das Bild noch da ist
             if (ergebnis[k] is { } d) bueschel[k] = BueschelAusWegen(liste[k].I, liste[k].J, d.Bild, d.Info, raster);
         });
@@ -174,12 +176,15 @@ public partial class Stadtansicht
                 var bild = Image.CreateFromData(SchichtBild, SchichtBild, false, Image.Format.Rgba8, daten.Bild);
                 bild.GenerateMipmaps(); // weit weg mittelt sich der Abstand: kein Flimmern am Rand
                 var info = Image.CreateFromData(SchichtInfoBild, SchichtInfoBild, false, Image.Format.Rgba8, daten.Info);
+                var spur = Image.CreateFromData(SchichtBild, SchichtBild, false, Image.Format.Rgba8, daten.Spur);
+                spur.GenerateMipmaps();
                 if (_schichtKacheln.TryGetValue(kachel, out var alt))
                 {
                     alt.Bild.Update(bild);
                     alt.Info.Update(info);
+                    alt.Spur.Update(spur);
                 }
-                else _schichtKacheln[kachel] = (ImageTexture.CreateFromImage(bild), ImageTexture.CreateFromImage(info));
+                else _schichtKacheln[kachel] = (ImageTexture.CreateFromImage(bild), ImageTexture.CreateFromImage(info), ImageTexture.CreateFromImage(spur));
                 _grasStadt[kachel] = daten.Info; // Pflaster als Grund: dort kein Grasteppich (Stadtansicht.Gras.cs)
             }
             if (_gelaendeKacheln.TryGetValue(kachel, out var netz)) netz.MaterialOverride = KachelStoff(kachel.I, kachel.J);
@@ -196,11 +201,15 @@ public partial class Stadtansicht
         if (!da) return;
         stoff.SetShaderParameter("wege", schicht.Bild);
         stoff.SetShaderParameter("wege_info", schicht.Info);
+        stoff.SetShaderParameter("wege_spur", schicht.Spur);
         stoff.SetShaderParameter("wege_ursprung", new Vector2(ti * KachelZellen * 2f, tj * KachelZellen * 2f));
     }
 
-    /// <summary>Alle Teile der Schicht (auf dem Hauptfaden gesammelt; das Rechnen danach liest nur noch sie).</summary>
-    private List<Schichtteil> SchichtTeile()
+    /// <summary>
+    /// Alle Teile der Schicht und die Spurlinien der Karren (auf dem Hauptfaden gesammelt; das Rechnen danach liest nur noch sie). Dazu kommen die
+    /// ausgefahrenen Ecken der Kreuzungen (Stadtansicht.Spurrillen.cs).
+    /// </summary>
+    private (List<Schichtteil> Teile, List<Spurlinie> Spuren) SchichtTeile()
     {
         var teile = new List<Schichtteil>();
         if (_entwurf is { } entwurf)
@@ -229,7 +238,11 @@ public partial class Stadtansicht
             var stueck = new[] { new Belagabschnitt(0, von.DistanceTo(bis) + 1, stufe, Austritt: 0.7) };
             if (SchichtWeg(new[] { von, bis }, breite, stueck, null) is { } teil) teile.Add(teil);
         }
-        return teile;
+        var wege = teile.Where(t => !t.Flaeche).ToList();
+        var (ecken, spuren) = SchichtKreuzungen(wege, teile.Where(t => t.Flaeche).Select(t => t.Linie).ToList());
+        teile.AddRange(ecken);
+        teile.AddRange(SchichtLoecher().Select(l => SchichtFlaeche(l, loch: true)));
+        return (teile, spuren);
     }
 
     private static Schichtteil? SchichtWeg(Vector2[] roh, float breite, IReadOnlyList<Belagabschnitt> stuecke, List<(float Von, float Bis)>? luecken)
@@ -251,8 +264,48 @@ public partial class Stadtansicht
         return teil;
     }
 
-    private static Schichtteil SchichtFlaeche(Vector2[] ecken) =>
-        new() { Linie = ecken, Flaeche = true, Rahmen = Rahmen(ecken, SchichtRand)!.Value };
+    private static Schichtteil SchichtFlaeche(Vector2[] ecken, bool loch = false) =>
+        new() { Linie = ecken, Flaeche = true, Loch = loch, Rahmen = Rahmen(ecken, SchichtRand)!.Value };
+
+    /// <summary>
+    /// Freie Plätze, die in der Stadt Wiese bleiben statt Lehm (Schritt 5j; der Grasteppich wächst dort): die Bauzonen und im Spiel die freien
+    /// Werkstattplätze, die Einwohner- und Wohnhausplätze ohne Haus und die Bauplätze des Kerns. In der Werkstatt stehen auf allen Plätzen Modelle.
+    /// </summary>
+    private List<Vector2[]> SchichtLoecher()
+    {
+        var liste = new List<Vector2[]>();
+        if (_entwurf is { } e)
+        {
+            liste.AddRange(e.Bauzonen.Select(z => z.Ecken.Select(V2).ToArray()));
+            return liste;
+        }
+        if (_karte is not { } karte) return liste;
+        liste.AddRange(karte.Bauzonen.Select(z => z.Flaeche.Select(Punkt2).ToArray()));
+        if (_wirtschaft is not { } w) return liste;
+        var stehen = StehendeWerkstattplaetze();
+        foreach (var g in karte.GebaeudeDerArt(Bausteinart.Werkstattplatz).Where(g => !stehen.Contains(g)))
+            if (Naturhindernis.Von(g.Baustein, g.Punkt[0], g.Punkt[1], g.Drehung, g.Massstab) is { } h)
+                liste.Add(Rechteck(new Vector2((float)h.X, (float)h.Z), Mathf.DegToRad((float)h.Drehung), new Vector2((float)h.HalbX, (float)h.HalbZ)));
+        if (_wohnhaeuserGebaut)
+        {
+            var (stadt, draussen) = Einwohnerplaetze();
+            foreach (var p in stadt.Concat(draussen).Where(p => !_gebautePlaetze.Contains(p) && !_hausplaetze.ContainsValue(p)))
+                liste.Add(Rechteck(new Vector2(p.Mitte.X, p.Mitte.Z), p.Drehung, p.Groesse / 2));
+        }
+        if (w.Bauen.IstAktiv)
+            foreach (var g in w.Bauen.Grundstuecke.Where(g => g.Zustand == Bauzustand.Bauplatz))
+                liste.Add(Rechteck(new Vector2((float)g.Grundriss.X, (float)g.Grundriss.Z), DrehungY(g.Grundriss),
+                    new Vector2((float)g.Grundriss.Breite / 2, (float)g.Grundriss.Tiefe / 2)));
+        return liste.Where(l => l.Length >= 3).ToList();
+    }
+
+    /// <summary>Die Ecken eines gedrehten Rechtecks (Drehung wie <c>Rotation.Y</c>).</summary>
+    private static Vector2[] Rechteck(Vector2 mitte, float drehung, Vector2 halb)
+    {
+        var (c, s) = (Mathf.Cos(drehung), Mathf.Sin(drehung));
+        return new[] { new Vector2(-1, -1), new Vector2(1, -1), new Vector2(1, 1), new Vector2(-1, 1) }
+            .Select(k => mitte + new Vector2(c * k.X * halb.X + s * k.Y * halb.Y, -s * k.X * halb.X + c * k.Y * halb.Y)).ToArray();
+    }
 
     /// <summary>Stufe (0 Trampelpfad … 3 Pflaster, 4 Baustelle), Austritt und Zustand an einer Stelle; an Abschnittsgrenzen auf 3 m fließend (wie früher das Band).</summary>
     private static (float Stufe, float Austritt, float Zustand) SchichtBelag(IReadOnlyList<Belagabschnitt> stuecke, float s)
@@ -270,6 +323,8 @@ public partial class Stadtansicht
         else if ((float)hier.Bis - s < BelagUebergang && i + 1 < stuecke.Count) (nachbar, anteil) = (i + 1, 0.5f * (1 - ((float)hier.Bis - s) / BelagUebergang));
         if (nachbar < 0) return (Stufe(hier), (float)hier.Austritt, (float)hier.Zustand);
         var b = stuecke[nachbar];
+        // Pflaster neben Erde (Pfad, Fahrweg): eine klare Grenze, über die der Shader Erde schmiert (sonst läge dazwischen ein Streifen „Kies“)
+        if (!hier.Baustelle && !b.Baustelle && Mathf.Abs(Stufe(hier) - Stufe(b)) >= 1.5f) return (Stufe(hier), (float)hier.Austritt, (float)hier.Zustand);
         return (Mathf.Lerp(Stufe(hier), Stufe(b), anteil), Mathf.Lerp((float)hier.Austritt, (float)b.Austritt, anteil), Mathf.Lerp((float)hier.Zustand, (float)b.Zustand, anteil));
     }
 
@@ -281,49 +336,52 @@ public partial class Stadtansicht
     }
 
     /// <summary>
-    /// Rechnet die Bilder einer Kachel (läuft parallel, liest nur <paramref name="teile"/>). Null, wenn kein Teil sie berührt.
-    /// Bildpunkt k deckt [Kachel + (k − 1) · 0,25 m, Kachel + k · 0,25 m].
+    /// Rechnet die Bilder einer Kachel (läuft parallel, liest nur <paramref name="teile"/> und <paramref name="spuren"/>). Null, wenn kein Teil sie
+    /// berührt. Bildpunkt k deckt [Kachel + (k − 1) · 0,25 m, Kachel + k · 0,25 m]. Gerechnet wird 4 m über die Kachel hinaus (<see cref="SchichtErdRand"/>),
+    /// damit der Abstand zur Erde (Schritt 5j, grobes Bild A) auch an Kachelgrenzen stimmt; in die Bilder kommt nur die Kachel.
     /// </summary>
-    private static (byte[] Bild, byte[] Info)? SchichtKachelRechnen(int ti, int tj, List<Schichtteil> teile)
+    private static (byte[] Bild, byte[] Info, byte[] Spur)? SchichtKachelRechnen(int ti, int tj, List<Schichtteil> teile, List<Spurlinie> spuren)
     {
-        const int n = SchichtBild;
+        const int n = SchichtBild, r0 = SchichtErdRand, gn = n + 2 * r0;
         const float t = SchichtTexel, kachel = KachelZellen * 2f;
         var (x0, z0) = (ti * kachel - t, tj * kachel - t);
-        var flaeche = new Rect2(x0, z0, n * t, n * t);
-        float[]? rand = null, mitte = null, stufe = null, rille = null, austritt = null, zustand = null;
+        if (!teile.Any(teil => teil.Rahmen.Intersects(new Rect2(x0, z0, n * t, n * t)))) return null;
+        // der Ausschnitt mit Rand
+        var (gx0, gz0) = (x0 - r0 * t, z0 - r0 * t);
+        var flaeche = new Rect2(gx0, gz0, gn * t, gn * t);
+        float[]? rand = null, mitte = null, stufe = null, austritt = null, zustand = null;
         var pflaster = new List<Schichtteil>();
+        var loecher = new List<Schichtteil>();
         foreach (var teil in teile)
         {
             if (!teil.Rahmen.Intersects(flaeche)) continue;
             if (teil.Flaeche)
             {
-                pflaster.Add(teil); // das Pflaster in der Mauer ist Grund, kein Weg: es kommt ins grobe Bild
+                (teil.Loch ? loecher : pflaster).Add(teil); // der Grund in der Mauer ist kein Weg: er kommt ins grobe Bild
                 continue;
             }
             if (rand is null)
             {
-                rand = new float[n * n];
+                rand = new float[gn * gn];
                 Array.Fill(rand, SchichtRand);
-                mitte = new float[n * n];
+                mitte = new float[gn * gn];
                 Array.Fill(mitte, SchichtMitteMax);
-                stufe = new float[n * n];
+                stufe = new float[gn * gn];
                 Array.Fill(stufe, 1f);
-                rille = new float[n * n];
-                Array.Fill(rille, 1f);
-                austritt = new float[n * n];
-                zustand = new float[n * n];
+                austritt = new float[gn * gn];
+                zustand = new float[gn * gn];
                 Array.Fill(zustand, 1f);
             }
             var r = teil.Rahmen.Intersection(flaeche);
-            var a0 = Math.Clamp((int)Mathf.Floor((r.Position.X - x0) / t), 0, n - 1);
-            var b0 = Math.Clamp((int)Mathf.Floor((r.Position.Y - z0) / t), 0, n - 1);
-            var a1 = Math.Clamp((int)Mathf.Ceil((r.End.X - x0) / t), 0, n - 1);
-            var b1 = Math.Clamp((int)Mathf.Ceil((r.End.Y - z0) / t), 0, n - 1);
+            var a0 = Math.Clamp((int)Mathf.Floor((r.Position.X - gx0) / t), 0, gn - 1);
+            var b0 = Math.Clamp((int)Mathf.Floor((r.Position.Y - gz0) / t), 0, gn - 1);
+            var a1 = Math.Clamp((int)Mathf.Ceil((r.End.X - gx0) / t), 0, gn - 1);
+            var b1 = Math.Clamp((int)Mathf.Ceil((r.End.Y - gz0) / t), 0, gn - 1);
             var (w, h) = (a1 - a0 + 1, b1 - b0 + 1);
             var abstand = new float[w * h];
             var ort = new float[w * h];
             Array.Fill(abstand, float.MaxValue);
-            LinieAbstand(teil, x0, z0, a0, b0, w, h, abstand, ort);
+            LinieAbstand(teil, gx0, gz0, a0, b0, w, h, abstand, ort);
 
             for (var b = 0; b < h; b++)
                 for (var a = 0; a < w; a++)
@@ -335,28 +393,18 @@ public partial class Stadtansicht
                     var st = teil.Stufe[k];
                     if (float.IsNaN(st)) continue;
                     var (au, zu) = (teil.Austritt[k], teil.Zustand[k]);
-                    var stelle = ort[b * w + a];
-                    var spuren = Math.Clamp(MathF.Min(stelle, teil.Stelle[^1] - stelle) / 2.5f, 0f, 1f); // am Ende eines Weges laufen die Spurrillen aus
-                    var i = (b + b0) * n + a + a0;
+                    var i = (b + b0) * gn + a + a0;
                     var alt = rand![i];
                     if (alt >= SchichtRand)
                     {
-                        (rand[i], mitte![i], stufe![i], rille![i], austritt![i], zustand![i]) = (e, d, st, spuren, au, zu);
+                        (rand[i], mitte![i], stufe![i], austritt![i], zustand![i]) = (e, d, st, au, zu);
                         continue;
                     }
                     var innen = e < 0.3f && alt < 0.3f;
-                    if (innen)
-                    {
-                        stufe![i] = Mathf.Max(stufe[i], st);                                        // der stärkere Belag gewinnt
-                        rille![i] = Mathf.Min(rille[i], Mathf.Clamp(Mathf.Abs(e - alt) / 1.2f, 0, 1)); // in der Kreuzung keine Spurrillen
-                    }
+                    if (innen) stufe![i] = Mathf.Max(stufe[i], st); // der stärkere Belag gewinnt
                     if (e < alt)
                     {
-                        if (!innen)
-                        {
-                            stufe![i] = st;
-                            rille![i] = spuren;
-                        }
+                        if (!innen) stufe![i] = st;
                         (mitte![i], austritt![i], zustand![i]) = (d, au, zu);
                     }
                     rand[i] = WeichMin(alt, e, SchichtRundung);
@@ -365,43 +413,96 @@ public partial class Stadtansicht
         if (rand is null && pflaster.Count == 0) return null;
         if (rand is null)
         {
-            rand = new float[n * n];
+            rand = new float[gn * gn];
             Array.Fill(rand, SchichtRand);
-            mitte = new float[n * n];
+            mitte = new float[gn * gn];
             Array.Fill(mitte, SchichtMitteMax);
-            stufe = new float[n * n];
-            rille = new float[n * n];
-            austritt = new float[n * n];
-            zustand = new float[n * n];
+            stufe = new float[gn * gn];
+            austritt = new float[gn * gn];
+            zustand = new float[gn * gn];
         }
 
+        // Spurrillen: die beiden nächsten Spurlinien je Bildpunkt (Stadtansicht.Spurrillen.cs)
+        var d1 = new float[n * n];
+        var d2 = new float[n * n];
+        var s1 = new float[n * n];
+        var s2 = new float[n * n];
+        Array.Fill(d1, SpurReichweite);
+        Array.Fill(d2, SpurReichweite);
+        SpurenRechnen(spuren, x0, z0, n, d1, d2, s1, s2);
+
         var bild = new byte[n * n * 4];
+        var spur = new byte[n * n * 4];
         const float randFaktor = 255f / (SchichtRand - SchichtRandMin), mitteFaktor = 255f / SchichtMitteMax;
-        for (int i = 0, o = 0; i < n * n; i++, o += 4)
-        {
-            bild[o] = Byte(mitte![i] * mitteFaktor);
-            bild[o + 1] = Byte((rand[i] - SchichtRandMin) * randFaktor);
-            bild[o + 2] = Byte(stufe![i] * 63.75f);
-            bild[o + 3] = Byte(rille![i] * 255f);
-        }
-        // grob: Punkt k (1 m) liegt mitten zwischen den feinen Punkten 4k − 2 und 4k − 1
-        const int m = SchichtInfoBild;
+        for (var b = 0; b < n; b++)
+            for (var a = 0; a < n; a++)
+            {
+                var (i, o) = ((b + r0) * gn + a + r0, (b * n + a) * 4);
+                bild[o] = Byte(mitte![i] * mitteFaktor);
+                bild[o + 1] = Byte((rand[i] - SchichtRandMin) * randFaktor);
+                bild[o + 2] = Byte(stufe![i] * 63.75f);
+                bild[o + 3] = 255; // frei (bis 5i die Stärke der Spurrillen, jetzt im Bild der Spurlinien)
+                spur[o] = Byte(d1[b * n + a] * 100f);
+                spur[o + 1] = Byte(d2[b * n + a] * 100f);
+                spur[o + 2] = Byte(s1[b * n + a] * 255f);
+                spur[o + 3] = Byte(s2[b * n + a] * 255f);
+            }
+
+        // grob: Punkt k (1 m) liegt mitten zwischen den feinen Punkten 4k − 2 und 4k − 1 der Kachel; mit Rand (4 Punkte je Seite) ist das der
+        // Punkt 4K − 2 des Ausschnitts für K = k + 4
+        const int m = SchichtInfoBild, rg = SchichtErdRand / 4, gm = m + 2 * rg;
         var info = new byte[m * m * 4];
         // Pflaster als Grund (in der Mauer): Deckung je Meter, am Rand auf einem Meter weich
-        var grund = new float[m * m];
-        foreach (var f in pflaster) FlaecheDecken(f.Linie, ti * kachel - 1, tj * kachel - 1, m, grund);
+        var grund = new float[gm * gm];
+        foreach (var f in pflaster) FlaecheDecken(f.Linie, ti * kachel - 1 - rg, tj * kachel - 1 - rg, gm, grund);
+        if (pflaster.Count > 0 && loecher.Count > 0)
+        {
+            // freie Plätze: Wiese statt Lehm (am Rand auf einem Meter weich)
+            var loch = new float[gm * gm];
+            foreach (var f in loecher) FlaecheDecken(f.Linie, ti * kachel - 1 - rg, tj * kachel - 1 - rg, gm, loch);
+            for (var i = 0; i < grund.Length; i++) grund[i] *= 1f - loch[i];
+        }
+        // Erde, die auf Pflaster getragen wird: Punkte auf Pfad oder Fahrweg außerhalb der Stadt
+        var erde = new bool[gm * gm];
+        var erdeDa = false;
+        for (var b = 0; b < gm; b++)
+            for (var a = 0; a < gm; a++)
+            {
+                var i = Math.Clamp(4 * b - 2, 0, gn - 1) * gn + Math.Clamp(4 * a - 2, 0, gn - 1);
+                erdeDa |= erde[b * gm + a] = rand[i] < -0.05f && stufe![i] < 1.5f && grund[b * gm + a] < 0.5f;
+            }
         for (var b = 0; b < m; b++)
             for (var a = 0; a < m; a++)
             {
-                var i = Math.Clamp(4 * b - 2, 0, n - 1) * n + Math.Clamp(4 * a - 2, 0, n - 1);
+                var (bb, aa) = (b + rg, a + rg);
+                var i = Math.Clamp(4 * bb - 2, 0, gn - 1) * gn + Math.Clamp(4 * aa - 2, 0, gn - 1);
                 var o = (b * m + a) * 4;
                 info[o] = Byte(austritt![i] * 255f);
                 info[o + 1] = Byte(zustand![i] * 255f);
-                info[o + 2] = Byte(grund[b * m + a] * 255f);
+                info[o + 2] = Byte(grund[bb * gm + aa] * 255f);
+                // Abstand zur nächsten Erde (0 … 4 m): Dort verschmiert der Shader Erde über das Pflaster – gesucht nur auf Pflaster (ein Pflasterweg
+                // oder eine Gasse der Stadt)
                 info[o + 3] = 255;
+                if (!erdeDa || rand[i] > 0.6f || (stufe![i] < 2.5f && grund[bb * gm + aa] < 0.3f)) continue;
+                var naechste = ErdeReichweite;
+                foreach (var (da, db, dist) in ErdeNachbarn)
+                {
+                    if (dist >= naechste) break;
+                    var (x, z) = (aa + da, bb + db);
+                    if (x >= 0 && z >= 0 && x < gm && z < gm && erde[z * gm + x]) naechste = dist;
+                }
+                info[o + 3] = Byte(Mathf.Max(naechste - 0.5f, 0f) / ErdeReichweite * 255f);
             }
-        return (bild, info);
+        return (bild, info, spur);
     }
+
+    /// <summary>Der Rand, um den eine Kachel weiter gerechnet wird (Punkte zu 0,25 m: 4 m), und wie weit der Abstand zur Erde reicht (Meter).</summary>
+    private const int SchichtErdRand = 16;
+    private const float ErdeReichweite = 4f;
+
+    /// <summary>Die Nachbarn im groben Bild bis <see cref="ErdeReichweite"/>, nach Abstand geordnet.</summary>
+    private static readonly (int A, int B, float Abstand)[] ErdeNachbarn =
+        (from b in Enumerable.Range(-4, 9) from a in Enumerable.Range(-4, 9) let d = MathF.Sqrt(a * a + b * b) where d <= ErdeReichweite orderby d select (a, b, d)).ToArray();
 
     /// <summary>Kleinster Abstand jedes Bildpunkts im Ausschnitt zur Linie des Weges und die Stelle (Meter entlang) des nächsten Punkts.</summary>
     private static void LinieAbstand(Schichtteil teil, float x0, float z0, int a0, int b0, int w, int h, float[] abstand, float[] ort)
