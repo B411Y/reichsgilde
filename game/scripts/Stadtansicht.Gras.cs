@@ -13,7 +13,7 @@ namespace Reichsgilde;
 /// <item><b>Felder</b>: Der Boden ist in Felder zu 4 × 4 m geteilt. Jedes Feld zeichnet dasselbe Netz aus Büscheln (<see cref="GrasNetze"/>, Stufen
 /// von 1,5 bis 64 Büscheln je m²); der Shader spiegelt es je Feld, setzt es auf den Boden und lässt weg, was nicht auf der Wiese steht.</item>
 /// <item><b>Kacheln</b> (<see cref="GrasKachelRechnen"/>, parallel): je Geländekachel (128 m) zwei Bilder zu 1 m – Dichte der Wiese (aus dem
-/// Bodenraster, ohne Gebäude, Grundstücke, Bauzonen, Äcker, Wasser, Fels am Hang und Pflaster der Stadt), Höhe und Normale des Bodens; Makro-Flecken
+/// Bodenraster, ohne stehende Gebäude, Baustellen, Äcker, Wasser, Fels am Hang und die Stadt; freie Plätze und Bauzonen tragen im Spiel Gras), Höhe und Normale des Bodens; Makro-Flecken
 /// und Horste –, dazu die Felder, auf denen überhaupt Gras wächst. Neu gerechnet wird nur, was sich ändert – dieselben Meldungen wie für die
 /// Grasbüschel (Stadtansicht.Bueschel.cs).</item>
 /// <item><b>Im Bild</b> (<see cref="GrasImBild"/>): Je Kachel ein MultiMesh mit den Feldern, die die Kamera sieht (die Ecken des Bildes auf den Boden
@@ -98,6 +98,13 @@ public partial class Stadtansicht
         for (var j = Mathf.FloorToInt(r.Position.Y / kachel); j <= Mathf.FloorToInt(r.End.Y / kachel); j++)
             for (var i = Mathf.FloorToInt(r.Position.X / kachel); i <= Mathf.FloorToInt(r.End.X / kachel); i++)
                 _grasNeu.Add((i, j));
+    }
+
+    /// <summary>Auf einem Platz steht jetzt ein Haus oder keins mehr (Betrieb, Einwohnerhaus): die Kacheln um ihn neu.</summary>
+    private void GrasPlatz(Vector3 mitte, Vector2 groesse)
+    {
+        var r = groesse.Length() / 2 + 1;
+        GrasBereichNeu(new Rect2(mitte.X - r, mitte.Z - r, 2 * r, 2 * r));
     }
 
     /// <summary>Ein Grundstück hat sich geändert (Stadtansicht.Bauen.cs): Haus, Baustelle oder Bauplatz.</summary>
@@ -218,11 +225,12 @@ public partial class Stadtansicht
         var uhr = System.Diagnostics.Stopwatch.StartNew();
         // auf dem Hauptfaden sammeln, was die Rechnung liest
         var raster = BodenRaster;
-        Naturfreiraum? frei = _entwurf is not null ? _entwurf.Freiraum(Modellmass) : _karte is { } karte ? Naturfreiraum.Aus(karte, Modellmass) : null;
+        var frei = GrasFreiraum();
         var wasser = GrasWasser(GewaesserForm);
-        // Bauzonen wie Seen als Vielecke: Dort wird gebaut, die Natur lässt sie ebenso frei (und ihre farbige Fläche bleibt frei von Halmen)
+        // Bauzonen wie Seen als Vielecke: In der Werkstatt (ihre farbige Fläche bleibt frei von Halmen) und im Hauptmenü; im Spiel wächst dort Gras,
+        // bis gebaut wird (Schritt 5j, die Grundstücke stehen in den Sperrflächen)
         if (_entwurf is not null) wasser.Seen.AddRange(_entwurf.Bauzonen.Select(z => z.Ecken.Select(e => new Vector2((float)e.X, (float)e.Z)).ToArray()));
-        else if (_karte is not null) wasser.Seen.AddRange(_karte.Bauzonen.Select(z => z.Flaeche.Select(e => new Vector2((float)e[0], (float)e[1])).ToArray()));
+        else if (_karte is not null && _wirtschaft is null) wasser.Seen.AddRange(_karte.Bauzonen.Select(z => z.Flaeche.Select(e => new Vector2((float)e[0], (float)e[1])).ToArray()));
         wasser.Seen.RemoveAll(v => v.Length < 3);
         var flaechen = GrasSperrflaechen();
         // die Höhen der Rasterpunkte je Kachel am Stück (der Kern rechnet das Bett der Wege dabei nach, das geht nicht parallel)
@@ -237,8 +245,26 @@ public partial class Stadtansicht
     }
 
     /// <summary>
+    /// Die Gebäude der Karte, unter denen kein Gras steht. In der Werkstatt und im Hauptmenü alle (dort steht auf jedem Platz ein Modell). Im Spiel
+    /// (Schritt 5j) nur, was wirklich steht: Kulissen, Sonderbauten, Umland und die Werkstattplätze mit einem Betrieb oder einem leeren Haus –
+    /// freie Werkstatt-, Wohnhaus- und Einwohnerplätze tragen Gras; die Häuser darauf stehen in <see cref="GrasSperrflaechen"/>. In der Mauer ist
+    /// Stadtlehm, dort wächst ohnehin keins (auch nicht auf freien Plätzen, Entscheidung des Nutzers).
+    /// </summary>
+    private Naturfreiraum? GrasFreiraum()
+    {
+        if (_entwurf is not null) return _entwurf.Freiraum(Modellmass);
+        if (_karte is not { } karte) return null;
+        if (_wirtschaft is null) return Naturfreiraum.Aus(karte, Modellmass);
+        var stehen = _betriebe.Keys.Select(b => b.Name).Concat(_leereHaeuser.Keys).Select(n => PlatzVon(n)?.Gebaeude).OfType<Kartengebaeude>().ToHashSet();
+        var gebaeude = karte.Gebaeude
+            .Where(g => g.Art is not (Bausteinart.Werkstattplatz or Bausteinart.Wohnhausplatz or Bausteinart.Einwohnerplatz) || stehen.Contains(g))
+            .Select(g => Naturhindernis.Von(g.Baustein, g.Punkt[0], g.Punkt[1], g.Drehung, g.Massstab, Modellmass)).OfType<Naturhindernis>();
+        return new Naturfreiraum(Array.Empty<(IReadOnlyList<double[]>, double)>(), gebaeude, Array.Empty<IReadOnlyList<double[]>>(), Array.Empty<IReadOnlyList<double[]>>());
+    }
+
+    /// <summary>
     /// Wo kein Gras steht, obwohl Wiese gemalt ist (als gedrehte Rechtecke: Mitte, Drehung wie <c>Rotation.Y</c>, halbe Breite und Tiefe): die Äcker
-    /// und im Spiel die Grundstücke (Häuser, Baustellen, neue Werkstätten – nicht der leere Bauplatz), ohne ihren Vorplatz.
+    /// und im Spiel die Grundstücke (Häuser, Baustellen, neue Werkstätten – nicht der leere Bauplatz) mit ihrem Vorplatz und die Einwohnerhäuser.
     /// </summary>
     private List<(Vector2 Mitte, float Drehung, Vector2 Halb)> GrasSperrflaechen()
     {
@@ -254,10 +280,10 @@ public partial class Stadtansicht
             {
                 if (g.Zustand == Bauzustand.Bauplatz) continue;
                 var gr = g.Grundriss;
-                var (vx, vz) = gr.Vorne;
-                var mitte = new Vector2((float)(gr.X - vx * Vorplatz / 2), (float)(gr.Z - vz * Vorplatz / 2));
-                liste.Add((mitte, DrehungY(gr), new Vector2((float)gr.Breite / 2, (float)(gr.Tiefe - Vorplatz) / 2)));
+                liste.Add((new Vector2((float)gr.X, (float)gr.Z), DrehungY(gr), new Vector2((float)gr.Breite / 2, (float)gr.Tiefe / 2)));
             }
+        if (_wirtschaft is not null)
+            foreach (var p in _gebautePlaetze) liste.Add((new Vector2(p.Mitte.X, p.Mitte.Z), p.Drehung, p.Groesse / 2));
         return liste;
     }
 

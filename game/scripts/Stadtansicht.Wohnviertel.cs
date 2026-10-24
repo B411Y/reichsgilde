@@ -109,6 +109,7 @@ public partial class Stadtansicht
             {
                 WohnhausModell(haus.Art, p, haus.Nummer);
                 _gebautePlaetze.Add(p);
+                GrasPlatz(p.Mitte, p.Groesse); // unter dem Haus kein Grasteppich (Stadtansicht.Gras.cs)
             }
             _haustueren[haus.Nummer] = AnWegAnschliessen(p.Mitte + p.Vorne * (p.Groesse.Y / 2 + VorplatzBreite));
         }
