@@ -50,7 +50,11 @@ public partial class Stadtansicht
 
     private void FeldEntfernen(EntwurfFeld f)
     {
-        if (_wsFelder.Remove(f, out var alt)) alt.QueueFree();
+        if (_wsFelder.Remove(f, out var alt))
+        {
+            GrasAeckerWeg(alt); // dort wächst wieder Gras (Stadtansicht.Gras.cs)
+            alt.QueueFree();
+        }
         _wsFeldAnzahl.Remove(f);
     }
 

@@ -4,6 +4,8 @@
 //   1 Mittel:  Höhenmischung mit Rangfolge (scharfe, unregelmäßige Grenzen), Kachel-Brechung gegen sichtbare Wiederholung.
 //   2 Hoch:    dazu Normalen und Rauheit der Texturen im Licht und am Hang dreiseitig abgetastet (keine Verzerrung).
 // In allen Stufen: große Farb- und Helligkeitsflecken über die Welt (Makro-Variation) und Fels am Hang ab etwa 35° Gefälle.
+// Schritt 5i: ab Mittel ein breiterer, ausgefranster Überhang der Wiese über Erde und Wege mit einer dunklen Schattenkante davor; in Hoch kräftigere
+// Normalen und Makro-Flecken (makro_farbe in boden_gemein.gdshaderinc, die auch der Grasteppich nimmt).
 //
 // Gewichte je Punkt des Bodenrasters (1 m): Gruppe 0 = Wiese, Erde, Fels, Kies; Gruppe 1 = Waldboden, Sand, Schlamm, Moos; Gruppe 2 = Lehm,
 // Pflaster, Mist (RGBA8, zusammen 255). Das Bild einer Kachel beginnt einen Punkt vor ihr (130 × 130 Punkte), damit die Übergänge über
@@ -13,6 +15,8 @@
 // Wegrand (G, −6 … +2 m, innen negativ), Belagstufe (B, 0 Pfad … 3 Pflaster, 4 Baustelle) und Spurrillen (A), dazu grob (1 m) Austritt, Zustand
 // und Pflaster als Grund (B, in der Mauer). Spurrillen, Rinnen und Randsteine wirken als Unebenheit aufs Licht.
 render_mode diffuse_burley, specular_schlick_ggx;
+
+#include "res://assets/shader/boden_gemein.gdshaderinc"
 
 uniform sampler2D splat0 : filter_linear, repeat_disable;
 uniform sampler2D splat1 : filter_linear, repeat_disable;
@@ -37,6 +41,8 @@ uniform sampler2D wege : filter_linear_mipmap, repeat_disable;
 uniform sampler2D wege_info : filter_linear, repeat_disable;
 // Welt-X/Z der Kachelecke
 uniform vec2 wege_ursprung = vec2(0.0);
+// Grasteppich an (Schritt 5i, Stadtansicht.Gras.cs): Die Wiese darunter wird in seinen Horsten dunkler (Schatten der Halme)
+uniform float teppich = 0.0;
 
 const float WEG_TEXEL = 0.25;
 const float WEG_BILD = 514.0;
@@ -52,7 +58,7 @@ const int T_PFLASTER = 9;
 // Rangfolge der Höhenmischung (ab Mittel): An einer Grenze gewinnt, was höher steht – Anteil (0–1) plus Texturhöhe mal HOEHE_GEWICHT plus
 // dieser Versatz. Wer weiter oben steht, wächst über die anderen: Wiese über Erde, Erde über Fels, Moos über Fels.
 const float RANG[11] = float[](
-	0.16,   // Wiese: Halme wachsen über Erde, Sand, Lehm und an den Rand von Kies und Pflaster
+	0.22,   // Wiese: Halme wachsen über Erde, Sand, Lehm und an den Rand von Kies und Pflaster (5i: von 0,16 auf 0,22, breiterer Überhang)
 	0.02,   // Erde
 	-0.06,  // Fels: alles legt sich darüber, nur die Kuppen ragen heraus
 	0.07,   // Kies: über Erde und Sand, Steine ragen aus dem Gras
@@ -72,25 +78,17 @@ const float UEBERGANG = 0.05;
 // unten) zeigt er sich ab etwa 35°
 const float HANG_AB = 0.883;
 const float HANG_VOLL = 0.766;
+// Schritt 5i (ab Mittel): ausgefranster Rand der Wiese (Stärke des feinen Rauschens in Einheiten von Anteil und Höhe), Breite der dunklen
+// Schattenkante vor dem Überhang (ebenso) und wie dunkel sie höchstens wird; an Wegen die Breite des Überhangs in Metern
+const float WIESE_FRANSEN = 0.09;
+const float SCHATTENKANTE = 0.11;
+const float SCHATTEN_DUNKEL = 0.36;
+const float WEG_UEBERHANG = 0.4;
+// Schritt 5i (Hoch): so viel kräftiger wirken die Normalen der Texturen
+const float NORMAL_STAERKE = 1.7;
 
 varying vec2 welt;
 varying vec3 welt_n;
-
-// Eine feste Zahl 0 … 1 je ganzzahligem Punkt. Mit ganzen Zahlen gerechnet: Ein Hash aus fract() reagiert so stark auf Rundung, dass
-// derselbe Gitterpunkt in zwei Nachbarzellen verschieden ausfallen kann – dann sieht man im Rauschen gerade Nähte.
-// Dieselbe Rechnung steht in Stadtansicht.Bueschel.cs (Hash).
-float hash(vec2 p) {
-	uvec2 q = uvec2(ivec2(floor(p))) * uvec2(1597334673u, 3812015801u);
-	uint n = (q.x ^ q.y) * 1597334673u;
-	return float(n >> 8u) * (1.0 / 16777216.0);
-}
-
-float rausch(vec2 p) {
-	vec2 i = floor(p);
-	vec2 f = fract(p);
-	f = f * f * (3.0 - 2.0 * f);
-	return mix(mix(hash(i), hash(i + vec2(1.0, 0.0)), f.x), mix(hash(i + vec2(0.0, 1.0)), hash(i + vec2(1.0, 1.0)), f.x), f.y);
-}
 
 void vertex() {
 	welt = (MODEL_MATRIX * vec4(VERTEX, 1.0)).xz;
@@ -170,7 +168,7 @@ Schicht eben(int nr, vec2 p, vec3 n, vec2 dx, vec2 dy) {
 			s.rau = mix(s.rau, nr_rauheit(nb), m);
 		}
 		// auf die Fläche des Geländes (UDN-Mischung): u nach Welt-X, v nach Welt-Z
-		s.n = normalize(vec3(t.x + n.x, n.y, t.y + n.z));
+		s.n = normalize(vec3(t.x * NORMAL_STAERKE + n.x, n.y, t.y * NORMAL_STAERKE + n.z));
 	}
 #endif
 #endif
@@ -198,7 +196,7 @@ Schicht dreiseitig(int nr, vec3 p, vec3 n, vec3 dpx, vec3 dpy) {
 		if (nr_da) {
 			vec4 q = textureGrad(texturen_nr, u, dpx.zy / massstab, dpy.zy / massstab);
 			vec3 tn = nr_normale(q);
-			nw = normalize(vec3(n.x, tn.y + n.y, tn.x + n.z));
+			nw = normalize(vec3(n.x, tn.y * NORMAL_STAERKE + n.y, tn.x * NORMAL_STAERKE + n.z));
 			r = nr_rauheit(q);
 		}
 		s.n += nw * b.x;
@@ -213,7 +211,7 @@ Schicht dreiseitig(int nr, vec3 p, vec3 n, vec3 dpx, vec3 dpy) {
 		if (nr_da) {
 			vec4 q = textureGrad(texturen_nr, u, dpx.xy / massstab, dpy.xy / massstab);
 			vec3 tn = nr_normale(q);
-			nw = normalize(vec3(tn.x + n.x, tn.y + n.y, n.z));
+			nw = normalize(vec3(tn.x * NORMAL_STAERKE + n.x, tn.y * NORMAL_STAERKE + n.y, n.z));
 			r = nr_rauheit(q);
 		}
 		s.n += nw * b.z;
@@ -248,11 +246,22 @@ float hmisch(float a, float ho, float ro, float hu, float ru, float breite) {
 	return bo / max(bo + bu, 0.0001);
 }
 
+// Wie hmisch, dazu (y) die Schattenkante auf der oberen Schicht (Schritt 5i): je knapper die untere – die Wiese, die in der Rangfolge darüber
+// wächst – dort verloren hat, desto dunkler; so liegt vor jedem Überhang ein schmaler Schatten.
+vec2 hmisch_schatten(float a, float ho, float ro, float hu, float ru, float breite) {
+	float so = a + HOEHE_GEWICHT * ho + ro;
+	float su = (1.0 - a) + HOEHE_GEWICHT * hu + ru;
+	float m = hmisch(a, ho, ro, hu, ru, breite);
+	return vec2(m, (1.0 - smoothstep(0.0, SCHATTENKANTE, so - su)) * m);
+}
+
 // Der Weg über dem Boden <grund> (Farbe und Höhe gh, Rang gr, Normale gn, Rauheit grau): Farbe (rgb) und Rauheit (a), die Normale in nw.
 // e = Abstand zum Rand (innen negativ), dm = Abstand zur Mitte, st = Stufe, rf = Stärke der Spurrillen, pb = Pflaster als Grund (gemalt oder
 // in der Mauer): Dort wird jeder Weg zur Gasse im Pflaster – dunkler, ausgefahren, mit einer Rinne am Rand –, ohne Erde, Gras und Randsteine.
 // Ab Mittel mischen die Ränder von Pfad, Fahrweg und Kies wie der Boden nach Höhe und Rang: Gras wächst über den Rand, Steine ragen heraus.
-vec4 weg(vec3 p3, vec3 n, vec3 dpx, vec3 dpy, float kante, vec4 grund, float gr, float grau, float e, float dm, float st, float rf,
+// Schritt 5i: Der Rand wird auf WEG_UEBERHANG Metern nach der Höhe entschieden (breiter, ausgefranster Überhang), davor liegt auf dem Weg eine
+// Schattenkante – beides nur, soweit der Boden daneben Wiese ist (gw).
+vec4 weg(vec3 p3, vec3 n, vec3 dpx, vec3 dpy, float kante, vec4 grund, float gr, float gw, float grau, float e, float dm, float st, float rf,
 		float austritt, float zustand, float pb, Schicht pflaster, bool pflaster_da, inout float hoehe, inout vec3 nw) {
 	vec2 p = p3.xz;
 	vec2 dx = dpx.xz;
@@ -286,12 +295,16 @@ vec4 weg(vec3 p3, vec3 n, vec3 dpx, vec3 dpy, float kante, vec4 grund, float gr,
 		float en = e + n1 * 0.55 + n2 * 0.25 + n3 * 0.08;
 		float streifen = halb * (1.0 - mix(0.55, 0.95, austritt));
 		float kern = 1.0 - smoothstep(-streifen - 0.15, -streifen + 0.2, en);
+		float schatten = 0.0;
 #if BODEN_STUFE >= 1
-		kern = hmisch(kern, erde.fh.a, RANG[T_ERDE], grund.a, gr, UEBERGANG);
+		vec2 hs = hmisch_schatten(1.0 - smoothstep(-streifen - WEG_UEBERHANG * 0.5, -streifen + WEG_UEBERHANG * 0.5, en),
+				erde.fh.a, RANG[T_ERDE], grund.a, gr, UEBERGANG);
+		kern = hs.x;
+		schatten = hs.y * gw;
 #endif
 		float tritt = 1.0 - smoothstep(-0.2, 0.8, en);
 		vec3 boden = mix(grund.rgb, mix(getreten, erde.fh.rgb * 0.95, step(0.62, flecken + n3 * 0.6) * 0.6), tritt);
-		farbe += mix(boden, erde.fh.rgb * mix(0.88, 1.06, n2 + 0.5), kern) * w_pd;
+		farbe += mix(boden, erde.fh.rgb * mix(0.88, 1.06, n2 + 0.5), kern) * (1.0 - SCHATTEN_DUNKEL * schatten) * w_pd;
 		rau += mix(grau, erde.rau, kern) * w_pd;
 		normale += mix(nw, erde.n, kern) * w_pd;
 	}
@@ -300,8 +313,12 @@ vec4 weg(vec3 p3, vec3 n, vec3 dpx, vec3 dpy, float kante, vec4 grund, float gr,
 	if (w_fa > 0.0) {
 		float en = e + n1 * 0.5 + n2 * 0.22 + n3 * 0.08;
 		float kern = 1.0 - smoothstep(-0.35, 0.05, en);
+		float schatten = 0.0;
 #if BODEN_STUFE >= 1
-		kern = hmisch(kern, erde.fh.a, RANG[T_ERDE], grund.a, gr, UEBERGANG);
+		vec2 hs = hmisch_schatten(1.0 - smoothstep(-0.15 - WEG_UEBERHANG * 0.5, -0.15 + WEG_UEBERHANG * 0.5, en),
+				erde.fh.a, RANG[T_ERDE], grund.a, gr, UEBERGANG);
+		kern = hs.x;
+		schatten = hs.y * gw;
 #endif
 		float tritt = 1.0 - smoothstep(-0.1, 0.9, en);
 		float spur = clamp(halb * 0.45, 0.45, 0.85);
@@ -313,7 +330,7 @@ vec4 weg(vec3 p3, vec3 n, vec3 dpx, vec3 dpy, float kante, vec4 grund, float gr,
 		float mitte = (1.0 - smoothstep(0.0, spur * 0.65, dm)) * (1.0 - austritt) * smoothstep(0.35, 0.65, flecken + 0.25 * n3) * rf;
 		f = mix(f, getreten, mitte * 0.8);
 		vec3 boden = mix(grund.rgb, mix(getreten, erde.fh.rgb, step(0.66, flecken + n3 * 0.5) * 0.5), tritt);
-		farbe += mix(boden, f, kern) * w_fa;
+		farbe += mix(boden, f, kern) * (1.0 - SCHATTEN_DUNKEL * schatten) * w_fa;
 		rau += (mix(grau, erde.rau, kern) - 0.12 * rille) * w_fa; // in den Rillen steht Feuchte
 		normale += mix(nw, erde.n, kern) * w_fa;
 		hoehe -= 0.07 * rille * kern * w_fa;
@@ -324,8 +341,11 @@ vec4 weg(vec3 p3, vec3 n, vec3 dpx, vec3 dpy, float kante, vec4 grund, float gr,
 		float en = e + n1 * 0.25 + n2 * 0.15 + n3 * 0.12;
 		Schicht k = eben(T_KIES, p, n, dx, dy);
 		float kern = 1.0 - smoothstep(-0.12, 0.08, en);
+		float schatten = 0.0;
 #if BODEN_STUFE >= 1
-		kern = hmisch(1.0 - smoothstep(-0.3, 0.2, en), k.fh.a, RANG[T_KIES], grund.a, gr, UEBERGANG);
+		vec2 hs = hmisch_schatten(1.0 - smoothstep(-0.3, 0.2, en), k.fh.a, RANG[T_KIES], grund.a, gr, UEBERGANG);
+		kern = hs.x;
+		schatten = hs.y * gw;
 #endif
 		vec2 zelle = p * 9.0;
 		vec2 id = floor(zelle);
@@ -337,7 +357,7 @@ vec4 weg(vec3 p3, vec3 n, vec3 dpx, vec3 dpy, float kante, vec4 grund, float gr,
 		if (verfall > 0.0) kz = mix(kz, mix(eben(T_ERDE, p, n, dx, dy).fh.rgb, grund.rgb, step(0.5, n3 + 0.5) * (1.0 - zustand)), clamp(verfall * 1.3, 0.0, 1.0));
 		vec3 boden = mix(grund.rgb, getreten, (1.0 - smoothstep(0.0, 0.6, en)) * 0.5);
 		float deckt = max(kern, streu);
-		farbe += mix(boden, kz, deckt) * w_ki;
+		farbe += mix(boden, kz, deckt) * (1.0 - SCHATTEN_DUNKEL * schatten) * w_ki;
 		rau += mix(grau, k.rau, deckt) * w_ki;
 		normale += mix(nw, k.n, deckt) * w_ki;
 	}
@@ -453,6 +473,7 @@ void fragment() {
 	float rau = 0.0;
 	float gr = 0.0; // Rang des Bodens (gewichtet), für die Ränder der Wege
 	float wiese = w[T_WIESE];
+	float schatten_kante = 0.0; // Schritt 5i: vor dem Überhang der Wiese (ab Mittel)
 	if (nur_stadt) {
 		wiese = 0.0;
 		nw = n;
@@ -516,6 +537,8 @@ void fragment() {
 				sr[j] = s.rau;
 #endif
 				sc[j] = an[j] + HOEHE_GEWICHT * s.fh.a + RANG[nr[j]] + (hash(vec2(float(nr[j]), 3.0)) - 0.5) * (rn - 0.5) * 0.4;
+				// der Rand der Wiese ausgefranst (feine Halmbüschel, etwa 15 cm)
+				if (nr[j] == T_WIESE) sc[j] += (rausch(welt * 7.0) - 0.5) * 2.0 * WIESE_FRANSEN;
 				hoechst = max(hoechst, sc[j]);
 			}
 			// der Übergang wird mit der Entfernung etwas breiter (weit weg flimmert eine scharfe Grenze)
@@ -535,6 +558,13 @@ void fragment() {
 				summe += b;
 			}
 			fh /= summe;
+			// die dunkle Kante vor dem Überhang: auf dem, was die Wiese knapp nicht mehr deckt
+			for (int j = 0; j < 3; j++) {
+				if (nr[j] != T_WIESE) continue;
+				float bw = max(sc[j] - hoechst + breite, 0.0) / summe;
+				schatten_kante = (1.0 - smoothstep(0.0, SCHATTENKANTE, hoechst - sc[j])) * (1.0 - bw);
+			}
+			fh.rgb *= 1.0 - SCHATTEN_DUNKEL * schatten_kante;
 #if BODEN_STUFE >= 2
 			nw = normalize(nw);
 #else
@@ -562,10 +592,8 @@ void fragment() {
 	}
 
 	// Makro-Variation: große Flecken heller und dunkler, auf der Wiese trockene (gelbliche) und satte Stellen – von weit oben keine Kacheln
-	float makro = rausch(welt * 0.011) * 0.62 + rausch(welt * 0.037 + 7.3) * 0.38;
-	fh.rgb *= mix(0.86, 1.1, makro);
-	float trocken = smoothstep(0.45, 0.8, rausch(welt * 0.021 + 11.7));
-	fh.rgb = mix(fh.rgb, fh.rgb * vec3(1.1, 1.03, 0.8), trocken * wiese * 0.7);
+	fh.rgb = makro_farbe(fh.rgb, welt, wiese, BODEN_STUFE >= 2);
+	if (teppich > 0.0 && wiese > 0.0) fh.rgb *= 1.0 - teppich * wiese * mix(0.1, 0.24, gras_horst(welt));
 
 	vec3 farbe = fh.rgb;
 	float hoehe = 0.0; // Unebenheit in Metern, wirkt nur aufs Licht (Wege; in Hoch ohne Normalenbild auch die Texturhöhe)
@@ -588,7 +616,7 @@ void fragment() {
 			rau = mix(rau, min(ps.rau, 0.88), info.b);
 		}
 		if (e < 1.9) {
-			vec4 wg = weg(p3, n, dpx, dpy, kante, vec4(farbe, fh.a), gr, rau, e, ws.r * 10.0, ws.b * 4.0, ws.a, info.r, info.g, pflaster, ps, ps_da, hoehe, nw);
+			vec4 wg = weg(p3, n, dpx, dpy, kante, vec4(farbe, fh.a), gr, wiese, rau, e, ws.r * 10.0, ws.b * 4.0, ws.a, info.r, info.g, pflaster, ps, ps_da, hoehe, nw);
 			farbe = wg.rgb;
 			rau = wg.a;
 		}

@@ -72,6 +72,13 @@ public sealed class EinstellungenAnzeige
         (Bodenqualitaet.Hoch, "Hoch (empfohlen)", "Dazu Unebenheit und Glanz im Licht, Fels am Hang ohne Verzerrung und kleine Grasbüschel an den Grenzen der Wiese."),
     };
 
+    private static readonly (Grasteppich Stufe, string Name, string Erklaerung)[] Grasstufen =
+    {
+        (Grasteppich.Aus, "Aus", "Die Wiese ist nur die Bodentextur. Kostet nichts."),
+        (Grasteppich.Dicht, "Dicht (empfohlen)", "Ein Teppich kleiner Grashalme auf der Wiese, im Wind wiegend, an Wegen niedergetreten."),
+        (Grasteppich.SehrDicht, "Sehr dicht", "Doppelt so viele Halme. Kostet mehr Grafikleistung."),
+    };
+
     private static readonly (Miniaturunschaerfe Stufe, string Name)[] Unschaerfen =
     {
         (Miniaturunschaerfe.Aus, "Aus"), (Miniaturunschaerfe.Leicht, "Leicht (empfohlen)"), (Miniaturunschaerfe.Stark, "Stark"),
@@ -135,6 +142,8 @@ public sealed class EinstellungenAnzeige
     private readonly CheckButton _oberflaeche;
     private readonly OptionButton _boden;
     private readonly Label _bodenErklaerung;
+    private readonly OptionButton _gras;
+    private readonly Label _grasErklaerung;
     private readonly OptionButton _kanten;
     private readonly Label _erklaerung;
     private readonly HSlider _schaerfe;
@@ -298,6 +307,13 @@ public sealed class EinstellungenAnzeige
             Auffrischen();
         });
         _bodenErklaerung = Hinweis(s, "");
+        var grasZeile = Zeile(s, "Gras");
+        _gras = Auswahl(grasZeile, Grasstufen.Select(g => g.Name), nummer =>
+        {
+            Fenster.GrasteppichSetzen(Grasstufen[nummer].Stufe);
+            Auffrischen();
+        });
+        _grasErklaerung = Hinweis(s, "");
         Abschnitt(s, "Kantenglättung");
         _kanten = Auswahl(s, Verfahren.Select(v => v.Name), nummer =>
         {
@@ -474,6 +490,9 @@ public sealed class EinstellungenAnzeige
         var boden = Array.FindIndex(Bodenstufen, b => b.Stufe == Fenster.AktuelleBodenqualitaet);
         _boden.Select(boden);
         _bodenErklaerung.Text = Bodenstufen[boden].Erklaerung;
+        var gras = Array.FindIndex(Grasstufen, g => g.Stufe == Fenster.AktuellerGrasteppich);
+        _gras.Select(gras);
+        _grasErklaerung.Text = Grasstufen[gras].Erklaerung;
         var nummer = Array.FindIndex(Verfahren, v => v.Art == Fenster.AktuelleKantenglaettung);
         _kanten.Select(nummer);
         _kanten.Disabled = Fenster.FsrAn; // FSR 2.2 glättet selbst; die Wahl bleibt gespeichert

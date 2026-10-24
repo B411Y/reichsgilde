@@ -66,11 +66,14 @@ public partial class Stadtansicht
             bild.Stand = stand;
             if (bild.Modell is not null) KnotenEntfernen(bild.Modell);
             bild.Modell = GrundstueckModell(g, w, minute);
+            GrasGrundstueck(g.Grundriss); // der Grasteppich weicht dem Haus (Stadtansicht.Gras.cs)
         }
         foreach (var nummer in _grundstuecksbilder.Keys.Where(n => !vorhanden.Contains(n)).ToList())
         {
             if (_grundstuecksbilder[nummer].Modell is { } modell) KnotenEntfernen(modell);
             _grundstuecksbilder.Remove(nummer);
+            _grasBlickFuer = null;
+            _grasAlles = true; // ein Grundstück ist weg (bebauter Bauplatz): selten, alles neu
         }
         // Zieht der Spieler um, steht seine Wohnstube im neuen Haus: Die Kamera fährt dorthin, wenn er es betritt.
         if (_wohnhausAnsicht is not null && _spielerKonto is { } spieler && w.Bauen.Wohnhaus(spieler) is { } haus)
