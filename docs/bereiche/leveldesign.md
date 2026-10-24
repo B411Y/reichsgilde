@@ -155,7 +155,7 @@ Fahrplan (vom Nutzer am 21.10.2026 bestätigt, je Schritt ein PR; Stand wird hie
 | 5g Wege-Engine | Wege in den Boden eingebacken (Wegeschicht als Abstandsfeld, Kreuzungen verschmelzen, Ränder je Belag) | fertig (PR #185) |
 | 5h Texturen überarbeiten | Bodentexturen gemeinsam mit dem Nutzer überarbeiten | fertig (PR #187) |
 | 5i Boden-Feinschliff | Gras-Teppich auf der ganzen Wiese, kräftigere Grenzen, lebendigerer Lehm | fertig (PR #188) |
-| 5j Wege und Stadtboden | Spurrillen biegen in Kurven ab, Erde verschmiert an Pflasterkanten, Lehm als Stadtboden, Gras auf leeren Grundstücken | in Arbeit (PR #189) |
+| 5j Wege und Stadtboden | Spurrillen biegen in Kurven ab, Erde verschmiert an Pflasterkanten, Lehm als Stadtboden, Gras auf leeren Grundstücken | fertig (PR #189) |
 | 6 Freigabe | Kartenwerkstatt für Spieler | offen |
 
 | Thema | Entscheidung | Datum |
