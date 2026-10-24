@@ -606,6 +606,7 @@ public partial class Kartenwerkstatt
             return;
         }
         UiHilfe.KinderEntfernen(_eigenschaften);
+        _stadt.WegStreckeMarkieren(null, 0, 0, 0); // das goldene Band des Belag-Abschnitts gehört zum gewählten Weg
         (_gezeigt, _nameFeld, _betriebFeld, _punktText, _drehFeld, _massstabFeld, _lageWahl, _konfessionWahl) = (teil, null, null, null, null, null, null, null);
         if (teil is null)
         {

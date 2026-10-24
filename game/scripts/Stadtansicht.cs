@@ -403,6 +403,7 @@ public partial class Stadtansicht : Node3D
         WohnhausRaeumeAnlegen(); // Wohnstube und Kontor im eigenen Wohnhaus (Stadtansicht.Wohnhaus.cs)
         // Verkauf und Kündigung zeigt die Stadt selbst; den Erwerb meldet die Hauptszene (BetriebHinzufuegen).
         w.BetriebAbgegeben += BetriebEntfernen;
+        w.Wegebau.BelagGeaendert += BelagVeraltetMelden; // geänderte Wege neu zeichnen (Stadtansicht.Wegbelag.cs)
     }
 
     private Stadtwirtschaft? _wirtschaft;
@@ -413,7 +414,11 @@ public partial class Stadtansicht : Node3D
         Fenster.VerdeckungGeaendert -= VerdeckungNachfuehren;
         GrafikAufgeben();
         OberflaecheAufgeben();
-        if (_wirtschaft is not null) _wirtschaft.BetriebAbgegeben -= BetriebEntfernen;
+        if (_wirtschaft is not null)
+        {
+            _wirtschaft.BetriebAbgegeben -= BetriebEntfernen;
+            _wirtschaft.Wegebau.BelagGeaendert -= BelagVeraltetMelden;
+        }
     }
 
     private Konto? _spielerKonto;
@@ -900,6 +905,7 @@ public partial class Stadtansicht : Node3D
         GrafikBild(delta);     // Unschärfe nach Zoom, Wolken, Dunst nach Uhrzeit (Stadtansicht.Grafik.cs)
         DunstFarbeNachfuehren(); // der Dunst am Kartenrand in der Farbe des Himmels (Stadtansicht.Rand.cs)
         WasserBild(delta);       // Himmelsfarbe im Wasser, Fähren, Tretrad der Häfen (Stadtansicht.Wasser.Uebergaenge.cs)
+        BelagBild();             // geänderte Wege neu zeichnen (Stadtansicht.Wegbelag.cs)
 
         // Beschriftungen mitskalieren, damit sie bei jedem Zoom gleich groß wirken.
         var massstab = _raum is not null ? RaumSchildMassstab : _kamera.Size / BezugsZoom;
@@ -1043,7 +1049,12 @@ public partial class Stadtansicht : Node3D
     {
         if (VogelAufscheuchen(mausposition)) return; // Klick auf einen Vogel (Stadtansicht.Voegel.cs)
         if (KennungBei(mausposition) is not { } kennung)
+        {
+            // freier Boden: vielleicht ein Weg (Stadtansicht.Wegbelag.cs)
+            if (_innen is null && GetViewport().GuiGetHoveredControl() is null && BodenPunktBei(mausposition) is { } boden && WegBeiPunkt(boden) is var (weg, stelle))
+                WegAngeklickt?.Invoke(weg, stelle);
             return;
+        }
         GebaeudeAngeklickt?.Invoke(kennung);
         if (doppelklick && AnsichtZu(kennung) is { } ansicht)
             Betreten(ansicht);

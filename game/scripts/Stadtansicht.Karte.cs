@@ -313,7 +313,8 @@ public partial class Stadtansicht
             var punkte = weg.Verlauf.Where(p => p is { Length: 2 }).Select(Punkt3).ToArray();
             if (punkte.Length < 2) continue;
             var breite = (float)weg.BreiteWirksam;
-            WegZeichnen(punkte, breite, weg.IstGlatt, luecken: WegLuecken(nummer), boden: WegBoden(nummer)); // unter Brücken kein Band, in Furten eben (Stadtansicht.Wasser.Uebergaenge.cs)
+            if (BelagMoeglich) WegBelagZeichnen(nummer, punkte, breite, neuAuchGleich: true); // Trampelpfad bis Pflaster (Stadtansicht.Wegbelag.cs)
+            else WegZeichnen(punkte, breite, weg.IstGlatt, luecken: WegLuecken(nummer), boden: WegBoden(nummer)); // unter Brücken kein Band, in Furten eben (Stadtansicht.Wasser.Uebergaenge.cs)
             for (var i = 0; i + 1 < punkte.Length; i++) _wegStrecken.Add((punkte[i], punkte[i + 1], breite));
             _netz.Weg(weg.IstGlatt ? NetzPunkte(punkte) : punkte);
         }
