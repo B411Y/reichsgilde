@@ -55,6 +55,9 @@ public enum Werkstattwerkzeug
     /// <summary>Eine Rampe zwischen zwei Punkten: zwei Klicks.</summary>
     Rampe,
 
+    /// <summary>Eine Bodentextur malen (Schritt 5e): mit gedrückter Maus; die Textur (oder der Radierer) steht in <see cref="Stadtansicht.BodenArt"/>.</summary>
+    Boden,
+
     /// <summary>Einen Fluss oder Bach zeichnen (Schritt 5c): Punkte klicken in Fließrichtung, Doppelklick oder Enter beendet.</summary>
     Fluss,
 
@@ -187,6 +190,7 @@ public partial class Stadtansicht
         WegeAufbauen();      // Stadtansicht.Kartenwerkstatt.Wege.cs
         FlaechenAufbauen();  // Stadtansicht.Kartenwerkstatt.Flaechen.cs
         PflanzenAufbauen();  // Stadtansicht.Kartenwerkstatt.Natur.cs
+        BodendekoAufbauen(); // Stadtansicht.Kartenwerkstatt.Boden.cs
         MauernAufbauen();    // Stadtansicht.Kartenwerkstatt.Mauern.cs
         WasserAufbauen();    // Stadtansicht.Kartenwerkstatt.Wasser.cs
         _wsFehlerNeu = true;
@@ -296,6 +300,9 @@ public partial class Stadtansicht
             case EntwurfGelaende:
                 if (a.Bereich is { } geaendert) GelaendeVormerken(geaendert); // Stadtansicht.Kartenwerkstatt.Gelaende.cs
                 break;
+            case EntwurfBoden:
+                if (a.Bereich is { } gemalt) BodenVormerken(gemalt); // Stadtansicht.Kartenwerkstatt.Boden.cs
+                break;
         }
         if (a.Objekt is EntwurfWeg or EntwurfMauer)
         {
@@ -329,6 +336,7 @@ public partial class Stadtansicht
         if (_wsBelegungNeu) BelegungNachziehen();
         if (_wsRandNeu) RandNeuBauen();
         GelaendeNachziehen(); // vor der Natur: Sie liest die neue Höhe (Stadtansicht.Kartenwerkstatt.Gelaende.cs)
+        BodenNachziehen();    // Bilder der Bodentexturen und ihre Deko (Stadtansicht.Kartenwerkstatt.Boden.cs)
         if (_wsWasserNeu || _wsWegeNeu) WasserNachziehen(); // Stadtansicht.Kartenwerkstatt.Wasser.cs
         NaturNachziehen();
         if (_wsNetzNeu) NetzBauen();
@@ -774,6 +782,7 @@ public partial class Stadtansicht
         ZeichnenAbbrechen();
         StrichAbbrechen();
         GelaendeWerkzeugAus(); // Stadtansicht.Kartenwerkstatt.Gelaende.cs
+        BodenWerkzeugAus();    // Stadtansicht.Kartenwerkstatt.Boden.cs
         WasserWerkzeugAus();   // Stadtansicht.Kartenwerkstatt.Wasser.cs
         var b = _entwurf?.Katalog.Finde(baustein);
         if (werkzeug == Werkstattwerkzeug.Baustein && (b is null || b.Art == Bausteinart.Natur)) werkzeug = Werkstattwerkzeug.Auswahl;
@@ -886,6 +895,9 @@ public partial class Stadtansicht
                 break;
             case Werkstattwerkzeug.Gelaende:
                 GelaendePinselZeigen(maus);
+                break;
+            case Werkstattwerkzeug.Boden:
+                BodenPinselZeigen(maus);
                 break;
             case Werkstattwerkzeug.Rampe:
                 RampeZeigen(maus);
@@ -1082,6 +1094,7 @@ public partial class Stadtansicht
                 else if (_wsTeilZiehen is not null) TeilZiehenAbbrechen();
                 else if (_wsStrich is not null) StrichAbbrechen();
                 else if (_wsGelaendeStrich) GelaendeStrichAbbrechen();
+                else if (_wsBodenStrich) BodenStrichAbbrechen();
                 else if (_wsRampeAnfang is not null) _wsRampeAnfang = null;
                 else if (_wsFaehreStart is not null) _wsFaehreStart = null;
                 else if (_wsPunkte.Count > 0) ZeichnenAbbrechen();
@@ -1099,10 +1112,11 @@ public partial class Stadtansicht
                 TeilZiehenBeenden();
                 StrichBeenden();
                 GelaendeStrichBeenden();
+                BodenStrichBeenden();
                 return true;
             case InputEventMouseButton { ButtonIndex: MouseButton.Right } rechts:
                 if (rechts.Pressed) _wsRechtsGezogen = 0;
-                else if (_wsRechtsGezogen < 6 && Kartenwerkzeug != Werkstattwerkzeug.Auswahl && _wsPunkte.Count == 0 && _wsStrich is null && !_wsGelaendeStrich) WerkzeugBeenden();
+                else if (_wsRechtsGezogen < 6 && Kartenwerkzeug != Werkstattwerkzeug.Auswahl && _wsPunkte.Count == 0 && _wsStrich is null && !_wsGelaendeStrich && !_wsBodenStrich) WerkzeugBeenden();
                 return false; // das Ziehen der Kamera läuft weiter
             case InputEventMouseMotion bewegung:
                 _wsOrt = null;
@@ -1111,6 +1125,7 @@ public partial class Stadtansicht
                 if (_wsTeilZiehen is { Aktiv: false } t && bewegung.Position.DistanceTo(t.Start) > ZiehSchwelle) t.Aktiv = true;
                 StrichWeiter(bewegung.Position);
                 GelaendeStrichWeiter(bewegung.Position);
+                BodenStrichWeiter(bewegung.Position);
                 return false;
         }
         return false;
@@ -1144,6 +1159,9 @@ public partial class Stadtansicht
                 return;
             case Werkstattwerkzeug.Gelaende:
                 GelaendeStrichBeginnen(maus); // Stadtansicht.Kartenwerkstatt.Gelaende.cs
+                return;
+            case Werkstattwerkzeug.Boden:
+                BodenStrichBeginnen(maus); // Stadtansicht.Kartenwerkstatt.Boden.cs
                 return;
             case Werkstattwerkzeug.Rampe:
                 RampeKlick(boden);

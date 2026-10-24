@@ -100,6 +100,7 @@ public partial class Stadtansicht
     private void NaturAusKarte(Stadtkarte karte)
     {
         foreach (var lage in NaturVerteilung.Alle(karte, Modellmass)) NaturSetzen(lage);
+        BodendekoAusKarte(karte); // die Deko der Bodentexturen (Stadtansicht.Boden.cs)
         NaturAufbauen();
     }
 

@@ -84,18 +84,7 @@ public partial class Stadtansicht
         _wsNaturKnoten.AddChild(knoten);
         _wsNatur[f] = knoten;
         _wsNaturAnzahl[f] = lagen.Count;
-        foreach (var art in lagen.Where(l => l.Art is { Modell: not null, Knoten: not null }).GroupBy(l => (Datei: l.Art.Modell!, Knoten: l.Art.Knoten + l.Variante)))
-        {
-            if (NaturNetz(art.Key.Datei, art.Key.Knoten) is not { } netz) continue;
-            var liste = art.ToList();
-            var vielfach = new MultiMesh { TransformFormat = MultiMesh.TransformFormatEnum.Transform3D, Mesh = netz, InstanceCount = liste.Count };
-            for (var i = 0; i < liste.Count; i++) vielfach.SetInstanceTransform(i, PflanzenLage(liste[i]));
-            knoten.AddChild(new MultiMeshInstance3D
-            {
-                Name = art.Key.Knoten, Multimesh = vielfach,
-                CastShadow = art.Key.Datei == "natur/natur_boden" ? GeometryInstance3D.ShadowCastingSetting.Off : GeometryInstance3D.ShadowCastingSetting.On,
-            });
-        }
+        LagenZeichnen(knoten, lagen); // Stadtansicht.Boden.cs
     }
 
     private void NaturEntfernen(EntwurfNaturflaeche f)
