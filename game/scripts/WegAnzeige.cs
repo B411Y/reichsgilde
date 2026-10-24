@@ -94,12 +94,28 @@ public partial class WegAnzeige : PanelContainer
         Geschlossen?.Invoke();
     }
 
+    private double _seitPruefung;
+    private string _stand = "";
+
     public override void _Process(double delta)
     {
-        if (!Visible || !_veraltet) return;
-        _veraltet = false;
-        Aufbauen();
+        if (!Visible) return;
+        if (_veraltet)
+        {
+            _veraltet = false;
+            Aufbauen();
+            return;
+        }
+        // Vermögen, Ratsantrag und Bauaufträge ändern sich von selbst: dann nur den unteren Teil neu aufbauen (die Regler bleiben unter der Maus)
+        _seitPruefung += delta;
+        if (_seitPruefung < 0.5 || _simulation?.Wirtschaft is not { } w || _spieler is null) return;
+        _seitPruefung = 0;
+        if (Stand(w) != _stand && _unten is not null && IsInstanceValid(_unten)) Auswahl(w);
     }
+
+    /// <summary>Woran die Tafel merkt, dass sich etwas von selbst geändert hat.</summary>
+    private string Stand(Stadtwirtschaft w) =>
+        $"{w.Wegebau.Antrag?.Antragsteller.Inhaber}|{Zahlenformat.Ganz(_spieler!.Vermoegen)}|{w.Wegebau.Baustellen.Count}|{_spieler.Aktionspunkte.Vorrat}";
 
     private void Befehlen(Befehl befehl)
     {
@@ -222,5 +238,6 @@ public partial class WegAnzeige : PanelContainer
             Hauptmenue.Text(_unten, "Anträge stellen nur Mitglieder des Rates.", 13, Grau);
 
         if (_meldung != "") Hauptmenue.Text(_unten, _meldung, 13, _meldungErfolg ? Gruen : Rot, umbruchBreite: Breite);
+        _stand = Stand(w);
     }
 }

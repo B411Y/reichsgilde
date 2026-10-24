@@ -1179,7 +1179,7 @@ public partial class Hauptszene : Node
     }
 
     /// <summary>
-    /// Startoptionen zum Wegbelag: <c>--wegausbau=&lt;weg&gt;,&lt;von&gt;,&lt;bis&gt;,&lt;Kies|Pflaster&gt;</c> lässt einen Abschnitt auf Kosten des Spielers ausbauen,
+    /// Startoptionen zum Wegbelag: <c>--wegausbau=&lt;weg&gt;,&lt;von&gt;,&lt;bis&gt;,&lt;Kies|Pflaster&gt;[|…]</c> lässt einen Abschnitt auf Kosten des Spielers ausbauen,
     /// <c>--wegantrag=&lt;weg&gt;,&lt;von&gt;,&lt;bis&gt;</c> stellt den Ratsantrag „Weg pflastern“ (Meter entlang des Verlaufs). Die Meldung steht im Protokoll.
     /// </summary>
     private void WegBefehleStarten(Dictionary<string, string> optionen)
@@ -1187,16 +1187,17 @@ public partial class Hauptszene : Node
         if (_simulation.Wirtschaft is not { } w || _spieler is null) return;
         double[]? Zahlen(string text, int anzahl) =>
             text.Split(',').Take(anzahl).Select(t => double.TryParse(t, System.Globalization.CultureInfo.InvariantCulture, out var f) ? f : double.NaN).ToArray() is { } z && z.Length == anzahl && z.All(d => !double.IsNaN(d)) ? z : null;
-        if (optionen.TryGetValue("wegausbau", out var ausbau))
-        {
-            var teile = ausbau.Split(',');
-            if (teile.Length == 4 && Zahlen(string.Join(',', teile.Take(3)), 3) is { } z && Enum.TryParse<Belagstufe>(teile[3], true, out var stufe))
+        if (optionen.TryGetValue("wegausbau", out var ausbauListe))
+            foreach (var ausbau in ausbauListe.Split('|', StringSplitOptions.RemoveEmptyEntries))
             {
-                var ergebnis = w.Ausfuehren(_spieler, new WegAusbauen((int)z[0], z[1], z[2], stufe));
-                Protokollieren(ergebnis.Erfolg ? ergebnis.Meldung : "✗ " + ergebnis.Meldung);
+                var teile = ausbau.Split(',');
+                if (teile.Length == 4 && Zahlen(string.Join(',', teile.Take(3)), 3) is { } z && Enum.TryParse<Belagstufe>(teile[3], true, out var stufe))
+                {
+                    var ergebnis = w.Ausfuehren(_spieler, new WegAusbauen((int)z[0], z[1], z[2], stufe));
+                    Protokollieren(ergebnis.Erfolg ? ergebnis.Meldung : "✗ " + ergebnis.Meldung);
+                }
+                else Protokollieren("--wegausbau=" + ausbau + ": gemeint ist <Weg>,<von>,<bis>,<Kies|Pflaster>.");
             }
-            else Protokollieren("--wegausbau=" + ausbau + ": gemeint ist <Weg>,<von>,<bis>,<Kies|Pflaster>.");
-        }
         if (optionen.TryGetValue("wegantrag", out var antrag))
         {
             if (Zahlen(antrag, 3) is { } z)

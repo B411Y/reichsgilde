@@ -13,6 +13,7 @@ So wird eingetragen (damit sich die Chats nie an derselben Stelle treffen):
 - Aufklappmenüs (`OptionButton`) erscheinen im Klicktest unter Xvfb/opengl3 nicht auf dem Bildschirmfoto (auch nicht in den Einstellungen, Kantenglättung): Auswahlen lassen sich dort nur per Code prüfen; zu klären, ob es am Rechner oder am Thema liegt
 - (von Kern) Oberfläche im Holzschnitt-Stil (Entscheidung in `kern.md`, „Grafikstil Holzschnitt“): Tafeln, Fenster, Rahmen, Knöpfe, Schmuck und das Hauptmenü nach und nach umstellen – Umriss, Schraffur, kolorierte Flächen, Papier- oder Pergamentgrund. Die Waren-Icons sind der erste Schritt (PR #113; neue Marktplatz-Icons macht der Nutzer gerade mit Gemini).
 - (von Kern) Die Nachfrage der Stadt wächst seit PR #177 mit den Einwohnern (`Marktstand.Grundnachfrage`, `Marktstand.Nachfrage`, `Stadtwirtschaft.Einwohner`); das Marktfenster (`MarktAnzeige.cs`) zeigt noch die Nachfrage aus den Daten (`daten.Nachfrage`). Vorschlag: `Marktstand.Nachfrage` zeigen, dazu die Einwohner der Stadt.
+- Kartenwerkstatt, Belag (Schritt 5d): Der Abschnitt wird mit zwei Reglern gewählt (goldenes Band im Bild), nicht durch Ziehen mit der Maus am Weg. Wenn das im Gebrauch zu umständlich ist, ein Ziehen im Bild nachrüsten.
 
 ## Entscheidungen
 
@@ -120,3 +121,12 @@ So wird eingetragen (damit sich die Chats nie an derselben Stelle treffen):
 | Tafel Fähre | Name, Länge, welches Gewässer sie quert (aus dem Wasserplan; ohne Gewässer der Hinweis, die Anleger an gegenüberliegende Ufer zu setzen), wie lange Karren warten (`logistik.wasser.faehreMinuten`). | 23.10.2026 |
 | Kopfzeile | „Titel · Kennung · … Gewässer, … Fähren“ zählt Gewässer und Fährstellen mit. | 23.10.2026 |
 | Startoptionen | `--werkstatt-fluss=<fluss\|bach>,<breite>,x,z;…` (Breite 0 = nach der Art, Flüsse mit `\|`), `--werkstatt-see=[teich:]x,z;…[,<wasserstand>]`, `--werkstatt-faehre=x1,z1;x2,z2` (nach den Wegen), `--werkstatt-auswahl=fluss:<Name>\|see:<Name>\|faehre:<Name>`, `--werkstatt-werkzeug=wasser:<fluss\|bach\|see\|teich\|faehre\|hafen>`. | 23.10.2026 |
+
+### Kartenwerkstatt, Schritt 5d: Wegbelag (PR #182)
+
+| Thema | Entscheidung | Datum |
+|---|---|---|
+| Wegtafel | Ein Klick auf einen Weg öffnet rechts die Wegtafel (`WegAnzeige.cs`, wie die Bautafel; schließt Kontor und Baumodus nicht, Esc schließt sie): Belag je Abschnitt (Stufe, Zustand bzw. Austritt, Verkehr, Karrentempo, „wird gebaut“), laufende Baustellen, zwei Regler für den Abschnitt (5-m-Stücke; goldenes Band im Bild), Knöpfe „Kies“ und „Pflaster bauen lassen“ mit Kosten, Bauzeit und Länge aus `Wegebau.Vorschau` (gesperrt mit Grund darunter), „Pflaster beim Rat beantragen“ mit `AntragPrognose` und AP-Kosten (nur Ratsmitglieder; liegt schon ein Antrag vor, steht er da). Der untere Teil baut sich alle 0,5 s neu auf, wenn sich Antrag, Vermögen, Baustellen oder AP ändern. Meldungen gehen ins Protokoll. | 24.10.2026 |
+| Ratstafel | Neuer Abschnitt „Wegbau der Stadt“ vor dem Stadtglauben: Wegekasse und der Antrag dieses Jahres mit Prognose; gestellt wird er an der Wegtafel. | 24.10.2026 |
+| Kartenwerkstatt | Wegtafel (Eigenschaften) mit Block „Belag“: Abschnitte als Liste, Stufe, Regler von und bis (Schieber der Werkstatt, übernimmt beim Loslassen), „Abschnitt setzen“, „Ganzer Weg“, „Vorgabe“; je ein Schritt der Geschichte (Strg+Z). | 24.10.2026 |
+| Startoptionen | `--auswahl=weg:<nr>[,<stelle>]` (Wegtafel, Kamera auf den Weg, Ort im Protokoll), `--wegausbau=<weg>,<von>,<bis>,<Kies\|Pflaster>[\|…]`, `--wegantrag=<weg>,<von>,<bis>`, `--werkstatt-belag=<weg>,<stufe>[,<von>,<bis>]` (in `CLAUDE.md`). | 24.10.2026 |

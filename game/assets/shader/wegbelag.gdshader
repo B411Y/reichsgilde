@@ -60,7 +60,7 @@ void fragment() {
 		g = mix(g, g * vec3(1.15, 1.1, 0.75), step(0.78, koernung) * 0.5);
 		vec3 e = erde * mix(0.85, 1.12, schollen) * (0.92 + 0.16 * koernung);
 		vec3 f = mix(g, e, kern);
-		float a = 1.0 - smoothstep(0.80, 1.0, aq + (kante - 0.5) * 0.35);
+		float a = 1.0 - smoothstep(0.80, 1.0, aq + (kante - 0.5) * 0.25);
 		farbe += f * w_tr;
 		deck += a * w_tr;
 	}
@@ -79,9 +79,9 @@ void fragment() {
 		float mitte = (1.0 - smoothstep(0.0, spur * 0.7, aq)) * (1.0 - austritt) * smoothstep(0.35, 0.65, flecken + 0.25 * koernung);
 		vec3 g = gras * mix(0.8, 1.15, schollen) * mix(0.75, 1.0, gruen);
 		vec3 f = mix(e, g, mitte * 0.8);
-		float rand = smoothstep(0.62, 0.92, aq + (kante - 0.5) * 0.3);
+		float rand = smoothstep(0.62, 0.92, aq + (kante - 0.5) * 0.2);
 		f = mix(f, g, rand);
-		float a = 1.0 - smoothstep(0.84, 1.0, aq + (kante - 0.5) * 0.3);
+		float a = 1.0 - smoothstep(0.84, 1.0, aq + (kante - 0.5) * 0.2);
 		farbe += f * w_fa;
 		deck += a * w_fa;
 	}
@@ -97,7 +97,7 @@ void fragment() {
 		vec3 g = gras * mix(0.8, 1.1, schollen) * mix(0.75, 1.0, gruen);
 		vec3 f = mix(k, mix(e, g, step(0.5, koernung) * (1.0 - zustand)), clamp(verfall * 1.3, 0.0, 1.0));
 		// am Rand liegt der Kies lockerer und dünner
-		float rand = smoothstep(0.78, 1.0, aq + (kante - 0.5) * 0.3);
+		float rand = smoothstep(0.78, 1.0, aq + (kante - 0.5) * 0.2);
 		f = mix(f, mix(k, e, 0.5), rand * 0.6);
 		float a = 1.0 - smoothstep(0.88, 1.0, aq + (kante - 0.5) * 0.25);
 		farbe += f * w_ki;
