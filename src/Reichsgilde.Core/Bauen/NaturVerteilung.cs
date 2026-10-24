@@ -159,16 +159,23 @@ public sealed class Naturfreiraum
         return false;
     }
 
-    private bool AufBauzone(double x, double z)
+    /// <summary>
+    /// Darf hier Deko der Bodentexturen liegen (Bodendeko)? Wege, Gebäude, Bauzonen und Gewässer mit <paramref name="rand"/> Metern Rand, die
+    /// Mauer mit <paramref name="randMauer"/> – anders als bei <see cref="Frei"/> auch in der Stadt.
+    /// </summary>
+    public bool FreiFuerBoden(double x, double z, double rand, double randMauer) =>
+        !AufWeg(x, z, rand) && !AufGebaeude(x, z, rand) && !AufBauzone(x, z, rand) && MauerAbstand(x, z) >= randMauer;
+
+    private bool AufBauzone(double x, double z, double rand = Abstand)
     {
         foreach (var (ecken, x0, z0, x1, z1) in _zonen)
         {
-            if (x < x0 - Abstand || x > x1 + Abstand || z < z0 - Abstand || z > z1 + Abstand) continue;
+            if (x < x0 - rand || x > x1 + rand || z < z0 - rand || z > z1 + rand) continue;
             if (Geometrie.ImVieleck(x, z, ecken)) return true;
             for (var i = 0; i < ecken.Count; i++)
             {
                 var (a, b) = (ecken[i], ecken[(i + 1) % ecken.Count]);
-                if (Geometrie.AbstandZurStrecke(x, z, a[0], a[1], b[0], b[1]) < Abstand) return true;
+                if (Geometrie.AbstandZurStrecke(x, z, a[0], a[1], b[0], b[1]) < rand) return true;
             }
         }
         return false;

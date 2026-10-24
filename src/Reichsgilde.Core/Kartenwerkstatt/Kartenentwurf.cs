@@ -233,6 +233,10 @@ public sealed partial class Kartenentwurf
     private readonly Gelaendeform _gelaende;
     private readonly EntwurfGelaende _gelaendeTeil = new();
 
+    /// <summary>Die Bodentexturen (Feld <c>boden</c>, Kartenentwurf.Boden.cs).</summary>
+    private readonly Bodenraster _boden;
+    private readonly EntwurfBoden _bodenTeil = new();
+
     /// <summary>Änderungen des laufenden Befehls – gemeldet erst, wenn die Geschichte den Schritt kennt (<see cref="MeldungenAusloesen"/>).</summary>
     private readonly List<Kartenaenderung> _ausstehend = new();
 
@@ -257,11 +261,12 @@ public sealed partial class Kartenentwurf
 
     private Kartenentwurf(JsonObject daten, List<EntwurfGebaeude> gebaeude, Stadtkarte teile, Gebaeudekatalog katalog,
         List<EntwurfWeg> wege, List<EntwurfBauzone> bauzonen, List<EntwurfNaturflaeche> naturflaechen, List<EntwurfPflanze> pflanzen,
-        List<EntwurfMauer> mauern, EntwurfStart start, List<EntwurfFeld> felder, Hoehenraster hoehen, List<EntwurfTeil> gewaesser, List<EntwurfFaehre> faehren)
+        List<EntwurfMauer> mauern, EntwurfStart start, List<EntwurfFeld> felder, Hoehenraster hoehen, List<EntwurfTeil> gewaesser, List<EntwurfFaehre> faehren,
+        Bodenraster boden)
     {
         (_daten, _gebaeude, _teile, Katalog) = (daten, gebaeude, teile, katalog);
         (_gewaesser, _faehren) = (gewaesser, faehren);
-        _hoehen = hoehen;
+        (_hoehen, _boden) = (hoehen, boden);
         _gelaende = new Gelaendeform(hoehen, Bettlinien, () => Wasser, Kaimauern);
         (_wege, _bauzonen, _naturflaechen, _pflanzen, _mauern, _start, _felder) = (wege, bauzonen, naturflaechen, pflanzen, mauern, start, felder);
         foreach (var g in _gebaeude) g.Baustein = katalog.Finde(g.Katalog);
@@ -439,13 +444,14 @@ public sealed partial class Kartenentwurf
         if (daten["start"] is not (null or JsonObject)) throw new KartenFehler(new[] { "start ist kein Objekt." });
         var start = EntwurfStart.Aus(daten["start"]?.DeepClone() as JsonObject, Teilleser.Einzeln<Startbelegung>(daten["start"], "start"));
         var hoehen = Hoehenraster.AusJson(daten["hoehen"]);
+        var boden = Bodenraster.AusJson(daten["boden"]);
         var gewaesser = Teilleser.Liste<Gewaesser>(daten["wasser"], "Gewässer")
             .Select(x => x.Wert.IstLinie ? (EntwurfTeil)EntwurfFluss.Aus(x.Wert, x.Vorlage) : EntwurfSee.Aus(x.Wert, x.Vorlage)).ToList();
         var faehren = Teilleser.Liste<Uebergang>(daten["uebergaenge"], "Übergang").Select(x => EntwurfFaehre.Aus(x.Wert, x.Vorlage)).ToList();
 
         // Die übrigen Teile mit dem Leser der Stadtkarte (ohne Prüfung)
         var rest = daten.DeepClone().AsObject();
-        foreach (var k in new[] { "gebaeude", "wege", "bauzonen", "natur", "mauern", "start", "hoehen", "wasser", "uebergaenge" }) rest.Remove(k);
+        foreach (var k in new[] { "gebaeude", "wege", "bauzonen", "natur", "mauern", "start", "hoehen", "boden", "wasser", "uebergaenge" }) rest.Remove(k);
         Stadtkarte teile;
         try
         {
@@ -456,17 +462,17 @@ public sealed partial class Kartenentwurf
         {
             throw new KartenFehler(new[] { $"Die Karte ist nicht lesbar ({ex.Path}): {ex.Message}" });
         }
-        return new Kartenentwurf(MitAbschnitten(daten), gebaeude, teile, katalog, wege, bauzonen, flaechen, pflanzen, mauern, start, felder, hoehen, gewaesser, faehren);
+        return new Kartenentwurf(MitAbschnitten(daten), gebaeude, teile, katalog, wege, bauzonen, flaechen, pflanzen, mauern, start, felder, hoehen, gewaesser, faehren, boden);
     }
 
     /// <summary>
     /// Die Abschnitte in der Reihenfolge, in der das alte Werkzeug sie schrieb (karte.py), dahinter die Felder für Kartenskripte (kamera, vorkommen,
-    /// fiktion, probeplan) und zuletzt das Höhenraster (hoehen, Schritt 5b – lange Zeilen, darum am Schluss).
+    /// fiktion, probeplan) und zuletzt Höhen- und Bodenraster (hoehen, Schritt 5b; boden, Schritt 5e – lange Zeilen, darum am Schluss).
     /// </summary>
     private static readonly string[] Reihenfolge =
     {
         "format", "kennung", "stadt", "vorlage", "einheit", "achsen", "raster", "groesse", "mitte", "rand", "gebaeude", "mauern", "wege", "bauzonen", "natur",
-        "wasser", "gelaende", "haefen", "uebergaenge", "start", "kamera", "vorkommen", "fiktion", "probeplan", "hoehen",
+        "wasser", "gelaende", "haefen", "uebergaenge", "start", "kamera", "vorkommen", "fiktion", "probeplan", "hoehen", "boden",
     };
 
     /// <summary>
@@ -477,7 +483,7 @@ public sealed partial class Kartenentwurf
     private static JsonObject MitAbschnitten(JsonObject daten)
     {
         var liste = daten.Select(e => (e.Key, Wert: e.Value?.DeepClone())).ToList();
-        foreach (var fehlt in new[] { "groesse", "mitte", "rand", "mauern", "wege", "bauzonen", "natur", "wasser", "uebergaenge", "start", "kamera", "hoehen" }
+        foreach (var fehlt in new[] { "groesse", "mitte", "rand", "mauern", "wege", "bauzonen", "natur", "wasser", "uebergaenge", "start", "kamera", "hoehen", "boden" }
                      .Where(k => !daten.ContainsKey(k)))
         {
             var davor = Reihenfolge.TakeWhile(k => k != fehlt).ToHashSet();
@@ -503,7 +509,7 @@ public sealed partial class Kartenentwurf
         };
         return new Kartenentwurf(MitAbschnitten(daten), new List<EntwurfGebaeude>(), new Stadtkarte { Kennung = kennung, Stadt = stadt, Groesse = new[] { breite, tiefe } },
             katalog, new List<EntwurfWeg>(), new List<EntwurfBauzone>(), new List<EntwurfNaturflaeche>(), new List<EntwurfPflanze>(), new List<EntwurfMauer>(),
-            new EntwurfStart(), new List<EntwurfFeld>(), new Hoehenraster(), new List<EntwurfTeil>(), new List<EntwurfFaehre>());
+            new EntwurfStart(), new List<EntwurfFeld>(), new Hoehenraster(), new List<EntwurfTeil>(), new List<EntwurfFaehre>(), new Bodenraster());
     }
 
     /// <summary>
@@ -567,6 +573,10 @@ public sealed partial class Kartenentwurf
                 case "hoehen":
                     // nur Kacheln mit Punkten in der Karte (Spielfeld und Rand) und nicht ganz 0; ein flaches Gelände fällt weg
                     if (_hoehen.AlsJson(Kartengrenzen.Aussen) is { } hoehen) aus[k] = hoehen;
+                    continue;
+                case "boden":
+                    // ebenso: nur Kacheln mit Punkten in der Karte; alles Wiese ohne Deko fällt weg
+                    if (_boden.AlsJson(Kartengrenzen.Aussen) is { } boden) aus[k] = boden;
                     continue;
             }
             if (Freiwillig.Contains(k) && v is null or JsonArray { Count: 0 } or JsonObject { Count: 0 }) continue;

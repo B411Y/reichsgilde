@@ -74,5 +74,18 @@
     {"kennung": "einwohner_wohnhaus", "art": "einwohnerhaus", "name": "Wohnhaus (Einwohner)", "modell": "gebaeude/einwohner_wohnhaus", "hausart": "Wohnhaus", "groesse": [6, 6]},
     {"kennung": "einwohner_buergerhaus", "art": "einwohnerhaus", "name": "Bürgerhaus (Einwohner)", "modell": "gebaeude/einwohner_buergerhaus", "hausart": "Buergerhaus", "groesse": [8, 8]},
     {"kennung": "einwohner_ratsherrenhaus", "art": "einwohnerhaus", "name": "Ratsherrenhaus (Einwohner)", "modell": "gebaeude/einwohner_ratsherrenhaus", "hausart": "Ratsherrenhaus", "groesse": [8, 8]}
+  ],
+  "bodentexturen": [
+    {"kennung": "wiese", "name": "Wiese", "farbe": "#7d9a52", "dichte": 3, "deko": {"gras": 8, "wildblumen": 2, "maulwurfshuegel": 0.2}},
+    {"kennung": "erde", "name": "Erde", "farbe": "#7a5c3e", "dichte": 0.6, "deko": {"gras": 2, "kiesel": 1, "brennnessel": 0.5}},
+    {"kennung": "fels", "name": "Fels", "farbe": "#8a8580", "dichte": 1.5, "deko": {"felsbrocken": 5, "kiesel": 3, "findling": 1, "lesesteinhaufen": 0.5}},
+    {"kennung": "kies", "name": "Kies", "farbe": "#a59c8a", "dichte": 3, "deko": {"kiesel": 1}},
+    {"kennung": "waldboden", "name": "Waldboden", "farbe": "#4f5a32", "dichte": 3, "deko": {"farn": 6, "pilze": 2, "totholz": 1, "reisighaufen": 0.5, "stumpf": 0.3}},
+    {"kennung": "sand", "name": "Sand", "farbe": "#c9b27e", "dichte": 0.5, "deko": {"kiesel": 2, "gras": 1}},
+    {"kennung": "schlamm", "name": "Schlamm am Ufer", "farbe": "#5a4e36", "dichte": 2, "deko": {"schilf": 6, "ufersteine": 1}},
+    {"kennung": "moos", "name": "Moos", "farbe": "#5f7a3a", "dichte": 1.5, "deko": {"farn": 2, "pilze": 2, "kiesel": 1, "felsbrocken": 0.3}},
+    {"kennung": "lehm", "name": "Festgetretener Lehm", "farbe": "#a07a50", "dichte": 0},
+    {"kennung": "pflaster", "name": "Kopfsteinpflaster", "farbe": "#76736c", "dichte": 0},
+    {"kennung": "mist", "name": "Mist und Hof", "farbe": "#5b4a2e", "dichte": 0.3, "deko": {"brennnessel": 1}}
   ]
 }
