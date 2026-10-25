@@ -68,8 +68,8 @@ public partial class Hauptszene
     }
 
     /// <summary>
-    /// Eine Meldung zum Schiff eines anderen Hauses (Kauf, Ankunft in der fernen Stadt, Heimkehr, Piraten) oder der Kauf eines eigenen (den meldet schon
-    /// der Befehl)? Sie steht nur im Protokoll des Jahres, nicht unten links. Der Kern nennt das Schiff mit Besitzer („Möwe (Haus Eisenbart)“) bzw. beim
+    /// Eine Meldung zum Schiff eines anderen Hauses (Kauf, Auftrag und Geleit der KI, Ankunft in der fernen Stadt, Heimkehr, Piraten) oder der Kauf eines
+    /// eigenen (den meldet schon der Befehl)? Sie steht nur im Protokoll des Jahres, nicht unten links. Der Kern nennt das Schiff mit Besitzer („Möwe (Haus Eisenbart)“) bzw. beim
     /// Kauf mit Namen in Anführungszeichen.
     /// </summary>
     private bool IstFremdeSchiffsmeldung(string meldung)
@@ -79,7 +79,9 @@ public partial class Hauptszene
         {
             // Den Kauf melden Stadt und Befehl: das eigene Schiff nur einmal (die Antwort des Befehls nennt Preis und Unterhalt)
             if (meldung.StartsWith(s.Besitzer.Inhaber + " kauft ") && meldung.Contains($"„{s.Name}“")) return true;
-            if (s.Besitzer != _spieler && meldung.Contains($"{s.Name} ({s.Besitzer.Inhaber})")) return true;
+            if (s.Besitzer == _spieler) continue;
+            if (meldung.Contains($"{s.Name} ({s.Besitzer.Inhaber})")) return true;
+            if (meldung.StartsWith(s.Besitzer.Inhaber + ": ") && meldung.Contains(s.Name)) return true; // Züge der KI: „Haus Brendel: schickt Möwe nach …“
         }
         return false;
     }
