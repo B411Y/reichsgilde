@@ -58,7 +58,7 @@ import bausteine as bs  # noqa: E402
 from bausteine import Matrix, Vector  # noqa: E402
 import figuren as fg  # noqa: E402  (Hand der Bewegung „Saegen“ für den Griff der Steinsäge, Arbeitshöhen)
 import innenausbau as ia  # noqa: E402  (Böden, Putz, Decke, Treppe, Dachboden, Prüfbericht, Vorschau)
-import schmied_innen as si  # noqa: E402  (Mauern mit Fugen, Fenster, Steinboden, Pult, Türen, Werkzeugwand, Kisten, Anker)
+import schmied_innen as si  # noqa: E402  (Mauern, Fenster, Steinboden, Pult, Türen, Werkzeugwand, Kisten, Anker)
 import steinmetz  # noqa: E402  (Säule und Quaderstapel wie außen)
 import tischler_innen as ti  # noqa: E402  (Hoftor, Schürzen, Laterne, Fenster in dünnen Wänden, Animation, Export)
 
@@ -251,21 +251,11 @@ def tor(netz, st, M, b, h):
 
 
 def vermauert(netz, st):
-    """Stufe 1 und 2: Die Öffnung zur späteren Bauhütte ist mit Bruchstein zugemauert, etwas zurückgesetzt, mit Fugen."""
+    """Stufe 1 und 2: Die Öffnung zur späteren Bauhütte ist mit Bruchstein zugemauert, etwas zurückgesetzt (das Mauerwerk
+    zeichnen die Oberflächendetails)."""
     x0, x1 = HUETTENTUER_X - HUETTENTUER_B / 2, HUETTENTUER_X + HUETTENTUER_B / 2
     y = WY1 + 0.05
-    netz.vieleck_nach([(x0, y, 0), (x1, y, 0), (x1, y, HUETTENTUER_H), (x0, y, HUETTENTUER_H)], (0, -1, 0), st["Bruch dunkel"])
-    zufall = random.Random(17)
-    f = 0.014
-    for k, z in enumerate((0.38, 0.78, 1.16, 1.52, 1.92)):
-        netz.vieleck_nach([(x0, y - 0.003, z - f), (x1, y - 0.003, z - f), (x1, y - 0.003, z + f), (x0, y - 0.003, z + f)], (0, -1, 0),
-                          st["Fuge"])
-        unten = (0.0, 0.38, 0.78, 1.16, 1.52)[k]
-        x = x0 + zufall.uniform(0.15, 0.45)
-        while x < x1 - 0.12:
-            netz.vieleck_nach([(x - 0.012, y - 0.003, unten + f), (x + 0.012, y - 0.003, unten + f), (x + 0.012, y - 0.003, z - f),
-                               (x - 0.012, y - 0.003, unten + f + (z - f - unten - f))], (0, -1, 0), st["Fuge"])
-            x += zufall.uniform(0.35, 0.55)
+    netz.vieleck_nach([(x0, y, 0), (x1, y, 0), (x1, y, HUETTENTUER_H), (x0, y, HUETTENTUER_H)], (0, -1, 0), st["Bruchstein dunkel"])
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -1089,7 +1079,7 @@ def bauen():
     H = HUETTEN_OEFFNUNGEN
     kanten = ecken(HX0, HX1, HY0, HY1)
     huette.alle = True
-    si.wand(huette, st, *kanten["vorne"], H_HUETTE, H["vorne"], stoff="Bruch", aussen=False, laibung=False, fugen=True, saat=9)
+    si.wand(huette, st, *kanten["vorne"], H_HUETTE, H["vorne"], stoff="Bruchstein", aussen=False, laibung=False)
     bretterwand(huette, st, *kanten["rechts"], H_HUETTE, H["rechts"], enden=(False, True))
     bretterwand(huette, st, *kanten["hinten"], H_HUETTE, H["hinten"], eckpfosten=(False, False))
     bretterwand(huette, st, *kanten["links"], H_HUETTE, H["links"], enden=(True, False))

@@ -69,8 +69,6 @@ def bauen():
         "vorn og": bs.wandmatrix((CX, yo, Z_OG), "vorne"), "rechts og": bs.wandmatrix((X1, (yo + Y1) / 2, Z_OG), "rechts"),
         "links og": bs.wandmatrix((X0, (yo + Y1) / 2, Z_OG), "links"), "hinten og": bs.wandmatrix((CX, Y1, Z_OG), "hinten"),
     }
-    for name, L in (("vorn", 2 * HW), ("rechts", Y1 - Y0), ("links", Y1 - Y0), ("hinten", 2 * HW)):
-        bs.fugen(haus, M[name], L - 0.02, 0.0, H_EG, st, abstand=0.36)
 
     F = "fenster"
     klein = dict(v=1.1, b=0.6, h=0.75)
@@ -481,8 +479,6 @@ def gildenhaus(netz, st):
     M_r = bs.wandmatrix((x1, cy, 0.0), "rechts")
     M_vo = bs.wandmatrix((cx, y0, h1), "vorne")
     M_ro = bs.wandmatrix((x1, cy, h1), "rechts")
-    bs.fugen(netz, M_v, x1 - x0 - 0.02, 0.0, h1, st, abstand=0.36)
-    bs.fugen(netz, M_r, y1 - y0 - 0.02, 0.0, h1, st, abstand=0.36)
     tuer = Oeffnung("tuer", -1.2, 0.0, 1.0, 2.0)
     bs.tuer(netz, M_v, tuer, st)
     netz.quader((tuer.u, -0.06, tuer.h + 0.08), (1.4, 0.12, 0.16), st["Holz alt"], M_v, ohne=("+y",))

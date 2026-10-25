@@ -30,7 +30,6 @@ FLAECHE = (16.0, 14.0)
 # Farben nur für dieses Modell (wie beim Stadtpalais; jedes Modell läuft in einem eigenen Prozess)
 bs.FARBEN.update({
     "Palaststein": (0.70, 0.66, 0.58),
-    "Fuge": (0.55, 0.52, 0.46),
     "Pflaster": (0.52, 0.49, 0.44),
     "Buchs": (0.20, 0.31, 0.15),
 })
@@ -100,7 +99,7 @@ def fenster_setzen(netz, st, oeffnungen, M, liste, verdachung=False):
 
 
 def haupthaus(netz, st, oeffnungen):
-    """Haupthaus hinten: drei Geschosse, Gesimse, Lagerfugen, Steinfenster, Schieferdach mit Traufe zum Hof,
+    """Haupthaus hinten: drei Geschosse, Gesimse, Steinfenster, Schieferdach mit Traufe zum Hof,
     Treppengiebel an beiden Seiten, Gauben vorn und hinten, zwei Schornsteine."""
     stein = st["Palaststein"]
     tief, ym = HH - HV, (HV + HH) / 2
@@ -117,8 +116,6 @@ def haupthaus(netz, st, oeffnungen):
     M_hinten = bs.wandmatrix((0, HH, Z_SOCKEL), "hinten")
     M_r = bs.wandmatrix((HX, ym, Z_SOCKEL), "rechts")
     M_l = bs.wandmatrix((-HX, ym, Z_SOCKEL), "links")
-    for M, L in ((M_hof, 2 * HX), (M_hinten, 2 * HX), (M_r, tief), (M_l, tief)):
-        bs.fugen(netz, M, L - 0.02, 0.0, sum(GESCHOSSE), st)
     F = "fenster"
     eg = dict(v=1.0, b=1.0, h=1.5)
     og1 = dict(v=v1 + 0.7, b=1.0, h=1.7)
@@ -181,8 +178,6 @@ def fluegel(netz, st, oeffnungen, sx):
     M_vorn = bs.wandmatrix((xm, FV, Z_SOCKEL), "vorne")
     M_innen = bs.wandmatrix((sx * FI, ym, Z_SOCKEL), innen)
     M_aussen = bs.wandmatrix((sx * FA, ym, Z_SOCKEL), aussen)
-    for M, L in ((M_vorn, breite), (M_innen, lang), (M_aussen, lang)):
-        bs.fugen(netz, M, L - 0.02, 0.0, h, st)
     F = "fenster"
     eg = dict(v=1.0, b=0.9, h=1.4)
     og = dict(v=v1 + 0.6, b=0.9, h=1.5)
@@ -213,7 +208,6 @@ def torhaus(netz, wappen, fahne, st, oeffnungen):
         netz.quader(((a + b) / 2, MAUER_Y + MAUER_D / 2, MAUER_H / 2), (b - a, MAUER_D, MAUER_H), stein, ohne=("-x", "+x"))
         netz.quader(((a + b) / 2, MAUER_Y + MAUER_D / 2, MAUER_H + 0.08), (b - a, MAUER_D + 0.14, 0.16), st["Sandstein"],
                     ohne=("-x", "+x"))
-        bs.fugen(netz, bs.wandmatrix(((a + b) / 2, MAUER_Y, 0), "vorne"), b - a - 0.02, 0.0, MAUER_H, st)
     netz.quader((0, ym, T_HOCH / 2), (2 * TX, tief, T_HOCH), stein, ohne=("+z",))      # ohne Sockel: die Durchfahrt reicht bis zum Boden
     bs.gesims(netz, st, -TX, TX, FRONT, T_HINTEN, T_HOCH, hoehe=0.22, vor=0.12)
     bs.gesims(netz, st, -TX, TX, FRONT, T_HINTEN, Z_SOCKEL + 3.6, hoehe=0.16, vor=0.07)
@@ -222,8 +216,6 @@ def torhaus(netz, wappen, fahne, st, oeffnungen):
             bs.eckquader(netz, st, sx * TX, y, sx, sy, 0.0, T_HOCH)
     M_vorn = bs.wandmatrix((0, FRONT, 0), "vorne")
     M_hof = bs.wandmatrix((0, T_HINTEN, 0), "hinten")
-    for M in (M_vorn, M_hof):
-        bs.fugen(netz, M, 2 * TX - 0.02, 0.0, T_HOCH, st)
     tor = Oeffnung("tuer", 0.0, 0.0, 2.4, 3.5)
     bs.portal(netz, M_vorn, tor, st)
     oeffnungen.append((M_vorn, tor))

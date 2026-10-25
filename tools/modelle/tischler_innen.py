@@ -57,7 +57,7 @@ bs.FARBEN.update({
     "Spaene": (0.82, 0.70, 0.50),          # frische Hobelspäne
     "Saegemehl": (0.72, 0.60, 0.43),
     "Leim": (0.36, 0.23, 0.10),            # Knochenleim im Topf
-    "Ziegel": (0.52, 0.30, 0.22),          # Leimofen
+    "Ziegelstein": (0.52, 0.30, 0.22),     # Leimofen (in den Oberflächendetails mit Mauerstruktur)
 })
 
 # ── Maße ─────────────────────────────────────────────────────────────────────
@@ -385,10 +385,7 @@ def leimzwingen(netz, st):
     Schraubzwingen an einer Leiste daneben. Alles liegt vor dem Leimtisch: Die Klickfläche (Umriss des Knotens) soll
     die des Tischs nicht überdecken."""
     ofen = Vector((WX1 - 0.4, -2.85, 0))
-    netz.quader(ofen + Vector((0, 0, 0.31)), (0.6, 0.55, 0.62), st["Ziegel"], ohne=("-z",))
-    for k in range(1, 6):                                                                         # Fugen
-        z = 0.105 * k
-        netz.quader(ofen + Vector((0, 0, z)), (0.604, 0.554, 0.012), st["Fuge"], ohne=("-z", "+z"))
+    netz.quader(ofen + Vector((0, 0, 0.31)), (0.6, 0.55, 0.62), st["Ziegelstein"], ohne=("-z",))
     netz.vieleck_nach([ofen + Vector(v) for v in ((-0.302, -0.12, 0.08), (-0.302, 0.12, 0.08), (-0.302, 0.12, 0.28),
                                                    (-0.302, -0.12, 0.28))], (-1, 0, 0), st["Glut"])
     netz.quader(ofen + Vector((-0.31, 0, 0.3)), (0.02, 0.3, 0.04), st["Eisen"], ohne=("+x",))

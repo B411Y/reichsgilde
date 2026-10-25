@@ -3,50 +3,27 @@ using Godot;
 namespace Reichsgilde;
 
 /// <summary>
-/// Die Oberflächendetails (Grafikoption, <see cref="Fenster.OberflaechendetailsAn"/>) – ein Teil der <c>partial class Stadtansicht</c>.
+/// Die Oberflächendetails (immer an, seit 25.10.2026 keine Grafikoption mehr) – ein Teil der <c>partial class Stadtansicht</c>.
 ///
 /// Die Arbeit mit den Materialien steht in <see cref="Oberflaechendetails"/>; hier ist die Verdrahtung:
 /// <list type="bullet">
-/// <item>Beim Einschalten wird alles umgestellt, was schon da ist, und <see cref="SceneTree.NodeAdded"/> meldet alles, was danach
+/// <item>Beim Start wird alles umgestellt, was schon da ist, und <see cref="SceneTree.NodeAdded"/> meldet alles, was danach
 /// dazukommt (Neubau, Ausbau, Karrenkauf, Passanten, Innenräume): am Ende des Bildes, wenn das Spiel das Material des neuen Knotens
-/// gesetzt hat, bekommt er sein Material mit Struktur. Ausgeschaltet hört die Stadt nicht zu und kostet nichts.</item>
-/// <item>Beim Ausschalten gehen die Materialien zurück an die Knoten: kein Rest.</item>
+/// gesetzt hat, bekommt er sein Material mit Struktur.</item>
+/// <item>Verlässt die Stadtansicht den Baum, gehen die Materialien zurück an die Knoten: kein Rest.</item>
 /// <item>Je Bild: das Nachziehen umgefärbter Materialien.</item>
 /// </list>
 /// </summary>
 public partial class Stadtansicht
 {
-    /// <summary>Null = Oberflächendetails aus. Sonst die Materialien, die sie ersetzt haben.</summary>
+    /// <summary>Die Materialien, die die Oberflächendetails ersetzt haben; null vor <c>_Ready</c> und nach <c>_ExitTree</c>.</summary>
     private Oberflaechendetails? _oberflaeche;
 
     private readonly List<Node> _oberflaecheNeu = new();
     private bool _oberflaechePlanung;
 
-    /// <summary>Einmal in <c>_Ready</c>, vor dem Aufbau: auf die Einstellung hören und die Details gleich anwenden, wenn sie an sind.</summary>
+    /// <summary>Einmal in <c>_Ready</c>, vor dem Aufbau: Was schon da ist, bekommt seine Details, und alles Neue danach auch.</summary>
     private void OberflaecheEinrichten()
-    {
-        Fenster.OberflaechendetailsGeaendert += OberflaecheNachfuehren;
-        OberflaecheNachfuehren();
-    }
-
-    /// <summary>
-    /// In <c>_ExitTree</c>: nicht mehr zuhören und dem RenderingServer sein altes Bild zurückgeben. Die abgeleiteten Materialien gehen danach
-    /// an den Müllsammler, die Knoten stehen aber noch bis zum Ende des Baums: Keiner soll dann noch auf ein freigegebenes Material zeigen.
-    /// </summary>
-    private void OberflaecheAufgeben()
-    {
-        Fenster.OberflaechendetailsGeaendert -= OberflaecheNachfuehren;
-        if (_oberflaeche is not null) OberflaecheAusschalten();
-    }
-
-    private void OberflaecheNachfuehren()
-    {
-        if (Fenster.OberflaechendetailsAn == (_oberflaeche is not null)) return;
-        if (Fenster.OberflaechendetailsAn) OberflaecheEinschalten();
-        else OberflaecheAusschalten();
-    }
-
-    private void OberflaecheEinschalten()
     {
         _oberflaeche = new Oberflaechendetails();
         GetTree().NodeAdded += OberflaecheKnotenNeu;
@@ -54,11 +31,16 @@ public partial class Stadtansicht
         foreach (var teil in FindChildren("*", nameof(MultiMeshInstance3D), true, false).OfType<MultiMeshInstance3D>()) _oberflaeche.Umstellen(teil);
     }
 
-    private void OberflaecheAusschalten()
+    /// <summary>
+    /// In <c>_ExitTree</c>: dem RenderingServer sein altes Bild zurückgeben. Die abgeleiteten Materialien gehen danach an den
+    /// Müllsammler, die Knoten stehen aber noch bis zum Ende des Baums: Keiner soll dann noch auf ein freigegebenes Material zeigen.
+    /// </summary>
+    private void OberflaecheAufgeben()
     {
+        if (_oberflaeche is null) return;
         GetTree().NodeAdded -= OberflaecheKnotenNeu;
         foreach (var teil in FindChildren("*", nameof(MeshInstance3D), true, false).OfType<MeshInstance3D>()) Oberflaechendetails.Zuruecksetzen(teil);
-        foreach (var teil in FindChildren("*", nameof(MultiMeshInstance3D), true, false).OfType<MultiMeshInstance3D>()) _oberflaeche!.Zuruecksetzen(teil);
+        foreach (var teil in FindChildren("*", nameof(MultiMeshInstance3D), true, false).OfType<MultiMeshInstance3D>()) _oberflaeche.Zuruecksetzen(teil);
         _oberflaeche = null;
         _oberflaecheNeu.Clear();
     }
@@ -87,9 +69,9 @@ public partial class Stadtansicht
         }
     }
 
-    /// <summary>Das Netz, das ein MultiMesh jetzt zeigen soll: mit Struktur, wenn die Oberflächendetails an sind (Jahreszeitwechsel der Natur).</summary>
+    /// <summary>Das Netz, das ein MultiMesh jetzt zeigen soll: mit Struktur (Jahreszeitwechsel der Natur).</summary>
     private Mesh OberflaecheNetz(Mesh netz) => _oberflaeche?.Netz(netz) ?? netz;
 
-    /// <summary>Jedes Bild, solange die Oberflächendetails an sind: umgefärbte Materialien nachziehen.</summary>
+    /// <summary>Jedes Bild: umgefärbte Materialien nachziehen.</summary>
     private void OberflaecheBild() => _oberflaeche?.Abgleichen();
 }

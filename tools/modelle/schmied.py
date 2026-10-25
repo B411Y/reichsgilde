@@ -61,8 +61,6 @@ def bauen():
     M = {s: bs.wandmatrix(p, s) for s, p in (("vorne", (CX, Y0, Z_SOCKEL)), ("rechts", (X1, CY, Z_SOCKEL)),
                                              ("hinten", (CX, Y1, Z_SOCKEL)), ("links", (X0, CY, Z_SOCKEL)))}
     L = {"vorne": X1 - X0, "hinten": X1 - X0, "rechts": Y1 - Y0, "links": Y1 - Y0}
-    for s in M:
-        bs.fugen(haus, M[s], L[s] - 0.02, 0, H_EG, st, abstand=0.45)
 
     def steinfenster(s, o, **art):
         bs.gewaende(haus, M[s], o, st, stein="Bruchstein dunkel", **art)
@@ -269,8 +267,6 @@ def anbau(netz, st, obergeschoss):
     Mv = bs.wandmatrix((cx, AY0, Z_SOCKEL), "vorne")
     Mr = bs.wandmatrix((AX1, cy, Z_SOCKEL), "rechts")
     Mh = bs.wandmatrix((cx, AY1, Z_SOCKEL), "hinten")
-    for Mx, L in ((Mv, breite), (Mr, tief), (Mh, breite)):
-        bs.fugen(netz, Mx, L - 0.02, 0, h_eg, st, abstand=0.45)
     if obergeschoss:
         # Laden: breites Fenster mit Klappläden in der Hausfarbe, unten Verkaufstisch, oben Vordach
         laden = Oeffnung("fenster", -1.0, 0.75, 2.0, 1.25)
@@ -360,10 +356,9 @@ def hinterhaus(netz, st):
         for sy, y in ((-1, y0), (1, y1)):
             bs.eckquader(netz, st, x, y, sx, sy, Z_SOCKEL, Z_SOCKEL + h, stoff="Sandstein")
     bs.gesims(netz, st, x0, x1, y0, y1, Z_SOCKEL + h - 0.05, hoehe=0.18, vor=0.08)
-    for seite, punkt, L, us in (("vorne", (cx, y0, Z_SOCKEL), x1 - x0, (-2.4, 2.4)), ("hinten", (cx, y1, Z_SOCKEL), x1 - x0, (-2.4, 0.0, 2.4)),
-                                ("links", (x0, cy, Z_SOCKEL), y1 - y0, (0.0,)), ("rechts", (x1, cy, Z_SOCKEL), y1 - y0, (0.0,))):
+    for seite, punkt, us in (("vorne", (cx, y0, Z_SOCKEL), (-2.4, 2.4)), ("hinten", (cx, y1, Z_SOCKEL), (-2.4, 0.0, 2.4)),
+                             ("links", (x0, cy, Z_SOCKEL), (0.0,)), ("rechts", (x1, cy, Z_SOCKEL), (0.0,))):
         Mx = bs.wandmatrix(punkt, seite)
-        bs.fugen(netz, Mx, L - 0.02, 0, h, st, abstand=0.45)
         for u in us:
             bs.gewaende(netz, Mx, Oeffnung("fenster", u, 2.6, 0.7, 0.9), st, gitter=True)
     Mv = bs.wandmatrix((cx, y0, Z_SOCKEL), "vorne")

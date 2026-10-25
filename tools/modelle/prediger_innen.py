@@ -419,25 +419,14 @@ def steinplatten(netz, st, x0, x1, y0, y1, z=0.0, saat=0, breite=0.5, laenge=(0.
 
 
 def sockel(netz, st, w, loecher=(), hoehe=0.95, frei=()):
-    """Sockel aus Haustein vor dem Putz (3 cm), oben ein Gesims aus Sandstein; Lager- und Stoßfugen gemalt."""
+    """Sockel aus Haustein vor dem Putz (3 cm), oben ein Gesims aus Sandstein."""
     stuecke = [(0.0, w.laenge)]
     for l in list(loecher) + [(a, b, 0.0, hoehe) for a, b in frei]:
         if l[2] < hoehe:
             stuecke = [s for x0, x1 in stuecke for s in ((x0, min(x1, l[0])), (max(x0, l[1]), x1)) if s[1] - s[0] > 0.05]
-    zufall = random.Random(int(abs(w.a.x * 13 + w.a.y * 7)))
     for u0, u1 in stuecke:
         wq(netz, st, w, u0, u1, 0.0, hoehe, 0.0, 0.03, "Haustein", ohne=("-y", "-z"))
         wq(netz, st, w, u0, u1, hoehe, hoehe + 0.07, 0.0, 0.06, "Sandstein")
-        for k, v in enumerate((0.32, 0.64)):
-            netz.vieleck_nach([w.p(u0, v - 0.006, 0.031), w.p(u1, v - 0.006, 0.031), w.p(u1, v + 0.006, 0.031), w.p(u0, v + 0.006, 0.031)],
-                              w.n, st["Fuge"])
-        for k in range(3):
-            v0, v1 = (0.0, 0.32, 0.64, hoehe)[k:k + 2]
-            u = u0 + zufall.uniform(0.15, 0.5)
-            while u < u1 - 0.15:
-                netz.vieleck_nach([w.p(u - 0.006, v0, 0.031), w.p(u + 0.006, v0, 0.031), w.p(u + 0.006, v1, 0.031), w.p(u - 0.006, v1, 0.031)],
-                                  w.n, st["Fuge"])
-                u += zufall.uniform(0.5, 0.75)
 
 
 def weihekreuz(netz, st, w, u, v):

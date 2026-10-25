@@ -219,7 +219,7 @@ public partial class Stadtansicht
         FeldJahreszeit(); // die Äcker liegen im Winter kahl da (Stadtansicht.Rand.cs)
 
         var winter = jahreszeit == Jahreszeit.Winter;
-        foreach (var (vielfach, sommerNetz, winterNetz) in _naturWinter) vielfach.Mesh = OberflaecheNetz(winter ? winterNetz : sommerNetz); // mit Struktur, wenn die Oberflächendetails an sind
+        foreach (var (vielfach, sommerNetz, winterNetz) in _naturWinter) vielfach.Mesh = OberflaecheNetz(winter ? winterNetz : sommerNetz); // mit Struktur (Oberflächendetails)
         _kronen.RemoveAll(k => !IsInstanceValid(k.Knoten));
         foreach (var (knoten, aeste) in _kronen) knoten.Visible = aeste == winter;
     }

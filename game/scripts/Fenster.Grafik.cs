@@ -21,7 +21,7 @@ public partial class Fenster
     /// dynamische Auflösung, Fahnen und Barrierefreiheit sind Geschmack oder Bildschirm und bleiben, wie der Spieler sie gestellt hat.</summary>
     public readonly record struct Grafikstufe(
         Kantenglaettung Kanten, Schattenqualitaet Schatten, Umgebungsverdeckung Verdeckung, bool Indirekt, bool Bloom,
-        bool Fsr, int Renderaufloesung, bool Oberflaeche, int Natur, int Passanten, Feinheiten Feinheiten,
+        bool Fsr, int Renderaufloesung, int Natur, int Passanten, Feinheiten Feinheiten,
         Miniaturunschaerfe Unschaerfe, bool Wolken, Morgendunst Dunst, Bodenqualitaet Boden, Grasteppich Gras);
 
     /// <summary>
@@ -32,16 +32,16 @@ public partial class Fenster
     {
         // Ohne FSR: Auf der T400 kostete FSR 2.2 mit 67 % in Niedrig mehr, als es sparte (GPU 10,3 gegen 8,7 ms je Bild).
         Voreinstellung.Niedrig => new(Kantenglaettung.Fxaa, Schattenqualitaet.Niedrig, Umgebungsverdeckung.Aus, false, false,
-                                      false, StandardRenderaufloesung, false, 50, 50, Feinheiten.Nah, Miniaturunschaerfe.Aus, false, Morgendunst.Aus,
+                                      false, StandardRenderaufloesung, 50, 50, Feinheiten.Nah, Miniaturunschaerfe.Aus, false, Morgendunst.Aus,
                                       Bodenqualitaet.Niedrig, Grasteppich.Aus),
         Voreinstellung.Mittel => new(Kantenglaettung.Smaa, Schattenqualitaet.Mittel, Umgebungsverdeckung.Niedrig, false, true,
-                                     false, StandardRenderaufloesung, true, 75, 75, Feinheiten.Mittel, Miniaturunschaerfe.Aus, true, Morgendunst.Aus,
+                                     false, StandardRenderaufloesung, 75, 75, Feinheiten.Mittel, Miniaturunschaerfe.Aus, true, Morgendunst.Aus,
                                      Bodenqualitaet.Mittel, Grasteppich.Aus),
         Voreinstellung.Ultra => new(Kantenglaettung.Msaa4, Schattenqualitaet.Hoch, Umgebungsverdeckung.Hoch, true, true,
-                                    false, StandardRenderaufloesung, true, 100, 100, Feinheiten.Weit, Miniaturunschaerfe.Leicht, true, Morgendunst.Hoch,
+                                    false, StandardRenderaufloesung, 100, 100, Feinheiten.Weit, Miniaturunschaerfe.Leicht, true, Morgendunst.Hoch,
                                     Bodenqualitaet.Hoch, Grasteppich.SehrDicht),
         _ => new(Kantenglaettung.Smaa, Schattenqualitaet.Hoch, Umgebungsverdeckung.Mittel, false, true,
-                 false, StandardRenderaufloesung, true, 100, 100, Feinheiten.Weit, Miniaturunschaerfe.Leicht, true, Morgendunst.Niedrig,
+                 false, StandardRenderaufloesung, 100, 100, Feinheiten.Weit, Miniaturunschaerfe.Leicht, true, Morgendunst.Niedrig,
                  Bodenqualitaet.Hoch, Grasteppich.Dicht),
     };
 
@@ -51,7 +51,7 @@ public partial class Fenster
     /// <summary>Die Regler, wie sie gerade stehen.</summary>
     public static Grafikstufe AktuelleStufe => new(
         AktuelleKantenglaettung, AktuelleSchattenqualitaet, AktuelleUmgebungsverdeckung, IndirektesLichtAn, BloomAn,
-        FsrAn, Renderaufloesung, OberflaechendetailsAn, NaturDichte, PassantenMenge, AktuelleFeinheiten,
+        FsrAn, Renderaufloesung, NaturDichte, PassantenMenge, AktuelleFeinheiten,
         AktuelleUnschaerfe, WolkenschattenAn, AktuellerDunst, AktuelleBodenqualitaet, AktuellerGrasteppich);
 
     /// <summary>
@@ -85,7 +85,6 @@ public partial class Fenster
         IndirektesLichtSetzen(s.Indirekt, speichern);
         BloomSetzen(s.Bloom, BloomStaerke, speichern);
         FsrSetzen(s.Fsr, s.Fsr ? s.Renderaufloesung : Renderaufloesung, speichern);
-        OberflaechendetailsSetzen(s.Oberflaeche, speichern);
         NaturDichteSetzen(s.Natur, speichern);
         PassantenMengeSetzen(s.Passanten, speichern);
         FeinheitenSetzen(s.Feinheiten, speichern);
@@ -627,7 +626,6 @@ public partial class Fenster
         if (Art<Voreinstellung>("voreinstellung", out var voreinstellung)) VoreinstellungSetzen(voreinstellung, speichern: false);
         if (Art<Kantenglaettung>("kanten", out var kanten)) KantenglaettungSetzen(kanten, speichern: false);
         if (Art<Schattenqualitaet>("schatten", out var schatten)) SchattenqualitaetSetzen(schatten, speichern: false);
-        if (optionen.TryGetValue("oberflaeche", out var oberflaeche)) OberflaechendetailsSetzen(An(oberflaeche), speichern: false);
         if (optionen.ContainsKey("bloom") || optionen.ContainsKey("bloomstaerke")) // was fehlt, bleibt wie eingestellt
             BloomSetzen(optionen.TryGetValue("bloom", out var bloom) ? An(bloom) : BloomAn,
                         Zahl("bloomstaerke", out var bloomStaerke) ? bloomStaerke : BloomStaerke, speichern: false);

@@ -79,7 +79,7 @@ FARBEN = {
     "Scheitholz": (0.60, 0.48, 0.33),      # Hirnholz am Holzstapel
     # Steinhaus (Patrizier): Haustein, Sandstein, Schiefer
     "Haustein": (0.53, 0.52, 0.49),        # graues Mauerwerk der Wände
-    "Fuge": (0.40, 0.39, 0.37),            # Lagerfugen im Mauerwerk
+    "Fuge": (0.40, 0.39, 0.37),            # dunkle Rillen (Inschrift, Schnitt, Loch); das Mauerwerk zeichnen die Oberflächendetails
     "Sandstein": (0.74, 0.64, 0.48),       # warmer Stein für Eckquader, Gewände, Gesimse
     "Schiefer": (0.27, 0.29, 0.33),
     "Schieferkante": (0.17, 0.18, 0.21),
@@ -748,15 +748,9 @@ def pferd(netz, st, ort, winkel):
 
 
 def steingiebel(netz, st, M, L, hoch, oeffnungen, stoff="Bruchstein", mit_fenster=True):
-    """Giebeldreieck aus Mauerwerk mit Lagerfugen (je Höhe so breit wie der Giebel) und einem Steinfenster."""
+    """Giebeldreieck aus Mauerwerk und einem Steinfenster."""
     halb = L / 2
     platte(netz, M, [(-halb, 0), (halb, 0), (0, hoch)], 0, 0.4, st[stoff])
-    v = 0.42
-    while v < hoch - 0.4:
-        b = halb * (1 - (v + 0.014) / hoch) - 0.03
-        netz.vieleck([M @ Vector(p) for p in ((-b, -0.003, v - 0.014), (b, -0.003, v - 0.014),
-                                               (b, -0.003, v + 0.014), (-b, -0.003, v + 0.014))], st["Fuge"])
-        v += 0.42
     if mit_fenster and hoch > 2.2:
         o = Oeffnung("fenster", 0.0, 0.6, 0.6, 0.85, laeden=False)
         gewaende(netz, M, o, st, kreuz=False)
@@ -766,7 +760,7 @@ def steingiebel(netz, st, M, L, hoch, oeffnungen, stoff="Bruchstein", mit_fenste
 def treppengiebel(netz, st, M, halb, z_dach0, tan, oeffnungen, fenster, stufen=5, oben_halb=0.45, dicke=0.45,
                   stoff="Haustein"):
     """Treppengiebel über einer Wand der halben Breite `halb`: Mauerscheibe mit Stufen, die über das Dach ragen,
-    Sandsteinplatten auf jeder Stufe, Lagerfugen und Fenster (`fenster`: Liste von Öffnungen).
+    Sandsteinplatten auf jeder Stufe und Fenster (`fenster`: Liste von Öffnungen).
     `z_dach0`: Höhe der Dachoberfläche an der Wandkante über dem Fuß des Giebels.
     Gibt die Höhe des obersten Blocks zurück (für die Fahne)."""
     def dach_bei(a):                                     # Höhe der Dachoberfläche bei |u| = a
@@ -787,15 +781,6 @@ def treppengiebel(netz, st, M, halb, z_dach0, tan, oeffnungen, fenster, stufen=5
             netz.quader((s * (grenzen[k] + grenzen[k + 1]) / 2, dicke / 2, hoehen[k] + 0.05),
                         (b + 0.12, dicke + 0.12, 0.1), st["Sandstein"], M)
     netz.quader((0, dicke / 2, spitze + 0.06), (2 * oben_halb + 0.14, dicke + 0.14, 0.12), st["Sandstein"], M)
-    v = 0.42
-    while v < spitze - 0.1:
-        breite = max([g for g, h in zip(grenzen, hoehen + [spitze]) if h > v + 0.05] + [oben_halb])
-        if v > hoehen[-1]:
-            breite = oben_halb
-        netz.vieleck([M @ Vector(p) for p in ((-breite + 0.01, -0.003, v - 0.014), (breite - 0.01, -0.003, v - 0.014),
-                                               (breite - 0.01, -0.003, v + 0.014), (-breite + 0.01, -0.003, v + 0.014))],
-                     st["Fuge"])
-        v += 0.42
     for o in fenster:
         gewaende(netz, M, o, st)
         oeffnungen.append((M, o))
@@ -1014,7 +999,7 @@ def dachreiter(netz, st, first, spitze="Gold", koerper="Putz", ecken="Fachwerk")
 
 
 # ─────────────────────────────────────────────────────────────────────────────
-#  Mauerwerk: Eckquader, Gesimse, Lagerfugen, Gewände, Rundbogenportal
+#  Mauerwerk: Eckquader, Gesimse, Gewände, Rundbogenportal
 # ─────────────────────────────────────────────────────────────────────────────
 
 def eckquader(netz, st, x, y, sx, sy, z0, z1, hoehe=0.55, lang=0.62, kurz=0.34, vor=0.035, stoff="Sandstein"):
@@ -1032,16 +1017,6 @@ def eckquader(netz, st, x, y, sx, sy, z0, z1, hoehe=0.55, lang=0.62, kurz=0.34, 
 def gesims(netz, st, x0, x1, y0, y1, z, hoehe=0.16, vor=0.07, stoff="Sandstein"):
     """Umlaufendes Gesims: ein Band rund um den Baukörper von (x0, y0) bis (x1, y1) bei Höhe z."""
     netz.quader(((x0 + x1) / 2, (y0 + y1) / 2, z + hoehe / 2), (x1 - x0 + 2 * vor, y1 - y0 + 2 * vor, hoehe), st[stoff])
-
-
-def fugen(netz, M, L, v0, v1, st, abstand=0.42):
-    """Lagerfugen als dunkle Linien auf der Wandfläche: Mauerwerk aus Schichten, kaum Dreiecke.
-    Fenster, Gewände und Glas liegen davor und decken sie ab."""
-    v = v0 + abstand
-    while v < v1 - 0.05:
-        netz.vieleck([M @ Vector(p) for p in ((-L / 2, -0.003, v - 0.014), (L / 2, -0.003, v - 0.014),
-                                               (L / 2, -0.003, v + 0.014), (-L / 2, -0.003, v + 0.014))], st["Fuge"])
-        v += abstand
 
 
 def gewaende(netz, M, o, st, kreuz=True, verdachung=False, glas=None, gitter=False, stein="Sandstein"):

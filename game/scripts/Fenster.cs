@@ -4,7 +4,7 @@ namespace Reichsgilde;
 
 /// <summary>
 /// Anzeige-Einstellungen: Fenster oder Vollbild (auch F11, überall), die Kantenglättung, die Schattenqualität, der Bloom,
-/// die Umgebungsverdeckung (SSAO), das indirekte Licht (SSIL), die Hochskalierung mit FSR 2.2 und die Oberflächendetails;
+/// die Umgebungsverdeckung (SSAO), das indirekte Licht (SSIL) und die Hochskalierung mit FSR 2.2;
 /// dazu (Fenster.Grafik.cs) Voreinstellungen, Bildrate, VSync, dynamische Auflösung, Detailstufe, Stimmung und Barrierefreiheit.
 /// Geändert werden sie im Fenster „Einstellungen“ (<see cref="EinstellungenAnzeige"/>), gespeichert in
 /// <c>user://einstellungen.cfg</c> und beim Start wieder angewendet.
@@ -61,8 +61,8 @@ public partial class Fenster : Node
         FsrSetzen(geladen && einstellungen.GetValue("anzeige", "fsr", false).AsBool(),
                   geladen ? einstellungen.GetValue("anzeige", "renderaufloesung", StandardRenderaufloesung).AsInt32() : StandardRenderaufloesung,
                   speichern: false);
-        // Alte Dateien ohne den Schlüssel: Oberflächendetails an. Die Schlüssel „holzschnitt“ und „umriss“ älterer Fassungen bleiben ungelesen.
-        OberflaechendetailsSetzen(!geladen || einstellungen.GetValue("anzeige", "oberflaechendetails", true).AsBool(), speichern: false);
+        // Die Oberflächendetails sind immer an (Stadtansicht.Oberflaechendetails.cs): Der Schlüssel „oberflaechendetails“ älterer Dateien
+        // bleibt ungelesen, ebenso „holzschnitt“ und „umriss“.
         _filter = new Bildfilter();
         AddChild(_filter);
         GrafikLaden(einstellungen, geladen); // die Einstellungen ab PR #169 (Fenster.Grafik.cs)
@@ -243,26 +243,6 @@ public partial class Fenster : Node
             Speichern("fsr", FsrAn);
             Speichern("renderaufloesung", Renderaufloesung);
         }
-    }
-
-    // ── Oberflächendetails ──────────────────────────────────────────────────
-
-    /// <summary>Ohne gespeicherte Wahl an: Mauerwerk, Ziegel, Stroh, Maserung … als Struktur; abschaltbar für schwache Rechner.</summary>
-    public static bool OberflaechendetailsAn { get; private set; } = true;
-
-    /// <summary>Wird ausgelöst, wenn der Schalter wechselt: Die Stadtansicht stellt die Materialien sofort um.</summary>
-    public static event Action? OberflaechendetailsGeaendert;
-
-    /// <summary>
-    /// Schaltet die Oberflächendetails an oder aus. An, bekommen die Materialien der Modelle eine Struktur je Materialart
-    /// (Stadtansicht.Oberflaechendetails.cs); die Ansichten hören auf <see cref="OberflaechendetailsGeaendert"/>, die Änderung wirkt
-    /// darum ohne Neustart.
-    /// </summary>
-    public static void OberflaechendetailsSetzen(bool an, bool speichern = true)
-    {
-        OberflaechendetailsAn = an;
-        OberflaechendetailsGeaendert?.Invoke();
-        if (speichern) Speichern("oberflaechendetails", an);
     }
 
     private static void Speichern(string schluessel, Variant wert)

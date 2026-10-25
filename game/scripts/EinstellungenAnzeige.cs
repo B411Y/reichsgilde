@@ -4,7 +4,7 @@ namespace Reichsgilde;
 
 /// <summary>
 /// Fenster „Einstellungen“ mit fünf Reitern: <b>Voreinstellung</b> (Niedrig bis Ultra, automatische Wahl, Vollbild), <b>Leistung</b>
-/// (Bildrate, VSync, dynamische Auflösung, FSR 2.2, Detailstufe), <b>Bild</b> (Oberflächendetails, Kantenglättung, Nachschärfen,
+/// (Bildrate, VSync, dynamische Auflösung, FSR 2.2, Detailstufe), <b>Bild</b> (Boden, Gras, Kantenglättung, Nachschärfen,
 /// Schatten, Umgebungsverdeckung, indirektes Licht), <b>Stimmung</b> (Bloom, Miniatur-Unschärfe, Wolkenschatten, Morgendunst,
 /// Farbstimmung, Fahnen) und <b>Barrierefreiheit</b> (Größe der Oberfläche, Farbfilter). Erreichbar aus dem Hauptmenü und aus dem
 /// Spielmenü (Esc). Jede Änderung wirkt sofort und wird gespeichert (siehe <see cref="Fenster"/>).
@@ -43,9 +43,9 @@ public sealed class EinstellungenAnzeige
     /// <summary>Die Voreinstellungen mit Erklärung (Werte: <see cref="Fenster.StufeVon"/>).</summary>
     private static readonly (Voreinstellung Stufe, string Erklaerung)[] Voreinstellungen =
     {
-        (Voreinstellung.Niedrig, "Für schwache Grafikkarten: FXAA, kleine Schatten, keine Umgebungsverdeckung, kein Bloom, Oberflächen ohne Struktur, einfacher Boden, halb so viel Streu und Passanten."),
-        (Voreinstellung.Mittel, "SMAA, mittlere Schatten, wenig Umgebungsverdeckung, Bloom, Oberflächendetails, Boden ohne Unebenheit im Licht, Wolkenschatten; drei Viertel der Streu und Passanten."),
-        (Voreinstellung.Hoch, "Das empfohlene Bild: SMAA, große Schatten, Umgebungsverdeckung, Bloom, Oberflächendetails, leichte Miniatur-Unschärfe, Wolkenschatten und einfacher Morgendunst."),
+        (Voreinstellung.Niedrig, "Für schwache Grafikkarten: FXAA, kleine Schatten, keine Umgebungsverdeckung, kein Bloom, einfacher Boden, halb so viel Streu und Passanten."),
+        (Voreinstellung.Mittel, "SMAA, mittlere Schatten, wenig Umgebungsverdeckung, Bloom, Boden ohne Unebenheit im Licht, Wolkenschatten; drei Viertel der Streu und Passanten."),
+        (Voreinstellung.Hoch, "Das empfohlene Bild: SMAA, große Schatten, Umgebungsverdeckung, Bloom, leichte Miniatur-Unschärfe, Wolkenschatten und einfacher Morgendunst."),
         (Voreinstellung.Ultra, "Für starke Grafikkarten: wie Hoch, dazu MSAA 4×, feinste Umgebungsverdeckung, indirektes Licht und Morgendunst mit Lichtstrahlen."),
         (Voreinstellung.Eigene, "Eigene Wahl: Mindestens ein Regler weicht von den Stufen ab. Eine Stufe wählen stellt alle Regler wieder ein."),
     };
@@ -139,7 +139,6 @@ public sealed class EinstellungenAnzeige
     private readonly Label _passantenWert;
     private readonly OptionButton _feinheiten;
     // Bild
-    private readonly CheckButton _oberflaeche;
     private readonly OptionButton _boden;
     private readonly Label _bodenErklaerung;
     private readonly OptionButton _gras;
@@ -294,12 +293,6 @@ public sealed class EinstellungenAnzeige
         // ── Bild ─────────────────────────────────────────────────────────────
         s = _seiten[2];
         Abschnitt(s, "Oberflächen");
-        _oberflaeche = Schalter(s, "Oberflächendetails", an =>
-        {
-            Fenster.OberflaechendetailsSetzen(an);
-            Auffrischen();
-        });
-        Hinweis(s, "Mauerwerk, Ziegel, Stroh, Schiefer, Holzmaserung, Laub und Boden mit feiner Struktur und leichter Unebenheit im Licht. Aus: nur die Farben der Modelle – kostet weniger Grafikleistung.");
         var bodenZeile = Zeile(s, "Boden");
         _boden = Auswahl(bodenZeile, Bodenstufen.Select(b => b.Name), nummer =>
         {
@@ -486,7 +479,6 @@ public sealed class EinstellungenAnzeige
         WertSetzen(_passanten, _passantenWert, Fenster.PassantenMenge, " %");
         _feinheiten.Select(Array.FindIndex(Sichtweiten, f => f.Stufe == Fenster.AktuelleFeinheiten));
 
-        _oberflaeche.SetPressedNoSignal(Fenster.OberflaechendetailsAn);
         var boden = Array.FindIndex(Bodenstufen, b => b.Stufe == Fenster.AktuelleBodenqualitaet);
         _boden.Select(boden);
         _bodenErklaerung.Text = Bodenstufen[boden].Erklaerung;

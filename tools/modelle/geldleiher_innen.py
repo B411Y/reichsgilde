@@ -1614,21 +1614,11 @@ def eiserne_tuer(netz, st, wand, s, b, h, innen=False):
 # ─────────────────────────────────────────────────────────────────────────────
 
 def tresor_huelle(netz, decke, st, anker):
-    """Kreuzgratgewölbe, Wände aus Quadern (Sandstein mit Fugen gemalt), ein schmaler Lichtschlitz mit Gitter hoch in der rechten
+    """Kreuzgratgewölbe, Wände aus Quadern (Haustein), ein schmaler Lichtschlitz mit Gitter hoch in der rechten
     Wand, Steinplatten."""
     w = {s: pr.wand(*ecken(TX0, TX1, TY0, TY1)[s]) for s in ("vorne", "rechts")}
     loecher = {"vorne": [loch(w["vorne"], TRESOR_X, 0.0, TUER_B, TUER_H)], "rechts": [loch(w["rechts"], 4.8, 2.0, 0.22, 0.8)]}
     waende = gewoelberaum(netz, decke, st, TX0, TX1, TY0, TY1, 1, T_KAEMPFER, T_STICH, loecher, stoff="Haustein", sockel=0.5, saat=19)
-    for seite, wand in waende.items():                                                     # Quaderfugen
-        for k in range(1, 6):
-            v = 0.5 + 0.4 * k
-            if v > T_KAEMPFER:
-                break
-            for u0, u1 in pi.freie_stuecke(ia.Wand(wand.a.to_2d(), (wand.a + wand.d * wand.laenge).to_2d(),
-                                                   [Oe(pr.welt_s(wand, (l[0] + l[1]) / 2), l[2], l[1] - l[0], l[3] - l[2])
-                                                    for l in loecher.get(seite, [])]), v - 0.01, v + 0.01, rand=0.02):
-                netz.vieleck_nach([wand.p(u0, v - 0.006, 0.002), wand.p(u1, v - 0.006, 0.002), wand.p(u1, v + 0.006, 0.002),
-                                   wand.p(u0, v + 0.006, 0.002)], wand.n, st["Fuge"])
     pr.steinplatten(netz, st, TX0, TX1, TY0, TY1, saat=19, breite=0.55, stoffe=("Platte dunkel", "Platte", "Platte warm"))
     wr = waende["rechts"]
     u0, u1, v0, v1 = loecher["rechts"][0]

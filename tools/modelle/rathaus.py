@@ -97,9 +97,8 @@ def erdgeschoss(netz, st):
     bogenwand(netz, st, bs.wandmatrix(((-HX + TX0) / 2, VORN, 0), "vorne"), L, Z_OG, boegen)
     bogenwand(netz, st, bs.wandmatrix((-HX, (VORN + 0.6 + Y_HALLE) / 2, 0), "links"), Y_HALLE - VORN - 0.6, Z_OG,
               [(0.0, 1.4, 2.4)])                                    # stößt an die vordere Bogenwand
-    # Rückwand der Halle: Portal, Fenster, Lagerfugen
+    # Rückwand der Halle: Portal und Fenster
     M = bs.wandmatrix((0, Y_HALLE, Z_SOCKEL), "vorne")
-    bs.fugen(netz, M, 2 * HX - 0.02, 0.0, H_EG, st)
     tor = Oeffnung("tuer", -1.8, 0.0, 1.6, 3.0)
     bs.portal(netz, M, tor, st)
     for u in (-5.6, 1.4):
@@ -119,10 +118,9 @@ def erdgeschoss(netz, st):
     for x in (-6.4, -4.8):
         netz.quader((x, Y_HALLE - 0.35, 0.37), (0.1, 0.34, 0.45), holz)
     # Seiten und Rückseite: Fenster mit Gittern, Hintertür
-    for M, L, fenster in ((bs.wandmatrix((HX, (Y_HALLE + HINTEN) / 2, Z_SOCKEL), "rechts"), HINTEN - Y_HALLE, (-1.6, 1.6)),
-                          (bs.wandmatrix((-HX, (Y_HALLE + HINTEN) / 2, Z_SOCKEL), "links"), HINTEN - Y_HALLE, (-1.6, 1.6)),
-                          (bs.wandmatrix((0, HINTEN, Z_SOCKEL), "hinten"), 2 * HX, (-5.5, -2.2, 2.2, 5.5))):
-        bs.fugen(netz, M, L - 0.02, 0.0, H_EG, st)
+    for M, fenster in ((bs.wandmatrix((HX, (Y_HALLE + HINTEN) / 2, Z_SOCKEL), "rechts"), (-1.6, 1.6)),
+                       (bs.wandmatrix((-HX, (Y_HALLE + HINTEN) / 2, Z_SOCKEL), "links"), (-1.6, 1.6)),
+                       (bs.wandmatrix((0, HINTEN, Z_SOCKEL), "hinten"), (-5.5, -2.2, 2.2, 5.5))):
         for u in fenster:
             bs.gewaende(netz, M, Oeffnung("fenster", u, 1.2, 0.9, 1.3), st, kreuz=False, gitter=True)
     hinten = Oeffnung("tuer", 0.0, 0.0, 1.2, 2.4)
@@ -208,7 +206,6 @@ def uhrturm(netz, st):
     seiten = {"vorne": bs.wandmatrix((cx, TY0, Z_SOCKEL), "vorne"), "rechts": bs.wandmatrix((TX1, cy, Z_SOCKEL), "rechts"),
               "links": bs.wandmatrix((TX0, cy, Z_SOCKEL), "links"), "hinten": bs.wandmatrix((cx, TY1, Z_SOCKEL), "hinten")}
     for seite, M in seiten.items():
-        bs.fugen(netz, M, (b if seite in ("vorne", "hinten") else t) - 0.04, 0.0, T_HOCH - Z_SOCKEL - 0.3, st)
         for u in (-0.6, 0.6):                                           # Glockenstube
             o = Oeffnung("fenster", u, 13.75 - Z_SOCKEL, 0.6, 2.1)
             bs.gewaende(netz, M, o, st, kreuz=False, glas="Loch")

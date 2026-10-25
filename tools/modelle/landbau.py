@@ -111,13 +111,12 @@ def huette(netz, st, x0, x1, y0, y1, h, wand="bretter", deckung=bs.SCHIEFER, nei
 
 
 def wandbild(netz, st, M, L, H, oeffnungen, wand, saat=0, ecken=True):
-    """Oberfläche einer Hüttenwand: Fugen, Fachwerk oder Eckbalken. `ecken`: Vorköpfe der Blockwand an dieser Wand
-    (nur an zwei gegenüberliegenden Wänden, sonst lägen sie doppelt)."""
+    """Oberfläche einer Hüttenwand: Fachwerk, Bretterfugen und Eckbretter oder Stammfugen und Vorköpfe (die Steinwand zeichnen
+    die Oberflächendetails). `ecken`: Vorköpfe der Blockwand an dieser Wand (nur an zwei gegenüberliegenden Wänden, sonst
+    lägen sie doppelt)."""
     if wand == "fachwerk":
         # etwas kürzer als die Wand: sonst liegen die Hirnenden von Schwelle und Rähm in der Nachbarwand
         bs.fachwerk(netz, M, L - 0.06, H, oeffnungen, st, schief=0.04, saat=saat)
-    elif wand == "stein":
-        bs.fugen(netz, M, L, 0, H, st)
     elif wand == "bretter":
         senkrechte_fugen(netz, st, M, L, 0, H)
         for u in (-L / 2 + 0.1, L / 2 - 0.1):                    # Eckbretter (nicht bündig mit der Nachbarwand)

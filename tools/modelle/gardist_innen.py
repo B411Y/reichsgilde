@@ -10,7 +10,7 @@ Ankern).
 
 Koordinaten wie beim Schmied (Blender: Z oben; im Spiel Y oben, Blender −Y = Spiel +Z): Ursprung in der Mitte der Wachstube auf
 dem Boden. Außen ist das Haus eine massive Kaserne (gardist.glb: Bruchstein mit Eckquadern, Tordurchfahrt mit dem Stadtwappen,
-Wehrturm); innen ist alles wehrhaft und ordentlich – Bruchstein mit Fugen, Eckquader und Türgewände aus Sandstein,
+Wehrturm); innen ist alles wehrhaft und ordentlich – Bruchstein, Eckquader und Türgewände aus Sandstein,
 Steinplatten, Balkendecken, vergitterte Fenster:
     Werk        „Wachstube“ innen x −6,0 … 6,0, y −4,0 … 4,0, 3,2 m hoch. Links der Kamin, davor die Hunde (gekauft), der
                 Würfeltisch, hinten links vier Etagenpritschen; hinten der Waffenständer unter dem Stadtwappen, davor zwei Bänke
@@ -199,15 +199,15 @@ def platz(liste, art, punkt, blick, taetigkeit, bewegung, nummer, z=0.0, sitz=No
 
 def mauerraum(netz, decke, st, x0, x1, y0, y1, hoehe, oeffnungen, ohne_aussen=(), ohne_laibung=(), stoff="Bruchstein", saat=0,
               enden=None, abdeckung=None):
-    """Raum aus Bruchstein mit Fugen (schmied_innen.wand), an den inneren Ecken Eckquader aus Sandstein, um die Türen Gewände;
+    """Raum aus Bruchstein (schmied_innen.wand), an den inneren Ecken Eckquader aus Sandstein, um die Türen Gewände;
     Balkendecke (mit `abdeckung` über den Mauern, nur wo kein Nachbarraum gleich hoch ist). `ohne_aussen`: Seiten, deren
     Außenseite der Nachbarraum zeigt (geteilte Wand), `ohne_laibung`: Seiten, deren Laibungen der Nachbarraum baut, `enden`:
     {Seite: (Anfang, Ende)} – ob die Außenseite dort um die Wanddicke verlängert wird."""
     kanten = ecken(x0, x1, y0, y1)
     netz.alle = True
-    for i, seite in enumerate(("vorne", "rechts", "hinten", "links")):
+    for seite in ("vorne", "rechts", "hinten", "links"):
         si.wand(netz, st, *kanten[seite], hoehe, oeffnungen.get(seite, []), stoff=stoff, dicke=WAND, aussen=seite not in ohne_aussen,
-                laibung=seite not in ohne_laibung, fugen=True, saat=saat + 7 * i, enden=(enden or {}).get(seite, (True, True)))
+                laibung=seite not in ohne_laibung, enden=(enden or {}).get(seite, (True, True)))
     netz.alle = False
     for seite in ("vorne", "rechts", "hinten", "links"):
         eckquader(netz, st, ia.Wand(*kanten[seite], oeffnungen.get(seite, [])), hoehe)
