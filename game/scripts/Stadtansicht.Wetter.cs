@@ -46,7 +46,8 @@ public partial class Stadtansicht
 
     private GpuParticles3D _regen = null!, _schnee = null!;
     private ParticleProcessMaterial _regenStoff = null!, _schneeStoff = null!;
-    private StandardMaterial3D _regenFarbe = null!, _schneeFarbe = null!;
+    private StandardMaterial3D _regenFarbe = null!;
+    private ShaderMaterial _schneeFarbe = null!; // schnee.gdshader: weiche Flocken, die pendeln und sich drehen
     private DirectionalLight3D _blitzLicht = null!;
     private float _blitzZeit = -1, _naechsterBlitz = 3;
     private float _blitz;
@@ -141,22 +142,8 @@ public partial class Stadtansicht
         };
         AddChild(_regen);
 
-        // Schnee: weiche, runde Flocken (ein Verlauf als Bild), zur Kamera gedreht
-        var flocke = new GradientTexture2D
-        {
-            Width = 32, Height = 32, Fill = GradientTexture2D.FillEnum.Radial,
-            FillFrom = new Vector2(0.5f, 0.5f), FillTo = new Vector2(0.5f, 0f),
-            Gradient = new Gradient { Colors = new[] { new Color(1, 1, 1, 1), new Color(1, 1, 1, 0.8f), new Color(1, 1, 1, 0) }, Offsets = new[] { 0f, 0.45f, 1f } },
-        };
-        _schneeFarbe = new StandardMaterial3D
-        {
-            ShadingMode = BaseMaterial3D.ShadingModeEnum.Unshaded,
-            Transparency = BaseMaterial3D.TransparencyEnum.Alpha,
-            BillboardMode = BaseMaterial3D.BillboardModeEnum.Enabled,
-            BillboardKeepScale = true,
-            AlbedoTexture = flocke,
-            AlbedoColor = new Color(0.95f, 0.96f, 1f, 0.9f),
-        };
+        // Schnee: weiche, runde Flocken, die im Fallen pendeln (schnee.gdshader)
+        _schneeFarbe = new ShaderMaterial { Shader = GD.Load<Shader>("res://assets/shader/schnee.gdshader") };
         _schneeStoff = new ParticleProcessMaterial
         {
             EmissionShape = ParticleProcessMaterial.EmissionShapeEnum.Box,
@@ -172,14 +159,14 @@ public partial class Stadtansicht
         {
             Name = "Schnee",
             Amount = 6000,
-            Lifetime = 7.0,
-            Preprocess = 7.0,
+            Lifetime = 9.0,
+            Preprocess = 9.0,
             LocalCoords = false,
             Emitting = false,
             Visible = false,
             CastShadow = GeometryInstance3D.ShadowCastingSetting.Off,
             ProcessMaterial = _schneeStoff,
-            DrawPass1 = new QuadMesh { Size = new Vector2(0.14f, 0.14f), Material = _schneeFarbe },
+            DrawPass1 = new QuadMesh { Size = new Vector2(0.5f, 0.5f), Material = _schneeFarbe },
         };
         AddChild(_schnee);
 
@@ -437,10 +424,13 @@ public partial class Stadtansicht
         _regenStoff.ScaleMin = 0.85f * k;
         _regenStoff.ScaleMax = 1.15f * k;
         _schneeStoff.Direction = (Vector3.Down + wind * 1.2f).Normalized();
-        _schneeStoff.InitialVelocityMin = 1.3f * k;
-        _schneeStoff.InitialVelocityMax = 2.1f * k;
-        _schneeStoff.ScaleMin = 0.6f * k;
-        _schneeStoff.ScaleMax = 1.3f * k;
+        // langsam fallen; die Flocken wachsen nur mit der Wurzel des Zooms (k hoch 0,6): nah deutlich größer als ein Pixel, weit nicht zu dicht
+        _schneeStoff.InitialVelocityMin = 0.8f * k;
+        _schneeStoff.InitialVelocityMax = 1.4f * k;
+        var gr = Mathf.Pow(k, 0.6f);
+        _schneeStoff.ScaleMin = 0.6f * gr;
+        _schneeStoff.ScaleMax = 1.5f * gr;
+        _schneeFarbe.SetShaderParameter("massstab", k);
         _schneeStoff.TurbulenceNoiseStrength = 0.6f + 2f * _wetter.Wind;
         _schneeStoff.TurbulenceInfluenceMin = 0.05f;
         _schneeStoff.TurbulenceInfluenceMax = 0.12f + 0.15f * _wetter.Wind;
@@ -453,7 +443,7 @@ public partial class Stadtansicht
         if (Mathf.Abs(hell - _partikelHell) < 0.01f) return;
         _partikelHell = hell;
         _regenFarbe.AlbedoColor = new Color(0.78f * hell, 0.82f * hell, 0.9f * hell, 0.45f);
-        _schneeFarbe.AlbedoColor = new Color(0.95f * hell, 0.96f * hell, hell, 0.9f);
+        _schneeFarbe.SetShaderParameter("farbe", new Color(0.95f * hell, 0.96f * hell, hell, 0.9f));
     }
 
     /// <summary>Ein Teil (Regen oder Schnee) an oder aus, <paramref name="staerke"/> 0–1 nimmt den Anteil der Tropfen.</summary>
