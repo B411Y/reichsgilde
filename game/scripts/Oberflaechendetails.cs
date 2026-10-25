@@ -48,8 +48,9 @@ internal sealed class Oberflaechendetails
     private readonly List<(string Teil, int Art)> _artTeile = new();
     private readonly int _artFigur;
 
-    /// <summary>Eine Schicht der Material-Bibliothek: Nummer im Texture2DArray, Kachel in Metern, mittlere Farbe (linear), Dachprojektion.</summary>
-    private readonly record struct Schicht(int Nummer, float Kachel, Vector3 Mittel, bool Dach);
+    /// <summary>Eine Schicht der Material-Bibliothek: Nummer im Texture2DArray, Kachel in Metern, mittlere Farbe (linear), Dachprojektion,
+    /// Spalten je Modellreihe versetzt (Projektion „reihen“: Ziegel, Schiefer).</summary>
+    private readonly record struct Schicht(int Nummer, float Kachel, Vector3 Mittel, bool Dach, bool Reihen);
     private readonly Dictionary<string, Schicht> _bibliothek = new();
     private readonly TextureLayered? _bibFarbe, _bibNormalen;
 
@@ -104,8 +105,10 @@ internal sealed class Oberflaechendetails
             {
                 var d = liste[i].AsGodotDictionary();
                 var m = d["mittel"].AsGodotArray();
+                var projektion = d["projektion"].AsString();
                 schichten[d["name"].AsString()] = new Schicht(i, (float)d["kachel"].AsDouble(),
-                    new Vector3((float)m[0].AsDouble(), (float)m[1].AsDouble(), (float)m[2].AsDouble()), d["projektion"].AsString() == "dach");
+                    new Vector3((float)m[0].AsDouble(), (float)m[1].AsDouble(), (float)m[2].AsDouble()), projektion != "wand",
+                    projektion == "reihen");
             }
             foreach (var (name, schicht) in bib["namen"].AsGodotDictionary())
                 if (schichten.TryGetValue(schicht.AsString(), out var s)) _bibliothek[name.AsString()] = s;
@@ -180,6 +183,7 @@ internal sealed class Oberflaechendetails
             ziel.SetShaderParameter("bib_kachel", schicht.Kachel);
             ziel.SetShaderParameter("bib_mittel", schicht.Mittel);
             ziel.SetShaderParameter("bib_dach", schicht.Dach);
+            ziel.SetShaderParameter("bib_reihen", schicht.Reihen);
             ziel.SetShaderParameter("bib_farbe", _bibFarbe);
             ziel.SetShaderParameter("bib_nr", _bibNormalen);
         }

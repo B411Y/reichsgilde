@@ -50,10 +50,11 @@ bt.PROBEN = int(_opt.get("proben", 64))
 ZWISCHEN = os.path.expanduser(_opt.get("zwischen", "~/.cache/reichsgilde/materialien"))
 bt.ZWISCHEN = ZWISCHEN
 
-# Name, Kachelgröße in Metern, Projektion (wand: dreiseitig; dach: entlang der Dachneigung)
+# Name, Kachelgröße in Metern, Projektion (wand: an der Fläche ausgerichtet; dach: entlang der Dachneigung; reihen: dazu die
+# Spalten je Modellreihe versetzt, für Deckungen, deren Reihen das Modell als Form hat)
 SCHICHTEN = [
     ("bruchstein", 2.4, "wand"), ("quader", 2.4, "wand"), ("kalkputz", 3.0, "wand"), ("lehmputz", 2.0, "wand"),
-    ("fachwerkholz", 1.6, "wand"), ("bretter", 2.0, "wand"), ("dachziegel", 1.2, "dach"), ("schiefer", 1.2, "dach"),
+    ("fachwerkholz", 1.6, "wand"), ("bretter", 2.0, "wand"), ("dachziegel", 1.2, "reihen"), ("schiefer", 1.2, "reihen"),
     ("stroh", 1.5, "dach"), ("sandstein", 1.5, "wand"), ("ziegelstein", 1.2, "wand"),
 ]
 NAMEN = [s[0] for s in SCHICHTEN]
@@ -135,16 +136,6 @@ def verband(y, x, hoehen, laengen_von, rng, versatz_zufall=True):
         nummer[s] = zaehler + (i - 1) % len(stoesse)
         zaehler += len(stoesse)
     return nummer, ex, ey, lage, zaehler
-
-
-def stuecke(s, spalte, je):
-    """Stücke längs einer Spalte (Ziegel, Schiefer): `s` zählt die Stücke (ganze Zahl = Grenze), `je` Stücke je Kachel.
-    Gibt Nummer des Stücks, des nächsten Nachbarn und das Gewicht des eigenen (an der Grenze ½: weicher Übergang) zurück."""
-    f = s % 1
-    eigen = np.floor(s).astype(int)
-    andere = eigen + np.where(f >= 0.5, 1, -1)
-    gewicht = 0.5 + 0.5 * glatt(0.0, 0.06, np.minimum(f, 1 - f))
-    return eigen % je + je * spalte, andere % je + je * spalte, gewicht
 
 
 def flaechennetz(h, farbe, rau):
@@ -381,8 +372,11 @@ def bretter(rng):
 
 
 def dachziegel(rng):
-    """Biberschwanz, nur die Spalten (die Reihen hat das Modell als Form): Ziegel nebeneinander mit Stoßfugen, gewölbt,
-    Farbe je Stück (weich wechselnd längs der Spalte), Flechten und Moos, abgeplatzte Ecken."""
+    """Biberschwanz, nur die Spalten: Die Reihen hat das Modell als Form, der Shader versetzt die Spalten je Reihe (Projektion
+    „reihen“) – so wird aus jeder Spalte in jeder Reihe ein eigener Ziegel. Darum ist die Farbe längs der Spalte fest (sonst
+    wechselte sie mitten im Ziegel) und unterscheidet sich von Spalte zu Spalte nur wenig (sonst Streifen bzw. Karos aus der
+    Ferne). Gewölbt, feines Korn, kleine Flechten, Moos in den Stoßfugen; Laufspuren und Moosflecken über mehrere Reihen
+    legt der Shader in Dachkoordinaten darüber."""
     x, y = raster()
     k = K()
     spalten = 7
@@ -390,32 +384,28 @@ def dachziegel(rng):
     sp = np.clip((x // breite).astype(int), 0, spalten - 1)
     t = x / breite - sp
     rand = np.minimum(t, 1 - t) * breite + 0.002 * (fbm(71, [0.1, 0.03]) - 0.5)
-    fuge = glatt(0.002, 0.007, rand)
-    # Stücke längs der Spalte: je Spalte eigener Versatz, ~45 cm (so lang wie eine Reihe des Modells)
-    phase = je_zelle(sp, 72, spalten)
-    stueck_y = y / k * 3 + phase * 3
-    stueck, nachbar, gewicht = stuecke(stueck_y, sp, 3)
+    fuge = glatt(0.002, 0.006, rand)
+    woelbung = np.sqrt(np.clip(1 - (2 * t - 1) ** 2, 0, 1))
     korn = rauschen(0.005, 73)
-    h = fuge * (0.006 * np.sqrt(np.clip(1 - (2 * t - 1) ** 2, 0, 1)) + 0.0008 * korn) - 0.008 * (1 - fuge)
-    ton = palette(rng, spalten, [("#9a4e34", 3), ("#8a4430", 2), ("#a85c3c", 2), ("#7a3e2c", 1.5), ("#6a3a2c", 1),
-                                 ("#a0644a", 1)])
-    ton = np.repeat(ton, 3, 0) * rng.uniform(0.9, 1.1, 3 * spalten)[:, None]   # je Spalte ein Ton, je Stück wenig anders
-    farbe = mische(ton[nachbar], ton[stueck], gewicht)
-    farbe *= (0.9 + 0.18 * korn)[..., None]
-    farbe *= (0.85 + 0.15 * np.sqrt(np.clip(1 - (2 * t - 1) ** 2, 0, 1)))[..., None]
-    bleich = glatt(0.6, 0.9, fbm(74, [0.3, 0.1]))
-    farbe = mische(farbe, srgb("#9a7a68"), 0.2 * bleich)
-    flechte = glatt(0.8, 0.88, fbm(75, [0.04, 0.012]))
-    farbe = mische(farbe, srgb("#b0aa86"), 0.6 * flechte)
-    moos = glatt(0.65, 0.85, fbm(76, [0.2, 0.06])) * (1 - glatt(0.004, 0.02, rand))
-    farbe = mische(farbe, srgb("#4e5a2a"), 0.7 * moos)
-    farbe = mische(farbe, srgb("#2a1a14"), 0.85 * (1 - fuge))
+    h = fuge * (0.006 * woelbung + 0.0008 * korn) - 0.008 * (1 - fuge)
+    ton = palette(rng, spalten, [("#94503a", 3), ("#8c4a34", 2), ("#9a563e", 2), ("#884832", 1.5), ("#7e4630", 1)])
+    ton = ton / ton.mean(0) * np.array(srgb("#904c36")) * rng.uniform(0.95, 1.05, spalten)[:, None]
+    farbe = ton[sp]
+    farbe *= (0.93 + 0.12 * korn)[..., None]
+    farbe *= (0.9 + 0.1 * woelbung)[..., None]
+    farbe = mische(farbe, srgb("#8a6a58"), 0.12 * glatt(0.55, 0.9, fbm(74, [0.12, 0.04])))   # leicht ausgeblichen
+    flechte = glatt(0.84, 0.9, fbm(75, [0.03, 0.01]))
+    farbe = mische(farbe, srgb("#a8a07e"), 0.45 * flechte)
+    moos = glatt(0.55, 0.8, fbm(76, [0.15, 0.05])) * (1 - glatt(0.003, 0.014, rand))
+    farbe = mische(farbe, srgb("#4a5428"), 0.6 * moos)
+    farbe = mische(farbe, srgb("#2a1a14"), 0.8 * (1 - fuge))
     flaechennetz(h + 0.001 * moos, farbe, 0.75 + 0.15 * flechte + 0.1 * moos)
-    return 0.55, 1.0
+    return 0.5, 1.0
 
 
 def schiefer(rng):
-    """Schiefer, nur die Spalten: verschieden breite Stücke, spaltrauhe Oberfläche mit Schichtstufen, Farbe je Stück."""
+    """Schiefer, nur die Spalten (versetzt wie beim Dachziegel): verschieden breite Stücke, spaltrauhe Oberfläche mit
+    Schichtstufen, Farbe je Spalte fest und nah beieinander."""
     x, y = raster()
     k = K()
     b = rng.uniform(0.12, 0.24, 12)
@@ -428,19 +418,16 @@ def schiefer(rng):
     t = (wx - kanten[sp]) / b[sp]
     rand = np.minimum(wx - kanten[sp], kanten[sp + 1] - wx)
     fuge = glatt(0.002, 0.006, rand)
-    phase = je_zelle(sp, 82, n)
-    stueck_y = y / k * 4 + phase * 4
-    stueck, nachbar, gewicht = stuecke(stueck_y, sp, 4)
     schicht = np.floor(fbm(83, [0.08, 0.025]) * 6) / 6                 # Spaltstufen
     korn = rauschen(0.004, 84)
     h = fuge * (0.002 * schicht + 0.0006 * korn + 0.002 * t) - 0.006 * (1 - fuge)
-    ton = palette(rng, n, [("#4e5258", 3), ("#585c62", 2), ("#46484c", 2), ("#5a5450", 1), ("#50585a", 1)])
-    ton = np.repeat(ton, 4, 0) * rng.uniform(0.92, 1.08, 4 * n)[:, None]
-    farbe = mische(ton[nachbar], ton[stueck], gewicht)
-    farbe *= (0.9 + 0.15 * korn + 0.1 * schicht)[..., None]
-    flechte = glatt(0.82, 0.9, fbm(85, [0.03, 0.01]))
-    farbe = mische(farbe, srgb("#a8a89a"), 0.55 * flechte)
-    farbe = mische(farbe, srgb("#1c1e20"), 0.85 * (1 - fuge))
+    ton = palette(rng, n, [("#52565c", 3), ("#585c62", 2), ("#4c4e54", 2), ("#56534f", 1), ("#50575a", 1)])
+    ton = ton / ton.mean(0) * np.array(srgb("#53565b")) * rng.uniform(0.95, 1.05, n)[:, None]
+    farbe = ton[sp]
+    farbe *= (0.92 + 0.12 * korn + 0.08 * schicht)[..., None]
+    flechte = glatt(0.84, 0.91, fbm(85, [0.03, 0.01]))
+    farbe = mische(farbe, srgb("#a8a89a"), 0.45 * flechte)
+    farbe = mische(farbe, srgb("#1c1e20"), 0.8 * (1 - fuge))
     flaechennetz(h, farbe, 0.6 + 0.25 * korn + 0.15 * flechte)
     return 0.5, 1.0
 

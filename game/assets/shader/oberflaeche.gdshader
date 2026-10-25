@@ -38,9 +38,14 @@ uniform int bib_stufe = 2;
 uniform float bib_kachel = 2.0;                  // Meter je Kachel
 uniform vec3 bib_mittel = vec3(0.5);             // mittlere Farbe der Schicht (linear)
 uniform bool bib_dach = false;                   // Dachdeckung: eine Projektion entlang der Dachneigung (oben = firstwärts)
+uniform bool bib_reihen = false;                 // Ziegel und Schiefer: Spalten je Modellreihe versetzt (siehe fragment)
 uniform sampler2DArray bib_farbe : source_color, repeat_enable, filter_linear_mipmap_anisotropic;   // RGB Farbe, A Höhe
 uniform sampler2DArray bib_nr : repeat_enable, filter_linear_mipmap_anisotropic;                    // RG Normale, B Rauheit
 const float BIB_RELIEF = 1.0;                    // Stärke der Normalen
+const float BIB_REIHE_HELL = 0.04;               // Helligkeitsunterschied der Dachreihen
+const float BIB_LAUF = 0.22;                     // Laufspuren auf Dächern: so viel dunkler
+const vec3 BIB_MOOS = vec3(0.30, 0.34, 0.12);    // Moos auf Dächern: Farbton (die Helligkeit kommt vom Dach)
+const float BIB_MOOS_ANTEIL = 0.45;
 
 // Elf Schichten (tools/oberflaeche/texturen.py): 0–8 die Materialarten 1–9, 9 Pflaster (Mauer von oben), 10 Flecken.
 // R Helligkeit, G Farbton (+ warm, − kühl), B/A Neigung der Fläche in U/V – alle um 128 als „nichts“.
@@ -105,13 +110,36 @@ void fragment() {
 		u = liegend ? vec3(1.0, 0.0, 0.0) : normalize(u);
 		vec3 v = liegend ? vec3(0.0, 0.0, -sign(n.y + 1e-4)) : cross(n, u);
 		vec2 uv = vec2(dot(ort, u), -dot(ort, v)) * s;
-		vec4 fh = textureGrad(bib_farbe, vec3(uv, float(bib)), dFdx(uv), dFdy(uv));
-		vec4 nr = normalen ? textureGrad(bib_nr, vec3(uv, float(bib)), dFdx(uv), dFdy(uv)) : vec4(0.5, 0.5, 0.0, 1.0);
+		vec2 uv_dx = dFdx(uv), uv_dy = dFdy(uv);
+		float reihe = 0.0;
+		if (bib_reihen && !liegend) {
+			// Die Reihen hat das Modell: jede Ziegel- oder Schieferreihe eine eigene, leicht gekippte Fläche (Sägezahn,
+			// tools/modelle/bausteine.py, zaehne). Ihr Abstand vom Ursprung, dot(ort, n), ist auf der ganzen Fläche gleich und springt
+			// von Reihe zu Reihe um einige Zentimeter. Daraus je Reihe ein Versatz der Spalten (Fugen versetzt wie beim Decken, kein
+			// Karomuster) und ein Helligkeitsunterschied. Stetig in d statt eines Würfels: Rechenrauschen verschiebt nichts sichtbar.
+			float d = dot(ort, n);
+			uv.x += d * 7.31 + 0.37 * sin(d * 113.0) + 0.23 * sin(d * 271.0);
+			reihe = sin(d * 157.0 + 1.3 * sin(d * 59.0));
+		}
+		vec4 fh = textureGrad(bib_farbe, vec3(uv, float(bib)), uv_dx, uv_dy);
+		vec4 nr = normalen ? textureGrad(bib_nr, vec3(uv, float(bib)), uv_dx, uv_dy) : vec4(0.5, 0.5, 0.0, 1.0);
 		vec2 t = nr.rg * 2.0 - 1.0;
 		vec3 neigung = u * t.x + v * t.y;     // Neigung der Fläche (Objektkoordinaten) aus der Normalen der Textur
 		vec2 uf = vec2(welt.x + welt.y * 0.6, welt.z - welt.y * 0.4) / FLECKEN_GROESSE;
 		vec4 f = lesen(uf, dFdx(uf), dFdy(uf), 10.0);
-		grund *= fh.rgb / bib_mittel * (1.0 + FLECKEN_HELL * f.r) * (1.0 + FLECKEN_TON * f.g * WARM);
+		grund *= fh.rgb / bib_mittel * (1.0 + FLECKEN_HELL * f.r) * (1.0 + FLECKEN_TON * f.g * WARM) * (1.0 + BIB_REIHE_HELL * reihe);
+		if (bib_reihen && !liegend) {
+			// Verwitterung über die Reihen hinweg, in Dachkoordinaten ohne Versatz (je Haus verschoben): dunkle Laufspuren in
+			// Fallrichtung (die Flecken schmal und lang gezogen) und Moosflecken, mehr auf der Nordseite (−z).
+			vec2 dach = vec2(dot(ort, u), -dot(ort, v)) + vec2(dot(MODEL_MATRIX[3].xyz, vec3(0.37, 0.0, 0.61)), 0.0);
+			vec2 ul = dach / vec2(1.6, 30.0);
+			float lauf = smoothstep(0.15, 0.7, lesen(ul, dFdx(ul), dFdy(ul), 10.0).r);
+			vec2 um = dach / 4.0 + 0.5;
+			float moos = smoothstep(0.25, 0.8, lesen(um, dFdx(um), dFdy(um), 10.0).r);
+			moos *= 0.5 + 0.5 * clamp(-normalize(mat3(MODEL_MATRIX) * n).z * 2.0, 0.0, 1.0);
+			grund *= 1.0 - BIB_LAUF * lauf;
+			grund = mix(grund, BIB_MOOS * dot(grund, vec3(0.3333)) / dot(BIB_MOOS, vec3(0.3333)), BIB_MOOS_ANTEIL * moos);
+		}
 		if (normalen) {
 			vec3 sicht = mat3(VIEW_MATRIX) * (mat3(MODEL_MATRIX) * neigung) / length(MODEL_MATRIX[0].xyz);
 			NORMAL = normalize(NORMAL + sicht * BIB_RELIEF);
