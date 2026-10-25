@@ -231,11 +231,7 @@ public partial class Stadtansicht
     /// </summary>
     private const float FensterMitLicht = 2f / 3f;
 
-    /// <summary>Kirchen und Dom nachts: nur ein schwacher Schein (wenige Kerzen, das Ewige Licht) – so viel der vollen Helligkeit.</summary>
-    private const float KirchenSchein = 0.22f;
 
-    /// <summary>Während der Messe (am Vormittag) leuchten die Kirchenfenster auch bei Tag – so hell; in der Nacht wären sie voll hell.</summary>
-    private const float MesseAmTag = 0.04f;
 
     /// <summary>Glut (Esse, Ofen, Feuerkorb): so viel stärker als in der Datei, dazu etwas rötlicher (<see cref="GlutFarbe"/>).</summary>
     private const float GlutVerstaerkung = 1.4f;
@@ -357,7 +353,7 @@ public partial class Stadtansicht
     /// über den Jahreswechsel) ebenso viele; dann stehen die Frühaufsteher auf (35 %), bis das Tageslicht die Fenster löscht.</item>
     /// <item>Werkstatt in Betrieb: alle bis zum Arbeitsende um 20 Uhr, dann in einer halben Stunde wie ein Wohnhaus.</item>
     /// <item>Wirtshaus: alle bis 21:30, um 22 Uhr wie ein Wohnhaus. Wache: die ganze Nacht mindestens 55 %.</item>
-    /// <item>Kirche: alle Fenster, aber nur ein schwacher Schein (<see cref="KirchenSchein"/>); Messe: heller, auch bei Tag.</item>
+    /// <item>Kirche: immer dunkel; Messe: nur im Dunkeln voll hell (bei Tag dunkel).</item>
     /// </list>
     /// </summary>
     private static (float Helligkeit, float Anteil) FensterWerte(Fenstergruppe gruppe, float licht, float stunde, float messe)
@@ -372,8 +368,8 @@ public partial class Stadtansicht
             Fenstergruppe.Werkstatt => (licht, abend ? Mathf.Max(wohnen, dunkel * (1 - Mathf.SmoothStep(20f, 20.5f, stunde))) : wohnen),
             Fenstergruppe.Wirtshaus => (licht, abend ? Mathf.Max(wohnen, dunkel * (1 - Mathf.SmoothStep(21.5f, 22f, stunde))) : wohnen),
             Fenstergruppe.Wache => (licht, Mathf.Max(wohnen, 0.55f * dunkel)),
-            Fenstergruppe.Kirche => (licht * KirchenSchein, 1f),
-            Fenstergruppe.Messe => (Mathf.Lerp(licht * KirchenSchein, MesseAmTag + (1 - MesseAmTag) * licht, messe), 1f),
+            Fenstergruppe.Kirche => (0f, 1f), // ohne Messe immer dunkel
+            Fenstergruppe.Messe => (licht * messe, 1f), // zur Messe nur im Dunkeln hell, über 6 Minuten ein- und ausgeblendet
             _ => (licht, wohnen),
         };
     }
