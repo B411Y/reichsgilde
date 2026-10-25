@@ -1127,6 +1127,7 @@ Folgerungen: FSR 2.2 lohnt sich auf der T400 kaum (67 %: −0,8 ms bei Hoch, in 
 | Messe | Die Messe ist laut Kern um 10 Uhr (`messeUm`), also bei Tag: Kirchen mit laufender Messe (`Kirchenwesen.MesseLaeuft`, beim Dom `IstAktiv` und Stunde) bekommen die Gruppe „Messe“, die über 6 Minuten ein- und ausblendet; bei Tag nur ein schwacher warmer Schein (4 % der vollen Helligkeit, mehr wirkt bei Tag wie orange gestrichenes Glas), nachts wäre sie voll hell. Für Bildschirmfotos `--messe=1` (nur Darstellung). | 25.10.2026 |
 | Leistung | Gleich viele Zeichenaufrufe (Greybox etwa 2.490, Köln etwa 880), GPU-Zeit auf Hoch nachts unverändert (Greybox 29,1 ms, Köln 25,5 ms, T400; die Bildrate schwankt, weil die Grafikkarte geteilt war). | 25.10.2026 |
 | Klicktest | Vulkan auf der T400, neu importiert: Greybox 19 Uhr, 21:30 mit und ohne Bloom, Köln 19 Uhr und 21:30, Dom nachts ohne und mit Messe, Dom um 10 Uhr zur Messe, Nahaufnahmen Wohnhaus und Schmiede, je vorher/nachher; zwei Bilder kurz nacheinander zeigen das Flackern je Fenster. Keine SCRIPT oder SHADER ERROR, 762 Tests grün. | 25.10.2026 |
+
 ### Sichtbare Ratssitzung (PR #202)
 
 | Thema | Entscheidung | Datum |
