@@ -138,6 +138,7 @@ public partial class Hauptszene : Node
     private Label _blick = null!;
     private Betrieb? _eigeneGiesserei;
     private Label _datum = null!;
+    private WetterAnzeige _wetter = null!;
     private Label _uhrzeit = null!;
     private ProgressBar _tagesfortschritt = null!;
     private Button _pauseKnopf = null!;
@@ -197,6 +198,8 @@ public partial class Hauptszene : Node
         _blick = GetNode<Label>("%Blick");
         _datum = GetNode<Label>("%Datum");
         _uhrzeit = GetNode<Label>("%Uhrzeit");
+        _wetter = new WetterAnzeige(); // unter der Uhrzeit: Wetter jetzt und Aussicht (PR #195)
+        _uhrzeit.AddSibling(_wetter);
         _tagesfortschritt = GetNode<ProgressBar>("%Tagesfortschritt");
         _tagesfortschritt.MaxValue = Spielzeit.MinutenProTag; // 05–22 Uhr
         _pauseKnopf = GetNode<Button>("%PauseKnopf");
@@ -385,6 +388,11 @@ public partial class Hauptszene : Node
             if (teile.Length >= 2 && !float.IsNaN(teile[0]) && !float.IsNaN(teile[1]))
                 _stadt.KameraSetzen(teile[0], teile[1], teile.Length >= 3 && !float.IsNaN(teile[2]) ? teile[2] : null);
         }
+        // --wetter=<klar|…|nebel>, --jahreszeit=<fruehling|…|winter>, --blitz=1: nur Darstellung, nur für diesen Start (Stadtansicht.Wetter.cs)
+        if (optionen.ContainsKey("wetter") || optionen.ContainsKey("jahreszeit") || optionen.ContainsKey("blitz"))
+            _stadt.WetterVorgeben(optionen.TryGetValue("wetter", out var wetterName) && Enum.TryParse<Wetterlage>(wetterName, true, out var lage) ? lage : null,
+                                  optionen.TryGetValue("jahreszeit", out var jahreszeitName) && Enum.TryParse<Jahreszeit>(jahreszeitName, true, out var jz) ? jz : null,
+                                  optionen.GetValueOrDefault("blitz") == "1");
         if (optionen.TryGetValue("ui", out var ui) && ui == "0")
             GetNode<CanvasLayer>("Oberflaeche").Visible = false; // freie Sicht auf die Stadt für Bildschirmfotos
         if (optionen.TryGetValue("verwalten", out var verwalten) && verwalten == "1" && _eigeneGiesserei is not null)
@@ -958,6 +966,7 @@ public partial class Hauptszene : Node
 
         _datum.Text = $"{zeit.DatumText}  ·  Runde {zeit.Runde}";
         _uhrzeit.Text = $"{zeit.UhrzeitText}  ·  {KalenderTexte.Name(zeit.Tagesphase)}";
+        _wetter.Zeigen(_stadt.WetterJetzt, _stadt.WetterAussicht(3));
         _tagesfortschritt.Value = zeit.MinuteImTag;
         _pauseKnopf.Text = _simulation.IstBeendet ? "Partie beendet"
                          : takt.IstPausiert ? "▶ Weiter" : "❚❚ Pause";

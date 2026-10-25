@@ -74,6 +74,7 @@ public partial class Stadtansicht
             ziel = Lichtstimmung.Mischen(_ueberblendenVon, ziel, Mathf.SmoothStep(0, 1, _ueberblendung));
         }
         _gezeigteStimmung = ziel;
+        ziel = MitWetter(ziel); // Wolken, Nebel und Blitz (Stadtansicht.Wetter.cs) – nach dem Merken: Das Wetter blendet selbst über
 
         _sonne.Quaternion = ziel.Richtung;
         _sonne.LightColor = ziel.Farbe;

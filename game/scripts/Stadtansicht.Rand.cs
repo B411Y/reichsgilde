@@ -307,7 +307,7 @@ public partial class Stadtansicht
 
     private static readonly Color AckerErde = new(0.34f, 0.25f, 0.16f);
 
-    /// <summary>Ein Material je Frucht (alle Netze einer Frucht teilen es; die Jahreszeit stellt <see cref="FeldJahreszeit"/> ein).</summary>
+    /// <summary>Ein Material je Frucht (alle Netze einer Frucht teilen es; die Jahreszeit liest acker.gdshader aus <c>jahreszeit_anteile</c>, Stadtansicht.Wetter.cs).</summary>
     private readonly Dictionary<string, ShaderMaterial> _feldStoffe = new();
 
     private ShaderMaterial FeldStoff(string frucht)
@@ -319,16 +319,7 @@ public partial class Stadtansicht
         stoff.SetShaderParameter("farbe", farbe);
         stoff.SetShaderParameter("erde", AckerErde);
         stoff.SetShaderParameter("bewuchs", bewuchs);
-        stoff.SetShaderParameter("winter", FeldWinter());
         return _feldStoffe[frucht] = stoff;
-    }
-
-    private float FeldWinter() => _jahreszeit switch { Jahreszeit.Winter => 1f, Jahreszeit.Herbst => 0.4f, _ => 0f };
-
-    /// <summary>Die Jahreszeit hat gewechselt: Die Äcker liegen im Winter kahl da, im Herbst abgeerntet (aus <see cref="JahreszeitSetzen"/>).</summary>
-    private void FeldJahreszeit()
-    {
-        foreach (var stoff in _feldStoffe.Values) stoff.SetShaderParameter("winter", FeldWinter());
     }
 
     /// <summary>Höhe der Äcker über dem Boden: über der Wiese, unter Wegen.</summary>
