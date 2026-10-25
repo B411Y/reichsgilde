@@ -112,6 +112,7 @@ def main():
     berg = bauen(st)
     berg.data.calc_loop_triangles()
     print(f"{NAME}: {len(berg.data.loop_triangles)} Dreiecke")
+    bs.BIBLIOTHEK_JE_FLAECHE = True         # Modell-Texturen, Gruppe 3: Material-Bibliothek je Fläche (Material „Farben“)
     vorher, nachher = bs.farben_zusammenlegen([berg])
     print(f"  Materialien: {vorher} → {nachher}")
     print("geschrieben:", bs.exportieren(NAME, [berg]))
