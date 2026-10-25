@@ -1,17 +1,17 @@
 {
-  "_hinweis": "Material-Bibliothek der Modelle (Modell-Texturen; Shader game/assets/shader/oberflaeche.gdshader, Einbau game/scripts/Oberflaechendetails.cs). 'schichten' schreibt tools/oberflaeche/materialien_blender.py (Reihenfolge = Schicht im Texture2DArray, Kachel in Metern, Projektion wand oder dach, mittlere Farbe linear). 'namen' von Hand: Materialname der Modelle -> Schicht. Was hier fehlt, behält die Struktur aus materialarten.json.",
+  "_hinweis": "Material-Bibliothek der Modelle (Modell-Texturen; Shader game/assets/shader/oberflaeche.gdshader, Einbau game/scripts/Oberflaechendetails.cs). 'schichten' schreibt tools/oberflaeche/materialien_blender.py (Reihenfolge = Schicht im Texture2DArray, Kachel in Metern, Projektion wand, dach oder reihen (dach mit Spalten je Modellreihe versetzt), mittlere Farbe linear). 'namen' von Hand: Materialname der Modelle -> Schicht. Was hier fehlt, behält die Struktur aus materialarten.json.",
   "schichten": [
-    {"name": "bruchstein", "kachel": 2.4, "projektion": "wand", "mittel": [0.25759, 0.22824, 0.17933]},
-    {"name": "quader", "kachel": 2.4, "projektion": "wand", "mittel": [0.26572, 0.24554, 0.20762]},
-    {"name": "kalkputz", "kachel": 3.0, "projektion": "wand", "mittel": [0.62308, 0.5654, 0.43831]},
-    {"name": "lehmputz", "kachel": 2.0, "projektion": "wand", "mittel": [0.41187, 0.28938, 0.14993]},
-    {"name": "fachwerkholz", "kachel": 1.6, "projektion": "wand", "mittel": [0.133, 0.07087, 0.03698]},
+    {"name": "bruchstein", "kachel": 2.4, "projektion": "wand", "mittel": [0.25764, 0.22821, 0.17933]},
+    {"name": "quader", "kachel": 2.4, "projektion": "wand", "mittel": [0.26571, 0.24553, 0.20764]},
+    {"name": "kalkputz", "kachel": 3.0, "projektion": "wand", "mittel": [0.62309, 0.5654, 0.4383]},
+    {"name": "lehmputz", "kachel": 2.0, "projektion": "wand", "mittel": [0.41193, 0.28934, 0.14995]},
+    {"name": "fachwerkholz", "kachel": 1.6, "projektion": "wand", "mittel": [0.13311, 0.07084, 0.03703]},
     {"name": "bretter", "kachel": 2.0, "projektion": "wand", "mittel": [0.16567, 0.12597, 0.08647]},
-    {"name": "dachziegel", "kachel": 1.2, "projektion": "dach", "mittel": [0.24997, 0.07018, 0.0344]},
-    {"name": "schiefer", "kachel": 1.2, "projektion": "dach", "mittel": [0.0712, 0.07652, 0.0861]},
-    {"name": "stroh", "kachel": 1.5, "projektion": "dach", "mittel": [0.2095, 0.15479, 0.07192]},
-    {"name": "sandstein", "kachel": 1.5, "projektion": "wand", "mittel": [0.47365, 0.31393, 0.16042]},
-    {"name": "ziegelstein", "kachel": 1.2, "projektion": "wand", "mittel": [0.2803, 0.10855, 0.06992]}
+    {"name": "dachziegel", "kachel": 1.2, "projektion": "reihen", "mittel": [0.25062, 0.06727, 0.0346]},
+    {"name": "schiefer", "kachel": 1.2, "projektion": "reihen", "mittel": [0.08385, 0.08905, 0.10056]},
+    {"name": "stroh", "kachel": 1.5, "projektion": "dach", "mittel": [0.20957, 0.15475, 0.07197]},
+    {"name": "sandstein", "kachel": 1.5, "projektion": "wand", "mittel": [0.47366, 0.31392, 0.16043]},
+    {"name": "ziegelstein", "kachel": 1.2, "projektion": "wand", "mittel": [0.2803, 0.10853, 0.06993]}
   ],
   "namen": {
     "Bruchstein": "bruchstein",
