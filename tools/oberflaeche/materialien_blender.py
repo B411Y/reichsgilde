@@ -16,9 +16,11 @@ Mal auf der Gegenseite: Das Bild ist nahtlos. Die Kamera schaut senkrecht auf di
 Normale, Umgebungsverdeckung, Höhe und Rauheit. Der obere Bildrand ist auf der Wand **oben**, auf dem Dach **firstwärts**.
 
 Schreibt nach game/assets/texturen/modelle/ (Format wie beim Boden, Beschreibung in docs/ARCHITEKTUR.md, „Material-Bibliothek“):
-    modelle_farbe_hoehe.webp     1024 × (1024 · Schichten) RGBA: RGB Farbe (sRGB, Verdeckung eingerechnet, verlustbehaftet q95),
-                                                                 A Höhe (1 tief … 255 hoch, verlustfrei)
-    modelle_normal_rauheit.webp  1024 × (1024 · Schichten) RGB:  R/G Normale (OpenGL: G+ zum oberen Bildrand), B Rauheit; verlustfrei
+    modelle_farbe_hoehe.webp     RGBA: RGB Farbe (sRGB, Verdeckung eingerechnet, verlustbehaftet q95), A Höhe (1 tief … 255 hoch,
+                                 verlustfrei)
+    modelle_normal_rauheit.webp  RGB:  R/G Normale (OpenGL: G+ zum oberen Bildrand), B Rauheit; verlustfrei
+je eine Schicht zu 1024 × 1024 je Material, Zeile für Zeile in einem Gitter (siehe gitter: ein WebP darf höchstens 16.383 Pixel
+hoch sein, ab 16 Schichten also zwei Spalten; slices/horizontal und slices/vertical in den .import-Dateien passen dazu)
 und in game/daten/materialbibliothek.json den Block „schichten“ (Name, Kachelgröße, Projektion, mittlere Farbe linear). Die mittlere
 Farbe braucht der Shader: Er teilt die Textur durch sie und färbt mit der Modellfarbe – im Mittel bleibt jedes Material so hell und
 so bunt wie bisher, die Textur bringt nur Steine, Fugen, Maserung und Licht. Die Zuordnung Materialname → Schicht („namen“) steht
@@ -532,16 +534,16 @@ def eisen(rng):
     mulde = (f1 / (K() / 22)) ** 2                                    # 0 in der Mitte des Schlags, am Grat ≈ 1
     grat = 1 - glatt(0.0, 0.004, (f2 - f1) / 2)
     narben = glatt(0.72, 0.9, rauschen(0.003, 124))
-    rost = glatt(0.58, 0.8, fbm(125, [0.12, 0.04, 0.015]))
+    rost = glatt(0.7, 0.86, fbm(125, [0.08, 0.03, 0.01]))
     lauf = glatt(0.55, 0.85, streifen(0.08, 126, 9.0)) * glatt(0.3, 0.7, fbm(127, [0.25]))
     h = 0.0006 * tiefe * np.clip(mulde, 0, 1.5) + 0.0002 * grat - 0.0003 * narben + 0.0005 * rost * fbm(128, [0.01, 0.004])
     metall = mische(srgb("#3e3f43"), srgb("#2c2d31"), fbm(129, [0.2, 0.05]))
     metall *= (0.92 + 0.12 * (1 - np.clip(mulde, 0, 1)) * tiefe)[..., None]   # Mitte der Schläge etwas heller (blank)
-    metall = mische(metall, srgb("#4a4c52"), 0.5 * grat)
+    metall = mische(metall, srgb("#46484d"), 0.2 * grat)
     metall = mische(metall, srgb("#26283a"), 0.25 * glatt(0.6, 0.85, fbm(130, [0.06, 0.02])))   # bläulicher Zunder
     rostfarbe = mische(srgb("#6a3a22"), srgb("#7e4a2a"), fbm(131, [0.02, 0.006]))
-    farbe = mische(metall, rostfarbe, 0.85 * rost)
-    farbe = mische(farbe, srgb("#5a3424"), 0.35 * lauf * (1 - rost))
+    farbe = mische(metall, rostfarbe, 0.75 * rost)
+    farbe = mische(farbe, srgb("#4e3426"), 0.25 * lauf * (1 - rost))
     farbe = mische(farbe, srgb("#1c1c1e"), 0.6 * narben)
     flaechennetz(h, farbe, 0.84 - 0.08 * grat + 0.14 * rost + 0.06 * lauf)
     return 0.45, 1.0
@@ -630,17 +632,14 @@ def leder(rng):
     wx, wy = bt.verzerrt(x, y, 0.002, [0.02, 0.006], 161)
     nummer, f1, f2, _, _ = zellen2(wx, wy, 110, 110, 162, 0.9)        # Narben, etwa 5 mm
     narbe = glatt(0.0, 0.0012, (f2 - f1) / 2)
-    falten = np.zeros_like(x)
-    for i in range(3):                                                # Knitterfalten: schmale Täler aus Rauschen
-        r = rauschen(0.12, 163 + i, 3.0 if i % 2 else 0.33)
-        falten = np.maximum(falten, 1 - glatt(0.0, 0.025, np.abs(r - 0.5)))
+    falten = glatt(0.55, 0.9, rauschen(0.03, 163, 4.0)) * glatt(0.4, 0.7, fbm(164, [0.2]))   # Knitterfalten: kurz, quer
     griff = glatt(0.55, 0.85, fbm(166, [0.2, 0.06]))
     h = 0.00025 * narbe + 0.0003 * je_zelle(nummer, 167, 110 * 110) * narbe - 0.0006 * falten + 0.001 * fbm(168, [0.15])
     farbe = mische(srgb("#5e3e28"), srgb("#4c3020"), fbm(169, [0.1, 0.03]))
     farbe = mische(farbe, srgb("#7a5838"), 0.4 * griff)
     farbe = mische(farbe, srgb("#3a2618"), 0.35 * glatt(0.65, 0.88, fbm(170, [0.08, 0.025])))
     farbe *= (0.92 + 0.1 * narbe)[..., None]
-    farbe = mische(farbe, srgb("#2e1e14"), 0.5 * falten)
+    farbe = mische(farbe, srgb("#3a2618"), 0.25 * falten)
     flaechennetz(h, farbe, 0.92 - 0.12 * griff)
     return 0.4, 0.9
 
@@ -695,16 +694,16 @@ def farbholz(rng):
         hh, _, _ = maserung(x + rng.random() * 0.5, y + rng.random() * k, 182 + 10 * i, ring=rng.uniform(0.008, 0.014))
         hoehe[s] = hh[s]
     pinsel = streifen(0.006, 183, 25.0)
-    ab = glatt(0.68, 0.8, fbm(184, [0.1, 0.03, 0.01]) + 0.25 * (1 - glatt(0.004, 0.025, rand)))   # abgeblättert
-    haar = 1 - glatt(0.0, 0.02, np.abs(rauschen(0.05, 185, 0.15) - 0.5))   # Haarrisse quer zur Faser
+    ab = glatt(0.8, 0.88, fbm(184, [0.1, 0.03, 0.01]) + 0.12 * (1 - glatt(0.004, 0.02, rand)))   # abgeblättert
+    haar = (1 - glatt(0.0, 0.01, np.abs(rauschen(0.05, 185, 0.15) - 0.5))) * glatt(0.5, 0.8, fbm(188, [0.15]))   # Haarrisse
     h = fuge * (0.002 * (1 - (2 * t - 1) ** 2) + 0.0004 * hoehe + 0.00012 * pinsel - 0.0003 * ab) - 0.008 * (1 - fuge)
     farbe = np.ones(x.shape + (3,)) * np.array(srgb("#b8b4ac"))
     farbe *= (0.95 + 0.06 * hoehe + 0.04 * pinsel)[..., None]
     farbe *= (0.97 + 0.06 * je_zelle(brett, 186, n))[..., None]       # je Brett etwas anders ausgeblichen
     farbe = mische(farbe, srgb("#c8c4bc"), 0.25 * glatt(0.5, 0.85, streifen(0.25, 187, 5.0)))
     holz = mische(srgb("#706658"), srgb("#5a5246"), hoehe)
-    farbe = mische(farbe, holz, 0.75 * ab)
-    farbe = mische(farbe, srgb("#5a564e"), 0.3 * haar * (1 - ab))
+    farbe = mische(farbe, holz, 0.6 * ab)
+    farbe = mische(farbe, srgb("#5a564e"), 0.15 * haar * (1 - ab))
     farbe = mische(farbe, srgb("#1a1612"), 0.9 * (1 - fuge))
     flaechennetz(h, farbe, 0.82 + 0.14 * ab)
     return 0.45, 0.9
@@ -759,6 +758,27 @@ def linear(c8):
     return np.where(c <= 0.04045, c / 12.92, ((c + 0.055) / 1.055) ** 2.4)
 
 
+WEBP_GRENZE = 16383   # größte Kantenlänge eines WebP-Bildes
+
+
+def gitter():
+    """Spalten und Zeilen, in denen die Schichten im Bild liegen: untereinander, solange das Bild nicht höher wird als ein WebP
+    sein darf, sonst in mehreren Spalten (Zeile für Zeile, wie Godot die Slices liest: slices/horizontal und slices/vertical
+    in den .import-Dateien müssen dazu passen). Freie Plätze am Ende bleiben schwarz."""
+    spalten = 1
+    while -(-len(NAMEN) // spalten) * N > WEBP_GRENZE:
+        spalten += 1
+    return spalten, -(-len(NAMEN) // spalten)
+
+
+def zusammenlegen(schichten):
+    """Die Schichten (je N × N) als ein Bild im Gitter (siehe gitter)."""
+    spalten, zeilen = gitter()
+    leer = np.zeros_like(schichten[0])
+    voll = list(schichten) + [leer] * (spalten * zeilen - len(schichten))
+    return np.vstack([np.hstack(voll[z * spalten:(z + 1) * spalten]) for z in range(zeilen)])
+
+
 def packen():
     farben, normalen, vorschau, fehlt, kanaele, mittel = [], [], [], [], [], {}
     for name in NAMEN:
@@ -786,7 +806,7 @@ def packen():
         os.makedirs(ZIEL, exist_ok=True)
         for datei, schichten, qualitaet in (("modelle_farbe_hoehe", farben, 95), ("modelle_normal_rauheit", normalen, 100)):
             pfad = os.path.join(ZIEL, datei + ".webp")
-            groesst, mittel_abw = bt.webp(pfad, np.vstack(schichten), qualitaet)
+            groesst, mittel_abw = bt.webp(pfad, zusammenlegen(schichten), qualitaet)
             print(f"  WebP q{qualitaet}: Abweichung je Kanal höchstens {groesst}, im Mittel {mittel_abw.round(2)}")
             print("geschrieben:", os.path.relpath(pfad, WURZEL), f"({os.path.getsize(pfad) / 1e6:.1f} MB)")
         # Die mittlere Farbe aus der geschriebenen (verlustbehafteten) Datei nachmessen
@@ -796,8 +816,11 @@ def packen():
         p = np.empty(w * hh * 4, np.float32)
         img.pixels.foreach_get(p)
         p = np.round(p.reshape(hh, w, 4)[::-1, :, :3] * 255)
+        spalten, zeilen = gitter()
+        print(f"  Gitter {spalten} × {zeilen} (in den .import-Dateien slices/horizontal={spalten}, slices/vertical={zeilen})")
         for i, name in enumerate(NAMEN):
-            mittel[name] = linear(p[i * N:(i + 1) * N]).reshape(-1, 3).mean(0)
+            z, sp = divmod(i, spalten)
+            mittel[name] = linear(p[z * N:(z + 1) * N, sp * N:(sp + 1) * N]).reshape(-1, 3).mean(0)
         daten = json.load(open(DATEN, encoding="utf-8")) if os.path.exists(DATEN) else {}
         daten["schichten"] = [{"name": name, "kachel": groesse, "projektion": projektion,
                                "mittel": [round(float(c), 5) for c in mittel[name]], **({"reihe": REIHE[name]} if name in REIHE else {})}
