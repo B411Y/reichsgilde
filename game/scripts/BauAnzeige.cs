@@ -71,8 +71,7 @@ public partial class BauAnzeige : PanelContainer
         _gewaehlt = null;
         Aufbauen(erzwingen: true);
         Show();
-        SetAnchorsAndOffsetsPreset(LayoutPreset.TopRight, LayoutPresetMode.Minsize, 16);
-        GrowHorizontal = GrowDirection.Begin; // wächst nach links ins Bild
+        Rollbereich.RechtsAnheften(this); // rechts unter dem Zeitstrahl, über der Betriebsleiste
     }
 
     /// <summary>Schließt den Baumodus ganz: Bauzonen und Umriss verschwinden.</summary>
