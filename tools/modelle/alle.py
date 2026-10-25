@@ -42,7 +42,7 @@ MARKT = ["markt"]             # ein Skript, schreibt marktplatz.glb (Platz und A
 KARREN = ["karren"]           # ein Skript, schreibt karren_hand/ochse/krieg.glb mit Zugtieren und Bewegungen
 VOEGEL = ["voegel"]           # ein Skript, schreibt vogel_taube/spatz.glb mit Skelett und Bewegungen
 FIGUREN = ["figuren"]         # ein Skript, schreibt figur_mensch/zwerg/elb/halbling.glb mit Skelett und Bewegungen
-WASSER = ["wasser"]           # ein Skript, schreibt wasser_holzbruecke/steinbruecke/faehre/hafen/steine.glb (Bausteine am Wasser)
+WASSER = ["wasser", "hafenbauten"]     # wasser: Brücken, Fähre, Hafen, Steine; hafenbauten: Schiff, Kran, Schuppen, Zoll
 
 
 def erzeugen(name, schalter):
