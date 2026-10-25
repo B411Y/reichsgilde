@@ -14,7 +14,6 @@ So wird eingetragen (damit sich die Chats nie an derselben Stelle treffen):
 - (von Kern) Oberfläche im Holzschnitt-Stil (Entscheidung in `kern.md`, „Grafikstil Holzschnitt“): Tafeln, Fenster, Rahmen, Knöpfe, Schmuck und das Hauptmenü nach und nach umstellen – Umriss, Schraffur, kolorierte Flächen, Papier- oder Pergamentgrund. Die Waren-Icons sind der erste Schritt (PR #113; neue Marktplatz-Icons macht der Nutzer gerade mit Gemini).
 - (von Kern) Die Nachfrage der Stadt wächst seit PR #177 mit den Einwohnern (`Marktstand.Grundnachfrage`, `Marktstand.Nachfrage`, `Stadtwirtschaft.Einwohner`); das Marktfenster (`MarktAnzeige.cs`) zeigt noch die Nachfrage aus den Daten (`daten.Nachfrage`). Vorschlag: `Marktstand.Nachfrage` zeigen, dazu die Einwohner der Stadt.
 - Kartenwerkstatt, Belag (Schritt 5d): Der Abschnitt wird mit zwei Reglern gewählt (goldenes Band im Bild), nicht durch Ziehen mit der Maus am Weg. Wenn das im Gebrauch zu umständlich ist, ein Ziehen im Bild nachrüsten.
-- Grundstruktur (PR #197): Meldungen über Stillstand fremder Betriebe („Tischlerei Eichwald: Es fehlt Holz …“) füllen unten links viel Platz – zu klären, ob nur eigene Betriebe dort stehen und fremde nur im Protokoll
 - Grundstruktur (PR #197): Die Reiter von Wohnhaus und Bericht sind je Seite verschieden hoch (die Tafel springt beim Wechsel); bei der Gestaltung im Holzschnitt-Stil eine feste Höhe wählen
 
 ## Entscheidungen
@@ -170,3 +169,9 @@ So wird eingetragen (damit sich die Chats nie an derselben Stelle treffen):
 | Umsetzung: Tastenkürzel | F Familienbuch, H Hinterzimmer, R Ratskammer, M Markt, B Bauen (je noch einmal: schließen), F1 Hilfe. Keine Kollision mit WASD, Q/E, Leertaste, 1–9, Alt, F11; R dreht im Baumodus weiter den Umriss (dort öffnet R den Rat nicht). Nicht mit Strg oder Alt, nicht bei offenem Spielmenü oder Jahresbericht. | 25.10.2026 |
 | Umsetzung: Meldungen und Hilfe | Warnung = Meldung, die mit „✗“ (abgelehnter Befehl) oder „⚠“ beginnt. Verblassen in Echtzeit (auch in der Pause), 2 s Ausblenden. Sind schon vier da, geht die älteste gewöhnliche, nur bei vier Warnungen die älteste Warnung. Das Protokoll des Jahres beginnt mit der Jahresabrechnung neu (höchstens 1000 Zeilen). Hinter einer großen Tafel drinnen sind die Meldungen aus. Hilfe: Tasten, kurze Wegbeschreibung, oben Spieljahr, Siegbedingung, Schwierigkeit (früher im Kasten oben links); von selbst nur ohne Startoptionen und nur einmal. | 25.10.2026 |
 | Umsetzung: Startoptionen | Neu `--wohnhaus=<reiter>`, `--bericht=<reiter>` (`--bericht=1` bleibt der Jahresbericht), `--verwalten=mehr`, `--hilfe=1`, `--meldung=<Text>`; `--verwalten=1` öffnet die Kurzübersicht. Der Hinweis der Probepartie steht unter dem Zeitstrahl. | 25.10.2026 |
+
+### Meldungen nur für eigene Betriebe (PR #198)
+
+| Thema | Entscheidung | Datum |
+|---|---|---|
+| Fremde Stillstände | Stillstandsmeldungen fremder Betriebe („Tischlerei Eichwald: Es fehlt Holz – die Arbeit ruht.“) stehen nur noch im Protokoll des Jahres, nicht mehr unten links; eigene Betriebe melden sich weiter. Dazu ohne doppelte Uhrzeit beim Beginn einer Tagesphase. Wunsch des Nutzers. | 25.10.2026 |

@@ -1,3 +1,4 @@
+using System.Linq;
 using Godot;
 
 namespace Reichsgilde;
@@ -37,6 +38,18 @@ public partial class Hauptszene
     /// <summary>Ist es eine Warnung? Abgelehnte Befehle („✗“) und Gefahren („⚠“) bleiben bis zum Klick stehen.</summary>
     private static bool IstWarnung(string meldung) => meldung.StartsWith('✗') || meldung.StartsWith('⚠');
 
+    /// <summary>
+    /// Stillstand eines fremden Betriebs („Tischlerei Eichwald: Es fehlt Holz – die Arbeit ruht.“)? Solche Meldungen der Rivalen
+    /// füllten sonst die Meldungen unten links; sie stehen nur im Protokoll des Jahres. Eigene Betriebe melden sich weiter.
+    /// </summary>
+    private bool IstFremderStillstand(string meldung)
+    {
+        if (!meldung.EndsWith("die Arbeit ruht.") || _simulation?.Wirtschaft is not { } w) return false;
+        var name = meldung.Split(':')[0];
+        var betrieb = w.Betriebe.FirstOrDefault(b => b.Name == name);
+        return betrieb is not null && betrieb.Konto != _spieler;
+    }
+
     private void Protokollieren(string meldung)
     {
         // Ein Befehl meldet sein Ergebnis, die Stadt dieselbe Nachricht für alle – nur einmal zeigen.
@@ -45,6 +58,7 @@ public partial class Hauptszene
         var zeit = _simulation?.Zeit.UhrzeitText ?? "";
         _jahresProtokoll.Insert(0, (zeit, meldung, warnung));
         if (_jahresProtokoll.Count > ProtokollHoechstens) _jahresProtokoll.RemoveAt(_jahresProtokoll.Count - 1);
+        if (IstFremderStillstand(meldung)) return; // steht nur im Protokoll, nicht unten links (Wunsch des Nutzers)
 
         var tafel = Leistentafel(10, 5);
         tafel.MouseFilter = Control.MouseFilterEnum.Stop;

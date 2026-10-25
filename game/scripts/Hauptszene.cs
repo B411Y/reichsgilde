@@ -282,7 +282,7 @@ public partial class Hauptszene : Node
             TempoSetzen(tempoWert);
 
         _simulation.PhaseBegonnen += phase =>
-            Protokollieren($"{_simulation.Zeit.UhrzeitText} – {KalenderTexte.Name(phase)} beginnt.");
+            Protokollieren($"{KalenderTexte.Name(phase)} beginnt."); // die Uhrzeit steht schon vor jeder Meldung
         _simulation.JahrBeendet += jahr =>
         {
             _jahresProtokoll.Clear(); // das Protokoll gilt für ein Jahr
