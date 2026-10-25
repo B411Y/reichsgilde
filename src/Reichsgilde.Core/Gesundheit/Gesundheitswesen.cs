@@ -162,7 +162,7 @@ public sealed class Gesundheitswesen
             _w.Melden($"Die Pest ist in der Stadt! In diesem Jahr fehlen {Zahlenformat.Ganz(pest.Krankenstand * 100)} % der Arbeitskräfte.");
             foreach (var (konto, p) in Personen().ToList())
             {
-                if (_zufall.NextDouble() >= pest.Ansteckung * pest.Anfaelligkeit(p.Volk)) continue;
+                if (_zufall.NextDouble() >= pest.Ansteckung * pest.Anfaelligkeit(p.Volk) * _w.Ratsantraege.Krankheitsfaktor) continue; // Brunnen
                 p.Krankheit = Erkrankung.Aus(d, Erkrankung.PestName, jahr);
                 if (konto is not null)
                     _w.Familien.Ereignis(konto, $"{p.Vorname} {p.Familienname} hat die Pest! Ohne Hilfe stirbt {Er(p)} mit {Zahlenformat.Ganz(pest.Sterben * 100)} % Wahrscheinlichkeit.");
@@ -178,7 +178,7 @@ public sealed class Gesundheitswesen
             var summe = 0.0;
             foreach (var (name, k) in krankheiten)
             {
-                summe += k.Chance * (k.AlterAb > 0 && p.Alter(jahr) >= k.AlterAb ? 3 : 1);
+                summe += k.Chance * (k.AlterAb > 0 && p.Alter(jahr) >= k.AlterAb ? 3 : 1) * _w.Ratsantraege.Krankheitsfaktor; // Brunnen der Stadt (PR #200)
                 if (wurf >= summe) continue;
                 Erkranken(konto!, p, name);
                 break;

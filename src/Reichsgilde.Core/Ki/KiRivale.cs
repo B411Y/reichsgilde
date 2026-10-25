@@ -156,6 +156,7 @@ public sealed partial class KiRivale
             Bankpolitik(); // Kasse füllen, Zins setzen – Betriebssache, keine AP
             if (frei)
             {
+                Amtspolitik(); // Befugnisse der Ämter (PR #200) – kosten keine AP
                 // Die Aktionspunkte reichen nicht für alles: Familie und Verteidigung zuerst, dann nach Charakter –
                 // der Wagemutige geht ins Hinterzimmer, bevor er Ratsherren beschenkt; die anderen umgekehrt.
                 Familienpolitik();
@@ -169,12 +170,14 @@ public sealed partial class KiRivale
                     Gaunerei();
                     Politik();
                     Glaubenspolitik();
+                    Stadtpolitik(); // Anträge zu Steuer, Bau und Fest (PR #200)
                     Anklagen();
                 }
                 else
                 {
                     Politik();
                     Glaubenspolitik();
+                    Stadtpolitik(); // Anträge zu Steuer, Bau und Fest (PR #200)
                     Anklagen();
                     Gaunerei();
                 }

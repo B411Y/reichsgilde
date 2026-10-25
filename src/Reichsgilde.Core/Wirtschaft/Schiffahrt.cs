@@ -175,8 +175,11 @@ public sealed class Schiffahrt
     }
 
     /// <summary>Spielminuten einer ganzen Fahrt: beladen, hin, liegen, zurück.</summary>
-    public static int Rundreise(SchiffstypDaten typ, FerneStadt stadt) =>
-        typ.LadeMinuten + Fahrzeit(typ, stadt, true) + typ.LiegeMinuten + Fahrzeit(typ, stadt, false);
+    /// <param name="hafenfaktor">Faktor auf Lade- und Liegezeit (erweiterter Hafen, <see cref="Politik.Ratsantraege.Hafenfaktor"/>).</param>
+    public static int Rundreise(SchiffstypDaten typ, FerneStadt stadt, double hafenfaktor = 1) =>
+        Gerundet(typ.LadeMinuten * hafenfaktor) + Fahrzeit(typ, stadt, true) + Gerundet(typ.LiegeMinuten * hafenfaktor) + Fahrzeit(typ, stadt, false);
+
+    private static int Gerundet(double minuten) => (int)Math.Round(minuten, MidpointRounding.AwayFromZero);
 
     /// <summary>Wann ist das Schiff (voraussichtlich) wieder am Kai? Spielminute; am Kai ohne Auftrag die aktuelle.</summary>
     public long ZurueckUm(Schiff schiff)
@@ -185,8 +188,8 @@ public sealed class Schiffahrt
         if (schiff.Auftrag is not { } a || Stadt(a.Ziel) is not { } stadt) return jetzt;
         return schiff.Zustand switch
         {
-            SchiffZustand.Beladen => schiff.Ende + Fahrzeit(schiff.Daten, stadt, true) + schiff.Daten.LiegeMinuten + Fahrzeit(schiff.Daten, stadt, false),
-            SchiffZustand.Hinfahrt => schiff.Ende + schiff.Daten.LiegeMinuten + Fahrzeit(schiff.Daten, stadt, false),
+            SchiffZustand.Beladen => schiff.Ende + Fahrzeit(schiff.Daten, stadt, true) + LiegeMinuten(schiff.Daten) + Fahrzeit(schiff.Daten, stadt, false),
+            SchiffZustand.Hinfahrt => schiff.Ende + LiegeMinuten(schiff.Daten) + Fahrzeit(schiff.Daten, stadt, false),
             SchiffZustand.InFernerStadt => schiff.Ende + Fahrzeit(schiff.Daten, stadt, false),
             SchiffZustand.Rueckfahrt => schiff.Ende,
             _ => jetzt,
@@ -401,6 +404,16 @@ public sealed class Schiffahrt
         }
     }
 
+    /// <summary>An so vielen Zollstellen zahlt dieses Haus je beladener Fahrt – der Zöllner nicht an der ersten, die der Stadt gehört (PR #200).</summary>
+    public int Zollstellen(Konto konto, FerneStadt stadt) =>
+        stadt.Daten.Zollstellen > 0 && _w.Befugnisse.IstZollfrei(konto) ? stadt.Daten.Zollstellen - 1 : stadt.Daten.Zollstellen;
+
+    /// <summary>Ladezeit am Kai – mit erweitertem Hafen kürzer (Bauvorhaben der Stadt, PR #200).</summary>
+    public int LadeMinuten(SchiffstypDaten typ) => Gerundet(typ.LadeMinuten * _w.Ratsantraege.Hafenfaktor);
+
+    /// <summary>Liegezeit in der fernen Stadt – die Mannschaft ist eingespielt, wenn der Hafen erweitert ist.</summary>
+    public int LiegeMinuten(SchiffstypDaten typ) => Gerundet(typ.LiegeMinuten * _w.Ratsantraege.Hafenfaktor);
+
     /// <summary>Was das Geleit einer beladenen Fahrt kostet (Gulden).</summary>
     public double GeleitKosten(string geleit) =>
         _w.Daten.Logistik.Eskorten.TryGetValue(geleit, out var e) ? e.KostenJeFahrt * (Daten?.GeleitFaktor ?? 0) : 0;
@@ -427,7 +440,7 @@ public sealed class Schiffahrt
         schiff.Auftrag = a;
         schiff.Zustand = SchiffZustand.Beladen;
         schiff.Beginn = _w.Uhr.VergangeneMinuten;
-        schiff.Ende = schiff.Beginn + schiff.Daten.LadeMinuten;
+        schiff.Ende = schiff.Beginn + LadeMinuten(schiff.Daten);
         var stadt = Stadt(a.Ziel)!;
         var zurueck = ZurueckUm(schiff);
         var um = _w.Uhr.UhrzeitInMinuten + (int)(zurueck - _w.Uhr.VergangeneMinuten);
@@ -492,11 +505,17 @@ public sealed class Schiffahrt
         if (schiff.Ladung.Count == 0) return; // leer: kein Zoll, kein Geleit, keine Piraten
 
         var waehrung = _w.Daten.Allgemein.Waehrung;
-        var zoll = stadt.Daten.Zollstellen * Daten!.ZollJeStelle * Ladungswert(schiff.Ladung);
+        // Die erste Zollstelle gehört der Stadt (Stadtkasse, PR #200) – der Zöllner zahlt dort nichts.
+        var stadtstelle = stadt.Daten.Zollstellen > 0 && _w.Kasse.IstAktiv;
+        var zollfrei = stadtstelle && _w.Befugnisse.IstZollfrei(konto);
+        var stellen = Zollstellen(konto, stadt);
+        var zoll = stellen * Daten!.ZollJeStelle * Ladungswert(schiff.Ladung);
         if (zoll > 0)
         {
             konto.Transport(zoll);
             schiff.ErtragLaufend -= zoll;
+            if (stadtstelle && !zollfrei)
+                _w.Kasse.Buchen(Politik.Kassenposten.Zoelle, zoll / stellen);
         }
 
         // Das Geleit gibt es nur, solange es verfügbar ist (die Stadtwache nur, wenn ein Haus sie stellt).
@@ -557,7 +576,7 @@ public sealed class Schiffahrt
         schiff.ErtragLaufend += erloes - ausgaben;
         schiff.Zustand = SchiffZustand.InFernerStadt;
         schiff.Beginn = jetzt;
-        schiff.Ende = jetzt + schiff.Daten.LiegeMinuten;
+        schiff.Ende = jetzt + LiegeMinuten(schiff.Daten);
         schiff.LetzteFahrt = $"{schiff.Name} ({konto.Inhaber}) in {stadt.Name}: " +
                              (erloes > 0 ? $"verkauft für {Zahlenformat.Ganz(erloes)} {waehrung}" : "nichts verkauft") +
                              (gekauft.Count > 0 ? $"; gekauft {string.Join(", ", gekauft)} für {Zahlenformat.Ganz(ausgaben)} {waehrung}" : "") + ".";
@@ -589,8 +608,9 @@ public sealed class Schiffahrt
             if (rest <= 0) continue;
             var betrag = _w.Markt[ware].Verkaufen(rest) * _w.Familien.VerkaufsFaktor(konto);
             konto.Umsatz(betrag);
-            konto.Steuer(betrag * _w.Daten.Allgemein.Umsatzsteuer);
-            erloes += betrag * (1 - _w.Daten.Allgemein.Umsatzsteuer);
+            var steuer = _w.SteuersatzMarkt(konto); // der Marktmeister zahlt weniger
+            konto.Steuer(betrag * steuer);
+            erloes += betrag * (1 - steuer);
             teile.Add($"{rest} {ware} am Markt");
         }
         schiff.ErtragLaufend += erloes + eingelagert;

@@ -46,8 +46,9 @@ public sealed record Wahlkandidat(string Name, Konto? Haus, bool IstAmtsinhaber)
 ///     Ohne Stimme gilt die Vorgabe: bei Wahlen für den bisherigen Inhaber, beim Antrag Enthaltung.
 ///
 /// Ratssitzung am Jahresende (in dieser Reihenfolge):
-///   1. Amtseinkommen für alle Häuser im Amt (noch im alten Jahr verbucht)
-///   2. Abstimmung über den Antrag – alle Ratsmitglieder, einfache Mehrheit, bei Gleichstand entscheidet der Bürgermeister
+///   1. Amtseinkommen für alle Häuser im Amt (noch im alten Jahr verbucht; mit Stadtkasse aus der Kasse, auch für die Ratsherren)
+///   2. Abstimmung über die Anträge (Tagesordnung: Statut, Stadtglaube, Pflaster, Steuersatz, Bauvorhaben, Fest) – alle Ratsmitglieder,
+///      einfache Mehrheit, bei Gleichstand entscheidet der Bürgermeister
 ///   3. Wahlen – höchste Ämter zuerst. Es wählen die Inhaber der höheren Ämter (beim höchsten Amt alle übrigen).
 ///      Kandidaten wählen nicht mit. Gleichstand entscheidet das Los.
 ///   4. Die Gunst verblasst ein Stück.
@@ -133,6 +134,7 @@ public sealed class Stadtrat
                + _w.Duft.AnsehenBonus(konto)            // Heiligenduft in der Kirche gestiftet
                + _w.Wohnen.AnsehenBonus(konto)          // ein stattliches Wohnhaus
                + _w.Wegebau.AnsehenBonus(konto)         // ein Weg auf Antrag gepflastert
+               + _w.Ratsantraege.AnsehenBonus(konto)    // ein Fest oder Bauvorhaben auf Antrag
                - _w.Glaube.AnsehenAbzug(konto);         // gerade erst die Konfession gewechselt
     }
 
@@ -433,6 +435,8 @@ public sealed class Stadtrat
         if (Antrag?.Antragsteller == konto) Antrag = null;
         _w.Glaube.Ausscheiden(konto);
         _w.Wegebau.Ausscheiden(konto);
+        _w.Ratsantraege.Ausscheiden(konto);
+        _w.Befugnisse.Ausscheiden(konto);
     }
 
     /// <summary>Nach einer Verurteilung rückt der bestochene Ratsherr öffentlich vom Haus ab.</summary>
@@ -457,6 +461,11 @@ public sealed class Stadtrat
     /// <summary>Amtseinkommen – vor dem Jahresabschluss der Konten, damit es im abgelaufenen Jahr steht.</summary>
     internal void EinkommenZahlen()
     {
+        if (_w.Kasse.IstAktiv)
+        {
+            _w.Kasse.GehaelterZahlen(); // aus der Stadtkasse – auch für die Ratsherren (PR #200)
+            return;
+        }
         foreach (var amt in _aemter.Where(a => a.Konto is not null))
             amt.Konto!.Amtseinkommen(amt.Daten.Einkommen);
     }
@@ -471,6 +480,7 @@ public sealed class Stadtrat
         Antrag = null;
         _w.Glaube.Abstimmen(jahr, _letzteSitzung.Add); // der Stadtglaube nach dem Statut
         _w.Wegebau.RatSitzung(jahr, _letzteSitzung.Add); // Antrag „Weg pflastern“, Pflaster der Stadt
+        _w.Ratsantraege.Abstimmen(jahr, _letzteSitzung.Add); // Steuersatz, Bauvorhaben, Fest (PR #200)
 
         foreach (var amt in _aemter.OrderByDescending(a => a.Stufe).ThenBy(a => a.Name, StringComparer.Ordinal).ToList())
             Waehlen(amt, zufall, jahr);

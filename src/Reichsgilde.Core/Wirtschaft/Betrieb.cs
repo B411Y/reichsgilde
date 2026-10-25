@@ -809,12 +809,13 @@ public sealed class Betrieb
 
     /// <summary>Verkauft ein Stück auf dem Markt und verbucht Umsatz und Steuer.</summary>
     /// <param name="verkaufsFaktor">Verhandlungsgeschick des Oberhaupts: 1,03 = 3 % mehr Erlös.</param>
-    internal void Verkaufen(string ware, int stueck, Markt markt, double verkaufsFaktor = 1)
+    /// <param name="steuersatz">Steuersatz für dieses Haus (<see cref="Stadtwirtschaft.SteuersatzMarkt"/>); null = <c>allgemein.umsatzsteuer</c>.</param>
+    internal void Verkaufen(string ware, int stueck, Markt markt, double verkaufsFaktor = 1, double? steuersatz = null)
     {
         if (stueck <= 0) return;
         var erloes = markt[ware].Verkaufen(stueck) * verkaufsFaktor;
         UmsatzBuchen(erloes);
-        SteuerBuchen(erloes * _daten.Allgemein.Umsatzsteuer);
+        SteuerBuchen(erloes * (steuersatz ?? _daten.Allgemein.Umsatzsteuer));
     }
 
     // ── Speichern ───────────────────────────────────────────────────────────
