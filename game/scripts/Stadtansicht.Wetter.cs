@@ -13,7 +13,7 @@ namespace Reichsgilde;
 /// <b>Wirkung.</b>
 /// <list type="bullet">
 /// <item>Licht und Himmel (<see cref="MitWetter"/>, aus <see cref="LichtNachUhrzeit"/>): Wolken dämpfen Sonne und Schatten und färben den Himmel grau,
-/// ein Blitz hellt Himmel und Umgebung auf und hat ein eigenes Licht von oben (ab Wettereffekte Mittel).</item>
+/// ein Blitz hellt Himmel und Umgebung auf und hat ein eigenes Licht (ab Wettereffekte Mittel; in der Stufe Hoch mit Schatten, jedes Mal aus anderer Richtung).</item>
 /// <item>Nebel: Godots Entfernungsnebel, dazu wird der Morgendunst dichter (Stadtansicht.Grafik.cs).</item>
 /// <item>Regen und Schnee: je ein <see cref="GPUParticles3D"/> in einem Kasten um den Blickpunkt, mit dem Zoom mitwachsend (Tropfen und Flocken
 /// sind so bei jedem Zoom gleich groß im Bild).</item>
@@ -52,6 +52,8 @@ public partial class Stadtansicht
     private float _blitzZeit = -1, _naechsterBlitz = 3;
     private float _blitz;
     private readonly Random _blitzZufall = new();
+    private int _blitzPulse;
+    private float _blitzAbstand, _blitzHaltenZeit;
     private Wettereffekte? _partikelStufe;
     private (float K, float Wind, float Breite)? _partikelFuer;
     private float _partikelHell = -1;
@@ -170,13 +172,15 @@ public partial class Stadtansicht
         };
         AddChild(_schnee);
 
-        // Blitz: ein zweites gerichtetes Licht von oben, kühl-weiß, ohne Schatten (kostet so fast nichts); nur während eines Blitzes an
+        // Blitz: ein zweites gerichtetes Licht, kühl-weiß; nur während eines Blitzes an (dann ohne Dauerkosten), Schatten nur in der Stufe Hoch
         _blitzLicht = new DirectionalLight3D
         {
             Name = "Blitz",
             LightColor = new Color(0.82f, 0.87f, 1f),
             LightEnergy = 0,
             ShadowEnabled = false,
+            DirectionalShadowMode = DirectionalLight3D.ShadowMode.Orthogonal,
+            DirectionalShadowFadeStart = 1f,
             Visible = false,
             RotationDegrees = new Vector3(-70, 30, 0),
         };
@@ -332,31 +336,66 @@ public partial class Stadtansicht
     // ═════════════════════════════════════════════════════════════════════════
 
     /// <summary>
-    /// Bei Gewitter blitzt es alle paar Sekunden (Echtzeit, zufällig – das gehört nicht zum festen Ablauf): ein heller Schlag, kurz dunkel, ein
-    /// zweiter, dann klingt er in einer halben Sekunde ab. Mit <c>--blitz=1</c> bleibt er auf voller Helligkeit stehen.
+    /// Bei Gewitter blitzt es alle paar Sekunden (Echtzeit, zufällig – das gehört nicht zum festen Ablauf): 2–4 kurze, helle Pulse in etwa 0,3 s,
+    /// dazwischen ein Restschein, dann klingt der Blitz ab. Jeder Blitz kommt aus einer zufälligen Himmelsrichtung und Steilheit; in der Stufe
+    /// Hoch wirft er Schatten (sie springen von Blitz zu Blitz), sonst bleibt es bei Licht ohne Schatten. Mit <c>--blitz=1</c> bleibt ein Blitz
+    /// auf voller Helligkeit stehen und wechselt jede Sekunde die Richtung (für Bildschirmfotos).
     /// </summary>
     private void BlitzNachfuehren(float delta)
     {
-        if (_blitzHalten && _wetter.Blitze > 0.3f) _blitz = 1;
+        if (_blitzHalten && _wetter.Blitze > 0.3f)
+        {
+            _blitz = 1;
+            if ((_blitzHaltenZeit -= delta) <= 0) { _blitzHaltenZeit = 1f; BlitzRichtung(); }
+        }
         else
         {
             if (_blitzZeit < 0 && _wetter.Blitze > 0.3f && (_naechsterBlitz -= delta) <= 0)
             {
                 _blitzZeit = 0;
                 _naechsterBlitz = (3f + 9f * (float)_blitzZufall.NextDouble()) / _wetter.Blitze;
+                BlitzRichtung();
+                _blitzPulse = 2 + _blitzZufall.Next(3);
+                _blitzAbstand = 0.3f / _blitzPulse * (0.8f + 0.4f * (float)_blitzZufall.NextDouble());
             }
             if (_blitzZeit >= 0)
             {
                 _blitzZeit += delta;
                 var b = _blitzZeit;
-                _blitz = b < 0.07f ? 1f : b < 0.14f ? 0.2f : b < 0.2f ? 0.85f : Mathf.Max(0, 0.85f * (1 - (b - 0.2f) / 0.45f));
-                if (b > 0.65f) { _blitzZeit = -1; _blitz = 0; }
+                var ende = _blitzPulse * _blitzAbstand;
+                if (b < ende)
+                {
+                    // je Pulse die ersten 40 % hell, den Rest ein schwacher Schein
+                    var im = (b % _blitzAbstand) / _blitzAbstand;
+                    _blitz = im < 0.4f ? (b < _blitzAbstand ? 1f : 0.75f + 0.25f * Mathf.Cos(b * 40f)) : 0.15f;
+                }
+                else _blitz = Mathf.Max(0, 0.6f * (1 - (b - ende) / 0.35f));
+                if (b > ende + 0.35f) { _blitzZeit = -1; _blitz = 0; }
             }
             else _blitz = 0;
         }
-        var licht = Fenster.AktuelleWettereffekte != Wettereffekte.Niedrig && _raum is null && _blitz > 0.001f;
+        var stufe = Fenster.AktuelleWettereffekte;
+        var licht = stufe != Wettereffekte.Niedrig && _raum is null && _blitz > 0.001f;
         if (_blitzLicht.Visible != licht) _blitzLicht.Visible = licht;
-        if (licht) _blitzLicht.LightEnergy = 1.5f * _blitz;
+        if (!licht) return;
+        // Schatten nur in der Stufe Hoch; die Einstellung der Sonne (Bias, Weichzeichner) gilt für dieselbe Kamera, also auch hier
+        var schatten = stufe == Wettereffekte.Hoch && _sonne.ShadowEnabled;
+        if (_blitzLicht.ShadowEnabled != schatten) _blitzLicht.ShadowEnabled = schatten;
+        if (schatten)
+        {
+            _blitzLicht.ShadowBias = _sonne.ShadowBias;
+            _blitzLicht.ShadowNormalBias = _sonne.ShadowNormalBias;
+            _blitzLicht.ShadowBlur = _sonne.ShadowBlur;
+        }
+        _blitzLicht.LightEnergy = (schatten ? 2.4f : 1.5f) * _blitz;
+    }
+
+    /// <summary>Neue Richtung für den nächsten Blitz: Himmelsrichtung 0–360°, Steilheit 35–70° über dem Horizont.</summary>
+    private void BlitzRichtung()
+    {
+        var azimut = 360f * (float)_blitzZufall.NextDouble();
+        var hoehe = 35f + 35f * (float)_blitzZufall.NextDouble();
+        _blitzLicht.RotationDegrees = new Vector3(-hoehe, azimut, 0);
     }
 
     // ═════════════════════════════════════════════════════════════════════════
