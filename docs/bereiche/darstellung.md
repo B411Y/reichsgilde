@@ -1155,7 +1155,7 @@ Entscheidungen zur Sitzung: `docs/bereiche/oberflaeche.md`, „Sichtbare Ratssit
 | Einbinden | `--innen=Rathaus` zeigt noch die alten Räume aus Grundkörpern (`Stadtansicht.Sonderbauten.cs`); das Modell lädt dort noch niemand. Die Sitzungsszene (Bereich spiel) lädt `innen/rathaus_innen`, stellt die Ratsherren auf `Anker_Sitz_<n>` nach Rang und den Bürgermeister, Schreiber und Antragsteller auf ihre Anker, färbt „Hausfarbe“ in Stadtrot und zeigt `Antrag`, solange abgestimmt wird. Die Materialnamen sind die der übrigen Innenräume; die Material-Bibliothek je Fläche kommt mit deren Gruppe. | 25.10.2026 |
 | Klicktest | Bilder `docs/modelle/rathaus_innen-blicke.png` (alle Blickpunkte, mit Platzhalterfiguren auf allen Ankern) und `-grundriss.png`. In Godot 4.7.2 (Vulkan, T400) neu importiert und mit einem Prüfskript an jedem Blickpunkt fotografiert: lädt ohne Fehler, Extras der Anker kommen an, Wappen und Behänge rot, Butzenscheiben sichtbar. | 25.10.2026 |
 
-### Nachtlichter (PR #…)
+### Nachtlichter (PR #207)
 
 | Thema | Entscheidung | Datum |
 |---|---|---|
