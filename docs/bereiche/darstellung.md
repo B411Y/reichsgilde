@@ -1114,3 +1114,11 @@ Folgerungen: FSR 2.2 lohnt sich auf der T400 kaum (67 %: −0,8 ms bei Hoch, in 
 | Orte | **Brunnen** in der Ecke des Marktplatzes, an der am wenigsten steht; **Marktplatz** vor der Seite des Marktes mit dem meisten Raum; **Mauer** am Mauerstück mit dem meisten Platz auf der Stadtseite, nicht näher als 20 m an einem Tor (im Torweg ist frei, weil die Straße hindurchführt); **Hafen** am Kai 14 m neben dem ersten Hafen. „Am meisten Platz“: größter Abstand zu den Gebäuden der Karte (bis zu ihrem Rand) und zu Brunnen, Kreuz, Bänken und Ständen des Marktes. Die Lage steht für Klicktests im Log („Baustelle der Stadt: … bei x, z“). | 25.10.2026 |
 | Fertig und Fest | Der fertige Brunnen: Steinkranz mit Wasser, zwei Pfosten, Querbalken, Eimer und kleines Dach. Die übrigen Bauten verschwinden fertig (Meldung des Kerns „Die Stadt hat gebaut“). Im Festjahr steht an jeder Ecke des Marktplatzes ein Mast mit Fahne (rot, gold, blau, grün, Schwalbenschwanz, flatternd mit dem Fahnen-Shader). | 25.10.2026 |
 | Klicktest | Vulkan auf der T400, neu importiert, Greybox (Standardkarte): Brunnen als Baustelle (morgens und mittags) und fertig, Marktplatz, Mauer, Hafen, Fest mit vier Fahnen. Keine SCRIPT ERROR. | 25.10.2026 |
+
+### Feuerlicht in den Fenstern (PR #203)
+
+| Thema | Entscheidung | Datum |
+|---|---|---|
+| Anteil | Abends viele, später wenige, zufällig je Fenster: Ab der Dämmerung gehen nach und nach etwa 50–60 % der Fenster an, gegen Ende des Spieltags bleiben nur 15–20 % (Wirtshaus, Wache, arbeitende Werkstätten länger). Je Fenster zufällig und fest, jede Nacht anders gemischt – so sieht jedes Haus anders aus. Entschieden vom Nutzer. | 25.10.2026 |
+| Flackern und Farbe | Leises Flackern, wärmeres Orange: Kerzen- und Herdlicht etwa 1.800–2.000 K, tiefer orange als bisher; unregelmäßig ±10–15 % Helligkeit, mal ruhig, mal unruhig, je Fenster eigener Takt; Herd- und Schmiedefeuer stärker und rötlicher. Hinter Butzenscheiben weich und gedeckt, nicht grell. Entschieden vom Nutzer. | 25.10.2026 |
+| Dom und Kirche | Nachts nur ein schwacher Schein (etwa 20–25 % der bisherigen Helligkeit, wenige Kerzen und das Ewige Licht); während einer Messe heller. Entschieden vom Nutzer. | 25.10.2026 |
