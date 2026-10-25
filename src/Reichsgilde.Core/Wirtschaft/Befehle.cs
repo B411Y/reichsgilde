@@ -344,6 +344,12 @@ public sealed record FestBeantragen : Befehl;
 /// <summary>Stimme zum vorliegenden Antrag zu Steuer, Bau oder Fest festlegen: true dafür, false dagegen, null Enthaltung (bis zur Sitzung änderbar).</summary>
 public sealed record RatsantragStimme(Politik.Antragsart Art, bool? Ja) : Befehl;
 
+/// <summary>
+/// Stimme zum vorliegenden Antrag „Weg pflastern“: true dafür, false dagegen, null Enthaltung. Nur in der laufenden Ratssitzung
+/// (<see cref="Politik.Ratssitzung"/>) – vorher enthält sich das Haus.
+/// </summary>
+public sealed record PflasterStimme(bool? Ja) : Befehl;
+
 /// <summary>Stadtrichter im Vorsitz: Die Buße dieses Verfahrens fällt um <paramref name="Prozent"/> höher (+) oder niedriger (−) aus (±25 %, 0 = gewöhnlich).</summary>
 public sealed record StrafmassSetzen(string Anklaeger, string Beklagter, int Prozent) : Befehl;
 

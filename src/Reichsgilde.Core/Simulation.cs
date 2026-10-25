@@ -47,6 +47,42 @@ public sealed class Simulation
     /// <summary>Wird genau einmal ausgelöst, wenn die Siegbedingung erfüllt ist.</summary>
     public event Action? PartieBeendet;
 
+    /// <summary>
+    /// Die Ratssitzung, vor der die Partie am Jahresende anhält (null = keine): Die Zeit ruht, <see cref="Aktualisieren"/> und
+    /// <see cref="Tick"/> tun nichts, bis <see cref="RatssitzungWeiter"/> den letzten Punkt abgehalten hat. Ob angehalten wird,
+    /// entscheidet <see cref="Stadtwirtschaft.RatssitzungAnhalten"/>.
+    /// </summary>
+    public Politik.Ratssitzung? Ratssitzung => Wirtschaft?.Rat.LaufendeSitzung;
+
+    /// <summary>Was nach der angehaltenen Sitzung noch aussteht: das beendete Jahr und die Tagesphase vor dem Jahreswechsel.</summary>
+    private (int Jahr, Tagesphase AltePhase)? _nachDerSitzung;
+
+    /// <summary>
+    /// Hält den aktuellen Punkt der laufenden Ratssitzung ab und gibt ihn mit Ergebnis zurück (null: keine Sitzung).
+    /// Nach dem letzten Punkt läuft die Jahresabrechnung zu Ende (<see cref="JahrBeendet"/>, Spielende), danach läuft die Zeit wieder.
+    /// </summary>
+    public Politik.Sitzungspunkt? RatssitzungWeiter()
+    {
+        if (Ratssitzung is not { } sitzung) return null;
+        var punkt = sitzung.PunktAbhalten();
+        if (sitzung.IstBeendet && _nachDerSitzung is { } rest)
+        {
+            _nachDerSitzung = null;
+            Wirtschaft!.JahresabrechnungAbschliessen(Zeit.Jahr);
+            JahrAbschliessen(rest.Jahr);
+            if (!IstBeendet && Zeit.Tagesphase != rest.AltePhase)
+                PhaseBegonnen?.Invoke(Zeit.Tagesphase);
+        }
+        return punkt;
+    }
+
+    /// <summary>„Überspringen“: alle übrigen Punkte der laufenden Ratssitzung abhalten und die Jahresabrechnung beenden.</summary>
+    public void RatssitzungAbschliessen()
+    {
+        while (Ratssitzung is not null)
+            RatssitzungWeiter();
+    }
+
     /// <param name="einstellungen">Partie-Einstellungen; ohne Angabe die Standardwerte.</param>
     /// <param name="zeit">Startzeitpunkt; ohne Angabe Frühling 1400, 05:00.</param>
     /// <param name="wirtschaftsdaten">Daten aus game/daten/wirtschaft.json; ohne Angabe läuft nur die Zeit.</param>
@@ -73,11 +109,11 @@ public sealed class Simulation
     /// <returns>Anzahl der ausgeführten Ticks.</returns>
     public int Aktualisieren(double echtzeitSekunden)
     {
-        if (IstBeendet)
+        if (IstBeendet || Ratssitzung is not null)
             return 0;
 
         var ticks = Takt.Voranschreiten(echtzeitSekunden);
-        for (var i = 0; i < ticks && !IstBeendet; i++)
+        for (var i = 0; i < ticks && !IstBeendet && Ratssitzung is null; i++)
             Tick();
         return ticks;
     }
@@ -85,7 +121,7 @@ public sealed class Simulation
     /// <summary>Genau eine Spielminute simulieren.</summary>
     public void Tick()
     {
-        if (IstBeendet)
+        if (IstBeendet || Ratssitzung is not null)
             return;
 
         var altesJahr = Zeit.Jahr;
@@ -97,16 +133,27 @@ public sealed class Simulation
 
         Zeit.Weiter();
 
-        if (Zeit.Jahr != altesJahr)
-            Jahresabrechnung(altesJahr);
+        if (Zeit.Jahr != altesJahr && !Jahresabrechnung(altesJahr))
+        {
+            _nachDerSitzung = (altesJahr, altePhase); // die Partie hält vor der Ratssitzung an
+            return;
+        }
 
         if (!IstBeendet && Zeit.Tagesphase != altePhase)
             PhaseBegonnen?.Invoke(Zeit.Tagesphase);
     }
 
-    private void Jahresabrechnung(int beendetesJahr)
+    /// <returns>false, wenn die Partie vor der Ratssitzung anhält – den Rest erledigt <see cref="RatssitzungWeiter"/>.</returns>
+    private bool Jahresabrechnung(int beendetesJahr)
     {
-        Wirtschaft?.Jahresabrechnung(Zeit.Jahr, Zeit);
+        if (Wirtschaft?.Jahresabrechnung(Zeit.Jahr, Zeit) == false)
+            return false;
+        JahrAbschliessen(beendetesJahr);
+        return true;
+    }
+
+    private void JahrAbschliessen(int beendetesJahr)
+    {
         JahrBeendet?.Invoke(beendetesJahr);
 
         var vermoegen = (long)Math.Floor(Wirtschaft?.HoechstesVermoegen ?? 0);

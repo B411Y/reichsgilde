@@ -66,6 +66,10 @@ public sealed class Stadtrat
     /// <summary>Festgelegte Stimmen bei Wahlen: (Wähler, Amt) → Haus oder (Haus null) der Ratsherr im Amt.</summary>
     private readonly Dictionary<(Konto Waehler, string Amt), (Konto? Haus, Ratsherr? Ratsherr)> _wahlStimmen = new();
 
+    /// <summary>Hat dieses Haus bei dieser Wahl eine Stimme festgelegt, die noch gilt?</summary>
+    internal bool HatWahlStimme(Konto konto, Amt amt, IReadOnlyList<Konto?> kandidaten) =>
+        _wahlStimmen.TryGetValue((konto, amt.Name), out var stimme) && IstGueltig(amt, stimme, kandidaten);
+
     /// <summary>Festgelegte Stimmen zum Antrag auf ein Statut: Haus → dafür/dagegen (fehlt = Enthaltung).</summary>
     private readonly Dictionary<Konto, bool> _statutStimmen = new();
     private (Konto Antragsteller, Fronstatut Statut)? _antrag;
@@ -229,7 +233,7 @@ public sealed class Stadtrat
     }
 
     /// <summary>Kandidaten einer Wahl: die Bewerber (aktiv, Stand erfüllt, nach Namen) und der bisherige Inhaber (null = der Ratsherr im Amt).</summary>
-    private List<Konto?> KandidatenListe(Amt amt)
+    internal List<Konto?> KandidatenListe(Amt amt)
     {
         var kandidaten = _bewerbungen.Where(b => b.Value == amt.Name).Select(b => b.Key)
             .Where(k => k.IstAktiv && k.Stand >= _w.Daten.StandStufe(amt.Daten.MindestStand))
@@ -246,7 +250,7 @@ public sealed class Stadtrat
     /// Die Stimme eines Hauses im Rat bei einer Wahl: eine KI nach ihrem Charakter, sonst die festgelegte Stimme,
     /// solange sie gültig ist – und ohne sie die Vorgabe.
     /// </summary>
-    private Konto? HausStimme(Konto haus, Amt amt, IReadOnlyList<Konto?> kandidaten)
+    internal Konto? HausStimme(Konto haus, Amt amt, IReadOnlyList<Konto?> kandidaten)
     {
         if (_w.Rivalen.FirstOrDefault(r => r.Konto == haus) is { } ki)
             return ki.Wahlstimme(amt, kandidaten); // Spiel-KI: wählt nach ihrem Charakter
@@ -264,7 +268,7 @@ public sealed class Stadtrat
     }
 
     /// <summary>Steht der Gewählte noch zur Wahl? (Ein Haus unter den Kandidaten bzw. derselbe Ratsherr noch im Amt.)</summary>
-    private static bool IstGueltig(Amt amt, (Konto? Haus, Ratsherr? Ratsherr) stimme, IReadOnlyList<Konto?> kandidaten) =>
+    internal static bool IstGueltig(Amt amt, (Konto? Haus, Ratsherr? Ratsherr) stimme, IReadOnlyList<Konto?> kandidaten) =>
         stimme.Haus is { } haus ? kandidaten.Contains(haus)
         : stimme.Ratsherr is not null && amt.Ratsherr == stimme.Ratsherr && kandidaten.Contains(null);
 
@@ -306,17 +310,28 @@ public sealed class Stadtrat
     /// Wie ginge die Abstimmung über ein Statut heute aus? Häuser, die keine KI sind, stimmen wie festgelegt
     /// (nur beim vorliegenden Antrag) und enthalten sich sonst.
     /// </summary>
-    public (int Ja, int Nein, int Enthaltung, bool? Buergermeister) AbstimmungsPrognose(Konto antragsteller, Fronstatut statut)
+    public (int Ja, int Nein, int Enthaltung, bool? Buergermeister) AbstimmungsPrognose(Konto antragsteller, Fronstatut statut) =>
+        Zaehlen(sitz => StatutStimmeVonSitz(sitz, antragsteller, statut));
+
+    /// <summary>Die Stimme eines Sitzes zum Statut (true dafür, false dagegen, null Enthaltung) – in Prognose und Sitzung dieselbe.</summary>
+    internal bool? StatutStimmeVonSitz(Amt sitz, Konto antragsteller, Fronstatut statut) =>
+        sitz.Ratsherr is { } r ? StimmtZu(r, statut, antragsteller)
+        : sitz.Konto == antragsteller ? true
+        : _w.Rivalen.FirstOrDefault(k => k.Konto == sitz.Konto) is { } ki ? ki.StimmtFuerStatut(statut)
+        : Antrag == (antragsteller, statut) ? StatutStimmeVon(sitz.Konto!) // die festgelegte Stimme gilt nur dem vorliegenden Antrag
+        : null;
+
+    /// <summary>
+    /// Zählt die Stimmen aller besetzten Sitze zu einem Antrag (Statut, Stadtglaube, Pflaster, Steuer, Bau, Fest) –
+    /// mit der Stimme des Bürgermeisters für den Gleichstand.
+    /// </summary>
+    internal (int Ja, int Nein, int Enthaltung, bool? Buergermeister) Zaehlen(Func<Amt, bool?> stimmeVon)
     {
         int ja = 0, nein = 0, enthaltung = 0;
         bool? buergermeister = null;
         foreach (var amt in _aemter.Where(a => a.IstBesetzt))
         {
-            bool? stimme = amt.Ratsherr is { } r ? StimmtZu(r, statut, antragsteller)
-                : amt.Konto == antragsteller ? true
-                : _w.Rivalen.FirstOrDefault(k => k.Konto == amt.Konto) is { } ki ? ki.StimmtFuerStatut(statut)
-                : Antrag == (antragsteller, statut) ? StatutStimmeVon(amt.Konto!) // die festgelegte Stimme gilt nur dem vorliegenden Antrag
-                : null;
+            var stimme = stimmeVon(amt);
             if (stimme == true) ja++;
             else if (stimme == false) nein++;
             else enthaltung++;
@@ -470,20 +485,38 @@ public sealed class Stadtrat
             amt.Konto!.Amtseinkommen(amt.Daten.Einkommen);
     }
 
-    /// <summary>Die Ratssitzung – nach dem Jahresabschluss: Antrag, Wahlen, Verfall der Gunst.</summary>
-    internal void Sitzung(Zufallsquelle zufall, int jahr)
+    /// <summary>
+    /// Die Ratssitzung, vor der die Partie gerade anhält (null = keine): Die Oberfläche zeigt sie Punkt für Punkt
+    /// (<see cref="Simulation.RatssitzungWeiter"/>), bis dahin ruht die Zeit. Siehe <see cref="Ratssitzung"/>.
+    /// </summary>
+    public Ratssitzung? LaufendeSitzung { get; private set; }
+
+    /// <summary>Die zuletzt abgehaltene Ratssitzung mit dem Ergebnis je Punkt (null = seit Start oder Laden noch keine; nicht im Spielstand).</summary>
+    public Ratssitzung? LetzteRatssitzung { get; private set; }
+
+    /// <summary>
+    /// Die Tagesordnung der nächsten Ratssitzung mit den voraussichtlichen Stimmen und Begründungen – nach dem heutigen Stand.
+    /// Läuft gerade eine Sitzung, ihre Punkte (abgehaltene mit Ergebnis). Leer ohne Rat oder ohne Anträge und Wahlen.
+    /// </summary>
+    public IReadOnlyList<Sitzungspunkt> Sitzungsvorschau() =>
+        LaufendeSitzung?.Punkte ?? (IstAktiv ? new Ratssitzung(_w, null, _w.Jahr).Punkte : Array.Empty<Sitzungspunkt>());
+
+    /// <summary>Die Ratssitzung – nach dem Jahresabschluss: Anträge, Wahlen, Verfall der Gunst. Ohne Halt in einem Zug.</summary>
+    internal void Sitzung(Zufallsquelle zufall, int jahr) => SitzungBeginnen(zufall, jahr)?.AllesAbhalten();
+
+    /// <summary>Beginnt die Ratssitzung: Sie läuft bis vor den ersten Punkt (null ohne Rat).</summary>
+    internal Ratssitzung? SitzungBeginnen(Zufallsquelle zufall, int jahr)
     {
-        if (!IstAktiv) return;
+        if (!IstAktiv) return null;
+        var sitzung = new Ratssitzung(_w, zufall, jahr);
+        LaufendeSitzung = sitzung;
+        sitzung.Beginnen();
+        return sitzung;
+    }
 
-        if (Antrag is { } antrag)
-            Abstimmen(antrag.Antragsteller, antrag.Statut, jahr);
-        Antrag = null;
-        _w.Glaube.Abstimmen(jahr, _letzteSitzung.Add); // der Stadtglaube nach dem Statut
-        _w.Wegebau.RatSitzung(jahr, _letzteSitzung.Add); // Antrag „Weg pflastern“, Pflaster der Stadt
-        _w.Ratsantraege.Abstimmen(jahr, _letzteSitzung.Add); // Steuersatz, Bauvorhaben, Fest (PR #200)
-
-        foreach (var amt in _aemter.OrderByDescending(a => a.Stufe).ThenBy(a => a.Name, StringComparer.Ordinal).ToList())
-            Waehlen(amt, zufall, jahr);
+    /// <summary>Letzter Schritt der Sitzung: Bewerbungen und Stimmen verfallen, die Gunst verblasst, das Protokoll wird gemeldet.</summary>
+    internal void SitzungBeenden()
+    {
         _bewerbungen.Clear();
         _wahlStimmen.Clear(); // neues Jahr, neue Wahl
 
@@ -493,35 +526,68 @@ public sealed class Stadtrat
 
         foreach (var eintrag in _letzteSitzung)
             _w.Melden(eintrag);
+        LetzteRatssitzung = LaufendeSitzung;
+        LaufendeSitzung = null;
     }
 
-    private void Abstimmen(Konto antragsteller, Fronstatut statut, int jahr)
+    /// <summary>Ein Eintrag ins Protokoll der Sitzung (auch für Glaube, Wegebau und Anträge).</summary>
+    internal void Protokollieren(string eintrag) => _letzteSitzung.Add(eintrag);
+
+    /// <summary>Der Punkt „Statut“: abstimmen über den vorliegenden Antrag.</summary>
+    internal (int Ja, int Nein, int Enthaltung, bool? Buergermeister, bool Angenommen) StatutAbstimmen(int jahr)
     {
-        var (ja, nein, _, buergermeister) = AbstimmungsPrognose(antragsteller, statut);
+        var (antragsteller, statut) = Antrag!.Value;
+        var (ja, nein, enthaltung, buergermeister) = AbstimmungsPrognose(antragsteller, statut);
         var angenommen = IstAngenommen(ja, nein, buergermeister);
         _letzteSitzung.Add($"Ratssitzung {jahr}: Antrag von {antragsteller.Inhaber} auf Statut {statut.Kuerzel()} – {statut.Name()} " +
                            $"{(angenommen ? "ANGENOMMEN" : "abgelehnt")} ({ja} dafür, {nein} dagegen{(ja == nein ? ", der Bürgermeister entscheidet" : "")}).");
         if (angenommen)
             _w.StatutAendern(statut);
+        return (ja, nein, enthaltung, buergermeister, angenommen);
     }
 
-    private void Waehlen(Amt amt, Zufallsquelle zufall, int jahr)
+    /// <summary>Nach dem Punkt „Statut“ (auch ohne Antrag): Der Antrag ist erledigt.</summary>
+    internal void StatutAntragSchliessen() => Antrag = null;
+
+    /// <summary>
+    /// Für wen dieser Sitz bei der Wahl stimmt – in Vorschau und Sitzung dieselbe Regel. Ein Ratsherr gibt dem Kandidaten mit den meisten
+    /// Punkten seine Stimme; sind mehrere gleichauf, enthält die Liste alle (in der Sitzung entscheidet das Los). Ein Haus: eine KI nach
+    /// ihrem Charakter, sonst die festgelegte Stimme oder die Vorgabe.
+    /// </summary>
+    internal List<Konto?> WahlStimmeVonSitz(Amt waehler, Amt amt, IReadOnlyList<Konto?> kandidaten)
+    {
+        if (waehler.Ratsherr is { } r)
+        {
+            var beste = kandidaten.Max(k => Punkte(r, amt, k));
+            return kandidaten.Where(k => Punkte(r, amt, k) >= beste - 1e-9).ToList();
+        }
+        return new List<Konto?> { HausStimme(waehler.Konto!, amt, kandidaten) };
+    }
+
+    /// <summary>Wer bei dieser Wahl abstimmt: die Wähler des Amtes ohne die Kandidaten.</summary>
+    internal List<Amt> WahlWaehler(Amt amt, IReadOnlyList<Konto?> kandidaten) =>
+        Waehler(amt).Where(w => w.Konto is null || !kandidaten.Contains(w.Konto)).ToList();
+
+    /// <summary>Wie eine Wahl ausging: je Wähler die Stimme (Los = unter Gleichauf gezogen), die Zählung je Kandidat, der Gewinner.</summary>
+    internal sealed record Wahlausgang(
+        IReadOnlyList<(Amt Waehler, Konto? Wahl, bool Los)> Stimmen,
+        IReadOnlyList<(Konto? Kandidat, int Stimmen)> Zaehlung,
+        Konto? Gewinner,
+        bool LosEntschied);
+
+    /// <summary>Der Punkt „Wahl“: null, wenn niemand zur Wahl steht.</summary>
+    internal Wahlausgang? Waehlen(Amt amt, Zufallsquelle zufall, int jahr)
     {
         var kandidaten = KandidatenListe(amt);
-        if (kandidaten.Count == 0) return;
+        if (kandidaten.Count == 0) return null;
 
         var stimmen = kandidaten.ToDictionary(k => k ?? Platzhalter, _ => 0);
-        foreach (var waehler in Waehler(amt).Where(w => w.Konto is null || !kandidaten.Contains(w.Konto)).ToList())
+        var einzeln = new List<(Amt, Konto?, bool)>();
+        foreach (var waehler in WahlWaehler(amt, kandidaten))
         {
-            Konto? wahl;
-            if (waehler.Ratsherr is { } r)
-            {
-                var beste = kandidaten.Max(k => Punkte(r, amt, k));
-                var gleichauf = kandidaten.Where(k => Punkte(r, amt, k) >= beste - 1e-9).ToList();
-                wahl = gleichauf.Count == 1 ? gleichauf[0] : gleichauf[zufall.Next(gleichauf.Count)];
-            }
-            else
-                wahl = HausStimme(waehler.Konto!, amt, kandidaten); // KI nach Charakter, der Spieler wie festgelegt
+            var gleichauf = WahlStimmeVonSitz(waehler, amt, kandidaten); // KI nach Charakter, der Spieler wie festgelegt
+            var wahl = gleichauf.Count == 1 ? gleichauf[0] : gleichauf[zufall.Next(gleichauf.Count)];
+            einzeln.Add((waehler, wahl, gleichauf.Count > 1));
             stimmen[wahl ?? Platzhalter]++;
         }
 
@@ -529,11 +595,13 @@ public sealed class Stadtrat
         var sieger = stimmen.Where(s => s.Value == hoechste).Select(s => s.Key).ToList();
         var gewinner = sieger.Count == 1 ? sieger[0] : sieger[zufall.Next(sieger.Count)];
         var zaehlung = string.Join(", ", stimmen.Select(s => $"{(s.Key == Platzhalter ? amt.Ratsherr?.Name : s.Key.Inhaber)} {s.Value}"));
+        var ausgang = new Wahlausgang(einzeln, stimmen.Select(s => (s.Key == Platzhalter ? null : (Konto?)s.Key, s.Value)).ToList(),
+            gewinner == Platzhalter ? null : gewinner, sieger.Count > 1);
 
         if (gewinner == Platzhalter || gewinner == amt.Konto)
         {
             _letzteSitzung.Add($"Wahl {jahr} – {amt.Name}: {amt.Inhaber} bleibt im Amt ({zaehlung}).");
-            return;
+            return ausgang;
         }
 
         // Neuer Amtsinhaber: Er gibt sein bisheriges Amt ab, das ein Nachrücker übernimmt.
@@ -546,6 +614,7 @@ public sealed class Stadtrat
         amt.Ratsherr = null;
         amt.Konto = gewinner;
         _letzteSitzung.Add($"Wahl {jahr} – {amt.Name}: {gewinner.Inhaber} löst {vorher} ab ({zaehlung}).");
+        return ausgang;
     }
 
     /// <summary>Platzhalter-Konto für „der Ratsherr im Amt" in der Stimmenzählung.</summary>
