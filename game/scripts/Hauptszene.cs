@@ -52,6 +52,8 @@ namespace Reichsgilde;
 ///   --beruf=Steinmetz  Startberuf der Testpartie (Schmied, Tischler, Steinmetz, Alchimist, Wirt, Prediger, Dieb, Gardist, Geldleiher)
 ///   --bericht=1        gleich zu Beginn einen Jahresbericht zeigen (zum Testen der Anzeige); =jahresrechnung, rivalen, umsaetze, protokoll: die Tafel „Bericht“ auf diesem Reiter
 ///   --rat=1            gleich zu Beginn die Ratskammer öffnen
+///   --amt=Kämmerer     dem Spieler ein Amt geben; --kasse=9000 Stand der Stadtkasse; --antrag=steuer:4|bau:brunnen|fest Antrag stellen;
+///   --rathaus=amt      das Rathaus mit diesem Reiter auswählen (stadtkasse, rat, amt) – alle vier in Hauptszene.Rat.cs
 ///   --familie=1        gleich zu Beginn die Familientafel öffnen
 ///   --gericht=1        gleich zu Beginn den Gerichtssaal öffnen
 ///   --hinterzimmer=1   gleich zu Beginn das Hinterzimmer öffnen
@@ -105,6 +107,7 @@ public partial class Hauptszene : Node
     private Func<Befehl>? _aktion;
     private JahresberichtAnzeige _jahresbericht = null!;
     private RatAnzeige _ratskammer = null!;
+    private RathausTafel _rathausTafel = null!;
     private FamilienAnzeige _familientafel = null!;
     private GerichtAnzeige _gerichtssaal = null!;
     private GaunerAnzeige _hinterzimmer = null!;
@@ -169,6 +172,9 @@ public partial class Hauptszene : Node
         _uebersicht = new BetriebsUebersicht();
         _auswahlText.GetParent().GetParent().AddChild(_uebersicht); // gleich unter Name und Wappen, vor „Hineingehen“
         _auswahlText.GetParent().GetParent().MoveChild(_uebersicht, _auswahlText.GetParent().GetIndex() + 1);
+        _rathausTafel = new RathausTafel(); // Stadtkasse, Tagesordnung, Befugnis des Amtes – unter dem Text des Rathauses (PR #200)
+        _auswahlText.GetParent().GetParent().AddChild(_rathausTafel);
+        _auswahlText.GetParent().GetParent().MoveChild(_rathausTafel, _uebersicht.GetIndex() + 1);
         _aktionKnopf = GetNode<Button>("%AktionKnopf");
         _jahresbericht = GetNode<JahresberichtAnzeige>("%Jahresbericht");
         _ratKnopf = GetNode<Button>("%RatKnopf");
@@ -224,6 +230,10 @@ public partial class Hauptszene : Node
         SpielmenueBauen();
         _ratKnopf.Pressed += RatOeffnen;
         _ratskammer.Gemeldet += Protokollieren;
+        _rathausTafel.Gemeldet += Protokollieren;
+        _rathausTafel.RatGewuenscht += RatOeffnen;
+        _rathausTafel.GerichtGewuenscht += () => { TafelnSchliessen(); _gerichtssaal.Oeffnen(); };
+        _rathausTafel.MarktGewuenscht += MarktOeffnen;
         _wohnhaus.FamilieGewuenscht += FamilieOeffnen;
         _familientafel.Gemeldet += Protokollieren;
         _gerichtKnopf.Pressed += () => { TafelnSchliessen(); _gerichtssaal.Oeffnen(); };
@@ -411,6 +421,7 @@ public partial class Hauptszene : Node
                 var ergebnis = wKarren.Ausfuehren(_spieler, new KarrenKaufen(kaeufer.Name, typ));
                 if (!ergebnis.Erfolg) Protokollieren("--karren=" + typ + ": " + ergebnis.Meldung);
             }
+        RatStartoptionen(optionen); // --amt, --kasse, --antrag, --rathaus (Hauptszene.Rat.cs); vor den Tafeln, die ein Amt zeigen
         HafenStartoptionen(optionen); // --schiff, --schiffsauftrag, --hafen (Hauptszene.Hafen.cs)
         if (optionen.TryGetValue("rat", out var rat) && rat == "1")
             _ratskammer.Oeffnen();
@@ -890,6 +901,7 @@ public partial class Hauptszene : Node
         _berichtTafel.Verbinden(simulation, spieler);
         _hafenTafel.Verbinden(simulation, spieler);
         _ratskammer.Verbinden(simulation, spieler);
+        _rathausTafel.Verbinden(simulation, spieler);
         _familientafel.Verbinden(simulation, spieler);
         _gerichtssaal.Verbinden(simulation, spieler);
         _hinterzimmer.Verbinden(simulation, spieler);
@@ -933,6 +945,7 @@ public partial class Hauptszene : Node
         _auswahlKennung = null;
         _auswahl.Hide();
         _uebersicht.Zeigen(null);
+        _rathausTafel.Zeigen(false);
     }
 
     public override void _Process(double delta)
@@ -1245,6 +1258,7 @@ public partial class Hauptszene : Node
             _ when schiff is not null => FremdesSchiffText(schiff, w), // Schiff eines anderen Hauses (Hauptszene.Hafen.cs)
             _ when _stadt.WohnhausText(_auswahlKennung) is { } wohnhaus => wohnhaus + LeerstandZusatz(w), // Wohnhaus eines Spielhauses (Darstellung)
             _ when _stadt.GrundstueckText(_auswahlKennung) is { } grundstueck => grundstueck, // Baustelle oder Bauplatz (Darstellung)
+            _ when _stadt.StadtbauText(_auswahlKennung) is { } stadtbau => stadtbau, // Bauvorhaben der Stadt (PR #200)
             _ => _auswahlKennung,
         };
         AktionKnopfAnzeigen(w, frei);
@@ -1252,6 +1266,7 @@ public partial class Hauptszene : Node
         var ratSichtbar = _auswahlKennung == "Rathaus" && w.Rat.IstAktiv;
         if (_ratKnopf.Visible != ratSichtbar) _ratKnopf.Visible = ratSichtbar; // nur bei Änderung setzen (siehe AktionKnopfAnzeigen)
         var gerichtSichtbar = _auswahlKennung == "Rathaus" && w.Justiz.IstAktiv;
+        _rathausTafel.Zeigen(_auswahlKennung == "Rathaus"); // nur mit Stadtkasse (RathausTafel.cs)
         if (_gerichtKnopf.Visible != gerichtSichtbar) _gerichtKnopf.Visible = gerichtSichtbar;
         if (_auswahl.Visible != (AuswahlImRaum && RechtsFrei))
         {
@@ -1477,7 +1492,8 @@ public partial class Hauptszene : Node
         if (w.Rat.IstAktiv)
         {
             zeilen.Add("Ämter:\n" + string.Join("\n", w.Rat.Aemter.Select(a => $"  {a.Name}: {a.Inhaber}")));
-            if (w.Rat.Antrag is { } antrag) zeilen.Add($"Antrag liegt vor: Statut {antrag.Statut.Kuerzel()} ({antrag.Antragsteller.Inhaber})");
+            if (w.Rat.Antrag is { } antrag && !w.Ratsantraege.IstAktiv) // mit Stadtkasse steht er in der Tagesordnung (Reiter „Rat“)
+                zeilen.Add($"Antrag liegt vor: Statut {antrag.Statut.Kuerzel()} ({antrag.Antragsteller.Inhaber})");
         }
         return string.Join("\n", zeilen);
     }

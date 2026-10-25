@@ -285,7 +285,7 @@ public sealed class Bankwesen
         if (!IstAktiv) return 0;
         var zins = Daten.Rahmen.JeSchreiber * Stufenwert(Daten.Rahmen.JeStufe, stufe) * Daten.Stadtzins / _w.Daten.Allgemein.Arbeitsminuten;
         var ausfall = Daten.Rahmen.JeSchreiber * Stufenwert(Daten.Rahmen.JeStufe, stufe) * Daten.Ausfall.Chance * Daten.Ausfall.Anteil / _w.Daten.Allgemein.Arbeitsminuten;
-        return (zins + WechselJeMinute * Stufenwert(Daten.Wechsel.JeStufe, stufe)) * (1 - _w.Daten.Allgemein.Umsatzsteuer) - ausfall;
+        return (zins + WechselJeMinute * Stufenwert(Daten.Wechsel.JeStufe, stufe)) * (1 - _w.Umsatzsteuer) - ausfall;
     }
 
     /// <summary>Wie <see cref="WertJeMinute(int)"/>, mit der Einrichtung dieses Betriebs (Rahmen, Wechselgebühr, Ausfall).</summary>
@@ -296,7 +296,7 @@ public sealed class Bankwesen
         var zins = rahmen * Daten.Stadtzins;
         var ausfall = rahmen * Daten.Ausfall.Chance * Daten.Ausfall.Anteil * b.AusfallFaktor;
         var wechsel = WechselJeMinute * Stufenwert(Daten.Wechsel.JeStufe, b.Stufe) * b.WechselFaktor;
-        return (zins + wechsel) * (1 - _w.Daten.Allgemein.Umsatzsteuer) - ausfall;
+        return (zins + wechsel) * (1 - _w.Umsatzsteuer) - ausfall;
     }
 
     /// <summary>
@@ -336,7 +336,7 @@ public sealed class Bankwesen
         var wechsel = b.Arbeitsminuten * leistung * Stufenwert(Daten.Wechsel.JeStufe, b.Stufe) * WechselJeMinute * deckel * b.WechselFaktor
                       * (wi.WechselFaktor - 1);
         var ausfall = kasse * Daten.Ausfall.Chance * Daten.Ausfall.Anteil * b.AusfallFaktor * (1 - wi.AusfallFaktor);
-        return (zins + wechsel) * (1 - _w.Daten.Allgemein.Umsatzsteuer) + ausfall;
+        return (zins + wechsel) * (1 - _w.Umsatzsteuer) + ausfall;
     }
 
     /// <summary>
@@ -492,7 +492,7 @@ public sealed class Bankwesen
         {
             k.Nehmer.Zinsen(zins);
             k.Geber.Umsatz(zins);
-            k.Geber.Steuer(zins * _w.Daten.Allgemein.Umsatzsteuer);
+            k.Geber.Steuer(zins * _w.Umsatzsteuer);
             Buchen(k.Geber, x => x with { Hauszinsen = x.Hauszinsen + zins });
         }
         tilgung = Math.Min(tilgung, k.Rest);
@@ -524,7 +524,7 @@ public sealed class Bankwesen
     internal void Stunde(Spielzeit zeit)
     {
         if (!IstAktiv) return;
-        var steuer = _w.Daten.Allgemein.Umsatzsteuer;
+        var steuer = _w.Umsatzsteuer;
         var proMinute = WechselJeMinute;
         var arbeit = new List<(Betrieb B, double Minuten)>();
         foreach (var b in _w.Betriebe.Where(IstBankbetrieb).ToList())

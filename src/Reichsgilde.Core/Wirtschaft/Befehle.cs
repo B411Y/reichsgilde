@@ -326,3 +326,29 @@ public sealed record SchiffsauftragBeenden(string Schiff) : SchiffahrtBefehl;
 
 /// <summary>Das Geleit eines Schiffs wählen (Stufen wie bei den Karren, <c>logistik.eskorten</c>; Kosten × <c>schiffshandel.geleitFaktor</c>).</summary>
 public sealed record SchiffGeleitWaehlen(string Schiff, string Geleit) : SchiffahrtBefehl;
+
+// ── Stadtkasse, Anträge und Ämter (PR #200) ─────────────────────────────────
+
+/// <summary>
+/// Im Rat einen neuen Steuersatz beantragen (ganze Prozent, <c>politik.kasse.steuerMin</c> bis <c>steuerMax</c>). Der Kämmerer zahlt dafür
+/// keine Aktionspunkte. Vorab: <see cref="Politik.Ratsantraege.BeantragenVerboten"/> und <see cref="Politik.Ratsantraege.Prognose"/>.
+/// </summary>
+public sealed record SteuersatzBeantragen(int Prozent) : Befehl;
+
+/// <summary>Im Rat ein Bauvorhaben der Stadt beantragen (Kennung aus <c>politik.bauvorhaben</c>) – nur, wenn die Stadtkasse es deckt.</summary>
+public sealed record BauvorhabenBeantragen(string Kennung) : Befehl;
+
+/// <summary>Im Rat ein Fest für das nächste Jahr beantragen – nur, wenn die Stadtkasse es deckt.</summary>
+public sealed record FestBeantragen : Befehl;
+
+/// <summary>Stimme zum vorliegenden Antrag zu Steuer, Bau oder Fest festlegen: true dafür, false dagegen, null Enthaltung (bis zur Sitzung änderbar).</summary>
+public sealed record RatsantragStimme(Politik.Antragsart Art, bool? Ja) : Befehl;
+
+/// <summary>Stadtrichter im Vorsitz: Die Buße dieses Verfahrens fällt um <paramref name="Prozent"/> höher (+) oder niedriger (−) aus (±25 %, 0 = gewöhnlich).</summary>
+public sealed record StrafmassSetzen(string Anklaeger, string Beklagter, int Prozent) : Befehl;
+
+/// <summary>Stadthauptmann: Die Streife geht vor allem in diesem Viertel (doppelter Schutz) – null: gleichmäßig über die Stadt.</summary>
+public sealed record StreifeVerlegen(Politik.Stadtviertel? Viertel) : Befehl;
+
+/// <summary>Gefängniswärter: Das Oberhaupt dieses Hauses kommt gegen Kaution vorzeitig aus dem Kerker (das Geld bekommt der Wärter).</summary>
+public sealed record GefangenenFreilassen(string Haus) : Befehl;

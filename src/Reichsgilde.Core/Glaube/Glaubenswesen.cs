@@ -474,7 +474,7 @@ public sealed class Glaubenswesen
         if (!IstAktiv || Stadtglaube is null) return;
         foreach (var konto in _w.Konten.Where(k => k.IstAktiv && IstAndersglaeubig(k)))
         {
-            konto.Steuer(Daten.Stadtglaube.Abgabe);
+            konto.Steuer(Daten.Stadtglaube.Abgabe, Kassenposten.Glaubenszins);
             _abgabenVorjahr[konto] = Daten.Stadtglaube.Abgabe;
         }
     }

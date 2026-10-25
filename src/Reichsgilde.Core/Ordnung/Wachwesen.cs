@@ -202,7 +202,7 @@ public sealed class Wachwesen
 
     /// <summary>Gulden je Arbeitsminute eines Gesellen nach Steuer (für Kalkulation, Personal und KI).</summary>
     public double WertJeMinute(int stufe) => IstAktiv
-        ? Daten.Sold.JeMinute * Daten.Sold.JeStufe[Math.Clamp(stufe - 1, 0, Daten.Sold.JeStufe.Count - 1)] * (1 - _w.Daten.Allgemein.Umsatzsteuer)
+        ? Daten.Sold.JeMinute * Daten.Sold.JeStufe[Math.Clamp(stufe - 1, 0, Daten.Sold.JeStufe.Count - 1)] * (1 - _w.Umsatzsteuer)
         : 0;
 
     /// <summary>
@@ -213,8 +213,12 @@ public sealed class Wachwesen
         ? Math.Min(Daten.Patrouille.Hoechstens, Daten.Patrouille.SchutzJeWachmann * Wachhaeuser.Sum(b => b.LeistungProMinute * b.StreifenFaktor))
         : 0;
 
-    /// <summary>Faktor auf die Erfolgschance einer Tat gegen diesen Betrieb (1 = keine Streife; im Umland wirkt sie nicht).</summary>
-    public double Patrouillefaktor(Betrieb? b) => b is null || b.InDerStadt ? 1 - Patrouilleschutz : 1;
+    /// <summary>
+    /// Faktor auf die Erfolgschance einer Tat gegen diesen Betrieb (1 = keine Streife; im Umland wirkt sie nicht). Im Viertel, in das
+    /// der Stadthauptmann die Streife verlegt hat, schützt sie doppelt; eine ausgebesserte Stadtmauer schützt überall in der Stadt (PR #200).
+    /// </summary>
+    public double Patrouillefaktor(Betrieb? b) =>
+        b is null || b.InDerStadt ? (1 - _w.Befugnisse.StreifeSchutz(b, Patrouilleschutz)) * _w.Ratsantraege.Nachtschutzfaktor : 1;
 
     /// <summary>So viel wahrscheinlicher ist ein Zeuge in der Stadt.</summary>
     public double ZeugenBonus(Betrieb? b) => b is not null && b.InDerStadt ? ZeugenBonusInDerStadt : 0;
@@ -236,7 +240,7 @@ public sealed class Wachwesen
     internal void Stunde(Spielzeit zeit)
     {
         if (!IstAktiv) return;
-        var steuer = _w.Daten.Allgemein.Umsatzsteuer;
+        var steuer = _w.Umsatzsteuer;
         foreach (var b in _w.Betriebe.Where(IstWachbetrieb).ToList())
         {
             var minuten = b.ArbeitsminutenAbholen();

@@ -114,6 +114,89 @@ public sealed record WirtschaftStand
 
     /// <summary>Schiffe und Märkte der fernen Städte (null: ohne Schiffshandel oder alter Spielstand – dann ohne Schiffe, Märkte ausgeglichen).</summary>
     public SchiffahrtStand? Schiffahrt { get; init; }
+
+    /// <summary>Die Stadtkasse (null: ohne Kasse oder alter Spielstand – dann der Startbestand der Karte und der Steuersatz der Daten).</summary>
+    public StadtkasseStand? Stadtkasse { get; init; }
+
+    /// <summary>Anträge zu Steuer, Bau und Fest, Bauvorhaben und Fest der Stadt (null: ohne Kasse oder alter Spielstand).</summary>
+    public RatsantraegeStand? Ratsantraege { get; init; }
+
+    /// <summary>Befugnisse der Ämter: freier Antrag, Streife, Strafmaß (null: ohne Kasse oder alter Spielstand).</summary>
+    public BefugnisseStand? Befugnisse { get; init; }
+}
+
+/// <summary>Die Stadtkasse (siehe <see cref="Reichsgilde.Core.Politik.Stadtkasse"/>).</summary>
+public sealed record StadtkasseStand
+{
+    public double Stand { get; init; }
+    public int SteuersatzProzent { get; init; }
+    public KassenbuchStand DiesesJahr { get; init; } = new();
+    public KassenbuchStand? Vorjahr { get; init; }
+}
+
+public sealed record KassenbuchStand
+{
+    public int Jahr { get; init; }
+    public Dictionary<Politik.Kassenposten, double> Posten { get; init; } = new();
+}
+
+/// <summary>Anträge zu Steuer, Bau und Fest (siehe <see cref="Reichsgilde.Core.Politik.Ratsantraege"/>).</summary>
+public sealed record RatsantraegeStand
+{
+    public List<RatsantragStand> Antraege { get; init; } = new();
+    public List<RatsantragStimmeStand> Stimmen { get; init; } = new();
+    public List<StadtbaustelleStand> Baustellen { get; init; } = new();
+    public List<string> Gebaut { get; init; } = new();
+    public List<AntragAnsehenStand> Ansehen { get; init; } = new();
+    public int? FestJahr { get; init; }
+}
+
+public sealed record RatsantragStand
+{
+    public Politik.Antragsart Art { get; init; }
+    public int Konto { get; init; }
+    public int Prozent { get; init; }
+    public string Bauvorhaben { get; init; } = "";
+}
+
+public sealed record RatsantragStimmeStand
+{
+    public Politik.Antragsart Art { get; init; }
+    public int Konto { get; init; }
+    public bool Ja { get; init; }
+}
+
+public sealed record StadtbaustelleStand
+{
+    public string Kennung { get; init; } = "";
+    public int? Konto { get; init; }
+    public long FertigAb { get; init; }
+    public double Kosten { get; init; }
+}
+
+public sealed record AntragAnsehenStand
+{
+    public int Konto { get; init; }
+    public double Wert { get; init; }
+    public int Bis { get; init; }
+}
+
+/// <summary>Befugnisse der Ämter (siehe <see cref="Reichsgilde.Core.Politik.Amtsbefugnisse"/>).</summary>
+public sealed record BefugnisseStand
+{
+    public int? FreierAntragKonto { get; init; }
+    public int FreierAntragJahr { get; init; }
+    public int? StreifeKonto { get; init; }
+    public Politik.Stadtviertel? StreifeViertel { get; init; }
+    public List<StrafmassStand> Strafmass { get; init; } = new();
+}
+
+public sealed record StrafmassStand
+{
+    public int Anklaeger { get; init; }
+    public int Beklagter { get; init; }
+    public int Richter { get; init; }
+    public int Prozent { get; init; }
 }
 
 /// <summary>Der Schiffshandel (siehe <see cref="Reichsgilde.Core.Wirtschaft.Schiffahrt"/>).</summary>

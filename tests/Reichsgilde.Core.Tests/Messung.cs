@@ -65,6 +65,15 @@ static class Messung
         var glaube = new SortedDictionary<string, int>(StringComparer.Ordinal); // „Stadtglaube katholisch", „Eisenbart katholisch" am Ende
         double katholikenAnteil = 0;
         void Erreicht(string ziel, int jahr) { var (j, n) = meisterJahre.GetValueOrDefault(ziel); meisterJahre[ziel] = (j + jahr, n + 1); }
+        // Stadtkasse (PR #200): Stand je Jahr (Summe über die Partien), Posten, Anträge und Befugnisse, Steuersatz und Bauten am Ende
+        var kasseJahr = new double[jahre + 1];
+        var kassePosten = new SortedDictionary<Reichsgilde.Core.Politik.Kassenposten, double>();
+        var antraege = new SortedDictionary<string, (int Gestellt, int Angenommen)>(StringComparer.Ordinal);
+        var befugnisse = new SortedDictionary<string, int>(StringComparer.Ordinal);
+        var steuerEnde = new SortedDictionary<int, int>();
+        var gebaut = new SortedDictionary<string, int>(StringComparer.Ordinal);
+        int buergerPartien = 0; double buergerJahre = 0;
+        var amtJahreKi = new SortedDictionary<string, int>(StringComparer.Ordinal); // Jahre, in denen KI-Häuser ein Amt hielten (Summe)
         for (var s = 1; s <= startwerte; s++)
         {
             var (sim, spieler) = Partieaufbau.Erstellen(
@@ -89,6 +98,8 @@ static class Messung
                     // „Haus Eichwald: kauft Einrichtung für Tischlerei Eichwald: Gutes Werkzeug (300 Gulden) – …“ → je Stück
                     if (m.Split(": kauft Einrichtung für ") is [_, var rest] && rest.Split(" – ")[0].Split(": ")[^1].Split(" (")[0] is var stueck)
                         einrichtungKi[stueck] = einrichtungKi.GetValueOrDefault(stueck) + 1;
+                    foreach (var amt in new[] { "als Stadtrichter", "als Stadthauptmann", "als Gefängniswärter", "als Kämmerer" })
+                        if (m.Contains(amt)) befugnisse[amt] = befugnisse.GetValueOrDefault(amt) + 1;
                     if (m.Contains("kauft das leerstehende")) Zaehlen("Leerstand gekauft");
                     else if (m.Contains("baut ein neues Wohnhaus, ein ")) Zaehlen($"Wohnhaus neu gebaut ({m.Split("baut ein neues Wohnhaus, ein ")[1].Split(' ')[0]})");
                     else if (m.Contains(" neu (") && m.Contains("keine freie Werkstatt")) Zaehlen("Werkstatt neu gebaut");
@@ -102,7 +113,7 @@ static class Messung
             }
             var w = sim.Wirtschaft!;
             var rivale = w.Konten.First(k => k != spieler);
-            int? heirat = null, bm = null;
+            int? heirat = null, bm = null, buerger = null;
             var erreicht = new HashSet<string>();
             var sparfolge = new Dictionary<string, int>();
             for (var j = 1; j <= jahre; j++)
@@ -121,6 +132,25 @@ static class Messung
                 while (sim.Zeit.Jahr == jahr) sim.Tick();
                 heirat ??= w.Familien.Von(rivale)!.Ehepartner is not null ? j : null;
                 bm ??= w.Rat.AmtNamens("Bürgermeister")?.Konto == rivale ? j : null;
+                buerger ??= rivale.Stand >= 1 ? j : null;
+                kasseJahr[j] += w.Kasse.Stand;
+                foreach (var a in w.Rat.Aemter.Where(a => a.Konto is { } k && w.Rivalen.Any(r => r.Konto == k)))
+                    amtJahreKi[a.Name] = amtJahreKi.GetValueOrDefault(a.Name) + 1;
+                if (w.Kasse.Vorjahr is { } kb)
+                    foreach (var (posten, betrag) in kb.Posten) kassePosten[posten] = kassePosten.GetValueOrDefault(posten) + betrag;
+                foreach (var zeile in w.Rat.LetzteSitzung.Where(z => z.StartsWith("Ratssitzung")))
+                {
+                    // „Ratssitzung 1404: Antrag von Haus Eisenbart – Steuersatz 4 % (bisher 5 %) – ANGENOMMEN …“
+                    var art = zeile.Contains("– Steuersatz ")
+                        ? int.Parse(zeile.Split("– Steuersatz ")[1].Split(' ')[0]) < int.Parse(zeile.Split("(bisher ")[1].Split(' ')[0]) ? "Steuer senken" : "Steuer erhöhen"
+                        : zeile.Contains("– Bauvorhaben „") ? "Bau " + zeile.Split("Bauvorhaben „")[1].Split('“')[0]
+                        : zeile.Contains("– Fest im Jahr") ? "Fest"
+                        : zeile.Contains("auf Statut") ? "Statut"
+                        : zeile.Contains("auf Stadtglauben") ? "Stadtglaube"
+                        : zeile.Contains("zu pflastern") ? "Pflaster" : "sonst";
+                    var (g, a) = antraege.GetValueOrDefault(art);
+                    antraege[art] = (g + 1, a + (zeile.Contains("ANGENOMMEN") ? 1 : 0));
+                }
                 kostenSpieler += spieler.Vorjahr?.Familie ?? 0;
                 bestechung += rivale.Vorjahr?.Geschenke ?? 0;
                 gaunerBilanz -= rivale.Vorjahr?.Gaunerei ?? 0;
@@ -189,6 +219,9 @@ static class Messung
             var f = w.Familien.Von(rivale)!;
             var nachkommen = f.Mitglieder.Count(p => p.Vater is not null);
             if (heirat is { } h) { verheiratet++; heiratsjahre += h; }
+            if (buerger is { } bj) { buergerPartien++; buergerJahre += bj; }
+            steuerEnde[w.Kasse.SteuersatzProzent] = steuerEnde.GetValueOrDefault(w.Kasse.SteuersatzProzent) + 1;
+            foreach (var bau in w.Ratsantraege.Gebaut) gebaut[bau] = gebaut.GetValueOrDefault(bau) + 1;
             if (bm is { } b) { buergermeister++; bmJahre += b; }
             if (rivale.IstErloschen) erloschen++;
             kinder += nachkommen;
@@ -244,6 +277,18 @@ static class Messung
         Console.WriteLine($"  Stand der KI-Häuser am Ende (alle Partien): {string.Join(", ", staendeKi.Select(x => $"{x.Key} {x.Value}"))}; bankrott {bankrottKi}");
         Console.WriteLine("  Sparjahre der KI zum Jahresende (Ø je Partie, längste Folge in einer Partie): " +
                           string.Join(", ", sparjahre.Select(x => $"{x.Key} {(double)x.Value.Jahre / startwerte:N1} (längste {x.Value.Laengste})")));
+        Console.WriteLine($"  Bürger: {buergerPartien}/{startwerte}, im Schnitt ab Jahr {(buergerPartien > 0 ? buergerJahre / buergerPartien : 0):N1}");
+        if (kassePosten.Count > 0)
+        {
+            Console.WriteLine("  Stadtkasse Ø am Ende des Jahres: " + string.Join(", ", new[] { 1, 2, 5, 10, 15, 20, 25, 30, 40 }.Where(j => j <= jahre)
+                .Select(j => $"Jahr {j} {Zahlenformat.Ganz(kasseJahr[j] / startwerte)}")));
+            Console.WriteLine("  Stadtkasse Ø je Jahr: " + string.Join(", ", kassePosten.Select(x => $"{Reichsgilde.Core.Politik.KassenpostenTexte.Name(x.Key)} {Zahlenformat.Ganz(x.Value / startwerte / jahre)}")));
+            Console.WriteLine("  Anträge im Rat (gestellt/angenommen, Summe): " + string.Join(", ", antraege.Select(x => $"{x.Key} {x.Value.Gestellt}/{x.Value.Angenommen}")));
+            Console.WriteLine("  Steuersatz am Ende (Partien): " + string.Join(", ", steuerEnde.Select(x => $"{x.Key} % {x.Value}×")) +
+                              "; gebaut: " + (gebaut.Count == 0 ? "nichts" : string.Join(", ", gebaut.Select(x => $"{x.Key} {x.Value}×"))));
+            Console.WriteLine("  Ämter der KI (Jahre, Summe über alle Partien): " + string.Join(", ", amtJahreKi.Select(x => $"{x.Key} {x.Value}")));
+            Console.WriteLine("  Befugnisse der KI (Summe): " + (befugnisse.Count == 0 ? "keine" : string.Join(", ", befugnisse.Select(x => $"{x.Key} {x.Value}×"))));
+        }
         if (gericht)
             Console.WriteLine($"  vor Gericht: {urteileSchuldig} Schuldsprüche, {urteileFrei} Freisprüche, davon {amtVerloren} mit Amtsverlust (Summe über alle Startwerte)");
         return 0;

@@ -63,8 +63,11 @@ public sealed class Marktstand
     /// </summary>
     public double NachfrageFaktor { get; internal set; } = 1;
 
-    /// <summary>Nachfrage der Stadt im Jahr – <see cref="Grundnachfrage"/> mal <see cref="NachfrageFaktor"/>.</summary>
-    public double Nachfrage => Grundnachfrage * NachfrageFaktor;
+    /// <summary>
+    /// Nachfrage der Stadt im Jahr – <see cref="Grundnachfrage"/> mal <see cref="NachfrageFaktor"/> mal <see cref="Markt.Ratsfaktor"/>
+    /// (größerer Marktplatz, Fest; PR #200).
+    /// </summary>
+    public double Nachfrage => Grundnachfrage * NachfrageFaktor * (_markt?.Ratsfaktor ?? 1);
 
     /// <summary>Art der Ware aus den Daten (Rohstoff, Zwischenprodukt, Fertigprodukt, Heilmittel).</summary>
     public string Typ => _ware.Typ;
@@ -78,6 +81,21 @@ public sealed class Marktstand
 
     /// <summary>Aktueller Marktpreis für ein Stück.</summary>
     public double Preis => _ware.Grundpreis * Preisfaktor;
+
+    /// <summary>
+    /// Der Preis zu Beginn der nächsten Stunde, wenn bis dahin niemand verkauft (Vorschau des Marktmeisters, PR #200): Dann fällt das
+    /// älteste Stundenfach aus dem Fenster – was vor 17 Stunden verkauft wurde, drückt den Preis nicht mehr. Die Nachfrage bleibt wie jetzt.
+    /// </summary>
+    public double PreisNaechsteStunde
+    {
+        get
+        {
+            var aeltestes = (_aktuellesFach + 1) % _verkaufteStueckProStunde.Length;
+            var angebot = Grundnachfrage * _ware.NpcAnteil + _verkaufteStueckProStunde.Sum() - _verkaufteStueckProStunde[aeltestes];
+            var faktor = Math.Pow(Nachfrage / Math.Max(angebot, 1e-9), _allgemein.Elastizitaet);
+            return _ware.Grundpreis * Math.Clamp(faktor, _allgemein.PreisMin, _allgemein.PreisMax);
+        }
+    }
 
     public double Grundpreis => _ware.Grundpreis;
 
@@ -180,6 +198,12 @@ public sealed class Markt
     /// zu Beginn jeder Spielminute und nach dem Laden (<see cref="StadtDaten"/>).
     /// </summary>
     public double Einwohnerfaktor { get; internal set; } = 1;
+
+    /// <summary>
+    /// Faktor des Rates auf die Nachfrage aller Waren (größerer Marktplatz, Fest; 1 = keiner). Anders als der Einwohnerfaktor wirkt er nur
+    /// auf die Käufer, nicht auf die Grundversorgung. Die Stadtwirtschaft setzt ihn mit dem Einwohnerfaktor.
+    /// </summary>
+    public double Ratsfaktor { get; internal set; } = 1;
 
     public Marktstand this[string ware] => _staende.TryGetValue(ware, out var stand)
         ? stand

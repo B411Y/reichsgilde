@@ -294,7 +294,7 @@ public sealed class Karren
             {
                 var vorher = Heimat.Konto.Laufend.Umsatz;
                 foreach (var (ware, stueck) in _ladung)
-                    Heimat.Verkaufen(ware, stueck, w.Markt, w.Familien.VerkaufsFaktor(Heimat.Konto));
+                    Heimat.Verkaufen(ware, stueck, w.Markt, w.Familien.VerkaufsFaktor(Heimat.Konto), w.SteuersatzMarkt(Heimat.Konto));
                 _ladung.Clear();
                 AuftragEinkaufen(w, Heimat.Konto.Laufend.Umsatz - vorher);
                 Zurueckfahren(zeit, w);
@@ -303,7 +303,7 @@ public sealed class Karren
 
             // Alles verkaufen ...
             foreach (var (ware, stueck) in _ladung)
-                Heimat.Verkaufen(ware, stueck, w.Markt, w.Familien.VerkaufsFaktor(Heimat.Konto));
+                Heimat.Verkaufen(ware, stueck, w.Markt, w.Familien.VerkaufsFaktor(Heimat.Konto), w.SteuersatzMarkt(Heimat.Konto));
             _ladung.Clear();
 
             // ... und knappe Zutaten einkaufen.

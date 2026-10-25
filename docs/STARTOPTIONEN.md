@@ -23,6 +23,10 @@ Startoptionen (nach `--`):
 - `--drehung=<1–3>`
 - `--vermoegen=<Gulden>`
 - `--rat=1`
+- `--amt=<Amt>` (der Spieler hält dieses Amt, z. B. `Kämmerer`, `Stadtrichter`, `Gefängniswärter`; Leerzeichen als `_`)
+- `--kasse=<Gulden>` (Stand der Stadtkasse)
+- `--antrag=steuer:<Prozent>|bau:<Kennung>|fest` (Antrag im Rat stellen, mehrere mit Komma, z. B. `bau:brunnen,fest`; braucht ein Amt, z. B. `--amt=Bürgermeister`; Kennungen: `brunnen`, `mauer`, `hafen`, `marktplatz`). Die Ratssitzung ist am Jahresende: mit `--startstunde=5 --spulen=1320` steht man mittags im nächsten Jahr (Baustelle, Fest), die Lage der Baustelle steht im Log
+- `--rathaus=<stadtkasse|rat|amt>` (das Rathaus auswählen, Tafel auf diesem Reiter); eine Baustelle der Stadt: `--auswahl=stadtbau:<Kennung>`
 - `--familie=1`
 - `--gericht=1`
 - `--hinterzimmer=1`
