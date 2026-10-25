@@ -1,4 +1,4 @@
-"""Material-Bibliothek für die Modelle (Modell-Texturen, Gruppen 1 und 2) – in Blender modelliert und mit Cycles von vorn gebacken.
+"""Material-Bibliothek für die Modelle (Modell-Texturen, Gruppen 1 bis 3) – in Blender modelliert und mit Cycles von vorn gebacken.
 
     ~/werkzeuge/blender/blender.sh -b --python tools/oberflaeche/materialien_blender.py -- [Optionen]
 
@@ -36,8 +36,8 @@ import numpy as np
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import bodentexturen_blender as bt   # noqa: E402  (main() läuft dort nur als eigenes Skript)
-from bodentexturen_blender import (Teile, abtasten, drehung, fbm, form_stab, glatt, je_zelle, kanal,  # noqa: E402
-                                   mische, norm, rauschen, srgb, verteilen)
+from bodentexturen_blender import (Teile, abtasten, drehung, fbm, form_blatt, form_stab, glatt, je_zelle,  # noqa: E402
+                                   kanal, mische, norm, rauschen, srgb, verteilen)
 
 WURZEL = bt.WURZEL
 ZIEL = os.path.join(WURZEL, "game", "assets", "texturen", "modelle")
@@ -62,6 +62,8 @@ SCHICHTEN = [
     # Gruppe 2
     ("eisen", 0.8, "wand"), ("kupfer", 1.2, "dach"), ("holzschindeln", 1.2, "reihen"), ("leder", 0.6, "wand"),
     ("tuch", 0.5, "wand"), ("farbholz", 1.2, "wand"),
+    # Gruppe 3
+    ("rinde", 1.2, "wand"), ("fels", 6.0, "wand"), ("planken", 2.0, "wand"), ("laub", 1.5, "wand"), ("nadeln", 1.2, "wand"),
 ]
 # Höhe einer Reihe (Meter) für Deckungen mit Projektion „reihen“ – wie in tools/modelle/bausteine.py (ZIEGEL, SCHIEFER,
 # SCHINDEL). Damit zeichnet der Shader Reihen auf Dachflächen, die das Modell ohne Reihen hat (Turmhelme, Pultdächer).
@@ -709,10 +711,175 @@ def farbholz(rng):
     return 0.45, 0.9
 
 
+# ─── Gruppe 3 (Umland, Natur, Wasserbauten): Rinde, Fels, waagerechte Planken, Laub, Nadeln ───
+
+def rinde(rng):
+    """Borke (Stämme, Äste, Stümpfe, gefällte Stämme): längs aufgerissene Platten zwischen tiefen Furchen (senkrecht, leicht
+    gewunden), quer gesprungen, dazu Flechten und Moos in den Furchen. Graubraun – den Ton gibt die Modellfarbe."""
+    x, y = raster()
+    k = K()
+    m = round(k / 0.07)                                               # Furchen etwa alle 7 cm, ganzzahlig über die Kachel
+    u = (x + 0.09 * (fbm(191, [0.4, 0.12]) - 0.5) + 0.05 * (streifen(0.06, 192, 5.0) - 0.5)) * m / k
+    breit = streifen(0.04, 193, 4.0)                                  # Platten mal breit, mal schmal, Furchen laufen zusammen
+    leiste = np.abs(np.sin(np.pi * u)) * (0.4 + 1.2 * breit) + 0.35 * (streifen(0.015, 189, 8.0) - 0.5)
+    platte = glatt(0.25, 0.5, leiste)
+    quer = glatt(0.72, 0.9, rauschen(0.02, 194, 0.12))               # Querrisse: kurz, waagerecht
+    fasern = streifen(0.004, 195, 12.0)
+    buckel = streifen(0.03, 196, 3.0)
+    h = platte * (0.006 + 0.004 * buckel + 0.0012 * fasern - 0.003 * quer) - 0.006 * (1 - platte)
+    h += 0.0015 * fbm(197, [0.1, 0.03])
+    ton = mische(srgb("#544a40"), srgb("#6e6252"), glatt(0.3, 0.8, fbm(190, [0.15, 0.05])))
+    farbe = ton * (0.86 + 0.2 * fasern + 0.08 * buckel)[..., None]
+    farbe = mische(farbe, srgb("#8a8274"), 0.3 * platte * glatt(0.55, 0.85, fbm(198, [0.08, 0.03])))   # helle Kanten
+    farbe = mische(farbe, srgb("#241c16"), 0.85 * (1 - platte))
+    farbe = mische(farbe, srgb("#2e261e"), 0.5 * quer * platte)
+    flechte = glatt(0.8, 0.9, fbm(199, [0.04, 0.012])) * platte
+    farbe = mische(farbe, srgb("#9a9c84"), 0.45 * flechte)
+    moos = glatt(0.55, 0.8, fbm(200, [0.2, 0.06])) * (1 - glatt(0.1, 0.35, leiste))
+    farbe = mische(farbe, srgb("#4a5a28"), 0.6 * moos)
+    flaechennetz(h + 0.0008 * flechte, farbe, 0.92)
+    return 0.6, 1.0
+
+
+def fels(rng):
+    """Gewachsener Fels (Felsbrocken, Felsberg, Bruchwand): dieselbe Szene wie der Fels der Bodentexturen – Platten mit
+    Rissen und Grus, Flechten, Moos und Rost –, hier als Kachel von 6 m (Platten um 1 m) an Wänden und Brocken."""
+    return bt.fels(rng)
+
+
+def planken(rng):
+    """Waagerechte Planken (Rümpfe der Schiffe, Kähne und der Fähre, Blockwände der Hütten): Gänge von 18–30 cm, gestoßen
+    und versetzt, Maserung längs, Fugen mit Pech gedichtet, Holznägel in Reihen, Kanten ausgewaschen. Den Ton gibt das Modell
+    (Teerholz dunkel, Blockholz grau)."""
+    x, y = raster()
+    k = K()
+    hoehen = rng.uniform(0.18, 0.3, 12)
+    n = max(4, int(round(k / hoehen.mean())))
+    hoehen = rng.uniform(0.18, 0.3, n)
+    hoehen *= k / hoehen.sum()
+
+    def laengen(j):
+        l = rng.uniform(0.9, 1.6, 4)
+        m = max(1, int(round(k / l.mean())))
+        l = rng.uniform(0.9, 1.6, m)
+        return l * k / l.sum()
+
+    wy = y + 0.002 * (fbm(201, [0.3, 0.1]) - 0.5)
+    nummer, ex, ey, lage, anzahl = verband(wy, x, hoehen, laengen, rng)
+    grenzen = np.concatenate([[0], np.cumsum(hoehen)])
+    t = np.clip((wy - grenzen[lage]) / hoehen[lage], 0, 1)
+    fuge = glatt(0.002, 0.005, ey) * glatt(0.0015, 0.004, ex)
+    hoehe = np.zeros_like(x)
+    linie = np.zeros_like(x)
+    for i in range(anzahl):                                           # je Planke eine eigene Maserung, längs (x)
+        s = nummer == i
+        if s.any():
+            hh, ll, _ = maserung(y + rng.random() * 0.5, x + rng.random() * k, 202 + 7 * i, ring=rng.uniform(0.008, 0.014))
+            hoehe[s], linie[s] = hh[s], ll[s]
+    naegel = np.zeros_like(x)
+    for j in range(len(hoehen)):                                      # Holznägel: je Planke eine Reihe, alle 0,5 m
+        cy = grenzen[j] + hoehen[j] * 0.5
+        for cx in np.arange(rng.random() * 0.5, k, 0.5):
+            d = np.hypot((x - cx + k / 2) % k - k / 2, (y - cy + k / 2) % k - k / 2)
+            naegel = np.maximum(naegel, 1 - glatt(0.006, 0.009, d))
+    h = fuge * (0.003 * (1 - (2 * t - 1) ** 2) + 0.0012 * hoehe + 0.0006 * naegel) - 0.006 * (1 - fuge)
+    ton = palette(rng, anzahl, [("#6a5c4c", 3), ("#625444", 2), ("#74665a", 2), ("#584c40", 1)])[nummer]
+    farbe = mische(ton, ton * 0.7, 0.5 * linie)
+    farbe *= (0.9 + 0.14 * hoehe)[..., None]
+    farbe = mische(farbe, srgb("#8a8276"), 0.25 * (1 - glatt(0.004, 0.03, np.minimum(ey, ex))) * fuge)   # Kanten
+    farbe = mische(farbe, srgb("#3a3026"), 0.3 * glatt(0.5, 0.85, streifen(0.2, 203, 6.0).T))        # Flecken längs
+    farbe = mische(farbe, srgb("#3a3228"), 0.6 * naegel)
+    farbe = mische(farbe, srgb("#141008"), 0.9 * (1 - fuge))
+    flaechennetz(h, farbe, 0.85 - 0.1 * (1 - fuge))
+    return 0.5, 1.0
+
+
+def laub(rng):
+    """Laub (Kronen der Laubbäume, Büsche, Hecken): Blätter in runden Büscheln von 15–30 cm, oben im Licht, an den Rändern und
+    darunter im Schatten, dazwischen dunkle Lücken – aus Spielhöhe die gemalten Tupfen einer Krone. Den Ton gibt das Modell
+    (das Spiel färbt je Jahreszeit um); die Farbtöne der Blätter liegen darum nah beieinander."""
+    x, y = raster()
+    k = K()
+    h = 0.02 * fbm(211, [0.3, 0.1])
+    flaechennetz(h, mische(srgb("#10160a"), srgb("#1a2410"), fbm(212, [0.2, 0.06])), np.full(h.shape, 0.9))
+    teile = Teile()
+    formen = [form_blatt(1.0, rng.uniform(0.5, 0.7), 4, 10, rng.uniform(0.1, 0.2), 0.12, 220 + i) for i in range(8)]
+    farben = np.array([srgb(c) for c in ("#56702e", "#4a6428", "#62783a", "#506a2c", "#6a7e3a", "#445c26")])
+    buschel = 110                                                     # Büschel: Mitte, Radius, Höhe
+    bx, by = rng.random(buschel) * k, rng.random(buschel) * k
+    br = rng.uniform(0.08, 0.15, buschel)
+    bz = rng.uniform(0.0, 0.06, buschel)
+    je = (br / 0.08) ** 2 * 260
+    i = np.repeat(np.arange(buschel), je.astype(int))
+    n = len(i)
+    w = rng.random(n) * 2 * np.pi
+    r = np.sqrt(rng.random(n)) * br[i]
+    q = r / br[i]                                                     # 0 Mitte … 1 Rand
+    px, py = (bx[i] + np.cos(w) * r) % k, (by[i] + np.sin(w) * r) % k
+    z = bz[i] + 0.06 * br[i] / 0.15 * np.sqrt(np.clip(1 - q * q, 0, 1)) + 0.01  # gewölbt: Kuppe in der Mitte
+    l = rng.uniform(0.045, 0.075, n)
+    oben = np.clip(0.5 + 0.5 * np.sin(w) * q, 0, 1)                   # oben im Bild = oben am Baum: die Oberseite im Licht
+    basis = farben[rng.integers(0, len(farben), n)] * rng.uniform(0.85, 1.1, n)[:, None]
+    basis = mische(basis, srgb("#7e8c44"), 0.35 * oben * (1 - q))
+    basis = mische(basis, srgb("#1e2a10"), 0.45 * q ** 2 * (1 - oben))
+    wahl = rng.integers(0, len(formen), n)
+    for j, form in enumerate(formen):
+        s_ = wahl == j
+        m = s_.sum()
+        rot = drehung(w[s_] + rng.normal(0, 0.6, m), 0.9 * q[s_] + rng.normal(0, 0.3, m), rng.normal(0, 0.3, m))
+        verteilen(teile, form, np.stack([px[s_], py[s_], z[s_]], -1), rot, np.stack([l[s_], l[s_], l[s_]], -1),
+                  basis[s_], basis[s_] * 0.8, 0.75)
+    teile.objekt("blaetter")
+    return 0.75, 0.9
+
+
+def nadeln(rng):
+    """Nadelzweige (Tannen, Wacholder): fächerförmige Zweige von 20–35 cm, die schräg nach unten hängen (oben im Bild ist zur
+    Spitze des Baums), dicht mit Nadeln besetzt; jeder Zweig oben im Licht und an der Spitze heller, darunter der Schatten des
+    nächsten – aus Spielhöhe die gestuften Schuppen einer gemalten Tanne. Den Ton gibt das Modell."""
+    x, y = raster()
+    k = K()
+    h = 0.02 * fbm(231, [0.3, 0.1])
+    flaechennetz(h, mische(srgb("#0a0f08"), srgb("#141c10"), fbm(232, [0.2, 0.06])), np.full(h.shape, 0.9))
+    teile = Teile()
+    zweige = 90                                                       # Zweige: Ansatz oben, fächern nach unten
+    zx, zy = rng.random(zweige) * k, rng.random(zweige) * k
+    zl = rng.uniform(0.2, 0.35, zweige)
+    zz = rng.uniform(0.0, 0.06, zweige)
+    ton = np.array([srgb(c) for c in ("#2e4a26", "#36522a", "#2a4222", "#3e5a2e", "#324c2a")])[rng.integers(0, 5, zweige)]
+    triebe = 14
+    j = np.repeat(np.arange(zweige), triebe)                          # je Zweig Seitentriebe, fächerförmig
+    tw = -np.pi / 2 + rng.uniform(-0.75, 0.75, len(j))
+    tl = zl[j] * rng.uniform(0.6, 1.0, len(j))
+    i = np.repeat(np.arange(len(j)), (tl / 0.005).astype(int))
+    n = len(i)
+    s = rng.random(n)                                                 # Stelle längs des Triebs
+    wn = tw[i] + np.where(rng.random(n) < 0.5, -1.0, 1.0) * rng.uniform(0.6, 1.1, n)
+    nl = rng.uniform(0.014, 0.022, n) * (1 - 0.3 * s)
+    px = (zx[j[i]] + np.cos(tw[i]) * tl[i] * s + np.cos(wn) * nl * 0.5) % k
+    py = (zy[j[i]] + np.sin(tw[i]) * tl[i] * s + np.sin(wn) * nl * 0.5) % k
+    z = zz[j[i]] + 0.05 * (1 - s) ** 0.7 + 0.004 * rng.random(n)     # am Ansatz hoch, die Spitzen hängen
+    farbe = ton[j[i]] * rng.uniform(0.85, 1.12, n)[:, None]
+    farbe = mische(farbe, srgb("#6a8240"), 0.4 * s ** 2)              # frische Triebe an der Spitze heller
+    farbe = mische(farbe, srgb("#5a7234"), 0.3 * (1 - s))                    # am Ansatz oben im Licht
+    farbe = mische(farbe, srgb("#0e1610"), 0.45 * np.abs(np.cos(tw[i])) * s)                         # Fächerränder dunkler
+    d = rng.uniform(0.0016, 0.0024, n)
+    verteilen(teile, form_stab(2, 3, 0.04), np.stack([px, py, z], -1), drehung(wn, rng.normal(0, 0.25, n)),
+              np.stack([nl, d, d], -1), farbe * 0.85, farbe, 0.8)
+    mx, my = (zx[j] + np.cos(tw) * tl / 2) % k, (zy[j] + np.sin(tw) * tl / 2) % k   # die Triebe selbst, braun
+    zd = rng.uniform(0.0025, 0.004, len(j))
+    zf = np.repeat([srgb("#3a2c20")], len(j), 0)
+    verteilen(teile, form_stab(3, 4, 0.03), np.stack([mx, my, zz[j] + 0.025 - 0.004], -1), drehung(tw, np.zeros(len(j))),
+              np.stack([tl, zd, zd], -1), zf, zf, 0.85)
+    teile.objekt("nadeln")
+    return 0.75, 0.9
+
+
 MATERIALIEN = {"bruchstein": bruchstein, "quader": quader, "kalkputz": kalkputz, "lehmputz": lehmputz,
                "fachwerkholz": fachwerkholz, "bretter": bretter, "dachziegel": dachziegel, "schiefer": schiefer,
                "stroh": stroh, "sandstein": sandstein, "ziegelstein": ziegelstein, "eisen": eisen, "kupfer": kupfer,
-               "holzschindeln": holzschindeln, "leder": leder, "tuch": tuch, "farbholz": farbholz}
+               "holzschindeln": holzschindeln, "leder": leder, "tuch": tuch, "farbholz": farbholz,
+               "rinde": rinde, "fels": fels, "planken": planken, "laub": laub, "nadeln": nadeln}
 
 
 # ═════════════════════════════════════════════════════════════════════════════

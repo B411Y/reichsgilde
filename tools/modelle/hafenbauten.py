@@ -137,8 +137,6 @@ def schiff_rumpf(st):
             ua, ub = seite[0].lerp(seite[3], 0.78), seite[1].lerp(seite[2], 0.78)
             netz.vieleck_nach([seite[0], seite[1], ub, ua], richtung, st["Teerholz"])
             netz.vieleck_nach([ua, ub, seite[2], seite[3]], richtung, st["Holz"])
-            for f in (0.3, 0.55):                                 # Plankengänge im Teer
-                ws.linie(netz, st, seite[0].lerp(seite[3], f), seite[1].lerp(seite[2], f), (0, s, 0), "Holz alt", breite=0.03)
             # Barkholz: kräftige Leiste an der Grenze von Teer und Setzbord
             ws.klotz(netz, st["Holz alt"], [ua, ub, ub + Vector((0, s * 0.07, 0)), ua + Vector((0, s * 0.07, 0)),
                                             ua + Vector((0, 0, 0.12)), ub + Vector((0, 0, 0.12)),
@@ -728,6 +726,7 @@ def main():
         netze = [o for o in objekte if o.type == "MESH"]
         alle = objekte + [k for o in objekte for k in o.children_recursive if k not in objekte]
         bs.bericht(name, [o for o in alle if o.type == "MESH"] + [o for o in alle if o.type != "MESH"], einzeln=True)
+        bs.BIBLIOTHEK_JE_FLAECHE = True     # Modell-Texturen, Gruppe 3: was in „Farben“ landet, trägt seine Schicht je Fläche
         vorher, nachher = bs.farben_zusammenlegen([o for o in alle if o.type == "MESH"], behalten=BEHALTEN)
         print(f"  Materialien: {vorher} → {nachher}")
         print("geschrieben:", bs.exportieren(name, objekte))

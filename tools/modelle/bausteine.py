@@ -1154,7 +1154,8 @@ def materialart(name):
 
 
 # Modell-Texturen: Modelle mit „Farben“ tragen auch die Schicht der Material-Bibliothek je Fläche (arten_setzen). Die Skripte der
-# Modelle schalten das mit ihrer Gruppe ein (bs.BIBLIOTHEK_JE_FLAECHE = True vor dem Bauen, ab Gruppe 2: wachturm.py); ohne bleibt
+# Modelle schalten das mit ihrer Gruppe ein (bs.BIBLIOTHEK_JE_FLAECHE = True vor farben_zusammenlegen: Gruppe 2 wachturm.py, Gruppe 3
+# landbau.ausgeben, berg_grube.py, wasser.py, hafenbauten.py); ohne bleibt
 # die Struktur der Materialart wie bisher.
 BIBLIOTHEK_JE_FLAECHE = False
 
