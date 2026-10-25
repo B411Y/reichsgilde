@@ -52,8 +52,9 @@ public partial class RatAnzeige
         AntragsArt(w, eigenesAmt, Antragsart.Fest, "Fest ausrichten", () => FestWahl(w));
 
         var k = w.Kasse.Daten;
-        Hauptmenue.Text(_inhalt, $"Ratsherren stimmen nach der Kasse: höhere Steuer, solange weniger als ihre Reserve (um {Zahlenformat.Ganz(k.Reserve)} {waehrung}, " +
-                                 "je nach Volk) darin liegt, niedrigere, sobald es mehr als das Doppelte ist; Bau und Fest, wenn danach noch die Reserve bleibt. " +
+        Hauptmenue.Text(_inhalt, $"Ratsherren stimmen nach der Kasse: höhere Steuer, wenn weniger als ihre Reserve (um {Zahlenformat.Ganz(k.Reserve)} {waehrung}, " +
+                                 "je nach Volk) darin liegt oder der Haushalt des Vorjahres im Minus war; niedrigere nur, wenn mehr als das Doppelte darin liegt und " +
+                                 "der Haushalt auch mit dem neuen Satz im Plus bliebe; Bau und Fest, wenn danach noch die Reserve bleibt. " +
                                  $"Ab {Zahlenformat.Ganz(k.AntragGunst)} Gunst stimmen sie euren Anträgen immer zu.", 12, Grau, umbruchBreite: 670);
     }
 
