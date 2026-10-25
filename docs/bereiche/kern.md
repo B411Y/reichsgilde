@@ -347,3 +347,12 @@ So wird eingetragen (damit sich die Chats nie an derselben Stelle treffen):
 ## Messungen
 
 Messungen des Kerns stehen in `docs/WIRTSCHAFTSMODELL.md` (nur der Kern schreibt dort).
+
+### Hafen und Schiffshandel (PR #199)
+
+| Thema | Entscheidung | Datum |
+|---|---|---|
+| Fernhandel | Am Kartenrand führt der Fluss zu zwei fernen Städten: flussauf eine Bergbau- und Waldstadt (verkauft Erz, Holz, Stein billig; kauft Nahrung und Tuch teuer), flussab eine große Handelsstadt (kauft Fertigwaren wie Schmuck, Waffen, Parfüm teuer; verkauft Gewürze, Wein). Jede ferne Stadt hat eigene Preise und eine eigene Nachfrage, die sich nach Käufen und Verkäufen langsam erholt – Fernhandel lohnt, ohne die eigene Stadt zu überschwemmen. Namen frei erfunden, je Karte einstellbar (in der Kartenwerkstatt mit Schritt 6). Entschieden vom Nutzer. | 25.10.2026 |
+| Schiffe | Ein Schiffstyp (Flussschiff), gekauft und verwaltet am Hafen wie die Karren am Karrenhof; Fahrten mit Auftrag (welche ferne Stadt, Waren kaufen bzw. verkaufen). Das Schiff fährt sichtbar über den Fluss bis zum Kartenrand und kommt nach einer Fahrtzeit zurück; flussauf langsamer als flussab. Entschieden vom Nutzer. | 25.10.2026 |
+| Risiken | Zollstellen auf dem Weg (fester Anteil je Fahrt) und selten Überfälle durch Flusspiraten wie bei den Karren, mit Geleit als Schutz. Das Wetter bleibt ohne Wirkung (Entscheidung zu PR #195). Entschieden vom Nutzer. | 25.10.2026 |
+| KI | KI-Häuser kaufen und nutzen Schiffe nach derselben Gewinnrechnung wie der Spieler, auf Normal und Schwer gleich. Entschieden vom Nutzer. | 25.10.2026 |

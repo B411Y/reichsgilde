@@ -331,3 +331,10 @@ Fahrplan (vom Nutzer am 21.10.2026 bestätigt, je Schritt ein PR; Stand wird hie
 | Stadtboden | Der allgemeine Grund innerhalb der Mauer wird festgetretener Lehm mit etwas Kies und Pfützenmulden; die Gassen bleiben Kopfsteinpflaster mit Randsteinen, der Marktplatz Plattenpflaster – deutlicher Kontrast. Historisch passend: im Spätmittelalter waren meist nur Hauptstraßen und Markt gepflastert. Entschieden vom Nutzer. | 24.10.2026 |
 | Gras auf Grundstücken | Der Grasteppich wächst auch auf freien Bau- und Wohnhausplätzen, wo ohnehin Wiese ist (außerhalb der Mauer); erst wenn dort ein Gebäude steht (gebaut oder gesetzt), verschwindet er unter dem Gebäude. Innerhalb der Mauer bleibt überall Stadtlehm, auch auf freien Plätzen. Wunsch des Nutzers (präzisiert am 24.10.2026). | 24.10.2026 |
 | Danach: Modell-Texturen | Alle 3D-Modelle bekommen Texturen auf dem Niveau der Böden über eine Material-Bibliothek in Blender (gebackene 1024-px-Materialien mit Farbe, Höhe, Normalen, Rauheit: Bruchstein, Quader, Putz, Fachwerkholz, Bretter, Dachziegel, Schiefer, Stroh, Metall, Stoff …), auf die vorhandenen Materialnamen der Modelle gelegt (Weltkoordinaten-Projektion, keine Nähte). In Gruppen, je ein PR mit Vorher/Nachher: Stadthäuser und Mauer; Kirche, Rathaus, Werkstätten; Umland und Natur; Innenräume; Figuren und Karren. Modellauftrag vom Nutzer freigegeben. | 24.10.2026 |
+
+### Greybox mit Fluss und Hafen (PR #199)
+
+| Thema | Entscheidung | Datum |
+|---|---|---|
+| Greybox | Ein breiter, schiffbarer Fluss läuft am Südrand der Greybox von West nach Ost; vor einem neuen Südtor liegt der Hafen (Kai, Kran, Lagerschuppen), eine Fahrstraße verbindet Tor und Hafen. Zum Testen des Schiffshandels. Die Messungen auf der Greybox laufen danach auf der neuen Karte (der Kern misst einmal neu und vergleicht). Entschieden vom Nutzer. | 25.10.2026 |
+| Modelle | Neu: Flussschiff (Lastkahn mit Mast und Segel, Ladung sichtbar), Tretradkran für den Kai, Lagerschuppen am Hafen, kleine Zollstelle am Ufer – im Stil der übrigen Modelle, mit der Material-Bibliothek. Modellauftrag vom Nutzer freigegeben. | 25.10.2026 |
