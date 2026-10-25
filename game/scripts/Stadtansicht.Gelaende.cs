@@ -323,7 +323,7 @@ public partial class Stadtansicht
         var (netz, flach) = KachelNetz(ti, tj);
         if (!_gelaendeKacheln.TryGetValue((ti, tj), out var kachel))
         {
-            kachel = new MeshInstance3D { Name = $"Kachel_{ti}_{tj}" };
+            kachel = new MeshInstance3D { Name = $"Kachel_{ti}_{tj}", Layers = 1 | TorErdeEbene }; // Ebene der Erde im Torweg (Stadtansicht.Torerde.cs)
             _gelaendeKnoten.AddChild(kachel);
             _gelaendeKacheln[(ti, tj)] = kachel;
         }

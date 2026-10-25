@@ -52,8 +52,9 @@ public partial class Stadtansicht
         foreach (var tor in plan.Tore)
         {
             var lage = new Transform3D(MauerBasis(tor.Lage), MauerOrt(tor.Lage));
-            var knoten = new MeshInstance3D { Name = tor.Name, Mesh = teile.Tor, Transform = lage };
+            var knoten = new MeshInstance3D { Name = tor.Name, Mesh = teile.Tor, Transform = lage, Layers = 1 | TorErdeEbene };
             eltern.AddChild(knoten);
+            TorErdeMerken(knoten); // Erde im Torweg, wenn ein Erdweg hindurchführt (Stadtansicht.Torerde.cs)
             if (spiel) TorEinrichten(tor.Name, knoten, lage, teile.TorAnker);
         }
         Vielfach("Mauerstuecke", teile.Stueck, plan.Stuecke.Select(s => new Transform3D(MauerStueckBasis(s), MauerOrt(s))), eltern);
