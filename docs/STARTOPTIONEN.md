@@ -27,6 +27,8 @@ Startoptionen (nach `--`):
 - `--kasse=<Gulden>` (Stand der Stadtkasse)
 - `--antrag=steuer:<Prozent>|bau:<Kennung>|fest` (Antrag im Rat stellen, mehrere mit Komma, z. B. `bau:brunnen,fest`; braucht ein Amt, z. B. `--amt=Bürgermeister`; Kennungen: `brunnen`, `mauer`, `hafen`, `marktplatz`). Die Ratssitzung ist am Jahresende: mit `--startstunde=5 --spulen=1320` steht man mittags im nächsten Jahr (Baustelle, Fest), die Lage der Baustelle steht im Log
 - `--rathaus=<stadtkasse|rat|amt>` (das Rathaus auswählen, Tafel auf diesem Reiter); eine Baustelle der Stadt: `--auswahl=stadtbau:<Kennung>`
+- `--sitzung=1` (sichtbare Ratssitzung vorbereiten: ohne `--amt` ein Amt der untersten Stufe und eine Bewerbung eine Stufe höher – dafür `--aufsteigen=1 --vermoegen=30000 --startstunde=6` –, ohne `--antrag` wird ein Rivale Kämmerer und beantragt ein Fest; dann bis zum Jahresende vorspulen, die Partie hält vor dem ersten Punkt). `--sitzung=letzte`: ebenso, aber ohne Halt; danach steht das Rathaus auf dem Reiter Rat mit dem Knopf „Letzte Ratssitzung ansehen“
+- `--sitzungzeigen=<immer|betroffen|nie>` (Einstellung „Ratssitzung zeigen“ nur für diesen Start)
 - `--familie=1`
 - `--gericht=1`
 - `--hinterzimmer=1`
@@ -74,7 +76,7 @@ Startoptionen (nach `--`):
 - `--fahnen=<An|Aus>`
 - `--uigroesse=<75–200>`
 - `--farbfilter=<Aus|Protanopie|Deuteranopie|Tritanopie>`
-- `--reiter=<Voreinstellung|Leistung|Bild|Stimmung|Barrierefreiheit>` (mit `--einstellungen=1`)
+- `--reiter=<Voreinstellung|Leistung|Bild|Stimmung|Barrierefreiheit|Spiel>` (mit `--einstellungen=1`)
 - `--automatisch=1` (Voreinstellung messen und wählen wie beim ersten Start; ohne Startoptionen und ohne `einstellungen.cfg` geschieht das im Hauptmenü von selbst)
 - `--messung=<Sekunden>` (nach 8 s Vorlauf Bilder/s, 1-%-Tief, Bild- und GPU-Zeit ins Protokoll, dann beenden; für Vergleiche mit `--blick`, `--startstunde` und `--vsync=Aus`)
 

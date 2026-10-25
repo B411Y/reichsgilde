@@ -57,9 +57,10 @@ public static class Spielstaende
     public static string OrdnerAufDerPlatte => ProjectSettings.GlobalizePath(Ordner);
 
     /// <summary>Speichert die Partie. Ohne Dateinamen entsteht ein neuer, z. B. „Familie_Hammerschmid_1405_2026-10-13_14-30.json".</summary>
-    /// <returns>Der Pfad der Datei oder null bei einem Fehler (mit Meldung).</returns>
+    /// <returns>Der Pfad der Datei oder null bei einem Fehler oder während der Ratssitzung (mit Meldung).</returns>
     public static (string? Pfad, string Meldung) Speichern(Simulation simulation, Konto? spieler, string? dateiname = null)
     {
+        if (Speicherung.SpeichernVerboten(simulation) is { } grund) return (null, grund); // laufende Ratssitzung: vor dem Öffnen der Datei (sie bliebe sonst leer)
         DirAccess.MakeDirRecursiveAbsolute(Ordner);
         dateiname ??= $"{Bereinigen(spieler?.Inhaber ?? "Partie")}_{simulation.Zeit.Jahr}_{DateTime.Now:yyyy-MM-dd_HH-mm-ss}.json";
         var pfad = $"{Ordner}/{dateiname}";
