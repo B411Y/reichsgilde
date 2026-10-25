@@ -11,6 +11,7 @@ namespace Reichsgilde;
 /// Die Ratskammer: alle Ämter mit Inhabern, Haltung zum Statut und eurer Gunst bei jedem Ratsherrn –
 /// dazu Bewerbung, Geschenke und Anträge zum Statut, jeweils mit einer Prognose nach heutigem Stand.
 /// Wer im Rat sitzt, legt hier auch seine Stimme bei den Wahlen und den Anträgen vorab fest (bis zur Sitzung am Jahresende änderbar).
+/// Mit Stadtkasse (PR #200) dazu die Tagesordnung und die Anträge zu Steuer, Bau und Fest (RatAnzeige.Antraege.cs).
 ///
 /// Wie alle Bedienfelder ändert sie nichts selbst, sondern schickt Befehle an die Stadtwirtschaft.
 /// </summary>
@@ -198,6 +199,7 @@ public partial class RatAnzeige : PanelContainer
         }
 
         WahlStimmenAbschnitt(rat, waehrung);
+        TagesordnungAbschnitt(w); // RatAnzeige.Antraege.cs
 
         // ── Antrag zum Statut ──
         _inhalt.AddChild(new HSeparator());
@@ -239,6 +241,8 @@ public partial class RatAnzeige : PanelContainer
 
         if (w.Glaube.IstAktiv)
             StadtglaubeAbschnitt(w, eigenesAmt);
+
+        KassenAntraegeAbschnitt(w, eigenesAmt); // Steuer, Bau, Fest (RatAnzeige.Antraege.cs)
 
         // ── Letzte Sitzung ──
         if (rat.LetzteSitzung.Count > 0)

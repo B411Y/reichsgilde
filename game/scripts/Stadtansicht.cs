@@ -726,6 +726,7 @@ public partial class Stadtansicht : Node3D
             }
         }
         SchiffeAktualisieren(w, zeit.VergangeneMinuten + bruchteil, delta); // Stadtansicht.Schiffe.cs
+        StadtbauAktualisieren(w); // Bauvorhaben und Fest der Stadt (Stadtansicht.Stadtbau.cs)
         if (_innen is SonderbauAnsicht sonderbau)
             SonderbauAktualisieren(sonderbau, zeit, arbeitszeit, delta);
     }
