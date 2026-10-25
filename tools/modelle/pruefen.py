@@ -43,6 +43,10 @@ Ein Raum mit extras „stufe“ (z. B. die Sägehalle des Tischlers ab Stufe 3, 
 dieser Stufe: Anker darin und Türen dorthin brauchen mindestens dieselbe „stufe“. Späne „Spaene1“–„Spaene3“ (falls vorhanden) sind lückenlos und
 standardmäßig aus. Hat die Datei Animationen, muss eine „Arbeit“ heißen; sie darf weder Räume noch Stufen, Anker oder
 Blickpunkte bewegen.
+Mit `--innen --sonderbau` (Ratssaal des Rathauses, rathaus_innen.glb) gelten die Regeln der Innenräume ohne das, was nur ein
+Betrieb hat (Stufen, Bedienung für Personal, Produktion, Lager, Einrichten und Karren, Arbeitsplätze, Stellplätze, Werkstücke);
+dafür braucht er mindestens neun Sitzplätze „Anker_Sitz_<n>“ (lückenlos ab 1) und die Plätze „Anker_Buergermeister“,
+„Anker_Schreiber“ und „Anker_Redner“, jeder mit extras „bewegung“ (die es in figur_mensch.glb gibt), sitzend mit „sitzhoehe“.
 """
 
 import math
@@ -97,8 +101,8 @@ def _welt(g):
     return welt
 
 
-def innen(pfad, g):
-    """Prüfung für Innenräume (siehe oben). Gibt die Liste der Fehler zurück."""
+def innen(pfad, g, sonderbau=False):
+    """Prüfung für Innenräume (siehe oben); `sonderbau`: Ratssaal des Rathauses, kein Betrieb. Gibt die Liste der Fehler zurück."""
     fehler = []
     welt = _welt(g)
     knoten = {n.get("name", ""): i for i, n in enumerate(g["nodes"])}
@@ -126,7 +130,7 @@ def innen(pfad, g):
     if not raeume:
         fehler.append("kein Raum „Raum_<Name>“")
     for k in (1, 2, 3):
-        if f"Stufe{k}" not in knoten:
+        if f"Stufe{k}" not in knoten and not sonderbau:
             fehler.append(f"Stufe{k} fehlt")
 
     def raum_bei(p):
@@ -179,7 +183,7 @@ def innen(pfad, g):
     ohne_ware = any(re.fullmatch(r"(Dieb|Wache|Schreiber)_\d+", n) for n in knoten)
     for art, nummern in reihen.items():
         frei = ("Auslage", "Dampf") + (("Arbeit", "Werkstueck") if ohne_ware else ())
-        if sorted(nummern) != list(range(1, len(nummern) + 1)) or (not nummern and art not in frei):
+        if sorted(nummern) != list(range(1, len(nummern) + 1)) or (not nummern and art not in frei and not sonderbau):
             fehler.append(f"{art}_<n>: Nummern müssen lückenlos ab 1 laufen, gefunden {sorted(nummern)}")
     print("Arbeitsplätze {}, Stellplätze {}, Werkstücke {}, Auslage {}, Dampf {}".format(
         *(len(reihen[a]) for a in ("Arbeit", "Lager", "Werkstueck", "Auslage", "Dampf"))))
@@ -187,7 +191,9 @@ def innen(pfad, g):
     fehler += innen_glaeubige(g, knoten)
     fehler += innen_diebe(g, knoten, bewegungen)
     fehler += innen_kunden(g, knoten, bewegungen)
-    for art in ("Personal", "Produktion", "Lager", "Einrichten", "Karren"):
+    if sonderbau:
+        fehler += innen_ratssaal(g, knoten, bewegungen)
+    for art in () if sonderbau else ("Personal", "Produktion", "Lager", "Einrichten", "Karren"):
         ersatz = ("Auftraege", "Wache", "Bank") if art == "Produktion" and ohne_ware else (art,)
         if not any(n.startswith((f"Bedienung_{art}_",) + tuple(f"Bedienung_{e}_" for e in ersatz)) for n in knoten):
             fehler.append(f"keine Bedienung „Bedienung_{art}_…“")
@@ -208,7 +214,7 @@ def innen(pfad, g):
 
 
 PLAETZE = ("Dieb", "Meister", "Wache", "Gefangen", "Hauptmann", "Schreiber")   # Plätze mit extras „taetigkeit“ und „bewegung“
-ANKER = ("Blick_", "Arbeit_", "Lager_", "Werkstueck_", "Licht_", "Auslage_", "Dampf_", "Gast_", "Krug_", "Barde_", "Glaeubig_", "Predigt_",
+ANKER = ("Anker_", "Blick_", "Arbeit_", "Lager_", "Werkstueck_", "Licht_", "Auslage_", "Dampf_", "Gast_", "Krug_", "Barde_", "Glaeubig_", "Predigt_",
          "Beichte_", "Kunde_") + tuple(p + "_" for p in PLAETZE)
 SITZEND = ("Sitzen", "Kutschieren", "Feinarbeit", "Trinken", "Schreiben", "Beten", "Zaehlen", "Putzen", "Rechnen")   # im Sitzen
 
@@ -216,6 +222,35 @@ SITZEND = ("Sitzen", "Kutschieren", "Feinarbeit", "Trinken", "Schreiben", "Beten
 def ist_anker(g, name, i):
     """Anker und Blickpunkte sind leere Knoten; nur ein Werkstück darf ein Netz sein."""
     return name.startswith(ANKER) and ("mesh" not in g["nodes"][i] or name.startswith("Werkstueck_"))
+
+
+def innen_ratssaal(g, knoten, bewegungen):
+    """Ratssaal: mindestens neun Sitzplätze Anker_Sitz_<n> (lückenlos ab 1), Anker_Buergermeister, Anker_Schreiber und
+    Anker_Redner; jeder Platz mit extras „bewegung“ (die es in figur_mensch.glb gibt), sitzende mit „sitzhoehe“."""
+    fehler = []
+    sitze = []
+    plaetze = [n for n in knoten if n.startswith("Anker_")]
+    for name in plaetze:
+        treffer = re.fullmatch(r"Anker_Sitz_(\d+)", name)
+        if treffer:
+            sitze.append(int(treffer.group(1)))
+        elif name not in ("Anker_Buergermeister", "Anker_Schreiber", "Anker_Redner"):
+            fehler.append(f"{name}: im Ratssaal gibt es nur Anker_Sitz_<n>, Anker_Buergermeister, Anker_Schreiber und Anker_Redner")
+            continue
+        extras = g["nodes"][knoten[name]].get("extras", {})
+        if "bewegung" not in extras:
+            fehler.append(f"{name}: extras „bewegung“ fehlt")
+        elif bewegungen is not None and extras["bewegung"] not in bewegungen:
+            fehler.append(f"{name}: Bewegung „{extras['bewegung']}“ gibt es in figur_mensch.glb nicht")
+        if extras.get("bewegung") in SITZEND and "sitzhoehe" not in extras:
+            fehler.append(f"{name}: sitzt („{extras.get('bewegung')}“), extras „sitzhoehe“ fehlt")
+    if sorted(sitze) != list(range(1, len(sitze) + 1)) or len(sitze) < 9:
+        fehler.append(f"Anker_Sitz_<n>: mindestens 9, Nummern lückenlos ab 1, gefunden {sorted(sitze)}")
+    for name in ("Anker_Buergermeister", "Anker_Schreiber", "Anker_Redner"):
+        if name not in knoten:
+            fehler.append(f"{name} fehlt")
+    print(f"Ratssaal: {len(sitze)} Sitze, " + ", ".join(n for n in ("Anker_Buergermeister", "Anker_Schreiber", "Anker_Redner") if n in knoten))
+    return fehler
 
 
 def innen_gaeste(knoten):
@@ -463,7 +498,7 @@ def main():
         sys.exit(1 if fehler else 0)
     if "--innen" in sys.argv:
         pfad = [a for a in sys.argv[1:] if not a.startswith("--")][0]
-        fehler = innen(pfad, lesen(pfad))
+        fehler = innen(pfad, lesen(pfad), sonderbau="--sonderbau" in sys.argv)
         print("in Ordnung" if not fehler else "FEHLER:\n  " + "\n  ".join(fehler))
         sys.exit(1 if fehler else 0)
     sonderbau = "--sonderbau" in sys.argv

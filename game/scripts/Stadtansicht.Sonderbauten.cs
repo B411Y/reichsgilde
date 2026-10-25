@@ -113,6 +113,7 @@ public partial class Stadtansicht
     {
         GemeinsamAktualisieren(a, zeit, arbeitszeit, arbeitszeit, delta, 1);
         BesucherBewegen(a);
+        if (a == _rathaus) RatssitzungAktualisieren(delta);
     }
 
     // ═════════════════════════════════════════════════════════════════════════
@@ -172,6 +173,9 @@ public partial class Stadtansicht
             new Arbeitsplatz(new Vector3(rat - 2.45f, 0, 0.6f), Ost, Bewegung.Schreiben, Werkzeug.Feder, true),
             new Arbeitsplatz(new Vector3(rat + 2.45f, 0, 0.6f), West, Bewegung.Beten, Werkzeug.Keins, true),
         };
+        _rathaus = a;
+        _ratssaalSitze = sitze; // für die sichtbare Ratssitzung (Stadtansicht.Ratssitzung.cs), falls das Modell des Ratssaals fehlt
+        RatssaalModellBauen(a);
         for (var i = 0; i < sitze.Length; i++)
         {
             var s = sitze[i];
@@ -260,7 +264,9 @@ public partial class Stadtansicht
                 }
                 ratStand = stand;
             }
-            foreach (var f in ratsfiguren) f.Koerper.Visible = arbeitszeit;
+            foreach (var f in ratsfiguren) f.Koerper.Visible = arbeitszeit && _ratssitzung is null; // in der Sitzung sitzen dort die Figuren der Sitzung
+            foreach (var schild in ratsschilder) schild.Visible = _ratssitzung is null;
+            schildRat.Visible = _ratssitzung is null;
             var statutAntrag = w.Rat.IstAktiv ? w.Rat.Antrag : null;
             var glaubeAntrag = w.Glaube.IstAktiv ? w.Glaube.Antrag : null;
             antragsrolle.Visible = statutAntrag is not null || glaubeAntrag is not null;

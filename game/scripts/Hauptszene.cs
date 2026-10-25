@@ -54,6 +54,8 @@ namespace Reichsgilde;
 ///   --rat=1            gleich zu Beginn die Ratskammer öffnen
 ///   --amt=Kämmerer     dem Spieler ein Amt geben; --kasse=9000 Stand der Stadtkasse; --antrag=steuer:4|bau:brunnen|fest Antrag stellen;
 ///   --rathaus=amt      das Rathaus mit diesem Reiter auswählen (stadtkasse, rat, amt) – alle vier in Hauptszene.Rat.cs
+///   --sitzung=1        eine Ratssitzung mit dem Spieler im Rat vorbereiten und bis zum Jahresende vorspulen (=letzte: ohne Halt, danach das Rathaus mit dem Knopf
+///                      „Letzte Ratssitzung ansehen“); --sitzungzeigen=<immer|betroffen|nie> nur für diesen Start – beide in Hauptszene.Ratssitzung.cs
 ///   --familie=1        gleich zu Beginn die Familientafel öffnen
 ///   --gericht=1        gleich zu Beginn den Gerichtssaal öffnen
 ///   --hinterzimmer=1   gleich zu Beginn das Hinterzimmer öffnen
@@ -78,7 +80,7 @@ namespace Reichsgilde;
 ///   --tonemapping=<Bisher|Agx>, --helligkeit=, --kontrast=, --saettigung=<Prozent> Farbstimmung, --schaerfe=<0–100> Nachschärfen, --fahnen=<An|Aus>
 ///   --uigroesse=<75–200> Größe der Oberfläche in Prozent, --farbfilter=<Aus|Protanopie|Deuteranopie|Tritanopie>
 ///   (alle Grafikoptionen gelten nur für diesen Start und ändern die gespeicherte Wahl nicht)
-///   --reiter=<Name>    mit --einstellungen=1: diesen Reiter zeigen (Voreinstellung, Leistung, Bild, Stimmung, Barrierefreiheit)
+///   --reiter=<Name>    mit --einstellungen=1: diesen Reiter zeigen (Voreinstellung, Leistung, Bild, Stimmung, Barrierefreiheit, Spiel)
 ///   --automatisch=1    die Voreinstellung wie beim ersten Start automatisch wählen (misst ein paar Sekunden, speichert das Ergebnis)
 ///   --messung=<Sekunden> nach 8 Sekunden Vorlauf so lange Bildzeiten messen, je Sekunde und am Ende ins Protokoll schreiben, dann beenden
 ///   --laden=datei.json einen Spielstand aus dem Spielstand-Ordner laden
@@ -225,6 +227,7 @@ public partial class Hauptszene : Node
         HilfeBauen();
         LeerstandKnoepfeBauen();
 
+        RatssitzungBauen(); // die Tafel der sichtbaren Ratssitzung (Hauptszene.Ratssitzung.cs) – vor der Partie, die sich mit ihr verbindet
         var optionen = Startoptionen();
         _simulation = SimulationAufbauen(optionen);
         SpielmenueBauen();
@@ -310,6 +313,11 @@ public partial class Hauptszene : Node
             if (_spieler is null || _simulation.IstBeendet) return;
             // Automatisch speichern – überschreibt jedes Jahr denselben Spielstand (nicht in einer Probepartie der Kartenwerkstatt).
             if (!_probepartie && Spielstaende.Speichern(_simulation, _spieler, Spielstaende.AutoDatei) is (null, var meldung)) Protokollieren(meldung);
+            if (_sitzungsTafel.Laeuft)
+            {
+                _jahresberichtWartet = true; // erst nach dem Ergebnis des letzten Punktes (Hauptszene.Ratssitzung.cs)
+                return;
+            }
             _jahresbericht.Zeigen(_simulation, _spieler);
             if (BeiJahresberichtPausieren) _simulation.Takt.IstPausiert = true;
         };
@@ -442,6 +450,7 @@ public partial class Hauptszene : Node
         }
         if (optionen.TryGetValue("aufsteigen", out var aufsteigen) && aufsteigen == "1") AufsteigenVorbereiten();
         if (optionen.TryGetValue("ausbauen", out var ausbauen) && int.TryParse(ausbauen, out var stufen)) AusbauenVorbereiten(stufen);
+        RatssitzungStartoptionen(optionen); // --sitzung, --sitzungzeigen (Hauptszene.Ratssitzung.cs); nach --amt und --aufsteigen (Bewerbung braucht den Stand Bürger)
         if (optionen.TryGetValue("einstellen", out var einstellen) && _eigeneGiesserei is { } einsteller && _simulation.Wirtschaft is { } wEin && _spieler is not null)
             foreach (var kraft in einstellen.Split(',', StringSplitOptions.RemoveEmptyEntries))
             {
@@ -903,6 +912,7 @@ public partial class Hauptszene : Node
         _hafenTafel.Verbinden(simulation, spieler);
         _ratskammer.Verbinden(simulation, spieler);
         _rathausTafel.Verbinden(simulation, spieler);
+        RatssitzungVerbinden(simulation, w, spieler);
         _familientafel.Verbinden(simulation, spieler);
         _gerichtssaal.Verbinden(simulation, spieler);
         _hinterzimmer.Verbinden(simulation, spieler);
@@ -964,6 +974,8 @@ public partial class Hauptszene : Node
             _speichernAls = null;
         }
         if (_innenWartet is not null && _bauAutoKlick == 0 && _spulen == 0 && _stadt.InnenansichtBetreten(_innenWartet)) _innenWartet = null;
+        RatssitzungPruefen(); // steht die Partie vor der Ratssitzung: in den Ratssaal
+
         Anzeigen();
         LeisteAnzeigen(delta);
         MeldungenAltern(delta);
@@ -973,7 +985,7 @@ public partial class Hauptszene : Node
             : _hafenTafel.Visible ? (_hafenTafel.GewaehltesSchiff is { } schiff ? "schiff:" + schiff : Stadtansicht.HafenKennung(_hafenTafel.Hafen)) : null;
         _stadt.Aktualisieren(delta);
         foreach (var tafel in _innenTafeln) tafel.Aktualisieren(delta);
-        var innenTafelOffen = _innenTafeln.Any(t => t.Visible); // die Meldungen schienen sonst durch die große Tafel
+        var innenTafelOffen = _innenTafeln.Any(t => t.Visible) || _sitzungsTafel.Laeuft; // die Meldungen schienen sonst durch die große Tafel
         if (_meldungen.Visible == innenTafelOffen) _meldungen.Visible = !innenTafelOffen;
         var mausPos = GetViewport().GetMousePosition();
         _stadt.UnterTafel = _innenTafeln.Any(t => t.Visible && t.Tafel.GetGlobalRect().HasPoint(mausPos));
@@ -984,6 +996,7 @@ public partial class Hauptszene : Node
     /// <summary>Tastatur: Leertaste = Pause, 1–4 = Tempostufen, 5–6 = Testtempo 16×/32×. (Kamera: siehe Stadtansicht)</summary>
     public override void _UnhandledInput(InputEvent eingabe)
     {
+        if (RatssitzungEingabe(eingabe)) return; // während der Ratssitzung: nur Spielmenü, Weiter, Hilfe
         if (eingabe is InputEventKey { Pressed: true, Echo: false, Keycode: Key.Escape })
         {
             // Esc geht einen Schritt zurück: Innenansicht verlassen → Auswahl schließen → Spielmenü auf/zu.
@@ -1161,7 +1174,7 @@ public partial class Hauptszene : Node
             _raumknoepfe.RemoveChild(knopf); // sofort heraus, sonst zählt die alte Breite beim Messen noch mit
             knopf.QueueFree();
         }
-        _raumleiste.Visible = _stadt.RaumKennung is not null;
+        _raumleiste.Visible = _stadt.RaumKennung is not null && !_sitzungsTafel.Laeuft; // in der Ratssitzung bleibt man im Saal
         if (!_raumleiste.Visible) return;
         foreach (var (kennung, name) in _stadt.InnenRaeume)
         {

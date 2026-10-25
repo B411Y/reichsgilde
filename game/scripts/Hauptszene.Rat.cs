@@ -91,16 +91,17 @@ public partial class Hauptszene
     }
 
     /// <summary>
-    /// Klicktest: Der Spieler hält dieses Amt, als hätte er die Wahl gewonnen (ein bisheriges Amt wird frei, der Ratsherr rückt ab). Der Kern hat
+    /// Klicktest: Der Spieler (oder <paramref name="haus"/>) hält dieses Amt, als hätte er die Wahl gewonnen (ein bisheriges Amt wird frei, der Ratsherr rückt ab). Der Kern hat
     /// dafür keinen Befehl – ein Amt gibt es nur durch eine Wahl –, darum setzt die Startoption die Inhaber über Reflection.
     /// </summary>
-    private void AmtFuerKlicktest(Stadtwirtschaft w, Amt amt)
+    private void AmtFuerKlicktest(Stadtwirtschaft w, Amt amt, Konto? haus = null)
     {
+        haus ??= _spieler!;
         var konto = typeof(Amt).GetProperty(nameof(Amt.Konto))!;
         var ratsherr = typeof(Amt).GetProperty(nameof(Amt.Ratsherr))!;
-        foreach (var alt in w.Rat.Aemter.Where(a => a.Konto == _spieler)) konto.SetValue(alt, null);
+        foreach (var alt in w.Rat.Aemter.Where(a => a.Konto == haus)) konto.SetValue(alt, null);
         ratsherr.SetValue(amt, null);
-        konto.SetValue(amt, _spieler);
-        Protokollieren($"Klicktest: {_spieler!.Inhaber} ist {amt.Name}.");
+        konto.SetValue(amt, haus);
+        Protokollieren($"Klicktest: {haus.Inhaber} ist {amt.Name}.");
     }
 }

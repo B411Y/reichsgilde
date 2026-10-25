@@ -86,7 +86,20 @@ public sealed class Wegebau
     public double Wegekasse { get; private set; }
 
     /// <summary>Der Ratsantrag „Weg pflastern“ dieses Jahres (null: keiner).</summary>
-    public (Konto Antragsteller, int Weg, double Von, double Bis)? Antrag { get; private set; }
+    public (Konto Antragsteller, int Weg, double Von, double Bis)? Antrag
+    {
+        get => _antrag;
+        private set
+        {
+            _antrag = value;
+            _stimmen.Clear(); // ein neuer oder kein Antrag: die Stimmen zum alten gelten nicht mehr
+        }
+    }
+
+    private (Konto Antragsteller, int Weg, double Von, double Bis)? _antrag;
+
+    /// <summary>Stimmen zum Antrag „Weg pflastern“, nur während der Ratssitzung gesetzt (fehlt = Enthaltung; nicht im Spielstand).</summary>
+    private readonly Dictionary<Konto, bool> _stimmen = new();
 
     /// <summary>Der Belag hat sich geändert (Jahreswechsel, fertige Baustelle, neuer Auftrag) – die Darstellung zeichnet neu.</summary>
     public event Action? BelagGeaendert;
@@ -399,7 +412,7 @@ public sealed class Wegebau
         Geaendert();
     }
 
-    private string WegName(int weg) =>
+    internal string WegName(int weg) =>
         _w.Karte!.Wege[weg] is { } w ? (w.Name != "" ? w.Name : $"die {Kartenweg.Anzeigename(w.Klasse)}") : "der Weg";
 
     private static string Dauer(int minuten) =>
@@ -469,22 +482,51 @@ public sealed class Wegebau
     /// </summary>
     public (int Ja, int Nein, int Enthaltung, bool? Buergermeister) AntragPrognose(Konto antragsteller, int weg, double von, double bis)
     {
-        int ja = 0, nein = 0, enthaltung = 0;
-        bool? buergermeister = null;
         var verkehr = MittlererVerkehr(weg, von, bis);
-        var rat = _w.Rat;
-        foreach (var amt in rat.Aemter.Where(a => a.IstBesetzt))
+        return _w.Rat.Zaehlen(sitz => StimmeVonSitz(sitz, antragsteller, weg, von, bis, verkehr));
+    }
+
+    /// <summary>
+    /// Die Stimme eines Sitzes zum Antrag „Weg pflastern“ (true dafür, false dagegen, null Enthaltung) – in Prognose und Sitzung dieselbe.
+    /// <paramref name="verkehr"/>: <see cref="MittlererVerkehr"/> des Abschnitts.
+    /// </summary>
+    internal bool? StimmeVonSitz(Amt sitz, Konto antragsteller, int weg, double von, double bis, double verkehr) =>
+        sitz.Ratsherr is { } r ? _w.Rat.Gunst(r, antragsteller) >= Daten!.Rat.AntragGunst || verkehr >= Daten.Rat.AntragVerkehr
+        : sitz.Konto == antragsteller ? true
+        : _w.Rivalen.FirstOrDefault(k => k.Konto == sitz.Konto) is { } ki ? ki.StimmtFuerWegantrag(weg, von, bis)
+        : Antrag == (antragsteller, weg, von, bis) ? StimmeVon(sitz.Konto!) // die Stimme aus der Sitzung gilt nur dem vorliegenden Antrag
+        : null;
+
+    /// <summary>
+    /// Darf dieses Haus zum Antrag „Weg pflastern“ stimmen? (null = ja, sonst der Grund) Anders als bei den übrigen Anträgen nur live
+    /// in der laufenden Ratssitzung – vorher enthält sich das Haus.
+    /// </summary>
+    public string? StimmeVerboten(Konto konto)
+    {
+        if (!IstAktiv) return "In dieser Stadt werden keine Wege gebaut.";
+        if (_w.Rat.StimmeVerboten(konto) is { } grund) return grund;
+        if (Antrag is not { } antrag) return "Dieses Jahr liegt kein Antrag auf Pflaster vor.";
+        if (antrag.Antragsteller == konto) return $"{konto.Inhaber} hat den Antrag gestellt und stimmt ohnehin dafür.";
+        if (_w.Rat.LaufendeSitzung is null) return "Über das Pflaster stimmt man erst in der Ratssitzung ab – bis dahin gilt Enthaltung.";
+        return null;
+    }
+
+    /// <summary>Die Stimme dieses Hauses zum vorliegenden Antrag (true = dafür, false = dagegen, null = Enthaltung).</summary>
+    public bool? StimmeVon(Konto konto) => StimmeVerboten(konto) is null && _stimmen.TryGetValue(konto, out var ja) ? ja : null;
+
+    /// <summary>Stimme zum Antrag „Weg pflastern“ in der Ratssitzung setzen (true/false) oder sich enthalten (null).</summary>
+    internal Befehlsergebnis StimmeFestlegen(Konto konto, bool? ja)
+    {
+        if (StimmeVerboten(konto) is { } grund) return Befehlsergebnis.Abgelehnt(grund);
+        var antrag = Antrag!.Value;
+        var worum = $"den Antrag von {antrag.Antragsteller.Inhaber}, {WegName(antrag.Weg)} zu pflastern";
+        if (ja is not { } stimme)
         {
-            bool? stimme = amt.Ratsherr is { } r ? rat.Gunst(r, antragsteller) >= Daten!.Rat.AntragGunst || verkehr >= Daten.Rat.AntragVerkehr
-                : amt.Konto == antragsteller ? true
-                : _w.Rivalen.FirstOrDefault(k => k.Konto == amt.Konto) is { } ki ? ki.StimmtFuerWegantrag(weg, von, bis)
-                : null;
-            if (stimme == true) ja++;
-            else if (stimme == false) nein++;
-            else enthaltung++;
-            if (amt.Stufe == rat.Daten.HoechsteStufe) buergermeister = stimme;
+            _stimmen.Remove(konto);
+            return Befehlsergebnis.Ok($"{konto.Inhaber} enthält sich bei der Abstimmung über {worum}.");
         }
-        return (ja, nein, enthaltung, buergermeister);
+        _stimmen[konto] = stimme;
+        return Befehlsergebnis.Ok($"{konto.Inhaber} stimmt {(stimme ? "für" : "gegen")} {worum}.");
     }
 
     /// <summary>Mittlerer Verkehr eines Abschnitts (Fahrten im Jahr).</summary>
@@ -499,29 +541,41 @@ public sealed class Wegebau
     internal void Ausscheiden(Konto konto)
     {
         if (Antrag?.Antragsteller == konto) Antrag = null;
+        _stimmen.Remove(konto);
     }
 
-    /// <summary>In der Ratssitzung (nach dem Statut): Antrag „Weg pflastern“, dann bessert die Stadt aus und pflastert.</summary>
+    /// <summary>In der Ratssitzung (nach dem Statut): Abstimmung über den vorliegenden Antrag „Weg pflastern“.</summary>
+    internal (int Ja, int Nein, int Enthaltung, bool? Buergermeister, bool Angenommen) AntragAbstimmen(int jahr, Action<string> protokoll)
+    {
+        var antrag = Antrag!.Value;
+        var (ja, nein, enthaltung, bm) = AntragPrognose(antrag.Antragsteller, antrag.Weg, antrag.Von, antrag.Bis);
+        var angenommen = Stadtrat.IstAngenommen(ja, nein, bm);
+        var was = $"Ratssitzung {jahr}: Antrag von {antrag.Antragsteller.Inhaber}, {WegName(antrag.Weg)} zu pflastern,";
+        var stimmen = $"({ja} dafür, {nein} dagegen{(ja == nein ? ", der Bürgermeister entscheidet" : "")})";
+        if (!angenommen) protokoll($"{was} abgelehnt {stimmen}.");
+        else if (Ausbauen(null, antrag.Weg, antrag.Von, antrag.Bis, Belagstufe.Pflaster, _w.Uhr) is { Erfolg: false } e)
+            protokoll($"{was} angenommen {stimmen}, aber es wird nichts daraus: {e.Meldung}");
+        else
+        {
+            _ansehenBis[antrag.Antragsteller] = _w.Jahr + Daten!.Rat.AnsehenJahre - 1;
+            protokoll($"{was} ANGENOMMEN {stimmen}. {antrag.Antragsteller.Inhaber} gewinnt Ansehen.");
+        }
+        Antrag = null;
+        return (ja, nein, enthaltung, bm, angenommen);
+    }
+
+    /// <summary>Antrag „Weg pflastern“ und danach der Bau der Stadt in einem Zug (wie in der Sitzung; für Tests).</summary>
     internal void RatSitzung(int jahr, Action<string> protokoll)
     {
         if (!IstAktiv) return;
-        if (Antrag is { } antrag)
-        {
-            var (ja, nein, _, bm) = AntragPrognose(antrag.Antragsteller, antrag.Weg, antrag.Von, antrag.Bis);
-            var angenommen = Stadtrat.IstAngenommen(ja, nein, bm);
-            var was = $"Ratssitzung {jahr}: Antrag von {antrag.Antragsteller.Inhaber}, {WegName(antrag.Weg)} zu pflastern,";
-            var stimmen = $"({ja} dafür, {nein} dagegen{(ja == nein ? ", der Bürgermeister entscheidet" : "")})";
-            if (!angenommen) protokoll($"{was} abgelehnt {stimmen}.");
-            else if (Ausbauen(null, antrag.Weg, antrag.Von, antrag.Bis, Belagstufe.Pflaster, _w.Uhr) is { Erfolg: false } e)
-                protokoll($"{was} angenommen {stimmen}, aber es wird nichts daraus: {e.Meldung}");
-            else
-            {
-                _ansehenBis[antrag.Antragsteller] = _w.Jahr + Daten!.Rat.AnsehenJahre - 1;
-                protokoll($"{was} ANGENOMMEN {stimmen}. {antrag.Antragsteller.Inhaber} gewinnt Ansehen.");
-            }
-            Antrag = null;
-        }
+        if (Antrag is not null) AntragAbstimmen(jahr, protokoll);
         StadtBaut(protokoll);
+    }
+
+    /// <summary>In der Ratssitzung nach dem Antrag „Weg pflastern“ (auch ohne): Die Stadt bessert aus und pflastert.</summary>
+    internal void NachDemAntrag(Action<string> protokoll)
+    {
+        if (IstAktiv) StadtBaut(protokoll);
     }
 
     /// <summary>

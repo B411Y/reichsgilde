@@ -42,6 +42,9 @@ public partial class RathausTafel : VBoxContainer
     /// <summary>Knöpfe zu den großen Tafeln: Ratskammer, Gericht, Markt.</summary>
     public event Action? RatGewuenscht, GerichtGewuenscht, MarktGewuenscht;
 
+    /// <summary>Knopf „Letzte Ratssitzung ansehen“ (Reiter Rat): die abgehaltene Sitzung noch einmal im Ratssaal (Hauptszene.Ratssitzung.cs).</summary>
+    public event Action? LetzteSitzungGewuenscht;
+
     public override void _Ready()
     {
         AddThemeConstantOverride("separation", 6);
@@ -106,7 +109,7 @@ public partial class RathausTafel : VBoxContainer
                                  string.Join(",", w.Kasse.DiesesJahr.Posten.Select(p => Math.Round(p.Betrag))),
             Reiter.Rat => $"{w.Jahr}|{string.Join(";", w.Ratsantraege.Tagesordnung.Select(p => p.Text + p.Antragsteller.Inhaber))}|" +
                           $"{string.Join(",", w.Ratsantraege.Baustellen.Select(b => b.Kennung))}|{string.Join(",", w.Ratsantraege.Gebaut)}|" +
-                          $"{w.Ratsantraege.FestJahr}|{bf.Streife}|{w.Rat.AmtVon(_spieler!)?.Name}",
+                          $"{w.Ratsantraege.FestJahr}|{bf.Streife}|{w.Rat.AmtVon(_spieler!)?.Name}|{w.Rat.LetzteRatssitzung?.Jahr}",
             _ => $"{w.Jahr}|{w.Rat.AmtVon(_spieler!)?.Name}|{bf.Streife}|{bf.FreierAntragOffen(_spieler!)}|{Math.Round(_spieler!.Vermoegen / 100)}|" +
                  string.Join(",", w.Konten.Where(k => w.Justiz.IstAktiv && w.Justiz.ImKerker(k)).Select(k => k.Inhaber + Math.Round(k.Vermoegen / 100))),
         };
@@ -198,6 +201,11 @@ public partial class RathausTafel : VBoxContainer
         }
         var knopf = Knopf(seite, "Ratskammer: Anträge und Stimmen (R)", () => RatGewuenscht?.Invoke());
         knopf.TooltipText = "Dort stellt ihr Anträge (als Mitglied des Rates) und legt eure Stimme fest.";
+        if (w.Rat.LetzteRatssitzung is { Abgehalten.Count: > 0 } letzte)
+            Knopf(seite, $"Letzte Ratssitzung ({letzte.Jahr}) ansehen", () => LetzteSitzungGewuenscht?.Invoke(),
+                "Die Sitzung noch einmal im Ratssaal: Anträge, Begründungen, alle Stimmen und die Ergebnisse. Die Partie steht so lange.");
+        else if (w.Rat.LetzteSitzung.Count > 0)
+            Text(seite, "Das Protokoll der letzten Ratssitzung steht im Bericht (Reiter Protokoll).", 12, Grau);
 
         seite.AddChild(new HSeparator());
         Text(seite, "Bauten der Stadt", 14, Gold);

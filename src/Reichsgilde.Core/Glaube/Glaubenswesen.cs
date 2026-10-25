@@ -371,7 +371,7 @@ public sealed class Glaubenswesen
     }
 
     /// <summary>Stimme eines KI-Hauses im Rat: für den eigenen Glauben; für Freiheit, wenn ein fremder Stadtglaube gilt.</summary>
-    private bool KiStimmtZu(Konto ki, Konfession? glaube)
+    internal bool KiStimmtZu(Konto ki, Konfession? glaube)
     {
         var eigener = GlaubeVon(ki);
         return glaube == eigener || glaube is null && Stadtglaube != eigener;
@@ -381,24 +381,16 @@ public sealed class Glaubenswesen
     /// Wie ginge die Abstimmung über einen Stadtglauben heute aus? Häuser, die keine KI sind, stimmen wie festgelegt
     /// (nur beim vorliegenden Antrag) und enthalten sich sonst.
     /// </summary>
-    public (int Ja, int Nein, int Enthaltung, bool? Buergermeister) AbstimmungsPrognose(Konto antragsteller, Konfession? glaube)
-    {
-        int ja = 0, nein = 0, enthaltung = 0;
-        bool? buergermeister = null;
-        foreach (var amt in _w.Rat.Aemter.Where(a => a.IstBesetzt))
-        {
-            bool? stimme = amt.Ratsherr is { } r ? StimmtZu(r, glaube, antragsteller)
-                : amt.Konto == antragsteller ? true
-                : _w.Rivalen.Any(k => k.Konto == amt.Konto) ? KiStimmtZu(amt.Konto!, glaube)
-                : Antrag == (antragsteller, glaube) ? StimmeVon(amt.Konto!) // die festgelegte Stimme gilt nur dem vorliegenden Antrag
-                : null;
-            if (stimme == true) ja++;
-            else if (stimme == false) nein++;
-            else enthaltung++;
-            if (amt.Stufe == _w.Rat.Daten.HoechsteStufe) buergermeister = stimme;
-        }
-        return (ja, nein, enthaltung, buergermeister);
-    }
+    public (int Ja, int Nein, int Enthaltung, bool? Buergermeister) AbstimmungsPrognose(Konto antragsteller, Konfession? glaube) =>
+        _w.Rat.Zaehlen(sitz => StimmeVonSitz(sitz, antragsteller, glaube));
+
+    /// <summary>Die Stimme eines Sitzes zum Stadtglauben (true dafür, false dagegen, null Enthaltung) – in Prognose und Sitzung dieselbe.</summary>
+    internal bool? StimmeVonSitz(Amt sitz, Konto antragsteller, Konfession? glaube) =>
+        sitz.Ratsherr is { } r ? StimmtZu(r, glaube, antragsteller)
+        : sitz.Konto == antragsteller ? true
+        : _w.Rivalen.Any(k => k.Konto == sitz.Konto) ? KiStimmtZu(sitz.Konto!, glaube)
+        : Antrag == (antragsteller, glaube) ? StimmeVon(sitz.Konto!) // die festgelegte Stimme gilt nur dem vorliegenden Antrag
+        : null;
 
     public string? BeantragenVerboten(Konto konto, Konfession? glaube)
     {
@@ -453,16 +445,17 @@ public sealed class Glaubenswesen
         _stimmen.Remove(konto);
     }
 
-    /// <summary>In der Ratssitzung, nach dem Statut: Abstimmung über den Stadtglauben.</summary>
-    internal void Abstimmen(int jahr, Action<string> protokoll)
+    /// <summary>In der Ratssitzung, nach dem Statut: Abstimmung über den vorliegenden Antrag auf einen Stadtglauben.</summary>
+    internal (int Ja, int Nein, int Enthaltung, bool? Buergermeister, bool Angenommen) Abstimmen(int jahr, Action<string> protokoll)
     {
-        if (Antrag is not { } antrag) return;
-        var (ja, nein, _, buergermeister) = AbstimmungsPrognose(antrag.Antragsteller, antrag.Glaube); // mit den festgelegten Stimmen
+        var antrag = Antrag!.Value;
+        var (ja, nein, enthaltung, buergermeister) = AbstimmungsPrognose(antrag.Antragsteller, antrag.Glaube); // mit den festgelegten Stimmen
         Antrag = null; // leert die Stimmen
         var angenommen = Stadtrat.IstAngenommen(ja, nein, buergermeister);
         protokoll($"Ratssitzung {jahr}: Antrag von {antrag.Antragsteller.Inhaber} auf Stadtglauben „{KonfessionTexte.StadtglaubeText(antrag.Glaube)}“ " +
                   $"{(angenommen ? "ANGENOMMEN" : "abgelehnt")} ({ja} dafür, {nein} dagegen{(ja == nein ? ", der Bürgermeister entscheidet" : "")}).");
         if (angenommen) Stadtglaube = antrag.Glaube;
+        return (ja, nein, enthaltung, buergermeister, angenommen);
     }
 
     // ── Jahresende ──────────────────────────────────────────────────────────
