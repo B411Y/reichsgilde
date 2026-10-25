@@ -28,6 +28,9 @@ Startoptionen (nach `--`):
 - `--hinterzimmer=1`
 - `--markt=1`
 - `--karren=<Typen>` (der eigenen Werkstatt Karren dazukaufen, z. B. `Ochsenkarren,Kriegskarren`, mit `--vermoegen=9000`)
+- `--schiff=<Anzahl>` (am ersten Hafen so viele Flussschiffe kaufen, mit `--vermoegen=10000`; Karte mit Hafen, z. B. `--karte=probestadt` oder `greybox`)
+- `--schiffsauftrag=vorschlag` (jedem eigenen Schiff am Kai den Vorschlag als Auftrag geben; `=<Ziel>`: den Vorschlag für diese ferne Stadt, z. B. `Eisenfurt`, Leerzeichen als `_`)
+- `--hafen=1` (Hafentafel des ersten Hafens rechts öffnen, ohne `--blick` fährt die Kamera hin; `=<Kennung>` eines Hafens der Karte, z. B. `Hafen1`; `=staedte`: Reiter „Ferne Städte“). Ein ausgewähltes Schiff: `--auswahl=schiff:<Name>`
 - `--verkaufen=1` (Rückfrage zum Verkauf der eigenen Werkstatt; `=2` kauft vorher eine Grube dazu und lässt bis Mittag laufen, mit `--vermoegen=20000`)
 - `--bericht=1` (Jahresbericht in der Mitte); `--bericht=<jahresrechnung|rivalen|umsaetze|protokoll>` (die Tafel „Bericht“ rechts auf diesem Reiter)
 - `--hilfe=1` (Hilfe zur Steuerung gleich zeigen; ohne Startoptionen erscheint sie beim allerersten Spiel von selbst)
