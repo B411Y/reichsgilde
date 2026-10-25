@@ -265,6 +265,36 @@ public partial class Fenster : Node
         }
     }
 
+    /// <summary>Gelesene Einstellung „Ratssitzung zeigen“ (null: noch nicht aus der Datei gelesen).</summary>
+    private static RatssitzungZeigen? _ratssitzung;
+
+    /// <summary>
+    /// Einstellung „Ratssitzung zeigen“ (PR #202): ob die Partie am Jahresende im Ratssaal anhält. Gemerkt in <c>user://einstellungen.cfg</c>
+    /// (Abschnitt „spiel“, Schlüssel „ratssitzung“); fehlt er, gilt <see cref="RatssitzungZeigen.Betroffen"/>.
+    /// </summary>
+    public static RatssitzungZeigen Ratssitzung
+    {
+        get
+        {
+            if (_ratssitzung is { } wert) return wert;
+            var einstellungen = new ConfigFile();
+            var text = einstellungen.Load(Datei) == Error.Ok ? einstellungen.GetValue("spiel", "ratssitzung", "").AsString() : "";
+            _ratssitzung = Enum.TryParse<RatssitzungZeigen>(text, out var gelesen) ? gelesen : RatssitzungZeigen.Betroffen;
+            return _ratssitzung.Value;
+        }
+    }
+
+    /// <summary>Setzt „Ratssitzung zeigen“; <paramref name="speichern"/> = false gilt nur für diesen Start (Startoption <c>--sitzungzeigen</c>).</summary>
+    public static void RatssitzungSetzen(RatssitzungZeigen wert, bool speichern = true)
+    {
+        _ratssitzung = wert;
+        if (!speichern) return;
+        var einstellungen = new ConfigFile();
+        einstellungen.Load(Datei);
+        einstellungen.SetValue("spiel", "ratssitzung", wert.ToString());
+        einstellungen.Save(Datei);
+    }
+
     private static void Speichern(string schluessel, Variant wert)
     {
         var einstellungen = new ConfigFile();
@@ -341,3 +371,6 @@ public enum Umgebungsverdeckung { Aus, Niedrig, Mittel, Hoch }
 
 /// <summary>Stufen der Schattenqualität (Beschreibung: <see cref="EinstellungenAnzeige"/>, Werte: Stadtansicht.Licht.cs).</summary>
 public enum Schattenqualitaet { Niedrig, Mittel, Hoch }
+
+/// <summary>Wann die Ratssitzung am Jahresende im Ratssaal gezeigt wird (Einstellung „Ratssitzung zeigen“, PR #202).</summary>
+public enum RatssitzungZeigen { Immer, Betroffen, Nie }

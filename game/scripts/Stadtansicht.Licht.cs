@@ -84,7 +84,7 @@ public partial class Stadtansicht
         umgebung.BackgroundColor = ziel.Himmel;
         umgebung.AmbientLightColor = ziel.Umgebung;
         umgebung.AmbientLightEnergy = ziel.Umgebungsstaerke;
-        FensterlichtSetzen(ziel.Fenster);      // Stadtansicht.Modelle.cs – fasst die Materialien nur bei merklicher Änderung an
+        FensterlichtSetzen(ziel.Fenster, uhrzeitInMinuten / 60f); // Stadtansicht.Modelle.cs – fasst die Materialien nur bei merklicher Änderung an
         RaumlichtSetzen(ziel.Himmel, ziel.Hell); // Stadtansicht.Raeume.cs
     }
 
@@ -246,7 +246,7 @@ public partial class Stadtansicht
     /// Godots Glow trägt nur Bildpunkte weiter, deren hellster Farbkanal über dem Schwellwert liegt. Das Bild wird in HDR
     /// gerechnet (Werte über 1 sind möglich): Sonnenbeschienene Dächer und Wände liegen darunter und schimmern nie (gemessen:
     /// Markt um 13 Uhr bei 100 % gegen Aus, Unterschiede nur an leuchtenden Fenstern). Lichtquellen liegen darüber: Fensterlicht
-    /// mit Emission 2,2 (<see cref="FensterLichtStaerke"/>), Glut, Feuerkorb und Domfenster – nur sie leuchten nach.
+    /// mit Emission bis 2,6 (<see cref="FensterLichtStaerke"/>), Glut, Feuerkorb und Domfenster – nur sie leuchten nach.
     /// 1,0 ist Godots Grundwert; <see cref="BloomUebergang"/> blendet den Einsatz weich ein, statt eine harte Kante zu ziehen.
     /// </summary>
     private const float BloomSchwelle = 1f, BloomUebergang = 1f;

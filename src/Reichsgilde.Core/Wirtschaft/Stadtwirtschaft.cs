@@ -539,9 +539,17 @@ public sealed partial class Stadtwirtschaft
             rivale.Stunde(); // bankrotte Rivalen tun nichts mehr
     }
 
+    /// <summary>
+    /// Hält die Partie am Jahresende vor der Ratssitzung an? Die Oberfläche entscheidet je Sitzung (Einstellung „Ratssitzung zeigen“,
+    /// ist der Spieler betroffen …); gefragt wird nur, wenn mindestens ein Punkt ansteht. Null = nie: Tests, Messung und eine Partie
+    /// ohne Oberfläche laufen ohne Halt durch. Während des Halts ruht die Zeit (<see cref="Simulation.RatssitzungWeiter"/>).
+    /// </summary>
+    public Func<Politik.Ratssitzung, bool>? RatssitzungAnhalten { get; set; }
+
     /// <summary>Jahresende für alle Betriebe und Konten.</summary>
     /// <param name="zeit">Die Uhr steht schon auf dem neuen Jahr (05:00) – zuerst wird noch die letzte Stunde (21–22 Uhr) abgerechnet.</param>
-    internal void Jahresabrechnung(int neuesJahr, Spielzeit zeit)
+    /// <returns>false, wenn die Partie vor der Ratssitzung anhält – dann folgt der Rest mit <see cref="JahresabrechnungAbschliessen"/>.</returns>
+    internal bool Jahresabrechnung(int neuesJahr, Spielzeit zeit)
     {
         StundeVorbei(zeit);
         foreach (var betrieb in _betriebe.Where(b => b.Konto.IstAktiv))
@@ -566,7 +574,17 @@ public sealed partial class Stadtwirtschaft
         Gastwirtschaft.Jahresende(); // Stammtisch-Gunst vor der Ratssitzung (Wahlen)
         Glaube.Jahresende();        // Ketzerkirchen (mit dem Kirchenbuch des Jahres), Anteile kehren zurück
         Kirchenwesen.Jahresende();  // die Beichten des Jahres, neues Kirchenbuch
-        Rat.Sitzung(_zufall, neuesJahr - 1);
+        var sitzung = Rat.SitzungBeginnen(_zufall, neuesJahr - 1);
+        if (sitzung is { IstBeendet: false, Anzahl: > 0 } && RatssitzungAnhalten?.Invoke(sitzung) == true)
+            return false; // die Oberfläche zeigt die Sitzung Punkt für Punkt
+        sitzung?.AllesAbhalten();
+        JahresabrechnungAbschliessen(neuesJahr);
+        return true;
+    }
+
+    /// <summary>Der Rest der Jahresabrechnung nach der Ratssitzung.</summary>
+    internal void JahresabrechnungAbschliessen(int neuesJahr)
+    {
         Kasse.JahrAbschliessen(neuesJahr); // nach der Sitzung: Bau und Fest stehen noch im alten Jahr
         Gauner.Jahresende();
         Diebe.Jahresende(); // unbeantwortete Forderungen: Feuer oder die Geisel wird verkauft
@@ -660,6 +678,8 @@ public sealed partial class Stadtwirtschaft
 
     private Befehlsergebnis Bearbeiten(Konto absender, Befehl befehl)
     {
+        if (Rat.LaufendeSitzung is not null && befehl is not (WahlStimme or StatutStimme or StadtglaubeStimme or PflasterStimme or RatsantragStimme))
+            return Befehlsergebnis.Abgelehnt("Die Ratssitzung läuft – jetzt wird nur abgestimmt.");
         if (absender.IstBankrott)
             return Befehlsergebnis.Abgelehnt($"{absender.Inhaber} ist bankrott und kann nichts mehr unternehmen.");
         if (absender.IstErloschen)
@@ -728,6 +748,8 @@ public sealed partial class Stadtwirtschaft
             return Ratsantraege.Beantragen(new Politik.Ratsantrag(Politik.Antragsart.Bauvorhaben, absender, Bauvorhaben: bauvorhaben.Kennung));
         if (befehl is FestBeantragen)
             return Ratsantraege.Beantragen(new Politik.Ratsantrag(Politik.Antragsart.Fest, absender));
+        if (befehl is PflasterStimme pflasterStimme)
+            return Wegebau.StimmeFestlegen(absender, pflasterStimme.Ja);
         if (befehl is RatsantragStimme ratsStimme)
             return Ratsantraege.StimmeFestlegen(absender, ratsStimme.Art, ratsStimme.Ja);
         if (befehl is StrafmassSetzen strafmass)

@@ -150,6 +150,7 @@ public partial class Stadtansicht
     /// <summary>Eingabe in der Raumansicht: Klick = Raum anklicken, Q/E = Raum wechseln. Kein Zoom, kein Verschieben.</summary>
     private void RaumEingabe(InputEvent eingabe)
     {
+        if (_ratssitzung is not null) return; // während der Ratssitzung bleibt man im Ratssaal (Stadtansicht.Ratssitzung.cs)
         if (_raum?.Blicke is not null && ModellRaumEingabe(eingabe)) // Raum aus einem Modell: Bedienung, Rahmen, Rechtsklick (Stadtansicht.Innenkamera.cs)
         {
             GetViewport().SetInputAsHandled();

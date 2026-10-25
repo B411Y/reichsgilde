@@ -31,10 +31,19 @@ public static class Speicherung
         NumberHandling = JsonNumberHandling.AllowNamedFloatingPointLiterals,
     };
 
+    /// <summary>
+    /// Darf die Partie jetzt gespeichert werden? (null = ja, sonst der Grund) Nicht während einer angehaltenen Ratssitzung – die halbe
+    /// Jahresabrechnung steht in keinem Spielstand. Die Oberfläche prüft das, bevor sie eine Datei öffnet.
+    /// </summary>
+    public static string? SpeichernVerboten(Simulation simulation) =>
+        simulation.Ratssitzung is not null ? "Während der Ratssitzung kann nicht gespeichert werden – danach wieder." : null;
+
     /// <summary>Erstellt den Spielstand als JSON-Text.</summary>
     /// <param name="spieler">Das Konto des menschlichen Spielers (damit die Oberfläche es nach dem Laden wiederfindet).</param>
+    /// <exception cref="InvalidOperationException">Während einer angehaltenen Ratssitzung (<see cref="SpeichernVerboten"/>).</exception>
     public static string Speichern(Simulation simulation, Konto? spieler = null, DateTime? zeitpunkt = null)
     {
+        if (SpeichernVerboten(simulation) is { } grund) throw new InvalidOperationException(grund);
         var w = simulation.Wirtschaft;
         var stand = new Speicherstand
         {
