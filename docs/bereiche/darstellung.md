@@ -137,6 +137,7 @@ So wird eingetragen (damit sich die Chats nie an derselben Stelle treffen):
 - Modell-Texturen, Gruppe 3: `modelle_normal_rauheit.webp` ist mit 22 Schichten 19,4 MB groß (verlustfrei); bei weiteren Schichten über verlustbehaftete Normalen oder 512 px für kleine Materialien nachdenken.
 - Modell-Texturen: Schicht je Fläche (`bs.BIBLIOTHEK_JE_FLAECHE = True`) in den übrigen Modellen mit „Farben“ einschalten – Umland, Innenräume, Wasser – jeweils mit ihrer Gruppe, dann neu exportieren (Gruppe 2: nur der Wachturm).
 - Bauvorhaben der Stadt (PR #200): schlicht aus Quadern (Gerüst, Zaun, Holzstapel, Steinhaufen). Fertig zeigt nur der Brunnen etwas; Mauer, Hafen und Marktplatz sehen danach aus wie vorher (die Wirkung steht in den Zahlen). Später eigene Modelle: ausgebesserte Mauer, zweiter Kran oder Steg am Hafen, größerer Platz mit mehr Ständen; die Fahnen des Fests vielleicht als Girlanden zwischen den Ecken.
+- Nachtlichter: Gauner nachts draußen sichtbar machen (dunkle Gestalten ohne Licht) – eigenes Thema mit Spielwirkung (anklickbar?), vom Nutzer auf später gelegt (25.10.2026).
 
 ## Entscheidungen
 
@@ -1153,3 +1154,13 @@ Entscheidungen zur Sitzung: `docs/bereiche/oberflaeche.md`, „Sichtbare Ratssit
 | Prüfung | `pruefen.py <glb> --innen --sonderbau`: Regeln der Innenräume ohne das, was nur ein Betrieb hat (Stufen, Bedienung der Werkstatt, Arbeits- und Stellplätze); dafür mindestens neun `Anker_Sitz_<n>` lückenlos und die drei übrigen Plätze, jeder mit „bewegung“ aus `figur_mensch.glb`, sitzend mit „sitzhoehe“. `alle.py` baut den Ratssaal mit den Innenräumen. | 25.10.2026 |
 | Einbinden | `--innen=Rathaus` zeigt noch die alten Räume aus Grundkörpern (`Stadtansicht.Sonderbauten.cs`); das Modell lädt dort noch niemand. Die Sitzungsszene (Bereich spiel) lädt `innen/rathaus_innen`, stellt die Ratsherren auf `Anker_Sitz_<n>` nach Rang und den Bürgermeister, Schreiber und Antragsteller auf ihre Anker, färbt „Hausfarbe“ in Stadtrot und zeigt `Antrag`, solange abgestimmt wird. Die Materialnamen sind die der übrigen Innenräume; die Material-Bibliothek je Fläche kommt mit deren Gruppe. | 25.10.2026 |
 | Klicktest | Bilder `docs/modelle/rathaus_innen-blicke.png` (alle Blickpunkte, mit Platzhalterfiguren auf allen Ankern) und `-grundriss.png`. In Godot 4.7.2 (Vulkan, T400) neu importiert und mit einem Prüfskript an jedem Blickpunkt fotografiert: lädt ohne Fehler, Extras der Anker kommen an, Wappen und Behänge rot, Butzenscheiben sichtbar. | 25.10.2026 |
+
+### Nachtlichter (PR #…)
+
+| Thema | Entscheidung | Datum |
+|---|---|---|
+| Umfang | Vier Lichtarten: Nachtwächter mit flackernder Laterne; Feuerkörbe an Torburgen, Wachturm und Schilderhäuschen; feste Laternen an Wirtshaus und Rathaus, Ewiges Licht am Domportal; Passanten mit Laterne oder Fackel. Nur Stimmung, keine Spielwirkung (kein Ratsantrag für Laternen). Vorbild: um 1400 kaum Straßenlicht, Nachtwächter mit Laterne, Feuerkörbe an den Toren. Entschieden vom Nutzer. | 25.10.2026 |
+| Nachtwächter | Die Wachleute, die laut Kern auf Streife sind (`Wachwesen.AnwesenheitJetzt`, `Wachort.Patrouille`), laufen sichtbar eine Runde durch die Gassen; nachts mit Laterne, bei Tag ohne. Nur lesend, keine Zierfiguren. Entschieden vom Nutzer. | 25.10.2026 |
+| Passanten | Wer im Dunkeln unterwegs ist, trägt Licht – ab der Dämmerung nach der Jahreszeit, nicht erst ab 20 Uhr; etwa zwei von drei eine Laterne, die übrigen eine Fackel. Gauner bleiben vorerst unsichtbar (siehe Offen). Entschieden vom Nutzer. | 25.10.2026 |
+| Modelle | Eigenes Modell `lichter.glb` aus `tools/modelle/lichter.py` (Modell-Agent): Handlaterne, Fackel, Wandlaterne am Arm, Feuerkorb auf Stange, Ewiges Licht; Flamme als eigenes Material, das Spiel lässt es flackern. Dazu nur Anker in Torburg, Wachturm, Wirtshaus, Rathaus und Dom. Entschieden vom Nutzer. | 25.10.2026 |
+| Technik | Flackern wie beim Fensterlicht (#203); wenige echte Lichter nahe der Kamera, die übrigen nur Emission, Anzahl über die Grafikstufe. | 25.10.2026 |
