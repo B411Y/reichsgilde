@@ -22,7 +22,7 @@ public partial class Fenster
     public readonly record struct Grafikstufe(
         Kantenglaettung Kanten, Schattenqualitaet Schatten, Umgebungsverdeckung Verdeckung, bool Indirekt, bool Bloom,
         bool Fsr, int Renderaufloesung, int Natur, int Passanten, Feinheiten Feinheiten,
-        Miniaturunschaerfe Unschaerfe, bool Wolken, Morgendunst Dunst, Bodenqualitaet Boden, Grasteppich Gras);
+        Miniaturunschaerfe Unschaerfe, bool Wolken, Morgendunst Dunst, Bodenqualitaet Boden, Grasteppich Gras, Wettereffekte Wetter);
 
     /// <summary>
     /// Die vier Stufen. Hoch entspricht den Grundwerten vor PR #169 (SMAA, Schatten Hoch, Verdeckung Mittel, Bloom), dazu der
@@ -33,16 +33,16 @@ public partial class Fenster
         // Ohne FSR: Auf der T400 kostete FSR 2.2 mit 67 % in Niedrig mehr, als es sparte (GPU 10,3 gegen 8,7 ms je Bild).
         Voreinstellung.Niedrig => new(Kantenglaettung.Fxaa, Schattenqualitaet.Niedrig, Umgebungsverdeckung.Aus, false, false,
                                       false, StandardRenderaufloesung, 50, 50, Feinheiten.Nah, Miniaturunschaerfe.Aus, false, Morgendunst.Aus,
-                                      Bodenqualitaet.Niedrig, Grasteppich.Aus),
+                                      Bodenqualitaet.Niedrig, Grasteppich.Aus, Wettereffekte.Niedrig),
         Voreinstellung.Mittel => new(Kantenglaettung.Smaa, Schattenqualitaet.Mittel, Umgebungsverdeckung.Niedrig, false, true,
                                      false, StandardRenderaufloesung, 75, 75, Feinheiten.Mittel, Miniaturunschaerfe.Aus, true, Morgendunst.Aus,
-                                     Bodenqualitaet.Mittel, Grasteppich.Aus),
+                                     Bodenqualitaet.Mittel, Grasteppich.Aus, Wettereffekte.Mittel),
         Voreinstellung.Ultra => new(Kantenglaettung.Msaa4, Schattenqualitaet.Hoch, Umgebungsverdeckung.Hoch, true, true,
                                     false, StandardRenderaufloesung, 100, 100, Feinheiten.Weit, Miniaturunschaerfe.Leicht, true, Morgendunst.Hoch,
-                                    Bodenqualitaet.Hoch, Grasteppich.SehrDicht),
+                                    Bodenqualitaet.Hoch, Grasteppich.SehrDicht, Wettereffekte.Hoch),
         _ => new(Kantenglaettung.Smaa, Schattenqualitaet.Hoch, Umgebungsverdeckung.Mittel, false, true,
                  false, StandardRenderaufloesung, 100, 100, Feinheiten.Weit, Miniaturunschaerfe.Leicht, true, Morgendunst.Niedrig,
-                 Bodenqualitaet.Hoch, Grasteppich.Dicht),
+                 Bodenqualitaet.Hoch, Grasteppich.Dicht, Wettereffekte.Hoch),
     };
 
     /// <summary>Ohne gespeicherte Einstellungen (und bis die automatische Wahl fertig ist): Hoch.</summary>
@@ -52,7 +52,7 @@ public partial class Fenster
     public static Grafikstufe AktuelleStufe => new(
         AktuelleKantenglaettung, AktuelleSchattenqualitaet, AktuelleUmgebungsverdeckung, IndirektesLichtAn, BloomAn,
         FsrAn, Renderaufloesung, NaturDichte, PassantenMenge, AktuelleFeinheiten,
-        AktuelleUnschaerfe, WolkenschattenAn, AktuellerDunst, AktuelleBodenqualitaet, AktuellerGrasteppich);
+        AktuelleUnschaerfe, WolkenschattenAn, AktuellerDunst, AktuelleBodenqualitaet, AktuellerGrasteppich, AktuelleWettereffekte);
 
     /// <summary>
     /// Welche Voreinstellung die Regler gerade zeigen – „Eigene“, sobald einer abweicht. Gerechnet statt gespeichert: Stellt der
@@ -93,6 +93,7 @@ public partial class Fenster
         UnschaerfeSetzen(s.Unschaerfe, speichern);
         WolkenschattenSetzen(s.Wolken, speichern);
         DunstSetzen(s.Dunst, speichern);
+        WettereffekteSetzen(s.Wetter, speichern);
         _sammeln = false;
         GrafikGeaendert?.Invoke();
     }
@@ -135,6 +136,7 @@ public partial class Fenster
         var passend = StufePassend();
         BodenqualitaetSetzen(geladen && datei.HasSectionKey("anzeige", "boden") ? Art("boden", hoch.Boden) : passend.Boden, false);
         GrasteppichSetzen(geladen && datei.HasSectionKey("anzeige", "gras") ? Art("gras", hoch.Gras) : passend.Gras, false);
+        WettereffekteSetzen(geladen && datei.HasSectionKey("anzeige", "wetter") ? Art("wetter", hoch.Wetter) : passend.Wetter, false); // ab PR #195
         _sammeln = false;
     }
 
@@ -298,13 +300,13 @@ public partial class Fenster
         Melden();
     }
 
-    /// <summary>Die Voreinstellung, die die übrigen Regler (ohne Boden und Gras) gerade zeigen – für Boden und Gras aus einer älteren Datei (sonst Hoch).</summary>
+    /// <summary>Die Voreinstellung, die die übrigen Regler (ohne Boden, Gras und Wetter) gerade zeigen – für diese aus einer älteren Datei (sonst Hoch).</summary>
     private static Grafikstufe StufePassend()
     {
         foreach (var v in new[] { Voreinstellung.Niedrig, Voreinstellung.Mittel, Voreinstellung.Hoch, Voreinstellung.Ultra })
         {
             var stufe = StufeVon(v);
-            var jetzt = AktuelleStufe with { Boden = stufe.Boden, Gras = stufe.Gras };
+            var jetzt = AktuelleStufe with { Boden = stufe.Boden, Gras = stufe.Gras, Wetter = stufe.Wetter };
             if (!jetzt.Fsr) stufe = stufe with { Renderaufloesung = jetzt.Renderaufloesung };
             if (stufe == jetzt) return stufe;
         }
@@ -363,6 +365,20 @@ public partial class Fenster
     {
         AktuellerDunst = stufe;
         if (speichern) Speichern("dunst", stufe.ToString());
+        Melden();
+    }
+
+    /// <summary>
+    /// Wettereffekte (PR #195, Stadtansicht.Wetter.cs): Niedrig nur Himmel, Licht, Nebel und wenig Regen und Schnee; Mittel dazu nasser Boden
+    /// mit Pfützen und das Licht der Blitze; Hoch die volle Zahl der Tropfen und Flocken, Flocken im Wind wirbelnd, Ringe in den Pfützen
+    /// (diese nur mit Boden Hoch).
+    /// </summary>
+    public static Wettereffekte AktuelleWettereffekte { get; private set; } = Wettereffekte.Hoch;
+
+    public static void WettereffekteSetzen(Wettereffekte stufe, bool speichern = true)
+    {
+        AktuelleWettereffekte = stufe;
+        if (speichern) Speichern("wetter", stufe.ToString());
         Melden();
     }
 
@@ -645,6 +661,7 @@ public partial class Fenster
         if (Art<Miniaturunschaerfe>("tiltshift", out var tiltshift)) UnschaerfeSetzen(tiltshift, speichern: false);
         if (optionen.TryGetValue("wolken", out var wolken)) WolkenschattenSetzen(An(wolken), speichern: false);
         if (Art<Morgendunst>("dunst", out var dunst)) DunstSetzen(dunst, speichern: false);
+        if (Art<Wettereffekte>("wettereffekte", out var wetter)) WettereffekteSetzen(wetter, speichern: false);
         if (optionen.ContainsKey("tonemapping") || optionen.ContainsKey("helligkeit") || optionen.ContainsKey("kontrast") || optionen.ContainsKey("saettigung"))
             FarbstimmungSetzen(Art<Tonemapping>("tonemapping", out var tonemapping) ? tonemapping : AktuellesTonemapping,
                                Zahl("helligkeit", out var hell) ? hell : Helligkeit, Zahl("kontrast", out var kontrast) ? kontrast : Kontrast,
@@ -678,6 +695,9 @@ public enum Miniaturunschaerfe { Aus, Leicht, Stark }
 
 /// <summary>Morgendunst und Lichtstrahlen: Niedrig = einfacher Höhennebel, Hoch = volumetrischer Nebel mit Lichtbahnen (Stadtansicht.Grafik.cs).</summary>
 public enum Morgendunst { Aus, Niedrig, Hoch }
+
+/// <summary>Wettereffekte: wie viel Regen, Schnee, Nässe und Blitz die Stadt zeigt (Werte: Stadtansicht.Wetter.cs).</summary>
+public enum Wettereffekte { Niedrig, Mittel, Hoch }
 
 /// <summary>Wie das helle Bild auf den Bildschirm gebracht wird: bisher (linear) oder AgX (weichere Lichter, natürlichere Farben).</summary>
 public enum Tonemapping { Bisher, Agx }

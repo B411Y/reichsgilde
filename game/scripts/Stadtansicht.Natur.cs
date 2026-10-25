@@ -149,6 +149,9 @@ public partial class Stadtansicht
         ["Laub dunkel"] = new Color(0.29f, 0.25f, 0.19f),
     };
 
+    /// <summary>Frisches Grün des Frühlings (sRGB): Das Laub des Sommers geht ein gutes Drittel dorthin – heller und gelblicher (PR #195).</summary>
+    private static readonly Color FruehlingsGruen = new(0.5f, 0.68f, 0.26f);
+
     /// <summary>Merkt ein Laubmaterial vor und färbt es sofort nach der gerade geltenden Jahreszeit. Andere Materialien bleiben unberührt.</summary>
     private void LaubMelden(BaseMaterial3D stoff)
     {
@@ -167,6 +170,7 @@ public partial class Stadtansicht
     private void LaubFaerben(BaseMaterial3D stoff, Color sommer) =>
         stoff.AlbedoColor = _jahreszeit switch
         {
+            Jahreszeit.Fruehling => sommer.Lerp(FruehlingsGruen, 0.35f),
             Jahreszeit.Herbst => Herbstlaub[stoff.ResourceName],
             Jahreszeit.Winter => Winterlaub[stoff.ResourceName],
             _ => sommer,
@@ -207,8 +211,8 @@ public partial class Stadtansicht
     }
 
     /// <summary>
-    /// Stellt die Jahreszeit ein (jedes Bild gefragt, angefasst wird nur beim Wechsel). Frühling und Sommer zeigen das Laub, wie die Modelle es
-    /// mitbringen, Herbst gelb, orange und braun. Im Winter zeigen Bäume und Büsche der Natur ihre kahlen Fassungen („…_Winter“), in den Modellen
+    /// Stellt die Jahreszeit ein (jedes Bild gefragt, angefasst wird nur beim Wechsel). Der Sommer zeigt das Laub, wie die Modelle es
+    /// mitbringen, der Frühling heller und frischer, der Herbst gelb, orange und braun. Im Winter zeigen Bäume und Büsche der Natur ihre kahlen Fassungen („…_Winter“), in den Modellen
     /// wechseln „Laubkrone_*“ zu „Winteraeste_*“, und das übrige Laub (Hecken, Beete, Weide) verdorrt zu Stroh und Braun.
     /// </summary>
     private void JahreszeitSetzen(Jahreszeit jahreszeit)
@@ -216,7 +220,6 @@ public partial class Stadtansicht
         if (jahreszeit == _jahreszeit) return;
         _jahreszeit = jahreszeit;
         foreach (var (stoff, sommer) in _laubStoffe) LaubFaerben(stoff, sommer);
-        FeldJahreszeit(); // die Äcker liegen im Winter kahl da (Stadtansicht.Rand.cs)
 
         var winter = jahreszeit == Jahreszeit.Winter;
         foreach (var (vielfach, sommerNetz, winterNetz) in _naturWinter) vielfach.Mesh = OberflaecheNetz(winter ? winterNetz : sommerNetz); // mit Struktur (Oberflächendetails)

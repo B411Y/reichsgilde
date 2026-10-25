@@ -14,8 +14,9 @@ uniform float bewuchs : hint_range(0.0, 1.0) = 0.8;
 // Abstand der Furchen in Metern und wie stark sie in Licht und Farbe zählen
 uniform float abstand = 1.5;
 uniform float furchen : hint_range(0.0, 1.0) = 1.0;
-// 0 Sommer, 1 Winter (die Äcker liegen kahl und dunkel da)
-uniform float winter : hint_range(0.0, 1.0) = 0.0;
+// Die Jahreszeit kommt aus jahreszeit_anteile (wetter.gdshaderinc): Frühling junge grüne Saat, Sommer reife Frucht, Herbst Stoppeln,
+// Winter brach und dunkel, mit Schnee; dazu Nässe.
+#include "res://assets/shader/wetter.gdshaderinc"
 
 varying vec3 welt;
 
@@ -52,14 +53,27 @@ void fragment() {
 	float unruhe = 0.5 * flecken + 0.3 * schollen + 0.2 * koernung;
 
 	// Der Bewuchs sitzt auf den Kämmen, in den Furchen schaut die Erde heraus; Flecken lassen ihn dichter oder lichter stehen
-	float dicht = clamp(bewuchs + furchen * 0.26 * welle + 0.55 * (unruhe - 0.5), 0.0, 1.0);
-	vec3 frucht = farbe * COLOR.rgb;
+	vec4 j = jahreszeit_anteile;
+	vec3 reif = farbe * COLOR.rgb;
+	vec3 saat = mix(reif, vec3(0.34, 0.5, 0.2) * COLOR.rgb, 0.85);                          // Frühling: junge Saat
+	vec3 stoppel = vec3(0.66, 0.58, 0.38) * COLOR.rgb * (0.88 + 0.24 * rausch(welt.xz * 9.0)); // Herbst: Stoppeln, fein gestreut
+	vec3 frucht = (saat * j.x + reif * j.y + stoppel * j.z + reif * j.w) / max(j.x + j.y + j.z + j.w, 0.0001);
+	float bew = bewuchs * (0.72 * j.x + j.y + 0.6 * j.z + j.w);
+	float dicht = clamp(bew + furchen * 0.26 * welle + 0.55 * (unruhe - 0.5), 0.0, 1.0);
 	vec3 boden = mix(erde * 0.85, erde * 1.15, schollen);
 	vec3 grund = mix(boden, frucht, dicht);
 	// Furchen im Licht: Kämme etwas heller, Furchen dunkler
 	grund *= 1.0 + furchen * 0.12 * welle;
 	grund *= 0.90 + 0.20 * unruhe;
-	grund = mix(grund, boden * 0.85, winter);
+	grund = mix(grund, boden * 0.85, j.w);
+	float rau = 1.0;
+	if (wetter_naesse > 0.001) {
+		grund *= 1.0 - 0.32 * wetter_naesse;
+		rau = mix(1.0, 0.55, wetter_naesse);
+	}
+	// Schnee: in den Furchen bleibt er länger liegen als auf den Kämmen
+	float schnee = clamp(schnee_decke(welt.xz, 1.0) * (1.0 - 0.35 * max(welle, 0.0)), 0.0, 1.0);
+	grund = mix(grund, vec3(0.68, 0.7, 0.75), schnee);
 
 	// Unebenheit im Licht: Der Kamm neigt die Fläche quer zu den Furchen (Richtung quer über das Stück in Weltkoordinaten)
 	vec3 quer = vec3(cos(UV2.x), 0.0, -sin(UV2.x));
@@ -67,6 +81,6 @@ void fragment() {
 	NORMAL = normalize(NORMAL + (VIEW_MATRIX * vec4(quer, 0.0)).xyz * neigung);
 
 	ALBEDO = grund;
-	ROUGHNESS = 1.0;
+	ROUGHNESS = mix(rau, 0.7, schnee);
 	SPECULAR = 0.2;
 }

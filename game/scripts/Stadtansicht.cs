@@ -413,6 +413,7 @@ public partial class Stadtansicht : Node3D
         Fenster.BloomGeaendert -= BloomNachfuehren;
         Fenster.VerdeckungGeaendert -= VerdeckungNachfuehren;
         GrafikAufgeben();
+        WetterAufgeben(); // die globalen Shader-Werte zurück auf Sommer und trocken (Stadtansicht.Wetter.cs)
         OberflaecheAufgeben();
         if (_wirtschaft is not null)
         {
@@ -691,9 +692,10 @@ public partial class Stadtansicht : Node3D
         // nehmen wir den Bruchteil der angebrochenen Minute dazu – sonst springen Sonne, Schatten und Karren
         // einmal pro Sekunde, statt sich jedes Bild ein Stückchen weiterzubewegen.
         var bruchteil = _simulation.Takt.AngebrocheneMinute;
+        WetterAktualisieren(zeit.VergangeneMinuten + bruchteil, zeit.Jahreszeit, delta); // vor dem Licht: Wolken dämpfen es (Stadtansicht.Wetter.cs)
         LichtNachUhrzeit(zeit.UhrzeitInMinuten + (float)bruchteil, delta); // Stadtansicht.Licht.cs
         PassantenAktualisieren(zeit.VergangeneMinuten + bruchteil, delta); // Stadtansicht.Passanten.cs
-        JahreszeitSetzen(zeit.Jahreszeit); // Laub gelb, orange und braun im Herbst (Stadtansicht.Natur.cs)
+        JahreszeitSetzen(GezeigteJahreszeit(zeit.Jahreszeit)); // Laub je Jahreszeit, im Winter kahl (Stadtansicht.Natur.cs)
         VoegelAktualisieren(zeit.UhrzeitInMinuten + (float)bruchteil, delta, _simulation.Takt.IstPausiert); // Stadtansicht.Voegel.cs
 
         if (_simulation.Wirtschaft is not { } w) return;

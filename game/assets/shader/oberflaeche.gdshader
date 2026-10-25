@@ -7,6 +7,9 @@
 shader_type spatial;
 render_mode cull_disabled;   // Die Modelle aus Blender sind doppelseitig (wie figur.gdshader)
 
+// Wetter (PR #195): Laub im Wind, Schnee auf Dächern, Nässe – nur die drei markierten Stellen unten
+#include "res://assets/shader/wetter.gdshaderinc"
+
 // Grundfarbe: aus dem alten Material (farbe), mal der Eckenfarbe der GLB (Material „Farben“ und „Figur“).
 uniform vec4 farbe : source_color = vec4(1.0);
 uniform bool eckenfarbe = false;
@@ -61,6 +64,7 @@ void vertex() {
 	welt = (MODEL_MATRIX * vec4(VERTEX, 1.0)).xyz;
 	v_art = art_aus_uv ? int(round(UV.y)) : art;
 	v_zone = int(round(UV.x));
+	if (v_art == 8 && !zonen) VERTEX += wetter_laub(VERTEX, welt, MODEL_MATRIX, TIME); // Wetter: Laub im Wind
 }
 
 // Ein Wert der Schicht: (Wert − 128) / 127, also −1 … 1 mit 0 bei 128. Mit den Ableitungen von außen (textureGrad), denn gelesen
@@ -106,8 +110,10 @@ void fragment() {
 		vec3 sicht = mat3(VIEW_MATRIX) * (mat3(MODEL_MATRIX) * neigung) / length(MODEL_MATRIX[0].xyz);
 		NORMAL = normalize(NORMAL + sicht * RELIEF[i]);
 	}
+	float rau = rauheit;
+	if (!zonen) wetter_flaeche(grund, rau, mat3(INV_VIEW_MATRIX) * NORMAL, welt); // Wetter: Schnee und Nässe
 	ALBEDO = grund;
-	ROUGHNESS = rauheit;
+	ROUGHNESS = rau;
 	METALLIC = metall;
 	SPECULAR = glanz;
 }

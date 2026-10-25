@@ -6,7 +6,7 @@ namespace Reichsgilde;
 /// Fenster „Einstellungen“ mit fünf Reitern: <b>Voreinstellung</b> (Niedrig bis Ultra, automatische Wahl, Vollbild), <b>Leistung</b>
 /// (Bildrate, VSync, dynamische Auflösung, FSR 2.2, Detailstufe), <b>Bild</b> (Boden, Gras, Kantenglättung, Nachschärfen,
 /// Schatten, Umgebungsverdeckung, indirektes Licht), <b>Stimmung</b> (Bloom, Miniatur-Unschärfe, Wolkenschatten, Morgendunst,
-/// Farbstimmung, Fahnen) und <b>Barrierefreiheit</b> (Größe der Oberfläche, Farbfilter). Erreichbar aus dem Hauptmenü und aus dem
+/// Wettereffekte, Farbstimmung, Fahnen) und <b>Barrierefreiheit</b> (Größe der Oberfläche, Farbfilter). Erreichbar aus dem Hauptmenü und aus dem
 /// Spielmenü (Esc). Jede Änderung wirkt sofort und wird gespeichert (siehe <see cref="Fenster"/>).
 /// </summary>
 public sealed class EinstellungenAnzeige
@@ -91,6 +91,13 @@ public sealed class EinstellungenAnzeige
         (Morgendunst.Hoch, "Hoch", "Echter Nebel in der Luft: Die tief stehende Sonne zieht Lichtbahnen hindurch, Häuser und Mauern werfen Schatten hinein; in den Räumen tanzt Staub im Licht der Fenster. Kostet deutlich Grafikleistung."),
     };
 
+    private static readonly (Wettereffekte Stufe, string Name, string Erklaerung)[] Wetterstufen =
+    {
+        (Wettereffekte.Niedrig, "Niedrig", "Wolken, Nebel und Blitze nur am Himmel und im Licht, dazu wenig Regen und Schnee. Kostet fast nichts."),
+        (Wettereffekte.Mittel, "Mittel", "Dazu nasser, glänzender Boden mit Pfützen, nasse Dächer und das Licht der Blitze über der Stadt."),
+        (Wettereffekte.Hoch, "Hoch (empfohlen)", "Dichter Regen und Schnee, Flocken wirbeln im Wind, Regentropfen ziehen Ringe in den Pfützen (mit Boden Hoch)."),
+    };
+
     private static readonly (Tonemapping Art, string Name, string Erklaerung)[] Tonemappings =
     {
         (Tonemapping.Bisher, "Linear (bisher)", "Kräftige Farben; sehr helle Stellen (Glut, Fensterlicht) werden einfach abgeschnitten."),
@@ -160,6 +167,8 @@ public sealed class EinstellungenAnzeige
     private readonly CheckButton _wolken;
     private readonly OptionButton _dunst;
     private readonly Label _dunstErklaerung;
+    private readonly OptionButton _wetter;
+    private readonly Label _wetterErklaerung;
     private readonly OptionButton _tonemapping;
     private readonly Label _tonemappingErklaerung;
     private readonly HSlider _helligkeit;
@@ -373,6 +382,13 @@ public sealed class EinstellungenAnzeige
             Auffrischen();
         });
         _dunstErklaerung = Hinweis(s, "");
+        Abschnitt(s, "Wettereffekte");
+        _wetter = Auswahl(s, Wetterstufen.Select(w => w.Name), nummer =>
+        {
+            Fenster.WettereffekteSetzen(Wetterstufen[nummer].Stufe);
+            Auffrischen();
+        });
+        _wetterErklaerung = Hinweis(s, "");
         Abschnitt(s, "Farbstimmung");
         _tonemapping = Auswahl(s, Tonemappings.Select(t => t.Name), nummer =>
         {
@@ -505,6 +521,9 @@ public sealed class EinstellungenAnzeige
         var dunst = Array.FindIndex(Dunststufen, d => d.Stufe == Fenster.AktuellerDunst);
         _dunst.Select(dunst);
         _dunstErklaerung.Text = Dunststufen[dunst].Erklaerung;
+        var wetter = Array.FindIndex(Wetterstufen, w => w.Stufe == Fenster.AktuelleWettereffekte);
+        _wetter.Select(wetter);
+        _wetterErklaerung.Text = Wetterstufen[wetter].Erklaerung;
         var tonemapping = Array.FindIndex(Tonemappings, t => t.Art == Fenster.AktuellesTonemapping);
         _tonemapping.Select(tonemapping);
         _tonemappingErklaerung.Text = Tonemappings[tonemapping].Erklaerung;
