@@ -107,11 +107,21 @@ public sealed class Wetterablauf
         return _jahre[jahr] = liste.ToArray();
     }
 
-    /// <summary>Die Lage zur Spielzeit (<paramref name="minute"/> = vergangene Minuten seit Spielbeginn), ohne Übergang.</summary>
+    /// <summary>
+    /// Die Lage zur Spielzeit (<paramref name="minute"/> = vergangene Minuten seit Spielbeginn) für die Anzeige: Sie wechselt in der Mitte
+    /// des Übergangs, wenn das Bild schon halb nach der neuen Lage aussieht.
+    /// </summary>
     public Wetterlage Lage(long minute)
     {
-        var (abschnitte, i, _) = Stelle(minute);
+        var (abschnitte, i) = GezeigterAbschnitt(minute);
         return abschnitte[i].Lage;
+    }
+
+    private ((int Beginn, Wetterlage Lage)[] Abschnitte, int Nummer) GezeigterAbschnitt(long minute)
+    {
+        var (abschnitte, i, imTag) = Stelle(minute);
+        if (i > 0 && imTag - abschnitte[i].Beginn < UebergangMinuten / 2) i--;
+        return (abschnitte, i);
     }
 
     private ((int Beginn, Wetterlage Lage)[] Abschnitte, int Nummer, int MinuteImTag) Stelle(long minute)
@@ -163,7 +173,7 @@ public sealed class Wetterablauf
     /// </summary>
     public IReadOnlyList<(int Uhrzeit, Wetterlage Lage)> Aussicht(long minute, int anzahl)
     {
-        var (abschnitte, i, _) = Stelle(minute);
+        var (abschnitte, i) = GezeigterAbschnitt(minute);
         var liste = new List<(int, Wetterlage)>();
         for (var k = i + 1; k < abschnitte.Length && liste.Count < anzahl; k++)
             liste.Add((Spielzeit.TagesbeginnMinute + abschnitte[k].Beginn, abschnitte[k].Lage));

@@ -86,7 +86,7 @@ void wetter_boden(inout vec3 bf, inout float rau, inout vec3 nw, inout vec3 leuc
 		float saugt = mix(1.0, 0.7, stadt);
 		bf *= 1.0 - 0.38 * wetter_naesse * saugt;
 		rau = mix(rau, min(rau, 0.38), wetter_naesse);
-		float p = pfuetze(wp, tiefe) * (0.3 + 0.7 * max(aufweg, stadt * 0.5)) * smoothstep(0.9, 0.97, n.y);
+		float p = pfuetze(wp, tiefe) * (0.3 + 0.7 * max(aufweg, stadt * 0.3)) * smoothstep(0.9, 0.97, n.y);
 		if (p > 0.0) {
 			bf = mix(bf, bf * 0.35, p);
 			rau = mix(rau, 0.04, p);
@@ -138,7 +138,7 @@ vec3 wetter_laub(vec3 v, vec3 wp, mat4 m, float zeit) {
 	float h = clamp(v.y / 6.0, 0.0, 1.5);
 	float ph = dot(wp.xz, vec2(0.23, 0.17));
 	float s = sin(zeit * (1.1 + 1.6 * wetter_wind) + ph) * 0.7 + sin(zeit * 2.7 + ph * 1.9) * 0.3;
-	float a = (0.03 + 0.3 * wetter_wind * wetter_wind) * h;
+	float a = (0.03 + 0.3 * wetter_wind * wetter_wind * wetter_flaechen) * h; // in der Innenansicht nur ein Hauch
 	vec2 r = normalize(wind_richtung + vec2(0.0001));
 	vec3 aus = vec3(r.x, 0.0, r.y) * (s * 0.6 + wetter_wind * 0.8) * a;
 	return transpose(mat3(m)) * aus / max(dot(m[0].xyz, m[0].xyz), 0.0001);

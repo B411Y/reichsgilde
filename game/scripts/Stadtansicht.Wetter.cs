@@ -28,8 +28,8 @@ public partial class Stadtansicht
     /// <summary>So schnell (Sekunden Echtzeit, Zeitkonstante) folgen die gezeigten Werte dem Wetter der Uhr.</summary>
     private const float WetterNachfuehrSekunden = 1.2f;
 
-    /// <summary>Dichte des Entfernungsnebels bei vollem Nebel: Die Kamera steht 150 m vor der Stadt, das lässt etwa ein Drittel der Farbe durch.</summary>
-    private const float WetterNebelDichte = 0.006f;
+    /// <summary>Dichte des Entfernungsnebels bei vollem Nebel: Die Kamera steht 150 m vor der Stadt, das lässt knapp die Hälfte der Farbe durch.</summary>
+    private const float WetterNebelDichte = 0.005f;
 
     private Wetterablauf? _wetterablauf;
     private int _wetterStartwert;
@@ -306,7 +306,7 @@ public partial class Stadtansicht
         var himmel = Grau(s.Himmel, 0.75f * bedeckt, 1 - 0.3f * bedeckt);
         himmel = himmel.Lerp(Grau(s.Himmel, 1, 0.9f + 0.25f * s.Hell), 0.6f * nebel);
         var umgebung = Grau(s.Umgebung, 0.5f * bedeckt, 1);
-        himmel = himmel.Lerp(new Color(0.85f, 0.88f, 1f), 0.8f * _blitz);
+        himmel = himmel.Lerp(new Color(0.8f, 0.84f, 0.95f), 0.7f * _blitz);
         return s with
         {
             Farbe = s.Farbe.Lerp(new Color(0.86f, 0.89f, 0.93f), 0.5f * bedeckt),
@@ -314,7 +314,7 @@ public partial class Stadtansicht
             Schattendeckkraft = s.Schattendeckkraft * (1 - 0.55f * bedeckt) * (1 - 0.5f * nebel),
             Himmel = himmel,
             Umgebung = umgebung,
-            Umgebungsstaerke = s.Umgebungsstaerke * (1 + 0.1f * bedeckt) + 1.2f * _blitz,
+            Umgebungsstaerke = s.Umgebungsstaerke * (1 + 0.1f * bedeckt) + 0.55f * _blitz,
         };
     }
 
@@ -367,7 +367,7 @@ public partial class Stadtansicht
         }
         var licht = Fenster.AktuelleWettereffekte != Wettereffekte.Niedrig && _raum is null && _blitz > 0.001f;
         if (_blitzLicht.Visible != licht) _blitzLicht.Visible = licht;
-        if (licht) _blitzLicht.LightEnergy = 2.4f * _blitz;
+        if (licht) _blitzLicht.LightEnergy = 1.5f * _blitz;
     }
 
     // ═════════════════════════════════════════════════════════════════════════

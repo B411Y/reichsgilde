@@ -54,6 +54,10 @@ Startoptionen (nach `--`):
 - `--tiltshift=<Aus|Leicht|Stark>`
 - `--wolken=<An|Aus>`
 - `--dunst=<Aus|Niedrig|Hoch>`
+- `--wettereffekte=<Niedrig|Mittel|Hoch>` (wie viel Regen, Schnee, Nässe und Blitz zu sehen ist)
+- `--wetter=<klar|wolkig|regen|sturm|gewitter|schnee|nebel>` (Wetterlage fest vorgeben, nur Darstellung; ohne Aussicht in der Wetterzeile)
+- `--jahreszeit=<fruehling|sommer|herbst|winter>` (Jahreszeit der Darstellung: Wiese, Laub, Äcker, Schnee; der Kalender bleibt)
+- `--blitz=1` (mit `--wetter=gewitter`: ein Blitz bleibt auf voller Helligkeit stehen, für Bildschirmfotos)
 - `--tonemapping=<Bisher|Agx>`
 - `--helligkeit=`/`--kontrast=`/`--saettigung=<Prozent>`
 - `--schaerfe=<0–100>`
