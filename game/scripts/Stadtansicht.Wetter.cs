@@ -13,7 +13,7 @@ namespace Reichsgilde;
 /// <b>Wirkung.</b>
 /// <list type="bullet">
 /// <item>Licht und Himmel (<see cref="MitWetter"/>, aus <see cref="LichtNachUhrzeit"/>): Wolken dämpfen Sonne und Schatten und färben den Himmel grau,
-/// ein Blitz hellt Himmel und Umgebung auf und hat ein eigenes Licht von oben (ab Wettereffekte Mittel).</item>
+/// ein Blitz hellt Himmel und Umgebung auf und hat ein eigenes Licht (ab Wettereffekte Mittel; in der Stufe Hoch mit Schatten, jedes Mal aus anderer Richtung).</item>
 /// <item>Nebel: Godots Entfernungsnebel, dazu wird der Morgendunst dichter (Stadtansicht.Grafik.cs).</item>
 /// <item>Regen und Schnee: je ein <see cref="GPUParticles3D"/> in einem Kasten um den Blickpunkt, mit dem Zoom mitwachsend (Tropfen und Flocken
 /// sind so bei jedem Zoom gleich groß im Bild).</item>
@@ -46,11 +46,14 @@ public partial class Stadtansicht
 
     private GpuParticles3D _regen = null!, _schnee = null!;
     private ParticleProcessMaterial _regenStoff = null!, _schneeStoff = null!;
-    private StandardMaterial3D _regenFarbe = null!, _schneeFarbe = null!;
+    private StandardMaterial3D _regenFarbe = null!;
+    private ShaderMaterial _schneeFarbe = null!; // schnee.gdshader: weiche Flocken, die pendeln und sich drehen
     private DirectionalLight3D _blitzLicht = null!;
     private float _blitzZeit = -1, _naechsterBlitz = 3;
     private float _blitz;
     private readonly Random _blitzZufall = new();
+    private int _blitzPulse;
+    private float _blitzAbstand, _blitzHaltenZeit;
     private Wettereffekte? _partikelStufe;
     private (float K, float Wind, float Breite)? _partikelFuer;
     private float _partikelHell = -1;
@@ -141,22 +144,8 @@ public partial class Stadtansicht
         };
         AddChild(_regen);
 
-        // Schnee: weiche, runde Flocken (ein Verlauf als Bild), zur Kamera gedreht
-        var flocke = new GradientTexture2D
-        {
-            Width = 32, Height = 32, Fill = GradientTexture2D.FillEnum.Radial,
-            FillFrom = new Vector2(0.5f, 0.5f), FillTo = new Vector2(0.5f, 0f),
-            Gradient = new Gradient { Colors = new[] { new Color(1, 1, 1, 1), new Color(1, 1, 1, 0.8f), new Color(1, 1, 1, 0) }, Offsets = new[] { 0f, 0.45f, 1f } },
-        };
-        _schneeFarbe = new StandardMaterial3D
-        {
-            ShadingMode = BaseMaterial3D.ShadingModeEnum.Unshaded,
-            Transparency = BaseMaterial3D.TransparencyEnum.Alpha,
-            BillboardMode = BaseMaterial3D.BillboardModeEnum.Enabled,
-            BillboardKeepScale = true,
-            AlbedoTexture = flocke,
-            AlbedoColor = new Color(0.95f, 0.96f, 1f, 0.9f),
-        };
+        // Schnee: weiche, runde Flocken, die im Fallen pendeln (schnee.gdshader)
+        _schneeFarbe = new ShaderMaterial { Shader = GD.Load<Shader>("res://assets/shader/schnee.gdshader") };
         _schneeStoff = new ParticleProcessMaterial
         {
             EmissionShape = ParticleProcessMaterial.EmissionShapeEnum.Box,
@@ -172,24 +161,26 @@ public partial class Stadtansicht
         {
             Name = "Schnee",
             Amount = 6000,
-            Lifetime = 7.0,
-            Preprocess = 7.0,
+            Lifetime = 9.0,
+            Preprocess = 9.0,
             LocalCoords = false,
             Emitting = false,
             Visible = false,
             CastShadow = GeometryInstance3D.ShadowCastingSetting.Off,
             ProcessMaterial = _schneeStoff,
-            DrawPass1 = new QuadMesh { Size = new Vector2(0.14f, 0.14f), Material = _schneeFarbe },
+            DrawPass1 = new QuadMesh { Size = new Vector2(0.5f, 0.5f), Material = _schneeFarbe },
         };
         AddChild(_schnee);
 
-        // Blitz: ein zweites gerichtetes Licht von oben, kühl-weiß, ohne Schatten (kostet so fast nichts); nur während eines Blitzes an
+        // Blitz: ein zweites gerichtetes Licht, kühl-weiß; nur während eines Blitzes an (dann ohne Dauerkosten), Schatten nur in der Stufe Hoch
         _blitzLicht = new DirectionalLight3D
         {
             Name = "Blitz",
             LightColor = new Color(0.82f, 0.87f, 1f),
             LightEnergy = 0,
             ShadowEnabled = false,
+            DirectionalShadowMode = DirectionalLight3D.ShadowMode.Orthogonal,
+            DirectionalShadowFadeStart = 1f,
             Visible = false,
             RotationDegrees = new Vector3(-70, 30, 0),
         };
@@ -345,31 +336,66 @@ public partial class Stadtansicht
     // ═════════════════════════════════════════════════════════════════════════
 
     /// <summary>
-    /// Bei Gewitter blitzt es alle paar Sekunden (Echtzeit, zufällig – das gehört nicht zum festen Ablauf): ein heller Schlag, kurz dunkel, ein
-    /// zweiter, dann klingt er in einer halben Sekunde ab. Mit <c>--blitz=1</c> bleibt er auf voller Helligkeit stehen.
+    /// Bei Gewitter blitzt es alle paar Sekunden (Echtzeit, zufällig – das gehört nicht zum festen Ablauf): 2–4 kurze, helle Pulse in etwa 0,3 s,
+    /// dazwischen ein Restschein, dann klingt der Blitz ab. Jeder Blitz kommt aus einer zufälligen Himmelsrichtung und Steilheit; in der Stufe
+    /// Hoch wirft er Schatten (sie springen von Blitz zu Blitz), sonst bleibt es bei Licht ohne Schatten. Mit <c>--blitz=1</c> bleibt ein Blitz
+    /// auf voller Helligkeit stehen und wechselt jede Sekunde die Richtung (für Bildschirmfotos).
     /// </summary>
     private void BlitzNachfuehren(float delta)
     {
-        if (_blitzHalten && _wetter.Blitze > 0.3f) _blitz = 1;
+        if (_blitzHalten && _wetter.Blitze > 0.3f)
+        {
+            _blitz = 1;
+            if ((_blitzHaltenZeit -= delta) <= 0) { _blitzHaltenZeit = 1f; BlitzRichtung(); }
+        }
         else
         {
             if (_blitzZeit < 0 && _wetter.Blitze > 0.3f && (_naechsterBlitz -= delta) <= 0)
             {
                 _blitzZeit = 0;
                 _naechsterBlitz = (3f + 9f * (float)_blitzZufall.NextDouble()) / _wetter.Blitze;
+                BlitzRichtung();
+                _blitzPulse = 2 + _blitzZufall.Next(3);
+                _blitzAbstand = 0.3f / _blitzPulse * (0.8f + 0.4f * (float)_blitzZufall.NextDouble());
             }
             if (_blitzZeit >= 0)
             {
                 _blitzZeit += delta;
                 var b = _blitzZeit;
-                _blitz = b < 0.07f ? 1f : b < 0.14f ? 0.2f : b < 0.2f ? 0.85f : Mathf.Max(0, 0.85f * (1 - (b - 0.2f) / 0.45f));
-                if (b > 0.65f) { _blitzZeit = -1; _blitz = 0; }
+                var ende = _blitzPulse * _blitzAbstand;
+                if (b < ende)
+                {
+                    // je Pulse die ersten 40 % hell, den Rest ein schwacher Schein
+                    var im = (b % _blitzAbstand) / _blitzAbstand;
+                    _blitz = im < 0.4f ? (b < _blitzAbstand ? 1f : 0.75f + 0.25f * Mathf.Cos(b * 40f)) : 0.15f;
+                }
+                else _blitz = Mathf.Max(0, 0.6f * (1 - (b - ende) / 0.35f));
+                if (b > ende + 0.35f) { _blitzZeit = -1; _blitz = 0; }
             }
             else _blitz = 0;
         }
-        var licht = Fenster.AktuelleWettereffekte != Wettereffekte.Niedrig && _raum is null && _blitz > 0.001f;
+        var stufe = Fenster.AktuelleWettereffekte;
+        var licht = stufe != Wettereffekte.Niedrig && _raum is null && _blitz > 0.001f;
         if (_blitzLicht.Visible != licht) _blitzLicht.Visible = licht;
-        if (licht) _blitzLicht.LightEnergy = 1.5f * _blitz;
+        if (!licht) return;
+        // Schatten nur in der Stufe Hoch; die Einstellung der Sonne (Bias, Weichzeichner) gilt für dieselbe Kamera, also auch hier
+        var schatten = stufe == Wettereffekte.Hoch && _sonne.ShadowEnabled;
+        if (_blitzLicht.ShadowEnabled != schatten) _blitzLicht.ShadowEnabled = schatten;
+        if (schatten)
+        {
+            _blitzLicht.ShadowBias = _sonne.ShadowBias;
+            _blitzLicht.ShadowNormalBias = _sonne.ShadowNormalBias;
+            _blitzLicht.ShadowBlur = _sonne.ShadowBlur;
+        }
+        _blitzLicht.LightEnergy = (schatten ? 2.4f : 1.5f) * _blitz;
+    }
+
+    /// <summary>Neue Richtung für den nächsten Blitz: Himmelsrichtung 0–360°, Steilheit 35–70° über dem Horizont.</summary>
+    private void BlitzRichtung()
+    {
+        var azimut = 360f * (float)_blitzZufall.NextDouble();
+        var hoehe = 35f + 35f * (float)_blitzZufall.NextDouble();
+        _blitzLicht.RotationDegrees = new Vector3(-hoehe, azimut, 0);
     }
 
     // ═════════════════════════════════════════════════════════════════════════
@@ -437,10 +463,13 @@ public partial class Stadtansicht
         _regenStoff.ScaleMin = 0.85f * k;
         _regenStoff.ScaleMax = 1.15f * k;
         _schneeStoff.Direction = (Vector3.Down + wind * 1.2f).Normalized();
-        _schneeStoff.InitialVelocityMin = 1.3f * k;
-        _schneeStoff.InitialVelocityMax = 2.1f * k;
-        _schneeStoff.ScaleMin = 0.6f * k;
-        _schneeStoff.ScaleMax = 1.3f * k;
+        // langsam fallen; die Flocken wachsen nur mit der Wurzel des Zooms (k hoch 0,6): nah deutlich größer als ein Pixel, weit nicht zu dicht
+        _schneeStoff.InitialVelocityMin = 0.8f * k;
+        _schneeStoff.InitialVelocityMax = 1.4f * k;
+        var gr = Mathf.Pow(k, 0.6f);
+        _schneeStoff.ScaleMin = 0.6f * gr;
+        _schneeStoff.ScaleMax = 1.5f * gr;
+        _schneeFarbe.SetShaderParameter("massstab", k);
         _schneeStoff.TurbulenceNoiseStrength = 0.6f + 2f * _wetter.Wind;
         _schneeStoff.TurbulenceInfluenceMin = 0.05f;
         _schneeStoff.TurbulenceInfluenceMax = 0.12f + 0.15f * _wetter.Wind;
@@ -453,7 +482,7 @@ public partial class Stadtansicht
         if (Mathf.Abs(hell - _partikelHell) < 0.01f) return;
         _partikelHell = hell;
         _regenFarbe.AlbedoColor = new Color(0.78f * hell, 0.82f * hell, 0.9f * hell, 0.45f);
-        _schneeFarbe.AlbedoColor = new Color(0.95f * hell, 0.96f * hell, hell, 0.9f);
+        _schneeFarbe.SetShaderParameter("farbe", new Color(0.95f * hell, 0.96f * hell, hell, 0.9f));
     }
 
     /// <summary>Ein Teil (Regen oder Schnee) an oder aus, <paramref name="staerke"/> 0–1 nimmt den Anteil der Tropfen.</summary>
