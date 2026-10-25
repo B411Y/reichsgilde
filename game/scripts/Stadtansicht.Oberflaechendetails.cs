@@ -12,6 +12,7 @@ namespace Reichsgilde;
 /// gesetzt hat, bekommt er sein Material mit Struktur.</item>
 /// <item>Verlässt die Stadtansicht den Baum, gehen die Materialien zurück an die Knoten: kein Rest.</item>
 /// <item>Je Bild: das Nachziehen umgefärbter Materialien.</item>
+/// <item>Die Stufe der Material-Bibliothek folgt der Einstellung „Boden“ (<see cref="OberflaecheStufeNachfuehren"/>).</item>
 /// </list>
 /// </summary>
 public partial class Stadtansicht
@@ -26,6 +27,7 @@ public partial class Stadtansicht
     private void OberflaecheEinrichten()
     {
         _oberflaeche = new Oberflaechendetails();
+        OberflaecheStufeNachfuehren();
         GetTree().NodeAdded += OberflaecheKnotenNeu;
         foreach (var teil in FindChildren("*", nameof(MeshInstance3D), true, false).OfType<MeshInstance3D>()) _oberflaeche.Umstellen(teil);
         foreach (var teil in FindChildren("*", nameof(MultiMeshInstance3D), true, false).OfType<MultiMeshInstance3D>()) _oberflaeche.Umstellen(teil);
@@ -71,6 +73,12 @@ public partial class Stadtansicht
 
     /// <summary>Das Netz, das ein MultiMesh jetzt zeigen soll: mit Struktur (Jahreszeitwechsel der Natur).</summary>
     private Mesh OberflaecheNetz(Mesh netz) => _oberflaeche?.Netz(netz) ?? netz;
+
+    /// <summary>Stufe der Material-Bibliothek nach der Einstellung „Boden“: Niedrig die Struktur wie bisher, Mittel Farbe, Hoch dazu Normalen und Rauheit.</summary>
+    private void OberflaecheStufeNachfuehren()
+    {
+        if (_oberflaeche is not null) _oberflaeche.Stufe = (int)Fenster.AktuelleBodenqualitaet;
+    }
 
     /// <summary>Jedes Bild: umgefärbte Materialien nachziehen.</summary>
     private void OberflaecheBild() => _oberflaeche?.Abgleichen();
