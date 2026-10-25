@@ -563,7 +563,7 @@ def kahn(st, name, laenge, breite, bord=0.55, tief=0.45, sprung=0.35, stationen=
         w = breite / 2 * (1 - (max(0.0, a - 0.45) / 0.55) ** 2 * 0.7)
         zb = -tief + (tief + bord * 0.6) * (max(0.0, a - 0.55) / 0.45) ** 2
         ringe.append((t * laenge / 2, w, w * 0.82, zb, bord + sprung * a * a))
-    boden = -tief + 0.15
+    boden = 0.2                                                   # Wegerung über der Wasserlinie, kein Wasser im Rumpf
     mitte = Vector((0, 0, bord))
 
     def flur(ring):
