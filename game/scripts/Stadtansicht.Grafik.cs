@@ -31,6 +31,7 @@ public partial class Stadtansicht
         _kamera.Attributes = _tiltShift;
         WolkenEinrichten();
         DunstEinrichten();
+        WetterEinrichten(); // Regen, Schnee und Blitz (Stadtansicht.Wetter.cs)
         Fenster.GrafikGeaendert += GrafikNachfuehren;
         GrafikNachfuehren();
     }
@@ -58,6 +59,7 @@ public partial class Stadtansicht
         TiltShiftNachfuehren();
         WolkenBewegen(delta);
         DunstNachUhrzeit();
+        WetterNebel(); // Nebel des Wetters (Stadtansicht.Wetter.cs)
         FeinheitenNachZoom();
     }
 
@@ -161,7 +163,8 @@ public partial class Stadtansicht
         if (!zeigen) return;
         if (_simulation is not { Takt.IstPausiert: true })
         {
-            _wolkenVersatz = (_wolkenVersatz + _windRichtung * WolkenTempo * (float)delta).PosMod(WolkenPeriode);
+            var tempo = WolkenTempo * (0.4f + 2.4f * _wetter.Wind); // bei leichtem Wind (0,25) wie bisher, im Sturm dreimal so schnell (Stadtansicht.Wetter.cs)
+            _wolkenVersatz = (_wolkenVersatz + _windRichtung * tempo * (float)delta).PosMod(WolkenPeriode);
         }
         // In ganzen Perioden zur Kamera: Das Muster liegt fest in der Welt (es zieht nur mit dem Wind), das Decal deckt immer das Bild.
         var ziel = _kameraDrehung.Position;
@@ -170,7 +173,10 @@ public partial class Stadtansicht
         _wolken.Position = new Vector3(x, 40, z);
         // Nur die Sonne wirft Wolkenschatten: morgens und abends schwächer, nachts keine (der Mond ist zu schwach dafür)
         var sonne = _sonne.LightColor.R > _sonne.LightColor.B ? Mathf.Clamp(_sonne.LightEnergy / 1.2f, 0, 1) : 0; // der Mond ist bläulich
-        _wolken.Modulate = new Color(1, 1, 1, WolkenDunkel * sonne);
+        // Wechselnd bewölkt: mehr Wolken; ganz bedeckt: keine einzelnen Schatten mehr (die Sonne ist dann ohnehin gedämpft, Stadtansicht.Wetter.cs)
+        var wolken = _wetter.Wolken;
+        sonne *= (1 + 0.6f * Mathf.SmoothStep(0.1f, 0.6f, wolken)) * (1 - 0.8f * Mathf.SmoothStep(0.6f, 0.95f, wolken));
+        _wolken.Modulate = new Color(1, 1, 1, Mathf.Min(WolkenDunkel * sonne, 0.6f));
     }
 
     // ═════════════════════════════════════════════════════════════════════════
@@ -307,7 +313,7 @@ public partial class Stadtansicht
         if (Fenster.AktuellerDunst == Morgendunst.Aus) return;
         StadtDunstAnlegen();
         var stunde = _letzteLichtUhrzeit >= 0 ? _letzteLichtUhrzeit / 60f : 12f; // im Hauptmenü (ohne Uhr): Mittag
-        var anteil = DunstUm(stunde);
+        var anteil = Mathf.Max(DunstUm(stunde), 0.9f * _wetter.Nebel); // bei Nebel (Stadtansicht.Wetter.cs) liegt er dicht
         if (Mathf.Abs(anteil - _dunstAnteil) < 0.005f) return;
         _dunstAnteil = anteil;
         var umgebung = _umgebung.Environment;

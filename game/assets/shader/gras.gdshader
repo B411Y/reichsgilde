@@ -19,6 +19,7 @@ shader_type spatial;
 render_mode cull_disabled, diffuse_lambert, specular_disabled, depth_draw_never;
 
 #include "res://assets/shader/boden_gemein.gdshaderinc"
+#include "res://assets/shader/wetter.gdshaderinc"
 
 uniform sampler2D grasbild : filter_linear, repeat_disable;
 // Welt-X/Z des ersten Punktes im Bild (eine Kachel minus 1 m) und Bildgröße in Punkten
@@ -137,6 +138,9 @@ void vertex() {
 	float horst = gf.a;
 	da *= mix(0.6, 1.0, horst);
 	float h = hoehe * mix(0.55, 1.2, horst) * mix(0.55, 1.3, z2) * tritt * mix(0.55, 1.0, smoothstep(0.35, 0.75, g.r)) * aussen;
+	// unter der Schneedecke schauen nur noch Spitzen heraus (wetter.gdshaderinc)
+	float schnee = schnee_decke(w, 1.0);
+	h *= 1.0 - 0.85 * schnee;
 	if (z1 >= da || h < 0.02) {
 		// nicht da: alle drei Ecken auf einen Punkt (keine Fläche, nichts zu zeichnen)
 		VERTEX = vec3(w.x, g.g - 1.0, w.y) - o;
@@ -159,11 +163,14 @@ void vertex() {
 			p = vec3(fuss.x, g.g - (bn.x * d.x + bn.z * d.y) / bn.y - 0.03, fuss.y);
 			spitze = 0.0;
 		} else {
-			// Wind: Böen ziehen über die Wiese, jeder Halm schwingt etwas anders
-			vec2 wind = vec2(0.928, 0.371);
-			float boe = 0.5 + 0.5 * sin(dot(w, wind) * 0.25 - TIME * 0.9) * sin(dot(w, vec2(-wind.y, wind.x)) * 0.11 + TIME * 0.3);
-			float schwing = sin(TIME * 1.9 + dot(w, vec2(0.7, 0.45)) + z2 * 6.283);
-			vec2 wv = wind * (0.25 + 0.75 * boe) * (0.6 + 0.4 * schwing) * 0.22;
+			// Wind: Böen ziehen über die Wiese, jeder Halm schwingt etwas anders; das Wetter macht ihn stärker und schneller (wetter_wind,
+			// 0,25 = leichter Wind wie bisher)
+			vec2 wind = normalize(wind_richtung + vec2(0.0001));
+			float staerke = 0.5 + 2.0 * wetter_wind;
+			float takt = TIME * (0.7 + 1.2 * wetter_wind);
+			float boe = 0.5 + 0.5 * sin(dot(w, wind) * 0.25 - takt * 0.9) * sin(dot(w, vec2(-wind.y, wind.x)) * 0.11 + takt * 0.3);
+			float schwing = sin(takt * 1.9 + dot(w, vec2(0.7, 0.45)) + z2 * 6.283);
+			vec2 wv = wind * (0.25 + 0.75 * boe) * (0.6 + 0.4 * schwing) * 0.22 * min(staerke, 2.2);
 			vec2 neigung = nl * UV.x + wv;
 			vec2 q = fuss + neigung * h;
 			vec2 d = fuss - w;
@@ -180,7 +187,9 @@ void vertex() {
 		vec3 c = wiese_farbe * gf.rgb * 2.0;
 		c *= mix(0.84, 1.12, z3) * vec3(mix(1.0, 1.08, z1 / max(da, 0.001)), 1.0, mix(1.0, 0.85, z2 * z2));
 		c = mix(c * vec3(0.9, 0.86, 0.68), c, smoothstep(0.3, 0.9, tritt));
-		farbe = c;
+		// Jahreszeit, Nässe und Schnee wie die Wiese darunter (wetter.gdshaderinc)
+		c = jahreszeit_wiese(c) * (1.0 - 0.25 * wetter_naesse);
+		farbe = mix(c, vec3(0.66, 0.68, 0.73), schnee * 0.5);
 	}
 }
 

@@ -19,6 +19,7 @@
 render_mode diffuse_burley, specular_schlick_ggx;
 
 #include "res://assets/shader/boden_gemein.gdshaderinc"
+#include "res://assets/shader/wetter.gdshaderinc"
 
 uniform sampler2D splat0 : filter_linear, repeat_disable;
 uniform sampler2D splat1 : filter_linear, repeat_disable;
@@ -699,12 +700,15 @@ void fragment() {
 
 	// Makro-Variation: große Flecken heller und dunkler, auf der Wiese trockene (gelbliche) und satte Stellen – von weit oben keine Kacheln
 	fh.rgb = makro_farbe(fh.rgb, welt, wiese, BODEN_STUFE >= 2);
+	fh.rgb = mix(fh.rgb, jahreszeit_wiese(fh.rgb), wiese); // die Wiese je Jahreszeit (wetter.gdshaderinc)
 	if (teppich > 0.0 && wiese > 0.0) fh.rgb *= 1.0 - teppich * wiese * mix(0.1, 0.24, gras_horst(welt));
 
 	vec3 farbe = fh.rgb;
 	float hoehe = 0.0; // Unebenheit in Metern, wirkt nur aufs Licht (Wege; in Hoch ohne Normalenbild auch die Texturhöhe)
+	float auf_weg = 0.0; // für das Wetter: 1 mitten auf einem Weg (dort ist der Schnee ausgetreten, dort stehen Pfützen)
 	if (wege_an) {
 		float e = ws.g * 8.0 - 6.0;
+		auf_weg = 1.0 - smoothstep(-0.35, 0.15, e);
 		float kante = max(fwidth(e), 0.02); // außerhalb der Verzweigung: Ableitungen brauchen alle Nachbarpunkte
 		// in der Mauer (Schritt 5j): festgetretener Lehm als Grund, die Gassen sind gepflastert (mitten in einer Gasse sieht man den Lehm nicht)
 		if (info.b > 0.004 && e > -0.35) {
@@ -722,7 +726,11 @@ void fragment() {
 			rau = wg.a;
 		}
 	}
+	// Wetter: Nässe, Pfützen (in Hoch mit Regenringen) und Schnee (wetter.gdshaderinc)
+	vec3 leuchten = vec3(0.0);
+	wetter_boden(farbe, rau, nw, leuchten, welt, n, auf_weg, info.b, 1.0 - fh.a, BODEN_STUFE >= 2, TIME);
 	ALBEDO = farbe;
+	EMISSION = leuchten;
 	ROUGHNESS = clamp(rau, 0.0, 1.0);
 #if BODEN_STUFE >= 2
 	if (!nr_da) hoehe += fh.a * 0.025;

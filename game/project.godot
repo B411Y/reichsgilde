@@ -39,6 +39,38 @@ wind_staerke={
 "type": "float",
 "value": 0.5
 }
+wetter_naesse={
+"type": "float",
+"value": 0.0
+}
+wetter_regen={
+"type": "float",
+"value": 0.0
+}
+wetter_schnee={
+"type": "float",
+"value": 0.0
+}
+wetter_dach={
+"type": "float",
+"value": 0.0
+}
+wetter_flaechen={
+"type": "float",
+"value": 1.0
+}
+wetter_wind={
+"type": "float",
+"value": 0.25
+}
+wetter_himmel={
+"type": "vec3",
+"value": Vector3(0.3, 0.42, 0.6)
+}
+jahreszeit_anteile={
+"type": "vec4",
+"value": Vector4(0, 1, 0, 0)
+}
 
 [rendering]
 

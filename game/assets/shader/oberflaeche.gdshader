@@ -7,6 +7,9 @@
 shader_type spatial;
 render_mode cull_disabled;   // Die Modelle aus Blender sind doppelseitig (wie figur.gdshader)
 
+// Wetter (PR #195): Laub im Wind, Schnee auf Dächern, Nässe – nur die drei markierten Stellen unten
+#include "res://assets/shader/wetter.gdshaderinc"
+
 // Grundfarbe: aus dem alten Material (farbe), mal der Eckenfarbe der GLB (Material „Farben“ und „Figur“).
 uniform vec4 farbe : source_color = vec4(1.0);
 uniform bool eckenfarbe = false;
@@ -80,6 +83,7 @@ void vertex() {
 	welt = (MODEL_MATRIX * vec4(VERTEX, 1.0)).xyz;
 	v_art = art_aus_uv ? int(round(UV.y)) : art;
 	v_zone = int(round(UV.x));
+	if (v_art == 8 && !zonen) VERTEX += wetter_laub(VERTEX, welt, MODEL_MATRIX, TIME); // Wetter: Laub im Wind
 }
 
 // Ein Wert der Schicht: (Wert − 128) / 127, also −1 … 1 mit 0 bei 128. Mit den Ableitungen von außen (textureGrad), denn gelesen
@@ -98,6 +102,7 @@ void fragment() {
 		else if (v_zone == 4) grund = haar.rgb;
 		else if (v_zone == 5) grund = kopfbedeckung.rgb;
 	}
+	float rau = rauheit;   // Rauheit nach Bibliothek bzw. Modell; das Wetter (Nässe) ändert sie danach
 	if (bib >= 0 && bib_stufe > 0) {
 		bool normalen = bib_stufe >= 2;
 		float s = 1.0 / bib_kachel;
@@ -144,10 +149,8 @@ void fragment() {
 			vec3 sicht = mat3(VIEW_MATRIX) * (mat3(MODEL_MATRIX) * neigung) / length(MODEL_MATRIX[0].xyz);
 			NORMAL = normalize(NORMAL + sicht * BIB_RELIEF);
 		}
-		ALBEDO = clamp(grund, 0.0, 1.0);
-		ROUGHNESS = normalen ? clamp(nr.b + rauheit - 0.9, 0.04, 1.0) : rauheit;
-		METALLIC = metall;
-		SPECULAR = glanz;
+		grund = clamp(grund, 0.0, 1.0);
+		rau = normalen ? clamp(nr.b + rauheit - 0.9, 0.04, 1.0) : rauheit;
 	} else {
 		if (v_art >= 1 && v_art <= 9) {   // Art 0 („keine“): nur die Farbe des Modells, etwa wo das Modell Steine schon als Form hat
 			int i = v_art - 1;
@@ -176,9 +179,10 @@ void fragment() {
 			vec3 sicht = mat3(VIEW_MATRIX) * (mat3(MODEL_MATRIX) * neigung) / length(MODEL_MATRIX[0].xyz);
 			NORMAL = normalize(NORMAL + sicht * RELIEF[i]);
 		}
-		ALBEDO = grund;
-		ROUGHNESS = rauheit;
-		METALLIC = metall;
-		SPECULAR = glanz;
 	}
+	if (!zonen) wetter_flaeche(grund, rau, mat3(INV_VIEW_MATRIX) * NORMAL, welt); // Wetter: Schnee und Nässe
+	ALBEDO = grund;
+	ROUGHNESS = rau;
+	METALLIC = metall;
+	SPECULAR = glanz;
 }
