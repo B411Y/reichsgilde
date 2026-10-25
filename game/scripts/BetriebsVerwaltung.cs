@@ -380,11 +380,23 @@ public partial class BetriebsVerwaltung : VBoxContainer
                     // Die Stadtwache gibt Geleit nur, solange ein Haus ein Wachhaus mit Leuten führt.
                     var frei = w.Wache.EskorteVerfuegbar(namen[e]);
                     eskorte.SetItemDisabled(e, !frei);
-                    eskorte.SetItemText(e, frei
-                        ? $"{namen[e]} · ≈ {Zahlenformat.Ganz(Kalkulation.ErwarteteFahrtkosten(w, namen[e], wert))} {waehrung}/Fahrt"
-                        : $"{namen[e]} · nur mit einem Wachhaus in der Stadt");
+                    if (frei)
+                    {
+                        var preis = w.Daten.Logistik.Eskorten[namen[e]].KostenJeFahrt;
+                        var gesamt = Kalkulation.ErwarteteFahrtkosten(w, namen[e], wert);
+                        var verlust = gesamt > preis ? gesamt - preis : 0;
+                        eskorte.SetItemText(e, $"{namen[e]} · ≈ {Zahlenformat.Ganz(gesamt)} {waehrung}/Fahrt");
+                        eskorte.SetItemTooltip(e, $"Preis der Eskorte {Zahlenformat.Ganz(preis)} + erwarteter Verlust durch Überfälle {Zahlenformat.Ganz(verlust)} = ≈ {Zahlenformat.Ganz(gesamt)} {waehrung} je beladener Fahrt. Die kleinste Zahl ist die günstigste Wahl.");
+                    }
+                    else
+                    {
+                        eskorte.SetItemText(e, $"{namen[e]} · nur mit einem Wachhaus in der Stadt");
+                        eskorte.SetItemTooltip(e, "Die Stadtwache gibt Geleit nur, solange ein Haus ein Wachhaus mit Leuten führt.");
+                    }
                 }
                 eskorte.Select(namen.IndexOf(karren.Eskorte));
+                var gewaehlt = namen.IndexOf(karren.Eskorte);
+                if (gewaehlt >= 0) eskorte.TooltipText = eskorte.GetItemTooltip(gewaehlt);
                 nachts.SetPressedNoSignal(karren.NachtsFahren);
             }
             info.Text = karren.ZustandText(_simulation.Zeit);
