@@ -127,6 +127,7 @@ public partial class MarktAnzeige : PanelContainer
 
         if (w.Daten.Handel is not null && _spieler is not null)
             HandelAufbauen(w);
+        VorschauAufbauen(w);
 
         var d = w.Daten;
         var gruppen = d.Waren
@@ -213,6 +214,8 @@ public partial class MarktAnzeige : PanelContainer
     {
         if (_simulation?.Wirtschaft is not { } w || _spieler is null) return;
         HandelAktualisieren(w);
+        VorschauAktualisieren(w);
+        var vorschau = w.Befugnisse.Marktvorschau(_spieler).ToDictionary(v => v.Ware); // leer, wenn der Spieler nicht Marktmeister ist
         var d = w.Daten;
         var waehrung = d.Allgemein.Waehrung;
         var eigene = w.Betriebe.Where(b => b.Konto == _spieler).ToList();
@@ -249,9 +252,42 @@ public partial class MarktAnzeige : PanelContainer
                 zeilen.Add($"Wird in Schänken ausgeschenkt: {Zahlenformat.Kommazahl(w.Gastwirtschaft.Ausschankpreis(ware))} {waehrung} je Gast");
             if (bestand > 0)
                 zeilen.Add($"In euren Lagern: {bestand}");
+            if (vorschau.TryGetValue(ware, out var naechste))
+                zeilen.Add($"Marktmeister: in einer Stunde {Zahlenformat.Kommazahl(naechste.PreisNaechsteStunde)} {waehrung}, wenn bis dahin niemand verkauft");
             var tipp = string.Join("\n", zeilen);
             if (kachel.TooltipText != tipp) kachel.TooltipText = tipp;
         }
+    }
+
+    // ═════════════════════════════════════════════════════════════════════════
+    //  Marktmeister (PR #200)
+    // ═════════════════════════════════════════════════════════════════════════
+
+    private Label? _vorschau;
+
+    /// <summary>Nur für den Marktmeister: die Preise der nächsten Stunde – die Waren, deren Preis sich am meisten ändert.</summary>
+    private void VorschauAufbauen(Stadtwirtschaft w)
+    {
+        _vorschau = null;
+        if (_spieler is null || w.Befugnisse.MarktvorschauVerboten(_spieler) is not null) return;
+        Hauptmenue.Text(_inhalt, $"Als Marktmeister seht ihr die Preise der nächsten Stunde (auch im Tooltip jeder Ware) und zahlt auf eigene Verkäufe am Markt nur " +
+                                 $"{Zahlenformat.Ganz(w.SteuersatzMarkt(_spieler) * 100)} % Steuer.", 13, Gold, umbruchBreite: Spalten * (Kachelbreite + 6));
+        _vorschau = Hauptmenue.Text(_inhalt, "", 12, Hell, umbruchBreite: Spalten * (Kachelbreite + 6));
+    }
+
+    private void VorschauAktualisieren(Stadtwirtschaft w)
+    {
+        if (_vorschau is null || _spieler is null) return;
+        var waehrung = w.Daten.Allgemein.Waehrung;
+        var groesste = w.Befugnisse.Marktvorschau(_spieler)
+            .Where(v => v.PreisJetzt > 0 && Math.Abs(v.PreisNaechsteStunde / v.PreisJetzt - 1) >= 0.005)
+            .OrderByDescending(v => Math.Abs(v.PreisNaechsteStunde / v.PreisJetzt - 1)).Take(8)
+            .Select(v => $"{v.Ware} {Zahlenformat.Kommazahl(v.PreisJetzt)} → {Zahlenformat.Kommazahl(v.PreisNaechsteStunde)} " +
+                         $"({(v.PreisNaechsteStunde >= v.PreisJetzt ? "▲" : "▼")} {Zahlenformat.Ganz(Math.Abs(v.PreisNaechsteStunde / v.PreisJetzt - 1) * 100)} %)")
+            .ToList();
+        var text = groesste.Count == 0 ? "In der nächsten Stunde bleiben die Preise fast gleich."
+            : $"Nächste Stunde ({waehrung}): " + string.Join(" · ", groesste);
+        if (_vorschau.Text != text) _vorschau.Text = text;
     }
 
     /// <summary>

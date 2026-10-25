@@ -187,7 +187,7 @@ public partial class HafenAnzeige : PanelContainer
         if ((Reiter)_reiter.CurrentTab == Reiter.Staedte) return "staedte";
         var teile = EigeneSchiffe(w).Select(s => $"{s.Name}:{s.Zustand == SchiffZustand.AmKai}:{s.Auftrag?.Wiederholen}");
         var entwurf = _gewaehlt is not null && _entwuerfe.TryGetValue(_gewaehlt, out var e) ? $"{e.Ziel}/{e.Betrieb}" : "";
-        return $"{string.Join("|", teile)}#{_gewaehlt}#{entwurf}#{w.Betriebe.Count(b => b.Konto == _spieler)}";
+        return $"{string.Join("|", teile)}#{_gewaehlt}#{entwurf}#{w.Betriebe.Count(b => b.Konto == _spieler)}#{w.Befugnisse.IstZollfrei(_spieler!)}";
     }
 
     private List<Schiff> EigeneSchiffe(Stadtwirtschaft w) => w.Schiffahrt.SchiffeVon(_spieler!).Where(s => s.Hafen == _hafen).ToList();
@@ -233,6 +233,9 @@ public partial class HafenAnzeige : PanelContainer
             if (eigene.Count == 0) Hauptmenue.Text(_schiffsSeite, beschreibung, 12, Grau, umbruchBreite: Breite);
         }
 
+        if (w.Befugnisse.IstZollfrei(_spieler!))
+            Hauptmenue.Text(_schiffsSeite, "Als Zöllner zahlen eure Schiffe am eigenen Hafen keinen Zoll: Die erste Zollstelle jeder Fahrt gehört der Stadt und ist für euch frei.",
+                13, Gold, umbruchBreite: Breite);
         if (eigene.Count == 0)
             Hauptmenue.Text(_schiffsSeite, "Ihr habt hier noch kein Schiff. Ein Flussschiff bringt Waren zu den fernen Städten am Fluss und kauft dort ein, " +
                                             "was es daheim nicht oder nur teuer gibt.", 13, Grau, umbruchBreite: Breite);
@@ -565,7 +568,7 @@ public partial class HafenAnzeige : PanelContainer
             Setzen(b.Gewinn, leer ? "Erwarteter Gewinn: – (noch keine Fracht)"
                 : $"Erwarteter Gewinn der Fahrt: {Zahlenformat.MitVorzeichen(r.Gewinn)} {waehrung} in {r.Minuten} Min. (≈ {Zahlenformat.MitVorzeichen(r.GewinnJeJahr)} im Jahr bei steter Fahrt)");
             b.Gewinn.AddThemeColorOverride("font_color", leer ? Grau : r.Gewinn >= 0 ? Gruen : Rot);
-            var tipp = RechnungText(r, stadt, ausLager, waehrung);
+            var tipp = RechnungText(r, stadt, w.Schiffahrt.Zollstellen(_spieler!, stadt), ausLager, waehrung);
             if (b.Gewinn.TooltipText != tipp) b.Gewinn.TooltipText = tipp;
             var auftrag = new Schiffsauftrag(e.Ziel, e.Hin, e.Rueck, e.Betrieb, e.Wiederholen);
             var grund = w.Schiffahrt.AuftragVerboten(_spieler!, schiffB.Name, auftrag) ?? (_spieler!.IstAktiv ? null : "Euer Haus ist nicht mehr im Spiel.");
@@ -604,7 +607,7 @@ public partial class HafenAnzeige : PanelContainer
     }
 
     /// <summary>Die Aufschlüsselung des erwarteten Gewinns (Tooltip).</summary>
-    private static string RechnungText(Fahrtrechnung r, FerneStadt stadt, bool ausLager, string waehrung)
+    private static string RechnungText(Fahrtrechnung r, FerneStadt stadt, int zollstellen, bool ausLager, string waehrung)
     {
         string Plus(double wert) => Zahlenformat.MitVorzeichen(wert);
         string Minus(double wert) => Zahlenformat.MitVorzeichen(-wert);
@@ -614,7 +617,7 @@ public partial class HafenAnzeige : PanelContainer
             $"Erlös in {stadt.Name}: {Plus(r.ErloesFern)}",
             $"Einkauf der Rückfracht in {stadt.Name}: {Minus(r.EinkaufFern)}",
             $"Erlös der Rückfracht daheim (nach Steuer): {Plus(r.ErloesHeim)}",
-            $"Zoll ({stadt.Daten.Zollstellen} Zollstellen): {Minus(r.Zoll)}",
+            $"Zoll ({zollstellen} Zollstellen{(zollstellen < stadt.Daten.Zollstellen ? ", die erste zollfrei" : "")}): {Minus(r.Zoll)}",
             $"Geleit: {Minus(r.Geleit)}",
             $"Risiko Flusspiraten (erwarteter Verlust): {Minus(r.Risiko)}",
             $"= Gewinn {Zahlenformat.MitVorzeichen(r.Gewinn)} {waehrung} in {r.Minuten} Minuten (beladen, hin, liegen, zurück)",
@@ -670,7 +673,9 @@ public partial class HafenAnzeige : PanelContainer
         {
             Hauptmenue.Text(_staedteSeite, stadt.Name, 16, Gold);
             var fahrt = typ is null ? "" : $" · hin {Schiffahrt.Fahrzeit(typ, stadt, true)}, zurück {Schiffahrt.Fahrzeit(typ, stadt, false)} Min.";
-            Hauptmenue.Text(_staedteSeite, $"{(stadt.Daten.IstFlussauf ? "Flussauf" : "Flussab")}{fahrt} · {stadt.Daten.Zollstellen} Zollstellen " +
+            var zollstellen = w.Schiffahrt.Zollstellen(_spieler!, stadt); // der Zöllner zahlt an der ersten nicht (PR #200)
+            Hauptmenue.Text(_staedteSeite, $"{(stadt.Daten.IstFlussauf ? "Flussauf" : "Flussab")}{fahrt} · {zollstellen} Zollstellen" +
+                                            $"{(zollstellen < stadt.Daten.Zollstellen ? " (als Zöllner die erste zollfrei)" : "")} " +
                                             $"({Zahlenformat.Ganz((w.Schiffahrt.Daten?.ZollJeStelle ?? 0) * 100)} % vom Wert je Stelle)", 12, Grau, umbruchBreite: Breite);
             Tabelle("Kauft – dort verkaufen", stadt.Daten.Kauft.Keys, stadt, kauft: true);
             Tabelle("Verkauft – dort kaufen", stadt.Daten.Verkauft.Keys, stadt, kauft: false);

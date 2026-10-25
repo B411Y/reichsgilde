@@ -58,7 +58,8 @@ public partial class Hauptszene
         var zeit = _simulation?.Zeit.UhrzeitText ?? "";
         _jahresProtokoll.Insert(0, (zeit, meldung, warnung));
         if (_jahresProtokoll.Count > ProtokollHoechstens) _jahresProtokoll.RemoveAt(_jahresProtokoll.Count - 1);
-        if (IstFremderStillstand(meldung) || IstFremdeSchiffsmeldung(meldung)) return; // steht nur im Protokoll, nicht unten links (Wunsch des Nutzers; Schiffe: Hauptszene.Hafen.cs)
+        if (IstFremderStillstand(meldung) || IstFremdeSchiffsmeldung(meldung) || IstFremdeRatsmeldung(meldung))
+            return; // steht nur im Protokoll, nicht unten links (Wunsch des Nutzers; Schiffe: Hauptszene.Hafen.cs, Rat und Ämter: Hauptszene.Rat.cs)
 
         var tafel = Leistentafel(10, 5);
         tafel.MouseFilter = Control.MouseFilterEnum.Stop;
