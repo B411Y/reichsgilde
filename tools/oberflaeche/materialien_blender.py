@@ -1,0 +1,664 @@
+"""Material-Bibliothek für die Modelle (Modell-Texturen, Gruppe 1) – in Blender modelliert und mit Cycles von vorn gebacken.
+
+    ~/werkzeuge/blender/blender.sh -b --python tools/oberflaeche/materialien_blender.py -- [Optionen]
+
+        --nur=bruchstein,quader  nur diese Materialien neu backen, die übrigen kommen aus dem Zwischenspeicher
+        --groesse=1024           Kantenlänge je Textur in Pixeln (256 für schnelle Proben; geschrieben wird nur bei 1024)
+        --proben=64              Cycles-Proben je Pixel
+        --zwischen=<ordner>      Zwischenspeicher der gebackenen Rohdaten (Vorgabe ~/.cache/reichsgilde/materialien)
+        --nur-packen             nichts backen, nur aus dem Zwischenspeicher packen und die Vorschau schreiben
+        --nah                    dazu Nahaufnahmen über die Kachelecke in den Zwischenspeicher (vorschau/<name>_nah.jpg)
+
+Wie die Bodentexturen (tools/oberflaeche/bodentexturen_blender.py, dessen Werkzeuge hier mitbenutzt werden): Jedes Material ist
+eine kleine 3D-Szene, so groß wie eine Kachel (KACHEL, Meter): ein Höhenfeld mit einem Pixel Maschenweite (Steine, Fugen, Putz,
+Maserung, Ziegel als Höhe und Farbe je Eckpunkt) und für das Stroh Tausende Halme. Was über den Rand ragt, liegt ein zweites
+Mal auf der Gegenseite: Das Bild ist nahtlos. Die Kamera schaut senkrecht auf die Fläche (orthografisch), Cycles backt Grundfarbe,
+Normale, Umgebungsverdeckung, Höhe und Rauheit. Der obere Bildrand ist auf der Wand **oben**, auf dem Dach **firstwärts**.
+
+Schreibt nach game/assets/texturen/modelle/ (Format wie beim Boden, Beschreibung in docs/ARCHITEKTUR.md, „Material-Bibliothek“):
+    modelle_farbe_hoehe.webp     1024 × (1024 · Schichten) RGBA: RGB Farbe (sRGB, Verdeckung eingerechnet, verlustbehaftet q95),
+                                                                 A Höhe (1 tief … 255 hoch, verlustfrei)
+    modelle_normal_rauheit.webp  1024 × (1024 · Schichten) RGB:  R/G Normale (OpenGL: G+ zum oberen Bildrand), B Rauheit; verlustfrei
+und in game/daten/materialbibliothek.json den Block „schichten“ (Name, Kachelgröße, Projektion, mittlere Farbe linear). Die mittlere
+Farbe braucht der Shader: Er teilt die Textur durch sie und färbt mit der Modellfarbe – im Mittel bleibt jedes Material so hell und
+so bunt wie bisher, die Textur bringt nur Steine, Fugen, Maserung und Licht. Die Zuordnung Materialname → Schicht („namen“) steht
+von Hand in derselben Datei und bleibt beim Schreiben erhalten. Vorschaubilder: docs/bilder/materialien/ (je Material 2 × 2 gekachelt).
+"""
+import json
+import os
+import sys
+import time
+
+import bpy
+import numpy as np
+
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+import bodentexturen_blender as bt   # noqa: E402  (main() läuft dort nur als eigenes Skript)
+from bodentexturen_blender import (Teile, abtasten, drehung, fbm, form_stab, glatt, je_zelle, kanal,  # noqa: E402
+                                   mische, norm, rauschen, srgb, verteilen)
+
+WURZEL = bt.WURZEL
+ZIEL = os.path.join(WURZEL, "game", "assets", "texturen", "modelle")
+DATEN = os.path.join(WURZEL, "game", "daten", "materialbibliothek.json")
+VORSCHAU = os.path.join(WURZEL, "docs", "bilder", "materialien")
+
+_args = sys.argv[sys.argv.index("--") + 1:] if "--" in sys.argv else []
+_opt = dict(a[2:].split("=", 1) if "=" in a else (a[2:], "1") for a in _args)
+N = int(_opt.get("groesse", 1024))
+bt.N = N
+bt.PROBEN = int(_opt.get("proben", 64))
+ZWISCHEN = os.path.expanduser(_opt.get("zwischen", "~/.cache/reichsgilde/materialien"))
+bt.ZWISCHEN = ZWISCHEN
+
+# Name, Kachelgröße in Metern, Projektion (wand: dreiseitig; dach: entlang der Dachneigung)
+SCHICHTEN = [
+    ("bruchstein", 2.4, "wand"), ("quader", 2.4, "wand"), ("kalkputz", 3.0, "wand"), ("lehmputz", 2.0, "wand"),
+    ("fachwerkholz", 1.6, "wand"), ("bretter", 2.0, "wand"), ("dachziegel", 1.2, "dach"), ("schiefer", 1.2, "dach"),
+    ("stroh", 1.5, "dach"), ("sandstein", 1.5, "wand"), ("ziegelstein", 1.2, "wand"),
+]
+NAMEN = [s[0] for s in SCHICHTEN]
+KACHEL = {s[0]: s[1] for s in SCHICHTEN}
+
+
+def K():
+    return bt.K
+
+
+def raster():
+    return bt.raster()
+
+
+def zellen2(x, y, nx, ny, saat, zittern=0.85):
+    """Kachelbare Voronoi-Zellen wie bt.zellen, aber nx × ny Zellen (breiter als hoch für liegende Steine). Gibt Nummer,
+    F1, F2 (Meter) und den Weg vom nächsten Punkt zurück."""
+    r = np.random.default_rng(saat)
+    k = K()
+    cx, cy = k / nx, k / ny
+    px = (np.arange(nx)[None, :] + 0.5 + (r.random((ny, nx)) - 0.5) * zittern) * cx
+    py = (np.arange(ny)[:, None] + 0.5 + (r.random((ny, nx)) - 0.5) * zittern) * cy
+    ci, cj = np.floor(x / cx).astype(int), np.floor(y / cy).astype(int)
+    f1 = np.full(x.shape, 1e9)
+    f2 = np.full(x.shape, 1e9)
+    nummer = np.zeros(x.shape, int)
+    dx1 = np.zeros(x.shape)
+    dy1 = np.zeros(x.shape)
+    for dj in (-2, -1, 0, 1, 2):
+        for di in (-2, -1, 0, 1, 2):
+            ni, nj = ci + di, cj + dj
+            wi, wj = ni % nx, nj % ny
+            qx = px[wj, wi] + (ni - wi) * cx
+            qy = py[wj, wi] + (nj - wj) * cy
+            dx, dy = x - qx, y - qy
+            d = np.hypot(dx, dy)
+            naeher = d < f1
+            f2 = np.where(naeher, f1, np.minimum(f2, d))
+            f1 = np.where(naeher, d, f1)
+            nummer = np.where(naeher, wj * nx + wi, nummer)
+            dx1 = np.where(naeher, dx, dx1)
+            dy1 = np.where(naeher, dy, dy1)
+    return nummer, f1, f2, dx1, dy1
+
+
+def streifen(groesse, saat, laenge=6.0):
+    """Kachelbares Rauschen, senkrecht lang gezogen (Laufspuren, Maserung): `laenge`-mal so hoch wie breit
+    (bt.rauschen zieht mit `streckung` die Flecken in y lang; quer liegende Bänder: dasselbe mit .T)."""
+    return rauschen(groesse, saat, laenge)
+
+
+def palette(rng, n, farben):
+    """Je Stück eine Farbe aus [(hex, gewicht), …], dazu ±12 % Helligkeit."""
+    p = np.array([w for _, w in farben], float)
+    basis = np.array([srgb(c) for c, _ in farben])[rng.choice(len(farben), n, p=p / p.sum())]
+    return basis * rng.uniform(0.88, 1.12, n)[:, None]
+
+
+def verband(y, x, hoehen, laengen_von, rng, versatz_zufall=True):
+    """Lagen eines Mauerverbands: `hoehen` (Lagenhöhen, Summe = Kachel), je Lage Steinlängen aus `laengen_von(j)` (Summe =
+    Kachel). Gibt je Pixel Steinnummer, Abstand zur nächsten Lager- und Stoßfuge (Meter) und Lage zurück."""
+    k = K()
+    grenzen = np.concatenate([[0], np.cumsum(hoehen)])
+    lage = np.clip(np.searchsorted(grenzen, y, side="right") - 1, 0, len(hoehen) - 1)
+    ey = np.minimum(y - grenzen[lage], grenzen[lage + 1] - y)
+    ex = np.full(x.shape, 1e9)
+    nummer = np.zeros(x.shape, int)
+    zaehler = 0
+    for j in range(len(hoehen)):
+        l = np.asarray(laengen_von(j), float)
+        start = rng.random() * k if versatz_zufall else 0.0
+        stoesse = (np.concatenate([[0], np.cumsum(l)])[:-1] + start) % k
+        stoesse = np.sort(stoesse)
+        s = lage == j
+        xs = x[s]
+        b = np.concatenate([stoesse - k, stoesse, stoesse + k])
+        i = np.searchsorted(b, xs, side="right")
+        ex[s] = np.minimum(xs - b[i - 1], b[i] - xs)
+        nummer[s] = zaehler + (i - 1) % len(stoesse)
+        zaehler += len(stoesse)
+    return nummer, ex, ey, lage, zaehler
+
+
+def stuecke(s, spalte, je):
+    """Stücke längs einer Spalte (Ziegel, Schiefer): `s` zählt die Stücke (ganze Zahl = Grenze), `je` Stücke je Kachel.
+    Gibt Nummer des Stücks, des nächsten Nachbarn und das Gewicht des eigenen (an der Grenze ½: weicher Übergang) zurück."""
+    f = s % 1
+    eigen = np.floor(s).astype(int)
+    andere = eigen + np.where(f >= 0.5, 1, -1)
+    gewicht = 0.5 + 0.5 * glatt(0.0, 0.06, np.minimum(f, 1 - f))
+    return eigen % je + je * spalte, andere % je + je * spalte, gewicht
+
+
+def flaechennetz(h, farbe, rau):
+    """Das Höhenfeld als Netz (wie der Boden: eine Masche je Pixel, über den Rand periodisch)."""
+    return bt.bodennetz(h, farbe, np.broadcast_to(np.asarray(rau, float), h.shape))
+
+
+# ═════════════════════════════════════════════════════════════════════════════
+#  Die Materialien. Jedes baut seine Szene und gibt (Anteil der Verdeckung in der Farbe, Normalenstärke) zurück.
+# ═════════════════════════════════════════════════════════════════════════════
+
+def bruchstein(rng):
+    """Bruchsteinmauer: unregelmäßige, eher liegende Steine in grob durchgehenden Lagen, gewölbt, Mörtel zurückgesetzt."""
+    x, y = raster()
+    wx, wy = bt.verzerrt(x, y, 0.06, [0.25, 0.08], 1)
+    nummer, f1, f2, dx, dy = zellen2(wx, wy, 6, 11, 2, 0.7)
+    anzahl = 6 * 11
+    rand = (f2 - f1) / 2                                             # Abstand zur Fuge
+    fuge = 0.008 + 0.008 * fbm(3, [0.3, 0.1])
+    stein = glatt(fuge, fuge + 0.035, rand)
+    kipp_x, kipp_y = je_zelle(nummer, 4, anzahl) - 0.5, je_zelle(nummer, 5, anzahl) - 0.5
+    buckel = je_zelle(nummer, 6, anzahl)
+    narben = fbm(7, [0.06, 0.02, 0.008])
+    h = stein * (0.018 + 0.014 * buckel + 0.06 * (kipp_x * dx + kipp_y * dy) + 0.006 * narben) - 0.012 * (1 - stein)
+    h += 0.0015 * rauschen(0.006, 8)
+    farbe_stein = palette(rng, anzahl, [("#8a857c", 3), ("#9a9284", 2), ("#77736c", 2), ("#a08c74", 1.2), ("#6a655e", 1),
+                                        ("#8c7c6c", 1)])[nummer]
+    farbe_stein *= (0.86 + 0.28 * narben)[..., None]
+    farbe_stein = mische(farbe_stein, srgb("#55504a"), 0.35 * (1 - glatt(0.0, 0.05, rand)) * stein)   # Kanten dunkler
+    moertel = mische(srgb("#a29a88"), srgb("#8a8272"), fbm(9, [0.1, 0.03]))
+    farbe = mische(moertel, farbe_stein, stein)
+    lauf = glatt(0.55, 0.85, streifen(0.25, 10))                     # dunkle Laufspuren von oben
+    farbe = mische(farbe, srgb("#4a463e"), 0.25 * lauf)
+    flechte = glatt(0.78, 0.9, fbm(11, [0.08, 0.03])) * stein
+    farbe = mische(farbe, srgb("#9a9a7a"), 0.35 * flechte)
+    flaechennetz(h, farbe, 0.92 - 0.1 * stein)
+    return 0.6, 1.0
+
+
+def quader(rng):
+    """Quadermauerwerk: Lagen von 30–45 cm, Steine 45–110 cm lang, schmale Fugen, bestoßene Kanten, Spuren des Werkzeugs."""
+    x, y = raster()
+    k = K()
+    hoehen = rng.uniform(0.32, 0.46, 6)
+    hoehen *= k / hoehen.sum()
+
+    def laengen(j):
+        l = rng.uniform(0.45, 1.1, 12)
+        n = max(2, int(round(k / l.mean())))
+        l = rng.uniform(0.45, 1.1, n)
+        return l * k / l.sum()
+
+    wx, wy = bt.verzerrt(x, y, 0.004, [0.05, 0.015], 21)
+    nummer, ex, ey, lage, anzahl = verband(wy, wx, hoehen, laengen, rng)
+    rand = np.minimum(ex, ey) + 0.005 * (fbm(22, [0.03, 0.01]) - 0.5)
+    fuge = 0.006
+    stein = glatt(fuge, fuge + 0.012, rand)
+    # Scharrierung, je Stein in eigener Richtung (ganze Zahl Linien über die Kachel: nahtlos)
+    winkel = np.random.default_rng(23).random(anzahl) * 0.8 - 0.4 + np.pi / 2
+    fa, fb = np.round(np.cos(winkel) * k / 0.009), np.round(np.sin(winkel) * k / 0.009)
+    hieb = np.sin(2 * np.pi * (x * fa[nummer] + y * fb[nummer]) / k)
+    narben = fbm(24, [0.05, 0.015, 0.006])
+    h = stein * (0.012 + 0.004 * je_zelle(nummer, 25, anzahl) + 0.0004 * hieb + 0.003 * narben) - 0.004 * (1 - stein)
+    h -= 0.004 * glatt(0.82, 0.95, fbm(26, [0.04, 0.015])) * stein     # ausgebrochene Stellen
+    farbe_stein = palette(rng, anzahl, [("#8e8a82", 3), ("#9a948a", 2), ("#85817a", 2), ("#a09482", 1), ("#7a7670", 1)])[nummer]
+    farbe_stein *= (0.9 + 0.2 * narben + 0.03 * hieb)[..., None]
+    farbe_stein = mische(farbe_stein, srgb("#6a665e"), 0.3 * (1 - glatt(fuge, 0.03, rand)))
+    farbe = mische(srgb("#a8a294"), farbe_stein, stein)
+    lauf = glatt(0.5, 0.85, streifen(0.3, 27, 8.0))
+    farbe = mische(farbe, srgb("#4e4a42"), 0.3 * lauf)
+    flechte = glatt(0.8, 0.92, fbm(28, [0.1, 0.03]))
+    farbe = mische(farbe, srgb("#a8a68a"), 0.3 * flechte)
+    flaechennetz(h, farbe, 0.88 - 0.06 * stein)
+    return 0.55, 1.0
+
+
+def kalkputz(rng):
+    """Kalkputz: leicht wellig von der Kelle, feine Körnung, schwache Laufspuren, hier und da ein abgeplatztes Stück."""
+    x, y = raster()
+    k = K()
+    welle = fbm(31, [0.8, 0.25, 0.08])
+    korn = rauschen(0.004, 32)
+    h = 0.004 * welle + 0.0005 * korn
+    for _ in range(140):                                              # Kellenschläge: flache, gegeneinander versetzte Mulden
+        cx, cy = rng.random() * k, rng.random() * k
+        ddx = (x - cx + k / 2) % k - k / 2
+        ddy = (y - cy + k / 2) % k - k / 2
+        w = rng.random() * np.pi
+        u = ddx * np.cos(w) + ddy * np.sin(w)
+        v = -ddx * np.sin(w) + ddy * np.cos(w)
+        d = (u / rng.uniform(0.12, 0.25)) ** 2 + (v / rng.uniform(0.06, 0.1)) ** 2
+        h -= 0.0012 * (1 - glatt(0.5, 1.0, d))
+    platz = np.zeros_like(h)
+    for _ in range(2):                                                # abgeplatzte Stellen: der Stein schaut durch
+        cx, cy = rng.random() * k, rng.random() * k
+        ddx = (x - cx + k / 2) % k - k / 2
+        ddy = (y - cy + k / 2) % k - k / 2
+        r = rng.uniform(0.06, 0.12)
+        d = np.hypot(ddx, ddy * 1.6) / r + 0.9 * (fbm(33 + _, [0.06, 0.02]) - 0.5)
+        platz = np.maximum(platz, 1 - glatt(0.85, 1.0, d))
+    h -= 0.005 * platz
+    farbe = mische(srgb("#d6cdb8"), srgb("#cbc1aa"), glatt(0.4, 0.8, fbm(34, [0.6, 0.2])))
+    farbe = mische(farbe, srgb("#e2dccc"), 0.35 * glatt(0.55, 0.85, welle))
+    farbe *= (0.95 + 0.08 * korn)[..., None]
+    lauf = glatt(0.55, 0.9, streifen(0.35, 35, 10.0))
+    farbe = mische(farbe, srgb("#9a907c"), 0.22 * lauf)
+    stein = mische(srgb("#9a9284"), srgb("#867e70"), fbm(36, [0.03, 0.01]))
+    farbe = mische(farbe, stein, 0.8 * platz)
+    flaechennetz(h, farbe, 0.93 - 0.05 * platz)
+    return 0.4, 0.9
+
+
+def lehmputz(rng):
+    """Lehmputz im Gefach: von Hand verstrichen, uneben, feine Schwundrisse, Strohhäcksel in der Oberfläche."""
+    x, y = raster()
+    welle = fbm(41, [0.4, 0.15, 0.05])
+    korn = rauschen(0.004, 42)
+    h = 0.008 * welle + 0.0007 * korn
+    wx, wy = bt.verzerrt(x, y, 0.05, [0.12, 0.04], 43)
+    nummer, f1, f2, _, _ = zellen2(wx, wy, 14, 14, 44, 0.9)
+    riss = (f2 - f1)
+    rissig = glatt(0.35, 0.7, fbm(45, [0.5, 0.2]))
+    tief = (1 - glatt(0.0, 0.004, riss)) * rissig
+    h -= 0.003 * tief
+    farbe = mische(srgb("#b49a72"), srgb("#a88c68"), glatt(0.3, 0.8, fbm(46, [0.15, 0.05])))
+    farbe = mische(farbe, srgb("#c4ae88"), 0.35 * glatt(0.55, 0.85, welle))
+    farbe *= (0.92 + 0.12 * korn)[..., None]
+    farbe = mische(farbe, srgb("#5a4632"), 0.7 * tief)
+    lauf = glatt(0.55, 0.9, streifen(0.3, 47, 8.0))
+    farbe = mische(farbe, srgb("#7a6448"), 0.2 * lauf)
+    flaechennetz(h, farbe, 0.95)
+    teile = Teile()
+    stab = form_stab(3, 4, 0.05)
+    n = 5000
+    px, py = rng.random(n) * K(), rng.random(n) * K()
+    l = rng.uniform(0.012, 0.045, n)
+    d = rng.uniform(0.0012, 0.0022, n)
+    f = mische(srgb("#c8aa66"), srgb("#9a8048"), rng.random(n))
+    verteilen(teile, stab, np.stack([px, py, abtasten(h, px, py) - d * 0.3], -1),
+              drehung(rng.random(n) * 7, rng.normal(0, 0.05, n)), np.stack([l, d, d * 0.5], -1), f, f * 0.9, 0.85)
+    teile.objekt("haecksel")
+    return 0.4, 0.9
+
+
+def maserung(x, y, saat, ring=0.011, staerke=1.0):
+    """Holzmaserung längs y (senkrecht): Jahreslinien, Fasern, Äste. Gibt (Höhe 0..1, Linie 0..1, Ast 0..1) zurück."""
+    k = K()
+    verzug = 0.05 * (fbm(saat, [0.4, 0.12]) - 0.5) + 0.012 * (streifen(0.05, saat + 1, 10.0) - 0.5)
+    ast = np.zeros_like(x)
+    for _ in range(3):                                                # Äste verbiegen die Jahreslinien
+        r = np.random.default_rng(saat + 7 + _)
+        cx, cy = r.random() * k, r.random() * k
+        ddx = (x - cx + k / 2) % k - k / 2
+        ddy = (y - cy + k / 2) % k - k / 2
+        d = np.hypot(ddx * 1.0, ddy * 0.45)
+        rr = r.uniform(0.012, 0.025)
+        verzug += 0.03 * np.exp(-(d / (rr * 3)) ** 2) * np.sign(ddx)
+        ast = np.maximum(ast, 1 - glatt(rr * 0.6, rr, np.hypot(ddx, ddy * 0.8)))
+    # Ganze Zahl Jahreslinien über die Kachel, damit die Maserung nahtlos bleibt
+    u = (x + verzug) * round(k / ring) / k
+    linie = glatt(0.55, 0.95, 0.5 + 0.5 * np.sin(2 * np.pi * u)) ** 1.5
+    fasern = streifen(0.006, saat + 3, 20.0)
+    hoehe = norm(0.6 * (1 - linie) + 0.4 * fasern)
+    return hoehe, linie, ast
+
+
+def fachwerkholz(rng):
+    """Eichenbalken, längs senkrecht: Maserung, Schwundrisse längs der Faser, flache Beilhiebe, Äste."""
+    x, y = raster()
+    k = K()
+    hoehe, linie, ast = maserung(x, y, 51)
+    hieb = 0.5 + 0.5 * np.cos(2 * np.pi * (y * round(k / 0.09) / k + 0.3 * fbm(52, [0.2]) + 0.2 * (fbm(53, [0.08]) - 0.5)))
+    hieb = hieb * glatt(0.3, 0.7, fbm(54, [0.15, 0.05]))
+    h = 0.002 * hoehe + 0.0012 * hieb - 0.0015 * ast
+    riss = np.zeros_like(h)
+    for _ in range(9):                                                # Schwundrisse: lang, schmal, leicht gewellt
+        x0, y0 = rng.random() * k, rng.random() * k
+        laenge = rng.uniform(0.25, 0.9)
+        breite = rng.uniform(0.0015, 0.003)
+        ddy = (y - y0 + k / 2) % k - k / 2
+        welle = 0.006 * np.sin(ddy / laenge * 5 + rng.random() * 6)
+        ddx = (x - x0 + k / 2) % k - k / 2 - welle
+        auf = np.clip(1 - np.abs(ddy) / (laenge / 2), 0, 1) ** 0.5
+        riss = np.maximum(riss, (1 - glatt(0.0, breite * auf + 1e-5, np.abs(ddx))) * (auf > 0))
+    h -= 0.004 * riss
+    farbe = mische(srgb("#6e5038"), srgb("#4a3222"), 0.8 * linie)
+    farbe *= (0.85 + 0.25 * hoehe)[..., None]
+    farbe = mische(farbe, srgb("#7a5a40"), 0.25 * glatt(0.4, 0.8, streifen(0.2, 55, 6.0)))
+    farbe = mische(farbe, srgb("#3e2a1c"), 0.8 * ast)
+    farbe = mische(farbe, srgb("#1e140e"), 0.85 * riss)
+    farbe *= (0.96 + 0.06 * hieb)[..., None]
+    grau = glatt(0.55, 0.85, streifen(0.3, 56, 5.0))                    # verwittert: grauer
+    farbe = mische(farbe, srgb("#6e6458"), 0.25 * grau)
+    flaechennetz(h, farbe, 0.8 + 0.12 * grau)
+    return 0.45, 1.0
+
+
+def bretter(rng):
+    """Senkrechte Bretter 15–30 cm breit mit Fugen, leicht gewölbt, je Brett eigene Maserung und Farbe, Nägel."""
+    x, y = raster()
+    k = K()
+    b = rng.uniform(0.15, 0.3, 10)
+    n = max(4, int(round(k / b.mean())))
+    b = rng.uniform(0.15, 0.3, n)
+    b *= k / b.sum()
+    kanten = np.concatenate([[0], np.cumsum(b)])
+    brett = np.clip(np.searchsorted(kanten, x, side="right") - 1, 0, n - 1)
+    t = (x - kanten[brett]) / b[brett]
+    rand = np.minimum(x - kanten[brett], kanten[brett + 1] - x) + 0.002 * (fbm(61, [0.2, 0.05]) - 0.5)
+    fuge = glatt(0.003, 0.006, rand)
+    hoehe = np.zeros_like(x)
+    linie = np.zeros_like(x)
+    for i in range(n):                                                # je Brett eine eigene Maserung (anders verschoben)
+        s = brett == i
+        hh, ll, _ = maserung(x + rng.random() * 0.5, y + rng.random() * k, 62 + 10 * i, ring=rng.uniform(0.008, 0.016))
+        hoehe[s], linie[s] = hh[s], ll[s]
+    h = fuge * (0.004 * (1 - (2 * t - 1) ** 2) + 0.0012 * hoehe) - 0.012 * (1 - fuge)
+    naegel = np.zeros_like(x)
+    for i in range(n):
+        for yy in (0.25 * k, 0.75 * k):
+            for seite in (0.25, 0.75):
+                cx = kanten[i] + b[i] * seite
+                cy = yy + rng.normal(0, 0.02)
+                d = np.hypot((x - cx + k / 2) % k - k / 2, (y - cy + k / 2) % k - k / 2)
+                naegel = np.maximum(naegel, 1 - glatt(0.004, 0.007, d))
+    h += 0.002 * naegel
+    ton = palette(rng, n, [("#7a6a58", 3), ("#6e604e", 2), ("#867460", 2), ("#5e5244", 1)])[brett]
+    farbe = mische(ton, ton * 0.7, 0.55 * linie)
+    farbe = mische(farbe, srgb("#8a8478"), 0.3 * glatt(0.5, 0.85, fbm(63, [0.4, 0.1])))
+    farbe = mische(farbe, srgb("#1a1410"), 0.9 * (1 - fuge))
+    farbe = mische(farbe, srgb("#2a2420"), 0.9 * naegel)
+    flaechennetz(h, farbe, 0.85 - 0.3 * naegel)
+    return 0.5, 1.0
+
+
+def dachziegel(rng):
+    """Biberschwanz, nur die Spalten (die Reihen hat das Modell als Form): Ziegel nebeneinander mit Stoßfugen, gewölbt,
+    Farbe je Stück (weich wechselnd längs der Spalte), Flechten und Moos, abgeplatzte Ecken."""
+    x, y = raster()
+    k = K()
+    spalten = 7
+    breite = k / spalten
+    sp = np.clip((x // breite).astype(int), 0, spalten - 1)
+    t = x / breite - sp
+    rand = np.minimum(t, 1 - t) * breite + 0.002 * (fbm(71, [0.1, 0.03]) - 0.5)
+    fuge = glatt(0.002, 0.007, rand)
+    # Stücke längs der Spalte: je Spalte eigener Versatz, ~45 cm (so lang wie eine Reihe des Modells)
+    phase = je_zelle(sp, 72, spalten)
+    stueck_y = y / k * 3 + phase * 3
+    stueck, nachbar, gewicht = stuecke(stueck_y, sp, 3)
+    korn = rauschen(0.005, 73)
+    h = fuge * (0.006 * np.sqrt(np.clip(1 - (2 * t - 1) ** 2, 0, 1)) + 0.0008 * korn) - 0.008 * (1 - fuge)
+    ton = palette(rng, spalten, [("#9a4e34", 3), ("#8a4430", 2), ("#a85c3c", 2), ("#7a3e2c", 1.5), ("#6a3a2c", 1),
+                                 ("#a0644a", 1)])
+    ton = np.repeat(ton, 3, 0) * rng.uniform(0.9, 1.1, 3 * spalten)[:, None]   # je Spalte ein Ton, je Stück wenig anders
+    farbe = mische(ton[nachbar], ton[stueck], gewicht)
+    farbe *= (0.9 + 0.18 * korn)[..., None]
+    farbe *= (0.85 + 0.15 * np.sqrt(np.clip(1 - (2 * t - 1) ** 2, 0, 1)))[..., None]
+    bleich = glatt(0.6, 0.9, fbm(74, [0.3, 0.1]))
+    farbe = mische(farbe, srgb("#9a7a68"), 0.2 * bleich)
+    flechte = glatt(0.8, 0.88, fbm(75, [0.04, 0.012]))
+    farbe = mische(farbe, srgb("#b0aa86"), 0.6 * flechte)
+    moos = glatt(0.65, 0.85, fbm(76, [0.2, 0.06])) * (1 - glatt(0.004, 0.02, rand))
+    farbe = mische(farbe, srgb("#4e5a2a"), 0.7 * moos)
+    farbe = mische(farbe, srgb("#2a1a14"), 0.85 * (1 - fuge))
+    flaechennetz(h + 0.001 * moos, farbe, 0.75 + 0.15 * flechte + 0.1 * moos)
+    return 0.55, 1.0
+
+
+def schiefer(rng):
+    """Schiefer, nur die Spalten: verschieden breite Stücke, spaltrauhe Oberfläche mit Schichtstufen, Farbe je Stück."""
+    x, y = raster()
+    k = K()
+    b = rng.uniform(0.12, 0.24, 12)
+    n = max(4, int(round(k / b.mean())))
+    b = rng.uniform(0.12, 0.24, n)
+    b *= k / b.sum()
+    kanten = np.concatenate([[0], np.cumsum(b)])
+    wx = x + 0.01 * (fbm(81, [0.1, 0.04]) - 0.5)
+    sp = np.clip(np.searchsorted(kanten, wx, side="right") - 1, 0, n - 1)
+    t = (wx - kanten[sp]) / b[sp]
+    rand = np.minimum(wx - kanten[sp], kanten[sp + 1] - wx)
+    fuge = glatt(0.002, 0.006, rand)
+    phase = je_zelle(sp, 82, n)
+    stueck_y = y / k * 4 + phase * 4
+    stueck, nachbar, gewicht = stuecke(stueck_y, sp, 4)
+    schicht = np.floor(fbm(83, [0.08, 0.025]) * 6) / 6                 # Spaltstufen
+    korn = rauschen(0.004, 84)
+    h = fuge * (0.002 * schicht + 0.0006 * korn + 0.002 * t) - 0.006 * (1 - fuge)
+    ton = palette(rng, n, [("#4e5258", 3), ("#585c62", 2), ("#46484c", 2), ("#5a5450", 1), ("#50585a", 1)])
+    ton = np.repeat(ton, 4, 0) * rng.uniform(0.92, 1.08, 4 * n)[:, None]
+    farbe = mische(ton[nachbar], ton[stueck], gewicht)
+    farbe *= (0.9 + 0.15 * korn + 0.1 * schicht)[..., None]
+    flechte = glatt(0.82, 0.9, fbm(85, [0.03, 0.01]))
+    farbe = mische(farbe, srgb("#a8a89a"), 0.55 * flechte)
+    farbe = mische(farbe, srgb("#1c1e20"), 0.85 * (1 - fuge))
+    flaechennetz(h, farbe, 0.6 + 0.25 * korn + 0.15 * flechte)
+    return 0.5, 1.0
+
+
+def stroh(rng):
+    """Strohdach (Reet), Halme in Fallrichtung (das Bild zeigt firstwärts nach oben): Strähnen, dunkle Lücken, vergraut."""
+    x, y = raster()
+    k = K()
+    grund = fbm(91, [0.2, 0.06])
+    h = 0.02 * grund
+    flaechennetz(h, mische(srgb("#2a2216"), srgb("#3a3020"), grund), np.full(h.shape, 0.95))
+    teile = Teile()
+    stab = form_stab(4, 5, 0.06, 0.7)
+    straehne = 9000                                                   # Strähnen: Bündel gleich liegender Halme
+    sx, sy = rng.random(straehne) * k, rng.random(straehne) * k
+    richtung = np.pi / 2 + rng.normal(0, 0.1, straehne)
+    alter = np.clip(abtasten(fbm(92, [0.3, 0.1]), sx, sy) + rng.normal(0, 0.15, straehne), 0, 1)
+    ton = mische(mische(srgb("#b49a62"), srgb("#8a7a5a"), alter), srgb("#6e6658"), 0.5 * alter ** 2)
+    ton *= rng.uniform(0.8, 1.15, straehne)[:, None]
+    je = rng.integers(10, 22, straehne)
+    i = np.repeat(np.arange(straehne), je)
+    n = len(i)
+    quer = rng.normal(0, 0.012, n)
+    laeng = rng.normal(0, 0.03, n)
+    w = richtung[i]
+    px = sx[i] + quer * np.sin(w) * -1 + laeng * np.cos(w)
+    py = sy[i] + quer * np.cos(w) + laeng * np.sin(w)
+    l = rng.uniform(0.18, 0.4, n)
+    d = rng.uniform(0.003, 0.005, n)
+    z = abtasten(h, px, py) + rng.uniform(0.0, 0.03, n) + 0.01
+    farbe = ton[i] * rng.uniform(0.85, 1.12, n)[:, None]
+    verteilen(teile, stab, np.stack([px, py, z], -1),
+              drehung(w + rng.normal(0, 0.04, n), rng.random(n) * 6),             # flach, um die eigene Achse gedreht
+              np.stack([l, d, d], -1), farbe * 0.7, farbe, 0.85, radius=l * 0.55)
+    teile.objekt("halme")
+    return 0.65, 0.9
+
+
+def sandstein(rng):
+    """Behauener Sandstein (Gewände, Eckquader, Gesimse): feines Korn, Schichtung, flache Hiebspuren, Eisenflecken, Patina."""
+    x, y = raster()
+    schicht = rauschen(0.08, 101, 8.0).T                              # liegende Bänder
+    korn = rauschen(0.003, 102)
+    poren = glatt(0.78, 0.92, rauschen(0.004, 103))
+    m = K() / 0.012
+    hieb = np.sin(2 * np.pi * (x * round(0.96 * m) + y * round(0.28 * m)) / K())
+    hieb *= glatt(0.35, 0.75, fbm(104, [0.15, 0.05]))
+    h = 0.0012 * schicht + 0.0006 * korn - 0.0008 * poren + 0.0004 * hieb + 0.003 * fbm(105, [0.3, 0.1])
+    farbe = mische(srgb("#c4a47a"), srgb("#b08e66"), glatt(0.3, 0.8, schicht))
+    farbe = mische(farbe, srgb("#d2b88e"), 0.3 * glatt(0.5, 0.9, fbm(106, [0.2, 0.06])))
+    eisen = glatt(0.8, 0.92, fbm(107, [0.05, 0.015]))
+    farbe = mische(farbe, srgb("#9a6a40"), 0.45 * eisen)
+    farbe *= (0.92 + 0.12 * korn - 0.1 * poren)[..., None]
+    patina = glatt(0.55, 0.9, streifen(0.25, 108, 6.0))
+    farbe = mische(farbe, srgb("#6e6250"), 0.3 * patina)
+    flaechennetz(h, farbe, 0.9)
+    return 0.4, 0.9
+
+
+def ziegelstein(rng):
+    """Backstein im Läuferverband: Steine 29 × 7 cm, Fugen 1 cm zurückgesetzt, Farbe je Stein, einzelne Brandfarben."""
+    x, y = raster()
+    k = K()
+    lagen = 15
+    hoehen = np.full(lagen, k / lagen)
+    # Läuferverband: jede zweite Lage um einen halben Stein versetzt
+    lage = np.clip((y / (k / lagen)).astype(int), 0, lagen - 1)
+    x2 = (x + (lage % 2) * k / 8) % k
+    nummer, ex, ey, _, anzahl = verband(y, x2, hoehen, lambda j: np.full(4, k / 4), np.random.default_rng(111),
+                                       versatz_zufall=False)
+    rand = np.minimum(ex, ey) + 0.0015 * (fbm(112, [0.03, 0.01]) - 0.5)
+    stein = glatt(0.005, 0.009, rand)
+    korn = rauschen(0.004, 113)
+    h = stein * (0.006 + 0.0015 * je_zelle(nummer, 114, anzahl) + 0.0006 * korn) - 0.003 * (1 - stein)
+    h -= 0.002 * glatt(0.8, 0.95, rauschen(0.006, 115)) * stein
+    ton = palette(rng, anzahl, [("#9a4a32", 3), ("#a85a3a", 2), ("#8a4030", 2), ("#b4684a", 1), ("#5a3028", 0.8),
+                                ("#7a5040", 0.8)])[nummer]
+    farbe = mische(srgb("#a49c8c"), ton * (0.9 + 0.2 * korn)[..., None], stein)
+    farbe = mische(farbe, srgb("#4a3a30"), 0.2 * glatt(0.55, 0.9, streifen(0.3, 116, 6.0)))
+    flaechennetz(h, farbe, 0.88)
+    return 0.55, 1.0
+
+
+MATERIALIEN = {"bruchstein": bruchstein, "quader": quader, "kalkputz": kalkputz, "lehmputz": lehmputz,
+               "fachwerkholz": fachwerkholz, "bretter": bretter, "dachziegel": dachziegel, "schiefer": schiefer,
+               "stroh": stroh, "sandstein": sandstein, "ziegelstein": ziegelstein}
+
+
+# ═════════════════════════════════════════════════════════════════════════════
+#  Backen, Aufbereiten, Packen
+# ═════════════════════════════════════════════════════════════════════════════
+
+def backe(name):
+    t0 = time.time()
+    bt.K = KACHEL[name]
+    rng = np.random.default_rng(NAMEN.index(name) * 1000 + 11)
+    geraet = bt.neue_szene(0.04)
+    if geraet != "GPU":
+        raise SystemExit("Cycles fand keine CUDA-Karte – nicht auf dem Prozessor backen (zu langsam), später erneut versuchen.")
+    ao_anteil, n_staerke = MATERIALIEN[name](rng)
+    dreiecke = sum(len(o.data.polygons) for o in bpy.data.objects if o.type == "MESH")
+    t1 = time.time()
+    d = bt.backen(name)
+    roh = {"albedo": kanal(d, "Diffuse Color"), "normale": kanal(d, "Normal", "XYZ"),
+           "ao": kanal(d, "Ambient Occlusion", "R")[..., 0], "hoehe": kanal(d, "hoehe", "X")[..., 0],
+           "rau": kanal(d, "rauheit", "X")[..., 0], "ao_anteil": ao_anteil, "n_staerke": n_staerke}
+    np.savez(os.path.join(ZWISCHEN, f"{name}_{N}.npz"), **roh)
+    print(f"[{name}] {geraet}, {dreiecke / 1e6:.1f} Mio. Polygone, Aufbau {t1 - t0:.0f} s, Backen {time.time() - t1:.0f} s",
+          flush=True)
+
+
+def aufbereiten(roh):
+    albedo, normale, ao, hoehe, rau = (roh[k] for k in ("albedo", "normale", "ao", "hoehe", "rau"))
+    ao_anteil, n_staerke = float(roh["ao_anteil"]), float(roh["n_staerke"])
+    lin = np.clip(albedo * (1 - ao_anteil * (1 - ao[..., None])), 0, 1)
+    farbe = bt.nach_srgb(lin)
+    lo, hi = np.percentile(hoehe, [0.5, 99.5])
+    h = np.clip((hoehe - lo) / (hi - lo + 1e-9), 0, 1)
+    n = normale.copy()
+    n[n[..., 2] < 0] *= -1
+    n[..., :2] *= n_staerke
+    n /= np.linalg.norm(n, axis=-1, keepdims=True) + 1e-9
+    return farbe, h, n, np.clip(rau, 0, 1)
+
+
+def linear(c8):
+    """8-bit-sRGB → linear (so liest die Grafikkarte die Textur mit source_color)."""
+    c = c8 / 255.0
+    return np.where(c <= 0.04045, c / 12.92, ((c + 0.055) / 1.055) ** 2.4)
+
+
+def packen():
+    farben, normalen, vorschau, fehlt, kanaele, mittel = [], [], [], [], [], {}
+    for name in NAMEN:
+        pfad = os.path.join(ZWISCHEN, f"{name}_{N}.npz")
+        if not os.path.exists(pfad):
+            fehlt.append(name)
+            vorschau.append(np.full((N, N, 3), 0.12))
+            continue
+        farbe, h, n, rau = aufbereiten(dict(np.load(pfad)))
+        f8 = np.dstack([np.round(farbe * 255), 1 + np.round(h * 254)]).astype(np.uint8)
+        mittel[name] = linear(f8[..., :3].astype(float)).reshape(-1, 3).mean(0)
+        print(f"[{name}] Mittel sRGB {np.round(farbe.reshape(-1, 3).mean(0) * 255, 1)}, linear {np.round(mittel[name], 4)}"
+              f" | Höhe {h.mean():.2f} ± {h.std():.2f} | Rauheit {rau.mean():.2f}")
+        farben.append(f8)
+        normalen.append(np.dstack([np.round((n[..., 0] * 0.5 + 0.5) * 255), np.round((n[..., 1] * 0.5 + 0.5) * 255),
+                                   np.round(rau * 255)]).astype(np.uint8))
+        vorschau.append(bt.beleuchtet(farbe, n, h))
+        a = N // 4
+        stueck = lambda b: np.roll(b, (a // 2, a // 2), (0, 1))[:a, :a]
+        kanaele.append((name, np.hstack([stueck(farbe), stueck(np.dstack([h] * 3)), stueck(n * 0.5 + 0.5),
+                                         stueck(np.dstack([rau] * 3))])))
+    if fehlt or N != 1024:
+        print("nichts geschrieben:", f"es fehlen {', '.join(fehlt)}" if fehlt else "Probegröße")
+    else:
+        os.makedirs(ZIEL, exist_ok=True)
+        for datei, schichten, qualitaet in (("modelle_farbe_hoehe", farben, 95), ("modelle_normal_rauheit", normalen, 100)):
+            pfad = os.path.join(ZIEL, datei + ".webp")
+            groesst, mittel_abw = bt.webp(pfad, np.vstack(schichten), qualitaet)
+            print(f"  WebP q{qualitaet}: Abweichung je Kanal höchstens {groesst}, im Mittel {mittel_abw.round(2)}")
+            print("geschrieben:", os.path.relpath(pfad, WURZEL), f"({os.path.getsize(pfad) / 1e6:.1f} MB)")
+        # Die mittlere Farbe aus der geschriebenen (verlustbehafteten) Datei nachmessen
+        img = bpy.data.images.load(os.path.join(ZIEL, "modelle_farbe_hoehe.webp"))
+        img.colorspace_settings.name = "Non-Color"
+        w, hh = img.size
+        p = np.empty(w * hh * 4, np.float32)
+        img.pixels.foreach_get(p)
+        p = np.round(p.reshape(hh, w, 4)[::-1, :, :3] * 255)
+        for i, name in enumerate(NAMEN):
+            mittel[name] = linear(p[i * N:(i + 1) * N]).reshape(-1, 3).mean(0)
+        daten = json.load(open(DATEN, encoding="utf-8")) if os.path.exists(DATEN) else {}
+        daten["schichten"] = [{"name": name, "kachel": groesse, "projektion": projektion,
+                               "mittel": [round(float(c), 5) for c in mittel[name]]}
+                              for name, groesse, projektion in SCHICHTEN]
+        schreiben_json(daten)
+    ziel = VORSCHAU if N == 1024 else os.path.join(ZWISCHEN, "vorschau")
+    os.makedirs(ziel, exist_ok=True)
+    kacheln = []
+    for name, v in zip(NAMEN, vorschau):
+        gekachelt = np.vstack([np.hstack([v, v])] * 2)
+        bt.jpeg(os.path.join(ziel, f"{name}.jpg"), bt.verkleinern(gekachelt, 2) if N == 1024 else gekachelt)
+        kacheln.append(bt.verkleinern(gekachelt, max(1, gekachelt.shape[0] // 512)))
+    if "nah" in _opt:
+        os.makedirs(os.path.join(ZWISCHEN, "vorschau"), exist_ok=True)
+        for name, bild in kanaele:
+            bt.jpeg(os.path.join(ZWISCHEN, "vorschau", f"{name}_kanaele.jpg"), bild)
+        for name, v in zip(NAMEN, vorschau):
+            bt.jpeg(os.path.join(ZWISCHEN, "vorschau", f"{name}_nah.jpg"), np.roll(v, (N // 4, N // 4), (0, 1))[:N // 2, :N // 2])
+    leer = np.full_like(kacheln[0], 0.12)
+    reihen = [np.hstack((kacheln + [leer] * 4)[r * 4:(r + 1) * 4]) for r in range((len(kacheln) + 3) // 4)]
+    bt.jpeg(os.path.join(ziel, "uebersicht.jpg"), np.vstack(reihen))
+    print("Vorschau:", ziel)
+
+
+def schreiben_json(daten):
+    """materialbibliothek.json: der Hinweis oben, dann „schichten“ (je Zeile eine) und „namen“ (von Hand gepflegt)."""
+    zeilen = ["{"]
+    teile = []
+    if "_hinweis" in daten:
+        teile.append(f'  "_hinweis": {json.dumps(daten["_hinweis"], ensure_ascii=False)}')
+    teile.append('  "schichten": [\n' + ",\n".join("    " + json.dumps(s, ensure_ascii=False) for s in daten["schichten"]) + "\n  ]")
+    if "namen" in daten:
+        teile.append('  "namen": {\n' + ",\n".join(f"    {json.dumps(k, ensure_ascii=False)}: {json.dumps(v, ensure_ascii=False)}"
+                                                    for k, v in daten["namen"].items()) + "\n  }")
+    zeilen.append(",\n".join(teile))
+    zeilen.append("}")
+    with open(DATEN, "w", encoding="utf-8") as f:
+        f.write("\n".join(zeilen) + "\n")
+    print("geschrieben:", os.path.relpath(DATEN, WURZEL))
+
+
+def main():
+    os.makedirs(ZWISCHEN, exist_ok=True)
+    if "nur-packen" not in _opt:
+        for name in _opt.get("nur", ",".join(NAMEN)).split(","):
+            backe(name)
+    bpy.ops.wm.read_factory_settings(use_empty=True)
+    packen()
+
+
+main()

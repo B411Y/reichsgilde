@@ -197,18 +197,11 @@ def strohdach(netz, st, traufe=0.5, ortgang=0.35):
 
 
 def bretter_giebel(netz, st, M, L, hoch, oben_halb):
-    """Giebel unter dem Walm aus verwitterten Brettern: Trapez, Deckleisten, Eulenloch oben."""
+    """Giebel unter dem Walm aus verwitterten Brettern: Trapez und Eulenloch oben (die Bretter zeichnet die Material-Bibliothek)."""
     halb = L / 2
     umriss = [(-halb, 0), (halb, 0), (oben_halb, hoch), (-oben_halb, hoch)]
     bs.platte(netz, M, umriss, 0, 0.25, st["Holz alt"])
     bs.balken(netz, M, -halb, bs.B / 2, halb, bs.B / 2, st["Fachwerk"], vor=bs.VOR_SCHWELLE, enden=True)
-    u = -halb + 0.45
-    while u < halb - 0.3:
-        rand = min(hoch, hoch * (halb - abs(u)) / (halb - oben_halb)) - 0.06
-        if rand > 0.3 and abs(u) > 0.4:
-            netz.vieleck([M @ Vector(p) for p in ((u - 0.03, -0.02, bs.B), (u + 0.03, -0.02, bs.B),
-                                                  (u + 0.03, -0.02, rand), (u - 0.03, -0.02, rand))], st["Fachwerk"])
-        u += 0.42
     loch = [(-0.3, hoch - 0.55), (0.3, hoch - 0.55), (0, hoch - 0.12)]
     netz.vieleck([M @ Vector((a, -0.03, b)) for a, b in loch], st["Loch"])
 
@@ -229,15 +222,10 @@ def holzstapel(netz, st, x_wand, y0, y1, hoehe=1.15, tiefe=0.55):
 
 
 def schuppen(netz, st, x0, x1, y0, y1, h_hoch=2.05, h_tief=1.6):
-    """Bretterschuppen an der Rückwand mit Pultdach aus Brettern und offener Tür an der Seite."""
+    """Bretterschuppen an der Rückwand mit Pultdach aus Brettern und offener Tür an der Seite (Bretter aus der Material-Bibliothek)."""
     alt = st["Holz alt"]
     profil = [(y0, 0), (y1, 0), (y1, h_tief), (y0, h_hoch)]
     netz.prisma(profil, x0, x1, alt)
-    u = x0 + 0.3        # senkrechte Deckleisten auf der Rückseite (+y)
-    while u < x1 - 0.2:
-        netz.vieleck([(u + 0.03, y1 + 0.02, 0), (u - 0.03, y1 + 0.02, 0), (u - 0.03, y1 + 0.02, h_tief - 0.05),
-                      (u + 0.03, y1 + 0.02, h_tief - 0.05)], st["Fachwerk"])
-        u += 0.4
     netz.vieleck([(x1 + 0.005, y0 + 0.5, 0), (x1 + 0.005, y0 + 1.3, 0), (x1 + 0.005, y0 + 1.3, 1.55),
                   (x1 + 0.005, y0 + 0.5, 1.6)], st["Loch"])
     neig = math.atan2(h_hoch - h_tief, y1 - y0)
