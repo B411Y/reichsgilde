@@ -181,10 +181,10 @@ public partial class HafenAnzeige : PanelContainer
         else StaedteNachziehen(w);
     }
 
-    /// <summary>Was den Aufbau bestimmt: die eigenen Schiffe (am Kai oder nicht, mit welchem Auftrag), das gewählte und sein Entwurf (Ziel, Quelle).</summary>
+    /// <summary>Was den Aufbau bestimmt: die eigenen Schiffe (am Kai oder nicht, mit welchem Auftrag), das gewählte und sein Entwurf (Ziel, Quelle), ob das Haus Zöllner ist.</summary>
     private string Aufbauschluessel(Stadtwirtschaft w)
     {
-        if ((Reiter)_reiter.CurrentTab == Reiter.Staedte) return "staedte";
+        if ((Reiter)_reiter.CurrentTab == Reiter.Staedte) return $"staedte#{w.Befugnisse.IstZollfrei(_spieler!)}"; // Zöllner: eine Zollstelle weniger
         var teile = EigeneSchiffe(w).Select(s => $"{s.Name}:{s.Zustand == SchiffZustand.AmKai}:{s.Auftrag?.Wiederholen}");
         var entwurf = _gewaehlt is not null && _entwuerfe.TryGetValue(_gewaehlt, out var e) ? $"{e.Ziel}/{e.Betrieb}" : "";
         return $"{string.Join("|", teile)}#{_gewaehlt}#{entwurf}#{w.Betriebe.Count(b => b.Konto == _spieler)}#{w.Befugnisse.IstZollfrei(_spieler!)}";

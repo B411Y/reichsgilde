@@ -10,9 +10,9 @@ namespace Reichsgilde;
 /// Bauvorhaben und Fest der Stadt (PR #200) – ein Teil der <c>partial class Stadtansicht</c>. Der Rat beschließt Bauten aus der Stadtkasse
 /// (<see cref="Ratsantraege.Baustellen"/>); hier stehen sie am passenden Ort:
 /// <list type="bullet">
-/// <item><b>brunnen</b>: auf dem freien Rand neben dem Marktplatz – erst Baustelle (der Steinkranz wächst), danach ein Brunnen mit Dach.</item>
-/// <item><b>marktplatz</b>: am anderen Rand des Marktes eine Baustelle mit Pflastersteinen; fertig ist der Platz größer (die Wirkung zeigt der Markt).</item>
-/// <item><b>mauer</b>: am Mauerstück, das dem Markt am nächsten ist, ein Gerüst auf der Stadtseite.</item>
+/// <item><b>brunnen</b>: in der freiesten Ecke des Marktplatzes – erst Baustelle (der Steinkranz wächst), danach ein Brunnen mit Dach.</item>
+/// <item><b>marktplatz</b>: vor der Seite des Marktes mit dem meisten Raum eine Baustelle mit Pflastersteinen; fertig verschwindet sie (die Wirkung zeigt der Markt).</item>
+/// <item><b>mauer</b>: am Mauerstück mit dem meisten Platz davor ein Gerüst auf der Stadtseite.</item>
 /// <item><b>hafen</b>: am Kai neben dem ersten Hafen der Karte.</item>
 /// </list>
 /// Eine Baustelle ist schlicht wie die der Häuser (Baugrund, Gerüst, Holzstapel, Steinhaufen) und wächst in vier Stufen; Klick zeigt Name, Antragsteller
@@ -52,7 +52,10 @@ public partial class Stadtansicht
         AddChild(_stadtbau);
         foreach (var b in ra.Baustellen)
             if (StadtbauLage(w, b.Kennung) is { } lage)
+            {
                 StadtbaustelleBauen(w, b, lage, StadtbauStufe(w, b, minute));
+                GD.Print($"Baustelle der Stadt: {b.Name} bei x {lage.Origin.X:0}, z {lage.Origin.Z:0}"); // für Klicktests (--blick)
+            }
         if (ra.IstGebaut("brunnen") && StadtbauLage(w, "brunnen") is { } brunnen)
             BrunnenBauen(brunnen);
         if (ra.FestLaeuft && _marktHalb > 0)
@@ -66,14 +69,26 @@ public partial class Stadtansicht
         switch (kennung)
         {
             case "brunnen" when _marktHalb > 0:
-                return AmBoden(markt * new Vector3(-_marktHalb - 4, 0, 0), markt.Basis);
+                // in einer Ecke des Platzes, wo am wenigsten steht
+                var ecke = _marktHalb - 5;
+                return AmBoden(FreiesterOrt(w, new[] { (-ecke, -ecke), (ecke, -ecke), (ecke, ecke), (-ecke, ecke) }.Select(e => markt * new Vector3(e.Item1, 0, e.Item2))),
+                    markt.Basis);
             case "marktplatz" when _marktHalb > 0:
-                return AmBoden(markt * new Vector3(_marktHalb + 5, 0, 0), markt.Basis);
+                // vor der Seite des Platzes, an der am meisten Raum ist (dorthin wird er größer)
+                var rand = _marktHalb + 4;
+                var seite = FreiesterOrt(w, new[] { (rand, 0f), (0f, rand), (-rand, 0f), (0f, -rand) }.Select(e => markt * new Vector3(e.Item1, 0, e.Item2)));
+                var nachAussen = (seite - _markt).Normalized();
+                return AmBoden(seite, new Basis(Vector3.Up.Cross(nachAussen), Vector3.Up, nachAussen));
             case "mauer" when w.Karte is { Mauern.Count: > 0 } karte:
-                var stuecke = karte.Mauern.Where(m => m.Linie.Count >= 2).SelectMany(m => Mauerplan.Von(m).Stuecke).ToList();
+                // nicht im Torweg: Stücke nahe einem Tor fallen weg (dort ist frei, weil die Straße hindurchführt)
+                var plaene = karte.Mauern.Where(m => m.Linie.Count >= 2).Select(Mauerplan.Von).ToList();
+                var tore = plaene.SelectMany(p => p.Tore).Select(t => new Vector2((float)t.Lage.X, (float)t.Lage.Z)).ToList();
+                var stuecke = plaene.SelectMany(p => p.Stuecke).Where(s => tore.All(t => t.DistanceTo(new Vector2((float)s.X, (float)s.Z)) > 20)).ToList();
                 if (stuecke.Count == 0) return null;
-                var naechstes = stuecke.MinBy(s => new Vector2((float)s.X - _markt.X, (float)s.Z - _markt.Z).LengthSquared())!;
-                return new Transform3D(MauerBasis(naechstes), MauerOrt(naechstes));
+                // das Mauerstück, vor dem auf der Stadtseite am meisten Platz ist (Feldseite = +Z des Stücks)
+                var stadtseite = stuecke.Select(s => MauerOrt(s) - new Vector3((float)s.FeldX, 0, (float)s.FeldZ) * 3).ToList();
+                var frei = stuecke[stadtseite.IndexOf(FreiesterOrt(w, stadtseite))];
+                return new Transform3D(MauerBasis(frei), MauerOrt(frei));
             case "hafen" when w.Schiffahrt.Haefen.FirstOrDefault() is { } hafen:
                 var nachWasser = new Vector3((float)hafen.RichtungX, 0, (float)hafen.RichtungZ);
                 var entlang = new Vector3(-nachWasser.Z, 0, nachWasser.X);
@@ -85,6 +100,19 @@ public partial class Stadtansicht
     }
 
     private Transform3D AmBoden(Vector3 ort, Basis basis) => new(basis, AufBoden(ort));
+
+    /// <summary>
+    /// Der Ort unter <paramref name="orte"/>, der am weitesten von allem entfernt ist, was dort steht: Gebäude der Karte (bis zu ihrem Rand, der Markt
+    /// selbst zählt nicht) und Brunnen, Kreuz, Bänke und Stände des Marktes.
+    /// </summary>
+    private Vector3 FreiesterOrt(Stadtwirtschaft w, IEnumerable<Vector3> orte)
+    {
+        var gebaeude = w.Karte?.Gebaeude.Where(g => new Vector2((float)g.Punkt[0] - _markt.X, (float)g.Punkt[1] - _markt.Z).Length() > 1).ToList() ?? new();
+        float Abstand(Vector3 o) => Mathf.Min(
+            gebaeude.Select(g => new Vector2((float)g.Punkt[0] - o.X, (float)g.Punkt[1] - o.Z).Length() - GroesseVon(g).Length() / 2).DefaultIfEmpty(99).Min(),
+            _marktHindernisse.Select(h => new Vector2(h.Mitte.X - o.X, h.Mitte.Z - o.Z).Length() - h.Radius).DefaultIfEmpty(99).Min());
+        return orte.MaxBy(Abstand);
+    }
 
     /// <summary>
     /// Eine Baustelle der Stadt: Baugrund mit Zaun, Gerüst, Holzstapel und Steinhaufen; der Brunnen bekommt seinen wachsenden Steinkranz, der Marktplatz
@@ -196,7 +224,7 @@ public partial class Stadtansicht
                 Position = new Vector3(0, hoehe / 2, 0), MaterialOverride = Stoff(Holz),
             });
             var weg = (markt.Basis * new Vector3(x, 0, z)).Normalized(); // nach außen
-            FahnenTuchAmMast(new Vector3(0, hoehe - 1.4f, 0), weg, 3.2f, 1.8f, Festfarben[nummer++ % Festfarben.Length], mast, kerbe: 0.8f);
+            FahnenTuchAmMast(new Vector3(0, hoehe - 1.6f, 0), weg, 4.0f, 2.4f, Festfarben[nummer++ % Festfarben.Length], mast, kerbe: 0.8f);
         }
     }
 

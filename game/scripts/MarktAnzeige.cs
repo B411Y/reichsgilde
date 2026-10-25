@@ -280,12 +280,12 @@ public partial class MarktAnzeige : PanelContainer
         if (_vorschau is null || _spieler is null) return;
         var waehrung = w.Daten.Allgemein.Waehrung;
         var groesste = w.Befugnisse.Marktvorschau(_spieler)
-            .Where(v => v.PreisJetzt > 0 && Math.Abs(v.PreisNaechsteStunde / v.PreisJetzt - 1) >= 0.005)
+            .Where(v => v.PreisJetzt > 0 && Math.Abs(v.PreisNaechsteStunde / v.PreisJetzt - 1) >= 0.001)
             .OrderByDescending(v => Math.Abs(v.PreisNaechsteStunde / v.PreisJetzt - 1)).Take(8)
             .Select(v => $"{v.Ware} {Zahlenformat.Kommazahl(v.PreisJetzt)} → {Zahlenformat.Kommazahl(v.PreisNaechsteStunde)} " +
-                         $"({(v.PreisNaechsteStunde >= v.PreisJetzt ? "▲" : "▼")} {Zahlenformat.Ganz(Math.Abs(v.PreisNaechsteStunde / v.PreisJetzt - 1) * 100)} %)")
+                         $"({(v.PreisNaechsteStunde >= v.PreisJetzt ? "▲" : "▼")} {Zahlenformat.Kommazahl(Math.Abs(v.PreisNaechsteStunde / v.PreisJetzt - 1) * 100)} %)")
             .ToList();
-        var text = groesste.Count == 0 ? "In der nächsten Stunde bleiben die Preise fast gleich."
+        var text = groesste.Count == 0 ? "In der nächsten Stunde bleiben die Preise gleich."
             : $"Nächste Stunde ({waehrung}): " + string.Join(" · ", groesste);
         if (_vorschau.Text != text) _vorschau.Text = text;
     }

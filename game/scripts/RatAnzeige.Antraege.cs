@@ -26,7 +26,7 @@ public partial class RatAnzeige
         }
         var nummer = 1;
         foreach (var p in punkte)
-            UiHilfe.MitWappen(_inhalt, p.Antragsteller.Wappen, $"{nummer++}. {p.Thema}: {p.Text} – beantragt von {p.Antragsteller.Inhaber}", 14,
+            UiHilfe.MitWappen(_inhalt, p.Antragsteller.Wappen, $"{nummer++}. {p.Text} – beantragt von {p.Antragsteller.Inhaber}", 14,
                 p.Antragsteller == _spieler ? Gold : null);
     }
 
