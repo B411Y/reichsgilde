@@ -1497,3 +1497,40 @@ Der Einrichtungskauf hebt alle drei Häuser um 20–30 %; Eichwald (Tischler) le
 | Kieselbach | 185.639 | 186.711 (+0,6 %) |
 
 Stand der KI-Häuser am Ende: vorher Freiherr 34, Reichsgraf 26; mit Belag Edler 1, Freiherr 34, Reichsgraf 25; kein Bankrott. Die schnelleren Fahrten bringen den Werkstätten etwas mehr Marktfenster, die Ausbauten kosten etwa so viel – die Wirkung liegt im Rauschen der Messung. Neu in der Messung: Zeile „Wegbelag am Ende“ und „Weg ausgebaut“ bei den Bauten der KI.
+
+## Schiffshandel (PR #199)
+
+**Regel:** Datenversion 53, neue Abschnitte `schiffshandel` und `ki.schiffe`. Hat die Karte einen Hafen an einem Fluss, kauft ein Haus dort ein Flussschiff (3.000 Gulden, Unterhalt 350 im Jahr, 4 Laderäume × 30 Stück) und schickt es mit Auftrag zu einer fernen Stadt am Kartenrand: Hinfracht aus dem Lager eines eigenen Betriebs oder am Markt von Hand gekauft, dort verkaufen, Rückfracht dort kaufen, daheim ins Lager oder auf den Markt. Fahrtzeit Entfernung × 60 Minuten flussab bzw. × 100 flussauf, dazu 20 Minuten Beladen und 30 Liegezeit:
+
+| Ferne Stadt | Richtung | Hin und zurück | Zollstellen | Kauft (Faktor auf den Grundpreis) | Verkauft |
+|---|---|---|---|---|---|
+| Eisenfurt | flussauf | 242 Min. | 2 | Körnermahlzeit, Kerze, Werkzeug ×1,5; Dünnbier, Starkbier ×1,45 | Eisen, Holz, Bruchstein ×0,6; Granit ×0,65; Silber ×0,7 |
+| Weidenmünd | flussab | 290 Min. | 3 | Silberring, Silberkette, Rapier, Rosenwasser, Moschusduft ×1,5; Goldkette, Armbrust, Fechterduft ×1,45 | Gold ×0,7; Jasmin, Wachs, Kräuter ×0,6 |
+
+```
+Preis dort, Stadt kauft:     Grundpreis × Faktor × (Menge ÷ (Menge + Druck))^0,5
+Preis dort, Stadt verkauft:  Grundpreis × Faktor × ((Menge + Druck) ÷ Menge)^0,5
+Druck                        = gehandelte Stück, je Spielstunde × 0,92 (nach einem Jahr ein Viertel)
+Zoll je beladener Fahrt      = Zollstellen × 2,5 % × Wert der Ladung zum Marktpreis daheim
+Geleit je beladener Fahrt    = Eskorte der Karren × 3 (Normal 30, Schwer 90, Stadtwache 60)
+Flusspiraten                 = 5 % je beladener Fahrt; Erfolg = Stärke 1 × (1 − Schutz); Beute = Hälfte jeder Ware
+Gewinn einer Fahrt           = Erlös dort − Einkauf + Erlös daheim (nach Steuer) − Einkauf dort − Zoll − Geleit − Risiko
+```
+
+Menge (Tiefe des Marktes): Fertigwaren 50, teure 30–40; Rohstoffe 120, Granit, Silber und Gold 72. Die KI kauft zum Jahresende ein Schiff, wenn Gewinn je Jahr der besten Fahrt × 0,5 − Unterhalt den Preis in 4 Jahren einspielt (höchstens eins je Haus), und schickt es stündlich mit dem besten Auftrag los, wenn er mindestens 100 Gulden bringt.
+
+**Rechnung am Start** (Probestadt, Haus mit 10.000 Gulden, ohne Geleit): Am besten fährt man nach Weidenmünd mit je 10 Silberketten, Moschusduft, Rapieren und Silberringen und holt 30 Gold, 60 Jasmin und 30 Wachs: Einkauf 9.107, Erlös dort 10.488, Einkauf dort 2.639, Erlös daheim 3.815, Zoll 932, Risiko 287 → Gewinn 1.338 in 290 Minuten. Eigene Ware aus dem Lager spart den Einkauf von Hand (Händlerspanne und Preisanstieg) und bringt mehr.
+
+**Messung** (`messen schiffe 30 20`, Probestadt, 20 Startwerte × 30 Jahre, Spieler passiv, zwei KI-Häuser ausgewogen; dieselben Partien mit und ohne Abschnitt `schiffshandel`; gemessen auf main `5b345a5` + Branch `phase5/hafen-kern` `697a511`):
+
+| | mit Schiffshandel | ohne | Unterschied |
+|---|---|---|---|
+| Haus Hammerschmid (Spieler, passiv, ohne Schiff) | 56.987 | 47.104 | +21,0 % |
+| Haus Ahlbeck (KI) | 303.523 | 238.588 | +27,2 % |
+| Haus Brendel (KI) | 294.062 | 220.410 | +33,4 % |
+
+- **Schiffe:** 40 in 20 Partien (jedes KI-Haus eins, das erste im Mittel in Jahr 3,4), 870 Schiffsjahre, 3,32 Fahrten je Schiff und Jahr (Weidenmünd 1.881, Eisenfurt 1.044).
+- **Ertrag je Schiff und Jahr nach Unterhalt: 1.266** – ein Umlandbetrieb der KI bringt 1.458, eine Werkstatt 4.429 (Ziel: ein Schiff ≈ ein guter Umlandbetrieb).
+- **Flusspiraten:** 252 Angriffe, 110 gelungen (4,4 % der Fahrtstrecken angegriffen).
+- **Befund:** Auch der passive Spieler ohne Schiff hat 21 % mehr: Die Rückfracht der KI (Gold, Jasmin, Wachs, Eisen, Granit …) macht Rohstoffe daheim billiger, davon leben alle Werkstätten. Offener Punkt in `kern.md`.
+- **Ohne Hafen unverändert:** `messen 30 20` und `messen 30 20 greybox` (Greybox noch ohne Fluss) sind vorher und nachher zeichengleich (main `5b345a5` gegen Branch). Die Greybox-Messung mit Fluss und Hafen folgt mit der neuen Karte.
