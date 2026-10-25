@@ -407,7 +407,7 @@ Entscheidungen des Nutzers: `docs/bereiche/oberflaeche.md`, „Sichtbare Ratssit
 | KI: in Not | Jede Stunde (auch aus dem Kerker, Betriebssache), vor dem Notverkauf eines Betriebs: Ist sie in Not (`InNot`: gemahnt, und nach den offenen Jahreskosten bleibt nichts), verkauft sie den Karren mit dem höchsten Erlös – nie den letzten eines Betriebs, der Ware fährt (nur Wache und Geldleihe brauchen keinen). | 25.10.2026 |
 | KI: ungenutzt | Zum Jahresende vor dem Karrenkauf: Ein Karren mit **keiner Fahrt im ganzen Vorjahr** wird verkauft, je Betrieb einer, nie der letzte, und nur, wenn der Betrieb seltener stillstand als `StillstandFuerKarrenkauf` (sonst kaufte sie gleich wieder einen). Dafür zählt jeder Karren seine Fahrten zum Markt (`FahrtenImJahr`, `FahrtenVorjahr`); ein Jahr, das er nicht ganz erlebt hat (gekauft im Lauf des Jahres, Startausstattung, alter Spielstand), zählt nicht. Speicherstand: drei neue Felder im `KarrenStand`, alte Stände laden. | 25.10.2026 |
 
-### Balancing 2 (PR #…)
+### Balancing 2 (PR #208)
 
 | Thema | Entscheidung | Datum |
 |---|---|---|
