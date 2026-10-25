@@ -54,6 +54,8 @@ namespace Reichsgilde;
 ///   --rat=1            gleich zu Beginn die Ratskammer öffnen
 ///   --amt=Kämmerer     dem Spieler ein Amt geben; --kasse=9000 Stand der Stadtkasse; --antrag=steuer:4|bau:brunnen|fest Antrag stellen;
 ///   --rathaus=amt      das Rathaus mit diesem Reiter auswählen (stadtkasse, rat, amt) – alle vier in Hauptszene.Rat.cs
+///   --sitzung=1        eine Ratssitzung mit dem Spieler im Rat vorbereiten und bis zum Jahresende vorspulen (=letzte: ohne Halt, danach das Rathaus mit dem Knopf
+///                      „Letzte Ratssitzung ansehen“); --sitzungzeigen=<immer|betroffen|nie> nur für diesen Start – beide in Hauptszene.Ratssitzung.cs
 ///   --familie=1        gleich zu Beginn die Familientafel öffnen
 ///   --gericht=1        gleich zu Beginn den Gerichtssaal öffnen
 ///   --hinterzimmer=1   gleich zu Beginn das Hinterzimmer öffnen
