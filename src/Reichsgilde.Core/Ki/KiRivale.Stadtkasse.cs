@@ -37,6 +37,40 @@ public sealed partial class KiRivale
         }
     }
 
+    /// <summary>So viel ist der KI ein Schiff als Zöllner im Jahr wert (gesparter Hafenzoll, grob geschätzt).</summary>
+    public const double ZollJeSchiff = 250;
+
+    /// <summary>So viel ist ihr die Streife je eigenem Betrieb in der Stadt im Jahr wert.</summary>
+    public const double StreifeJeBetrieb = 100;
+
+    /// <summary>So viel ist ihr der Richterstuhl je Verfahren bzw. je Tat wert, die andere gegen sie kennen.</summary>
+    public const double RichterJeSache = 300;
+
+    /// <summary>
+    /// Was ein Amt der KI im Jahr wert ist (Entscheidung des Nutzers zu PR #200): das Gehalt und – mit Stadtkasse – der Nutzen der Befugnis.
+    ///   • Stadtrichter: je laufendem Verfahren, an dem sie beteiligt ist, und je eigener Tat, die andere kennen, <see cref="RichterJeSache"/>.
+    ///   • Stadthauptmann: je eigenem Betrieb in der Stadt <see cref="StreifeJeBetrieb"/>, dazu ein Viertel von Raub und Schaden des Vorjahres.
+    ///   • Zöllner: je eigenem Schiff <see cref="ZollJeSchiff"/>.
+    ///   • Marktmeister: die halbe Umsatzsteuer des Vorjahres (so viel spart sie mit eigenen Marktverkäufen ungefähr).
+    /// Danach wählt sie, um welches Amt sie sich bewirbt, und wie viel ihr Geschenke für die Wahl wert sind.
+    /// </summary>
+    public double AmtsWert(Amt amt)
+    {
+        var wert = amt.Daten.Einkommen;
+        if (!_w.Befugnisse.IstAktiv) return wert;
+        var vorjahr = Konto.Vorjahr;
+        return wert + amt.Name switch
+        {
+            Amtsbefugnisse.Stadtrichter when _w.Justiz.IstAktiv =>
+                RichterJeSache * (_w.Justiz.Verfahren.Count(v => v.Anklaeger == Konto || v.Beklagter == Konto) + _w.Justiz.BekannteSpuren(Konto)),
+            Amtsbefugnisse.Stadthauptmann =>
+                StreifeJeBetrieb * Betriebe.Count(b => b.InDerStadt) + 0.25 * ((vorjahr?.Raubwert ?? 0) + (vorjahr?.Schaden ?? 0)),
+            Amtsbefugnisse.Zoellner when _w.Schiffahrt.IstAktiv => ZollJeSchiff * _w.Schiffahrt.SchiffeVon(Konto).Count(),
+            Amtsbefugnisse.Marktmeister => (vorjahr?.Steuer ?? 0) * (1 - _w.Befugnisse.Daten.MarktmeisterSteuer),
+            _ => 0,
+        };
+    }
+
     /// <summary>Nützt dieses Bauvorhaben dem Haus?</summary>
     private bool Nuetzt(BauvorhabenDaten b) => b.Wirkung switch
     {

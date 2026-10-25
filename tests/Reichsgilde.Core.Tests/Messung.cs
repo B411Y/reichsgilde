@@ -73,6 +73,7 @@ static class Messung
         var steuerEnde = new SortedDictionary<int, int>();
         var gebaut = new SortedDictionary<string, int>(StringComparer.Ordinal);
         int buergerPartien = 0; double buergerJahre = 0;
+        var amtJahreKi = new SortedDictionary<string, int>(StringComparer.Ordinal); // Jahre, in denen KI-Häuser ein Amt hielten (Summe)
         for (var s = 1; s <= startwerte; s++)
         {
             var (sim, spieler) = Partieaufbau.Erstellen(
@@ -133,6 +134,8 @@ static class Messung
                 bm ??= w.Rat.AmtNamens("Bürgermeister")?.Konto == rivale ? j : null;
                 buerger ??= rivale.Stand >= 1 ? j : null;
                 kasseJahr[j] += w.Kasse.Stand;
+                foreach (var a in w.Rat.Aemter.Where(a => a.Konto is { } k && w.Rivalen.Any(r => r.Konto == k)))
+                    amtJahreKi[a.Name] = amtJahreKi.GetValueOrDefault(a.Name) + 1;
                 if (w.Kasse.Vorjahr is { } kb)
                     foreach (var (posten, betrag) in kb.Posten) kassePosten[posten] = kassePosten.GetValueOrDefault(posten) + betrag;
                 foreach (var zeile in w.Rat.LetzteSitzung.Where(z => z.StartsWith("Ratssitzung")))
@@ -283,6 +286,7 @@ static class Messung
             Console.WriteLine("  Anträge im Rat (gestellt/angenommen, Summe): " + string.Join(", ", antraege.Select(x => $"{x.Key} {x.Value.Gestellt}/{x.Value.Angenommen}")));
             Console.WriteLine("  Steuersatz am Ende (Partien): " + string.Join(", ", steuerEnde.Select(x => $"{x.Key} % {x.Value}×")) +
                               "; gebaut: " + (gebaut.Count == 0 ? "nichts" : string.Join(", ", gebaut.Select(x => $"{x.Key} {x.Value}×"))));
+            Console.WriteLine("  Ämter der KI (Jahre, Summe über alle Partien): " + string.Join(", ", amtJahreKi.Select(x => $"{x.Key} {x.Value}")));
             Console.WriteLine("  Befugnisse der KI (Summe): " + (befugnisse.Count == 0 ? "keine" : string.Join(", ", befugnisse.Select(x => $"{x.Key} {x.Value}×"))));
         }
         if (gericht)
