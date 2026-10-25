@@ -74,7 +74,7 @@ Startoptionen (nach `--`):
 - `--fahnen=<An|Aus>`
 - `--uigroesse=<75–200>`
 - `--farbfilter=<Aus|Protanopie|Deuteranopie|Tritanopie>`
-- `--reiter=<Voreinstellung|Leistung|Bild|Stimmung|Barrierefreiheit>` (mit `--einstellungen=1`)
+- `--reiter=<Voreinstellung|Leistung|Bild|Stimmung|Barrierefreiheit|Spiel>` (mit `--einstellungen=1`)
 - `--automatisch=1` (Voreinstellung messen und wählen wie beim ersten Start; ohne Startoptionen und ohne `einstellungen.cfg` geschieht das im Hauptmenü von selbst)
 - `--messung=<Sekunden>` (nach 8 s Vorlauf Bilder/s, 1-%-Tief, Bild- und GPU-Zeit ins Protokoll, dann beenden; für Vergleiche mit `--blick`, `--startstunde` und `--vsync=Aus`)
 

@@ -3,10 +3,10 @@ using Godot;
 namespace Reichsgilde;
 
 /// <summary>
-/// Fenster „Einstellungen“ mit fünf Reitern: <b>Voreinstellung</b> (Niedrig bis Ultra, automatische Wahl, Vollbild), <b>Leistung</b>
+/// Fenster „Einstellungen“ mit sechs Reitern: <b>Voreinstellung</b> (Niedrig bis Ultra, automatische Wahl, Vollbild), <b>Leistung</b>
 /// (Bildrate, VSync, dynamische Auflösung, FSR 2.2, Detailstufe), <b>Bild</b> (Boden, Gras, Kantenglättung, Nachschärfen,
 /// Schatten, Umgebungsverdeckung, indirektes Licht), <b>Stimmung</b> (Bloom, Miniatur-Unschärfe, Wolkenschatten, Morgendunst,
-/// Wettereffekte, Farbstimmung, Fahnen) und <b>Barrierefreiheit</b> (Größe der Oberfläche, Farbfilter). Erreichbar aus dem Hauptmenü und aus dem
+/// Wettereffekte, Farbstimmung, Fahnen), <b>Barrierefreiheit</b> (Größe der Oberfläche, Farbfilter) und <b>Spiel</b> (Ratssitzung zeigen). Erreichbar aus dem Hauptmenü und aus dem
 /// Spielmenü (Esc). Jede Änderung wirkt sofort und wird gespeichert (siehe <see cref="Fenster"/>).
 /// </summary>
 public sealed class EinstellungenAnzeige
@@ -55,6 +55,15 @@ public sealed class EinstellungenAnzeige
         (VSync.Aus, "Aus", "Zeichnet so schnell es geht. Am wenigsten Verzögerung, aber bei schnellen Kamerafahrten können Risse im Bild entstehen."),
         (VSync.An, "An (empfohlen)", "Wartet mit jedem Bild auf den Bildschirm: kein Riss. Schafft das Spiel die Bildrate nicht, fällt es auf die Hälfte."),
         (VSync.Adaptiv, "Adaptiv", "Wartet nur, solange das Spiel schnell genug ist; wird es langsamer, zeichnet es sofort (kurze Risse statt Ruckeln)."),
+    };
+
+    /// <summary>Die Wahl „Ratssitzung zeigen“ mit Erklärung – in der Reihenfolge der Auswahlliste.</summary>
+    private static readonly (RatssitzungZeigen Wert, string Name, string Erklaerung)[] Sitzungswahl =
+    {
+        (RatssitzungZeigen.Immer, "Immer", "Jede Ratssitzung mit Anträgen oder Wahlen wird im Ratssaal gezeigt."),
+        (RatssitzungZeigen.Betroffen, "Wenn ich im Rat sitze oder betroffen bin (empfohlen)",
+            "Nur, wenn ihr mitstimmt, selbst etwas beantragt habt oder euch um ein Amt bewerbt. Sonst steht das Ergebnis im Protokoll."),
+        (RatssitzungZeigen.Nie, "Nie", "Die Sitzung läuft ohne Halt im Hintergrund; das Ergebnis steht im Protokoll und in den Meldungen."),
     };
 
     private static readonly int[] Bildraten = { 30, 60, 90, 120, 144, 0 };
@@ -113,7 +122,7 @@ public sealed class EinstellungenAnzeige
     };
 
     /// <summary>Die Reiter in ihrer Reihenfolge (Name auch für die Startoption <c>--reiter</c>).</summary>
-    private static readonly string[] Reiternamen = { "Voreinstellung", "Leistung", "Bild", "Stimmung", "Barrierefreiheit" };
+    private static readonly string[] Reiternamen = { "Voreinstellung", "Leistung", "Bild", "Stimmung", "Barrierefreiheit", "Spiel" };
 
     private const string ErklaerungKantenFsr = "FSR 2.2 glättet selbst. Diese Wahl gilt wieder, wenn FSR aus ist.";
     private static readonly Color Grau = new(0.75f, 0.75f, 0.75f);
@@ -184,6 +193,9 @@ public sealed class EinstellungenAnzeige
     private bool _groesseZiehen;
     private readonly OptionButton _farbfilter;
     private readonly Label _farbfilterErklaerung;
+    // Spiel
+    private readonly OptionButton _sitzung;
+    private readonly Label _sitzungErklaerung;
 
     public EinstellungenAnzeige(Action zurueck)
     {
@@ -191,7 +203,7 @@ public sealed class EinstellungenAnzeige
         Tafel = tafel;
         Hauptmenue.Text(spalte, "Einstellungen", 26, Gold, zentriert: true);
 
-        // Reiterleiste: fünf Knöpfe, der gewählte in Gold
+        // Reiterleiste: sechs Knöpfe, der gewählte in Gold
         var leiste = new HBoxContainer { Alignment = BoxContainer.AlignmentMode.Center };
         leiste.AddThemeConstantOverride("separation", 4);
         spalte.AddChild(leiste);
@@ -441,6 +453,18 @@ public sealed class EinstellungenAnzeige
         _farbfilterErklaerung = Hinweis(s, "");
         Hinweis(s, "Gilt für das ganze Bild mit Tafeln, Wappen und Warenzeichen: Farben, die sich für das Auge kaum unterscheiden, werden in Helligkeit und andere Farbtöne verschoben.");
 
+        // ── Spiel ────────────────────────────────────────────────────────────
+        s = _seiten[5];
+        Abschnitt(s, "Ratssitzung zeigen");
+        _sitzung = Auswahl(s, Sitzungswahl.Select(w => w.Name), nummer =>
+        {
+            Fenster.RatssitzungSetzen(Sitzungswahl[nummer].Wert);
+            Auffrischen();
+        });
+        _sitzungErklaerung = Hinweis(s, "");
+        Hinweis(s, "Am Jahresende hält die Partie an, und ihr seht die Sitzung im Ratssaal: Antrag, Begründung, die Stimmen der Ratsherren und das Ergebnis. " +
+                   "Sitzt ihr im Rat, stimmt ihr an eurer Stelle selbst ab.");
+
         spalte.AddChild(new HSeparator());
         Hauptmenue.Knopf(spalte, "Zurück", zurueck);
 
@@ -536,6 +560,9 @@ public sealed class EinstellungenAnzeige
         var filter = Array.FindIndex(Farbfilterarten, f => f.Art == Fenster.AktuellerFarbfilter);
         _farbfilter.Select(filter);
         _farbfilterErklaerung.Text = Farbfilterarten[filter].Erklaerung;
+        var sitzung = Array.FindIndex(Sitzungswahl, w => w.Wert == Fenster.Ratssitzung);
+        _sitzung.Select(sitzung);
+        _sitzungErklaerung.Text = Sitzungswahl[sitzung].Erklaerung;
         StandAuffrischen();
     }
 
