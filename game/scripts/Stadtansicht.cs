@@ -501,13 +501,18 @@ public partial class Stadtansicht : Node3D
             if (_innen == ansicht) InnenansichtVerlassen(); // wer gerade drin ist, steht wieder in der Stadt
             if (ansicht.Gruppe is not null) KnotenEntfernen(ansicht.Gruppe);
         }
-        // Karren, die zu keinem Betrieb mehr gehören (sie gehen mit dem Betrieb an den Käufer)
+        KarrenOhneBetriebEntfernen(); // sie gehen mit dem Betrieb an den Käufer
+        FreienPlatzZeigen(frei);
+    }
+
+    /// <summary>Karren, die zu keinem Betrieb mehr gehören: mit dem Betrieb verkauft oder einzeln verkauft (PR #205).</summary>
+    private void KarrenOhneBetriebEntfernen()
+    {
         foreach (var karren in _karren.Keys.Where(k => !_betriebe.Keys.Any(b => b.Karren.Contains(k))).ToList())
         {
             _karren[karren].Wurzel.QueueFree();
             _karren.Remove(karren);
         }
-        FreienPlatzZeigen(frei);
     }
 
     /// <summary>
@@ -727,6 +732,7 @@ public partial class Stadtansicht : Node3D
                 KarrenBewegen(betrieb.Karren[i], i, ansicht, fahrzeit, zeit.VergangeneMinuten + bruchteil, delta, ansicht.Spieler);
             }
         }
+        if (_karren.Keys.Any(k => !k.Heimat.Karren.Contains(k))) KarrenOhneBetriebEntfernen(); // ein Karren ist verkauft
         if (_domFenster is { } dom) // der Dom: schwacher Schein, zur Messe heller
             FenstergruppeSetzen(dom, _messeVorgegeben || (w.Kirchenwesen.IstAktiv && zeit.UhrzeitInMinuten / 60 == w.Kirchenwesen.Daten.MesseUm)
                 ? Fenstergruppe.Messe : Fenstergruppe.Kirche);

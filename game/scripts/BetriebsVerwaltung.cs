@@ -88,7 +88,7 @@ public partial class BetriebsVerwaltung : VBoxContainer
 
     // Zeilen, die beim Neubau ersetzt werden
     private readonly List<(string Kraft, Label Anzahl, Label Info, Button Minus, Button Plus)> _personalZeilen = new();
-    private readonly List<(OptionButton? Eskorte, CheckBox? Nachts, Label Info)> _karrenZeilen = new();
+    private readonly List<(OptionButton? Eskorte, CheckBox? Nachts, Label Info, Button Verkaufen)> _karrenZeilen = new();
 
     /// <summary>Ergebnis eines Befehls (Erfolg oder Ablehnung) – für das Protokoll.</summary>
     public event Action<string>? Gemeldet;
@@ -312,7 +312,7 @@ public partial class BetriebsVerwaltung : VBoxContainer
         if (!Visible || _betrieb is not { } b || _simulation?.Wirtschaft is not { } w) return;
         var waehrung = w.Daten.Allgemein.Waehrung;
 
-        var bauplan = $"{w.Statut}|{b.Karren.Count}|{string.Join(",", b.Belegung.Keys.OrderBy(k => k))}";
+        var bauplan = $"{w.Statut}|{string.Join(",", b.Karren.Select(k => k.Name))}|{string.Join(",", b.Belegung.Keys.OrderBy(k => k))}";
         if (bauplan != _bauplan)
         {
             ZeilenNeuBauen(b, w);
@@ -388,7 +388,7 @@ public partial class BetriebsVerwaltung : VBoxContainer
         _karrenKopf.Visible = _karren.Visible = _karrenKauf.Visible = !ohneKarren || b.Karren.Count > 0;
         for (var i = 0; i < _karrenZeilen.Count && i < b.Karren.Count; i++)
         {
-            var (eskorte, nachts, info) = _karrenZeilen[i];
+            var (eskorte, nachts, info, verkaufen) = _karrenZeilen[i];
             var karren = b.Karren[i];
             if (eskorte is not null && nachts is not null)
             {
@@ -419,9 +419,26 @@ public partial class BetriebsVerwaltung : VBoxContainer
                 nachts.SetPressedNoSignal(karren.NachtsFahren);
             }
             info.Text = karren.ZustandText(_simulation.Zeit);
+            VerkaufenAngleichen(verkaufen, b, i, w);
         }
         _kaufenKnopf.Disabled = b.Konto.Vermoegen < w.Daten.Logistik.Karren[_karrenTypen[Math.Max(0, _karrenTyp.Selected)]].Preis;
         _handelKnopf.Visible = w.Daten.Handel is not null && b.Karren.Count > 0;
+    }
+
+    /// <summary>Der Knopf „Verkaufen (… Gulden)“ eines Karrens: gesperrt, solange der Kern einen Grund nennt (unterwegs).</summary>
+    private void VerkaufenAngleichen(Button knopf, Betrieb b, int nummer, Stadtwirtschaft w)
+    {
+        var karren = b.Karren[nummer];
+        var waehrung = w.Daten.Allgemein.Waehrung;
+        var erloes = Zahlenformat.Ganz(w.KarrenErloes(karren));
+        var text = $"Verkaufen ({erloes} {waehrung})";
+        if (knopf.Text != text) knopf.Text = text;
+        var grund = w.KarrenVerkaufVerboten(_spieler!, b, nummer);
+        knopf.Disabled = grund is not null;
+        var tipp = grund ?? $"{karren.Name} verkaufen: {Zahlenformat.Ganz(w.Daten.Logistik.KarrenVerkaufAnteil * 100)} % des Kaufpreises " +
+                            $"({Zahlenformat.Ganz(karren.Daten.Preis)} {waehrung}), also {erloes} {waehrung}. Geht nur, solange er am Betrieb steht." +
+                            (karren.Vormerkung is not null ? " Der vorgemerkte Handelsauftrag verfällt." : "");
+        if (knopf.TooltipText != tipp) knopf.TooltipText = tipp;
     }
 
     /// <summary>„Verkaufen …“ bzw. „Pacht kündigen …“ – gesperrt, solange der Kern einen Grund nennt (letzter Betrieb, Umbau, Karren unterwegs).</summary>
@@ -755,8 +772,13 @@ public partial class BetriebsVerwaltung : VBoxContainer
             {
                 NeuesLabel(zeile, 12, Grau).Text = "Stadtweg – keine Überfälle, keine Eskorte nötig";
             }
+            // Verkaufen (PR #205): ohne Rückfrage, gesperrt mit Grund aus dem Kern (unterwegs)
+            var verkaufen = new Button { FocusMode = FocusModeEnum.None };
+            verkaufen.AddThemeFontSizeOverride("font_size", 13);
+            verkaufen.Pressed += () => Befehlen(new KarrenVerkaufen(b.Name, nummer));
+            zeile.AddChild(verkaufen);
             var info = NeuesLabel(spalte, 12, Grau);
-            _karrenZeilen.Add((eskorte, nachts, info));
+            _karrenZeilen.Add((eskorte, nachts, info, verkaufen));
         }
     }
 

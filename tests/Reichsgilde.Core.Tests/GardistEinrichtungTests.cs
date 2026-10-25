@@ -81,7 +81,7 @@ static class GardistEinrichtungTests
         ("Gardist-Einrichtung: Daten – sieben Stücke mit den Kennungen des Raummodells, Preise wie bei den Werkstätten, Datenversion 52", () =>
         {
             var d = Daten.Value.Werkstatt!;
-            Pruefe.Gleich(54, Daten.Value.Version);
+            Pruefe.Gleich(55, Daten.Value.Version);
             var wache = d.EinrichtungFuer("Gardist");
             Pruefe.Gleich("Werkzeug1 Werkzeug2 Hunde Kettenhemd Regale Loeschfass Eisentuer", string.Join(" ", wache.Select(e => e.Kennung)));
             Pruefe.Gleich("Hellebarden, Armbrüste, Wachhunde, Kettenhemden, Waffenkammer, Löschfass, Eisentür", string.Join(", ", wache.Select(e => e.Name)));

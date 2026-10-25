@@ -54,6 +54,18 @@ public sealed class Karren
     /// <summary>Was der letzte Handelsauftrag am Markt gebracht hat (für die Anzeige; nicht gespeichert).</summary>
     public string? LetzterHandel { get; private set; }
 
+    /// <summary>Fahrten zum Markt in diesem Jahr (mit und ohne Ladung, auch Handelsaufträge).</summary>
+    public int FahrtenImJahr { get; private set; }
+
+    /// <summary>
+    /// Fahrten zum Markt im Vorjahr – null, wenn der Karren das Vorjahr nicht ganz gezählt hat (erst im Lauf des Jahres gekauft,
+    /// Startausstattung, alter Spielstand). Die KI verkauft nur einen Karren, der ein ganzes Jahr nicht gefahren ist.
+    /// </summary>
+    public int? FahrtenVorjahr { get; private set; }
+
+    /// <summary>Zählt <see cref="FahrtenImJahr"/> seit Jahresbeginn? (erst nach dem ersten Jahresabschluss)</summary>
+    private bool _ganzesJahr;
+
     /// <summary>Eskortenstufe, z. B. "Keine", "Normal", "Schwer".</summary>
     public string Eskorte { get; set; } = "Keine";
 
@@ -230,6 +242,7 @@ public sealed class Karren
     {
         Zustand = ziel;
         Ankunft = zeit.VergangeneMinuten + w.Fahrzeit(Heimat, zumMarkt: ziel == KarrenZustand.ZumMarkt);
+        if (ziel == KarrenZustand.ZumMarkt) FahrtenImJahr++;
         w.Wegebau.FahrtZaehlen(Heimat); // Verkehr auf den Wegen (Austritt)
 
         if (_ladung.Count == 0)
@@ -343,6 +356,25 @@ public sealed class Karren
         }
     }
 
+    /// <summary>Jahresabschluss des Betriebs: Die Fahrten dieses Jahres werden zu denen des Vorjahrs.</summary>
+    internal void JahrAbschliessen()
+    {
+        FahrtenVorjahr = _ganzesJahr ? FahrtenImJahr : null;
+        FahrtenImJahr = 0;
+        _ganzesJahr = true;
+    }
+
+    /// <summary>Vor dem Verkauf: Die Ladung kommt ins Lager (wie bei jeder Heimkehr), ein vorgemerkter Auftrag verfällt.</summary>
+    internal Dictionary<string, int> Abladen()
+    {
+        var abgeladen = new Dictionary<string, int>(_ladung);
+        foreach (var (ware, stueck) in _ladung)
+            Heimat.Einlagern(ware, stueck);
+        _ladung.Clear();
+        Vormerkung = null;
+        return abgeladen;
+    }
+
     // ── Speichern ───────────────────────────────────────────────────────────
 
     internal KarrenStand Sichern() => new()
@@ -353,6 +385,7 @@ public sealed class Karren
         Auftrag = Auftrag is null ? null : new(Auftrag.Kauf),
         VormerkungVerkauf = Vormerkung is null ? null : new(Vormerkung.Verkauf),
         VormerkungKauf = Vormerkung is null ? null : new(Vormerkung.Kauf),
+        FahrtenImJahr = FahrtenImJahr, FahrtenVorjahr = FahrtenVorjahr, FahrtenGanzesJahr = _ganzesJahr,
     };
 
     internal void Wiederherstellen(KarrenStand s)
@@ -369,6 +402,9 @@ public sealed class Karren
         Auftrag = s.Auftrag is null ? null : new Handelsplan(new Dictionary<string, int>(s.Auftrag));
         Vormerkung = s.VormerkungVerkauf is null || s.VormerkungKauf is null ? null
             : new Vormerkung(new Dictionary<string, int>(s.VormerkungVerkauf), new Dictionary<string, int>(s.VormerkungKauf));
+        FahrtenImJahr = s.FahrtenImJahr;
+        FahrtenVorjahr = s.FahrtenVorjahr;
+        _ganzesJahr = s.FahrtenGanzesJahr;
     }
 
     /// <summary>Die Ladung geht verloren (Überfall).</summary>

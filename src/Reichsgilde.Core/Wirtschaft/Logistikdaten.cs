@@ -190,6 +190,9 @@ public sealed class LogistikDaten
     /// <summary>Spätestens nach so vielen Spielminuten fährt der Verwalter mit der Ware los, die da ist.</summary>
     public int MaxWartezeitMinuten { get; init; } = 240;
 
+    /// <summary>Ein eigener Karren bringt beim Verkauf diesen Anteil seines Kaufpreises (0,5 = die Hälfte; ab Datenversion 55, PR #205).</summary>
+    public double KarrenVerkaufAnteil { get; init; } = 0.5;
+
     public Dictionary<string, KarrenDaten> Karren { get; init; } = new();
     public Dictionary<string, EskorteDaten> Eskorten { get; init; } = new();
     public UeberfallDaten Ueberfall { get; init; } = new();
@@ -217,6 +220,7 @@ public sealed class LogistikDaten
         Wasser?.Pruefen(f);
         if (AbfahrtAbFuellgrad is <= 0 or > 1) f.Add("logistik.abfahrtAbFuellgrad muss zwischen 0 und 1 liegen.");
         if (MaxWartezeitMinuten <= 0) f.Add("logistik.maxWartezeitMinuten muss größer als 0 sein.");
+        if (KarrenVerkaufAnteil is < 0 or > 1) f.Add("logistik.karrenVerkaufAnteil muss zwischen 0 und 1 liegen.");
         if (Karren.Count == 0) f.Add("logistik.karren: Es ist kein Karrentyp definiert.");
         foreach (var (name, k) in Karren)
             if (k.Sorten <= 0 || k.KapazitaetJeSorte <= 0) f.Add($"Karren {name}: sorten und kapazitaetJeSorte müssen größer als 0 sein.");

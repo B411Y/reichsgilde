@@ -858,6 +858,15 @@ public sealed record KarrenStand
     /// <summary>Vorgemerkter Handelsauftrag (null: keiner).</summary>
     public Dictionary<string, int>? VormerkungVerkauf { get; init; }
     public Dictionary<string, int>? VormerkungKauf { get; init; }
+
+    /// <summary>Fahrten zum Markt in diesem Jahr (PR #205; alte Spielstände: 0).</summary>
+    public int FahrtenImJahr { get; init; }
+
+    /// <summary>Fahrten zum Markt im Vorjahr (PR #205; null: das Vorjahr nicht ganz gezählt – zählt dann nicht als ungenutzt).</summary>
+    public int? FahrtenVorjahr { get; init; }
+
+    /// <summary>Zählt <see cref="FahrtenImJahr"/> seit Jahresbeginn? (PR #205; alte Spielstände: nein – das laufende Jahr zählt dann nicht)</summary>
+    public bool FahrtenGanzesJahr { get; init; }
 }
 
 public sealed record MarktstandStand

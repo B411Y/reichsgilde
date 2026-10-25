@@ -192,6 +192,20 @@ public sealed partial class Stadtwirtschaft
     /// <summary>Wann käme ein Karren dieses Betriebs am Markt an, wenn er jetzt losführe? (Uhrzeit in Minuten nach Mitternacht)</summary>
     public int AnkunftAmMarkt(Betrieb betrieb) => Uhr.UhrzeitInMinuten + Fahrzeit(betrieb, zumMarkt: true);
 
+    /// <summary>Was dieser Karren beim Verkauf bringt: Kaufpreis × <c>logistik.karrenVerkaufAnteil</c> (PR #205).</summary>
+    public double KarrenErloes(Karren karren) => karren.Daten.Preis * Daten.Logistik.KarrenVerkaufAnteil;
+
+    /// <summary>Warum dieses Haus den Karren Nr. <paramref name="karrenNr"/> (ab 0) dieses Betriebs nicht verkaufen kann – oder null.</summary>
+    public string? KarrenVerkaufVerboten(Konto konto, Betrieb betrieb, int karrenNr)
+    {
+        if (betrieb.Konto != konto) return $"{betrieb.Name} gehört nicht {konto.Inhaber}.";
+        if (karrenNr < 0 || karrenNr >= betrieb.Karren.Count) return $"{betrieb.Name} hat keinen Karren Nr. {karrenNr + 1}.";
+        var karren = betrieb.Karren[karrenNr];
+        if (karren.Zustand != KarrenZustand.AmBetrieb)
+            return $"{karren.Name} ist unterwegs – verkaufen geht erst, wenn er wieder am Betrieb steht.";
+        return null;
+    }
+
     /// <summary>Warum dieser Handelsauftrag nicht geht – oder null.</summary>
     /// <param name="vormerken">Für einen Karren, der unterwegs ist: Zustand und Marktzeit werden erst beim Start geprüft.</param>
     public string? HandelsauftragVerboten(Betrieb betrieb, int karrenNr, IReadOnlyDictionary<string, int> verkauf, IReadOnlyDictionary<string, int> kauf,
@@ -883,6 +897,7 @@ public sealed partial class Stadtwirtschaft
                 FoerderungAufteilen f => FoerderungAusfuehren(betrieb, f),
                 PersonalSetzen p => PersonalAusfuehren(betrieb, p),
                 KarrenKaufen k => KarrenKaufenAusfuehren(betrieb, k),
+                KarrenVerkaufen v => KarrenVerkaufenAusfuehren(betrieb, v),
                 EskorteWaehlen e => EskorteAusfuehren(betrieb, e),
                 NachtfahrtErlauben n => NachtfahrtAusfuehren(betrieb, n),
                 WaechterSetzen s => WaechterAusfuehren(betrieb, s),
@@ -1023,6 +1038,22 @@ public sealed partial class Stadtwirtschaft
                 $"Für einen {befehl.Typ} fehlen {Zahlenformat.Ganz(daten.Preis - betrieb.Konto.Vermoegen)} {Daten.Allgemein.Waehrung}.");
         var karren = betrieb.KarrenKaufen(befehl.Typ);
         return Befehlsergebnis.Ok($"{karren.Name} für {betrieb.Name} gekauft ({Zahlenformat.Ganz(daten.Preis)} {Daten.Allgemein.Waehrung}).");
+    }
+
+    private Befehlsergebnis KarrenVerkaufenAusfuehren(Betrieb betrieb, KarrenVerkaufen befehl)
+    {
+        if (KarrenVerkaufVerboten(betrieb.Konto, betrieb, befehl.Karren) is { } grund)
+            return Befehlsergebnis.Abgelehnt(grund);
+        var karren = betrieb.Karren[befehl.Karren];
+        var waehrung = Daten.Allgemein.Waehrung;
+        var vorgemerkt = karren.Vormerkung is not null;
+        var abgeladen = karren.Abladen(); // ins Lager wie bei jeder Heimkehr – auch über die Lagergrenze, die Werkstatt verkauft den Rest später
+        var erloes = KarrenErloes(karren);
+        betrieb.Konto.Verkauf(erloes);
+        betrieb.KarrenEntfernen(karren);
+        var zusatz = (abgeladen.Count > 0 ? $" Die Ladung ({string.Join(", ", abgeladen.Select(x => $"{x.Value} {x.Key}"))}) liegt im Lager." : "") +
+                     (vorgemerkt ? " Der vorgemerkte Handelsauftrag verfällt." : "");
+        return Befehlsergebnis.Ok($"{karren.Name} von {betrieb.Name} ist verkauft ({Zahlenformat.Ganz(erloes)} {waehrung}).{zusatz}");
     }
 
     private static Befehlsergebnis VormerkungVerwerfen(Betrieb betrieb, int nr)

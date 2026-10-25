@@ -580,10 +580,16 @@ public sealed class Betrieb
     {
         if (!_daten.Logistik.Karren.TryGetValue(typ, out var daten))
             throw new ArgumentException($"Den Karrentyp „{typ}“ gibt es nicht.");
-        var karren = new Karren($"{typ} {_karren.Count + 1}", typ, daten, this);
+        // Nummer wie bisher die Zahl der Karren + 1 – nach einem Verkauf die nächste freie, damit kein Name doppelt vorkommt.
+        var nummer = _karren.Count + 1;
+        while (_karren.Any(k => k.Name == $"{typ} {nummer}")) nummer++;
+        var karren = new Karren($"{typ} {nummer}", typ, daten, this);
         _karren.Add(karren);
         return karren;
     }
+
+    /// <summary>Gibt einen verkauften Karren ab (geprüft und gebucht hat die Stadtwirtschaft).</summary>
+    internal void KarrenEntfernen(Karren karren) => _karren.Remove(karren);
 
     /// <summary>Kauft einen neuen Karren. Der Preis wird als Investition verbucht.</summary>
     public Karren KarrenKaufen(string typ)
@@ -920,5 +926,6 @@ public sealed class Betrieb
 
         StillstandMinutenVorjahr = StillstandMinuten;
         StillstandMinuten = 0;
+        foreach (var karren in _karren) karren.JahrAbschliessen();
     }
 }
