@@ -14,7 +14,6 @@ So wird eingetragen (damit sich die Chats nie an derselben Stelle treffen):
 - (von Kern) Oberfläche im Holzschnitt-Stil (Entscheidung in `kern.md`, „Grafikstil Holzschnitt“): Tafeln, Fenster, Rahmen, Knöpfe, Schmuck und das Hauptmenü nach und nach umstellen – Umriss, Schraffur, kolorierte Flächen, Papier- oder Pergamentgrund. Die Waren-Icons sind der erste Schritt (PR #113; neue Marktplatz-Icons macht der Nutzer gerade mit Gemini).
 - (von Kern) Die Nachfrage der Stadt wächst seit PR #177 mit den Einwohnern (`Marktstand.Grundnachfrage`, `Marktstand.Nachfrage`, `Stadtwirtschaft.Einwohner`); das Marktfenster (`MarktAnzeige.cs`) zeigt noch die Nachfrage aus den Daten (`daten.Nachfrage`). Vorschlag: `Marktstand.Nachfrage` zeigen, dazu die Einwohner der Stadt.
 - Kartenwerkstatt, Belag (Schritt 5d): Der Abschnitt wird mit zwei Reglern gewählt (goldenes Band im Bild), nicht durch Ziehen mit der Maus am Weg. Wenn das im Gebrauch zu umständlich ist, ein Ziehen im Bild nachrüsten.
-- Grundstruktur (PR #197): Meldungen über Stillstand fremder Betriebe („Tischlerei Eichwald: Es fehlt Holz …“) füllen unten links viel Platz – zu klären, ob nur eigene Betriebe dort stehen und fremde nur im Protokoll
 - Grundstruktur (PR #197): Die Reiter von Wohnhaus und Bericht sind je Seite verschieden hoch (die Tafel springt beim Wechsel); bei der Gestaltung im Holzschnitt-Stil eine feste Höhe wählen
 
 ## Entscheidungen
