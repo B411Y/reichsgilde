@@ -426,7 +426,7 @@ static class GelaendeTests
         ("Steigung bremst Karren: ab 6 % je Prozentpunkt 5 % länger, höchstens dreimal so lang; bergab und eben wie bisher", () =>
         {
             var s = Daten.Value.Logistik.Steigung!;
-            Pruefe.Gleich(52, Daten.Value.Version);
+            Pruefe.Gleich(53, Daten.Value.Version);
             Pruefe.Gleich(1.0, s.Faktor(0.06));
             Pruefe.Ungefaehr(1.2, s.Faktor(0.10), 1e-12);
             Pruefe.Gleich(3.0, s.Faktor(0.5));

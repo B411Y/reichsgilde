@@ -12,10 +12,55 @@ public sealed class KiDaten
     /// <summary>Wann die KI Wege ausbauen lässt (Kartenwerkstatt, Schritt 5d). Fehlt der Teil, baut sie keine.</summary>
     public KiWegebauDaten? Wegebau { get; init; }
 
+    /// <summary>Wann die KI Schiffe kauft und losschickt (Schiffshandel, PR #199). Fehlt der Teil, treibt sie keinen Schiffshandel.</summary>
+    public KiSchiffDaten? Schiffe { get; init; }
+
     public void Pruefen(List<string> f)
     {
         Einrichtung?.Pruefen(f);
         Wegebau?.Pruefen(f);
+        Schiffe?.Pruefen(f);
+    }
+}
+
+/// <summary>
+/// Die KI treibt Schiffshandel nach derselben Gewinnrechnung wie der Spieler (<see cref="Wirtschaft.Kalkulation.BesteSchiffsfahrt"/>;
+/// Entscheidung des Nutzers, PR #199 – auf Normal und Schwer gleich): Sie kauft ein Schiff, wenn es sich bezahlt macht, und schickt es los,
+/// wenn eine Fahrt genug bringt.
+/// </summary>
+public sealed class KiSchiffDaten
+{
+    /// <summary>So viele Schiffe hat ein KI-Haus höchstens.</summary>
+    public int Hoechstens { get; init; } = 1;
+
+    /// <summary>Eine Fahrt muss mindestens so viel Gewinn erwarten lassen (nach Zoll, Geleit und Risiko), sonst bleibt das Schiff am Kai.</summary>
+    public double MindestGewinnJeFahrt { get; init; } = 100;
+
+    /// <summary>
+    /// Für den Kauf rechnet die KI mit diesem Anteil des Gewinns, den Fahrten zu heutigen Preisen ohne Pause brächten
+    /// (die fernen Märkte sättigen sich, und nicht jede Stunde lohnt eine Fahrt).
+    /// </summary>
+    public double Auslastung { get; init; } = 0.5;
+
+    /// <summary>So viele Jahre darf es höchstens dauern, bis das Schiff seinen Preis eingebracht hat (ausgewogener Charakter).</summary>
+    public double HoechstensJahre { get; init; } = 4;
+
+    /// <summary>So viele Jahre weniger wartet die Vorsichtige, so viele mehr die Wagemutige.</summary>
+    public double CharakterJahre { get; init; } = 1;
+
+    /// <summary>Nach dem Kauf bleibt so ein Vielfaches der <see cref="KiProfil.Reserve"/> als Bargeld.</summary>
+    public double ReserveFaktor { get; init; } = 2;
+
+    public void Pruefen(List<string> f)
+    {
+        const string p = "ki.schiffe";
+        if (Hoechstens < 0) f.Add($"{p}.hoechstens darf nicht negativ sein.");
+        if (MindestGewinnJeFahrt < 0) f.Add($"{p}.mindestGewinnJeFahrt darf nicht negativ sein.");
+        if (Auslastung is <= 0 or > 1) f.Add($"{p}.auslastung muss über 0 und höchstens 1 sein.");
+        if (HoechstensJahre <= 0) f.Add($"{p}.hoechstensJahre muss über 0 liegen.");
+        if (CharakterJahre < 0 || CharakterJahre >= HoechstensJahre)
+            f.Add($"{p}.charakterJahre darf nicht negativ sein und muss unter hoechstensJahre liegen.");
+        if (ReserveFaktor < 0) f.Add($"{p}.reserveFaktor darf nicht negativ sein.");
     }
 }
 

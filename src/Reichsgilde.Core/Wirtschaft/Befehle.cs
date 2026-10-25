@@ -296,3 +296,33 @@ public sealed record HandelsauftragVerwerfen(string Betrieb, int Karren) : Betri
 
 /// <summary>Eine Ware im Lager zurückhalten: Der Karren verkauft sie nicht von selbst (frei).</summary>
 public sealed record WareZurueckhalten(string Betrieb, string Ware, bool Zurueckhalten) : BetriebsBefehl(Betrieb);
+
+// ── Schiffshandel (PR #199) ─────────────────────────────────────────────────
+
+/// <summary>Ein Befehl des Schiffshandels (Schiffe gehören dem Haus, nicht einem Betrieb) – siehe <see cref="Schiffahrt"/>.</summary>
+public abstract record SchiffahrtBefehl : Befehl;
+
+/// <summary>
+/// Am Hafen ein Schiff kaufen (Investition; Unterhalt zum Jahresende). <paramref name="Hafen"/>: Kennung des Hafens der Karte, "" = der erste;
+/// <paramref name="Typ"/>: Schiffstyp, "" = der erste. Vorab: <see cref="Schiffahrt.KaufVerboten"/>.
+/// </summary>
+public sealed record SchiffKaufen(string Hafen = "", string Typ = "") : SchiffahrtBefehl;
+
+/// <summary>Ein eigenes Schiff am Kai verkaufen (<c>schiffshandel.verkaufAnteil</c> des Kaufpreises).</summary>
+public sealed record SchiffVerkaufen(string Schiff) : SchiffahrtBefehl;
+
+/// <summary>
+/// Einem Schiff am Kai einen Auftrag geben: ferne Stadt <paramref name="Ziel"/>, Hinfracht (dort verkaufen) und Rückfracht (dort kaufen).
+/// Mit <paramref name="Betrieb"/> kommt die Hinfracht aus dessen Lager und die Rückfracht geht hinein; ohne wird am Markt gekauft und verkauft.
+/// <paramref name="Wiederholen"/>: nach der Rückkehr mit demselben Auftrag wieder losfahren. Vorab: <see cref="Schiffahrt.AuftragVerboten"/>,
+/// Gewinn: <see cref="Kalkulation.Schiffsfahrt"/>.
+/// </summary>
+public sealed record SchiffsauftragErteilen(
+    string Schiff, string Ziel, IReadOnlyDictionary<string, int> Hinfracht, IReadOnlyDictionary<string, int> Rueckfracht,
+    string? Betrieb = null, bool Wiederholen = false) : SchiffahrtBefehl;
+
+/// <summary>Einen wiederkehrenden Auftrag beenden: Das Schiff bleibt nach der laufenden Fahrt am Kai.</summary>
+public sealed record SchiffsauftragBeenden(string Schiff) : SchiffahrtBefehl;
+
+/// <summary>Das Geleit eines Schiffs wählen (Stufen wie bei den Karren, <c>logistik.eskorten</c>; Kosten × <c>schiffshandel.geleitFaktor</c>).</summary>
+public sealed record SchiffGeleitWaehlen(string Schiff, string Geleit) : SchiffahrtBefehl;

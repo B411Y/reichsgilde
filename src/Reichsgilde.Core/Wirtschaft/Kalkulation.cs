@@ -104,6 +104,127 @@ public static class Kalkulation
             ? ErwarteterJahresgewinn(w, neu) - ErwarteterJahresgewinn(w, betrieb.Art)
             : 0;
 
+    // ── Schiffshandel (PR #199) ─────────────────────────────────────────────
+
+    /// <summary>
+    /// Erwartete Rechnung einer Schiffsfahrt zu heutigen Preisen – die Zahlen der Oberfläche und der KI:
+    /// <code>
+    /// Gewinn = Erlös dort − Einkauf hier + Erlös hier − Einkauf dort − Zoll − Geleit − Risiko
+    /// </code>
+    /// Einkauf hier: ohne Betrieb der Preis von Hand am Markt (jedes Stück hebt ihn); mit Betrieb, was die Ware am Markt gebracht hätte
+    /// (nach Steuer). Erlös hier: was die Rückfracht am Markt bringt (nach Steuer; jedes Stück drückt den Preis) – auch für Ware, die ins
+    /// Lager geht. Zoll je beladener Fahrt: Zollstellen × Anteil × Wert der Ladung zum Marktpreis. Geleit je beladener Fahrt.
+    /// Risiko: Chance der Piraten × Erfolgschance (mit Geleit) × Beuteanteil × Wert der Ladung × <paramref name="vorsicht"/>.
+    /// </summary>
+    public static Fahrtrechnung Schiffsfahrt(Stadtwirtschaft w, Konto konto, SchiffstypDaten typ, FerneStadt stadt,
+        IReadOnlyDictionary<string, int> hinfracht, IReadOnlyDictionary<string, int> rueckfracht, bool ausLager = false, string geleit = "Keine",
+        double vorsicht = 1)
+    {
+        var d = w.Schiffahrt.Daten ?? throw new InvalidOperationException("In dieser Stadt gibt es keinen Schiffshandel.");
+        var steuer = w.Daten.Allgemein.Umsatzsteuer;
+        var vf = w.Familien.VerkaufsFaktor(konto);
+        var ef = w.Familien.EinkaufsFaktor(konto);
+        var hin = hinfracht.Where(x => x.Value > 0).ToList();
+        var rueck = rueckfracht.Where(x => x.Value > 0).ToList();
+        var einkauf = hin.Sum(x => ausLager ? w.Markt[x.Key].Verkaufswert(x.Value) * (1 - steuer) * vf : w.HandKaufpreis(konto, x.Key, x.Value));
+        var erloesFern = hin.Sum(x => stadt.Erloes(x.Key, x.Value)) * vf;
+        var einkaufFern = rueck.Sum(x => stadt.Kosten(x.Key, x.Value)) * ef;
+        var erloesHeim = rueck.Sum(x => w.Markt[x.Key].Verkaufswert(x.Value)) * (1 - steuer) * vf;
+        var wertHin = hin.Sum(x => w.Markt[x.Key].Preis * x.Value);
+        var wertRueck = rueck.Sum(x => w.Markt[x.Key].Preis * x.Value);
+        var zoll = stadt.Daten.Zollstellen * d.ZollJeStelle * (wertHin + wertRueck);
+        var fahrten = (hin.Count > 0 ? 1 : 0) + (rueck.Count > 0 ? 1 : 0);
+        var risiko = SchiffsRisiko(w, konto, geleit) * (wertHin + wertRueck) * vorsicht;
+        return new Fahrtrechnung(einkauf, erloesFern, einkaufFern, erloesHeim, zoll, w.Schiffahrt.GeleitKosten(geleit) * fahrten, risiko,
+            Schiffahrt.Rundreise(typ, stadt));
+    }
+
+    /// <summary>
+    /// Erwarteter Verlust je beladener Fahrt als Anteil vom Wert der Ladung: Chance der Piraten × Erfolgschance (Stärke × (1 − Schutz des
+    /// Geleits und der Kampfkunst), Kettenhemden der Wache) × Beuteanteil.
+    /// </summary>
+    public static double SchiffsRisiko(Stadtwirtschaft w, Konto konto, string geleit)
+    {
+        if (w.Schiffahrt.Daten is not { } d) return 0;
+        var e = w.Daten.Logistik.Eskorten.GetValueOrDefault(geleit) ?? new EskorteDaten();
+        var schutz = Math.Min(0.95, e.Schutz + w.Familien.KampfSchutz(konto));
+        var erfolg = Math.Min(1, d.Piraten.Staerke * (1 - schutz) * w.Wache.UeberfallFaktor(e));
+        return d.Piraten.Chance * erfolg * d.Piraten.BeuteAnteil;
+    }
+
+    /// <summary>
+    /// Der einträglichste Auftrag für ein Schiff zu heutigen Preisen (Ware vom Markt, Rückfracht auf den Markt) – für die KI und als Vorschlag
+    /// der Oberfläche. Je ferner Stadt füllt er Laderaum um Laderaum mit der Ware, die den meisten Gewinn dazubringt (ganz, zwei Drittel oder
+    /// ein Drittel voll), solange sie etwas bringt und das Geld (<paramref name="budget"/>) für die Hinfracht reicht; gewählt wird die Stadt mit
+    /// dem höchsten Gewinn je Jahr (nach der Dauer der Fahrt). Null, wenn keine Fahrt Gewinn bringt.
+    /// </summary>
+    public static Fahrtvorschlag? BesteSchiffsfahrt(Stadtwirtschaft w, Konto konto, SchiffstypDaten typ, double budget, string geleit = "Keine",
+        double vorsicht = 1)
+    {
+        if (w.Schiffahrt.Daten is not { } d) return null;
+        var steuer = w.Daten.Allgemein.Umsatzsteuer;
+        var vf = w.Familien.VerkaufsFaktor(konto);
+        var ef = w.Familien.EinkaufsFaktor(konto);
+        var hk = w.HandKaufFaktor(konto);
+        var rate = SchiffsRisiko(w, konto, geleit) * vorsicht;
+        Fahrtvorschlag? bester = null;
+        foreach (var stadt in w.Schiffahrt.Staedte)
+        {
+            var zollRate = stadt.Daten.Zollstellen * d.ZollJeStelle + rate;
+            // Hinfracht: am Markt kaufen, dort verkaufen
+            var hin = Fuellen(typ, stadt.Daten.Kauft.Keys, (ware, n, q) =>
+                stadt.Erloes(ware, q, n) * vf - w.Markt[ware].HandKaufpreis(q, hk, n) - zollRate * w.Markt[ware].Preis * q,
+                (ware, n, q) => w.Markt[ware].HandKaufpreis(q, hk, n), budget);
+            // Rückfracht: dort kaufen, hier verkaufen
+            var rueck = Fuellen(typ, stadt.Daten.Verkauft.Keys, (ware, n, q) =>
+                w.Markt[ware].Verkaufswert(q, n) * (1 - steuer) * vf - stadt.Kosten(ware, q, n) * ef - zollRate * w.Markt[ware].Preis * q,
+                (_, _, _) => 0, double.MaxValue);
+            if (hin.Count + rueck.Count == 0) continue;
+            var r = Schiffsfahrt(w, konto, typ, stadt, hin, rueck, false, geleit, vorsicht);
+            // Lohnt eine Richtung das Geleit nicht, fährt sie leer.
+            if (rueck.Count > 0 && hin.Count > 0)
+            {
+                var ohneHin = Schiffsfahrt(w, konto, typ, stadt, new Dictionary<string, int>(), rueck, false, geleit, vorsicht);
+                var ohneRueck = Schiffsfahrt(w, konto, typ, stadt, hin, new Dictionary<string, int>(), false, geleit, vorsicht);
+                if (ohneHin.Gewinn > r.Gewinn) (hin, r) = (new Dictionary<string, int>(), ohneHin);
+                if (ohneRueck.Gewinn > r.Gewinn) (rueck, r) = (new Dictionary<string, int>(), ohneRueck);
+            }
+            if (r.Gewinn <= 0) continue;
+            if (bester is null || r.GewinnJeJahr > bester.Rechnung.GewinnJeJahr)
+                bester = new Fahrtvorschlag(stadt.Name, hin, rueck, r);
+        }
+        return bester;
+    }
+
+    /// <summary>Füllt die Laderäume eines Schiffs nacheinander mit der Ware, deren nächster Laderaum den meisten Gewinn dazubringt.</summary>
+    /// <param name="gewinn">(Ware, schon geplant, dazu) → Mehrgewinn.</param>
+    /// <param name="kosten">(Ware, schon geplant, dazu) → was das dazu kostet (gegen das Budget).</param>
+    private static Dictionary<string, int> Fuellen(SchiffstypDaten typ, IEnumerable<string> waren, Func<string, int, int, double> gewinn,
+        Func<string, int, int, double> kosten, double budget)
+    {
+        var plan = new Dictionary<string, int>();
+        var liste = waren.OrderBy(x => x, StringComparer.Ordinal).ToList();
+        var mengen = new[] { typ.KapazitaetJeSorte, typ.KapazitaetJeSorte * 2 / 3, typ.KapazitaetJeSorte / 3 }.Where(q => q > 0).Distinct().ToList();
+        for (var raum = 0; raum < typ.Sorten; raum++)
+        {
+            (string Ware, int Menge, double Gewinn, double Kosten) best = ("", 0, 0, 0);
+            foreach (var ware in liste)
+                foreach (var q in mengen)
+                {
+                    var n = plan.GetValueOrDefault(ware);
+                    var g = gewinn(ware, n, q);
+                    if (g <= best.Gewinn + 1e-9) continue;
+                    var k = kosten(ware, n, q);
+                    if (k > budget) continue;
+                    best = (ware, q, g, k);
+                }
+            if (best.Menge == 0) break;
+            plan[best.Ware] = plan.GetValueOrDefault(best.Ware) + best.Menge;
+            budget -= best.Kosten;
+        }
+        return plan;
+    }
+
     /// <summary>Was eine volle Ladung dieses Karrens ungefähr wert ist (mit den Waren, die der Betrieb verkauft).</summary>
     public static double Ladungswert(Stadtwirtschaft w, Karren karren)
     {
@@ -113,3 +234,24 @@ public static class Kalkulation
         return karren.Daten.Gesamtkapazitaet * preis;
     }
 }
+
+/// <summary>
+/// Die erwartete Rechnung einer Schiffsfahrt (<see cref="Kalkulation.Schiffsfahrt"/>), alles in Gulden.
+/// </summary>
+/// <param name="Einkauf">Hinfracht: am Markt gekauft bzw. aus dem Lager (was sie am Markt gebracht hätte).</param>
+/// <param name="ErloesFern">Verkauf der Hinfracht in der fernen Stadt.</param>
+/// <param name="EinkaufFern">Kauf der Rückfracht in der fernen Stadt.</param>
+/// <param name="ErloesHeim">Verkauf der Rückfracht am Markt (nach Steuer).</param>
+/// <param name="Minuten">Dauer der ganzen Fahrt (beladen, hin, liegen, zurück).</param>
+public sealed record Fahrtrechnung(double Einkauf, double ErloesFern, double EinkaufFern, double ErloesHeim, double Zoll, double Geleit,
+    double Risiko, int Minuten)
+{
+    public double Gewinn => ErloesFern - Einkauf + ErloesHeim - EinkaufFern - Zoll - Geleit - Risiko;
+
+    /// <summary>Gewinn im Jahr, wenn das Schiff solche Fahrten ohne Pause machte (ohne Unterhalt).</summary>
+    public double GewinnJeJahr => Minuten <= 0 ? 0 : Gewinn * Zeit.Spielzeit.MinutenProTag / Minuten;
+}
+
+/// <summary>Ein Vorschlag für einen Schiffsauftrag (<see cref="Kalkulation.BesteSchiffsfahrt"/>).</summary>
+public sealed record Fahrtvorschlag(string Ziel, IReadOnlyDictionary<string, int> Hinfracht, IReadOnlyDictionary<string, int> Rueckfracht,
+    Fahrtrechnung Rechnung);

@@ -320,6 +320,18 @@ public sealed class Wachwesen
     internal void GeleitBezahlen(Betrieb kunde, double kosten)
     {
         kunde.TransportBuchen(kosten);
+        GeleitgeldZahlen(kosten);
+    }
+
+    /// <summary>Ein Schiff fährt mit der Stadtwache (Schiffshandel): Das Haus zahlt, der Lohn geht an das Haus, das sie stellt.</summary>
+    internal void GeleitBezahlen(Konto kunde, double kosten)
+    {
+        kunde.Transport(kosten);
+        GeleitgeldZahlen(kosten);
+    }
+
+    private void GeleitgeldZahlen(double kosten)
+    {
         if (Geleitgeber is not { } wache) return;
         wache.Umsatz(kosten);
         Buchen(wache, x => x with { Geleitgeld = x.Geleitgeld + kosten });
