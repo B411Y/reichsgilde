@@ -158,6 +158,7 @@ public partial class Stadtansicht
                 {
                     hafen.Wurzel.Name = "Hafen_" + g.Kennung;
                     hafen.Wurzel.Transform = ModellLage(g);
+                    HafenKlickbar(g, hafen.Wurzel); // ein Klick öffnet die Hafentafel (Stadtansicht.Schiffe.cs)
                 }
                 // keine Arbeitsstelle der Einwohner (noch keine Wirtschaft am Hafen): nicht in _umlandstellen, nicht am Gassennetz
                 continue;
