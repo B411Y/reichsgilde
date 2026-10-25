@@ -115,6 +115,21 @@ static class SchiffshandelTests
             Pruefe.Gleich(0, s.Route("Hafen9", true).Count);
         }),
 
+        ("Greybox (seit PR #199): Hafen am Grenzfluss, Routen flussauf nach Westen und flussab nach Osten bis hinter den Kartenrand", () =>
+        {
+            var (_, w, _) = Stadt(karte: "greybox");
+            var s = w.Schiffahrt;
+            Pruefe.Wahr(s.IstAktiv, "Greybox hat einen Hafen");
+            var hafen = s.Haefen.Single();
+            Pruefe.Gleich("Grenzfluss", hafen.Fluss);
+            Pruefe.Wahr(hafen.Liegeplatz.Abstand(new(38, 140)) < 20, $"Liegeplatz {hafen.Liegeplatz} vor dem Hafen bei (38 | 140)");
+            Pruefe.Wahr(w.Karte!.Gelaendeform.Wasser.IstWasser(hafen.Liegeplatz.X, hafen.Liegeplatz.Z), "Liegeplatz im Wasser");
+            var feld = w.Karte.Kartengrenzen.Spielfeld;
+            var ab = s.Route(hafen.Kennung, flussauf: false);
+            var auf = s.Route(hafen.Kennung, flussauf: true);
+            Pruefe.Wahr(ab[^1].X > feld.X1 + 100 && auf[^1].X < feld.X0 - 100, $"Routen enden hinter dem Rand: {auf[^1]} … {ab[^1]}");
+        }),
+
         ("Kauf: Investition und Name; zu wenig Geld abgelehnt; Verkauf am Kai bringt die Hälfte zurück", () =>
         {
             var (_, w, k) = Stadt(geld: 2_000);
