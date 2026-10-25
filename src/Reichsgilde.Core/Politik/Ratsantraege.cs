@@ -207,9 +207,10 @@ public sealed class Ratsantraege
     // ═════════════════════════════════════════════════════════════════════════
 
     /// <summary>
-    /// Würde dieser Ratsherr zustimmen? Mit Gunst ab <c>kasse.antragGunst</c> immer; sonst nach der Kasse und seiner Reserve:
-    /// Steuer rauf, solange die Kasse unter der Reserve liegt, runter, sobald sie mehr als das Doppelte hat; Bau und Fest, wenn danach
-    /// noch die Reserve bleibt.
+    /// Würde dieser Ratsherr zustimmen? Mit Gunst ab <c>kasse.antragGunst</c> immer; sonst rechnet er wie ein Haushälter mit der Kasse und
+    /// seiner Reserve: Steuer rauf, wenn die Kasse unter der Reserve liegt oder der Haushalt des Vorjahres im Minus war; runter nur, wenn
+    /// die Kasse mehr als das Doppelte hat und der Haushalt auch mit dem neuen Satz im Plus bliebe (<see cref="Stadtkasse.HaushaltMit"/>);
+    /// Bau und Fest, wenn danach noch die Reserve bleibt.
     /// </summary>
     public bool StimmtZu(Ratsherr r, Ratsantrag a)
     {
@@ -218,7 +219,9 @@ public sealed class Ratsantraege
         var reserve = k.ReserveVon(r.Daten.Volk);
         return a.Art switch
         {
-            Antragsart.Steuersatz => a.Prozent > Kasse.SteuersatzProzent ? Kasse.Stand < reserve : Kasse.Stand > 2 * reserve,
+            Antragsart.Steuersatz => a.Prozent > Kasse.SteuersatzProzent
+                ? Kasse.Stand < reserve || Kasse.HaushaltMit(Kasse.SteuersatzProzent) < 0
+                : Kasse.Stand > 2 * reserve && Kasse.HaushaltMit(a.Prozent) >= 0,
             _ => Kasse.Stand - Kosten(a) >= reserve,
         };
     }

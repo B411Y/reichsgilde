@@ -97,7 +97,7 @@ static class StadtkasseTests
 
     public static IEnumerable<(string, Action)> Alle() => new (string, Action)[]
     {
-        ("Stadtkasse: Steuern, Glaubenszins und Gebühren kommen herein, die Amtsgehälter aller Ämter gehen hinaus; das Jahr wird zum Vorjahr", () =>
+        ("Stadtkasse: Steuern und Glaubenszins kommen herein (die Standesgebühr nicht), die Amtsgehälter aller Ämter gehen hinaus; das Jahr wird zum Vorjahr", () =>
         {
             var sim = NeueSimulation();
             var w = sim.Wirtschaft!;
@@ -108,23 +108,23 @@ static class StadtkasseTests
             var k = Haus(w, "Steuerzahler", 1_000_000);
             k.Steuer(100);
             k.Steuer(50, Kassenposten.Glaubenszins);
-            Ok(w, Wohnhaushilfe.MitWohnhaus(w, k), new StandErwerben());
-            var gebuehr = w.Daten.Staende[1].Gebuehr;
+            Ok(w, Wohnhaushilfe.MitWohnhaus(w, k), new StandErwerben()); // die Standesgebühr geht an den Landesherrn
             Pruefe.Gleich(100.0, w.Kasse.DiesesJahr[Kassenposten.Umsatzsteuer]);
             Pruefe.Gleich(50.0, w.Kasse.DiesesJahr[Kassenposten.Glaubenszins]);
-            Pruefe.Gleich(gebuehr, w.Kasse.DiesesJahr[Kassenposten.Gebuehren]);
-            Pruefe.Gleich(3150 + gebuehr, w.Kasse.Stand);
+            Pruefe.Gleich(0.0, w.Kasse.DiesesJahr[Kassenposten.Gebuehren]);
+            Pruefe.Gleich(3150.0, w.Kasse.Stand);
             Sitz(w, "Zöllner", k);
             JahrBeenden(sim);
             var vorjahr = w.Kasse.Vorjahr!;
             Pruefe.Gleich(Spielzeit.StartJahr, vorjahr.Jahr);
             Pruefe.Gleich(2700.0, vorjahr[Kassenposten.Amtsgehaelter]); // 800 + 2 × 500 + 2 × 300 + 2 × 150 – auch für die Ratsherren
             Pruefe.Gleich(150.0, k.Vorjahr!.Amtseinkommen);
-            Pruefe.Gleich(150 + gebuehr, vorjahr.Einnahmen);
+            Pruefe.Gleich(150.0, vorjahr.Einnahmen);
             Pruefe.Gleich(2700.0, vorjahr.Ausgaben);
-            Pruefe.Ungefaehr(3000 + 150 + gebuehr - 2700, w.Kasse.Stand, 1e-9);
+            Pruefe.Ungefaehr(3000 + 150 - 2700, w.Kasse.Stand, 1e-9);
             Pruefe.Gleich(0.0, w.Kasse.DiesesJahr.Einnahmen);
-            Pruefe.Gleich("Umsatzsteuer|Glaubenszins|Gebuehren|Amtsgehaelter", string.Join("|", vorjahr.Posten.Select(p => p.Posten)));
+            Pruefe.Gleich("Umsatzsteuer|Glaubenszins|Amtsgehaelter", string.Join("|", vorjahr.Posten.Select(p => p.Posten)));
+            Pruefe.Gleich(150.0 - 100 * 0.2 - 2700, w.Kasse.HaushaltMit(4)); // Haushalt des Vorjahres mit 4 % statt 5 %
             // Die leere Kasse hat keine Folgen: Die Gehälter werden weiter gezahlt, die Kasse geht ins Minus.
             JahrBeenden(sim);
             JahrBeenden(sim);
@@ -180,7 +180,7 @@ static class StadtkasseTests
             Pruefe.Gleich(3010.0, w2.Kasse.Stand);
         }),
 
-        ("Antrag Steuersatz: 3–8 %, nur im Rat, je Jahr einer; die Ratsherren senken bei voller Kasse und erhöhen bei leerer", () =>
+        ("Antrag Steuersatz: 3–8 %, nur im Rat, je Jahr einer; die Ratsherren senken bei voller Kasse und gesundem Haushalt, erhöhen bei leerer", () =>
         {
             var sim = NeueSimulation();
             var w = sim.Wirtschaft!;
@@ -194,7 +194,10 @@ static class StadtkasseTests
             // Kasse 3.000: Senken will keiner (erst über der doppelten Reserve), nur der Antragsteller
             var senken = new Ratsantrag(Antragsart.Steuersatz, k, Prozent: 4);
             Pruefe.Gleich((1, 6, 0, (bool?)false), w.Ratsantraege.Prognose(senken));
-            KasseAuf(w, 10_000); // über 2 × 3.000 (Zwerge) – alle dafür
+            KasseAuf(w, 10_000); // über 2 × 3.000 (Zwerge) – aber im ersten Jahr kennt noch keiner den Haushalt
+            Pruefe.Gleich((1, 6, 0, (bool?)false), w.Ratsantraege.Prognose(senken));
+            k.Steuer(4000);
+            JahrBeenden(sim); // Haushalt: 4.000 Steuern + 7.000 Bußen − 2.700 Gehälter
             Pruefe.Gleich((7, 0, 0, (bool?)true), w.Ratsantraege.Prognose(senken));
             Ok(w, k, new SteuersatzBeantragen(4));
             Pruefe.Gleich(senken, w.Ratsantraege.Antrag(Antragsart.Steuersatz));
@@ -208,9 +211,19 @@ static class StadtkasseTests
             KasseAuf(w, 1000);
             Pruefe.Gleich((7, 0, 0, (bool?)true), w.Ratsantraege.Prognose(new Ratsantrag(Antragsart.Steuersatz, k, Prozent: 6)));
             Pruefe.Gleich((1, 6, 0, (bool?)false), w.Ratsantraege.Prognose(new Ratsantrag(Antragsart.Steuersatz, k, Prozent: 3)));
+
             // Gunst: Wer die Ratsherren für sich hat, bekommt ihre Stimme auch gegen die Kasse
             Beliebt(w, k);
             Pruefe.Gleich((7, 0, 0, (bool?)true), w.Ratsantraege.Prognose(new Ratsantrag(Antragsart.Steuersatz, k, Prozent: 3)));
+            // Ein Jahr ohne Einnahmen: Der Haushalt des Vorjahres ist im Minus (nur Gehälter) – trotz voller Kasse senkt keiner, erhöhen wollen alle
+            var neuling = Haus(w, "Neuling");
+            Sitz(w, "Gefängniswärter", neuling);
+            KasseAuf(w, 50_000);
+            JahrBeenden(sim);
+            JahrBeenden(sim);
+            Pruefe.Wahr(w.Kasse.Stand > 40_000 && w.Kasse.HaushaltMit(3) < 0, $"Kasse {w.Kasse.Stand}, Haushalt {w.Kasse.HaushaltMit(3)}");
+            Pruefe.Gleich((1, 5, 1, (bool?)false), w.Ratsantraege.Prognose(new Ratsantrag(Antragsart.Steuersatz, neuling, Prozent: 3))); // der Reformer enthält sich
+            Pruefe.Gleich((6, 0, 1, (bool?)true), w.Ratsantraege.Prognose(new Ratsantrag(Antragsart.Steuersatz, neuling, Prozent: 6)));
         }),
 
         ("Antrag Steuersatz: Die Ratsherren rechnen nach ihrem Volk (Zwerg 3.000, Elb 2.400, Mensch 2.000, Halbling 1.500)", () =>

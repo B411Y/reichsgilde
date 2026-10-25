@@ -897,8 +897,7 @@ public sealed partial class Stadtwirtschaft
         if (Wohnen.StandVerboten(konto, konto.Stand + 1) is { } ohneHaus)
             return Befehlsergebnis.Abgelehnt(ohneHaus);
 
-        konto.Standesgebuehr(neu.Gebuehr);
-        Kasse.Buchen(Politik.Kassenposten.Gebuehren, neu.Gebuehr); // die Gebühr geht ans Rathaus
+        konto.Standesgebuehr(neu.Gebuehr); // geht an den Landesherrn, nicht in die Stadtkasse (PR #200)
         konto.Stand++;
         Melden($"{konto.Inhaber} ist nun {neu.Name}! (Gebühr {Zahlenformat.Ganz(neu.Gebuehr)} {waehrung})");
         Aufgestiegen?.Invoke(konto, neu);

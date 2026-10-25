@@ -64,8 +64,8 @@ static class KiStadtkasseTests
             BisNachPolitik(sim);
             Pruefe.Wahr(w.Ratsantraege.Antrag(Antragsart.Steuersatz) is null, "nicht durchsetzbar – kein Antrag");
             ki.Steuer(500);
+            KasseAuf(w, 20_000); // Bußen: der Haushalt bleibt auch mit 4 % im Plus
             JahrBeenden(sim);
-            KasseAuf(w, 20_000);
             BisNachPolitik(sim);
             var a = w.Ratsantraege.Antrag(Antragsart.Steuersatz);
             Pruefe.Wahr(a is { Prozent: 4 } && a.Antragsteller == ki, $"Antrag: {a}");
@@ -87,10 +87,12 @@ static class KiStadtkasseTests
             var (sim, w, ki) = Aufbau("Zöllner");
             Ok(w, Wohnhaushilfe.MitWohnhaus(w, ki), new StandErwerben());
             Ok(w, ki, new AmtBewerben("Marktmeister"));
+            ki.Schaden(ki.Vermoegen - 1600); // wenig Ansehen und kein Geld für Geschenke: Die Wahl ist nicht sicher
+            Pruefe.Wahr(w.Rat.WahlPrognose(w.Rat.AmtNamens("Marktmeister")!, ki).Sicher == 0, "Wahl unsicher");
             w.Einstellen(w.BetriebEroeffnen("KI-Gießerei", Betriebsart.Giesserei, ki), "Geselle", 1);
             KasseAuf(w, 30_000);
             BisNachPolitik(sim);
-            Pruefe.Wahr(w.Ratsantraege.Antrag(Antragsart.Fest)?.Antragsteller == ki, "Fest");
+            Pruefe.Wahr(w.Ratsantraege.Antrag(Antragsart.Fest)?.Antragsteller == ki, "Fest – " + string.Join(" | ", w.Rivalen.Single().Entscheidungen) + $" – Prognose {w.Rat.WahlPrognose(w.Rat.AmtNamens("Marktmeister")!, ki)}");
             var bau = w.Ratsantraege.Antrag(Antragsart.Bauvorhaben);
             Pruefe.Wahr(bau is not null && bau.Antragsteller == ki && bau.Bauvorhaben is "marktplatz" or "mauer", $"Bau: {bau}");
         }),
