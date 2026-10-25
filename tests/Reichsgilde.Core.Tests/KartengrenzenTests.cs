@@ -84,14 +84,15 @@ static class KartengrenzenTests
             Pruefe.Gleich(2000.0, riesig.Breite, "höchstens 2 km");
         }),
 
-        ("Kartenformat: Greybox und Köln haben eine feste Größe, abgeleitet wie für ältere Spielstände; der übrige Inhalt ist unverändert", () =>
+        ("Kartenformat: Greybox und Köln haben eine feste Größe; Köln abgeleitet wie für ältere Spielstände, der übrige Inhalt ist unverändert", () =>
         {
+            // Die Greybox ist seit PR #199 nach Süden bis über den Fluss gewachsen (400 × 400, Mitte 0 | 50) – nicht mehr abgeleitet.
             var greybox = Stadtkarte.AusDatei(Datenpfad.Karte("greybox"));
-            Pruefe.Gleich(new Kartenrechteck(-200, -150, 200, 150), greybox.Kartengrenzen.Spielfeld);
+            Pruefe.Gleich(new Kartenrechteck(-200, -150, 200, 250), greybox.Kartengrenzen.Spielfeld);
             Pruefe.Gleich(300.0, greybox.Kartengrenzen.Randbreite);
             var koeln = Stadtkarte.AusDatei(Datenpfad.Karte("koeln"));
             Pruefe.Gleich(new Kartengrenzen(700, 450, O(-50, 25), 300), koeln.Kartengrenzen);
-            foreach (var kennung in new[] { "greybox", "koeln" })
+            foreach (var kennung in new[] { "koeln" })
             {
                 // ein alter Spielstand hat die Karte ohne Größe: Die Stadtkarte leitet dieselbe ab
                 var alt = Stadtkarte.AusJson(OhneGroesse(kennung), Katalog.Value);

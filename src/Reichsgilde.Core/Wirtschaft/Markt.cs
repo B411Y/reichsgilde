@@ -106,11 +106,25 @@ public sealed class Marktstand
     /// anders als der Bedarf der Werkstätten, den die Nachfrage der Stadt schon enthält.
     /// </summary>
     /// <param name="faktor">Händlerspanne und Verhandeln, z. B. 1,1 × 0,97.</param>
-    public double HandKaufpreis(int stueck, double faktor)
+    /// <param name="vorher">So viele Stück wären vorher schon gekauft (für eine Rechnung in Schritten, z. B. die Ladung eines Schiffs).</param>
+    public double HandKaufpreis(int stueck, double faktor, int vorher = 0)
     {
         double summe = 0;
         for (var i = 0; i < stueck; i++)
-            summe += _ware.Grundpreis * FaktorBei(-i) * faktor;
+            summe += _ware.Grundpreis * FaktorBei(-(vorher + i)) * faktor;
+        return summe;
+    }
+
+    /// <summary>
+    /// Was der Verkauf so vieler Stück jetzt brächte (vor Steuer und Verhandeln) – jedes Stück drückt den Preis für das nächste,
+    /// genau wie <see cref="Verkaufen"/>, aber ohne zu verkaufen.
+    /// </summary>
+    /// <param name="vorher">So viele Stück wären vorher schon verkauft.</param>
+    public double Verkaufswert(int stueck, int vorher = 0)
+    {
+        double summe = 0;
+        for (var i = 0; i < stueck; i++)
+            summe += _ware.Grundpreis * FaktorBei(vorher + i);
         return summe;
     }
 

@@ -78,6 +78,9 @@ public sealed partial class Stadtwirtschaft
     /// <summary>Belag der Wege: Austritt, Verfall, Bauaufträge, Pflaster des Stadtrats (braucht die <see cref="Karte"/> und „wegebau“).</summary>
     public Bauen.Wegebau Wegebau { get; }
 
+    /// <summary>Schiffe der Häuser, ihre Fahrten zu den fernen Städten am Fluss und deren Märkte (braucht die <see cref="Karte"/> mit Hafen und „schiffshandel“).</summary>
+    public Schiffahrt Schiffahrt { get; }
+
     /// <summary>Die Karte der Stadt: Wege, Bauzonen, feste Bauten, Wohnhausplätze (null: ohne Karte – dann wird nicht gebaut).</summary>
     public Bauen.Stadtkarte? Karte { get; private set; }
 
@@ -280,6 +283,7 @@ public sealed partial class Stadtwirtschaft
         Wohnen = new Wohnen.Wohnungswesen(this, daten.Wohnen);
         Bauen = new Bauen.Bauwesen(this, daten.Bauen);
         Wegebau = new Bauen.Wegebau(this, daten.Wegebau);
+        Schiffahrt = new Schiffahrt(this, daten.Schiffshandel);
         Gesundheit = new Gesundheitswesen(this, daten.Gesundheit, zufallsstartwert);
         Gastwirtschaft = new Gastwirtschaft(this, daten.Gastwirtschaft);
         Werkstaetten = new Werkstattwesen(this, daten.Werkstatt, zufallsstartwert);
@@ -481,6 +485,7 @@ public sealed partial class Stadtwirtschaft
         }
         foreach (var karren in _alleKarren)
             karren.Tick(zeit, this);
+        Schiffahrt.Minute(zeit); // Schiffe legen ab, kommen an, kehren heim
 
         Wohnen.Minute(zeit); // fertige Ausbauten der Wohnhäuser
         Bauen.Minute(zeit);  // fertige Baustellen: Umzug, neue Werkstätten, Bauplätze
@@ -504,6 +509,7 @@ public sealed partial class Stadtwirtschaft
         Wache.Stunde(zeit);        // Sold für die Wachleute
         Bank.Stunde(zeit);         // Zinsen der Stadtkunden, Wechsel; Kreditzinsen laufen auf
         Werkstaetten.Stunde(zeit); // Unfälle, Laune und Kündigungen in den Werkstätten
+        Schiffahrt.Stunde();       // die Märkte der fernen Städte erholen sich
         foreach (var rivale in _rivalen)
             rivale.Stunde(); // bankrotte Rivalen tun nichts mehr
     }
@@ -522,6 +528,7 @@ public sealed partial class Stadtwirtschaft
         Wohnen.UnterhaltZahlen(); // Unterhalt der Wohnhäuser, mit den Haushaltskosten
         Glaube.AbgabenZahlen(); // Glaubenszins der Andersgläubigen – noch ins alte Jahr
         Bank.Jahresende(); // Ausfälle, Zins und Rate der Kredite – noch in die alte Jahresrechnung
+        Schiffahrt.Jahresende(); // Unterhalt der Schiffe – noch ins alte Jahr
         foreach (var konto in _konten)
             konto.JahrAbschliessen(neuesJahr);
         foreach (var betrieb in _betriebe)
@@ -629,7 +636,8 @@ public sealed partial class Stadtwirtschaft
         if (absender.IstErloschen)
             return Befehlsergebnis.Abgelehnt($"Das Haus {absender.Inhaber} ist erloschen.");
         if (Justiz.IstAktiv && Justiz.ImKerker(absender) && befehl is not (BetriebsBefehl or ErbenBestimmen or ErpressungBeantworten or DiebesforderungBeantworten or AusbildungWaehlen or KreditTilgen
-                                                                     or MedicusRufen or SchnapsKaufen or SchnapsGeben or GegengiftGeben or HauswaechterSetzen))
+                                                                     or MedicusRufen or SchnapsKaufen or SchnapsGeben or GegengiftGeben or HauswaechterSetzen
+                                                                     or SchiffahrtBefehl))
             return Befehlsergebnis.Abgelehnt($"Das Oberhaupt von {absender.Inhaber} sitzt bis Ende {Justiz.KerkerBis(absender)} im Kerker. " +
                                              "Nur die Betriebe laufen weiter.");
         if (befehl is StandErwerben)
@@ -784,6 +792,8 @@ public sealed partial class Stadtwirtschaft
             return Familien.Heiraten(absender, heirat.Kandidat);
         if (befehl is ErbenBestimmen testament)
             return Familien.ErbenBestimmen(absender, testament.Person);
+        if (befehl is SchiffahrtBefehl schiffahrt)
+            return Schiffahrt.Ausfuehren(absender, schiffahrt);
         if (befehl is not BetriebsBefehl betriebsBefehl)
             return Befehlsergebnis.Abgelehnt($"Unbekannter Befehl: {befehl.GetType().Name}");
 
@@ -1031,6 +1041,7 @@ public sealed partial class Stadtwirtschaft
         Bauen = Bauen.Sichern(k => _konten.IndexOf(k)),
         WerkstattWuerfe = Werkstaetten.Wuerfe,
         Wegebau = Wegebau.Sichern(k => _konten.IndexOf(k)),
+        Schiffahrt = Schiffahrt.Sichern(k => _konten.IndexOf(k)),
     };
 
     /// <summary>
@@ -1097,6 +1108,7 @@ public sealed partial class Stadtwirtschaft
             Einwohnerschaft.Wiederherstellen(einwohnerStand);
         Werkstaetten.Wiederherstellen(s.WerkstattWuerfe);
         Wegebau.Wiederherstellen(s.Wegebau, _konten);
+        Schiffahrt.Wiederherstellen(s.Schiffahrt, _konten);
         ToteBetriebeFreigeben(); // alte Spielstände: Betriebe toter Häuser standen still – nun stehen sie zum Verkauf
         EinwohnerZaehlen();
     }

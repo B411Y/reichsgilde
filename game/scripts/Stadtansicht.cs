@@ -725,6 +725,7 @@ public partial class Stadtansicht : Node3D
                 KarrenBewegen(betrieb.Karren[i], i, ansicht, fahrzeit, zeit.VergangeneMinuten + bruchteil, delta, ansicht.Spieler);
             }
         }
+        SchiffeAktualisieren(w, zeit.VergangeneMinuten + bruchteil, delta); // Stadtansicht.Schiffe.cs
         if (_innen is SonderbauAnsicht sonderbau)
             SonderbauAktualisieren(sonderbau, zeit, arbeitszeit, delta);
     }
@@ -891,11 +892,11 @@ public partial class Stadtansicht : Node3D
         if (zoom is { } z2) _kamera.Size = Mathf.Clamp(z2, KameraMinZoom, KameraGroessterZoom());
     }
 
-    /// <summary>Fährt die Kamera sanft zu einem Gebäude (Betriebsleiste der Oberfläche, PR #197), der Zoom bleibt. False, wenn es die Kennung nicht gibt oder man drinnen ist.</summary>
+    /// <summary>Fährt die Kamera sanft zu einem Gebäude (Betriebsleiste der Oberfläche, PR #197), einem Hafen oder Schiff (PR #199), der Zoom bleibt. False, wenn es die Kennung nicht gibt oder man drinnen ist.</summary>
     public bool Hinfahren(string kennung)
     {
-        if (_innen is not null || AnsichtZu(kennung) is not { } ansicht) return false;
-        Kamerafahrt(ansicht.Mitte, _kamera.Size);
+        if (_innen is not null || (AnsichtZu(kennung)?.Mitte ?? HafenOderSchiffMitte(kennung)) is not { } mitte) return false;
+        Kamerafahrt(mitte, _kamera.Size);
         return true;
     }
 

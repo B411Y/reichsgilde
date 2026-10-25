@@ -22,6 +22,9 @@ static class Messung
         // Balancing-Bericht (PR #176): … -- messen bericht [Jahre] [Startwerte] [--karte=…] – siehe Balancingbericht.cs
         if (args.Length > 0 && args[0] == "bericht")
             return Balancingbericht.Erstellen(args[1..]);
+        // Schiffshandel (PR #199): … -- messen schiffe [Jahre] [Startwerte] [Karte] – siehe Schiffsmessung.cs
+        if (args.Length > 0 && args[0] == "schiffe")
+            return Schiffsmessung.Erstellen(args[1..]);
         var daten = Wirtschaftsdaten.AusDatei(Datenpfad.Wirtschaft());
         var mitKarte = args.Contains("greybox");
         args = args.Where(a => a != "greybox").ToArray();

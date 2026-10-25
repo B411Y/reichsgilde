@@ -173,9 +173,11 @@ static class BodenTests
             Pruefe.Wahr(doppelt > 1.6 * 64 * 64 * 3 / 100, $"doppelt: {doppelt}");
         }),
 
-        ("Alte Karten: Greybox, Köln und Messstadt haben keinen Boden – Byte für Byte dieselbe Datei, alles Wiese, keine Deko", () =>
+        ("Alte Karten: Köln und Messstadt haben keinen Boden – Byte für Byte dieselbe Datei, alles Wiese, keine Deko", () =>
         {
-            foreach (var kennung in new[] { "greybox", "koeln", "messstadt" })
+            // Die Greybox hat seit PR #199 Boden (Sand, Schlamm und Kies am Fluss und am Hafen).
+            Pruefe.Wahr(Stadtkarte.AusDatei(Datenpfad.Karte("greybox")).Boden is { IstLeer: false }, "Greybox mit Boden");
+            foreach (var kennung in new[] { "koeln", "messstadt" })
             {
                 var e = Kartenentwurf.AusJson(Text(kennung), Katalog.Value);
                 Pruefe.Wahr(e.Boden.IstLeer && !Text(kennung).Contains("\"boden\""), kennung);

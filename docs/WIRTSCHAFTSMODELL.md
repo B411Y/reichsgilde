@@ -1497,3 +1497,72 @@ Der Einrichtungskauf hebt alle drei Häuser um 20–30 %; Eichwald (Tischler) le
 | Kieselbach | 185.639 | 186.711 (+0,6 %) |
 
 Stand der KI-Häuser am Ende: vorher Freiherr 34, Reichsgraf 26; mit Belag Edler 1, Freiherr 34, Reichsgraf 25; kein Bankrott. Die schnelleren Fahrten bringen den Werkstätten etwas mehr Marktfenster, die Ausbauten kosten etwa so viel – die Wirkung liegt im Rauschen der Messung. Neu in der Messung: Zeile „Wegbelag am Ende“ und „Weg ausgebaut“ bei den Bauten der KI.
+
+## Schiffshandel (PR #199)
+
+**Regel:** Datenversion 53, neue Abschnitte `schiffshandel` und `ki.schiffe`. Hat die Karte einen Hafen an einem Fluss, kauft ein Haus dort ein Flussschiff (3.000 Gulden, Unterhalt 350 im Jahr, 4 Laderäume × 30 Stück) und schickt es mit Auftrag zu einer fernen Stadt am Kartenrand: Hinfracht aus dem Lager eines eigenen Betriebs oder am Markt von Hand gekauft, dort verkaufen, Rückfracht dort kaufen, daheim ins Lager oder auf den Markt. Fahrtzeit Entfernung × 60 Minuten flussab bzw. × 100 flussauf, dazu 20 Minuten Beladen und 30 Liegezeit:
+
+| Ferne Stadt | Richtung | Hin und zurück | Zollstellen | Kauft (Faktor auf den Grundpreis) | Verkauft |
+|---|---|---|---|---|---|
+| Eisenfurt | flussauf | 242 Min. | 2 | Körnermahlzeit, Kerze, Werkzeug ×1,6; Dünnbier, Starkbier ×1,55 | Eisen, Holz, Bruchstein ×0,75; Granit ×0,8; Silber ×0,85 |
+| Weidenmünd | flussab | 290 Min. | 3 | Silberring, Silberkette, Rapier, Rosenwasser, Moschusduft ×1,6; Goldkette, Armbrust, Fechterduft ×1,55 | Gold ×0,85; Jasmin, Wachs, Kräuter ×0,75 |
+
+```
+Preis dort, Stadt kauft:     Grundpreis × Faktor × (Menge ÷ (Menge + Druck))^0,5
+Preis dort, Stadt verkauft:  Grundpreis × Faktor × ((Menge + Druck) ÷ Menge)^0,5
+Druck                        = gehandelte Stück, je Spielstunde × 0,92 (nach einem Jahr ein Viertel)
+Zoll je beladener Fahrt      = Zollstellen × 2,5 % × Wert der Ladung zum Marktpreis daheim
+Geleit je beladener Fahrt    = Eskorte der Karren × 3 (Normal 30, Schwer 90, Stadtwache 60)
+Flusspiraten                 = 5 % je beladener Fahrt; Erfolg = Stärke 1 × (1 − Schutz); Beute = Hälfte jeder Ware
+Gewinn einer Fahrt           = Erlös dort − Einkauf + Erlös daheim (nach Steuer) − Einkauf dort − Zoll − Geleit − Risiko
+```
+
+Menge (Tiefe des Marktes): Fertigwaren 50, teure 30–40; Rohstoffe 120, Granit, Silber und Gold 72. Die KI kauft zum Jahresende ein Schiff, wenn Gewinn je Jahr der besten Fahrt × 0,5 − Unterhalt den Preis in 4 Jahren einspielt (höchstens eins je Haus), und schickt es stündlich mit dem besten Auftrag los, wenn er mindestens 100 Gulden bringt.
+
+**Rechnung am Start** (Probestadt, Haus mit 10.000 Gulden, ohne Geleit, Werte nach Entscheidung des Nutzers): Am besten fährt man nach Weidenmünd mit je 10 Silberketten, Moschusduft, Rapieren und Silberringen und holt je 30 Jasmin, Wachs, Kräuter und 10 Gold: Einkauf 9.107, Erlös dort 11.187, Einkauf dort 1.752, Erlös daheim 2.274, Zoll 804, Risiko 248 → Gewinn 1.550 in 290 Minuten (mit den ersten Werten 1.338). Eigene Ware aus dem Lager spart den Einkauf von Hand (Händlerspanne und Preisanstieg) und bringt mehr.
+
+**Messung mit den ersten Werten** (Fertigwaren ×1,5/×1,45, Rohstoffe ×0,6–0,7; `messen schiffe 30 20`, Probestadt, 20 Startwerte × 30 Jahre, Spieler passiv, zwei KI-Häuser ausgewogen; dieselben Partien mit und ohne Abschnitt `schiffshandel`; gemessen auf main `5b345a5` + Branch `phase5/hafen-kern` `697a511`):
+
+| | mit Schiffshandel | ohne | Unterschied |
+|---|---|---|---|
+| Haus Hammerschmid (Spieler, passiv, ohne Schiff) | 56.987 | 47.104 | +21,0 % |
+| Haus Ahlbeck (KI) | 303.523 | 238.588 | +27,2 % |
+| Haus Brendel (KI) | 294.062 | 220.410 | +33,4 % |
+
+- **Schiffe:** 40 in 20 Partien (jedes KI-Haus eins, das erste im Mittel in Jahr 3,4), 870 Schiffsjahre, 3,32 Fahrten je Schiff und Jahr (Weidenmünd 1.881, Eisenfurt 1.044).
+- **Ertrag je Schiff und Jahr nach Unterhalt: 1.266** – ein Umlandbetrieb der KI bringt 1.458, eine Werkstatt 4.429 (Ziel: ein Schiff ≈ ein guter Umlandbetrieb).
+- **Flusspiraten:** 252 Angriffe, 110 gelungen (4,4 % der Fahrtstrecken angegriffen).
+- **Befund:** Auch der passive Spieler ohne Schiff hat 21 % mehr: Die Rückfracht der KI (Gold, Jasmin, Wachs, Eisen, Granit …) macht Rohstoffe daheim billiger, davon leben alle Werkstätten. Offener Punkt in `kern.md`.
+- **Ohne Hafen unverändert:** `messen 30 20` und `messen 30 20 greybox` (alte Greybox ohne Fluss) sind vorher und nachher zeichengleich (main `5b345a5` gegen Branch).
+
+**Greybox mit Fluss und Hafen** (neue Greybox aus PR #199: 400 × 400, Grenzfluss im Süden, Hafen vor dem Südtor; gemessen auf main `5b345a5` + Funktions-Branch `phase5/hafen` `1bb49d6` + Kern `50acea2`):
+
+| Ø Vermögen nach 30 Jahren | alte Greybox (PR #182) | neue Greybox ohne Schiffshandel | neue Greybox mit Schiffshandel (`messen 30 20 greybox`) |
+|---|---|---|---|
+| Eisenbart (Schmied, Spieler passiv, KI) | 187.691 | 185.904 (−1,0 %) | 245.010 (+31,8 %) |
+| Eichwald (Tischler) | 164.660 | 164.483 (−0,1 %) | 189.224 (+15,0 %) |
+| Kieselbach (Steinmetz) | 186.711 | 186.262 (−0,2 %) | 181.316 (−2,7 %) |
+| Hammerschmid (Spieler, passiv) | – | 52.947 | 62.384 (+17,8 %) |
+
+Die neue Karte allein ändert fast nichts (−1 … 0 %). Mit Schiffshandel: 49 Schiffe in 20 Partien (fast jedes KI-Haus eins, das erste Ø in Jahr 3,4), 3,03 Fahrten je Schiff und Jahr (Weidenmünd 2.261, Eisenfurt 1.111), **Ertrag je Schiff und Jahr nach Unterhalt 508** (Umlandbetrieb 1.365, Werkstatt 4.361) – drei Schiffe teilen sich die fernen Märkte und verkaufen ihre Rückfracht am selben Markt daheim. Flusspiraten: 303 Angriffe, 157 gelungen. Bürgermeister 14/20 (vorher 13/20), Stand der KI am Ende Reichsgraf 38, Freiherr 20, Edler 2 (vorher Reichsgraf 25, Freiherr 34, Edler 1); kein Bankrott. Der Zuwachs der Häuser kommt vor allem von den billigeren Rohstoffen daheim (Schmied +32 %), der Steinmetz verliert, weil Bruchstein und Granit auch per Schiff kommen. Gegenprobe mit tieferen fernen Märkten (Menge × 1,6): Schiff 595 (Greybox) bzw. 1.615 (Probestadt) im Jahr, Häuser bis +41 bzw. +48 % – nicht übernommen. Entscheidung siehe unten.
+
+**Werte nach Entscheidung des Nutzers** („Rohstoffe teurer, Fertigwaren besser bezahlt“, 25.10.2026): Fertigwaren dort +0,1 (×1,6/×1,55), Rohstoffe dort +0,15 (×0,75/×0,8/×0,85, Tabelle oben). Gemessen in zwei Runden auf main `5b345a5` + Funktions-Branch `phase5/hafen` `a8db4bc` + diese Änderung; Runde 1 nur +0,1 auf beides (Rohstoffe ×0,7/×0,75/×0,8), Runde 2 Rohstoffe noch +0,05 (übernommen).
+
+| `messen schiffe 30 20` (Probestadt) | erste Werte | Runde 1 | Runde 2 (übernommen) |
+|---|---|---|---|
+| Hammerschmid (Spieler, passiv, ohne Schiff; ohne Schiffshandel 47.104) | 56.987 (+21,0 %) | 58.903 (+25,0 %) | 59.227 (+25,7 %) |
+| Ahlbeck (KI; ohne 238.588) | 303.523 (+27,2 %) | 323.821 (+35,7 %) | 312.096 (+30,8 %) |
+| Brendel (KI; ohne 220.410) | 294.062 (+33,4 %) | 309.470 (+40,4 %) | 302.121 (+37,1 %) |
+| Ertrag je Schiff und Jahr nach Unterhalt | 1.266 | 1.549 | **1.478** (Umlandbetrieb 1.491, Werkstatt 4.541) |
+
+| `messen schiffe 30 20 greybox` | erste Werte | Runde 1 | Runde 2 (übernommen) |
+|---|---|---|---|
+| Hammerschmid (Spieler, passiv; ohne 52.947) | 62.384 (+17,8 %) | 62.799 (+18,6 %) | 63.890 (+20,7 %) |
+| Eisenbart (Schmied, KI; ohne 185.904) | 245.010 (+31,8 %) | 256.728 (+38,1 %) | 250.864 (+34,9 %) |
+| Eichwald (Tischler; ohne 164.483) | 189.224 (+15,0 %) | 198.608 (+20,7 %) | 183.388 (+11,5 %) |
+| Kieselbach (Steinmetz; ohne 186.262) | 181.316 (−2,7 %) | 183.923 (−1,3 %) | 193.086 (+3,7 %) |
+| Ertrag je Schiff und Jahr nach Unterhalt | 508 | 549 | **585** (Umlandbetrieb 1.402, Werkstatt 4.470) |
+
+- **Runde 2, Probestadt:** 40 Schiffe in 20 Partien (das erste Ø in Jahr 4,5), 893 Schiffsjahre, 3,25 Fahrten je Schiff und Jahr (Weidenmünd 2.120, Eisenfurt 823); Flusspiraten 235 Angriffe, 91 gelungen. Das Schiff erreicht einen Umlandbetrieb (Ziel erfüllt).
+- **Runde 2, Greybox:** 57 Schiffe (vorher 49; das erste Ø in Jahr 4,7), 1.143 Schiffsjahre, 3,00 Fahrten (Weidenmünd 2.467, Eisenfurt 1.011); Flusspiraten 252 Angriffe, 121 gelungen. `messen 30 20 greybox`: Eisenbart Ø 250.864 (wie oben), Bürgermeister 15/20 (vorher 14/20), Stand der KI am Ende Reichsgraf 43, Freiherr 17 (vorher 38/20/Edler 2); kein Bankrott. Drei Schiffe teilen sich die Märkte, das Schiff bleibt dort weit unter einem Umlandbetrieb.
+- **Befund:** Die teureren Rohstoffe dort dämpfen die KI-Häuser (Probestadt Runde 1 → 2: −5 Punkte) und helfen dem Steinmetz (weniger billiger Bruchstein und Granit). Den passiven Spieler treffen sie nicht (+25,0 → +25,7 %): Er ist Schmied, und die KI kauft seine Fertigwaren (Silberringe, Rapiere, Silberketten) als Hinfracht am Markt daheim – die besser bezahlten Fertigwaren verstärken das. Das Ziel „passiver Spieler deutlich weniger“ ist mit Preisen der fernen Städte nicht zu erreichen. Entscheidung des Nutzers: so lassen, die Exportnachfrage ist gewollt (Feinschliff in der nächsten Balancing-Runde).

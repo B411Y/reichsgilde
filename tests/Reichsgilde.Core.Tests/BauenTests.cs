@@ -493,7 +493,7 @@ static class BauenTests
 
         ("Bauen: Daten werden geprüft – je Wohnhausstufe ein Eintrag, Maße auf dem Raster, Lagen nicht leer, nurNeubau nur ab dem Bürgerhaus", () =>
         {
-            Pruefe.Gleich(52, Daten.Value.Version);
+            Pruefe.Gleich(53, Daten.Value.Version);
             Pruefe.Gleich(5, Daten.Value.Bauen!.Wohnhaus.Count);
             Pruefe.Gleich((16.0, 14.0), (Daten.Value.Bauen.Werkstatt.Breite, Daten.Value.Bauen.Werkstatt.Tiefe));
             Pruefe.Gleich("False False False True True", string.Join(" ", Daten.Value.Bauen.Wohnhaus.Select(m => m.NurNeubau))); // Stadtpalais, Stadthof

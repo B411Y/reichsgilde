@@ -59,10 +59,10 @@ static class KartenformatTests
             var k = Katalog();
             foreach (var b in k.Bausteine.Where(b => b.Modell is not null))
                 Pruefe.Wahr(dateien.Contains(b.Modell!), $"Baustein „{b.Kennung}“: Modell {b.Modell}.glb fehlt");
-            // Nicht in der Stadt aufgestellt: Figuren, Karren, Vögel, Innenräume; die Marktstände gehören zum Markt.
+            // Nicht in der Stadt aufgestellt: Figuren, Karren, Vögel, Innenräume, das Flussschiff; die Marktstände gehören zum Markt.
             var imKatalog = k.Bausteine.Select(b => b.Modell).OfType<string>().ToHashSet();
             var fehlen = dateien.Where(d => !imKatalog.Contains(d) && !d.StartsWith("figuren/") && !d.StartsWith("fahrzeuge/") && !d.StartsWith("tiere/")
-                                            && !d.StartsWith("innen/") && d != "gebaeude/marktstaende").ToList();
+                                            && !d.StartsWith("innen/") && d != "gebaeude/marktstaende" && d != "wasser/wasser_schiff").ToList();
             Pruefe.Wahr(fehlen.Count == 0, "Modelle ohne Baustein im Katalog: " + string.Join(", ", fehlen));
         }),
 
@@ -78,7 +78,7 @@ static class KartenformatTests
             Pruefe.WirftMitMeldung(() => Gebaeudekatalog.AusJson("""{ "format": 2 }"""), "neuer als dieser Leser");
         }),
 
-        ("Greybox: Format 2 – jedes Gebäude im Katalog aufgelöst, vier Werkstattplätze, Umland mit Betriebsnamen, Mauer mit zwei Toren, Natur", () =>
+        ("Greybox: Format 2 – jedes Gebäude im Katalog aufgelöst, vier Werkstattplätze, Umland mit Betriebsnamen, Mauer mit drei Toren, Hafen, Natur", () =>
         {
             var k = Greybox();
             Pruefe.Gleich(2, k.Format);
@@ -86,10 +86,10 @@ static class KartenformatTests
             Pruefe.Gleich(4, k.GebaeudeDerArt(Bausteinart.Werkstattplatz).Count());
             Pruefe.Gleich(12, k.GebaeudeDerArt(Bausteinart.Umlandbetrieb).Count());
             Pruefe.Wahr(k.GebaeudeDerArt(Bausteinart.Umlandbetrieb).All(g => g.Betrieb == g.Name), "Umlandbetriebe tragen ihren Betriebsnamen");
-            Pruefe.Gleich(3, k.GebaeudeDerArt(Bausteinart.Umlandstelle).Count());
-            Pruefe.Gleich("Feld, Wald, Weide", string.Join(", ", k.GebaeudeDerArt(Bausteinart.Umlandstelle).Select(g => g.Name).Order()), "Namen wie im Kern");
+            Pruefe.Gleich(4, k.GebaeudeDerArt(Bausteinart.Umlandstelle).Count()); // seit PR #199 mit dem Hafen
+            Pruefe.Gleich("Feld, Hafen am Grenzfluss, Wald, Weide", string.Join(", ", k.GebaeudeDerArt(Bausteinart.Umlandstelle).Select(g => g.Name).Order()), "Namen wie im Kern");
             Pruefe.Gleich(3, k.GebaeudeDerArt(Bausteinart.Berg).Count()); // je Grube ein Felsberg
-            Pruefe.Gleich("Osttor, Westtor", string.Join(", ", k.Mauern.SelectMany(m => m.Tore).Select(t => t.Name).Order()));
+            Pruefe.Gleich("Osttor, Südtor, Westtor", string.Join(", ", k.Mauern.SelectMany(m => m.Tore).Select(t => t.Name).Order()));
             Pruefe.Wahr(k.Natur.Flaechen.Count > 0, "Natur fehlt");
             Pruefe.Gleich(string.Join(", ", Enumerable.Range(1, 8).Select(i => $"Wohnhaus{i}")), string.Join(", ", k.Wohnhausplaetze.Select(g => g.Kennung)));
 
