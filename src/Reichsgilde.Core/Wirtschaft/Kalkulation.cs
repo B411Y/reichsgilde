@@ -16,7 +16,7 @@ public static class Kalkulation
     public static double GewinnJeArbeitsminute(Stadtwirtschaft w, string ware)
     {
         var daten = w.Daten.Waren[ware];
-        var erloes = w.Markt[ware].Preis * (1 - w.Daten.Allgemein.Umsatzsteuer);
+        var erloes = w.Markt[ware].Preis * (1 - w.Umsatzsteuer);
         var zutaten = daten.Zutaten.Sum(z => w.Markt[z.Key].Preis * z.Value);
         return (erloes - zutaten) / daten.Zeit;
     }
@@ -121,7 +121,7 @@ public static class Kalkulation
         double vorsicht = 1)
     {
         var d = w.Schiffahrt.Daten ?? throw new InvalidOperationException("In dieser Stadt gibt es keinen Schiffshandel.");
-        var steuer = w.Daten.Allgemein.Umsatzsteuer;
+        var steuer = w.SteuersatzMarkt(konto); // der Marktmeister zahlt weniger
         var vf = w.Familien.VerkaufsFaktor(konto);
         var ef = w.Familien.EinkaufsFaktor(konto);
         var hin = hinfracht.Where(x => x.Value > 0).ToList();
@@ -132,11 +132,11 @@ public static class Kalkulation
         var erloesHeim = rueck.Sum(x => w.Markt[x.Key].Verkaufswert(x.Value)) * (1 - steuer) * vf;
         var wertHin = hin.Sum(x => w.Markt[x.Key].Preis * x.Value);
         var wertRueck = rueck.Sum(x => w.Markt[x.Key].Preis * x.Value);
-        var zoll = stadt.Daten.Zollstellen * d.ZollJeStelle * (wertHin + wertRueck);
+        var zoll = w.Schiffahrt.Zollstellen(konto, stadt) * d.ZollJeStelle * (wertHin + wertRueck);
         var fahrten = (hin.Count > 0 ? 1 : 0) + (rueck.Count > 0 ? 1 : 0);
         var risiko = SchiffsRisiko(w, konto, geleit) * (wertHin + wertRueck) * vorsicht;
         return new Fahrtrechnung(einkauf, erloesFern, einkaufFern, erloesHeim, zoll, w.Schiffahrt.GeleitKosten(geleit) * fahrten, risiko,
-            Schiffahrt.Rundreise(typ, stadt));
+            Schiffahrt.Rundreise(typ, stadt, w.Ratsantraege.Hafenfaktor));
     }
 
     /// <summary>
@@ -163,7 +163,7 @@ public static class Kalkulation
         double vorsicht = 1, string? ziel = null)
     {
         if (w.Schiffahrt.Daten is not { } d) return null;
-        var steuer = w.Daten.Allgemein.Umsatzsteuer;
+        var steuer = w.SteuersatzMarkt(konto);
         var vf = w.Familien.VerkaufsFaktor(konto);
         var ef = w.Familien.EinkaufsFaktor(konto);
         var hk = w.HandKaufFaktor(konto);
@@ -171,7 +171,7 @@ public static class Kalkulation
         Fahrtvorschlag? bester = null;
         foreach (var stadt in w.Schiffahrt.Staedte.Where(s => ziel is null || s.Name == ziel))
         {
-            var zollRate = stadt.Daten.Zollstellen * d.ZollJeStelle + rate;
+            var zollRate = w.Schiffahrt.Zollstellen(konto, stadt) * d.ZollJeStelle + rate;
             // Hinfracht: am Markt kaufen, dort verkaufen
             var hin = Fuellen(typ, stadt.Daten.Kauft.Keys, (ware, n, q) =>
                 stadt.Erloes(ware, q, n) * vf - w.Markt[ware].HandKaufpreis(q, hk, n) - zollRate * w.Markt[ware].Preis * q,

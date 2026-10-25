@@ -1,5 +1,5 @@
 {
-  "version": 53,
+  "version": 54,
   "gesundheit": {
     "medicusKosten": 120,
     "medicusKostenPest": 300,
@@ -41,7 +41,7 @@
       "KreditAufnehmen": 1,
       "MoschusSchenken": 1, "MoschusRatsherr": 1, "ZwietrachtSaeen": 1, "HeiligenduftStiften": 1, "Giftanschlag": 2,
       "Konvertieren": 2, "Bekehrungspredigt": 1, "StadtglaubeBeantragen": 2,
-      "WegPflasterBeantragen": 2,
+      "WegPflasterBeantragen": 2, "SteuersatzBeantragen": 2, "BauvorhabenBeantragen": 2, "FestBeantragen": 2,
       "BerufErlernen": 4
     }
   },
@@ -1205,7 +1205,7 @@
         "vorgesetzt": null,
         "einkommen": 800,
         "mindestStand": "Patrizier",
-        "befugnis": "Leitet den Rat und entscheidet bei Stimmengleichheit."
+        "befugnis": "Leitet den Rat, entscheidet bei Stimmengleichheit und stellt einmal im Jahr einen Antrag ohne Aktionspunkte."
       },
       {
         "name": "Stadtrichter",
@@ -1213,7 +1213,7 @@
         "vorgesetzt": "Bürgermeister",
         "einkommen": 500,
         "mindestStand": "Patrizier",
-        "befugnis": "Führt den Vorsitz im Gericht (folgt mit dem Gericht)."
+        "befugnis": "Führt den Vorsitz im Gericht und setzt die Buße um bis zu 25 % hinauf oder herab."
       },
       {
         "name": "Kämmerer",
@@ -1221,7 +1221,7 @@
         "vorgesetzt": "Bürgermeister",
         "einkommen": 500,
         "mindestStand": "Patrizier",
-        "befugnis": "Verwaltet die Stadtkasse (Steuern folgen später)."
+        "befugnis": "Verwaltet die Stadtkasse: sieht den Haushalt und beantragt den Steuersatz ohne Aktionspunkte."
       },
       {
         "name": "Stadthauptmann",
@@ -1229,7 +1229,7 @@
         "vorgesetzt": "Stadtrichter",
         "einkommen": 300,
         "mindestStand": "Bürger",
-        "befugnis": "Befehligt die Stadtwache (Patrouillen folgen später)."
+        "befugnis": "Befehligt die Stadtwache: verlegt die Streife in ein Viertel, dort schützt sie doppelt."
       },
       {
         "name": "Marktmeister",
@@ -1237,7 +1237,7 @@
         "vorgesetzt": "Kämmerer",
         "einkommen": 300,
         "mindestStand": "Bürger",
-        "befugnis": "Wacht über den Markt (Zölle folgen später)."
+        "befugnis": "Wacht über den Markt: sieht die Preise der nächsten Stunde und zahlt auf eigene Marktverkäufe nur die halbe Steuer."
       },
       {
         "name": "Gefängniswärter",
@@ -1245,7 +1245,7 @@
         "vorgesetzt": "Stadthauptmann",
         "einkommen": 150,
         "mindestStand": "Bürger",
-        "befugnis": "Verwahrt die Gefangenen."
+        "befugnis": "Verwahrt die Gefangenen und lässt sie gegen Kaution vorzeitig frei (die Kaution behält er)."
       },
       {
         "name": "Zöllner",
@@ -1253,7 +1253,7 @@
         "vorgesetzt": "Marktmeister",
         "einkommen": 150,
         "mindestStand": "Bürger",
-        "befugnis": "Erhebt den Zoll am Osttor."
+        "befugnis": "Erhebt den Zoll der Stadt am Hafen – und handelt dort selbst zollfrei."
       }
     ],
     "ratsherren": [
@@ -1361,6 +1361,34 @@
       "ansehenRatsherr": 10,
       "ansehenRatsherrJeStufe": 6,
       "volksnaehe": 5
+    },
+    "kasse": {
+      "startbestand": 3000,
+      "startJeKarte": { "koeln": 6000 },
+      "steuerMin": 3,
+      "steuerMax": 8,
+      "reserve": 2000,
+      "sparsamkeit": { "Zwerg": 1.5, "Elb": 1.2, "Mensch": 1, "Halbling": 0.75 },
+      "antragGunst": 20
+    },
+    "bauvorhaben": [
+      { "kennung": "brunnen", "name": "Brunnen", "beschreibung": "Sauberes Wasser: Krankheiten und Pest befallen ein Viertel seltener.",
+        "kosten": 2500, "bauzeitStunden": 17, "wirkung": "Gesundheit", "wert": 0.25, "ansehen": 3, "ansehenJahre": 3 },
+      { "kennung": "mauer", "name": "Mauer ausbessern", "beschreibung": "Nächtliche Taten in der Stadt gelingen seltener (−15 %).",
+        "kosten": 4000, "bauzeitStunden": 17, "wirkung": "Nachtschutz", "wert": 0.15, "ansehen": 3, "ansehenJahre": 3 },
+      { "kennung": "hafen", "name": "Hafen erweitern", "beschreibung": "Mehr Liegeplätze und Kräne: Schiffe laden und löschen 40 % schneller.",
+        "kosten": 5000, "bauzeitStunden": 17, "wirkung": "Hafen", "wert": 0.4, "ansehen": 3, "ansehenJahre": 3 },
+      { "kennung": "marktplatz", "name": "Marktplatz vergrößern", "beschreibung": "Mehr Stände, mehr Käufer: Die Nachfrage aller Waren steigt um 5 %.",
+        "kosten": 6000, "bauzeitStunden": 25, "wirkung": "Nachfrage", "wert": 0.05, "ansehen": 3, "ansehenJahre": 3 }
+    ],
+    "fest": { "kosten": 1500, "ansehen": 5, "nachfrage": 0.05, "gaeste": 0.2 },
+    "befugnisse": {
+      "richterSpanne": 0.25,
+      "streifeFaktor": 2,
+      "streifeMindestens": 0.1,
+      "streifeHoechstens": 0.6,
+      "marktmeisterSteuer": 0.5,
+      "kautionJeJahr": 1000
     }
   },
   "dynastie": {
