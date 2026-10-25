@@ -728,7 +728,7 @@ void fragment() {
 	}
 	// Wetter: Nässe, Pfützen (in Hoch mit Regenringen) und Schnee (wetter.gdshaderinc)
 	vec3 leuchten = vec3(0.0);
-	wetter_boden(farbe, rau, nw, leuchten, welt, n, auf_weg, info.b, 1.0 - fh.a, BODEN_STUFE >= 2, TIME);
+	wetter_boden(farbe, rau, nw, leuchten, welt, n, auf_weg, info.b, 1.0 - fh.a, wiese, BODEN_STUFE >= 2, TIME);
 	ALBEDO = farbe;
 	EMISSION = leuchten;
 	ROUGHNESS = clamp(rau, 0.0, 1.0);
