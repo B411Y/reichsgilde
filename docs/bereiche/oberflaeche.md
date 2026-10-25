@@ -170,3 +170,9 @@ So wird eingetragen (damit sich die Chats nie an derselben Stelle treffen):
 | Umsetzung: Tastenkürzel | F Familienbuch, H Hinterzimmer, R Ratskammer, M Markt, B Bauen (je noch einmal: schließen), F1 Hilfe. Keine Kollision mit WASD, Q/E, Leertaste, 1–9, Alt, F11; R dreht im Baumodus weiter den Umriss (dort öffnet R den Rat nicht). Nicht mit Strg oder Alt, nicht bei offenem Spielmenü oder Jahresbericht. | 25.10.2026 |
 | Umsetzung: Meldungen und Hilfe | Warnung = Meldung, die mit „✗“ (abgelehnter Befehl) oder „⚠“ beginnt. Verblassen in Echtzeit (auch in der Pause), 2 s Ausblenden. Sind schon vier da, geht die älteste gewöhnliche, nur bei vier Warnungen die älteste Warnung. Das Protokoll des Jahres beginnt mit der Jahresabrechnung neu (höchstens 1000 Zeilen). Hinter einer großen Tafel drinnen sind die Meldungen aus. Hilfe: Tasten, kurze Wegbeschreibung, oben Spieljahr, Siegbedingung, Schwierigkeit (früher im Kasten oben links); von selbst nur ohne Startoptionen und nur einmal. | 25.10.2026 |
 | Umsetzung: Startoptionen | Neu `--wohnhaus=<reiter>`, `--bericht=<reiter>` (`--bericht=1` bleibt der Jahresbericht), `--verwalten=mehr`, `--hilfe=1`, `--meldung=<Text>`; `--verwalten=1` öffnet die Kurzübersicht. Der Hinweis der Probepartie steht unter dem Zeitstrahl. | 25.10.2026 |
+
+### Meldungen nur für eigene Betriebe (PR #198)
+
+| Thema | Entscheidung | Datum |
+|---|---|---|
+| Fremde Stillstände | Stillstandsmeldungen fremder Betriebe („Tischlerei Eichwald: Es fehlt Holz – die Arbeit ruht.“) stehen nur noch im Protokoll des Jahres, nicht mehr unten links; eigene Betriebe melden sich weiter. Dazu ohne doppelte Uhrzeit beim Beginn einer Tagesphase. Wunsch des Nutzers. | 25.10.2026 |
