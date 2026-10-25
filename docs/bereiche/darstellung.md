@@ -4,7 +4,7 @@
 
 So wird eingetragen (damit sich die Chats nie an derselben Stelle treffen):
 - **Neue Einträge unten im passenden Abschnitt anhängen.** Keine Nummern – die Reihenfolge ist die Zeit.
-- **Entscheidungen** als Unterabschnitt `### Thema (PR #…)` mit einer Tabelle `| Thema | Entscheidung | Datum |`.
+- **Entscheidungen** als Unterabschnitt `### Thema (PR #193)` mit einer Tabelle `| Thema | Entscheidung | Datum |`.
 - **Erledigtes:** die Zeile aus „Offen“ löschen. Was gemergt wurde, zeigt GitHub (Pull requests → Closed).
 - Ältere Entscheidungen bis 16.10.2026 stehen im Archiv `docs/ENTSCHEIDUNGEN.md`.
 
@@ -1017,7 +1017,7 @@ Folgerungen: FSR 2.2 lohnt sich auf der T400 kaum (67 %: −0,8 ms bei Hoch, in 
 | Messung | Vulkan auf der T400 unter Xvfb, `--messung=12 --vsync=Aus --voreinstellung=Hoch`, Mittag, Standardblick, je zwei Läufe abwechselnd gegen den Funktions-Branch vor 5j (cd1f0a8): Greybox 20,1 → 19,6 Bilder/s (−3 %, GPU 24,0 → 25,2 ms), Probestadt 21,8 → 20,6 (−5 %, GPU 27,6 → 29,8 ms), Köln 29,7 → 27,6 (−7 %, GPU 18,1 → 20,5 ms). Der Stadtlehm kostete in der ersten Fassung (Kachel-Brechung, Erde- und Kies-Textur, Makro-Flecken) in Köln 1 ms GPU mehr; die Spurlinien kosten etwa 0,25 ms. Mit freien Plätzen als Wiese in der Stadt (erste Fassung von „Gras auf Grundstücken“) lag Köln bei −12 % (28 Bauzonen in der Stadt mit Gras). | 24.10.2026 |
 | Erde im Torweg (Umsetzung) | Der Steinboden des Tordurchgangs gehört zum Modell der Torburg (6 cm über dem Gelände), der Boden-Shader erreicht ihn nicht, und die verschmierte Erde lag unter ihm (Grenze Erde–Pflaster auf der Mauerlinie): Am Tor endete der Erdweg hart an der Schwelle. Jetzt trägt jede Torburg, vor deren äußerer Schwelle ein Trampelpfad oder Fahrweg liegt (fünf Stellen quer über die Schwelle und eine 1,9 m davor; eine Brücke davor zählt mit dem Belag neben ihr; Kies und Pflaster bleiben sauber), ein `Decal` „Torerde“ (`Stadtansicht.Torerde.cs`): die Erde-Textur des Bodens, etwas grauer, im Torweg dicht, hinter der inneren Schwelle auf 3–6 m in Flecken aufs Pflaster ausdünnend, auf einem Fahrweg mit den Rillen (ab der Stelle, wo die Wegmitte die Schwelle kreuzt), die auf etwa 8 m verblassen. Das Decal wirkt nur auf Ebene 2 (`TorErdeEbene`), die die Geländekacheln und die Torburgen zusätzlich tragen – Figuren und Karren im Tor bleiben sauber; senkrechte Flächen nicht (`NormalFade`). Gerechnet mit der Wegeschicht (Spiel und Werkstatt), ein neues Bild nur, wenn sich der Weg am Tor ändert (40 Bildpunkte je Meter, parallel; Köln mit 8 Toren im Debug-Build etwa 0,2 s beim Laden). Bildrate unverändert: Köln `--messung=12 --vsync=Aus --voreinstellung=Hoch`, Mittag, Vulkan auf der T400: 27,6 → 27,5 Bilder/s (GPU 20,3 → 20,6 ms). | 25.10.2026 |
 
-### Fugenlinien entfernt, Oberflächendetails immer an (PR #…)
+### Fugenlinien entfernt, Oberflächendetails immer an (PR #193)
 
 | Thema | Entscheidung | Datum |
 |---|---|---|
