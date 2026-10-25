@@ -1533,4 +1533,15 @@ Menge (Tiefe des Marktes): Fertigwaren 50, teure 30–40; Rohstoffe 120, Granit,
 - **Ertrag je Schiff und Jahr nach Unterhalt: 1.266** – ein Umlandbetrieb der KI bringt 1.458, eine Werkstatt 4.429 (Ziel: ein Schiff ≈ ein guter Umlandbetrieb).
 - **Flusspiraten:** 252 Angriffe, 110 gelungen (4,4 % der Fahrtstrecken angegriffen).
 - **Befund:** Auch der passive Spieler ohne Schiff hat 21 % mehr: Die Rückfracht der KI (Gold, Jasmin, Wachs, Eisen, Granit …) macht Rohstoffe daheim billiger, davon leben alle Werkstätten. Offener Punkt in `kern.md`.
-- **Ohne Hafen unverändert:** `messen 30 20` und `messen 30 20 greybox` (Greybox noch ohne Fluss) sind vorher und nachher zeichengleich (main `5b345a5` gegen Branch). Die Greybox-Messung mit Fluss und Hafen folgt mit der neuen Karte.
+- **Ohne Hafen unverändert:** `messen 30 20` und `messen 30 20 greybox` (alte Greybox ohne Fluss) sind vorher und nachher zeichengleich (main `5b345a5` gegen Branch).
+
+**Greybox mit Fluss und Hafen** (neue Greybox aus PR #199: 400 × 400, Grenzfluss im Süden, Hafen vor dem Südtor; gemessen auf main `5b345a5` + Funktions-Branch `phase5/hafen` `1bb49d6` + Kern `50acea2`):
+
+| Ø Vermögen nach 30 Jahren | alte Greybox (PR #182) | neue Greybox ohne Schiffshandel | neue Greybox mit Schiffshandel (`messen 30 20 greybox`) |
+|---|---|---|---|
+| Eisenbart (Schmied, Spieler passiv, KI) | 187.691 | 185.904 (−1,0 %) | 245.010 (+31,8 %) |
+| Eichwald (Tischler) | 164.660 | 164.483 (−0,1 %) | 189.224 (+15,0 %) |
+| Kieselbach (Steinmetz) | 186.711 | 186.262 (−0,2 %) | 181.316 (−2,7 %) |
+| Hammerschmid (Spieler, passiv) | – | 52.947 | 62.384 (+17,8 %) |
+
+Die neue Karte allein ändert fast nichts (−1 … 0 %). Mit Schiffshandel: 49 Schiffe in 20 Partien (fast jedes KI-Haus eins, das erste Ø in Jahr 3,4), 3,03 Fahrten je Schiff und Jahr (Weidenmünd 2.261, Eisenfurt 1.111), **Ertrag je Schiff und Jahr nach Unterhalt 508** (Umlandbetrieb 1.365, Werkstatt 4.361) – drei Schiffe teilen sich die fernen Märkte und verkaufen ihre Rückfracht am selben Markt daheim. Flusspiraten: 303 Angriffe, 157 gelungen. Bürgermeister 14/20 (vorher 13/20), Stand der KI am Ende Reichsgraf 38, Freiherr 20, Edler 2 (vorher Reichsgraf 25, Freiherr 34, Edler 1); kein Bankrott. Der Zuwachs der Häuser kommt vor allem von den billigeren Rohstoffen daheim (Schmied +32 %), der Steinmetz verliert, weil Bruchstein und Granit auch per Schiff kommen. Gegenprobe mit tieferen fernen Märkten (Menge × 1,6): Schiff 595 (Greybox) bzw. 1.615 (Probestadt) im Jahr, Häuser bis +41 bzw. +48 % – nicht übernommen. Entscheidung offen (`kern.md`).
