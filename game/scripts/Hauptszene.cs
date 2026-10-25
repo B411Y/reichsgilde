@@ -193,6 +193,7 @@ public partial class Hauptszene : Node
         GetNode<CanvasLayer>("Oberflaeche").AddChild(_wohnhaus); // rechts: das eigene Wohnhaus mit seinen Reitern
         _berichtTafel = new BerichtAnzeige { Meldungen = () => _jahresProtokoll };
         GetNode<CanvasLayer>("Oberflaeche").AddChild(_berichtTafel); // rechts: Jahresrechnung, Rivalen, Umsätze, Protokoll
+        GetNode<CanvasLayer>("Oberflaeche").MoveChild(ratMitte, -1); // die Fenster der Mitte (Rat, Markt …) liegen über den Tafeln rechts
         _gerichtKnopf = GetNode<Button>("%GerichtKnopf");
         // Der Bericht sitzt in einem CenterContainer: Der hält ihn mittig, egal wie hoch er wird.
         var berichtMitte = Hauptmenue.Mitte();
@@ -942,6 +943,8 @@ public partial class Hauptszene : Node
         _stadt.Auswahl = _auswahl.Visible || _wohnhaus.Visible ? _auswahlKennung : null; // Name des ausgewählten Gebäudes bleibt sichtbar
         _stadt.Aktualisieren(delta);
         foreach (var tafel in _innenTafeln) tafel.Aktualisieren(delta);
+        var innenTafelOffen = _innenTafeln.Any(t => t.Visible); // die Meldungen schienen sonst durch die große Tafel
+        if (_meldungen.Visible == innenTafelOffen) _meldungen.Visible = !innenTafelOffen;
         var mausPos = GetViewport().GetMousePosition();
         _stadt.UnterTafel = _innenTafeln.Any(t => t.Visible && t.Tafel.GetGlobalRect().HasPoint(mausPos));
         BauAutoKlickPruefen();
@@ -1448,7 +1451,7 @@ public partial class Hauptszene : Node
             zeilen.Add($"Ihr steht bis {pranger} am Pranger (−{Zahlenformat.Ganz(w.Justiz.Daten.PrangerAnsehen)} Ansehen).");
         if (w.Rat.IstAktiv)
         {
-            zeilen.Add("Ämter: " + string.Join(" · ", w.Rat.Aemter.Select(a => $"{a.Name} {a.Inhaber}")));
+            zeilen.Add("Ämter:\n" + string.Join("\n", w.Rat.Aemter.Select(a => $"  {a.Name}: {a.Inhaber}")));
             if (w.Rat.Antrag is { } antrag) zeilen.Add($"Antrag liegt vor: Statut {antrag.Statut.Kuerzel()} ({antrag.Antragsteller.Inhaber})");
         }
         return string.Join("\n", zeilen);
