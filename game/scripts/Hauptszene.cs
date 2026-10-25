@@ -45,6 +45,9 @@ namespace Reichsgilde;
 ///   --hilfe=1          gleich zu Beginn die Hilfe zeigen
 ///   --meldung=⚠_Text   eine Meldung unten links einstellen (zum Testen; Leerzeichen als _, mit ✗ oder ⚠ eine Warnung)
 ///   --karren=Ochsenkarren,Kriegskarren  der eigenen Gießerei gleich diese Karren dazukaufen (mit --vermoegen=5000; Handkarren, Ochsenkarren, Kriegskarren)
+///   --schiff=1         am ersten Hafen gleich so viele Flussschiffe kaufen (mit --vermoegen=10000)
+///   --schiffsauftrag=vorschlag  jedem eigenen Schiff am Kai den Vorschlag geben (=<Ziel>: den Vorschlag für diese ferne Stadt, z. B. Eisenfurt)
+///   --hafen=1          die Hafentafel des ersten Hafens öffnen (=<Kennung> eines Hafens der Karte, =staedte: auf dem Reiter „Ferne Städte“)
 ///   --vermoegen=12000  Startvermögen des Spielers setzen (zum Ausprobieren des Aufstiegs)
 ///   --beruf=Steinmetz  Startberuf der Testpartie (Schmied, Tischler, Steinmetz, Alchimist, Wirt, Prediger, Dieb, Gardist, Geldleiher)
 ///   --bericht=1        gleich zu Beginn einen Jahresbericht zeigen (zum Testen der Anzeige); =jahresrechnung, rivalen, umsaetze, protokoll: die Tafel „Bericht“ auf diesem Reiter
@@ -89,6 +92,7 @@ public partial class Hauptszene : Node
     private Stadtansicht _stadt = null!;
     private WohnhausAnzeige _wohnhaus = null!;
     private BerichtAnzeige _berichtTafel = null!;
+    private HafenAnzeige _hafenTafel = null!;
     /// <summary>Den Jahresbericht hat der Spieler selbst geöffnet (Tafel „Bericht“): Beim Schließen bleibt die Pause, wie sie vorher war.</summary>
     private bool? _pauseVorBericht;
     private PanelContainer _auswahl = null!;
@@ -193,6 +197,8 @@ public partial class Hauptszene : Node
         GetNode<CanvasLayer>("Oberflaeche").AddChild(_wohnhaus); // rechts: das eigene Wohnhaus mit seinen Reitern
         _berichtTafel = new BerichtAnzeige { Meldungen = () => _jahresProtokoll };
         GetNode<CanvasLayer>("Oberflaeche").AddChild(_berichtTafel); // rechts: Jahresrechnung, Rivalen, Umsätze, Protokoll
+        _hafenTafel = new HafenAnzeige();
+        GetNode<CanvasLayer>("Oberflaeche").AddChild(_hafenTafel); // rechts: Schiffe und ferne Städte eines Hafens (PR #199)
         GetNode<CanvasLayer>("Oberflaeche").MoveChild(ratMitte, -1); // die Fenster der Mitte (Rat, Markt …) liegen über den Tafeln rechts
         _gerichtKnopf = GetNode<Button>("%GerichtKnopf");
         // Der Bericht sitzt in einem CenterContainer: Der hält ihn mittig, egal wie hoch er wird.
@@ -319,6 +325,7 @@ public partial class Hauptszene : Node
         _stadt.GebaeudeAngeklickt += kennung =>
         {
             if (RaumAngeklickt(kennung)) return;
+            if (HafenAngeklickt(kennung)) return; // Hafen, Kran, Schuppen oder eigenes Schiff: die Hafentafel (Hauptszene.Hafen.cs)
             RechtsSchliessen();
             _auswahlKennung = kennung;
             AuswahlAnzeigen();
@@ -354,6 +361,7 @@ public partial class Hauptszene : Node
         _uebersicht.VerkaufGewuenscht += b => { TafelnSchliessen(); _verkauf.Oeffnen(b); };
         _verkauf.Gemeldet += Protokollieren;
         _wohnhaus.Gemeldet += Protokollieren;
+        _hafenTafel.Gemeldet += Protokollieren;
         if (optionen.TryGetValue("auswahl", out var vorauswahl) && vorauswahl.StartsWith("weg:"))
         {
             // --auswahl=weg:<nr>[,<stelle>]: die Wegtafel (Belag, Ausbau, Antrag) für einen Weg der Karte öffnen
@@ -403,6 +411,7 @@ public partial class Hauptszene : Node
                 var ergebnis = wKarren.Ausfuehren(_spieler, new KarrenKaufen(kaeufer.Name, typ));
                 if (!ergebnis.Erfolg) Protokollieren("--karren=" + typ + ": " + ergebnis.Meldung);
             }
+        HafenStartoptionen(optionen); // --schiff, --schiffsauftrag, --hafen (Hauptszene.Hafen.cs)
         if (optionen.TryGetValue("rat", out var rat) && rat == "1")
             _ratskammer.Oeffnen();
         if (optionen.TryGetValue("familie", out var familie) && familie == "1")
@@ -499,12 +508,13 @@ public partial class Hauptszene : Node
         if (_bauFrage.Visible) _bauFrage.Zurueck(); // der Umriss der Platzwahl wird wieder frei
     }
 
-    /// <summary>Rechts steht immer nur eine Tafel: Auswahl, Wohnhaus, Bericht, Bautafel oder Wegtafel. Schließt alle (der Baumodus endet dabei nicht).</summary>
+    /// <summary>Rechts steht immer nur eine Tafel: Auswahl, Wohnhaus, Bericht, Hafen, Bautafel oder Wegtafel. Schließt alle (der Baumodus endet dabei nicht).</summary>
     private void RechtsSchliessen()
     {
         if (_auswahl.Visible || _auswahlKennung is not null) AuswahlSchliessen();
         _wohnhaus.Hide();
         _berichtTafel.Hide();
+        _hafenTafel.Hide();
         _wegTafel.Schliessen();
     }
 
@@ -870,7 +880,7 @@ public partial class Hauptszene : Node
             if (konto == spieler)
                 simulation.Beenden($"Das Haus {w.Familien.Von(spieler)?.Nachname ?? spieler.Inhaber} ist ohne Erben erloschen.");
         };
-        w.Meldung += Protokollieren;
+        w.Meldung += meldung => Protokollieren(SchiffsMeldung(meldung)); // Überfälle auf eigene Schiffe als Warnung (Hauptszene.Hafen.cs)
         // Die ersten Züge der KI fielen schon beim Aufstellen – ins Protokoll nachtragen (älteste zuerst).
         foreach (var rivale in w.Rivalen)
             foreach (var zug in rivale.Entscheidungen.Reverse())
@@ -878,6 +888,7 @@ public partial class Hauptszene : Node
 
         _wohnhaus.Verbinden(simulation, spieler);
         _berichtTafel.Verbinden(simulation, spieler);
+        _hafenTafel.Verbinden(simulation, spieler);
         _ratskammer.Verbinden(simulation, spieler);
         _familientafel.Verbinden(simulation, spieler);
         _gerichtssaal.Verbinden(simulation, spieler);
@@ -943,7 +954,9 @@ public partial class Hauptszene : Node
         LeisteAnzeigen(delta);
         MeldungenAltern(delta);
         _berichtTafel.Aktualisieren(delta);
-        _stadt.Auswahl = _auswahl.Visible || _wohnhaus.Visible ? _auswahlKennung : null; // Name des ausgewählten Gebäudes bleibt sichtbar
+        _hafenTafel.Aktualisieren(delta);
+        _stadt.Auswahl = _auswahl.Visible || _wohnhaus.Visible ? _auswahlKennung // Name des ausgewählten Gebäudes bleibt sichtbar
+            : _hafenTafel.Visible ? (_hafenTafel.GewaehltesSchiff is { } schiff ? "schiff:" + schiff : Stadtansicht.HafenKennung(_hafenTafel.Hafen)) : null;
         _stadt.Aktualisieren(delta);
         foreach (var tafel in _innenTafeln) tafel.Aktualisieren(delta);
         var innenTafelOffen = _innenTafeln.Any(t => t.Visible); // die Meldungen schienen sonst durch die große Tafel
@@ -991,6 +1004,8 @@ public partial class Hauptszene : Node
                 _stadt.InnenansichtVerlassen();
             else if (_berichtTafel.Visible)
                 _berichtTafel.Hide();
+            else if (_hafenTafel.Visible)
+                _hafenTafel.Hide();
             else if (_auswahl.Visible || _wohnhaus.Visible)
                 AuswahlSchliessen();
             else
@@ -1212,8 +1227,10 @@ public partial class Hauptszene : Node
         var frei = _auswahlKennung.StartsWith("liegenschaft:")
             ? w.FreieLiegenschaften.FirstOrDefault(l => Stadtansicht.LiegenschaftKennung(l.Name) == _auswahlKennung)
             : null;
-        _auswahlWappen.Wappen = betrieb?.Konto.Wappen;
-        if (_auswahlWappen.Visible != betrieb is not null) _auswahlWappen.Visible = betrieb is not null;
+        var schiff = Stadtansicht.SchiffName(_auswahlKennung) is { } schiffName ? w.Schiffahrt.Schiff(schiffName) : null;
+        var besitzer = betrieb?.Konto ?? schiff?.Besitzer;
+        _auswahlWappen.Wappen = besitzer?.Wappen;
+        if (_auswahlWappen.Visible != besitzer is not null) _auswahlWappen.Visible = besitzer is not null;
         _auswahlText.Text = betrieb is not null ? BetriebsText(betrieb, w)
             : frei is not null ? LiegenschaftText(frei, w)
             : _auswahlKennung switch
@@ -1225,6 +1242,7 @@ public partial class Hauptszene : Node
             "Osttor" => "Osttor\n\nHier endet der Schutz der Mauern. Auf dem Weg ins Umland lauern Banditen aller Völker, "
                         + "wilde Ork-Rotten und Ogerhorden – nachts doppelt so häufig.",
             _ when _stadt.EinwohnerText(_auswahlKennung) is { } einwohner => einwohner, // Passanten (Darstellung)
+            _ when schiff is not null => FremdesSchiffText(schiff, w), // Schiff eines anderen Hauses (Hauptszene.Hafen.cs)
             _ when _stadt.WohnhausText(_auswahlKennung) is { } wohnhaus => wohnhaus + LeerstandZusatz(w), // Wohnhaus eines Spielhauses (Darstellung)
             _ when _stadt.GrundstueckText(_auswahlKennung) is { } grundstueck => grundstueck, // Baustelle oder Bauplatz (Darstellung)
             _ => _auswahlKennung,
@@ -1256,6 +1274,7 @@ public partial class Hauptszene : Node
         }
         TafelnSchliessen();
         _berichtTafel.Hide(); // rechts steht jetzt die Bautafel; die Auswahl wartet (RechtsFrei)
+        _hafenTafel.Hide();
         _bau.Oeffnen();
     }
 

@@ -246,7 +246,11 @@ public partial class Stadtansicht
             else if (g.Katalog == "dom" && !_sonderbauten.ContainsKey("Dom")) DomBauen(g);
             else if (g.Baustein?.Modell is { } datei)
             {
-                if (ModellEinsetzen(datei, this, Vector3.Zero, new ModellZustand()) is { } modell) modell.Wurzel.Transform = ModellLage(g);
+                if (ModellEinsetzen(datei, this, Vector3.Zero, new ModellZustand()) is { } modell)
+                {
+                    modell.Wurzel.Transform = ModellLage(g);
+                    HafenbauKlickbar(karte, g, modell.Wurzel); // Kran und Lagerschuppen öffnen die Hafentafel (Stadtansicht.Schiffe.cs)
+                }
             }
             else Platzhalter(g);
         }

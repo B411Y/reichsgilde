@@ -158,8 +158,9 @@ public static class Kalkulation
     /// ein Drittel voll), solange sie etwas bringt und das Geld (<paramref name="budget"/>) für die Hinfracht reicht; gewählt wird die Stadt mit
     /// dem höchsten Gewinn je Jahr (nach der Dauer der Fahrt). Null, wenn keine Fahrt Gewinn bringt.
     /// </summary>
+    /// <param name="ziel">Nur diese ferne Stadt (der Vorschlag der Hafentafel für das gewählte Ziel); null = alle.</param>
     public static Fahrtvorschlag? BesteSchiffsfahrt(Stadtwirtschaft w, Konto konto, SchiffstypDaten typ, double budget, string geleit = "Keine",
-        double vorsicht = 1)
+        double vorsicht = 1, string? ziel = null)
     {
         if (w.Schiffahrt.Daten is not { } d) return null;
         var steuer = w.Daten.Allgemein.Umsatzsteuer;
@@ -168,7 +169,7 @@ public static class Kalkulation
         var hk = w.HandKaufFaktor(konto);
         var rate = SchiffsRisiko(w, konto, geleit) * vorsicht;
         Fahrtvorschlag? bester = null;
-        foreach (var stadt in w.Schiffahrt.Staedte)
+        foreach (var stadt in w.Schiffahrt.Staedte.Where(s => ziel is null || s.Name == ziel))
         {
             var zollRate = stadt.Daten.Zollstellen * d.ZollJeStelle + rate;
             // Hinfracht: am Markt kaufen, dort verkaufen
