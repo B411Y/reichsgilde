@@ -70,6 +70,7 @@ with open(os.path.join(bs.WURZEL, "game", "daten", "materialbibliothek.json"), e
 S_LAENGE, S_BREITE = 20.0, 4.2
 S_BORD = 0.85           # Dollbord mittschiffs über der Wasserlinie
 S_TIEF = 0.7            # Tiefgang
+S_BODEN = 0.22          # Wegerung (Plankenboden im Laderaum) über der Wasserlinie: kein Wasser im Rumpf
 S_SPRUNG = 0.55         # wie weit die Enden höher liegen
 S_MAST = 3.6            # Mast (x)
 MAST_HOCH = 10.5        # über dem Dollbord
@@ -118,7 +119,7 @@ def ringe_schiff(stationen=16):
 def schiff_rumpf(st):
     netz = bs.Netz("Schiff")
     ringe = ringe_schiff()
-    boden = -S_TIEF + 0.18
+    boden = S_BODEN
     mitte = Vector((0, 0, S_BORD))
 
     def flur(ring):
@@ -254,7 +255,7 @@ def laufplanke(st):
 
 def ladung(st):
     """Sechs Ladungsplätze im Raum von achtern nach vorn."""
-    boden = -S_TIEF + 0.18
+    boden = S_BODEN
     objekte = []
     plaetze = [(-4.4, "fass"), (-2.6, "kiste"), (-0.8, "sack"), (1.0, "ballen"), (5.3, "fass"), (7.0, "kiste")]
     for k, (x, art) in enumerate(plaetze, 1):
