@@ -1,5 +1,6 @@
 using Reichsgilde.Core;
 using Reichsgilde.Core.Justiz;
+using Reichsgilde.Core.Ki;
 using Reichsgilde.Core.Politik;
 using Reichsgilde.Core.Wirtschaft;
 using static StadtkasseTests;
@@ -10,6 +11,8 @@ using static StadtkasseTests;
 /// </summary>
 static class KiStadtkasseTests
 {
+    static T Also<T>(this T x, Action<T> tun) { tun(x); return x; }
+
     /// <summary>Bis nach der Politikstunde der KI im laufenden Jahr (sechste volle Stunde, 11 Uhr).</summary>
     static void BisNachPolitik(Simulation sim)
     {
@@ -95,6 +98,41 @@ static class KiStadtkasseTests
             Pruefe.Wahr(w.Ratsantraege.Antrag(Antragsart.Fest)?.Antragsteller == ki, "Fest – " + string.Join(" | ", w.Rivalen.Single().Entscheidungen) + $" – Prognose {w.Rat.WahlPrognose(w.Rat.AmtNamens("Marktmeister")!, ki)}");
             var bau = w.Ratsantraege.Antrag(Antragsart.Bauvorhaben);
             Pruefe.Wahr(bau is not null && bau.Antragsteller == ki && bau.Bauvorhaben is "marktplatz" or "mauer", $"Bau: {bau}");
+        }),
+
+        ("KI-Ämter: Sie wählt nach Gehalt und Nutzen der Befugnis – Hauptmann mit vielen Betrieben, Richter mit Taten, Marktmeister mit Steuern", () =>
+        {
+            var (sim, w, ki) = Aufbau("Zöllner");
+            var r = w.Rivalen.Single();
+            var amt = (string name) => w.Rat.AmtNamens(name)!;
+            Pruefe.Gleich(300.0, r.AmtsWert(amt("Stadthauptmann")));
+            for (var i = 0; i < 5; i++) w.BetriebEroeffnen($"KI-Werkstatt {i}", Betriebsart.Giesserei, ki);
+            Pruefe.Gleich(300.0 + 5 * KiRivale.StreifeJeBetrieb, r.AmtsWert(amt("Stadthauptmann")));
+            Pruefe.Gleich(500.0, r.AmtsWert(amt("Stadtrichter")));
+            var klaeger = Haus(w, "Kläger");
+            w.Justiz.BeweisGeben(klaeger, w.Justiz.TatMelden(ki, Vergehen.Diebstahl, "Kläger", 100)!);
+            Pruefe.Gleich(500.0 + KiRivale.RichterJeSache, r.AmtsWert(amt("Stadtrichter")));
+            Pruefe.Gleich(500.0, r.AmtsWert(amt("Kämmerer")));
+            Pruefe.Gleich(150.0, r.AmtsWert(amt("Gefängniswärter")));
+            ki.Steuer(1000);
+            JahrBeenden(sim);
+            NurAmt(w, "Zöllner", ki); // wurde sie schon in ein höheres Amt gewählt, beginnt sie hier wieder als Zöllner
+            Pruefe.Ungefaehr(300 + ki.Vorjahr!.Steuer * 0.5, r.AmtsWert(amt("Marktmeister")), 1e-9); // ihre Werkstätten zahlen auch Steuer
+            Pruefe.Wahr(ki.Vorjahr.Steuer >= 1000, "mindestens die 1.000");
+            // Bewerben: Stufe 2 – der Hauptmann (300 + 500 + ein Viertel der Schäden) vor dem Marktmeister (300 + 500)?
+            if (ki.Stand < 1) Ok(w, Wohnhaushilfe.MitWohnhaus(w, ki), new StandErwerben()); // meist ist sie schon Bürgerin
+            var hauptmann = r.AmtsWert(amt("Stadthauptmann"));
+            var marktmeister = r.AmtsWert(amt("Marktmeister"));
+            BisNachPolitik(sim);
+            var erwartet = hauptmann > marktmeister ? "Stadthauptmann" : "Marktmeister";
+            Pruefe.Gleich(erwartet, w.Rat.Bewerbungen.GetValueOrDefault(ki), string.Join(" | ", r.Entscheidungen));
+            // Ohne Stadtkasse zählt nur das Gehalt
+            var ohne = NeueSimulation(Wirtschaftsdaten.AusJson(System.Text.Json.Nodes.JsonNode.Parse(Datenpfad.OhneAktionspunkte())!.AsObject()
+                .Also(k => k["politik"]!.AsObject().Remove("kasse")).ToJsonString())).Wirtschaft!;
+            var ki2 = Haus(ohne, "KI ohne Kasse");
+            var r2 = ohne.KiAnmelden(ki2);
+            for (var i = 0; i < 5; i++) ohne.BetriebEroeffnen($"W {i}", Betriebsart.Giesserei, ki2);
+            Pruefe.Gleich(300.0, r2.AmtsWert(ohne.Rat.AmtNamens("Stadthauptmann")!));
         }),
 
         ("KI-Befugnisse: Stadthauptmann verlegt die Streife zu den eigenen Betrieben; Wärter lässt gegen Kaution frei; Richter straft, wer ihm schadete", () =>

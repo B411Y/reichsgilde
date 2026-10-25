@@ -1581,14 +1581,15 @@ public sealed partial class KiRivale
         if (!rat.IstAktiv) return;
 
         if (!rat.Bewerbungen.ContainsKey(Konto) && Konto.Vermoegen > Profil.Reserve
-            && rat.WaehlbareAemter(Konto).OrderByDescending(a => a.Daten.Einkommen).ThenBy(a => a.Name, StringComparer.Ordinal).FirstOrDefault() is { } ziel)
+            && rat.WaehlbareAemter(Konto).OrderByDescending(AmtsWert).ThenBy(a => a.Name, StringComparer.Ordinal).FirstOrDefault() is { } ziel)
         {
             // Bewerben lohnt nur, wenn die Aktionspunkte auch für die Geschenke reichen, die die Mehrheit bringen –
             // sonst spart die KI lieber (der Vorrat wächst bis zur Obergrenze).
             var bewerbung = new AmtBewerben(ziel.Name);
             var geschenke = WahlPlan(ziel)?.Count ?? 0;
             if (Konto.Aktionspunkte.Reicht(_w.ApKosten(bewerbung) + geschenke * _w.ApKosten(new Schenken("", 0))))
-                Befehlen(bewerbung, $"bewirbt sich um das Amt {ziel.Name} ({Zahlenformat.Ganz(ziel.Daten.Einkommen)} Gulden im Jahr).");
+                Befehlen(bewerbung, $"bewirbt sich um das Amt {ziel.Name} ({Zahlenformat.Ganz(ziel.Daten.Einkommen)} Gulden im Jahr" +
+                    (AmtsWert(ziel) > ziel.Daten.Einkommen + 0.5 ? $", die Befugnis ist ihr etwa {Zahlenformat.Ganz(AmtsWert(ziel) - ziel.Daten.Einkommen)} wert" : "") + ").");
         }
 
         if (rat.Bewerbungen.TryGetValue(Konto, out var amtName) && rat.AmtNamens(amtName) is { } amt)
@@ -1651,12 +1652,12 @@ public sealed partial class KiRivale
     private void FuerWahlWerben(Amt amt)
     {
         if (WahlKosten(amt) is { } w)
-            Schenkplan(w.Kosten, w.Noetig, $"für die Wahl zum {amt.Name}", amt.Daten.Einkommen * NutzenJahre);
+            Schenkplan(w.Kosten, w.Noetig, $"für die Wahl zum {amt.Name}", AmtsWert(amt) * NutzenJahre);
     }
 
     /// <summary>Die Geschenke, mit denen die KI die Wahl gewänne – null, wenn das nicht geht oder sich nicht lohnt.</summary>
     private List<(Ratsherr Ratsherr, double Gulden)>? WahlPlan(Amt amt) =>
-        WahlKosten(amt) is { } w ? Schenkplanen(w.Kosten, w.Noetig, "", amt.Daten.Einkommen * NutzenJahre, melden: false) : null;
+        WahlKosten(amt) is { } w ? Schenkplanen(w.Kosten, w.Noetig, "", AmtsWert(amt) * NutzenJahre, melden: false) : null;
 
     private (List<(Ratsherr Ratsherr, double Gulden)> Kosten, int Noetig)? WahlKosten(Amt amt)
     {
