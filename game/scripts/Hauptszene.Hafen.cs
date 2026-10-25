@@ -68,17 +68,18 @@ public partial class Hauptszene
     }
 
     /// <summary>
-    /// Eine Meldung zum Schiff eines anderen Hauses (Kauf, Ankunft in der fernen Stadt, Heimkehr, Piraten)? Sie steht nur im Protokoll des Jahres, nicht
-    /// unten links. Der Kern nennt das Schiff mit Besitzer („Möwe (Haus Eisenbart)“) bzw. beim Kauf mit Namen in Anführungszeichen.
+    /// Eine Meldung zum Schiff eines anderen Hauses (Kauf, Ankunft in der fernen Stadt, Heimkehr, Piraten) oder der Kauf eines eigenen (den meldet schon
+    /// der Befehl)? Sie steht nur im Protokoll des Jahres, nicht unten links. Der Kern nennt das Schiff mit Besitzer („Möwe (Haus Eisenbart)“) bzw. beim
+    /// Kauf mit Namen in Anführungszeichen.
     /// </summary>
     private bool IstFremdeSchiffsmeldung(string meldung)
     {
         if (_simulation?.Wirtschaft is not { } w || w.Schiffahrt.Schiffe.Count == 0) return false;
         foreach (var s in w.Schiffahrt.Schiffe)
         {
-            if (s.Besitzer == _spieler) continue;
-            if (meldung.Contains($"{s.Name} ({s.Besitzer.Inhaber})") || (meldung.StartsWith(s.Besitzer.Inhaber + " kauft ") && meldung.Contains($"„{s.Name}“")))
-                return true;
+            // Den Kauf melden Stadt und Befehl: das eigene Schiff nur einmal (die Antwort des Befehls nennt Preis und Unterhalt)
+            if (meldung.StartsWith(s.Besitzer.Inhaber + " kauft ") && meldung.Contains($"„{s.Name}“")) return true;
+            if (s.Besitzer != _spieler && meldung.Contains($"{s.Name} ({s.Besitzer.Inhaber})")) return true;
         }
         return false;
     }

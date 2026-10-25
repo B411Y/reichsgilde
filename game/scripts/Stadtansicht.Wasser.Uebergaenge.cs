@@ -591,6 +591,17 @@ public partial class Stadtansicht
         }
     }
 
+    /// <summary>
+    /// Die Kähne eines Hafenmodells (Wurzel „Hafen_&lt;Kennung&gt;“, Stadtansicht.Umland.cs) ein- oder ausblenden: Liegt ein Schiff des Schiffshandels am Kai,
+    /// nimmt es ihren Platz ein (Stadtansicht.Schiffe.cs).
+    /// </summary>
+    private void HafenKaehneZeigen(string hafen, bool zeigen)
+    {
+        foreach (var h in _haefen)
+            if (IsInstanceValid(h.Wurzel) && h.Wurzel.Name == "Hafen_" + hafen)
+                foreach (var kahn in h.Kaehne) kahn.Visible = zeigen;
+    }
+
     /// <summary>Der Spiegel am Ort: im Fluss oder See, sonst im Hafenbecken (das zählt im Kern nicht als Gewässer); null an Land.</summary>
     private double? SpiegelMitBecken(float x, float z)
     {

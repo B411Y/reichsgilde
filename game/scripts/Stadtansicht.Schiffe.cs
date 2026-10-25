@@ -10,7 +10,8 @@ namespace Reichsgilde;
 ///
 /// Die Darstellung rechnet nichts aus, sie liest nur den Kern: Wo das Schiff gerade ist und wohin es fährt, sagt <see cref="Schiffahrt.Lage"/> (mit dem
 /// Bruchteil der laufenden Minute, damit es gleitet). Am Kai liegt es längsseits, die Kaiseite an der Kaimauer (<c>Anker_Kai</c> auf der Kaikante); liegen
-/// mehrere Schiffe am selben Hafen, machen sie im Päckchen nebeneinander fest (das äußere an der Bordwand des inneren). Segel gesetzt in Fahrt, gerefft am
+/// mehrere Schiffe am selben Hafen, machen sie im Päckchen nebeneinander fest (das äußere an der Bordwand des inneren); die Kähne des Hafenmodells weichen,
+/// solange ein Schiff am Kai liegt. Segel gesetzt in Fahrt, gerefft am
 /// Kai; die Laufplanke nur am Kai und nur beim inneren Schiff; <c>Ladung_1</c>–<c>Ladung_6</c> nach dem Anteil der Ladung; der Wimpel in der Hausfarbe flattert
 /// (<see cref="ModellFahneBelebt"/>). Der Schiffer steht am Heck (<c>Anker_Schiffer</c>). Ein Klick auf das Schiff wählt es (Kennung <c>schiff:&lt;Name&gt;</c>).
 ///
@@ -145,7 +146,18 @@ public partial class Stadtansicht
                 FigurHervorheben(schiffer, hell);
             }
         }
+        // Liegt ein Schiff am Kai, weichen die Kähne des Hafenmodells (sie lägen sonst unter ihm)
+        foreach (var hafen in w.Schiffahrt.Haefen)
+        {
+            var frei = !amKai.ContainsKey(hafen.Kennung);
+            if (_kaehneFrei.GetValueOrDefault(hafen.Kennung, true) == frei) continue;
+            _kaehneFrei[hafen.Kennung] = frei;
+            HafenKaehneZeigen(hafen.Kennung, frei);
+        }
     }
+
+    /// <summary>Je Hafen: Sind seine Kähne zu sehen (kein Schiff am Kai)? Geschaltet wird nur beim Wechsel.</summary>
+    private readonly Dictionary<string, bool> _kaehneFrei = new();
 
     private void SchiffBewegen(Stadtwirtschaft w, Schiff schiff, SchiffAnsicht ansicht, double minute, bool liegt, int paeckchen, double delta)
     {

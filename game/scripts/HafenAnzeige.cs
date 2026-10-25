@@ -71,8 +71,13 @@ public partial class HafenAnzeige : PanelContainer
     }
 
     private Bedienung? _bedienung;
+    /// <summary>Beim nächsten Aufbau ein Schiff von selbst aufklappen (gleich nach dem Öffnen).</summary>
+    private bool _selbstWaehlen;
+    /// <summary>So viele eigene Schiffe hatte der letzte Aufbau – kommt eins dazu (Kauf), klappt es auf.</summary>
+    private int _letzteAnzahl;
     private readonly List<(Schiff Schiff, Label Text)> _schiffsTexte = new();
     private Button? _kaufen;
+    private string _kaufBeschreibung = "";
     private Label? _fremde;
 
     /// <summary>Ergebnis eines Befehls (Kauf, Auftrag, Verkauf …) – für die Meldungen.</summary>
@@ -137,7 +142,8 @@ public partial class HafenAnzeige : PanelContainer
     public void Zeigen(string hafen, string? schiff = null, Reiter reiter = Reiter.Schiffe)
     {
         _hafen = hafen;
-        if (schiff is not null) _gewaehlt = schiff;
+        _gewaehlt = schiff;
+        _selbstWaehlen = schiff is null;
         _reiter.CurrentTab = (int)reiter;
         _aufbau = "";
         _seitAufbau = 1;
@@ -206,7 +212,26 @@ public partial class HafenAnzeige : PanelContainer
         var waehrung = w.Daten.Allgemein.Waehrung;
         var eigene = EigeneSchiffe(w);
         if (_gewaehlt is not null && eigene.All(s => s.Name != _gewaehlt)) _gewaehlt = null; // verkauft
-        if (_gewaehlt is null && eigene.Count == 1) _gewaehlt = eigene[0].Name;
+        // Beim Öffnen und nach einem Kauf klappt ein Schiff von selbst auf (das erste am Kai bzw. das neue); danach entscheidet der Spieler
+        if (_selbstWaehlen || eigene.Count > _letzteAnzahl)
+            _gewaehlt ??= (eigene.Count > _letzteAnzahl && !_selbstWaehlen ? eigene.LastOrDefault() : eigene.FirstOrDefault(s => s.Zustand == SchiffZustand.AmKai) ?? eigene.FirstOrDefault())?.Name;
+        _selbstWaehlen = false;
+        _letzteAnzahl = eigene.Count;
+
+        // Oben „Schiff kaufen“ (mit Preis); was ein Schiff kann, steht im Tooltip und – solange keins da ist – darunter
+        var typ = w.Schiffahrt.Daten?.Schiffe.Values.FirstOrDefault();
+        _kaufen = null;
+        if (typ is not null)
+        {
+            var beschreibung = $"Ein Flussschiff fasst {typ.Sorten} Waren zu je {typ.KapazitaetJeSorte} Stück; Unterhalt {Zahlenformat.Ganz(typ.Unterhalt)} {waehrung} " +
+                               $"im Jahr. Flussab {typ.MinutenFlussab}, flussauf {typ.MinutenFlussauf} Minuten je Strecke (mal Entfernung der Stadt).";
+            _kaufen = new Button { FocusMode = FocusModeEnum.None, SizeFlagsHorizontal = SizeFlags.ShrinkBegin,
+                                   Text = $"Schiff kaufen ({Zahlenformat.Ganz(typ.Preis)} {waehrung})" };
+            _kaufen.Pressed += () => Befehlen(new SchiffKaufen(_hafen));
+            _schiffsSeite.AddChild(_kaufen);
+            _kaufBeschreibung = beschreibung;
+            if (eigene.Count == 0) Hauptmenue.Text(_schiffsSeite, beschreibung, 12, Grau, umbruchBreite: Breite);
+        }
 
         if (eigene.Count == 0)
             Hauptmenue.Text(_schiffsSeite, "Ihr habt hier noch kein Schiff. Ein Flussschiff bringt Waren zu den fernen Städten am Fluss und kauft dort ein, " +
@@ -236,16 +261,6 @@ public partial class HafenAnzeige : PanelContainer
             _schiffsSeite.AddChild(new HSeparator());
         }
 
-        var typ = w.Schiffahrt.Daten?.Schiffe.Values.FirstOrDefault();
-        if (typ is not null)
-        {
-            _kaufen = new Button { FocusMode = FocusModeEnum.None, SizeFlagsHorizontal = SizeFlags.ShrinkBegin,
-                                   Text = $"Schiff kaufen ({Zahlenformat.Ganz(typ.Preis)} {waehrung})" };
-            _kaufen.Pressed += () => Befehlen(new SchiffKaufen(_hafen));
-            _schiffsSeite.AddChild(_kaufen);
-            Hauptmenue.Text(_schiffsSeite, $"Ein Flussschiff fasst {typ.Sorten} Waren zu je {typ.KapazitaetJeSorte} Stück; Unterhalt {Zahlenformat.Ganz(typ.Unterhalt)} {waehrung} " +
-                                            $"im Jahr. Flussab {typ.MinutenFlussab}, flussauf {typ.MinutenFlussauf} Minuten je Strecke (mal Entfernung).", 12, Grau, umbruchBreite: Breite);
-        }
         _fremde = Hauptmenue.Text(_schiffsSeite, "", 12, Grau, umbruchBreite: Breite);
         SchiffeNachziehen(w);
     }
@@ -260,7 +275,7 @@ public partial class HafenAnzeige : PanelContainer
 
         // Ziel: je Stadt mit dem besten Gewinn, den der Vorschlag für sie findet
         var zielZeile = Zeile(kasten, "Ziel:");
-        var ziel = new OptionButton { FocusMode = FocusModeEnum.None, SizeFlagsHorizontal = SizeFlags.ExpandFill,
+        var ziel = new OptionButton { FocusMode = FocusModeEnum.None, SizeFlagsHorizontal = SizeFlags.ExpandFill, ClipText = true,
                                       TooltipText = "Die ferne Stadt. Dahinter steht, was der Vorschlag dort zu heutigen Preisen gewinnen würde." };
         zielZeile.AddChild(ziel);
         var bedienung = new Bedienung { Schiff = schiff, Ziel = ziel };
@@ -282,7 +297,7 @@ public partial class HafenAnzeige : PanelContainer
         var quellen = new List<string?> { null };
         quellen.AddRange(w.Betriebe.Where(b => b.Konto == _spieler).Select(b => (string?)b.Name));
         var quelleZeile = Zeile(kasten, "Quelle:");
-        var quelle = new OptionButton { FocusMode = FocusModeEnum.None, SizeFlagsHorizontal = SizeFlags.ExpandFill,
+        var quelle = new OptionButton { FocusMode = FocusModeEnum.None, SizeFlagsHorizontal = SizeFlags.ExpandFill, ClipText = true,
                                         TooltipText = "Markt: Die Hinfracht wird am Markt gekauft, die Rückfracht dort verkauft.\n" +
                                                       "Lager eines Betriebs: Die Hinfracht kommt aus seinem Lager, die Rückfracht geht hinein (was nicht passt, auf den Markt)." };
         quelleZeile.AddChild(quelle);
@@ -294,6 +309,29 @@ public partial class HafenAnzeige : PanelContainer
             _aufbau = "";
         };
 
+        // Oben das Ergebnis: erwarteter Gewinn, Vorschlag und Auftrag; darunter Geleit, Wiederholen und die Fracht im Einzelnen
+        var gewinn = Hauptmenue.Text(kasten, "", 14, umbruchBreite: Breite - 20);
+        gewinn.MouseFilter = MouseFilterEnum.Stop;
+
+        var knoepfe = new HBoxContainer();
+        knoepfe.AddThemeConstantOverride("separation", 8);
+        kasten.AddChild(knoepfe);
+        var vorschlag = new Button { Text = "Vorschlag", FocusMode = FocusModeEnum.None,
+                                     TooltipText = "Füllt die Fracht mit dem einträglichsten Auftrag für dieses Ziel (Ware vom Markt, zu heutigen Preisen, so weit das Geld reicht)." };
+        vorschlag.Pressed += () => VorschlagUebernehmen(w, schiff, e);
+        knoepfe.AddChild(vorschlag);
+        var erteilen = new Button { Text = "Auftrag erteilen", FocusMode = FocusModeEnum.None, SizeFlagsHorizontal = SizeFlags.ExpandFill };
+        erteilen.Pressed += () => Befehlen(new SchiffsauftragErteilen(schiff.Name, e.Ziel, new Dictionary<string, int>(e.Hin), new Dictionary<string, int>(e.Rueck),
+                                                                      e.Betrieb, e.Wiederholen));
+        knoepfe.AddChild(erteilen);
+
+        var geleit = GeleitWahl(w, schiff, kasten);
+        var wiederholen = new CheckBox { Text = "Wiederholen (nach der Rückkehr mit demselben Auftrag wieder los)", ButtonPressed = e.Wiederholen, FocusMode = FocusModeEnum.None };
+        wiederholen.AddThemeFontSizeOverride("font_size", 13);
+        wiederholen.Toggled += an => e.Wiederholen = an;
+        kasten.AddChild(wiederholen);
+
+        var laderaum = Hauptmenue.Text(kasten, "", 12, Grau, umbruchBreite: Breite - 20);
         // Fracht: je Ware, die die Stadt kauft (hin) bzw. verkauft (zurück), eine Menge
         if (stadt is not null)
         {
@@ -332,28 +370,6 @@ public partial class HafenAnzeige : PanelContainer
             Fracht($"Hinfracht – in {stadt.Name} verkaufen", stadt.Daten.Kauft.Keys, e.Hin, true);
             Fracht($"Rückfracht – in {stadt.Name} kaufen", stadt.Daten.Verkauft.Keys, e.Rueck, false);
         }
-        var laderaum = Hauptmenue.Text(kasten, "", 12, Grau, umbruchBreite: Breite - 20);
-
-        var geleit = GeleitWahl(w, schiff, kasten);
-        var wiederholen = new CheckBox { Text = "Wiederholen (nach der Rückkehr mit demselben Auftrag wieder los)", ButtonPressed = e.Wiederholen, FocusMode = FocusModeEnum.None };
-        wiederholen.AddThemeFontSizeOverride("font_size", 13);
-        wiederholen.Toggled += an => e.Wiederholen = an;
-        kasten.AddChild(wiederholen);
-
-        var gewinn = Hauptmenue.Text(kasten, "", 14, umbruchBreite: Breite - 20);
-        gewinn.MouseFilter = MouseFilterEnum.Stop;
-
-        var knoepfe = new HBoxContainer();
-        knoepfe.AddThemeConstantOverride("separation", 8);
-        kasten.AddChild(knoepfe);
-        var vorschlag = new Button { Text = "Vorschlag", FocusMode = FocusModeEnum.None,
-                                     TooltipText = "Füllt die Fracht mit dem einträglichsten Auftrag für dieses Ziel (Ware vom Markt, zu heutigen Preisen, so weit das Geld reicht)." };
-        vorschlag.Pressed += () => VorschlagUebernehmen(w, schiff, e);
-        knoepfe.AddChild(vorschlag);
-        var erteilen = new Button { Text = "Auftrag erteilen", FocusMode = FocusModeEnum.None, SizeFlagsHorizontal = SizeFlags.ExpandFill };
-        erteilen.Pressed += () => Befehlen(new SchiffsauftragErteilen(schiff.Name, e.Ziel, new Dictionary<string, int>(e.Hin), new Dictionary<string, int>(e.Rueck),
-                                                                      e.Betrieb, e.Wiederholen));
-        knoepfe.AddChild(erteilen);
 
         var verkaufen = VerkaufKnopf(w, schiff, kasten);
         _bedienung = new Bedienung
@@ -412,7 +428,7 @@ public partial class HafenAnzeige : PanelContainer
     private OptionButton GeleitWahl(Stadtwirtschaft w, Schiff schiff, Container kasten)
     {
         var zeile = Zeile(kasten, "Geleit:");
-        var wahl = new OptionButton { FocusMode = FocusModeEnum.None, SizeFlagsHorizontal = SizeFlags.ExpandFill };
+        var wahl = new OptionButton { FocusMode = FocusModeEnum.None, SizeFlagsHorizontal = SizeFlags.ExpandFill, ClipText = true };
         var namen = w.Daten.Logistik.Eskorten.Keys.ToList();
         foreach (var n in namen) wahl.AddItem(n);
         wahl.Select(namen.IndexOf(schiff.Geleit));
@@ -476,7 +492,7 @@ public partial class HafenAnzeige : PanelContainer
         {
             var grund = w.Schiffahrt.KaufVerboten(_spieler!, _hafen) ?? (_spieler!.IstAktiv ? null : "Euer Haus ist nicht mehr im Spiel.");
             if (_kaufen.Disabled != (grund is not null)) _kaufen.Disabled = grund is not null;
-            var tipp = grund ?? "Das Schiff liegt dann hier am Kai.";
+            var tipp = (grund is null ? "" : grund + "\n\n") + _kaufBeschreibung;
             if (_kaufen.TooltipText != tipp) _kaufen.TooltipText = tipp;
         }
         if (_fremde is not null && IsInstanceValid(_fremde))
@@ -507,9 +523,10 @@ public partial class HafenAnzeige : PanelContainer
                 var v = Kalkulation.BesteSchiffsfahrt(w, _spieler!, schiffB.Daten, _spieler!.Vermoegen, schiffB.Geleit, ziel: b.Ziele[i]);
                 var s = w.Schiffahrt.Stadt(b.Ziele[i])!;
                 var richtung = s.Daten.IstFlussauf ? "flussauf" : "flussab";
-                var text = $"{s.Name} ({richtung}, {Schiffahrt.Rundreise(schiffB.Daten, s)} Min.)" +
-                           (v is null ? " · lohnt nicht" : $" · Vorschlag ≈ {Zahlenformat.MitVorzeichen(v.Rechnung.Gewinn)} {waehrung}");
+                var text = s.Name + (v is null ? " · lohnt nicht" : $" · Vorschlag ≈ {Zahlenformat.MitVorzeichen(v.Rechnung.Gewinn)} {waehrung}");
                 if (b.Ziel.GetItemText(i) != text) b.Ziel.SetItemText(i, text);
+                b.Ziel.SetItemTooltip(i, $"{s.Name} liegt {richtung}; die ganze Fahrt dauert {Schiffahrt.Rundreise(schiffB.Daten, s)} Minuten (beladen, hin, liegen, zurück).");
+                if (i == b.Ziel.Selected) Setzen(b.Ziel, b.Ziel.GetItemTooltip(i));
             }
 
         // Fracht: Preise dort und daheim
@@ -589,16 +606,17 @@ public partial class HafenAnzeige : PanelContainer
     /// <summary>Die Aufschlüsselung des erwarteten Gewinns (Tooltip).</summary>
     private static string RechnungText(Fahrtrechnung r, FerneStadt stadt, bool ausLager, string waehrung)
     {
-        string Z(double wert) => Zahlenformat.Ganz(wert);
+        string Plus(double wert) => Zahlenformat.MitVorzeichen(wert);
+        string Minus(double wert) => Zahlenformat.MitVorzeichen(-wert);
         var zeilen = new List<string>
         {
-            ausLager ? $"Hinfracht aus dem Lager (am Markt wert): −{Z(r.Einkauf)}" : $"Einkauf der Hinfracht am Markt: −{Z(r.Einkauf)}",
-            $"Erlös in {stadt.Name}: +{Z(r.ErloesFern)}",
-            $"Einkauf der Rückfracht in {stadt.Name}: −{Z(r.EinkaufFern)}",
-            $"Erlös der Rückfracht daheim (nach Steuer): +{Z(r.ErloesHeim)}",
-            $"Zoll ({stadt.Daten.Zollstellen} Zollstellen): −{Z(r.Zoll)}",
-            $"Geleit: −{Z(r.Geleit)}",
-            $"Risiko Flusspiraten (erwarteter Verlust): −{Z(r.Risiko)}",
+            ausLager ? $"Hinfracht aus dem Lager (am Markt wert): {Minus(r.Einkauf)}" : $"Einkauf der Hinfracht am Markt: {Minus(r.Einkauf)}",
+            $"Erlös in {stadt.Name}: {Plus(r.ErloesFern)}",
+            $"Einkauf der Rückfracht in {stadt.Name}: {Minus(r.EinkaufFern)}",
+            $"Erlös der Rückfracht daheim (nach Steuer): {Plus(r.ErloesHeim)}",
+            $"Zoll ({stadt.Daten.Zollstellen} Zollstellen): {Minus(r.Zoll)}",
+            $"Geleit: {Minus(r.Geleit)}",
+            $"Risiko Flusspiraten (erwarteter Verlust): {Minus(r.Risiko)}",
             $"= Gewinn {Zahlenformat.MitVorzeichen(r.Gewinn)} {waehrung} in {r.Minuten} Minuten (beladen, hin, liegen, zurück)",
             "",
             "Zu heutigen Preisen – jedes Stück drückt den Preis für das nächste. Der Unterhalt des Schiffs kommt zum Jahresende dazu.",
