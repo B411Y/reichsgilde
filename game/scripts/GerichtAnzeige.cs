@@ -1,6 +1,7 @@
 using Godot;
 using Reichsgilde.Core;
 using Reichsgilde.Core.Justiz;
+using Reichsgilde.Core.Politik;
 using Reichsgilde.Core.Wirtschaft;
 
 namespace Reichsgilde;
@@ -166,6 +167,9 @@ public partial class GerichtAnzeige : PanelContainer
         }
 
         // ── Laufende Verfahren ──
+        if (w.Befugnisse.HatAmt(_spieler, Amtsbefugnisse.Stadtrichter))
+            Text(_inhalt, $"Als Stadtrichter setzt ihr im Vorsitz die Buße eines Verfahrens um bis zu ±{Zahlenformat.Ganz(w.Befugnisse.Daten.RichterSpanne * 100)} % " +
+                          $"herauf oder herab.{(gericht.Verfahren.Count == 0 ? " Zurzeit ist kein Verfahren anhängig." : "")}", 13, Gold, umbrechen: true);
         if (gericht.Verfahren.Count > 0)
         {
             _inhalt.AddChild(new HSeparator());
@@ -186,6 +190,7 @@ public partial class GerichtAnzeige : PanelContainer
                 Text(_inhalt, $"{v.Anklaeger.Inhaber} gegen {v.Beklagter.Inhaber} wegen {VergehenTexte.Aufzaehlung(gericht.Beweise(v.Anklaeger, v.Beklagter).Select(b => b.Art))} – " +
                               $"Stand heute: {(schuldig ? "SCHULDIG" : "Freispruch")} ({stimmen.Count(s => s.Schuldig)} von {stimmen.Count})", 14,
                     !beteiligt ? Grau : (schuldig == (v.Anklaeger == _spieler)) ? Gruen : Rot, umbrechen: true);
+                StrafmassZeile(w, v);
                 var raster = new GridContainer { Columns = 4 };
                 raster.AddThemeConstantOverride("h_separation", 14);
                 _inhalt.AddChild(raster);
@@ -243,5 +248,43 @@ public partial class GerichtAnzeige : PanelContainer
             foreach (var eintrag in gericht.LetzterGerichtstag)
                 Text(_inhalt, "• " + eintrag, 13, null, umbrechen: true);
         }
+    }
+
+    /// <summary>
+    /// Die Buße eines Verfahrens (PR #200): Ist ein Haus Stadtrichter mit Vorsitz, kann es sie um bis zu ±25 % ändern – der Spieler hier mit einer Auswahl.
+    /// Wer kein Richter ist, sieht nur, ob der Richter sie geändert hat. Dazu die Buße, die bei einem Schuldspruch fällig würde.
+    /// </summary>
+    private void StrafmassZeile(Stadtwirtschaft w, Verfahren v)
+    {
+        var bf = w.Befugnisse;
+        var waehrung = w.Daten.Allgemein.Waehrung;
+        var prozent = bf.Strafmass(v.Anklaeger, v.Beklagter);
+        var busse = $"Buße bei Schuldspruch: {Zahlenformat.Ganz(w.Justiz.DrohendeBusse(v.Anklaeger, v.Beklagter))} {waehrung}";
+        if (!bf.HatAmt(_spieler!, Amtsbefugnisse.Stadtrichter))
+        {
+            Text(_inhalt, "   " + busse + (prozent == 0 ? "" : $" ({w.Rat.AmtNamens(Amtsbefugnisse.Stadtrichter)?.Inhaber} hat sie als Stadtrichter um {Math.Abs(prozent)} % " +
+                                                                   $"{(prozent > 0 ? "erhöht" : "gesenkt")})"), 12, Grau);
+            return;
+        }
+        if (bf.StrafmassVerboten(_spieler!, v.Anklaeger, v.Beklagter, 0) is { } grund)
+        {
+            Text(_inhalt, $"   {busse} · {grund}", 12, Grau, umbrechen: true);
+            return;
+        }
+        var zeile = new HBoxContainer();
+        zeile.AddThemeConstantOverride("separation", 10);
+        _inhalt.AddChild(zeile);
+        Text(zeile, "   Als Stadtrichter: Buße", 13, Gold);
+        var spanne = (int)Math.Round(bf.Daten.RichterSpanne * 100);
+        var stufen = Enumerable.Range(-spanne / 5, 2 * (spanne / 5) + 1).Select(i => i * 5).ToList();
+        if (!stufen.Contains(spanne)) { stufen.Insert(0, -spanne); stufen.Add(spanne); } // Spanne nicht durch 5 teilbar: die Grenzen dazu
+        if (!stufen.Contains(prozent)) { stufen.Add(prozent); stufen.Sort(); }
+        var wahl = new OptionButton { FocusMode = FocusModeEnum.None, TooltipText = "Gilt bei einem Schuldspruch am Gerichtstag, solange ihr den Vorsitz habt." };
+        foreach (var p in stufen) wahl.AddItem(p == 0 ? "gewöhnlich" : $"{(p > 0 ? "+" : "−")}{Math.Abs(p)} %");
+        wahl.Selected = stufen.IndexOf(prozent);
+        var (anklaeger, beklagter) = (v.Anklaeger.Inhaber, v.Beklagter.Inhaber);
+        wahl.ItemSelected += i => Befehlen(new StrafmassSetzen(anklaeger, beklagter, stufen[(int)i]));
+        zeile.AddChild(wahl);
+        Text(zeile, busse, 13);
     }
 }
