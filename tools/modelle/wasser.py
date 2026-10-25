@@ -69,6 +69,7 @@ Steine (Streu-Teile, je 4 m lang entlang X):
 Keine Hausfarbe, keine Zustände; Prüfung mit `pruefen.py <glb> --wasser`.
 """
 
+import json
 import math
 import os
 import sys
@@ -86,6 +87,11 @@ bs.FARBEN.update({
     "Sack": (0.70, 0.62, 0.46),
     "Bronze": (0.52, 0.40, 0.22),          # Fährglocke
 })
+
+# Getrennt bleiben (nicht in „Farben“, Modell-Texturen Gruppe 3): die Materialien, auf die die Material-Bibliothek ihre
+# Texturen legt (game/daten/materialbibliothek.json, „namen“) – wie in hafenbauten.py.
+with open(os.path.join(bs.WURZEL, "game", "daten", "materialbibliothek.json"), encoding="utf-8") as _f:
+    BEHALTEN = set(bs.BENANNTE_STOFFE) | set(json.load(_f)["namen"])
 
 WASSER = -1.0           # Wasserspiegel der Vorschau und der Kähne (m unter der Uferkante)
 FUSS = -4.5             # Unterkante von Pfählen, Pfeilern und Spundwand
@@ -576,9 +582,6 @@ def kahn(st, name, laenge, breite, bord=0.55, tief=0.45, sprung=0.35, stationen=
             richtung = sum((Vector(p) for p in seite), Vector()) / 4 - mitte
             netz.vieleck_nach([unten[0], unten[1], mitte_b, mitte_a], richtung, st["Teerholz"])
             netz.vieleck_nach([mitte_a, mitte_b, oben[1], oben[0]], richtung, st["Holz alt"])
-            for f in (0.7, 0.85):                                 # Plankengänge
-                p = [Vector(seite[0]).lerp(Vector(seite[3]), f), Vector(seite[1]).lerp(Vector(seite[2]), f)]
-                linie(netz, st, p[0], p[1], (0, s, 0), breite=0.025, stoff="Teerholz")
             if not ende:                                          # Innenseite und Dollbord
                 ia = (xa, s * (wa - 0.07), ga - 0.02)
                 ib = (xb, s * (wb - 0.07), gb - 0.02)
@@ -660,10 +663,6 @@ def hafen(st):
     for x0 in (-8.0, 7.84):
         kasten(netz, st, x0, x0 + 0.16, 2.05, UFER - 0.2, 0.0, KAI, "Holz alt", ohne=("-z",))
     netz.vieleck_nach([(-8, UFER, FUSS), (8, UFER, FUSS), (8, UFER, KAI - 0.25), (-8, UFER, KAI - 0.25)], (0, 1, 0), st["Holz alt"])
-    x = -7.7
-    while x < 7.9:
-        linie(netz, st, (x, UFER, -1.6), (x, UFER, KAI - 0.27), (0, 1, 0), breite=0.025, stoff="Fachwerk")
-        x += 0.3
     for k in range(8):
         pfahl(netz, st, -7.0 + 2.0 * k, UFER + 0.15, FUSS, KAI + 0.3, r=0.15, n=7, kopf="Scheitholz")
     for x, y in POLLER:
@@ -1218,7 +1217,8 @@ def main():
         objekte = bauen(st)
         netze = [o for o in objekte if o.type == "MESH"]
         bs.bericht(name, netze + [o for o in objekte if o.type != "MESH"], einzeln=True)
-        vorher, nachher = bs.farben_zusammenlegen(netze)
+        bs.BIBLIOTHEK_JE_FLAECHE = True     # Modell-Texturen, Gruppe 3: was in „Farben“ landet, trägt seine Schicht je Fläche
+        vorher, nachher = bs.farben_zusammenlegen(netze, behalten=BEHALTEN)
         print(f"  Materialien: {vorher} → {nachher}")
         print("geschrieben:", bs.exportieren(name, objekte))
         if "--ohne-bilder" not in sys.argv:

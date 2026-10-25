@@ -109,11 +109,7 @@ def muehle(haus, arbeit, leer, st, fuss):
     # Mühlenhaus
     hx, hy, z0, hb, ht, hh = x, y, 3.4, 3.0, 3.6, 3.4
     haus.quader((hx, hy, z0 + hh / 2), (hb, ht, hh), st["Holz alt"])
-    for s in (-1, 1):
-        M = bs.wandmatrix((hx + s * hb / 2, hy, z0), "rechts" if s > 0 else "links")
-        lb.senkrechte_fugen(haus, st, M, ht, 0, hh)
     M = bs.wandmatrix((hx, hy - ht / 2, z0), "vorne")
-    lb.senkrechte_fugen(haus, st, M, hb, 0, hh)
     luke = Oeffnung("fenster", 0.9, 1.4, 0.5, 0.6, laeden=False)
     bs.fenster(haus, M, luke, st, kreuz=None)
     dach = bs.satteldach(haus, st, hx - hb / 2, hx + hb / 2, hy - ht / 2, hy + ht / 2, z0 + hh, 40, traufe=0.25,
