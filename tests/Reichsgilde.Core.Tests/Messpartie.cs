@@ -28,6 +28,8 @@ enum Bezugsart
     WieKi,
     /// <summary>Niemand: Der Spieler entlässt am Start alle Arbeiter und tut nichts (zählt nicht als Haus, z. B. in der Messstadt).</summary>
     Geist,
+    /// <summary>Niemand führt den Spieler, aber seine Werkstatt arbeitet mit den Startgesellen weiter (wie in „messen 30 20“ und „messen schiffe“).</summary>
+    Passiv,
 }
 
 /// <summary>Eine Messpartie. Ein record: Zwei gleiche Aufbauten sind dieselbe Partie (der Bericht spielt sie nur einmal).</summary>
@@ -37,6 +39,7 @@ enum Bezugsart
 /// <param name="Einrichtung">Einrichtung, die der Spieler am Start für seine Werkstatt kauft (Kennungen mit Komma).</param>
 /// <param name="WachhausBeimErsten">Das erste KI-Haus bekommt am Start zusätzlich ein Wachhaus mit vier Gesellen (wie die Probe in Wirtschaftsmodell §27).</param>
 /// <param name="Schwierigkeit">Normal: Die KI-Häuser starten wie der Spieler; Schwer: mit Werkstatt und Umlandbetrieb (PR #177).</param>
+/// <param name="OhneSchiffshandel">Ohne Abschnitt „schiffshandel“ (sonst gleich): Niemand kauft ein Schiff – der Vergleich zur Exportnachfrage (PR #199).</param>
 sealed record Messaufbau(
     string Karte,
     int Startwert,
@@ -50,7 +53,8 @@ sealed record Messaufbau(
     string Einrichtung = "",
     bool WachhausBeimErsten = false,
     bool MarktMessen = false,
-    Schwierigkeit Schwierigkeit = Schwierigkeit.Normal);
+    Schwierigkeit Schwierigkeit = Schwierigkeit.Normal,
+    bool OhneSchiffshandel = false);
 
 /// <summary>Ein Haus am Ende eines Spieljahres.</summary>
 sealed class Jahreswert
@@ -58,7 +62,9 @@ sealed class Jahreswert
     public double Rein, Bar, Gewinn, Umsatz, Schaden, Raub;
     /// <summary>Was außerhalb der Betriebe ins Vermögen ging (Vorjahr): Amt, Familie, Geschenke, Gericht, Gaunerei, Investitionen, Stand, Zinsen.</summary>
     public double Amt, Familie, Geschenke, Gericht, Gaunerei, Investitionen, Standesgebuehren, Zinsen;
-    public int Stand, Stufe, Betriebe;
+    /// <summary>Umsatzsteuer an die Stadtkasse (Teil des Betriebsgewinns) und Spitzel (Teil von <see cref="Gericht"/>) im Vorjahr.</summary>
+    public double Steuer, Spitzel;
+    public int Stand, Stufe, Betriebe, Schiffe;
     public bool Aktiv;
     /// <summary>Was der Beruf ohne Ware im Jahr brachte (Beute, Sold, Zinsen, Kollekte, Ausschank …), nur beim Spieler.</summary>
     public Dictionary<string, double> Sonder = new();
@@ -105,6 +111,16 @@ sealed class Partieergebnis
     public readonly SortedDictionary<string, Gaunerzaehler> Gauner = new(StringComparer.Ordinal);
     public int Kredite, Wucherkredite, JahreMitWache;
     public double Patrouilleschutz;
+    /// <summary>Karren, die die KI verkauft hat (in Not bzw. ein Jahr ohne Fahrt, PR #205).</summary>
+    public int KarrenNotverkauf, KarrenUngenutzt;
+    /// <summary>Schiffe: Jahre mit Ertrag (nach Unterhalt) und die Summe dieser Erträge; Jahr des ersten Schiffs (PR #199).</summary>
+    public int Schiffsjahre;
+    public double Schiffsertrag;
+    public int? ErstesSchiffJahr;
+    /// <summary>Stadtkasse am Ende jedes Jahres: Stand und Steuersatz; Summe der Posten über die ganze Partie (PR #200).</summary>
+    public readonly List<double> Kassenstand = new();
+    public readonly List<int> Steuersatz = new();
+    public readonly SortedDictionary<Reichsgilde.Core.Politik.Kassenposten, double> Kassenposten = new();
     public string? Fehler;
 
     public Hausverlauf Spieler => Haeuser[0];
@@ -158,7 +174,7 @@ static class Messpartie
     public static Partieergebnis Spielen(Messaufbau a, Messquellen q)
     {
         var ergebnis = new Partieergebnis { Aufbau = a };
-        var daten = Wirtschaftsdaten.AusJson(q.Wirtschaft);
+        var daten = Wirtschaftsdaten.AusJson(a.OhneSchiffshandel ? OhneAbschnitt(q.Wirtschaft, "schiffshandel") : q.Wirtschaft);
         var kartenText = q.Karte(a.Karte);
         var anzahl = a.Rivalen > 0 ? a.Rivalen : (JsonNode.Parse(kartenText)!["start"]?["haeuser"]?.AsArray().Count ?? 1);
         var karte = Stadtkarte.AusJson(KarteRotiert(kartenText, a.Rotation, anzahl), Gebaeudekatalog.AusJson(q.Katalog));
@@ -166,6 +182,7 @@ static class Messpartie
             Partieeinstellungen.Standard with { Zufallsstartwert = a.Startwert, Siegbedingung = Siegbedingung.Endlos, Schwierigkeit = a.Schwierigkeit },
             daten, new NeuePartie(Volk: a.Volk, Beruf: a.Beruf, Rivalen: anzahl), karte: karte);
         var w = sim.Wirtschaft!;
+        w.Meldung += m => KarrenZaehlen(ergebnis, m);
 
         if (a.WachhausBeimErsten && w.Konten.Count > 1)
         {
@@ -191,6 +208,8 @@ static class Messpartie
                 foreach (var kraft in werkstatt.Belegung.Keys.ToList())
                     w.Ausfuehren(spieler, new PersonalSetzen(werkstatt.Name, kraft, 0));
                 break;
+            case Bezugsart.Passiv:
+                break;
         }
 
         // Die Häuser in Konto-Reihenfolge (Spieler zuerst) mit dem, was sie am Start haben.
@@ -210,6 +229,7 @@ static class Messpartie
         var stichjahre = a.MarktMessen ? Balancingbericht.Stichjahre(a.Jahre).ToHashSet() : new HashSet<int>();
         var krediteGesehen = new HashSet<int>();
         var buergerSchwelle = daten.Staende.Count > 1 ? daten.Staende[1].Schwelle : double.MaxValue;
+        var spitzel = new double[w.Konten.Count];
         for (var j = 1; j <= a.Jahre; j++)
         {
             var jahr = sim.Zeit.Jahr;
@@ -234,6 +254,10 @@ static class Messpartie
                 if (marktJahr && minute == Spielzeit.MinutenProTag - 1)
                     foreach (var s in w.Markt.Staende)
                         verkauft[s.Ware] = s.SpielerAngebotImJahr;
+                // Die Spitzel des Jahres (sie gelten bis zum Gerichtstag am Jahresende), ihre Kosten stehen im Posten „Gericht“
+                if (minute == Spielzeit.MinutenProTag - 1 && w.Justiz.IstAktiv)
+                    for (var i = 0; i < w.Konten.Count && i < spitzel.Length; i++)
+                        spitzel[i] = w.Konten.Count(z => w.Justiz.HatSpitzel(w.Konten[i], z)) * w.Justiz.Daten.SpitzelKosten;
                 sim.Tick();
             }
 
@@ -262,7 +286,8 @@ static class Messpartie
                     Amt = k.Vorjahr?.Amtseinkommen ?? 0, Familie = k.Vorjahr?.Familie ?? 0, Geschenke = k.Vorjahr?.Geschenke ?? 0,
                     Gericht = k.Vorjahr?.Gericht ?? 0, Gaunerei = k.Vorjahr?.Gaunerei ?? 0, Investitionen = k.Vorjahr?.Investitionen ?? 0,
                     Standesgebuehren = k.Vorjahr?.Standesgebuehren ?? 0, Zinsen = k.Vorjahr?.Zinsen ?? 0,
-                    Stand = k.Stand, Stufe = stufe, Betriebe = eigene.Count, Aktiv = k.IstAktiv,
+                    Steuer = k.Vorjahr?.Steuer ?? 0, Spitzel = i < spitzel.Length ? spitzel[i] : 0,
+                    Stand = k.Stand, Stufe = stufe, Betriebe = eigene.Count, Schiffe = w.Schiffahrt.SchiffeVon(k).Count(), Aktiv = k.IstAktiv,
                 };
                 if (h.IstSpieler) Sonderwerte(w, k, eigene, wert.Sonder);
                 h.Jahre.Add(wert);
@@ -272,6 +297,21 @@ static class Messpartie
                 if (stufe >= 3) h.Stufe3Jahr ??= j;
                 if (k.IstBankrott) h.BankrottJahr ??= j;
                 if (k.IstErloschen) h.ErloschenJahr ??= j;
+            }
+            Array.Clear(spitzel);
+
+            foreach (var s in w.Schiffahrt.Schiffe.Where(s => s.ErtragVorjahr is not null && s.Besitzer.IstAktiv))
+            {
+                ergebnis.Schiffsjahre++;
+                ergebnis.Schiffsertrag += s.ErtragVorjahr!.Value;
+            }
+            if (w.Schiffahrt.Schiffe.Count > 0) ergebnis.ErstesSchiffJahr ??= j;
+            if (w.Kasse.IstAktiv)
+            {
+                ergebnis.Kassenstand.Add(w.Kasse.Stand);
+                ergebnis.Steuersatz.Add(w.Kasse.SteuersatzProzent);
+                foreach (var (posten, betrag) in w.Kasse.Vorjahr?.Posten ?? Array.Empty<(Reichsgilde.Core.Politik.Kassenposten, double)>())
+                    ergebnis.Kassenposten[posten] = ergebnis.Kassenposten.GetValueOrDefault(posten) + betrag;
             }
 
             if (marktJahr && stunden > 0)
@@ -290,6 +330,22 @@ static class Messpartie
                 }).ToList();
         }
         return ergebnis;
+    }
+
+    /// <summary>Zählt die Karrenverkäufe der KI aus ihren Meldungen (Begründungen in KiRivale.Karren.cs, PR #205).</summary>
+    public static void KarrenZaehlen(Partieergebnis e, string meldung)
+    {
+        if (!meldung.Contains(": verkauft ")) return;
+        if (meldung.EndsWith("der Kämmerer hat gemahnt.")) e.KarrenNotverkauf++;
+        else if (meldung.EndsWith("er ist das ganze Jahr nicht gefahren.")) e.KarrenUngenutzt++;
+    }
+
+    /// <summary>Die Wirtschaftsdaten ohne einen Abschnitt (sonst gleich) – z. B. ohne „schiffshandel“ für den Vergleich ohne Schiffe.</summary>
+    public static string OhneAbschnitt(string json, string abschnitt)
+    {
+        var knoten = JsonNode.Parse(json)!.AsObject();
+        knoten.Remove(abschnitt);
+        return knoten.ToJsonString();
     }
 
     /// <summary>Was der Beruf ohne Ware dem Spieler im Vorjahr brachte – aus den Büchern von Diebe, Wache, Bank, Kirche und Schänke.</summary>
