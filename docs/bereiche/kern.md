@@ -406,3 +406,9 @@ Entscheidungen des Nutzers: `docs/bereiche/oberflaeche.md`, „Sichtbare Ratssit
 | Namen | Ein neuer Karren heißt weiter „Typ + Zahl der Karren + 1“; ist der Name nach einem Verkauf schon vergeben, die nächste freie Zahl. Ohne Verkauf ändert sich nichts. | 25.10.2026 |
 | KI: in Not | Jede Stunde (auch aus dem Kerker, Betriebssache), vor dem Notverkauf eines Betriebs: Ist sie in Not (`InNot`: gemahnt, und nach den offenen Jahreskosten bleibt nichts), verkauft sie den Karren mit dem höchsten Erlös – nie den letzten eines Betriebs, der Ware fährt (nur Wache und Geldleihe brauchen keinen). | 25.10.2026 |
 | KI: ungenutzt | Zum Jahresende vor dem Karrenkauf: Ein Karren mit **keiner Fahrt im ganzen Vorjahr** wird verkauft, je Betrieb einer, nie der letzte, und nur, wenn der Betrieb seltener stillstand als `StillstandFuerKarrenkauf` (sonst kaufte sie gleich wieder einen). Dafür zählt jeder Karren seine Fahrten zum Markt (`FahrtenImJahr`, `FahrtenVorjahr`); ein Jahr, das er nicht ganz erlebt hat (gekauft im Lauf des Jahres, Startausstattung, alter Spielstand), zählt nicht. Speicherstand: drei neue Felder im `KarrenStand`, alte Stände laden. | 25.10.2026 |
+
+### Balancing 2 (PR #…)
+
+| Thema | Entscheidung | Datum |
+|---|---|---|
+| Vorgehen | Entscheidung des Nutzers: erst ein neuer Messbericht ohne Wertänderung (seit Balancing 1 neu: Hafen, Stadtrat und Stadtkasse, Wetter, Karren verkaufen), dann Designfragen zu den offenen Balancing-Punkten (Z6, Wirt und Dieb bis zum Bürger, KI-Spitzel, Völker, Exportnachfrage), dann Wert-PR mit neuer Messung. | 25.10.2026 |
