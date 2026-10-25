@@ -236,7 +236,7 @@ public sealed class Gastwirtschaft
         var schaenken = Schaenken.ToList();
         var summe = schaenken.Sum(Anziehung);
         if (summe <= 0) return;
-        var gaeste = d.GaesteJeJahr * gewicht / GewichtSumme;
+        var gaeste = d.GaesteJeJahr * gewicht / GewichtSumme * _w.Ratsantraege.Gaestefaktor; // im Festjahr kommen mehr (PR #200)
         // Bürger-KI: Wie viele Einwohner diese Stunde wirklich eingekehrt sind, verschiebt die Gäste (Faktor um 1).
         // Ohne Kopplung (Abschnitt „buerger" oder „kopplung.schaenke" fehlt) genau wie bisher: gaeste × Anziehung ÷ Summe.
         var anteile = _w.Einwohnerschaft.Gaesteanteile(schaenken, gaeste, Anziehung, stunde);
@@ -269,7 +269,7 @@ public sealed class Gastwirtschaft
         b.Auslagern(ware, 1);
         var preis = Ausschankpreis(ware) * (barde ? 1 + d.Barde.Zeche : 1);
         b.UmsatzBuchen(preis);
-        b.SteuerBuchen(preis * _w.Daten.Allgemein.Umsatzsteuer);
+        b.SteuerBuchen(preis * _w.Umsatzsteuer);
         var wuerfel = 0.0;
         if (_wuerfeltisch.Contains(b.Name))
         {

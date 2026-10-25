@@ -45,6 +45,21 @@ public sealed partial class Stadtwirtschaft
     /// <summary>Der Stadtrat mit Ämtern, Wahlen und Abstimmungen.</summary>
     public Stadtrat Rat { get; }
 
+    /// <summary>Die Stadtkasse: Stand, Einnahmen und Ausgaben, Steuersatz (PR #200).</summary>
+    public Politik.Stadtkasse Kasse { get; }
+
+    /// <summary>Anträge zu Steuer, Bau und Fest; Bauvorhaben und Fest der Stadt (PR #200).</summary>
+    public Politik.Ratsantraege Ratsantraege { get; }
+
+    /// <summary>Die Befugnisse der Ämter (PR #200).</summary>
+    public Politik.Amtsbefugnisse Befugnisse { get; }
+
+    /// <summary>Der geltende Steuersatz auf alle Umsätze (0,05 = 5 %) – ohne Stadtkasse <c>allgemein.umsatzsteuer</c>.</summary>
+    public double Umsatzsteuer => Kasse.Umsatzsteuer;
+
+    /// <summary>Steuersatz auf Verkäufe dieses Hauses am Markt (der Marktmeister zahlt weniger).</summary>
+    public double SteuersatzMarkt(Konto konto) => Befugnisse.SteuersatzMarkt(konto);
+
     /// <summary>Familien der Häuser und die Heiratskandidaten der Stadt.</summary>
     public Familienbuch Familien { get; }
 
@@ -91,6 +106,7 @@ public sealed partial class Stadtwirtschaft
     {
         if (Karte is not null) throw new InvalidOperationException("Die Karte der Stadt steht schon fest.");
         Karte = karte;
+        Kasse.KarteGesetzt(karte.Kennung);
         for (var i = 0; i < _konten.Count; i++)
             Bauen.StartplatzVergeben(_konten[i], i);
     }
@@ -272,6 +288,9 @@ public sealed partial class Stadtwirtschaft
         // davon, wie viele Karren es gibt.
         _reihenfolge = new Zufallsquelle(unchecked(zufallsstartwert * 31 + 7));
         Rat = new Stadtrat(this, daten.Politik);
+        Kasse = new Politik.Stadtkasse(this, daten.Politik.Kasse);
+        Ratsantraege = new Politik.Ratsantraege(this, daten.Politik);
+        Befugnisse = new Politik.Amtsbefugnisse(this, daten.Politik.Befugnisse);
         Familien = new Familienbuch(this, daten.Dynastie, zufallsstartwert);
         Justiz = new Stadtgericht(this, daten.Justiz, zufallsstartwert);
         Gauner = new Unterwelt(this, daten.Gauner, zufallsstartwert);
@@ -303,12 +322,16 @@ public sealed partial class Stadtwirtschaft
     /// Setzt den <see cref="Markt.Einwohnerfaktor"/> – zu Beginn jeder Minute und nach dem Laden. So gilt in einer Minute überall
     /// derselbe Wert, und eine geladene Partie rechnet genau wie das Original weiter.
     /// </summary>
-    internal void EinwohnerZaehlen() => Markt.Einwohnerfaktor = Daten.Stadt?.Faktor(WirtschaftendeHaeuser) ?? 1;
+    internal void EinwohnerZaehlen()
+    {
+        Markt.Einwohnerfaktor = Daten.Stadt?.Faktor(WirtschaftendeHaeuser) ?? 1;
+        Markt.Ratsfaktor = Ratsantraege.Nachfragefaktor; // größerer Marktplatz, Fest (PR #200)
+    }
 
     /// <summary>Legt ein Konto an – mit dem Startvermögen aus den Daten oder einem eigenen (z. B. Schwierigkeitsgrad).</summary>
     public Konto KontoEroeffnen(string inhaber, int startjahr = Spielzeit.StartJahr, double? startvermoegen = null)
     {
-        var konto = new Konto(inhaber, startvermoegen ?? Daten.Allgemein.Startvermoegen, startjahr);
+        var konto = new Konto(inhaber, startvermoegen ?? Daten.Allgemein.Startvermoegen, startjahr) { Stadtkasse = Kasse.Buchen };
         if (HatAktionspunkte)
             konto.Aktionspunkte.NeueRunde(AktionspunkteJeRunde, hoechstens: Daten.Aktionspunkte!.Hoechstens);
         _konten.Add(konto);
@@ -337,6 +360,7 @@ public sealed partial class Stadtwirtschaft
             return Familien.TrainingVerboten(konto, t.Talent) is null ? d.TrainingKostenFuer(f.Oberhaupt.Talent(t.Talent)) : 0; // abgelehnt wird es ohnehin – mit dem richtigen Grund
         if (befehl is MeisterpruefungAblegen m)
             return HatAktionspunkte && MeisterpruefungVerboten(konto, m.Beruf) is null ? NaechstePruefung(konto, m.Beruf)!.Ap : 0;
+        if (Befugnisse.OhneAktionspunkte(konto, befehl)) return 0; // Kämmerer: Steuersatz; Bürgermeister: ein Antrag im Jahr
         return ApKosten(befehl);
     }
 
@@ -490,6 +514,7 @@ public sealed partial class Stadtwirtschaft
         Wohnen.Minute(zeit); // fertige Ausbauten der Wohnhäuser
         Bauen.Minute(zeit);  // fertige Baustellen: Umzug, neue Werkstätten, Bauplätze
         Wegebau.Minute(zeit); // fertig ausgebaute Wege
+        Ratsantraege.Minute(zeit); // fertige Bauvorhaben der Stadt
 
         // Bürger-KI: Die Einwohner planen jede volle Stunde ihren Tag (lesen nur, eigener Zufall).
         Einwohnerschaft.Minute(zeit);
@@ -542,6 +567,7 @@ public sealed partial class Stadtwirtschaft
         Glaube.Jahresende();        // Ketzerkirchen (mit dem Kirchenbuch des Jahres), Anteile kehren zurück
         Kirchenwesen.Jahresende();  // die Beichten des Jahres, neues Kirchenbuch
         Rat.Sitzung(_zufall, neuesJahr - 1);
+        Kasse.JahrAbschliessen(neuesJahr); // nach der Sitzung: Bau und Fest stehen noch im alten Jahr
         Gauner.Jahresende();
         Diebe.Jahresende(); // unbeantwortete Forderungen: Feuer oder die Geisel wird verkauft
         Wache.Jahresende();
@@ -623,9 +649,12 @@ public sealed partial class Stadtwirtschaft
         if (kosten > 0 && absender.IstAktiv && !absender.Aktionspunkte.Reicht(kosten)
             && !(Justiz.IstAktiv && Justiz.ImKerker(absender)))
             return Befehlsergebnis.Abgelehnt($"Nicht genug Aktionspunkte: Das kostet {kosten} AP, {absender.Inhaber} hat noch {absender.Aktionspunkte.Vorrat}.");
+        var frei = Politik.Amtsbefugnisse.IstAntrag(befehl) && Befugnisse.OhneAktionspunkte(absender, befehl);
         var ergebnis = Bearbeiten(absender, befehl);
         if (ergebnis.Erfolg && kosten > 0)
             absender.Aktionspunkte.Ausgeben(kosten);
+        if (ergebnis.Erfolg && frei)
+            Befugnisse.AntragGestellt(absender, befehl);
         return ergebnis;
     }
 
@@ -693,6 +722,20 @@ public sealed partial class Stadtwirtschaft
             return Rat.WahlStimmeFestlegen(absender, wahlStimme.Amt, wahlStimme.Kandidat);
         if (befehl is StatutStimme statutStimme)
             return Rat.StatutStimmeFestlegen(absender, statutStimme.Ja);
+        if (befehl is SteuersatzBeantragen steuer)
+            return Ratsantraege.Beantragen(new Politik.Ratsantrag(Politik.Antragsart.Steuersatz, absender, Prozent: steuer.Prozent));
+        if (befehl is BauvorhabenBeantragen bauvorhaben)
+            return Ratsantraege.Beantragen(new Politik.Ratsantrag(Politik.Antragsart.Bauvorhaben, absender, Bauvorhaben: bauvorhaben.Kennung));
+        if (befehl is FestBeantragen)
+            return Ratsantraege.Beantragen(new Politik.Ratsantrag(Politik.Antragsart.Fest, absender));
+        if (befehl is RatsantragStimme ratsStimme)
+            return Ratsantraege.StimmeFestlegen(absender, ratsStimme.Art, ratsStimme.Ja);
+        if (befehl is StrafmassSetzen strafmass)
+            return Befugnisse.StrafmassSetzen(absender, strafmass.Anklaeger, strafmass.Beklagter, strafmass.Prozent);
+        if (befehl is StreifeVerlegen streife)
+            return Befugnisse.StreifeVerlegen(absender, streife.Viertel);
+        if (befehl is GefangenenFreilassen freilassen)
+            return Befugnisse.GefangenenFreilassen(absender, freilassen.Haus);
         if (befehl is SpitzelAnsetzen or Anklagen)
         {
             if (!Justiz.IstAktiv)
@@ -854,7 +897,7 @@ public sealed partial class Stadtwirtschaft
         if (Wohnen.StandVerboten(konto, konto.Stand + 1) is { } ohneHaus)
             return Befehlsergebnis.Abgelehnt(ohneHaus);
 
-        konto.Standesgebuehr(neu.Gebuehr);
+        konto.Standesgebuehr(neu.Gebuehr); // geht an den Landesherrn, nicht in die Stadtkasse (PR #200)
         konto.Stand++;
         Melden($"{konto.Inhaber} ist nun {neu.Name}! (Gebühr {Zahlenformat.Ganz(neu.Gebuehr)} {waehrung})");
         Aufgestiegen?.Invoke(konto, neu);
@@ -1042,6 +1085,9 @@ public sealed partial class Stadtwirtschaft
         WerkstattWuerfe = Werkstaetten.Wuerfe,
         Wegebau = Wegebau.Sichern(k => _konten.IndexOf(k)),
         Schiffahrt = Schiffahrt.Sichern(k => _konten.IndexOf(k)),
+        Stadtkasse = Kasse.Sichern(),
+        Ratsantraege = Kasse.IstAktiv ? Ratsantraege.Sichern(k => _konten.IndexOf(k)) : null,
+        Befugnisse = Kasse.IstAktiv ? Befugnisse.Sichern(k => _konten.IndexOf(k)) : null,
     };
 
     /// <summary>
@@ -1059,6 +1105,7 @@ public sealed partial class Stadtwirtschaft
         _reihenfolge = new Zufallsquelle(_reihenfolge.Startwert, s.ReihenfolgeWuerfe);
 
         _konten.AddRange(s.Konten.Select(Konto.Wiederherstellen));
+        foreach (var k in _konten) k.Stadtkasse = Kasse.Buchen;
         Wohnen.AlteStaendeErgaenzen(_konten.Where((_, i) => s.Konten[i].WohnhausStufe is null));
         Bauen.Wiederherstellen(s.Bauen, _konten); // vor den Hauswerten: Ein laufender Umzug zählt schon
         Wohnen.HauswerteNachDemLaden(_konten);
@@ -1109,6 +1156,9 @@ public sealed partial class Stadtwirtschaft
         Werkstaetten.Wiederherstellen(s.WerkstattWuerfe);
         Wegebau.Wiederherstellen(s.Wegebau, _konten);
         Schiffahrt.Wiederherstellen(s.Schiffahrt, _konten);
+        Kasse.Wiederherstellen(s.Stadtkasse); // alte Spielstände: Startbestand der Karte, Steuersatz aus den Daten
+        Ratsantraege.Wiederherstellen(s.Ratsantraege, _konten);
+        Befugnisse.Wiederherstellen(s.Befugnisse, _konten);
         ToteBetriebeFreigeben(); // alte Spielstände: Betriebe toter Häuser standen still – nun stehen sie zum Verkauf
         EinwohnerZaehlen();
     }

@@ -240,7 +240,8 @@ public sealed class Stadtgericht
     }
 
     /// <summary>Welche Buße bei einem Schuldspruch fällig würde (nach den Beweisen, die der Ankläger heute hat).</summary>
-    public double DrohendeBusse(Konto anklaeger, Konto beklagter) => Busse(beklagter, Beweise(anklaeger, beklagter));
+    public double DrohendeBusse(Konto anklaeger, Konto beklagter) =>
+        Busse(beklagter, Beweise(anklaeger, beklagter)) * (1 + _w.Befugnisse.Strafmass(anklaeger, beklagter) / 100.0); // Stadtrichter ±25 %
 
     /// <summary>
     /// Buße für diese Taten: Faktor × Summe, mindestens die Mindestbuße – und höchstens der festgelegte Anteil
@@ -352,6 +353,7 @@ public sealed class Stadtgericht
             return Befehlsergebnis.Abgelehnt("Es gibt niemanden, der den Vorsitz führen könnte.");
 
         anklaeger.Gerichtskosten(Daten.Gerichtsgebuehr);
+        _w.Kasse.Buchen(Politik.Kassenposten.Gebuehren, Daten.Gerichtsgebuehr);
         var richter = new List<Richter> { vorsitz };
         richter.AddRange(SchoeffenAuslosen(vorsitz).Select(r => new Richter("Schöffe", r, null)));
         var v = new Verfahren(anklaeger, beklagter, _w.Jahr, richter);
@@ -407,8 +409,9 @@ public sealed class Stadtgericht
             string text;
             if (schuldig)
             {
-                var busse = Busse(v.Beklagter, beweise);
+                var busse = Busse(v.Beklagter, beweise) * (1 + _w.Befugnisse.Strafmass(v.Anklaeger, v.Beklagter) / 100.0); // Stadtrichter ±25 %
                 v.Beklagter.Gerichtskosten(busse);
+                _w.Kasse.Buchen(Politik.Kassenposten.Strafen, busse);
                 var folgen = new List<string> { $"Buße {Zahlenformat.Ganz(busse)} {waehrung}" };
                 if (_w.Wache.KopfgeldNachUrteil(v.Anklaeger, busse) is var kopfgeld and > 0)
                     folgen.Add($"Kopfgeld {Zahlenformat.Ganz(kopfgeld)} {waehrung} für die Wache von {v.Anklaeger.Inhaber}");
@@ -448,6 +451,7 @@ public sealed class Stadtgericht
             SpurenEntfernen(s => erledigt.Contains(s.Nummer));
         }
         _verfahren.Clear();
+        _w.Befugnisse.GerichtstagVorbei();
 
         // Spitzelberichte
         _beobachtet.Clear();
@@ -494,6 +498,9 @@ public sealed class Stadtgericht
         foreach (var k in _kerkerBis.Where(p => p.Value <= jahr).Select(p => p.Key).ToList())
             _kerkerBis.Remove(k);
     }
+
+    /// <summary>Der Gefängniswärter lässt das Oberhaupt gegen Kaution vorzeitig frei (PR #200).</summary>
+    internal void Freilassen(Konto konto) => _kerkerBis.Remove(konto);
 
     private void Eintrag(string text)
     {

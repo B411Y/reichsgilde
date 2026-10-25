@@ -1566,3 +1566,39 @@ Die neue Karte allein ändert fast nichts (−1 … 0 %). Mit Schiffshandel: 49 
 - **Runde 2, Probestadt:** 40 Schiffe in 20 Partien (das erste Ø in Jahr 4,5), 893 Schiffsjahre, 3,25 Fahrten je Schiff und Jahr (Weidenmünd 2.120, Eisenfurt 823); Flusspiraten 235 Angriffe, 91 gelungen. Das Schiff erreicht einen Umlandbetrieb (Ziel erfüllt).
 - **Runde 2, Greybox:** 57 Schiffe (vorher 49; das erste Ø in Jahr 4,7), 1.143 Schiffsjahre, 3,00 Fahrten (Weidenmünd 2.467, Eisenfurt 1.011); Flusspiraten 252 Angriffe, 121 gelungen. `messen 30 20 greybox`: Eisenbart Ø 250.864 (wie oben), Bürgermeister 15/20 (vorher 14/20), Stand der KI am Ende Reichsgraf 43, Freiherr 17 (vorher 38/20/Edler 2); kein Bankrott. Drei Schiffe teilen sich die Märkte, das Schiff bleibt dort weit unter einem Umlandbetrieb.
 - **Befund:** Die teureren Rohstoffe dort dämpfen die KI-Häuser (Probestadt Runde 1 → 2: −5 Punkte) und helfen dem Steinmetz (weniger billiger Bruchstein und Granit). Den passiven Spieler treffen sie nicht (+25,0 → +25,7 %): Er ist Schmied, und die KI kauft seine Fertigwaren (Silberringe, Rapiere, Silberketten) als Hinfracht am Markt daheim – die besser bezahlten Fertigwaren verstärken das. Das Ziel „passiver Spieler deutlich weniger“ ist mit Preisen der fernen Städte nicht zu erreichen. Entscheidung des Nutzers: so lassen, die Exportnachfrage ist gewollt (Feinschliff in der nächsten Balancing-Runde).
+
+## Stadtkasse, Ämter und neue Anträge (PR #200)
+
+**Regeln** (Abschnitt `politik.kasse`, `politik.bauvorhaben`, `politik.fest`, `politik.befugnisse`; Datenversion 54):
+
+- **Kasse:** Startbestand 3.000 (Köln 6.000, `startJeKarte`). Einnahmen: Umsatzsteuer aller Häuser, Glaubenszins, Bußen und Gerichtsgebühren, Hafenzoll (die erste Zollstelle jeder beladenen Schiffsfahrt gehört der Stadt – die Händler zahlen nicht mehr als vorher). Die Standesgebühr geht an den Landesherrn (sie füllte die Kasse sonst um Tausende je Aufstieg). Ausgaben: Amtsgehälter aller besetzten Ämter (800 + 2 × 500 + 2 × 300 + 2 × 150 = 2.700 im Jahr, auch für die Ratsherren), Bauvorhaben, Feste. Die Kasse darf ins Minus; das hat keine Folgen außer, dass Bau und Fest warten müssen. Wachsold, Kopfgeld und Wegekasse bleiben wie bisher.
+- **Steuersatz** 3–8 % (Start 5 %). Ratsherren rechnen wie Haushälter: erhöhen, wenn die Kasse unter ihrer Reserve liegt oder der Haushalt des Vorjahres (Einnahmen − Gehälter) im Minus war; senken nur, wenn die Kasse über der doppelten Reserve liegt **und** der Haushalt mit dem neuen Satz im Plus bliebe. Reserve 2.000 × Sparsamkeit (Zwerg 1,5, Elb 1,2, Mensch 1, Halbling 0,75). Ab Gunst 20 stimmen sie jedem Kassenantrag des Hauses zu.
+- **Bauvorhaben** (je einmal, wirken danach für immer): Brunnen 2.500 (Krankheit und Pest −25 %), Mauer ausbessern 4.000 (nächtliche Taten in der Stadt −15 %), Hafen erweitern 5.000 (Lade- und Liegezeit −40 %, nur mit Hafen), Marktplatz vergrößern 6.000 (Nachfrage aller Waren +5 %). Bauzeit 17 Stunden (Marktplatz 25). Antragsteller +3 Ansehen für 3 Jahre. „Gasse pflastern“ bleibt der Antrag „Weg pflastern“ aus der Wegekasse.
+- **Fest** 1.500: das ganze nächste Jahr Nachfrage +5 % und Wirtshausgäste +20 %, Antragsteller +5 Ansehen bis Ende des Festjahres (zählt schon bei den Wahlen derselben Sitzung). Ratsherren stimmen zu, wenn danach die Reserve bleibt.
+- **Befugnisse:** Bürgermeister ein Antrag im Jahr ohne AP; Kämmerer Steuersatz ohne AP und der Haushalt; Stadtrichter Buße ±25 %; Stadthauptmann Streife in ein Viertel (Schutz × 2, mindestens 10 %, höchstens 60 %); Marktmeister halbe Umsatzsteuer auf eigene Marktverkäufe und die Preise der nächsten Stunde; Gefängniswärter Freilassung gegen 1.000 Kaution je Restjahr (an ihn); Zöllner zahlt die erste Zollstelle nicht.
+- **KI:** beantragt eine niedrigere Steuer ab 400 Gulden eigener Steuer im Vorjahr, als Kämmerer bei leerer Kasse eine höhere; ein Fest, wenn sie sich bewirbt und die Wahl nicht sicher ist; das erste Bauvorhaben, das ihr nützt – alles nur, wenn es nach der Prognose durchginge. Stimmen: Steuer runter ja, rauf nein (außer die Kasse ist im Minus und sie hat ein Amt), Bau nach Nutzen, Fest mit Werkstatt oder Schänke (nie für das führende Haus).
+
+**Messung** (`messen 30 20` und `messen 30 20 greybox`, Mensch, ausgewogen, gemessen auf main `7c8e72b` + dieser PR):
+
+| Ø nach 30 Jahren | main ohne Karte | mit Kasse | main Greybox | mit Kasse |
+|---|---|---|---|---|
+| Eisenbart (Schmied, KI) | 165.223 | 169.450 (+2,6 %) | 250.864 | 270.476 (+7,8 %) |
+| Eichwald (Tischler) | 118.112 | 126.362 (+7,0 %) | 183.388 | 199.521 (+8,8 %) |
+| Kieselbach (Steinmetz) | 158.764 | 163.933 (+3,3 %) | 193.086 | 208.188 (+7,8 %) |
+| Eisenbart Bürger ab Jahr | 6,2 | 6,2 | 6,3 | 6,3 |
+| Bürgermeister (Eisenbart) | 16/20 ab 16,3 | 16/20 ab 16,6 | 15/20 ab 17,7 | 14/20 ab 19,9 |
+
+| | ohne Karte | Greybox |
+|---|---|---|
+| Kasse Ø am Jahresende (Jahr 1 / 5 / 10 / 20 / 30) | 1.143 / −6.141 / −3.125 / 3.480 / 3.617 | 1.143 / −5.611 / 884 / 4.995 / 10.893 |
+| Einnahmen je Jahr | Steuer 2.499, Bußen 577, Glaubenszins 23, Gebühren 21 | Steuer 2.566, Hafenzoll 997, Bußen 471, Glaubenszins 15, Gebühren 18 |
+| Ausgaben je Jahr | Gehälter 2.700, Bau 209, Feste 190 | Gehälter 2.700, Bau 543, Feste 560 |
+| Anträge gestellt/angenommen (20 Partien) | Steuer senken 55/54, erhöhen 20/20, Fest 102/76, Brunnen 19/19, Mauer 12/12, Marktplatz 5/5 | Steuer senken 40/40, Fest 240/224, Brunnen 20/20, Hafen 20/20, Mauer 21/20, Marktplatz 17/16 |
+| Steuersatz am Ende | 3 % in 14, 4 % in 6 Partien | 3 % in allen 20 |
+| Befugnisse der KI | Kämmerer erhöht 23× | – |
+
+- **Befund:** Die Kasse ist in den ersten zehn Jahren knapp (Gehälter 2.700 gegen 1.000–2.500 Steuern) und füllt sich erst mit den größeren Betrieben. Die KI senkt die Steuer, sobald der Haushalt es trägt – am Ende meist 3 %. Das hebt die Vermögen um 3–9 % (weniger Steuer, Marktplatz, Feste); die Zeit bis zum Bürger bleibt gleich. In der Greybox trägt der Hafenzoll (≈ 1.000 im Jahr) den Haushalt, deshalb gibt es dort alle 2–3 Jahre ein Fest.
+- Die KI bewirbt sich nach Gehalt, bei Gleichstand nach dem Namen: Stufe 1 Gefängniswärter, Stufe 2 Marktmeister, Stufe 3 Kämmerer – Stadtrichter und Stadthauptmann hält sie in der Messung nie, Gefangene gab es keine. Die Befugnisse prüfen die Tests (`StadtkasseTests`, `KiStadtkasseTests`).
+- Ein vorher entworfener Stand mit Standesgebühr in der Kasse ließ sie in der Greybox bis Jahr 30 auf Ø 132.666 wachsen (Gebühren 4.416 im Jahr), mit jährlichem Fest (298 Anträge) und Steuer senken ohne Haushaltsprüfung: Eisenbart +9,3 % ohne Karte. Deshalb Standesgebühr an den Landesherrn, Haushaltsregel der Ratsherren und Fest der KI nur bei unsicherer Wahl.
+
+**Ämter der KI nach Nutzen** (Entscheidung des Nutzers, 25.10.2026): Die KI bewirbt sich um das Amt mit dem höchsten `AmtsWert` = Gehalt + Nutzen der Befugnis (Richter 300 je eigenem Verfahren und je Tat, die andere kennen; Hauptmann 100 je Betrieb in der Stadt + ¼ von Raub und Schaden des Vorjahres; Zöllner 250 je Schiff; Marktmeister die halbe Umsatzsteuer des Vorjahres) und bemisst daran auch ihre Wahlgeschenke. `messen 30 20 greybox` auf main `7c8e72b` + dieser PR – Jahre, in denen KI-Häuser ein Amt hielten (Summe über 20 Partien): Bürgermeister 323, Marktmeister 338, Zöllner 210, Stadthauptmann 135, Gefängniswärter 93, Stadtrichter 36, Kämmerer 27 (vorher nach dem Namen: Hauptmann und Richter nie). Die KI verlegt als Hauptmann 32-mal die Streife. Vermögen Ø: Eisenbart 256.097 (+2,1 % gegen main), Eichwald 211.623 (+15,4 %), Kieselbach 205.020 (+6,2 %); Steuersatz am Ende 3 % in allen Partien, Fest 224/207.

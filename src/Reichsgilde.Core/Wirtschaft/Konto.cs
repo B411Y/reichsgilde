@@ -149,6 +149,9 @@ public sealed class Konto
     /// <summary>Bewacht ein Hauswächter das Wohnhaus (halbiert Einbruch und Brand, mehr Zeugen)?</summary>
     public bool Hauswaechter { get; internal set; }
 
+    /// <summary>Wohin Steuern und Abgaben fließen (gesetzt von der Stadtwirtschaft; null: nirgendwohin, z. B. in Tests ohne Stadt).</summary>
+    internal Action<Politik.Kassenposten, double>? Stadtkasse { get; set; }
+
     /// <summary>Aktionspunkte des Hauses für persönliche Handlungen (Werben, Rat, Gericht, Hinterzimmer, Training).</summary>
     public Partie.Aktionspunkte Aktionspunkte { get; } = new();
 
@@ -164,7 +167,13 @@ public sealed class Konto
     internal void Zutaten(double betrag) { Vermoegen -= betrag; Laufend.Zutaten += betrag; }
     internal void Personal(double betrag) { Vermoegen -= betrag; Laufend.Personal += betrag; }
     internal void Fixkosten(double betrag) { Vermoegen -= betrag; Laufend.Fixkosten += betrag; }
-    internal void Steuer(double betrag) { Vermoegen -= betrag; Laufend.Steuer += betrag; }
+    /// <summary>Steuern und Abgaben gehen an die Stadt: in die Stadtkasse unter diesem Posten (PR #200).</summary>
+    internal void Steuer(double betrag, Politik.Kassenposten posten = Politik.Kassenposten.Umsatzsteuer)
+    {
+        Vermoegen -= betrag;
+        Laufend.Steuer += betrag;
+        Stadtkasse?.Invoke(posten, betrag);
+    }
     internal void Schaden(double betrag) { Vermoegen -= betrag; Laufend.Schaden += betrag; }
     internal void Transport(double betrag) { Vermoegen -= betrag; Laufend.Transport += betrag; }
     internal void Investition(double betrag) { Vermoegen -= betrag; Laufend.Investitionen += betrag; }
