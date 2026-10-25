@@ -21,6 +21,30 @@ public partial class Rollbereich : ScrollContainer
     /// <summary>Luft zwischen Tafel und Fensterrand (je Seite) – wie der Abstand der Ecktafeln.</summary>
     public float Abstand { get; set; } = 16;
 
+    /// <summary>Zusätzlich frei zu haltender Platz oben und unten (Kopfzeile mit Zeitstrahl, Betriebsleiste) – für die Tafeln rechts.</summary>
+    public float ObenFrei { get; set; }
+    public float UntenFrei { get; set; }
+
+    /// <summary>Höhe, die oben für Kopfzeile und Zeitstrahl frei bleibt, und unten für die Betriebsleiste (Einheiten der Oberfläche).</summary>
+    public const float KopfHoehe = 132, LeistenHoehe = 84;
+
+    /// <summary>
+    /// Heftet eine Tafel rechts an den Rand, unter Kopfzeile und Zeitstrahl und über der Betriebsleiste (PR #197): Dort stehen die Tafeln, die
+    /// ein Klick öffnet (Auswahl, Wohnhaus, Bericht, Bauen, Weg). Die Tafel muss schon eingehüllt sein (<see cref="Einhuellen"/>).
+    /// </summary>
+    public static void RechtsAnheften(PanelContainer tafel)
+    {
+        tafel.SetAnchorsAndOffsetsPreset(Control.LayoutPreset.TopRight, Control.LayoutPresetMode.Minsize, 16);
+        tafel.GrowHorizontal = Control.GrowDirection.Begin; // wächst nach links ins Bild
+        tafel.GrowVertical = Control.GrowDirection.End;
+        tafel.Position = new Vector2(tafel.Position.X, KopfHoehe);
+        if (tafel.GetNodeOrNull<Rollbereich>("Rollbereich") is { } rolle)
+        {
+            rolle.ObenFrei = KopfHoehe - rolle.Abstand;
+            rolle.UntenFrei = LeistenHoehe - rolle.Abstand;
+        }
+    }
+
     /// <summary>
     /// Legt einen Rollbereich zwischen die Tafel und ihren Inhalt (das einzige Kind, meist ein MarginContainer).
     /// Eine feste Breite der Tafel wandert auf den Inhalt – sonst könnte die Tafel nie schmaler als das Fenster werden.
@@ -58,7 +82,7 @@ public partial class Rollbereich : ScrollContainer
 
         var fenster = GetViewportRect().Size;
         var rahmen = _tafel.GetThemeStylebox("panel").GetMinimumSize();
-        var platz = fenster - rahmen - new Vector2(2 * Abstand, 2 * Abstand);
+        var platz = fenster - rahmen - new Vector2(2 * Abstand, 2 * Abstand + ObenFrei + UntenFrei);
         var inhalt = _inhalt.GetCombinedMinimumSize();
         var balkenBreite = GetVScrollBar().GetCombinedMinimumSize().X;
         var balkenHoehe = GetHScrollBar().GetCombinedMinimumSize().Y;

@@ -10,7 +10,8 @@ namespace Reichsgilde;
 
 /// <summary>
 /// Die Hauptszene: hält die Simulation und verbindet sie mit der Stadtansicht (3D)
-/// und der Oberfläche (Zeittafel, Kontor, Auswahl).
+/// und der Oberfläche (PR #197): oben Kopfzeile und Zeitstrahl (Hauptszene.Kopf.cs), unten die Betriebsleiste (Hauptszene.Leiste.cs),
+/// unten links die Meldungen, die Hilfe (Hauptszene.Meldungen.cs), rechts eine Tafel nur, wenn man etwas anklickt (Auswahl, Wohnhaus, Bericht).
 ///
 /// Aufgabenteilung:
 ///   • Die SIMULATION (Reichsgilde.Core) entscheidet, was passiert.
@@ -39,11 +40,14 @@ namespace Reichsgilde;
 ///   --einrichtung=Werkzeug1,Regale  der eigenen Werkstatt gleich diese Einrichtung kaufen (mit --vermoegen=5000)
 ///   --einstellen=Lehrling,Geselle   der eigenen Werkstatt gleich diese Arbeiter einstellen
 ///   --ausbauen=2       die eigene Werkstatt gleich zweimal ausbauen und den Umbau abwarten (Stufe 3; mit --vermoegen=30000)
-///   --verwalten=1      das Bedienfeld der eigenen Gießerei gleich öffnen
+///   --verwalten=1      die Kurzübersicht der eigenen Werkstatt gleich öffnen (=mehr: mit „…“ aufgeklappt)
+///   --wohnhaus=haus    die Tafel des Wohnhauses gleich öffnen (Reiter haus, familie, handwerk, geld, hinterzimmer)
+///   --hilfe=1          gleich zu Beginn die Hilfe zeigen
+///   --meldung=⚠_Text   eine Meldung unten links einstellen (zum Testen; Leerzeichen als _, mit ✗ oder ⚠ eine Warnung)
 ///   --karren=Ochsenkarren,Kriegskarren  der eigenen Gießerei gleich diese Karren dazukaufen (mit --vermoegen=5000; Handkarren, Ochsenkarren, Kriegskarren)
 ///   --vermoegen=12000  Startvermögen des Spielers setzen (zum Ausprobieren des Aufstiegs)
 ///   --beruf=Steinmetz  Startberuf der Testpartie (Schmied, Tischler, Steinmetz, Alchimist, Wirt, Prediger, Dieb, Gardist, Geldleiher)
-///   --bericht=1        gleich zu Beginn einen Jahresbericht zeigen (zum Testen der Anzeige)
+///   --bericht=1        gleich zu Beginn einen Jahresbericht zeigen (zum Testen der Anzeige); =jahresrechnung, rivalen, umsaetze, protokoll: die Tafel „Bericht“ auf diesem Reiter
 ///   --rat=1            gleich zu Beginn die Ratskammer öffnen
 ///   --familie=1        gleich zu Beginn die Familientafel öffnen
 ///   --gericht=1        gleich zu Beginn den Gerichtssaal öffnen
@@ -76,22 +80,22 @@ namespace Reichsgilde;
 /// </summary>
 public partial class Hauptszene : Node
 {
-    private const int MaxProtokollZeilen = 5;
     public const string WirtschaftsdatenPfad = "res://daten/wirtschaft.json";
 
     private Simulation _simulation = null!;
-    private readonly List<string> _protokoll = new();
     private readonly List<Button> _tempoKnoepfe = new();
     private string? _auswahlKennung;
 
     private Stadtansicht _stadt = null!;
-    private KontorAnzeige _kontor = null!;
-    private PanelContainer _tafel = null!;
+    private WohnhausAnzeige _wohnhaus = null!;
+    private BerichtAnzeige _berichtTafel = null!;
+    /// <summary>Den Jahresbericht hat der Spieler selbst geöffnet (Tafel „Bericht“): Beim Schließen bleibt die Pause, wie sie vorher war.</summary>
+    private bool? _pauseVorBericht;
     private PanelContainer _auswahl = null!;
     private Label _auswahlText = null!;
     private WappenBild _auswahlWappen = null!;
     private Button _innenKnopf = null!;
-    private BetriebsVerwaltung _verwaltung = null!;
+    private BetriebsUebersicht _uebersicht = null!;
     /// <summary>Ein Knopf für die Hauptaktion des ausgewählten Ortes (Aufsteigen, Kaufen, Pachten).</summary>
     private Button _aktionKnopf = null!;
     private Func<Befehl>? _aktion;
@@ -135,16 +139,7 @@ public partial class Hauptszene : Node
     /// Im Multiplayer wird das später eine Einstellung der Partie.
     /// </summary>
     private const bool BeiJahresberichtPausieren = true;
-    private Label _blick = null!;
     private Betrieb? _eigeneGiesserei;
-    private Label _datum = null!;
-    private WetterAnzeige _wetter = null!;
-    private Label _uhrzeit = null!;
-    private ProgressBar _tagesfortschritt = null!;
-    private Button _pauseKnopf = null!;
-    private HBoxContainer _tempoleiste = null!;
-    private Label _hinweis = null!;
-    private Label _protokollLabel = null!;
     private PanelContainer _raumleiste = null!;
     private HBoxContainer _raumknoepfe = null!;
 
@@ -159,13 +154,17 @@ public partial class Hauptszene : Node
     public override void _Ready()
     {
         _stadt = GetNode<Stadtansicht>("%Stadt");
-        _kontor = GetNode<KontorAnzeige>("%Kontor");
-        _tafel = GetNode<PanelContainer>("%Tafel");
+        // Oben, unten links und die Leiste zuerst: Schon beim Aufbau der Partie kommen Meldungen.
+        KopfBauen();
+        MeldungenBauen();
+        LeisteBauen();
         _auswahl = GetNode<PanelContainer>("%Auswahl");
         _auswahlText = GetNode<Label>("%AuswahlText");
         AuswahlWappenEinbauen();
         _innenKnopf = GetNode<Button>("%InnenKnopf");
-        _verwaltung = GetNode<BetriebsVerwaltung>("%Verwaltung");
+        _uebersicht = new BetriebsUebersicht();
+        _auswahlText.GetParent().GetParent().AddChild(_uebersicht); // gleich unter Name und Wappen, vor „Hineingehen“
+        _auswahlText.GetParent().GetParent().MoveChild(_uebersicht, _auswahlText.GetParent().GetIndex() + 1);
         _aktionKnopf = GetNode<Button>("%AktionKnopf");
         _jahresbericht = GetNode<JahresberichtAnzeige>("%Jahresbericht");
         _ratKnopf = GetNode<Button>("%RatKnopf");
@@ -190,60 +189,55 @@ public partial class Hauptszene : Node
         GetNode<CanvasLayer>("Oberflaeche").AddChild(_bau); // rechts, anstelle des Kontors
         _wegTafel = new WegAnzeige();
         GetNode<CanvasLayer>("Oberflaeche").AddChild(_wegTafel); // ebenfalls rechts: Belag und Ausbau eines angeklickten Weges
+        _wohnhaus = new WohnhausAnzeige();
+        GetNode<CanvasLayer>("Oberflaeche").AddChild(_wohnhaus); // rechts: das eigene Wohnhaus mit seinen Reitern
+        _berichtTafel = new BerichtAnzeige { Meldungen = () => _jahresProtokoll };
+        GetNode<CanvasLayer>("Oberflaeche").AddChild(_berichtTafel); // rechts: Jahresrechnung, Rivalen, Umsätze, Protokoll
+        GetNode<CanvasLayer>("Oberflaeche").MoveChild(ratMitte, -1); // die Fenster der Mitte (Rat, Markt …) liegen über den Tafeln rechts
         _gerichtKnopf = GetNode<Button>("%GerichtKnopf");
         // Der Bericht sitzt in einem CenterContainer: Der hält ihn mittig, egal wie hoch er wird.
         var berichtMitte = Hauptmenue.Mitte();
         GetNode<CanvasLayer>("Oberflaeche").AddChild(berichtMitte);
         _jahresbericht.Reparent(berichtMitte);
-        _blick = GetNode<Label>("%Blick");
-        _datum = GetNode<Label>("%Datum");
-        _uhrzeit = GetNode<Label>("%Uhrzeit");
-        _wetter = new WetterAnzeige(); // unter der Uhrzeit: Wetter jetzt und Aussicht (PR #195)
-        _uhrzeit.AddSibling(_wetter);
-        _tagesfortschritt = GetNode<ProgressBar>("%Tagesfortschritt");
-        _tagesfortschritt.MaxValue = Spielzeit.MinutenProTag; // 05–22 Uhr
-        _pauseKnopf = GetNode<Button>("%PauseKnopf");
-        _tempoleiste = GetNode<HBoxContainer>("%Tempoleiste");
-        _hinweis = GetNode<Label>("%Hinweis");
-        _protokollLabel = GetNode<Label>("%Protokoll");
 
-        // Tafeln an die Bildschirmecken heften (passt sich jeder Fenstergröße an).
-        // Deckende Tafeln: Beschriftungen der Stadt sollen nicht durch die Oberfläche scheinen.
-        foreach (var tafel in new[] { _tafel, _kontor, _auswahl })
-            tafel.AddThemeStyleboxOverride("panel", new StyleBoxFlat
-            {
-                BgColor = new Color(0.16f, 0.15f, 0.13f, 0.97f),
-                CornerRadiusTopLeft = 4, CornerRadiusTopRight = 4, CornerRadiusBottomLeft = 4, CornerRadiusBottomRight = 4,
-            });
-        _tafel.SetAnchorsAndOffsetsPreset(Control.LayoutPreset.TopLeft, Control.LayoutPresetMode.Minsize, 16);
-        _kontor.SetAnchorsAndOffsetsPreset(Control.LayoutPreset.TopRight, Control.LayoutPresetMode.Minsize, 16);
-        _kontor.GrowHorizontal = Control.GrowDirection.Begin; // wächst nach links ins Bild
-        _auswahl.SetAnchorsAndOffsetsPreset(Control.LayoutPreset.BottomLeft, Control.LayoutPresetMode.Minsize, 16);
-        _auswahl.GrowVertical = Control.GrowDirection.Begin; // wächst nach oben
-        // Passt eine Tafel nicht ins Fenster, wird sie gerollt (Fenstergröße ist frei wählbar).
-        foreach (var tafel in new[] { _tafel, _kontor, _auswahl })
-            Rollbereich.Einhuellen(tafel);
+        // Die Auswahl steht rechts, unter dem Zeitstrahl (deckend: Beschriftungen der Stadt sollen nicht durchscheinen).
+        // Passt sie nicht ins Fenster, wird sie gerollt (Fenstergröße ist frei wählbar).
+        _auswahl.AddThemeStyleboxOverride("panel", new StyleBoxFlat
+        {
+            BgColor = new Color(0.16f, 0.15f, 0.13f, 0.97f),
+            CornerRadiusTopLeft = 4, CornerRadiusTopRight = 4, CornerRadiusBottomLeft = 4, CornerRadiusBottomRight = 4,
+        });
+        Rollbereich.Einhuellen(_auswahl);
+        Rollbereich.RechtsAnheften(_auswahl);
         RaumleisteBauen();
+        HilfeBauen();
         LeerstandKnoepfeBauen();
 
         var optionen = Startoptionen();
         _simulation = SimulationAufbauen(optionen);
         SpielmenueBauen();
-        _ratKnopf.Pressed += () => { TafelnSchliessen(); _ratskammer.Oeffnen(); };
+        _ratKnopf.Pressed += RatOeffnen;
         _ratskammer.Gemeldet += Protokollieren;
-        _kontor.FamilieGewuenscht += () => { TafelnSchliessen(); _familientafel.Oeffnen(); };
+        _wohnhaus.FamilieGewuenscht += FamilieOeffnen;
         _familientafel.Gemeldet += Protokollieren;
         _gerichtKnopf.Pressed += () => { TafelnSchliessen(); _gerichtssaal.Oeffnen(); };
         _gerichtssaal.Gemeldet += Protokollieren;
-        _kontor.HinterzimmerGewuenscht += () => { TafelnSchliessen(); _hinterzimmer.Oeffnen(); };
+        _wohnhaus.HinterzimmerGewuenscht += HinterzimmerOeffnen;
+        _wohnhaus.Geschlossen += () => { if (_auswahlKennung == EigenesWohnhaus) _auswahlKennung = null; };
         _hinterzimmer.Gemeldet += Protokollieren;
-        _kontor.MarktGewuenscht += MarktOeffnen;
-        _kontor.BauenGewuenscht += BauenOeffnen;
+        _berichtTafel.JahresberichtGewuenscht += () =>
+        {
+            if (_spieler is null || _spieler.Vorjahr is null) return;
+            _pauseVorBericht ??= _simulation.Takt.IstPausiert;
+            _simulation.Takt.IstPausiert = true;
+            _jahresbericht.Zeigen(_simulation, _spieler);
+        };
         _bau.Geschlossen += () => { _bauFrage.Hide(); AuswahlAnzeigen(); };
         _wegTafel.Gemeldet += Protokollieren;
         _stadt.WegAngeklickt += (weg, stelle) =>
         {
             if (_bau.Aktiv || _stadt.RaumKennung is not null) return;
+            RechtsSchliessen();
             _wegTafel.Oeffnen(weg, stelle);
         };
         _stadt.BauPlatzGewaehlt += befehl =>
@@ -291,6 +285,7 @@ public partial class Hauptszene : Node
             Protokollieren($"{_simulation.Zeit.UhrzeitText} – {KalenderTexte.Name(phase)} beginnt.");
         _simulation.JahrBeendet += jahr =>
         {
+            _jahresProtokoll.Clear(); // das Protokoll gilt für ein Jahr
             Protokollieren($"Jahresabrechnung {jahr} abgeschlossen. Es ist nun {_simulation.Zeit.DatumText}.");
             if (_ratskammer.Visible) _ratskammer.Aufbauen(); // neue Ämter, verblasste Gunst
             if (_familientafel.Visible) _familientafel.Aufbauen(); // ein Jahr älter, Geburten, Todesfälle
@@ -310,7 +305,8 @@ public partial class Hauptszene : Node
         _jahresbericht.Geschlossen += () =>
         {
             if (_simulation.IstBeendet) SpielmenueOeffnen(); // Partie vorbei: Laden, Hauptmenü oder Beenden
-            else _simulation.Takt.IstPausiert = false;
+            else _simulation.Takt.IstPausiert = _pauseVorBericht ?? false; // selbst geöffnet: Pause wie vorher, nach dem Jahreswechsel: weiter
+            _pauseVorBericht = null;
         };
         _aktionKnopf.Pressed += () =>
         {
@@ -320,14 +316,10 @@ public partial class Hauptszene : Node
             AuswahlAnzeigen();
         };
 
-        var minuten = _simulation.Takt.RundenDauerSekunden / 60;
-        _hinweis.Text = $"1 Spieljahr = {minuten:0} Min. · {_simulation.Einstellungen.SiegbedingungText} · Schwierigkeit {_simulation.Einstellungen.Schwierigkeit}\n"
-                      + "Leertaste Pause · 1–4 Tempo (5–6 Test) · Mausrad Zoom\nRechte Maustaste/WASD verschieben · Q/E drehen · Alt: alle Namen\n"
-                      + "Doppelklick auf Werkstatt, Wohnhaus, Rathaus oder Dom = hineingehen · Esc zurück bzw. Spielmenü";
-
         _stadt.GebaeudeAngeklickt += kennung =>
         {
             if (RaumAngeklickt(kennung)) return;
+            RechtsSchliessen();
             _auswahlKennung = kennung;
             AuswahlAnzeigen();
             if (kennung == "Marktplatz") MarktOeffnen(); // wie im Original: ein Klick auf den Markt öffnet die Preistafel
@@ -355,13 +347,13 @@ public partial class Hauptszene : Node
         }
         _karrenTafel.HandelGewuenscht += b => { TafelnSchliessen(); _markt.Oeffnen(b); };
         _stadt.BedienungAngeklickt += (tafel, _) => InnenTafelOeffnen(tafel);
-        _verwaltung.Gemeldet += Protokollieren;
-        _verwaltung.HandelGewuenscht += b => { TafelnSchliessen(); _markt.Oeffnen(b); };
+        _uebersicht.Gemeldet += Protokollieren;
+        _uebersicht.HandelGewuenscht += b => { TafelnSchliessen(); _markt.Oeffnen(b); };
+        _uebersicht.HineinGewuenscht += BetriebBetreten;
         _markt.Gemeldet += Protokollieren;
-        _verwaltung.VerkaufGewuenscht += b => { TafelnSchliessen(); _verkauf.Oeffnen(b); };
+        _uebersicht.VerkaufGewuenscht += b => { TafelnSchliessen(); _verkauf.Oeffnen(b); };
         _verkauf.Gemeldet += Protokollieren;
-        _kontor.Gemeldet += Protokollieren;
-        _kontor.VerwaltenGewuenscht += betrieb => { _auswahlKennung = Stadtansicht.BetriebsKennung(betrieb); AuswahlAnzeigen(); };
+        _wohnhaus.Gemeldet += Protokollieren;
         if (optionen.TryGetValue("auswahl", out var vorauswahl) && vorauswahl.StartsWith("weg:"))
         {
             // --auswahl=weg:<nr>[,<stelle>]: die Wegtafel (Belag, Ausbau, Antrag) für einen Weg der Karte öffnen
@@ -395,8 +387,16 @@ public partial class Hauptszene : Node
                                   optionen.GetValueOrDefault("blitz") == "1");
         if (optionen.TryGetValue("ui", out var ui) && ui == "0")
             GetNode<CanvasLayer>("Oberflaeche").Visible = false; // freie Sicht auf die Stadt für Bildschirmfotos
-        if (optionen.TryGetValue("verwalten", out var verwalten) && verwalten == "1" && _eigeneGiesserei is not null)
-            _auswahlKennung = Stadtansicht.BetriebsKennung(_eigeneGiesserei);
+        if (optionen.TryGetValue("verwalten", out var verwalten) && verwalten is "1" or "mehr" && _eigeneGiesserei is not null)
+        {
+            BetriebAuswaehlen(_eigeneGiesserei, hinfahren: false);
+            if (verwalten == "mehr") _uebersicht.MehrOffen = true;
+        }
+        if (optionen.TryGetValue("wohnhaus", out var wohnhausReiter))
+        {
+            if (!int.TryParse(wohnhausReiter, out _) && Enum.TryParse<WohnhausAnzeige.Reiter>(wohnhausReiter, true, out var reiter)) WohnhausOeffnen(reiter);
+            else Protokollieren($"--wohnhaus={wohnhausReiter}: gemeint ist haus, familie, handwerk, geld oder hinterzimmer.");
+        }
         if (optionen.TryGetValue("karren", out var karrenTypen) && _eigeneGiesserei is { } kaeufer && _simulation.Wirtschaft is { } wKarren && _spieler is not null)
             foreach (var typ in karrenTypen.Split(',', StringSplitOptions.RemoveEmptyEntries))
             {
@@ -461,6 +461,12 @@ public partial class Hauptszene : Node
         }
         if (optionen.TryGetValue("bericht", out var bericht) && bericht == "1" && _spieler is not null)
             _jahresbericht.Zeigen(_simulation, _spieler);
+        else if (bericht is not null && !int.TryParse(bericht, out _) && Enum.TryParse<BerichtAnzeige.Reiter>(bericht, true, out var berichtReiter))
+            BerichtOeffnen(berichtReiter);
+        if (optionen.TryGetValue("meldung", out var testMeldung)) Protokollieren(testMeldung.Replace('_', ' '));
+        // Die Hilfe: auf Wunsch (--hilfe=1) und beim allerersten Spiel einmal von selbst – nicht bei Startoptionen (Klicktests sollen gleiche Bilder liefern).
+        if (optionen.GetValueOrDefault("hilfe") == "1" || (!Fenster.HilfeGesehen && OS.GetCmdlineUserArgs().Length == 0))
+            HilfeOeffnen();
         if (optionen.TryGetValue("innen", out var innen))
         {
             if (innen == "1" && _eigeneGiesserei is not null) _stadt.InnenansichtBetreten(_eigeneGiesserei);
@@ -493,6 +499,59 @@ public partial class Hauptszene : Node
         if (_bauFrage.Visible) _bauFrage.Zurueck(); // der Umriss der Platzwahl wird wieder frei
     }
 
+    /// <summary>Rechts steht immer nur eine Tafel: Auswahl, Wohnhaus, Bericht, Bautafel oder Wegtafel. Schließt alle (der Baumodus endet dabei nicht).</summary>
+    private void RechtsSchliessen()
+    {
+        if (_auswahl.Visible || _auswahlKennung is not null) AuswahlSchliessen();
+        _wohnhaus.Hide();
+        _berichtTafel.Hide();
+        _wegTafel.Schliessen();
+    }
+
+    /// <summary>Steht rechts gerade die Bau- oder die Wegtafel? Dann wartet die Auswahl (sie bleibt gewählt und erscheint danach wieder).</summary>
+    private bool RechtsFrei => !_bau.Aktiv && !_wegTafel.Aktiv;
+
+    /// <summary>Kennung des eigenen Wohnhauses („wohnhaus:&lt;Inhaber&gt;“), sonst null.</summary>
+    private string? EigenesWohnhaus => _spieler is null ? null : Stadtansicht.WohnhausKennung(_spieler);
+
+    /// <summary>Die Tafel des eigenen Wohnhauses rechts, auf diesem Reiter (Klick auf das Wohnhaus oder die Kopfzeile, Startoption <c>--wohnhaus</c>).</summary>
+    private void WohnhausOeffnen(WohnhausAnzeige.Reiter reiter)
+    {
+        if (_spieler is null || _simulation.Wirtschaft is null) return;
+        if (_bau.Aktiv) _bau.Schliessen();
+        RechtsSchliessen();
+        _auswahlKennung = EigenesWohnhaus;
+        _wohnhaus.Zeigen(reiter);
+    }
+
+    /// <summary>Der Bericht rechts (Knopf „Bericht“ der Leiste, Klick auf eine Meldung, Startoption <c>--bericht=&lt;reiter&gt;</c>).</summary>
+    private void BerichtOeffnen(BerichtAnzeige.Reiter reiter)
+    {
+        if (_spieler is null) return;
+        if (_bau.Aktiv) _bau.Schliessen();
+        RechtsSchliessen();
+        _berichtTafel.Zeigen(reiter);
+    }
+
+    private void RatOeffnen()
+    {
+        if (_simulation.Wirtschaft?.Rat.IstAktiv != true) return;
+        TafelnSchliessen();
+        _ratskammer.Oeffnen();
+    }
+
+    private void FamilieOeffnen()
+    {
+        TafelnSchliessen();
+        _familientafel.Oeffnen();
+    }
+
+    private void HinterzimmerOeffnen()
+    {
+        TafelnSchliessen();
+        _hinterzimmer.Oeffnen();
+    }
+
     /// <summary>
     /// Baut die sieben Tafeln der Bedienung im Innenraum und hängt sie rechts ins Bild, mittig in der Höhe und mit Luft über der Raumleiste.
     /// </summary>
@@ -510,7 +569,7 @@ public partial class Hauptszene : Node
         rand.SetAnchorsAndOffsetsPreset(Control.LayoutPreset.FullRect);
         rand.AddThemeConstantOverride("margin_left", 16);
         rand.AddThemeConstantOverride("margin_right", 16);
-        rand.AddThemeConstantOverride("margin_top", 16);
+        rand.AddThemeConstantOverride("margin_top", (int)Rollbereich.KopfHoehe); // unter Kopfzeile und Zeitstrahl
         rand.AddThemeConstantOverride("margin_bottom", 84);
         var reihe = new HBoxContainer { Alignment = BoxContainer.AlignmentMode.End, MouseFilter = Control.MouseFilterEnum.Ignore };
         rand.AddChild(reihe);
@@ -518,6 +577,11 @@ public partial class Hauptszene : Node
         {
             tafel.Tafel.SizeFlagsVertical = Control.SizeFlags.ShrinkCenter;
             reihe.AddChild(tafel.Tafel);
+            if (tafel.Tafel.GetNodeOrNull<Rollbereich>("Rollbereich") is { } rolle)
+            {
+                rolle.ObenFrei = Rollbereich.KopfHoehe - rolle.Abstand; // die Tafel rollt, bevor sie an den Rand stößt
+                rolle.UntenFrei = 84 - rolle.Abstand;
+            }
         }
         GetNode<CanvasLayer>("Oberflaeche").AddChild(rand);
     }
@@ -657,10 +721,7 @@ public partial class Hauptszene : Node
         // 2. Neue Partie – mit den Einstellungen aus dem Menü oder (Startoptionen/Test) den Standardwerten.
         var daten = WirtschaftsdatenLaden();
         if (daten is null)
-        {
-            _kontor.Hide();
             return new Simulation(); // ohne Daten läuft nur die Uhr
-        }
 
         Spielzeit? start = null;
         if (optionen.TryGetValue("startstunde", out var s) && int.TryParse(s, out var stunde))
@@ -712,6 +773,7 @@ public partial class Hauptszene : Node
             _menueListe.Visible = !_menueListe.Visible;
         });
         Hauptmenue.Knopf(_menueKnoepfe, "Einstellungen", EinstellungenOeffnen);
+        Hauptmenue.Knopf(_menueKnoepfe, "Hilfe (F1)", HilfeOeffnen);
         ProbeKnopfBauen(); // „Zurück zur Kartenwerkstatt“ in einer Probepartie (Hauptszene.Probepartie.cs)
         Hauptmenue.Knopf(_menueKnoepfe, "Zum Hauptmenü", () => GetTree().ChangeSceneToFile("res://scenes/Hauptmenue.tscn"));
         Hauptmenue.Knopf(_menueKnoepfe, "Spiel beenden", () => GetTree().Quit());
@@ -814,8 +876,8 @@ public partial class Hauptszene : Node
             foreach (var zug in rivale.Entscheidungen.Reverse())
                 Protokollieren(zug);
 
-        var rivalenKonto = w.Konten.FirstOrDefault(k => k != spieler);
-        _kontor.Verbinden(simulation, spieler, rivalenKonto);
+        _wohnhaus.Verbinden(simulation, spieler);
+        _berichtTafel.Verbinden(simulation, spieler);
         _ratskammer.Verbinden(simulation, spieler);
         _familientafel.Verbinden(simulation, spieler);
         _gerichtssaal.Verbinden(simulation, spieler);
@@ -825,7 +887,7 @@ public partial class Hauptszene : Node
         foreach (var tafel in _innenTafeln) tafel.Verbinden(simulation, spieler);
         // Um 20 Uhr schlagen die Banden zu – ein offenes Hinterzimmer zeigt sofort, was geschah.
         w.Gauner.NachtVorbei += () => { if (_hinterzimmer.Visible) _hinterzimmer.Aufbauen(); };
-        _verwaltung.Verbinden(simulation, spieler);
+        _uebersicht.Verbinden(simulation, spieler, _stadt.HatInnenansicht);
         _bauFrage.Verbinden(simulation, spieler);
         _bau.Verbinden(simulation, spieler, _stadt);
         _wegTafel.Verbinden(simulation, spieler, _stadt);
@@ -853,12 +915,13 @@ public partial class Hauptszene : Node
         };
     }
 
-    /// <summary>Schließt das Gebäudefenster unten links samt Bedienfeld.</summary>
+    /// <summary>Schließt die Auswahl rechts samt Kurzübersicht (und die Wohnhaus-Tafel, die für das eigene Wohnhaus an ihrer Stelle steht).</summary>
     private void AuswahlSchliessen()
     {
+        if (_auswahlKennung is not null && _auswahlKennung == EigenesWohnhaus) _wohnhaus.Hide();
         _auswahlKennung = null;
         _auswahl.Hide();
-        _verwaltung.Zeigen(null);
+        _uebersicht.Zeigen(null);
     }
 
     public override void _Process(double delta)
@@ -877,9 +940,14 @@ public partial class Hauptszene : Node
         }
         if (_innenWartet is not null && _bauAutoKlick == 0 && _spulen == 0 && _stadt.InnenansichtBetreten(_innenWartet)) _innenWartet = null;
         Anzeigen();
-        _stadt.Auswahl = _auswahl.Visible ? _auswahlKennung : null; // Name des ausgewählten Gebäudes bleibt sichtbar
+        LeisteAnzeigen(delta);
+        MeldungenAltern(delta);
+        _berichtTafel.Aktualisieren(delta);
+        _stadt.Auswahl = _auswahl.Visible || _wohnhaus.Visible ? _auswahlKennung : null; // Name des ausgewählten Gebäudes bleibt sichtbar
         _stadt.Aktualisieren(delta);
         foreach (var tafel in _innenTafeln) tafel.Aktualisieren(delta);
+        var innenTafelOffen = _innenTafeln.Any(t => t.Visible); // die Meldungen schienen sonst durch die große Tafel
+        if (_meldungen.Visible == innenTafelOffen) _meldungen.Visible = !innenTafelOffen;
         var mausPos = GetViewport().GetMousePosition();
         _stadt.UnterTafel = _innenTafeln.Any(t => t.Visible && t.Tafel.GetGlobalRect().HasPoint(mausPos));
         BauAutoKlickPruefen();
@@ -893,6 +961,8 @@ public partial class Hauptszene : Node
         {
             // Esc geht einen Schritt zurück: Innenansicht verlassen → Auswahl schließen → Spielmenü auf/zu.
             if (_jahresbericht.Visible) { /* der Bericht wird mit „Weiter" geschlossen */ }
+            else if (_hilfe.Visible)
+                HilfeSchliessen();
             else if (_bauFrage.Visible)
                 _bauFrage.Zurueck();
             else if (_bau.Aktiv)
@@ -919,7 +989,9 @@ public partial class Hauptszene : Node
                 SpielmenueSchliessen();
             else if (_stadt.InnenKennung is not null)
                 _stadt.InnenansichtVerlassen();
-            else if (_auswahl.Visible)
+            else if (_berichtTafel.Visible)
+                _berichtTafel.Hide();
+            else if (_auswahl.Visible || _wohnhaus.Visible)
                 AuswahlSchliessen();
             else
                 SpielmenueOeffnen();
@@ -929,6 +1001,9 @@ public partial class Hauptszene : Node
         if (eingabe is not InputEventKey { Pressed: true, Echo: false } taste)
             return;
 
+        // Tastenkürzel springen direkt hin (PR #197). Mit Strg oder Alt nicht (Alt hält die Namen der Stadt sichtbar).
+        var ohneZusatz = !taste.CtrlPressed && !taste.AltPressed && !taste.MetaPressed;
+        var imSpiel = _spieler is not null && !_spielmenue.Visible && !_einstellungen.Tafel.Visible && !_jahresbericht.Visible;
         switch (taste.Keycode)
         {
             case Key.Space:
@@ -938,6 +1013,30 @@ public partial class Hauptszene : Node
                 var stufe = (int)(taste.Keycode - Key.Key1);
                 if (stufe < Taktgeber.AlleTempostufen /* TESTTEMPO */.Count)
                     TempoSetzen(Taktgeber.AlleTempostufen /* TESTTEMPO */[stufe]);
+                break;
+            case Key.F1:
+                if (_hilfe.Visible) HilfeSchliessen();
+                else HilfeOeffnen();
+                break;
+            case Key.F when ohneZusatz && imSpiel:
+                if (_familientafel.Visible) _familientafel.Hide();
+                else FamilieOeffnen();
+                break;
+            case Key.H when ohneZusatz && imSpiel:
+                if (_hinterzimmer.Visible) _hinterzimmer.Hide();
+                else HinterzimmerOeffnen();
+                break;
+            case Key.R when ohneZusatz && imSpiel && !_bau.Aktiv: // im Baumodus dreht R den Umriss (Stadtansicht.Bauen.cs)
+                if (_ratskammer.Visible) _ratskammer.Hide();
+                else RatOeffnen();
+                break;
+            case Key.M when ohneZusatz && imSpiel:
+                if (_markt.Visible) _markt.Hide();
+                else MarktOeffnen();
+                break;
+            case Key.B when ohneZusatz && imSpiel:
+                if (_bau.Aktiv) _bau.Schliessen();
+                else BauenOeffnen();
                 break;
             default:
                 return;
@@ -958,30 +1057,12 @@ public partial class Hauptszene : Node
         _simulation.Takt.IstPausiert = false;
     }
 
-    /// <summary>Überträgt den Zustand der Simulation auf die Zeittafel und das Kontor.</summary>
+    /// <summary>Überträgt den Zustand der Simulation auf Kopfzeile, Zeitstrahl und die offenen Tafeln rechts.</summary>
     private void Anzeigen()
     {
-        var zeit = _simulation.Zeit;
-        var takt = _simulation.Takt;
-
-        _datum.Text = $"{zeit.DatumText}  ·  Runde {zeit.Runde}";
-        _uhrzeit.Text = $"{zeit.UhrzeitText}  ·  {KalenderTexte.Name(zeit.Tagesphase)}";
-        _wetter.Zeigen(_stadt.WetterJetzt, _stadt.WetterAussicht(3));
-        _tagesfortschritt.Value = zeit.MinuteImTag;
-        _pauseKnopf.Text = _simulation.IstBeendet ? "Partie beendet"
-                         : takt.IstPausiert ? "▶ Weiter" : "❚❚ Pause";
-        _pauseKnopf.Disabled = _simulation.IstBeendet;
-
-        for (var i = 0; i < _tempoKnoepfe.Count; i++)
-            _tempoKnoepfe[i].SetPressedNoSignal(!takt.IstPausiert && Taktgeber.AlleTempostufen /* TESTTEMPO */[i] == takt.Tempo);
-
-        _kontor.Aktualisieren();
-        _verwaltung.Aktualisieren();
-        PlatzMachen();
-        _blick.Text = _stadt.RaumName is { } raum ? $"{_stadt.InnenName} · {raum}"
-            : _stadt.InnenName is { } innen
-            ? $"Blick nach {_stadt.Blickrichtung} · Innenansicht {innen}"
-            : $"Blick nach {_stadt.Blickrichtung}";
+        KopfAnzeigen();
+        _wohnhaus.Aktualisieren();
+        _uebersicht.Aktualisieren();
     }
 
     private void InnenKnopfGedrueckt()
@@ -1021,8 +1102,8 @@ public partial class Hauptszene : Node
     }
 
     /// <summary>
-    /// In der Raumansicht bleibt das Bild frei: Das Gebäudefenster erscheint nur in Kontor und Amtsstube,
-    /// das Kontor des Hauses (rechts oben) nur im Kontor. Draußen und im Dom (noch Diorama) wie bisher.
+    /// In der Raumansicht bleibt das Bild frei: Die Tafel rechts (Auswahl, beim eigenen Wohnhaus dessen Tafel) erscheint nur in Kontor
+    /// und Amtsstube. Draußen und im Dom (noch Diorama) wie bisher.
     /// </summary>
     private bool AuswahlImRaum => _stadt.RaumKennung is null or Stadtansicht.RaumKontor or Stadtansicht.RaumAmt;
 
@@ -1105,10 +1186,29 @@ public partial class Hauptszene : Node
             _auswahlKennung = folgekennung;
         }
 
+        // Das eigene Wohnhaus hat seine eigene Tafel mit Reitern (an derselben Stelle rechts)
+        if (_auswahlKennung == EigenesWohnhaus)
+        {
+            if (_auswahl.Visible) _auswahl.Hide();
+            _uebersicht.Zeigen(null);
+            // Im eigenen Wohnhaus nur im Kontor (wie früher das Kontor), aus einem anderen Gebäude heraus (Kopfzeile, F) überall
+            var zeigen = RechtsFrei && (AuswahlImRaum || _stadt.InnenKennung != EigenesWohnhaus);
+            if (_wohnhaus.Visible != zeigen)
+            {
+                if (zeigen) _wohnhaus.Zeigen(WohnhausAnzeige.Reiter.Haus);
+                else _wohnhaus.Hide();
+            }
+            return;
+        }
+        if (_wohnhaus.Visible) _wohnhaus.Hide();
+
         var betrieb = AusgewaehlterBetrieb();
-        _verwaltung.Zeigen(betrieb); // nur bei eigenen Betrieben sichtbar
-        _innenKnopf.Visible = _stadt.HatInnenansicht(_auswahlKennung);
-        _innenKnopf.Text = _stadt.InnenKennung == _auswahlKennung ? "Zurück zur Stadt (Esc)" : "Innenansicht betreten";
+        _uebersicht.Zeigen(betrieb); // nur bei eigenen Betrieben sichtbar
+        var eigener = _uebersicht.Visible; // die Kurzübersicht hat ihr eigenes „Hineingehen“
+        var innenKnopf = !eigener && _stadt.HatInnenansicht(_auswahlKennung);
+        if (_innenKnopf.Visible != innenKnopf) _innenKnopf.Visible = innenKnopf;
+        var innenText = _stadt.InnenKennung == _auswahlKennung ? "Zurück zur Stadt (Esc)" : "Hineingehen";
+        if (_innenKnopf.Text != innenText) _innenKnopf.Text = innenText;
         var frei = _auswahlKennung.StartsWith("liegenschaft:")
             ? w.FreieLiegenschaften.FirstOrDefault(l => Stadtansicht.LiegenschaftKennung(l.Name) == _auswahlKennung)
             : null;
@@ -1135,7 +1235,11 @@ public partial class Hauptszene : Node
         if (_ratKnopf.Visible != ratSichtbar) _ratKnopf.Visible = ratSichtbar; // nur bei Änderung setzen (siehe AktionKnopfAnzeigen)
         var gerichtSichtbar = _auswahlKennung == "Rathaus" && w.Justiz.IstAktiv;
         if (_gerichtKnopf.Visible != gerichtSichtbar) _gerichtKnopf.Visible = gerichtSichtbar;
-        if (_auswahl.Visible != AuswahlImRaum) _auswahl.Visible = AuswahlImRaum;
+        if (_auswahl.Visible != (AuswahlImRaum && RechtsFrei))
+        {
+            _auswahl.Visible = AuswahlImRaum && RechtsFrei;
+            if (_auswahl.Visible) Rollbereich.RechtsAnheften(_auswahl);
+        }
     }
 
     // ═════════════════════════════════════════════════════════════════════════
@@ -1151,6 +1255,7 @@ public partial class Hauptszene : Node
             return;
         }
         TafelnSchliessen();
+        _berichtTafel.Hide(); // rechts steht jetzt die Bautafel; die Auswahl wartet (RechtsFrei)
         _bau.Oeffnen();
     }
 
@@ -1351,8 +1456,10 @@ public partial class Hauptszene : Node
         if (_spieler is not null && w.Justiz.IstAktiv && w.Justiz.PrangerBis(_spieler) is int pranger)
             zeilen.Add($"Ihr steht bis {pranger} am Pranger (−{Zahlenformat.Ganz(w.Justiz.Daten.PrangerAnsehen)} Ansehen).");
         if (w.Rat.IstAktiv)
-            zeilen.Add($"Bürgermeister: {w.Rat.Aemter.First().Inhaber}" + (w.Rat.Antrag is { } antrag
-                ? $" · Antrag liegt vor: Statut {antrag.Statut.Kuerzel()} ({antrag.Antragsteller.Inhaber})" : ""));
+        {
+            zeilen.Add("Ämter:\n" + string.Join("\n", w.Rat.Aemter.Select(a => $"  {a.Name}: {a.Inhaber}")));
+            if (w.Rat.Antrag is { } antrag) zeilen.Add($"Antrag liegt vor: Statut {antrag.Statut.Kuerzel()} ({antrag.Antragsteller.Inhaber})");
+        }
         return string.Join("\n", zeilen);
     }
 
@@ -1400,22 +1507,11 @@ public partial class Hauptszene : Node
         return (true, !reicht || ohneHaus is not null || !_spieler.IstAktiv, standText, "", () => new StandErwerben());
     }
 
-    /// <summary>Die Tafel oben links macht Platz, solange unten links eine Auswahl offen ist.</summary>
-    private void PlatzMachen()
-    {
-        _hinweis.Visible = !_auswahl.Visible && _stadt.RaumKennung is null;
-        var kontorSichtbar = _stadt.RaumKennung is null or Stadtansicht.RaumKontor && !_bau.Aktiv && !_wegTafel.Aktiv; // im Baumodus steht rechts die Bautafel, bei einem Weg die Wegtafel
-        if (_kontor.Visible != kontorSichtbar) _kontor.Visible = kontorSichtbar;
-    }
-
     private string BetriebsText(Betrieb b, Stadtwirtschaft w)
     {
-        // Eigener Betrieb: kurz halten – Lager steht im Kontor, Personal und Karren im Bedienfeld darunter.
-        if (b.Konto == _verwaltung.Spieler)
-            // Immer zwei Zeilen: Sonst wächst und schrumpft das Feld mit der Warnung, und die Knöpfe
-            // darunter springen dem Spieler unter der Maus weg.
-            return $"{b.Name} (Euer Betrieb)\n" + (b.Belegt == 0 ? "⚠ Kein Personal – stellt unten Arbeitskräfte ein."
-                : b.Stillstand is { } eigenerStillstand ? $"⚠ {eigenerStillstand}" : "✔ Die Arbeit läuft.");
+        // Eigener Betrieb: nur der Name – Zustand, Ware, Arbeiter, Lager und Gewinn zeigt die Kurzübersicht darunter.
+        if (b.Konto == _spieler)
+            return $"{b.Name}\n{b.Artdaten.Name}, Stufe {b.Stufe} · Euer Betrieb";
 
         var zeilen = new List<string>
         {
@@ -1433,15 +1529,5 @@ public partial class Hauptszene : Node
             zeilen.Add($"{k.Name} ({k.Eskorte} Eskorte): {k.ZustandText(_simulation.Zeit)}{(ladung == "" ? "" : $" · {ladung}")}");
         }
         return string.Join("\n", zeilen);
-    }
-
-    private void Protokollieren(string meldung)
-    {
-        // Ein Befehl meldet sein Ergebnis, die Stadt dieselbe Nachricht für alle – nur einmal zeigen.
-        if (_protokoll.Count > 0 && _protokoll[0] == meldung) return;
-        _protokoll.Insert(0, meldung);
-        if (_protokoll.Count > MaxProtokollZeilen)
-            _protokoll.RemoveAt(_protokoll.Count - 1);
-        _protokollLabel.Text = string.Join("\n", _protokoll);
     }
 }
