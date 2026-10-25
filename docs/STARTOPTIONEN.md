@@ -15,7 +15,8 @@ Startoptionen (nach `--`):
 - `--einrichtung=<Kennungen>` (der eigenen Werkstatt Einrichtung kaufen, z. B. `Werkzeug1,Regale`, mit `--vermoegen=5000`)
 - `--einstellen=<Arten>` (Arbeiter einstellen, z. B. `Lehrling,Geselle`)
 - `--ausbauen=<n>` (die Werkstatt n-mal ausbauen; braucht Meistergrad 3 und 5: Stand mit `--speichern` schreiben, `Meistergrade` des Hauses auf `{"Schmied":5}` setzen, mit `--laden` starten)
-- `--verwalten=1`
+- `--verwalten=1` (Kurzübersicht der eigenen Werkstatt rechts; `=mehr`: mit „…“ aufgeklappt)
+- `--wohnhaus=<haus|familie|handwerk|geld|hinterzimmer>` (Tafel des eigenen Wohnhauses auf diesem Reiter)
 - `--auswahl=<Kennung>` (auch `weg:<Nummer>[,<Stelle>]`: die Wegtafel eines Weges der Karte öffnen und die Kamera hinfahren; Nummer = Reihenfolge in `Karte.Wege`, die Mitte steht im Protokoll)
 - `--wegausbau=<weg>,<von>,<bis>,<Kies|Pflaster>[|…]` (einen Wegabschnitt auf Kosten des Spielers ausbauen lassen, Meter entlang des Verlaufs; mit `--vermoegen=`)
 - `--wegantrag=<weg>,<von>,<bis>` (Ratsantrag „Weg pflastern“)
@@ -28,7 +29,9 @@ Startoptionen (nach `--`):
 - `--markt=1`
 - `--karren=<Typen>` (der eigenen Werkstatt Karren dazukaufen, z. B. `Ochsenkarren,Kriegskarren`, mit `--vermoegen=9000`)
 - `--verkaufen=1` (Rückfrage zum Verkauf der eigenen Werkstatt; `=2` kauft vorher eine Grube dazu und lässt bis Mittag laufen, mit `--vermoegen=20000`)
-- `--bericht=1`
+- `--bericht=1` (Jahresbericht in der Mitte); `--bericht=<jahresrechnung|rivalen|umsaetze|protokoll>` (die Tafel „Bericht“ rechts auf diesem Reiter)
+- `--hilfe=1` (Hilfe zur Steuerung gleich zeigen; ohne Startoptionen erscheint sie beim allerersten Spiel von selbst)
+- `--meldung=<Text>` (eine Meldung unten links einstellen, Leerzeichen als `_`; beginnt sie mit ✗ oder ⚠, ist es eine Warnung, die bis zum Klick bleibt)
 - `--einstellungen=1`
 - `--wegenetz=1` (Gassennetz der Passanten einblenden)
 - `--laden=<datei.json>` (aus `~/.local/share/godot/app_userdata/Reichsgilde/spielstaende`)

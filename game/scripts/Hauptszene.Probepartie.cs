@@ -8,7 +8,7 @@ namespace Reichsgilde;
 ///
 /// Die Werkstatt stellt die Partie auf ihrem Entwurf auf und legt sie in ihren Briefkasten (<see cref="Kartenwerkstatt.ProbeAbholen"/>); die
 /// Hauptszene holt sie beim Aufbau ab, statt eine Partie aus dem Hauptmenü zu beginnen. Eine Probepartie schreibt keinen Auto-Stand (er würde
-/// den der echten Partie überschreiben), oben steht ein Hinweis, und das Spielmenü (Esc) hat „Zurück zur Kartenwerkstatt“: Dort ist der Entwurf
+/// den der echten Partie überschreiben), unter dem Zeitstrahl steht ein Hinweis, und das Spielmenü (Esc) hat „Zurück zur Kartenwerkstatt“: Dort ist der Entwurf
 /// noch, wie er war, samt Rückgängig.
 /// </summary>
 public partial class Hauptszene
@@ -34,7 +34,7 @@ public partial class Hauptszene
         hinweis.AddThemeColorOverride("font_color", new Color(0.95f, 0.82f, 0.45f));
         hinweis.AddThemeColorOverride("font_outline_color", new Color(0.08f, 0.07f, 0.06f));
         hinweis.AddThemeConstantOverride("outline_size", 8);
-        hinweis.SetAnchorsAndOffsetsPreset(Control.LayoutPreset.CenterTop, Control.LayoutPresetMode.KeepSize, 12);
+        hinweis.SetAnchorsAndOffsetsPreset(Control.LayoutPreset.CenterTop, Control.LayoutPresetMode.KeepSize, (int)Rollbereich.KopfHoehe); // unter dem Zeitstrahl
         hinweis.GrowHorizontal = Control.GrowDirection.Both;
         GetNode<CanvasLayer>("Oberflaeche").AddChild(hinweis);
         return simulation;

@@ -31,6 +31,17 @@ public partial class BetriebsVerwaltung : VBoxContainer
     /// <summary>Nur der Abschnitt „Geldleihe“ (Kasse, Rahmen, Zins für Häuser, offene Kredite): so steht er als Tafel am Hauptbuchpult im Innenraum (<see cref="BankAnzeige"/>).</summary>
     public bool NurBank { get; init; }
 
+    /// <summary>
+    /// Kurzform unter „…“ in der Kurzübersicht (<see cref="BetriebsUebersicht"/>, PR #197): ohne Überschrift und ohne Ware (die steht schon darüber).
+    /// </summary>
+    public bool Kurzform { get; init; }
+
+    /// <summary>
+    /// In der Kurzform: Hat der Betrieb eine Innenansicht, stehen Personal, Karren und Bankgeschäft nur noch drinnen (Tafeln am Personalbuch,
+    /// Hoftor, Hauptbuchpult) und hier nicht. Ohne Innenansicht (Umland) bleiben sie hier.
+    /// </summary>
+    public bool MitInnenansicht { get; set; }
+
     /// <summary>Wessen Betriebe dieses Feld bedienen darf.</summary>
     public Konto? Spieler => _spieler;
     private Betrieb? _betrieb;
@@ -94,9 +105,10 @@ public partial class BetriebsVerwaltung : VBoxContainer
     public override void _Ready()
     {
         AddThemeConstantOverride("separation", 6);
-        AddChild(new HSeparator());
+        if (!Kurzform) AddChild(new HSeparator());
         _ueberschrift = NeuesLabel(this, 15);
         _ueberschrift.Text = "⚒ Verwalten";
+        _ueberschrift.Visible = !Kurzform;
 
         // Produkt (nur Gießerei)
         _produktZeile = Zeile(this);
@@ -358,6 +370,13 @@ public partial class BetriebsVerwaltung : VBoxContainer
 
         KarrenAktualisieren(b, w);
         VerkaufAktualisieren(b, w);
+        if (!Kurzform) return;
+        // Kurzform: die Ware steht darüber, was die Innenansicht hat, steht nur drinnen
+        _produktZeile.Visible = false;
+        _personalKopf.Visible = _personal.Visible = !MitInnenansicht; // Karren und Geldleihe stellen sich oben jedes Bild selbst
+        if (!MitInnenansicht) return;
+        _karrenKopf.Visible = _karren.Visible = _karrenKauf.Visible = false;
+        _bankstube.Visible = false;
     }
 
     /// <summary>Der Abschnitt „Karren“: Zeilen beschriften, Eskorte und Nachtfahrt angleichen, Kaufen und Handel sperren.</summary>

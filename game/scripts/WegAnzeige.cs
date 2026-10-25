@@ -81,8 +81,7 @@ public partial class WegAnzeige : PanelContainer
         _meldung = "";
         Aufbauen();
         Show();
-        SetAnchorsAndOffsetsPreset(LayoutPreset.TopRight, LayoutPresetMode.Minsize, 16);
-        GrowHorizontal = GrowDirection.Begin; // wächst nach links ins Bild
+        Rollbereich.RechtsAnheften(this); // rechts unter dem Zeitstrahl, über der Betriebsleiste
     }
 
     public void Schliessen()

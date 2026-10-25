@@ -245,6 +245,26 @@ public partial class Fenster : Node
         }
     }
 
+    /// <summary>
+    /// Hat der Spieler die Hilfe zur Steuerung schon einmal gesehen? Beim allerersten Spiel blendet die Hauptszene sie einmal ein (PR #197);
+    /// gemerkt in <c>user://einstellungen.cfg</c> (Abschnitt „spiel“).
+    /// </summary>
+    public static bool HilfeGesehen
+    {
+        get
+        {
+            var einstellungen = new ConfigFile();
+            return einstellungen.Load(Datei) == Error.Ok && einstellungen.GetValue("spiel", "hilfe_gesehen", false).AsBool();
+        }
+        set
+        {
+            var einstellungen = new ConfigFile();
+            einstellungen.Load(Datei);
+            einstellungen.SetValue("spiel", "hilfe_gesehen", value);
+            einstellungen.Save(Datei);
+        }
+    }
+
     private static void Speichern(string schluessel, Variant wert)
     {
         var einstellungen = new ConfigFile();
