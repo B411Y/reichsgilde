@@ -50,7 +50,7 @@ public sealed partial class KiRivale
     /// Einmal am Tag, im Rat (kostet Aktionspunkte – der Kämmerer zahlt für den Steuersatz keine, der Bürgermeister für einen Antrag im Jahr):
     ///   • Steuersatz: als Kämmerer bei leerer Kasse einen Punkt höher; sonst einen Punkt niedriger, wenn das Haus im Vorjahr mindestens
     ///     <see cref="SteuerAntragAb"/> Steuern zahlte.
-    ///   • Fest: wenn das Haus sich gerade um ein Amt bewirbt (das Ansehen zählt schon bei der Wahl).
+    ///   • Fest: wenn das Haus sich gerade um ein Amt bewirbt und die Wahl noch nicht sicher ist (das Ansehen zählt schon bei der Wahl).
     ///   • Bauvorhaben: das erste, das dem Haus nützt.
     /// Jeweils nur, wenn der Antrag nach der Prognose durchginge.
     /// </summary>
@@ -73,7 +73,8 @@ public sealed partial class KiRivale
                     : $"beantragt eine Umsatzsteuer von {p} % (zahlte im Vorjahr {Zahlenformat.Ganz(Konto.Vorjahr!.Steuer)} Gulden Steuern).");
         }
 
-        if (ra.Antrag(Antragsart.Fest) is null && _w.Rat.Bewerbungen.ContainsKey(Konto)
+        if (ra.Antrag(Antragsart.Fest) is null && _w.Rat.Bewerbungen.TryGetValue(Konto, out var amtName) && _w.Rat.AmtNamens(amtName) is { } amt
+            && _w.Rat.WahlPrognose(amt, Konto) is var (sicher, _, waehler) && sicher * 2 <= waehler
             && Durchsetzbar(new Ratsantrag(Antragsart.Fest, Konto)))
             Befehlen(new FestBeantragen(), "beantragt ein Fest der Stadt – das Ansehen hilft bei der Wahl.");
 
