@@ -6,7 +6,7 @@ namespace Reichsgilde;
 /// <summary>
 /// Die <b>Betriebsleiste</b> unten (PR #197) – ein Teil der <c>partial class Hauptszene</c>: je eigener Betrieb ein Knopf mit dem Symbol seiner Ware,
 /// dem Namen und dem Zustand (läuft, steht, Lager voll, Karren unterwegs; ein Warnzeichen, wenn er steht). Ein Klick fährt die Kamera hin und öffnet die
-/// Kurzübersicht rechts, ein Doppelklick geht hinein. Daneben „+ Bauen“, rechts Rat, Bericht und Menü. Bei vielen Betrieben rollt die Leiste.
+/// Kurzübersicht rechts, ein Doppelklick geht hinein. Daneben „Hafen“ (nur mit Schiffshandel, PR #199) und „+ Bauen“, rechts Rat, Bericht und Menü. Bei vielen Betrieben rollt die Leiste.
 /// In der Innenansicht ist sie ausgeblendet (unten rechts steht dort die Raumleiste).
 /// </summary>
 public partial class Hauptszene
@@ -52,6 +52,7 @@ public partial class Hauptszene
             reihe.AddChild(knopf);
             return knopf;
         }
+        HafenKnopfBauen(reihe); // „Hafen“: Schiffe und ferne Städte, nur mit Schiffshandel (Hauptszene.Hafen.cs)
         _leisteBauen = Knopf("+ Bauen", "Wohnhaus oder Werkstatt bauen – auf Bauplätzen und in den Bauzonen (B)", BauenOeffnen);
         reihe.AddChild(new VSeparator());
         _leisteRat = Knopf("Rat", "Die Ratskammer: Ämter, Wahlen, Anträge (R). Das Rathaus selbst zeigt dazu Statut und Gericht.", RatOeffnen);
@@ -68,6 +69,7 @@ public partial class Hauptszene
         var ratAn = w.Rat.IstAktiv;
         if (_leisteRat.Disabled == ratAn) _leisteRat.Disabled = !ratAn;
         if (_leisteBauen.Disabled == w.Bauen.IstAktiv) _leisteBauen.Disabled = !w.Bauen.IstAktiv;
+        HafenKnopfAnzeigen(w);
 
         var eigene = w.Betriebe.Where(b => b.Konto == _spieler).ToList();
         if (!eigene.SequenceEqual(_leistenKnoepfe.Select(k => k.Betrieb)))
