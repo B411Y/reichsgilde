@@ -153,6 +153,7 @@ Das sind automatische Tests im Repository.
   - Die Zutaten reichen für weniger als 5 Stück.
   - Ware wartet seit 4 Stunden.
 - Ins Umland fährt der Karren nachts (21–06 Uhr) nur, wenn es ausdrücklich erlaubt ist.
+- **Verkaufen** (PR #205): ein eigener Karren am Betrieb bringt `logistik.karrenVerkaufAnteil` (0,5) des Kaufpreises – Handkarren 75, Ochsenkarren 200, Kriegskarren 450 Gulden; unterwegs geht es nicht. Siehe „Karren verkaufen (PR #205)“ unten.
 
 ### Eskorten und Überfälle
 | Eskorte | Kosten je beladener Fahrt | Schutz |
@@ -1602,3 +1603,9 @@ Die neue Karte allein ändert fast nichts (−1 … 0 %). Mit Schiffshandel: 49 
 - Ein vorher entworfener Stand mit Standesgebühr in der Kasse ließ sie in der Greybox bis Jahr 30 auf Ø 132.666 wachsen (Gebühren 4.416 im Jahr), mit jährlichem Fest (298 Anträge) und Steuer senken ohne Haushaltsprüfung: Eisenbart +9,3 % ohne Karte. Deshalb Standesgebühr an den Landesherrn, Haushaltsregel der Ratsherren und Fest der KI nur bei unsicherer Wahl.
 
 **Ämter der KI nach Nutzen** (Entscheidung des Nutzers, 25.10.2026): Die KI bewirbt sich um das Amt mit dem höchsten `AmtsWert` = Gehalt + Nutzen der Befugnis (Richter 300 je eigenem Verfahren und je Tat, die andere kennen; Hauptmann 100 je Betrieb in der Stadt + ¼ von Raub und Schaden des Vorjahres; Zöllner 250 je Schiff; Marktmeister die halbe Umsatzsteuer des Vorjahres) und bemisst daran auch ihre Wahlgeschenke. `messen 30 20 greybox` auf main `7c8e72b` + dieser PR – Jahre, in denen KI-Häuser ein Amt hielten (Summe über 20 Partien): Bürgermeister 323, Marktmeister 338, Zöllner 210, Stadthauptmann 135, Gefängniswärter 93, Stadtrichter 36, Kämmerer 27 (vorher nach dem Namen: Hauptmann und Richter nie). Die KI verlegt als Hauptmann 32-mal die Streife. Vermögen Ø: Eisenbart 256.097 (+2,1 % gegen main), Eichwald 211.623 (+15,4 %), Kieselbach 205.020 (+6,2 %); Steuersatz am Ende 3 % in allen Partien, Fest 224/207.
+
+## Karren verkaufen (PR #205)
+
+**Regel:** `logistik.karrenVerkaufAnteil` 0,5 (Datenversion 55), gebucht als Verkäufe. Die KI verkauft in Not (gemahnt, Reinvermögen nach offenen Jahreskosten negativ) stündlich den Karren mit dem höchsten Erlös und zum Jahresende einen Karren ohne Fahrt im ganzen Vorjahr, wenn der Betrieb seltener als `StillstandFuerKarrenkauf` (20 %) stillstand – nie den letzten eines Betriebs.
+
+**Messung** (`messen 30 20` und `messen 30 20 greybox`, gemessen auf main `234318c` + dieser PR): beide Ausgaben zeichengleich mit main – in den Messpartien verkauft die KI keinen Karren (sie kauft nur bei Stillstand, und die gekauften fahren). Die Regeln greifen in Lagen, die die Messung nicht erreicht (verschuldete KI mit mehreren Karren, Karren ohne Fahrt); die Tests `KarrenVerkaufenTests` decken sie ab.

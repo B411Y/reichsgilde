@@ -430,6 +430,7 @@ public partial class Hauptszene : Node
                 var ergebnis = wKarren.Ausfuehren(_spieler, new KarrenKaufen(kaeufer.Name, typ));
                 if (!ergebnis.Erfolg) Protokollieren("--karren=" + typ + ": " + ergebnis.Meldung);
             }
+        if (optionen.GetValueOrDefault("umland") == "1") UmlandVorbereiten();
         RatStartoptionen(optionen); // --amt, --kasse, --antrag, --rathaus (Hauptszene.Rat.cs); vor den Tafeln, die ein Amt zeigen
         HafenStartoptionen(optionen); // --schiff, --schiffsauftrag, --hafen (Hauptszene.Hafen.cs)
         if (optionen.TryGetValue("rat", out var rat) && rat == "1")
@@ -669,6 +670,37 @@ public partial class Hauptszene : Node
     /// Alles mit den gewöhnlichen Befehlen; reicht der Stand nicht, wird vorher das Wohnhaus ausgebaut und aufgestiegen
     /// (dafür braucht es Geld: --vermoegen=20000).
     /// </summary>
+    /// <summary>
+    /// Nur für den Klicktest (--umland=1, PR #205): den günstigsten freien Umlandbetrieb erwerben (vorher zum Bürger aufsteigen, wenn nötig), ihm einen Ochsenkarren dazukaufen und
+    /// seine Kurzübersicht zeigen – ohne Innenansicht stehen Karren, Eskorte und „Verkaufen“ dort unter „…“.
+    /// </summary>
+    private void UmlandVorbereiten()
+    {
+        if (_simulation.Wirtschaft is not { } w || _spieler is null) return;
+        Betrieb? Erwerben()
+        {
+            var frei = w.FreieLiegenschaften
+                .Where(l => w.Daten.Art(l.Art).Ort == Arbeitsort.Umland && w.LiegenschaftErwerbVerboten(_spieler, l.Name) is null)
+                .OrderBy(l => l.Kaufpreis).FirstOrDefault();
+            return frei is not null && w.Ausfuehren(_spieler, new LiegenschaftErwerben(frei.Name)).Erfolg
+                ? w.Betriebe.FirstOrDefault(b => b.Konto == _spieler && b.Name == frei.Name) : null;
+        }
+        var umland = Erwerben();
+        if (umland is null)
+        {
+            AufsteigenVorbereiten(); // Umlandbetriebe erst ab Bürger
+            umland = Erwerben();
+        }
+        if (umland is null)
+        {
+            Protokollieren("--umland=1: Kein freier Umlandbetrieb zu haben (mehr Vermögen mit --vermoegen=30000).");
+            return;
+        }
+        w.Ausfuehren(_spieler, new KarrenKaufen(umland.Name, "Ochsenkarren"));
+        BetriebAuswaehlen(umland, hinfahren: true);
+        _uebersicht.MehrOffen = true;
+    }
+
     private void VerkaufVorbereiten()
     {
         if (_simulation.Wirtschaft is not { } w || _spieler is null) return;

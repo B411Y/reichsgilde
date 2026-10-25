@@ -38,12 +38,10 @@ static class KarrenVerkaufenTests
 
     public static IEnumerable<(string, Action)> Alle() => new (string, Action)[]
     {
-        ("Karren verkaufen: halber Kaufpreis als Verkaufserlös, der Karren ist weg, eine Meldung", () =>
+        ("Karren verkaufen: halber Kaufpreis als Verkaufserlös, der Karren ist weg, die Meldung nennt Karren und Erlös", () =>
         {
             var (_, w, k, b) = GiessereiMitZweiKarren();
             var vorher = k.Vermoegen;
-            var meldungen = new List<string>();
-            w.Meldung += meldungen.Add;
             Pruefe.Ungefaehr(200, w.KarrenErloes(b.Karren[1]), 1e-9); // Ochsenkarren 400 × 0,5
             var e = w.Ausfuehren(k, new KarrenVerkaufen(b.Name, 1));
             Pruefe.Wahr(e.Erfolg, e.Meldung);
@@ -51,7 +49,6 @@ static class KarrenVerkaufenTests
             Pruefe.Gleich("Handkarren", b.Karren.Single().Typ);
             Pruefe.Ungefaehr(vorher + 200, k.Vermoegen, 1e-9);
             Pruefe.Ungefaehr(200, k.Laufend.Verkaeufe, 1e-9);
-            Pruefe.Wahr(meldungen.Any(m => m.Contains("verkauft Ochsenkarren 2")), "Meldung an alle");
         }),
 
         ("Karren verkaufen: der Anteil kommt aus logistik.karrenVerkaufAnteil; außerhalb 0 bis 1 fällt er auf", () =>

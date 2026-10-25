@@ -1051,7 +1051,6 @@ public sealed partial class Stadtwirtschaft
         var erloes = KarrenErloes(karren);
         betrieb.Konto.Verkauf(erloes);
         betrieb.KarrenEntfernen(karren);
-        Melden($"{betrieb.Konto.Inhaber} verkauft {karren.Name} von {betrieb.Name} für {Zahlenformat.Ganz(erloes)} {waehrung}.");
         var zusatz = (abgeladen.Count > 0 ? $" Die Ladung ({string.Join(", ", abgeladen.Select(x => $"{x.Value} {x.Key}"))}) liegt im Lager." : "") +
                      (vorgemerkt ? " Der vorgemerkte Handelsauftrag verfällt." : "");
         return Befehlsergebnis.Ok($"{karren.Name} von {betrieb.Name} ist verkauft ({Zahlenformat.Ganz(erloes)} {waehrung}).{zusatz}");
