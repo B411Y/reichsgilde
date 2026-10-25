@@ -36,6 +36,8 @@ public partial class Stadtansicht
         public required Label3D Stimme { get; init; }
         /// <summary>Wer hier sitzt (Name des Inhabers) – ändert er sich durch eine Wahl, wird die Figur neu gebaut.</summary>
         public string Inhaber { get; set; } = "";
+        /// <summary>Das Haus des Inhabers (null: ein Ratsherr der Stadt oder niemand).</summary>
+        public Konto? Haus { get; set; }
         public Figur? Figur { get; set; }
         public Skeleton3D? Skelett { get; set; }
         public Geste Geste { get; set; }
@@ -60,9 +62,9 @@ public partial class Stadtansicht
     private Arbeitsplatz[] _ratssaalSitze = Array.Empty<Arbeitsplatz>();
     private Sitzungsbild? _ratssitzung;
 
-    /// <summary>Wo der Antragsteller redet (relativ zur Gebäudemitte): vorn rechts zwischen den Tischreihen, Blick zum Bürgermeister, halb zur Kamera.</summary>
+    /// <summary>Wo der Antragsteller redet (relativ zur Gebäudemitte): vorn rechts zwischen den Tischreihen, Blick schräg zum Tisch, im Profil zur Kamera.</summary>
     private static readonly Vector3 RednerOrt = new(1.0f, 0, 1.7f);
-    private static readonly float RednerDrehung = Mathf.Atan2(-1.5f, -2.6f);
+    private static readonly float RednerDrehung = -2.1f;
 
     /// <summary>Kamera während der Sitzung (relativ zur Mitte des Ratssaals): vorn erhöht, Blick schräg hinab auf den Tisch.</summary>
     private static readonly Vector3 SitzungsAuge = new(0, 5.4f, 9.4f), SitzungsZiel = new(0, -0.2f, 0.2f);
@@ -75,7 +77,7 @@ public partial class Stadtansicht
     private static readonly Color AmZugFarbe = new(1f, 1f, 0.7f);
 
     /// <summary>Farbe des Namens über einem Platz: der eigene in Gold, die übrigen gedämpft.</summary>
-    private Color SchildFarbe(Amt amt) => amt.Konto is not null && amt.Konto == _spielerKonto ? StimmeKandidat : new Color(0.78f, 0.74f, 0.66f);
+    private Color SchildFarbe(SitzungsPlatz platz) => platz.Haus is not null && platz.Haus == _spielerKonto ? StimmeKandidat : new Color(0.78f, 0.74f, 0.66f);
 
     /// <summary>Läuft gerade eine Sitzung im Ratssaal? (Dann ruht die Eingabe im Raum.)</summary>
     public bool RatssitzungImBild => _ratssitzung is not null;
@@ -114,7 +116,7 @@ public partial class Stadtansicht
                 };
                 _ratssitzung.Plaetze.Add(platz);
             }
-            PlaetzeBesetzen(w);
+            PlaetzeBesetzen(w, null);
         }
         if (!InnenansichtBetreten(_rathaus.Kennung)) return false;
         RaumWaehlen(RaumRat);
@@ -137,13 +139,13 @@ public partial class Stadtansicht
     public void RatssitzungPunkt(Sitzungspunkt punkt)
     {
         if (_ratssitzung is not { } s || _simulation?.Wirtschaft is not { } w) return;
-        PlaetzeBesetzen(w);
+        PlaetzeBesetzen(w, punkt);
         foreach (var platz in s.Plaetze)
         {
             GesteSetzen(platz, Geste.Keine);
             // Bei einer Wahl sitzen die Kandidaten mit am Tisch, stimmen aber nicht mit
             var kandidat = punkt.Thema == Sitzungsthema.Wahl
-                && punkt.Kandidaten.Any(k => (k.Haus is not null && k.Haus == platz.Amt.Konto) || k.Name == platz.Amt.Inhaber);
+                && punkt.Kandidaten.Any(k => (k.Haus is not null && k.Haus == platz.Haus) || k.Name == platz.Inhaber);
             StimmeSchreiben(platz, kandidat ? "kandidiert" : "", StimmeEnthalten);
         }
         RatssitzungAmZug(null);
@@ -158,7 +160,7 @@ public partial class Stadtansicht
     {
         if (_ratssitzung is not { } s) return;
         var neu = amt is null ? null : s.Plaetze.FirstOrDefault(p => p.Amt == amt);
-        if (s.AmZug is { } alt) alt.Schild.Modulate = SchildFarbe(alt.Amt);
+        if (s.AmZug is { } alt) alt.Schild.Modulate = SchildFarbe(alt);
         s.AmZug = neu;
         if (neu is not null) neu.Schild.Modulate = AmZugFarbe;
     }
@@ -169,7 +171,7 @@ public partial class Stadtansicht
         if (_ratssitzung?.Plaetze.FirstOrDefault(p => p.Amt == stimme.Sitz) is not { } platz) return;
         if (stimme.Kandidat is { } kandidat)
         {
-            StimmeSchreiben(platz, kandidat + (stimme.Los ? " (Los)" : ""), StimmeKandidat);
+            StimmeSchreiben(platz, Kurzname(kandidat) + (stimme.Los ? " (Los)" : ""), StimmeKandidat);
             GesteSetzen(platz, Geste.HandHoch);
             return;
         }
@@ -183,57 +185,79 @@ public partial class Stadtansicht
         GesteSetzen(platz, geste);
     }
 
-    /// <summary>Nimmt die Stimme über einem Sitz wieder weg (die Oberfläche zeigt die Stimmen nacheinander).</summary>
-    public void RatssitzungStimmeWeg(Amt sitz)
+    /// <summary>
+    /// Der Punkt ist abgehalten: Nach einer Wahl sitzt der Gewählte gleich auf seinem Stuhl, vor ihm steht „gewählt“.
+    /// </summary>
+    public void RatssitzungErgebnis(Sitzungspunkt punkt)
     {
-        if (_ratssitzung?.Plaetze.FirstOrDefault(p => p.Amt == sitz) is not { } platz) return;
-        StimmeSchreiben(platz, "", StimmeEnthalten);
-        GesteSetzen(platz, Geste.Keine);
+        if (_ratssitzung is not { } s || _simulation?.Wirtschaft is not { } w || punkt.Thema != Sitzungsthema.Wahl || punkt.Amt is null) return;
+        PlaetzeBesetzen(w, punkt);
+        if (s.Plaetze.FirstOrDefault(p => p.Amt == punkt.Amt) is { } platz && punkt.Ergebnis?.Gewaehlt is { } gewaehlt)
+        {
+            GesteSetzen(platz, Geste.Keine);
+            StimmeSchreiben(platz, "gewählt: " + Kurzname(gewaehlt), StimmeKandidat);
+        }
     }
 
     /// <summary>Die Ämter in der Reihenfolge der Stühle (Bürgermeister zuerst) – wie die Figuren außerhalb der Sitzung.</summary>
     private static List<Amt> SitzOrdnung(Stadtwirtschaft w) => w.Rat.Aemter.OrderByDescending(a => a.Stufe).ToList();
 
-    /// <summary>Baut die Figur eines Platzes neu, wenn dort jemand anderes sitzt (nach einer Wahl), und beschriftet ihn.</summary>
-    private void PlaetzeBesetzen(Stadtwirtschaft w)
+    /// <summary>
+    /// Wer zu diesem Punkt auf dem Stuhl eines Amtes sitzt (Name null: niemand): nach einer Wahl der Gewählte, sonst wer dort abstimmt, bei einer Wahl der bisherige
+    /// Inhaber unter den Kandidaten, sonst der heutige Inhaber. So stimmt auch die Wiederholung einer älteren Sitzung, in der andere auf den Stühlen saßen.
+    /// </summary>
+    private static (string? Name, Konto? Haus) Besetzung(Amt amt, Sitzungspunkt? punkt)
+    {
+        if (punkt?.Amt == amt && punkt.Ergebnis?.Gewaehlt is { } gewaehlt)
+            return (gewaehlt, punkt.Ergebnis.Zaehlung.FirstOrDefault(z => z.Kandidat == gewaehlt)?.Haus);
+        if (punkt?.Stimmen.FirstOrDefault(x => x.Sitz == amt) is { } stimme) return (stimme.Name, stimme.Haus);
+        if (punkt?.Amt == amt && punkt.Kandidaten.FirstOrDefault(k => k.IstAmtsinhaber) is { } bisher) return (bisher.Name, bisher.Haus);
+        return amt.IstBesetzt ? (amt.Inhaber, amt.Konto) : (null, null);
+    }
+
+    /// <summary>Baut die Figur eines Platzes neu, wenn dort jemand anderes sitzt (nach einer Wahl, in der Wiederholung), und beschriftet ihn.</summary>
+    private void PlaetzeBesetzen(Stadtwirtschaft w, Sitzungspunkt? punkt)
     {
         if (_ratssitzung is not { } s) return;
         for (var i = 0; i < s.Plaetze.Count; i++)
         {
             var platz = s.Plaetze[i];
             var amt = platz.Amt;
-            if (platz.Inhaber == amt.Inhaber && (platz.Figur is not null || !amt.IstBesetzt)) continue;
-            platz.Inhaber = amt.Inhaber;
+            var (name, haus) = Besetzung(amt, punkt);
+            if (platz.Inhaber == (name ?? "") && (platz.Figur is not null || name is null)) continue;
+            platz.Inhaber = name ?? "";
+            platz.Haus = haus;
+            StimmeSchreiben(platz, "", StimmeEnthalten); // ein neuer Inhaber hat noch nichts gesagt
+            platz.Geste = Geste.Keine;
             if (platz.Figur is { } alt)
             {
                 alt.Modell.QueueFree();
                 platz.Figur = null;
                 platz.Skelett = null;
             }
-            platz.Schild.Text = i == 0 ? $"{amt.Name} {amt.Inhaber}" : amt.IstBesetzt ? amt.Inhaber : $"{amt.Name} (unbesetzt)"; // eine Zeile: die Stühle an den Seiten stehen im Bild dicht hintereinander
-            platz.Schild.Modulate = s.AmZug == platz ? AmZugFarbe : SchildFarbe(amt);
-            if (!amt.IstBesetzt) continue;
-            var nummer = 700 + i;
-            if (FigurEinsetzen(platz.Halter, RatsherrAussehen(w, amt, i == 0), nummer) is not { } figur) continue;
+            // eine Zeile: die Stühle an den Seiten stehen im Bild dicht hintereinander
+            platz.Schild.Text = name is null ? $"{amt.Name} (unbesetzt)" : i == 0 ? $"{amt.Name} {name}" : name;
+            platz.Schild.Modulate = s.AmZug == platz ? AmZugFarbe : SchildFarbe(platz);
+            if (name is null) continue;
+            if (FigurEinsetzen(platz.Halter, RatsherrAussehen(w, name, haus, i == 0), 700 + i) is not { } figur) continue;
             figur.Modell.Position = new Vector3(0, SitzKniehoehe - figur.Kniehoehe, 0); // die Hüfte auf dem Stuhl
             BewegungSetzen(figur, "Sitzen", 0.9f + i * 0.04f);
             platz.Figur = figur;
             platz.Skelett = figur.Modell.FindChildren("*", nameof(Skeleton3D), true, false).OfType<Skeleton3D>().FirstOrDefault();
-            platz.Geste = Geste.Keine;
         }
     }
 
     /// <summary>
     /// Aussehen eines Ratsmitglieds: ein Haus in seiner Farbe (Volk und Geschlecht des Oberhaupts), ein Ratsherr der Stadt in Ratsrot (Volk aus den Daten).
-    /// Alle tragen ein dunkles Barett, der Bürgermeister ein goldenes.
+    /// Alle tragen ein dunkles Barett, der Bürgermeister ein goldenes. Haar und Beinkleid folgen fest aus dem Namen.
     /// </summary>
-    private FigurAussehen RatsherrAussehen(Stadtwirtschaft w, Amt amt, bool buergermeister)
+    private FigurAussehen RatsherrAussehen(Stadtwirtschaft w, string name, Konto? haus, bool buergermeister)
     {
-        var oberhaupt = amt.Konto is { } k ? w.Familien.Von(k)?.Oberhaupt : null;
-        var volk = oberhaupt?.Volk ?? (amt.Konto is not null ? Volk.Mensch : amt.Ratsherr?.Daten.Volk ?? Volk.Mensch);
+        var oberhaupt = haus is not null ? w.Familien.Von(haus)?.Oberhaupt : null;
+        var volk = oberhaupt?.Volk ?? (haus is not null ? Volk.Mensch : w.Rat.Ratsherren.FirstOrDefault(r => r.Name == name)?.Daten.Volk ?? Volk.Mensch);
         var frau = oberhaupt?.Geschlecht == Geschlecht.Frau;
-        var gewand = amt.Konto is { } konto ? Besitzerfarbe(konto) : Ratsrot;
-        var nummer = Math.Abs(amt.Inhaber.GetHashCode() % 97);
+        var gewand = haus is not null ? Besitzerfarbe(haus) : Ratsrot;
+        var nummer = name.Sum(c => c) % 97; // fest je Name (string.GetHashCode wechselt mit jedem Start)
         var haare = Haarfarben(volk);
         return new FigurAussehen(volk, frau, gewand, Beinkleidfarben[nummer % Beinkleidfarben.Length], HautVon(volk),
             nummer % 3 == 0 ? GrauesHaar : haare[nummer % haare.Length], buergermeister ? Gold : new Color(0.12f, 0.10f, 0.10f), Kopfbedeckung.Barett);
@@ -266,15 +290,20 @@ public partial class Stadtansicht
         }
         s.Redner = halter;
         // Sitzt er selbst im Rat, ist sein Stuhl leer, solange er vorn steht
-        s.RednerPlatz = s.Plaetze.FirstOrDefault(p => p.Amt.Konto == antragsteller);
+        s.RednerPlatz = s.Plaetze.FirstOrDefault(p => p.Haus == antragsteller);
         if (s.RednerPlatz?.Figur is { } sitzend) sitzend.Modell.Visible = false;
     }
 
+    /// <summary>Schreibt die Stimme vor den Platz; Namen (Wahlen) etwas kleiner als Ja und Nein – die Stühle hinten stehen nur 1,2 m auseinander.</summary>
     private static void StimmeSchreiben(SitzungsPlatz platz, string text, Color farbe)
     {
         platz.Stimme.Text = text;
         platz.Stimme.Modulate = farbe;
+        platz.Stimme.FontSize = farbe == StimmeKandidat ? 32 : 44;
     }
+
+    /// <summary>Der Kandidat kurz: „Haus Hammerschmid“ → „Hammerschmid“, „Bertram Kesselflick“ → „Kesselflick“ (die Tafel nennt den ganzen Namen).</summary>
+    private static string Kurzname(string name) => name.Split(' ', StringSplitOptions.RemoveEmptyEntries).LastOrDefault() ?? name;
 
     private void GesteSetzen(SitzungsPlatz platz, Geste geste)
     {

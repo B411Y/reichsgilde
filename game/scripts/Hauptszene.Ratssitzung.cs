@@ -23,7 +23,7 @@ public partial class Hauptszene
     private bool _jahresberichtWartet;
     /// <summary>Pause vor der Wiederholung der letzten Sitzung (danach wieder so).</summary>
     private bool _pauseVorWiederholung;
-    /// <summary>Startoption <c>--sitzung=wiederholung</c>: nach dem Vorspulen gleich die letzte Sitzung zeigen.</summary>
+    /// <summary>Startoption <c>--sitzung=letzte</c>: nach dem Vorspulen das Rathaus auf dem Reiter Rat zeigen (dort der Knopf „Letzte Ratssitzung ansehen“).</summary>
     private bool _wiederholungWartet;
 
     /// <summary>Baut die Tafel der Sitzung und verbindet sie mit der Stadtansicht (in _Ready, vor dem Aufbau der Partie).</summary>
@@ -35,6 +35,7 @@ public partial class Hauptszene
         _sitzungsTafel.RedeBeendet += _stadt.RatssitzungRednerFort;
         _sitzungsTafel.AmZug += amt => _stadt.RatssitzungAmZug(amt);
         _sitzungsTafel.StimmeGezeigt += stimme => _stadt.RatssitzungStimme(stimme);
+        _sitzungsTafel.ErgebnisGezeigt += punkt => _stadt.RatssitzungErgebnis(punkt);
         _sitzungsTafel.Gemeldet += Protokollieren;
         _sitzungsTafel.Beendet += wiederholung =>
         {
@@ -72,13 +73,16 @@ public partial class Hauptszene
     private static bool SitzungBetrifft(Ratssitzung sitzung, Konto spieler) =>
         sitzung.Punkte.Any(p => p.Antragsteller == spieler || p.Stimmen.Any(s => s.Haus == spieler) || p.Kandidaten.Any(k => k.Haus == spieler));
 
-    /// <summary>Jedes Bild: Steht die Partie vor einer Sitzung, die noch nicht gezeigt wird? Dann in den Ratssaal.</summary>
+    /// <summary>Jedes Bild: Steht die Partie vor einer Sitzung, die noch nicht gezeigt wird? Dann in den Ratssaal. Ist das Spielmenü offen, wartet die Sitzung.</summary>
     private void RatssitzungPruefen()
     {
+        _sitzungsTafel.Angehalten = _spielmenue.Visible || _einstellungen.Tafel.Visible || _hilfe.Visible;
         if (_wiederholungWartet && _spulen == 0 && _bauAutoKlick == 0)
         {
             _wiederholungWartet = false;
-            WiederholungStarten();
+            _jahresbericht.Hide(); // nur in diesem Klicktest: der Bericht des vorgespulten Jahres läge über dem Rathaus (die Partie bleibt angehalten)
+            _auswahlKennung = "Rathaus";
+            _rathausTafel.ReiterWaehlen(RathausTafel.Reiter.Rat);
         }
         if (_simulation.Ratssitzung is null || _sitzungsTafel.Laeuft) return;
         SaalVorbereiten();
@@ -87,7 +91,7 @@ public partial class Hauptszene
         Protokollieren("Die Ratssitzung beginnt – die Partie steht, bis alle Punkte abgehalten sind.");
     }
 
-    /// <summary>Zeigt die letzte abgehaltene Sitzung noch einmal (Knopf im Rathaus, Startoption <c>--sitzung=wiederholung</c>).</summary>
+    /// <summary>Zeigt die letzte abgehaltene Sitzung noch einmal (Knopf „Letzte Ratssitzung ansehen“ im Rathaus).</summary>
     private void WiederholungStarten()
     {
         if (_sitzungsTafel.Laeuft || _simulation.Ratssitzung is not null) return;
@@ -146,8 +150,8 @@ public partial class Hauptszene
     /// dem Spieler im Rat vor – ohne <c>--amt</c> bekommt er ein Amt der untersten Stufe und bewirbt sich um eines darüber (eine Wahl; braucht den Stand Bürger,
     /// also <c>--aufsteigen=1 --vermoegen=30000</c>), ohne <c>--antrag</c> wird ein Rivale Kämmerer und beantragt ein Fest (darüber stimmt der Spieler live ab; dafür bekommt er
     /// Aktionspunkte) –
-    /// und spult bis zum Jahresende vor (die Partie hält dann vor dem ersten Punkt). <c>--sitzung=wiederholung</c> spult ebenso vor, hält aber nicht an und zeigt
-    /// danach die letzte Sitzung als Wiederholung. Nach <see cref="RatStartoptionen"/> ausgewertet.
+    /// und spult bis zum Jahresende vor (die Partie hält dann vor dem ersten Punkt). <c>--sitzung=letzte</c> spult ebenso vor, hält aber nicht an und zeigt
+    /// danach das Rathaus auf dem Reiter Rat mit dem Knopf „Letzte Ratssitzung ansehen“. Nach <see cref="RatStartoptionen"/> ausgewertet.
     /// </summary>
     private void RatssitzungStartoptionen(Dictionary<string, string> optionen)
     {
@@ -156,7 +160,7 @@ public partial class Hauptszene
             if (Enum.TryParse<RatssitzungZeigen>(zeigen, true, out var wert)) Fenster.RatssitzungSetzen(wert, speichern: false);
             else Protokollieren($"--sitzungzeigen={zeigen}: gemeint ist immer, betroffen oder nie.");
         }
-        if (!optionen.TryGetValue("sitzung", out var sitzung) || sitzung is not ("1" or "wiederholung")) return;
+        if (!optionen.TryGetValue("sitzung", out var sitzung) || sitzung is not ("1" or "letzte")) return;
         if (_simulation.Wirtschaft is not { } w || _spieler is null || !w.Rat.IstAktiv) return;
         if (w.Rat.AmtVon(_spieler) is null && w.Rat.Aemter.Where(a => a.Stufe == 1).OrderBy(a => a.Name).FirstOrDefault() is { } unten)
             AmtFuerKlicktest(w, unten);
@@ -171,7 +175,7 @@ public partial class Hauptszene
             typeof(Reichsgilde.Core.Partie.Aktionspunkte).GetProperty(nameof(Reichsgilde.Core.Partie.Aktionspunkte.Vorrat))!.SetValue(rivale.Aktionspunkte, 6);
             Melden("Fest beantragen (" + rivale.Inhaber + ")", w.Ausfuehren(rivale, new FestBeantragen()));
         }
-        if (sitzung == "wiederholung")
+        if (sitzung == "letzte")
         {
             Fenster.RatssitzungSetzen(RatssitzungZeigen.Nie, speichern: false);
             _wiederholungWartet = true;

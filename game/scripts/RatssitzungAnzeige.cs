@@ -67,6 +67,9 @@ public partial class RatssitzungAnzeige : Control
     /// <summary>Läuft eine Sitzung oder Wiederholung auf der Tafel?</summary>
     public bool Laeuft => Visible;
 
+    /// <summary>Die Sitzung wartet (Spielmenü, Einstellungen oder Hilfe sind offen) – die Hauptszene setzt es jedes Bild.</summary>
+    public bool Angehalten { get; set; }
+
     /// <summary>Ein neuer Punkt wird aufgerufen (die Stimmen sind noch nicht gezeigt).</summary>
     public event Action<Sitzungspunkt>? PunktGezeigt;
     /// <summary>Der Antragsteller ist fertig, die Abstimmung beginnt.</summary>
@@ -75,6 +78,8 @@ public partial class RatssitzungAnzeige : Control
     public event Action<Amt?>? AmZug;
     /// <summary>Eine Stimme wird gezeigt (auch erneut, wenn der Spieler seine ändert oder das Los entschieden hat).</summary>
     public event Action<Sitzungsstimme>? StimmeGezeigt;
+    /// <summary>Der Punkt ist abgehalten (mit <see cref="Sitzungspunkt.Ergebnis"/>).</summary>
+    public event Action<Sitzungspunkt>? ErgebnisGezeigt;
     /// <summary>Die Sitzung (oder Wiederholung) ist zu Ende; true: es war eine Wiederholung.</summary>
     public event Action<bool>? Beendet;
     /// <summary>Ergebnis eines Befehls – für die Meldungen.</summary>
@@ -220,7 +225,7 @@ public partial class RatssitzungAnzeige : Control
 
     public override void _Process(double delta)
     {
-        if (!Visible || _punkt is null) return;
+        if (!Visible || _punkt is null || Angehalten) return;
         if (_wiederholung is null && _simulation?.Ratssitzung is null && _schritt != Schritt.Ergebnis)
         {
             Beenden(); // die Sitzung ist anders zu Ende gegangen (z. B. Partie beendet)
@@ -233,7 +238,7 @@ public partial class RatssitzungAnzeige : Control
     /// <summary>Knopf „Weiter“ und Leertaste: den Schritt sofort beenden (am eigenen Sitz: die gewählte Stimme abgeben).</summary>
     public void WeiterGedrueckt()
     {
-        if (Visible && _punkt is not null) Weiter();
+        if (Visible && _punkt is not null && !Angehalten) Weiter();
     }
 
     private void PunktBeginnen(Sitzungspunkt? punkt)
@@ -336,6 +341,7 @@ public partial class RatssitzungAnzeige : Control
         }
         _schritt = Schritt.Ergebnis;
         ErgebnisZeigen(punkt);
+        ErgebnisGezeigt?.Invoke(punkt);
     }
 
     // ═════════════════════════════════════════════════════════════════════════
