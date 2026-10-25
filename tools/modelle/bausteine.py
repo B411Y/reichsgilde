@@ -199,6 +199,58 @@ def _richtung(dir_, quer):
     return Matrix((x, y, z)).transposed().to_4x4()
 
 
+_BIBLIOTHEK = None
+REIHEN_AB = 0.9   # Meter: Deckungsflächen, die in Fallrichtung länger sind, haben keine Modellreihen (die Sägezähne sind kürzer)
+
+
+def bibliothek():
+    """game/daten/materialbibliothek.json (Material-Bibliothek der Modell-Texturen) – dieselbe Tabelle liest das Spiel."""
+    global _BIBLIOTHEK
+    if _BIBLIOTHEK is None:
+        import json
+        with open(os.path.join(WURZEL, "game", "daten", "materialbibliothek.json"), encoding="utf-8") as f:
+            _BIBLIOTHEK = json.load(f)
+    return _BIBLIOTHEK
+
+
+def bibliothek_schicht(name):
+    """Nummer der Schicht der Material-Bibliothek für den Materialnamen `name`, sonst −1."""
+    t = bibliothek()
+    schicht = t["namen"].get(name.split(".")[0])
+    return next((i for i, s in enumerate(t["schichten"]) if s["name"] == schicht), -1)
+
+
+def reihen_markieren(mesh):
+    """Dachflächen ohne Modellreihen: Deckungen mit Projektion „reihen“ (Ziegel, Schiefer, Schindeln) zeigen ihre Reihen sonst
+    als Sägezahn im Modell (zaehne). Eine Fläche dieser Deckung, die nach oben zeigt und in Fallrichtung länger als REIHEN_AB
+    ist (Turmhelm, Pultdach, Zeltdach, Walm), bekommt in der UV-Schicht „Art“ x = 1 – dann zeichnet der Shader die Reihen (oberflaeche.gdshader).
+    Ohne solche Flächen bleibt das Netz ohne UV-Schicht."""
+    t = bibliothek()
+    reihen = {s["name"] for s in t["schichten"] if s["projektion"] == "reihen"}
+    namen = {n for n, s in t["namen"].items() if s in reihen}
+    markiert = []
+    for p in mesh.polygons:
+        m = mesh.materials[p.material_index] if p.material_index < len(mesh.materials) else None
+        if m is None or m.name.split(".")[0] not in namen:
+            continue
+        n = p.normal
+        u = Vector((0, 0, 1)).cross(n)
+        if u.length < 0.05 or n.z < 0:                         # waagerecht (keine Fallrichtung) oder Unterseite des Dachs
+            continue
+        v = n.cross(u.normalized())
+        werte = [mesh.vertices[i].co.dot(v) for i in p.vertices]
+        if max(werte) - min(werte) > REIHEN_AB:
+            markiert.append(p)
+    if not markiert:
+        return
+    uv = mesh.uv_layers.get("Art") or mesh.uv_layers.new(name="Art")
+    werte = [0.0, 1.0] * len(mesh.loops)                       # x = 0, y = 1 (glTF: 1 − v, im Spiel UV = (0, 0))
+    for p in markiert:
+        for li in p.loop_indices:
+            werte[li * 2] = 1.0
+    uv.data.foreach_set("uv", werte)
+
+
 class Netz:
     """Sammelt Geometrie für ein Objekt. Jede Fläche kennt ihr Material."""
 
@@ -292,6 +344,7 @@ class Netz:
         for p, i in zip(mesh.polygons, self.fstoff):
             p.material_index = i
             p.use_smooth = False
+        reihen_markieren(mesh)
         mesh.validate(verbose=False)
         mesh.update()
         obj = bpy.data.objects.new(self.name, mesh)
@@ -706,17 +759,13 @@ def rund_oben(netz, st, mitte, r, z, stoff="Loch", n=8):
 
 
 def pultdach(netz, st, x0, x1, y0, y1, z_hoch, z_tief, stoff="Holz alt", entlang="x"):
-    """Einfaches Pultdach aus Brettern mit Fugen; fällt entlang x (von x0 hoch nach x1 tief)."""
+    """Einfaches Pultdach aus Brettern (oder Schindeln); fällt entlang x (von x0 hoch nach x1 tief). Fugen und Reihen zeichnet
+    die Material-Bibliothek."""
     neig = math.atan2(z_hoch - z_tief, x1 - x0)
     laenge = (x1 - x0 + 0.3) / math.cos(neig)
     mitte = Vector(((x0 + x1 + 0.3) / 2, (y0 + y1) / 2, (z_hoch + z_tief) / 2 + 0.05 - 0.15 * math.tan(neig)))
     t = Matrix.Translation(mitte) @ Matrix.Rotation(neig, 4, "Y")
     netz.quader((0, 0, 0), (laenge, y1 - y0 + 0.4, 0.08), st[stoff], t)
-    y = -(y1 - y0 + 0.4) / 2 + 0.32
-    while y < (y1 - y0 + 0.4) / 2 - 0.1:
-        netz.vieleck([t @ Vector(p) for p in ((-laenge / 2, y - 0.02, 0.045), (laenge / 2, y - 0.02, 0.045),
-                                              (laenge / 2, y + 0.02, 0.045), (-laenge / 2, y + 0.02, 0.045))], st["Fachwerk"])
-        y += 0.32
 
 
 def tor_fluegel(netz, st, M, o):
@@ -1104,14 +1153,24 @@ def materialart(name):
     return t["arten"][art]
 
 
+# Modell-Texturen: Modelle mit „Farben“ tragen auch die Schicht der Material-Bibliothek je Fläche (arten_setzen). Die Skripte der
+# Modelle schalten das mit ihrer Gruppe ein (bs.BIBLIOTHEK_JE_FLAECHE = True vor dem Bauen, ab Gruppe 2: wachturm.py); ohne bleibt
+# die Struktur der Materialart wie bisher.
+BIBLIOTHEK_JE_FLAECHE = False
+
+
 def arten_setzen(me, materialnamen, uv_name="Art"):
     """Schreibt die Materialart jeder Fläche als UV (y = Art; im Spiel UV.y) – je Fläche konstant. Bei Netzen mit nur
-    einem Material („Farben“, „Figur“) sagt sonst nichts mehr, ob eine Fläche Holz oder Stein ist. Gibt die UV-Schicht zurück."""
+    einem Material („Farben“, „Figur“) sagt sonst nichts mehr, ob eine Fläche Holz oder Stein ist. Mit BIBLIOTHEK_JE_FLAECHE
+    y = Art + 16 · (Schicht der Material-Bibliothek + 1), ohne Schicht nur die Art. x bleibt (Dachreihen, siehe
+    reihen_markieren). Gibt die UV-Schicht zurück."""
     uv = me.uv_layers.get(uv_name) or me.uv_layers.new(name=uv_name)
     werte = [0.0] * (len(me.loops) * 2)
     for poly in me.polygons:
         name = materialnamen[poly.material_index] if poly.material_index < len(materialnamen) else ""
         art = float(materialart(name))
+        if BIBLIOTHEK_JE_FLAECHE and name:
+            art += 16.0 * (bibliothek_schicht(name) + 1)
         for li in poly.loop_indices:
             werte[li * 2] = uv.data[li].uv[0]
             werte[li * 2 + 1] = 1.0 - art          # glTF speichert 1 − v: so kommt im Spiel UV.y = Art an

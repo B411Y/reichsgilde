@@ -22,6 +22,8 @@ namespace Reichsgilde;
 /// <b>Material-Bibliothek</b> (Modell-Texturen): Materialien, deren Name in <c>materialbibliothek.json</c> steht (Bruchstein, Putz, Fachwerk,
 /// Dachziegel …), bekommen statt der Struktur gebackene Texturen aus <c>assets/texturen/modelle/</c> – je nach Einstellung „Boden“
 /// (<see cref="Stufe"/>): Niedrig die Struktur wie bisher, Mittel die Farbe der Bibliothek, Hoch dazu Normalen und Rauheit.
+/// Modelle mit zusammengelegten Farben („Farben“) tragen die Schicht je Fläche im Netz (UV.y); darum bekommt jedes Material die Werte
+/// aller Schichten.
 ///
 /// <b>MultiMesh</b> (Natur, Mauer) kennt keine Überschreibung je Fläche: Dort kommt eine Kopie des Netzes mit den neuen
 /// Materialien an die Stelle des Netzes (<see cref="Netz"/>), beim Zurückgeben wieder das Original.
@@ -48,11 +50,21 @@ internal sealed class Oberflaechendetails
     private readonly List<(string Teil, int Art)> _artTeile = new();
     private readonly int _artFigur;
 
-    /// <summary>Eine Schicht der Material-Bibliothek: Nummer im Texture2DArray, Kachel in Metern, mittlere Farbe (linear), Dachprojektion,
-    /// Spalten je Modellreihe versetzt (Projektion „reihen“: Ziegel, Schiefer).</summary>
-    private readonly record struct Schicht(int Nummer, float Kachel, Vector3 Mittel, bool Dach, bool Reihen);
+    /// <summary>Eine Schicht der Material-Bibliothek: Nummer im Texture2DArray.</summary>
+    private readonly record struct Schicht(int Nummer);
     private readonly Dictionary<string, Schicht> _bibliothek = new();
     private readonly TextureLayered? _bibFarbe, _bibNormalen;
+
+    /// <summary>Höchstens so viele Schichten kennt der Shader (<c>BIB_MAX</c> in <c>oberflaeche.gdshader</c>).</summary>
+    private const int BibMax = 32;
+
+    /// <summary>Werte aller Schichten für den Shader, je Schicht ein Eintrag: Kachel in Metern, mittlere Farbe (linear), Projektion
+    /// (0 wand, 1 dach, 2 reihen: Spalten je Modellreihe versetzt – Ziegel, Schiefer, Schindeln) und Reihenhöhe (für Dächer ohne
+    /// Modellreihen). Jedes Material bekommt alle: Modelle mit „Farben“ tragen die Schicht je Fläche im Netz.</summary>
+    private readonly float[] _bibKacheln = new float[BibMax];
+    private readonly Vector3[] _bibMittel = new Vector3[BibMax];
+    private readonly int[] _bibProjektion = new int[BibMax];
+    private readonly float[] _bibReihe = new float[BibMax];
 
     /// <summary>Stufe der Bibliothek (Einstellung „Boden“): 0 Niedrig (Struktur wie bisher), 1 Mittel (Farbe), 2 Hoch (Farbe, Normalen, Rauheit).</summary>
     private int _stufe = 2;
@@ -101,14 +113,16 @@ internal sealed class Oberflaechendetails
             _bibNormalen = GD.Load<TextureLayered>(BibNormalenPfad);
             var schichten = new Dictionary<string, Schicht>();
             var liste = bib["schichten"].AsGodotArray();
-            for (var i = 0; i < liste.Count; i++)
+            if (liste.Count > BibMax) GD.PushError($"Material-Bibliothek: {liste.Count} Schichten, der Shader kennt höchstens {BibMax}.");
+            for (var i = 0; i < liste.Count && i < BibMax; i++)
             {
                 var d = liste[i].AsGodotDictionary();
                 var m = d["mittel"].AsGodotArray();
-                var projektion = d["projektion"].AsString();
-                schichten[d["name"].AsString()] = new Schicht(i, (float)d["kachel"].AsDouble(),
-                    new Vector3((float)m[0].AsDouble(), (float)m[1].AsDouble(), (float)m[2].AsDouble()), projektion != "wand",
-                    projektion == "reihen");
+                schichten[d["name"].AsString()] = new Schicht(i);
+                _bibKacheln[i] = (float)d["kachel"].AsDouble();
+                _bibMittel[i] = new Vector3((float)m[0].AsDouble(), (float)m[1].AsDouble(), (float)m[2].AsDouble());
+                _bibProjektion[i] = d["projektion"].AsString() switch { "dach" => 1, "reihen" => 2, _ => 0 };
+                _bibReihe[i] = d.TryGetValue("reihe", out var reihe) ? (float)reihe.AsDouble() : 0.4f;
             }
             foreach (var (name, schicht) in bib["namen"].AsGodotDictionary())
                 if (schichten.TryGetValue(schicht.AsString(), out var s)) _bibliothek[name.AsString()] = s;
@@ -177,13 +191,14 @@ internal sealed class Oberflaechendetails
         ziel.SetShaderParameter("rauheit", stoff.Roughness);
         ziel.SetShaderParameter("metall", stoff.Metallic);
         ziel.SetShaderParameter("glanz", stoff.MetallicSpecular);
-        if (inBibliothek)
+        if (inBibliothek) ziel.SetShaderParameter("bib", schicht.Nummer);
+        if ((inBibliothek || jeFlaeche) && _bibFarbe is not null)
         {
-            ziel.SetShaderParameter("bib", schicht.Nummer);
-            ziel.SetShaderParameter("bib_kachel", schicht.Kachel);
-            ziel.SetShaderParameter("bib_mittel", schicht.Mittel);
-            ziel.SetShaderParameter("bib_dach", schicht.Dach);
-            ziel.SetShaderParameter("bib_reihen", schicht.Reihen);
+            // Alle Schichten: Modelle mit „Farben“ tragen die Schicht je Fläche im Netz (UV.y), das Material weiß sie vorher nicht
+            ziel.SetShaderParameter("bib_kacheln", _bibKacheln);
+            ziel.SetShaderParameter("bib_mittel", _bibMittel);
+            ziel.SetShaderParameter("bib_projektion", _bibProjektion);
+            ziel.SetShaderParameter("bib_reihe", _bibReihe);
             ziel.SetShaderParameter("bib_farbe", _bibFarbe);
             ziel.SetShaderParameter("bib_nr", _bibNormalen);
         }
