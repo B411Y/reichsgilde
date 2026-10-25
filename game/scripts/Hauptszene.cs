@@ -55,7 +55,6 @@ namespace Reichsgilde;
 ///   --einstellungen=1  gleich zu Beginn das Fenster „Einstellungen“ öffnen
 ///   --kanten=<Art>     Kantenglättung nur für diesen Start (Aus, Fxaa, Smaa, Taa, Msaa2, Msaa4, Msaa8)
 ///   --schatten=<Stufe> Schattenqualität nur für diesen Start (Niedrig, Mittel, Hoch)
-///   --oberflaeche=<An|Aus> Oberflächendetails (Struktur der Materialien) nur für diesen Start
 ///   --bloom=<An|Aus>   Bloom nur für diesen Start
 ///   --bloomstaerke=<0–100> Stärke des Bloom in Prozent, nur für diesen Start
 ///   --ssao=<Stufe>     Umgebungsverdeckung nur für diesen Start (Aus, Niedrig, Mittel, Hoch)

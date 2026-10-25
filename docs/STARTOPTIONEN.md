@@ -39,7 +39,6 @@ Startoptionen (nach `--`):
 
 - `--kanten=<Aus|Fxaa|Smaa|Taa|Msaa2|Msaa4|Msaa8>` (nur für diesen Start)
 - `--schatten=<Niedrig|Mittel|Hoch>` (Schattenqualität, nur für diesen Start)
-- `--oberflaeche=<An|Aus>` (Oberflächendetails, nur für diesen Start)
 - `--bloom=<An|Aus>` und `--bloomstaerke=<0–100>` (Bloom, nur für diesen Start)
 - `--ssao=<Aus|Niedrig|Mittel|Hoch>` (Umgebungsverdeckung)
 - `--ssil=<An|Aus>` (indirektes Licht)

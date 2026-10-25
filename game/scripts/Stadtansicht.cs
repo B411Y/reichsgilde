@@ -312,7 +312,7 @@ public partial class Stadtansicht : Node3D
 
     public override void _Ready()
     {
-        OberflaecheEinrichten(); // vor dem Aufbau: Sind die Oberflächendetails an, bekommt jeder neue Knoten sein Material (Stadtansicht.Oberflaechendetails.cs)
+        OberflaecheEinrichten(); // vor dem Aufbau: Jeder neue Knoten bekommt sein Material mit Struktur (Stadtansicht.Oberflaechendetails.cs)
         UmgebungUndLicht();
         KameraAufbauen();
         SchattenEinrichten(); // braucht Sonne und Kamera (Stadtansicht.Licht.cs)

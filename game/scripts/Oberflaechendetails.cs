@@ -3,24 +3,24 @@ using Godot;
 namespace Reichsgilde;
 
 /// <summary>
-/// Die Oberflächendetails als Grafikoption: Diese Klasse macht aus den Materialien des Spiels Materialien mit Oberflächenstruktur
+/// Die Oberflächendetails (immer an): Diese Klasse macht aus den Materialien des Spiels Materialien mit Oberflächenstruktur
 /// (<c>oberflaeche.gdshader</c>: Mauerwerk, Ziegel, Stroh, Maserung, Laub, Boden …) und gibt dem Spiel seine Materialien zurück,
-/// wenn die Option ausgeschaltet wird. Verdrahtet wird sie von der Stadtansicht (<c>Stadtansicht.Oberflaechendetails.cs</c>): Dort
-/// stehen der Schalter und die Knoten, die neu dazukommen.
+/// wenn die Stadtansicht den Baum verlässt. Verdrahtet wird sie von der Stadtansicht (<c>Stadtansicht.Oberflaechendetails.cs</c>): Dort
+/// stehen die Knoten, die neu dazukommen.
 ///
 /// <b>Das Spiel behält seine Materialien.</b> Die Modelle und die Grundkörper behalten ihre <see cref="StandardMaterial3D"/>
 /// (das Spiel liest ihren Namen, färbt sie um und schaltet ihr Leuchten), und die Oberflächendetails legen sich beim
 /// <see cref="RenderingServer"/> darüber: Je Fläche bekommt die Instanz dort ein Material mit Struktur
 /// (<see cref="RenderingServer.InstanceSetSurfaceOverrideMaterial"/>, bei einem <see cref="GeometryInstance3D.MaterialOverride"/>
 /// <see cref="RenderingServer.InstanceGeometrySetMaterialOverride"/>). Die Eigenschaften der Knoten ändern sich dabei nicht.
-/// Ausschalten heißt darum nur: den Wert der Knoten wieder an den RenderingServer geben.
+/// Zurückgeben heißt darum nur: den Wert der Knoten wieder an den RenderingServer geben.
 ///
 /// <b>Je Ausgangsmaterial ein Material mit Struktur.</b> Was sich Knoten teilen, bleibt geteilt, die Zeichenaufrufe steigen nicht
 /// (<see cref="Ableiten"/>). Färbt das Spiel ein Ausgangsmaterial um (Hausfarbe, Laub je Jahreszeit, Werkstück), zieht
 /// <see cref="Abgleichen"/> die Farbe nach: reihum, ein kleines Stück je Bild.
 ///
 /// <b>MultiMesh</b> (Natur, Mauer) kennt keine Überschreibung je Fläche: Dort kommt eine Kopie des Netzes mit den neuen
-/// Materialien an die Stelle des Netzes (<see cref="Netz"/>), beim Ausschalten wieder das Original.
+/// Materialien an die Stelle des Netzes (<see cref="Netz"/>), beim Zurückgeben wieder das Original.
 /// </summary>
 internal sealed class Oberflaechendetails
 {
