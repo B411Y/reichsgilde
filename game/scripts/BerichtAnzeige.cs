@@ -60,7 +60,8 @@ public partial class BerichtAnzeige : PanelContainer
         zu.Pressed += Hide;
         kopf.AddChild(zu);
 
-        _reiter = new TabContainer { FocusMode = FocusModeEnum.None };
+        _reiter = new TabContainer { FocusMode = FocusModeEnum.None, ClipTabs = false }; // alle Reiter sichtbar, ohne Pfeile
+        _reiter.AddThemeFontSizeOverride("font_size", 14);
         _reiter.TabChanged += _ => _stand = "";
         spalte.AddChild(_reiter);
 

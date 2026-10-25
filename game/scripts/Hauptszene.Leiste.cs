@@ -96,7 +96,7 @@ public partial class Hauptszene
     /// <summary>Ein Knopf der Leiste: Symbol der Ware, Name und Zustand. Die Kinder fangen keine Maus, der Knopf selbst nimmt Klick und Doppelklick.</summary>
     private (Betrieb, Button, Label) BetriebsKnopf(Betrieb b)
     {
-        var knopf = new Button { ToggleMode = true, FocusMode = Control.FocusModeEnum.None, CustomMinimumSize = new Vector2(170, 48), ClipContents = true };
+        var knopf = new Button { ToggleMode = true, FocusMode = Control.FocusModeEnum.None, CustomMinimumSize = new Vector2(200, 48), ClipContents = true };
         _leistenBetriebe.AddChild(knopf);
         var inhalt = new HBoxContainer { MouseFilter = Control.MouseFilterEnum.Ignore };
         inhalt.AddThemeConstantOverride("separation", 6);
@@ -112,7 +112,7 @@ public partial class Hauptszene
         var name = Hauptmenue.Text(spalte, b.Name, 13);
         name.MouseFilter = Control.MouseFilterEnum.Ignore;
         name.ClipText = true;
-        name.CustomMinimumSize = new Vector2(116, 0);
+        name.CustomMinimumSize = new Vector2(146, 0);
         var zustand = Hauptmenue.Text(spalte, "", 12);
         zustand.MouseFilter = Control.MouseFilterEnum.Ignore;
         // Doppelklick: hineingehen. Der erste Klick des Doppelklicks hat die Kurzübersicht schon geöffnet.
