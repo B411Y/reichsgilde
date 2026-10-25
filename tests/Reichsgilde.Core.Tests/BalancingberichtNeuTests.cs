@@ -36,6 +36,7 @@ static class BalancingberichtNeuTests
             Pruefe.Wahr(ohne.Schiffshandel is null && mit.Schiffshandel is not null, "Abschnitt entfernt");
             Pruefe.Gleich(mit.Version, ohne.Version);
             Pruefe.Gleich(mit.Waren.Count, ohne.Waren.Count);
+            Pruefe.Wahr(Wirtschaftsdaten.AusJson(new Messquellen("schiffshandel").Wirtschaft).Schiffshandel is null, "Diagnose --ohne=schiffshandel");
             var r = Messpartie.Spielen(new Messaufbau("greybox", 101, 6, Bezug: Bezugsart.Passiv, OhneSchiffshandel: true), Quellen.Value);
             Pruefe.Wahr(r.Fehler is null, r.Fehler ?? "");
             Pruefe.Wahr(r.Haeuser.All(h => h.Jahre.All(j => j.Schiffe == 0)) && r.Schiffsjahre == 0 && r.ErstesSchiffJahr is null, "keine Schiffe");

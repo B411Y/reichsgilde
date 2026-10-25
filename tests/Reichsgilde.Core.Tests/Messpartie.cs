@@ -134,10 +134,12 @@ sealed class Messquellen
     public string Katalog { get; }
     private readonly Dictionary<string, string> _karten = new();
 
-    public Messquellen()
+    /// <param name="ohneAbschnitt">Diesen Abschnitt der Wirtschaftsdaten weglassen (Diagnose, z. B. „schiffshandel“: alle Partien ohne Schiffe).</param>
+    public Messquellen(string? ohneAbschnitt = null)
     {
         var pfad = Datenpfad.Wirtschaft();
         Wirtschaft = File.ReadAllText(pfad);
+        if (ohneAbschnitt is not null) Wirtschaft = Messpartie.OhneAbschnitt(Wirtschaft, ohneAbschnitt);
         Katalog = File.ReadAllText(Path.Combine(Path.GetDirectoryName(pfad)!, "katalog.json"));
     }
 

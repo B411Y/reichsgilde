@@ -1609,3 +1609,176 @@ Die neue Karte allein ändert fast nichts (−1 … 0 %). Mit Schiffshandel: 49 
 **Regel:** `logistik.karrenVerkaufAnteil` 0,5 (Datenversion 55), gebucht als Verkäufe. Die KI verkauft in Not (gemahnt, Reinvermögen nach offenen Jahreskosten negativ) stündlich den Karren mit dem höchsten Erlös und zum Jahresende einen Karren ohne Fahrt im ganzen Vorjahr, wenn der Betrieb seltener als `StillstandFuerKarrenkauf` (20 %) stillstand – nie den letzten eines Betriebs.
 
 **Messung** (`messen 30 20` und `messen 30 20 greybox`, gemessen auf main `234318c` + dieser PR): beide Ausgaben zeichengleich mit main – in den Messpartien verkauft die KI keinen Karren (sie kauft nur bei Stillstand, und die gekauften fahren). Die Regeln greifen in Lagen, die die Messung nicht erreicht (verschuldete KI mit mehreren Karren, Karren ohne Fahrt); die Tests `KarrenVerkaufenTests` decken sie ab.
+
+## Balancing-Messung 4 (PR #208)
+
+**Kein Wert geändert.** Der Bericht zeigt den Stand nach Hafen und Schiffshandel (#199), Stadtkasse und Anträgen (#200), Wetter (#195) und Karrenverkauf (#205), damit der Nutzer danach entscheidet. Gemessen auf main `90916dc` + Branch `5ce0d97` (nur das Messwerkzeug), **Datenversion 55**. Aufruf `messen bericht 20 30` (1.320 Partien, **24,1 Minuten** auf 8 Fäden) → `docs/messungen/balancing-2026-10-25.json`. Die Messungen 1–3 liegen daneben.
+
+**Neu im Bericht** (nur `tests/**`):
+- Abschnitt 8 `hafenKasse`:
+  - Exportnachfrage: der passive Spieler (Werkstatt mit den Startgesellen, ohne Führung, ohne Schiff) auf Greybox und Probestadt, dieselben Startwerte mit und ohne Abschnitt `schiffshandel`
+  - Schiffe der KI
+  - Stadtkasse: Stand, Steuersatz, Posten
+  - Lasten je Haus: Steuer, Spitzel, Gericht
+  - Karrenverkäufe der KI
+- Abschnitt 9 `statutC`: Z6 je Betriebsart, mit Ertrag je Kopf und Gleichstand.
+- Abschnitt Berufe:
+  - Jahre bis Bürger je Beruf, mit „im Ziel“ und „vor 8“
+  - in `jeJahrImMittel` dazu `davonSteuer`, `davonSpitzel` und `schiffeAmEnde`
+- Schalter `--ohne=<abschnitt>`: Alle Partien laufen ohne diesen Abschnitt der Daten. Die Diagnose unten nutzt `--ohne=schiffshandel --teile=1,2,5` (570 Partien, 5,6 Minuten).
+- **Wetter:** Es wirkt nicht auf den Kern (Entscheidung zu PR #195; der Kern kennt die Jahreszeit nur als Namen). Deshalb gibt es dazu keine Kennzahl.
+
+**Wichtig für alle Abschnitte auf der Greybox:** Die Greybox hat seit #199 Fluss und Hafen. Die KI-Häuser kaufen dort Schiffe, ebenso der von der KI geführte Messspieler „mit einem Betrieb“. `MaxBetriebe` 0 begrenzt Betriebe, keine Schiffe. Am Ende von 20 Jahren hat er im Mittel 0,5–0,8 Schiffe, der Geldleiher 0,03.
+
+### Die vier Leitzahlen
+
+| Kennzahl | Messung 3 (Datenversion 49) | Messung 4 | Messung 4 ohne Schiffshandel (Diagnose) |
+|---|---|---|---|
+| Jahre bis Bürger (Schmied, ein Betrieb, Ziel 8–12) | Ø 8,2 (30/30); Greybox im Ziel 80/120, Probestadt Ø 9,5 | Ø **8,0** (30/30, im Ziel 17, vorher schon 13); Greybox im Ziel 68/120, Probestadt Ø 8,5 (69/90) | Ø 8,4 (im Ziel 25/30) |
+| Berufe im Band ±15 % (simuliert, 20 Jahre) | 10 von 10 (−12,5 … +8,5 %) | **4 von 10** (−28,0 … +46,6 %) | 10 von 10 (−14,6 … +10,4 %) |
+| KI ÷ gleiche Strategie (Median nach 20 Jahren) | 1,47; 17/90 über 2× | **1,15**; 2/90 über 2×, keins unter ½, keins bankrott; „Schwer“ 1,35 (vorher 1,79) | 1,49; 15/90; „Schwer“ 1,59 |
+| 8 gegen 3 Häuser (Messstadt, Vermögen je Haus, 20 Jahre) | −9 % (69.797 gegen 77.001) | **−3 %** (78.561 gegen 80.791) | – (die Messstadt hat keinen Fluss) |
+
+### Berufe
+
+**Simuliert:** ein Betrieb, von der KI geführt, Greybox, 20 Jahre, 30 Startwerte. Mittel des Zuwachses 27.632 (Messung 3: 21.124; ohne Schiffshandel: 23.419). Der Fehler des Mittels beim Vermögen liegt bei ±680 … ±1.750.
+
+| Beruf | Vermögen 5 / 10 / 20 J. | Zuwachs gegen Mittel | Messung 3 | ohne Schiffshandel | Gewinn Ø je Jahr | Bürger Ø Jahr (im Ziel / vor 8) | Schiffe am Ende |
+|---|---|---|---|---|---|---|---|
+| Schmied | 6.145 / 13.065 / 43.656 | **+43,5 %** | +6,1 % | +10,4 % | 3.262 | 8,0 (17 / 13) | 0,53 |
+| Tischler | 6.716 / 11.403 / 32.700 | +3,9 % | +8,5 % | +4,6 % | 2.775 | 9,7 (23 / 3) | 0,70 |
+| Steinmetz | 5.461 / 9.957 / 25.034 | **−23,9 %** | +1,1 % | +3,5 % | 2.429 | 10,9 (25 / 0) | 0,53 |
+| Alchimist | 6.934 / 11.566 / 35.409 | +13,7 % | +6,6 % | +8,6 % | 2.907 | 9,4 (22 / 3) | 0,67 |
+| Wirt | 5.999 / 9.156 / 32.136 | +1,8 % | +4,2 % | +5,9 % | 2.648 | **12,8** (6 / 0) | 0,50 |
+| Prediger | 6.916 / 14.363 / 27.509 | −14,9 % | −12,5 % | −14,6 % | 2.436 | 8,0 (22 / 8) | 0,63 |
+| Dieb (ausgewogen) | 7.580 / 13.299 / 27.436 | **−15,2 %** | −4,8 % | −12,3 % | 2.709 | **7,2** (10 / 19) | 0,70 |
+| Parfumeur | 6.539 / 12.921 / 44.522 | **+46,6 %** | +3,1 % | +7,0 % | 3.386 | 8,4 (23 / 7) | 0,77 |
+| Geldleiher | 8.320 / 11.436 / 24.017 | **−27,6 %** | −8,1 % | −5,7 % | 2.103 | 8,5 (26 / 4) | 0,03 |
+| Gardist | 6.826 / 10.778 / 23.906 | **−28,0 %** | −4,1 % | −7,3 % | 1.879 | 10,0 (23 / 1) | 0,43 |
+| Dieb wagemutig (nicht im Mittel) | 4.895 / 8.543 / 25.290 | −23,0 % | −24,9 % | −36,1 % | 3.272 | 7,7 (6 / 19) | 1,00 |
+
+**Statisch** (Startpreise, voll mit Gesellen) gleicht Messung 3 Zahl für Zahl, denn am Start hat noch niemand ein Schiff. Außerhalb ±15 % liegen weiter:
+- Schmied, Stufe 1: +15 %
+- Wirt: −23 / −16 / −23 %
+- Parfumeur: +28 / +22 / +21 %
+- Geldleiher, Stufe 1: −15 %
+- Gardist: −39 / −39 / −34 %
+- Dieb ab Stufe 2: +23 / +24 %
+
+**Ursache der Verschiebung:** die Schiffe. Ohne Abschnitt `schiffshandel` liegen alle zehn Berufe wieder im Band, nahe an Messung 3. Die fernen Städte kaufen nur Waren einiger Berufe:
+- **Schmied:** Silberring, Silberkette, Goldkette, Rapier in Weidenmünd, Werkzeug in Eisenfurt
+- **Parfumeur:** Moschusduft, Fechterduft
+- **Tischler:** Armbrust
+- **Alchimist:** Rosenwasser
+- **Wirt:** Körnermahlzeit, Dünnbier, Starkbier
+- **Prediger:** Kerze
+
+Die KI-Schiffe kaufen diese Waren daheim am Markt als Hinfracht. Das hebt dort die Preise für alle Anbieter, und der Messspieler hat dazu oft ein eigenes Schiff. Der **Steinmetz** hat keine Exportware und verliert auch absolut (25.034 gegen 28.232 ohne Schiffe, −11 %); die Rückfracht bringt Bruchstein und Granit billig in die Stadt, die Ursache ist aber nicht weiter zerlegt. Berufe ohne Ware (**Geldleiher, Gardist**, auch der **Dieb**) haben vom Export nichts. Absolut ändert sich bei ihnen wenig (Geldleiher −8 %, Gardist −7 %, Dieb +12 % gegen ohne Schiffe); sie fallen vor allem zurück, weil das Mittel um 18 % steigt.
+
+### Neue Kennzahlen
+
+**Exportnachfrage** (passiver Spieler, Schmied, ohne Schiff; 20 Jahre, 30 Startwerte):
+
+| | Greybox | Probestadt |
+|---|---|---|
+| Spieler mit / ohne Schiffshandel | 43.079 / 36.480: **+18,1 %** (je Partie q10–q90 +11,5 … +25,7 %) | 39.995 / 33.490: **+19,4 %** (+13,8 … +24,5 %) |
+| KI-Häuser mit / ohne | Eisenbart (Schmied) +38,2 %, Eichwald (Tischler) +27,2 %, Kieselbach (Steinmetz) +5,9 % | Ahlbeck (Tischler) +44,8 %, Brendel (Schmied) +38,1 % |
+| Schiffe je Partie am Ende, erstes Schiff Ø Jahr | 2,63; Jahr 4,6 | 1,97; Jahr 4,4 |
+| Ertrag je Schiff und Jahr nach Unterhalt | 595 | 1.221 |
+
+Mit 30 Jahren (`messen schiffe`, PR #199) waren es +20,7 % bzw. +25,7 % für den passiven Spieler. Der Nutzer hat entschieden, dass die Exportnachfrage gewollt ist. Neu ist, dass sie das Berufsband sprengt (siehe oben).
+
+**Steuer je Haus** (Umsatzsteuer und Glaubenszins, beides geht in die Stadtkasse):
+
+| | Greybox | Probestadt |
+|---|---|---|
+| KI-Haus | 688 im Jahr (2,3 % des Umsatzes) bei 7.550 Gewinn | 950 (2,6 %) bei 8.411 |
+| passiver Spieler | 198 (5,0 %) bei 2.004 | 186 (5,1 %) bei 1.847 |
+| Spieler mit einem Betrieb (Berufe) | 259 im Mittel der Berufe, Geldleiher 124, Gardist 136, Dieb 40 | – |
+
+Die KI zahlt im Verhältnis weniger Steuer. Gründe nach den Regeln (nicht einzeln gemessen):
+- Die fernen Städte erheben keine Steuer.
+- Als Marktmeister zahlt sie die halbe Steuer.
+- Der Glaubenszins zählt mit; der passive Spieler zahlt ihn, wenn er nicht den Stadtglauben hat.
+
+Dass der passive Spieler 5,0 % seines Umsatzes zahlt, mehr als den mittleren Satz von 4,35 %, ist nicht zerlegt (Glaubenszins nur 27 im Jahr für die ganze Stadt).
+
+**Stadtkasse** (Partien mit Schiffshandel):
+
+| | Greybox | Probestadt |
+|---|---|---|
+| Stand Ø Jahr 1 / 5 / 10 / 20 | 1.138 / −5.495 / −396 / 4.652 | 862 / −6.746 / −7.905 / 4.130 |
+| Jahre im Minus je Partie | 8,7 | 15,2 |
+| Steuersatz am Ende (Ø über die Jahre) | 3 % in allen 30 (4,35 %) | 3 % in 6, 4 % in 13, 5 % in 9, 6 % in 2 (5,02 %) |
+| Einnahmen je Jahr | Steuer 2.235, Hafenzoll 665, Bußen 395, Glaubenszins 27, Gebühren 20 | Steuer 2.086, Hafenzoll 649, Bußen 196, Gebühren 12 |
+| Ausgaben je Jahr | Gehälter 2.700, Bau 310, Feste 250 | Gehälter 2.700, Bau 119, Feste 68 |
+
+In der Probestadt mit zwei KI-Häusern decken die Einnahmen die Gehälter (2.700) lange nicht. Die Kasse ist 15 von 20 Jahren im Minus, und die Steuer steht am Ende in 24 von 30 Partien über 3 %.
+
+**Spitzel und Gericht je Haus** (Mittel je Jahr; „Gericht“ = Spitzel + Gebühren + Bußen + Entschädigungen, negativ = Einnahme):
+
+| | Spitzel | Gericht gesamt | Gewinn | Familie |
+|---|---|---|---|---|
+| Spieler mit einem Betrieb (Mittel der Berufe) | 196 | 430 | 2.653 | ≈ 360 |
+| … Dieb ausgewogen / wagemutig | 213 / 78 | 731 / 1.367 | 2.709 / 3.272 | 403 / 349 |
+| … Gardist | 126 | 195 | 1.879 | 352 |
+| KI-Haus Greybox / Probestadt | 179 / 196 | 340 / 299 | 7.550 / 8.411 | ≈ 390 |
+
+**Jahre bis Bürger je Beruf:** siehe Tabelle Berufe. Im Ziel 8–12 Jahre liegen:
+- 26 von 30 beim Geldleiher, 25 beim Steinmetz, 23 bei Tischler, Parfumeur und Gardist, 22 bei Alchimist und Prediger, 17 beim Schmied
+- 10 beim Dieb (19 schon vor 8 Jahren)
+- **6 beim Wirt** (keiner vor 8)
+
+**Z6, Statut C gegen B** (Startpreise, Kalkulation): Statut C bringt in 19 von 21 Werkstätten **0 %** mehr, Kirche +1,5 %, Schänke +3,3 %; die Gießerei hat unter B und C je 1.966. Ertrag je Kopf und Jahr in der Gießerei:
+
+| Geselle | Leibeigener | Lehrling | Ork |
+|---|---|---|---|
+| 1.023 | 970 | 713 | 604 |
+
+Der Leibeigene kostet weniger (Unterhalt 50 + 6 % × 600 Aufstand = 86 statt 220 Lohn), arbeitet aber nur mit Tempo 0,85. Gleichstand ist bei einer Wertschöpfung von **893** Gulden je Kopf und Jahr (Wirtsberufe mit der längeren Schicht: 1.082). Heute schafft ein Geselle in den Werkstätten 1.126–1.756, nur in der Kirche (835) und in der Schänke (940) weniger – dort gewinnt der Leibeigene knapp. Im Umland bleibt der Ork die beste Kraft (759 gegen Leibeigener 527).
+
+**Karren verkaufen:** In 1.320 Partien verkauft die KI 9 Karren in Not und 2 nach einem Jahr ohne Fahrt (in 7 Partien). Die Regel wirkt in der Messung kaum.
+
+### Diagnose zu den offenen Balancing-Punkten (Entscheidungen beim Nutzer)
+
+- **Z6 (Statut C +15–25 %):** verfehlt, 0 %. Ursache: Der Leibeigene spart einen festen Betrag (134 Gulden je Kopf und Jahr), verliert aber 15 % der Leistung. Ab 893 Gulden Wertschöpfung je Kopf gewinnt der Geselle, und seit den höheren Warenpreisen von PR #177 liegen alle Werkstätten darüber. Für +20 % in der Gießerei bräuchte der Leibeigene Tempo ≈ 1,05 (schneller als der Geselle) oder Kosten unter null. Mit den heutigen Größen ist Z6 also nur über eine andere Art von Vorteil zu erreichen (z. B. ein Anteil statt eines festen Betrags), sonst muss das Ziel neu gefasst werden.
+- **Statisch außerhalb ±15 %:** unverändert gegen Messung 3, die Ursachen ebenso. Beim Gardisten fehlen in der Rechnung Geleit- (344 im Jahr) und Kopfgeld (32), beim Dieb Fang und Gericht (731 im Jahr), beim Wirt fast der ganze Ausschank. Simuliert lagen sie in Messung 3 im Band. Jetzt liegen sie nur ohne Schiffshandel im Band; mit Schiffen ist der Gardist −28 %, siehe Exportnachfrage.
+- **Exportnachfrage:** Der passive Spieler hat +18 % (Greybox) bzw. +19 % (Probestadt), das ist gewollt. Neu sichtbar: Der Export hebt **Schmied (+44 %) und Parfumeur (+47 %)** weit über das Band und drückt Steinmetz (−24 %), Geldleiher (−28 %) und Gardist (−28 %) darunter. Ohne Schiffe sind alle zehn im Band. Ursache ist, welche Waren die fernen Städte kaufen: Schmied 5 Waren, Parfumeur 2 teure, Steinmetz, Geldleiher, Gardist und Dieb keine. Dazu kauft der Messspieler „mit einem Betrieb“ Schiffe (0,5–0,8 je Haus), weil `MaxBetriebe` keine Schiffe begrenzt. Zu entscheiden sind zwei Dinge: ob jede Berufsgruppe eine Exportware bekommt bzw. die Faktoren für Schmied- und Parfumeurwaren sinken, und ob der Messspieler ohne Schiff gemessen werden soll (Spiel-KI). Die KI ÷ Bezug sinkt auf 1,15, weil der Bezugsspieler Schmied ist.
+- **Einrichtung über 5 Jahre:** Lederhandschuhe Wirt 9,2 J., Prediger 10,4 J. (Alchimist 4,8, Parfumeur 4,3), Rechenbretter 8 J. Das Löschfass zahlt sich nie aus, weil 0,0014 Sabotagen je Betrieb und Jahr gemessen werden. Wie in Messung 3.
+- **Völker** (Zuwachs gegen Menschen):
+
+  | Volk und Beruf | Bonus | Messung 4 | Messung 3 | ohne Schiffe |
+  |---|---|---|---|---|
+  | Zwerg-Schmied | +5 % | **+11,0 %** | +23,1 % | +12,7 % |
+  | Halbling-Schmied | −5 % | **−17,0 %** | −13,1 % | −24,0 % |
+  | Elb-Parfumeur | +5 % | +13,2 % | +13,8 % | +17,4 % |
+  | Zwerg-Parfumeur | −5 % | −10,6 % | −12,6 % | −14,8 % |
+
+  Der Fehler des Abstands liegt bei etwa ±4 %. Weiter wirkt das Volk zwei- bis dreimal so stark wie sein Bonus. Ursache: Der Bonus wirkt auf die Leistung, und der Gewinn ist nur ein Teil des Umsatzes – +5 % Leistung sind deshalb mehr als +5 % Gewinn; dazu kommen Familie und Talente. Der Zwerg-Schmied liegt näher am Bonus als in Messung 3, der Halbling-Schmied weiter weg.
+- **Familie, Gericht, Spitzel:**
+  - Ein Haus mit einem Betrieb zahlt im Jahr ≈ 360 für die Familie, 196 für Spitzel und 430 fürs Gericht insgesamt. Das sind 14 %, 7 % und 16 % seines Gewinns (2.653).
+  - Die Spitzel kauft die KI selbst, die den Messspieler führt: 196 im Jahr, also in zwei von drei Jahren ein Spitzel zu 300.
+  - Die KI-Häuser zahlen 179–196 für Spitzel, bei rund dreimal so viel Gewinn.
+  - Spitzel kosten nur den Auftraggeber: Ein Mensch, der keine ansetzt, spart fast die Hälfte der Gerichtskosten (der passive Spieler zahlt gar nichts ans Gericht).
+  - Weniger Spitzel der KI änderten also vor allem die KI-Häuser und den von der KI geführten Messspieler.
+- **Wirt bis zum Bürger:** Ø 12,8 Jahre (Messung 3: 13,4), im Ziel 6 von 30 (vorher 3). Ursache: Stufe 1 ist schwach (statisch −23 %), der Gewinn liegt in Jahr 5 bei −25 % und in Jahr 10 bei −42 % gegen das Mittel. Stufe 2 erreicht der Wirt erst nach Ø 11,0 Jahren, danach liegt er vorn (+16 % Gewinn in Jahr 20). Ohne Schiffe ist es gleich (12,9).
+- **Dieb bis zum Bürger:** Ø 7,2 Jahre (Messung 3: 7,5), 19 von 30 schon vor 8 Jahren. Er ist früh stark (Gewinn in Jahr 5 +30 % gegen das Mittel, Beute 2.879 im Jahr) und fällt nach dem Ausbau zurück (Jahr 20: −32 %). Das Gericht kostet ihn 731 im Jahr, das meiste aller Berufe.
+- **Dieb und Gardist ohne Einrichtung mit Gulden-Rechnung:** unverändert. Der Dieb hat kein Ertragsstück, der Gardist nur die Waffenkammer (statisch 88 im Jahr). Fänge des Diebs 0,59 im Jahr, mit Wachhaus 0,56.
+- **„Einrichtung simuliert“:** misst weiter nur den Vorsprung durch den früheren Kauf: 6,8–34 Jahre bis bezahlt, Parfumeur −7 im Jahr. Das ist kein Befund über die Stücke; offen wie in Messung 3.
+- **Gauner, Wache, Bank** (zur Einordnung):
+  - Dieb ausgewogen 2.709 im Jahr ohne, 2.954 mit Wachhaus
+  - Wache: Sold 2.801, Geleitgeld 344, Kopfgeld 32 im Jahr
+  - Raub und Schaden je KI-Haus 541 ohne, 462 mit Wachhaus (−15 %)
+  - Hinterzimmer: Diebstahl 0,74 je Partie und Jahr zu 61 %, Einbruch ins Wohnhaus 0,57 zu 47 %
+  - Kredite weiter 0
+
+**`messen 30 20` und `messen 30 20 greybox`** (30 Jahre, 20 Startwerte, Spieler Mensch passiv, KI ausgewogen; gemessen auf main `90916dc`, Messwerkzeug unverändert, 35 bzw. 60 Sekunden), Vermögen Ø am Ende:
+
+| | Eisenbart | Eichwald | Kieselbach | Bürgermeister | Stand der KI am Ende | Stadtkasse Jahr 30 | Steuersatz am Ende |
+|---|---|---|---|---|---|---|---|
+| ohne Karte, Messung zu PR #200 | 169.450 | 126.362 | 163.933 | 16/20 | | | |
+| ohne Karte, jetzt | 167.686 | 127.672 | 167.165 | 12/20 ab 18,2 | Freiherr 60; kein Bankrott | 3.741 | 3 % in 18, 4 % in 2 |
+| Greybox, Messung zu PR #200 | 270.476 | 199.521 | 208.188 | 14/20 | | | |
+| Greybox, jetzt | 256.097 | 211.623 | 205.020 | 14/20 ab 16,2 | Reichsgraf 54, Freiherr 5, Edler 1; kein Bankrott | 7.671 | 3 % in 20 |
+
+Gegen die Messung zu PR #200 weichen die Werte um −5 … +6 % ab; die Ursache ist hier nicht untersucht (PR #202 und #205 melden ihre Messungen zeichengleich mit main). Die Greybox hat im Mittel 2,6 Schiffe der KI je Partie; Hafenzoll 816, Steuer 2.640 und Bußen 347 im Jahr.

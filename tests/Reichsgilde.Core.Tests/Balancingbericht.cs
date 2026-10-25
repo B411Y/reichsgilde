@@ -122,7 +122,7 @@ static partial class Balancingbericht
             int.Parse(Schalter("parallel") ?? Environment.ProcessorCount.ToString()),
             Schalter("datei"));
         var uhr = Stopwatch.StartNew();
-        var q = new Messquellen();
+        var q = new Messquellen(Schalter("ohne")); // --ohne=schiffshandel: alle Partien ohne diesen Abschnitt (Diagnose)
         var daten = Wirtschaftsdaten.AusJson(q.Wirtschaft);
 
         // ── Alle Partien, die die Abschnitte brauchen (gleiche Aufbauten nur einmal) ──
@@ -160,6 +160,7 @@ static partial class Balancingbericht
                 ["stichjahre"] = new JsonArray(e.Stich.Select(x => (JsonNode)x).ToArray()), ["karte"] = e.Karte,
                 ["teile"] = new JsonArray(e.Teile.OrderBy(x => x).Select(x => (JsonNode)x).ToArray()),
                 ["band"] = $"±{Band} % um das Mittel", ["startvermoegen"] = daten.Allgemein.Startvermoegen,
+                ["ohneAbschnitt"] = Schalter("ohne"),
             },
             ["partien"] = auftraege.Count,
             ["partienMitFehler"] = fehler.Count,
