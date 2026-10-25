@@ -111,6 +111,48 @@ public sealed record WirtschaftStand
 
     /// <summary>Belag der Wege, Bauaufträge, Wegekasse (null: ohne Wegebau oder alter Spielstand – dann der Belag der Karte).</summary>
     public WegebauStand? Wegebau { get; init; }
+
+    /// <summary>Schiffe und Märkte der fernen Städte (null: ohne Schiffshandel oder alter Spielstand – dann ohne Schiffe, Märkte ausgeglichen).</summary>
+    public SchiffahrtStand? Schiffahrt { get; init; }
+}
+
+/// <summary>Der Schiffshandel (siehe <see cref="Reichsgilde.Core.Wirtschaft.Schiffahrt"/>).</summary>
+public sealed record SchiffahrtStand
+{
+    public List<SchiffStand> Schiffe { get; init; } = new();
+
+    /// <summary>Je ferner Stadt der Druck je Ware (gehandelte Stück, die ihr Markt noch nicht verdaut hat).</summary>
+    public Dictionary<string, Dictionary<string, double>> Druck { get; init; } = new();
+
+    /// <summary>So viele Schiffe wurden schon getauft (für den Namen des nächsten).</summary>
+    public int Getauft { get; init; }
+}
+
+public sealed record SchiffStand
+{
+    public string Name { get; init; } = "";
+    public string Typ { get; init; } = "";
+
+    /// <summary>Nummer des Kontos in <see cref="WirtschaftStand.Konten"/>.</summary>
+    public int Konto { get; init; }
+
+    public string Hafen { get; init; } = "";
+    public SchiffZustand Zustand { get; init; }
+    public long Beginn { get; init; }
+    public long Ende { get; init; }
+    public Dictionary<string, int> Ladung { get; init; } = new();
+    public string Geleit { get; init; } = "Keine";
+
+    /// <summary>Der Auftrag: ferne Stadt (null: kein Auftrag), Betrieb, Hin- und Rückfracht, Wiederholen.</summary>
+    public string? Ziel { get; init; }
+
+    public string? Betrieb { get; init; }
+    public Dictionary<string, int>? Hinfracht { get; init; }
+    public Dictionary<string, int>? Rueckfracht { get; init; }
+    public bool Wiederholen { get; init; }
+    public double ErtragLaufend { get; init; }
+    public double? ErtragVorjahr { get; init; }
+    public int Fahrten { get; init; }
 }
 
 /// <summary>Der Belag der Wege im Spiel (siehe <see cref="Reichsgilde.Core.Bauen.Wegebau"/>).</summary>

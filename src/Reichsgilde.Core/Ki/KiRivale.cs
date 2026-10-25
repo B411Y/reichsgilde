@@ -61,7 +61,7 @@ public sealed record KiProfil(
 ///
 /// Jede Entscheidung wird als Meldung ausgegeben, damit der Spieler sie nachvollziehen kann.
 /// </summary>
-public sealed class KiRivale
+public sealed partial class KiRivale
 {
     private readonly Stadtwirtschaft _w;
     private readonly Dictionary<Betrieb, int> _stundenSeitWechsel = new();
@@ -193,6 +193,7 @@ public sealed class KiRivale
             PersonalBesetzen(betrieb);
             EskorteWaehlen(betrieb);
         }
+        SchiffeLosschicken(); // Schiffe am Kai bekommen einen Auftrag, wenn sich eine Fahrt lohnt – Betriebssache wie die Karren
     }
 
     /// <summary>Überlegungen zum Jahresende (nach der Abrechnung).</summary>
@@ -205,6 +206,7 @@ public sealed class KiRivale
             KarrenNachkaufen(betrieb);
         EinrichtungKaufen();
         WegAusbauen();
+        SchiffKaufen();
     }
 
     private static string Prozent(double anteil) => $"{Zahlenformat.Ganz(anteil * 100)} %";

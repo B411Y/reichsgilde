@@ -211,6 +211,12 @@ public sealed class Wirtschaftsdaten
     /// <summary>Handel von Hand per Karrenauftrag (ab Datenversion 24). Fehlt der Abschnitt, handeln nur die Verwalter.</summary>
     public HandelDaten? Handel { get; init; }
 
+    /// <summary>
+    /// Schiffshandel mit fernen Städten am Fluss (ab Datenversion 53, PR #199): Schiffe, ferne Städte, Zoll, Flusspiraten.
+    /// Fehlt der Abschnitt (oder hat die Karte keinen Hafen), gibt es keinen Schiffshandel.
+    /// </summary>
+    public SchiffshandelDaten? Schiffshandel { get; init; }
+
     /// <summary>Konfessionen, Glaubensnähe im Rat, Bekehrung und Stadtglaube (ab Datenversion 22). Fehlt der Abschnitt, spielt der Glaube keine Rolle.</summary>
     public Glaube.GlaubeDaten? Glaube { get; init; }
 
@@ -449,6 +455,7 @@ public sealed class Wirtschaftsdaten
         Aktionspunkte?.Pruefen(f);
         Logistik.Pruefen(f);
         Handel?.Pruefen(f);
+        Schiffshandel?.Pruefen(f, Waren, Logistik.Eskorten);
         Wohnen?.Pruefen(f, Staende.Count);
         Bauen?.Pruefen(f, Wohnen);
         Wegebau?.Pruefen(f);
