@@ -346,8 +346,6 @@ def tresorturm(netz, st, x0=4.8, y0=3.0, b=2.6, h=7.4):
     M_v = bs.wandmatrix((cx, y0, 0.0), "vorne")
     M_r = bs.wandmatrix((x1, cy, 0.0), "rechts")
     M_l = bs.wandmatrix((x0, cy, 0.0), "links")
-    for Mw in (M_v, M_r):
-        bs.fugen(netz, Mw, b - 0.02, 0.4, h - 0.22, st)
     netz.quader((0.0, -0.02, 0.4 + 1.05), (1.0, 0.06, 2.1), st["Eisen"], M_v, ohne=("+y",))
     for zu in (0.5, 1.0, 1.5, 2.0):
         for uu in (-0.4, 0.0, 0.4):

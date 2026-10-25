@@ -35,7 +35,6 @@ bs.FARBEN.update({
     "Hausfarbe": (0.34, 0.24, 0.17),       # gestrichenes Holz in gedecktem Braun; das Spiel kann je Haus umfärben
     "Ratsputz": (0.80, 0.70, 0.52),        # ockerfarbener Kalkputz
     "Rotsandstein": (0.60, 0.38, 0.31),
-    "Rotfuge": (0.46, 0.29, 0.24),
 })
 
 # ── Maße (Meter) ─────────────────────────────────────────────────────────────
@@ -51,9 +50,9 @@ NEIGUNG = 56
 TUER_U = -1.6                              # Tür links der Mitte, in allen Varianten gleich (Anker)
 
 VARIANTEN = {
-    "Variante1": dict(stein="Haustein", fuge="Fuge", giebel="treppe", stufen=5, dach=bs.SCHIEFER, erker="mitte"),
-    "Variante2": dict(stein="Ratsputz", fuge=None, giebel="glatt", stufen=0, dach=bs.ZIEGEL, erker="ecke"),
-    "Variante3": dict(stein="Rotsandstein", fuge="Rotfuge", giebel="treppe", stufen=4, dach=bs.ZIEGEL, erker="tuer"),
+    "Variante1": dict(stein="Haustein", giebel="treppe", stufen=5, dach=bs.SCHIEFER, erker="mitte"),
+    "Variante2": dict(stein="Ratsputz", giebel="glatt", stufen=0, dach=bs.ZIEGEL, erker="ecke"),
+    "Variante3": dict(stein="Rotsandstein", giebel="treppe", stufen=4, dach=bs.ZIEGEL, erker="tuer"),
 }
 
 
@@ -61,13 +60,10 @@ def bauen():
     bs.neue_szene()
     st = bs.Stoffe()
     objekte = []
-    grau = st["Fuge"]
     for name, v in VARIANTEN.items():
         netz = bs.Netz(name)
-        st["Fuge"] = st[v["fuge"]] if v["fuge"] else grau      # Lagerfugen passend zum Stein (auch im Treppengiebel)
         haus(netz, st, v)
         objekte.append(netz.objekt())
-    st["Fuge"] = grau
     objekte.append(bs.anker("Anker_Tuer", (TUER_U, VORN - 0.3, 0.3)))      # auf der mittleren Stufe vor der Tür
     return objekte
 
@@ -90,9 +86,6 @@ def haus(netz, st, v):
     M_hinten = bs.wandmatrix((0, HINTEN, Z_SOCKEL), "hinten")
     M_r = bs.wandmatrix((HX, Y_MITTE, Z_SOCKEL), "rechts")
     M_l = bs.wandmatrix((-HX, Y_MITTE, Z_SOCKEL), "links")
-    if v["fuge"]:
-        for M, L in ((M_vorn, 2 * HX), (M_hinten, 2 * HX), (M_r, TIEF), (M_l, TIEF)):
-            bs.fugen(netz, M, L - 0.02, 0.0, H_WAND, st)
     F = "fenster"
     eg = dict(v=1.0, b=0.9, h=1.35)
     og1 = dict(v=v1 + 0.6, b=0.9, h=1.5)

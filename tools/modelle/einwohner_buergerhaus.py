@@ -164,7 +164,7 @@ def ladenfront(netz, st, M, u, leer):
 
 
 def putzgiebel(netz, st, M, hoch, putz, leer, mit_fenster=True):
-    """Glatt verputztes Giebeldreieck (ohne Lagerfugen), auf Wunsch mit einem kleinen Fenster."""
+    """Glatt verputztes Giebeldreieck, auf Wunsch mit einem kleinen Fenster."""
     bs.platte(netz, M, [(-HX, 0), (HX, 0), (0, hoch)], 0, 0.3, st[putz])
     if mit_fenster:
         o = Oeffnung("fenster", 0.0, 0.7, 0.6, 0.85)

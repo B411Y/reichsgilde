@@ -9,7 +9,7 @@ Objekte im GLB wie bei den anderen Wohnhäusern: Haus, Wappen, Fahne, Leerstand 
 (die beiden letzten standardmäßig aus), dazu der Anker „Anker_Tuer“.
 
 Ein Palais aus hellem Haustein (Blender: Z oben, Gasse bei -Y), wie bisher im Spiel mit Erker und zwei Ecktürmchen:
-    9,8 × 7,6 m, drei Geschosse mit Lagerfugen, Eckquadern und Gesimsen aus Sandstein, Schieferdach mit der
+    9,8 × 7,6 m, drei Geschosse mit Eckquadern und Gesimsen aus Sandstein, Schieferdach mit der
     Traufe zur Gasse und Treppengiebeln an beiden Seiten. In der Mitte springt ein Risalit vor: unten das
     Rundbogenportal mit Freitreppe, darüber ein Erker über zwei Geschosse mit dem Wappen, oben ein Zwerchhaus
     mit Treppengiebel und der Fahne. An den vorderen Ecken zwei achteckige Türmchen mit spitzem Schieferhelm.
@@ -26,11 +26,10 @@ from bausteine import Matrix, Oeffnung, Vector  # noqa: E402
 NAME = "stadtpalais"
 FLAECHE = (12.0, 10.0)
 
-# Farben nur für dieses Modell: heller Haustein wie der Platzhalter im Spiel, die Fugen passend heller
-# (jedes Modell läuft in einem eigenen Prozess, die anderen Modelle behalten ihre Fuge)
+# Farben nur für dieses Modell: heller Haustein wie der Platzhalter im Spiel
+# (jedes Modell läuft in einem eigenen Prozess, die anderen Modelle behalten ihre Farben)
 bs.FARBEN.update({
     "Palaststein": (0.70, 0.66, 0.58),
-    "Fuge": (0.55, 0.52, 0.46),
 })
 
 # ── Maße (Meter) ─────────────────────────────────────────────────────────────
@@ -81,7 +80,7 @@ def bauen():
     for sx in (-1, 1):
         bs.eckquader(haus, st, sx * ZW, Y_RIS, sx, -1, Z_SOCKEL, Z_TRAUFE + H_ZW)
 
-    # ── Wände: Lagerfugen, Steinfenster, Portal ───────────────────────────────
+    # ── Wände: Steinfenster, Portal ─────────────────────────────────────────
     M_vorn = bs.wandmatrix((0, VORN, Z_SOCKEL), "vorne")
     M_ris = bs.wandmatrix((0, Y_RIS, Z_SOCKEL), "vorne")
     M_rechts = bs.wandmatrix((HX, Y_MITTE, Z_SOCKEL), "rechts")
@@ -97,9 +96,6 @@ def bauen():
             bs.gewaende(haus, M, o, st, verdachung=verdachung)
             oeffnungen.append((M, o))
 
-    for M, L in ((M_vorn, 2 * HX), (M_rechts, TIEF), (M_hinten, 2 * HX), (M_links, TIEF)):
-        bs.fugen(haus, M, L - 0.02, 0.0, H_WAND, st)
-    bs.fugen(haus, M_ris, 2 * ZW - 0.02, 0.0, H_WAND + H_ZW, st)
     seitlich = (-2.75, 2.75)                          # zwischen Risalit und Türmchen
     fenster(M_vorn, [Oeffnung(F, u, **eg) for u in seitlich])
     fenster(M_vorn, [Oeffnung(F, u, **og1) for u in seitlich], verdachung=True)

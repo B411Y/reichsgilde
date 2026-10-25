@@ -72,12 +72,10 @@ def zinnen(netz, st, x0, x1, y_aussen, z, dicke=0.5, hoehe_bruestung=0.6, hoehe_
 
 
 def mauerstueck(netz, st):
-    """Gerades Stück: Mauerkörper mit Lagerfugen auf beiden Seiten, Sockel zur Feldseite, Wehrgang mit Zinnen."""
+    """Gerades Stück: Mauerkörper, Sockel zur Feldseite, Wehrgang mit Zinnen."""
     h = STUECK / 2
     netz.quader((0, 0, H_MAUER / 2), (STUECK, DICKE, H_MAUER), st["Haustein"], ohne=("+x", "-x", "-z"))
     netz.quader((0, -DICKE / 2 - 0.08, 0.4), (STUECK, 0.16, 0.8), st["Bruchstein dunkel"], ohne=("+x", "-x", "+y"))
-    for seite, y in (("vorne", -DICKE / 2), ("hinten", DICKE / 2)):
-        bs.fugen(netz, bs.wandmatrix((0, y, 0), seite), STUECK, 0.8 if seite == "vorne" else 0.0, H_MAUER - 0.1, st, abstand=0.5)
     zinnen(netz, st, -h, h, -DICKE / 2, H_MAUER, phase=-1.5)
     # Holzgeländer zur Stadtseite
     for x in (-h + 0.5, h - 1.5):
@@ -141,7 +139,6 @@ def tor(netz, st):
         M = bs.wandmatrix((0, y, 0), seite)
         aussen = [((DX + 0.25) * math.cos(math.pi * i / teile), DH + (DX + 0.25) * math.sin(math.pi * i / teile)) for i in range(teile + 1)]
         bs.platte(netz, M, aussen + list(reversed(bogen)), -0.08, -0.002, st["Sandstein"])
-        bs.fugen(netz, M, 2 * BX, 0.0, BH - 0.1, st, abstand=0.5)
     # Durchfahrt: das Gewölbe bildet die Unterseite des Mauerwerks über dem Bogen; Boden aus Pflaster
     netz.quader((0, 0, 0.03), (2 * DX, 2 * BY, 0.06), st["Bruchstein dunkel"], ohne=("-z",))
     # Fallgitter halb hochgezogen, offene Torflügel innen

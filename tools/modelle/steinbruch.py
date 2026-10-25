@@ -55,15 +55,6 @@ def bauen():
         for k in range(3):                                    # lose Brocken an der Kante
             lb.felsbrocken(haus, st, (x0 + 1.2 + k * (x1 - x0 - 2.4) / 2, y + 0.55, h - 0.05), 0.5 + 0.1 * k, 0.45,
                            saat=70 + 3 * i + k)
-        for k in range(1, int(h / 0.55)):
-            v = k * 0.55
-            haus.vieleck([(x0 + 0.02, y - 0.003, v - 0.02), (x1 - 0.02, y - 0.003, v - 0.02),
-                          (x1 - 0.02, y - 0.003, v + 0.02), (x0 + 0.02, y - 0.003, v + 0.02)], st["Fuge"])
-        for k, u in enumerate([x0 + 1.4 + 1.7 * j for j in range(int((x1 - x0 - 1.6) / 1.7))]):
-            v0 = 0.55 * ((k + i) % 3)                          # senkrechte Spalten, versetzt
-            haus.vieleck([(u - 0.02, y - 0.004, v0 + 0.02), (u + 0.02, y - 0.004, v0 + 0.02),
-                          (u + 0.02, y - 0.004, min(h, v0 + 0.55) - 0.02), (u - 0.02, y - 0.004, min(h, v0 + 0.55) - 0.02)],
-                         st["Fuge"])
     for i, (x, y, r, h) in enumerate(((-6.6, 5.2, 2.8, 4.8), (-3.6, 7.0, 2.0, 6.4), (9.0, 4.6, 1.5, 6.0),
                                       (-8.8, 1.8, 1.6, 2.2), (9.3, 0.4, 1.1, 2.4), (2.4, 7.6, 1.3, 6.4))):
         lb.felsbrocken(haus, st, (x, y), r, h, saat=50 + i)

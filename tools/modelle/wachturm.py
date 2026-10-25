@@ -73,14 +73,13 @@ def bauen():
 
 
 def turm(netz, st):
-    """Turm mit Sockel, Fugen, Eckquadern, Scharten, Tür über der Treppe, Wehrplatte mit Zinnen und Feuerkorb."""
+    """Turm mit Sockel, Eckquadern, Scharten, Tür über der Treppe, Wehrplatte mit Zinnen und Feuerkorb."""
     h = TB / 2
     netz.quader((TX, TY, 0.2), (TB + 0.3, TB + 0.3, 0.4), st["Bruchstein dunkel"], ohne=("-z",))
     netz.quader((TX, TY, 0.4 + (TH - 0.4) / 2), (TB, TB, TH - 0.4), st["Bruchstein"], ohne=("-z", "+z"))
     oeffnungen = []
     for seite, (x, y) in (("vorne", (TX, TY - h)), ("hinten", (TX, TY + h)), ("links", (TX - h, TY)), ("rechts", (TX + h, TY))):
         M = bs.wandmatrix((x, y, 0.4), seite)
-        bs.fugen(netz, M, TB, 0, TH - 0.4, st, abstand=0.5)
         u = 1.2 if seite == "vorne" else 0.0                           # vorn neben Tür und Fenster
         for v in (3.4, 6.6):                                            # Schießscharten
             bs.platte(netz, M, [(u - 0.07, v), (u + 0.07, v), (u + 0.07, v + 0.9), (u - 0.07, v + 0.9)], -0.008, -0.004,

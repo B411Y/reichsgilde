@@ -122,8 +122,8 @@ KAI = 0.25              # Oberkante der Kaibohlen
 #  Grundformen
 # ─────────────────────────────────────────────────────────────────────────────
 
-def linie(netz, st, a, b, normale, breite=0.028, stoff="Fuge", abstand=0.003):
-    """Fuge oder Kante als schmaler Streifen von a nach b, 3 mm vor der Fläche mit der Normale `normale`."""
+def linie(netz, st, a, b, normale, stoff, breite=0.028, abstand=0.003):
+    """Naht oder Kante als schmaler Streifen von a nach b, 3 mm vor der Fläche mit der Normale `normale`."""
     a, b, n = Vector(a), Vector(b), Vector(normale).normalized()
     q = (b - a).cross(n).normalized() * breite / 2
     a, b = a + n * abstand, b + n * abstand
@@ -153,21 +153,6 @@ def walze(netz, st, y, z, r, x0, x1, stoff, n=8):
     """Liegender Zylinder entlang X (Trommel, Achse, Rolle)."""
     netz.prisma([(y + r * math.cos(2 * math.pi * k / n), z + r * math.sin(2 * math.pi * k / n)) for k in range(n)],
                 x0, x1, st[stoff])
-
-
-def fugen(netz, st, a, b, z0, z1, normale, abstand=0.4, schnitt=None):
-    """Lagerfugen auf der senkrechten Fläche über der Strecke a–b ((x, y)) von z0 bis z1. Die Fugen liegen auf festen Höhen
-    (Vielfache von `abstand`), damit aneinanderstoßende Teile zusammenpassen, und erst ab −1,6 m (darunter ist Wasser).
-    `schnitt(z)`: Anteile [(t0, t1), …] der Strecke, die in dieser Höhe Mauer sind (unter Bögen, an Rampen)."""
-    a, b = Vector((a[0], a[1], 0)), Vector((b[0], b[1], 0))
-    k = math.ceil((max(z0, -1.6) + 0.12) / abstand)
-    while k * abstand < z1 - 0.12:
-        z = k * abstand
-        for t0, t1 in (schnitt(z) if schnitt else [(0.0, 1.0)]):
-            p, q = a.lerp(b, t0), a.lerp(b, t1)
-            if (q - p).length > 0.1:
-                linie(netz, st, (p.x, p.y, z), (q.x, q.y, z), normale)
-        k += 1
 
 
 def bohlen(netz, st, x0, x1, y0, y1, hoehe, saat, dicke=0.08, breite=0.333,
@@ -311,34 +296,18 @@ def bogenmasse():
     return r, KAEMPFER + STICH - r, math.asin(s / r)
 
 
-def pflaster(netz, st, ecken, x0, x1, y0=-SB + BR, y1=SB - BR, hoehe=lambda x: SD):
-    """Pflasterfläche (Ecken nach oben) mit Längsfugen alle 0,46 m zwischen y0 und y1."""
+def pflaster(netz, st, ecken):
+    """Pflasterfläche (Ecken nach oben); die Steine zeichnen die Oberflächendetails."""
     netz.vieleck_nach(ecken, (0, 0, 1), st["Pflaster"])
-    y = y0 + 0.46
-    while y < y1 - 0.1:
-        linie(netz, st, (x0, y, hoehe(x0)), (x1, y, hoehe(x1)), (0, 0, 1), breite=0.03)
-        y += 0.46
 
 
 def bruestung(netz, st, x0, x1, y, z0=SD, z1=SD, ohne=("s1", "s3", "-z")):
-    """Brüstung von x0 bis x1 auf der Seite y (±), Fuß von z0 auf z1 steigend; Abdeckplatte aus Sandstein, Fugen außen."""
+    """Brüstung von x0 bis x1 auf der Seite y (±), Fuß von z0 auf z1 steigend; Abdeckplatte aus Sandstein."""
     s = 1 if y > 0 else -1
     ya, yb = sorted((s * (SB + 0.015), s * (SB - BR)))
     latte_schraeg(netz, st, x0, x1, ya, yb, z0 + BR_HOCH, z1 + BR_HOCH, BR_HOCH, "Haustein", ohne=ohne)
     latte_schraeg(netz, st, x0, x1, ya - 0.04, yb + 0.04, z0 + BR_HOCH + 0.12, z1 + BR_HOCH + 0.12, 0.12, "Sandstein",
                   ohne=ohne)
-    for seite, n in ((s * (SB + 0.015), (0, s, 0)), (s * (SB - BR), (0, -s, 0))):
-        linie(netz, st, (x0, seite, z0 + BR_HOCH / 2), (x1, seite, z1 + BR_HOCH / 2), n)
-        # Stoßfugen der Quader, in den beiden Lagen versetzt
-        x = x0 + 0.8
-        while x < x1 - 0.2:
-            for lage in (0, 1):
-                xs = x + 0.4 * lage
-                if xs < x1 - 0.2:
-                    zf = z0 + (z1 - z0) * (xs - x0) / (x1 - x0)
-                    linie(netz, st, (xs, seite, zf + 0.04 + lage * BR_HOCH / 2), (xs, seite, zf + (lage + 1) * BR_HOCH / 2 - 0.04),
-                          n, breite=0.025, abstand=0.005)
-            x += 0.8
 
 
 def gesims_stein(netz, st, x0, x1, y, ohne=("+x", "-x", "-z")):
@@ -355,17 +324,10 @@ def stein_bogen(st):
     n = 12
     punkte = [(r * math.sin(-w0 + 2 * w0 * i / n), zc + r * math.cos(-w0 + 2 * w0 * i / n)) for i in range(n + 1)]
 
-    def schnitt(z):                         # Teile der Strecke x −4 … 4, die in Höhe z Mauer sind
-        if z >= KAEMPFER + STICH:
-            return [(0.0, 1.0)]
-        x = math.sqrt(max(0.0, r * r - (z - zc) ** 2)) + 0.03
-        return [(0.0, (h - x) / BOGEN), ((h + x) / BOGEN, 1.0)]
-
     for y in (-SB, SB):
         s = 1 if y > 0 else -1
         for (xa, za), (xb, zb) in zip(punkte, punkte[1:]):          # Stirnmauer über dem Bogen
             netz.vieleck_nach([(xa, y, za), (xb, y, zb), (xb, y, SD), (xa, y, SD)], (0, s, 0), st["Haustein"])
-        fugen(netz, st, (-h, y), (h, y), KAEMPFER, SD - 0.24, (0, s, 0), schnitt=schnitt)
         steine = 13                                                  # Bogensteine, der Schlussstein etwas größer
         for j in range(steine):
             w_a = -w0 + 2 * w0 * j / steine + 0.006
@@ -378,7 +340,7 @@ def stein_bogen(st):
     for (xa, za), (xb, zb) in zip(punkte, punkte[1:]):              # Laibung (unter dem Scheitel sieht die Kamera sie nicht)
         netz.vieleck_nach([(xa, -SB, za), (xb, -SB, zb), (xb, SB, zb), (xa, SB, za)],
                           (-(xa + xb) / 2, 0, zc - (za + zb) / 2), st["Bruchstein"])
-    pflaster(netz, st, [(-h, -SB, SD), (h, -SB, SD), (h, SB, SD), (-h, SB, SD)], -h, h)
+    pflaster(netz, st, [(-h, -SB, SD), (h, -SB, SD), (h, SB, SD), (-h, SB, SD)])
     o = teil(netz, BOGEN, SD)
     return [o, anschluss(o, "Anschluss_Bogen_A", (-h, 0, SD), 90), anschluss(o, "Anschluss_Bogen_B", (h, 0, SD), 270)]
 
@@ -398,8 +360,6 @@ def stein_pfeiler(st):
     # Pfeilerkörper: bis zum Kämpfer mit Stirnseiten (unter den Bögen sichtbar), darüber nur die Seite stromab
     kasten(netz, st, -p, p, -SB, SB, FUSS, KAEMPFER, "Haustein", ohne=("-z", "+z", "+y", "-y"))
     netz.vieleck_nach([(-p, -SB, -0.2), (p, -SB, -0.2), (p, -SB, SD), (-p, -SB, SD)], (0, -1, 0), st["Haustein"])
-    for x, s in ((-p, -1), (p, 1)):
-        fugen(netz, st, (x, -SB), (x, SB), FUSS, KAEMPFER - 0.2, (s, 0, 0))
     kasten(netz, st, -p - 0.06, p + 0.06, -SB, SB, KAEMPFER - 0.18, KAEMPFER, "Sandstein", ohne=("-z", "+y", "-y"))
     # Eisbrecher bis zur Fahrbahn, oben eine Nische mit Brüstung
     for x in (-p, p):
@@ -407,7 +367,6 @@ def stein_pfeiler(st):
         a, b = Vector((x, SB, 0)), Vector((0, spitze, 0))
         normale = Vector((s * (spitze - SB), p, 0)).normalized()
         netz.vieleck_nach([(a.x, a.y, FUSS), (b.x, b.y, FUSS), (b.x, b.y, SD), (a.x, a.y, SD)], normale, st["Haustein"])
-        fugen(netz, st, (a.x, a.y), (b.x, b.y), FUSS, SD - 0.24, normale)
         # Gesims entlang der Kante und die Brüstung der Nische (Fünfeck: innen parallel zur Kante)
         innen = -normale
         a_i = a + innen * BR
@@ -425,7 +384,6 @@ def stein_pfeiler(st):
                 seite = [(e0.x, e0.y, z0), (e1.x, e1.y, z0), (e1.x, e1.y, z1), (e0.x, e0.y, z1)]
                 netz.vieleck_nach(seite, Vector(((e0.x + e1.x) / 2, (e0.y + e1.y) / 2, 0)) - mitte, st[stoff])
             netz.vieleck_nach([(e.x, e.y, z1) for e in ecken], (0, 0, 1), st[stoff])
-        linie(netz, st, (a.x, a.y, SD + BR_HOCH / 2), (b.x, b.y, SD + BR_HOCH / 2), normale)
         g0, g1 = a + normale * 0.08, b + normale * 0.08
         klotz(netz, st["Sandstein"], [(a.x, a.y, SD - 0.24), (b.x, b.y, SD - 0.24), (g1.x, g1.y, SD - 0.24), (g0.x, g0.y, SD - 0.24),
                                       (a.x, a.y, SD - 0.04), (b.x, b.y, SD - 0.04), (g1.x, g1.y, SD - 0.04), (g0.x, g0.y, SD - 0.04)],
@@ -437,12 +395,10 @@ def stein_pfeiler(st):
         netz.vieleck_nach([(x, -SB, FUSS), (0, hinten, FUSS), (0, hinten, -0.2), (x, -SB, -0.2)], normale, st["Haustein"])
         netz.vieleck_nach([(x, -SB, -0.2), (0, hinten, -0.2), (x, -SB, 0.6)], normale, st["Haustein"])
         netz.vieleck_nach([(x, -SB, 0.6), (0, hinten, -0.2), (0, -SB, 0.6)], (s * 0.2, -0.6, 1), st["Sandstein"])
-        fugen(netz, st, (x, -SB), (0, hinten), FUSS, -0.2, normale)
-    fugen(netz, st, (-p, -SB), (p, -SB), 0.6, SD - 0.24, (0, -1, 0))
     gesims_stein(netz, st, -p, p, -SB)
     bruestung(netz, st, -p, p, -SB)
     # Fahrbahn: bis zur Brüstung stromauf, dann die Nische
-    pflaster(netz, st, [(-p, -SB, SD), (p, -SB, SD), (p, SB - BR, SD), (-p, SB - BR, SD)], -p, p)
+    pflaster(netz, st, [(-p, -SB, SD), (p, -SB, SD), (p, SB - BR, SD), (-p, SB - BR, SD)])
     (links, spitze_n), (rechts, _) = nische[-1], nische[1]
     netz.vieleck_nach([(links.x, links.y, SD), (rechts.x, rechts.y, SD), (0, spitze_n.y, SD)], (0, 0, 1), st["Pflaster"])
     o = teil(netz, PFEILER, SD)
@@ -455,22 +411,16 @@ def stein_rampe(st):
     rampe = lambda x: SD * (x + RAMPE) / (RAMPE - WIDERLAGER)   # noqa: E731  Oberkante der Rampe (x −10 … −2)
     # Widerlager: Stirn zum Fluss bis zum Kämpfer, darüber trägt es den Bogen
     netz.vieleck_nach([(0, -SB, FUSS), (0, SB, FUSS), (0, SB, KAEMPFER), (0, -SB, KAEMPFER)], (1, 0, 0), st["Haustein"])
-    fugen(netz, st, (0, -SB), (0, SB), FUSS, KAEMPFER - 0.2, (1, 0, 0))
     kasten(netz, st, -0.02, 0.06, -SB, SB, KAEMPFER - 0.18, KAEMPFER, "Sandstein", ohne=("-z", "+y", "-y", "-x"))
     for y in (-SB, SB):
         s = 1 if y > 0 else -1
         # Seitenwand: Widerlager und Rampe in einem Umriss
         netz.vieleck_nach([(-RAMPE, y, -0.4), (w, y, -0.4), (w, y, SD), (-RAMPE, y, 0.0)], (0, s, 0), st["Haustein"])
         netz.vieleck_nach([(w, y, FUSS + 1.5), (0, y, FUSS + 1.5), (0, y, SD), (w, y, SD)], (0, s, 0), st["Haustein"])
-        fugen(netz, st, (w, y), (0, y), -1.6, SD - 0.24, (0, s, 0))
-        fugen(netz, st, (-RAMPE, y), (w, y), -0.4, SD - 0.24, (0, s, 0),
-              schnitt=lambda z: [(max(0.0, z / SD + 0.06), 1.0)])
         gesims_stein(netz, st, w, 0, y, ohne=("+x", "-z"))
         # Flügelmauer entlang des Ufers (Stirn zum Fluss), oben schräg bis auf 0,3 m
         y1 = s * (SB + 2.8)
         netz.vieleck_nach([(0, y, FUSS + 1.5), (0, y1, FUSS + 1.5), (0, y1, 0.3), (0, y, SD - 0.24)], (1, 0, 0), st["Haustein"])
-        fugen(netz, st, (0, y), (0, y1), -1.6, SD - 0.24, (1, 0, 0),
-              schnitt=lambda z, y=y, y1=y1: [(0.0, min(1.0, max(0.0, (SD - 0.24 - z) / (SD - 0.54))))])
         klotz(netz, st["Sandstein"], [(-0.6, y, SD - 0.24), (-0.6, y1, 0.3), (0.06, y1, 0.3), (0.06, y, SD - 0.24),
                                       (-0.6, y, SD - 0.12), (-0.6, y1, 0.42), (0.06, y1, 0.42), (0.06, y, SD - 0.12)],
               ohne=("-z", "s3"))
@@ -482,8 +432,8 @@ def stein_rampe(st):
         kasten(netz, st, -RAMPE + 0.3, -RAMPE + 0.9, ym - 0.32, ym + 0.32, -0.2, 1.2, "Haustein", ohne=("-z", "+z"))
         kasten(netz, st, -RAMPE + 0.25, -RAMPE + 0.95, ym - 0.37, ym + 0.37, 1.2, 1.32, "Sandstein", ohne=("-z",))
         lb.kegel(netz, (-RAMPE + 0.6, ym), 0.45, 1.32, 1.62, st["Sandstein"], n=4, dreh=math.pi / 4)
-    pflaster(netz, st, [(-RAMPE, -SB, 0.0), (w, -SB, SD), (w, SB, SD), (-RAMPE, SB, 0.0)], -RAMPE, w, hoehe=rampe)
-    pflaster(netz, st, [(w, -SB, SD), (0, -SB, SD), (0, SB, SD), (w, SB, SD)], w, 0)
+    pflaster(netz, st, [(-RAMPE, -SB, 0.0), (w, -SB, SD), (w, SB, SD), (-RAMPE, SB, 0.0)])
+    pflaster(netz, st, [(w, -SB, SD), (0, -SB, SD), (0, SB, SD), (w, SB, SD)])
     o = teil(netz, RAMPE, SD)
     return [o, anschluss(o, "Anschluss_Rampe_Bruecke", (0, 0, SD), 270), anschluss(o, "Anschluss_Rampe_Weg", (-RAMPE, 0, 0), 90)]
 
@@ -496,16 +446,11 @@ def faehre(st):
     netz = bs.Netz("Faehre")
     b = 2.0
     unten = -0.45
-    # Rumpf: Kasten mit schrägen Enden (Prahm), geteert; das Deck aus Bohlen mit Fugen
+    # Rumpf: Kasten mit schrägen Enden (Prahm), geteert; das Deck aus Bohlen
     profil = [(3.8, unten), (-3.8, unten), (-F_HALB, F_DECK), (F_HALB, F_DECK)]      # (−x, z), siehe bs.platte
     netz.prisma(profil, -b, b, st["Teerholz"], matrix=Matrix.Rotation(math.radians(90), 4, "Z"),
                 kante=lambda p, q: st["Bretter"] if abs(p.y - F_DECK) < 1e-6 and abs(q.y - F_DECK) < 1e-6 else None)
-    y = -b + 0.36
-    while y < b - 0.2:
-        linie(netz, st, (-F_HALB + 0.05, y, F_DECK), (F_HALB - 0.05, y, F_DECK), (0, 0, 1), breite=0.025)
-        y += 0.36
     for s in (-1, 1):
-        linie(netz, st, (-4.0, s * b, 0.12), (4.0, s * b, 0.12), (0, s, 0), breite=0.03)
         kasten(netz, st, -4.0, 4.0, s * b - 0.12 if s > 0 else -b, b if s > 0 else -b + 0.12, F_DECK, F_DECK + 0.38,
                "Holz alt", ohne=("-z",))
         kasten(netz, st, -4.05, 4.05, s * b - 0.14 if s > 0 else -b - 0.02, b + 0.02 if s > 0 else -b + 0.14,

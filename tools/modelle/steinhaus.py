@@ -9,7 +9,7 @@ Objekte im GLB wie bei den anderen Wohnhäusern: Haus, Wappen, Fahne, Leerstand 
 (die beiden letzten standardmäßig aus).
 
 Ein Patrizierhaus aus Stein (Blender: Z oben, Gasse bei -Y):
-    7 × 7,4 m, drei Geschosse aus Haustein mit Lagerfugen, Eckquader und Gesimse aus Sandstein,
+    7 × 7,4 m, drei Geschosse aus Haustein mit Eckquader und Gesimse aus Sandstein,
     Treppengiebel zur Gasse und zum Hof, steiles Schieferdach mit Gauben an beiden Traufseiten,
     Rundbogenportal mit Freitreppe, Steinfenster mit Kreuzstock in der Hausfarbe,
     großes Wappen über dem Portal, Laterne am Portal.
@@ -55,7 +55,7 @@ def bauen():
         for sy, y in ((-1, VORN), (1, HINTEN)):
             bs.eckquader(haus, st, sx * HX, y, sx, sy, Z_SOCKEL, Z_TRAUFE)
 
-    # ── Wände: Lagerfugen, Steinfenster, Portal ───────────────────────────────
+    # ── Wände: Steinfenster, Portal ─────────────────────────────────────────
     M_vorn = bs.wandmatrix((0, VORN, Z_SOCKEL), "vorne")
     M_rechts = bs.wandmatrix((HX, y_mitte, Z_SOCKEL), "rechts")
     M_hinten = bs.wandmatrix((0, HINTEN, Z_SOCKEL), "hinten")
@@ -70,8 +70,6 @@ def bauen():
             bs.gewaende(haus, M, o, st, verdachung=verdachung)
             oeffnungen.append((M, o))
 
-    for M, L in ((M_vorn, 2 * HX), (M_rechts, tief), (M_hinten, 2 * HX), (M_links, tief)):
-        bs.fugen(haus, M, L - 0.02, 0.0, H_WAND, st)
     fenster(M_vorn, [Oeffnung(F, u, **eg) for u in (-2.2, 2.2)])
     fenster(M_vorn, [Oeffnung(F, u, **og1) for u in (-2.2, 2.2)], verdachung=True)
     fenster(M_vorn, [Oeffnung(F, u, **og2) for u in (-2.2, 0.0, 2.2)])
@@ -138,7 +136,7 @@ def bauen():
 
 def treppengiebel(netz, st, M, dach, oeffnungen, stufen=5, oben_halb=0.45):
     """Treppengiebel über der Traufe: Mauerscheibe mit Stufen, die über das Dach hinausragen,
-    Sandsteinplatten auf jeder Stufe, Lagerfugen und drei kleine Fenster. Gibt die Höhe des
+    Sandsteinplatten auf jeder Stufe und drei kleine Fenster. Gibt die Höhe des
     obersten Blocks über der Traufe zurück (für die Fahne)."""
     th = math.radians(NEIGUNG)
     tan = math.tan(th)
@@ -163,16 +161,6 @@ def treppengiebel(netz, st, M, dach, oeffnungen, stufen=5, oben_halb=0.45):
             netz.quader((s * (grenzen[k] + grenzen[k + 1]) / 2, GIEBEL_DICKE / 2, hoehen[k] + 0.05),
                         (b + 0.12, GIEBEL_DICKE + 0.12, 0.1), st["Sandstein"], M)
     netz.quader((0, GIEBEL_DICKE / 2, spitze + 0.06), (2 * oben_halb + 0.14, GIEBEL_DICKE + 0.14, 0.12), st["Sandstein"], M)
-    # Lagerfugen: je Höhe so breit, wie die Stufen dort reichen
-    v = 0.42
-    while v < spitze - 0.1:
-        breite = max([g for g, h in zip(grenzen, hoehen + [spitze]) if h > v + 0.05] + [oben_halb])
-        if v > hoehen[-1]:
-            breite = oben_halb
-        netz.vieleck([M @ Vector(p) for p in ((-breite + 0.01, -0.003, v - 0.014), (breite - 0.01, -0.003, v - 0.014),
-                                               (breite - 0.01, -0.003, v + 0.014), (-breite + 0.01, -0.003, v + 0.014))],
-                     st["Fuge"])
-        v += 0.42
     for o in (Oeffnung("fenster", -1.25, 0.75, 0.7, 1.05), Oeffnung("fenster", 1.25, 0.75, 0.7, 1.05),
               Oeffnung("fenster", 0.0, 2.55, 0.55, 0.85)):
         bs.gewaende(netz, M, o, st)

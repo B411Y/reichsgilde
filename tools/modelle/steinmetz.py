@@ -61,13 +61,11 @@ def bauen():
         for sy, y in ((-1, Y0), (1, Y1)):
             bs.eckquader(haus, st, x, y, sx, sy, Z_SOCKEL, Z_TRAUFE - 0.2)
 
-    # ── Wände: Lagerfugen, Steinfenster, Rundbogentor ─────────────────────────
+    # ── Wände: Steinfenster, Rundbogentor ───────────────────────────────────
     M_vorn = bs.wandmatrix((CX, Y0, Z_SOCKEL), "vorne")
     M_rechts = bs.wandmatrix((X1, CY, Z_SOCKEL), "rechts")
     M_hinten = bs.wandmatrix((CX, Y1, Z_SOCKEL), "hinten")
     M_links = bs.wandmatrix((X0, CY, Z_SOCKEL), "links")
-    for M, L in ((M_vorn, 2 * HL), (M_rechts, 2 * HT), (M_hinten, 2 * HL), (M_links, 2 * HT)):
-        bs.fugen(haus, M, L - 0.02, 0.0, H_WAND - 0.2, st)
 
     F = "fenster"
     eg = dict(v=1.0, b=0.85, h=1.25)
@@ -419,8 +417,6 @@ def steinschneiderei(netz, st):
             bs.eckquader(netz, st, x, y, sx, sy, 0.0, h - 0.18)
     M_vorn = bs.wandmatrix((cx, ay0, 0), "vorne")
     M_rechts = bs.wandmatrix((ax1, (ay0 + ay1) / 2, 0), "rechts")
-    bs.fugen(netz, M_vorn, breite - 0.02, 0.0, h - 0.18, st)
-    bs.fugen(netz, M_rechts, ay1 - ay0 - 0.02, 0.0, h - 0.18, st)
     tor = Oeffnung("tuer", -0.7, 0.0, 1.3, 2.2)
     bs.tuer(netz, M_vorn, tor, st)
     netz.quader((tor.u, -0.03, 2.31), (1.7, 0.1, 0.22), st["Sandstein"], M_vorn, ohne=("+y",))

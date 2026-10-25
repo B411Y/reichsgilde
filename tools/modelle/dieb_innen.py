@@ -336,8 +336,7 @@ def stube_huelle(werk, decke, schlaf, st, anker):
     kanten = ecken(WX0, WX1, WY0, WY1)
     werk.alle = True
     for seite in ("vorne", "rechts", "hinten", "links"):
-        si.wand(werk, st, *kanten[seite], H_WERK, W[seite], stoff="Bruchstein dunkel", dicke=WAND, aussen=seite != "hinten",
-                fugen=True, saat=11 + len(seite))
+        si.wand(werk, st, *kanten[seite], H_WERK, W[seite], stoff="Bruchstein dunkel", dicke=WAND, aussen=seite != "hinten")
     werk.alle = False
     frei = {"hinten": [(WX1 - UEBEN_X[-1] - 0.2, WX1 - UEBEN_X[0] + 0.2)]}         # hinter dem Übungsbrett keine Bretter (u ab x1)
     for i, seite in enumerate(("vorne", "rechts", "hinten", "links")):
@@ -795,8 +794,7 @@ def keller_huelle(lager, decke, st):
 
     def waende(hilf):
         for seite in ("vorne", "hinten"):
-            si.wand(hilf, st, *kanten[seite], KAEMPFER, stoff="Bruchstein", dicke=WAND, aussen=False, fugen=True,
-                    saat=61 if seite == "vorne" else 62)
+            si.wand(hilf, st, *kanten[seite], KAEMPFER, stoff="Bruchstein", dicke=WAND, aussen=False)
         for r in ia.rechteck_minus((CX0, CX1, CY0, CY1), TUNNEL):
             ia.lehmboden(hilf, st, *r, saat=int(r[0] * 10 + 40), flecken=3, halme=3)
     wi.versetzt(lager, st, waende, Z_KELLER)
@@ -1044,13 +1042,13 @@ def schlafboden(netz, decke, st, anker, plaetze):
 # ─────────────────────────────────────────────────────────────────────────────
 
 def gilde_huelle(netz, decke, st, anker):
-    """Wände aus Bruchstein mit Fugen (die Vorderwand ist die Rückwand der Stube), ein vergittertes Fenster hoch in der rechten Wand,
+    """Wände aus Bruchstein (die Vorderwand ist die Rückwand der Stube), ein vergittertes Fenster hoch in der rechten Wand,
     Balkendecke, Backsteinpflaster im Fischgrätmuster."""
     G = GILDE_OEFFNUNGEN
     kanten = ecken(GX0, GX1, GY0, GY1)
     netz.alle = True
     for seite in ("vorne", "rechts", "hinten", "links"):
-        si.wand(netz, st, *kanten[seite], H_GILDE, G.get(seite, []), stoff="Bruchstein dunkel", dicke=0.5, fugen=True, saat=81 + len(seite),
+        si.wand(netz, st, *kanten[seite], H_GILDE, G.get(seite, []), stoff="Bruchstein dunkel", dicke=0.5,
                 aussen=seite != "vorne", laibung=seite != "vorne", enden=(seite != "links", seite != "rechts"))
     netz.alle = False
     for o in G["rechts"]:

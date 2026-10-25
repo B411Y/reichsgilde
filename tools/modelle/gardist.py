@@ -59,8 +59,6 @@ def bauen():
         bs.eckquader(haus, st, x, y, sx, sy, Z_SOCKEL, Z_TRAUFE)
     M = {"vorn": bs.wandmatrix((CX, Y0, Z_SOCKEL), "vorne"), "links": bs.wandmatrix((X0, CY, Z_SOCKEL), "links"),
          "hinten": bs.wandmatrix((CX, Y1, Z_SOCKEL), "hinten"), "rechts": bs.wandmatrix((X1, CY, Z_SOCKEL), "rechts")}
-    for name, L in (("vorn", X1 - X0), ("links", Y1 - Y0), ("hinten", X1 - X0), ("rechts", Y1 - Y0)):
-        bs.fugen(haus, M[name], L - 0.02, 0.0, H_WAND, st)
 
     F = "fenster"
     eg = dict(v=1.0, b=0.6, h=0.9)                      # Erdgeschoss: kleine vergitterte Fenster (Arrest, Wachstube)
@@ -217,8 +215,6 @@ def wehrturm(netz, st, oeffnungen):
     M_r = bs.wandmatrix((TX1, cy, 0.0), "rechts")
     M_l = bs.wandmatrix((TX0, cy, 0.0), "links")
     M_h = bs.wandmatrix((cx, TY1, 0.0), "hinten")
-    bs.fugen(netz, M_v, b - 0.02, 0.4, H_TURM - 0.22, st)
-    bs.fugen(netz, M_r, b - 0.02, 0.4, H_TURM - 0.22, st)
     tuer = Oeffnung("tuer", -0.5, 0.4, 1.0, 2.1)
     bs.tuer(netz, M_v, tuer, st)
     netz.quader((tuer.u, -0.04, tuer.v + tuer.h + 0.12), (1.4, 0.1, 0.24), st["Sandstein"], M_v, ohne=("+y",))
@@ -417,8 +413,6 @@ def mannschaftshaus(netz, st, x0=1.6, x1=7.5, y0=3.2, y1=6.4):
     netz.quader((cx, cy, 0.3 + h / 2), (x1 - x0, y1 - y0, h), st["Bruchstein"], ohne=("+z",))
     M_v = bs.wandmatrix((cx, y0, 0.3), "vorne")
     M_r = bs.wandmatrix((x1, cy, 0.3), "rechts")
-    bs.fugen(netz, M_v, x1 - x0 - 0.02, 0.0, h, st)
-    bs.fugen(netz, M_r, y1 - y0 - 0.02, 0.0, h, st)
     for sx, x in ((-1, x0), (1, x1)):
         bs.eckquader(netz, st, x, y0, sx, -1, 0.3, 0.3 + h)
     bs.eckquader(netz, st, x1, y1, 1, 1, 0.3, 0.3 + h)

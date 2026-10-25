@@ -1175,8 +1175,7 @@ def bauen():
 
     def kellerwaende(hilf):
         for seite in ("vorne", "hinten"):
-            si.wand(hilf, st, *kanten_c[seite], KAEMPFER, stoff="Bruchstein", dicke=WAND, aussen=False, fugen=True,
-                    saat=51 if seite == "vorne" else 52)
+            si.wand(hilf, st, *kanten_c[seite], KAEMPFER, stoff="Bruchstein", dicke=WAND, aussen=False)
         ia.lehmboden(hilf, st, CX0, CX1, CY0, CY1, saat=41, flecken=8, halme=6)
     versetzt(lager, st, kellerwaende, Z_KELLER)
     stirnwand(lager, st, CX0, 1, loch=KELLERTUER)

@@ -117,10 +117,9 @@ def wand(netz, st, name, mitte, groesse, aussen, innen):
     dy = 0 if lang else (-1 if aussen == "vorne" else 1) * DICKE / 2
     M = bs.wandmatrix((x + dx, y + dy, 0), aussen)
     Mi = bs.wandmatrix((x - dx, y - dy, 0), innen)
-    # Sockel, Traufgesims, Lagerfugen
+    # Sockel und Traufgesims
     netz.quader((0, -0.04, 0.3), (L + (0.16 if not lang else 0), 0.08, 0.6), st["Bruchstein dunkel"], M, ohne=("+y",))
     netz.quader((0, -0.08, H_WAND - 0.12), (L + (0.32 if not lang else 0), 0.16, 0.24), st["Sandstein"], M, ohne=("+y",))
-    bs.fugen(netz, M, L - 0.04, 0.6, H_WAND - 0.25, st, abstand=0.5)
     if lang:
         for u in JOCHE:
             spitzfenster(netz, st, M, u, 3.0, 1.6, 7.6)
@@ -163,13 +162,6 @@ def dach_bauen(netz, st):
     for y, seite in ((-HY, "vorne"), (HY, "hinten")):
         M = bs.wandmatrix((0, y, H_WAND), seite)
         bs.platte(netz, M, [(-HX, 0), (HX, 0), (0, hoch)], 0, DICKE, st["Haustein"])
-        # Lagerfugen je Höhe so breit wie das Giebeldreieck: über die Schrägen hinaus schweben sie über dem Dach
-        v = 0.5
-        while v < hoch - 1.25:
-            b = min(HX - 0.2, HX - (v + 0.014) / dach["tan"] - 0.03)
-            netz.vieleck([M @ Vector(p) for p in ((-b, -0.003, v - 0.014), (b, -0.003, v - 0.014),
-                                                   (b, -0.003, v + 0.014), (-b, -0.003, v + 0.014))], st["Fuge"])
-            v += 0.5
     M = bs.wandmatrix((0, HY, H_WAND), "hinten")
     rosette(netz, st, M, 0.0, 3.4, 0.85)
     spitze = Vector((0, HY - 0.2, H_WAND + hoch + 0.2))
@@ -214,9 +206,6 @@ def turm_bauen(netz, st):
         "hinten": bs.wandmatrix((0, TY1, 0), "hinten"),
     }
     for seite, M in seiten.items():
-        L = 2 * TX if seite in ("vorne", "hinten") else TY1 - TY0
-        if seite != "hinten":
-            bs.fugen(netz, M, L - 0.1, 0.6, TH - 0.4, st, abstand=0.5)
         # Glockenstube: zwei Schallarkaden je Seite
         for u in (-1.15, 1.15):
             bs.platte(netz, M, spitzbogen(u, 24.0, 1.0, 4.8), -0.012, -0.002, st["Loch"])

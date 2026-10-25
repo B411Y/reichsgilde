@@ -60,8 +60,6 @@ def bauen():
     M_rechts = bs.wandmatrix((X1, CY, Z_SOCKEL), "rechts")
     M_links = bs.wandmatrix((X0, CY, Z_SOCKEL), "links")
     M_hinten = bs.wandmatrix((CX, Y1, Z_SOCKEL), "hinten")
-    for M, L in ((M_vorn, 2 * HW), (M_rechts, Y1 - Y0), (M_links, Y1 - Y0), (M_hinten, 2 * HW)):
-        bs.fugen(haus, M, L - 0.02, 0.0, H_WAND - 0.22, st)
 
     # ── Fassade zur Gasse: Portal, Rosette, Stufen, Opferstock ───────────────
     portal = Oeffnung("tuer", 0.0, 0.0, 1.9, 3.7)
@@ -264,7 +262,6 @@ def glockenturm(netz, st):
     for seite, (punkt, unten) in seiten.items():
         M = bs.wandmatrix(punkt, seite)
         if unten:
-            bs.fugen(netz, M, b - 0.02, 0.0, H_TURM - Z_SOCKEL - 0.3, st)
             o = Oeffnung("fenster", 0.0, 2.6 if seite == "vorne" else 5.4, 0.5, 1.3)
             spitzbogen(netz, st, M, o, g=0.12)
             oeffnungen.append((M, o))
@@ -377,8 +374,6 @@ def skriptorium(netz, st):
     netz.quader(((x0 + x1) / 2, cy, Z_SOCKEL + h / 2), (x1 - x0, y1 - y0, h), st["Haustein"], ohne=("+z", "-x"))
     M_v = bs.wandmatrix(((x0 + x1) / 2, y0, Z_SOCKEL), "vorne")
     M_r = bs.wandmatrix((x1, cy, Z_SOCKEL), "rechts")
-    bs.fugen(netz, M_v, x1 - x0 - 0.02, 0.0, h, st)
-    bs.fugen(netz, M_r, y1 - y0 - 0.02, 0.0, h, st)
     tuer = Oeffnung("tuer", 0.6, 0.0, 1.0, 2.3)
     spitzbogen(netz, st, M_v, tuer, tuer=True, g=0.13)
     netz.quader(((x0 + x1) / 2 + tuer.u, y0 - 0.2, (Z_SOCKEL + 0.01) / 2), (1.3, 0.4, Z_SOCKEL + 0.01), st["Sandstein"])

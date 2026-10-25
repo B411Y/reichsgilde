@@ -111,11 +111,11 @@ def rahmen(x, y, drehung, z=0.0):
 
 
 def wand(netz, st, a, b, hoehe, oeffnungen=(), stoff="Bruchstein", dicke=WAND, aussen=True, laibung=True,
-         enden=(True, True), fugen=False, saat=0):
+         enden=(True, True)):
     """Wand mit Öffnungen, a → b auf der Innenkante (Grundriss), der Raum liegt links der Laufrichtung.
     Innenseite bis `hoehe`, Außenseite (`aussen`) bis über die Decke und an den Enden (`enden`) um die Wanddicke
     verlängert, so schließen die Ecken. Laibungen der Öffnungen (Sturz nach unten: das Netz muss `alle` haben).
-    `fugen`: Lager- und Stoßfugen auf der Innenseite (Mauerwerk)."""
+    Das Mauerwerk auf der Wand zeichnen die Oberflächendetails."""
     a3, b3 = Vector((a[0], a[1], 0)), Vector((b[0], b[1], 0))
     d = b3 - a3
     laenge = d.length
@@ -151,34 +151,6 @@ def wand(netz, st, a, b, hoehe, oeffnungen=(), stoff="Bruchstein", dicke=WAND, a
             netz.vieleck_nach([p(u0, v1), p(u1, v1), p(u1, v1, dicke), p(u0, v1, dicke)], (0, 0, -1), m)
             netz.vieleck_nach([p(u0, v0), p(u1, v0), p(u1, v0, dicke), p(u0, v0, dicke)], (0, 0, 1),
                               st["Bruchstein dunkel"] if v0 == 0 else m)
-    if not fugen:
-        return
-    zufall = random.Random(saat)
-
-    def frei(v0, v1, rand=0.0):
-        """Stücke der Innenseite zwischen den Höhen v0 und v1, die keine Öffnung schneidet."""
-        stuecke = [(0.0, laenge)]
-        for u, o in ops:
-            if o.v - rand < v1 and o.v + o.h + rand > v0:
-                a_, b_ = u - o.b / 2 - rand, u + o.b / 2 + rand
-                stuecke = [s for x0, x1 in stuecke for s in ((x0, min(x1, a_)), (max(x0, b_), x1)) if s[1] - s[0] > 0.05]
-        return stuecke
-
-    fuge, w, f = st["Fuge"], -0.003, 0.014
-    abstand = 0.45
-    hoehen = [k * abstand for k in range(1, int(hoehe / abstand) + 1) if k * abstand < hoehe - 0.15]
-    for v in hoehen:
-        for x0, x1 in frei(v - f, v + f):
-            netz.vieleck_nach([p(x0, v - f, w), p(x1, v - f, w), p(x1, v + f, w), p(x0, v + f, w)], n, fuge)
-    schichten = [0.0] + hoehen + [hoehe]
-    for k in range(len(schichten) - 1):
-        v0, v1 = schichten[k] + f, schichten[k + 1] - f
-        stuecke = frei(v0, v1)
-        u = zufall.uniform(0.15, 0.7)
-        while u < laenge - 0.15:
-            if any(x0 + 0.06 < u < x1 - 0.06 for x0, x1 in stuecke):
-                netz.vieleck_nach([p(u - 0.012, v0, w), p(u + 0.012, v0, w), p(u + 0.012, v1, w), p(u - 0.012, v1, w)], n, fuge)
-            u += zufall.uniform(0.55, 0.95)
 
 
 def fenster(netz, st, a, b, o, dicke=WAND):

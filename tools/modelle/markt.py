@@ -6,7 +6,7 @@
 Schreibt game/assets/modelle/gebaeude/marktplatz.glb und marktstaende.glb, Bilder nach docs/modelle/.
 
 marktplatz.glb (24 × 24 m, Ursprung in der Mitte des Platzes = `Marktplatz` im Spiel):
-    Platz               Pflaster mit Fugen, Brunnen mit Säule und Wasserspeiern, Marktkreuz, drei Bänke
+    Platz               Pflaster, Brunnen mit Säule und Wasserspeiern, Marktkreuz, drei Bänke
     Anker_Stand1–7      Stellplätze der Stände (wie heute im Spiel), Blick zum Stand = Stand schaut mit der Front zur Mitte
     Anker_Brunnen1–4    am Brunnenrand, Blick zum Brunnen (Wasser holen, „Stehen“)
     Anker_Sitz1–6       auf den Bänken, Blick vom Sitz weg („Sitzen“)
@@ -73,13 +73,6 @@ def platz_bauen(st):
     netz = bs.Netz("Platz")
     halb = 12.0
     netz.quader((0, 0, 0.02), (2 * halb, 2 * halb, 0.04), st["Pflaster"], ohne=("-z",))
-    k = -halb + 1.0
-    while k < halb - 0.5:                                  # Fugen im Pflaster, ein Meter Raster
-        for a, b in (((k, -halb, 0.042), (k, halb, 0.042)), ((-halb, k, 0.043), (halb, k, 0.043))):
-            richtung = Vector(b) - Vector(a)
-            q = Vector((-richtung.y, richtung.x, 0)).normalized() * 0.02
-            netz.vieleck_nach([Vector(a) - q, Vector(b) - q, Vector(b) + q, Vector(a) + q], (0, 0, 1), st["Fuge"])
-        k += 1.0
     brunnen(netz, st)
     marktkreuz(netz, st, blender(-10.4, 10.4))
     for (x, z), dreh in (((10.6, 10.0), 0.0), ((-10.6, -3.4), 90.0), ((10.6, -3.4), -90.0)):
