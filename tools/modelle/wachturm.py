@@ -28,6 +28,7 @@ import landbau as lb  # noqa: E402
 from bausteine import Oeffnung, Vector  # noqa: E402
 
 NAME = "wachturm"
+bs.BIBLIOTHEK_JE_FLAECHE = True                # Modell-Texturen, Gruppe 2: Material-Bibliothek je Fläche (Material „Farben“)
 FLAECHE = (12.0, 12.0)
 TX, TY, TB, TH = 0.0, 1.2, 4.4, 11.0           # Turmmitte, Breite, Höhe der Mauer bis zur Wehrplatte
 TUER_V = 1.5                                   # die Tür liegt über einer Treppe

@@ -36,12 +36,15 @@ uniform float glanz = 0.5;
 // darunter. bib_stufe (Einstellung „Boden“): 0 Niedrig – die Struktur wie bisher, 1 Mittel – Farbe der Bibliothek, 2 Hoch – dazu
 // Normalen und Rauheit. Die Textur wird durch ihre mittlere Farbe (bib_mittel) geteilt und mit der Modellfarbe gefärbt: Im Mittel
 // bleibt jedes Material so hell und bunt wie die Modellfarbe, Häuser bleiben an ihren Farben zu erkennen.
+// Modelle mit „Farben“ (art_aus_uv) tragen die Schicht je Fläche im Netz (UV.y = Art + 16 · (Schicht + 1), tools/modelle/bausteine.py,
+// arten_setzen); dafür stehen die Werte aller Schichten in den Feldern unten (Oberflaechendetails.cs setzt sie in jedes Material).
 uniform int bib = -1;
 uniform int bib_stufe = 2;
-uniform float bib_kachel = 2.0;                  // Meter je Kachel
-uniform vec3 bib_mittel = vec3(0.5);             // mittlere Farbe der Schicht (linear)
-uniform bool bib_dach = false;                   // Dachdeckung: eine Projektion entlang der Dachneigung (oben = firstwärts)
-uniform bool bib_reihen = false;                 // Ziegel und Schiefer: Spalten je Modellreihe versetzt (siehe fragment)
+const int BIB_MAX = 32;
+uniform float bib_kacheln[BIB_MAX];              // Meter je Kachel
+uniform vec3 bib_mittel[BIB_MAX];                // mittlere Farbe der Schicht (linear)
+uniform int bib_projektion[BIB_MAX];             // 0 wand, 1 dach (entlang der Dachneigung, oben = firstwärts), 2 reihen (siehe fragment)
+uniform float bib_reihe[BIB_MAX];                // Reihenhöhe (Meter) der Deckungen mit Projektion „reihen“ für Dächer ohne Modellreihen
 uniform sampler2DArray bib_farbe : source_color, repeat_enable, filter_linear_mipmap_anisotropic;   // RGB Farbe, A Höhe
 uniform sampler2DArray bib_nr : repeat_enable, filter_linear_mipmap_anisotropic;                    // RG Normale, B Rauheit
 const float BIB_RELIEF = 1.0;                    // Stärke der Normalen
@@ -49,6 +52,8 @@ const float BIB_REIHE_HELL = 0.04;               // Helligkeitsunterschied der D
 const float BIB_LAUF = 0.22;                     // Laufspuren auf Dächern: so viel dunkler
 const vec3 BIB_MOOS = vec3(0.30, 0.34, 0.12);    // Moos auf Dächern: Farbton (die Helligkeit kommt vom Dach)
 const float BIB_MOOS_ANTEIL = 0.45;
+const float BIB_REIHE_KANTE = 0.45;              // Dächer ohne Modellreihen: so viel dunkler an der Unterkante jeder Reihe
+const float BIB_REIHE_NEIGUNG = 0.25;            // … und so weit kippt jede Reihe (Normale), wie die Sägezähne der Modelle
 
 // Elf Schichten (tools/oberflaeche/texturen.py): 0–8 die Materialarten 1–9, 9 Pflaster (Mauer von oben), 10 Flecken.
 // R Helligkeit, G Farbton (+ warm, − kühl), B/A Neigung der Fläche in U/V – alle um 128 als „nichts“.
@@ -69,7 +74,9 @@ varying vec3 ort;
 varying vec3 ort_n;
 varying vec3 welt;
 varying flat int v_art;
+varying flat int v_bib;
 varying flat int v_zone;
+varying flat int v_reihen;
 varying vec3 eckfarbe;
 
 void vertex() {
@@ -81,8 +88,12 @@ void vertex() {
 	ort = VERTEX;
 	ort_n = NORMAL;
 	welt = (MODEL_MATRIX * vec4(VERTEX, 1.0)).xyz;
-	v_art = art_aus_uv ? int(round(UV.y)) : art;
+	// UV.y bei art_aus_uv: Art + 16 · (Schicht der Bibliothek + 1); ältere Modelle haben nur die Art (dann keine Schicht)
+	int code = art_aus_uv ? int(round(UV.y)) : art;
+	v_art = art_aus_uv ? code % 16 : art;
+	v_bib = art_aus_uv ? code / 16 - 1 : -1;
 	v_zone = int(round(UV.x));
+	v_reihen = zonen ? 0 : int(round(UV.x));   // 1: Dachfläche ohne Modellreihen (bausteine.py, Netz.objekt) – der Shader zeichnet sie
 	if (v_art == 8 && !zonen) VERTEX += wetter_laub(VERTEX, welt, MODEL_MATRIX, TIME); // Wetter: Laub im Wind
 }
 
@@ -103,9 +114,12 @@ void fragment() {
 		else if (v_zone == 5) grund = kopfbedeckung.rgb;
 	}
 	float rau = rauheit;   // Rauheit nach Bibliothek bzw. Modell; das Wetter (Nässe) ändert sie danach
-	if (bib >= 0 && bib_stufe > 0) {
+	int b = (art_aus_uv && v_bib >= 0) ? v_bib : bib;
+	if (b >= 0 && b < BIB_MAX && bib_stufe > 0) {
 		bool normalen = bib_stufe >= 2;
-		float s = 1.0 / bib_kachel;
+		float s = 1.0 / bib_kacheln[b];
+		bool bib_dach = bib_projektion[b] >= 1;
+		bool bib_reihen = bib_projektion[b] == 2;
 		vec3 n = normalize(ort_n);
 		// Eine Projektion je Fläche, an ihrer Normalen ausgerichtet (die Modelle sind kantig schattiert, die Normale ist je Fläche fest):
 		// u waagerecht in der Fläche, v die Fläche hinauf – an Wänden senkrecht (Lagen laufen um die Ecken weiter), auf Dächern
@@ -117,22 +131,35 @@ void fragment() {
 		vec2 uv = vec2(dot(ort, u), -dot(ort, v)) * s;
 		vec2 uv_dx = dFdx(uv), uv_dy = dFdy(uv);
 		float reihe = 0.0;
+		float kante = 1.0;
+		float kippen = 0.0;
 		if (bib_reihen && !liegend) {
 			// Die Reihen hat das Modell: jede Ziegel- oder Schieferreihe eine eigene, leicht gekippte Fläche (Sägezahn,
 			// tools/modelle/bausteine.py, zaehne). Ihr Abstand vom Ursprung, dot(ort, n), ist auf der ganzen Fläche gleich und springt
 			// von Reihe zu Reihe um einige Zentimeter. Daraus je Reihe ein Versatz der Spalten (Fugen versetzt wie beim Decken, kein
 			// Karomuster) und ein Helligkeitsunterschied. Stetig in d statt eines Würfels: Rechenrauschen verschiebt nichts sichtbar.
 			float d = dot(ort, n);
+			if (v_reihen == 1) {
+				// Dachfläche ohne Modellreihen (Turmhelm, Pultdach, Halle): die Reihen hier zeichnen – je Reihe ein Sprung in d wie
+				// beim Sägezahn, an der Unterkante dunkler (Stoß und Schatten der Reihe darüber) und die Reihe leicht gekippt.
+				float pv = dot(ort, v) / bib_reihe[b];
+				float r = floor(pv);
+				float fr = pv - r;
+				d = r * 0.0537;
+				float breite = fwidth(pv);            // weich, wo eine Reihe nur wenige Bildpunkte hoch ist (keine flimmernden Linien)
+				kante = 1.0 - BIB_REIHE_KANTE * (1.0 - smoothstep(0.0, 0.12 + breite, fr)) * (1.0 - smoothstep(0.25, 0.6, breite));
+				kippen = BIB_REIHE_NEIGUNG * (1.0 - smoothstep(0.25, 0.6, breite));
+			}
 			uv.x += d * 7.31 + 0.37 * sin(d * 113.0) + 0.23 * sin(d * 271.0);
 			reihe = sin(d * 157.0 + 1.3 * sin(d * 59.0));
 		}
-		vec4 fh = textureGrad(bib_farbe, vec3(uv, float(bib)), uv_dx, uv_dy);
-		vec4 nr = normalen ? textureGrad(bib_nr, vec3(uv, float(bib)), uv_dx, uv_dy) : vec4(0.5, 0.5, 0.0, 1.0);
+		vec4 fh = textureGrad(bib_farbe, vec3(uv, float(b)), uv_dx, uv_dy);
+		vec4 nr = normalen ? textureGrad(bib_nr, vec3(uv, float(b)), uv_dx, uv_dy) : vec4(0.5, 0.5, 0.0, 1.0);
 		vec2 t = nr.rg * 2.0 - 1.0;
-		vec3 neigung = u * t.x + v * t.y;     // Neigung der Fläche (Objektkoordinaten) aus der Normalen der Textur
+		vec3 neigung = u * t.x + v * (t.y + kippen);     // Neigung der Fläche (Objektkoordinaten) aus der Normalen der Textur
 		vec2 uf = vec2(welt.x + welt.y * 0.6, welt.z - welt.y * 0.4) / FLECKEN_GROESSE;
 		vec4 f = lesen(uf, dFdx(uf), dFdy(uf), 10.0);
-		grund *= fh.rgb / bib_mittel * (1.0 + FLECKEN_HELL * f.r) * (1.0 + FLECKEN_TON * f.g * WARM) * (1.0 + BIB_REIHE_HELL * reihe);
+		grund *= fh.rgb / bib_mittel[b] * (1.0 + FLECKEN_HELL * f.r) * (1.0 + FLECKEN_TON * f.g * WARM) * (1.0 + BIB_REIHE_HELL * reihe) * kante;
 		if (bib_reihen && !liegend) {
 			// Verwitterung über die Reihen hinweg, in Dachkoordinaten ohne Versatz (je Haus verschoben): dunkle Laufspuren in
 			// Fallrichtung (die Flecken schmal und lang gezogen) und Moosflecken, mehr auf der Nordseite (−z).

@@ -1,4 +1,4 @@
-"""Material-Bibliothek für die Modelle (Modell-Texturen, Gruppe 1) – in Blender modelliert und mit Cycles von vorn gebacken.
+"""Material-Bibliothek für die Modelle (Modell-Texturen, Gruppen 1 und 2) – in Blender modelliert und mit Cycles von vorn gebacken.
 
     ~/werkzeuge/blender/blender.sh -b --python tools/oberflaeche/materialien_blender.py -- [Optionen]
 
@@ -51,12 +51,19 @@ ZWISCHEN = os.path.expanduser(_opt.get("zwischen", "~/.cache/reichsgilde/materia
 bt.ZWISCHEN = ZWISCHEN
 
 # Name, Kachelgröße in Metern, Projektion (wand: an der Fläche ausgerichtet; dach: entlang der Dachneigung; reihen: dazu die
-# Spalten je Modellreihe versetzt, für Deckungen, deren Reihen das Modell als Form hat)
+# Spalten je Modellreihe versetzt, für Deckungen, deren Reihen das Modell als Form hat). Neue Materialien kommen ans Ende:
+# Die Nummer der Schicht steht in Modellen mit „Farben“ je Fläche im Netz (tools/modelle/bausteine.py, arten_setzen).
 SCHICHTEN = [
     ("bruchstein", 2.4, "wand"), ("quader", 2.4, "wand"), ("kalkputz", 3.0, "wand"), ("lehmputz", 2.0, "wand"),
     ("fachwerkholz", 1.6, "wand"), ("bretter", 2.0, "wand"), ("dachziegel", 1.2, "reihen"), ("schiefer", 1.2, "reihen"),
     ("stroh", 1.5, "dach"), ("sandstein", 1.5, "wand"), ("ziegelstein", 1.2, "wand"),
+    # Gruppe 2
+    ("eisen", 0.8, "wand"), ("kupfer", 1.2, "dach"), ("holzschindeln", 1.2, "reihen"), ("leder", 0.6, "wand"),
+    ("tuch", 0.5, "wand"), ("farbholz", 1.2, "wand"),
 ]
+# Höhe einer Reihe (Meter) für Deckungen mit Projektion „reihen“ – wie in tools/modelle/bausteine.py (ZIEGEL, SCHIEFER,
+# SCHINDEL). Damit zeichnet der Shader Reihen auf Dachflächen, die das Modell ohne Reihen hat (Turmhelme, Pultdächer).
+REIHE = {"dachziegel": 0.45, "schiefer": 0.32, "holzschindeln": 0.28}
 NAMEN = [s[0] for s in SCHICHTEN]
 KACHEL = {s[0]: s[1] for s in SCHICHTEN}
 
@@ -511,9 +518,202 @@ def ziegelstein(rng):
     return 0.55, 1.0
 
 
+# ─── Gruppe 2 (Kirche, Rathaus, Werkstätten): Metall, Schindeln, Leder, Tuch, gestrichenes Holz ───
+
+def eisen(rng):
+    """Geschmiedetes Eisen (Beschläge, Bänder, Gitter, Firstblech): Hammerschläge als flache Mulden mit Graten dazwischen,
+    dunkler Zunder, Rost in Flecken und als Laufspur nach unten, feine Narben. Die Rauheit liegt im Mittel bei 0,9 wie bei
+    allen Materialien (der Shader verschiebt sie auf die des Modells, Eisen 0,45): blanke Grate glatter, Rost rauer."""
+    x, y = raster()
+    wx, wy = bt.verzerrt(x, y, 0.004, [0.04, 0.012], 121)
+    nummer, f1, f2, _, _ = zellen2(wx, wy, 22, 22, 122, 0.9)       # Hammerschläge, etwa 3,6 cm
+    anzahl = 22 * 22
+    tiefe = 0.25 + 0.75 * je_zelle(nummer, 123, anzahl)
+    mulde = (f1 / (K() / 22)) ** 2                                    # 0 in der Mitte des Schlags, am Grat ≈ 1
+    grat = 1 - glatt(0.0, 0.004, (f2 - f1) / 2)
+    narben = glatt(0.72, 0.9, rauschen(0.003, 124))
+    rost = glatt(0.58, 0.8, fbm(125, [0.12, 0.04, 0.015]))
+    lauf = glatt(0.55, 0.85, streifen(0.08, 126, 9.0)) * glatt(0.3, 0.7, fbm(127, [0.25]))
+    h = 0.0006 * tiefe * np.clip(mulde, 0, 1.5) + 0.0002 * grat - 0.0003 * narben + 0.0005 * rost * fbm(128, [0.01, 0.004])
+    metall = mische(srgb("#3e3f43"), srgb("#2c2d31"), fbm(129, [0.2, 0.05]))
+    metall *= (0.92 + 0.12 * (1 - np.clip(mulde, 0, 1)) * tiefe)[..., None]   # Mitte der Schläge etwas heller (blank)
+    metall = mische(metall, srgb("#4a4c52"), 0.5 * grat)
+    metall = mische(metall, srgb("#26283a"), 0.25 * glatt(0.6, 0.85, fbm(130, [0.06, 0.02])))   # bläulicher Zunder
+    rostfarbe = mische(srgb("#6a3a22"), srgb("#7e4a2a"), fbm(131, [0.02, 0.006]))
+    farbe = mische(metall, rostfarbe, 0.85 * rost)
+    farbe = mische(farbe, srgb("#5a3424"), 0.35 * lauf * (1 - rost))
+    farbe = mische(farbe, srgb("#1c1c1e"), 0.6 * narben)
+    flaechennetz(h, farbe, 0.84 - 0.08 * grat + 0.14 * rost + 0.06 * lauf)
+    return 0.45, 1.0
+
+
+def kupfer(rng):
+    """Kupferblech mit Patina (Dachreiter, Turmhelme, Ziertürme; auch gestrichene Blechspitzen): Bahnen von 60 cm mit
+    stehenden Falzen in Fallrichtung, liegende Querfalze je Bahn versetzt, leicht gebeult. Patina fleckig, hellere
+    Laufspuren vom Regen, dunkle Stellen unter den Falzen."""
+    x, y = raster()
+    k = K()
+    bahnen = 2
+    b = k / bahnen
+    bahn = np.clip((x // b).astype(int), 0, bahnen - 1)
+    t = x / b - bahn
+    falz = 1 - glatt(0.004, 0.009, np.minimum(t, 1 - t) * b)          # stehender Falz, etwa 1,5 cm breit
+    quer = np.zeros_like(x)
+    for i in range(bahnen):                                           # Querfalze, je Bahn versetzt (3 je Kachel)
+        s = bahn == i
+        v = ((y[s] + i * k / 6) % (k / 3)) / (k / 3)
+        quer[s] = 1 - glatt(0.0, 0.012, np.minimum(v, 1 - v))
+    beule = fbm(141, [0.25, 0.08])
+    hieb = fbm(142, [0.02, 0.008])
+    h = 0.006 * falz + 0.0012 * quer + 0.0015 * beule + 0.0003 * hieb
+    lauf = glatt(0.5, 0.85, streifen(0.12, 143, 8.0))
+    flecken = fbm(144, [0.2, 0.06, 0.02])
+    farbe = mische(srgb("#5c8a74"), srgb("#4e7a66"), glatt(0.3, 0.7, flecken))
+    farbe = mische(farbe, srgb("#78a894"), 0.45 * lauf)                 # hellere Patina, wo das Wasser läuft
+    farbe = mische(farbe, srgb("#4a5640"), 0.4 * glatt(0.72, 0.9, fbm(145, [0.08, 0.02])))   # dünne Patina, Kupfer schaut durch
+    farbe = mische(farbe, srgb("#3a5244"), 0.5 * glatt(0.0, 1.0, quer) + 0.3 * falz)          # Schmutz an den Falzen
+    farbe *= (0.95 + 0.08 * hieb)[..., None]
+    flaechennetz(h, farbe, 0.9 - 0.06 * falz + 0.04 * lauf)
+    return 0.5, 1.0
+
+
+def holzschindeln(rng):
+    """Holzschindeln, nur die Spalten (versetzt wie beim Dachziegel, Projektion „reihen“): Schindeln von 8–16 cm Breite,
+    gespalten, Maserung längs, leicht gewölbt, Risse; vergrautes, morsches Holz mit Moos in den Fugen und Flechten. Farbe je
+    Spalte fest und nah beieinander (die Reihen verschiebt der Shader)."""
+    x, y = raster()
+    k = K()
+    b = rng.uniform(0.08, 0.16, 14)
+    n = max(5, int(round(k / b.mean())))
+    b = rng.uniform(0.08, 0.16, n)
+    b *= k / b.sum()
+    kanten = np.concatenate([[0], np.cumsum(b)])
+    wx = x + 0.006 * (fbm(151, [0.1, 0.03]) - 0.5)
+    sp = np.clip(np.searchsorted(kanten, wx, side="right") - 1, 0, n - 1)
+    t = (wx - kanten[sp]) / b[sp]
+    rand = np.minimum(wx - kanten[sp], kanten[sp + 1] - wx)
+    fuge = glatt(0.002, 0.005, rand)
+    hoehe = np.zeros_like(x)
+    linie = np.zeros_like(x)
+    for i in range(n):                                                # je Schindel eine eigene Maserung
+        s = sp == i
+        hh, ll, _ = maserung(x + rng.random() * 0.4, y + rng.random() * k, 152 + 11 * i, ring=rng.uniform(0.006, 0.012))
+        hoehe[s], linie[s] = hh[s], ll[s]
+    riss = np.zeros_like(x)
+    for _ in range(14):                                               # Spaltrisse längs der Faser
+        x0, y0 = rng.random() * k, rng.random() * k
+        laenge = rng.uniform(0.1, 0.4)
+        ddy = (y - y0 + k / 2) % k - k / 2
+        ddx = (x - x0 + k / 2) % k - k / 2 - 0.003 * np.sin(ddy * 40)
+        auf = np.clip(1 - np.abs(ddy) / (laenge / 2), 0, 1) ** 0.5
+        riss = np.maximum(riss, (1 - glatt(0.0, 0.0015 * auf + 1e-5, np.abs(ddx))) * (auf > 0))
+    h = fuge * (0.003 * (1 - (2 * t - 1) ** 2) + 0.0012 * hoehe - 0.002 * riss) - 0.006 * (1 - fuge)
+    ton = palette(rng, n, [("#6e6252", 3), ("#665a4a", 2), ("#74685a", 2), ("#5e5446", 1)])
+    ton = ton / ton.mean(0) * np.array(srgb("#6a5e4e")) * rng.uniform(0.95, 1.05, n)[:, None]
+    farbe = ton[sp]
+    farbe = mische(farbe, farbe * 0.72, 0.5 * linie)
+    farbe *= (0.92 + 0.12 * hoehe)[..., None]
+    farbe = mische(farbe, srgb("#8a867a"), 0.25 * glatt(0.5, 0.85, streifen(0.15, 153, 6.0)))   # vergraut
+    flechte = glatt(0.84, 0.9, fbm(154, [0.03, 0.01]))
+    farbe = mische(farbe, srgb("#a8a48a"), 0.4 * flechte)
+    moos = glatt(0.5, 0.8, fbm(155, [0.12, 0.04])) * (1 - glatt(0.002, 0.012, rand))
+    farbe = mische(farbe, srgb("#4a5428"), 0.6 * moos)
+    farbe = mische(farbe, srgb("#1e1812"), 0.85 * np.maximum(1 - fuge, riss))
+    flaechennetz(h + 0.0008 * moos, farbe, 0.88 + 0.06 * moos)
+    return 0.5, 1.0
+
+
+def leder(rng):
+    """Leder (Blasebalg, Schurz, Sattel, Eimer): feines Narbenbild aus kleinen Buckeln, Knitterfalten, abgegriffene hellere
+    Stellen und dunklere Flecken vom Fett."""
+    x, y = raster()
+    wx, wy = bt.verzerrt(x, y, 0.002, [0.02, 0.006], 161)
+    nummer, f1, f2, _, _ = zellen2(wx, wy, 110, 110, 162, 0.9)        # Narben, etwa 5 mm
+    narbe = glatt(0.0, 0.0012, (f2 - f1) / 2)
+    falten = np.zeros_like(x)
+    for i in range(3):                                                # Knitterfalten: schmale Täler aus Rauschen
+        r = rauschen(0.12, 163 + i, 3.0 if i % 2 else 0.33)
+        falten = np.maximum(falten, 1 - glatt(0.0, 0.025, np.abs(r - 0.5)))
+    griff = glatt(0.55, 0.85, fbm(166, [0.2, 0.06]))
+    h = 0.00025 * narbe + 0.0003 * je_zelle(nummer, 167, 110 * 110) * narbe - 0.0006 * falten + 0.001 * fbm(168, [0.15])
+    farbe = mische(srgb("#5e3e28"), srgb("#4c3020"), fbm(169, [0.1, 0.03]))
+    farbe = mische(farbe, srgb("#7a5838"), 0.4 * griff)
+    farbe = mische(farbe, srgb("#3a2618"), 0.35 * glatt(0.65, 0.88, fbm(170, [0.08, 0.025])))
+    farbe *= (0.92 + 0.1 * narbe)[..., None]
+    farbe = mische(farbe, srgb("#2e1e14"), 0.5 * falten)
+    flaechennetz(h, farbe, 0.92 - 0.12 * griff)
+    return 0.4, 0.9
+
+
+def tuch(rng):
+    """Grobes Leinen (Lumpen, Planen, Säcke, Tücher): Leinwandbindung mit ungleich dicken Fäden (Noppen), Falten,
+    Flecken. Die Fäden laufen ganzzahlig über die Kachel (nahtlos)."""
+    x, y = raster()
+    k = K()
+    faeden = int(round(k / 0.0024))                                   # etwa 2,4 mm je Faden
+    u, v = x * faeden / k, y * faeden / k
+    i, j = np.floor(u).astype(int), np.floor(v).astype(int)
+    fu, fv = u - i, v - j
+    dick_kette = 0.75 + 0.5 * np.random.default_rng(171).random(faeden)[i % faeden]
+    dick_schuss = 0.75 + 0.5 * np.random.default_rng(172).random(faeden)[j % faeden]
+    noppen_k = glatt(0.7, 0.95, rauschen(0.02, 173, 5.0)) * 0.6       # Noppen: lang in Fadenrichtung
+    noppen_s = glatt(0.7, 0.95, rauschen(0.02, 174, 0.2)) * 0.6
+    oben = (i + j) % 2 == 0                                           # Kette oben, sonst Schuss oben
+    kette = np.sin(np.pi * fu) ** 0.7 * (dick_kette + noppen_k)
+    schuss = np.sin(np.pi * fv) ** 0.7 * (dick_schuss + noppen_s)
+    gewebe = np.where(oben, np.maximum(kette, 0.6 * schuss), np.maximum(schuss, 0.6 * kette))
+    falten = fbm(175, [0.2, 0.07])
+    h = 0.00035 * gewebe + 0.004 * falten
+    farbe = mische(srgb("#b4a688"), srgb("#a29276"), fbm(176, [0.08, 0.02]))
+    faden = np.where(oben, np.random.default_rng(177).random(faeden)[i % faeden],
+                     np.random.default_rng(178).random(faeden)[j % faeden])
+    farbe *= (0.86 + 0.16 * faden + 0.1 * (gewebe - 0.5))[..., None]
+    farbe = mische(farbe, srgb("#7a6c56"), 0.35 * glatt(0.68, 0.9, fbm(179, [0.06, 0.02])))   # Flecken
+    farbe = mische(farbe, srgb("#4a4236"), 0.3 * (1 - glatt(0.2, 0.6, gewebe)))                # Lücken im Gewebe
+    flaechennetz(h, farbe, 0.95)
+    return 0.4, 0.9
+
+
+def farbholz(rng):
+    """Gestrichene Bretter (Hausfarbe, Stadtfarben: Läden, Türen, Tore, Wappen): senkrechte Bretter von 10–18 cm mit Fugen,
+    darüber deckende Farbe – die Maserung zeichnet sich nur schwach ab, Pinselstriche, Haarrisse; an Kanten und in Flecken
+    abgeblättert (dunkleres, vergrautes Holz). Die Farbe selbst gibt das Modell (das Spiel färbt um)."""
+    x, y = raster()
+    k = K()
+    b = rng.uniform(0.1, 0.18, 12)
+    n = max(4, int(round(k / b.mean())))
+    b = rng.uniform(0.1, 0.18, n)
+    b *= k / b.sum()
+    kanten = np.concatenate([[0], np.cumsum(b)])
+    brett = np.clip(np.searchsorted(kanten, x, side="right") - 1, 0, n - 1)
+    t = (x - kanten[brett]) / b[brett]
+    rand = np.minimum(x - kanten[brett], kanten[brett + 1] - x) + 0.0015 * (fbm(181, [0.2, 0.05]) - 0.5)
+    fuge = glatt(0.002, 0.005, rand)
+    hoehe = np.zeros_like(x)
+    for i in range(n):
+        s = brett == i
+        hh, _, _ = maserung(x + rng.random() * 0.5, y + rng.random() * k, 182 + 10 * i, ring=rng.uniform(0.008, 0.014))
+        hoehe[s] = hh[s]
+    pinsel = streifen(0.006, 183, 25.0)
+    ab = glatt(0.68, 0.8, fbm(184, [0.1, 0.03, 0.01]) + 0.25 * (1 - glatt(0.004, 0.025, rand)))   # abgeblättert
+    haar = 1 - glatt(0.0, 0.02, np.abs(rauschen(0.05, 185, 0.15) - 0.5))   # Haarrisse quer zur Faser
+    h = fuge * (0.002 * (1 - (2 * t - 1) ** 2) + 0.0004 * hoehe + 0.00012 * pinsel - 0.0003 * ab) - 0.008 * (1 - fuge)
+    farbe = np.ones(x.shape + (3,)) * np.array(srgb("#b8b4ac"))
+    farbe *= (0.95 + 0.06 * hoehe + 0.04 * pinsel)[..., None]
+    farbe *= (0.97 + 0.06 * je_zelle(brett, 186, n))[..., None]       # je Brett etwas anders ausgeblichen
+    farbe = mische(farbe, srgb("#c8c4bc"), 0.25 * glatt(0.5, 0.85, streifen(0.25, 187, 5.0)))
+    holz = mische(srgb("#706658"), srgb("#5a5246"), hoehe)
+    farbe = mische(farbe, holz, 0.75 * ab)
+    farbe = mische(farbe, srgb("#5a564e"), 0.3 * haar * (1 - ab))
+    farbe = mische(farbe, srgb("#1a1612"), 0.9 * (1 - fuge))
+    flaechennetz(h, farbe, 0.82 + 0.14 * ab)
+    return 0.45, 0.9
+
+
 MATERIALIEN = {"bruchstein": bruchstein, "quader": quader, "kalkputz": kalkputz, "lehmputz": lehmputz,
                "fachwerkholz": fachwerkholz, "bretter": bretter, "dachziegel": dachziegel, "schiefer": schiefer,
-               "stroh": stroh, "sandstein": sandstein, "ziegelstein": ziegelstein}
+               "stroh": stroh, "sandstein": sandstein, "ziegelstein": ziegelstein, "eisen": eisen, "kupfer": kupfer,
+               "holzschindeln": holzschindeln, "leder": leder, "tuch": tuch, "farbholz": farbholz}
 
 
 # ═════════════════════════════════════════════════════════════════════════════
@@ -600,7 +800,7 @@ def packen():
             mittel[name] = linear(p[i * N:(i + 1) * N]).reshape(-1, 3).mean(0)
         daten = json.load(open(DATEN, encoding="utf-8")) if os.path.exists(DATEN) else {}
         daten["schichten"] = [{"name": name, "kachel": groesse, "projektion": projektion,
-                               "mittel": [round(float(c), 5) for c in mittel[name]]}
+                               "mittel": [round(float(c), 5) for c in mittel[name]], **({"reihe": REIHE[name]} if name in REIHE else {})}
                               for name, groesse, projektion in SCHICHTEN]
         schreiben_json(daten)
     ziel = VORSCHAU if N == 1024 else os.path.join(ZWISCHEN, "vorschau")
