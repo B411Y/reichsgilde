@@ -37,6 +37,7 @@ bs.FARBEN.update({
     "Silbererz": (0.60, 0.61, 0.63),
     "Schilf": (0.47, 0.50, 0.29),
     "Segeltuch": (0.80, 0.76, 0.64),       # Bespannung der Mühlenflügel
+    "Blockholz": (0.33, 0.27, 0.20),       # liegende Stämme der Blockhütten (Farbe wie „Holz alt“, Textur waagerechte Planken)
 })
 
 ZUSTAENDE = ("Leerstand",)
@@ -67,7 +68,7 @@ def huette(netz, st, x0, x1, y0, y1, h, wand="bretter", deckung=bs.SCHIEFER, nei
     Bretter im Leerstand) und dem Punkt vor der Tür zurück."""
     L, T = x1 - x0, y1 - y0
     cx, cy = (x0 + x1) / 2, (y0 + y1) / 2
-    stoffe = {"bretter": "Holz alt", "block": "Holz alt", "fachwerk": "Lehmputz", "putz": "Putz", "stein": "Bruchstein"}
+    stoffe = {"bretter": "Holz alt", "block": "Blockholz", "fachwerk": "Lehmputz", "putz": "Putz", "stein": "Bruchstein"}
     m_wand = st[stoffe[wand]]
     netz.quader((cx, cy, sockel / 2), (L + 0.1, T + 0.1, sockel), st["Bruchstein dunkel"], ohne=("-z",))
     netz.quader((cx, cy, sockel + h / 2), (L, T, h), m_wand, ohne=("+z", "-z"))
@@ -100,8 +101,6 @@ def huette(netz, st, x0, x1, y0, y1, h, wand="bretter", deckung=bs.SCHIEFER, nei
             bs.steingiebel(netz, st, M, T, hoch, oeffnungen, mit_fenster=giebel_fenster)
         else:
             bs.platte(netz, M, [(-T / 2, 0), (T / 2, 0), (0, hoch)], 0, 0.3, m_wand)
-            if wand in ("bretter", "block"):
-                senkrechte_fugen(netz, st, M, T, 0, hoch, schraeg=hoch / (T / 2))
             if giebel_fenster and hoch > 1.4:
                 o = Oeffnung("fenster", 0.0, 0.35, 0.5, 0.55, laeden=False)
                 bs.fenster(netz, M, o, st, kreuz=None)
@@ -111,22 +110,16 @@ def huette(netz, st, x0, x1, y0, y1, h, wand="bretter", deckung=bs.SCHIEFER, nei
 
 
 def wandbild(netz, st, M, L, H, oeffnungen, wand, saat=0, ecken=True):
-    """Oberfläche einer Hüttenwand: Fachwerk, Bretterfugen und Eckbretter oder Stammfugen und Vorköpfe (die Steinwand zeichnen
-    die Oberflächendetails). `ecken`: Vorköpfe der Blockwand an dieser Wand (nur an zwei gegenüberliegenden Wänden, sonst
-    lägen sie doppelt)."""
+    """Oberfläche einer Hüttenwand: Fachwerk, Eckbretter oder Vorköpfe. Bretter, Stämme und Steine zeichnen die Oberflächendetails
+    (Material-Bibliothek: „Holz alt“ senkrechte Bretter, „Blockholz“ waagerechte Planken) – keine modellierten Fugen mehr.
+    `ecken`: Vorköpfe der Blockwand an dieser Wand (nur an zwei gegenüberliegenden Wänden, sonst lägen sie doppelt)."""
     if wand == "fachwerk":
         # etwas kürzer als die Wand: sonst liegen die Hirnenden von Schwelle und Rähm in der Nachbarwand
         bs.fachwerk(netz, M, L - 0.06, H, oeffnungen, st, schief=0.04, saat=saat)
     elif wand == "bretter":
-        senkrechte_fugen(netz, st, M, L, 0, H)
         for u in (-L / 2 + 0.1, L / 2 - 0.1):                    # Eckbretter (nicht bündig mit der Nachbarwand)
             bs.balken(netz, M, u, 0, u, H, st["Holz"], vor=0.03, breite=0.14)
     elif wand == "block":
-        v = 0.27
-        while v < H - 0.1:                                       # Fugen zwischen den Stämmen
-            netz.vieleck([M @ Vector(p) for p in ((-L / 2, -0.003, v - 0.025), (L / 2, -0.003, v - 0.025),
-                                                   (L / 2, -0.003, v + 0.025), (-L / 2, -0.003, v + 0.025))], st["Fachwerk"])
-            v += 0.3
         for s in ((-1, 1) if ecken else ()):                     # Vorköpfe an den Ecken
             k = 0
             v = 0.12 + (0.15 if s > 0 else 0)
@@ -134,18 +127,6 @@ def wandbild(netz, st, M, L, H, oeffnungen, wand, saat=0, ecken=True):
                 netz.quader(M @ Vector((s * (L / 2 + 0.12), -0.12, v)), (0.26, 0.26, 0.24), st["Scheitholz"])
                 v += 0.6
                 k += 1
-
-
-def senkrechte_fugen(netz, st, M, L, v0, v1, abstand=0.32, schraeg=None):
-    """Fugen zwischen senkrechten Brettern; `schraeg`: Giebel, die Fuge endet an der Dachschräge."""
-    u = -L / 2 + abstand
-    while u < L / 2 - 0.05:
-        oben = v1 if schraeg is None else v1 - abs(u) * schraeg
-        if oben - v0 > 0.15:
-            netz.vieleck([M @ Vector(p) for p in ((u - 0.012, -0.003, v0), (u + 0.012, -0.003, v0),
-                                                   (u + 0.012, -0.003, oben - 0.05), (u - 0.012, -0.003, oben - 0.05))],
-                         st["Fachwerk"])
-        u += abstand
 
 
 def vernageln(netz, st, oeffnungen):
@@ -358,6 +339,7 @@ def knoten(haus, arbeit, fahne, leer, anker):
 def ausgeben(name, flaeche, objekte, ziel_hoehe=2.5, ausschnitt=26.0):
     """Export und Vorschaubilder: In Betrieb und Leerstand nebeneinander, rundum, Anker, Nacht."""
     bericht(name, objekte)
+    bs.BIBLIOTHEK_JE_FLAECHE = True         # Modell-Texturen, Gruppe 3: Material-Bibliothek je Fläche (Material „Farben“)
     vorher, nachher = bs.farben_zusammenlegen(objekte)
     print(f"  Materialien: {vorher} → {nachher}")
     print("geschrieben:", bs.exportieren(name, objekte))
