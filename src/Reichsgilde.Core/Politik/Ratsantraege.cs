@@ -308,7 +308,7 @@ public sealed class Ratsantraege
                 continue;
             }
             var kosten = Kosten(a);
-            if (kosten > Kasse.Stand + 1e-9)
+            if (kosten > 0 && kosten > Kasse.Stand + 1e-9)
             {
                 protokoll($"{was} angenommen {stimmen}, aber die Stadtkasse reicht nicht mehr ({Zahlenformat.Ganz(Kasse.Stand)} {waehrung}).");
                 continue;
