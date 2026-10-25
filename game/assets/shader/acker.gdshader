@@ -73,7 +73,7 @@ void fragment() {
 	}
 	// Schnee: in den Furchen bleibt er länger liegen als auf den Kämmen
 	float schnee = clamp(schnee_decke(welt.xz, 1.0) * (1.0 - 0.35 * max(welle, 0.0)), 0.0, 1.0);
-	grund = mix(grund, vec3(0.86, 0.89, 0.94), schnee);
+	grund = mix(grund, vec3(0.68, 0.7, 0.75), schnee);
 
 	// Unebenheit im Licht: Der Kamm neigt die Fläche quer zu den Furchen (Richtung quer über das Stück in Weltkoordinaten)
 	vec3 quer = vec3(cos(UV2.x), 0.0, -sin(UV2.x));

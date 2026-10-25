@@ -189,7 +189,7 @@ void vertex() {
 		c = mix(c * vec3(0.9, 0.86, 0.68), c, smoothstep(0.3, 0.9, tritt));
 		// Jahreszeit, Nässe und Schnee wie die Wiese darunter (wetter.gdshaderinc)
 		c = jahreszeit_wiese(c) * (1.0 - 0.25 * wetter_naesse);
-		farbe = mix(c, vec3(0.8, 0.83, 0.88), schnee * 0.5);
+		farbe = mix(c, vec3(0.66, 0.68, 0.73), schnee * 0.5);
 	}
 }
 

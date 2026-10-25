@@ -107,7 +107,7 @@ void wetter_boden(inout vec3 bf, inout float rau, inout vec3 nw, inout vec3 leuc
 		float matsch = aufweg * d * (1.0 - deck);
 		bf = mix(bf, bf * vec3(0.58, 0.55, 0.52), matsch * 0.75);
 		rau = mix(rau, 0.45, matsch);
-		vec3 weiss = vec3(0.8, 0.83, 0.88) * (0.94 + 0.06 * (1.0 - tiefe)) * mix(1.0, 0.86, stadt);
+		vec3 weiss = vec3(0.66, 0.68, 0.73) * (0.94 + 0.06 * (1.0 - tiefe)) * mix(1.0, 0.86, stadt);
 		bf = mix(bf, weiss, deck);
 		rau = mix(rau, 0.7, deck);
 		nw = normalize(mix(nw, n, deck * 0.7));
@@ -126,7 +126,7 @@ void wetter_flaeche(inout vec3 c, inout float rau, vec3 wn, vec3 wp) {
 	if (wetter_dach > 0.001) {
 		float f = w_rausch(wp.xz * 0.9 + wp.y * 0.37) * 0.6 + w_rausch(wp.xz * 3.7 + wp.y) * 0.4;
 		float d = smoothstep(0.32, 0.55, wn.y + (f - 0.5) * 0.25) * clamp(wetter_dach * 1.5 - 0.3 + (f - 0.5) * 0.7, 0.0, 1.0);
-		c = mix(c, vec3(0.84, 0.87, 0.92), d);
+		c = mix(c, vec3(0.7, 0.72, 0.77), d);
 		rau = mix(rau, 0.75, d);
 	}
 }

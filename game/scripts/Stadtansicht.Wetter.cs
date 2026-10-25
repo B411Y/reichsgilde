@@ -334,7 +334,9 @@ public partial class Stadtansicht
         if (nebel > 0.01f)
         {
             var licht = umgebung.AmbientLightColor * umgebung.AmbientLightEnergy + _sonne.LightColor * _sonne.LightEnergy * 0.35f;
-            umgebung.FogLightColor = new Color(licht.R, licht.G, licht.B);
+            var farbe = new Color(licht.R, licht.G, licht.B);
+            var alt = umgebung.FogLightColor;
+            if (Mathf.Abs(farbe.R - alt.R) + Mathf.Abs(farbe.G - alt.G) + Mathf.Abs(farbe.B - alt.B) > 0.006f) umgebung.FogLightColor = farbe;
         }
     }
 
@@ -463,6 +465,7 @@ public partial class Stadtansicht
             teil.Visible = an;
             teil.Emitting = an;
         }
-        if (an) teil.AmountRatio = Mathf.Clamp(staerke * 1.25f, 0.05f, 1f);
+        var anteil = Mathf.Snapped(Mathf.Clamp(staerke * 1.25f, 0.05f, 1f), 0.02f); // nur in Stufen setzen: jede Änderung geht an den RenderingServer
+        if (an && Mathf.Abs(teil.AmountRatio - anteil) > 0.001f) teil.AmountRatio = anteil;
     }
 }
