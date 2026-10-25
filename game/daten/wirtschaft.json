@@ -1569,13 +1569,13 @@
     "staedte": [
       {
         "name": "Eisenfurt", "richtung": "flussauf", "entfernung": 1.2, "zollstellen": 2,
-        "verkauft": {"Eisen": {"faktor": 0.6, "menge": 120}, "Holz": {"faktor": 0.6, "menge": 120}, "Bruchstein": {"faktor": 0.6, "menge": 120}, "Granit": {"faktor": 0.65, "menge": 72}, "Silber": {"faktor": 0.7, "menge": 72}},
-        "kauft": {"Körnermahlzeit": {"faktor": 1.5, "menge": 50}, "Dünnbier": {"faktor": 1.45, "menge": 50}, "Starkbier": {"faktor": 1.45, "menge": 40}, "Kerze": {"faktor": 1.5, "menge": 50}, "Werkzeug": {"faktor": 1.5, "menge": 40}}
+        "verkauft": {"Eisen": {"faktor": 0.75, "menge": 120}, "Holz": {"faktor": 0.75, "menge": 120}, "Bruchstein": {"faktor": 0.75, "menge": 120}, "Granit": {"faktor": 0.8, "menge": 72}, "Silber": {"faktor": 0.85, "menge": 72}},
+        "kauft": {"Körnermahlzeit": {"faktor": 1.6, "menge": 50}, "Dünnbier": {"faktor": 1.55, "menge": 50}, "Starkbier": {"faktor": 1.55, "menge": 40}, "Kerze": {"faktor": 1.6, "menge": 50}, "Werkzeug": {"faktor": 1.6, "menge": 40}}
       },
       {
         "name": "Weidenmünd", "richtung": "flussab", "entfernung": 1.5, "zollstellen": 3,
-        "verkauft": {"Gold": {"faktor": 0.7, "menge": 72}, "Jasmin": {"faktor": 0.6, "menge": 120}, "Wachs": {"faktor": 0.6, "menge": 120}, "Kräuter": {"faktor": 0.6, "menge": 120}},
-        "kauft": {"Silberring": {"faktor": 1.5, "menge": 50}, "Silberkette": {"faktor": 1.5, "menge": 50}, "Goldkette": {"faktor": 1.45, "menge": 30}, "Rapier": {"faktor": 1.5, "menge": 50}, "Armbrust": {"faktor": 1.45, "menge": 40}, "Rosenwasser": {"faktor": 1.5, "menge": 50}, "Moschusduft": {"faktor": 1.5, "menge": 40}, "Fechterduft": {"faktor": 1.45, "menge": 40}}
+        "verkauft": {"Gold": {"faktor": 0.85, "menge": 72}, "Jasmin": {"faktor": 0.75, "menge": 120}, "Wachs": {"faktor": 0.75, "menge": 120}, "Kräuter": {"faktor": 0.75, "menge": 120}},
+        "kauft": {"Silberring": {"faktor": 1.6, "menge": 50}, "Silberkette": {"faktor": 1.6, "menge": 50}, "Goldkette": {"faktor": 1.55, "menge": 30}, "Rapier": {"faktor": 1.6, "menge": 50}, "Armbrust": {"faktor": 1.55, "menge": 40}, "Rosenwasser": {"faktor": 1.6, "menge": 50}, "Moschusduft": {"faktor": 1.6, "menge": 40}, "Fechterduft": {"faktor": 1.55, "menge": 40}}
       }
     ],
     "zollJeStelle": 0.025,

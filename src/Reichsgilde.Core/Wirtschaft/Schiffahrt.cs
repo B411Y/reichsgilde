@@ -93,8 +93,9 @@ public sealed class Schiffahrt
         if (fluesse.Count == 0) return liste;
         foreach (var g in karte.Gebaeude)
         {
+            // Hafen ist nur der Hafenplatz (bzw. „hafen“ auf Köln); Zollstelle und Hafenkran stehen auch am Ufer, sind aber keiner
+            if (g.Katalog != Kartenentwurf.HafenKatalog && g.Katalog != "hafen") continue;
             var amUfer = g.Baustein?.AmUfer == true || g.Katalog == Kartenentwurf.HafenKatalog;
-            if (!amUfer && g.Katalog != "hafen") continue;
             Kartenort anker;
             (double X, double Z)? nach = null;
             if (amUfer)
