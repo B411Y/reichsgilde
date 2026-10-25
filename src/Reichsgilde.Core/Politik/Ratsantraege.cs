@@ -230,25 +230,16 @@ public sealed class Ratsantraege
     /// Wie ginge die Abstimmung heute aus? Häuser, die keine KI sind, stimmen wie festgelegt (nur beim vorliegenden Antrag)
     /// und enthalten sich sonst.
     /// </summary>
-    public (int Ja, int Nein, int Enthaltung, bool? Buergermeister) Prognose(Ratsantrag a)
-    {
-        int ja = 0, nein = 0, enthaltung = 0;
-        bool? buergermeister = null;
-        var rat = _w.Rat;
-        foreach (var amt in rat.Aemter.Where(x => x.IstBesetzt))
-        {
-            bool? stimme = amt.Ratsherr is { } r ? StimmtZu(r, a)
-                : amt.Konto == a.Antragsteller ? true
-                : _w.Rivalen.FirstOrDefault(k => k.Konto == amt.Konto) is { } ki ? ki.StimmtFuerRatsantrag(a)
-                : Antrag(a.Art) == a ? StimmeVon(amt.Konto!, a.Art) // die festgelegte Stimme gilt nur dem vorliegenden Antrag
-                : null;
-            if (stimme == true) ja++;
-            else if (stimme == false) nein++;
-            else enthaltung++;
-            if (amt.Stufe == rat.Daten.HoechsteStufe) buergermeister = stimme;
-        }
-        return (ja, nein, enthaltung, buergermeister);
-    }
+    public (int Ja, int Nein, int Enthaltung, bool? Buergermeister) Prognose(Ratsantrag a) =>
+        _w.Rat.Zaehlen(sitz => StimmeVonSitz(sitz, a));
+
+    /// <summary>Die Stimme eines Sitzes zum Antrag (true dafür, false dagegen, null Enthaltung) – in Prognose und Sitzung dieselbe.</summary>
+    internal bool? StimmeVonSitz(Amt sitz, Ratsantrag a) =>
+        sitz.Ratsherr is { } r ? StimmtZu(r, a)
+        : sitz.Konto == a.Antragsteller ? true
+        : _w.Rivalen.FirstOrDefault(k => k.Konto == sitz.Konto) is { } ki ? ki.StimmtFuerRatsantrag(a)
+        : Antrag(a.Art) == a ? StimmeVon(sitz.Konto!, a.Art) // die festgelegte Stimme gilt nur dem vorliegenden Antrag
+        : null;
 
     /// <summary>Darf dieses Haus zum vorliegenden Antrag dieser Art eine Stimme festlegen? (null = ja, sonst der Grund)</summary>
     public string? StimmeVerboten(Konto konto, Antragsart art)
@@ -294,52 +285,60 @@ public sealed class Ratsantraege
     //  Sitzung und Ablauf
     // ═════════════════════════════════════════════════════════════════════════
 
-    /// <summary>In der Ratssitzung, nach Statut, Stadtglaube und Pflaster: Steuersatz, Bauvorhaben, Fest.</summary>
-    internal void Abstimmen(int jahr, Action<string> protokoll)
+    /// <summary>In der Ratssitzung, nach Statut, Stadtglaube und Pflaster: Abstimmung über den vorliegenden Antrag dieser Art.</summary>
+    internal (int Ja, int Nein, int Enthaltung, bool? Buergermeister, bool Angenommen) Abstimmen(Antragsart art, int jahr, Action<string> protokoll)
     {
-        if (!IstAktiv) { _antraege.Clear(); _stimmen.Clear(); return; }
+        var a = Antrag(art)!;
         var waehrung = _w.Daten.Allgemein.Waehrung;
-        foreach (var a in Antraege)
+        var (ja, nein, enthaltung, bm) = Prognose(a); // mit den festgelegten Stimmen
+        var angenommen = Stadtrat.IstAngenommen(ja, nein, bm);
+        var ergebnis = (ja, nein, enthaltung, bm, angenommen);
+        var was = $"Ratssitzung {jahr}: Antrag von {a.Antragsteller.Inhaber} – {Beschreibung(a)} –";
+        var stimmen = $"({ja} dafür, {nein} dagegen{(ja == nein ? ", der Bürgermeister entscheidet" : "")})";
+        if (!angenommen)
         {
-            var (ja, nein, _, bm) = Prognose(a); // mit den festgelegten Stimmen
-            var angenommen = Stadtrat.IstAngenommen(ja, nein, bm);
-            var was = $"Ratssitzung {jahr}: Antrag von {a.Antragsteller.Inhaber} – {Beschreibung(a)} –";
-            var stimmen = $"({ja} dafür, {nein} dagegen{(ja == nein ? ", der Bürgermeister entscheidet" : "")})";
-            if (!angenommen)
-            {
-                protokoll($"{was} abgelehnt {stimmen}.");
-                continue;
-            }
-            var kosten = Kosten(a);
-            if (kosten > 0 && kosten > Kasse.Stand + 1e-9)
-            {
-                protokoll($"{was} angenommen {stimmen}, aber die Stadtkasse reicht nicht mehr ({Zahlenformat.Ganz(Kasse.Stand)} {waehrung}).");
-                continue;
-            }
-            switch (a.Art)
-            {
-                case Antragsart.Steuersatz:
-                    Kasse.SteuersatzSetzen(a.Prozent);
-                    protokoll($"{was} ANGENOMMEN {stimmen}. Ab sofort gilt eine Umsatzsteuer von {a.Prozent} %.");
-                    break;
-                case Antragsart.Bauvorhaben:
-                    var b = BauvorhabenNamens(a.Bauvorhaben)!;
-                    Kasse.Buchen(Kassenposten.Bauvorhaben, kosten);
-                    _baustellen.Add(new Stadtbaustelle(b.Kennung, b.Name, a.Antragsteller, _w.Uhr.VergangeneMinuten + b.BauzeitStunden * 60L, kosten));
-                    if (b.Ansehen > 0 && b.AnsehenJahre > 0) _ansehen.Add((a.Antragsteller, b.Ansehen, _w.Jahr + b.AnsehenJahre - 1));
-                    protokoll($"{was} ANGENOMMEN {stimmen}. Die Stadt baut: {b.Name}. {a.Antragsteller.Inhaber} gewinnt Ansehen.");
-                    break;
-                default:
-                    Kasse.Buchen(Kassenposten.Feste, kosten);
-                    _festJahr = _w.Jahr;
-                    if (_d.Fest.Ansehen > 0) _ansehen.Add((a.Antragsteller, _d.Fest.Ansehen, _w.Jahr));
-                    protokoll($"{was} ANGENOMMEN {stimmen}. Im Jahr {_w.Jahr} feiert die Stadt – {a.Antragsteller.Inhaber} gewinnt Ansehen.");
-                    break;
-            }
+            protokoll($"{was} abgelehnt {stimmen}.");
+            return ergebnis;
         }
+        var kosten = Kosten(a);
+        if (kosten > 0 && kosten > Kasse.Stand + 1e-9)
+        {
+            protokoll($"{was} angenommen {stimmen}, aber die Stadtkasse reicht nicht mehr ({Zahlenformat.Ganz(Kasse.Stand)} {waehrung}).");
+            return ergebnis;
+        }
+        switch (a.Art)
+        {
+            case Antragsart.Steuersatz:
+                Kasse.SteuersatzSetzen(a.Prozent);
+                protokoll($"{was} ANGENOMMEN {stimmen}. Ab sofort gilt eine Umsatzsteuer von {a.Prozent} %.");
+                break;
+            case Antragsart.Bauvorhaben:
+                var b = BauvorhabenNamens(a.Bauvorhaben)!;
+                Kasse.Buchen(Kassenposten.Bauvorhaben, kosten);
+                _baustellen.Add(new Stadtbaustelle(b.Kennung, b.Name, a.Antragsteller, _w.Uhr.VergangeneMinuten + b.BauzeitStunden * 60L, kosten));
+                if (b.Ansehen > 0 && b.AnsehenJahre > 0) _ansehen.Add((a.Antragsteller, b.Ansehen, _w.Jahr + b.AnsehenJahre - 1));
+                protokoll($"{was} ANGENOMMEN {stimmen}. Die Stadt baut: {b.Name}. {a.Antragsteller.Inhaber} gewinnt Ansehen.");
+                break;
+            default:
+                Kasse.Buchen(Kassenposten.Feste, kosten);
+                _festJahr = _w.Jahr;
+                if (_d.Fest.Ansehen > 0) _ansehen.Add((a.Antragsteller, _d.Fest.Ansehen, _w.Jahr));
+                protokoll($"{was} ANGENOMMEN {stimmen}. Im Jahr {_w.Jahr} feiert die Stadt – {a.Antragsteller.Inhaber} gewinnt Ansehen.");
+                break;
+        }
+        return ergebnis;
+    }
+
+    /// <summary>
+    /// Nach Steuersatz, Bauvorhaben und Fest (auch ohne Kasse): Die Anträge und Stimmen des Jahres sind erledigt, abgelaufenes Ansehen fällt weg.
+    /// Bis dahin bleiben die Anträge stehen – die Stimmen zum nächsten Punkt gelten weiter.
+    /// </summary>
+    internal void SitzungAbschliessen()
+    {
+        var aktiv = IstAktiv;
         _antraege.Clear();
         _stimmen.Clear();
-        _ansehen.RemoveAll(x => x.Bis < _w.Jahr);
+        if (aktiv) _ansehen.RemoveAll(x => x.Bis < _w.Jahr);
     }
 
     /// <summary>Jede Spielminute: fertige Baustellen der Stadt.</summary>
