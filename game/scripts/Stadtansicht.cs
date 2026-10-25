@@ -692,6 +692,7 @@ public partial class Stadtansicht : Node3D
         // nehmen wir den Bruchteil der angebrochenen Minute dazu – sonst springen Sonne, Schatten und Karren
         // einmal pro Sekunde, statt sich jedes Bild ein Stückchen weiterzubewegen.
         var bruchteil = _simulation.Takt.AngebrocheneMinute;
+        FensterNachtSetzen(zeit.VergangeneMinuten); // jede Nacht andere Fenster hell (Stadtansicht.Modelle.cs)
         WetterAktualisieren(zeit.VergangeneMinuten + bruchteil, zeit.Jahreszeit, delta); // vor dem Licht: Wolken dämpfen es (Stadtansicht.Wetter.cs)
         LichtNachUhrzeit(zeit.UhrzeitInMinuten + (float)bruchteil, delta); // Stadtansicht.Licht.cs
         PassantenAktualisieren(zeit.VergangeneMinuten + bruchteil, delta); // Stadtansicht.Passanten.cs
@@ -715,6 +716,7 @@ public partial class Stadtansicht : Node3D
                 ansicht.Glueht = glueht; // das Material „Glut“ (Esse, Ofen, Athanor, Feuerkorb) nur beim Wechsel schalten
                 GlutSetzen(modell, glueht);
             }
+            if (ansicht.Modell is { } haus) FenstergruppeSetzen(haus, FenstergruppeVon(betrieb, w)); // Stadtansicht.Modelle.cs, nur beim Wechsel
             if (ansicht == _innen)
                 InnenAktualisieren(ansicht, zeit, hierArbeitszeit, arbeitet, delta);
 
@@ -725,6 +727,9 @@ public partial class Stadtansicht : Node3D
                 KarrenBewegen(betrieb.Karren[i], i, ansicht, fahrzeit, zeit.VergangeneMinuten + bruchteil, delta, ansicht.Spieler);
             }
         }
+        if (_domFenster is { } dom) // der Dom: schwacher Schein, zur Messe heller
+            FenstergruppeSetzen(dom, _messeVorgegeben || (w.Kirchenwesen.IstAktiv && zeit.UhrzeitInMinuten / 60 == w.Kirchenwesen.Daten.MesseUm)
+                ? Fenstergruppe.Messe : Fenstergruppe.Kirche);
         SchiffeAktualisieren(w, zeit.VergangeneMinuten + bruchteil, delta); // Stadtansicht.Schiffe.cs
         StadtbauAktualisieren(w); // Bauvorhaben und Fest der Stadt (Stadtansicht.Stadtbau.cs)
         if (_innen is SonderbauAnsicht sonderbau)

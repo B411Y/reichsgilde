@@ -1116,6 +1116,18 @@ Folgerungen: FSR 2.2 lohnt sich auf der T400 kaum (67 %: −0,8 ms bei Hoch, in 
 | Fertig und Fest | Der fertige Brunnen: Steinkranz mit Wasser, zwei Pfosten, Querbalken, Eimer und kleines Dach. Die übrigen Bauten verschwinden fertig (Meldung des Kerns „Die Stadt hat gebaut“). Im Festjahr steht an jeder Ecke des Marktplatzes ein Mast mit Fahne (rot, gold, blau, grün, Schwalbenschwanz, flatternd mit dem Fahnen-Shader). | 25.10.2026 |
 | Klicktest | Vulkan auf der T400, neu importiert, Greybox (Standardkarte): Brunnen als Baustelle (morgens und mittags) und fertig, Marktplatz, Mauer, Hafen, Fest mit vier Fahnen. Keine SCRIPT ERROR. | 25.10.2026 |
 
+### Feuerlicht in den Fenstern (PR #203)
+
+| Thema | Entscheidung | Datum |
+|---|---|---|
+| Anteil | Abends viele, später wenige, zufällig je Fenster: Ab der Dämmerung gehen nach und nach etwa 50–60 % der Fenster an, gegen Ende des Spieltags bleiben nur 15–20 % (Wirtshaus, Wache, arbeitende Werkstätten länger). Je Fenster zufällig und fest, jede Nacht anders gemischt – so sieht jedes Haus anders aus. Entschieden vom Nutzer. | 25.10.2026 |
+| Flackern und Farbe | Leises Flackern, wärmeres Orange: Kerzen- und Herdlicht etwa 1.800–2.000 K, tiefer orange als bisher; unregelmäßig ±10–15 % Helligkeit, mal ruhig, mal unruhig, je Fenster eigener Takt; Herd- und Schmiedefeuer stärker und rötlicher. Hinter Butzenscheiben weich und gedeckt, nicht grell. Entschieden vom Nutzer. | 25.10.2026 |
+| Dom und Kirche | Nachts nur ein schwacher Schein (etwa 20–25 % der bisherigen Helligkeit, wenige Kerzen und das Ewige Licht); während einer Messe heller. Entschieden vom Nutzer. | 25.10.2026 |
+| Umsetzung | `fenster.gdshader`, ein Material je Gruppe (Wohnen, Werkstatt, Wirtshaus, Wache, Kirche, Messe) für die ganze Stadt, Gruppe je Haus als Override nur beim Wechsel. Jede Scheibe bekommt beim Laden eine Kennung als Eckenfarbe (`FensterNetz`, zusammenhängende Dreiecke; übrige Flächen samt LOD unverändert); der Shader mischt sie mit der Lage des Hauses und der Nummer der Nacht (wechselt mittags, so leuchten um 05 Uhr dieselben Fenster wie um 22 Uhr). Anteil über alle Fenster (ein Drittel ist ohnehin dunkles „Glas“): Wohnen 18–19:30 Uhr an bis 55 %, ab 20 Uhr aus bis 18 % um 22 Uhr, morgens Frühaufsteher bis 35 %; Werkstatt in Betrieb alle bis 20 Uhr, Wirtshaus bis 21:30, Wache mindestens 55 %. Jedes Fenster blendet weich ein und aus. Farbe (1, 0,5, 0,16) sRGB, Emission 2,6 × 0,7–1,2 je Fenster; Flackern aus drei Rauschfrequenzen je Fenster, meist ±10 %, in unruhigen Phasen ±15 %. Glut 1,4-mal so stark und rötlicher. Kirchen und Dom alle Fenster, 22 % hell. | 25.10.2026 |
+| Messe | Die Messe ist laut Kern um 10 Uhr (`messeUm`), also bei Tag: Kirchen mit laufender Messe (`Kirchenwesen.MesseLaeuft`, beim Dom `IstAktiv` und Stunde) bekommen die Gruppe „Messe“, die über 6 Minuten ein- und ausblendet; bei Tag nur ein schwacher warmer Schein (4 % der vollen Helligkeit, mehr wirkt bei Tag wie orange gestrichenes Glas), nachts wäre sie voll hell. Für Bildschirmfotos `--messe=1` (nur Darstellung). | 25.10.2026 |
+| Leistung | Gleich viele Zeichenaufrufe (Greybox etwa 2.490, Köln etwa 880), GPU-Zeit auf Hoch nachts unverändert (Greybox 29,1 ms, Köln 25,5 ms, T400; die Bildrate schwankt, weil die Grafikkarte geteilt war). | 25.10.2026 |
+| Klicktest | Vulkan auf der T400, neu importiert: Greybox 19 Uhr, 21:30 mit und ohne Bloom, Köln 19 Uhr und 21:30, Dom nachts ohne und mit Messe, Dom um 10 Uhr zur Messe, Nahaufnahmen Wohnhaus und Schmiede, je vorher/nachher; zwei Bilder kurz nacheinander zeigen das Flackern je Fenster. Keine SCRIPT oder SHADER ERROR, 762 Tests grün. | 25.10.2026 |
+
 ### Sichtbare Ratssitzung (PR #202)
 
 | Thema | Entscheidung | Datum |

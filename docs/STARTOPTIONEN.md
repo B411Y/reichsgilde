@@ -70,6 +70,7 @@ Startoptionen (nach `--`):
 - `--wetter=<klar|wolkig|regen|sturm|gewitter|schnee|nebel>` (Wetterlage fest vorgeben, nur Darstellung; ohne Aussicht in der Wetterzeile)
 - `--jahreszeit=<fruehling|sommer|herbst|winter>` (Jahreszeit der Darstellung: Wiese, Laub, Äcker, Schnee; der Kalender bleibt)
 - `--blitz=1` (mit `--wetter=gewitter`: ein Blitz bleibt auf voller Helligkeit stehen, für Bildschirmfotos)
+- `--messe=1` (Kirchen und Dom leuchten, als liefe gerade die Messe; nur Darstellung, für Bildschirmfotos bei Nacht)
 - `--tonemapping=<Bisher|Agx>`
 - `--helligkeit=`/`--kontrast=`/`--saettigung=<Prozent>`
 - `--schaerfe=<0–100>`

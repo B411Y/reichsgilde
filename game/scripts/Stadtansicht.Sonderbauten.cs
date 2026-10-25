@@ -371,6 +371,8 @@ public partial class Stadtansicht
         if (huelle is not null)
         {
             huelle.Wurzel.Transform = lage;
+            _domFenster = huelle;
+            FenstergruppeSetzen(huelle, Fenstergruppe.Kirche);
             var dach = new Node3D { Name = "Dach_Dom", Transform = lage };
             AddChild(dach);
             foreach (var teil in new[] { "Dach", "Turm" })
