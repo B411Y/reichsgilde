@@ -134,7 +134,7 @@ static class KartenwerkstattStartTests
     {
         // ── Mauer und Tore ───────────────────────────────────────────────────
 
-        ("Mauerplan: Greybox und Köln – Türme, Ecktürme und Tore genau wie bisher im Spiel gezeichnet (Greybox: 4 Ecktürme, 4 Mauertürme, 2 Tore)", () =>
+        ("Mauerplan: Greybox und Köln – Türme, Ecktürme und Tore genau wie bisher im Spiel gezeichnet (Greybox: 4 Ecktürme, 3 Mauertürme, 3 Tore)", () =>
         {
             foreach (var kennung in new[] { "greybox", "koeln" })
                 foreach (var m in Stadtkarte.AusDatei(Datenpfad.Karte(kennung)).Mauern)
@@ -148,9 +148,10 @@ static class KartenwerkstattStartTests
             var greybox = Mauerplan.Von(Stadtkarte.AusDatei(Datenpfad.Karte("greybox")).Mauern[0]);
             Pruefe.Wahr(greybox.Stuecke.All(s => s.Laenge is >= 3 and <= 5), "Greybox: Mauerstücke 3 bis 5 m");
             Pruefe.Gleich(4, greybox.Ecktuerme.Count);
-            Pruefe.Gleich(4, greybox.Tuerme.Count, "zwei Seiten ohne Tor, je zwei Türme (100 m: round(100 / 35) − 1)");
+            // Nordseite ohne Tor zwei Türme (100 m: round(100 / 35) − 1), seit PR #199 auf der Südseite das Südtor und ein Turm
+            Pruefe.Gleich(3, greybox.Tuerme.Count, "Mauertürme");
             Pruefe.Wahr(greybox.Tuerme.Any(t => Math.Abs(t.X - (-50 + 100 / 3.0)) < 1e-9 && t.Z == -50), "Nordseite bei einem Drittel");
-            Folge(new[] { "Osttor", "Westtor" }, greybox.Tore.Select(t => t.Name).ToArray());
+            Folge(new[] { "Osttor", "Südtor", "Westtor" }, greybox.Tore.Select(t => t.Name).ToArray());
             // Feldseite zeigt nach außen: Nordmauer (z = −50) → −z, Ostmauer → +x; Eckturm Nordost zeigt nach Nordost
             var nord = greybox.Tuerme.First(t => t.Z == -50);
             Pruefe.Wahr(nord.FeldZ < -0.99, $"Nordmauer: Feldseite nach Norden ({nord.FeldX} | {nord.FeldZ})");
@@ -604,8 +605,9 @@ static class KartenwerkstattStartTests
             Pruefe.Gleich(Kartenentwurf.StreuDichte, e.NaturflaecheAnlegen("streu", new[] { O(-100, -100), O(-60, -100), O(-60, -60) }).Dichte);
             // die Wälder der Greybox selbst (seit Schritt 5a hat sie im Randstreifen dazu Waldstücke des Rand-Vorschlags mit der neuen Dichte)
             var greybox = Oeffnen("greybox");
-            Pruefe.Wahr(greybox.Naturflaechen.Where(n => n.Art == "wald" && Kartenrechteck.Um(n.Ecken)!.Value.Ueberdeckt(greybox.Kartengrenzen.Spielfeld))
-                .All(n => n.Dichte == 2.4), "Greybox-Wälder unverändert");
+            // (seit PR #199 reicht das Spielfeld nach Süden bis in ein Waldstück des Randes – das zählt nicht dazu)
+            Pruefe.Wahr(greybox.Naturflaechen.Where(n => n.Art == "wald" && !n.Name.StartsWith("Wald im Rand") && Kartenrechteck.Um(n.Ecken)!.Value.Ueberdeckt(greybox.Kartengrenzen.Spielfeld))
+                .Select(n => n.Dichte).SequenceEqual(new[] { 2.4, 2.4 }), "Greybox-Wälder unverändert");
         }),
     };
 }
