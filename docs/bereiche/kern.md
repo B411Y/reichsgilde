@@ -394,3 +394,10 @@ Entscheidungen des Nutzers: `docs/bereiche/oberflaeche.md`, „Sichtbare Ratssit
 | Spielstand | Eine angehaltene Sitzung ist nicht speicherbar: `Speicherung.SpeichernVerboten(simulation)` nennt den Grund, `Speichern` wirft dann. Dadurch braucht der Speicherstand kein neues Feld. | 25.10.2026 |
 | Pflaster | Neuer Befehl `PflasterStimme(bool? Ja)`, nur in der laufenden Sitzung (vorher Enthaltung wie bisher); die Stimmen stehen nicht im Spielstand. | 25.10.2026 |
 | Los | Die Vorschau eines Wahlpunktes markiert Ratsherren mit Gleichstand (`Sitzungsstimme.Los`) und zählt sie für den ersten der Gleichauf; das Los zieht erst die Sitzung, in derselben Reihenfolge wie vorher. Sonst ist die Vorschau des aktuellen Punktes sein Ergebnis (Test). | 25.10.2026 |
+
+### Karren verkaufen (PR #205)
+
+| Thema | Entscheidung | Datum |
+|---|---|---|
+| Preis und Ort | Eigene Karren lassen sich wieder verkaufen: halber Kaufpreis (wie beim Schiff), nur wenn der Karren am Betrieb steht (nicht unterwegs); geladene Ware geht vorher ins Lager. Knopf im Karrenhof der Innenansicht, bei Umlandbetrieben ohne Innenraum unter „…“ der Kurzübersicht. Entschieden vom Nutzer. | 25.10.2026 |
+| KI | Die KI verkauft einen Karren, wenn sie knapp bei Kasse ist oder ein Karren länger ungenutzt steht. Entschieden vom Nutzer. | 25.10.2026 |
