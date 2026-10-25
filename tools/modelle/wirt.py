@@ -148,7 +148,9 @@ def bauen():
     bs.baugeruest(geruest, st, x0=X0 - 0.15, x1=XA + 0.15, y_innen=Y0 - 0.3, y_aussen=Y0 - 1.2,
                   ebenen=(2.3, 4.6), hoehe_innen=5.4, hoehe_aussen=6.4, felder=3)
     anker = [bs.anker("Anker_Tuer", (x_tuer, Y0 - 0.2, Z_SOCKEL + 0.01)),
-             bs.anker("Anker_Karren", (x_tor, Y0 - 1.6, 0.0))]
+             bs.anker("Anker_Karren", (x_tor, Y0 - 1.6, 0.0)),
+             # Wandlaterne der Nachtlichter (lichter.glb): rechts neben der Schänkentür, Blickrichtung von der Wand weg (−Y)
+             bs.anker("Anker_Laterne", (x_tuer + 0.9, Y0 - 0.02, Z_SOCKEL + 2.4), 180.0)]
 
     objekte = [haus.objekt(), stufe1.objekt(), stufe2.objekt(), stufe3.objekt(), wappen.objekt(), fahne.objekt(),
                leer.objekt(), geruest.objekt()] + anker

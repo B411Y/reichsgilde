@@ -11,7 +11,7 @@ Objekte im GLB (siehe landbau.py):
     Arbeit      Glut im Feuerkorb (Material „Glut“, leuchtet), Speerständer, Fass, Brennholz, Laterne an der Tür
     Fahne       am Mast auf der Wehrplatte
     Leerstand   Bretter vor Tür und Fenster, umgestürzte Pfähle der Palisade, Unkraut
-    Anker_Tuer  am Fuß der Treppe (Ein- und Ausgang), Anker_Karren vor dem Hof
+    Anker_Tuer  am Fuß der Treppe (Ein- und Ausgang), Anker_Karren vor dem Hof, Anker_Feuer_1/2 für die Feuerkörbe neben dem Aufgang
 Der Gardist hat keinen Karren (wie bisher im Spiel); der Anker ist trotzdem da, damit alle Umlandbetriebe gleich sind.
 
 Aufbau (Blender: Z oben, Weg bei -Y; Fläche x ±6, y ±6): der Turm in der Mitte, etwas nach hinten gerückt,
@@ -69,7 +69,9 @@ def bauen():
         leer.stab((x, y, 0.12), (x + 2.4 * math.cos(r), y + 2.4 * math.sin(r), 0.12), 0.22, 0.22, st["Holz alt"], quer=(0, 0, 1))
     lb.unkraut(leer, st, [(-1.0, -3.0), (1.6, -2.0), (-3.0, 0.0), (3.4, -0.4), (-2.0, 4.0), (2.4, 4.4), (0.0, -5.0)], saat=12)
 
-    anker = [bs.anker("Anker_Tuer", (TX, TY - TB / 2 - 2.2, 0.0)), bs.anker("Anker_Karren", (0.0, -5.3, 0.0))]
+    anker = [bs.anker("Anker_Tuer", (TX, TY - TB / 2 - 2.2, 0.0)), bs.anker("Anker_Karren", (0.0, -5.3, 0.0)),
+             # Feuerkörbe der Nachtlichter (lichter.glb) links und rechts vom Aufgang, Blickrichtung zum Weg (−Y)
+             bs.anker("Anker_Feuer_1", (TX - 1.7, -3.3, 0.0), 180.0), bs.anker("Anker_Feuer_2", (TX + 1.7, -3.3, 0.0), 180.0)]
     return lb.knoten(haus, arbeit, fahne, leer, anker)
 
 

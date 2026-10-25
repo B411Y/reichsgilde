@@ -15,6 +15,7 @@ der Mauerlinien der Karte (gerade Strecken, Ecken und Tore; auch für gebogene M
     Tor          Torburg: zwei Rundtürme und ein Torbau mit Durchfahrt (3,6 m breit), Fallgitter, Stadtwappen;
                  16 m entlang der Mauer, die Mauerstücke schließen bei x = ±7,6 an (sie stecken etwas in den Türmen)
     Anker_Tuer   in der Durchfahrt des Tors
+    Anker_Feuer_1/2   Feuerkörbe (lichter.glb) vor dem Torbau links und rechts der Durchfahrt, Blick nach außen
 Lokale Richtung: X entlang der Mauer, −Y ist die Feldseite (im Spiel +Z), +Y die Stadtseite. Keine Zustände und
 keine Hausfarbe (`pruefen.py … --sonderbau`).
 """
@@ -47,6 +48,8 @@ def bauen():
         bau(netz, st)
         teile.append(netz.objekt())
     teile.append(bs.anker("Anker_Tuer", (0.0, -3.0, 0.0)))
+    # Feuerkörbe der Nachtlichter (lichter.glb): außen vor dem Torbau neben der Durchfahrt, Blickrichtung nach außen (−Y)
+    teile += [bs.anker("Anker_Feuer_1", (-2.45, -3.25, 0.0), 180.0), bs.anker("Anker_Feuer_2", (2.45, -3.25, 0.0), 180.0)]
     return teile
 
 
