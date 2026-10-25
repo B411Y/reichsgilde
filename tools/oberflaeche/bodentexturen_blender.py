@@ -1516,4 +1516,5 @@ def main():
     packen()
 
 
-main()
+if __name__ == "__main__":   # tools/oberflaeche/materialien_blender.py leiht sich die Werkzeuge oben
+    main()

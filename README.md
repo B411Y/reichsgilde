@@ -119,6 +119,8 @@ Die Reichsstadt ist als begehbare Schrägansicht zu sehen: Mauer (100 × 100 m) 
 
 **Oberflächendetails.** Die Modelle behalten ihre Farben und bekommen eine feine Struktur je Material: Mauern zeigen Quader mit leichten Farbunterschieden und weichen Fugen, Mauerkronen und Gassen Kopfsteinpflaster, Balken und Bretter Maserung mit Ästen, Dächer einzelne Ziegel oder Schieferplatten mit etwas Abnutzung und Stroh seine Halme, Bäume Blätter, Wiesen und Wege Körnung und große, unregelmäßige Flecken; dazu eine leichte Unebenheit im Licht. Das gilt in der Stadt, im Umland und in den Innenräumen, auch für Neubauten, neue Karren und Figuren, für die Farben der Besitzer und die Jahreszeiten. Glut, Fensterlicht, Glas und Wasser behalten ihr Aussehen; wo ein Modell Steine oder Dielen schon als Form hat, kommt keine zweite Struktur dazu. Die Details sind immer an (auf der Testkarte NVIDIA T400 kosten sie etwa 6 % der Bilder je Sekunde, die Zahl der Zeichenaufrufe bleibt gleich). Das Mauerwerk zeichnen allein sie: Die Modelle haben keine aufgemalten Fugenlinien mehr.
 
+**Modell-Texturen** (Gruppe 1: Stadthäuser und Mauer). Bruchstein, Quadermauerwerk, Kalk- und Lehmputz, Fachwerkholz, Bretter, Biberschwanz-Ziegel, Schiefer, Stroh, Sandstein und Backstein kommen aus einer Material-Bibliothek: in Blender modellierte und gebackene Texturen mit einzelnen Steinen und Mörtelfugen, Kellenschlag und Schwundrissen im Putz, Maserung, Rissen und Ästen im Holz, Brettfugen mit Nägeln, Flechten auf Ziegeln und Schiefer, Halmen im Stroh, Laufspuren und Flecken. Jedes Haus behält dabei seine Farbe (die Textur färbt sich nach der Modellfarbe, im Mittel genauso hell), Wände zeigen durchlaufende Lagen auch um Ecken und Türme, Ziegel und Schiefer laufen die Dachfläche hinauf. Die Stufe folgt der Einstellung „Boden“: *Niedrig* die feine Struktur wie bisher, *Mittel* die Farben der Bibliothek, *Hoch* dazu Unebenheit und Glanz im Licht. Die Bibliothek gilt für alle Modelle mit diesen Materialien. Vorschau der Materialien: `docs/bilder/materialien/`.
+
 **Fahnen im Wind.** Alle Fahnen der Stadt flattern: auf den Wohnhäusern, am Wachturm, am Schilderhäuschen der Wache und auf den Werkstätten. Das Tuch hängt am Mast fest und schlägt am freien Ende am stärksten aus; Falten fangen Licht und Schatten. Jede Fahne flattert in ihrem eigenen Takt. Die Grafikkarte rechnet das mit einem kleinen Programm (Shader), der Wind ist für alle gleich; bei Sturm schlagen sie heftiger (siehe „Wetter“). In den Einstellungen (Reiter Stimmung) lassen sich die Fahnen anhalten.
 
 **Verkaufte Werkstätten.** Wer eine Werkstatt verkauft, lässt das Haus stehen: in seiner Stufe, aber ohne Wappen und Fahne, Tor und Fenster vernagelt, die Scheiben dunkel, davor das ockerfarbene Schild „zu verkaufen“. Ein Klick darauf bietet es zum Kauf an; betreten lässt es sich erst wieder nach dem Kauf. Eine gekündigte Pacht wird wieder leere Grube bzw. freier Umlandplatz mit grünem Schild.
@@ -423,7 +425,7 @@ reichsgilde/
 │   ├── assets/                     Dateien nach Art getrennt:
 │   │   ├── modelle/                3D-Modelle (.glb, aus tools/modelle) in gebaeude/, innen/, umland/,
 │   │   │                           natur/, wasser/, figuren/, fahrzeuge/, tiere/
-│   │   ├── texturen/               Strukturen der Oberflächendetails (aus tools/oberflaeche)
+│   │   ├── texturen/               Strukturen der Oberflächendetails, Boden- und Modell-Texturen (aus tools/oberflaeche)
 │   │   ├── shader/                 Shader (Fahnen, Figuren, Oberflächendetails, Wasser, Äcker, Randdunst,
 │   │   │                           Farbfilter, Schärfe)
 │   │   ├── oberflaeche/            Spieloberfläche: icons/ (Waren-Icons aus tools/icons), schriften/, wappen/
@@ -456,6 +458,7 @@ reichsgilde/
 ├── tools/Kartenbau/                Kartenskript (C#): Städte per Skript anlegen, prüfen, Vorschaubilder zeichnen
 ├── tools/modelle/                  Blender-Skripte, eines je Modell (schreiben nach game/assets/modelle/<unterordner>/)
 ├── tools/oberflaeche/texturen.py   Strukturen der Oberflächendetails (Python + numpy)
+├── tools/oberflaeche/materialien_blender.py   Material-Bibliothek der Modelle (Blender, Cycles)
 ├── docs/
 │   ├── ARCHITEKTUR.md              Wie der Code aufgebaut ist und warum
 │   ├── bereiche/                   Offene Punkte und neue Entscheidungen je Bereich (Kern, Spiel-KI, Darstellung …)
