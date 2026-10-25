@@ -52,6 +52,7 @@ public sealed record Wahlkandidat(string Name, Konto? Haus, bool IstAmtsinhaber)
 ///   3. Wahlen – höchste Ämter zuerst. Es wählen die Inhaber der höheren Ämter (beim höchsten Amt alle übrigen).
 ///      Kandidaten wählen nicht mit. Gleichstand entscheidet das Los.
 ///   4. Die Gunst verblasst ein Stück.
+/// Die Sitzung läuft Punkt für Punkt als <see cref="Ratssitzung"/> – ohne Oberfläche in einem Zug, mit ihr auf Wunsch mit Halt (PR #202).
 /// </summary>
 public sealed class Stadtrat
 {
