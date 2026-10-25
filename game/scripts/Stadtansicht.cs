@@ -891,6 +891,14 @@ public partial class Stadtansicht : Node3D
         if (zoom is { } z2) _kamera.Size = Mathf.Clamp(z2, KameraMinZoom, KameraGroessterZoom());
     }
 
+    /// <summary>Fährt die Kamera sanft zu einem Gebäude (Betriebsleiste der Oberfläche, PR #197), der Zoom bleibt. False, wenn es die Kennung nicht gibt oder man drinnen ist.</summary>
+    public bool Hinfahren(string kennung)
+    {
+        if (_innen is not null || AnsichtZu(kennung) is not { } ansicht) return false;
+        Kamerafahrt(ansicht.Mitte, _kamera.Size);
+        return true;
+    }
+
     /// <summary>Dreht die Kamera um ganze Vierteldrehungen (+1 = 90° gegen den Uhrzeigersinn von oben).</summary>
     public void Drehen(int vierteldrehungen, bool sofort = false)
     {
