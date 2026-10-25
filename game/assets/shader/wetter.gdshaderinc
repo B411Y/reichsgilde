@@ -81,22 +81,36 @@ vec2 regenringe(vec2 p, float zeit) {
 // Wetter auf dem Boden (boden.gdshaderinc): Nässe macht ihn dunkler und glänzend, in Mulden stehen Pfützen, die den Himmel spiegeln (als Leuchten,
 // denn die Stadt hat keine Spiegelungen); Schnee deckt ihn zu, auf Wegen (aufweg 0–1) ist er ausgetreten und zu Matsch geworden, in der Stadt
 // (stadt 0–1) zertreten und grauer. tiefe = Höhe der Textur umgekehrt (0–1). nw ist die Normale in der Welt.
-void wetter_boden(inout vec3 bf, inout float rau, inout vec3 nw, inout vec3 leuchten, vec2 wp, vec3 n, float aufweg, float stadt, float tiefe, bool ringe, float zeit) {
+void wetter_boden(inout vec3 bf, inout float rau, inout vec3 nw, inout vec3 leuchten, vec2 wp, vec3 n, float aufweg, float stadt, float tiefe, float wiese, bool ringe, float zeit) {
 	if (wetter_naesse > 0.001) {
 		float saugt = mix(1.0, 0.7, stadt);
 		bf *= 1.0 - 0.38 * wetter_naesse * saugt;
-		rau = mix(rau, min(rau, 0.38), wetter_naesse);
+		// Glanz nass: auf Wiese nur ein Drittel (sonst glitzert das Gras), im Pflaster schmal – nur einzelne Steine glänzen, der Rest bleibt matt
+		float stein = smoothstep(0.62, 0.8, w_rausch(wp * 2.3 + 9.1));
+		float glanz = 0.38 + 0.2 * wiese + stadt * (0.24 - 0.2 * stein);
+		rau = mix(rau, min(rau, glanz), wetter_naesse);
+		// Wege und Gassen bleiben dauerhaft etwas dunkler (Matsch, Abdrücke), unabhängig vom Licht
+		bf *= 1.0 - 0.12 * wetter_naesse * max(aufweg, stadt * 0.6);
 		float p = pfuetze(wp, tiefe) * (0.3 + 0.7 * max(aufweg, stadt * 0.3)) * smoothstep(0.9, 0.97, n.y);
 		if (p > 0.0) {
-			bf = mix(bf, bf * 0.35, p);
+			// Wasserfarbe: dunkel, aber zum Himmel hin getönt – so bleibt die Pfütze aus jeder Richtung ein Wasserfleck und kein dunkler Boden
+			bf = mix(bf, bf * 0.3 + wetter_himmel * mix(0.22, 0.16, stadt), p);
 			rau = mix(rau, 0.04, p);
+			// Himmelsschein in der Farbe: aus jeder Richtung als Wasser lesbar; Tropfenringe als Hell-dunkel-Zeichnung
+			vec3 schein = wetter_himmel * 0.2;
+			if (ringe) {
+				vec2 r0 = regenringe(wp, zeit);
+				float zeichn = clamp(length(r0) * 2.2, 0.0, 1.0);
+				bf *= 1.0 - 0.4 * zeichn;
+				schein += wetter_himmel * 0.3 * zeichn;
+			}
 			vec3 glatt = n;
 			if (ringe) {
 				vec2 r = regenringe(wp, zeit);
 				glatt = normalize(n + vec3(r.x, 0.0, r.y));
 			}
 			nw = normalize(mix(nw, glatt, p));
-			leuchten += wetter_himmel * 0.22 * p;
+			leuchten += schein * p;
 		}
 	}
 	if (wetter_schnee > 0.001) {
