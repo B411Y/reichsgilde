@@ -85,7 +85,7 @@ def bauen():
         haus.quader((o.u, -0.06, o.v + o.h + 0.08), (o.b + 0.4, 0.12, 0.16), st["Holz alt"], M[name], ohne=("+y",))
         oeffnungen.append((M[name], o))
     vernageln(haus, st, M_vorn, Oeffnung(F, 2.3, 1.0, 0.7, 0.85), saat=1)
-    # Obergeschoss: Bretterwände mit Leisten, Fenster mit schiefen Läden, eines vernagelt
+    # Obergeschoss: Bretterwände (Bretter und Fugen aus der Material-Bibliothek), Fenster mit schiefen Läden, eines vernagelt
     og_fenster = {
         "vorn og": ([Oeffnung(F, -2.4, **og), Oeffnung(F, 0.0, **og)], [Oeffnung(F, 2.4, **og)]),
         "rechts og": ([Oeffnung(F, u, **og) for u in (-1.8, 1.4)], []),
@@ -93,8 +93,6 @@ def bauen():
         "hinten og": ([Oeffnung(F, 0.0, **og)], []),
     }
     for name, (offen, zu) in og_fenster.items():
-        L = 2 * HW if name in ("vorn og", "hinten og") else Y1 - yo
-        bretterwand(haus, st, M[name], L, H_OG, offen + zu, saat=len(name))
         for k, o in enumerate(offen):
             bretterfenster(haus, st, M[name], o)
             laeden(haus, st, M[name], o, (30 + 25 * (k % 2), 70 - 30 * (k % 2)), haengt=k % 2 == 0)
@@ -115,7 +113,6 @@ def bauen():
         Mg = bs.wandmatrix((CX, y, Z_TRAUFE), seite)
         bs.platte(haus, Mg, [(-HW, 0), (HW, 0), (0, hoch)], 0, 0.3, st["Bretter"])
         luke = Oeffnung("tuer", 0.0, 0.3, 1.0, 1.2) if seite == "vorne" else Oeffnung("fenster", 0.0, 0.7, 0.6, 0.8)
-        bretterwand(haus, st, Mg, 2 * HW, hoch, [luke], saat=7, oben=lambda u: hoch * (1 - abs(u) / HW))
         if seite == "vorne":
             ladeluke(haus, st, Mg, luke, hoch)
             oeffnungen.append((Mg, luke))
@@ -181,25 +178,6 @@ def bauen():
 # ─────────────────────────────────────────────────────────────────────────────
 #  Teile des Diebesnests
 # ─────────────────────────────────────────────────────────────────────────────
-
-def bretterwand(netz, st, M, L, H, oeffnungen, saat=0, oben=None, abstand=0.34):
-    """Deckleisten auf einer Bretterwand (die Wandfläche kommt vom Aufrufer): leicht schief, an Öffnungen unterbrochen.
-    `oben(u)`: Höhe der Wand bei u (für Giebel)."""
-    zufall = random.Random(saat)
-    quer = M.to_3x3() @ Vector((0, 1, 0))
-    u = -L / 2 + 0.17
-    while u < L / 2 - 0.1:
-        top = (H if oben is None else min(H, oben(u))) - 0.06
-        stuecke = [(0.04, top)]
-        for o in oeffnungen:
-            if abs(u - o.u) < o.b / 2 + 0.1:
-                stuecke = [(a, min(b, o.v - 0.08)) for a, b in stuecke] + [(max(a, o.v + o.h + 0.08), b) for a, b in stuecke]
-        for a, b in stuecke:
-            if b - a > 0.15:
-                s = zufall.uniform(-0.03, 0.03)
-                netz.stab(M @ Vector((u + s, -0.02, a)), M @ Vector((u - s, -0.02, b)), 0.07, 0.03, st["Holz alt"], quer=quer)
-        u += abstand * zufall.uniform(0.85, 1.15)
-
 
 def bretterfenster(netz, st, M, o, glas=None):
     """Fenster in der Bretterwand: Scheibe und ein grober Rahmen aus vier Brettern."""
@@ -487,8 +465,6 @@ def gildenhaus(netz, st):
         bs.gewaende(netz, M, Oeffnung("fenster", u, 1.1, 0.6, 0.75), st, gitter=True, stein="Holz alt")
     fenster_v = [Oeffnung("fenster", u, 0.5, 0.7, 0.9) for u in (-1.4, 0.4, 1.8)]
     fenster_r = [Oeffnung("fenster", u, 0.5, 0.7, 0.9) for u in (-0.9, 0.9)]
-    bretterwand(netz, st, M_vo, x1 - x0, h2, fenster_v, saat=31)
-    bretterwand(netz, st, M_ro, y1 - y0, h2, fenster_r, saat=32)
     for k, o in enumerate(fenster_v):
         bretterfenster(netz, st, M_vo, o, glas="Glas" if k == 2 else None)
         if k == 2:
@@ -502,7 +478,6 @@ def gildenhaus(netz, st):
     hoch = (y1 - y0) / 2 * dach["tan"]
     Mg = bs.wandmatrix((x1, cy, h1 + h2), "rechts")
     bs.platte(netz, Mg, [(-(y1 - y0) / 2, 0), ((y1 - y0) / 2, 0), (0, hoch)], 0, 0.3, st["Bretter"])
-    bretterwand(netz, st, Mg, y1 - y0, hoch, [], saat=34, oben=lambda u: hoch * (1 - abs(u) / ((y1 - y0) / 2)))
     bs.dachloch(netz, st, dach, "vorn", cx + 0.8, 1.3, 0.4, stoff="Bretter")
 
 
