@@ -53,9 +53,10 @@ public sealed record KiProfil(
 ///                       • Mine: Aufteilung der Förderung zwischen Eisen und Silber
 ///                       • freie Arbeitsplätze mit der ertragreichsten erlaubten Arbeitskraft besetzen
 ///                       • Eskorte je Karren nach erwartetem Verlust wählen
+///                       • in der Not (gemahnt, Geld reicht nicht): einen Karren verkaufen, aber nie den letzten eines Betriebs
 ///   einmal am Tag       • Politik im Rat, Brautschau, Gericht (Spitzel, Anklage, Verteidigung)
 ///                       • zur eigenen Baustunde: Bauplatz für ein neues Wohnhaus oder eine neue Werkstatt suchen
-///   zum Jahresende      • Karren kaufen, wenn ein Betrieb zu oft stillstand
+///   zum Jahresende      • Karren kaufen, wenn ein Betrieb zu oft stillstand; einen verkaufen, der das ganze Jahr nicht fuhr
 ///                       • Einrichtung kaufen, die sich schnell bezahlt macht (je Betrieb höchstens ein Stück)
 ///                       • Verlustjahre der Betriebe zählen (verkauft wird in den Stunden danach)
 ///
@@ -137,7 +138,8 @@ public sealed partial class KiRivale
         _bauorteGefragt = false;
         // Im Kerker führt nur der Verwalter die Betriebe – alles Persönliche ruht.
         var frei = !(_w.Justiz.IstAktiv && _w.Justiz.ImKerker(Konto));
-        BetriebeVerkaufen(); // Betriebssache – das tut auch der Verwalter
+        KarrenNotverkauf();  // Betriebssache: in der Not zuerst einen Karren (KiRivale.Karren.cs) …
+        BetriebeVerkaufen(); // … dann einen Betrieb – das tut auch der Verwalter
         if (frei)
         {
             StandPruefen();
@@ -206,7 +208,10 @@ public sealed partial class KiRivale
         _stundenImJahr = 0;
         _gaunereienImJahr = 0;
         foreach (var betrieb in Betriebe.ToList())
+        {
+            UngenutzteKarrenVerkaufen(betrieb); // ein Jahr ohne Fahrt (KiRivale.Karren.cs)
             KarrenNachkaufen(betrieb);
+        }
         EinrichtungKaufen();
         WegAusbauen();
         SchiffKaufen();

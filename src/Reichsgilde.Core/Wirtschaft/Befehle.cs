@@ -164,6 +164,12 @@ public sealed record PersonalSetzen(string Betrieb, string Arbeitskraft, int Anz
 /// <summary>Kauft einen Karren dieses Typs für den Betrieb.</summary>
 public sealed record KarrenKaufen(string Betrieb, string Typ) : BetriebsBefehl(Betrieb);
 
+/// <summary>
+/// Den Karren mit dieser Nummer (ab 0) verkaufen (PR #205): nur am Betrieb, nicht unterwegs; Erlös = Kaufpreis × <c>logistik.karrenVerkaufAnteil</c>.
+/// Eine Ladung geht vorher ins Lager, ein vorgemerkter Handelsauftrag verfällt. Vorab: <see cref="Stadtwirtschaft.KarrenVerkaufVerboten"/>.
+/// </summary>
+public sealed record KarrenVerkaufen(string Betrieb, int Karren) : BetriebsBefehl(Betrieb);
+
 /// <summary>Der Karren mit dieser Nummer (ab 0) fährt künftig mit dieser Eskorte.</summary>
 public sealed record EskorteWaehlen(string Betrieb, int Karren, string Eskorte) : BetriebsBefehl(Betrieb);
 

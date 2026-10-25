@@ -63,10 +63,10 @@ static class SchiffshandelTests
 
     public static IEnumerable<(string, Action)> Alle() => new (string, Action)[]
     {
-        ("Daten: Datenversion 54, ein Flussschiff, zwei ferne Städte (flussauf und flussab); Fehler fallen auf", () =>
+        ("Daten: Datenversion 55, ein Flussschiff, zwei ferne Städte (flussauf und flussab); Fehler fallen auf", () =>
         {
             var d = Daten.Value.Schiffshandel!;
-            Pruefe.Gleich(54, Daten.Value.Version);
+            Pruefe.Gleich(55, Daten.Value.Version);
             Pruefe.Gleich(1, d.Schiffe.Count);
             Pruefe.Gleich("flussauf, flussab", string.Join(", ", d.Staedte.Select(s => s.Richtung)));
             Pruefe.Gleich(120, d.Schiffe["Flussschiff"].Gesamtkapazitaet);
