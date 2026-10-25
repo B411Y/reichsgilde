@@ -29,7 +29,7 @@ public static class KassenpostenTexte
         Kassenposten.Glaubenszins => "Glaubenszins",
         Kassenposten.Strafen => "Bußen",
         Kassenposten.Zoelle => "Hafenzoll",
-        Kassenposten.Gebuehren => "Gebühren (Gericht, Stand)",
+        Kassenposten.Gebuehren => "Gerichtsgebühren",
         Kassenposten.Amtsgehaelter => "Amtsgehälter",
         Kassenposten.Bauvorhaben => "Bauvorhaben",
         _ => "Feste",
@@ -71,8 +71,9 @@ public sealed class Kassenbuch
 /// <summary>
 /// Die Stadtkasse (PR #200; Abschnitt „politik.kasse“, ab Datenversion 54).
 ///
-///   • Einnahmen: die Umsatzsteuer aller Häuser (jede Buchung „Steuer“ eines Kontos), der Glaubenszins, Bußen des Gerichts,
-///     Gerichts- und Standesgebühren und der Zoll an der ersten Zollstelle jeder Schiffsfahrt (sie gehört der Stadt).
+///   • Einnahmen: die Umsatzsteuer aller Häuser (jede Buchung „Steuer“ eines Kontos), der Glaubenszins, Bußen und Gebühren des
+///     Gerichts und der Zoll an der ersten Zollstelle jeder Schiffsfahrt (sie gehört der Stadt). Die Standesgebühr geht an den
+///     Landesherrn – sie füllte die Kasse sonst in jedem Aufstieg um Tausende.
 ///   • Ausgaben: Amtsgehälter aller besetzten Ämter (auch der Ratsherren), Bauvorhaben und Feste.
 ///   • Der Steuersatz gilt für alle Umsätze (<see cref="Stadtwirtschaft.Umsatzsteuer"/>) und ändert sich nur durch einen Ratsbeschluss.
 ///   • Eine leere Kasse hat keine Folgen: Die Gehälter werden trotzdem gezahlt (die Kasse darf ins Minus); nur Bau und Fest brauchen Deckung.
@@ -158,6 +159,14 @@ public sealed class Stadtkasse
             Buchen(Kassenposten.Amtsgehaelter, amt.Daten.Einkommen);
         }
     }
+
+    /// <summary>
+    /// Der Haushalt des Vorjahres mit diesem Steuersatz: Einnahmen (die Umsatzsteuer umgerechnet auf den neuen Satz) minus Amtsgehälter –
+    /// die regelmäßigen Posten ohne Bau und Fest. Null im ersten Jahr (es gibt noch kein Vorjahr).
+    /// </summary>
+    public double? HaushaltMit(int prozent) => Vorjahr is { } v && SteuersatzProzent > 0
+        ? v.Einnahmen - v[Kassenposten.Umsatzsteuer] * (1 - (double)prozent / SteuersatzProzent) - v[Kassenposten.Amtsgehaelter]
+        : null;
 
     /// <summary>Jahresabschluss: Das laufende Kassenbuch wird zum Vorjahr.</summary>
     internal void JahrAbschliessen(int neuesJahr)
