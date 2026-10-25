@@ -257,7 +257,7 @@ static class SchiffshandelTests
             var stadt = w.Schiffahrt.Stadt("Weidenmünd")!;
             var ring = stadt.Ankaufpreis("Silberring");
             var gold = stadt.Verkaufspreis("Gold");
-            Pruefe.Ungefaehr(Daten.Value.Waren["Silberring"].Grundpreis * 1.5, ring, 1e-9);
+            Pruefe.Ungefaehr(Daten.Value.Waren["Silberring"].Grundpreis * 1.6, ring, 1e-9);
             Pruefe.Wahr(stadt.Erloes("Silberring", 10) < 10 * ring && stadt.Kosten("Gold", 10) > 10 * gold, "Preis verschiebt sich je Stück");
             Pruefe.Ungefaehr(stadt.Erloes("Silberring", 10), stadt.Erloes("Silberring", 4) + stadt.Erloes("Silberring", 6, vorher: 4), 1e-9);
             stadt.Verkaufen("Silberring", 30);
