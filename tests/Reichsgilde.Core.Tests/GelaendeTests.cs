@@ -113,9 +113,10 @@ static class GelaendeTests
             }
         }),
 
-        ("Flache Karten: Greybox, Köln und Messstadt haben kein Gelände – gespeichert Byte für Byte dieselbe Datei, Boden 0 (Köln: außer im Bett seines Wassers)", () =>
+        ("Flache Karten: Köln und Messstadt haben kein Gelände – gespeichert Byte für Byte dieselbe Datei, Boden 0 (Köln: außer im Bett seines Wassers)", () =>
         {
-            foreach (var kennung in new[] { "greybox", "koeln", "messstadt" })
+            // Die Greybox hat seit PR #199 Gelände (Flussufer, Hafen) – sie zählt nicht mehr zu den flachen Karten.
+            foreach (var kennung in new[] { "koeln", "messstadt" })
             {
                 var e = Kartenentwurf.AusJson(Text(kennung), Katalog.Value);
                 var nass = kennung == "koeln"; // Köln hat Rhein, Strunde und den Altrheinarm (Schritt 5c) – ihr Bett liegt im Boden
@@ -375,20 +376,20 @@ static class GelaendeTests
                 Directory.CreateDirectory(o.Daten);
                 Directory.CreateDirectory(o.Karten);
                 foreach (var datei in new[] { "katalog.json", "wirtschaft.json" }) File.Copy(Path.Combine(Datenordner, datei), Path.Combine(o.Daten, datei));
-                File.Copy(Datenpfad.Karte("greybox"), o.Karte("greybox"));
-                Pruefe.Wahr(!Vorschau.Zeichnen(Kartenentwurf.AusJson(Text("greybox"), Katalog.Value)).Contains("#8C6A43"), "flach: keine Höhenlinien");
+                File.Copy(Datenpfad.Karte("messstadt"), o.Karte("messstadt"));
+                Pruefe.Wahr(!Vorschau.Zeichnen(Kartenentwurf.AusJson(Text("messstadt"), Katalog.Value)).Contains("#8C6A43"), "flach: keine Höhenlinien");
                 var aus = new StringWriter();
-                Pruefe.Gleich(0, Befehle.Gelaende(o, "greybox", new Pinsel(Pinselart.Heben, 30, 2, Kante: 0.5), new[] { O(-450, 300) }, aus), aus.ToString());
-                var e = Kartenentwurf.AusJson(File.ReadAllText(o.Karte("greybox")), Katalog.Value);
+                Pruefe.Gleich(0, Befehle.Gelaende(o, "messstadt", new Pinsel(Pinselart.Heben, 30, 2, Kante: 0.5), new[] { O(-450, 300) }, aus), aus.ToString());
+                var e = Kartenentwurf.AusJson(File.ReadAllText(o.Karte("messstadt")), Katalog.Value);
                 Pruefe.Gleich((short)200, e.Hoehen.Wert(-225, 150));
-                Pruefe.Wahr(File.ReadAllText(Path.Combine(o.Vorschauen, "greybox.svg")).Contains("stroke=\"#8C6A43\""), "Höhenlinien");
-                Pruefe.Gleich(0, Befehle.Rampe(o, "greybox", O(-450, 300), O(-450, 400), 20, 4, aus), aus.ToString());
-                e = Kartenentwurf.AusJson(File.ReadAllText(o.Karte("greybox")), Katalog.Value);
+                Pruefe.Wahr(File.ReadAllText(Path.Combine(o.Vorschauen, "messstadt.svg")).Contains("stroke=\"#8C6A43\""), "Höhenlinien");
+                Pruefe.Gleich(0, Befehle.Rampe(o, "messstadt", O(-450, 300), O(-450, 400), 20, 4, aus), aus.ToString());
+                e = Kartenentwurf.AusJson(File.ReadAllText(o.Karte("messstadt")), Katalog.Value);
                 Pruefe.Wahr(e.Hoehen.Wert(-225, 175) is > 0 and < 200, $"Rampe: {e.Hoehen.Wert(-225, 175)}");
-                var vorher = File.ReadAllText(o.Karte("greybox"));
-                Pruefe.Gleich(0, Befehle.Gelaende(o, "greybox", new Pinsel(Pinselart.Heben), new[] { O(5000, 0) }, aus));
+                var vorher = File.ReadAllText(o.Karte("messstadt"));
+                Pruefe.Gleich(0, Befehle.Gelaende(o, "messstadt", new Pinsel(Pinselart.Heben), new[] { O(5000, 0) }, aus));
                 Pruefe.Wahr(aus.ToString().Contains("ändert nichts"), aus.ToString());
-                Pruefe.Gleich(vorher, File.ReadAllText(o.Karte("greybox")), "unverändert");
+                Pruefe.Gleich(vorher, File.ReadAllText(o.Karte("messstadt")), "unverändert");
             }
             finally
             {
@@ -458,9 +459,9 @@ static class GelaendeTests
             Pruefe.Wahr(!wf.Karte!.Gelaendeform.IstFlach, "Probestadt hat Gelände");
             foreach (var b in wf.Betriebe)
                 Pruefe.Gleich((basis, basis), (wf.Fahrzeit(b, true), wf.Fahrzeit(b, false)), b.Name);
-            // Greybox (flach): die feste Fahrzeit, ohne Netz zu bauen
-            var greybox = Stadtkarte.AusDatei(Datenpfad.Karte("greybox"));
-            Pruefe.Wahr(greybox.Gelaendeform.IstFlach, "Greybox flach");
+            // Messstadt (flach): die feste Fahrzeit, ohne Netz zu bauen (die Greybox hat seit PR #199 Gelände)
+            var flach = Stadtkarte.AusDatei(Datenpfad.Karte("messstadt"));
+            Pruefe.Wahr(flach.Gelaendeform.IstFlach, "Messstadt flach");
             // nach dem Laden dieselben Zeiten
             var (geladen, _) = Speicherung.Laden(Speicherung.Speichern(sim, spieler));
             var west2 = geladen.Wirtschaft!.Betriebe.Single(b => b.Name == west.Name);

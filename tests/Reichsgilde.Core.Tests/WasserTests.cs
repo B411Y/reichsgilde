@@ -319,12 +319,12 @@ static class WasserTests
             var (geladen, _) = Speicherung.Laden(Speicherung.Speichern(sim, spieler));
             var west2 = geladen.Wirtschaft!.Betriebe.Single(x => x.Name == west.Name);
             Pruefe.Gleich(basis + 5, geladen.Wirtschaft.Fahrzeit(west2, true));
-            // Greybox und Messstadt: kein Wasser, nichts hält auf
-            foreach (var kennung in new[] { "greybox", "messstadt" })
-            {
-                var k = Stadtkarte.AusDatei(Datenpfad.Karte(kennung));
-                Pruefe.Wahr(k.Gelaendeform.IstFlach && k.Gelaendeform.Wasser.IstLeer && !k.Wasserplan.HaeltAuf && k.Wasserplan.Querungen.Count == 0, kennung);
-            }
+            // Messstadt: kein Wasser, nichts hält auf
+            var mess = Stadtkarte.AusDatei(Datenpfad.Karte("messstadt"));
+            Pruefe.Wahr(mess.Gelaendeform.IstFlach && mess.Gelaendeform.Wasser.IstLeer && !mess.Wasserplan.HaeltAuf && mess.Wasserplan.Querungen.Count == 0, "messstadt");
+            // Greybox (seit PR #199 mit dem Grenzfluss im Süden): Kein Weg quert ihn, nichts hält die Karren auf
+            var grey = Stadtkarte.AusDatei(Datenpfad.Karte("greybox"));
+            Pruefe.Wahr(!grey.Gelaendeform.Wasser.IstLeer && !grey.Wasserplan.HaeltAuf, "greybox");
         }),
 
         ("Wasser: Befehle mit Rückgängig – Fluss anlegen, Punkte setzen, verschieben, löschen, Breite und Tiefe je Punkt, umkehren; See; Fährstelle mit Einrasten", () =>
