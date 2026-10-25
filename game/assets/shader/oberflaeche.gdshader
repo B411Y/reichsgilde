@@ -28,6 +28,20 @@ uniform float rauheit = 1.0;
 uniform float metall = 0.0;
 uniform float glanz = 0.5;
 
+// Material-Bibliothek (Modell-Texturen, tools/oberflaeche/materialien_blender.py, game/daten/materialbibliothek.json): gebackene
+// 1024-px-Materialien (Bruchstein, Quader, Putz, Holz, Ziegel, Schiefer, Stroh …). bib ≥ 0 ist die Schicht, sonst gilt die Struktur
+// darunter. bib_stufe (Einstellung „Boden“): 0 Niedrig – die Struktur wie bisher, 1 Mittel – Farbe der Bibliothek, 2 Hoch – dazu
+// Normalen und Rauheit. Die Textur wird durch ihre mittlere Farbe (bib_mittel) geteilt und mit der Modellfarbe gefärbt: Im Mittel
+// bleibt jedes Material so hell und bunt wie die Modellfarbe, Häuser bleiben an ihren Farben zu erkennen.
+uniform int bib = -1;
+uniform int bib_stufe = 2;
+uniform float bib_kachel = 2.0;                  // Meter je Kachel
+uniform vec3 bib_mittel = vec3(0.5);             // mittlere Farbe der Schicht (linear)
+uniform bool bib_dach = false;                   // Dachdeckung: eine Projektion entlang der Dachneigung (oben = firstwärts)
+uniform sampler2DArray bib_farbe : source_color, repeat_enable, filter_linear_mipmap_anisotropic;   // RGB Farbe, A Höhe
+uniform sampler2DArray bib_nr : repeat_enable, filter_linear_mipmap_anisotropic;                    // RG Normale, B Rauheit
+const float BIB_RELIEF = 1.0;                    // Stärke der Normalen
+
 // Elf Schichten (tools/oberflaeche/texturen.py): 0–8 die Materialarten 1–9, 9 Pflaster (Mauer von oben), 10 Flecken.
 // R Helligkeit, G Farbton (+ warm, − kühl), B/A Neigung der Fläche in U/V – alle um 128 als „nichts“.
 uniform sampler2DArray strukturen : repeat_enable, filter_linear_mipmap;
@@ -79,35 +93,64 @@ void fragment() {
 		else if (v_zone == 4) grund = haar.rgb;
 		else if (v_zone == 5) grund = kopfbedeckung.rgb;
 	}
-	if (v_art >= 1 && v_art <= 9) {   // Art 0 („keine“): nur die Farbe des Modells, etwa wo das Modell Steine schon als Form hat
-		int i = v_art - 1;
+	if (bib >= 0 && bib_stufe > 0) {
+		bool normalen = bib_stufe >= 2;
+		float s = 1.0 / bib_kachel;
 		vec3 n = normalize(ort_n);
-		vec3 w = pow(abs(n), vec3(SCHAERFE));
-		w /= (w.x + w.y + w.z);
-		float s = 1.0 / GROESSE[i];
-		// Seitenflächen mit V nach unten (die Bilder stehen aufrecht: Ziegelspitzen und Strohlagen zeigen nach unten).
-		// Eine Mauer von oben gesehen (Mauerkrone, Pflaster) zeigt runde Steine statt Quader.
-		float oben = v_art == 3 ? 9.0 : float(i);
-		// Nur die Projektionen lesen, die zählen: Meist ist es eine, an Kanten und schrägen Flächen zwei oder drei.
-		vec2 ux = vec2(ort.z, -ort.y) * s, uy = ort.xz * s, uz = vec2(ort.x, -ort.y) * s;
-		vec2 dxx = dFdx(ux), dyx = dFdy(ux), dxy = dFdx(uy), dyy = dFdy(uy), dxz = dFdx(uz), dyz = dFdy(uz);
-		vec4 tx = vec4(0.0), ty = vec4(0.0), tz = vec4(0.0);
-		if (w.x > 0.01) tx = lesen(ux, dxx, dyx, float(i));
-		if (w.y > 0.01) ty = lesen(uy, dxy, dyy, oben);
-		if (w.z > 0.01) tz = lesen(uz, dxz, dyz, float(i));
-		vec4 t = tx * w.x + ty * w.y + tz * w.z;
+		// Eine Projektion je Fläche, an ihrer Normalen ausgerichtet (die Modelle sind kantig schattiert, die Normale ist je Fläche fest):
+		// u waagerecht in der Fläche, v die Fläche hinauf – an Wänden senkrecht (Lagen laufen um die Ecken weiter), auf Dächern
+		// firstwärts (Ziegelspalten laufen die Dachfläche hinauf). Flächen, die nach oben schauen, und flache Dächer liegen in x/z.
+		vec3 u = cross(vec3(0.0, 1.0, 0.0), n);
+		bool liegend = bib_dach ? length(u) < 0.05 : abs(n.y) > 0.7;
+		u = liegend ? vec3(1.0, 0.0, 0.0) : normalize(u);
+		vec3 v = liegend ? vec3(0.0, 0.0, -sign(n.y + 1e-4)) : cross(n, u);
+		vec2 uv = vec2(dot(ort, u), -dot(ort, v)) * s;
+		vec4 fh = textureGrad(bib_farbe, vec3(uv, float(bib)), dFdx(uv), dFdy(uv));
+		vec4 nr = normalen ? textureGrad(bib_nr, vec3(uv, float(bib)), dFdx(uv), dFdy(uv)) : vec4(0.5, 0.5, 0.0, 1.0);
+		vec2 t = nr.rg * 2.0 - 1.0;
+		vec3 neigung = u * t.x + v * t.y;     // Neigung der Fläche (Objektkoordinaten) aus der Normalen der Textur
 		vec2 uf = vec2(welt.x + welt.y * 0.6, welt.z - welt.y * 0.4) / FLECKEN_GROESSE;
 		vec4 f = lesen(uf, dFdx(uf), dFdy(uf), 10.0);
-		float hell = 0.5 * t.r * HELL[i] + FLECKEN_HELL * f.r;
-		float ton = t.g * TON[i] + FLECKEN_TON * f.g;
-		grund *= (1.0 + hell) * (1.0 + ton * WARM);
-		// Neigung: je Projektion in Richtung ihrer U- und V-Achse (Objektkoordinaten), dann in die Kamerasicht wie NORMAL
-		vec3 neigung = vec3(w.y * ty.b + w.z * tz.b, -(w.x * tx.a + w.z * tz.a), w.x * tx.b + w.y * ty.a);
-		vec3 sicht = mat3(VIEW_MATRIX) * (mat3(MODEL_MATRIX) * neigung) / length(MODEL_MATRIX[0].xyz);
-		NORMAL = normalize(NORMAL + sicht * RELIEF[i]);
+		grund *= fh.rgb / bib_mittel * (1.0 + FLECKEN_HELL * f.r) * (1.0 + FLECKEN_TON * f.g * WARM);
+		if (normalen) {
+			vec3 sicht = mat3(VIEW_MATRIX) * (mat3(MODEL_MATRIX) * neigung) / length(MODEL_MATRIX[0].xyz);
+			NORMAL = normalize(NORMAL + sicht * BIB_RELIEF);
+		}
+		ALBEDO = clamp(grund, 0.0, 1.0);
+		ROUGHNESS = normalen ? clamp(nr.b + rauheit - 0.9, 0.04, 1.0) : rauheit;
+		METALLIC = metall;
+		SPECULAR = glanz;
+	} else {
+		if (v_art >= 1 && v_art <= 9) {   // Art 0 („keine“): nur die Farbe des Modells, etwa wo das Modell Steine schon als Form hat
+			int i = v_art - 1;
+			vec3 n = normalize(ort_n);
+			vec3 w = pow(abs(n), vec3(SCHAERFE));
+			w /= (w.x + w.y + w.z);
+			float s = 1.0 / GROESSE[i];
+			// Seitenflächen mit V nach unten (die Bilder stehen aufrecht: Ziegelspitzen und Strohlagen zeigen nach unten).
+			// Eine Mauer von oben gesehen (Mauerkrone, Pflaster) zeigt runde Steine statt Quader.
+			float oben = v_art == 3 ? 9.0 : float(i);
+			// Nur die Projektionen lesen, die zählen: Meist ist es eine, an Kanten und schrägen Flächen zwei oder drei.
+			vec2 ux = vec2(ort.z, -ort.y) * s, uy = ort.xz * s, uz = vec2(ort.x, -ort.y) * s;
+			vec2 dxx = dFdx(ux), dyx = dFdy(ux), dxy = dFdx(uy), dyy = dFdy(uy), dxz = dFdx(uz), dyz = dFdy(uz);
+			vec4 tx = vec4(0.0), ty = vec4(0.0), tz = vec4(0.0);
+			if (w.x > 0.01) tx = lesen(ux, dxx, dyx, float(i));
+			if (w.y > 0.01) ty = lesen(uy, dxy, dyy, oben);
+			if (w.z > 0.01) tz = lesen(uz, dxz, dyz, float(i));
+			vec4 t = tx * w.x + ty * w.y + tz * w.z;
+			vec2 uf = vec2(welt.x + welt.y * 0.6, welt.z - welt.y * 0.4) / FLECKEN_GROESSE;
+			vec4 f = lesen(uf, dFdx(uf), dFdy(uf), 10.0);
+			float hell = 0.5 * t.r * HELL[i] + FLECKEN_HELL * f.r;
+			float ton = t.g * TON[i] + FLECKEN_TON * f.g;
+			grund *= (1.0 + hell) * (1.0 + ton * WARM);
+			// Neigung: je Projektion in Richtung ihrer U- und V-Achse (Objektkoordinaten), dann in die Kamerasicht wie NORMAL
+			vec3 neigung = vec3(w.y * ty.b + w.z * tz.b, -(w.x * tx.a + w.z * tz.a), w.x * tx.b + w.y * ty.a);
+			vec3 sicht = mat3(VIEW_MATRIX) * (mat3(MODEL_MATRIX) * neigung) / length(MODEL_MATRIX[0].xyz);
+			NORMAL = normalize(NORMAL + sicht * RELIEF[i]);
+		}
+		ALBEDO = grund;
+		ROUGHNESS = rauheit;
+		METALLIC = metall;
+		SPECULAR = glanz;
 	}
-	ALBEDO = grund;
-	ROUGHNESS = rauheit;
-	METALLIC = metall;
-	SPECULAR = glanz;
 }

@@ -19,6 +19,10 @@ namespace Reichsgilde;
 /// (<see cref="Ableiten"/>). Färbt das Spiel ein Ausgangsmaterial um (Hausfarbe, Laub je Jahreszeit, Werkstück), zieht
 /// <see cref="Abgleichen"/> die Farbe nach: reihum, ein kleines Stück je Bild.
 ///
+/// <b>Material-Bibliothek</b> (Modell-Texturen): Materialien, deren Name in <c>materialbibliothek.json</c> steht (Bruchstein, Putz, Fachwerk,
+/// Dachziegel …), bekommen statt der Struktur gebackene Texturen aus <c>assets/texturen/modelle/</c> – je nach Einstellung „Boden“
+/// (<see cref="Stufe"/>): Niedrig die Struktur wie bisher, Mittel die Farbe der Bibliothek, Hoch dazu Normalen und Rauheit.
+///
 /// <b>MultiMesh</b> (Natur, Mauer) kennt keine Überschreibung je Fläche: Dort kommt eine Kopie des Netzes mit den neuen
 /// Materialien an die Stelle des Netzes (<see cref="Netz"/>), beim Zurückgeben wieder das Original.
 /// </summary>
@@ -28,6 +32,9 @@ internal sealed class Oberflaechendetails
     private const string FigurShaderPfad = "res://assets/shader/figur.gdshader";
     private const string ArtenPfad = "res://daten/materialarten.json";
     private const string StrukturenPfad = "res://assets/texturen/strukturen.png";
+    private const string BibliothekPfad = "res://daten/materialbibliothek.json";
+    private const string BibFarbePfad = "res://assets/texturen/modelle/modelle_farbe_hoehe.webp";
+    private const string BibNormalenPfad = "res://assets/texturen/modelle/modelle_normal_rauheit.webp";
 
     /// <summary>Diese Materialien leuchten oder spiegeln und behalten ihr Aussehen (Namen wie in <c>docs/bereiche/darstellung.md</c>).</summary>
     private static readonly HashSet<string> Behalten = new() { "Glut", "Fenster", "Glas", "Wasser" };
@@ -40,6 +47,14 @@ internal sealed class Oberflaechendetails
     private readonly Dictionary<string, int> _artNamen = new();
     private readonly List<(string Teil, int Art)> _artTeile = new();
     private readonly int _artFigur;
+
+    /// <summary>Eine Schicht der Material-Bibliothek: Nummer im Texture2DArray, Kachel in Metern, mittlere Farbe (linear), Dachprojektion.</summary>
+    private readonly record struct Schicht(int Nummer, float Kachel, Vector3 Mittel, bool Dach);
+    private readonly Dictionary<string, Schicht> _bibliothek = new();
+    private readonly TextureLayered? _bibFarbe, _bibNormalen;
+
+    /// <summary>Stufe der Bibliothek (Einstellung „Boden“): 0 Niedrig (Struktur wie bisher), 1 Mittel (Farbe), 2 Hoch (Farbe, Normalen, Rauheit).</summary>
+    private int _stufe = 2;
 
     /// <summary>Die Farben einer Figur (Gewand, Beinkleid, Haut, Haar, Kopfbedeckung): Wer gleich aussieht, teilt sich ein Material.</summary>
     private readonly record struct Tracht(Color Gewand, Color Beinkleid, Color Haut, Color Haar, Color Kopf);
@@ -78,6 +93,37 @@ internal sealed class Oberflaechendetails
         }
         else GD.PushError($"Oberflächendetails: {ArtenPfad} fehlt oder ist leer.");
         _artFigur = ArtVon("Figur");
+        if (ResourceLoader.Exists(BibFarbePfad) && ResourceLoader.Exists(BibNormalenPfad)
+            && Json.ParseString(Godot.FileAccess.GetFileAsString(BibliothekPfad)).AsGodotDictionary() is { Count: > 0 } bib)
+        {
+            _bibFarbe = GD.Load<TextureLayered>(BibFarbePfad);
+            _bibNormalen = GD.Load<TextureLayered>(BibNormalenPfad);
+            var schichten = new Dictionary<string, Schicht>();
+            var liste = bib["schichten"].AsGodotArray();
+            for (var i = 0; i < liste.Count; i++)
+            {
+                var d = liste[i].AsGodotDictionary();
+                var m = d["mittel"].AsGodotArray();
+                schichten[d["name"].AsString()] = new Schicht(i, (float)d["kachel"].AsDouble(),
+                    new Vector3((float)m[0].AsDouble(), (float)m[1].AsDouble(), (float)m[2].AsDouble()), d["projektion"].AsString() == "dach");
+            }
+            foreach (var (name, schicht) in bib["namen"].AsGodotDictionary())
+                if (schichten.TryGetValue(schicht.AsString(), out var s)) _bibliothek[name.AsString()] = s;
+                else GD.PushError($"Material-Bibliothek: Schicht „{schicht}“ für „{name}“ fehlt.");
+        }
+        else GD.PushError($"Material-Bibliothek: {BibliothekPfad} oder die Texturen fehlen.");
+    }
+
+    /// <summary>Stufe der Bibliothek für alle Materialien (aus der Einstellung „Boden“: Niedrig 0, Mittel 1, Hoch 2).</summary>
+    public int Stufe
+    {
+        get => _stufe;
+        set
+        {
+            if (_stufe == value) return;
+            _stufe = value;
+            foreach (var s in _spiegel) s.Ziel.SetShaderParameter("bib_stufe", value);
+        }
     }
 
     /// <summary>Die Materialart zu einem Materialnamen: erst der genaue Name, dann das erste passende Teilwort, sonst 0 (keine Struktur).</summary>
@@ -116,7 +162,8 @@ internal sealed class Oberflaechendetails
             return null;
         var jeFlaeche = JeFlaeche.Contains(name);
         var art = ArtVon(name);
-        if (art == 0 && !jeFlaeche) return null; // ohne Struktur sähe das Material genauso aus wie vorher
+        var inBibliothek = _bibliothek.TryGetValue(name, out var schicht);
+        if (art == 0 && !jeFlaeche && !inBibliothek) return null; // ohne Struktur sähe das Material genauso aus wie vorher
 
         var ziel = Neu(name);
         ziel.SetShaderParameter("farbe", stoff.AlbedoColor);
@@ -127,6 +174,16 @@ internal sealed class Oberflaechendetails
         ziel.SetShaderParameter("rauheit", stoff.Roughness);
         ziel.SetShaderParameter("metall", stoff.Metallic);
         ziel.SetShaderParameter("glanz", stoff.MetallicSpecular);
+        if (inBibliothek)
+        {
+            ziel.SetShaderParameter("bib", schicht.Nummer);
+            ziel.SetShaderParameter("bib_kachel", schicht.Kachel);
+            ziel.SetShaderParameter("bib_mittel", schicht.Mittel);
+            ziel.SetShaderParameter("bib_dach", schicht.Dach);
+            ziel.SetShaderParameter("bib_farbe", _bibFarbe);
+            ziel.SetShaderParameter("bib_nr", _bibNormalen);
+        }
+        ziel.SetShaderParameter("bib_stufe", _stufe);
         _spiegel.Add(new Spiegel { Quelle = stoff, Ziel = ziel, Zuletzt = stoff.AlbedoColor });
         return ziel;
     }
