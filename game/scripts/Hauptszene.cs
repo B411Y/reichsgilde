@@ -1274,6 +1274,7 @@ public partial class Hauptszene : Node
         }
         TafelnSchliessen();
         _berichtTafel.Hide(); // rechts steht jetzt die Bautafel; die Auswahl wartet (RechtsFrei)
+        _hafenTafel.Hide();
         _bau.Oeffnen();
     }
 
