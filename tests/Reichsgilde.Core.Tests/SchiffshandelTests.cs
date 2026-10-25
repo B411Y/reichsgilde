@@ -96,6 +96,23 @@ static class SchiffshandelTests
             Pruefe.Gleich("In dieser Stadt gibt es keinen Schiffshandel.", w3.Ausfuehren(k3, new SchiffKaufen()).Meldung);
         }),
 
+        ("Nur der Hafenplatz ist ein Hafen: Zollstelle und Hafenkran stehen auch am Ufer, zählen aber nicht", () =>
+        {
+            var pfad = Datenpfad.Karte("probestadt");
+            var hafenzeile = "{\"kennung\": \"Hafen1\", \"katalog\": \"hafenplatz\", \"name\": \"Hafen am Sandfluss\", \"punkt\": [-90, 108], \"drehung\": 180}";
+            var json = File.ReadAllText(pfad);
+            Pruefe.Wahr(json.Contains(hafenzeile), "Hafen1 steht nicht wie erwartet in probestadt.json");
+            json = json.Replace(hafenzeile, hafenzeile +
+                ",\n  {\"kennung\": \"Zoll1\", \"katalog\": \"zollstelle\", \"name\": \"Zollstelle\", \"punkt\": [-60, 108], \"drehung\": 180}" +
+                ",\n  {\"kennung\": \"Kran1\", \"katalog\": \"hafenkran\", \"name\": \"Tretradkran\", \"punkt\": [-120, 108], \"drehung\": 180}");
+            var karte = Stadtkarte.AusJson(json, Gebaeudekatalog.AusDatei(Stadtkarte.KatalogZu(pfad)));
+            Pruefe.Wahr(karte.Gebaeude.Count(g => g.Baustein?.AmUfer == true) >= 3, "Zollstelle und Kran stehen am Ufer");
+            var w = new Simulation(Partieeinstellungen.Standard with { Siegbedingung = Siegbedingung.Endlos },
+                new Spielzeit(9 * 60 - Spielzeit.TagesbeginnMinute), OhnePiraten).Wirtschaft!;
+            w.KarteSetzen(karte);
+            Pruefe.Gleich("Hafen1", string.Join(", ", w.Schiffahrt.Haefen.Select(h => h.Kennung)));
+        }),
+
         ("Hafen und Routen der Probestadt: Liegeplatz im Wasser vor der Kaimauer, flussab bis zum Ende des Sandflusses im Westen, flussauf bis zum Osten", () =>
         {
             var (_, w, _) = Stadt();
