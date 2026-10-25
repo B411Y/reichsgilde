@@ -11,7 +11,7 @@ Objekte im GLB (wie bei den anderen Werkstätten):
     Stufe2      Stadtwache: dazu ein Exerzierplatz mit Strohpuppen, Zielscheiben, Waffen- und Rüstungsständer, Gaube
     Stufe3      Garnison: Mannschaftshaus im Hof, Fahnenmast mit der Stadtfahne, Übungsplatz, Gaube,
                 Dachreiter mit stadtroter Spitze
-    Wappen, Fahne, Leerstand, Geruest, Anker_Tuer, Anker_Karren
+    Wappen, Fahne, Leerstand, Geruest, Anker_Tuer, Anker_Karren, Anker_Feuer_1
 Genau einer der Knoten Stufe1–Stufe3 ist sichtbar; Leerstand und Geruest sind standardmäßig aus.
 Das Material „Glut“ (Feuerkorb im Hof) leuchtet – das Spiel regelt die Stärke wie bei der Esse.
 
@@ -129,7 +129,9 @@ def bauen():
     bs.baugeruest(geruest, st, x0=X0 - 0.15, x1=TX0 - 0.15, y_innen=Y0 - 0.32, y_aussen=Y0 - 1.2,
                   ebenen=(2.4, 4.8), hoehe_innen=5.6, hoehe_aussen=6.6, felder=3)
     anker = [bs.anker("Anker_Tuer", (CX + tor.u, Y0 - 0.2, Z_SOCKEL + 0.01)),
-             bs.anker("Anker_Karren", (CX + tor.u, Y0 - 1.6, 0.0))]
+             bs.anker("Anker_Karren", (CX + tor.u, Y0 - 1.6, 0.0)),
+             # Feuerkorb der Nachtlichter (lichter.glb) neben dem Schilderhäuschen, zur Gasse hin, Blickrichtung nach außen (−Y)
+             bs.anker("Anker_Feuer_1", (4.1, Y0 - 1.4, 0.0), 180.0)]
 
     objekte = [haus.objekt(), stufe1.objekt(), stufe2.objekt(), stufe3.objekt(), wappen.objekt(), fahne.objekt(),
                leer.objekt(), geruest.objekt()] + anker

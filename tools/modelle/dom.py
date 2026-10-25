@@ -11,7 +11,7 @@ Objekte im GLB (der Dom hat einen Innenraum, in den man wie bisher hineinsieht):
     Dach                       Schieferdach mit beiden Giebeln und dem Kreuz – beim Hineinsehen aus
     Turm                       Westturm mit Portal, Rosette, Glockenstube und Helm – beim Hineinsehen aus
     Anker_Tuer                 auf den Stufen vor dem Portal
-    Anker_EwigesLicht          Aufhängepunkt des Ewigen Lichts (lichter.glb) im Bogen des Portals
+    Anker_EwigesLicht          Aufhängepunkt des Ewigen Lichts (lichter.glb) an der Innenseite des Portalbogens (Scheitel, 5,62 m)
 Keine Zustände und keine Hausfarbe: Der Dom gehört der Stadt (`pruefen.py … --sonderbau`).
 
 Aufbau (Blender: Z oben, Portal und Turm zur Gasse bei -Y; Ursprung in der Mitte des Langhauses wie beim Platzhalter):
@@ -62,7 +62,7 @@ def bauen():
     turm = bs.Netz("Turm")
     turm_bauen(turm, st)
     objekte += [dach.objekt(), turm.objekt(), bs.anker("Anker_Tuer", (0.0, TY0 - 0.45, 0.3)),
-                bs.anker("Anker_EwigesLicht", (0.0, TY0 - 0.3, 5.1), 180.0)]       # Aufhängepunkt des Ewigen Lichts (lichter.glb) am Portal
+                bs.anker("Anker_EwigesLicht", (0.0, TY0 - 0.12, 5.62), 180.0)]      # Aufhängepunkt des Ewigen Lichts (lichter.glb): Innenseite des Scheitels vom Portalbogen
     return objekte
 
 

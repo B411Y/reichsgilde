@@ -8,7 +8,7 @@ Schreibt game/assets/modelle/gebaeude/rathaus.glb und Bilder nach docs/modelle/.
 Objekte im GLB:
     Haus        das ganze Rathaus (die Räume zeigt das Spiel wie bisher in der Raumansicht, die Hülle ist geschlossen)
     Anker_Tuer  in der Markthalle vor dem Portal
-    Anker_Laterne  Aufhängung der Wandlaterne (lichter.glb) neben dem Portal, Blick von der Wand weg
+    Anker_Laterne  Aufhängung der Wandlaterne (lichter.glb) am mittleren Arkadenpfeiler, Blick zum Markt
 Keine Zustände und keine Hausfarbe: Das Rathaus gehört der Stadt (`pruefen.py … --sonderbau`). Läden, Türen und
 das Stadtwappen tragen die Stadtfarben Rot und Weiß.
 
@@ -55,9 +55,9 @@ def bauen():
     erdgeschoss(haus, st)
     obergeschoss(haus, st)
     uhrturm(haus, st)
-    # Anker_Laterne: Wandlaterne der Nachtlichter (lichter.glb) rechts neben dem Portal, Blickrichtung von der Wand weg (−Y)
+    # Anker_Laterne: Wandlaterne der Nachtlichter (lichter.glb) an der Marktseite des mittleren Arkadenpfeilers, Blick zum Markt (−Y)
     return [haus.objekt(), bs.anker("Anker_Tuer", (-1.8, Y_HALLE - 0.6, 0.15)),
-            bs.anker("Anker_Laterne", (0.05, Y_HALLE, Z_SOCKEL + 2.4), 180.0)]
+            bs.anker("Anker_Laterne", ((-HX + TX0) / 2, VORN, 2.8), 180.0)]
 
 
 def bogenwand(netz, st, M, L, H, boegen, dicke=0.6, teile=8):
