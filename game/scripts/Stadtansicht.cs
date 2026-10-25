@@ -700,6 +700,7 @@ public partial class Stadtansicht : Node3D
         FensterNachtSetzen(zeit.VergangeneMinuten); // jede Nacht andere Fenster hell (Stadtansicht.Modelle.cs)
         WetterAktualisieren(zeit.VergangeneMinuten + bruchteil, zeit.Jahreszeit, delta); // vor dem Licht: Wolken dämpfen es (Stadtansicht.Wetter.cs)
         LichtNachUhrzeit(zeit.UhrzeitInMinuten + (float)bruchteil, delta); // Stadtansicht.Licht.cs
+        NachtlichterAktualisieren((zeit.UhrzeitInMinuten + (float)bruchteil) / 60f, GezeigteJahreszeit(zeit.Jahreszeit), delta); // Stadtansicht.Nachtlichter.cs
         PassantenAktualisieren(zeit.VergangeneMinuten + bruchteil, delta); // Stadtansicht.Passanten.cs
         JahreszeitSetzen(GezeigteJahreszeit(zeit.Jahreszeit)); // Laub je Jahreszeit, im Winter kahl (Stadtansicht.Natur.cs)
         VoegelAktualisieren(zeit.UhrzeitInMinuten + (float)bruchteil, delta, _simulation.Takt.IstPausiert); // Stadtansicht.Voegel.cs
@@ -737,6 +738,7 @@ public partial class Stadtansicht : Node3D
             FenstergruppeSetzen(dom, _messeVorgegeben || (w.Kirchenwesen.IstAktiv && zeit.UhrzeitInMinuten / 60 == w.Kirchenwesen.Daten.MesseUm)
                 ? Fenstergruppe.Messe : Fenstergruppe.Kirche);
         SchiffeAktualisieren(w, zeit.VergangeneMinuten + bruchteil, delta); // Stadtansicht.Schiffe.cs
+        NachtwaechterAktualisieren(w, zeit, bruchteil, delta); // Wachleute auf Streife (Stadtansicht.Nachtlichter.cs)
         StadtbauAktualisieren(w); // Bauvorhaben und Fest der Stadt (Stadtansicht.Stadtbau.cs)
         if (_innen is SonderbauAnsicht sonderbau)
             SonderbauAktualisieren(sonderbau, zeit, arbeitszeit, delta);
