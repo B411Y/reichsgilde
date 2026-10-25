@@ -174,7 +174,8 @@ public partial class Stadtansicht
             new Arbeitsplatz(new Vector3(rat + 2.45f, 0, 0.6f), West, Bewegung.Beten, Werkzeug.Keins, true),
         };
         _rathaus = a;
-        _ratssaalSitze = sitze; // für die sichtbare Ratssitzung (Stadtansicht.Ratssitzung.cs)
+        _ratssaalSitze = sitze; // für die sichtbare Ratssitzung (Stadtansicht.Ratssitzung.cs), falls das Modell des Ratssaals fehlt
+        RatssaalModellBauen(a);
         for (var i = 0; i < sitze.Length; i++)
         {
             var s = sitze[i];
