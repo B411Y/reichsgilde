@@ -221,12 +221,7 @@ def giesserei(netz, st):
     laenge = (x_a - x_w + 0.4) / math.cos(neig)
     mitte = Vector(((x_w + x_a + 0.4) / 2, (y_a + y_b) / 2, (z_hoch + z_tief) / 2 + 0.05 - 0.2 * math.tan(neig)))
     dach = Matrix.Translation(mitte) @ Matrix.Rotation(neig, 4, "Y")
-    netz.quader((0, 0, 0), (laenge, y_b - y_a + 0.4, 0.08), alt, matrix=dach)
-    y = -(y_b - y_a + 0.4) / 2 + 0.32
-    while y < (y_b - y_a + 0.4) / 2 - 0.1:       # Fugen zwischen den Dachbrettern
-        netz.vieleck([dach @ Vector(p) for p in ((-laenge / 2, y - 0.02, 0.045), (laenge / 2, y - 0.02, 0.045),
-                                                  (laenge / 2, y + 0.02, 0.045), (-laenge / 2, y + 0.02, 0.045))], st["Fachwerk"])
-        y += 0.32
+    netz.quader((0, 0, 0), (laenge, y_b - y_a + 0.4, 0.08), alt, matrix=dach)   # Bretter und Fugen aus der Material-Bibliothek
     # Esse mit Rauchfang und Schlot durch das Schuppendach
     ex, ey = 2.9, -1.3
     netz.quader((ex, ey, 0.45), (1.3, 1.1, 0.9), st["Bruchstein dunkel"], ohne=("+z",))
