@@ -129,7 +129,11 @@ public partial class Stadtansicht
     /// <summary>Jedes Bild: veraltete Kacheln neu rechnen (parallel), ihre Bilder ersetzen und den Kacheln den Stoff geben.</summary>
     private void WegeschichtBild()
     {
-        if (!_schichtAlles && _schichtVeraltet.Count == 0) return;
+        if (!_schichtAlles && _schichtVeraltet.Count == 0)
+        {
+            if (_torErdeVeraltet && _grenzen is not null && WegeschichtMoeglich) TorErdeNachfuehren(null); // eine neue Torburg (Stadtansicht.Torerde.cs)
+            return;
+        }
         if (_grenzen is null || !WegeschichtMoeglich)
         {
             _schichtAlles = false;
@@ -153,6 +157,7 @@ public partial class Stadtansicht
 
         var uhr = System.Diagnostics.Stopwatch.StartNew();
         var (teile, spuren) = SchichtTeile();
+        TorErdeNachfuehren(teile); // Erde im Torweg (Stadtansicht.Torerde.cs)
         var ergebnis = new (byte[] Bild, byte[] Info, byte[] Spur)?[liste.Count];
         var bueschel = new Vector4[]?[liste.Count];
         var raster = BodenRaster;
