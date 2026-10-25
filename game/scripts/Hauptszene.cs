@@ -508,6 +508,9 @@ public partial class Hauptszene : Node
         _wegTafel.Schliessen();
     }
 
+    /// <summary>Steht rechts gerade die Bau- oder die Wegtafel? Dann wartet die Auswahl (sie bleibt gewählt und erscheint danach wieder).</summary>
+    private bool RechtsFrei => !_bau.Aktiv && !_wegTafel.Aktiv;
+
     /// <summary>Kennung des eigenen Wohnhauses („wohnhaus:&lt;Inhaber&gt;“), sonst null.</summary>
     private string? EigenesWohnhaus => _spieler is null ? null : Stadtansicht.WohnhausKennung(_spieler);
 
@@ -1188,9 +1191,11 @@ public partial class Hauptszene : Node
         {
             if (_auswahl.Visible) _auswahl.Hide();
             _uebersicht.Zeigen(null);
-            if (_wohnhaus.Visible != AuswahlImRaum)
+            // Im eigenen Wohnhaus nur im Kontor (wie früher das Kontor), aus einem anderen Gebäude heraus (Kopfzeile, F) überall
+            var zeigen = RechtsFrei && (AuswahlImRaum || _stadt.InnenKennung != EigenesWohnhaus);
+            if (_wohnhaus.Visible != zeigen)
             {
-                if (AuswahlImRaum) _wohnhaus.Zeigen(WohnhausAnzeige.Reiter.Haus);
+                if (zeigen) _wohnhaus.Zeigen(WohnhausAnzeige.Reiter.Haus);
                 else _wohnhaus.Hide();
             }
             return;
@@ -1230,9 +1235,9 @@ public partial class Hauptszene : Node
         if (_ratKnopf.Visible != ratSichtbar) _ratKnopf.Visible = ratSichtbar; // nur bei Änderung setzen (siehe AktionKnopfAnzeigen)
         var gerichtSichtbar = _auswahlKennung == "Rathaus" && w.Justiz.IstAktiv;
         if (_gerichtKnopf.Visible != gerichtSichtbar) _gerichtKnopf.Visible = gerichtSichtbar;
-        if (_auswahl.Visible != AuswahlImRaum)
+        if (_auswahl.Visible != (AuswahlImRaum && RechtsFrei))
         {
-            _auswahl.Visible = AuswahlImRaum;
+            _auswahl.Visible = AuswahlImRaum && RechtsFrei;
             if (_auswahl.Visible) Rollbereich.RechtsAnheften(_auswahl);
         }
     }
@@ -1250,6 +1255,7 @@ public partial class Hauptszene : Node
             return;
         }
         TafelnSchliessen();
+        _berichtTafel.Hide(); // rechts steht jetzt die Bautafel; die Auswahl wartet (RechtsFrei)
         _bau.Oeffnen();
     }
 
