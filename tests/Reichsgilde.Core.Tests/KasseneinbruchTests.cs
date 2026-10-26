@@ -11,7 +11,7 @@ using Reichsgilde.Core.Wirtschaft;
 /// </summary>
 static class KasseneinbruchTests
 {
-    static readonly string Json = File.ReadAllText(Datenpfad.Wirtschaft());
+    static readonly string Json = Datenpfad.EinVersuchJeNacht(File.ReadAllText(Datenpfad.Wirtschaft()));
 
     /// <summary>Diebstahl und Einbruch gelingen immer (95 % bzw. 100 %), keine Zeugen.</summary>
     static readonly Lazy<Wirtschaftsdaten> Sicher = new(() => Wirtschaftsdaten.AusJson(Json

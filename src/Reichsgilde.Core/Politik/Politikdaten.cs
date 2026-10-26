@@ -152,6 +152,12 @@ public sealed class KasseDaten
     /// <summary>Geld in der Kasse zu Spielbeginn.</summary>
     public double Startbestand { get; init; } = 3000;
 
+    /// <summary>
+    /// Kleine Städte zahlen kleinere Amtsgehälter: volle Gehälter ab so vielen Häusern, darunter nach den Einwohnern (Datenversion 57: 6;
+    /// ohne Angabe 0 = immer volle Gehälter).
+    /// </summary>
+    public int GehaltVolleHaeuser { get; init; }
+
     /// <summary>Startbestand je Karte (Kennung der Karte → Gulden); fehlt die Karte, gilt <see cref="Startbestand"/>.</summary>
     public Dictionary<string, double> StartJeKarte { get; init; } = new();
 

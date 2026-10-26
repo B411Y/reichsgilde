@@ -187,7 +187,7 @@ public sealed partial class Stadtwirtschaft
     public double HandKaufFaktor(Konto konto) => (1 + (Daten.Handel?.Aufschlag ?? 0)) * Familien.EinkaufsFaktor(konto);
 
     /// <summary>Was ein Einkauf von Hand jetzt kosten würde (jedes Stück hebt den Preis).</summary>
-    public double HandKaufpreis(Konto konto, string ware, int stueck) => Markt[ware].HandKaufpreis(stueck, HandKaufFaktor(konto));
+    public double HandKaufpreis(Konto konto, string ware, int stueck, double anteil = 1) => Markt[ware].HandKaufpreis(stueck, HandKaufFaktor(konto), anteil: anteil);
 
     /// <summary>Wann käme ein Karren dieses Betriebs am Markt an, wenn er jetzt losführe? (Uhrzeit in Minuten nach Mitternacht)</summary>
     public int AnkunftAmMarkt(Betrieb betrieb) => Uhr.UhrzeitInMinuten + Fahrzeit(betrieb, zumMarkt: true);
@@ -503,13 +503,10 @@ public sealed partial class Stadtwirtschaft
                 betrieb.Arbeitsminute(Melden, Familien.LeistungsFaktor(betrieb.Konto) * volk * (1 - Gesundheit.Krankenstand), volk);
             }
 
-        // Bei Nacht und Nebel: Die Banden aus dem Hinterzimmer ziehen los.
-        if (zeit.MinuteImTag == Unterwelt.Nachtstunde)
-        {
-            Gauner.Nacht(zeit);
-            Diebe.Nacht(); // die eigenen Leute der Diebe nach den angeheuerten Banden
-            Duft.Nacht();  // Giftanschläge
-        }
+        // Bei Nacht und Nebel: Die Banden aus dem Hinterzimmer ziehen los – um 20 Uhr und, mit gauner.nachtVersuche, zu jeder vollen
+        // Stunde danach noch einmal (23 Uhr: in der Jahresrechnung).
+        if (Gauner.VersuchUm(zeit.MinuteImTag) is { } versuch)
+            Nachtversuch(zeit, versuch);
 
         // Fairness: Wer in derselben Minute am Markt ankommt, ist in zufälliger Reihenfolge dran.
         // Sonst hätte immer der zuerst eröffnete Betrieb den besseren Preis (im Multiplayer: wer zuerst beitritt).
@@ -534,6 +531,14 @@ public sealed partial class Stadtwirtschaft
         Einwohnerschaft.Minute(zeit);
 
         ToteBetriebeFreigeben(); // wer in dieser Minute erlosch (Giftanschlag), dessen Werkstätten stehen nun zum Verkauf
+    }
+
+    /// <summary>Ein Versuch der Nacht (0 = 20 Uhr): Banden aus dem Hinterzimmer, dann die eigenen Leute der Diebe; Giftanschläge nur um 20 Uhr.</summary>
+    private void Nachtversuch(Spielzeit zeit, int versuch)
+    {
+        Gauner.Nacht(zeit, versuch);
+        Diebe.Nacht(versuch); // die eigenen Leute der Diebe nach den angeheuerten Banden
+        if (versuch == 0) Duft.Nacht(); // Giftanschläge
     }
 
     /// <summary>
@@ -566,6 +571,8 @@ public sealed partial class Stadtwirtschaft
     internal bool Jahresabrechnung(int neuesJahr, Spielzeit zeit)
     {
         StundeVorbei(zeit);
+        if (Gauner.VersuchUm(Spielzeit.MinutenProTag) is { } versuch) // Gaunerei je Nachtstunde: der Versuch um 23 Uhr
+            Nachtversuch(zeit, versuch);
         foreach (var betrieb in _betriebe.Where(b => b.Konto.IstAktiv))
             betrieb.Jahresabrechnung(_zufall, m => Meldung?.Invoke(m));
         Rat.ProtokollBeginnen();

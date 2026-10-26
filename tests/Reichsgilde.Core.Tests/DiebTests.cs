@@ -11,7 +11,7 @@ using Reichsgilde.Core.Wirtschaft;
 /// <summary>Tests für den Dieb: Taschendiebe, Fang, Einbruch, Auskundschaften, Schutzgeld, Entführung, Ansehen, KI.</summary>
 static class DiebTests
 {
-    static readonly string Json = File.ReadAllText(Datenpfad.Wirtschaft());
+    static readonly string Json = Datenpfad.EinVersuchJeNacht(File.ReadAllText(Datenpfad.Wirtschaft()));
     static readonly Lazy<Wirtschaftsdaten> Daten = new(() => Wirtschaftsdaten.AusJson(Json));
 
     /// <summary>Niemand wird je erwischt – für Rechnungen ohne Zufall.</summary>
@@ -78,19 +78,19 @@ static class DiebTests
             Pruefe.WirftMitMeldung(() => Wirtschaftsdaten.AusJson(falsch), "nur ein Betrieb des Diebes");
         }),
 
-        ("Taschendiebe: 4 Gesellen bringen an einem Arbeitstag 4 × 720 × 1,0 Gulden – steuerfrei, mit halber Erfahrung im Beruf (vier Plätze)", () =>
+        ("Taschendiebe: 4 Gesellen bringen an einem Arbeitstag 4 × 720 × 1,08 Gulden – steuerfrei, mit halber Erfahrung im Beruf (vier Plätze)", () =>
         {
             var sim = NeueSimulation(Unerwischt.Value);
             var (w, k, b) = Dieb(sim);
             var umsatz = k.Laufend.Umsatz;
             BisNachDerNacht(sim);
             // PR #177: Beute 0,8 → 1,0 je Minute; Erfahrung × 0,5 (erfahrungFaktor – doppelt so viele Plätze wie eine Werkstatt)
-            Pruefe.Ungefaehr(4 * 720 * 1.0, w.Diebe.DiesesJahr(k).Beute, 1e-6);
-            Pruefe.Ungefaehr(umsatz + 4 * 720 * 1.0, k.Laufend.Umsatz, 1e-6);
+            Pruefe.Ungefaehr(4 * 720 * 1.08, w.Diebe.DiesesJahr(k).Beute, 1e-6);
+            Pruefe.Ungefaehr(umsatz + 4 * 720 * 1.08, k.Laufend.Umsatz, 1e-6);
             Pruefe.Gleich(0.0, k.Laufend.Steuer);
             Pruefe.Ungefaehr(24, k.Erfahrung("Dieb"), 1e-6);
-            Pruefe.Ungefaehr(1.0 * 1.4, w.Diebe.WertJeMinute(3), 1e-12); // Stufe 3 × 1,4 (vorher 1,3; nach dem KI-Einrichtungskauf, PR #177)
-            Pruefe.Ungefaehr(720 * 1.0 - 220, Kalkulation.Jahresertrag(w, b, "Geselle"), 1e-6);
+            Pruefe.Ungefaehr(1.08 * 1.4, w.Diebe.WertJeMinute(3), 1e-12); // Stufe 3 × 1,4 (vorher 1,3; nach dem KI-Einrichtungskauf, PR #177)
+            Pruefe.Ungefaehr(720 * 1.08 - 220, Kalkulation.Jahresertrag(w, b, "Geselle"), 1e-6);
         }),
 
         ("Fang: Ein erwischter Dieb kommt in den Turm (Lehrling zuerst) – ein anderes Haus hat einen Beweis", () =>

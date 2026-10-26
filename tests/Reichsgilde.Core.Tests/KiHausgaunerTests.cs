@@ -11,7 +11,7 @@ using Reichsgilde.Core.Wirtschaft;
 /// </summary>
 static class KiHausgaunerTests
 {
-    static readonly string Json = File.ReadAllText(Datenpfad.Wirtschaft());
+    static readonly string Json = Datenpfad.EinVersuchJeNacht(File.ReadAllText(Datenpfad.Wirtschaft()));
     static readonly Lazy<Wirtschaftsdaten> Daten = new(() => Wirtschaftsdaten.AusJson(Json));
 
     /// <summary>Der Brand gelingt immer.</summary>

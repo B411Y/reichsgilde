@@ -150,7 +150,12 @@ static class LiegenschaftTests
 
         ("KI expandiert als Bürger – aber nur bis zu ihrer Höchstzahl an Betrieben", () =>
         {
-            var sim = NeueSimulation();
+            // Ohne den Wachturm: Seit Datenversion 57 (Sold 0,84) pachtete die KI ihn zuerst – zum Gardisten gibt es keine zweite freie Liegenschaft.
+            var knoten = System.Text.Json.Nodes.JsonNode.Parse(File.ReadAllText(Datenpfad.Wirtschaft()))!;
+            var liegenschaften = knoten["liegenschaften"]!.AsArray();
+            liegenschaften.Remove(liegenschaften.Single(l => (string?)l!["art"] == "Wachturm"));
+            var sim = new Simulation(Partieeinstellungen.Standard with { Siegbedingung = Siegbedingung.Endlos },
+                wirtschaftsdaten: Wirtschaftsdaten.AusJson(knoten.ToJsonString()));
             var w = sim.Wirtschaft!;
             var k = Buerger(w, "Rivale", 19000); // unter der Patrizier-Schwelle – sonst dürfte die KI einen Betrieb mehr führen
             Werkstatthilfe.FreieWerkstatt(w, "Schänke am Fischmarkt", Betriebsart.Schaenke); // ohne Karte wird nicht gebaut

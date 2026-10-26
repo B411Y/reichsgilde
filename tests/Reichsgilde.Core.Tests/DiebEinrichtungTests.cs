@@ -9,7 +9,7 @@ using Reichsgilde.Core.Wirtschaft;
 /// <summary>Tests für den Innenraum des Diebs: Einrichtung (Dietriche, Verkleidung, Hehlerkammer, Handschuhe …) und die Anwesenheit der Leute.</summary>
 static class DiebEinrichtungTests
 {
-    static readonly string Json = File.ReadAllText(Datenpfad.Wirtschaft());
+    static readonly string Json = Datenpfad.EinVersuchJeNacht(File.ReadAllText(Datenpfad.Wirtschaft()));
     static readonly Lazy<Wirtschaftsdaten> Daten = new(() => Wirtschaftsdaten.AusJson(Json));
 
     /// <summary>Niemand wird am Markt erwischt – die Belegschaft bleibt, wie sie ist.</summary>
@@ -84,7 +84,7 @@ static class DiebEinrichtungTests
         ("Dieb-Einrichtung: Daten – sieben Stücke mit den Kennungen des Raummodells, Preise wie bei den Werkstätten, Datenversion 52", () =>
         {
             var d = Daten.Value.Werkstatt!;
-            Pruefe.Gleich(56, Daten.Value.Version);
+            Pruefe.Gleich(57, Daten.Value.Version);
             var dieb = d.EinrichtungFuer("Dieb");
             Pruefe.Gleich("Werkzeug1 Werkzeug2 Verkleidung Regale Loeschfass Eisentuer Handschuhe", string.Join(" ", dieb.Select(e => e.Kennung)));
             Pruefe.Gleich("Dietriche, Meisterdietriche, Verkleidungstruhe, Hehlerkammer, Löschfass, Eisentür, Lederhandschuhe",

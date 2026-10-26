@@ -108,7 +108,7 @@ public static class Uhrumstellung
 
     /// <summary>
     /// Die Wirtschaftsdaten im Spielstand (bis Datenversion 55): Dauern von einem Jahr bzw. Werte je Stunde, die über ein Jahr gelten,
-    /// auf das längere Jahr – wie in Datenversion 56. Ruhen der Bürger den ganzen Tag (sonst schlüge die Prüfung der Daten fehl).
+    /// auf das längere Jahr – wie in Datenversion 56 und (Fahrtzeiten der Schiffe) 57. Ruhen der Bürger den ganzen Tag (sonst schlüge die Prüfung der Daten fehl).
     /// </summary>
     private static void Daten(JsonObject d)
     {
@@ -129,6 +129,11 @@ public static class Uhrumstellung
                     b["BauzeitStunden"] = (int)Math.Round((int)h * (double)Zeit.Spielzeit.StundenProTag / AltStundenProTag);
         if (d["Schiffshandel"] is JsonObject s && s["ErholungJeStunde"] is JsonValue e && e.TryGetValue<double>(out var erholung))
             s["ErholungJeStunde"] = Math.Round(1 - Math.Pow(1 - erholung, AltStundenProTag / (double)Zeit.Spielzeit.StundenProTag), 4);
+        // Fahrtzeiten der Schiffe wachsen mit dem Spieltag (Datenversion 57): je Jahr gleich viele Fahrten wie vorher.
+        if (d["Schiffshandel"]?["Schiffe"] is JsonObject schiffe)
+            foreach (var (_, typ) in schiffe)
+                foreach (var feld in new[] { "MinutenFlussab", "MinutenFlussauf", "LadeMinuten", "LiegeMinuten" })
+                    Minuten(typ, feld);
         if (d["Buerger"]?["Handlungen"]?["Ruhen"] is JsonObject ruhen)
         {
             ruhen["Von"] = Zeit.Spielzeit.TagesbeginnMinute / 60;

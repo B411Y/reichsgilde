@@ -72,10 +72,10 @@ static class WirtTests
             for (var i = 0; i < 13 * 60 + 1 - Spielzeit.TagesbeginnMinute; i++) sim.Tick(); // bis 13 Uhr: die erste Stunde ist vorbei
             Pruefe.Wahr(g.DiesesJahr(s).Bewirtet is >= 8 and <= 9, $"nach der ersten Stunde {g.DiesesJahr(s).Bewirtet}"); // 120 × 1/14 (12–18 Uhr je 1, 18–22 Uhr je 2)
             var vorher = k.Laufend.Umsatz;
-            TagVorbei(sim); // bis 22 Uhr – die Gäste der letzten Stunde zählen noch zum Jahr
+            TagVorbei(sim); // bis 23 Uhr – die Gäste der Stunde bis 22 Uhr zählen noch zum Jahr
             var buch = g.Vorjahr(s)!;
             Pruefe.Wahr(buch.Bewirtet is >= 119 and <= 120, $"bewirtet {buch.Bewirtet}");
-            Pruefe.Ungefaehr(buch.Bewirtet * 85 * 1.2, buch.Einnahmen, 1e-9); // Aufschlag 1,2 seit PR #177
+            Pruefe.Ungefaehr(buch.Bewirtet * 91 * 1.2, buch.Einnahmen, 1e-9); // Dünnbier 91 (Datenversion 57), Aufschlag 1,2 seit PR #177
             Pruefe.Wahr(k.Vorjahr!.Umsatz > vorher, "kein Umsatz");
             Pruefe.Gleich(0, buch.Abgewiesen);
         }),
@@ -119,7 +119,7 @@ static class WirtTests
             TagVorbei(sim);
             var buch = w.Gastwirtschaft.Vorjahr(s)!;
             Pruefe.Wahr(buch.Bewirtet is >= 153 and <= 155, $"bewirtet {buch.Bewirtet}"); // 120 × 6/14 nachmittags + 120 × 8/14 × 1,5 abends
-            Pruefe.Wahr(buch.Einnahmen > buch.Bewirtet * 85 * 1.2, "keine höhere Zeche");
+            Pruefe.Wahr(buch.Einnahmen > buch.Bewirtet * 91 * 1.2, "keine höhere Zeche");
             Pruefe.Wahr(!w.Gastwirtschaft.BardeGebucht(s), "Der Barde zieht zum Jahresende weiter");
         }),
 

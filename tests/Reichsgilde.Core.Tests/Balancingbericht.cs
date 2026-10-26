@@ -148,7 +148,7 @@ static partial class Balancingbericht
         Partieergebnis P(Messaufbau a) => ergebnisse[a];
         var bericht = new JsonObject
         {
-            ["bericht"] = "Balancing-Messung 4",
+            ["bericht"] = "Balancing-Messung 6",
             ["datum"] = DateTime.Now.ToString("yyyy-MM-dd"),
             ["mainCommit"] = Git("rev-parse --short origin/main"),
             ["commit"] = Git("rev-parse --short HEAD"),

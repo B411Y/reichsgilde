@@ -117,19 +117,23 @@ static class StadtkasseTests
             JahrBeenden(sim);
             var vorjahr = w.Kasse.Vorjahr!;
             Pruefe.Gleich(Spielzeit.StartJahr, vorjahr.Jahr);
-            Pruefe.Gleich(2700.0, vorjahr[Kassenposten.Amtsgehaelter]); // 800 + 2 × 500 + 2 × 300 + 2 × 150 – auch für die Ratsherren
-            Pruefe.Gleich(150.0, k.Vorjahr!.Amtseinkommen);
+            // 800 + 2 × 500 + 2 × 300 + 2 × 150 – auch für die Ratsherren; eine kleine Stadt zahlt weniger (Datenversion 57: hier ohne
+            // arbeitendes Haus 100 ÷ 250 Einwohner = 0,4)
+            var f = w.Kasse.Gehaltsfaktor;
+            Pruefe.Ungefaehr(0.4, f, 1e-12);
+            Pruefe.Ungefaehr(2700.0 * f, vorjahr[Kassenposten.Amtsgehaelter], 1e-9);
+            Pruefe.Ungefaehr(150.0 * f, k.Vorjahr!.Amtseinkommen, 1e-9);
             Pruefe.Gleich(150.0, vorjahr.Einnahmen);
-            Pruefe.Gleich(2700.0, vorjahr.Ausgaben);
-            Pruefe.Ungefaehr(3000 + 150 - 2700, w.Kasse.Stand, 1e-9);
+            Pruefe.Ungefaehr(2700.0 * f, vorjahr.Ausgaben, 1e-9);
+            Pruefe.Ungefaehr(3000 + 150 - 2700 * f, w.Kasse.Stand, 1e-9);
             Pruefe.Gleich(0.0, w.Kasse.DiesesJahr.Einnahmen);
             Pruefe.Gleich("Umsatzsteuer|Glaubenszins|Amtsgehaelter", string.Join("|", vorjahr.Posten.Select(p => p.Posten)));
-            Pruefe.Gleich(150.0 - 100 * 0.2 - 2700, w.Kasse.HaushaltMit(4)); // Haushalt des Vorjahres mit 4 % statt 5 %
+            Pruefe.Ungefaehr(150.0 - 100 * 0.2 - 2700 * f, w.Kasse.HaushaltMit(4)!.Value, 1e-9); // Haushalt des Vorjahres mit 4 % statt 5 %
             // Die leere Kasse hat keine Folgen: Die Gehälter werden weiter gezahlt, die Kasse geht ins Minus.
             JahrBeenden(sim);
             JahrBeenden(sim);
             Pruefe.Wahr(w.Kasse.Stand < 0, $"Kasse {w.Kasse.Stand}");
-            Pruefe.Gleich(150.0, k.Vorjahr!.Amtseinkommen);
+            Pruefe.Ungefaehr(150.0 * f, k.Vorjahr!.Amtseinkommen, 1e-9);
         }),
 
         ("Stadtkasse: Die Umsatzsteuer aller Verkäufe am Markt landet in der Kasse; den Haushalt sieht nur der Kämmerer", () =>

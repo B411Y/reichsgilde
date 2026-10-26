@@ -126,6 +126,15 @@ public sealed class GaunerDaten
     /// <summary>Anteil des Marktwerts, den der Hehler für Diebesgut und Beute zahlt.</summary>
     public double HehlerAnteil { get; init; } = 0.5;
 
+    /// <summary>
+    /// Gaunerei je Nachtstunde (Datenversion 57): So oft versucht es jede Bande in einer Nacht – um 20, 21, 22 und 23 Uhr –, jedes Mal mit
+    /// der Erfolgschance × <see cref="VersuchFaktor"/>. Ohne Angabe einmal um 20 Uhr mit der vollen Chance (wie bis Datenversion 56).
+    /// </summary>
+    public int NachtVersuche { get; init; } = 1;
+
+    /// <summary>Faktor auf die Erfolgschance je Versuch (Datenversion 57: ⅓ – vier Versuche bringen im Mittel ein Drittel mehr Erfolge).</summary>
+    public double VersuchFaktor { get; init; } = 1;
+
     public double ZeugenChance { get; init; } = 0.25;
     public double ZeugenChanceWaechter { get; init; } = 0.6;
 
@@ -163,8 +172,10 @@ public sealed class GaunerDaten
         foreach (var (name, wert) in new[] { ("hehlerAnteil", HehlerAnteil), ("zeugenChance", ZeugenChance), ("zeugenChanceWaechter", ZeugenChanceWaechter),
                      ("waechterSchutz", WaechterSchutz), ("diebstahl.chance", Diebstahl.Chance), ("sabotage.chance", Sabotage.Chance), ("ueberfall.staerke", Ueberfall.Staerke),
                      ("kroetenschleim.chance", Kroetenschleim.Chance), ("kroetenschleim.berufKostenFaktor", Kroetenschleim.BerufKostenFaktor),
-                     ("kroetenschleim.berufBonus", Kroetenschleim.BerufBonus) })
+                     ("kroetenschleim.berufBonus", Kroetenschleim.BerufBonus), ("versuchFaktor", VersuchFaktor) })
             if (wert is < 0 or > 1) f.Add($"gauner.{name} muss zwischen 0 und 1 liegen.");
+        if (NachtVersuche < 1 || NachtVersuche > Unterwelt.NachtstundenMoeglich)
+            f.Add($"gauner.nachtVersuche muss zwischen 1 und {Unterwelt.NachtstundenMoeglich} liegen (je volle Stunde ab 20 Uhr bis zum Ende des Spieltags).");
         if (WaechterKosten < 0 || Diebstahl.Kosten < 0 || Sabotage.Kosten < 0 || Ueberfall.Kosten < 0 || Sabotage.Reparatur < 0 || Kroetenschleim.Kosten < 0)
             f.Add("gauner: Kosten dürfen nicht negativ sein.");
         if (Diebstahl.HoechstensStueck < 1 || Sabotage.StillstandMinuten < 0 || Ueberfall.GueltigMinuten < 1)
