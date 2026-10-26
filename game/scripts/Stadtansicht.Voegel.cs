@@ -57,7 +57,8 @@ public partial class Stadtansicht
     private float _dachSuche;
     private readonly RandomNumberGenerator _vogelZufall = new() { Seed = 4711 };
 
-    private const float VogelNachtVon = 21 * 60, VogelNachtBis = 5 * 60 + 30;
+    /// <summary>Ab diesem Dämmerungswert (0 Tag, 1 Nacht; folgt der Jahreszeit) schlafen die Vögel: Im Sommer um 4 Uhr sind sie schon wach, im Winter noch nicht.</summary>
+    private const float VogelNachtAb = 0.6f;
     private const float VogelScheu = 1.5f;
     /// <summary>Ein Flug von Dach zu Dach führt mindestens so weit (Meter, waagerecht) – auf demselben Dach wird nur getrippelt.</summary>
     private const float VogelMindestflug = 25f;
@@ -349,7 +350,7 @@ public partial class Stadtansicht
         _dachSuche += dt;
         if (_dachSuche > 45) { _dachSuche = 0; DachpunkteSuchen(); }
 
-        var nacht = uhrzeit >= VogelNachtVon || uhrzeit < VogelNachtBis;
+        var nacht = _daemmerung >= VogelNachtAb;
         foreach (var s in _schwaerme)
         {
             var fliegt = s.Voegel.Any(v => v.Zustand == Vogelzustand.Fliegt);

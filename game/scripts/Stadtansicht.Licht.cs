@@ -8,7 +8,7 @@ namespace Reichsgilde;
 ///
 /// Tag und Nacht: Jede Uhrzeit hat eine <see cref="Lichtstimmung"/> (Richtung, Farbe und Stärke des Lichts, Himmel,
 /// Umgebungslicht, Fensterlicht). Alle Werte sind stetige Verläufe der Uhrzeit, darum gleitet der Tag ohne Sprung in die Nacht.
-/// Springt die Uhr selbst (Jahreswechsel 22 → 05 Uhr, Laden, Spulen), blendet <see cref="LichtNachUhrzeit"/> über
+/// Springt die Uhr selbst (Jahreswechsel 23 → 04 Uhr, Laden, Spulen), blendet <see cref="LichtNachUhrzeit"/> über
 /// <see cref="UeberblendSekunden"/> Sekunden Echtzeit vom alten zum neuen Bild über.
 ///
 /// Schatten: <see cref="SchattenNachfuehren"/> stellt die Schattenkarte auf die orthografische Kamera ein (eine Karte für
@@ -94,9 +94,9 @@ public partial class Stadtansicht
     }
 
     /// <summary>
-    /// Die Lichtstimmung zur Uhrzeit (<paramref name="stunde"/> mit Bruchteil). Der Spieltag läuft von 05 bis 22 Uhr:
+    /// Die Lichtstimmung zur Uhrzeit (<paramref name="stunde"/> mit Bruchteil). Die Kurven gelten für den <b>Bezugstag</b> (siehe <see cref="BezugsStunde"/>, 5 bis 22 Uhr), der Spieltag läuft von 04 bis 23 Uhr:
     /// <list type="bullet">
-    /// <item>05:00 Morgengrauen im Mondlicht – genauso wie 22:00, denn um 22 Uhr springt die Uhr auf 05 Uhr des nächsten Jahres.</item>
+    /// <item>05:00 Morgengrauen im Mondlicht – genauso wie 22:00 (Bezugstag): Die Nacht vor dem Spieltagsbeginn und nach dem Spieltagsende ist dieselbe, auch wenn die Uhr um 23 Uhr auf 04 Uhr des nächsten Jahres springt.</item>
     /// <item>05:00–05:27 der Mond blendet aus, 05:30–06:30 die Sonne ein (Morgenrot), ab etwa 07:30 voller Tag.</item>
     /// <item>ab 18:00 Abendrot, die Sonne sinkt zum Horizont und blendet von 19:00 bis 19:54 aus.</item>
     /// <item>ab 19:57 blendet der Mond ein (voll um 20:45), ab 21:00 ist richtig Nacht.</item>
@@ -115,7 +115,7 @@ public partial class Stadtansicht
         var sonnenStaerke = sonnenSicht * (0.25f + 0.95f * Mathf.Sqrt(sonnenhoehe));
 
         // Mond: läuft von 20 Uhr bis 05:45 von Osten nach Westen. u zählt die Nachtstunden: 20 Uhr = 0, 22 Uhr = 2 –
-        // und 05 Uhr ebenfalls 2, damit der Mond nach dem Sprung über den Jahreswechsel genau dort steht, wo er um 22 Uhr stand.
+        // und 05 Uhr ebenfalls 2, damit der Mond nach dem Sprung über den Jahreswechsel (23 → 04 Uhr, beide im Bezugstag Nacht) dort steht, wo er vorher stand.
         // Er blendet erst ein, wenn die Sonne ganz aus ist (19:57), und morgens aus, bevor sie kommt (05:27).
         var u = stunde >= 12 ? stunde - 20f : stunde - 3f;
         var mondSicht = Mathf.SmoothStep(-0.05f, 0.75f, u) * (1 - Mathf.SmoothStep(2f, 2.45f, u));
@@ -173,10 +173,10 @@ public partial class Stadtansicht
 
     /// <summary>
     /// Rechnet die Uhrzeit auf den <b>Bezugstag</b> um, für den <see cref="StimmungUm"/> seine Kurven kennt (Sonne 5:30–6:30 auf, 19:00–19:54 unter,
-    /// richtig Nacht ab 21:00, um 5 und um 22 Uhr dieselbe Nacht). Aus der Jahreszeit folgen zwei Zeiten (<see cref="Sonnenzeiten"/>): Morgens ist der
+    /// richtig Nacht ab 21:00, um 5 und um 22 Uhr dieselbe Nacht – die echten Uhrzeiten 23 und 04 Uhr liegen davor bzw. danach und bleiben in dieser Nacht). Aus der Jahreszeit folgen zwei Zeiten (<see cref="Sonnenzeiten"/>): Morgens ist der
     /// Bezugstag um 7:30 voll hell und 2,5 Stunden früher Nacht, abends ist er bei 21:00 ganz dunkel; die Dämmerung läuft in 2 echten Stunden durch
     /// (18 bis 21 Uhr des Bezugstags). Dazwischen vergeht der Bezugstag gleichmäßig. Vor dem Morgengrauen und nach dem Dunkelwerden bleibt er in der
-    /// Nacht (5 bzw. bis 22 Uhr). Der Spieltag selbst (Beginn und Ende, <see cref="Spielzeit.TagesbeginnMinute"/>) kommt hier nicht vor: Er darf
+    /// Nacht (5 bzw. 22 Uhr). Der Spieltag selbst (Beginn und Ende, <see cref="Spielzeit.TagesbeginnMinute"/>) kommt hier nicht vor: Er darf
     /// beliebig früh beginnen und spät enden, die Nacht davor und danach ist immer dieselbe.
     /// </summary>
     private static float BezugsStunde(float stunde, Jahreszeit jahreszeit)
@@ -193,10 +193,10 @@ public partial class Stadtansicht
     private static Quaternion Drehung(float hoehe, float richtung) =>
         Quaternion.FromEuler(new Vector3(Mathf.DegToRad(-hoehe), Mathf.DegToRad(richtung), 0));
 
-    // Stützpunkte für den Himmel: (Uhrzeit in Minuten, Farbe). 05:00 und 22:00 sind dasselbe Nachtblau (Sprung über den Jahreswechsel).
+    // Stützpunkte für den Himmel: (Uhrzeit des Bezugstags in Minuten, Farbe). 05:00 und 22:00 sind dasselbe Nachtblau (Sprung über den Jahreswechsel).
     private static readonly (int Minute, Color Farbe)[] HimmelsVerlauf =
     {
-        (5 * 60,       new Color(0.10f, 0.10f, 0.18f)), // Morgengrauen = Nacht von 22 Uhr
+        (5 * 60,       new Color(0.10f, 0.10f, 0.18f)), // Morgengrauen = Nacht von 22 Uhr (Bezugstag)
         (5 * 60 + 45,  new Color(0.36f, 0.28f, 0.34f)),
         (6 * 60 + 30,  new Color(0.68f, 0.50f, 0.40f)), // Morgenrot
         (8 * 60,       new Color(0.52f, 0.66f, 0.78f)),

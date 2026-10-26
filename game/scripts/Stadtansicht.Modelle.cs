@@ -319,7 +319,7 @@ public partial class Stadtansicht
     }
 
     /// <summary>
-    /// Die Nummer der Nacht aus der Spielzeit: Sie wechselt mittags, wenn kein Fenster leuchtet – um 22 Uhr springt die Uhr auf 05 Uhr,
+    /// Die Nummer der Nacht aus der Spielzeit: Sie wechselt mittags, wenn kein Fenster leuchtet – um 23 Uhr springt die Uhr auf 04 Uhr,
     /// dort leuchten dieselben Fenster weiter.
     /// </summary>
     private void FensterNachtSetzen(long vergangeneMinuten)
@@ -349,10 +349,10 @@ public partial class Stadtansicht
     /// Helligkeit und Anteil leuchtender Fenster einer Gruppe zur Uhrzeit (<paramref name="stunde"/> mit Bruchteil). <paramref name="licht"/>
     /// ist das Fensterlicht der Tageszeit (0 Tag, 1 Nacht), <paramref name="messe"/> 0–1 während der Messe. Der Anteil zählt alle Fenster:
     /// <list type="bullet">
-    /// <item>Wohnen: ab 18 Uhr gehen nach und nach 55 % an, ab 20 Uhr wieder aus bis auf 18 % um 22 Uhr – und um 05 Uhr (nach dem Sprung
+    /// <item>Wohnen: ab 18 Uhr gehen nach und nach 55 % an, ab 20 Uhr wieder aus bis auf 18 % um 23 Uhr – und um 04 Uhr (nach dem Sprung
     /// über den Jahreswechsel) ebenso viele; dann stehen die Frühaufsteher auf (35 %), bis das Tageslicht die Fenster löscht.</item>
     /// <item>Werkstatt in Betrieb: alle bis zum Arbeitsende um 20 Uhr, dann in einer halben Stunde wie ein Wohnhaus.</item>
-    /// <item>Wirtshaus: alle bis 21:30, um 22 Uhr wie ein Wohnhaus. Wache: die ganze Nacht mindestens 55 %.</item>
+    /// <item>Wirtshaus: alle bis 21:30, um 22 Uhr (Schankschluss) wie ein Wohnhaus. Wache: die ganze Nacht mindestens 55 %.</item>
     /// <item>Kirche: immer dunkel; Messe: nur im Dunkeln voll hell (bei Tag dunkel).</item>
     /// </list>
     /// </summary>
@@ -368,7 +368,7 @@ public partial class Stadtansicht
         return gruppe switch
         {
             Fenstergruppe.Werkstatt => (licht, abend ? Mathf.Max(wohnen, dunkel * (1 - Mathf.SmoothStep(20f, 20.5f, stunde))) : wohnen),
-            Fenstergruppe.Wirtshaus => (licht, abend ? Mathf.Max(wohnen, dunkel * (1 - Mathf.SmoothStep(tagesende - 0.5f, tagesende, stunde))) : wohnen),
+            Fenstergruppe.Wirtshaus => (licht, abend ? Mathf.Max(wohnen, dunkel * (1 - Mathf.SmoothStep(Gastwirtschaft.SchliesstUm - 0.5f, Gastwirtschaft.SchliesstUm, stunde))) : wohnen),
             Fenstergruppe.Wache => (licht, Mathf.Max(wohnen, 0.55f * dunkel)),
             Fenstergruppe.Kirche => (0f, 1f), // ohne Messe immer dunkel
             Fenstergruppe.Messe => (licht * messe, 1f), // zur Messe nur im Dunkeln hell, über 6 Minuten ein- und ausgeblendet
