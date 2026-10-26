@@ -2,6 +2,7 @@
 #
 # Aufruf (aus dem Repository-Ordner, ohne Fenster):
 #   godot --headless --path game --script ../tools/portraets/portraets_bauen.gd -- quellen <Rohbild-Ordner> [dateiname ...]
+#   godot --headless --path game --script ../tools/portraets/portraets_bauen.gd -- spiel [volk]
 #   godot --headless --path game --script ../tools/portraets/portraets_bauen.gd -- raster <ziel.png> <Spalten> <Zelle> <eintrag ...>
 #   godot --headless --path game --script ../tools/portraets/portraets_bauen.gd -- stapeln <ziel.png> <bild.png ...>
 #
@@ -11,6 +12,10 @@
 #          masken/<name>.webp      Dateien mit "_maske" am Ende (Gemini-Fassung mit Haar in Magenta und Iris in Cyan):
 #                                  Rot = Haar-Anteil, Grün = Augen-Anteil (0-255), siehe _maske_aufbereiten.
 #          Namen der Personen: <kürzel>_<alter>_<kleidung>, z. B. m1_jung_schlicht, f3_alt_vornehm, m2_mittel_zu (Augen zu).
+# spiel:   Schreibt die Dateien für das Spiel nach game/assets/oberflaeche/portraets/ (PNG mit Alpha, 512 px):
+#          <volk>/<geschlecht>_<gesicht 0-4>_<alter>_<kleidung|zu>.png, dazu ..._haar.png und ..._augen.png (Graustufenmasken,
+#          weiß = Haar bzw. Iris) und hintergrund_<stand>.png. Kürzel m1..m5 / f1..f5 werden zu mann_0..4 / frau_0..4.
+#          volk ist "mensch" (Vorgabe); die Quellen der anderen Völker kommen mit eigenem Kürzel-Präfix (siehe _spielname).
 # raster:  Legt Einträge in ein Raster (zur Abnahme). Ein Eintrag ist "person@hintergrund", z. B. m1_jung_schlicht@hg_buerger;
 #          ohne "@" nur die Person auf Grau, "-" lässt eine Zelle leer. Mit Maske (<person>_maske in masken/) lassen sich
 #          Haar und Augen umfärben: "person@hintergrund@haar-hex@augen-hex", z. B. m1_jung_schlicht@hg_buerger@d8b45a@3a7bd5
@@ -36,6 +41,7 @@ func _init() -> void:
 		return
 	match arg[0]:
 		"quellen": _quellen(arg[1], PackedStringArray(arg.slice(2)))
+		"spiel": _spiel(arg[1] if arg.size() > 1 else "mensch")
 		"stapeln": _stapeln(arg[1], PackedStringArray(arg.slice(2)))
 		"raster": _raster(arg[1], int(arg[2]), int(arg[3]), PackedStringArray(arg.slice(4)))
 		_: print("Unbekannter Befehl: ", arg[0])
@@ -317,3 +323,35 @@ func _stapeln(ziel: String, dateien: PackedStringArray) -> void:
 		y += bild.get_height() + ABSTAND
 	blatt.save_png(ziel)
 	print("Tafel: ", ziel)
+
+
+# ---------- spiel ----------
+
+## m1_jung_schlicht -> mann_0_jung_schlicht (Kürzel: m/f + Nummer 1-5, danach Alter und Kleidung bzw. "zu").
+static func _spielname(name: String) -> String:
+	var teile := name.split("_")
+	var geschlecht := "mann" if teile[0].begins_with("m") else "frau"
+	teile[0] = "%s_%d" % [geschlecht, teile[0].substr(1).to_int() - 1]
+	return "_".join(teile)
+
+
+func _spiel(volk: String) -> void:
+	var ziel := _wurzel.path_join("game/assets/oberflaeche/portraets")
+	DirAccess.make_dir_recursive_absolute(ziel.path_join(volk))
+	for datei in DirAccess.get_files_at(_quellordner("hintergruende")):
+		var bild := _laden(_quellordner("hintergruende").path_join(datei))
+		bild.save_png(ziel.path_join("hintergrund_" + datei.get_basename().trim_prefix("hg_") + ".png"))
+	for datei in DirAccess.get_files_at(_quellordner("personen")):
+		var name := datei.get_basename()
+		_laden(_quellordner("personen").path_join(datei)).save_png(ziel.path_join(volk).path_join(_spielname(name) + ".png"))
+	for datei in DirAccess.get_files_at(_quellordner("masken")):
+		var name := _spielname(datei.get_basename())
+		var maske := _laden(_quellordner("masken").path_join(datei))
+		for kanal in [["haar", 0], ["augen", 1]]:
+			var grau := Image.create(GROESSE, GROESSE, false, Image.FORMAT_L8)
+			for y in GROESSE:
+				for x in GROESSE:
+					var w: float = maske.get_pixel(x, y)[kanal[1]]
+					grau.set_pixel(x, y, Color(w, w, w))
+			grau.save_png(ziel.path_join(volk).path_join(name + "_" + kanal[0] + ".png"))
+	print("Spiel-Dateien: ", ziel)
