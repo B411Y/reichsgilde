@@ -870,7 +870,7 @@ public partial class Stadtansicht
     /// <summary>
     /// Hobelspäne nach der Arbeit des Tages: keine, bis zwei Stunden gearbeitet wurde (10 Uhr), dann eine Menge, ab 13 Uhr mehr, ab 16 Uhr am meisten.
     /// Gezählt werden die Minuten seit Arbeitsbeginn ohne den Stillstand des Tages; ohne Arbeiter wird nicht gearbeitet. Zum Jahreswechsel
-    /// (der Tag beginnt um 5 Uhr) ist alles weggefegt. Reine Darstellung, angefasst wird nur bei einer neuen Menge.
+    /// (der Tag beginnt um 4 Uhr) ist alles weggefegt. Reine Darstellung, angefasst wird nur bei einer neuen Menge.
     /// </summary>
     private void InnenSpaeneAktualisieren(ModellRaumDaten md, Betrieb b, Spielzeit zeit)
     {

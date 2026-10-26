@@ -9,7 +9,7 @@ namespace Reichsgilde;
 /// Marktkreuz und Bänken an seiner Lage in der Karte (auch gedreht), auf jedem „Anker_Stand&lt;n&gt;“ ein Stand aus <c>marktstaende.glb</c> (PR #143).
 /// Wo das Pflaster liegt, rechnet die Ansicht in Koordinaten des Platzes (<see cref="MarktLokal"/>).
 ///
-/// Auslagen: Ein Stand zeigt die Waren eines Handwerks. Zuerst bekommen die einen Stand, die in den letzten 17 Spielstunden etwas auf den
+/// Auslagen: Ein Stand zeigt die Waren eines Handwerks. Zuerst bekommen die einen Stand, die im letzten Spieljahr (19 Spielstunden) etwas auf den
 /// Markt gebracht haben (<see cref="Marktstand.SpielerAngebotImJahr"/> – Verkäufe der Spieler und KI-Häuser), die übrigen Stände füllt die
 /// Grundversorgung der Stadt (PR #148). Ein Stand behält seine Ware, solange sie da ist. Hinter jedem belegten Stand steht
 /// ein Verkäufer, zur Arbeitszeit.
@@ -188,7 +188,7 @@ public partial class Stadtansicht
     }
 
     /// <summary>
-    /// Welche Waren auf den Ständen liegen. Zuerst bekommen Handwerke einen Stand, die in den letzten 17 Spielstunden etwas auf den Markt gebracht
+    /// Welche Waren auf den Ständen liegen. Zuerst bekommen Handwerke einen Stand, die im letzten Spieljahr (19 Spielstunden) etwas auf den Markt gebracht
     /// haben (Verkäufe der Häuser, nach Wert); dann füllt die Grundversorgung der Stadt (Gesamtangebot ohne die Verkäufe der Häuser, nach Wert)
     /// die übrigen Stände. Ein Stand behält seine Auslage, solange sie da ist; eine verkaufte Ware verdrängt bei Bedarf die kleinste
     /// Grundversorgung. Bei sieben Ständen und acht Warengruppen fehlt am ersten Tag meist die kleinste.
