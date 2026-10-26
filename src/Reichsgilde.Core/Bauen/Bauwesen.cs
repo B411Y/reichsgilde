@@ -30,6 +30,23 @@ public sealed record Betriebsplatz(string Betrieb, Kartengebaeude? Gebaeude, Gru
     public double DrehungGrad => Gebaeude?.Drehung ?? Grundstueck!.Grundriss.Drehung * 90;
 }
 
+/// <summary>
+/// Wo ein Haus auf einem Grundstück wirklich steht: Mitte, Größe (Breite an der Gasse, Tiefe nach hinten) und Drehung in Grad wie Godot
+/// <c>Rotation.Y</c> (0 = Vorderseite nach Süden, 90 = nach Osten – beliebige Winkel). Auf einem schrägen Wohnhausplatz der Karte ist der
+/// <see cref="Grundriss"/> des Grundstücks nur das umschließende Rechteck (für Überlappung und Bauen); das Haus steht wie der Platz.
+/// </summary>
+public readonly record struct Hausflaeche(double X, double Z, double Breite, double Tiefe, double DrehungGrad)
+{
+    /// <summary>Richtung zur Gasse (Einheitsvektor).</summary>
+    public (double X, double Z) Vorne => (Math.Sin(DrehungGrad * Math.PI / 180), Math.Cos(DrehungGrad * Math.PI / 180));
+
+    /// <summary>Mitte der Vorderkante – dort ist der Eingang.</summary>
+    public (double X, double Z) Eingang => (X + Vorne.X * Tiefe / 2, Z + Vorne.Z * Tiefe / 2);
+
+    /// <summary>Die Fläche eines Grundrisses (Drehung in 90°-Schritten).</summary>
+    public static Hausflaeche Von(Grundriss g) => new(g.X, g.Z, g.Breite, g.Tiefe, g.Drehung * 90);
+}
+
 /// <summary>Was auf einer Baustelle gerade geschieht.</summary>
 public enum Bauarbeit
 {
@@ -269,6 +286,18 @@ public sealed class Bauwesen
         var m = Mass(befehl);
         return new Grundriss(befehl.X, befehl.Z, m?.Breite ?? 0, m?.Tiefe ?? 0, ((befehl.Drehung % 4) + 4) % 4);
     }
+
+    /// <summary>
+    /// Wo das Haus eines Grundstücks steht (<see cref="Hausflaeche"/>): auf einem Wohnhausplatz der Karte (Startplatz, auch als Bauplatz nach
+    /// einem Abriss) in Größe und Drehung des Platzes – er darf schräg stehen –, sonst der <see cref="Grundstueck.Grundriss"/>.
+    /// </summary>
+    public Hausflaeche Flaeche(Grundstueck g) =>
+        Karte?.GebaeudeMit(g.Kennung) is { Baustein.Groesse: { Length: 2 } m } platz
+            ? new Hausflaeche(platz.Punkt[0], platz.Punkt[1], m[0] * platz.Massstab, m[1] * platz.Massstab, platz.Drehung)
+            : Hausflaeche.Von(g.Grundriss);
+
+    /// <summary>Wo das Gebäude des Befehls stünde: eingepasst auf einen Wohnhausplatz wie der Platz, sonst der <see cref="Grundriss(BauBefehl)"/>.</summary>
+    public Hausflaeche Flaeche(BauBefehl befehl) => Wohnhausplatz(befehl) is { } platz ? Flaeche(platz) : Hausflaeche.Von(Grundriss(befehl));
 
     /// <summary>Ist der Bauplatz aus einem Wohnhausplatz der Karte entstanden (Abriss oder Umzug)? Dann nimmt er nur Wohnhäuser auf, eingepasst.</summary>
     public static bool IstWohnhausplatz(Grundstueck g) => g.Art == Grundstuecksart.Bauplatz && g.Kennung is not null;

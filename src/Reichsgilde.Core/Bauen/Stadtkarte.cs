@@ -713,8 +713,6 @@ public sealed class Stadtkarte
                 f.Add($"{wer}: Ein Baustein der Art „{g.Baustein.Art}“ ({g.Katalog}) steht nicht unter gebaeude.");
             if (!Punkt(g.Punkt)) f.Add($"{wer}: punkt hat genau zwei Zahlen [x, z].");
             if (g.Massstab <= 0) f.Add($"{wer}: massstab muss größer als 0 sein.");
-            if (g.Art == Bausteinart.Wohnhausplatz && !g.IstRechtwinklig)
-                f.Add($"{wer}: Ein Wohnhausplatz steht rechtwinklig (drehung 0, 90, 180 oder 270).");
             if (g.Art == Bausteinart.Umlandbetrieb && string.IsNullOrWhiteSpace(g.Betrieb))
                 f.Add($"{wer}: Ein Umlandbetrieb braucht den Namen seines Betriebs als betrieb.");
         }
