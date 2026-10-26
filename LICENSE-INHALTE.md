@@ -9,6 +9,8 @@ Dazu gehören:
 - alles unter `game/assets/` – außer den Schriften in `game/assets/oberflaeche/schriften/` (SIL Open Font License 1.1, Lizenztexte dort)
 - die Texte und Bilder unter `docs/` und die Bilder, die die README einbindet
 
+Die Waren-Knöpfe (`game/assets/oberflaeche/icons/`) und ihre Teile (`tools/icons/quellen/`) wurden mit dem Bildmodell Gemini von Google erzeugt und im Projekt zusammengesetzt; sie stehen ebenfalls unter CC BY 4.0.
+
 Der Code steht unter der [MIT-Lizenz](LICENSE), auch die Skripte unter `tools/`, die Icons, Modelle und Karten erzeugen.
 
 ## Was CC BY 4.0 erlaubt

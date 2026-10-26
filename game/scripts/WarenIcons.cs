@@ -3,14 +3,15 @@ using Godot;
 namespace Reichsgilde;
 
 /// <summary>
-/// Die Pixel-Icons der Waren (32 × 32, erzeugt mit tools/icons/waren_icons.py, liegen in res://assets/oberflaeche/icons/).
+/// Die Waren-Knöpfe (128 × 128, Hintergrund nach Beruf, Motiv, Rahmen nach Stufe; zusammengesetzt mit tools/icons/knoepfe_bauen.gd,
+/// liegen in res://assets/oberflaeche/icons/).
 /// Fehlt ein Icon (z. B. eine neue Ware in den Daten), zeigt das Spiel einen Platzhalter mit dem Anfangsbuchstaben.
 /// </summary>
 public static class WarenIcons
 {
     private static readonly Dictionary<string, Texture2D?> Zwischenspeicher = new();
 
-    /// <summary>„Kräuterschnaps" → „kraeuterschnaps.png" – dieselbe Regel wie im Zeichenskript.</summary>
+    /// <summary>„Kräuterschnaps" → „kraeuterschnaps.png" – dieselbe Regel wie im Bauskript.</summary>
     public static string Dateiname(string ware) =>
         ware.ToLowerInvariant().Replace("ä", "ae").Replace("ö", "oe").Replace("ü", "ue").Replace("ß", "ss").Replace(" ", "_") + ".png";
 
@@ -24,8 +25,8 @@ public static class WarenIcons
     }
 
     /// <summary>
-    /// Das Icon als Bildfeld in <paramref name="groesse"/> Pixeln (am besten ein Vielfaches von 32) –
-    /// ohne Weichzeichnen, damit die Pixel scharf bleiben.
+    /// Das Icon als Bildfeld in <paramref name="groesse"/> Pixeln – weich skaliert (linear mit Mipmaps),
+    /// damit der gemalte Knopf auch klein sauber aussieht.
     /// </summary>
     public static Control Bild(string ware, int groesse)
     {
@@ -33,7 +34,7 @@ public static class WarenIcons
             return new TextureRect
             {
                 Texture = textur,
-                TextureFilter = CanvasItem.TextureFilterEnum.Nearest,
+                TextureFilter = CanvasItem.TextureFilterEnum.LinearWithMipmaps,
                 ExpandMode = TextureRect.ExpandModeEnum.IgnoreSize,
                 StretchMode = TextureRect.StretchModeEnum.KeepAspectCentered,
                 CustomMinimumSize = new Vector2(groesse, groesse),

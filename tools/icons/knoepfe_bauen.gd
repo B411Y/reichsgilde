@@ -31,8 +31,8 @@ const RAHMEN := ["holz", "stein", "silber", "gold"]  # Index = Stufe (0 = Rohsto
 
 # Hebt das Motiv vom Hintergrund ab (Lichthof, heller Saum, Schlagschatten). "--ohne-effekte" schaltet es ab.
 var _effekte := true
-# Rahmenbreite als Anteil der Kantenlänge (0 = so wie gemalt). "--rahmen=0.07" staucht die Randstreifen.
-var _rahmenanteil := 0.0
+# Rahmenbreite als Anteil der Kantenlänge (Standard 7 %; 0 = so wie gemalt). "--rahmen=0.07" staucht die Randstreifen.
+var _rahmenanteil := 0.07
 var _wurzel: String
 
 
