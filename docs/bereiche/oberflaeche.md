@@ -217,7 +217,7 @@ So wird eingetragen (damit sich die Chats nie an derselben Stelle treffen):
 | Klicktest | Vulkan auf der T400, neu importiert, im Ratssaal aus dem Modell (vorher auch im alten Ratssaal aus Grundkörpern): Sitzung als Gefängniswärter mit Fest-Antrag eines Rivalen und eigener Wahl zum Marktmeister, Rede am Rednerplatz, Stimmen mit Hand und Kopfschütteln, eigene Stimme live auf Nein geändert, Ergebnis mit Protokoll, Wahlergebnis mit Gewähltem auf dem Stuhl, Überspringen, Einstellung „nie“ (keine Szene, gleich der Jahresbericht), Speichern im Spielmenü gesperrt, Wiederholung über den Knopf im Rathaus, Reiter „Spiel“ der Einstellungen. Keine SCRIPT ERROR, 769 Tests grün. | 25.10.2026 |
 | Reihenfolge (Umsetzung) | Die Punkte kommen in der Reihenfolge des Kerns: erst die Anträge (Statut, Glaube, Pflaster, Steuer, Bau, Fest), dann die Wahlen (höchstes Amt zuerst) – so rechnet die Sitzung schon immer (Stichentscheid, Ansehen des Festes zählt bei der Wahl). Die Pflaster-Stimme gibt es nur live in der Sitzung. Entschieden vom Teamleiter. | 25.10.2026 |
 
-### Waren-Knöpfe (PR #…)
+### Waren-Knöpfe (PR #210)
 
 | Thema | Entscheidung | Datum |
 |---|---|---|
