@@ -145,8 +145,8 @@ public sealed partial class Kartenentwurf
     /// Legt einen Weg an: Klasse, Stützpunkte (mindestens zwei verschiedene), glatt oder gerade, Name (Vorgabe: Anzeigename der Klasse mit
     /// Nummer), Breite (0 = <see cref="Kartenweg.Standardbreite"/>; nie unter der <see cref="Kartenweg.Mindestbreite"/>). Mit
     /// <paramref name="einrasten"/> rasten Anfang und Ende ein (<see cref="Einrasten"/>: Hof, Tor, Halteplatz, Anleger, andere Wege), die Punkte
-    /// dazwischen nur in Tore; eine Gasse, die an einem Hof endet und nicht an einem beginnt, wird umgedreht (Werkstattnorm: die Gasse beginnt
-    /// am Hof). Ein Schritt.
+    /// dazwischen nur in Tore; eine Gasse, die an einem Hof endet und nicht an einem beginnt, wird umgedreht (so beginnt die Gasse am Hof, wie
+    /// in den bisherigen Karten; eine Pflicht ist es seit PR #209 nicht mehr). Ein Schritt.
     /// </summary>
     /// <exception cref="ArgumentException">Mit weniger als zwei verschiedenen Punkten.</exception>
     public EntwurfWeg WegAnlegen(Wegklasse klasse, IReadOnlyList<Kartenort> punkte, bool glatt = true, string? name = null, double breite = 0, bool einrasten = true)

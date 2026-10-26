@@ -281,7 +281,7 @@ public partial class Stadtansicht
 
     /// <summary>
     /// Legt einen Weg an (ein Schritt): Anfang und Ende rasten im Kern ein (Hof, Tor, Halteplatz, Weg), Punkte dazwischen in Tore; eine Gasse,
-    /// die an einem Hof endet und nicht an einem beginnt, dreht der Kern um (Werkstattnorm: die Gasse beginnt am Hof). Null, wenn es nicht ging
+    /// die an einem Hof endet und nicht an einem beginnt, dreht der Kern um (die Gasse beginnt dann am Hof). Null, wenn es nicht ging
     /// (die Meldung steht unten).
     /// </summary>
     public EntwurfWeg? WerkstattWegAnlegen(Wegklasse klasse, List<Kartenort> punkte, bool glatt)

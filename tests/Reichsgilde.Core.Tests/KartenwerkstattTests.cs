@@ -196,25 +196,25 @@ static class KartenwerkstattTests
             Pruefe.Wahr(f.Any(b => b.Regel == "betrieb" && b.Gebaeude.Contains("GrubeX") && b.Gebaeude.Contains("Giesserei_Eisenbart")), "Betrieb doppelt");
             Pruefe.Wahr(f.Any(b => b.Regel == "betrieb" && b.Gebaeude.SequenceEqual(new[] { "GrubeY" })), "Umlandbetrieb ohne Betrieb");
 
+            // Seit PR #209 darf ein Wohnhausplatz schräg stehen (die Regel „rechtwinklig“ gibt es nicht mehr).
             var schraeg = Kartenpruefung.PruefeStelle(e, "wohnhausplatz_ring", 300, 0, 30);
-            Pruefe.Wahr(schraeg.Any(b => b.Regel == "rechtwinklig"), "Wohnhausplatz schräg");
-            Pruefe.Wahr(!Kartenpruefung.PruefeStelle(e, "wohnhausplatz_ring", 300, 0, 270).Any(b => b.Regel == "rechtwinklig"), "270° ist rechtwinklig");
+            Pruefe.Wahr(!schraeg.Any(b => b.Regel == "rechtwinklig"), "Wohnhausplatz schräg ohne Fehler\n  " + Liste(schraeg));
         }),
 
-        ("Kartenwerkstatt: Prüfung – Werkstatthof ohne Weg, Eingang eines Wohnhausplatzes ohne Weg, Werkstatt auf der Mauer", () =>
+        ("Kartenwerkstatt: Prüfung – Werkstatthof und Wohnhaus-Eingang fern vom Weg ohne Fehler (PR #209), Werkstatt auf der Mauer", () =>
         {
             var e = Oeffnen("greybox");
             var weit = Kartenpruefung.PruefeStelle(e, "werkstattplatz", -150, 120, 0);
-            Pruefe.Wahr(weit.Any(b => b.Regel == "hof" && b.Ort is { } o && Math.Abs(o.Z - (120 + 6.5)) < 1e-9), "Hof weit weg vom Weg, Ort = Hof\n  " + Liste(weit));
-            // Nördlich an der Weststraße (z = 6): Der Hof liegt 6,5 m vor der Mitte, also bei z = 4, 2 m neben der Straßenmitte.
+            Pruefe.Wahr(!weit.Any(b => b.Regel == "hof"), "Hof weit weg vom Weg: kein Fehler mehr\n  " + Liste(weit));
+            // Nördlich an der Weststraße (z = 6), ohne eigene Gasse am Hof
             var nah = Kartenpruefung.PruefeStelle(e, "werkstattplatz", -75, -2.5, 0);
-            Pruefe.Wahr(!nah.Any(b => b.Regel == "hof"), "Hof an der Weststraße\n  " + Liste(nah));
-            Pruefe.Wahr(Kartenpruefung.PruefeStelle(e, "wohnhausplatz_ring", -150, 120, 0).Any(b => b.Regel == "eingang"), "Eingang ohne Weg");
+            Pruefe.Wahr(!nah.Any(b => b.Regel is "hof" or "gasse"), "Hof an der Weststraße, ohne Gasse\n  " + Liste(nah));
+            var eingang = Kartenpruefung.PruefeStelle(e, "wohnhausplatz_ring", -150, 120, 0);
+            Pruefe.Wahr(!eingang.Any(b => b.Regel == "eingang"), "Eingang ohne Weg: kein Fehler mehr\n  " + Liste(eingang));
             Pruefe.Wahr(Kartenpruefung.PruefeStelle(e, "werkstattplatz", 50, 20, 0).Any(b => b.Regel == "mauer"), "Werkstatt auf der Mauer");
-            // Greybox: jede Werkstatt hat ihre Gasse am Hof und zeigt nach Süden
-            Pruefe.Wahr(nah.Any(b => b.Regel == "gasse"), "Greybox: Gasse am Hof fehlt");
+            // Greybox: Die Werkstattnorm (16 × 14 m, Tür nach Süden) gibt es nicht mehr
             var gedreht = Kartenpruefung.PruefeStelle(e, "werkstattplatz", 22, 13, 90, kennung: "Giesserei_Eisenbart");
-            Pruefe.Wahr(gedreht.Any(b => b.Regel == "werkstattnorm"), "Greybox: Werkstatt gedreht");
+            Pruefe.Wahr(!gedreht.Any(b => b.Regel == "werkstattnorm"), "Greybox: Werkstatt gedreht ohne Fehler „werkstattnorm“\n  " + Liste(gedreht));
             Pruefe.Wahr(!Kartenpruefung.PruefeStelle(e, "werkstattplatz", 22, 13, 0, kennung: "Giesserei_Eisenbart").Any(b => b.Schwere == Schwere.Fehler),
                 "an der eigenen Stelle ohne Fehler (zählt nicht als eigener Nachbar)");
         }),
@@ -264,7 +264,7 @@ static class KartenwerkstattTests
             Pruefe.Wahr(Fehler(e) is [{ Regel: "start-fehlt" }], "leere Karte nur ohne Startbelegung:\n  " + Liste(e.Befunde));
             e.Setzen("markt", 0, 0);
             var w = e.Setzen("werkstattplatz", 20, 0, 90);
-            Pruefe.Wahr(e.FehlerhafteGebaeude.Contains(w.Kennung), "Werkstatt ohne Weg ist ein Fehler");
+            Pruefe.Wahr(!e.FehlerhafteGebaeude.Contains(w.Kennung), "Werkstatt ohne Weg ist kein Fehler mehr (PR #209)\n  " + Liste(e.Befunde));
             var json = e.ZuJson();
             Pruefe.Wahr(json.StartsWith("{\n \"format\": 2,\n \"kennung\": \"probestadt\",\n \"stadt\": \"Probestadt\","), json[..120]);
             Pruefe.Wahr(json.Contains("\"groesse\": [400, 300]") && !json.Contains("\"natur\"") && !json.Contains("\"start\""), json);
