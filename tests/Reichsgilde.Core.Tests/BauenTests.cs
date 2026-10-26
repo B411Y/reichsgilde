@@ -98,33 +98,34 @@ static class BauenTests
             Pruefe.Gleich(2, k.Format);
             Pruefe.Gleich("koeln", k.Kennung);
             Pruefe.Gleich(2.0, k.Raster);
-            Pruefe.Gleich(42, k.Wege.Count); // seit Schritt 5c mit der Rheinbrücke als Straße
+            Pruefe.Gleich(32, k.Wege.Count); // Stadtskript Köln (PR #213): 14 Haupt-, 8 Land-, 3 Wallstraßen, 5 Gassen, 2 Leinpfade
             Pruefe.Wahr(k.Wege.Any(w => w.Klasse == Wegklasse.Gasse) && k.Wege.Any(w => w.Klasse == Wegklasse.Wall), "Gassen und Wallstraße fehlen");
             Pruefe.Gleich(k.Wege.Count(w => w.Klasse is Wegklasse.Land or Wegklasse.Haupt or Wegklasse.Ring or Wegklasse.Wall), k.Wege.Count(w => w.IstKarrenstrasse));
-            Pruefe.Gleich(28, k.Bauzonen.Count);
-            Pruefe.Gleich(6, k.Bauzonen.Count(z => z.Art == Lage.Kern));
-            Pruefe.Gleich(6, k.Bauzonen.Count(z => z.Art == Lage.Umland));
+            Pruefe.Gleich(51, k.Bauzonen.Count);
+            Pruefe.Gleich(10, k.Bauzonen.Count(z => z.Art == Lage.Kern));
+            Pruefe.Gleich(8, k.Bauzonen.Count(z => z.Art == Lage.Umland));
             Pruefe.Wahr(k.Gebaeude.All(g => g.Baustein is not null), "jedes Gebäude ist im Katalog aufgelöst");
             Pruefe.Gleich(8, k.Wohnhausplaetze.Count);
             Pruefe.Gleich(8, k.GebaeudeDerArt(Bausteinart.Werkstattplatz).Count());
             Pruefe.Gleich(2, k.Mauern.Count); // Stadtmauer und Deutzer Mauer
-            Pruefe.Gleich(9, k.Mauern.Sum(m => m.Tore.Count));
-            Pruefe.Wahr(k.Wasser.Any(x => x.Name == "Rhein") && k.Uebergaenge.Count == 1 && k.Haefen.Count == 1, "Rhein, Fähre, Hafen");
+            Pruefe.Gleich(10, k.Mauern.Sum(m => m.Tore.Count)); // 7 in der Stadtmauer (fünf Tore, zwei Ufertore), 3 in Deutz
+            Pruefe.Wahr(k.Wasser.Any(x => x.Name == "Rhein") && k.Wasser.Any(x => x.Name == "Duffesbach") && k.Uebergaenge.Count == 1, "Rhein, Duffesbach, Fähre");
+            Pruefe.Wahr(k.GebaeudeMit("Rheinhafen")!.Katalog == "hafenplatz" && k.GebaeudeMit("Rheinkran") is not null, "Hafen und Kran am Ufer");
             Pruefe.Wahr(k.Wasserplan.Bruecken.Any(b => b.WegName == "Rheinbrücke" && b.Art == Uebergangsart.Steinbruecke), "Rheinbrücke aus Stein");
-            Pruefe.Wahr(k.Start is null, "Köln hat noch keine eigene Startbelegung");
-            Pruefe.Gleich(Partieaufbau.Rivalenname, k.Startbelegung.Haeuser[0].Name); // also der Ersatz
+            Pruefe.Wahr(k.Start is not null, "Köln hat eine Startbelegung");
+            Pruefe.Gleich(7, k.Startbelegung.Haeuser.Count); // sieben KI-Häuser und der Spieler auf den acht Startgrundstücken
+            Pruefe.Gleich("Haus Overstolz", k.Startbelegung.Haeuser[0].Name);
+            Pruefe.Gleich("S1_Wohnhaus", k.Startbelegung.Spieler.Wohnhaus);
 
-            var s1 = k.GebaeudeMit("S1_Werkstatt")!.Grundriss!.Value; // Eingang nach Süden, 16 × 14 im Startgrundstück (−17 | −92,5)
-            Pruefe.Gleich(0, s1.Drehung);
-            Pruefe.Gleich(8.0, s1.HalbX);
-            Pruefe.Gleich(7.0, s1.HalbZ);
+            var s1 = k.GebaeudeMit("S1_Werkstatt")!.Grundriss!.Value; // 16 × 14 im Startgrundstück, gedreht zur Hohen Straße
+            Pruefe.Wahr(s1 is { Breite: 16, Tiefe: 14 }, "Werkstattplatz 16 × 14 m");
             Pruefe.Wahr(k.GebaeudeMit("Gereon")!.Grundriss is { Breite: 16, Tiefe: 14 }, "Kirche 16 × 14 wie im Kapazitätswerkzeug");
 
-            var k1 = k.Bauzonen.Single(z => z.Kennung == "K1");
+            var k1 = k.Bauzonen.First(z => z.Art == Lage.Kern && z.Enthaelt(z.Flaeche.Average(p => p[0]), z.Flaeche.Average(p => p[1]))); // eine Kernzone, deren Mitte in ihr liegt
             var (mx, mz) = (k1.Flaeche.Average(p => p[0]), k1.Flaeche.Average(p => p[1]));
             Pruefe.Wahr(k1.Enthaelt(mx, mz), "Die Mitte von K1 liegt in K1");
             Pruefe.Gleich(k1, k.ZoneBei(mx, mz));
-            Pruefe.Gleich(Lage.Umland, k.ZoneBei(-400, 300)!.Art); // weit draußen: die nächste Zone
+            Pruefe.Gleich(Lage.Umland, k.ZoneBei(-400, 300)!.Art); // weit draußen: die nächste Zone (U2)
         }),
 
         ("Karte: Fehler werden gemeldet – kaputtes JSON, altes und zu neues Format, unbekannter Baustein, fehlender Katalog", () =>

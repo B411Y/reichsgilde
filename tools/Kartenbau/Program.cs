@@ -12,6 +12,7 @@ namespace Reichsgilde.Kartenbau;
 //    dotnet run --project tools/Kartenbau -- pruefen <karte|datei>               alle Prüfungen (Regeln, Kapazität, Katalog gegen die Modelle)
 //    dotnet run --project tools/Kartenbau -- vorschau <karte|datei> [--belegung]  docs/karten/<kennung>.svg (und -belegung.svg) zeichnen
 //    dotnet run --project tools/Kartenbau -- bauen <skript> [--ueberschreiben]    ein Stadtskript ausführen → game/karten/<kennung>.json
+//                                                   mit --entwurf=<datei> stattdessen nur diesen Entwurf schreiben (auch mit Fehlern, zum Ansehen)
 //    dotnet run --project tools/Kartenbau -- liste                                die Stadtskripte
 //    dotnet run --project tools/Kartenbau -- groesse <karte> [<breite> <tiefe> [<mitteX> <mitteZ>]] [--rand=<m>]
 //                                                   Größe des Spielfelds (ohne Zahlen: aus dem Inhalt abgeleitet) und Randbreite in die Karte schreiben
@@ -55,7 +56,8 @@ public static class Program
             {
                 "pruefen" when ziel is not null => Befehle.Pruefen(ordner, ziel, Console.Out),
                 "vorschau" when ziel is not null => Befehle.Vorschau(ordner, ziel, schalter.Contains("--belegung"), Console.Out),
-                "bauen" when ziel is not null => Befehle.Bauen(ordner, ziel, schalter.Contains("--ueberschreiben"), Console.Out),
+                "bauen" when ziel is not null => Befehle.Bauen(ordner, ziel, schalter.Contains("--ueberschreiben"), Console.Out,
+                    args.FirstOrDefault(a => a.StartsWith("--entwurf="))?["--entwurf=".Length..]),
                 "liste" => Befehle.Liste(Console.Out),
                 "groesse" when ziel is not null && Zahlen(worte.Skip(2)) is { Count: 0 or 2 or 4 } z =>
                     Befehle.Groesse(ordner, ziel, z, Wert(args, "--rand"), Console.Out),
@@ -262,7 +264,7 @@ public static class Befehle
     /// <c>bauen</c>: führt ein Stadtskript aus, prüft die Karte und schreibt sie nach game/karten/&lt;kennung&gt;.json mit den Vorschaubildern –
     /// nur ohne Fehler und nicht über eine vorhandene Datei (außer mit <paramref name="ueberschreiben"/>).
     /// </summary>
-    public static int Bauen(Projektordner o, string skriptname, bool ueberschreiben, TextWriter aus)
+    public static int Bauen(Projektordner o, string skriptname, bool ueberschreiben, TextWriter aus, string? entwurfPfad = null)
     {
         var skript = Stadtskript.Finde(skriptname);
         if (skript is null)
@@ -273,6 +275,12 @@ public static class Befehle
         }
         var (katalog, daten) = Laden(o);
         var e = skript.Bauen(katalog, daten);
+        if (entwurfPfad is not null) // Entwurf zum Ansehen, auch mit Fehlern: nur diese Datei, nie die Karte
+        {
+            File.WriteAllText(entwurfPfad, e.ZuJson());
+            aus.WriteLine($"   Entwurf geschrieben: {entwurfPfad}");
+            return Bericht(e, aus) > 0 ? 1 : 0;
+        }
         return Schreiben(e, o.Karte(e.Kennung), o.Vorschauen, ueberschreiben, aus, o);
     }
 

@@ -414,7 +414,7 @@ static class WasserTests
                 Pruefe.Wahr(k.Wasserplan.Querungen.Any(q => q.WegName == "Waldweg" && q.IstBruecke), "der Waldweg quert auf einer Brücke");
                 var svg = Reichsgilde.Kartenbau.Vorschau.Zeichnen(Kartenentwurf.AusJson(File.ReadAllText(datei), Katalog.Value));
                 Pruefe.Wahr(svg.Contains("#AFC7D5") && (svg.Contains("#7D7F78") || svg.Contains("#8A5A2B")), "Wasser und Brücke im Bild");
-                Pruefe.Wahr(Umbau.Finde("koeln-wasser") is { Karte: "koeln" }, "Umbau für Köln");
+                Pruefe.Wahr(Umbau.Finde("greybox-hafen") is { Karte: "greybox" }, "Umbau für die Greybox");
             }
             finally
             {
@@ -452,7 +452,7 @@ static class WasserTests
             Pruefe.Wahr(netz.Fahrt(O(-130, 60), O(-130, 200)).Any(x => x.Art == Fahrbahn.Faehre), "über die Fähre nach Süden");
         }),
 
-        ("Köln (Umbau koeln-wasser): der Rhein fließt nach Norden, die Rheinbrücke ist eine Steinbrücke, die Fähre Mülheim verbindet beide Ufer", () =>
+        ("Köln (Stadtskript): der Rhein fließt nach Norden bis zur Kante, die Rheinbrücke ist eine Steinbrücke, die Fähre Mülheim verbindet beide Ufer, der Duffesbach quert in Furt und Holzbrücke", () =>
         {
             var e = Kartenentwurf.AusJson(Text("koeln"), Katalog.Value);
             var rhein = e.Wasserform.Laeufe.Single(l => l.Name == "Rhein");
@@ -461,7 +461,12 @@ static class WasserTests
             var faehre = e.Wasserplan.Faehren.Single();
             Pruefe.Wahr(faehre.Gewaesser == "Rhein" && !faehre.VonImWasser && !faehre.BisImWasser, $"{faehre}");
             Pruefe.Wahr(!e.HatFehler, Liste(Fehler(e)));
-            Pruefe.Wahr(e.Wasserform.Seen.Single().StandAutomatisch && e.Wasserform.Laeufe.Count == 2, "Altrheinarm, Rhein, Strunde");
+            Pruefe.Wahr(e.Wasserform.Seen.Count == 0 && e.Wasserform.Laeufe.Count == 2, "Rhein und Duffesbach");
+            var g = e.Kartengrenzen.Aussen;
+            Pruefe.Wahr(Math.Abs(rhein.Punkte[0].Ort.Z - g.Z1) < 1 && Math.Abs(rhein.Punkte[^1].Ort.Z - g.Z0) < 1, "der Rhein läuft von Außenkante zu Außenkante");
+            Pruefe.Wahr(rhein.Punkte.All(p => p.Breite is >= 60 and <= 100), "60 bis 100 m breit");
+            var bach = e.Wasserplan.Querungen.Where(q => q.GewaesserName == "Duffesbach").ToList();
+            Pruefe.Wahr(bach.Any(q => q.Art == Uebergangsart.Furt) && bach.Any(q => q.Art == Uebergangsart.Holzbruecke && q.WegName == "Severinstraße"), $"Furten und eine Holzbrücke am Duffesbach: {string.Join(", ", bach.Select(q => q.WegName + " " + q.Art))}");
         }),
     };
 }

@@ -264,11 +264,15 @@ static class KartenwerkstattStartTests
             g.Verschieben(wohnhaus.Kennung, -50, -30);
             Pruefe.Wahr(Fehler(g).Any(b => b.Regel == "mauer" && b.Gebaeude.Contains(wohnhaus.Kennung)), "jedes Gebäude, nicht nur Werkstätten");
 
-            // Köln: zwei Gebäude auf der Mauer bleiben Hinweise (dort gelten die Stadtregeln nicht), die fehlende Startbelegung auch
+            // Köln (Stadtskript, PR #213): kein Gebäude auf der Mauer, eine Startbelegung; der einzige Hinweis ist die lange Rheinbrücke
             var koeln = Oeffnen("koeln");
             var hinweise = koeln.Befunde.Where(b => b.Schwere == Schwere.Hinweis).ToList();
-            Pruefe.Wahr(hinweise.Count(b => b.Regel == "mauer") == 2 && hinweise.Any(b => b.Regel == "start-fehlt"), "Köln:\n  " + Liste(hinweise));
+            Pruefe.Wahr(hinweise.All(b => b.Regel == "bruecke-lang") && hinweise.Count == 1, "Köln:\n  " + Liste(hinweise));
             Pruefe.Wahr(!koeln.HatFehler, "Köln ohne Fehler");
+            // ein Haus auf der Stadtmauer bleibt in Köln ein Hinweis (dort gelten die Stadtregeln nicht)
+            var hausAufMauer = koeln.Gebaeude.First(x => x.Katalog == "leerstand");
+            koeln.Verschieben(hausAufMauer.Kennung, koeln.Mauern[0].Ecken[30].X, koeln.Mauern[0].Ecken[30].Z);
+            Pruefe.Wahr(koeln.Befunde.Any(b => b.Schwere == Schwere.Hinweis && b.Regel == "mauer" && b.Gebaeude.Contains(hausAufMauer.Kennung)), "Haus auf der Mauer: Hinweis");
         }),
 
         ("Mauer: Ein Wegende rastet in die Tormitte ein, ein Punkt dazwischen auch; läuft schon ein Weg durchs Tor, rastet es an ihm ein", () =>
@@ -421,16 +425,17 @@ static class KartenwerkstattStartTests
             Pruefe.Gleich(Text("greybox"), e.ZuJson(), "alles zurückgenommen: die Greybox Byte für Byte");
         }),
 
-        ("Start: Köln ohne Startbelegung – die erste landet hinter „uebergaenge“ (wie das Werkzeug schreibt); zurückgenommen fällt sie wieder weg", () =>
+        ("Start: Köln hat die Startbelegung für acht Häuser; die Reihenfolge der Felder in der Datei (uebergaenge, start, vorkommen); das achte KI-Haus und Rückgängig", () =>
         {
             var e = Oeffnen("koeln");
-            Pruefe.Wahr(e.Start.IstLeer, "Köln hat keine Startbelegung");
-            e.HausHinzufuegen();
+            Pruefe.Wahr(!e.Start.IstLeer && e.Start.Haeuser.Count == 7, "sieben KI-Häuser und der Spieler");
             var json = e.ZuJson();
             var (ue, st, vo) = (json.IndexOf("\n \"uebergaenge\""), json.IndexOf("\n \"start\""), json.IndexOf("\n \"vorkommen\""));
             Pruefe.Wahr(ue > 0 && ue < st && st < vo, $"Reihenfolge uebergaenge {ue} < start {st} < vorkommen {vo}");
+            Pruefe.Gleich(8, e.HausHinzufuegen() + 1, "das achte KI-Haus (neunter Platz) wird angelegt");
             e.Rueckgaengig();
             Pruefe.Gleich(Text("koeln"), e.ZuJson());
+            Pruefe.Wahr(e.Belegung().Count(b => b.Art == Belegungsart.Startplatz) >= 1, "der Spieler hat seinen Startplatz");
         }),
 
         ("Start: Prüfung – Haus ohne Wohnhaus, Platz doppelt, Betriebsart passt nicht, Name doppelt, Startplatz fehlt, Ware, kein Haus", () =>
