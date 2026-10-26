@@ -1915,6 +1915,8 @@ Gemessen auf main `ee3c346` + Branch `c82f079`, Datenversion 57:
 | Raub und Schaden je KI-Haus ohne / mit Wachhaus | 551 / 471 | 513 / 425 |
 | Gericht je Haus mit einem Betrieb (davon Spitzel) | 422 (198) | 320 (101) |
 
+**Zur Hinterzimmer-Bilanz:** Sie zählt nur Haus Eisenbart, das erste KI-Haus. Gerechnet werden Hehlererlös und Beute minus Bandenkosten und Schweigegeld, Mittel je Partie über 30 Jahre, also nur etwa 14 → 38 Gulden im Jahr. Weil die Kosten je Auftrag gleich bleiben, landet das Drittel mehr Beute ganz in diesem kleinen Netto-Rest. Deshalb wirkt es fast wie das Dreifache, und die Opfer trifft es kaum (Raub und Schaden beim passiven Spieler 2.886 → 2.890 bzw. 3.373 → 2.999).
+
 **Was das zeigt:**
 - Die Banden haben mehr Erfolg: Die Bilanz des Hinterzimmers ist um gut die Hälfte bis fast das Dreifache gestiegen, und die KI beauftragt mehr Gaunerstücke (+15 bzw. +21 %).
 - Beim Opfer kommt davon wenig mehr an. Der zweite und dritte Diebstahl einer Nacht holt aus einem schon geplünderten Lager weniger, und der Raub je Betrieb sinkt sogar (82 → 69).

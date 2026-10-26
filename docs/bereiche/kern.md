@@ -30,6 +30,11 @@ So wird eingetragen (damit sich die Chats nie an derselben Stelle treffen):
 - (Balancing) Dieb und Gardist haben fast keine Einrichtung mit Gulden-Rechnung (`Werkstattwesen.ErwarteterMehrgewinnJeJahr`: Verkleidungstruhe, Dietriche, Hunde, Kettenhemden ohne Zahl), deshalb kauft die KI dort nur die Waffenkammer. Eine Rechnung z. B. für die Verkleidung (weniger Fänge) gäbe beiden den Zuwachs der anderen Berufe – dann Beute und Sold wieder prüfen (PR #177)
 - (Balancing) Im Bericht misst „Einrichtung simuliert“ seit dem Einrichtungskauf der KI nur den Vorsprung durch den früheren Kauf (die Vergleichspartie kauft zum Jahresende nach); für eine Aussage über die Stücke braucht die Vergleichspartie einen Messspieler ohne Einrichtungskauf (PR #177)
 - (Schiffshandel) Die KI handelt nur über den Markt; Ware aus eigenen Lagern verschiffen (Hinfracht) bzw. Rohstoffe für die eigenen Werkstätten heimbringen könnte sie später (PR #199)
+- (Balancing) Gaunerei je Nachtstunde (PR #208): Die KI rechnet beim Hinterzimmer noch mit einem Versuch je Nacht und der vollen Chance (Erwartung ohne die vier Versuche zu je ⅓); sie wählt deshalb öfter den Einbruch ins Wohnhaus (0,58 → 0,77 Aufträge je Partie und Jahr, Messung 6)
+- (Nutzer, Balancing) Der Dieb wird mit einem Betrieb nach Ø 6,4 Jahren Bürger, 23 von 30 vor dem achten Jahr (Messung 6); das Ziel 8–12 Jahre galt bisher nur für den Schmied
+- (Spiel-KI) Die KI verkauft öfter ungenutzte Karren: 45 nach einem Jahr ohne Fahrt in 1.320 Partien (Messung 5: 3) – vermutlich gepachtete Umlandbetriebe wie der Wachturm, nicht untersucht
+- (Balancing) Statisch (Startpreise) außerhalb ±15 %, simuliert im Band: Dieb +19 / +31 / +31 % (die Rechnung kennt Fang und Gericht nicht), Parfumeur +21 / +17 / +16 %, Gardist −26 / −26 / −22 % (ohne Geleit- und Kopfgeld), Wirt ab Stufe 2 −19 / −26 % (Messung 6)
+- (Balancing) Völker streuen stärker als ihr Bonus: Schmied Zwerg +31 %, Elb +25 % (ohne Bonus), Halbling −1 %; Parfumeur Zwerg −13 %, Elb +14 %, Halbling −10 % (Messung 6; Fehler des Mittels beim Menschen-Schmied ±1.245, ein guter Teil ist Streuung)
 
 ## Entscheidungen
 
