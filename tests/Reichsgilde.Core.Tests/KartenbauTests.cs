@@ -47,21 +47,21 @@ static class KartenbauTests
     {
         // ── Kapazität ────────────────────────────────────────────────────────
 
-        ("Kapazität Köln (Stadtskript, PR #213): 7.753 Felder, Pflicht und Reserve passen – 80 % frei nach der Pflicht", () =>
+        ("Kapazität Köln (Stadtskript, PR #213): 8.049 Felder, Pflicht und Reserve passen – 81 % frei nach der Pflicht", () =>
         {
             var k = Kapazitaetspruefung.Pruefen(Oeffnen("koeln"));
             Pruefe.Gleich(string.Join("\n", new[]
             {
-                "Stadt-Bauzonen: 7753 Felder, davon fest belegt 3",
+                "Stadt-Bauzonen: 8049 Felder, davon fest belegt 4",
                 "Pflicht Werkstatt: 16 von 16 passen", "Pflicht Ratsherrenhaus: 13 von 13 passen", "Pflicht Einwohner-Bürgerhaus: 3 von 3 passen",
                 "Pflicht Einwohner-Wohnhaus: 40 von 40 passen", "Reserve Stadthof: 4 von 4 passen", "Reserve Stadtpalais: 8 von 8 passen",
-                "Frei nach der Pflicht: 6238 Felder (80%), nach der Reserve: 5774 Felder",
+                "Frei nach der Pflicht: 6533 Felder (81%), nach der Reserve: 6069 Felder",
             }), string.Join("\n", k.Bericht));
             Pruefe.Gleich(0, k.Befunde.Count);
-            // Die gesetzten Gebäude: alle 84 aus Pflicht und Reserve, dazu die festen (nur 3 Felder: die Plätze der Karte liegen neben den Zonen)
+            // Die gesetzten Gebäude: alle 84 aus Pflicht und Reserve, dazu die festen (nur 4 Felder: die Plätze der Karte liegen neben den Zonen)
             Pruefe.Gleich(84, k.Plaetze.Count(p => p.Art != "fest"));
             Pruefe.Gleich(16 * 56, k.Plaetze.Where(p => p.Art == "Werkstatt").Sum(p => p.Felder.Count));
-            Pruefe.Gleich(3, k.Plaetze.Where(p => p.Art == "fest").Sum(p => p.Felder.Count));
+            Pruefe.Gleich(4, k.Plaetze.Where(p => p.Art == "fest").Sum(p => p.Felder.Count));
         }),
 
         ("Kapazität: Köln prüft sie als Fehler, die Greybox gar nicht (dort der Probeplan), neue Karten als Hinweis", () =>

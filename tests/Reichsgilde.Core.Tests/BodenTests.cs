@@ -195,7 +195,7 @@ static class BodenTests
             foreach (var kennung in new[] { "greybox", "koeln", "probestadt", "messstadt" })
             {
                 var e = Kartenentwurf.AusJson(Text(kennung), Katalog.Value);
-                // Köln hat drei Märkte (Heumarkt, Alter Markt, Neumarkt), die anderen Karten einen
+                // jede Karte hat genau einen Markt; die Schleife gilt trotzdem für jeden
                 foreach (var markt in e.Gebaeude.Where(g => g.Katalog == "markt"))
                 {
                     var (breite, tiefe) = markt.Groesse!.Value;

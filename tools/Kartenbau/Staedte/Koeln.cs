@@ -18,7 +18,7 @@ namespace Reichsgilde.Kartenbau.Staedte;
 //    • Deutz am rechten Ufer mit kleiner Mauer (Nord-, Ost- und Südtor), Deutzer Freiheit, Vorstadt.
 //    • Stadtmauer: Halbkreis (Mitte 24 | 0, Radius 150 m) zum Rhein hin offen, Tore Eigelstein, Ehren, Hahnen, Weyer, Severin und die
 //      Ufertore Kunibert und Bayen; innen die Wallstraßen.
-//    • Märkte: Heumarkt (Ursprung), Alter Markt, Neumarkt; Rathaus, Groß St. Martin, St. Gereon, St. Severin, St. Aposteln, St. Kunibert,
+//    • Markt: Heumarkt (Ursprung); Rathaus, Groß St. Martin, St. Gereon, St. Severin, St. Aposteln, St. Kunibert,
 //      Dom-Baustelle im Norden. Hauptstraßen mit echten Namen, Nebengassen mit erfundenen kölschen.
 //    • Spiel: acht Startgrundstücke (Spieler und sieben KI-Häuser) rund um den Markt, Einwohnerplätze, Bauzonen aus dem Raster (alles, was
 //      frei ist, siehe Koeln.Zonen.cs), Umlandbetriebe an den Landstraßen, Vorkommen.
@@ -232,10 +232,8 @@ public sealed partial class Koeln : Stadtskript
 
     private void Wahrzeichen()
     {
-        // Märkte: der Heumarkt zuerst (der Markt der Wirtschaft liegt im Ursprung), dann Alter Markt und Neumarkt
+        // Es gibt nur einen Marktplatz (Entscheidung des Nutzers): den Heumarkt im Ursprung; Alter Markt und Neumarkt sind Bauland
         Haus("markt", "Heumarkt", 0, 0, kennung: "Heumarkt");
-        Haus("markt", "Alter Markt", 0, -44, kennung: "AlterMarkt");
-        Haus("markt", "Neumarkt", -72, -8, kennung: "Neumarkt");
         MarktPflastern();
 
         Haus("rathaus", "Rathaus", -20, -44, 90, "Rathaus");
