@@ -12,9 +12,9 @@
 #          masken/<name>.webp      Dateien mit "_maske" am Ende (Gemini-Fassung mit Haar in Magenta und Iris in Cyan):
 #                                  Rot = Haar-Anteil, Grün = Augen-Anteil (0-255), siehe _maske_aufbereiten.
 #          Namen der Personen: <kürzel>_<alter>_<kleidung>, z. B. m1_jung_schlicht, f3_alt_vornehm, m2_mittel_zu (Augen zu).
-# spiel:   Schreibt die Dateien für das Spiel nach game/assets/oberflaeche/portraets/ (PNG mit Alpha, 512 px):
-#          <volk>/<geschlecht>_<gesicht 0-4>_<alter>_<kleidung|zu>.png, dazu ..._haar.png und ..._augen.png (Graustufenmasken,
-#          weiß = Haar bzw. Iris) und hintergrund_<stand>.png. Kürzel m1..m5 / f1..f5 werden zu mann_0..4 / frau_0..4.
+# spiel:   Schreibt die Dateien für das Spiel nach game/assets/oberflaeche/portraets/ (WebP, 512 px; Personen und Hintergründe verlustbehaftet mit Alpha, Masken verlustfrei):
+#          <volk>/<geschlecht>_<gesicht 0-4>_<alter>_<kleidung|zu>.webp, dazu ..._haar.webp und ..._augen.webp (Graustufenmasken,
+#          weiß = Haar bzw. Iris) und hintergrund_<stand>.webp. Kürzel m1..m5 / f1..f5 werden zu mann_0..4 / frau_0..4.
 #          volk ist "mensch" (Vorgabe); die Quellen der anderen Völker kommen mit eigenem Kürzel-Präfix (siehe _spielname).
 # raster:  Legt Einträge in ein Raster (zur Abnahme). Ein Eintrag ist "person@hintergrund", z. B. m1_jung_schlicht@hg_buerger;
 #          ohne "@" nur die Person auf Grau, "-" lässt eine Zelle leer. Mit Maske (<person>_maske in masken/) lassen sich
@@ -23,6 +23,7 @@
 extends SceneTree
 
 const GROESSE := 512
+const SPIEL_QUALITAET := 0.85  # Dateien für das Spiel (Vorgabe des Teamleiters: etwa 85)
 const WEBP_QUALITAET := 0.92  # verlustbehaftetes WebP mit Alpha: ~30 KB je Porträt statt ~400 KB als PNG
 const HG_RAND := 0.045      # Anteil, der vom Hintergrundbild rundum abgeschnitten wird (Gemini malt dort einen Rand)
 const RAND_ABSCHNITT := 0.075  # bei Papierrahmen um die Person (Rahmenlinie liegt bei etwa 5 %)
@@ -390,10 +391,10 @@ func _spiel(volk: String) -> void:
 	DirAccess.make_dir_recursive_absolute(ziel.path_join(volk))
 	for datei in DirAccess.get_files_at(_quellordner("hintergruende")):
 		var bild := _laden(_quellordner("hintergruende").path_join(datei))
-		bild.save_png(ziel.path_join("hintergrund_" + datei.get_basename().trim_prefix("hg_") + ".png"))
+		bild.save_webp(ziel.path_join("hintergrund_" + datei.get_basename().trim_prefix("hg_") + ".webp"), true, SPIEL_QUALITAET)
 	for datei in DirAccess.get_files_at(_quellordner("personen")):
 		var name := datei.get_basename()
-		_laden(_quellordner("personen").path_join(datei)).save_png(ziel.path_join(volk).path_join(_spielname(name) + ".png"))
+		_laden(_quellordner("personen").path_join(datei)).save_webp(ziel.path_join(volk).path_join(_spielname(name) + ".webp"), true, SPIEL_QUALITAET)
 	for datei in DirAccess.get_files_at(_quellordner("masken")):
 		var name := _spielname(datei.get_basename())
 		var maske := _laden(_quellordner("masken").path_join(datei))
@@ -405,5 +406,5 @@ func _spiel(volk: String) -> void:
 				for x in GROESSE:
 					var w: float = maske.get_pixel(x, y)[kanal[1]]
 					grau.set_pixel(x, y, Color(w, w, w))
-			grau.save_png(ziel.path_join(volk).path_join(name + "_" + kanal[0] + ".png"))
+			grau.save_webp(ziel.path_join(volk).path_join(name + "_" + kanal[0] + ".webp"), false)
 	print("Spiel-Dateien: ", ziel)
