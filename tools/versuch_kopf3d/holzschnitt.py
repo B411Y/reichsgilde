@@ -194,7 +194,7 @@ def material_linien(obj, mat, art, aufloesung):
             dunkel = _math(nt, "MAXIMUM", _math(nt, "MAXIMUM", pupille, ring), _math(nt, "MULTIPLY", iris, locker))
     else:
         # erste Lage folgt der Form (leicht schräge Ringe), zweite Lage kreuzt im Bildraum
-        s1 = _schraffur(nt, licht, 0, 7.0, 0.45, 0.65, aufloesung, rausch, objekt=((0.15, 0.25, 1.0), 0.0026))
+        s1 = _schraffur(nt, licht, 0, 7.0, 0.55, 0.65, aufloesung, rausch, objekt=((0.15, 0.25, 1.0), 0.0026))
         s2 = _schraffur(nt, licht, math.radians(-35), 8.0, 0.2, 0.55, aufloesung, rausch)
         dunkel = _math(nt, "MAXIMUM", s1, s2)
         if art == "haut":

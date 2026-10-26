@@ -1,0 +1,4 @@
+# Der Kopf (23 MB) liegt nur lokal; erzeugen mit tools/versuch_kopf3d/exportieren.py
+*.glb
+*.import
+*.png
