@@ -113,13 +113,13 @@ static class GelaendeTests
             }
         }),
 
-        ("Flache Karten: Köln und Messstadt haben kein Gelände – gespeichert Byte für Byte dieselbe Datei, Boden 0 (Köln: außer im Bett seines Wassers)", () =>
+        ("Flache Karte: Die Messstadt hat kein Gelände – gespeichert Byte für Byte dieselbe Datei, Boden 0", () =>
         {
             // Die Greybox hat seit PR #199 Gelände (Flussufer, Hafen) – sie zählt nicht mehr zu den flachen Karten.
-            foreach (var kennung in new[] { "koeln", "messstadt" })
+            foreach (var kennung in new[] { "messstadt" })
             {
                 var e = Kartenentwurf.AusJson(Text(kennung), Katalog.Value);
-                var nass = kennung == "koeln"; // Köln hat Rhein, Strunde und den Altrheinarm (Schritt 5c) – ihr Bett liegt im Boden
+                var nass = false; // die Messstadt hat kein Wasser
                 Pruefe.Wahr(!e.Gelaendeform.HatHoehen && e.Gelaendeform.IstFlach == !nass && !Text(kennung).Contains("\"hoehen\""), kennung);
                 Pruefe.Gleich(Text(kennung), e.ZuJson(), kennung);
                 Pruefe.Gleich(0.0, e.Gelaendeform.Hoehe(-60, -20), kennung);
@@ -130,8 +130,18 @@ static class GelaendeTests
                 var karte = Stadtkarte.AusDatei(Datenpfad.Karte(kennung));
                 Pruefe.Wahr(karte.Hoehen is null && karte.Gelaendeform.IstFlach == !nass, kennung);
             }
-            // Köln: die alte Liste „gelaende“ bleibt
-            Pruefe.Wahr(Kartenentwurf.AusJson(Text("koeln"), Katalog.Value).Gelaende.Count > 0, "Köln: gelaende");
+        }),
+
+        ("Köln: Terrasse der Altstadt – 4 m über dem Rhein, Gefälle von x = −60 bis 30 (4,4 %), Hochufer ohne Hangfehler; der Rhein läuft nicht bergauf", () =>
+        {
+            var e = Kartenentwurf.AusJson(Text("koeln"), Katalog.Value);
+            Pruefe.Wahr(e.Gelaendeform.HatHoehen && Text("koeln").Contains("\"hoehen\""), "Köln hat Höhen");
+            Pruefe.Gleich(4.0, e.Gelaendeform.Roh.Hoehe(-60, 0), "Plateau");
+            Pruefe.Gleich(0.0, e.Gelaendeform.Roh.Hoehe(30, 0), "am Fuß des Hochufers auf Höhe des Rheins");
+            var mitte = e.Gelaendeform.Roh.Hoehe(-15, 0);
+            Pruefe.Wahr(mitte > 1.8 && mitte < 2.2, $"halbe Höhe in der Mitte der Rampe: {mitte:0.00}");
+            Pruefe.Wahr(e.Befunde.All(b => b.Regel is not ("hang" or "fluss-bergauf")), "kein Hang über 8 % unter Plätzen und Zonen, kein Fluss bergauf:\n  " + Liste(e.Befunde));
+            Pruefe.Wahr(e.Wasserform.Laeufe.Single(l => l.Name == "Rhein").GroessterEinschnitt < Wasserform.Schluchtgrenze, "Rhein");
         }),
 
         ("Pinsel Heben: in der Mitte die Stärke, weiche Kante, ein Strich = ein Schritt; Rückgängig und Wiederholen; Meldungen mit Rechteck", () =>

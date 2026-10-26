@@ -84,7 +84,7 @@ static class KartengrenzenTests
             Pruefe.Gleich(2000.0, riesig.Breite, "höchstens 2 km");
         }),
 
-        ("Kartenformat: Greybox und Köln haben eine feste Größe; Köln abgeleitet wie für ältere Spielstände, der übrige Inhalt ist unverändert", () =>
+        ("Kartenformat: Greybox und Köln haben eine feste Größe (Köln 700 × 450 m um −50 | 25, Rand 300 m)", () =>
         {
             // Die Greybox ist seit PR #199 nach Süden bis über den Fluss gewachsen (400 × 400, Mitte 0 | 50) – nicht mehr abgeleitet.
             var greybox = Stadtkarte.AusDatei(Datenpfad.Karte("greybox"));
@@ -92,20 +92,7 @@ static class KartengrenzenTests
             Pruefe.Gleich(300.0, greybox.Kartengrenzen.Randbreite);
             var koeln = Stadtkarte.AusDatei(Datenpfad.Karte("koeln"));
             Pruefe.Gleich(new Kartengrenzen(700, 450, O(-50, 25), 300), koeln.Kartengrenzen);
-            foreach (var kennung in new[] { "koeln" })
-            {
-                // ein alter Spielstand hat die Karte ohne Größe: Die Stadtkarte leitet dieselbe ab
-                var alt = Stadtkarte.AusJson(OhneGroesse(kennung), Katalog.Value);
-                Pruefe.Gleich(Stadtkarte.AusDatei(Datenpfad.Karte(kennung)).Kartengrenzen, alt.Kartengrenzen, kennung);
-                // der Entwurf ohne Größe leitet sie ebenso ab, schreibt sie aber nicht (Datei unverändert) – erst gesetzt (wie „groesse“ des Kartenskripts)
-                var e = Kartenentwurf.AusJson(OhneGroesse(kennung), Katalog.Value);
-                Pruefe.Wahr(!e.Kopf.GroesseInDatei, "abgeleitet");
-                Pruefe.Gleich(OhneGroesse(kennung), e.ZuJson(), $"{kennung}: ohne Größe gespeichert = dieselbe Datei");
-                e.GroesseSetzen(e.Kopf.Breite, e.Kopf.Tiefe, e.Kopf.Mitte);
-                e.RandbreiteSetzen(e.Kopf.Randbreite);
-                Pruefe.Gleich(Text(kennung), e.ZuJson(), $"{kennung}: mit Größe = die Datei im Spiel");
-                Pruefe.Gleich("", Liste(Fehler(e)), kennung);
-            }
+            Pruefe.Gleich("", Liste(Fehler(Kartenentwurf.AusJson(Text("koeln"), Katalog.Value))), "koeln");
         }),
 
         ("Kartenformat: Eine neue Karte hat Größe, keinen Rand-Eintrag (Vorgabe 300 m); unbekannte Felder der Kamera bleiben", () =>

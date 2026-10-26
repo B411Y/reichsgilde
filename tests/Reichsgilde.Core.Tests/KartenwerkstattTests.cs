@@ -44,6 +44,29 @@ static class KartenwerkstattTests
             }
         }),
 
+        ("Kartenentwurf: KennungSetzen gibt einem Gebäude eine neue, freie Kennung (mit Rückgängig) – nur Buchstaben, Ziffern, Unterstrich; die Prüfung kennt sie (Köln: S1_Werkstatt)", () =>
+        {
+            var e = Kartenentwurf.Neu("probe", "Probe", 300, 300, Katalog.Value);
+            var g = e.Setzen("werkstattplatz", 0, 0);
+            var h = e.Setzen("werkstattplatz", 20, 0);
+            e.KennungSetzen(g.Kennung, "S1_Werkstatt");
+            Pruefe.Gleich("S1_Werkstatt", g.Kennung);
+            Pruefe.Wahr(e.GebaeudeMit("S1_Werkstatt") == g && e.GebaeudeMit("Werkstattplatz1") is null, "unter der neuen Kennung zu finden");
+            Pruefe.Wahr(e.Geschichte.RueckgaengigText!.Contains("Kennung geändert"), "Name des Schritts: " + e.Geschichte.RueckgaengigText);
+            Pruefe.Wahr(e.ZuJson().Contains("\"kennung\": \"S1_Werkstatt\""), "in der Datei");
+            e.Rueckgaengig();
+            Pruefe.Gleich("Werkstattplatz1", g.Kennung);
+            e.Wiederholen();
+            Pruefe.Gleich("S1_Werkstatt", g.Kennung);
+            Pruefe.WirftMitMeldung(() => e.KennungSetzen(h.Kennung, "S1_Werkstatt"), "gibt es schon");
+            Pruefe.WirftMitMeldung(() => e.KennungSetzen(h.Kennung, "S 2"), "keine gültige Kennung");
+            Pruefe.WirftMitMeldung(() => e.KennungSetzen(h.Kennung, ""), "keine gültige Kennung");
+            Pruefe.WirftMitMeldung(() => e.KennungSetzen("gibt_es_nicht", "X"), "Kein Gebäude");
+            var schritte = e.Geschichte.Schritte;
+            e.KennungSetzen(g.Kennung, "S1_Werkstatt");
+            Pruefe.Gleich(schritte, e.Geschichte.Schritte, "dieselbe Kennung ist kein Schritt");
+        }),
+
         ("Kartenwerkstatt: Greybox ohne Fehler, Hinweise wie greybox.py (3 Felsberg-Ränder, 4 Wege über Umlandbetrieben)", () =>
         {
             var e = Oeffnen("greybox");
