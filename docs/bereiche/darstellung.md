@@ -139,7 +139,6 @@ So wird eingetragen (damit sich die Chats nie an derselben Stelle treffen):
 - Bauvorhaben der Stadt (PR #200): schlicht aus Quadern (Gerüst, Zaun, Holzstapel, Steinhaufen). Fertig zeigt nur der Brunnen etwas; Mauer, Hafen und Marktplatz sehen danach aus wie vorher (die Wirkung steht in den Zahlen). Später eigene Modelle: ausgebesserte Mauer, zweiter Kran oder Steg am Hafen, größerer Platz mit mehr Ständen; die Fahnen des Fests vielleicht als Girlanden zwischen den Ecken.
 - Nachtlichter: Gauner nachts draußen sichtbar machen (dunkle Gestalten ohne Licht) – eigenes Thema mit Spielwirkung (anklickbar?), vom Nutzer auf später gelegt (25.10.2026).
 - Nachtlichter, Modelle: Am Wachturm steht schon ein eiserner Feuerkorb mit Glut auf der Wehrplatte (Material „Glut“); die zwei neuen Körbe am Aufgang kommen dazu. Auf Wunsch könnte das Spiel die Glut oben dafür auslassen.
-- Nachtlichter, Modelle: `pruefen.py` kennt `lichter.glb` nicht als Baukasten; mit `--natur` meldet es zu Recht die hängenden Teile (Z bis −0,69 m) als Fehler. Soll es eine Regel dafür geben (fünf Knoten, Materialien ohne Emission)?
 
 ## Entscheidungen
 
