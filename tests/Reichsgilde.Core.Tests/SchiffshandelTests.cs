@@ -63,10 +63,10 @@ static class SchiffshandelTests
 
     public static IEnumerable<(string, Action)> Alle() => new (string, Action)[]
     {
-        ("Daten: Datenversion 55, ein Flussschiff, zwei ferne Städte (flussauf und flussab); Fehler fallen auf", () =>
+        ("Daten: Datenversion 56, ein Flussschiff, zwei ferne Städte (flussauf und flussab); Fehler fallen auf", () =>
         {
             var d = Daten.Value.Schiffshandel!;
-            Pruefe.Gleich(55, Daten.Value.Version);
+            Pruefe.Gleich(56, Daten.Value.Version);
             Pruefe.Gleich(1, d.Schiffe.Count);
             Pruefe.Gleich("flussauf, flussab", string.Join(", ", d.Staedte.Select(s => s.Richtung)));
             Pruefe.Gleich(120, d.Schiffe["Flussschiff"].Gesamtkapazitaet);
@@ -268,7 +268,7 @@ static class SchiffshandelTests
             Pruefe.Wahr(zoll > 0 && zoll < 100, $"Transport = 2 × Geleit + Zoll ({k.Laufend.Transport})");
         }),
 
-        ("Ferner Markt: Jeder Verkauf drückt den Preis dort, jeder Kauf hebt ihn; je Stunde holt er 8 % auf", () =>
+        ("Ferner Markt: Jeder Verkauf drückt den Preis dort, jeder Kauf hebt ihn; je Stunde holt er 7,2 % auf (ein Jahr: ein Viertel bleibt)", () =>
         {
             var (sim, w, k) = Stadt();
             var stadt = w.Schiffahrt.Stadt("Weidenmünd")!;
@@ -281,9 +281,10 @@ static class SchiffshandelTests
             stadt.Kaufen("Gold", 30);
             Pruefe.Wahr(stadt.Ankaufpreis("Silberring") < ring * 0.9, "gesättigt");
             Pruefe.Wahr(stadt.Verkaufspreis("Gold") > gold * 1.1, "teurer");
-            // eine Stunde: Druck × 0,92
+            // eine Stunde: Druck × 0,928 (Datenversion 56; nach den 19 Stunden eines Jahres ist ein Viertel übrig wie vorher nach 17)
             for (var i = 0; i < 60; i++) sim.Tick();
-            Pruefe.Ungefaehr(30 * 0.92, stadt.Druck("Silberring"), 1e-9);
+            Pruefe.Ungefaehr(30 * 0.928, stadt.Druck("Silberring"), 1e-9);
+            Pruefe.Ungefaehr(Math.Pow(0.92, 17), Math.Pow(0.928, Spielzeit.StundenProTag), 0.003);
             for (var i = 0; i < 60 * 50; i++) sim.Tick();
             Pruefe.Ungefaehr(ring, stadt.Ankaufpreis("Silberring"), 0.01);
             Pruefe.Ungefaehr(gold, stadt.Verkaufspreis("Gold"), 0.01);

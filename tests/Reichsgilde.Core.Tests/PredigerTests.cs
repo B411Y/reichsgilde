@@ -1,3 +1,4 @@
+using Reichsgilde.Core.Zeit;
 using Reichsgilde.Core;
 using Reichsgilde.Core.Dynastie;
 using Reichsgilde.Core.Justiz;
@@ -34,7 +35,7 @@ static class PredigerTests
     /// <summary>Bis nach der Messe (10 Uhr; die Partie beginnt um 6).</summary>
     static void NachDerMesse(Simulation sim)
     {
-        for (var i = 0; i < 5 * 60 + 1; i++) sim.Tick(); // 05:00 → 10:01
+        for (var i = 0; i < 10 * 60 + 1 - Spielzeit.TagesbeginnMinute; i++) sim.Tick(); // 04:00 → 10:01
     }
 
     /// <summary>Bis zu dieser Uhrzeit (Minuten nach Mitternacht) am selben Tag.</summary>
@@ -82,7 +83,7 @@ static class PredigerTests
             var sim = NeueSimulation();
             var (w, k, b) = Prediger(sim);
             var vorher = k.Laufend.Umsatz;
-            for (var i = 0; i < 4 * 60 + 59; i++) sim.Tick(); // 9:59 – noch keine Messe
+            for (var i = 0; i < 9 * 60 + 59 - Spielzeit.TagesbeginnMinute; i++) sim.Tick(); // 9:59 – noch keine Messe
             Pruefe.Gleich(0.0, w.Kirchenwesen.DiesesJahr(b).Kollekte);
             sim.Tick(); sim.Tick();
             var buch = w.Kirchenwesen.DiesesJahr(b);
@@ -222,7 +223,7 @@ static class PredigerTests
             var andere = Suender(w, "Haus Krug");
             w.Justiz.BeweisGeben(prediger, w.Justiz.SpurenVon(suender).Single());
             JahrBeenden(sim);
-            for (var i = 0; i < 7 * 60; i++) sim.Tick(); // über die Politikstunde (12 Uhr)
+            for (var i = 0; i < 12 * 60 - Spielzeit.TagesbeginnMinute; i++) sim.Tick(); // über die Politikstunde (12 Uhr)
             Pruefe.Gleich(0, w.Justiz.SpurenVon(suender).Count(s => s.Art == Vergehen.Bestechung));
             Pruefe.Wahr(w.Kirchenwesen.DiesesJahr(kirche).Ablaesse + (w.Kirchenwesen.Vorjahr(kirche)?.Ablaesse ?? 0) >= 1, "kein Ablass gekauft");
             Pruefe.Wahr(w.Justiz.Beweise(prediger, andere).Any(), "Beichtgeheimnis nicht gebrochen");

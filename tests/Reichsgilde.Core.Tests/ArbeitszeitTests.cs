@@ -51,10 +51,10 @@ static class ArbeitszeitTests
 
     public static IEnumerable<(string, Action)> Alle() => new (string, Action)[]
     {
-        ("Arbeitszeit: Daten – Schänke, Wirtshaus und Gasthaus arbeiten 840 Minuten (8–22 Uhr), alle anderen 720 (8–20 Uhr); keine endet nach 22 Uhr", () =>
+        ("Arbeitszeit: Daten – Schänke, Wirtshaus und Gasthaus arbeiten 840 Minuten (8–22 Uhr), alle anderen 720 (8–20 Uhr); keine endet nach 23 Uhr", () =>
         {
             var d = Daten.Value;
-            Pruefe.Gleich(55, d.Version);
+            Pruefe.Gleich(56, d.Version);
             foreach (var art in new[] { Betriebsart.Schaenke, Betriebsart.Wirtshaus, Betriebsart.Gasthaus })
             {
                 Pruefe.Gleich(840, d.Arbeitsminuten(art));
@@ -63,7 +63,7 @@ static class ArbeitszeitTests
             foreach (var art in new[] { Betriebsart.Giesserei, Betriebsart.Bauernhof, Betriebsart.Tischlerei, Betriebsart.Schmugglerloch, Betriebsart.Wechselstube })
                 Pruefe.Gleich(720, d.Arbeitsminuten(art));
             foreach (var art in d.Betriebsarten.Keys)
-                Pruefe.Wahr(Stadtwirtschaft.Arbeitsbeginn + d.Arbeitsminuten(art) <= Spielzeit.TagesendeMinute, $"{art} arbeitet über 22 Uhr hinaus");
+                Pruefe.Wahr(Stadtwirtschaft.Arbeitsbeginn + d.Arbeitsminuten(art) <= Spielzeit.TagesendeMinute, $"{art} arbeitet über 23 Uhr hinaus");
         }),
 
         ("Arbeitszeit: Der Wirt arbeitet bis 22 Uhr, der Schmied bis 20 Uhr – Abfragen je Betrieb", () =>
@@ -74,9 +74,9 @@ static class ArbeitszeitTests
             var giesserei = Betrieb(w, Betriebsart.Giesserei, "Haus Eisenbart");
             Pruefe.Gleich((1320, 1200), (schaenke.Arbeitsende, giesserei.Arbeitsende));
             Pruefe.Gleich((840, 720), (schaenke.Arbeitsminuten, giesserei.Arbeitsminuten));
-            foreach (var (minute, wirt, schmied) in new[] { (179, false, false), (180, true, true), (899, true, true), (900, true, false), (1019, true, false) }) // 07:59, 08:00, 19:59, 20:00, 21:59
+            foreach (var (uhr, wirt, schmied) in new[] { (7 * 60 + 59, false, false), (8 * 60, true, true), (19 * 60 + 59, true, true), (20 * 60, true, false), (21 * 60 + 59, true, false), (22 * 60, false, false) })
             {
-                var zeit = new Spielzeit(minute);
+                var zeit = new Spielzeit(uhr - Spielzeit.TagesbeginnMinute);
                 Pruefe.Gleich((wirt, schmied), (w.IstArbeitszeit(schaenke, zeit), w.IstArbeitszeit(giesserei, zeit)));
                 Pruefe.Gleich(schmied, w.IstArbeitszeit(zeit)); // die übliche Arbeitszeit (Markt, Kontor) bleibt 8–20 Uhr
             }
@@ -139,13 +139,13 @@ static class ArbeitszeitTests
             Pruefe.Ungefaehr(geladen.Daten.Arbeitskraefte["Geselle"].Kosten, b.Lohnkosten, 1e-9);
         }),
 
-        ("Arbeitszeit: Datenprüfung – höchstens bis 22 Uhr, mehr als 0, nur für Betriebe mit Ware, gleich über alle Ausbaustufen", () =>
+        ("Arbeitszeit: Datenprüfung – höchstens bis 23 Uhr (Ende des Spieltags), mehr als 0, nur für Betriebe mit Ware, gleich über alle Ausbaustufen", () =>
         {
             var json = File.ReadAllText(Datenpfad.Wirtschaft());
-            Pruefe.WirftMitMeldung(() => Wirtschaftsdaten.AusJson(json.Replace("\"ausbauKosten\": 2500, \"arbeitsminuten\": 840", "\"ausbauKosten\": 2500, \"arbeitsminuten\": 841")),
-                "betriebsarten.Schaenke.arbeitsminuten muss zwischen 1 und 840");
+            Pruefe.WirftMitMeldung(() => Wirtschaftsdaten.AusJson(json.Replace("\"ausbauKosten\": 2500, \"arbeitsminuten\": 840", "\"ausbauKosten\": 2500, \"arbeitsminuten\": 901")),
+                "betriebsarten.Schaenke.arbeitsminuten muss zwischen 1 und 900");
             Pruefe.WirftMitMeldung(() => Wirtschaftsdaten.AusJson(OhneEigeneArbeitszeit().Replace("\"ausbauKosten\": 2500", "\"ausbauKosten\": 2500, \"arbeitsminuten\": 0")),
-                "betriebsarten.Schaenke.arbeitsminuten muss zwischen 1 und 840");
+                "betriebsarten.Schaenke.arbeitsminuten muss zwischen 1 und 900");
             Pruefe.WirftMitMeldung(() => Wirtschaftsdaten.AusJson(json.Replace("\"ausbauKosten\": 5000, \"arbeitsminuten\": 840", "\"ausbauKosten\": 5000, \"arbeitsminuten\": 720")),
                 "Nach dem Ausbau zu Gasthaus muss die Arbeitszeit");
             var dieb = JsonNode.Parse(json)!;

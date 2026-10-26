@@ -74,8 +74,8 @@ public sealed class UeberfallDaten
     /// <summary>Stärke der angeheuerten Wegelagerer – Erfolg = Stärke × (1 − Schutz der Eskorte).</summary>
     public double Staerke { get; init; } = 0.8;
 
-    /// <summary>So lange (Spielminuten) liegt der Hinterhalt auf der Lauer. 1020 = ein Spieltag (05–22 Uhr) = ein Jahr.</summary>
-    public int GueltigMinuten { get; init; } = 1020;
+    /// <summary>So lange (Spielminuten) liegt der Hinterhalt auf der Lauer. 1140 = ein Spieltag (04–23 Uhr) = ein Jahr.</summary>
+    public int GueltigMinuten { get; init; } = Zeit.Spielzeit.MinutenProTag;
 }
 
 /// <summary>Einbruch ins Wohnhaus: ein Anteil vom Bargeld, gedeckelt je Hausstufe.</summary>
@@ -103,8 +103,8 @@ public sealed class BrandstiftungDaten
     /// <summary>… aber mindestens so viel (auch das Fachwerkhaus brennt).</summary>
     public double MindestReparatur { get; init; } = 100;
 
-    /// <summary>So lange (Spielminuten) fehlt das Ansehen des Hauses. 1020 = ein Spieltag.</summary>
-    public int InstandMinuten { get; init; } = 1020;
+    /// <summary>So lange (Spielminuten) fehlt das Ansehen des Hauses. 1140 = ein Spieltag.</summary>
+    public int InstandMinuten { get; init; } = Zeit.Spielzeit.MinutenProTag;
 }
 
 /// <summary>Gaunerstücke gegen das Wohnhaus (Abschnitt gauner.wohnhaus). Fehlt er, ist nur gegen Betriebe etwas zu holen.</summary>

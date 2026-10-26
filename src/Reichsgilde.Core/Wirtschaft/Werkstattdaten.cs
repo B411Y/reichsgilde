@@ -119,8 +119,8 @@ public sealed class PraemieDaten
     public double KostenJeArbeiter { get; init; } = 30;
     public double Laune { get; init; } = 20;
 
-    /// <summary>So lange (Spielminuten) wirkt sie. 1020 = ein Spieltag.</summary>
-    public int Minuten { get; init; } = 1020;
+    /// <summary>So lange (Spielminuten) wirkt sie. 1140 = ein Spieltag (04–23 Uhr).</summary>
+    public int Minuten { get; init; } = Zeit.Spielzeit.MinutenProTag;
 }
 
 /// <summary>
@@ -149,7 +149,7 @@ public sealed class UnfallDaten
     public Dictionary<string, double> Gefahr { get; init; } = new();
 
     public double Laune { get; init; } = -15;
-    public int LauneMinuten { get; init; } = 1020;
+    public int LauneMinuten { get; init; } = Zeit.Spielzeit.MinutenProTag;
 }
 
 /// <summary>Beförderung, z. B. Lehrling → Geselle nach einer Dienstzeit. Danach gilt der Lohn der neuen Arbeitskraft.</summary>

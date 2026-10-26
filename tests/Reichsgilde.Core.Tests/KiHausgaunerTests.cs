@@ -1,3 +1,4 @@
+using Reichsgilde.Core.Zeit;
 using Reichsgilde.Core;
 using Reichsgilde.Core.Gauner;
 using Reichsgilde.Core.Ki;
@@ -37,7 +38,7 @@ static class KiHausgaunerTests
     {
         var auftraege = new List<string>();
         w.Meldung += m => { if (m.StartsWith(ki.Inhaber + ": heuert im Hinterzimmer")) auftraege.Add(m); };
-        for (var i = 0; i < 1020 * tage; i++) sim.Tick();
+        for (var i = 0; i < Spielzeit.MinutenProTag * tage; i++) sim.Tick();
         return auftraege;
     }
 

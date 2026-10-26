@@ -5,13 +5,13 @@ namespace Reichsgilde.Core.Wirtschaft;
 /// Ein Marktstand für eine Ware.
 ///
 /// Preisformel (siehe Dokument „Wirtschaftsmodell", Abschnitt 3):
-///   Angebot    = Nachfrage × NPC-Anteil + Spieler-Verkäufe des letzten Spieljahres (17 Spielstunden)
+///   Angebot    = Nachfrage × NPC-Anteil + Spieler-Verkäufe des letzten Spieljahres (19 Spielstunden)
 ///   Faktor     = (Nachfrage / Angebot) ^ Elastizität, begrenzt auf [PreisMin … PreisMax]
 ///   Marktpreis = Grundpreis × Faktor
 ///
-/// Weil ein Spieltag ein Spieljahr ist, sind „die letzten 17 Spielstunden" (05–22 Uhr) genau ein Jahr.
-/// Die Verkäufe werden in 18 Stunden-Fächern gesammelt: dem laufenden Fach und den
-/// 17 vorherigen. Vom ältesten Fach zählt nur der Teil, der noch in die letzten 17 Stunden
+/// Weil ein Spieltag ein Spieljahr ist, sind „die letzten 19 Spielstunden" (04–23 Uhr) genau ein Jahr.
+/// Die Verkäufe werden in 20 Stunden-Fächern gesammelt: dem laufenden Fach und den
+/// 19 vorherigen. Vom ältesten Fach zählt nur der Teil, der noch in die letzten 19 Stunden
 /// fällt. So umfasst das „gleitende Fenster" zu jeder Minute genau ein Spieljahr.
 /// </summary>
 public sealed class Marktstand
@@ -41,7 +41,7 @@ public sealed class Marktstand
     /// </summary>
     public double Grundnachfrage => _ware.Nachfrage * (_markt?.Einwohnerfaktor ?? 1);
 
-    /// <summary>Was Spieler und KI-Rivalen im letzten Spieljahr (17 Spielstunden) verkauft haben.</summary>
+    /// <summary>Was Spieler und KI-Rivalen im letzten Spieljahr (19 Spielstunden) verkauft haben.</summary>
     public double SpielerAngebotImJahr
     {
         get
@@ -84,7 +84,7 @@ public sealed class Marktstand
 
     /// <summary>
     /// Der Preis zu Beginn der nächsten Stunde, wenn bis dahin niemand verkauft (Vorschau des Marktmeisters, PR #200): Dann fällt das
-    /// älteste Stundenfach aus dem Fenster – was vor 17 Stunden verkauft wurde, drückt den Preis nicht mehr. Die Nachfrage bleibt wie jetzt.
+    /// älteste Stundenfach aus dem Fenster – was vor 19 Stunden verkauft wurde, drückt den Preis nicht mehr. Die Nachfrage bleibt wie jetzt.
     /// </summary>
     public double PreisNaechsteStunde
     {

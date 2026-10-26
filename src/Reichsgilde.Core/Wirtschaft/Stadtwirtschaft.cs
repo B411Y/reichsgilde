@@ -561,7 +561,7 @@ public sealed partial class Stadtwirtschaft
     public Func<Politik.Ratssitzung, bool>? RatssitzungAnhalten { get; set; }
 
     /// <summary>Jahresende für alle Betriebe und Konten.</summary>
-    /// <param name="zeit">Die Uhr steht schon auf dem neuen Jahr (05:00) – zuerst wird noch die letzte Stunde (21–22 Uhr) abgerechnet.</param>
+    /// <param name="zeit">Die Uhr steht schon auf dem neuen Jahr (04:00) – zuerst wird noch die letzte Stunde (22–23 Uhr) abgerechnet.</param>
     /// <returns>false, wenn die Partie vor der Ratssitzung anhält – dann folgt der Rest mit <see cref="JahresabrechnungAbschliessen"/>.</returns>
     internal bool Jahresabrechnung(int neuesJahr, Spielzeit zeit)
     {

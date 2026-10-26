@@ -1,3 +1,4 @@
+using Reichsgilde.Core.Zeit;
 using System.Text.Json.Nodes;
 using Reichsgilde.Core.Bauen;
 using Reichsgilde.Core.Kartenwerkstatt;
@@ -232,7 +233,7 @@ static class KartenbauTests
                         && json.IndexOf("\"kamera\"", StringComparison.Ordinal) < json.IndexOf("\"fiktion\"", StringComparison.Ordinal), "kamera und fiktion hinten");
         }),
 
-        ("Kartenskript Probestadt: eine Partie aus ihr läuft ein Spieljahr (1020 Ticks) ohne Fehler, mit beiden KI-Häusern", () =>
+        ("Kartenskript Probestadt: eine Partie aus ihr läuft ein Spieljahr (1140 Ticks) ohne Fehler, mit beiden KI-Häusern", () =>
         {
             var e = new Probestadt().Bauen(Katalog.Value, Daten.Value);
             var (sim, spieler) = e.Ausprobieren(Daten.Value, "Schmied");
@@ -241,7 +242,7 @@ static class KartenbauTests
             Pruefe.Wahr(w.Betriebe.Any(b => b.Konto == spieler), "der Spieler hat seine Werkstatt");
             Pruefe.Wahr(w.Betriebe.Any(b => b.Art == Betriebsart.Tischlerei) && w.Betriebe.Any(b => b.Art == Betriebsart.Giesserei), "Tischlerei und Gießerei");
             var jahr = sim.Zeit.Jahr;
-            for (var t = 0; t < 1020; t++) sim.Tick();
+            for (var t = 0; t < Spielzeit.MinutenProTag; t++) sim.Tick();
             Pruefe.Gleich(jahr + 1, sim.Zeit.Jahr, "ein Jahr vergangen");
         }),
 

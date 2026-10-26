@@ -182,14 +182,14 @@ static class ParfumeurTests
             w.KiAnmelden(ki, Partieaufbau.ProfilFuer(KiCharakter.Wagemutig));
             var (_, reich, f) = Haus(sim, "Haus Gold", geld: 80_000);
             w.KiAnmelden(reich, KiProfil.Standard with { Reserve = 78_000 }); // kauft keine Werkstatt – sonst lohnte eine Bande mehr als das Gift
-            for (var i = 0; i < 7 * 60; i++) sim.Tick(); // über die Politikstunde
+            for (var i = 0; i < 12 * 60 - Spielzeit.TagesbeginnMinute; i++) sim.Tick(); // über die Politikstunde
             Pruefe.Gleich(1, w.Duft.AnschlaegeDiesesJahr(ki), string.Join(" | ", w.Rivalen.Single(r => r.Konto == ki).Entscheidungen));
             Pruefe.Gleich(reich, w.Duft.Auftraege.Single().Ziel);
             BisNacht(sim);
             Pruefe.Wahr(f.Oberhaupt.Krankheit?.NurGegengift == true, "vergiftet");
             JahrBeenden(sim);
             Pruefe.Wahr(f.Oberhaupt.Lebt && f.Oberhaupt.Krankheit?.NurGegengift == true, "im ersten Jahr stirbt niemand am Gift");
-            for (var i = 0; i < 7 * 60; i++) sim.Tick(); // die Politikstunde des neuen Jahres
+            for (var i = 0; i < 12 * 60 - Spielzeit.TagesbeginnMinute; i++) sim.Tick(); // die Politikstunde des neuen Jahres
             Pruefe.Wahr(f.Oberhaupt.Krankheit is null, "Gegengift genommen");
         }),
 

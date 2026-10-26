@@ -108,9 +108,9 @@ public sealed class SchiffshandelDaten
 
     /// <summary>
     /// Je Spielstunde holt der Markt einer fernen Stadt diesen Anteil auf: Gehandelte Stück zählen danach um so viel weniger
-    /// (0,08: nach einem Spieljahr von 17 Stunden ist noch ein Viertel übrig).
+    /// (0,072: nach einem Spieljahr von 19 Stunden ist noch ein Viertel übrig; bis Datenversion 55 bei 17 Stunden 0,08).
     /// </summary>
-    public double ErholungJeStunde { get; init; } = 0.08;
+    public double ErholungJeStunde { get; init; } = 0.072;
 
     public PiratenDaten Piraten { get; init; } = new();
 

@@ -76,8 +76,8 @@ public sealed partial class KiRivale
     private int? _keinWerkstattplatzJahr;
     private bool _bauorteGefragt; // in dieser Stunde schon nach Bauorten gefragt (teuer – höchstens einmal)
 
-    /// <summary>Zu dieser Stunde des Spieltags kümmert sich die KI um die Politik (mittags, einmal am Tag).</summary>
-    private const int Politikstunde = 6;
+    /// <summary>Zu dieser Stunde des Spieltags kümmert sich die KI um die Politik (um 11 Uhr, einmal am Tag).</summary>
+    private const int Politikstunde = 11 - Spielzeit.TagesbeginnMinute / 60;
     private const int MaxGemerkteEntscheidungen = 20;
 
     public Konto Konto { get; }
@@ -457,7 +457,8 @@ public sealed partial class KiRivale
         {
             var nummer = 0;
             while (nummer < _w.Rivalen.Count && _w.Rivalen[nummer] != this) nummer++;
-            return !_bauorteGefragt && _stundenImJahr == 3 + 3 * (nummer % 5);
+            // ab 8 Uhr, alle drei Stunden ein anderes Haus
+            return !_bauorteGefragt && _stundenImJahr == (Stadtwirtschaft.Arbeitsbeginn - Spielzeit.TagesbeginnMinute) / 60 + 3 * (nummer % 5);
         }
     }
 
@@ -901,7 +902,7 @@ public sealed partial class KiRivale
     /// Ebenso ein Jahr, in dem der Betrieb mindestens ein Viertel der Stunden ganz ohne Personal stand (meist fehlte das Geld für Löhne):
     /// Er konnte nichts verdienen, und die Löhne zum Jahresende zahlt er für alle, die zuletzt da sind – das sagt nichts über den Betrieb.
     /// </summary>
-    /// <param name="stundenImJahr">So viele Stunden hat die KI in diesem Jahr überlegt (bei einem ganzen Jahr 17).</param>
+    /// <param name="stundenImJahr">So viele Stunden hat die KI in diesem Jahr überlegt (bei einem ganzen Jahr <see cref="Spielzeit.StundenProTag"/>).</param>
     private void VerlusteZaehlen(int stundenImJahr)
     {
         var eigene = Betriebe.ToList();

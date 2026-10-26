@@ -1,3 +1,4 @@
+using Reichsgilde.Core.Zeit;
 using Reichsgilde.Core;
 using Reichsgilde.Core.Gauner;
 using Reichsgilde.Core.Justiz;
@@ -58,7 +59,7 @@ static class GardistTests
             w.Einstellen(b, "Geselle", 4);
             Pruefe.Ungefaehr(ansehen + 3, w.Rat.Ansehen(k), 1e-9);
             Pruefe.Gleich(0, b.Karren.Count);
-            for (var i = 0; i < 16 * 60; i++) sim.Tick(); // bis 21 Uhr – die Arbeitszeit (8–20 Uhr) ist abgerechnet
+            for (var i = 0; i < 21 * 60 - Spielzeit.TagesbeginnMinute; i++) sim.Tick(); // bis 21 Uhr – die Arbeitszeit (8–20 Uhr) ist abgerechnet
             // PR #177: Sold 0,75 → 0,68 je Minute, nach dem KI-Einrichtungskauf 0,73 (der Gardist hat kaum Einrichtung mit Gulden-Wirkung);
             // Erfahrung × 0,5 (erfahrungFaktor – doppelt so viele Plätze wie eine Werkstatt)
             Pruefe.Ungefaehr(4 * 720 * 0.73, w.Wache.DiesesJahr(k).Sold, 1e-6);
@@ -151,7 +152,7 @@ static class GardistTests
             var loch = w.BetriebEroeffnen("Schmugglerloch Elster", Betriebsart.Schmugglerloch, dieb, startkarren: "");
             w.Einstellen(loch, "Geselle", 4);
             w.KontoEroeffnen("Haus Eisenbart", startvermoegen: 5_000);
-            for (var i = 0; i < 4 * 60 + 1; i++) sim.Tick(); // 09:01 – die erste Arbeitsstunde ist abgerechnet
+            for (var i = 0; i < 9 * 60 + 1 - Spielzeit.TagesbeginnMinute; i++) sim.Tick(); // 09:01 – die erste Arbeitsstunde ist abgerechnet
             var spur = w.Justiz.SpurenVon(dieb).Single();
             Pruefe.Wahr(w.Justiz.KenntSpur(wache, spur), "Die Wache hat den Beweis");
             Pruefe.Ungefaehr(50, w.Wache.DiesesJahr(wache).Kopfgeld, 1e-9);
@@ -183,7 +184,7 @@ static class GardistTests
             var dieb = w.KontoEroeffnen("Familie Elster", startvermoegen: 5_000);
             var loch = w.BetriebEroeffnen("Schmugglerloch Elster", Betriebsart.Schmugglerloch, dieb, startkarren: "");
             loch.Einlagern("Silber", 5);
-            for (var i = 0; i < 7 * 60; i++) sim.Tick(); // über die Politikstunde
+            for (var i = 0; i < 12 * 60 - Spielzeit.TagesbeginnMinute; i++) sim.Tick(); // über die Politikstunde
             Pruefe.Gleich(1, w.Wache.DiesesJahr(k).Razzien);
             Pruefe.Gleich(0, loch.ImLager("Silber"));
             Pruefe.Wahr(w.Rivalen.Single(r => r.Konto == k).WacheErlaubt, "ausgewogen darf");
@@ -199,7 +200,7 @@ static class GardistTests
             var w = sim.Wirtschaft!;
             var wachhaus = w.Betriebe.Single(b => b.Konto == spieler);
             Pruefe.Gleich("Wachhaus am Weinmarkt", wachhaus.Name);
-            for (var i = 0; i < 5 * 60 + 30; i++) sim.Tick(); // 11:30
+            for (var i = 0; i < 10 * 60 + 30 - Spielzeit.TagesbeginnMinute; i++) sim.Tick(); // 11:30
             var (kopie, kopieSpieler) = Speicherung.Laden(Speicherung.Speichern(sim, spieler));
             var kw = kopie.Wirtschaft!;
             Pruefe.Gleich(w.Wache.DiesesJahr(spieler), kw.Wache.DiesesJahr(kopieSpieler!));

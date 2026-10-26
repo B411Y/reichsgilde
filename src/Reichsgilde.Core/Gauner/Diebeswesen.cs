@@ -370,11 +370,11 @@ public sealed class Diebeswesen
     ///     (Gesellen vor Lehrlingen, dann nach Nummer; der Meisterdieb zuletzt) – bis Tagesende. Die anderen sind daheim:
     ///     um 20 Uhr zählen sie Beute oder planen, ab 21 Uhr schlafen sie (ab Stufe 2 auf dem Schlafboden; im
     ///     Schmugglerloch zählen und planen sie weiter).
-    ///   • Vor 8 Uhr: ab Stufe 2 schlafen bis 7 Uhr, danach (im Schmugglerloch von 5 Uhr an) üben oder schleifen.
+    ///   • Vor 8 Uhr: ab Stufe 2 schlafen bis 7 Uhr, danach (im Schmugglerloch von 4 Uhr an) üben oder schleifen.
     ///   • Stufe 3: Der <see cref="Meisterdieb"/> sitzt von 8 bis 22 Uhr in der Gildenhalle (Vorsitzen) und geht nicht auf den Markt.
     /// Daheim wechselt die Tätigkeit je Arbeiter und Stunde: gerade Summe aus Nummer und Stunde = Üben bzw. Zählen, sonst Schleifen bzw. Planen.
     /// Die Simulation zählt die Beute weiter für alle Arbeiter – die Abfrage verteilt sie nur fürs Bild.
-    /// Die Aufträge der Nacht merkt sich der Kern nicht im Spielstand: Nach dem Laden zwischen 20 und 22 Uhr sind alle daheim.
+    /// Die Aufträge der Nacht merkt sich der Kern nicht im Spielstand: Nach dem Laden zwischen 20 und 23 Uhr sind alle daheim.
     /// </summary>
     public IReadOnlyList<Diebesstand> AnwesenheitJetzt(Betrieb b)
     {

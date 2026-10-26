@@ -1,3 +1,4 @@
+using Reichsgilde.Core.Zeit;
 using Reichsgilde.Core;
 using Reichsgilde.Core.Dynastie;
 using Reichsgilde.Core.Gauner;
@@ -40,7 +41,7 @@ static class DiebTests
     /// <summary>Bis 20:01 – nach der Arbeitszeit (8–20 Uhr) und der Nacht der Gauner.</summary>
     static void BisNachDerNacht(Simulation sim)
     {
-        for (var i = 0; i < 15 * 60 + 1; i++) sim.Tick();
+        for (var i = 0; i < 20 * 60 + 1 - Spielzeit.TagesbeginnMinute; i++) sim.Tick();
     }
 
     /// <summary>Ein Haus mit einem Diebesbetrieb der gewünschten Stufe, voll mit Gesellen, ohne Karren.</summary>
@@ -98,7 +99,7 @@ static class DiebTests
             var (w, k, b) = Dieb(sim, leute: 3);
             w.Einstellen(b, "Lehrling", 1);
             var anderes = w.KontoEroeffnen("Haus Eisenbart", startvermoegen: 5_000);
-            for (var i = 0; i < 4 * 60 + 1; i++) sim.Tick(); // 09:01 – die erste Arbeitsstunde (ab 8 Uhr) ist abgerechnet
+            for (var i = 0; i < 9 * 60 + 1 - Spielzeit.TagesbeginnMinute; i++) sim.Tick(); // 09:01 – die erste Arbeitsstunde (ab 8 Uhr) ist abgerechnet
             Pruefe.Gleich(0, b.Belegung.GetValueOrDefault("Lehrling"));
             Pruefe.Gleich(3, b.Belegt);
             var spur = w.Justiz.SpurenVon(k).Single();
@@ -242,7 +243,7 @@ static class DiebTests
             Pruefe.Wahr(w.Ausfuehren(dieb, new Entfuehren(opfer.Inhaber, tochter.Nummer, 600)).Erfolg, "Auftrag");
             BisNachDerNacht(sim);
             Pruefe.Wahr(w.Diebe.IstGeisel(tochter), "Geisel");
-            for (var i = 0; i < 16 * 60; i++) sim.Tick(); // über die Politikstunde des nächsten Tages
+            for (var i = 0; i < 21 * 60 - Spielzeit.TagesbeginnMinute; i++) sim.Tick(); // über die Politikstunde des nächsten Tages
             Pruefe.Wahr(!w.Diebe.IstGeisel(tochter) && tochter.Lebt, "Die KI zahlt");
 
             var ki = w.Rivalen.Single(r => r.Konto == opfer);
@@ -274,7 +275,7 @@ static class DiebTests
             var w = sim.Wirtschaft!;
             var loch = w.Betriebe.Single(b => b.Konto == spieler);
             Pruefe.Gleich("Schmugglerloch am Weinmarkt", loch.Name);
-            for (var i = 0; i < 5 * 60 + 30; i++) sim.Tick(); // 11:30 – die Taschendiebe waren schon unterwegs
+            for (var i = 0; i < 10 * 60 + 30 - Spielzeit.TagesbeginnMinute; i++) sim.Tick(); // 11:30 – die Taschendiebe waren schon unterwegs
             var rivale = w.Konten.First(k => k != spieler);
             Pruefe.Wahr(w.Ausfuehren(spieler, new Auskundschaften(rivale.Inhaber)).Erfolg, "Auftrag");
             var (kopie, kopieSpieler) = Speicherung.Laden(Speicherung.Speichern(sim, spieler));

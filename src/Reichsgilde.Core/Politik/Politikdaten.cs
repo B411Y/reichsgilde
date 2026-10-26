@@ -195,8 +195,8 @@ public sealed class BauvorhabenDaten
     public string Beschreibung { get; init; } = "";
     public double Kosten { get; init; }
 
-    /// <summary>Bauzeit in Spielstunden (17 = ein Spieljahr); so lange steht die Baustelle.</summary>
-    public int BauzeitStunden { get; init; } = 17;
+    /// <summary>Bauzeit in Spielstunden (19 = ein Spieljahr); so lange steht die Baustelle.</summary>
+    public int BauzeitStunden { get; init; } = Zeit.Spielzeit.StundenProTag;
 
     public Bauwirkung Wirkung { get; init; }
     public double Wert { get; init; }

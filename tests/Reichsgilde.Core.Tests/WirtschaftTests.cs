@@ -152,15 +152,15 @@ static class WirtschaftTests
             Pruefe.Ungefaehr(markt["Rapier"].Grundpreis * 0.5, markt["Rapier"].Preis, 0.01);
         }),
 
-        ("Markt: Verkäufe zählen genau 17 Spielstunden lang (05–22 Uhr = ein Jahr)", () =>
+        ("Markt: Verkäufe zählen genau 19 Spielstunden lang (04–23 Uhr = ein Jahr)", () =>
         {
             var markt = new Markt(Daten.Value);
             markt["Eisen"].Verkaufen(60);
-            for (var h = 0; h < 17; h++) markt.NeueStunde();       // genau 17 Stunden später
+            for (var h = 0; h < Spielzeit.StundenProTag; h++) markt.NeueStunde(); // genau 19 Stunden später
             Pruefe.Gleich(60.0, markt["Eisen"].SpielerAngebotImJahr);
             for (var m = 0; m < 30; m++) markt.NeueMinute();        // eine halbe Stunde darüber hinaus
             Pruefe.Ungefaehr(30.0, markt["Eisen"].SpielerAngebotImJahr, 0.001);
-            markt.NeueStunde();                                     // 18 Stunden später
+            markt.NeueStunde();                                     // 20 Stunden später
             Pruefe.Gleich(0.0, markt["Eisen"].SpielerAngebotImJahr);
         }),
 
@@ -171,10 +171,11 @@ static class WirtschaftTests
             for (var m = 0; m < Spielzeit.MinutenProTag; m++)
                 if (w.IstArbeitszeit(new Spielzeit(m))) minuten++;
             Pruefe.Gleich(720, minuten);
-            Pruefe.Gleich(false, w.IstArbeitszeit(new Spielzeit(179)));  // 07:59
-            Pruefe.Gleich(true, w.IstArbeitszeit(new Spielzeit(180)));   // 08:00
-            Pruefe.Gleich(true, w.IstArbeitszeit(new Spielzeit(899)));   // 19:59
-            Pruefe.Gleich(false, w.IstArbeitszeit(new Spielzeit(900)));  // 20:00
+            static Spielzeit Um(int h, int m = 0) => new(h * 60 + m - Spielzeit.TagesbeginnMinute);
+            Pruefe.Gleich(false, w.IstArbeitszeit(Um(7, 59)));
+            Pruefe.Gleich(true, w.IstArbeitszeit(Um(8)));
+            Pruefe.Gleich(true, w.IstArbeitszeit(Um(19, 59)));
+            Pruefe.Gleich(false, w.IstArbeitszeit(Um(20)));
         }),
 
         ("Markt: Ohne Spieler-Mine ist Eisen knapp (NPC deckt 90 %), eine Mine senkt den Preis", () =>

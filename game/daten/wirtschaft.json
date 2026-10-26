@@ -1,5 +1,5 @@
 {
-  "version": 55,
+  "version": 56,
   "gesundheit": {
     "medicusKosten": 120,
     "medicusKostenPest": 300,
@@ -1002,14 +1002,14 @@
       "Ueblich": { "lohnFaktor": 1, "laune": 0 },
       "Gut": { "lohnFaktor": 1.25, "laune": 25 }
     },
-    "praemie": { "kostenJeArbeiter": 30, "laune": 20, "minuten": 1020 },
+    "praemie": { "kostenJeArbeiter": 30, "laune": 20, "minuten": 1140 },
     "laune": { "neutral": 50, "tempoBis": 0.2, "jeStunde": 3, "kuendigungUnter": 20, "kuendigungNachStunden": 6 },
     "unfall": {
       "gefahr": { "Schmied": 0.05, "Steinmetz": 0.04, "Tischler": 0.04, "Alchimist": 0.03, "Parfumeur": 0.03, "Wirt": 0.02, "Prediger": 0.02 },
       "laune": -15,
-      "launeMinuten": 1020
+      "launeMinuten": 1140
     },
-    "befoerderung": { "von": "Lehrling", "zu": "Geselle", "dienstMinuten": 2040 },
+    "befoerderung": { "von": "Lehrling", "zu": "Geselle", "dienstMinuten": 2280 },
     "einrichtung": {
       "Schmied": [
         { "kennung": "Werkzeug1", "name": "Gutes Werkzeug", "preis": 300, "abStufe": 1, "wirkung": { "zeitFaktor": 0.9 } },
@@ -1374,13 +1374,13 @@
     },
     "bauvorhaben": [
       { "kennung": "brunnen", "name": "Brunnen", "beschreibung": "Sauberes Wasser: Krankheiten und Pest befallen ein Viertel seltener.",
-        "kosten": 2500, "bauzeitStunden": 17, "wirkung": "Gesundheit", "wert": 0.25, "ansehen": 3, "ansehenJahre": 3 },
+        "kosten": 2500, "bauzeitStunden": 19, "wirkung": "Gesundheit", "wert": 0.25, "ansehen": 3, "ansehenJahre": 3 },
       { "kennung": "mauer", "name": "Mauer ausbessern", "beschreibung": "Nächtliche Taten in der Stadt gelingen seltener (−15 %).",
-        "kosten": 4000, "bauzeitStunden": 17, "wirkung": "Nachtschutz", "wert": 0.15, "ansehen": 3, "ansehenJahre": 3 },
+        "kosten": 4000, "bauzeitStunden": 19, "wirkung": "Nachtschutz", "wert": 0.15, "ansehen": 3, "ansehenJahre": 3 },
       { "kennung": "hafen", "name": "Hafen erweitern", "beschreibung": "Mehr Liegeplätze und Kräne: Schiffe laden und löschen 40 % schneller.",
-        "kosten": 5000, "bauzeitStunden": 17, "wirkung": "Hafen", "wert": 0.4, "ansehen": 3, "ansehenJahre": 3 },
+        "kosten": 5000, "bauzeitStunden": 19, "wirkung": "Hafen", "wert": 0.4, "ansehen": 3, "ansehenJahre": 3 },
       { "kennung": "marktplatz", "name": "Marktplatz vergrößern", "beschreibung": "Mehr Stände, mehr Käufer: Die Nachfrage aller Waren steigt um 5 %.",
-        "kosten": 6000, "bauzeitStunden": 25, "wirkung": "Nachfrage", "wert": 0.05, "ansehen": 3, "ansehenJahre": 3 }
+        "kosten": 6000, "bauzeitStunden": 28, "wirkung": "Nachfrage", "wert": 0.05, "ansehen": 3, "ansehenJahre": 3 }
     ],
     "fest": { "kosten": 1500, "ansehen": 5, "nachfrage": 0.05, "gaeste": 0.2 },
     "befugnisse": {
@@ -1502,12 +1502,12 @@
     "waechterSchutz": 0.5,
     "diebstahl": { "kosten": 150, "chance": 0.7, "hoechstensStueck": 12 },
     "sabotage": { "kosten": 250, "chance": 0.6, "stillstandMinuten": 360, "reparatur": 150 },
-    "ueberfall": { "kosten": 300, "staerke": 0.8, "gueltigMinuten": 1020 },
+    "ueberfall": { "kosten": 300, "staerke": 0.8, "gueltigMinuten": 1140 },
     "kroetenschleim": { "kosten": 200, "chance": 0.6, "beruf": "Alchimist", "berufKostenFaktor": 0.5, "berufBonus": 0.15 },
     "erpressungMindestBeweise": 3,
     "wohnhaus": {
       "einbruch": { "kosten": 200, "chance": 0.6, "anteil": 0.05, "hoechstensJeStufe": 300 },
-      "brand": { "kosten": 300, "chance": 0.5, "reparaturAnteil": 0.2, "mindestReparatur": 100, "instandMinuten": 1020 }
+      "brand": { "kosten": 300, "chance": 0.5, "reparaturAnteil": 0.2, "mindestReparatur": 100, "instandMinuten": 1140 }
     }
   },
   "buerger": {
@@ -1568,7 +1568,7 @@
       "Ruhe": { "start": 0, "anstieg": 6 }
     },
     "handlungen": {
-      "Ruhen": { "von": 5, "bis": 22, "stillt": { "Ruhe": 30 } },
+      "Ruhen": { "von": 4, "bis": 23, "stillt": { "Ruhe": 30 } },
       "Arbeiten": { "von": 8, "bis": 20, "stillt": { "Auskommen": 25 } },
       "Einkaufen": { "von": 8, "bis": 20, "stillt": { "Versorgung": 40 } },
       "Einkehren": { "von": 12, "bis": 22, "stillt": { "Vergnuegen": 40, "Ruhe": 5 } },
@@ -1608,7 +1608,7 @@
       }
     ],
     "zollJeStelle": 0.025,
-    "erholungJeStunde": 0.08,
+    "erholungJeStunde": 0.072,
     "piraten": {"name": "Flusspiraten", "chance": 0.05, "staerke": 1.0, "beuteAnteil": 0.5},
     "geleitFaktor": 3,
     "verkaufAnteil": 0.5,

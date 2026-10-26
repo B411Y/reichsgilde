@@ -342,7 +342,7 @@ public sealed class Wirtschaftsdaten
         var a = Allgemein;
 
         if (a.Arbeitsminuten <= 0 || Stadtwirtschaft.Arbeitsbeginn + a.Arbeitsminuten > Zeit.Spielzeit.TagesendeMinute)
-            f.Add($"allgemein.arbeitsminuten muss zwischen 1 und {Zeit.Spielzeit.TagesendeMinute - Stadtwirtschaft.Arbeitsbeginn} liegen – gespielt wird bis 22 Uhr.");
+            f.Add($"allgemein.arbeitsminuten muss zwischen 1 und {Zeit.Spielzeit.TagesendeMinute - Stadtwirtschaft.Arbeitsbeginn} liegen – gespielt wird bis {Zeit.Spielzeit.TagesendeMinute / 60} Uhr.");
         if (a.Elastizitaet < 0) f.Add("allgemein.elastizitaet darf nicht negativ sein.");
         if (a.PreisMin <= 0 || a.PreisMax < a.PreisMin) f.Add("allgemein.preisMin muss > 0 und ≤ preisMax sein.");
         if (a.Umsatzsteuer is < 0 or >= 1) f.Add("allgemein.umsatzsteuer muss zwischen 0 und 1 liegen.");
@@ -410,7 +410,7 @@ public sealed class Wirtschaftsdaten
             if (d.Arbeitsminuten is { } am)
             {
                 if (am <= 0 || Stadtwirtschaft.Arbeitsbeginn + am > Zeit.Spielzeit.TagesendeMinute)
-                    f.Add($"betriebsarten.{art}.arbeitsminuten muss zwischen 1 und {Zeit.Spielzeit.TagesendeMinute - Stadtwirtschaft.Arbeitsbeginn} liegen – gespielt wird bis 22 Uhr.");
+                    f.Add($"betriebsarten.{art}.arbeitsminuten muss zwischen 1 und {Zeit.Spielzeit.TagesendeMinute - Stadtwirtschaft.Arbeitsbeginn} liegen – gespielt wird bis {Zeit.Spielzeit.TagesendeMinute / 60} Uhr.");
                 // Diebe, Wache und Schreiber rechnen ihren Ertrag je Minute aus Jahreswerten über die übliche Arbeitszeit.
                 if (d.OhneProduktion) f.Add($"betriebsarten.{art}: Eine eigene Arbeitszeit (arbeitsminuten) gibt es nur für Betriebe mit Ware.");
             }

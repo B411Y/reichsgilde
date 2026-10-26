@@ -72,7 +72,7 @@ static class LogistikTests
 
         ("Nachts fährt kein Karren ins Umland – außer man erlaubt es", () =>
         {
-            var nacht = new Spielzeit(16 * 60); // 22:00 Uhr
+            var nacht = new Spielzeit(21 * 60 - Spielzeit.TagesbeginnMinute); // 21:00 Uhr
             var sim = NeueSimulation(zeit: nacht);
             var w = sim.Wirtschaft!;
             var mine = w.BetriebEroeffnen("M", Betriebsart.Mine, w.KontoEroeffnen("Spieler"));
@@ -110,7 +110,7 @@ static class LogistikTests
 
         ("Produktion ruht ohne Zutaten – und meldet es einmal", () =>
         {
-            var sim = NeueSimulation(zeit: new Spielzeit(2 * 60)); // 08:00
+            var sim = NeueSimulation(zeit: new Spielzeit(8 * 60 - Spielzeit.TagesbeginnMinute)); // 08:00
             var w = sim.Wirtschaft!;
             var meldungen = new List<string>();
             w.Meldung += meldungen.Add;

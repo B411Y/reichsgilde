@@ -1,3 +1,4 @@
+using Reichsgilde.Core.Zeit;
 using System.Text.Json.Nodes;
 using Reichsgilde.Core;
 using Reichsgilde.Core.Gauner;
@@ -83,7 +84,7 @@ static class DiebEinrichtungTests
         ("Dieb-Einrichtung: Daten – sieben Stücke mit den Kennungen des Raummodells, Preise wie bei den Werkstätten, Datenversion 52", () =>
         {
             var d = Daten.Value.Werkstatt!;
-            Pruefe.Gleich(55, Daten.Value.Version);
+            Pruefe.Gleich(56, Daten.Value.Version);
             var dieb = d.EinrichtungFuer("Dieb");
             Pruefe.Gleich("Werkzeug1 Werkzeug2 Verkleidung Regale Loeschfass Eisentuer Handschuhe", string.Join(" ", dieb.Select(e => e.Kennung)));
             Pruefe.Gleich("Dietriche, Meisterdietriche, Verkleidungstruhe, Hehlerkammer, Löschfass, Eisentür, Lederhandschuhe",
@@ -253,7 +254,7 @@ static class DiebEinrichtungTests
         {
             var sim = NeueSimulation(Unerwischt.Value);
             var (w, k, b) = Dieb(sim);
-            Pruefe.Gleich("1:Daheim:Ueben 2:Daheim:Schleifen 3:Daheim:Ueben 4:Daheim:Schleifen", Kurz(w.Diebe.AnwesenheitJetzt(b))); // 5 Uhr: Nummer + Stunde gerade = Üben
+            Pruefe.Gleich("1:Daheim:Schleifen 2:Daheim:Ueben 3:Daheim:Schleifen 4:Daheim:Ueben", Kurz(w.Diebe.AnwesenheitJetzt(b))); // 4 Uhr: Nummer + Stunde gerade = Üben
             var daheimGewesen = new HashSet<int>();
             for (var h = 8; h < 20; h++)
             {
@@ -340,7 +341,7 @@ static class DiebEinrichtungTests
                 var (w, k, b) = Dieb(sim, Betriebsart.Unterschlupf, leute: 6);
                 var (opfer, g) = Opfer(w);
                 Ok(w, k, new Einbrechen(opfer.Inhaber, g.Name));
-                for (var i = 0; i < 2 * 1020; i++)
+                for (var i = 0; i < 2 * Spielzeit.MinutenProTag; i++)
                 {
                     sim.Tick();
                     if (!abfragen) continue;

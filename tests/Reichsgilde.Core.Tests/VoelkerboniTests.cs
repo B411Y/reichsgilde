@@ -1,3 +1,4 @@
+using Reichsgilde.Core.Zeit;
 using Reichsgilde.Core;
 using Reichsgilde.Core.Dynastie;
 using Reichsgilde.Core.Partie;
@@ -69,7 +70,7 @@ static class VoelkerboniTests
             var (halbling, _) = Haus(sim, "Halbling", Volk.Halbling, Betriebsart.Schmugglerloch, "Geselle", 4);
             var (mensch, _) = Haus(sim, "Mensch", Volk.Mensch, Betriebsart.Schmugglerloch, "Geselle", 4);
             var (zwerg, _) = Haus(sim, "Zwerg", Volk.Zwerg, Betriebsart.Schmugglerloch, "Geselle", 4);
-            for (var i = 0; i < 6 * 60; i++) sim.Tick(); // bis 11 Uhr: drei Arbeitsstunden
+            for (var i = 0; i < 11 * 60 - Spielzeit.TagesbeginnMinute; i++) sim.Tick(); // bis 11 Uhr: drei Arbeitsstunden
             Pruefe.Ungefaehr(1.05, halbling.Erfahrung("Dieb") / mensch.Erfahrung("Dieb"), 1e-9);
             Pruefe.Ungefaehr(0.95, zwerg.Erfahrung("Dieb") / mensch.Erfahrung("Dieb"), 1e-9);
             Pruefe.Ungefaehr(1.05, halbling.Laufend.Umsatz / mensch.Laufend.Umsatz, 1e-9);

@@ -112,7 +112,7 @@ static class ToreTests
 
         ("Tore: Daten werden geprüft (Torschluss innerhalb des Spieltags, Torgeld nicht negativ)", () =>
         {
-            Pruefe.WirftMitMeldung(() => Wirtschaftsdaten.AusJson(Json.Replace("\"schliessenUm\": 20", "\"schliessenUm\": 23")), "schliessenUm");
+            Pruefe.WirftMitMeldung(() => Wirtschaftsdaten.AusJson(Json.Replace("\"schliessenUm\": 20", "\"schliessenUm\": 24")), "schliessenUm");
             Pruefe.WirftMitMeldung(() => Wirtschaftsdaten.AusJson(Json.Replace("\"torgeld\": 15", "\"torgeld\": -1")), "torgeld");
         }),
     };

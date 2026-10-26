@@ -183,7 +183,7 @@ static class RatTests
             var w = sim.Wirtschaft!;
             var k = Haus(w, "KI-Haus", 1, 15_000); // zu wenig für den Patrizier – sonst reicht ihr Ansehen ohne Geschenke
             w.KiAnmelden(k);
-            for (var i = 0; i < 8 * 60 + 1; i++) sim.Tick(); // über die Politikstunde hinweg
+            for (var i = 0; i < 13 * 60 + 1 - Spielzeit.TagesbeginnMinute; i++) sim.Tick(); // über die Politikstunde hinweg
             Pruefe.Wahr(w.Rat.Bewerbungen.ContainsKey(k), "keine Bewerbung");
             Pruefe.Wahr(k.Laufend.Geschenke > 0, "keine Geschenke");
             JahrBeenden(sim);

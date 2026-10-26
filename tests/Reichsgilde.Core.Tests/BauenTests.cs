@@ -1,3 +1,4 @@
+using Reichsgilde.Core.Zeit;
 using Reichsgilde.Core;
 using Reichsgilde.Core.Bauen;
 using Reichsgilde.Core.Partie;
@@ -237,7 +238,7 @@ static class BauenTests
             Pruefe.Gleich("Gießerei", v.Gebaeude);
             Pruefe.Gleich("Gießerei an der Hauptstraße", v.Betrieb);
             Pruefe.Gleich(3_500.0, v.Kosten);
-            Pruefe.Gleich(1_020, v.BauzeitMinuten);
+            Pruefe.Gleich(Spielzeit.MinutenProTag, v.BauzeitMinuten);
             Betrieb? erworben = null;
             w.BetriebErworben += b => erworben = b;
             Grundstueck? begonnen = null, fertig = null;
@@ -252,14 +253,14 @@ static class BauenTests
             Pruefe.Gleich(g, begonnen);
             Pruefe.Gleich(Bauzustand.Baustelle, g.Zustand);
             Pruefe.Gleich(Bauarbeit.Neubau, g.Arbeit);
-            Pruefe.Gleich(1_020L, g.FertigAb);
+            Pruefe.Gleich((long)Spielzeit.MinutenProTag, g.FertigAb);
             Pruefe.Wahr(w.Betriebe.All(x => x.Name != g.Betrieb), "noch kein Betrieb");
 
             // Die zweite Werkstatt an derselben Straße bekommt eine römische Zahl.
             Pruefe.Gleich("Gießerei an der Hauptstraße II", w.Bauen.Vorschau(k, befehl with { X = -8 }).Betrieb);
 
-            Ticken(sim, 1_020); // fertig ist die Baustelle in der Minute 1.020 – das ist schon das nächste Jahr
-            Pruefe.Wahr(w.Betriebe.All(x => x.Name != g.Betrieb), "vor Minute 1.020 noch Baustelle");
+            Ticken(sim, Spielzeit.MinutenProTag); // fertig ist die Baustelle in der Minute 1.140 – das ist schon das nächste Jahr
+            Pruefe.Wahr(w.Betriebe.All(x => x.Name != g.Betrieb), "vor Minute 1.140 noch Baustelle");
             Pruefe.Gleich(0.0, k.Vorjahr!.Personal + k.Vorjahr.Fixkosten); // das Baujahr kostete keine Löhne, keinen Unterhalt
             Ticken(sim, 1);
             var betrieb = w.Betriebe.Single(x => x.Name == "Gießerei an der Hauptstraße");
@@ -298,7 +299,7 @@ static class BauenTests
 
             var befehl = new WohnhausBauen(2, -24, 9, 2); // Steinhaus 8 × 10 an der Hauptstraße
             var v = w.Bauen.Vorschau(k, befehl);
-            Pruefe.Gleich((5_500.0, 1_500.0, 4_000.0, 2_040), (v.Preis, v.Anrechnung, v.Kosten, v.BauzeitMinuten));
+            Pruefe.Gleich((5_500.0, 1_500.0, 4_000.0, 2 * Spielzeit.MinutenProTag), (v.Preis, v.Anrechnung, v.Kosten, v.BauzeitMinuten));
             var rein = k.Reinvermoegen;
             Pruefe.Wahr(w.Ausfuehren(k, befehl).Erfolg, "Steinhaus bauen");
             Pruefe.Gleich(2_000.0, k.Vermoegen);
@@ -314,7 +315,7 @@ static class BauenTests
 
             Grundstueck? abgerissen = null;
             w.Bauen.Abgerissen += g => abgerissen = g;
-            Ticken(sim, 2_041);
+            Ticken(sim, 2 * Spielzeit.MinutenProTag + 1);
             Pruefe.Gleich(2, k.WohnhausStufe);
             Pruefe.Gleich(5_500.0, k.Hauswert);
             var neu = w.Bauen.Wohnhaus(k)!;
@@ -428,8 +429,8 @@ static class BauenTests
             Pruefe.Gleich(w.Bauen.Wohnhaus(k)!.Nummer, w2.Bauen.Wohnhaus(k2)!.Nummer);
             Pruefe.Gleich(k.Hauswert, k2.Hauswert);
             Pruefe.Gleich(k.Reinvermoegen, k2.Reinvermoegen);
-            Ticken(sim, 1_000);
-            Ticken(sim2, 1_000);
+            Ticken(sim, Spielzeit.MinutenProTag - 20); // über das Ende der Bauzeit (ein Jahr) hinaus
+            Ticken(sim2, Spielzeit.MinutenProTag - 20);
             Pruefe.Gleich(Speicherung.Speichern(sim, zeitpunkt: DateTime.UnixEpoch), Speicherung.Speichern(sim2, zeitpunkt: DateTime.UnixEpoch));
             Pruefe.Wahr(w2.Betriebe.Any(b => b.Name == "Gießerei an der Hauptstraße"), "die Werkstatt ist auch im geladenen Spiel fertig");
             Pruefe.Gleich(2, w2.Konten.Single(x => x.Inhaber == "Haus Fuchs").WohnhausStufe); // das Steinhaus ist bezogen
@@ -478,7 +479,7 @@ static class BauenTests
             var arm = w.KontoEroeffnen("Haus Arm", startvermoegen: -50_000);
             w.BetriebEroeffnen("Gießerei Arm", Betriebsart.Giesserei, arm);
             var json = Speicherung.Speichern(sim);
-            Ticken(sim, 3 * 1_020);
+            Ticken(sim, 3 * Spielzeit.MinutenProTag);
             Pruefe.Wahr(arm.IstBankrott, "bankrott");
             Pruefe.Wahr(w.Betriebe.All(b => b.Konto != arm), "Betrieb frei");
             Pruefe.Wahr(w.FreieLiegenschaften.Any(l => l.Name == "Gießerei Arm"), "zu kaufen");
@@ -493,7 +494,7 @@ static class BauenTests
 
         ("Bauen: Daten werden geprüft – je Wohnhausstufe ein Eintrag, Maße auf dem Raster, Lagen nicht leer, nurNeubau nur ab dem Bürgerhaus", () =>
         {
-            Pruefe.Gleich(55, Daten.Value.Version);
+            Pruefe.Gleich(56, Daten.Value.Version);
             Pruefe.Gleich(5, Daten.Value.Bauen!.Wohnhaus.Count);
             Pruefe.Gleich((16.0, 14.0), (Daten.Value.Bauen.Werkstatt.Breite, Daten.Value.Bauen.Werkstatt.Tiefe));
             Pruefe.Gleich("False False False True True", string.Join(" ", Daten.Value.Bauen.Wohnhaus.Select(m => m.NurNeubau))); // Stadtpalais, Stadthof
@@ -548,37 +549,37 @@ static class BauenTests
             var arm = Haus(w, "Haus Arm", stand: 1, stufe: 1, vermoegen: -50_000);
             var k = Haus(w, "Haus Reich", stand: 2, stufe: 1, vermoegen: 50_000);
             Pruefe.Gleich(null, w.Bauen.LeerSeit(arm)); // lebt noch
-            Ticken(sim, 3 * 1_020); // drei Jahresabschlüsse im Minus: Bankrott in der Jahresabrechnung, die Uhr steht schon auf Minute 3.060
+            Ticken(sim, 3 * Spielzeit.MinutenProTag); // drei Jahresabschlüsse im Minus: Bankrott in der Jahresabrechnung, die Uhr steht schon auf Minute 3.420
             Pruefe.Wahr(arm.IstBankrott, "bankrott");
-            Pruefe.Gleich(3_060L, w.Bauen.LeerSeit(arm));
-            Pruefe.Gleich(3_060L, w.Bauen.Leerstand(arm)!.LeerSeit);
+            Pruefe.Gleich(3L * Spielzeit.MinutenProTag, w.Bauen.LeerSeit(arm));
+            Pruefe.Gleich(3L * Spielzeit.MinutenProTag, w.Bauen.Leerstand(arm)!.LeerSeit);
             Ticken(sim, 500);
-            Pruefe.Gleich(3_060L, w.Bauen.LeerSeit(arm)); // bleibt
+            Pruefe.Gleich(3L * Spielzeit.MinutenProTag, w.Bauen.LeerSeit(arm)); // bleibt
 
             // Erlöschen (über Stilllegen wie im Familienbuch): ab dieser Minute.
             var erloschen = Haus(w, "Haus Erlöschen", stand: 1, stufe: 1, vermoegen: 0);
             erloschen.IstErloschen = true;
             w.Stilllegen(erloschen);
-            Pruefe.Gleich(3_560L, w.Bauen.LeerSeit(erloschen));
+            Pruefe.Gleich(3L * Spielzeit.MinutenProTag + 500, w.Bauen.LeerSeit(erloschen));
 
             // Ohne Stilllegen (alter Spielstand, Tests): zählt ab der nächsten Minute, bis dahin „jetzt“.
             var still = Haus(w, "Haus Still", stand: 2, stufe: 2, vermoegen: 0);
             still.IstBankrott = true;
-            Pruefe.Gleich(3_560L, w.Bauen.LeerSeit(still));
+            Pruefe.Gleich(3L * Spielzeit.MinutenProTag + 500, w.Bauen.LeerSeit(still));
             Ticken(sim, 3);
-            Pruefe.Gleich(3_560L, w.Bauen.LeerSeit(still));
+            Pruefe.Gleich(3L * Spielzeit.MinutenProTag + 500, w.Bauen.LeerSeit(still));
 
             // Speichern und Laden; ein alter Spielstand ohne Zeitpunkt zählt ab dem Laden.
             var json = Speicherung.Speichern(sim);
             var w2 = Speicherung.Laden(json).Simulation.Wirtschaft!;
-            Pruefe.Gleich(3_060L, w2.Bauen.LeerSeit(w2.Konten.Single(x => x.Inhaber == "Haus Arm")));
+            Pruefe.Gleich(3L * Spielzeit.MinutenProTag, w2.Bauen.LeerSeit(w2.Konten.Single(x => x.Inhaber == "Haus Arm")));
             var alt = System.Text.Json.Nodes.JsonNode.Parse(json)!.AsObject();
             foreach (var g in alt["Wirtschaft"]!["Bauen"]!["Grundstuecke"]!.AsArray()) g!.AsObject().Remove("LeerSeit");
             var (sim3, _) = Speicherung.Laden(alt.ToJsonString());
             var arm3 = sim3.Wirtschaft!.Konten.Single(x => x.Inhaber == "Haus Arm");
-            Pruefe.Gleich(3_563L, sim3.Wirtschaft.Bauen.LeerSeit(arm3));
+            Pruefe.Gleich(3L * Spielzeit.MinutenProTag + 503, sim3.Wirtschaft.Bauen.LeerSeit(arm3));
             Ticken(sim3, 5);
-            Pruefe.Gleich(3_563L, sim3.Wirtschaft.Bauen.LeerSeit(arm3));
+            Pruefe.Gleich(3L * Spielzeit.MinutenProTag + 503, sim3.Wirtschaft.Bauen.LeerSeit(arm3));
 
             // Gekauft: kein Leerstand mehr.
             Pruefe.Wahr(w.Ausfuehren(k, new LeerstandKaufen(still.Inhaber)).Erfolg, "kaufen");

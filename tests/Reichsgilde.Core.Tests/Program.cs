@@ -29,19 +29,20 @@ if (args.Length > 2 && args[0] == "spielstand" && args[1] == "gesundheit")
 var tests = new List<(string Name, Action Pruefung)>
 {
     // ── Spielzeit ───────────────────────────────────────────────────────────
-    ("Spiel beginnt im Frühling 1400 um 05:00 zur Zunftglocke; ein Spieltag dauert bis 22:00 (1020 Minuten)", () =>
+    ("Spiel beginnt im Frühling 1400 um 04:00 zur Zunftglocke; ein Spieltag dauert bis 23:00 (1140 Minuten)", () =>
     {
         var zeit = new Spielzeit();
         Pruefe.Gleich(1400, zeit.Jahr);
         Pruefe.Gleich(1, zeit.Runde);
         Pruefe.Gleich(Jahreszeit.Fruehling, zeit.Jahreszeit);
-        Pruefe.Gleich("05:00", zeit.UhrzeitText);
+        Pruefe.Gleich("04:00", zeit.UhrzeitText);
         Pruefe.Gleich(Tagesphase.Zunftglocke, zeit.Tagesphase);
         Pruefe.Gleich("Frühling 1400", zeit.DatumText);
-        Pruefe.Gleich(1020, Spielzeit.MinutenProTag);
-        Pruefe.Gleich("21:59", new Spielzeit(1019).UhrzeitText);
-        Pruefe.Gleich("05:00", new Spielzeit(1020).UhrzeitText); // nach 22:00 kommt die Jahresrechnung, dann das neue Jahr
-        Pruefe.Gleich(1401, new Spielzeit(1020).Jahr);
+        Pruefe.Gleich(1140, Spielzeit.MinutenProTag);
+        Pruefe.Gleich(19, Spielzeit.StundenProTag);
+        Pruefe.Gleich("22:59", new Spielzeit(1139).UhrzeitText);
+        Pruefe.Gleich("04:00", new Spielzeit(1140).UhrzeitText); // nach 23:00 kommt die Jahresrechnung, dann das neue Jahr
+        Pruefe.Gleich(1401, new Spielzeit(1140).Jahr);
     }),
 
     ("Jahreszeiten wechseln jedes Jahr: Frühling 1400, Sommer 1401, Herbst 1402, Winter 1403, Frühling 1404", () =>
@@ -57,15 +58,15 @@ var tests = new List<(string Name, Action Pruefung)>
 
     ("Tagesphasen liegen an den richtigen Uhrzeiten", () =>
     {
-        // Minuten nach Tagesbeginn (05:00) → erwartete Uhrzeit und Phase
+        // Minuten nach Tagesbeginn (04:00) → erwartete Uhrzeit und Phase
         (int minute, string uhr, Tagesphase phase)[] faelle =
         {
-            (0,    "05:00", Tagesphase.Zunftglocke),
-            (299,  "09:59", Tagesphase.Zunftglocke),
-            (300,  "10:00", Tagesphase.HoherMittag),
-            (600,  "15:00", Tagesphase.Vesper),
-            (900,  "20:00", Tagesphase.DunkleNacht),
-            (1019, "21:59", Tagesphase.DunkleNacht),
+            (0,    "04:00", Tagesphase.Zunftglocke),
+            (359,  "09:59", Tagesphase.Zunftglocke),
+            (360,  "10:00", Tagesphase.HoherMittag),
+            (660,  "15:00", Tagesphase.Vesper),
+            (960,  "20:00", Tagesphase.DunkleNacht),
+            (1139, "22:59", Tagesphase.DunkleNacht),
         };
         foreach (var (minute, uhr, phase) in faelle)
         {
@@ -81,7 +82,7 @@ var tests = new List<(string Name, Action Pruefung)>
         var sim = new Simulation();
         SimuliereEchtzeit(sim, sekunden: 15 * 60);
         Pruefe.Gleich(1401, sim.Zeit.Jahr);
-        Pruefe.Gleich("05:00", sim.Zeit.UhrzeitText);
+        Pruefe.Gleich("04:00", sim.Zeit.UhrzeitText);
     }),
 
     ("Pause hält die Zeit an", () =>
@@ -182,7 +183,7 @@ var tests = new List<(string Name, Action Pruefung)>
         Pruefe.Gleich(true, sim.IstBeendet);
         Pruefe.Gleich(1, beendet);
         Pruefe.Gleich(1402, sim.Zeit.Jahr);
-        Pruefe.Gleich("05:00", sim.Zeit.UhrzeitText); // danach läuft keine Zeit mehr
+        Pruefe.Gleich("04:00", sim.Zeit.UhrzeitText); // danach läuft keine Zeit mehr
         Pruefe.Gleich(0, sim.Aktualisieren(60));
     }),
 
