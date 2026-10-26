@@ -120,9 +120,9 @@ func _rahmen_aufbereiten(bild: Image) -> Image:
 	for t in [0.3, 0.4, 0.5, 0.6, 0.7]:
 		var p := int(b * t)
 		links.append(_erster_dunkler(bild, 0, p, 1, 0))
-		rechts.append(b - 1 - _erster_dunkler(bild, b - 1, p, -1, 0))
+		rechts.append(_erster_dunkler(bild, b - 1, p, -1, 0))
 		oben.append(_erster_dunkler(bild, p, 0, 0, 1))
-		unten.append(b - 1 - _erster_dunkler(bild, p, b - 1, 0, -1))
+		unten.append(_erster_dunkler(bild, p, b - 1, 0, -1))
 	var x0: int = _median(links)
 	var x1: int = b - 1 - _median(rechts)
 	var y0: int = _median(oben)
@@ -216,6 +216,19 @@ static func _loch_rechteck(rahmen: Image) -> Rect2i:
 	return Rect2i(x0, y0, x1 - x0 + 1, y1 - y0 + 1)
 
 
+## Mittlere Helligkeit (kleinster Farbkanal) der Randpixel, höchstens 1.
+static func _randhelligkeit(hellwert: PackedFloat32Array, b: int, h: int) -> float:
+	var werte: Array = []
+	for x in range(0, b, 8):
+		werte.append(hellwert[x])
+		werte.append(hellwert[(h - 1) * b + x])
+	for y in range(0, h, 8):
+		werte.append(hellwert[y * b])
+		werte.append(hellwert[y * b + b - 1])
+	werte.sort()
+	return minf(werte[werte.size() * 3 / 4], 1.0)  # oberes Viertel: Papier, nicht die Ränder von Rahmenteilen
+
+
 ## Weiß -> durchsichtig. Von den Bildrändern aus füllen wir alles Helle (Außenfläche) weich weg; eingeschlossenes
 ## Weiß (zwischen gekreuzten Werkzeugen) fällt über die Helligkeit allein. Die Farbe wird vom Weiß befreit
 ## (kein heller Saum) und mit 4 × 4 Mittelung auf 256 px verkleinert.
@@ -227,6 +240,8 @@ func _motiv_freistellen(bild: Image) -> Image:
 	hellwert.resize(b * h)
 	for i in b * h:
 		hellwert[i] = minf(daten[i * 4], minf(daten[i * 4 + 1], daten[i * 4 + 2])) / 255.0
+	# Papierhelligkeit: Gemini malt oft cremefarbenes statt reinem Weiß – Mittelwert der Randpixel als Maß.
+	var papier := _randhelligkeit(hellwert, b, h)
 	# Außenfläche von allen Randpixeln aus.
 	var aussen := PackedByteArray()
 	aussen.resize(b * h)
@@ -240,7 +255,7 @@ func _motiv_freistellen(bild: Image) -> Image:
 	while not stapel.is_empty():
 		var i: int = stapel[stapel.size() - 1]
 		stapel.resize(stapel.size() - 1)
-		if aussen[i] != 0 or hellwert[i] < 0.85:
+		if aussen[i] != 0 or hellwert[i] < papier - 0.12:
 			continue
 		aussen[i] = 1
 		var x := i % b
@@ -254,9 +269,9 @@ func _motiv_freistellen(bild: Image) -> Image:
 	for i in b * h:
 		var m := hellwert[i]
 		if aussen[i] != 0:
-			alpha[i] = clampf((0.93 - m) / 0.08, 0.0, 1.0)
+			alpha[i] = clampf((papier - 0.03 - m) / 0.08, 0.0, 1.0)
 		else:
-			alpha[i] = clampf((0.96 - m) / 0.10, 0.0, 1.0)
+			alpha[i] = clampf((papier - 0.01 - m) / 0.10, 0.0, 1.0)
 	# Verkleinern (vormultipliziert), dabei Weiß aus der Farbe herausrechnen.
 	var f := b / GROESSE
 	var ziel := PackedByteArray()
