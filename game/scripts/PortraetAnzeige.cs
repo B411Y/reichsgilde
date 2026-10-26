@@ -1,6 +1,8 @@
 using Godot;
 using Reichsgilde.Core;
 using Reichsgilde.Core.Dynastie;
+using Reichsgilde.Core.Politik;
+using Reichsgilde.Core.Wirtschaft;
 
 namespace Reichsgilde;
 
@@ -54,13 +56,13 @@ public partial class PortraetAnzeige : Control
         _ => new Color("b0281e"),
     };
 
-    public static string Name(Haarfarbe h) => h switch
+    public static string FarbName(Haarfarbe h) => h switch
     {
         Haarfarbe.Dunkelbraun => "dunkelbraun", Haarfarbe.Silberblond => "silberblond", Haarfarbe.Hellblond => "hellblond",
         _ => h.ToString().ToLowerInvariant(),
     };
 
-    public static string Name(Augenfarbe a) => a switch { Augenfarbe.Gruen => "grün", Augenfarbe.Dunkelbraun => "dunkelbraun", _ => a.ToString().ToLowerInvariant() };
+    public static string FarbName(Augenfarbe a) => a switch { Augenfarbe.Gruen => "grün", Augenfarbe.Dunkelbraun => "dunkelbraun", _ => a.ToString().ToLowerInvariant() };
 
     /// <summary>Hintergrundton, wenn die Bilddatei fehlt: Lehm, Holz, Wandteppich, dunkles Gewölbe.</summary>
     private static (Color Oben, Color Unten) Grund(Standgruppe g) => g switch
@@ -121,8 +123,51 @@ public partial class PortraetAnzeige : Control
     public void Zeigen(Familienbuch buch, Person p) =>
         Zeigen(p.Volk, p.Geschlecht, p.Aussehen, buch.AltersstufeVon(p), buch.KleidungVon(p), buch.StandgruppeVon(p));
 
+    /// <summary>Das Oberhaupt eines Hauses (Spieler oder KI). False, wenn das Haus keine Familie hat (alter Spielstand) – dann zeigt das Porträt nichts.</summary>
+    public bool ZeigenHaus(Stadtwirtschaft w, Konto haus)
+    {
+        if (w.Familien.Von(haus)?.Oberhaupt is not { } o) return false;
+        Zeigen(w.Familien, o);
+        return true;
+    }
+
+    /// <summary>Der Inhaber eines Sitzes im Rat: ein Ratsherr der Stadt oder das Oberhaupt eines Hauses. False bei einem freien Sitz.</summary>
+    public bool ZeigenAmt(Stadtwirtschaft w, Amt amt)
+    {
+        if (amt.Ratsherr is { } r) { ZeigenRatsherr(r); return true; }
+        return amt.Konto is { } k && ZeigenHaus(w, k);
+    }
+
+    /// <summary>
+    /// Ein Ratsherr der Stadt. Ratsherren sind keine Personen der Familienbücher und haben noch kein eigenes Aussehen in den Daten:
+    /// Gesicht, Haar und Augen werden fest aus dem Namen und dem Volk abgeleitet, das Geschlecht aus dem Vornamen (a, e, „ind“ am Ende = Frau).
+    /// Sie tragen vornehme Kleidung vor dem Teppich der Patrizier.
+    /// </summary>
+    public void ZeigenRatsherr(Ratsherr r)
+    {
+        var name = r.Name;
+        var h = 17;
+        foreach (var c in name) h = unchecked(h * 31 + c); // string.GetHashCode wechselt von Start zu Start
+        h &= int.MaxValue;
+        var volk = r.Daten.Volk;
+        var haare = Aussehenspalette.Haarfarben(volk);
+        var augen = Aussehenspalette.Augenfarben(volk);
+        var vorname = name.Split(' ')[0];
+        var frau = vorname.EndsWith('a') || vorname.EndsWith('e') || vorname.EndsWith("ind");
+        var alter = (h / 7) % 3 == 0 ? Altersstufe.Alt : Altersstufe.Mittel;
+        Zeigen(volk, frau ? Geschlecht.Frau : Geschlecht.Mann,
+            new Aussehen(h % Aussehenspalette.Gesichter, haare[(h / 5) % haare.Count], augen[(h / 11) % augen.Count]),
+            alter, Kleidung.Vornehm, Standgruppe.Patrizier);
+    }
+
+    private (Volk, Geschlecht, Aussehen, Altersstufe, Kleidung, Standgruppe)? _zuletzt;
+
     public void Zeigen(Volk volk, Geschlecht geschlecht, Aussehen aussehen, Altersstufe alter, Kleidung kleidung, Standgruppe gruppe)
     {
+        // Unverändert (die Tafeln bauen sich oft neu auf, die Kopfzeile fragt jedes Bild): nichts neu laden
+        var jetzt = (volk, geschlecht, aussehen, alter, kleidung, gruppe);
+        if (_zuletzt == jetzt) return;
+        _zuletzt = jetzt;
         _gruppe = gruppe;
         var ordner = $"{Ordner}{volk.ToString().ToLowerInvariant()}/";
         var stamm = $"{(geschlecht == Geschlecht.Mann ? "mann" : "frau")}_{aussehen.Gesicht}_{alter.ToString().ToLowerInvariant()}";
@@ -134,19 +179,20 @@ public partial class PortraetAnzeige : Control
         _silhouette.Visible = _person.Texture is null;
         _grund.Visible = _grund.Texture is not null;
 
-        var zu = Laden(basis + "_zu.png");
-        var haar = Laden(basis + "_haar.png");
-        var augen = Laden(basis + "_augen.png");
+        // Augen zu und Masken gelten für Gesicht und Alter, nicht für die Kleidung (der Weg der Masken steht noch nicht fest: auch mit Kleidung im Namen)
+        var zu = Laden($"{ordner}{stamm}_zu.png") ?? Laden(basis + "_zu.png");
+        var haar = Laden($"{ordner}{stamm}_haar.png") ?? Laden(basis + "_haar.png");
+        var augen = Laden($"{ordner}{stamm}_augen.png") ?? Laden(basis + "_augen.png");
         _hatZu = zu is not null && _person.Texture is not null;
-        _material.SetShaderParameter("geschlossen", zu);
-        _material.SetShaderParameter("haarmaske", haar);
-        _material.SetShaderParameter("augenmaske", augen);
+        _material.SetShaderParameter("geschlossen", Variant.From(zu));
+        _material.SetShaderParameter("haarmaske", Variant.From(haar));
+        _material.SetShaderParameter("augenmaske", Variant.From(augen));
         _material.SetShaderParameter("hat_geschlossen", _hatZu);
         _material.SetShaderParameter("hat_haarmaske", haar is not null && aussehen.Haar != Haarfarbe.Kahl);
         _material.SetShaderParameter("hat_augenmaske", augen is not null);
         _material.SetShaderParameter("haarfarbe", Farbe(aussehen.Haar));
         _material.SetShaderParameter("augenfarbe", Farbe(aussehen.Augen));
-        TooltipText = $"{volk.Einzahl()} · Haar: {Name(aussehen.Haar)} · Augen: {Name(aussehen.Augen)}";
+        TooltipText = $"{volk.Einzahl()} · Haar: {FarbName(aussehen.Haar)} · Augen: {FarbName(aussehen.Augen)}";
         QueueRedraw();
     }
 
