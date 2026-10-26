@@ -1,4 +1,4 @@
-# Bereitet die Porträts (Gemini-Rohbilder) für das Spiel auf und setzt Vorschauen zusammen.
+# Bereitet die Porträts (Rohbilder der Bild-KI) für das Spiel auf und setzt Vorschauen zusammen.
 #
 # Aufruf (aus dem Repository-Ordner, ohne Fenster):
 #   godot --headless --path game --script ../tools/portraets/portraets_bauen.gd -- quellen <Rohbild-Ordner> [dateiname ...]
@@ -9,25 +9,45 @@
 # quellen: Liest die Rohbilder (1024 px, JPG/PNG) und legt unter tools/portraets/quellen/ ab:
 #          personen/<name>.webp    Person freigestellt (Weiß wird durchsichtig, ohne hellen Saum), 512 px mit Alpha.
 #          hintergruende/<name>.webp  Dateien mit "hg_" am Anfang: Rand abgeschnitten, 512 px, absichtlich weich (leicht unscharf).
-#          masken/<name>.webp      Dateien mit "_maske" am Ende (Gemini-Fassung mit Haar in Magenta und Iris in Cyan):
-#                                  Rot = Haar-Anteil, Grün = Augen-Anteil (0-255), siehe _maske_aufbereiten.
+#          masken/<name>.webp      Aus Farbvarianten <name>_haargruen (nur Haar, Brauen, Bart grün umgefärbt) und
+#                                  <name>_augenblau (nur Iris blau): Der Farbabstand zum Original ergibt die Maske
+#                                  (Rot = Haar-Anteil, Grün = Augen-Anteil, 0-255), siehe _maske_aus_unterschied.
 #          Namen der Personen: <kürzel>_<alter>_<kleidung>, z. B. m1_jung_schlicht, f3_alt_vornehm, m2_mittel_zu (Augen zu).
 # spiel:   Schreibt die Dateien für das Spiel nach game/assets/oberflaeche/portraets/ (WebP, 512 px; Personen und Hintergründe verlustbehaftet mit Alpha, Masken verlustfrei):
 #          <volk>/<geschlecht>_<gesicht 0-4>_<alter>_<kleidung|zu>.webp, dazu ..._haar.webp und ..._augen.webp (Graustufenmasken,
 #          weiß = Haar bzw. Iris) und hintergrund_<stand>.webp. Kürzel m1..m5 / f1..f5 werden zu mann_0..4 / frau_0..4.
 #          volk ist "mensch" (Vorgabe); die Quellen der anderen Völker kommen mit eigenem Kürzel-Präfix (siehe _spielname).
 # raster:  Legt Einträge in ein Raster (zur Abnahme). Ein Eintrag ist "person@hintergrund", z. B. m1_jung_schlicht@hg_buerger;
-#          ohne "@" nur die Person auf Grau, "-" lässt eine Zelle leer. Mit Maske (<person>_maske in masken/) lassen sich
+#          ohne "@" nur die Person auf Grau, "-" lässt eine Zelle leer. Mit Maske (<person> in masken/) lassen sich
 #          Haar und Augen umfärben: "person@hintergrund@haar-hex@augen-hex", z. B. m1_jung_schlicht@hg_buerger@d8b45a@3a7bd5
 #          (ein Feld leer lassen = unverändert, z. B. "person@hg@@3a7bd5").
 extends SceneTree
 
 const GROESSE := 512
+const TASCHE_MAX := 6000      # größte Papiertasche (in Pixeln des 1024er Rohbilds), die entfernt wird
+const TASCHE_DUNKEL := 0.55   # Anteil dunkler Randpixel, ab dem eine helle Fläche als Papiertasche gilt
 const SPIEL_QUALITAET := 0.85  # Dateien für das Spiel (Vorgabe des Teamleiters: etwa 85)
 const WEBP_QUALITAET := 0.92  # verlustbehaftetes WebP mit Alpha: ~30 KB je Porträt statt ~400 KB als PNG
 const HG_RAND := 0.045      # Anteil, der vom Hintergrundbild rundum abgeschnitten wird (Gemini malt dort einen Rand)
 const RAND_ABSCHNITT := 0.075  # bei Papierrahmen um die Person (Rahmenlinie liegt bei etwa 5 %)
 const HG_WEICH := 160       # Hintergrund wird auf diese Kantenlänge verkleinert und wieder hochgezogen (weiche Schärfe)
+const GRUEN_VON := 0.15      # Farbabstand zum Schlüsselgrün (0–1): darunter ganz durchsichtig …
+const GRUEN_BIS := 0.40      # … darüber ganz deckend; dazwischen weich (Haarsträhnen, Kanten)
+const RAND_TIEFE := 14       # so viele Pixel (1024er Rohbild) reicht die weiche Randzone von außen ins Bild – nur durch helle/graue Pixel
+const RAND_DUNKEL := 0.42    # dunkler als das (Hellwert) gilt als Linie: Dort endet die Randzone, dahinter (Haut) bleibt alles deckend
+const RAND_WEICH := 0.38     # in der Randzone: so viel dunkler als das Papier ist ein Pixel voll deckend
+const INSEL_NAH := 48        # Papierinseln (zwischen Locken) höchstens so weit (Pixel, 1024er Rohbild) von der Außenfläche gelten als Hintergrund
+const PAPIER_NAH := 30       # so nah (Pixel, 1024er Rohbild) an der Außenfläche gilt jedes papierfarbene Pixel als Hintergrund
+const PAPIER_SATT := 0.035   # … wenn es so ungesättigt ist wie Papier (max − min der Farbkanäle); Haut ist farbiger
+const PAPIER_ABSTAND := 0.035 # … und höchstens so viel dunkler als das Papier (Glanz auf der Haut liegt bei etwa −0,04 und darunter)
+const HAUT_HELL := 0.35      # Randpixel einer hellen Fläche gilt als Haut, wenn es heller als das ist …
+const HAUT_SATT := 0.05      # … und farbiger (max − min) – Haarstriche sind dunkel, Papier ist ungesättigt
+const HAUT_ANTEIL := 0.30    # ab so viel Haut am Rand ist eine helle Fläche Glanz auf der Haut und bleibt
+const PAPIER_FLECK_MAX := 2500  # papierweiße Stelle am Rand bis zu dieser Größe (Pixel, 1024er Rohbild) gilt immer als Hintergrund
+const STRICH_KLEIN := 0.15   # so viel Strich braucht ein kleiner Fleck am Rand mindestens
+const STRICH_DUNKEL := 0.55  # Randpixel gilt als Strich (Haar, Linie), wenn dunkler als das
+const STRICH_ANTEIL := 0.40  # so viel Strich muss am Rand einer weißen Stelle sein, damit sie als Papier zwischen Strähnen gilt
+const INSEL_RAND := 0.75     # … wenn so viel ihres Randes kein Papier ist (Haarstriche, auch die hellen Kanten der Striche)
 
 var _wurzel: String
 
@@ -85,6 +105,7 @@ func _hintergrund(name: String) -> Image:
 func _quellen(roh: String, nur: PackedStringArray) -> void:
 	DirAccess.make_dir_recursive_absolute(_quellordner("personen"))
 	DirAccess.make_dir_recursive_absolute(_quellordner("hintergruende"))
+	DirAccess.make_dir_recursive_absolute(_quellordner("masken"))
 	var namen := PackedStringArray()
 	for datei in DirAccess.get_files_at(roh):
 		if datei.get_extension().to_lower() in ["png", "jpg", "jpeg", "webp"] and not datei.begins_with("_"):
@@ -94,92 +115,104 @@ func _quellen(roh: String, nur: PackedStringArray) -> void:
 	namen.sort()
 	for datei in namen:
 		var name := datei.get_basename()
+		if name.ends_with("_haargruen") or name.ends_with("_augenblau"):
+			continue  # Farbvarianten: werden unten zu Masken
 		var bild := _laden(roh.path_join(datei))
 		if bild == null:
 			continue
-		if name.ends_with("_maske"):
-			DirAccess.make_dir_recursive_absolute(_quellordner("masken"))
-			var vorlage := _laden(_finde(roh, name.trim_suffix("_maske")))
-			bild = _maske_aufbereiten(bild, vorlage, name.contains("_alt_"))
-			bild.save_webp(_quellordner("masken").path_join(name.trim_suffix("_maske") + ".webp"), false)
-		elif name.begins_with("hg_"):
+		if name.begins_with("hg_"):
 			bild = _hintergrund_aufbereiten(bild)
 			if name == "hg_adel":
 				_abdunkeln(bild)
 			bild.save_webp(_quellordner("hintergruende").path_join(name + ".webp"), true, WEBP_QUALITAET)
 		else:
-			bild = _freistellen(_papierrand_abschneiden(bild))
+			var beschneiden := false
+			var haar := _finde(roh, name + "_haargruen")
+			var augen := _finde(roh, name + "_augenblau")
+			if _hat_papierrand(bild):
+				bild = _papierrand_abschneiden(bild)
+				beschneiden = true
+			if haar != "" or augen != "":
+				# Varianten wie das Original behandeln (gleicher Beschnitt), sonst liegt die Maske daneben.
+				var vh := _laden(haar) if haar != "" else null
+				var va := _laden(augen) if augen != "" else null
+				if beschneiden:
+					vh = _papierrand_abschneiden(vh) if vh != null else null
+					va = _papierrand_abschneiden(va) if va != null else null
+				var maske := _maske_aus_unterschied(bild, vh, va)
+				maske.save_webp(_quellordner("masken").path_join(name + ".webp"), false)
+			# Gibt es eine Fassung mit Chroma-Grün statt Papierweiß (roh/gruen/<name>), wird die freigestellt: Weiß vor Weiß
+			# (weißes Haar, Pelz, Schleier) lässt sich vom Papier nicht sicher trennen, vom Grün schon.
+			var gruen_pfad := _finde(roh.path_join("gruen"), name)
+			if gruen_pfad != "":
+				var gruen := _laden(gruen_pfad)
+				if gruen.get_size() != Vector2i(1024, 1024):
+					gruen.resize(1024, 1024, Image.INTERPOLATE_LANCZOS)
+				if beschneiden:
+					gruen = _papierrand_abschneiden(gruen)
+				bild = _freistellen_gruen(gruen, bild)
+			else:
+				bild = _freistellen(bild)
 			bild.save_webp(_quellordner("personen").path_join(name + ".webp"), true, WEBP_QUALITAET)
 		print("quelle: ", name)
 
 
-## Aus der Magenta/Cyan-Fassung zwei weiche Masken: Rot = Haar (Magenta: Rot und Blau hoch, Grün tief),
-## Grün = Iris (Cyan: Grün und Blau hoch, Rot tief). Auf 512 px verkleinert.
-## Gemini ändert in der Maskenfassung gelegentlich Stirnfransen oder Haarsaum leicht. Deshalb wird die Haar-Maske mit dem
-## Original abgeglichen: Helle, hautfarbene Pixel (Helligkeit über 0,62, mit weichem Übergang bis 0,78) zählen nicht
-## zum Haar. Bei "alt" (weißes Haar) gibt es keine Haar-Maske.
-func _maske_aufbereiten(bild: Image, vorlage: Image, ohne_haar: bool) -> Image:
-	var b := bild.get_width()
-	var daten := bild.get_data()
-	var daten_v := vorlage.get_data() if vorlage != null else PackedByteArray()
+## Masken aus Farbvarianten: Die Bild-KI färbt im Bearbeiten-Modus nur das Haar (grün) bzw. die Iris (blau) um und lässt
+## alles andere unverändert. Je größer der Farbabstand zum Original, desto größer der Maskenanteil.
+## Rot = Haar (mit Brauen und Bart), Grün = Iris, jeweils 0-255, auf 512 px verkleinert. Nur Pixel, die in der Variante
+## wirklich grün (Haar) bzw. blau (Iris) sind, zählen: So fallen kleine Änderungen der Bild-KI an Haut und Schraffur heraus.
+func _maske_aus_unterschied(orig: Image, haar: Image, augen: Image) -> Image:
+	var b := orig.get_width()
 	var ziel := PackedByteArray()
 	ziel.resize(b * b * 4)
+	var d := orig.get_data()
+	var dh := haar.get_data() if haar != null else PackedByteArray()
+	var da := augen.get_data() if augen != null else PackedByteArray()
 	for i in b * b:
-		var r: float = daten[i * 4] / 255.0
-		var g: float = daten[i * 4 + 1] / 255.0
-		var bl: float = daten[i * 4 + 2] / 255.0
-		var haar := clampf((minf(r, bl) - g - 0.40) / 0.30, 0.0, 1.0)
-		if ohne_haar:
-			haar = 0.0
-		elif vorlage != null and haar > 0.0:
-			var licht := (0.2126 * daten_v[i * 4] + 0.7152 * daten_v[i * 4 + 1] + 0.0722 * daten_v[i * 4 + 2]) / 255.0
-			haar *= 1.0 - smoothstep(0.62, 0.78, licht)
-		var auge := clampf((minf(g, bl) - r - 0.40) / 0.30, 0.0, 1.0)
-		ziel[i * 4] = int(haar * 255.0)
-		ziel[i * 4 + 1] = int(auge * 255.0)
+		if haar != null:
+			ziel[i * 4] = int(_abstand(d, dh, i) * smoothstep(0.04, 0.20, (dh[i * 4 + 1] - maxi(dh[i * 4], dh[i * 4 + 2])) / 255.0) * 255.0)
+		if augen != null:
+			ziel[i * 4 + 1] = int(_abstand(d, da, i) * smoothstep(0.04, 0.20, (da[i * 4 + 2] - da[i * 4]) / 255.0) * 255.0)
 		ziel[i * 4 + 3] = 255
 	var m := Image.create_from_data(b, b, false, Image.FORMAT_RGBA8, ziel)
 	m.resize(GROESSE, GROESSE, Image.INTERPOLATE_BILINEAR)
 	return m
 
 
+static func _abstand(a: PackedByteArray, c: PackedByteArray, i: int) -> float:
+	var dr := (a[i * 4] - c[i * 4]) / 255.0
+	var dg := (a[i * 4 + 1] - c[i * 4 + 1]) / 255.0
+	var db := (a[i * 4 + 2] - c[i * 4 + 2]) / 255.0
+	return smoothstep(0.16, 0.36, sqrt(dr * dr + dg * dg + db * db))
+
+
 ## Färbt die Bereiche der Maske um, ohne Linien und Schattierung zu verlieren: Der Zielton wird mit dem Helligkeitsverlauf
 ## des Originals (bezogen auf den Mittelwert im Bereich) multipliziert.
 func _umfaerben(person: Image, maske: Image, kanal: int, ziel: Color) -> void:
 	var b := person.get_width()
+	# Bezugshelligkeit: Mittel der Flächenfarbe im Bereich, ohne schwarze Schraffurlinien und ohne helle Haut.
 	var summe := 0.0
 	var gewicht := 0.0
 	for y in b:
 		for x in b:
 			var w: float = maske.get_pixel(x, y)[kanal]
 			if w > 0.05:
-				var p := person.get_pixel(x, y)
-				summe += p.get_luminance() * w
-				gewicht += w
+				var l := person.get_pixel(x, y).get_luminance()
+				if l > 0.12 and l < 0.62:
+					summe += l * w
+					gewicht += w
 	if gewicht < 1.0:
 		return
 	var mittel := maxf(summe / gewicht, 0.05)
-	if kanal == 0:
-		# Zweiter Durchgang ohne die hellen Hautpixel in der Maske, sonst liegt der Mittelwert zu hoch.
-		summe = 0.0
-		gewicht = 0.0
-		for y in b:
-			for x in b:
-				var w: float = maske.get_pixel(x, y)[kanal]
-				var l := person.get_pixel(x, y).get_luminance()
-				if w > 0.05 and l < mittel * 1.5:
-					summe += l * w
-					gewicht += w
-		mittel = maxf(summe / maxf(gewicht, 0.001), 0.05)
 	for y in b:
 		for x in b:
 			var w: float = maske.get_pixel(x, y)[kanal]
 			if w <= 0.0:
 				continue
 			var p := person.get_pixel(x, y)
-			# Haut zwischen Haarsträhnen (deutlich heller als das Haar) bleibt unverändert.
-			if kanal == 0:
-				w *= 1.0 - smoothstep(mittel * 1.7, mittel * 2.3, p.get_luminance())
+			# Iris-Maske deckt oft das ganze Auge: Das Weiße des Auges (kaum Farbsättigung) bleibt unverändert.
+			if kanal == 1:
+				w *= smoothstep(0.12, 0.32, p.s)
 			var faktor := p.get_luminance() / mittel
 			# Dunkle Linien bleiben dunkel (Faktor < 1), Lichter hellen auf, aber höchstens bis Weiß.
 			var neu := Color(clampf(ziel.r * faktor, 0.0, 1.0), clampf(ziel.g * faktor, 0.0, 1.0), clampf(ziel.b * faktor, 0.0, 1.0), p.a)
@@ -188,7 +221,7 @@ func _umfaerben(person: Image, maske: Image, kanal: int, ziel: Color) -> void:
 
 ## Manchmal malt Gemini trotz Auftrag einen Papierrahmen mit Pergamentrand um das Bild (m5_*). Ist der Rand
 ## erkennbar nicht weiß, wird er samt Rahmenlinie abgeschnitten und das Bild wieder auf Ausgangsgröße gezogen.
-func _papierrand_abschneiden(bild: Image) -> Image:
+func _hat_papierrand(bild: Image) -> bool:
 	var b := bild.get_width()
 	var summe := 0.0
 	var n := 0
@@ -198,8 +231,11 @@ func _papierrand_abschneiden(bild: Image) -> Image:
 			var c := bild.get_pixelv(p)
 			summe += minf(c.r, minf(c.g, c.b))
 			n += 1
-	if summe / n > 0.85:
-		return bild
+	return summe / n < 0.6
+
+
+func _papierrand_abschneiden(bild: Image) -> Image:
+	var b := bild.get_width()
 	var r := int(b * RAND_ABSCHNITT)
 	var ausschnitt := bild.get_region(Rect2i(r, r, b - 2 * r, b - 2 * r))
 	ausschnitt.resize(b, b, Image.INTERPOLATE_LANCZOS)
@@ -244,7 +280,7 @@ static func _randhelligkeit(hellwert: PackedFloat32Array, b: int, h: int) -> flo
 
 
 ## Weiß -> durchsichtig. Von den Bildrändern aus füllen wir alles Helle (Außenfläche) weich weg; eingeschlossenes
-## Weiß (z. B. Auge, Hemd) fällt nur über die Helligkeit allein und streng. Die Farbe wird vom Weiß befreit
+## Helles (helle Haut, Auge, Hemd) bleibt deckend, weil die schwarze Umrisslinie die Figur abschließt. Die Farbe wird vom Weiß befreit
 ## (kein heller Saum) und mit 2 × 2 Mittelung auf 512 px verkleinert.
 func _freistellen(bild: Image) -> Image:
 	var b := bild.get_width()
@@ -276,19 +312,93 @@ func _freistellen(bild: Image) -> Image:
 		if x < b - 1: stapel.append(i + 1)
 		if y > 0: stapel.append(i - b)
 		if y < h - 1: stapel.append(i + b)
+	# Papierinseln zwischen Locken am Rand der Figur zählen zur Außenfläche (siehe _papiertaschen_entfernen).
+	var nah := _abstand_zu(aussen, INSEL_NAH, b, h)
+	var weg := _papiertaschen_entfernen(aussen, hellwert, daten, papier, nah, b, h)
+	for i in weg:
+		aussen[i] = 1
+	# Nah an der Außenfläche ist papierfarbenes Weiß Hintergrund – auch wenn es über helle Lichter im Haar mit dem Gesicht
+	# zusammenhängt und darum keine eigene Insel ist (weißer Schleier zwischen den Locken). Aber nur Flächen, die von Haar
+	# oder Papier umgeben sind: Ein heller Glanz auf der Wange ist von Haut umgeben und bleibt (sonst Loch im Gesicht).
+	var kandidat := PackedByteArray()
+	kandidat.resize(b * h)
+	for i in b * h:
+		if aussen[i] == 0 and nah[i] >= 0 and nah[i] <= PAPIER_NAH and hellwert[i] >= papier - PAPIER_ABSTAND:
+			var hoechst := maxf(daten[i * 4], maxf(daten[i * 4 + 1], daten[i * 4 + 2])) / 255.0
+			if hoechst - hellwert[i] <= PAPIER_SATT:
+				kandidat[i] = 1
+	for start in b * h:
+		if kandidat[start] != 1:
+			continue
+		var helle := PackedInt32Array()
+		var weg_stapel := PackedInt32Array([start])
+		kandidat[start] = 2
+		var rand_haut := 0
+		var rand_dunkel := 0
+		var rand_gesamt := 0
+		while not weg_stapel.is_empty():
+			var i: int = weg_stapel[weg_stapel.size() - 1]
+			weg_stapel.resize(weg_stapel.size() - 1)
+			helle.append(i)
+			var x := i % b
+			for j in [i - 1 if x > 0 else -1, i + 1 if x < b - 1 else -1, i - b if i >= b else -1, i + b if i < (h - 1) * b else -1]:
+				if j < 0:
+					continue
+				if kandidat[j] == 1:
+					kandidat[j] = 2
+					weg_stapel.append(j)
+				elif kandidat[j] == 0 and aussen[j] == 0:
+					rand_gesamt += 1
+					var hoch := maxf(daten[j * 4], maxf(daten[j * 4 + 1], daten[j * 4 + 2])) / 255.0
+					if hellwert[j] > HAUT_HELL and hoch - hellwert[j] > HAUT_SATT:
+						rand_haut += 1
+					if hellwert[j] < STRICH_DUNKEL:
+						rand_dunkel += 1
+		# Papier zwischen Strähnen grenzt an dunkle Striche; Glanz auf Haut oder weißem Pelz grenzt an Haut bzw. helles Grau.
+		# Kleine Flecken (Papier zwischen Strähnen) oder Flächen mit vielen dunklen Strichen am Rand – große helle Flächen
+		# ohne Striche ringsum sind weißer Pelz oder Stoff und bleiben.
+		# Klein und wenigstens ein paar dunkle Striche am Rand (Papier zwischen braunen Strähnen); weißes Haar grenzt nur an
+		# helles Grau und bleibt.
+		var klein := helle.size() < PAPIER_FLECK_MAX and rand_gesamt > 0 and float(rand_dunkel) / rand_gesamt >= STRICH_KLEIN
+		var strichig := rand_gesamt > 0 and float(rand_dunkel) / rand_gesamt >= STRICH_ANTEIL
+		if rand_gesamt == 0 or (float(rand_haut) / rand_gesamt < HAUT_ANTEIL and (klein or strichig)):
+			for i in helle:
+				aussen[i] = 1
+	# Randzone: von der Außenfläche aus höchstens RAND_TIEFE Pixel weit, nur durch Pixel heller als eine Linie. So werden die
+	# grauen Lücken zwischen feinen Haarsträhnen erreicht (bisher deckend hellgrau = weißer Schleier), die Haut hinter der
+	# schwarzen Umrisslinie aber nicht.
+	var tiefe := PackedInt32Array()
+	tiefe.resize(b * h)
+	tiefe.fill(-1)
+	var welle := PackedInt32Array()
+	for i in b * h:
+		if aussen[i] != 0:
+			tiefe[i] = 0
+			welle.append(i)
+	for schritt in RAND_TIEFE:
+		var naechste := PackedInt32Array()
+		for i in welle:
+			var x := i % b
+			var y := i / b
+			for j in [i - 1 if x > 0 else -1, i + 1 if x < b - 1 else -1, i - b if y > 0 else -1, i + b if y < h - 1 else -1]:
+				if j < 0 or tiefe[j] >= 0 or hellwert[j] < RAND_DUNKEL:
+					continue
+				tiefe[j] = schritt + 1
+				naechste.append(j)
+		welle = naechste
 	var alpha := PackedFloat32Array()
 	alpha.resize(b * h)
 	for i in b * h:
 		var m := hellwert[i]
 		if aussen[i] != 0:
-			alpha[i] = clampf((papier - 0.03 - m) / 0.08, 0.0, 1.0)
+			alpha[i] = clampf((papier - 0.20 - m) / 0.10, 0.0, 1.0)
+		elif tiefe[i] > 0:
+			# Randzone: Deckkraft nach dem Abstand zur Papierhelligkeit – helles Grau zwischen Strähnen wird durchsichtig.
+			alpha[i] = clampf((papier - 0.04 - m) / RAND_WEICH, 0.0, 1.0)
 		else:
-			alpha[i] = clampf((papier - 0.01 - m) / 0.10, 0.0, 1.0)
-		# Innen nur dann durchsichtig, wenn es wirklich Papierweiß ist; Haut und Hemd bleiben deckend.
-		if aussen[i] == 0 and m < papier - 0.10:
+			# Alles, was nicht mit dem Außenpapier verbunden ist, bleibt deckend (helle Haut hat fast Papierweiß).
 			alpha[i] = 1.0
-		elif aussen[i] == 0:
-			alpha[i] = maxf(alpha[i], 0.0)
+	var papierfarbe := _papierfarbe(daten, aussen, hellwert, papier, b, h)
 	var f := b / GROESSE
 	var ziel := PackedByteArray()
 	ziel.resize(GROESSE * GROESSE * 4)
@@ -304,10 +414,10 @@ func _freistellen(bild: Image) -> Image:
 					var a := alpha[i]
 					if a <= 0.0:
 						continue
-					# Entmischen: p = a * c + (1 - a) * weiß
-					var cr := clampf((daten[i * 4] / 255.0 - (1.0 - a)) / a, 0.0, 1.0)
-					var cg := clampf((daten[i * 4 + 1] / 255.0 - (1.0 - a)) / a, 0.0, 1.0)
-					var cb := clampf((daten[i * 4 + 2] / 255.0 - (1.0 - a)) / a, 0.0, 1.0)
+					# Entmischen gegen die echte (leicht cremefarbene) Papierfarbe: p = a * c + (1 - a) * papier
+					var cr := clampf((daten[i * 4] / 255.0 - (1.0 - a) * papierfarbe.r) / a, 0.0, 1.0)
+					var cg := clampf((daten[i * 4 + 1] / 255.0 - (1.0 - a) * papierfarbe.g) / a, 0.0, 1.0)
+					var cb := clampf((daten[i * 4 + 2] / 255.0 - (1.0 - a) * papierfarbe.b) / a, 0.0, 1.0)
 					summe_a += a
 					r += cr * a
 					g += cg * a
@@ -319,6 +429,181 @@ func _freistellen(bild: Image) -> Image:
 				ziel[j + 2] = int(clampf(bl / summe_a, 0.0, 1.0) * 255.0)
 			ziel[j + 3] = int(clampf(summe_a / float(f * f), 0.0, 1.0) * 255.0)
 	return Image.create_from_data(GROESSE, GROESSE, false, Image.FORMAT_RGBA8, ziel)
+
+
+## Freistellen vor Chroma-Grün: Die Deckkraft folgt dem Farbabstand zum Grün (Mischpixel an Haarsträhnen werden weich),
+## die Farbe wird gegen das Grün entmischt, und grüner Schimmer an halbdurchsichtigen Kanten wird entfernt (Grün höchstens so
+## stark wie Rot bzw. Blau). Grüne Kleidung bleibt deckend: Sie ist dunkler und matter als das leuchtende Schlüsselgrün.
+func _freistellen_gruen(bild: Image, orig: Image) -> Image:
+	var b := bild.get_width()
+	var h := bild.get_height()
+	var daten := bild.get_data()
+	# Die Farbe kommt aus dem Original auf Papier (die Grün-Fassung verschiebt die Farben leicht), die Deckkraft aus der
+	# Grün-Fassung. Entmischt wird gegen die Papierfarbe des Originals.
+	if orig.get_size() != bild.get_size():
+		orig.resize(b, h, Image.INTERPOLATE_LANCZOS)
+	var odaten := orig.get_data()
+	var ohell := PackedFloat32Array()
+	ohell.resize(b * h)
+	for i in b * h:
+		ohell[i] = minf(odaten[i * 4], minf(odaten[i * 4 + 1], odaten[i * 4 + 2])) / 255.0
+	var oaussen := PackedByteArray()
+	oaussen.resize(b * h)
+	var opapier := _randhelligkeit(ohell, b, h)
+	for i in b * h:
+		var gc := Vector3(daten[i * 4], daten[i * 4 + 1], daten[i * 4 + 2]) / 255.0
+		if gc.y > 0.6 and gc.x < 0.5 and gc.z < 0.5:
+			oaussen[i] = 1
+	var papier := _papierfarbe(odaten, oaussen, ohell, opapier, b, h)
+	var pv := Vector3(papier.r, papier.g, papier.b)
+	# Schlüsselgrün: Mittel der deutlich grünen Pixel am ganzen Bildrand (Ecken, die die Person verdeckt, zählen nicht).
+	var schluessel := Vector3.ZERO
+	var n := 0
+	var randpunkte: Array[Vector2i] = []
+	for x in range(0, b, 8):
+		randpunkte.append(Vector2i(x, 2))
+		randpunkte.append(Vector2i(x, h - 3))
+	for y in range(0, h, 8):
+		randpunkte.append(Vector2i(2, y))
+		randpunkte.append(Vector2i(b - 3, y))
+	for p in randpunkte:
+		var i: int = (p.y * b + p.x) * 4
+		var c := Vector3(daten[i], daten[i + 1], daten[i + 2]) / 255.0
+		if c.y > 0.6 and c.x < 0.5 and c.z < 0.5:
+			schluessel += c
+			n += 1
+	schluessel = schluessel / n if n > 0 else Vector3(0.0, 1.0, 0.0)
+	var f := b / GROESSE
+	var ziel := PackedByteArray()
+	ziel.resize(GROESSE * GROESSE * 4)
+	for y in GROESSE:
+		for x in GROESSE:
+			var summe_a := 0.0
+			var r := 0.0
+			var g := 0.0
+			var bl := 0.0
+			for dy in f:
+				for dx in f:
+					var i := ((y * f + dy) * b + (x * f + dx)) * 4
+					var c := Vector3(daten[i], daten[i + 1], daten[i + 2]) / 255.0
+					var a := smoothstep(GRUEN_VON, GRUEN_BIS, (c - schluessel).length() / sqrt(3.0))
+					if a <= 0.0:
+						continue
+					var oc := Vector3(odaten[i], odaten[i + 1], odaten[i + 2]) / 255.0
+					var fa := ((oc - pv * (1.0 - a)) / a).clamp(Vector3.ZERO, Vector3.ONE)
+					summe_a += a
+					r += fa.x * a
+					g += fa.y * a
+					bl += fa.z * a
+			var j := (y * GROESSE + x) * 4
+			if summe_a > 0.0:
+				ziel[j] = int(clampf(r / summe_a, 0.0, 1.0) * 255.0)
+				ziel[j + 1] = int(clampf(g / summe_a, 0.0, 1.0) * 255.0)
+				ziel[j + 2] = int(clampf(bl / summe_a, 0.0, 1.0) * 255.0)
+			ziel[j + 3] = int(clampf(summe_a / float(f * f), 0.0, 1.0) * 255.0)
+	return Image.create_from_data(GROESSE, GROESSE, false, Image.FORMAT_RGBA8, ziel)
+
+
+## Mittlere Farbe des Außenpapiers (nur sicher papierhelle Pixel), zum Entmischen der Randfarben.
+static func _papierfarbe(daten: PackedByteArray, aussen: PackedByteArray, hellwert: PackedFloat32Array, papier: float,
+		b: int, h: int) -> Color:
+	var r := 0.0
+	var g := 0.0
+	var bl := 0.0
+	var n := 0
+	for i in range(0, b * h, 7):
+		if aussen[i] != 0 and hellwert[i] >= papier - 0.03:
+			r += daten[i * 4]
+			g += daten[i * 4 + 1]
+			bl += daten[i * 4 + 2]
+			n += 1
+	if n == 0:
+		return Color(1, 1, 1)
+	return Color(r / n / 255.0, g / n / 255.0, bl / n / 255.0)
+
+
+## Zwischen Haarsträhnen und Locken am Rand bleiben kleine Papierflächen eingeschlossen (sie hängen nicht mit dem Außenpapier
+## zusammen) und würden als weiße Fransen stehen. Eine zusammenhängende fast weiße Fläche gilt als Hintergrund, wenn sie klein ist und
+## entweder überwiegend an dunkle Pixel grenzt oder nah an der Außenfläche liegt (höchstens INSEL_NAH) und ihr Rand fast nur aus
+## Nicht-Papier besteht (Haarstriche samt ihrer hellen Kanten). Weiter innen (das Weiße der Augen, helle Haut) bleibt alles deckend.
+## Gibt die Pixel der Flächen zurück.
+func _papiertaschen_entfernen(aussen: PackedByteArray, hellwert: PackedFloat32Array, daten: PackedByteArray, papier: float,
+		nah: PackedInt32Array, b: int, h: int) -> PackedInt32Array:
+	var weg := PackedInt32Array()
+	var besucht := PackedByteArray()
+	besucht.resize(b * h)
+	for start in b * h:
+		if besucht[start] != 0 or aussen[start] != 0 or hellwert[start] < papier - 0.05:
+			continue
+		var flaeche := PackedInt32Array()
+		var stapel := PackedInt32Array([start])
+		besucht[start] = 1
+		var rand_dunkel := 0
+		var rand_kein_papier := 0
+		var rand_strich := 0
+		var rand_haut := 0
+		var rand_gesamt := 0
+		var alle_nah := true
+		while not stapel.is_empty():
+			var i: int = stapel[stapel.size() - 1]
+			stapel.resize(stapel.size() - 1)
+			flaeche.append(i)
+			if nah[i] < 0:
+				alle_nah = false
+			var x := i % b
+			var y := i / b
+			for nb in [[x - 1, y], [x + 1, y], [x, y - 1], [x, y + 1]]:
+				if nb[0] < 0 or nb[1] < 0 or nb[0] >= b or nb[1] >= h:
+					continue
+				var j: int = nb[1] * b + nb[0]
+				if hellwert[j] >= papier - 0.05 and aussen[j] == 0:
+					if besucht[j] == 0:
+						besucht[j] = 1
+						stapel.append(j)
+				elif aussen[j] == 0:
+					rand_gesamt += 1
+					var lum := (0.2126 * daten[j * 4] + 0.7152 * daten[j * 4 + 1] + 0.0722 * daten[j * 4 + 2]) / 255.0
+					if lum < 0.40:
+						rand_dunkel += 1
+					if hellwert[j] < papier - 0.15:
+						rand_kein_papier += 1
+					if hellwert[j] < STRICH_DUNKEL:
+						rand_strich += 1
+					var hoch := maxf(daten[j * 4], maxf(daten[j * 4 + 1], daten[j * 4 + 2])) / 255.0
+					if hellwert[j] > HAUT_HELL and hoch - hellwert[j] > HAUT_SATT:
+						rand_haut += 1
+		if rand_gesamt == 0 or float(rand_haut) / rand_gesamt >= HAUT_ANTEIL:
+			continue   # Glanz auf der Haut (von Haut umgeben) bleibt deckend
+		# Kleine Flächen mit dunklem Rand; am Rand der Figur auch große, langgezogene (Papier zwischen den Locken innerhalb
+		# einer Außenlinie um das ganze Haar) – sie liegen ja vollständig in der schmalen Zone nah an der Außenfläche.
+		var dunkel := flaeche.size() < TASCHE_MAX and float(rand_dunkel) / rand_gesamt > TASCHE_DUNKEL
+		var am_rand := alle_nah and float(rand_kein_papier) / rand_gesamt > INSEL_RAND \
+				and float(rand_strich) / rand_gesamt >= STRICH_ANTEIL
+		if dunkel or am_rand:
+			weg.append_array(flaeche)
+	return weg
+
+
+## Abstand (4er-Nachbarschaft, in Pixeln) jedes Pixels zur markierten Fläche, höchstens bis grenze; weiter weg: -1.
+static func _abstand_zu(markiert: PackedByteArray, grenze: int, b: int, h: int) -> PackedInt32Array:
+	var abstand := PackedInt32Array()
+	abstand.resize(b * h)
+	abstand.fill(-1)
+	var welle := PackedInt32Array()
+	for i in b * h:
+		if markiert[i] != 0:
+			abstand[i] = 0
+			welle.append(i)
+	for schritt in grenze:
+		var naechste := PackedInt32Array()
+		for i in welle:
+			var x := i % b
+			for j in [i - 1 if x > 0 else -1, i + 1 if x < b - 1 else -1, i - b if i >= b else -1, i + b if i < (h - 1) * b else -1]:
+				if j >= 0 and abstand[j] < 0:
+					abstand[j] = schritt + 1
+					naechste.append(j)
+		welle = naechste
+	return abstand
 
 
 # ---------- raster ----------
