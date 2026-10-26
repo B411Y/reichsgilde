@@ -1,3 +1,4 @@
+using Reichsgilde.Core.Zeit;
 using Reichsgilde.Core;
 using Reichsgilde.Core.Dynastie;
 using Reichsgilde.Core.Glaube;
@@ -144,7 +145,7 @@ static class GlaubeTests
             Pruefe.Ungefaehr(200, w.Kirchenwesen.ErwarteteGlaeubige(kath), 1e-9);
             Pruefe.Ungefaehr(200 * 0.55 * 2.2 + 200 * 0.45 * 2.2 * 0.5, w.Kirchenwesen.ErwarteteKollekte(kath), 1e-9); // 2,2 je Gläubigem seit PR #177
             var (_, ev) = Prediger(sim, "Familie Wittenberg", Konfession.Evangelisch);
-            for (var i = 0; i < 5 * 60 + 1; i++) sim.Tick(); // nach der Messe um 10 Uhr
+            for (var i = 0; i < 10 * 60 + 1 - Spielzeit.TagesbeginnMinute; i++) sim.Tick(); // nach der Messe um 10 Uhr
             Pruefe.Ungefaehr(110, w.Kirchenwesen.DiesesJahr(kath).Glaeubige, 1e-9);
             Pruefe.Ungefaehr(90, w.Kirchenwesen.DiesesJahr(ev).Glaeubige, 1e-9);
             Pruefe.Ungefaehr(90 * 2.2, w.Kirchenwesen.DiesesJahr(ev).Kollekte, 1e-9);
@@ -221,7 +222,7 @@ static class GlaubeTests
             var (prediger, _) = Prediger(sim, "Familie Rom", Konfession.Katholisch);
             w.KiAnmelden(prediger, KiProfil.Standard with { Reserve = 19_000 }); // kein Aufstieg, keine Käufe, kaum Werben – die AP bleiben übrig
             var anteil = w.Glaube.Anteil(Konfession.Katholisch);
-            for (var i = 0; i < 7 * 60; i++) sim.Tick(); // über die Politikstunde
+            for (var i = 0; i < 12 * 60 - Spielzeit.TagesbeginnMinute; i++) sim.Tick(); // über die Politikstunde
             Pruefe.Gleich((Konfession?)Konfession.Katholisch, w.Glaube.GlaubeVon(zwerg));
             Pruefe.Wahr(w.Glaube.Antrag is null, "Katholisch gilt schon – kein Antrag");
             Pruefe.Wahr(w.Glaube.Anteil(Konfession.Katholisch) > anteil, "keine Bekehrungspredigt: " + string.Join(" | ", w.Rivalen.Single(r => r.Konto == prediger).Entscheidungen));
@@ -229,7 +230,7 @@ static class GlaubeTests
             w.Glaube.Stadtglaube = null;
             JahrBeenden(sim);
             ratsKi.Aktionspunkte.Setzen(12);
-            for (var i = 0; i < 7 * 60; i++) sim.Tick();
+            for (var i = 0; i < 12 * 60 - Spielzeit.TagesbeginnMinute; i++) sim.Tick();
             Pruefe.Gleich(ratsKi, w.Glaube.Antrag?.Antragsteller);
             Pruefe.Gleich((Konfession?)Konfession.Katholisch, w.Glaube.Antrag?.Glaube);
         }),

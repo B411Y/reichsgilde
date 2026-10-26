@@ -1,3 +1,4 @@
+using Reichsgilde.Core.Zeit;
 using System.Text.Json.Nodes;
 using Reichsgilde.Core;
 using Reichsgilde.Core.Bauen;
@@ -192,7 +193,7 @@ static class GreyboxTests
             Pruefe.Gleich("Auf einem Wohnhausplatz stehen nur Wohnhäuser.", w.Bauen.PlatzVerboten(new WerkstattBauen(Betriebsart.Giesserei, 0, -45, 0)));
             var palais = new WohnhausBauen(3, 0, -44.3, 0);
             var v = w.Bauen.Vorschau(k, palais);
-            Pruefe.Gleich((15_500.0, 2_040), (v.Kosten, v.BauzeitMinuten));
+            Pruefe.Gleich((15_500.0, 2 * Spielzeit.MinutenProTag), (v.Kosten, v.BauzeitMinuten));
             Pruefe.Wahr(w.Ausfuehren(k, palais).Erfolg, "Stadtpalais auf dem Wohnhausplatz");
             Pruefe.Wahr(!w.Bauen.Bauplaetze.Any(), "Platz vergeben");
         }),

@@ -36,7 +36,7 @@ public sealed class Einwohnerschaft
     private readonly double[] _einkehrErwartet = new double[24]; // gleitender Mittelwert der Einkehrenden je Uhrzeit (Kopplung)
     private double _messeErwartet; // gleitender Mittelwert der Betenden bis zur Messe (Kopplung)
     private int _betendeHeute;     // Einwohner-Stunden in Kirchen seit Tagesbeginn
-    private readonly int[] _einkaeufe = new int[Spielzeit.StundenProTag]; // Einkaufende je Stunde, die letzten 17 Stunden (Ring)
+    private readonly int[] _einkaeufe = new int[Spielzeit.StundenProTag]; // Einkaufende je Stunde, die letzten 19 Stunden (Ring)
     private int _einkaufFach;      // nächstes Fach im Ring
     private double _einkaufErwartet; // gleitender Mittelwert der Einkaufsstunden eines ganzen Tages
     private readonly int[] _einkehrTage = new int[24]; // wie oft das Übliche schon gelernt wurde (siehe Lernen)
@@ -141,7 +141,7 @@ public sealed class Einwohnerschaft
                 _verstorben++;
                 _zugezogen++;
             }
-        // Das Übliche am Markt: Einkaufsstunden des ganzen Tages (der Ring umfasst genau die 17 Stunden).
+        // Das Übliche am Markt: Einkaufsstunden des ganzen Tages (der Ring umfasst genau die 19 Stunden).
         if (Daten.Kopplung.Markt > 0)
         {
             var tag = (double)_einkaeufe.Sum();
@@ -344,14 +344,14 @@ public sealed class Einwohnerschaft
     /// <summary>Wer in der Stunde, die gerade endet, am Markt einkaufte.</summary>
     public int Einkaufende => _einwohner.Count(e => e.Handlung == Handlung.Einkaufen);
 
-    /// <summary>Einkaufsstunden der Einwohner in den letzten 17 Spielstunden (gleitend, wie das Verkaufsfenster des Marktes).</summary>
+    /// <summary>Einkaufsstunden der Einwohner in den letzten 19 Spielstunden (gleitend, wie das Verkaufsfenster des Marktes).</summary>
     public int EinkaeufeImFenster => _einkaeufe.Sum();
 
     /// <summary>Wie viele Einkaufsstunden an einem Tag üblich sind (gleitender Mittelwert; 0 = noch keine Erfahrung).</summary>
     public double EinkaufErwartet => _einkaufErwartet;
 
     /// <summary>
-    /// Faktor auf die Nachfrage der Fertigwaren: (1 − k) + k × Einkaufsstunden der letzten 17 Stunden ÷ üblich am Tag,
+    /// Faktor auf die Nachfrage der Fertigwaren: (1 − k) + k × Einkaufsstunden der letzten 19 Stunden ÷ üblich am Tag,
     /// begrenzt auf 1 ± marktSpanne. Ohne Kopplung oder im ersten Tag genau 1.
     /// </summary>
     public double Marktfaktor
@@ -398,7 +398,7 @@ public sealed class Einwohnerschaft
     // ═════════════════════════════════════════════════════════════════════════
 
     /// <summary>
-    /// Faktor des Warenkorbs auf die Nachfrage dieser Ware (1 = wie in den Daten): Wer in den letzten 17 Stunden einkaufte,
+    /// Faktor des Warenkorbs auf die Nachfrage dieser Ware (1 = wie in den Daten): Wer in den letzten 19 Stunden einkaufte,
     /// verschiebt die Nachfrage zu den Gruppen seines Volkes und den Preisklassen seiner Rolle. Begrenzt auf 1 ± spanne;
     /// über alle Waren (gewichtet mit Nachfrage × Grundpreis) bleibt die Nachfrage in Gulden gleich.
     /// </summary>
@@ -841,7 +841,7 @@ public sealed class Einwohnerschaft
         _betendeHeute = s.BetendeHeute;
         for (var i = 0; i < s.Einkaeufe.Count && i < _einkaeufe.Length; i++) _einkaeufe[i] = s.Einkaeufe[i];
         _einkaufFach = s.EinkaufFach % _einkaeufe.Length;
-        // Ältere Spielstände ohne Warenkorb: Der Ring füllt sich in den nächsten 17 Stunden – bis dahin zählt nur, was schon drin ist.
+        // Ältere Spielstände ohne Warenkorb: Der Ring füllt sich in den nächsten 19 Stunden – bis dahin zählt nur, was schon drin ist.
         for (var i = 0; i < _korb.Length; i++)
         {
             _korb[i].Clear();
@@ -912,10 +912,10 @@ public sealed record EinwohnerschaftStand
     public List<double> EinkehrErwartet { get; init; } = new();
     public double MesseErwartet { get; init; }
     public int BetendeHeute { get; init; }
-    /// <summary>Einkaufende je Stunde der letzten 17 Stunden (Ring) – leer in älteren Spielständen.</summary>
+    /// <summary>Einkaufende je Stunde der letzten 19 Stunden (Ring) – leer in älteren Spielständen.</summary>
     public List<int> Einkaeufe { get; init; } = new();
     public int EinkaufFach { get; init; }
-    /// <summary>Warenkorb je Stunde der letzten 17 Stunden (Ring, Schlüssel „Beruf|Preisklasse“) – null ohne Warenkorb oder in älteren Spielständen.</summary>
+    /// <summary>Warenkorb je Stunde der letzten 19 Stunden (Ring, Schlüssel „Beruf|Preisklasse“) – null ohne Warenkorb oder in älteren Spielständen.</summary>
     public List<Dictionary<string, double>>? Warenkorb { get; init; }
     public double EinkaufErwartet { get; init; }
     /// <summary>Wie oft das Übliche gelernt wurde: 24 Uhrzeiten der Schänke, dann Messe, dann Markt.</summary>

@@ -149,16 +149,27 @@ public sealed class Stadtkasse
 
     /// <summary>
     /// Amtsgehälter: jedes besetzte Amt (Häuser bekommen ihr Gehalt aufs Konto, die Ratsherren auch – sie sind nur nicht im Spiel).
-    /// Ohne Kasse wie bisher: nur die Häuser, aus dem Nichts.
+    /// Ohne Kasse wie bisher: nur die Häuser, aus dem Nichts. Mit <see cref="KasseDaten.GehaelterNachEinwohnern"/> zahlt eine kleine Stadt
+    /// weniger (× <see cref="Gehaltsfaktor"/>).
     /// </summary>
     internal void GehaelterZahlen()
     {
+        var faktor = Gehaltsfaktor;
         foreach (var amt in _w.Rat.Aemter.Where(a => a.IstBesetzt))
         {
-            amt.Konto?.Amtseinkommen(amt.Daten.Einkommen);
-            Buchen(Kassenposten.Amtsgehaelter, amt.Daten.Einkommen);
+            var gehalt = amt.Daten.Einkommen * faktor;
+            amt.Konto?.Amtseinkommen(gehalt);
+            Buchen(Kassenposten.Amtsgehaelter, gehalt);
         }
     }
+
+    /// <summary>
+    /// Faktor auf die Amtsgehälter (Datenversion 57): Einwohner der Stadt ÷ Einwohner bei <see cref="KasseDaten.GehaltVolleHaeuser"/> Häusern,
+    /// höchstens 1 – mit 6: drei Häuser 0,7, vier 0,8, fünf 0,9, ab sechs 1. Ohne Kasse, ohne Abschnitt „stadt“ oder mit 0 immer 1.
+    /// </summary>
+    public double Gehaltsfaktor => IstAktiv && Daten.GehaltVolleHaeuser > 0 && _w.Daten.Stadt is { } s
+        ? Math.Min(1, s.Einwohner(_w.WirtschaftendeHaeuser) / s.Einwohner(Daten.GehaltVolleHaeuser))
+        : 1;
 
     /// <summary>
     /// Der Haushalt des Vorjahres mit diesem Steuersatz: Einnahmen (die Umsatzsteuer umgerechnet auf den neuen Satz) minus Amtsgehälter –

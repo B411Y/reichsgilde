@@ -4,7 +4,7 @@ using Reichsgilde.Core.Zeit;
 namespace Reichsgilde;
 
 /// <summary>
-/// Das Band des Zeitstrahls oben in der Mitte (PR #197): der Spieltag von 5 bis 22 Uhr in seinen vier Phasen (Zunftglocke, Hoher Mittag, Vesper,
+/// Das Band des Zeitstrahls oben in der Mitte (PR #197): der Spieltag von 4 bis 23 Uhr in seinen vier Phasen (Zunftglocke, Hoher Mittag, Vesper,
 /// Nacht), Striche für die vollen Stunden und als Zeiger die Sonne – in der Dunklen Nacht der Mond. Nur gezeichnet, keine Knöpfe: Die Hauptszene
 /// setzt jedes Bild die Minute (<see cref="Minute"/>), gezeichnet wird nur, wenn sie sich ändert. Die Gestaltung im Holzschnitt-Stil kommt später.
 /// </summary>
@@ -12,18 +12,21 @@ public sealed partial class Zeitstrahl : Control
 {
     private const float Bandhoehe = 16, Zeigerplatz = 12;
 
-    /// <summary>Beginn jeder Phase in Minuten seit 5 Uhr (wie <see cref="Spielzeit.Tagesphase"/>), dazu ihre Farbe und ihr kurzer Name.</summary>
+    /// <summary>Minuten seit Tagesbeginn zu einer Uhrzeit (volle Stunde).</summary>
+    private static int Ab(int stunde) => stunde * 60 - Spielzeit.TagesbeginnMinute;
+
+    /// <summary>Beginn jeder Phase in Minuten seit Tagesbeginn (wie <see cref="Spielzeit.Tagesphase"/>), dazu ihre Farbe und ihr kurzer Name.</summary>
     private static readonly (int Ab, Color Farbe, string Name)[] Phasen =
     {
         (0, new Color(0.62f, 0.55f, 0.40f), "Zunftglocke"),
-        (5 * 60, new Color(0.80f, 0.68f, 0.36f), "Hoher Mittag"),
-        (10 * 60, new Color(0.62f, 0.40f, 0.26f), "Vesper"),
-        (15 * 60, new Color(0.18f, 0.20f, 0.32f), "Nacht"),
+        (Ab(10), new Color(0.80f, 0.68f, 0.36f), "Hoher Mittag"),
+        (Ab(15), new Color(0.62f, 0.40f, 0.26f), "Vesper"),
+        (Ab(20), new Color(0.18f, 0.20f, 0.32f), "Nacht"),
     };
 
     private int _minute = -1;
 
-    /// <summary>Minuten seit Tagesbeginn (0 = 05:00, 1020 = 22:00).</summary>
+    /// <summary>Minuten seit Tagesbeginn (0 = 04:00, 1140 = 23:00).</summary>
     public int Minute
     {
         get => _minute;
@@ -39,7 +42,7 @@ public sealed partial class Zeitstrahl : Control
     {
         CustomMinimumSize = new Vector2(340, Bandhoehe + Zeigerplatz + 2);
         MouseFilter = MouseFilterEnum.Stop; // für den Tooltip
-        TooltipText = "Der Spieltag von 5 bis 22 Uhr: Frühe Zunftglocke (5–10), Hoher Mittag (10–15), Vesper & Zwielicht (15–20), Dunkle Nacht (20–22).\n"
+        TooltipText = "Der Spieltag von 4 bis 23 Uhr: Frühe Zunftglocke (4–10), Hoher Mittag (10–15), Vesper & Zwielicht (15–20), Dunkle Nacht (20–23).\n"
                       + "Gearbeitet wird von 8 bis 20 Uhr (im Wirtshaus bis 22 Uhr), Gauner ziehen ab 20 Uhr los. Danach folgt die Jahresrechnung.";
     }
 
@@ -62,19 +65,19 @@ public sealed partial class Zeitstrahl : Control
                            i == Phasen.Length - 1 ? new Color(0.85f, 0.85f, 0.9f) : new Color(0.12f, 0.1f, 0.08f));
         }
         // Volle Stunden als kurze Striche am unteren Rand, die Arbeitszeit (8–20 Uhr) als dünne Linie darunter
-        for (var stunde = 6; stunde < 22; stunde++)
+        for (var stunde = Spielzeit.TagesbeginnMinute / 60 + 1; stunde < Spielzeit.TagesendeMinute / 60; stunde++)
         {
-            var x = X((stunde - 5) * 60);
+            var x = X(Ab(stunde));
             DrawLine(new Vector2(x, oben + Bandhoehe - 3), new Vector2(x, oben + Bandhoehe), new Color(0, 0, 0, 0.5f));
         }
-        DrawLine(new Vector2(X(3 * 60), oben + Bandhoehe + 1), new Vector2(X(15 * 60), oben + Bandhoehe + 1), new Color(0.95f, 0.82f, 0.45f, 0.7f), 2);
+        DrawLine(new Vector2(X(Ab(8)), oben + Bandhoehe + 1), new Vector2(X(Ab(20)), oben + Bandhoehe + 1), new Color(0.95f, 0.82f, 0.45f, 0.7f), 2);
         DrawRect(new Rect2(0, oben, Size.X, Bandhoehe), new Color(0.05f, 0.04f, 0.03f), false, 1);
 
         if (_minute < 0) return;
         // Der Zeiger: eine Sonne mit Strahlen über dem Band, in der Nacht ein Mond
         var mitte = new Vector2(Mathf.Clamp(X(_minute), 7, Size.X - 7), oben - 1);
         DrawLine(new Vector2(mitte.X, oben), new Vector2(mitte.X, oben + Bandhoehe), new Color(0.1f, 0.08f, 0.06f), 2);
-        if (_minute < 15 * 60)
+        if (_minute < Ab(20))
         {
             for (var i = 0; i < 8; i++)
             {

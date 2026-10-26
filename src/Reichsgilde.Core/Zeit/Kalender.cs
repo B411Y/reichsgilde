@@ -18,7 +18,7 @@ public enum Jahreszeit
 /// </summary>
 public enum Tagesphase
 {
-    /// <summary>05:00–10:00 – Betriebe öffnen, Karren werden beladen.</summary>
+    /// <summary>04:00–10:00 – Betriebe öffnen, Karren werden beladen.</summary>
     Zunftglocke,
 
     /// <summary>10:00–15:00 – Marktverkehr auf Maximum, Gerichtsverhandlungen.</summary>
@@ -27,7 +27,7 @@ public enum Tagesphase
     /// <summary>15:00–20:00 – Ratsversammlungen, Ämterwahlen, Schankbetrieb.</summary>
     Vesper,
 
-    /// <summary>20:00–22:00 – Schurkenzüge, Brandstiftung, Ork-Überfälle; danach die Jahresrechnung.</summary>
+    /// <summary>20:00–23:00 – Schurkenzüge, Brandstiftung, Ork-Überfälle; danach die Jahresrechnung.</summary>
     DunkleNacht,
 }
 

@@ -110,7 +110,9 @@ static class RatTests
             MehrheitKaufen(w, k, "Zöllner");
             JahrBeenden(sim); // gewählt
             JahrBeenden(sim); // ein Jahr im Amt
-            Pruefe.Ungefaehr(150, k.Vorjahr!.Amtseinkommen, 1e-9);
+            // Eine kleine Stadt zahlt kleinere Gehälter (Datenversion 57): ohne arbeitende Häuser 100 ÷ 250 Einwohner
+            Pruefe.Ungefaehr(0.4, w.Kasse.Gehaltsfaktor, 1e-9);
+            Pruefe.Ungefaehr(150 * w.Kasse.Gehaltsfaktor, k.Vorjahr!.Amtseinkommen, 1e-9);
             Pruefe.Ungefaehr(0, k.Vorjahr.Gewinn, 1e-9);
         }),
 
@@ -183,7 +185,7 @@ static class RatTests
             var w = sim.Wirtschaft!;
             var k = Haus(w, "KI-Haus", 1, 15_000); // zu wenig für den Patrizier – sonst reicht ihr Ansehen ohne Geschenke
             w.KiAnmelden(k);
-            for (var i = 0; i < 8 * 60 + 1; i++) sim.Tick(); // über die Politikstunde hinweg
+            for (var i = 0; i < 13 * 60 + 1 - Spielzeit.TagesbeginnMinute; i++) sim.Tick(); // über die Politikstunde hinweg
             Pruefe.Wahr(w.Rat.Bewerbungen.ContainsKey(k), "keine Bewerbung");
             Pruefe.Wahr(k.Laufend.Geschenke > 0, "keine Geschenke");
             JahrBeenden(sim);

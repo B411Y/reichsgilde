@@ -7,10 +7,10 @@ static class TaktgeberTests
     {
         ("Angebrochene Minute: Bruchteile bleiben zwischen den ganzen Ticks lesbar", () =>
         {
-            // 60 s pro Jahr → 17 Spielminuten pro Sekunde; 0,1 s = 1,7 Minuten → 1 Tick fällig, 0,7 angebrochen
+            // 60 s pro Jahr → 19 Spielminuten pro Sekunde; 0,1 s = 1,9 Minuten → 1 Tick fällig, 0,9 angebrochen
             var takt = new Taktgeber { RundenDauerSekunden = 60 };
             Pruefe.Gleich(1, takt.Voranschreiten(0.1));
-            Pruefe.Ungefaehr(0.7, takt.AngebrocheneMinute, 1e-6);
+            Pruefe.Ungefaehr(0.9, takt.AngebrocheneMinute, 1e-6);
         }),
 
         ("Angebrochene Minute wächst stetig und bleibt unter 1", () =>

@@ -37,6 +37,9 @@ static partial class Balancingbericht
     /// <summary>Häuser in der Messstadt (KI, die ersten n der Karte).</summary>
     public static readonly int[] Hausstufen = { 1, 3, 5, 8 };
 
+    /// <summary>Karten mit Fluss und Hafen für den Abschnitt Hafen und Stadtkasse (PR #199, #200).</summary>
+    public static readonly string[] Hafenkarten = { "greybox", "probestadt" };
+
     /// <summary>
     /// Kennzahl einer Stichprobe: Anzahl, Mittel, Streuung (Standardabweichung), Fehler des Mittels (Streuung ÷ √n – ein Unterschied unter etwa
     /// zwei solchen Fehlern kann Zufall sein), Minimum, Quantile 10/25/50/75/90 %, Maximum.
@@ -115,11 +118,11 @@ static partial class Balancingbericht
             worte.Count > 0 ? int.Parse(worte[0]) : 20,
             worte.Count > 1 ? int.Parse(worte[1]) : 20,
             Schalter("karte") ?? "greybox",
-            (Schalter("teile") ?? "1,2,3,4,5,6,7").Split(',').Select(int.Parse).ToHashSet(),
+            (Schalter("teile") ?? "1,2,3,4,5,6,7,8,9").Split(',').Select(int.Parse).ToHashSet(),
             int.Parse(Schalter("parallel") ?? Environment.ProcessorCount.ToString()),
             Schalter("datei"));
         var uhr = Stopwatch.StartNew();
-        var q = new Messquellen();
+        var q = new Messquellen(Schalter("ohne")); // --ohne=schiffshandel: alle Partien ohne diesen Abschnitt (Diagnose)
         var daten = Wirtschaftsdaten.AusJson(q.Wirtschaft);
 
         // ── Alle Partien, die die Abschnitte brauchen (gleiche Aufbauten nur einmal) ──
@@ -145,7 +148,7 @@ static partial class Balancingbericht
         Partieergebnis P(Messaufbau a) => ergebnisse[a];
         var bericht = new JsonObject
         {
-            ["bericht"] = "Balancing-Messung 3",
+            ["bericht"] = "Balancing-Messung 6",
             ["datum"] = DateTime.Now.ToString("yyyy-MM-dd"),
             ["mainCommit"] = Git("rev-parse --short origin/main"),
             ["commit"] = Git("rev-parse --short HEAD"),
@@ -157,6 +160,7 @@ static partial class Balancingbericht
                 ["stichjahre"] = new JsonArray(e.Stich.Select(x => (JsonNode)x).ToArray()), ["karte"] = e.Karte,
                 ["teile"] = new JsonArray(e.Teile.OrderBy(x => x).Select(x => (JsonNode)x).ToArray()),
                 ["band"] = $"±{Band} % um das Mittel", ["startvermoegen"] = daten.Allgemein.Startvermoegen,
+                ["ohneAbschnitt"] = Schalter("ohne"),
             },
             ["partien"] = auftraege.Count,
             ["partienMitFehler"] = fehler.Count,
@@ -169,6 +173,8 @@ static partial class Balancingbericht
         if (e.Teile.Contains(5)) bericht["kiStaerke"] = KiStaerke(e, daten, ergebnisse, P, befunde);
         if (e.Teile.Contains(6)) bericht["einrichtung"] = Einrichtung(e, q, daten, ergebnisse, P, befunde);
         if (e.Teile.Contains(7)) bericht["gaunerWacheBank"] = GaunerWacheBank(e, daten, ergebnisse, P, befunde);
+        if (e.Teile.Contains(8)) bericht["hafenKasse"] = HafenKasse(e, daten, ergebnisse, P, befunde);
+        if (e.Teile.Contains(9)) bericht["statutC"] = StatutC(e, q, daten, befunde);
         bericht["befunde"] = new JsonArray(befunde.Select(b => (JsonNode)b).ToArray());
         bericht["laufzeitSekunden"] = R(uhr.Elapsed.TotalSeconds);
 
@@ -229,6 +235,11 @@ static partial class Balancingbericht
                     yield return Beruf(e, s, "Geldleiher");
                     yield return Beruf(e, s, "Schmied");
                     yield return new Messaufbau(e.Karte, s, e.Jahre, Bezug: Bezugsart.WieKi);
+                    break;
+                case 8:
+                    foreach (var karte in Hafenkarten)
+                        foreach (var ohne in new[] { false, true })
+                            yield return new Messaufbau(karte, s, e.Jahre, Bezug: Bezugsart.Passiv, OhneSchiffshandel: ohne);
                     break;
             }
     }
@@ -363,6 +374,7 @@ static partial class Balancingbericht
         var zuwachsJeBeruf = new Dictionary<string, Dictionary<int, double>>();
         var gewinnJeBeruf = new Dictionary<string, Dictionary<int, double>>();
         var startgeld = daten.Allgemein.Startvermoegen;
+        var buergerJeBeruf = new List<string>();
         var reihen = daten.Berufe.Keys.Select(b => (Name: b, Aufbau: (Func<int, Messaufbau>)(s => Beruf(e, s, b)), ImMittel: true))
             .Append(("Dieb (wagemutig geführt)", s => Beruf(e, s, "Dieb") with { BezugCharakter = KiCharakter.Wagemutig }, false)).ToList();
         foreach (var (name, aufbau, imMittel) in reihen)
@@ -402,6 +414,9 @@ static partial class Balancingbericht
             sim.Add(zeile);
             var buerger = laeufe.Where(r => r.Spieler.BuergerReinJahr is not null).Select(r => (double)r.Spieler.BuergerReinJahr!.Value).ToList();
             var imZiel = buerger.Count(x => x is >= 8 and <= 12);
+            zeile["buergerIn8bis12"] = imZiel;
+            zeile["buergerVor8"] = buerger.Count(x => x < 8);
+            buergerJeBeruf.Add($"{name} {Zahl(buerger.Count > 0 ? buerger.Average() : double.NaN, "0.0")} ({imZiel}/{laeufe.Count})");
             if (imMittel && (buerger.Count < laeufe.Count || buerger.Count > 0 && (buerger.Average() < 8 || buerger.Average() > 12)))
                 befunde.Add($"Z2 (Bürger mit einem Betrieb in 8–12 Jahren), {name}: " +
                             (buerger.Count == 0 ? $"in {e.Jahre} Jahren nie erreicht" : $"Ø Jahr {Zahl(buerger.Average(), "0.0")}, erreicht {buerger.Count}/{laeufe.Count}, davon im Ziel {imZiel}") + ".");
@@ -426,6 +441,7 @@ static partial class Balancingbericht
                 _ = name;
             }
         }
+        befunde.Add("Jahre bis Bürger (Reinvermögen 10.000) je Beruf, Ø (im Ziel 8–12 von n): " + string.Join(", ", buergerJeBeruf) + ".");
         var letztes = e.Stich[^1];
         var ausserhalb = sim.Select(x => x!.AsObject()).Where(z => zuwachsJeBeruf.ContainsKey((string)z["beruf"]!)
                 && !(bool)z["jahre"]![letztes.ToString()]!["imBand"]!)
@@ -467,6 +483,9 @@ static partial class Balancingbericht
             ["gewinn"] = M(x => x.Gewinn), ["amtseinkommen"] = M(x => x.Amt), ["familie"] = M(x => -x.Familie), ["geschenke"] = M(x => -x.Geschenke),
             ["gericht"] = M(x => -x.Gericht), ["gaunerei"] = M(x => -x.Gaunerei), ["investitionen"] = M(x => -x.Investitionen),
             ["standesgebuehren"] = M(x => -x.Standesgebuehren), ["zinsen"] = M(x => -x.Zinsen),
+            // schon enthalten: die Steuer im Gewinn, die Spitzel im Gericht (PR #208)
+            ["davonSteuer"] = M(x => -x.Steuer), ["davonSpitzel"] = M(x => -x.Spitzel),
+            ["schiffeAmEnde"] = R(h.Average(x => (double)x.Jahre[^1].Schiffe), 2),
         };
     }
 

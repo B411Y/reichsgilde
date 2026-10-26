@@ -1,3 +1,4 @@
+using Reichsgilde.Core.Zeit;
 using System.Text.Json.Nodes;
 using Reichsgilde.Core;
 using Reichsgilde.Core.Gauner;
@@ -81,7 +82,7 @@ static class GardistEinrichtungTests
         ("Gardist-Einrichtung: Daten – sieben Stücke mit den Kennungen des Raummodells, Preise wie bei den Werkstätten, Datenversion 52", () =>
         {
             var d = Daten.Value.Werkstatt!;
-            Pruefe.Gleich(55, Daten.Value.Version);
+            Pruefe.Gleich(57, Daten.Value.Version);
             var wache = d.EinrichtungFuer("Gardist");
             Pruefe.Gleich("Werkzeug1 Werkzeug2 Hunde Kettenhemd Regale Loeschfass Eisentuer", string.Join(" ", wache.Select(e => e.Kennung)));
             Pruefe.Gleich("Hellebarden, Armbrüste, Wachhunde, Kettenhemden, Waffenkammer, Löschfass, Eisentür", string.Join(", ", wache.Select(e => e.Name)));
@@ -492,7 +493,7 @@ static class GardistEinrichtungTests
                 var kunde = w.KontoEroeffnen("Haus Eisenbart", startvermoegen: 5_000);
                 var grube = w.BetriebEroeffnen("Grube Eisenbart", Betriebsart.Mine, kunde);
                 Ok(w, kunde, new EskorteWaehlen(grube.Name, 0, "Stadtwache"));
-                for (var i = 0; i < 2 * 1020; i++)
+                for (var i = 0; i < 2 * Spielzeit.MinutenProTag; i++)
                 {
                     sim.Tick();
                     if (!abfragen) continue;

@@ -39,6 +39,25 @@ public sealed class Unterwelt
     /// <summary>Spielminute im Tag, zu der die Gauner losziehen (20:00 = Beginn der Dunklen Nacht).</summary>
     public const int Nachtstunde = 20 * 60 - Spielzeit.TagesbeginnMinute;
 
+    /// <summary>Volle Stunden der Nacht, zu denen eine Bande es versuchen kann: 20, 21, 22 und 23 Uhr (23 Uhr = Ende des Spieltags, vor der Jahresrechnung).</summary>
+    public const int NachtstundenMoeglich = (Spielzeit.MinutenProTag - Nachtstunde) / 60 + 1;
+
+    /// <summary>
+    /// Der wievielte Versuch der Nacht zu dieser Minute im Tag fällig ist (0 = 20 Uhr …), sonst null. Die Stunde um 23 Uhr (Ende des
+    /// Spieltags) fragt die Jahresrechnung mit <see cref="Spielzeit.MinutenProTag"/>.
+    /// </summary>
+    public int? VersuchUm(int minuteImTag)
+    {
+        if (minuteImTag < Nachtstunde || (minuteImTag - Nachtstunde) % 60 != 0) return null;
+        var k = (minuteImTag - Nachtstunde) / 60;
+        return k < (_d?.NachtVersuche ?? 1) ? k : null;
+    }
+
+    // Der laufende Versuch einer Nacht (Gaunerei je Nachtstunde): Faktor auf die Chance, letzter Versuch?, hatte dieser Auftrag schon Erfolg?
+    private double _chanceFaktor = 1;
+    private bool _letzterVersuch = true, _bisherErfolg, _versuchErfolg;
+    private readonly List<bool> _erfolgreich = new(); // je Auftrag in _auftraege: schon ein Erfolg in dieser Nacht?
+
     private readonly Stadtwirtschaft _w;
     private readonly GaunerDaten? _d;
     private Zufallsquelle _zufall;
@@ -322,32 +341,57 @@ public sealed class Unterwelt
     // ═════════════════════════════════════════════════════════════════════════
 
     /// <summary>Um 20:00: alle Aufträge ausführen, abgelaufene Hinterhalte auflösen.</summary>
-    internal void Nacht(Spielzeit zeit)
+    /// <param name="versuch">Der wievielte Versuch der Nacht (0 = 20 Uhr, bis <see cref="GaunerDaten.NachtVersuche"/> − 1).</param>
+    internal void Nacht(Spielzeit zeit, int versuch = 0)
     {
         if (!IstAktiv) return;
-        foreach (var a in _auftraege)
+        var d = Daten;
+        var letzter = versuch >= d.NachtVersuche - 1;
+        while (_erfolgreich.Count < _auftraege.Count) _erfolgreich.Add(false); // Aufträge, die erst im Lauf der Nacht kamen
+        for (var i = 0; i < _auftraege.Count; i++)
         {
-            if (!a.Auftraggeber.IstAktiv || !a.Ziel.IstAktiv) continue;
-            if (a.Betrieb is { } name && _w.Betriebe.FirstOrDefault(b => b.Name == name)?.Konto != a.Ziel)
+            var a = _auftraege[i];
+            var erledigt = true; // Aufträge, die nur einmal wirken, sind danach vorbei
+            if (!a.Auftraggeber.IstAktiv || !a.Ziel.IstAktiv) { }
+            else if (a.Betrieb is { } name && _w.Betriebe.FirstOrDefault(b => b.Name == name)?.Konto != a.Ziel)
             {
                 // Inzwischen verkauft: Die Bande behält ihr Geld, rührt aber den neuen Besitzer nicht an.
                 Ereignis(a.Auftraggeber, $"{name} gehört nicht mehr {a.Ziel.Inhaber} – eure Bande zieht unverrichteter Dinge ab.");
-                continue;
             }
-            switch (a.Art)
+            else if (a.Art == Gaunerstueck.Ueberfall)
             {
-                case Gaunerstueck.Diebstahl: Stehlen(a); break;
-                case Gaunerstueck.Sabotage: Sabotieren(a); break;
-                case Gaunerstueck.Kroetenschleim: Vergiften(a); break;
-                case Gaunerstueck.Hauseinbruch: InsHausEinbrechen(a); break;
-                case Gaunerstueck.Brandstiftung: HausAnzuenden(a, zeit); break;
-                default:
-                    _hinterhalte.Add(new Hinterhalt(a.Auftraggeber, a.Ziel, zeit.VergangeneMinuten + Daten.Ueberfall.GueltigMinuten));
-                    Ereignis(a.Auftraggeber, $"Eure Wegelagerer legen sich gegen {a.Ziel.Inhaber} auf die Lauer – bis morgen Nacht.");
-                    break;
+                _hinterhalte.Add(new Hinterhalt(a.Auftraggeber, a.Ziel, zeit.VergangeneMinuten + d.Ueberfall.GueltigMinuten));
+                Ereignis(a.Auftraggeber, $"Eure Wegelagerer legen sich gegen {a.Ziel.Inhaber} auf die Lauer – bis morgen Nacht.");
+            }
+            else
+            {
+                // Gaunerei je Nachtstunde: jeder Versuch mit einem Teil der Chance; eine Spur je Erfolg, ohne jeden Erfolg eine für den Versuch
+                _chanceFaktor = d.VersuchFaktor;
+                _letzterVersuch = letzter;
+                _bisherErfolg = _erfolgreich[i];
+                _versuchErfolg = false;
+                switch (a.Art)
+                {
+                    case Gaunerstueck.Diebstahl: Stehlen(a); break;
+                    case Gaunerstueck.Sabotage: Sabotieren(a); break;
+                    case Gaunerstueck.Kroetenschleim: Vergiften(a); break;
+                    case Gaunerstueck.Hauseinbruch: InsHausEinbrechen(a); break;
+                    case Gaunerstueck.Brandstiftung: HausAnzuenden(a, zeit); break;
+                }
+                _erfolgreich[i] |= _versuchErfolg;
+                (_chanceFaktor, _letzterVersuch) = (1, true);
+                erledigt = letzter;
+            }
+            if (erledigt)
+            {
+                _auftraege.RemoveAt(i);
+                _erfolgreich.RemoveAt(i);
+                i--;
             }
         }
+        if (!letzter) return;
         _auftraege.Clear();
+        _erfolgreich.Clear();
 
         foreach (var h in _hinterhalte.Where(h => h.BisMinute < zeit.VergangeneMinuten).ToList())
         {
@@ -361,7 +405,7 @@ public sealed class Unterwelt
     {
         var d = Daten;
         var b = _w.Betriebe.First(x => x.Name == a.Betrieb);
-        var erfolg = _zufall.NextDouble() < Erfolgschance(Gaunerstueck.Diebstahl, b, a.Auftraggeber);
+        var erfolg = _zufall.NextDouble() < Erfolgschance(Gaunerstueck.Diebstahl, b, a.Auftraggeber) * _chanceFaktor;
         double wert = 0;
         string oeffentlich;
         if (erfolg)
@@ -395,7 +439,7 @@ public sealed class Unterwelt
     {
         var d = Daten;
         var b = _w.Betriebe.First(x => x.Name == a.Betrieb);
-        var erfolg = _zufall.NextDouble() < Erfolgschance(Gaunerstueck.Sabotage, b, a.Auftraggeber);
+        var erfolg = _zufall.NextDouble() < Erfolgschance(Gaunerstueck.Sabotage, b, a.Auftraggeber) * _chanceFaktor;
         double schaden = 0;
         string oeffentlich;
         if (erfolg)
@@ -417,7 +461,7 @@ public sealed class Unterwelt
         if (!GegenWohnhaus) return;
         var ziel = a.Ziel;
         var haus = _w.Wohnen.Stufe(ziel)!.Name;
-        var erfolg = _zufall.NextDouble() < ErfolgschanceWohnhaus(Gaunerstueck.Hauseinbruch, ziel, a.Auftraggeber);
+        var erfolg = _zufall.NextDouble() < ErfolgschanceWohnhaus(Gaunerstueck.Hauseinbruch, ziel, a.Auftraggeber) * _chanceFaktor;
         double beute = 0;
         string oeffentlich;
         if (erfolg && (beute = Hausbeute(ziel)) > 0)
@@ -440,7 +484,7 @@ public sealed class Unterwelt
         var ziel = a.Ziel;
         var stufe = _w.Wohnen.Stufe(ziel)!;
         var brand = Daten.Wohnhaus!.Brand;
-        var erfolg = !_w.Wohnen.IstBeschaedigt(ziel) && _zufall.NextDouble() < ErfolgschanceWohnhaus(Gaunerstueck.Brandstiftung, ziel, a.Auftraggeber);
+        var erfolg = !_w.Wohnen.IstBeschaedigt(ziel) && _zufall.NextDouble() < ErfolgschanceWohnhaus(Gaunerstueck.Brandstiftung, ziel, a.Auftraggeber) * _chanceFaktor;
         double schaden = 0;
         string oeffentlich;
         if (erfolg)
@@ -460,7 +504,7 @@ public sealed class Unterwelt
     {
         if (_w.Familien.Von(a.Ziel) is not { } f) return;
         var o = f.Oberhaupt;
-        var erfolg = _zufall.NextDouble() < Erfolgschance(Gaunerstueck.Kroetenschleim, null, a.Auftraggeber);
+        var erfolg = _zufall.NextDouble() < Erfolgschance(Gaunerstueck.Kroetenschleim, null, a.Auftraggeber) * _chanceFaktor;
         string oeffentlich;
         if (erfolg && o.Krankheit is null && _w.Gesundheit.KroetenschleimKrankheit() is { } krankheit
             && _w.Gesundheit.Erkranken(a.Ziel, o, krankheit))
@@ -512,6 +556,9 @@ public sealed class Unterwelt
     /// <summary>Spur fürs Gericht, öffentliche Nachricht – und vielleicht ein Zeuge, der den Auftraggeber erkannt hat.</summary>
     private void Spur(Gaunerauftrag a, Vergehen vergehen, string betroffener, double betrag, Betrieb? b, bool erfolg, string oeffentlich, bool wohnhaus = false)
     {
+        _versuchErfolg = erfolg;
+        // Gaunerei je Nachtstunde: Ein misslungener Versuch fällt nur auf, wenn die ganze Nacht nichts gelang (dann eine Spur, im letzten Versuch).
+        if (!erfolg && !(_letzterVersuch && !_bisherErfolg)) return;
         _letzterAngriff[betroffener] = _w.Jahr;
         var spur = _w.Justiz.TatMelden(a.Auftraggeber, vergehen, betroffener, betrag);
         var zeuge = _zufall.NextDouble() < (wohnhaus ? ZeugenchanceWohnhaus(a.Ziel, erfolg, a.Auftraggeber) : Zeugenchance(b, erfolg, a.Auftraggeber));

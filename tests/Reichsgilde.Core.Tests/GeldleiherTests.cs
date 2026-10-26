@@ -130,9 +130,9 @@ static class GeldleiherTests
             var sim = NeueSimulation();
             var (w, geber, _) = Geldleihe(sim);
             var nehmer = w.KontoEroeffnen("Haus Eisenbart", startvermoegen: 10_000);
-            w.Ausfuehren(nehmer, new KreditAufnehmen(geber.Inhaber, 3_000, 3)); // zur Zunftglocke (05:00), 12 %
-            for (var i = 0; i < 13 * 60 + 1; i++) sim.Tick(); // bis einschließlich der Stunde um 18:00 (13 Stunden)
-            Pruefe.Ungefaehr(3_000 * 0.12 * 13 / 17, w.Bank.KreditVon(nehmer)!.Aufgelaufen, 1e-6); // ein Jahr hat 17 Stunden
+            w.Ausfuehren(nehmer, new KreditAufnehmen(geber.Inhaber, 3_000, 3)); // zur Zunftglocke (04:00), 12 %
+            for (var i = 0; i < 18 * 60 + 1 - Spielzeit.TagesbeginnMinute; i++) sim.Tick(); // bis einschließlich der Stunde um 18:00 (14 Stunden)
+            Pruefe.Ungefaehr(3_000 * 0.12 * 14 / Spielzeit.StundenProTag, w.Bank.KreditVon(nehmer)!.Aufgelaufen, 1e-6); // ein Jahr hat 19 Stunden
             JahrBeenden(sim);
             var zins = 3_000 * 0.12; // ein ganzes Jahr
             Pruefe.Ungefaehr(zins, nehmer.Vorjahr!.Zinsen, 1e-6);
@@ -150,9 +150,9 @@ static class GeldleiherTests
             var (w, geber, _) = Geldleihe(sim);
             var nehmer = w.KontoEroeffnen("Haus Eisenbart", startvermoegen: 10_000);
             w.Ausfuehren(nehmer, new KreditAufnehmen(geber.Inhaber, 2_400, 2));
-            for (var i = 0; i < 121; i++) sim.Tick(); // zwei volle Stunden (06:00 und 07:00)
+            for (var i = 0; i < 121; i++) sim.Tick(); // zwei volle Stunden (05:00 und 06:00)
             var kredit = w.Bank.KreditVon(nehmer)!;
-            var zinsen = 2_400 * 0.12 * 2 / 17;
+            var zinsen = 2_400 * 0.12 * 2 / Spielzeit.StundenProTag;
             Pruefe.Ungefaehr(zinsen, kredit.Aufgelaufen, 1e-9);
             Pruefe.Wahr(w.Ausfuehren(nehmer, new KreditTilgen()).Erfolg, "ablösen");
             Pruefe.Gleich<object?>(null, w.Bank.KreditVon(nehmer));
@@ -235,7 +235,7 @@ static class GeldleiherTests
             var sim = NeueSimulation();
             var (w, k, b) = Geldleihe(sim, name: "Haus Fugger");
             w.KiAnmelden(k, KiProfil.Standard);
-            for (var i = 0; i < 7 * 60; i++) sim.Tick(); // über die Politikstunde
+            for (var i = 0; i < 12 * 60 - Spielzeit.TagesbeginnMinute; i++) sim.Tick(); // über die Politikstunde
             Pruefe.Ungefaehr(w.Bank.RahmenVoll(b), w.Bank.Kasse(b), 1e-9);
             Pruefe.Ungefaehr(0.14, w.Bank.Zinssatz(k), 1e-9);
         }),
@@ -251,7 +251,7 @@ static class GeldleiherTests
             w.Ausfuehren(spieler, new ZinsSetzen(stube.Name, 0.18));
             var eisenbart = w.Konten.Single(k => k.Inhaber == "Haus Eisenbart");
             Pruefe.Wahr(w.Ausfuehren(eisenbart, new KreditAufnehmen(spieler.Inhaber, 1_000, 2)).Erfolg, "Eisenbart leiht");
-            for (var i = 0; i < 5 * 60 + 30; i++) sim.Tick(); // 11:30
+            for (var i = 0; i < 10 * 60 + 30 - Spielzeit.TagesbeginnMinute; i++) sim.Tick(); // 11:30
             var (kopie, kopieSpieler) = Speicherung.Laden(Speicherung.Speichern(sim, spieler));
             var kw = kopie.Wirtschaft!;
             Pruefe.Gleich(w.Bank.DiesesJahr(spieler), kw.Bank.DiesesJahr(kopieSpieler!));

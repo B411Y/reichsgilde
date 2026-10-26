@@ -1,3 +1,4 @@
+using Reichsgilde.Core.Zeit;
 using Reichsgilde.Core;
 using Reichsgilde.Core.Dynastie;
 using Reichsgilde.Core.Ki;
@@ -68,13 +69,13 @@ static class WirtTests
             var sim = NeueSimulation();
             var (w, k, s) = Wirt(sim);
             var g = w.Gastwirtschaft;
-            for (var i = 0; i < 8 * 60 + 1; i++) sim.Tick(); // bis 13 Uhr: die erste Stunde ist vorbei
+            for (var i = 0; i < 13 * 60 + 1 - Spielzeit.TagesbeginnMinute; i++) sim.Tick(); // bis 13 Uhr: die erste Stunde ist vorbei
             Pruefe.Wahr(g.DiesesJahr(s).Bewirtet is >= 8 and <= 9, $"nach der ersten Stunde {g.DiesesJahr(s).Bewirtet}"); // 120 × 1/14 (12–18 Uhr je 1, 18–22 Uhr je 2)
             var vorher = k.Laufend.Umsatz;
-            TagVorbei(sim); // bis 22 Uhr – die Gäste der letzten Stunde zählen noch zum Jahr
+            TagVorbei(sim); // bis 23 Uhr – die Gäste der Stunde bis 22 Uhr zählen noch zum Jahr
             var buch = g.Vorjahr(s)!;
             Pruefe.Wahr(buch.Bewirtet is >= 119 and <= 120, $"bewirtet {buch.Bewirtet}");
-            Pruefe.Ungefaehr(buch.Bewirtet * 85 * 1.2, buch.Einnahmen, 1e-9); // Aufschlag 1,2 seit PR #177
+            Pruefe.Ungefaehr(buch.Bewirtet * 91 * 1.2, buch.Einnahmen, 1e-9); // Dünnbier 91 (Datenversion 57), Aufschlag 1,2 seit PR #177
             Pruefe.Wahr(k.Vorjahr!.Umsatz > vorher, "kein Umsatz");
             Pruefe.Gleich(0, buch.Abgewiesen);
         }),
@@ -118,7 +119,7 @@ static class WirtTests
             TagVorbei(sim);
             var buch = w.Gastwirtschaft.Vorjahr(s)!;
             Pruefe.Wahr(buch.Bewirtet is >= 153 and <= 155, $"bewirtet {buch.Bewirtet}"); // 120 × 6/14 nachmittags + 120 × 8/14 × 1,5 abends
-            Pruefe.Wahr(buch.Einnahmen > buch.Bewirtet * 85 * 1.2, "keine höhere Zeche");
+            Pruefe.Wahr(buch.Einnahmen > buch.Bewirtet * 91 * 1.2, "keine höhere Zeche");
             Pruefe.Wahr(!w.Gastwirtschaft.BardeGebucht(s), "Der Barde zieht zum Jahresende weiter");
         }),
 
@@ -172,7 +173,7 @@ static class WirtTests
             var (_, k2, wirtshaus) = Wirt(sim, Betriebsart.Wirtshaus, name: "Haus Humpen");
             w.KiAnmelden(k1, KiProfil.Standard);
             w.KiAnmelden(k2, Partieaufbau.ProfilFuer(KiCharakter.Wagemutig));
-            for (var i = 0; i < 7 * 60; i++) sim.Tick(); // über die Politikstunde (12 Uhr)
+            for (var i = 0; i < 12 * 60 - Spielzeit.TagesbeginnMinute; i++) sim.Tick(); // über die Politikstunde (12 Uhr)
             Pruefe.Wahr(w.Gastwirtschaft.BardeGebucht(gasthaus), "kein Barde im Gasthaus");
             Pruefe.Wahr(w.Gastwirtschaft.HatWuerfeltisch(wirtshaus), "kein Würfeltisch beim Wagemutigen");
             Pruefe.Wahr(!w.Gastwirtschaft.HatWuerfeltisch(gasthaus), "Würfeltisch beim Ausgewogenen");
@@ -187,7 +188,7 @@ static class WirtTests
             Pruefe.Gleich("Schänke am Weinmarkt", s.Name);
             s.Einlagern("Körnermahlzeit", 30);
             Pruefe.Wahr(w.Ausfuehren(spieler, new BardeEinladen(s.Name)).Erfolg, "Barde");
-            for (var i = 0; i < 9 * 60 + 30; i++) sim.Tick(); // 14:30 – Gäste waren schon da
+            for (var i = 0; i < 14 * 60 + 30 - Spielzeit.TagesbeginnMinute; i++) sim.Tick(); // 14:30 – Gäste waren schon da
             var (kopie, kopieSpieler) = Speicherung.Laden(Speicherung.Speichern(sim, spieler));
             var ks = kopie.Wirtschaft!.Betriebe.Single(b => b.Konto == kopieSpieler);
             var g = kopie.Wirtschaft.Gastwirtschaft;

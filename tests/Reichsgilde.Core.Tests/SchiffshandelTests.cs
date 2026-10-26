@@ -63,10 +63,10 @@ static class SchiffshandelTests
 
     public static IEnumerable<(string, Action)> Alle() => new (string, Action)[]
     {
-        ("Daten: Datenversion 55, ein Flussschiff, zwei ferne Städte (flussauf und flussab); Fehler fallen auf", () =>
+        ("Daten: Datenversion 57, ein Flussschiff, zwei ferne Städte (flussauf und flussab); Fehler fallen auf", () =>
         {
             var d = Daten.Value.Schiffshandel!;
-            Pruefe.Gleich(55, Daten.Value.Version);
+            Pruefe.Gleich(57, Daten.Value.Version);
             Pruefe.Gleich(1, d.Schiffe.Count);
             Pruefe.Gleich("flussauf, flussab", string.Join(", ", d.Staedte.Select(s => s.Richtung)));
             Pruefe.Gleich(120, d.Schiffe["Flussschiff"].Gesamtkapazitaet);
@@ -167,32 +167,33 @@ static class SchiffshandelTests
             Pruefe.Wahr(w2.Ausfuehren(fremd, new SchiffVerkaufen("Gute Hoffnung")).Meldung.Contains("gehört nicht"), "fremdes Schiff");
         }),
 
-        ("Fahrt: Beladen 20 Min., flussauf 120 Min. hin, 30 Min. Liegezeit, 72 Min. zurück; verkauft dort, kauft Eisen, verkauft es daheim am Markt", () =>
+        ("Fahrt: Beladen 22 Min., flussauf 134 Min. hin, 34 Min. Liegezeit, 80 Min. zurück (Datenversion 57: × 1140/1020); verkauft dort, kauft Eisen, verkauft es daheim am Markt", () =>
         {
             var (sim, w, k) = Stadt();
             var s = Kaufen(w, k);
             var typ = s.Daten;
             var eisenfurt = w.Schiffahrt.Stadt("Eisenfurt")!;
-            Pruefe.Gleich((120, 72), (Schiffahrt.Fahrzeit(typ, eisenfurt, true), Schiffahrt.Fahrzeit(typ, eisenfurt, false)));
-            Pruefe.Gleich(20 + 120 + 30 + 72, Schiffahrt.Rundreise(typ, eisenfurt));
+            Pruefe.Gleich((134, 80), (Schiffahrt.Fahrzeit(typ, eisenfurt, true), Schiffahrt.Fahrzeit(typ, eisenfurt, false)));
+            Pruefe.Gleich(22 + 134 + 34 + 80, Schiffahrt.Rundreise(typ, eisenfurt));
+            Pruefe.Ungefaehr(242.0 * Spielzeit.MinutenProTag / 1020, Schiffahrt.Rundreise(typ, eisenfurt), 0.002); // je Jahr gleich viele Fahrten wie früher
             var e = w.Ausfuehren(k, new SchiffsauftragErteilen(s.Name, "Eisenfurt", D(("Körnermahlzeit", 20)), D(("Eisen", 30))));
             Pruefe.Wahr(e.Erfolg, e.Meldung);
             Pruefe.Gleich(SchiffZustand.Beladen, s.Zustand);
             Pruefe.Gleich(20, s.Ladung["Körnermahlzeit"]);
             Pruefe.Wahr(k.Laufend.Zutaten > 0, "Hinfracht am Markt gekauft");
             var start = sim.Zeit.VergangeneMinuten;
-            Pruefe.Gleich(start + 20 + 120 + 30 + 72, w.Schiffahrt.ZurueckUm(s));
+            Pruefe.Gleich(start + 22 + 134 + 34 + 80, w.Schiffahrt.ZurueckUm(s));
             Bis(sim, () => s.Zustand == SchiffZustand.Hinfahrt);
-            Pruefe.Gleich(start + 20, sim.Zeit.VergangeneMinuten - 1);
+            Pruefe.Gleich(start + 22, sim.Zeit.VergangeneMinuten - 1);
             Bis(sim, () => s.Zustand == SchiffZustand.InFernerStadt);
-            Pruefe.Gleich(start + 140, sim.Zeit.VergangeneMinuten - 1);
+            Pruefe.Gleich(start + 156, sim.Zeit.VergangeneMinuten - 1);
             Pruefe.Gleich("Eisen=30", Text(s.Ladung));
             Pruefe.Wahr(k.Laufend.Umsatz > 0, "Körnermahlzeit dort verkauft");
             Pruefe.Wahr(eisenfurt.Druck("Körnermahlzeit") > 19 && eisenfurt.Druck("Eisen") > 29, "Druck auf den fernen Markt");
             Bis(sim, () => s.Zustand == SchiffZustand.Rueckfahrt);
             var vorher = k.Laufend.Umsatz;
             Bis(sim, () => s.Zustand == SchiffZustand.AmKai);
-            Pruefe.Gleich(start + 242, sim.Zeit.VergangeneMinuten - 1);
+            Pruefe.Gleich(start + 270, sim.Zeit.VergangeneMinuten - 1);
             Pruefe.Wahr(k.Laufend.Umsatz > vorher, "Eisen daheim verkauft");
             Pruefe.Gleich(0, s.Geladen);
             Pruefe.Gleich((1, (Schiffsauftrag?)null), (s.Fahrten, s.Auftrag));
@@ -268,22 +269,23 @@ static class SchiffshandelTests
             Pruefe.Wahr(zoll > 0 && zoll < 100, $"Transport = 2 × Geleit + Zoll ({k.Laufend.Transport})");
         }),
 
-        ("Ferner Markt: Jeder Verkauf drückt den Preis dort, jeder Kauf hebt ihn; je Stunde holt er 8 % auf", () =>
+        ("Ferner Markt: Jeder Verkauf drückt den Preis dort, jeder Kauf hebt ihn; je Stunde holt er 7,2 % auf (ein Jahr: ein Viertel bleibt)", () =>
         {
             var (sim, w, k) = Stadt();
             var stadt = w.Schiffahrt.Stadt("Weidenmünd")!;
             var ring = stadt.Ankaufpreis("Silberring");
             var gold = stadt.Verkaufspreis("Gold");
-            Pruefe.Ungefaehr(Daten.Value.Waren["Silberring"].Grundpreis * 1.6, ring, 1e-9);
+            Pruefe.Ungefaehr(Daten.Value.Waren["Silberring"].Grundpreis * 1.4, ring, 1e-9);
             Pruefe.Wahr(stadt.Erloes("Silberring", 10) < 10 * ring && stadt.Kosten("Gold", 10) > 10 * gold, "Preis verschiebt sich je Stück");
             Pruefe.Ungefaehr(stadt.Erloes("Silberring", 10), stadt.Erloes("Silberring", 4) + stadt.Erloes("Silberring", 6, vorher: 4), 1e-9);
             stadt.Verkaufen("Silberring", 30);
             stadt.Kaufen("Gold", 30);
             Pruefe.Wahr(stadt.Ankaufpreis("Silberring") < ring * 0.9, "gesättigt");
             Pruefe.Wahr(stadt.Verkaufspreis("Gold") > gold * 1.1, "teurer");
-            // eine Stunde: Druck × 0,92
+            // eine Stunde: Druck × 0,928 (Datenversion 56; nach den 19 Stunden eines Jahres ist ein Viertel übrig wie vorher nach 17)
             for (var i = 0; i < 60; i++) sim.Tick();
-            Pruefe.Ungefaehr(30 * 0.92, stadt.Druck("Silberring"), 1e-9);
+            Pruefe.Ungefaehr(30 * 0.928, stadt.Druck("Silberring"), 1e-9);
+            Pruefe.Ungefaehr(Math.Pow(0.92, 17), Math.Pow(0.928, Spielzeit.StundenProTag), 0.003);
             for (var i = 0; i < 60 * 50; i++) sim.Tick();
             Pruefe.Ungefaehr(ring, stadt.Ankaufpreis("Silberring"), 0.01);
             Pruefe.Ungefaehr(gold, stadt.Verkaufspreis("Gold"), 0.01);
@@ -332,8 +334,8 @@ static class SchiffshandelTests
             var stadt = w.Schiffahrt.Stadt("Eisenfurt")!;
             var rueck = D(("Eisen", 30), ("Granit", 30));
             var r = Kalkulation.Schiffsfahrt(w, k, s.Daten, stadt, Nichts, rueck);
-            Pruefe.Gleich(242, r.Minuten);
-            Pruefe.Ungefaehr(r.Gewinn * Spielzeit.MinutenProTag / 242, r.GewinnJeJahr, 1e-9);
+            Pruefe.Gleich(270, r.Minuten);
+            Pruefe.Ungefaehr(r.Gewinn * Spielzeit.MinutenProTag / 270, r.GewinnJeJahr, 1e-9);
             var vorher = k.Vermoegen;
             w.Ausfuehren(k, new SchiffsauftragErteilen(s.Name, stadt.Name, Nichts, rueck));
             Bis(sim, () => s.Fahrten == 1);
@@ -374,7 +376,7 @@ static class SchiffshandelTests
             Pruefe.Wahr(nach10.Sichtbar, "10 Minuten nach dem Ablegen zu sehen");
             Pruefe.Wahr(nach10.Ort.X > hafen.Liegeplatz.X + 30, $"flussauf nach Osten: {nach10.Ort}");
             Pruefe.Wahr(nach10.RichtungX > 0.5, "fährt nach Osten");
-            Pruefe.Ungefaehr(10.0 / 120, nach10.Fortschritt, 1e-9);
+            Pruefe.Ungefaehr(10.0 / 134, nach10.Fortschritt, 1e-9);
             var schritt = sa.Lage(s, s.Beginn + 10.5);
             Pruefe.Wahr(schritt.Ort.Abstand(nach10.Ort) is > 1 and < 6, "gleitet zwischen den Minuten");
             var rand = w.Karte!.Kartengrenzen.Spielfeld.X1;

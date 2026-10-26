@@ -103,7 +103,7 @@ public sealed class KopplungDaten
     /// <summary>Messe: Gläubige und Kollekte × (Betende ÷ üblich zur Messe).</summary>
     public double Kirche { get; init; }
 
-    /// <summary>Markt: Nachfrage der Waren aus <see cref="MarktTypen"/> × (Einkaufsstunden der letzten 17 Stunden ÷ üblich am Tag).</summary>
+    /// <summary>Markt: Nachfrage der Waren aus <see cref="MarktTypen"/> × (Einkaufsstunden der letzten 19 Stunden ÷ üblich am Tag).</summary>
     public double Markt { get; init; }
 
     /// <summary>Für den Markt eigene, engere Grenze: Faktor zwischen 1 − marktSpanne und 1 + marktSpanne.</summary>
@@ -186,7 +186,7 @@ public sealed class WegeDaten
 /// <summary>Wie ein Bedürfnis über den Tag wächst.</summary>
 public sealed class BeduerfnisDaten
 {
-    /// <summary>Dringlichkeit um 05:00 Uhr (Beginn des Spieltags).</summary>
+    /// <summary>Dringlichkeit um 04:00 Uhr (Beginn des Spieltags).</summary>
     public double Start { get; init; }
 
     /// <summary>So viel steigt die Dringlichkeit je Stunde.</summary>

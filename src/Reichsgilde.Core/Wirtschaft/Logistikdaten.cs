@@ -63,13 +63,13 @@ public sealed class UeberfallDaten
     /// <summary>Chance, dass eine beladene Umland-Fahrt bei Tag angegriffen wird.</summary>
     public double ChanceTag { get; init; } = 0.08;
 
-    /// <summary>Faktor für Fahrten in der Dunklen Nacht (20–22 Uhr).</summary>
+    /// <summary>Faktor für Fahrten in der Dunklen Nacht (20–23 Uhr).</summary>
     public double FaktorNacht { get; init; } = 2;
 }
 
 /// <summary>
 /// Die Stadttore (Abschnitt "logistik.tore", ab Datenversion 30). Ab <see cref="SchliessenUm"/> Uhr sind sie zu,
-/// mit Tagesbeginn (05:00) wieder offen. Umlandkarren kommen dann nur mit Nachtfahrt-Erlaubnis gegen
+/// mit Tagesbeginn (04:00) wieder offen. Umlandkarren kommen dann nur mit Nachtfahrt-Erlaubnis gegen
 /// <see cref="Torgeld"/> durch – sonst warten sie bis zum Morgen am Tor. Fehlt der Abschnitt, gibt es keine Tore.
 /// </summary>
 public sealed class ToreDaten

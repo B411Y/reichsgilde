@@ -1,3 +1,4 @@
+using Reichsgilde.Core.Zeit;
 using Reichsgilde.Core;
 using Reichsgilde.Core.Gauner;
 using Reichsgilde.Core.Partie;
@@ -10,7 +11,7 @@ using Reichsgilde.Core.Wirtschaft;
 /// </summary>
 static class KasseneinbruchTests
 {
-    static readonly string Json = File.ReadAllText(Datenpfad.Wirtschaft());
+    static readonly string Json = Datenpfad.EinVersuchJeNacht(File.ReadAllText(Datenpfad.Wirtschaft()));
 
     /// <summary>Diebstahl und Einbruch gelingen immer (95 % bzw. 100 %), keine Zeugen.</summary>
     static readonly Lazy<Wirtschaftsdaten> Sicher = new(() => Wirtschaftsdaten.AusJson(Json
@@ -85,7 +86,7 @@ static class KasseneinbruchTests
             var e = w.Ausfuehren(dieb, new Einbrechen(k.Inhaber, b.Name));
             Pruefe.Wahr(e.Erfolg, e.Meldung);
             var gaunereiVorher = dieb.Laufend.Gaunerei; // tagsüber bringen die Taschendiebe Geld – die Beute aus der Kasse steht unter Gaunerei
-            for (var i = 0; i < 15 * 60 + 1; i++) sim.Tick();
+            for (var i = 0; i < 20 * 60 + 1 - Spielzeit.TagesbeginnMinute; i++) sim.Tick();
             // Gelungen oder nicht – es ist entweder genau der Deckel oder nichts verschwunden.
             var weg = 20_000 - w.Bank.Kasse(b);
             Pruefe.Wahr(Math.Abs(weg) < 1e-6 || Math.Abs(weg - 500) < 1e-6, $"weg {weg}");
