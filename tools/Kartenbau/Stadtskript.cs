@@ -163,6 +163,9 @@ public abstract class Stadtskript
         Textur(textur, strich, radius, staerke, kante: 0.7);
     }
 
+    /// <summary>Malt das Kopfsteinpflaster der Gassen unter jeden Marktplatz (der Marktplatz hat keinen eigenen Boden; Umbauten/Marktpflaster.cs). Nach <c>E.Setzen("markt", …)</c> aufrufen.</summary>
+    protected void MarktPflastern() => Umbauten.Marktpflaster.Malen(E);
+
     /// <summary>
     /// Ein Vieleck um <paramref name="abstand"/> Meter versetzt: positiv nach außen, negativ nach innen. Jede Seite wandert parallel, die neuen
     /// Ecken liegen auf den Schnittpunkten der Nachbarseiten (gerade Fortsetzungen: die Ecke wandert nur).

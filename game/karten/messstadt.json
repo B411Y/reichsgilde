@@ -215,5 +215,16 @@
   ]
  },
  "kamera": {"punkt": [0, 0], "zoom": 140, "drehung": 0},
- "fiktion": ["Ganz erfunden: eine Stadt mit Platz für acht KI-Häuser, damit die Messung 1, 3, 5 und 8 Häuser vergleichen kann."]
+ "fiktion": ["Ganz erfunden: eine Stadt mit Platz für acht KI-Häuser, damit die Messung 1, 3, 5 und 8 Häuser vergleichen kann."],
+ "boden": {
+  "abstand": 1,
+  "kachel": 64,
+  "startwert": 1,
+  "kacheln": [
+   {"i": -1, "j": -1, "pflaster": "7/7/7/7/7/7/7/7/7/7/7/7/7/4z+Ofv/v/soA=="},
+   {"i": 0, "j": -1, "pflaster": "7/7/7/7/7/7/7/7/7/7/7/7/7/+Ofgv/1+/+/+8Q"},
+   {"i": -1, "j": 0, "pflaster": "4z+Ofv/v/v/j7/1+/+/+/+/+/+/+/+/+/+/+/+/+ig=="},
+   {"i": 0, "j": 0, "pflaster": "+Ofgv/1+/+/+/+Mf/X4L+Ofv/v/v/v/v/v/v/v/v/v/v/v/rEA=="}
+  ]
+ }
 }

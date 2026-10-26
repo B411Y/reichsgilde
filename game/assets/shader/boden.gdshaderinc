@@ -557,6 +557,16 @@ void fragment() {
 		float hart = smoothstep(2.0, 4.0, max(abs(dFdx(st)) / meter.x, abs(dFdy(st)) / meter.y));
 		if (st > 1.0 && st < 3.0) ws.b = mix(st, st < 2.0 ? 1.0 : 3.0, hart) * 0.25;
 	}
+	// Marktplatz: Gemaltes Pflaster in der Mauer bleibt Pflaster. Der Grund dort ist kein Lehm, und die Wege, die unter dem Platz enden, bleiben unsichtbar.
+	// stadtgrund bleibt für das Wetter (Nässe und Schnee wie in den Gassen) erhalten.
+	float stadtgrund = info.b;
+	float marktpflaster = smoothstep(0.3, 0.7, pflaster) * smoothstep(0.3, 0.7, stadtgrund);
+	info.b *= 1.0 - marktpflaster;
+	// am Rand des Pflasters kein grüner Saum: In der Mauer gibt es keine Wiese, ihr Anteil geht an den Lehm
+	if (stadtgrund > 0.0) {
+		w[T_LEHM] += w[T_WIESE] * stadtgrund;
+		w[T_WIESE] *= 1.0 - stadtgrund;
+	}
 	bool nur_stadt = info.b > 0.996;
 
 	// Fels am Hang: ab etwa 35° Gefälle tritt er von selbst hervor (die Grenze leicht unregelmäßig). Er wird nach den übrigen Texturen
@@ -708,7 +718,7 @@ void fragment() {
 	float auf_weg = 0.0; // für das Wetter: 1 mitten auf einem Weg (dort ist der Schnee ausgetreten, dort stehen Pfützen)
 	if (wege_an) {
 		float e = ws.g * 8.0 - 6.0;
-		auf_weg = 1.0 - smoothstep(-0.35, 0.15, e);
+		auf_weg = (1.0 - smoothstep(-0.35, 0.15, e)) * (1.0 - marktpflaster);
 		float kante = max(fwidth(e), 0.02); // außerhalb der Verzweigung: Ableitungen brauchen alle Nachbarpunkte
 		// in der Mauer (Schritt 5j): festgetretener Lehm als Grund, die Gassen sind gepflastert (mitten in einer Gasse sieht man den Lehm nicht)
 		if (info.b > 0.004 && e > -0.35) {
@@ -722,13 +732,13 @@ void fragment() {
 		if (e < 1.9) {
 			vec4 wg = weg(p3, n, dpx, dpy, kante, vec4(farbe, fh.a), gr, wiese, rau, e, ws.r * 10.0, ws.b * 4.0, sp, info.r, info.g, pflaster,
 					info.b, info.a * 4.0, hoehe, nw);
-			farbe = wg.rgb;
-			rau = wg.a;
+			farbe = mix(wg.rgb, farbe, marktpflaster);
+			rau = mix(wg.a, rau, marktpflaster);
 		}
 	}
 	// Wetter: Nässe, Pfützen (in Hoch mit Regenringen) und Schnee (wetter.gdshaderinc)
 	vec3 leuchten = vec3(0.0);
-	wetter_boden(farbe, rau, nw, leuchten, welt, n, auf_weg, info.b, 1.0 - fh.a, wiese, BODEN_STUFE >= 2, TIME);
+	wetter_boden(farbe, rau, nw, leuchten, welt, n, auf_weg, stadtgrund, 1.0 - fh.a, wiese, BODEN_STUFE >= 2, TIME);
 	ALBEDO = farbe;
 	EMISSION = leuchten;
 	ROUGHNESS = clamp(rau, 0.0, 1.0);

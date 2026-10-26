@@ -83,6 +83,7 @@ public sealed class Messstadt : Stadtskript
 
         // ── Gebäude am Markt ─────────────────────────────────────────────────
         E.Setzen("markt", 0, 0);
+        MarktPflastern();                    // Kopfsteinpflaster der Gassen statt eines Plattenbodens im Modell
         E.Setzen("rathaus", 0, -19);         // die Vorderseite zum Markt (Süden)
         E.Setzen("kirche", 0, 22, 180);      // die Vorderseite zum Markt (Norden)
 

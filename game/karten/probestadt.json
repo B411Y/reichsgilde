@@ -799,6 +799,8 @@
     "mist": "7/7/7/7/7/7/7/7/7/7/7/7/7/7/7/7qT+T4X4H3/0/UPgw=",
     "deko": "7/7/7/7/7/7/7/7/7/7/7/7/4cIiIAERHjNGQiIAERNT4vSEREICEBMzNz4rJmZkIi4DERNVNT4oJoZEJCAgAQExMRU3PiUmZmRCAuBRATIxcxc+I2hkRAQBLgMSAyIVEFNVPiBGZkIiEAEQAiACYRAQM1E3Ph6GREIAERMBIEImIAFjERMzVT4bRGRAIBE1EwBCZGQAQgE0EzMzc+GWRCJBETcR4DIoYkKAACIxMBU1U+FiRCQAATcB4FIiRIQiCBAyAzMTNz4UIkIiEBUR4JJIJCggAkEREDVVfhMiIgAhMR4LIERmJCJAEUMTNzceESIAIAED4PJGQkoSBAAxUXV+Ey4EHhEgRmQiKAEDBVVQ"
    },
+   {"i": -1, "j": -1, "pflaster": "7/7/7/7/7/7/7/7/7/7/7/7/7/4z+Ofv/v/soA=="},
+   {"i": 0, "j": -1, "pflaster": "7/7/7/7/7/7/7/7/7/7/7/7/7/+Ofgv/1+/+/+8Q"},
    {
     "i": 3,
     "j": -1,
@@ -812,6 +814,8 @@
     "erde": "h+PckePPS1489Jfjz0WR478lU+O8UT47YDHjsgHjwQLjxyJOO7Ri478WZOO/OILjvziuPPPG48vOPVbv/v/v/v/v/v/v/v/v/v/v/r0=",
     "deko": "Q+PWXj2DPjylPjyjMeO2E+PGER47QQHjsgHjwQLjwyAuO1Ii47dE48ckLjuWTjx0Tjx449Eu/+/+/+/+/+/+/+/+/+/+/+vQ"
    },
+   {"i": -1, "j": 0, "pflaster": "4z+Ofv/v/v/j7/1+/+/+/+/+/+/+/+/+/+/+/+/+ig=="},
+   {"i": 0, "j": 0, "pflaster": "+Ofgv/1+/+/+/+Mf/X4L+Ofv/v/v/v/v/v/v/v/v/v/v/v/rEA=="},
    {"i": -4, "j": 1, "schlamm": "7/7/7/7/7/7/7/7/7/7/7/7/7/7/7/79IA==", "deko": "7/7/7/7/7/7/7/7/7/7/7/7/7/7/7/7+IA=="},
    {
     "i": -3,
