@@ -344,7 +344,7 @@ Fahrplan (vom Nutzer am 21.10.2026 bestätigt, je Schritt ein PR; Stand wird hie
 | Klicktest Modelle | Vulkan auf der T400, neu importiert, Probestadt mit Kran, Zoll und Schuppen neben dem Hafen am Sandfluss, Voreinstellung Hoch, klar, Mittag; das Schiff für den Test vorübergehend an `Kahn1` des Hafens gehängt (nicht eingecheckt). Bibliothek greift (Bretter, Bruchstein, Schiefer, Dachziegel), Wimpel in der Hausfarbe flattert, Tretrad dreht sich, Spiel und Kartenwerkstatt ohne SCRIPT oder SHADER ERROR. | 25.10.2026 |
 | Greybox (Umsetzung, Leveldesign) | Kartenskript-Umbau `greybox-hafen`: Spielfeld 400 × 400 m (Mitte 0 \| 50), nichts Vorhandenes verschoben. Grenzfluss 36 m breit, West → Ost von Außenkante zu Außenkante (x −500 … 500), Mitte bei z ≈ 160 … 174, Ufer sanft abgesenkt (1,5 m in der Flussmitte, Stadt flach), Sand und Schlamm am Ufer. Südtor bei 38 \| 50 in der Verlängerung der östlichen Ringgasse – dafür ziehen die Einwohnerplätze Ring19 und Ring20 als Uferplatz 1 und 2 an die Hafenstraße. Südgasse (Hauptstraße 4 m) und Hafenstraße (Landstraße) zum Hafen am Grenzfluss bei 38 \| 140 (Kai nach Süden); Kiesplatz für die Zollstelle bei 58 \| 142. Prüfung 0 Fehler, dieselben 7 Hinweise wie vorher. | 25.10.2026 |
 
-### Freie Startplätze (PR #…)
+### Freie Startplätze (PR #209)
 
 | Thema | Entscheidung | Datum |
 |---|---|---|
