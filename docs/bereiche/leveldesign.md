@@ -359,7 +359,7 @@ Fahrplan (vom Nutzer am 21.10.2026 bestätigt, je Schritt ein PR; Stand wird hie
 | Umsetzung | Kartenskript: Umbauten `marktpflaster-greybox`, `-koeln`, `-probestadt`, `-messstadt` und die Hilfe `MarktPflastern()` für Stadtskripte (`tools/Kartenbau/Umbauten/Marktpflaster.cs`; Probestadt und Messstadt rufen sie nach dem Markt). Alle vier Karten: `pruefen` 0 Fehler, Köln und Messstadt haben dadurch erstmals ein `boden`-Feld (nur Pflaster am Markt). Tests angepasst (`BodenTests`: Köln und Messstadt nicht mehr „ohne Boden“) und ein Test für alle Märkte ergänzt. | 26.10.2026 |
 
 
-### Köln richtig bauen (PR #…)
+### Köln richtig bauen (PR #213)
 
 | Thema | Entscheidung | Datum |
 |---|---|---|
