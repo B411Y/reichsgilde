@@ -1205,7 +1205,7 @@ public sealed partial class KiRivale
     ///     Richter (Ratsherren), bis eine Mehrheit freispräche – aber nur, wenn das Budget dafür reicht.
     ///   • Anklagen: erst, wenn die Beweise so stark sind, dass auch bestochene Richter schuldig sprächen.
     ///   • Spitzel (PR #208): auf das stärkste Haus, das politisch mitspielt (ab Bürger) und vor ihr liegt oder ihr geschadet hat,
-    ///     höchstens einmal im Jahr und gegen dasselbe Haus höchstens jedes zweite Jahr.
+    ///     höchstens jedes zweite Jahr einer (also auch gegen dasselbe Haus höchstens jedes zweite Jahr).
     /// </summary>
     private void Verteidigung()
     {
@@ -1230,12 +1230,11 @@ public sealed partial class KiRivale
                 $"klagt {gegner.Inhaber} wegen Bestechung an ({gericht.Beweise(Konto, gegner).Count()} Beweise – genug für einen sicheren Schuldspruch).");
         }
 
-        if (_spitzelDiesesJahr.Count > 0) return; // einmal im Jahr
+        if (_spitzelDiesesJahr.Count > 0 || _spitzelVorjahr.Count > 0) return; // höchstens jedes zweite Jahr einer
         var rangliste = _w.Rangliste.ToList();
         var eigenerRang = rangliste.IndexOf(Konto);
         var ziel = rangliste.FirstOrDefault(k => k != Konto && k.IstAktiv && k.Stand >= 1 && !gericht.HatSpitzel(Konto, k)
-                                                  && (rangliste.IndexOf(k) < eigenerRang || HatGeschadet(k))
-                                                  && !_spitzelVorjahr.Contains(k.Inhaber));
+                                                  && (rangliste.IndexOf(k) < eigenerRang || HatGeschadet(k)));
         if (ziel is not null && Konto.Vermoegen - d.SpitzelKosten >= Profil.Reserve
             && Befehlen(new SpitzelAnsetzen(ziel.Inhaber), $"setzt einen Spitzel auf {ziel.Inhaber} an ({Zahlenformat.Ganz(d.SpitzelKosten)} {_w.Daten.Allgemein.Waehrung})" +
                                                               (HatGeschadet(ziel) ? $" – {ziel.Inhaber} hat dem Haus geschadet." : $" – {ziel.Inhaber} liegt vorn.")))
