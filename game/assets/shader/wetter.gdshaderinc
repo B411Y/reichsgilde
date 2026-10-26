@@ -143,14 +143,18 @@ void wetter_flaeche(inout vec3 c, inout float rau, vec3 wn, vec3 wp, vec2 dach, 
 	}
 	if (wetter_dach > 0.001) {
 		float pv = dach.y / reihe;
-		float fein = 1.0 - smoothstep(0.2, 0.55, fwidth(pv));   // 1 nah genug für Reihen, 0 zu weit
+		float fein = 1.0 - smoothstep(0.05, 0.28, fwidth(pv));   // 1 nah genug für Reihen, 0 zu weit
 		float fr = fract(pv);
 		float flach = smoothstep(0.9, 0.98, wn.y);               // Mauerkronen, Plätze: keine Reihen
 		float kante = mix(1.0 - smoothstep(0.0, 0.4, fr), 0.35, flach);   // unten in jeder Reihe, wo sie unter der nächsten liegt
 		float f = w_rausch(vec2(dach.x * 0.5, pv * 0.2)) * 0.65 + w_rausch(vec2(dach.x * 1.9 + 7.1, pv * 0.7)) * 0.35;
 		float mittel = clamp(wetter_dach * 1.5 - 0.3, 0.0, 1.0);
 		float dicke = clamp(mittel + ((f - 0.5) * 0.8 + (kante - 0.35) * 0.14) * fein, 0.0, 1.0);
-		float d = smoothstep(0.32, 0.55, wn.y + (f - 0.5) * 0.25 * fein) * smoothstep(0.25, 0.75, dicke);   // Schnee oder frei, dazwischen nur ein schmaler Rand
+		// nah: Reihenmuster, Schnee oder frei; fern: fast geschlossene Decke, die Reste grau-schattig statt in Ziegelfarbe
+		float nah = smoothstep(0.25, 0.75, dicke);
+		float fern = smoothstep(0.12, 0.4, mittel) * 0.97;
+		float d = smoothstep(0.32, 0.55, wn.y + (f - 0.5) * 0.25 * fein) * mix(fern, nah, fein);
+		c = mix(c, vec3(dot(c, vec3(0.3, 0.55, 0.15))) * vec3(0.9, 0.93, 1.0), (1.0 - fein) * 0.7 * smoothstep(0.32, 0.55, wn.y));
 		c = mix(c, vec3(0.7, 0.72, 0.77), d);
 		rau = mix(rau, 0.75, d);
 	}
