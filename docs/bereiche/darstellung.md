@@ -1207,7 +1207,7 @@ Entscheidungen zur Sitzung: `docs/bereiche/oberflaeche.md`, „Sichtbare Ratssit
 | Nebel | Dunst unverändert (am Spieltagsbeginn dicht, 23 Uhr 30 %); Kommentar angepasst. Der Sprung 0,3 → 1 beim Jahreswechsel bestand schon vorher. | 26.10.2026 |
 | Klicktest | Vulkan auf der T400, neu importiert, vorher/nachher: Sommer und Winter 4, 5, 21, 22, 22:50, Jahreswechsel, Innenansicht 4:35; keine SCRIPT- oder SHADER-ERROR. Der Hauptspielstand war um 22 Uhr schon vorher dunkel (ein „taghelles“ Bild kam aus einem zu früh gemachten Foto beim Laden). Bilder: Notizordner `zeit/bilder`. | 26.10.2026 |
 
-### Feinschliff: Nebel, Schnee auf Dächern, Marktplatz, Gras (PR #…)
+### Feinschliff: Nebel, Schnee auf Dächern, Marktplatz, Gras (PR #212)
 
 | Thema | Entscheidung | Datum |
 |---|---|---|
