@@ -1,4 +1,4 @@
-"""Erzeugt alle Modelle neu (Wohnhäuser, Werkstätten, Innenräume, Einwohnerhäuser, Sonderbauten, Umland, Natur, Figuren, Markt, Karren,
+"""Erzeugt alle Modelle neu (Wohnhäuser, Werkstätten, Innenräume, Einwohnerhäuser, Sonderbauten, Umland, Natur, Figuren, Markt, Karren, Lichter,
 Vögel und Wasser) und rendert die
 Übersicht der Wohnhaus-Stufen.
 
@@ -40,6 +40,7 @@ BERGE = ["berg_grube"]        # Felsberg hinter der Grube (eigene Datei, Knoten 
 UMLANDSTELLEN = ["umland_stellen"]                       # Weide, Feld und Wald der Einwohner
 NATUR = ["natur_baeume", "natur_buesche", "natur_boden", "natur_steine", "natur_holz"]   # Baukästen, gemeinsame Teile in natur.py
 MARKT = ["markt"]             # ein Skript, schreibt marktplatz.glb (Platz und Anker) und marktstaende.glb (Baukasten)
+LICHTER = ["lichter"]         # ein Skript, schreibt lichter.glb: Handlaterne, Fackel, Wandlaterne, Feuerkorb, Ewiges Licht (Baukasten)
 KARREN = ["karren"]           # ein Skript, schreibt karren_hand/ochse/krieg.glb mit Zugtieren und Bewegungen
 VOEGEL = ["voegel"]           # ein Skript, schreibt vogel_taube/spatz.glb mit Skelett und Bewegungen
 FIGUREN = ["figuren"]         # ein Skript, schreibt figur_mensch/zwerg/elb/halbling.glb mit Skelett und Bewegungen
@@ -104,7 +105,7 @@ def uebersicht(schnell=False, luft=0.5):
 
 def main():
     schalter = [a for a in sys.argv if a in ("--schnell", "--ohne-bilder")]
-    for name in [n for n, _ in WOHNHAEUSER] + WERKSTAETTEN + INNENRAEUME + EINWOHNERHAEUSER + SONDERBAUTEN + UMLAND + BERGE + UMLANDSTELLEN + NATUR + FIGUREN + MARKT + KARREN + VOEGEL + WASSER:
+    for name in [n for n, _ in WOHNHAEUSER] + WERKSTAETTEN + INNENRAEUME + EINWOHNERHAEUSER + SONDERBAUTEN + UMLAND + BERGE + UMLANDSTELLEN + NATUR + FIGUREN + MARKT + LICHTER + KARREN + VOEGEL + WASSER:
         erzeugen(name, schalter)
     if "--ohne-bilder" not in schalter:
         print(uebersicht(schnell="--schnell" in schalter))

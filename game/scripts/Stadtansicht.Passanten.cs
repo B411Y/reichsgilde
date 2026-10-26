@@ -51,6 +51,8 @@ public partial class Stadtansicht
         /// Die alte wird frei, sobald die Figur losgeht.</summary>
         public int Marktstelle { get; set; } = -1;
         public int AlteMarktstelle { get; set; } = -1;
+        /// <summary>Laterne oder Fackel in der Hand, solange es dunkel ist (Stadtansicht.Nachtlichter.cs); null, bis die Figur das erste Mal im Dunkeln draußen ist.</summary>
+        public Traglicht? Licht { get; set; }
     }
 
     private readonly Dictionary<int, Passant> _passanten = new();
@@ -120,6 +122,7 @@ public partial class Stadtansicht
                 AmOrtStellen(p, e, ort, weg, minuteGenau, losgegangen);
             else
                 Laufen(p, e.Nummer, minuteGenau, ticksJeSekunde);
+            PassantLichtStellen(p, e); // Laterne oder Fackel im Dunkeln (Stadtansicht.Nachtlichter.cs)
             if (p.Knoten.Visible && p.Figur is { } figur)
                 FigurImBildBewegen(figur, p.Knoten.Position, sekunden);
         }

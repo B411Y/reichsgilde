@@ -18,6 +18,10 @@ Mit `--wasser` (wasser_…glb: Brücken, Fähre, Hafen, Furt- und Ufersteine) si
 die Anker „Anker_Ufer“ und „Anker_Tuer“. Nichts reicht tiefer als 4,5 m unter die Uferkante. Hat ein Teil extras „laenge“ und
 „deckhoehe“, müssen seine zwei Anschlüsse („Anschluss_…“) genau „laenge“ auseinander liegen und die Anschlüsse zur Brücke
 (…_A, …_B, …_Bruecke) auf der Deckhöhe.
+Mit `--baukasten` (Baukasten-Modelle wie lichter.glb: mehrere getrennte Teile, die einzeln ins Spiel gesetzt werden, manche
+hängen unter ihren Ursprung) gelten nur diese Regeln: jedes Teil (Knoten mit Netz ohne Eltern) hat höchstens 1.000 Dreiecke und
+extras „teil“, und die Materialien „Flamme“ und „Laternenlicht“ dürfen nicht leuchten (kein oder null „emissiveFactor“);
+Hausfarbe, Zustände, Anker und Boden werden nicht geprüft.
 Ankerpunkte („Anker_…“, leere Knoten) werden mit Lage und Blickrichtung gelistet; „Anker_Tuer“ ist Pflicht
 und jeder Anker muss auf der Fläche liegen.
 Mit `--innen` (Innenräume, z. B. schmied_innen.glb) gelten eigene Regeln: Räume „Raum_<Name>“, Stufe1–Stufe3, je Raum
@@ -490,7 +494,41 @@ def wasser(g):
     return fehler
 
 
+def baukasten(g):
+    """Prüfung der Baukasten-Modelle (siehe oben). Gibt die Liste der Fehler zurück."""
+    fehler = []
+    knoten = g["nodes"]
+    print("Materialien:", ", ".join(m["name"] for m in g.get("materials", [])))
+    gefuehrt = {k for n in knoten for k in n.get("children", [])}   # Knoten, die ein anderer in children führt, haben Eltern
+
+    def dreiecke(i):
+        return sum(g["accessors"][p["indices"]]["count"] // 3 for p in g["meshes"][knoten[i]["mesh"]]["primitives"]
+                   if "indices" in p)
+
+    print(f"{'Teil':16s} {'Dreiecke':>8s}  extras")
+    teile = [i for i, n in enumerate(knoten) if "mesh" in n and i not in gefuehrt]
+    for i in teile:
+        n = knoten[i]
+        d = dreiecke(i)
+        print(f"{n['name']:16s} {d:8d}  {n.get('extras', '')}")
+        if d > 1000:
+            fehler.append(f"{n['name']}: {d} Dreiecke (höchstens 1.000)")
+        if "teil" not in n.get("extras", {}):
+            fehler.append(f"Teil {n['name']}: extras „teil“ fehlt")
+    if not teile:
+        fehler.append("kein Teil gefunden (Knoten mit Netz ohne Eltern)")
+    for m in g.get("materials", []):
+        if m.get("name") in ("Flamme", "Laternenlicht") and m.get("emissiveFactor", [0, 0, 0]) != [0, 0, 0]:
+            fehler.append(f"Material {m['name']} leuchtet im Modell – das Spiel schaltet das Leuchten")
+    return fehler
+
+
 def main():
+    if "--baukasten" in sys.argv:
+        pfad = [a for a in sys.argv[1:] if not a.startswith("--")][0]
+        fehler = baukasten(lesen(pfad))
+        print("in Ordnung" if not fehler else "FEHLER:\n  " + "\n  ".join(fehler))
+        sys.exit(1 if fehler else 0)
     if "--wasser" in sys.argv:
         pfad = [a for a in sys.argv[1:] if not a.startswith("--")][0]
         fehler = wasser(lesen(pfad))

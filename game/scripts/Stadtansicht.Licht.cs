@@ -1,4 +1,5 @@
 using Godot;
+using Reichsgilde.Core.Zeit;
 
 namespace Reichsgilde;
 
@@ -44,6 +45,9 @@ public partial class Stadtansicht
     /// </summary>
     private const float SprungMinuten = 45f;
 
+    /// <summary>Der gemeinsame Dämmerungswert der gezeigten Stimmung (0 = Tag, 1 = Nacht), aus dem alle Lichter der Stadt ihren Beginn nehmen.</summary>
+    private float _daemmerung;
+
     private Lichtstimmung? _gezeigteStimmung;
     private Lichtstimmung _ueberblendenVon;
     private float _ueberblendung = 1f;
@@ -59,9 +63,9 @@ public partial class Stadtansicht
     ///
     /// <paramref name="echtzeit"/> ist die vergangene Echtzeit seit dem letzten Bild (für die Überblendung bei Sprüngen).
     /// </summary>
-    private void LichtNachUhrzeit(float uhrzeitInMinuten, double echtzeit)
+    private void LichtNachUhrzeit(float uhrzeitInMinuten, double echtzeit, Jahreszeit jahreszeit = Jahreszeit.Fruehling)
     {
-        var ziel = StimmungUm(uhrzeitInMinuten / 60f);
+        var ziel = StimmungUm(uhrzeitInMinuten / 60f, jahreszeit);
         if (_letzteLichtUhrzeit >= 0 && Mathf.Abs(uhrzeitInMinuten - _letzteLichtUhrzeit) > SprungMinuten && _gezeigteStimmung is { } alt)
         {
             _ueberblendenVon = alt;
@@ -84,6 +88,7 @@ public partial class Stadtansicht
         umgebung.BackgroundColor = ziel.Himmel;
         umgebung.AmbientLightColor = ziel.Umgebung;
         umgebung.AmbientLightEnergy = ziel.Umgebungsstaerke;
+        _daemmerung = ziel.Fenster;
         FensterlichtSetzen(ziel.Fenster, uhrzeitInMinuten / 60f); // Stadtansicht.Modelle.cs – fasst die Materialien nur bei merklicher Änderung an
         RaumlichtSetzen(ziel.Himmel, ziel.Hell); // Stadtansicht.Raeume.cs
     }
@@ -99,8 +104,9 @@ public partial class Stadtansicht
     /// Sonne und Mond sind <b>ein</b> Licht mit einer Schattenkarte (das spart die Hälfte der Schattenarbeit). Es wechselt die
     /// Richtung nur, wenn es gerade ganz ausgeblendet ist – darum kippen die Schatten nie sichtbar.
     /// </summary>
-    private static Lichtstimmung StimmungUm(float stunde)
+    private static Lichtstimmung StimmungUm(float uhrStunde, Jahreszeit jahreszeit)
     {
+        var stunde = BezugsStunde(uhrStunde, jahreszeit); // alle Kurven unten gelten für den Bezugstag (siehe BezugsStunde)
         // Sonne: Aufgang 05:30 im Osten (+X), Untergang 20:00 im Westen. Sie blendet nach dem Aufgang ein und kurz vor dem
         // Untergang aus – so steht sie nie mit voller Kraft auf dem Horizont (dort wären alle Schatten endlos lang).
         var bogen = Mathf.Clamp((stunde - 5.5f) / 14.5f, 0f, 1f);
@@ -146,11 +152,41 @@ public partial class Stadtansicht
         // wird als in der Nacht danach, hellt das Himmelslicht diese Lücke etwas auf (die „blaue Stunde“).
         var luecke = (1 - Mathf.Max(sonnenSicht, mondSicht)) * (1 - hell);
 
-        // Fensterlicht: geht ab 18 Uhr nach und nach an und ab 05:30 wieder aus (um 22 und um 05 Uhr also gleich hell)
-        var fenster = stunde >= 12 ? Mathf.SmoothStep(18f, 20f, stunde) : 1 - Mathf.SmoothStep(5.5f, 7f, stunde);
+        // Dämmerungswert (0 = Tag, 1 = Nacht), der gemeinsame für alle Lichter der Stadt (Fensterlicht, Nachtlichter, Licht in der Hand,
+        // Kirchenfenster zur Messe): geht im Abendrot nach und nach an und morgens wieder aus. Er hängt am Bezugstag, folgt also der Jahreszeit.
+        var fenster = stunde >= 12 ? Mathf.SmoothStep(18.5f, 20.5f, stunde) : 1 - Mathf.SmoothStep(5.5f, 7f, stunde);
 
         return new Lichtstimmung(richtung, farbe, staerke, schatten, Himmelsfarbe(stunde * 60), umgebung,
                                  0.18f + 0.52f * hell + 0.2f * luecke, hell, fenster);
+    }
+
+    /// <summary>
+    /// Wann es hell und wann es dunkel wird, je Jahreszeit (Uhrzeit mit Bruchteil): Der Himmel ist ab <c>Hell</c> voller Tag und ab <c>Dunkel</c> richtig
+    /// Nacht. Winter hell gegen 7:30 und dunkel gegen 16:30, Sommer 4:30 und 21:30, Frühling und Herbst dazwischen (6:00 und 19:00).
+    /// </summary>
+    private static (float Hell, float Dunkel) Sonnenzeiten(Jahreszeit jahreszeit) => jahreszeit switch
+    {
+        Jahreszeit.Winter => (7.5f, 16.5f),
+        Jahreszeit.Sommer => (4.5f, 21.5f),
+        _ => (6f, 19f),
+    };
+
+    /// <summary>
+    /// Rechnet die Uhrzeit auf den <b>Bezugstag</b> um, für den <see cref="StimmungUm"/> seine Kurven kennt (Sonne 5:30–6:30 auf, 19:00–19:54 unter,
+    /// richtig Nacht ab 21:00, um 5 und um 22 Uhr dieselbe Nacht). Aus der Jahreszeit folgen zwei Zeiten (<see cref="Sonnenzeiten"/>): Morgens ist der
+    /// Bezugstag um 7:30 voll hell und 2,5 Stunden früher Nacht, abends ist er bei 21:00 ganz dunkel; die Dämmerung läuft in 2 echten Stunden durch
+    /// (18 bis 21 Uhr des Bezugstags). Dazwischen vergeht der Bezugstag gleichmäßig. Vor dem Morgengrauen und nach dem Dunkelwerden bleibt er in der
+    /// Nacht (5 bzw. bis 22 Uhr). Der Spieltag selbst (Beginn und Ende, <see cref="Spielzeit.TagesbeginnMinute"/>) kommt hier nicht vor: Er darf
+    /// beliebig früh beginnen und spät enden, die Nacht davor und danach ist immer dieselbe.
+    /// </summary>
+    private static float BezugsStunde(float stunde, Jahreszeit jahreszeit)
+    {
+        var (hell, dunkel) = Sonnenzeiten(jahreszeit);
+        var abendBeginn = dunkel - 2f;
+        if (stunde <= hell) return Mathf.Max(5f, 7.5f - 1.5f * (hell - stunde));
+        if (stunde < abendBeginn) return 7.5f + (stunde - hell) * (18f - 7.5f) / (abendBeginn - hell);
+        if (stunde < dunkel) return 18f + 1.5f * (stunde - abendBeginn);
+        return Mathf.Min(22f, 21f + (stunde - dunkel));
     }
 
     /// <summary>Drehung des gerichteten Lichts: <paramref name="hoehe"/> Grad über dem Horizont, aus der Himmelsrichtung <paramref name="richtung"/> (90 = Osten).</summary>
