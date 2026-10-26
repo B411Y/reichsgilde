@@ -36,6 +36,10 @@ public partial class Stadtansicht
 
     private static Vector3 Mitte3(Grundriss g) => new((float)g.X, 0, (float)g.Z);
     private static float DrehungY(Grundriss g) => g.Drehung * Mathf.Pi / 2;
+    private static Vector3 Mitte3(Hausflaeche f) => new((float)f.X, 0, (float)f.Z);
+
+    /// <summary>Drehung eines Hauses in Godot (ein Wohnhausplatz der Karte darf schräg stehen, <c>Bauwesen.Flaeche</c>).</summary>
+    private static float DrehungY(Hausflaeche f) => Mathf.DegToRad((float)f.DrehungGrad);
 
     // ═════════════════════════════════════════════════════════════════════════
     //  Grundstücke
@@ -59,7 +63,8 @@ public partial class Stadtansicht
                 // Die Plätze der Karte hängen die Haustür ans Gassennetz (wie die alten Spielhäuser); Neubauten bleiben außen vor.
                 if (g.Kennung is not null && g.Art == Grundstuecksart.Wohnhaus)
                 {
-                    AnWegAnschliessen(new Vector3((float)g.Grundriss.Eingang.X, 0, (float)g.Grundriss.Eingang.Z));
+                    var eingang = w.Bauen.Flaeche(g).Eingang;
+                    AnWegAnschliessen(new Vector3((float)eingang.X, 0, (float)eingang.Z));
                 }
             }
             if (bild.Stand == stand) continue;
@@ -92,7 +97,7 @@ public partial class Stadtansicht
 
     private Node3D? GrundstueckModell(Grundstueck g, Stadtwirtschaft w, long minute)
     {
-        var gr = g.Grundriss;
+        var gr = w.Bauen.Flaeche(g);
         switch (g.Zustand)
         {
             case Bauzustand.Bewohnt or Bauzustand.Leerstand when g.Art == Grundstuecksart.Wohnhaus && g.Besitzer is { } k:
@@ -100,13 +105,13 @@ public partial class Stadtansicht
                 var leer = !k.IstAktiv;
                 var bau = k.WohnhausFertigAb is { } f && f > minute;
                 var brand = k.WohnhausInstandBis is { } i && i > minute;
-                return SpielhausModell(Mitte3(gr), DrehungY(gr), (float)gr.Breite, (float)gr.Tiefe, HausFront(g), g.Stufe, bau, brand, leer,
+                return SpielhausModell(Mitte3(gr), DrehungY(gr), (float)gr.Breite, (float)gr.Tiefe, HausFront(gr), g.Stufe, bau, brand, leer,
                     leer ? null : Besitzerfarbe(k), WohnhausKennung(k), k.Inhaber, leer ? $"Leerstand, {(k.IstBankrott ? "bankrott" : "erloschen")}" : null);
             }
             case Bauzustand.Baustelle:
                 return BaustellenModell(g, w, minute);
             case Bauzustand.Bauplatz:
-                return BauplatzModell(g);
+                return BauplatzModell(g, w);
             default:
                 return null;
         }
@@ -116,10 +121,10 @@ public partial class Stadtansicht
     /// Wie viel Vorplatz die Fläche vor der Hausfront enthält: Neubauten nach den Normmaßen (10 oder 14 m tief) haben 2 m davor;
     /// die Wohnhausplätze der Karte (8 m tief, auch als Bauplatz und beim Neubau „eingepasst“) reichen mit der Hausfront bis an die Gasse.
     /// </summary>
-    private static float VorplatzVon(Grundriss g) => g.Tiefe > 9 ? Vorplatz : 0;
+    private static float VorplatzVon(Hausflaeche g) => g.Tiefe > 9 ? Vorplatz : 0;
 
     /// <summary>Lokale z-Koordinate der Hausfront (die Mitte der Fläche ist 0, vorne ist +z).</summary>
-    private static float HausFront(Grundstueck g) => (float)g.Grundriss.Tiefe / 2 - VorplatzVon(g.Grundriss);
+    private static float HausFront(Hausflaeche g) => (float)g.Tiefe / 2 - VorplatzVon(g);
 
     public static string BaustellenKennung(Grundstueck g) => "baustelle:" + g.Nummer;
     public static string BauplatzKennung(Grundstueck g) => "bauplatz:" + g.Nummer;
@@ -134,9 +139,9 @@ public partial class Stadtansicht
     // ── Bauplatz ────────────────────────────────────────────────────────────
 
     /// <summary>Ein freier Bauplatz: helle Wiese, vier Pflöcke mit roten Spitzen und eine Schnur ringsum.</summary>
-    private Node3D BauplatzModell(Grundstueck g)
+    private Node3D BauplatzModell(Grundstueck g, Stadtwirtschaft w)
     {
-        var gr = g.Grundriss;
+        var gr = w.Bauen.Flaeche(g);
         var (breite, tiefe) = ((float)gr.Breite, (float)gr.Tiefe);
         var wurzel = new Node3D { Name = $"Bauplatz_{g.Nummer}", Position = AufFundament(Mitte3(gr), DrehungY(gr), new Vector2(breite, tiefe)), Rotation = new Vector3(0, DrehungY(gr), 0) };
         AddChild(wurzel);
@@ -188,9 +193,9 @@ public partial class Stadtansicht
     /// </summary>
     private Node3D BaustellenModell(Grundstueck g, Stadtwirtschaft w, long minute)
     {
-        var gr = g.Grundriss;
+        var gr = w.Bauen.Flaeche(g);
         var (breite, tiefe) = ((float)gr.Breite, (float)gr.Tiefe);
-        var front = HausFront(g);
+        var front = HausFront(gr);
         var stufe = BaustufeVon(g, w, minute);
         var kennung = BaustellenKennung(g);
         var besitzer = g.Besitzer?.Inhaber ?? "";
@@ -602,7 +607,7 @@ public partial class Stadtansicht
 
     private void UmrissZeigen(Stadtwirtschaft w, BauBefehl befehl)
     {
-        var gr = w.Bauen.Grundriss(befehl);
+        var gr = w.Bauen.Flaeche(befehl);
         var (breite, tiefe) = ((float)gr.Breite, (float)gr.Tiefe);
         var hoehe = befehl is WohnhausBauen h ? h.Stufe switch { 0 => 5f, 1 => 7f, 2 => 9f, _ => 10f } : 6f;
         if (_bauUmriss is null)

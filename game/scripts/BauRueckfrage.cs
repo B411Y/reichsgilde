@@ -196,8 +196,9 @@ public partial class BauRueckfrage : PanelContainer
         var werkstatt = befehl is WerkstattBauen;
         Hauptmenue.Text(_inhalt, $"Neubau: {v.Gebaeude}", 22, Gold, zentriert: true);
         if (v.Betrieb is not null) Hauptmenue.Text(_inhalt, $"„{v.Betrieb}“", 16, Hell, zentriert: true);
+        var f = w.Bauen.Flaeche(befehl); // ein schräger Wohnhausplatz: Maße und Eingang wie der Platz
         Hauptmenue.Text(_inhalt,
-            $"{Zahlenformat.Ganz(v.Grundriss.Breite)} × {Zahlenformat.Ganz(v.Grundriss.Tiefe)} m{(v.Grundriss.Tiefe > 9 ? " (mit 2 m Vorplatz)" : " (der Wohnhausplatz)")}, Eingang nach {Himmelsrichtung(v.Grundriss.Drehung)}.",
+            $"{Zahlenformat.Ganz(f.Breite)} × {Zahlenformat.Ganz(f.Tiefe)} m{(f.Tiefe > 9 ? " (mit 2 m Vorplatz)" : " (der Wohnhausplatz)")}, Eingang nach {Himmelsrichtung(Grundriss.DrehungZu(f.Vorne.X, f.Vorne.Z))}.",
             13, Grau, umbruchBreite: Breite);
 
         var rechnung = Raster(_inhalt);
