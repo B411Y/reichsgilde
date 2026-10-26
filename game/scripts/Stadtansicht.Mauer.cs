@@ -19,7 +19,7 @@ namespace Reichsgilde;
 public partial class Stadtansicht
 {
     /// <summary>Die vier Teile eines Mauer-Baukastens und der Anker in der Durchfahrt des Tors – je Datei einmal aus dem Modell gelesen.</summary>
-    private sealed record Mauerteile(Mesh Stueck, Mesh Turm, Mesh Eckturm, Mesh Tor, Vector3? TorAnker);
+    private sealed record Mauerteile(Mesh Stueck, Mesh Turm, Mesh Eckturm, Mesh Tor, Vector3? TorAnker, Transform3D[] Feuer);
 
     private readonly Dictionary<string, Mauerteile?> _mauerteile = new();
 
@@ -32,13 +32,16 @@ public partial class Stadtansicht
         var eck = (kasten.FindChild("Eckturm", true, false) as MeshInstance3D)?.Mesh;
         var tor = (kasten.FindChild("Tor", true, false) as MeshInstance3D)?.Mesh;
         var anker = (kasten.FindChild("Anker_Tuer", true, false) as Node3D)?.Position;
+        // Anker_Feuer_<n>: Feuerkörbe neben der Durchfahrt (Nachtlichter, Stadtansicht.Nachtlichter.cs), im Maßstab des Teils „Tor“
+        var feuer = kasten.FindChildren("Anker_Feuer_*", nameof(Node3D), true, false).OfType<Node3D>()
+                          .OrderBy(k => k.Name.ToString(), StringComparer.Ordinal).Select(k => k.Transform).ToArray();
         kasten.Free();
         if (stueck is null || turm is null || eck is null || tor is null)
         {
             GD.PushError($"Modell unvollständig: res://assets/modelle/{datei}.glb braucht Mauerstueck, Mauerturm, Eckturm und Tor.");
             return _mauerteile[datei] = null;
         }
-        return _mauerteile[datei] = new Mauerteile(stueck, turm, eck, tor, anker);
+        return _mauerteile[datei] = new Mauerteile(stueck, turm, eck, tor, anker, feuer);
     }
 
     /// <summary>
@@ -49,14 +52,17 @@ public partial class Stadtansicht
     private void MauerAufbauen(string datei, Mauerplan plan, Node3D eltern, bool spiel)
     {
         if (MauerteileVon(datei) is not { } teile) return;
+        var feuerlagen = new List<Transform3D>();
         foreach (var tor in plan.Tore)
         {
             var lage = new Transform3D(MauerBasis(tor.Lage), MauerOrt(tor.Lage));
+            if (spiel) feuerlagen.AddRange(teile.Feuer.Select(f => lage * f));
             var knoten = new MeshInstance3D { Name = tor.Name, Mesh = teile.Tor, Transform = lage, Layers = 1 | TorErdeEbene };
             eltern.AddChild(knoten);
             TorErdeMerken(knoten); // Erde im Torweg, wenn ein Erdweg hindurchführt (Stadtansicht.Torerde.cs)
             if (spiel) TorEinrichten(tor.Name, knoten, lage, teile.TorAnker);
         }
+        if (spiel) FeuerkoerbeVielfach(feuerlagen, eltern); // Nachtlichter: ein Feuerkorb links und rechts jeder Durchfahrt
         Vielfach("Mauerstuecke", teile.Stueck, plan.Stuecke.Select(s => new Transform3D(MauerStueckBasis(s), MauerOrt(s))), eltern);
         Vielfach("Mauertuerme", teile.Turm, plan.Tuerme.Select(t => new Transform3D(MauerBasis(t), MauerOrt(t))), eltern);
         Vielfach("Eckturme", teile.Eckturm, plan.Ecktuerme.Select(t => new Transform3D(MauerBasis(t), MauerOrt(t))), eltern);
