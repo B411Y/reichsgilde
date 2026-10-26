@@ -104,6 +104,9 @@ public partial class Hauptmenue : Node
         {
             _startoptionenGenutzt = true;
             PortraetOptionAnwenden(portraetOption["--portraets=".Length..]);
+            // --blinzeln=zu|offen: die Augen für das Bildschirmfoto festhalten (sonst blinzelt das Bild zufällig)
+            var blinzeln = OS.GetCmdlineUserArgs().FirstOrDefault(a => a.StartsWith("--blinzeln="));
+            if (blinzeln is not null) _portraet.BlinzelnFesthalten(blinzeln.EndsWith("zu") ? 1f : 0f);
             Zeigen(_oberhaupt);
         }
     }
@@ -301,7 +304,7 @@ public partial class Hauptmenue : Node
     private void PortraetOptionAnwenden(string wert)
     {
         var teile = wert.Split(',');
-        if (Enum.TryParse<Volk>(teile[0], true, out var volk) && Spielbare.Contains(volk))
+        if (!char.IsDigit(teile[0].FirstOrDefault()) && Enum.TryParse<Volk>(teile[0], true, out var volk) && Spielbare.Contains(volk))
             _volk.Select(_volk.GetItemIndex((int)volk));
         if (teile.Length > 1) _geschlecht.Select(teile[1].StartsWith("f", StringComparison.OrdinalIgnoreCase) ? 1 : 0);
         if (teile.Length > 2 && int.TryParse(teile[2], out var gesicht)) _gesicht = Math.Clamp(gesicht, 0, Aussehenspalette.Gesichter - 1);
