@@ -25,7 +25,8 @@ Einzelheiten zum Stand nach Balancing 1: Abschnitte „Balancing-Messung 2 (PR #
 
 ## 2. Zeitbasis
 
-- **1 Spieljahr = 1 Spieltag = 15 Minuten Echtzeit** (siehe Entscheidungsprotokoll).
+- **1 Spieljahr = 1 Spieltag = 15 Minuten Echtzeit** (siehe Entscheidungsprotokoll). Gespielt wird von **04:00 bis 23:00 Uhr: 1140 Spielminuten, 19 Stunden** (bis Datenversion 55: 05–22 Uhr, 1020 Minuten; Entscheidung des Nutzers vom 26.10.2026, PR #208). Die Uhr läuft dadurch bei 1× etwa 12 % schneller.
+- **Was je Jahr gilt, bleibt je Jahr gleich** (Datenversion 56): Löhne, Fixkosten, Zinsen (je Stunde ein Neunzehntel), Gäste des Wirtshauses (bis 22 Uhr), Markt (Fenster 19 Stunden), Dauern von einem Jahr (Prämie, Unfall-Laune, Hinterhalt, Brand: 1140 Minuten; Beförderung 2280; Bauvorhaben 19 bzw. 28 Stunden) und die Erholung der fernen Märkte (0,072 je Stunde, nach einem Jahr ein Viertel). Länger wird nur die Nacht: Die Dunkle Nacht geht von 20 bis 23 Uhr (Überfälle auf Karren × 2, Torschluss bleibt 20 Uhr); die Gaunerstücke selbst geschehen weiter einmal je Nacht um 20 Uhr.
 - **Arbeitszeit: 08:00–20:00 = 720 Arbeitsminuten pro Jahr.** Das deckt Zunftglocke, Hoher Mittag und einen Teil der Vesper ab. Die Nacht gehört den Gaunern.
 - Produktionszeiten werden in **Spielminuten für einen Gesellen** angegeben (Tempo 1,0).
 
