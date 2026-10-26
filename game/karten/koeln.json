@@ -40,52 +40,83 @@
   {"kennung": "S6_Wohnhaus", "katalog": "wohnhausplatz", "name": "Wohnhaus Weyerstraße", "punkt": [-72, 55.75], "drehung": 11.1, "lage": "mauerring"},
   {"kennung": "S7_Werkstatt", "katalog": "werkstattplatz", "name": "Werkstatt Hahnenstraße", "punkt": [-93.9, 5.5], "drehung": 194.9, "betrieb": "Schänke Mommersloch"},
   {"kennung": "S7_Wohnhaus", "katalog": "wohnhausplatz", "name": "Wohnhaus Hahnenstraße", "punkt": [-106.1, 6.7], "drehung": 194.9, "lage": "mauerring"},
-  {"kennung": "S8_Werkstatt", "katalog": "werkstattplatz", "name": "Werkstatt Ehrenstraße", "punkt": [-79.35, -63.35], "drehung": 302.9, "betrieb": "Tischlerei Kleingedank"},
-  {"kennung": "S8_Wohnhaus", "katalog": "wohnhausplatz", "name": "Wohnhaus Ehrenstraße", "punkt": [-74.45, -52.1], "drehung": 302.9, "lage": "mauerring"},
-  {"kennung": "Einwohnerplatz_am_Ring1", "katalog": "einwohnerplatz_ring", "name": "Einwohnerplatz am Ring", "punkt": [29.75, -131.2], "drehung": 180},
-  {"kennung": "Einwohnerplatz_am_Ring2", "katalog": "einwohnerplatz_ring", "name": "Einwohnerplatz am Ring 2", "punkt": [-0.8, -128.75], "drehung": 188.9},
-  {"kennung": "Einwohnerplatz_am_Ring3", "katalog": "einwohnerplatz_ring", "name": "Einwohnerplatz am Ring 3", "punkt": [-11, -126.25], "drehung": 195},
-  {"kennung": "Einwohnerplatz_am_Ring4", "katalog": "einwohnerplatz_ring", "name": "Einwohnerplatz am Ring 4", "punkt": [-42.8, -112.85], "drehung": 213},
-  {"kennung": "Einwohnerplatz_am_Ring5", "katalog": "einwohnerplatz_ring", "name": "Einwohnerplatz am Ring 5", "punkt": [-51.4, -107.25], "drehung": 213},
-  {"kennung": "Einwohnerplatz_am_Ring6", "katalog": "einwohnerplatz_ring", "name": "Einwohnerplatz am Ring 6", "punkt": [-59.7, -100.8], "drehung": 219},
-  {"kennung": "Einwohnerplatz_am_Ring7", "katalog": "einwohnerplatz_ring", "name": "Einwohnerplatz am Ring 7", "punkt": [-67.5, -93.75], "drehung": 225},
-  {"kennung": "Einwohnerplatz_am_Ring8", "katalog": "einwohnerplatz_ring", "name": "Einwohnerplatz am Ring 8", "punkt": [-74.8, -86.15], "drehung": 231},
-  {"kennung": "Einwohnerplatz_am_Ring9", "katalog": "einwohnerplatz_ring", "name": "Einwohnerplatz am Ring 9", "punkt": [-104.6, -25.75], "drehung": 261.1},
-  {"kennung": "Einwohnerplatz_am_Ring10", "katalog": "einwohnerplatz_ring", "name": "Einwohnerplatz am Ring 10", "punkt": [-106.15, -15.65], "drehung": 261.1},
-  {"kennung": "Einwohnerplatz_am_Ring11", "katalog": "einwohnerplatz_ring", "name": "Einwohnerplatz am Ring 11", "punkt": [-105.75, 18.4], "drehung": 278.9},
-  {"kennung": "Einwohnerplatz_am_Ring12", "katalog": "einwohnerplatz_ring", "name": "Einwohnerplatz am Ring 12", "punkt": [-103.95, 28.75], "drehung": 285},
-  {"kennung": "Einwohnerplatz_am_Ring13", "katalog": "einwohnerplatz_ring", "name": "Einwohnerplatz am Ring 13", "punkt": [-101.3, 38.65], "drehung": 285},
-  {"kennung": "Einwohnerplatz_am_Ring14", "katalog": "einwohnerplatz_ring", "name": "Einwohnerplatz am Ring 14", "punkt": [-83.4, 75.15], "drehung": 303},
-  {"kennung": "Einwohnerplatz_am_Ring15", "katalog": "einwohnerplatz_ring", "name": "Einwohnerplatz am Ring 15", "punkt": [-25.65, 121.25], "drehung": 338.9},
-  {"kennung": "Einwohnerplatz_am_Ring16", "katalog": "einwohnerplatz_ring", "name": "Einwohnerplatz am Ring 16", "punkt": [-10, 126.55], "drehung": 345},
-  {"kennung": "Einwohnerplatz_am_Ring17", "katalog": "einwohnerplatz_ring", "name": "Einwohnerplatz am Ring 17", "punkt": [0.25, 128.9], "drehung": 351.1},
-  {"kennung": "Einwohnerplatz_am_Ring18", "katalog": "einwohnerplatz_ring", "name": "Einwohnerplatz am Ring 18", "punkt": [10.4, 130.5], "drehung": 351.1},
-  {"kennung": "Einwohnerplatz_am_Ring19", "katalog": "einwohnerplatz_ring", "name": "Einwohnerplatz am Ring 19", "punkt": [20.9, 131.05], "drehung": 357},
+  {"kennung": "S8_Werkstatt", "katalog": "werkstattplatz", "name": "Werkstatt Ehrenstraße", "punkt": [-79.9, -64.2], "drehung": 302.9, "betrieb": "Tischlerei Kleingedank"},
+  {"kennung": "S8_Wohnhaus", "katalog": "wohnhausplatz", "name": "Wohnhaus Ehrenstraße", "punkt": [-75, -52.95], "drehung": 302.9, "lage": "mauerring"},
+  {"kennung": "Einwohnerplatz_am_Ring1", "katalog": "einwohnerplatz_ring", "name": "Einwohnerplatz am Ring", "punkt": [-26.75, -76.3], "drehung": 0},
+  {"kennung": "Einwohnerplatz_am_Ring2", "katalog": "einwohnerplatz_ring", "name": "Einwohnerplatz am Ring 2", "punkt": [-16.5, -76.3], "drehung": 0},
+  {"kennung": "Einwohnerplatz_am_Ring3", "katalog": "einwohnerplatz_ring", "name": "Einwohnerplatz am Ring 3", "punkt": [-6.25, -76.3], "drehung": 0},
+  {"kennung": "Einwohnerplatz_am_Ring4", "katalog": "einwohnerplatz_ring", "name": "Einwohnerplatz am Ring 4", "punkt": [-26.75, -63.7], "drehung": 180},
+  {"kennung": "Einwohnerplatz_am_Ring5", "katalog": "einwohnerplatz_ring", "name": "Einwohnerplatz am Ring 5", "punkt": [-16.5, -63.7], "drehung": 180},
+  {"kennung": "Einwohnerplatz_am_Ring6", "katalog": "einwohnerplatz_ring", "name": "Einwohnerplatz am Ring 6", "punkt": [-6.25, -63.7], "drehung": 180},
+  {"kennung": "Einwohnerplatz_am_Ring7", "katalog": "einwohnerplatz_ring", "name": "Einwohnerplatz am Ring 7", "punkt": [-62.75, -51.3], "drehung": 0},
+  {"kennung": "Einwohnerplatz_am_Ring8", "katalog": "einwohnerplatz_ring", "name": "Einwohnerplatz am Ring 8", "punkt": [-52.5, -51.3], "drehung": 0},
+  {"kennung": "Einwohnerplatz_am_Ring9", "katalog": "einwohnerplatz_ring", "name": "Einwohnerplatz am Ring 9", "punkt": [-58.25, -38.7], "drehung": 180},
+  {"kennung": "Einwohnerplatz_am_Ring10", "katalog": "einwohnerplatz_ring", "name": "Einwohnerplatz am Ring 10", "punkt": [-48, -38.7], "drehung": 180},
+  {"kennung": "Einwohnerplatz_am_Ring11", "katalog": "einwohnerplatz_ring", "name": "Einwohnerplatz am Ring 11", "punkt": [-54.75, 9.15], "drehung": 279.5},
+  {"kennung": "Einwohnerplatz_am_Ring12", "katalog": "einwohnerplatz_ring", "name": "Einwohnerplatz am Ring 12", "punkt": [-53.05, 19.25], "drehung": 279.5},
+  {"kennung": "Einwohnerplatz_am_Ring13", "katalog": "einwohnerplatz_ring", "name": "Einwohnerplatz am Ring 13", "punkt": [-51.4, 29.35], "drehung": 279.5},
+  {"kennung": "Einwohnerplatz_am_Ring14", "katalog": "einwohnerplatz_ring", "name": "Einwohnerplatz am Ring 14", "punkt": [-67.25, 10.7], "drehung": 99.5},
+  {"kennung": "Einwohnerplatz_am_Ring15", "katalog": "einwohnerplatz_ring", "name": "Einwohnerplatz am Ring 15", "punkt": [-65.6, 20.8], "drehung": 99.5},
+  {"kennung": "Einwohnerplatz_am_Ring16", "katalog": "einwohnerplatz_ring", "name": "Einwohnerplatz am Ring 16", "punkt": [-63.9, 30.95], "drehung": 99.5},
+  {"kennung": "Einwohnerplatz_am_Ring17", "katalog": "einwohnerplatz_ring", "name": "Einwohnerplatz am Ring 17", "punkt": [29.75, -131.2], "drehung": 180},
+  {"kennung": "Einwohnerplatz_am_Ring18", "katalog": "einwohnerplatz_ring", "name": "Einwohnerplatz am Ring 18", "punkt": [-0.8, -128.75], "drehung": 188.9},
+  {"kennung": "Einwohnerplatz_am_Ring19", "katalog": "einwohnerplatz_ring", "name": "Einwohnerplatz am Ring 19", "punkt": [-11, -126.25], "drehung": 195},
+  {"kennung": "Einwohnerplatz_am_Ring20", "katalog": "einwohnerplatz_ring", "name": "Einwohnerplatz am Ring 20", "punkt": [-42.8, -112.85], "drehung": 213},
+  {"kennung": "Einwohnerplatz_am_Ring21", "katalog": "einwohnerplatz_ring", "name": "Einwohnerplatz am Ring 21", "punkt": [-51.4, -107.25], "drehung": 213},
+  {"kennung": "Einwohnerplatz_am_Ring22", "katalog": "einwohnerplatz_ring", "name": "Einwohnerplatz am Ring 22", "punkt": [-104.6, -25.75], "drehung": 261.1},
+  {"kennung": "Einwohnerplatz_am_Ring23", "katalog": "einwohnerplatz_ring", "name": "Einwohnerplatz am Ring 23", "punkt": [-106.15, -15.65], "drehung": 261.1},
+  {"kennung": "Einwohnerplatz_am_Ring24", "katalog": "einwohnerplatz_ring", "name": "Einwohnerplatz am Ring 24", "punkt": [-105.75, 18.4], "drehung": 278.9},
+  {"kennung": "Einwohnerplatz_am_Ring25", "katalog": "einwohnerplatz_ring", "name": "Einwohnerplatz am Ring 25", "punkt": [-103.95, 28.75], "drehung": 285},
+  {"kennung": "Einwohnerplatz_am_Ring26", "katalog": "einwohnerplatz_ring", "name": "Einwohnerplatz am Ring 26", "punkt": [-101.3, 38.65], "drehung": 285},
+  {"kennung": "Einwohnerplatz_am_Ring27", "katalog": "einwohnerplatz_ring", "name": "Einwohnerplatz am Ring 27", "punkt": [-83.4, 75.15], "drehung": 303},
+  {"kennung": "Einwohnerplatz_am_Ring28", "katalog": "einwohnerplatz_ring", "name": "Einwohnerplatz am Ring 28", "punkt": [-25.65, 121.25], "drehung": 338.9},
+  {"kennung": "Einwohnerplatz_am_Ring29", "katalog": "einwohnerplatz_ring", "name": "Einwohnerplatz am Ring 29", "punkt": [-10, 126.55], "drehung": 345},
+  {"kennung": "Einwohnerplatz_am_Ring30", "katalog": "einwohnerplatz_ring", "name": "Einwohnerplatz am Ring 30", "punkt": [0.25, 128.9], "drehung": 351.1},
+  {"kennung": "Einwohnerplatz_am_Ring31", "katalog": "einwohnerplatz_ring", "name": "Einwohnerplatz am Ring 31", "punkt": [10.4, 130.5], "drehung": 351.1},
+  {"kennung": "Buergerhaus_Kulisse1", "katalog": "kulisse_buergerhaus", "name": "Bürgerhaus (Kulisse)", "punkt": [-27, 49.45], "drehung": 0},
+  {"kennung": "Buergerhaus_Kulisse2", "katalog": "kulisse_buergerhaus", "name": "Bürgerhaus (Kulisse) 2", "punkt": [-17.5, 49.45], "drehung": 0},
+  {"kennung": "Buergerhaus_Kulisse3", "katalog": "kulisse_buergerhaus", "name": "Bürgerhaus (Kulisse) 3", "punkt": [2, 49.45], "drehung": 0},
+  {"kennung": "Buergerhaus_Kulisse4", "katalog": "kulisse_buergerhaus", "name": "Bürgerhaus (Kulisse) 4", "punkt": [44.55, -46], "drehung": 270},
+  {"kennung": "Buergerhaus_Kulisse5", "katalog": "kulisse_buergerhaus", "name": "Bürgerhaus (Kulisse) 5", "punkt": [44.55, -36.5], "drehung": 270},
   {"kennung": "Einwohnerplatz_in_der_Vorstadt1", "katalog": "einwohnerplatz_vorstadt", "name": "Einwohnerplatz in der Vorstadt", "punkt": [129.45, 1.45], "drehung": 2.6},
   {"kennung": "Einwohnerplatz_in_der_Vorstadt2", "katalog": "einwohnerplatz_vorstadt", "name": "Einwohnerplatz in der Vorstadt 2", "punkt": [138.7, 1], "drehung": 2.6},
   {"kennung": "Einwohnerplatz_in_der_Vorstadt3", "katalog": "einwohnerplatz_vorstadt", "name": "Einwohnerplatz in der Vorstadt 3", "punkt": [147.95, 0.6], "drehung": 2.6},
-  {"kennung": "Einwohnerplatz_in_der_Vorstadt4", "katalog": "einwohnerplatz_vorstadt", "name": "Einwohnerplatz in der Vorstadt 4", "punkt": [157.2, 0.2], "drehung": 2.6},
-  {"kennung": "Einwohnerplatz_in_der_Vorstadt5", "katalog": "einwohnerplatz_vorstadt", "name": "Einwohnerplatz in der Vorstadt 5", "punkt": [177.7, -2.15], "drehung": 11.8},
-  {"kennung": "Einwohnerplatz_in_der_Vorstadt6", "katalog": "einwohnerplatz_vorstadt", "name": "Einwohnerplatz in der Vorstadt 6", "punkt": [186.75, -4.05], "drehung": 11.8},
-  {"kennung": "Einwohnerplatz_in_der_Vorstadt7", "katalog": "einwohnerplatz_vorstadt", "name": "Einwohnerplatz in der Vorstadt 7", "punkt": [195.8, -5.95], "drehung": 11.8},
-  {"kennung": "Einwohnerplatz_in_der_Vorstadt8", "katalog": "einwohnerplatz_vorstadt", "name": "Einwohnerplatz in der Vorstadt 8", "punkt": [130.05, 14.2], "drehung": 182.6},
-  {"kennung": "Einwohnerplatz_in_der_Vorstadt9", "katalog": "einwohnerplatz_vorstadt", "name": "Einwohnerplatz in der Vorstadt 9", "punkt": [162.75, 12.75], "drehung": 182.6},
-  {"kennung": "Einwohnerplatz_in_der_Vorstadt10", "katalog": "einwohnerplatz_vorstadt", "name": "Einwohnerplatz in der Vorstadt 10", "punkt": [177.4, 11], "drehung": 191.8},
-  {"kennung": "Einwohnerplatz_in_der_Vorstadt11", "katalog": "einwohnerplatz_vorstadt", "name": "Einwohnerplatz in der Vorstadt 11", "punkt": [186.45, 9.1], "drehung": 191.8},
-  {"kennung": "Einwohnerplatz_in_der_Vorstadt12", "katalog": "einwohnerplatz_vorstadt", "name": "Einwohnerplatz in der Vorstadt 12", "punkt": [195.5, 7.2], "drehung": 191.8},
-  {"kennung": "Einwohnerplatz_in_der_Vorstadt13", "katalog": "einwohnerplatz_vorstadt", "name": "Einwohnerplatz in der Vorstadt 13", "punkt": [204.55, 5.3], "drehung": 191.8},
-  {"kennung": "Einwohnerplatz_in_der_Vorstadt14", "katalog": "einwohnerplatz_vorstadt", "name": "Einwohnerplatz in der Vorstadt 14", "punkt": [178.1, -39], "drehung": 267.8},
-  {"kennung": "Einwohnerplatz_in_der_Vorstadt15", "katalog": "einwohnerplatz_vorstadt", "name": "Einwohnerplatz in der Vorstadt 15", "punkt": [177.75, -29.75], "drehung": 267.8},
-  {"kennung": "Einwohnerplatz_in_der_Vorstadt16", "katalog": "einwohnerplatz_vorstadt", "name": "Einwohnerplatz in der Vorstadt 16", "punkt": [177.4, -20.55], "drehung": 267.8},
-  {"kennung": "Einwohnerplatz_in_der_Vorstadt17", "katalog": "einwohnerplatz_vorstadt", "name": "Einwohnerplatz in der Vorstadt 17", "punkt": [177.05, -11.3], "drehung": 267.8},
-  {"kennung": "Einwohnerplatz_in_der_Vorstadt18", "katalog": "einwohnerplatz_vorstadt", "name": "Einwohnerplatz in der Vorstadt 18", "punkt": [177.25, 20.3], "drehung": 273.3},
-  {"kennung": "Einwohnerplatz_in_der_Vorstadt19", "katalog": "einwohnerplatz_vorstadt", "name": "Einwohnerplatz in der Vorstadt 19", "punkt": [177.75, 29.55], "drehung": 273.3},
-  {"kennung": "Einwohnerplatz_in_der_Vorstadt20", "katalog": "einwohnerplatz_vorstadt", "name": "Einwohnerplatz in der Vorstadt 20", "punkt": [165.3, -39], "drehung": 87.8},
-  {"kennung": "Einwohnerplatz_in_der_Vorstadt21", "katalog": "einwohnerplatz_vorstadt", "name": "Einwohnerplatz in der Vorstadt 21", "punkt": [164.95, -29.75], "drehung": 87.8},
-  {"kennung": "Einwohnerplatz_in_der_Vorstadt22", "katalog": "einwohnerplatz_vorstadt", "name": "Einwohnerplatz in der Vorstadt 22", "punkt": [164.6, -20.5], "drehung": 87.8},
-  {"kennung": "Einwohnerplatz_in_der_Vorstadt23", "katalog": "einwohnerplatz_vorstadt", "name": "Einwohnerplatz in der Vorstadt 23", "punkt": [164.25, -11.25], "drehung": 87.8},
-  {"kennung": "Einwohnerplatz_in_der_Vorstadt24", "katalog": "einwohnerplatz_vorstadt", "name": "Einwohnerplatz in der Vorstadt 24", "punkt": [164.5, 21.55], "drehung": 93.3},
-  {"kennung": "Einwohnerplatz_in_der_Vorstadt25", "katalog": "einwohnerplatz_vorstadt", "name": "Einwohnerplatz in der Vorstadt 25", "punkt": [165, 30.8], "drehung": 93.3},
+  {"kennung": "Einwohnerplatz_in_der_Vorstadt4", "katalog": "einwohnerplatz_vorstadt", "name": "Einwohnerplatz in der Vorstadt 4", "punkt": [130.05, 14.2], "drehung": 182.6},
+  {"kennung": "Einwohnerplatz_in_der_Vorstadt5", "katalog": "einwohnerplatz_vorstadt", "name": "Einwohnerplatz in der Vorstadt 5", "punkt": [162.75, 12.75], "drehung": 182.6},
+  {"kennung": "Einwohnerplatz_in_der_Vorstadt6", "katalog": "einwohnerplatz_vorstadt", "name": "Einwohnerplatz in der Vorstadt 6", "punkt": [177.4, 11], "drehung": 191.8},
+  {"kennung": "Einwohnerplatz_in_der_Vorstadt7", "katalog": "einwohnerplatz_vorstadt", "name": "Einwohnerplatz in der Vorstadt 7", "punkt": [178.1, -39], "drehung": 267.8},
+  {"kennung": "Einwohnerplatz_in_der_Vorstadt8", "katalog": "einwohnerplatz_vorstadt", "name": "Einwohnerplatz in der Vorstadt 8", "punkt": [177.75, -29.75], "drehung": 267.8},
+  {"kennung": "Einwohnerplatz_in_der_Vorstadt9", "katalog": "einwohnerplatz_vorstadt", "name": "Einwohnerplatz in der Vorstadt 9", "punkt": [177.4, -20.55], "drehung": 267.8},
+  {"kennung": "Einwohnerplatz_in_der_Vorstadt10", "katalog": "einwohnerplatz_vorstadt", "name": "Einwohnerplatz in der Vorstadt 10", "punkt": [165.3, -39], "drehung": 87.8},
+  {"kennung": "Einwohnerplatz_in_der_Vorstadt11", "katalog": "einwohnerplatz_vorstadt", "name": "Einwohnerplatz in der Vorstadt 11", "punkt": [164.95, -29.75], "drehung": 87.8},
+  {"kennung": "Einwohnerplatz_in_der_Vorstadt12", "katalog": "einwohnerplatz_vorstadt", "name": "Einwohnerplatz in der Vorstadt 12", "punkt": [164.6, -20.5], "drehung": 87.8},
+  {"kennung": "Einwohnerplatz_in_der_Vorstadt13", "katalog": "einwohnerplatz_vorstadt", "name": "Einwohnerplatz in der Vorstadt 13", "punkt": [-141.15, 7.3], "drehung": 185.2},
+  {"kennung": "Einwohnerplatz_in_der_Vorstadt14", "katalog": "einwohnerplatz_vorstadt", "name": "Einwohnerplatz in der Vorstadt 14", "punkt": [-150.35, 8.15], "drehung": 185.2},
+  {"kennung": "Einwohnerplatz_in_der_Vorstadt15", "katalog": "einwohnerplatz_vorstadt", "name": "Einwohnerplatz in der Vorstadt 15", "punkt": [-159.55, 9], "drehung": 185.2},
+  {"kennung": "Einwohnerplatz_in_der_Vorstadt16", "katalog": "einwohnerplatz_vorstadt", "name": "Einwohnerplatz in der Vorstadt 16", "punkt": [-142.2, -4.45], "drehung": 5.2},
+  {"kennung": "Einwohnerplatz_in_der_Vorstadt17", "katalog": "einwohnerplatz_vorstadt", "name": "Einwohnerplatz in der Vorstadt 17", "punkt": [-151.45, -3.6], "drehung": 5.2},
+  {"kennung": "Einwohnerplatz_in_der_Vorstadt18", "katalog": "einwohnerplatz_vorstadt", "name": "Einwohnerplatz in der Vorstadt 18", "punkt": [-160.65, -2.75], "drehung": 5.2},
+  {"kennung": "Einwohnerplatz_in_der_Vorstadt19", "katalog": "einwohnerplatz_vorstadt", "name": "Einwohnerplatz in der Vorstadt 19", "punkt": [-122.35, -71.55], "drehung": 171.4},
+  {"kennung": "Einwohnerplatz_in_der_Vorstadt20", "katalog": "einwohnerplatz_vorstadt", "name": "Einwohnerplatz in der Vorstadt 20", "punkt": [-131.5, -72.9], "drehung": 171.4},
+  {"kennung": "Einwohnerplatz_in_der_Vorstadt21", "katalog": "einwohnerplatz_vorstadt", "name": "Einwohnerplatz in der Vorstadt 21", "punkt": [-140.65, -74.3], "drehung": 171.3},
+  {"kennung": "Einwohnerplatz_in_der_Vorstadt22", "katalog": "einwohnerplatz_vorstadt", "name": "Einwohnerplatz in der Vorstadt 22", "punkt": [-120.6, -83.2], "drehung": 351.4},
+  {"kennung": "Einwohnerplatz_in_der_Vorstadt23", "katalog": "einwohnerplatz_vorstadt", "name": "Einwohnerplatz in der Vorstadt 23", "punkt": [-129.75, -84.6], "drehung": 351.4},
+  {"kennung": "Einwohnerplatz_in_der_Vorstadt24", "katalog": "einwohnerplatz_vorstadt", "name": "Einwohnerplatz in der Vorstadt 24", "punkt": [-138.85, -85.95], "drehung": 351.3},
+  {"kennung": "Einwohnerplatz_in_der_Vorstadt25", "katalog": "einwohnerplatz_vorstadt", "name": "Einwohnerplatz in der Vorstadt 25", "punkt": [-29.95, -157.7], "drehung": 96},
+  {"kennung": "Einwohnerplatz_in_der_Vorstadt26", "katalog": "einwohnerplatz_vorstadt", "name": "Einwohnerplatz in der Vorstadt 26", "punkt": [-30.9, -166.85], "drehung": 96.3},
+  {"kennung": "Einwohnerplatz_in_der_Vorstadt27", "katalog": "einwohnerplatz_vorstadt", "name": "Einwohnerplatz in der Vorstadt 27", "punkt": [-32, -175.95], "drehung": 97.1},
+  {"kennung": "Einwohnerplatz_in_der_Vorstadt28", "katalog": "einwohnerplatz_vorstadt", "name": "Einwohnerplatz in der Vorstadt 28", "punkt": [-115.8, 88.65], "drehung": 213.2},
+  {"kennung": "Einwohnerplatz_in_der_Vorstadt29", "katalog": "einwohnerplatz_vorstadt", "name": "Einwohnerplatz in der Vorstadt 29", "punkt": [-123.55, 93.7], "drehung": 213.1},
+  {"kennung": "Einwohnerplatz_in_der_Vorstadt30", "katalog": "einwohnerplatz_vorstadt", "name": "Einwohnerplatz in der Vorstadt 30", "punkt": [-131.25, 98.75], "drehung": 213.3},
+  {"kennung": "Einwohnerplatz_in_der_Vorstadt31", "katalog": "einwohnerplatz_vorstadt", "name": "Einwohnerplatz in der Vorstadt 31", "punkt": [-122.25, 78.8], "drehung": 33.2},
+  {"kennung": "Einwohnerplatz_in_der_Vorstadt32", "katalog": "einwohnerplatz_vorstadt", "name": "Einwohnerplatz in der Vorstadt 32", "punkt": [-130, 83.85], "drehung": 33.1},
+  {"kennung": "Einwohnerplatz_in_der_Vorstadt33", "katalog": "einwohnerplatz_vorstadt", "name": "Einwohnerplatz in der Vorstadt 33", "punkt": [-137.75, 88.9], "drehung": 33.3},
+  {"kennung": "Einwohnerplatz_in_der_Vorstadt34", "katalog": "einwohnerplatz_vorstadt", "name": "Einwohnerplatz in der Vorstadt 34", "punkt": [-13.8, 157.1], "drehung": 280.1},
+  {"kennung": "Einwohnerplatz_in_der_Vorstadt35", "katalog": "einwohnerplatz_vorstadt", "name": "Einwohnerplatz in der Vorstadt 35", "punkt": [-12.15, 166.25], "drehung": 280.1},
+  {"kennung": "Einwohnerplatz_in_der_Vorstadt36", "katalog": "einwohnerplatz_vorstadt", "name": "Einwohnerplatz in der Vorstadt 36", "punkt": [-10.55, 175.35], "drehung": 280},
+  {"kennung": "Einwohnerplatz_in_der_Vorstadt37", "katalog": "einwohnerplatz_vorstadt", "name": "Einwohnerplatz in der Vorstadt 37", "punkt": [-25.4, 159.2], "drehung": 100.1},
+  {"kennung": "Einwohnerplatz_in_der_Vorstadt38", "katalog": "einwohnerplatz_vorstadt", "name": "Einwohnerplatz in der Vorstadt 38", "punkt": [-23.8, 168.3], "drehung": 100.1},
+  {"kennung": "Einwohnerplatz_in_der_Vorstadt39", "katalog": "einwohnerplatz_vorstadt", "name": "Einwohnerplatz in der Vorstadt 39", "punkt": [-22.2, 177.4], "drehung": 100},
   {"kennung": "Kraeutergarten1", "katalog": "kraeutergarten", "name": "Kräutergarten am Bach", "punkt": [-218.95, 23.25], "drehung": 186.5, "betrieb": "Kräutergarten am Bach"},
   {"kennung": "Bauernhof1", "katalog": "bauernhof", "name": "Bauernhof", "punkt": [-277, 1], "drehung": 7.1, "betrieb": "Bauernhof Mommersloch"},
   {"kennung": "Kraeutergarten2", "katalog": "kraeutergarten", "name": "Kräutergarten", "punkt": [-313.05, 34.8], "drehung": 187.2, "betrieb": "Kräutergarten Gryn"},
@@ -137,8 +168,14 @@
  ],
  "wege": [
   {"name": "Rheingasse", "klasse": "haupt", "linie": [[37, -150], [37, -138], [37, -70], [37, -22], [37, 8], [37, 57], [37, 138], [37, 150]], "gefahr": 1, "breite": 5},
-  {"name": "Hohe Straße", "klasse": "haupt", "linie": [[-34, -125.2], [-34, -110], [-34, -70], [-34, -22], [-34, -8], [-34, 57], [-34, 125.2]], "gefahr": 1, "breite": 5},
-  {"name": "Eigelstein", "klasse": "haupt", "linie": [[-22.35, -142.65], [-18.65, -131.25], [-27, -118], [-34, -110]], "gefahr": 1, "breite": 5},
+  {
+   "name": "Hohe Straße",
+   "klasse": "haupt",
+   "linie": [[-34, -125.2], [-34, -112], [-34, -110], [-34, -70], [-34, -45], [-34, -22], [-34, -8], [-34, 57], [-34, 125.2]],
+   "gefahr": 1,
+   "breite": 5
+  },
+  {"name": "Eigelstein", "klasse": "haupt", "linie": [[-22.35, -142.65], [-18.65, -131.25], [-27, -118], [-32.25, -112], [-34, -110]], "gefahr": 1, "breite": 5},
   {"name": "Ehrenstraße", "klasse": "haupt", "linie": [[-105.9, -75], [-95.5, -69], [-80, -45], [-72, -20]], "gefahr": 1, "breite": 5},
   {"name": "Hahnenstraße", "klasse": "haupt", "linie": [[-126, 0], [-114, 0], [-84, -8]], "gefahr": 1, "breite": 5},
   {"name": "Schildergasse", "klasse": "haupt", "linie": [[-60, -8], [-34, -8], [-12, -8]], "gefahr": 1, "breite": 5},
@@ -148,7 +185,11 @@
   {"name": "Severinstraße", "klasse": "haupt", "linie": [[-22.35, 142.65], [-18.65, 131.25], [-14, 100], [-7.7, 57], [-2, 30], [0, 12]], "gefahr": 1, "breite": 5},
   {"name": "Brückenstraße", "klasse": "haupt", "linie": [[12, 8], [37, 8]], "gefahr": 1, "breite": 5},
   {"name": "Rheinbrücke", "klasse": "haupt", "linie": [[37, 8], [126, 8]], "gefahr": 1, "breite": 5},
-  {"name": "Trankgasse", "klasse": "ring", "linie": [[-34, -70], [37, -70]], "gefahr": 1, "breite": 3},
+  {"name": "Trankgasse", "klasse": "gasse", "linie": [[-34, -70], [0, -70], [37, -70]], "gefahr": 1, "breite": 3},
+  {"name": "Cäcilienstraße", "klasse": "gasse", "linie": [[-80, -45], [-34, -45]], "gefahr": 1, "breite": 3},
+  {"name": "Domkloster", "klasse": "gasse", "linie": [[-34, -112], [-32.25, -112], [-11, -112]], "gefahr": 1, "breite": 3},
+  {"name": "Krähenpforte", "klasse": "gasse", "linie": [[0, -70], [0, -56]], "gefahr": 1, "breite": 3},
+  {"name": "Wollgasse", "klasse": "gasse", "linie": [[-62, 4], [-56, 40], [-50, 60.1]], "gefahr": 1, "breite": 3},
   {
    "name": "Kunibertswall",
    "klasse": "wall",
@@ -207,42 +248,39 @@
   {
    "kennung": "K1",
    "art": "kern",
-   "flaeche": [
-    [-64, 6], [-58, 6], [-58, -4], [-38, -4], [-38, 50], [-42, 50], [-42, 48], [-44, 48], [-44, 46], [-46, 46], [-46, 44], [-48, 44], [-48, 42], [-50, 42], [-50, 38], [-52, 38],
-    [-52, 36], [-54, 36], [-54, 32], [-56, 32], [-56, 30], [-58, 30], [-58, 24], [-60, 24], [-60, 20], [-62, 20], [-62, 12], [-64, 12]
-   ]
+   "flaeche": [[-60, -24], [-58, -24], [-58, -30], [-56, -30], [-56, -32], [-40, -32], [-40, -42], [-38, -42], [-38, -12], [-58, -12], [-58, -22], [-60, -22]]
   },
   {
    "kennung": "K2",
    "art": "kern",
    "flaeche": [
-    [-60, -24], [-58, -24], [-58, -30], [-56, -30], [-56, -32], [-54, -32], [-54, -54], [-52, -54], [-52, -62], [-50, -62], [-50, -66], [-48, -66], [-48, -70], [-46, -70], [-46, -74],
-    [-44, -74], [-44, -76], [-42, -76], [-42, -80], [-40, -80], [-40, -82], [-38, -82], [-38, -12], [-58, -12], [-58, -22], [-60, -22]
+    [-58, -4], [-38, -4], [-38, 50], [-42, 50], [-42, 48], [-44, 48], [-44, 46], [-46, 46], [-46, 44], [-48, 44], [-48, 42], [-50, 42], [-50, 38], [-52, 38], [-52, 36], [-44, 36],
+    [-44, 24], [-46, 24], [-46, 12], [-48, 12], [-48, 2], [-58, 2]
    ]
   },
   {
    "kennung": "K3",
    "art": "kern",
-   "flaeche": [[-30, -80], [-18, -80], [-18, -88], [-14, -88], [-14, -96], [-10, -96], [-10, -98], [10, -98], [10, -96], [16, -96], [16, -76], [34, -76], [34, -72], [-30, -72]]
+   "flaeche": [
+    [-52, -62], [-50, -62], [-50, -66], [-48, -66], [-48, -70], [-46, -70], [-46, -74], [-44, -74], [-44, -76], [-42, -76], [-42, -80], [-40, -80], [-40, -82], [-38, -82], [-38, -48],
+    [-46, -48], [-46, -58], [-52, -58]
+   ]
   },
   {
    "kennung": "K4",
    "art": "kern",
    "flaeche": [
-    [-30, -68], [-8, -68], [-8, -58], [-14, -58], [-14, -54], [-28, -54], [-28, -34], [-14, -34], [-14, -30], [14, -30], [14, -58], [-6, -58], [-6, -68], [34, -68], [34, -54],
-    [16, -54], [16, -34], [34, -34], [34, -26], [-30, -26]
+    [-30, -56], [-14, -56], [-14, -54], [-28, -54], [-28, -34], [-14, -34], [-14, -30], [14, -30], [14, -58], [6, -58], [6, -68], [34, -68], [34, -54], [16, -54], [16, -34],
+    [34, -34], [34, -26], [-30, -26]
    ]
   },
   {"kennung": "K5", "art": "kern", "flaeche": [[-30, -18], [34, -18], [34, 4], [14, 4], [14, -14], [-14, -14], [-14, -12], [-30, -12]]},
+  {"kennung": "K6", "art": "kern", "flaeche": [[-30, -4], [-14, -4], [-14, 14], [-4, 14], [-4, 20], [-6, 20], [-6, 34], [-8, 34], [-8, 42], [-30, 42]]},
+  {"kennung": "K7", "art": "kern", "flaeche": [[0, 36], [2, 36], [2, 22], [4, 22], [4, 14], [14, 14], [14, 12], [34, 12], [34, 54], [8, 54], [8, 42], [0, 42]]},
+  {"kennung": "K8", "art": "kern", "flaeche": [[6, -98], [10, -98], [10, -96], [16, -96], [16, -76], [34, -76], [34, -72], [6, -72]]},
+  {"kennung": "K9", "art": "kern", "flaeche": [[40, -30], [50, -30], [50, 4], [40, 4]]},
   {
-   "kennung": "K6",
-   "art": "kern",
-   "flaeche": [[-30, -4], [-14, -4], [-14, 14], [-4, 14], [-4, 20], [-6, 20], [-6, 34], [-8, 34], [-8, 42], [-10, 42], [-10, 52], [-12, 52], [-12, 54], [-30, 54]]
-  },
-  {"kennung": "K7", "art": "kern", "flaeche": [[-2, 46], [0, 46], [0, 36], [2, 36], [2, 22], [4, 22], [4, 14], [14, 14], [14, 12], [34, 12], [34, 54], [-2, 54]]},
-  {"kennung": "K8", "art": "kern", "flaeche": [[40, -80], [42, -80], [42, -76], [44, -76], [44, -74], [46, -74], [46, -70], [42, -70], [42, -50], [50, -50], [50, 4], [40, 4]]},
-  {
-   "kennung": "K9",
+   "kennung": "K10",
    "art": "kern",
    "flaeche": [[40, 12], [50, 12], [50, 20], [42, 20], [42, 36], [50, 36], [50, 42], [48, 42], [48, 44], [46, 44], [46, 46], [44, 46], [44, 48], [42, 48], [42, 50], [40, 50]]
   },
@@ -269,10 +307,9 @@
    "art": "mauerring",
    "flaeche": [
     [-102, 46], [-96, 46], [-96, 44], [-94, 44], [-94, 34], [-96, 34], [-96, 26], [-98, 26], [-98, 16], [-90, 16], [-90, 14], [-82, 14], [-82, 6], [-74, 6], [-74, 20], [-76, 20],
-    [-76, 22], [-82, 22], [-82, 24], [-80, 24], [-80, 32], [-78, 32], [-78, 34], [-68, 34], [-68, 32], [-64, 32], [-64, 22], [-68, 22], [-68, 20], [-72, 20], [-72, 6], [-64, 6],
-    [-64, 12], [-62, 12], [-62, 20], [-60, 20], [-60, 24], [-58, 24], [-58, 30], [-56, 30], [-56, 32], [-54, 32], [-54, 36], [-52, 36], [-52, 38], [-50, 38], [-50, 42], [-48, 42],
-    [-48, 44], [-46, 44], [-46, 46], [-44, 46], [-44, 48], [-42, 48], [-42, 50], [-38, 50], [-38, 54], [-46, 54], [-46, 56], [-56, 56], [-56, 58], [-64, 58], [-64, 54], [-66, 54],
-    [-66, 48], [-74, 48], [-74, 46], [-76, 46], [-76, 44], [-80, 44], [-80, 46], [-90, 46], [-90, 48], [-96, 48], [-96, 58], [-98, 58], [-98, 54], [-100, 54], [-100, 48], [-102, 48]
+    [-76, 22], [-82, 22], [-82, 24], [-80, 24], [-80, 32], [-78, 32], [-78, 34], [-70, 34], [-70, 38], [-60, 38], [-60, 42], [-58, 42], [-58, 48], [-56, 48], [-56, 54], [-54, 54],
+    [-54, 56], [-56, 56], [-56, 58], [-64, 58], [-64, 54], [-66, 54], [-66, 48], [-74, 48], [-74, 46], [-76, 46], [-76, 44], [-80, 44], [-80, 46], [-90, 46], [-90, 48], [-96, 48],
+    [-96, 58], [-98, 58], [-98, 54], [-100, 54], [-100, 48], [-102, 48]
    ]
   },
   {
@@ -311,11 +348,12 @@
    "kennung": "M7",
    "art": "mauerring",
    "flaeche": [
-    [-86, -78], [-84, -78], [-84, -80], [-82, -80], [-82, -82], [-80, -82], [-80, -80], [-78, -80], [-78, -78], [-72, -78], [-72, -80], [-70, -80], [-70, -82], [-68, -82], [-68, -84],
-    [-66, -84], [-66, -86], [-64, -86], [-64, -88], [-62, -88], [-62, -76], [-44, -76], [-44, -74], [-46, -74], [-46, -70], [-48, -70], [-48, -66], [-50, -66], [-50, -62], [-52, -62],
-    [-52, -54], [-54, -54], [-54, -32], [-56, -32], [-56, -30], [-58, -30], [-58, -24], [-60, -24], [-60, -22], [-68, -22], [-68, -24], [-62, -24], [-62, -44], [-72, -44], [-72, -46],
-    [-68, -46], [-68, -48], [-66, -48], [-66, -56], [-68, -56], [-68, -58], [-66, -58], [-66, -64], [-68, -64], [-68, -66], [-70, -66], [-70, -70], [-72, -70], [-72, -72], [-74, -72],
-    [-74, -76], [-82, -76], [-82, -74], [-86, -74]
+    [-86, -78], [-84, -78], [-84, -80], [-82, -80], [-82, -84], [-80, -84], [-80, -86], [-78, -86], [-78, -88], [-76, -88], [-76, -90], [-74, -90], [-74, -92], [-72, -92], [-72, -94],
+    [-70, -94], [-70, -96], [-68, -96], [-68, -98], [-66, -98], [-66, -100], [-64, -100], [-64, -102], [-62, -102], [-62, -104], [-58, -104], [-58, -102], [-56, -102], [-56, -98],
+    [-50, -98], [-50, -100], [-48, -100], [-48, -102], [-44, -102], [-44, -104], [-42, -104], [-42, -106], [-38, -106], [-38, -82], [-40, -82], [-40, -80], [-42, -80], [-42, -96],
+    [-62, -96], [-62, -76], [-44, -76], [-44, -74], [-46, -74], [-46, -70], [-48, -70], [-48, -66], [-50, -66], [-50, -62], [-52, -62], [-52, -58], [-68, -58], [-68, -60], [-66, -60],
+    [-66, -64], [-68, -64], [-68, -66], [-70, -66], [-70, -70], [-72, -70], [-72, -72], [-74, -72], [-74, -76], [-76, -76], [-76, -78], [-82, -78], [-82, -76], [-84, -76], [-84, -74],
+    [-86, -74]
    ]
   },
   {
@@ -340,8 +378,8 @@
    "kennung": "M10",
    "art": "mauerring",
    "flaeche": [
-    [-52, -98], [-50, -98], [-50, -100], [-48, -100], [-48, -102], [-44, -102], [-44, -104], [-42, -104], [-42, -106], [-38, -106], [-38, -82], [-40, -82], [-40, -80], [-42, -80],
-    [-42, -96], [-52, -96]
+    [-52, 38], [-50, 38], [-50, 42], [-48, 42], [-48, 44], [-46, 44], [-46, 46], [-44, 46], [-44, 48], [-42, 48], [-42, 50], [-38, 50], [-38, 54], [-46, 54], [-46, 56], [-48, 56],
+    [-48, 52], [-50, 52], [-50, 46], [-52, 46]
    ]
   },
   {
@@ -353,31 +391,24 @@
    "kennung": "M12",
    "art": "mauerring",
    "flaeche": [
-    [-28, -112], [-26, -112], [-26, -114], [-24, -114], [-24, -116], [-22, -116], [-22, -120], [-20, -120], [-20, -122], [-18, -122], [-18, -120], [-16, -120], [-16, -118], [-12, -118],
-    [-12, -102], [-2, -102], [-2, -100], [6, -100], [6, -102], [20, -102], [20, -96], [10, -96], [10, -98], [-10, -98], [-10, -96], [-14, -96], [-14, -110], [-28, -110]
-   ]
-  },
-  {
-   "kennung": "M13",
-   "art": "mauerring",
-   "flaeche": [
     [-16, -140], [-12, -140], [-12, -142], [-4, -142], [-4, -144], [8, -144], [8, -146], [34, -146], [34, -142], [14, -142], [14, -140], [-2, -140], [-2, -138], [-12, -138],
     [-12, -136], [-16, -136]
    ]
   },
   {
-   "kennung": "M14",
+   "kennung": "M13",
    "art": "mauerring",
    "flaeche": [[-16, 136], [-12, 136], [-12, 138], [-2, 138], [-2, 140], [14, 140], [14, 142], [34, 142], [34, 146], [8, 146], [8, 144], [-4, 144], [-4, 142], [-12, 142], [-12, 140], [-16, 140]]
   },
   {
-   "kennung": "M15",
+   "kennung": "M14",
    "art": "mauerring",
    "flaeche": [
     [-8, 80], [-6, 80], [-6, 68], [-4, 68], [-4, 64], [12, 64], [12, 62], [20, 62], [20, 60], [34, 60], [34, 78], [22, 78], [22, 80], [20, 80], [20, 88], [16, 88], [16, 108],
     [34, 108], [34, 114], [16, 114], [16, 112], [6, 112], [6, 110], [0, 110], [0, 108], [-8, 108], [-8, 106], [8, 106], [8, 86], [-8, 86]
    ]
   },
+  {"kennung": "M15", "art": "mauerring", "flaeche": [[18, 124], [22, 124], [22, 126], [34, 126], [34, 134], [18, 134]]},
   {"kennung": "M16", "art": "mauerring", "flaeche": [[24, -124], [34, -124], [34, -106], [24, -106]]},
   {
    "kennung": "M17",
@@ -394,15 +425,16 @@
    "art": "vorstadt",
    "flaeche": [
     [-206, -22], [-202, -22], [-202, -24], [-182, -24], [-182, -26], [-160, -26], [-160, -28], [-142, -28], [-142, -32], [-138, -32], [-138, -34], [-128, -34], [-128, -30], [-130, -30],
-    [-130, -18], [-132, -18], [-132, -2], [-154, -2], [-154, 0], [-176, 0], [-176, 2], [-196, 2], [-196, 4], [-206, 4]
+    [-130, -18], [-132, -18], [-132, -2], [-136, -2], [-136, -10], [-160, -10], [-160, -8], [-168, -8], [-168, 0], [-176, 0], [-176, 2], [-196, 2], [-196, 4], [-206, 4]
    ]
   },
   {
    "kennung": "V2",
    "art": "vorstadt",
    "flaeche": [
-    [-206, 12], [-202, 12], [-202, 10], [-184, 10], [-184, 8], [-164, 8], [-164, 6], [-142, 6], [-142, 4], [-132, 4], [-132, 18], [-130, 18], [-130, 30], [-128, 30], [-128, 34],
-    [-136, 34], [-136, 36], [-140, 36], [-140, 32], [-158, 32], [-158, 34], [-178, 34], [-178, 36], [-198, 36], [-198, 38], [-204, 38], [-204, 22], [-206, 22]
+    [-206, 12], [-202, 12], [-202, 10], [-184, 10], [-184, 8], [-166, 8], [-166, 16], [-158, 16], [-158, 14], [-136, 14], [-136, 12], [-134, 12], [-134, 4], [-132, 4], [-132, 18],
+    [-130, 18], [-130, 30], [-128, 30], [-128, 34], [-136, 34], [-136, 36], [-140, 36], [-140, 32], [-158, 32], [-158, 34], [-178, 34], [-178, 36], [-198, 36], [-198, 38], [-204, 38],
+    [-204, 22], [-206, 22]
    ]
   },
   {
@@ -410,9 +442,9 @@
    "art": "vorstadt",
    "flaeche": [
     [-198, -64], [-196, -64], [-196, -70], [-194, -70], [-194, -76], [-192, -76], [-192, -82], [-190, -82], [-190, -84], [-180, -84], [-180, -82], [-168, -82], [-168, -80], [-156, -80],
-    [-156, -78], [-144, -78], [-144, -76], [-130, -76], [-130, -74], [-116, -74], [-116, -72], [-114, -72], [-114, -70], [-116, -70], [-116, -66], [-118, -66], [-118, -62], [-120, -62],
-    [-120, -58], [-122, -58], [-122, -52], [-124, -52], [-124, -46], [-126, -46], [-126, -44], [-134, -44], [-134, -46], [-138, -46], [-138, -48], [-136, -48], [-136, -50], [-148, -50],
-    [-148, -52], [-160, -52], [-160, -54], [-172, -54], [-172, -56], [-184, -56], [-184, -58], [-196, -58], [-196, -60], [-198, -60]
+    [-156, -78], [-148, -78], [-148, -70], [-146, -70], [-146, -68], [-134, -68], [-134, -66], [-120, -66], [-120, -64], [-118, -64], [-118, -62], [-120, -62], [-120, -58], [-122, -58],
+    [-122, -52], [-124, -52], [-124, -46], [-126, -46], [-126, -44], [-134, -44], [-134, -46], [-138, -46], [-138, -48], [-136, -48], [-136, -50], [-148, -50], [-148, -52], [-160, -52],
+    [-160, -54], [-172, -54], [-172, -56], [-184, -56], [-184, -58], [-196, -58], [-196, -60], [-198, -60]
    ]
   },
   {
@@ -422,8 +454,8 @@
     [-186, -96], [-184, -96], [-184, -100], [-182, -100], [-182, -104], [-180, -104], [-180, -108], [-178, -108], [-178, -112], [-176, -112], [-176, -116], [-168, -116], [-168, -114],
     [-156, -114], [-156, -112], [-144, -112], [-144, -110], [-130, -110], [-130, -108], [-116, -108], [-116, -106], [-106, -106], [-106, -108], [-94, -108], [-94, -106], [-92, -106],
     [-92, -104], [-94, -104], [-94, -100], [-96, -100], [-96, -98], [-98, -98], [-98, -96], [-100, -96], [-100, -94], [-102, -94], [-102, -90], [-104, -90], [-104, -88], [-106, -88],
-    [-106, -84], [-108, -84], [-108, -82], [-110, -82], [-110, -80], [-122, -80], [-122, -82], [-134, -82], [-134, -84], [-148, -84], [-148, -86], [-160, -86], [-160, -88], [-172, -88],
-    [-172, -90], [-182, -90], [-182, -92], [-186, -92]
+    [-106, -84], [-108, -84], [-108, -82], [-110, -82], [-110, -80], [-114, -80], [-114, -88], [-118, -88], [-118, -90], [-130, -90], [-130, -92], [-146, -92], [-146, -84], [-148, -84],
+    [-148, -86], [-160, -86], [-160, -88], [-172, -88], [-172, -90], [-182, -90], [-182, -92], [-186, -92]
    ]
   },
   {
@@ -433,11 +465,11 @@
     [-186, 92], [-184, 92], [-184, 90], [-180, 90], [-180, 88], [-178, 88], [-178, 86], [-174, 86], [-174, 84], [-172, 84], [-172, 82], [-170, 82], [-170, 80], [-166, 80], [-166, 78],
     [-164, 78], [-164, 76], [-160, 76], [-160, 74], [-158, 74], [-158, 72], [-154, 72], [-154, 70], [-152, 70], [-152, 68], [-148, 68], [-148, 66], [-146, 66], [-146, 64], [-142, 64],
     [-142, 62], [-140, 62], [-140, 60], [-136, 60], [-136, 58], [-134, 58], [-134, 52], [-132, 52], [-132, 50], [-128, 50], [-128, 48], [-126, 48], [-126, 46], [-124, 46], [-124, 52],
-    [-122, 52], [-122, 58], [-120, 58], [-120, 62], [-118, 62], [-118, 66], [-116, 66], [-116, 70], [-114, 70], [-114, 74], [-112, 74], [-112, 76], [-116, 76], [-116, 78], [-118, 78],
-    [-118, 80], [-122, 80], [-122, 82], [-126, 82], [-126, 84], [-128, 84], [-128, 86], [-132, 86], [-132, 88], [-134, 88], [-134, 90], [-138, 90], [-138, 92], [-140, 92], [-140, 94],
-    [-144, 94], [-144, 96], [-146, 96], [-146, 98], [-150, 98], [-150, 100], [-152, 100], [-152, 102], [-156, 102], [-156, 104], [-158, 104], [-158, 106], [-160, 106], [-160, 108],
-    [-164, 108], [-164, 110], [-166, 110], [-166, 112], [-168, 112], [-168, 114], [-172, 114], [-172, 116], [-176, 116], [-176, 112], [-178, 112], [-178, 108], [-180, 108], [-180, 104],
-    [-182, 104], [-182, 100], [-184, 100], [-184, 96], [-186, 96]
+    [-122, 52], [-122, 58], [-120, 58], [-120, 62], [-118, 62], [-118, 66], [-116, 66], [-116, 70], [-114, 70], [-114, 74], [-112, 74], [-112, 76], [-116, 76], [-116, 74], [-118, 74],
+    [-118, 72], [-126, 72], [-126, 74], [-128, 74], [-128, 76], [-132, 76], [-132, 78], [-134, 78], [-134, 80], [-138, 80], [-138, 82], [-140, 82], [-140, 84], [-144, 84], [-144, 86],
+    [-146, 86], [-146, 90], [-144, 90], [-144, 96], [-146, 96], [-146, 98], [-150, 98], [-150, 100], [-152, 100], [-152, 102], [-156, 102], [-156, 104], [-158, 104], [-158, 106],
+    [-160, 106], [-160, 108], [-164, 108], [-164, 110], [-166, 110], [-166, 112], [-168, 112], [-168, 114], [-172, 114], [-172, 116], [-176, 116], [-176, 112], [-178, 112], [-178, 108],
+    [-180, 108], [-180, 104], [-182, 104], [-182, 100], [-184, 100], [-184, 96], [-186, 96]
    ]
   },
   {
@@ -445,19 +477,19 @@
    "art": "vorstadt",
    "flaeche": [
     [-170, 122], [-166, 122], [-166, 120], [-164, 120], [-164, 118], [-162, 118], [-162, 116], [-158, 116], [-158, 114], [-156, 114], [-156, 112], [-152, 112], [-152, 110], [-150, 110],
-    [-150, 108], [-148, 108], [-148, 106], [-144, 106], [-144, 104], [-142, 104], [-142, 102], [-138, 102], [-138, 100], [-136, 100], [-136, 98], [-132, 98], [-132, 96], [-130, 96],
-    [-130, 94], [-126, 94], [-126, 92], [-124, 92], [-124, 90], [-120, 90], [-120, 88], [-116, 88], [-116, 86], [-114, 86], [-114, 84], [-110, 84], [-110, 82], [-108, 82], [-108, 84],
-    [-106, 84], [-106, 88], [-104, 88], [-104, 90], [-102, 90], [-102, 94], [-100, 94], [-100, 96], [-98, 96], [-98, 98], [-96, 98], [-96, 100], [-94, 100], [-94, 104], [-92, 104],
-    [-92, 108], [-96, 108], [-96, 110], [-106, 110], [-106, 112], [-112, 112], [-112, 114], [-120, 114], [-120, 116], [-126, 116], [-126, 118], [-134, 118], [-134, 120], [-140, 120],
-    [-140, 122], [-146, 122], [-146, 124], [-154, 124], [-154, 126], [-160, 126], [-160, 128], [-168, 128], [-168, 126], [-170, 126]
+    [-150, 108], [-148, 108], [-148, 106], [-144, 106], [-144, 104], [-142, 104], [-142, 102], [-136, 102], [-136, 106], [-128, 106], [-128, 104], [-126, 104], [-126, 102], [-122, 102],
+    [-122, 100], [-120, 100], [-120, 98], [-116, 98], [-116, 96], [-114, 96], [-114, 94], [-110, 94], [-110, 92], [-108, 92], [-108, 86], [-110, 86], [-110, 82], [-108, 82],
+    [-108, 84], [-106, 84], [-106, 88], [-104, 88], [-104, 90], [-102, 90], [-102, 94], [-100, 94], [-100, 96], [-98, 96], [-98, 98], [-96, 98], [-96, 100], [-94, 100], [-94, 104],
+    [-92, 104], [-92, 108], [-96, 108], [-96, 110], [-106, 110], [-106, 112], [-112, 112], [-112, 114], [-120, 114], [-120, 116], [-126, 116], [-126, 118], [-134, 118], [-134, 120],
+    [-140, 120], [-140, 122], [-146, 122], [-146, 124], [-154, 124], [-154, 126], [-160, 126], [-160, 128], [-168, 128], [-168, 126], [-170, 126]
    ]
   },
   {
    "kennung": "V7",
    "art": "vorstadt",
    "flaeche": [
-    [-56, -140], [-52, -140], [-52, -180], [-30, -180], [-30, -170], [-28, -170], [-28, -152], [-26, -152], [-26, -148], [-28, -148], [-28, -146], [-34, -146], [-34, -144], [-38, -144],
-    [-38, -142], [-42, -142], [-42, -140], [-46, -140], [-46, -138], [-50, -138], [-50, -136], [-54, -136], [-54, -134], [-56, -134]
+    [-56, -140], [-52, -140], [-52, -180], [-38, -180], [-38, -166], [-36, -166], [-36, -152], [-34, -152], [-34, -150], [-28, -150], [-28, -152], [-26, -152], [-26, -148], [-28, -148],
+    [-28, -146], [-34, -146], [-34, -144], [-38, -144], [-38, -142], [-42, -142], [-42, -140], [-46, -140], [-46, -138], [-50, -138], [-50, -136], [-54, -136], [-54, -134], [-56, -134]
    ]
   },
   {
@@ -465,7 +497,8 @@
    "art": "vorstadt",
    "flaeche": [
     [-56, 134], [-54, 134], [-54, 136], [-50, 136], [-50, 138], [-46, 138], [-46, 140], [-42, 140], [-42, 142], [-38, 142], [-38, 144], [-34, 144], [-34, 146], [-28, 146], [-28, 148],
-    [-24, 148], [-24, 160], [-22, 160], [-22, 172], [-20, 172], [-20, 180], [-46, 180], [-46, 176], [-48, 176], [-48, 164], [-50, 164], [-50, 152], [-52, 152], [-52, 140], [-56, 140]
+    [-24, 148], [-24, 152], [-30, 152], [-30, 154], [-32, 154], [-32, 164], [-30, 164], [-30, 174], [-28, 174], [-28, 180], [-46, 180], [-46, 176], [-48, 176], [-48, 164], [-50, 164],
+    [-50, 152], [-52, 152], [-52, 140], [-56, 140]
    ]
   },
   {
@@ -485,17 +518,37 @@
    "kennung": "V11",
    "art": "vorstadt",
    "flaeche": [
-    [-16, 152], [-6, 152], [-6, 154], [6, 154], [6, 156], [14, 156], [14, 158], [16, 158], [16, 168], [12, 168], [12, 172], [14, 172], [14, 182], [16, 182], [16, 194], [18, 194],
-    [18, 204], [20, 204], [20, 216], [22, 216], [22, 228], [24, 228], [24, 230], [2, 230], [2, 228], [-4, 228], [-4, 226], [8, 226], [8, 224], [16, 224], [16, 216], [14, 216],
-    [14, 204], [12, 204], [12, 202], [4, 202], [4, 204], [-4, 204], [-4, 188], [-10, 188], [-10, 186], [-12, 186], [-12, 174], [-14, 174], [-14, 164], [-16, 164]
+    [-12, 182], [-4, 182], [-4, 170], [-6, 170], [-6, 160], [-8, 160], [-8, 152], [-6, 152], [-6, 154], [6, 154], [6, 156], [14, 156], [14, 158], [16, 158], [16, 168], [12, 168],
+    [12, 172], [14, 172], [14, 182], [16, 182], [16, 194], [18, 194], [18, 204], [20, 204], [20, 216], [22, 216], [22, 228], [24, 228], [24, 230], [2, 230], [2, 228], [-4, 228],
+    [-4, 226], [8, 226], [8, 224], [16, 224], [16, 216], [14, 216], [14, 204], [12, 204], [12, 202], [4, 202], [4, 204], [-4, 204], [-4, 188], [-10, 188], [-10, 186], [-12, 186]
    ]
   },
   {
    "kennung": "V12",
    "art": "vorstadt",
-   "flaeche": [[126, 20], [136, 20], [136, 12], [150, 12], [150, 10], [156, 10], [156, 14], [140, 14], [140, 34], [160, 34], [160, 38], [128, 38], [128, 28], [126, 28]]
+   "flaeche": [[124, -18], [126, -18], [126, -22], [142, -22], [142, -44], [160, -44], [160, -34], [158, -34], [158, -14], [166, -14], [166, 2], [154, 2], [154, -6], [136, -6], [136, -4], [124, -4]]
   },
-  {"kennung": "V13", "art": "vorstadt", "flaeche": [[184, -42], [202, -42], [202, -32], [208, -32], [208, -6], [202, -6], [202, -12], [190, -12], [190, -10], [184, -10]]},
+  {
+   "kennung": "V13",
+   "art": "vorstadt",
+   "flaeche": [
+    [126, 20], [136, 20], [136, 12], [150, 12], [150, 10], [156, 10], [156, 14], [140, 14], [140, 34], [160, 34], [160, 18], [166, 18], [166, 24], [168, 24], [168, 38], [128, 38],
+    [128, 28], [126, 28]
+   ]
+  },
+  {
+   "kennung": "V14",
+   "art": "vorstadt",
+   "flaeche": [[174, -14], [184, -14], [184, -42], [202, -42], [202, -32], [208, -32], [208, -6], [202, -6], [202, -4], [192, -4], [192, -2], [184, -2], [184, 0], [174, 0]]
+  },
+  {
+   "kennung": "V15",
+   "art": "vorstadt",
+   "flaeche": [
+    [174, 18], [180, 18], [180, 16], [184, 16], [184, 8], [186, 8], [186, 6], [196, 6], [196, 4], [204, 4], [204, 2], [210, 2], [210, 28], [206, 28], [206, 30], [202, 30], [202, 36],
+    [176, 36], [176, 22], [174, 22]
+   ]
+  },
   {
    "kennung": "U1",
    "art": "umland",

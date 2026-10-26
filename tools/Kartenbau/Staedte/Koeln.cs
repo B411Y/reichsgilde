@@ -189,7 +189,13 @@ public sealed partial class Koeln : Stadtskript
         Weg(Wegklasse.Haupt, "Severinstraße", Bogen(162, R), Bogen(162, WallR), P(-14, 100), P(-7.7, 57), P(-2, 30), P(0, 12));
         Weg(Wegklasse.Haupt, "Brückenstraße", P(12, 8), P(RheinX, 8));
         Weg(Wegklasse.Haupt, "Rheinbrücke", P(RheinX, 8), P(126, 8));
-        Weg(Wegklasse.Ring, "Trankgasse", P(HoheX, -70), P(RheinX, -70));
+        Weg(Wegklasse.Gasse, "Trankgasse", P(HoheX, -70), P(RheinX, -70));
+        Weg(Wegklasse.Gasse, "Cäcilienstraße", P(-80, -45), P(HoheX, -45));
+
+        // Nebengassen mit erfundenen Namen (nur Fußgänger)
+        Weg(Wegklasse.Gasse, "Domkloster", P(HoheX, -112), P(-11, -112));
+        Weg(Wegklasse.Gasse, "Krähenpforte", P(0, -70), P(0, -56));
+        Weg(Wegklasse.Gasse, "Wollgasse", P(-62, 4), P(-56, 40), P(-50, 60.1));
 
         // Wallstraßen innerhalb der Mauer
         Weg(Wegklasse.Wall, "Kunibertswall", P(RheinX, -WallR), P(Cx, -WallR), Bogen(6, WallR), Bogen(12, WallR), Bogen(18, WallR), Bogen(24, WallR), Bogen(30, WallR),

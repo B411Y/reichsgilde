@@ -154,19 +154,38 @@ public sealed partial class Koeln
 
     private void Einwohnerplaetze()
     {
+        // Das Spiel ordnet die Plätze nach ihrer Lage: Plätze innerhalb einer Mauer (die Altstadt und Deutz zählen beide) bekommen zuerst die
+        // Ratsherren- und Bürgerhäuser, nach dem Abstand zum Markt; die übrigen Häuser stehen auf den Plätzen vor den Mauern (Vorstadt).
         var n = 0;
-        // Innerhalb der Mauer: die Plätze an den Wallstraßen (Häuser mit dem Rücken zur Mauer), dann an einigen Gassen und Hauptstraßen
-        foreach (var (strasse, seite) in new[]
+        // Altstadt: an den Straßen um die Märkte und an den Wallstraßen (Häuser mit dem Rücken zur Mauer)
+        foreach (var (strasse, links, von, bis, hoechstens) in new (string, bool, double, double, int)[]
         {
-            ("Kunibertswall", true), ("Mauritiuswall", true), ("Kartäuserwall", true),
+            ("Trankgasse", true, 0, 200, 3), ("Trankgasse", false, 0, 200, 3),
+            ("Cäcilienstraße", true, 0, 200, 2), ("Cäcilienstraße", false, 0, 200, 2), ("Wollgasse", true, 0, 200, 3), ("Wollgasse", false, 0, 200, 3),
+            ("Kunibertswall", true, 0, 1000, 5), ("Mauritiuswall", true, 0, 1000, 6), ("Kartäuserwall", true, 0, 1000, 5),
         })
-            n += Reihe("einwohnerplatz_ring", strasse, seite, 0, 1000, luecke: 1).Count;
-        Console.WriteLine($"   Einwohnerplätze (Ring): {n}");
+            n += Reihe("einwohnerplatz_ring", strasse, links, von, bis, luecke: 1, hoechstens: hoechstens).Count;
+        Console.WriteLine($"   Einwohnerplätze in der Altstadt: {n}");
+
+        // Kulissenhäuser (feste Modelle, kein Bauland): ein paar Häuser an den Märkten
+        var k = 0;
+        foreach (var (strasse, links, von, bis, hoechstens) in new (string, bool, double, double, int)[]
+        {
+            ("Bayenstraße", true, 0, 200, 3), ("Rheingasse", true, 100, 200, 2), ("Domkloster", true, 0, 200, 1),
+        })
+            k += Reihe("kulisse_buergerhaus", strasse, links, von, bis, luecke: 1, hoechstens: hoechstens).Count;
+        Console.WriteLine($"   Kulissenhäuser: {k}");
+
+        // Deutz (innerhalb der Mauer von Deutz) und die Vorstädte vor den Toren: die kleinen Plätze
         n = 0;
-        // Vor der Mauer und in Deutz: die kleinen Plätze der Vorstadt
-        foreach (var (strasse, seite) in new[] { ("Deutzer Freiheit", true), ("Deutzer Freiheit", false), ("Deutzer Kirchstraße", true), ("Deutzer Kirchstraße", false) })
-            n += Reihe("einwohnerplatz_vorstadt", strasse, seite, 0, 1000, luecke: 1.5, hoechstens: 8).Count;
-        Console.WriteLine($"   Einwohnerplätze (Vorstadt): {n}");
+        foreach (var (strasse, links) in new[] { ("Deutzer Freiheit", true), ("Deutzer Freiheit", false), ("Deutzer Kirchstraße", true), ("Deutzer Kirchstraße", false) })
+            n += Reihe("einwohnerplatz_vorstadt", strasse, links, 0, 1000, luecke: 1.5, hoechstens: 3).Count;
+        Console.WriteLine($"   Einwohnerplätze in Deutz: {n}");
+        n = 0;
+        foreach (var strasse in new[] { "Aachener Straße", "Venloer Straße", "Neusser Straße", "Luxemburger Straße", "Bonner Straße" })
+            foreach (var links in strasse == "Neusser Straße" ? new[] { true } : new[] { true, false })   // an der Neusser Straße endet das Spielfeld bald
+                n += Reihe("einwohnerplatz_vorstadt", strasse, links, 12, 80, luecke: 1.5, hoechstens: 3).Count;
+        Console.WriteLine($"   Einwohnerplätze vor den Toren: {n}");
     }
 
     // ── Kreuzungen ───────────────────────────────────────────────────────────
