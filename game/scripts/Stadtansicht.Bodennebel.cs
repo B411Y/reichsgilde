@@ -34,7 +34,7 @@ public partial class Stadtansicht
     private void BodennebelNachfuehren()
     {
         var stufe = Fenster.AktuellerDunst;
-        var staerke = OS.GetEnvironment("RG_OHNE_NEBEL") == "1" || stufe == Morgendunst.Aus || _raum is not null || _entwurf is not null || _grenzen is null
+        var staerke = stufe == Morgendunst.Aus || _raum is not null || _entwurf is not null || _grenzen is null
             ? 0f
             : Mathf.Max(NebelUm(_bezugStunde), 0.85f * _wetter.Nebel);
         if (staerke < 0.01f)
