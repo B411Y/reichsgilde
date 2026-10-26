@@ -63,6 +63,14 @@ func _laden(pfad: String) -> Image:
 	return bild
 
 
+func _finde(ordner: String, name: String) -> String:
+	for endung in ["png", "jpg", "jpeg", "webp"]:
+		var pfad := ordner.path_join(name + "." + endung)
+		if FileAccess.file_exists(pfad):
+			return pfad
+	return ""
+
+
 func _person(name: String) -> Image:
 	return _laden(_quellordner("personen").path_join(name + ".webp"))
 
@@ -90,10 +98,13 @@ func _quellen(roh: String, nur: PackedStringArray) -> void:
 			continue
 		if name.ends_with("_maske"):
 			DirAccess.make_dir_recursive_absolute(_quellordner("masken"))
-			bild = _maske_aufbereiten(bild)
+			var vorlage := _laden(_finde(roh, name.trim_suffix("_maske")))
+			bild = _maske_aufbereiten(bild, vorlage, name.contains("_alt_"))
 			bild.save_webp(_quellordner("masken").path_join(name.trim_suffix("_maske") + ".webp"), false)
 		elif name.begins_with("hg_"):
 			bild = _hintergrund_aufbereiten(bild)
+			if name == "hg_adel":
+				_abdunkeln(bild)
 			bild.save_webp(_quellordner("hintergruende").path_join(name + ".webp"), true, WEBP_QUALITAET)
 		else:
 			bild = _freistellen(_papierrand_abschneiden(bild))
@@ -103,17 +114,26 @@ func _quellen(roh: String, nur: PackedStringArray) -> void:
 
 ## Aus der Magenta/Cyan-Fassung zwei weiche Masken: Rot = Haar (Magenta: Rot und Blau hoch, Grün tief),
 ## Grün = Iris (Cyan: Grün und Blau hoch, Rot tief). Auf 512 px verkleinert.
-func _maske_aufbereiten(bild: Image) -> Image:
+## Gemini ändert in der Maskenfassung gelegentlich Stirnfransen oder Haarsaum leicht. Deshalb wird die Haar-Maske mit dem
+## Original abgeglichen: Helle, hautfarbene Pixel (Helligkeit über 0,62, mit weichem Übergang bis 0,78) zählen nicht
+## zum Haar. Bei "alt" (weißes Haar) gibt es keine Haar-Maske.
+func _maske_aufbereiten(bild: Image, vorlage: Image, ohne_haar: bool) -> Image:
 	var b := bild.get_width()
 	var daten := bild.get_data()
+	var daten_v := vorlage.get_data() if vorlage != null else PackedByteArray()
 	var ziel := PackedByteArray()
 	ziel.resize(b * b * 4)
 	for i in b * b:
 		var r: float = daten[i * 4] / 255.0
 		var g: float = daten[i * 4 + 1] / 255.0
 		var bl: float = daten[i * 4 + 2] / 255.0
-		var haar := clampf((minf(r, bl) - g - 0.20) / 0.30, 0.0, 1.0)
-		var auge := clampf((minf(g, bl) - r - 0.20) / 0.30, 0.0, 1.0)
+		var haar := clampf((minf(r, bl) - g - 0.40) / 0.30, 0.0, 1.0)
+		if ohne_haar:
+			haar = 0.0
+		elif vorlage != null and haar > 0.0:
+			var licht := (0.2126 * daten_v[i * 4] + 0.7152 * daten_v[i * 4 + 1] + 0.0722 * daten_v[i * 4 + 2]) / 255.0
+			haar *= 1.0 - smoothstep(0.62, 0.78, licht)
+		var auge := clampf((minf(g, bl) - r - 0.40) / 0.30, 0.0, 1.0)
 		ziel[i * 4] = int(haar * 255.0)
 		ziel[i * 4 + 1] = int(auge * 255.0)
 		ziel[i * 4 + 3] = 255
@@ -138,12 +158,27 @@ func _umfaerben(person: Image, maske: Image, kanal: int, ziel: Color) -> void:
 	if gewicht < 1.0:
 		return
 	var mittel := maxf(summe / gewicht, 0.05)
+	if kanal == 0:
+		# Zweiter Durchgang ohne die hellen Hautpixel in der Maske, sonst liegt der Mittelwert zu hoch.
+		summe = 0.0
+		gewicht = 0.0
+		for y in b:
+			for x in b:
+				var w: float = maske.get_pixel(x, y)[kanal]
+				var l := person.get_pixel(x, y).get_luminance()
+				if w > 0.05 and l < mittel * 1.5:
+					summe += l * w
+					gewicht += w
+		mittel = maxf(summe / maxf(gewicht, 0.001), 0.05)
 	for y in b:
 		for x in b:
 			var w: float = maske.get_pixel(x, y)[kanal]
 			if w <= 0.0:
 				continue
 			var p := person.get_pixel(x, y)
+			# Haut zwischen Haarsträhnen (deutlich heller als das Haar) bleibt unverändert.
+			if kanal == 0:
+				w *= 1.0 - smoothstep(mittel * 1.7, mittel * 2.3, p.get_luminance())
 			var faktor := p.get_luminance() / mittel
 			# Dunkle Linien bleiben dunkel (Faktor < 1), Lichter hellen auf, aber höchstens bis Weiß.
 			var neu := Color(clampf(ziel.r * faktor, 0.0, 1.0), clampf(ziel.g * faktor, 0.0, 1.0), clampf(ziel.b * faktor, 0.0, 1.0), p.a)
@@ -169,6 +204,21 @@ func _papierrand_abschneiden(bild: Image) -> Image:
 	ausschnitt.resize(b, b, Image.INTERPOLATE_LANCZOS)
 	print("  Papierrand abgeschnitten")
 	return ausschnitt
+
+
+## Gewölbe-Hintergrund (Adel): helle Flächen (das Fenster links) stark dämpfen, dazu eine Vignette, damit helle Gesichter
+## vor dem Bild stehen.
+func _abdunkeln(bild: Image) -> void:
+	var b := bild.get_width()
+	for y in b:
+		for x in b:
+			var c := bild.get_pixel(x, y)
+			var licht := smoothstep(0.30, 0.75, c.get_luminance())
+			var faktor := lerpf(0.85, 0.40, licht)
+			var dx := (x - b * 0.5) / (b * 0.5)
+			var dy := (y - b * 0.5) / (b * 0.5)
+			faktor *= 1.0 - 0.55 * clampf((dx * dx + dy * dy) * 0.6, 0.0, 1.0)
+			bild.set_pixel(x, y, Color(c.r * faktor, c.g * faktor, c.b * faktor, 1.0))
 
 
 func _hintergrund_aufbereiten(bild: Image) -> Image:
@@ -348,6 +398,8 @@ func _spiel(volk: String) -> void:
 		var name := _spielname(datei.get_basename())
 		var maske := _laden(_quellordner("masken").path_join(datei))
 		for kanal in [["haar", 0], ["augen", 1]]:
+			if kanal[0] == "haar" and "_alt_" in name:
+				continue  # weißes Haar wird nicht umgefärbt
 			var grau := Image.create(GROESSE, GROESSE, false, Image.FORMAT_L8)
 			for y in GROESSE:
 				for x in GROESSE:
