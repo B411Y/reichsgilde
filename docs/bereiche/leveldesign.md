@@ -358,3 +358,15 @@ Fahrplan (vom Nutzer am 21.10.2026 bestätigt, je Schritt ein PR; Stand wird hie
 | Regel | Entscheidung des Nutzers (Feinschliff, Marktplatz): Das Marktplatz-Modell hat keinen eigenen Boden mehr; unter der ganzen Grundfläche jedes Marktes liegt die Bodentextur Pflaster (ohne Deko), in jeder Karte. Der Boden-Shader zeigt sie dort als Gassenpflaster (Stadtgrund und Wege treten zurück). Regel steht in `docs/LEVELDESIGN.md`, „Marktpflaster“. | 26.10.2026 |
 | Umsetzung | Kartenskript: Umbauten `marktpflaster-greybox`, `-koeln`, `-probestadt`, `-messstadt` und die Hilfe `MarktPflastern()` für Stadtskripte (`tools/Kartenbau/Umbauten/Marktpflaster.cs`; Probestadt und Messstadt rufen sie nach dem Markt). Alle vier Karten: `pruefen` 0 Fehler, Köln und Messstadt haben dadurch erstmals ein `boden`-Feld (nur Pflaster am Markt). Tests angepasst (`BodenTests`: Köln und Messstadt nicht mehr „ohne Boden“) und ein Test für alle Märkte ergänzt. | 26.10.2026 |
 
+
+### Köln richtig bauen (PR #…)
+
+| Thema | Entscheidung | Datum |
+|---|---|---|
+| Treue | Entscheidung des Nutzers: erkennbar, spielbar vereinfacht – echte Wahrzeichen an ungefähr richtiger Lage (Dom-Baustelle mit Kran, Rathaus, halbrunde Mauer mit Toren, Rheinufer mit Hafen) und die Hauptstraßen (Hohe Straße, Breite Straße …), verkleinert und vereinfacht. | 26.10.2026 |
+| Größe | Spielfeld bleibt 700 × 450 m. | 26.10.2026 |
+| Gelände und Wasser | Flach mit leichtem Gefälle zum Rhein und Hochufer an der Altstadt; Duffesbach als kleiner Bach durch die Südstadt (Furten/Brücken); Rhein breit (etwa 60–100 m statt 21 m) mit Leinpfad, läuft bis an die Kartenkante; Deutz am anderen Ufer über Brücke (Fiktion) und Fähre. | 26.10.2026 |
+| Start | 8 Häuser (Spieler und bis zu 7 KI), Berufe frei wie in der Greybox; Startbelegung mit Werkstattplatz je Beruf für den Spieler. | 26.10.2026 |
+| Wahrzeichen | Romanische Kirchen (Groß St. Martin am Rhein, St. Gereon, St. Severin, St. Aposteln, St. Kunibert – vorerst mit dem Kirchenmodell), Heumarkt und Alter Markt nebeneinander am Rhein, Rheinkran und Stapelhaus am Ufer. | 26.10.2026 |
+| Namen | Echte Namen für Hauptstraßen und Plätze, wo bekannt (Hohe Straße, Breite Straße, Schildergasse, Severinstraße, Eigelstein …); Nebengassen mit passenden erfundenen Namen. | 26.10.2026 |
+| Ablauf | Köln entsteht per Stadtskript (`tools/Kartenbau/Staedte/Koeln.cs`) mit allen Prüfungen grün; danach verfeinert der Nutzer in der Kartenwerkstatt. | 26.10.2026 |
