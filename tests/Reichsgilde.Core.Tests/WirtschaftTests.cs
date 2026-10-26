@@ -22,6 +22,12 @@ static class Datenpfad
         throw new FileNotFoundException("game/daten/wirtschaft.json wurde nicht gefunden.");
     }
 
+    /// <summary>
+    /// Die Daten mit einem Versuch je Nacht um 20 Uhr und voller Chance (wie bis Datenversion 56) – für Tests einer einzelnen Tat.
+    /// Die Gaunerei je Nachtstunde (gauner.nachtVersuche) prüft GaunerNachtTests.
+    /// </summary>
+    public static string EinVersuchJeNacht(string json) => json.Replace("\"nachtVersuche\": 4", "\"nachtVersuche\": 1").Replace("\"versuchFaktor\": 0.3333", "\"versuchFaktor\": 1");
+
     /// <summary>Die Karte game/karten/&lt;kennung&gt;.json (neben game/daten/).</summary>
     public static string Karte(string kennung) =>
         Path.Combine(Path.GetDirectoryName(Path.GetDirectoryName(Wirtschaft()))!, "karten", kennung + ".json");

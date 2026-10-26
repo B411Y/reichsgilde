@@ -10,7 +10,7 @@ using Reichsgilde.Core.Zeit;
 /// <summary>Tests für Gaunerstücke gegen das Wohnhaus: Einbruch (Bargeld), Brand (Reparatur, Ansehen fehlt), Hauswächter.</summary>
 static class GaunerWohnhausTests
 {
-    static readonly string Json = File.ReadAllText(Datenpfad.Wirtschaft());
+    static readonly string Json = Datenpfad.EinVersuchJeNacht(File.ReadAllText(Datenpfad.Wirtschaft()));
     static readonly Lazy<Wirtschaftsdaten> Daten = new(() => Wirtschaftsdaten.AusJson(Json));
 
     /// <summary>Einbruch und Brand gelingen immer, Zeugen nach Wunsch.</summary>

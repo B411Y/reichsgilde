@@ -125,11 +125,12 @@ public sealed class Marktstand
     /// </summary>
     /// <param name="faktor">Händlerspanne und Verhandeln, z. B. 1,1 × 0,97.</param>
     /// <param name="vorher">So viele Stück wären vorher schon gekauft (für eine Rechnung in Schritten, z. B. die Ladung eines Schiffs).</param>
-    public double HandKaufpreis(int stueck, double faktor, int vorher = 0)
+    /// <param name="anteil">So viel jedes Stücks fehlt danach im Angebot (1 = ganz; die Hinfracht der Schiffe weniger, <see cref="SchiffshandelDaten.HeimatmarktAnteil"/>).</param>
+    public double HandKaufpreis(int stueck, double faktor, int vorher = 0, double anteil = 1)
     {
         double summe = 0;
         for (var i = 0; i < stueck; i++)
-            summe += _ware.Grundpreis * FaktorBei(-(vorher + i)) * faktor;
+            summe += _ware.Grundpreis * FaktorBei(-(vorher + i) * anteil) * faktor;
         return summe;
     }
 
@@ -146,11 +147,11 @@ public sealed class Marktstand
         return summe;
     }
 
-    /// <summary>Kauft von Hand: wie <see cref="HandKaufpreis"/>, und das Angebot sinkt um die gekauften Stück.</summary>
-    internal double HandKaufen(int stueck, double faktor)
+    /// <summary>Kauft von Hand: wie <see cref="HandKaufpreis"/>, und das Angebot sinkt um die gekauften Stück (× <paramref name="anteil"/>).</summary>
+    internal double HandKaufen(int stueck, double faktor, double anteil = 1)
     {
-        var kosten = HandKaufpreis(stueck, faktor);
-        _verkaufteStueckProStunde[_aktuellesFach] -= stueck;
+        var kosten = HandKaufpreis(stueck, faktor, anteil: anteil);
+        _verkaufteStueckProStunde[_aktuellesFach] -= stueck * anteil;
         return kosten;
     }
 

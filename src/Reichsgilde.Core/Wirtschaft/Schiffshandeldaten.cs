@@ -23,17 +23,20 @@ public sealed class SchiffstypDaten
     /// <summary>Unterhalt im Jahr (Mannschaft, Pech, Segeltuch) – als Fixkosten zum Jahresende.</summary>
     public double Unterhalt { get; init; }
 
-    /// <summary>Spielminuten für eine Strecke der Länge 1 flussab (mit der Strömung).</summary>
-    public int MinutenFlussab { get; init; } = 60;
+    /// <summary>
+    /// Spielminuten für eine Strecke der Länge 1 flussab (mit der Strömung). Seit Datenversion 57 wachsen alle Fahrtzeiten mit dem Spieltag
+    /// (× 1140/1020: 60 → 67, 100 → 112, 20 → 22, 30 → 34) – je Jahr gleich viele Fahrten wie vorher.
+    /// </summary>
+    public int MinutenFlussab { get; init; } = 67;
 
     /// <summary>Spielminuten für eine Strecke der Länge 1 flussauf (gegen die Strömung: getreidelt oder gesegelt).</summary>
-    public int MinutenFlussauf { get; init; } = 100;
+    public int MinutenFlussauf { get; init; } = 112;
 
     /// <summary>So lange wird am Kai beladen, bevor das Schiff ablegt (Spielminuten).</summary>
-    public int LadeMinuten { get; init; } = 20;
+    public int LadeMinuten { get; init; } = 22;
 
     /// <summary>So lange liegt das Schiff in der fernen Stadt (verkaufen, kaufen; Spielminuten).</summary>
-    public int LiegeMinuten { get; init; } = 30;
+    public int LiegeMinuten { get; init; } = 34;
 
     /// <summary>Tempo auf der sichtbaren Strecke der Karte in Metern je Spielminute (flussab; flussauf im Verhältnis der Minuten langsamer).</summary>
     public double MeterJeMinute { get; init; } = 8;
@@ -112,6 +115,12 @@ public sealed class SchiffshandelDaten
     /// </summary>
     public double ErholungJeStunde { get; init; } = 0.072;
 
+    /// <summary>
+    /// So viel jedes Stücks Hinfracht, das ein Schiff daheim am Markt kauft, fehlt danach im Angebot (Datenversion 57: 0,5 – die Händler
+    /// der Stadt bringen die Hälfte nach). Halbiert die Exportnachfrage am Heimatmarkt: Der Preis steigt nur halb so stark. Ohne Angabe 1.
+    /// </summary>
+    public double HeimatmarktAnteil { get; init; } = 1;
+
     public PiratenDaten Piraten { get; init; } = new();
 
     /// <summary>Das Geleit eines Schiffs kostet so viel mal die Eskorte eines Karrens (<c>logistik.eskorten</c>).</summary>
@@ -156,6 +165,7 @@ public sealed class SchiffshandelDaten
         }
         if (ZollJeStelle is < 0 or >= 1) f.Add($"{p}.zollJeStelle muss zwischen 0 und 1 liegen.");
         if (ErholungJeStunde is < 0 or > 1) f.Add($"{p}.erholungJeStunde muss zwischen 0 und 1 liegen.");
+        if (HeimatmarktAnteil is < 0 or > 1) f.Add($"{p}.heimatmarktAnteil muss zwischen 0 und 1 liegen.");
         if (Piraten.Chance is < 0 or > 1) f.Add($"{p}.piraten.chance muss zwischen 0 und 1 liegen.");
         if (Piraten.Staerke < 0) f.Add($"{p}.piraten.staerke darf nicht negativ sein.");
         if (Piraten.BeuteAnteil is <= 0 or > 1) f.Add($"{p}.piraten.beuteAnteil muss über 0 und höchstens 1 sein.");

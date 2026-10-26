@@ -10,10 +10,10 @@ using Reichsgilde.Core.Zeit;
 /// <summary>Tests für die Unterwelt: Diebstahl, Sabotage, Überfall, Wächter, Zeugen, Erpressung, Kerker und die KI.</summary>
 static class GaunerTests
 {
-    static readonly Lazy<Wirtschaftsdaten> Daten = new(() => Wirtschaftsdaten.AusDatei(Datenpfad.Wirtschaft()));
+    static readonly Lazy<Wirtschaftsdaten> Daten = new(() => Wirtschaftsdaten.AusJson(Datenpfad.EinVersuchJeNacht(File.ReadAllText(Datenpfad.Wirtschaft()))));
 
     /// <summary>Daten mit festen Ausgängen: Gaunerstücke gelingen immer, Zeugen nach Wunsch, Spitzel finden alles.</summary>
-    static Wirtschaftsdaten Sicher(double zeugen = 0) => Wirtschaftsdaten.AusJson(File.ReadAllText(Datenpfad.Wirtschaft())
+    static Wirtschaftsdaten Sicher(double zeugen = 0) => Wirtschaftsdaten.AusJson(Datenpfad.EinVersuchJeNacht(File.ReadAllText(Datenpfad.Wirtschaft()))
         .Replace("\"chance\": 0.7", "\"chance\": 1.0")
         .Replace("\"chance\": 0.6", "\"chance\": 1.0")
         .Replace("\"kosten\": 300, \"staerke\": 0.8", "\"kosten\": 300, \"staerke\": 1.0")

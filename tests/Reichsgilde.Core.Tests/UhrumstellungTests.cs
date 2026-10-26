@@ -99,6 +99,8 @@ static class UhrumstellungTests
             Pruefe.Gleich((1140, 1140, 2280), (w.Daten.Werkstatt!.Praemie.Minuten, w.Daten.Werkstatt.Unfall.LauneMinuten, (int)w.Daten.Werkstatt.Befoerderung.DienstMinuten));
             Pruefe.Gleich((4, 23), (w.Daten.Buerger!.Handlungen[Reichsgilde.Core.Buerger.Handlung.Ruhen].Von, w.Daten.Buerger.Handlungen[Reichsgilde.Core.Buerger.Handlung.Ruhen].Bis));
             Pruefe.Ungefaehr(0.0719, w.Daten.Schiffshandel!.ErholungJeStunde, 1e-9);
+            var typ = w.Daten.Schiffshandel.Schiffe["Flussschiff"]; // Fahrtzeiten mit dem Spieltag (Datenversion 57)
+            Pruefe.Gleich((67, 112, 22, 34), (typ.MinutenFlussab, typ.MinutenFlussauf, typ.LadeMinuten, typ.LiegeMinuten));
 
             // Weiterspielen über den Jahreswechsel; der neue Spielstand ist Format 3 und lädt Wurf für Wurf gleich.
             Ticken(sim, 23 * 60 - sim.Zeit.UhrzeitInMinuten + 30);

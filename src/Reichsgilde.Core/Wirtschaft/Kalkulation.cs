@@ -126,7 +126,7 @@ public static class Kalkulation
         var ef = w.Familien.EinkaufsFaktor(konto);
         var hin = hinfracht.Where(x => x.Value > 0).ToList();
         var rueck = rueckfracht.Where(x => x.Value > 0).ToList();
-        var einkauf = hin.Sum(x => ausLager ? w.Markt[x.Key].Verkaufswert(x.Value) * (1 - steuer) * vf : w.HandKaufpreis(konto, x.Key, x.Value));
+        var einkauf = hin.Sum(x => ausLager ? w.Markt[x.Key].Verkaufswert(x.Value) * (1 - steuer) * vf : w.HandKaufpreis(konto, x.Key, x.Value, d.HeimatmarktAnteil));
         var erloesFern = hin.Sum(x => stadt.Erloes(x.Key, x.Value)) * vf;
         var einkaufFern = rueck.Sum(x => stadt.Kosten(x.Key, x.Value)) * ef;
         var erloesHeim = rueck.Sum(x => w.Markt[x.Key].Verkaufswert(x.Value)) * (1 - steuer) * vf;
@@ -174,8 +174,8 @@ public static class Kalkulation
             var zollRate = w.Schiffahrt.Zollstellen(konto, stadt) * d.ZollJeStelle + rate;
             // Hinfracht: am Markt kaufen, dort verkaufen
             var hin = Fuellen(typ, stadt.Daten.Kauft.Keys, (ware, n, q) =>
-                stadt.Erloes(ware, q, n) * vf - w.Markt[ware].HandKaufpreis(q, hk, n) - zollRate * w.Markt[ware].Preis * q,
-                (ware, n, q) => w.Markt[ware].HandKaufpreis(q, hk, n), budget);
+                stadt.Erloes(ware, q, n) * vf - w.Markt[ware].HandKaufpreis(q, hk, n, d.HeimatmarktAnteil) - zollRate * w.Markt[ware].Preis * q,
+                (ware, n, q) => w.Markt[ware].HandKaufpreis(q, hk, n, d.HeimatmarktAnteil), budget);
             // Rückfracht: dort kaufen, hier verkaufen
             var rueck = Fuellen(typ, stadt.Daten.Verkauft.Keys, (ware, n, q) =>
                 w.Markt[ware].Verkaufswert(q, n) * (1 - steuer) * vf - stadt.Kosten(ware, q, n) * ef - zollRate * w.Markt[ware].Preis * q,

@@ -40,13 +40,13 @@ static class KiSchiffTests
     {
         ("KI kauft zum Jahresende ein Schiff, wenn es sich in höchstens 4 Jahren bezahlt macht – höchstens eins; nicht ohne Geld über der Reserve", () =>
         {
-            // In der leeren Stadt (kein Haus wirtschaftet, kleiner Markt) braucht ein Schiff knapp 5 Jahre – die Grenze hier 6.
-            var (_, w, k, ki) = KiHaus(daten: Grenze(6));
+            // In der leeren Stadt (kein Haus wirtschaftet, kleiner Markt) braucht ein Schiff gut 6 Jahre (Datenversion 57: gedämpfte Fernpreise) – die Grenze hier 8.
+            var (_, w, k, ki) = KiHaus(daten: Grenze(8));
             var typ = w.Schiffahrt.Daten!.Schiffe["Flussschiff"];
             var v = Kalkulation.BesteSchiffsfahrt(w, k, typ, k.Vermoegen - typ.Preis - 2 * ki.Profil.Reserve)!;
             var jahre = typ.Preis / (v.Rechnung.GewinnJeJahr * 0.5 - typ.Unterhalt);
-            Pruefe.Wahr(jahre is > 0 and <= 6, $"ein Schiff lohnt ({jahre:0.0} Jahre)");
-            Pruefe.Gleich(6.0, ki.SchiffHoechstensJahre);
+            Pruefe.Wahr(jahre is > 0 and <= 8, $"ein Schiff lohnt ({jahre:0.0} Jahre)");
+            Pruefe.Gleich(8.0, ki.SchiffHoechstensJahre);
             Pruefe.Gleich(4.0, KiHaus().Ki.SchiffHoechstensJahre);
             ki.Jahresende();
             Pruefe.Gleich(1, w.Schiffahrt.SchiffeVon(k).Count());
@@ -54,7 +54,7 @@ static class KiSchiffTests
             ki.Jahresende();
             Pruefe.Gleich(1, w.Schiffahrt.SchiffeVon(k).Count());
 
-            var (_, w2, k2, ki2) = KiHaus(geld: typ.Preis + 2 * ki2Reserve() - 1, daten: Grenze(6));
+            var (_, w2, k2, ki2) = KiHaus(geld: typ.Preis + 2 * ki2Reserve() - 1, daten: Grenze(8));
             ki2.Jahresende();
             Pruefe.Gleich(0, w2.Schiffahrt.SchiffeVon(k2).Count());
             static double ki2Reserve() => KiProfil.Standard.Reserve;
@@ -76,7 +76,7 @@ static class KiSchiffTests
 
         ("KI schickt ihr Schiff in der nächsten Stunde los: der beste Auftrag, das Geleit mit dem kleinsten Lohn plus Raub", () =>
         {
-            var (_, w, k, ki) = KiHaus(daten: Grenze(6));
+            var (_, w, k, ki) = KiHaus(daten: Grenze(8));
             ki.Jahresende();
             var s = w.Schiffahrt.SchiffeVon(k).Single();
             var budget = k.Vermoegen - ki.Profil.Reserve;
@@ -104,14 +104,27 @@ static class KiSchiffTests
             Pruefe.Gleich(SchiffZustand.AmKai, w.Schiffahrt.SchiffeVon(k).Single().Zustand);
         }),
 
-        ("Ein Jahr KI-Schiffshandel in der Probestadt: Das Schiff fährt mehrmals und bringt nach Unterhalt Gewinn", () =>
+        ("Zwei Jahre KI-Schiffshandel in der Probestadt: Das Schiff fährt mehrmals und bringt nach Unterhalt Gewinn (ohne Flusspiraten)", () =>
         {
-            var (sim, w, k, ki) = KiHaus(daten: Grenze(6));
+            // Ohne Piraten: Ein gelungener Überfall nimmt die Hälfte der Ladung – in der leeren Stadt mit knappen Fahrten entschiede er allein.
+            Pruefe.Wahr(Json.Value.Contains("\"chance\": 0.05, \"staerke\": 1.0"), "Piraten stehen nicht wie erwartet in wirtschaft.json");
+            var ohnePiraten = Wirtschaftsdaten.AusJson(Json.Value.Replace("\"chance\": 0.05, \"staerke\": 1.0", "\"chance\": 0, \"staerke\": 1.0")
+                .Replace(KiZeile, KiZeile.Replace("\"hoechstensJahre\": 4", "\"hoechstensJahre\": 8")));
+            var (sim, w, k, ki) = KiHaus(daten: ohnePiraten);
             ki.Jahresende();
             var s = w.Schiffahrt.SchiffeVon(k).Single();
-            while (sim.Zeit.Jahr < Spielzeit.StartJahr + 2) sim.Tick();
-            Pruefe.Wahr(s.Fahrten >= 4, $"Fahrten: {s.Fahrten}");
-            Pruefe.Wahr(s.ErtragVorjahr > 0, $"Ertrag im Vorjahr nach Unterhalt: {s.ErtragVorjahr}");
+            // Zwei Jahre: Eine Fahrt über den Jahreswechsel bucht den Einkauf im alten, den Erlös im neuen Jahr (Rundreise 270 bzw. 324 Minuten) –
+            // deshalb zählen alle Jahre seit dem Kauf und am Ende die laufende Fahrt, bis das Schiff wieder am Kai liegt.
+            double ertrag = 0;
+            for (var jahr = Spielzeit.StartJahr; jahr <= Spielzeit.StartJahr + 2; jahr++)
+            {
+                while (sim.Zeit.Jahr <= jahr) sim.Tick();
+                ertrag += s.ErtragVorjahr ?? 0;
+            }
+            while (s.Zustand != SchiffZustand.AmKai) sim.Tick();
+            ertrag += s.ErtragLaufend;
+            Pruefe.Wahr(s.Fahrten >= 5, $"Fahrten: {s.Fahrten}");
+            Pruefe.Wahr(ertrag > 0, $"Ertrag in zwei Jahren nach Unterhalt: {ertrag:0}");
         }),
     };
 }

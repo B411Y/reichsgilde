@@ -607,7 +607,7 @@ Die Unterwelt (`src/Reichsgilde.Core/Gauner/Unterwelt.cs`) gehört zur Stadtwirt
 
 - **Bestellen und Ausführen sind getrennt.**
   - `Beauftragen` bezahlt die Bande sofort.
-  - Ausgeführt wird in `Unterwelt.Nacht`, die die Stadtwirtschaft um 20:00 aufruft (`Unterwelt.Nachtstunde`).
+  - Ausgeführt wird in `Unterwelt.Nacht(zeit, versuch)`, die die Stadtwirtschaft um 20:00 aufruft (`Unterwelt.Nachtstunde`) und mit `gauner.nachtVersuche` (Datenversion 57: 4) zu jeder vollen Stunde danach noch einmal (`VersuchUm`; den Versuch um 23 Uhr ruft die Jahresrechnung). Jeder Versuch würfelt mit Chance × `versuchFaktor` (⅓); Aufträge, die wiederholt werden können (Diebstahl, Sabotage, Einbruch ins Wohnhaus, Brand, Krötenschleim, Einbruch der eigenen Diebe), bleiben bis zum letzten Versuch stehen. `Spur` meldet nur Erfolge, einen Fehlschlag erst im letzten Versuch, wenn die ganze Nacht nichts gelang. Überfall (Hinterhalt), Auskundschaften, Entführung, Schutzgeld-Brand und Gift bleiben einmalig um 20 Uhr.
   - Danach meldet `NachtVorbei`, dass offene Tafeln sich neu aufbauen sollen.
 - **Überfall als Hinterhalt:**
   - Die Wegelagerer warten bis zur nächsten Nacht. `Karren.Losfahren` fragt bei jeder beladenen Umlandfahrt `HinterhaltAusloesen`.

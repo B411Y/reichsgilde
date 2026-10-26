@@ -71,6 +71,7 @@ static partial class Balancingbericht
             {
                 ["n"] = mitKasse.Count,
                 ["standAmJahresende"] = JeJahr(new[] { 1 }.Concat(e.Stich).Distinct(), j => Kennzahl(mitKasse.Select(r => r.Kassenstand[j - 1]))),
+                ["standMittelUeberDieJahre"] = Kennzahl(mitKasse.Select(r => r.Kassenstand.Average())),
                 ["jahreImMinusJePartie"] = Kennzahl(mitKasse.Select(r => (double)r.Kassenstand.Count(x => x < 0)), 1),
                 ["steuersatzAmEnde"] = new JsonObject(mitKasse.GroupBy(r => r.Steuersatz[^1]).OrderBy(g => g.Key)
                     .Select(g => new KeyValuePair<string, JsonNode?>($"{g.Key} %", g.Count()))),
@@ -94,7 +95,7 @@ static partial class Balancingbericht
                         $"{Vz((double)ki["abstandProzent"]!, 1)} %; Ertrag je Schiff und Jahr nach Unterhalt {Text(schiffsjahre > 0 ? mit.Sum(r => r.Schiffsertrag) / schiffsjahre : 0)}.");
             if (mitKasse.Count > 0)
                 befunde.Add($"Stadtkasse {karte}: Stand Ø {string.Join(" / ", e.Stich.Select(j => Text(mitKasse.Average(r => r.Kassenstand[j - 1]))))} " +
-                            $"(Jahr {string.Join("/", e.Stich)}), Steuersatz am Ende {string.Join(", ", mitKasse.GroupBy(r => r.Steuersatz[^1]).OrderBy(g => g.Key).Select(g => $"{g.Key} % in {g.Count()}"))}; " +
+                            $"(Jahr {string.Join("/", e.Stich)}), im Mittel aller Jahre {Text(mitKasse.Average(r => r.Kassenstand.Average()))}, Steuersatz am Ende {string.Join(", ", mitKasse.GroupBy(r => r.Steuersatz[^1]).OrderBy(g => g.Key).Select(g => $"{g.Key} % in {g.Count()}"))}; " +
                             $"Steuer je KI-Haus Ø {Text(kiHaeuser.Average(h => JahrMittel(h, j => j.Steuer)))} im Jahr, Spitzel {Text(kiHaeuser.Average(h => JahrMittel(h, j => j.Spitzel)))}, " +
                             $"Gericht gesamt {Text(kiHaeuser.Average(h => JahrMittel(h, j => j.Gericht)))}.");
             Console.WriteLine($"8 Hafen {karte}: Spieler passiv {Vz((double)spieler["abstandProzent"]!, 1)} %, KI {Vz((double)ki["abstandProzent"]!, 1)} % mit Schiffshandel");
@@ -190,6 +191,15 @@ static partial class Balancingbericht
             });
             if (d.Ort == Arbeitsort.Werkstatt) werkstatt.Add(Abstand(c, b));
         }
+        // Z6 neu gefasst (Entscheidung des Nutzers, 26.10.2026): Statut C senkt die Lohnkosten bei gleicher Arbeit in einfachen Betrieben
+        // (Umland). Gemessen: Kosten je Arbeit = (Lohn + Risiko × Schaden) ÷ Tempo im Umland, je erlaubter Kraft.
+        var umland = new JsonObject(daten.Arbeitskraefte.Where(x => x.Value.IstErlaubt(Fronstatut.Leibeigenschaft, Arbeitsort.Umland))
+            .Select(x => new KeyValuePair<string, JsonNode?>(x.Key, R(UmlandKostenJeArbeit(daten, x.Key), 1))));
+        var bergmann = UmlandKostenJeArbeit(daten, "Bergmann");
+        var leibeigener = UmlandKostenJeArbeit(daten, "Leibeigener");
+        var ork = UmlandKostenJeArbeit(daten, "Ork");
+        befunde.Add($"Z6 neu (Umland, Lohnkosten je Arbeit = Lohn und Risiko ÷ Tempo): Leibeigener {Text(leibeigener)} statt Bergmann {Text(bergmann)} " +
+                    $"({Vz(Abstand(leibeigener, bergmann))} %; unter Statut A die einzige Kraft) und Ork {Text(ork)} ({Vz(Abstand(leibeigener, ork))} %; unter Statut B die beste).");
         var g = Kalkulation.ErwarteterJahresgewinn(w, Betriebsart.Giesserei, Fronstatut.Bestienfron);
         var gc = Kalkulation.ErwarteterJahresgewinn(w, Betriebsart.Giesserei, Fronstatut.Leibeigenschaft);
         befunde.Add($"Z6 Statut C (Startpreise): Gießerei {Text(g)} unter B, {Text(gc)} unter C ({Vz(Abstand(gc, g), 1)} %, Ziel +15–25 %); " +
@@ -204,7 +214,17 @@ static partial class Balancingbericht
                              "„gleichstandBeiWertschoepfung“: Wertschöpfung je Kopf und Jahr (Tempo 1, vor Lohn), bei der der Leibeigene gleich viel bringt wie die " +
                              "beste Kraft unter B – darüber gewinnt die schnellere Kraft. Nicht in Gulden: Ansehen, Aufstand, Reichsvogt.",
             ["zeilen"] = zeilen,
+            ["umlandKostenJeArbeit"] = umland,
+            ["umlandErklaerung"] = "Z6 neu gefasst (26.10.2026): Statut C senkt die Lohnkosten bei gleicher Arbeit in einfachen Betrieben (Umland). " +
+                                   "Kosten je Arbeit = (Lohn + Risiko × Schaden) ÷ Tempo im Umland – was eine Arbeitsminute mit Tempo 1 kostet, je Jahr.",
         };
+    }
+
+    /// <summary>Was die Arbeit einer Kraft im Umland je Jahr bei Tempo 1 kostet: (Lohn + Risiko × Schaden) ÷ Tempo im Umland.</summary>
+    public static double UmlandKostenJeArbeit(Wirtschaftsdaten daten, string kraft)
+    {
+        var k = daten.Arbeitskraefte[kraft];
+        return (k.Kosten + k.Risiko * k.Schaden) / k.TempoAm(Arbeitsort.Umland);
     }
 
     /// <summary>Wertschöpfung je Kopf und Jahr (Tempo 1, vor Lohn), bei der ein Leibeigener in der Werkstatt so viel bringt wie ein Geselle (Schicht 1).</summary>
