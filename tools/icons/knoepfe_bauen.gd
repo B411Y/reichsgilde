@@ -12,6 +12,7 @@
 #          game/assets/oberflaeche/icons/<ware>.png. Ohne Namen alle Motive unter quellen/motiv/.
 #          Beruf und Stufe je Ware kommen aus game/daten/wirtschaft.json (niedrigste Stufe, in der die Ware
 #          vorkommt); Waren ohne Betrieb sind Rohstoffe (Holzrahmen, Lehmbraun).
+# Mit --ohne-effekte (an beliebiger Stelle) ohne Lichthof, Saum und Schatten (Vorher-Bild).
 # tafel:   Übersichtstafel (128 px oben, 64 px darunter) zur Abnahme.
 #
 # Die Dateinamen folgen WarenIcons.Dateiname: "Kräuterschnaps" -> "kraeuterschnaps".
@@ -27,21 +28,26 @@ const HINTERGRUND := {
 const ROHSTOFF_HINTERGRUND := "lehmbraun"
 const RAHMEN := ["holz", "stein", "silber", "gold"]  # Index = Stufe (0 = Rohstoff)
 
+# Hebt das Motiv vom Hintergrund ab (Lichthof, heller Saum, Schlagschatten). "--ohne-effekte" schaltet es ab.
+var _effekte := true
 var _wurzel: String
 
 
 func _init() -> void:
 	# --script läuft im Projektordner (game/); das Repository liegt eine Ebene höher.
 	_wurzel = ProjectSettings.globalize_path("res://").path_join("..").simplify_path()
-	var arg := OS.get_cmdline_user_args()
+	var arg := Array(OS.get_cmdline_user_args())
+	if arg.has("--ohne-effekte"):
+		_effekte = false
+		arg.erase("--ohne-effekte")
 	if arg.is_empty():
 		print("Aufruf: quellen <Ordner> | bauen [namen] | tafel <ziel.png> [namen]")
 		quit(1)
 		return
 	match arg[0]:
 		"quellen": _quellen(arg[1])
-		"bauen": _bauen(arg.slice(1))
-		"tafel": _tafel(arg[1], arg.slice(2))
+		"bauen": _bauen(PackedStringArray(arg.slice(1)))
+		"tafel": _tafel(arg[1], PackedStringArray(arg.slice(2)))
 		_: print("Unbekannter Befehl: ", arg[0])
 	quit()
 
@@ -340,10 +346,121 @@ func _knopf(key: String, waren: Dictionary, teile: Dictionary) -> Image:
 	var loch := _loch_rechteck(rahmen)
 	var m := motiv.duplicate() as Image
 	m.resize(loch.size.x, loch.size.y, Image.INTERPOLATE_LANCZOS)
-	bild.blend_rect(m, Rect2i(0, 0, m.get_width(), m.get_height()), loch.position)
+	if _effekte:
+		_lichthof(bild, 1.3 if stufe == 0 and not waren.has(key) else 1.0)
+		# Motiv auf eine volle Fläche setzen, damit Saum und Schatten nicht am Lochrand abgeschnitten werden.
+		var flaeche := Image.create(GROESSE, GROESSE, false, Image.FORMAT_RGBA8)
+		flaeche.blend_rect(m, Rect2i(0, 0, m.get_width(), m.get_height()), loch.position)
+		var maske := _alpha_maske(flaeche)
+		# Schlagschatten: nach unten rechts versetzt (3 px bei 128 px), weich, 35 %.
+		_ebene(bild, _weich(_versetzt(maske, 6, 6), 4), Color(0.0, 0.0, 0.0), 0.35)
+		# Heller Saum: Maske 5 px (= 2,5 px bei 128) erweitert und weich, warmweiß, 60 %.
+		_ebene(bild, _weich(_erweitert(maske, 5), 2), Color(1.0, 0.95, 0.82), 0.6)
+		bild.blend_rect(flaeche, Rect2i(0, 0, GROESSE, GROESSE), Vector2i.ZERO)
+	else:
+		bild.blend_rect(m, Rect2i(0, 0, m.get_width(), m.get_height()), loch.position)
 	bild.blend_rect(rahmen, Rect2i(0, 0, GROESSE, GROESSE), Vector2i.ZERO)
 	bild.resize(ENDGROESSE, ENDGROESSE, Image.INTERPOLATE_LANCZOS)
 	return bild
+
+
+## Hellt den Hintergrund in der Mitte auf (etwa +35 %) und dunkelt zu den Ecken leicht ab (etwa -15 %).
+func _lichthof(bild: Image, extra: float) -> void:
+	var b := bild.get_width()
+	var mitte := (b - 1) / 2.0
+	var maxabstand := mitte * 1.4142
+	for y in b:
+		for x in b:
+			var d := Vector2(x - mitte, y - mitte).length() / maxabstand
+			var f := (1.35 - 0.5 * smoothstep(0.0, 1.0, d)) * extra
+			var c := bild.get_pixel(x, y)
+			bild.set_pixel(x, y, Color(minf(c.r * f, 1.0), minf(c.g * f, 1.0), minf(c.b * f, 1.0), c.a))
+
+
+static func _alpha_maske(bild: Image) -> PackedFloat32Array:
+	var daten := bild.get_data()
+	var maske := PackedFloat32Array()
+	maske.resize(bild.get_width() * bild.get_height())
+	for i in maske.size():
+		maske[i] = daten[i * 4 + 3] / 255.0
+	return maske
+
+
+## Verschiebt die Maske um (dx, dy) Pixel.
+static func _versetzt(maske: PackedFloat32Array, dx: int, dy: int) -> PackedFloat32Array:
+	var b := int(sqrt(maske.size()))
+	var aus := PackedFloat32Array()
+	aus.resize(maske.size())
+	for y in b:
+		for x in b:
+			var qx := x - dx
+			var qy := y - dy
+			if qx >= 0 and qy >= 0 and qx < b and qy < b:
+				aus[y * b + x] = maske[qy * b + qx]
+	return aus
+
+
+## Erweitert die Maske um r Pixel (Maximum im Quadrat, zwei Durchgänge).
+static func _erweitert(maske: PackedFloat32Array, r: int) -> PackedFloat32Array:
+	var b := int(sqrt(maske.size()))
+	var zwischen := PackedFloat32Array()
+	zwischen.resize(maske.size())
+	for y in b:
+		for x in b:
+			var m := 0.0
+			for k in range(maxi(0, x - r), mini(b, x + r + 1)):
+				m = maxf(m, maske[y * b + k])
+			zwischen[y * b + x] = m
+	var aus := PackedFloat32Array()
+	aus.resize(maske.size())
+	for y in b:
+		for x in b:
+			var m := 0.0
+			for k in range(maxi(0, y - r), mini(b, y + r + 1)):
+				m = maxf(m, zwischen[k * b + x])
+			aus[y * b + x] = m
+	return aus
+
+
+## Weichzeichnen (Mittelwert in 2 Durchgängen je Richtung).
+static func _weich(maske: PackedFloat32Array, r: int) -> PackedFloat32Array:
+	var b := int(sqrt(maske.size()))
+	var quelle := maske
+	for _durchgang in 2:
+		var zwischen := PackedFloat32Array()
+		zwischen.resize(quelle.size())
+		for y in b:
+			for x in b:
+				var summe := 0.0
+				var n := 0
+				for k in range(maxi(0, x - r), mini(b, x + r + 1)):
+					summe += quelle[y * b + k]
+					n += 1
+				zwischen[y * b + x] = summe / n
+		var aus := PackedFloat32Array()
+		aus.resize(quelle.size())
+		for y in b:
+			for x in b:
+				var summe := 0.0
+				var n := 0
+				for k in range(maxi(0, y - r), mini(b, y + r + 1)):
+					summe += zwischen[k * b + x]
+					n += 1
+				aus[y * b + x] = summe / n
+		quelle = aus
+	return quelle
+
+
+## Legt eine einfarbige Ebene mit der Maske als Durchsicht (mal Deckkraft) auf das Bild.
+static func _ebene(bild: Image, maske: PackedFloat32Array, farbe: Color, deckkraft: float) -> void:
+	var b := bild.get_width()
+	for y in b:
+		for x in b:
+			var a := clampf(maske[y * b + x] * deckkraft, 0.0, 1.0)
+			if a <= 0.0:
+				continue
+			var c := bild.get_pixel(x, y)
+			bild.set_pixel(x, y, Color(c.r + (farbe.r - c.r) * a, c.g + (farbe.g - c.g) * a, c.b + (farbe.b - c.b) * a, c.a))
 
 
 func _teil(teile: Dictionary, art: String, name: String) -> Image:
