@@ -1206,3 +1206,12 @@ Entscheidungen zur Sitzung: `docs/bereiche/oberflaeche.md`, „Sichtbare Ratssit
 | Stadtbau, Markt | Ersatz-Bauzeit `Spielzeit.StundenProTag` statt 17; Kommentare „17 Spielstunden“ auf ein Spieljahr (19 Stunden). | 26.10.2026 |
 | Nebel | Dunst unverändert (am Spieltagsbeginn dicht, 23 Uhr 30 %); Kommentar angepasst. Der Sprung 0,3 → 1 beim Jahreswechsel bestand schon vorher. | 26.10.2026 |
 | Klicktest | Vulkan auf der T400, neu importiert, vorher/nachher: Sommer und Winter 4, 5, 21, 22, 22:50, Jahreswechsel, Innenansicht 4:35; keine SCRIPT- oder SHADER-ERROR. Der Hauptspielstand war um 22 Uhr schon vorher dunkel (ein „taghelles“ Bild kam aus einem zu früh gemachten Foto beim Laden). Bilder: Notizordner `zeit/bilder`. | 26.10.2026 |
+
+### Feinschliff: Nebel, Schnee auf Dächern, Marktplatz, Gras (PR #…)
+
+| Thema | Entscheidung | Datum |
+|---|---|---|
+| Nebel | Entscheidung des Nutzers: Der Wetter-Nebel wirkt auf alle Flächen gleich (auch der Boden-Shader), deutlich dünner – die Stadt bleibt klar erkennbar, nur die Ferne verblasst –, Farbe kühleres Grau statt bräunlich; dazu morgens flache Bodennebelschwaden in Senken und am Fluss, die tagsüber aufreißen. Anlass: Nebel wirkte wie ein Schleier auf Gebäuden, der Boden blieb dunkel. | 26.10.2026 |
+| Schnee auf Dächern | Feineres Schneemuster, ausgerichtet an Dachneigung und Ziegelreihen, in den Reihenkanten dichter; mit wachsendem Abstand weich zu ruhigem Weiß überblendet. Anlass: von weitem fleckig und verzogen. | 26.10.2026 |
+| Marktplatz | Das Marktplatz-Modell bekommt keinen eigenen Boden mehr; der Kartenboden darunter wird mit dem Kopfsteinpflaster der Gassen bemalt (Nässe, Schnee, Übergänge wie überall). Karten (Greybox, Köln, Probestadt, Messstadt) über das Kartenskript angepasst. | 26.10.2026 |
+| Gras | Unter einem schräg stehenden Haus weicht das Gras nur der gedrehten Fläche, nicht dem umschließenden Rechteck (offener Punkt aus PR #209). | 26.10.2026 |
