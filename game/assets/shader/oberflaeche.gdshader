@@ -207,7 +207,19 @@ void fragment() {
 			NORMAL = normalize(NORMAL + sicht * RELIEF[i]);
 		}
 	}
-	if (!zonen) wetter_flaeche(grund, rau, mat3(INV_VIEW_MATRIX) * NORMAL, welt); // Wetter: Schnee und Nässe
+	if (!zonen) {
+		// Wetter: Schnee und Nässe. Der Schnee liegt in der Ebene der Fläche (wie die Reihen der Bibliothek): u waagerecht, v hinauf; Reihenhöhe
+		// aus der Bibliothek (Dächer ohne Angabe: 0,3 m)
+		vec3 sn = normalize(ort_n);
+		vec3 su = cross(vec3(0.0, 1.0, 0.0), sn);
+		bool sflach = length(su) < 0.05;
+		su = sflach ? vec3(1.0, 0.0, 0.0) : normalize(su);
+		vec3 sv = sflach ? vec3(0.0, 0.0, -1.0) : cross(sn, su);
+		float smass = length(MODEL_MATRIX[0].xyz);
+		int sb = (art_aus_uv && v_bib >= 0) ? v_bib : bib;
+		float sreihe = (sb >= 0 && sb < BIB_MAX && bib_reihe[sb] > 0.01 ? bib_reihe[sb] : 0.3) * smass;
+		wetter_flaeche(grund, rau, mat3(INV_VIEW_MATRIX) * NORMAL, welt, vec2(dot(ort, su), dot(ort, sv)) * smass, sreihe);
+	}
 	ALBEDO = grund;
 	ROUGHNESS = rau;
 	METALLIC = metall;

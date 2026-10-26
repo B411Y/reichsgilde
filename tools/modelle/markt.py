@@ -6,7 +6,8 @@
 Schreibt game/assets/modelle/gebaeude/marktplatz.glb und marktstaende.glb, Bilder nach docs/modelle/.
 
 marktplatz.glb (24 × 24 m, Ursprung in der Mitte des Platzes = `Marktplatz` im Spiel):
-    Platz               Pflaster, Brunnen mit Säule und Wasserspeiern, Marktkreuz, drei Bänke
+    Platz               Brunnen mit Säule und Wasserspeiern, Marktkreuz, drei Bänke (ohne eigenen Boden: das Kopfsteinpflaster malt
+                        der Kartenboden, Kartenregel „Marktplatz“ in docs/LEVELDESIGN.md; alles steht auf Höhe 0 des Bodens)
     Anker_Stand1–7      Stellplätze der Stände (wie heute im Spiel), Blick zum Stand = Stand schaut mit der Front zur Mitte
     Anker_Brunnen1–4    am Brunnenrand, Blick zum Brunnen (Wasser holen, „Stehen“)
     Anker_Sitz1–6       auf den Bänken, Blick vom Sitz weg („Sitzen“)
@@ -57,6 +58,7 @@ bs.FARBEN.update({
 })
 
 TISCH = 0.85
+PLATTE = 0.04      # Höhe der früheren Pflasterplatte des Platzes; Brunnen und Kreuz sind für sie gebaut, die Anker standen auf ihr
 # Stellplätze der Stände wie heute im Spiel (Godot x, z) – in Blender ist y = -z
 STAENDE = [(-8, -8), (0, -9), (8, -8), (-9, 2), (9, 2), (-4, 8), (4, 8)]
 
@@ -71,10 +73,10 @@ def blender(x, z):
 
 def platz_bauen(st):
     netz = bs.Netz("Platz")
-    halb = 12.0
-    netz.quader((0, 0, 0.02), (2 * halb, 2 * halb, 0.04), st["Pflaster"], ohne=("-z",))
     brunnen(netz, st)
     marktkreuz(netz, st, blender(-10.4, 10.4))
+    # Brunnen und Kreuz sind noch für die alte Platte (Oberkante 4 cm) gebaut: auf den Boden setzen
+    netz.ecken = [Vector(v) - Vector((0, 0, PLATTE)) for v in netz.ecken]
     for (x, z), dreh in (((10.6, 10.0), 0.0), ((-10.6, -3.4), 90.0), ((10.6, -3.4), -90.0)):
         bank(netz, st, blender(x, z), dreh)
     return netz.objekt()
@@ -108,7 +110,7 @@ def marktkreuz(netz, st, fuss):
 
 
 def bank(netz, st, fuss, dreh):
-    t = Matrix.Translation(fuss) @ Matrix.Rotation(math.radians(dreh), 4, "Z")
+    t = Matrix.Translation(fuss - Vector((0, 0, 0.02))) @ Matrix.Rotation(math.radians(dreh), 4, "Z")
     netz.quader((0, 0, 0.45), (2.4, 0.42, 0.08), st["Holz"], t)
     for x in (-0.95, 0.95):
         netz.quader((x, 0, 0.225), (0.1, 0.36, 0.41), st["Holz alt"], t)
@@ -128,27 +130,27 @@ def platz_anker():
     mitte = Vector((0, 0, 0))
     for i, (x, z) in enumerate(STAENDE):
         p = blender(x, z)
-        anker.append(bs.anker(f"Anker_Stand{i + 1}", (p.x, p.y, 0.04), blick(mitte, p)))      # Front (-Y) zur Mitte
+        anker.append(bs.anker(f"Anker_Stand{i + 1}", (p.x, p.y, 0.0), blick(mitte, p)))      # Front (-Y) zur Mitte
     for k in range(4):                  # frei vor dem Beckenrand (Halbmesser 1,98 m), nicht am Eimer (1,7|−1,5)
         w = math.pi / 4 + k * math.pi / 2 - 0.35
-        p = Vector((math.cos(w) * BRUNNENPLATZ, math.sin(w) * BRUNNENPLATZ, 0.04))
+        p = Vector((math.cos(w) * BRUNNENPLATZ, math.sin(w) * BRUNNENPLATZ, 0.0))
         anker.append(bs.anker(f"Anker_Brunnen{k + 1}", tuple(p), blick(p, mitte)))
     for (x, z), dreh in (((10.6, 10.0), 0.0), ((-10.6, -3.4), 90.0), ((10.6, -3.4), -90.0)):
         t = Matrix.Translation(blender(x, z)) @ Matrix.Rotation(math.radians(dreh), 4, "Z")
         for dx in (-0.6, 0.6):
-            p = t @ Vector((dx, 0, 0.45))
+            p = t @ Vector((dx, 0, 0.45 - 0.02))
             anker.append(bs.anker(f"Anker_Sitz{len([a for a in anker if 'Sitz' in a.name]) + 1}", tuple(p), dreh + 180))
     gruppen = [((-4.6, -3.6), 3), ((4.8, -3.4), 2), ((-6.0, 4.6), 3), ((6.2, 4.8), 2), ((0.0, 12.0 - 1.6), 2)]
     for g, ((x, z), anzahl) in enumerate(gruppen):
         m = blender(x, z)
         for n in range(anzahl):
             w = 2 * math.pi * n / anzahl + 0.4 * g
-            p = m + Vector((math.cos(w) * 0.55, math.sin(w) * 0.55, 0.04))
+            p = m + Vector((math.cos(w) * 0.55, math.sin(w) * 0.55, 0.0))
             anker.append(bs.anker(f"Anker_Plausch{g + 1}_{n + 1}", tuple(p), blick(p, m)))
     for k in range(12):                                         # Rundgang gegen den Uhrzeigersinn (von oben)
         w = 2 * math.pi * k / 12 + 0.13
         r = 6.4 + 0.5 * math.sin(3 * w)
-        p = Vector((math.cos(w) * r, math.sin(w) * r, 0.04))
+        p = Vector((math.cos(w) * r, math.sin(w) * r, 0.0))
         weiter = Vector((-math.sin(w), math.cos(w), 0))
         anker.append(bs.anker(f"Anker_Weg{k + 1}", tuple(p), blick(p, p + weiter)))
     return anker

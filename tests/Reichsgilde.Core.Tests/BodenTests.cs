@@ -173,19 +173,33 @@ static class BodenTests
             Pruefe.Wahr(doppelt > 1.6 * 64 * 64 * 3 / 100, $"doppelt: {doppelt}");
         }),
 
-        ("Alte Karten: Köln und Messstadt haben keinen Boden – Byte für Byte dieselbe Datei, alles Wiese, keine Deko", () =>
+        ("Alte Karten: Köln und Messstadt haben als Boden nur das Marktpflaster – sonst Wiese, keine Deko, Byte für Byte dieselbe Datei", () =>
         {
             // Die Greybox hat seit PR #199 Boden (Sand, Schlamm und Kies am Fluss und am Hafen).
             Pruefe.Wahr(Stadtkarte.AusDatei(Datenpfad.Karte("greybox")).Boden is { IstLeer: false }, "Greybox mit Boden");
             foreach (var kennung in new[] { "koeln", "messstadt" })
             {
                 var e = Kartenentwurf.AusJson(Text(kennung), Katalog.Value);
-                Pruefe.Wahr(e.Boden.IstLeer && !Text(kennung).Contains("\"boden\""), kennung);
+                Pruefe.Wahr(!e.Boden.IstLeer, kennung + " mit Marktpflaster");
                 Pruefe.Gleich(Text(kennung), e.ZuJson(), kennung);
-                Pruefe.Gleich(Bodentextur.Wiese, e.Boden.Textur(0, 0));
+                Pruefe.Gleich(Bodentextur.Pflaster, e.Boden.Textur(0, 0));
+                Pruefe.Gleich(Bodentextur.Wiese, e.Boden.Textur(30, 30));
                 Pruefe.Gleich(0, e.BodendekoVon(e.Freiraum()).Alle().Count);
                 var karte = Stadtkarte.AusDatei(Datenpfad.Karte(kennung));
-                Pruefe.Wahr(karte.Boden is null && Bodendeko.Von(karte).Alle().Count == 0, kennung);
+                Pruefe.Wahr(karte.Boden is not null && Bodendeko.Von(karte).Alle().Count == 0, kennung);
+            }
+        }),
+
+        ("Marktpflaster: Unter der ganzen Grundfläche jedes Marktplatzes liegt Pflaster, daneben nicht (alle Karten)", () =>
+        {
+            foreach (var kennung in new[] { "greybox", "koeln", "probestadt", "messstadt" })
+            {
+                var e = Kartenentwurf.AusJson(Text(kennung), Katalog.Value);
+                var markt = e.Gebaeude.Single(g => g.Katalog == "markt");
+                var (breite, tiefe) = markt.Groesse!.Value;
+                foreach (var (dx, dz) in new[] { (0.0, 0.0), (-1.0, -1.0), (1.0, 1.0), (-1.0, 1.0), (1.0, -1.0) })
+                    Pruefe.Gleich(Bodentextur.Pflaster, e.Boden.Textur(markt.X + dx * (breite / 2 - 0.5), markt.Z + dz * (tiefe / 2 - 0.5)), $"{kennung} {dx} | {dz}");
+                Pruefe.Wahr(e.Boden.Textur(markt.X + breite / 2 + 2, markt.Z) != Bodentextur.Pflaster, kennung + " neben dem Markt");
             }
         }),
 
@@ -196,7 +210,8 @@ static class BodenTests
             Pruefe.Gleich(Bodentextur.Waldboden, b.Textur(-120, -100));
             Pruefe.Gleich(Bodentextur.Schlamm, b.Textur(0, 121));
             Pruefe.Gleich(Bodentextur.Fels, b.Textur(180, -370));
-            Pruefe.Gleich(Bodentextur.Wiese, b.Textur(0, 0));
+            Pruefe.Gleich(Bodentextur.Pflaster, b.Textur(0, 0)); // Marktpflaster
+            Pruefe.Gleich(Bodentextur.Wiese, b.Textur(30, 30));
             var uhr = Stopwatch.StartNew();
             var deko = Bodendeko.Von(karte).Alle();
             uhr.Stop();

@@ -28,8 +28,11 @@ public partial class Stadtansicht
     /// <summary>So schnell (Sekunden Echtzeit, Zeitkonstante) folgen die gezeigten Werte dem Wetter der Uhr.</summary>
     private const float WetterNachfuehrSekunden = 1.2f;
 
-    /// <summary>Dichte des Entfernungsnebels bei vollem Nebel: Die Kamera steht 150 m vor der Stadt, das lässt knapp die Hälfte der Farbe durch.</summary>
-    private const float WetterNebelDichte = 0.005f;
+    /// <summary>
+    /// Dichte des Entfernungsnebels bei vollem Nebel: Die Kamera steht 150 m vor der Stadt; bei 0,0016 verblasst die Stadt nur um ein Viertel,
+    /// die Ferne (250 m) um ein Drittel – alles bleibt erkennbar, Boden und Gebäude gleich (Godots Nebel wirkt auf jedes Material).
+    /// </summary>
+    private const float WetterNebelDichte = 0.0016f;
 
     private Wetterablauf? _wetterablauf;
     private int _wetterStartwert;
@@ -311,7 +314,7 @@ public partial class Stadtansicht
 
     /// <summary>
     /// Nebel des Wetters (jedes Bild, nach dem Morgendunst): Godots Entfernungsnebel, auch wenn der Morgendunst aus ist. Regen und Schnee machen
-    /// die Luft etwas dunstig. Die Farbe ist die eines weißen Tuchs im Licht dieser Stunde (wie beim Morgendunst).
+    /// die Luft etwas dunstig. Die Farbe ist die des Himmels dieser Stunde, kühl getönt.
     /// </summary>
     private void WetterNebel()
     {
@@ -324,8 +327,11 @@ public partial class Stadtansicht
         if (Mathf.Abs(umgebung.FogDensity - dichte) > 0.00002f) umgebung.FogDensity = dichte;
         if (nebel > 0.01f)
         {
-            var licht = umgebung.AmbientLightColor * umgebung.AmbientLightEnergy + _sonne.LightColor * _sonne.LightEnergy * 0.35f;
-            var farbe = new Color(licht.R, licht.G, licht.B);
+            // Farbe: der Himmel dieser Stunde (bei Nebel schon grau), noch etwas kühler – so geht der Horizont ohne Kante in den Nebel über und
+            // Boden und Gebäude verblassen zum selben Ton (nicht zu einer dunklen Farbe, die helle Wände überstrahlen)
+            var himmel = umgebung.BackgroundColor;
+            var hell = himmel.R * 0.3f + himmel.G * 0.55f + himmel.B * 0.15f;
+            var farbe = himmel.Lerp(new Color(hell * 0.92f, hell * 0.99f, hell * 1.08f), 0.7f);
             var alt = umgebung.FogLightColor;
             if (Mathf.Abs(farbe.R - alt.R) + Mathf.Abs(farbe.G - alt.G) + Mathf.Abs(farbe.B - alt.B) > 0.006f) umgebung.FogLightColor = farbe;
         }

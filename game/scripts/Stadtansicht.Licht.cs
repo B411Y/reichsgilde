@@ -48,6 +48,9 @@ public partial class Stadtansicht
     /// <summary>Der gemeinsame Dämmerungswert der gezeigten Stimmung (0 = Tag, 1 = Nacht), aus dem alle Lichter der Stadt ihren Beginn nehmen.</summary>
     private float _daemmerung;
 
+    /// <summary>Die Uhrzeit auf dem Bezugstag (<see cref="BezugsStunde"/>): Sie folgt der Jahreszeit; Bodennebel und andere Morgenstimmung richten sich danach (12 ohne Uhr).</summary>
+    private float _bezugStunde = 12f;
+
     private Lichtstimmung? _gezeigteStimmung;
     private Lichtstimmung _ueberblendenVon;
     private float _ueberblendung = 1f;
@@ -72,6 +75,7 @@ public partial class Stadtansicht
             _ueberblendung = 0;
         }
         _letzteLichtUhrzeit = uhrzeitInMinuten;
+        _bezugStunde = BezugsStunde(uhrzeitInMinuten / 60f, jahreszeit);
         if (_ueberblendung < 1)
         {
             _ueberblendung = Mathf.Min(1, _ueberblendung + (float)echtzeit / UeberblendSekunden);

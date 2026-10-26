@@ -129,8 +129,12 @@ void wetter_boden(inout vec3 bf, inout float rau, inout vec3 nw, inout vec3 leuc
 }
 
 // Wetter auf den Modellen (oberflaeche.gdshader): Schnee auf allem, was nach oben zeigt (Dächer, Mauerkronen, Brunnen …), Nässe dunkler und
-// glänzender. wn = Normale in der Welt, wp = Ort in der Welt.
-void wetter_flaeche(inout vec3 c, inout float rau, vec3 wn, vec3 wp) {
+// glänzender. wn = Normale in der Welt, wp = Ort in der Welt. dach = der Ort in der Ebene der Fläche (Meter: x waagerecht, y die Fläche hinauf,
+// wie die Projektion „reihen“ der Material-Bibliothek), reihe = Höhe einer Ziegelreihe (Meter).
+// Schnee liegt in der Dachebene und nicht in der Welt-x/z-Ebene (dort würde er an Schrägen gestreckt): Aus der Nähe in Reihen gegliedert – die
+// Flecken laufen mit den Reihen, in jeder Reihenkante liegt er dichter –, mit wachsendem Abstand (fwidth der Reihen) wird das Muster weich zu einer
+// ruhigen Decke gemittelt. Auf flachen Flächen (Mauerkronen) gibt es keine Reihen, dort gilt dasselbe Fleckenmuster ohne Kanten.
+void wetter_flaeche(inout vec3 c, inout float rau, vec3 wn, vec3 wp, vec2 dach, float reihe) {
 	if (wetter_flaechen < 0.5) return;
 	if (wetter_naesse > 0.001) {
 		float oben = clamp(wn.y, 0.0, 1.0);
@@ -138,8 +142,19 @@ void wetter_flaeche(inout vec3 c, inout float rau, vec3 wn, vec3 wp) {
 		rau = mix(rau, rau * 0.45, wetter_naesse * (0.4 + 0.6 * oben));
 	}
 	if (wetter_dach > 0.001) {
-		float f = w_rausch(wp.xz * 0.9 + wp.y * 0.37) * 0.6 + w_rausch(wp.xz * 3.7 + wp.y) * 0.4;
-		float d = smoothstep(0.32, 0.55, wn.y + (f - 0.5) * 0.25) * clamp(wetter_dach * 1.5 - 0.3 + (f - 0.5) * 0.7, 0.0, 1.0);
+		float pv = dach.y / reihe;
+		float fein = 1.0 - smoothstep(0.05, 0.28, fwidth(pv));   // 1 nah genug für Reihen, 0 zu weit
+		float fr = fract(pv);
+		float flach = smoothstep(0.9, 0.98, wn.y);               // Mauerkronen, Plätze: keine Reihen
+		float kante = mix(1.0 - smoothstep(0.0, 0.4, fr), 0.35, flach);   // unten in jeder Reihe, wo sie unter der nächsten liegt
+		float f = w_rausch(vec2(dach.x * 0.5, pv * 0.2)) * 0.65 + w_rausch(vec2(dach.x * 1.9 + 7.1, pv * 0.7)) * 0.35;
+		float mittel = clamp(wetter_dach * 1.5 - 0.3, 0.0, 1.0);
+		float dicke = clamp(mittel + ((f - 0.5) * 0.8 + (kante - 0.35) * 0.14) * fein, 0.0, 1.0);
+		// nah: Reihenmuster, Schnee oder frei; fern: fast geschlossene Decke, die Reste grau-schattig statt in Ziegelfarbe
+		float nah = smoothstep(0.25, 0.75, dicke);
+		float fern = smoothstep(0.12, 0.4, mittel) * 0.97;
+		float d = smoothstep(0.32, 0.55, wn.y + (f - 0.5) * 0.25 * fein) * mix(fern, nah, fein);
+		c = mix(c, vec3(dot(c, vec3(0.3, 0.55, 0.15))) * vec3(0.9, 0.93, 1.0), (1.0 - fein) * 0.7 * smoothstep(0.32, 0.55, wn.y));
 		c = mix(c, vec3(0.7, 0.72, 0.77), d);
 		rau = mix(rau, 0.75, d);
 	}

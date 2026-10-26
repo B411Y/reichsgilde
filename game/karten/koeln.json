@@ -339,5 +339,16 @@
   "Straßennetz als Radialen und Ringe vereinfacht; die echten Gassen waren unregelmäßiger.",
   "Wildnis mit Ork-Rotten (Bergische Höhen) und Ogern (Eifel, Siebengebirge).",
   "Antoniterkirche als evangelische Kirche: im Spiel gibt es beide Konfessionen von Anfang an."
- ]
+ ],
+ "boden": {
+  "abstand": 1,
+  "kachel": 64,
+  "startwert": 1,
+  "kacheln": [
+   {"i": -1, "j": -1, "pflaster": "7/7/7/7/7/7/7/7/7/7/7/7/7/4z+Ofv/v/soA=="},
+   {"i": 0, "j": -1, "pflaster": "7/7/7/7/7/7/7/7/7/7/7/7/7/+Ofgv/1+/+/+8Q"},
+   {"i": -1, "j": 0, "pflaster": "4z+Ofv/v/v/j7/1+/+/+/+/+/+/+/+/+/+/+/+/+ig=="},
+   {"i": 0, "j": 0, "pflaster": "+Ofgv/1+/+/+/+Mf/X4L+Ofv/v/v/v/v/v/v/v/v/v/v/v/rEA=="}
+  ]
+ }
 }

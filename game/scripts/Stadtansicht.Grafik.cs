@@ -60,6 +60,7 @@ public partial class Stadtansicht
         WolkenBewegen(delta);
         DunstNachUhrzeit();
         WetterNebel(); // Nebel des Wetters (Stadtansicht.Wetter.cs)
+        BodennebelNachfuehren(); // Schwaden am Boden (Stadtansicht.Bodennebel.cs)
         FeinheitenNachZoom();
     }
 
@@ -313,7 +314,7 @@ public partial class Stadtansicht
         if (Fenster.AktuellerDunst == Morgendunst.Aus) return;
         StadtDunstAnlegen();
         var stunde = _letzteLichtUhrzeit >= 0 ? _letzteLichtUhrzeit / 60f : 12f; // im Hauptmenü (ohne Uhr): Mittag
-        var anteil = Mathf.Max(DunstUm(stunde), 0.9f * _wetter.Nebel); // bei Nebel (Stadtansicht.Wetter.cs) liegt er dicht
+        var anteil = Mathf.Max(DunstUm(stunde), 0.45f * _wetter.Nebel); // bei Nebel (Stadtansicht.Wetter.cs) liegt er etwas dichter (dazu Bodennebel und Entfernungsnebel)
         if (Mathf.Abs(anteil - _dunstAnteil) < 0.005f) return;
         _dunstAnteil = anteil;
         var umgebung = _umgebung.Environment;
