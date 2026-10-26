@@ -359,14 +359,16 @@ public partial class Stadtansicht
     private static (float Helligkeit, float Anteil) FensterWerte(Fenstergruppe gruppe, float licht, float stunde, float messe)
     {
         var abend = stunde >= 12;
-        var dunkel = abend ? Mathf.SmoothStep(17.5f, 18.5f, stunde) : 1f; // die länger hellen Häuser zünden ihr Licht früh an
+        // Der Abend beginnt mit der Dämmerung (licht, 0 → 1, folgt der Jahreszeit); ab 20 Uhr gehen die Wohnfenster nach und nach aus
+        var dunkel = abend ? Mathf.SmoothStep(0f, 0.3f, licht) : 1f; // die länger hellen Häuser zünden ihr Licht früh an
+        var tagesende = Spielzeit.TagesendeMinute / 60f;
         var wohnen = abend
-            ? Mathf.SmoothStep(18f, 19.5f, stunde) * Mathf.Lerp(0.55f, 0.18f, Mathf.SmoothStep(20f, 22f, stunde))
-            : Mathf.Lerp(0.18f, 0.35f, Mathf.SmoothStep(5f, 5.75f, stunde));
+            ? licht * Mathf.Lerp(0.55f, 0.18f, Mathf.SmoothStep(20f, tagesende, stunde))
+            : Mathf.Lerp(0.18f, 0.35f, Mathf.SmoothStep(Spielzeit.TagesbeginnMinute / 60f, Spielzeit.TagesbeginnMinute / 60f + 0.75f, stunde));
         return gruppe switch
         {
             Fenstergruppe.Werkstatt => (licht, abend ? Mathf.Max(wohnen, dunkel * (1 - Mathf.SmoothStep(20f, 20.5f, stunde))) : wohnen),
-            Fenstergruppe.Wirtshaus => (licht, abend ? Mathf.Max(wohnen, dunkel * (1 - Mathf.SmoothStep(21.5f, 22f, stunde))) : wohnen),
+            Fenstergruppe.Wirtshaus => (licht, abend ? Mathf.Max(wohnen, dunkel * (1 - Mathf.SmoothStep(tagesende - 0.5f, tagesende, stunde))) : wohnen),
             Fenstergruppe.Wache => (licht, Mathf.Max(wohnen, 0.55f * dunkel)),
             Fenstergruppe.Kirche => (0f, 1f), // ohne Messe immer dunkel
             Fenstergruppe.Messe => (licht * messe, 1f), // zur Messe nur im Dunkeln hell, über 6 Minuten ein- und ausgeblendet

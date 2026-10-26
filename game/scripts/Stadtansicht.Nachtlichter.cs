@@ -21,7 +21,7 @@ namespace Reichsgilde;
 /// <see cref="OmniLight3D"/> gibt es nur für die nächsten Lichter vor der Kamera (ohne Schatten; Zahl nach der Schattenqualität: Hoch 8,
 /// Mittel 4, Niedrig keine); alle übrigen leuchten nur über ihre Emission.</item>
 /// </list>
-/// Wann Lichter brennen, hängt von der Jahreszeit ab (<see cref="LampenAn"/>): im Winter früher am Abend und länger am Morgen.
+/// Wann Lichter brennen, sagt der gemeinsame Dämmerungswert der Lichtstimmung (<see cref="_daemmerung"/>, Stadtansicht.Licht.cs): Er folgt der Jahreszeit.
 /// </summary>
 public partial class Stadtansicht
 {
@@ -64,28 +64,6 @@ public partial class Stadtansicht
 
     /// <summary>0 = Lichter aus (Tag), 1 = alle brennen; dazwischen die Dämmerung. Der gestellte Wert wird nur bei merklicher Änderung weitergegeben.</summary>
     private float _lampenAn, _lampenGestellt = -1;
-
-    // ═════════════════════════════════════════════════════════════════════════
-    //  Wann brennen die Lichter?
-    // ═════════════════════════════════════════════════════════════════════════
-
-    /// <summary>
-    /// Wie viel von den Lichtern der Stadt brennt (0–1) zur Stunde <paramref name="stunde"/> (mit Bruchteil): Abends zünden sie in einer
-    /// Stunde an, morgens löschen sie in einer Stunde. Im Winter ist es früher dunkel und später hell als im Sommer:
-    /// Winter 17–18 Uhr bzw. bis 7:30, Herbst 18–19 bzw. 7:00, Frühling 18:45–19:45 bzw. 6:30, Sommer 19:30–20:30 bzw. 6:15.
-    /// Der Spieltag beginnt um 5 Uhr noch in der Nacht, darum brennen sie dann.
-    /// </summary>
-    private static float LampenAn(float stunde, Jahreszeit jahreszeit)
-    {
-        var (abend, morgen) = jahreszeit switch
-        {
-            Jahreszeit.Winter => (17f, 7.5f),
-            Jahreszeit.Herbst => (18f, 7f),
-            Jahreszeit.Fruehling => (18.75f, 6.5f),
-            _ => (19.5f, 6.25f),
-        };
-        return stunde >= 12 ? Mathf.SmoothStep(abend, abend + 1, stunde) : 1 - Mathf.SmoothStep(morgen - 1, morgen, stunde);
-    }
 
     // ═════════════════════════════════════════════════════════════════════════
     //  Teile und Materialien
@@ -526,9 +504,9 @@ public partial class Stadtansicht
     // ═════════════════════════════════════════════════════════════════════════
 
     /// <summary>Jedes Bild aus <see cref="Aktualisieren"/>, nach dem Licht der Tageszeit: wie viele Lichter brennen, und die echten Lichter nahe der Kamera.</summary>
-    private void NachtlichterAktualisieren(float stunde, Jahreszeit jahreszeit, double delta)
+    private void NachtlichterAktualisieren(double delta)
     {
-        _lampenAn = LampenAn(stunde, jahreszeit);
+        _lampenAn = _daemmerung; // der gemeinsame Dämmerungswert aus Stadtansicht.Licht.cs: keine eigenen Zeiten
         if (_lichterGeladen) LichterStoffStellen();
         LichterPoolStellen(delta);
     }
