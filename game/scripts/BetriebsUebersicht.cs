@@ -150,7 +150,12 @@ public partial class BetriebsUebersicht : VBoxContainer
         if (b.UmbauMinuten > 0)
             return ("Umbau", b.Stillstand ?? $"Umbau zur Stufe {b.Stufe} – noch {Zahlenformat.Ganz(b.UmbauMinuten / 60.0)} Std.", false, null);
         if (b.Belegt == 0)
-            return ("kein Personal", "Kein Personal – stellt drinnen am Personalbuch Arbeitskräfte ein.", true, "personal");
+            // Werkstätten haben ein Personalbuch im Innenraum, Umlandbetriebe nicht – dort stellt man unter „…“ in der Betriebsleiste ein.
+            return ("kein Personal",
+                b.IstWerkstatt
+                    ? "Kein Personal – stellt drinnen am Personalbuch Arbeitskräfte ein."
+                    : "Kein Personal – stellt unter „…“ Arbeitskräfte ein.",
+                true, "personal");
         if (b.SabotageMinuten > 0)
             return ("Reparatur", b.Stillstand ?? "Nach dem Anschlag wird repariert.", true, null);
         if (b.Stillstand is { } still)
