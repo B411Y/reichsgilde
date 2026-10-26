@@ -12,6 +12,7 @@
 #          game/assets/oberflaeche/icons/<ware>.png. Ohne Namen alle Motive unter quellen/motiv/.
 #          Beruf und Stufe je Ware kommen aus game/daten/wirtschaft.json (niedrigste Stufe, in der die Ware
 #          vorkommt); Waren ohne Betrieb sind Rohstoffe (Holzrahmen, Lehmbraun).
+# Mit --rahmen=0.07 wird der Rahmen auf 7 % der Kantenlänge gestaucht (wie 9-Slice).
 # Mit --ohne-effekte (an beliebiger Stelle) ohne Lichthof, Saum und Schatten (Vorher-Bild).
 # tafel:   Übersichtstafel (128 px oben, 64 px darunter) zur Abnahme.
 #
@@ -30,6 +31,8 @@ const RAHMEN := ["holz", "stein", "silber", "gold"]  # Index = Stufe (0 = Rohsto
 
 # Hebt das Motiv vom Hintergrund ab (Lichthof, heller Saum, Schlagschatten). "--ohne-effekte" schaltet es ab.
 var _effekte := true
+# Rahmenbreite als Anteil der Kantenlänge (0 = so wie gemalt). "--rahmen=0.07" staucht die Randstreifen.
+var _rahmenanteil := 0.0
 var _wurzel: String
 
 
@@ -37,6 +40,10 @@ func _init() -> void:
 	# --script läuft im Projektordner (game/); das Repository liegt eine Ebene höher.
 	_wurzel = ProjectSettings.globalize_path("res://").path_join("..").simplify_path()
 	var arg := Array(OS.get_cmdline_user_args())
+	for a in arg.duplicate():
+		if str(a).begins_with("--rahmen="):
+			_rahmenanteil = str(a).trim_prefix("--rahmen=").to_float()
+			arg.erase(a)
 	if arg.has("--ohne-effekte"):
 		_effekte = false
 		arg.erase("--ohne-effekte")
@@ -344,6 +351,10 @@ func _knopf(key: String, waren: Dictionary, teile: Dictionary) -> Image:
 		return null
 	var bild := bg.duplicate() as Image
 	var loch := _loch_rechteck(rahmen)
+	if _rahmenanteil > 0.0:
+		var breite := roundi(GROESSE * _rahmenanteil)
+		rahmen = _rahmen_schmal(rahmen, loch, breite)
+		loch = Rect2i(breite, breite, GROESSE - 2 * breite, GROESSE - 2 * breite)
 	var m := motiv.duplicate() as Image
 	m.resize(loch.size.x, loch.size.y, Image.INTERPOLATE_LANCZOS)
 	if _effekte:
@@ -355,13 +366,64 @@ func _knopf(key: String, waren: Dictionary, teile: Dictionary) -> Image:
 		# Schlagschatten: nach unten rechts versetzt (3 px bei 128 px), weich, 35 %.
 		_ebene(bild, _weich(_versetzt(maske, 6, 6), 4), Color(0.0, 0.0, 0.0), 0.35)
 		# Heller Saum: Maske 5 px (= 2,5 px bei 128) erweitert und weich, warmweiß, 60 %.
-		_ebene(bild, _weich(_erweitert(maske, 5), 2), Color(1.0, 0.95, 0.82), 0.6)
+		# Je heller der Motivrand, desto schwächer der Saum (helle Motive heben sich ohnehin ab).
+		var rand := _randhelligkeit_motiv(maske, flaeche)
+		var saum := lerpf(0.6, 0.25, smoothstep(0.35, 0.65, rand))
+		_ebene(bild, _weich(_erweitert(maske, 5), 2), Color(1.0, 0.95, 0.82), saum)
 		bild.blend_rect(flaeche, Rect2i(0, 0, GROESSE, GROESSE), Vector2i.ZERO)
 	else:
 		bild.blend_rect(m, Rect2i(0, 0, m.get_width(), m.get_height()), loch.position)
 	bild.blend_rect(rahmen, Rect2i(0, 0, GROESSE, GROESSE), Vector2i.ZERO)
 	bild.resize(ENDGROESSE, ENDGROESSE, Image.INTERPOLATE_LANCZOS)
 	return bild
+
+
+## Mittlere Helligkeit der Motivkante (deckende Pixel, die bei Erosion um 6 px wegfallen).
+static func _randhelligkeit_motiv(maske: PackedFloat32Array, flaeche: Image) -> float:
+	var umkehr := PackedFloat32Array()
+	umkehr.resize(maske.size())
+	for i in maske.size():
+		umkehr[i] = 1.0 - maske[i]
+	var innen := _erweitert(umkehr, 6)  # > 0, wo in 6 px Umkreis etwas Durchsichtiges liegt
+	var summe := 0.0
+	var n := 0
+	var b := flaeche.get_width()
+	for y in b:
+		for x in b:
+			var i := y * b + x
+			if maske[i] > 0.8 and innen[i] > 0.5:
+				summe += flaeche.get_pixel(x, y).get_luminance()
+				n += 1
+	return summe / n if n > 0 else 0.5
+
+
+## Staucht die gemalten Randstreifen auf die Breite t (9-Slice): Ecken auf t x t, Seiten auf t Breite.
+func _rahmen_schmal(rahmen: Image, loch: Rect2i, t: int) -> Image:
+	var b := rahmen.get_width()
+	var l := loch.position.x
+	var o := loch.position.y
+	var r := b - loch.end.x
+	var u := b - loch.end.y
+	var mb := b - 2 * t  # neue Mittenbreite
+	var aus := Image.create(b, b, false, Image.FORMAT_RGBA8)
+	# [Quelle (x, y, w, h), Ziel (x, y, w, h)]
+	var teile := [
+		[Rect2i(0, 0, l, o), Rect2i(0, 0, t, t)],
+		[Rect2i(l, 0, loch.size.x, o), Rect2i(t, 0, mb, t)],
+		[Rect2i(b - r, 0, r, o), Rect2i(b - t, 0, t, t)],
+		[Rect2i(0, o, l, loch.size.y), Rect2i(0, t, t, mb)],
+		[Rect2i(b - r, o, r, loch.size.y), Rect2i(b - t, t, t, mb)],
+		[Rect2i(0, b - u, l, u), Rect2i(0, b - t, t, t)],
+		[Rect2i(l, b - u, loch.size.x, u), Rect2i(t, b - t, mb, t)],
+		[Rect2i(b - r, b - u, r, u), Rect2i(b - t, b - t, t, t)],
+	]
+	for teil in teile:
+		var quelle: Rect2i = teil[0]
+		var ziel: Rect2i = teil[1]
+		var stueck := rahmen.get_region(quelle)
+		stueck.resize(ziel.size.x, ziel.size.y, Image.INTERPOLATE_LANCZOS)
+		aus.blit_rect(stueck, Rect2i(Vector2i.ZERO, stueck.get_size()), ziel.position)
+	return aus
 
 
 ## Hellt den Hintergrund in der Mitte auf (etwa +35 %) und dunkelt zu den Ecken leicht ab (etwa -15 %).
