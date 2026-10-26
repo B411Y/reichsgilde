@@ -227,7 +227,7 @@ So wird eingetragen (damit sich die Chats nie an derselben Stelle treffen):
 | Bau | Zusammengesetzt: Gemini (Antigravity, Bild-Subagent) malt vier leere Rahmen, acht Hintergründe und 63 Motive auf Weiß; ein Skript stellt die Motive frei und setzt Hintergrund, Motiv und Rahmen je Ware zu einem Knopf zusammen. Jedes Teil ist einzeln austauschbar. Grafiken mit Gemini erzeugt, im PR gekennzeichnet. Erst Rahmen, Hintergründe und 8 Motive zur Abnahme durch den Nutzer, dann der Rest. | 26.10.2026 |
 | Umsetzung | Rahmen **7 %** der Kantenlänge (Fassung A), Motiv mit Lichthof (Mitte +35 %, Ecken −15 %), warmweißem Saum (60 %, bei hellem Motivrand bis 25 %) und Schlagschatten. Skript `tools/icons/knoepfe_bauen.gd` (Befehle `quellen`, `bauen`, `tafel`, Schalter `--rahmen=`, `--ohne-effekte`); `WarenIcons` zeigt 128 px linear mit Mipmaps. **Grafiken mit Gemini erzeugt** (Rahmen, Hintergründe, Motive; Modell gemini-3.1-flash-image über die API, 63 Motive). Neue Ware: Motiv erzeugen (kolorierter Holzschnitt auf Weiß), `quellen` ausführen oder als PNG in `tools/icons/quellen/motiv/<ware>.png` ablegen, dann `bauen`. | 26.10.2026 |
 
-### Porträts (PR #…)
+### Porträts (PR #211)
 
 | Thema | Entscheidung | Datum |
 |---|---|---|
