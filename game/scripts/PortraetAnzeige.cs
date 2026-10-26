@@ -12,9 +12,9 @@ namespace Reichsgilde;
 /// Atmen (die Person wächst um unten mittig ±0,6 %, der Hintergrund bleibt), Kerzenlicht (warmes, leises Flackern; in der Grafikstufe Niedrig aus) und
 /// ein kleines Nicken (<see cref="Nicken"/>, für Gespräche).
 ///
-/// Bilder: <c>res://assets/oberflaeche/portraets/&lt;volk&gt;/&lt;geschlecht&gt;_&lt;gesicht&gt;_&lt;alter&gt;_&lt;kleidung&gt;.png</c> (512 px, freigestellt), dazu
-/// <c>…_zu.png</c> (geschlossene Augen, je Altersstufe), <c>…_haar.png</c> und <c>…_augen.png</c> (Masken) und
-/// <c>…/portraets/hintergrund_&lt;standgruppe&gt;.png</c>. Fehlt ein Bild, zeigt das Porträt eine Silhouette vor dem Hintergrund – das ist kein Fehler.
+/// Bilder: <c>res://assets/oberflaeche/portraets/&lt;volk&gt;/&lt;geschlecht&gt;_&lt;gesicht&gt;_&lt;alter&gt;_&lt;kleidung&gt;.webp</c> (Rückfall .png) (512 px, freigestellt, .webp, Rückfall .png), dazu
+/// <c>…_zu.webp</c> (geschlossene Augen, je Altersstufe), <c>…_haar.webp</c> und <c>…_augen.webp</c> (Masken) und
+/// <c>…/portraets/hintergrund_&lt;standgruppe&gt;.webp</c>. Fehlt ein Bild, zeigt das Porträt eine Silhouette vor dem Hintergrund – das ist kein Fehler.
 /// Fehlen die Masken, bleibt es bei den Farben des Bildes; fehlt das Bild mit geschlossenen Augen, blinzelt es nicht.
 ///
 /// Bildfeld wie das Wappen: quadratisch, <see cref="Neu"/> nimmt die Kantenlänge (groß 256, mittel 128, klein 64).
@@ -36,7 +36,7 @@ public partial class PortraetAnzeige : Control
         Haarfarbe.Dunkelbraun => new Color("4a3324"),
         Haarfarbe.Braun => new Color("6b4a2f"),
         Haarfarbe.Kastanie => new Color("8a4e2b"),
-        Haarfarbe.Rot => new Color("a9482a"),
+        Haarfarbe.Rot => new Color("93502f"),
         Haarfarbe.Blond => new Color("c9a45a"),
         Haarfarbe.Hellblond => new Color("e0cd98"),
         Haarfarbe.Silberblond => new Color("d8d9dc"),
@@ -53,7 +53,7 @@ public partial class PortraetAnzeige : Control
         Augenfarbe.Blau => new Color("4b78b0"),
         Augenfarbe.Violett => new Color("7a5aa8"),
         Augenfarbe.Bernstein => new Color("c8921e"),
-        _ => new Color("b0281e"),
+        _ => new Color("8e3a2c"),
     };
 
     public static string FarbName(Haarfarbe h) => h switch
@@ -173,16 +173,16 @@ public partial class PortraetAnzeige : Control
         var stamm = $"{(geschlecht == Geschlecht.Mann ? "mann" : "frau")}_{aussehen.Gesicht}_{alter.ToString().ToLowerInvariant()}";
         var basis = $"{ordner}{stamm}_{kleidung.ToString().ToLowerInvariant()}";
 
-        _grund.Texture = Laden($"{Ordner}hintergrund_{gruppe.ToString().ToLowerInvariant()}.png");
+        _grund.Texture = Laden($"{Ordner}hintergrund_{gruppe.ToString().ToLowerInvariant()}");
         _silhouette.Setzen(Grund(gruppe), volk, geschlecht, alter);
-        _person.Texture = Laden(basis + ".png");
+        _person.Texture = Laden(basis);
         _silhouette.Visible = _person.Texture is null;
         _grund.Visible = _grund.Texture is not null;
 
         // Augen zu und Masken gelten für Gesicht und Alter, nicht für die Kleidung (der Weg der Masken steht noch nicht fest: auch mit Kleidung im Namen)
-        var zu = Laden($"{ordner}{stamm}_zu.png") ?? Laden(basis + "_zu.png");
-        var haar = Laden($"{ordner}{stamm}_haar.png") ?? Laden(basis + "_haar.png");
-        var augen = Laden($"{ordner}{stamm}_augen.png") ?? Laden(basis + "_augen.png");
+        var zu = Laden($"{ordner}{stamm}_zu") ?? Laden(basis + "_zu");
+        var haar = Laden($"{ordner}{stamm}_haar") ?? Laden(basis + "_haar");
+        var augen = Laden($"{ordner}{stamm}_augen") ?? Laden(basis + "_augen");
         _hatZu = zu is not null && _person.Texture is not null;
         _material.SetShaderParameter("geschlossen", Variant.From(zu));
         _material.SetShaderParameter("haarmaske", Variant.From(haar));
@@ -190,6 +190,8 @@ public partial class PortraetAnzeige : Control
         _material.SetShaderParameter("hat_geschlossen", _hatZu);
         _material.SetShaderParameter("hat_haarmaske", haar is not null && aussehen.Haar != Haarfarbe.Kahl);
         _material.SetShaderParameter("hat_augenmaske", augen is not null);
+        _material.SetShaderParameter("haar_mittel", Mittelhelligkeit(_person.Texture, haar));
+        _material.SetShaderParameter("augen_mittel", Mittelhelligkeit(_person.Texture, augen));
         _material.SetShaderParameter("haarfarbe", Farbe(aussehen.Haar));
         _material.SetShaderParameter("augenfarbe", Farbe(aussehen.Augen));
         TooltipText = $"{volk.Einzahl()} · Haar: {FarbName(aussehen.Haar)} · Augen: {FarbName(aussehen.Augen)}";
@@ -272,14 +274,49 @@ public partial class PortraetAnzeige : Control
     /// <summary>Kerzenlicht flackert nur in den höheren Grafikstufen (in „Niedrig“ steht das Bild ruhig).</summary>
     public static bool Kerzenlicht => Fenster.AktuelleVoreinstellung != Voreinstellung.Niedrig;
 
+    private static readonly Dictionary<(Texture2D, Texture2D), float> Mittelwerte = new();
+
     /// <summary>
-    /// Lädt ein Bild und macht daraus eines mit Mipmaps (sonst flimmert das 512-px-Bild als kleines Porträt); null, wenn es die Datei nicht gibt.
+    /// Mittlere Helligkeit der Person im Bereich der Maske (gewichtet mit der Maske). Der Shader teilt die Helligkeit jedes Pixels durch diesen Wert:
+    /// Zielfarbe × Helligkeitsverlauf des Originals (dieselbe Formel wie im Bauskript tools/portraets/portraets_bauen.gd).
     /// </summary>
-    private static Texture2D? Laden(string pfad)
+    private static float Mittelhelligkeit(Texture2D? person, Texture2D? maske)
     {
+        if (person is null || maske is null) return 0.5f;
+        if (Mittelwerte.TryGetValue((person, maske), out var bekannt)) return bekannt;
+        float ergebnis = 0.5f;
+        var p = person.GetImage();
+        var m = maske.GetImage();
+        if (p is not null && m is not null)
+        {
+            if (p.IsCompressed()) p.Decompress();
+            if (m.IsCompressed()) m.Decompress();
+            var n = Math.Min(p.GetWidth(), m.GetWidth());
+            double summe = 0, gewicht = 0;
+            for (var y = 0; y < n; y++)
+                for (var x = 0; x < n; x++)
+                {
+                    var w = m.GetPixel(x, y).R;
+                    if (w <= 0.05f) continue;
+                    summe += p.GetPixel(x, y).Luminance * w;
+                    gewicht += w;
+                }
+            if (gewicht >= 1) ergebnis = (float)Math.Max(summe / gewicht, 0.05);
+        }
+        Mittelwerte[(person, maske)] = ergebnis;
+        return ergebnis;
+    }
+
+    /// <summary>
+    /// Lädt ein Bild (<paramref name="stamm"/> ohne Endung: erst .webp, dann .png) und macht daraus eines mit Mipmaps (sonst flimmert das 512-px-Bild als kleines Porträt); null, wenn es die Datei nicht gibt.
+    /// </summary>
+    private static Texture2D? Laden(string stamm)
+    {
+        var pfad = stamm;
         if (Speicher.TryGetValue(pfad, out var bekannt)) return bekannt;
         Texture2D? ergebnis = null;
-        if (ResourceLoader.Exists(pfad) && GD.Load<Texture2D>(pfad) is { } textur)
+        var datei = ResourceLoader.Exists(stamm + ".webp") ? stamm + ".webp" : stamm + ".png";
+        if (ResourceLoader.Exists(datei) && GD.Load<Texture2D>(datei) is { } textur)
         {
             ergebnis = textur;
             var bild = textur.GetImage();
