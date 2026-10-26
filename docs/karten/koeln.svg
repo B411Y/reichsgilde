@@ -2,6 +2,18 @@
 <title>Köln – Kartendatei (Vorschau)</title>
 <rect x="-700" y="-500" width="1300" height="1050" fill="#D6DACF"/>
 <rect x="-400" y="-200" width="700" height="450" fill="#E6E8E1"/>
+<rect x="-12" y="-12" width="12" height="4" fill="#76736c" opacity="0.7"/>
+<rect x="-12" y="-8" width="12" height="4" fill="#76736c" opacity="0.7"/>
+<rect x="-12" y="-4" width="12" height="4" fill="#76736c" opacity="0.7"/>
+<rect x="0" y="-12" width="12" height="4" fill="#76736c" opacity="0.7"/>
+<rect x="0" y="-8" width="12" height="4" fill="#76736c" opacity="0.7"/>
+<rect x="0" y="-4" width="12" height="4" fill="#76736c" opacity="0.7"/>
+<rect x="-12" y="0" width="12" height="4" fill="#76736c" opacity="0.7"/>
+<rect x="-12" y="4" width="12" height="4" fill="#76736c" opacity="0.7"/>
+<rect x="-12" y="8" width="12" height="4" fill="#76736c" opacity="0.7"/>
+<rect x="0" y="0" width="12" height="4" fill="#76736c" opacity="0.7"/>
+<rect x="0" y="4" width="12" height="4" fill="#76736c" opacity="0.7"/>
+<rect x="0" y="8" width="12" height="4" fill="#76736c" opacity="0.7"/>
 <polygon points="-283.5,-85 -146.5,-111 -140,91.5 -277,91.5" fill="#DCD5A6" opacity="0.8"/>
 <polygon points="36,45.5 114,52 120.5,169.5 55.5,169.5" fill="#DCD5A6" opacity="0.8"/>
 <polygon points="140,-195.5 270.5,-208.5 270.5,-13 160,-19.5" fill="#C9BFA6" opacity="0.8"/>
