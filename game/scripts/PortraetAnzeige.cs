@@ -190,6 +190,9 @@ public partial class PortraetAnzeige : Control
         _material.SetShaderParameter("hat_geschlossen", _hatZu);
         _material.SetShaderParameter("hat_haarmaske", haar is not null && aussehen.Haar != Haarfarbe.Kahl);
         _material.SetShaderParameter("hat_augenmaske", augen is not null);
+        var band = Augenband(augen);
+        _material.SetShaderParameter("augen_oben", band.X);
+        _material.SetShaderParameter("augen_unten", band.Y);
         _material.SetShaderParameter("haar_mittel", Mittelhelligkeit(_person.Texture, haar));
         _material.SetShaderParameter("augen_mittel", Mittelhelligkeit(_person.Texture, augen));
         _material.SetShaderParameter("haarfarbe", Farbe(aussehen.Haar));
@@ -274,7 +277,34 @@ public partial class PortraetAnzeige : Control
     /// <summary>Kerzenlicht flackert nur in den höheren Grafikstufen (in „Niedrig“ steht das Bild ruhig).</summary>
     public static bool Kerzenlicht => Fenster.AktuelleVoreinstellung != Voreinstellung.Niedrig;
 
+    /// <summary>Die Masken sind weich gemalt und in dunklen Haarpartien schwach; dieselbe Verstärkung steht im Shader.</summary>
+    private static float Maskenstaerke(float m) => Mathf.SmoothStep(0.05f, 0.5f, m);
+
     private static readonly Dictionary<(Texture2D, Texture2D), float> Mittelwerte = new();
+    private static readonly Dictionary<Texture2D, Vector2> Baender = new();
+
+    /// <summary>
+    /// Das Augenband (Anteil der Bildhöhe von oben) aus der Augenmaske: von knapp über bis knapp unter der Iris. Nur dort wird beim Blinzeln das Bild
+    /// mit geschlossenen Augen eingeblendet; die Gesichter sitzen unterschiedlich hoch. Ohne Maske ein Mittelwert.
+    /// </summary>
+    private static Vector2 Augenband(Texture2D? maske)
+    {
+        var standard = new Vector2(0.30f, 0.52f);
+        if (maske is null) return standard;
+        if (Baender.TryGetValue(maske, out var bekannt)) return bekannt;
+        var ergebnis = standard;
+        if (maske.GetImage() is { } m)
+        {
+            if (m.IsCompressed()) m.Decompress();
+            int oben = int.MaxValue, unten = -1;
+            for (var y = 0; y < m.GetHeight(); y++)
+                for (var x = 0; x < m.GetWidth(); x++)
+                    if (m.GetPixel(x, y).R > 0.3f) { oben = Math.Min(oben, y); unten = Math.Max(unten, y); }
+            if (unten >= 0) ergebnis = new Vector2(oben / (float)m.GetHeight() - 0.045f, unten / (float)m.GetHeight() + 0.045f);
+        }
+        Baender[maske] = ergebnis;
+        return ergebnis;
+    }
 
     /// <summary>
     /// Mittlere Helligkeit der Person im Bereich der Maske (gewichtet mit der Maske). Der Shader teilt die Helligkeit jedes Pixels durch diesen Wert:
@@ -296,7 +326,7 @@ public partial class PortraetAnzeige : Control
             for (var y = 0; y < n; y++)
                 for (var x = 0; x < n; x++)
                 {
-                    var w = m.GetPixel(x, y).R;
+                    var w = Maskenstaerke(m.GetPixel(x, y).R);
                     if (w <= 0.05f) continue;
                     summe += p.GetPixel(x, y).Luminance * w;
                     gewicht += w;
