@@ -1,5 +1,5 @@
 // Die Person im Porträt (PortraetAnzeige): das freigestellte Brustbild, dazu
-//  - Haar und Augen umgefärbt über Graustufen-Masken (weiß = Haar bzw. Iris); die Helligkeit des Bildes bleibt, nur der Farbton wechselt,
+//  - Haar und Augen umgefärbt über Graustufen-Masken (weiß = Haar bzw. Iris): Zielfarbe mal Helligkeitsverlauf des Originals,
 //  - Blinzeln: im Augenband wird das Bild mit geschlossenen Augen eingeblendet,
 //  - Atmen: die Person wächst um unten mittig herum um etwa 0,6 % (der Hintergrund bleibt stehen),
 //  - Nicken: die Person sinkt kurz nach unten.
@@ -22,12 +22,14 @@ uniform vec2 augenband = vec2(0.20, 0.44);
 uniform float atmen = 1.0;
 uniform float nicken = 0.0;
 
-// Die Farbe des Ziels mit der Helligkeit des Bildes: dunkle Stellen (Strähnen, Schraffur) bleiben dunkel, Lichter werden heller.
-vec3 umfaerben(vec3 bild, vec3 ziel) {
+// Mittlere Helligkeit des Bildes im Bereich der Maske (aus PortraetAnzeige)
+uniform float haar_mittel = 0.5;
+uniform float augen_mittel = 0.5;
+
+// Zielfarbe mal Helligkeitsverlauf des Originals (bezogen auf den Mittelwert im Bereich): Linien bleiben dunkel, Lichter hellen auf.
+vec3 umfaerben(vec3 bild, vec3 ziel, float mittel) {
 	float h = dot(bild, vec3(0.299, 0.587, 0.114));
-	vec3 dunkel = ziel * (h * 2.0);
-	vec3 hell = mix(ziel, vec3(1.0), (h - 0.5) * 2.0 * 0.55);
-	return h < 0.5 ? dunkel : hell;
+	return clamp(ziel * (h / mittel), 0.0, 1.0);
 }
 
 void fragment() {
@@ -44,11 +46,11 @@ void fragment() {
 	vec3 farbe = p.rgb;
 	if (hat_haarmaske) {
 		float m = texture(haarmaske, uv).r;
-		farbe = mix(farbe, umfaerben(farbe, haarfarbe), m);
+		farbe = mix(farbe, umfaerben(farbe, haarfarbe, haar_mittel), m);
 	}
 	if (hat_augenmaske && blinzeln < 0.5) {
 		float m = texture(augenmaske, uv).r;
-		farbe = mix(farbe, umfaerben(farbe, augenfarbe), m);
+		farbe = mix(farbe, umfaerben(farbe, augenfarbe, augen_mittel), m);
 	}
 	COLOR = vec4(farbe, p.a) * COLOR;
 }
