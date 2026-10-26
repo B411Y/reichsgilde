@@ -19,7 +19,7 @@ namespace Reichsgilde.Core.Speichern;
 /// <summary>Ein kompletter Spielstand.</summary>
 public sealed record Speicherstand
 {
-    public const int AktuellesFormat = 2; // 2: Spieltag 05–22 Uhr (1020 Minuten) statt 24 Stunden
+    public const int AktuellesFormat = 3; // 2: Spieltag 05–22 Uhr (1020 Minuten) statt 24 Stunden; 3: 04–23 Uhr (1140 Minuten, Uhrumstellung.cs)
 
     public int Format { get; init; } = AktuellesFormat;
 
@@ -887,6 +887,10 @@ public sealed record RivaleStand
     public List<string> Entscheidungen { get; init; } = new();
     public int StundenImJahr { get; init; }
     public int GaunereienImJahr { get; init; }
+
+    /// <summary>Auf wen die KI dieses bzw. letztes Jahr einen Spitzel angesetzt hat (Inhaber; Spiel-KI, PR #208 – fehlt in alten Spielständen).</summary>
+    public List<string> SpitzelDiesesJahr { get; init; } = new();
+    public List<string> SpitzelVorjahr { get; init; } = new();
 
     /// <summary>Betriebsname → ganze Jahre in Folge mit Verlust (Spiel-KI, PR #108; fehlt in alten Spielständen).</summary>
     public Dictionary<string, int> Verlustjahre { get; init; } = new();

@@ -6,9 +6,10 @@ namespace Reichsgilde.Core.Zeit;
 /// Grundregel (wie im Original „Die Gilde"):
 ///   1 Runde = 1 Spieltag = 1 Spieljahr.
 ///
-/// Die Zeit zählt in ganzen „Spielminuten" (Ticks). Gespielt wird wie im Original von 05:00 Uhr
-/// (Zunftglocke) bis 22:00 Uhr – 17 Stunden, 1020 Ticks. Dann ist das Jahr vorbei, die Jahresrechnung
-/// kommt, und das neue Jahr beginnt wieder um 05:00 Uhr. Die Nachtstunden dazwischen werden nicht gespielt.
+/// Die Zeit zählt in ganzen „Spielminuten" (Ticks). Gespielt wird von 04:00 Uhr (Zunftglocke) bis 23:00 Uhr
+/// – 19 Stunden, 1140 Ticks (bis Datenversion 55: 05–22 Uhr, 1020 Ticks; Entscheidung des Nutzers vom 26.10.2026).
+/// Dann ist das Jahr vorbei, die Jahresrechnung kommt, und das neue Jahr beginnt wieder um 04:00 Uhr.
+/// Die Nachtstunden dazwischen werden nicht gespielt.
 ///
 /// Wichtig: Diese Klasse weiß nichts über Echtzeit oder Spielgeschwindigkeit.
 /// Das erledigt der <see cref="Taktgeber"/>. So läuft die Simulation immer gleich ab –
@@ -18,16 +19,16 @@ public sealed class Spielzeit
 {
     public const int StartJahr = 1400;
 
-    /// <summary>Uhrzeit, zu der jeder Spieltag beginnt (in Minuten nach Mitternacht): 05:00.</summary>
-    public const int TagesbeginnMinute = 5 * 60;
+    /// <summary>Uhrzeit, zu der jeder Spieltag beginnt (in Minuten nach Mitternacht): 04:00.</summary>
+    public const int TagesbeginnMinute = 4 * 60;
 
-    /// <summary>Uhrzeit, zu der der Spieltag endet und die Jahresrechnung kommt: 22:00.</summary>
-    public const int TagesendeMinute = 22 * 60;
+    /// <summary>Uhrzeit, zu der der Spieltag endet und die Jahresrechnung kommt: 23:00.</summary>
+    public const int TagesendeMinute = 23 * 60;
 
-    /// <summary>Gespielte Minuten je Tag (= Jahr): 1020.</summary>
+    /// <summary>Gespielte Minuten je Tag (= Jahr): 1140.</summary>
     public const int MinutenProTag = TagesendeMinute - TagesbeginnMinute;
 
-    /// <summary>Gespielte Stunden je Tag: 17.</summary>
+    /// <summary>Gespielte Stunden je Tag: 19.</summary>
     public const int StundenProTag = MinutenProTag / 60;
 
     /// <summary>Wie viele Spielminuten seit Spielbeginn vergangen sind.</summary>
@@ -49,31 +50,31 @@ public sealed class Spielzeit
     /// <summary>Jahreszeit dieses Jahres (wechselt jedes Jahr).</summary>
     public Jahreszeit Jahreszeit => (Jahreszeit)((Jahr - StartJahr) % 4);
 
-    /// <summary>Wie viele Minuten des aktuellen Spieltags schon vergangen sind (0 bis 1019).</summary>
+    /// <summary>Wie viele Minuten des aktuellen Spieltags schon vergangen sind (0 bis 1139).</summary>
     public int MinuteImTag => (int)(VergangeneMinuten % MinutenProTag);
 
     /// <summary>Anteil des Spieltags, der schon vorbei ist (0.0 bis knapp 1.0).</summary>
     public double TagesFortschritt => (double)MinuteImTag / MinutenProTag;
 
-    /// <summary>Uhrzeit in Minuten nach Mitternacht (300 = 05:00 bis 1319 = 21:59).</summary>
+    /// <summary>Uhrzeit in Minuten nach Mitternacht (240 = 04:00 bis 1379 = 22:59).</summary>
     public int UhrzeitInMinuten => TagesbeginnMinute + MinuteImTag;
 
     /// <summary>
-    /// Die volle Stunde, die gerade zu Ende ging (Uhrzeit 5–21). In der ersten Minute eines Jahres ist das
-    /// die letzte Stunde des Vorjahres (21–22 Uhr) – die Jahresrechnung rechnet sie noch ab.
+    /// Die volle Stunde, die gerade zu Ende ging (Uhrzeit 4–22). In der ersten Minute eines Jahres ist das
+    /// die letzte Stunde des Vorjahres (22–23 Uhr) – die Jahresrechnung rechnet sie noch ab.
     /// </summary>
     public int StundeDieEndete => MinuteImTag == 0 ? TagesendeMinute / 60 - 1 : UhrzeitInMinuten / 60 - 1;
 
-    /// <summary>Uhrzeit als Text, z. B. "05:00".</summary>
+    /// <summary>Uhrzeit als Text, z. B. "04:00".</summary>
     public string UhrzeitText => $"{UhrzeitInMinuten / 60:00}:{UhrzeitInMinuten % 60:00}";
 
     /// <summary>In welchem Abschnitt des Tages befinden wir uns?</summary>
-    public Tagesphase Tagesphase => MinuteImTag switch
+    public Tagesphase Tagesphase => UhrzeitInMinuten switch
     {
-        < 5 * 60 => Tagesphase.Zunftglocke,   // 05:00–10:00
-        < 10 * 60 => Tagesphase.HoherMittag,  // 10:00–15:00
-        < 15 * 60 => Tagesphase.Vesper,       // 15:00–20:00
-        _ => Tagesphase.DunkleNacht,          // 20:00–22:00
+        < 10 * 60 => Tagesphase.Zunftglocke,  // 04:00–10:00
+        < 15 * 60 => Tagesphase.HoherMittag,  // 10:00–15:00
+        < 20 * 60 => Tagesphase.Vesper,       // 15:00–20:00
+        _ => Tagesphase.DunkleNacht,          // 20:00–23:00
     };
 
     /// <summary>Datum für die Anzeige, z. B. "Frühling 1400".</summary>

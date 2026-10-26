@@ -154,7 +154,7 @@ static class HandelTests
         ("Speichern: Auftrag unterwegs und zurückgehaltene Waren überstehen Speichern und Laden", () =>
         {
             var (sim, spieler) = Partieaufbau.Erstellen(Partieeinstellungen.Standard with { Siegbedingung = Siegbedingung.Endlos },
-                Daten.Value, new NeuePartie(Startvermoegen: 10_000), new Spielzeit(4 * 60));
+                Daten.Value, new NeuePartie(Startvermoegen: 10_000), new Spielzeit(9 * 60 - Spielzeit.TagesbeginnMinute));
             var w = sim.Wirtschaft!;
             var b = w.Betriebe.First(x => x.Konto == spieler);
             b.Einlagern("Silberring", 5);

@@ -1,3 +1,4 @@
+using Reichsgilde.Core.Zeit;
 using Reichsgilde.Core;
 using Reichsgilde.Core.Dynastie;
 using Reichsgilde.Core.Gauner;
@@ -13,7 +14,7 @@ static class GesundheitTests
     static readonly Lazy<Wirtschaftsdaten> Daten = new(() => Wirtschaftsdaten.AusDatei(Datenpfad.Wirtschaft()));
 
     /// <summary>Krötenschleim gelingt immer – so hängt der Test nicht am Zufall.</summary>
-    static readonly Lazy<Wirtschaftsdaten> SichererSchleim = new(() => Wirtschaftsdaten.AusJson(File.ReadAllText(Datenpfad.Wirtschaft())
+    static readonly Lazy<Wirtschaftsdaten> SichererSchleim = new(() => Wirtschaftsdaten.AusJson(Datenpfad.EinVersuchJeNacht(File.ReadAllText(Datenpfad.Wirtschaft()))
         .Replace("\"kroetenschleim\": { \"kosten\": 200, \"chance\": 0.6,", "\"kroetenschleim\": { \"kosten\": 200, \"chance\": 1.0,")
         .Replace("\"zeugenChance\": 0.25", "\"zeugenChance\": 0")));
 
@@ -200,7 +201,7 @@ static class GesundheitTests
             var rivale = w.Konten.First(k => k != spieler);
             var o = w.Familien.Von(rivale)!.Oberhaupt;
             w.Gesundheit.Erkranken(rivale, o, "Lungenentzündung");
-            for (var i = 0; i < 12 * 60; i++) sim.Tick(); // bis nach der Politikstunde
+            for (var i = 0; i < 17 * 60 - Spielzeit.TagesbeginnMinute; i++) sim.Tick(); // bis nach der Politikstunde
             Pruefe.Wahr(o.Krankheit is null, "die KI hat keinen Medicus geholt");
             Pruefe.Gleich(2, w.Gesundheit.Apotheke(rivale));
         }),

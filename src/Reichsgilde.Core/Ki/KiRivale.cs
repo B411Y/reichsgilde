@@ -75,9 +75,10 @@ public sealed partial class KiRivale
     private readonly Dictionary<string, int> _gesperrt = new();
     private int? _keinWerkstattplatzJahr;
     private bool _bauorteGefragt; // in dieser Stunde schon nach Bauorten gefragt (teuer – höchstens einmal)
+    private readonly HashSet<string> _spitzelDiesesJahr = new(StringComparer.Ordinal), _spitzelVorjahr = new(StringComparer.Ordinal); // Inhaber (PR #208)
 
-    /// <summary>Zu dieser Stunde des Spieltags kümmert sich die KI um die Politik (mittags, einmal am Tag).</summary>
-    private const int Politikstunde = 6;
+    /// <summary>Zu dieser Stunde des Spieltags kümmert sich die KI um die Politik (um 11 Uhr, einmal am Tag).</summary>
+    private const int Politikstunde = 11 - Spielzeit.TagesbeginnMinute / 60;
     private const int MaxGemerkteEntscheidungen = 20;
 
     public Konto Konto { get; }
@@ -104,6 +105,8 @@ public sealed partial class KiRivale
         Entscheidungen = new(_entscheidungen),
         StundenImJahr = _stundenImJahr,
         GaunereienImJahr = _gaunereienImJahr,
+        SpitzelDiesesJahr = _spitzelDiesesJahr.OrderBy(x => x, StringComparer.Ordinal).ToList(),
+        SpitzelVorjahr = _spitzelVorjahr.OrderBy(x => x, StringComparer.Ordinal).ToList(),
         Verlustjahre = new(_verlustjahre),
         Lagerwert = new(_lagerwert),
         StundenOhnePersonal = new(_stundenOhnePersonal),
@@ -119,6 +122,8 @@ public sealed partial class KiRivale
         _entscheidungen.AddRange(s.Entscheidungen);
         _stundenImJahr = s.StundenImJahr;
         _gaunereienImJahr = s.GaunereienImJahr;
+        _spitzelDiesesJahr.UnionWith(s.SpitzelDiesesJahr);
+        _spitzelVorjahr.UnionWith(s.SpitzelVorjahr);
         foreach (var (name, jahre) in s.Verlustjahre) _verlustjahre[name] = jahre;
         foreach (var (name, wert) in s.Lagerwert) _lagerwert[name] = wert;
         foreach (var (name, stunden) in s.StundenOhnePersonal) _stundenOhnePersonal[name] = stunden;
@@ -207,6 +212,9 @@ public sealed partial class KiRivale
         VerlusteZaehlen(_stundenImJahr);
         _stundenImJahr = 0;
         _gaunereienImJahr = 0;
+        _spitzelVorjahr.Clear();
+        _spitzelVorjahr.UnionWith(_spitzelDiesesJahr);
+        _spitzelDiesesJahr.Clear();
         foreach (var betrieb in Betriebe.ToList())
         {
             UngenutzteKarrenVerkaufen(betrieb); // ein Jahr ohne Fahrt (KiRivale.Karren.cs)
@@ -457,7 +465,8 @@ public sealed partial class KiRivale
         {
             var nummer = 0;
             while (nummer < _w.Rivalen.Count && _w.Rivalen[nummer] != this) nummer++;
-            return !_bauorteGefragt && _stundenImJahr == 3 + 3 * (nummer % 5);
+            // ab 8 Uhr, alle drei Stunden ein anderes Haus
+            return !_bauorteGefragt && _stundenImJahr == (Stadtwirtschaft.Arbeitsbeginn - Spielzeit.TagesbeginnMinute) / 60 + 3 * (nummer % 5);
         }
     }
 
@@ -901,7 +910,7 @@ public sealed partial class KiRivale
     /// Ebenso ein Jahr, in dem der Betrieb mindestens ein Viertel der Stunden ganz ohne Personal stand (meist fehlte das Geld für Löhne):
     /// Er konnte nichts verdienen, und die Löhne zum Jahresende zahlt er für alle, die zuletzt da sind – das sagt nichts über den Betrieb.
     /// </summary>
-    /// <param name="stundenImJahr">So viele Stunden hat die KI in diesem Jahr überlegt (bei einem ganzen Jahr 17).</param>
+    /// <param name="stundenImJahr">So viele Stunden hat die KI in diesem Jahr überlegt (bei einem ganzen Jahr <see cref="Spielzeit.StundenProTag"/>).</param>
     private void VerlusteZaehlen(int stundenImJahr)
     {
         var eigene = Betriebe.ToList();
@@ -1195,7 +1204,8 @@ public sealed partial class KiRivale
     ///   • Verteidigen: Droht in einem Verfahren gegen die KI ein Schuldspruch, beschenkt sie die billigsten
     ///     Richter (Ratsherren), bis eine Mehrheit freispräche – aber nur, wenn das Budget dafür reicht.
     ///   • Anklagen: erst, wenn die Beweise so stark sind, dass auch bestochene Richter schuldig sprächen.
-    ///   • Spitzel: auf das stärkste andere Haus, das politisch mitspielt (ab Bürger), einmal im Jahr.
+    ///   • Spitzel (PR #208): auf das stärkste Haus, das politisch mitspielt (ab Bürger) und vor ihr liegt oder ihr geschadet hat,
+    ///     höchstens jedes zweite Jahr einer (also auch gegen dasselbe Haus höchstens jedes zweite Jahr).
     /// </summary>
     private void Verteidigung()
     {
@@ -1220,9 +1230,15 @@ public sealed partial class KiRivale
                 $"klagt {gegner.Inhaber} wegen Bestechung an ({gericht.Beweise(Konto, gegner).Count()} Beweise – genug für einen sicheren Schuldspruch).");
         }
 
-        var ziel = _w.Rangliste.FirstOrDefault(k => k != Konto && k.IstAktiv && k.Stand >= 1 && !gericht.HatSpitzel(Konto, k));
-        if (ziel is not null && Konto.Vermoegen - d.SpitzelKosten >= Profil.Reserve)
-            Befehlen(new SpitzelAnsetzen(ziel.Inhaber), $"setzt einen Spitzel auf {ziel.Inhaber} an ({Zahlenformat.Ganz(d.SpitzelKosten)} {_w.Daten.Allgemein.Waehrung}).");
+        if (_spitzelDiesesJahr.Count > 0 || _spitzelVorjahr.Count > 0) return; // höchstens jedes zweite Jahr einer
+        var rangliste = _w.Rangliste.ToList();
+        var eigenerRang = rangliste.IndexOf(Konto);
+        var ziel = rangliste.FirstOrDefault(k => k != Konto && k.IstAktiv && k.Stand >= 1 && !gericht.HatSpitzel(Konto, k)
+                                                  && (rangliste.IndexOf(k) < eigenerRang || HatGeschadet(k)));
+        if (ziel is not null && Konto.Vermoegen - d.SpitzelKosten >= Profil.Reserve
+            && Befehlen(new SpitzelAnsetzen(ziel.Inhaber), $"setzt einen Spitzel auf {ziel.Inhaber} an ({Zahlenformat.Ganz(d.SpitzelKosten)} {_w.Daten.Allgemein.Waehrung})" +
+                                                              (HatGeschadet(ziel) ? $" – {ziel.Inhaber} hat dem Haus geschadet." : $" – {ziel.Inhaber} liegt vorn.")))
+            _spitzelDiesesJahr.Add(ziel.Inhaber);
     }
 
     private void Verteidigen(Verfahren v)

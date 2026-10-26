@@ -34,7 +34,7 @@ public partial class Stadtansicht
     /// <summary>Wie weit eine Baustelle der Stadt ist, in vier Stufen (0 bis 3).</summary>
     private static int StadtbauStufe(Stadtwirtschaft w, Stadtbaustelle b, long minute)
     {
-        var dauer = Math.Max(1, (w.Ratsantraege.BauvorhabenNamens(b.Kennung)?.BauzeitStunden ?? 17) * 60.0);
+        var dauer = Math.Max(1, (w.Ratsantraege.BauvorhabenNamens(b.Kennung)?.BauzeitStunden ?? Reichsgilde.Core.Zeit.Spielzeit.StundenProTag) * 60.0);
         return Math.Clamp((int)((1 - (b.FertigAb - minute) / dauer) * 4), 0, 3);
     }
 

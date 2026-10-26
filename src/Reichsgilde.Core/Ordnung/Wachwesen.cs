@@ -425,7 +425,7 @@ public sealed class Wachwesen
     ///   • Geleit: Stellt dieses Haus das Geleit (<see cref="Geleitstube"/>), begleitet je Karren aus <see cref="GeleitKarren"/>
     ///     einer ihn (Gesellen vor Lehrlingen, dann nach Nummer; nie der Hauptmann) – zu jeder Uhrzeit.
     ///   • Streife: Von den übrigen (ohne Hauptmann) sind in der Arbeitszeit (8–20 Uhr) die Hälfte (aufgerundet) auf
-    ///     Patrouille, sonst (5–8 und 20–22 Uhr) ein Viertel (gerundet: 1 → 0, 2–5 → 1, 6–8 → 2). Wer, wechselt alle zwei
+    ///     Patrouille, sonst (4–8 und 20–23 Uhr) ein Viertel (gerundet: 1 → 0, 2–5 → 1, 6–8 → 2). Wer, wechselt alle zwei
     ///     Stunden (Wachwechsel zur geraden Stunde): Die Reihe nach Nummer rückt eins weiter. Ruht der Dienst (Umbau, Brand,
     ///     Haus aufgelöst), geht niemand auf Streife.
     ///   • Daheim (j = Platz unter denen, die gerade daheim sind, nach Nummer): in der Arbeitszeit reihum Putzen, Schärfen,

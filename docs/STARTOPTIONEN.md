@@ -5,12 +5,13 @@ Startoptionen (nach `--`):
 ## Spiel und Tafeln
 
 - `--beruf=<Beruf>`
-- `--startstunde=<Stunde>`
+- `--startstunde=<Stunde>` (4–22; ohne Angabe beginnt die Partie um 4 Uhr zur Zunftglocke)
+- `--glaube=<Katholisch|Evangelisch|Naturglaube>` (Konfession des eigenen Hauses bei einer neuen Partie)
 - `--tempo=<1–32>`
 - `--innen=1` (eigene Werkstatt) oder `--innen=Rathaus|Dom|wohnhaus:<Inhaber>`
 - `--raum=<Nummer>` (mit `--innen`: Raum der Raumleiste, 1 = erster)
 - `--innenblick=<0|L1|L2|R1|R2|O1|U1>` (mit `--innen`: Blickpunkt des Raums, was das Modell hat)
-- `--tafel=<personal|produktion|lager|karren|einrichten|wache>` (mit `--innen`: Tafel der Bedienung öffnen)
+- `--tafel=<personal|produktion|lager|karren|einrichten|wache|bank|auftraege>` (mit `--innen`: Tafel der Bedienung öffnen; `bank` = Bankgeschäft der Geldleihe, `auftraege` = Kartentisch des Diebs mit Aufträgen und Banden im Hinterzimmer)
 - `--arbeiter=<Nummern>` (mit `--innen`: Arbeiter im Raum auswählen)
 - `--einrichtung=<Kennungen>` (der eigenen Werkstatt Einrichtung kaufen, z. B. `Werkzeug1,Regale`, mit `--vermoegen=5000`)
 - `--einstellen=<Arten>` (Arbeiter einstellen, z. B. `Lehrling,Geselle`)
@@ -25,7 +26,7 @@ Startoptionen (nach `--`):
 - `--rat=1`
 - `--amt=<Amt>` (der Spieler hält dieses Amt, z. B. `Kämmerer`, `Stadtrichter`, `Gefängniswärter`; Leerzeichen als `_`)
 - `--kasse=<Gulden>` (Stand der Stadtkasse)
-- `--antrag=steuer:<Prozent>|bau:<Kennung>|fest` (Antrag im Rat stellen, mehrere mit Komma, z. B. `bau:brunnen,fest`; braucht ein Amt, z. B. `--amt=Bürgermeister`; Kennungen: `brunnen`, `mauer`, `hafen`, `marktplatz`). Die Ratssitzung ist am Jahresende: mit `--startstunde=5 --spulen=1320` steht man mittags im nächsten Jahr (Baustelle, Fest), die Lage der Baustelle steht im Log
+- `--antrag=steuer:<Prozent>|bau:<Kennung>|fest` (Antrag im Rat stellen, mehrere mit Komma, z. B. `bau:brunnen,fest`; braucht ein Amt, z. B. `--amt=Bürgermeister`; Kennungen: `brunnen`, `mauer`, `hafen`, `marktplatz`). Die Ratssitzung ist am Jahresende: mit `--startstunde=5 --spulen=1440` steht man mittags im nächsten Jahr (Baustelle, Fest), die Lage der Baustelle steht im Log
 - `--rathaus=<stadtkasse|rat|amt>` (das Rathaus auswählen, Tafel auf diesem Reiter); eine Baustelle der Stadt: `--auswahl=stadtbau:<Kennung>`
 - `--sitzung=1` (sichtbare Ratssitzung vorbereiten: ohne `--amt` ein Amt der untersten Stufe und eine Bewerbung eine Stufe höher – dafür `--aufsteigen=1 --vermoegen=30000 --startstunde=6` –, ohne `--antrag` wird ein Rivale Kämmerer und beantragt ein Fest; dann bis zum Jahresende vorspulen, die Partie hält vor dem ersten Punkt). `--sitzung=letzte`: ebenso, aber ohne Halt; danach steht das Rathaus auf dem Reiter Rat mit dem Knopf „Letzte Ratssitzung ansehen“
 - `--sitzungzeigen=<immer|betroffen|nie>` (Einstellung „Ratssitzung zeigen“ nur für diesen Start)
@@ -33,12 +34,12 @@ Startoptionen (nach `--`):
 - `--gericht=1`
 - `--hinterzimmer=1`
 - `--markt=1`
-- `--karren=<Typen>` (der eigenen Werkstatt Karren dazukaufen, z. B. `Ochsenkarren,Kriegskarren`, mit `--vermoegen=9000`)
+- `--karren=<Typen>` (der eigenen Werkstatt Karren dazukaufen, z. B. `Ochsenkarren,Kriegskarren`, mit `--vermoegen=5000`; die beiden kosten zusammen 1.300)
 - `--umland=1` (den günstigsten freien Umlandbetrieb erwerben – wenn nötig erst zum Bürger aufsteigen –, ihm einen Ochsenkarren dazukaufen und seine Kurzübersicht mit „…“ zeigen: Karren mit Eskorte, Nachtfahrt und „Verkaufen“; mit `--vermoegen=30000`)
 - `--schiff=<Anzahl>` (am ersten Hafen so viele Flussschiffe kaufen, mit `--vermoegen=10000`; Karte mit Hafen, z. B. `--karte=probestadt` oder `greybox`)
 - `--schiffsauftrag=vorschlag` (jedem eigenen Schiff am Kai den Vorschlag als Auftrag geben; `=<Ziel>`: den Vorschlag für diese ferne Stadt, z. B. `Eisenfurt`, Leerzeichen als `_`)
 - `--hafen=1` (Hafentafel des ersten Hafens rechts öffnen, ohne `--blick` fährt die Kamera hin; `=<Kennung>` eines Hafens der Karte, z. B. `Hafen1`; `=staedte`: Reiter „Ferne Städte“). Ein ausgewähltes Schiff: `--auswahl=schiff:<Name>`
-- `--verkaufen=1` (Rückfrage zum Verkauf der eigenen Werkstatt; `=2` kauft vorher eine Grube dazu und lässt bis Mittag laufen, mit `--vermoegen=20000`)
+- `--verkaufen=1` (Rückfrage zum Verkauf der eigenen Werkstatt; `=2` erwirbt vorher die günstigste freie Liegenschaft dazu (sonst: Wohnhaus ausbauen und aufsteigen) und lässt bis Mittag laufen, mit `--vermoegen=20000`)
 - `--bericht=1` (Jahresbericht in der Mitte); `--bericht=<jahresrechnung|rivalen|umsaetze|protokoll>` (die Tafel „Bericht“ rechts auf diesem Reiter)
 - `--hilfe=1` (Hilfe zur Steuerung gleich zeigen; ohne Startoptionen erscheint sie beim allerersten Spiel von selbst)
 - `--meldung=<Text>` (eine Meldung unten links einstellen, Leerzeichen als `_`; beginnt sie mit ✗ oder ⚠, ist es eine Warnung, die bis zum Klick bleibt)
@@ -152,7 +153,7 @@ Zum Bauen und Leerstand:
 - `--bauort=<x>,<z>,<Drehung 0–3>` (der Umriss sitzt an dieser Stelle der Stadt in Metern, bis die Maus bewegt wird; Probestellen stehen unter `probeplan` in `greybox.json`)
 - `--bauklick=1` (dort die Rückfrage öffnen; `=2` gleich bauen)
 - `--aufsteigen=1` (Wohnhaus zum Bürgerhaus ausbauen und zum Bürger aufsteigen, damit Werkstätten erlaubt sind; mit `--vermoegen=30000`)
-- `--spulen=<Ticks>` (so viele Spielminuten auf einen Schlag ablaufen lassen, `1100` = Bauzeit eines Spieljahres)
+- `--spulen=<Ticks>` (so viele Spielminuten auf einen Schlag ablaufen lassen, `1200` = über die Bauzeit eines Spieljahres)
 - `--leerstand=kaufen|abreissen` (mit `--auswahl=wohnhaus:Haus_Eisenbart`, Leerzeichen als `_`: Rückfrage zum leeren Haus öffnen; mit `--bauklick=2` gleich ausführen)
 - `--speichern=<datei.json>` (die Partie nach `--bauklick` und `--spulen` speichern)
 

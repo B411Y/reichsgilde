@@ -80,7 +80,7 @@ public static class Partieaufbau
     };
 
     /// <returns>Die Simulation und das Konto des Spielers.</returns>
-    /// <param name="startzeit">Abweichender Startzeitpunkt (zum Testen); ohne Angabe Frühling 1400, 05:00.</param>
+    /// <param name="startzeit">Abweichender Startzeitpunkt (zum Testen); ohne Angabe Frühling 1400, 04:00.</param>
     /// <param name="karte">Die Karte der Stadt (game/karten/…): Belegung am Start (<see cref="Stadtkarte.Start"/>), Wohnhausplätze,
     /// Bauzonen. Ohne Karte gilt <see cref="Startbelegung.Ersatz"/>, und es wird nicht gebaut.</param>
     public static (Simulation Simulation, Konto Spieler) Erstellen(Partieeinstellungen einstellungen, Wirtschaftsdaten daten, NeuePartie neu,

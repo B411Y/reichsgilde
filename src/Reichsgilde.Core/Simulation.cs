@@ -84,7 +84,7 @@ public sealed class Simulation
     }
 
     /// <param name="einstellungen">Partie-Einstellungen; ohne Angabe die Standardwerte.</param>
-    /// <param name="zeit">Startzeitpunkt; ohne Angabe Frühling 1400, 05:00.</param>
+    /// <param name="zeit">Startzeitpunkt; ohne Angabe Frühling 1400, 04:00.</param>
     /// <param name="wirtschaftsdaten">Daten aus game/daten/wirtschaft.json; ohne Angabe läuft nur die Zeit.</param>
     public Simulation(Partieeinstellungen? einstellungen = null, Spielzeit? zeit = null, Wirtschaftsdaten? wirtschaftsdaten = null)
     {

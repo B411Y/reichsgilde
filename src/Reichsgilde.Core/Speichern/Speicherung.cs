@@ -116,7 +116,10 @@ public static class Speicherung
         Speicherstand? stand;
         try
         {
-            stand = JsonSerializer.Deserialize<Speicherstand>(json, Optionen);
+            // Format 2 (Spieltag 05–22 Uhr): erst die Uhr und alle Zeitpunkte auf den Spieltag 04–23 Uhr umrechnen
+            var knoten = System.Text.Json.Nodes.JsonNode.Parse(json);
+            if (knoten is System.Text.Json.Nodes.JsonObject o) Uhrumstellung.Umrechnen(o);
+            stand = knoten.Deserialize<Speicherstand>(Optionen);
         }
         catch (JsonException ex)
         {

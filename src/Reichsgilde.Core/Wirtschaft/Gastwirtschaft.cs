@@ -47,7 +47,7 @@ public sealed class BardeDaten
 }
 
 /// <summary>
-/// Gäste, Ausschank und die Extras der Wirtshäuser. Gäste kehren von <see cref="OeffnetUm"/> bis 22 Uhr (Ende des Spieltags) ein,
+/// Gäste, Ausschank und die Extras der Wirtshäuser. Gäste kehren von <see cref="OeffnetUm"/> bis zum Feierabend des Wirtshauses (22 Uhr) ein,
 /// abends doppelt so viele; sie verteilen sich nach der Anziehung der Schänken (Stufe, Ansehen, Barde).
 /// </summary>
 public sealed class GastwirtschaftDaten
@@ -154,11 +154,17 @@ public sealed class Gastwirtschaft
 
     /// <summary>Gewicht einer Stunde (Uhrzeit 0–23): geschlossen 0, nachmittags 1, abends <see cref="GastwirtschaftDaten.AbendGewicht"/>.</summary>
     private double Gewicht(int stunde) =>
-        stunde < Daten.OeffnetUm ? 0 : stunde >= Daten.AbendAb ? Daten.AbendGewicht : 1;
+        stunde < Daten.OeffnetUm || stunde >= SchliesstUm ? 0 : stunde >= Daten.AbendAb ? Daten.AbendGewicht : 1;
+
+    /// <summary>
+    /// Ab dieser Uhrzeit kehrt niemand mehr ein: 22 Uhr, der Feierabend der Wirtshäuser (8–22 Uhr). Bis Datenversion 55 endete hier der
+    /// Spieltag; seit er bis 23 Uhr geht, bleibt die letzte Stunde ohne Gäste – Gäste und Abendanteil des Jahres bleiben dieselben.
+    /// </summary>
+    public const int SchliesstUm = 22;
 
     private bool IstAbend(int stunde) => stunde >= Daten.AbendAb;
 
-    /// <summary>Summe der Gewichte über alle gespielten Stunden (05–22 Uhr).</summary>
+    /// <summary>Summe der Gewichte über alle gespielten Stunden (04–23 Uhr).</summary>
     private static IEnumerable<int> Spielstunden => Enumerable.Range(Spielzeit.TagesbeginnMinute / 60, Spielzeit.StundenProTag);
 
     private double GewichtSumme => Spielstunden.Sum(Gewicht);

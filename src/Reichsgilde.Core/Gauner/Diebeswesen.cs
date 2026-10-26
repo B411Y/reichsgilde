@@ -370,11 +370,11 @@ public sealed class Diebeswesen
     ///     (Gesellen vor Lehrlingen, dann nach Nummer; der Meisterdieb zuletzt) – bis Tagesende. Die anderen sind daheim:
     ///     um 20 Uhr zählen sie Beute oder planen, ab 21 Uhr schlafen sie (ab Stufe 2 auf dem Schlafboden; im
     ///     Schmugglerloch zählen und planen sie weiter).
-    ///   • Vor 8 Uhr: ab Stufe 2 schlafen bis 7 Uhr, danach (im Schmugglerloch von 5 Uhr an) üben oder schleifen.
+    ///   • Vor 8 Uhr: ab Stufe 2 schlafen bis 7 Uhr, danach (im Schmugglerloch von 4 Uhr an) üben oder schleifen.
     ///   • Stufe 3: Der <see cref="Meisterdieb"/> sitzt von 8 bis 22 Uhr in der Gildenhalle (Vorsitzen) und geht nicht auf den Markt.
     /// Daheim wechselt die Tätigkeit je Arbeiter und Stunde: gerade Summe aus Nummer und Stunde = Üben bzw. Zählen, sonst Schleifen bzw. Planen.
     /// Die Simulation zählt die Beute weiter für alle Arbeiter – die Abfrage verteilt sie nur fürs Bild.
-    /// Die Aufträge der Nacht merkt sich der Kern nicht im Spielstand: Nach dem Laden zwischen 20 und 22 Uhr sind alle daheim.
+    /// Die Aufträge der Nacht merkt sich der Kern nicht im Spielstand: Nach dem Laden zwischen 20 und 23 Uhr sind alle daheim.
     /// </summary>
     public IReadOnlyList<Diebesstand> AnwesenheitJetzt(Betrieb b)
     {
@@ -578,34 +578,62 @@ public sealed class Diebeswesen
 
     // ── Nacht (20 Uhr, nach den Banden) ─────────────────────────────────────
 
-    internal void Nacht()
+    /// <param name="versuch">Der wievielte Versuch der Nacht (0 = 20 Uhr; Gaunerei je Nachtstunde, <see cref="GaunerDaten.NachtVersuche"/>).
+    /// Nur der Einbruch versucht es in jeder Nachtstunde (mit dem Teil <see cref="GaunerDaten.VersuchFaktor"/> der Chance), alles andere geschieht um 20 Uhr.</param>
+    internal void Nacht(int versuch = 0)
     {
-        _heuteNacht.Clear();
-        _heuteNachtJahr = _w.Uhr.Jahr;
-        if (!IstAktiv || !_w.Gauner.IstAktiv || !_w.Justiz.IstAktiv) { _auftraege.Clear(); return; }
-        // Für die Anwesenheit: Wer zieht heute Nacht los? (Liest nur – kein Zufall, keine Wirkung.)
-        foreach (var a in _auftraege)
-            if (a.Dieb.IstAktiv && a.Ziel.IstAktiv && Versteck(a.Dieb) is { } v)
-                (_heuteNacht.TryGetValue(v.Name, out var liste) ? liste : _heuteNacht[v.Name] = new()).Add(a.Art);
-        foreach (var a in _auftraege.ToList())
+        var versuche = _w.Gauner.IstAktiv ? _w.Gauner.Daten.NachtVersuche : 1;
+        var letzter = versuch >= versuche - 1;
+        if (versuch == 0)
         {
-            if (!a.Dieb.IstAktiv || !a.Ziel.IstAktiv) continue;
-            switch (a.Art)
+            _heuteNacht.Clear();
+            _heuteNachtJahr = _w.Uhr.Jahr;
+        }
+        if (!IstAktiv || !_w.Gauner.IstAktiv || !_w.Justiz.IstAktiv) { _auftraege.Clear(); _erfolgreich.Clear(); return; }
+        // Für die Anwesenheit: Wer zieht heute Nacht los? (Liest nur – kein Zufall, keine Wirkung.)
+        if (versuch == 0)
+            foreach (var a in _auftraege)
+                if (a.Dieb.IstAktiv && a.Ziel.IstAktiv && Versteck(a.Dieb) is { } v)
+                    (_heuteNacht.TryGetValue(v.Name, out var liste) ? liste : _heuteNacht[v.Name] = new()).Add(a.Art);
+        while (_erfolgreich.Count < _auftraege.Count) _erfolgreich.Add(false);
+        for (var i = 0; i < _auftraege.Count; i++)
+        {
+            var a = _auftraege[i];
+            var erledigt = true;
+            if (a.Dieb.IstAktiv && a.Ziel.IstAktiv)
+                switch (a.Art)
+                {
+                    case Diebesstueck.Einbruch:
+                        (_chanceFaktor, _letzterVersuch, _bisherErfolg, _versuchErfolg) = (_w.Gauner.Daten.VersuchFaktor, letzter, _erfolgreich[i], false);
+                        Einbruch(a);
+                        _erfolgreich[i] |= _versuchErfolg;
+                        (_chanceFaktor, _letzterVersuch) = (1, true);
+                        erledigt = letzter;
+                        break;
+                    case Diebesstueck.Auskundschaften: Ausspaehen(a); break;
+                    case Diebesstueck.Entfuehrung: Verschleppen(a); break;
+                    default: Brand(a); break;
+                }
+            if (erledigt)
             {
-                case Diebesstueck.Einbruch: Einbruch(a); break;
-                case Diebesstueck.Auskundschaften: Ausspaehen(a); break;
-                case Diebesstueck.Entfuehrung: Verschleppen(a); break;
-                default: Brand(a); break;
+                _auftraege.RemoveAt(i);
+                _erfolgreich.RemoveAt(i);
+                i--;
             }
         }
-        _auftraege.Clear();
+        if (letzter) { _auftraege.Clear(); _erfolgreich.Clear(); }
     }
+
+    // Der laufende Versuch einer Nacht (wie in der Unterwelt): Faktor auf die Chance, letzter Versuch?, schon Erfolg?
+    private double _chanceFaktor = 1;
+    private bool _letzterVersuch = true, _bisherErfolg, _versuchErfolg;
+    private readonly List<bool> _erfolgreich = new();
 
     private void Einbruch(Diebesauftrag a)
     {
         if (_w.Betriebe.FirstOrDefault(x => x.Name == a.Betrieb) is not { } b || b.Konto != a.Ziel) return;
         var versteck = Versteck(a.Dieb);
-        var erfolg = versteck is not null && _zufall.NextDouble() < Einbruchchance(b, a.Dieb);
+        var erfolg = versteck is not null && _zufall.NextDouble() < Einbruchchance(b, a.Dieb) * _chanceFaktor;
         double wert = 0;
         string oeffentlich;
         if (erfolg)
@@ -707,6 +735,8 @@ public sealed class Diebeswesen
     /// <summary>Spur fürs Gericht, öffentliche Nachricht – und vielleicht ein Zeuge.</summary>
     private void Spur(Diebesauftrag a, Vergehen vergehen, string betroffener, double betrag, Betrieb? b, bool erfolg, string oeffentlich)
     {
+        _versuchErfolg = erfolg;
+        if (!erfolg && !(_letzterVersuch && !_bisherErfolg)) return; // ein misslungener Versuch fällt nur auf, wenn die ganze Nacht nichts gelang
         if (b is not null) _w.Gauner.AngriffMerken(b.Name);
         var spur = _w.Justiz.TatMelden(a.Dieb, vergehen, betroffener, betrag);
         var zeuge = _zufall.NextDouble() < Zeugenchance(a.Art, b, erfolg, a.Dieb);

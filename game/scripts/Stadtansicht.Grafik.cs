@@ -255,8 +255,8 @@ public partial class Stadtansicht
 
     /// <summary>
     /// Wie dicht der Dunst um diese Uhrzeit ist (1 = voller Morgendunst): von 5 bis 6:20 Uhr am dichtesten, gegen 8 Uhr fast
-    /// aufgelöst; am Tag ein Hauch (damit die Sonne Lichtbahnen hat), ab 18 Uhr wieder leicht. Um 22 und um 5 Uhr gleich,
-    /// denn dort springt die Uhr ins nächste Jahr.
+    /// aufgelöst; am Tag ein Hauch (damit die Sonne Lichtbahnen hat), ab 18 Uhr wieder leicht. Der Spieltag beginnt um 4 Uhr mitten im dichten Dunst
+    /// (das Jahr springt von 23 auf 4 Uhr).
     /// </summary>
     private static float DunstUm(float stunde)
     {

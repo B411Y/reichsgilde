@@ -19,14 +19,14 @@ namespace Reichsgilde;
 /// Diese Trennung ist die wichtigste Architekturregel des Projekts.
 ///
 /// Startoptionen zum Testen (nach "--" an Godot anhängen):
-///   --startstunde=11   Partie beginnt um 11 Uhr statt um 06 Uhr
+///   --startstunde=11   Partie beginnt um 11 Uhr statt um 04 Uhr (Zunftglocke)
 ///   --tempo=8          Anfangstempo
 ///   --auswahl=Dom      Gebäude vorauswählen (Kennung wie beim Anklicken)
 ///   --drehung=1        Kamera um 1–3 Vierteldrehungen gedreht starten (0 = Blick nach Nordosten)
 ///   --blick=0,0,120    Kamera auf einen Punkt der Stadt (x,z in Metern) und optional auf eine Zoomstufe stellen
 ///   --ui=0             Tafeln und Fenster ausblenden (freie Sicht für Bildschirmfotos)
 ///   --aufsteigen=1     das Wohnhaus zum Bürgerhaus ausbauen und zum Bürger aufsteigen (nötig, um Werkstätten zu bauen; mit --vermoegen=30000)
-///   --spulen=1020      so viele Spielminuten auf einen Schlag ablaufen lassen (1020 = ein Spieljahr; nach einem --bauklick)
+///   --spulen=1140      so viele Spielminuten auf einen Schlag ablaufen lassen (1140 = ein Spieljahr; nach einem --bauklick)
 ///   --speichern=x.json die Partie nach --bauklick und --spulen in den Spielstand-Ordner speichern (für Tests mit --laden)
 ///   --bauen=1          den Baumodus öffnen (=wohnhaus:2 oder =werkstatt:Tischlerei wählt gleich das Gebäude)
 ///   --bauort=-96,-3,0  mit --bauen=<Gebäude>: der Umriss sitzt an dieser Stelle (x,z in Metern, Drehung 0–3), bis die Maus bewegt wird

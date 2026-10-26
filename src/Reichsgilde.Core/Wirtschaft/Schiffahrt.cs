@@ -321,7 +321,7 @@ public sealed class Schiffahrt
                 if (betrieb.ImLager(ware) < stueck) return $"Im Lager von {betrieb.Name} liegen nur {betrieb.ImLager(ware)} {ware}.";
         }
         var waehrung = _w.Daten.Allgemein.Waehrung;
-        var einkauf = betrieb is null ? hin.Sum(x => _w.HandKaufpreis(konto, x.Key, x.Value)) : 0;
+        var einkauf = betrieb is null ? hin.Sum(x => _w.HandKaufpreis(konto, x.Key, x.Value, Daten!.HeimatmarktAnteil)) : 0;
         if (einkauf > konto.Vermoegen)
             return $"Die Hinfracht kostet am Markt etwa {Zahlenformat.Ganz(einkauf)} {waehrung} – so viel habt ihr nicht.";
         var erloes = hin.Sum(x => stadt.Erloes(x.Key, x.Value)) * _w.Familien.VerkaufsFaktor(konto);
@@ -430,7 +430,7 @@ public sealed class Schiffahrt
                 schiff.Laden(ware, betrieb.Auslagern(ware, stueck));
             else
             {
-                var kosten = _w.Markt[ware].HandKaufen(stueck, _w.HandKaufFaktor(konto));
+                var kosten = _w.Markt[ware].HandKaufen(stueck, _w.HandKaufFaktor(konto), Daten!.HeimatmarktAnteil);
                 konto.Zutaten(kosten);
                 einkauf += kosten;
                 schiff.Laden(ware, stueck);

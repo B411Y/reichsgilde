@@ -1,3 +1,4 @@
+using Reichsgilde.Core.Zeit;
 using System.Text.Json.Nodes;
 using Reichsgilde.Core;
 using Reichsgilde.Core.Bank;
@@ -88,7 +89,7 @@ static class GeldleiherEinrichtungTests
         ("Geldleiher-Einrichtung: Daten – sieben Stücke mit den Kennungen des Raummodells, Preise wie bei den Werkstätten, Datenversion 52", () =>
         {
             var d = Daten.Value.Werkstatt!;
-            Pruefe.Gleich(55, Daten.Value.Version);
+            Pruefe.Gleich(57, Daten.Value.Version);
             var bank = d.EinrichtungFuer("Geldleiher");
             Pruefe.Gleich("Werkzeug1 Werkzeug2 Goldwaage Pfandkammer Kassenschrank Loeschfass Eisentuer", string.Join(" ", bank.Select(e => e.Kennung)));
             Pruefe.Gleich("Rechenbretter, Hauptbücher, Goldwaage, Pfandkammer, Kassenschrank, Löschfass, Eisentür", string.Join(", ", bank.Select(e => e.Name)));
@@ -456,7 +457,7 @@ static class GeldleiherEinrichtungTests
                 Ok(w, k, new KasseEinlegen(b.Name, 15_000));
                 var nehmer = w.KontoEroeffnen("Haus Eisenbart", startvermoegen: 10_000);
                 Ok(w, nehmer, new KreditAufnehmen(k.Inhaber, 2_000, 2));
-                for (var i = 0; i < 2 * 1020; i++)
+                for (var i = 0; i < 2 * Spielzeit.MinutenProTag; i++)
                 {
                     sim.Tick();
                     if (!abfragen) continue;

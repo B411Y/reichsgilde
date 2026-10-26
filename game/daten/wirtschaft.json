@@ -1,5 +1,5 @@
 {
-  "version": 55,
+  "version": 57,
   "gesundheit": {
     "medicusKosten": 120,
     "medicusKostenPest": 300,
@@ -374,7 +374,7 @@
     },
     "Körnermahlzeit": {
       "typ": "Fertigprodukt",
-      "grundpreis": 50,
+      "grundpreis": 54,
       "zeit": 30,
       "zutaten": { "Gerste": 1, "Roggen": 1 },
       "nachfrage": 150,
@@ -382,7 +382,7 @@
     },
     "Dünnbier": {
       "typ": "Fertigprodukt",
-      "grundpreis": 85,
+      "grundpreis": 91,
       "zeit": 35,
       "zutaten": { "Gerste": 1, "Weingeist": 1 },
       "nachfrage": 150,
@@ -942,7 +942,7 @@
   "wache": {
     "beruf": "Gardist",
     "ansehen": 3,
-    "sold": { "jeMinute": 0.73, "jeStufe": [ 1, 1.1, 1.3 ] },
+    "sold": { "jeMinute": 0.84, "jeStufe": [ 1, 1.1, 1.3 ] },
     "patrouille": { "schutzJeWachmann": 0.025, "hoechstens": 0.4, "zeugenAnteil": 0.5 },
     "wachturm": { "schutz": 0.3, "hoechstens": 0.6 },
     "razzia": { "jeStufe": [ 1, 2, 3 ], "chance": 0.5, "chanceJeStufe": 0.1 },
@@ -954,7 +954,7 @@
     "stadtzins": 0.12,
     "rahmen": { "jeSchreiber": 2000, "jeStufe": [ 1, 1.25, 1.5 ] },
     "ausfall": { "chance": 0.2, "anteil": 0.1 },
-    "wechsel": { "gebuehr": 0.0068, "bedarfSchreiber": 6, "jeStufe": [ 1, 1.2, 1.4 ] },
+    "wechsel": { "gebuehr": 0.0078, "bedarfSchreiber": 6, "jeStufe": [ 1, 1.2, 1.4 ] },
     "kredit": { "zinsStandard": 0.12, "zinsMindestens": 0.04, "zinsHoechstens": 0.5, "hoechstJeStufe": [ 3000, 6000, 12000 ], "kreditwuerdigAnteil": 0.5, "laufzeitHoechstens": 5, "pfandAnteil": 0.75 },
     "wucher": { "ab": 0.2, "ansehen": 5 },
     "einbruch": { "anteil": 0.05, "hoechstens": 500 },
@@ -977,7 +977,7 @@
     "beruf": "Dieb",
     "ansehen": 3,
     "auftraegeJeStufe": [ 1, 2, 3 ],
-    "taschendiebstahl": { "beuteJeMinute": 1.0, "beuteJeStufe": [ 1, 1.2, 1.4 ], "fangJeStunde": 0.012, "fangJeStufe": [ 1, 0.8, 0.6 ] },
+    "taschendiebstahl": { "beuteJeMinute": 1.08, "beuteJeStufe": [ 1, 1.2, 1.4 ], "fangJeStunde": 0.012, "fangJeStufe": [ 1, 0.8, 0.6 ] },
     "einbruch": { "abStufe": 1, "chanceBonus": 0.1, "stueckJeStufe": 6, "zeugenFaktor": 0.75 },
     "auskundschaften": { "abStufe": 1, "chance": 0.4 },
     "schutzgeld": { "abStufe": 2, "sabotageBonus": 0.1 },
@@ -1002,14 +1002,14 @@
       "Ueblich": { "lohnFaktor": 1, "laune": 0 },
       "Gut": { "lohnFaktor": 1.25, "laune": 25 }
     },
-    "praemie": { "kostenJeArbeiter": 30, "laune": 20, "minuten": 1020 },
+    "praemie": { "kostenJeArbeiter": 30, "laune": 20, "minuten": 1140 },
     "laune": { "neutral": 50, "tempoBis": 0.2, "jeStunde": 3, "kuendigungUnter": 20, "kuendigungNachStunden": 6 },
     "unfall": {
       "gefahr": { "Schmied": 0.05, "Steinmetz": 0.04, "Tischler": 0.04, "Alchimist": 0.03, "Parfumeur": 0.03, "Wirt": 0.02, "Prediger": 0.02 },
       "laune": -15,
-      "launeMinuten": 1020
+      "launeMinuten": 1140
     },
-    "befoerderung": { "von": "Lehrling", "zu": "Geselle", "dienstMinuten": 2040 },
+    "befoerderung": { "von": "Lehrling", "zu": "Geselle", "dienstMinuten": 2280 },
     "einrichtung": {
       "Schmied": [
         { "kennung": "Werkzeug1", "name": "Gutes Werkzeug", "preis": 300, "abStufe": 1, "wirkung": { "zeitFaktor": 0.9 } },
@@ -1365,6 +1365,7 @@
     },
     "kasse": {
       "startbestand": 3000,
+      "gehaltVolleHaeuser": 6,
       "startJeKarte": { "koeln": 6000 },
       "steuerMin": 3,
       "steuerMax": 8,
@@ -1374,13 +1375,13 @@
     },
     "bauvorhaben": [
       { "kennung": "brunnen", "name": "Brunnen", "beschreibung": "Sauberes Wasser: Krankheiten und Pest befallen ein Viertel seltener.",
-        "kosten": 2500, "bauzeitStunden": 17, "wirkung": "Gesundheit", "wert": 0.25, "ansehen": 3, "ansehenJahre": 3 },
+        "kosten": 2500, "bauzeitStunden": 19, "wirkung": "Gesundheit", "wert": 0.25, "ansehen": 3, "ansehenJahre": 3 },
       { "kennung": "mauer", "name": "Mauer ausbessern", "beschreibung": "Nächtliche Taten in der Stadt gelingen seltener (−15 %).",
-        "kosten": 4000, "bauzeitStunden": 17, "wirkung": "Nachtschutz", "wert": 0.15, "ansehen": 3, "ansehenJahre": 3 },
+        "kosten": 4000, "bauzeitStunden": 19, "wirkung": "Nachtschutz", "wert": 0.15, "ansehen": 3, "ansehenJahre": 3 },
       { "kennung": "hafen", "name": "Hafen erweitern", "beschreibung": "Mehr Liegeplätze und Kräne: Schiffe laden und löschen 40 % schneller.",
-        "kosten": 5000, "bauzeitStunden": 17, "wirkung": "Hafen", "wert": 0.4, "ansehen": 3, "ansehenJahre": 3 },
+        "kosten": 5000, "bauzeitStunden": 19, "wirkung": "Hafen", "wert": 0.4, "ansehen": 3, "ansehenJahre": 3 },
       { "kennung": "marktplatz", "name": "Marktplatz vergrößern", "beschreibung": "Mehr Stände, mehr Käufer: Die Nachfrage aller Waren steigt um 5 %.",
-        "kosten": 6000, "bauzeitStunden": 25, "wirkung": "Nachfrage", "wert": 0.05, "ansehen": 3, "ansehenJahre": 3 }
+        "kosten": 6000, "bauzeitStunden": 28, "wirkung": "Nachfrage", "wert": 0.05, "ansehen": 3, "ansehenJahre": 3 }
     ],
     "fest": { "kosten": 1500, "ansehen": 5, "nachfrage": 0.05, "gaeste": 0.2 },
     "befugnisse": {
@@ -1495,6 +1496,8 @@
   },
   "gauner": {
     "hehlerAnteil": 0.5,
+    "nachtVersuche": 4,
+    "versuchFaktor": 0.3333,
     "zeugenChance": 0.25,
     "zeugenChanceWaechter": 0.6,
     "zeugenFaktorMisserfolg": 2,
@@ -1502,12 +1505,12 @@
     "waechterSchutz": 0.5,
     "diebstahl": { "kosten": 150, "chance": 0.7, "hoechstensStueck": 12 },
     "sabotage": { "kosten": 250, "chance": 0.6, "stillstandMinuten": 360, "reparatur": 150 },
-    "ueberfall": { "kosten": 300, "staerke": 0.8, "gueltigMinuten": 1020 },
+    "ueberfall": { "kosten": 300, "staerke": 0.8, "gueltigMinuten": 1140 },
     "kroetenschleim": { "kosten": 200, "chance": 0.6, "beruf": "Alchimist", "berufKostenFaktor": 0.5, "berufBonus": 0.15 },
     "erpressungMindestBeweise": 3,
     "wohnhaus": {
       "einbruch": { "kosten": 200, "chance": 0.6, "anteil": 0.05, "hoechstensJeStufe": 300 },
-      "brand": { "kosten": 300, "chance": 0.5, "reparaturAnteil": 0.2, "mindestReparatur": 100, "instandMinuten": 1020 }
+      "brand": { "kosten": 300, "chance": 0.5, "reparaturAnteil": 0.2, "mindestReparatur": 100, "instandMinuten": 1140 }
     }
   },
   "buerger": {
@@ -1568,7 +1571,7 @@
       "Ruhe": { "start": 0, "anstieg": 6 }
     },
     "handlungen": {
-      "Ruhen": { "von": 5, "bis": 22, "stillt": { "Ruhe": 30 } },
+      "Ruhen": { "von": 4, "bis": 23, "stillt": { "Ruhe": 30 } },
       "Arbeiten": { "von": 8, "bis": 20, "stillt": { "Auskommen": 25 } },
       "Einkaufen": { "von": 8, "bis": 20, "stillt": { "Versorgung": 40 } },
       "Einkehren": { "von": 12, "bis": 22, "stillt": { "Vergnuegen": 40, "Ruhe": 5 } },
@@ -1593,22 +1596,23 @@
   "handel": { "aufschlag": 0.10, "marktVon": 8, "marktBis": 20 },
   "schiffshandel": {
     "schiffe": {
-      "Flussschiff": {"sorten": 4, "kapazitaetJeSorte": 30, "preis": 3000, "unterhalt": 350, "minutenFlussab": 60, "minutenFlussauf": 100, "ladeMinuten": 20, "liegeMinuten": 30, "meterJeMinute": 8}
+      "Flussschiff": {"sorten": 4, "kapazitaetJeSorte": 30, "preis": 3000, "unterhalt": 350, "minutenFlussab": 67, "minutenFlussauf": 112, "ladeMinuten": 22, "liegeMinuten": 34, "meterJeMinute": 8}
     },
     "staedte": [
       {
         "name": "Eisenfurt", "richtung": "flussauf", "entfernung": 1.2, "zollstellen": 2,
         "verkauft": {"Eisen": {"faktor": 0.75, "menge": 120}, "Holz": {"faktor": 0.75, "menge": 120}, "Bruchstein": {"faktor": 0.75, "menge": 120}, "Granit": {"faktor": 0.8, "menge": 72}, "Silber": {"faktor": 0.85, "menge": 72}},
-        "kauft": {"Körnermahlzeit": {"faktor": 1.6, "menge": 50}, "Dünnbier": {"faktor": 1.55, "menge": 50}, "Starkbier": {"faktor": 1.55, "menge": 40}, "Kerze": {"faktor": 1.6, "menge": 50}, "Werkzeug": {"faktor": 1.6, "menge": 40}}
+        "kauft": {"Körnermahlzeit": {"faktor": 1.6, "menge": 50}, "Dünnbier": {"faktor": 1.55, "menge": 50}, "Starkbier": {"faktor": 1.55, "menge": 40}, "Kerze": {"faktor": 1.6, "menge": 50}, "Werkzeug": {"faktor": 1.4, "menge": 40}, "Grabstein": {"faktor": 1.4, "menge": 50}, "Mühlstein": {"faktor": 1.4, "menge": 40}}
       },
       {
         "name": "Weidenmünd", "richtung": "flussab", "entfernung": 1.5, "zollstellen": 3,
         "verkauft": {"Gold": {"faktor": 0.85, "menge": 72}, "Jasmin": {"faktor": 0.75, "menge": 120}, "Wachs": {"faktor": 0.75, "menge": 120}, "Kräuter": {"faktor": 0.75, "menge": 120}},
-        "kauft": {"Silberring": {"faktor": 1.6, "menge": 50}, "Silberkette": {"faktor": 1.6, "menge": 50}, "Goldkette": {"faktor": 1.55, "menge": 30}, "Rapier": {"faktor": 1.6, "menge": 50}, "Armbrust": {"faktor": 1.55, "menge": 40}, "Rosenwasser": {"faktor": 1.6, "menge": 50}, "Moschusduft": {"faktor": 1.6, "menge": 40}, "Fechterduft": {"faktor": 1.55, "menge": 40}}
+        "kauft": {"Silberring": {"faktor": 1.4, "menge": 50}, "Silberkette": {"faktor": 1.4, "menge": 50}, "Goldkette": {"faktor": 1.35, "menge": 30}, "Rapier": {"faktor": 1.4, "menge": 50}, "Armbrust": {"faktor": 1.55, "menge": 40}, "Rosenwasser": {"faktor": 1.45, "menge": 50}, "Moschusduft": {"faktor": 1.25, "menge": 40}, "Fechterduft": {"faktor": 1.2, "menge": 40}, "Taufbecken": {"faktor": 1.35, "menge": 30}, "Steinfigur": {"faktor": 1.35, "menge": 30}}
       }
     ],
     "zollJeStelle": 0.025,
-    "erholungJeStunde": 0.08,
+    "erholungJeStunde": 0.072,
+    "heimatmarktAnteil": 0.85,
     "piraten": {"name": "Flusspiraten", "chance": 0.05, "staerke": 1.0, "beuteAnteil": 0.5},
     "geleitFaktor": 3,
     "verkaufAnteil": 0.5,

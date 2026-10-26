@@ -37,7 +37,7 @@ public readonly record struct Wetterwerte(float Wolken, float Regen, float Schne
 /// Der Wetterablauf einer Partie: fest aus dem Startwert der Partie und der Spielzeit gerechnet, nichts davon wird gespeichert. Nach dem
 /// Laden läuft das Wetter darum genau so weiter, wie es vorher gelaufen wäre, und zwei Spieler mit derselben Partie sehen dasselbe Wetter.
 ///
-/// Jedes Spieljahr (ein Spieltag, 05–22 Uhr) ist eine Folge von Abschnitten zu 2½ bis 5½ Stunden, jeder mit einer Lage. Welche Lage folgt,
+/// Jedes Spieljahr (ein Spieltag, 04–23 Uhr) ist eine Folge von Abschnitten zu 2½ bis 5½ Stunden, jeder mit einer Lage. Welche Lage folgt,
 /// würfelt ein Generator aus Startwert und Jahr nach den Gewichten der Jahreszeit (<see cref="Gewichte"/>): Schnee nur im Winter, Gewitter vor
 /// allem im Sommer und am Nachmittag, Nebel im Herbst und Frühling und vor allem am Morgen. Die ersten <see cref="UebergangMinuten"/> eines
 /// Abschnitts gleitet das Wetter von der alten Lage in die neue.
@@ -136,7 +136,7 @@ public sealed class Wetterablauf
 
     /// <summary>
     /// Die Werte zur Spielzeit (mit Bruchteil der Minute), am Beginn eines Abschnitts weich aus der vorigen Lage. Über den Jahreswechsel
-    /// (22 → 5 Uhr) springt das Wetter; dort blendet die Stadtansicht in Echtzeit über.
+    /// (23 → 4 Uhr) springt das Wetter; dort blendet die Stadtansicht in Echtzeit über.
     /// </summary>
     public Wetterwerte Werte(double minute)
     {
@@ -161,7 +161,7 @@ public sealed class Wetterablauf
         {
             var t = minute - 10 * k;
             gewichte += gewicht;
-            if (t < tagesbeginn) continue; // vor 5 Uhr (in der Nacht) ist der Boden getrocknet
+            if (t < tagesbeginn) continue; // vor 4 Uhr (in der Nacht) ist der Boden getrocknet
             summe += gewicht * Math.Min(1f, Werte(t).Regen * 1.6f);
         }
         return Math.Min(1f, summe / gewichte * 1.6f);
@@ -169,7 +169,7 @@ public sealed class Wetterablauf
 
     /// <summary>
     /// Aussicht: die nächsten Abschnitte des Tages ab <paramref name="minute"/> (Beginn als Uhrzeit in Minuten nach Mitternacht und Lage),
-    /// höchstens <paramref name="anzahl"/>, nur bis 22 Uhr.
+    /// höchstens <paramref name="anzahl"/>, nur bis 23 Uhr.
     /// </summary>
     public IReadOnlyList<(int Uhrzeit, Wetterlage Lage)> Aussicht(long minute, int anzahl)
     {
