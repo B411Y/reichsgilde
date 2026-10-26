@@ -161,7 +161,7 @@ public sealed partial class Koeln
         foreach (var (strasse, links, von, bis, hoechstens) in new (string, bool, double, double, int)[]
         {
             ("Trankgasse", true, 0, 200, 3), ("Trankgasse", false, 0, 200, 3),
-            ("Cäcilienstraße", true, 0, 200, 2), ("Cäcilienstraße", false, 0, 200, 2), ("Wollgasse", true, 0, 200, 3), ("Wollgasse", false, 0, 200, 3),
+            ("Hammergasse", true, 0, 200, 2), ("Hammergasse", false, 0, 200, 2), ("Wollgasse", true, 0, 200, 3), ("Wollgasse", false, 0, 200, 3),
             ("Kunibertswall", true, 0, 1000, 5), ("Mauritiuswall", true, 0, 1000, 6), ("Kartäuserwall", true, 0, 1000, 5),
         })
             n += Reihe("einwohnerplatz_ring", strasse, links, von, bis, luecke: 1, hoechstens: hoechstens).Count;
@@ -171,7 +171,7 @@ public sealed partial class Koeln
         var k = 0;
         foreach (var (strasse, links, von, bis, hoechstens) in new (string, bool, double, double, int)[]
         {
-            ("Bayenstraße", true, 0, 200, 3), ("Rheingasse", true, 100, 200, 2), ("Domkloster", true, 0, 200, 1),
+            ("Bayenstraße", true, 0, 200, 3), ("Rheingasse", true, 100, 200, 2), ("Engelspforte", true, 0, 200, 1),
         })
             k += Reihe("kulisse_buergerhaus", strasse, links, von, bis, luecke: 1, hoechstens: hoechstens).Count;
         Console.WriteLine($"   Kulissenhäuser: {k}");

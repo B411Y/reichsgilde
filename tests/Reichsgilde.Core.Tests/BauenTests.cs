@@ -101,9 +101,9 @@ static class BauenTests
             Pruefe.Gleich(32, k.Wege.Count); // Stadtskript Köln (PR #213): 14 Haupt-, 8 Land-, 3 Wallstraßen, 5 Gassen, 2 Leinpfade
             Pruefe.Wahr(k.Wege.Any(w => w.Klasse == Wegklasse.Gasse) && k.Wege.Any(w => w.Klasse == Wegklasse.Wall), "Gassen und Wallstraße fehlen");
             Pruefe.Gleich(k.Wege.Count(w => w.Klasse is Wegklasse.Land or Wegklasse.Haupt or Wegklasse.Ring or Wegklasse.Wall), k.Wege.Count(w => w.IstKarrenstrasse));
-            Pruefe.Gleich(51, k.Bauzonen.Count);
+            Pruefe.Gleich(52, k.Bauzonen.Count);
             Pruefe.Gleich(10, k.Bauzonen.Count(z => z.Art == Lage.Kern));
-            Pruefe.Gleich(7, k.Bauzonen.Count(z => z.Art == Lage.Umland));
+            Pruefe.Gleich(8, k.Bauzonen.Count(z => z.Art == Lage.Umland));
             Pruefe.Wahr(k.Gebaeude.All(g => g.Baustein is not null), "jedes Gebäude ist im Katalog aufgelöst");
             Pruefe.Gleich(8, k.Wohnhausplaetze.Count);
             Pruefe.Gleich(8, k.GebaeudeDerArt(Bausteinart.Werkstattplatz).Count());

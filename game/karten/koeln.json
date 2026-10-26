@@ -18,7 +18,7 @@
   {"kennung": "Severin", "katalog": "kirche", "name": "St. Severin", "punkt": [-2, 96], "drehung": 270},
   {"kennung": "Aposteln", "katalog": "kirche", "name": "St. Aposteln", "punkt": [-72, -34], "drehung": 180},
   {"kennung": "Kunibert", "katalog": "kirche", "name": "St. Kunibert", "punkt": [14, -128], "drehung": 0},
-  {"kennung": "Dom", "katalog": "dom", "name": "Dom (Baustelle mit Kran)", "punkt": [6, -112], "drehung": 270},
+  {"kennung": "Dom", "katalog": "dom", "name": "Dom", "punkt": [6, -112], "drehung": 270},
   {"kennung": "Rheinhafen", "katalog": "hafenplatz", "name": "Rheinhafen", "punkt": [51, -60], "drehung": 270},
   {"kennung": "Rheinkran", "katalog": "hafenkran", "name": "Rheinkran", "punkt": [54, -78], "drehung": 270},
   {"kennung": "Zollstelle", "katalog": "zollstelle", "name": "Zollstelle", "punkt": [54, -92], "drehung": 270},
@@ -132,7 +132,10 @@
   {"kennung": "Grube3", "katalog": "grube", "name": "Grube im Tannenwald", "punkt": [169.4, -133.4], "drehung": 282.2, "betrieb": "Grube im Tannenwald"},
   {"kennung": "Grube4", "katalog": "grube", "name": "Grube", "punkt": [162.3, -171.95], "drehung": 279, "betrieb": "Grube Scherfgin"},
   {"kennung": "Klosterhof1", "katalog": "klosterhof", "name": "Klosterhof am Osthang", "punkt": [194.1, 113.25], "drehung": 279, "betrieb": "Klosterhof am Osthang"},
-  {"kennung": "Holzschlag3", "katalog": "holzschlag", "name": "Holzschlag", "punkt": [173.85, 162.95], "drehung": 102.7, "betrieb": "Holzschlag Kleingedank"}
+  {"kennung": "Holzschlag3", "katalog": "holzschlag", "name": "Holzschlag", "punkt": [173.85, 162.95], "drehung": 102.7, "betrieb": "Holzschlag Kleingedank"},
+  {"kennung": "StelleWeide", "katalog": "weide", "name": "Weide", "punkt": [-218.8, -80.75], "drehung": 169.2},
+  {"kennung": "StelleFeld", "katalog": "feld", "name": "Feld", "punkt": [-214, -105.8], "drehung": 349.2},
+  {"kennung": "StelleWald", "katalog": "sammelwald", "name": "Wald", "punkt": [-239.3, -4.6], "drehung": 6.7}
  ],
  "mauern": [
   {
@@ -186,8 +189,8 @@
   {"name": "Brückenstraße", "klasse": "haupt", "linie": [[12, 8], [37, 8]], "gefahr": 1, "breite": 5},
   {"name": "Rheinbrücke", "klasse": "haupt", "linie": [[37, 8], [126, 8]], "gefahr": 1, "breite": 5},
   {"name": "Trankgasse", "klasse": "gasse", "linie": [[-34, -70], [0, -70], [37, -70]], "gefahr": 1, "breite": 3},
-  {"name": "Cäcilienstraße", "klasse": "gasse", "linie": [[-80, -45], [-34, -45]], "gefahr": 1, "breite": 3},
-  {"name": "Domkloster", "klasse": "gasse", "linie": [[-34, -112], [-32.25, -112], [-11, -112]], "gefahr": 1, "breite": 3},
+  {"name": "Hammergasse", "klasse": "gasse", "linie": [[-80, -45], [-34, -45]], "gefahr": 1, "breite": 3},
+  {"name": "Engelspforte", "klasse": "gasse", "linie": [[-34, -112], [-32.25, -112], [-11, -112]], "gefahr": 1, "breite": 3},
   {"name": "Krähenpforte", "klasse": "gasse", "linie": [[0, -70], [0, -56]], "gefahr": 1, "breite": 3},
   {"name": "Wollgasse", "klasse": "gasse", "linie": [[-62, 4], [-56, 40], [-50, 60.1]], "gefahr": 1, "breite": 3},
   {
@@ -554,8 +557,9 @@
    "art": "umland",
    "flaeche": [
     [-330, -8], [-318, -8], [-318, -10], [-302, -10], [-302, -12], [-286, -12], [-286, -14], [-270, -14], [-270, -16], [-254, -16], [-254, -18], [-236, -18], [-236, -20], [-220, -20],
-    [-220, -22], [-206, -22], [-206, 4], [-214, 4], [-214, 6], [-232, 6], [-232, 8], [-248, 8], [-248, 10], [-264, 10], [-264, -8], [-266, -8], [-266, -12], [-270, -12], [-270, -10],
-    [-286, -10], [-286, -8], [-290, -8], [-290, 10], [-288, 10], [-288, 14], [-298, 14], [-298, 16], [-330, 16]
+    [-220, -22], [-206, -22], [-206, 4], [-214, 4], [-214, 6], [-228, 6], [-228, 4], [-226, 4], [-226, -4], [-228, -4], [-228, -16], [-246, -16], [-246, -14], [-252, -14], [-252, 0],
+    [-250, 0], [-250, 8], [-248, 8], [-248, 10], [-264, 10], [-264, -8], [-266, -8], [-266, -12], [-270, -12], [-270, -10], [-286, -10], [-286, -8], [-290, -8], [-290, 10], [-288, 10],
+    [-288, 14], [-298, 14], [-298, 16], [-330, 16]
    ]
   },
   {
@@ -572,10 +576,11 @@
    "art": "umland",
    "flaeche": [
     [-300, -116], [-292, -116], [-292, -124], [-284, -124], [-284, -130], [-242, -130], [-242, -128], [-232, -128], [-232, -126], [-222, -126], [-222, -124], [-210, -124], [-210, -122],
-    [-200, -122], [-200, -120], [-190, -120], [-190, -92], [-194, -92], [-194, -94], [-204, -94], [-204, -96], [-216, -96], [-216, -98], [-226, -98], [-226, -100], [-236, -100],
-    [-236, -102], [-246, -102], [-246, -104], [-242, -104], [-242, -108], [-240, -108], [-240, -118], [-238, -118], [-238, -122], [-242, -122], [-242, -124], [-252, -124], [-252, -126],
-    [-260, -126], [-260, -122], [-262, -122], [-262, -112], [-264, -112], [-264, -108], [-262, -108], [-262, -106], [-266, -106], [-266, -108], [-276, -108], [-276, -110], [-288, -110],
-    [-288, -112], [-298, -112], [-298, -114], [-300, -114]
+    [-200, -122], [-200, -120], [-190, -120], [-190, -92], [-194, -92], [-194, -94], [-204, -94], [-204, -96], [-216, -96], [-216, -98], [-204, -98], [-204, -112], [-210, -112],
+    [-210, -114], [-222, -114], [-222, -112], [-224, -112], [-224, -100], [-220, -100], [-220, -98], [-226, -98], [-226, -100], [-236, -100], [-236, -102], [-246, -102], [-246, -104],
+    [-242, -104], [-242, -108], [-240, -108], [-240, -118], [-238, -118], [-238, -122], [-242, -122], [-242, -124], [-252, -124], [-252, -126], [-260, -126], [-260, -122], [-262, -122],
+    [-262, -112], [-264, -112], [-264, -108], [-262, -108], [-262, -106], [-266, -106], [-266, -108], [-276, -108], [-276, -110], [-288, -110], [-288, -112], [-298, -112], [-298, -114],
+    [-300, -114]
    ]
   },
   {
@@ -583,11 +588,12 @@
    "art": "umland",
    "flaeche": [
     [-300, -106], [-294, -106], [-294, -104], [-284, -104], [-284, -102], [-274, -102], [-274, -100], [-264, -100], [-264, -98], [-254, -98], [-254, -96], [-244, -96], [-244, -94],
-    [-234, -94], [-234, -92], [-222, -92], [-222, -90], [-212, -90], [-212, -88], [-202, -88], [-202, -86], [-190, -86], [-190, -82], [-192, -82], [-192, -80], [-300, -80]
+    [-234, -94], [-234, -92], [-222, -92], [-222, -90], [-228, -90], [-228, -82], [-230, -82], [-230, -80], [-300, -80]
    ]
   },
+  {"kennung": "U5", "art": "umland", "flaeche": [[-208, -88], [-202, -88], [-202, -86], [-190, -86], [-190, -82], [-192, -82], [-192, -80], [-208, -80]]},
   {
-   "kennung": "U5",
+   "kennung": "U6",
    "art": "umland",
    "flaeche": [
     [150, 110], [174, 110], [174, 112], [176, 112], [176, 124], [178, 124], [178, 136], [180, 136], [180, 146], [182, 146], [182, 150], [176, 150], [176, 152], [168, 152], [168, 154],
@@ -595,14 +601,14 @@
    ]
   },
   {
-   "kennung": "U6",
+   "kennung": "U7",
    "art": "umland",
    "flaeche": [
     [184, 126], [198, 126], [198, 124], [206, 124], [206, 110], [208, 110], [208, 112], [210, 112], [210, 124], [212, 124], [212, 134], [214, 134], [214, 144], [216, 144], [216, 170],
     [194, 170], [194, 166], [192, 166], [192, 158], [190, 158], [190, 150], [188, 150], [188, 138], [186, 138], [186, 128], [184, 128]
    ]
   },
-  {"kennung": "U7", "art": "umland", "flaeche": [[230, -36], [246, -36], [246, -38], [250, -38], [250, -14], [230, -14]]}
+  {"kennung": "U8", "art": "umland", "flaeche": [[230, -36], [246, -36], [246, -38], [250, -38], [250, -14], [230, -14]]}
  ],
  "natur": {
   "flaechen": [
@@ -1024,7 +1030,7 @@
   "Rheinbrücke nach Deutz: Die erste feste Brücke gab es erst 1859; hier gehört sie zum Spielfeld (Fiktion).",
   "Der Maßstab ist etwa 1 : 10; Märkte, Kirchen und Gassen sind so gerückt, dass sie ins Spiel passen. Nebengassen und Hausnamen sind erfunden.",
   "Der Rhein ist 60–100 m breit (in Wirklichkeit 350–400 m); der Duffesbach läuft hier offen durch die Südstadt.",
-  "Die Kirchen von Groß St. Martin, St. Gereon, St. Severin, St. Aposteln und St. Kunibert benutzen vorerst das allgemeine Kirchenmodell."
+  "Groß St. Martin, St. Gereon, St. Severin, St. Aposteln und St. Kunibert stehen vorerst als Block des allgemeinen Bausteins „Kirche“ (16 × 14 m), bis es romanische Kirchenmodelle gibt."
  ],
  "hoehen": {
   "abstand": 2,

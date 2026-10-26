@@ -58,7 +58,7 @@ public sealed partial class Koeln : Stadtskript
         E.FiktionHinzufuegen("Rheinbrücke nach Deutz: Die erste feste Brücke gab es erst 1859; hier gehört sie zum Spielfeld (Fiktion).");
         E.FiktionHinzufuegen("Der Maßstab ist etwa 1 : 10; Märkte, Kirchen und Gassen sind so gerückt, dass sie ins Spiel passen. Nebengassen und Hausnamen sind erfunden.");
         E.FiktionHinzufuegen("Der Rhein ist 60–100 m breit (in Wirklichkeit 350–400 m); der Duffesbach läuft hier offen durch die Südstadt.");
-        E.FiktionHinzufuegen("Die Kirchen von Groß St. Martin, St. Gereon, St. Severin, St. Aposteln und St. Kunibert benutzen vorerst das allgemeine Kirchenmodell.");
+        E.FiktionHinzufuegen("Groß St. Martin, St. Gereon, St. Severin, St. Aposteln und St. Kunibert stehen vorerst als Block des allgemeinen Bausteins „Kirche“ (16 × 14 m), bis es romanische Kirchenmodelle gibt.");
 
         Wasser();
         Gelaende();
@@ -68,6 +68,7 @@ public sealed partial class Koeln : Stadtskript
         Startgrundstuecke();
         Einwohnerplaetze();
         Umland();
+        Arbeitsstellen();
         KreuzungenVerbinden();
         Bauzonen();
         Natur();
@@ -75,8 +76,6 @@ public sealed partial class Koeln : Stadtskript
         Start();
         E.KameraStartSetzen(P(-6, -22), 130);
         E.RandVorschlagen(1, ersetzen: false);
-        if (Environment.GetEnvironmentVariable("KOELN_HOEHEN") is { } h)
-            foreach (var xz in h.Split(';')) { var q = xz.Split(','); var (x, z) = (double.Parse(q[0], System.Globalization.CultureInfo.InvariantCulture), double.Parse(q[1], System.Globalization.CultureInfo.InvariantCulture)); Console.WriteLine($"   Höhe {x}|{z}: {E.Gelaendeform.Roh.Hoehe(x, z):0.00}"); }
     }
 
     // ── Hilfen ───────────────────────────────────────────────────────────────
@@ -193,10 +192,10 @@ public sealed partial class Koeln : Stadtskript
         Weg(Wegklasse.Haupt, "Brückenstraße", P(12, 8), P(RheinX, 8));
         Weg(Wegklasse.Haupt, "Rheinbrücke", P(RheinX, 8), P(126, 8));
         Weg(Wegklasse.Gasse, "Trankgasse", P(HoheX, -70), P(RheinX, -70));
-        Weg(Wegklasse.Gasse, "Cäcilienstraße", P(-80, -45), P(HoheX, -45));
+        Weg(Wegklasse.Gasse, "Hammergasse", P(-80, -45), P(HoheX, -45));
 
         // Nebengassen mit erfundenen Namen (nur Fußgänger)
-        Weg(Wegklasse.Gasse, "Domkloster", P(HoheX, -112), P(-11, -112));
+        Weg(Wegklasse.Gasse, "Engelspforte", P(HoheX, -112), P(-11, -112));
         Weg(Wegklasse.Gasse, "Krähenpforte", P(0, -70), P(0, -56));
         Weg(Wegklasse.Gasse, "Wollgasse", P(-62, 4), P(-56, 40), P(-50, 60.1));
 
@@ -245,7 +244,7 @@ public sealed partial class Koeln : Stadtskript
         Haus("kirche", "St. Severin", -2, 96, 270, "Severin");
         Haus("kirche", "St. Aposteln", -72, -34, 180, "Aposteln");
         Haus("kirche", "St. Kunibert", 14, -128, 0, "Kunibert");
-        Haus("dom", "Dom (Baustelle mit Kran)", 6, -112, 270, "Dom");
+        Haus("dom", "Dom", 6, -112, 270, "Dom");
 
         // Rheinufer: Hafen, Kran und Zollstelle mit dem Rücken zum Wasser, das Stapelhaus am Ufer
         Haus("hafenplatz", "Rheinhafen", 51, -60, 270, "Rheinhafen");

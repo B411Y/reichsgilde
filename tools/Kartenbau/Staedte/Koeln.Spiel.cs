@@ -48,6 +48,14 @@ public sealed partial class Koeln
 
     private readonly List<EntwurfGebaeude> _umland = new();
 
+    /// <summary>Die Arbeitsstellen der Einwohner draußen: Baustein, Kennung und Name wie in der Greybox, Straße, Seite und Meter, ab denen gesucht wird.</summary>
+    private static readonly (string Baustein, string Kennung, string Name, string Strasse, bool Links, double Ab)[] Stellen =
+    {
+        ("weide", "StelleWeide", "Weide", "Venloer Straße", true, 112),
+        ("feld", "StelleFeld", "Feld", "Venloer Straße", false, 112),
+        ("sammelwald", "StelleWald", "Wald", "Aachener Straße", false, 112),
+    };
+
     // ── Umland ───────────────────────────────────────────────────────────────
 
     private void Umland()
@@ -77,6 +85,28 @@ public sealed partial class Koeln
                 case "grube": E.VorkommenHinzufuegen($"M{++mine}", "Mine", mitte); break;
                 case "holzschlag": E.VorkommenHinzufuegen($"Hz{++holz}", "Holzschlag", mitte); break;
                 case "steinbruch": E.VorkommenHinzufuegen($"St{++stein}", "Steinbruch", mitte); break;
+            }
+        }
+    }
+
+    /// <summary>Die Arbeitsstellen der Einwohner (Weide, Feld, Wald): die erste freie Stelle ab einer Straßenlänge, die Vorderseite (das Gatter) zur Straße.</summary>
+    private void Arbeitsstellen()
+    {
+        foreach (var (baustein, kennung, name, strasse, links, ab) in Stellen)
+        {
+            var weg = _strassen[strasse];
+            var b = E.Katalog.Finde(baustein)!.Groesse!;
+            for (var s = ab; s < Laenge(weg.Verlauf) - 20; s += 2)
+            {
+                if (Auf(weg.Verlauf, s) is not var (p, tx, tz)) break;
+                var (nx, nz) = links ? (tz, -tx) : (-tz, tx);
+                var mitte = P(p.X + nx * (weg.BreiteWirksam / 2 + 6 + b[1] / 2), p.Z + nz * (weg.BreiteWirksam / 2 + 6 + b[1] / 2));
+                var d = Math.Round(Math.Atan2(-nx, -nz) * 180 / Math.PI * 10) / 10;
+                if (!Frei(Rechteck(mitte, b[0] + 4, b[1] + 4, d), 2, 5)) continue;
+                var g = E.Setzen(baustein, mitte.X, mitte.Z, d);
+                E.Umbenennen(g.Kennung, name);
+                E.KennungSetzen(g.Kennung, kennung);
+                break;
             }
         }
     }
