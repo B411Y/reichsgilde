@@ -888,6 +888,10 @@ public sealed record RivaleStand
     public int StundenImJahr { get; init; }
     public int GaunereienImJahr { get; init; }
 
+    /// <summary>Auf wen die KI dieses bzw. letztes Jahr einen Spitzel angesetzt hat (Inhaber; Spiel-KI, PR #208 – fehlt in alten Spielständen).</summary>
+    public List<string> SpitzelDiesesJahr { get; init; } = new();
+    public List<string> SpitzelVorjahr { get; init; } = new();
+
     /// <summary>Betriebsname → ganze Jahre in Folge mit Verlust (Spiel-KI, PR #108; fehlt in alten Spielständen).</summary>
     public Dictionary<string, int> Verlustjahre { get; init; } = new();
 
