@@ -279,7 +279,7 @@ public partial class Stadtansicht
             foreach (var g in w.Bauen.Grundstuecke)
             {
                 if (g.Zustand == Bauzustand.Bauplatz) continue;
-                var gr = g.Grundriss;
+                var gr = w.Bauen.Flaeche(g); // ein schräger Wohnhausplatz: wie der Platz, nicht das umschließende Rechteck
                 liste.Add((new Vector2((float)gr.X, (float)gr.Z), DrehungY(gr), new Vector2((float)gr.Breite / 2, (float)gr.Tiefe / 2)));
             }
         if (_wirtschaft is not null)

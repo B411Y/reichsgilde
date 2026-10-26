@@ -58,13 +58,11 @@ public sealed record Pruefregeln
 
     /// <summary>
     /// Die Regeln aus <c>greybox.py</c>, die für jede Stadt Sinn ergeben: Bauzonen auf dem Raster, mit Abstand zu Gebäuden, Wegen und Mauer,
-    /// ohne Überlappung; Probeplan; Werkstätten mit 2 m Abstand und nicht auf der Mauer; Eingang der Wohnhausplätze am Weg; keine Gasse über
-    /// ein Haus der Stadt; Wege über Umlandbetrieben (Hinweis).
+    /// ohne Überlappung; Probeplan; Werkstätten mit 2 m Abstand und nicht auf der Mauer; keine Gasse über ein Haus der Stadt; Wege über
+    /// Umlandbetrieben (Hinweis). Werkstatt- und Wohnhausplätze stehen frei: in jeder Drehung und ohne Abstandsregel zum Weg (Entscheidung
+    /// des Nutzers vom 26.10.2026, PR #209) – nur wer im Spiel baut, braucht eine Karrenstraße (Probeplan, Bauwesen).
     /// </summary>
     public bool Stadtregeln { get; init; }
-
-    /// <summary>Greybox: jeder Werkstattplatz 16 × 14 m mit der Tür nach Süden, und an seinem Hof beginnt seine Gasse.</summary>
-    public bool Werkstattnorm { get; init; }
 
     /// <summary>So viele Wohnhausplätze muss es geben, die ersten vier gleich weit vom Markt (±10 %); 0 = nicht prüfen. Greybox: 8.</summary>
     public int Wohnhausplaetze { get; init; }
@@ -87,7 +85,7 @@ public sealed record Pruefregeln
     /// <summary>Wie bisher <c>tools/karten/greybox.py</c> (statt der Kapazität der Probeplan).</summary>
     public static readonly Pruefregeln Greybox = new()
     {
-        MauerGeschlossen = true, Stadtregeln = true, Werkstattnorm = true, Wohnhausplaetze = 8,
+        MauerGeschlossen = true, Stadtregeln = true, Wohnhausplaetze = 8,
         MindestWerkstaetten = 6, MindestWohnhaeuser = 8, MindestStadthoefe = 2,
     };
 
@@ -112,7 +110,7 @@ public static class Kartenpruefung
     /// <summary>Der Hof eines Werkstattplatzes liegt im Vorplatz, so weit hinter der Vorderkante.</summary>
     public const double HofHinterKante = 0.5;
 
-    /// <summary>Höchstens so weit liegt der Hof eines Werkstattplatzes von der Mitte eines Weges (Eingangsregel des Kerns).</summary>
+    /// <summary>Höchstens so weit liegt die Vorplatzreihe eines Gebäudes im Probeplan von der Straßenmitte (Bauen im Spiel, wie der Kern).</summary>
     public const double Strassennah = 7;
 
     /// <summary>So weit darf ein Tor neben seiner Mauerlinie liegen.</summary>
@@ -298,8 +296,6 @@ public static class Kartenpruefung
             if (b.Groesse is null) Fehler("katalog", $"{Wer(g)}: Der Baustein „{g.Katalog}“ hat keine Größe.", ort, g.Kennung);
             if (string.IsNullOrWhiteSpace(g.Kennung)) Fehler("kennung", $"Ein Gebäude ({g.Katalog}) hat keine Kennung.", ort, g.Kennung);
             if (g.Massstab <= 0) Fehler("massstab", $"{Wer(g)}: Der Maßstab muss größer als 0 sein.", ort, g.Kennung);
-            if (b.Art == Bausteinart.Wohnhausplatz && !g.IstRechtwinklig)
-                Fehler("rechtwinklig", $"{Wer(g)}: Ein Wohnhausplatz steht rechtwinklig (Drehung 0, 90, 180 oder 270, nicht {M(g.Drehung)}).", ort, g.Kennung);
             if (b.Art == Bausteinart.Umlandbetrieb && string.IsNullOrWhiteSpace(g.Betrieb))
                 Fehler("betrieb", $"{Wer(g)}: Ein Umlandbetrieb braucht den Namen seines Betriebs.", ort, g.Kennung);
             if (g.Groesse is null || g.Massstab <= 0) return;
@@ -308,11 +304,8 @@ public static class Kartenpruefung
             AmHang(g);
             AmWasser(g);
             AufMauer(g);
-            if (b.Art == Bausteinart.Werkstattplatz) Werkstatthof(g);
             if (!_r.Stadtregeln) return;
 
-            if (b.Art == Bausteinart.Wohnhausplatz) WohnhausEingang(g);
-            if (b.Art == Bausteinart.Werkstattplatz) Werkstatt(g);
             if (InDerStadt(g.Punkt))
             {
                 if (g.Katalog != "markt") GassenUeberHaus(g);
@@ -383,43 +376,6 @@ public static class Kartenpruefung
 
         /// <summary>Ein Anteil als Prozent mit einer Stelle („12,5“).</summary>
         private static string Prozent(double anteil) => M(anteil * 100);
-
-        /// <summary>Der Hof eines Werkstattplatzes liegt höchstens 7 m von der Mitte eines Weges (karte.py, Regel 3).</summary>
-        private void Werkstatthof(EntwurfGebaeude g)
-        {
-            var hof = g.Hof!.Value;
-            if (_wege.Count == 0)
-            {
-                Fehler("hof", $"{Wer(g)}: Der Hof braucht einen Weg (höchstens {M(Strassennah)} m), die Karte hat noch keinen.", hof, g.Kennung);
-                return;
-            }
-            var n = NaechsterWeg(hof, _wege);
-            if (n > Strassennah)
-                Fehler("hof", $"{Wer(g)}: Der Hof {hof} liegt {M(n)} m vom nächsten Weg (höchstens {M(Strassennah)} m).", hof, g.Kennung);
-        }
-
-        /// <summary>Der Eingang eines Wohnhausplatzes liegt am Weg: höchstens 1,5 m vom Rand (greybox.py, Regel 4).</summary>
-        private void WohnhausEingang(EntwurfGebaeude g)
-        {
-            var eingang = g.Eingang!.Value;
-            if (_wege.Count == 0 || _wege.Min(w => Kartengeometrie.AbstandLinie(eingang, w.Linie) - w.Breite / 2) > 1.5)
-                Fehler("eingang", $"{Wer(g)}: Der Eingang liegt nicht an einem Weg (höchstens 1,5 m vom Wegrand).", eingang, g.Kennung);
-        }
-
-        /// <summary>Werkstattplatz: Greybox-Maße, eigene Gasse am Hof (greybox.py, Regel 5; „nicht auf der Mauer“ prüft <see cref="AufMauer"/>).</summary>
-        private void Werkstatt(EntwurfGebaeude g)
-        {
-            if (_r.Werkstattnorm)
-            {
-                var (w, t) = g.Groesse!.Value;
-                if (w != 16 || t != 14 || g.Drehung != 0)
-                    Fehler("werkstattnorm", $"{Wer(g)}: {M(w)} × {M(t)} m mit Drehung {M(g.Drehung)} – in dieser Karte ist jede Werkstatt 16 × 14 m mit der Tür nach Süden.",
-                        g.Punkt, g.Kennung);
-                var hof = g.Hof!.Value;
-                if (!_wege.Any(x => x.Weg.Klasse == Wegklasse.Gasse && x.Linie[0].Abstand(hof) < 1e-3))
-                    Fehler("gasse", $"{Wer(g)}: Keine Gasse beginnt am Hof {hof}.", hof, g.Kennung);
-            }
-        }
 
         /// <summary>
         /// Kein Gebäude steht auf einer Mauer: das Haus (ohne Vorplatz) mindestens 1 m von der Mauerlinie (greybox.py, Regel 5, für Werkstätten;

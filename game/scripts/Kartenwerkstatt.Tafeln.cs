@@ -302,7 +302,7 @@ public partial class Kartenwerkstatt
         _pruefKopf.AddThemeColorOverride("font_color", fehler > 0 ? Rot : befunde.Count > 0 ? Grau : Gruen);
         var regeln = _entwurf.Regeln;
         _pruefKopf.TooltipText = $"Regeln dieser Karte ({_entwurf.Kennung}): allgemeine Kartenregeln"
-            + (regeln.Stadtregeln ? ", Stadtregeln" : "") + (regeln.Werkstattnorm ? ", Werkstattnorm der Greybox" : "")
+            + (regeln.Stadtregeln ? ", Stadtregeln" : "")
             + (regeln.Startgrundstuecke > 0 ? $", {regeln.Startgrundstuecke} Startgrundstücke" : "")
             + (regeln.Kapazitaet is { } k ? $", Kapazität als {(k == Schwere.Fehler ? "Fehler" : "Hinweis")}" : ", Kapazität nicht (der Probeplan prüft)");
         foreach (var b in befunde.Take(ListenGrenze))

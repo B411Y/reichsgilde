@@ -135,8 +135,9 @@ static class BauenTests
             Pruefe.WirftMitMeldung(() => Stadtkarte.AusJson("""{ "wege": [ { "name": "X", "klasse": "autobahn", "linie": [[0,0],[1,1]] } ] }""", katalog), "Kein gültiges JSON");
             Pruefe.WirftMitMeldung(() => Stadtkarte.AusJson("""{ "gebaeude": [ { "kennung": "X", "katalog": "schloss", "punkt": [0, 0] } ] }""", katalog),
                 "Den Baustein „schloss“ gibt es im Katalog nicht");
-            Pruefe.WirftMitMeldung(() => Stadtkarte.AusJson("""{ "gebaeude": [ { "kennung": "W", "katalog": "wohnhausplatz", "punkt": [0, 0], "drehung": 45 } ] }""", katalog),
-                "rechtwinklig");
+            // Ein schräger Wohnhausplatz ist seit PR #209 erlaubt
+            Pruefe.Wahr(!Stadtkarte.AusJson("""{ "gebaeude": [ { "kennung": "W", "katalog": "wohnhausplatz", "punkt": [0, 0], "drehung": 45 } ] }""", katalog)
+                .Pruefen().Any(f => f.Contains("rechtwinklig")), "schräger Wohnhausplatz liest sich");
             Pruefe.WirftMitMeldung(() => Stadtkarte.AusJson("""{ "mauern": [ { "name": "M", "linie": [[0, 0], [1, 0]], "katalog": "zaun" } ] }""", katalog),
                 "Mauer-Baukasten „zaun“");
             var ohne = System.Text.Json.JsonSerializer.Deserialize<Stadtkarte>("{}")!;
