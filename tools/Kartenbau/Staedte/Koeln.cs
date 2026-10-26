@@ -95,10 +95,12 @@ public sealed partial class Koeln : Stadtskript
         return w;
     }
 
-    private EntwurfGebaeude Haus(string katalog, string name, double x, double z, double drehung = 0)
+    /// <summary>Ein Gebäude mit Namen und – wenn es ein Wahrzeichen ist – einer sprechenden Kennung (sonst die laufende des Entwurfs).</summary>
+    private EntwurfGebaeude Haus(string katalog, string name, double x, double z, double drehung = 0, string? kennung = null)
     {
         var g = E.Setzen(katalog, x, z, drehung);
         E.Umbenennen(g.Kennung, name);
+        if (kennung is not null) E.KennungSetzen(g.Kennung, kennung);
         return g;
     }
 
@@ -121,6 +123,7 @@ public sealed partial class Koeln : Stadtskript
             P(-215, 150), P(-150, 130), P(-100, 116), P(-62, 109), P(-34, 108), P(-12, 112), P(12, 118), P(37, 121), P(62, 124), P(90, 127),
         }, "bach", 3, "Duffesbach");
         E.FlussStroemungSetzen(bach, 0.6);
+        E.FlussTiefeSetzen(bach, 5, 0.9);   // tief genug für eine Holzbrücke an der Severinstraße, sonst Furten
     }
 
     // ── Gelände ──────────────────────────────────────────────────────────────
@@ -231,28 +234,28 @@ public sealed partial class Koeln : Stadtskript
     private void Wahrzeichen()
     {
         // Märkte: der Heumarkt zuerst (der Markt der Wirtschaft liegt im Ursprung), dann Alter Markt und Neumarkt
-        Haus("markt", "Heumarkt", 0, 0);
-        Haus("markt", "Alter Markt", 0, -44);
-        Haus("markt", "Neumarkt", -72, -8);
+        Haus("markt", "Heumarkt", 0, 0, kennung: "Heumarkt");
+        Haus("markt", "Alter Markt", 0, -44, kennung: "AlterMarkt");
+        Haus("markt", "Neumarkt", -72, -8, kennung: "Neumarkt");
         MarktPflastern();
 
-        Haus("rathaus", "Rathaus", -20, -44, 90);
-        Haus("kirche", "Groß St. Martin", 26, -44, 90);
-        Haus("kirche", "St. Gereon", -52, -86, 90);
-        Haus("kirche", "St. Severin", -2, 96, 270);
-        Haus("kirche", "St. Aposteln", -72, -34, 180);
-        Haus("kirche", "St. Kunibert", 14, -128, 0);
-        Haus("dom", "Dom (Baustelle mit Kran)", 6, -112, 270);
+        Haus("rathaus", "Rathaus", -20, -44, 90, "Rathaus");
+        Haus("kirche", "Groß St. Martin", 26, -44, 90, "Martin");
+        Haus("kirche", "St. Gereon", -52, -86, 90, "Gereon");
+        Haus("kirche", "St. Severin", -2, 96, 270, "Severin");
+        Haus("kirche", "St. Aposteln", -72, -34, 180, "Aposteln");
+        Haus("kirche", "St. Kunibert", 14, -128, 0, "Kunibert");
+        Haus("dom", "Dom (Baustelle mit Kran)", 6, -112, 270, "Dom");
 
         // Rheinufer: Hafen, Kran und Zollstelle mit dem Rücken zum Wasser, das Stapelhaus am Ufer
-        Haus("hafenplatz", "Rheinhafen", 51, -60, 270);
-        Haus("hafenkran", "Rheinkran", 54, -78, 270);
-        Haus("zollstelle", "Zollstelle", 54, -92, 270);
-        Haus("lagerschuppen", "Stapelhaus", 50, 28, 270);
+        Haus("hafenplatz", "Rheinhafen", 51, -60, 270, "Rheinhafen");
+        Haus("hafenkran", "Rheinkran", 54, -78, 270, "Rheinkran");
+        Haus("zollstelle", "Zollstelle", 54, -92, 270, "Zollstelle");
+        Haus("lagerschuppen", "Stapelhaus", 50, 28, 270, "Stapelhaus");
 
         // Leerstände und Ruinen: Hausnamen aus der Stadt
-        Haus("leerstand", "Haus zum güldenen Hammer (leer)", -64, 94, 90);
-        Haus("leerstand", "Haus zum weißen Schwan (leer)", -100, -40, 90);
-        Haus("leerstand", "Haus zum schwarzen Raben (Ruine)", 150, 24, 180);
+        Haus("leerstand", "Haus zum güldenen Hammer (leer)", -64, 94, 90, "L1");
+        Haus("leerstand", "Haus zum weißen Schwan (leer)", -100, -40, 90, "L2");
+        Haus("leerstand", "Haus zum schwarzen Raben (Ruine)", 150, 24, 180, "L3");
     }
 }
