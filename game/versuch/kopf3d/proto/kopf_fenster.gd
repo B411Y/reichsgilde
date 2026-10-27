@@ -3,7 +3,7 @@
 class_name KopfFenster
 extends PanelContainer
 
-var kopf: KopfAnsicht
+var kopf: Node3D
 var ansicht: SubViewport
 var kamera: Camera3D
 var hintergrund := Color(0.80, 0.74, 0.64)
@@ -100,8 +100,12 @@ func _welt_bauen() -> void:
 	kamera = Camera3D.new()
 	kamera.fov = 24.0
 	ansicht.add_child(kamera)
-	kopf = KopfAnsicht.new()
-	if _quelle != "":
+	if _quelle.ends_with("_c.glb"):
+		kopf = KopfC.new()
 		kopf.quelle = _quelle
-	kopf.gemalt = _gemalt
+	else:
+		kopf = KopfAnsicht.new()
+		if _quelle != "":
+			kopf.quelle = _quelle
+		kopf.gemalt = _gemalt
 	ansicht.add_child(kopf)
