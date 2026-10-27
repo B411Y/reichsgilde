@@ -361,7 +361,7 @@ public partial class PortraetAnzeige : Control
         return ergebnis;
     }
 
-    /// <summary>Ersatz für ein fehlendes Bild: Kopf und Schultern als dunkle Fläche vor dem Hintergrund.</summary>
+    /// <summary>Ersatz für ein fehlendes Bild: Kopf und Schultern als dunkle Fläche vor dem Hintergrund, davor ein Fragezeichen.</summary>
     private partial class Silhouette : Control
     {
         private (Color Oben, Color Unten) _grund;
@@ -393,6 +393,13 @@ public partial class PortraetAnzeige : Control
             };
             DrawColoredPolygon(schultern, farbe);
             if (_frau) DrawCircle(mitte + new Vector2(0, s.Y * 0.04f), s.X * _kopf * 1.12f, farbe);
+
+            // Platzhalter, bis das Bild da ist: ein Fragezeichen vor dem Schatten (Wunsch des Nutzers, 27.10.2026)
+            var schrift = Schriften.Ueberschrift;
+            var groesse = Mathf.Max(8, (int)(s.Y * 0.42f));
+            var zeichen = schrift.GetStringSize("?", HorizontalAlignment.Left, -1, groesse);
+            var lage = new Vector2(s.X * 0.5f - zeichen.X * 0.5f, s.Y * 0.5f + zeichen.Y * 0.3f);
+            DrawString(schrift, lage, "?", HorizontalAlignment.Left, -1, groesse, _grund.Oben.Lightened(0.35f));
         }
     }
 }
