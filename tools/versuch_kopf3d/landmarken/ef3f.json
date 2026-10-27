@@ -1,0 +1,10 @@
+{
+  "_hinweis": "Frontale Fassung (27.10.2026). P = schattenlose frontale Zwischenstufe ef3_al.png (1024), F = Frontansicht der TRELLIS-Form aus ef3_fs.png (Augen/Mund aus dem Tiefenbild).",
+  "P": {"auge_l": {"aussen": [354, 368.9], "innen": [457.8, 383.7], "oben": [405.9, 356], "unten": [405.9, 389.3]},
+        "auge_r": {"innen": [561.5, 383.7], "aussen": [665.2, 367], "oben": [611.5, 355.2], "unten": [611.5, 389.3]},
+        "nase": [500, 512],
+        "mund": {"ecke_l": [441.5, 582.5], "mitte": [500, 580], "ecke_r": [581.5, 582.5]}},
+  "F": {"auge_l": {"aussen": [371.7, 421.7], "innen": [461.7, 426.7], "oben": [413.3, 406.7], "unten": [413.3, 438.3]},
+        "auge_r": {"innen": [560, 426.7], "aussen": [651.7, 420], "oben": [606.7, 405], "unten": [606.7, 439.3]},
+        "mund": {"ecke_l": [445, 621], "mitte": [512.5, 619], "ecke_r": [578, 621]}}
+}

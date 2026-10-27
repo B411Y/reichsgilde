@@ -70,6 +70,8 @@ func _ready() -> void:
 		if n.begins_with("gesicht"):
 			m.material_override = _mat
 			_netz = m
+		elif n.begins_with("zaehne") and "--ohne-zaehne" in OS.get_cmdline_user_args():
+			m.visible = false
 		elif n.begins_with("zaehne"):
 			var zm := StandardMaterial3D.new()
 			zm.vertex_color_use_as_albedo = true

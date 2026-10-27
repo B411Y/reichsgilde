@@ -292,14 +292,14 @@ if a.get("zu") or a.get("pzu"):
             return out
         # Hautfarbe des Porträts von außen in die Augenöffnung hineinfüllen (Diffusion), Einzelheiten (Lid, Wimpern) aus dem KI-Bild
         haut = PB[y0:y1, x0:x1].copy()
-        unbek = dq > -11
+        unbek = dq > -14
         haut[unbek] = haut[~unbek].mean(0)
         for _ in range(400):
             gl = (np.roll(haut, 1, 0) + np.roll(haut, -1, 0) + np.roll(haut, 1, 1) + np.roll(haut, -1, 1)) / 4
             haut[unbek] = gl[unbek]
         detail = np.clip(zf / np.maximum(weich(zf), 1e-3), 0.25, 1.6)
         lid = np.clip(haut * detail, 0, 1)
-        w = (1 - sm(-dq, 7.0, 15.0))[:, :, None]
+        w = (1 - sm(-dq, 10.0, 18.0))[:, :, None]
         PZ[y0:y1, x0:x1] = PZ[y0:y1, x0:x1] * (1 - w) + lid * w
     log("geschlossene Augen in den Porträtraum übertragen")
 
@@ -390,7 +390,7 @@ for au in ey_n:
 dicht |= np.hypot((dv[:, 0] - mund_c[0]) / (0.85 * dEm), (dv[:, 2] - mund_c[2]) / (0.42 * dEm)) < 1.0
 dicht &= dv[:, 1] < -0.12
 klasse = np.where(dicht, 0, np.where(face, 1, 2))
-ziele = [float(a.get("tris_dicht", 9000)), float(a.get("tris_gesicht", 5500)), float(a.get("tris_rest", 4500))]
+ziele = [float(a.get("tris_dicht", 7000)), float(a.get("tris_gesicht", 4500)), float(a.get("tris_rest", 7300))]
 for x in bpy.context.selected_objects: x.select_set(False)
 D.select_set(True); bpy.context.view_layer.objects.active = D
 for kl_ in (2, 1, 0):
@@ -416,7 +416,7 @@ for kl_ in (2, 1, 0):
     if nsel:
         bpy.ops.mesh.decimate(ratio=min(1.0, ziele[kl_] / nsel))
     bpy.ops.object.mode_set(mode="OBJECT")
-    log("Bereich %d: %d -> Ziel %d Flächen" % (kl_, nsel, ziele[kl_]))
+    log("Bereich %d: %d -> Ziel %d, jetzt gesamt %d Flächen" % (kl_, nsel, ziele[kl_], len(D.data.polygons)))
 bm = bmesh.new(); bm.from_mesh(D.data)
 bmesh.ops.delete(bm, geom=[v for v in bm.verts if not v.link_faces], context="VERTS")
 bm.to_mesh(D.data); bm.free()
@@ -466,7 +466,7 @@ pq = p_von(co)
 gv = pq[:, 1] - lippe_v_ext(pq[:, 0])
 halbP = (ur - ul) / 2
 im_band = (np.abs(pq[:, 0] - (ul + ur) / 2) < 1.35 * halbP) & (np.abs(gv) < 0.7 * halbP) & (nv_ @ kam_dir > 0.05) & \
-          (np.abs(co[:, 2] - mund_c[2]) < 0.5 * dEm) & (co[:, 1] < mund_c[1] + 0.012)
+          (np.abs(co[:, 2] - mund_c[2]) < 0.5 * dEm) & (co[:, 1] < mund_c[1] + 0.03)
 EPS = 0.02
 gwert = {v: gv[v.index] for v in bm.verts}
 bandv = {v for v in bm.verts if im_band[v.index]}
@@ -510,8 +510,11 @@ for v in nachbarn:
         gesehen.add(w); komp.append(w)
         for e in nachbarn[w]:
             stapel.append(e.other_vert(w))
-    if len(komp) > len(kette): kette = komp
-kset = set(kette)
+    komps = locals().setdefault("komps", [])
+    komps.append(komp)
+# alle Kettenstücke mit mindestens 3 Punkten (Lücken an den Ecken sonst: Mund ginge nur teilweise auf)
+kset = set(v for k_ in komps if len(k_) >= 3 for v in k_)
+log("Kettenstücke:", sorted((len(k_) for k_ in komps), reverse=True)[:8])
 spalt = [e for e in spalt if e.verts[0] in kset and e.verts[1] in kset]
 uks = sorted(nullu[v] for v in kset)
 log("Mundspalt: %d Kanten, Kette von u=%.1f bis %.1f (Ecken %.1f .. %.1f)" % (len(spalt), uks[0], uks[-1], ul, ur))
@@ -661,7 +664,8 @@ cosw = np.clip(nvn @ kam_dir, 0, 1)
 sicht = np.ones(n)
 for i in np.where(cosw > 0.05)[0]:
     st = Vector(dv[i] + nvn[i] * 0.0004 + kam_dir * 0.0006)
-    if bvh_s.ray_cast(st, Vector(kam_dir), 0.5)[0] is not None:
+    r_ = bvh_s.ray_cast(st, Vector(kam_dir), 0.5)
+    if r_[0] is not None and r_[3] > 0.005:      # Lider/Lippen verdecken sich selbst nur wenige mm: nicht zählen
         sicht[i] = 0.0
 region = 1.0 - sm(np.hypot((dv[:, 0]) / (float(a.get("regx", 1.3)) * dEm), (dv[:, 2] - (1.64 - 1.0 * dEm)) / (2.4 * dEm)), 0.7, 1.0)
 # Vordergrund des Porträts (Hintergrund per Flutfüllung vom Rand aus, Farbe wie die Ecken)
@@ -687,13 +691,30 @@ acol = np.zeros((n, 3)); acol[_lv] = _ap[np.clip((_uva[:, 1] * (TEX - 1)).astype
 pcol_v = bilinear(PB, pq[:, 0], pq[:, 1])
 _lum = np.array([0.3, 0.55, 0.15])
 eins = 1.0 - sm(np.abs(pcol_v @ _lum - acol @ _lum), 0.12, 0.28)
-mitte = 1.0 - sm(np.hypot(dv[:, 0] / dEm, (dv[:, 2] - (1.64 - 0.6 * dEm)) / (1.4 * dEm)), 0.55, 0.85)
-w_p = (sm(cosw, 0.15, 0.55) ** 1.0) * sicht * region * rand_p * vg_p * np.maximum(mitte, eins) * float(a.get("palpha", 1.0))
+mitte = 1.0 - sm(np.hypot(dv[:, 0] / dEm, (dv[:, 2] - (1.64 - 0.6 * dEm)) / (1.4 * dEm)), 0.85, 1.15)
+# in den Augen (Porträtraum, etwas erweitert) immer das Porträt: dort stehen sonst die gemalten Ränder der Form-Textur
+im_auge = np.zeros(n)
+for au in ("auge_l", "auge_r"):
+    dd = AUGEN[au]
+    im_auge = np.maximum(im_auge, sm(dd[np.clip(pq[:, 1].astype(int), 0, PH - 1), np.clip(pq[:, 0].astype(int), 0, PW - 1)], -14.0, -6.0))
+im_auge *= (cosw > 0.0)
+# Nasenunterseite: lieber das Porträt (gestreckt) als die helleren Ränder der Form-Textur
+nah_nase = 1.0 - sm(np.hypot((dv[:, 0] - nase_n[0]) / (0.45 * dEm), (dv[:, 2] - nase_n[2]) / (0.35 * dEm)), 0.7, 1.0)
+im_auge = np.maximum(im_auge, nah_nase * sm(nvn @ kam_dir, -0.35, 0.1) * (dv[:, 1] < nase_n[1] + 0.02))
+w_p = np.maximum(im_auge, (sm(cosw, 0.15, 0.55) ** 1.0) * sicht * region * rand_p * vg_p * np.maximum(mitte, eins)) * float(a.get("palpha", 1.0))
 # Beutel: Porträtgewicht und Farbe vom Spaltpunkt
 w_p[B_IDX] = w_p[B_Q]
 pq[B_IDX] = pq[B_Q]
 farbe = np.ones((n, 3))
 farbe[B_IDX] = np.where((B_F > 0.9)[:, None], [0.55, 0.30, 0.28], np.where((B_F > 0.6)[:, None], [0.16, 0.07, 0.06], [0.07, 0.03, 0.03]))
+# verdeckte Innenflächen der Form im Mundbereich (z. B. unter dem Bart) dunkel wie der Mundraum, sonst schimmert Haut durch den Spalt
+mbox = (np.abs(dv[:, 0] - MC[0]) < 1.15 * halbW) & (np.abs(dv[:, 2] - linie_z(dv[:, 0])) < 0.6 * halbW) & ~ist_beutel & (dv[:, 1] > MC[1] + 0.004)
+innen_n = 0
+for i in np.where(mbox)[0]:
+    r_ = bvh_s.ray_cast(Vector(dv[i] + np.array([0, -0.0004, 0])), Vector((0, -1, 0)), 0.05)
+    if r_[0] is not None:
+        farbe[i] = [0.07, 0.03, 0.03]; innen_n += 1
+log("Innenflächen im Mund abgedunkelt:", innen_n)
 uv2 = me.uv_layers.new(name="portraet")
 lvi = np.empty(len(me.loops), np.int64); me.loops.foreach_get("vertex_index", lvi)
 uv2.data.foreach_set("uv", np.stack([pq[lvi, 0] / PW, 1.0 - pq[lvi, 1] / PH], 1).ravel())
@@ -762,7 +783,7 @@ formen["lippen_auf"] = d_ * nah_mund[:, None]
 r_ = np.hypot((dv[:, 0] - MC[0]) / (1.35 * halbW), (dv[:, 2] - MCz) / (1.0 * halbW))
 w_r = (1.0 - sm(r_, 0.55, 1.35)) * vorn
 d_ = np.zeros((n, 3))
-d_[:, 0] = -(dv[:, 0] - MC[0]) * 0.38 * w_r
+d_[:, 0] = -(dv[:, 0] - MC[0]) * 0.30 * w_r
 d_[:, 1] = -2.6 * MM * w_r
 d_[:, 2] = -(dv[:, 2] - MCz) * 0.12 * w_r
 formen["mund_rund"] = d_
@@ -822,6 +843,8 @@ formen["brauen_hoch"] = d_
 for k_, d_ in formen.items():
     if k_.startswith("laecheln"):
         d_[B_IDX] = d_[B_Q] * B_F[:, None]
+    elif k_ in ("mund_rund", "mund_breit"):
+        d_[B_IDX] = d_[B_Q]                     # seitlich voll mitgehen, sonst ragt der Beutel an den Ecken heraus
     elif k_ not in ("augen_zu", "brauen_hoch"):
         d_[B_IDX] = d_[B_Q] * B_F[:, None]
 D.shape_key_add(name="Basis", from_mix=False)
@@ -847,11 +870,11 @@ def zahnreihe(name, oben):
         x = MC[0] + t_ * halbW
         zl = float(linie_z(x))
         yl = float(np.interp(x, sx_[o_], dv[spaltv, 1][o_])) if len(spaltv) else MC[1]
-        tief = (3.2 if oben else 4.2) * MM + 0.55 * halbW * t_ * t_
+        tief = (3.2 if oben else 5.5) * MM + 0.55 * halbW * t_ * t_
         if oben:
-            zs = (zl + 0.7 * MM, zl + 8.0 * MM)
+            zs = (zl + 1.2 * MM, zl + 8.0 * MM)
         else:
-            zs = (zl - 1.6 * MM, zl - 8.5 * MM)
+            zs = (zl - 4.0 * MM, zl - 8.5 * MM)
         ring = []
         for z_ in zs:
             for dy_ in (0.0, 1.8 * MM):
@@ -865,10 +888,10 @@ def zahnreihe(name, oben):
     meh = bpy.data.meshes.new(name); bm.to_mesh(meh); bm.free()
     o = bpy.data.objects.new(name, meh); sc.collection.objects.link(o)
     zv = netz_arrays(o)
-    zv = np.array([hinter_flaeche(p, 1.8 * MM) for p in zv])
+    zv = np.array([hinter_flaeche(p, (1.8 if oben else 3.5) * MM) for p in zv])
     meh.vertices.foreach_set("co", zv.ravel())
     t_ = (zv[:, 0] - MC[0]) / halbW
-    hell = (1.0 - 0.75 * np.clip(np.abs(t_) / 0.78, 0, 1) ** 1.5) * (0.85 if oben else 0.6)
+    hell = (1.0 - 0.75 * np.clip(np.abs(t_) / 0.78, 0, 1) ** 1.5) * (0.72 if oben else 0.42)
     hell *= np.where(np.abs(zv[:, 2] - linie_z(zv[:, 0])) > 3.5 * MM, 0.55, 1.0)
     c_ = np.stack([0.86 * hell, 0.82 * hell, 0.72 * hell, np.ones_like(hell)], 1).astype(np.float32)
     ca_ = meh.color_attributes.new("farbe", "FLOAT_COLOR", "POINT"); ca_.data.foreach_set("color", c_.ravel())
@@ -881,8 +904,8 @@ ZO = zahnreihe("zaehne_oben", True)
 ZU = zahnreihe("zaehne_unten", False)
 bm = bmesh.new()
 bmesh.ops.create_uvsphere(bm, u_segments=12, v_segments=6, radius=1.0)
-bmesh.ops.scale(bm, vec=(0.62 * halbW, 9 * MM, 3.0 * MM), verts=bm.verts)
-bmesh.ops.translate(bm, vec=(MC[0], MC[1] + 10.5 * MM, MCz - 5.5 * MM), verts=bm.verts)
+bmesh.ops.scale(bm, vec=(0.42 * halbW, 8 * MM, 2.8 * MM), verts=bm.verts)
+bmesh.ops.translate(bm, vec=(MC[0], MC[1] + 13.0 * MM, MCz - 5.5 * MM), verts=bm.verts)
 zm = bpy.data.meshes.new("zunge"); bm.to_mesh(zm); bm.free()
 ZG = bpy.data.objects.new("zunge", zm); sc.collection.objects.link(ZG)
 zgv = np.array([hinter_flaeche(p, 3.0 * MM) for p in netz_arrays(ZG)])

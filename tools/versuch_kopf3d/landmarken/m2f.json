@@ -1,0 +1,10 @@
+{
+  "_hinweis": "Frontale Fassung (27.10.2026). P = schattenlose frontale Zwischenstufe m2_al.png (1024), F = Frontansicht der TRELLIS-Form aus m2_fs.png (Augen/Mund aus dem Tiefenbild).",
+  "P": {"auge_l": {"aussen": [350.4, 430.4], "innen": [454, 436], "oben": [400.4, 410], "unten": [400.4, 441.5]},
+        "auge_r": {"innen": [561.5, 436], "aussen": [659.6, 428.5], "oben": [607.8, 409], "unten": [607.8, 442.2]},
+        "nase": [501, 545],
+        "mund": {"ecke_l": [442, 653], "mitte": [515, 648.5], "ecke_r": [588, 650]}},
+  "F": {"auge_l": {"aussen": [386.7, 455], "innen": [465, 455], "oben": [425, 441.7], "unten": [425, 466.7]},
+        "auge_r": {"innen": [558.3, 455], "aussen": [636.7, 455], "oben": [598.3, 441.7], "unten": [598.3, 467.3]},
+        "mund": {"ecke_l": [458, 662], "mitte": [511, 663], "ecke_r": [565, 662]}}
+}

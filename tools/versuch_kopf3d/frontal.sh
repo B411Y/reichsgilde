@@ -1,6 +1,7 @@
 #!/bin/bash
 # Frontale, schattenlose Zwischenstufen je Kopf (Bild-KI 8188), danach TRELLIS (8189). Aufruf: frontal.sh <name> [schritte: fs,al,zu,tr]
 # Regeln: nie beide ComfyUIs gleichzeitig (/free vorher), PAUSE beachten.
+# WER="She is a young woman with a smooth beardless feminine face. " beugt Geschlechtswechsel vor
 N=$1; SCHRITTE=${2:-fs,al,zu,tr}
 S=/tmp/claude-1000/-home-claude-projekte-reichsgilde/4c541d35-c849-4e58-bcde-35f887f98cda/scratchpad/kopf3d2/f
 B=/tmp/claude-1000/-home-claude-projekte-reichsgilde/4c541d35-c849-4e58-bcde-35f887f98cda/scratchpad/kopf3d/b
@@ -12,11 +13,11 @@ if [[ $SCHRITTE == *fs* ]]; then
 fi
 if [[ $SCHRITTE == *al* ]]; then
   frei 8189
-  VORLAGE=$S/${N}_fs.png python3 ~/werkzeuge/comfy/bild.py $S/${N}_al.png "Relight the portrait with completely flat, even, shadowless frontal light, like an albedo texture: no shadows under the nose, under the chin, in the eye sockets or on the neck, no highlights. Keep the exact same face, skin color, eyes, hair, beard, clothes, pose and plain light grey background. Change nothing else. no text, no lettering" || exit $?
+  VORLAGE=$S/${N}_fs.png python3 ~/werkzeuge/comfy/bild.py $S/${N}_al.png "${WER}Relight the portrait with completely flat, even, shadowless frontal light, like an albedo texture: no shadows under the nose, under the chin, in the eye sockets or on the neck, no highlights. Keep the exact same face, skin color, eyes, hair, beard, clothes, pose and plain light grey background. Change nothing else. no text, no lettering" || exit $?
 fi
 if [[ $SCHRITTE == *zu* ]]; then
   frei 8189
-  VORLAGE=$S/${N}_al.png python3 ~/werkzeuge/comfy/bild.py $S/${N}_al_zu.png "Close both eyes of the person, eyelids gently closed as in a relaxed blink with the lash line visible, keep the face, skin, lighting, expression, mouth, hair, clothes, the pose and the background exactly the same. Change nothing else. no text, no lettering" || exit $?
+  VORLAGE=$S/${N}_al.png python3 ~/werkzeuge/comfy/bild.py $S/${N}_al_zu.png "${WER}Close both eyes of the person, eyelids gently closed as in a relaxed blink with the lash line visible, keep the face, skin, lighting, expression, mouth, hair, clothes, the pose and the background exactly the same. Change nothing else. no text, no lettering" || exit $?
 fi
 if [[ $SCHRITTE == *tr* ]]; then
   frei 8188
