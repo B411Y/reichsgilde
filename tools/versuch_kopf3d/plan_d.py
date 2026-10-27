@@ -114,6 +114,11 @@ for au in ("auge_l", "auge_r"):
         namen.append(au + "." + k); P2.append(LM["P"][au][k]); F2.append(LM["F"][au][k])
 for k in ("ecke_l", "mitte", "ecke_r"):
     namen.append("mund." + k); P2.append(LM["P"]["mund"][k]); F2.append(LM["F"]["mund"][k])
+# weitere Landmarken (frei benannt, in P und F vorhanden), z. B. Nasenflügel, Kinn, Brauen: zusätzliche Passpunkte
+for k in LM["P"]:
+    if k in ("auge_l", "auge_r", "mund", "nase") or k.startswith("_") or k not in LM["F"]:
+        continue
+    namen.append(k); P2.append(LM["P"][k]); F2.append(LM["F"][k])
 P2 = np.array(P2, float); F2 = np.array(F2, float)
 X3 = np.array([f_zu_3d(*f) for f in F2])
 # Augenmitten (TRELLIS-Raum) = Mitte der Augenwinkel
@@ -123,7 +128,7 @@ xm = float((ey_t["auge_l"][0] + ey_t["auge_r"][0]) / 2); zE = float((ey_t["auge_
 # Nasenspitze automatisch: vorderster Punkt im Mittelstreifen zwischen Augen und Mund
 zM3 = X3[namen.index("mund.mitte")][2]
 m_ = np.where((np.abs(tv[:, 0] - xm) < 0.25 * dE) & (tv[:, 2] < zE - 0.15 * dE) & (tv[:, 2] > zM3 + 0.1 * dE))[0]
-nase3 = tv[m_[np.argmin(tv[m_, 1])]]
+nase3 = f_zu_3d(*LM["F"]["nase_f"]) if "nase_f" in LM["F"] else tv[m_[np.argmin(tv[m_, 1])]]
 namen.append("nase"); P2 = np.vstack([P2, LM["P"]["nase"]]); X3 = np.vstack([X3, nase3])
 log("Augenabstand %.4f, Nase F-Pixel (%.0f, %.0f)" % (dE, (nase3[0] + 0.5) * 1024, (0.55 - nase3[2]) * 1024))
 
@@ -184,6 +189,9 @@ kam_dir_t = R_cam.T @ np.array([0.0, -1.0, 0.0])          # zur Kamera (TRELLIS-
 
 # ---- Porträt und Farbangleich ------------------------------------------------------------------------------------
 pimg, PB = bild_laden(a["pbild"])
+PL = PB                 # Linienbild (Landmarken, Lippenlinie)
+if a.get("pfarbe"):     # schattenlose Fassung für die Projektion (Schatten macht das Licht im Spiel)
+    _pf, PB = bild_laden(a["pfarbe"])
 PH, PW = PB.shape[:2]
 # TRELLIS-Textur an das Porträt angleichen (Hautton): mittlere Farbe der sichtbaren Gesichtspunkte
 tpx = np.empty(timg.size[0] * timg.size[1] * 4, np.float32); timg.pixels.foreach_get(tpx); tpx = tpx.reshape(timg.size[1], timg.size[0], 4)
@@ -249,8 +257,15 @@ maske_rgba = np.stack([R_, G_, Bx, By], 2)
 
 # geschlossene Augen: KI-Frontbild (F-Raum) je Auge per TPS in den Porträtraum holen, Farbe am Ring um das Auge angleichen
 PZ = PB.copy()
-if a.get("zu"):
-    _zi, ZB = bild_laden(a["zu"])
+if a.get("pzu"):
+    # geschlossene Augen liegen schon im Porträtraum (Bild-KI auf dem Porträt selbst)
+    _zi, ZB = bild_laden(a["pzu"])
+    ident = True
+else:
+    ident = False
+if a.get("zu") or a.get("pzu"):
+    if not ident:
+        _zi, ZB = bild_laden(a["zu"])
     for au in ("auge_l", "auge_r"):
         ps = np.array([LM["P"][au][k] for k in AUGP], float); fs = np.array([LM["F"][au][k] for k in AUGP], float)
         # affin (kleinste Quadrate) + TPS-Rest
@@ -263,7 +278,7 @@ if a.get("zu"):
         y0, y1, x0, x1 = ys_.min(), ys_.max() + 1, xs_.min(), xs_.max() + 1
         gy, gx = np.mgrid[y0:y1, x0:x1]
         q = np.stack([gx.ravel(), gy.ravel()], 1).astype(float)
-        fq = np.hstack([q, np.ones((len(q), 1))]) @ aff + tps_werten(tps_a, q)
+        fq = q if ident else np.hstack([q, np.ones((len(q), 1))]) @ aff + tps_werten(tps_a, q)
         zf = bilinear(ZB, fq[:, 0], fq[:, 1]).reshape(y1 - y0, x1 - x0, 3)
         dq = d[y0:y1, x0:x1]
 
@@ -294,7 +309,7 @@ bild_speichern(PZ, os.path.join(ordner, NAME + "_portraet_zu.jpg"))
 bild_speichern(maske_rgba[:, :, :3], os.path.join(ordner, NAME + "_augen.png"), "PNG", alpha=maske_rgba[:, :, 3])
 
 # ---- Lippenlinie im Porträt verfolgen (dunkelste Zeile zwischen den Mundwinkeln) ---------------------------------------
-lum = PB @ np.array([0.3, 0.55, 0.15])
+lum = PL @ np.array([0.3, 0.55, 0.15])
 lum_g = lum.copy()
 lum_g[1:-1] = (lum[:-2] + lum[1:-1] + lum[2:]) / 3
 lum_g[:, 1:-1] = (lum_g[:, :-2] + lum_g[:, 1:-1] + lum_g[:, 2:]) / 3
@@ -351,6 +366,7 @@ dEm = 0.066
 X3n = nrm(X3)
 ey_n = {au: nrm(ey_t[au]) for au in ey_t}
 mund_c = X3n[namen.index("mund.mitte")]
+nase_n = X3n[namen.index("nase")]
 kam_dir = kam_dir_t / np.linalg.norm(kam_dir_t)
 log("normiert: Mund z %.4f, Nase y %.4f" % (mund_c[2], X3n[-1][1]))
 
@@ -374,7 +390,7 @@ for au in ey_n:
 dicht |= np.hypot((dv[:, 0] - mund_c[0]) / (0.85 * dEm), (dv[:, 2] - mund_c[2]) / (0.42 * dEm)) < 1.0
 dicht &= dv[:, 1] < -0.12
 klasse = np.where(dicht, 0, np.where(face, 1, 2))
-ziele = [float(a.get("tris_dicht", 6000)), float(a.get("tris_gesicht", 4000)), float(a.get("tris_rest", 4000))]
+ziele = [float(a.get("tris_dicht", 9000)), float(a.get("tris_gesicht", 5500)), float(a.get("tris_rest", 4500))]
 for x in bpy.context.selected_objects: x.select_set(False)
 D.select_set(True); bpy.context.view_layer.objects.active = D
 for kl_ in (2, 1, 0):
@@ -387,6 +403,7 @@ for kl_ in (2, 1, 0):
         e = ey_n[au]
         dch |= np.hypot((cov[:, 0] - e[0]) / (0.45 * dEm), (cov[:, 2] - e[2]) / (0.27 * dEm)) < 1.0
     dch |= np.hypot((cov[:, 0] - mund_c[0]) / (0.85 * dEm), (cov[:, 2] - mund_c[2]) / (0.42 * dEm)) < 1.0
+    dch |= np.hypot((cov[:, 0] - nase_n[0]) / (0.38 * dEm), (cov[:, 2] - (nase_n[2] + 0.25 * dEm)) / (0.55 * dEm)) < 1.0
     dch &= cov[:, 1] < -0.12
     fc = (np.abs(cov[:, 0]) < 1.5 * dEm) & (cov[:, 2] > mund_c[2] - 1.5 * dEm) & (cov[:, 2] < 1.64 + 1.4 * dEm) & (cov[:, 1] < -0.10)
     kl_v = np.where(dch, 0, np.where(fc, 1, 2))

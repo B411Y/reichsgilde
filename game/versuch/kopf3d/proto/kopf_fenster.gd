@@ -9,6 +9,7 @@ var kamera: Camera3D
 var hintergrund := Color(0.80, 0.74, 0.64)
 var kamera_ziel := Vector3(0.40, 1.64, 1.0)
 var dy := 0.0
+static var sparsam := false     # viele kleine Fenster (Stammbaum): MSAA 2x, ohne SSAO
 
 var _quelle := ""
 var _gemalt := false
@@ -48,7 +49,7 @@ func _init(groesse := Vector2i(384, 448), hg: Color = Color(0.80, 0.74, 0.64), q
 	ansicht = SubViewport.new()
 	ansicht.size = groesse
 	ansicht.own_world_3d = true
-	ansicht.msaa_3d = Viewport.MSAA_4X
+	ansicht.msaa_3d = Viewport.MSAA_2X if sparsam else Viewport.MSAA_4X
 	ansicht.positional_shadow_atlas_size = 0
 	RenderingServer.directional_shadow_atlas_set_size(1024, false)
 	ansicht.render_target_update_mode = SubViewport.UPDATE_ALWAYS
@@ -65,7 +66,7 @@ func _welt_bauen() -> void:
 	env.ambient_light_source = Environment.AMBIENT_SOURCE_COLOR
 	env.ambient_light_color = Color(0.62, 0.56, 0.5)
 	env.ambient_light_energy = 0.38 if not _gemalt else 0.8
-	env.ssao_enabled = true
+	env.ssao_enabled = not sparsam
 	env.ssao_radius = 0.05
 	env.ssao_intensity = 2.5
 	env.ssao_power = 1.6
