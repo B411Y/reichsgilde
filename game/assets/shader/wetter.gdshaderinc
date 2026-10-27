@@ -61,6 +61,14 @@ float pfuetze(vec2 wp, float tiefe) {
 	return smoothstep(schwelle, schwelle + 0.04, m);
 }
 
+// Der nasse Rand um eine Pfütze (0–1): feuchte, dunklere Erde, die etwas weiter reicht als das Wasser selbst
+float pfuetze_rand(vec2 wp, float tiefe) {
+	if (wetter_naesse < 0.35) return 0.0;
+	float m = w_rausch(wp * 0.21 + 3.0) * 0.7 + w_rausch(wp * 0.9 + 1.7) * 0.3 + tiefe * 0.25;
+	float schwelle = 1.12 - 0.36 * smoothstep(0.35, 1.0, wetter_naesse);
+	return smoothstep(schwelle - 0.07, schwelle, m);
+}
+
 // Ringe der Regentropfen in einer Pfütze: Neigung der Wasserfläche (x, z) – zwei Gitter zu 0,7 m, je Zelle ein Tropfen mit eigenem Takt
 vec2 regenringe(vec2 p, float zeit) {
 	vec2 neig = vec2(0.0);
@@ -91,13 +99,19 @@ void wetter_boden(inout vec3 bf, inout float rau, inout vec3 nw, inout vec3 leuc
 		rau = mix(rau, min(rau, glanz), wetter_naesse);
 		// Wege und Gassen bleiben dauerhaft etwas dunkler (Matsch, Abdrücke), unabhängig vom Licht
 		bf *= 1.0 - 0.12 * wetter_naesse * max(aufweg, stadt * 0.6);
-		float p = pfuetze(wp, tiefe) * (0.3 + 0.7 * max(aufweg, stadt * 0.3)) * smoothstep(0.9, 0.97, n.y);
+		float flaeche = (0.3 + 0.7 * max(aufweg, stadt * 0.3)) * smoothstep(0.9, 0.97, n.y);
+		float p = pfuetze(wp, tiefe) * flaeche;
+		// nasser Rand: dunkler, glänzend, noch kein Wasser
+		float rand = pfuetze_rand(wp, tiefe) * flaeche * (1.0 - p);
+		bf *= 1.0 - 0.28 * rand;
+		rau = mix(rau, min(rau, 0.22), rand * 0.8);
 		if (p > 0.0) {
-			// Wasserfarbe: dunkel, aber zum Himmel hin getönt – so bleibt die Pfütze aus jeder Richtung ein Wasserfleck und kein dunkler Boden
-			bf = mix(bf, bf * 0.3 + wetter_himmel * mix(0.22, 0.16, stadt), p);
+			// Wasserfarbe: nasses Lehmbraun, dunkler als der Boden, mit leichter Spiegelung des Himmels – bleibt aus jeder Richtung ein Wasserfleck
+			vec3 braun = vec3(dot(bf, vec3(0.3, 0.55, 0.15))) * vec3(1.18, 0.95, 0.72);
+			bf = mix(bf, braun * 0.5 + wetter_himmel * 0.07, p);
 			rau = mix(rau, 0.04, p);
-			// Himmelsschein in der Farbe: aus jeder Richtung als Wasser lesbar; Tropfenringe als Hell-dunkel-Zeichnung
-			vec3 schein = wetter_himmel * 0.2;
+			// Himmelsschein: leicht; Tropfenringe als Hell-dunkel-Zeichnung
+			vec3 schein = wetter_himmel * 0.1;
 			if (ringe) {
 				vec2 r0 = regenringe(wp, zeit);
 				float zeichn = clamp(length(r0) * 2.2, 0.0, 1.0);

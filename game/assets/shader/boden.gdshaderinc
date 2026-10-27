@@ -313,12 +313,10 @@ Schicht stadtlehm(vec2 p, vec3 n, vec2 dx, vec2 dy, inout float hoehe) {
 	// Pfützenmulden: kleine Senken (einige Meter, selten), feucht am Rand, Wasser in der Mitte
 	float mulde = rausch(p * 0.27 + 31.0) * 0.8 + (n2 + 0.5) * 0.2;
 	float feucht = smoothstep(0.73, 0.8, mulde);
-	float wasser = smoothstep(0.815, 0.83, mulde);
-	c *= 1.0 - 0.22 * feucht;
-	c = mix(c, c * vec3(0.55, 0.6, 0.65), wasser);
-	l.rau = mix(mix(l.rau, 0.6, feucht), 0.06, wasser);
-	l.n = normalize(mix(l.n, n, wasser));
-	hoehe -= 0.05 * smoothstep(0.71, 0.83, mulde);
+	// (PR #218) Kein dauerhaftes Wasser: Die Pfützen kommen nur mit dem Regen (pfuetze in wetter.gdshaderinc); trocken bleibt nur eine leichte Fleckigkeit
+	c *= 1.0 - 0.08 * feucht;
+	l.rau = mix(l.rau, 0.7, feucht * 0.5);
+	hoehe -= 0.02 * smoothstep(0.71, 0.83, mulde);
 	l.fh.rgb = c;
 	return l;
 }
