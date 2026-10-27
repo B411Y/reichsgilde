@@ -1,0 +1,11 @@
+{
+  "_hinweis": "Pixel (Zeile von oben). P = realistisches Porträt (1024), F = TRELLIS-Frontansicht (render_front.py, Mitte 0,0.05, Größe 1.0). Augen/Mund in F aus dem Tiefenbild (Öffnung der Form). l = Bildseite links.",
+  "P": {"auge_l": {"aussen": [248, 367], "innen": [327, 378], "oben": [290, 349], "unten": [290, 382]},
+        "auge_r": {"innen": [420, 377], "aussen": [520, 362], "oben": [483, 347], "unten": [483, 380]},
+        "nase": [358, 490],
+        "mund": {"ecke_l": [305, 573], "mitte": [350, 572.4], "ecke_r": [434, 575]}},
+  "F": {"auge_l": {"aussen": [343, 433], "innen": [438, 435], "oben": [390, 415], "unten": [390, 448]},
+        "auge_r": {"innen": [548, 437], "aussen": [643, 432], "oben": [597, 412], "unten": [597, 448]},
+        "nase": [493, 545],
+        "mund": {"ecke_l": [423, 621], "mitte": [490, 627], "ecke_r": [572, 621]}}
+}

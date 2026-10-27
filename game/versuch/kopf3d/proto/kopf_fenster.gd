@@ -100,7 +100,10 @@ func _welt_bauen() -> void:
 	kamera = Camera3D.new()
 	kamera.fov = 24.0
 	ansicht.add_child(kamera)
-	if _quelle.ends_with("_c.glb") or _quelle.ends_with("_cp.glb"):
+	if _quelle.ends_with("_d.glb"):
+		kopf = KopfD.new()
+		kopf.quelle = _quelle
+	elif _quelle.ends_with("_c.glb") or _quelle.ends_with("_cp.glb"):
 		kopf = KopfC.new()
 		kopf.quelle = _quelle
 	else:

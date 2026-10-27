@@ -50,3 +50,8 @@ game/versuch/kopf3d/proto/c/*.png
 game/versuch/kopf3d/proto/cp/*.jpg
 game/versuch/kopf3d/proto/cp/*.png
 game/versuch/kopf3d/proto/cp/*.glb
+game/versuch/kopf3d/proto/d/*.jpg
+game/versuch/kopf3d/proto/d/*.png
+game/versuch/kopf3d/proto/d/*.glb
+game/versuch/kopf3d/proto/d/*.json
+game/versuch/kopf3d/proto/d/*.import
