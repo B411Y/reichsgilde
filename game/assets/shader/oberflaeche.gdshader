@@ -218,7 +218,10 @@ void fragment() {
 		float smass = length(MODEL_MATRIX[0].xyz);
 		int sb = (art_aus_uv && v_bib >= 0) ? v_bib : bib;
 		float sreihe = (sb >= 0 && sb < BIB_MAX && bib_reihe[sb] > 0.01 ? bib_reihe[sb] : 0.3) * smass;
-		wetter_flaeche(grund, rau, mat3(INV_VIEW_MATRIX) * NORMAL, welt, vec2(dot(ort, su), dot(ort, sv)) * smass, sreihe);
+		vec3 wnorm = mat3(INV_VIEW_MATRIX) * NORMAL;
+		vec3 wnorm_neu = wnorm;
+		wetter_flaeche(grund, rau, wnorm_neu, wnorm, normalize(mat3(MODEL_MATRIX) * ort_n), welt, vec2(dot(ort, su), dot(ort, sv)) * smass, sreihe, TIME);
+		if (wetter_rinn > 0.01) NORMAL = normalize(mat3(VIEW_MATRIX) * wnorm_neu);
 	}
 	ALBEDO = grund;
 	ROUGHNESS = rau;

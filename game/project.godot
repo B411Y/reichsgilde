@@ -53,6 +53,10 @@ wetter_regen={
 "type": "float",
 "value": 0.0
 }
+wetter_rinn={
+"type": "float",
+"value": 0.0
+}
 wetter_schnee={
 "type": "float",
 "value": 0.0

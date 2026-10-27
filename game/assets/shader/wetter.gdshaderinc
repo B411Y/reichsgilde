@@ -6,6 +6,8 @@
 // Nässe des Bodens 0–1 (Regen der letzten Stunden) und Regen gerade jetzt 0–1 (Ringe in den Pfützen); in der Stufe Niedrig 0
 global uniform float wetter_naesse;
 global uniform float wetter_regen;
+// Rinnsale auf Dächern und Wänden 0–1 (Regen der letzten Stunden, bei Regen gerade jetzt stärker; Niedrig 0, Mittel schwächer)
+global uniform float wetter_rinn;
 // Schneedecke am Boden 0–1 (im Winter, mehr bei Schneefall) und auf Dächern und allem, was nach oben zeigt
 global uniform float wetter_schnee;
 global uniform float wetter_dach;
@@ -103,20 +105,20 @@ void wetter_boden(inout vec3 bf, inout float rau, inout vec3 nw, inout vec3 leuc
 		float p = pfuetze(wp, tiefe) * flaeche;
 		// nasser Rand: dunkler, glänzend, noch kein Wasser
 		float rand = pfuetze_rand(wp, tiefe) * flaeche * (1.0 - p);
-		bf *= 1.0 - 0.28 * rand;
+		bf *= 1.0 - 0.42 * rand;
 		rau = mix(rau, min(rau, 0.22), rand * 0.8);
 		if (p > 0.0) {
 			// Wasserfarbe: nasses Lehmbraun, dunkler als der Boden, mit leichter Spiegelung des Himmels – bleibt aus jeder Richtung ein Wasserfleck
-			vec3 braun = vec3(dot(bf, vec3(0.3, 0.55, 0.15))) * vec3(1.18, 0.95, 0.72);
-			bf = mix(bf, braun * 0.5 + wetter_himmel * 0.07, p);
+			vec3 braun = vec3(dot(bf, vec3(0.3, 0.55, 0.15))) * vec3(1.35, 0.95, 0.6);
+			bf = mix(bf, braun * 0.8 + wetter_himmel * 0.1, p);
 			rau = mix(rau, 0.04, p);
 			// Himmelsschein: leicht; Tropfenringe als Hell-dunkel-Zeichnung
-			vec3 schein = wetter_himmel * 0.1;
+			vec3 schein = wetter_himmel * 0.08;
 			if (ringe) {
 				vec2 r0 = regenringe(wp, zeit);
 				float zeichn = clamp(length(r0) * 2.2, 0.0, 1.0);
 				bf *= 1.0 - 0.4 * zeichn;
-				schein += wetter_himmel * 0.3 * zeichn;
+				schein += wetter_himmel * 0.2 * zeichn;
 			}
 			vec3 glatt = n;
 			if (ringe) {
@@ -142,19 +144,48 @@ void wetter_boden(inout vec3 bf, inout float rau, inout vec3 nw, inout vec3 leuc
 	}
 }
 
+// Rinnsale (oberflaeche.gdshader): Auf schrägen Flächen und Wänden läuft das Wasser in Gefällerichtung ab. Die Richtung ist die Schwerkraft in der
+// Ebene der Fläche (aus der Weltnormalen wn); quer dazu liegen Streifen, in denen es herabrinnt – bewegte, leicht gewölbte Wasserbahnen (Normale und
+// Rauheit), dunkler und glänzend. Waagerechte Flächen haben kein Gefälle und damit keine Rinnsale; Wände weniger (dort tropft es nur).
+// c = Farbe, rau = Rauheit, nw = Normale in der Welt (wird mitgeändert), wn = die glatte Normale der Fläche (ohne Unebenheit der Textur: sonst
+// flimmert die Richtung), wp = Ort in der Welt.
+void wetter_rinnsale(inout vec3 c, inout float rau, inout vec3 nw, vec3 wn, vec3 wp, float zeit) {
+	vec3 fall = vec3(0.0, -1.0, 0.0) - wn * (-wn.y);        // Schwerkraft in der Ebene der Fläche
+	float neig = length(fall);                               // = Sinus des Neigungswinkels: 0 flach, 1 senkrecht
+	float stark = smoothstep(0.18, 0.5, neig) * wetter_rinn * (1.0 - 0.45 * smoothstep(0.85, 1.0, neig));
+	if (stark < 0.01) return;
+	fall /= max(neig, 0.0001);
+	vec3 quer = cross(wn, fall);
+	float a = dot(wp, fall), q = dot(wp, quer);
+	// zwei Lagen Bahnen (schmal und breit), jede läuft mit eigener Geschwindigkeit herab; w_rausch ist 0–1
+	float t1 = zeit * 0.9, t2 = zeit * 0.5;
+	float n1 = w_rausch(vec2(q * 9.0, a * 0.45 - t1 * 1.2)), n1b = w_rausch(vec2(q * 9.0 + 0.35, a * 0.45 - t1 * 1.2));
+	float n2 = w_rausch(vec2(q * 4.0 + 17.0, a * 0.22 - t2 * 0.8)), n2b = w_rausch(vec2(q * 4.0 + 17.35, a * 0.22 - t2 * 0.8));
+	float b1 = smoothstep(0.5, 0.7, n1), b1b = smoothstep(0.5, 0.7, n1b);
+	float b2 = smoothstep(0.52, 0.72, n2), b2b = smoothstep(0.52, 0.72, n2b);
+	float bahn = max(b1, b2 * 0.8);
+	// Wölbung quer zur Bahn (Unterschied der Höhe auf kleinem Abstand) kippt die Normale zur Seite
+	float quergefaelle = (b1b - b1) * 0.8 + (b2b - b2) * 0.5;
+	nw = normalize(nw + quer * quergefaelle * stark * 0.9);
+	c *= 1.0 - 0.24 * bahn * stark;
+	c += wetter_himmel * 0.05 * bahn * stark;          // nasser Schimmer: die Bahn spiegelt etwas Himmel
+	rau = mix(rau, 0.05, bahn * stark);
+}
+
 // Wetter auf den Modellen (oberflaeche.gdshader): Schnee auf allem, was nach oben zeigt (Dächer, Mauerkronen, Brunnen …), Nässe dunkler und
 // glänzender. wn = Normale in der Welt, wp = Ort in der Welt. dach = der Ort in der Ebene der Fläche (Meter: x waagerecht, y die Fläche hinauf,
 // wie die Projektion „reihen“ der Material-Bibliothek), reihe = Höhe einer Ziegelreihe (Meter).
 // Schnee liegt in der Dachebene und nicht in der Welt-x/z-Ebene (dort würde er an Schrägen gestreckt): Aus der Nähe in Reihen gegliedert – die
 // Flecken laufen mit den Reihen, in jeder Reihenkante liegt er dichter –, mit wachsendem Abstand (fwidth der Reihen) wird das Muster weich zu einer
 // ruhigen Decke gemittelt. Auf flachen Flächen (Mauerkronen) gibt es keine Reihen, dort gilt dasselbe Fleckenmuster ohne Kanten.
-void wetter_flaeche(inout vec3 c, inout float rau, vec3 wn, vec3 wp, vec2 dach, float reihe) {
+void wetter_flaeche(inout vec3 c, inout float rau, inout vec3 nw, vec3 wn, vec3 wg, vec3 wp, vec2 dach, float reihe, float zeit) {
 	if (wetter_flaechen < 0.5) return;
 	if (wetter_naesse > 0.001) {
 		float oben = clamp(wn.y, 0.0, 1.0);
 		c *= 1.0 - 0.3 * wetter_naesse * (0.4 + 0.6 * oben);
 		rau = mix(rau, rau * 0.45, wetter_naesse * (0.4 + 0.6 * oben));
 	}
+	if (wetter_rinn > 0.01) wetter_rinnsale(c, rau, nw, wg, wp, zeit);
 	if (wetter_dach > 0.001) {
 		float pv = dach.y / reihe;
 		float fein = 1.0 - smoothstep(0.05, 0.28, fwidth(pv));   // 1 nah genug für Reihen, 0 zu weit

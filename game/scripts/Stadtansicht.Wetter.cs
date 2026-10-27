@@ -206,7 +206,7 @@ public partial class Stadtansicht
     {
         foreach (var (name, wert) in new (string, Variant)[]
                  {
-                     ("wetter_naesse", 0f), ("wetter_regen", 0f), ("wetter_schnee", 0f), ("wetter_dach", 0f), ("wetter_flaechen", 1f),
+                     ("wetter_naesse", 0f), ("wetter_regen", 0f), ("wetter_rinn", 0f), ("wetter_schnee", 0f), ("wetter_dach", 0f), ("wetter_flaechen", 1f),
                      ("wetter_wind", 0.25f), ("jahreszeit_anteile", new Vector4(0, 1, 0, 0)),
                      ("wind_staerke", Fenster.FahnenBewegen ? 0.5f : 0f), // der Grundwert der Fahnen (Fenster.Grafik.cs)
                  })
@@ -253,6 +253,7 @@ public partial class Stadtansicht
         BlitzNachfuehren((float)delta);
         WetterGlobaleSetzen();
         PartikelNachfuehren();
+        TraufenStellen(delta); // Stadtansicht.Traufen.cs
     }
 
     private void WetterGlobal(string name, float wert, float schwelle = 0.002f)
@@ -269,6 +270,9 @@ public partial class Stadtansicht
         // Nässe und Pfützen ab Mittel; Schnee liegt in jeder Stufe (er gehört zur Jahreszeit)
         WetterGlobal("wetter_naesse", stufe == Wettereffekte.Niedrig ? 0 : _naesse);
         WetterGlobal("wetter_regen", stufe == Wettereffekte.Hoch ? _wetter.Regen : 0);
+        // Rinnsale auf Dächern und Wänden: ab Mittel; bei Regen stark, danach laufen sie mit dem Abtrocknen (Nässe) langsam aus
+        var rinn = Mathf.SmoothStep(0.3f, 0.9f, _naesse) * Mathf.Clamp(0.15f + 1.1f * _wetter.Regen, 0, 1);
+        WetterGlobal("wetter_rinn", stufe == Wettereffekte.Niedrig || Mathf.IsZeroApprox(_naesse) ? 0 : rinn * (stufe == Wettereffekte.Hoch ? 1f : 0.6f));
         WetterGlobal("wetter_schnee", _schneeDecke);
         WetterGlobal("wetter_dach", _schneeDecke);
         WetterGlobal("wetter_flaechen", draussen ? 1 : 0);
