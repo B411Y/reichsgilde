@@ -1373,7 +1373,8 @@ public sealed partial class KiRivale
         if (Profil.Gaunerei >= 2 && Erpressen(ziel)) return;
 
         // Wert je Gaunerstück: Diebstahl = erwarteter Hehlererlös; Sabotage = halber Schaden beim Gegner (er ist Konkurrent);
-        // Überfall = erwartete Beute aus der Ware, die auf Abtransport wartet. Jeweils abzüglich der Kosten.
+        // Überfall = erwartete Beute aus der Ware, die auf Abtransport wartet. Jeweils abzüglich der Kosten. Diebstahl, Sabotage, Einbruch und
+        // Brand zählen alle Versuche der Nacht (gauner.nachtVersuche zu je versuchFaktor der Chance, PR #219); der Überfall bleibt einmalig.
         var moeglich = new List<(Gaunerstueck Art, string? Betrieb, double Wert)>();
         foreach (var b in _w.Betriebe.Where(b => b.Konto == ziel))
         {
@@ -1390,7 +1391,7 @@ public sealed partial class KiRivale
             moeglich.Add((Gaunerstueck.Hauseinbruch, null, unterwelt.ErwarteterHausgewinn(ziel, Konto)));
             if (Profil.Gaunerei >= 2 && !_w.Wohnen.IstBeschaedigt(ziel))
                 moeglich.Add((Gaunerstueck.Brandstiftung, null,
-                    unterwelt.ErfolgschanceWohnhaus(Gaunerstueck.Brandstiftung, ziel, Konto) * unterwelt.Brandschaden(ziel) * 0.5
+                    unterwelt.ErwarteterBrandschaden(ziel, Konto) * 0.5
                     - unterwelt.Kosten(Gaunerstueck.Brandstiftung, Konto)));
         }
         var beste = moeglich.Where(m => m.Wert > 0).OrderByDescending(m => m.Wert).ThenBy(m => m.Art).FirstOrDefault();
@@ -1822,7 +1823,7 @@ public sealed partial class KiRivale
 
     private void KarrenNachkaufen(Betrieb betrieb)
     {
-        if (betrieb.Belegt == 0 || betrieb.Karren.Count >= Profil.MaxKarrenJeBetrieb)
+        if (betrieb.Belegt == 0 || betrieb.Karren.Count >= Profil.MaxKarrenJeBetrieb || !BrauchtKarren(betrieb))
             return;
 
         var anteil = betrieb.StillstandMinutenVorjahr / (double)betrieb.Arbeitsminuten;

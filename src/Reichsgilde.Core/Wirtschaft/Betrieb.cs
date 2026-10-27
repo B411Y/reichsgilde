@@ -262,7 +262,7 @@ public sealed class Betrieb
     /// <summary>Warum die Produktion gerade stillsteht (null = sie läuft).</summary>
     public string? Stillstand { get; private set; }
 
-    /// <summary>Arbeitsminuten mit Stillstand im laufenden Jahr.</summary>
+    /// <summary>Arbeitsminuten mit Stillstand im laufenden Jahr (fehlende Zutat, volles Lager) – Umbau und Reparatur nach einem Anschlag zählen nicht.</summary>
     public int StillstandMinuten { get; private set; }
 
     /// <summary>Arbeitsminuten mit Stillstand im Vorjahr – zeigt, ob Karren oder Lager zu knapp sind.</summary>
@@ -391,6 +391,12 @@ public sealed class Betrieb
 
     /// <summary>Löhne für ein ganzes Jahr bei der jetzigen Belegung und Lohnstufe (ohne Wächter; mit der Länge der Schicht).</summary>
     public double Lohnkosten => _belegung.Sum(b => b.Value * _daten.Lohn(b.Key, Art)) * LohnFaktor;
+
+    /// <summary>
+    /// Lohn einer Arbeitskraft dieser Art im Jahr, wie ihn die Jahresabrechnung zahlt: Grundlohn × Länge der Schicht × Lohnstufe × Einrichtung
+    /// (Waffenkammer). Abgerechnet wird die Lohnstufe im Mittel des Jahres; hier steht die jetzige.
+    /// </summary>
+    public double LohnJeArbeiter(string arbeitskraft) => _daten.Lohn(arbeitskraft, Art) * LohnFaktor;
 
     /// <summary>Nach einem Unfall ist die Laune aller hier bis zu dieser Spielminute gedrückt (null = kein Unfall).</summary>
     public long? UnfallLauneBis { get; internal set; }
@@ -684,7 +690,8 @@ public sealed class Betrieb
             if (_letzterStillstand != grund) melden($"{Name}: {grund}");
             _letzterStillstand = grund;
             Stillstand = grund;
-            if (!umbau) StillstandMinuten++; // ein gewollter Umbau sagt nichts über zu knappe Karren oder Lager
+            // Weder ein gewollter Umbau noch die Reparatur nach einem Anschlag sagen etwas über zu knappe Karren oder Lager (PR #219:
+            // mit vier Anschlägen je Nacht stand eine Werkstatt sonst bis zum ganzen Jahr „still“, und die KI kaufte Karren, die nie fuhren).
             return;
         }
 
