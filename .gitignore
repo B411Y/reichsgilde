@@ -38,3 +38,8 @@ build/
 
 # Python-Zwischendateien der Blender-Skripte
 __pycache__/
+
+# Live-Kopf-Prototyp: große erzeugte Dateien lokal (Blender-Skript tools/versuch_kopf3d/exportieren_proto.py erzeugt sie)
+game/versuch/kopf3d/proto/*.glb
+game/versuch/kopf3d/proto/haut_*.png
+game/versuch/kopf3d/proto/kopf_proto_*.png
