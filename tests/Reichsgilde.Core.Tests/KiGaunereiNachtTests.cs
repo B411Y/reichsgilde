@@ -1,5 +1,6 @@
 using Reichsgilde.Core;
 using Reichsgilde.Core.Gauner;
+using Reichsgilde.Core.Justiz;
 using Reichsgilde.Core.Ki;
 using Reichsgilde.Core.Partie;
 using Reichsgilde.Core.Wirtschaft;
@@ -66,7 +67,7 @@ static class KiGaunereiNachtTests
             }
         }),
 
-        ("KI-Gaunerei je Nacht: Diebstahl – der zweite Erfolg findet ein geplündertes Lager; Sabotage wirkt je Erfolg", () =>
+        ("KI-Gaunerei je Nacht: Diebstahl – der zweite Erfolg findet ein geplündertes Lager; Sabotage wirkt höchstens einmal", () =>
         {
             var w = NeueSimulation(Echt.Value).Wirtschaft!;
             var u = w.Gauner;
@@ -81,7 +82,27 @@ static class KiGaunereiNachtTests
             var erwartet = (u.ChanceMindestensErfolge(chance, 1) * 12 + u.ChanceMindestensErfolge(chance, 2) * 8) * preis * g.HehlerAnteil - g.Diebstahl.Kosten;
             Pruefe.Ungefaehr(erwartet, u.ErwarteterGewinn(b, dieb), 1e-6);
             var sabotage = u.Erfolgschance(Gaunerstueck.Sabotage, b, dieb);
-            Pruefe.Ungefaehr(4 * sabotage * g.VersuchFaktor * u.Sabotageschaden(b), u.ErwarteterSchaden(b, dieb), 1e-6);
+            Pruefe.Ungefaehr(u.ChanceMindestensErfolge(sabotage, 1) * u.Sabotageschaden(b), u.ErwarteterSchaden(b, dieb), 1e-6);
+        }),
+
+        ("KI-Gaunerei je Nacht: Eine Sabotage wirkt höchstens einmal je Nacht – auch wenn jeder Versuch gelänge (eine Spur, 6 Stunden Stillstand)", () =>
+        {
+            var json = Json.Value.Replace("\"versuchFaktor\": 0.3333", "\"versuchFaktor\": 1").Replace("\"zeugenChance\": 0.25", "\"zeugenChance\": 0");
+            var i = json.IndexOf("\"sabotage\": {", StringComparison.Ordinal);
+            var j = json.IndexOf("\"chance\": 0.6", i, StringComparison.Ordinal);
+            Pruefe.Wahr(i > 0 && j > i && j - i < 120, "Sabotage-Chance in den Daten gefunden");
+            json = json[..j] + "\"chance\": 1" + json[(j + "\"chance\": 0.6".Length)..];
+            var sim = NeueSimulation(Wirtschaftsdaten.AusJson(json));
+            var w = sim.Wirtschaft!;
+            var auftraggeber = w.KontoEroeffnen("Familie Dieb", startvermoegen: 10_000);
+            var opfer = w.KontoEroeffnen("Familie Opfer", startvermoegen: 10_000);
+            var b = w.BetriebEroeffnen("Gießerei Opfer", Betriebsart.Giesserei, opfer, startkarren: "");
+            Pruefe.Wahr(w.Ausfuehren(auftraggeber, new Beauftragen(opfer.Inhaber, Gaunerstueck.Sabotage, b.Name)).Erfolg, "Auftrag");
+            var jahr = sim.Zeit.Jahr;
+            while (sim.Zeit.Jahr == jahr) sim.Tick(); // 20 bis 23 Uhr
+            Pruefe.Gleich(w.Gauner.Daten.Sabotage.StillstandMinuten, b.SabotageMinuten);
+            Pruefe.Gleich(1, w.Justiz.SpurenVon(auftraggeber).Count());
+            Pruefe.Ungefaehr(w.Gauner.Sabotageschaden(b), w.Gauner.ErwarteterSchaden(b, auftraggeber), 1e-3); // Chance 95 % je Versuch: fast sicher genau einmal
         }),
 
         ("KI-Gaunerei je Nacht: Die Erwartung trifft, was die Bande im Mittel aus dem Wohnhaus holt (300 Nächte)", () =>

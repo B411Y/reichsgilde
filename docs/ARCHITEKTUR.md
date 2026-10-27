@@ -283,7 +283,7 @@ Oberfläche / KI ──Befehl──▶ Ausfuehren ──prüft──▶ Betrieb 
 - **Eine Stelle prüft alles:** Gehört der Betrieb dem Absender? Reicht das Geld? Erlaubt das Statut die Arbeitskraft? Ist ein Platz frei?
 - **Befehle tragen nur Namen und Zahlen** (z. B. `PersonalSetzen("Gießerei am Weinmarkt", "Geselle", 2)`), keine Objekte. Im Multiplayer schickt der Client genau diese Datensätze an den Server.
 - **Die KI benutzt denselben Weg.** Damit ist „die KI schummelt nicht“ technisch gesichert.
-- **Gemeinsame Rechnungen:** `Kalkulation` liefert Gewinn je Arbeitsminute, Jahresertrag je Arbeitskraft und erwartete Fahrtkosten. Die KI entscheidet danach, und das Bedienfeld zeigt dieselben Zahlen an.
+- **Gemeinsame Rechnungen:** `Kalkulation` liefert Gewinn je Arbeitsminute, Jahresertrag je Arbeitskraft und erwartete Fahrtkosten. Die KI entscheidet danach, und das Bedienfeld zeigt dieselben Zahlen an. Für die Tooltips (PR #219) kommen dazu `Kalkulation.GewinnJeStueck` (`Stueckrechnung`: Preis, Steuer, Zutaten, Lohn- und Unterhaltsanteil nach Herstellzeit) und `Betrieb.LohnJeArbeiter` (Lohn im Jahr mit Schicht, Lohnstufe und Einrichtung).
 
 ## Stände und Bankrott
 
@@ -367,7 +367,7 @@ Oberfläche / KI ──Befehl──▶ Ausfuehren ──prüft──▶ Betrieb 
 
 ## Stadtrat
 
-Der Stadtrat (`src/Reichsgilde.Core/Politik/Stadtrat.cs`) gehört zur Stadtwirtschaft (`Stadtwirtschaft.Rat`). Ämter, Ratsherren und alle Zahlen stehen in `wirtschaft.json` im Abschnitt `politik`.
+Der Stadtrat (`src/Reichsgilde.Core/Politik/Stadtrat.cs`) gehört zur Stadtwirtschaft (`Stadtwirtschaft.Rat`). Ämter, Ratsherren und alle Zahlen stehen in `wirtschaft.json` im Abschnitt `politik`. Je Ratsherr stehen dort auch Geschlecht und Aussehen fürs Porträt (`Ratsherr.Geschlecht`, `Ratsherr.Aussehen`, Datenversion 58).
 
 **Wer wen wählt.** Jeder Ratsherr gibt jedem Kandidaten Punkte und stimmt für den mit den meisten:
 

@@ -226,12 +226,12 @@ public sealed class Unterwelt
         return string.Join(" und ", teile);
     }
 
-    /// <summary>Was eine Sabotage dem Opfer in einer Nacht im Mittel kostet: entgangene Arbeit + Reparatur je Erfolg, über alle Versuche.</summary>
-    public double ErwarteterSchaden(Betrieb b, Konto? auftraggeber = null)
-    {
-        var schaden = SabotageSchaden(b);
-        return ErwartetJeNacht(Erfolgschance(Gaunerstueck.Sabotage, b, auftraggeber), _ => schaden);
-    }
+    /// <summary>
+    /// Was eine Sabotage dem Opfer in einer Nacht im Mittel kostet: entgangene Arbeit + Reparatur × Chance, dass einer der Versuche gelingt
+    /// (sie wirkt höchstens einmal je Nacht).
+    /// </summary>
+    public double ErwarteterSchaden(Betrieb b, Konto? auftraggeber = null) =>
+        ChanceMindestensErfolge(Erfolgschance(Gaunerstueck.Sabotage, b, auftraggeber), 1) * SabotageSchaden(b);
 
     /// <summary>Schaden einer gelungenen Sabotage (für die Anzeige).</summary>
     public double Sabotageschaden(Betrieb b) => SabotageSchaden(b);
@@ -469,7 +469,8 @@ public sealed class Unterwelt
                 }
                 _erfolgreich[i] |= _versuchErfolg;
                 (_chanceFaktor, _letzterVersuch) = (1, true);
-                erledigt = letzter;
+                // Eine Sabotage wirkt höchstens einmal je Nacht (wie der Brand am Wohnhaus): Die Werkstatt brennt schon (PR #219).
+                erledigt = letzter || (a.Art == Gaunerstueck.Sabotage && _erfolgreich[i]);
             }
             if (erledigt)
             {
