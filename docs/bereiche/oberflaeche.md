@@ -17,6 +17,7 @@ So wird eingetragen (damit sich die Chats nie an derselben Stelle treffen):
 - Grundstruktur (PR #197): Die Reiter von Wohnhaus und Bericht sind je Seite verschieden hoch (die Tafel springt beim Wechsel); bei der Gestaltung im Holzschnitt-Stil eine feste Höhe wählen
 - Stadtkasse (PR #200): Strafmaß des Stadtrichters und „Freilassen“ des Gefängniswärters sind im Klicktest nur ohne Verfahren bzw. Gefangenen geprüft (der Text „Zurzeit …“); für einen vollen Klicktest fehlt eine Startoption, die ein Verfahren zwischen zwei KI-Häusern bzw. einen Gefangenen anlegt (bräuchte eine Testhilfe im Kern).
 - Porträts (PR #211): Ratsherren der Stadt sind keine Personen im Familienbuch und haben in `wirtschaft.json` weder Geschlecht noch Aussehen; die Oberfläche leitet Gesicht, Haar und Augen aus Namen und Volk ab und das Geschlecht aus dem Vornamen (`PortraetAnzeige.ZeigenRatsherr`). (von Oberfläche an Kern) Besser: `geschlecht` und `aussehen` je Ratsherr in den Daten – dann fällt die Ableitung weg. Außerdem: Maskenweg (`…_haar.png`, `…_augen.png`) steht noch nicht fest, die Anzeige sucht erst ohne, dann mit Kleidung im Namen.
+- Porträts (PR #211): Nachlieferung vom Grafik-PC – Orks und Oger (bis dahin Schatten mit Fragezeichen), Halblinge hf4 (alter weißer Saum) und hf5, neue Haarmasken für Elben, Halblinge und Zwerginnen (die erste Fassung malte bartlosen Figuren einen Bart an; bis dahin keine Haar-Umfärbung bei ihnen). Skript `haar_neu.sh` im Notizordner des Teamleiters.
 
 ## Entscheidungen
 
