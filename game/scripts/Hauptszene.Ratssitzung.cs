@@ -129,6 +129,9 @@ public partial class Hauptszene
             case Key.Escape when _hilfe.Visible:
                 HilfeSchliessen();
                 break;
+            case Key.Escape when _lexikon.Visible:
+                _lexikon.Schliessen();
+                break;
             case Key.Escape:
                 if (_spielmenue.Visible) SpielmenueSchliessen();
                 else SpielmenueOeffnen();

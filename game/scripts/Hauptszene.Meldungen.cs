@@ -139,6 +139,7 @@ public partial class Hauptszene
             ("R", "Ratskammer (im Baumodus: Umriss drehen)"),
             ("M", "Marktplatz"),
             ("B", "Bauen"),
+            ("L", "Lexikon"),
             ("F1", "diese Hilfe"),
             ("F11", "Vollbild"),
         })
