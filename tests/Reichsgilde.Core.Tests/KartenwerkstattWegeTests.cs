@@ -68,14 +68,16 @@ static class KartenwerkstattWegeTests
             Pruefe.Wahr(v.Punkte.Zip(nochmal.Punkte).All(x => x.First[0] == x.Second[0] && x.First[1] == x.Second[1]), "deterministisch");
         }),
 
-        ("Wegkurve: Ohne „kurve“ bleibt jeder Weg der Greybox und Kölns gerade (Verlauf = Stützpunkte); ein glatter Ring schließt sich", () =>
+        ("Wegkurve: Ohne „kurve“ bleibt jeder Weg der Greybox gerade (Verlauf = Stützpunkte); in Köln nur die Landstraßen und Leinpfade, die „glatt“ sind; ein glatter Ring schließt sich", () =>
         {
-            foreach (var kennung in new[] { "greybox", "koeln" })
-                foreach (var w in Stadtkarte.AusDatei(Datenpfad.Karte(kennung)).Wege)
-                {
-                    Pruefe.Wahr(!w.IstGlatt && w.Kurve is null, $"{w.Name} ist gerade");
-                    Pruefe.Wahr(w.Verlauf.Count == w.Linie.Count && w.Verlauf.Zip(w.Linie).All(x => x.First[0] == x.Second[0] && x.First[1] == x.Second[1]), $"{w.Name}: Verlauf = Linie");
-                }
+            foreach (var w in Stadtkarte.AusDatei(Datenpfad.Karte("greybox")).Wege)
+            {
+                Pruefe.Wahr(!w.IstGlatt && w.Kurve is null, $"{w.Name} ist gerade");
+                Pruefe.Wahr(w.Verlauf.Count == w.Linie.Count && w.Verlauf.Zip(w.Linie).All(x => x.First[0] == x.Second[0] && x.First[1] == x.Second[1]), $"{w.Name}: Verlauf = Linie");
+            }
+            foreach (var w in Stadtkarte.AusDatei(Datenpfad.Karte("koeln")).Wege.Where(w => w.Klasse is Wegklasse.Haupt or Wegklasse.Wall or Wegklasse.Gasse or Wegklasse.Ring))
+                Pruefe.Wahr(!w.IstGlatt && w.Verlauf.Count == w.Linie.Count, $"Köln, Stadt: {w.Name} ist gerade");
+            Pruefe.Wahr(Stadtkarte.AusDatei(Datenpfad.Karte("koeln")).Wege.Where(w => w.Klasse is Wegklasse.Land or Wegklasse.Leinpfad).All(w => w.IstGlatt), "Köln: Landstraßen und Leinpfade sind glatt");
             var ring = new Kartenweg { Linie = new() { new double[] { -10, -10 }, new double[] { 10, -10 }, new double[] { 10, 10 }, new double[] { -10, 10 }, new double[] { -10, -10 } }, Kurve = "glatt" };
             var v = ring.Verlauf;
             Pruefe.Wahr(v[0][0] == v[^1][0] && v[0][1] == v[^1][1], "Ring geschlossen");
