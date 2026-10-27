@@ -318,141 +318,153 @@ log("gebacken")
 D.data.materials.clear(); D.data.materials.append(mat_offen)
 bpy.data.objects.remove(T, do_unlink=True)
 
-# ---- Augen: Öffnung ausschneiden, Lid-Flicken (geschlossenes Auge) abtrennen, echte Augäpfel einsetzen ------------------------------
-AUGEN = float(a.get("augenf", 1.0))
-mat_zu = None
-if timg_zu is not None:
-    mat_zu = bpy.data.materials.new("haut_zu_mat"); mat_zu.use_nodes = True
-    tz = mat_zu.node_tree.nodes.new("ShaderNodeTexImage"); tz.image = h_zu
-    mat_zu.node_tree.links.new(tz.outputs["Color"], mat_zu.node_tree.nodes["Principled BSDF"].inputs["Base Color"])
 ey_n = {"l": np.array([(tlx - xm) * s, -0.146, 1.64]), "r": np.array([(trx - xm) * s, -0.146, 1.64])}
-# vorderste Hautfläche an den Augen (Normiert) bestimmen
-dvv = netz_arrays(D)
-def fy_at(c):
-    m = np.where(np.hypot(dvv[:, 0] - c[0], dvv[:, 2] - c[2]) < 0.012)[0]
-    return float(dvv[m, 1].min())
-ey_n = {k: np.array([v[0], fy_at(v), v[2]]) for k, v in ey_n.items()}
-oeff_a, oeff_b = float(a.get("oeff_a", 0.22)) * dEm, float(a.get("oeff_b", 0.1)) * dEm
-bm = bmesh.new(); bm.from_mesh(D.data); bm.faces.ensure_lookup_table()
-patch_faces = {"l": [], "r": []}
-for f in bm.faces:
-    cen = f.calc_center_median()
-    for k, c in ey_n.items():
-        if ((cen.x - c[0]) / oeff_a) ** 2 + ((cen.z - c[2]) / oeff_b) ** 2 < 1.0 and cen.y < c[1] + 0.012:
-            patch_faces[k].append(f.index)
-log("Lidfläche links", len(patch_faces["l"]), "rechts", len(patch_faces["r"]))
-# Flicken als eigenes Netz kopieren
-lid_me = bpy.data.meshes.new("lider")
-bm_l = bmesh.new()
-uv_src = bm.loops.layers.uv.active
-uv_dst = bm_l.loops.layers.uv.new("UVMap")
-vmap = {}
-for k in ("l", "r"):
-    for fi in patch_faces[k]:
-        f = bm.faces[fi]
-        nv = []
-        for v in f.verts:
-            if v.index not in vmap:
-                vmap[v.index] = bm_l.verts.new(v.co)
-            nv.append(vmap[v.index])
-        nf = bm_l.faces.new(nv)
-        for lp_s, lp_d in zip(f.loops, nf.loops):
-            lp_d[uv_dst].uv = lp_s[uv_src].uv
-bm_l.to_mesh(lid_me); bm_l.free()
-LID = bpy.data.objects.new("lider", lid_me); sc.collection.objects.link(LID)
-LID.data.materials.append(mat_zu if mat_zu else mat_offen)
-for p_ in lid_me.polygons: p_.use_smooth = True
-# Löcher in den Kopf schneiden
-bmesh.ops.delete(bm, geom=[bm.faces[i] for k in patch_faces for i in patch_faces[k]], context="FACES_ONLY")
-bmesh.ops.delete(bm, geom=[v for v in bm.verts if not v.link_faces], context="VERTS")
-# Lidrand: Öffnungsrand nach innen ziehen (Dicke der Lider), UV vom Randpunkt übernehmen
-bm.edges.ensure_lookup_table()
-uvl_ = bm.loops.layers.uv.active
-rand = [e for e in bm.edges if len(e.link_faces) == 1 and any(((e.verts[0].co.x - c[0]) / (oeff_a * 1.6)) ** 2 + ((e.verts[0].co.z - c[2]) / (oeff_b * 3.0)) ** 2 < 1.0 for c in ey_n.values())]
-# Randpunkte auf die Ellipse der Öffnung ziehen (saubere Augenform)
-for v in {v_ for e in rand for v_ in e.verts}:
-    cc = min(ey_n.values(), key=lambda c: (v.co.x - c[0]) ** 2 + (v.co.z - c[2]) ** 2)
-    dx_, dz_ = (v.co.x - cc[0]) / oeff_a, (v.co.z - cc[2]) / oeff_b
-    r_ = math.hypot(dx_, dz_)
-    if r_ > 1e-6:
-        v.co.x = cc[0] + dx_ / r_ * oeff_a; v.co.z = cc[2] + dz_ / r_ * oeff_b
-vuv = {}
-for e in rand:
-    for v in e.verts:
-        for lp in v.link_loops:
-            vuv[v.index] = lp[uvl_].uv.copy(); break
-ext = bmesh.ops.extrude_edge_only(bm, edges=rand)
-neue_v = [g for g in ext["geom"] if isinstance(g, bmesh.types.BMVert)]
-neue_f = [g for g in ext["geom"] if isinstance(g, bmesh.types.BMFace)]
-alt_zu_neu = {}
-for e in rand:
-    pass
-tief = float(a.get("lidtiefe", 0.005))
-for v in neue_v:
-    cc = min(ey_n.values(), key=lambda c: (v.co.x - c[0]) ** 2 + (v.co.z - c[2]) ** 2)
-    v.co.y += tief
-    v.co.x = cc[0] + (v.co.x - cc[0]) * 0.92
-    v.co.z = cc[2] + (v.co.z - cc[2]) * 0.92
-bm.verts.ensure_lookup_table()
-# UVs der Randfläche: nächstliegender alter Punkt
-for f in neue_f:
-    for lp in f.loops:
-        best = None; bd = 1e9
-        for oi, uvv_ in vuv.items():
-            ov = bm.verts[oi] if oi < len(bm.verts) else None
-            if ov is None: continue
-            d_ = (ov.co.x - lp.vert.co.x) ** 2 + (ov.co.z - lp.vert.co.z) ** 2 + (ov.co.y - lp.vert.co.y + tief) ** 2 * 0.2
-            if d_ < bd: bd, best = d_, uvv_
-        if best is not None: lp[uvl_].uv = best
-bm.to_mesh(D.data); bm.free()
-# Augäpfel: MPFB-Netz (CC0) importieren, auf Öffnung abstimmen
-eyeobj = os.path.expanduser("~/werkzeuge/mpfb/daten/data/eyes/low-poly/low-poly.obj")
-vor = set(bpy.data.objects)
-bpy.ops.wm.obj_import(filepath=eyeobj)
-EY = [o for o in bpy.data.objects if o not in vor][0]
-EY.data.transform(EY.matrix_world); EY.matrix_world = Matrix.Identity(4); EY.parent = None
-ev = netz_arrays(EY)
-mxe = np.median(ev[:, 0])
-tex_name = a.get("iris", "brownlight")
-eimg = bpy.data.images.load(os.path.expanduser("~/werkzeuge/mpfb/daten/data/eyes/materials/%s_eye.png" % tex_name))
-eimg.scale(512, 512)
-emat = bpy.data.materials.new("auge"); emat.use_nodes = True
-et = emat.node_tree.nodes.new("ShaderNodeTexImage"); et.image = eimg
-pb_ = emat.node_tree.nodes["Principled BSDF"]
-emat.node_tree.links.new(et.outputs["Color"], pb_.inputs["Base Color"]); pb_.inputs["Roughness"].default_value = 0.08
-augapfel = {}
-for k, seite in (("l", ev[:, 0] > mxe), ("r", ev[:, 0] <= mxe)):
-    idx = np.where(seite)[0]
-    c_old = ev[idx].mean(0)
-    # Vorderseite (Iris) über die UV-Mitte bestimmen und nach -Y drehen
-    uvl = EY.data.uv_layers.active
-    uvv = np.zeros((len(ev), 2)); lvi = np.empty(len(EY.data.loops), np.int64); EY.data.loops.foreach_get("vertex_index", lvi)
-    uvd = np.empty(len(EY.data.loops) * 2); uvl.data.foreach_get("uv", uvd); uvv[lvi] = uvd.reshape(-1, 2)
-    nahe = idx[np.linalg.norm(uvv[idx] - 0.5, axis=1) < 0.07]
-    if len(nahe):
-        fvec = (ev[nahe] - c_old).mean(0); fvec /= np.linalg.norm(fvec)
-        rot_q = Vector(fvec).rotation_difference(Vector((0, -1, 0)))
-        Rm = np.array(rot_q.to_matrix())
-        ev[idx] = (ev[idx] - c_old) @ Rm.T + c_old
-        log("Auge: Vorderseite war", np.round(fvec, 2))
-    # Vorderseite des MPFB-Auges zeigt nach -Y; Maße
-    r_old = np.abs(ev[idx] - c_old).max(0)
-    c = ey_n[k]
-    Rx = oeff_a * float(a.get("augenfaktor", 1.02))
-    sx, sy, sz = float(a.get('augx_f', 1.05)) * Rx / r_old[0], float(a.get('augtiefe_f', 0.6)) * Rx / r_old[1], float(a.get('augz_f', 0.72)) * Rx / r_old[2]
-    new = (ev[idx] - c_old) * np.array([sx, sy, sz]) + np.array([c[0], c[1] + float(a.get("augentiefe", 0.008)), c[2]])
-    augapfel[k] = (idx, new)
-allv = ev.copy()
-for k, (idx, new) in augapfel.items():
-    allv[idx] = new
-EY.data.vertices.foreach_set("co", allv.ravel()); EY.data.update()
-sub_ = EY.modifiers.new('s', 'SUBSURF'); sub_.levels = 1; sub_.render_levels = 1
-for x_ in bpy.context.selected_objects: x_.select_set(False)
-EY.select_set(True); bpy.context.view_layer.objects.active = EY
-bpy.ops.object.modifier_apply(modifier='s')
-EY.name = "augen"; EY.data.materials.clear(); EY.data.materials.append(emat)
-for p_ in EY.data.polygons: p_.use_smooth = True
-log("Augäpfel eingesetzt, Öffnung a=%.4f b=%.4f" % (oeff_a, oeff_b))
+if a.get("augenmalen"):
+    # gemalte Augen: nichts ausschneiden; unsichtbare Platzhalter-Netze (Lider/Augen) mit je einem winzigen Dreieck
+    def _mini(name):
+        me_ = bpy.data.meshes.new(name)
+        me_.from_pydata([(0, -0.10, 1.60), (0.0005, -0.10, 1.60), (0, -0.10, 1.6005)], [], [(0, 1, 2)])
+        o_ = bpy.data.objects.new(name, me_); sc.collection.objects.link(o_)
+        o_.data.materials.append(mat_offen)
+        return o_
+    LID = _mini("lider"); EY = _mini("augen")
+else:
+    # ---- Augen: Öffnung ausschneiden, Lid-Flicken (geschlossenes Auge) abtrennen, echte Augäpfel einsetzen ------------------------------
+    AUGEN = float(a.get("augenf", 1.0))
+    mat_zu = None
+    if timg_zu is not None:
+        mat_zu = bpy.data.materials.new("haut_zu_mat"); mat_zu.use_nodes = True
+        tz = mat_zu.node_tree.nodes.new("ShaderNodeTexImage"); tz.image = h_zu
+        mat_zu.node_tree.links.new(tz.outputs["Color"], mat_zu.node_tree.nodes["Principled BSDF"].inputs["Base Color"])
+    ey_n = {"l": np.array([(tlx - xm) * s, -0.146, 1.64]), "r": np.array([(trx - xm) * s, -0.146, 1.64])}
+    # vorderste Hautfläche an den Augen (Normiert) bestimmen
+    dvv = netz_arrays(D)
+    def fy_at(c):
+        m = np.where(np.hypot(dvv[:, 0] - c[0], dvv[:, 2] - c[2]) < 0.012)[0]
+        return float(dvv[m, 1].min())
+    ey_n = {k: np.array([v[0], fy_at(v), v[2]]) for k, v in ey_n.items()}
+    oeff_a, oeff_b = float(a.get("oeff_a", 0.22)) * dEm, float(a.get("oeff_b", 0.1)) * dEm
+    bm = bmesh.new(); bm.from_mesh(D.data); bm.faces.ensure_lookup_table()
+    patch_faces = {"l": [], "r": []}
+    for f in bm.faces:
+        cen = f.calc_center_median()
+        for k, c in ey_n.items():
+            if ((cen.x - c[0]) / oeff_a) ** 2 + ((cen.z - c[2]) / oeff_b) ** 2 < 1.0 and cen.y < c[1] + 0.012:
+                patch_faces[k].append(f.index)
+    log("Lidfläche links", len(patch_faces["l"]), "rechts", len(patch_faces["r"]))
+    # Flicken als eigenes Netz kopieren
+    lid_me = bpy.data.meshes.new("lider")
+    bm_l = bmesh.new()
+    uv_src = bm.loops.layers.uv.active
+    uv_dst = bm_l.loops.layers.uv.new("UVMap")
+    vmap = {}
+    for k in ("l", "r"):
+        for fi in patch_faces[k]:
+            f = bm.faces[fi]
+            nv = []
+            for v in f.verts:
+                if v.index not in vmap:
+                    vmap[v.index] = bm_l.verts.new(v.co)
+                nv.append(vmap[v.index])
+            nf = bm_l.faces.new(nv)
+            for lp_s, lp_d in zip(f.loops, nf.loops):
+                lp_d[uv_dst].uv = lp_s[uv_src].uv
+    bm_l.to_mesh(lid_me); bm_l.free()
+    LID = bpy.data.objects.new("lider", lid_me); sc.collection.objects.link(LID)
+    LID.data.materials.append(mat_zu if mat_zu else mat_offen)
+    for p_ in lid_me.polygons: p_.use_smooth = True
+    # Löcher in den Kopf schneiden
+    bmesh.ops.delete(bm, geom=[bm.faces[i] for k in patch_faces for i in patch_faces[k]], context="FACES_ONLY")
+    bmesh.ops.delete(bm, geom=[v for v in bm.verts if not v.link_faces], context="VERTS")
+    # Lidrand: Öffnungsrand nach innen ziehen (Dicke der Lider), UV vom Randpunkt übernehmen
+    bm.edges.ensure_lookup_table()
+    uvl_ = bm.loops.layers.uv.active
+    rand = [e for e in bm.edges if len(e.link_faces) == 1 and any(((e.verts[0].co.x - c[0]) / (oeff_a * 1.6)) ** 2 + ((e.verts[0].co.z - c[2]) / (oeff_b * 3.0)) ** 2 < 1.0 for c in ey_n.values())]
+    # Randpunkte auf die Ellipse der Öffnung ziehen (saubere Augenform)
+    for v in {v_ for e in rand for v_ in e.verts}:
+        cc = min(ey_n.values(), key=lambda c: (v.co.x - c[0]) ** 2 + (v.co.z - c[2]) ** 2)
+        dx_, dz_ = (v.co.x - cc[0]) / oeff_a, (v.co.z - cc[2]) / oeff_b
+        r_ = math.hypot(dx_, dz_)
+        if r_ > 1e-6:
+            v.co.x = cc[0] + dx_ / r_ * oeff_a; v.co.z = cc[2] + dz_ / r_ * oeff_b
+    vuv = {}
+    for e in rand:
+        for v in e.verts:
+            for lp in v.link_loops:
+                vuv[v.index] = lp[uvl_].uv.copy(); break
+    ext = bmesh.ops.extrude_edge_only(bm, edges=rand)
+    neue_v = [g for g in ext["geom"] if isinstance(g, bmesh.types.BMVert)]
+    neue_f = [g for g in ext["geom"] if isinstance(g, bmesh.types.BMFace)]
+    alt_zu_neu = {}
+    for e in rand:
+        pass
+    tief = float(a.get("lidtiefe", 0.005))
+    for v in neue_v:
+        cc = min(ey_n.values(), key=lambda c: (v.co.x - c[0]) ** 2 + (v.co.z - c[2]) ** 2)
+        v.co.y += tief
+        v.co.x = cc[0] + (v.co.x - cc[0]) * 0.92
+        v.co.z = cc[2] + (v.co.z - cc[2]) * 0.92
+    bm.verts.ensure_lookup_table()
+    # UVs der Randfläche: nächstliegender alter Punkt
+    for f in neue_f:
+        for lp in f.loops:
+            best = None; bd = 1e9
+            for oi, uvv_ in vuv.items():
+                ov = bm.verts[oi] if oi < len(bm.verts) else None
+                if ov is None: continue
+                d_ = (ov.co.x - lp.vert.co.x) ** 2 + (ov.co.z - lp.vert.co.z) ** 2 + (ov.co.y - lp.vert.co.y + tief) ** 2 * 0.2
+                if d_ < bd: bd, best = d_, uvv_
+            if best is not None: lp[uvl_].uv = best
+    bm.to_mesh(D.data); bm.free()
+    # Augäpfel: MPFB-Netz (CC0) importieren, auf Öffnung abstimmen
+    eyeobj = os.path.expanduser("~/werkzeuge/mpfb/daten/data/eyes/low-poly/low-poly.obj")
+    vor = set(bpy.data.objects)
+    bpy.ops.wm.obj_import(filepath=eyeobj)
+    EY = [o for o in bpy.data.objects if o not in vor][0]
+    EY.data.transform(EY.matrix_world); EY.matrix_world = Matrix.Identity(4); EY.parent = None
+    ev = netz_arrays(EY)
+    mxe = np.median(ev[:, 0])
+    tex_name = a.get("iris", "brownlight")
+    eimg = bpy.data.images.load(os.path.expanduser("~/werkzeuge/mpfb/daten/data/eyes/materials/%s_eye.png" % tex_name))
+    eimg.scale(512, 512)
+    emat = bpy.data.materials.new("auge"); emat.use_nodes = True
+    et = emat.node_tree.nodes.new("ShaderNodeTexImage"); et.image = eimg
+    pb_ = emat.node_tree.nodes["Principled BSDF"]
+    emat.node_tree.links.new(et.outputs["Color"], pb_.inputs["Base Color"]); pb_.inputs["Roughness"].default_value = 0.08
+    augapfel = {}
+    for k, seite in (("l", ev[:, 0] > mxe), ("r", ev[:, 0] <= mxe)):
+        idx = np.where(seite)[0]
+        c_old = ev[idx].mean(0)
+        # Vorderseite (Iris) über die UV-Mitte bestimmen und nach -Y drehen
+        uvl = EY.data.uv_layers.active
+        uvv = np.zeros((len(ev), 2)); lvi = np.empty(len(EY.data.loops), np.int64); EY.data.loops.foreach_get("vertex_index", lvi)
+        uvd = np.empty(len(EY.data.loops) * 2); uvl.data.foreach_get("uv", uvd); uvv[lvi] = uvd.reshape(-1, 2)
+        nahe = idx[np.linalg.norm(uvv[idx] - 0.5, axis=1) < 0.07]
+        if len(nahe):
+            fvec = (ev[nahe] - c_old).mean(0); fvec /= np.linalg.norm(fvec)
+            rot_q = Vector(fvec).rotation_difference(Vector((0, -1, 0)))
+            Rm = np.array(rot_q.to_matrix())
+            ev[idx] = (ev[idx] - c_old) @ Rm.T + c_old
+            log("Auge: Vorderseite war", np.round(fvec, 2))
+        # Vorderseite des MPFB-Auges zeigt nach -Y; Maße
+        r_old = np.abs(ev[idx] - c_old).max(0)
+        c = ey_n[k]
+        Rx = oeff_a * float(a.get("augenfaktor", 1.02))
+        sx, sy, sz = float(a.get('augx_f', 1.05)) * Rx / r_old[0], float(a.get('augtiefe_f', 0.6)) * Rx / r_old[1], float(a.get('augz_f', 0.72)) * Rx / r_old[2]
+        new = (ev[idx] - c_old) * np.array([sx, sy, sz]) + np.array([c[0], c[1] + float(a.get("augentiefe", 0.008)), c[2]])
+        augapfel[k] = (idx, new)
+    allv = ev.copy()
+    for k, (idx, new) in augapfel.items():
+        allv[idx] = new
+    EY.data.vertices.foreach_set("co", allv.ravel()); EY.data.update()
+    sub_ = EY.modifiers.new('s', 'SUBSURF'); sub_.levels = 1; sub_.render_levels = 1
+    for x_ in bpy.context.selected_objects: x_.select_set(False)
+    EY.select_set(True); bpy.context.view_layer.objects.active = EY
+    bpy.ops.object.modifier_apply(modifier='s')
+    EY.name = "augen"; EY.data.materials.clear(); EY.data.materials.append(emat)
+    for p_ in EY.data.polygons: p_.use_smooth = True
+    log("Augäpfel eingesetzt, Öffnung a=%.4f b=%.4f" % (oeff_a, oeff_b))
+
 
 # ---- Mundspalt aufschneiden ----------------------------------------------------------------------------------
 bm = bmesh.new(); bm.from_mesh(D.data)

@@ -124,10 +124,12 @@ func _form(name: String, wert: float) -> void:
 		_setze_blink(wert)
 
 func _setze_blink(v: float) -> void:
+	if _mat:
+		_mat.set_shader_parameter("blink", v)
 	if _lider:
-		_lider.visible = v > 0.45
+		_lider.visible = false
 	if _augen:
-		_augen.visible = v <= 0.45
+		_augen.visible = false
 
 func mund_haltung(ziel: Dictionary) -> void:
 	_halte = ziel
@@ -136,14 +138,14 @@ func mund_haltung(ziel: Dictionary) -> void:
 const VISEM := {
 	"a": {"jawOpen": 0.85, "mouthLowerDownLeft": 0.35, "mouthLowerDownRight": 0.35},
 	"e": {"jawOpen": 0.4, "mouthStretchLeft": 0.55, "mouthStretchRight": 0.55},
-	"i": {"jawOpen": 0.22, "mouthSmileLeft": 0.5, "mouthSmileRight": 0.5, "mouthStretchLeft": 0.25, "mouthStretchRight": 0.25},
+	"i": {"jawOpen": 0.22, "mouthSmileLeft": 0.8, "mouthSmileRight": 0.8, "mouthStretchLeft": 0.25, "mouthStretchRight": 0.25},
 	"o": {"jawOpen": 0.5, "mouthFunnel": 0.7},
 	"u": {"jawOpen": 0.2, "mouthPucker": 0.8},
 	"m": {"mouthClose": 0.8, "mouthPressLeft": 0.5, "mouthPressRight": 0.5},
 	"f": {"jawOpen": 0.1, "mouthUpperUpLeft": 0.35, "mouthUpperUpRight": 0.35, "mouthRollLower": 0.5},
 	"t": {"jawOpen": 0.2},
 	"-": {},
-	"lachen": {"jawOpen": 0.25, "mouthSmileLeft": 0.9, "mouthSmileRight": 0.9},
+	"lachen": {"jawOpen": 0.25, "mouthSmileLeft": 1.6, "mouthSmileRight": 1.6},
 }
 const FORMEN_ALLE := ["mouthFunnel", "mouthPucker", "mouthSmileLeft", "mouthSmileRight", "mouthStretchLeft", "mouthStretchRight",
 	"mouthLowerDownLeft", "mouthLowerDownRight", "mouthUpperUpLeft", "mouthUpperUpRight", "mouthRollLower", "mouthRollUpper",
@@ -210,7 +212,7 @@ var _halte := {}
 
 func _formen_anwenden(ziel: Dictionary, dt: float) -> void:
 	var k := clampf(dt * 20.0, 0.0, 1.0)
-	_kiefer_ist = lerpf(_kiefer_ist, float(ziel.get("jawOpen", 0.0)), k)
+	_kiefer_ist = lerpf(_kiefer_ist, minf(float(ziel.get("jawOpen", 0.0)), 0.7), k)
 	if _form_netz == null:
 		return
 	for f in FORMEN_ALLE:

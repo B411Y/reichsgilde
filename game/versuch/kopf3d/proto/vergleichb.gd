@@ -34,9 +34,9 @@ func _ready() -> void:
 	_bild(raster, "roh", "3. TRELLIS roh (Form + Textur, 300 000 Flächen)")
 	var faelle := [
 		["4. Fertig: Ruhe", {}, {}, ""],
-		["5. Fertig: Sprechen (a)", {}, {"jawOpen": 0.9, "mouthLowerDownLeft": 0.35, "mouthLowerDownRight": 0.35}, ""],
+		["5. Fertig: Sprechen (a)", {}, {"jawOpen": 0.7, "mouthLowerDownLeft": 0.35, "mouthLowerDownRight": 0.35}, ""],
 		["6. Fertig: Blinzeln", {"blink": 1.0}, {}, ""],
-		["7. Fertig: Lächeln", {}, {"jawOpen": 0.2, "mouthSmileLeft": 1.0, "mouthSmileRight": 1.0}, ""],
+		["7. Fertig: Lächeln", {}, {"jawOpen": 0.2, "mouthSmileLeft": 1.7, "mouthSmileRight": 1.7}, ""],
 		["8. Dreiviertel von der Seite", {}, {}, "0.9,1.66,0.8"],
 	]
 	for f in faelle:
