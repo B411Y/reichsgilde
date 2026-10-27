@@ -130,7 +130,7 @@ public partial class Hauptszene
             case Key.Escape when _hilfe.Visible:
                 HilfeSchliessen();
                 break;
-            case Key.Escape when _lexikon.Visible:
+            case Key.Escape when _lexikon.Offen:
                 _lexikon.Schliessen();
                 break;
             case Key.Escape:

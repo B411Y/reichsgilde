@@ -104,15 +104,22 @@ public partial class LexikonAnzeige : CenterContainer
     public void Oeffnen(string kennung = "")
     {
         Show();
+        Tafel.Show(); // nach dem Ziehen hängt die Tafel in der Fensterebene, nicht mehr in diesem Container
         _baumStand = "\0";
         BaumBauen();
         if (Lexikon.FindeBegriff(kennung) is not null) Zeigen(kennung);
         else if (_aktuell is not null) Zeigen(_aktuell, merken: false);
         else Startseite();
-        _suche.CallDeferred(Control.MethodName.GrabFocus);
     }
 
-    public void Schliessen() => Hide();
+    public void Schliessen()
+    {
+        Hide();
+        Tafel.Hide();
+    }
+
+    /// <summary>Ist das Lexikon zu sehen? (Die Tafel kann nach dem Ziehen außerhalb dieses Containers hängen und allein versteckt werden.)</summary>
+    public bool Offen => Visible && Tafel.Visible;
 
     /// <summary>Trägt einen Suchtext ein (Startoption <c>--lexikon=suche:&lt;text&gt;</c>).</summary>
     public void Suchen(string text)
@@ -236,7 +243,7 @@ public partial class LexikonAnzeige : CenterContainer
 
     public override void _Process(double delta)
     {
-        if (!Visible) return;
+        if (!Offen) return;
         _seitAufbau += delta;
         if (_seitAufbau < 0.5) return;
         _seitAufbau = 0;

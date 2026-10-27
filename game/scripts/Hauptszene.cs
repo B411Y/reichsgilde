@@ -1052,7 +1052,7 @@ public partial class Hauptszene : Node
             else if (_jahresbericht.Visible) { /* der Bericht wird mit „Weiter" geschlossen */ }
             else if (_hilfe.Visible)
                 HilfeSchliessen();
-            else if (_lexikon.Visible)
+            else if (_lexikon.Offen)
                 _lexikon.Schliessen();
             else if (_bauFrage.Visible)
                 _bauFrage.Zurueck();
@@ -1120,7 +1120,7 @@ public partial class Hauptszene : Node
                 else MarktOeffnen();
                 break;
             case Key.L when ohneZusatz && imSpiel:
-                if (_lexikon.Visible) _lexikon.Schliessen();
+                if (_lexikon.Offen) _lexikon.Schliessen();
                 else _lexikon.Oeffnen();
                 break;
             case Key.B when ohneZusatz && imSpiel:
