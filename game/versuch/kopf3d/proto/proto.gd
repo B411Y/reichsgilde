@@ -7,6 +7,7 @@ var fenster: KopfFenster
 var bilder := ""
 var _t := 0.0
 var _fotos := []
+var _ohnebart := false
 var _ereignis1 := false
 var _ereignis2 := false
 
@@ -14,6 +15,8 @@ func _ready() -> void:
 	for a in OS.get_cmdline_user_args():
 		if a.begins_with("--bilder="):
 			bilder = a.substr(9)
+		if a == "--ohnebart":
+			_ohnebart = true
 	var bg := ColorRect.new()
 	bg.color = Color(0.1, 0.09, 0.08)
 	bg.set_anchors_preset(Control.PRESET_FULL_RECT)
@@ -54,6 +57,8 @@ func _ready() -> void:
 	sa.text = "Sprechen (Audio-Probe)"
 	sa.pressed.connect(func(): fenster.kopf.sprechen_audio(load("res://versuch/kopf3d/proto/probe.wav")))
 	rechts.add_child(sa)
+	if _ohnebart:
+		bt.button_pressed = false
 	_fotos = [[1.5, "ruhe"], [2.2, "sprechen1"], [2.45, "sprechen2"], [2.7, "sprechen3"], [4.5, "blinzeln"]] if bilder != "" else []
 
 func _regler(eltern: Control, titel: String, mn: float, mx: float, start: float, f: Callable) -> void:

@@ -66,6 +66,14 @@ func _ready() -> void:
 		elif n.begins_with("haar_") or n == "bart":
 			m.material_override = _haar_mat
 			m.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+		elif n.contains("low-poly"):
+			var au := (m.get_active_material(0) as StandardMaterial3D).duplicate() as StandardMaterial3D
+			au.roughness = 0.05
+			au.metallic_specular = 1.0
+			au.clearcoat_enabled = true
+			au.clearcoat = 1.0
+			au.clearcoat_roughness = 0.02
+			m.material_override = au
 		elif n.contains("casualsuit"):
 			var kl := StandardMaterial3D.new()
 			kl.albedo_color = Color(0.30, 0.24, 0.17)

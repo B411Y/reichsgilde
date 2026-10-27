@@ -54,7 +54,11 @@ func _welt_bauen() -> void:
 	env.background_color = hintergrund
 	env.ambient_light_source = Environment.AMBIENT_SOURCE_COLOR
 	env.ambient_light_color = Color(0.62, 0.56, 0.5)
-	env.ambient_light_energy = 0.55
+	env.ambient_light_energy = 0.38
+	env.ssao_enabled = true
+	env.ssao_radius = 0.05
+	env.ssao_intensity = 2.5
+	env.ssao_power = 1.6
 	env.tonemap_mode = Environment.TONE_MAPPER_FILMIC
 	env.tonemap_exposure = 1.05
 	var we := WorldEnvironment.new()
@@ -63,17 +67,18 @@ func _welt_bauen() -> void:
 	# Hauptlicht: warm, von links oben vorn, weiche Schatten
 	var key := DirectionalLight3D.new()
 	key.light_color = Color(1.0, 0.88, 0.72)
-	key.light_energy = 1.9
+	key.light_energy = 2.6
 	key.shadow_enabled = true
-	key.shadow_blur = 2.0
+	key.shadow_blur = 1.2
+	key.shadow_normal_bias = 1.0
 	key.directional_shadow_mode = DirectionalLight3D.SHADOW_ORTHOGONAL
-	key.directional_shadow_max_distance = 3.0
+	key.directional_shadow_max_distance = 2.0
 	ansicht.add_child(key)
-	key.look_at_from_position(Vector3(-1.6, 2.6, 2.2), Vector3(0, 1.6, 0))
+	key.look_at_from_position(Vector3(-1.9, 2.7, 1.4), Vector3(0, 1.6, 0))
 	# Fülllicht: kühl, schwach, von rechts
 	var fuell := DirectionalLight3D.new()
 	fuell.light_color = Color(0.65, 0.76, 1.0)
-	fuell.light_energy = 0.35
+	fuell.light_energy = 0.2
 	ansicht.add_child(fuell)
 	fuell.look_at_from_position(Vector3(2.0, 1.4, 1.6), Vector3(0, 1.6, 0))
 	# Kantenlicht: warm von hinten rechts, hebt Haar und Schulter vom Grund

@@ -161,6 +161,12 @@ for o in M.objekte(b):
     if o.name == "Human": ausduennen(o, int(a.get("koerper", 6200)), schuetz_z=kopfz)
     elif "casualsuit" in o.name: ausduennen(o, int(a.get("kleid", 1800)))
     elif "teeth" in o.name: ausduennen(o, int(a.get("zaehne", 700)))
+import gesicht as G
+_koerper = [o for o in M.objekte(b) if o.name == "Human"][0]
+_zentral = [v.co.copy() for v in _koerper.data.vertices if abs(v.co.x) < 0.004 and v.co.z > 1.4]
+_nase = min(_zentral, key=lambda v: v.y)
+G.anwenden(_koerper, [o for o in M.objekte(b) if o.type == "MESH" and ("eyebrow" in o.name or "eyelash" in o.name)],
+           _nase, float(a.get("formen", 1.0)))
 import hilfe_karten as H
 
 
