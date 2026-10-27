@@ -36,7 +36,7 @@ public partial class Tooltips : Node
     /// <summary>Sekunden, die die Maus auf einem Verweis ruhen muss, bis sein Begriff erscheint.</summary>
     private const double VerweisVerzoegerung = 0.2;
     /// <summary>Sekunden, die ein Tooltip nach dem Weggehen der Maus bleibt – so lange braucht die Maus von der Quelle in den Tooltip.</summary>
-    private const double Nachlauf = 0.25;
+    private const double Nachlauf = 0.4;
     private const int MaxBreite = 340;
     private const int Schriftgroesse = 16;
 
@@ -206,7 +206,9 @@ public partial class Tooltips : Node
                     t.Gezogen = false;
             }
             else if (!t.Fest)
-                t.Tafel.GlobalPosition = Lage(t.Anker, t.Tafel.Size, sichtbar);
+                t.Tafel.GlobalPosition = t.Eltern is { } vater && IsInstanceValid(vater.Tafel)
+                    ? LageNebenEltern(t.Anker, t.Tafel.Size, sichtbar, vater.Tafel.GetGlobalRect())
+                    : Lage(t.Anker, t.Tafel.Size, sichtbar);
 
             // Verweilt die Maus auf einem Verweis, öffnet sich dessen Begriff – auch in einem festen Tooltip
             if (t.VerweisUnterMaus is { } kennung)
@@ -428,6 +430,21 @@ public partial class Tooltips : Node
         if (p.X + groesse.X > sichtbar.X - 4) p.X = Math.Max(4, anker.X - groesse.X - 14);
         if (p.Y + groesse.Y > sichtbar.Y - 4) p.Y = Math.Max(4, anker.Y - groesse.Y - 12);
         return p;
+    }
+
+    /// <summary>
+    /// Wie <see cref="Lage"/>, aber ohne den Eltern-Tooltip zu verdecken: Kommt die Stelle neben der Maus mit ihm in Konflikt, steht der neue rechts oder links
+    /// daneben (in Höhe der Maus), sonst unter ihm.
+    /// </summary>
+    private static Vector2 LageNebenEltern(Vector2 anker, Vector2 groesse, Vector2 sichtbar, Rect2 eltern)
+    {
+        var p = Lage(anker, groesse, sichtbar);
+        if (!new Rect2(p, groesse).Intersects(eltern.Grow(-1))) return p;
+        var hoehe = Math.Clamp(anker.Y - 14, 4, Math.Max(4, sichtbar.Y - groesse.Y - 4));
+        if (eltern.End.X + 6 + groesse.X <= sichtbar.X - 4) return new Vector2(eltern.End.X + 6, hoehe);
+        if (eltern.Position.X - 6 - groesse.X >= 4) return new Vector2(eltern.Position.X - 6 - groesse.X, hoehe);
+        var unten = eltern.End.Y + 6;
+        return unten + groesse.Y <= sichtbar.Y - 4 ? new Vector2(Math.Clamp(anker.X, 4, Math.Max(4, sichtbar.X - groesse.X - 4)), unten) : p;
     }
 
     private static Vector2 Klemmen(Vector2 p, Vector2 groesse, Vector2 sichtbar) =>
