@@ -73,6 +73,14 @@ wetter_wind={
 "type": "float",
 "value": 0.25
 }
+boden_pom={
+"type": "float",
+"value": 0.0
+}
+boden_blick={
+"type": "vec3",
+"value": Vector3(0, 0.8, 0.6)
+}
 wetter_himmel={
 "type": "vec3",
 "value": Vector3(0.3, 0.42, 0.6)

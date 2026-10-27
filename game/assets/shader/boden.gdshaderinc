@@ -91,6 +91,14 @@ const float SCHATTEN_DUNKEL = 0.36;
 const float WEG_UEBERHANG = 0.4;
 // Schritt 5i (Hoch): so viel kräftiger wirken die Normalen der Texturen
 const float NORMAL_STAERKE = 1.7;
+// Höhe der Straße über dem Boden (Meter): ein Randstein, Hoch (siehe boden_pom)
+const float PFLASTER_ABSATZ = 0.14;
+
+// Pflaster mit Tiefe (PR #218, nur Stufe Hoch): Parallax-Okklusion. boden_pom = Tiefe des Reliefs in Metern (0 = aus), boden_blick = Richtung vom Boden
+// zur Kamera (Welt, Länge 1; die Kamera ist ohne Perspektive, die Richtung gilt überall). Die Steine stehen erhaben, die Fugen sind tief: Aus
+// schrägem Blick wandern die Steine gegen die Fugen, statt als flache Schicht zu liegen.
+global uniform float boden_pom;
+global uniform vec3 boden_blick;
 
 varying vec2 welt;
 varying vec3 welt_n;
@@ -120,6 +128,40 @@ float nr_rauheit(vec4 t) {
 }
 #endif
 
+#if BODEN_STUFE >= 2
+// Parallax-Okklusion für eine Schicht: Der Blickstrahl dringt in Stufen in die Höhenkarte (A der Textur, 1 = oben) ein, bis er unter der Oberfläche liegt;
+// dazwischen wird linear angenähert. uv = Textur-Koordinate der Variante (schon gedreht mit r), g = Ableitungen. Gibt den Versatz in ungedrehten
+// Koordinaten zurück (Welt-X/Z geteilt durch massstab).
+vec2 pom_versatz(vec3 u, mat2 r, vec2 gx, vec2 gy) {
+	vec3 v = boden_blick;
+	if (v.y < 0.2) return vec2(0.0);
+	float weit = clamp(1.0 - length(vec2(length(gx), length(gy))) * 28.0, 0.0, 1.0);   // aus der Ferne keine Tiefe (flimmert, wäre unsichtbar)
+	if (weit <= 0.0) return vec2(0.0);
+	vec2 ganz = v.xz / v.y * (boden_pom / massstab) * weit;   // Versatz bei voller Tiefe
+	const int N = 10;
+	float schicht = 1.0 / float(N);
+	vec2 schritt = ganz * schicht;
+	vec2 off = vec2(0.0);
+	float tiefe = 0.0;
+	float ist = 1.0 - textureGrad(texturen, vec3(u.xy - r * off, u.z), r * gx, r * gy).a;
+	float tiefe_alt = 0.0, ist_alt = ist;
+	vec2 off_alt = off;
+	for (int i = 0; i < N; i++) {
+		if (tiefe >= ist) break;
+		off_alt = off;
+		tiefe_alt = tiefe;
+		ist_alt = ist;
+		off += schritt;
+		tiefe += schicht;
+		ist = 1.0 - textureGrad(texturen, vec3(u.xy - r * off, u.z), r * gx, r * gy).a;
+	}
+	float danach = ist - tiefe;
+	float davor = ist_alt - tiefe_alt;
+	float w = danach / (danach - davor + 1e-5);
+	return mix(off, off_alt, clamp(w, 0.0, 1.0));
+}
+#endif
+
 // Eine Textur von oben abtasten (uv = Welt-X/Z). n = Normale des Geländes; dx, dy = Ableitungen von Welt-X/Z im Bild.
 // Niedrig: zwei Maßstäbe übereinander. Ab Mittel: Kachel-Brechung – jede „virtuelle Kachel“ (aus einem langsamen Rauschen) liegt anders
 // verschoben und gedreht; zwei Nachbarn gehen nach ihrer Höhe ineinander über (nach Quilez, „texture repetition“).
@@ -144,6 +186,13 @@ Schicht eben(int nr, vec2 p, vec3 n, vec2 dx, vec2 dy) {
 	float wa = ia * 2.39996;
 	mat2 ra = mat2(vec2(cos(wa), sin(wa)), vec2(-sin(wa), cos(wa)));
 	vec3 ua = vec3(ra * uv + fract(vec2(0.754877, 0.569840) * ia), float(nr));
+#if BODEN_STUFE >= 2
+	vec2 pom = vec2(0.0);
+	if (nr == T_PFLASTER && boden_pom > 0.0) {
+		pom = pom_versatz(ua, ra, gx, gy);
+		ua.xy -= ra * pom;
+	}
+#endif
 	vec4 a = textureGrad(texturen, ua, ra * gx, ra * gy);
 	vec4 b = a;
 	mat2 rb = ra;
@@ -153,12 +202,17 @@ Schicht eben(int nr, vec2 p, vec3 n, vec2 dx, vec2 dy) {
 		float wb = wa + 2.39996;
 		rb = mat2(vec2(cos(wb), sin(wb)), vec2(-sin(wb), cos(wb)));
 		ub = vec3(rb * uv + fract(vec2(0.754877, 0.569840) * (i + 1.0)), float(nr));
+#if BODEN_STUFE >= 2
+		ub.xy -= rb * pom;
+#endif
 		b = textureGrad(texturen, ub, rb * gx, rb * gy);
 		// höchstens 0,12 verschoben: außerhalb des Bandes bleibt eine Variante ganz – sonst sähe man dort eine Naht
 		m = smoothstep(0.4, 0.6, f + (b.a - a.a) * 0.12);
 	}
 	s.fh = mix(a, b, m);
 #if BODEN_STUFE >= 2
+	// Fugen mit Tiefe (Pflaster, Hoch): was tiefer liegt, bekommt weniger Licht – die Fugen werden dunkel, die Kuppen bleiben hell
+	if (nr == T_PFLASTER && boden_pom > 0.0) s.fh.rgb *= 0.62 + 0.38 * smoothstep(0.15, 0.55, s.fh.a);
 	if (nr_da) {
 		// zurück in Weltrichtung: die gedrehte Normale um denselben Winkel zurückdrehen
 		vec4 na = textureGrad(texturen_nr, ua, ra * gx, ra * gy);
@@ -476,7 +530,7 @@ vec4 weg(vec3 p3, vec3 n, vec3 dpx, vec3 dpy, float kante, vec4 grund, float gr,
 			erdig = smoothstep(0.0, 0.25, (1.0 - x) * 0.9 + n2 * 0.5 + n3 * 0.3 + fuge * 0.5 - 0.2);
 			pf = mix(pf, erde.fh.rgb * mix(0.78, 0.95, n3 + 0.5), erdig);
 		}
-		hoehe += (0.03 * randstein - 0.02 * fugenrinne * kern) * (1.0 - erdig) * w_pf;
+		hoehe += (0.05 * randstein - 0.03 * fugenrinne * kern) * (1.0 - erdig) * w_pf;
 		vec3 boden = mix(grund.rgb, grund.rgb * 0.8, 1.0 - smoothstep(0.0, 0.15, e)); // ein dunkler Saum vor der Kante
 		farbe += mix(boden, pf, kern) * w_pf;
 		rau += mix(grau, mix(ps.rau - 0.07, erde.rau, erdig), kern) * w_pf;
@@ -555,6 +609,20 @@ void fragment() {
 		float hart = smoothstep(2.0, 4.0, max(abs(dFdx(st)) / meter.x, abs(dFdy(st)) / meter.y));
 		if (st > 1.0 && st < 3.0) ws.b = mix(st, st < 2.0 ? 1.0 : 3.0, hart) * 0.25;
 	}
+	// Absatz am Rand des Pflasters (PR #218, Hoch): Die Straße liegt PFLASTER_ABSATZ über dem Boden. Aus schrägem Blick sieht man ihre Oberseite weiter zur
+	// Kamera hin (der Blickstrahl trifft sie, bevor er den Boden erreicht) und auf der abgewandten Seite die Kante als dunklen Streifen.
+	float absatz_seite = 0.0;
+#if BODEN_STUFE >= 2
+	if (wege_an && boden_pom > 0.0) {
+		vec2 hoch = boden_blick.xz / max(boden_blick.y, 0.2) * PFLASTER_ABSATZ;
+		vec4 wt = texture(wege, (welt + hoch - wege_ursprung + vec2(WEG_TEXEL)) / (WEG_BILD * WEG_TEXEL));
+		float e0 = ws.g * 8.0 - 6.0, et = wt.g * 8.0 - 6.0;
+		float pf0 = (1.0 - smoothstep(-0.03, 0.03, e0)) * step(2.5, ws.b * 4.0);
+		float pft = (1.0 - smoothstep(-0.03, 0.03, et)) * step(2.5, wt.b * 4.0);
+		ws = mix(ws, wt, pft);
+		absatz_seite = pf0 * (1.0 - pft);
+	}
+#endif
 	// Marktplatz: Gemaltes Pflaster in der Mauer bleibt Pflaster. Der Grund dort ist kein Lehm, und die Wege, die unter dem Platz enden, bleiben unsichtbar.
 	// stadtgrund bleibt für das Wetter (Nässe und Schnee wie in den Gassen) erhalten.
 	float stadtgrund = info.b;
@@ -732,6 +800,7 @@ void fragment() {
 					info.b, info.a * 4.0, hoehe, nw);
 			farbe = mix(wg.rgb, farbe, marktpflaster);
 			rau = mix(wg.a, rau, marktpflaster);
+			farbe *= 1.0 - 0.62 * absatz_seite; // die Seite des Absatzes liegt im Schatten
 		}
 	}
 	// Wetter: Nässe, Pfützen (in Hoch mit Regenringen) und Schnee (wetter.gdshaderinc)

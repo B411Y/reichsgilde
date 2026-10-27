@@ -254,6 +254,7 @@ public partial class Stadtansicht
         WetterGlobaleSetzen();
         PartikelNachfuehren();
         TraufenStellen(delta); // Stadtansicht.Traufen.cs
+        PflasterReliefStellen(); // Stadtansicht.Pflasterrelief.cs
     }
 
     private void WetterGlobal(string name, float wert, float schwelle = 0.002f)
