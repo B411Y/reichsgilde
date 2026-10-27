@@ -1229,7 +1229,7 @@ Entscheidungen zur Sitzung: `docs/bereiche/oberflaeche.md`, „Sichtbare Ratssit
 | Umsetzung Innenraum | `DomBauen` kennt `koelner_dom`: Der Innenraum (Bänke, Altar, Kanzel, Taufstein, Gläubige) liegt im Langhausstumpf, 4,55 m vor dem Ursprung des Modells (`pm`), 9 × 13,1 m statt 9 × 21 m: der Chor mit Altar und die Kanzel rücken um 3,9 m zur Mitte (`v`), fünf statt acht Bankreihen, der Taufstein bei z 5,8, die Schranke der Simultankirche kürzer. Beim Hineinsehen gehen Chor und Notdach (`Dach`), Türme und Kran (`Turm`) und die Wände zur Kamera weg. Klickflächen: Langhausstumpf, Chor (14 × 30 × 13,5 m) und Türme. Der Dom der übrigen Karten bleibt unverändert (`v` 0, Maße wie vorher). | 27.10.2026 |
 | Klicktest Dom | Vulkan auf der T400, Köln, Stand 4593148 + dieser Stand, neu importiert: Tag klar, Nacht mit `--messe=1` (die hohen Chorfenster leuchten orange, das Ewige Licht rot am Portal) und Innenansicht aus zwei Richtungen (Gläubige, Altar, Kanzel passen in den Stumpf, Chor und Türme blenden aus). Die Umgangfenster sind „Elbenglas“ und leuchten nie: Das Fensterlicht ist ein Material je Gruppe für die ganze Stadt, eine grüne Leuchtfarbe nur für den Dom wäre ein eigenes Material. | 27.10.2026 |
 
-### Regen, Nässe, Pfützen, Lichter und Pflaster (PR #NR)
+### Regen, Nässe, Pfützen, Lichter und Pflaster (PR #218)
 
 | Thema | Entscheidung | Datum |
 |---|---|---|
