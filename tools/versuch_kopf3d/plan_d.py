@@ -783,6 +783,39 @@ if a.get("nasedebug"):
 # zusätzlich: Flächen an der Nase, die vom Porträt weg zeigen (Flügelränder, Unterseite), wie Schatten abdunkeln
 nf = nah_nase * (dv[:, 2] < nase_n[2] + 0.1 * dEm) * np.maximum(1.0 - np.clip(w_p, 0, 1), 1.0 - sm(cosw, 0.15, 0.55))
 farbe *= (1.0 - float(a.get("nasedunkel", 0.0)) * nf)[:, None]
+# Formschatten aus der Geometrie (Umgebungsverdeckung, kurze Reichweite): Augenhöhlen, Nasenflügel, Lippen, Ohrmuschel.
+# Die Projektion ist schattenlos; dieser Faktor gibt die Form zurück, das Licht im Spiel macht den Rest.
+if float(a.get("ao", 0.0)) > 0:
+    import random as _rnd
+    _rnd.seed(3)
+    _dirs = []
+    while len(_dirs) < int(a.get("ao_strahlen", 48)):
+        _v = np.array([_rnd.gauss(0, 1) for _ in range(3)]); _v /= np.linalg.norm(_v); _dirs.append(_v)
+    _dirs = np.array(_dirs)
+    _reich = float(a.get("ao_weite", 0.012))
+    ao = np.ones(n)
+    _bvh_ao = BVHTree.FromObject(D, bpy.context.evaluated_depsgraph_get())
+    for i_ in np.where(~ist_beutel)[0]:
+        _n = nvn[i_]
+        _d = _dirs * np.sign(_dirs @ _n)[:, None]
+        _w = _d @ _n
+        _p = Vector(dv[i_] + _n * 0.0003)
+        _tr = 0.0; _ws = 0.0
+        for d_, w_ in zip(_d, _w):
+            r_ = _bvh_ao.ray_cast(_p, Vector(d_), _reich)
+            if r_[0] is not None:
+                _tr += w_ * (1.0 - r_[3] / _reich)
+            _ws += w_
+        ao[i_] = 1.0 - _tr / max(_ws, 1e-6)
+    # glätten über Nachbarn (eine Runde)
+    _nb = [[] for _ in range(n)]
+    for e_ in me.edges:
+        a0, a1 = e_.vertices; _nb[a0].append(a1); _nb[a1].append(a0)
+    ao = np.array([(ao[i_] + sum(ao[j] for j in _nb[i_])) / (1 + len(_nb[i_])) for i_ in range(n)])
+    ao_f = 1.0 - float(a.get("ao", 0.0)) * (1.0 - np.clip(ao, 0, 1))
+    ao_f[ist_beutel] = 1.0
+    farbe *= ao_f[:, None]
+    log("Formschatten: Mittel %.2f, dunkelste 5 %% %.2f" % (ao_f.mean(), np.percentile(ao_f, 5)))
 ca.data.foreach_set("color", np.hstack([farbe, w_p[:, None]]).astype(np.float32).ravel())
 unter_tief = -s_m          # > 0 unterhalb der Lippenlinie (in Halbbreiten)
 f_nah = 1.0 - sm(np.abs(t_m), 0.45, 1.05)                    # nahe der Linie: Linse, Ecken bleiben
