@@ -11,6 +11,7 @@
     {"kennung": "markt", "art": "sonderbau", "name": "Marktplatz", "modell": "gebaeude/marktplatz", "groesse": [24, 24]},
     {"kennung": "rathaus", "art": "sonderbau", "name": "Rathaus", "modell": "gebaeude/rathaus", "groesse": [16, 10]},
     {"kennung": "dom", "art": "sonderbau", "name": "Dom", "modell": "gebaeude/dom", "groesse": [12.5, 30.2], "versatz": [0, -2.85]},
+    {"kennung": "koelner_dom", "art": "sonderbau", "name": "Kölner Dom", "modell": "gebaeude/koelner_dom", "groesse": [14, 34]},
     {"kennung": "kirche", "art": "sonderbau", "name": "Kirche", "groesse": [16, 14]},
     {"kennung": "hafen", "art": "sonderbau", "name": "Hafen mit Kran", "groesse": [16, 14]},
     {"kennung": "hafenkran", "art": "sonderbau", "name": "Tretradkran", "modell": "wasser/wasser_kran", "groesse": [8, 8], "amUfer": true},
