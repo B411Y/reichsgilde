@@ -29,7 +29,7 @@ public partial class RatssitzungAnzeige : Control
     private static readonly Color Grau = new(0.72f, 0.72f, 0.72f);
     private static readonly Color Gruen = new(0.55f, 0.85f, 0.5f);
     private static readonly Color Rot = new(0.95f, 0.45f, 0.4f);
-    private const int Breite = 900;
+    private const int Breite = 1040;
 
     private enum Schritt { Aufruf, Rede, Stimme, Spieler, Ergebnis }
 
@@ -57,6 +57,9 @@ public partial class RatssitzungAnzeige : Control
     private double _zeit;
     private int _tempo = 1;
 
+    /// <summary>Wer gerade spricht oder stimmt (PR #211): der Bürgermeister beim Aufruf, der Antragsteller bei der Rede, dann Sitz für Sitz; nickt bei Zustimmung.</summary>
+    private PortraetAnzeige _redner = null!;
+    private Label _rednerName = null!;
     private Label _kopf = null!, _titel = null!, _text = null!, _rede = null!, _aktuell = null!, _ergebnis = null!, _hinweis = null!;
     private GridContainer _stimmen = null!;
     private HFlowContainer _wahl = null!;
@@ -104,6 +107,15 @@ public partial class RatssitzungAnzeige : Control
         var reihe = new HBoxContainer();
         reihe.AddThemeConstantOverride("separation", 24);
         spalte.AddChild(reihe);
+
+        // Ganz links: wer spricht
+        var rednerSpalte = new VBoxContainer();
+        rednerSpalte.AddThemeConstantOverride("separation", 4);
+        reihe.AddChild(rednerSpalte);
+        _redner = PortraetAnzeige.Neu(PortraetAnzeige.Mittel);
+        _redner.Visible = false;
+        rednerSpalte.AddChild(_redner);
+        _rednerName = Hauptmenue.Text(rednerSpalte, "", 12, Grau, zentriert: true, umbruchBreite: PortraetAnzeige.Mittel);
 
         // Links: Punkt, Rede, Ergebnis und die eigene Stimme
         var links = new VBoxContainer { CustomMinimumSize = new Vector2(400, 0) };
@@ -260,6 +272,7 @@ public partial class RatssitzungAnzeige : Control
         _titel.Text = punkt.Titel;
         _text.Text = punkt.Text;
         Setzen(_rede, "Der Bürgermeister ruft den Punkt auf.");
+        RednerZeigen(punkt.Stimmen.FirstOrDefault(x => x.Sitz.Name == "Bürgermeister")?.Sitz, null);
         Setzen(_aktuell, "");
         Setzen(_ergebnis, "");
         Setzen(_hinweis, "");
@@ -276,6 +289,7 @@ public partial class RatssitzungAnzeige : Control
         {
             case Schritt.Aufruf:
                 _schritt = Schritt.Rede;
+                if (punkt.Antragsteller is { } redner) RednerZeigen(null, redner);
                 Setzen(_rede, punkt.Antragsteller is { } a
                     ? $"{a.Inhaber}: „{punkt.Begruendung}“"
                     : punkt.Begruendung);
@@ -316,6 +330,7 @@ public partial class RatssitzungAnzeige : Control
         }
         var stimme = punkt.Stimmen[_gezeigt++];
         AmZug?.Invoke(stimme.Sitz);
+        RednerZeigen(stimme.Sitz, null, stimme.Ja != false && !(stimme.Ja is null && stimme.Kandidat is null));
         if (_wiederholung is null && stimme.Frei && stimme.Haus == _spieler && _simulation?.Ratssitzung is { } sitzung
             && sitzung.StimmeVerboten(punkt, _spieler!) is null)
         {
@@ -362,6 +377,17 @@ public partial class RatssitzungAnzeige : Control
             grund.ClipText = true;
             grund.TextOverrunBehavior = TextServer.OverrunBehavior.TrimEllipsis;
         }
+    }
+
+    /// <summary>Zeigt, wer spricht: den Inhaber eines Sitzes oder das Oberhaupt eines Hauses; ohne Familie (alter Spielstand) bleibt das Bild leer.</summary>
+    private void RednerZeigen(Amt? sitz, Konto? haus, bool nicken = false)
+    {
+        if (_simulation?.Wirtschaft is not { } w) return;
+        var da = sitz is not null ? _redner.ZeigenAmt(w, sitz) : haus is not null && _redner.ZeigenHaus(w, haus);
+        _redner.Visible = da;
+        _rednerName.Text = da ? (sitz is not null ? $"{sitz.Name}\n{sitz.Inhaber}" : haus!.Inhaber) : "";
+        _rednerName.Visible = da;
+        if (da && nicken) _redner.Nicken();
     }
 
     private void StimmeZeigen(int nummer)

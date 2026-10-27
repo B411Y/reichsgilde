@@ -55,6 +55,7 @@ public partial class WegAnzeige : PanelContainer
         _inhalt.AddThemeConstantOverride("separation", 6);
         rand.AddChild(_inhalt);
         Rollbereich.Einhuellen(this);
+        Fensterrahmen.Anmelden(this, "Weg", Schliessen); // folgt der Auswahl: nur ziehbar und mit ✕
         Hide();
     }
 

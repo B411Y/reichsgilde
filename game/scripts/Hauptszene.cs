@@ -43,6 +43,7 @@ namespace Reichsgilde;
 ///   --verwalten=1      die Kurzübersicht der eigenen Werkstatt gleich öffnen (=mehr: mit „…“ aufgeklappt)
 ///   --wohnhaus=haus    die Tafel des Wohnhauses gleich öffnen (Reiter haus, familie, handwerk, geld, hinterzimmer)
 ///   --hilfe=1          gleich zu Beginn die Hilfe zeigen
+///   --lexikon=1        das Lexikon öffnen (=<kennung>: gleich bei diesem Begriff, =suche:<text>: mit diesem Suchtext); --lexikon-pruefen=1 prüft die Datei und beendet das Spiel
 ///   --meldung=⚠_Text   eine Meldung unten links einstellen (zum Testen; Leerzeichen als _, mit ✗ oder ⚠ eine Warnung)
 ///   --karren=Ochsenkarren,Kriegskarren  der eigenen Gießerei gleich diese Karren dazukaufen (mit --vermoegen=5000; Handkarren, Ochsenkarren, Kriegskarren)
 ///   --schiff=1         am ersten Hafen gleich so viele Flussschiffe kaufen (mit --vermoegen=10000)
@@ -96,6 +97,7 @@ public partial class Hauptszene : Node
     private Stadtansicht _stadt = null!;
     private WohnhausAnzeige _wohnhaus = null!;
     private BerichtAnzeige _berichtTafel = null!;
+    private LexikonAnzeige _lexikon = null!;
     private HafenAnzeige _hafenTafel = null!;
     /// <summary>Den Jahresbericht hat der Spieler selbst geöffnet (Tafel „Bericht“): Beim Schließen bleibt die Pause, wie sie vorher war.</summary>
     private bool? _pauseVorBericht;
@@ -223,12 +225,23 @@ public partial class Hauptszene : Node
         });
         Rollbereich.Einhuellen(_auswahl);
         Rollbereich.RechtsAnheften(_auswahl);
+        Fensterrahmen.Anmelden(_auswahl, "Auswahl", AuswahlSchliessen).FuerEsc = false; // Esc schließt sie erst nach der Innenansicht (siehe _UnhandledInput)
         RaumleisteBauen();
         HilfeBauen();
+        _lexikon = new LexikonAnzeige(); // das Lexikon in der Bildmitte (Taste L, Knopf in der Betriebsleiste)
+        GetNode<CanvasLayer>("Oberflaeche").AddChild(_lexikon);
+        Tooltips.BegriffSuchen = Lexikon.FindeMitVerweisen; // Verweise in Tooltips zeigen die Begriffe des Lexikons, beliebig tief
+        Tooltips.LexikonOeffnen = Lexikon.Oeffnen;
+        Tooltips.VerweiseErgaenzen = (text, eigene) => Lexikon.VerweiseEinsetzen(text, eigene); // auch normale Tooltips verlinken Lexikon-Begriffe
         LeerstandKnoepfeBauen();
 
         RatssitzungBauen(); // die Tafel der sichtbaren Ratssitzung (Hauptszene.Ratssitzung.cs) – vor der Partie, die sich mit ihr verbindet
         var optionen = Startoptionen();
+        if (optionen.GetValueOrDefault("lexikon-pruefen") == "1")
+        {
+            GetTree().Quit(Lexikon.PruefenUndMelden() ? 0 : 1); // nur die Datei prüfen (Test), kein Spiel
+            return;
+        }
         _simulation = SimulationAufbauen(optionen);
         SpielmenueBauen();
         _ratKnopf.Pressed += RatOeffnen;
@@ -494,6 +507,11 @@ public partial class Hauptszene : Node
             _jahresbericht.Zeigen(_simulation, _spieler);
         else if (bericht is not null && !int.TryParse(bericht, out _) && Enum.TryParse<BerichtAnzeige.Reiter>(bericht, true, out var berichtReiter))
             BerichtOeffnen(berichtReiter);
+        if (optionen.TryGetValue("lexikon", out var lexikonWahl))
+        {
+            _lexikon.Oeffnen(lexikonWahl == "1" || lexikonWahl.StartsWith("suche:") ? "" : lexikonWahl);
+            if (lexikonWahl.StartsWith("suche:")) _lexikon.Suchen(lexikonWahl[6..].Replace('_', ' '));
+        }
         if (optionen.TryGetValue("meldung", out var testMeldung)) Protokollieren(testMeldung.Replace('_', ' '));
         // Die Hilfe: auf Wunsch (--hilfe=1) und beim allerersten Spiel einmal von selbst – nicht bei Startoptionen (Klicktests sollen gleiche Bilder liefern).
         if (optionen.GetValueOrDefault("hilfe") == "1" || (!Fenster.HilfeGesehen && OS.GetCmdlineUserArgs().Length == 0))
@@ -517,26 +535,23 @@ public partial class Hauptszene : Node
     }
 
     /// <summary>Es ist immer nur eine Tafel in der Bildmitte offen.</summary>
-    private void TafelnSchliessen()
+    private void TafelnSchliessen(bool auchFeste = false)
     {
-        _ratskammer.Hide();
-        _familientafel.Hide();
-        _gerichtssaal.Hide();
-        _hinterzimmer.Hide();
-        _markt.Hide();
-        _verkauf.Hide();
+        // Festgehaltene Fenster (Fensterrahmen) bleiben offen – so lassen sich mehrere Tafeln nebeneinander benutzen
+        foreach (var tafel in new Control[] { _ratskammer, _familientafel, _gerichtssaal, _hinterzimmer, _markt, _verkauf })
+            Fensterrahmen.SchliessenFallsLose(tafel, auchFeste);
         _wegTafel.Schliessen();
         foreach (var tafel in _innenTafeln) tafel.Hide();
         if (_bauFrage.Visible) _bauFrage.Zurueck(); // der Umriss der Platzwahl wird wieder frei
     }
 
     /// <summary>Rechts steht immer nur eine Tafel: Auswahl, Wohnhaus, Bericht, Hafen, Bautafel oder Wegtafel. Schließt alle (der Baumodus endet dabei nicht).</summary>
-    private void RechtsSchliessen()
+    private void RechtsSchliessen(bool auchFeste = false)
     {
         if (_auswahl.Visible || _auswahlKennung is not null) AuswahlSchliessen();
-        _wohnhaus.Hide();
-        _berichtTafel.Hide();
-        _hafenTafel.Hide();
+        Fensterrahmen.SchliessenFallsLose(_wohnhaus, auchFeste);
+        Fensterrahmen.SchliessenFallsLose(_berichtTafel, auchFeste);
+        Fensterrahmen.SchliessenFallsLose(_hafenTafel, auchFeste);
         _wegTafel.Schliessen();
     }
 
@@ -941,6 +956,7 @@ public partial class Hauptszene : Node
 
         _wohnhaus.Verbinden(simulation, spieler);
         _berichtTafel.Verbinden(simulation, spieler);
+        Lexikon.Verbinden(w); // die Live-Zahlen des Lexikons kommen aus dieser Partie
         _hafenTafel.Verbinden(simulation, spieler);
         _ratskammer.Verbinden(simulation, spieler);
         _rathausTafel.Verbinden(simulation, spieler);
@@ -1031,30 +1047,21 @@ public partial class Hauptszene : Node
         if (RatssitzungEingabe(eingabe)) return; // während der Ratssitzung: nur Spielmenü, Weiter, Hilfe
         if (eingabe is InputEventKey { Pressed: true, Echo: false, Keycode: Key.Escape })
         {
-            // Esc geht einen Schritt zurück: Innenansicht verlassen → Auswahl schließen → Spielmenü auf/zu.
-            if (_jahresbericht.Visible) { /* der Bericht wird mit „Weiter" geschlossen */ }
+            // Esc geht einen Schritt zurück: feste Tooltips → Fenster (das oberste) → Innenansicht verlassen → Auswahl schließen → Spielmenü auf/zu.
+            if (Tooltips.ObersteFesteSchliessen()) { /* ein festgeheftetes Tooltip-Fenster ist zu */ }
+            else if (_jahresbericht.Visible) { /* der Bericht wird mit „Weiter" geschlossen */ }
             else if (_hilfe.Visible)
                 HilfeSchliessen();
+            else if (_lexikon.Offen)
+                _lexikon.Schliessen();
             else if (_bauFrage.Visible)
                 _bauFrage.Zurueck();
             else if (_bau.Aktiv)
                 _bau.Zurueck();
             else if (_wegTafel.Aktiv)
                 _wegTafel.Schliessen();
-            else if (_ratskammer.Visible)
-                _ratskammer.Hide();
-            else if (_familientafel.Visible)
-                _familientafel.Hide();
-            else if (_gerichtssaal.Visible)
-                _gerichtssaal.Hide();
-            else if (_hinterzimmer.Visible)
-                _hinterzimmer.Hide();
-            else if (_markt.Visible)
-                _markt.Hide();
-            else if (_verkauf.Visible)
-                _verkauf.Hide();
-            else if (_innenTafeln.Any(t => t.Visible))
-                foreach (var tafel in _innenTafeln) tafel.Hide();
+            else if (Fensterrahmen.ObersteSchliessen())
+            { /* das zuletzt geöffnete oder angeklickte Fenster ist zu (Mitte, Innentafeln, Wohnhaus, Bericht, Hafen) */ }
             else if (_einstellungen.Tafel.Visible)
                 EinstellungenSchliessen();
             else if (_spielmenue.Visible)
@@ -1092,6 +1099,10 @@ public partial class Hauptszene : Node
                 if (_hilfe.Visible) HilfeSchliessen();
                 else HilfeOeffnen();
                 break;
+            case Key.X when ohneZusatz && imSpiel && (Fensterrahmen.IrgendeinesOffen || Tooltips.FesteOffen): // alle Fenster zu (auch festgehaltene)
+                Tooltips.AlleSchliessen();
+                Fensterrahmen.AlleSchliessen();
+                break;
             case Key.F when ohneZusatz && imSpiel:
                 if (_familientafel.Visible) _familientafel.Hide();
                 else FamilieOeffnen();
@@ -1107,6 +1118,10 @@ public partial class Hauptszene : Node
             case Key.M when ohneZusatz && imSpiel:
                 if (_markt.Visible) _markt.Hide();
                 else MarktOeffnen();
+                break;
+            case Key.L when ohneZusatz && imSpiel:
+                if (_lexikon.Offen) _lexikon.Schliessen();
+                else _lexikon.Oeffnen();
                 break;
             case Key.B when ohneZusatz && imSpiel:
                 if (_bau.Aktiv) _bau.Schliessen();

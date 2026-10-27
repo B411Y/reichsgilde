@@ -29,6 +29,7 @@ public sealed class Familienbuch
     private readonly DynastieDaten _d;
     private Zufallsquelle _zufall;
     private Zufallsquelle _talentZufall;
+    private Zufallsquelle _aussehenZufall;
     private readonly Dictionary<Konto, Familie> _familien = new();
     private readonly List<Kandidat> _kandidaten = new();
     private readonly Dictionary<(Konto, int), double> _zuneigung = new();
@@ -64,6 +65,8 @@ public sealed class Familienbuch
         _zufall = new Zufallsquelle(unchecked(zufallsstartwert * 17 + 3));
         // Eigener Generator für Talente: So bleiben Geburten, Todesfälle und Kandidaten wie vor den Talenten.
         _talentZufall = new Zufallsquelle(unchecked(zufallsstartwert * 37 + 13));
+        // Und einer fürs Aussehen: Porträts ändern keinen Wurf der Familien oder der Wirtschaft.
+        _aussehenZufall = new Zufallsquelle(unchecked(zufallsstartwert * 53 + 29));
     }
 
     // ═════════════════════════════════════════════════════════════════════════
@@ -163,6 +166,41 @@ public sealed class Familienbuch
     public Familie? Von(Konto konto) => _familien.GetValueOrDefault(konto);
 
     public Kandidat? KandidatNummer(int nummer) => _kandidaten.FirstOrDefault(k => k.Person.Nummer == nummer);
+
+    /// <summary>Das Haus, zu dem die Person gehört (auch Verstorbene und Angeheiratete), oder null für Heiratskandidaten.</summary>
+    public Familie? FamilieVon(Person p) => _familien.Values.FirstOrDefault(f => f.MitgliederListe.Contains(p));
+
+    /// <summary>Stufe in der Ständeordnung: der Stand des Hauses, bei Heiratskandidaten der ihrer Herkunft.</summary>
+    public int StandVon(Person p) =>
+        FamilieVon(p)?.Konto.Stand ?? _kandidaten.FirstOrDefault(k => k.Person == p)?.Stand ?? 0;
+
+    /// <summary>Gemeiner, Bürger, Patrizier oder Adel (Edler, Freiherr, Reichsgraf) – für den Hintergrund des Porträts.</summary>
+    public Standgruppe StandgruppeVon(Person p)
+    {
+        int Stufe(string name, int ersatz) => _w.Daten.StandStufe(name) is var s and >= 0 ? s : ersatz;
+        var stand = StandVon(p);
+        return stand >= Stufe("Edler", 3) ? Standgruppe.Adel
+            : stand >= Stufe("Patrizier", 2) ? Standgruppe.Patrizier
+            : stand >= Stufe("Bürger", 1) ? Standgruppe.Buerger
+            : Standgruppe.Gemeiner;
+    }
+
+    /// <summary>Schlicht (Gemeiner, Bürger) oder vornehm (Patrizier, Adel).</summary>
+    public Kleidung KleidungVon(Person p) => Aussehenspalette.KleidungAus(StandgruppeVon(p));
+
+    /// <summary>
+    /// Das Alter in Menschenjahren: Zwerge und Elben altern langsamer, darum zählt das Alter im Verhältnis der Sterbealter
+    /// (ein Elb mit 55 Jahren sieht aus wie ein Mensch mit 21). Bei Verstorbenen das Alter beim Tod.
+    /// </summary>
+    public double Menschenjahre(Person p)
+    {
+        var mensch = _d.Voelker.TryGetValue(Reichsgilde.Core.Volk.Mensch, out var m) ? m.Sterbealter : 64;
+        var eigen = _d.Voelker.TryGetValue(p.Volk, out var v) ? v.Sterbealter : mensch;
+        return p.Alter(Jahr) * mensch / eigen;
+    }
+
+    /// <summary>Kind (unter 14 Menschenjahren), jung (14–29), mittel (30–54) oder alt (ab 55).</summary>
+    public Altersstufe AltersstufeVon(Person p) => Aussehenspalette.AltersstufeAus(Menschenjahre(p));
 
     public VolkDaten VolkDaten(Volk volk) => _d.Volk(volk);
 
@@ -318,8 +356,12 @@ public sealed class Familienbuch
     /// </summary>
     /// <param name="vorname">Ohne Angabe ein zufälliger Name des Volkes.</param>
     /// <param name="glaube">Ohne Angabe der Startglaube des Volkes.</param>
-    public Familie Gruenden(Konto konto, Volk volk, Geschlecht geschlecht, string? vorname = null, int? alter = null, Konfession? glaube = null)
+    /// <param name="aussehen">Ohne Angabe gewürfelt (<see cref="Aussehenspalette.Verboten"/> sagt, was passt).</param>
+    public Familie Gruenden(Konto konto, Volk volk, Geschlecht geschlecht, string? vorname = null, int? alter = null, Konfession? glaube = null,
+        Aussehen? aussehen = null)
     {
+        if (aussehen is { } a && Aussehenspalette.Verboten(volk, a) is { } unpassend)
+            throw new ArgumentException(unpassend, nameof(aussehen));
         if (glaube is { } g && _w.Glaube.IstAktiv && _w.Glaube.StartglaubeVerboten(volk, g) is { } grund)
             throw new ArgumentException(grund, nameof(glaube));
         if (!IstAktiv) throw new InvalidOperationException("Die Wirtschaftsdaten enthalten keine Dynastie-Daten.");
@@ -332,6 +374,9 @@ public sealed class Familienbuch
         vorname = string.IsNullOrWhiteSpace(vorname) ? Vorname(v, geschlecht) : vorname.Trim();
         var oberhaupt = new Person(_naechsteNummer++, vorname, nachname, volk, geschlecht, Jahr - (alter ?? v.Startalter));
         TalenteWuerfeln(oberhaupt);
+        // Immer würfeln, auch wenn der Spieler wählt – so sehen die KI-Familien danach gleich aus.
+        oberhaupt.Aussehen = Aussehenspalette.Wuerfeln(_aussehenZufall, volk);
+        if (aussehen is { } gewaehlt) oberhaupt.Aussehen = gewaehlt;
         oberhaupt.GlaubeSetzen(glaube ?? _w.Glaube.Startglaube(volk));
         var familie = new Familie(konto, volk, nachname, oberhaupt);
         _familien[konto] = familie;
@@ -380,6 +425,7 @@ public sealed class Familienbuch
         } while (NameVergeben(vorname, name) && ++versuche < 10);
         var person = new Person(_naechsteNummer++, vorname, name, volk, geschlecht, Jahr - alter);
         TalenteWuerfeln(person);
+        person.Aussehen = Aussehenspalette.Wuerfeln(_aussehenZufall, volk); // Ehepartner von außen: gewürfelt
         person.GlaubeSetzen(_w.Glaube.Wuerfeln(volk)); // eigener Würfel – Namen und Talente bleiben wie ohne Glauben
         return new Kandidat(person, stand);
     }
@@ -728,6 +774,8 @@ public sealed class Familienbuch
         var o = f.Oberhaupt;
         var kind = new Person(_naechsteNummer++, Vorname(_d.Volk(f.Volk), geschlecht), f.Nachname, f.Volk, geschlecht, Jahr - alter,
             o.Geschlecht == Geschlecht.Mann ? o.Nummer : null, o.Geschlecht == Geschlecht.Frau ? o.Nummer : null);
+        kind.Aussehen = Aussehenspalette.Vererben(_aussehenZufall, kind.Volk, geschlecht,
+            o.Geschlecht == Geschlecht.Mann ? o : null, o.Geschlecht == Geschlecht.Frau ? o : null);
         kind.GlaubeSetzen(o.Glaube);
         f.MitgliederListe.Add(kind);
         return kind;
@@ -740,6 +788,7 @@ public sealed class Familienbuch
         var v = _d.Volk(f.Volk);
         var kind = new Person(_naechsteNummer++, Vorname(v, geschlecht), f.Nachname, f.Volk, geschlecht, Jahr + 1, vater.Nummer, mutter.Nummer);
         TalenteVererben(kind, mutter, vater);
+        kind.Aussehen = Aussehenspalette.Vererben(_aussehenZufall, kind.Volk, geschlecht, vater, mutter);
         kind.GlaubeSetzen(f.Oberhaupt.Glaube); // getauft im Glauben des Hauses
         f.MitgliederListe.Add(kind);
         Ereignis(f.Konto, $"Freude im Haus {f.Nachname}: {mutter.Vorname} und {vater.Vorname} bekommen {(geschlecht == Geschlecht.Frau ? "eine Tochter" : "einen Sohn")}, {kind.Vorname}.");
@@ -763,12 +812,14 @@ public sealed class Familienbuch
                 Glaube = p.Glaube, Herkunftsglaube = p.Herkunftsglaube,
                 Ausbildung = p.Ausbildung, Abschluss = p.Abschluss,
                 Geuebt = TalentTexte.Alle.Any(t => p.GeuebtIm(t) != 0) ? TalentTexte.Alle.Select(p.GeuebtIm).ToList() : null,
+                Gesicht = p.Aussehen.Gesicht, Haar = p.Aussehen.Haar, Augen = p.Aussehen.Augen,
             }).ToList();
         return new FamilienbuchStand
         {
             Jahr = Jahr,
             ZufallWuerfe = _zufall.Wuerfe,
             TalentWuerfe = _talentZufall.Wuerfe,
+            AussehenWuerfe = _aussehenZufall.Wuerfe,
             NaechsteNummer = _naechsteNummer,
             Personen = personen,
             Familien = _w.Konten.Where(_familien.ContainsKey).Select(k => _familien[k]).Select(f => new FamilieStand
@@ -796,6 +847,7 @@ public sealed class Familienbuch
         _zufall = new Zufallsquelle(_zufall.Startwert, s.ZufallWuerfe);
         _naechsteNummer = s.NaechsteNummer;
         _talentZufall = new Zufallsquelle(_talentZufall.Startwert, s.TalentWuerfe);
+        _aussehenZufall = new Zufallsquelle(_aussehenZufall.Startwert, s.AussehenWuerfe);
         var personen = s.Personen.ToDictionary(p => p.Nummer, p =>
         {
             var person = new Person(p.Nummer, p.Vorname, p.Familienname, p.Volk, p.Geschlecht, p.Geburtsjahr, p.Vater, p.Mutter, p.Geburtsname, p.Todesjahr)
@@ -807,6 +859,9 @@ public sealed class Familienbuch
             person.Herkunftsglaube = p.Herkunftsglaube ?? person.Glaube;
             foreach (var t in TalentTexte.Alle) // alte Spielstände ohne Talente: Grundwerte des Volkes
                 person.TalentSetzen(t, p.Talente is { } werte && (int)t < werte.Count ? werte[(int)t] : HatTalente ? _d.Talente.Grundwert(p.Volk, t) : 0);
+            // Alte Spielstände ohne Aussehen: das feste Aussehen aus Nummer und Volk, das der Konstruktor schon gesetzt hat.
+            if (p.Gesicht is { } gesicht && p.Haar is { } haar && p.Augen is { } augen)
+                person.Aussehen = new Aussehen(gesicht, haar, augen);
             if (p.Geuebt is { } geuebt)
                 foreach (var t in TalentTexte.Alle.Where(t => (int)t < geuebt.Count))
                     person.GeuebtSetzen(t, geuebt[(int)t]);

@@ -58,6 +58,7 @@ public partial class RatAnzeige : PanelContainer
         var schliessen = Hauptmenue.Knopf(spalte, "Schließen", Hide);
         schliessen.SizeFlagsHorizontal = SizeFlags.ShrinkCenter;
         Rollbereich.Einhuellen(this);
+        Fensterrahmen.Anmelden(this, "Rat", festhaltbar: true);
         Hide();
     }
 
@@ -109,16 +110,19 @@ public partial class RatAnzeige : PanelContainer
         var hinweis = Hauptmenue.Text(geschenkZeile, Hinweis(), 12, Grau);
         geschenk.ValueChanged += wert => { _geschenkBetrag = wert; hinweis.Text = Hinweis(); };
 
-        var raster = new GridContainer { Columns = 6 };
+        var raster = new GridContainer { Columns = 7 };
         raster.AddThemeConstantOverride("h_separation", 14);
         raster.AddThemeConstantOverride("v_separation", 4);
         _inhalt.AddChild(raster);
-        foreach (var kopf in new[] { "Stufe", "Amt", "Inhaber", "Haltung", "Eure Gunst", "" })
+        foreach (var kopf in new[] { "", "Stufe", "Amt", "Inhaber", "Haltung", "Eure Gunst", "" })
             Hauptmenue.Text(raster, kopf, 12, Grau);
         foreach (var amt in rat.Aemter)
         {
             var eigenes = amt.Konto == _spieler;
             var farbe = eigenes ? Gold : (Color?)null;
+            var bild = PortraetAnzeige.Neu(PortraetAnzeige.Klein); // der Inhaber (PR #211)
+            if (bild.ZeigenAmt(w, amt)) raster.AddChild(bild);
+            else raster.AddChild(new Control { CustomMinimumSize = new Vector2(PortraetAnzeige.Klein, PortraetAnzeige.Klein) }); // freier Sitz
             Hauptmenue.Text(raster, amt.Stufe.ToString(), 14, farbe);
             Hauptmenue.Text(raster, $"{amt.Name} ({Zahlenformat.Ganz(amt.Daten.Einkommen)} {waehrung}/Jahr)", 14, farbe);
             var glaube = !w.Glaube.IstAktiv ? null : amt.Ratsherr is { } rg ? w.Glaube.GlaubeVon(rg) : amt.Konto is { } hk ? w.Glaube.GlaubeVon(hk) : null;

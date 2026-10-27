@@ -58,6 +58,7 @@ public partial class GerichtAnzeige : PanelContainer
         var schliessen = Hauptmenue.Knopf(spalte, "Schließen", Hide);
         schliessen.SizeFlagsHorizontal = SizeFlags.ShrinkCenter;
         Rollbereich.Einhuellen(this);
+        Fensterrahmen.Anmelden(this, "Gericht", festhaltbar: true);
         Hide();
     }
 

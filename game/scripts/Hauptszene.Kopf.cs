@@ -16,6 +16,7 @@ public partial class Hauptszene
     private Control _obenAusgleich = null!;
     private PanelContainer _kopfzeile = null!;
     private WappenBild _kopfWappen = null!;
+    private PortraetAnzeige _kopfPortraet = null!;
     private Label _kopfGeld = null!;
     private Label _kopfStand = null!;
     private Label _kopfAp = null!;
@@ -68,6 +69,10 @@ public partial class Hauptszene
         var kopfReihe = new HBoxContainer { MouseFilter = Control.MouseFilterEnum.Ignore };
         kopfReihe.AddThemeConstantOverride("separation", 12);
         kopfSpalte.AddChild(kopfReihe);
+        _kopfPortraet = PortraetAnzeige.Neu(PortraetAnzeige.Klein); // das Oberhaupt (PR #211), blinzelt ab und zu
+        _kopfPortraet.MouseFilter = Control.MouseFilterEnum.Ignore;
+        _kopfPortraet.Visible = false;
+        kopfReihe.AddChild(_kopfPortraet);
         _kopfWappen = WappenBild.Neu(null, 34);
         _kopfWappen.MouseFilter = Control.MouseFilterEnum.Ignore;
         kopfReihe.AddChild(_kopfWappen);
@@ -146,11 +151,14 @@ public partial class Hauptszene
         if (_simulation.Wirtschaft is not { } w || _spieler is null)
         {
             _kopfzeile.Visible = _blick.Text != "";
-            _kopfGeld.Visible = _kopfStand.Visible = _kopfAp.Visible = false;
+            _kopfGeld.Visible = _kopfStand.Visible = _kopfAp.Visible = _kopfPortraet.Visible = false;
             return;
         }
         var waehrung = w.Daten.Allgemein.Waehrung;
         _kopfWappen.Wappen = _spieler.Wappen;
+        var oberhaupt = w.Familien.Von(_spieler)?.Oberhaupt;
+        _kopfPortraet.Visible = oberhaupt is not null;
+        if (oberhaupt is not null) _kopfPortraet.Zeigen(w.Familien, oberhaupt);
         Setzen(_kopfGeld, $"{Zahlenformat.Ganz(_spieler.Vermoegen)} {waehrung}");
         _kopfGeld.AddThemeColorOverride("font_color", _spieler.Reinvermoegen < 0 ? new Color(0.95f, 0.45f, 0.4f) : new Color(1, 1, 1));
         _kopfGeld.TooltipText = WohnhausAnzeige.VermoegenTeile(_spieler, waehrung);

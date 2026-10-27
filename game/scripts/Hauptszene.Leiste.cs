@@ -57,6 +57,7 @@ public partial class Hauptszene
         reihe.AddChild(new VSeparator());
         _leisteRat = Knopf("Rat", "Die Ratskammer: Ämter, Wahlen, Anträge (R). Das Rathaus selbst zeigt dazu Statut und Gericht.", RatOeffnen);
         Knopf("Bericht", "Jahresrechnung, Rivalen, Umsätze und das Protokoll des Jahres", () => BerichtOeffnen(BerichtAnzeige.Reiter.Jahresrechnung));
+        Knopf("Lexikon", "Begriffe und Regeln des Spiels nachschlagen (L)", () => _lexikon.Oeffnen());
         Knopf("Menü", "Spielmenü: Speichern, Laden, Einstellungen, Hilfe (Esc)", SpielmenueOeffnen);
     }
 

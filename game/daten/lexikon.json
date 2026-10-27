@@ -1,0 +1,962 @@
+[
+ {
+  "kennung": "reichsgilde",
+  "titel": "Reichsgilde",
+  "gruppe": "Spiel",
+  "text": "Eine Wirtschaftssimulation im Heiligen Römischen Reich des Spätmittelalters. Ihr führt ein [[haus]] in einer Reichsstadt, betreibt [[betrieb|Werkstätten]] und [[umlandbetrieb|Umlandbetriebe]], handelt am [[markt]], steigt im [[stand|Stand]] auf, sitzt im [[stadtrat]] – und messt euch mit den Häusern der KI-Rivalen. Wer zuerst die [[siegbedingung]] erfüllt, gewinnt."
+ },
+ {
+  "kennung": "siegbedingung",
+  "titel": "Siegbedingung",
+  "gruppe": "Spiel",
+  "text": "Im Hauptmenü wählt ihr, was die Partie entscheidet, etwa ein bestimmter [[stand]] oder ein Vermögen. Die Hilfe (F1) nennt die gewählte Bedingung. Maßgeblich ist das [[reinvermoegen]], nicht das Bargeld."
+ },
+ {
+  "kennung": "spieltag",
+  "titel": "Spieltag",
+  "gruppe": "Spiel",
+  "text": "Ein Spieltag ist ein [[spieljahr]]. Er beginnt um {wert:tag_beginn} Uhr mit der [[zunftglocke]] und endet um {wert:tag_ende} Uhr mit der [[jahresrechnung]]. Gearbeitet wird von 8 bis 20 Uhr, im Wirtshaus bis 22 Uhr; ab 20 Uhr ist [[dunkle-nacht|Dunkle Nacht]], dann ziehen die [[gauner]] los."
+ },
+ {
+  "kennung": "spieljahr",
+  "titel": "Spieljahr",
+  "gruppe": "Spiel",
+  "text": "Ein Spieljahr ist ein Spieltag von {wert:tag_beginn} bis {wert:tag_ende} Uhr und dauert in der Voreinstellung 15 Minuten Echtzeit; im Hauptmenü ist die Dauer einstellbar. Zum Jahreswechsel kommen die [[jahresrechnung]], der [[gerichtstag]], die Wahlen im [[stadtrat]] und neue [[aktionspunkte]]."
+ },
+ {
+  "kennung": "zunftglocke",
+  "titel": "Zunftglocke",
+  "gruppe": "Spiel",
+  "text": "Die Glocke läutet zu Beginn jedes Spieltags, um {wert:tag_beginn} Uhr. Von da an läuft die Zeit; bis zum Arbeitsbeginn um 8 Uhr ist Zeit für Entscheidungen."
+ },
+ {
+  "kennung": "dunkle-nacht",
+  "titel": "Dunkle Nacht",
+  "gruppe": "Spiel",
+  "text": "Die Zeit nach 20 Uhr. Die Betriebe ruhen (außer Wirtshäusern), die [[stadttore]] sind zu, und die [[gauner]] versuchen ihre Stücke. Die Stadtwache ([[gardist]]) patrouilliert und senkt die Erfolgschance der Gauner."
+ },
+ {
+  "kennung": "tempo",
+  "titel": "Tempo und Pause",
+  "gruppe": "Spiel",
+  "text": "Die Leertaste hält die Zeit an, die Tasten 1 bis 4 wählen das Tempo; 5 und 6 sind Testtempi. Unter dem [[zeitstrahl]] stehen dieselben Knöpfe. Befehle sind auch in der Pause möglich."
+ },
+ {
+  "kennung": "zeitstrahl",
+  "titel": "Zeitstrahl",
+  "gruppe": "Spiel",
+  "text": "Das Band oben in der Mitte: Jahreszeit, Jahr, Uhrzeit und Wetter mit Aussicht. Darunter läuft der Tag in seinen Phasen mit der Sonne (nachts dem Mond) als Zeiger; eine goldene Linie markiert die Arbeitszeit. Darunter stehen Pause und [[tempo|Tempo]]."
+ },
+ {
+  "kennung": "kopfzeile",
+  "titel": "Kopfzeile",
+  "gruppe": "Spiel",
+  "text": "Oben links steht euer [[haus]]: Wappen, Geld (der Tooltip nennt Bargeld und [[reinvermoegen]]), [[stand]] (mit dem Weg zum nächsten) und [[aktionspunkte]]. Ein Klick öffnet das [[wohnhaus]]."
+ },
+ {
+  "kennung": "betriebsleiste",
+  "titel": "Betriebsleiste",
+  "gruppe": "Spiel",
+  "text": "Die Leiste unten: je eigener Betrieb ein Knopf mit dem Symbol seiner Ware und seinem Zustand (läuft, steht, Lager voll, Karren unterwegs). Ein Warnzeichen zeigt einen stehenden Betrieb. Ein Klick fährt die Kamera hin und öffnet die [[kurzuebersicht]], ein Doppelklick geht hinein. Daneben: Hafen, Bauen, Rat, Bericht, Lexikon und Menü."
+ },
+ {
+  "kennung": "kurzuebersicht",
+  "titel": "Kurzübersicht",
+  "gruppe": "Spiel",
+  "text": "Die Tafel rechts, wenn ihr einen eigenen Betrieb anklickt: Ware wählen, Zustand, „Beheben“, und „…“ für mehr, darunter das [[betrieb-verkaufen|Verkaufen]]. Personal, Produktion, Lager, Karren und Einrichtung stellt ihr drinnen ein ([[innenansicht]])."
+ },
+ {
+  "kennung": "innenansicht",
+  "titel": "Innenansicht",
+  "gruppe": "Spiel",
+  "text": "Ein Doppelklick auf Werkstatt, Wohnhaus, Rathaus oder Dom führt hinein. Drinnen stellt ihr in Tafeln [[personal|Personal]], [[produktion]], [[lager]], [[karren]] und [[einrichtung]] ein. Esc führt wieder hinaus."
+ },
+ {
+  "kennung": "bericht",
+  "titel": "Bericht",
+  "gruppe": "Spiel",
+  "text": "Der Knopf „Bericht“ unten öffnet rechts vier Reiter: Jahresrechnung (dieses Jahr bisher und das Vorjahr), Rivalen (Vermögen, Stand und letzter Zug aller anderen Häuser), Umsätze (jeder eigene Betrieb) und das [[protokoll]]."
+ },
+ {
+  "kennung": "protokoll",
+  "titel": "Protokoll",
+  "gruppe": "Spiel",
+  "text": "Alle Meldungen des Jahres, die neueste oben. Neue Meldungen erscheinen unten links und verblassen bald; Warnungen bleiben stehen. Ein Klick auf eine Meldung öffnet das Protokoll im [[bericht]]."
+ },
+ {
+  "kennung": "jahresrechnung",
+  "titel": "Jahresrechnung",
+  "gruppe": "Spiel",
+  "text": "Am Ende jedes Spieljahrs um {wert:tag_ende} Uhr: Erlöse, Löhne, Pacht, Unterhalt und Steuern des Jahres, der Gewinn, der Fortschritt zum nächsten [[stand]] und die Rangliste gegen die Rivalen. Wer {wert:bankrott_jahre} Jahre in Folge im Minus abschließt, ist [[bankrott]]. Danach wird automatisch gespeichert."
+ },
+ {
+  "kennung": "aktionspunkte",
+  "titel": "Aktionspunkte",
+  "gruppe": "Spiel",
+  "text": "Aktionspunkte (AP) bezahlen persönliche Handlungen eures Hauses: Werben, Heiraten, einen Ratsherrn beschenken, sich um ein Amt bewerben, einen Spitzel ansetzen, eine Bande anheuern, Anträge im Rat, Anklage, Konvertieren und mehr. Zum Jahreswechsel gibt es neue; angespart werden höchstens {wert:ap_max}. Die Wirtschaft selbst (Betriebe, Personal, Karren, Wächter, Liegenschaften) kostet keine AP. Mit übrigen AP übt das Oberhaupt ein [[talente|Talent]]."
+ },
+ {
+  "kennung": "speichern",
+  "titel": "Speichern und Laden",
+  "gruppe": "Spiel",
+  "text": "Esc öffnet das Spielmenü: Weiterspielen, Speichern, Laden, Einstellungen, Hilfe, Hauptmenü, Beenden. Nach jedem Jahresbericht wird automatisch gespeichert. Ein geladener Spielstand läuft genauso weiter, wie er gespeichert wurde."
+ },
+ {
+  "kennung": "schwierigkeit",
+  "titel": "Schwierigkeit",
+  "gruppe": "Spiel",
+  "text": "Bei „Normal“ starten alle Häuser gleich: eine Werkstatt mit zwei Gesellen. Die Umlandbetriebe der KI-Häuser stehen dann als freie Liegenschaften zur Pacht. Bei „Schwer“ beginnen die KI-Häuser mit Werkstatt und Umlandbetrieb."
+ },
+ {
+  "kennung": "tastenkuerzel",
+  "titel": "Tastenkürzel",
+  "gruppe": "Spiel",
+  "text": "Leertaste: Pause. 1 bis 4: Tempo. F: Familienbuch ([[familie]]). H: Hinterzimmer ([[hinterzimmer]]). R: Ratskammer ([[stadtrat]]; im Baumodus dreht R den Umriss). M: [[markt]]. B: [[bauen]]. L: dieses Lexikon. F1: Hilfe. Esc: einen Schritt zurück. Mausrad: Zoom; rechte Maustaste oder W A S D: Karte verschieben; Q und E drehen. Alt (halten) zeigt alle Namen."
+ },
+ {
+  "kennung": "waehrung",
+  "titel": "Gulden",
+  "gruppe": "Spiel",
+  "text": "Die Währung des Spiels heißt {wert:waehrung}. Ihr beginnt mit {wert:startvermoegen} {wert:waehrung} (im Hauptmenü einstellbar). Beim [[markt|Verkauf]] fällt die [[umsatzsteuer]] an."
+ },
+ {
+  "kennung": "reinvermoegen",
+  "titel": "Reinvermögen",
+  "gruppe": "Spiel",
+  "text": "Bargeld plus Verliehenes minus Schulden. Nach dem Reinvermögen richten sich [[stand]], Rangliste, Ansehen, Bußen, [[bankrott]] und Sieg. Geliehenes Geld macht deshalb nicht reicher."
+ },
+ {
+  "kennung": "bankrott",
+  "titel": "Bankrott",
+  "gruppe": "Spiel",
+  "text": "Wer {wert:bankrott_jahre} Jahresabschlüsse in Folge im Minus steht, ist bankrott. Seine Betriebe stehen dann zum Verkauf wie [[betrieb-verkaufen|verkaufte Werkstätten]], sein [[wohnhaus]] steht [[leerstand|leer]]."
+ },
+ {
+  "kennung": "hilfe",
+  "titel": "Hilfe",
+  "gruppe": "Spiel",
+  "text": "F1 öffnet die Hilfe mit den wichtigsten Tasten. Das Lexikon (L) erklärt die Regeln dahinter."
+ },
+ {
+  "kennung": "karte",
+  "titel": "Karte und Städte",
+  "gruppe": "Spiel",
+  "text": "Das Spiel spielt in einer Reichsstadt mit Mauer, Toren und Umland. Karten entstehen in der Kartenwerkstatt (Level-Editor). Köln ist die erste Startstadt; eine Probestadt und eine Greybox-Karte dienen zum Ausprobieren. Welche Regeln eine Karte kennt (Bauzonen, [[hafen]], Wege), steht in ihrer Datei."
+ },
+ {
+  "kennung": "markt",
+  "titel": "Markt",
+  "gruppe": "Wirtschaft",
+  "text": "Alle Waren der Stadt werden am Markt gehandelt. Ein Klick auf den Marktplatz oder die Taste M öffnet das Marktfenster: Waren als Kacheln mit [[marktpreis|Preis]], geordnet nach [[rohstoff|Rohstoffen]], [[zwischenware|Zwischenwaren]] und [[fertigware|Fertigwaren]]. Der Markt ist von {wert:markt_von} bis {wert:markt_bis} Uhr offen. Auf Verkäufe zahlt ihr [[umsatzsteuer|Umsatzsteuer]]. Gehandelt wird mit [[karren]] ([[handel-von-hand]])."
+ },
+ {
+  "kennung": "marktpreis",
+  "titel": "Marktpreis",
+  "gruppe": "Wirtschaft",
+  "text": "Der Preis einer Ware steigt, wenn weniger angeboten als nachgefragt wird, und fällt im umgekehrten Fall. Jeder Verkauf senkt den Preis, jeder Kauf hebt ihn. Grün ▲ heißt über dem Grundpreis, rot ▼ darunter. Der Preis bleibt in einem Band um den Grundpreis. Siehe [[nachfrage]]."
+ },
+ {
+  "kennung": "nachfrage",
+  "titel": "Nachfrage",
+  "gruppe": "Wirtschaft",
+  "text": "Wie viel die Stadt von einer Ware kauft. Sie wächst mit den [[einwohner|Einwohnern]]: {wert:einwohner_grund} Grundbewohner und {wert:einwohner_haus} je Haus, das wirtschaftet. Je mehr Häuser, desto größer die Stadt und desto mehr wird gekauft – eine größere Stadt ist daher nicht teurer, sie hat Platz für mehr Häuser."
+ },
+ {
+  "kennung": "umsatzsteuer",
+  "titel": "Umsatzsteuer",
+  "gruppe": "Wirtschaft",
+  "text": "Die Stadt erhebt auf Verkäufe eine Steuer, im Augenblick {wert:steuersatz}. Der Satz liegt zwischen {wert:steuer_min} und {wert:steuer_max} und kann im [[stadtrat]] per Antrag geändert werden. Das Geld fließt in die [[stadtkasse]]. Der [[amt-marktmeister|Marktmeister]] zahlt auf eigene Marktverkäufe nur die halbe Steuer."
+ },
+ {
+  "kennung": "handel-von-hand",
+  "titel": "Handel von Hand",
+  "gruppe": "Wirtschaft",
+  "text": "Oben im Marktfenster gebt ihr einem [[karren]] einen Auftrag: Betrieb und Karren wählen, Ware anklicken, Menge eintragen, „verkaufen“ (aus dem [[lager]]) oder „kaufen“ (ins Lager). Der Karren fährt zum Markt, handelt und bringt die Einkäufe heim. Eingekauft wird zum Marktpreis plus {wert:haendlerspanne} Händlerspanne. Ist der Karren unterwegs, wird der Auftrag vorgemerkt."
+ },
+ {
+  "kennung": "betrieb",
+  "titel": "Betrieb",
+  "gruppe": "Wirtschaft",
+  "text": "Ein Betrieb stellt Waren her oder fördert sie: eine Werkstatt in der Stadt (z. B. Gießerei) oder ein [[umlandbetrieb]] (z. B. Grube). Jeder Betrieb hat [[personal]], ein [[lager]] und [[karren]]. Werkstätten haben eine [[gebaeudestufe]]; mit dem [[meistergrad]] des Hauses lassen sie sich ausbauen. Betriebe kosten [[unterhalt]]. Ihr Zustand steht in der [[betriebsleiste]]."
+ },
+ {
+  "kennung": "werkstatt",
+  "titel": "Werkstatt",
+  "gruppe": "Wirtschaft",
+  "text": "Ein Betrieb in der Stadt, der aus Rohstoffen und Zwischenwaren neue Waren herstellt. Jeder [[beruf|Beruf]] hat seine Werkstatt (der Schmied die Gießerei, der Tischler die Tischlerei …). Werkstätten haben mehr Plätze und höhere Stufen als Umlandbetriebe; man baut sie neu ([[bauen]]) oder kauft eine freie ([[liegenschaft]])."
+ },
+ {
+  "kennung": "umlandbetrieb",
+  "titel": "Umlandbetrieb",
+  "gruppe": "Wirtschaft",
+  "text": "Ein Betrieb außerhalb der Stadtmauer, der Rohstoffe liefert: Grube, Holzschlag, Steinbruch, Kräutergarten, Bauernhof, Klosterhof, Duftgarten. Er wird gepachtet ([[pacht]]) und über [[karren]] auf [[weg|Wegen]] mit der Stadt verbunden. Dort lauern [[banditen]]; eine [[eskorte]] schützt."
+ },
+ {
+  "kennung": "grube",
+  "titel": "Grube",
+  "gruppe": "Wirtschaft",
+  "text": "Der Umlandbetrieb des Schmieds: Er fördert Eisen und Silber. Die Förderung lässt sich zwischen beiden Erzen aufteilen; die KI richtet sie nach den [[marktpreis|Preisen]] aus. Die Grube wird gepachtet ([[pacht]]) und liegt am Silberberg oder im Tannenwald."
+ },
+ {
+  "kennung": "pacht",
+  "titel": "Pacht",
+  "gruppe": "Wirtschaft",
+  "text": "Umlandbetriebe gehören nicht dem Haus, sondern werden gepachtet. Die Pacht fällt jährlich an und geht in die [[jahresrechnung]]. Eine Pacht lässt sich kündigen ([[betrieb-verkaufen]]); mindestens ein Betrieb muss bleiben. Freie Plätze sind mit Zaun und Schild „zu verpachten“ markiert ([[liegenschaft]])."
+ },
+ {
+  "kennung": "unterhalt",
+  "titel": "Unterhalt",
+  "gruppe": "Wirtschaft",
+  "text": "Laufende Kosten eines Betriebs oder [[wohnhaus|Wohnhauses]], die in die [[jahresrechnung]] eingehen. Beim Wohnhaus wächst er mit der Stufe: vom Bürgerhaus ({wert:haus_unterhalt_2} {wert:waehrung} im Jahr) bis zum Stadthof ({wert:haus_unterhalt_5})."
+ },
+ {
+  "kennung": "liegenschaft",
+  "titel": "Liegenschaft",
+  "gruppe": "Wirtschaft",
+  "text": "Ein Grundstück oder Betrieb, der frei zu haben ist: zum Kauf (Werkstatt, Wohnhaus) oder zur [[pacht|Pacht]] (Umlandbetrieb). Freie Plätze tragen Zaun und Schild. Ein Klick zeigt Preis, Pacht und erwarteten Gewinn. Jede Liegenschaft gibt es nur einmal, und die KI greift ebenfalls zu. Auch [[bankrott|bankrotte]] Häuser hinterlassen welche."
+ },
+ {
+  "kennung": "betrieb-verkaufen",
+  "titel": "Betrieb verkaufen",
+  "gruppe": "Wirtschaft",
+  "text": "Eine Werkstatt, die ihr nicht mehr braucht, bringt {wert:verkauf_anteil} ihres Werts (Kaufpreis der Stufe 1 plus Ausbauten). [[personal]], Wächter und [[karren]] gehen mit, die Lagerware wird zum Marktpreis minus {wert:verkauf_abschlag} mitverkauft – oft bringt sie am Markt mehr. Löhne und Unterhalt bis zum Verkaufstag werden anteilig fällig. Geht nicht während eines Umbaus und solange ein Karren unterwegs ist. Umlandbetriebe werden gekündigt ([[pacht]])."
+ },
+ {
+  "kennung": "produktion",
+  "titel": "Produktion",
+  "gruppe": "Wirtschaft",
+  "text": "Drinnen in der Werkstatt wählt ihr, was hergestellt wird. Gearbeitet wird in der Arbeitszeit; die Leistung hängt von [[personal]], [[talente|Talenten]], [[einrichtung]] und [[gebaeudestufe]] ab. Rohstoffe und Zwischenprodukte kommen aus dem [[lager]] oder per [[karren]] vom [[markt]]."
+ },
+ {
+  "kennung": "lager",
+  "titel": "Lager",
+  "gruppe": "Wirtschaft",
+  "text": "Jeder Betrieb hat ein Lager für Zutaten und Erzeugnisse. Ist es voll, steht der Betrieb. Ein Karren bringt Waren zum Markt, sobald das Lager sich füllt; nur der Rest wird verkauft. Aus fremdem Lager stehlen [[gauner]], und Geldleiher pfänden Lagerware bei Schulden ([[geldleiher]])."
+ },
+ {
+  "kennung": "karren",
+  "titel": "Karren",
+  "gruppe": "Wirtschaft",
+  "text": "Karren bringen Waren zwischen Betrieb und Markt. Es gibt den Handkarren ({wert:karren_preis_handkarren} {wert:waehrung}, {wert:karren_last_handkarren} Stück), den Ochsenkarren ({wert:karren_preis_ochsenkarren}, {wert:karren_last_ochsenkarren}) und den Kriegskarren ({wert:karren_preis_kriegskarren}, {wert:karren_last_kriegskarren}). Jede Ladefläche trägt eine Warensorte. Ein Karren bringt beim Verkauf {wert:karren_verkauf_anteil} seines Preises, nur solange er am Betrieb steht. Unterwegs drohen [[banditen]]; eine [[eskorte]] hilft. Das Tempo hängt vom [[belag]] ab."
+ },
+ {
+  "kennung": "eskorte",
+  "titel": "Eskorte",
+  "gruppe": "Wirtschaft",
+  "text": "Schutz für beladene Karren auf Fahrten: je stärker, desto teurer je Fahrt und desto kleiner die Chance für [[banditen]] und Banden. Leere Karren kosten nichts. Die Wahl hängt vom erwarteten Verlust ab. Die Eskorte „Stadtwache“ gibt es nur, solange ein Haus ein Wachhaus führt ([[gardist]])."
+ },
+ {
+  "kennung": "banditen",
+  "titel": "Banditen",
+  "gruppe": "Wirtschaft",
+  "text": "Auf den Umland-Wegen lauern Banditen aller Völker. Sie überfallen beladene Karren; das Talent „Kampf“ und eine [[eskorte]] verringern den Verlust. Ein Wachturm der Stadtwache senkt die Überfallchance auf allen Wegen ([[gardist]])."
+ },
+ {
+  "kennung": "stadttore",
+  "titel": "Stadttore",
+  "gruppe": "Wirtschaft",
+  "text": "Nachts ab 20 Uhr sind die Tore der Stadt zu. Karren, die später ankommen, warten bis zum Morgen; Betriebe, die Nachtfahrten erlauben, planen darauf. Ost-, West- und Südtor führen ins Umland und zum Hafen ([[hafen]])."
+ },
+ {
+  "kennung": "personal",
+  "titel": "Personal",
+  "gruppe": "Wirtschaft",
+  "text": "Die Arbeitskräfte eines Betriebs: Lehrling ({wert:lohn_lehrling} {wert:waehrung} im Jahr), Geselle ({wert:lohn_geselle}), Bergmann ({wert:lohn_bergmann}) und je nach [[statut]] Ork ({wert:lohn_ork}) und Leibeigener ({wert:lohn_leibeigener}). Sie unterscheiden sich in Tempo, Unfall- und Aufstandsrisiko. Das [[statut]] bestimmt, wer wo arbeiten darf. In Wirtshäusern wird länger gearbeitet, mit entsprechend mehr Lohn."
+ },
+ {
+  "kennung": "statut",
+  "titel": "Statut",
+  "gruppe": "Wirtschaft",
+  "text": "Das Statut der Stadt regelt, welche Arbeitskräfte erlaubt sind. Statut A erlaubt nur freie Arbeit. Statut B erlaubt zusätzlich die Fron von Orks im Umland – für Besitzer von Gruben deutlich lukrativer. Statut C erlaubt Orks und Leibeigene auch in Werkstätten; es spart Lohnkosten, kostet aber Ansehen und birgt Aufstandsgefahr. Ratsherren haben dazu eigene Haltungen; wer im [[stadtrat]] sitzt, kann eine Änderung beantragen."
+ },
+ {
+  "kennung": "einrichtung",
+  "titel": "Einrichtung",
+  "gruppe": "Wirtschaft",
+  "text": "Ausstattung einer Werkstatt (z. B. Werkzeug, Regale), die in der Innenansicht gekauft wird. Sie steigert Leistung oder Lagerplatz und Zufriedenheit der Arbeiter. Die Kosten stehen in der Tafel „Einrichten“."
+ },
+ {
+  "kennung": "meistergrad",
+  "titel": "Meistergrad",
+  "gruppe": "Wirtschaft",
+  "text": "Jedes Stück, das die Betriebe eines Hauses herstellen oder fördern, bringt Erfahrung im [[beruf|Beruf]]. Reicht sie, legt man im Wohnhaus (Reiter „Handwerk“) die Meisterprüfung ab, bis zum 6. Grad. Die Prüfung zum 2. Grad kostet {wert:meister_gebuehr_2} {wert:waehrung} und {wert:meister_ap_2} [[aktionspunkte|AP]], zum 6. Grad {wert:meister_gebuehr_6} und {wert:meister_ap_6}. Ab dem {wert:meister_stufe_2_grad}. Grad lässt sich die Werkstatt zur Stufe 2 ausbauen, ab dem {wert:meister_stufe_3_grad}. zur Stufe 3 ([[gebaeudestufe]])."
+ },
+ {
+  "kennung": "gebaeudestufe",
+  "titel": "Gebäudestufe",
+  "gruppe": "Wirtschaft",
+  "text": "Werkstätten gibt es in drei Stufen mit mehr Plätzen und wertvolleren Waren (z. B. Gießerei → Schmiede → Goldschmiede). Der Ausbau am Platz braucht den passenden [[meistergrad]], kostet Gulden und {wert:meister_umbau_stunden} Spielstunden Umbauzeit. Während des Umbaus steht der Betrieb."
+ },
+ {
+  "kennung": "erfahrung",
+  "titel": "Erfahrung",
+  "gruppe": "Wirtschaft",
+  "text": "Das Maß für den [[meistergrad]]: Stückzahl der Waren, die die Betriebe des Hauses herstellen. Je Gardist oder Dieb zählt nur halb so viel wie je Geselle, weil Wachhaus und Schmugglerloch doppelt so viele Plätze haben."
+ },
+ {
+  "kennung": "hafen",
+  "titel": "Hafen",
+  "gruppe": "Hafen und Wege",
+  "text": "Liegt die Stadt an einem Fluss mit Hafen, handelt ihr mit fernen Städten am Kartenrand. Ein Klick auf den Hafen (oder der Knopf „Hafen“ in der [[betriebsleiste]]) öffnet die Hafentafel: dort kauft ihr ein [[flussschiff]] und gebt ihm einen Auftrag. Der Hafen bringt der Stadt [[zoll]] ein."
+ },
+ {
+  "kennung": "flussschiff",
+  "titel": "Flussschiff",
+  "gruppe": "Hafen und Wege",
+  "text": "Das Schiff kostet {wert:schiff_preis} {wert:waehrung} und hat {wert:schiff_laderaeume} Laderäume zu je {wert:schiff_je_laderaum} Stück. Sein Auftrag nennt Ziel (flussauf oder flussab), Hinfracht zum Verkaufen und Rückfracht zum Kaufen, jeweils vom [[markt]] oder aus dem [[lager]] eines eigenen Betriebs, [[geleit]] und auf Wunsch „Wiederholen“. „Vorschlag“ füllt die Fracht mit dem einträglichsten Auftrag. Unterwegs drohen [[piraten]]."
+ },
+ {
+  "kennung": "ferne-staedte",
+  "titel": "Ferne Städte",
+  "gruppe": "Hafen und Wege",
+  "text": "Die Städte am Kartenrand kaufen und verkaufen Waren zu eigenen Preisen. Ihre Märkte erholen sich im Lauf der Zeit, wenn man nicht handelt. Wer klug einkauft und verkauft, verdient mehr als am heimischen [[markt]], zahlt aber [[zoll]] und trägt das Risiko durch [[piraten]]."
+ },
+ {
+  "kennung": "zoll",
+  "titel": "Zoll",
+  "gruppe": "Hafen und Wege",
+  "text": "Die Stadt erhebt am Hafen einen Zoll auf Waren, die Schiffe ein- und ausführen. Er fließt in die [[stadtkasse]]. Der [[amt-zoellner|Zöllner]] erhebt ihn – und handelt dort selbst zollfrei."
+ },
+ {
+  "kennung": "piraten",
+  "titel": "Piraten",
+  "gruppe": "Hafen und Wege",
+  "text": "Auf dem Fluss lauern Piraten. Ein Überfall kostet Ware. Das [[geleit]] verringert die Chance; Überfälle auf eigene Schiffe erscheinen im [[protokoll]] als Warnung."
+ },
+ {
+  "kennung": "geleit",
+  "titel": "Geleit",
+  "gruppe": "Hafen und Wege",
+  "text": "Schutz für ein [[flussschiff]], ähnlich der [[eskorte]] für Karren: je stärker, desto teurer je Fahrt und desto weniger Verlust durch [[piraten]]."
+ },
+ {
+  "kennung": "weg",
+  "titel": "Wege",
+  "gruppe": "Hafen und Wege",
+  "text": "Die Karte verbindet Betriebe, Tore und Hafen durch Wege. Jeder Weg hat Stück für Stück (je 5 m) einen [[belag]]. Ein Klick auf einen Weg öffnet die Wegtafel: Belag, Zustand, Verkehr und Karrentempo je Abschnitt; dort lässt sich ein Abschnitt ausbauen oder – über den [[stadtrat]] – pflastern. Steigung und Wasser (Furt, Fähre) bremsen die [[karren]] zusätzlich."
+ },
+ {
+  "kennung": "belag",
+  "titel": "Belag",
+  "gruppe": "Hafen und Wege",
+  "text": "Trampelpfad, Fahrweg, Kies oder Pflaster. Karren fahren darauf mit etwa 70, 85, 95 und 100 Prozent Tempo. Viel Verkehr tritt einen Trampelpfad zum Fahrweg aus, ohne Verkehr wächst er wieder zu. Kies und Pflaster halten, verfallen aber langsam (Lücken, Gras in den Fugen), bis jemand sie ausbessert. Siehe [[weg]]."
+ },
+ {
+  "kennung": "beruf",
+  "titel": "Beruf",
+  "gruppe": "Berufe",
+  "text": "Zehn Berufe stehen zur Wahl: [[schmied]], [[tischler]], [[steinmetz]], [[alchimist]], [[wirt]], [[prediger]], [[dieb]], [[gardist]], [[geldleiher]] und [[parfumeur]]. Im Hauptmenü wählt ihr den Startberuf. Einen weiteren erlernt ihr im [[wohnhaus]] (Reiter „Handwerk“) gegen Lehrgeld und [[aktionspunkte]]; erst dann dürft ihr dessen Werkstätten und Umlandbetriebe erwerben. Die Erfahrung zählt für den [[meistergrad]]."
+ },
+ {
+  "kennung": "schmied",
+  "titel": "Schmied",
+  "gruppe": "Berufe",
+  "text": "Der Schmied fördert in der [[grube]] [[eisen|Eisen]] und [[silber|Silber]] und macht in der Gießerei Beschläge, Rapiere und Silberringe. Höhere Stufen: Schmiede (Werkzeug, [[silber|Silberkette]]) und Goldschmiede (Goldkette, Prunkschwert). Die Truhe des [[tischler|Tischlers]] braucht einen Beschlag von ihm."
+ },
+ {
+  "kennung": "tischler",
+  "titel": "Tischler",
+  "gruppe": "Berufe",
+  "text": "Der Tischler schlägt im Holzschlag [[holz]] und macht in der Tischlerei Holzzapfen, Schemel und Truhen – für eine Truhe braucht er einen Beschlag vom [[schmied|Schmied]]. Höhere Stufen: Drechslerei (Gehstock, Armbrust) und Sägewerk (Schrank, Prunktruhe). Den Schrank färbt der [[alchimist]] mit Farbe."
+ },
+ {
+  "kennung": "steinmetz",
+  "titel": "Steinmetz",
+  "gruppe": "Berufe",
+  "text": "Der Steinmetz bricht im Steinbruch [[stein|Bruchstein und Granit]] und macht in der Maurerei Schleifziegel, Grabsteine und Mühlsteine. Die Goldschmiede braucht seine Schleifziegel für das Prunkschwert; er selbst braucht in der Steinmetzhütte Werkzeug vom [[schmied|Schmied]] (Säule, Taufbecken, Steinfigur, Grabmal)."
+ },
+ {
+  "kennung": "alchimist",
+  "titel": "Alchimist",
+  "gruppe": "Berufe",
+  "text": "Der Alchimist zieht im Kräutergarten Kräuter und fängt Kröten und macht in der Tinkturei Farbe, Kräuterschnaps und Heilsalbe. Seine Farbe braucht der [[tischler]] für den Schrank. Wer das Handwerk beherrscht, mischt Krötenschleim im [[hinterzimmer]] selbst (halber Preis, höhere Chance)."
+ },
+ {
+  "kennung": "wirt",
+  "titel": "Wirt",
+  "gruppe": "Berufe",
+  "text": "Der Bauernhof liefert Gerste und Roggen, die Schänke (→ Wirtshaus → Gasthaus) macht Speisen und Bier – und bewirtet Gäste: Sie kehren ab Mittag bis zum Feierabend der Wirtshäuser um 22 Uhr ein (abends doppelt so viele) und bestellen, was im [[lager]] ist, zum Ausschankpreis. Die Gäste verteilen sich nach Stufe und Ansehen auf alle Schänken der Stadt. Im Wirtshaus wird bis 22 Uhr gearbeitet, mit entsprechend mehr Lohn und Leistung. Besonderes: Barde, Würfeltisch, Stammtisch und die Dunkle Ecke (Gerüchte über andere Häuser, Beweise wie vom [[spitzel]])."
+ },
+ {
+  "kennung": "prediger",
+  "titel": "Prediger",
+  "gruppe": "Berufe",
+  "text": "Der Klosterhof liefert Lumpen und Wachs, die Kirche (→ Dom → Kathedrale) macht Papier, Kerzen und Lehrschriften, später Hetzschriften, Psalter, Stundenbücher und Reliquiare. Zur Messe um 10 Uhr kommen die Gläubigen der Stadt und spenden steuerfrei. [[ablass]] und [[beichte]] sind weitere Einnahmequellen, Lehrschrift und Hetzschrift wirken für jedes Haus. Die [[konfession]] beeinflusst die Messe."
+ },
+ {
+  "kennung": "ablass",
+  "titel": "Ablass",
+  "gruppe": "Berufe",
+  "text": "Andere Häuser kaufen im Gerichtssaal eine ihrer Taten beim [[prediger|Prediger]] frei: gegen eine Gebühr plus den halben Wert der Tat. Die Tat verfällt mit allen [[beweis|Beweisen]] – am besten zuerst die, von der andere wissen. Kostet [[aktionspunkte|AP]]."
+ },
+ {
+  "kennung": "beichte",
+  "titel": "Beichte",
+  "gruppe": "Berufe",
+  "text": "Am Jahresende hört der [[prediger|Prediger]] von fremden Taten. Bricht er das Beichtgeheimnis, werden daraus Beweise – und er begeht selbst ein Vergehen. Siehe auch [[gericht]]."
+ },
+ {
+  "kennung": "dieb",
+  "titel": "Dieb",
+  "gruppe": "Berufe",
+  "text": "Kein Handwerk, keine Ware, kein Umland: Schmugglerloch → Unterschlupf → Diebesgilde. Taschendiebe ziehen tagsüber über den [[markt]] (steuerfrei) und werden mit etwas Pech gefasst: Der Dieb kommt in den Turm, ein anderes Haus erfährt, wem er diente. Nachts arbeiten die eigenen Leute im [[hinterzimmer]]: Einbruch, Auskundschaften, ab dem Unterschlupf Schutzgeld, in der Diebesgilde Entführung. Ein Haus mit Dieben hat weniger Ansehen. Siehe [[gauner]]."
+ },
+ {
+  "kennung": "gardist",
+  "titel": "Gardist",
+  "gruppe": "Berufe",
+  "text": "Das ehrliche Gegenstück zum [[dieb]]: Wachhaus → Stadtwache → Garnison, dazu ein Wachturm an der Landstraße. Die Stadt zahlt Sold für jede Arbeitsminute. Jeder Wachmann in der Stadt senkt nachts die Erfolgschance der [[gauner]] und macht Zeugen häufiger – zum Schutz aller Häuser. Der Wachturm senkt die Überfallchance auf den Umlandwegen ([[banditen]]). Mit der Razzia durchsucht die Wache ein Haus; für gewonnene Anklagen gibt es Kopfgeld. Ein Haus der Wache hat mehr Ansehen."
+ },
+ {
+  "kennung": "geldleiher",
+  "titel": "Geldleiher",
+  "gruppe": "Berufe",
+  "text": "Kein Handwerk, keine Ware: Wechselstube → Geldleihe → Bankhaus. Er legt Bargeld in die Kasse; seine Schreiber verleihen es an Bürger der Stadt, mit Zins und Ausfällen, und verdienen am Wechsel auswärtiger Kaufleute. Auch Häuser können im [[wohnhaus]] (Reiter „Geld“) einen Kredit aufnehmen. Über 20 Prozent Zins ist der Schuldschein ein Beweis gegen den Geldleiher ([[wucher]]). Der Geldleiher selbst leiht nicht."
+ },
+ {
+  "kennung": "wucher",
+  "titel": "Wucher",
+  "gruppe": "Berufe",
+  "text": "Verlangt ein [[geldleiher|Geldleiher]] überhöhten Zins, ist der Schuldschein ein [[beweis|Beweis]] gegen ihn, und er verliert Ansehen, solange der Kredit läuft. Kann ein Haus nicht zahlen, pfändet der Büttel Lagerware unter dem Marktpreis."
+ },
+ {
+  "kennung": "parfumeur",
+  "titel": "Parfumeur",
+  "gruppe": "Berufe",
+  "text": "Der Duftgarten liefert Lavendel und Jasmin, die Siederei (→ Duftwerkstatt → Parfumerie) macht Politur, die Blume der Zwietracht und Giftdolche, später Moschusduft, Fechterduft, Heiligenduft und Schattendolch. Vier Waren wirken für jedes Haus: Moschusduft (Brautschau und Rat), Blume der Zwietracht (ein Ratsherr verliert Gunst), Heiligenduft und Giftdolch. Politur brauchen auch Goldkette ([[schmied]]) und Prunktruhe ([[tischler]])."
+ },
+ {
+  "kennung": "lehrgeld",
+  "titel": "Lehrgeld",
+  "gruppe": "Berufe",
+  "text": "Was ein weiterer [[beruf|Beruf]] kostet: Lehrgeld und Werkzeug in Gulden plus [[aktionspunkte]]. Erst danach dürft ihr dessen Betriebe erwerben. Ist ein KI-Haus Patrizier geworden, darf es einen Betrieb mehr führen und dafür ein zweites Handwerk erlernen."
+ },
+ {
+  "kennung": "ware",
+  "titel": "Ware",
+  "gruppe": "Waren",
+  "text": "Alles, was hergestellt, gehandelt oder gelagert wird. Waren haben eine Stufe: [[rohstoff]], [[zwischenware]] oder [[fertigware]]. Im Marktfenster zeigt der Rahmen des Waren-Knopfes die Stufe (Holz = Rohstoff, dann Stein, Silber, Gold für Stufe 1 bis 3), die Farbe den [[beruf|Beruf]]. Der Tooltip nennt Herkunft, [[nachfrage|Nachfrage]], Zutaten und Gewinn je Arbeitsminute."
+ },
+ {
+  "kennung": "rohstoff",
+  "titel": "Rohstoff",
+  "gruppe": "Waren",
+  "text": "Ein Rohstoff kommt aus einem [[umlandbetrieb]]: Eisen, Silber, Gold, Holz, Bruchstein, Granit, Kräuter, Kröten, Gerste, Roggen, Lumpen, Wachs, Lavendel, Jasmin. Er wird in Werkstätten zu [[zwischenware|Zwischenwaren]] und [[fertigware|Fertigwaren]] weiterverarbeitet oder unverarbeitet am [[markt]] verkauft."
+ },
+ {
+  "kennung": "zwischenware",
+  "titel": "Zwischenware",
+  "gruppe": "Waren",
+  "text": "Eine Ware, die schon verarbeitet ist, aber meist noch in eine [[fertigware]] eingeht: Beschlag, Holzzapfen, Schleifziegel, Farbe, Papier, Politur und andere. Oft liefert ein anderer [[beruf|Beruf]] die Zutat – das verbindet die Häuser."
+ },
+ {
+  "kennung": "fertigware",
+  "titel": "Fertigware",
+  "gruppe": "Waren",
+  "text": "Eine Ware, die am Markt gute Preise erzielt: Rapier, Prunkschwert, Prunktruhe, Taufbecken, Reliquiar, Giftdolch und viele mehr. Fertigwaren brauchen meist Zutaten verschiedener [[beruf|Berufe]] – ein Grund, mit anderen Häusern zu handeln."
+ },
+ {
+  "kennung": "eisen",
+  "titel": "Eisen",
+  "gruppe": "Waren",
+  "text": "Rohstoff des [[schmied|Schmieds]]. Aus Eisen werden Beschläge, Rapiere und Werkzeug. Er wird in der [[grube]] gefördert, zusammen mit Silber."
+ },
+ {
+  "kennung": "silber",
+  "titel": "Silber",
+  "gruppe": "Waren",
+  "text": "Rohstoff des [[schmied|Schmieds]] aus der [[grube]]. Aus ihm entstehen Silberring und, in der Schmiede, die Silberkette; die Goldkette braucht zusätzlich Politur vom [[parfumeur]]."
+ },
+ {
+  "kennung": "gold",
+  "titel": "Gold",
+  "gruppe": "Waren",
+  "text": "Der wertvollste Rohstoff: Goldkette und Prunkschwert der Goldschmiede ([[schmied]]) brauchen ihn. Rahmenstufe 3 im Marktfenster."
+ },
+ {
+  "kennung": "holz",
+  "titel": "Holz",
+  "gruppe": "Waren",
+  "text": "Rohstoff des [[tischler|Tischlers]] aus dem Holzschlag. Aus Holz werden Holzzapfen, Schemel, Truhen, später Gehstock, Schrank und Prunktruhe."
+ },
+ {
+  "kennung": "stein",
+  "titel": "Bruchstein und Granit",
+  "gruppe": "Waren",
+  "text": "Rohstoffe des [[steinmetz|Steinmetzes]] aus dem Steinbruch. Aus ihnen werden Schleifziegel, Grabsteine und Mühlsteine, später Säulen und Taufbecken."
+ },
+ {
+  "kennung": "beschlag",
+  "titel": "Beschlag",
+  "gruppe": "Waren",
+  "text": "Eine Zwischenware des [[schmied|Schmieds]] aus Eisen. Der [[tischler|Tischler]] braucht ihn für die Truhe – eine Kette zwischen zwei Berufen."
+ },
+ {
+  "kennung": "schleifziegel",
+  "titel": "Schleifziegel",
+  "gruppe": "Waren",
+  "text": "Eine Zwischenware des [[steinmetz|Steinmetzes]]. Die Goldschmiede braucht sie für das Prunkschwert ([[schmied]])."
+ },
+ {
+  "kennung": "politur",
+  "titel": "Politur",
+  "gruppe": "Waren",
+  "text": "Eine Zwischenware des [[parfumeur|Parfumeurs]]. Goldkette ([[schmied]]) und Prunktruhe ([[tischler]]) brauchen sie – wer Politur hat, wird zum Zulieferer."
+ },
+ {
+  "kennung": "kraeuterschnaps",
+  "titel": "Kräuterschnaps",
+  "gruppe": "Waren",
+  "text": "Kommt vom [[alchimist|Alchimisten]] und landet, vom Markt gekauft, in der Hausapotheke: Er heilt leichte [[krankheiten]]."
+ },
+ {
+  "kennung": "hetzschrift",
+  "titel": "Hetzschrift",
+  "gruppe": "Waren",
+  "text": "Ein Erzeugnis der Kirche ([[prediger]]): Im [[hinterzimmer]] eingesetzt, verliert ein anderes Haus Ansehen bis Ende des nächsten Jahres – eine Verleumdung. Kostet [[aktionspunkte|AP]]."
+ },
+ {
+  "kennung": "lehrschrift",
+  "titel": "Lehrschrift",
+  "gruppe": "Waren",
+  "text": "Ein Erzeugnis der Kirche ([[prediger]]): Das Oberhaupt liest sie im [[familie|Familienbuch]] und gewinnt ein halbes Stern an einem [[talente|Talent]], aber nur bis 3 Sterne, einmal im Jahr."
+ },
+ {
+  "kennung": "moschusduft",
+  "titel": "Moschusduft",
+  "gruppe": "Waren",
+  "text": "Ein Duft des [[parfumeur|Parfumeurs]]: In der [[brautschau]] bringt er Zuneigung über das Jahreslimit hinaus, im [[stadtrat]] Gunst ohne Bestechungsspur. Einmal im Jahr je Person, kostet [[aktionspunkte|AP]]."
+ },
+ {
+  "kennung": "stadt",
+  "titel": "Die Stadt",
+  "gruppe": "Stadt und Bauen",
+  "text": "Eine Reichsstadt mit Mauer, Toren, [[markt|Marktplatz]], [[rathaus]] und Dom, Wohnvierteln, Hafen und Umland. Die Stadt wächst mit den Häusern: {wert:einwohner_grund} Grundbewohner und {wert:einwohner_haus} Einwohner je Haus. Sie hat ein [[statut]], einen [[stadtrat]], eine [[stadtkasse]] und eine [[konfession|Konfession]]."
+ },
+ {
+  "kennung": "einwohner",
+  "titel": "Einwohner",
+  "gruppe": "Stadt und Bauen",
+  "text": "Neben den Häusern leben {wert:einwohner_haus} Einwohner je Haus in der Stadt, dazu Ratsherren und Heiratskandidaten. Jeder hat Name, Volk, Rolle (Tagelöhner, Magd, Krämer, Mönch …) und einen eigenen Tagesablauf nach fünf Bedürfnissen: Arbeit, Markt, Schänke, Kirche, Feierabend. Sie gehen Wege durch die Stadt und hinaus aufs Umland. Die Gäste der Schänken richten sich nach den Einwohnern, die wirklich einkehren. Sie bestimmen die [[nachfrage|Nachfrage]]."
+ },
+ {
+  "kennung": "rathaus",
+  "titel": "Rathaus",
+  "gruppe": "Stadt und Bauen",
+  "text": "Im Rathaus sitzt der [[stadtrat]]. Ein Klick zeigt Statut, [[stadtkasse]], Ämter und das [[gericht]]. Von hier aus werden Bürgerrecht ([[stand]]), Bewerbungen und Anträge geregelt."
+ },
+ {
+  "kennung": "dom",
+  "titel": "Dom",
+  "gruppe": "Stadt und Bauen",
+  "text": "Das große Gotteshaus der Stadt. Die Messe findet um 10 Uhr statt; die [[konfession]] der Gemeinde entscheidet, in welche Kirche sie geht. Das Ewige Licht brennt nachts in Rot."
+ },
+ {
+  "kennung": "bauen",
+  "titel": "Bauen",
+  "gruppe": "Stadt und Bauen",
+  "text": "Der Knopf „+ Bauen“ (oder B) öffnet rechts die Bautafel und zeigt die Bauzonen der Karte: Kern, Mauerring und Vorstadt. Ihr wählt ein Gebäude – ein [[wohnhaus]] oder eine [[werkstatt]] (Stufe 1, je Beruf) – und setzt den Umriss auf ein 2-m-Raster mit der Vorderseite an eine Straße. Grün heißt: hier darf gebaut werden, rot nennt den Grund. R dreht in Vierteln. Danach zeigt die Rückfrage Preis, Kosten und Bauzeit; erst „Bauen“ schickt den Befehl. Siehe [[baustelle]] und [[leerstand]]."
+ },
+ {
+  "kennung": "baustelle",
+  "titel": "Baustelle",
+  "gruppe": "Stadt und Bauen",
+  "text": "Wächst mit der Bauzeit: Fundament, Mauern, zuletzt der Dachstuhl, dazu Gerüst und Holzstapel. Ein Klick nennt, was entsteht und wann es fertig ist. Beim Wohnhaus wohnt ihr bis zur Fertigstellung im alten Haus; danach zieht ihr um, und das alte wird zum Bauplatz. Ist sie fertig, folgt die Auswahl dem neuen Haus."
+ },
+ {
+  "kennung": "leerstand",
+  "titel": "Leerstand",
+  "gruppe": "Stadt und Bauen",
+  "text": "Das [[wohnhaus]] eines [[bankrott|bankrotten]] oder erloschenen Hauses steht leer. Ihr könnt es kaufen ({wert:leerstand_kauf} des Hauswerts plus {wert:leerstand_sanierung} Sanierung, abzüglich des Werts eures alten Hauses) oder abreißen lassen ({wert:leerstand_abriss} des Hauswerts, mindestens 100 {wert:waehrung}). Danach ist dort ein Bauplatz für jeden. Die KI kauft Leerstand erst, wenn er ein ganzes Jahr leer stand."
+ },
+ {
+  "kennung": "bauplatz",
+  "titel": "Bauplatz",
+  "gruppe": "Stadt und Bauen",
+  "text": "Ein freier Platz, auf dem gebaut werden kann: mit Zaun und Schild markiert oder in einer Bauzone ([[bauen]]). Ein Klick nennt Fläche und wie man baut."
+ },
+ {
+  "kennung": "haus",
+  "titel": "Haus",
+  "gruppe": "Haus und Familie",
+  "text": "Euer Haus ist die Dynastie, die ihr führt: ein Name, ein Wappen, ein [[oberhaupt]] mit [[familie]], ein [[wohnhaus]], Betriebe und Vermögen. Auch die KI-Rivalen sind Häuser ([[ki-haus]]). Ein Haus kann [[bankrott]] gehen oder aussterben ([[erbfolge]])."
+ },
+ {
+  "kennung": "ki-haus",
+  "titel": "KI-Häuser",
+  "gruppe": "Haus und Familie",
+  "text": "Die Rivalen spielen nach denselben Regeln und mit denselben Informationen wie ihr – keine Schummelei. Sie stellen Betriebe um, besetzen freie Plätze mit der besten erlaubten Arbeitskraft, kaufen Karren, bauen, bewerben sich im [[stadtrat]] und greifen je nach Charakter (vorsichtig, ausgewogen, wagemutig) zu [[gauner|Gaunermitteln]]. Mitspielen: Haus Eisenbart (Zwerge, Schmiede), Haus Eichwald (Elben, Tischler), Haus Kieselbach (Halblinge, Steinmetze). Im Hauptmenü wählt man 1 bis 3 Rivalen."
+ },
+ {
+  "kennung": "wappen",
+  "titel": "Wappen",
+  "gruppe": "Haus und Familie",
+  "text": "Das Zeichen eures Hauses, im Hauptmenü gewählt: eine von zwölf Vorlagen, Farben für Grund und Figur ändern oder würfeln. Die Beschreibung steht in der Sprache der Herolde („In Rot ein goldener Hammer.“). Ein Wappen besteht aus einer Teilung, zwei Farben und einer von 16 Figuren."
+ },
+ {
+  "kennung": "oberhaupt",
+  "titel": "Oberhaupt",
+  "gruppe": "Haus und Familie",
+  "text": "Die Person, die das Haus führt. Volk, Geschlecht und Vorname wählt ihr im Hauptmenü, dazu Gesicht, Haar und Augenfarbe. Ihre [[talente|Talente]] zählen für das ganze Haus – deshalb ist der Erbe eine echte Entscheidung ([[erbfolge]])."
+ },
+ {
+  "kennung": "volk",
+  "titel": "Völker",
+  "gruppe": "Haus und Familie",
+  "text": "Menschen, Zwerge, Elben, Halblinge, Orks und Oger leben in der Stadt. Euer Haus besteht aus Menschen, Zwergen, Elben oder Halblingen. Zwerge sind die besten Handwerker, Elben die besten Redner, Halblinge die geschicktesten Gauner. Dazu kommen Völkerboni je [[beruf|Beruf]]. Orks und Oger arbeiten unter dem [[statut]] als Fron; sie hängen dem Naturglauben an ([[naturglaube]])."
+ },
+ {
+  "kennung": "dynastie",
+  "titel": "Dynastie",
+  "gruppe": "Haus und Familie",
+  "text": "Die Abfolge der Oberhäupter eures [[haus|Hauses]]: Jedes Jahr altern alle, mit dem Alter steigt das Sterberisiko. Ehen ([[heirat]]) bringen [[kinder]], und der [[erbfolge|Erbe]] führt das Haus weiter. Erlischt die Linie, endet das Haus."
+ },
+ {
+  "kennung": "familie",
+  "titel": "Familie",
+  "gruppe": "Haus und Familie",
+  "text": "Die Familientafel (Taste F) zeigt Oberhaupt, Ehepartner, Kinder und Verwandte, ihre [[talente]], [[gesundheit|Gesundheit]] und [[portraet|Porträts]]. Dort steht auch die [[brautschau]], die Wahl des [[erbfolge|Erben]], das Üben von Talenten, die Lehrschrift und das [[konvertieren|Konvertieren]]."
+ },
+ {
+  "kennung": "portraet",
+  "titel": "Porträt",
+  "gruppe": "Haus und Familie",
+  "text": "Jede Person der Dynastien hat ein gemaltes Porträt im Stil eines kolorierten Holzschnitts. Der Hintergrund zeigt den [[stand]], die Kleidung wechselt beim Aufstieg zum Patrizier, das Alter verändert das Gesicht. Kinder erben Gesicht und Farben der Eltern. Die Bilder blinzeln, atmen und nicken im Rat bei Zustimmung."
+ },
+ {
+  "kennung": "brautschau",
+  "titel": "Brautschau",
+  "gruppe": "Haus und Familie",
+  "text": "Ihr werbt mit Geschenken um ledige Bürger der Stadt, nur standesgemäß und mit Geduld: Mehr als 20 Zuneigung im Jahr gewinnt niemand, und die Zuneigung verblasst wieder. Neben jedem Kandidaten steht, wie viele [[kinder]] die Ehe erwarten lässt. Werben kostet [[aktionspunkte|AP]]. [[moschusduft|Moschusduft]] hilft. Siehe [[heirat]]."
+ },
+ {
+  "kennung": "heirat",
+  "titel": "Heirat",
+  "gruppe": "Haus und Familie",
+  "text": "Ist die Zuneigung hoch genug, heiratet das Oberhaupt (oder ein Kind). Ehen zwischen Völkern sind erlaubt, aber weniger fruchtbar und wirken sich im [[stadtrat]] aus. Heiraten kostet [[aktionspunkte|AP]]. Stirbt der Ehepartner, gilt das Witwenrecht."
+ },
+ {
+  "kennung": "kinder",
+  "titel": "Kinder",
+  "gruppe": "Haus und Familie",
+  "text": "Eine Ehe bringt mit den Jahren Kinder, mit abnehmender Wahrscheinlichkeit. Kinder erben Anlagen der Eltern, werden mit dem Alter zu Kandidaten für Heirat und [[erbfolge|Erbe]] und können ihre [[talente]] üben."
+ },
+ {
+  "kennung": "erbfolge",
+  "titel": "Erbfolge",
+  "gruppe": "Haus und Familie",
+  "text": "Stirbt das [[oberhaupt]], erbt das im Testament bestimmte Kind, sonst das älteste volljährige. Gibt es keines, führt nach dem Witwenrecht der Ehepartner das Haus weiter. Sonst erlischt das Haus: Bei euch ist die Partie dann verloren, bei einem KI-Haus stehen seine Betriebe zum Verkauf ([[bankrott]]) und sein [[wohnhaus]] steht [[leerstand|leer]]. Weil nur die [[talente|Talente]] des Oberhaupts zählen, lohnt es sich, ein geeignetes Kind auszubilden."
+ },
+ {
+  "kennung": "talente",
+  "titel": "Talente",
+  "gruppe": "Haus und Familie",
+  "text": "Jede Person hat fünf Talente mit 0 bis 6 Sternen: Verhandeln (bessere Markterlöse), Handwerkskunst (mehr Leistung aller Arbeitskräfte), Bei Nacht und Nebel (Gaunerstücke gelingen öfter, Zeugen sehen weniger), Kampf (stärkere Wegelagerer, besser geschützte eigene Karren) und Rhetorik (Ratswahlen, Plädoyer vor Gericht, Brautgeschenke). Es zählen die Talente des [[oberhaupt|Oberhaupts]]. Üben kostet [[aktionspunkte|AP]]: ein halber Stern je Übung, je Talent einmal im Jahr."
+ },
+ {
+  "kennung": "gesundheit",
+  "titel": "Gesundheit",
+  "gruppe": "Haus und Familie",
+  "text": "Jedes Jahr erkrankt etwa jede siebte Person. Krankheiten kosten Talente oder Ansehen und können tödlich sein ([[krankheiten]]). Ein Medicus heilt gegen Gulden; Kräuterschnaps heilt leichte Fälle ([[kraeuterschnaps]])."
+ },
+ {
+  "kennung": "krankheiten",
+  "titel": "Krankheiten und Pest",
+  "gruppe": "Haus und Familie",
+  "text": "Husten, Ruhr, Lungenentzündung, Knochenbruch, Vergesslichkeit, Angst im Dunkeln, Haarausfall oder Lachanfälle. Ruhr und Lungenentzündung können tödlich sein. Alle paar Jahrzehnte kommt die Pest: Viele erkranken, ein Teil stirbt (Zwerge und Elben sind weniger anfällig), und alle Betriebe arbeiten ein Jahr lang langsamer. Ein Medicus halbiert das Pestrisiko. Im [[hinterzimmer]] lässt sich anderen Häusern Krankheit schicken."
+ },
+ {
+  "kennung": "wohnhaus",
+  "titel": "Wohnhaus",
+  "gruppe": "Haus und Familie",
+  "text": "Euer Haus wohnt getrennt von den Betrieben und baut sein Wohnhaus am selben Ort Stufe für Stufe aus: {wert:haus_name_1} (zum Start), {wert:haus_name_2} ({wert:haus_ausbau_2} {wert:waehrung}, Unterhalt {wert:haus_unterhalt_2}, +{wert:haus_ansehen_2} Ansehen), {wert:haus_name_3} ({wert:haus_ausbau_3}), {wert:haus_name_4} ({wert:haus_ausbau_4}) und {wert:haus_name_5} ({wert:haus_ausbau_5}). Das Haus ist Pflicht für den [[stand]]: Eine Stufe über dem eigenen Stand darf man höchstens bauen. Das Wohnhaus hat Reiter für Haus, [[familie]], Handwerk ([[meistergrad]]), Geld ([[geldleiher|Kredite]]) und [[hinterzimmer]]. Siehe [[ansehen]], [[leerstand]], [[bauen]]."
+ },
+ {
+  "kennung": "ansehen",
+  "titel": "Ansehen",
+  "gruppe": "Haus und Familie",
+  "text": "Der Ruf eures Hauses in der Stadt. Ein größeres [[wohnhaus]] bringt Ansehen ({wert:haus_ansehen_2} beim {wert:haus_name_2}, {wert:haus_ansehen_5} beim {wert:haus_name_5}); Dieb-Häuser und Wucher kosten Ansehen, Gardisten bringen welches. Ansehen wirkt im [[stadtrat]], bei der [[brautschau]], vor [[gericht]] und bei der Verteilung der Gäste auf Schänken und Kirchen."
+ },
+ {
+  "kennung": "hinterzimmer",
+  "titel": "Hinterzimmer",
+  "gruppe": "Haus und Familie",
+  "text": "Der Reiter im [[wohnhaus]] (Taste H), von dem aus ihr [[gauner|Banden]] gegen andere Häuser anheuert, eine [[hetzschrift|Hetzschrift]] verbreitet, die Blume der Zwietracht sät und Krötenschleim mischt. Die Stücke werden nachts ausgeführt ([[dunkle-nacht]]) und hinterlassen eine [[spur]]."
+ },
+ {
+  "kennung": "stand",
+  "titel": "Stand",
+  "gruppe": "Stand und Rat",
+  "text": "Jedes Haus beginnt als Gemeiner und steigt auf: {wert:stand_name_2}, {wert:stand_name_3}, {wert:stand_name_4}, {wert:stand_name_5}, {wert:stand_name_6}. Der Aufstieg verlangt [[reinvermoegen|Vermögen]] (zum {wert:stand_name_2} {wert:stand_schwelle_2} {wert:waehrung}, zum {wert:stand_name_3} {wert:stand_schwelle_3}) und das passende [[wohnhaus]], und kostet eine Gebühr im [[rathaus]] ({wert:stand_gebuehr_2} für den {wert:stand_name_2}). Der Stand bestimmt, welche Ämter ihr im [[stadtrat]] anstreben dürft und welche Gebäude ihr bauen dürft."
+ },
+ {
+  "kennung": "buergerrecht",
+  "titel": "Bürgerrecht",
+  "gruppe": "Stand und Rat",
+  "text": "Ab {wert:buerger_schwelle} {wert:waehrung} (Reinvermögen) könnt ihr im [[rathaus]] das Bürgerrecht erwerben. Als Bürger dürft ihr euch um ein Amt im [[stadtrat]] bewerben und ein Bürgerhaus bauen."
+ },
+ {
+  "kennung": "stadtrat",
+  "titel": "Stadtrat",
+  "gruppe": "Stand und Rat",
+  "text": "Der Rat der Stadt: sieben [[amt|Ämter]] in einer Pyramide, vom Zöllner bis zum Bürgermeister, jedes mit Amtseinkommen. Die Sitze halten zu Beginn [[ratsherr|Ratsherren]] der Stadt. Ab dem Stand Bürger bewerbt ihr euch um ein Amt, immer eine Stufe über dem jetzigen. Gewählt wird am Jahresende von den Inhabern der höheren Ämter. Wer im Rat sitzt, stellt [[antrag|Anträge]]. Die Ratskammer öffnet mit R oder im [[rathaus]]; die [[ratssitzung]] findet am Jahresende statt."
+ },
+ {
+  "kennung": "amt",
+  "titel": "Ämter",
+  "gruppe": "Stand und Rat",
+  "text": "Sieben Ämter in vier Stufen: [[amt-buergermeister|Bürgermeister]], [[amt-stadtrichter|Stadtrichter]], [[amt-kaemmerer|Kämmerer]], [[amt-stadthauptmann|Stadthauptmann]], [[amt-marktmeister|Marktmeister]], [[amt-gefaengniswaerter|Gefängniswärter]] und [[amt-zoellner|Zöllner]]. Jedes Amt hat Befugnisse, ein Einkommen und einen Mindest-[[stand]]. Besetzt wird es per Wahl durch die höheren Ämter ([[stadtrat]])."
+ },
+ {
+  "kennung": "amt-buergermeister",
+  "titel": "Bürgermeister",
+  "gruppe": "Stand und Rat",
+  "text": "Das höchste Amt: Er leitet den [[stadtrat]], entscheidet bei Stimmengleichheit und stellt einmal im Jahr einen [[antrag|Antrag]] ohne [[aktionspunkte|AP]]. Mindestens Patrizier."
+ },
+ {
+  "kennung": "amt-stadtrichter",
+  "titel": "Stadtrichter",
+  "gruppe": "Stand und Rat",
+  "text": "Führt den Vorsitz im [[gericht]] und kann die Buße um bis zu einem Viertel hinauf- oder herabsetzen. Mindestens Patrizier."
+ },
+ {
+  "kennung": "amt-kaemmerer",
+  "titel": "Kämmerer",
+  "gruppe": "Stand und Rat",
+  "text": "Verwaltet die [[stadtkasse]]: sieht den ganzen Haushalt und beantragt den [[umsatzsteuer|Steuersatz]] ohne [[aktionspunkte|AP]]. Mindestens Patrizier."
+ },
+ {
+  "kennung": "amt-stadthauptmann",
+  "titel": "Stadthauptmann",
+  "gruppe": "Stand und Rat",
+  "text": "Befehligt die Stadtwache ([[gardist]]): verlegt die Streife in ein Viertel, dort schützt sie doppelt. Mindestens Bürger."
+ },
+ {
+  "kennung": "amt-marktmeister",
+  "titel": "Marktmeister",
+  "gruppe": "Stand und Rat",
+  "text": "Wacht über den [[markt]]: sieht die Preise der nächsten Stunde und zahlt auf eigene Marktverkäufe nur die halbe [[umsatzsteuer|Steuer]]. Mindestens Bürger."
+ },
+ {
+  "kennung": "amt-gefaengniswaerter",
+  "titel": "Gefängniswärter",
+  "gruppe": "Stand und Rat",
+  "text": "Verwahrt die Gefangenen im [[kerker]] und lässt sie gegen Kaution vorzeitig frei (die Kaution behält er). Mindestens Bürger."
+ },
+ {
+  "kennung": "amt-zoellner",
+  "titel": "Zöllner",
+  "gruppe": "Stand und Rat",
+  "text": "Erhebt den [[zoll]] der Stadt am Hafen – und handelt dort selbst zollfrei. Das unterste Amt, mindestens Bürger."
+ },
+ {
+  "kennung": "ratsherr",
+  "titel": "Ratsherren",
+  "gruppe": "Stand und Rat",
+  "text": "Die Sitze im [[stadtrat]] halten zu Beginn Ratsherren der Stadt (Menschen, Zwerge, Elben, Halblinge). Jeder hat eine eigene Haltung zum [[statut]] und zur [[konfession]] und eine [[gunst]] für jedes Haus. Er kann beschenkt werden; ein Geschenk ist Bestechung und hinterlässt eine [[spur]]."
+ },
+ {
+  "kennung": "gunst",
+  "titel": "Gunst",
+  "gruppe": "Stand und Rat",
+  "text": "Wie sehr ein Ratsherr euer Haus mag. Geschenke ([[aktionspunkte|AP]]) und Moschusduft ([[moschusduft]]) heben sie, die Blume der Zwietracht ([[parfumeur]]) senkt sie. Sie verblasst jedes Jahr zum Teil. Eine Prognose in der Ratskammer zeigt, wie die Wahl heute ausginge. Glaubensbrüder bekommen Pluspunkte ([[konfession]])."
+ },
+ {
+  "kennung": "antrag",
+  "titel": "Antrag",
+  "gruppe": "Stand und Rat",
+  "text": "Wer im [[stadtrat]] sitzt, stellt Anträge, die meist [[aktionspunkte|Aktionspunkte]] kosten: Änderung des [[statut|Statuts]] oder des [[stadtglaube|Stadtglaubens]], ein anderer [[umsatzsteuer|Steuersatz]] (zwischen {wert:steuer_min} und {wert:steuer_max}), ein [[bauvorhaben|Bauvorhaben]] der Stadt, ein [[fest|Fest]] oder das Pflastern eines [[weg|Wegs]]. Der ganze Rat stimmt am Jahresende ab ([[ratssitzung]]); ihr stimmt vorab selbst ab, ohne Aktionspunkte."
+ },
+ {
+  "kennung": "bauvorhaben",
+  "titel": "Bauvorhaben der Stadt",
+  "gruppe": "Stand und Rat",
+  "text": "Ein Antrag im [[stadtrat]]: Brunnen (gegen Krankheiten), Mauer (gegen nächtliche Taten), Hafen (für schnellere Schiffe) oder ein größerer Marktplatz (mehr [[nachfrage|Nachfrage]]). Bezahlt aus der [[stadtkasse]], und nur, wenn die Kasse es deckt; die Ratsherren stimmen dafür, wenn danach noch die Reserve bleibt. Es bringt dem Antragsteller Ansehen."
+ },
+ {
+  "kennung": "fest",
+  "titel": "Fest",
+  "gruppe": "Stand und Rat",
+  "text": "Ein Antrag im [[stadtrat]]: ein Fest im nächsten Jahr, das mehr Marktbesucher und Wirtshausgäste anlockt. Bezahlt aus der [[stadtkasse]] (nur, wenn sie es deckt) und bringt dem Antragsteller [[ansehen|Ansehen]]."
+ },
+ {
+  "kennung": "stadtkasse",
+  "titel": "Stadtkasse",
+  "gruppe": "Stand und Rat",
+  "text": "Die Kasse der Stadt: Sie nimmt die [[umsatzsteuer|Umsatzsteuer]] aller Verkäufe ein ({wert:steuersatz}), dazu den Glaubenszins, Bußen und Gerichtsgebühren und den [[zoll]], und zahlt Amtsgehälter, [[bauvorhaben]] und [[fest|Feste]]. Der Reiter „Stadtkasse“ im [[rathaus]] zeigt Stand, Steuersatz, Einnahmen und Ausgaben; die einzelnen Posten sieht nur der [[amt-kaemmerer|Kämmerer]]."
+ },
+ {
+  "kennung": "ratssitzung",
+  "titel": "Ratssitzung",
+  "gruppe": "Stand und Rat",
+  "text": "Stehen am Jahresende Anträge oder Wahlen an, hält die Partie an, und ihr seht die Sitzung im Ratssaal: Die Ratsherren sitzen am Hufeisentisch, der Antragsteller begründet seinen Antrag in einem Satz, dann stimmt Sitz für Sitz ab. Sitzt ihr im Rat, wartet die Sitzung an eurem Platz; mit „Weiter“ gebt ihr eure Stimme ab."
+ },
+ {
+  "kennung": "gauner",
+  "titel": "Gauner",
+  "gruppe": "Gericht und Gauner",
+  "text": "Im [[hinterzimmer]] heuert ihr [[bande|Banden]] gegen andere Häuser an. Ausgeführt wird bei [[dunkle-nacht|Nacht und Nebel]]: Jede Bande versucht es mehrmals in der Nacht mit einem Teil der Chance; jeder Erfolg wirkt und hinterlässt eine [[spur]]. Die Arten: [[diebstahl]], [[sabotage]], [[ueberfall]], [[einbruch]], [[brandstiftung]]. Gegen Gauner helfen [[waechter]] und die Stadtwache ([[gardist]])."
+ },
+ {
+  "kennung": "bande",
+  "titel": "Bande",
+  "gruppe": "Gericht und Gauner",
+  "text": "Eine Gruppe Gauner, die ihr für ein Stück anheuert (kostet [[aktionspunkte|AP]]). Sie arbeitet nachts gegen ein anderes Haus ([[gauner]]); das [[talente|Talent]] „Bei Nacht und Nebel“ erhöht die Chance, Wächter und Stadtwache senken sie."
+ },
+ {
+  "kennung": "diebstahl",
+  "titel": "Diebstahl",
+  "gruppe": "Gericht und Gauner",
+  "text": "Die Bande holt die wertvollste Ware aus einem [[lager]]; der Hehler zahlt euch die Hälfte des Marktwerts. Bei einem [[geldleiher|Geldleiher]] holt sie dazu einen Teil der Kasse (Bargeld braucht keinen Hehler). Eine Eisentür halbiert die Chance. Hinterlässt eine [[spur]]."
+ },
+ {
+  "kennung": "sabotage",
+  "titel": "Sabotage",
+  "gruppe": "Gericht und Gauner",
+  "text": "Ein Betrieb des Opfers steht einen halben Arbeitstag still, und das Opfer zahlt die Reparatur. Hinterlässt eine [[spur]]."
+ },
+ {
+  "kennung": "ueberfall",
+  "titel": "Überfall",
+  "gruppe": "Gericht und Gauner",
+  "text": "Wegelagerer lauern der nächsten beladenen Umlandfahrt des Opfers auf. Die [[eskorte]] schützt wie gewohnt. Hinterlässt eine [[spur]]; vor [[gericht]] bringt ein Überfall ein Jahr [[kerker]]."
+ },
+ {
+  "kennung": "einbruch",
+  "titel": "Einbruch",
+  "gruppe": "Gericht und Gauner",
+  "text": "Eine Bande oder die eigenen Diebe ([[dieb]]) brechen ins [[wohnhaus]] eines Opfers ein und holen einen Teil des Bargelds aus der Truhe, höchstens ein bestimmter Betrag je Hausstufe. Die Stadt erfährt es wie jeden Einbruch. Hinterlässt eine [[spur]]."
+ },
+ {
+  "kennung": "brandstiftung",
+  "titel": "Brandstiftung",
+  "gruppe": "Gericht und Gauner",
+  "text": "Ein Brand am [[wohnhaus]]: Das Opfer zahlt die Reparatur, und einen Tag lang fehlt das Ansehen des Hauses. Die Stufe bleibt, der [[stand]] ist nie in Gefahr. Auch Schutzgeld-Eintreiber ([[dieb]]) drohen damit."
+ },
+ {
+  "kennung": "erpressung",
+  "titel": "Erpressung",
+  "gruppe": "Gericht und Gauner",
+  "text": "Mit mindestens drei [[beweis|Beweisen]] kann ein Haus Schweigegeld erpressen. Der Erpresserbrief ist selbst ein Beweis gegen den Absender, und vor [[gericht]] bringt Erpressung ein Jahr [[kerker]]. Kostet [[aktionspunkte|AP]]."
+ },
+ {
+  "kennung": "entfuehrung",
+  "titel": "Entführung",
+  "gruppe": "Gericht und Gauner",
+  "text": "Eine Tat der Diebesgilde ([[dieb]]): Das Lösegeld ist bis Ende des Folgejahres fällig, sonst wird die Geisel in die Fremde verkauft. Hinterlässt eine [[spur]]; ein Fall für das [[gericht]] und den [[kerker]]."
+ },
+ {
+  "kennung": "waechter",
+  "titel": "Wächter",
+  "gruppe": "Gericht und Gauner",
+  "text": "Ein Wächter je Betrieb halbiert die Chance der Diebe und sieht öfter, wer es war ([[zeuge]]). Kostet laufend Gulden, braucht aber keine Aktionspunkte."
+ },
+ {
+  "kennung": "spur",
+  "titel": "Spur",
+  "gruppe": "Gericht und Gauner",
+  "text": "Jedes Gaunerstück hinterlässt eine Spur fürs Gericht, auch ein Versuch. Spuren sind noch keine [[beweis|Beweise]]: Erst wer sie aufdeckt ([[spitzel]], [[razzia]], [[zeuge]]), bekommt Beweise. Nach einigen Jahren verjähren sie."
+ },
+ {
+  "kennung": "beweis",
+  "titel": "Beweis",
+  "gruppe": "Gericht und Gauner",
+  "text": "Was ihr gegen ein Haus in der Hand habt: Es landet im Beweisbuch. Beweise stammen aus aufgedeckten [[spur|Spuren]]; jeder Beweis zählt vor [[gericht]] mit. Mit mindestens drei Beweisen ist [[erpressung]] möglich. Die Beweiskraft hängt vom Beweis ab."
+ },
+ {
+  "kennung": "zeuge",
+  "titel": "Zeuge",
+  "gruppe": "Gericht und Gauner",
+  "text": "Manchmal erkennt ein Zeuge den Täter. Die Chance sinkt mit dem Talent „Bei Nacht und Nebel“ und steigt durch [[waechter]] und Stadtwache. Zeugen machen aus einer [[spur]] einen [[beweis]]."
+ },
+ {
+  "kennung": "spitzel",
+  "titel": "Spitzel",
+  "gruppe": "Gericht und Gauner",
+  "text": "Im Gerichtssaal setzt ihr einen Spitzel auf ein anderes Haus an (kostet [[aktionspunkte|AP]] und Gulden, einmal im Jahr auf das stärkste andere Haus). Er deckt am Jahresende [[spur|Spuren]] auf, die als [[beweis|Beweise]] im Beweisbuch landen – mit einer gewissen Chance."
+ },
+ {
+  "kennung": "gericht",
+  "titel": "Stadtgericht",
+  "gruppe": "Gericht und Gauner",
+  "text": "Im [[rathaus]] öffnet „Gerichtssaal öffnen“ das Gericht. Dort setzt ihr einen [[spitzel]] an, führt das Beweisbuch und erhebt [[anklage|Anklage]]. Den Vorsitz führt der [[amt-stadtrichter|Stadtrichter]], dazu kommen zwei ausgeloste Schöffen. Das Urteil fällt am [[gerichtstag]]."
+ },
+ {
+  "kennung": "anklage",
+  "titel": "Anklage",
+  "gruppe": "Gericht und Gauner",
+  "text": "Mit [[beweis|Beweisen]] erhebt ihr Anklage gegen ein anderes Haus (kostet [[aktionspunkte|AP]] und eine Gerichtsgebühr von {wert:gerichtsgebuehr} {wert:waehrung}). Eine Prognose zeigt, wie jeder Richter heute urteilen würde. Geschenke an die Richter können einen knappen Fall kippen, ab drei Beweisen aber nicht mehr. Das Urteil fällt am [[gerichtstag]]."
+ },
+ {
+  "kennung": "gerichtstag",
+  "titel": "Gerichtstag",
+  "gruppe": "Gericht und Gauner",
+  "text": "Zum Jahresende, noch vor der [[ratssitzung]], fällt das Urteil. Bei einem Schuldspruch gibt es eine [[busse]], der Verurteilte verliert sein Amt und steht am [[pranger]]; für schwere Taten kommt [[kerker]] dazu. Bei einem Freispruch entschädigt der Ankläger den Beklagten."
+ },
+ {
+  "kennung": "busse",
+  "titel": "Buße",
+  "gruppe": "Gericht und Gauner",
+  "text": "Bei einem Schuldspruch zahlt der Täter das {wert:busse_faktor}-fache des Tatwerts (mindestens eine Mindestbuße, höchstens ein Anteil seines Vermögens). Der [[amt-stadtrichter|Stadtrichter]] kann sie um ein Viertel ändern. Zudem verliert der Verurteilte sein Amt und steht am [[pranger]]."
+ },
+ {
+  "kennung": "kerker",
+  "titel": "Kerker",
+  "gruppe": "Gericht und Gauner",
+  "text": "Überfall und [[erpressung]] bringen vor [[gericht]] ein Jahr Kerker. In dieser Zeit laufen nur die Betriebe weiter. Der [[amt-gefaengniswaerter|Gefängniswärter]] verwahrt die Gefangenen und lässt sie gegen Kaution frei."
+ },
+ {
+  "kennung": "pranger",
+  "titel": "Pranger",
+  "gruppe": "Gericht und Gauner",
+  "text": "Wer verurteilt wird, verliert sein Amt und steht mehrere Jahre am Pranger, was ihn [[ansehen|Ansehen]] kostet ([[gerichtstag]])."
+ },
+ {
+  "kennung": "bestechung",
+  "titel": "Bestechung",
+  "gruppe": "Gericht und Gauner",
+  "text": "Jedes Geschenk an einen [[ratsherr|Ratsherrn]] gilt als Bestechung und hinterlässt eine [[spur]] – bei euch wie bei den KI-Häusern. Ohne Spur wirken nur [[moschusduft|Moschusduft]] und der Stammtisch ([[wirt]])."
+ },
+ {
+  "kennung": "razzia",
+  "titel": "Razzia",
+  "gruppe": "Gericht und Gauner",
+  "text": "Eine Maßnahme der Stadtwache ([[gardist]]): Sie durchsucht ein Haus, findet zu jeder seiner Taten mit einer Chance einen [[beweis]] und beschlagnahmt das Diebesgut aus seinen Verstecken. Im Beweisbuch des Gerichtssaals, kostet [[aktionspunkte|AP]]."
+ },
+ {
+  "kennung": "schutzgeld",
+  "titel": "Schutzgeld",
+  "gruppe": "Gericht und Gauner",
+  "text": "Eine Tat ab dem Unterschlupf ([[dieb]]): Wer nicht zahlt, dem brennt ein Betrieb. KI-Häuser wägen Schutzgeld gegen den drohenden Brand ab."
+ },
+ {
+  "kennung": "konfession",
+  "titel": "Konfession",
+  "gruppe": "Glaube",
+  "text": "Jede Person ist katholisch, evangelisch oder – Orks und Oger – Anhänger des [[naturglaube|Naturglaubens]] (für die Kirchen Heiden). Im Hauptmenü wählt man den Glauben des Hauses. Im [[stadtrat]] geben Ratsherren Glaubensbrüdern Pluspunkte, Andersgläubigen Minuspunkte, Heiden noch mehr. Siehe [[messe]] und [[konvertieren]]."
+ },
+ {
+  "kennung": "naturglaube",
+  "titel": "Naturglaube",
+  "gruppe": "Glaube",
+  "text": "Der Glaube der Orks und Oger. Für die Kirchen sind sie Heiden; im [[stadtrat]] bekommen Heiden von den Ratsherren die schlechteste Haltung ([[konfession]]). Sie können sich taufen lassen ([[konvertieren]])."
+ },
+ {
+  "kennung": "messe",
+  "titel": "Messe",
+  "gruppe": "Glaube",
+  "text": "Um 10 Uhr kommen die Gläubigen in die Kirchen und spenden steuerfrei. Sie verteilen sich nach Stufe, [[ansehen|Ansehen]] und Rhetorik auf alle Kirchen. Jede Gemeinde geht in die Kirche ihrer [[konfession]]; gibt es keine, in eine fremde, spendet dort aber nur die Hälfte. Das Geld geht an den [[prediger]]. Nachts leuchten die Kirchenfenster nur bei einer Messe im Dunkeln."
+ },
+ {
+  "kennung": "konvertieren",
+  "titel": "Konvertieren",
+  "gruppe": "Glaube",
+  "text": "Das Haus kann den Glauben wechseln (Familientafel): Das kostet [[aktionspunkte|AP]] und Gulden und vorübergehend [[ansehen|Ansehen]]. Ratsherren der neuen [[konfession]] mögen euch danach mehr, die der alten weniger. Die Bekehrungspredigt ([[prediger]]) wirbt dagegen für die eigene Konfession."
+ },
+ {
+  "kennung": "stadtglaube",
+  "titel": "Stadtglaube",
+  "gruppe": "Glaube",
+  "text": "Die Konfession, die die Stadt als ihre Hauptkirche (Dom) führt. Wer im [[stadtrat]] sitzt, kann beantragen, sie zu ändern ([[antrag]], kostet [[aktionspunkte|AP]]): Die Ratsherren stimmen für ihren eigenen Glauben, bei einem fremden Stadtglauben für Glaubensfreiheit. Gilt ein Stadtglaube, zahlen andersgläubige Häuser einen Glaubenszins, und eine Messe anderen Glaubens ist Ketzerei (eine [[spur]] zu Lasten des Predigers)."
+ }
+]

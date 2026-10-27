@@ -560,6 +560,9 @@ public sealed record FamilienbuchStand
     public long ZufallWuerfe { get; init; }
     public int NaechsteNummer { get; init; }
     public long TalentWuerfe { get; init; }
+
+    /// <summary>Würfe für das Aussehen der Personen (0 in Spielständen von vor den Porträts).</summary>
+    public long AussehenWuerfe { get; init; }
     public List<PersonStand> Personen { get; init; } = new();
     public List<FamilieStand> Familien { get; init; } = new();
     public List<KandidatStand> Kandidaten { get; init; } = new();
@@ -595,6 +598,11 @@ public sealed record PersonStand
     /// <summary>Glaube heute und Glaube der Herkunft (null in Spielständen von vor dem Glauben – dann der Startglaube des Volkes).</summary>
     public Glaube.Konfession? Glaube { get; init; }
     public Glaube.Konfession? Herkunftsglaube { get; init; }
+
+    /// <summary>Aussehen im Porträt (null in Spielständen von vor den Porträts – dann fest aus Nummer und Volk).</summary>
+    public int? Gesicht { get; init; }
+    public Dynastie.Haarfarbe? Haar { get; init; }
+    public Dynastie.Augenfarbe? Augen { get; init; }
 }
 
 public sealed record ErkrankungStand

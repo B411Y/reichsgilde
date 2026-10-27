@@ -60,6 +60,7 @@ public partial class FamilienAnzeige : PanelContainer
         var schliessen = Hauptmenue.Knopf(spalte, "Schließen", Hide);
         schliessen.SizeFlagsHorizontal = SizeFlags.ShrinkCenter;
         Rollbereich.Einhuellen(this);
+        Fensterrahmen.Anmelden(this, "Familie", festhaltbar: true);
         Hide();
     }
 
@@ -109,6 +110,17 @@ public partial class FamilienAnzeige : PanelContainer
         if (_spieler.IstErloschen)
             Hauptmenue.Text(_inhalt, "Das Haus ist erloschen.", 18, Rot, zentriert: true);
 
+        // ── Familienbild: Oberhaupt und Ehepartner als Porträt (PR #211) ──
+        if (!_spieler.IstErloschen)
+        {
+            var bilder = new HBoxContainer { Alignment = BoxContainer.AlignmentMode.Center };
+            bilder.AddThemeConstantOverride("separation", 28);
+            _inhalt.AddChild(bilder);
+            bilder.AddChild(PortraetSpalte(buch, o, PortraetAnzeige.Mittel, o.OberhauptTitel));
+            if (f.Ehepartner is { } partner)
+                bilder.AddChild(PortraetSpalte(buch, partner, PortraetAnzeige.Mittel, partner.Ehepartnertitel));
+        }
+
         // ── Oberhaupt und Ehe ──
         Text(_inhalt, $"{o.OberhauptTitel}: {o.Name}, {o.Volk.Einzahl()}, {o.Alter(jahr)} Jahre – {buch.Verfassung(o)}" +
                       (o.Krankheit is { } krank ? $" · krank ({krank.Name})" : ""), 16);
@@ -152,7 +164,7 @@ public partial class FamilienAnzeige : PanelContainer
         {
             _inhalt.AddChild(new HSeparator());
             Text(_inhalt, "Kinder", 16);
-            var raster = new GridContainer { Columns = buch.HatTalente ? 6 : 4 };
+            var raster = new GridContainer { Columns = buch.HatTalente ? 7 : 5 };
             raster.AddThemeConstantOverride("h_separation", 14);
             raster.AddThemeConstantOverride("v_separation", 2);
             _inhalt.AddChild(raster);
@@ -160,6 +172,7 @@ public partial class FamilienAnzeige : PanelContainer
             {
                 var istErbe = f.Testament == k;
                 var farbe = !k.Lebt ? Grau : istErbe ? Gold : (Color?)null;
+                PortraetZelle(raster, buch, k, PortraetAnzeige.Klein);
                 Text(raster, $"{k.Vorname} ({k.SohnOderTochter})", 14, farbe);
                 Text(raster, k.Lebt ? $"{k.Alter(jahr)} Jahre" : $"† {k.Todesjahr} mit {k.Alter(jahr)}", 14, farbe);
                 Text(raster, !k.Lebt ? (k.Todesursache == "in die Fremde verschleppt" ? "verschleppt" : "")
@@ -208,6 +221,34 @@ public partial class FamilienAnzeige : PanelContainer
             foreach (var eintrag in chronik.Take(6))
                 Text(_inhalt, "• " + eintrag, 13, null, umbrechen: true);
         }
+    }
+
+    /// <summary>Ein Porträt mit Name und Titel darunter (Familienbild).</summary>
+    private static Control PortraetSpalte(Familienbuch buch, Person p, int groesse, string titel)
+    {
+        var spalte = new VBoxContainer();
+        spalte.AddThemeConstantOverride("separation", 2);
+        var bild = PortraetAnzeige.Neu(groesse);
+        bild.Zeigen(buch, p);
+        bild.SizeFlagsHorizontal = SizeFlags.ShrinkCenter;
+        spalte.AddChild(bild);
+        var name = Hauptmenue.Text(spalte, p.Vorname, 14, Gold, zentriert: true);
+        name.CustomMinimumSize = new Vector2(groesse, 0);
+        Hauptmenue.Text(spalte, titel, 12, Grau, zentriert: true);
+        return spalte;
+    }
+
+    /// <summary>Eine Tabellenzelle mit kleinem Porträt; für Verstorbene bleibt sie leer (gleich breit, damit die Spalten stehen).</summary>
+    private static void PortraetZelle(Container raster, Familienbuch buch, Person p, int groesse)
+    {
+        if (!p.Lebt)
+        {
+            raster.AddChild(new Control { CustomMinimumSize = new Vector2(groesse, groesse) });
+            return;
+        }
+        var bild = PortraetAnzeige.Neu(groesse);
+        bild.Zeigen(buch, p);
+        raster.AddChild(bild);
     }
 
     /// <summary>Hausapotheke und alle Kranken im Haus – mit Medicus und Kräuterschnaps.</summary>
@@ -472,13 +513,13 @@ public partial class FamilienAnzeige : PanelContainer
         geschenk.ValueChanged += wert => { _geschenkBetrag = wert; betragHinweis.Text = Hinweis(); };
 
         var mitTalenten = buch.HatTalente;
-        var raster = new GridContainer { Columns = mitTalenten ? 8 : 7 };
+        var raster = new GridContainer { Columns = mitTalenten ? 9 : 8 };
         raster.AddThemeConstantOverride("h_separation", 12);
         raster.AddThemeConstantOverride("v_separation", 3);
         _inhalt.AddChild(raster);
         foreach (var kopf in mitTalenten
-                     ? new[] { "Name", "Volk, Alter", "Stand", "Stärken", "Kinder ≈", "Hochzeit", "Bereit", "" }
-                     : new[] { "Name", "Volk, Alter", "Stand", "Kinder ≈", "Hochzeit", "Bereit", "" })
+                     ? new[] { "", "Name", "Volk, Alter", "Stand", "Stärken", "Kinder ≈", "Hochzeit", "Bereit", "" }
+                     : new[] { "", "Name", "Volk, Alter", "Stand", "Kinder ≈", "Hochzeit", "Bereit", "" })
             Text(raster, kopf, 12, Grau);
 
         var passende = buch.Kandidaten.Where(k => k.Person.Geschlecht != f.Oberhaupt.Geschlecht)
@@ -491,6 +532,7 @@ public partial class FamilienAnzeige : PanelContainer
             var schwelle = buch.Heiratsschwelle(k);
             var farbe = verboten is not null ? Grau : bereit >= schwelle ? Gruen : (Color?)null;
             var rivalen = buch.Mitbewerber(_spieler!, k).Select(x => x.Inhaber).ToList();
+            PortraetZelle(raster, buch, p, PortraetAnzeige.Klein);
             var name = Text(raster, p.Name + (rivalen.Count > 0 ? " ⚔" : ""), 14, farbe);
             if (rivalen.Count > 0) { name.TooltipText = $"Auch {string.Join(", ", rivalen)} wirbt um {p.Vorname}."; name.MouseFilter = MouseFilterEnum.Stop; }
             Text(raster, $"{p.Volk.Einzahl()}, {p.Alter(buch.Jahr)}" + (w.Glaube.IstAktiv ? $", {(p.Glaube == Konfession.Katholisch ? "kath." : p.Glaube == Konfession.Evangelisch ? "ev." : "Heide")}" : ""),

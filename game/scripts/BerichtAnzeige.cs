@@ -56,9 +56,7 @@ public partial class BerichtAnzeige : PanelContainer
         spalte.AddChild(kopf);
         var titel = Hauptmenue.Text(kopf, "Bericht", 20, Gold);
         titel.SizeFlagsHorizontal = SizeFlags.ExpandFill;
-        var zu = new Button { Text = "×", FocusMode = FocusModeEnum.None, TooltipText = "Schließen (Esc)" };
-        zu.Pressed += Hide;
-        kopf.AddChild(zu);
+        kopf.AddChild(new Control { CustomMinimumSize = new Vector2(52, 0) }); // Platz für Festhalten und ✕ des Fensterrahmens
 
         _reiter = new TabContainer { FocusMode = FocusModeEnum.None, ClipTabs = false }; // alle Reiter sichtbar, ohne Pfeile
         _reiter.AddThemeFontSizeOverride("font_size", 14);
@@ -76,6 +74,7 @@ public partial class BerichtAnzeige : PanelContainer
         _protokoll = Seite("Protokoll");
 
         Rollbereich.Einhuellen(this);
+        Fensterrahmen.Anmelden(this, "Bericht", festhaltbar: true);
         Hide();
     }
 
@@ -173,13 +172,21 @@ public partial class BerichtAnzeige : PanelContainer
         if (andere.Count == 0) Hauptmenue.Text(_rivalen, "In dieser Partie gibt es keine anderen Häuser.", 13, Grau);
         foreach (var k in andere)
         {
-            var name = UiHilfe.MitWappen(_rivalen, k.Wappen, k.Inhaber, 15, k.IstAktiv ? null : Grau);
+            // Links das Oberhaupt (PR #211), rechts Name, Zustand und letzter Zug
+            var zeile = new HBoxContainer();
+            zeile.AddThemeConstantOverride("separation", 12);
+            _rivalen.AddChild(zeile);
+            var bild = PortraetAnzeige.Neu(PortraetAnzeige.Klein);
+            if (bild.ZeigenHaus(w, k)) zeile.AddChild(bild);
+            var text = new VBoxContainer { SizeFlagsHorizontal = SizeFlags.ExpandFill };
+            zeile.AddChild(text);
+            var name = UiHilfe.MitWappen(text, k.Wappen, k.Inhaber, 15, k.IstAktiv ? null : Grau);
             name.TooltipText = k.Inhaber;
             var zustand = k.IstBankrott ? "bankrott" : k.IstErloschen ? "erloschen"
                 : $"{Zahlenformat.Ganz(k.Reinvermoegen)} {waehrung} · {w.StandVon(k).Name} · {w.Betriebe.Count(b => b.Konto == k)} Betriebe";
-            Hauptmenue.Text(_rivalen, zustand, 13, k.IstAktiv ? null : Grau, umbruchBreite: Breite);
+            Hauptmenue.Text(text, zustand, 13, k.IstAktiv ? null : Grau, umbruchBreite: Breite - 80);
             if (w.Rivalen.FirstOrDefault(r => r.Konto == k) is { Entscheidungen.Count: > 0 } ki)
-                Hauptmenue.Text(_rivalen, "Letzter Zug: " + ki.Entscheidungen[0].Replace($"{k.Inhaber}: ", ""), 12, Grau, umbruchBreite: Breite);
+                Hauptmenue.Text(text, "Letzter Zug: " + ki.Entscheidungen[0].Replace($"{k.Inhaber}: ", ""), 12, Grau, umbruchBreite: Breite - 80);
         }
     }
 

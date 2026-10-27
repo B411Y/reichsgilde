@@ -24,6 +24,7 @@ public partial class Hauptmenue : Node
 
     private PanelContainer _start = null!;
     private PanelContainer _neu = null!;
+    private PanelContainer _oberhaupt = null!;
     private PanelContainer _laden = null!;
     private EinstellungenAnzeige _einstellungen = null!;
     private SpielstandListe _liste = null!;
@@ -38,6 +39,15 @@ public partial class Hauptmenue : Node
     private OptionButton _farbe2 = null!;
     private readonly List<Button> _vorlagenKnoepfe = new();
     private OptionButton _volk = null!;
+    // Seite „Euer Oberhaupt" (PR #211): Volk, Geschlecht, Gesicht, Haar und Augen mit großem Porträt
+    private PortraetAnzeige _portraet = null!;
+    private readonly List<(Button Knopf, PortraetAnzeige Bild)> _gesichter = new();
+    private HBoxContainer _haarWahl = null!;
+    private HBoxContainer _augenWahl = null!;
+    private Label _aussehenText = null!;
+    private int _gesicht;
+    private Haarfarbe _haar = Aussehenspalette.Haarfarben(Volk.Mensch)[0];
+    private Augenfarbe _augen = Aussehenspalette.Augenfarben(Volk.Mensch)[0];
     private Label _volkHinweis = null!;
     private OptionButton _glaube = null!;
     private OptionButton _geschlecht = null!;
@@ -61,7 +71,8 @@ public partial class Hauptmenue : Node
 
     public override void _Ready()
     {
-        if (OS.GetCmdlineUserArgs().Length > 0 && !_startoptionenGenutzt)
+        var portraetOption = OS.GetCmdlineUserArgs().FirstOrDefault(a => a.StartsWith("--portraets="));
+        if (OS.GetCmdlineUserArgs().Length > 0 && !_startoptionenGenutzt && portraetOption is null)
         {
             // Startoptionen → Test- oder Prüflauf: Menü überspringen (nur beim ersten Mal – „Zurück zum Hauptmenü“ zeigt dann das Menü).
             _startoptionenGenutzt = true;
@@ -82,12 +93,22 @@ public partial class Hauptmenue : Node
         var mitte = Mitte();
         oberflaeche.AddChild(mitte);
         _start = StartTafel();
+        _oberhaupt = OberhauptTafel();
         _neu = NeuTafel();
         _laden = LadeTafel();
         _einstellungen = new EinstellungenAnzeige(() => Zeigen(_start));
-        foreach (var tafel in new[] { _start, _neu, _laden, _einstellungen.Tafel })
+        foreach (var tafel in new[] { _start, _oberhaupt, _neu, _laden, _einstellungen.Tafel })
             mitte.AddChild(tafel);
         Zeigen(_start);
+        if (portraetOption is not null)
+        {
+            _startoptionenGenutzt = true;
+            PortraetOptionAnwenden(portraetOption["--portraets=".Length..]);
+            // --blinzeln=zu|offen: die Augen für das Bildschirmfoto festhalten (sonst blinzelt das Bild zufällig)
+            var blinzeln = OS.GetCmdlineUserArgs().FirstOrDefault(a => a.StartsWith("--blinzeln="));
+            if (blinzeln is not null) _portraet.BlinzelnFesthalten(blinzeln.EndsWith("zu") ? 1f : 0f);
+            Zeigen(_oberhaupt);
+        }
     }
 
     private void SpielStarten() => GetTree().ChangeSceneToFile(Spielszene);
@@ -97,7 +118,7 @@ public partial class Hauptmenue : Node
 
     private void Zeigen(PanelContainer tafel)
     {
-        foreach (var t in new[] { _start, _neu, _laden, _einstellungen.Tafel })
+        foreach (var t in new[] { _start, _oberhaupt, _neu, _laden, _einstellungen.Tafel })
             t.Visible = t == tafel;
     }
 
@@ -112,7 +133,7 @@ public partial class Hauptmenue : Node
         Text(spalte, "Handel, Handwerk und Ränke im Heiligen Römischen Reich", 15, null, zentriert: true);
         spalte.AddChild(new HSeparator());
 
-        Knopf(spalte, "Neue Partie", () => Zeigen(_neu));
+        Knopf(spalte, "Neue Partie", () => Zeigen(_oberhaupt));
         Knopf(spalte, "Partie laden", () => { _liste.Auffrischen(); _ladeFehler.Text = ""; Zeigen(_laden); });
         Knopf(spalte, "Einstellungen", () => { _einstellungen.Auffrischen(); Zeigen(_einstellungen.Tafel); });
         Knopf(spalte, "Kartenwerkstatt", () => GetTree().ChangeSceneToFile(Kartenwerkstatt.Szene)).TooltipText =
@@ -121,6 +142,178 @@ public partial class Hauptmenue : Node
 
         Text(spalte, "Hobby- und Lernprojekt · Open Source (MIT) · Greybox-Grafik", 11, new Color(0.6f, 0.6f, 0.6f), zentriert: true);
         return tafel;
+    }
+
+    // ═════════════════════════════════════════════════════════════════════════
+    //  Euer Oberhaupt (Porträt, PR #211)
+    // ═════════════════════════════════════════════════════════════════════════
+
+    /// <summary>Die erste Seite der neuen Partie: Volk, Geschlecht und Vorname, Gesicht (5 zur Wahl), Haar- und Augenfarbe, mit großem Porträt.</summary>
+    private PanelContainer OberhauptTafel()
+    {
+        var (tafel, spalte) = Tafel(700);
+        Text(spalte, "Euer Oberhaupt", 26, Gold, zentriert: true);
+
+        var reihe = new HBoxContainer();
+        reihe.AddThemeConstantOverride("separation", 24);
+        spalte.AddChild(reihe);
+
+        var links = new VBoxContainer();
+        links.AddThemeConstantOverride("separation", 6);
+        reihe.AddChild(links);
+        _portraet = PortraetAnzeige.Neu(PortraetAnzeige.Gross);
+        links.AddChild(_portraet);
+        _aussehenText = Text(links, "", 12, new Color(0.72f, 0.72f, 0.72f), zentriert: true, umbruchBreite: PortraetAnzeige.Gross);
+
+        var rechts = new VBoxContainer { SizeFlagsHorizontal = Control.SizeFlags.ExpandFill };
+        rechts.AddThemeConstantOverride("separation", 8);
+        reihe.AddChild(rechts);
+
+        _volk = new OptionButton { FocusMode = Control.FocusModeEnum.None };
+        foreach (var volk in Spielbare)
+            _volk.AddItem(volk.Mehrzahl(), (int)volk);
+        _volk.ItemSelected += _ => { VolkHinweisZeigen(); PaletteFuellen(); AussehenZeigen(); };
+        Text(rechts, "Volk", 14, Gold);
+        rechts.AddChild(_volk);
+        _volkHinweis = new Label { CustomMinimumSize = new Vector2(330, 0), AutowrapMode = TextServer.AutowrapMode.WordSmart };
+        _volkHinweis.AddThemeFontSizeOverride("font_size", 12);
+        _volkHinweis.AddThemeColorOverride("font_color", new Color(0.72f, 0.72f, 0.72f));
+        rechts.AddChild(_volkHinweis);
+
+        Text(rechts, "Oberhaupt", 14, Gold);
+        var oberhaupt = new HBoxContainer();
+        oberhaupt.AddThemeConstantOverride("separation", 8);
+        rechts.AddChild(oberhaupt);
+        _geschlecht = new OptionButton { FocusMode = Control.FocusModeEnum.None };
+        _geschlecht.AddItem("Patriarch", (int)Geschlecht.Mann);
+        _geschlecht.AddItem("Matriarchin", (int)Geschlecht.Frau);
+        _geschlecht.ItemSelected += _ => AussehenZeigen();
+        oberhaupt.AddChild(_geschlecht);
+        _vorname = new LineEdit { PlaceholderText = "Vorname (zufällig)", SizeFlagsHorizontal = Control.SizeFlags.ExpandFill };
+        oberhaupt.AddChild(_vorname);
+
+        Text(rechts, "Gesicht", 14, Gold);
+        var gesichter = new HBoxContainer();
+        gesichter.AddThemeConstantOverride("separation", 6);
+        rechts.AddChild(gesichter);
+        var gruppe = new ButtonGroup();
+        for (var i = 0; i < Aussehenspalette.Gesichter; i++)
+        {
+            var nummer = i;
+            var knopf = new Button
+            {
+                ToggleMode = true, ButtonGroup = gruppe, FocusMode = Control.FocusModeEnum.None, ButtonPressed = i == _gesicht,
+                CustomMinimumSize = new Vector2(PortraetAnzeige.Klein + 8, PortraetAnzeige.Klein + 8), TooltipText = $"Gesicht {i + 1}",
+            };
+            var bild = PortraetAnzeige.Neu(PortraetAnzeige.Klein, lebendig: false);
+            bild.MouseFilter = Control.MouseFilterEnum.Ignore;
+            bild.CustomMinimumSize = Vector2.Zero;
+            knopf.AddChild(bild);
+            bild.SetAnchorsAndOffsetsPreset(Control.LayoutPreset.FullRect, Control.LayoutPresetMode.KeepSize, 4);
+            knopf.Pressed += () => { _gesicht = nummer; AussehenZeigen(); };
+            gesichter.AddChild(knopf);
+            _gesichter.Add((knopf, bild));
+        }
+
+        Text(rechts, "Haar", 14, Gold);
+        _haarWahl = new HBoxContainer();
+        _haarWahl.AddThemeConstantOverride("separation", 5);
+        rechts.AddChild(_haarWahl);
+        Text(rechts, "Augen", 14, Gold);
+        _augenWahl = new HBoxContainer();
+        _augenWahl.AddThemeConstantOverride("separation", 5);
+        rechts.AddChild(_augenWahl);
+
+        var knoepfe = new HBoxContainer { Alignment = BoxContainer.AlignmentMode.Center };
+        knoepfe.AddThemeConstantOverride("separation", 12);
+        spalte.AddChild(knoepfe);
+        Knopf(knoepfe, "Zurück", () => Zeigen(_start));
+        Knopf(knoepfe, "Weiter", () => Zeigen(_neu));
+
+        VolkHinweisZeigen();
+        PaletteFuellen();
+        AussehenZeigen();
+        return tafel;
+    }
+
+    /// <summary>Die Farbfelder für Haar und Augen des gewählten Volkes (nur seine Palette); gewählt bleibt die Farbe, wenn sie auch dort vorkommt.</summary>
+    private void PaletteFuellen()
+    {
+        var volk = (Volk)_volk.GetSelectedId();
+        var haare = Aussehenspalette.Haarfarben(volk);
+        var augen = Aussehenspalette.Augenfarben(volk);
+        if (!haare.Contains(_haar)) _haar = haare[0];
+        if (!augen.Contains(_augen)) _augen = augen[0];
+        UiHilfe.KinderEntfernen(_haarWahl);
+        UiHilfe.KinderEntfernen(_augenWahl);
+        var haarGruppe = new ButtonGroup();
+        foreach (var h in haare)
+        {
+            var farbe = h;
+            FarbFeld(_haarWahl, haarGruppe, PortraetAnzeige.Farbe(h), h == Haarfarbe.Kahl ? "kahl" : PortraetAnzeige.FarbName(h), h == _haar,
+                () => { _haar = farbe; AussehenZeigen(); });
+        }
+        var augenGruppe = new ButtonGroup();
+        foreach (var a in augen)
+        {
+            var farbe = a;
+            FarbFeld(_augenWahl, augenGruppe, PortraetAnzeige.Farbe(a), PortraetAnzeige.FarbName(a), a == _augen,
+                () => { _augen = farbe; AussehenZeigen(); });
+        }
+    }
+
+    private static void FarbFeld(Container eltern, ButtonGroup gruppe, Color farbe, string name, bool gewaehlt, Action gewaehltAktion)
+    {
+        StyleBoxFlat Kasten(Color rand, int breite) => new()
+        {
+            BgColor = farbe, BorderColor = rand,
+            BorderWidthLeft = breite, BorderWidthTop = breite, BorderWidthRight = breite, BorderWidthBottom = breite,
+            CornerRadiusTopLeft = 4, CornerRadiusTopRight = 4, CornerRadiusBottomLeft = 4, CornerRadiusBottomRight = 4,
+        };
+        var knopf = new Button
+        {
+            ToggleMode = true, ButtonGroup = gruppe, FocusMode = Control.FocusModeEnum.None, ButtonPressed = gewaehlt,
+            CustomMinimumSize = new Vector2(34, 34), TooltipText = name,
+        };
+        var dunkel = new Color(0.05f, 0.04f, 0.04f);
+        knopf.AddThemeStyleboxOverride("normal", Kasten(dunkel, 1));
+        knopf.AddThemeStyleboxOverride("hover", Kasten(new Color(0.8f, 0.75f, 0.6f), 2));
+        knopf.AddThemeStyleboxOverride("pressed", Kasten(Gold, 3));
+        knopf.AddThemeStyleboxOverride("hover_pressed", Kasten(Gold, 3));
+        knopf.Pressed += gewaehltAktion;
+        eltern.AddChild(knopf);
+    }
+
+    private Aussehen GewaehltesAussehen => new(_gesicht, _haar, _augen);
+
+    /// <summary>Zeigt die Wahl im großen Porträt und in den fünf Gesichtern (jedes mit der gewählten Haar- und Augenfarbe).</summary>
+    private void AussehenZeigen()
+    {
+        var volk = (Volk)_volk.GetSelectedId();
+        var geschlecht = (Geschlecht)_geschlecht.GetSelectedId();
+        _portraet.Zeigen(volk, geschlecht, GewaehltesAussehen, Altersstufe.Mittel, Kleidung.Schlicht, Standgruppe.Gemeiner);
+        for (var i = 0; i < _gesichter.Count; i++)
+        {
+            _gesichter[i].Bild.Zeigen(volk, geschlecht, new Aussehen(i, _haar, _augen), Altersstufe.Mittel, Kleidung.Schlicht, Standgruppe.Gemeiner);
+            _gesichter[i].Knopf.SetPressedNoSignal(i == _gesicht);
+        }
+        _aussehenText.Text = $"{volk.Einzahl()} · Haar {(_haar == Haarfarbe.Kahl ? "kahl" : PortraetAnzeige.FarbName(_haar))} · Augen {PortraetAnzeige.FarbName(_augen)}";
+    }
+
+    /// <summary>Startoption <c>--portraets=&lt;Volk&gt;[,&lt;mann|frau&gt;[,&lt;Gesicht&gt;[,&lt;Haar&gt;[,&lt;Augen&gt;]]]]</c> – wählt vor (<c>1</c> = Mensch, Mann, Gesicht 1); für Bildschirmfotos.</summary>
+    private void PortraetOptionAnwenden(string wert)
+    {
+        var teile = wert.Split(',');
+        if (!char.IsDigit(teile[0].FirstOrDefault()) && Enum.TryParse<Volk>(teile[0], true, out var volk) && Spielbare.Contains(volk))
+            _volk.Select(_volk.GetItemIndex((int)volk));
+        if (teile.Length > 1) _geschlecht.Select(teile[1].StartsWith("f", StringComparison.OrdinalIgnoreCase) ? 1 : 0);
+        if (teile.Length > 2 && int.TryParse(teile[2], out var gesicht)) _gesicht = Math.Clamp(gesicht, 0, Aussehenspalette.Gesichter - 1);
+        var gewaehltesVolk = (Volk)_volk.GetSelectedId();
+        if (teile.Length > 3 && Enum.TryParse<Haarfarbe>(teile[3], true, out var haar) && Aussehenspalette.Haarfarben(gewaehltesVolk).Contains(haar)) _haar = haar;
+        if (teile.Length > 4 && Enum.TryParse<Augenfarbe>(teile[4], true, out var augen) && Aussehenspalette.Augenfarben(gewaehltesVolk).Contains(augen)) _augen = augen;
+        VolkHinweisZeigen();
+        PaletteFuellen();
+        AussehenZeigen();
     }
 
     // ═════════════════════════════════════════════════════════════════════════
@@ -147,26 +340,6 @@ public partial class Hauptmenue : Node
         hausname.AddChild(_familie);
         hausname.CustomMinimumSize = new Vector2(280, 0);
         Zeile(raster, "Name eures Hauses", hausname);
-
-        _volk = new OptionButton { FocusMode = Control.FocusModeEnum.None };
-        foreach (var volk in Spielbare)
-            _volk.AddItem(volk.Mehrzahl(), (int)volk);
-        _volk.ItemSelected += _ => VolkHinweisZeigen();
-        Zeile(raster, "Volk", _volk);
-        _volkHinweis = new Label { CustomMinimumSize = new Vector2(280, 0), AutowrapMode = TextServer.AutowrapMode.WordSmart };
-        _volkHinweis.AddThemeFontSizeOverride("font_size", 12);
-        _volkHinweis.AddThemeColorOverride("font_color", new Color(0.72f, 0.72f, 0.72f));
-        Zeile(raster, "", _volkHinweis);
-
-        var oberhaupt = new HBoxContainer();
-        oberhaupt.AddThemeConstantOverride("separation", 8);
-        _geschlecht = new OptionButton { FocusMode = Control.FocusModeEnum.None };
-        _geschlecht.AddItem("Patriarch", (int)Geschlecht.Mann);
-        _geschlecht.AddItem("Matriarchin", (int)Geschlecht.Frau);
-        oberhaupt.AddChild(_geschlecht);
-        _vorname = new LineEdit { PlaceholderText = "Vorname (zufällig)", SizeFlagsHorizontal = Control.SizeFlags.ExpandFill };
-        oberhaupt.AddChild(_vorname);
-        Zeile(raster, "Oberhaupt", oberhaupt);
 
         _glaube = new OptionButton { FocusMode = Control.FocusModeEnum.None };
         _glaube.AddItem("wie das Volk", -1);
@@ -253,7 +426,7 @@ public partial class Hauptmenue : Node
         var knoepfe = new HBoxContainer { Alignment = BoxContainer.AlignmentMode.Center };
         knoepfe.AddThemeConstantOverride("separation", 12);
         spalte.AddChild(knoepfe);
-        Knopf(knoepfe, "Zurück", () => Zeigen(_start));
+        Knopf(knoepfe, "Zurück", () => Zeigen(_oberhaupt));
         Knopf(knoepfe, "Partie beginnen", NeuePartieBeginnen);
 
         SiegFelderZeigen();
@@ -448,6 +621,8 @@ public partial class Hauptmenue : Node
             fehler.Add($"„{hausname}“ ist der Name eines Rivalen – wählt bitte einen anderen.");
         if (WappenProblem() is { } wappenFehler)
             fehler.Add(wappenFehler);
+        if (Aussehenspalette.Verboten((Volk)_volk.GetSelectedId(), GewaehltesAussehen) is { } aussehenFehler)
+            fehler.Add(aussehenFehler);
         if (fehler.Count > 0)
         {
             _fehler.Text = string.Join("\n", fehler);
@@ -461,7 +636,7 @@ public partial class Hauptmenue : Node
                 Beruf: _beruf.Selected switch { 1 => "Tischler", 2 => "Steinmetz", 3 => "Alchimist", 4 => "Wirt", 5 => "Prediger", 6 => "Dieb", 7 => "Gardist", 8 => "Geldleiher", 9 => "Parfumeur", _ => "Schmied" },
                 Rivalen: _rivalen.GetSelectedId(),
                 Glaube: _glaube.GetSelectedId() < 0 ? null : (Konfession)_glaube.GetSelectedId(),
-                Wappen: _wappen));
+                Wappen: _wappen, Aussehen: GewaehltesAussehen));
         SpielStarten();
     }
 

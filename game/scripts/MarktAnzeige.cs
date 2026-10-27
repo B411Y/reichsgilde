@@ -71,6 +71,7 @@ public partial class MarktAnzeige : PanelContainer
         var schliessen = Hauptmenue.Knopf(spalte, "Schließen", Hide);
         schliessen.SizeFlagsHorizontal = SizeFlags.ShrinkCenter;
         Rollbereich.Einhuellen(this);
+        Fensterrahmen.Anmelden(this, "Markt", festhaltbar: true);
         Hide();
     }
 

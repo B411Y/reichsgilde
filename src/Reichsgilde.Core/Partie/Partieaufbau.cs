@@ -20,6 +20,8 @@ namespace Reichsgilde.Core.Partie;
 /// 3 = dazu Haus Kieselbach (Steinmetz).</param>
 /// <param name="Glaube">Konfession des eigenen Hauses; null = Startglaube des Volkes.</param>
 /// <param name="Wappen">Wappen des eigenen Hauses; null = die erste Vorlage. Darf keinem KI-Haus gehören.</param>
+/// <param name="Aussehen">Gesicht, Haar und Augen des Oberhaupts im Porträt; null = gewürfelt. Muss zum Volk passen
+/// (<see cref="Aussehenspalette.Verboten"/>).</param>
 public sealed record NeuePartie(
     string Familienname = "Hammerschmid",
     double? Startvermoegen = null,
@@ -30,7 +32,8 @@ public sealed record NeuePartie(
     string Beruf = "Schmied",
     int Rivalen = 3,
     Konfession? Glaube = null,
-    Wappen? Wappen = null);
+    Wappen? Wappen = null,
+    Aussehen? Aussehen = null);
 
 /// <summary>Wie der KI-Rivale spielt – im Menü als Schwierigkeit wählbar.</summary>
 public enum KiCharakter
@@ -105,6 +108,8 @@ public static class Partieaufbau
 
         if (neu.Volk is Volk.Ork or Volk.Oger)
             throw new ArgumentException("Orks und Oger sind nicht spielbar.");
+        if (neu.Aussehen is { } aussehen && Aussehenspalette.Verboten(neu.Volk, aussehen) is { } unpassend)
+            throw new ArgumentException(unpassend);
         var startArt = daten.Berufe.TryGetValue(neu.Beruf, out var startberuf) ? startberuf.Werkstatt
             : neu.Beruf == "Schmied" ? Betriebsart.Giesserei // ältere Daten ohne „berufe"
             : throw new ArgumentException($"Den Beruf „{neu.Beruf}“ gibt es nicht.");
@@ -129,7 +134,7 @@ public static class Partieaufbau
         }
         if (haeuser.Count > 0) KontoVon(haeuser[0]);
         if (w.Familien.IstAktiv)
-            w.Familien.Gruenden(spieler, neu.Volk, neu.Geschlecht, neu.Vorname, glaube: neu.Glaube);
+            w.Familien.Gruenden(spieler, neu.Volk, neu.Geschlecht, neu.Vorname, glaube: neu.Glaube, aussehen: neu.Aussehen);
         foreach (var h in haeuser)
             HausAufstellen(w, daten, karte, h, KontoVon(h), orks ? "Ork" : null, neu.Rivale, einstellungen.Schwierigkeit);
         w.EinwohnerZaehlen(); // die Nachfrage der Stadt nach ihren Häusern – schon vor der ersten Minute
