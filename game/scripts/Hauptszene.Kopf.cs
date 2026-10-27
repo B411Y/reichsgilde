@@ -105,6 +105,8 @@ public partial class Hauptszene
         zeitSpalte.AddChild(zeitReihe);
         _zeitText = Hauptmenue.Text(zeitReihe, "", 16);
         _zeitText.VerticalAlignment = VerticalAlignment.Center;
+        _zeitText.MouseFilter = Control.MouseFilterEnum.Pass;
+        _zeitText.TooltipText = "Jahreszeit, Jahr, Uhrzeit und Tagesabschnitt. Ein Spieltag dauert von 4 bis 23 Uhr, gearbeitet wird von 8 bis 20 Uhr; 1140 Ticks sind ein Jahr.";
         _wetter = new WetterAnzeige(); // Wetter jetzt und Aussicht (PR #195)
         zeitReihe.AddChild(_wetter);
         _zeitstrahl = new Zeitstrahl();

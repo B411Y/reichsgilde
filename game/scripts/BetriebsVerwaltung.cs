@@ -225,6 +225,7 @@ public partial class BetriebsVerwaltung : VBoxContainer
         // Karren
         _karrenKopf = NeuesLabel(this, 14);
         _karrenKopf.Text = "Karren:";
+        _karrenKopf.TooltipText = "Die Karren des Betriebs bringen Waren zum Markt und Zutaten zurück. Eskorte, Nachtfahrt und Zustand stehen je Karren.";
         _karren = new VBoxContainer();
         AddChild(_karren);
         var kauf = Zeile(this);
@@ -353,10 +354,12 @@ public partial class BetriebsVerwaltung : VBoxContainer
             if (!_silberRegler.HasFocus()) _silberRegler.SetValueNoSignal(b.Silberanteil * 100);
             _foerderName.Text = $"{b.Rohstoffe[1]}:";
             _silberText.Text = $"{Zahlenformat.Ganz(b.Silberanteil * 100)} % {b.Rohstoffe[1]}";
+            _silberText.TooltipText = $"So viel der Arbeit geht in die Förderung von {b.Rohstoffe[1]}, der Rest in {b.Rohstoffe[0]}. Der Regler daneben verschiebt den Anteil.";
         }
 
         // Personal
         _personalKopf.Text = $"Personal ({b.Belegt}/{b.Plaetze} Plätze, Statut {w.Statut.Kuerzel()}):";
+        _personalKopf.TooltipText = $"Der Betrieb hat {b.Plaetze} Arbeitsplätze, {b.Belegt} sind besetzt. Das Statut der Stadt ({w.Statut.Kuerzel()}) bestimmt, welche Arbeitskräfte erlaubt sind. Lohnkosten: {Zahlenformat.Ganz(b.Lohnkosten)} {w.Daten.Allgemein.Waehrung} im Jahr.";
         foreach (var (kraft, anzahl, info, minus, plus) in _personalZeilen)
         {
             var daten = w.Daten.Arbeitskraefte[kraft];
@@ -484,6 +487,7 @@ public partial class BetriebsVerwaltung : VBoxContainer
         zeilen.Add($"Dunkle Ecke: Am Gerichtstag hört ihr Gerüchte über andere Häuser ({Zahlenformat.Ganz(d.DunkleEcke.Chance * 100)} % je Tat).");
         var text = string.Join("\n", zeilen);
         if (_gaesteText.Text != text) _gaesteText.Text = text;
+        _gaesteText.TooltipText = "Die Gastwirtschaft: Gäste kommen nach Lage und Konkurrenz und trinken, was der Ausschank bietet; Buchführung des laufenden Jahres und des Vorjahrs.";
 
         var gebucht = g.BardeGebucht(b);
         var knopf = gebucht ? "Barde spielt heute Abend ♪" : $"Barde einladen ({Zahlenformat.Ganz(d.Barde.Kosten)} {waehrung})";
@@ -735,6 +739,8 @@ public partial class BetriebsVerwaltung : VBoxContainer
             anzahl.HorizontalAlignment = HorizontalAlignment.Center;
             var plus = KleinerKnopf(zeile, "+");
             var info = NeuesLabel(zeile, 12, Grau);
+            var kraftTipp = $"{kraft}: Grundlohn {Zahlenformat.Ganz(w.Daten.Lohn(kraft, b.Art))} {w.Daten.Allgemein.Waehrung}. Mit − und + stellt ihr Leute ein oder entlasst sie.";
+            name.TooltipText = anzahl.TooltipText = info.TooltipText = kraftTipp;
             minus.Pressed += () => Befehlen(new PersonalSetzen(b.Name, kraft, b.Belegung.GetValueOrDefault(kraft) - 1));
             plus.Pressed += () => Befehlen(new PersonalSetzen(b.Name, kraft, b.Belegung.GetValueOrDefault(kraft) + 1));
             _personalZeilen.Add((kraft, anzahl, info, minus, plus));
@@ -778,6 +784,8 @@ public partial class BetriebsVerwaltung : VBoxContainer
             verkaufen.Pressed += () => Befehlen(new KarrenVerkaufen(b.Name, nummer));
             zeile.AddChild(verkaufen);
             var info = NeuesLabel(spalte, 12, Grau);
+            info.TooltipText = "Zustand des Karrens: wartet, ist unterwegs oder auf dem Rückweg, mit Ladung und Eskorte.";
+            name.TooltipText = $"{b.Karren[i].Name}: einer der Karren dieses Betriebs.";
             _karrenZeilen.Add((eskorte, nachts, info, verkaufen));
         }
     }
@@ -805,6 +813,7 @@ public partial class BetriebsVerwaltung : VBoxContainer
         var label = new Label();
         label.AddThemeFontSizeOverride("font_size", groesse);
         if (farbe is { } f) label.AddThemeColorOverride("font_color", f);
+        label.MouseFilter = MouseFilterEnum.Pass; // damit ein Tooltip (Tipp) die Maus findet
         eltern.AddChild(label);
         return label;
     }

@@ -33,12 +33,15 @@ public sealed class LagerAnzeige : InnenTafel
         var zutaten = b.Zutaten.Keys.ToHashSet();
         Kopf("Lager", b, $"Je Ware passen {b.LagerKapazitaetJeWare} Stück ins Lager" + (b.HatEinrichtung("Regale") ? " (mit Regalen)." : ". Regale an der Werkzeugwand schaffen mehr Platz."));
         var raster = Raster(6);
+        var kopfTipps = new[] { "", "", "Zutat wird gebraucht, Hauptware und Ware stellt die Werkstatt her, Lagerware liegt nur hier.", "Stück im Lager von dem, was je Ware hineinpasst; ist es voll, ruht die Arbeit an der Ware.", "", "" };
+        var kopfNr = 0;
         foreach (var kopf in new[] { "", "Ware", "Art", "Bestand", "", "Zurückhalten" })
-            Zelle(raster, kopf, 12, Grau);
+            { var z = Zelle(raster, kopf, 12, Grau); if (kopfTipps[kopfNr] != "") Tipp(z, kopfTipps[kopfNr]); kopfNr++; }
         foreach (var ware in Waren(b))
         {
             var menge = b.ImLager(ware);
             var voll = menge >= b.LagerKapazitaetJeWare;
+            var ab = raster.GetChildCount();
             raster.AddChild(WarenIcons.Bild(ware, 32));
             Zelle(raster, ware, 15, Hell, 120);
             Zelle(raster, zutaten.Contains(ware) ? "Zutat" : b.Artdaten.Produkte.Contains(ware) ? (ware == b.Produkt ? "Hauptware" : "Ware") : "Lagerware", 12, Grau, 80);
@@ -48,6 +51,7 @@ public sealed class LagerAnzeige : InnenTafel
                                         TooltipText = "Der Karren verkauft diese Ware nicht von selbst." };
             halten.Toggled += an => Befehlen(new WareZurueckhalten(b.Name, ware, an));
             raster.AddChild(halten);
+            ZeileTipp(raster, ab, WarenTipp(w, b, ware));
         }
         if (Waren(b).Count == 0) Text(Inhalt, "Das Lager ist leer.", 14, Grau);
         Text(Inhalt, "Ist das Lager einer Ware voll, ruht die Arbeit an ihr, bis der Karren etwas verkauft hat.", 12, Grau, 660);

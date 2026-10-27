@@ -34,12 +34,15 @@ public sealed class ProduktionAnzeige : InnenTafel
             13, gewaehlt.Count == 0 ? Grau : Gold, 860);
 
         var raster = Raster(8);
+        var kopfTipps = new[] { "", "Ware, die diese Werkstatt herstellt (★ = Hauptware).", "Was für ein Stück aus dem Lager gebraucht wird.", "Arbeitsminuten für ein Stück bei Grundtempo; Meistergrad, Einrichtung und Laune ändern das.", "Arbeiter, die dieser Ware zugeteilt sind.", "Fortschritt des angefangenen Stücks; rot, wenn etwas fehlt.", "", "" };
+        var kopfNr = 0;
         foreach (var kopf in new[] { "", "Ware", "Zutaten je Stück", "Zeit je Stück", "Arbeiter", "Stück in Arbeit", "", "" })
-            Zelle(raster, kopf, 12, Grau);
+            { var z = Zelle(raster, kopf, 12, Grau); if (kopfTipps[kopfNr] != "") Tipp(z, kopfTipps[kopfNr]); kopfNr++; }
         foreach (var ware in b.Artdaten.Produkte)
         {
             var daten = w.Daten.Waren[ware];
             var hauptware = ware == b.Produkt;
+            var ab = raster.GetChildCount();
             raster.AddChild(WarenIcons.Bild(ware, 32));
             Zelle(raster, ware + (hauptware ? "  ★" : ""), 15, hauptware ? Gold : Hell, 110);
             Zelle(raster, string.Join(", ", daten.Zutaten.Select(z => $"{z.Value} {z.Key}")), 13, Hell, 190);
@@ -55,6 +58,7 @@ public sealed class ProduktionAnzeige : InnenTafel
                 if (arbeit.Stillstand is { } still) Text(spalte, still, 11, Rot, 160);
             }
             else Text(spalte, "ruht", 12, Grau);
+            ZeileTipp(raster, ab, WarenTipp(w, b, ware) + (hauptware ? "\nHauptware: Die Werkstatt stellt sie her, solange kein Arbeiter etwas anderes zugeteilt bekommt." : ""));
             Knopf(raster, gewaehlt.Count > 0 ? $"Zuteilen ({gewaehlt.Count})" : "Zuteilen", () =>
             {
                 foreach (var nummer in gewaehlt) Befehlen(new ArbeiterZuteilen(b.Name, nummer, ware));
@@ -73,12 +77,15 @@ public sealed class ProduktionAnzeige : InnenTafel
         var liste = Raster(2);
         foreach (var z in arbeiter)
         {
-            Zelle(liste, (gewaehlt.Contains(z.Nummer) ? "» " : "") + $"{z.Arbeitskraft} Nr. {z.Nummer}", 14, gewaehlt.Contains(z.Nummer) ? Gold : Hell, 150);
+            Tipp(Zelle(liste, (gewaehlt.Contains(z.Nummer) ? "» " : "") + $"{z.Arbeitskraft} Nr. {z.Nummer}", 14, gewaehlt.Contains(z.Nummer) ? Gold : Hell, 150),
+                $"{z.Arbeitskraft} Nr. {z.Nummer}\nArbeitet an: {z.Ware}{(z.Zugeteilt ? "" : " (Hauptware des Betriebs)")}\nLaune {Zahlenformat.Ganz(z.Laune)} · Tempo {Zahlenformat.Ganz(z.TempoFaktor * 100)} %");
+            
             var wahl = new OptionButton { FocusMode = Control.FocusModeEnum.None, CustomMinimumSize = new Vector2(260, 0) };
             wahl.AddThemeFontSizeOverride("font_size", 13);
             wahl.AddItem($"Hauptware ({b.Produkt})");
             foreach (var ware in b.Artdaten.Produkte) wahl.AddItem(ware);
             wahl.Select(z.Zugeteilt ? 1 + b.Artdaten.Produkte.ToList().IndexOf(z.Ware) : 0);
+            Tipp(wahl, "Wählt, welche Ware dieser Arbeiter herstellt.");
             wahl.ItemSelected += index => Befehlen(new ArbeiterZuteilen(b.Name, z.Nummer, index == 0 ? null : b.Artdaten.Produkte[(int)index - 1]));
             liste.AddChild(wahl);
         }

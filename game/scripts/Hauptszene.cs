@@ -311,6 +311,7 @@ public partial class Hauptszene : Node
                 knopf.AddThemeColorOverride("font_color", new Color(1f, 0.6f, 0.25f));
                 knopf.TooltipText = "Nur zum Testen – wird vor der Veröffentlichung entfernt";
             }
+            else knopf.TooltipText = $"Spielgeschwindigkeit {tempo}-fach (Zifferntasten wählen die Stufen, Leertaste pausiert)";
             _tempoleiste.AddChild(knopf);
             _tempoKnoepfe.Add(knopf);
         }

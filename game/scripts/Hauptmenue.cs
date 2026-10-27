@@ -729,6 +729,7 @@ public partial class Hauptmenue : Node
         label.AddThemeFontSizeOverride("font_size", groesse);
         if (farbe is { } f) label.AddThemeColorOverride("font_color", f);
         if (zentriert) label.HorizontalAlignment = HorizontalAlignment.Center;
+        label.MouseFilter = Control.MouseFilterEnum.Pass; // sonst zeigte kein Tooltip, der an einer Beschriftung hängt (Pass: Klicks gehen weiter an die Tafel)
         eltern.AddChild(label);
         return label;
     }
