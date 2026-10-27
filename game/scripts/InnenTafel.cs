@@ -186,7 +186,9 @@ public abstract class InnenTafel
             var r = Kalkulation.GewinnJeStueck(w, b, ware);
             string G(double x) => Zahlenformat.Kommazahl(x);
             zeilen.Add($"Gewinn je Stück: {G(r.Gewinn)} {waehrung}");
-            zeilen.Add($"  Preis {G(r.Preis)} − Steuer {G(r.Steuer)} − Zutaten {G(r.Zutaten)} − Lohn {G(r.Lohn)} − Unterhalt {G(r.Unterhalt)}");
+            zeilen.Add($"  Preis {G(r.Preis)} − Steuer {G(r.Steuer)}");
+            zeilen.Add($"  − Zutaten {G(r.Zutaten)} − Lohn {G(r.Lohn)}");
+            zeilen.Add($"  − Unterhalt {G(r.Unterhalt)}");
             if (b.Belegt == 0) zeilen.Add("  (ohne Personal: gerechnet mit einem Gesellen)");
         }
         return string.Join("\n", zeilen);
