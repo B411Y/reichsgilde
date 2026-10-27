@@ -110,11 +110,12 @@ public partial class Hauptszene
     /// <summary>Alles Offene schließen und in den Ratssaal gehen.</summary>
     private void SaalVorbereiten()
     {
-        TafelnSchliessen();
+        TafelnSchliessen(auchFeste: true);
+        Tooltips.AlleSchliessen();
         if (_bau.Aktiv) _bau.Schliessen();
         if (_hilfe.Visible) HilfeSchliessen();
         _stadt.RatssitzungBetreten(); // ohne Rathaus in der Karte läuft die Sitzung nur auf der Tafel
-        RechtsSchliessen(); // das Betreten wählt das Rathaus aus – rechts bleibt es frei
+        RechtsSchliessen(auchFeste: true); // das Betreten wählt das Rathaus aus – rechts bleibt es frei
     }
 
     /// <summary>Tastatur während der Sitzung: Esc öffnet bzw. schließt das Spielmenü, Leertaste = Weiter, F1 = Hilfe; alles andere ruht.</summary>
@@ -128,6 +129,9 @@ public partial class Hauptszene
                 break;
             case Key.Escape when _hilfe.Visible:
                 HilfeSchliessen();
+                break;
+            case Key.Escape when _lexikon.Offen:
+                _lexikon.Schliessen();
                 break;
             case Key.Escape:
                 if (_spielmenue.Visible) SpielmenueSchliessen();

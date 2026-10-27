@@ -75,6 +75,7 @@ public partial class BauRueckfrage : PanelContainer
         _bauKnopf = Hauptmenue.Knopf(knoepfe, "Bauen", Bestaetigen);
         _zurueckKnopf = Hauptmenue.Knopf(knoepfe, "Zurück", Zurueck);
         Rollbereich.Einhuellen(this);
+        Fensterrahmen.Anmelden(this, "BauRueckfrage", schliessbar: false);
         Hide();
     }
 

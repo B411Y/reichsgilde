@@ -18,11 +18,17 @@ config/features=PackedStringArray("4.7", "C#", "Forward Plus")
 [autoload]
 
 Fenster="*res://scripts/Fenster.cs"
+Tooltips="*res://scripts/Tooltips.cs"
 
 [display]
 
 window/size/viewport_width=1600
 window/size/viewport_height=900
+
+[gui]
+
+; Der eingebaute Tooltip ist aus: Tooltips.cs (Autoload) zeigt sie, mit Festheften und Verweisen
+timers/tooltip_delay_sec=100000.0
 
 [dotnet]
 

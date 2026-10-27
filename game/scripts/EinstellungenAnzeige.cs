@@ -6,7 +6,7 @@ namespace Reichsgilde;
 /// Fenster „Einstellungen“ mit sechs Reitern: <b>Voreinstellung</b> (Niedrig bis Ultra, automatische Wahl, Vollbild), <b>Leistung</b>
 /// (Bildrate, VSync, dynamische Auflösung, FSR 2.2, Detailstufe), <b>Bild</b> (Boden, Gras, Kantenglättung, Nachschärfen,
 /// Schatten, Umgebungsverdeckung, indirektes Licht), <b>Stimmung</b> (Bloom, Miniatur-Unschärfe, Wolkenschatten, Morgendunst,
-/// Wettereffekte, Farbstimmung, Fahnen), <b>Barrierefreiheit</b> (Größe der Oberfläche, Farbfilter) und <b>Spiel</b> (Ratssitzung zeigen). Erreichbar aus dem Hauptmenü und aus dem
+/// Wettereffekte, Farbstimmung, Fahnen), <b>Barrierefreiheit</b> (Größe der Oberfläche, Farbfilter, Tooltips festheften) und <b>Spiel</b> (Ratssitzung zeigen). Erreichbar aus dem Hauptmenü und aus dem
 /// Spielmenü (Esc). Jede Änderung wirkt sofort und wird gespeichert (siehe <see cref="Fenster"/>).
 /// </summary>
 public sealed class EinstellungenAnzeige
@@ -193,6 +193,9 @@ public sealed class EinstellungenAnzeige
     private bool _groesseZiehen;
     private readonly OptionButton _farbfilter;
     private readonly Label _farbfilterErklaerung;
+    private readonly HSlider _tooltipZeit;
+    private readonly Label _tooltipZeitWert;
+    private readonly CheckButton _tooltipTaste;
     // Spiel
     private readonly OptionButton _sitzung;
     private readonly Label _sitzungErklaerung;
@@ -452,6 +455,28 @@ public sealed class EinstellungenAnzeige
         });
         _farbfilterErklaerung = Hinweis(s, "");
         Hinweis(s, "Gilt für das ganze Bild mit Tafeln, Wappen und Warenzeichen: Farben, die sich für das Auge kaum unterscheiden, werden in Helligkeit und andere Farbtöne verschoben.");
+        Abschnitt(s, "Tooltips festheften");
+        var tooltipZeile = Zeile(s, "Verweilen");
+        _tooltipZeit = new HSlider
+        {
+            MinValue = (int)(Fenster.TooltipFestMin * 2), MaxValue = (int)(Fenster.TooltipFestMax * 2), Step = 1, FocusMode = Control.FocusModeEnum.None,
+            SizeFlagsHorizontal = Control.SizeFlags.ExpandFill, SizeFlagsVertical = Control.SizeFlags.ShrinkCenter, CustomMinimumSize = new Vector2(180, 0),
+        };
+        tooltipZeile.AddChild(_tooltipZeit);
+        _tooltipZeitWert = Hauptmenue.Text(tooltipZeile, "", 15);
+        _tooltipZeitWert.CustomMinimumSize = new Vector2(55, 0);
+        _tooltipZeit.ValueChanged += halbe =>
+        {
+            Fenster.TooltipFestSetzen(halbe / 2, _tooltipTaste!.ButtonPressed);
+            Auffrischen();
+        };
+        _tooltipTaste = Schalter(s, "Nur mit Taste (T oder mittlere Maustaste)", an =>
+        {
+            Fenster.TooltipFestSetzen(Fenster.TooltipFestZeit, an);
+            Auffrischen();
+        });
+        Hinweis(s, "Ein Tooltip zeigt oben rechts einen Kreis, der sich füllt, solange die Maus auf ihm oder seiner Stelle ruht. Ist er voll, bleibt der Tooltip als kleines Fenster stehen " +
+                   "(das Kreuz oben rechts schließt es, Esc das oberste). T oder die mittlere Maustaste heftet sofort fest. Verweise im Text (unterstrichen) öffnen weitere Tooltips.");
 
         // ── Spiel ────────────────────────────────────────────────────────────
         s = _seiten[5];
@@ -560,6 +585,10 @@ public sealed class EinstellungenAnzeige
         var filter = Array.FindIndex(Farbfilterarten, f => f.Art == Fenster.AktuellerFarbfilter);
         _farbfilter.Select(filter);
         _farbfilterErklaerung.Text = Farbfilterarten[filter].Erklaerung;
+        _tooltipZeit.SetValueNoSignal(Fenster.TooltipFestZeit * 2);
+        _tooltipZeitWert.Text = Fenster.TooltipFestZeit.ToString("0.0", System.Globalization.CultureInfo.GetCultureInfo("de-DE")) + " s";
+        _tooltipTaste.SetPressedNoSignal(Fenster.TooltipNurMitTaste);
+        _tooltipZeit.Editable = !Fenster.TooltipNurMitTaste;
         var sitzung = Array.FindIndex(Sitzungswahl, w => w.Wert == Fenster.Ratssitzung);
         _sitzung.Select(sitzung);
         _sitzungErklaerung.Text = Sitzungswahl[sitzung].Erklaerung;
