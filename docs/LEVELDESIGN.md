@@ -144,6 +144,8 @@ Wohnstube und weitere Räume liegen im Wohnhaus. Das Wohnhaus eines erloschenen 
 | Messstadt (Messung) | **Kartendatei Format 2** aus dem Stadtskript `tools/Kartenbau/Staedte/Messstadt.cs` (`game/karten/messstadt.json`, Vorschau `docs/karten/messstadt.svg`): Platz für acht KI-Häuser und den Spieler, für den Balancing-Bericht (1/3/5/8 Häuser), Abschnitt „Kartenskript“ |
 | weitere ca. 7 | offen |
 
+**Wahrzeichen und Spuren der Völker (27.10.2026):** Jede Stadt bekommt **3–6 echte Wahrzeichen** an ungefähr richtiger Lage und dazu **1–2 Spuren der Völker**, dezent (ein elbischer Chor, ein Steinmetz-Betrieb mit zwergischem Meister, Halblinge als Wirte), ohne die Stadt zur Fantasy-Kulisse zu machen. Die Geschichte dahinter, die Völker und Köln als Beispiel stehen in `docs/WELT.md`; neue Städte bekommen dort einen eigenen Abschnitt.
+
 Später: **Reichskarte**, über die man zwischen den Städten wechselt (Idee festgehalten, nicht jetzt).
 
 ## 9. Kartendatei
