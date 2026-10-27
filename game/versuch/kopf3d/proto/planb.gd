@@ -31,19 +31,19 @@ func _process(dt: float) -> void:
 	_t += dt
 	if bilder == "":
 		return
-	var plan := [[1.5, "ruhe"], [2.0, "sprechen"], [2.6, "blinzeln"], [3.2, "schmal"]]
+	var plan := [[1.5, "ruhe"], [2.0, "sprechen"], [2.6, "o"], [3.2, "laecheln"], [3.8, "m"], [4.4, "blinzeln"]]
 	if _stufe < plan.size() and _t > plan[_stufe][0]:
 		var n: String = plan[_stufe][1]
 		match n:
-			"sprechen": _fw.kopf.mund_haltung({"jawOpen": 0.6, "mouthLowerDownLeft": 0.3, "mouthLowerDownRight": 0.3})
+			"sprechen": _fw.kopf.mund_haltung({"jawOpen": 0.9, "mouthLowerDownLeft": 0.35, "mouthLowerDownRight": 0.35})
+			"o": _fw.kopf.mund_haltung({"jawOpen": 0.5, "mouthFunnel": 0.9})
+			"laecheln": _fw.kopf.mund_haltung({"jawOpen": 0.2, "mouthSmileLeft": 1.0, "mouthSmileRight": 1.0})
+			"m": _fw.kopf.mund_haltung({"mouthClose": 1.0, "mouthPressLeft": 0.6, "mouthPressRight": 0.6})
 			"blinzeln":
 				_fw.kopf.mund_haltung({})
 				_fw.kopf._form("eyeBlinkLeft", 1.0); _fw.kopf._form("eyeBlinkRight", 1.0)
-			"schmal":
-				_fw.kopf._form("eyeBlinkLeft", 0.0); _fw.kopf._form("eyeBlinkRight", 0.0)
-				_fw.kopf.kiefer = -1.0; _fw.kopf.nase = 1.0
 		_stufe += 1
-		await get_tree().create_timer(0.35).timeout
+		await get_tree().create_timer(0.5).timeout
 		await RenderingServer.frame_post_draw
 		get_viewport().get_texture().get_image().save_png(bilder.path_join("planb_" + n + ".png"))
 		print("FOTO ", n)

@@ -21,6 +21,10 @@ var kiefer_max := 0.22   # größte Öffnung in Bogenmaß (rund 12 Grad)
 
 var _skel: Skeleton3D
 var _mat: ShaderMaterial
+var _lider: MeshInstance3D
+var _augen: MeshInstance3D
+var _i_al := -1
+var _i_ar := -1
 var _i_hals := -1
 var _i_kopf := -1
 var _i_kief := -1
@@ -46,7 +50,7 @@ func _ready() -> void:
 	var wurzel := szene.instantiate()
 	add_child(wurzel)
 	_skel = _finde_skelett(wurzel)
-	_i_hals = _skel.find_bone("hals"); _i_kopf = _skel.find_bone("kopf"); _i_kief = _skel.find_bone("kiefer")
+	_i_hals = _skel.find_bone("hals"); _i_kopf = _skel.find_bone("kopf"); _i_kief = _skel.find_bone("kiefer"); _i_al = _skel.find_bone("auge_l"); _i_ar = _skel.find_bone("auge_r")
 	_mat = ShaderMaterial.new()
 	_mat.shader = SHADER
 	var basis := quelle.get_base_dir()
@@ -56,11 +60,35 @@ func _ready() -> void:
 	_mat.set_shader_parameter("tex_zu", load(zu) if ResourceLoader.exists(zu) else load(basis.path_join("%s_haut_offen.jpg" % name)))
 	for m in _alle_netze(wurzel):
 		match String(m.name):
-			"gesicht": m.material_override = _mat
+			"gesicht":
+				m.material_override = _mat
+				_form_netz = m
+			"lider":
+				_lider = m
+				var lm := ShaderMaterial.new()
+				lm.shader = SHADER
+				lm.set_shader_parameter("tex_offen", _mat.get_shader_parameter("tex_zu"))
+				lm.set_shader_parameter("tex_zu", _mat.get_shader_parameter("tex_zu"))
+				m.material_override = lm
+				m.visible = false
+			"augen":
+				_augen = m
+				var au := (m.get_active_material(0) as StandardMaterial3D).duplicate() as StandardMaterial3D
+				au.roughness = 0.04
+				au.metallic_specular = 1.0
+				au.clearcoat_enabled = true
+				au.clearcoat = 1.0
+				au.clearcoat_roughness = 0.02
+				au.emission_enabled = true
+				au.emission = Color(0.35, 0.33, 0.3)
+				au.emission_texture = au.albedo_texture
+				au.emission_energy_multiplier = 0.35
+				m.material_override = au
 	_audio = AudioStreamPlayer.new()
 	add_child(_audio)
-	for i in [_i_hals, _i_kopf, _i_kief]:
-		_base[i] = _skel.get_bone_pose_rotation(i)
+	for i in [_i_hals, _i_kopf, _i_kief, _i_al, _i_ar]:
+		if i >= 0:
+			_base[i] = _skel.get_bone_pose_rotation(i)
 
 func _finde_skelett(n: Node) -> Skeleton3D:
 	if n is Skeleton3D:
@@ -86,7 +114,7 @@ func _drehe(i: int, r: Basis) -> void:
 	var par := _skel.get_bone_parent(i)
 	var bp := Basis.IDENTITY if par < 0 else _skel.get_bone_global_pose(par).basis
 	var rl := _skel.get_bone_rest(i).basis
-	var lokal := bp.inverse() * r * bp * rl * Basis(_base[i])
+	var lokal := bp.inverse() * r * bp * rl * Basis(_base.get(i, Quaternion.IDENTITY))
 	_skel.set_bone_pose_rotation(i, (rl.inverse() * lokal).get_rotation_quaternion())
 
 func _form(name: String, wert: float) -> void:
@@ -96,13 +124,33 @@ func _form(name: String, wert: float) -> void:
 		_setze_blink(wert)
 
 func _setze_blink(v: float) -> void:
-	if _mat:
-		_mat.set_shader_parameter("blink", v)
+	if _lider:
+		_lider.visible = v > 0.45
+	if _augen:
+		_augen.visible = v <= 0.45
 
 func mund_haltung(ziel: Dictionary) -> void:
-	_kiefer_fix = float(ziel.get("jawOpen", 0.0)) if not ziel.is_empty() else -1.0
+	_halte = ziel
 
-const OEFFNUNG := {"a": 0.85, "e": 0.45, "i": 0.25, "o": 0.55, "u": 0.25, "m": 0.0, "f": 0.12, "t": 0.22, "-": 0.0}
+# Viseme -> ARKit-Einheiten (jawOpen steuert den Kiefer-Knochen, der Rest die übertragenen Lippenformen)
+const VISEM := {
+	"a": {"jawOpen": 0.85, "mouthLowerDownLeft": 0.35, "mouthLowerDownRight": 0.35},
+	"e": {"jawOpen": 0.4, "mouthStretchLeft": 0.55, "mouthStretchRight": 0.55},
+	"i": {"jawOpen": 0.22, "mouthSmileLeft": 0.5, "mouthSmileRight": 0.5, "mouthStretchLeft": 0.25, "mouthStretchRight": 0.25},
+	"o": {"jawOpen": 0.5, "mouthFunnel": 0.7},
+	"u": {"jawOpen": 0.2, "mouthPucker": 0.8},
+	"m": {"mouthClose": 0.8, "mouthPressLeft": 0.5, "mouthPressRight": 0.5},
+	"f": {"jawOpen": 0.1, "mouthUpperUpLeft": 0.35, "mouthUpperUpRight": 0.35, "mouthRollLower": 0.5},
+	"t": {"jawOpen": 0.2},
+	"-": {},
+	"lachen": {"jawOpen": 0.25, "mouthSmileLeft": 0.9, "mouthSmileRight": 0.9},
+}
+const FORMEN_ALLE := ["mouthFunnel", "mouthPucker", "mouthSmileLeft", "mouthSmileRight", "mouthStretchLeft", "mouthStretchRight",
+	"mouthLowerDownLeft", "mouthLowerDownRight", "mouthUpperUpLeft", "mouthUpperUpRight", "mouthRollLower", "mouthRollUpper",
+	"mouthPressLeft", "mouthPressRight", "mouthFrownLeft", "mouthFrownRight", "mouthClose", "browInnerUp", "browDownLeft",
+	"browDownRight", "cheekPuff", "noseSneerLeft", "noseSneerRight"]
+var _form_ist := {}
+var _form_netz: MeshInstance3D
 
 func sprechen_text(text: String, tempo := 0.075) -> void:
 	_sprech.clear()
@@ -118,7 +166,7 @@ func sprechen_text(text: String, tempo := 0.075) -> void:
 			"f", "v", "w": k = "f"
 			" ", ",", ".", "!", "?": k = "-"
 			_: k = "t"
-		_sprech.append([tempo * (2.4 if ch in [",", "."] else 1.0), OEFFNUNG[k]])
+		_sprech.append([tempo * (2.4 if ch in [",", "."] else 1.0), VISEM[k]])
 	_sprech_t = 0.0
 	_sprech_i = 0
 
@@ -141,7 +189,7 @@ func sprechen_audio(strom: AudioStreamWAV) -> void:
 	_audio.stream = strom
 	_audio.play()
 
-func _kiefer_ziel(dt: float) -> float:
+func _ziel_formen(dt: float) -> Dictionary:
 	if _sprech_i >= 0:
 		_sprech_t += dt
 		if _sprech_t >= _sprech[_sprech_i][0]:
@@ -153,17 +201,31 @@ func _kiefer_ziel(dt: float) -> float:
 			return _sprech[_sprech_i][1]
 	elif _audio.playing and not _huell.is_empty():
 		var p := _audio.get_playback_position() + AudioServer.get_time_since_last_mix()
-		return _huell[clampi(int(p / _huell_dt), 0, _huell.size() - 1)]
-	if _kiefer_fix >= 0.0:
-		return _kiefer_fix
-	return 0.0
+		var l := _huell[clampi(int(p / _huell_dt), 0, _huell.size() - 1)]
+		var w := 0.5 + 0.5 * sin(p * 11.0)
+		return {"jawOpen": l * 0.8, "mouthFunnel": l * 0.5 * (1.0 - w), "mouthStretchLeft": l * 0.4 * w, "mouthStretchRight": l * 0.4 * w}
+	return _halte
+
+var _halte := {}
+
+func _formen_anwenden(ziel: Dictionary, dt: float) -> void:
+	var k := clampf(dt * 20.0, 0.0, 1.0)
+	_kiefer_ist = lerpf(_kiefer_ist, float(ziel.get("jawOpen", 0.0)), k)
+	if _form_netz == null:
+		return
+	for f in FORMEN_ALLE:
+		var ist: float = _form_ist.get(f, 0.0)
+		ist = lerpf(ist, float(ziel.get(f, 0.0)), k)
+		_form_ist[f] = ist
+		var bi := _form_netz.find_blend_shape_by_name(f)
+		if bi >= 0:
+			_form_netz.set_blend_shape_value(bi, ist)
 
 func _process(dt: float) -> void:
 	if _skel == null:
 		return
 	_zeit += dt
-	var ziel := _kiefer_ziel(dt)
-	_kiefer_ist = lerpf(_kiefer_ist, ziel, clampf(dt * 20.0, 0.0, 1.0))
+	_formen_anwenden(_ziel_formen(dt), dt)
 	_drehe(_i_hals, Basis.IDENTITY)
 	_drehe(_i_kopf, Basis.IDENTITY)
 	_drehe(_i_kief, Basis(Vector3.RIGHT, _kiefer_ist * kiefer_max))
@@ -190,3 +252,6 @@ func _process(dt: float) -> void:
 	_drehe(_i_hals, Basis.from_euler(Vector3(deg_to_rad(0.5 * atem), deg_to_rad(_blick.x * 1.5), 0.0)))
 	_drehe(_i_kopf, Basis.from_euler(Vector3(deg_to_rad(-0.6 + 0.4 * atem - _blick.y * 2.0) + nicken, deg_to_rad(_blick.x * 4.0 + sin(_zeit * 0.4) * 1.5), deg_to_rad(sin(_zeit * 0.31) * 0.8))))
 	_drehe(_i_kief, Basis(Vector3.RIGHT, _kiefer_ist * kiefer_max))
+	var blick_r := Basis.from_euler(Vector3(deg_to_rad(-_blick.y * 8.0), deg_to_rad(_blick.x * 14.0), 0.0))
+	_drehe(_i_al, blick_r)
+	_drehe(_i_ar, blick_r)
