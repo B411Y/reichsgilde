@@ -438,7 +438,7 @@ Entscheidungen des Nutzers: `docs/bereiche/oberflaeche.md`, „Sichtbare Ratssit
 | Standgruppe | Nach dem Stand des Hauses (Kandidaten: Herkunftsstand): Gemeiner, Bürger, Patrizier, Adel (Edler, Freiherr, Reichsgraf); Kleidung schlicht bis Bürger, vornehm ab Patrizier. | 26.10.2026 |
 | Zufall und Spielstand | Eigener Generator (`AussehenWuerfe`), der Spieler-Wunsch ersetzt erst nach dem Würfeln – KI-Familien sehen mit und ohne Wahl gleich aus. Neue Felder `PersonStand.Gesicht/Haar/Augen`, `FamilienbuchStand.AussehenWuerfe`; alte Spielstände: festes Aussehen aus Nummer und Volk (eigener Generator je Person, die Würfe der Partie bleiben). `messen 30 20` zeichengleich (gemessen auf main 60b8ef1 + dieser PR). | 26.10.2026 |
 
-### Fehler und Kleinkram (PR #NR)
+### Fehler und Kleinkram (PR #219)
 
 | Thema | Entscheidung | Datum |
 |---|---|---|
