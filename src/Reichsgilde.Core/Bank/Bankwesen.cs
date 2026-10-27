@@ -305,6 +305,19 @@ public sealed class Bankwesen
     /// </summary>
     public double Kassenbeute(Betrieb b) => IstBankbetrieb(b) ? Math.Min(Kasse(b) * Daten.Einbruch.Anteil, Daten.Einbruch.Hoechstens) : 0;
 
+    /// <summary>Was der <paramref name="nter"/> gelungene Griff einer Nacht (1 = der erste) aus der Kasse holt – jeder nimmt seinen Anteil vom Rest.</summary>
+    public double Kassenbeute(Betrieb b, int nter)
+    {
+        if (!IstBankbetrieb(b)) return 0;
+        double kasse = Kasse(b), betrag = 0;
+        for (var i = 0; i < nter; i++)
+        {
+            betrag = Math.Min(kasse * Daten.Einbruch.Anteil, Daten.Einbruch.Hoechstens);
+            kasse -= betrag;
+        }
+        return betrag;
+    }
+
     /// <summary>Diebe holen <see cref="Kassenbeute"/> aus der Kasse – das Geld ist fort (Forderungen des Hauses sinken). Gibt den Betrag zurück.</summary>
     internal double KasseBestehlen(Betrieb b)
     {
