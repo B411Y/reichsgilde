@@ -392,6 +392,12 @@ public sealed class Betrieb
     /// <summary>Löhne für ein ganzes Jahr bei der jetzigen Belegung und Lohnstufe (ohne Wächter; mit der Länge der Schicht).</summary>
     public double Lohnkosten => _belegung.Sum(b => b.Value * _daten.Lohn(b.Key, Art)) * LohnFaktor;
 
+    /// <summary>
+    /// Lohn einer Arbeitskraft dieser Art im Jahr, wie ihn die Jahresabrechnung zahlt: Grundlohn × Länge der Schicht × Lohnstufe × Einrichtung
+    /// (Waffenkammer). Abgerechnet wird die Lohnstufe im Mittel des Jahres; hier steht die jetzige.
+    /// </summary>
+    public double LohnJeArbeiter(string arbeitskraft) => _daten.Lohn(arbeitskraft, Art) * LohnFaktor;
+
     /// <summary>Nach einem Unfall ist die Laune aller hier bis zu dieser Spielminute gedrückt (null = kein Unfall).</summary>
     public long? UnfallLauneBis { get; internal set; }
 
