@@ -243,7 +243,7 @@ public partial class Stadtansicht
         {
             if (g.Katalog == "markt") continue;
             if (g.Katalog == "rathaus" && !_sonderbauten.ContainsKey("Rathaus")) RathausBauen(g);
-            else if (g.Katalog == "dom" && !_sonderbauten.ContainsKey("Dom")) DomBauen(g);
+            else if (g.Katalog is "dom" or "koelner_dom" && !_sonderbauten.ContainsKey("Dom")) DomBauen(g);
             else if (g.Baustein?.Modell is { } datei)
             {
                 if (ModellEinsetzen(datei, this, Vector3.Zero, new ModellZustand()) is { } modell)

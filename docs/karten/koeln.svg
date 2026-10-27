@@ -715,7 +715,7 @@
 <polygon points="-16,136 -12,136 -12,138 -2,138 -2,140 14,140 14,142 34,142 34,146 8,146 8,144 -4,144 -4,142 -12,142 -12,140 -16,140" fill="#E7E0CC" stroke="#6B6E66" stroke-width="0.4"/>
 <polygon points="-8,80 -6,80 -6,68 -4,68 -4,64 12,64 12,62 20,62 20,60 34,60 34,78 22,78 22,80 20,80 20,88 16,88 16,108 34,108 34,114 16,114 16,112 6,112 6,110 0,110 0,108 -8,108 -8,106 8,106 8,86 -8,86" fill="#E7E0CC" stroke="#6B6E66" stroke-width="0.4"/>
 <polygon points="18,124 22,124 22,126 34,126 34,134 18,134" fill="#E7E0CC" stroke="#6B6E66" stroke-width="0.4"/>
-<polygon points="24,-124 34,-124 34,-106 24,-106" fill="#E7E0CC" stroke="#6B6E66" stroke-width="0.4"/>
+<polygon points="24,-124 34,-124 34,-106 26,-106 26,-122 24,-122" fill="#E7E0CC" stroke="#6B6E66" stroke-width="0.4"/>
 <polygon points="40,-146 50,-146 50,-98 48,-98 48,-86 50,-86 50,-84 48,-84 48,-72 50,-72 50,-70 46,-70 46,-74 44,-74 44,-76 42,-76 42,-80 40,-80" fill="#E7E0CC" stroke="#6B6E66" stroke-width="0.4"/>
 <polygon points="40,50 42,50 42,48 44,48 44,46 46,46 46,44 48,44 48,42 50,42 50,116 40,116" fill="#E7E0CC" stroke="#6B6E66" stroke-width="0.4"/>
 <polygon points="40,128 50,128 50,146 40,146" fill="#E7E0CC" stroke="#6B6E66" stroke-width="0.4"/>
@@ -1026,8 +1026,8 @@
 <polygon points="6,-135 22,-135 22,-121 6,-121" fill="#8E8F88" stroke="#1F2326" stroke-width="0.3"/>
 <circle cx="14" cy="-121" r="0.9" fill="#A3262A"/>
 <text x="14" y="-127" font-size="3" text-anchor="middle" fill="#1F2326">St. Kunibert</text>
-<polygon points="21.1,-118.25 21.1,-105.75 -9.1,-105.75 -9.1,-118.25" fill="#8E8F88" stroke="#1F2326" stroke-width="0.3"/>
-<circle cx="-9.1" cy="-112" r="0.9" fill="#A3262A"/>
+<polygon points="23,-119 23,-105 -11,-105 -11,-119" fill="#8E8F88" stroke="#1F2326" stroke-width="0.3"/>
+<circle cx="-11" cy="-112" r="0.9" fill="#A3262A"/>
 <text x="6" y="-111" font-size="3" text-anchor="middle" fill="#1F2326">Dom</text>
 <polygon points="58,-68 58,-52 44,-52 44,-68" fill="#B7C79A" stroke="#1F2326" stroke-width="0.3"/>
 <circle cx="44" cy="-60" r="0.9" fill="#A3262A"/>
@@ -1335,7 +1335,7 @@
 <text x="1" y="141" font-size="6" text-anchor="middle" fill="#6B6E66">M12</text>
 <text x="11" y="88" font-size="6" text-anchor="middle" fill="#6B6E66">M13</text>
 <text x="25" y="128" font-size="6" text-anchor="middle" fill="#6B6E66">M14</text>
-<text x="29" y="-115" font-size="6" text-anchor="middle" fill="#6B6E66">M15</text>
+<text x="28" y="-117" font-size="6" text-anchor="middle" fill="#6B6E66">M15</text>
 <text x="46" y="-87" font-size="6" text-anchor="middle" fill="#6B6E66">M16</text>
 <text x="45" y="58" font-size="6" text-anchor="middle" fill="#6B6E66">M17</text>
 <text x="45" y="137" font-size="6" text-anchor="middle" fill="#6B6E66">M18</text>
