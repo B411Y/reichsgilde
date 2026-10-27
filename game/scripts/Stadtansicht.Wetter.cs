@@ -49,7 +49,9 @@ public partial class Stadtansicht
 
     private GpuParticles3D _regen = null!, _schnee = null!;
     private ParticleProcessMaterial _regenStoff = null!, _schneeStoff = null!;
-    private StandardMaterial3D _regenFarbe = null!;
+    private ShaderMaterial _regenFarbe = null!; // regen.gdshader: Striche in Fallrichtung
+    private GpuParticles3D _regenRinge = null!; // Ringe und Spritzer am Boden (regenring.gdshader)
+    private ParticleProcessMaterial _ringStoff = null!;
     private ShaderMaterial _schneeFarbe = null!; // schnee.gdshader: weiche Flocken, die pendeln und sich drehen
     private DirectionalLight3D _blitzLicht = null!;
     private float _blitzZeit = -1, _naechsterBlitz = 3;
@@ -115,16 +117,8 @@ public partial class Stadtansicht
     /// <summary>Einmal beim Aufbau (aus <see cref="GrafikEinrichten"/>): Regen, Schnee und das Licht der Blitze.</summary>
     private void WetterEinrichten()
     {
-        // Regen: dünne, senkrechte Striche (dreht sich um die Hochachse zur Kamera), leicht bläulich und durchscheinend
-        _regenFarbe = new StandardMaterial3D
-        {
-            ShadingMode = BaseMaterial3D.ShadingModeEnum.Unshaded,
-            Transparency = BaseMaterial3D.TransparencyEnum.Alpha,
-            BillboardMode = BaseMaterial3D.BillboardModeEnum.FixedY,
-            BillboardKeepScale = true,
-            AlbedoColor = new Color(0.78f, 0.82f, 0.9f, 0.45f),
-            CullMode = BaseMaterial3D.CullModeEnum.Disabled,
-        };
+        // Regen: Tropfen als Striche in Fallrichtung (regen.gdshader), unterschiedlich lang und durchscheinend, der Kopf heller als der Schweif
+        _regenFarbe = new ShaderMaterial { Shader = GD.Load<Shader>("res://assets/shader/regen.gdshader") };
         _regenStoff = new ParticleProcessMaterial
         {
             EmissionShape = ParticleProcessMaterial.EmissionShapeEnum.Box,
@@ -135,7 +129,7 @@ public partial class Stadtansicht
         _regen = new GpuParticles3D
         {
             Name = "Regen",
-            Amount = 8000,
+            Amount = 14000,
             Lifetime = 1.0,
             Preprocess = 1.0,
             LocalCoords = false,
@@ -143,9 +137,26 @@ public partial class Stadtansicht
             Visible = false,
             CastShadow = GeometryInstance3D.ShadowCastingSetting.Off,
             ProcessMaterial = _regenStoff,
-            DrawPass1 = new QuadMesh { Size = new Vector2(0.05f, 0.9f), Material = _regenFarbe },
+            DrawPass1 = new QuadMesh { Size = Vector2.One, Material = _regenFarbe },
         };
         AddChild(_regen);
+
+        // Ringe und Spritzer: kurzlebige Ringe auf dem Boden, die sich weiten und ausblassen (regenring.gdshader)
+        _ringStoff = new ParticleProcessMaterial
+        {
+            EmissionShape = ParticleProcessMaterial.EmissionShapeEnum.Box,
+            EmissionBoxExtents = new Vector3(10, 0.01f, 10),
+            Gravity = Vector3.Zero,
+            ScaleMin = 0.6f,
+            ScaleMax = 1.2f,
+        };
+        var ringNetz = new QuadMesh { Size = Vector2.One, Orientation = PlaneMesh.OrientationEnum.Y, Material = new ShaderMaterial { Shader = GD.Load<Shader>("res://assets/shader/regenring.gdshader") } };
+        _regenRinge = new GpuParticles3D
+        {
+            Name = "Regenringe", Amount = 1000, Lifetime = 0.55, Preprocess = 0.55, LocalCoords = false, Emitting = false, Visible = false,
+            CastShadow = GeometryInstance3D.ShadowCastingSetting.Off, ProcessMaterial = _ringStoff, DrawPass1 = ringNetz,
+        };
+        AddChild(_regenRinge);
 
         // Schnee: weiche, runde Flocken, die im Fallen pendeln (schnee.gdshader)
         _schneeFarbe = new ShaderMaterial { Shader = GD.Load<Shader>("res://assets/shader/schnee.gdshader") };
@@ -195,7 +206,7 @@ public partial class Stadtansicht
     {
         foreach (var (name, wert) in new (string, Variant)[]
                  {
-                     ("wetter_naesse", 0f), ("wetter_regen", 0f), ("wetter_schnee", 0f), ("wetter_dach", 0f), ("wetter_flaechen", 1f),
+                     ("wetter_naesse", 0f), ("wetter_regen", 0f), ("wetter_rinn", 0f), ("wetter_schnee", 0f), ("wetter_dach", 0f), ("wetter_flaechen", 1f),
                      ("wetter_wind", 0.25f), ("jahreszeit_anteile", new Vector4(0, 1, 0, 0)),
                      ("wind_staerke", Fenster.FahnenBewegen ? 0.5f : 0f), // der Grundwert der Fahnen (Fenster.Grafik.cs)
                  })
@@ -242,6 +253,8 @@ public partial class Stadtansicht
         BlitzNachfuehren((float)delta);
         WetterGlobaleSetzen();
         PartikelNachfuehren();
+        TraufenStellen(delta); // Stadtansicht.Traufen.cs
+        PflasterReliefStellen(); // Stadtansicht.Pflasterrelief.cs
     }
 
     private void WetterGlobal(string name, float wert, float schwelle = 0.002f)
@@ -258,6 +271,9 @@ public partial class Stadtansicht
         // Nässe und Pfützen ab Mittel; Schnee liegt in jeder Stufe (er gehört zur Jahreszeit)
         WetterGlobal("wetter_naesse", stufe == Wettereffekte.Niedrig ? 0 : _naesse);
         WetterGlobal("wetter_regen", stufe == Wettereffekte.Hoch ? _wetter.Regen : 0);
+        // Rinnsale auf Dächern und Wänden: ab Mittel; bei Regen stark, danach laufen sie mit dem Abtrocknen (Nässe) langsam aus
+        var rinn = Mathf.SmoothStep(0.3f, 0.9f, _naesse) * Mathf.Clamp(0.15f + 1.1f * _wetter.Regen, 0, 1);
+        WetterGlobal("wetter_rinn", stufe == Wettereffekte.Niedrig || Mathf.IsZeroApprox(_naesse) ? 0 : rinn * (stufe == Wettereffekte.Hoch ? 1f : 0.6f));
         WetterGlobal("wetter_schnee", _schneeDecke);
         WetterGlobal("wetter_dach", _schneeDecke);
         WetterGlobal("wetter_flaechen", draussen ? 1 : 0);
@@ -411,10 +427,13 @@ public partial class Stadtansicht
     /// <summary>Wie viele Tropfen und Flocken je Stufe höchstens fallen (die Stärke des Wetters nimmt einen Anteil davon).</summary>
     private static (int Regen, int Schnee) PartikelZahl(Wettereffekte stufe) => stufe switch
     {
-        Wettereffekte.Niedrig => (1500, 1200),
-        Wettereffekte.Mittel => (4000, 3000),
-        _ => (8000, 6000),
+        Wettereffekte.Niedrig => (2500, 1200),
+        Wettereffekte.Mittel => (7000, 3000),
+        _ => (14000, 6000),
     };
+
+    /// <summary>Wie viele Ringe und Spritzer am Boden höchstens zugleich zu sehen sind (Niedrig: keine).</summary>
+    private static int RingeZahl(Wettereffekte stufe) => stufe switch { Wettereffekte.Niedrig => 0, Wettereffekte.Mittel => 1200, _ => 3200 };
 
     /// <summary>
     /// Regen und Schnee fallen in einem Kasten um den Blickpunkt, der mit der Kamera dreht. Kasten, Größe und Fallgeschwindigkeit wachsen mit dem
@@ -429,11 +448,13 @@ public partial class Stadtansicht
             var (regen, schnee) = PartikelZahl(stufe);
             _regen.Amount = regen;
             _schnee.Amount = schnee;
+            _regenRinge.Amount = Mathf.Max(1, RingeZahl(stufe));
             _schneeStoff.TurbulenceEnabled = stufe == Wettereffekte.Hoch; // Flocken wirbeln im Wind
         }
         var draussen = _raum is null;
         PartikelSchalten(_regen, draussen ? _wetter.Regen : 0);
         PartikelSchalten(_schnee, draussen ? _wetter.Schnee : 0);
+        PartikelSchalten(_regenRinge, draussen && RingeZahl(stufe) > 0 ? _wetter.Regen : 0);
         if (!_regen.Visible && !_schnee.Visible) return;
 
         var k = _kamera.Size / BezugsZoom;
@@ -459,15 +480,30 @@ public partial class Stadtansicht
             teil.VisibilityAabb = new Aabb(new Vector3(-breite, -hoehe, -tiefe - 2 * vor), new Vector3(2 * breite, 2 * hoehe, 2 * (tiefe + 2 * vor)));
         }
         PartikelFarbe();
+        if (_regenRinge.Visible) // Ringe: auf dem Boden im Bild, mit dem Kasten mitgedreht
+        {
+            var boden = BlickpunktAmBoden();
+            _regenRinge.GlobalPosition = new Vector3(boden.X, BodenHoehe(boden.X, boden.Z) + 0.06f, boden.Z);
+            _regenRinge.Rotation = new Vector3(0, drehung, 0);
+            if (neu)
+            {
+                _ringStoff.EmissionBoxExtents = new Vector3(_kamera.Size * seiten * 0.55f, 0.01f, tiefe * 0.8f);
+                _ringStoff.ScaleMin = 0.55f * Mathf.Pow(k, 0.8f);
+                _ringStoff.ScaleMax = 1.2f * Mathf.Pow(k, 0.8f);
+                _regenRinge.VisibilityAabb = new Aabb(new Vector3(-breite, -2, -tiefe), new Vector3(2 * breite, 4, 2 * tiefe));
+            }
+        }
         if (!neu) return;
 
         // Wind treibt Regen und Schnee schräg; Größe und Geschwindigkeit mit dem Zoom
         var wind = new Vector3(_windRichtung.X, 0, _windRichtung.Y) * _wetter.Wind;
         _regenStoff.Direction = (Vector3.Down + wind * 0.35f).Normalized();
+        _regenFarbe.SetShaderParameter("richtung", _regenStoff.Direction);
         _regenStoff.InitialVelocityMin = 14f * k;
         _regenStoff.InitialVelocityMax = 17f * k;
         _regenStoff.ScaleMin = 0.85f * k;
         _regenStoff.ScaleMax = 1.15f * k;
+        _regenFarbe.SetShaderParameter("staerke", _wetter.Regen);
         _schneeStoff.Direction = (Vector3.Down + wind * 1.2f).Normalized();
         // langsam fallen; die Flocken wachsen nur mit der Wurzel des Zooms (k hoch 0,6): nah deutlich größer als ein Pixel, weit nicht zu dicht
         _schneeStoff.InitialVelocityMin = 0.8f * k;
@@ -487,7 +523,8 @@ public partial class Stadtansicht
         var hell = Mathf.Clamp(_umgebung.Environment.AmbientLightEnergy * 1.1f + _sonne.LightEnergy * 0.25f, 0.18f, 1f);
         if (Mathf.Abs(hell - _partikelHell) < 0.01f) return;
         _partikelHell = hell;
-        _regenFarbe.AlbedoColor = new Color(0.78f * hell, 0.82f * hell, 0.9f * hell, 0.45f);
+        _regenFarbe.SetShaderParameter("farbe", new Color(0.78f * hell, 0.82f * hell, 0.9f * hell, 1f));
+        if (_regenRinge.ProcessMaterial is not null && _regenRinge.DrawPass1?.SurfaceGetMaterial(0) is ShaderMaterial ring) ring.SetShaderParameter("farbe", new Color(0.8f * hell, 0.85f * hell, 0.95f * hell, 1f));
         _schneeFarbe.SetShaderParameter("farbe", new Color(0.95f * hell, 0.96f * hell, hell, 0.9f));
     }
 

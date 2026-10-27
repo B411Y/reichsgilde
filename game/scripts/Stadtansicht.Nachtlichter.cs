@@ -18,8 +18,8 @@ namespace Reichsgilde;
 /// Gassennetz – vom Wachhaus über den Markt zum Tor und zurück – und tragen nachts eine Handlaterne.</item>
 /// <item><b>Passanten</b> tragen im Dunkeln eine Handlaterne, jeder dritte eine Fackel (<see cref="PassantLichtStellen"/>).</item>
 /// <item><b>Leuchten</b>: <c>nachtlicht.gdshader</c> mit der Flacker-Technik des Fensterlichts (<c>licht_flackern.gdshaderinc</c>). Echte
-/// <see cref="OmniLight3D"/> gibt es nur für die nächsten Lichter vor der Kamera (ohne Schatten; Zahl nach der Schattenqualität: Hoch 8,
-/// Mittel 4, Niedrig keine); alle übrigen leuchten nur über ihre Emission.</item>
+/// <see cref="OmniLight3D"/> gibt es nur für die nächsten Lichter vor der Kamera (ohne Schatten; Zahl nach der Schattenqualität: Hoch 12,
+/// Mittel 6, Niedrig keine); alle übrigen leuchten über ihre Emission, einen Heiligenschein und einen Lichtfleck am Boden (Stadtansicht.Lichtflecken.cs).</item>
 /// </list>
 /// Wann Lichter brennen, sagt der gemeinsame Dämmerungswert der Lichtstimmung (<see cref="_daemmerung"/>, Stadtansicht.Licht.cs): Er folgt der Jahreszeit.
 /// </summary>
@@ -416,10 +416,10 @@ public partial class Stadtansicht
     private int _lichtBilder;
 
     /// <summary>Weiter herausgezoomt als so viel (Kamerahöhe in Metern) bringen echte Lichter nichts mehr – dann leuchten alle nur über die Emission.</summary>
-    private const float LichtMaxZoom = 90f;
+    private const float LichtMaxZoom = 110f;
 
-    /// <summary>Wie viele echte Lichter es gibt: nach der Schattenqualität Hoch 8, Mittel 4, Niedrig keines.</summary>
-    private static int LichterMaximal() => Fenster.AktuelleSchattenqualitaet switch { Schattenqualitaet.Hoch => 8, Schattenqualitaet.Mittel => 4, _ => 0 };
+    /// <summary>Wie viele echte Lichter es gibt: nach der Schattenqualität Hoch 12, Mittel 6, Niedrig keines.</summary>
+    private static int LichterMaximal() => Fenster.AktuelleSchattenqualitaet switch { Schattenqualitaet.Hoch => 12, Schattenqualitaet.Mittel => 6, _ => 0 };
 
     /// <summary>Der Punkt auf dem Boden, auf den die Kamera schaut.</summary>
     private Vector3 BlickpunktAmBoden()
@@ -509,5 +509,7 @@ public partial class Stadtansicht
         _lampenAn = _daemmerung; // der gemeinsame Dämmerungswert aus Stadtansicht.Licht.cs: keine eigenen Zeiten
         if (_lichterGeladen) LichterStoffStellen();
         LichterPoolStellen(delta);
+        if (_fleckBoden is null) FleckenEinrichten();
+        LichtfleckenStellen(); // Stadtansicht.Lichtflecken.cs: jede Flamme leuchtet, auch ohne echtes Licht
     }
 }

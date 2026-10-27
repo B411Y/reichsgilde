@@ -53,6 +53,10 @@ wetter_regen={
 "type": "float",
 "value": 0.0
 }
+wetter_rinn={
+"type": "float",
+"value": 0.0
+}
 wetter_schnee={
 "type": "float",
 "value": 0.0
@@ -68,6 +72,14 @@ wetter_flaechen={
 wetter_wind={
 "type": "float",
 "value": 0.25
+}
+boden_pom={
+"type": "float",
+"value": 0.0
+}
+boden_blick={
+"type": "vec3",
+"value": Vector3(0, 0.8, 0.6)
 }
 wetter_himmel={
 "type": "vec3",
