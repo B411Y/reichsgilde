@@ -43,6 +43,12 @@ public sealed class Person
 
     public bool Lebt => Todesjahr is null;
 
+    /// <summary>
+    /// Wie die Person im Porträt aussieht (Gesicht, Haar, Augen). Bis das Familienbuch würfelt oder vererbt, ein festes
+    /// Aussehen aus Nummer und Volk – so bekommen auch Personen aus alten Spielständen eines.
+    /// </summary>
+    public Aussehen Aussehen { get; internal set; }
+
     private readonly double[] _talente = new double[TalentTexte.Alle.Length];
 
     /// <summary>
@@ -95,6 +101,7 @@ public sealed class Person
         Vater = vater;
         Mutter = mutter;
         Todesjahr = todesjahr;
+        Aussehen = Aussehenspalette.Abgeleitet(nummer, volk);
     }
 
     /// <summary>Alter in diesem Jahr (bei Verstorbenen: das Alter beim Tod).</summary>
