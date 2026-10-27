@@ -47,21 +47,21 @@ static class KartenbauTests
     {
         // ── Kapazität ────────────────────────────────────────────────────────
 
-        ("Kapazität Köln: dieselben Zahlen wie tools/karten/kapazitaet.py (4949 Felder, 773 fest, Pflicht passt, 2664 bzw. 2200 frei)", () =>
+        ("Kapazität Köln (Stadtskript, PR #213): 8.049 Felder, Pflicht und Reserve passen – 81 % frei nach der Pflicht", () =>
         {
             var k = Kapazitaetspruefung.Pruefen(Oeffnen("koeln"));
             Pruefe.Gleich(string.Join("\n", new[]
             {
-                "Stadt-Bauzonen: 4949 Felder, davon fest belegt 773",
+                "Stadt-Bauzonen: 8049 Felder, davon fest belegt 4",
                 "Pflicht Werkstatt: 16 von 16 passen", "Pflicht Ratsherrenhaus: 13 von 13 passen", "Pflicht Einwohner-Bürgerhaus: 3 von 3 passen",
                 "Pflicht Einwohner-Wohnhaus: 40 von 40 passen", "Reserve Stadthof: 4 von 4 passen", "Reserve Stadtpalais: 8 von 8 passen",
-                "Frei nach der Pflicht: 2664 Felder (54%), nach der Reserve: 2200 Felder",
+                "Frei nach der Pflicht: 6533 Felder (81%), nach der Reserve: 6069 Felder",
             }), string.Join("\n", k.Bericht));
             Pruefe.Gleich(0, k.Befunde.Count);
-            // Die gesetzten Gebäude: alle 84 aus Pflicht und Reserve (Feld für Feld wie in koeln-belegung.svg des Werkzeugs), dazu die festen
+            // Die gesetzten Gebäude: alle 84 aus Pflicht und Reserve, dazu die festen (nur 4 Felder: die Plätze der Karte liegen neben den Zonen)
             Pruefe.Gleich(84, k.Plaetze.Count(p => p.Art != "fest"));
             Pruefe.Gleich(16 * 56, k.Plaetze.Where(p => p.Art == "Werkstatt").Sum(p => p.Felder.Count));
-            Pruefe.Gleich(774, k.Plaetze.Where(p => p.Art == "fest").Sum(p => p.Felder.Count), "773 Felder, eins doppelt (zwei Gebäude)");
+            Pruefe.Gleich(4, k.Plaetze.Where(p => p.Art == "fest").Sum(p => p.Felder.Count));
         }),
 
         ("Kapazität: Köln prüft sie als Fehler, die Greybox gar nicht (dort der Probeplan), neue Karten als Hinweis", () =>
@@ -121,11 +121,11 @@ static class KartenbauTests
 
         // ── Einwohnerplätze ──────────────────────────────────────────────────
 
-        ("Prüfung: Eine Karte ohne Einwohnerplätze bekommt einen Hinweis (Köln auch), mit einem Platz nicht mehr", () =>
+        ("Prüfung: Eine Karte ohne Einwohnerplätze bekommt einen Hinweis, mit einem Platz nicht mehr (Köln hat 70 seit PR #213)", () =>
         {
             var e = Kartenentwurf.Neu("neu", "Neu", 300, 300, Katalog.Value);
             Pruefe.Wahr(e.Befunde.Any(b => b.Regel == "einwohnerplaetze" && b.Schwere == Schwere.Hinweis), Liste(e.Befunde));
-            Pruefe.Wahr(Oeffnen("koeln").Befunde.Any(b => b.Regel == "einwohnerplaetze"), "Köln hat keine Einwohnerplätze");
+            Pruefe.Wahr(Oeffnen("koeln").Befunde.All(b => b.Regel != "einwohnerplaetze"), "Köln hat Einwohnerplätze");
             Pruefe.Wahr(Oeffnen("greybox").Befunde.All(b => b.Regel != "einwohnerplaetze"), "die Greybox hat 36");
             e.Setzen("einwohnerplatz_ring", 0, 0);
             Pruefe.Wahr(e.Befunde.All(b => b.Regel != "einwohnerplaetze"), Liste(e.Befunde));

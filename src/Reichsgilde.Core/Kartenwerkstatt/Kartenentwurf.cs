@@ -94,7 +94,7 @@ public sealed class EntwurfGebaeude : EntwurfTeil
     internal override EntwurfTeil KopieTeil() => Kopie();
     internal override void UebernimmTeil(EntwurfTeil werte) => Uebernimm((EntwurfGebaeude)werte);
 
-    internal override bool GleicheWerte(EntwurfTeil anderer) => anderer is EntwurfGebaeude b && X == b.X && Z == b.Z && Drehung == b.Drehung
+    internal override bool GleicheWerte(EntwurfTeil anderer) => anderer is EntwurfGebaeude b && Kennung == b.Kennung && X == b.X && Z == b.Z && Drehung == b.Drehung
         && Name == b.Name && Massstab == b.Massstab && Betrieb == b.Betrieb && Lage == b.Lage && Konfession == b.Konfession && Katalog == b.Katalog;
 
     internal EntwurfGebaeude Kopie() => new()
@@ -631,6 +631,21 @@ public sealed partial class Kartenentwurf
         Aendern(kennung, "versetzt", g => (g.X, g.Z, g.Drehung) = (Kartenraster.Punkt(x), Kartenraster.Punkt(z), Kartenraster.Drehung(drehung)));
 
     public void Umbenennen(string kennung, string name) => Aendern(kennung, "umbenannt", g => g.Name = name);
+
+    /// <summary>
+    /// Gibt einem Gebäude eine andere Kennung (für Kartenskripte, deren Regeln bestimmte Kennungen verlangen, etwa „S1_Werkstatt“ in Köln). Gilt wie
+    /// alle Kennungen: eindeutig, nur Buchstaben, Ziffern und „_“. Wer die Kennung schon an anderer Stelle benutzt hat (Startbelegung), muss sie dort
+    /// nachziehen – darum vorher aufrufen.
+    /// </summary>
+    /// <exception cref="ArgumentException">Wenn es das Gebäude nicht gibt, die neue Kennung schon vergeben oder leer ist oder ungültige Zeichen hat.</exception>
+    public void KennungSetzen(string kennung, string neu)
+    {
+        if (GebaeudeMit(kennung) is null) throw new ArgumentException($"Kein Gebäude „{kennung}“.", nameof(kennung));
+        if (neu == kennung) return;
+        if (neu.Length == 0 || neu.Any(c => !(char.IsAsciiLetterOrDigit(c) || c == '_'))) throw new ArgumentException($"„{neu}“ ist keine gültige Kennung.", nameof(neu));
+        if (GebaeudeMit(neu) is not null) throw new ArgumentException($"Die Kennung „{neu}“ gibt es schon.", nameof(neu));
+        Aendern(kennung, "Kennung geändert", g => g.Kennung = neu);
+    }
 
     /// <summary>Name des Betriebs, der hier steht (Werkstattplatz eines KI-Hauses, Umlandbetrieb); null oder leer entfernt ihn.</summary>
     public void BetriebSetzen(string kennung, string? betrieb) =>

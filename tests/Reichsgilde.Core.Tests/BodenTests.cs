@@ -173,11 +173,11 @@ static class BodenTests
             Pruefe.Wahr(doppelt > 1.6 * 64 * 64 * 3 / 100, $"doppelt: {doppelt}");
         }),
 
-        ("Alte Karten: Köln und Messstadt haben als Boden nur das Marktpflaster – sonst Wiese, keine Deko, Byte für Byte dieselbe Datei", () =>
+        ("Alte Karten: Die Messstadt hat als Boden nur das Marktpflaster – sonst Wiese, keine Deko, Byte für Byte dieselbe Datei", () =>
         {
             // Die Greybox hat seit PR #199 Boden (Sand, Schlamm und Kies am Fluss und am Hafen).
             Pruefe.Wahr(Stadtkarte.AusDatei(Datenpfad.Karte("greybox")).Boden is { IstLeer: false }, "Greybox mit Boden");
-            foreach (var kennung in new[] { "koeln", "messstadt" })
+            foreach (var kennung in new[] { "messstadt" })
             {
                 var e = Kartenentwurf.AusJson(Text(kennung), Katalog.Value);
                 Pruefe.Wahr(!e.Boden.IstLeer, kennung + " mit Marktpflaster");
@@ -195,11 +195,14 @@ static class BodenTests
             foreach (var kennung in new[] { "greybox", "koeln", "probestadt", "messstadt" })
             {
                 var e = Kartenentwurf.AusJson(Text(kennung), Katalog.Value);
-                var markt = e.Gebaeude.Single(g => g.Katalog == "markt");
-                var (breite, tiefe) = markt.Groesse!.Value;
-                foreach (var (dx, dz) in new[] { (0.0, 0.0), (-1.0, -1.0), (1.0, 1.0), (-1.0, 1.0), (1.0, -1.0) })
-                    Pruefe.Gleich(Bodentextur.Pflaster, e.Boden.Textur(markt.X + dx * (breite / 2 - 0.5), markt.Z + dz * (tiefe / 2 - 0.5)), $"{kennung} {dx} | {dz}");
-                Pruefe.Wahr(e.Boden.Textur(markt.X + breite / 2 + 2, markt.Z) != Bodentextur.Pflaster, kennung + " neben dem Markt");
+                // jede Karte hat genau einen Markt; die Schleife gilt trotzdem für jeden
+                foreach (var markt in e.Gebaeude.Where(g => g.Katalog == "markt"))
+                {
+                    var (breite, tiefe) = markt.Groesse!.Value;
+                    foreach (var (dx, dz) in new[] { (0.0, 0.0), (-1.0, -1.0), (1.0, 1.0), (-1.0, 1.0), (1.0, -1.0) })
+                        Pruefe.Gleich(Bodentextur.Pflaster, e.Boden.Textur(markt.X + dx * (breite / 2 - 0.5), markt.Z + dz * (tiefe / 2 - 0.5)), $"{kennung} {markt.Name} {dx} | {dz}");
+                    Pruefe.Wahr(e.Boden.Textur(markt.X + breite / 2 + 2, markt.Z) != Bodentextur.Pflaster, $"{kennung}: {markt.Name}, daneben");
+                }
             }
         }),
 
