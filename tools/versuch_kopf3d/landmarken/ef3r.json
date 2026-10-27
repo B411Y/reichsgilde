@@ -1,0 +1,199 @@
+{
+ "_hinweis": "Form aus dem Schrägbild (TRELLIS aus ansichten/ef3_rechts.png, 27.10.2026). P = fotorealistische schattenlose Front (fp/ef3_al.png), F = Frontansicht dieser Form.",
+ "P": {
+  "auge_l": {
+   "aussen": [
+    345,
+    369
+   ],
+   "innen": [
+    440,
+    381
+   ],
+   "oben": [
+    393,
+    346
+   ],
+   "unten": [
+    393,
+    386.5
+   ]
+  },
+  "auge_r": {
+   "innen": [
+    540,
+    379
+   ],
+   "aussen": [
+    634,
+    367
+   ],
+   "oben": [
+    592,
+    346
+   ],
+   "unten": [
+    592,
+    385
+   ]
+  },
+  "nase": [
+   479,
+   484
+  ],
+  "mund": {
+   "ecke_l": [
+    421,
+    574
+   ],
+   "mitte": [
+    492,
+    574.6
+   ],
+   "ecke_r": [
+    561.5,
+    574
+   ]
+  }
+ },
+ "F": {
+  "auge_l": {
+   "aussen": [
+    374,
+    400
+   ],
+   "innen": [
+    476,
+    400
+   ],
+   "oben": [
+    425,
+    388
+   ],
+   "unten": [
+    425,
+    415
+   ]
+  },
+  "auge_r": {
+   "innen": [
+    597,
+    400
+   ],
+   "aussen": [
+    688,
+    400
+   ],
+   "oben": [
+    642,
+    388
+   ],
+   "unten": [
+    642,
+    415
+   ]
+  },
+  "nase_f": [
+   547,
+   536
+  ],
+  "mund": {
+   "ecke_l": [
+    467,
+    607
+   ],
+   "mitte": [
+    540,
+    606
+   ],
+   "ecke_r": [
+    630,
+    607
+   ]
+  }
+ },
+ "ansichten": [
+  {
+   "bild": "/tmp/claude-1000/-home-claude-projekte-reichsgilde/4c541d35-c849-4e58-bcde-35f887f98cda/scratchpad/kopf3d2/ansichten/ef3_links.png",
+   "punkte": {
+    "auge_r.aussen": [
+     440,
+     357
+    ],
+    "auge_r.innen": [
+     372,
+     352
+    ],
+    "auge_r.oben": [
+     405,
+     340
+    ],
+    "auge_r.unten": [
+     405,
+     365
+    ],
+    "nase": [
+     275,
+     465
+    ],
+    "mund.mitte": [
+     300,
+     550
+    ],
+    "mund.ecke_r": [
+     375,
+     550
+    ],
+    "auge_l.aussen": [
+     258,
+     350
+    ],
+    "auge_l.innen": [
+     300,
+     358
+    ]
+   }
+  },
+  {
+   "bild": "/tmp/claude-1000/-home-claude-projekte-reichsgilde/4c541d35-c849-4e58-bcde-35f887f98cda/scratchpad/kopf3d2/ansichten/ef3_rechts.png",
+   "punkte": {
+    "auge_l.aussen": [
+     565,
+     355
+    ],
+    "auge_l.innen": [
+     635,
+     350
+    ],
+    "auge_l.oben": [
+     603,
+     338
+    ],
+    "auge_l.unten": [
+     603,
+     364
+    ],
+    "nase": [
+     745,
+     470
+    ],
+    "mund.mitte": [
+     720,
+     555
+    ],
+    "mund.ecke_l": [
+     635,
+     555
+    ],
+    "auge_r.aussen": [
+     764,
+     350
+    ],
+    "auge_r.innen": [
+     718,
+     358
+    ]
+   }
+  }
+ ]
+}

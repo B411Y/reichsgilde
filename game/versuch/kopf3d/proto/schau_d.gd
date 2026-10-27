@@ -71,6 +71,9 @@ func _nah(dt: float) -> void:
 		["augen_laecheln", NAH_AUGEN, {"laecheln_l": 1.0, "laecheln_r": 1.0}, 0.0],
 		["ganz_laecheln", [Vector3(0.4, 1.64, 1.0), Vector3(0, 1.595, 0)], {"laecheln_l": 1.0, "laecheln_r": 1.0}, 0.0],
 		["ganz_ruhe", [Vector3(0.4, 1.64, 1.0), Vector3(0, 1.595, 0)], {}, 0.0],
+		["seite", [Vector3(1.05, 1.62, 0.04), Vector3(0, 1.6, 0.04)], {}, 0.0],
+		["seite_andere", [Vector3(-1.05, 1.62, 0.04), Vector3(0, 1.6, 0.04)], {}, 0.0],
+		["unten", [Vector3(0.25, 1.45, 0.95), Vector3(0, 1.6, 0)], {}, 0.0],
 	]
 	_warte -= dt
 	if _warte > 0.0 or _t < 1.0:

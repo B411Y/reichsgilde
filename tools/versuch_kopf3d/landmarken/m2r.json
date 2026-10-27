@@ -1,0 +1,199 @@
+{
+ "_hinweis": "Form aus dem Schrägbild (TRELLIS aus ansichten/m2_rechts.png, 27.10.2026). P = fotorealistische schattenlose Front (fp/m2_al.png), F = Frontansicht dieser Form.",
+ "P": {
+  "auge_l": {
+   "aussen": [
+    351,
+    423.5
+   ],
+   "innen": [
+    451,
+    432
+   ],
+   "oben": [
+    401,
+    408
+   ],
+   "unten": [
+    401,
+    439
+   ]
+  },
+  "auge_r": {
+   "innen": [
+    553,
+    431
+   ],
+   "aussen": [
+    649,
+    425
+   ],
+   "oben": [
+    603,
+    408
+   ],
+   "unten": [
+    603,
+    437
+   ]
+  },
+  "nase": [
+   496,
+   543
+  ],
+  "mund": {
+   "ecke_l": [
+    430,
+    654
+   ],
+   "mitte": [
+    505,
+    649
+   ],
+   "ecke_r": [
+    585,
+    654
+   ]
+  }
+ },
+ "F": {
+  "auge_l": {
+   "aussen": [
+    372,
+    409
+   ],
+   "innen": [
+    459,
+    409
+   ],
+   "oben": [
+    415,
+    395
+   ],
+   "unten": [
+    415,
+    424
+   ]
+  },
+  "auge_r": {
+   "innen": [
+    565,
+    409
+   ],
+   "aussen": [
+    654,
+    409
+   ],
+   "oben": [
+    610,
+    395
+   ],
+   "unten": [
+    610,
+    424
+   ]
+  },
+  "nase_f": [
+   509,
+   517
+  ],
+  "mund": {
+   "ecke_l": [
+    458,
+    624
+   ],
+   "mitte": [
+    512,
+    622
+   ],
+   "ecke_r": [
+    592,
+    624
+   ]
+  }
+ },
+ "ansichten": [
+  {
+   "bild": "/tmp/claude-1000/-home-claude-projekte-reichsgilde/4c541d35-c849-4e58-bcde-35f887f98cda/scratchpad/kopf3d2/ansichten/m2_links.png",
+   "punkte": {
+    "auge_r.aussen": [
+     470,
+     407
+    ],
+    "auge_r.innen": [
+     400,
+     402
+    ],
+    "auge_r.oben": [
+     430,
+     392
+    ],
+    "auge_r.unten": [
+     430,
+     414
+    ],
+    "nase": [
+     287,
+     525
+    ],
+    "mund.mitte": [
+     312,
+     620
+    ],
+    "mund.ecke_r": [
+     380,
+     625
+    ],
+    "auge_l.aussen": [
+     262,
+     400
+    ],
+    "auge_l.innen": [
+     305,
+     407
+    ]
+   }
+  },
+  {
+   "bild": "/tmp/claude-1000/-home-claude-projekte-reichsgilde/4c541d35-c849-4e58-bcde-35f887f98cda/scratchpad/kopf3d2/ansichten/m2_rechts.png",
+   "punkte": {
+    "auge_l.aussen": [
+     520,
+     405
+    ],
+    "auge_l.innen": [
+     610,
+     400
+    ],
+    "auge_l.oben": [
+     575,
+     390
+    ],
+    "auge_l.unten": [
+     575,
+     414
+    ],
+    "nase": [
+     720,
+     530
+    ],
+    "mund.mitte": [
+     700,
+     625
+    ],
+    "mund.ecke_l": [
+     625,
+     630
+    ],
+    "auge_r.aussen": [
+     736,
+     400
+    ],
+    "auge_r.innen": [
+     696,
+     405
+    ]
+   }
+  }
+ ]
+}

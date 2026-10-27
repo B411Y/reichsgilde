@@ -816,6 +816,138 @@ if float(a.get("ao", 0.0)) > 0:
     ao_f[ist_beutel] = 1.0
     farbe *= ao_f[:, None]
     log("Formschatten: Mittel %.2f, dunkelste 5 %% %.2f" % (ao_f.mean(), np.percentile(ao_f, 5)))
+# ---- Mehrere Ansichten (Schräg, Profil) in den Atlas projizieren -------------------------------------------------------------
+# Landmarken-Datei: "ansichten": [{"bild": <png>, "punkte": {"auge_l.aussen": [x, y], ...}}] (Namen wie oben, Pixel, Zeile von oben).
+# Jede Ansicht bekommt eine eigene orthografische Kamera (angepasst an die sichtbaren Landmarken); der neue Atlas ist eine nach
+# Blickwinkel gewichtete Mischung aller Ansichten (Front eingeschlossen) und der TRELLIS-Textur (dort, wo keine Ansicht hinsieht).
+if LM.get("ansichten"):
+    _lum3 = np.array([0.3, 0.55, 0.15])
+    ansichten = [{"bild": a["pbild"], "punkte": None}] + LM["ansichten"]
+    gew = []; uvs = []; bilder = []
+    dvt = tr(dv)
+    for k_, an in enumerate(ansichten):
+        if an["punkte"] is None:
+            par_k, img_k = par, PB
+            q_ = p_von(dv)
+        else:
+            _i, img_k = bild_laden(an["bild"])
+            nm_ = [nm for nm in an["punkte"] if nm in namen]
+            P2k = np.array([an["punkte"][nm] for nm in nm_], float); X3k = np.array([X3[namen.index(nm)] for nm in nm_])
+            bestk = None
+            for psi0 in np.linspace(-1.6, 1.6, 9):
+                pk = np.array([psi0, 0.0, 0.0, par[3], P2k[:, 0].mean(), P2k[:, 1].mean()])
+                fk = ((proj(pk, X3k) - P2k) ** 2).sum(); st_k = np.array([0.1, 0.05, 0.05, 30.0, 10.0, 10.0])
+                for it in range(500):
+                    vb = False
+                    for j_ in range(6):
+                        for sg in (1, -1):
+                            qk = pk.copy(); qk[j_] += sg * st_k[j_]
+                            ff = ((proj(qk, X3k) - P2k) ** 2).sum()
+                            if ff < fk: pk, fk, vb = qk, ff, True
+                    if not vb: st_k *= 0.6
+                if bestk is None or fk < bestk[1]: bestk = (pk, fk)
+            par_k = bestk[0]
+            log("Ansicht %s: Gier %.1f Nick %.1f Roll %.1f Maßstab %.0f, Restfehler %.1f px aus %d Punkten" % (os.path.basename(an["bild"]),
+                math.degrees(par_k[0]), math.degrees(par_k[1]), math.degrees(par_k[2]), par_k[3], math.sqrt(bestk[1] / len(nm_)), len(nm_)))
+            q_ = proj(par_k, dvt)
+        Rk = rot(par_k[0], par_k[1], par_k[2])
+        kd_t = Rk.T @ np.array([0.0, -1.0, 0.0]); kd_t /= np.linalg.norm(kd_t)
+        cos_k = np.clip(nvn @ kd_t, 0, 1)
+        sicht_k = np.ones(n)
+        for i_ in np.where(cos_k > 0.05)[0]:
+            r_ = bvh_s.ray_cast(Vector(dv[i_] + nvn[i_] * 0.0004 + kd_t * 0.0006), Vector(kd_t), 0.5)
+            if r_[0] is not None and r_[3] > 0.003:
+                sicht_k[i_] = 0.0
+        hh, ww = img_k.shape[:2]
+        bgc = np.median(np.vstack([img_k[:8, :8].reshape(-1, 3), img_k[:8, -8:].reshape(-1, 3)]), 0)
+        aeh = np.linalg.norm(img_k - bgc, axis=2) < 0.07
+        hg = np.zeros((hh, ww), bool); hg[0, :] = aeh[0, :]; hg[:, 0] = aeh[:, 0]; hg[:, -1] = aeh[:, -1]
+        for _ in range(2000):
+            nn_ = (hg | np.roll(hg, 1, 0) | np.roll(hg, -1, 0) | np.roll(hg, 1, 1) | np.roll(hg, -1, 1)) & aeh
+            if (nn_ == hg).all(): break
+            hg = nn_
+        vgk = (~hg).astype(float)
+        for _ in range(5):
+            vgk = np.minimum.reduce([vgk, np.roll(vgk, 1, 0), np.roll(vgk, -1, 0), np.roll(vgk, 1, 1), np.roll(vgk, -1, 1)])
+        im_bild = (q_[:, 0] > 2) & (q_[:, 0] < ww - 3) & (q_[:, 1] > 2) & (q_[:, 1] < hh - 3)
+        w_k = sm(cos_k, 0.2, 0.75) ** 2 * sicht_k * bilinear(vgk[:, :, None], q_[:, 0], q_[:, 1])[:, 0] * im_bild
+        w_k *= (1.0 - sm(-nvn[:, 2], 0.7, 0.95))
+        gew.append(w_k); uvs.append(q_ / np.array([ww, hh])); bilder.append(img_k)
+    # Farbabgleich jeder Ansicht an die Front (Median im Überlappungsbereich)
+    farb_v = [bilinear(b_, u_[:, 0] * b_.shape[1], u_[:, 1] * b_.shape[0]) for b_, u_ in zip(bilder, uvs)]
+    for k_ in range(1, len(bilder)):
+        haut_f = (farb_v[0] @ _lum3 > 0.4) & (farb_v[0][:, 0] > farb_v[0][:, 2] * 1.1)
+        haut_k = (farb_v[k_] @ _lum3 > 0.4) & (farb_v[k_][:, 0] > farb_v[k_][:, 2] * 1.1)
+        ue = (gew[0] > 0.2) & (gew[k_] > 0.2) & ~ist_beutel & haut_f & haut_k & (mitte > 0.5)
+        if ue.sum() > 30:
+            g_k = np.clip(np.median(farb_v[0][ue], 0) / np.maximum(np.median(farb_v[k_][ue], 0), 1e-3), 0.7, 1.4)
+        else:
+            g_k = np.ones(3)
+        bilder[k_] = np.clip(bilder[k_] * g_k, 0, 1)
+        if ue.sum() > 30: log("  Median Front %s, Ansicht %s" % (np.round(np.median(farb_v[0][ue], 0), 3), np.round(np.median(farb_v[k_][ue], 0), 3)))
+        log("Ansicht %d: Farbabgleich %s, Überlappung %d Punkte, Anteil > 0,5: %d Punkte" % (k_, np.round(g_k, 3), int(ue.sum()), int((gew[k_] > 0.5).sum())))
+    # nur wo die Ansicht zur Form-Textur passt (Helligkeit) und nur am Kopf (Kleidung/Haar der Ansichten sitzt anders)
+    kopf_m = sm(dv[:, 2], kinn_z - 0.6 * dEm, kinn_z - 0.1 * dEm) * (1.0 - sm(dv[:, 2], 1.64 + 1.0 * dEm, 1.64 + 1.5 * dEm))
+    for k_ in range(len(bilder)):
+        fk_ = bilinear(bilder[k_], uvs[k_][:, 0] * bilder[k_].shape[1], uvs[k_][:, 1] * bilder[k_].shape[0])
+        pass_k = 1.0 - sm(np.abs(fk_ @ _lum3 - acol @ _lum3), 0.10, 0.22)
+        gew[k_] = gew[k_] * pass_k * kopf_m
+    W = np.array(gew)                      # (Ansichten, n)
+    W = W ** 2 / np.maximum(W.sum(0), 1e-6)  # schärfer: die beste Ansicht dominiert
+    w_rest = np.clip(1.0 - W.sum(0), 0, 1) + 0.02
+    summe = W.sum(0) + w_rest
+    W = W / summe; w_rest = w_rest / summe
+    W[:, ist_beutel] = 0.0; w_rest[ist_beutel] = 1.0
+    # Atlas neu backen: Emission = Summe w_k * Ansicht_k(uv_k) + w_rest * alter Atlas
+    lvi_ = np.empty(len(me.loops), np.int64); me.loops.foreach_get("vertex_index", lvi_)
+    matb = bpy.data.materials.new("mehransicht"); matb.use_nodes = True
+    ntb = matb.node_tree; ntb.nodes.clear()
+    out_ = ntb.nodes.new("ShaderNodeOutputMaterial"); em_ = ntb.nodes.new("ShaderNodeEmission")
+    ntb.links.new(em_.outputs["Emission"], out_.inputs["Surface"])
+    def textur(img_arr, name_):
+        h_, w_ = img_arr.shape[:2]
+        im_ = bpy.data.images.new(name_, w_, h_)
+        rgba = np.ones((h_, w_, 4), np.float32); rgba[:, :, :3] = img_arr
+        im_.pixels.foreach_set(rgba[::-1].ravel()); im_.update()
+        im_.colorspace_settings.name = "sRGB"
+        return im_
+    summe_node = None
+    teile = [(atlas, "atlas", w_rest)] + [(textur(bilder[k_], "ans_%d" % k_), "ans_%d" % k_, W[k_]) for k_ in range(len(bilder))]
+    for k_, (b_, uvname, w_) in enumerate(teile):
+        if uvname != "atlas":
+            ul_ = me.uv_layers.new(name=uvname)
+            u_ = uvs[k_ - 1]
+            ul_.data.foreach_set("uv", np.stack([u_[lvi_, 0], 1.0 - u_[lvi_, 1]], 1).ravel())
+        at_ = me.attributes.new("w_%d" % k_, "FLOAT", "POINT"); at_.data.foreach_set("value", w_.astype(np.float32))
+        uvn = ntb.nodes.new("ShaderNodeUVMap"); uvn.uv_map = uvname
+        tx_ = ntb.nodes.new("ShaderNodeTexImage"); tx_.image = b_; tx_.extension = "EXTEND"
+        ntb.links.new(uvn.outputs["UV"], tx_.inputs["Vector"])
+        an_ = ntb.nodes.new("ShaderNodeAttribute"); an_.attribute_name = "w_%d" % k_
+        mu_ = ntb.nodes.new("ShaderNodeMix"); mu_.data_type = "RGBA"; mu_.blend_type = "MULTIPLY"; mu_.inputs["Factor"].default_value = 1.0
+        ntb.links.new(tx_.outputs["Color"], mu_.inputs[6]); ntb.links.new(an_.outputs["Fac"], mu_.inputs[7])
+        if summe_node is None:
+            summe_node = mu_.outputs[2]
+        else:
+            ad_ = ntb.nodes.new("ShaderNodeMix"); ad_.data_type = "RGBA"; ad_.blend_type = "ADD"; ad_.inputs["Factor"].default_value = 1.0
+            ntb.links.new(summe_node, ad_.inputs[6]); ntb.links.new(mu_.outputs[2], ad_.inputs[7]); summe_node = ad_.outputs[2]
+    ntb.links.new(summe_node, em_.inputs["Color"])
+    neu_atlas = bpy.data.images.new("atlas_mehr", TEX, TEX)
+    ziel_ = ntb.nodes.new("ShaderNodeTexImage"); ziel_.image = neu_atlas
+    ntb.nodes.active = ziel_
+    me.uv_layers["atlas"].active = True; me.uv_layers["atlas"].active_render = True
+    alte_mats = list(me.materials); me.materials.clear(); me.materials.append(matb)
+    for x in bpy.context.selected_objects: x.select_set(False)
+    D.select_set(True); bpy.context.view_layer.objects.active = D
+    bpy.ops.object.bake(type="EMIT", margin=12, use_clear=True, use_selected_to_active=False)
+    neu_atlas.filepath_raw = os.path.join(ordner, NAME + "_atlas.jpg"); neu_atlas.file_format = "JPEG"; neu_atlas.save()
+    me.materials.clear()
+    for m_ in alte_mats: me.materials.append(m_)
+    for k_ in range(len(bilder)):
+        me.uv_layers.remove(me.uv_layers["ans_%d" % k_])
+    for k_ in range(len(teile)):
+        me.attributes.remove(me.attributes["w_%d" % k_])
+    me.uv_layers["atlas"].active = True; me.uv_layers["atlas"].active_render = True
+    log("Mehransicht-Atlas gebacken aus %d Ansichten" % len(bilder))
 ca.data.foreach_set("color", np.hstack([farbe, w_p[:, None]]).astype(np.float32).ravel())
 unter_tief = -s_m          # > 0 unterhalb der Lippenlinie (in Halbbreiten)
 f_nah = 1.0 - sm(np.abs(t_m), 0.45, 1.05)                    # nahe der Linie: Linse, Ecken bleiben
