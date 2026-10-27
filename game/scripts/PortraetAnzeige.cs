@@ -193,6 +193,9 @@ public partial class PortraetAnzeige : Control
         var band = Augenband(augen);
         _material.SetShaderParameter("augen_oben", band.X);
         _material.SetShaderParameter("augen_unten", band.Y);
+        var (linkes, rechtes) = Augenzonen(augen);
+        _material.SetShaderParameter("auge_links", linkes);
+        _material.SetShaderParameter("auge_rechts", rechtes);
         _material.SetShaderParameter("haar_mittel", Mittelhelligkeit(_person.Texture, haar));
         _material.SetShaderParameter("augen_mittel", Mittelhelligkeit(_person.Texture, augen));
         _material.SetShaderParameter("haarfarbe", Farbe(aussehen.Haar));
@@ -282,6 +285,45 @@ public partial class PortraetAnzeige : Control
 
     private static readonly Dictionary<(Texture2D, Texture2D), float> Mittelwerte = new();
     private static readonly Dictionary<Texture2D, Vector2> Baender = new();
+    private static readonly Dictionary<Texture2D, (Vector4, Vector4)> Zonen = new();
+
+    /// <summary>
+    /// Die beiden Augen aus der Augenmaske als Ellipsen (Mitte x, y und Halbachsen, in Anteilen der Bildgröße): Nur dort blendet das Blinzeln das Bild mit
+    /// geschlossenen Augen ein. Die Iris-Maske ist winzig (etwa 10 Pixel), das Auge mit Lidern etwa dreimal so breit, daher die Aufweitung (Rand weich ausklingend). Die Augen werden
+    /// an der Mitte zwischen kleinstem und größtem x getrennt; ohne zweites Auge (Seitenansicht) bleibt dessen Ellipse leer (Halbachsen 0).
+    /// </summary>
+    private static (Vector4 links, Vector4 rechts) Augenzonen(Texture2D? maske)
+    {
+        if (maske is null) return (Vector4.Zero, Vector4.Zero);
+        if (Zonen.TryGetValue(maske, out var bekannt)) return bekannt;
+        var ergebnis = (Vector4.Zero, Vector4.Zero);
+        if (maske.GetImage() is { } m)
+        {
+            if (m.IsCompressed()) m.Decompress();
+            int w = m.GetWidth(), h = m.GetHeight(), xmin = int.MaxValue, xmax = -1;
+            for (var y = 0; y < h; y++)
+                for (var x = 0; x < w; x++)
+                    if (m.GetPixel(x, y).R > 0.3f) { xmin = Math.Min(xmin, x); xmax = Math.Max(xmax, x); }
+            if (xmax >= 0)
+            {
+                var mitte = (xmin + xmax) / 2;
+                // Ein Auge allein (kleine Breite) gilt als ein Cluster
+                var getrennt = xmax - xmin > 0.12f * w;
+                Vector4 Zone(int von, int bis)
+                {
+                    int x0 = int.MaxValue, x1 = -1, y0 = int.MaxValue, y1 = -1;
+                    for (var y = 0; y < h; y++)
+                        for (var x = von; x <= bis; x++)
+                            if (m.GetPixel(x, y).R > 0.3f) { x0 = Math.Min(x0, x); x1 = Math.Max(x1, x); y0 = Math.Min(y0, y); y1 = Math.Max(y1, y); }
+                    if (x1 < 0) return Vector4.Zero;
+                    return new Vector4((x0 + x1 + 1) / 2f / w, (y0 + y1 + 1) / 2f / h, (x1 - x0 + 1) / 2f / w * 4.5f + 0.014f, (y1 - y0 + 1) / 2f / h * 3f + 0.012f);
+                }
+                ergebnis = getrennt ? (Zone(xmin, mitte), Zone(mitte + 1, xmax)) : (Zone(xmin, xmax), Vector4.Zero);
+            }
+        }
+        Zonen[maske] = ergebnis;
+        return ergebnis;
+    }
 
     /// <summary>
     /// Das Augenband (Anteil der Bildhöhe von oben) aus der Augenmaske: von knapp über bis knapp unter der Iris. Nur dort wird beim Blinzeln das Bild

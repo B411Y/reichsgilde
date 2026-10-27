@@ -17,6 +17,9 @@
 #          <volk>/<geschlecht>_<gesicht 0-4>_<alter>_<kleidung|zu>.webp, dazu ..._haar.webp und ..._augen.webp (Graustufenmasken,
 #          weiß = Haar bzw. Iris) und hintergrund_<stand>.webp. Kürzel m1..m5 / f1..f5 werden zu mann_0..4 / frau_0..4.
 #          volk ist "mensch" (Vorgabe); die Quellen der anderen Völker kommen mit eigenem Kürzel-Präfix (siehe _spielname).
+#          Dabei: Das Bild mit geschlossenen Augen (…_zu) wird farblich an das offene Bild angeglichen (_zu_angleichen), bei Halblingen wird das
+#          Rot der Wangen und Nase gedämpft (_haut_daempfen), und die Haarmasken von Elben, Halblingen und Zwerginnen werden nicht geschrieben
+#          (KEINE_HAARMASKE: die erste Fassung malte bartlosen Figuren einen Bart an), bis es neue gibt.
 # raster:  Legt Einträge in ein Raster (zur Abnahme). Ein Eintrag ist "person@hintergrund", z. B. m1_jung_schlicht@hg_buerger;
 #          ohne "@" nur die Person auf Grau, "-" lässt eine Zelle leer. Mit Maske (<person> in masken/) lassen sich
 #          Haar und Augen umfärben: "person@hintergrund@haar-hex@augen-hex", z. B. m1_jung_schlicht@hg_buerger@d8b45a@3a7bd5
@@ -684,6 +687,77 @@ static func _spielname(name: String, volk: String = "mensch") -> String:
 	return "_".join(teile)
 
 
+## Haarmasken, die (noch) nicht ins Spiel kommen: Volk -> Geschlechter ("mann", "frau") bzw. "alle". Die Anzeige färbt dann das Haar nicht um.
+const KEINE_HAARMASKE := {"elb": ["mann", "frau"], "halbling": ["mann", "frau"], "zwerg": ["frau"]}
+
+const HAUT_WANGE_SATT := 0.26   # Halblinge: Sättigung, über der rotes Haut-Rosa gedämpft wird …
+const HAUT_WANGE_STAERKE := 0.85  # … um so viel des Überschusses (0 = nichts, 1 = auf den Grenzwert)
+
+
+static func _keine_haarmaske(volk: String, name: String) -> bool:
+	return name.begins_with("mann_") and "mann" in KEINE_HAARMASKE.get(volk, []) \
+		or name.begins_with("frau_") and "frau" in KEINE_HAARMASKE.get(volk, [])
+
+
+## Dämpft die Sättigung stark roter Hauttöne an Wangen und Nase (Halblinge): nur im Gesichtsbereich (Höhe 25-65 %), nur Rot-Rosa-Töne
+## (Farbton um 355 Grad) und nur helle Pixel (Linien, Schatten und Schmuck bleiben). Weiche Übergänge in allen drei Merkmalen.
+func _haut_daempfen(bild: Image) -> void:
+	var b := bild.get_width()
+	var h := bild.get_height()
+	for y in h:
+		var wy := smoothstep(0.22, 0.30, float(y) / h) * (1.0 - smoothstep(0.62, 0.72, float(y) / h))
+		if wy <= 0.0:
+			continue
+		for x in b:
+			var p := bild.get_pixel(x, y)
+			if p.a < 0.05 or p.s <= HAUT_WANGE_SATT:
+				continue
+			var abstand := absf(fposmod(p.h * 360.0 - 355.0 + 180.0, 360.0) - 180.0)  # Winkelabstand zu 355 Grad
+			var w := wy * (1.0 - smoothstep(16.0, 36.0, abstand)) * smoothstep(0.35, 0.55, p.v)
+			if w <= 0.0:
+				continue
+			p.s -= (p.s - HAUT_WANGE_SATT) * HAUT_WANGE_STAERKE * w
+			bild.set_pixel(x, y, p)
+
+
+## Gleicht das Bild mit geschlossenen Augen farblich an das offene an: je Farbkanal Mittel und Streuung im Augenbereich (von … bis, Zeilen), nur dort,
+## wo beide deckend sind. Die Bilder entstehen getrennt in der Bild-KI und weichen leicht in Farbe und Kontrast ab (Blinzeln wirkte wie ein Blitz).
+func _zu_angleichen(zu: Image, offen: Image, von: int, bis: int) -> void:
+	var a: Array[PackedFloat64Array] = [PackedFloat64Array([0.0, 0.0, 0.0]), PackedFloat64Array([0.0, 0.0, 0.0])]
+	var q: Array[PackedFloat64Array] = [PackedFloat64Array([0.0, 0.0, 0.0]), PackedFloat64Array([0.0, 0.0, 0.0])]
+	var n := 0
+	for y in range(von, bis):
+		for x in zu.get_width():
+			var o := offen.get_pixel(x, y)
+			var z := zu.get_pixel(x, y)
+			if o.a < 0.9 or z.a < 0.9:
+				continue
+			n += 1
+			for k in 3:
+				a[0][k] += o[k]
+				a[1][k] += z[k]
+				q[0][k] += o[k] * o[k]
+				q[1][k] += z[k] * z[k]
+	if n < 500:
+		return
+	var verstaerkung := [1.0, 1.0, 1.0]
+	var versatz := [0.0, 0.0, 0.0]
+	for k in 3:
+		var mo: float = a[0][k] / n
+		var mz: float = a[1][k] / n
+		var so := sqrt(maxf(q[0][k] / n - mo * mo, 1e-6))
+		var sz := sqrt(maxf(q[1][k] / n - mz * mz, 1e-6))
+		verstaerkung[k] = clampf(so / sz, 0.9, 1.1)
+		versatz[k] = mo - mz * verstaerkung[k]
+	for y in zu.get_height():
+		for x in zu.get_width():
+			var z := zu.get_pixel(x, y)
+			if z.a <= 0.0:
+				continue
+			zu.set_pixel(x, y, Color(clampf(z.r * verstaerkung[0] + versatz[0], 0.0, 1.0), clampf(z.g * verstaerkung[1] + versatz[1], 0.0, 1.0),
+				clampf(z.b * verstaerkung[2] + versatz[2], 0.0, 1.0), z.a))
+
+
 func _spiel(volk: String) -> void:
 	var ziel := _wurzel.path_join("game/assets/oberflaeche/portraets")
 	DirAccess.make_dir_recursive_absolute(ziel.path_join(volk))
@@ -694,7 +768,30 @@ func _spiel(volk: String) -> void:
 		var name := datei.get_basename()
 		if not _gehoert_zu(name, volk):
 			continue
-		_laden(_quellordner("personen").path_join(datei)).save_webp(ziel.path_join(volk).path_join(_spielname(name, volk) + ".webp"), true, SPIEL_QUALITAET)
+		var person := _laden(_quellordner("personen").path_join(datei))
+		if volk == "halbling":
+			_haut_daempfen(person)
+		if name.ends_with("_zu"):
+			# Augenband aus der Augenmaske (Kanal 1) des offenen Bildes, wie PortraetAnzeige.Augenband (± 0,045 der Höhe)
+			var stamm := name.trim_suffix("_zu")
+			var offen_pfad := _finde(_quellordner("personen"), stamm + "_schlicht")
+			var maske_pfad := _finde(_quellordner("masken"), stamm + "_schlicht")
+			if offen_pfad != "" and maske_pfad != "":
+				var offen := _laden(offen_pfad)
+				if volk == "halbling":
+					_haut_daempfen(offen)
+				var m := _laden(maske_pfad)
+				var oben := GROESSE
+				var unten := -1
+				for y in GROESSE:
+					for x in GROESSE:
+						if m.get_pixel(x, y).g > 0.3:
+							oben = mini(oben, y)
+							unten = maxi(unten, y)
+				if unten >= 0:
+					var rand := int(0.045 * GROESSE)
+					_zu_angleichen(person, offen, maxi(oben - rand, 0), mini(unten + rand, GROESSE - 1))
+		person.save_webp(ziel.path_join(volk).path_join(_spielname(name, volk) + ".webp"), true, SPIEL_QUALITAET)
 	for datei in DirAccess.get_files_at(_quellordner("masken")):
 		if not _gehoert_zu(datei.get_basename(), volk):
 			continue
@@ -703,6 +800,8 @@ func _spiel(volk: String) -> void:
 		for kanal in [["haar", 0], ["augen", 1]]:
 			if kanal[0] == "haar" and "_alt_" in name:
 				continue  # weißes Haar wird nicht umgefärbt
+			if kanal[0] == "haar" and _keine_haarmaske(volk, name):
+				continue  # Masken mit angemaltem Bart: bis zu neuen Masken kein Umfärben
 			var grau := Image.create(GROESSE, GROESSE, false, Image.FORMAT_L8)
 			for y in GROESSE:
 				for x in GROESSE:
