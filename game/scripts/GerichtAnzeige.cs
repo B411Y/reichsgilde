@@ -121,7 +121,7 @@ public partial class GerichtAnzeige : PanelContainer
 
         // ── Beweisbuch: je anderes Haus ──
         _inhalt.AddChild(new HSeparator());
-        Text(_inhalt, "Beweisbuch", 16);
+        Text(_inhalt, "Beweisbuch", 16).TooltipText = "Gesammelte Beweise gegen Häuser. Ab der sicheren Beweiskraft verurteilt der Richter am Gerichtstag.";
         foreach (var haus in w.Konten.Where(k => k != _spieler && k.IstAktiv))
         {
             var beweise = gericht.Beweise(_spieler, haus).ToList();
@@ -131,7 +131,7 @@ public partial class GerichtAnzeige : PanelContainer
             _inhalt.AddChild(zeile);
             zeile.AddChild(WappenBild.Neu(haus.Wappen, 22));
             Text(zeile, $"{haus.Inhaber}: {beweise.Count} {(beweise.Count == 1 ? "Beweis" : "Beweise")} (Beweiskraft {Zahlenformat.Ganz(kraft)})", 14,
-                kraft >= d.SichereBeweiskraft ? Gruen : null);
+                kraft >= d.SichereBeweiskraft ? Gruen : null).TooltipText = $"Jeder Beweis wiegt {Zahlenformat.Ganz(d.BeweiskraftJeBeweis)}; ab {Zahlenformat.Ganz(d.SichereBeweiskraft)} ist die Verurteilung sicher (grün).";
             if (w.Wache.IstAktiv && w.Wache.Wachstube(_spieler) is not null)
             {
                 var name = haus.Inhaber;

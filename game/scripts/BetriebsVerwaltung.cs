@@ -140,11 +140,13 @@ public partial class BetriebsVerwaltung : VBoxContainer
 
         // Versteck des Diebes: Taschendiebe, Fänge, was die Stufe erlaubt
         _diebesText = NeuesLabel(this, 13, Grau);
+        _diebesText.TooltipText = "Das Treiben der Gauner im Haus und was es einbringt.";
         _diebesText.AutowrapMode = TextServer.AutowrapMode.WordSmart;
         _diebesText.CustomMinimumSize = new Vector2(380, 0);
 
         // Wache des Gardisten: Sold, Patrouille, Kopfgeld, Geleit, Razzien
         _wacheText = NeuesLabel(this, 13, Grau);
+        _wacheText.TooltipText = "Die Stadtwache: Sold, Streife, Geleit und Arrest.";
         _wacheText.AutowrapMode = TextServer.AutowrapMode.WordSmart;
         _wacheText.CustomMinimumSize = new Vector2(380, 0);
 
@@ -153,6 +155,7 @@ public partial class BetriebsVerwaltung : VBoxContainer
         _bankstube.AddThemeConstantOverride("separation", 4);
         AddChild(_bankstube);
         _bankText = NeuesLabel(_bankstube, 13, Grau);
+        _bankText.TooltipText = "Das Bankgeschäft: Kasse, Einlagen und verliehenes Geld des Hauses.";
         _bankText.AutowrapMode = TextServer.AutowrapMode.WordSmart;
         _bankText.CustomMinimumSize = new Vector2(380, 0);
         var kassenZeile = Zeile(_bankstube);
@@ -190,6 +193,7 @@ public partial class BetriebsVerwaltung : VBoxContainer
         _kirchenstube.AddThemeConstantOverride("separation", 4);
         AddChild(_kirchenstube);
         _kirchenText = NeuesLabel(_kirchenstube, 13, Grau);
+        _kirchenText.TooltipText = "Das Kirchenwesen des Hauses: Messen, Gaben und der Ablass.";
         _kirchenText.AutowrapMode = TextServer.AutowrapMode.WordSmart;
         _kirchenText.CustomMinimumSize = new Vector2(380, 0);
         _bekehrenKnopf = new Button { FocusMode = FocusModeEnum.None, SizeFlagsHorizontal = SizeFlags.ShrinkBegin };
@@ -776,7 +780,8 @@ public partial class BetriebsVerwaltung : VBoxContainer
             }
             else
             {
-                NeuesLabel(zeile, 12, Grau).Text = "Stadtweg – keine Überfälle, keine Eskorte nötig";
+                NeuesLabel(zeile, 12, Grau).TooltipText = "In der Stadt fahren die Karren auf gesicherten Wegen. Eskorte und Nachtfahrt gibt es nur für Betriebe im Umland.";
+                zeile.GetChild<Label>(zeile.GetChildCount() - 1).Text = "Stadtweg – keine Überfälle, keine Eskorte nötig";
             }
             // Verkaufen (PR #205): ohne Rückfrage, gesperrt mit Grund aus dem Kern (unterwegs)
             var verkaufen = new Button { FocusMode = FocusModeEnum.None };

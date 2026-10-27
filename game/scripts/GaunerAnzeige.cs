@@ -114,7 +114,7 @@ public partial class GaunerAnzeige : PanelContainer
         var zeile = new HBoxContainer();
         zeile.AddThemeConstantOverride("separation", 10);
         _inhalt.AddChild(zeile);
-        Text(zeile, "Eure Leute", 14);
+        Text(zeile, "Eure Leute", 14).TooltipText = "Die Gauner, die für euer Haus arbeiten: Sie spähen aus, stehlen und erpressen, immer nachts ab 20 Uhr.";
         if (diebe.Auftraege.Any(a => a.Dieb == _spieler && a.Ziel == haus && a.Art == Diebesstueck.Auskundschaften))
             Text(zeile, "· spähen heute Nacht aus", 13, Gold);
         else

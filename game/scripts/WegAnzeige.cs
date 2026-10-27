@@ -145,7 +145,7 @@ public partial class WegAnzeige : PanelContainer
             13, Grau, zentriert: true, umbruchBreite: Breite);
 
         // ── der Belag Abschnitt für Abschnitt ──
-        Hauptmenue.Text(_inhalt, "Belag", 16, Gold);
+        Hauptmenue.Text(_inhalt, "Belag", 16, Gold).TooltipText = "Zustand und Belag der Abschnitte: Trampelpfad, Fahrweg, Kies oder Pflaster. Besserer Belag macht Karren schneller und Fußgänger sicherer.";
         var abschnitte = bau.Abschnitte(_weg);
         foreach (var a in abschnitte.Take(10))
         {
@@ -161,7 +161,7 @@ public partial class WegAnzeige : PanelContainer
 
         // ── Abschnitt wählen ──
         _inhalt.AddChild(new HSeparator());
-        Hauptmenue.Text(_inhalt, "Abschnitt wählen", 16, Gold);
+        Hauptmenue.Text(_inhalt, "Abschnitt wählen", 16, Gold).TooltipText = "Wählt einen Abschnitt des Weges aus, um ihn ausbessern oder pflastern zu lassen.";
         _auswahlText = Hauptmenue.Text(_inhalt, "", 14, Hell, umbruchBreite: Breite);
         Regler("von", _von, laenge, stueck, wert => { _von = wert; if (_bis <= _von) _bis = Math.Min(laenge, _von + stueck); Auswahl(w); });
         Regler("bis", _bis, laenge, stueck, wert => { _bis = wert; if (_von >= _bis) _von = Math.Max(0, _bis - stueck); Auswahl(w); });

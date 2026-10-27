@@ -520,7 +520,17 @@ public partial class FamilienAnzeige : PanelContainer
         foreach (var kopf in mitTalenten
                      ? new[] { "", "Name", "Volk, Alter", "Stand", "Stärken", "Kinder ≈", "Hochzeit", "Bereit", "" }
                      : new[] { "", "Name", "Volk, Alter", "Stand", "Kinder ≈", "Hochzeit", "Bereit", "" })
-            Text(raster, kopf, 12, Grau);
+            Text(raster, kopf, 12, Grau).TooltipText = kopf switch
+            {
+                "Name" => "Heiratskandidat oder -kandidatin der Stadt.",
+                "Volk, Alter" => "Volk und Alter; nicht jede Verbindung ist erlaubt oder erwünscht.",
+                "Stand" => "Stand der Familie des Kandidaten; je höher, desto mehr Mitgift und Ansehen.",
+                "Stärken" => "Talente, die ein Ehepartner in das Haus einbringt.",
+                "Kinder ≈" => "Erwartete Zahl der Kinder aus dieser Verbindung.",
+                "Hochzeit" => "Kosten von Brautwerbung und Hochzeit.",
+                "Bereit" => "Ob die Person nach eurer Werbung zur Heirat bereit ist.",
+                _ => "",
+            };
 
         var passende = buch.Kandidaten.Where(k => k.Person.Geschlecht != f.Oberhaupt.Geschlecht)
             .OrderByDescending(k => buch.Zuneigung(_spieler!, k)).ThenBy(k => k.Stand).ThenBy(k => k.Person.Alter(buch.Jahr)).ToList();
