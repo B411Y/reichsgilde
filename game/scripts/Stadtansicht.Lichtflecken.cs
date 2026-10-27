@@ -73,7 +73,7 @@ public partial class Stadtansicht
             var durchmesser = licht * 0.75f * Mathf.Pow(mass, 0.6f);
             var boden = new Transform3D(Basis.FromScale(new Vector3(durchmesser, 1, durchmesser)), grund);
             _fleckBodenViele!.SetInstanceTransform(n, boden);
-            _fleckBodenViele.SetInstanceColor(n, new Color(farbe.R, farbe.G, farbe.B, 0.38f * tag * flackern * (1 - 0.85f * stand)));
+            _fleckBodenViele.SetInstanceColor(n, new Color(farbe.R, farbe.G, farbe.B, 0.34f * tag * flackern * (1 - 0.85f * stand)));
             var schein = (q.Art == Lichtart.Feuerkorb ? 1.6f : q.Art == Lichtart.EwigesLicht ? 0.7f : 1.0f) * Mathf.Pow(mass, 0.8f);
             _fleckScheinViele!.SetInstanceTransform(n, new Transform3D(Basis.FromScale(Vector3.One * schein), ort));
             _fleckScheinViele.SetInstanceColor(n, new Color(farbe.R, farbe.G, farbe.B, 0.9f * tag * flackern));

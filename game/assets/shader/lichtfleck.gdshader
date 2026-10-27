@@ -28,7 +28,7 @@ void fragment() {
 	if (boden) {
 		// weicher Abfall wie ein Punktlicht, nass etwas weiter und heller
 		float a = 1.0 - r;
-		s = a * a * (0.55 + 0.45 * a) * (1.0 + 0.45 * wetter_naesse);
+		s = pow(a, 2.3) * 1.2 * (1.0 + 0.45 * wetter_naesse);
 	} else {
 		// kleiner heller Kern und weiter Schein
 		float a = 1.0 - r;
