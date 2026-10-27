@@ -664,10 +664,23 @@ func _stapeln(ziel: String, dateien: PackedStringArray) -> void:
 # ---------- spiel ----------
 
 ## m1_jung_schlicht -> mann_0_jung_schlicht (Kürzel: m/f + Nummer 1-5, danach Alter und Kleidung bzw. "zu").
-static func _spielname(name: String) -> String:
+## Kürzel-Präfix der Quellen je Volk: Menschen ohne (m1, f1 …), die übrigen mit einem Buchstaben davor (zm1 = Zwerg, Mann, Gesicht 1).
+const VOLK_PRAEFIX := {"mensch": "", "zwerg": "z", "elb": "e", "halbling": "h", "ork": "o", "oger": "g"}
+
+
+## Gehört die Quelle <name> zu diesem Volk? (Kürzel = Präfix des Volks, dann m oder f, dann die Nummer.)
+static func _gehoert_zu(name: String, volk: String) -> bool:
+	var kuerzel := name.split("_")[0]
+	var praefix: String = VOLK_PRAEFIX.get(volk, "")
+	return kuerzel.length() == praefix.length() + 2 and kuerzel.begins_with(praefix) \
+		and kuerzel[praefix.length()] in ["m", "f"] and kuerzel[praefix.length() + 1].is_valid_int()
+
+
+static func _spielname(name: String, volk: String = "mensch") -> String:
 	var teile := name.split("_")
-	var geschlecht := "mann" if teile[0].begins_with("m") else "frau"
-	teile[0] = "%s_%d" % [geschlecht, teile[0].substr(1).to_int() - 1]
+	var kuerzel := teile[0].substr(String(VOLK_PRAEFIX.get(volk, "")).length())
+	var geschlecht := "mann" if kuerzel.begins_with("m") else "frau"
+	teile[0] = "%s_%d" % [geschlecht, kuerzel.substr(1).to_int() - 1]
 	return "_".join(teile)
 
 
@@ -679,9 +692,13 @@ func _spiel(volk: String) -> void:
 		bild.save_webp(ziel.path_join("hintergrund_" + datei.get_basename().trim_prefix("hg_") + ".webp"), true, SPIEL_QUALITAET)
 	for datei in DirAccess.get_files_at(_quellordner("personen")):
 		var name := datei.get_basename()
-		_laden(_quellordner("personen").path_join(datei)).save_webp(ziel.path_join(volk).path_join(_spielname(name) + ".webp"), true, SPIEL_QUALITAET)
+		if not _gehoert_zu(name, volk):
+			continue
+		_laden(_quellordner("personen").path_join(datei)).save_webp(ziel.path_join(volk).path_join(_spielname(name, volk) + ".webp"), true, SPIEL_QUALITAET)
 	for datei in DirAccess.get_files_at(_quellordner("masken")):
-		var name := _spielname(datei.get_basename())
+		if not _gehoert_zu(datei.get_basename(), volk):
+			continue
+		var name := _spielname(datei.get_basename(), volk)
 		var maske := _laden(_quellordner("masken").path_join(datei))
 		for kanal in [["haar", 0], ["augen", 1]]:
 			if kanal[0] == "haar" and "_alt_" in name:
