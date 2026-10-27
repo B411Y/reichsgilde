@@ -58,11 +58,11 @@ APSIS = (0, 36, 72, 108, 144, 180)     # Ecken der Apsis (Grad von +X)
 STATIONEN = (3.5, 5.9, 8.3, Y_A)       # Strebepfeiler der geraden Seiten
 Z_L = 6.5                    # Wandoberkante des Langhausstumpfs
 Y_L0 = -11.6                 # Westende des Langhauses (Ostkante der Türme)
-Y_T0 = -16.9                 # Westkante der Türme (mit Sockel genau bei −17)
+Y_T0 = -16.4                 # Westkante der Türme (Strebepfeiler ragen bis −17)
 H_SUED, H_NORD = 13.5, 21.0
-SUED = (1.4, 6.8)            # Türme: x-Bereich
-NORD = (-6.8, -1.4)
-KRAN = Vector((4.1, -14.3, 0.0))       # Mitte des Kranhauses auf dem Südturm
+SUED = (1.6, 6.3)            # Türme: x-Bereich (Strebepfeiler ragen bis ±6,9)
+NORD = (-6.3, -1.6)
+KRAN = Vector((3.95, -14.0, 0.0))       # Mitte des Kranhauses auf dem Südturm
 
 
 def wm(punkt, phi):
@@ -74,23 +74,37 @@ def apsis_punkt(r, w, z=0.0):
     return Vector((r * math.cos(math.radians(w)), Y_A + r * math.sin(math.radians(w)), z))
 
 
+def gruppe(name, kinder):
+    """Leerer Knoten `name` mit den Kindern: Das Spiel blendet beim Hineinsehen „Dach“ und „Turm“ als Ganzes aus (DomBauen)."""
+    import bpy
+    k = bpy.data.objects.new(name, None)
+    k.empty_display_type = "PLAIN_AXES"
+    bpy.context.scene.collection.objects.link(k)
+    for o in kinder:
+        o.parent = k
+    return k
+
+
 def bauen():
     bs.neue_szene()
     st = bs.Stoffe()
-    chor = bs.Netz("Chor")
+    chor, west = bs.Netz("Chor"), bs.Netz("Wand_hinten")
     chor_bauen(chor, st)
-    west = bs.Netz("Westwand")
     westwand_bauen(west, st)
-    lang = bs.Netz("Langhaus")
-    langhaus_bauen(lang, st)
-    nord = bs.Netz("Nordturm")
+    wand_l, wand_r, wand_v = bs.Netz("Wand_links"), bs.Netz("Wand_rechts"), bs.Netz("Wand_vorne")
+    notdach, portal = bs.Netz("Notdach"), bs.Netz("Notportal")
+    langhaus_bauen(wand_l, wand_r, wand_v, notdach, portal, st)
+    nord, sued = bs.Netz("Nordturm"), bs.Netz("Suedturm")
     nordturm_bauen(nord, st)
-    sued = bs.Netz("Suedturm")
     suedturm_bauen(sued, st)
-    haus = bs.Netz("Kranhaus")
-    rad = bs.Netz("Tretrad", alle=True)
+    haus, rad = bs.Netz("Kranhaus"), bs.Netz("Tretrad", alle=True)
     kran_bauen(haus, rad, st)
-    return [chor.objekt(), west.objekt(), lang.objekt(), nord.objekt(), sued.objekt(), haus.objekt(), rad.objekt(),
+    o = {n.name: n.objekt() for n in (chor, west, wand_l, wand_r, wand_v, notdach, portal, nord, sued, haus, rad)}
+    # Gruppen für die Innenansicht: „Dach“ (Chor und Notdach) und „Turm“ (Türme, Notportal, Kran) werden beim Hineinsehen ausgeblendet,
+    # dazu die Wände zur Kamera (Wand_vorne = Westwand des Langhauses, Wand_hinten = Bretterwand des Chors)
+    dach = gruppe("Dach", [o["Chor"], o["Notdach"]])
+    turm = gruppe("Turm", [o["Nordturm"], o["Suedturm"], o["Kranhaus"], o["Tretrad"], o["Notportal"]])
+    return [dach, turm, o["Wand_hinten"], o["Wand_links"], o["Wand_rechts"], o["Wand_vorne"],
             bs.anker("Anker_Tuer", (0.0, Y_T0 + 0.15, 0.3)),
             bs.anker("Anker_EwigesLicht", (0.0, Y_T0 + 0.7 - 0.12, 4.3), 180.0)]
 
@@ -110,14 +124,15 @@ def fiale(netz, st, x, y, z0, r, h, stoff="Elbenstein"):
         netz.vieleck_nach([a, b, spitze], (a + b) / 2 - Vector((x, y, z0 + s - 0.6)), st[stoff])
 
 
-def elbenfenster(netz, st, M, u, v, b, h, glas, ranken=False):
-    """Hohes Spitzbogenfenster: grünliches oder dunkles Glas, Gewände und Mittelpfosten aus Elbenstein, auf Wunsch Ranken im Bogenfeld
+def elbenfenster(netz, st, M, u, v, b, h, glas, ranken=False, stein="Elbenstein", pfosten=1):
+    """Hohes Spitzbogenfenster: Glas, Gewände und Mittelpfosten aus `stein`, auf Wunsch Ranken im Bogenfeld
     (zwei Blattbögen und zwei geschwungene Ranken aus dünnen Stäben)."""
     bs.platte(netz, M, dom.spitzbogen(u, v, b, h), -0.012, -0.002, st[glas])
-    dom.spitzring(netz, M, u, v, b, h, 0.13, -0.10, -0.004, st["Elbenstein"])
+    dom.spitzring(netz, M, u, v, b, h, 0.13, -0.10, -0.004, st[stein])
     k = v + h - b * math.sin(math.radians(60))
-    netz.quader((u, -0.06, (v + k) / 2 + 0.25), (0.07, 0.1, k - v + 0.5), st["Elbenstein"], M, ohne=("+y",))
-    netz.quader((u, -0.07, v - 0.06), (b + 0.4, 0.14, 0.12), st["Elbenstein"], M, ohne=("+y",))
+    if pfosten:
+        netz.quader((u, -0.06, (v + k) / 2 + 0.25), (0.07, 0.1, k - v + 0.5), st[stein], M, ohne=("+y",))
+    netz.quader((u, -0.07, v - 0.06), (b + 0.4, 0.14, 0.12), st[stein], M, ohne=("+y",))
     if not ranken:
         return
     oben = v + h - 0.35
@@ -125,12 +140,12 @@ def elbenfenster(netz, st, M, u, v, b, h, glas, ranken=False):
 
     def linie(punkte):
         for p, q in zip(punkte, punkte[1:]):
-            netz.stab((p[0], -0.05, p[1]), (q[0], -0.05, q[1]), 0.07, 0.08, st["Elbenstein"], matrix=M, quer=(0, 1, 0),
+            netz.stab((p[0], -0.05, p[1]), (q[0], -0.05, q[1]), 0.07, 0.08, st[stein], matrix=M, quer=(0, 1, 0),
                       ohne=("+y", "+x", "-x"), mehr=0.06)
 
-    for s in (-1, 1):                                     # Blattbögen
-        linie([(u + s * 0.3 * b * math.sin(math.pi * i / 4), unten + (oben - unten) * i / 4) for i in range(5)])
-        linie([(u + s * 0.46 * b * (1 - math.cos(math.pi * i / 3)) / 2, k - 0.05 + 0.9 * i / 3) for i in range(4)])   # Ranke
+    for sg in (-1, 1):                                    # Blattbögen
+        linie([(u + sg * 0.3 * b * math.sin(math.pi * i / 4), unten + (oben - unten) * i / 4) for i in range(5)])
+        linie([(u + sg * 0.46 * b * (1 - math.cos(math.pi * i / 3)) / 2, k - 0.05 + 0.9 * i / 3) for i in range(4)])   # Ranke
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -270,78 +285,96 @@ def westwand_bauen(netz, st):
 #  Langhaus- und Querhausstumpf
 # ─────────────────────────────────────────────────────────────────────────────
 
-def langhaus_bauen(netz, st):
+def langhaus_bauen(wand_l, wand_r, wand_v, dach, portal, st):
+    """Langhaus- und Querhausstumpf, aufgeteilt in die Teile, die das Spiel beim Hineinsehen einzeln ausblendet:
+    Wand_links/Wand_rechts (Seitenwände mit Pfeilerstümpfen, Fensteransätzen, Querhausarmen), Wand_vorne (Westwand zwischen den Türmen),
+    Notdach (mit Bretter-Giebel) und das Notportal mit den Baustoffen davor (gehört zu den Türmen)."""
     ym = (Y_L0 + 2.5) / 2
     laenge = 2.5 - Y_L0
-    for s in (-1, 1):
-        netz.quader((s * 5.6, ym, Z_L / 2), (0.8, laenge, Z_L), st["Haustein"], ohne=("-z",))
-        netz.quader((s * 5.95, ym, 0.45), (0.3, laenge + 0.1, 0.9), st["Bruchstein dunkel"], ohne=("-z",))
-        netz.quader((s * 5.98, ym, Z_L - 0.15), (0.3, laenge + 0.1, 0.3), st["Bruchstein"], ohne=("-z",))
-        M = wm((s * 6.0, 0, 0), 0 if s > 0 else 180)
+    for s_, netz in ((-1, wand_l), (1, wand_r)):
+        netz.quader((s_ * 5.6, ym, Z_L / 2), (0.8, laenge, Z_L), st["Haustein"], ohne=("-z",))
+        netz.quader((s_ * 5.95, ym, 0.45), (0.3, laenge + 0.1, 0.9), st["Bruchstein dunkel"], ohne=("-z",))
+        netz.quader((s_ * 5.98, ym, Z_L - 0.15), (0.3, laenge + 0.1, 0.3), st["Bruchstein"], ohne=("-z",))
         for y in (-9.6, -6.8, -4.0):                      # Pfeilerstümpfe außen, rau abgebrochen
-            netz.quader((s * 6.4, y, 3.7), (0.9, 0.8, 7.4), st["Haustein"], ohne=("-z",))
-            netz.quader((s * 6.4, y, 7.5), (1.0, 0.9, 0.2), st["Bruchstein"], ohne=("-z",))
+            netz.quader((s_ * 6.4, y, 3.7), (0.9, 0.8, 7.4), st["Haustein"], ohne=("-z",))
+            netz.quader((s_ * 6.4, y, 7.5), (1.0, 0.9, 0.2), st["Bruchstein"], ohne=("-z",))
         for y in (-8.2, -5.4):                            # Fensteransätze: dunkle Öffnung, Sohlbank, Holzbrett statt Bogen
-            Mw = wm((s * 6.0, y, 0), 0 if s > 0 else 180)
+            Mw = wm((s_ * 6.0, y, 0), 0 if s_ > 0 else 180)
             bs.platte(netz, Mw, [(-0.6, 1.6), (0.6, 1.6), (0.6, 5.0), (-0.6, 5.0)], -0.03, -0.004, st["Loch"])
             netz.quader((0, -0.06, 1.5), (1.5, 0.12, 0.14), st["Bruchstein"], Mw, ohne=("+y",))
             netz.quader((0, -0.05, 5.0), (1.5, 0.1, 0.5), st["Holz alt"], Mw, ohne=("+y",))
         # Querhausarm: niedriger Anbau mit Pultdach
-        netz.quader((s * 6.5, -0.4, 2.8), (0.6, 5.0, 5.6), st["Haustein"], ohne=("-z",))
-        netz.quader((s * 6.8, -0.4, 5.5), (0.2, 5.0, 0.3), st["Bruchstein"], ohne=("-z",))
-        t = Matrix.Translation((s * 6.4, -0.4, 5.85)) @ Matrix.Rotation(math.radians(s * 21.8), 4, "Y")       # fällt nach außen
+        netz.quader((s_ * 6.5, -0.4, 2.8), (0.6, 5.0, 5.6), st["Haustein"], ohne=("-z",))
+        netz.quader((s_ * 6.8, -0.4, 5.5), (0.2, 5.0, 0.3), st["Bruchstein"], ohne=("-z",))
+        t = Matrix.Translation((s_ * 6.4, -0.4, 5.85)) @ Matrix.Rotation(math.radians(s_ * 21.8), 4, "Y")       # fällt nach außen
         netz.quader((0, 0, 0), (1.1, 5.4, 0.1), st["Holz alt"], t)
-    # Rückwand des Langhauses zwischen den Türmen
-    netz.quader((0, Y_L0 + 0.2, 3.25), (12.0, 0.5, 6.5), st["Haustein"], ohne=("-z",))
+    # Westwand des Langhauses zwischen den Türmen
+    wand_v.quader((0, Y_L0 + 0.2, 3.25), (11.6, 0.5, 6.5), st["Haustein"], ohne=("-z",))
     # Notdach: flaches Satteldach aus Schindeln über Langhaus und Querhaus, im Westen ein Giebel aus Brettern
     drehung = Matrix.Rotation(math.radians(90), 4, "Z")
-    dach = bs.satteldach(netz, st, Y_L0 + 0.4, 2.5, -6.0, 6.0, Z_L, 24, traufe=0.45, ortgang=0.3, enden="Holz alt", matrix=drehung,
-                         **bs.SCHINDEL)
-    hoch = 6.0 * dach["tan"]
+    d = bs.satteldach(dach, st, Y_L0 + 0.4, 2.5, -6.0, 6.0, Z_L, 24, traufe=0.45, ortgang=0.3, enden="Holz alt", matrix=drehung,
+                      **bs.SCHINDEL)
+    hoch = 6.0 * d["tan"]
     M = bs.wandmatrix((0, Y_L0 - 0.5, Z_L), "vorne")
-    bs.platte(netz, M, [(-6.0, 0), (6.0, 0), (0, hoch)], 0, 0.75, st["Bretter"])
+    bs.platte(dach, M, [(-6.0, 0), (6.0, 0), (0, hoch)], 0, 0.75, st["Bretter"])
     for u in (-4.0, -2.0, 2.0, 4.0):                       # Sparren des Dachstuhls, die an der Westseite herausschauen
-        netz.stab((u, Y_L0 - 0.55, Z_L + 0.1), (u * 0.5, Y_L0 - 0.55, Z_L + hoch * 0.8), 0.18, 0.12, st["Geruestholz"], quer=(0, 1, 0))
+        dach.stab((u, Y_L0 - 0.55, Z_L + 0.1), (u * 0.5, Y_L0 - 0.55, Z_L + hoch * 0.8), 0.18, 0.12, st["Geruestholz"], quer=(0, 1, 0))
     # Steinblöcke und Bauholz vor dem Notportal
     rnd = random.Random(11)
     for k in range(7):
         if k % 2:
-            netz.quader((-4.0 + 1.3 * k, Y_T0 + 1.0 + rnd.random() * 0.6, 0.4), (0.9, 0.7, 0.8), st["Haustein"], ohne=("-z",))
+            portal.quader((-4.0 + 1.3 * k, Y_T0 + 1.0 + rnd.random() * 0.6, 0.4), (0.9, 0.7, 0.8), st["Haustein"], ohne=("-z",))
         else:
-            netz.quader((-3.7 + 1.3 * k, Y_T0 + 0.9 + rnd.random() * 0.5, 0.15), (1.8, 0.2, 0.3), st["Geruestholz"], ohne=("-z",))
+            portal.quader((-3.7 + 1.3 * k, Y_T0 + 0.9 + rnd.random() * 0.5, 0.15), (1.8, 0.2, 0.3), st["Geruestholz"], ohne=("-z",))
     # Notportal zwischen den Türmen: Mauer, Spitzbogentür, Gewände, Stufen, Holzabdeckung
     yp = Y_T0 + 0.7
-    netz.quader((0, yp + 0.5, 4.0), (3.0, 1.0, 8.0), st["Haustein"], ohne=("-z",))
+    portal.quader((0, yp + 0.5, 4.0), (3.4, 1.0, 8.0), st["Haustein"], ohne=("-z",))
     Mp = bs.wandmatrix((0, yp, 0), "vorne")
-    bs.platte(netz, Mp, dom.spitzbogen(0.0, 0.0, 2.0, 4.6), -0.03, -0.002, st["Holz alt"])
-    dom.spitzring(netz, Mp, 0.0, 0.0, 2.0, 4.6, 0.25, -0.16, -0.004, st["Bruchstein"])
+    bs.platte(portal, Mp, dom.spitzbogen(0.0, 0.0, 2.0, 4.6), -0.03, -0.002, st["Holz alt"])
+    dom.spitzring(portal, Mp, 0.0, 0.0, 2.0, 4.6, 0.25, -0.16, -0.004, st["Bruchstein"])
     for v in (0.9, 2.1, 3.2):
-        netz.quader((0, -0.06, v), (1.8, 0.03, 0.09), st["Eisen"], Mp, ohne=("+y",))
-    netz.quader((0, -0.25, 0.075), (2.8, 0.5, 0.15), st["Bruchstein"], Mp, ohne=("+y", "-z"))
-    netz.quader((0, yp + 0.6, 8.1), (3.2, 1.4, 0.25), st["Holz alt"], ohne=("-z",))
+        portal.quader((0, -0.06, v), (1.8, 0.03, 0.09), st["Eisen"], Mp, ohne=("+y",))
+    portal.quader((0, -0.25, 0.075), (2.8, 0.5, 0.15), st["Bruchstein"], Mp, ohne=("+y", "-z"))
+    portal.quader((0, yp + 0.6, 8.1), (3.2, 1.4, 0.25), st["Holz alt"], ohne=("-z",))
 
 
 # ─────────────────────────────────────────────────────────────────────────────
 #  Türme
 # ─────────────────────────────────────────────────────────────────────────────
 
-def schlitz(netz, st, M, u, v, b=0.55, h=2.2):
-    bs.platte(netz, M, dom.spitzbogen(u, v, b, h), -0.012, -0.002, st["Loch"])
-    dom.spitzring(netz, M, u, v, b, h, 0.14, -0.08, -0.004, st["Bruchstein"])
+def turm_pfeiler(netz, st, cx, sx, hoehe, koerper, kappe, fiale_r, fiale_h, fiale_stoff):
+    """Strebepfeilerpaar an der westlichen Außenecke (cx = x der Ecke, sx = Richtung nach außen): je einer an der Gassenseite und an
+    der Außenseite, zwei Absätze, Pultkappe und Fiale."""
+    y0 = Y_T0
+    for art in ("west", "seite"):
+        for k, (b, tief, h) in enumerate(((0.8, 0.55, hoehe * 0.62), (0.6, 0.35, hoehe * 0.85))):
+            if art == "west":
+                netz.quader((cx - sx * 0.45, y0 - tief / 2 + 0.05, h / 2), (b, tief + 0.1, h), st[koerper], ohne=("-z",))
+            else:
+                netz.quader((cx + sx * (tief / 2 - 0.05), y0 + 0.45, h / 2), (tief + 0.1, b, h), st[koerper], ohne=("-z",))
+        hh = hoehe * 0.85
+        if art == "west":
+            mitte = Vector((cx - sx * 0.45, y0 - 0.2, hh))
+            netz.quader(mitte + Vector((0, 0, 0.07)), (0.74, 0.5, 0.14), st[kappe])
+        else:
+            mitte = Vector((cx + sx * 0.2, y0 + 0.45, hh))
+            netz.quader(mitte + Vector((0, 0, 0.07)), (0.5, 0.74, 0.14), st[kappe])
+        fiale(netz, st, mitte.x, mitte.y, hh + 0.14, fiale_r, fiale_h, fiale_stoff)
 
 
-def turm_aussen(netz, st, x0, x1, hoehe, hohl, krone):
-    """Turmstumpf aus Haustein mit Sockel, Gesimsbändern, Schlitzfenstern und zerbrochener Mauerkrone (Steine bis `krone` Meter hoch)."""
+def turm_aussen(netz, st, x0, x1, hoehe, hohl, krone, koerper, band, rahmen, zier):
+    """Gotischer Turmstumpf: Sockel, Gesimsbänder, Eckstrebepfeiler, spitzbogige Maßwerkfenster und zerbrochene Mauerkrone (Steine bis
+    `krone` Meter hoch). `zier`: elbische Zierde oben (Blendbogenreihe, Band, Fialen, Fenster mit Ranken)."""
     y0, y1 = Y_T0, Y_L0
     xm, ym = (x0 + x1) / 2, (y0 + y1) / 2
     if hohl:
         t = 1.2
-        netz.quader((xm, y0 + t / 2, hoehe / 2), (x1 - x0, t, hoehe), st["Haustein"], ohne=("-z",))
-        netz.quader((xm, y1 - t / 2, hoehe / 2), (x1 - x0, t, hoehe), st["Haustein"], ohne=("-z",))
-        netz.quader((x0 + t / 2, ym, hoehe / 2), (t, y1 - y0 - 2 * t, hoehe), st["Haustein"], ohne=("-z",))
-        netz.quader((x1 - t / 2, ym, hoehe / 2), (t, y1 - y0 - 2 * t, hoehe), st["Haustein"], ohne=("-z",))
+        netz.quader((xm, y0 + t / 2, hoehe / 2), (x1 - x0, t, hoehe), st[koerper], ohne=("-z",))
+        netz.quader((xm, y1 - t / 2, hoehe / 2), (x1 - x0, t, hoehe), st[koerper], ohne=("-z",))
+        netz.quader((x0 + t / 2, ym, hoehe / 2), (t, y1 - y0 - 2 * t, hoehe), st[koerper], ohne=("-z",))
+        netz.quader((x1 - t / 2, ym, hoehe / 2), (t, y1 - y0 - 2 * t, hoehe), st[koerper], ohne=("-z",))
     else:
-        netz.quader((xm, ym, hoehe / 2), (x1 - x0, y1 - y0, hoehe), st["Haustein"], ohne=("-z",))
+        netz.quader((xm, ym, hoehe / 2), (x1 - x0, y1 - y0, hoehe), st[koerper], ohne=("-z",))
 
     def ring(z, h, vor, stoff):
         """Band um den Turm, `vor` Meter vor der Wand."""
@@ -352,18 +385,38 @@ def turm_aussen(netz, st, x0, x1, hoehe, hohl, krone):
         netz.quader((x1, ym, z), (d, y1 - y0 - d, h), st[stoff], ohne=("-z",))
 
     ring(0.55, 1.1, 0.1, "Bruchstein dunkel")
-    for f in (0.33, 0.66):
-        ring(hoehe * f, 0.3, 0.08, "Bruchstein")
-    # Schlitzfenster: Gassenseite (West), Außenseite und Innenseite zum Portal
+    for f in (0.36, 0.7):
+        ring(hoehe * f, 0.3, 0.08, band)
     sued = x0 > 0
-    seiten = [wm((xm, y0, 0), -90), wm((x1 if sued else x0, ym, 0), 0 if sued else 180), wm((x0 if sued else x1, ym, 0), 180 if sued else 0)]
-    zs = (0.2, 0.5, 0.78) if hoehe > 15 else (0.28, 0.62)
-    for M in seiten:
-        for f in zs:
-            schlitz(netz, st, M, 0.0, hoehe * f - 1.1)
+    sx = 1 if sued else -1
+    cx = x1 if sued else x0
+    turm_pfeiler(netz, st, cx, sx, hoehe, koerper if not zier else koerper, band,
+                 0.3 if zier else 0.24, 3.0 if zier else 1.5, "Elbenstein" if zier else band)
+    west = wm((xm, y0, 0), -90)
+    aussen = wm((cx, ym, 0), 0 if sued else 180)
+    innen = wm((x0 if sued else x1, ym, 0), 180 if sued else 0)
+    glas = "Glas"
+    # Westseite (Gasse): zwei Lanzetten unten, darüber hohes Maßwerkfenster, beim Nordturm ein zweites mit Ranken
+    for u in (-1.05, 1.05):
+        elbenfenster(netz, st, west, u, 2.0, 0.8, 3.2, glas, stein=rahmen, pfosten=0)
+    elbenfenster(netz, st, west, 0.0, 6.0, 1.5, 4.8 if zier else 4.4, glas, stein=rahmen)
+    # Außenseite und Innenseite zum Portal: Lanzette unten, Fenster darüber
+    elbenfenster(netz, st, aussen, 0.0, 2.2, 0.9, 3.4, glas, stein=rahmen, pfosten=0)
+    elbenfenster(netz, st, aussen, 0.0, 6.4, 1.3, 4.2, glas, stein=rahmen)
+    elbenfenster(netz, st, innen, 0.0, 2.2, 0.8, 3.2, glas, stein=rahmen, pfosten=0)
+    elbenfenster(netz, st, innen, 0.0, 6.6, 0.9, 3.6, glas, stein=rahmen, pfosten=0)
+    if zier:
+        for M in (west, aussen, innen):
+            elbenfenster(netz, st, M, 0.0, 11.6, 1.3, 5.0, "Elbenglas", ranken=(M is west), stein="Elbenstein")
+            for u in (-1.35, 0.0, 1.35):                  # Blendbogenreihe unter dem Rand
+                elbenfenster(netz, st, M, u, 17.5, 0.9, 2.0, "Elbenglas", stein="Elbenstein", pfosten=0)
+        ring(hoehe - 0.7, 0.45, 0.1, "Elbenstein")
+        for qx in (x0 + 0.5, x1 - 0.5):
+            for qy in (y0 + 0.5, y1 - 0.5):
+                fiale(netz, st, qx, qy, hoehe - 0.45, 0.28, 3.4)
     # Mauerkrone: Steine in unterschiedlicher Höhe, die Mauer ist nie fertig geworden
     rnd = random.Random(5 if hohl else 9)
-    n = 6
+    n = 5
     rand = []
     for k in range(n):
         f = (k + 0.5) / n
@@ -372,7 +425,7 @@ def turm_aussen(netz, st, x0, x1, hoehe, hohl, krone):
         rand += [(x0 + 0.6, g), (x1 - 0.6, g)]
     for (px, py) in rand:
         h = 0.3 + rnd.random() * (krone - 0.3)
-        netz.quader((px, py, hoehe + h / 2 - 0.05), (0.85, 0.85, h), st["Haustein"] if rnd.random() < 0.6 else st["Bruchstein"], ohne=("-z",))
+        netz.quader((px, py, hoehe + h / 2 - 0.05), (0.85, 0.85, h), st[koerper] if rnd.random() < 0.6 else st[band], ohne=("-z",))
 
 
 def geruest(netz, st, x0, x1, y0, y1, z_fuss, ebenen):
@@ -394,18 +447,20 @@ def geruest(netz, st, x0, x1, y0, y1, z_fuss, ebenen):
 
 
 def nordturm_bauen(netz, st):
-    turm_aussen(netz, st, NORD[0], NORD[1], H_NORD, hohl=True, krone=1.6)
+    turm_aussen(netz, st, NORD[0], NORD[1], H_NORD, hohl=True, krone=1.4, koerper="Haustein", band="Bruchstein", rahmen="Bruchstein",
+                zier=True)
     # Boden aus Bohlen im Innern, damit man beim Hineinsehen nicht ins Leere schaut
     netz.quader(((NORD[0] + NORD[1]) / 2, (Y_T0 + Y_L0) / 2, H_NORD - 3.0), (NORD[1] - NORD[0] - 2.4, Y_L0 - Y_T0 - 2.4, 0.2), st["Holz alt"])
-    geruest(netz, st, -5.4, -4.0, -15.5, -13.0, H_NORD - 2.9, (H_NORD + 1.0, H_NORD + 2.2))
+    geruest(netz, st, -4.9, -3.7, -15.0, -13.2, H_NORD - 2.9, (H_NORD + 1.0, H_NORD + 2.2))
     for k in range(3):                                     # gestapelte Steine für den Weiterbau
-        netz.quader((-3.3 + 0.2 * (k % 2), -13.5 - 0.7 * k, H_NORD - 2.9 + 0.25), (0.8, 0.6, 0.5), st["Haustein"])
+        netz.quader((-2.9 + 0.1 * (k % 2), -13.6 - 0.5 * k, H_NORD - 2.9 + 0.25), (0.6, 0.5, 0.5), st["Haustein"])
 
 
 def suedturm_bauen(netz, st):
-    turm_aussen(netz, st, SUED[0], SUED[1], H_SUED, hohl=False, krone=0.8)
+    turm_aussen(netz, st, SUED[0], SUED[1], H_SUED, hohl=False, krone=0.8, koerper="Bruchstein", band="Bruchstein dunkel",
+                rahmen="Bruchstein dunkel", zier=False)
     # Bohlenboden für den Kran, die Mauerkrone steht außen herum
-    netz.quader(((SUED[0] + SUED[1]) / 2, (Y_T0 + Y_L0) / 2, H_SUED + 0.02), (SUED[1] - SUED[0] - 1.8, Y_L0 - Y_T0 - 1.8, 0.14), st["Bretter"])
+    netz.quader(((SUED[0] + SUED[1]) / 2, (Y_T0 + Y_L0) / 2, H_SUED + 0.02), (SUED[1] - SUED[0] - 1.2, Y_L0 - Y_T0 - 1.2, 0.14), st["Bretter"])
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -416,7 +471,7 @@ def kran_bauen(haus, rad, st):
     holz = st["Holz"]
     kx, ky = KRAN.x, KRAN.y
     z0 = H_SUED + 0.15
-    hx, hy = 1.35, 1.2
+    hx, hy = 1.2, 1.2
     fuss = z0 + 1.55                                       # Boden des Kranhauses auf Pfosten
     for sx in (-1, 1):
         for sy in (-1, 1):
@@ -485,7 +540,7 @@ def kran_bauen(haus, rad, st):
 def main():
     import bpy
     objekte = bauen()
-    bs.bericht(NAME, objekte)
+    bs.bericht(NAME, [o for o in objekte if o.type != "EMPTY" or o.get("anker")] + [k for o in objekte for k in o.children_recursive])
     vorher, nachher = bs.farben_zusammenlegen(objekte)
     print(f"  Materialien: {vorher} → {nachher}")
     print("geschrieben:", bs.exportieren(NAME, objekte))
@@ -502,12 +557,15 @@ def main():
         return
     print(bs.rendern(NAME, alles, 3))                                              # Nordwest (vorne links)
     print(bs.rendern(NAME + "-suedost", alles, 1))                                 # Südost (hinten rechts)
+    # Einblick wie im Spiel: Dach (Chor, Notdach), Turm und die zwei Wände zur Kamera aus
+    ausgeblendet = ("Dach", "Turm")
+    print(bs.rendern(NAME + "-innen", lambda o: not (o.parent and o.parent.name in ausgeblendet) and o.name not in ("Wand_hinten", "Wand_rechts"), 1))
     if "--nah" in sys.argv:
         szene = bpy.context.scene
         for o in szene.objects:
             if o.type == "MESH":
                 o.hide_render = False
-        for name, drehung, ziel, breite in (("-nah-chor", 1, (0, 9, 16), 34.0), ("-nah-kran", 0, (4.1, -13, 15), 26.0),
+        for name, drehung, ziel, breite in (("-nah-chor", 1, (0, 9, 16), 34.0), ("-nah-kran", 0, (3.9, -13, 15), 26.0),
                                             ("-nah-nordturm", 3, (-4, -14, 16), 26.0)):
             szene["_ziel"] = 0.0
             bs.blick(drehung)
