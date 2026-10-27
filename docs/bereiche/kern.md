@@ -437,3 +437,10 @@ Entscheidungen des Nutzers: `docs/bereiche/oberflaeche.md`, „Sichtbare Ratssit
 | Altersstufe | Grenzen 14/30/55 in Menschenjahren (Alter × Sterbealter Mensch ÷ Sterbealter des Volkes) – sonst wäre ein Elb beim Start (55) schon alt. Elb 55 → 21, Zwerg 35 → 21 Menschenjahre. | 26.10.2026 |
 | Standgruppe | Nach dem Stand des Hauses (Kandidaten: Herkunftsstand): Gemeiner, Bürger, Patrizier, Adel (Edler, Freiherr, Reichsgraf); Kleidung schlicht bis Bürger, vornehm ab Patrizier. | 26.10.2026 |
 | Zufall und Spielstand | Eigener Generator (`AussehenWuerfe`), der Spieler-Wunsch ersetzt erst nach dem Würfeln – KI-Familien sehen mit und ohne Wahl gleich aus. Neue Felder `PersonStand.Gesicht/Haar/Augen`, `FamilienbuchStand.AussehenWuerfe`; alte Spielstände: festes Aussehen aus Nummer und Volk (eigener Generator je Person, die Würfe der Partie bleiben). `messen 30 20` zeichengleich (gemessen auf main 60b8ef1 + dieser PR). | 26.10.2026 |
+
+### Fehler und Kleinkram (PR #NR)
+
+| Thema | Entscheidung | Datum |
+|---|---|---|
+| Dieb | Der Dieb wird mit einem Betrieb zu schnell Bürger (Ø 6,4 Jahre, Messung 6). Entscheidung des Nutzers: auf das Ziel 8–12 Jahre bremsen (Beute bzw. Fangchance anpassen, neu messen). | 27.10.2026 |
+| Umfang | Entscheidung des Nutzers: erst die Fehlerliste abarbeiten, dann priorisieren – KI-Gaunerei mit vier Versuchen je Nacht, ungenutzte KI-Karren, Abfragen für Lohn und Gewinn je Stück (Tooltips), Aussehen und Geschlecht der Ratsherren in den Daten, Gras unter schrägen Häusern, Hinweis „Personalbuch“ bei der Grube, Kennungen in der Kartenwerkstatt umbenennen. | 27.10.2026 |
