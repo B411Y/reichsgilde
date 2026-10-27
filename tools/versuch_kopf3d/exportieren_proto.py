@@ -163,10 +163,11 @@ for o in M.objekte(b):
     elif "teeth" in o.name: ausduennen(o, int(a.get("zaehne", 700)))
 import gesicht as G
 _koerper = [o for o in M.objekte(b) if o.name == "Human"][0]
-_zentral = [v.co.copy() for v in _koerper.data.vertices if abs(v.co.x) < 0.004 and v.co.z > 1.4]
-_nase = min(_zentral, key=lambda v: v.y)
-G.anwenden(_koerper, [o for o in M.objekte(b) if o.type == "MESH" and ("eyebrow" in o.name or "eyelash" in o.name)],
-           _nase, float(a.get("formen", 1.0)))
+if not a.get("trellis"):
+    _zentral = [v.co.copy() for v in _koerper.data.vertices if abs(v.co.x) < 0.004 and v.co.z > 1.4]
+    _nase = min(_zentral, key=lambda v: v.y)
+    G.anwenden(_koerper, [o for o in M.objekte(b) if o.type == "MESH" and ("eyebrow" in o.name or "eyelash" in o.name)],
+               _nase, float(a.get("formen", 1.0)))
 import hilfe_karten as H
 
 
@@ -176,6 +177,8 @@ def profil():
     print('BOX', [max(v.co[i] for v in b.data.vertices) for i in range(3)], [min(v.co[i] for v in b.data.vertices) for i in range(3)])
 
 def weiter2(b, a, dna):
+    ordner = os.path.dirname(a["aus"])
+    tr = bool(a.get("trellis"))
 
     # Augen: einfaches Material mit Augen-Textur
     augen = M.asset_objekt(b, "Eyes")
@@ -191,7 +194,7 @@ def weiter2(b, a, dna):
     ordner = os.path.dirname(a["aus"])
     # Haut und Kleid bekommen in Godot eigene Shader/Materialien: Texturen nicht in die .glb packen
     for o in M.objekte(b):
-        if o.type == "MESH" and (o.name == "Human" or "casualsuit" in o.name):
+        if o.type == "MESH" and ((o.name == "Human" and not tr) or "casualsuit" in o.name):
             mat = bpy.data.materials.new("einfach_" + o.name)
             o.data.materials.clear(); o.data.materials.append(mat)
     # Zähne: kleine Textur genügt
@@ -207,11 +210,11 @@ def weiter2(b, a, dna):
     alt = os.path.join(M.NUTZERDATEN, "skins", "old_caucasian_male", "old_lightskinned_male_diffuse.png")
     import glob
     jung = (glob.glob(os.path.join(M.NUTZERDATEN, "skins", "young_caucasian_male", "*diffuse*.png")) or [None])[0]
-    if jung:
+    if jung and not tr:
         im = bpy.data.images.load(jung); im.scale(1024, 1024); im.filepath_raw = os.path.join(ordner, "haut_jung.png")
         im.file_format = "PNG"; im.save()
     alt = (glob.glob(os.path.join(M.NUTZERDATEN, "skins", "old_caucasian_male", "*diffuse*.png")) or [None])[0]
-    if alt:
+    if alt and not tr:
         im = bpy.data.images.load(alt); im.scale(1024, 1024); im.filepath_raw = os.path.join(ordner, "haut_alt.png")
         im.file_format = "PNG"; im.save()
     groesste = int(a.get("textur", 1024))
@@ -230,7 +233,12 @@ def weiter2(b, a, dna):
     bpy.context.view_layer.objects.active = b
     bpy.ops.export_scene.gltf(filepath=a["aus"], export_format="GLB", use_selection=True, export_morph=True,
                               export_morph_normal=True, export_apply=False, export_skins=False,
-                              export_animations=False, export_yup=True)
+                              export_animations=False, export_yup=True,
+                              export_image_format="JPEG", export_jpeg_quality=88)
     print("EXPORT", a["aus"], os.path.getsize(a["aus"]))
 
-H.weiter(b, a, dna, M, S, LM)
+if a.get("trellis"):
+    import anpassen as AP
+    AP.weiter(b, a, dna, M, S, LM)
+else:
+    H.weiter(b, a, dna, M, S, LM)

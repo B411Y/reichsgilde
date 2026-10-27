@@ -5,6 +5,7 @@ extends Control
 var bilder := ""
 var portraet := ""
 var messen := false
+var kopfpfad := ""
 var _t := 0.0
 var _fenster: Array[KopfFenster] = []
 var _foto_gemacht := false
@@ -14,6 +15,7 @@ func _ready() -> void:
 		if a.begins_with("--bilder="): bilder = a.substr(9)
 		if a.begins_with("--portraet="): portraet = a.substr(11)
 		if a == "--messen": messen = true
+		if a.begins_with("--kopf="): kopfpfad = a.substr(7)
 	var bg := ColorRect.new()
 	bg.color = Color(0.1, 0.09, 0.08)
 	bg.set_anchors_preset(Control.PRESET_FULL_RECT)
@@ -110,9 +112,10 @@ func _messung_starten() -> void:
 	await get_tree().process_frame
 	await get_tree().process_frame
 	var leer := _stand()
-	var fw := KopfFenster.new(Vector2i(384, 448))
+	var fw := KopfFenster.new(Vector2i(384, 448), Color(0.8, 0.74, 0.64), kopfpfad, kopfpfad != "")
 	add_child(fw)
-	fw.kopf.frisur = 2
+	if kopfpfad == "":
+		fw.kopf.frisur = 2
 	await get_tree().process_frame
 	await get_tree().process_frame
 	await get_tree().create_timer(1.0).timeout
@@ -124,7 +127,7 @@ func _messung_starten() -> void:
 	# mehrere Köpfe: 4 weitere
 	var weitere: Array = []
 	for i in 4:
-		var w := KopfFenster.new(Vector2i(384, 448))
+		var w := KopfFenster.new(Vector2i(384, 448), Color(0.8, 0.74, 0.64), kopfpfad, kopfpfad != "")
 		w.position = Vector2(400 + 50 * i, 20 * i)
 		add_child(w)
 		weitere.append(w)

@@ -15,6 +15,8 @@ var hautton := Color(1, 1, 1): set = _set_hautton
 var haarfarbe := Color(0.16, 0.09, 0.045): set = _set_haarfarbe
 var frisur := 1: set = _set_frisur
 var bart := true: set = _set_bart
+var quelle := "res://versuch/kopf3d/proto/kopf_proto.glb"
+var gemalt := false          # Plan B: Haut und Haar sind aus der Form gebackene Texturen, keine Shader nötig
 var animiert := true
 var blick_wechsel := true
 
@@ -43,7 +45,7 @@ var _huell: PackedFloat32Array = PackedFloat32Array()
 var _huell_dt := 0.02
 
 func _ready() -> void:
-	var szene: PackedScene = load("res://versuch/kopf3d/proto/kopf_proto.glb")
+	var szene: PackedScene = load(quelle)
 	_pivot = Node3D.new()
 	_pivot.position = HALS
 	add_child(_pivot)
@@ -51,17 +53,26 @@ func _ready() -> void:
 	_wurzel.position = -HALS
 	_pivot.add_child(_wurzel)
 	_sammeln(_wurzel)
-	_haut = ShaderMaterial.new()
-	_haut.shader = HAUT
-	_haut.set_shader_parameter("tex_jung", load("res://versuch/kopf3d/proto/haut_jung.png"))
-	_haut.set_shader_parameter("tex_alt", load("res://versuch/kopf3d/proto/haut_alt.png"))
-	_haar_mat = ShaderMaterial.new()
-	_haar_mat.shader = HAAR
-	_haar_mat.set_shader_parameter("strahnen", load("res://versuch/kopf3d/proto/haarkarte.png"))
+	if not gemalt:
+		_haut = ShaderMaterial.new()
+		_haut.shader = HAUT
+		_haut.set_shader_parameter("tex_jung", load("res://versuch/kopf3d/proto/haut_jung.png"))
+		_haut.set_shader_parameter("tex_alt", load("res://versuch/kopf3d/proto/haut_alt.png"))
+		_haar_mat = ShaderMaterial.new()
+		_haar_mat.shader = HAAR
+		_haar_mat.set_shader_parameter("strahnen", load("res://versuch/kopf3d/proto/haarkarte.png"))
 	for m in _netze:
 		var n := String(m.name)
 		_teile[n] = m
-		if n == "Human":
+		if gemalt and (n == "Human" or n == "haar_schale"):
+			var gm := (m.get_active_material(0) as StandardMaterial3D).duplicate() as StandardMaterial3D
+			gm.roughness = 0.72 if n == "Human" else 0.85
+			gm.metallic_specular = 0.25
+			gm.rim_enabled = true
+			gm.rim = 0.25
+			gm.rim_tint = 0.5
+			m.material_override = gm
+		elif n == "Human":
 			m.material_override = _haut
 		elif n.begins_with("haar_") or n == "bart":
 			m.material_override = _haar_mat
@@ -74,6 +85,10 @@ func _ready() -> void:
 			au.clearcoat = 1.0
 			au.clearcoat_roughness = 0.02
 			m.material_override = au
+		elif n.contains("eyelash"):
+			var lm := (m.get_active_material(0) as StandardMaterial3D).duplicate() as StandardMaterial3D
+			lm.albedo_color = Color(0.12, 0.09, 0.07)
+			m.material_override = lm
 		elif n.contains("casualsuit"):
 			var kl := StandardMaterial3D.new()
 			kl.albedo_color = Color(0.30, 0.24, 0.17)

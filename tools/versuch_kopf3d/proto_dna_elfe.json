@@ -1,0 +1,35 @@
+{
+ "makro": {
+  "gender": 0.0,
+  "age": 0.5,
+  "muscle": 0.35,
+  "weight": 0.4,
+  "caucasian": 1.0,
+  "african": 0.0,
+  "asian": 0.0,
+  "proportions": 0.6
+ },
+ "regler": {
+  "head-scale-horiz-decr-incr": 0.3,
+  "chin-width-decr-incr": 0.2,
+  "chin-bones-decr-incr": 0.3,
+  "eye-scale-decr-incr": -0.1,
+  "ear-wing-decr-incr": 0.3,
+  "neck-scale-horiz-decr-incr": 0.2,
+  "eye-height2-decr-incr": 0.3,
+  "eye-eyefold-down-up": -0.3,
+  "ear-shape-pointed-triangle": 1.0,
+  "ear-scale-vert-decr-incr": 1.0,
+  "ear-scale-decr-incr": 0.7,
+  "head-oval": 0.6
+ },
+ "haut": "young_caucasian_female",
+ "hauttyp": "GAMEENGINE",
+ "brauen": "eyebrow009",
+ "wimpern": "eyelashes02",
+ "augen_netz": "low-poly",
+ "augen_textur": "brownlight",
+ "kleidung": [
+  "female_casualsuit01"
+ ]
+}
