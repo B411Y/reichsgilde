@@ -360,13 +360,21 @@ public partial class Stadtansicht
         // Außen das Modell dom.glb, Ursprung in der Mitte des Langhauses (10 × 22 m, Wände 12 m hoch; innen x −4,5 … 4,5, z −10,5 … 10,5;
         // Chor hinten, ungedreht im Norden), 2,85 m hinter der Mitte der Fläche (versatz im Katalog). Der Westturm steht vor dem Portal (vorne).
         // Hineinsehen: Dach und Turm aus, dazu die Wände zur Kamera. Der Innenraum ist um die Mitte gebaut und dreht sich als Ganzes mit.
+        // Kölner Dom (koelner_dom.glb, Baustelle um 1400): Ursprung in der Mitte der Fläche 14 × 34 m, die Türme im Westen (vorne), der Chor im Osten;
+        // der Innenraum liegt im Langhausstumpf (Wände 6,5 m, innen x ±5,2, y −11,1 … 2 vom Ursprung, Mitte 4,55 m vor dem Ursprung), kürzer als der des Doms
+        // der übrigen Karten: der Chor mit Altar rückt um 3,9 m vor, es gibt fünf statt acht Bankreihen. Beim Hineinsehen gehen Chor und Notdach („Dach“),
+        // Türme und Kran („Turm“) und die Wände zur Kamera weg.
+        var koeln = g.Katalog == "koelner_dom";
         var lage = ModellLage(g);
         var p = lage.Origin;
         var drehung = DrehungVon(g);
         var basis = new Basis(Vector3.Up, drehung);
-        var a = SonderbauAnlegen("Dom", string.IsNullOrEmpty(g.Name) ? "Dom" : g.Name, p, new Vector3(11.5f, 13, 24.6f), basis * new Vector3(0, 46, 13),
-            zoom: 27, reichweite: 15, drehung: drehung);
-        a.Innen!.Transform = new Transform3D(basis, p - basis * p); // Innenraum um die Mitte gedreht (seine Teile stehen bei p + Lage im Dom)
+        var pm = koeln ? p + basis * new Vector3(0, 0, 4.55f) : p; // Mitte des Innenraums
+        var klick = koeln ? new Vector3(12, 9.5f, 14.2f) : new Vector3(11.5f, 13, 24.6f);
+        var a = SonderbauAnlegen("Dom", string.IsNullOrEmpty(g.Name) ? "Dom" : g.Name, pm, klick, basis * (koeln ? new Vector3(0, 40, -8) : new Vector3(0, 46, 13)),
+            zoom: koeln ? 22 : 27, reichweite: koeln ? 12 : 15, drehung: drehung);
+        a.Innen!.Transform = new Transform3D(basis, pm - basis * pm); // Innenraum um die Mitte gedreht (seine Teile stehen bei pm + Lage im Dom)
+        var v = koeln ? 3.9f : 0f; // Köln: Chor, Kanzel und Taufstein rücken zur Mitte, damit sie in den kürzeren Raum passen
         var huelle = ModellEinsetzen(g.Baustein?.Modell ?? "gebaeude/dom", this, p, new ModellZustand(), "Dom");
         if (huelle is not null)
         {
@@ -386,16 +394,21 @@ public partial class Stadtansicht
                 if (huelle.Wurzel.FindChild(name, false, false) is Node3D wand) a.Waende.Add((wand, basis * aussen));
             a.Huelle = huelle.Wurzel;
         }
-        a.ZusatzKlicks.Add(Klickflaeche("Dom", p + basis * new Vector3(0, 21, 14.5f), new Vector3(7.5f, 42, 7), drehung: drehung));   // der Westturm
+        if (koeln)
+        {
+            a.ZusatzKlicks.Add(Klickflaeche("Dom", p + basis * new Vector3(0, 15, -9.5f), new Vector3(14, 30, 13.5f), drehung: drehung));    // der Chor
+            a.ZusatzKlicks.Add(Klickflaeche("Dom", p + basis * new Vector3(0, 10.5f, 14.2f), new Vector3(13.6f, 21, 5.4f), drehung: drehung)); // die Türme
+        }
+        else a.ZusatzKlicks.Add(Klickflaeche("Dom", p + basis * new Vector3(0, 21, 14.5f), new Vector3(7.5f, 42, 7), drehung: drehung));   // der Westturm
         // Boden und Licht im Innern: das Modell hat keinen Boden
-        Quader(p + new Vector3(0, 0.05f, 0), new Vector3(9, 0.1f, 21), Material(Steinboden), a.Innen);
+        Quader(pm + new Vector3(0, 0.05f, 0), new Vector3(9, 0.1f, koeln ? 13.1f : 21), Material(Steinboden), a.Innen);
         foreach (var versatz in new[] { -0.25f, 0.25f })
             a.Innen!.AddChild(new OmniLight3D
             {
                 LightColor = new Color(1f, 0.85f, 0.6f),
                 OmniRange = 13,
                 LightEnergy = 0.45f,
-                Position = p + new Vector3(0, 6.6f, 22 * versatz),
+                Position = pm + new Vector3(0, 6.6f, (koeln ? 14 : 22) * versatz),
             });
 
         var holz = Material(Holz);
@@ -407,12 +420,13 @@ public partial class Stadtansicht
         var messe = new bool[1];
 
         // Gemeinsam: Chorstufe, Bänke, Kanzel, Taufstein, Leuchter
-        Teil(a, new Vector3(0, 0.25f, -8.4f), new Vector3(9.0f, 0.3f, 4.2f), stein);
-        var bankreihen = 8;
+        Teil(a, new Vector3(0, 0.25f, -8.4f + v), new Vector3(9.0f, 0.3f, 4.2f), stein);
+        var bankreihen = koeln ? 5 : 8;
+        var bank0 = koeln ? -1.6f : -4.6f;
         var sitzplaetze = new List<(Arbeitsplatz Platz, bool Links)>();
         for (var reihe = 0; reihe < bankreihen; reihe++)
         {
-            var z = -4.6f + reihe * 1.55f;
+            var z = bank0 + reihe * 1.55f;
             foreach (var x in new[] { -2.4f, 2.4f })
             {
                 Teil(a, new Vector3(x, 0.45f, z), new Vector3(3.2f, 0.08f, 0.45f), holz);
@@ -422,53 +436,53 @@ public partial class Stadtansicht
                     sitzplaetze.Add((new Arbeitsplatz(new Vector3(x + dx, 0, z), Nord, Bewegung.Beten, Werkzeug.Keins, true), x < 0));
             }
         }
-        var kanzel = new Vector3(3.6f, 0, -5.6f);
+        var kanzel = new Vector3(3.6f, 0, -5.6f + v);
         Rund(a, kanzel + new Vector3(0, 0.8f, 0), 0.25f, 1.6f, stein, segmente: 8);
         Rund(a, kanzel + new Vector3(0, 2.0f, 0), 0.6f, 0.9f, holz, segmente: 8);
         Rund(a, kanzel + new Vector3(0, 3.9f, 0), 0.8f, 0.12f, dunkel, segmente: 8);   // Schalldeckel
-        Rund(a, new Vector3(-3.2f, 0.5f, 8.6f), 0.5f, 1.0f, stein, obenRadius: 0.65f);    // Taufstein
-        Rund(a, new Vector3(-3.2f, 1.01f, 8.6f), 0.55f, 0.02f, Material(Wasser));
+        Rund(a, new Vector3(-3.2f, 0.5f, koeln ? 5.8f : 8.6f), 0.5f, 1.0f, stein, obenRadius: 0.65f);    // Taufstein
+        Rund(a, new Vector3(-3.2f, 1.01f, koeln ? 5.8f : 8.6f), 0.55f, 0.02f, Material(Wasser));
         foreach (var x in new[] { -3.6f, 3.6f })
         {
-            Rund(a, new Vector3(x, 1.1f, -7.6f), 0.06f, 1.6f, Metall(new Color(0.2f, 0.2f, 0.22f)), segmente: 6);
-            Teil(a, new Vector3(x, 2.0f, -7.6f), new Vector3(0.08f, 0.15f, 0.08f), flamme);
+            Rund(a, new Vector3(x, 1.1f, -7.6f + v), 0.06f, 1.6f, Metall(new Color(0.2f, 0.2f, 0.22f)), segmente: 6);
+            Teil(a, new Vector3(x, 2.0f, -7.6f + v), new Vector3(0.08f, 0.15f, 0.08f), flamme);
         }
 
         // Katholisch: Hochaltar mit goldenem Retabel, Marienfigur, Weihrauchfass, Bischof mit Mitra
         var katholisch = new Node3D { Name = "Katholisch" };
         a.Innen!.AddChild(katholisch);
-        Teil(a, new Vector3(0, 0.95f, -9.3f), new Vector3(2.6f, 1.1f, 1.0f), stein, katholisch);
-        Teil(a, new Vector3(0, 1.52f, -9.3f), new Vector3(2.7f, 0.05f, 1.05f), Material(Ratsrot), katholisch);
-        Teil(a, new Vector3(0, 3.4f, -9.95f), new Vector3(3.0f, 3.6f, 0.15f), gold, katholisch);
+        Teil(a, new Vector3(0, 0.95f, -9.3f + v), new Vector3(2.6f, 1.1f, 1.0f), stein, katholisch);
+        Teil(a, new Vector3(0, 1.52f, -9.3f + v), new Vector3(2.7f, 0.05f, 1.05f), Material(Ratsrot), katholisch);
+        Teil(a, new Vector3(0, 3.4f, -9.95f + v), new Vector3(3.0f, 3.6f, 0.15f), gold, katholisch);
         foreach (var dx in new[] { -2.0f, 2.0f })
         {
-            var fluegel = Teil(a, new Vector3(dx, 3.2f, -9.75f), new Vector3(1.2f, 3.0f, 0.1f), gold, katholisch);
+            var fluegel = Teil(a, new Vector3(dx, 3.2f, -9.75f + v), new Vector3(1.2f, 3.0f, 0.1f), gold, katholisch);
             fluegel.RotationDegrees = new Vector3(0, dx < 0 ? 30 : -30, 0);
         }
         for (var i = 0; i < 6; i++)
         {
-            Rund(a, new Vector3(-1.1f + i * 0.44f, 1.75f, -9.5f), 0.05f, 0.4f, weiss, katholisch, segmente: 6);
-            Teil(a, new Vector3(-1.1f + i * 0.44f, 2.0f, -9.5f), new Vector3(0.06f, 0.1f, 0.06f), flamme, katholisch);
+            Rund(a, new Vector3(-1.1f + i * 0.44f, 1.75f, -9.5f + v), 0.05f, 0.4f, weiss, katholisch, segmente: 6);
+            Teil(a, new Vector3(-1.1f + i * 0.44f, 2.0f, -9.5f + v), new Vector3(0.06f, 0.1f, 0.06f), flamme, katholisch);
         }
-        Teil(a, new Vector3(-3.4f, 0.9f, -9.0f), new Vector3(0.7f, 1.0f, 0.7f), stein, katholisch);   // Marienfigur auf Sockel
-        katholisch.AddChild(new MeshInstance3D { Mesh = new CapsuleMesh { Radius = 0.3f, Height = 1.5f }, MaterialOverride = Material(new Color(0.20f, 0.30f, 0.62f)), Position = a.Mitte + new Vector3(-3.4f, 2.15f, -9.0f) });
-        Kugel(a, new Vector3(-3.4f, 3.05f, -9.0f), 0.2f, Material(Haut), katholisch);
-        Teil(a, new Vector3(1.6f, 3.3f, -8.0f), new Vector3(0.03f, 1.6f, 0.03f), Metall(new Color(0.3f, 0.3f, 0.32f)), katholisch);  // Kette
-        var weihrauch = Kugel(a, new Vector3(1.6f, 2.4f, -8.0f), 0.18f, gold, katholisch);
+        Teil(a, new Vector3(-3.4f, 0.9f, -9.0f + v), new Vector3(0.7f, 1.0f, 0.7f), stein, katholisch);   // Marienfigur auf Sockel
+        katholisch.AddChild(new MeshInstance3D { Mesh = new CapsuleMesh { Radius = 0.3f, Height = 1.5f }, MaterialOverride = Material(new Color(0.20f, 0.30f, 0.62f)), Position = a.Mitte + new Vector3(-3.4f, 2.15f, -9.0f + v) });
+        Kugel(a, new Vector3(-3.4f, 3.05f, -9.0f + v), 0.2f, Material(Haut), katholisch);
+        Teil(a, new Vector3(1.6f, 3.3f, -8.0f + v), new Vector3(0.03f, 1.6f, 0.03f), Metall(new Color(0.3f, 0.3f, 0.32f)), katholisch);  // Kette
+        var weihrauch = Kugel(a, new Vector3(1.6f, 2.4f, -8.0f + v), 0.18f, gold, katholisch);
         a.Bewegt.Add(new Bewegtteil(weihrauch, Vector3.Zero, 1.6f, new Vector3(0.35f, 0, 0), weihrauch.Position));
-        var bischof = PersonBauen(a, katholisch, new Arbeitsplatz(new Vector3(0, 0.4f, -8.3f), Sued, Bewegung.Beten, Werkzeug.Keins),
+        var bischof = PersonBauen(a, katholisch, new Arbeitsplatz(new Vector3(0, 0.4f, -8.3f + v), Sued, Bewegung.Beten, Werkzeug.Keins),
             Volk.Mensch, new Color(0.55f, 0.10f, 0.18f), Kopfputz.Mitra, 0.3f, schuerze: Gold);
         a.Besucher.Add(bischof);
 
         // Evangelisch: Abendmahlstisch mit Bibel vor dem Chor, Holzkreuz, Pfarrer im Talar
         var evangelisch = new Node3D { Name = "Evangelisch" };
         a.Innen.AddChild(evangelisch);
-        Teil(a, new Vector3(0, 0.85f, -7.0f), new Vector3(2.2f, 0.9f, 0.9f), holz, evangelisch);
-        Teil(a, new Vector3(0, 1.32f, -7.0f), new Vector3(2.3f, 0.04f, 1.0f), weiss, evangelisch);
-        Teil(a, new Vector3(0.3f, 1.4f, -7.0f), new Vector3(0.5f, 0.1f, 0.35f), Material(new Color(0.25f, 0.12f, 0.10f)), evangelisch); // Bibel
-        var kreuzLang = Teil(a, new Vector3(0, 3.6f, -10.2f), new Vector3(0.18f, 3.0f, 0.12f), dunkel, evangelisch);
-        Teil(a, new Vector3(0, 4.3f, -10.2f), new Vector3(1.4f, 0.18f, 0.12f), dunkel, evangelisch);
-        var pfarrerPlatz = new Arbeitsplatz(new Vector3(0, 0.4f, -7.8f), Sued, Bewegung.Beten, Werkzeug.Keins);
+        Teil(a, new Vector3(0, 0.85f, -7.0f + v), new Vector3(2.2f, 0.9f, 0.9f), holz, evangelisch);
+        Teil(a, new Vector3(0, 1.32f, -7.0f + v), new Vector3(2.3f, 0.04f, 1.0f), weiss, evangelisch);
+        Teil(a, new Vector3(0.3f, 1.4f, -7.0f + v), new Vector3(0.5f, 0.1f, 0.35f), Material(new Color(0.25f, 0.12f, 0.10f)), evangelisch); // Bibel
+        var kreuzLang = Teil(a, new Vector3(0, 3.6f, -10.2f + v), new Vector3(0.18f, 3.0f, 0.12f), dunkel, evangelisch);
+        Teil(a, new Vector3(0, 4.3f, -10.2f + v), new Vector3(1.4f, 0.18f, 0.12f), dunkel, evangelisch);
+        var pfarrerPlatz = new Arbeitsplatz(new Vector3(0, 0.4f, -7.8f + v), Sued, Bewegung.Beten, Werkzeug.Keins);
         var pfarrer = PersonBauen(a, evangelisch, pfarrerPlatz, Volk.Mensch, Robe, Kopfputz.Barett, 0.9f);
         pfarrer.Koerper.AddChild(new MeshInstance3D { Mesh = new BoxMesh { Size = new Vector3(0.14f, 0.18f, 0.04f) }, MaterialOverride = weiss, Position = new Vector3(0, 1.25f, -0.27f) }); // Beffchen
         a.Besucher.Add(pfarrer);
@@ -476,11 +490,11 @@ public partial class Stadtansicht
         // Simultankirche: Schranke im Mittelgang
         var simultan = new Node3D { Name = "Simultan" };
         a.Innen.AddChild(simultan);
-        Teil(a, new Vector3(0, 0.8f, 1.0f), new Vector3(0.06f, 0.06f, 11.6f), Material(Stadtrot), simultan);
-        for (var i = 0; i < 6; i++)
-            Teil(a, new Vector3(0, 0.45f, -4.6f + i * 2.3f), new Vector3(0.1f, 0.9f, 0.1f), holz, simultan);
+        Teil(a, new Vector3(0, 0.8f, koeln ? 2.05f : 1.0f), new Vector3(0.06f, 0.06f, koeln ? 8.9f : 11.6f), Material(Stadtrot), simultan);
+        for (var i = 0; i < (koeln ? 4 : 6); i++)
+            Teil(a, new Vector3(0, 0.45f, bank0 + i * 2.3f), new Vector3(0.1f, 0.9f, 0.1f), holz, simultan);
 
-        FeuerAnlegen(a, new Vector3(0, 3.0f, -7.5f), flamme, lichtAn: 1.6f, lichtAus: 0.2f, glutAn: 2.5f, glutAus: 0.6f, an: () => messe[0], reichweite: 10);
+        FeuerAnlegen(a, new Vector3(0, 3.0f, -7.5f + v), flamme, lichtAn: 1.6f, lichtAus: 0.2f, glutAn: 2.5f, glutAus: 0.6f, an: () => messe[0], reichweite: 10);
 
         // Gläubige zur Messe: eine Figur je fünf, vorne zuerst
         var reihenfolge = sitzplaetze.Select((x, i) => (x, i)).OrderBy(x => x.x.Platz.Ort.Z).ThenBy(x => Math.Abs(x.x.Platz.Ort.X)).Select(x => x.i).ToList();
