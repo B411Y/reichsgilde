@@ -25,6 +25,12 @@ public partial class Tooltips : Node
     /// <summary>Vom Lexikon gesetzt: öffnet das Lexikon bei dieser Kennung; der feste Tooltip eines Begriffs bekommt dafür einen Knopf „Im Lexikon“.</summary>
     public static Action<string>? LexikonOeffnen;
 
+    /// <summary>
+    /// Vom Lexikon gesetzt (<c>Lexikon.VerweiseEinsetzen</c>): bekommt Text und Kennung des Begriffs, dem der Tooltip gehört (null bei normalen Tooltips),
+    /// und macht aus Wörtern, die einen Lexikon-Titel nennen, Verweise – so verlinken auch die vorhandenen Tooltips ohne <c>[[…]]</c>.
+    /// </summary>
+    public static Func<string, string?, string>? VerweiseErgaenzen;
+
     /// <summary>Sekunden, die die Maus auf einem Steuerelement ruhen muss, bis sein Tooltip erscheint (wie der eingebaute Tooltip).</summary>
     private const double Verzoegerung = 0.5;
     /// <summary>Sekunden, die die Maus auf einem Verweis ruhen muss, bis sein Begriff erscheint.</summary>
@@ -90,6 +96,9 @@ public partial class Tooltips : Node
             testEbene.AddChild(knopf);
             AddChild(testEbene);
         }
+        if (OS.GetCmdlineUserArgs().Contains("--verweistest=1"))
+            foreach (var satz in new[] { "Das Haus zahlt Steuern an den Stadtrat.", "Die Märkte öffnen um 8 Uhr; ein Betrieb braucht Gesellen.", "Aktionspunkte und Aktionspunkte, [[markt]] schon verlinkt, Stadtrats-Sitzung." })
+                GD.PushWarning("VERWEISTEST " + satz + "  =>  " + Lexikon.VerweiseEinsetzen(satz));
         // --tooltipfest=<Sekunden|taste> für Klicktests (gilt nur für diesen Start)
         foreach (var arg in OS.GetCmdlineUserArgs())
         {
@@ -156,6 +165,7 @@ public partial class Tooltips : Node
         if (_instanz == this) _instanz = null;
         BegriffSuchen = null;
         LexikonOeffnen = null;
+        VerweiseErgaenzen = null;
     }
 
     private bool ObersteFeste()
@@ -303,6 +313,7 @@ public partial class Tooltips : Node
             t.Spalte.AddChild(kopf);
         }
 
+        if (VerweiseErgaenzen is { } ergaenzen) roh = ergaenzen(roh, kennung);
         var bbcode = Aufbereiten(roh, out var schlicht);
         t.Text = new RichTextLabel
         {

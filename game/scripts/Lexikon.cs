@@ -12,7 +12,8 @@ namespace Reichsgilde;
 /// <param name="Titel">Überschrift des Eintrags.</param>
 /// <param name="Gruppe">Gruppe in der Liste links (Spiel, Wirtschaft, Berufe, Waren, Stadt, Familie, Rat, Gauner …).</param>
 /// <param name="Text">Der Text: Verweise als <c>[[kennung]]</c> oder <c>[[kennung|Anzeigetext]]</c>, Live-Zahlen als <c>{wert:name}</c>.</param>
-public sealed record Begriff(string Kennung, string Titel, string Gruppe, string Text);
+/// <param name="Auch">Weitere Wortformen, die in Tooltips automatisch auf den Eintrag verweisen (z. B. Mehrzahl); sparsam, nur wo die Beugungsendungen nicht reichen.</param>
+public sealed record Begriff(string Kennung, string Titel, string Gruppe, string Text, string[]? Auch = null);
 
 /// <summary>
 /// Das <b>Lexikon</b> im Spiel (Vorbild: das Lexikon in Crusader Kings 3, nur die Mechanik): Begriffe mit Verweisen untereinander und Live-Zahlen.
@@ -124,6 +125,52 @@ public static class Lexikon
             return ziel is null ? anzeige : $"[[{ziel.Kennung}|{anzeige}]]";
         });
         return (b.Titel, text);
+    }
+
+    private static readonly Regex Vorhandene = new(@"\[\[[^\]]*\]\]", RegexOptions.Compiled);
+    private static List<(Regex Muster, Begriff Begriff)>? _muster;
+
+    /// <summary>
+    /// Für Tooltips (Haken <c>Tooltips.VerweiseErgaenzen</c>): macht aus dem ersten Vorkommen jedes Lexikon-Titels einen Verweis <c>[[kennung|Wort]]</c>.
+    /// Ganzes Wort, Groß- und Kleinschreibung wie im Titel; dazu die Endungen -s, -n, -en, -e, -es und die Wortformen aus dem Feld <c>auch</c>.
+    /// Längere Titel zuerst, nie innerhalb eines vorhandenen <c>[[…]]</c>, höchstens <paramref name="hoechstens"/> je Text, nie der Begriff <paramref name="eigene"/> selbst.
+    /// </summary>
+    public static string VerweiseEinsetzen(string text, string? eigene = null, int hoechstens = 6)
+    {
+        Laden();
+        if (_alle!.Count == 0 || string.IsNullOrEmpty(text)) return text;
+        _muster ??= _alle
+            .Where(b => b.Titel.Length >= 3)
+            .OrderByDescending(b => b.Titel.Length)
+            .Select(b =>
+            {
+                var formen = new[] { b.Titel }.Concat(b.Auch ?? Array.Empty<string>()).Select(Regex.Escape);
+                return (new Regex($@"(?<![\p{{L}}\p{{N}}\[|])(?:{string.Join("|", formen)})(?:en|es|e|n|s)?(?![\p{{L}}\p{{N}}\]|])", RegexOptions.Compiled), b);
+            })
+            .ToList();
+        var belegt = Vorhandene.Matches(text).Select(m => (m.Index, Ende: m.Index + m.Length)).ToList();
+        var neue = new List<(int Anfang, int Ende, string Ersatz)>();
+        foreach (var (muster, begriff) in _muster)
+        {
+            if (neue.Count >= hoechstens) break;
+            if (string.Equals(begriff.Kennung, eigene, StringComparison.OrdinalIgnoreCase)) continue;
+            foreach (Match m in muster.Matches(text))
+            {
+                var ende = m.Index + m.Length;
+                if (belegt.Any(b => m.Index < b.Ende && ende > b.Index)) continue;
+                belegt.Add((m.Index, ende));
+                neue.Add((m.Index, ende, $"[[{begriff.Kennung}|{m.Value}]]"));
+                break; // nur das erste Vorkommen
+            }
+        }
+        var sb = new StringBuilder();
+        var pos = 0;
+        foreach (var (anfang, ende, ersatz) in neue.OrderBy(n => n.Anfang))
+        {
+            sb.Append(text, pos, anfang - pos).Append(ersatz);
+            pos = ende;
+        }
+        return sb.Append(text, pos, text.Length - pos).ToString();
     }
 
     /// <summary>

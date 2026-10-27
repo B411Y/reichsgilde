@@ -232,6 +232,7 @@ public partial class Hauptszene : Node
         GetNode<CanvasLayer>("Oberflaeche").AddChild(_lexikon);
         Tooltips.BegriffSuchen = Lexikon.FindeMitVerweisen; // Verweise in Tooltips zeigen die Begriffe des Lexikons, beliebig tief
         Tooltips.LexikonOeffnen = Lexikon.Oeffnen;
+        Tooltips.VerweiseErgaenzen = (text, eigene) => Lexikon.VerweiseEinsetzen(text, eigene); // auch normale Tooltips verlinken Lexikon-Begriffe
         LeerstandKnoepfeBauen();
 
         RatssitzungBauen(); // die Tafel der sichtbaren Ratssitzung (Hauptszene.Ratssitzung.cs) – vor der Partie, die sich mit ihr verbindet
