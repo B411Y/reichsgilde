@@ -64,6 +64,22 @@ static class KartenbauTests
             Pruefe.Gleich(4, k.Plaetze.Where(p => p.Art == "fest").Sum(p => p.Felder.Count));
         }),
 
+        ("Kapazität aller Karten: dieselben Plätze wie vor der Beschleunigung (27.10.2026) – Anzahl, Felder und eine Prüfsumme ihrer Lage", () =>
+        {
+            foreach (var (karte, befunde, plaetze, felder, summe) in new[]
+            {
+                ("koeln", 0, 86, 1980, -1223276L), ("greybox", 4, 22, 698, -2115343L), ("probestadt", 0, 80, 1752, 7598432L), ("messstadt", 0, 80, 1752, 6597050L),
+            })
+            {
+                var k = Kapazitaetspruefung.Pruefen(Oeffnen(karte));
+                Pruefe.Gleich(befunde, k.Befunde.Count, karte);
+                Pruefe.Gleich(plaetze, k.Plaetze.Count, karte);
+                Pruefe.Gleich(felder, k.Plaetze.Sum(p => p.Felder.Count), karte);
+                // Reihenfolge und Lage: jeder Platz gewichtet mit seiner Stelle
+                Pruefe.Gleich(summe, k.Plaetze.Select((p, n) => (long)(n + 1) * p.Felder.Sum(f => f.I * 7 + f.J * 13)).Sum(), karte);
+            }
+        }),
+
         ("Kapazität: Köln prüft sie als Fehler, die Greybox gar nicht (dort der Probeplan), neue Karten als Hinweis", () =>
         {
             Pruefe.Gleich(Schwere.Fehler, Pruefregeln.Koeln.Kapazitaet);
