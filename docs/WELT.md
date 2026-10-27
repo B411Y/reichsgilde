@@ -82,7 +82,7 @@ Je Stadt ein Abschnitt in gleichem Raster: Lage, Geschichte um 1400, Wahrzeichen
 | St. Severin | `Severin` | Westturm im Bau (1393–1411) | – |
 | St. Aposteln | `Aposteln` | Kleeblattchor, wuchtiger Westturm (unsicher in den Einzelheiten) | – |
 | St. Kunibert | `Kunibert` | am Rhein, Chor von zwei Türmen flankiert | – |
-| Rheinkran | `Rheinkran` | Tretradkran am Ufer, seit dem 14. Jahrhundert belegt | Oger am Tretrad (Vorschlag) |
+| Rheinkran | `Rheinkran` | Tretradkran am Ufer, seit dem 14. Jahrhundert belegt | – |
 | Stapelhaus | `Stapelhaus` | Lagerhalle mit Waage am Rhein (Fiktion) | Zwerge, Halblinge |
 | Torburgen, Bayenturm | Tore der Mauer | Doppelturmtore des 13. Jahrhunderts, Bayenturm am Rheinende | – |
 
