@@ -262,7 +262,7 @@ public sealed class Betrieb
     /// <summary>Warum die Produktion gerade stillsteht (null = sie läuft).</summary>
     public string? Stillstand { get; private set; }
 
-    /// <summary>Arbeitsminuten mit Stillstand im laufenden Jahr.</summary>
+    /// <summary>Arbeitsminuten mit Stillstand im laufenden Jahr (fehlende Zutat, volles Lager) – Umbau und Reparatur nach einem Anschlag zählen nicht.</summary>
     public int StillstandMinuten { get; private set; }
 
     /// <summary>Arbeitsminuten mit Stillstand im Vorjahr – zeigt, ob Karren oder Lager zu knapp sind.</summary>
@@ -684,7 +684,8 @@ public sealed class Betrieb
             if (_letzterStillstand != grund) melden($"{Name}: {grund}");
             _letzterStillstand = grund;
             Stillstand = grund;
-            if (!umbau) StillstandMinuten++; // ein gewollter Umbau sagt nichts über zu knappe Karren oder Lager
+            // Weder ein gewollter Umbau noch die Reparatur nach einem Anschlag sagen etwas über zu knappe Karren oder Lager (PR #219:
+            // mit vier Anschlägen je Nacht stand eine Werkstatt sonst bis zum ganzen Jahr „still“, und die KI kaufte Karren, die nie fuhren).
             return;
         }
 

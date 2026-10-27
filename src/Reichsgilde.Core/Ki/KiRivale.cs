@@ -1823,7 +1823,7 @@ public sealed partial class KiRivale
 
     private void KarrenNachkaufen(Betrieb betrieb)
     {
-        if (betrieb.Belegt == 0 || betrieb.Karren.Count >= Profil.MaxKarrenJeBetrieb)
+        if (betrieb.Belegt == 0 || betrieb.Karren.Count >= Profil.MaxKarrenJeBetrieb || !BrauchtKarren(betrieb))
             return;
 
         var anteil = betrieb.StillstandMinutenVorjahr / (double)betrieb.Arbeitsminuten;
