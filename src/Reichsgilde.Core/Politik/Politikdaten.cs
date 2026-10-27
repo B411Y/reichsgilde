@@ -1,3 +1,4 @@
+using Reichsgilde.Core.Dynastie;
 using Reichsgilde.Core.Glaube;
 using Reichsgilde.Core.Wirtschaft;
 
@@ -38,6 +39,22 @@ public sealed class RatsherrDaten
 
     /// <summary>Welches Amt er zu Spielbeginn hält (null = Nachrücker, springt bei freien Sitzen ein).</summary>
     public string? Amt { get; init; }
+
+    /// <summary>Mann oder Frau (fürs Porträt und die Bürger-KI; null = aus dem Vornamen abgeleitet, alte Daten).</summary>
+    public Geschlecht? Geschlecht { get; init; }
+
+    /// <summary>Gesicht, Haar und Augen im Porträt (null = fest aus dem Namen abgeleitet, alte Daten). Wirkt auf nichts in der Simulation.</summary>
+    public AussehenDaten? Aussehen { get; init; }
+}
+
+/// <summary>Ein Aussehen in den Daten (<c>{ "gesicht": 2, "haar": "Braun", "augen": "Blau" }</c>), siehe <see cref="Dynastie.Aussehen"/>.</summary>
+public sealed class AussehenDaten
+{
+    public int Gesicht { get; init; }
+    public Haarfarbe Haar { get; init; }
+    public Augenfarbe Augen { get; init; }
+
+    public Aussehen Wert => new(Gesicht, Haar, Augen);
 }
 
 /// <summary>
@@ -109,6 +126,7 @@ public sealed class PolitikDaten
         {
             if (r.Amt is { } amt && Aemter.All(a => a.Name != amt)) f.Add($"Ratsherr {r.Name}: amt „{amt}“ gibt es nicht.");
             if (r.Volk is Volk.Ork or Volk.Oger) f.Add($"Ratsherr {r.Name}: Orks und Oger haben kein Bürgerrecht.");
+            else if (r.Aussehen is { } a && Aussehenspalette.Verboten(r.Volk, a.Wert) is { } grund) f.Add($"Ratsherr {r.Name}: aussehen – {grund}");
         }
         foreach (var amt in Aemter.Where(a => Ratsherren.Count(r => r.Amt == a.Name) > 1))
             f.Add($"Amt {amt.Name}: mehr als ein Ratsherr hält es zu Spielbeginn.");

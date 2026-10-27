@@ -1,5 +1,5 @@
 {
-  "version": 57,
+  "version": 58,
   "gesundheit": {
     "medicusKosten": 120,
     "medicusKostenPest": 300,
@@ -1263,91 +1263,117 @@
         "volk": "Mensch",
         "glaube": "Katholisch",
         "haltung": "FreieStadt",
-        "amt": "Bürgermeister"
+        "amt": "Bürgermeister",
+        "geschlecht": "Mann",
+        "aussehen": { "gesicht": 3, "haar": "Rot", "augen": "Grau" }
       },
       {
         "name": "Aelindra vom Silberhain",
         "volk": "Elb",
         "glaube": "Katholisch",
         "haltung": "FreieStadt",
-        "amt": "Stadtrichter"
+        "amt": "Stadtrichter",
+        "geschlecht": "Frau",
+        "aussehen": { "gesicht": 2, "haar": "Hellblond", "augen": "Gruen" }
       },
       {
         "name": "Thorgrim Erzhammer",
         "volk": "Zwerg",
         "glaube": "Evangelisch",
         "haltung": "Bestienfron",
-        "amt": "Kämmerer"
+        "amt": "Kämmerer",
+        "geschlecht": "Mann",
+        "aussehen": { "gesicht": 2, "haar": "Dunkelbraun", "augen": "Braun" }
       },
       {
         "name": "Konrad Eisenfaust",
         "volk": "Mensch",
         "glaube": "Evangelisch",
         "haltung": "Bestienfron",
-        "amt": "Stadthauptmann"
+        "amt": "Stadthauptmann",
+        "geschlecht": "Mann",
+        "aussehen": { "gesicht": 0, "haar": "Rot", "augen": "Grau" }
       },
       {
         "name": "Bertram Kesselflick",
         "volk": "Halbling",
         "glaube": "Katholisch",
         "haltung": "FreieStadt",
-        "amt": "Marktmeister"
+        "amt": "Marktmeister",
+        "geschlecht": "Mann",
+        "aussehen": { "gesicht": 3, "haar": "Braun", "augen": "Haselnuss" }
       },
       {
         "name": "Dorla Kupferbart",
         "volk": "Zwerg",
         "glaube": "Evangelisch",
         "haltung": "Leibeigenschaft",
-        "amt": "Gefängniswärter"
+        "amt": "Gefängniswärter",
+        "geschlecht": "Frau",
+        "aussehen": { "gesicht": 0, "haar": "Dunkelbraun", "augen": "Grau" }
       },
       {
         "name": "Hinnerk Tannenkamp",
         "volk": "Mensch",
         "glaube": "Katholisch",
         "haltung": "Bestienfron",
-        "amt": "Zöllner"
+        "amt": "Zöllner",
+        "geschlecht": "Mann",
+        "aussehen": { "gesicht": 2, "haar": "Rot", "augen": "Gruen" }
       },
       {
         "name": "Margarethe Lindwurm",
         "volk": "Mensch",
         "glaube": "Katholisch",
         "haltung": "FreieStadt",
-        "amt": null
+        "amt": null,
+        "geschlecht": "Frau",
+        "aussehen": { "gesicht": 3, "haar": "Schwarz", "augen": "Haselnuss" }
       },
       {
         "name": "Balin Steinbrecher",
         "volk": "Zwerg",
         "glaube": "Evangelisch",
         "haltung": "Bestienfron",
-        "amt": null
+        "amt": null,
+        "geschlecht": "Mann",
+        "aussehen": { "gesicht": 4, "haar": "Dunkelbraun", "augen": "Dunkelbraun" }
       },
       {
         "name": "Fenwick Distelbach",
         "volk": "Halbling",
         "glaube": "Evangelisch",
         "haltung": "FreieStadt",
-        "amt": null
+        "amt": null,
+        "geschlecht": "Mann",
+        "aussehen": { "gesicht": 3, "haar": "Rot", "augen": "Braun" }
       },
       {
         "name": "Ilvaris Mondtau",
         "volk": "Elb",
         "glaube": "Katholisch",
         "haltung": "FreieStadt",
-        "amt": null
+        "amt": null,
+        "geschlecht": "Mann",
+        "aussehen": { "gesicht": 0, "haar": "Silberblond", "augen": "Violett" }
       },
       {
         "name": "Gerold Pfefferkorn",
         "volk": "Mensch",
         "glaube": "Evangelisch",
         "haltung": "Leibeigenschaft",
-        "amt": null
+        "amt": null,
+        "geschlecht": "Mann",
+        "aussehen": { "gesicht": 1, "haar": "Dunkelbraun", "augen": "Grau" }
       },
       {
         "name": "Rosalind Apfelgrund",
         "volk": "Halbling",
         "glaube": "Katholisch",
         "haltung": "Bestienfron",
-        "amt": null
+        "amt": null,
+        "geschlecht": "Frau",
+        "aussehen": { "gesicht": 3, "haar": "Kastanie", "augen": "Gruen" }
       }
     ],
     "gunst": {

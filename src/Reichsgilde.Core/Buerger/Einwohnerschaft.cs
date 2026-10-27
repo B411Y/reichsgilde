@@ -501,9 +501,7 @@ public sealed class Einwohnerschaft
                 var teile = r.Name.Split(' ', 2);
                 var vorname = teile[0];
                 var familienname = teile.Length > 1 ? teile[1] : "";
-                var geschlecht = _w.Familien.IstAktiv && _w.Familien.VolkDaten(r.Daten.Volk).VornamenFrau.Contains(vorname)
-                    ? Geschlecht.Frau
-                    : Geschlecht.Mann;
+                var geschlecht = r.Geschlecht; // aus den Daten des Rats (PR #219), wie im Porträt
                 // Ratsherren altern im Rat nicht – das Alter dient nur der Anzeige.
                 var alter = 35 + _zufall.Next(26);
                 var e = new Einwohner(_naechsteNummer++, Herkunft.Ratsherr, r.Name, vorname, familienname, r.Daten.Volk,
