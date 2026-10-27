@@ -46,9 +46,7 @@ public partial class LexikonAnzeige : CenterContainer
         _zurueck = new Button { Text = "◀ Zurück", FocusMode = FocusModeEnum.None, TooltipText = "Zum vorigen Eintrag" };
         _zurueck.Pressed += Zurueck;
         kopf.AddChild(_zurueck);
-        var zu = new Button { Text = "×", FocusMode = FocusModeEnum.None, TooltipText = "Schließen (Esc)" };
-        zu.Pressed += Schliessen;
-        kopf.AddChild(zu);
+        kopf.AddChild(new Control { CustomMinimumSize = new Vector2(52, 0) }); // Platz für Festhalten und ✕ des Fensterrahmens
 
         var reihe = new HBoxContainer();
         reihe.AddThemeConstantOverride("separation", 16);
@@ -93,6 +91,7 @@ public partial class LexikonAnzeige : CenterContainer
         _text.MetaClicked += meta => Zeigen(meta.AsString());
         rechts.AddChild(_text);
 
+        Fensterrahmen.Anmelden(tafel, "Lexikon", Schliessen, festhaltbar: true);
         Hide();
     }
 

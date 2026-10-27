@@ -140,6 +140,9 @@ public partial class Hauptszene
             ("M", "Marktplatz"),
             ("B", "Bauen"),
             ("L", "Lexikon"),
+            ("X", "alle Fenster schließen (Esc: das oberste)"),
+            ("Titelrand ziehen", "Fenster verschieben; die Lage wird gemerkt"),
+            ("Verweilen, T oder mittlere Maustaste", "Tooltip festheften; Verweise im Text öffnen weitere"),
             ("F1", "diese Hilfe"),
             ("F11", "Vollbild"),
         })

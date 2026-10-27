@@ -5,6 +5,7 @@ Startoptionen (nach `--`):
 ## Spiel und Tafeln
 
 - `--beruf=<Beruf>`
+- `--tiptest=1` (ein Knopf „Tooltip-Test“ in der Bildmitte mit einem Tooltip voller Verweise und vier Testbegriffen, falls das Lexikon keine liefert); `--tooltipfest=<Sekunden|taste>` (Zeit bis zum Festkleben bzw. nur mit Taste, gilt nur für diesen Start)
 - `--startstunde=<Stunde>` (4–22; ohne Angabe beginnt die Partie um 4 Uhr zur Zunftglocke)
 - `--glaube=<Katholisch|Evangelisch|Naturglaube>` (Konfession des eigenen Hauses bei einer neuen Partie)
 - `--tempo=<1–32>`

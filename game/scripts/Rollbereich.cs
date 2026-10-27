@@ -108,11 +108,12 @@ public partial class Rollbereich : ScrollContainer
     /// </summary>
     private void TafelAnpassen()
     {
-        if (_tafel.GetParent() is Container) return; // Container (z. B. die Mitte) erledigen das selbst
+        if (_tafel.GetParent() is Container && !_tafel.TopLevel) return; // Container (z. B. die Mitte) erledigen das selbst – außer für ein verschobenes Fenster (Fensterrahmen)
         var soll = _tafel.GetCombinedMinimumSize();
         var ist = _tafel.Size;
         if (soll.IsEqualApprox(ist)) return;
         var ort = _tafel.Position;
+        if (_tafel.TopLevel) { _tafel.Size = soll; return; } // verschoben: der Fensterrahmen setzt die Lage
         if (_tafel.GrowHorizontal == GrowDirection.Begin) ort.X += ist.X - soll.X;
         if (_tafel.GrowVertical == GrowDirection.Begin) ort.Y += ist.Y - soll.Y;
         _tafel.Size = soll;

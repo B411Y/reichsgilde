@@ -110,6 +110,23 @@ public static class Lexikon
         => FindeBegriff(kennung) is { } b ? (b.Titel, Aufloesen(b.Text, mitVerweisen: false)) : null;
 
     /// <summary>
+    /// Für Tooltips: wie <see cref="Finde"/>, aber die Verweise bleiben als <c>[[kennung|Anzeigetext]]</c> stehen, damit der Tooltip sie
+    /// unterstreicht und weitere Tooltips öffnet. Verweise auf unbekannte Kennungen werden zu bloßem Text.
+    /// </summary>
+    public static (string Titel, string Text)? FindeMitVerweisen(string kennung)
+    {
+        if (FindeBegriff(kennung) is not { } b) return null;
+        var text = Platzhalter.Replace(b.Text, m => Wert(m.Groups[1].Value) ?? "?");
+        text = Verweis.Replace(text, m =>
+        {
+            var ziel = FindeBegriff(m.Groups[1].Value);
+            var anzeige = m.Groups[2].Success ? m.Groups[2].Value : (ziel?.Titel ?? m.Groups[1].Value);
+            return ziel is null ? anzeige : $"[[{ziel.Kennung}|{anzeige}]]";
+        });
+        return (b.Titel, text);
+    }
+
+    /// <summary>
     /// Sucht in Titel und Text (ohne Rücksicht auf Groß- und Kleinschreibung, alle Wörter müssen vorkommen). Treffer im Titel stehen vorn, dann
     /// die, deren Titel mit dem Suchwort beginnt, zuerst.
     /// </summary>

@@ -225,10 +225,13 @@ public partial class Hauptszene : Node
         });
         Rollbereich.Einhuellen(_auswahl);
         Rollbereich.RechtsAnheften(_auswahl);
+        Fensterrahmen.Anmelden(_auswahl, "Auswahl", AuswahlSchliessen).FuerEsc = false; // Esc schließt sie erst nach der Innenansicht (siehe _UnhandledInput)
         RaumleisteBauen();
         HilfeBauen();
         _lexikon = new LexikonAnzeige(); // das Lexikon in der Bildmitte (Taste L, Knopf in der Betriebsleiste)
         GetNode<CanvasLayer>("Oberflaeche").AddChild(_lexikon);
+        Tooltips.BegriffSuchen = Lexikon.FindeMitVerweisen; // Verweise in Tooltips zeigen die Begriffe des Lexikons, beliebig tief
+        Tooltips.LexikonOeffnen = Lexikon.Oeffnen;
         LeerstandKnoepfeBauen();
 
         RatssitzungBauen(); // die Tafel der sichtbaren Ratssitzung (Hauptszene.Ratssitzung.cs) – vor der Partie, die sich mit ihr verbindet
@@ -531,26 +534,23 @@ public partial class Hauptszene : Node
     }
 
     /// <summary>Es ist immer nur eine Tafel in der Bildmitte offen.</summary>
-    private void TafelnSchliessen()
+    private void TafelnSchliessen(bool auchFeste = false)
     {
-        _ratskammer.Hide();
-        _familientafel.Hide();
-        _gerichtssaal.Hide();
-        _hinterzimmer.Hide();
-        _markt.Hide();
-        _verkauf.Hide();
+        // Festgehaltene Fenster (Fensterrahmen) bleiben offen – so lassen sich mehrere Tafeln nebeneinander benutzen
+        foreach (var tafel in new Control[] { _ratskammer, _familientafel, _gerichtssaal, _hinterzimmer, _markt, _verkauf })
+            Fensterrahmen.SchliessenFallsLose(tafel, auchFeste);
         _wegTafel.Schliessen();
         foreach (var tafel in _innenTafeln) tafel.Hide();
         if (_bauFrage.Visible) _bauFrage.Zurueck(); // der Umriss der Platzwahl wird wieder frei
     }
 
     /// <summary>Rechts steht immer nur eine Tafel: Auswahl, Wohnhaus, Bericht, Hafen, Bautafel oder Wegtafel. Schließt alle (der Baumodus endet dabei nicht).</summary>
-    private void RechtsSchliessen()
+    private void RechtsSchliessen(bool auchFeste = false)
     {
         if (_auswahl.Visible || _auswahlKennung is not null) AuswahlSchliessen();
-        _wohnhaus.Hide();
-        _berichtTafel.Hide();
-        _hafenTafel.Hide();
+        Fensterrahmen.SchliessenFallsLose(_wohnhaus, auchFeste);
+        Fensterrahmen.SchliessenFallsLose(_berichtTafel, auchFeste);
+        Fensterrahmen.SchliessenFallsLose(_hafenTafel, auchFeste);
         _wegTafel.Schliessen();
     }
 
@@ -1046,8 +1046,9 @@ public partial class Hauptszene : Node
         if (RatssitzungEingabe(eingabe)) return; // während der Ratssitzung: nur Spielmenü, Weiter, Hilfe
         if (eingabe is InputEventKey { Pressed: true, Echo: false, Keycode: Key.Escape })
         {
-            // Esc geht einen Schritt zurück: Innenansicht verlassen → Auswahl schließen → Spielmenü auf/zu.
-            if (_jahresbericht.Visible) { /* der Bericht wird mit „Weiter" geschlossen */ }
+            // Esc geht einen Schritt zurück: feste Tooltips → Fenster (das oberste) → Innenansicht verlassen → Auswahl schließen → Spielmenü auf/zu.
+            if (Tooltips.ObersteFesteSchliessen()) { /* ein festgeheftetes Tooltip-Fenster ist zu */ }
+            else if (_jahresbericht.Visible) { /* der Bericht wird mit „Weiter" geschlossen */ }
             else if (_hilfe.Visible)
                 HilfeSchliessen();
             else if (_lexikon.Visible)
@@ -1058,20 +1059,8 @@ public partial class Hauptszene : Node
                 _bau.Zurueck();
             else if (_wegTafel.Aktiv)
                 _wegTafel.Schliessen();
-            else if (_ratskammer.Visible)
-                _ratskammer.Hide();
-            else if (_familientafel.Visible)
-                _familientafel.Hide();
-            else if (_gerichtssaal.Visible)
-                _gerichtssaal.Hide();
-            else if (_hinterzimmer.Visible)
-                _hinterzimmer.Hide();
-            else if (_markt.Visible)
-                _markt.Hide();
-            else if (_verkauf.Visible)
-                _verkauf.Hide();
-            else if (_innenTafeln.Any(t => t.Visible))
-                foreach (var tafel in _innenTafeln) tafel.Hide();
+            else if (Fensterrahmen.ObersteSchliessen())
+            { /* das zuletzt geöffnete oder angeklickte Fenster ist zu (Mitte, Innentafeln, Wohnhaus, Bericht, Hafen) */ }
             else if (_einstellungen.Tafel.Visible)
                 EinstellungenSchliessen();
             else if (_spielmenue.Visible)
@@ -1108,6 +1097,10 @@ public partial class Hauptszene : Node
             case Key.F1:
                 if (_hilfe.Visible) HilfeSchliessen();
                 else HilfeOeffnen();
+                break;
+            case Key.X when ohneZusatz && imSpiel && (Fensterrahmen.IrgendeinesOffen || Tooltips.FesteOffen): // alle Fenster zu (auch festgehaltene)
+                Tooltips.AlleSchliessen();
+                Fensterrahmen.AlleSchliessen();
                 break;
             case Key.F when ohneZusatz && imSpiel:
                 if (_familientafel.Visible) _familientafel.Hide();

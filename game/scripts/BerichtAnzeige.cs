@@ -56,9 +56,7 @@ public partial class BerichtAnzeige : PanelContainer
         spalte.AddChild(kopf);
         var titel = Hauptmenue.Text(kopf, "Bericht", 20, Gold);
         titel.SizeFlagsHorizontal = SizeFlags.ExpandFill;
-        var zu = new Button { Text = "×", FocusMode = FocusModeEnum.None, TooltipText = "Schließen (Esc)" };
-        zu.Pressed += Hide;
-        kopf.AddChild(zu);
+        kopf.AddChild(new Control { CustomMinimumSize = new Vector2(52, 0) }); // Platz für Festhalten und ✕ des Fensterrahmens
 
         _reiter = new TabContainer { FocusMode = FocusModeEnum.None, ClipTabs = false }; // alle Reiter sichtbar, ohne Pfeile
         _reiter.AddThemeFontSizeOverride("font_size", 14);
@@ -76,6 +74,7 @@ public partial class BerichtAnzeige : PanelContainer
         _protokoll = Seite("Protokoll");
 
         Rollbereich.Einhuellen(this);
+        Fensterrahmen.Anmelden(this, "Bericht", festhaltbar: true);
         Hide();
     }
 

@@ -66,6 +66,7 @@ public partial class VerkaufAnzeige : PanelContainer
         _verkaufKnopf = Hauptmenue.Knopf(knoepfe, "Verkaufen", Bestaetigen);
         Hauptmenue.Knopf(knoepfe, "Abbrechen", Hide);
         Rollbereich.Einhuellen(this);
+        Fensterrahmen.Anmelden(this, "Verkauf");
         Hide();
     }
 
