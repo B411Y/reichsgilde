@@ -434,7 +434,7 @@ public partial class Kartenwerkstatt
         }
         EigenschaftenLeeren();
         _stadt.WegStreckeMarkieren(null, 0, 0, 0); // das goldene Band des Belag-Abschnitts gehört zum gewählten Weg
-        (_gezeigt, _nameFeld, _betriebFeld, _punktText, _drehFeld, _massstabFeld, _lageWahl, _konfessionWahl) = (teil, null, null, null, null, null, null, null);
+        (_gezeigt, _kennungFeld, _nameFeld, _betriebFeld, _punktText, _drehFeld, _massstabFeld, _lageWahl, _konfessionWahl) = (teil, null, null, null, null, null, null, null, null);
         if (teil is null)
         {
             Hauptmenue.Text(_eigenschaften, "Nichts gewählt. Klickt ein Gebäude, einen Weg, eine Fläche oder eine Pflanze an – oder wählt links ein Werkzeug und klickt in die Stadt.",
@@ -446,7 +446,6 @@ public partial class Kartenwerkstatt
             TeilTafel(teil);
             return;
         }
-        var kennung = g.Kennung;
         var raster = new GridContainer { Columns = 2 };
         raster.AddThemeConstantOverride("h_separation", 10);
         raster.AddThemeConstantOverride("v_separation", 6);
@@ -456,19 +455,26 @@ public partial class Kartenwerkstatt
         _nameFeld.TextSubmitted += _ => _nameFeld.ReleaseFocus();
         _nameFeld.FocusExited += () =>
         {
-            if (_entwurf.GebaeudeMit(kennung) is { } x && _nameFeld?.Text is { Length: > 0 } text && text != x.Name) _entwurf.Umbenennen(kennung, text);
-        };
+            if (_entwurf.GebaeudeMit(g.Kennung) is { } x && _nameFeld?.Text is { Length: > 0 } text && text != x.Name) _entwurf.Umbenennen(g.Kennung, text);
+        }
+;
         Zeile(raster, "Name", _nameFeld);
         Zeile(raster, "Baustein", Wert($"{g.Baustein?.Anzeigename ?? "unbekannt"} ({g.Katalog})"));
-        Zeile(raster, "Kennung", Wert(g.Kennung, "Spielstände und die Startbelegung verweisen auf die Kennung – die Werkstatt ändert sie nicht."));
+        _kennungFeld = new LineEdit { Text = g.Kennung, TooltipText = "Eindeutig; nur Buchstaben, Ziffern und „_“. Spielstände und die Startbelegung verweisen auf die Kennung – Kartenskripte und Startbelegung dann nachziehen." };
+        _kennungFeld.TextSubmitted += _ => _kennungFeld.ReleaseFocus();
+        _kennungFeld.FocusExited += KennungUebernehmen;
+        Zeile(raster, "Kennung", _kennungFeld);
+        _kennungFehler = Wert("");
+        _kennungFehler.AddThemeColorOverride("font_color", new Color(0.9f, 0.45f, 0.35f));
+        _kennungFehler.Visible = false;
         _punktText = Wert("");
         Zeile(raster, "Punkt", _punktText);
 
         _drehFeld = new Zahlfeld { MinValue = 0, MaxValue = 359.9, Step = 0.1, Suffix = "°", Value = g.Drehung, TooltipText = "0° = Vorderseite nach Süden, 90° = nach Osten (Q/E: 15°-Schritte)" };
-        _drehFeld.ValueChanged += wert => _entwurf.Drehen(kennung, wert);
+        _drehFeld.ValueChanged += wert => _entwurf.Drehen(g.Kennung, wert);
         Zeile(raster, "Drehung", _drehFeld);
         _massstabFeld = new Zahlfeld { MinValue = 0.25, MaxValue = 4, Step = 0.05, Value = g.Massstab, TooltipText = "Vergrößert Modell und Grundfläche" };
-        _massstabFeld.ValueChanged += wert => _entwurf.MassstabSetzen(kennung, wert);
+        _massstabFeld.ValueChanged += wert => _entwurf.MassstabSetzen(g.Kennung, wert);
         Zeile(raster, "Maßstab", _massstabFeld);
 
         if (g.Art is Bausteinart.Werkstattplatz or Bausteinart.Umlandbetrieb)
@@ -477,32 +483,59 @@ public partial class Kartenwerkstatt
             _betriebFeld.TextSubmitted += _ => _betriebFeld.ReleaseFocus();
             _betriebFeld.FocusExited += () =>
             {
-                if (_entwurf.GebaeudeMit(kennung) is { } x && (_betriebFeld?.Text ?? "") != (x.Betrieb ?? "")) _entwurf.BetriebSetzen(kennung, _betriebFeld?.Text);
-            };
+                if (_entwurf.GebaeudeMit(g.Kennung) is { } x && (_betriebFeld?.Text ?? "") != (x.Betrieb ?? "")) _entwurf.BetriebSetzen(g.Kennung, _betriebFeld?.Text);
+            }
+;
             Zeile(raster, "Betrieb", _betriebFeld);
         }
+
         if (g.Art is Bausteinart.Wohnhausplatz or Bausteinart.Einwohnerplatz)
         {
             _lageWahl = new OptionButton { FocusMode = Control.FocusModeEnum.None, TooltipText = "Ohne Angabe gilt die nächste Bauzone" };
             _lageWahl.AddItem("nach Bauzone", NachBauzone);
             foreach (var lage in Enum.GetValues<Lage>()) _lageWahl.AddItem(Stadtansicht.LageName(lage), (int)lage);
-            _lageWahl.ItemSelected += i => _entwurf.LageSetzen(kennung, _lageWahl!.GetItemId((int)i) is var id and not NachBauzone ? (Lage)id : null);
+            _lageWahl.ItemSelected += i => _entwurf.LageSetzen(g.Kennung, _lageWahl!.GetItemId((int)i) is var id and not NachBauzone ? (Lage)id : null);
             Zeile(raster, "Lage", _lageWahl);
         }
+
         if (g.Art == Bausteinart.Sonderbau)
         {
             _konfessionWahl = new OptionButton { FocusMode = Control.FocusModeEnum.None, TooltipText = "Für Kirchen: Welche Gemeinde dort predigt" };
             foreach (var text in Konfessionen) _konfessionWahl.AddItem(text);
-            _konfessionWahl.ItemSelected += i => _entwurf.KonfessionSetzen(kennung, i == 0 ? null : Konfessionen[i]);
+            _konfessionWahl.ItemSelected += i => _entwurf.KonfessionSetzen(g.Kennung, i == 0 ? null : Konfessionen[i]);
             Zeile(raster, "Konfession", _konfessionWahl);
         }
 
+
+        _eigenschaften.AddChild(_kennungFehler); // unter dem Raster: ein verstecktes Feld im Raster verschöbe die Spalten
         var knoepfe = new HBoxContainer();
         knoepfe.AddThemeConstantOverride("separation", 8);
         _eigenschaften.AddChild(knoepfe);
-        Knopf(knoepfe, "Hinfahren", () => _stadt.WerkstattWaehlen(kennung, hinfahren: true));
-        Knopf(knoepfe, "Löschen", () => _entwurf.Loeschen(kennung), "Das Gebäude aus der Karte nehmen (Entf)");
+        Knopf(knoepfe, "Hinfahren", () => _stadt.WerkstattWaehlen(g.Kennung, hinfahren: true));
+        Knopf(knoepfe, "Löschen", () => _entwurf.Loeschen(g.Kennung), "Das Gebäude aus der Karte nehmen (Entf)");
         WerteSetzen(g);
+    }
+
+
+    private LineEdit? _kennungFeld;
+    private Label? _kennungFehler;
+
+    /// <summary>Die Kennung des gewählten Gebäudes ändern (Kern prüft: eindeutig, gültige Zeichen); bei einem Fehler bleibt die alte, die Meldung steht unter dem Feld.</summary>
+    private void KennungUebernehmen()
+    {
+        if (_gezeigt is not EntwurfGebaeude g || _kennungFeld is not { } feld) return;
+        var neu = feld.Text.Trim();
+        if (neu == g.Kennung) { feld.Text = g.Kennung; return; }
+        try
+        {
+            _entwurf.KennungSetzen(g.Kennung, neu);
+            if (_kennungFehler is not null) _kennungFehler.Visible = false;
+        }
+        catch (ArgumentException e)
+        {
+            if (_kennungFehler is not null) (_kennungFehler.Text, _kennungFehler.Visible) = (e.Message.Split('\n')[0].Split(" (Parameter")[0], true);
+            feld.Text = g.Kennung;
+        }
     }
 
     private static readonly string[] Konfessionen = { "keine", "katholisch", "evangelisch" };
@@ -514,6 +547,7 @@ public partial class Kartenwerkstatt
     private void WerteSetzen(EntwurfGebaeude g)
     {
         if (_nameFeld is { } name && !name.HasFocus()) name.Text = g.Name;
+        if (_kennungFeld is { } kennung && !kennung.HasFocus()) kennung.Text = g.Kennung;
         if (_betriebFeld is { } betrieb && !betrieb.HasFocus()) betrieb.Text = g.Betrieb ?? "";
         if (_punktText is not null) _punktText.Text = $"x {Kartenschreiber.Zahl(g.X)} · z {Kartenschreiber.Zahl(g.Z)} m";
         _drehFeld?.SetValueNoSignal(g.Drehung);

@@ -1982,3 +1982,74 @@ In den Werkstätten bringt Statut C weiter 0 % (Gleichstand Leibeigener/Geselle 
 | Greybox, jetzt | 204.378 | 203.154 | 220.566 | 6/20 ab 15,7 | Reichsgraf 55, Freiherr 5; kein Bankrott | −3.204 / 1.730 / 12.735 | 3 % in 20 |
 
 In der Greybox liegen die drei KI-Häuser jetzt dicht beieinander: Der Schmied verliert 25 %, weil die fernen Städte für seine Waren weniger zahlen, und der Steinmetz legt 14 % zu, weil sie seine Waren jetzt kaufen.
+
+## Balancing-Messung 7 (PR #219, Fehler und Kleinkram)
+
+**Was sich geändert hat** (Umsetzung in `docs/bereiche/kern.md` und `docs/bereiche/spiel-ki.md`, „Fehler und Kleinkram (PR #219)“; **Datenversion 58**):
+1. **Gaunerei-Erwartung über alle Versuche der Nacht** (Spiel-KI): Die KI und die Hinterzimmer-Tafel rechnen mit vier Versuchen zu je ⅓ statt mit einem Versuch und der vollen Chance. Beim Einbruch ins Wohnhaus sind das 4/3 so viele Erfolge, denn jeder holt wieder die Beute aus der Truhe. Beim Diebstahl ist es weniger, weil der zweite Griff ein geplündertes Lager findet.
+2. **Sabotage höchstens einmal je Nacht** (Kern), wie der Brand am Wohnhaus. Ohne diese Regel lohnte die Sabotage mit der richtigen Erwartung: Jeder Erfolg brachte wieder 6 Stunden Stillstand. Im Probelauf (Teil 1) stiegen die Sabotage-Aufträge von 30 auf 235, das Mittel der Berufe fiel um 8 %, der Geldleiher auf −27 %.
+3. **Reparatur nach einem Anschlag zählt nicht als Stillstand**, deshalb kauft die KI keine Karren mehr, die nie fahren.
+4. **Taschendiebe 1,015 Gulden je Minute** (vorher 1,08): Der Dieb soll mit einem Betrieb nach 8–12 Jahren Bürger werden (Entscheidung des Nutzers). Probeläufe mit Teil 1:
+
+| Taschendiebe | Dieb bis Bürger (im Ziel / vor 8) | Zuwachs gegen Mittel |
+|---|---|---|
+| 1,08 | 7,4 (11 / 18) | −1,7 % |
+| 1,02 | 8,3 (15 / 13) | −8,3 % |
+| 1,01 | 8,8 (17 / 9) | −12,9 % |
+| 0,95 | 10,4 (16 / 6) | −34,9 % |
+
+   Gewählt ist 1,015, der Wert zwischen Ziel und Band. Die übrigen Berufe ändern sich dadurch nicht, Wert für Wert gleich. Nur ihr Abstand zum Mittel verschiebt sich, weil der Dieb im Mittel mitzählt.
+
+Gemessen auf main `2589c5f` + Branch `5213d1a`, Datenversion 58:
+- `messen bericht 20 30`: 1.320 Partien in 21,4 Minuten → `docs/messungen/balancing-2026-10-27-kleinkram.json`
+- `messen 30 20`: 39 Sekunden
+- `messen 30 20 greybox`: 60 Sekunden
+
+### Gegen die Ziele
+
+| | Messung 6 | Messung 7 |
+|---|---|---|
+| Dieb bis Bürger, ein Betrieb (im Ziel / vor Jahr 8) | Ø 6,4 (7 / 23) | **Ø 8,6** (16 / 11) |
+| Berufe im Band ±15 % | 10/10 (−14,1 … +8,0 %) | 9/10 (−20,5 … +12,6 %), außerhalb nur der Geldleiher |
+| Mittel des Zuwachses | 30.542 | 29.354 |
+| Schmied bis Bürger (Greybox, im Ziel von 120) | Ø 8,7 (108) | Ø 8,6 (104) |
+| Wirt bis Bürger | Ø 10,1 | Ø 10,2 |
+| Hinterzimmer der KI je Partie und Jahr | Diebstahl 0,63, Einbruch ins Wohnhaus 0,77, Sabotage 0,01 | 0,60, **1,06**, 0,02 |
+| Raub und Schaden je KI-Haus ohne / mit Wachhaus | 513 / 425 | 499 / 440 |
+| KI ÷ gleiche Strategie (Median); „Schwer“ | 1,24; 1,30 | 1,17; 1,44 |
+| Karren verkauft (in Not / ein Jahr ohne Fahrt) | 10 / 45 | 13 / **1** |
+
+### Berufe (simuliert, ein Betrieb, Greybox, 20 Jahre, 30 Startwerte)
+
+| Beruf | Vermögen 20 J. | gegen Mittel | Messung 6 | Gewinn Ø | Gericht Ø | Bürger Ø |
+|---|---|---|---|---|---|---|
+| Schmied | 33.066 | +12,6 % | −5,1 % | 2.807 | 288 | 8,6 |
+| Tischler | 29.763 | +1,4 % | +3,0 % | 2.696 | 303 | 9,4 |
+| Steinmetz | 32.372 | +10,3 % | +8,0 % | 2.764 | 308 | 9,4 |
+| Alchimist | 31.011 | +5,6 % | +5,1 % | 2.788 | 370 | 9,8 |
+| Wirt | 29.653 | +1,0 % | −1,8 % | 2.670 | 319 | 10,2 |
+| Prediger | 30.838 | +5,1 % | +3,5 % | 2.663 | 297 | 8,3 |
+| Dieb | 25.785 | −12,2 % | +2,2 % | 2.705 | 602 | 8,6 |
+| Parfumeur | 29.064 | −1,0 % | +5,3 % | 2.703 | 383 | 8,5 |
+| Geldleiher | 23.339 | **−20,5 %** | −14,1 % | 2.285 | 404 | 8,0 |
+| Gardist | 28.651 | −2,4 % | −6,1 % | 2.257 | 146 | 7,9 |
+| Dieb wagemutig (nicht im Mittel) | 19.426 | −33,8 % | −20,6 % | 3.024 | 1.245 | 11,9 |
+
+Der Geldleiher hat denselben Gewinn wie in Messung 6 (2.285 gegen 2.293). Ihm fehlen das Gericht (404 statt 287 im Jahr) und das Bargeld, das die häufigeren Einbrüche ins Wohnhaus holen. Er liegt schon in Messung 6 knapp am Rand, ein Wert ist dafür nicht geändert (Offen-Punkt in `kern.md`).
+
+Statisch (Startpreise) liegt der Dieb jetzt in Stufe 1 im Band, in Stufe 2 und 3 bei +22 % (vorher +19 / +31 / +31 %).
+
+**Völker** (Zuwachs gegen Menschen; Messung 6 in Klammern):
+- Schmied: Zwerg +9,7 % (+31,0), Elb +4,9 % (+24,9), Halbling −20,8 % (−1,0)
+- Parfumeur: Zwerg −6,8 % (−12,8), Elb +20,0 % (+14,3), Halbling −7,4 % (−10,1)
+
+**`messen 30 20` und `messen 30 20 greybox`** (30 Jahre, 20 Startwerte, Spieler passiv):
+
+| | Eisenbart | Eichwald | Kieselbach | Bürgermeister | Gaunerstücke der KI | Raub beim Spieler | Stadtkasse Jahr 30 |
+|---|---|---|---|---|---|---|---|
+| ohne Karte, Messung 6 | 166.973 | 137.560 | 165.420 | 19/20 | 686 | 2.890 | 7.360 |
+| ohne Karte, jetzt | 171.737 | 135.897 | 168.888 | 15/20 ab 15,8 | 688 | 2.736 | 6.219 |
+| Greybox, Messung 6 | 204.378 | 203.154 | 220.566 | 6/20 | 709 | 2.999 | 12.735 |
+| Greybox, jetzt | 213.700 | 203.317 | 215.450 | 11/20 ab 15,0 | 707 | 3.082 | 13.347 |
+
+Kein KI-Haus geht bankrott. Am Ende sind ohne Karte 57 Freiherren und 3 Reichsgrafen, in der Greybox 56 Reichsgrafen.

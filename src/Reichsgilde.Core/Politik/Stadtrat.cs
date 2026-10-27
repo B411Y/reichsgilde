@@ -1,3 +1,4 @@
+using Reichsgilde.Core.Dynastie;
 using Reichsgilde.Core.Speichern;
 using Reichsgilde.Core.Wirtschaft;
 
@@ -10,7 +11,31 @@ public sealed class Ratsherr
     public string Name => Daten.Name;
     public Fronstatut Haltung => Daten.Haltung;
 
-    internal Ratsherr(RatsherrDaten daten) => Daten = daten;
+    /// <summary>Mann oder Frau – aus den Daten; fehlt es dort (alte Daten), aus dem Vornamen: endet er auf a, e oder „ind“, eine Frau.</summary>
+    public Geschlecht Geschlecht { get; }
+
+    /// <summary>Gesicht, Haar und Augen fürs Porträt – aus den Daten; fehlt es dort (alte Daten), fest aus Namen und Volk abgeleitet.</summary>
+    public Aussehen Aussehen { get; }
+
+    internal Ratsherr(RatsherrDaten daten)
+    {
+        Daten = daten;
+        var vorname = daten.Name.Split(' ')[0];
+        Geschlecht = daten.Geschlecht
+                     ?? (vorname.EndsWith('a') || vorname.EndsWith('e') || vorname.EndsWith("ind") ? Geschlecht.Frau : Geschlecht.Mann);
+        Aussehen = daten.Aussehen?.Wert ?? AusDemNamen(daten.Name, daten.Volk);
+    }
+
+    /// <summary>Die Regel, nach der das Porträt bis Datenversion 57 das Aussehen aus dem Namen ableitete (für alte Daten).</summary>
+    internal static Aussehen AusDemNamen(string name, Volk volk)
+    {
+        var h = 17;
+        foreach (var c in name) h = unchecked(h * 31 + c); // string.GetHashCode wechselt von Start zu Start
+        h &= int.MaxValue;
+        var haare = Aussehenspalette.Haarfarben(volk);
+        var augen = Aussehenspalette.Augenfarben(volk);
+        return new Aussehen(h % Aussehenspalette.Gesichter, haare[(h / 5) % haare.Count], augen[(h / 11) % augen.Count]);
+    }
 }
 
 /// <summary>Ein Sitz im Rat. Inhaber ist entweder ein Ratsherr der Stadt oder ein Haus (Spieler/KI) – oder niemand.</summary>

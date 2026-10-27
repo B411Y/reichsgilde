@@ -112,6 +112,66 @@ public sealed class Unterwelt
     }
 
     /// <summary>
+    /// Warenwert des 1., 2., … gelungenen Griffs einer Nacht (Gaunerei je Nachtstunde): Jeder holt die wertvollste übrige Ware,
+    /// höchstens <paramref name="stueckJeMal"/> Stück – der zweite findet ein schon geplündertes Lager.
+    /// </summary>
+    internal List<double> Warenfolge(Betrieb b, int stueckJeMal, int griffe)
+    {
+        var lager = b.Lager.Where(l => l.Value > 0).OrderByDescending(l => _w.Markt[l.Key].Preis).ThenBy(l => l.Key, StringComparer.Ordinal)
+            .Select(l => (Preis: _w.Markt[l.Key].Preis, Stueck: l.Value)).ToList();
+        var folge = new List<double>();
+        var j = 0;
+        for (var g = 0; g < griffe; g++)
+        {
+            var (rest, wert) = (stueckJeMal, 0.0);
+            while (rest > 0 && j < lager.Count)
+            {
+                var n = Math.Min(rest, lager[j].Stueck);
+                wert += n * lager[j].Preis;
+                rest -= n;
+                lager[j] = (lager[j].Preis, lager[j].Stueck - n);
+                if (lager[j].Stueck == 0) j++;
+            }
+            folge.Add(wert);
+        }
+        return folge;
+    }
+
+    /// <summary>Versuche je Nacht für Diebstahl, Sabotage, Krötenschleim, Einbruch und Brand (ohne Unterwelt einer).</summary>
+    public int VersucheJeNacht => _d?.NachtVersuche ?? 1;
+
+    /// <summary>
+    /// Chance, dass ein Auftrag in einer Nacht mindestens <paramref name="k"/>-mal gelingt (Gaunerei je Nachtstunde):
+    /// <see cref="VersucheJeNacht"/> Versuche zu je <paramref name="chance"/> × <see cref="GaunerDaten.VersuchFaktor"/>.
+    /// Ohne Unterwelt ein Versuch mit der vollen Chance.
+    /// </summary>
+    public double ChanceMindestensErfolge(double chance, int k)
+    {
+        var n = VersucheJeNacht;
+        if (k <= 0) return 1;
+        if (k > n) return 0;
+        var p = Math.Clamp(chance * (_d?.VersuchFaktor ?? 1), 0, 1);
+        double summe = 0, binom = 1; // binom = (n über j), beginnend bei j = 0
+        for (var j = 0; j <= n; j++)
+        {
+            if (j > 0) binom = binom * (n - j + 1) / j;
+            if (j >= k) summe += binom * Math.Pow(p, j) * Math.Pow(1 - p, n - j);
+        }
+        return summe;
+    }
+
+    /// <summary>
+    /// Erwarteter Ertrag eines Auftrags über die ganze Nacht: Σ über k (Chance auf mindestens k Erfolge × Ertrag des k-ten Erfolgs).
+    /// <paramref name="ertrag"/> bekommt k = 1, 2, … – so leeren sich Lager und Truhe von Griff zu Griff.
+    /// </summary>
+    public double ErwartetJeNacht(double chance, Func<int, double> ertrag)
+    {
+        double summe = 0;
+        for (var k = 1; k <= VersucheJeNacht; k++) summe += ChanceMindestensErfolge(chance, k) * ertrag(k);
+        return summe;
+    }
+
+    /// <summary>
     /// Erfolgschance eines Gaunerstücks gegen diesen Betrieb. Wächter halbieren sie; das Talent
     /// „Bei Nacht und Nebel" des Auftraggebers hebt sie (Überfall: sein Kampf stärkt die Wegelagerer).
     /// </summary>
@@ -144,10 +204,17 @@ public sealed class Unterwelt
     public double Staerke(Konto? auftraggeber) =>
         Math.Min(1, Daten.Ueberfall.Staerke + (auftraggeber is null ? 0 : _w.Familien.KampfUeberfall(auftraggeber)));
 
-    /// <summary>Was ein Diebstahl im Mittel einbringt: (Hehlerpreis + Geld aus der Kasse eines Geldleihers) × Chance − Kosten.</summary>
-    public double ErwarteterGewinn(Betrieb b, Konto? auftraggeber = null) =>
-        (MoeglicheBeute(b).Sum(x => x.Wert) * Daten.HehlerAnteil + (_w.Bank.IstAktiv ? _w.Bank.Kassenbeute(b) : 0))
-        * Erfolgschance(Gaunerstueck.Diebstahl, b, auftraggeber) - Daten.Diebstahl.Kosten;
+    /// <summary>
+    /// Was ein Diebstahl in einer Nacht im Mittel einbringt: über alle Versuche (je Erfolg Hehlerpreis der übrigen Ware + Geld aus der Kasse
+    /// eines Geldleihers) − Kosten.
+    /// </summary>
+    public double ErwarteterGewinn(Betrieb b, Konto? auftraggeber = null)
+    {
+        var waren = Warenfolge(b, Daten.Diebstahl.HoechstensStueck, VersucheJeNacht);
+        return ErwartetJeNacht(Erfolgschance(Gaunerstueck.Diebstahl, b, auftraggeber),
+                   k => waren[k - 1] * Daten.HehlerAnteil + (_w.Bank.IstAktiv ? _w.Bank.Kassenbeute(b, k) : 0))
+               - Daten.Diebstahl.Kosten;
+    }
 
     /// <summary>„3 Rapier und 2 Silberring (Wert 412)“, „120 Gulden aus der Kasse“ oder beides – für die öffentliche Meldung.</summary>
     internal string Diebesgut(IReadOnlyCollection<(string Ware, int Stueck, double Wert)> beute, double kasse)
@@ -159,9 +226,12 @@ public sealed class Unterwelt
         return string.Join(" und ", teile);
     }
 
-    /// <summary>Was eine Sabotage dem Opfer im Mittel kostet: entgangene Arbeit + Reparatur.</summary>
+    /// <summary>
+    /// Was eine Sabotage dem Opfer in einer Nacht im Mittel kostet: entgangene Arbeit + Reparatur × Chance, dass einer der Versuche gelingt
+    /// (sie wirkt höchstens einmal je Nacht).
+    /// </summary>
     public double ErwarteterSchaden(Betrieb b, Konto? auftraggeber = null) =>
-        Erfolgschance(Gaunerstueck.Sabotage, b, auftraggeber) * SabotageSchaden(b);
+        ChanceMindestensErfolge(Erfolgschance(Gaunerstueck.Sabotage, b, auftraggeber), 1) * SabotageSchaden(b);
 
     /// <summary>Schaden einer gelungenen Sabotage (für die Anzeige).</summary>
     public double Sabotageschaden(Betrieb b) => SabotageSchaden(b);
@@ -188,10 +258,12 @@ public sealed class Unterwelt
     }
 
     /// <summary>Was ein Einbruch ins Wohnhaus holt: ein Anteil vom Bargeld, höchstens <c>hoechstensJeStufe</c> × (Stufe + 1).</summary>
-    public double Hausbeute(Konto ziel)
+    public double Hausbeute(Konto ziel) => Hausbeute(ziel, ziel.Vermoegen);
+
+    private double Hausbeute(Konto ziel, double vermoegen)
     {
         var e = Daten.Wohnhaus!.Einbruch;
-        return Math.Min(e.Anteil * Math.Max(0, ziel.Vermoegen), e.HoechstensJeStufe * (ziel.WohnhausStufe + 1));
+        return Math.Min(e.Anteil * Math.Max(0, vermoegen), e.HoechstensJeStufe * (ziel.WohnhausStufe + 1));
     }
 
     /// <summary>Reparatur nach einem Brand am Wohnhaus (Anteil vom Ausbaupreis der Stufe, mindestens <c>mindestReparatur</c>).</summary>
@@ -201,9 +273,26 @@ public sealed class Unterwelt
         return Math.Max(b.MindestReparatur, b.ReparaturAnteil * (_w.Wohnen.Stufe(ziel)?.Ausbau ?? 0));
     }
 
-    /// <summary>Was ein Einbruch ins Wohnhaus im Mittel einbringt: Beute × Chance − Kosten (Bargeld braucht keinen Hehler).</summary>
-    public double ErwarteterHausgewinn(Konto ziel, Konto? auftraggeber = null) =>
-        Hausbeute(ziel) * ErfolgschanceWohnhaus(Gaunerstueck.Hauseinbruch, ziel, auftraggeber) - Kosten(Gaunerstueck.Hauseinbruch, auftraggeber);
+    /// <summary>
+    /// Was ein Einbruch ins Wohnhaus in einer Nacht im Mittel einbringt: über alle Versuche (je Erfolg die Beute aus der übrigen Truhe)
+    /// − Kosten (Bargeld braucht keinen Hehler).
+    /// </summary>
+    public double ErwarteterHausgewinn(Konto ziel, Konto? auftraggeber = null)
+    {
+        var beute = new List<double>();
+        var vermoegen = ziel.Vermoegen;
+        for (var k = 0; k < VersucheJeNacht; k++)
+        {
+            beute.Add(Hausbeute(ziel, vermoegen));
+            vermoegen -= beute[^1];
+        }
+        return ErwartetJeNacht(ErfolgschanceWohnhaus(Gaunerstueck.Hauseinbruch, ziel, auftraggeber), k => beute[k - 1])
+               - Kosten(Gaunerstueck.Hauseinbruch, auftraggeber);
+    }
+
+    /// <summary>Was ein Brand am Wohnhaus das Opfer in einer Nacht im Mittel kostet: Es brennt höchstens einmal (danach ist das Haus beschädigt).</summary>
+    public double ErwarteterBrandschaden(Konto ziel, Konto? auftraggeber = null) =>
+        ChanceMindestensErfolge(ErfolgschanceWohnhaus(Gaunerstueck.Brandstiftung, ziel, auftraggeber), 1) * Brandschaden(ziel);
 
     /// <summary>Unter diesem Namen merken sich Gericht und Stadt Taten gegen das Wohnhaus eines Hauses.</summary>
     public static string WohnhausVon(Konto k) => $"Wohnhaus von {k.Inhaber}";
@@ -380,7 +469,8 @@ public sealed class Unterwelt
                 }
                 _erfolgreich[i] |= _versuchErfolg;
                 (_chanceFaktor, _letzterVersuch) = (1, true);
-                erledigt = letzter;
+                // Eine Sabotage wirkt höchstens einmal je Nacht (wie der Brand am Wohnhaus): Die Werkstatt brennt schon (PR #219).
+                erledigt = letzter || (a.Art == Gaunerstueck.Sabotage && _erfolgreich[i]);
             }
             if (erledigt)
             {

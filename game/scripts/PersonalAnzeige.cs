@@ -52,7 +52,7 @@ public sealed class PersonalAnzeige : InnenTafel
                     s.PraemieVerboten(b, z.Nummer));
                 Knopf(raster, "Befördern", () => Befehlen(new ArbeiterBefoerdern(b.Name, z.Nummer)), z.BefoerderungVerboten);
                 Knopf(raster, "Entlassen", () => Befehlen(new ArbeiterEntlassen(b.Name, z.Nummer)));
-                ZeileTipp(raster, ab, $"{z.Arbeitskraft} Nr. {z.Nummer}\nArbeitet an: {z.Ware}{(z.Zugeteilt ? "" : " (Hauptware des Betriebs)")}\nLaune {Zahlenformat.Ganz(z.Laune)} · Tempo {Zahlenformat.Ganz(z.TempoFaktor * 100)} % · Dienst {Zahlenformat.Kommazahl(z.Dienstjahre)} Jahre\nGrundlohn {Zahlenformat.Ganz(w.Daten.Lohn(z.Arbeitskraft, b.Art))} {waehrung} (Lohnstufe {b.Lohnstufe.Name()})");
+                ZeileTipp(raster, ab, $"{z.Arbeitskraft} Nr. {z.Nummer}\nArbeitet an: {z.Ware}{(z.Zugeteilt ? "" : " (Hauptware des Betriebs)")}\nLaune {Zahlenformat.Ganz(z.Laune)} · Tempo {Zahlenformat.Ganz(z.TempoFaktor * 100)} % · Dienst {Zahlenformat.Kommazahl(z.Dienstjahre)} Jahre\nGrundlohn {Zahlenformat.Ganz(w.Daten.Lohn(z.Arbeitskraft, b.Art))} {waehrung} (Lohnstufe {b.Lohnstufe.Name()})\nLohn im Jahr: {Zahlenformat.Ganz(b.LohnJeArbeiter(z.Arbeitskraft))} {waehrung} (mit Schicht, Lohnstufe und Einrichtung)");
             }
             // Gründe für gesperrte Beförderungen stehen auch hier – ein Hinweis am Knopf allein sieht man leicht nicht
             foreach (var grund in s.Arbeiterliste(b).Where(z => z.Arbeitskraft == s.Daten?.Befoerderung.Von && z.BefoerderungVerboten is not null)
