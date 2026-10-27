@@ -53,6 +53,7 @@ public abstract class InnenTafel
         var schliessen = Hauptmenue.Knopf(spalte, "Schließen", Hide);
         schliessen.SizeFlagsHorizontal = Control.SizeFlags.ShrinkCenter;
         spalte.AddThemeConstantOverride("separation", 10);
+        Fensterrahmen.Anmelden(Tafel, GetType().Name);
         Tafel.Hide();
     }
 

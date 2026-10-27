@@ -93,9 +93,7 @@ public partial class WohnhausAnzeige : PanelContainer
         _titel = NeuesLabel(kopf, 18, Gold, umbruch: 300);
         _titel.VerticalAlignment = VerticalAlignment.Center;
         _titel.SizeFlagsHorizontal = SizeFlags.ExpandFill;
-        var zu = new Button { Text = "×", FocusMode = FocusModeEnum.None, TooltipText = "Schließen (Esc)", SizeFlagsVertical = SizeFlags.ShrinkBegin };
-        zu.Pressed += () => { Hide(); Geschlossen?.Invoke(); };
-        kopf.AddChild(zu);
+        kopf.AddChild(new Control { CustomMinimumSize = new Vector2(52, 0) }); // Platz für Festhalten und ✕ des Fensterrahmens
 
         _reiter = new TabContainer { FocusMode = FocusModeEnum.None, ClipTabs = false }; // alle Reiter sichtbar, ohne Pfeile
         _reiter.AddThemeFontSizeOverride("font_size", 14);
@@ -172,6 +170,7 @@ public partial class WohnhausAnzeige : PanelContainer
         hinterKnopf.SizeFlagsHorizontal = SizeFlags.ShrinkBegin;
 
         Rollbereich.Einhuellen(this);
+        Fensterrahmen.Anmelden(this, "Wohnhaus", () => { Hide(); Geschlossen?.Invoke(); }, festhaltbar: true);
         Hide();
     }
 

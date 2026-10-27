@@ -108,9 +108,7 @@ public partial class HafenAnzeige : PanelContainer
         spalte.AddChild(kopf);
         _titel = Hauptmenue.Text(kopf, "Hafen", 20, Gold);
         _titel.SizeFlagsHorizontal = SizeFlags.ExpandFill;
-        var zu = new Button { Text = "×", FocusMode = FocusModeEnum.None, TooltipText = "Schließen (Esc)" };
-        zu.Pressed += Hide;
-        kopf.AddChild(zu);
+        kopf.AddChild(new Control { CustomMinimumSize = new Vector2(52, 0) }); // Platz für Festhalten und ✕ des Fensterrahmens
         _fluss = Hauptmenue.Text(spalte, "", 13, Grau, umbruchBreite: Breite);
 
         _reiter = new TabContainer { FocusMode = FocusModeEnum.None, ClipTabs = false };
@@ -121,6 +119,7 @@ public partial class HafenAnzeige : PanelContainer
         _staedteSeite = Seite("Ferne Städte");
 
         Rollbereich.Einhuellen(this);
+        Fensterrahmen.Anmelden(this, "Hafen", festhaltbar: true);
         Hide();
     }
 
