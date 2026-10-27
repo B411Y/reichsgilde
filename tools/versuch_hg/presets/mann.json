@@ -1,0 +1,21 @@
+{
+  "vorlage": "models/male/Caucasian/Otto.json",
+  "alter": 38,
+  "frisur": "hair/head/male/Long/Medium Side Part.json",
+  "bart": "hair/face_hair/Beard/Full_Beard_1.json",
+  "haarkarten": "high",
+  "haarfarbe": {
+    "regular_hair": {
+      "lightness": 0.12,
+      "redness": 0.45
+    },
+    "face_hair": {
+      "lightness": 0.12,
+      "redness": 0.45
+    },
+    "eyebrows": {
+      "lightness": 0.12,
+      "redness": 0.45
+    }
+  }
+}

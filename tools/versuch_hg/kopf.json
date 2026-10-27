@@ -1,0 +1,54 @@
+{
+  "regler": {
+    "kiefer_breite": "livekeys/face_proportions/jaw/jaw_width.npz",
+    "kiefer_hoehe": "livekeys/face_proportions/jaw/jaw_location_vertical.npz",
+    "kinn_groesse": "livekeys/face_proportions/chin/chin_size.npz",
+    "kinn_breite": "livekeys/face_proportions/chin/chin_width.npz",
+    "kinn_hoehe": "livekeys/face_proportions/chin/chin_height.npz",
+    "nase_ruecken": "livekeys/face_proportions/nose/nose_bridge_height.npz",
+    "nase_breite": "livekeys/face_proportions/nose/nose_bridge_width.npz",
+    "nase_spitze": "livekeys/face_proportions/nose/nose_tip_size.npz",
+    "nase_laenge": "livekeys/face_proportions/nose/nose_height.npz",
+    "nase_winkel": "livekeys/face_proportions/nose/nose_angle.npz",
+    "nase_fluegel": "livekeys/face_proportions/nose/nose_nostril_flare.npz",
+    "wangen_fuelle": "livekeys/face_proportions/cheeks/cheek_fullness.npz",
+    "wangen_knochen": "livekeys/face_proportions/cheeks/cheek_zygomatic_bone.npz",
+    "augen_breite": "livekeys/face_proportions/eyes/eye_width.npz",
+    "augen_neigung": "livekeys/face_proportions/eyes/eye_tilt.npz",
+    "lid_polster": "livekeys/face_proportions/eyes/eyelid_fat_pad.npz",
+    "brauen_wulst": "livekeys/face_proportions/u_skull/browridge_center_size.npz",
+    "brauen_hoehe": "livekeys/face_proportions/u_skull/browridge_loc_vertical.npz",
+    "stirn": "livekeys/face_proportions/u_skull/forehead_size.npz",
+    "lippen_hoehe": "livekeys/face_proportions/mouth/lip_height.npz",
+    "lippen_breite": "livekeys/face_proportions/mouth/lip_width.npz",
+    "lippen_bogen": "livekeys/face_proportions/mouth/lip_cupid_bow.npz",
+    "ohren_groesse": "livekeys/face_proportions/ears/ear_height.npz",
+    "alter": "livekeys/special/age/aged_male.npz",
+    "elb": "livekeys/special/rasse/elb.npz"
+  },
+  "schnitt_unter_hals": 0.2,
+  "schnitt_breite": 0.26,
+  "kragen_unter_hals": 0.01,
+  "kittel_farbe": [
+    0.1,
+    0.08,
+    0.055
+  ],
+  "texturen": {
+    "haut": 2048,
+    "haar": 2048,
+    "klein": 512
+  },
+  "dezimieren": {
+    "augen": 0.35,
+    "zaehne": 0.3
+  },
+  "ausschnitt_neigung": 0.4,
+  "haarfarbe": {
+    "Lightness": 0.12,
+    "Redness": 0.45
+  },
+  "ansatz_staerke": 0.6,
+  "haut_rauheit_min": 0.5,
+  "koerper_dezimieren": 0.5
+}

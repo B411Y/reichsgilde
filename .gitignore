@@ -38,3 +38,13 @@ build/
 
 # Python-Zwischendateien der Blender-Skripte
 __pycache__/
+
+# Human Generator 3D (Personal-Lizenz): Add-on, Inhaltspakete und daraus exportierte Köpfe
+# kommen nie ins Repository – nur Skripte, Szenen und Doku.
+*.hgpack
+HumGen3D*/
+game/versuch/hg/**/*.glb
+game/versuch/hg/**/*.png
+game/versuch/hg/**/*.jpg
+game/versuch/hg/**/*.import
+game/versuch/hg/koepfe/

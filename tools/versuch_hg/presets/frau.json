@@ -1,0 +1,10 @@
+{
+  "vorlage": "models/female/Caucasian/Johanna.json",
+  "alter": 30,
+  "frisur": "hair/head/female/Long/Bun.json",
+  "haarkarten": "high",
+  "haarfarbe": {
+    "regular_hair": {"lightness": 0.15, "redness": 0.5},
+    "eyebrows": {"lightness": 0.15, "redness": 0.5}
+  }
+}
