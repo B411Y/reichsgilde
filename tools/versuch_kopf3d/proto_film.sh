@@ -10,7 +10,7 @@ export LIBGL_DRIVERS_PATH=$X/root/usr/lib/x86_64-linux-gnu/dri
 export XKB_CONFIG_ROOT=$X/root/usr/share/X11/xkb
 export VK_ICD_FILENAMES=$HOME/werkzeuge/vulkan/nvidia_icd.json
 mkdir -p /tmp/xkb "$B"; ln -sf $X/root/usr/bin/xkbcomp /tmp/xkb/xkbcomp
-D=:94
+D=${ANZEIGE:-:94}
 $X/Xvfb-gepatcht $D -screen 0 ${RES}x24 -xkbdir $X/root/usr/share/X11/xkb -nolisten tcp +extension GLX > "$B/xvfb.log" 2>&1 &
 XPID=$!
 sleep 2

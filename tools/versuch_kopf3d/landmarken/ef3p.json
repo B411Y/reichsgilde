@@ -1,0 +1,11 @@
+{
+  "_hinweis": "Fotorealistische frontale Fassung (27.10.2026). P = ef3_al.png (Ordner fp), F = Frontansicht der TRELLIS-Form aus ef3_fs.png.",
+  "P": {"auge_l": {"aussen": [345, 369], "innen": [440, 381], "oben": [393, 346], "unten": [393, 386.5]},
+        "auge_r": {"innen": [540, 379], "aussen": [634, 367], "oben": [592, 346], "unten": [592, 385]},
+        "nase": [479, 484],
+        "mund": {"ecke_l": [421, 574], "mitte": [492, 574.6], "ecke_r": [561.5, 574]}},
+  "F": {"auge_l": {"aussen": [332, 430], "innen": [416.5, 434], "oben": [370, 416.5], "unten": [370, 447]},
+        "auge_r": {"innen": [520, 432], "aussen": [609, 434], "oben": [561, 416.5], "unten": [561, 445]},
+        "nase_f": [460, 532],
+        "mund": {"ecke_l": [398, 630], "mitte": [452, 627], "ecke_r": [544, 630]}}
+}

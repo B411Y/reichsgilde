@@ -377,6 +377,23 @@ D.data.materials.clear()
 bm = bmesh.new(); bm.from_mesh(D.data)
 bmesh.ops.remove_doubles(bm, verts=list(bm.verts), dist=2e-5 * s)
 bmesh.ops.delete(bm, geom=[v for v in bm.verts if not v.link_faces], context="VERTS")
+# lose Teile (Bartfetzen, schwebende Strähnen) entfernen: Zusammenhangskomponenten unter einem Mindestanteil
+bm.faces.ensure_lookup_table()
+gesehen_f = set(); weg = []
+mind = float(a.get("losteil", 0.004)) * len(bm.faces)
+for f0 in bm.faces:
+    if f0.index in gesehen_f: continue
+    komp_f = []; st_ = [f0]; gesehen_f.add(f0.index)
+    while st_:
+        f_ = st_.pop(); komp_f.append(f_)
+        for e_ in f_.edges:
+            for g_ in e_.link_faces:
+                if g_.index not in gesehen_f:
+                    gesehen_f.add(g_.index); st_.append(g_)
+    if len(komp_f) < mind: weg.extend(komp_f)
+log("lose Teile entfernt: %d Flächen" % len(weg))
+bmesh.ops.delete(bm, geom=weg, context="FACES")
+bmesh.ops.delete(bm, geom=[v for v in bm.verts if not v.link_faces], context="VERTS")
 bm.to_mesh(D.data); bm.free()
 while D.data.uv_layers:
     D.data.uv_layers.remove(D.data.uv_layers[0])
@@ -665,9 +682,10 @@ sicht = np.ones(n)
 for i in np.where(cosw > 0.05)[0]:
     st = Vector(dv[i] + nvn[i] * 0.0004 + kam_dir * 0.0006)
     r_ = bvh_s.ray_cast(st, Vector(kam_dir), 0.5)
-    if r_[0] is not None and r_[3] > 0.005:      # Lider/Lippen verdecken sich selbst nur wenige mm: nicht zählen
+    an_nase = math.hypot((dv[i, 0] - nase_n[0]) / (0.5 * dEm), (dv[i, 2] - nase_n[2]) / (0.4 * dEm)) < 1.0
+    if r_[0] is not None and r_[3] > 0.005:      # Lider/Lippen verdecken sich selbst nur wenige mm: nicht zählen (Nase streng)
         sicht[i] = 0.0
-region = 1.0 - sm(np.hypot((dv[:, 0]) / (float(a.get("regx", 1.3)) * dEm), (dv[:, 2] - (1.64 - 1.0 * dEm)) / (2.4 * dEm)), 0.7, 1.0)
+region = 1.0 - sm(np.hypot((dv[:, 0]) / (float(a.get("regx", 1.3)) * dEm), (dv[:, 2] - (1.64 - float(a.get("regm", 1.0)) * dEm)) / (float(a.get("regz", 2.4)) * dEm)), 0.7, 1.0)
 # Vordergrund des Porträts (Hintergrund per Flutfüllung vom Rand aus, Farbe wie die Ecken)
 _bgc = np.median(np.vstack([PB[:8, :8].reshape(-1, 3), PB[:8, -8:].reshape(-1, 3)]), 0)
 _aehnl = np.linalg.norm(PB - _bgc, axis=2) < 0.07
@@ -690,7 +708,8 @@ _uva = np.empty(len(me.loops) * 2); me.uv_layers["atlas"].data.foreach_get("uv",
 acol = np.zeros((n, 3)); acol[_lv] = _ap[np.clip((_uva[:, 1] * (TEX - 1)).astype(int), 0, TEX - 1), np.clip((_uva[:, 0] * (TEX - 1)).astype(int), 0, TEX - 1)]
 pcol_v = bilinear(PB, pq[:, 0], pq[:, 1])
 _lum = np.array([0.3, 0.55, 0.15])
-eins = 1.0 - sm(np.abs(pcol_v @ _lum - acol @ _lum), 0.12, 0.28)
+_eg = float(a.get("einsg", 1.0))
+eins = 1.0 - sm(np.abs(pcol_v @ _lum - acol @ _lum), 0.12 * _eg, 0.28 * _eg)
 mitte = 1.0 - sm(np.hypot(dv[:, 0] / dEm, (dv[:, 2] - (1.64 - 0.6 * dEm)) / (1.4 * dEm)), 0.85, 1.15)
 # in den Augen (Porträtraum, etwas erweitert) immer das Porträt: dort stehen sonst die gemalten Ränder der Form-Textur
 im_auge = np.zeros(n)
@@ -700,8 +719,8 @@ for au in ("auge_l", "auge_r"):
 im_auge *= (cosw > 0.0)
 # Nasenunterseite: lieber das Porträt (gestreckt) als die helleren Ränder der Form-Textur
 nah_nase = 1.0 - sm(np.hypot((dv[:, 0] - nase_n[0]) / (0.45 * dEm), (dv[:, 2] - nase_n[2]) / (0.35 * dEm)), 0.7, 1.0)
-im_auge = np.maximum(im_auge, nah_nase * sm(nvn @ kam_dir, -0.35, 0.1) * (dv[:, 1] < nase_n[1] + 0.02))
-w_p = np.maximum(im_auge, (sm(cosw, 0.15, 0.55) ** 1.0) * sicht * region * rand_p * vg_p * np.maximum(mitte, eins)) * float(a.get("palpha", 1.0))
+im_auge = np.maximum(im_auge, float(a.get("nasezwang", 0.0)) * nah_nase * sm(nvn @ kam_dir, -0.35, 0.1) * sm(-nvn[:, 2], 0.3, 0.6) * (dv[:, 1] < nase_n[1] + 0.02))
+w_p = np.maximum(im_auge, (sm(cosw, 0.15, 0.55) ** 1.0) * (1.0 - sm(-nvn[:, 2], 0.7, 0.95)) * sicht * region * rand_p * vg_p * np.maximum(mitte, eins)) * float(a.get("palpha", 1.0))
 # Beutel: Porträtgewicht und Farbe vom Spaltpunkt
 w_p[B_IDX] = w_p[B_Q]
 pq[B_IDX] = pq[B_Q]
@@ -750,6 +769,21 @@ for i in sorted(fy, reverse=True):
     if fy[i] - ref_ > 0.35 * dEm:
         kinn_z = stufen[i + 1]; break
 log("Kinn %.1f mm unter der Lippenlinie" % ((MCz - kinn_z) / MM))
+# Hals unter dem Kinn: vom Porträt nicht gesehen, Form-Textur dort fleckig -> als Schatten abdunkeln (weich)
+unterkinn = (1.0 - sm(dv[:, 2], kinn_z - 0.2 * dEm, kinn_z + 0.25 * dEm)) * (1.0 - sm(np.abs(dv[:, 0]), 0.9 * dEm, 1.4 * dEm)) * ~ist_beutel
+unterkinn *= (1.0 - sm(dv[:, 2], 0, 0) * 0) * sm(kinn_z - dv[:, 2], -0.25 * dEm, 0.2 * dEm) * (1.0 - sm(kinn_z - dv[:, 2], 1.0 * dEm, 1.6 * dEm))
+farbe *= (1.0 - float(a.get("halsdunkel", 0.45)) * unterkinn * (1.0 - np.clip(w_p, 0, 1)))[:, None]
+# Nasenflügel-Innenseiten, die das Porträt nicht sieht: Form-Textur dort zu hell -> abdunkeln
+if a.get("nasedebug"):
+    _pc = bilinear(PB, pq[:, 0], pq[:, 1]); _mix = acol * (1 - np.clip(w_p, 0, 1))[:, None] + _pc * np.clip(w_p, 0, 1)[:, None]
+    _nn = np.where((nah_nase > 0.3) & ~ist_beutel)[0]
+    _hell = _nn[np.argsort(-(_mix[_nn] @ np.array([0.3, 0.55, 0.15])))][:12]
+    for _i in _hell:
+        log("NASE v%d xyz %s wp %.2f sicht %.0f cosw %.2f n %s acol %s pcol %s" % (_i, np.round((dv[_i] - nase_n) / MM, 1), w_p[_i], sicht[_i], cosw[_i], np.round(nvn[_i], 2), np.round(acol[_i], 2), np.round(_pc[_i], 2)))
+# zusätzlich: Flächen an der Nase, die vom Porträt weg zeigen (Flügelränder, Unterseite), wie Schatten abdunkeln
+nf = nah_nase * (dv[:, 2] < nase_n[2] + 0.1 * dEm) * np.maximum(1.0 - np.clip(w_p, 0, 1), 1.0 - sm(cosw, 0.15, 0.55))
+farbe *= (1.0 - float(a.get("nasedunkel", 0.0)) * nf)[:, None]
+ca.data.foreach_set("color", np.hstack([farbe, w_p[:, None]]).astype(np.float32).ravel())
 unter_tief = -s_m          # > 0 unterhalb der Lippenlinie (in Halbbreiten)
 f_nah = 1.0 - sm(np.abs(t_m), 0.45, 1.05)                    # nahe der Linie: Linse, Ecken bleiben
 f_fern = 1.0 - sm(x_rel, 0.8 * dEm, 1.25 * dEm)               # weiter unten: ganzer Unterkiefer

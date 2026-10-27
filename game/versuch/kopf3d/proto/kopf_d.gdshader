@@ -12,8 +12,8 @@ uniform float blink : hint_range(0.0, 1.0) = 0.0;
 uniform vec2 blick = vec2(0.0);            // Verschiebung der Iris im Porträtraum (UV-Einheiten)
 uniform vec3 achse_u = vec3(1.0, 0.0, 0.0); // Bildachsen des Porträts im Modellraum
 uniform vec3 achse_v = vec3(0.0, -1.0, 0.0);
-uniform float woelbung : hint_range(0.0, 2.0) = 0.7;
-uniform float glanz : hint_range(0.0, 4.0) = 1.4;
+uniform float woelbung : hint_range(0.0, 2.0) = 0.4;
+uniform float glanz : hint_range(0.0, 4.0) = 0.35;
 uniform float wrap : hint_range(0.0, 1.0) = 0.5;
 uniform float licht_anteil : hint_range(0.0, 1.0) = 0.55;
 uniform float emission_anteil : hint_range(0.0, 1.0) = 0.45;
@@ -29,13 +29,14 @@ void fragment() {
 	ALBEDO = c;
 	EMISSION = c * emission_anteil;
 	float auge = m.r * (1.0 - smoothstep(0.2, 0.6, blink)) * step(0.5, COLOR.a);
-	v_auge = auge;
+	float kern = m.g * (1.0 - smoothstep(0.2, 0.6, blink)) * step(0.5, COLOR.a);
+	v_auge = kern;
 	vec2 lage = m.ba * 2.0 - 1.0;
 	vec3 aus = achse_u * lage.x + achse_v * lage.y;
 	vec3 aus_v = (VIEW_MATRIX * MODEL_MATRIX * vec4(aus, 0.0)).xyz;
 	NORMAL = normalize(NORMAL + aus_v * woelbung * auge);
-	ROUGHNESS = mix(0.75, 0.15, auge);
-	SPECULAR = mix(0.2, 0.6, auge);
+	ROUGHNESS = mix(0.75, 0.4, auge);
+	SPECULAR = mix(0.2, 0.25, auge);
 	RIM = 0.2;
 	RIM_TINT = 0.5;
 }
@@ -46,7 +47,7 @@ void light() {
 	DIFFUSE_LIGHT += ALBEDO * LIGHT_COLOR * ATTENUATION * weich * licht_anteil / PI;
 	if (v_auge > 0.01) {
 		vec3 h = normalize(LIGHT + VIEW);
-		float s = pow(max(dot(NORMAL, h), 0.0), 220.0);
+		float s = pow(max(dot(NORMAL, h), 0.0), 400.0);
 		SPECULAR_LIGHT += LIGHT_COLOR * ATTENUATION * s * v_auge * glanz;
 	}
 }
