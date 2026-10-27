@@ -70,13 +70,13 @@ public partial class Stadtansicht
                 if (p.Quelle == q) { stand = p.Stand; break; }
 
             var grund = new Vector3(ort.X, FussHoehe(ort.X, ort.Z) + 0.07f, ort.Z);
-            var durchmesser = licht * 0.75f * Mathf.Pow(mass, 0.6f);
+            var durchmesser = licht * 0.4f * Mathf.Pow(mass, 0.6f);
             var boden = new Transform3D(Basis.FromScale(new Vector3(durchmesser, 1, durchmesser)), grund);
             _fleckBodenViele!.SetInstanceTransform(n, boden);
-            _fleckBodenViele.SetInstanceColor(n, new Color(farbe.R, farbe.G, farbe.B, 0.34f * tag * flackern * (1 - 0.85f * stand)));
-            var schein = (q.Art == Lichtart.Feuerkorb ? 1.6f : q.Art == Lichtart.EwigesLicht ? 0.7f : 1.0f) * Mathf.Pow(mass, 0.8f);
+            _fleckBodenViele.SetInstanceColor(n, new Color(farbe.R, farbe.G, farbe.B, 1.0f * tag * flackern * (1 - 0.85f * stand)));
+            var schein = (q.Art == Lichtart.Feuerkorb ? 1.0f : q.Art == Lichtart.EwigesLicht ? 0.4f : 0.6f) * Mathf.Pow(mass, 0.8f);
             _fleckScheinViele!.SetInstanceTransform(n, new Transform3D(Basis.FromScale(Vector3.One * schein), ort));
-            _fleckScheinViele.SetInstanceColor(n, new Color(farbe.R, farbe.G, farbe.B, 0.9f * tag * flackern));
+            _fleckScheinViele.SetInstanceColor(n, new Color(farbe.R, farbe.G, farbe.B, 0.45f * tag * flackern));
             n++;
         }
         _fleckBodenViele!.VisibleInstanceCount = n;
