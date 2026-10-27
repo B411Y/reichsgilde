@@ -179,7 +179,15 @@ public abstract class InnenTafel
             zeilen.Add("Zutaten je Stück: " + string.Join(", ", daten.Zutaten.Select(z => $"{z.Value} {z.Key}")));
             var kosten = daten.Zutaten.Sum(z => w.Markt[z.Key].Preis * z.Value);
             zeilen.Add($"Zutaten kosten am Markt {Zahlenformat.Kommazahl(kosten)} {waehrung}");
-            if (preis is { } pr) zeilen.Add($"Ertrag je Stück (Preis minus Zutaten): {Zahlenformat.Kommazahl(pr - kosten)} {waehrung}");
+            if (preis is { } pr && !b.Artdaten.Produkte.Contains(ware)) zeilen.Add($"Ertrag je Stück (Preis minus Zutaten): {Zahlenformat.Kommazahl(pr - kosten)} {waehrung}");
+        }
+        if (b.Artdaten.Produkte.Contains(ware) && b.IstWerkstatt)
+        {
+            var r = Kalkulation.GewinnJeStueck(w, b, ware);
+            string G(double x) => Zahlenformat.Kommazahl(x);
+            zeilen.Add($"Gewinn je Stück: {G(r.Gewinn)} {waehrung}");
+            zeilen.Add($"  Preis {G(r.Preis)} − Steuer {G(r.Steuer)} − Zutaten {G(r.Zutaten)} − Lohn {G(r.Lohn)} − Unterhalt {G(r.Unterhalt)}");
+            if (b.Belegt == 0) zeilen.Add("  (ohne Personal: gerechnet mit einem Gesellen)");
         }
         return string.Join("\n", zeilen);
     }
