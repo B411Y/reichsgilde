@@ -43,6 +43,7 @@ namespace Reichsgilde;
 ///   --verwalten=1      die Kurzübersicht der eigenen Werkstatt gleich öffnen (=mehr: mit „…“ aufgeklappt)
 ///   --wohnhaus=haus    die Tafel des Wohnhauses gleich öffnen (Reiter haus, familie, handwerk, geld, hinterzimmer)
 ///   --hilfe=1          gleich zu Beginn die Hilfe zeigen
+///   --lexikon=1        das Lexikon öffnen (=<kennung>: gleich bei diesem Begriff, =suche:<text>: mit diesem Suchtext); --lexikon-pruefen=1 prüft die Datei und beendet das Spiel
 ///   --meldung=⚠_Text   eine Meldung unten links einstellen (zum Testen; Leerzeichen als _, mit ✗ oder ⚠ eine Warnung)
 ///   --karren=Ochsenkarren,Kriegskarren  der eigenen Gießerei gleich diese Karren dazukaufen (mit --vermoegen=5000; Handkarren, Ochsenkarren, Kriegskarren)
 ///   --schiff=1         am ersten Hafen gleich so viele Flussschiffe kaufen (mit --vermoegen=10000)
@@ -96,6 +97,7 @@ public partial class Hauptszene : Node
     private Stadtansicht _stadt = null!;
     private WohnhausAnzeige _wohnhaus = null!;
     private BerichtAnzeige _berichtTafel = null!;
+    private LexikonAnzeige _lexikon = null!;
     private HafenAnzeige _hafenTafel = null!;
     /// <summary>Den Jahresbericht hat der Spieler selbst geöffnet (Tafel „Bericht“): Beim Schließen bleibt die Pause, wie sie vorher war.</summary>
     private bool? _pauseVorBericht;
@@ -225,10 +227,17 @@ public partial class Hauptszene : Node
         Rollbereich.RechtsAnheften(_auswahl);
         RaumleisteBauen();
         HilfeBauen();
+        _lexikon = new LexikonAnzeige(); // das Lexikon in der Bildmitte (Taste L, Knopf in der Betriebsleiste)
+        GetNode<CanvasLayer>("Oberflaeche").AddChild(_lexikon);
         LeerstandKnoepfeBauen();
 
         RatssitzungBauen(); // die Tafel der sichtbaren Ratssitzung (Hauptszene.Ratssitzung.cs) – vor der Partie, die sich mit ihr verbindet
         var optionen = Startoptionen();
+        if (optionen.GetValueOrDefault("lexikon-pruefen") == "1")
+        {
+            GetTree().Quit(Lexikon.PruefenUndMelden() ? 0 : 1); // nur die Datei prüfen (Test), kein Spiel
+            return;
+        }
         _simulation = SimulationAufbauen(optionen);
         SpielmenueBauen();
         _ratKnopf.Pressed += RatOeffnen;
@@ -494,6 +503,11 @@ public partial class Hauptszene : Node
             _jahresbericht.Zeigen(_simulation, _spieler);
         else if (bericht is not null && !int.TryParse(bericht, out _) && Enum.TryParse<BerichtAnzeige.Reiter>(bericht, true, out var berichtReiter))
             BerichtOeffnen(berichtReiter);
+        if (optionen.TryGetValue("lexikon", out var lexikonWahl))
+        {
+            _lexikon.Oeffnen(lexikonWahl == "1" || lexikonWahl.StartsWith("suche:") ? "" : lexikonWahl);
+            if (lexikonWahl.StartsWith("suche:")) _lexikon.Suchen(lexikonWahl[6..].Replace('_', ' '));
+        }
         if (optionen.TryGetValue("meldung", out var testMeldung)) Protokollieren(testMeldung.Replace('_', ' '));
         // Die Hilfe: auf Wunsch (--hilfe=1) und beim allerersten Spiel einmal von selbst – nicht bei Startoptionen (Klicktests sollen gleiche Bilder liefern).
         if (optionen.GetValueOrDefault("hilfe") == "1" || (!Fenster.HilfeGesehen && OS.GetCmdlineUserArgs().Length == 0))
@@ -941,6 +955,7 @@ public partial class Hauptszene : Node
 
         _wohnhaus.Verbinden(simulation, spieler);
         _berichtTafel.Verbinden(simulation, spieler);
+        Lexikon.Verbinden(w); // die Live-Zahlen des Lexikons kommen aus dieser Partie
         _hafenTafel.Verbinden(simulation, spieler);
         _ratskammer.Verbinden(simulation, spieler);
         _rathausTafel.Verbinden(simulation, spieler);
@@ -1035,6 +1050,8 @@ public partial class Hauptszene : Node
             if (_jahresbericht.Visible) { /* der Bericht wird mit „Weiter" geschlossen */ }
             else if (_hilfe.Visible)
                 HilfeSchliessen();
+            else if (_lexikon.Visible)
+                _lexikon.Schliessen();
             else if (_bauFrage.Visible)
                 _bauFrage.Zurueck();
             else if (_bau.Aktiv)
@@ -1107,6 +1124,10 @@ public partial class Hauptszene : Node
             case Key.M when ohneZusatz && imSpiel:
                 if (_markt.Visible) _markt.Hide();
                 else MarktOeffnen();
+                break;
+            case Key.L when ohneZusatz && imSpiel:
+                if (_lexikon.Visible) _lexikon.Schliessen();
+                else _lexikon.Oeffnen();
                 break;
             case Key.B when ohneZusatz && imSpiel:
                 if (_bau.Aktiv) _bau.Schliessen();
