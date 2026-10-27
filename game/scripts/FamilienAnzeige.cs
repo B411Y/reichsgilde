@@ -87,8 +87,32 @@ public partial class FamilienAnzeige : PanelContainer
         Aufbauen();
     }
 
-    private Label Text(Container eltern, string text, int groesse, Color? farbe = null, bool umbrechen = false) =>
-        Hauptmenue.Text(eltern, text, groesse, farbe, umbruchBreite: umbrechen ? Breite - 50 : 0);
+    private Label Text(Container eltern, string text, int groesse, Color? farbe = null, bool umbrechen = false)
+    {
+        var label = Hauptmenue.Text(eltern, text, groesse, farbe, umbruchBreite: umbrechen ? Breite - 50 : 0);
+        if (label.TooltipText == "") label.TooltipText = Erklaerung(text);
+        return label;
+    }
+
+    /// <summary>Kurze Erklärung zu einer Zeile der Familientafel, nach ihrem Anfang gewählt (Tooltip).</summary>
+    private static string Erklaerung(string t) =>
+        t.StartsWith("Chance auf ein Kind") ? "Die Chance hängt von Alter und Gesundheit der Eltern ab; am Jahresende wird gewürfelt."
+        : t.StartsWith("Haushalt und Unterhalt") ? "Kosten für Familie, Gesinde und Haushalt; sie werden am Jahresende abgerechnet."
+        : t.StartsWith("Kinder") ? "Die Kinder des Hauses: Alter, Ausbildung und Stärken; eines wird Erbe."
+        : t.StartsWith("Ahnen") ? "Frühere Oberhäupter des Hauses."
+        : t.StartsWith("Familienchronik") || t.StartsWith("• ") ? "Was in der Familie geschah, nach Jahren geordnet."
+        : t.StartsWith("Gesundheit") ? "Krankheiten im Haus; in Pestjahren droht der Tod. Hausapotheke und Kräuterschnaps helfen."
+        : t.StartsWith("Hausapotheke") ? "Vorrat an Heilmitteln im Haus; jede Behandlung verbraucht einen."
+        : t.StartsWith("Alle im Haus sind gesund") ? "Niemand ist krank."
+        : t.StartsWith("Üben") ? "Üben bringt einem Familienmitglied Sterne in einem Talent, kostet aber Aktionspunkte."
+        : t.StartsWith("Lehrschrift") ? "Eine Lehrschrift aus der Stadt bringt einen Stern im Talent."
+        : t.StartsWith("· wirkt bis") ? "Wirkt bis zum angegebenen Jahresende."
+        : t.StartsWith("Geschenk je Klick") ? "Betrag, den ein Geschenk an Kandidat oder Familie kostet."
+        : t.StartsWith("Brautschau") ? "Heiratskandidaten der Stadt: Werbung kostet Geld und Aktionspunkte, Zuneigung wächst mit Geschenken."
+        : t.StartsWith("Talente") ? "Talente beeinflussen Führung, Handel, Handwerk und mehr."
+        : t.StartsWith("Ledig") ? "Ohne Ehepartner gibt es keine Kinder; die Brautschau unten hilft."
+        : t.Contains(" Jahre") && t.Contains(" – ") ? "Name, Volk, Alter und Verfassung der Person."
+        : "";
 
     /// <summary>Baut den Inhalt neu auf – beim Öffnen, nach jedem Befehl und zum Jahreswechsel.</summary>
     public void Aufbauen()

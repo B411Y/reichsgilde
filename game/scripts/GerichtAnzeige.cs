@@ -85,8 +85,26 @@ public partial class GerichtAnzeige : PanelContainer
         Aufbauen();
     }
 
-    private Label Text(Container eltern, string text, int groesse, Color? farbe = null, bool umbrechen = false) =>
-        Hauptmenue.Text(eltern, text, groesse, farbe, umbruchBreite: umbrechen ? Breite - 50 : 0);
+    private Label Text(Container eltern, string text, int groesse, Color? farbe = null, bool umbrechen = false)
+    {
+        var label = Hauptmenue.Text(eltern, text, groesse, farbe, umbruchBreite: umbrechen ? Breite - 50 : 0);
+        if (label.TooltipText == "") label.TooltipText = Erklaerung(text);
+        return label;
+    }
+
+    /// <summary>Kurze Erklärung zu einer Zeile des Gerichts, nach ihrem Anfang gewählt (Tooltip).</summary>
+    private static string Erklaerung(string t) =>
+        t.StartsWith("Laufende Verfahren") ? "Anklagen, über die am Gerichtstag am Jahresende entschieden wird."
+        : t.Contains(" gegen ") && t.Contains(" wegen ") ? "Anklage mit den Beweisen, die der Anklage zugrunde liegen."
+        : t.StartsWith("   ") && t.Contains("→") ? "Die Richter geben ihre Stimme nach Überzeugung ab; die Mehrheit entscheidet."
+        : t.StartsWith("Euer Ruf vor Gericht") ? "Was über euer Haus bekannt ist: Spuren, die ein Spitzel oder Zeugen hinterlassen haben."
+        : t.StartsWith("Ablass") ? "Mit Ablass kauft ihr bei der Kirche die Spur einer Tat frei, soweit sie davon weiß."
+        : t.StartsWith("Letzter Gerichtstag") ? "Was am letzten Gerichtstag entschieden wurde."
+        : t.StartsWith("Als Stadtrichter") || t.StartsWith("   Als Stadtrichter") ? "Der Stadtrichter darf die Buße im Vorsitz innerhalb einer Spanne anheben oder senken."
+        : t.StartsWith("   • ") ? "Ein einzelner Beweis gegen das Haus."
+        : t.StartsWith("Geschenk je Klick") ? "Geschenke an Richter sind Bestechung und hinterlassen eine neue Spur."
+        : t.StartsWith("· Spitzel") ? "Ein Spitzel sammelt Beweise für den nächsten Gerichtstag."
+        : "";
 
     private Button Knopf(Container eltern, string text, Action aktion, bool gesperrt = false, string? hinweis = null, Befehl? ap = null)
     {

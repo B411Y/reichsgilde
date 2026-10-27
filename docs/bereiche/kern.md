@@ -35,6 +35,7 @@ So wird eingetragen (damit sich die Chats nie an derselben Stelle treffen):
 - (Spiel-KI) Die KI verkauft öfter ungenutzte Karren: 45 nach einem Jahr ohne Fahrt in 1.320 Partien (Messung 5: 3) – vermutlich gepachtete Umlandbetriebe wie der Wachturm, nicht untersucht
 - (Balancing) Statisch (Startpreise) außerhalb ±15 %, simuliert im Band: Dieb +19 / +31 / +31 % (die Rechnung kennt Fang und Gericht nicht), Parfumeur +21 / +17 / +16 %, Gardist −26 / −26 / −22 % (ohne Geleit- und Kopfgeld), Wirt ab Stufe 2 −19 / −26 % (Messung 6)
 - (Balancing) Völker streuen stärker als ihr Bonus: Schmied Zwerg +31 %, Elb +25 % (ohne Bonus), Halbling −1 %; Parfumeur Zwerg −13 %, Elb +14 %, Halbling −10 % (Messung 6; Fehler des Mittels beim Menschen-Schmied ±1.245, ein guter Teil ist Streuung)
+- (von Oberfläche an Kern) Abfragen für Tooltips: Lohn je Arbeiter im Jahr (heute nur der Grundlohn `Wirtschaftsdaten.Lohn`) und der Gewinn je Stück nach Lohn und Unterhalt (heute nur Marktpreis minus Zutaten). Die Tafeln zeigen das erst, wenn der Kern es liefert.
 
 ## Entscheidungen
 

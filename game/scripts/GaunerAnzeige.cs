@@ -88,8 +88,30 @@ public partial class GaunerAnzeige : PanelContainer
         Aufbauen();
     }
 
-    private Label Text(Container eltern, string text, int groesse, Color? farbe = null, bool umbrechen = false) =>
-        Hauptmenue.Text(eltern, text, groesse, farbe, umbruchBreite: umbrechen ? Breite - 50 : 0);
+    private Label Text(Container eltern, string text, int groesse, Color? farbe = null, bool umbrechen = false)
+    {
+        var label = Hauptmenue.Text(eltern, text, groesse, farbe, umbruchBreite: umbrechen ? Breite - 50 : 0);
+        if (label.TooltipText == "") label.TooltipText = Erklaerung(text);
+        return label;
+    }
+
+    /// <summary>Kurze Erklärung zu einer Zeile des Hinterzimmers, nach ihrem Anfang gewählt (Tooltip).</summary>
+    private static string Erklaerung(string t) =>
+        t.StartsWith("Erpresserbrief") ? "Jemand droht mit einer Anklage. Zahlen, bestreiten oder dem Gericht stellen sind möglich; Beweise machen die Drohung ernst."
+        : t.StartsWith("Lösegeld") || t.StartsWith("Zahlt ihr nicht bis") ? "Eine Angehörige wurde entführt. Wer nicht zahlt, verliert sie bis zum Jahresende an Sklavenhändler."
+        : t.StartsWith("Schutzgeld") || t.StartsWith("Zahlt ihr nicht, legen") ? "Eine Bande verlangt Schutzgeld. Wer nicht zahlt, riskiert Brandstiftung an einem Betrieb."
+        : t.StartsWith("Eure Leute ·") ? "Das Versteck eurer Gauner: Stufe und Besetzung bestimmen, wie viele Aufträge je Nacht möglich sind."
+        : t.StartsWith("Noch ") ? "Aufträge, die in dieser Nacht noch ohne Zusatzkosten möglich sind."
+        : t.StartsWith("• heute Nacht") ? "Dieser Auftrag wird heute um 20 Uhr ausgeführt."
+        : t.StartsWith("   Diebstahl") || t.StartsWith("   Einbruch") || t.StartsWith("   Chance") ? "Erfolgschance und erwartete Beute des Auftrags; Wächter und Einrichtung des Ziels senken sie."
+        : t.StartsWith("   Wegelagerer") ? "Wegelagerer lauern der nächsten beladenen Fahrt im Umland auf."
+        : t.StartsWith("·") ? "Für diese Nacht bestellt."
+        : t.Contains(" · ") && t.Contains("Gulden") ? "Haus mit Stand und Reinvermögen: ein mögliches Ziel eurer Gauner."
+        : t.StartsWith("Wohnhaus:") ? "Das Wohnhaus als Ziel: Einbruch und Brandstiftung sind möglich, ein Hauswächter halbiert die Chance."
+        : t.StartsWith("Karren im Umland") ? "Karren im Umland können Wegelagerer überfallen."
+        : t.StartsWith("Dolch") ? "Ein Dolch gegen ein Oberhaupt: schwerste Tat, hohe Strafe, wenn sie auffliegt."
+        : t.StartsWith("Entführung") ? "Eine Angehörige des Zielhauses entführen und Lösegeld fordern."
+        : "";
 
     private void Knopf(Container eltern, string text, Action aktion, bool gesperrt = false, string? hinweis = null, Befehl? ap = null)
     {
