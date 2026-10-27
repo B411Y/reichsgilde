@@ -275,6 +275,7 @@ public partial class WohnhausAnzeige : PanelContainer
 
         // Haus
         Setzen(_standZeile, StandText(w, _spieler));
+        _standZeile.TooltipText = "Euer Stand in der Stadt. Er hängt von Vermögen, Wohnhaus und Meistergraden ab und bestimmt Ämter und Steuern; der Aufstieg geschieht im Rathaus.";
         WohnhausAktualisieren(w, waehrung);
         _apZeile.Visible = w.HatAktionspunkte;
         if (w.Daten.Aktionspunkte is { } ap)
@@ -290,6 +291,7 @@ public partial class WohnhausAnzeige : PanelContainer
 
         // Familie, Handwerk, Geld, Hinterzimmer
         Setzen(_familienZeile, FamilienText(w, _spieler));
+        _familienZeile.TooltipText = "Eure Familie: Oberhaupt, Ehepartner und Kinder. Mehr in der Familientafel.";
         BerufZeileAktualisieren(w);
         MeisterAktualisieren(w);
         Setzen(_vermoegen, $"{Zahlenformat.Ganz(_spieler.Vermoegen)} {waehrung}" + (MitReinvermoegen(_spieler) ? " bar" : ""));

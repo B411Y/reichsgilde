@@ -102,6 +102,8 @@ public partial class Hauptszene : Node
     /// <summary>Den Jahresbericht hat der Spieler selbst geöffnet (Tafel „Bericht“): Beim Schließen bleibt die Pause, wie sie vorher war.</summary>
     private bool? _pauseVorBericht;
     private PanelContainer _auswahl = null!;
+    private Fensterrahmen _auswahlRahmen = null!;
+    private ulong _auswahlKlickBild = ulong.MaxValue; // Bild, in dem ein Klick in die Welt die Auswahl an die Maus gesetzt hat
     private Label _auswahlText = null!;
     private WappenBild _auswahlWappen = null!;
     private Button _innenKnopf = null!;
@@ -225,7 +227,9 @@ public partial class Hauptszene : Node
         });
         Rollbereich.Einhuellen(_auswahl);
         Rollbereich.RechtsAnheften(_auswahl);
-        Fensterrahmen.Anmelden(_auswahl, "Auswahl", AuswahlSchliessen).FuerEsc = false; // Esc schließt sie erst nach der Innenansicht (siehe _UnhandledInput)
+        _auswahlRahmen = Fensterrahmen.Anmelden(_auswahl, "Auswahl", AuswahlSchliessen);
+        _auswahlRahmen.LageMerken = false; // sie erscheint an der Maus, nicht an einer gemerkten Stelle
+        _auswahlRahmen.FuerEsc = false; // Esc schließt sie erst nach der Innenansicht (siehe _UnhandledInput)
         RaumleisteBauen();
         HilfeBauen();
         _lexikon = new LexikonAnzeige(); // das Lexikon in der Bildmitte (Taste L, Knopf in der Betriebsleiste)
@@ -307,6 +311,7 @@ public partial class Hauptszene : Node
                 knopf.AddThemeColorOverride("font_color", new Color(1f, 0.6f, 0.25f));
                 knopf.TooltipText = "Nur zum Testen – wird vor der Veröffentlichung entfernt";
             }
+            else knopf.TooltipText = $"Spielgeschwindigkeit {tempo}-fach (Zifferntasten wählen die Stufen, Leertaste pausiert)";
             _tempoleiste.AddChild(knopf);
             _tempoKnoepfe.Add(knopf);
         }
@@ -359,6 +364,10 @@ public partial class Hauptszene : Node
             if (HafenAngeklickt(kennung)) return; // Hafen, Kran, Schuppen oder eigenes Schiff: die Hafentafel (Hauptszene.Hafen.cs)
             RechtsSchliessen();
             _auswahlKennung = kennung;
+            // Wie ein Tooltip: unten rechts neben dem Zeiger (am Rand nach links bzw. oben), bis der Spieler sie zieht
+            var klickort = GetViewport().GetMousePosition();
+            _auswahlRahmen.PlatzSetzen((groesse, sichtbar) => Tooltips.Lage(klickort, groesse, sichtbar));
+            _auswahlKlickBild = Engine.GetProcessFrames();
             AuswahlAnzeigen();
             if (kennung == "Marktplatz") MarktOeffnen(); // wie im Original: ein Klick auf den Markt öffnet die Preistafel
         };
@@ -1332,7 +1341,13 @@ public partial class Hauptszene : Node
         if (_auswahl.Visible != (AuswahlImRaum && RechtsFrei))
         {
             _auswahl.Visible = AuswahlImRaum && RechtsFrei;
-            if (_auswahl.Visible) Rollbereich.RechtsAnheften(_auswahl);
+            if (_auswahl.Visible)
+            {
+                Rollbereich.RechtsAnheften(_auswahl);
+                // Ohne Klick in die Welt (Taste, Leiste, Kopfzeile) steht sie wie früher rechts am Rand
+                if (_auswahlKlickBild != Engine.GetProcessFrames())
+                    _auswahlRahmen.PlatzSetzen((groesse, sichtbar) => new Vector2(sichtbar.X - groesse.X - 16, Rollbereich.KopfHoehe));
+            }
         }
     }
 

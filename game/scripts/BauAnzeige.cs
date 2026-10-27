@@ -158,7 +158,7 @@ public partial class BauAnzeige : PanelContainer
     {
         var waehrung = w.Daten.Allgemein.Waehrung;
         Hauptmenue.Text(_inhalt, "Bauen", 22, Gold, zentriert: true);
-        Hauptmenue.Text(_inhalt, $"Vermögen: {Zahlenformat.Ganz(_spieler!.Vermoegen)} {waehrung}", 15, Hell);
+        Hauptmenue.Text(_inhalt, $"Vermögen: {Zahlenformat.Ganz(_spieler!.Vermoegen)} {waehrung}", 15, Hell).TooltipText = "Euer Bargeld: Bauen kostet sofort, die Baustelle braucht dann Zeit.";
         Hauptmenue.Text(_inhalt, "Wählt ein Gebäude, dann zeigt ein Umriss an der Maus, wo es steht. Gebaut wird nur in den farbigen Bauzonen und auf Bauplätzen – am Raster von 2 m, mit der Vorderseite an einer Straße.",
             13, Grau, umbruchBreite: Breite);
 
@@ -170,7 +170,10 @@ public partial class BauAnzeige : PanelContainer
         {
             var punkt = new ColorRect { Color = Stadtansicht.LageFarbe(lage), CustomMinimumSize = new Vector2(14, 14), SizeFlagsVertical = SizeFlags.ShrinkCenter };
             legende.AddChild(punkt);
-            Hauptmenue.Text(legende, Stadtansicht.LageName(lage), 13, Hell);
+            var lageTipp = $"Bauzone {Stadtansicht.LageName(lage)}: In dieser Farbe sind Bauplätze auf der Karte markiert; die Lage bestimmt Preis und Kundschaft.";
+            punkt.TooltipText = lageTipp;
+            punkt.MouseFilter = MouseFilterEnum.Pass;
+            Hauptmenue.Text(legende, Stadtansicht.LageName(lage), 13, Hell).TooltipText = lageTipp;
         }
 
         string? gruppe = null;

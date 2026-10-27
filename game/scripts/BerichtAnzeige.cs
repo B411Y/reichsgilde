@@ -184,7 +184,8 @@ public partial class BerichtAnzeige : PanelContainer
             name.TooltipText = k.Inhaber;
             var zustand = k.IstBankrott ? "bankrott" : k.IstErloschen ? "erloschen"
                 : $"{Zahlenformat.Ganz(k.Reinvermoegen)} {waehrung} · {w.StandVon(k).Name} · {w.Betriebe.Count(b => b.Konto == k)} Betriebe";
-            Hauptmenue.Text(text, zustand, 13, k.IstAktiv ? null : Grau, umbruchBreite: Breite - 80);
+            Hauptmenue.Text(text, zustand, 13, k.IstAktiv ? null : Grau, umbruchBreite: Breite - 80).TooltipText =
+                $"{k.Inhaber}: Reinvermögen {Zahlenformat.Ganz(k.Reinvermoegen)} {waehrung}, Stand {w.StandVon(k).Name}, {w.Betriebe.Count(b => b.Konto == k)} Betriebe. Ein Rivale spielt nach denselben Regeln wie ihr.";
             if (w.Rivalen.FirstOrDefault(r => r.Konto == k) is { Entscheidungen.Count: > 0 } ki)
                 Hauptmenue.Text(text, "Letzter Zug: " + ki.Entscheidungen[0].Replace($"{k.Inhaber}: ", ""), 12, Grau, umbruchBreite: Breite - 80);
         }
@@ -197,10 +198,11 @@ public partial class BerichtAnzeige : PanelContainer
         Hauptmenue.Text(_umsaetze, "Dieses Jahr bisher (Löhne und Unterhalt erst am Jahresende) · Vorjahr", 12, Grau, umbruchBreite: Breite);
         foreach (var b in eigene)
         {
-            Hauptmenue.Text(_umsaetze, $"{b.Name} ({b.Artdaten.Name})", 15, Gold);
+            Hauptmenue.Text(_umsaetze, $"{b.Name} ({b.Artdaten.Name})", 15, Gold).TooltipText = $"{b.Name}: {b.Belegt}/{b.Plaetze} Arbeitsplätze besetzt, Hauptware {b.Produkt}.";
             var vorjahr = b.Vorjahr is { } v ? $" · Vorjahr Gewinn {Zahlenformat.MitVorzeichen(v.Gewinn)}" : "";
             Hauptmenue.Text(_umsaetze, $"Umsatz {Zahlenformat.Ganz(b.Laufend.Umsatz)} · Gewinn bisher {Zahlenformat.MitVorzeichen(b.Laufend.Gewinn)} {waehrung}{vorjahr}",
-                            13, b.Laufend.Gewinn < 0 ? Rot : null, umbruchBreite: Breite);
+                            13, b.Laufend.Gewinn < 0 ? Rot : null, umbruchBreite: Breite).TooltipText =
+                "Umsatz und Gewinn des laufenden Jahres. Löhne und Unterhalt werden erst am Jahresende abgerechnet, bis dahin sieht der Gewinn besser aus, als er wird.";
         }
     }
 
@@ -208,6 +210,6 @@ public partial class BerichtAnzeige : PanelContainer
     {
         if (meldungen.Count == 0) Hauptmenue.Text(_protokoll, "Noch keine Meldungen in diesem Jahr.", 13, Grau);
         foreach (var (zeit, text, warnung) in meldungen.Take(200))
-            Hauptmenue.Text(_protokoll, $"{zeit}  {text}", 13, warnung ? Rot : null, umbruchBreite: Breite);
+            Hauptmenue.Text(_protokoll, $"{zeit}  {text}", 13, warnung ? Rot : null, umbruchBreite: Breite).TooltipText = warnung ? "Warnung: Hier braucht ein Betrieb oder das Haus eure Aufmerksamkeit." : "Meldung des Jahres mit der Uhrzeit, zu der sie geschah.";
     }
 }

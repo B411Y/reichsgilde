@@ -114,8 +114,10 @@ public partial class RatAnzeige : PanelContainer
         raster.AddThemeConstantOverride("h_separation", 14);
         raster.AddThemeConstantOverride("v_separation", 4);
         _inhalt.AddChild(raster);
+        var kopfTipps = new[] { "", "Rang des Amtes: höhere Ämter entscheiden mehr.", "Das Amt mit seinem Einkommen im Jahr.", "Wer das Amt innehat: ein Haus (Wappen) oder ein Ratsherr.", "Wofür ein Ratsherr eintritt; danach stimmt er bei Anträgen.", "Wie gewogen euch der Ratsherr ist. Geschenke erhöhen die Gunst, sie zählt bei Wahlen und Anträgen.", "" };
+        var kopfNr = 0;
         foreach (var kopf in new[] { "", "Stufe", "Amt", "Inhaber", "Haltung", "Eure Gunst", "" })
-            Hauptmenue.Text(raster, kopf, 12, Grau);
+            Hauptmenue.Text(raster, kopf, 12, Grau).TooltipText = kopfTipps[kopfNr++];
         foreach (var amt in rat.Aemter)
         {
             var eigenes = amt.Konto == _spieler;
@@ -123,8 +125,8 @@ public partial class RatAnzeige : PanelContainer
             var bild = PortraetAnzeige.Neu(PortraetAnzeige.Klein); // der Inhaber (PR #211)
             if (bild.ZeigenAmt(w, amt)) raster.AddChild(bild);
             else raster.AddChild(new Control { CustomMinimumSize = new Vector2(PortraetAnzeige.Klein, PortraetAnzeige.Klein) }); // freier Sitz
-            Hauptmenue.Text(raster, amt.Stufe.ToString(), 14, farbe);
-            Hauptmenue.Text(raster, $"{amt.Name} ({Zahlenformat.Ganz(amt.Daten.Einkommen)} {waehrung}/Jahr)", 14, farbe);
+            Hauptmenue.Text(raster, amt.Stufe.ToString(), 14, farbe).TooltipText = $"Stufe {amt.Stufe} der Ämter.";
+            Hauptmenue.Text(raster, $"{amt.Name} ({Zahlenformat.Ganz(amt.Daten.Einkommen)} {waehrung}/Jahr)", 14, farbe).TooltipText = $"{amt.Name}: Einkommen {Zahlenformat.Ganz(amt.Daten.Einkommen)} {waehrung} im Jahr.";
             var glaube = !w.Glaube.IstAktiv ? null : amt.Ratsherr is { } rg ? w.Glaube.GlaubeVon(rg) : amt.Konto is { } hk ? w.Glaube.GlaubeVon(hk) : null;
             var kurz = glaube switch { Konfession.Katholisch => ", kath.", Konfession.Evangelisch => ", ev.", Konfession.Naturglaube => ", Heide", _ => "" };
             var inhaber = UiHilfe.MitWappen(raster, amt.Ratsherr is null ? amt.Konto?.Wappen : null, (amt.Ratsherr is { } r ? $"{r.Name}, {r.Daten.Volk.Einzahl()}" : amt.Inhaber) + kurz, 14, farbe);
@@ -136,8 +138,8 @@ public partial class RatAnzeige : PanelContainer
             }
             if (amt.Ratsherr is { } ratsherr)
             {
-                Hauptmenue.Text(raster, $"{ratsherr.Haltung.Kuerzel()} – {ratsherr.Haltung.Name()}", 13);
-                Hauptmenue.Text(raster, Zahlenformat.Ganz(rat.Gunst(ratsherr, _spieler)), 14);
+                Hauptmenue.Text(raster, $"{ratsherr.Haltung.Kuerzel()} – {ratsherr.Haltung.Name()}", 13).TooltipText = $"{ratsherr.Name} stimmt nach der Haltung {ratsherr.Haltung.Name()}.";
+                Hauptmenue.Text(raster, Zahlenformat.Ganz(rat.Gunst(ratsherr, _spieler)), 14).TooltipText = $"Eure Gunst bei {ratsherr.Name}: {Zahlenformat.Ganz(rat.Gunst(ratsherr, _spieler))}.";
                 var knoepfe = new HBoxContainer();
                 knoepfe.AddThemeConstantOverride("separation", 4);
                 raster.AddChild(knoepfe);

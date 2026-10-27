@@ -32,11 +32,14 @@ public sealed class PersonalAnzeige : InnenTafel
         else
         {
             var raster = Raster(9);
+            var kopfTipps = new[] { "Art der Arbeitskraft und ihre Nummer im Raum.", "Ware, an der er arbeitet; „(Betrieb)“ heißt: die Hauptware.", "Laune von 0 bis 100: Unter 35 arbeitet er langsamer und kündigt irgendwann. Lohn und Prämie heben sie.", "Arbeitstempo im Vergleich zum Grundtempo.", "Dienstjahre im Betrieb; Gesellen können nach einiger Zeit befördert werden.", "Fehlt er krank oder verletzt, steht hier, wie lange noch.", "", "", "" };
+            var kopfNr = 0;
             foreach (var kopf in new[] { "Arbeiter", "Arbeitet an", "Laune", "Tempo", "Dienst", "Zustand", "", "", "" })
-                Zelle(raster, kopf, 12, Grau);
+                { var k = Zelle(raster, kopf, 12, Grau); if (kopfTipps[kopfNr] != "") Tipp(k, kopfTipps[kopfNr]); kopfNr++; }
             foreach (var z in s.Arbeiterliste(b))
             {
                 var gewaehlteZeile = gewaehlt.Contains(z.Nummer);
+                var ab = raster.GetChildCount();
                 Zelle(raster, (gewaehlteZeile ? "» " : "") + $"{z.Arbeitskraft} Nr. {z.Nummer}", 14, gewaehlteZeile ? Gold : Hell, 130);
                 Zelle(raster, z.Ware + (z.Zugeteilt ? "" : " (Betrieb)"), 13, z.Zugeteilt ? Hell : Grau, 130);
                 Zelle(raster, Zahlenformat.Ganz(z.Laune), 14, z.Laune < 35 ? Rot : z.Laune > 65 ? Gruen : Hell, 40, rechts: true);
@@ -49,6 +52,7 @@ public sealed class PersonalAnzeige : InnenTafel
                     s.PraemieVerboten(b, z.Nummer));
                 Knopf(raster, "Befördern", () => Befehlen(new ArbeiterBefoerdern(b.Name, z.Nummer)), z.BefoerderungVerboten);
                 Knopf(raster, "Entlassen", () => Befehlen(new ArbeiterEntlassen(b.Name, z.Nummer)));
+                ZeileTipp(raster, ab, $"{z.Arbeitskraft} Nr. {z.Nummer}\nArbeitet an: {z.Ware}{(z.Zugeteilt ? "" : " (Hauptware des Betriebs)")}\nLaune {Zahlenformat.Ganz(z.Laune)} · Tempo {Zahlenformat.Ganz(z.TempoFaktor * 100)} % · Dienst {Zahlenformat.Kommazahl(z.Dienstjahre)} Jahre\nGrundlohn {Zahlenformat.Ganz(w.Daten.Lohn(z.Arbeitskraft, b.Art))} {waehrung} (Lohnstufe {b.Lohnstufe.Name()})");
             }
             // Gründe für gesperrte Beförderungen stehen auch hier – ein Hinweis am Knopf allein sieht man leicht nicht
             foreach (var grund in s.Arbeiterliste(b).Where(z => z.Arbeitskraft == s.Daten?.Befoerderung.Von && z.BefoerderungVerboten is not null)

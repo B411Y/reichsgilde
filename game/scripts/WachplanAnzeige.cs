@@ -31,8 +31,14 @@ public sealed class WachplanAnzeige : InnenTafel
             string Nummern(IEnumerable<Wachstand> liste) => string.Join(", ", liste.Select(s => (s.Hauptmann ? "Hauptmann " : "") + "Nr. " + s.Arbeiter.Nummer));
             void Zeile(string titel, string inhalt, Color farbe)
             {
-                Zelle(raster, titel, 14, Grau, 130);
-                Text(raster, inhalt, 14, farbe, 440);
+                var tipp = titel switch
+                {
+                    "Auf Streife" => "Wer gerade die Gassen der Stadt abgeht: Streifen fassen Taschendiebe und schrecken Gauner ab.",
+                    "Beim Geleit" => "Wer einen Karren ins Umland begleitet; je Karren geht einer mit.",
+                    _ => "Wer gerade im Haus ist und womit er die Zeit verbringt. Zum Wachwechsel jede gerade Stunde wird neu eingeteilt.",
+                };
+                Tipp(Zelle(raster, titel, 14, Grau, 130), tipp);
+                Tipp(Text(raster, inhalt, 14, farbe, 440), tipp);
             }
             var streife = stand.Where(s => s.Ort == Wachort.Patrouille).ToList();
             var geleit = stand.Where(s => s.Ort == Wachort.Geleit).ToList();
@@ -45,7 +51,7 @@ public sealed class WachplanAnzeige : InnenTafel
 
         var gefangene = w.Wache.Gefangene(b);
         Inhalt.AddChild(new HSeparator());
-        Text(Inhalt, "Arrestzelle", 16, Gold);
+        Tipp(Text(Inhalt, "Arrestzelle", 16, Gold), "Hier sitzen gefasste Taschendiebe bis zum nächsten Gerichtstag.");
         if (gefangene.Count == 0)
             Text(Inhalt, "Niemand sitzt in der Zelle. Gefasste Taschendiebe kommen hierher, solange das Gericht noch nicht getagt hat.", 13, Grau, 600);
         foreach (var g in gefangene)

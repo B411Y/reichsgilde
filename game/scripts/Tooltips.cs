@@ -8,7 +8,7 @@ namespace Reichsgilde;
 ///   • <b>Festheften:</b> Ein Tooltip zeigt oben rechts einen kleinen Füllkreis. Ist er nach <see cref="Fenster.TooltipFestZeit"/> voll – oder drückt man die
 ///     mittlere Maustaste bzw. T –, wird der Tooltip ein kleines Fenster mit ✕, das stehen bleibt und sich verschieben lässt.
 ///   • <b>Verweise:</b> Im Text steht <c>[[kennung]]</c> oder <c>[[kennung|Anzeigetext]]</c>. Das wird unterstrichen; verweilt die Maus darauf, öffnet sich ein
-///     Tooltip zum Begriff (<see cref="BegriffSuchen"/>), der selbst wieder Verweise haben und festgeheftet werden kann – beliebig tief. Ein Klick heftet gleich fest.
+///     Tooltip zum Begriff (<see cref="BegriffSuchen"/>), der selbst wieder Verweise haben und festgeheftet werden kann – beliebig tief. Ein Klick heftet gleich fest. Das gilt auch in festen Tooltips; der neue Tooltip erscheint neben der Maus und bleibt offen, solange die Maus auf dem Verweis oder in ihm ist.
 ///
 /// Wie es zu den rund 170 vorhandenen <c>TooltipText</c>-Stellen kommt, ohne sie umzubauen: Der eingebaute Tooltip ist in <c>project.godot</c> ausgeschaltet
 /// (<c>gui/timers/tooltip_delay_sec</c> riesig). Dieser Autoload fragt jedes Bild, über welchem Steuerelement die Maus steht
@@ -34,9 +34,9 @@ public partial class Tooltips : Node
     /// <summary>Sekunden, die die Maus auf einem Steuerelement ruhen muss, bis sein Tooltip erscheint (wie der eingebaute Tooltip).</summary>
     private const double Verzoegerung = 0.5;
     /// <summary>Sekunden, die die Maus auf einem Verweis ruhen muss, bis sein Begriff erscheint.</summary>
-    private const double VerweisVerzoegerung = 0.35;
+    private const double VerweisVerzoegerung = 0.2;
     /// <summary>Sekunden, die ein Tooltip nach dem Weggehen der Maus bleibt – so lange braucht die Maus von der Quelle in den Tooltip.</summary>
-    private const double Nachlauf = 0.25;
+    private const double Nachlauf = 0.4;
     private const int MaxBreite = 340;
     private const int Schriftgroesse = 16;
 
@@ -206,7 +206,17 @@ public partial class Tooltips : Node
                     t.Gezogen = false;
             }
             else if (!t.Fest)
-                t.Tafel.GlobalPosition = Lage(t.Anker, t.Tafel.Size, sichtbar);
+                t.Tafel.GlobalPosition = t.Eltern is { } vater && IsInstanceValid(vater.Tafel)
+                    ? LageNebenEltern(t.Anker, t.Tafel.Size, sichtbar, vater.Tafel.GetGlobalRect())
+                    : Lage(t.Anker, t.Tafel.Size, sichtbar);
+
+            // Verweilt die Maus auf einem Verweis, öffnet sich dessen Begriff – auch in einem festen Tooltip
+            if (t.VerweisUnterMaus is { } kennung)
+            {
+                t.VerweisSeit += delta;
+                if (t.VerweisSeit >= VerweisVerzoegerung && !t.Kinder.Any(k => k.Kennung == kennung))
+                    BegriffOeffnen(t, kennung, maus, fest: false);
+            }
 
             if (t.Fest) continue;
 
@@ -224,14 +234,6 @@ public partial class Tooltips : Node
                 t.Fuellung += delta;
                 t.Kreis.QueueRedraw();
                 if (t.Fuellung >= Fenster.TooltipFestZeit) { Festmachen(t); continue; }
-            }
-
-            // Verweilt die Maus auf einem Verweis, öffnet sich dessen Begriff
-            if (t.VerweisUnterMaus is { } kennung)
-            {
-                t.VerweisSeit += delta;
-                if (t.VerweisSeit >= VerweisVerzoegerung && !t.Kinder.Any(k => k.Kennung == kennung))
-                    BegriffOeffnen(t, kennung, maus, fest: false);
             }
         }
     }
@@ -422,12 +424,27 @@ public partial class Tooltips : Node
     // ── Hilfen ──────────────────────────────────────────────────────────────
 
     /// <summary>Neben der Maus; passt es nicht ins Bild, nach links bzw. über die Maus.</summary>
-    private static Vector2 Lage(Vector2 anker, Vector2 groesse, Vector2 sichtbar)
+    internal static Vector2 Lage(Vector2 anker, Vector2 groesse, Vector2 sichtbar)
     {
         var p = anker + new Vector2(14, 22);
-        if (p.X + groesse.X > sichtbar.X - 4) p.X = Math.Max(4, sichtbar.X - groesse.X - 4);
+        if (p.X + groesse.X > sichtbar.X - 4) p.X = Math.Max(4, anker.X - groesse.X - 14);
         if (p.Y + groesse.Y > sichtbar.Y - 4) p.Y = Math.Max(4, anker.Y - groesse.Y - 12);
         return p;
+    }
+
+    /// <summary>
+    /// Wie <see cref="Lage"/>, aber ohne den Eltern-Tooltip zu verdecken: Kommt die Stelle neben der Maus mit ihm in Konflikt, steht der neue rechts oder links
+    /// daneben (in Höhe der Maus), sonst unter ihm.
+    /// </summary>
+    private static Vector2 LageNebenEltern(Vector2 anker, Vector2 groesse, Vector2 sichtbar, Rect2 eltern)
+    {
+        var p = Lage(anker, groesse, sichtbar);
+        if (!new Rect2(p, groesse).Intersects(eltern.Grow(-1))) return p;
+        var hoehe = Math.Clamp(anker.Y - 14, 4, Math.Max(4, sichtbar.Y - groesse.Y - 4));
+        if (eltern.End.X + 6 + groesse.X <= sichtbar.X - 4) return new Vector2(eltern.End.X + 6, hoehe);
+        if (eltern.Position.X - 6 - groesse.X >= 4) return new Vector2(eltern.Position.X - 6 - groesse.X, hoehe);
+        var unten = eltern.End.Y + 6;
+        return unten + groesse.Y <= sichtbar.Y - 4 ? new Vector2(Math.Clamp(anker.X, 4, Math.Max(4, sichtbar.X - groesse.X - 4)), unten) : p;
     }
 
     private static Vector2 Klemmen(Vector2 p, Vector2 groesse, Vector2 sichtbar) =>
