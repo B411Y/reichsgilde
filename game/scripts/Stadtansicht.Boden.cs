@@ -218,7 +218,7 @@ public partial class Stadtansicht
             knoten.AddChild(new MultiMeshInstance3D
             {
                 Name = art.Key.Knoten, Multimesh = vielfach,
-                CastShadow = art.Key.Datei == "natur/natur_boden" ? GeometryInstance3D.ShadowCastingSetting.Off : GeometryInstance3D.ShadowCastingSetting.On,
+                CastShadow = IstBodenDatei(art.Key.Datei) ? GeometryInstance3D.ShadowCastingSetting.Off : GeometryInstance3D.ShadowCastingSetting.On,
             });
         }
         return lagen.Count;
