@@ -32,6 +32,7 @@ namespace Reichsgilde;
 ///   --bauort=-96,-3,0  mit --bauen=<Gebäude>: der Umriss sitzt an dieser Stelle (x,z in Metern, Drehung 0–3), bis die Maus bewegt wird
 ///   --bauklick=1       mit --bauort: die Rückfrage öffnen (=2: gleich bauen; auch bei --leerstand: gleich kaufen bzw. abreißen)
 ///   --leerstand=kaufen mit --auswahl=wohnhaus:<Inhaber>: die Rückfrage zum Kauf des leeren Hauses öffnen (=abreissen: zum Abriss; Leerzeichen als _)
+///   --kischmied=alle   Passanten mit dem KI-Schmied aus TRELLIS: aus, wenige (Standard: Knechte und Tagelöhner, jeder zweite) oder alle Männer
 ///   --innen=1          direkt in der Innenansicht der eigenen Werkstatt starten (--innen=Rathaus, --innen=Dom bzw. --innen=wohnhaus:<Inhaber>: dort)
 ///   --raum=2           mit --innen: gleich im zweiten Raum der Raumleiste (Werkstatt: 1 Werkraum, 2 Lager; Wohnhaus: 1 Wohnstube, 2 Kontor)
 ///   --innenblick=L1    mit --innen: gleich auf diesem Blickpunkt des Raums stehen (0 = Mitte, L1, L2, R1, R2, O1, U1 – was das Modell hat)
@@ -434,6 +435,7 @@ public partial class Hauptszene : Node
                                   optionen.TryGetValue("jahreszeit", out var jahreszeitName) && Enum.TryParse<Jahreszeit>(jahreszeitName, true, out var jz) ? jz : null,
                                   optionen.GetValueOrDefault("blitz") == "1");
         if (optionen.TryGetValue("pflasterrelief", out var relief)) _stadt.PflasterReliefVorgeben(relief != "0"); // Parallax im Pflaster (Stadtansicht.Pflasterrelief.cs)
+        if (optionen.TryGetValue("kischmied", out var kiSchmied)) _stadt.KiSchmiedVorgeben(kiSchmied); // aus|wenige|alle (Stadtansicht.KiFiguren.cs)
         if (optionen.GetValueOrDefault("messe") == "1") _stadt.MesseVorgeben(); // Kirchenfenster wie zur Messe, nur Darstellung (Stadtansicht.Modelle.cs)
         if (optionen.TryGetValue("ui", out var ui) && ui == "0")
             GetNode<CanvasLayer>("Oberflaeche").Visible = false; // freie Sicht auf die Stadt für Bildschirmfotos

@@ -991,7 +991,8 @@ public partial class Stadtansicht
             // Der Anker blickt mit −Z auf sein Werkstück, die Figur mit +Z: um 180° gedreht einsetzen.
             var halter = new Node3D { Rotation = new Vector3(0, Mathf.Pi, 0) };
             platz.Anker.AddChild(halter);
-            if (FigurEinsetzen(halter, ArbeiterAussehen(zeile), zeile.Nummer) is not { } figur)
+            // Schmiede: der KI-Schmied statt des Menschen aus Blender (Stadtansicht.KiFiguren.cs)
+            if (FigurEinsetzen(halter, ArbeiterAussehen(zeile) with { KiSchmied = a.Stil == Werkstil.Giesserei && zeile.Arbeitskraft != "Ork" }, zeile.Nummer) is not { } figur)
             {
                 halter.QueueFree();
                 continue;

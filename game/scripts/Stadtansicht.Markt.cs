@@ -476,7 +476,7 @@ public partial class Stadtansicht
         for (var i = 0; i < anzahl && gewaehlt < 0; i++)
         {
             var k = (int)((zahl >> 8) % (uint)anzahl + i) % anzahl;
-            if (MarktstelleFrei(k)) gewaehlt = k;
+            if (MarktstelleFrei(k) && !(_marktstellen[k].Bewegung == "Sitzen" && _kiPassanten.Contains(nummer))) gewaehlt = k; // der KI-Schmied kann noch nicht sitzen
         }
         if (gewaehlt >= 0) _marktBelegt[gewaehlt] = nummer;
         return gewaehlt;

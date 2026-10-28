@@ -36,6 +36,7 @@ Startoptionen (nach `--`):
 - `--gericht=1`
 - `--hinterzimmer=1`
 - `--markt=1`
+- `--kischmied=aus|wenige|alle` (Passanten mit dem KI-Schmied aus TRELLIS: `aus` nur die Figuren aus Blender, `wenige` (Standard) jeder zweite Knecht und Tagelöhner, `alle` jeder Mann (Mensch, nicht gebeugt, ohne Last); für Vergleiche mit `--blick=0,0,25 --messung=12`. In der Schmiede (`--innen=1`) tragen die Arbeiter ihn immer)
 - `--karren=<Typen>` (der eigenen Werkstatt Karren dazukaufen, z. B. `Ochsenkarren,Kriegskarren`, mit `--vermoegen=5000`; die beiden kosten zusammen 1.300)
 - `--umland=1` (den günstigsten freien Umlandbetrieb erwerben – wenn nötig erst zum Bürger aufsteigen –, ihm einen Ochsenkarren dazukaufen und seine Kurzübersicht mit „…“ zeigen: Karren mit Eskorte, Nachtfahrt und „Verkaufen“; mit `--vermoegen=30000`)
 - `--schiff=<Anzahl>` (am ersten Hafen so viele Flussschiffe kaufen, mit `--vermoegen=10000`; Karte mit Hafen, z. B. `--karte=probestadt` oder `greybox`)
