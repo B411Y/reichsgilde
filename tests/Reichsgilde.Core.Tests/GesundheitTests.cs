@@ -54,6 +54,7 @@ static class GesundheitTests
             var w = NeueSimulation().Wirtschaft!;
             var (k, f) = Haus(w);
             var o = f.Oberhaupt;
+            o.ZuegeLeeren(); // ohne Charakterzüge (PR #227) – hier zählt nur die Krankheit
             o.TalentSetzen(Talent.Rhetorik, 3);
             Pruefe.Wahr(w.Gesundheit.Erkranken(k, o, "Husten"), "erkrankt");
             Pruefe.Gleich(2, o.Talent(Talent.Rhetorik));

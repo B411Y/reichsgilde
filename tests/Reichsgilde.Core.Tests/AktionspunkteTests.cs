@@ -85,6 +85,7 @@ static class AktionspunkteTests
             var w = sim.Wirtschaft!;
             var (k, f) = Haus(w);
             var o = f.Oberhaupt;
+            o.ZuegeLeeren(); // Charakterzüge (PR #227) heben oder senken die wirksamen Sterne – hier zählt nur das Üben
             o.TalentSetzen(Talent.Rhetorik, 2);
             Pruefe.Wahr(w.Ausfuehren(k, new TalentTrainieren(Talent.Rhetorik)).Erfolg, "üben");
             Pruefe.Gleich(2.5, o.Talent(Talent.Rhetorik));
@@ -114,7 +115,7 @@ static class AktionspunkteTests
             JahrBeenden(sim);
             Pruefe.Gleich(4, k.Aktionspunkte.Vorrat);
             Pruefe.Wahr(w.Ausfuehren(k, new TalentTrainieren(Talent.Rhetorik)).Erfolg, "neues Jahr – wieder üben");
-            Pruefe.Gleich(3, o.Talent(Talent.Rhetorik));
+            Pruefe.Gleich(3, o.Anlage(Talent.Rhetorik)); // im Jahreswechsel bekam das Oberhaupt seine Persönlichkeit zurück
         }),
 
         ("Daten: Ein Tippfehler im Befehlsnamen der Kostentabelle fällt beim Laden auf", () =>

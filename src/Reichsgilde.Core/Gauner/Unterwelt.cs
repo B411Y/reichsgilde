@@ -560,6 +560,7 @@ public sealed class Unterwelt
             ziel.Schaden(beute);
             a.Auftraggeber.Gaunerkosten(-beute);
             oeffentlich = $"Einbruch ins {haus} von {ziel.Inhaber}: {Zahlenformat.Ganz(beute)} {_w.Daten.Allgemein.Waehrung} aus der Truhe gestohlen.";
+            _w.Familien.ZugAnlass(ziel, "einbruch"); // das Oberhaupt stellt sich den Dieben – vielleicht eine Narbe (PR #227)
             Ereignis(a.Auftraggeber, $"Eure Leute haben im Wohnhaus von {ziel.Inhaber} {Zahlenformat.Ganz(beute)} erbeutet – Bargeld, kein Hehler nötig.");
         }
         else if (erfolg)
@@ -583,6 +584,7 @@ public sealed class Unterwelt
             schaden = Brandschaden(ziel);
             ziel.Schaden(schaden);
             _w.Wohnen.Brand(ziel, zeit.VergangeneMinuten + brand.InstandMinuten);
+            _w.Familien.ZugAnlass(ziel, "brand"); // Brandnarbe (PR #227)
             oeffentlich = $"Feuer am {stufe.Name} von {ziel.Inhaber}! Reparatur {Zahlenformat.Ganz(schaden)} {_w.Daten.Allgemein.Waehrung}" +
                           (stufe.Ansehen > 0 ? $", bis zur Instandsetzung fehlt das Ansehen des Hauses (−{Zahlenformat.Ganz(stufe.Ansehen)})." : ".");
         }

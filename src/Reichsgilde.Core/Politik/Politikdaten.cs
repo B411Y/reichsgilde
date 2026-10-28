@@ -45,6 +45,9 @@ public sealed class RatsherrDaten
 
     /// <summary>Gesicht, Haar und Augen im Porträt (null = fest aus dem Namen abgeleitet, alte Daten). Wirkt auf nichts in der Simulation.</summary>
     public AussehenDaten? Aussehen { get; init; }
+
+    /// <summary>Feste Charakterzüge (Kennungen aus "charakterzuege"); null = aus dem Namen gewürfelt, in jeder Partie gleich.</summary>
+    public List<string>? Zuege { get; init; }
 }
 
 /// <summary>Ein Aussehen in den Daten (<c>{ "gesicht": 2, "haar": "Braun", "augen": "Blau" }</c>), siehe <see cref="Dynastie.Aussehen"/>.</summary>

@@ -37,6 +37,7 @@ static class TalenteTests
 
     static void AlleTalente(Person p, double wert)
     {
+        p.ZuegeLeeren(); // Charakterzüge (PR #227) verschöben die wirksamen Sterne – die Tests hier prüfen die Talente allein
         foreach (var t in TalentTexte.Alle) p.TalentSetzen(t, wert);
     }
 
@@ -65,7 +66,7 @@ static class TalenteTests
             {
                 var sim = NeueSimulation(startwert: s);
                 var (_, f) = Haus(sim.Wirtschaft!, "Haus Grauschmied", Volk.Zwerg);
-                var h = f.Oberhaupt.Talent(Talent.Handwerk);
+                var h = f.Oberhaupt.Anlage(Talent.Handwerk); // ohne Charakterzüge
                 Pruefe.Wahr(h is >= 2 and <= 4, $"Handwerk {h}");
                 Pruefe.Gleich(h, Math.Round(h * 2) / 2);
                 summe += h;

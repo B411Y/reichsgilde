@@ -31,12 +31,12 @@ public sealed partial class KiRivale
         {
             var budget = Konto.Vermoegen - Profil.Reserve;
             if (budget <= 0) return;
-            if (Kalkulation.BesteSchiffsfahrt(_w, Konto, schiff.Daten, budget, schiff.Geleit, Profil.Vorsicht) is not { } v) continue;
+            if (Kalkulation.BesteSchiffsfahrt(_w, Konto, schiff.Daten, budget, schiff.Geleit, Vorsicht) is not { } v) continue;
             var geleit = BestesGeleit(schiff, v);
             if (geleit != schiff.Geleit)
             {
                 Befehlen(new SchiffGeleitWaehlen(schiff.Name, geleit), $"{schiff.Name} fährt nun mit Geleit „{geleit}“ statt „{schiff.Geleit}“.");
-                if (Kalkulation.BesteSchiffsfahrt(_w, Konto, schiff.Daten, budget, schiff.Geleit, Profil.Vorsicht) is not { } neu) continue;
+                if (Kalkulation.BesteSchiffsfahrt(_w, Konto, schiff.Daten, budget, schiff.Geleit, Vorsicht) is not { } neu) continue;
                 v = neu;
             }
             if (v.Rechnung.Gewinn < d.MindestGewinnJeFahrt) continue;
@@ -53,7 +53,7 @@ public sealed partial class KiRivale
     {
         var stadt = _w.Schiffahrt.Stadt(v.Ziel)!;
         return _w.Daten.Logistik.Eskorten.Keys.Where(_w.Wache.EskorteVerfuegbar)
-            .Select(e => (Name: e, Rechnung: Kalkulation.Schiffsfahrt(_w, Konto, schiff.Daten, stadt, v.Hinfracht, v.Rueckfracht, false, e, Profil.Vorsicht)))
+            .Select(e => (Name: e, Rechnung: Kalkulation.Schiffsfahrt(_w, Konto, schiff.Daten, stadt, v.Hinfracht, v.Rueckfracht, false, e, Vorsicht)))
             .OrderBy(x => x.Rechnung.Geleit + x.Rechnung.Risiko)
             .ThenBy(x => _w.Daten.Logistik.Eskorten[x.Name].KostenJeFahrt)
             .ThenBy(x => x.Name, StringComparer.Ordinal)
@@ -75,7 +75,7 @@ public sealed partial class KiRivale
         var (name, typ) = s.Daten!.Schiffe.First();
         var budget = Konto.Vermoegen - typ.Preis - d.ReserveFaktor * Profil.Reserve;
         if (budget <= 0) return;
-        if (Kalkulation.BesteSchiffsfahrt(_w, Konto, typ, budget, "Keine", Profil.Vorsicht) is not { } v) return;
+        if (Kalkulation.BesteSchiffsfahrt(_w, Konto, typ, budget, "Keine", Vorsicht) is not { } v) return;
         var jahresgewinn = v.Rechnung.GewinnJeJahr * d.Auslastung - typ.Unterhalt;
         if (jahresgewinn <= 0 || typ.Preis / jahresgewinn > grenze) return;
         var waehrung = _w.Daten.Allgemein.Waehrung;

@@ -52,13 +52,47 @@ public sealed class Person
     private readonly double[] _talente = new double[TalentTexte.Alle.Length];
 
     /// <summary>
-    /// Sterne, die gerade wirken (0 bis 6, halbe Sterne möglich) – eine Krankheit zieht etwas ab.
-    /// Für Anlage, Üben, Vererben und Speichern zählt <see cref="Anlage"/>.
+    /// Sterne, die gerade wirken (0 bis 6, halbe Sterne möglich): Anlage, dazu die Charakterzüge, abzüglich einer Krankheit.
+    /// Für Üben, Vererben und Speichern zählt <see cref="Anlage"/>.
     /// </summary>
-    public double Talent(Talent t) => Math.Max(0, _talente[(int)t] - (Krankheit?.Abzug(t) ?? 0));
+    public double Talent(Talent t)
+    {
+        var anlage = _talente[(int)t];
+        var mitZuegen = anlage + Zugwirkung(t);
+        // Züge heben nicht über den Höchstwert (wer schon mehr kann, behält es); sie ziehen höchstens bis 0 ab.
+        if (mitZuegen > anlage) mitZuegen = Math.Min(mitZuegen, Math.Max(anlage, TalentHoechstwert));
+        return Math.Max(0, mitZuegen - (Krankheit?.Abzug(t) ?? 0));
+    }
 
-    /// <summary>Sterne ohne Krankheit – das, was die Person eigentlich kann.</summary>
+    /// <summary>Sterne ohne Krankheit und ohne Charakterzüge – das, was die Person gelernt und geerbt hat.</summary>
     public double Anlage(Talent t) => _talente[(int)t];
+
+    /// <summary>Sterne ohne Charakterzüge, aber mit Krankheit (zum Vergleich im Charakterfenster).</summary>
+    public double TalentOhneZuege(Talent t) => Math.Max(0, _talente[(int)t] - (Krankheit?.Abzug(t) ?? 0));
+
+    /// <summary>Was die Charakterzüge zusammen an diesem Talent ändern (positiv oder negativ).</summary>
+    public double Zugwirkung(Talent t) => _zuege.Sum(z => z.Talent(t));
+
+    /// <summary>Bis hierhin heben Charakterzüge ein Talent (der Höchstwert aus "dynastie.talente").</summary>
+    internal double TalentHoechstwert { get; set; } = 6;
+
+    private readonly List<Charakterzug> _zuege = new();
+
+    /// <summary>Die Charakterzüge (PR #227): Persönlichkeit ab der Volljährigkeit, angeborene, erworbene – in dieser Reihenfolge.</summary>
+    public IReadOnlyList<Charakterzug> Zuege => _zuege;
+
+    public bool HatZug(string kennung) => _zuege.Any(z => z.Kennung == kennung);
+
+    /// <summary>Für Tests, die Talente ohne Züge prüfen.</summary>
+    internal void ZuegeLeeren() => _zuege.Clear();
+
+    internal void ZugHinzufuegen(Charakterzug zug)
+    {
+        if (_zuege.Contains(zug)) return;
+        // Nach Art geordnet (Persönlichkeit, angeboren, erworben), innerhalb der Art in der Reihenfolge des Erhalts.
+        var stelle = _zuege.FindLastIndex(z => z.Art <= zug.Art) + 1;
+        _zuege.Insert(stelle, zug);
+    }
     internal void TalentSetzen(Talent t, double wert) => _talente[(int)t] = wert;
 
     /// <summary>Die Krankheit, an der die Person gerade leidet (oder null).</summary>

@@ -2114,3 +2114,46 @@ Statisch (Startpreise, Gesellen) liegt der Dieb durch die höhere Beute bei +27 
 | Greybox, jetzt | 214.299 | 194.875 | 224.173 | 11/20 ab 17,9 | 618 | 2.885 | 11.820 |
 
 Kein KI-Haus geht bankrott. Am Ende sind ohne Karte 41 Freiherren und 19 Reichsgrafen (vorher 57 und 3), in der Greybox 2 Freiherren und 58 Reichsgrafen.
+
+## Charakterzüge (PR #227)
+
+**Was sich geändert hat** (Umsetzung in `docs/bereiche/kern.md` und `docs/bereiche/spiel-ki.md`, „Charakterzüge (PR #227)“; **Datenversion 60**): Jede Person der Häuser und jeder Ratsherr hat Charakterzüge (Abschnitt `charakterzuege`). Sie ändern Talente (höchstens ±1 Stern, bei Persönlichkeitszügen Verhandeln und Handwerk höchstens ±½), Haushalt und Krankheit einzelner Personen, die Bestechlichkeit der Ratsherren und das Handeln der KI-Häuser. **Kein Grundwert eines Berufs ist geändert.** Charakterzüge gibt es erst in neuen Partien.
+
+**Nachsteuern** (Vorgabe „Wirtschaft im gemessenen Band“; Messungen auf main `60771c4` mit 20 und `018f0c1` mit 30 Startwerten):
+1. **Talente:** Ein Stern Verhandeln oder Handwerk mehr macht den Schmied nach 20 Jahren um ein Drittel reicher (Startwert 404: Gierig und Fleißig → 79.000 statt ≈ 36.000), Geldleiher, Gardist und Prediger merken davon fast nichts. Weil der Messspieler je Startwert in allen Berufen dieselben Züge hat, verschob schon eine zufällig günstige Auswahl die Handwerke (20 Startwerte: Verhandeln im Mittel +0,35 Sterne). Darum Verhandeln und Handwerk bei Persönlichkeitszügen ±½, und jedes Paar hebt sich in jedem Talent genau auf.
+2. **Gaunerei:** Ehrlich ließ das ausgewogene KI-Haus ganz ohne Gaunerstücke, das zusätzliche Stück des Verschlagenen kam selten zustande – Diebstahl der KI 0,85 → 0,66 je Jahr, die Handwerke (ihre Ware wird gestohlen) wurden reicher als die übrigen Berufe. Jetzt senkt Ehrlich nie unter eins und besticht stattdessen keine Richter.
+3. **Karren in Not** (3 → 12 in 880 Partien, 7 → 12 in 1.320): Betroffen waren fast nur Häuser mit mutigem (weniger Eskorte und ein Jahr längere Amortisation), hochmütigem (Brautschau nach Stand, längere Frist für Wohnhaus-Einrichtung) und geduldigem Oberhaupt (ein Verlustjahr mehr). Gestrichen: Mutig längere Amortisation, Geduldig Verlustjahr, Hochmütig Einrichtungsfrist; Mutig spart weniger an der Eskorte (× 0,85), Hochmütig wertet den Stand der Braut mit +25 % statt +50 % je Stufe.
+4. **Krankheit und Haushalt** symmetrisch: Kränklich × 1,5 / Stark × 0,6 (vorher 2 / 0,75 – der Alchimist verkaufte mehr Kräuterschnaps), Bescheiden 0,9 / Hochmütig 1,1.
+5. Fleißig übt nicht mehr sofort und Träge nicht nie – beide ändern nur den Produktwechsel.
+
+6. **Nacharbeit nach der Prüfung** (Teamleiter): Ein vorsichtiges Haus heuert auch mit verschlagenem Oberhaupt keine Bande an; Geduldig/Jähzornig klagen mit einem Beweis mehr bzw. weniger (statt eines Faktors, der bei Beweisen in Zehnerschritten nicht wirkte).
+
+Gemessen auf main `b59a372` + Branch `d5985f5`, Datenversion 60, gegen main `b59a372` ohne Züge, beide `messen bericht 20 30` (1.320 Partien, je etwa 20 Minuten) → `docs/messungen/balancing-2026-10-28-charakterzuege.json` und `docs/messungen/balancing-2026-10-28-ohne-zuege.json`. Main `b59a372` misst Wurf für Wurf wie `018f0c1` (nur Kartenwahl).
+
+| | main ohne Züge | mit Zügen |
+|---|---|---|
+| Berufe im Band ±15 % (simuliert, ein Betrieb, 20 Jahre) | 10/10 (Schmied +12,3 %, Gardist −12,6 %) | 7/10 (Schmied +15,8 %, Dieb −16,6 %, Gardist −16,3 %) |
+| Mittel des Zuwachses | 29.819 | 30.280 (+1,5 %) |
+| Bürger mit einem Betrieb (Ø Jahre, Spanne der Berufe) | 8,0 … 12,1 | 8,4 … 12,1 |
+| Spieler mit einem Betrieb, Greybox / Probestadt | 37.496 / 38.324 | 39.061 / 40.499 |
+| KI ÷ gleiche Strategie (Median); „Schwer“ | 1,08; 1,73 | 1,01; 1,79 |
+| 8 gegen 3 Häuser (Vermögen je KI-Haus) | −14 % | −11 % |
+| Gaunerei der KI: Diebstahl / Einbruch je Jahr | 0,85 / 0,60 | 0,80 / 0,69 |
+| Karren in Not verkauft | 7 | 7 |
+
+Reinvermögen nach 20 Jahren je Beruf (ein Betrieb, Greybox, Mensch, 30 Startwerte; Fehler des Mittels ≈ 800–1.900), in Klammern der Abstand zum Mittel:
+
+| Beruf | ohne Züge | mit Zügen |
+|---|---|---|
+| Schmied | 37.496 (+12,3 %) | 39.061 (+15,8 %) |
+| Tischler | 36.125 (+7,7 %) | 38.249 (+13,1 %) |
+| Steinmetz | 36.555 (+9,2 %) | 35.441 (+3,8 %) |
+| Alchimist | 32.891 (−3,1 %) | 37.030 (+9,1 %) |
+| Wirt | 34.889 (+3,6 %) | 34.696 (+1,4 %) |
+| Prediger | 33.888 (+0,2 %) | 32.698 (−5,2 %) |
+| Dieb | 30.564 (−10,9 %) | 29.258 (−16,6 %) |
+| Parfumeur | 35.357 (+5,2 %) | 36.045 (+5,8 %) |
+| Geldleiher | 30.350 (−11,6 %) | 30.958 (−11,0 %) |
+| Gardist | 30.076 (−12,6 %) | 29.359 (−16,3 %) |
+
+**Befund:** Jeder Beruf liegt nach 20 Jahren innerhalb von −4 … +13 % seines Werts ohne Züge, im Mittel +1,5 %; die Not der KI ist wie ohne Züge. Das Band „±15 % gegen das Mittel“ reißen Schmied, Dieb und Gardist um 0,8–1,6 Prozentpunkte – Schmied und Gardist lagen schon ohne Züge am Rand, und die Züge machen jede Partie zufälliger: Läufe mit fast gleichen Werten gaben Schmied −6 % und +6 % gegen main, außerhalb lagen je nach Lauf andere Berufe (Dieb; Schmied, Tischler, Gardist). Das liegt im Fehler der Messung (≈ 5 % je Beruf). Weiter drücken ließe es sich nur mit kleineren Talentwirkungen als „±1 Stern“ (Entscheidung des Nutzers). Der Alchimist liegt in allen Läufen höher (+9 … +14 % gegen main) – vermutlich, weil Kränklich und Trinker mehr Kräuterschnaps verkaufen; offen.

@@ -29,7 +29,7 @@ public sealed partial class KiRivale
                     var vorarbeiter = p.Stufe(zu) == 3;
                     var mehr = Kalkulation.Jahresertrag(_w, b, zu) - Kalkulation.Jahresertrag(_w, b, a.Arbeitskraft)
                                + (vorarbeiter ? p.ErwarteterVorarbeiterGewinn(b) : 0);
-                    if (mehr <= 0 || brief / mehr > Profil.MaxAmortisationJahre) continue;
+                    if (mehr <= 0 || brief / mehr > Amortisationsjahre) continue;
                     if (Konto.Vermoegen - brief < (vorarbeiter ? Profil.Reserve : Profil.Reserve / 2)) continue;
                     var waehrung = _w.Daten.Allgemein.Waehrung;
                     Befehlen(new ArbeiterBefoerdern(b.Name, a.Nummer),
@@ -65,6 +65,7 @@ public sealed partial class KiRivale
     private void WohnhausEinrichtungKaufen()
     {
         if (EinrichtungHoechstensJahre is not { } grenze || _w.Wohnen.Daten is not { } d || InNot || (Spart && Profil.Gaunerei <= 0)) return;
+        if (Neigung.Prunk < 0) return; // Bescheiden: kein Silbergeschirr
         var reserve = _w.Daten.Ki!.Einrichtung!.ReserveFaktor * Profil.Reserve;
         var bestes = d.Einrichtung
             .Where(e => e.Vorhanden is null && _w.Wohnen.EinrichtungVerboten(Konto, e.Kennung) is null && Konto.Vermoegen - e.Preis >= reserve)

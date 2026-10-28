@@ -17,13 +17,36 @@ public sealed class Ratsherr
     /// <summary>Gesicht, Haar und Augen fürs Porträt – aus den Daten; fehlt es dort (alte Daten), fest aus Namen und Volk abgeleitet.</summary>
     public Aussehen Aussehen { get; }
 
-    internal Ratsherr(RatsherrDaten daten)
+    /// <summary>
+    /// Die Charakterzüge (PR #227) – aus den Daten oder, fehlen sie dort, aus dem Namen gewürfelt: Ein Ratsherr ist eine feste Figur
+    /// der Stadt und hat in jeder Partie dieselben Züge. Er braucht darum keinen Platz im Spielstand.
+    /// </summary>
+    public IReadOnlyList<Charakterzug> Zuege { get; }
+
+    public bool HatZug(string kennung) => Zuege.Any(z => z.Kennung == kennung);
+
+    /// <summary>Faktor auf die Gunst je geschenktem Gulden (Gierig nimmt gern, Ehrlich ungern).</summary>
+    public double Bestechlichkeit => Zuege.Aggregate(1.0, (f, z) => f * z.Daten.Bestechlich);
+
+    internal Ratsherr(RatsherrDaten daten, CharakterzuegeDaten? zuege = null)
     {
         Daten = daten;
         var vorname = daten.Name.Split(' ')[0];
         Geschlecht = daten.Geschlecht
                      ?? (vorname.EndsWith('a') || vorname.EndsWith('e') || vorname.EndsWith("ind") ? Geschlecht.Frau : Geschlecht.Mann);
         Aussehen = daten.Aussehen?.Wert ?? AusDemNamen(daten.Name, daten.Volk);
+        Zuege = ZuegeWuerfeln(daten, zuege);
+    }
+
+    private static IReadOnlyList<Charakterzug> ZuegeWuerfeln(RatsherrDaten daten, CharakterzuegeDaten? d)
+    {
+        if (d is not { IstAktiv: true }) return Array.Empty<Charakterzug>();
+        if (daten.Zuege is { } fest) return fest.Select(d.Zug).OfType<Charakterzug>().OrderBy(z => z.Art).ToList();
+        var h = 23;
+        foreach (var c in daten.Name) h = unchecked(h * 31 + c); // string.GetHashCode wechselt von Start zu Start
+        var wuerfel = new Zufallsquelle(Zugwuerfel.Mischen(h, daten.Name.Length, 3));
+        var angeboren = Zugwuerfel.Angeboren(d, wuerfel, Array.Empty<Charakterzug>());
+        return Zugwuerfel.Persoenlichkeit(d, wuerfel, daten.Volk, null, Array.Empty<Charakterzug>(), angeboren).Concat(angeboren).ToList();
     }
 
     /// <summary>Die Regel, nach der das Porträt bis Datenversion 57 das Aussehen aus dem Namen ableitete (für alte Daten).</summary>
@@ -130,7 +153,7 @@ public sealed class Stadtrat
             _aemter.Add(new Amt(a));
         foreach (var r in daten.Ratsherren)
         {
-            var ratsherr = new Ratsherr(r);
+            var ratsherr = new Ratsherr(r, w.Daten.Charakterzuege);
             _ratsherren.Add(ratsherr);
             if (r.Amt is { } amt && AmtNamens(amt) is { } sitz)
                 sitz.Ratsherr = ratsherr;
@@ -148,6 +171,9 @@ public sealed class Stadtrat
     public Ratsherr? RatsherrNamens(string name) => _ratsherren.FirstOrDefault(r => r.Name == name);
 
     public double Gunst(Ratsherr ratsherr, Konto konto) => _gunst.GetValueOrDefault((ratsherr, konto));
+
+    /// <summary>Gunst je geschenktem Gulden bei diesem Ratsherrn – seine Charakterzüge machen ihn mehr oder weniger bestechlich.</summary>
+    public double GunstJeGulden(Ratsherr ratsherr) => _daten.Gunst.JeGulden * ratsherr.Bestechlichkeit;
 
     /// <summary>Ansehen eines Hauses: Stand und Vermögen, gedeckelt – minus Schande, solange es am Pranger steht.</summary>
     public double Ansehen(Konto konto)
@@ -409,7 +435,7 @@ public sealed class Stadtrat
         if (konto.Vermoegen < betrag)
             return Befehlsergebnis.Abgelehnt($"So viel Geld hat {konto.Inhaber} nicht.");
         konto.Geschenk(betrag);
-        var neu = Math.Min(_daten.Gunst.Hoechstwert, Gunst(ratsherr, konto) + betrag * _daten.Gunst.JeGulden);
+        var neu = Math.Min(_daten.Gunst.Hoechstwert, Gunst(ratsherr, konto) + betrag * GunstJeGulden(ratsherr));
         _gunst[(ratsherr, konto)] = neu;
         _w.Justiz.TatMelden(konto, Justiz.Vergehen.Bestechung, ratsherr.Name, betrag); // jedes Geschenk ist Bestechung
         return Befehlsergebnis.Ok($"{ratsherr.Name} nimmt das Geschenk an. Gunst für {konto.Inhaber}: {Zahlenformat.Ganz(neu)}.");
