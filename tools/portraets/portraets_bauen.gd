@@ -688,7 +688,7 @@ static func _spielname(name: String, volk: String = "mensch") -> String:
 
 
 ## Haarmasken, die (noch) nicht ins Spiel kommen: Volk -> Geschlechter ("mann", "frau") bzw. "alle". Die Anzeige färbt dann das Haar nicht um.
-const KEINE_HAARMASKE := {"elb": ["mann", "frau"], "halbling": ["mann", "frau"], "zwerg": ["frau"]}
+const KEINE_HAARMASKE := {}  # leer seit der Nachlieferung (28.10.2026): neue Haarmasken ohne angemalten Bart
 
 const HAUT_WANGE_SATT := 0.26   # Halblinge: Sättigung, über der rotes Haut-Rosa gedämpft wird …
 const HAUT_WANGE_STAERKE := 0.85  # … um so viel des Überschusses (0 = nichts, 1 = auf den Grenzwert)
