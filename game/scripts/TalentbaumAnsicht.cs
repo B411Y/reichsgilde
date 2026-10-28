@@ -22,7 +22,16 @@ public static partial class TalentbaumAnsicht
     private static readonly Color Rot = new(0.95f, 0.45f, 0.4f);
     private static readonly Color Hell = new(0.92f, 0.88f, 0.80f);
 
-    private const int Knopf = 64;
+    /// <summary>Gesperrte Stücke: Farbe fast weg, dunkler (der Alphakanal bleibt).</summary>
+    private static readonly ShaderMaterial Entsaettigt = new()
+    {
+        Shader = new Shader
+        {
+            Code = "shader_type canvas_item;\nvoid fragment() { vec4 c = texture(TEXTURE, UV) * COLOR; float g = dot(c.rgb, vec3(0.299, 0.587, 0.114)); COLOR = vec4(mix(vec3(g), c.rgb, 0.15) * 0.65, c.a); }",
+        },
+    };
+
+    private const int Knopf = 80;
     private const int StueckBreite = 96;
 
     /// <summary>Waren-Icons als Platzhalter, bis es eigene Einrichtungs-Icons gibt (Kennung → Datei ohne Endung in assets/oberflaeche/icons).</summary>
@@ -79,19 +88,15 @@ public static partial class TalentbaumAnsicht
         var spalte = new VBoxContainer { CustomMinimumSize = new Vector2(StueckBreite - 8, 0) };
         spalte.AddThemeConstantOverride("separation", 0);
         eltern.AddChild(spalte);
-        var farbe = s.Zustand switch
+        var gesperrt = s.Zustand is Baumzustand.Gesperrt or Baumzustand.NichtJetzt;
+        var hatIcon = Icon(s.Kennung) is not null;
+        // Der Rahmen im Icon zeigt die Stufe; der Zustand zeigt sich an Farbe (gesperrt: entsättigt und dunkel), Schein beim Darüberfahren (kaufbar) und Haken (gekauft)
+        StyleBox Kasten(bool schein) => new StyleBoxFlat
         {
-            Baumzustand.Gekauft => Gruen,
-            Baumzustand.Kaufbar => Gold,
-            Baumzustand.NichtJetzt => Gold * new Color(1, 1, 1, 0.55f),
-            _ => new Color(0.5f, 0.5f, 0.5f),
-        };
-        var breite = s.Zustand is Baumzustand.Gekauft or Baumzustand.Kaufbar ? 3 : 2;
-        StyleBoxFlat Kasten(float hell) => new()
-        {
-            BgColor = (s.Zustand == Baumzustand.Gekauft ? new Color(0.16f, 0.24f, 0.13f) : new Color(0.24f, 0.19f, 0.12f)) * new Color(hell, hell, hell),
-            BorderColor = farbe, BorderWidthBottom = breite, BorderWidthLeft = breite, BorderWidthRight = breite, BorderWidthTop = breite,
+            BgColor = hatIcon ? new Color(0, 0, 0, 0) : new Color(0.24f, 0.19f, 0.12f),
+            BorderColor = schein ? Gold : new Color(0, 0, 0, 0), BorderWidthBottom = 2, BorderWidthLeft = 2, BorderWidthRight = 2, BorderWidthTop = 2,
             CornerRadiusBottomLeft = 5, CornerRadiusBottomRight = 5, CornerRadiusTopLeft = 5, CornerRadiusTopRight = 5,
+            ShadowColor = schein ? new Color(Gold, 0.55f) : new Color(0, 0, 0, 0), ShadowSize = schein ? 8 : 0,
         };
         var knopf = new Button
         {
@@ -100,19 +105,27 @@ public static partial class TalentbaumAnsicht
             MouseDefaultCursorShape = s.Zustand == Baumzustand.Gekauft ? Control.CursorShape.Arrow : Control.CursorShape.PointingHand,
             TooltipText = Tipp(baum, s, waehrung),
         };
-        foreach (var art in new[] { "normal", "pressed", "disabled", "focus" }) knopf.AddThemeStyleboxOverride(art, Kasten(1f));
-        knopf.AddThemeStyleboxOverride("hover", Kasten(1.35f));
-        knopf.AddThemeConstantOverride("icon_max_width", Knopf - 14);
-        var gesperrt = s.Zustand == Baumzustand.Gesperrt;
-        var tonung = gesperrt ? new Color(0.45f, 0.45f, 0.45f) : s.Zustand == Baumzustand.NichtJetzt ? new Color(0.8f, 0.8f, 0.8f) : Colors.White;
-        foreach (var art in new[] { "icon_normal_color", "icon_hover_color", "icon_pressed_color", "icon_disabled_color" }) knopf.AddThemeColorOverride(art, tonung);
+        var scheinMoeglich = s.Zustand == Baumzustand.Kaufbar;
+        foreach (var art in new[] { "normal", "pressed", "disabled", "focus" }) knopf.AddThemeStyleboxOverride(art, Kasten(false));
+        knopf.AddThemeStyleboxOverride("hover", Kasten(scheinMoeglich));
+        knopf.AddThemeConstantOverride("icon_max_width", Knopf);
+        if (gesperrt) knopf.Material = Entsaettigt;
         if (Icon(s.Kennung) is { } bild) knopf.Icon = bild;
         else
         {
             knopf.Text = s.Name.Length > 0 ? s.Name[..1] : "?"; // Platzhalter, bis das Icon da ist
             knopf.AddThemeFontSizeOverride("font_size", 30);
-            knopf.AddThemeColorOverride("font_color", tonung * Hell);
+            knopf.AddThemeColorOverride("font_color", Hell);
         }
+        if (s.Zustand == Baumzustand.Gekauft)
+            knopf.Draw += () =>
+            {
+                // kleiner grüner Haken unten rechts auf dunklem Grund
+                var m = knopf.Size - new Vector2(13, 13);
+                knopf.DrawCircle(m, 10, new Color(0.08f, 0.14f, 0.07f, 0.92f));
+                knopf.DrawArc(m, 10, 0, Mathf.Tau, 20, Gruen, 1.5f, true);
+                knopf.DrawPolyline(new[] { m + new Vector2(-5, 0), m + new Vector2(-1.5f, 4), m + new Vector2(5, -4) }, Gruen, 2.2f, true);
+            };
         knopf.Pressed += () => { if (s.Zustand != Baumzustand.Gekauft) klick(s); };
         spalte.AddChild(knopf);
 

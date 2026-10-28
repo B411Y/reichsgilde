@@ -25,7 +25,7 @@ public sealed class WohnhausBaumAnzeige
 
     public WohnhausBaumAnzeige()
     {
-        var (tafel, spalte) = Hauptmenue.Tafel(900);
+        var (tafel, spalte) = Hauptmenue.Tafel(960);
         Tafel = tafel;
         _inhalt = new VBoxContainer();
         _inhalt.AddThemeConstantOverride("separation", 6);
@@ -81,6 +81,6 @@ public sealed class WohnhausBaumAnzeige
             _stand = "";
             _seitAufbau = 1;
         }));
-        Hauptmenue.Text(_inhalt, "Ein Klick kauft das Stück. Reihen über dem Wohnhaus, das Ihr habt, sind gesperrt, bis Ihr es ausgebaut habt.", 12, Grau, umbruchBreite: 840);
+        Hauptmenue.Text(_inhalt, "Ein Klick kauft das Stück (bunt: kaufbar, grüner Haken: gekauft, dunkel: gesperrt). Reihen über dem Wohnhaus, das Ihr habt, sind gesperrt, bis Ihr es ausgebaut habt.", 12, Grau, umbruchBreite: 840);
     }
 }

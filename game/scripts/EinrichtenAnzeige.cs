@@ -11,7 +11,7 @@ namespace Reichsgilde;
 /// </summary>
 public sealed class EinrichtenAnzeige : InnenTafel
 {
-    public EinrichtenAnzeige() : base(900) { }
+    public EinrichtenAnzeige() : base(960) { }
 
     protected override string Stand(Stadtwirtschaft w, Betrieb b) =>
         $"{b.Stufe}|{(int)b.Konto.Vermoegen / 10}|" + string.Join(";", w.Werkstaetten.Baum(b).Stuecke.Select(e => $"{e.Kennung}:{e.Zustand}:{(int)e.MehrgewinnJeJahr}"));
@@ -25,8 +25,8 @@ public sealed class EinrichtenAnzeige : InnenTafel
         else
         {
             Inhalt.AddChild(TalentbaumAnsicht.Bauen(baum, waehrung, r => $"Stufe {r}", s => Befehlen(new EinrichtungKaufen(b.Name, s.Kennung))));
-            Text(Inhalt, "Ein Klick auf ein Stück kauft es – der Rahmen zeigt, ob es geht (golden), schon da ist (grün) oder noch gesperrt ist (grau). "
-                + "Linien zeigen, was vorher da sein muss; höhere Reihen gibt es erst nach dem Ausbau der Werkstatt.", 12, Grau, 840);
+            Text(Inhalt, "Ein Klick auf ein Stück kauft es. Bunte Stücke kann man kaufen (beim Darüberfahren leuchten sie golden), ein grüner Haken heißt gekauft, dunkle sind gesperrt. "
+                + "Der Rahmen im Bild zeigt die Stufe (Stein, Silber, Gold); Linien zeigen, was vorher da sein muss.", 12, Grau, 840);
         }
     }
 }
