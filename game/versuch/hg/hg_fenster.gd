@@ -63,7 +63,7 @@ func _welt_bauen() -> void:
 	env.background_mode = Environment.BG_COLOR
 	env.background_color = hintergrund
 	env.ambient_light_source = Environment.AMBIENT_SOURCE_COLOR
-	env.ambient_light_color = Color(0.62, 0.56, 0.5)
+	env.ambient_light_color = Color(0.6, 0.58, 0.56)
 	env.ambient_light_energy = 0.45
 	env.ssao_enabled = not sparsam
 	env.ssao_radius = 0.06
@@ -74,7 +74,7 @@ func _welt_bauen() -> void:
 	we.environment = env
 	ansicht.add_child(we)
 	var key := DirectionalLight3D.new()
-	key.light_color = Color(1.0, 0.87, 0.7)
+	key.light_color = Color(1.0, 0.92, 0.82)
 	key.light_energy = 2.4
 	key.shadow_enabled = not OS.get_cmdline_user_args().has("--ohne-schatten")
 	key.shadow_blur = 1.5
@@ -84,7 +84,7 @@ func _welt_bauen() -> void:
 	ansicht.add_child(key)
 	key.look_at_from_position(Vector3(-1.8, 2.8, 1.5), Vector3(0, 1.6, 0))
 	var fuell := DirectionalLight3D.new()
-	fuell.light_color = Color(0.66, 0.76, 1.0)
+	fuell.light_color = Color(0.82, 0.86, 1.0)
 	fuell.light_energy = 0.35
 	ansicht.add_child(fuell)
 	fuell.look_at_from_position(Vector3(2.0, 1.5, 1.6), Vector3(0, 1.6, 0))

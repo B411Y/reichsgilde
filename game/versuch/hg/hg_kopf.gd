@@ -26,6 +26,8 @@ var _rede_t := 0.0
 var _ausdruck := {}               # z. B. Lächeln, unabhängig vom Mund
 var _ruhe := {}                   # Ruhelage der Knochen (Rotation)
 var _knochen := {}
+var _haut_mat: ShaderMaterial
+var _haar_mats: Array[ShaderMaterial] = []
 
 # Viseme: Mischung aus Gesichtsformen (Werte 0..1)
 const VISEME := {
@@ -79,7 +81,7 @@ func _materialien() -> void:
 			mat.albedo_color = Color.from_hsv(float(n.hash() % 97) / 97.0, 1, 1)
 			print("ROT ", n, " ", mat.albedo_color)
 			mat.cull_mode = BaseMaterial3D.CULL_DISABLED
-		elif (n.begins_with("Haar") and OS.get_cmdline_user_args().has("--ohne-haar")) or (n == "Zaehne" and OS.get_cmdline_user_args().has("--ohne-zaehne")):
+		elif (n.begins_with("Haar") and OS.get_cmdline_user_args().has("--ohne-haar")) or (n == "Zaehne" and OS.get_cmdline_user_args().has("--ohne-zaehne")) or (n == "Hornhaut" and OS.get_cmdline_user_args().has("--ohne-hornhaut")):
 			var weg := StandardMaterial3D.new()
 			weg.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
 			weg.albedo_color = Color(0, 0, 0, 0)
@@ -89,23 +91,76 @@ func _materialien() -> void:
 			var sm := ShaderMaterial.new()
 			sm.shader = preload("res://versuch/hg/haar.gdshader")
 			sm.set_shader_parameter("farbe", mat.albedo_texture)
-			sm.set_shader_parameter("normalen", mat.normal_texture)
+			var saum := ShaderMaterial.new()
+			saum.shader = preload("res://versuch/hg/haar_saum.gdshader")
+			saum.set_shader_parameter("farbe", mat.albedo_texture)
+			saum.render_priority = 1
+			# Saum-Durchgang (weiche Kanten) nur im großen Porträt; viele kleine Fenster glättet MSAA allein
+			if not OS.get_cmdline_user_args().has("--ohne-saum") and not HgFenster.sparsam:
+				sm.next_pass = saum
+			_haar_mats.append(sm)
+			_haar_mats.append(saum)
 			netz.set_surface_override_material(i, sm)
 			continue
 		elif n == "Haut":
-			mat.subsurf_scatter_enabled = not OS.get_cmdline_user_args().has("--ohne-sss")
-			mat.subsurf_scatter_strength = 0.18
-			mat.subsurf_scatter_skin_mode = true
-			mat.metallic_specular = 0.35
+			var hm := ShaderMaterial.new()
+			hm.shader = preload("res://versuch/hg/haut.gdshader")
+			hm.set_shader_parameter("farbe", mat.albedo_texture)
+			hm.set_shader_parameter("normalen", mat.normal_texture)
+			hm.set_shader_parameter("rauheit", mat.roughness_texture)
+			_haut_mat = hm
+			netz.set_surface_override_material(i, hm)
+			continue
 		elif n == "Hornhaut":
 			mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
-			mat.albedo_color = Color(1, 1, 1, 0.04)
-			mat.roughness = 0.03
-			mat.metallic_specular = 0.9
+			mat.albedo_color = Color(1, 1, 1, 0.03)
+			mat.roughness = 0.04
+			mat.metallic_specular = 0.5
 			mat.render_priority = 1
 		elif n == "Augen":
-			mat.roughness = 0.35
+			var am := ShaderMaterial.new()
+			am.shader = preload("res://versuch/hg/augen.gdshader")
+			am.set_shader_parameter("farbe", mat.albedo_texture)
+			netz.set_surface_override_material(i, am)
+			continue
 		netz.set_surface_override_material(i, mat)
+
+# Hauttypen je Volk (nur Material; die Grundtextur kommt aus HG). Werte: Shader-Parameter von haut.gdshader.
+const HAUTTYPEN := {
+	"mensch_hell": {},
+	"mensch_mittel": {"toenung": Color(0.86, 0.74, 0.62), "saettigung": 1.05},
+	"mensch_dunkel": {"toenung": Color(0.44, 0.34, 0.28), "saettigung": 0.85, "glanz": 0.34, "streu_farbe": Color(0.6, 0.3, 0.2)},
+	"elb": {"toenung": Color(1.04, 1.0, 0.98), "saettigung": 0.82, "poren": 0.55, "rauh_versatz": 0.0, "glanz": 0.36, "streu": 0.6},
+	"zwerg": {"toenung": Color(0.95, 0.8, 0.68), "saettigung": 1.12, "gegerbt": 0.8, "poren": 1.4, "glanz": 0.26},
+	"ork": {"toenung": Color(0.62, 0.72, 0.5), "saettigung": 0.6, "gegerbt": 0.5, "poren": 1.3, "streu_farbe": Color(0.5, 0.55, 0.25)},
+	"oger": {"toenung": Color(0.66, 0.68, 0.62), "saettigung": 0.45, "gegerbt": 0.9, "poren": 1.6, "streu_farbe": Color(0.6, 0.4, 0.3)},
+}
+
+func setze_hauttyp(typ: String) -> void:
+	if _haut_mat == null or not HAUTTYPEN.has(typ):
+		return
+	var werte: Dictionary = HAUTTYPEN[typ]
+	for k in ["toenung", "saettigung", "helligkeit", "poren", "rauh_versatz", "glanz", "streu", "streu_farbe", "gegerbt"]:
+		_haut_mat.set_shader_parameter(k, _haut_standard(k))
+	for k in werte:
+		var v = werte[k]
+		if v is Color:
+			v = Vector3(v.r, v.g, v.b)
+		_haut_mat.set_shader_parameter(k, v)
+
+func _haut_standard(k: String) -> Variant:
+	match k:
+		"toenung": return Vector3.ONE
+		"saettigung", "helligkeit", "poren": return 1.0
+		"rauh_versatz": return 0.12
+		"glanz": return 0.26
+		"streu": return 0.38
+		"streu_farbe": return Vector3(0.9, 0.42, 0.32)
+	return 0.0
+
+func setze_haarfarbe(toenung: Color) -> void:
+	for m in _haar_mats:
+		m.set_shader_parameter("toenung", Vector3(toenung.r, toenung.g, toenung.b))
 
 func hat_form(name: String) -> bool:
 	return _formen.has(name)

@@ -27,6 +27,16 @@ if "alter" in einst:
     h.age.set(einst["alter"])
 if "haut" in einst:
     h.skin.texture.set(einst["haut"])
+# Hautregler (HG-Namen: tone, redness, saturation, roughness_multiplier, normal_strength, cavity_strength,
+# freckles, splotches) und geschlechtsabhängige (beard_shadow, mustache_shadow, blush_opacity …)
+for name, wert in einst.get("hautregler", {}).items():
+    getattr(h.skin, name).value = wert
+for name, wert in einst.get("hautregler_geschlecht", {}).items():
+    getattr(h.skin.gender_specific, name).value = wert
+if "iris" in einst:
+    h.eyes.iris_color.value = einst["iris"]
+if "sklera" in einst:
+    h.eyes.sclera_color.value = einst["sklera"]
 log("Regler gesetzt")
 
 if einst.get("frisur"):

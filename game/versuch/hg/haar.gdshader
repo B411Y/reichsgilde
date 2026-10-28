@@ -1,31 +1,23 @@
-// Versuch HG-Köpfe: Haarkarten. Alpha-Test mit Kantenglättung (MSAA, Alpha-to-Coverage), beidseitig,
-// Normalen kommen aus dem Modell (vom Kopf weg) und werden auf der Rückseite NICHT umgedreht – sonst wirkt jede
-// von hinten gesehene Karte schwarz.
+// Versuch HG-Köpfe: Haarkarten, erster Durchgang (deckender Kern).
+// Alpha-Test bei 0,5 mit Alpha-to-Coverage (MSAA glättet die Kanten), Tiefe wird geschrieben -> keine Sortierfehler.
+// Die weichen Säume (Alpha < 0,5) zeichnet haar_saum.gdshader als zweiter Durchgang darüber.
+// Licht nach Kajiya-Kay: Glanz quer zur Strähne (Strähnenrichtung = UV-v der HG-Karten = BINORMAL), zwei Glanzbänder
+// (weiß, leicht zur Spitze verschoben; farbig, zur Wurzel verschoben). Ideen aus dem MIT-Projekt
+// github.com/Bauxitedev/godot-hair-shader und Scheuermann (ATI 2004); Code eigenständig geschrieben.
 shader_type spatial;
 render_mode cull_disabled, depth_draw_opaque;
 
-uniform sampler2D farbe : source_color, filter_linear_mipmap_anisotropic;
-uniform sampler2D normalen : hint_normal, filter_linear_mipmap_anisotropic;
-uniform float schwelle = 0.3;
-uniform float rauheit = 0.7;
-uniform float glanz = 0.15;
-uniform vec3 toenung = vec3(1.0);
-
-varying vec3 n_sicht;
-
-void vertex() {
-	n_sicht = normalize((MODELVIEW_MATRIX * vec4(NORMAL, 0.0)).xyz);
-}
+#include "res://versuch/hg/haar_licht.gdshaderinc"
 
 void fragment() {
 	vec4 f = texture(farbe, UV);
-	ALBEDO = f.rgb * toenung;
+	ALBEDO = haar_farbe(f, UV2.x);
+	NORMAL = n_sicht;
+	ROUGHNESS = 0.6;
+	SPECULAR = 0.0;
+	BACKLIGHT = vec3(0.22, 0.15, 0.1);
 	ALPHA = f.a;
-	ALPHA_SCISSOR_THRESHOLD = schwelle;
-	ALPHA_ANTIALIASING_EDGE = 0.25;
+	ALPHA_SCISSOR_THRESHOLD = 0.5;
+	ALPHA_ANTIALIASING_EDGE = 0.3;
 	ALPHA_TEXTURE_COORDINATE = UV * vec2(textureSize(farbe, 0));
-	NORMAL = normalize(n_sicht);
-	ROUGHNESS = rauheit;
-	SPECULAR = glanz;
-	BACKLIGHT = vec3(0.25, 0.18, 0.12);
 }

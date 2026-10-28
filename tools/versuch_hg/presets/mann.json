@@ -17,5 +17,31 @@
       "lightness": 0.12,
       "redness": 0.45
     }
-  }
+  },
+  "haut": "textures/male/Default 8K/Male 05.png",
+  "hautregler": {
+    "redness": 0.2,
+    "splotches": 0.08,
+    "freckles": 0.15,
+    "roughness_multiplier": 1.5,
+    "normal_strength": 2.5,
+    "cavity_strength": 0.8,
+    "saturation": 0.92
+  },
+  "hautregler_geschlecht": {
+    "beard_shadow": 0.75,
+    "mustache_shadow": 0.6
+  },
+  "iris": [
+    0.16,
+    0.24,
+    0.32,
+    1.0
+  ],
+  "sklera": [
+    0.93,
+    0.89,
+    0.86,
+    1.0
+  ]
 }

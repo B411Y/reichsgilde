@@ -50,6 +50,15 @@ func _ready() -> void:
 				for j in 3:
 					var f := _neu(koepfe[i], Vector2i(w, h), Vector2(10 + j * (w + 16), 10 + i * (h + 16)))
 					f.winkel = [Vector2(0, 2), Vector2(32, 4), Vector2(88, 2)][j]
+		"reihe":
+			# je Kopf ein Fenster (schräg von vorn), drei Spalten – z. B. Hauttypen nebeneinander
+			var n := koepfe.size()
+			var sp := 3
+			var w := (fs.x - 20) / sp - 14
+			var h := (fs.y - 20) / int(ceil(n / float(sp))) - 14
+			for i in n:
+				var f := _neu(koepfe[i], Vector2i(w, h), Vector2(10 + (i % sp) * (w + 14), 10 + (i / sp) * (h + 14)))
+				f.winkel = Vector2(22, 3)
 		"regler":
 			_neu(koepfe[0], Vector2i(560, fs.y - 30), Vector2(10, 6))
 		"mess":
@@ -64,7 +73,7 @@ func _ready() -> void:
 			f.kopf.setze_fest(k, feste[k])
 	if modus == "regler":
 		_regler_bauen()
-	if modus in ["nah", "tafel"]:
+	if modus in ["nah", "tafel", "reihe"]:
 		for f in _fenster:
 			f.kopf.animiert = false
 			f.kopf.blick_wechsel = false
@@ -79,7 +88,10 @@ func _neu(pfad: String, gr: Vector2i, pos: Vector2) -> HgFenster:
 	if teile.size() > 1:
 		for p in teile[1].split(";"):
 			var kv := p.split(":")
-			f.kopf.setze_fest(kv[0], float(kv[1]))
+			if kv[0] == "haut":
+				f.kopf.setze_hauttyp(kv[1])
+			else:
+				f.kopf.setze_fest(kv[0], float(kv[1]))
 	return f
 
 func _foto(n: String) -> void:
@@ -92,7 +104,7 @@ func _process(dt: float) -> void:
 	match modus:
 		"nah": _nah(dt)
 		"film": _film()
-		"tafel":
+		"tafel", "reihe":
 			if _t > 2.0 and _schritt == 0:
 				_schritt = 1
 				for f in _fenster: f.kamera_setzen()
@@ -125,6 +137,8 @@ func _nah(dt: float) -> void:
 		["seite_links", "links", {}],
 		["seite_rechts", "rechts", {}],
 		["hinten", "hinten", {}],
+		["ohr", "ohr", {}],
+		["haut_wange", "wange", {}],
 		["oben", "oben", {}],
 	]
 	_warte -= dt
@@ -145,6 +159,8 @@ func _nah(dt: float) -> void:
 		"rechts": f.abstand = 0.95; f.winkel = Vector2(-90, 2); f.blick_ziel = _mitte(f)
 		"hinten": f.abstand = 0.95; f.winkel = Vector2(160, 8); f.blick_ziel = _mitte(f)
 		"oben": f.abstand = 0.95; f.winkel = Vector2(20, 35); f.blick_ziel = _mitte(f)
+		"ohr": f.abstand = 0.38; f.winkel = Vector2(70, 8); f.blick_ziel = _mitte(f) + Vector3(0.075, 0.0, -0.045)
+		"wange": f.abstand = 0.22; f.winkel = Vector2(25, 2); f.blick_ziel = _mitte(f) + Vector3(0.035, -0.03, 0.05)
 	f.kamera_setzen()
 	k.setze_ausdruck(p[2])
 	_schritt += 1
@@ -158,10 +174,10 @@ func _mitte(f: HgFenster) -> Vector3:
 func _film() -> void:
 	var f := _fenster[0]
 	var k := f.kopf
-	f.winkel = Vector2(18.0 * sin(_t * 0.25), 3.0)
-	f.abstand = 1.3 - 0.35 * smoothstep(9.0, 12.0, _t) + 0.35 * smoothstep(19.0, 21.0, _t)
+	f.winkel = Vector2(18.0 * sin(_t * 0.4), 3.0)
+	f.abstand = 1.3 - 0.4 * smoothstep(5.5, 7.5, _t)
 	f.kamera_setzen()
-	var plan := [[1.5, "satz", 0], [5.5, "laecheln", 0], [7.0, "neutral", 0], [7.5, "satz", 1], [12.5, "satz", 2], [17.0, "laecheln", 0], [19.5, "neutral", 0], [23.0, "ende", 0]]
+	var plan := [[0.8, "satz", 0], [4.6, "laecheln", 0], [5.6, "neutral", 0], [6.0, "satz", 1], [10.0, "laecheln", 0], [11.6, "ende", 0]]
 	while _schritt < plan.size() and _t >= plan[_schritt][0]:
 		var p: Array = plan[_schritt]
 		match p[1]:

@@ -24,7 +24,8 @@
     "lippen_bogen": "livekeys/face_proportions/mouth/lip_cupid_bow.npz",
     "ohren_groesse": "livekeys/face_proportions/ears/ear_height.npz",
     "alter": "livekeys/special/age/aged_male.npz",
-    "elb": "livekeys/special/rasse/elb.npz"
+    "elb": "livekeys/special/rasse/elb.npz",
+    "elb_alt": "livekeys/special/rasse/elb_alt.npz"
   },
   "schnitt_unter_hals": 0.2,
   "schnitt_breite": 0.26,
@@ -37,7 +38,8 @@
   "texturen": {
     "haut": 2048,
     "haar": 2048,
-    "klein": 512
+    "klein": 512,
+    "augen": 1024
   },
   "dezimieren": {
     "augen": 0.35,
@@ -48,7 +50,7 @@
     "Lightness": 0.12,
     "Redness": 0.45
   },
-  "ansatz_staerke": 0.6,
-  "haut_rauheit_min": 0.5,
+  "ansatz_staerke": 0.5,
+  "haut_rauheit_min": 0.0,
   "koerper_dezimieren": 0.5
 }

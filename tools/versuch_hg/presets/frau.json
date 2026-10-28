@@ -4,7 +4,34 @@
   "frisur": "hair/head/female/Long/Bun.json",
   "haarkarten": "high",
   "haarfarbe": {
-    "regular_hair": {"lightness": 0.15, "redness": 0.5},
-    "eyebrows": {"lightness": 0.15, "redness": 0.5}
-  }
+    "regular_hair": {
+      "lightness": 0.15,
+      "redness": 0.5
+    },
+    "eyebrows": {
+      "lightness": 0.15,
+      "redness": 0.5
+    }
+  },
+  "haut": "textures/female/Default 8K/Female 03.png",
+  "hautregler": {
+    "redness": 0.15,
+    "roughness_multiplier": 1.4,
+    "normal_strength": 3.0,
+    "cavity_strength": 0.8,
+    "saturation": 0.95,
+    "freckles": 0.1
+  },
+  "iris": [
+    0.18,
+    0.3,
+    0.14,
+    1.0
+  ],
+  "sklera": [
+    0.94,
+    0.9,
+    0.87,
+    1.0
+  ]
 }

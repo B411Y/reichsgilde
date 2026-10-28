@@ -258,41 +258,94 @@ for it in range(iters):
     log("Runde", it, "mittlere Bewegung mm", round(float(np.linalg.norm(d[kopf], axis=1).mean() * 1000), 2),
         "Datenpunkte", int(hat.sum()))
 
-# Abschluss: noch einmal glätten (nur leicht), Rumpf weich auf null
-delta_w = cur - grund_w
-# Ohrspitzen: oberster Hautpunkt der TRELLIS-Ohren -> oberster Punkt des HG-Ohrs, weich über das Ohr verteilt
-# (nächster Punkt zieht die Spitze nicht weit genug heraus; das hier ist eine gezielte Landmarke)
-for s_, m_ in zip((1, -1), ohr_mitte):
-    kand = haut_t & (np.linalg.norm(tw - m_, axis=1) < P.get("ohr_such", 0.08)) & (np.abs(tw[:, 0]) > np.abs(m_[0]) - 0.005) & (tw[:, 2] > m_[2])
-    if not kand.any():
-        log("keine TRELLIS-Ohrspitze", s_); continue
-    spitze_t = tw[kand][np.argmax(tw[kand][:, 2])]
-    oh = np.nonzero(ohr_hg & (np.sign(grund_w[:, 0]) == s_))[0]
-    jetzt = grund_w[oh] + delta_w[oh]
-    oben = oh[np.argmax(jetzt[:, 2])]
-    zug = spitze_t - (grund_w[oben] + delta_w[oben])
-    # Spitze etwas weiter in Richtung Ohrmitte -> TRELLIS-Spitze verlängern (die TRELLIS-Form ist dort weich und rund)
-    richt = (spitze_t - m_) / np.linalg.norm(spitze_t - m_)
-    zug = zug + richt * P.get("ohr_verlaengern", 0.02)
-    r = np.linalg.norm(grund_w[oh] - grund_w[oben], axis=1)
-    f = np.clip(1 - r / P.get("ohr_radius", 0.026), 0, 1) ** 2
-    delta_w[oh] += f[:, None] * zug * P.get("ohr_staerke", 1.0)
-    log("Ohrspitze", s_, "TRELLIS", np.round(spitze_t, 3).tolist(), "Zug mm", np.round(zug * 1000, 1).tolist())
+# ---------------------------------------------------------------- Auswahl: nur die elbischen Merkmale übernehmen
+# Die Anpassung an die TRELLIS-Elbin liefert ein ganzes fremdes Gesicht. Für eine Rassenform zählen nur
+# Wangenknochen, Augenstellung und schmaleres Kinn; Kiefer und Wangen bleiben menschlich (sonst „backig“ bzw.
+# eingefallen). Die Ohren entstehen parametrisch aus der HG-Ohrform (Knorpel bleibt erhalten).
+delta_fit = cur - grund_w
 
-# Augen und Mund als Ganzes verschieben (Mittel des Rings drumherum): Lider und Lippen behalten ihre HG-Form,
-# Augapfel (in hg_kopf.py ebenso als Mittel der Haut im Umkreis) und Lider bleiben zueinander passend
-for mitte, r_in, r_aus, streck in [(hg_aL, 0.019, 0.03, [1, 1, 1]), (hg_aR, 0.019, 0.03, [1, 1, 1]), (hg_mund, 0.026, 0.038, [1, 1, 1.6])]:
-    dist = np.linalg.norm((grund_w - mitte) * streck, axis=1)
-    innen = dist < r_in
-    # (Mundraum dahinter folgt dem geglätteten Feld wie Kinn und Hals, sonst sticht er unter dem Kinn durch)
-    ring = (dist >= r_in) & (dist < r_aus)
-    verschiebung = delta_w[ring].mean(0)
-    # weicher Übergang am Rand des Inneren
-    f = np.clip((dist - r_in * 0.7) / (r_in * 0.3), 0, 1)[:, None]
-    delta_w[innen] = verschiebung * (1 - f[innen]) + delta_w[innen] * f[innen]
-for _ in range(10):
-    delta_w = 0.5 * delta_w + 0.5 * nachbar_mittel(delta_w)
+
+def weich(d, r0, r1):
+    t = np.clip((r1 - d) / (r1 - r0), 0, 1)
+    return t * t * (3 - 2 * t)
+
+
+aug_abst = abs(hg_aL[0] - hg_aR[0])
+gew = np.zeros(N)
+for s_, auge in ((1, hg_aL), (-1, hg_aR)):
+    wk = auge + np.array([s_ * aug_abst * 0.45, 0.02, -0.03])          # Wangenknochen unter dem äußeren Augenwinkel
+    gew = np.maximum(gew, weich(np.linalg.norm(grund_w - wk, axis=1), P.get("wange_r0", 0.012), P.get("wange_r1", 0.032)))
+    gew = np.maximum(gew, weich(np.linalg.norm(grund_w - auge, axis=1), 0.02, 0.034))   # Augenstellung, Lidform
+gew_kinn = weich(np.linalg.norm((grund_w - (hg_mund + np.array([0, 0.004, -0.04]))) * [1, 1, 0.8], axis=1), 0.012, 0.03)
+delta_w = delta_fit * gew[:, None]
+# Kinn: nur schmaler (x), etwas zurück/hoch gedämpft
+delta_w += delta_fit * (gew_kinn[:, None] * np.array([1.0, 0.35, 0.35])) * (1 - gew[:, None])
+# eingefallene Wangen vermeiden: Bewegung nach innen (gegen die Hautnormale) außerhalb von Kinn/Augen stark dämpfen
+einwaerts = (delta_w * nor_hg).sum(1)
+daempf = (einwaerts < 0) & (gew_kinn < 0.5)
+delta_w[daempf] -= (nor_hg[daempf] * einwaerts[daempf, None]) * P.get("einfall_daempfen", 0.7)
+
+# HG-eigene Regler für saubere Grundzüge (von HG-Künstlern geformt, brechen nichts)
+# (HG-Livekeys sind je Einheit klein, 1–4 mm; eye_tilt negativ = äußere Augenwinkel hoch)
+for name, wert in P.get("livekeys", {"cheek_zygomatic_bone": 1.6, "eye_tilt": -1.6, "chin_width": -1.2, "jaw_width": -0.4,
+                                      "nose_bridge_width": -0.6, "eyelid_fat_pad": -0.8, "chin_size": -0.4}).items():
+    pfad = None
+    for wurzel, _, dateien in os.walk(os.path.expanduser("~/werkzeuge/humgen/inhalt/livekeys/face_proportions")):
+        if name + ".npz" in dateien:
+            pfad = os.path.join(wurzel, name + ".npz")
+    if pfad is None:
+        log("Livekey fehlt", name); continue
+    d_ = np.load(pfad); flat = np.zeros(N * 3); flat[d_["indices"]] = d_["relative_coordinates"]
+    delta_w += (flat.reshape(N, 3) @ mw[:3, :3].T) * wert
+
+# Elbenohr: obere Ohrhälfte entlang der Spitzenrichtung strecken und zur Spitze hin verjüngen
+for s_, m_ in zip((1, -1), ohr_mitte):
+    oh = np.nonzero(ohr_hg & (np.sign(grund_w[:, 0]) == s_))[0]
+    kand = haut_t & (np.linalg.norm(tw - m_, axis=1) < 0.08) & (np.abs(tw[:, 0]) > np.abs(m_[0]) - 0.005) & (tw[:, 2] > m_[2])
+    if kand.any():
+        spitze_t = tw[kand][np.argmax(tw[kand][:, 2])]
+        u = (spitze_t - m_) / np.linalg.norm(spitze_t - m_)
+    else:
+        u = np.array([0, 0.35, 1.0])
+    # nach oben, hinten und deutlich nach außen (sonst wandert die Spitze am Schädel entlang in den Kopf)
+    u = u * 0.25 + np.array([s_ * 0.55, 0.45, 0.75]) / np.linalg.norm([0.55, 0.45, 0.75]) * 0.75
+    u /= np.linalg.norm(u)
+    rel = grund_w[oh] - m_
+    h = rel @ u
+    H = h.max()
+    # nur die frei stehende Ohrmuschel bewegen, nicht den Ansatz am Schädel
+    ax = np.abs(grund_w[oh, 0])
+    frei_ohr = np.clip((ax - ax.min() - P.get("ohr_ansatz", 0.008)) / 0.008, 0, 1)
+    t = np.clip(h / H, 0, 1) * frei_ohr
+    quer = rel - np.outer(h, u)
+    d_ohr = np.outer(P.get("ohr_laenge", 0.04) * t ** 2.2, u)
+    d_ohr -= quer * (P.get("ohr_verjuengen", 0.55) * t ** 1.6)[:, None]
+    d_ohr += np.outer(t ** 2, [s_ * P.get("ohr_abstehen", 0.006), 0, 0])
+    delta_w[oh] = delta_w[oh] * 0.3 + d_ohr      # etwas TRELLIS-Ohrform, vor allem die Parameterform
+    log("Elbenohr", s_, "Richtung", np.round(u, 2).tolist(), "Ohrpunkte", len(oh), "Ohr min/max", np.round(grund_w[oh].min(0), 3).tolist(), np.round(grund_w[oh].max(0), 3).tolist(),
+        "Mitte", np.round(m_, 3).tolist(), "bewegt>5mm", int((np.linalg.norm(d_ohr, axis=1) > 0.005).sum()),
+        "deren Lage", np.round(grund_w[oh][np.linalg.norm(d_ohr, axis=1) > 0.005].mean(0), 3).tolist() if (np.linalg.norm(d_ohr, axis=1) > 0.005).any() else None)
+
+for _ in range(6):
+    glatt = 0.5 * delta_w + 0.5 * nachbar_mittel(delta_w)
+    glatt[ohr_hg] = delta_w[ohr_hg]          # Ohrform nicht verwaschen
+    delta_w = glatt
     delta_w[fest_null] = 0
+# Augen als Ganzes verschieben: alles bis 1,5 cm um die Augapfelmitte exakt um das Mittel des Rings 2,2–3,2 cm.
+# hg_kopf.py schiebt den Augapfel um das Mittel der Haut bis 1,3 cm um dieselbe Mitte -> beides deckungsgleich,
+# die Augenhöhle kann nicht durch die (vertiefte) Pupille stechen.
+augen = bpy.data.objects["HG_Eyes"]
+am = np.array(augen.matrix_world)
+for gname in ("eyeball.L", "eyeball.R"):
+    gi = augen.vertex_groups[gname].index
+    pts = [v.co for v in augen.data.vertices if any(g.group == gi and g.weight > 0.5 for g in v.groups)]
+    mitte = np.array(sum(pts, Vector()) / len(pts)) @ am[:3, :3].T + am[:3, 3]
+    dist = np.linalg.norm(grund_w - mitte, axis=1)
+    ring = (dist >= 0.022) & (dist < 0.032)
+    verschiebung = delta_w[ring].mean(0)
+    f = np.clip((dist - 0.015) / 0.007, 0, 1)[:, None]
+    nah = dist < 0.022
+    delta_w[nah] = verschiebung * (1 - f[nah]) + delta_w[nah] * f[nah]
 inv = np.linalg.inv(mw[:3, :3])
 delta = delta_w @ inv.T
 idx = np.nonzero(np.abs(delta.reshape(-1)) > 1e-6)[0]

@@ -200,6 +200,8 @@ log("Kappen auf die Haut", [k.name for k in kappen], "Haare", [h.name for h in h
 for o in haare:
     i, w, d = binden(o)
     formen_uebertragen(o, i, w, d)
+    # Zweite UV „Wurzel“: Abstand zur Haut (0 = Haaransatz, 1 = ab 3 cm) für den dunkleren Ansatz im Spiel-Material
+    o["wurzel"] = np.clip(d / einst.get("wurzel_laenge", 0.03), 0, 1).tolist()
     log("gebunden", o.name, len(o.data.vertices), "Abstand max", round(float(d.max()), 3))
 
 # ---------------------------------------------------------------- 4. Augen und Zähne folgen den Reglern
@@ -233,7 +235,8 @@ def verschieben_mit(obj, gruppen, radius):
 
 
 eyes.data.shape_keys and [eyes.shape_key_remove(k) for k in list(eyes.data.shape_keys.key_blocks)[::-1]]
-verschieben_mit(eyes, ["eyeball.L", "eyeball.R"], 0.03)
+# Augapfel genau wie die Augenhöhle (Haut innerhalb 1,3 cm um die Augenmitte), sonst sticht sie durch die Pupille
+verschieben_mit(eyes, ["eyeball.L", "eyeball.R"], einst.get("augen_radius", 0.013))
 # Zähne und Zunge: Regler über den nächsten Hautpunkt (Mundraum) – starr verschoben stäche die Zunge bei
 # schmaleren Kiefern (Elb) unter dem Kinn durch
 for o in (zo, zl):
@@ -314,14 +317,33 @@ body.data.materials.append(mat_k)
 with ctx.temp_override(active_object=body, selected_editable_objects=[body, huelle], selected_objects=[body, huelle]):
     bpy.ops.object.join()
 log("Kittel", len(body.data.vertices), "Punkte")
+# Kittelflächen merken (für UV2.y: das Spiel-Material tönt nur die Haut, nicht das Leinen)
+kittel_mat = len(body.data.materials) - 1
+body.data.attributes.new("kittel", "INT", "FACE")
+body.data.attributes["kittel"].data.foreach_set("value", [1 if p_.material_index == kittel_mat else 0 for p_ in body.data.polygons])
 
 # Verschlanken: Rumpf, Kittel, Hinterkopf (unter dem Haar) und Ohren dürfen gröber werden, das Gesicht bleibt genau.
 # Die Formen werden danach über den nächsten alten Punkt zurückgeholt (im Gesicht sind das dieselben Punkte).
 gesicht_m = Vector((0, rest[:, 1].min() + 0.06, (rig.data.bones["eyeball.L"].head_local.z + kopf_b.z) * 0.5))
+# Ohren auch genau lassen (Elbenohr wird sonst kantig): Punkte, die die HG-Ohrregler bewegen
+ohr_schutz = np.zeros(len(body.data.vertices), bool)
+for n_ in ("ear_height", "ear_width", "ear_turn", "ear_antihelix_shape"):
+    d_ = np.load(os.path.join(INHALT, f"livekeys/face_proportions/ears/{n_}.npz"))
+    flat = np.zeros(N * 3); flat[d_["indices"]] = d_["relative_coordinates"]
+    bewegt = np.abs(flat.reshape(N, 3)).max(1) > 2e-4
+    # Zuschnitt hat die Punktnummern verändert: über die Lage zuordnen
+    from mathutils.kdtree import KDTree as _KD
+    kd_o = _KD(int(bewegt.sum()))
+    for k_, p_ in enumerate(rest[bewegt]):
+        kd_o.insert(Vector(p_), k_)
+    kd_o.balance()
+    for v in body.data.vertices:
+        if kd_o.find(v.co)[2] < 1e-5:
+            ohr_schutz[v.index] = True
 grp = body.vertex_groups.new(name="Sparen")
 for v in body.data.vertices:
     d = (v.co - gesicht_m).length
-    w = min(1.0, max(0.0, (d - einst.get("gesicht_radius", 0.10)) / 0.03))
+    w = 0.0 if ohr_schutz[v.index] else min(1.0, max(0.0, (d - einst.get("gesicht_radius", 0.10)) / 0.03))
     if w > 0:
         grp.add([v.index], w, "REPLACE")
 
@@ -712,7 +734,7 @@ mxp = ntp.nodes.new("ShaderNodeMix"); mxp.data_type = "RGBA"
 ntp.links.new(cap.outputs["Color"], mxp.inputs["Factor"]); ntp.links.new(srcp, mxp.inputs["A"])
 mxp.inputs["B"].default_value = (0.01, 0.008, 0.007, 1)
 ntp.links.new(mxp.outputs["Result"], prp.inputs["Base Color"])
-a_far = backen(eyes, [iris], "Base Color", r_kl, "augen_farbe")
+a_far = backen(eyes, [iris], "Base Color", int(R.get("augen", 1024)), "augen_farbe")
 m_iris = spielmaterial("Augen", a_far, rauh_wert=0.3)
 m_horn = bpy.data.materials.new("Hornhaut"); m_horn.use_nodes = True
 pr = m_horn.node_tree.nodes["Principled BSDF"]
@@ -828,6 +850,18 @@ for o in teile:
     while len(o.data.uv_layers) > 1:
         o.data.uv_layers.remove(o.data.uv_layers[1])
     o.data.uv_layers[0].name = "UVMap"
+    wl = o.data.uv_layers.new(name="Wurzel")
+    werte = o.get("wurzel")
+    vi = np.empty(len(o.data.loops), np.int64); o.data.loops.foreach_get("vertex_index", vi)
+    u = np.array(werte)[vi] if werte is not None and len(werte) == len(o.data.vertices) else np.ones(len(vi))
+    v = np.zeros(len(vi))
+    if "kittel" in o.data.attributes:
+        kf = np.empty(len(o.data.polygons), np.int64); o.data.attributes["kittel"].data.foreach_get("value", kf)
+        li = np.empty(len(o.data.loops), np.int64)
+        for p_ in o.data.polygons:
+            li[p_.loop_start:p_.loop_start + p_.loop_total] = p_.index
+        v = kf[li].astype(float)
+    wl.data.foreach_set("uv", np.c_[u, v].reshape(-1))
 for o in teile:
     o.select_set(True)
     o.data.shape_keys.animation_data_clear() if o.data.shape_keys else None
