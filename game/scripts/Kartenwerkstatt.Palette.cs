@@ -123,6 +123,7 @@ public partial class Kartenwerkstatt
             if (an) Melden(_stadt.WerkstattNetzTeile <= 1 ? "Gassennetz: alles ist verbunden." : $"Gassennetz: {_stadt.WerkstattNetzTeile} getrennte Teile – nicht jedes Ziel ist erreichbar.",
                 _stadt.WerkstattNetzTeile > 1);
         }, "Gassennetz\nZeigt das Gassennetz, auf dem Passanten und Karren laufen (pink, Knoten gelb) – mit den Stücken von Höfen, Karrenplätzen und Toren zum nächsten Weg.", umschalter: true);
+        EbenenKnopfBauen(zeile); // Kartenwerkstatt.Ebenen.cs
         zeile.AddChild(new VSeparator());
 
         var mitte = new VBoxContainer { SizeFlagsHorizontal = Control.SizeFlags.ExpandFill };
@@ -313,7 +314,8 @@ public partial class Kartenwerkstatt
         void Gebaeude(Baustein b, string text, string tipp, Werkstattwerkzeug werkzeug, string ersatz)
         {
             var knopf = Eintrag(b.Kennung, text, tipp, werkzeug, ersatz, baustein: b.Kennung);
-            if (_vorschauen.TryGetValue(b.Kennung, out var bild)) knopf.Icon = bild;
+            if (KatalogBild(b.Kennung) is { } vorab) knopf.Icon = vorab;
+            else if (_vorschauen.TryGetValue(b.Kennung, out var bild)) knopf.Icon = bild;
             else _vorschauWarte.Add((knopf, b));
         }
 
@@ -384,11 +386,11 @@ public partial class Kartenwerkstatt
         Eintrag("radierer", "Radierer", "Mit gedrückter Maus über einzelne Pflanzen fahren – beim Loslassen sind sie weg", Werkstattwerkzeug.Radierer, "radierer");
         foreach (var b in _entwurf.Katalog.Bausteine.Where(b => b.Art == Bausteinart.Natur && b.Modell?.StartsWith("props/") != true))
             Eintrag(b.Kennung, ArtName(b), $"{b.Kennung} · {b.Varianten} Variante(n) · Modell {b.Modell} – Klick setzt eine Pflanze, Q/E dreht",
-                Werkstattwerkzeug.Pflanze, "pflanze", baustein: b.Kennung);
+                Werkstattwerkzeug.Pflanze, "pflanze", baustein: b.Kennung, bild: KatalogBild(b.Kennung));
         Kopf("Requisiten (Asset-Kits)");
         foreach (var b in _entwurf.Katalog.Bausteine.Where(b => b.Art == Bausteinart.Natur && b.Modell?.StartsWith("props/") == true))
             Eintrag(b.Kennung, ArtName(b), $"{b.Kennung} · {b.Varianten} Variante(n) · Modell {b.Modell} – Klick stellt es auf, Q/E dreht, Maßstab rechts",
-                Werkstattwerkzeug.Pflanze, "gebaeude", baustein: b.Kennung);
+                Werkstattwerkzeug.Pflanze, "gebaeude", baustein: b.Kennung, bild: KatalogBild(b.Kennung));
 
         // Gebäude
         Gruppe("gebaeude");
@@ -480,24 +482,7 @@ public partial class Kartenwerkstatt
         foreach (var (knopf, baustein) in auftraege)
         {
             if (_stadt.WerkstattVorschaumodell(baustein) is not { } modell) continue;
-            var fenster = new SubViewport
-            {
-                Size = new Vector2I(128, 128), TransparentBg = true, OwnWorld3D = true, Msaa3D = Viewport.Msaa.Msaa4X,
-                RenderTargetUpdateMode = SubViewport.UpdateMode.Once,
-            };
-            halter.AddChild(fenster);
-            fenster.AddChild(new WorldEnvironment
-            {
-                Environment = new Godot.Environment { AmbientLightSource = Godot.Environment.AmbientSource.Color, AmbientLightColor = new Color(0.85f, 0.82f, 0.76f), AmbientLightEnergy = 0.8f },
-            });
-            fenster.AddChild(new DirectionalLight3D { RotationDegrees = new Vector3(-48, 32, 0), LightEnergy = 1.1f });
-            fenster.AddChild(modell);
-            var masse = ModellMasse(modell);
-            var mitte = masse.GetCenter();
-            var kamera = new Camera3D { Projection = Camera3D.ProjectionType.Orthogonal, Size = Mathf.Max(masse.Size.Length() * 0.62f, 2f), Near = 0.1f, Far = 600f };
-            fenster.AddChild(kamera);
-            kamera.Position = mitte + new Vector3(0.55f, 0.6f, 1f).Normalized() * 150f;
-            kamera.LookAt(mitte, Vector3.Up);
+            var fenster = VorschauFenster(halter, modell);
             bilder.Add((knopf, baustein.Kennung, fenster));
         }
         // zwei gezeichnete Bilder abwarten, dann sind die Fenster fertig
@@ -512,6 +497,30 @@ public partial class Kartenwerkstatt
         }
         halter.QueueFree();
         _vorschauLaeuft = false;
+    }
+
+    /// <summary>Ein Fenster mit eigener Welt für ein Vorschaubild: neutrales Licht, durchsichtiger Hintergrund, Dreiviertelansicht von vorn (rechts oben) auf das Modell.</summary>
+    private static SubViewport VorschauFenster(Node halter, Node3D modell, int groesse = 128)
+    {
+        var fenster = new SubViewport
+        {
+            Size = new Vector2I(groesse, groesse), TransparentBg = true, OwnWorld3D = true, Msaa3D = Viewport.Msaa.Msaa4X,
+            RenderTargetUpdateMode = SubViewport.UpdateMode.Once,
+        };
+        halter.AddChild(fenster);
+        fenster.AddChild(new WorldEnvironment
+        {
+            Environment = new Godot.Environment { AmbientLightSource = Godot.Environment.AmbientSource.Color, AmbientLightColor = new Color(0.85f, 0.82f, 0.76f), AmbientLightEnergy = 0.8f },
+        });
+        fenster.AddChild(new DirectionalLight3D { RotationDegrees = new Vector3(-48, 32, 0), LightEnergy = 1.1f });
+        fenster.AddChild(modell);
+        var masse = ModellMasse(modell);
+        var mitte = masse.GetCenter();
+        var kamera = new Camera3D { Projection = Camera3D.ProjectionType.Orthogonal, Size = Mathf.Max(masse.Size.Length() * 0.62f, 0.4f), Near = 0.1f, Far = 600f };
+        fenster.AddChild(kamera);
+        kamera.Position = mitte + new Vector3(0.55f, 0.6f, 1f).Normalized() * 150f;
+        kamera.LookAt(mitte, Vector3.Up);
+        return fenster;
     }
 
     /// <summary>Alles Sichtbare eines Modells in Weltmaßen (die Fenster der Vorschau haben ihre eigene Welt, der Knoten steht schon darin).</summary>
