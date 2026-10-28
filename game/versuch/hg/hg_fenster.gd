@@ -36,6 +36,10 @@ func _init(groesse := Vector2i(384, 448), quelle := "", hg: Color = Color(0.42, 
 	ansicht.size = groesse
 	ansicht.own_world_3d = true
 	ansicht.msaa_3d = Viewport.MSAA_2X if sparsam else Viewport.MSAA_4X
+	# Messung: --msaa=0|2|4 setzt die Kantenglättung aller Porträtfenster
+	for a in OS.get_cmdline_user_args():
+		if a.begins_with("--msaa="):
+			ansicht.msaa_3d = {"0": Viewport.MSAA_DISABLED, "2": Viewport.MSAA_2X, "4": Viewport.MSAA_4X}.get(a.substr(7), ansicht.msaa_3d)
 	ansicht.positional_shadow_atlas_size = 0
 	# Schattenkarte des Hauptlichts: Standard 4096 ist für ein Porträt viel zu groß (kostet bei 8 Fenstern die Hälfte der Zeit)
 	RenderingServer.directional_shadow_atlas_set_size(1024 if sparsam else 2048, true)

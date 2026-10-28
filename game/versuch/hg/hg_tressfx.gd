@@ -92,11 +92,13 @@ static func anbringen(kopf: HgKopf, ordner: String, farbe: Color, variante := ""
 		if _schalter("--tfx-ohne-bart") and teil == "bart":
 			haar.visible = false
 		if HgFenster.sparsam:
-			# viele kleine Fenster: weniger Strähnen zeichnen (Detailstufe ab kurzer Entfernung)
+			# viele kleine Fenster: keine Folgehaare, Detailstufe schon ab 10 cm (Kamera steht ~0,9 m weg) -> deutlich
+			# weniger Strähnen, die verbliebenen zeichnet der Shader breiter
+			haar.set("num_follow_hairs", 0)
 			haar.set("lod_enabled", true)
-			haar.set("lod_start_distance", 0.3)
-			haar.set("lod_end_distance", 1.2)
-			haar.set("lod_percent", 0.35)
+			haar.set("lod_start_distance", 0.1)
+			haar.set("lod_end_distance", 0.6)
+			haar.set("lod_percent", 0.25)
 		# Ohne Simulation zeichnet das Addon die Strähnen gar nicht (ihre Lagen entstehen erst in der Simulation).
 		# „Ruhe“ heißt daher: kurz simulieren, bis die Strähnen liegen, dann einfrieren (Lage bleibt stehen).
 		if ruhe or (teil == "bart" and _schalter("--tfx-bart-ruhe")):

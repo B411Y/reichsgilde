@@ -85,7 +85,7 @@ func _ready() -> void:
 		if tressfx != "" and (not tfx_einzeln or tv != ""):
 			if tv == "":
 				tv = tfx_variante
-			f.ansicht.use_taa = true
+			f.ansicht.use_taa = not OS.get_cmdline_user_args().has("--tfx-ohne-taa")
 			var kname := f.kopf.quelle.get_file().get_basename()
 			HgTressFX.anbringen(f.kopf, tressfx.path_join(kname), Color(0.11, 0.07, 0.045),
 				"" if tv == "voll" else "sparsam", tv == "ruhe")

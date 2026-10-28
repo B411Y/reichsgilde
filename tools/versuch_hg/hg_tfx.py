@@ -253,7 +253,7 @@ def teil_exportieren(name, hair, punkte, kinder, knochen_fn, anteil=1.0, volumen
 # Varianten: voll (alle Leitsträhnen) und sparsam (Anteil Leitsträhnen, weniger Punkte; Folgehaare in Godot)
 # Bart: deutlich weniger Strähnen als HG-Kindhaare (sonst ein dunkler Block), Simulation in Godot ohnehin aus
 for endung, v in P.get("varianten", {"": {"anteil": 1.0, "pf": 16, "pb": 8, "ab": 0.35},
-                                     "_sparsam": {"anteil": 0.15, "pf": 8, "pb": 4, "ab": 0.25}}).items():
+                                     "_sparsam": {"anteil": 0.15, "pf": 8, "pb": 4, "ab": 0.08}}).items():
     teil_exportieren("frisur", h.hair.regular_hair, v["pf"], P.get("kinder_frisur", 100), lambda r: "head",
                      v["anteil"], P.get("volumen_frisur", 0.2), endung)
     if h.gender == "male":
