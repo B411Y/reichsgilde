@@ -60,7 +60,7 @@ public sealed class PersonalAnzeige : InnenTafel
                 var erf = Reihe(mitte);
                 Balken(erf, Math.Clamp(z.Erfahrung / Math.Max(ziel, 0.01), 0, 1), 170, Gruen);
                 var rest = z.JahreBisNaechste is { } j ? (j <= 0 ? "genug für die Beförderung" : $"noch etwa {Zahlenformat.Kommazahl(j)} Jahre") : "sammelt hier keine Erfahrung";
-                Text(erf, $"Erfahrung {Zahlenformat.Ganz(z.Erfahrung)} von {Zahlenformat.Ganz(ziel)} Arbeitsstunden zum {naechste} · {rest}", 12, Grau);
+                Text(erf, $"Erfahrung {Zahlenformat.Ganz(z.Erfahrung)} von {Zahlenformat.Ganz(ziel)} Arbeitsstunden bis {naechste} · {rest}", 12, Grau);
             }
             else Text(mitte, "Höchste Stufe erreicht.", 12, Grau);
 
@@ -76,7 +76,7 @@ public sealed class PersonalAnzeige : InnenTafel
             Text(rechts, $"Lohn {Zahlenformat.Ganz(z.Lohn)} {waehrung}/Jahr", 13, Hell);
             var befoerdern = z.NaechsteStufe is { } n ? $"Befördern → {n}" : "Befördern";
             var knopfTipp = z.BefoerderungVerboten
-                ?? (z.BriefKosten is { } kosten ? $"Beförderung zum {z.NaechsteStufe}: der Brief kostet {Zahlenformat.Ganz(kosten)} {waehrung}." : null);
+                ?? (z.BriefKosten is { } kosten ? $"Beförderung zu: {z.NaechsteStufe}: der Brief kostet {Zahlenformat.Ganz(kosten)} {waehrung}." : null);
             var bk = Knopf(rechts, befoerdern, () => Befehlen(new ArbeiterBefoerdern(b.Name, z.Nummer)), z.BefoerderungVerboten);
             if (z.BefoerderungVerboten is null && knopfTipp is not null) Tipp(bk, knopfTipp);
             Knopf(rechts, $"Prämie {Zahlenformat.Ganz(s.PraemieKosten(b, z.Nummer))}", () => Befehlen(new PraemieZahlen(b.Name, z.Nummer)), s.PraemieVerboten(b, z.Nummer));
