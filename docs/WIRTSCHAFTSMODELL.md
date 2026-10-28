@@ -2114,3 +2114,37 @@ Statisch (Startpreise, Gesellen) liegt der Dieb durch die höhere Beute bei +27 
 | Greybox, jetzt | 214.299 | 194.875 | 224.173 | 11/20 ab 17,9 | 618 | 2.885 | 11.820 |
 
 Kein KI-Haus geht bankrott. Am Ende sind ohne Karte 41 Freiherren und 19 Reichsgrafen (vorher 57 und 3), in der Greybox 2 Freiherren und 58 Reichsgrafen.
+
+## Charakterzüge (PR #227)
+
+**Was sich geändert hat** (Umsetzung in `docs/bereiche/kern.md` und `docs/bereiche/spiel-ki.md`, „Charakterzüge (PR #227)“; **Datenversion 60**): Jede Person der Häuser und jeder Ratsherr hat Charakterzüge (Abschnitt `charakterzuege`). Sie ändern Talente um höchstens ±1 Stern je Zug, Haushalt und Krankheit einzelner Personen, die Bestechlichkeit der Ratsherren und das Handeln der KI-Häuser (Zins, Geschenke, Gaunerstücke, Klage, Ablass, Eskorte, Amortisation, Produktwechsel, Verlustjahre, Barde, Wohnhaus-Einrichtung). Kein bestehender Wert ist geändert. Im Mittel bringen die Züge eines neuen Oberhaupts +0,1 bis +0,25 Sterne je Talent (Mensch: Verhandeln +0,13, Handwerk +0,10, Nacht +0,23, Kampf +0,15, Rhetorik +0,09; Zwerg wegen Fleißig/Gierig etwas mehr).
+
+Gemessen auf main `60771c4` + Branch `6dbc47e`, Datenversion 60, gegen main `60771c4` ohne Züge (Datenversion 59), beide `messen bericht 20 20` (880 Partien, je 20–22 Minuten) → `docs/messungen/balancing-2026-10-28-charakterzuege.json`. Ein erster Lauf mit „Fleißig übt, sobald die Punkte reichen / Träge übt nie“ zeigte dasselbe Bild (Schmied +20 %, Parfumeur +17 %, Geldleiher −19 % gegen das Mittel); seitdem stellen Fleißig und Träge nur schneller bzw. langsamer um.
+
+| | main ohne Züge | mit Zügen |
+|---|---|---|
+| Berufe im Band ±15 % (simuliert, ein Betrieb, 20 Jahre) | 9/10 (Dieb −16 %) | 8/10 (Schmied +21 %, Geldleiher −17 %) |
+| Mittel des Zuwachses | 29.419 | 30.810 (+4,7 %) |
+| Bürger mit einem Betrieb (Ø Jahre, Spanne der Berufe) | 8,3 … 12,8 | 8,2 … 12,1 |
+| Spieler mit einem Betrieb, Greybox / Probestadt | 36.436 / 38.544 | 41.188 / 46.910 |
+| KI ÷ gleiche Strategie (Median); „Schwer“ | 1,12; 1,64 | 0,96; 1,49 |
+| 8 gegen 3 Häuser (Vermögen je KI-Haus) | −13 % | −10 % |
+| Gaunerei der KI: Diebstahl / Einbruch je Jahr | 0,83 / 0,62 | 0,69 / 0,53 |
+| Karren in Not verkauft (880 Partien) | 3 | 12 |
+
+Reinvermögen nach 20 Jahren je Beruf (ein Betrieb, Greybox, Mensch; Fehler des Mittels mit Zügen ≈ 800–2.300):
+
+| Beruf | ohne Züge | mit Zügen |
+|---|---|---|
+| Schmied | 36.436 | 41.188 (+13 %) |
+| Tischler | 34.845 | 38.830 (+11 %) |
+| Steinmetz | 35.005 | 35.967 (+3 %) |
+| Alchimist | 34.976 | 31.973 (−9 %) |
+| Wirt | 34.857 | 35.404 (+2 %) |
+| Prediger | 33.364 | 32.578 (−2 %) |
+| Dieb | 28.853 | 33.759 (+17 %) |
+| Parfumeur | 35.758 | 37.518 (+5 %) |
+| Geldleiher | 30.591 | 29.572 (−3 %) |
+| Gardist | 29.501 | 31.313 (+6 %) |
+
+**Befund:** Die Wirtschaft bleibt nahe am Band; die Züge machen jede Partie zufälliger (Streuung der Berufe teils größer), und mit 20 Startwerten liegen Schmied und Geldleiher knapp außerhalb. Der Dieb gewinnt am meisten (Nacht im Mittel +0,23, Verschlagen +1 Stern). Die KI-Häuser verlieren gegen den Bezugsspieler etwas an Vorsprung (Mutig und Geduldig behalten Verlustbetriebe länger, öfter Karren in Not; Ehrlich lässt das Hinterzimmer aus). Ob nachgesteuert wird (z. B. Nacht-Plus von Feige streichen, 30 Startwerte messen), entscheidet der Nutzer.
