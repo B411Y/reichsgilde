@@ -45,6 +45,9 @@ public partial class WohnhausAnzeige : PanelContainer
     /// <summary>Der Spieler möchte ins Hinterzimmer (Fenster in der Bildmitte).</summary>
     public event Action? HinterzimmerGewuenscht;
 
+    /// <summary>Der Spieler möchte den Talentbaum der Einrichtung des Wohnhauses (PR #224).</summary>
+    public event Action? EinrichtungGewuenscht;
+
     /// <summary>Der Spieler hat die Tafel mit „×“ geschlossen.</summary>
     public event Action? Geschlossen;
 
@@ -109,6 +112,9 @@ public partial class WohnhausAnzeige : PanelContainer
         haus.AddChild(hausKnoepfe);
         _ausbauKnopf = KleinerKnopf(hausKnoepfe, () => Senden(new WohnhausAusbauen()));
         _hauswaechterKnopf = KleinerKnopf(hausKnoepfe, () => { if (_spieler is not null) Senden(new HauswaechterSetzen(!_spieler.Hauswaechter)); });
+        var einrichtungKnopf = KleinerKnopf(hausKnoepfe, () => EinrichtungGewuenscht?.Invoke());
+        einrichtungKnopf.Text = "Einrichtung …";
+        einrichtungKnopf.TooltipText = "Haushalt, Ansehen und Schutz: der Talentbaum der Einrichtung des Wohnhauses.";
         _apZeile = NeuesLabel(haus, 14, Gold, umbruch: Breite);
         _apZeile.MouseFilter = MouseFilterEnum.Stop; // für den Tooltip
         _statutZeile = NeuesLabel(haus, 13, Grau, umbruch: Breite);

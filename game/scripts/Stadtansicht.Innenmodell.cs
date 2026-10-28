@@ -1027,13 +1027,20 @@ public partial class Stadtansicht
         ShadingMode = BaseMaterial3D.ShadingModeEnum.Unshaded, AlbedoColor = new Color(0.98f, 0.82f, 0.35f),
     };
 
-    /// <summary>Wie ein Arbeiter aussieht: Lehrlinge heller und schlichter, Gesellen in Braun, Orks grün; alle mit Lederschürze.</summary>
+    /// <summary>Die erste Stufe der Laufbahn (PR #224): Lehrling, Knecht, Taschendieb, Rekrut – je Beruf anders benannt.</summary>
+    private static bool IstAnfaenger(string arbeitskraft) => arbeitskraft is "Lehrling" or "Knecht" or "Taschendieb" or "Rekrut";
+
+    /// <summary>Die dritte Stufe: Vorarbeiter, Großknecht, Meisterdieb, Feldwebel.</summary>
+    private static bool IstVorarbeiter(string arbeitskraft) => arbeitskraft is "Vorarbeiter" or "Großknecht" or "Meisterdieb" or "Feldwebel";
+
+    /// <summary>Wie ein Arbeiter aussieht: Anfänger (Lehrlinge, Knechte …) heller und schlichter, Gesellen in Braun, Orks grün; alle mit Lederschürze.</summary>
     private static FigurAussehen ArbeiterAussehen(ArbeiterZeile zeile)
     {
         var volk = zeile.Arbeitskraft == "Ork" ? Volk.Ork : Volk.Mensch;
         var gewand = zeile.Arbeitskraft switch
         {
-            "Lehrling" => new Color(0.62f, 0.55f, 0.40f),
+            var k when IstAnfaenger(k) => new Color(0.62f, 0.55f, 0.40f),
+            var k when IstVorarbeiter(k) => new Color(0.30f, 0.21f, 0.15f), // Vorarbeiter in dunklerem Braun
             "Ork" => new Color(0.30f, 0.27f, 0.22f),
             "Leibeigener" => new Color(0.45f, 0.43f, 0.39f),
             _ => new Color(0.42f, 0.30f, 0.20f),
