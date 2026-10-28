@@ -26,3 +26,5 @@
 
 # Exporteinstellungen (bestimmen, was ausgeliefert wird)
 /game/export_presets.cfg @B411Y
+
+# Test der Code-Owner-Freigabe (wird nicht gemergt)
