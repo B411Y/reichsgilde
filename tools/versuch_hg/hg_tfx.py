@@ -105,6 +105,27 @@ def schreibe_tfxbone(pfad, knochen_je_straehne):
 kopf_mitte = np.array(rig.matrix_world @ (rig.data.bones["head"].head_local + Vector((0, 0.0, 0.09))))
 
 
+def seiten_anlegen(st, faktor):
+    """Weniger Fülle an den Seiten: Abstand zur Mittelebene unterhalb der Schläfen zur Spitze hin verkleinern,
+    aber nie in den Kopf hinein (Haut + 4 mm bleibt Grenze)."""
+    if faktor >= 1.0:
+        return st
+    bogen = np.concatenate([np.zeros((len(st), 1)), np.cumsum(np.linalg.norm(np.diff(st, axis=1), axis=2), axis=1)], axis=1)
+    t = bogen / np.maximum(bogen[:, -1:], 1e-6)
+    schlaefe = kopf_mitte[2]
+    unten = np.clip((schlaefe - st[:, :, 2]) / 0.06, 0, 1)
+    f = 1.0 - (1.0 - faktor) * t * unten
+    neu = st.copy()
+    neu[:, :, 0] = st[:, :, 0] * f
+    # nicht in die Haut: Punkte, die nun näher als 4 mm an der Haut sind, behalten ihre alte Lage
+    for i in range(len(neu)):
+        for j in range(1, neu.shape[1]):
+            loc, nor, fi, d = bvh.find_nearest(Vector(neu[i, j]))
+            if loc is not None and (Vector(neu[i, j]) - loc).dot(nor) < 0.004:
+                neu[i, j] = st[i, j]
+    return neu
+
+
 def volumen_geben(st, cm):
     """Haar etwas vom Kopf abheben: jeder Punkt wandert vom Kopfmittelpunkt weg, an der Wurzel 0, zur Spitze voll.
     Gibt der Frisur Fülle, statt dass sie wie nass am Schädel klebt."""
@@ -115,6 +136,43 @@ def volumen_geben(st, cm):
     richt = st - kopf_mitte
     richt /= np.maximum(np.linalg.norm(richt, axis=2, keepdims=True), 1e-6)
     return st + richt * (cm / 100.0) * np.sqrt(t)[:, :, None]
+
+
+# Ohren (Punkte, die der HG-Regler ear_height bewegt) – für „nichts vor den Ohren“
+_d = np.load(os.path.expanduser("~/werkzeuge/humgen/inhalt/livekeys/face_proportions/ears/ear_height.npz"))
+_f = np.zeros(len(haut_pkt) * 3); _f[_d["indices"]] = _d["relative_coordinates"]
+_ohr = np.abs(_f.reshape(-1, 3)).max(1) > 2e-4
+OHR = {s_: haut_pkt[_ohr & (np.sign(haut_pkt[:, 0]) == s_)] for s_ in (1, -1)}
+
+
+def ohren_frei(st, kurz_cm):
+    """Keine Koteletten, nichts vor den Ohren: Strähnen mit Wurzel vor dem Ohr (unterhalb der Schläfe) auf kurz_cm
+    kürzen; andere Strähnen, die vor dem Ohr herabfallen, hinter das Ohr legen (bleibt hinten, einmal hingelegt)."""
+    st = st.copy()
+    gekuerzt = 0
+    for s_, o in OHR.items():
+        if len(o) == 0:
+            continue
+        vorne_y = o[:, 1].min()           # HG: vorn = -y
+        oben_z, unten_z = o[:, 2].max(), o[:, 2].min()
+        aussen = np.abs(o[:, 0]).min() - 0.012
+        w = st[:, 0]
+        kotelett = (np.sign(w[:, 0]) == s_) & (np.abs(w[:, 0]) > aussen) & (w[:, 2] < oben_z + 0.005) & (w[:, 1] < vorne_y + 0.012)
+        for i in np.nonzero(kotelett)[0]:
+            u = umtasten(st[i], 64)
+            seg = np.concatenate(([0.0], np.cumsum(np.linalg.norm(np.diff(u, axis=0), axis=1))))
+            if seg[-1] > kurz_cm / 100.0:
+                ende = np.searchsorted(seg, kurz_cm / 100.0)
+                st[i] = umtasten(u[:max(ende, 2)], st.shape[1])
+                gekuerzt += 1
+        # Rest: Punkte im Bereich vor dem Ohr nach hinten schieben, entlang der Strähne nie wieder zurück
+        im = (np.sign(st[:, :, 0]) == s_) & (np.abs(st[:, :, 0]) > aussen) & (st[:, :, 2] < oben_z + 0.01) & (st[:, :, 2] > unten_z - 0.03)
+        noetig = np.where(im, np.maximum(0.0, vorne_y + 0.02 - st[:, :, 1]), 0.0)
+        noetig[kotelett] = 0.0
+        noetig = np.maximum.accumulate(noetig, axis=1)
+        st[:, :, 1] += noetig
+    log("Ohren frei:", gekuerzt, "Koteletten-Strähnen gekürzt")
+    return st
 
 
 def ansatz_ausduennen(st, knochen, cm):
@@ -181,6 +239,9 @@ def teil_exportieren(name, hair, punkte, kinder, knochen_fn, anteil=1.0, volumen
         st = st[wahl]; knochen = [knochen[i] for i in wahl]
     if name == "frisur" and P.get("ansatz_weich", 2.0) > 0:
         st, knochen = ansatz_ausduennen(st, knochen, P.get("ansatz_weich", 2.0))
+    if name == "frisur":
+        st = ohren_frei(st, P.get("kotelett_cm", 1.0))
+        st = seiten_anlegen(st, P.get("seiten_enger", 0.85))
     st = volumen_geben(st, volumen)
     schreibe_tfx(os.path.join(ziel, name + endung + ".tfx"), st)
     schreibe_tfxbone(os.path.join(ziel, name + endung + ".tfxbone"), knochen)
@@ -194,7 +255,7 @@ def teil_exportieren(name, hair, punkte, kinder, knochen_fn, anteil=1.0, volumen
 for endung, v in P.get("varianten", {"": {"anteil": 1.0, "pf": 16, "pb": 8, "ab": 0.35},
                                      "_sparsam": {"anteil": 0.15, "pf": 8, "pb": 4, "ab": 0.25}}).items():
     teil_exportieren("frisur", h.hair.regular_hair, v["pf"], P.get("kinder_frisur", 100), lambda r: "head",
-                     v["anteil"], P.get("volumen_frisur", 0.8), endung)
+                     v["anteil"], P.get("volumen_frisur", 0.2), endung)
     if h.gender == "male":
         teil_exportieren("bart", h.hair.face_hair, v["pb"], P.get("kinder_bart", 20),
                          lambda r: "jaw" if mund_z is not None and r[2] < mund_z - 0.012 else "head",
