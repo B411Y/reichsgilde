@@ -44,7 +44,7 @@ static class TischlerTests
             Pruefe.Wahr(!w.Ausfuehren(k, new FoerderungAufteilen(h.Name, 0.5)).Erfolg, "Aufteilen bei einem Rohstoff");
             var t = w.BetriebEroeffnen("Tischlerei Fuchs", Betriebsart.Tischlerei, k);
             Pruefe.Gleich("Schemel", t.Produkt);
-            var e = w.Ausfuehren(k, new ProduktWaehlen(t.Name, "Rapier"));
+            var e = w.Ausfuehren(k, new ProduktWaehlen(t.Name, "Dolch"));
             Pruefe.Wahr(!e.Erfolg && e.Meldung.Contains("nicht herstellen"), e.Meldung);
             for (var i = 0; i < 600; i++) sim.Tick(); // bis in den Nachmittag
             Pruefe.Wahr(h.ImLager("Holz") > 0, "kein Holz gefördert");
@@ -117,7 +117,7 @@ static class TischlerTests
             var bilanz = eichwald.Vorjahr!;
             Pruefe.Wahr(bilanz.Hergestellt.GetValueOrDefault("Holz") > 0, "kein Holz");
             Pruefe.Wahr(bilanz.Hergestellt.Keys.Any(x => x is "Holzzapfen" or "Schemel" or "Truhe"), string.Join(",", bilanz.Hergestellt.Keys));
-            Pruefe.Wahr(!bilanz.Hergestellt.Keys.Any(x => x is "Rapier" or "Silberring" or "Beschlag"), "Tischler stellt Schmiedewaren her");
+            Pruefe.Wahr(!bilanz.Hergestellt.Keys.Any(x => x is "Dolch" or "Silberring" or "Beschlag"), "Tischler stellt Schmiedewaren her");
             Pruefe.Wahr(bilanz.Gewinn > 0, $"Gewinn {bilanz.Gewinn}");
             Pruefe.Wahr(Kalkulation.ErwarteterJahresgewinn(w, Betriebsart.Tischlerei) > 0, "Tischlerei lohnt sich nicht");
         }),

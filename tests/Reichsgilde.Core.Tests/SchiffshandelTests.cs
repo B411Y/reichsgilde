@@ -205,7 +205,7 @@ static class SchiffshandelTests
             var s = Kaufen(w, k);
             string? Grund(Schiffsauftrag a) => w.Schiffahrt.AuftragVerboten(k, s.Name, a);
             Pruefe.Wahr(Grund(new("Atlantis", D(("Eisen", 1)), Nichts))!.Contains("Atlantis"), "Ziel");
-            Pruefe.Wahr(Grund(new("Eisenfurt", D(("Rapier", 10)), Nichts))!.Contains("kauft kein Rapier"), "Hinfracht, die die Stadt nicht kauft");
+            Pruefe.Wahr(Grund(new("Eisenfurt", D(("Dolch", 10)), Nichts))!.Contains("kauft kein Dolch"), "Hinfracht, die die Stadt nicht kauft");
             Pruefe.Wahr(Grund(new("Eisenfurt", Nichts, D(("Gold", 10))))!.Contains("kein Gold"), "Rückfracht, die es dort nicht gibt");
             Pruefe.Wahr(Grund(new("Eisenfurt", Nichts, D(("Eisen", 121))))!.Contains("Zu viel Rückfracht"), "Laderäume");
             Pruefe.Wahr(Grund(new("Eisenfurt", Nichts, D(("Eisen", 60), ("Holz", 31), ("Granit", 30))))!.Contains("Zu viel"), "je Laderaum eine Ware");

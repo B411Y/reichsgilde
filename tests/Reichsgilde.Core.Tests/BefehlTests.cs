@@ -29,19 +29,19 @@ static class BefehlTests
         ("Befehl: Produkt wählen", () =>
         {
             var (w, s, g, _) = Aufbau();
-            Erfolg(w.Ausfuehren(s, new ProduktWaehlen("Gießerei", "Rapier")));
-            Pruefe.Gleich("Rapier", g.Produkt);
+            Erfolg(w.Ausfuehren(s, new ProduktWaehlen("Gießerei", "Dolch")));
+            Pruefe.Gleich("Dolch", g.Produkt);
             Abgelehnt(w.Ausfuehren(s, new ProduktWaehlen("Gießerei", "Eisen")), "nicht herstellen");
-            Abgelehnt(w.Ausfuehren(s, new ProduktWaehlen("Grube", "Rapier")), "keine Werkstatt");
+            Abgelehnt(w.Ausfuehren(s, new ProduktWaehlen("Grube", "Dolch")), "keine Werkstatt");
         }),
 
         ("Befehl: Fremde Betriebe sind tabu", () =>
         {
             var (w, _, g, _) = Aufbau();
             var rivale = w.KontoEroeffnen("Rivale");
-            Abgelehnt(w.Ausfuehren(rivale, new ProduktWaehlen("Gießerei", "Rapier")), "gehört nicht Rivale");
+            Abgelehnt(w.Ausfuehren(rivale, new ProduktWaehlen("Gießerei", "Dolch")), "gehört nicht Rivale");
             Pruefe.Gleich("Silberring", g.Produkt);
-            Abgelehnt(w.Ausfuehren(rivale, new ProduktWaehlen("Schloss", "Rapier")), "gibt es nicht");
+            Abgelehnt(w.Ausfuehren(rivale, new ProduktWaehlen("Schloss", "Dolch")), "gibt es nicht");
         }),
 
         ("Befehl: Personal einstellen und entlassen – mit Statut und Platzzahl", () =>

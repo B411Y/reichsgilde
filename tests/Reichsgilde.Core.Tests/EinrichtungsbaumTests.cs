@@ -119,7 +119,7 @@ static class EinrichtungsbaumTests
             var k = w.KontoEroeffnen("Haus Fuchs", startvermoegen: 600);
             var g = w.BetriebEroeffnen("Gießerei", Betriebsart.Giesserei, k, startkarren: "");
             w.Einstellen(g, "Geselle", 2);
-            Ok(w, k, new ProduktWaehlen(g.Name, "Rapier")); // der Blasebalg hilft beim Rapier
+            Ok(w, k, new ProduktWaehlen(g.Name, "Dolch")); // der Blasebalg hilft beim Dolch
             Ok(w, k, new EinrichtungKaufen(g.Name, "Werkzeug1"));
             var baum = w.Werkstaetten.Baum(g);
             Pruefe.Gleich("Werkstatt|Lager & Handel|Schutz & Personal", string.Join("|", baum.Spalten));
