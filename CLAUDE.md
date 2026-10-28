@@ -1,105 +1,54 @@
 # CLAUDE.md – Arbeitsregeln für Reichsgilde
 
-Diese Datei liest jeder Claude-Chat zu Beginn automatisch. Hier stehen die festen Regeln. Die Aufgabe selbst kommt aus dem Prompt.
-An diesem Projekt arbeiten **mehrere Chats gleichzeitig**. Die meisten Regeln unten dienen dazu, sich nicht gegenseitig in die Quere zu kommen.
+Jeder Agent liest diese Datei zu Beginn. Gearbeitet wird im **Teammodell**: Ein Teamleiter schneidet Aufträge, Mitglieder (Rollen in `.claude/agents/<name>.md`) führen sie aus. Der Teamleiter (Hauptsitzung) liest zusätzlich `.claude/teamleiter.md`.
 
 ## Das Projekt in Kürze
 
 - **Reichsgilde** (Arbeitstitel): 2,5D-Wirtschaftssimulation im Stil von „Die Gilde Gold Edition“, düster-bodenständiges Heiliges Römisches Reich mit Menschen, Zwergen, Elben, Halblingen, Orks und Ogern.
-- **Grafikstil der Oberfläche: kolorierter Holzschnitt** des Spätmittelalters (Vorbild: Schedelsche Weltchronik, um 1480) – schwarzer Umriss, Schraffur im Schatten, von Hand aufgetragene Farbe, die leicht neben den Linien sitzt. Gilt für Tafeln, Fenster, Icons, Wappen und Bilder (Ausnahme: die Charakterzug-Medaillons sind kräftig gemalt, Entscheidung des Nutzers 28.10.2026). Die **3D-Welt** ist gemalt-realistisch (Entscheidung des Nutzers, 20.10.2026): schlichte Modelle mit Oberflächenstruktur (Mauerwerk, Maserung, Ziegel …), normales Licht, kein Holzschnitt-Shader. Keine Pixel-Art, kein moderner Flat-Stil.
-- Godot 4.7.2 (.NET) mit C#/.NET 8, Code unter MIT, Grafiken, Modelle und Texte unter CC BY 4.0. Hobby- und Lernprojekt eines Solo-Entwicklers mit wenig Programmiererfahrung: **Erkläre umsetzbar und lehrreich.**
-- Aufbau: `src/Reichsgilde.Core` (Simulation, kennt Godot nicht) · `game/` (Godot: Darstellung und Oberfläche, liest den Kern nur) · `tests/` · `docs/` · Werte in `game/daten/wirtschaft.json`. Unter `game/` liegen die Dateien nach Art getrennt: `daten/`, `karten/`, `assets/` (`modelle/<unterordner>/`, `texturen/`, `shader/`, `oberflaeche/`, `audio/`), `scenes/`, `scripts/` (Übersicht in `docs/ARCHITEKTUR.md`, „Ordner im Godot-Projekt“).
-- Weiterlesen: `README.md` (Stand, Steuerung), `docs/ARCHITEKTUR.md` (Aufbau), `docs/bereiche/<bereich>.md` (offene Punkte und neue Entscheidungen je Bereich), `docs/ENTSCHEIDUNGEN.md` (Archiv der Entscheidungen bis 16.10.2026, Phasen-Übersicht), `docs/WIRTSCHAFTSMODELL.md` (Zahlen, Messungen je Beruf), `docs/LEVELDESIGN.md` (Kartenregeln, Städte).
+- **Oberfläche: kolorierter Holzschnitt** des Spätmittelalters (Vorbild Schedelsche Weltchronik, um 1480): schwarzer Umriss, Schraffur im Schatten, Handfarbe leicht neben den Linien. Gilt für Tafeln, Fenster, Icons, Wappen, Bilder; Ausnahme: Charakterzug-Medaillons kräftig gemalt (Nutzer, 28.10.2026). **3D-Welt gemalt-realistisch** (Nutzer, 20.10.2026): schlichte Modelle mit Oberflächenstruktur (Mauerwerk, Maserung, Ziegel), normales Licht, kein Holzschnitt-Shader. Keine Pixel-Art, kein Flat-Stil.
+- Godot 4.7.2 (.NET), C#/.NET 8; Code MIT, Grafiken, Modelle und Texte CC BY 4.0. Hobbyprojekt eines Solo-Entwicklers mit wenig Programmiererfahrung: **umsetzbar und lehrreich erklären.**
+- Aufbau: `src/Reichsgilde.Core` (Simulation, kennt Godot nicht) · `game/` (Darstellung und Oberfläche, liest den Kern nur) · `tests/` · `docs/` · Werte in `game/daten/wirtschaft.json`. In `game/` nach Dateiart: `daten/`, `karten/`, `assets/` (`modelle/<unterordner>/`, `texturen/`, `shader/`, `oberflaeche/`, `audio/`), `scenes/`, `scripts/` (siehe `docs/ARCHITEKTUR.md`).
+- Weiterlesen: `README.md`, `docs/ARCHITEKTUR.md`, `docs/bereiche/<bereich>.md` (Offen, Entscheidungen), `docs/ENTSCHEIDUNGEN.md` (Archiv bis 16.10.2026, Phasen), `docs/WIRTSCHAFTSMODELL.md`, `docs/LEVELDESIGN.md`, `docs/STARTOPTIONEN.md`.
 
-## Zu Beginn jeder Aufgabe (Pflicht)
+## Zuständigkeiten
 
-1. `git fetch origin` und `git log origin/main --oneline -15` – was haben die anderen Chats zuletzt gemergt?
-2. Offene PRs ansehen, auch Entwürfe: `gh api "repos/B411Y/reichsgilde/pulls?state=open" --jq '.[] | "#\(.number) \(.draft) \(.head.ref) \(.title)"'`. Der Text eines Entwurfs-PR sagt, woran gerade gearbeitet wird und welche Dateien er anfasst. Fasst deine Aufgabe dieselben Dateien an: Nutzer fragen, bevor du anfängst.
-3. Die eigene Bereichsdatei `docs/bereiche/<bereich>.md` lesen (Offen, Entscheidungen) und die Abschnitte im Archiv `docs/ENTSCHEIDUNGEN.md`, die deine Aufgabe betreffen.
-4. Auf dem eigenen Branch weiterarbeiten? Erst `git pull` – die Action „PRs aktuell halten“ kann inzwischen main eingemergt haben.
-
-## Arbeitsweise
-
-- **Eigener Branch von `main`**: `phaseN/thema` für Neues, `fix/thema` für Fehler, `infra/thema` für Werkzeuge und Abläufe.
-- **Nach dem ersten Commit sofort einen Entwurfs-PR öffnen** (Vorlage: `.github/pull_request_template.md`): Aufgabe, Bereich, angefasste Dateien. So sehen die anderen Chats, was läuft. Den Text aktuell halten, wenn weitere Dateien dazukommen.
-- Kleine, sinnvolle Commits. Commit- und PR-Texte auf Deutsch. **PR-Titel beginnen mit dem Bereich**: „Kern: …“, „Spiel-KI: …“, „Darstellung: …“, „Oberfläche: …“, „Leveldesign: …“ – arbeiten mehrere Bereiche mit, alle („Kern, Oberfläche, Darstellung: …“).
-- **Ein PR pro Funktion:** Eine Funktion kommt als **ein** PR zum Nutzer, auch wenn mehrere Bereiche daran arbeiten. Er prüft dann einmal statt viermal. Kleinkram (Doku-Nachträge, bestätigte Entscheidungen, Aufräumen) fährt im nächsten Funktions-PR mit. Einen eigenen kleinen PR gibt es nur für Dringendes, etwa einen Fehler, der andere Chats blockiert, oder eine kaputte CI. Der PR-Text beginnt mit einer **Übersicht für den Nutzer**: was das Spiel jetzt Neues kann, wie man es ausprobiert (Startoptionen) und was der Klicktest gezeigt hat.
-- **Vor dem Fertigmelden** `origin/main` in den Branch mergen (nicht rebasen), bauen, testen, dann den PR auf „bereit“ stellen und die CI abwarten (Linux, Windows, Export).
-- **Doku im selben PR**: README und `docs/ARCHITEKTUR.md` ergänzen. In der README gehört Neues in den passenden aufklappbaren Abschnitt des **Spielbuchs** (Leerzeile nach `</summary>` und vor `</details>`), ein großes neues Thema bekommt dazu eine Zeile in der Tabelle „Was das Spiel schon kann“. Entscheidungen und offene Punkte **nur in die eigene Bereichsdatei** `docs/bereiche/<bereich>.md`: neue Entscheidung als `### Thema (PR #…)` mit Tabelle unten unter „Entscheidungen“ anhängen, erledigten Punkt aus „Offen“ löschen, neue offene Punkte unten anhängen. **Keine Nummern** (weder Abschnitte noch Paragraphen) – zwei Chats würden sonst dieselbe Nummer nehmen. Eine Liste „Erledigt“ gibt es nicht mehr: Das zeigt GitHub. Braucht ein anderer Bereich etwas, eine Zeile „(von <Bereich>) …“ unter „Offen“ in dessen Datei.
-- **Messungen**: Kern in `docs/WIRTSCHAFTSMODELL.md` (nur der Kern schreibt dort), Spiel-KI in `docs/bereiche/spiel-ki.md` unter „Messungen“.
-- **Gemeinsame Dateien**: In README, ARCHITEKTUR und CLAUDE.md nur an der Stelle ändern, die zum eigenen Thema gehört – nicht ans Dateiende anhängen, wenn es einen passenden Abschnitt gibt. `docs/ENTSCHEIDUNGEN.md` ist Archiv; nur der Kern pflegt dort die Phasen-Übersicht.
-- **Konflikte**: Die Action „PRs aktuell halten“ mergt nach jedem Merge auf main den neuen Stand in alle fertigen PRs (nicht in Entwürfe); in `docs/bereiche/*.md` behält Git dabei beide Einträge. Bleibt ein echter Konflikt, bekommt der PR das Label „Konflikt mit main“ – dann main von Hand einmergen (nicht rebasen), beide Einträge behalten.
-- Vorher fragen: Designfragen mit Auswahl (je eine empfohlene Option), bevor gebaut wird. Was sich nicht zurücknehmen lässt, immer erst fragen.
-
-## Bereiche (wer ist wofür zuständig)
-
-Jeder Chat bekommt im Prompt einen Bereich. Dateien außerhalb des eigenen Bereichs nur klein und begründet ändern und im PR-Text nennen.
-
-| Bereich | Dateien |
+| Mitglied | Dateien |
 |---|---|
-| **Kern** (Hauptchat) | `src/Reichsgilde.Core/**` (außer Ki/ und Buerger/), `tests/**`, `game/daten/wirtschaft.json` |
-| **Spiel-KI** | `src/Reichsgilde.Core/Ki/**` (KI-Häuser, `KiRivale.cs`), `src/Reichsgilde.Core/Buerger/**` (Bürger-KI), eigene Testdateien (`Ki*Tests.cs`, `Buerger*Tests.cs`) |
-| **Darstellung** | `game/scripts/Stadtansicht*.cs`, Szenen, Modelle, Licht, Kamera |
-| **Oberfläche** | Tafeln und Fenster in `game/scripts/*Anzeige.cs`, `Hauptmenue.cs`, `Hauptszene.cs` |
-| **Leveldesign** | `docs/LEVELDESIGN.md` (Kartenregeln), `tools/Kartenbau/**` (Kartenskript, ein Stadtskript je Stadt), `game/karten/*.json` (Kartendateien, nur aus Kartenwerkstatt oder Kartenskript), `docs/karten/*.svg` (Vorschau). Regeln mit Wirkung auf die Simulation entscheidet der Kern. |
-| **Sound** | `game/assets/audio/**`, Audio-Busse, `game/scripts/Klang*.cs` |
+| **kern** | `src/Reichsgilde.Core/**` (außer `Ki/`, `Buerger/`), `tests/**`, `game/daten/wirtschaft.json` |
+| **spiel-ki** | `src/Reichsgilde.Core/Ki/**`, `src/Reichsgilde.Core/Buerger/**`, eigene Tests (`Ki*Tests.cs`, `Buerger*Tests.cs`) |
+| **darstellung** | `game/scripts/Stadtansicht*.cs`, Szenen, Modelle, Licht, Kamera |
+| **oberflaeche** | `game/scripts/*Anzeige.cs`, `Hauptmenue.cs`, `Hauptszene.cs` |
+| **leveldesign** | `docs/LEVELDESIGN.md`, `tools/Kartenbau/**`, `game/karten/*.json`, `docs/karten/*.svg` |
+| **sound** | `game/assets/audio/**`, Audio-Busse, `game/scripts/Klang*.cs` |
+| **infra** | `CLAUDE.md`, `.claude/**`, `.github/**`, `tools/**` (außer Kartenbau) |
 
-Nur der Kern-Chat ändert: `game/daten/wirtschaft.json`, `Stadtwirtschaft.cs`, `Speicherstand.cs`. Braucht ein anderer Bereich dort etwas: im PR-Text beschreiben und den Nutzer fragen.
-**Ausnahme Spiel-KI:** Der Spiel-KI-Chat darf dort kleine Andockstellen ergänzen und nennt jede im PR-Text: einen Aufruf in `Stadtwirtschaft` (Takt, Jahreswechsel, öffentliche Abfrage), einen **eigenen** Abschnitt in `wirtschaft.json` (die Datenversion erhöht nur der Kern), eigene Felder im `Speicherstand` (alte Spielstände müssen weiter laden), dazu **je Teilsystem des Kerns einen Faktor oder Aufruf**, über den die Bürger wirken (z. B. `Markt.NachfrageFaktor`, ein Faktor in `Kirchenwesen` oder `Gastwirtschaft`; ohne Abschnitt `buerger` bleibt er 1). Bestehende Werte und Regeln ändert nur der Kern.
-Die Darstellung **liest den Kern nur** (öffentliche Abfragen). Fehlt eine Abfrage, kleine Ergänzung im Kern mit Test – im PR nennen.
-
-## Teamarbeit mit Teamleiter
-
-Gilt, wenn ein Chat als **Teamleiter** Teammitglieder (Agenten) startet. Alle übrigen Regeln gelten für jedes Teammitglied wie für einen eigenen Chat.
-
-- **Teamleiter ändert keine Dateien** (Entscheidung des Nutzers, 28.10.2026): Der Teamleiter ändert keine Dateien im Repository, auch keine kleinen, und committet nicht. Jede Änderung geht als Auftrag an ein Mitglied. Ausnahme: eigene Notizen außerhalb des Repositorys. Technisch abgesichert durch den Hook in `.claude/settings.json` (`.claude/hooks/teamleiter_sperre.py`; fängt Versehen, keine Absicht). Beim Teamleiter bleiben: Designfragen, Zuschnitt und Aufträge, Entscheidungen unterwegs, Berichte und Bilder prüfen, Status an den Nutzer, der Merge-Befehl nach `main` (laut „Mergen durch den Teamleiter“), Aufräumen und der Grafik-PC (Startdienst; Erzeugtes nur in den Notizordner, ein Mitglied baut es ein).
-- **Mitglieder-Definitionen:** Die Rollen liegen in `.claude/agents/<name>.md` (kern, spiel-ki, darstellung, oberflaeche, leveldesign, sound, integration, pruefer, infra, suche). Aufruf mit `subagent_type` = Name; Modell und Aufwand im Aufruf überschreiben die Vorgabe der Datei. **Jeder Commit endet mit einer Zeile `Agent: <name>`** (bei Arbeit von Gemini oder Strata zusätzlich `Agent: <name> (Gemini)` bzw. `(Strata)`).
-- **Zuschnitt nach Größe:** Kleine Funktionen bekommen zwei Mitglieder, „kern“ und „spiel“ (Oberfläche und Darstellung zusammen). Nur große Themen mit viel unabhängiger Arbeit bekommen ein Mitglied je Bereich. Jede zusätzliche Grenze kostet Abstimmung.
-- **Ein Funktions-Branch, ein PR:** Erst die Designfragen an den Nutzer. Dann legt der Teamleiter den Funktions-Branch `phaseN/thema` an und öffnet darauf den Entwurfs-PR – den einzigen PR der Funktion. Teammitglieder öffnen **keine eigenen PRs**: Jedes arbeitet auf `phaseN/thema-<name>`, pusht und meldet fertig, und das Integrations-Mitglied mergt den Branch in den Funktions-Branch (mergen, nicht rebasen).
-- **Reihenfolge:** Zuerst baut der Kern Befehl, Abfragen und Tests und meldet die genauen Signaturen. Das Integrations-Mitglied mergt das in den Funktions-Branch. Erst danach starten die anderen und zweigen vom Funktions-Branch ab.
-- **Getrennte Ordner:** Jedes Mitglied hat einen eigenen Worktree `../rg-<name>` und einen eigenen Unterordner im Notizordner (`<Notizordner>/<name>/`), z. B. für den PR-Text. Ein gemeinsamer Ordner führt zu überschriebenen Dateien.
-- **Entscheidungen unterwegs:** Taucht eine neue Designfrage auf, entscheidet der Teamleiter **einmal** (oder fragt den Nutzer) und schickt **eine** endgültige Nachricht an alle Betroffenen. Eine getroffene Entscheidung nicht nachträglich umwerfen: Nachrichten überholen sich, und dann baut jemand den alten Stand zurück.
-- **Nachrichten:** Vorschläge an ein anderes Mitglied gehen **über den Teamleiter**, nicht direkt untereinander. Zwischenmeldungen nur bei einer Blockade oder einer fertigen Schnittstelle, sonst nur der Abschlussbericht.
-- **Nach „fertig“:** Ein Mitglied pusht nur noch auf Anweisung des Teamleiters. Sind alle Teile fertig, macht das Integrations-Mitglied im Funktions-Branch den gemeinsamen Klicktest, schreibt die Übersicht für den Nutzer in den PR-Text, stellt den PR auf „bereit“ und wartet die CI ab; danach mergt der Teamleiter nach `main` (siehe „Mergen durch den Teamleiter“) und meldet dem Nutzer „gemergt: #…“.
-- **Modelle:** Für den Kern und die Spiel-KI Opus: Simulation, Spielstände und Tests vertragen keine Fehler. Für Oberfläche und Darstellung Sonnet, denn sie folgen vorhandenen Mustern, und Tests, CI und Klicktest fangen Fehler ab. Für Kleinkram (Doku-Korrektur, main einmergen, CI abwarten) und zum Durchsuchen des Codes vor den Designfragen Haiku. Wird die Arbeit eines Bereichs mit einem kleineren Modell schlechter, kommt er zurück auf Opus.
-- **Aufwand der Teammitglieder** (Entscheidung des Nutzers, 25.10.2026, erweitert 28.10.2026; beim Start mit `effort` setzen): Kern, Spiel-KI, Spielstand, 3D-Modelle (Blender) und Shader **extra hoch** (`xhigh`); übrige Grafik (Wege, Texturen, Kartenskripte) **hoch**; einfache Oberfläche, Doku und Aufräumen **mittel**. **Maximal** nur für einzelne festgefahrene Fehlersuchen. **Prüf-Agent bei Kern-PRs:** Vor „bereit“ liest ein unabhängiger Agent (extra hoch) den Diff von Kern, Spiel-KI und Tests auf Fehler – er bekommt nur Code und Prüfauftrag, nicht die Einschätzung des Mitglieds; Befunde behebt das Mitglied vor dem Merge. Der Hauptchat (Teamleiter) läuft auf mittel; der Nutzer stellt ihn bei Designfragen oder Fehlersuche selbst höher.
-- **Abschlussbericht in fünf Zeilen** (Wunsch des Nutzers, 25.10.2026, Tokens sparen): 1. Branch und Commit, 2. was gebaut ist (ein Satz), 3. Tests und Klicktest (Zahlen, Fehler), 4. selbst getroffene Entscheidungen und Offenes, 5. Ordner mit den Bildern. Einzelheiten stehen in der Doku und im Commit; der Teamleiter fragt bei Bedarf nach. Zwischenmeldungen (Schnittstelle, Designfrage) so kurz wie möglich. Der Teamleiter prüft, solange ein Team läuft, alle 30 Minuten auf Leerlauf.
-- **Hilfsagenten Gemini und Strata** (Entscheidung des Nutzers, 26.10.2026): Neben eigenen Claude-Agenten darf der Teamleiter zwei Hilfsagenten auf dem Rechner des Nutzers einsetzen. **Gemini** (Antigravity CLI `agy`, Standardmodell `gemini-3.8-flash-high`) bekommt mittelgroße, klar abgegrenzte Arbeit: Oberfläche nach vorhandenem Muster, Doku-Abgleiche, Kartenskripte, kleine Darstellungsfehler, Code durchsuchen. **Strata** (lokales Modell) bekommt Hilfsarbeiten: Texte und Namen, Bilder vorsortieren, Protokolle zusammenfassen, Einzeiler. Kern, Spiel-KI, Spielstand, schwierige Grafik und alle Entscheidungen bleiben bei Claude. Beide laufen als Hintergrundbefehl in einem eigenen Worktree, dürfen nur Dateien bearbeiten (keine Befehle ohne Rückfrage, kein push); das Integrations-Mitglied baut, testet, committet und prüft das Ergebnis wie das eines Mitglieds und nennt im PR-Text, was von Gemini oder Strata stammt. Aufruf und Anmeldung stehen in den Notizen des Teamleiters.
-- **Aufräumen:** Am Ende beendet der Teamleiter die Teammitglieder, entfernt die Worktrees und Mitglieder-Branches der gemergten Funktion und fasst für den Nutzer zusammen, was offen bleibt. **Mitglieder wirklich schließen** (Wunsch des Nutzers, 27.10.2026): Sobald ein Mitglied seinen Auftrag fertig gemeldet hat und auf nichts mehr wartet (vorher nachfragen, wenn unklar), schließt der Teamleiter es mit dem Werkzeug zum Beenden von Aufgaben (TaskStop mit dem Namen des Mitglieds) – eine Bitte per Nachricht lässt es als untätiges Mitglied weiterlaufen.
-- **Sorgfalt** (Wunsch des Nutzers, 21.10.2026: Er erwartet fehlerfreie Arbeit, Fehler haben Konsequenzen). Diese Prüfschritte sind Pflicht:
-  - **Vor dem Löschen eines Mitglieder-Branches** prüfen, dass sein letzter Commit im Funktions-Branch ist: `git merge-base --is-ancestor origin/<mitglieder-branch> <funktions-branch>`. Fehlt er, erst einmergen.
-  - **Nach jedem Merge** die betroffenen Tabellen in `docs/bereiche/*.md` auf doppelte Zeilen und Leerzeilen mitten in der Tabelle prüfen.
-  - **Hintergrundarbeit selbst prüfen** (läuft der Prozess noch, wann wurde die Ausgabedatei geschrieben), statt auf eine Meldung zu warten.
-  - **Kein Leerlauf beim Warten** (Wunsch des Nutzers, 24.10.2026): Lange Befehle (Messung, Blender, Klicktest) im Vordergrund mit Zeitlimit laufen lassen oder im selben Zug warten, bis Prozessnummer (`kill -0 <pid>`) bzw. Ausgabedatei fertig sind – nie mit `pgrep -f` und einem Suchwort, das in der eigenen Befehlszeile steht (der Befehl findet sich selbst). Den Zug erst beenden, wenn das Ergebnis da ist; nicht auf eine Benachrichtigung warten. Der Teamleiter prüft, solange ein Team läuft, alle 30 Minuten, ob ein Mitglied untätig ist, obwohl seine Ausgabe fertig ist.
-  - **Vor dem Klicktest** den neuesten Stand aller Mitglieder einmergen und das Projekt neu importieren (`--headless --import --path game`).
+Ohne eigenen Bereich: **integration** (Funktions-Branch, Klicktest, PR), **pruefer** und **suche** (nur lesen). Dateien außerhalb des eigenen Bereichs nur klein und begründet ändern und im Bericht nennen.
+Nur **kern** ändert `wirtschaft.json`, `Stadtwirtschaft.cs` und `Speicherstand.cs`; braucht ein anderer dort etwas, geht es an den Teamleiter. **Ausnahme spiel-ki:** kleine Andockstellen (Einzelheiten in `.claude/agents/spiel-ki.md`), jede im Bericht genannt. Bestehende Werte und Regeln ändert nur kern. Darstellung und Oberfläche **lesen den Kern nur**; fehlt eine Abfrage, kleine Ergänzung im Kern mit Test.
 
 ## Feste Regeln
 
-- **Mergen durch den Teamleiter** (Entscheidung des Nutzers, 19.10.2026; Bot-Konto und Schutzregel 28.10.2026): Claude arbeitet auf GitHub mit einem eigenen Maschinenkonto (Bot, Mitarbeiter nur in diesem Repository, klassisches Token), nicht mit dem Konto des Nutzers. Auf `main` gilt eine Schutzregel: nur per PR, die drei CI-Prüfungen sind Pflicht, die Freigabe der Code-Besitzer ist Pflicht (`.github/CODEOWNERS`: `game/daten/wirtschaft.json`, `Speicherstand*.cs`, `CLAUDE.md`, `LICENSE*`, `.github/`, `.claude/`, `HERKUNFT.md`, `tools/tressfx.version`, `game/export_presets.cfg`). Der Nutzer darf als Besitzer per PR an der Regel vorbei mergen, der Bot nicht. Nach `main` mergt nur ein Teamleiter-Chat, kein Teammitglied und kein anderer Chat.
-  - **PRs ohne geschützte Dateien:** Der Teamleiter mergt den PR seiner Funktion und die PRs, die er für sie beauftragt hat (z. B. Modelländerungen, die der Nutzer vorgegeben hat), mit `gh pr merge <Nummer> --merge --delete-branch` – erst wenn alles erfüllt ist: `origin/main` eingemergt, die drei CI-Prüfungen grün, der Klicktest gelaufen und im PR-Text beschrieben, kein Label „Konflikt mit main“.
-  - **PRs mit geschützten Dateien** (u. a. `wirtschaft.json` samt Datenversion, `Speicherstand.cs`): Der Teamleiter meldet „Freigabe nötig: #…“. Der Nutzer gibt frei und mergt selbst; das setzt die Schutzregel jetzt technisch durch.
-  - **„Auto-merge“ schaltet kein Chat ein** (auch nicht mit `gh pr merge --auto`): Ohne Klicktest darf nichts nach `main`. Der Nutzer darf weiter selbst mergen.
-- **Nichts aus dem Original-Spiel** (keine Grafiken, Sounds, Musik, Texte, Modelle). Es dient nur als Vorbild für Mechaniken.
-- Der **Mechanik-Katalog** und das **Design-Dossier** bleiben im privaten Claude-Projekt und kommen **nie** ins Repository.
-- Spieltag 04:00–23:00 Uhr (1140 Ticks = 1 Spieljahr, im Code nur über die `Spielzeit`-Konstanten), Arbeitszeit 8–20 Uhr (im Wirtshaus 8–22 Uhr), Gauner ab 20 Uhr.
-- Code-Bezeichner deutsch, Umlaute umschrieben (`Waehrung`), deutsche Kommentare. Antworten an den Nutzer auf Deutsch, kurz, ohne Emojis.
-- Tests müssen grün bleiben. Nie einen Test abschalten, um grün zu werden.
-- **Neue Tests**: eine neue Datei mit einer statischen Klasse und `public static IEnumerable<(string, Action)> Alle()` anlegen – sie wird automatisch gefunden. `Program.cs` nicht anfassen.
-- **Datenversion** (`"version"` in `wirtschaft.json`) erhöht nur der Kern – sonst ändern zwei PRs dieselbe Zeile.
-- **Messungen** (`messen`) machen nur der Kern-Chat und der Spiel-KI-Chat (für eigene Änderungen an KI-Häusern oder Bürgern). Jede Messung nennt den `main`-Commit, gegen den gemessen wurde (`git rev-parse --short origin/main` nach dem Einmergen), z. B. „gemessen auf main 0ed29e9 + dieser PR“.
+- **Mergen** (Nutzer, 19.10.2026; Bot-Konto und Schutzregel 28.10.2026): Claude arbeitet auf GitHub mit einem eigenen Bot-Konto, nicht mit dem des Nutzers. Schutzregel auf `main`: nur per PR, drei CI-Prüfungen Pflicht, Freigabe der Code-Besitzer für die Pfade in `.github/CODEOWNERS` (u. a. `wirtschaft.json`, `Speicherstand*.cs`, `CLAUDE.md`, `.github/`, `.claude/`). Der Nutzer darf an der Regel vorbei mergen, der Bot nicht. Nach `main` mergt nur der Teamleiter (Ablauf in `.claude/teamleiter.md`); PRs mit geschützten Dateien gibt der Nutzer frei und mergt selbst. **Kein Auto-merge** (auch nicht `gh pr merge --auto`): ohne Klicktest nichts nach `main`.
+- **Nichts aus dem Original-Spiel** (Grafiken, Sounds, Musik, Texte, Modelle); es ist nur Vorbild für Mechaniken. **Mechanik-Katalog** und **Design-Dossier** kommen **nie** ins Repository.
+- Spieltag 04:00–23:00 Uhr (1140 Ticks = 1 Spieljahr, im Code nur über die `Spielzeit`-Konstanten), Arbeitszeit 8–20 Uhr (Wirtshaus 8–22 Uhr), Gauner ab 20 Uhr.
+- Bezeichner deutsch, Umlaute umschrieben (`Waehrung`), deutsche Kommentare. Antworten an den Nutzer deutsch, kurz, ohne Emojis.
+- Tests bleiben grün, nie einen Test abschalten. **Neue Tests:** neue Datei, statische Klasse mit `public static IEnumerable<(string, Action)> Alle()` (wird automatisch gefunden); `Program.cs` nicht anfassen.
+- **Datenversion** (`"version"` in `wirtschaft.json`) erhöht nur kern.
+- **Messungen** (`messen`) nur kern und spiel-ki, jede nennt den `main`-Commit (Einzelheiten in ihren Agentendateien).
+- Was sich nicht zurücknehmen lässt: erst fragen. Neue Designfrage: nicht raten, an den Teamleiter, mit einer empfohlenen Option.
+- Commits deutsch, klein, mit der Zeile **`Agent: <name>`** (Arbeit von Gemini oder Strata: `Agent: <name> (Gemini)` bzw. `(Strata)`).
+
+## Doku im selben PR
+
+- README und `docs/ARCHITEKTUR.md` ergänzen; in der README ins passende aufklappbare Kapitel des **Spielbuchs** (Leerzeile nach `</summary>` und vor `</details>`), ein großes Thema zusätzlich als Zeile in „Was das Spiel schon kann“. Gemeinsame Dateien nur an der passenden Stelle ändern, nicht ans Ende hängen.
+- Entscheidungen und offene Punkte **nur in die eigene Bereichsdatei** `docs/bereiche/<bereich>.md`: Entscheidung als `### Thema (PR #…)` mit Tabelle unten unter „Entscheidungen“, Erledigtes aus „Offen“ löschen, Neues unten anhängen. **Keine Nummern**, keine Liste „Erledigt“. Braucht ein anderer Bereich etwas: „(von <Bereich>) …“ unter „Offen“ in dessen Datei. `docs/ENTSCHEIDUNGEN.md` ist Archiv.
 
 ## Bauen, testen, ausprobieren
 
 ```bash
 dotnet build Reichsgilde.sln
-dotnet run -c Release --project tests/Reichsgilde.Core.Tests          # alle Tests
-dotnet run -c Release --project tests/Reichsgilde.Core.Tests -- messen 30 20   # Messung: 30 Jahre, 20 Startwerte
-dotnet run -c Release --project tests/Reichsgilde.Core.Tests -- messen 30 20 greybox   # dieselbe Messung mit der Greybox-Karte (Bauen, Leerstand, Neubau)
-dotnet run -c Release --project tests/Reichsgilde.Core.Tests -- messen bericht 20 20   # Balancing-Bericht (Berufe, Völker, Startfairness, 1/3/5/8 Häuser, KI, Einrichtung, Gauner): JSON nach docs/messungen/, parallel; --teile=1,4 nur einzelne Abschnitte
-dotnet run --project tools/Kartenbau -- pruefen koeln        # Kartenskript: Karte prüfen (auch vorschau <karte> --belegung, bauen <stadtskript>, liste)
+dotnet run -c Release --project tests/Reichsgilde.Core.Tests     # alle Tests
 ```
 
-Klicktest: Godot 4.7.2 mono (Linux) von den offiziellen Godot-Releases auf GitHub laden, Projekt einmal importieren (`--headless --import --path game`), dann unter Xvfb starten (`--rendering-driver opengl3 --path game -- <Optionen>`) und Bildschirmfotos selbst ansehen. Für Schatten und Kantenglättung stattdessen `--rendering-driver vulkan` (Paket `mesa-vulkan-drivers`): Das ist der Forward+-Renderer des Spiels, `opengl3` zeigt dort andere Ergebnisse.
-Auf dem Entwicklungsrechner (ohne root) liegt das schon bereit, also erst nachsehen, bevor du etwas lädst. Godot liegt unter `~/werkzeuge/godot/`, ein Xvfb ohne root unter `~/werkzeuge/xvfb/`. Ein Bildschirmfoto macht `~/werkzeuge/xvfb/skripte/klicktest.sh game <bild.png> <Wartesekunden> <Startoptionen>`. Klicks davor gibt man mit `KLICKS="x,y x,y"` vor.
-Alle Startoptionen (Spiel, Tafeln, Grafik, Kartenwerkstatt, Bauen) stehen in `docs/STARTOPTIONEN.md`. Häufige Beispiele: `--beruf=Schmied --startstunde=10`, `--karte=probestadt`, `--innen=1 --tafel=produktion`, `--kartenwerkstatt=probestadt --werkstatt-gruppe=gebaeude`, `--blick=<x>,<z>,<Zoom> --ui=0`. Neue Startoptionen trägt man dort ein, nicht hier.
-Ohne Zugang zu nuget.org genügt eine NuGet-Quelle auf den Ordner `GodotSharp/Tools/nupkgs` der heruntergeladenen Godot-Version.
+Ohne nuget.org genügt eine NuGet-Quelle auf `GodotSharp/Tools/nupkgs` der Godot-Version.
+Klicktest: `tools/klicktest/lauf.sh` (Bedienung im Kopf der Datei; Godot unter `~/werkzeuge/godot/`, Xvfb unter `~/werkzeuge/xvfb/`), Startoptionen in `docs/STARTOPTIONEN.md` (neue dort eintragen). `opengl3` zeigt keine Texturen; für Texturen und Schatten Vulkan. Bilder selbst ansehen.
+Lange Befehle (Messung, Blender, Klicktest) im Vordergrund mit Zeitlimit oder im selben Zug bis zum Ergebnis warten (`kill -0 <pid>`, Ausgabedatei); nie `pgrep -f` mit einem Wort aus der eigenen Befehlszeile.

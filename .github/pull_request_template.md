@@ -1,4 +1,4 @@
-<!-- Gleich nach dem ersten Commit als Entwurf öffnen, damit die anderen Chats sehen, was läuft (siehe CLAUDE.md).
+<!-- Der einzige PR der Funktion: das Integrations-Mitglied öffnet ihn im Auftrag des Teamleiters als Entwurf (siehe .claude/teamleiter.md).
      Titel mit dem Bereich beginnen: „Kern: …“, „Spiel-KI: …“, „Darstellung: …“, „Oberfläche: …“, „Leveldesign: …“;
      arbeiten mehrere Bereiche an der Funktion, alle nennen („Kern, Oberfläche: …“). Ein PR pro Funktion. -->
 

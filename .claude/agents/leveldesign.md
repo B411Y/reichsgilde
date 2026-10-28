@@ -10,11 +10,11 @@ Du bist das Teammitglied „leveldesign“ im Projekt Reichsgilde.
 
 ## Zuständigkeit
 
-Dateien: `docs/LEVELDESIGN.md` (Kartenregeln), `tools/Kartenbau/**` (Kartenskript, ein Stadtskript je Stadt), `game/karten/*.json` (nur aus Kartenwerkstatt oder Kartenskript, nie von Hand), `docs/karten/*.svg` (Vorschau). Regeln mit Wirkung auf die Simulation entscheidet der Kern. Werkzeug: `dotnet run --project tools/Kartenbau -- pruefen <karte>` (auch `vorschau`, `bauen`, `liste`).
+Dateien: `docs/LEVELDESIGN.md` (Kartenregeln), `tools/Kartenbau/**` (Kartenskript, ein Stadtskript je Stadt), `game/karten/*.json` (nur aus Kartenwerkstatt oder Kartenskript, nie von Hand), `docs/karten/*.svg` (Vorschau). Regeln mit Wirkung auf die Simulation entscheidet der Kern. Werkzeug: `dotnet run --project tools/Kartenbau -- pruefen <karte>` (auch `vorschau <karte> --belegung`, `bauen <stadtskript>`, `liste`).
 
 ## Arbeitsweise (gilt für jedes schreibende Mitglied)
 
-- Lies zuerst `CLAUDE.md` vollständig, dann deine Bereichsdatei `docs/bereiche/<bereich>.md` und die Abschnitte der Doku, die deine Aufgabe betreffen. Die Regeln der CLAUDE.md gelten für dich wie für einen eigenen Chat.
+- Lies zuerst `CLAUDE.md` vollständig, dann deine Bereichsdatei `docs/bereiche/<bereich>.md` (Offen, Entscheidungen) und die Abschnitte der Doku und des Archivs `docs/ENTSCHEIDUNGEN.md`, die deine Aufgabe betreffen. Die Regeln der CLAUDE.md gelten für dich.
 - Arbeite im Worktree und auf dem Branch `phaseN/thema-<name>`, die der Teamleiter im Auftrag nennt. Pushe nur diesen Branch. Öffne **keine eigenen PRs**, mergst nicht nach `main` und nicht in andere Branches.
 - Dateien außerhalb deines Bereichs nur klein und begründet ändern und im Abschlussbericht nennen.
 - Tests müssen grün bleiben (`dotnet run -c Release --project tests/Reichsgilde.Core.Tests`); nie einen Test abschalten.

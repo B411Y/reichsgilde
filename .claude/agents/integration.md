@@ -14,6 +14,7 @@ Der Funktions-Branch `phaseN/thema` und sein PR, so wie der Auftrag sie nennt. D
 
 ## Ablauf
 
+0. **Funktions-Branch und PR anlegen**, wenn der Auftrag es sagt: Branch `phaseN/thema` von `origin/main`, nach dem ersten Commit (z. B. dem eingemergten Kern) den Entwurfs-PR nach `.github/pull_request_template.md` öffnen – den einzigen PR der Funktion; im Text Aufgabe, Bereiche und angefasste Dateien nennen und aktuell halten, wenn Dateien dazukommen. Arbeitest du auf einem Branch mit PR weiter: erst `git pull` (die Action „PRs aktuell halten“ mergt nach jedem Merge auf `main` den neuen Stand in alle fertigen PRs). Hat der PR das Label „Konflikt mit main“: `origin/main` von Hand einmergen (nicht rebasen), in `docs/bereiche/*.md` beide Einträge behalten.
 1. **Mitglieder-Branches einmergen** (mergen, nicht rebasen): Vor dem Einmergen und vor dem Löschen eines Mitglieder-Branches `git merge-base --is-ancestor origin/<mitglieder-branch> <funktions-branch>` prüfen; fehlt der Commit, erst einmergen.
 2. **`origin/main` einmergen** (`git fetch origin`, dann mergen). Konflikte in `docs/bereiche/*.md`: beide Einträge behalten. Danach die Tabellen in `docs/bereiche/*.md` auf doppelte Zeilen und Leerzeilen mitten in der Tabelle prüfen.
 3. **Gemini- und Strata-Ergebnisse einbinden** (siehe unten): Ergebnis selbst bauen und testen, dann committen mit `Agent: integration (Gemini)` bzw. `(Strata)`; im PR-Text nennen, was von ihnen stammt.
@@ -21,7 +22,7 @@ Der Funktions-Branch `phaseN/thema` und sein PR, so wie der Auftrag sie nennt. D
 5. **Projekt importieren:** `~/werkzeuge/godot/Godot_v4.7.2-stable_mono_linux_x86_64/Godot_v4.7.2-stable_mono_linux.x86_64 --headless --import --path game` (vor dem Klicktest, nach jedem Einmergen).
 6. **Klicktest** (siehe unten) mit Bildschirmfotos, die du **selbst ansiehst** (Read-Werkzeug), und einer ehrlichen Beschreibung: was zu sehen ist, was fehlt oder falsch aussieht.
 7. **PR-Text** nach `.github/pull_request_template.md` schreiben, beginnend mit der **Übersicht für den Nutzer** (was das Spiel jetzt Neues kann, Startoptionen zum Ausprobieren, was der Klicktest gezeigt hat), Datei im Notizordner `<Notizordner>/integration/pr.md`, und setzen:
-   `gh api -X PATCH repos/B411Y/reichsgilde/pulls/<n> -F body=@<datei>`. PR-Titel beginnt mit dem Bereich („Kern, Oberfläche: …“).
+   `gh api -X PATCH repos/B411Y/reichsgilde/pulls/<n> -F body=@<datei>`. PR-Titel beginnt mit dem Bereich („Kern: …“, „Spiel-KI: …“, „Darstellung: …“, „Oberfläche: …“, „Leveldesign: …“, „Infra: …“; mehrere Bereiche alle: „Kern, Oberfläche: …“).
 8. **PR auf „bereit“ stellen** (`gh pr ready <n>`), **CI abwarten** (Linux, Windows, Export): im Hintergrund laufen lassen und gezielt prüfen (`gh pr checks <n>`), nie mit Ketten von `sleep`.
 9. **Bericht** in fünf Zeilen an „main“ (Branch/Commit, was zusammengeführt ist, Tests und Klicktest mit Zahlen, Offenes, Ordner mit den Bildern). Verweise auf „mergebereit: #…“ bzw. „Freigabe nötig: #…“ (geschützte Dateien wie `wirtschaft.json`, `Speicherstand*.cs`, `CLAUDE.md`, `.github/`, `.claude/`) – die Entscheidung trifft der Teamleiter.
 
@@ -37,7 +38,10 @@ WORKTREE=<worktree> DISPLAY_NR=<nummer> [TREIBER=nvidia] tools/klicktest/lauf.sh
 - Tooltips brauchen etwa 10 s Hover.
 - Zwei Läufe **nie gleichzeitig mit derselben Display-Nummer**; wähle eine eigene `DISPLAY_NR`.
 - `opengl3` (Standard) zeigt Gebäude untexturiert. Für Bilder mit Texturen, Schatten und Kantenglättung Vulkan: `TREIBER=vulkan` (Software) oder `TREIBER=nvidia` (Grafikkarte).
-- Startoptionen stehen in `docs/STARTOPTIONEN.md`.
+- Vulkan ist der Forward+-Renderer des Spiels; `TREIBER=vulkan` braucht das Paket `mesa-vulkan-drivers`.
+- Startoptionen stehen in `docs/STARTOPTIONEN.md`. Häufig: `--beruf=Schmied --startstunde=10`, `--karte=probestadt`, `--innen=1 --tafel=produktion`, `--kartenwerkstatt=probestadt --werkstatt-gruppe=gebaeude`, `--blick=<x>,<z>,<Zoom> --ui=0`.
+- Einzelnes Bild ohne Aktionen: `~/werkzeuge/xvfb/skripte/klicktest.sh game <bild.png> <wartesekunden> <startoptionen>`, Klicks davor mit `KLICKS="x,y x,y"`.
+- Godot 4.7.2 mono und Xvfb liegen auf dem Entwicklungsrechner schon unter `~/werkzeuge/` – erst nachsehen. Fehlt Godot, die Linux-Version von den offiziellen Godot-Releases auf GitHub laden.
 - Lange Läufe im Vordergrund mit Zeitlimit oder bis das Ergebnis da ist; nie mit `pgrep -f` auf ein Wort aus der eigenen Befehlszeile warten.
 
 ## Hilfsagenten
