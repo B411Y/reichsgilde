@@ -117,18 +117,23 @@ static class MeinungTests
             Pruefe.Ungefaehr(100, w.Meinungen.Meinung(a.Oberhaupt, b.Oberhaupt), 1e-9);
         }),
 
-        ("Meinungen: Familie – Ehe +15, Eltern und Kinder +15, Geschwister +5; ein Erbe über 30 wartet ungeduldig (−3 je Jahr, höchstens −30)", () =>
+        ("Meinungen: Familie – Ehe +20, Eltern und Kinder +20, Geschwister +10, Enkel und Schwiegerfamilie +5; ein Erbe über 30 wartet ungeduldig (−3 je Jahr, höchstens −30)", () =>
         {
             var w = NeueSimulation().Wirtschaft!;
             var (konto, f) = Haus(w, "Haus Sippe");
             var partner = Verheiraten(w, konto);
-            Pruefe.Gleich(15.0, Grund(w, partner, f.Oberhaupt, f.Oberhaupt.Ehepartnertitel));
-            Pruefe.Gleich(15.0, Grund(w, f.Oberhaupt, partner, partner.Ehepartnertitel));
+            Pruefe.Gleich(20.0, Grund(w, partner, f.Oberhaupt, f.Oberhaupt.Ehepartnertitel));
+            Pruefe.Gleich(20.0, Grund(w, f.Oberhaupt, partner, partner.Ehepartnertitel));
             var sohn = Kind(w, f, 20);
             var tochter = Kind(w, f, 18, Geschlecht.Frau);
-            Pruefe.Gleich(15.0, Grund(w, sohn, f.Oberhaupt, "Vater"));
-            Pruefe.Gleich(15.0, Grund(w, f.Oberhaupt, tochter, "Tochter"));
-            Pruefe.Gleich(5.0, Grund(w, sohn, tochter, "Schwester"));
+            Pruefe.Gleich(20.0, Grund(w, sohn, f.Oberhaupt, "Vater"));
+            Pruefe.Gleich(20.0, Grund(w, f.Oberhaupt, tochter, "Tochter"));
+            Pruefe.Gleich(10.0, Grund(w, sohn, tochter, "Schwester"));
+            var enkel = new Person(_nummer++, "Enkel", f.Nachname, f.Volk, Geschlecht.Mann, w.Familien.Jahr - 1, vater: sohn.Nummer);
+            f.MitgliederListe.Add(enkel);
+            Pruefe.Gleich(5.0, Grund(w, enkel, f.Oberhaupt, "Großvater"));
+            Pruefe.Gleich(5.0, Grund(w, f.Oberhaupt, enkel, "Enkel"));
+            Pruefe.Gleich(0.0, w.Meinungen.Gruende(enkel, partner).Where(g => g.Text.StartsWith("Groß")).Sum(g => g.Wert)); // nicht ihr Enkel (sohn ist nur Kind des Vaters)
             Pruefe.Gleich(0.0, Grund(w, sohn, f.Oberhaupt, "Wartet aufs Erbe"));
             var alt = Kind(w, f, 40); // der Älteste erbt – und wartet
             Pruefe.Gleich(alt, w.Familien.Erbe(f));

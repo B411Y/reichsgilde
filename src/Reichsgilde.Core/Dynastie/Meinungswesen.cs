@@ -180,8 +180,10 @@ public sealed partial class Meinungswesen
                 if (ehe) Grund(() => ueberP.Ehepartnertitel, v.Ehe);
                 if (vonP.IstKindVon(ueberP)) Grund(() => ueberP.Geschlecht == Geschlecht.Frau ? "Mutter" : "Vater", v.ElternKind);
                 else if (ueberP.IstKindVon(vonP)) Grund(() => ueberP.SohnOderTochter, v.ElternKind);
-                else if (vonP.Vater is { } va && va == ueberP.Vater || vonP.Mutter is { } mu && mu == ueberP.Mutter)
+                else if (Geschwister(vonP, ueberP))
                     Grund(() => ueberP.Geschlecht == Geschlecht.Frau ? "Schwester" : "Bruder", v.Geschwister);
+                else if (!ehe && WeitereVerwandtschaft(vonP, ueberP) is { } wie)
+                    Grund(() => wie, v.Weitere);
 
                 // Stand: Wer höher steht, wird geachtet.
                 var stufen = fb.StandVon(ueberP) - fb.StandVon(vonP);
@@ -226,6 +228,28 @@ public sealed partial class Meinungswesen
             foreach (var (_, (text, wert)) in taten)
                 Grund(() => text, wert, verblasst: true);
         return summe;
+    }
+
+    private static bool Geschwister(Person a, Person b) =>
+        a.Vater is { } va && va == b.Vater || a.Mutter is { } mu && mu == b.Mutter;
+
+    /// <summary>Großeltern und Enkel, Schwiegereltern und -kinder, Schwager und Schwägerin – was <paramref name="ueber"/> für <paramref name="von"/> ist (null = nichts davon).</summary>
+    private string? WeitereVerwandtschaft(Person von, Person ueber)
+    {
+        var fb = _w.Familien;
+        var frau = ueber.Geschlecht == Geschlecht.Frau;
+        Person? P(int? nummer) => nummer is int n ? fb.PersonNummer(n) : null;
+        bool IstGrosselternteil(Person enkel, Person alt) =>
+            new[] { P(enkel.Vater), P(enkel.Mutter) }.Any(e => e is not null && e.IstKindVon(alt));
+        if (IstGrosselternteil(von, ueber)) return frau ? "Großmutter" : "Großvater";
+        if (IstGrosselternteil(ueber, von)) return frau ? "Enkelin" : "Enkel";
+        var partnerVon = fb.Verwandte(von).Ehepartner;
+        var partnerUeber = fb.Verwandte(ueber).Ehepartner;
+        if (partnerVon is not null && partnerVon.IstKindVon(ueber)) return frau ? "Schwiegermutter" : "Schwiegervater";
+        if (partnerUeber is not null && partnerUeber.IstKindVon(von)) return frau ? "Schwiegertochter" : "Schwiegersohn";
+        if (partnerVon is not null && Geschwister(partnerVon, ueber) || partnerUeber is not null && Geschwister(partnerUeber, von))
+            return frau ? "Schwägerin" : "Schwager";
+        return null;
     }
 
     private Konfession? GlaubeVon(ICharakter c) => c switch

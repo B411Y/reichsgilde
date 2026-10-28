@@ -1918,7 +1918,7 @@
   "meinungen": {
     "hoechstwert": 100,
     "verfallJeJahr": 0.3,
-    "verwandtschaft": { "ehe": 15, "elternKind": 15, "geschwister": 5 },
+    "verwandtschaft": { "ehe": 20, "elternKind": 20, "geschwister": 10, "weitere": 5 },
     "stand": { "jeStufe": 3, "hoechstens": 9 },
     "erbe": { "ungeduldAb": 30, "jeJahr": -3, "hoechstens": -30 },
     "taten": { "fest": 5, "stimmeFuer": 5, "stimmeGegen": -5, "klage": -15, "ertappt": { "Diebstahl": -20, "Sabotage": -20, "Raub": -20 } },

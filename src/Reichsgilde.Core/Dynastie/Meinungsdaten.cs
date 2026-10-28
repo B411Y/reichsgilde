@@ -6,13 +6,16 @@ namespace Reichsgilde.Core.Dynastie;
 public sealed class VerwandtschaftMeinungDaten
 {
     /// <summary>Eheleute übereinander.</summary>
-    public double Ehe { get; init; } = 15;
+    public double Ehe { get; init; } = 20;
 
     /// <summary>Eltern über ihre Kinder und Kinder über ihre Eltern.</summary>
-    public double ElternKind { get; init; } = 15;
+    public double ElternKind { get; init; } = 20;
 
     /// <summary>Geschwister (ein gemeinsamer Elternteil genügt).</summary>
-    public double Geschwister { get; init; } = 5;
+    public double Geschwister { get; init; } = 10;
+
+    /// <summary>Weitere Verwandte: Großeltern und Enkel, Schwiegereltern und -kinder, Schwager und Schwägerin.</summary>
+    public double Weitere { get; init; } = 5;
 }
 
 /// <summary>Der Stand als fester Grund (Abschnitt "meinungen.stand"): Wer höher steht, wird geachtet, wer tiefer steht, belächelt.</summary>
