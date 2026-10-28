@@ -18,6 +18,11 @@ on:
     paths:
       - ".github/workflows/tressfx.yml"
   workflow_dispatch:
+    inputs:
+      ersetzen:
+        description: "Vorhandenes Release überschreiben (danach tools/tressfx.version anpassen)"
+        type: boolean
+        default: false
 
 env:
   # Quellversion: Commit nach dem Tag v0.3.1 (a5cc2b1). Bewusst ändern, nie auf main schwimmen.
@@ -237,7 +242,13 @@ jobs:
           tag="tressfx-$kurz"
           dateien=(release/*.so release/*.dll release/tressfx-addon.zip release/SHA256SUMS.txt release/LICENSE-*.txt release/glibc-linux.txt)
           notes="TressFX (GDExtension, MIT) aus $TRESSFX_REPO @ $TRESSFX_REF, godot-cpp @ $GODOT_CPP_REF. Gebaut von .github/workflows/tressfx.yml. Holen und prüfen: tools/tressfx_holen.sh"
+          # Ein vorhandenes Release bleibt unverändert: Die Bauten sind nicht bitgleich, neue Dateien
+          # passten nicht mehr zu den Summen in tools/tressfx.version und brächen jeden Export.
           if gh release view "$tag" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
+            if [ "${{ inputs.ersetzen }}" != "true" ]; then
+              echo "Release $tag gibt es schon – unverändert gelassen (Überschreiben nur per Hand mit „ersetzen“)."
+              exit 0
+            fi
             gh release upload "$tag" "${dateien[@]}" --clobber --repo "$GITHUB_REPOSITORY"
           else
             gh release create "$tag" "${dateien[@]}" --repo "$GITHUB_REPOSITORY" --target "$GITHUB_SHA" \
