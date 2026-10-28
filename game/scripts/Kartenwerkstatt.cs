@@ -17,7 +17,8 @@ namespace Reichsgilde;
 ///   • Kartenwerkstatt.Eigenschaften.cs: die Tafel rechts für Wege, Flächen (mit Streu-Gruppen), Pflanzen, Mauern und den Pinsel;
 ///   • Kartenwerkstatt.Start.cs: die Tafel „Start“ (Startbelegung: Spieler und KI-Häuser);
 ///   • Kartenwerkstatt.Karte.cs: der Reiter „Karte“ (Größe, Randstreifen, Rand vorschlagen, Kamera-Start) und die Tafel der Feldfläche;
-///   • Kartenwerkstatt.Karte.cs: der Reiter „Karte“ (Größe, Randstreifen, Rand vorschlagen, Kamera-Start) und die Tafel der Feldfläche;
+///   • Kartenwerkstatt.Ebenen.cs: der Knopf „Ebenen“ (Bauzonen, Natur, Requisiten, Linien, Beschriftungen ein- und ausblenden, Taste H);
+///   • Kartenwerkstatt.Katalogbilder.cs: die vorab gerenderten Vorschaubilder der Palette;
 ///   • Stadtansicht.Kartenwerkstatt*.cs: alles in der 3D-Welt (Gebäude, Wege, Flächen, Natur, Mauern, Belegung, Auswahl, Ziehen).
 ///
 /// Speicherort (Entscheidung vom 22.10.2026, Schritt 4): Die Karten des Spiels in <c>game/karten/</c> (Greybox, Köln, Probestadt …) sind die
@@ -408,6 +409,9 @@ public partial class Kartenwerkstatt : Node
             case { CtrlPressed: false, AltPressed: false, ShiftPressed: false, MetaPressed: false, Echo: false } when GruppeFuerTaste(taste.Keycode) is { } gruppe:
                 GruppeWaehlen(gruppe.Kennung); // 1–0: die Gruppen der Leiste links
                 break;
+            case { CtrlPressed: false, AltPressed: false, ShiftPressed: false, MetaPressed: false, Echo: false, Keycode: Key.H } when GetViewport().GuiGetFocusOwner() is not LineEdit:
+                EbenenTaste(); // H: alle Ebenen aus oder an (Kartenwerkstatt.Ebenen.cs)
+                break;
             default:
                 return;
         }
@@ -667,6 +671,12 @@ public partial class Kartenwerkstatt : Node
             }
             if (o.TryGetValue("werkstatt-werkzeug", out var werkzeug)) KatalogWaehlen(werkzeug);
             if (o.TryGetValue("werkstatt-gruppe", out var gruppe)) GruppeOeffnen(gruppe);
+            if (o.TryGetValue("werkstatt-ebenen", out var aus))
+                foreach (var name in aus.Split(',', StringSplitOptions.RemoveEmptyEntries))
+                    if (name == "alle") EbenenAlle(false);
+                    else _stadt.WerkstattEbeneSetzen(Enum.Parse<Werkstattebene>(name, ignoreCase: true), false);
+            if (o.GetValueOrDefault("werkstatt-ebenenliste") == "1" && _ebenenKnopf is not null) _ebenenKnopf.ButtonPressed = true; // Liste offen (Haken zeigen den Stand)
+            if (o.TryGetValue("katalogbilder", out var katalogbilder)) KatalogbilderSchreiben(katalogbilder);
             if (o.GetValueOrDefault("werkstatt-netz") == "1") _netzSchalter.ButtonPressed = true;
         }
         catch (Exception ex) when (ex is ArgumentException or FormatException or IndexOutOfRangeException)

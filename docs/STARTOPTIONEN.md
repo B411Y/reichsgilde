@@ -139,6 +139,8 @@ Mauern, Tore und Start (Mauern und Tore vor den Wegen, der Start danach):
 - `--werkstatt-start=<befehl>|<befehl>…` mit `haus[:Name]`, `wohnhaus:<Haus>:<Kennung>`, `betrieb:<Haus>:<Platz>:<Betriebsart>[:<Ware>]`, `farbe:<Haus>:#rrggbb`, `spieler:<Platz>[:<Beruf>]`, `spielerwohnhaus:<Kennung>`, `spielerfarbe:#rrggbb`, `entfernen:<Haus>` (Häuser ab 1)
 - `--werkstatt-tafel=start|karte` (Reiter „Start“ bzw. „Karte“)
 - `--werkstatt-gruppe=<auswaehlen|gelaende|boden|wasser|wege|flaechen|gebaeude|mauer|start|pruefen>` (die Palette dieser Gruppe der Leiste links aufklappen) mit `--werkstatt-haus=<n>` (Haus aufklappen)
+- `--werkstatt-ebenen=<ebene>,…|alle` (Ebenen der Kartenwerkstatt ausblenden: `bauzonen`, `natur`, `requisiten`, `linien`, `beschriftungen`) und `--werkstatt-ebenenliste=1` (die Liste „Ebenen“ aufklappen)
+- `--katalogbilder=1|<kennung>,…` (Vorschaubilder des Katalogs nach `game/assets/oberflaeche/katalog/` rendern und beenden, mit `--kartenwerkstatt=probestadt`; Skript `tools/katalogbilder/katalogbilder.sh`)
 - `--werkstatt-kamerastart=1` (den Blick nach `--blick` und `--drehung` als Kamera-Start übernehmen)
 - `--werkstatt-ausprobieren=<Beruf>` (zuletzt: gleich die Probepartie starten; im Spiel Esc → „Zurück zur Kartenwerkstatt“)
 

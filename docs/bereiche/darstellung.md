@@ -1278,6 +1278,14 @@ Entscheidungen zur Sitzung: `docs/bereiche/oberflaeche.md`, „Sichtbare Ratssit
 | Messung | T400, Vulkan, 1600 × 900, Hoch, Probestadt-Wald, `--blick=-150,-100,60 --messung=12`, Sommer, gemessen auf main 6fedc82 + diesem PR. **Normale Dichte:** Kit-Wald voll 9,2 (aus #222), **Mittelweg 15,3**, unsere Bäume 16,8 Bilder/s. **4-fach dicht:** voll 7,5, **Mittelweg 8,4**, unsere Bäume 18,0. Das Ziel „nahe an 20“ wird bei normaler Dichte erreicht, im 4-fach dichten Wald nicht: Dort bleibt der Kit-Wald bei 8 (GPU-Zeit 205 → 104 ms, die Bildzeit sinkt weniger). Diagnose im dichten Wald (Kit-Bäume): Schatten Niedrig 11,7, nur Winterfassung (Rinde) 11,8, halbe Renderauflösung 10,0, SSAO und Kanten aus 8,5, weiter heraus gezoomt 9,9: weder Füllrate noch SSAO sind der Engpass, sondern Geometrie und Schattendurchgänge. | 28.10.2026 |
 | Klicktest | Vulkan (T400), Probestadt-Wald mit Kit-Bäumen: Sommer (Laub gedämpftes Grün, passt zum Waldboden), Herbst (orange), Winter (Kiefern grün, Laubbäume kahl mit Ästen), jeweils neben unseren Bäumen. Vorschau `docs/modelle/natur_kit_baeume.png` neu. | 28.10.2026 |
 
+### Kartenwerkstatt: Ebenen, Vorschaubilder, Dom (PR #228)
+
+| Thema | Entscheidung | Datum |
+|---|---|---|
+| Dom, Kran | Die Treträder kreisten um den ganzen Dom: Das Spiel dreht den Knoten `Tretrad` um seinen Ursprung (`HafenBelebt`, auch für den Dom), im Modell lag der Ursprung aber im Nullpunkt, die Räder selbst weit außen auf dem Südturm. Jetzt liegt der Ursprung in der Radachse (Mesh um die Achse verschoben, Knoten dorthin gesetzt, `koelner_dom.py`). | Entscheidung des Nutzers, 28.10.2026 (Fehlermeldung) |
+| Dom, Stein | Ein einheitlicher, gut aufgelöster Quaderstein für den ganzen Bau (heller Drachenfels-Trachyt, warmes Hellgrau, Stoff „Elbenstein“ der Material-Bibliothek, `quader`) statt der drei Texturen (heller Chor, Bruchstein am Turmstumpf, graue Quader). Die Bauphase zeigen nur Form, Kran und Gerüst. | Entscheidung des Nutzers, 28.10.2026 |
+| Ebenen | Knopf „Ebenen“ in der Kopfleiste mit Haken für Bauzonen, Baum- und Naturzonen, Requisiten-Zonen, Wege und Grenzen (Markierungen, Gewässerpfeile, Kartenrand) und Beschriftungen, dazu „Alle an/aus“ und die Taste H. Wege, Mauern und Wasser selbst bleiben sichtbar. Nur für die Sitzung, keine Karte wird geändert. | Entscheidung des Nutzers, 28.10.2026 |
+| Katalog mit 3D-Vorschau | Bäume, Büsche, Requisiten und Gebäude zeigen in der Palette ein vorab gerendertes Bild (96 px, Dreiviertelansicht, neutrales Licht) aus `game/assets/oberflaeche/katalog/`; ohne Bild bleibt das Symbol. Neue Objekte: `tools/katalogbilder/katalogbilder.sh`. | Entscheidung des Teamleiters, 28.10.2026 |
 ### KI-Schmied aus TRELLIS (PR #225)
 
 | Thema | Entscheidung | Datum |
