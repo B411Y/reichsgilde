@@ -1257,7 +1257,7 @@ Entscheidungen zur Sitzung: `docs/bereiche/oberflaeche.md`, „Sichtbare Ratssit
 | Umsetzung | `tools/modelle/kit_import.py` (Blender, liest die Pakete aus `RG_KITS`) schreibt `natur/natur_kit_boden|steine|baeume.glb` und `props/props_gegenstaende|props_dorf.glb`; Katalog: 47 Bausteine der Art `natur` (kein neuer Kern-Code, alle Werkzeuge der Kartenwerkstatt – Pflanze setzen, Pinsel, Streu, Drehen, Maßstab – gelten). `Stadtansicht.IstBaumDatei` und `IstBodenDatei` (Winterfassung, Schatten) ersetzen die Dateinamen-Vergleiche, `.glb.import` mit `gltf/embedded_image_handling=3` (Texturen bleiben in der Datei, nicht daneben). Herkunft: `HERKUNFT.md` in `natur/` und `props/`. | 28.10.2026 |
 | Klicktest | Vulkan (T400), Probekarte mit Reihen und Waldstück: Props mit Texturen, Laub gedämpftes Grün, Herbst orange, Winter kahle Rinde zwischen Kiefern, Nacht dunkel ohne Ausreißer; Kartenwerkstatt zeigt die Palette „Requisiten (Asset-Kits)“. | 28.10.2026 |
 
-### Kit-Bäume Mittelweg (PR #NR)
+### Kit-Bäume Mittelweg (PR #223)
 
 | Thema | Entscheidung | Datum |
 |---|---|---|
