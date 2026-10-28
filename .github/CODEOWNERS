@@ -1,0 +1,28 @@
+# Besitzer für Pfade, die nur der Nutzer freigibt.
+# Eine Zeile je Muster, die letzte passende Zeile gewinnt.
+# Wirkt erst mit der Schutzregel „Require review from Code Owners“ auf main.
+
+# Spielwerte und Spielstandformat (Datenversion, Speicherkompatibilität)
+/game/daten/wirtschaft.json @B411Y
+/src/Reichsgilde.Core/Speichern/Speicherstand*.cs @B411Y
+
+# Arbeitsregeln für alle Chats
+/CLAUDE.md @B411Y
+
+# Lizenzen
+/LICENSE* @B411Y
+
+# Abläufe und diese Datei selbst
+/.github/ @B411Y
+
+# Claude-Einstellungen (falls später versioniert)
+/.claude/ @B411Y
+
+# Herkunfts- und Lizenznachweise fremder Assets
+**/HERKUNFT.md @B411Y
+
+# Prüfsummen des heruntergeladenen TressFX-Pakets (Lieferkette)
+/tools/tressfx.version @B411Y
+
+# Exporteinstellungen (bestimmen, was ausgeliefert wird)
+/game/export_presets.cfg @B411Y
