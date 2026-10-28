@@ -254,9 +254,9 @@ public partial class CharakterAnzeige : PanelContainer
     }
 
     /// <summary>
-    /// Ein rundes Medaillon: das gemalte Bild (ohne Rahmen) und darüber ein schlichter, dünner Metallring nach Art des Zugs
-    /// (Persönlichkeit Kupfer, angeboren Gold, erworben Eisen), abgeschrägt wie bei Warcraft-3-Knöpfen: Lichtkante oben links,
-    /// Schatten unten rechts. Ohne Bild steht der Anfangsbuchstabe im Ring.
+    /// Ein rundes Medaillon: das gemalte Bild mit geschmiedetem Metallring nach Art des Zugs (Persönlichkeit Kupfer, angeboren Gold,
+    /// erworben Eisen; Hammerschlag, Kerben je Zug an anderer Stelle – schon im Bild). Fehlt das Bild, zeichnet das Fenster einen
+    /// schlichten, abgeschrägten Ring in derselben Farbe mit dem Anfangsbuchstaben.
     /// </summary>
     private sealed partial class ZugIcon : Control
     {
@@ -291,20 +291,20 @@ public partial class CharakterAnzeige : PanelContainer
 
         public override void _Draw()
         {
+            // Die Bilder bringen ihren geschmiedeten Ring schon mit
+            if (_bild is not null)
+            {
+                DrawTextureRect(_bild, new Rect2(0, 0, Seite, Seite), false);
+                return;
+            }
             var mitte = new Vector2(Seite, Seite) / 2;
             var aussen = Seite / 2f;
-            // Das Bild reicht bis unter die Mitte des Rings, damit kein Spalt bleibt
-            var r = aussen - Ring / 2;
-            if (_bild is not null) DrawTextureRect(_bild, new Rect2(mitte - new Vector2(r, r), new Vector2(r, r) * 2), false);
-            else
-            {
-                DrawCircle(mitte, r, new Color(0.16f, 0.14f, 0.12f));
-                var font = ThemeDB.FallbackFont;
-                var buchstabe = _zug.Name.Length > 0 ? _zug.Name[..1].ToUpperInvariant() : "?";
-                var groesse = font.GetStringSize(buchstabe, HorizontalAlignment.Left, -1, 24);
-                DrawString(font, new Vector2(mitte.X - groesse.X / 2, mitte.Y + 8), buchstabe, HorizontalAlignment.Left, -1, 24, new Color(0.92f, 0.88f, 0.80f));
-            }
-            // Ring in Stücken: je nach Richtung zum Licht heller oder dunkler
+            DrawCircle(mitte, aussen - Ring / 2, new Color(0.16f, 0.14f, 0.12f));
+            var font = ThemeDB.FallbackFont;
+            var buchstabe = _zug.Name.Length > 0 ? _zug.Name[..1].ToUpperInvariant() : "?";
+            var groesse = font.GetStringSize(buchstabe, HorizontalAlignment.Left, -1, 24);
+            DrawString(font, new Vector2(mitte.X - groesse.X / 2, mitte.Y + 8), buchstabe, HorizontalAlignment.Left, -1, 24, new Color(0.92f, 0.88f, 0.80f));
+            // Ring in Stücken (Warcraft-3-Abschrägung): je nach Richtung zum Licht heller oder dunkler
             var farbe = Rahmen(_zug.Art);
             for (var i = 0; i < Stuecke; i++)
             {
