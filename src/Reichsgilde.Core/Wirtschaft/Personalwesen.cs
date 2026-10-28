@@ -204,7 +204,7 @@ public sealed class Personalwesen
         if (a.Erfahrung < noetig)
         {
             var jahre = JahreBisNaechste(b, a);
-            return $"{wer} braucht {Zahlenformat.Ganz(noetig)} Stunden Erfahrung für den {zu}, hat {Zahlenformat.Ganz(Math.Floor(a.Erfahrung))}" +
+            return $"{wer} braucht {Zahlenformat.Ganz(noetig)} Arbeitsstunden Erfahrung für den {zu}, hat {Zahlenformat.Ganz(Math.Floor(a.Erfahrung))}" +
                    (jahre is { } j ? $" – noch etwa {Jahre(j)}." : ".");
         }
         if (stufe + 1 == 3 && Vorarbeiter(b).Count() >= d.VorarbeiterJeBetrieb)

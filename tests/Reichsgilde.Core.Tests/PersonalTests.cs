@@ -179,13 +179,13 @@ static class PersonalTests
             Pruefe.Wahr(leer.Arbeiter[0].Erfahrung <= einStueck + 1e-9, $"{leer.Arbeiter[0].Erfahrung} Stunden ohne Zutaten (ein Stück: {einStueck})");
         }),
 
-        ("Personal: Befördern – erst mit 24 Stunden Erfahrung, gegen 150 Gulden Gesellenbrief und einen Aktionspunkt; danach Gesellenlohn", () =>
+        ("Personal: Befördern – erst mit 24 Arbeitsstunden Erfahrung, gegen 150 Gulden Gesellenbrief und einen Aktionspunkt; danach Gesellenlohn", () =>
         {
             var sim = NeueSimulation();
             var (w, k, g) = Giesserei(sim);
             Ok(w, k, new PersonalSetzen(g.Name, "Lehrling", 2));
             var a = g.ArbeiterNr(1)!;
-            Abgelehnt(w, k, new ArbeiterBefoerdern(g.Name, 1), "braucht 24 Stunden Erfahrung");
+            Abgelehnt(w, k, new ArbeiterBefoerdern(g.Name, 1), "braucht 24 Arbeitsstunden Erfahrung");
             Pruefe.Wahr(w.Werkstaetten.Arbeiterliste(g)[0].BefoerderungVerboten!.Contains("noch etwa 3 Jahre"), w.Werkstaetten.Arbeiterliste(g)[0].BefoerderungVerboten!);
             ErfahrungFuer(w, a, 2);
             var vorher = k.Vermoegen;
@@ -202,7 +202,7 @@ static class PersonalTests
             Pruefe.Gleich("Vorarbeiter", zeile.NaechsteStufe);
             Pruefe.Gleich(400.0, zeile.BriefKosten);
             Pruefe.Gleich(84.0, zeile.ErfahrungNaechste);
-            Abgelehnt(w, k, new ArbeiterBefoerdern(g.Name, 1), "braucht 84 Stunden Erfahrung");
+            Abgelehnt(w, k, new ArbeiterBefoerdern(g.Name, 1), "braucht 84 Arbeitsstunden Erfahrung");
         }),
 
         ("Personal: Vorarbeiter – höchstens einer je Betrieb; drei Eigenschaften (je eine aus Ware, Führung, Betrieb), fest für die Person; Wahl ohne Kosten", () =>

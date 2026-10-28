@@ -35,7 +35,7 @@ static class EinrichtungsbaumTests
             Pruefe.Gleich("Werkstatt|Lager & Handel|Schutz & Personal", string.Join("|", d.Spalten));
             var stufe3 = new Dictionary<string, (string Kennung, string Waren)>
             {
-                ["Schmied"] = ("Wasserhammer", "Goldkette Prunkschwert"), ["Tischler"] = ("Drechselbank", "Schrank Prunktruhe"),
+                ["Schmied"] = ("Schleifstein", "Goldkette Prunkschwert"), ["Tischler"] = ("Drechselbank", "Schrank Prunktruhe"),
                 ["Steinmetz"] = ("Steinsaege", "Steinfigur Grabmal"), ["Alchimist"] = ("Athanor", "Theriak Zinnober"),
                 ["Parfumeur"] = ("Enfleurage", "Heiligenduft Schattendolch"), ["Wirt"] = ("Gewoelbekeller", "Festbier Schädelbrand"),
                 ["Prediger"] = ("Skriptorium", "Stundenbuch Reliquiar"),
@@ -65,21 +65,31 @@ static class EinrichtungsbaumTests
             Pruefe.Wahr(d.Stueck("Dieb", "Ladentheke") is null && d.Stueck("Gardist", "Ladentheke") is null, "Dieb und Wache haben keinen Laden");
         }),
 
-        ("Einrichtung Stufe 3: Wasserhammer erst in der Goldschmiede nach dem Meisterwerkzeug; −15 % Zeit nur für Goldkette und Prunkschwert; kein Rückverkauf", () =>
+        ("Einrichtung Stufe 3: Tretrad-Schleifstein erst in der Goldschmiede nach dem Meisterwerkzeug; −15 % Zeit nur für Goldkette und Prunkschwert; alte Kennung Wasserhammer lädt", () =>
         {
-            var w = NeueSimulation().Wirtschaft!;
+            var sim = NeueSimulation();
+            var w = sim.Wirtschaft!;
             var k = w.KontoEroeffnen("Haus Fuchs", startvermoegen: 20_000);
             var g = w.BetriebEroeffnen("Goldschmiede", Betriebsart.Goldschmiede, k, startkarren: "");
-            Abgelehnt(w, k, new EinrichtungKaufen(g.Name, "Wasserhammer"), "Erst braucht es: Meisterwerkzeug");
+            Abgelehnt(w, k, new EinrichtungKaufen(g.Name, "Schleifstein"), "Erst braucht es: Meisterwerkzeug");
             Ok(w, k, new EinrichtungKaufen(g.Name, "Werkzeug1"));
             Ok(w, k, new EinrichtungKaufen(g.Name, "Werkzeug2"));
             var vorher = k.Vermoegen;
-            Ok(w, k, new EinrichtungKaufen(g.Name, "Wasserhammer"));
+            Ok(w, k, new EinrichtungKaufen(g.Name, "Schleifstein"));
             Pruefe.Ungefaehr(1500, vorher - k.Vermoegen, 1e-9);
             Pruefe.Ungefaehr(0.81 * 0.85, g.ZeitFaktor("Goldkette"), 1e-12);
             Pruefe.Ungefaehr(0.81, g.ZeitFaktor("Silberring"), 1e-12);
             var s = w.BetriebEroeffnen("Schmiede", Betriebsart.Schmiede, k, startkarren: "");
-            Pruefe.Wahr(w.Werkstaetten.EinrichtungVerboten(s, "Wasserhammer")!.Contains("erst ab Stufe 3"), "Stufe 2");
+            Pruefe.Wahr(w.Werkstaetten.EinrichtungVerboten(s, "Schleifstein")!.Contains("erst ab Stufe 3"), "Stufe 2");
+            Pruefe.Gleich("Tretrad-Schleifstein", w.Werkstaetten.Daten!.Stueck("Schmied", "Schleifstein")!.Name);
+            // Ein Spielstand mit der früheren Kennung „Wasserhammer“ lädt als Schleifstein (Entscheidung des Nutzers vom 28.10.2026).
+            var knoten = System.Text.Json.Nodes.JsonNode.Parse(Reichsgilde.Core.Speichern.Speicherung.Speichern(sim))!;
+            var liste = knoten["Wirtschaft"]!["Betriebe"]!.AsArray().Single(b => (string?)b!["Name"] == g.Name)!["Einrichtung"]!.AsArray();
+            var platz = liste.Select((x, i) => ((string?)x, i)).Single(x => x.Item1 == "Schleifstein").i;
+            liste[platz] = "Wasserhammer";
+            var g2 = Reichsgilde.Core.Speichern.Speicherung.Laden(knoten.ToJsonString()).Simulation.Wirtschaft!.Betriebe.Single(b => b.Name == g.Name);
+            Pruefe.Wahr(g2.HatEinrichtung("Schleifstein") && !g2.HatEinrichtung("Wasserhammer"), string.Join(", ", g2.Einrichtung));
+            Pruefe.Ungefaehr(0.81 * 0.85, g2.ZeitFaktor("Goldkette"), 1e-12);
         }),
 
         ("Einrichtung Stufe 3: Ladentheke – ein Viertel der Ware 5 % teurer, im Mittel 1,25 % mehr Erlös am Markt", () =>
@@ -119,11 +129,11 @@ static class EinrichtungsbaumTests
             BaumStueck Stueck(string kennung) => baum.Stuecke.Single(s => s.Kennung == kennung);
             Pruefe.Gleich(Baumzustand.Gekauft, Stueck("Werkzeug1").Zustand);
             Pruefe.Gleich(Baumzustand.Gesperrt, Stueck("Werkzeug2").Zustand); // erst ab Stufe 2
-            Pruefe.Gleich(Baumzustand.Gesperrt, Stueck("Wasserhammer").Zustand);
+            Pruefe.Gleich(Baumzustand.Gesperrt, Stueck("Schleifstein").Zustand);
             Pruefe.Gleich(Baumzustand.Kaufbar, Stueck("Schuerzen").Zustand); // 80 Gulden – 300 sind noch da
             Pruefe.Gleich(Baumzustand.NichtJetzt, Stueck("Blasebalg").Zustand); // 350 Gulden: Stufe passt, das Geld nicht
-            Pruefe.Gleich("Werkzeug2", Stueck("Wasserhammer").Voraussetzung);
-            Pruefe.Gleich(3, Stueck("Wasserhammer").Reihe);
+            Pruefe.Gleich("Werkzeug2", Stueck("Schleifstein").Voraussetzung);
+            Pruefe.Gleich(3, Stueck("Schleifstein").Reihe);
             Pruefe.Gleich("Lager & Handel", Stueck("Ladentheke").Spalte);
             Pruefe.Gleich("Schutz & Personal", Stueck("Lehrlingsstube").Spalte);
             var blasebalg = Stueck("Blasebalg");

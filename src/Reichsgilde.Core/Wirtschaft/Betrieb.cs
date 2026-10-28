@@ -1027,7 +1027,8 @@ public sealed class Betrieb
         _lohnFaktorSumme = s.LohnFaktorSumme;
         _lohnMinuten = s.LohnMinuten;
         UnfallLauneBis = s.UnfallLauneBis;
-        foreach (var kennung in s.Einrichtung ?? new()) EinrichtungHinzufuegen(kennung);
+        foreach (var kennung in s.Einrichtung ?? new())
+            EinrichtungHinzufuegen(AlteKennungen.GetValueOrDefault(kennung, kennung));
         if (s.Rechnung is { } r) Laufend = Betriebsrechnung.Laden(r); // alte Spielstände: ab dem Laden, kein ganzes Jahr
         Vorjahr = s.RechnungVorjahr is { } v ? Betriebsrechnung.Laden(v) : null;
         foreach (var ware in s.Zurueckgehalten ?? new()) _zurueckgehalten.Add(ware);
@@ -1041,6 +1042,12 @@ public sealed class Betrieb
         }
         PersonalGeaendert();
     }
+
+    /// <summary>Umbenannte Stücke der Einrichtung (alte Kennung → neue), damit ältere Spielstände sie behalten.</summary>
+    private static readonly Dictionary<string, string> AlteKennungen = new(StringComparer.Ordinal)
+    {
+        ["Wasserhammer"] = "Schleifstein", // PR #224: Tretrad-Schleifstein statt Schwanzhammer am Wasserrad (Entscheidung des Nutzers)
+    };
 
     /// <summary>Spielstand von vor PR #224: Wer schon eine Stufe hat, hat auch ihre Erfahrung (ein Geselle bleibt Geselle mit voller Erfahrung).</summary>
     private double VolleErfahrung(Arbeiter a) => _daten.Personal is { } p ? p.Schwelle(p.StufeVon(a.Arbeitskraft)) : 0;

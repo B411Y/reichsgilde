@@ -2102,7 +2102,7 @@ Statisch (Startpreise, Gesellen) liegt der Dieb durch die höhere Beute bei +27 
 
 **Völker** (Zuwachs gegen Menschen; Messung 7 in Klammern): Schmied Zwerg +19,8 % (+9,7), Elb −5,0 % (+4,9), Halbling −21,0 % (−20,8); Parfumeur Zwerg −15,5 % (−6,8), Elb +4,8 % (+20,0), Halbling −3,2 % (−7,4).
 
-**Einrichtung der Stufe 3** (statisch, Startpreise, alle Plätze mit Gesellen bzw. Anfängern): Werkstatt-Stücke 1,0–1,4 Jahre bis bezahlt (bei voller Arbeit an den zwei Waren der Stufe 3), Lehrlingsstube 0,8–1,6 Jahre (nur solange Anfänger da sind), **Ladentheke 5,0–6,8 Jahre** – länger als die 4 Jahre, ab denen die KI kauft; sie kauft sie deshalb nie (Offen-Punkt in `kern.md`). In `messen 30 20 greybox` kaufen die KI-Häuser je Partie und Haus Ø 10,7 Stücke, darunter Lehrlingsstube 74×, Werkstatt-Stücke 87× (Drechselbank 20, Steinsäge 22, Wasserhammer 13, Gewölbekeller 11, Enfleurage-Kammer 10, Athanor 1) in 20 Partien.
+**Einrichtung der Stufe 3** (statisch, Startpreise, alle Plätze mit Gesellen bzw. Anfängern): Werkstatt-Stücke 1,0–1,4 Jahre bis bezahlt (bei voller Arbeit an den zwei Waren der Stufe 3), Lehrlingsstube 0,8–1,6 Jahre (nur solange Anfänger da sind), **Ladentheke 5,0–6,8 Jahre** – länger als die 4 Jahre, ab denen die KI kauft; sie kauft sie deshalb nie (Offen-Punkt in `kern.md`). In `messen 30 20 greybox` kaufen die KI-Häuser je Partie und Haus Ø 10,7 Stücke, darunter Lehrlingsstube 74×, Werkstatt-Stücke 87× (Drechselbank 20, Steinsäge 22, Tretrad-Schleifstein (damals „Wasserhammer“) 13, Gewölbekeller 11, Enfleurage-Kammer 10, Athanor 1) in 20 Partien.
 
 **`messen 30 20` und `messen 30 20 greybox`** (30 Jahre, 20 Startwerte, Spieler passiv):
 
