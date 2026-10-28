@@ -59,8 +59,8 @@ public sealed class PersonalAnzeige : InnenTafel
             {
                 var erf = Reihe(mitte);
                 Balken(erf, Math.Clamp(z.Erfahrung / Math.Max(ziel, 0.01), 0, 1), 170, Gruen);
-                var rest = z.JahreBisNaechste is { } j ? (j <= 0 ? "genug für die Beförderung" : $"noch {Zahlenformat.Kommazahl(j)} Jahre") : "sammelt hier keine Erfahrung";
-                Text(erf, $"Erfahrung {Zahlenformat.Ganz(z.Erfahrung)} von {Zahlenformat.Ganz(ziel)} Std. zum {naechste} · {rest}", 12, Grau);
+                var rest = z.JahreBisNaechste is { } j ? (j <= 0 ? "genug für die Beförderung" : $"noch etwa {Zahlenformat.Kommazahl(j)} Jahre") : "sammelt hier keine Erfahrung";
+                Text(erf, $"Erfahrung {Zahlenformat.Ganz(z.Erfahrung)} von {Zahlenformat.Ganz(ziel)} Arbeitsstunden zum {naechste} · {rest}", 12, Grau);
             }
             else Text(mitte, "Höchste Stufe erreicht.", 12, Grau);
 

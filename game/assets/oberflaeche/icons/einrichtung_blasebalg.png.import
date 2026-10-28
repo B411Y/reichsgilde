@@ -2,16 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://d1cs4vvwdskqu"
-path="res://.godot/imported/einrichtung_wasserhammer.png-5d0a0bde3b02dfe04baee863f9396323.ctex"
+uid="uid://dofca2xpshpyp"
+path="res://.godot/imported/einrichtung_blasebalg.png-a4d7c9657f5f5134fff6c0dd8c992362.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://assets/oberflaeche/icons/einrichtung_wasserhammer.png"
-dest_files=["res://.godot/imported/einrichtung_wasserhammer.png-5d0a0bde3b02dfe04baee863f9396323.ctex"]
+source_file="res://assets/oberflaeche/icons/einrichtung_blasebalg.png"
+dest_files=["res://.godot/imported/einrichtung_blasebalg.png-a4d7c9657f5f5134fff6c0dd8c992362.ctex"]
 
 [params]
 
