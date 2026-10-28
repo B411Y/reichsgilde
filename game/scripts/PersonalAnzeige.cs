@@ -102,10 +102,6 @@ public sealed class PersonalAnzeige : InnenTafel
             }
             Inhalt.AddChild(new HSeparator());
         }
-        // Gründe für gesperrte Beförderungen stehen auch hier – ein Hinweis am Knopf allein sieht man leicht nicht
-        foreach (var grund in liste.Where(z => z.BefoerderungVerboten is not null).Select(z => z.BefoerderungVerboten!).Distinct())
-            Text(Inhalt, grund, 12, Grau, 820);
-
         Text(Inhalt, "Einstellen", 16, Gold);
         var einstellen = Reihe(Inhalt);
         var anfaenger = w.Personal.Anfaenger(b);

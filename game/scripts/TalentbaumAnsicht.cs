@@ -119,6 +119,7 @@ public static partial class TalentbaumAnsicht
         var name = Hauptmenue.Text(spalte, s.Name, 10, gesperrt ? Grau : Hell, zentriert: true, umbruchBreite: StueckBreite - 8);
         // Hintergrund wie die Zelle: die Linien laufen dahinter und tauchen nur zwischen den Reihen auf
         name.AddThemeStyleboxOverride("normal", new StyleBoxFlat { BgColor = grund });
+        name.AutowrapMode = TextServer.AutowrapMode.WordSmart; // nur an Wortgrenzen umbrechen
         name.TooltipText = knopf.TooltipText;
         name.MouseFilter = Control.MouseFilterEnum.Pass;
         var preis = s.Zustand == Baumzustand.Gekauft ? "gekauft"
@@ -142,7 +143,6 @@ public static partial class TalentbaumAnsicht
         {
             if (s.Amortisationsjahre is { } jahre && s.MehrgewinnJeJahr > 0)
                 zeilen.Add($"Rechnet sich nach etwa {Zahlenformat.Kommazahl(jahre)} Jahren (bringt heute rund {Zahlenformat.Ganz(s.MehrgewinnJeJahr)} {waehrung} im Jahr mehr)");
-            else if (!s.Jaehrlich) zeilen.Add("Bringt keine Gulden direkt, schützt oder erleichtert die Arbeit.");
         }
         zeilen.Add(s.Zustand == Baumzustand.Gekauft ? "Schon gekauft." : s.Verboten is { } g ? "Gerade nicht möglich: " + g : "Ein Klick kauft es.");
         return string.Join("\n", zeilen);
