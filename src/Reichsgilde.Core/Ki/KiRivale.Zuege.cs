@@ -5,7 +5,7 @@ namespace Reichsgilde.Core.Ki;
 /// Stirbt das Oberhaupt, handelt das Haus nach den Zügen des Erben. Ohne Züge (alte Daten) ist alles wie vorher.
 ///
 ///   Gierig / Großzügig      Zins der Geldleihe ±, Geschenke an den Rat ×0,7 / ×1,3, Großzügig holt Barden
-///   Fleißig / Träge          übt Talente, sobald die Aktionspunkte reichen / übt nie, stellt seltener um
+///   Fleißig / Träge          stellt schneller / seltener auf ein besseres Produkt um (Schalter „ueben“ ungenutzt)
 ///   Fromm / Zynisch          Ablass mit halbem / doppeltem Polster, Fromm tritt nie zum Stadtglauben über
 ///   Mutig / Feige            Eskorte nach Raubfurcht ×0,75 / ×1,5, Amortisation ±1 Jahr
 ///   Ehrlich / Verschlagen    ein bezahltes Gaunerstück weniger / mehr im Jahr
