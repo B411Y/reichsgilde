@@ -1,8 +1,8 @@
 {
   "bericht": "Balancing-Messung 6",
   "datum": "2026-10-28",
-  "mainCommit": "018f0c15",
-  "commit": "018f0c15",
+  "mainCommit": "b59a3728",
+  "commit": "b59a3728",
   "datenversion": 59,
   "aufruf": "messen bericht 20 30 (main ohne Züge, Vergleich zu PR #227)",
   "parameter": {
@@ -15191,5 +15191,5 @@
     "Z6 neu (Umland, Lohnkosten je Arbeit = Lohn und Risiko ÷ Tempo): Leibeigener 101 statt Altknecht 150 (−33 %; unter Statut A die einzige Kraft) und Ork 114 (−11 %; unter Statut B die beste).",
     "Z6 Statut C (Startpreise): Gießerei 1.966 unter B, 1.966 unter C (0,0 %, Ziel +15–25 %); Werkstätten C gegen B 0,0 … +1,5 %, in 1 von 21 mehr. Gleichstand Leibeigener/Geselle bei einer Wertschöpfung von 893 je Kopf und Jahr."
   ],
-  "laufzeitSekunden": 2416
+  "laufzeitSekunden": 1101
 }
