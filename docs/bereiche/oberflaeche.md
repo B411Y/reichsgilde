@@ -295,7 +295,7 @@ So wird eingetragen (damit sich die Chats nie an derselben Stelle treffen):
 | Umsetzung Talentbaum | `TalentbaumAnsicht` (gemeinsam): 3 × 3 Zellen mit Stücken, Rahmen nach Zustand (gekauft grün, kaufbar golden, gerade nicht möglich blass golden, gesperrt grau), Linien Voraussetzung → Stück hinter Knöpfen und Beschriftungen, Tooltip aus `Tipp` (Wirkung, Preis, Stufe, Voraussetzung, Amortisation, Sperrgrund). `EinrichtenAnzeige` (Betrieb, innen an der Werkzeugwand und außen über „Einrichtung“ in der Kurzübersicht) und `WohnhausBaumAnzeige` (Knopf „Einrichtung …“ in der Wohnhaus-Tafel) ersetzen die Einrichtungsliste. Icons: `einrichtung_<kennung>.png` in `assets/oberflaeche/icons/`, sonst ein ähnliches Waren-Icon (Tabelle `Ersatz`), sonst der Anfangsbuchstabe; Bildbeschreibungen für die Bild-KI liegen im Notizordner des Teamleiters. | 28.10.2026 |
 | Umsetzung Personal | `PersonalAnzeige` zeigt je Arbeiter Porträt (`PortraetAnzeige`, Altersstufe aus Menschenjahren), Name, Stufe, Erfahrungsbalken (Stunden und Jahre bis zur nächsten Stufe), Lohn und Eigenschaft; „Befördern → Stufe“ mit Briefkosten im Tooltip; nach der Beförderung zum Vorarbeiter drei Eigenschaftskarten (`EigenschaftWaehlen`). Einstellen bietet nur den Anfänger. Die Innenräume färben Figuren nach Anfänger / Mittelstufe / Vorarbeiter (`Stadtansicht.IstAnfaenger`, `IstVorarbeiter`). | 28.10.2026 |
 
-### Charakterfenster (PR #NR)
+### Charakterfenster (PR #227)
 
 | Thema | Entscheidung | Datum |
 |---|---|---|

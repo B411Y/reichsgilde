@@ -473,7 +473,7 @@ Entscheidungen des Nutzers: `docs/bereiche/oberflaeche.md`, „Sichtbare Ratssit
 | Umsetzung: Start und Werte | Kein Startgeld-Plus. **Z1 neu**: Gießerei mit den 2 Lehrlingen des Starts 900–1.300 Gulden im Jahr, gemessen 1.094 (allein; mit 2 Gesellen weiter 1.300–1.700). Nachgezogen, weil Dieb, Wache und Geldleiher ohne Ware keine Stufe-3-Stücke und kaum Eigenschaften mit Gulden-Wirkung haben (erster Lauf: Dieb −40,8 %, Geldleiher −23,1 %, Gardist −15,0 %): Taschendiebe 1,015 → 1,16 Gulden je Minute, Sold 0,84 → 0,875, Wechselgebühr 0,78 % → 0,9 %. Danach alle zehn Berufe im Band (−12,6 … +12,3 %), Bürger mit einem Betrieb Ø 8,0–12,1 Jahre. Messung in WIRTSCHAFTSMODELL, „Personal und Talentbaum (PR #224)“ (main `eb1cbdf` + `097f164`). | 28.10.2026 |
 | Preis Ladentheke | 800 statt 1.000 Gulden (Entscheidung des Nutzers, „goldene Mitte“): bei 1.000 machte sie sich erst nach 5–7 Jahren bezahlt und die KI kaufte sie nie; mit 800 etwa 4–5,5 Jahre. | 28.10.2026 |
 
-### Charakterzüge (PR #NR)
+### Charakterzüge (PR #227)
 
 | Thema | Entscheidung | Datum |
 |---|---|---|
