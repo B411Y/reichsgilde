@@ -45,6 +45,12 @@ public sealed partial class Kartenentwurf
         KopfAendern("Kamera-Start gesetzt", n => n.Kamera = kamera);
     }
 
+    /// <summary>Ob die Karte in der Kartenwahl des Hauptmenüs erscheint (Feld <c>spielbar</c>). Ein Schritt mit Rückgängig.</summary>
+    public void SpielbarSetzen(bool spielbar) => KopfAendern(spielbar ? "Karte spielbar" : "Karte nicht spielbar", n => n.Spielbar = spielbar);
+
+    /// <summary>Erscheint die Karte in der Kartenwahl?</summary>
+    public bool Spielbar => _kopf.Spielbar;
+
     private void KopfAendern(string beschreibung, Action<EntwurfKopf> aenderung)
     {
         if (Aenderung(_kopf, aenderung) is { } befehl) Geschichte.Ausfuehren(befehl.Benannt(beschreibung));

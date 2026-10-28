@@ -10,7 +10,7 @@ using Reichsgilde.Core.Zeit;
 namespace Reichsgilde;
 
 /// <summary>
-/// Das Hauptmenü: Neue Partie (mit Einstellungen), Partie laden, Einstellungen, Kartenwerkstatt (Level-Editor), Beenden.
+/// Das Hauptmenü: Neue Partie (Stadt wählen, Oberhaupt, Einstellungen), Partie laden, Einstellungen, Kartenwerkstatt (Level-Editor), Beenden.
 /// Im Hintergrund steht die Stadt, die Kamera dreht sich langsam um sie herum.
 ///
 /// Wird das Spiel mit Startoptionen aufgerufen (z. B. „-- --tempo=8"), geht es ohne Menü direkt
@@ -72,7 +72,8 @@ public partial class Hauptmenue : Node
     public override void _Ready()
     {
         var portraetOption = OS.GetCmdlineUserArgs().FirstOrDefault(a => a.StartsWith("--portraets="));
-        if (OS.GetCmdlineUserArgs().Length > 0 && !_startoptionenGenutzt && portraetOption is null)
+        var stadtwahl = OS.GetCmdlineUserArgs().Any(a => a == "--stadtwahl=1");
+        if (OS.GetCmdlineUserArgs().Length > 0 && !_startoptionenGenutzt && portraetOption is null && !stadtwahl)
         {
             // Startoptionen → Test- oder Prüflauf: Menü überspringen (nur beim ersten Mal – „Zurück zum Hauptmenü“ zeigt dann das Menü).
             _startoptionenGenutzt = true;
@@ -93,13 +94,20 @@ public partial class Hauptmenue : Node
         var mitte = Mitte();
         oberflaeche.AddChild(mitte);
         _start = StartTafel();
+        _kartenwahl = KartenwahlTafel();
         _oberhaupt = OberhauptTafel();
         _neu = NeuTafel();
         _laden = LadeTafel();
         _einstellungen = new EinstellungenAnzeige(() => Zeigen(_start));
-        foreach (var tafel in new[] { _start, _oberhaupt, _neu, _laden, _einstellungen.Tafel })
+        foreach (var tafel in new[] { _start, _kartenwahl, _oberhaupt, _neu, _laden, _einstellungen.Tafel })
             mitte.AddChild(tafel);
+        oberflaeche.AddChild(EntwicklerHaken());
         Zeigen(_start);
+        if (stadtwahl) // --stadtwahl=1: gleich die Seite „Stadt wählen“ (für Bildschirmfotos; mit --entwickler=1 auch mit Testkarten)
+        {
+            _startoptionenGenutzt = true;
+            KartenwahlZeigen();
+        }
         if (portraetOption is not null)
         {
             _startoptionenGenutzt = true;
@@ -118,8 +126,9 @@ public partial class Hauptmenue : Node
 
     private void Zeigen(PanelContainer tafel)
     {
-        foreach (var t in new[] { _start, _oberhaupt, _neu, _laden, _einstellungen.Tafel })
+        foreach (var t in new[] { _start, _kartenwahl, _oberhaupt, _neu, _laden, _einstellungen.Tafel })
             t.Visible = t == tafel;
+        _entwicklerHaken.Visible = tafel == _start;
     }
 
     // ═════════════════════════════════════════════════════════════════════════
@@ -133,7 +142,7 @@ public partial class Hauptmenue : Node
         Text(spalte, "Handel, Handwerk und Ränke im Heiligen Römischen Reich", 15, null, zentriert: true);
         spalte.AddChild(new HSeparator());
 
-        Knopf(spalte, "Neue Partie", () => Zeigen(_oberhaupt));
+        Knopf(spalte, "Neue Partie", KartenwahlZeigen);
         Knopf(spalte, "Partie laden", () => { _liste.Auffrischen(); _ladeFehler.Text = ""; Zeigen(_laden); });
         Knopf(spalte, "Einstellungen", () => { _einstellungen.Auffrischen(); Zeigen(_einstellungen.Tafel); });
         Knopf(spalte, "Kartenwerkstatt", () => GetTree().ChangeSceneToFile(Kartenwerkstatt.Szene)).TooltipText =
@@ -227,7 +236,7 @@ public partial class Hauptmenue : Node
         var knoepfe = new HBoxContainer { Alignment = BoxContainer.AlignmentMode.Center };
         knoepfe.AddThemeConstantOverride("separation", 12);
         spalte.AddChild(knoepfe);
-        Knopf(knoepfe, "Zurück", () => Zeigen(_start));
+        Knopf(knoepfe, "Zurück", () => Zeigen(_kartenwahl));
         Knopf(knoepfe, "Weiter", () => Zeigen(_neu));
 
         VolkHinweisZeigen();

@@ -25,6 +25,7 @@ public partial class Kartenwerkstatt
 
     private Zahlfeld? _breiteFeld, _tiefeFeld, _randFeld;
     private Label? _masseText, _kameraText;
+    private CheckBox? _spielbarHaken;
 
     // ═════════════════════════════════════════════════════════════════════════
     //  Reiter „Karte“
@@ -67,6 +68,15 @@ public partial class Kartenwerkstatt
         _masseText = Wert("");
         Zeile(raster, "Ganze Karte", _masseText);
 
+        _spielbarHaken = new CheckBox
+        {
+            Text = "In der Kartenwahl anbieten", ButtonPressed = _entwurf.Spielbar, FocusMode = Control.FocusModeEnum.None,
+            TooltipText = "Spielbar: Die Karte erscheint im Hauptmenü unter „Neue Partie“ → „Stadt wählen“ (Feld „spielbar“ der Kartendatei). Ohne Haken nur im Entwickler-Modus.",
+        };
+        _spielbarHaken.AddThemeFontSizeOverride("font_size", 14);
+        _spielbarHaken.Toggled += an => { if (an != _entwurf.Spielbar) _entwurf.SpielbarSetzen(an); };
+        _karteTafel.AddChild(_spielbarHaken);
+
         var kante = new CheckBox
         {
             Text = "Kartenrand als Linie zeigen", ButtonPressed = _stadt.WerkstattKartenrandSichtbar, FocusMode = Control.FocusModeEnum.None,
@@ -108,6 +118,7 @@ public partial class Kartenwerkstatt
         _breiteFeld.SetValueNoSignal(g.Breite);
         _tiefeFeld!.SetValueNoSignal(g.Tiefe);
         _randFeld!.SetValueNoSignal(g.Randbreite);
+        _spielbarHaken?.SetPressedNoSignal(_entwurf.Spielbar);
         var a = g.Aussen;
         _masseText!.Text = $"mit Rand {Kartenschreiber.Zahl(a.Breite)} × {Kartenschreiber.Zahl(a.Tiefe)} m";
         _kameraText!.Text = _entwurf.Kamera is { } k

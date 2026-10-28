@@ -238,6 +238,7 @@ public partial class Kartenwerkstatt : Node
     {
         var entwurf = Kartenentwurf.Neu(kennung, stadt, breite, tiefe, KatalogLaden());
         entwurf.RandVorschlagen();
+        entwurf.SpielbarSetzen(true); // eine selbst gebaute Karte erscheint in der Kartenwahl, bis man den Haken im Reiter „Karte“ wegnimmt
         entwurf.Geschichte.Gespeichert();
         return entwurf;
     }

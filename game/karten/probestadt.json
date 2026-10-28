@@ -3,6 +3,8 @@
  "kennung": "probestadt",
  "stadt": "Probestadt",
  "vorlage": "Muster für Stadtskripte (tools/Kartenbau/Staedte/Probestadt.cs), kein historisches Vorbild",
+ "beschreibung": "Eine kleine, ummauerte Stadt mit Marktplatz und Kirche, von einem Fluss durchzogen – überschaubar und gut zum Einstieg.",
+ "spielbar": true,
  "einheit": "Meter",
  "achsen": "x = Osten, z = Süden (−z = Norden), Ursprung am Marktplatz",
  "raster": 2,

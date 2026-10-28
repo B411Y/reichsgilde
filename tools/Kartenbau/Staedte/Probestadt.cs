@@ -47,6 +47,8 @@ public sealed class Probestadt : Stadtskript
     protected override void Anlegen()
     {
         E.VorlageSetzen("Muster für Stadtskripte (tools/Kartenbau/Staedte/Probestadt.cs), kein historisches Vorbild");
+        E.SpielbarSetzen(true);
+        E.BeschreibungSetzen(Umbauten.Kartenwahl.Kurztext); // wie der Umbau „kartenwahl“ (Kartenwahl im Hauptmenü)
         E.FiktionHinzufuegen("Ganz erfunden: eine kleine Stadt zum Ausprobieren von Kartenskript, Prüfung und Partie.");
 
         // ── Mauer und Tore ───────────────────────────────────────────────────

@@ -223,6 +223,7 @@ Koordinaten wie bisher: Meter, x = Osten, z = Süden, Ursprung am Markt. **Drehu
 | `uebergaenge` | seit PR #180 die **Fährstellen** (`art` „faehre“, `name`, `von` und `bis` = die beiden Anleger). Brücken entstehen von selbst; ein Eintrag „bruecke“ aus Format 1 zählt nur noch für das Wegenetz (Hinweis der Prüfung). |
 | `gelaende`, `haefen` | wie Format 1 (nur Köln; Häfen heißen seit PR #180 „hafenplatz“ und stehen unter `gebaeude`). |
 | `start` | Belegung am Start (siehe unten). Fehlt er, gelten die drei Häuser, die es bis Format 1 fest im Code gab (Eisenbart, Eichwald, Kieselbach), ohne Plätze. |
+| `spielbar`, `beschreibung` | optional (Kartenwahl im Hauptmenü): `spielbar: true` bietet die Karte unter „Neue Partie“ → „Stadt wählen“ an (ohne Angabe nur im Entwickler-Modus, als Testkarte); `beschreibung` ist der Kurztext der Kachel. Die Kartenwerkstatt setzt `spielbar` im Reiter „Karte“, das Kartenskript mit `SpielbarSetzen`/`BeschreibungSetzen`. |
 | `kamera` | optional: Blick beim Start, `punkt` (im Spielfeld), `zoom` (sichtbare Bildhöhe in Metern), `drehung` (Grad zur gewohnten Blickrichtung dazu). |
 | `groesse` | [Breite in x, Tiefe in z] des **Spielfelds** in Metern (seit PR #178; 400 × 300 bis 2.000 × 2.000, in der Kartenwerkstatt in 50-m-Schritten). Fehlt sie (ältere Karten und Spielstände), leiten Kern und Kartenwerkstatt sie aus dem Inhalt ab (siehe „Größe und Randstreifen“). |
 | `mitte` | optional: Mitte des Spielfelds [x, z]; ohne Angabe liegt es um den Ursprung (Köln: [−50, 25]). |
