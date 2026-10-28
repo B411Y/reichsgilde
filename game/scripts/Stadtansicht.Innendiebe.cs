@@ -229,7 +229,7 @@ public partial class Stadtansicht
         if (meister)
             return new FigurAussehen(volk, false, new Color(0.34f, 0.08f, 0.11f), Beinkleidfarben[1], HautVon(volk), GrauesHaar, Schwarz, Kopfbedeckung.Barett);
         var dunkel = new[] { new Color(0.17f, 0.17f, 0.19f), new Color(0.22f, 0.20f, 0.17f), new Color(0.15f, 0.18f, 0.17f), new Color(0.26f, 0.20f, 0.16f) };
-        var gewand = arbeitskraft == "Lehrling" ? new Color(0.32f, 0.29f, 0.25f) : dunkel[Streuung(nummer, 7) % (uint)dunkel.Length];
+        var gewand = IstAnfaenger(arbeitskraft) ? new Color(0.32f, 0.29f, 0.25f) : dunkel[Streuung(nummer, 7) % (uint)dunkel.Length];
         var haare = Haarfarben(volk);
         var frau = volk == Volk.Mensch && Streuung(nummer, 53) % 4 == 0;
         var kopf = (Streuung(nummer, 29) % 6) switch { 0 => Kopfbedeckung.Barett, 1 => Kopfbedeckung.Keine, _ => Kopfbedeckung.Kapuze };

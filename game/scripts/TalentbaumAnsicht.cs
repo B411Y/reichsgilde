@@ -1,0 +1,210 @@
+using Godot;
+using Reichsgilde.Core;
+using Reichsgilde.Core.Wirtschaft;
+
+namespace Reichsgilde;
+
+/// <summary>
+/// Der Talentbaum der Einrichtung (PR #224), gemeinsam für Betriebe (<see cref="EinrichtenAnzeige"/>) und das Wohnhaus (<see cref="WohnhausBaumAnzeige"/>):
+/// drei Spalten × drei Reihen (Reihe = Gebäudestufe), je Stück ein Knopf mit Icon und Rahmen nach Zustand (gekauft grün, kaufbar golden,
+/// gerade nicht möglich blass golden, gesperrt grau), dazu Linien von der Voraussetzung zum Stück. Reihen über der Gebäudestufe liegen grau.
+/// Ein Klick kauft (der Befehl geht über <paramref name="klick"/>); der Hinweis mit Wirkung, Preis, Voraussetzung und Amortisation ist ein gewöhnlicher
+/// Tooltip, also festheftbar und mit Lexikon-Verweisen.
+///
+/// Icons: <c>res://assets/oberflaeche/icons/einrichtung_&lt;kennung&gt;.png</c>, solange es die nicht gibt, ein ähnliches Waren-Icon (<see cref="Ersatz"/>)
+/// oder ein Buchstabe.
+/// </summary>
+public static partial class TalentbaumAnsicht
+{
+    private static readonly Color Gold = new(0.95f, 0.82f, 0.45f);
+    private static readonly Color Grau = new(0.72f, 0.72f, 0.72f);
+    private static readonly Color Gruen = new(0.55f, 0.85f, 0.5f);
+    private static readonly Color Rot = new(0.95f, 0.45f, 0.4f);
+    private static readonly Color Hell = new(0.92f, 0.88f, 0.80f);
+
+    /// <summary>Gesperrte Stücke: Farbe fast weg, dunkler (der Alphakanal bleibt).</summary>
+    private static readonly ShaderMaterial Entsaettigt = new()
+    {
+        Shader = new Shader
+        {
+            Code = "shader_type canvas_item;\nvoid fragment() { vec4 c = texture(TEXTURE, UV) * COLOR; float g = dot(c.rgb, vec3(0.299, 0.587, 0.114)); COLOR = vec4(mix(vec3(g), c.rgb, 0.15) * 0.65, c.a); }",
+        },
+    };
+
+    private const int Knopf = 80;
+    private const int StueckBreite = 96;
+
+    /// <summary>Waren-Icons als Platzhalter, bis es eigene Einrichtungs-Icons gibt (Kennung → Datei ohne Endung in assets/oberflaeche/icons).</summary>
+    private static readonly Dictionary<string, string> Ersatz = new()
+    {
+        ["Werkzeug1"] = "werkzeug", ["Werkzeug2"] = "werkzeug", ["Regale"] = "schrank", ["Ladentheke"] = "truhe", ["Lehrlingsstube"] = "schemel",
+        ["Schuerzen"] = "lumpen", ["Handschuhe"] = "lumpen", ["Eisentuer"] = "beschlag", ["Riegel"] = "beschlag", ["Loeschfass"] = "holz",
+        ["Hausapotheke"] = "heilsalbe", ["Vorratskammer"] = "roggen", ["Kueche"] = "kraeuter", ["Stube"] = "schemel", ["Bibliothek"] = "psalter",
+        ["Hauswaechter"] = "armbrust", ["Hauswappen"] = "prunkschwert", ["Hunde"] = "armbrust", ["Kettenhemd"] = "silberkette",
+    };
+
+    /// <summary>Baut den Baum. <paramref name="reihenName"/> nennt die Reihe (z. B. „Stufe 1“ oder der Name der Wohnhausstufe).</summary>
+    public static Control Bauen(Einrichtungsbaum baum, string waehrung, Func<int, string> reihenName, Action<BaumStueck> klick)
+    {
+        var feld = new Linienfeld();
+        var raster = new GridContainer { Columns = baum.Spalten.Count + 1 };
+        raster.AddThemeConstantOverride("h_separation", 8);
+        raster.AddThemeConstantOverride("v_separation", 8);
+        feld.AddChild(raster);
+
+        raster.AddChild(new Control { CustomMinimumSize = new Vector2(70, 0) });
+        foreach (var spalte in baum.Spalten)
+        {
+            var kopf = Hauptmenue.Text(raster, spalte, 15, Gold, zentriert: true);
+            kopf.SizeFlagsHorizontal = Control.SizeFlags.ExpandFill;
+        }
+
+        for (var reihe = 1; reihe <= baum.Reihen; reihe++)
+        {
+            var frei = baum.Stufe >= reihe;
+            var name = Hauptmenue.Text(raster, reihenName(reihe) + (frei ? "" : "\ngesperrt"), 12, frei ? Hell : Grau);
+            name.CustomMinimumSize = new Vector2(70, 0);
+            name.VerticalAlignment = VerticalAlignment.Center;
+            foreach (var spalte in baum.Spalten)
+            {
+                var zelle = new MarginContainer { SizeFlagsHorizontal = Control.SizeFlags.ExpandFill, CustomMinimumSize = new Vector2(StueckBreite, Knopf + 44) };
+                foreach (var seite in new[] { "left", "right", "top", "bottom" }) zelle.AddThemeConstantOverride($"margin_{seite}", 4);
+                var grund = frei ? new Color(0.17f, 0.15f, 0.12f) : new Color(0.10f, 0.10f, 0.10f);
+                feld.Zelle(zelle, grund, new Color(0.35f, 0.30f, 0.22f, frei ? 0.7f : 0.3f));
+                raster.AddChild(zelle);
+                var inhalt = new HBoxContainer { Alignment = BoxContainer.AlignmentMode.Center };
+                inhalt.AddThemeConstantOverride("separation", 6);
+                zelle.AddChild(inhalt);
+                foreach (var stueck in baum.Stuecke.Where(s => s.Spalte == spalte && s.Reihe == reihe))
+                    feld.Merken(stueck.Kennung, Stueck(inhalt, baum, stueck, waehrung, klick, grund), stueck.Voraussetzung,
+                        baum.Stuecke.FirstOrDefault(x => x.Kennung == stueck.Voraussetzung)?.Zustand == Baumzustand.Gekauft);
+            }
+        }
+        return feld;
+    }
+
+    private static Button Stueck(Container eltern, Einrichtungsbaum baum, BaumStueck s, string waehrung, Action<BaumStueck> klick, Color grund)
+    {
+        var spalte = new VBoxContainer { CustomMinimumSize = new Vector2(StueckBreite - 8, 0) };
+        spalte.AddThemeConstantOverride("separation", 0);
+        eltern.AddChild(spalte);
+        var gesperrt = s.Zustand is Baumzustand.Gesperrt or Baumzustand.NichtJetzt;
+        var hatIcon = Icon(s.Kennung) is not null;
+        // Der Rahmen im Icon zeigt die Stufe; der Zustand zeigt sich an Farbe (gesperrt: entsättigt und dunkel), Schein beim Darüberfahren (kaufbar) und Haken (gekauft)
+        StyleBox Kasten(bool schein) => new StyleBoxFlat
+        {
+            BgColor = hatIcon ? new Color(0, 0, 0, 0) : new Color(0.24f, 0.19f, 0.12f),
+            BorderColor = schein ? Gold : new Color(0, 0, 0, 0), BorderWidthBottom = 2, BorderWidthLeft = 2, BorderWidthRight = 2, BorderWidthTop = 2,
+            CornerRadiusBottomLeft = 5, CornerRadiusBottomRight = 5, CornerRadiusTopLeft = 5, CornerRadiusTopRight = 5,
+            ShadowColor = schein ? new Color(Gold, 0.55f) : new Color(0, 0, 0, 0), ShadowSize = schein ? 8 : 0,
+        };
+        var knopf = new Button
+        {
+            CustomMinimumSize = new Vector2(Knopf, Knopf), SizeFlagsHorizontal = Control.SizeFlags.ShrinkCenter, FocusMode = Control.FocusModeEnum.None,
+            ExpandIcon = true, IconAlignment = HorizontalAlignment.Center, VerticalIconAlignment = VerticalAlignment.Center,
+            MouseDefaultCursorShape = s.Zustand == Baumzustand.Gekauft ? Control.CursorShape.Arrow : Control.CursorShape.PointingHand,
+            TooltipText = Tipp(baum, s, waehrung),
+        };
+        var scheinMoeglich = s.Zustand == Baumzustand.Kaufbar;
+        foreach (var art in new[] { "normal", "pressed", "disabled", "focus" }) knopf.AddThemeStyleboxOverride(art, Kasten(false));
+        knopf.AddThemeStyleboxOverride("hover", Kasten(scheinMoeglich));
+        knopf.AddThemeConstantOverride("icon_max_width", Knopf);
+        if (gesperrt) knopf.Material = Entsaettigt;
+        if (Icon(s.Kennung) is { } bild) knopf.Icon = bild;
+        else
+        {
+            knopf.Text = s.Name.Length > 0 ? s.Name[..1] : "?"; // Platzhalter, bis das Icon da ist
+            knopf.AddThemeFontSizeOverride("font_size", 30);
+            knopf.AddThemeColorOverride("font_color", Hell);
+        }
+        if (s.Zustand == Baumzustand.Gekauft)
+            knopf.Draw += () =>
+            {
+                // kleiner grüner Haken unten rechts auf dunklem Grund
+                var m = knopf.Size - new Vector2(13, 13);
+                knopf.DrawCircle(m, 10, new Color(0.08f, 0.14f, 0.07f, 0.92f));
+                knopf.DrawArc(m, 10, 0, Mathf.Tau, 20, Gruen, 1.5f, true);
+                knopf.DrawPolyline(new[] { m + new Vector2(-5, 0), m + new Vector2(-1.5f, 4), m + new Vector2(5, -4) }, Gruen, 2.2f, true);
+            };
+        knopf.Pressed += () => { if (s.Zustand != Baumzustand.Gekauft) klick(s); };
+        spalte.AddChild(knopf);
+
+        var name = Hauptmenue.Text(spalte, s.Name, 10, gesperrt ? Grau : Hell, zentriert: true, umbruchBreite: StueckBreite - 8);
+        // Hintergrund wie die Zelle: die Linien laufen dahinter und tauchen nur zwischen den Reihen auf
+        name.AddThemeStyleboxOverride("normal", new StyleBoxFlat { BgColor = grund });
+        name.AutowrapMode = TextServer.AutowrapMode.WordSmart; // nur an Wortgrenzen umbrechen
+        name.TooltipText = knopf.TooltipText;
+        name.MouseFilter = Control.MouseFilterEnum.Pass;
+        var preis = s.Zustand == Baumzustand.Gekauft ? "gekauft"
+            : s.Jaehrlich ? $"{Zahlenformat.Ganz(s.Preis)} im Jahr" : Zahlenformat.Ganz(s.Preis) + " " + waehrung;
+        var preisZeile = Hauptmenue.Text(spalte, preis, 11, s.Zustand switch { Baumzustand.Gekauft => Gruen, Baumzustand.Kaufbar => Gold, Baumzustand.NichtJetzt => Rot, _ => Grau }, zentriert: true);
+        preisZeile.AddThemeStyleboxOverride("normal", new StyleBoxFlat { BgColor = grund });
+        return knopf;
+    }
+
+    private static Texture2D? Icon(string kennung) =>
+        WarenIcons.Icon("einrichtung_" + kennung) ?? (Ersatz.TryGetValue(kennung, out var ersatz) ? WarenIcons.Icon(ersatz) : null);
+
+    /// <summary>Hinweistext eines Stücks: Wirkung, Preis, Voraussetzung, Amortisation, Sperrgrund.</summary>
+    public static string Tipp(Einrichtungsbaum baum, BaumStueck s, string waehrung)
+    {
+        var zeilen = new List<string> { s.Name, s.Wirkung };
+        zeilen.Add(s.Jaehrlich ? $"Lohn: {Zahlenformat.Ganz(s.Preis)} {waehrung} im Jahr" : $"Preis: {Zahlenformat.Ganz(s.Preis)} {waehrung}");
+        zeilen.Add($"Ab Gebäudestufe {s.Reihe}");
+        if (s.Voraussetzung is { } v) zeilen.Add("Braucht: " + (baum.Stuecke.FirstOrDefault(x => x.Kennung == v)?.Name ?? v));
+        if (s.Zustand != Baumzustand.Gekauft)
+        {
+            if (s.Amortisationsjahre is { } jahre && s.MehrgewinnJeJahr > 0)
+                zeilen.Add($"Rechnet sich nach etwa {Zahlenformat.Kommazahl(jahre)} Jahren (bringt heute rund {Zahlenformat.Ganz(s.MehrgewinnJeJahr)} {waehrung} im Jahr mehr)");
+        }
+        zeilen.Add(s.Zustand == Baumzustand.Gekauft ? "Schon gekauft." : s.Verboten is { } g ? "Gerade nicht möglich: " + g : "Ein Klick kauft es.");
+        return string.Join("\n", zeilen);
+    }
+
+    /// <summary>Hält den Baum, zeichnet die Zellen und die Linien von den Voraussetzungen zu den Stücken – beides hinter den Knöpfen und Beschriftungen.</summary>
+    private sealed partial class Linienfeld : Container
+    {
+        private readonly Dictionary<string, Control> _knoepfe = new();
+        private readonly List<(string Von, string Nach, bool Erfuellt)> _linien = new();
+        private readonly List<(Control Zelle, Color Grund, Color Rand)> _zellen = new();
+
+        public Linienfeld() { MouseFilter = MouseFilterEnum.Ignore; }
+
+        public void Zelle(Control zelle, Color grund, Color rand) => _zellen.Add((zelle, grund, rand));
+
+        public void Merken(string kennung, Control knopf, string? voraussetzung, bool erfuellt)
+        {
+            _knoepfe[kennung] = knopf;
+            if (voraussetzung is not null) _linien.Add((voraussetzung, kennung, erfuellt));
+        }
+
+        public override Vector2 _GetMinimumSize() => GetChildCount() > 0 && GetChild(0) is Control c ? c.GetCombinedMinimumSize() : Vector2.Zero;
+
+        public override void _Notification(int was)
+        {
+            if (was != NotificationSortChildren) return;
+            foreach (var kind in GetChildren()) if (kind is Control c) FitChildInRect(c, new Rect2(Vector2.Zero, Size));
+        }
+
+        public override void _Process(double delta) => QueueRedraw();
+
+        public override void _Draw()
+        {
+            foreach (var (zelle, grund, rand) in _zellen)
+            {
+                var r = new Rect2(zelle.GlobalPosition - GlobalPosition, zelle.Size);
+                DrawRect(r, grund);
+                DrawRect(r, rand, false, 1);
+            }
+            foreach (var (von, nach, erfuellt) in _linien)
+            {
+                if (!_knoepfe.TryGetValue(von, out var a) || !_knoepfe.TryGetValue(nach, out var b)) continue;
+                var anfang = a.GlobalPosition - GlobalPosition + new Vector2(a.Size.X / 2, a.Size.Y);
+                var ende = b.GlobalPosition - GlobalPosition + new Vector2(b.Size.X / 2, 0);
+                var mitte = (anfang.Y + ende.Y) / 2;
+                // Knick in halber Höhe, damit die Linie auch zwischen verschiedenen Spalten sauber läuft
+                DrawPolyline(new[] { anfang, new Vector2(anfang.X, mitte), new Vector2(ende.X, mitte), ende }, erfuellt ? Gold : new Color(0.5f, 0.5f, 0.5f), 2, true);
+            }
+        }
+    }
+}
