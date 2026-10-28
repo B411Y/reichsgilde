@@ -116,6 +116,7 @@ public partial class Hauptszene : Node
     private RatAnzeige _ratskammer = null!;
     private RathausTafel _rathausTafel = null!;
     private FamilienAnzeige _familientafel = null!;
+    private CharakterAnzeige _charakter = null!;
     private GerichtAnzeige _gerichtssaal = null!;
     private GaunerAnzeige _hinterzimmer = null!;
     private MarktAnzeige _markt = null!;
@@ -141,6 +142,7 @@ public partial class Hauptszene : Node
     private int _bauAutoKlick;
     /// <summary>Startoption --spulen: So viele Spielminuten (Ticks) auf einen Schlag ablaufen lassen, sobald nichts mehr zu klicken bleibt.</summary>
     private int _spulen;
+    private string? _charakterWartet;
     /// <summary>Startoption --innen=betrieb:<Name> für eine Werkstatt, die erst durch --bauklick und --spulen entsteht.</summary>
     private string? _innenWartet;
     /// <summary>Startoption --speichern=x.json: Nach --bauklick und --spulen wird die Partie unter diesem Namen gespeichert.</summary>
@@ -192,6 +194,10 @@ public partial class Hauptszene : Node
         ratMitte.AddChild(_ratskammer);
         _familientafel = new FamilienAnzeige();
         ratMitte.AddChild(_familientafel); // gleiche Mitte: es ist immer nur eine Tafel offen
+        _charakter = new CharakterAnzeige();
+        GetNode<CanvasLayer>("Oberflaeche").AddChild(_charakter); // frei verschiebbar, über den Tafeln: Klick auf ein Porträt (PR #227)
+        PortraetAnzeige.PersonOeffnen = _charakter.Oeffnen;
+        PortraetAnzeige.RatsherrOeffnen = _charakter.Oeffnen;
         _gerichtssaal = new GerichtAnzeige();
         ratMitte.AddChild(_gerichtssaal);
         _hinterzimmer = new GaunerAnzeige();
@@ -328,6 +334,7 @@ public partial class Hauptszene : Node
             Protokollieren($"Jahresabrechnung {jahr} abgeschlossen. Es ist nun {_simulation.Zeit.DatumText}.");
             if (_ratskammer.Visible) _ratskammer.Aufbauen(); // neue Ämter, verblasste Gunst
             if (_familientafel.Visible) _familientafel.Aufbauen(); // ein Jahr älter, Geburten, Todesfälle
+            if (_charakter.Visible) _charakter.Aufbauen();
             if (_gerichtssaal.Visible) _gerichtssaal.Aufbauen(); // Urteile und Spitzelberichte
             if (_hinterzimmer.Visible) _hinterzimmer.Aufbauen();
             if (_spieler is null || _simulation.IstBeendet) return;
@@ -465,6 +472,8 @@ public partial class Hauptszene : Node
             _ratskammer.Oeffnen();
         if (optionen.TryGetValue("familie", out var familie) && familie == "1")
             _familientafel.Oeffnen();
+        if (optionen.GetValueOrDefault("charakter-ehe") == "1") CharakterVerheiraten(); // sofort, damit die Kinder über --spulen heranwachsen
+        if (optionen.TryGetValue("charakter", out var charakter)) _charakterWartet = charakter; // erst nach dem Vorspulen (--spulen)
         if (optionen.TryGetValue("gericht", out var gericht) && gericht == "1")
             _gerichtssaal.Oeffnen();
         if (optionen.TryGetValue("hinterzimmer", out var hinterzimmer) && hinterzimmer == "1")
@@ -558,7 +567,7 @@ public partial class Hauptszene : Node
     private void TafelnSchliessen(bool auchFeste = false)
     {
         // Festgehaltene Fenster (Fensterrahmen) bleiben offen – so lassen sich mehrere Tafeln nebeneinander benutzen
-        foreach (var tafel in new Control[] { _ratskammer, _familientafel, _gerichtssaal, _hinterzimmer, _markt, _verkauf })
+        foreach (var tafel in new Control[] { _ratskammer, _familientafel, _charakter, _gerichtssaal, _hinterzimmer, _markt, _verkauf })
             Fensterrahmen.SchliessenFallsLose(tafel, auchFeste);
         _wegTafel.Schliessen();
         foreach (var tafel in _innenTafeln) tafel.Hide();
@@ -985,6 +994,7 @@ public partial class Hauptszene : Node
         _rathausTafel.Verbinden(simulation, spieler);
         RatssitzungVerbinden(simulation, w, spieler);
         _familientafel.Verbinden(simulation, spieler);
+        _charakter.Verbinden(simulation);
         _gerichtssaal.Verbinden(simulation, spieler);
         _hinterzimmer.Verbinden(simulation, spieler);
         _markt.Verbinden(simulation, spieler);
@@ -1039,6 +1049,11 @@ public partial class Hauptszene : Node
             var ticks = _spulen;
             _spulen = 0;
             for (var i = 0; i < ticks && !_simulation.IstBeendet; i++) _simulation.Tick();
+        }
+        if (_charakterWartet is { } wunsch && _bauAutoKlick == 0 && _spulen == 0)
+        {
+            _charakterWartet = null;
+            CharakterStartoption(wunsch);
         }
         if (_speichernAls is not null && _bauAutoKlick == 0 && _spulen == 0 && _spieler is not null)
         {

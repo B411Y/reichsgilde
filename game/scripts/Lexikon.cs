@@ -284,6 +284,9 @@ public static class Lexikon
             ["leerstand_abriss"] = (d, _) => Prozent(d.Bauen!.Leerstand.Abriss),
             ["gerichtsgebuehr"] = (d, _) => d.Justiz is { } j ? Ganz(j.Gerichtsgebuehr) : null,
             ["busse_faktor"] = (d, _) => d.Justiz is { } j ? Zahlenformat.Kommazahl(j.BusseFaktor).Replace(",0", "") : null,
+            ["zuege_liste"] = (d, _) => d.Charakterzuege is { IstAktiv: true } z
+                ? string.Join("\n", z.Alle.Select(x => $"• {x.Name} ({x.Artname}){(x.Wirkungstext == "" ? "" : ": " + x.Wirkungstext)}"))
+                : null,
             ["meister_umbau_stunden"] = (d, _) => d.Meistergrade is { } m ? (m.UmbauMinuten / 60.0).ToString("0.#") : null,
         };
         foreach (var art in new[] { "Handkarren", "Ochsenkarren", "Kriegskarren" })
