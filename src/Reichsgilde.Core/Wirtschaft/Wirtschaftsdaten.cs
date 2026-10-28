@@ -160,6 +160,9 @@ public sealed class Wirtschaftsdaten
     /// <summary>Völker, Leben, Heirat, Kinder und Erbe (ab Datenversion 6). Leer = ohne Dynastien.</summary>
     public Dynastie.DynastieDaten Dynastie { get; init; } = new();
 
+    /// <summary>Charakterzüge der Personen und Ratsherren (ab Datenversion 60, PR #227). Fehlt der Abschnitt, hat niemand Züge.</summary>
+    public Dynastie.CharakterzuegeDaten? Charakterzuege { get; init; }
+
     /// <summary>Das Stadtgericht (ab Datenversion 7). Fehlt der Abschnitt, gibt es kein Gericht.</summary>
     public Justiz.JustizDaten? Justiz { get; init; }
 
@@ -508,6 +511,11 @@ public sealed class Wirtschaftsdaten
         Politik.Pruefen(f, StandStufe);
         Glaube?.Pruefen(f, Politik.Ratsherren);
         Dynastie.Pruefen(f, StandStufe);
+        Charakterzuege?.Pruefen(f, Dynastie.Talente.Ausbildungen.Keys,
+            (Gesundheit?.Krankheiten.Keys ?? Enumerable.Empty<string>()).Append(Reichsgilde.Core.Gesundheit.Erkrankung.PestName).ToList());
+        foreach (var r in Politik.Ratsherren)
+            foreach (var k in r.Zuege ?? new())
+                if (Charakterzuege?.Zug(k) is null) f.Add($"Ratsherr {r.Name}: Charakterzug „{k}“ gibt es nicht.");
         Justiz?.Pruefen(f);
         Gauner?.Pruefen(f);
         return f;

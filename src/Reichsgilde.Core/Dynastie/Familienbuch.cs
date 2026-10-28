@@ -23,7 +23,7 @@ public sealed record FamilienEreignis(Konto Konto, string Text);
 /// Leben und Tod würfelt ein eigener Zufallsgenerator. So verändert die Familie nicht die Würfe
 /// der Wirtschaft (Überfälle, Ausbrüche), und alte Messungen bleiben vergleichbar.
 /// </summary>
-public sealed class Familienbuch
+public sealed partial class Familienbuch
 {
     private readonly Stadtwirtschaft _w;
     private readonly DynastieDaten _d;
@@ -67,6 +67,8 @@ public sealed class Familienbuch
         _talentZufall = new Zufallsquelle(unchecked(zufallsstartwert * 37 + 13));
         // Und einer fürs Aussehen: Porträts ändern keinen Wurf der Familien oder der Wirtschaft.
         _aussehenZufall = new Zufallsquelle(unchecked(zufallsstartwert * 53 + 29));
+        // Charakterzüge: eigener Generator für die erworbenen (Familienbuch.Zuege.cs) – die übrigen Würfe bleiben wie vorher.
+        _zugZufall = new Zufallsquelle(unchecked(zufallsstartwert * 59 + 31));
     }
 
     // ═════════════════════════════════════════════════════════════════════════
@@ -280,7 +282,7 @@ public sealed class Familienbuch
 
     /// <summary>Was die Familie jedes Jahr kostet: Haushalt für Oberhaupt und Ehepartner, Unterhalt für alle anderen.</summary>
     public double Haushaltskosten(Familie f) => f.Lebende.Sum(p =>
-        p == f.Oberhaupt || p == f.Ehepartner ? _d.Volk(p.Volk).Haushalt : _d.Volk(p.Volk).Unterhalt);
+        (p == f.Oberhaupt || p == f.Ehepartner ? _d.Volk(p.Volk).Haushalt : _d.Volk(p.Volk).Unterhalt) * HaushaltFaktor(p));
 
     public double Zuneigung(Konto konto, Kandidat k) => _zuneigung.GetValueOrDefault((konto, k.Person.Nummer));
 
@@ -379,6 +381,7 @@ public sealed class Familienbuch
         oberhaupt.Aussehen = Aussehenspalette.Wuerfeln(_aussehenZufall, volk);
         if (aussehen is { } gewaehlt) oberhaupt.Aussehen = gewaehlt;
         oberhaupt.GlaubeSetzen(glaube ?? _w.Glaube.Startglaube(volk));
+        ZuegeFuerErwachsenen(oberhaupt); // eigener Würfel je Person – ändert keinen anderen Wurf
         var familie = new Familie(konto, volk, nachname, oberhaupt);
         _familien[konto] = familie;
         KandidatenAuffuellen();
@@ -428,6 +431,7 @@ public sealed class Familienbuch
         TalenteWuerfeln(person);
         person.Aussehen = Aussehenspalette.Wuerfeln(_aussehenZufall, volk); // Ehepartner von außen: gewürfelt
         person.GlaubeSetzen(_w.Glaube.Wuerfeln(volk)); // eigener Würfel – Namen und Talente bleiben wie ohne Glauben
+        ZuegeFuerErwachsenen(person);
         return new Kandidat(person, stand);
     }
 
@@ -595,6 +599,7 @@ public sealed class Familienbuch
                 p.Ausbildung = null;
                 Ereignis(f.Konto, $"{p.Vorname} {f.Nachname} hat die Ausbildung abgeschlossen ({p.Abschluss}) und ist nun volljährig. " +
                                   $"Stärken: {string.Join(", ", p.Staerken.Take(2).Select(x => $"{x.Talent.Name()} {TalentTexte.Sterne(x.Wert)}"))}.");
+                ZugAnlass(f.Konto, p, $"abschluss:{p.Abschluss}"); // Universität → Gelehrt
             }
         }
     }
@@ -661,6 +666,7 @@ public sealed class Familienbuch
             if (_zufall.NextDouble() < Geburtschance(f))
                 Geburt(f);
             Ausbilden(f);
+            ZuegeImJahreswechsel(f); // Persönlichkeit der neu Volljährigen, erworbene Züge (Familienbuch.Zuege.cs)
         }
 
         // Die Brautschau: Manche heiraten anderweitig, Neue kommen dazu.
@@ -778,6 +784,8 @@ public sealed class Familienbuch
         kind.Aussehen = Aussehenspalette.Vererben(_aussehenZufall, kind.Volk, geschlecht,
             o.Geschlecht == Geschlecht.Mann ? o : null, o.Geschlecht == Geschlecht.Frau ? o : null);
         kind.GlaubeSetzen(o.Glaube);
+        ZuegeBeiGeburt(kind);
+        if (IstVolljaehrig(kind)) ZuegeAlsErwachsener(kind);
         f.MitgliederListe.Add(kind);
         return kind;
     }
@@ -791,6 +799,7 @@ public sealed class Familienbuch
         TalenteVererben(kind, mutter, vater);
         kind.Aussehen = Aussehenspalette.Vererben(_aussehenZufall, kind.Volk, geschlecht, vater, mutter);
         kind.GlaubeSetzen(f.Oberhaupt.Glaube); // getauft im Glauben des Hauses
+        ZuegeBeiGeburt(kind, vater, mutter);
         f.MitgliederListe.Add(kind);
         Ereignis(f.Konto, $"Freude im Haus {f.Nachname}: {mutter.Vorname} und {vater.Vorname} bekommen {(geschlecht == Geschlecht.Frau ? "eine Tochter" : "einen Sohn")}, {kind.Vorname}.");
     }
@@ -814,6 +823,7 @@ public sealed class Familienbuch
                 Ausbildung = p.Ausbildung, Abschluss = p.Abschluss,
                 Geuebt = TalentTexte.Alle.Any(t => p.GeuebtIm(t) != 0) ? TalentTexte.Alle.Select(p.GeuebtIm).ToList() : null,
                 Gesicht = p.Aussehen.Gesicht, Haar = p.Aussehen.Haar, Augen = p.Aussehen.Augen,
+                Zuege = HatZuege ? p.Zuege.Select(z => z.Kennung).ToList() : null,
             }).ToList();
         return new FamilienbuchStand
         {
@@ -821,6 +831,7 @@ public sealed class Familienbuch
             ZufallWuerfe = _zufall.Wuerfe,
             TalentWuerfe = _talentZufall.Wuerfe,
             AussehenWuerfe = _aussehenZufall.Wuerfe,
+            ZugWuerfe = _zugZufall.Wuerfe,
             NaechsteNummer = _naechsteNummer,
             Personen = personen,
             Familien = _w.Konten.Where(_familien.ContainsKey).Select(k => _familien[k]).Select(f => new FamilieStand
@@ -849,6 +860,7 @@ public sealed class Familienbuch
         _naechsteNummer = s.NaechsteNummer;
         _talentZufall = new Zufallsquelle(_talentZufall.Startwert, s.TalentWuerfe);
         _aussehenZufall = new Zufallsquelle(_aussehenZufall.Startwert, s.AussehenWuerfe);
+        _zugZufall = new Zufallsquelle(_zugZufall.Startwert, s.ZugWuerfe);
         var personen = s.Personen.ToDictionary(p => p.Nummer, p =>
         {
             var person = new Person(p.Nummer, p.Vorname, p.Familienname, p.Volk, p.Geschlecht, p.Geburtsjahr, p.Vater, p.Mutter, p.Geburtsname, p.Todesjahr)
@@ -891,5 +903,6 @@ public sealed class Familienbuch
         }
         _laufend = s.DiesesJahr.Select(e => new FamilienEreignis(konten[e.Konto], e.Text)).ToList();
         _letztesJahr = s.LetztesJahr.Select(e => new FamilienEreignis(konten[e.Konto], e.Text)).ToList();
+        ZuegeWiederherstellen(s, personen);
     }
 }

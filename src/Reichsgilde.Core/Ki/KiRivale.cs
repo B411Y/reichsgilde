@@ -248,7 +248,7 @@ public sealed partial class KiRivale
     public double WertJeArbeitsminute(Betrieb betrieb) => Kalkulation.WertJeArbeitsminute(_w, betrieb);
     public double Jahresertrag(Betrieb betrieb, string arbeitskraft) => Kalkulation.Jahresertrag(_w, betrieb, arbeitskraft);
     public double ErwarteteFahrtkosten(string eskorte, double ladungswert) =>
-        Kalkulation.ErwarteteFahrtkosten(_w, eskorte, ladungswert, Profil.Vorsicht);
+        Kalkulation.ErwarteteFahrtkosten(_w, eskorte, ladungswert, Vorsicht);
     public double Ladungswert(Karren karren) => Kalkulation.Ladungswert(_w, karren);
 
     /// <summary>
@@ -280,7 +280,7 @@ public sealed partial class KiRivale
             .First();
 
         // Umstellen nur bei deutlichem Vorsprung – sonst springt die KI bei jeder Preisschwankung hin und her.
-        if (bestes == betrieb.Produkt || wert <= aktuell + Math.Abs(aktuell) * Profil.Wechselschwelle)
+        if (bestes == betrieb.Produkt || wert <= aktuell + Math.Abs(aktuell) * Wechselschwelle)
             return;
 
         _stundenSeitWechsel[betrieb] = 0;
@@ -568,10 +568,10 @@ public sealed partial class KiRivale
             .Select(x => (x.Angebot, x.Beruf, x.Gewinn, Lehrgeld: Math.Max(0, x.Lehrgeld), Neu: x.Lehrgeld >= 0))
             // Was der Betrieb kostet, bis er arbeitet: Preis, Lehrgeld und beim Neubau der Gewinn, der im Baujahr entgeht.
             .Select(x => (x.Angebot, x.Beruf, x.Gewinn, x.Lehrgeld, x.Neu, Kosten: x.Angebot.Preis + x.Lehrgeld + x.Gewinn * x.Angebot.BauJahre))
-            .Where(x => x.Gewinn > 0 && x.Kosten <= x.Gewinn * Profil.MaxAmortisationJahre)
+            .Where(x => x.Gewinn > 0 && x.Kosten <= x.Gewinn * Amortisationsjahre)
             .Where(x => Konto.Vermoegen - x.Angebot.Preis - x.Lehrgeld - daten.Fixkosten(x.Angebot.Art)
                         - daten.Plaetze(x.Angebot.Art) * HoechsterLohn(x.Angebot.Art) >= Profil.Reserve)
-            .OrderByDescending(x => x.Gewinn - x.Kosten / Profil.MaxAmortisationJahre)
+            .OrderByDescending(x => x.Gewinn - x.Kosten / Amortisationsjahre)
             .ThenBy(x => x.Angebot.Name, StringComparer.Ordinal)
             .FirstOrDefault();
         if (wahl.Angebot is not { } l) return;
@@ -636,7 +636,7 @@ public sealed partial class KiRivale
     {
         if (!_w.Bank.IstAktiv) return;
         var waehrung = _w.Daten.Allgemein.Waehrung;
-        var zins = Profil.Gaunerei >= 2 ? 0.25 : Profil.Gaunerei >= 1 ? 0.14 : 0.10;
+        var zins = Math.Round(Math.Max(0.04, (Profil.Gaunerei >= 2 ? 0.25 : Profil.Gaunerei >= 1 ? 0.14 : 0.10) + Neigung.Zins), 4); // Gierig: Wucher
         foreach (var b in Betriebe.Where(_w.Bank.IstBankbetrieb).OrderBy(b => b.Name, StringComparer.Ordinal).ToList())
         {
             if (Math.Abs(_w.Bank.Zinssatz(Konto) - zins) > 1e-9)
@@ -669,7 +669,7 @@ public sealed partial class KiRivale
             var neu = _w.Daten.Art(b.Artdaten.Ausbau!.Value);
             var kosten = b.Artdaten.AusbauKosten;
             var mehr = Kalkulation.AusbauMehrgewinn(_w, b);
-            if (mehr <= 0 || kosten > mehr * Profil.MaxAmortisationJahre) continue;
+            if (mehr <= 0 || kosten > mehr * Amortisationsjahre) continue;
             var zusatzLohn = (neu.Plaetze - b.Plaetze) * HoechsterLohn(b.Art);
             if (Konto.Vermoegen - kosten - neu.Fixkosten - zusatzLohn < Profil.Reserve) continue;
             Befehlen(new BetriebAusbauen(b.Name),
@@ -818,7 +818,7 @@ public sealed partial class KiRivale
                     tisch ? $"stellt in {b.Name} einen Würfeltisch auf." : $"baut den Würfeltisch in {b.Name} ab.");
 
             if (g.BardeGebucht(b) || b.Belegt == 0) continue;
-            var lohnt = g.BardeNutzen(b) >= d.Barde.Kosten || (g.HatStammtisch(b) && _w.Rat.IstAktiv);
+            var lohnt = Neigung.Geselligkeit > 0 || (Neigung.Geselligkeit == 0 && (g.BardeNutzen(b) >= d.Barde.Kosten || (g.HatStammtisch(b) && _w.Rat.IstAktiv)));
             if (lohnt && Konto.Vermoegen - d.Barde.Kosten >= Profil.Reserve)
                 Befehlen(new BardeEinladen(b.Name),
                     $"holt einen Barden nach {b.Name} ({Zahlenformat.Ganz(d.Barde.Kosten)} {_w.Daten.Allgemein.Waehrung}).");
@@ -841,7 +841,7 @@ public sealed partial class KiRivale
         {
             var kirche = kw.Kirchen.Where(b => b.Konto != Konto).OrderBy(b => b.Name, StringComparer.Ordinal).FirstOrDefault();
             while (kirche is not null && kw.AblassFuer(Konto) is { } spur && _w.Justiz.BeweiseFuer(spur) > 0
-                   && Konto.Vermoegen - kw.Ablasspreis(spur) >= Profil.Reserve / 2)
+                   && Konto.Vermoegen - kw.Ablasspreis(spur) >= Profil.Reserve / 2 * Neigung.Ablass) // Fromm kauft eher, Zynisch ungern
                 if (!Befehlen(new AblassKaufen(kirche.Name),
                         $"kauft in {kirche.Name} Ablass für „{spur.Beschreibung}“ ({Zahlenformat.Ganz(kw.Ablasspreis(spur))} {waehrung}) – andere hatten Beweise."))
                     break;
@@ -882,8 +882,8 @@ public sealed partial class KiRivale
     //  Betriebe verkaufen
     // ═════════════════════════════════════════════════════════════════════════
 
-    /// <summary>Ab so vielen ganzen Jahren in Folge mit Verlust verkauft die KI einen Betrieb.</summary>
-    private const int VerlustjahreBisVerkauf = 2;
+    /// <summary>Ab so vielen ganzen Jahren in Folge mit Verlust verkauft die KI einen Betrieb (ein geduldiges Oberhaupt wartet länger).</summary>
+    private int VerlustjahreBisVerkauf => Math.Max(1, 2 + Neigung.Verlustjahre);
 
     /// <summary>Stand ein Betrieb mindestens diesen Anteil der Stunden des Jahres ganz ohne Personal, zählt sein Jahr nicht als Verlustjahr.</summary>
     private const double OhnePersonalAb = 0.25;
@@ -1063,7 +1063,8 @@ public sealed partial class KiRivale
             .Where(k => buch.WerbenVerboten(Konto, k) is null)
             .Select(k => (Kandidat: k, Kinder: buch.ErwarteteKinder(f, k.Person), Kosten: Heiratskosten(k)))
             .Where(x => x.Kinder >= MindestKinder)
-            .OrderByDescending(x => x.Kinder / Math.Max(1, x.Kosten))
+            // Hochmütig: Ein höherer Stand der Braut zählt wie mehr Kinder (je Stufe +50 %).
+            .OrderByDescending(x => x.Kinder / Math.Max(1, x.Kosten) * (Neigung.Prunk > 0 ? 1 + 0.5 * x.Kandidat.Stand : 1))
             .ThenBy(x => x.Kandidat.Person.Nummer)
             .FirstOrDefault();
         if (wahl.Kandidat is not { } k) return;
@@ -1228,7 +1229,7 @@ public sealed partial class KiRivale
         {
             if (gericht.VerfahrenGegen(Konto, gegner) is not null) continue;
             if (_w.Gauner.IstAktiv && _w.Gauner.ForderungAn(gegner, Konto) is not null) continue; // erst die Antwort auf den Brief abwarten
-            if (gericht.Beweiskraft(Konto, gegner) < d.SichereBeweiskraft - 1e-9
+            if (gericht.Beweiskraft(Konto, gegner) < Klageschwelle - 1e-9
                 || Konto.Vermoegen - d.Gerichtsgebuehr - d.Entschaedigung < Profil.Reserve) continue;
             Befehlen(new Anklagen(gegner.Inhaber),
                 $"klagt {gegner.Inhaber} wegen Bestechung an ({gericht.Beweise(Konto, gegner).Count()} Beweise – genug für einen sicheren Schuldspruch).");
@@ -1266,8 +1267,9 @@ public sealed partial class KiRivale
                 var differenz = _w.Rat.Gunst(r, v.Anklaeger) - _w.Rat.Gunst(r, Konto);
                 var plaedoyer = _w.Familien.Plaedoyer(v.Anklaeger, Konto);
                 var fehlt = differenz - (ziel - plaedoyer) / d.GunstFaktor;           // so viel Gunst muss die KI gewinnen
-                var gulden = Math.Ceiling(fehlt / g.JeGulden / 10) * 10;
-                if (gulden > 0 && _w.Rat.Gunst(r, Konto) + gulden * g.JeGulden <= g.Hoechstwert)
+                var jeGulden = _w.Rat.GunstJeGulden(r); // Charakterzüge des Richters (PR #227)
+                var gulden = Math.Ceiling(fehlt / jeGulden / 10) * 10;
+                if (gulden > 0 && _w.Rat.Gunst(r, Konto) + gulden * jeGulden <= g.Hoechstwert)
                     kosten.Add((r, gulden));
             }
         var freisprechen = stimmen.Count(s => !s.Schuldig);
@@ -1355,7 +1357,7 @@ public sealed partial class KiRivale
     /// Bezahlte Gaunerstücke im Jahr (Banden aus dem Hinterzimmer): nach Charakter; spart die Wagemutige auf den Stand,
     /// nur halb so viele (aufgerundet). Die eigenen Diebe kosten nichts – für sie gilt das volle Budget.
     /// </summary>
-    private int Gaunerbudget => Spart && Profil.Gaunerei >= 2 ? (Profil.Gaunerei + 1) / 2 : Profil.Gaunerei;
+    private int Gaunerbudget => Math.Max(0, (Spart && Profil.Gaunerei >= 2 ? (Profil.Gaunerei + 1) / 2 : Profil.Gaunerei) + Neigung.Gaunerstuecke); // Verschlagen +1, Ehrlich −1
 
     /// <summary>
     /// Selbst Banden anheuern – nur, wer es seinem Charakter nach tut. Unter den Augen der Spitzel hält
@@ -1366,7 +1368,7 @@ public sealed partial class KiRivale
         var unterwelt = _w.Gauner;
         if (!unterwelt.IstAktiv) return;
         var g = unterwelt.Daten;
-        if (Profil.Gaunerei <= 0 || _gaunereienImJahr >= Gaunerbudget) return;
+        if (Gaunerbudget <= 0 || _gaunereienImJahr >= Gaunerbudget) return;
         if (Bestechungsrisiko > 1 && Profil.Gaunerei < 2) return;
         var rangliste = _w.Rangliste.Where(k => k.IstAktiv).ToList();
         var eigenerRang = rangliste.IndexOf(Konto);
@@ -1598,7 +1600,7 @@ public sealed partial class KiRivale
 
     /// <summary>Wie viel die KI heute höchstens für Geschenke ausgibt.</summary>
     private double Politikbudget => Spart && Profil.Gaunerei == 1 ? 0 // die Ausgewogene spart auf den Stand: keine Geschenke
-        : Math.Max(0, Math.Min(Konto.Vermoegen - Profil.Reserve, Konto.Vermoegen * Profil.PolitikAnteil));
+        : Math.Max(0, Math.Min(Konto.Vermoegen - Profil.Reserve, Konto.Vermoegen * Profil.PolitikAnteil * Neigung.Geschenke)); // Großzügig, Gesellig mehr; Gierig, Scheu weniger
 
     /// <summary>Einmal am Tag: bewerben, für die Wahl werben, das Statut betreiben.</summary>
     private void Politik()
@@ -1644,7 +1646,7 @@ public sealed partial class KiRivale
         if (!gw.IstAktiv || gw.GlaubeVon(Konto) is not { } eigener) return;
         var waehrung = _w.Daten.Allgemein.Waehrung;
 
-        if (gw.Stadtglaube is { } stadt && stadt != eigener && gw.KonvertierenVerboten(Konto, stadt) is null
+        if (gw.Stadtglaube is { } stadt && stadt != eigener && !Neigung.GlaubensTreu && gw.KonvertierenVerboten(Konto, stadt) is null
             && Konto.Vermoegen - gw.Daten.Konvertieren.Gebuehr >= Profil.Reserve)
             if (Befehlen(new Konvertieren(stadt),
                     $"tritt zum {stadt.Glaube()} über – der Stadtglaube kostet sonst {Zahlenformat.Ganz(gw.Daten.Stadtglaube.Abgabe)} {waehrung} Glaubenszins im Jahr."))
@@ -1702,7 +1704,7 @@ public sealed partial class KiRivale
                                   mitbewerber.Select(m => rat.Punkte(r, amt, m)).DefaultIfEmpty(0).Max());
             var fehlt = gegner + 1 - rat.Punkte(r, amt, Konto);
             if (fehlt <= 0) sicher++;
-            else kosten.Add((r, Math.Ceiling(fehlt / g.JeGulden / 10) * 10));
+            else kosten.Add((r, Math.Ceiling(fehlt / rat.GunstJeGulden(r) / 10) * 10));
         }
         return (kosten, waehler.Count / 2 + 1 - sicher);
     }
@@ -1716,7 +1718,7 @@ public sealed partial class KiRivale
         var ja = besetzt.Count(a => a.Konto == Konto || a.Ratsherr is { } r && rat.StimmtZu(r, statut, Konto));
         var kosten = besetzt
             .Where(a => a.Ratsherr is { } r && !rat.StimmtZu(r, statut, Konto) && Math.Abs((int)statut - (int)r.Haltung) == 1)
-            .Select(a => (a.Ratsherr!, Math.Ceiling((g.SchwelleNachbarstatut - rat.Gunst(a.Ratsherr!, Konto)) / g.JeGulden / 10) * 10))
+            .Select(a => (a.Ratsherr!, Math.Ceiling((g.SchwelleNachbarstatut - rat.Gunst(a.Ratsherr!, Konto)) / rat.GunstJeGulden(a.Ratsherr!) / 10) * 10))
             .ToList();
         Schenkplan(kosten, besetzt.Count / 2 + 1 - ja, $"für das Statut {statut.Kuerzel()}",
             (ErwartungUnter(statut) - ErwartungUnter(_w.Statut)) * NutzenJahre);
@@ -1788,7 +1790,8 @@ public sealed partial class KiRivale
     /// </summary>
     private void Trainieren()
     {
-        if (_w.Daten.Aktionspunkte is not { } d || !_w.Familien.HatTalente) return;
+        if (_w.Daten.Aktionspunkte is not { } d || !_w.Familien.HatTalente || Neigung.Ueben < 0) return; // Träge übt nie
+        var fleissig = Neigung.Ueben > 0; // übt, sobald die Punkte reichen – nicht erst, wenn sie verfielen
         var wunsch = Profil.Gaunerei >= 2
             ? new[] { Talent.Kampf, Talent.NachtUndNebel, Talent.Handwerk, Talent.Verhandeln, Talent.Rhetorik }
             : new[] { Talent.Handwerk, Talent.Verhandeln, Talent.Rhetorik };
@@ -1812,9 +1815,9 @@ public sealed partial class KiRivale
         foreach (var talent in reihe)
         {
             var ap = Konto.Aktionspunkte.Vorrat;
-            if (ap + _w.AktionspunkteJeRunde <= d.Hoechstens) return; // nichts verfiele
+            if (ap + _w.AktionspunkteJeRunde <= d.Hoechstens && !fleissig) return; // nichts verfiele
             if (_w.Familien.TrainingVerboten(Konto, talent) is not null) continue;
-            Befehlen(new TalentTrainieren(talent), $"übt {talent.Name()} (sonst verfielen Aktionspunkte).");
+            Befehlen(new TalentTrainieren(talent), fleissig ? $"übt fleißig {talent.Name()}." : $"übt {talent.Name()} (sonst verfielen Aktionspunkte).");
         }
     }
 

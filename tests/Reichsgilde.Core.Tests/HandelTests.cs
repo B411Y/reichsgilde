@@ -105,6 +105,7 @@ static class HandelTests
         {
             var sim = Um(9);
             var (w, k, b) = Haus(sim, geld: 2_000);
+            w.Familien.Von(k)!.Oberhaupt.ZuegeLeeren(); // ohne Charakterzüge (PR #227)
             w.Familien.Von(k)!.Oberhaupt.TalentSetzen(Talent.Verhandeln, 4);
             var m = w.Familien.TalentDaten.Wirkung.Verhandeln;
             Pruefe.Ungefaehr(1.1 * (1 - 4 * m), w.HandKaufFaktor(k), 1e-12);

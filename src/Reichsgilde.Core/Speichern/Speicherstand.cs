@@ -563,6 +563,9 @@ public sealed record FamilienbuchStand
 
     /// <summary>Würfe für das Aussehen der Personen (0 in Spielständen von vor den Porträts).</summary>
     public long AussehenWuerfe { get; init; }
+
+    /// <summary>Würfe für erworbene Charakterzüge (0 in Spielständen von vor den Charakterzügen, PR #227).</summary>
+    public long ZugWuerfe { get; init; }
     public List<PersonStand> Personen { get; init; } = new();
     public List<FamilieStand> Familien { get; init; } = new();
     public List<KandidatStand> Kandidaten { get; init; } = new();
@@ -603,6 +606,12 @@ public sealed record PersonStand
     public int? Gesicht { get; init; }
     public Dynastie.Haarfarbe? Haar { get; init; }
     public Dynastie.Augenfarbe? Augen { get; init; }
+
+    /// <summary>
+    /// Kennungen der Charakterzüge (PR #227). null in Spielständen von vor den Charakterzügen – dann werden sie beim Laden
+    /// nachgewürfelt, fest nach Personennummer (wie bei einer neuen Partie mit demselben Startwert).
+    /// </summary>
+    public List<string>? Zuege { get; init; }
 }
 
 public sealed record ErkrankungStand

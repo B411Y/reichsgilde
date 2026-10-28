@@ -270,9 +270,16 @@ static class GaunerTests
             for (var i = 0; i < 6; i++) JahrBeenden(sim);
             Pruefe.Wahr(auftraege > 0, "Der wagemutige Rivale sollte in 6 Jahren Banden angeheuert haben");
 
-            // Der Spieler bricht beim Rivalen ein – danach stellt die KI einen Wächter ein.
+            // Der Spieler bricht beim Rivalen ein – danach stellt die KI einen Wächter ein. In einer frischen Partie nach zwei Jahren:
+            // Nach sechs Jahren ist das Haus des Spielers je nach Würfeln schon erloschen (seit den Charakterzügen, PR #227, bei Startwert 7).
+            (sim, spieler) = Partieaufbau.Erstellen(Partieeinstellungen.Standard with { Siegbedingung = Siegbedingung.Endlos, Zufallsstartwert = 7 },
+                Daten.Value, new NeuePartie(Rivale: KiCharakter.Wagemutig));
+            w = sim.Wirtschaft!;
+            rivale = w.Konten[1];
+            for (var i = 0; i < 2; i++) JahrBeenden(sim);
             var giesserei = w.Betriebe.First(b => b.Konto == rivale && b.IstWerkstatt);
-            w.Ausfuehren(spieler, new Beauftragen(rivale.Inhaber, Gaunerstueck.Diebstahl, giesserei.Name));
+            var auftrag = w.Ausfuehren(spieler, new Beauftragen(rivale.Inhaber, Gaunerstueck.Diebstahl, giesserei.Name));
+            Pruefe.Wahr(auftrag.Erfolg, auftrag.Meldung);
             JahrBeenden(sim);
             JahrBeenden(sim);
             Pruefe.Wahr(giesserei.Waechter, "Die KI sollte nach dem Einbruch einen Wächter eingestellt haben");
