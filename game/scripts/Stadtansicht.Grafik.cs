@@ -368,8 +368,8 @@ public partial class Stadtansicht
 
     private void NaturDetailMelden(MultiMeshInstance3D teil, string datei)
     {
-        var detail = new NaturDetail(teil, teil.Multimesh.InstanceCount, datei == "natur/natur_baeume",
-                                     datei is "natur/natur_boden" or "natur/natur_steine" or "natur/natur_holz");
+        var detail = new NaturDetail(teil, teil.Multimesh.InstanceCount, IstBaumDatei(datei),
+                                     IstBodenDatei(datei) || datei is "natur/natur_steine" or "natur/natur_holz" or "natur/natur_kit_steine");
         _naturDetails.Add(detail);
         NaturDichteSetzen(detail);
     }
