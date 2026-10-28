@@ -1257,6 +1257,14 @@ Entscheidungen zur Sitzung: `docs/bereiche/oberflaeche.md`, „Sichtbare Ratssit
 | Umsetzung | `tools/modelle/kit_import.py` (Blender, liest die Pakete aus `RG_KITS`) schreibt `natur/natur_kit_boden|steine|baeume.glb` und `props/props_gegenstaende|props_dorf.glb`; Katalog: 47 Bausteine der Art `natur` (kein neuer Kern-Code, alle Werkzeuge der Kartenwerkstatt – Pflanze setzen, Pinsel, Streu, Drehen, Maßstab – gelten). `Stadtansicht.IstBaumDatei` und `IstBodenDatei` (Winterfassung, Schatten) ersetzen die Dateinamen-Vergleiche, `.glb.import` mit `gltf/embedded_image_handling=3` (Texturen bleiben in der Datei, nicht daneben). Herkunft: `HERKUNFT.md` in `natur/` und `props/`. | 28.10.2026 |
 | Klicktest | Vulkan (T400), Probekarte mit Reihen und Waldstück: Props mit Texturen, Laub gedämpftes Grün, Herbst orange, Winter kahle Rinde zwischen Kiefern, Nacht dunkel ohne Ausreißer; Kartenwerkstatt zeigt die Palette „Requisiten (Asset-Kits)“. | 28.10.2026 |
 
+### TressFX selbst bauen (PR #221)
+
+| Thema | Entscheidung | Datum |
+|---|---|---|
+| Warum | Die fertige Linux-Bibliothek (TressFX 0.3.0) braucht glibc 2.43; Linux- und Windows-Spieler sollen denselben Umfang bekommen, also bauen wir selbst. Entschieden vom Nutzer. | 28.10.2026 |
+| Quelle | `ismailivanov/TressFX-Godot` (MIT) Commit `a5cc2b1` (nach Tag v0.3.1, enthält die glibc-Korrektur), godot-cpp (MIT) Commit `507ed9d`. Beide fest im Workflow `.github/workflows/tressfx.yml`. | 28.10.2026 |
+| Ergebnis | Erster Lauf grün (11,5 min): Linux debug und release verlangen höchstens glibc 2.25 (Ziel 2.28), Ladetest in Godot 4.7.2 auf glibc 2.28 bestanden, Windows debug und release gebaut. Binärdateien nicht im Repository; Ablage: siehe nächste Zeile. | 28.10.2026 |
+| Ablage | Download beim Export über ein GitHub-Release (Entscheidung des Nutzers, 28.10.2026), keine Binärdateien im Repository. Der Workflow legt bei „Run workflow“ und Push auf main das Release `tressfx-<Kurzcommit der Quelle>` an (4 Bibliotheken, `tressfx-addon.zip` aus derselben Quelle, Lizenzen, `SHA256SUMS.txt`, `glibc-linux.txt`). `tools/tressfx_holen.sh` lädt die in `tools/tressfx.version` festgelegte Version, prüft die Summen und legt sie nach `game/addons/tressfx/` (ignoriert); der Export-Job ruft es vor dem Export auf, ein fehlendes Release bricht ihn nicht. Neue Version: `TRESSFX_REF` ändern, Workflow starten, Tag und Summen in `tools/tressfx.version` eintragen. Release `tressfx-a5cc2b1` ist angelegt. | 28.10.2026 |
 ### Kit-Bäume Mittelweg (PR #223)
 
 | Thema | Entscheidung | Datum |

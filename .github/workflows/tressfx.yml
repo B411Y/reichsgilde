@@ -1,0 +1,245 @@
+# ─────────────────────────────────────────────────────────────────────────────
+#  TressFX (Echtzeit-Haar, GDExtension) selbst bauen
+#
+#  Quelle: https://github.com/ismailivanov/TressFX-Godot (MIT), fester Commit unten.
+#  Linux wird in einem Container mit glibc 2.28 gebaut (wie Godot selbst), damit die
+#  Bibliothek auf den meisten Linux-Rechnern der Spieler läuft; dazu Windows x86_64.
+#  Ergebnis: Artefakt "tressfx-bau" mit den Bibliotheken, SHA256SUMS und glibc-Bericht.
+#  Die Binärdateien kommen NICHT ins Repository. Doku: docs/ARCHITEKTUR.md (Fremd-Erweiterungen).
+#  Ablage: Bei "Run workflow" und bei Push auf main entsteht ein GitHub-Release "tressfx-<Kurzcommit der
+#  Quelle>" mit Bibliotheken, Addon-Dateien (zip), Lizenzen und Prüfsummen. Der Export holt es mit
+#  tools/tressfx_holen.sh (Version und Prüfsummen in tools/tressfx.version).
+#  Starten: Actions → "TressFX bauen" → "Run workflow" (oder bei Änderung dieser Datei).
+# ─────────────────────────────────────────────────────────────────────────────
+name: TressFX bauen
+
+on:
+  push:
+    paths:
+      - ".github/workflows/tressfx.yml"
+  workflow_dispatch:
+
+env:
+  # Quellversion: Commit nach dem Tag v0.3.1 (a5cc2b1). Bewusst ändern, nie auf main schwimmen.
+  TRESSFX_REPO: ismailivanov/TressFX-Godot
+  TRESSFX_REF: a5cc2b133370154723ce97f6dbfd3b4b9815a3fd
+  # godot-cpp (MIT), passend zu Godot 4.7: derselbe Commit, den die Quelle selbst verwendet.
+  GODOT_CPP_REF: 507ed9d840c01a3c5b2a39af8bb4000bfac30bf5
+  # Höchste erlaubte glibc der Linux-Bibliothek (Untergrenze der offiziellen Godot-4.7-Builds).
+  GLIBC_MAX: "2.28"
+  GODOT_VERSION: 4.7.2-stable
+
+jobs:
+  linux:
+    name: Linux x86_64 (glibc 2.28)
+    runs-on: ubuntu-24.04
+    # AlmaLinux 8 (glibc 2.28) mit gcc-toolset-14, git und pipx. Festgenagelt.
+    container: quay.io/pypa/manylinux_2_28_x86_64:2026.10.03-1@sha256:39df0042d5cc900b085aa25a0659368b42a0006c54c474299b785b44c1b4ff82
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          repository: ${{ env.TRESSFX_REPO }}
+          ref: ${{ env.TRESSFX_REF }}
+
+      - name: godot-cpp holen
+        run: |
+          git clone --filter=blob:none https://github.com/godotengine/godot-cpp godot-cpp
+          git -C godot-cpp checkout --detach "$GODOT_CPP_REF"
+
+      - name: SCons installieren
+        run: pipx install scons==4.10.1
+
+      - name: Werkzeugkette
+        run: |
+          gcc --version | head -n 1
+          ldd --version | head -n 1
+
+      # Nur bauen, was hier entsteht: keine mitgelieferte Bibliothek hochladen.
+      - name: Mitgelieferte Linux-Bibliotheken entfernen
+        run: rm -f addons/tressfx/bin/libtressfx.linux.*.so
+
+      - name: Bauen (debug)
+        run: scons platform=linux arch=x86_64 target=template_debug -j"$(nproc)"
+
+      - name: Bauen (release)
+        run: scons platform=linux arch=x86_64 target=template_release -j"$(nproc)"
+
+      - name: glibc prüfen und Summen schreiben
+        run: |
+          mkdir -p out
+          cp addons/tressfx/bin/libtressfx.linux.*.so out/
+          cp LICENSE out/LICENSE-TressFX-Godot.txt
+          cp godot-cpp/LICENSE.md out/LICENSE-godot-cpp.txt
+          {
+            echo "Quelle: $TRESSFX_REPO @ $TRESSFX_REF"
+            echo "godot-cpp @ $GODOT_CPP_REF"
+            sh .github/scripts/check_glibc_floor.sh --max "$GLIBC_MAX" out/libtressfx.linux.*.so
+            for f in out/*.so; do
+              echo "$f: $(objdump -T "$f" | grep -o 'GLIBC_[0-9.]*' | sort -uV | tail -n 1)"
+            done
+          } | tee out/glibc-linux.txt
+          (cd out && sha256sum *.so > SHA256SUMS-linux.txt && cat SHA256SUMS-linux.txt)
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: tressfx-linux-x86_64
+          path: out/
+          if-no-files-found: error
+
+  linux-smoke:
+    name: Linux Ladetest (Godot 4.7.2 auf glibc 2.28)
+    needs: linux
+    runs-on: ubuntu-24.04
+    container: almalinux:8
+    steps:
+      - name: Werkzeuge installieren
+        run: dnf -y install --setopt=install_weak_deps=False git unzip
+
+      - uses: actions/checkout@v4
+        with:
+          repository: ${{ env.TRESSFX_REPO }}
+          ref: ${{ env.TRESSFX_REF }}
+
+      - uses: actions/download-artifact@v4
+        with:
+          name: tressfx-linux-x86_64
+          path: ci-bin
+
+      - name: Godot holen
+        run: |
+          curl -fsSL -o godot.zip "https://github.com/godotengine/godot-builds/releases/download/${GODOT_VERSION}/Godot_v${GODOT_VERSION}_linux.x86_64.zip"
+          unzip -q godot.zip
+          mv "Godot_v${GODOT_VERSION}_linux.x86_64" godot
+          chmod +x godot
+          ldd --version | head -n 1
+          ./godot --headless --version
+
+      - name: Erweiterung laden (debug und release)
+        shell: bash
+        run: |
+          for lib in template_debug template_release; do
+            rm -rf smoke && mkdir -p smoke/.godot smoke/addons
+            cp -r addons/tressfx smoke/addons/ && rm -rf smoke/addons/tressfx/demo smoke/addons/tressfx/bin/*
+            cp ci-bin/libtressfx.linux.*.so smoke/addons/tressfx/bin/
+            cp .github/smoke/project.godot .github/smoke/smoke.gd smoke/
+            echo 'res://addons/tressfx/tressfx.gdextension' > smoke/.godot/extension_list.cfg
+            # Der Editor lädt den Eintrag "debug"; auf die zu prüfende Bibliothek umbiegen.
+            sed -i "s#^linux.debug.x86_64 = .*#linux.debug.x86_64 = \"res://addons/tressfx/bin/libtressfx.linux.${lib}.x86_64.so\"#" smoke/addons/tressfx/tressfx.gdextension
+            echo "== ${lib}"
+            timeout 120 ./godot --headless --path smoke --script res://smoke.gd 2>&1 | tee smoke.log
+            grep -q '^TRESSFX_SMOKE PASS$' smoke.log
+          done
+
+  windows:
+    name: Windows x86_64
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          repository: ${{ env.TRESSFX_REPO }}
+          ref: ${{ env.TRESSFX_REF }}
+
+      - name: godot-cpp holen
+        shell: bash
+        run: |
+          git clone --filter=blob:none https://github.com/godotengine/godot-cpp godot-cpp
+          git -C godot-cpp checkout --detach "$GODOT_CPP_REF"
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.x"
+
+      - name: SCons installieren
+        run: python -m pip install scons==4.10.1
+
+      - name: Mitgelieferte Windows-Bibliotheken entfernen
+        shell: bash
+        run: rm -f addons/tressfx/bin/libtressfx.windows.*
+
+      - name: Bauen (debug)
+        run: scons platform=windows arch=x86_64 target=template_debug
+
+      - name: Bauen (release)
+        run: scons platform=windows arch=x86_64 target=template_release
+
+      - name: Summen schreiben
+        shell: bash
+        run: |
+          mkdir -p out
+          cp addons/tressfx/bin/libtressfx.windows.*.dll out/
+          cp LICENSE out/LICENSE-TressFX-Godot.txt
+          cp godot-cpp/LICENSE.md out/LICENSE-godot-cpp.txt
+          (cd out && sha256sum *.dll > SHA256SUMS-windows.txt && cat SHA256SUMS-windows.txt)
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: tressfx-windows-x86_64
+          path: out/
+          if-no-files-found: error
+
+  paket:
+    name: Gesamtpaket
+    needs: [linux, linux-smoke, windows]
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: tressfx-*-x86_64
+          path: tressfx-bau
+          merge-multiple: true
+      - name: Übersicht
+        run: |
+          cd tressfx-bau
+          cat SHA256SUMS-linux.txt SHA256SUMS-windows.txt > SHA256SUMS.txt
+          ls -l
+          cat glibc-linux.txt
+      - uses: actions/upload-artifact@v4
+        with:
+          name: tressfx-bau
+          path: tressfx-bau/
+
+  # Release nur bei von Hand gestartetem Lauf oder Push auf main, nie bei PRs.
+  release:
+    name: Release ablegen
+    needs: paket
+    if: github.event_name == 'workflow_dispatch' || github.ref == 'refs/heads/main'
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          repository: ${{ env.TRESSFX_REPO }}
+          ref: ${{ env.TRESSFX_REF }}
+          path: quelle
+
+      - uses: actions/download-artifact@v4
+        with:
+          name: tressfx-bau
+          path: release
+
+      # Addon-Dateien aus DERSELBEN Quelle wie die Bibliothek (die Shader müssen zur Bibliothek
+      # passen; die 0.3.0-Shader des Store-Zips tun es nicht). Ohne demo/ und bin/.
+      - name: Addon-Dateien packen
+        run: |
+          cd quelle
+          zip -r -q ../release/tressfx-addon.zip addons/tressfx -x 'addons/tressfx/demo/*' -x 'addons/tressfx/bin/*'
+          unzip -l ../release/tressfx-addon.zip
+          cd ../release
+          sha256sum tressfx-addon.zip >> SHA256SUMS.txt
+          ls -l; cat SHA256SUMS.txt
+
+      - name: Release anlegen oder aktualisieren
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          kurz="${TRESSFX_REF:0:7}"
+          tag="tressfx-$kurz"
+          dateien=(release/*.so release/*.dll release/tressfx-addon.zip release/SHA256SUMS.txt release/LICENSE-*.txt release/glibc-linux.txt)
+          notes="TressFX (GDExtension, MIT) aus $TRESSFX_REPO @ $TRESSFX_REF, godot-cpp @ $GODOT_CPP_REF. Gebaut von .github/workflows/tressfx.yml. Holen und prüfen: tools/tressfx_holen.sh"
+          if gh release view "$tag" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
+            gh release upload "$tag" "${dateien[@]}" --clobber --repo "$GITHUB_REPOSITORY"
+          else
+            gh release create "$tag" "${dateien[@]}" --repo "$GITHUB_REPOSITORY" --target "$GITHUB_SHA" \
+              --title "TressFX $kurz" --notes "$notes"
+          fi

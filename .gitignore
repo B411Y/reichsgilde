@@ -38,3 +38,6 @@ build/
 
 # Python-Zwischendateien der Blender-Skripte
 __pycache__/
+
+# TressFX kommt per tools/tressfx_holen.sh aus dem GitHub-Release, nicht ins Repository
+game/addons/tressfx/
