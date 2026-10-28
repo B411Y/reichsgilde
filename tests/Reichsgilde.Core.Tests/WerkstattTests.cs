@@ -24,6 +24,15 @@ static class WerkstattTests
         return Wirtschaftsdaten.AusJson(knoten.ToJsonString());
     }
 
+    /// <summary>Die Daten ohne Abschnitt „personal“ – so laufen alte Spielstände mit ihren eigenen Daten (Beförderung nach Dienstzeit).</summary>
+    static readonly Lazy<Wirtschaftsdaten> OhnePersonal = new(() =>
+    {
+        var knoten = JsonNode.Parse(File.ReadAllText(Datenpfad.Wirtschaft()),
+            documentOptions: new System.Text.Json.JsonDocumentOptions { CommentHandling = System.Text.Json.JsonCommentHandling.Skip })!;
+        knoten.AsObject().Remove("personal");
+        return Wirtschaftsdaten.AusJson(knoten.ToJsonString());
+    });
+
     /// <summary>Unfälle in der Schmiede sehr häufig (Gefahr je Arbeiter und Jahr), beim Tischler gar nicht.</summary>
     static Wirtschaftsdaten VieleUnfaelle(double gefahr = 1.0) => DatenMit(w =>
     {
@@ -145,12 +154,12 @@ static class WerkstattTests
         ("Werkstatt: Daten – Abschnitt „werkstatt“ mit drei Lohnstufen und genau den sieben Stücken des Schmieds (Kennungen wie im Raummodell)", () =>
         {
             var d = Daten.Value.Werkstatt!;
-            Pruefe.Gleich(58, Daten.Value.Version);
+            Pruefe.Gleich(59, Daten.Value.Version);
             Pruefe.Ungefaehr(1, d.Stufe(Lohnstufe.Ueblich).LohnFaktor, 1e-12);
             Pruefe.Gleich(0.0, d.Stufe(Lohnstufe.Ueblich).Laune);
             Pruefe.Wahr(d.Stufe(Lohnstufe.Knapp).LohnFaktor < 1 && d.Stufe(Lohnstufe.Gut).LohnFaktor > 1, "Lohnfaktoren");
             Pruefe.Gleich("Werkzeug1 Werkzeug2 Blasebalg Regale Loeschfass Eisentuer Schuerzen",
-                string.Join(" ", d.EinrichtungFuer("Schmied").Select(e => e.Kennung)));
+                string.Join(" ", d.EinrichtungFuer("Schmied").Take(7).Select(e => e.Kennung))); // dazu ab PR #224 drei Stücke der Stufe 3
             Pruefe.Gleich("Werkzeug1", d.Stueck("Schmied", "Werkzeug2")!.Voraussetzung);
             Pruefe.Gleich(2, d.Stueck("Schmied", "Werkzeug2")!.AbStufe);
             Pruefe.Ungefaehr(0.5, d.Stueck("Schmied", "Schuerzen")!.Wirkung.UnfallFaktor, 1e-12);
@@ -177,14 +186,15 @@ static class WerkstattTests
         {
             var sim = NeueSimulation();
             var (w, k, g) = Giesserei(sim);
-            Ok(w, k, new PersonalSetzen(g.Name, "Geselle", 2));
+            w.Einstellen(g, "Geselle", 2); // Gesellen gibt es nur durch Beförderung (PR #224) – hier gleich eingestellt
             Pruefe.Gleich("1 2", string.Join(" ", g.Arbeiter.Select(a => a.Nummer)));
             Pruefe.Gleich(2, g.Belegung["Geselle"]);
             Ok(w, k, new ArbeiterEntlassen(g.Name, 1));
             Ok(w, k, new ArbeiterEinstellen(g.Name, "Lehrling", "Beschlag"));
             Pruefe.Gleich("2:Geselle:Silberring 3:Lehrling:Beschlag", string.Join(" ", g.Arbeiter.Select(a => $"{a.Nummer}:{a.Arbeitskraft}:{g.WareVon(a)}")));
             Pruefe.Gleich(1, g.Belegung["Lehrling"]);
-            Abgelehnt(w, k, new ArbeiterEinstellen(g.Name, "Geselle"), "nur 2 Arbeitsplätze");
+            Abgelehnt(w, k, new ArbeiterEinstellen(g.Name, "Geselle"), "nur Lehrlinge"); // PR #224
+            Abgelehnt(w, k, new ArbeiterEinstellen(g.Name, "Lehrling"), "nur 2 Arbeitsplätze");
             Abgelehnt(w, k, new ArbeiterEntlassen(g.Name, 1), "keinen Arbeiter Nr. 1");
             Ok(w, k, new PersonalSetzen(g.Name, "Lehrling", 0));
             Pruefe.Gleich("2", string.Join(" ", g.Arbeiter.Select(a => a.Nummer)));
@@ -195,7 +205,7 @@ static class WerkstattTests
         {
             var sim = NeueSimulation();
             var (w, k, g) = Giesserei(sim);
-            Ok(w, k, new PersonalSetzen(g.Name, "Geselle", 2));
+            w.Einstellen(g, "Geselle", 2); // Gesellen gibt es nur durch Beförderung (PR #224) – hier gleich eingestellt
             Ok(w, k, new ArbeiterZuteilen(g.Name, 2, "Beschlag"));
             Pruefe.Gleich("Beschlag Silberring", string.Join(" ", g.WarenInArbeit));
             Pruefe.Gleich(3, g.Zutaten["Eisen"]);  // Silberring 1 + Beschlag 2
@@ -214,7 +224,7 @@ static class WerkstattTests
         {
             var sim = NeueSimulation();
             var (w, k, g) = Giesserei(sim);
-            Ok(w, k, new PersonalSetzen(g.Name, "Geselle", 2));
+            w.Einstellen(g, "Geselle", 2); // Gesellen gibt es nur durch Beförderung (PR #224) – hier gleich eingestellt
             Ok(w, k, new ArbeiterZuteilen(g.Name, 1, "Beschlag"));
             BisUhrzeit(sim, 9);
             var beschlag = g.FortschrittVon("Beschlag");
@@ -230,9 +240,9 @@ static class WerkstattTests
             Pruefe.Gleich("Rapier", g.WareVon(g.ArbeiterNr(1)!));
         }),
 
-        ("Werkstatt: Lehrling wird nach zwei Jahren Dienst Geselle – vorher mit Grund abgelehnt, danach Gesellenlohn", () =>
+        ("Werkstatt: ohne Abschnitt „personal“ (alte Spielstände) wird ein Lehrling nach zwei Jahren Dienst Geselle – vorher mit Grund abgelehnt, danach Gesellenlohn", () =>
         {
-            var sim = NeueSimulation();
+            var sim = NeueSimulation(OhnePersonal.Value);
             var (w, k, g) = Giesserei(sim);
             Ok(w, k, new PersonalSetzen(g.Name, "Lehrling", 1));
             Abgelehnt(w, k, new ArbeiterBefoerdern(g.Name, 1), "noch 2 Jahre");
@@ -252,13 +262,13 @@ static class WerkstattTests
         {
             var sim = NeueSimulation();
             var (w, k, g) = Giesserei(sim);
-            Ok(w, k, new PersonalSetzen(g.Name, "Geselle", 2));
+            w.Einstellen(g, "Geselle", 2); // Gesellen gibt es nur durch Beförderung (PR #224) – hier gleich eingestellt
             var k2 = w.KontoEroeffnen("Haus Knapp", startvermoegen: 20_000);
             var g2 = w.BetriebEroeffnen("Gießerei Knapp", Betriebsart.Giesserei, k2, startkarren: "");
-            Ok(w, k2, new PersonalSetzen(g2.Name, "Geselle", 1));
+            w.Einstellen(g2, "Geselle", 1); // Gesellen gibt es nur durch Beförderung (PR #224) – hier gleich eingestellt
             var k3 = w.KontoEroeffnen("Haus Ueblich", startvermoegen: 20_000);
             var g3 = w.BetriebEroeffnen("Gießerei Ueblich", Betriebsart.Giesserei, k3, startkarren: "");
-            Ok(w, k3, new PersonalSetzen(g3.Name, "Geselle", 1));
+            w.Einstellen(g3, "Geselle", 1); // Gesellen gibt es nur durch Beförderung (PR #224) – hier gleich eingestellt
             Ok(w, k, new LohnstufeSetzen(g.Name, Lohnstufe.Gut));
             Ok(w, k2, new LohnstufeSetzen(g2.Name, Lohnstufe.Knapp));
             BisUhrzeit(sim, 18); // 10 Arbeitsstunden à 3 Punkte
@@ -276,7 +286,7 @@ static class WerkstattTests
         {
             var sim = NeueSimulation();
             var (w, k, g) = Giesserei(sim);
-            Ok(w, k, new PersonalSetzen(g.Name, "Geselle", 2));
+            w.Einstellen(g, "Geselle", 2); // Gesellen gibt es nur durch Beförderung (PR #224) – hier gleich eingestellt
             Ok(w, k, new LohnstufeSetzen(g.Name, Lohnstufe.Knapp));
             Pruefe.Ungefaehr(2 * 220 * 0.8, g.Lohnkosten, 1e-12);
             JahreSimulieren(sim, 1);
@@ -292,7 +302,7 @@ static class WerkstattTests
         {
             var sim = NeueSimulation();
             var (w, k, g) = Giesserei(sim);
-            Ok(w, k, new PersonalSetzen(g.Name, "Geselle", 2));
+            w.Einstellen(g, "Geselle", 2); // Gesellen gibt es nur durch Beförderung (PR #224) – hier gleich eingestellt
             Pruefe.Ungefaehr(60, w.Werkstaetten.PraemieKosten(g), 1e-12);
             Ok(w, k, new PraemieZahlen(g.Name, 2));
             Pruefe.Ungefaehr(30, g.Laufend.Personal, 1e-9);
@@ -316,7 +326,7 @@ static class WerkstattTests
         {
             var sim = NeueSimulation();
             var (w, k, g) = Giesserei(sim);
-            Ok(w, k, new PersonalSetzen(g.Name, "Geselle", 1));
+            w.Einstellen(g, "Geselle", 1); // Gesellen gibt es nur durch Beförderung (PR #224) – hier gleich eingestellt
             Ok(w, k, new LohnstufeSetzen(g.Name, Lohnstufe.Knapp));
             g.UnfallLauneBis = long.MaxValue; // knapp und nach einem Unfall: Ziel 10
             var meldungen = new List<string>();
@@ -330,7 +340,7 @@ static class WerkstattTests
         {
             var sim = NeueSimulation(VieleUnfaelle());
             var (w, k, g) = Giesserei(sim);
-            Ok(w, k, new PersonalSetzen(g.Name, "Geselle", 2));
+            w.Einstellen(g, "Geselle", 2); // Gesellen gibt es nur durch Beförderung (PR #224) – hier gleich eingestellt
             var meldungen = new List<string>();
             w.Meldung += meldungen.Add;
             while (!g.Arbeiter.Any(a => a.FaelltAus(sim.Zeit.VergangeneMinuten))) sim.Tick();
@@ -356,11 +366,11 @@ static class WerkstattTests
                 for (var i = 0; i < 8; i++)
                 {
                     var g = w.BetriebEroeffnen($"Gießerei {i}", Betriebsart.Giesserei, k, startkarren: "");
-                    Ok(w, k, new PersonalSetzen(g.Name, "Geselle", 2));
+                    w.Einstellen(g, "Geselle", 2); // Gesellen gibt es nur durch Beförderung (PR #224) – hier gleich eingestellt
                     if (schuerzen) Ok(w, k, new EinrichtungKaufen(g.Name, "Schuerzen"));
                 }
                 var t = w.BetriebEroeffnen("Tischlerei", Betriebsart.Tischlerei, k, startkarren: "");
-                Ok(w, k, new PersonalSetzen(t.Name, "Geselle", 2));
+                w.Einstellen(t, "Geselle", 2); // Gesellen gibt es nur durch Beförderung (PR #224) – hier gleich eingestellt
                 var zahl = 0;
                 w.Meldung += m => { if (m.StartsWith("Unfall in Gießerei")) zahl++; else if (m.StartsWith("Unfall in Tischlerei")) zahl += 1000; };
                 JahreSimulieren(sim, 20);
@@ -391,11 +401,11 @@ static class WerkstattTests
             Abgelehnt(w, k, new EinrichtungKaufen(g.Name, "Regale"), "hat schon");
             Abgelehnt(w, k, new EinrichtungKaufen(g.Name, "Werkzeug2"), "erst ab Stufe 2");
             Abgelehnt(w, k, new EinrichtungKaufen(g.Name, "Amboss"), "kein Stück „Amboss“");
-            Ok(w, k, new PersonalSetzen(g.Name, "Geselle", 1));
+            w.Einstellen(g, "Geselle", 1); // Gesellen gibt es nur durch Beförderung (PR #224) – hier gleich eingestellt
             BisUhrzeit(sim, 14);
             Pruefe.Wahr(g.ImLager("Silberring") == 8, $"Silberringe mit Werkzeug: {g.ImLager("Silberring")} (360 / 45 = 8)");
             var liste = w.Werkstaetten.Einrichtungsliste(g);
-            Pruefe.Gleich(7, liste.Count);
+            Pruefe.Gleich(10, liste.Count); // sieben, ab PR #224 drei der Stufe 3 dazu
             Pruefe.Gleich("Werkzeug1 Blasebalg Regale", string.Join(" ", liste.Where(e => e.Gekauft).Select(e => e.Kennung)));
             Pruefe.Wahr(liste.Single(e => e.Kennung == "Werkzeug2").Verboten!.Contains("Stufe 2"), "Verbotsgrund in der Liste");
             Pruefe.Gleich("10 % weniger Zeit je Stück", liste.Single(e => e.Kennung == "Werkzeug1").Wirkung);
@@ -434,10 +444,10 @@ static class WerkstattTests
         {
             var d = Daten.Value.Werkstatt!;
             var tischler = d.EinrichtungFuer("Tischler");
-            Pruefe.Gleich("Werkzeug1 Werkzeug2 Leimzwingen Regale Loeschfass Eisentuer Schuerzen", string.Join(" ", tischler.Select(e => e.Kennung)));
+            Pruefe.Gleich("Werkzeug1 Werkzeug2 Leimzwingen Regale Loeschfass Eisentuer Schuerzen", string.Join(" ", tischler.Take(7).Select(e => e.Kennung))); // dazu ab PR #224 drei Stücke der Stufe 3
             Pruefe.Gleich("Gutes Werkzeug, Meisterwerkzeug, Leimofen und Zwingen, Holzgestell, Löschfass, Eisentür, Lederschürzen",
-                string.Join(", ", tischler.Select(e => e.Name)));
-            foreach (var e in tischler.Where(e => e.Kennung != "Leimzwingen"))
+                string.Join(", ", tischler.Take(7).Select(e => e.Name)));
+            foreach (var e in tischler.Take(7).Where(e => e.Kennung != "Leimzwingen"))
                 Pruefe.Gleich(d.Stueck("Schmied", e.Kennung)!.Preis, e.Preis, $"Preis {e.Kennung}");
             Pruefe.Gleich(350.0, d.Stueck("Tischler", "Leimzwingen")!.Preis);
             Pruefe.Gleich("Werkzeug1", d.Stueck("Tischler", "Werkzeug2")!.Voraussetzung);
@@ -454,7 +464,7 @@ static class WerkstattTests
         {
             var sim = NeueSimulation();
             var (w, k, t) = Tischlerei(sim, vermoegen: 5_000);
-            Pruefe.Wahr(w.Werkstaetten.Einrichtungsliste(t) is { Count: 7 } l && l.All(e => !e.Gekauft), "sieben Stücke, keins gekauft");
+            Pruefe.Wahr(w.Werkstaetten.Einrichtungsliste(t) is { Count: 10 } l && l.All(e => !e.Gekauft), "sieben Stücke und drei der Stufe 3 (PR #224), keins gekauft");
             Ok(w, k, new EinrichtungKaufen(t.Name, "Leimzwingen"));
             Pruefe.Ungefaehr(4_650, k.Vermoegen, 1e-9);
             Pruefe.Ungefaehr(350, k.Laufend.Investitionen, 1e-9);
@@ -474,7 +484,7 @@ static class WerkstattTests
             Abgelehnt(w, k, new EinrichtungKaufen(t.Name, "Blasebalg"), "kein Stück „Blasebalg“");
             Abgelehnt(w, k, new EinrichtungKaufen(t.Name, "Werkzeug2"), "erst ab Stufe 2");
             Ok(w, k, new ProduktWaehlen(t.Name, "Truhe"));
-            Ok(w, k, new PersonalSetzen(t.Name, "Geselle", 1));
+            w.Einstellen(t, "Geselle", 1); // Gesellen gibt es nur durch Beförderung (PR #224) – hier gleich eingestellt
             BisUhrzeit(sim, 14);
             Pruefe.Wahr(t.ImLager("Truhe") == 5, $"Truhen mit Werkzeug und Zwingen: {t.ImLager("Truhe")} (360 / 60,75 ≈ 5,9; ohne beides 360 / 75 = 4,8)");
             var liste = w.Werkstaetten.Einrichtungsliste(t);
@@ -490,7 +500,7 @@ static class WerkstattTests
             Ok(w, k, new EinrichtungKaufen(t.Name, "Leimzwingen"));
             Abgelehnt(w, k, new EinrichtungKaufen(t.Name, "Werkzeug2"), "erst ab Stufe 2");
             t.Ausbauen(Betriebsart.Drechslerei, 0);
-            Pruefe.Gleich(7, w.Werkstaetten.Einrichtungsliste(t).Count);
+            Pruefe.Gleich(10, w.Werkstaetten.Einrichtungsliste(t).Count); // sieben, ab PR #224 drei der Stufe 3 dazu
             Pruefe.Wahr(t.HatEinrichtung("Regale") && t.LagerKapazitaetJeWare == 60, "Holzgestell nach dem Ausbau");
             Abgelehnt(w, k, new EinrichtungKaufen(t.Name, "Werkzeug2"), "Erst braucht es: Gutes Werkzeug");
             Ok(w, k, new EinrichtungKaufen(t.Name, "Werkzeug1"));
@@ -500,7 +510,7 @@ static class WerkstattTests
             t.Ausbauen(Betriebsart.Saegewerk, 0);
             Pruefe.Gleich(3, t.Stufe);
             var liste = w.Werkstaetten.Einrichtungsliste(t);
-            Pruefe.Gleich(7, liste.Count);
+            Pruefe.Gleich(10, liste.Count); // sieben, ab PR #224 drei der Stufe 3 dazu
             Pruefe.Gleich("Werkzeug1 Werkzeug2 Leimzwingen Regale", string.Join(" ", liste.Where(e => e.Gekauft).Select(e => e.Kennung)));
             Pruefe.Ungefaehr(100 * 0.729, t.MinutenJeStueck("Schrank"), 1e-9);
             Pruefe.Ungefaehr(100 * 0.729, t.MinutenJeStueck("Prunktruhe"), 1e-9);
@@ -514,10 +524,10 @@ static class WerkstattTests
         {
             var d = Daten.Value.Werkstatt!;
             var steinmetz = d.EinrichtungFuer("Steinmetz");
-            Pruefe.Gleich("Werkzeug1 Werkzeug2 Flaschenzug Regale Loeschfass Eisentuer Schuerzen", string.Join(" ", steinmetz.Select(e => e.Kennung)));
+            Pruefe.Gleich("Werkzeug1 Werkzeug2 Flaschenzug Regale Loeschfass Eisentuer Schuerzen", string.Join(" ", steinmetz.Take(7).Select(e => e.Kennung))); // dazu ab PR #224 drei Stücke der Stufe 3
             Pruefe.Gleich("Gutes Werkzeug, Meisterwerkzeug, Flaschenzug, Steingestell, Löschfass, Eisentür, Lederschürzen",
-                string.Join(", ", steinmetz.Select(e => e.Name)));
-            foreach (var e in steinmetz.Where(e => e.Kennung != "Flaschenzug"))
+                string.Join(", ", steinmetz.Take(7).Select(e => e.Name)));
+            foreach (var e in steinmetz.Take(7).Where(e => e.Kennung != "Flaschenzug"))
             {
                 var schmied = d.Stueck("Schmied", e.Kennung)!;
                 Pruefe.Gleich(schmied.Preis, e.Preis, $"Preis {e.Kennung}");
@@ -533,7 +543,7 @@ static class WerkstattTests
         {
             var sim = NeueSimulation();
             var (w, k, m) = Maurerei(sim, vermoegen: 5_000);
-            Pruefe.Wahr(w.Werkstaetten.Einrichtungsliste(m) is { Count: 7 } l && l.All(e => !e.Gekauft), "sieben Stücke, keins gekauft");
+            Pruefe.Wahr(w.Werkstaetten.Einrichtungsliste(m) is { Count: 10 } l && l.All(e => !e.Gekauft), "sieben Stücke und drei der Stufe 3 (PR #224), keins gekauft");
             Ok(w, k, new EinrichtungKaufen(m.Name, "Flaschenzug"));
             Pruefe.Ungefaehr(4_650, k.Vermoegen, 1e-9);
             Pruefe.Ungefaehr(350, k.Laufend.Investitionen, 1e-9);
@@ -553,7 +563,7 @@ static class WerkstattTests
             Abgelehnt(w, k, new EinrichtungKaufen(m.Name, "Leimzwingen"), "kein Stück „Leimzwingen“");
             Abgelehnt(w, k, new EinrichtungKaufen(m.Name, "Werkzeug2"), "erst ab Stufe 2");
             Ok(w, k, new ProduktWaehlen(m.Name, "Mühlstein"));
-            Ok(w, k, new PersonalSetzen(m.Name, "Geselle", 1));
+            w.Einstellen(m, "Geselle", 1); // Gesellen gibt es nur durch Beförderung (PR #224) – hier gleich eingestellt
             BisUhrzeit(sim, 14);
             Pruefe.Wahr(m.ImLager("Mühlstein") == 7, $"Mühlsteine mit Werkzeug und Flaschenzug: {m.ImLager("Mühlstein")} (360 / 48,6 ≈ 7,4; ohne beides 360 / 60 = 6)");
             var liste = w.Werkstaetten.Einrichtungsliste(m);
@@ -570,7 +580,7 @@ static class WerkstattTests
             Ok(w, k, new EinrichtungKaufen(m.Name, "Flaschenzug"));
             Abgelehnt(w, k, new EinrichtungKaufen(m.Name, "Werkzeug2"), "erst ab Stufe 2");
             m.Ausbauen(Betriebsart.Steinschneiderei, 0);
-            Pruefe.Gleich(7, w.Werkstaetten.Einrichtungsliste(m).Count);
+            Pruefe.Gleich(10, w.Werkstaetten.Einrichtungsliste(m).Count); // sieben, ab PR #224 drei der Stufe 3 dazu
             Pruefe.Wahr(m.HatEinrichtung("Regale") && m.LagerKapazitaetJeWare == 60, "Steingestell nach dem Ausbau");
             Abgelehnt(w, k, new EinrichtungKaufen(m.Name, "Werkzeug2"), "Erst braucht es: Gutes Werkzeug");
             Ok(w, k, new EinrichtungKaufen(m.Name, "Werkzeug1"));
@@ -580,7 +590,7 @@ static class WerkstattTests
             m.Ausbauen(Betriebsart.Steinmetzhuette, 0);
             Pruefe.Gleich(3, m.Stufe);
             var liste = w.Werkstaetten.Einrichtungsliste(m);
-            Pruefe.Gleich(7, liste.Count);
+            Pruefe.Gleich(10, liste.Count); // sieben, ab PR #224 drei der Stufe 3 dazu
             Pruefe.Gleich("Werkzeug1 Werkzeug2 Flaschenzug Regale", string.Join(" ", liste.Where(e => e.Gekauft).Select(e => e.Kennung)));
             Pruefe.Ungefaehr(100 * 0.729, m.MinutenJeStueck("Grabmal"), 1e-9);
             Pruefe.Ungefaehr(100 * 0.81, m.MinutenJeStueck("Steinfigur"), 1e-9);
@@ -594,10 +604,10 @@ static class WerkstattTests
         {
             var d = Daten.Value.Werkstatt!;
             var alchimist = d.EinrichtungFuer("Alchimist");
-            Pruefe.Gleich("Werkzeug1 Werkzeug2 Destillierhelm Regale Loeschfass Eisentuer Handschuhe", string.Join(" ", alchimist.Select(e => e.Kennung)));
+            Pruefe.Gleich("Werkzeug1 Werkzeug2 Destillierhelm Regale Loeschfass Eisentuer Handschuhe", string.Join(" ", alchimist.Take(7).Select(e => e.Kennung))); // dazu ab PR #224 drei Stücke der Stufe 3
             Pruefe.Gleich("Gutes Werkzeug, Meisterwerkzeug, Kupferner Destillierhelm, Kräuterregale, Löschfass, Eisentür, Lederhandschuhe",
-                string.Join(", ", alchimist.Select(e => e.Name)));
-            foreach (var e in alchimist.Where(e => e.Kennung != "Destillierhelm"))
+                string.Join(", ", alchimist.Take(7).Select(e => e.Name)));
+            foreach (var e in alchimist.Take(7).Where(e => e.Kennung != "Destillierhelm"))
             {
                 var schmied = d.Stueck("Schmied", e.Kennung == "Handschuhe" ? "Schuerzen" : e.Kennung)!;
                 Pruefe.Gleich(schmied.Preis, e.Preis, $"Preis {e.Kennung}");
@@ -615,7 +625,7 @@ static class WerkstattTests
         {
             var sim = NeueSimulation();
             var (w, k, t) = Tinkturei(sim, vermoegen: 5_000);
-            Pruefe.Wahr(w.Werkstaetten.Einrichtungsliste(t) is { Count: 7 } l && l.All(e => !e.Gekauft), "sieben Stücke, keins gekauft");
+            Pruefe.Wahr(w.Werkstaetten.Einrichtungsliste(t) is { Count: 10 } l && l.All(e => !e.Gekauft), "sieben Stücke und drei der Stufe 3 (PR #224), keins gekauft");
             Ok(w, k, new EinrichtungKaufen(t.Name, "Destillierhelm"));
             Pruefe.Ungefaehr(4_650, k.Vermoegen, 1e-9);
             Pruefe.Ungefaehr(350, k.Laufend.Investitionen, 1e-9);
@@ -636,7 +646,7 @@ static class WerkstattTests
             Abgelehnt(w, k, new EinrichtungKaufen(t.Name, "Flaschenzug"), "kein Stück „Flaschenzug“");
             Abgelehnt(w, k, new EinrichtungKaufen(t.Name, "Werkzeug2"), "erst ab Stufe 2");
             Ok(w, k, new ProduktWaehlen(t.Name, "Kräuterschnaps"));
-            Ok(w, k, new PersonalSetzen(t.Name, "Geselle", 1));
+            w.Einstellen(t, "Geselle", 1); // Gesellen gibt es nur durch Beförderung (PR #224) – hier gleich eingestellt
             BisUhrzeit(sim, 14);
             Pruefe.Wahr(t.ImLager("Kräuterschnaps") == 29, $"Kräuterschnaps mit Werkzeug und Destillierhelm: {t.ImLager("Kräuterschnaps")} (360 / 12,15 ≈ 29,6; ohne beides 360 / 15 = 24)");
             var liste = w.Werkstaetten.Einrichtungsliste(t);
@@ -658,7 +668,7 @@ static class WerkstattTests
                 for (var i = 0; i < 8; i++)
                 {
                     var t = w.BetriebEroeffnen($"Tinkturei {i}", Betriebsart.Tinkturei, k, startkarren: "");
-                    Ok(w, k, new PersonalSetzen(t.Name, "Geselle", 2));
+                    w.Einstellen(t, "Geselle", 2); // Gesellen gibt es nur durch Beförderung (PR #224) – hier gleich eingestellt
                     if (handschuhe) Ok(w, k, new EinrichtungKaufen(t.Name, "Handschuhe"));
                     Pruefe.Ungefaehr(handschuhe ? 0.15 : 0.3, w.Werkstaetten.UnfallGefahr(t), 1e-12);
                 }
@@ -682,7 +692,7 @@ static class WerkstattTests
             Ok(w, k, new EinrichtungKaufen(t.Name, "Destillierhelm"));
             Abgelehnt(w, k, new EinrichtungKaufen(t.Name, "Werkzeug2"), "erst ab Stufe 2");
             t.Ausbauen(Betriebsart.Kraeuterladen, 0);
-            Pruefe.Gleich(7, w.Werkstaetten.Einrichtungsliste(t).Count);
+            Pruefe.Gleich(10, w.Werkstaetten.Einrichtungsliste(t).Count); // sieben, ab PR #224 drei der Stufe 3 dazu
             Pruefe.Wahr(t.HatEinrichtung("Regale") && t.LagerKapazitaetJeWare == 60, "Kräuterregale nach dem Ausbau");
             Abgelehnt(w, k, new EinrichtungKaufen(t.Name, "Werkzeug2"), "Erst braucht es: Gutes Werkzeug");
             Ok(w, k, new EinrichtungKaufen(t.Name, "Werkzeug1"));
@@ -693,7 +703,7 @@ static class WerkstattTests
             t.Ausbauen(Betriebsart.Alchimistenstube, 0);
             Pruefe.Gleich(3, t.Stufe);
             var liste = w.Werkstaetten.Einrichtungsliste(t);
-            Pruefe.Gleich(7, liste.Count);
+            Pruefe.Gleich(10, liste.Count); // sieben, ab PR #224 drei der Stufe 3 dazu
             Pruefe.Gleich("Werkzeug1 Werkzeug2 Destillierhelm Regale", string.Join(" ", liste.Where(e => e.Gekauft).Select(e => e.Kennung)));
             Pruefe.Ungefaehr(100 * 0.729, t.MinutenJeStueck("Theriak"), 1e-9);
             Pruefe.Ungefaehr(100 * 0.81, t.MinutenJeStueck("Zinnober"), 1e-9);
@@ -709,10 +719,10 @@ static class WerkstattTests
         {
             var d = Daten.Value.Werkstatt!;
             var parfumeur = d.EinrichtungFuer("Parfumeur");
-            Pruefe.Gleich("Werkzeug1 Werkzeug2 Glasflakons Regale Loeschfass Eisentuer Handschuhe", string.Join(" ", parfumeur.Select(e => e.Kennung)));
+            Pruefe.Gleich("Werkzeug1 Werkzeug2 Glasflakons Regale Loeschfass Eisentuer Handschuhe", string.Join(" ", parfumeur.Take(7).Select(e => e.Kennung))); // dazu ab PR #224 drei Stücke der Stufe 3
             Pruefe.Gleich("Gutes Werkzeug, Meisterwerkzeug, Venezianische Glasflakons, Flakonregale, Löschfass, Eisentür, Lederhandschuhe",
-                string.Join(", ", parfumeur.Select(e => e.Name)));
-            foreach (var e in parfumeur.Where(e => e.Kennung != "Glasflakons"))
+                string.Join(", ", parfumeur.Take(7).Select(e => e.Name)));
+            foreach (var e in parfumeur.Take(7).Where(e => e.Kennung != "Glasflakons"))
             {
                 var schmied = d.Stueck("Schmied", e.Kennung == "Handschuhe" ? "Schuerzen" : e.Kennung)!;
                 Pruefe.Gleich(schmied.Preis, e.Preis, $"Preis {e.Kennung}");
@@ -732,7 +742,7 @@ static class WerkstattTests
         {
             var sim = NeueSimulation();
             var (w, k, s) = Siederei(sim, vermoegen: 5_000);
-            Pruefe.Wahr(w.Werkstaetten.Einrichtungsliste(s) is { Count: 7 } l && l.All(e => !e.Gekauft), "sieben Stücke, keins gekauft");
+            Pruefe.Wahr(w.Werkstaetten.Einrichtungsliste(s) is { Count: 10 } l && l.All(e => !e.Gekauft), "sieben Stücke und drei der Stufe 3 (PR #224), keins gekauft");
             Ok(w, k, new EinrichtungKaufen(s.Name, "Glasflakons"));
             Pruefe.Ungefaehr(4_650, k.Vermoegen, 1e-9);
             Pruefe.Ungefaehr(350, k.Laufend.Investitionen, 1e-9);
@@ -753,7 +763,7 @@ static class WerkstattTests
             Abgelehnt(w, k, new EinrichtungKaufen(s.Name, "Destillierhelm"), "kein Stück „Destillierhelm“");
             Abgelehnt(w, k, new EinrichtungKaufen(s.Name, "Werkzeug2"), "erst ab Stufe 2");
             Ok(w, k, new ProduktWaehlen(s.Name, "Politur"));
-            Ok(w, k, new PersonalSetzen(s.Name, "Geselle", 1));
+            w.Einstellen(s, "Geselle", 1); // Gesellen gibt es nur durch Beförderung (PR #224) – hier gleich eingestellt
             BisUhrzeit(sim, 14);
             Pruefe.Wahr(s.ImLager("Politur") == 13, $"Politur mit Werkzeug: {s.ImLager("Politur")} (360 / 27 ≈ 13,3; ohne Werkzeug 360 / 30 = 12)");
             var liste = w.Werkstaetten.Einrichtungsliste(s);
@@ -776,7 +786,7 @@ static class WerkstattTests
                 for (var i = 0; i < 8; i++)
                 {
                     var s = w.BetriebEroeffnen($"Siederei {i}", Betriebsart.Siederei, k, startkarren: "");
-                    Ok(w, k, new PersonalSetzen(s.Name, "Geselle", 2));
+                    w.Einstellen(s, "Geselle", 2); // Gesellen gibt es nur durch Beförderung (PR #224) – hier gleich eingestellt
                     if (handschuhe) Ok(w, k, new EinrichtungKaufen(s.Name, "Handschuhe"));
                     Pruefe.Ungefaehr(handschuhe ? 0.15 : 0.3, w.Werkstaetten.UnfallGefahr(s), 1e-12);
                 }
@@ -800,7 +810,7 @@ static class WerkstattTests
             Ok(w, k, new EinrichtungKaufen(s.Name, "Glasflakons"));
             Abgelehnt(w, k, new EinrichtungKaufen(s.Name, "Werkzeug2"), "erst ab Stufe 2");
             s.Ausbauen(Betriebsart.Duftwerkstatt, 0);
-            Pruefe.Gleich(7, w.Werkstaetten.Einrichtungsliste(s).Count);
+            Pruefe.Gleich(10, w.Werkstaetten.Einrichtungsliste(s).Count); // sieben, ab PR #224 drei der Stufe 3 dazu
             Pruefe.Wahr(s.HatEinrichtung("Regale") && s.LagerKapazitaetJeWare == 60, "Flakonregale nach dem Ausbau");
             Abgelehnt(w, k, new EinrichtungKaufen(s.Name, "Werkzeug2"), "Erst braucht es: Gutes Werkzeug");
             Ok(w, k, new EinrichtungKaufen(s.Name, "Werkzeug1"));
@@ -811,7 +821,7 @@ static class WerkstattTests
             s.Ausbauen(Betriebsart.Parfumerie, 0);
             Pruefe.Gleich(3, s.Stufe);
             var liste = w.Werkstaetten.Einrichtungsliste(s);
-            Pruefe.Gleich(7, liste.Count);
+            Pruefe.Gleich(10, liste.Count); // sieben, ab PR #224 drei der Stufe 3 dazu
             Pruefe.Gleich("Werkzeug1 Werkzeug2 Glasflakons Regale", string.Join(" ", liste.Where(e => e.Gekauft).Select(e => e.Kennung)));
             Pruefe.Ungefaehr(100 * 0.729, s.MinutenJeStueck("Heiligenduft"), 1e-9);
             Pruefe.Ungefaehr(100 * 0.81, s.MinutenJeStueck("Schattendolch"), 1e-9);
@@ -827,10 +837,10 @@ static class WerkstattTests
         {
             var d = Daten.Value.Werkstatt!;
             var wirt = d.EinrichtungFuer("Wirt");
-            Pruefe.Gleich("Werkzeug1 Werkzeug2 Braupfanne Regale Loeschfass Eisentuer Handschuhe", string.Join(" ", wirt.Select(e => e.Kennung)));
+            Pruefe.Gleich("Werkzeug1 Werkzeug2 Braupfanne Regale Loeschfass Eisentuer Handschuhe", string.Join(" ", wirt.Take(7).Select(e => e.Kennung))); // dazu ab PR #224 drei Stücke der Stufe 3
             Pruefe.Gleich("Gutes Werkzeug, Meisterwerkzeug, Kupferne Braupfanne, Fassregale, Löschfass, Eisentür, Lederhandschuhe",
-                string.Join(", ", wirt.Select(e => e.Name)));
-            foreach (var e in wirt.Where(e => e.Kennung != "Braupfanne"))
+                string.Join(", ", wirt.Take(7).Select(e => e.Name)));
+            foreach (var e in wirt.Take(7).Where(e => e.Kennung != "Braupfanne"))
             {
                 var schmied = d.Stueck("Schmied", e.Kennung == "Handschuhe" ? "Schuerzen" : e.Kennung)!;
                 Pruefe.Gleich(schmied.Preis, e.Preis, $"Preis {e.Kennung}");
@@ -849,7 +859,7 @@ static class WerkstattTests
         {
             var sim = NeueSimulation();
             var (w, k, s) = Schaenke(sim, vermoegen: 5_000);
-            Pruefe.Wahr(w.Werkstaetten.Einrichtungsliste(s) is { Count: 7 } l && l.All(e => !e.Gekauft), "sieben Stücke, keins gekauft");
+            Pruefe.Wahr(w.Werkstaetten.Einrichtungsliste(s) is { Count: 10 } l && l.All(e => !e.Gekauft), "sieben Stücke und drei der Stufe 3 (PR #224), keins gekauft");
             Ok(w, k, new EinrichtungKaufen(s.Name, "Braupfanne"));
             Pruefe.Ungefaehr(4_650, k.Vermoegen, 1e-9);
             Pruefe.Ungefaehr(350, k.Laufend.Investitionen, 1e-9);
@@ -869,7 +879,7 @@ static class WerkstattTests
             Abgelehnt(w, k, new EinrichtungKaufen(s.Name, "Glasflakons"), "kein Stück „Glasflakons“");
             Abgelehnt(w, k, new EinrichtungKaufen(s.Name, "Werkzeug2"), "erst ab Stufe 2");
             Ok(w, k, new ProduktWaehlen(s.Name, "Körnermahlzeit"));
-            Ok(w, k, new PersonalSetzen(s.Name, "Geselle", 1));
+            w.Einstellen(s, "Geselle", 1); // Gesellen gibt es nur durch Beförderung (PR #224) – hier gleich eingestellt
             BisUhrzeit(sim, 14); // die Gäste ab 12 Uhr trinken Dünnbier (davon ist am meisten da)
             Pruefe.Wahr(s.ImLager("Körnermahlzeit") == 13, $"Körnermahlzeit mit Werkzeug: {s.ImLager("Körnermahlzeit")} (360 / 27 ≈ 13,3; ohne Werkzeug 360 / 30 = 12)");
             var liste = w.Werkstaetten.Einrichtungsliste(s);
@@ -890,7 +900,7 @@ static class WerkstattTests
             Ok(w, k, new EinrichtungKaufen(s.Name, "Braupfanne"));
             Abgelehnt(w, k, new EinrichtungKaufen(s.Name, "Werkzeug2"), "erst ab Stufe 2");
             s.Ausbauen(Betriebsart.Wirtshaus, 0);
-            Pruefe.Gleich(7, w.Werkstaetten.Einrichtungsliste(s).Count);
+            Pruefe.Gleich(10, w.Werkstaetten.Einrichtungsliste(s).Count); // sieben, ab PR #224 drei der Stufe 3 dazu
             Pruefe.Wahr(s.HatEinrichtung("Regale") && s.LagerKapazitaetJeWare == 60, "Fassregale nach dem Ausbau");
             Abgelehnt(w, k, new EinrichtungKaufen(s.Name, "Werkzeug2"), "Erst braucht es: Gutes Werkzeug");
             Ok(w, k, new EinrichtungKaufen(s.Name, "Werkzeug1"));
@@ -900,7 +910,7 @@ static class WerkstattTests
             s.Ausbauen(Betriebsart.Gasthaus, 0);
             Pruefe.Gleich(3, s.Stufe);
             var liste = w.Werkstaetten.Einrichtungsliste(s);
-            Pruefe.Gleich(7, liste.Count);
+            Pruefe.Gleich(10, liste.Count); // sieben, ab PR #224 drei der Stufe 3 dazu
             Pruefe.Gleich("Werkzeug1 Werkzeug2 Braupfanne Regale", string.Join(" ", liste.Where(e => e.Gekauft).Select(e => e.Kennung)));
             Pruefe.Ungefaehr(80 * 0.729, s.MinutenJeStueck("Festbier"), 1e-9);
             Pruefe.Ungefaehr(35 * 0.729, s.MinutenJeStueck("Dünnbier"), 1e-9);
@@ -917,10 +927,10 @@ static class WerkstattTests
         {
             var d = Daten.Value.Werkstatt!;
             var prediger = d.EinrichtungFuer("Prediger");
-            Pruefe.Gleich("Werkzeug1 Werkzeug2 Gaensekiele Regale Loeschfass Eisentuer Handschuhe", string.Join(" ", prediger.Select(e => e.Kennung)));
+            Pruefe.Gleich("Werkzeug1 Werkzeug2 Gaensekiele Regale Loeschfass Eisentuer Handschuhe", string.Join(" ", prediger.Take(7).Select(e => e.Kennung))); // dazu ab PR #224 drei Stücke der Stufe 3
             Pruefe.Gleich("Gutes Werkzeug, Meisterwerkzeug, Gänsekiele und Lapislazuli, Bücherregale, Löschfass, Eisentür, Lederhandschuhe",
-                string.Join(", ", prediger.Select(e => e.Name)));
-            foreach (var e in prediger.Where(e => e.Kennung != "Gaensekiele"))
+                string.Join(", ", prediger.Take(7).Select(e => e.Name)));
+            foreach (var e in prediger.Take(7).Where(e => e.Kennung != "Gaensekiele"))
             {
                 var schmied = d.Stueck("Schmied", e.Kennung == "Handschuhe" ? "Schuerzen" : e.Kennung)!;
                 Pruefe.Gleich(schmied.Preis, e.Preis, $"Preis {e.Kennung}");
@@ -940,7 +950,7 @@ static class WerkstattTests
         {
             var sim = NeueSimulation();
             var (w, k, b) = Kirche(sim, vermoegen: 5_000);
-            Pruefe.Wahr(w.Werkstaetten.Einrichtungsliste(b) is { Count: 7 } l && l.All(e => !e.Gekauft), "sieben Stücke, keins gekauft");
+            Pruefe.Wahr(w.Werkstaetten.Einrichtungsliste(b) is { Count: 10 } l && l.All(e => !e.Gekauft), "sieben Stücke und drei der Stufe 3 (PR #224), keins gekauft");
             Ok(w, k, new EinrichtungKaufen(b.Name, "Gaensekiele"));
             Pruefe.Ungefaehr(4_650, k.Vermoegen, 1e-9);
             Pruefe.Ungefaehr(350, k.Laufend.Investitionen, 1e-9);
@@ -960,7 +970,7 @@ static class WerkstattTests
             Abgelehnt(w, k, new EinrichtungKaufen(b.Name, "Braupfanne"), "kein Stück „Braupfanne“");
             Abgelehnt(w, k, new EinrichtungKaufen(b.Name, "Werkzeug2"), "erst ab Stufe 2");
             Ok(w, k, new ProduktWaehlen(b.Name, "Papier"));
-            Ok(w, k, new PersonalSetzen(b.Name, "Geselle", 1));
+            w.Einstellen(b, "Geselle", 1); // Gesellen gibt es nur durch Beförderung (PR #224) – hier gleich eingestellt
             BisUhrzeit(sim, 14);
             Pruefe.Wahr(b.ImLager("Papier") == 13, $"Papier mit Werkzeug: {b.ImLager("Papier")} (360 / 27 ≈ 13,3; ohne Werkzeug 360 / 30 = 12)");
             var liste = w.Werkstaetten.Einrichtungsliste(b);
@@ -981,7 +991,7 @@ static class WerkstattTests
             Ok(w, k, new EinrichtungKaufen(b.Name, "Gaensekiele"));
             Abgelehnt(w, k, new EinrichtungKaufen(b.Name, "Werkzeug2"), "erst ab Stufe 2");
             b.Ausbauen(Betriebsart.Dom, 0);
-            Pruefe.Gleich(7, w.Werkstaetten.Einrichtungsliste(b).Count);
+            Pruefe.Gleich(10, w.Werkstaetten.Einrichtungsliste(b).Count); // sieben, ab PR #224 drei der Stufe 3 dazu
             Pruefe.Wahr(b.HatEinrichtung("Regale") && b.LagerKapazitaetJeWare == 60, "Bücherregale nach dem Ausbau");
             Abgelehnt(w, k, new EinrichtungKaufen(b.Name, "Werkzeug2"), "Erst braucht es: Gutes Werkzeug");
             Ok(w, k, new EinrichtungKaufen(b.Name, "Werkzeug1"));
@@ -991,7 +1001,7 @@ static class WerkstattTests
             b.Ausbauen(Betriebsart.Kathedrale, 0);
             Pruefe.Gleich(3, b.Stufe);
             var liste = w.Werkstaetten.Einrichtungsliste(b);
-            Pruefe.Gleich(7, liste.Count);
+            Pruefe.Gleich(10, liste.Count); // sieben, ab PR #224 drei der Stufe 3 dazu
             Pruefe.Gleich("Werkzeug1 Werkzeug2 Gaensekiele Regale", string.Join(" ", liste.Where(e => e.Gekauft).Select(e => e.Kennung)));
             Pruefe.Ungefaehr(100 * 0.729, b.MinutenJeStueck("Stundenbuch"), 1e-9);
             Pruefe.Ungefaehr(60 * 0.729, b.MinutenJeStueck("Lehrschrift"), 1e-9);
@@ -1032,7 +1042,7 @@ static class WerkstattTests
         {
             var original = NeueSimulation(VieleUnfaelle(), startwert: 9);
             var (w, k, g) = Giesserei(original);
-            Ok(w, k, new PersonalSetzen(g.Name, "Geselle", 1));
+            w.Einstellen(g, "Geselle", 1); // Gesellen gibt es nur durch Beförderung (PR #224) – hier gleich eingestellt
             Ok(w, k, new ArbeiterEinstellen(g.Name, "Lehrling", "Beschlag"));
             Ok(w, k, new LohnstufeSetzen(g.Name, Lohnstufe.Gut));
             Ok(w, k, new EinrichtungKaufen(g.Name, "Werkzeug1"));
@@ -1057,7 +1067,7 @@ static class WerkstattTests
         {
             var sim = NeueSimulation();
             var (w, k, g) = Giesserei(sim);
-            Ok(w, k, new PersonalSetzen(g.Name, "Geselle", 2));
+            w.Einstellen(g, "Geselle", 2); // Gesellen gibt es nur durch Beförderung (PR #224) – hier gleich eingestellt
             Ok(w, k, new ProduktWaehlen(g.Name, "Rapier"));
             var knoten = JsonNode.Parse(Speicherung.Speichern(sim, k))!;
             knoten["Daten"]!.AsObject().Remove("Werkstatt");
@@ -1090,7 +1100,7 @@ static class WerkstattTests
             {
                 var sim = NeueSimulation(VieleUnfaelle(), startwert: 5);
                 var (w, k, g) = Giesserei(sim);
-                Ok(w, k, new PersonalSetzen(g.Name, "Geselle", 2));
+                w.Einstellen(g, "Geselle", 2); // Gesellen gibt es nur durch Beförderung (PR #224) – hier gleich eingestellt
                 var liste = new List<string>();
                 w.Meldung += m => { if (m.StartsWith("Unfall")) liste.Add($"{sim.Zeit.VergangeneMinuten} {m}"); };
                 JahreSimulieren(sim, 3);

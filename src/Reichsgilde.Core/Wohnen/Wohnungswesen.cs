@@ -33,8 +33,34 @@ public sealed class WohnenDaten
     /// <summary>So lange dauert ein Ausbau (Spielminuten). Bis dahin gilt die alte Stufe.</summary>
     public int BauzeitMinuten { get; init; } = 240;
 
-    internal void Pruefen(List<string> f, int anzahlStaende)
+    /// <summary>Spalten des Talentbaums im Wohnhaus (PR #224): Haushalt, Ansehen, Schutz. Die Reihen sind die ersten drei Stufen des Wohnhauses.</summary>
+    public List<string> Spalten { get; init; } = new();
+
+    /// <summary>
+    /// Einrichtung des Wohnhauses (PR #224): <see cref="EinrichtungDaten.AbStufe"/> ist die Stufe des Wohnhauses (1 = Startwohnhaus).
+    /// Dazu zwei vorhandene Sachen des Spiels (<see cref="EinrichtungDaten.Vorhanden"/>): Hausapotheke und Hauswächter.
+    /// </summary>
+    public List<EinrichtungDaten> Einrichtung { get; init; } = new();
+
+    public EinrichtungDaten? Stueck(string kennung) => Einrichtung.FirstOrDefault(e => e.Kennung == kennung);
+
+    internal void Pruefen(List<string> f, int anzahlStaende, IReadOnlyDictionary<string, WareDaten> waren)
     {
+        foreach (var doppelt in Einrichtung.GroupBy(e => e.Kennung).Where(g => g.Count() > 1))
+            f.Add($"wohnen.einrichtung: „{doppelt.Key}“ ist doppelt eingetragen.");
+        foreach (var e in Einrichtung)
+        {
+            var wo = $"wohnen.einrichtung.{e.Kennung}";
+            if (string.IsNullOrWhiteSpace(e.Kennung) || e.Kennung.Any(c => !char.IsAsciiLetterOrDigit(c)))
+                f.Add($"wohnen.einrichtung: Die Kennung „{e.Kennung}“ darf nur Buchstaben und Ziffern ohne Umlaute haben.");
+            if (e.Preis < 0) f.Add($"{wo}.preis darf nicht negativ sein.");
+            if (e.AbStufe < 1 || e.AbStufe > Math.Min(3, Stufen.Count)) f.Add($"{wo}.abStufe muss zwischen 1 und {Math.Min(3, Stufen.Count)} liegen.");
+            if (e.Voraussetzung is { } v && Einrichtung.All(x => x.Kennung != v)) f.Add($"{wo}.voraussetzung: „{v}“ gibt es nicht.");
+            if (e.Voraussetzung == e.Kennung) f.Add($"{wo}: Ein Stück kann nicht sich selbst voraussetzen.");
+            if (Spalten.Count > 0 && e.Spalte is { } sp && !Spalten.Contains(sp)) f.Add($"{wo}.spalte: „{sp}“ steht nicht unter wohnen.spalten.");
+            if (e.Vorhanden is { } da && da is not ("Hausapotheke" or "Hauswaechter")) f.Add($"{wo}.vorhanden: nur „Hausapotheke“ oder „Hauswaechter“.");
+            e.Wirkung.Pruefen(f, $"{wo}.wirkung", waren);
+        }
         if (Stufen.Count == 0) { f.Add("wohnen.stufen darf nicht leer sein."); return; }
         if (Stufen[0].AbStand != 0 || Stufen[0].Ausbau != 0)
             f.Add("wohnen.stufen: Die erste Stufe ist das Startwohnhaus (abStand 0, ausbau 0).");
@@ -191,6 +217,109 @@ public sealed class Wohnungswesen
         var dauer = Daten.BauzeitMinuten >= 60 ? $"{Daten.BauzeitMinuten / 60.0:0.#} Stunden" : $"{Daten.BauzeitMinuten} Minuten";
         return Befehlsergebnis.Ok($"{k.Inhaber} baut das Wohnhaus zum {naechste.Name} aus " +
                                   $"({Zahlenformat.Ganz(naechste.Ausbau)} {_w.Daten.Allgemein.Waehrung}, fertig in {dauer}).");
+    }
+
+    // ── Einrichtung des Wohnhauses (PR #224) ────────────────────────────────
+
+    /// <summary>Die gekaufte Einrichtung dieses Hauses mit ihren Daten (Hausapotheke und Hauswächter zählen hier nicht – sie wirken auf eigenem Weg).</summary>
+    public IEnumerable<EinrichtungDaten> Einrichtungsstuecke(Konto k) =>
+        Daten is not { } d || k.WohnhausEinrichtung.Count == 0 ? Enumerable.Empty<EinrichtungDaten>()
+            : d.Einrichtung.Where(e => e.Vorhanden is null && k.WohnhausEinrichtung.Contains(e.Kennung));
+
+    /// <summary>Faktor auf Haushalt und Unterhalt der Familie (Vorratskammer).</summary>
+    public double HaushaltFaktor(Konto k) => Einrichtungsstuecke(k).Aggregate(1.0, (f, e) => f * e.Wirkung.HaushaltFaktor);
+
+    /// <summary>Faktor auf die Chance der Familie zu erkranken (Küche).</summary>
+    public double KrankheitFaktor(Konto k) => Einrichtungsstuecke(k).Aggregate(1.0, (f, e) => f * e.Wirkung.KrankheitFaktor);
+
+    /// <summary>So viel Ansehen mehr (Wappen über der Tür).</summary>
+    public double EinrichtungAnsehen(Konto k) => Einrichtungsstuecke(k).Sum(e => e.Wirkung.AnsehenPlus);
+
+    /// <summary>Faktor auf die Zuneigung je Gulden beim Werben (Stube).</summary>
+    public double WerbeFaktor(Konto k) => Einrichtungsstuecke(k).Aggregate(1.0, (f, e) => f * e.Wirkung.WerbeFaktor);
+
+    /// <summary>Faktor auf die Talente aus der Ausbildung der Kinder (Bibliothek).</summary>
+    public double AusbildungFaktor(Konto k) => Einrichtungsstuecke(k).Aggregate(1.0, (f, e) => f * e.Wirkung.AusbildungFaktor);
+
+    /// <summary>Faktor auf die Erfolgschance von Einbruch ins Wohnhaus (Riegel, Hund).</summary>
+    public double EinbruchFaktor(Konto k) => Einrichtungsstuecke(k).Aggregate(1.0, (f, e) => f * e.Wirkung.EinbruchFaktor);
+
+    /// <summary>Faktor auf die Erfolgschance von Brand am Wohnhaus (Hund).</summary>
+    public double BrandFaktor(Konto k) => Einrichtungsstuecke(k).Aggregate(1.0, (f, e) => f * e.Wirkung.BrandFaktor);
+
+    /// <summary>Ist dieses Stück im Haus? Hausapotheke immer, Hauswächter, wenn einer angestellt ist, sonst gekauft.</summary>
+    public bool HatEinrichtung(Konto k, EinrichtungDaten e) => e.Vorhanden switch
+    {
+        "Hausapotheke" => true,
+        "Hauswaechter" => k.Hauswaechter,
+        _ => k.WohnhausEinrichtung.Contains(e.Kennung),
+    };
+
+    /// <summary>Warum dieses Haus das Stück jetzt nicht kaufen kann (null: Es geht). Hausapotheke und Hauswächter kauft man nicht.</summary>
+    public string? EinrichtungVerboten(Konto k, string kennung)
+    {
+        if (Daten is not { } d || d.Stueck(kennung) is not { } e) return $"Für das Wohnhaus gibt es kein Stück „{kennung}“.";
+        if (e.Vorhanden == "Hausapotheke") return "Die Hausapotheke hat jedes Haus – Kräuterschnaps kauft man am Markt.";
+        if (e.Vorhanden == "Hauswaechter")
+            return k.Hauswaechter ? $"{k.Inhaber} hat schon einen Hauswächter." : null; // eingestellt wird er mit „Hauswächter“
+        if (k.WohnhausEinrichtung.Contains(kennung)) return $"{k.Inhaber} hat schon: {e.Name}.";
+        var stufe = k.WohnhausStufe + 1;
+        if (stufe < e.AbStufe) return $"{e.Name} passt erst in ein {d.Stufen[e.AbStufe - 1].Name} – {k.Inhaber} wohnt im {d.Stufen[k.WohnhausStufe].Name}.";
+        if (e.Voraussetzung is { } v && d.Stueck(v) is { } vor && !HatEinrichtung(k, vor)) return $"Erst braucht es: {vor.Name}.";
+        if (k.Vermoegen < e.Preis) return $"{e.Name} kostet {Zahlenformat.Ganz(e.Preis)} {_w.Daten.Allgemein.Waehrung}.";
+        return null;
+    }
+
+    internal Befehlsergebnis EinrichtungKaufen(Konto k, string kennung)
+    {
+        if (EinrichtungVerboten(k, kennung) is { } grund) return Befehlsergebnis.Abgelehnt(grund);
+        var e = Daten!.Stueck(kennung)!;
+        if (e.Vorhanden == "Hauswaechter") return HauswaechterSetzen(k, true);
+        k.Investition(e.Preis); // wie Einrichtung der Betriebe: ein Kauf, kein Rückverkauf
+        k.WohnhausEinrichtungHinzufuegen(kennung);
+        return Befehlsergebnis.Ok($"{k.Inhaber}: {e.Name} fürs Wohnhaus gekauft ({Zahlenformat.Ganz(e.Preis)} {_w.Daten.Allgemein.Waehrung}) – {e.Wirkung.Text()}.");
+    }
+
+    /// <summary>
+    /// Was ein Stück dem Haus im Jahr spart (für KI und Anzeige): Vorratskammer = Haushalt und Unterhalt der Familie × (1 − Faktor);
+    /// Riegel und Hund = was Einbrecher im Vorjahr aus dem Wohnhaus holten × (1 − Faktor). Sonst (Ansehen, Werben, Ausbildung, Krankheit) 0.
+    /// </summary>
+    public double MehrgewinnJeJahr(Konto k, string kennung)
+    {
+        if (Daten?.Stueck(kennung) is not { } e || e.Vorhanden is not null || k.WohnhausEinrichtung.Contains(kennung)) return 0;
+        var mehr = 0.0;
+        if (e.Wirkung.HaushaltFaktor < 1 && _w.Familien.Von(k) is { } f)
+            mehr += _w.Familien.Haushaltskosten(f) * HaushaltFaktor(k) * (1 - e.Wirkung.HaushaltFaktor);
+        // Riegel und Hund: nur, wer im Vorjahr (oder dieses Jahr) heimgesucht wurde – mit dem, was ein Einbruch jetzt holte.
+        if (e.Wirkung.EinbruchFaktor < 1 && _w.Gauner.GegenWohnhaus && _w.Gauner.LetzterAngriffWohnhaus(k) is { } jahr && jahr >= _w.Familien.Jahr - 1)
+            mehr += _w.Gauner.Hausbeute(k) * EinbruchFaktor(k) * (1 - e.Wirkung.EinbruchFaktor);
+        return mehr;
+    }
+
+    /// <summary>Der Talentbaum der Einrichtung des Wohnhauses (Spalten Haushalt, Ansehen, Schutz; Reihen die ersten drei Stufen des Wohnhauses).</summary>
+    public Einrichtungsbaum Baum(Konto k)
+    {
+        if (Daten is not { } d || d.Einrichtung.Count == 0) return new Einrichtungsbaum(Array.Empty<string>(), 3, k.WohnhausStufe + 1, Array.Empty<BaumStueck>());
+        var spalten = d.Spalten.Count > 0 ? d.Spalten : d.Einrichtung.Select(e => e.Spalte ?? "").Distinct().ToList();
+        var stufe = k.WohnhausStufe + 1;
+        return new Einrichtungsbaum(spalten, Math.Min(3, d.Stufen.Count), stufe, d.Einrichtung.Select(e =>
+        {
+            var da = HatEinrichtung(k, e);
+            var verboten = da ? null : EinrichtungVerboten(k, e.Kennung);
+            var gesperrt = stufe < e.AbStufe || (e.Voraussetzung is { } v && d.Stueck(v) is { } vor && !HatEinrichtung(k, vor));
+            var jaehrlich = e.Vorhanden == "Hauswaechter";
+            var preis = jaehrlich ? _w.Daten.Gauner?.WaechterKosten ?? 0 : e.Preis;
+            var mehr = MehrgewinnJeJahr(k, e.Kennung);
+            var text = e.Vorhanden switch
+            {
+                "Hausapotheke" => "Kräuterschnaps für die Familie (vom Markt) – heilt leichte Krankheiten, lindert die Pest",
+                "Hauswaechter" => "Einbruch und Brand am Wohnhaus halb so oft, mehr Zeugen – Lohn im Jahr",
+                _ => e.Wirkung.Text(),
+            };
+            return new BaumStueck(e.Kennung, e.Name, e.Spalte ?? spalten.FirstOrDefault() ?? "", e.AbStufe, preis, e.Voraussetzung, text,
+                da ? Baumzustand.Gekauft : verboten is null ? Baumzustand.Kaufbar : gesperrt ? Baumzustand.Gesperrt : Baumzustand.NichtJetzt,
+                verboten, mehr, mehr > 0 ? e.Preis / mehr : null, jaehrlich, e.Vorhanden);
+        }).ToList());
     }
 
     /// <summary>Befehl „Hauswächter“: einstellen oder entlassen. Er kostet im Jahr so viel wie ein Wächter im Betrieb.</summary>

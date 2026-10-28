@@ -178,7 +178,8 @@ public sealed class Gesundheitswesen
             var summe = 0.0;
             foreach (var (name, k) in krankheiten)
             {
-                summe += k.Chance * (k.AlterAb > 0 && p.Alter(jahr) >= k.AlterAb ? 3 : 1) * _w.Ratsantraege.Krankheitsfaktor; // Brunnen der Stadt (PR #200)
+                summe += k.Chance * (k.AlterAb > 0 && p.Alter(jahr) >= k.AlterAb ? 3 : 1) * _w.Ratsantraege.Krankheitsfaktor // Brunnen der Stadt (PR #200)
+                         * _w.Wohnen.KrankheitFaktor(konto!); // Küche im Wohnhaus (PR #224)
                 if (wurf >= summe) continue;
                 Erkranken(konto!, p, name);
                 break;

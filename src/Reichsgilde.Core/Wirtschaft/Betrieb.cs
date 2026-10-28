@@ -171,7 +171,12 @@ public sealed class Betrieb
     private readonly Func<long> _jetzt;  // die Uhr der Stadt (Spielminuten seit Spielbeginn)
     private double _lohnFaktorSumme;     // Lohnstufe über die Arbeitsminuten des Jahres – wer kurz vor der Abrechnung knausert, spart nichts
     private int _lohnMinuten;
-    private int _lagerPlus;              // Regale: so viel mehr Lager je Ware
+    private int _lagerPlus;              // Regale, Vorarbeiter: so viel mehr Lager je Ware
+    private List<EinrichtungWirkung> _wirkungen = new(); // Einrichtung und Eigenschaft des Vorarbeiters (PR #224) – neu bei jeder Änderung
+    private double[] _erfahrungJeMinute = Array.Empty<double>(); // je Arbeiter (Reihenfolge wie _arbeiter): Erfahrungsstunden je Minute ohne Laune
+    private readonly SortedDictionary<string, double> _rohstoffErsparnis = new(StringComparer.Ordinal); // gesparte Zutaten (Bruchteile)
+    private readonly HashSet<string> _stillstehend = new(StringComparer.Ordinal); // nur innerhalb einer Arbeitsminute
+    private readonly Action<Betrieb, Arbeiter>? _steckbrief; // würfelt Name und Aussehen eines neuen Arbeiters (Stadtwirtschaft.Personal)
     private double _fortschritt;        // ohne Produktion: gesammelte Arbeitsminuten
     private double _fortschrittEisen;   // Umland: erster Rohstoff (Name aus alten Spielständen)
     private double _fortschrittSilber;  // Umland: zweiter Rohstoff
@@ -200,8 +205,16 @@ public sealed class Betrieb
 
     public int Plaetze => _art.Plaetze;
 
-    /// <summary>Arbeitsminuten je Spieljahr (Tag) in diesem Betrieb: 720 = 8–20 Uhr, im Wirtshaus 840 = 8–22 Uhr.</summary>
-    public int Arbeitsminuten => _daten.Arbeitsminuten(Art);
+    /// <summary>
+    /// Arbeitsminuten je Spieljahr (Tag) in diesem Betrieb: 720 = 8–20 Uhr, im Wirtshaus 840 = 8–22 Uhr – mit einem Vorarbeiter
+    /// „Frühaufsteher“ eine Stunde mehr (nur Betriebe mit Ware, höchstens bis zum Tagesende). Der Lohn richtet sich nach der Art.
+    /// </summary>
+    public int Arbeitsminuten => _daten.Arbeitsminuten(Art) + ArbeitsminutenPlus;
+
+    /// <summary>So viel länger als ihre Art arbeitet dieser Betrieb (Vorarbeiter „Frühaufsteher“; 0 ohne).</summary>
+    public int ArbeitsminutenPlus =>
+        OhneProduktion || _wirkungen.Count == 0 ? 0
+            : Math.Min(_wirkungen.Sum(w => w.ArbeitsminutenPlus), Zeit.Spielzeit.TagesendeMinute - Stadtwirtschaft.Arbeitsbeginn - _daten.Arbeitsminuten(Art));
 
     /// <summary>Feierabend in Minuten nach Mitternacht (20:00 = 1200, im Wirtshaus 22:00 = 1320).</summary>
     public int Arbeitsende => Stadtwirtschaft.Arbeitsbeginn + Arbeitsminuten;
@@ -247,7 +260,7 @@ public sealed class Betrieb
 
     public IReadOnlyDictionary<string, int> Lager => _lager;
 
-    /// <summary>Wie viel von jeder Ware ins Lager passt – 40 laut Daten, mit Regalen mehr.</summary>
+    /// <summary>Wie viel von jeder Ware ins Lager passt – 40 laut Daten, mit Regalen (und Vorarbeiter „Ordnungsliebend“) mehr.</summary>
     public int LagerKapazitaetJeWare => _daten.Logistik.LagerJeWare + _lagerPlus;
     public int ImLager(string ware) => _lager.GetValueOrDefault(ware);
 
@@ -324,58 +337,111 @@ public sealed class Betrieb
         _einrichtung.Count == 0 || _daten.Werkstatt is not { } w ? Enumerable.Empty<EinrichtungDaten>()
             : w.EinrichtungFuer(_art.Beruf).Where(e => _einrichtung.Contains(e.Kennung));
 
-    /// <summary>Faktor der Einrichtung auf die Zeit je Stück dieser Ware (1 = ohne Wirkung).</summary>
+    /// <summary>
+    /// Was auf diesen Betrieb wirkt: die gekaufte Einrichtung und die Eigenschaft des Vorarbeiters (PR #224). Alle Faktoren unten
+    /// rechnen mit dieser Liste – eine Eigenschaft wirkt wie ein Stück Einrichtung, solange ihr Vorarbeiter hier arbeitet.
+    /// </summary>
+    public IReadOnlyList<EinrichtungWirkung> Wirkungen => _wirkungen;
+
+    /// <summary>Der Vorarbeiter (Arbeiter der dritten Stufe) mit seiner Eigenschaft (null, wenn keiner eine hat).</summary>
+    public (Arbeiter Arbeiter, EigenschaftDaten Eigenschaft)? Vorarbeiter
+    {
+        get
+        {
+            foreach (var a in _arbeiter)
+                if (a.Eigenschaft is { } k && EigenschaftVon(k) is { } e) return (a, e);
+            return null;
+        }
+    }
+
+    /// <summary>Die Daten einer Eigenschaft – aus der Laufbahn dieses Betriebs, sonst aus irgendeiner (die Eigenschaft gehört der Person).</summary>
+    internal EigenschaftDaten? EigenschaftVon(string kennung) =>
+        _daten.Personal is not { } p ? null
+            : _daten.Laufbahn(Art)?.Eigenschaft(kennung) ?? p.Laufbahnen.Select(l => l.Eigenschaft(kennung)).FirstOrDefault(e => e is not null);
+
+    private void WirkungenNeu()
+    {
+        var liste = Einrichtungsstuecke.Select(e => e.Wirkung).ToList();
+        foreach (var a in _arbeiter)
+            if (a.Eigenschaft is { } k && EigenschaftVon(k) is { } e) liste.Add(e.Wirkung);
+        _wirkungen = liste;
+        _lagerPlus = liste.Sum(w => w.LagerPlus);
+        _tempoBonus = liste.Aggregate(1.0, (f, w) => f * w.TempoFaktor);
+    }
+
+    private double _tempoBonus = 1;
+
+    /// <summary>Faktor der Einrichtung (und des Vorarbeiters) auf die Zeit je Stück dieser Ware (1 = ohne Wirkung).</summary>
     public double ZeitFaktor(string ware)
     {
         var faktor = 1.0;
-        foreach (var e in Einrichtungsstuecke)
-            if (e.Wirkung.GiltFuer(ware)) faktor *= e.Wirkung.ZeitFaktor;
+        foreach (var w in _wirkungen)
+            if (w.GiltFuer(ware)) faktor *= w.ZeitFaktor;
         return faktor;
     }
 
+    /// <summary>Faktor auf den Erlös am Markt: Vorarbeiter „Guter Ruf“ × Ladentheke (Anteil × Aufschlag im Mittel).</summary>
+    public double PreisFaktor => _wirkungen.Aggregate(1.0, (f, w) => f * w.PreisFaktor) * (1 + _wirkungen.Sum(w => w.LadenAnteil * w.LadenAufschlag));
+
+    /// <summary>Faktor auf die Zutaten je Stück (Vorarbeiter „Sparsam“: 0,9).</summary>
+    public double RohstoffFaktor => _wirkungen.Aggregate(1.0, (f, w) => f * w.RohstoffFaktor);
+
+    /// <summary>So viele Punkte mehr zieht die Laune aller hier (Vorarbeiter: „Gutes Gemüt“ +5, „Antreiber“ −10).</summary>
+    public double LauneBonus => _wirkungen.Sum(w => w.Laune);
+
+    /// <summary>Faktor auf die Leistung aller hier (Vorarbeiter „Antreiber“: 1,1).</summary>
+    public double TempoBonus => _tempoBonus;
+
+    /// <summary>Faktor auf die Erfahrung der Anfänger hier (Lehrlingsstube 1,5, Vorarbeiter „Lehrmeister“ 2).</summary>
+    public double AnfaengerErfahrungFaktor => _wirkungen.Aggregate(1.0, (f, w) => f * w.ErfahrungFaktor);
+
+    /// <summary>Faktor auf Ausbruch und Aufstand der Unfreien (Vorarbeiter „Aufseher“: 0,5).</summary>
+    public double RisikoFaktor => _wirkungen.Aggregate(1.0, (f, w) => f * w.RisikoFaktor);
+
     /// <summary>Faktor auf die Unfallgefahr (Schürzen: 0,5).</summary>
-    public double UnfallFaktor => Einrichtungsstuecke.Aggregate(1.0, (f, e) => f * e.Wirkung.UnfallFaktor);
+    public double UnfallFaktor => _wirkungen.Aggregate(1.0, (f, w) => f * w.UnfallFaktor);
 
     /// <summary>Faktor auf die Erfolgschance von Feuer – Sabotage und Brand (Löschfass).</summary>
-    public double BrandFaktor => Einrichtungsstuecke.Aggregate(1.0, (f, e) => f * e.Wirkung.BrandFaktor);
+    public double BrandFaktor => _wirkungen.Aggregate(1.0, (f, w) => f * w.BrandFaktor);
 
     /// <summary>Faktor auf die Erfolgschance von Diebstahl und Einbruch ins Lager (Eisentür).</summary>
-    public double EinbruchFaktor => Einrichtungsstuecke.Aggregate(1.0, (f, e) => f * e.Wirkung.EinbruchFaktor);
+    public double EinbruchFaktor => _wirkungen.Aggregate(1.0, (f, w) => f * w.EinbruchFaktor);
 
     /// <summary>Dieb: so viel höher die Erfolgschance der eigenen Einbrüche (Dietriche: +0,1, mit Meisterdietrichen +0,2).</summary>
-    public double EinbruchBonus => Einrichtungsstuecke.Sum(e => e.Wirkung.EinbruchBonus);
+    public double EinbruchBonus => _wirkungen.Sum(w => w.EinbruchBonus);
 
     /// <summary>Dieb: Faktor auf die Fangchance der Taschendiebe (Verkleidungstruhe: 0,75).</summary>
-    public double FangFaktor => Einrichtungsstuecke.Aggregate(1.0, (f, e) => f * e.Wirkung.FangFaktor);
+    public double FangFaktor => _wirkungen.Aggregate(1.0, (f, w) => f * w.FangFaktor);
 
     /// <summary>Dieb: Faktor auf Zeugen und Beweise gegen das Haus (Lederhandschuhe: 0,75).</summary>
-    public double SpurenFaktor => Einrichtungsstuecke.Aggregate(1.0, (f, e) => f * e.Wirkung.SpurenFaktor);
+    public double SpurenFaktor => _wirkungen.Aggregate(1.0, (f, w) => f * w.SpurenFaktor);
 
     /// <summary>Wache: so viel höher die Chance je Tat bei einer Razzia (Hellebarden: +0,1, mit Armbrüsten +0,2).</summary>
-    public double RazziaBonus => Einrichtungsstuecke.Sum(e => e.Wirkung.RazziaBonus);
+    public double RazziaBonus => _wirkungen.Sum(w => w.RazziaBonus);
 
     /// <summary>Wache: Faktor auf den Schutz der Streife dieses Hauses (Wachhunde: 1,25).</summary>
-    public double StreifenFaktor => Einrichtungsstuecke.Aggregate(1.0, (f, e) => f * e.Wirkung.StreifenFaktor);
+    public double StreifenFaktor => _wirkungen.Aggregate(1.0, (f, w) => f * w.StreifenFaktor);
 
     /// <summary>Wache: Faktor auf die Erfolgschance von Überfällen auf Karren, die dieses Haus geleitet (Kettenhemden: 0,8).</summary>
-    public double GeleitFaktor => Einrichtungsstuecke.Aggregate(1.0, (f, e) => f * e.Wirkung.GeleitFaktor);
+    public double GeleitFaktor => _wirkungen.Aggregate(1.0, (f, w) => f * w.GeleitFaktor);
 
     /// <summary>Geldleiher: Faktor auf den Rahmen je Schreiber (Rechenbretter: 1,1, mit Hauptbüchern 1,21).</summary>
-    public double RahmenFaktor => Einrichtungsstuecke.Aggregate(1.0, (f, e) => f * e.Wirkung.RahmenFaktor);
+    public double RahmenFaktor => _wirkungen.Aggregate(1.0, (f, w) => f * w.RahmenFaktor);
 
     /// <summary>Geldleiher: Faktor auf die Wechselgebühr (Goldwaage: 1,1).</summary>
-    public double WechselFaktor => Einrichtungsstuecke.Aggregate(1.0, (f, e) => f * e.Wirkung.WechselFaktor);
+    public double WechselFaktor => _wirkungen.Aggregate(1.0, (f, w) => f * w.WechselFaktor);
 
     /// <summary>Geldleiher: Faktor auf den Verlust bei Ausfall eines Kunden (Pfandkammer: 0,75).</summary>
-    public double AusfallFaktor => Einrichtungsstuecke.Aggregate(1.0, (f, e) => f * e.Wirkung.AusfallFaktor);
+    public double AusfallFaktor => _wirkungen.Aggregate(1.0, (f, w) => f * w.AusfallFaktor);
 
     /// <summary>Geldleiher: Faktor auf den Höchstbetrag der Kredite an Häuser (Kassenschrank: 1,25).</summary>
-    public double KreditFaktor => Einrichtungsstuecke.Aggregate(1.0, (f, e) => f * e.Wirkung.KreditFaktor);
+    public double KreditFaktor => _wirkungen.Aggregate(1.0, (f, w) => f * w.KreditFaktor);
 
     internal void EinrichtungHinzufuegen(string kennung)
     {
         _einrichtung.Add(kennung);
-        _lagerPlus = Einrichtungsstuecke.Sum(e => e.Wirkung.LagerPlus);
+        WirkungenNeu();
+        ErfahrungNeu(); // Lehrlingsstube
     }
 
     // ── Lohn und Laune ──────────────────────────────────────────────────────
@@ -387,7 +453,7 @@ public sealed class Betrieb
     public double LohnFaktor => (HatWerkstattregeln ? _daten.Werkstatt!.Stufe(Lohnstufe).LohnFaktor : 1) * EinrichtungLohnFaktor;
 
     /// <summary>Faktor der Einrichtung auf die Lohnkosten (Waffenkammer der Wache: 0,9; sonst 1).</summary>
-    public double EinrichtungLohnFaktor => Einrichtungsstuecke.Aggregate(1.0, (f, e) => f * e.Wirkung.LohnFaktor);
+    public double EinrichtungLohnFaktor => _wirkungen.Aggregate(1.0, (f, w) => f * w.LohnFaktor);
 
     /// <summary>Löhne für ein ganzes Jahr bei der jetzigen Belegung und Lohnstufe (ohne Wächter; mit der Länge der Schicht).</summary>
     public double Lohnkosten => _belegung.Sum(b => b.Value * _daten.Lohn(b.Key, Art)) * LohnFaktor;
@@ -439,7 +505,9 @@ public sealed class Betrieb
 
     /// <param name="ganzjaehrig">Eröffnet genau zum Jahresbeginn? Dann zählt die erste Betriebsrechnung als ganzes Jahr.</param>
     /// <param name="jetzt">Die Uhr der Stadt in Spielminuten (für Dienstzeit und Unfälle; ohne Angabe steht sie auf 0).</param>
-    internal Betrieb(string name, Betriebsart art, Konto konto, Wirtschaftsdaten daten, bool ganzjaehrig = false, Func<long>? jetzt = null)
+    /// <param name="steckbrief">Würfelt Name und Aussehen eines neuen Arbeiters (ohne: namenlos – nur in Tests ohne Stadt).</param>
+    internal Betrieb(string name, Betriebsart art, Konto konto, Wirtschaftsdaten daten, bool ganzjaehrig = false, Func<long>? jetzt = null,
+        Action<Betrieb, Arbeiter>? steckbrief = null)
     {
         Name = name;
         Art = art;
@@ -447,6 +515,7 @@ public sealed class Betrieb
         _daten = daten;
         _art = daten.Art(art);
         _jetzt = jetzt ?? (() => 0);
+        _steckbrief = steckbrief;
         _produkt = _art.Standardprodukt ?? _art.Produkte.LastOrDefault() ?? "";
         Laufend = new Betriebsrechnung { Jahr = konto.Laufend.Jahr, Ganzjaehrig = ganzjaehrig };
         PersonalGeaendert();
@@ -458,6 +527,8 @@ public sealed class Betrieb
         _belegung.Clear();
         foreach (var a in _arbeiter)
             _belegung[a.Arbeitskraft] = _belegung.GetValueOrDefault(a.Arbeitskraft) + 1;
+        WirkungenNeu();
+        ErfahrungNeu();
         if (!IstWerkstatt)
         {
             _warenInArbeit = new List<string>();
@@ -476,6 +547,34 @@ public sealed class Betrieb
             foreach (var (zutat, menge) in _daten.Waren[ware].Zutaten)
                 summe[zutat] = summe.GetValueOrDefault(zutat) + menge;
         _zutaten = summe;
+    }
+
+    /// <summary>
+    /// Erfahrung je Arbeitsminute und Arbeiter (ohne Laune): Tempo ÷ 60, Anfänger × <see cref="AnfaengerErfahrungFaktor"/>; 0 für Arbeitskräfte
+    /// ohne Stufen (Unfreie, Orks) und ohne Abschnitt „personal“.
+    /// </summary>
+    private void ErfahrungNeu()
+    {
+        if (_daten.Personal is not { } p) { _erfahrungJeMinute = Array.Empty<double>(); return; }
+        var anfaenger = AnfaengerErfahrungFaktor;
+        _erfahrungJeMinute = _arbeiter.Select(a => p.StufeVon(a.Arbeitskraft) switch
+        {
+            0 => 0,
+            1 => _daten.Arbeitskraefte[a.Arbeitskraft].TempoAm(Ort) * anfaenger / 60,
+            _ => _daten.Arbeitskraefte[a.Arbeitskraft].TempoAm(Ort) / 60,
+        }).ToArray();
+    }
+
+    /// <summary>Eine Arbeitsminute: Erfahrung für jeden, der da ist und dessen Ware nicht stillsteht (gefertigte Arbeit zählt, wie bei den Meistergraden).</summary>
+    private void ErfahrungSammeln(long jetzt, bool alleStehen)
+    {
+        if (_erfahrungJeMinute.Length != _arbeiter.Count || alleStehen) return;
+        for (var i = 0; i < _arbeiter.Count; i++)
+        {
+            var a = _arbeiter[i];
+            if (_erfahrungJeMinute[i] <= 0 || a.FaelltAus(jetzt) || (IstWerkstatt && _stillstehend.Contains(WareVon(a)))) continue;
+            a.Erfahrung += _erfahrungJeMinute[i] * TempoFaktor(a);
+        }
     }
 
     // ── Rechnung des Betriebs ───────────────────────────────────────────────
@@ -528,7 +627,11 @@ public sealed class Betrieb
         // Mehr: neue Arbeiter an der Ware des Betriebs. Weniger: die zuletzt eingestellten dieser Art gehen.
         var jetzt = _belegung.GetValueOrDefault(arbeitskraft);
         for (var i = jetzt; i < anzahl; i++)
-            _arbeiter.Add(new Arbeiter(_naechsteNummer++, arbeitskraft, _jetzt(), NeutraleLaune));
+        {
+            var neu = new Arbeiter(_naechsteNummer++, arbeitskraft, _jetzt(), NeutraleLaune);
+            _arbeiter.Add(neu);
+            _steckbrief?.Invoke(this, neu);
+        }
         for (var i = jetzt; i > anzahl; i--)
             _arbeiter.RemoveAt(_arbeiter.FindLastIndex(a => a.Arbeitskraft == arbeitskraft));
         PersonalGeaendert();
@@ -559,10 +662,18 @@ public sealed class Betrieb
         PersonalGeaendert();
     }
 
-    /// <summary>Beförderung: Der Arbeiter wird zu dieser Arbeitskraft (Ware, Laune und Nummer bleiben).</summary>
+    /// <summary>Beförderung: Der Arbeiter wird zu dieser Arbeitskraft (Ware, Laune, Nummer und Erfahrung bleiben).</summary>
     internal void Befoerdern(Arbeiter a, string zu)
     {
         a.Arbeitskraft = zu;
+        PersonalGeaendert();
+    }
+
+    /// <summary>Der Vorarbeiter bekommt seine Eigenschaft (null: keine) und die Wahl ist vorbei bzw. beginnt (<paramref name="wahl"/>).</summary>
+    internal void EigenschaftSetzen(Arbeiter a, string? eigenschaft, IReadOnlyList<string>? wahl = null)
+    {
+        a.Eigenschaft = eigenschaft;
+        a.EigenschaftWahl = wahl;
         PersonalGeaendert();
     }
 
@@ -659,7 +770,7 @@ public sealed class Betrieb
             foreach (var a in _arbeiter)
                 if (!a.FaelltAus(jetzt))
                     summe += _daten.Arbeitskraefte[a.Arbeitskraft].TempoAm(Ort) * TempoFaktor(a);
-            return summe;
+            return summe * TempoBonus;
         }
     }
 
@@ -706,6 +817,7 @@ public sealed class Betrieb
             Konto.ErfahrungSammeln(_art.Beruf, leistungProMinute * volksFaktor / 60 * _art.ErfahrungFaktor);
             Stillstand = null;
             _letzterStillstand = null;
+            ErfahrungSammeln(_jetzt(), alleStehen: false);
             return;
         }
 
@@ -714,18 +826,22 @@ public sealed class Betrieb
         {
             // Jede Ware für sich: Die Leistung der Arbeiter, die an ihr arbeiten, geht in ihren eigenen Fortschritt.
             var jetzt = _jetzt();
+            var tempo = TempoBonus;
             _leistungJeWare.Clear();
+            _stillstehend.Clear();
             foreach (var a in _arbeiter)
             {
                 if (a.FaelltAus(jetzt)) continue;
                 var ware = WareVon(a);
-                _leistungJeWare[ware] = _leistungJeWare.GetValueOrDefault(ware) + _daten.Arbeitskraefte[a.Arbeitskraft].TempoAm(Ort) * TempoFaktor(a);
+                _leistungJeWare[ware] = _leistungJeWare.GetValueOrDefault(ware) + _daten.Arbeitskraefte[a.Arbeitskraft].TempoAm(Ort) * TempoFaktor(a) * tempo;
             }
             foreach (var (ware, anteil) in _leistungJeWare)
             {
                 var grund = Herstellen(ware, anteil * leistungsFaktor);
+                if (grund is not null) _stillstehend.Add(ware);
                 stillstand ??= grund;
             }
+            ErfahrungSammeln(jetzt, alleStehen: false);
         }
         else if (Rohstoffe.Count == 1)
         {
@@ -741,6 +857,7 @@ public sealed class Betrieb
             var zweiter = Foerdern(Rohstoffe[1], ref _fortschrittSilber);
             stillstand = erster ?? zweiter;
         }
+        if (!IstWerkstatt) ErfahrungSammeln(_jetzt(), alleStehen: stillstand is not null && Rohstoffe.Count == 1);
 
         // Stillstand nur einmal melden, nicht jede Minute.
         if (stillstand is not null && stillstand != _letzterStillstand)
@@ -764,8 +881,20 @@ public sealed class Betrieb
                 fortschritt = zeit; // wartet, statt Arbeit „anzusparen"
                 break;
             }
+            var sparen = RohstoffFaktor;
             foreach (var (zutat, menge) in _daten.Waren[ware].Zutaten)
-                Auslagern(zutat, menge);
+            {
+                var noetig = menge;
+                if (sparen < 1)
+                {
+                    // Vorarbeiter „Sparsam“: Was je Stück übrig bleibt, sammelt sich – sobald ein ganzes Stück gespart ist, wird eins weniger genommen.
+                    var gespart = _rohstoffErsparnis.GetValueOrDefault(zutat) + menge * (1 - sparen);
+                    var ganze = Math.Min(noetig, (int)Math.Floor(gespart));
+                    noetig -= ganze;
+                    _rohstoffErsparnis[zutat] = gespart - ganze;
+                }
+                Auslagern(zutat, noetig);
+            }
             Einlagern(ware, 1);
             Konto.Hergestellt(ware);
             Konto.ErfahrungSammeln(_art.Beruf, zeit / 60 * _art.ErfahrungFaktor);
@@ -787,7 +916,7 @@ public sealed class Betrieb
 
     private string? Foerdern(string ware, ref double fortschritt)
     {
-        var zeit = _daten.Waren[ware].Zeit;
+        var zeit = _daten.Waren[ware].Zeit * ZeitFaktor(ware); // Umland: nur ein Vorarbeiter („Kräftig“) kürzt die Förderzeit
         while (fortschritt >= zeit)
         {
             if (ImLager(ware) >= LagerKapazitaetJeWare)
@@ -826,7 +955,7 @@ public sealed class Betrieb
     internal void Verkaufen(string ware, int stueck, Markt markt, double verkaufsFaktor = 1, double? steuersatz = null)
     {
         if (stueck <= 0) return;
-        var erloes = markt[ware].Verkaufen(stueck) * verkaufsFaktor;
+        var erloes = markt[ware].Verkaufen(stueck) * verkaufsFaktor * PreisFaktor; // Vorarbeiter „Guter Ruf“, Ladentheke
         UmsatzBuchen(erloes);
         SteuerBuchen(erloes * (steuersatz ?? _daten.Allgemein.Umsatzsteuer));
     }
@@ -848,19 +977,32 @@ public sealed class Betrieb
         FortschrittJeWare = new(_fortschrittJeWare), Lohnstufe = Lohnstufe,
         LohnFaktorSumme = _lohnFaktorSumme, LohnMinuten = _lohnMinuten,
         Einrichtung = _einrichtung.Count > 0 ? _einrichtung.ToList() : null, UnfallLauneBis = UnfallLauneBis,
+        RohstoffErsparnis = _rohstoffErsparnis.Count > 0 ? new(_rohstoffErsparnis) : null,
     };
 
     internal void Wiederherstellen(BetriebStand s)
     {
         if (s.Arbeiter is { } arbeiter)
         {
-            _arbeiter.AddRange(arbeiter.Select(Wirtschaft.Arbeiter.Laden));
+            foreach (var stand in arbeiter)
+            {
+                var a = Wirtschaft.Arbeiter.Laden(stand);
+                _arbeiter.Add(a);
+                if (stand.Name is null) _steckbrief?.Invoke(this, a); // vor PR #224: Name und Aussehen fest aus Betrieb und Nummer
+                if (stand.Erfahrung is null) a.Erfahrung = VolleErfahrung(a);
+            }
             _naechsteNummer = Math.Max(s.NaechsteArbeiterNummer ?? 1, _arbeiter.Select(a => a.Nummer + 1).DefaultIfEmpty(1).Max());
         }
         else // alter Spielstand: nur die Zahl je Art – alle an der Ware des Betriebs, Laune neutral, Dienstzeit ab Spielbeginn
             foreach (var (kraft, anzahl) in s.Belegung)
                 for (var i = 0; i < anzahl; i++)
-                    _arbeiter.Add(new Arbeiter(_naechsteNummer++, kraft, 0, NeutraleLaune));
+                {
+                    var a = new Arbeiter(_naechsteNummer++, kraft, 0, NeutraleLaune);
+                    _arbeiter.Add(a);
+                    _steckbrief?.Invoke(this, a);
+                    a.Erfahrung = VolleErfahrung(a);
+                }
+        foreach (var (zutat, gespart) in s.RohstoffErsparnis ?? new()) _rohstoffErsparnis[zutat] = gespart;
         foreach (var (ware, stueck) in s.Lager) _lager[ware] = stueck;
         _produkt = s.Produkt;
         _silberanteil = s.Silberanteil;
@@ -885,7 +1027,8 @@ public sealed class Betrieb
         _lohnFaktorSumme = s.LohnFaktorSumme;
         _lohnMinuten = s.LohnMinuten;
         UnfallLauneBis = s.UnfallLauneBis;
-        foreach (var kennung in s.Einrichtung ?? new()) EinrichtungHinzufuegen(kennung);
+        foreach (var kennung in s.Einrichtung ?? new())
+            EinrichtungHinzufuegen(AlteKennungen.GetValueOrDefault(kennung, kennung));
         if (s.Rechnung is { } r) Laufend = Betriebsrechnung.Laden(r); // alte Spielstände: ab dem Laden, kein ganzes Jahr
         Vorjahr = s.RechnungVorjahr is { } v ? Betriebsrechnung.Laden(v) : null;
         foreach (var ware in s.Zurueckgehalten ?? new()) _zurueckgehalten.Add(ware);
@@ -899,6 +1042,15 @@ public sealed class Betrieb
         }
         PersonalGeaendert();
     }
+
+    /// <summary>Umbenannte Stücke der Einrichtung (alte Kennung → neue), damit ältere Spielstände sie behalten.</summary>
+    private static readonly Dictionary<string, string> AlteKennungen = new(StringComparer.Ordinal)
+    {
+        ["Wasserhammer"] = "Schleifstein", // PR #224: Tretrad-Schleifstein statt Schwanzhammer am Wasserrad (Entscheidung des Nutzers)
+    };
+
+    /// <summary>Spielstand von vor PR #224: Wer schon eine Stufe hat, hat auch ihre Erfahrung (ein Geselle bleibt Geselle mit voller Erfahrung).</summary>
+    private double VolleErfahrung(Arbeiter a) => _daten.Personal is { } p ? p.Schwelle(p.StufeVon(a.Arbeitskraft)) : 0;
 
     // ── Jahresende ──────────────────────────────────────────────────────────
 
@@ -917,7 +1069,7 @@ public sealed class Betrieb
             // Jede unfreie Arbeitskraft hat ihr eigenes Risiko.
             for (var i = 0; i < anzahl; i++)
             {
-                if (kraft.Risiko > 0 && zufall.NextDouble() < kraft.Risiko)
+                if (kraft.Risiko > 0 && zufall.NextDouble() < kraft.Risiko * RisikoFaktor)
                 {
                     SchadenBuchen(kraft.Schaden);
                     melden(Ort == Arbeitsort.Umland

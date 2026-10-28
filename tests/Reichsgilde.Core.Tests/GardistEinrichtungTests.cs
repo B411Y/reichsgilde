@@ -82,12 +82,12 @@ static class GardistEinrichtungTests
         ("Gardist-Einrichtung: Daten – sieben Stücke mit den Kennungen des Raummodells, Preise wie bei den Werkstätten, Datenversion 52", () =>
         {
             var d = Daten.Value.Werkstatt!;
-            Pruefe.Gleich(58, Daten.Value.Version);
+            Pruefe.Gleich(59, Daten.Value.Version);
             var wache = d.EinrichtungFuer("Gardist");
-            Pruefe.Gleich("Werkzeug1 Werkzeug2 Hunde Kettenhemd Regale Loeschfass Eisentuer", string.Join(" ", wache.Select(e => e.Kennung)));
-            Pruefe.Gleich("Hellebarden, Armbrüste, Wachhunde, Kettenhemden, Waffenkammer, Löschfass, Eisentür", string.Join(", ", wache.Select(e => e.Name)));
-            Pruefe.Gleich("300 800 350 350 200 100 150", string.Join(" ", wache.Select(e => e.Preis))); // Eisentür 150 seit PR #177
-            Pruefe.Gleich("1 2 1 1 1 1 1", string.Join(" ", wache.Select(e => e.AbStufe)));
+            Pruefe.Gleich("Werkzeug1 Werkzeug2 Hunde Kettenhemd Regale Loeschfass Eisentuer", string.Join(" ", wache.Take(7).Select(e => e.Kennung))); // dazu ab PR #224 die Lehrlingsstube
+            Pruefe.Gleich("Hellebarden, Armbrüste, Wachhunde, Kettenhemden, Waffenkammer, Löschfass, Eisentür", string.Join(", ", wache.Take(7).Select(e => e.Name)));
+            Pruefe.Gleich("300 800 350 350 200 100 150", string.Join(" ", wache.Take(7).Select(e => e.Preis))); // Eisentür 150 seit PR #177
+            Pruefe.Gleich("1 2 1 1 1 1 1", string.Join(" ", wache.Take(7).Select(e => e.AbStufe)));
             Pruefe.Gleich("Werkzeug1", d.Stueck("Gardist", "Werkzeug2")!.Voraussetzung);
             Pruefe.Ungefaehr(0.1, d.Stueck("Gardist", "Werkzeug1")!.Wirkung.RazziaBonus, 1e-12);
             Pruefe.Ungefaehr(0.1, d.Stueck("Gardist", "Werkzeug2")!.Wirkung.RazziaBonus, 1e-12);
@@ -136,7 +136,7 @@ static class GardistEinrichtungTests
             Abgelehnt(w, k, new EinrichtungKaufen(turm.Name, "Hunde"), "kein Stück");
 
             var liste = w.Werkstaetten.Einrichtungsliste(b);
-            Pruefe.Wahr(liste.Count == 7 && liste.All(e => !e.Gekauft), "sieben Stücke, keins gekauft");
+            Pruefe.Wahr(liste.Count == 8 && liste.All(e => !e.Gekauft), "sieben Stücke und die Lehrlingsstube (PR #224), keins gekauft");
             Ok(w, k, new EinrichtungKaufen(b.Name, "Werkzeug1"));
             Pruefe.Ungefaehr(4_700, k.Vermoegen, 1e-9);
             Pruefe.Ungefaehr(300, k.Laufend.Investitionen, 1e-9);
@@ -511,7 +511,7 @@ static class GardistEinrichtungTests
             var sim3 = NeueSimulation();
             var (w3, k3, b3) = Wache(sim3, leute: 0);
             var turm = w3.BetriebEroeffnen("Wachturm Wacker", Betriebsart.Wachturm, k3, startkarren: "");
-            w3.Einstellen(turm, "Bergmann", 3);
+            w3.Einstellen(turm, "Altknecht", 3);
             Pruefe.Gleich(0, w3.Wache.AnwesenheitJetzt(b3).Count);
             Pruefe.Gleich(0, w3.Wache.AnwesenheitJetzt(turm).Count);
             Pruefe.Gleich(0, w3.Wache.Gefangene(turm).Count);

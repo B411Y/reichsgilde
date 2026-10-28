@@ -413,7 +413,7 @@ public sealed class Wachwesen
     /// </summary>
     public Arbeiter? Hauptmann(Betrieb b) =>
         IstWachbetrieb(b) && b.InDerStadt && b.Stufe >= 3 && b.Belegt >= 2
-            ? b.Arbeiter.Where(a => a.Arbeitskraft != "Lehrling").OrderBy(a => a.EingestelltUm).ThenBy(a => a.Nummer).FirstOrDefault()
+            ? b.Arbeiter.Where(a => !_w.Personal.IstAnfaenger(a)).OrderBy(a => a.EingestelltUm).ThenBy(a => a.Nummer).FirstOrDefault()
             : null;
 
     /// <summary>Sitzt der Hauptmann gerade in der Hauptmannsstube (8–22 Uhr)?</summary>
@@ -448,7 +448,7 @@ public sealed class Wachwesen
         if (Geleitstube == b)
         {
             var karren = GeleitKarren;
-            var reihe = uebrige.OrderBy(a => a.Arbeitskraft == "Lehrling" ? 1 : 0).ThenBy(a => a.Nummer).ToList();
+            var reihe = uebrige.OrderBy(a => _w.Personal.IstAnfaenger(a) ? 1 : 0).ThenBy(a => a.Nummer).ToList();
             for (var i = 0; i < Math.Min(karren.Count, reihe.Count); i++) geleit[reihe[i]] = karren[i];
         }
 

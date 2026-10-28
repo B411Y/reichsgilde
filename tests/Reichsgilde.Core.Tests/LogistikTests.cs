@@ -127,7 +127,7 @@ static class LogistikTests
             var sim = NeueSimulation();
             var w = sim.Wirtschaft!;
             var mine = w.BetriebEroeffnen("M", Betriebsart.Mine, w.KontoEroeffnen("Spieler"), startkarren: "");
-            w.Einstellen(mine, "Bergmann", 3);
+            w.Einstellen(mine, "Altknecht", 3);
             JahreSimulieren(sim, 1);
             Pruefe.Gleich(mine.LagerKapazitaetJeWare, mine.ImLager("Eisen"));
             Pruefe.Gleich(true, mine.Stillstand?.Contains("voll") == true, mine.Stillstand ?? "kein Stillstand");
@@ -163,7 +163,7 @@ static class LogistikTests
             var w = sim.Wirtschaft!;
             var ueberfaelle = 0;
             w.Meldung += m => { if (m.StartsWith("Überfall")) ueberfaelle++; };
-            w.Einstellen(w.BetriebEroeffnen("M", Betriebsart.Mine, w.KontoEroeffnen("Spieler")), "Bergmann", 3);
+            w.Einstellen(w.BetriebEroeffnen("M", Betriebsart.Mine, w.KontoEroeffnen("Spieler")), "Altknecht", 3);
             JahreSimulieren(sim, 100);
             // 126 Stück/Jahr ÷ 40 je Fahrt ≈ 3,2 beladene Fahrten × 100 Jahre × 8 % ≈ 25
             Pruefe.Gleich(true, ueberfaelle is >= 12 and <= 45, $"{ueberfaelle} Überfälle");
@@ -177,7 +177,7 @@ static class LogistikTests
                 var w = sim.Wirtschaft!;
                 var k = w.KontoEroeffnen("Spieler");
                 var mine = w.BetriebEroeffnen("M", Betriebsart.Mine, k);
-                w.Einstellen(mine, "Bergmann", 3);
+                w.Einstellen(mine, "Altknecht", 3);
                 mine.Karren[0].Eskorte = eskorte;
                 double summe = 0;
                 for (var j = 0; j < 100; j++) { JahreSimulieren(sim, 1); summe += k.Vorjahr!.Raubwert; }
@@ -196,7 +196,7 @@ static class LogistikTests
             var w = sim.Wirtschaft!;
             string? meldung = null;
             w.Meldung += m => { if (m.Contains("erbeutet")) meldung ??= m; };
-            w.Einstellen(w.BetriebEroeffnen("Grube", Betriebsart.Mine, w.KontoEroeffnen("Spieler")), "Bergmann", 3);
+            w.Einstellen(w.BetriebEroeffnen("Grube", Betriebsart.Mine, w.KontoEroeffnen("Spieler")), "Altknecht", 3);
             for (var j = 0; j < 30 && meldung is null; j++) JahreSimulieren(sim, 1);
             Pruefe.Gleich(true, meldung is not null, "in 30 Jahren kein gelungener Überfall");
             Pruefe.Gleich(true, meldung!.Contains("Grube") && meldung.Contains("Wert") && meldung.Contains("("), meldung);

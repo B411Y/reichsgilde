@@ -725,6 +725,9 @@ public sealed record KontoStand
     /// <summary>Hauswächter am Wohnhaus (fehlt in alten Spielständen = keiner).</summary>
     public bool Hauswaechter { get; init; }
 
+    /// <summary>Gekaufte Einrichtung des Wohnhauses (Kennungen aus „wohnen.einrichtung“, PR #224; null = keine).</summary>
+    public List<string>? WohnhausEinrichtung { get; init; }
+
     /// <summary>Beherrschte Handwerke (null in alten Spielständen – dann die Berufe der eigenen Betriebe).</summary>
     public List<string>? Berufe { get; init; }
 
@@ -810,6 +813,9 @@ public sealed record BetriebStand
 
     /// <summary>Nach einem Unfall ist die Laune im Betrieb bis zu dieser Spielminute gedrückt.</summary>
     public long? UnfallLauneBis { get; init; }
+
+    /// <summary>Gesparte Zutaten des Vorarbeiters „Sparsam“, noch kein ganzes Stück (PR #224; null: nichts).</summary>
+    public Dictionary<string, double>? RohstoffErsparnis { get; init; }
 }
 
 /// <summary>Ein Arbeiter eines Betriebs (siehe <see cref="Wirtschaft.Arbeiter"/>).</summary>
@@ -823,6 +829,25 @@ public sealed record ArbeiterStand
     public long EingestelltUm { get; init; }
     public long? PraemieBis { get; init; }
     public int UnzufriedenStunden { get; init; }
+
+    /// <summary>
+    /// Name, Volk, Geschlecht, Aussehen und Alter beim Einstellen (PR #224; null in älteren Spielständen – dann fest aus Betrieb und Nummer
+    /// gewürfelt, wie beim Einstellen).
+    /// </summary>
+    public string? Name { get; init; }
+    public Volk? Volk { get; init; }
+    public Dynastie.Geschlecht? Geschlecht { get; init; }
+    public int? Gesicht { get; init; }
+    public Dynastie.Haarfarbe? Haar { get; init; }
+    public Dynastie.Augenfarbe? Augen { get; init; }
+    public double? AlterBeimEinstellen { get; init; }
+
+    /// <summary>Erfahrung in Stunden (null in älteren Spielständen – dann die Schwelle seiner Stufe: Ein Geselle bleibt Geselle mit voller Erfahrung).</summary>
+    public double? Erfahrung { get; init; }
+
+    /// <summary>Eigenschaft des Vorarbeiters und die gezogenen zur Wahl (fehlen sonst).</summary>
+    public string? Eigenschaft { get; init; }
+    public List<string>? EigenschaftWahl { get; init; }
 }
 
 /// <summary>Die Rechnung eines Betriebs (siehe <see cref="Betriebsrechnung"/>).</summary>

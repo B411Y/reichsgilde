@@ -329,7 +329,7 @@ public partial class Stadtansicht
     private static FigurAussehen SchreiberAussehen(int nummer, string arbeitskraft)
     {
         var volk = arbeitskraft == "Ork" ? Volk.Ork : Volk.Mensch;
-        var gewand = arbeitskraft == "Lehrling" ? new Color(0.36f, 0.40f, 0.52f) : new Color(0.14f, 0.19f, 0.36f).Lerp(new Color(0.20f, 0.26f, 0.44f), (Streuung(nummer, 7) % 5) / 8f);
+        var gewand = IstAnfaenger(arbeitskraft) ? new Color(0.36f, 0.40f, 0.52f) : new Color(0.14f, 0.19f, 0.36f).Lerp(new Color(0.20f, 0.26f, 0.44f), (Streuung(nummer, 7) % 5) / 8f);
         var haare = Haarfarben(volk);
         var frau = volk == Volk.Mensch && Streuung(nummer, 53) % 4 == 0;
         var kopf = frau ? Kopfbedeckung.Haube : Streuung(nummer, 29) % 3 == 0 ? Kopfbedeckung.Keine : Kopfbedeckung.Barett;

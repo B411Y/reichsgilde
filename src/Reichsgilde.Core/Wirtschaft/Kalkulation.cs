@@ -87,8 +87,8 @@ public static class Kalkulation
             : (d.IstWerkstatt ? d.Produkte : d.Rohstoffe).Max(ware => GewinnJeArbeitsminute(w, ware));
         var minuten = w.Daten.Arbeitsminuten(art);
         var schicht = w.Daten.Schichtfaktor(art); // Lohn je Stunde gleich: die längere Schicht im Wirtshaus kostet mehr
-        var besterKopf = w.Daten.Arbeitskraefte.Values
-            .Where(k => k.IstErlaubt(geltend, ort))
+        // Die beste Kraft, die in diese Art passt (mit „personal“: ihre Laufbahn – auf Dauer der Geselle bzw. Altknecht).
+        var besterKopf = w.Daten.Arbeitskraefte.Where(x => x.Value.IstErlaubt(geltend, ort) && w.Daten.KraftPasst(art, x.Key)).Select(x => x.Value)
             .Select(k => k.TempoAm(ort) * leistung * minuten * wertJeMinute - k.Kosten * schicht - k.Risiko * k.Schaden)
             .DefaultIfEmpty(0)
             .Max();

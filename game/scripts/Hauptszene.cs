@@ -37,6 +37,7 @@ namespace Reichsgilde;
 ///   --raum=2           mit --innen: gleich im zweiten Raum der Raumleiste (Werkstatt: 1 Werkraum, 2 Lager; Wohnhaus: 1 Wohnstube, 2 Kontor)
 ///   --innenblick=L1    mit --innen: gleich auf diesem Blickpunkt des Raums stehen (0 = Mitte, L1, L2, R1, R2, O1, U1 – was das Modell hat)
 ///   --tafel=personal   mit --innen: gleich eine Tafel der Bedienung öffnen (personal, produktion, lager, karren, einrichten, wache, bank)
+///   --baum=wohnhaus    den Talentbaum der Einrichtung gleich öffnen, von außen (=wohnhaus oder =betrieb für die eigene Werkstatt; mit --vermoegen=5000)
 ///   --arbeiter=1,2     mit --innen: diese Arbeiter im Raum auswählen (Nummern wie im Personalbuch)
 ///   --einrichtung=Werkzeug1,Regale  der eigenen Werkstatt gleich diese Einrichtung kaufen (mit --vermoegen=5000)
 ///   --einstellen=Lehrling,Geselle   der eigenen Werkstatt gleich diese Arbeiter einstellen
@@ -124,6 +125,7 @@ public partial class Hauptszene : Node
     private LagerAnzeige _lagerTafel = null!;
     private KarrenAnzeige _karrenTafel = null!;
     private EinrichtenAnzeige _einrichtenTafel = null!;
+    private WohnhausBaumAnzeige _wohnhausBaum = null!;
     private WachplanAnzeige _wachplanTafel = null!;
     private BankAnzeige _bankTafel = null!;
     /// <summary>Die Tafeln der Bedienung im Innenraum (rechts im Bild, damit der Raum frei bleibt).</summary>
@@ -398,6 +400,9 @@ public partial class Hauptszene : Node
         _uebersicht.Gemeldet += Protokollieren;
         _uebersicht.HandelGewuenscht += b => { TafelnSchliessen(); _markt.Oeffnen(b); };
         _uebersicht.HineinGewuenscht += BetriebBetreten;
+        _uebersicht.EinrichtungGewuenscht += b => { TafelnSchliessen(); _einrichtenTafel.Oeffnen(b); };
+        _wohnhaus.EinrichtungGewuenscht += () => { TafelnSchliessen(); _wohnhausBaum.Oeffnen(); };
+        _wohnhausBaum.Gemeldet += Protokollieren;
         _markt.Gemeldet += Protokollieren;
         _uebersicht.VerkaufGewuenscht += b => { TafelnSchliessen(); _verkauf.Oeffnen(b); };
         _verkauf.Gemeldet += Protokollieren;
@@ -528,6 +533,11 @@ public partial class Hauptszene : Node
         // Die Hilfe: auf Wunsch (--hilfe=1) und beim allerersten Spiel einmal von selbst – nicht bei Startoptionen (Klicktests sollen gleiche Bilder liefern).
         if (optionen.GetValueOrDefault("hilfe") == "1" || (!Fenster.HilfeGesehen && OS.GetCmdlineUserArgs().Length == 0))
             HilfeOeffnen();
+        if (optionen.TryGetValue("baum", out var baumWahl)) // Talentbaum der Einrichtung von außen: wohnhaus oder betrieb (eigene Werkstatt)
+        {
+            if (baumWahl == "wohnhaus") _wohnhausBaum.Oeffnen();
+            else if (_eigeneGiesserei is { } baumBetrieb) _einrichtenTafel.Oeffnen(baumBetrieb);
+        }
         if (optionen.TryGetValue("innen", out var innen))
         {
             if (innen == "1" && _eigeneGiesserei is not null) _stadt.InnenansichtBetreten(_eigeneGiesserei);
@@ -554,6 +564,7 @@ public partial class Hauptszene : Node
             Fensterrahmen.SchliessenFallsLose(tafel, auchFeste);
         _wegTafel.Schliessen();
         foreach (var tafel in _innenTafeln) tafel.Hide();
+        _wohnhausBaum.Hide();
         if (_bauFrage.Visible) _bauFrage.Zurueck(); // der Umriss der Platzwahl wird wieder frei
     }
 
@@ -621,6 +632,7 @@ public partial class Hauptszene : Node
         _lagerTafel = new LagerAnzeige();
         _karrenTafel = new KarrenAnzeige();
         _einrichtenTafel = new EinrichtenAnzeige();
+        _wohnhausBaum = new WohnhausBaumAnzeige();
         _wachplanTafel = new WachplanAnzeige();
         _bankTafel = new BankAnzeige();
         _innenTafeln = new InnenTafel[] { _personalTafel, _produktionTafel, _lagerTafel, _karrenTafel, _einrichtenTafel, _wachplanTafel, _bankTafel };
@@ -632,11 +644,12 @@ public partial class Hauptszene : Node
         rand.AddThemeConstantOverride("margin_bottom", 84);
         var reihe = new HBoxContainer { Alignment = BoxContainer.AlignmentMode.End, MouseFilter = Control.MouseFilterEnum.Ignore };
         rand.AddChild(reihe);
-        foreach (var tafel in _innenTafeln)
+        var alleTafeln = _innenTafeln.Select(t => t.Tafel).Append(_wohnhausBaum.Tafel);
+        foreach (var tafel in alleTafeln)
         {
-            tafel.Tafel.SizeFlagsVertical = Control.SizeFlags.ShrinkCenter;
-            reihe.AddChild(tafel.Tafel);
-            if (tafel.Tafel.GetNodeOrNull<Rollbereich>("Rollbereich") is { } rolle)
+            tafel.SizeFlagsVertical = Control.SizeFlags.ShrinkCenter;
+            reihe.AddChild(tafel);
+            if (tafel.GetNodeOrNull<Rollbereich>("Rollbereich") is { } rolle)
             {
                 rolle.ObenFrei = Rollbereich.KopfHoehe - rolle.Abstand; // die Tafel rollt, bevor sie an den Rand stößt
                 rolle.UntenFrei = 84 - rolle.Abstand;
@@ -666,7 +679,7 @@ public partial class Hauptszene : Node
             "produktion" => _produktionTafel,
             "lager" => _lagerTafel,
             "karren" => _karrenTafel,
-            "einrichten" => _einrichtenTafel,
+            "einrichten" or "talentbaum" => _einrichtenTafel,
             "wache" => _wachplanTafel,
             "bank" => _bankTafel,
             _ => null,
@@ -979,6 +992,7 @@ public partial class Hauptszene : Node
         _markt.Verbinden(simulation, spieler);
         _verkauf.Verbinden(simulation, spieler);
         foreach (var tafel in _innenTafeln) tafel.Verbinden(simulation, spieler);
+        _wohnhausBaum.Verbinden(simulation, spieler);
         // Um 20 Uhr schlagen die Banden zu – ein offenes Hinterzimmer zeigt sofort, was geschah.
         w.Gauner.NachtVorbei += () => { if (_hinterzimmer.Visible) _hinterzimmer.Aufbauen(); };
         _uebersicht.Verbinden(simulation, spieler, _stadt.HatInnenansicht);
@@ -1045,10 +1059,12 @@ public partial class Hauptszene : Node
             : _hafenTafel.Visible ? (_hafenTafel.GewaehltesSchiff is { } schiff ? "schiff:" + schiff : Stadtansicht.HafenKennung(_hafenTafel.Hafen)) : null;
         _stadt.Aktualisieren(delta);
         foreach (var tafel in _innenTafeln) tafel.Aktualisieren(delta);
-        var innenTafelOffen = _innenTafeln.Any(t => t.Visible) || _sitzungsTafel.Laeuft; // die Meldungen schienen sonst durch die große Tafel
+        _wohnhausBaum.Aktualisieren(delta);
+        var innenTafelOffen = _innenTafeln.Any(t => t.Visible) || _wohnhausBaum.Visible || _sitzungsTafel.Laeuft; // die Meldungen schienen sonst durch die große Tafel
         if (_meldungen.Visible == innenTafelOffen) _meldungen.Visible = !innenTafelOffen;
         var mausPos = GetViewport().GetMousePosition();
-        _stadt.UnterTafel = _innenTafeln.Any(t => t.Visible && t.Tafel.GetGlobalRect().HasPoint(mausPos));
+        _stadt.UnterTafel = _innenTafeln.Any(t => t.Visible && t.Tafel.GetGlobalRect().HasPoint(mausPos))
+            || (_wohnhausBaum.Visible && _wohnhausBaum.Tafel.GetGlobalRect().HasPoint(mausPos));
         BauAutoKlickPruefen();
         if (_auswahlKennung is not null) AuswahlAnzeigen();
     }

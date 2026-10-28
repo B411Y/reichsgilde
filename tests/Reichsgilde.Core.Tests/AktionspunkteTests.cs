@@ -42,7 +42,7 @@ static class AktionspunkteTests
             var (k, _) = Haus(w);
             var g = w.BetriebEroeffnen("Gießerei Fuchs", Betriebsart.Giesserei, k);
             Pruefe.Wahr(w.Ausfuehren(k, new ProduktWaehlen(g.Name, "Rapier")).Erfolg, "Produkt");
-            Pruefe.Wahr(w.Ausfuehren(k, new PersonalSetzen(g.Name, "Geselle", 2)).Erfolg, "Personal");
+            Pruefe.Wahr(w.Ausfuehren(k, new PersonalSetzen(g.Name, "Lehrling", 2)).Erfolg, "Personal");
             Pruefe.Gleich(4, k.Aktionspunkte.Vorrat);
 
             Pruefe.Wahr(w.Ausfuehren(k, new Werben(Kandidat(w, k).Person.Nummer, 100)).Erfolg, "Werben");

@@ -1097,8 +1097,9 @@ public partial class Stadtansicht
         // Volk und Stand sieht man an Größe, Kleidung und Haut.
         var (kleidung, haut, groesse) = kraft switch
         {
-            "Lehrling" => (new Color(0.58f, 0.52f, 0.36f), new Color(0.86f, 0.70f, 0.57f), 0.85f),
-            "Geselle" => (new Color(0.42f, 0.30f, 0.20f), Haut, 1.0f),
+            var k when IstAnfaenger(k) => (new Color(0.58f, 0.52f, 0.36f), new Color(0.86f, 0.70f, 0.57f), 0.85f),
+            var k when IstVorarbeiter(k) => (new Color(0.30f, 0.21f, 0.15f), Haut, 1.05f),
+            "Geselle" or "Altknecht" => (new Color(0.42f, 0.30f, 0.20f), Haut, 1.0f),
             "Ork" => (new Color(0.30f, 0.27f, 0.22f), new Color(0.36f, 0.50f, 0.28f), 1.2f),
             "Leibeigener" => (new Color(0.45f, 0.43f, 0.39f), new Color(0.80f, 0.64f, 0.52f), 0.95f),
             _ => (new Color(0.36f, 0.32f, 0.27f), Haut, 1.0f),

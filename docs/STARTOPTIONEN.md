@@ -12,8 +12,9 @@ Startoptionen (nach `--`):
 - `--innen=1` (eigene Werkstatt) oder `--innen=Rathaus|Dom|wohnhaus:<Inhaber>`
 - `--raum=<Nummer>` (mit `--innen`: Raum der Raumleiste, 1 = erster)
 - `--innenblick=<0|L1|L2|R1|R2|O1|U1>` (mit `--innen`: Blickpunkt des Raums, was das Modell hat)
-- `--tafel=<personal|produktion|lager|karren|einrichten|wache|bank|auftraege>` (mit `--innen`: Tafel der Bedienung öffnen; `bank` = Bankgeschäft der Geldleihe, `auftraege` = Kartentisch des Diebs mit Aufträgen und Banden im Hinterzimmer)
+- `--tafel=<personal|produktion|lager|karren|einrichten|talentbaum|wache|bank|auftraege>` (mit `--innen`: Tafel der Bedienung öffnen; `bank` = Bankgeschäft der Geldleihe, `auftraege` = Kartentisch des Diebs mit Aufträgen und Banden im Hinterzimmer)
 - `--arbeiter=<Nummern>` (mit `--innen`: Arbeiter im Raum auswählen)
+- `--baum=<wohnhaus|betrieb>` (Talentbaum der Einrichtung von außen öffnen: Wohnhaus oder eigene Werkstatt; mit `--vermoegen=5000`; `--tafel=talentbaum` mit `--innen=1` ist derselbe Baum der Werkstatt, `--tafel=personal` das Personalbuch mit Porträts)
 - `--einrichtung=<Kennungen>` (der eigenen Werkstatt Einrichtung kaufen, z. B. `Werkzeug1,Regale`, mit `--vermoegen=5000`)
 - `--einstellen=<Arten>` (Arbeiter einstellen, z. B. `Lehrling,Geselle`)
 - `--ausbauen=<n>` (die Werkstatt n-mal ausbauen; braucht Meistergrad 3 und 5: Stand mit `--speichern` schreiben, `Meistergrade` des Hauses auf `{"Schmied":5}` setzen, mit `--laden` starten)

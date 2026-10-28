@@ -5,45 +5,28 @@ using Reichsgilde.Core.Wirtschaft;
 namespace Reichsgilde;
 
 /// <summary>
-/// Die Einrichtung (Werkzeugwand, PR #152): alle Stücke, die eine Werkstatt dieses Berufs haben kann, mit Name, Preis, Wirkung, Stufe und
-/// Voraussetzung. Gekaufte Stücke stehen sofort im Raum; wo man nicht kaufen kann, nennt die Tafel den Grund aus dem Kern
-/// (<see cref="Werkstattwesen.EinrichtungVerboten"/>).
+/// Die Einrichtung (Werkzeugwand, PR #152; seit PR #224 als Talentbaum, siehe <see cref="TalentbaumAnsicht"/>): 3 Spalten × 3 Reihen (Gebäudestufen) mit den Stücken,
+/// die eine Werkstatt dieses Berufs haben kann. Gekaufte Stücke stehen sofort im Raum; wo man nicht kaufen kann, nennt der Hinweis den Grund aus dem Kern
+/// (<see cref="Werkstattwesen.EinrichtungVerboten"/>). Öffnet innen an der Werkzeugwand und außen über „Einrichtung“ der Kurzübersicht.
 /// </summary>
 public sealed class EinrichtenAnzeige : InnenTafel
 {
-    public EinrichtenAnzeige() : base(820) { }
+    public EinrichtenAnzeige() : base(960) { }
 
     protected override string Stand(Stadtwirtschaft w, Betrieb b) =>
-        string.Join(";", w.Werkstaetten.Einrichtungsliste(b).Select(e => $"{e.Kennung}:{e.Gekauft}:{e.Verboten}"));
+        $"{b.Stufe}|{(int)b.Konto.Vermoegen / 10}|" + string.Join(";", w.Werkstaetten.Baum(b).Stuecke.Select(e => $"{e.Kennung}:{e.Zustand}:{(int)e.MehrgewinnJeJahr}"));
 
     protected override void Aufbauen(Stadtwirtschaft w, Betrieb b)
     {
-        var liste = w.Werkstaetten.Einrichtungsliste(b);
+        var baum = w.Werkstaetten.Baum(b);
         var waehrung = w.Daten.Allgemein.Waehrung;
         Kopf("Einrichtung", b, $"In der Kasse: {Zahlenformat.Ganz(b.Konto.Vermoegen)} {waehrung}");
-        if (liste.Count == 0) Text(Inhalt, "Für diese Werkstatt gibt es nichts zu kaufen.", 14, Grau);
-        var raster = Raster(5);
-        foreach (var kopf in new[] { "Stück", "Wirkung", "Ab Stufe", "Preis", "" })
-            Zelle(raster, kopf, 12, Grau);
-        foreach (var e in liste)
+        if (baum.Stuecke.Count == 0) Text(Inhalt, "Für diese Werkstatt gibt es nichts zu kaufen.", 14, Grau);
+        else
         {
-            var ab = raster.GetChildCount();
-            Zelle(raster, e.Name, 15, e.Gekauft ? Gruen : Gold, 150);
-            var wirkung = new VBoxContainer();
-            wirkung.AddThemeConstantOverride("separation", 0);
-            raster.AddChild(wirkung);
-            Text(wirkung, e.Wirkung, 13, Hell, 270);
-            if (e.Voraussetzung is { } v)
-                Text(wirkung, "Braucht: " + (liste.FirstOrDefault(x => x.Kennung == v)?.Name ?? v), 11, Grau);
-            if (!e.Gekauft && e.Verboten is { } grund) Text(wirkung, grund, 11, Rot, 270);
-            Zelle(raster, e.AbStufe.ToString(), 14, b.Stufe >= e.AbStufe ? Hell : Rot, 60, rechts: true);
-            Zelle(raster, $"{Zahlenformat.Ganz(e.Preis)} {waehrung}", 14, Hell, 90, rechts: true);
-            if (e.Gekauft) Zelle(raster, "gekauft", 14, Gruen, 90);
-            else Knopf(raster, "Kaufen", () => Befehlen(new EinrichtungKaufen(b.Name, e.Kennung)), e.Verboten);
-            ZeileTipp(raster, ab, $"{e.Name}\n{e.Wirkung}\nPreis {Zahlenformat.Ganz(e.Preis)} {waehrung} · ab Stufe {e.AbStufe}"
-                + (e.Voraussetzung is { } vor ? "\nBraucht: " + (liste.FirstOrDefault(x => x.Kennung == vor)?.Name ?? vor) : "")
-                + (e.Gekauft ? "\nSchon gekauft." : e.Verboten is { } g ? "\nGesperrt: " + g : ""));
+            Inhalt.AddChild(TalentbaumAnsicht.Bauen(baum, waehrung, r => $"Stufe {r}", s => Befehlen(new EinrichtungKaufen(b.Name, s.Kennung))));
+            Text(Inhalt, "Ein Klick auf ein Stück kauft es. Bunte Stücke kann man kaufen (beim Darüberfahren leuchten sie golden), ein grüner Haken heißt gekauft, dunkle sind gesperrt. "
+                + "Der Rahmen im Bild zeigt die Stufe (Stein, Silber, Gold); Linien zeigen, was vorher da sein muss.", 12, Grau, 840);
         }
-        Text(Inhalt, "Gekaufte Stücke stehen sofort im Raum und wirken auf Tempo, Lager, Unfälle, Brand oder Einbruch.", 12, Grau, 780);
     }
 }

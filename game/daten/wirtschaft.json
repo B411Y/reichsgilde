@@ -1,5 +1,5 @@
 {
-  "version": 58,
+  "version": 59,
   "gesundheit": {
     "medicusKosten": 120,
     "medicusKostenPest": 300,
@@ -42,7 +42,8 @@
       "MoschusSchenken": 1, "MoschusRatsherr": 1, "ZwietrachtSaeen": 1, "HeiligenduftStiften": 1, "Giftanschlag": 2,
       "Konvertieren": 2, "Bekehrungspredigt": 1, "StadtglaubeBeantragen": 2,
       "WegPflasterBeantragen": 2, "SteuersatzBeantragen": 2, "BauvorhabenBeantragen": 2, "FestBeantragen": 2,
-      "BerufErlernen": 4
+      "BerufErlernen": 4,
+      "ArbeiterBefoerdern": 1
     }
   },
   "allgemein": {
@@ -610,7 +611,43 @@
         ]
       }
     },
-    "Bergmann": {
+    "Vorarbeiter": {
+      "kosten": 300,
+      "tempo": 1,
+      "tempoWerkstatt": 1,
+      "risiko": 0,
+      "schaden": 0,
+      "erlaubt": {
+        "A": [
+          "Werkstatt"
+        ],
+        "B": [
+          "Werkstatt"
+        ],
+        "C": [
+          "Werkstatt"
+        ]
+      }
+    },
+    "Knecht": {
+      "kosten": 80,
+      "tempo": 0.67,
+      "tempoWerkstatt": 0.33,
+      "risiko": 0,
+      "schaden": 0,
+      "erlaubt": {
+        "A": [
+          "Umland"
+        ],
+        "B": [
+          "Umland"
+        ],
+        "C": [
+          "Umland"
+        ]
+      }
+    },
+    "Altknecht": {
       "kosten": 150,
       "tempo": 1,
       "tempoWerkstatt": 0.5,
@@ -624,6 +661,141 @@
           "Umland"
         ],
         "C": [
+          "Umland"
+        ]
+      }
+    },
+    "Großknecht": {
+      "kosten": 205,
+      "tempo": 1,
+      "tempoWerkstatt": 0.5,
+      "risiko": 0,
+      "schaden": 0,
+      "erlaubt": {
+        "A": [
+          "Umland"
+        ],
+        "B": [
+          "Umland"
+        ],
+        "C": [
+          "Umland"
+        ]
+      }
+    },
+    "Taschendieb": {
+      "kosten": 120,
+      "tempo": 0.67,
+      "tempoWerkstatt": 0.67,
+      "risiko": 0,
+      "schaden": 0,
+      "erlaubt": {
+        "A": [
+          "Werkstatt"
+        ],
+        "B": [
+          "Werkstatt"
+        ],
+        "C": [
+          "Werkstatt"
+        ]
+      }
+    },
+    "Dieb": {
+      "kosten": 220,
+      "tempo": 1,
+      "tempoWerkstatt": 1,
+      "risiko": 0,
+      "schaden": 0,
+      "erlaubt": {
+        "A": [
+          "Werkstatt"
+        ],
+        "B": [
+          "Werkstatt"
+        ],
+        "C": [
+          "Werkstatt"
+        ]
+      }
+    },
+    "Meisterdieb": {
+      "kosten": 300,
+      "tempo": 1,
+      "tempoWerkstatt": 1,
+      "risiko": 0,
+      "schaden": 0,
+      "erlaubt": {
+        "A": [
+          "Werkstatt"
+        ],
+        "B": [
+          "Werkstatt"
+        ],
+        "C": [
+          "Werkstatt"
+        ]
+      }
+    },
+    "Rekrut": {
+      "kosten": 120,
+      "tempo": 0.67,
+      "tempoWerkstatt": 0.67,
+      "risiko": 0,
+      "schaden": 0,
+      "erlaubt": {
+        "A": [
+          "Werkstatt",
+          "Umland"
+        ],
+        "B": [
+          "Werkstatt",
+          "Umland"
+        ],
+        "C": [
+          "Werkstatt",
+          "Umland"
+        ]
+      }
+    },
+    "Gefreiter": {
+      "kosten": 220,
+      "tempo": 1,
+      "tempoWerkstatt": 1,
+      "risiko": 0,
+      "schaden": 0,
+      "erlaubt": {
+        "A": [
+          "Werkstatt",
+          "Umland"
+        ],
+        "B": [
+          "Werkstatt",
+          "Umland"
+        ],
+        "C": [
+          "Werkstatt",
+          "Umland"
+        ]
+      }
+    },
+    "Feldwebel": {
+      "kosten": 300,
+      "tempo": 1,
+      "tempoWerkstatt": 1,
+      "risiko": 0,
+      "schaden": 0,
+      "erlaubt": {
+        "A": [
+          "Werkstatt",
+          "Umland"
+        ],
+        "B": [
+          "Werkstatt",
+          "Umland"
+        ],
+        "C": [
+          "Werkstatt",
           "Umland"
         ]
       }
@@ -852,6 +1024,18 @@
       { "name": "Steinhaus", "ausbau": 4000, "unterhalt": 80, "ansehen": 4, "abStand": 2 },
       { "name": "Stadtpalais", "ausbau": 10000, "unterhalt": 200, "ansehen": 6, "abStand": 3 },
       { "name": "Stadthof", "ausbau": 25000, "unterhalt": 500, "ansehen": 8, "abStand": 4 }
+    ],
+    "spalten": ["Haushalt", "Ansehen", "Schutz"],
+    "einrichtung": [
+      { "kennung": "Hausapotheke", "name": "Hausapotheke", "preis": 0, "spalte": "Haushalt", "abStufe": 1, "vorhanden": "Hausapotheke" },
+      { "kennung": "Vorratskammer", "name": "Vorratskammer", "preis": 400, "spalte": "Haushalt", "abStufe": 2, "wirkung": { "haushaltFaktor": 0.8 } },
+      { "kennung": "Kueche", "name": "Küche", "preis": 900, "spalte": "Haushalt", "abStufe": 3, "voraussetzung": "Vorratskammer", "wirkung": { "krankheitFaktor": 0.75 } },
+      { "kennung": "Hauswappen", "name": "Wappen über der Tür", "preis": 250, "spalte": "Ansehen", "abStufe": 1, "wirkung": { "ansehenPlus": 2 } },
+      { "kennung": "Stube", "name": "Gute Stube", "preis": 700, "spalte": "Ansehen", "abStufe": 2, "voraussetzung": "Hauswappen", "wirkung": { "werbeFaktor": 1.25 } },
+      { "kennung": "Bibliothek", "name": "Bibliothek", "preis": 1500, "spalte": "Ansehen", "abStufe": 3, "voraussetzung": "Stube", "wirkung": { "ausbildungFaktor": 1.25 } },
+      { "kennung": "Hauswaechter", "name": "Hauswächter", "preis": 0, "spalte": "Schutz", "abStufe": 1, "vorhanden": "Hauswaechter" },
+      { "kennung": "Riegel", "name": "Eiserne Riegel", "preis": 150, "spalte": "Schutz", "abStufe": 2, "wirkung": { "einbruchFaktor": 0.5 } },
+      { "kennung": "Hund", "name": "Hofhund", "preis": 350, "spalte": "Schutz", "abStufe": 3, "voraussetzung": "Riegel", "wirkung": { "einbruchFaktor": 0.75, "brandFaktor": 0.75 } }
     ]
   },
   "schulden": {
@@ -942,7 +1126,7 @@
   "wache": {
     "beruf": "Gardist",
     "ansehen": 3,
-    "sold": { "jeMinute": 0.84, "jeStufe": [ 1, 1.1, 1.3 ] },
+    "sold": { "jeMinute": 0.875, "jeStufe": [ 1, 1.1, 1.3 ] },
     "patrouille": { "schutzJeWachmann": 0.025, "hoechstens": 0.4, "zeugenAnteil": 0.5 },
     "wachturm": { "schutz": 0.3, "hoechstens": 0.6 },
     "razzia": { "jeStufe": [ 1, 2, 3 ], "chance": 0.5, "chanceJeStufe": 0.1 },
@@ -954,7 +1138,7 @@
     "stadtzins": 0.12,
     "rahmen": { "jeSchreiber": 2000, "jeStufe": [ 1, 1.25, 1.5 ] },
     "ausfall": { "chance": 0.2, "anteil": 0.1 },
-    "wechsel": { "gebuehr": 0.0078, "bedarfSchreiber": 6, "jeStufe": [ 1, 1.2, 1.4 ] },
+    "wechsel": { "gebuehr": 0.009, "bedarfSchreiber": 6, "jeStufe": [ 1, 1.2, 1.4 ] },
     "kredit": { "zinsStandard": 0.12, "zinsMindestens": 0.04, "zinsHoechstens": 0.5, "hoechstJeStufe": [ 3000, 6000, 12000 ], "kreditwuerdigAnteil": 0.5, "laufzeitHoechstens": 5, "pfandAnteil": 0.75 },
     "wucher": { "ab": 0.2, "ansehen": 5 },
     "einbruch": { "anteil": 0.05, "hoechstens": 500 },
@@ -977,7 +1161,7 @@
     "beruf": "Dieb",
     "ansehen": 3,
     "auftraegeJeStufe": [ 1, 2, 3 ],
-    "taschendiebstahl": { "beuteJeMinute": 1.015, "beuteJeStufe": [ 1, 1.2, 1.4 ], "fangJeStunde": 0.012, "fangJeStufe": [ 1, 0.8, 0.6 ] },
+    "taschendiebstahl": { "beuteJeMinute": 1.16, "beuteJeStufe": [ 1, 1.2, 1.4 ], "fangJeStunde": 0.012, "fangJeStufe": [ 1, 0.8, 0.6 ] },
     "einbruch": { "abStufe": 1, "chanceBonus": 0.1, "stueckJeStufe": 6, "zeugenFaktor": 0.75 },
     "auskundschaften": { "abStufe": 1, "chance": 0.4 },
     "schutzgeld": { "abStufe": 2, "sabotageBonus": 0.1 },
@@ -1010,98 +1194,233 @@
       "launeMinuten": 1140
     },
     "befoerderung": { "von": "Lehrling", "zu": "Geselle", "dienstMinuten": 2280 },
+    "spalten": ["Werkstatt", "Lager & Handel", "Schutz & Personal"],
     "einrichtung": {
       "Schmied": [
-        { "kennung": "Werkzeug1", "name": "Gutes Werkzeug", "preis": 300, "abStufe": 1, "wirkung": { "zeitFaktor": 0.9 } },
-        { "kennung": "Werkzeug2", "name": "Meisterwerkzeug", "preis": 800, "abStufe": 2, "voraussetzung": "Werkzeug1", "wirkung": { "zeitFaktor": 0.9 } },
-        { "kennung": "Blasebalg", "name": "Großer Blasebalg", "preis": 350, "abStufe": 1, "wirkung": { "zeitFaktor": 0.9, "waren": ["Beschlag", "Rapier", "Werkzeug", "Prunkschwert"] } },
-        { "kennung": "Regale", "name": "Regale", "preis": 200, "abStufe": 1, "wirkung": { "lagerPlus": 20 } },
-        { "kennung": "Loeschfass", "name": "Löschfass", "preis": 100, "abStufe": 1, "wirkung": { "brandFaktor": 0.5 } },
-        { "kennung": "Eisentuer", "name": "Eisentür", "preis": 150, "abStufe": 1, "wirkung": { "einbruchFaktor": 0.5 } },
-        { "kennung": "Schuerzen", "name": "Lederschürzen", "preis": 80, "abStufe": 1, "wirkung": { "unfallFaktor": 0.5 } }
+        { "kennung": "Werkzeug1", "name": "Gutes Werkzeug", "preis": 300, "spalte": "Werkstatt", "abStufe": 1, "wirkung": { "zeitFaktor": 0.9 } },
+        { "kennung": "Werkzeug2", "name": "Meisterwerkzeug", "preis": 800, "spalte": "Werkstatt", "abStufe": 2, "voraussetzung": "Werkzeug1", "wirkung": { "zeitFaktor": 0.9 } },
+        { "kennung": "Blasebalg", "name": "Großer Blasebalg", "preis": 350, "spalte": "Werkstatt", "abStufe": 1, "wirkung": { "zeitFaktor": 0.9, "waren": ["Beschlag", "Rapier", "Werkzeug", "Prunkschwert"] } },
+        { "kennung": "Regale", "name": "Regale", "preis": 200, "spalte": "Lager & Handel", "abStufe": 1, "wirkung": { "lagerPlus": 20 } },
+        { "kennung": "Loeschfass", "name": "Löschfass", "preis": 100, "spalte": "Schutz & Personal", "abStufe": 1, "wirkung": { "brandFaktor": 0.5 } },
+        { "kennung": "Eisentuer", "name": "Eisentür", "preis": 150, "spalte": "Schutz & Personal", "abStufe": 1, "wirkung": { "einbruchFaktor": 0.5 } },
+        { "kennung": "Schuerzen", "name": "Lederschürzen", "preis": 80, "spalte": "Schutz & Personal", "abStufe": 1, "wirkung": { "unfallFaktor": 0.5 } },
+        { "kennung": "Schleifstein", "name": "Tretrad-Schleifstein", "preis": 1500, "spalte": "Werkstatt", "abStufe": 3, "voraussetzung": "Werkzeug2", "wirkung": { "zeitFaktor": 0.85, "waren": ["Goldkette", "Prunkschwert"] } },
+        { "kennung": "Ladentheke", "name": "Ladentheke", "preis": 800, "spalte": "Lager & Handel", "abStufe": 3, "voraussetzung": "Regale", "wirkung": { "ladenAnteil": 0.25, "ladenAufschlag": 0.05 } },
+        { "kennung": "Lehrlingsstube", "name": "Lehrlingsstube", "preis": 600, "spalte": "Schutz & Personal", "abStufe": 3, "wirkung": { "erfahrungFaktor": 1.5 } }
       ],
       "Tischler": [
-        { "kennung": "Werkzeug1", "name": "Gutes Werkzeug", "preis": 300, "abStufe": 1, "wirkung": { "zeitFaktor": 0.9 } },
-        { "kennung": "Werkzeug2", "name": "Meisterwerkzeug", "preis": 800, "abStufe": 2, "voraussetzung": "Werkzeug1", "wirkung": { "zeitFaktor": 0.9 } },
-        { "kennung": "Leimzwingen", "name": "Leimofen und Zwingen", "preis": 350, "abStufe": 1, "wirkung": { "zeitFaktor": 0.9, "waren": ["Truhe", "Schrank", "Prunktruhe", "Armbrust"] } },
-        { "kennung": "Regale", "name": "Holzgestell", "preis": 200, "abStufe": 1, "wirkung": { "lagerPlus": 20 } },
-        { "kennung": "Loeschfass", "name": "Löschfass", "preis": 100, "abStufe": 1, "wirkung": { "brandFaktor": 0.5 } },
-        { "kennung": "Eisentuer", "name": "Eisentür", "preis": 150, "abStufe": 1, "wirkung": { "einbruchFaktor": 0.5 } },
-        { "kennung": "Schuerzen", "name": "Lederschürzen", "preis": 80, "abStufe": 1, "wirkung": { "unfallFaktor": 0.5 } }
+        { "kennung": "Werkzeug1", "name": "Gutes Werkzeug", "preis": 300, "spalte": "Werkstatt", "abStufe": 1, "wirkung": { "zeitFaktor": 0.9 } },
+        { "kennung": "Werkzeug2", "name": "Meisterwerkzeug", "preis": 800, "spalte": "Werkstatt", "abStufe": 2, "voraussetzung": "Werkzeug1", "wirkung": { "zeitFaktor": 0.9 } },
+        { "kennung": "Leimzwingen", "name": "Leimofen und Zwingen", "preis": 350, "spalte": "Werkstatt", "abStufe": 1, "wirkung": { "zeitFaktor": 0.9, "waren": ["Truhe", "Schrank", "Prunktruhe", "Armbrust"] } },
+        { "kennung": "Regale", "name": "Holzgestell", "preis": 200, "spalte": "Lager & Handel", "abStufe": 1, "wirkung": { "lagerPlus": 20 } },
+        { "kennung": "Loeschfass", "name": "Löschfass", "preis": 100, "spalte": "Schutz & Personal", "abStufe": 1, "wirkung": { "brandFaktor": 0.5 } },
+        { "kennung": "Eisentuer", "name": "Eisentür", "preis": 150, "spalte": "Schutz & Personal", "abStufe": 1, "wirkung": { "einbruchFaktor": 0.5 } },
+        { "kennung": "Schuerzen", "name": "Lederschürzen", "preis": 80, "spalte": "Schutz & Personal", "abStufe": 1, "wirkung": { "unfallFaktor": 0.5 } },
+        { "kennung": "Drechselbank", "name": "Drechselbank", "preis": 1500, "spalte": "Werkstatt", "abStufe": 3, "voraussetzung": "Werkzeug2", "wirkung": { "zeitFaktor": 0.85, "waren": ["Schrank", "Prunktruhe"] } },
+        { "kennung": "Ladentheke", "name": "Ladentheke", "preis": 800, "spalte": "Lager & Handel", "abStufe": 3, "voraussetzung": "Regale", "wirkung": { "ladenAnteil": 0.25, "ladenAufschlag": 0.05 } },
+        { "kennung": "Lehrlingsstube", "name": "Lehrlingsstube", "preis": 600, "spalte": "Schutz & Personal", "abStufe": 3, "wirkung": { "erfahrungFaktor": 1.5 } }
       ],
       "Steinmetz": [
-        { "kennung": "Werkzeug1", "name": "Gutes Werkzeug", "preis": 300, "abStufe": 1, "wirkung": { "zeitFaktor": 0.9 } },
-        { "kennung": "Werkzeug2", "name": "Meisterwerkzeug", "preis": 800, "abStufe": 2, "voraussetzung": "Werkzeug1", "wirkung": { "zeitFaktor": 0.9 } },
-        { "kennung": "Flaschenzug", "name": "Flaschenzug", "preis": 350, "abStufe": 1, "wirkung": { "zeitFaktor": 0.9, "waren": ["Mühlstein", "Säule", "Taufbecken", "Grabmal"] } },
-        { "kennung": "Regale", "name": "Steingestell", "preis": 200, "abStufe": 1, "wirkung": { "lagerPlus": 20 } },
-        { "kennung": "Loeschfass", "name": "Löschfass", "preis": 100, "abStufe": 1, "wirkung": { "brandFaktor": 0.5 } },
-        { "kennung": "Eisentuer", "name": "Eisentür", "preis": 150, "abStufe": 1, "wirkung": { "einbruchFaktor": 0.5 } },
-        { "kennung": "Schuerzen", "name": "Lederschürzen", "preis": 80, "abStufe": 1, "wirkung": { "unfallFaktor": 0.5 } }
+        { "kennung": "Werkzeug1", "name": "Gutes Werkzeug", "preis": 300, "spalte": "Werkstatt", "abStufe": 1, "wirkung": { "zeitFaktor": 0.9 } },
+        { "kennung": "Werkzeug2", "name": "Meisterwerkzeug", "preis": 800, "spalte": "Werkstatt", "abStufe": 2, "voraussetzung": "Werkzeug1", "wirkung": { "zeitFaktor": 0.9 } },
+        { "kennung": "Flaschenzug", "name": "Flaschenzug", "preis": 350, "spalte": "Werkstatt", "abStufe": 1, "wirkung": { "zeitFaktor": 0.9, "waren": ["Mühlstein", "Säule", "Taufbecken", "Grabmal"] } },
+        { "kennung": "Regale", "name": "Steingestell", "preis": 200, "spalte": "Lager & Handel", "abStufe": 1, "wirkung": { "lagerPlus": 20 } },
+        { "kennung": "Loeschfass", "name": "Löschfass", "preis": 100, "spalte": "Schutz & Personal", "abStufe": 1, "wirkung": { "brandFaktor": 0.5 } },
+        { "kennung": "Eisentuer", "name": "Eisentür", "preis": 150, "spalte": "Schutz & Personal", "abStufe": 1, "wirkung": { "einbruchFaktor": 0.5 } },
+        { "kennung": "Schuerzen", "name": "Lederschürzen", "preis": 80, "spalte": "Schutz & Personal", "abStufe": 1, "wirkung": { "unfallFaktor": 0.5 } },
+        { "kennung": "Steinsaege", "name": "Steinsäge", "preis": 1500, "spalte": "Werkstatt", "abStufe": 3, "voraussetzung": "Werkzeug2", "wirkung": { "zeitFaktor": 0.85, "waren": ["Steinfigur", "Grabmal"] } },
+        { "kennung": "Ladentheke", "name": "Ladentheke", "preis": 800, "spalte": "Lager & Handel", "abStufe": 3, "voraussetzung": "Regale", "wirkung": { "ladenAnteil": 0.25, "ladenAufschlag": 0.05 } },
+        { "kennung": "Lehrlingsstube", "name": "Lehrlingsstube", "preis": 600, "spalte": "Schutz & Personal", "abStufe": 3, "wirkung": { "erfahrungFaktor": 1.5 } }
       ],
       "Alchimist": [
-        { "kennung": "Werkzeug1", "name": "Gutes Werkzeug", "preis": 300, "abStufe": 1, "wirkung": { "zeitFaktor": 0.9 } },
-        { "kennung": "Werkzeug2", "name": "Meisterwerkzeug", "preis": 800, "abStufe": 2, "voraussetzung": "Werkzeug1", "wirkung": { "zeitFaktor": 0.9 } },
-        { "kennung": "Destillierhelm", "name": "Kupferner Destillierhelm", "preis": 350, "abStufe": 1, "wirkung": { "zeitFaktor": 0.9, "waren": ["Kräuterschnaps", "Rosenwasser", "Gegengift", "Theriak"] } },
-        { "kennung": "Regale", "name": "Kräuterregale", "preis": 200, "abStufe": 1, "wirkung": { "lagerPlus": 20 } },
-        { "kennung": "Loeschfass", "name": "Löschfass", "preis": 100, "abStufe": 1, "wirkung": { "brandFaktor": 0.5 } },
-        { "kennung": "Eisentuer", "name": "Eisentür", "preis": 150, "abStufe": 1, "wirkung": { "einbruchFaktor": 0.5 } },
-        { "kennung": "Handschuhe", "name": "Lederhandschuhe", "preis": 80, "abStufe": 1, "wirkung": { "unfallFaktor": 0.5 } }
+        { "kennung": "Werkzeug1", "name": "Gutes Werkzeug", "preis": 300, "spalte": "Werkstatt", "abStufe": 1, "wirkung": { "zeitFaktor": 0.9 } },
+        { "kennung": "Werkzeug2", "name": "Meisterwerkzeug", "preis": 800, "spalte": "Werkstatt", "abStufe": 2, "voraussetzung": "Werkzeug1", "wirkung": { "zeitFaktor": 0.9 } },
+        { "kennung": "Destillierhelm", "name": "Kupferner Destillierhelm", "preis": 350, "spalte": "Werkstatt", "abStufe": 1, "wirkung": { "zeitFaktor": 0.9, "waren": ["Kräuterschnaps", "Rosenwasser", "Gegengift", "Theriak"] } },
+        { "kennung": "Regale", "name": "Kräuterregale", "preis": 200, "spalte": "Lager & Handel", "abStufe": 1, "wirkung": { "lagerPlus": 20 } },
+        { "kennung": "Loeschfass", "name": "Löschfass", "preis": 100, "spalte": "Schutz & Personal", "abStufe": 1, "wirkung": { "brandFaktor": 0.5 } },
+        { "kennung": "Eisentuer", "name": "Eisentür", "preis": 150, "spalte": "Schutz & Personal", "abStufe": 1, "wirkung": { "einbruchFaktor": 0.5 } },
+        { "kennung": "Handschuhe", "name": "Lederhandschuhe", "preis": 80, "spalte": "Schutz & Personal", "abStufe": 1, "wirkung": { "unfallFaktor": 0.5 } },
+        { "kennung": "Athanor", "name": "Athanor", "preis": 1500, "spalte": "Werkstatt", "abStufe": 3, "voraussetzung": "Werkzeug2", "wirkung": { "zeitFaktor": 0.85, "waren": ["Theriak", "Zinnober"] } },
+        { "kennung": "Ladentheke", "name": "Ladentheke", "preis": 800, "spalte": "Lager & Handel", "abStufe": 3, "voraussetzung": "Regale", "wirkung": { "ladenAnteil": 0.25, "ladenAufschlag": 0.05 } },
+        { "kennung": "Lehrlingsstube", "name": "Lehrlingsstube", "preis": 600, "spalte": "Schutz & Personal", "abStufe": 3, "wirkung": { "erfahrungFaktor": 1.5 } }
       ],
       "Parfumeur": [
-        { "kennung": "Werkzeug1", "name": "Gutes Werkzeug", "preis": 300, "abStufe": 1, "wirkung": { "zeitFaktor": 0.9 } },
-        { "kennung": "Werkzeug2", "name": "Meisterwerkzeug", "preis": 800, "abStufe": 2, "voraussetzung": "Werkzeug1", "wirkung": { "zeitFaktor": 0.9 } },
-        { "kennung": "Glasflakons", "name": "Venezianische Glasflakons", "preis": 350, "abStufe": 1, "wirkung": { "zeitFaktor": 0.9, "waren": ["Moschusduft", "Fechterduft", "Heiligenduft"] } },
-        { "kennung": "Regale", "name": "Flakonregale", "preis": 200, "abStufe": 1, "wirkung": { "lagerPlus": 20 } },
-        { "kennung": "Loeschfass", "name": "Löschfass", "preis": 100, "abStufe": 1, "wirkung": { "brandFaktor": 0.5 } },
-        { "kennung": "Eisentuer", "name": "Eisentür", "preis": 150, "abStufe": 1, "wirkung": { "einbruchFaktor": 0.5 } },
-        { "kennung": "Handschuhe", "name": "Lederhandschuhe", "preis": 80, "abStufe": 1, "wirkung": { "unfallFaktor": 0.5 } }
+        { "kennung": "Werkzeug1", "name": "Gutes Werkzeug", "preis": 300, "spalte": "Werkstatt", "abStufe": 1, "wirkung": { "zeitFaktor": 0.9 } },
+        { "kennung": "Werkzeug2", "name": "Meisterwerkzeug", "preis": 800, "spalte": "Werkstatt", "abStufe": 2, "voraussetzung": "Werkzeug1", "wirkung": { "zeitFaktor": 0.9 } },
+        { "kennung": "Glasflakons", "name": "Venezianische Glasflakons", "preis": 350, "spalte": "Werkstatt", "abStufe": 1, "wirkung": { "zeitFaktor": 0.9, "waren": ["Moschusduft", "Fechterduft", "Heiligenduft"] } },
+        { "kennung": "Regale", "name": "Flakonregale", "preis": 200, "spalte": "Lager & Handel", "abStufe": 1, "wirkung": { "lagerPlus": 20 } },
+        { "kennung": "Loeschfass", "name": "Löschfass", "preis": 100, "spalte": "Schutz & Personal", "abStufe": 1, "wirkung": { "brandFaktor": 0.5 } },
+        { "kennung": "Eisentuer", "name": "Eisentür", "preis": 150, "spalte": "Schutz & Personal", "abStufe": 1, "wirkung": { "einbruchFaktor": 0.5 } },
+        { "kennung": "Handschuhe", "name": "Lederhandschuhe", "preis": 80, "spalte": "Schutz & Personal", "abStufe": 1, "wirkung": { "unfallFaktor": 0.5 } },
+        { "kennung": "Enfleurage", "name": "Enfleurage-Kammer", "preis": 1500, "spalte": "Werkstatt", "abStufe": 3, "voraussetzung": "Werkzeug2", "wirkung": { "zeitFaktor": 0.85, "waren": ["Heiligenduft", "Schattendolch"] } },
+        { "kennung": "Ladentheke", "name": "Ladentheke", "preis": 800, "spalte": "Lager & Handel", "abStufe": 3, "voraussetzung": "Regale", "wirkung": { "ladenAnteil": 0.25, "ladenAufschlag": 0.05 } },
+        { "kennung": "Lehrlingsstube", "name": "Lehrlingsstube", "preis": 600, "spalte": "Schutz & Personal", "abStufe": 3, "wirkung": { "erfahrungFaktor": 1.5 } }
       ],
       "Wirt": [
-        { "kennung": "Werkzeug1", "name": "Gutes Werkzeug", "preis": 300, "abStufe": 1, "wirkung": { "zeitFaktor": 0.9 } },
-        { "kennung": "Werkzeug2", "name": "Meisterwerkzeug", "preis": 800, "abStufe": 2, "voraussetzung": "Werkzeug1", "wirkung": { "zeitFaktor": 0.9 } },
-        { "kennung": "Braupfanne", "name": "Kupferne Braupfanne", "preis": 350, "abStufe": 1, "wirkung": { "zeitFaktor": 0.9, "waren": ["Dünnbier", "Starkbier", "Festbier"] } },
-        { "kennung": "Regale", "name": "Fassregale", "preis": 200, "abStufe": 1, "wirkung": { "lagerPlus": 20 } },
-        { "kennung": "Loeschfass", "name": "Löschfass", "preis": 100, "abStufe": 1, "wirkung": { "brandFaktor": 0.5 } },
-        { "kennung": "Eisentuer", "name": "Eisentür", "preis": 150, "abStufe": 1, "wirkung": { "einbruchFaktor": 0.5 } },
-        { "kennung": "Handschuhe", "name": "Lederhandschuhe", "preis": 80, "abStufe": 1, "wirkung": { "unfallFaktor": 0.5 } }
+        { "kennung": "Werkzeug1", "name": "Gutes Werkzeug", "preis": 300, "spalte": "Werkstatt", "abStufe": 1, "wirkung": { "zeitFaktor": 0.9 } },
+        { "kennung": "Werkzeug2", "name": "Meisterwerkzeug", "preis": 800, "spalte": "Werkstatt", "abStufe": 2, "voraussetzung": "Werkzeug1", "wirkung": { "zeitFaktor": 0.9 } },
+        { "kennung": "Braupfanne", "name": "Kupferne Braupfanne", "preis": 350, "spalte": "Werkstatt", "abStufe": 1, "wirkung": { "zeitFaktor": 0.9, "waren": ["Dünnbier", "Starkbier", "Festbier"] } },
+        { "kennung": "Regale", "name": "Fassregale", "preis": 200, "spalte": "Lager & Handel", "abStufe": 1, "wirkung": { "lagerPlus": 20 } },
+        { "kennung": "Loeschfass", "name": "Löschfass", "preis": 100, "spalte": "Schutz & Personal", "abStufe": 1, "wirkung": { "brandFaktor": 0.5 } },
+        { "kennung": "Eisentuer", "name": "Eisentür", "preis": 150, "spalte": "Schutz & Personal", "abStufe": 1, "wirkung": { "einbruchFaktor": 0.5 } },
+        { "kennung": "Handschuhe", "name": "Lederhandschuhe", "preis": 80, "spalte": "Schutz & Personal", "abStufe": 1, "wirkung": { "unfallFaktor": 0.5 } },
+        { "kennung": "Gewoelbekeller", "name": "Gewölbekeller", "preis": 1500, "spalte": "Werkstatt", "abStufe": 3, "voraussetzung": "Werkzeug2", "wirkung": { "zeitFaktor": 0.85, "waren": ["Festbier", "Schädelbrand"] } },
+        { "kennung": "Ladentheke", "name": "Ladentheke", "preis": 800, "spalte": "Lager & Handel", "abStufe": 3, "voraussetzung": "Regale", "wirkung": { "ladenAnteil": 0.25, "ladenAufschlag": 0.05 } },
+        { "kennung": "Lehrlingsstube", "name": "Lehrlingsstube", "preis": 600, "spalte": "Schutz & Personal", "abStufe": 3, "wirkung": { "erfahrungFaktor": 1.5 } }
       ],
       "Prediger": [
-        { "kennung": "Werkzeug1", "name": "Gutes Werkzeug", "preis": 300, "abStufe": 1, "wirkung": { "zeitFaktor": 0.9 } },
-        { "kennung": "Werkzeug2", "name": "Meisterwerkzeug", "preis": 800, "abStufe": 2, "voraussetzung": "Werkzeug1", "wirkung": { "zeitFaktor": 0.9 } },
-        { "kennung": "Gaensekiele", "name": "Gänsekiele und Lapislazuli", "preis": 350, "abStufe": 1, "wirkung": { "zeitFaktor": 0.9, "waren": ["Lehrschrift", "Psalter", "Stundenbuch"] } },
-        { "kennung": "Regale", "name": "Bücherregale", "preis": 200, "abStufe": 1, "wirkung": { "lagerPlus": 20 } },
-        { "kennung": "Loeschfass", "name": "Löschfass", "preis": 100, "abStufe": 1, "wirkung": { "brandFaktor": 0.5 } },
-        { "kennung": "Eisentuer", "name": "Eisentür", "preis": 150, "abStufe": 1, "wirkung": { "einbruchFaktor": 0.5 } },
-        { "kennung": "Handschuhe", "name": "Lederhandschuhe", "preis": 80, "abStufe": 1, "wirkung": { "unfallFaktor": 0.5 } }
+        { "kennung": "Werkzeug1", "name": "Gutes Werkzeug", "preis": 300, "spalte": "Werkstatt", "abStufe": 1, "wirkung": { "zeitFaktor": 0.9 } },
+        { "kennung": "Werkzeug2", "name": "Meisterwerkzeug", "preis": 800, "spalte": "Werkstatt", "abStufe": 2, "voraussetzung": "Werkzeug1", "wirkung": { "zeitFaktor": 0.9 } },
+        { "kennung": "Gaensekiele", "name": "Gänsekiele und Lapislazuli", "preis": 350, "spalte": "Werkstatt", "abStufe": 1, "wirkung": { "zeitFaktor": 0.9, "waren": ["Lehrschrift", "Psalter", "Stundenbuch"] } },
+        { "kennung": "Regale", "name": "Bücherregale", "preis": 200, "spalte": "Lager & Handel", "abStufe": 1, "wirkung": { "lagerPlus": 20 } },
+        { "kennung": "Loeschfass", "name": "Löschfass", "preis": 100, "spalte": "Schutz & Personal", "abStufe": 1, "wirkung": { "brandFaktor": 0.5 } },
+        { "kennung": "Eisentuer", "name": "Eisentür", "preis": 150, "spalte": "Schutz & Personal", "abStufe": 1, "wirkung": { "einbruchFaktor": 0.5 } },
+        { "kennung": "Handschuhe", "name": "Lederhandschuhe", "preis": 80, "spalte": "Schutz & Personal", "abStufe": 1, "wirkung": { "unfallFaktor": 0.5 } },
+        { "kennung": "Skriptorium", "name": "Skriptorium", "preis": 1500, "spalte": "Werkstatt", "abStufe": 3, "voraussetzung": "Werkzeug2", "wirkung": { "zeitFaktor": 0.85, "waren": ["Stundenbuch", "Reliquiar"] } },
+        { "kennung": "Ladentheke", "name": "Ladentheke", "preis": 800, "spalte": "Lager & Handel", "abStufe": 3, "voraussetzung": "Regale", "wirkung": { "ladenAnteil": 0.25, "ladenAufschlag": 0.05 } },
+        { "kennung": "Lehrlingsstube", "name": "Lehrlingsstube", "preis": 600, "spalte": "Schutz & Personal", "abStufe": 3, "wirkung": { "erfahrungFaktor": 1.5 } }
       ],
       "Dieb": [
-        { "kennung": "Werkzeug1", "name": "Dietriche", "preis": 300, "abStufe": 1, "wirkung": { "einbruchBonus": 0.1 } },
-        { "kennung": "Werkzeug2", "name": "Meisterdietriche", "preis": 800, "abStufe": 2, "voraussetzung": "Werkzeug1", "wirkung": { "einbruchBonus": 0.1 } },
-        { "kennung": "Verkleidung", "name": "Verkleidungstruhe", "preis": 350, "abStufe": 1, "wirkung": { "fangFaktor": 0.75 } },
-        { "kennung": "Regale", "name": "Hehlerkammer", "preis": 200, "abStufe": 1, "wirkung": { "lagerPlus": 20 } },
-        { "kennung": "Loeschfass", "name": "Löschfass", "preis": 100, "abStufe": 1, "wirkung": { "brandFaktor": 0.5 } },
-        { "kennung": "Eisentuer", "name": "Eisentür", "preis": 150, "abStufe": 1, "wirkung": { "einbruchFaktor": 0.5 } },
-        { "kennung": "Handschuhe", "name": "Lederhandschuhe", "preis": 80, "abStufe": 1, "wirkung": { "spurenFaktor": 0.75 } }
+        { "kennung": "Werkzeug1", "name": "Dietriche", "preis": 300, "spalte": "Werkstatt", "abStufe": 1, "wirkung": { "einbruchBonus": 0.1 } },
+        { "kennung": "Werkzeug2", "name": "Meisterdietriche", "preis": 800, "spalte": "Werkstatt", "abStufe": 2, "voraussetzung": "Werkzeug1", "wirkung": { "einbruchBonus": 0.1 } },
+        { "kennung": "Verkleidung", "name": "Verkleidungstruhe", "preis": 350, "spalte": "Schutz & Personal", "abStufe": 1, "wirkung": { "fangFaktor": 0.75 } },
+        { "kennung": "Regale", "name": "Hehlerkammer", "preis": 200, "spalte": "Lager & Handel", "abStufe": 1, "wirkung": { "lagerPlus": 20 } },
+        { "kennung": "Loeschfass", "name": "Löschfass", "preis": 100, "spalte": "Schutz & Personal", "abStufe": 1, "wirkung": { "brandFaktor": 0.5 } },
+        { "kennung": "Eisentuer", "name": "Eisentür", "preis": 150, "spalte": "Schutz & Personal", "abStufe": 1, "wirkung": { "einbruchFaktor": 0.5 } },
+        { "kennung": "Handschuhe", "name": "Lederhandschuhe", "preis": 80, "spalte": "Schutz & Personal", "abStufe": 1, "wirkung": { "spurenFaktor": 0.75 } },
+        { "kennung": "Lehrlingsstube", "name": "Lehrlingsstube", "preis": 600, "spalte": "Schutz & Personal", "abStufe": 3, "wirkung": { "erfahrungFaktor": 1.5 } }
       ],
       "Gardist": [
-        { "kennung": "Werkzeug1", "name": "Hellebarden", "preis": 300, "abStufe": 1, "wirkung": { "razziaBonus": 0.1 } },
-        { "kennung": "Werkzeug2", "name": "Armbrüste", "preis": 800, "abStufe": 2, "voraussetzung": "Werkzeug1", "wirkung": { "razziaBonus": 0.1 } },
-        { "kennung": "Hunde", "name": "Wachhunde", "preis": 350, "abStufe": 1, "wirkung": { "streifenFaktor": 1.25 } },
-        { "kennung": "Kettenhemd", "name": "Kettenhemden", "preis": 350, "abStufe": 1, "wirkung": { "geleitFaktor": 0.8 } },
-        { "kennung": "Regale", "name": "Waffenkammer", "preis": 200, "abStufe": 1, "wirkung": { "lohnFaktor": 0.9 } },
-        { "kennung": "Loeschfass", "name": "Löschfass", "preis": 100, "abStufe": 1, "wirkung": { "brandFaktor": 0.5 } },
-        { "kennung": "Eisentuer", "name": "Eisentür", "preis": 150, "abStufe": 1, "wirkung": { "einbruchFaktor": 0.5 } }
+        { "kennung": "Werkzeug1", "name": "Hellebarden", "preis": 300, "spalte": "Werkstatt", "abStufe": 1, "wirkung": { "razziaBonus": 0.1 } },
+        { "kennung": "Werkzeug2", "name": "Armbrüste", "preis": 800, "spalte": "Werkstatt", "abStufe": 2, "voraussetzung": "Werkzeug1", "wirkung": { "razziaBonus": 0.1 } },
+        { "kennung": "Hunde", "name": "Wachhunde", "preis": 350, "spalte": "Werkstatt", "abStufe": 1, "wirkung": { "streifenFaktor": 1.25 } },
+        { "kennung": "Kettenhemd", "name": "Kettenhemden", "preis": 350, "spalte": "Werkstatt", "abStufe": 1, "wirkung": { "geleitFaktor": 0.8 } },
+        { "kennung": "Regale", "name": "Waffenkammer", "preis": 200, "spalte": "Lager & Handel", "abStufe": 1, "wirkung": { "lohnFaktor": 0.9 } },
+        { "kennung": "Loeschfass", "name": "Löschfass", "preis": 100, "spalte": "Schutz & Personal", "abStufe": 1, "wirkung": { "brandFaktor": 0.5 } },
+        { "kennung": "Eisentuer", "name": "Eisentür", "preis": 150, "spalte": "Schutz & Personal", "abStufe": 1, "wirkung": { "einbruchFaktor": 0.5 } },
+        { "kennung": "Lehrlingsstube", "name": "Lehrlingsstube", "preis": 600, "spalte": "Schutz & Personal", "abStufe": 3, "wirkung": { "erfahrungFaktor": 1.5 } }
       ],
       "Geldleiher": [
-        { "kennung": "Werkzeug1", "name": "Rechenbretter", "preis": 300, "abStufe": 1, "wirkung": { "rahmenFaktor": 1.1 } },
-        { "kennung": "Werkzeug2", "name": "Hauptbücher", "preis": 350, "abStufe": 2, "voraussetzung": "Werkzeug1", "wirkung": { "rahmenFaktor": 1.1 } },
-        { "kennung": "Goldwaage", "name": "Goldwaage", "preis": 350, "abStufe": 1, "wirkung": { "wechselFaktor": 1.1 } },
-        { "kennung": "Pfandkammer", "name": "Pfandkammer", "preis": 150, "abStufe": 1, "wirkung": { "ausfallFaktor": 0.5 } },
-        { "kennung": "Kassenschrank", "name": "Kassenschrank", "preis": 200, "abStufe": 1, "wirkung": { "kreditFaktor": 1.25 } },
-        { "kennung": "Loeschfass", "name": "Löschfass", "preis": 100, "abStufe": 1, "wirkung": { "brandFaktor": 0.5 } },
-        { "kennung": "Eisentuer", "name": "Eisentür", "preis": 150, "abStufe": 1, "wirkung": { "einbruchFaktor": 0.5 } }
+        { "kennung": "Werkzeug1", "name": "Rechenbretter", "preis": 300, "spalte": "Werkstatt", "abStufe": 1, "wirkung": { "rahmenFaktor": 1.1 } },
+        { "kennung": "Werkzeug2", "name": "Hauptbücher", "preis": 350, "spalte": "Werkstatt", "abStufe": 2, "voraussetzung": "Werkzeug1", "wirkung": { "rahmenFaktor": 1.1 } },
+        { "kennung": "Goldwaage", "name": "Goldwaage", "preis": 350, "spalte": "Lager & Handel", "abStufe": 1, "wirkung": { "wechselFaktor": 1.1 } },
+        { "kennung": "Pfandkammer", "name": "Pfandkammer", "preis": 150, "spalte": "Lager & Handel", "abStufe": 1, "wirkung": { "ausfallFaktor": 0.5 } },
+        { "kennung": "Kassenschrank", "name": "Kassenschrank", "preis": 200, "spalte": "Lager & Handel", "abStufe": 1, "wirkung": { "kreditFaktor": 1.25 } },
+        { "kennung": "Loeschfass", "name": "Löschfass", "preis": 100, "spalte": "Schutz & Personal", "abStufe": 1, "wirkung": { "brandFaktor": 0.5 } },
+        { "kennung": "Eisentuer", "name": "Eisentür", "preis": 150, "spalte": "Schutz & Personal", "abStufe": 1, "wirkung": { "einbruchFaktor": 0.5 } },
+        { "kennung": "Lehrlingsstube", "name": "Lehrlingsstube", "preis": 600, "spalte": "Schutz & Personal", "abStufe": 3, "wirkung": { "erfahrungFaktor": 1.5 } }
       ]
     }
+  },
+  "personal": {
+    "erfahrung": [24, 84],
+    "briefe": [150, 400],
+    "vorarbeiterJeBetrieb": 1,
+    "eigenesVolk": 0.6,
+    "frauen": 0.15,
+    "namen": {
+      "Ork": {
+        "vornamenMann": ["Brakk", "Durg", "Gorm", "Krull", "Murk", "Narg", "Rusk", "Skarr", "Torg", "Uzk"],
+        "vornamenFrau": ["Brakka", "Durga", "Krulla", "Murka", "Narga", "Ruska", "Skarra", "Torga"],
+        "familiennamen": ["Eisenzahn", "Knochenbrecher", "Schlammfuß", "Rotauge", "Steinfaust", "Krummnase", "Dunkelhauer", "Moorgänger"]
+      },
+      "Oger": {
+        "vornamenMann": ["Grob", "Hump", "Klotz", "Mumm", "Rumpel", "Trumm"],
+        "vornamenFrau": ["Gruba", "Humpa", "Klotza", "Mumma"],
+        "familiennamen": ["Fassbauch", "Felsrücken", "Breitschulter", "Hungermaul"]
+      }
+    },
+    "laufbahnen": [
+      { "name": "Diebe", "berufe": ["Dieb"], "stufen": ["Taschendieb", "Dieb", "Meisterdieb"],
+        "eigenschaften": [
+          { "gruppe": "Ware", "stuecke": [
+            { "kennung": "Langfinger", "name": "Langfinger", "wirkung": { "tempoFaktor": 1.15 } },
+            { "kennung": "Hehlerfreund", "name": "Hehlerfreund", "wirkung": { "preisFaktor": 1.1 } },
+            { "kennung": "Einbrecher", "name": "Einbrecher", "wirkung": { "einbruchBonus": 0.1 } }
+          ] },
+          { "gruppe": "Führung", "stuecke": [
+            { "kennung": "Lehrmeister", "name": "Lehrmeister", "wirkung": { "erfahrungFaktor": 2 } },
+            { "kennung": "Verschwiegen", "name": "Verschwiegen", "wirkung": { "spurenFaktor": 0.75 } },
+            { "kennung": "Vorsichtig", "name": "Vorsichtig", "wirkung": { "fangFaktor": 0.75 } }
+          ] },
+          { "gruppe": "Betrieb", "stuecke": [
+            { "kennung": "Wachsam", "name": "Wachsam", "wirkung": { "einbruchFaktor": 0.5 } },
+            { "kennung": "Genuegsam", "name": "Genügsam", "wirkung": { "lohnFaktor": 0.95 } },
+            { "kennung": "Versteckkundig", "name": "Versteckkundig", "wirkung": { "lagerPlus": 20 } }
+          ] }
+        ] },
+      { "name": "Wache", "berufe": ["Gardist"], "stufen": ["Rekrut", "Gefreiter", "Feldwebel"],
+        "eigenschaften": [
+          { "gruppe": "Ware", "stuecke": [
+            { "kennung": "Spuernase", "name": "Spürnase", "wirkung": { "razziaBonus": 0.1 } },
+            { "kennung": "Streifengaenger", "name": "Streifengänger", "wirkung": { "streifenFaktor": 1.15 } },
+            { "kennung": "Geleitmann", "name": "Geleitmann", "wirkung": { "geleitFaktor": 0.85 } }
+          ] },
+          { "gruppe": "Führung", "stuecke": [
+            { "kennung": "Lehrmeister", "name": "Lehrmeister", "wirkung": { "erfahrungFaktor": 2 } },
+            { "kennung": "Antreiber", "name": "Antreiber", "wirkung": { "tempoFaktor": 1.1, "laune": -10} }
+          ] },
+          { "gruppe": "Betrieb", "stuecke": [
+            { "kennung": "Wachsam", "name": "Wachsam", "wirkung": { "einbruchFaktor": 0.5 } },
+            { "kennung": "Genuegsam", "name": "Genügsam", "wirkung": { "lohnFaktor": 0.95 } }
+          ] }
+        ] },
+      { "name": "Schreibstube", "berufe": ["Geldleiher"], "stufen": ["Lehrling", "Geselle", "Vorarbeiter"],
+        "eigenschaften": [
+          { "gruppe": "Ware", "stuecke": [
+            { "kennung": "Rechenkopf", "name": "Rechenkopf", "wirkung": { "rahmenFaktor": 1.1 } },
+            { "kennung": "Waeger", "name": "Genauer Wäger", "wirkung": { "wechselFaktor": 1.1 } },
+            { "kennung": "Pfandkundig", "name": "Pfandkundig", "wirkung": { "ausfallFaktor": 0.75 } }
+          ] },
+          { "gruppe": "Führung", "stuecke": [
+            { "kennung": "Lehrmeister", "name": "Lehrmeister", "wirkung": { "erfahrungFaktor": 2 } },
+            { "kennung": "Antreiber", "name": "Antreiber", "wirkung": { "tempoFaktor": 1.1, "laune": -10} },
+            { "kennung": "Kassenwart", "name": "Kassenwart", "wirkung": { "kreditFaktor": 1.15 } }
+          ] },
+          { "gruppe": "Betrieb", "stuecke": [
+            { "kennung": "Wachsam", "name": "Wachsam", "wirkung": { "einbruchFaktor": 0.5 } },
+            { "kennung": "Genuegsam", "name": "Genügsam", "wirkung": { "lohnFaktor": 0.95 } }
+          ] }
+        ] },
+      { "name": "Umland", "ort": "Umland", "stufen": ["Knecht", "Altknecht", "Großknecht"],
+        "eigenschaften": [
+          { "gruppe": "Ware", "stuecke": [
+            { "kennung": "Kraeftig", "name": "Kräftig", "wirkung": { "zeitFaktor": 0.85 } },
+            { "kennung": "GutesAuge", "name": "Gutes Auge", "wirkung": { "preisFaktor": 1.1 } },
+            { "kennung": "Ordnungsliebend", "name": "Ordnungsliebend", "wirkung": { "lagerPlus": 20 } }
+          ] },
+          { "gruppe": "Führung", "stuecke": [
+            { "kennung": "Lehrmeister", "name": "Lehrmeister", "wirkung": { "erfahrungFaktor": 2 } },
+            { "kennung": "Antreiber", "name": "Antreiber", "wirkung": { "tempoFaktor": 1.1, "laune": -10} },
+            { "kennung": "Aufseher", "name": "Aufseher", "wirkung": { "risikoFaktor": 0.5 } }
+          ] },
+          { "gruppe": "Betrieb", "stuecke": [
+            { "kennung": "Wachsam", "name": "Wachsam", "wirkung": { "einbruchFaktor": 0.5 } },
+            { "kennung": "Fruehaufsteher", "name": "Frühaufsteher", "wirkung": { "arbeitsminutenPlus": 60 } },
+            { "kennung": "Genuegsam", "name": "Genügsam", "wirkung": { "lohnFaktor": 0.95 } }
+          ] }
+        ] },
+      { "name": "Werkstatt", "stufen": ["Lehrling", "Geselle", "Vorarbeiter"],
+        "eigenschaften": [
+          { "gruppe": "Ware", "stuecke": [
+            { "kennung": "Flink", "name": "Flinke Hand", "wirkung": { "zeitFaktor": 0.85 } },
+            { "kennung": "GuterRuf", "name": "Guter Ruf", "wirkung": { "preisFaktor": 1.1 } },
+            { "kennung": "Sparsam", "name": "Sparsam", "wirkung": { "rohstoffFaktor": 0.9 } }
+          ] },
+          { "gruppe": "Führung", "stuecke": [
+            { "kennung": "Gemuet", "name": "Gutes Gemüt", "wirkung": { "laune": 5 } },
+            { "kennung": "Lehrmeister", "name": "Lehrmeister", "wirkung": { "erfahrungFaktor": 2 } },
+            { "kennung": "Umsichtig", "name": "Umsichtig", "wirkung": { "unfallFaktor": 0.5 } },
+            { "kennung": "Antreiber", "name": "Antreiber", "wirkung": { "tempoFaktor": 1.1, "laune": -10} }
+          ] },
+          { "gruppe": "Betrieb", "stuecke": [
+            { "kennung": "Ordnungsliebend", "name": "Ordnungsliebend", "wirkung": { "lagerPlus": 20 } },
+            { "kennung": "Wachsam", "name": "Wachsam", "wirkung": { "einbruchFaktor": 0.5 } },
+            { "kennung": "Fruehaufsteher", "name": "Frühaufsteher", "wirkung": { "arbeitsminutenPlus": 60 } },
+            { "kennung": "Genuegsam", "name": "Genügsam", "wirkung": { "lohnFaktor": 0.95 } }
+          ] }
+        ] }
+    ]
   },
   "verkauf": {
     "anteil": 0.75,

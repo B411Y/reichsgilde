@@ -37,7 +37,7 @@ static class BalancingTests
 
     public static IEnumerable<(string, Action)> Alle() => new (string, Action)[]
     {
-        ("Schwierigkeit: Normal (Vorgabe) – jedes KI-Haus beginnt wie der Spieler mit einer Werkstatt und zwei Gesellen; der Umlandbetrieb ist frei zur Pacht", () =>
+        ("Schwierigkeit: Normal (Vorgabe) – jedes KI-Haus beginnt wie der Spieler mit einer Werkstatt und zwei Lehrlingen (PR #224); der Umlandbetrieb ist frei zur Pacht", () =>
         {
             Pruefe.Gleich(Schwierigkeit.Normal, Partieeinstellungen.Standard.Schwierigkeit);
             foreach (var karte in new[] { null, Stadtkarte.AusDatei(Datenpfad.Karte("greybox")) })
@@ -49,7 +49,7 @@ static class BalancingTests
                 {
                     var betriebe = w.Betriebe.Where(b => b.Konto == ki).ToList();
                     Pruefe.Gleich(1, betriebe.Count, ki.Inhaber);
-                    Pruefe.Wahr(betriebe[0].IstWerkstatt && betriebe[0].Belegung.GetValueOrDefault("Geselle") == 2, $"{ki.Inhaber}: {betriebe[0].Name}");
+                    Pruefe.Wahr(betriebe[0].IstWerkstatt && betriebe[0].Belegung.GetValueOrDefault("Lehrling") == 2, $"{ki.Inhaber}: {betriebe[0].Name}");
                     Pruefe.Ungefaehr(spieler.Vermoegen, ki.Vermoegen, 1e-9); // gleiches Startgeld
                 }
                 var frei = w.FreieLiegenschaften.Select(l => l.Name).ToHashSet();

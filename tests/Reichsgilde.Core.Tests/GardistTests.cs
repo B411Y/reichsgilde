@@ -49,7 +49,7 @@ static class GardistTests
             Pruefe.WirftMitMeldung(() => Wirtschaftsdaten.AusJson(falsch), "\"wache\": true");
         }),
 
-        ("Sold: 4 Gesellen bekommen an einem Arbeitstag 4 × 720 × 0,84 Gulden (versteuert), halbe Erfahrung (vier Plätze) – das Haus ist beliebt", () =>
+        ("Sold: 4 Gesellen bekommen an einem Arbeitstag 4 × 720 × 0,875 Gulden (versteuert), halbe Erfahrung (vier Plätze) – das Haus ist beliebt", () =>
         {
             var sim = NeueSimulation();
             var w = sim.Wirtschaft!;
@@ -60,12 +60,12 @@ static class GardistTests
             Pruefe.Ungefaehr(ansehen + 3, w.Rat.Ansehen(k), 1e-9);
             Pruefe.Gleich(0, b.Karren.Count);
             for (var i = 0; i < 21 * 60 - Spielzeit.TagesbeginnMinute; i++) sim.Tick(); // bis 21 Uhr – die Arbeitszeit (8–20 Uhr) ist abgerechnet
-            // PR #177: Sold 0,75 → 0,68 je Minute, nach dem KI-Einrichtungskauf 0,73 (der Gardist hat kaum Einrichtung mit Gulden-Wirkung); PR #208: 0,84;
+            // PR #177: Sold 0,75 → 0,68 je Minute, nach dem KI-Einrichtungskauf 0,73 (der Gardist hat kaum Einrichtung mit Gulden-Wirkung); PR #208: 0,84; PR #224: 0,875 (Start mit Rekruten);
             // Erfahrung × 0,5 (erfahrungFaktor – doppelt so viele Plätze wie eine Werkstatt)
-            Pruefe.Ungefaehr(4 * 720 * 0.84, w.Wache.DiesesJahr(k).Sold, 1e-6);
-            Pruefe.Ungefaehr(4 * 720 * 0.84 * 0.05, k.Laufend.Steuer, 1e-6);
+            Pruefe.Ungefaehr(4 * 720 * 0.875, w.Wache.DiesesJahr(k).Sold, 1e-6);
+            Pruefe.Ungefaehr(4 * 720 * 0.875 * 0.05, k.Laufend.Steuer, 1e-6);
             Pruefe.Ungefaehr(24, k.Erfahrung("Gardist"), 1e-6);
-            Pruefe.Ungefaehr(0.84 * 0.95 * 720 - 220, Kalkulation.Jahresertrag(w, b, "Geselle"), 1e-6);
+            Pruefe.Ungefaehr(0.875 * 0.95 * 720 - 220, Kalkulation.Jahresertrag(w, b, "Geselle"), 1e-6);
         }),
 
         ("Patrouille: 4 Wachleute senken nächtliche Taten in der Stadt um 10 % und sehen öfter zu – im Umland nicht", () =>
@@ -88,7 +88,7 @@ static class GardistTests
             Pruefe.Ungefaehr(1, w.Wache.Landstrassenfaktor, 1e-12);
             var k = w.KontoEroeffnen("Familie Wacker", startvermoegen: 10_000);
             var turm = w.BetriebEroeffnen("Wachturm Wacker", Betriebsart.Wachturm, k);
-            w.Einstellen(turm, "Bergmann", 3);
+            w.Einstellen(turm, "Altknecht", 3);
             Pruefe.Ungefaehr(0.7, w.Wache.Landstrassenfaktor, 1e-12);
             Pruefe.Wahr(Kalkulation.ErwarteterJahresgewinn(w, Betriebsart.Wachturm) > 0, "Wachturm rechnet sich");
         }),

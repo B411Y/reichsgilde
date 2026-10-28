@@ -14,6 +14,10 @@
 #          vorkommt); Waren ohne Betrieb sind Rohstoffe (Holzrahmen, Lehmbraun).
 # Mit --rahmen=0.07 wird der Rahmen auf 7 % der Kantenlänge gestaucht (wie 9-Slice).
 # Mit --ohne-effekte (an beliebiger Stelle) ohne Lichthof, Saum und Schatten (Vorher-Bild).
+# einrichtung: Rohbilder der Einrichtung (<Ordner>/<Kennung>.png, Motiv auf Weiß) freistellen und als
+#          quellen/motiv/einrichtung_<kennung>.png ablegen. "bauen"/"tafel" setzen sie dann zusammen: Rahmen nach Reihe
+#          (1 Stein, 2 Silber, 3 Gold), Hintergrund nach Spalte (siehe EINR_HINTERGRUND); Spalte und Reihe je Kennung
+#          stehen in game/daten/wirtschaft.json (werkstatt.einrichtung, wohnen.einrichtung). Ausgabe einrichtung_<kennung>.png.
 # tafel:   Übersichtstafel (128 px oben, 64 px darunter) zur Abnahme.
 #
 # Die Dateinamen folgen WarenIcons.Dateiname: "Kräuterschnaps" -> "kraeuterschnaps".
@@ -26,6 +30,12 @@ const HINTERGRUND := {
 	"Schmied": "glutrot", "Alchimist": "smaragdgruen", "Parfumeur": "purpur", "Prediger": "nachtblau",
 	"Wirt": "bernstein", "Tischler": "ockerbraun", "Steinmetz": "schiefergrau",
 }
+# Hintergrund der Einrichtung nach Spalte des Talentbaums
+const EINR_HINTERGRUND := {
+	"Werkstatt": "ockerbraun", "Lager & Handel": "bernstein", "Schutz & Personal": "schiefergrau",
+	"Haushalt": "bernstein", "Ansehen": "purpur", "Schutz": "schiefergrau",
+}
+const EINR_RAHMEN := ["", "stein", "silber", "gold"]  # Index = Reihe (Gebäudestufe)
 const ROHSTOFF_HINTERGRUND := "lehmbraun"
 const RAHMEN := ["holz", "stein", "silber", "gold"]  # Index = Stufe (0 = Rohstoff)
 
@@ -53,6 +63,7 @@ func _init() -> void:
 		return
 	match arg[0]:
 		"quellen": _quellen(arg[1])
+		"einrichtung": _einrichtung_quellen(arg[1])
 		"bauen": _bauen(PackedStringArray(arg.slice(1)))
 		"tafel": _tafel(arg[1], PackedStringArray(arg.slice(2)))
 		_: print("Unbekannter Befehl: ", arg[0])
@@ -110,6 +121,34 @@ func _quellen(roh: String) -> void:
 				"motiv": bild = _motiv_freistellen(bild)
 			bild.save_png(_quellordner(art).path_join(name + ".png"))
 			print("quelle: ", art, "/", name)
+
+
+func _einrichtung_quellen(roh: String) -> void:
+	DirAccess.make_dir_recursive_absolute(_quellordner("motiv"))
+	for name in _dateien(roh):
+		var bild := _laden(_finde(roh, name))
+		if bild == null:
+			continue
+		bild = _motiv_freistellen(bild)
+		var ziel := "einrichtung_" + dateiname(name)
+		bild.save_png(_quellordner("motiv").path_join(ziel + ".png"))
+		print("quelle: motiv/", ziel)
+
+
+## Spalte und kleinste Reihe je Kennung: { "einrichtung_<kennung>": [spalte, reihe] } (die erste Fundstelle gilt).
+func _einrichtung_aus_daten() -> Dictionary:
+	var text := FileAccess.get_file_as_string(_wurzel.path_join("game/daten/wirtschaft.json"))
+	var json: Variant = JSON.parse_string(text)
+	var stuecke: Array = []
+	for liste in (json["werkstatt"]["einrichtung"] as Dictionary).values():
+		stuecke.append_array(liste)
+	stuecke.append_array(json["wohnen"]["einrichtung"])
+	var ergebnis := {}
+	for e in stuecke:
+		var key := "einrichtung_" + dateiname(e["kennung"])
+		if not ergebnis.has(key):
+			ergebnis[key] = [e.get("spalte", "Werkstatt"), int(e.get("abStufe", 1))]
+	return ergebnis
 
 
 static func _hell(farbe: Color) -> float:
@@ -340,13 +379,19 @@ func _knopf(key: String, waren: Dictionary, teile: Dictionary) -> Image:
 	var beruf := ""
 	var stufe := 0
 	var hintergrund := ROHSTOFF_HINTERGRUND
-	if waren.has(key):
+	var rahmenname := ""
+	var einrichtung := _einrichtung_aus_daten() if key.begins_with("einrichtung_") else {}
+	if einrichtung.has(key):
+		stufe = clampi(einrichtung[key][1], 1, 3)
+		hintergrund = EINR_HINTERGRUND.get(einrichtung[key][0], "schiefergrau")
+		rahmenname = EINR_RAHMEN[stufe]
+	elif waren.has(key):
 		beruf = waren[key][0]
 		stufe = waren[key][1]
 		hintergrund = HINTERGRUND[beruf]
 	var bg: Image = _teil(teile, "hintergrund", hintergrund)
 	var motiv: Image = _teil(teile, "motiv", key)
-	var rahmen: Image = _teil(teile, "rahmen", RAHMEN[stufe])
+	var rahmen: Image = _teil(teile, "rahmen", rahmenname if rahmenname != "" else RAHMEN[stufe])
 	if bg == null or motiv == null or rahmen == null:
 		return null
 	var bild := bg.duplicate() as Image
