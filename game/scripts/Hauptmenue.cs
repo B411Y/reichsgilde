@@ -104,9 +104,9 @@ public partial class Hauptmenue : Node
         {
             _startoptionenGenutzt = true;
             PortraetOptionAnwenden(portraetOption["--portraets=".Length..]);
-            // --blinzeln=zu|offen: die Augen für das Bildschirmfoto festhalten (sonst blinzelt das Bild zufällig)
+            // --blinzeln=zu|offen|<0..1>: die Augen für das Bildschirmfoto festhalten (sonst blinzelt das Bild zufällig)
             var blinzeln = OS.GetCmdlineUserArgs().FirstOrDefault(a => a.StartsWith("--blinzeln="));
-            if (blinzeln is not null) _portraet.BlinzelnFesthalten(blinzeln.EndsWith("zu") ? 1f : 0f);
+            if (blinzeln is not null) _portraet.BlinzelnFesthalten(blinzeln.EndsWith("zu") ? 1f : float.TryParse(blinzeln["--blinzeln=".Length..], System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out var teil) ? Math.Clamp(teil, 0f, 1f) : 0f);
             Zeigen(_oberhaupt);
         }
     }
