@@ -654,6 +654,12 @@
   "text": "Jede Person hat fünf Talente mit 0 bis 6 Sternen: Verhandeln (bessere Markterlöse), Handwerkskunst (mehr Leistung aller Arbeitskräfte), Bei Nacht und Nebel (Gaunerstücke gelingen öfter, Zeugen sehen weniger), Kampf (stärkere Wegelagerer, besser geschützte eigene Karren) und Rhetorik (Ratswahlen, Plädoyer vor Gericht, Brautgeschenke). Es zählen die Talente des [[oberhaupt|Oberhaupts]]. Üben kostet [[aktionspunkte|AP]]: ein halber Stern je Übung, je Talent einmal im Jahr."
  },
  {
+  "kennung": "charakterzuege",
+  "titel": "Charakterzüge",
+  "gruppe": "Haus und Familie",
+  "text": "Jede erwachsene Person hat drei Züge der Persönlichkeit (zum Beispiel gierig oder gütig), manche bringen einen angeborenen Zug mit, und im Lauf des Lebens kommen durch Ereignisse erworbene Züge dazu. Ein Zug ändert die [[talente|Talente]] (grün: Sterne mehr, rot: weniger), den Haushalt, die Anfälligkeit für [[krankheiten|Krankheiten]] oder – bei Ratsherren – die Wirkung von Geschenken. Gegensätze schließen sich aus. Ein Klick auf ein Porträt öffnet das Charakterfenster. Alle Züge:\n{wert:zuege_liste}"
+ },
+ {
   "kennung": "gesundheit",
   "titel": "Gesundheit",
   "gruppe": "Haus und Familie",

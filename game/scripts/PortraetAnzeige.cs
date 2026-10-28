@@ -120,8 +120,33 @@ public partial class PortraetAnzeige : Control
     }
 
     /// <summary>Zeigt eine Person des Familienbuchs: Stand, Kleidung und Altersstufe kommen aus dem Kern.</summary>
-    public void Zeigen(Familienbuch buch, Person p) =>
+    public void Zeigen(Familienbuch buch, Person p)
+    {
         Zeigen(p.Volk, p.Geschlecht, p.Aussehen, buch.AltersstufeVon(p), buch.KleidungVon(p), buch.StandgruppeVon(p));
+        Binden(p);
+    }
+
+    /// <summary>Wohin ein Klick auf ein Porträt führt (PR #227): die Hauptszene setzt beides auf das Charakterfenster. Ohne Eintrag öffnet ein Klick nichts.</summary>
+    public static Action<Person>? PersonOeffnen;
+    public static Action<Ratsherr>? RatsherrOeffnen;
+
+    private object? _gebunden; // Person oder Ratsherr, die dieses Porträt zeigt (null: ein Bild ohne Person, etwa in der Charaktererstellung)
+
+    private void Binden(object? ziel)
+    {
+        _gebunden = ziel;
+        MouseDefaultCursorShape = ziel is null ? CursorShape.Arrow : CursorShape.PointingHand;
+    }
+
+    public override void _GuiInput(InputEvent eingabe)
+    {
+        if (eingabe is not InputEventMouseButton { Pressed: true, ButtonIndex: MouseButton.Left }) return;
+        switch (_gebunden)
+        {
+            case Person p when PersonOeffnen is not null: PersonOeffnen(p); AcceptEvent(); break;
+            case Ratsherr r when RatsherrOeffnen is not null: RatsherrOeffnen(r); AcceptEvent(); break;
+        }
+    }
 
     /// <summary>Das Oberhaupt eines Hauses (Spieler oder KI). False, wenn das Haus keine Familie hat (alter Spielstand) – dann zeigt das Porträt nichts.</summary>
     public bool ZeigenHaus(Stadtwirtschaft w, Konto haus)
@@ -149,12 +174,14 @@ public partial class PortraetAnzeige : Control
         h &= int.MaxValue;
         var alter = (h / 7) % 3 == 0 ? Altersstufe.Alt : Altersstufe.Mittel;
         Zeigen(r.Daten.Volk, r.Geschlecht, r.Aussehen, alter, Kleidung.Vornehm, Standgruppe.Patrizier);
+        Binden(r);
     }
 
     private (Volk, Geschlecht, Aussehen, Altersstufe, Kleidung, Standgruppe)? _zuletzt;
 
     public void Zeigen(Volk volk, Geschlecht geschlecht, Aussehen aussehen, Altersstufe alter, Kleidung kleidung, Standgruppe gruppe)
     {
+        Binden(null); // die Aufrufer für Personen binden danach wieder
         // Unverändert (die Tafeln bauen sich oft neu auf, die Kopfzeile fragt jedes Bild): nichts neu laden
         var jetzt = (volk, geschlecht, aussehen, alter, kleidung, gruppe);
         if (_zuletzt == jetzt) return;
