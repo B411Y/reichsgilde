@@ -1255,3 +1255,11 @@ Entscheidungen zur Sitzung: `docs/bereiche/oberflaeche.md`, „Sichtbare Ratssit
 | Dreiecke | Bäume 600 bis 1.600 Dreiecke (unsere 37 bis 217): Blattkarten und Rinde getrennt auf ein Ziel vereinfacht, Laub flach schattiert (geglättete Normalen färbten die vereinfachten Karten schwarz). Das ist 5- bis 10-mal so viel wie unsere Bäume und trägt die Natur-Dichte-Regler mit; ein LOD gibt es nicht. Bei dichtem Wald lohnt sich die Messung (`--messung=`) vor einem Einsatz in Köln. | 28.10.2026 |
 | Umsetzung | `tools/modelle/kit_import.py` (Blender, liest die Pakete aus `RG_KITS`) schreibt `natur/natur_kit_boden|steine|baeume.glb` und `props/props_gegenstaende|props_dorf.glb`; Katalog: 47 Bausteine der Art `natur` (kein neuer Kern-Code, alle Werkzeuge der Kartenwerkstatt – Pflanze setzen, Pinsel, Streu, Drehen, Maßstab – gelten). `Stadtansicht.IstBaumDatei` und `IstBodenDatei` (Winterfassung, Schatten) ersetzen die Dateinamen-Vergleiche, `.glb.import` mit `gltf/embedded_image_handling=3` (Texturen bleiben in der Datei, nicht daneben). Herkunft: `HERKUNFT.md` in `natur/` und `props/`. | 28.10.2026 |
 | Klicktest | Vulkan (T400), Probekarte mit Reihen und Waldstück: Props mit Texturen, Laub gedämpftes Grün, Herbst orange, Winter kahle Rinde zwischen Kiefern, Nacht dunkel ohne Ausreißer; Kartenwerkstatt zeigt die Palette „Requisiten (Asset-Kits)“. | 28.10.2026 |
+
+### TressFX selbst bauen (PR #221)
+
+| Thema | Entscheidung | Datum |
+|---|---|---|
+| Warum | Die fertige Linux-Bibliothek (TressFX 0.3.0) braucht glibc 2.43; Linux- und Windows-Spieler sollen denselben Umfang bekommen, also bauen wir selbst. Entschieden vom Nutzer. | 28.10.2026 |
+| Quelle | `ismailivanov/TressFX-Godot` (MIT) Commit `a5cc2b1` (nach Tag v0.3.1, enthält die glibc-Korrektur), godot-cpp (MIT) Commit `507ed9d`. Beide fest im Workflow `.github/workflows/tressfx.yml`. | 28.10.2026 |
+| Ergebnis | Erster Lauf grün (11,5 min): Linux debug und release verlangen höchstens glibc 2.25 (Ziel 2.28), Ladetest in Godot 4.7.2 auf glibc 2.28 bestanden, Windows debug und release gebaut. Binärdateien nicht im Repository; Ablage (Repo, Git LFS oder Download beim Export) entscheidet der Nutzer. | 28.10.2026 |

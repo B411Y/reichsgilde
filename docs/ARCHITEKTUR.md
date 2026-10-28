@@ -99,6 +99,10 @@ Die Dateien unter `game/` liegen nach Art getrennt (PR #164), wie in Spielen üb
 
 **Modelle mit Unterordner:** Der Gebäudekatalog und der Code nennen ein Modell mit seinem Unterordner, ohne Endung (`"modell": "gebaeude/schmied"`, `Modell("tiere/vogel_taube")`); `Stadtansicht.Modell` lädt `res://assets/modelle/<datei>.glb`, gesucht wird nicht. Die Blender-Skripte legen jede Datei über `bausteine.modellpfad(name)` in ihren Unterordner (`unterordner`: nach Namen – `…_innen`, `natur_…`, `figur_…`, `karren_…`, `vogel_…` – und der Liste `UMLAND_MODELLE`, sonst `gebaeude/`); ein neues Umlandmodell gehört in diese Liste. Der Kern bekommt nur Texte, nie Pfade; die Tests finden die Dateien über `Datenpfad.Wirtschaft()` und `Datenpfad.Karte(kennung)`, `Stadtkarte.AusDatei(pfad)` den Katalog unter `daten/` neben `karten/`.
 
+## Fremd-Erweiterungen (GDExtension) selbst bauen
+
+Binärdateien fremder Erweiterungen vertrauen wir nicht blind und nehmen auch nicht die fertigen Downloads: Die fertige Linux-Bibliothek von TressFX (Echtzeit-Haar, MIT) verlangt glibc 2.43 und läuft auf den meisten Spieler-Rechnern nicht. Deshalb baut `.github/workflows/tressfx.yml` sie aus einem **festen Quell-Commit** (`TRESSFX_REF`, dazu `GODOT_CPP_REF`) selbst: Linux x86_64 im Container manylinux_2_28 (glibc 2.28, wie Godot selbst; Bibliothek verlangt höchstens glibc 2.25), Windows x86_64 mit MSVC, jeweils debug (Editor) und release. Danach prüft die CI die glibc-Anforderung (`check_glibc_floor.sh` der Quelle), lädt die Bibliothek in Godot 4.7.2 auf glibc 2.28 (Ladetest) und legt Bibliotheken, Lizenztexte, `SHA256SUMS.txt` und `glibc-linux.txt` als Artefakt „tressfx-bau“ ab. Gestartet wird per „Run workflow“ oder bei Änderung der Workflow-Datei. Die Binärdateien liegen **nicht** im Repository; die Ablage ist offen (siehe `docs/bereiche/darstellung.md`).
+
 ## Darstellung: 2,5D aus echten 3D-Modellen
 
 Die Welt besteht aus 3D-Objekten, wirkt aber wie ein gezeichnetes 2,5D-Spiel. Das leisten vier Regeln:
