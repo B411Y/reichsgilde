@@ -78,19 +78,19 @@ static class DiebTests
             Pruefe.WirftMitMeldung(() => Wirtschaftsdaten.AusJson(falsch), "nur ein Betrieb des Diebes");
         }),
 
-        ("Taschendiebe: 4 Gesellen bringen an einem Arbeitstag 4 × 720 × 1,015 Gulden – steuerfrei, mit halber Erfahrung im Beruf (vier Plätze)", () =>
+        ("Taschendiebe: 4 Gesellen bringen an einem Arbeitstag 4 × 720 × 1,16 Gulden – steuerfrei, mit halber Erfahrung im Beruf (vier Plätze)", () =>
         {
             var sim = NeueSimulation(Unerwischt.Value);
             var (w, k, b) = Dieb(sim);
             var umsatz = k.Laufend.Umsatz;
             BisNachDerNacht(sim);
-            // PR #177: Beute 0,8 → 1,0 je Minute, PR #208: 1,08, PR #219: 1,015 (Dieb bis Bürger 8–12 Jahre); Erfahrung × 0,5 (erfahrungFaktor – doppelt so viele Plätze wie eine Werkstatt)
-            Pruefe.Ungefaehr(4 * 720 * 1.015, w.Diebe.DiesesJahr(k).Beute, 1e-6);
-            Pruefe.Ungefaehr(umsatz + 4 * 720 * 1.015, k.Laufend.Umsatz, 1e-6);
+            // PR #177: Beute 0,8 → 1,0 je Minute, PR #208: 1,08, PR #219: 1,015 (Dieb bis Bürger 8–12 Jahre), PR #224: 1,16 (Start mit Taschendieben); Erfahrung × 0,5 (erfahrungFaktor – doppelt so viele Plätze wie eine Werkstatt)
+            Pruefe.Ungefaehr(4 * 720 * 1.16, w.Diebe.DiesesJahr(k).Beute, 1e-6);
+            Pruefe.Ungefaehr(umsatz + 4 * 720 * 1.16, k.Laufend.Umsatz, 1e-6);
             Pruefe.Gleich(0.0, k.Laufend.Steuer);
             Pruefe.Ungefaehr(24, k.Erfahrung("Dieb"), 1e-6);
-            Pruefe.Ungefaehr(1.015 * 1.4, w.Diebe.WertJeMinute(3), 1e-12); // Stufe 3 × 1,4 (vorher 1,3; nach dem KI-Einrichtungskauf, PR #177)
-            Pruefe.Ungefaehr(720 * 1.015 - 220, Kalkulation.Jahresertrag(w, b, "Geselle"), 1e-6);
+            Pruefe.Ungefaehr(1.16 * 1.4, w.Diebe.WertJeMinute(3), 1e-12); // Stufe 3 × 1,4 (vorher 1,3; nach dem KI-Einrichtungskauf, PR #177)
+            Pruefe.Ungefaehr(720 * 1.16 - 220, Kalkulation.Jahresertrag(w, b, "Geselle"), 1e-6);
         }),
 
         ("Fang: Ein erwischter Dieb kommt in den Turm (Lehrling zuerst) – ein anderes Haus hat einen Beweis", () =>
