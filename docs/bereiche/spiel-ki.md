@@ -135,6 +135,21 @@ So wird eingetragen (damit sich die Chats nie an derselben Stelle treffen):
 | Einrichtung | Die neuen Stücke ab Stufe 3 kauft die KI mit der bisherigen Regel (höchstens 4 Jahre bis bezahlt, `ErwarteterMehrgewinnJeJahr`): Werkstatt-Stück nach der kürzeren Zeit der Stufe-3-Waren, Ladentheke nach dem Erlös der Jahresmenge × 1,25 %, Lehrlingsstube nach dem früheren Gesellen – je Anfänger (Jahresertrag Geselle − Lehrling) × (1 − 1 ÷ 1,5). Dazu zum Jahresende höchstens ein Stück fürs Wohnhaus (`WohnhausEinrichtungKaufen`) nach `Wohnungswesen.MehrgewinnJeJahr` mit derselben Frist und Reserve: Vorratskammer nach Haushalt und Unterhalt, Riegel und Hund nur nach einem Einbruch im Vorjahr. | 28.10.2026 |
 | Tests | `KiPersonalTests`: befördert erst mit genug Erfahrung, Vorarbeiter höchstens einer mit gewählter Eigenschaft, ohne Geld über der halben Reserve kein Brief. `KiTests`: die Grube wird nach dem Statutwechsel mit Knechten besetzt, die Reserve trägt einen Lehrlingslohn. | 28.10.2026 |
 
+### KI nach Charakterzügen (PR #227)
+
+| Thema | Entscheidung | Datum |
+|---|---|---|
+| Grundsatz | Der Charakter des Hauses (vorsichtig, ausgewogen, wagemutig im `KiProfil`) bleibt; die Züge des **Oberhaupts** verschieben ihn (`Familienbuch.KiNeigung` → `ZugNeigung`, `KiRivale.Zuege.cs`). Stirbt das Oberhaupt, handelt das Haus nach den Zügen des Erben. Faktoren werden multipliziert, Zuschläge addiert; Werte je Zug unter `charakterzuege.zuege.<Zug>.ki`. Ohne Abschnitt neutral. | 28.10.2026 |
+| Gierig / Großzügig | Zins der Geldleihe +4 / −3 Prozentpunkte (mindestens 4 %), Budget für Geschenke an den Rat × 0,7 / × 1,3; Großzügig holt in jeder Schänke einen Barden (mit voller Reserve). „Höhere Preise“ gibt es bei der KI nur beim Zins: Verkauf und Zutaten macht der Verwalter (PR #86). | 28.10.2026 |
+| Fleißig / Träge | Fleißig übt Talente, sobald die Aktionspunkte reichen (nicht erst, wenn sie verfielen); Träge übt und liest nie und stellt die Werkstatt seltener um (Wechselschwelle × 1,3). Die Arbeitsleistung kommt über Handwerk ±1. | 28.10.2026 |
+| Fromm / Zynisch | Ablass schon, wenn danach ein Viertel statt der Hälfte der Reserve bleibt / erst mit voller Reserve; Fromm tritt nie zum fremden Stadtglauben über (zahlt lieber den Glaubenszins). Pilger wie Fromm beim Ablass. | 28.10.2026 |
+| Mutig / Feige | Raubfurcht für die Eskorte (Karren, Schiffe) × 0,75 / × 1,5; Käufe, Ausbau und Beförderung dürfen ein Jahr länger / kürzer zum Bezahlen brauchen (`Amortisationsjahre`, mindestens 1). | 28.10.2026 |
+| Ehrlich / Verschlagen | Bezahlte Gaunerstücke im Jahr −1 / +1 (`Gaunerbudget`, nicht unter 0): Ein vorsichtiges Haus mit verschlagenem Oberhaupt heuert so ein Stück im Jahr gegen Häuser vor ihm an, ein ausgewogenes ehrliches keins. | 28.10.2026 |
+| Geduldig / Jähzornig | Verkauf erst nach 3 statt 2 Verlustjahren / wie bisher; Klage ab Beweiskraft × 1,15 / × 0,8 der sicheren (nie unter der Schuldschwelle); Wechselschwelle × 1,5 / × 0,7. | 28.10.2026 |
+| Gesellig / Scheu | Geschenke × 1,2 / × 0,8; Barde immer / nie. | 28.10.2026 |
+| Bescheiden / Hochmütig | Keine Wohnhaus-Einrichtung / Frist dafür ein Jahr länger; Hochmütig wertet in der Brautschau je Standesstufe der Braut +50 %. | 28.10.2026 |
+| Richter | Die KI rechnet Geschenke mit der Bestechlichkeit des Ratsherrn (`Stadtrat.GunstJeGulden`) – Wahl, Statut, Gericht. | 28.10.2026 |
+
 ## Messungen
 
 Neue Messungen der Spiel-KI stehen hier (mit main-Commit), nicht mehr in `docs/WIRTSCHAFTSMODELL.md`. Ältere: dort bis §42 (Taschendiebe, PR #69).
