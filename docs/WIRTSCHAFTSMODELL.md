@@ -2130,7 +2130,7 @@ Gemessen auf main `018f0c1` + Branch (Commit in der JSON-Datei), Datenversion 60
 
 | | main ohne Züge | mit Zügen |
 |---|---|---|
-| Berufe im Band ±15 % (simuliert, ein Betrieb, 20 Jahre) | 10/10 (Schmied +12 %, Gardist −13 %) | 7/10 (Schmied +18 %, Tischler +15 %, Gardist −18 %) |
+| Berufe im Band ±15 % (simuliert, ein Betrieb, 20 Jahre) | 10/10 (Schmied +12,3 %, Gardist −12,6 %) | 7/10 (Schmied +18,4 %, Tischler +15,3 %, Gardist −18,2 %) |
 | Mittel des Zuwachses | 29.819 | 30.278 (+1,5 %) |
 | Bürger mit einem Betrieb (Ø Jahre, Spanne der Berufe) | 8,0 … 12,1 | 8,3 … 11,7 |
 | Spieler mit einem Betrieb, Greybox / Probestadt | 37.496 / 38.324 | 39.845 / 41.618 |
@@ -2154,4 +2154,4 @@ Reinvermögen nach 20 Jahren je Beruf (ein Betrieb, Greybox, Mensch, 30 Startwer
 | Geldleiher | 30.350 | 30.802 (+1 %) |
 | Gardist | 30.076 | 28.777 (−4 %) |
 
-**Befund:** Jeder Beruf liegt nach 20 Jahren innerhalb von −4 … +9 % seines Werts ohne Züge, im Mittel +1,5 %; die Not der KI ist wieder wie ohne Züge. Das Band „±15 % gegen das Mittel“ reißen Schmied, Tischler und Gardist um 0–3 Prozentpunkte – sie lagen schon ohne Züge am Rand (+12 %, +9 %, −13 %), und die Züge machen jede Partie zufälliger: Zwei Läufe mit fast gleichen Werten gaben Schmied −6 % und +6 % gegen main (der vorletzte Lauf: nur Dieb −16 % außerhalb). Das liegt im Fehler der Messung (≈ 5 % je Beruf). Weiter drücken ließe es sich nur mit kleineren Talentwirkungen als „±1 Stern“ (Entscheidung des Nutzers).
+**Befund:** Jeder Beruf liegt nach 20 Jahren innerhalb von −4 … +9 % seines Werts ohne Züge, im Mittel +1,5 %; die Not der KI ist wieder wie ohne Züge. Das Band „±15 % gegen das Mittel“ reißen Schmied, Tischler und Gardist um 0–3 Prozentpunkte – Schmied und Gardist lagen schon ohne Züge am Rand (+12,3 %, Tischler +7,7 %, −12,6 %), und die Züge machen jede Partie zufälliger: Zwei Läufe mit fast gleichen Werten gaben Schmied −6 % und +6 % gegen main (der vorletzte Lauf: nur Dieb −16 % außerhalb). Das liegt im Fehler der Messung (≈ 5 % je Beruf). Weiter drücken ließe es sich nur mit kleineren Talentwirkungen als „±1 Stern“ (Entscheidung des Nutzers).
