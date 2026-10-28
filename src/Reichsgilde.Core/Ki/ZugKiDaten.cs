@@ -13,8 +13,11 @@ public sealed class ZugKiDaten
     /// <summary>Zuschlag auf den Zins der eigenen Geldleihe (Gierig +0,04 = 4 Prozentpunkte Wucher).</summary>
     public double Zins { get; init; }
 
-    /// <summary>Mehr (oder weniger) bezahlte Gaunerstücke im Jahr (Verschlagen +1, Ehrlich −1).</summary>
+    /// <summary>Mehr (oder weniger) bezahlte Gaunerstücke im Jahr (Verschlagen +1, Ehrlich −1 – weniger aber nie unter eins, wenn der Charakter sie nutzt).</summary>
     public int Gaunerstuecke { get; init; }
+
+    /// <summary>Beschenkt vor dem Gerichtstag keine Richter (Ehrlich).</summary>
+    public bool Unbestechlich { get; init; }
 
     /// <summary>Faktor auf die Beweiskraft, ab der die KI anklagt (Jähzornig 0,8 – klagt früher, Geduldig 1,15).</summary>
     public double Klage { get; init; } = 1;
@@ -59,7 +62,7 @@ public sealed class ZugKiDaten
 /// <summary>Alle Züge eines Oberhaupts zusammen – so handelt das KI-Haus.</summary>
 public sealed record ZugNeigung(
     double Geschenke, double Zins, int Gaunerstuecke, double Klage, double Ablass, bool GlaubensTreu,
-    double Amortisation, double Vorsicht, double Wechselschwelle, int Verlustjahre, int Ueben, int Geselligkeit, int Prunk)
+    double Amortisation, double Vorsicht, double Wechselschwelle, int Verlustjahre, int Ueben, int Geselligkeit, int Prunk, bool Unbestechlich = false)
 {
     public static ZugNeigung Neutral { get; } = new(1, 0, 0, 1, 1, false, 0, 1, 1, 0, 0, 0, 0);
 
@@ -72,7 +75,7 @@ public sealed record ZugNeigung(
             n = new ZugNeigung(n.Geschenke * k.Geschenke, n.Zins + k.Zins, n.Gaunerstuecke + k.Gaunerstuecke, n.Klage * k.Klage,
                 n.Ablass * k.Ablass, n.GlaubensTreu || k.GlaubensTreu, n.Amortisation + k.Amortisation, n.Vorsicht * k.Vorsicht,
                 n.Wechselschwelle * k.Wechselschwelle, n.Verlustjahre + k.Verlustjahre, Math.Clamp(n.Ueben + k.Ueben, -1, 1),
-                Math.Clamp(n.Geselligkeit + k.Geselligkeit, -1, 1), Math.Clamp(n.Prunk + k.Prunk, -1, 1));
+                Math.Clamp(n.Geselligkeit + k.Geselligkeit, -1, 1), Math.Clamp(n.Prunk + k.Prunk, -1, 1), n.Unbestechlich || k.Unbestechlich);
         }
         return n;
     }

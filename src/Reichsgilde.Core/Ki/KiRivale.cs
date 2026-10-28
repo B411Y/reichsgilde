@@ -1063,8 +1063,8 @@ public sealed partial class KiRivale
             .Where(k => buch.WerbenVerboten(Konto, k) is null)
             .Select(k => (Kandidat: k, Kinder: buch.ErwarteteKinder(f, k.Person), Kosten: Heiratskosten(k)))
             .Where(x => x.Kinder >= MindestKinder)
-            // Hochmütig: Ein höherer Stand der Braut zählt wie mehr Kinder (je Stufe +50 %).
-            .OrderByDescending(x => x.Kinder / Math.Max(1, x.Kosten) * (Neigung.Prunk > 0 ? 1 + 0.5 * x.Kandidat.Stand : 1))
+            // Hochmütig: Ein höherer Stand der Braut zählt wie mehr Kinder (je Stufe +25 %).
+            .OrderByDescending(x => x.Kinder / Math.Max(1, x.Kosten) * (Neigung.Prunk > 0 ? 1 + 0.25 * x.Kandidat.Stand : 1))
             .ThenBy(x => x.Kandidat.Person.Nummer)
             .FirstOrDefault();
         if (wahl.Kandidat is not { } k) return;
@@ -1215,6 +1215,7 @@ public sealed partial class KiRivale
     private void Verteidigung()
     {
         if (!_w.Justiz.IstAktiv) return;
+        if (Neigung.Unbestechlich) return; // Ehrlich: beschenkt keine Richter
         foreach (var v in _w.Justiz.Verfahren.Where(v => v.Beklagter == Konto).ToList())
             Verteidigen(v);
     }
@@ -1357,7 +1358,15 @@ public sealed partial class KiRivale
     /// Bezahlte Gaunerstücke im Jahr (Banden aus dem Hinterzimmer): nach Charakter; spart die Wagemutige auf den Stand,
     /// nur halb so viele (aufgerundet). Die eigenen Diebe kosten nichts – für sie gilt das volle Budget.
     /// </summary>
-    private int Gaunerbudget => Math.Max(0, (Spart && Profil.Gaunerei >= 2 ? (Profil.Gaunerei + 1) / 2 : Profil.Gaunerei) + Neigung.Gaunerstuecke); // Verschlagen +1, Ehrlich −1
+    private int Gaunerbudget
+    {
+        get
+        {
+            var grund = Spart && Profil.Gaunerei >= 2 ? (Profil.Gaunerei + 1) / 2 : Profil.Gaunerei;
+            // Verschlagen +1; Ehrlich −1, aber nicht unter eins: Wer seinem Charakter nach Gaunerstücke anheuert, tut es weiter selten.
+            return Neigung.Gaunerstuecke >= 0 ? grund + Neigung.Gaunerstuecke : Math.Max(Math.Min(grund, 1), grund + Neigung.Gaunerstuecke);
+        }
+    }
 
     /// <summary>
     /// Selbst Banden anheuern – nur, wer es seinem Charakter nach tut. Unter den Augen der Spitzel hält

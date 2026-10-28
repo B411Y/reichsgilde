@@ -166,7 +166,7 @@ static class CharakterzugTests
             Pruefe.Wahr(TalentTexte.Alle.All(t => f2.Oberhaupt.Talent(t) == f2.Oberhaupt.Anlage(t)), "ohne Züge: Talent = Anlage");
         }),
 
-        ("Charakterzüge: Haushalt nach Zügen (Bescheiden 90 %, Hochmütig 110 %); Kränklich erkrankt doppelt so oft", () =>
+        ("Charakterzüge: Haushalt nach Zügen (Bescheiden 90 %, Hochmütig 110 %); Kränklich erkrankt anderthalbmal so oft", () =>
         {
             var w = NeueSimulation().Wirtschaft!;
             var (_, f) = Haus(w, "Haus Probe");
@@ -180,7 +180,7 @@ static class CharakterzugTests
             o.ZugHinzufuegen(buch.Zug("Hochmuetig")!);
             Pruefe.Ungefaehr(grund * 1.1, buch.Haushaltskosten(f), 1e-9);
             o.ZugHinzufuegen(buch.Zug("Kraenklich")!);
-            Pruefe.Ungefaehr(2, buch.KrankheitFaktor(o), 1e-12);
+            Pruefe.Ungefaehr(1.5, buch.KrankheitFaktor(o), 1e-12);
         }),
 
         ("Charakterzüge: Ein Kind hat bis zur Volljährigkeit nur angeborene Züge, dann drei aus Erziehung und Eltern; Universität macht gelehrt", () =>
