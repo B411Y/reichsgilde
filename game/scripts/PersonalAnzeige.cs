@@ -76,7 +76,7 @@ public sealed class PersonalAnzeige : InnenTafel
             Text(rechts, $"Lohn {Zahlenformat.Ganz(z.Lohn)} {waehrung}/Jahr", 13, Hell);
             var befoerdern = z.NaechsteStufe is { } n ? $"Befördern → {n}" : "Befördern";
             var knopfTipp = z.BefoerderungVerboten
-                ?? (z.BriefKosten is { } kosten ? $"Beförderung zu: {z.NaechsteStufe}: der Brief kostet {Zahlenformat.Ganz(kosten)} {waehrung}." : null);
+                ?? (z.BriefKosten is { } kosten ? $"Beförderung auf {z.NaechsteStufe}: der Brief kostet {Zahlenformat.Ganz(kosten)} {waehrung}." : null);
             var bk = Knopf(rechts, befoerdern, () => Befehlen(new ArbeiterBefoerdern(b.Name, z.Nummer)), z.BefoerderungVerboten);
             if (z.BefoerderungVerboten is null && knopfTipp is not null) Tipp(bk, knopfTipp);
             Knopf(rechts, $"Prämie {Zahlenformat.Ganz(s.PraemieKosten(b, z.Nummer))}", () => Befehlen(new PraemieZahlen(b.Name, z.Nummer)), s.PraemieVerboten(b, z.Nummer));
