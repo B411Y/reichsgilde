@@ -118,7 +118,9 @@ static func _zahl(praefix: String, standard: int) -> int:
 	return standard
 
 static func _spaeter_einfrieren(haar: Node3D, sekunden: float) -> void:
-	var t := haar.get_tree().create_timer(sekunden) if haar.is_inside_tree() else null
+	var t: SceneTreeTimer = null
+	if haar.is_inside_tree():
+		t = haar.get_tree().create_timer(sekunden)
 	if t == null:
 		haar.ready.connect(func(): _spaeter_einfrieren(haar, sekunden), CONNECT_ONE_SHOT)
 		return
