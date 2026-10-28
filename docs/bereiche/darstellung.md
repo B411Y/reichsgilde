@@ -1278,7 +1278,7 @@ Entscheidungen zur Sitzung: `docs/bereiche/oberflaeche.md`, „Sichtbare Ratssit
 | Messung | T400, Vulkan, 1600 × 900, Hoch, Probestadt-Wald, `--blick=-150,-100,60 --messung=12`, Sommer, gemessen auf main 6fedc82 + diesem PR. **Normale Dichte:** Kit-Wald voll 9,2 (aus #222), **Mittelweg 15,3**, unsere Bäume 16,8 Bilder/s. **4-fach dicht:** voll 7,5, **Mittelweg 8,4**, unsere Bäume 18,0. Das Ziel „nahe an 20“ wird bei normaler Dichte erreicht, im 4-fach dichten Wald nicht: Dort bleibt der Kit-Wald bei 8 (GPU-Zeit 205 → 104 ms, die Bildzeit sinkt weniger). Diagnose im dichten Wald (Kit-Bäume): Schatten Niedrig 11,7, nur Winterfassung (Rinde) 11,8, halbe Renderauflösung 10,0, SSAO und Kanten aus 8,5, weiter heraus gezoomt 9,9: weder Füllrate noch SSAO sind der Engpass, sondern Geometrie und Schattendurchgänge. | 28.10.2026 |
 | Klicktest | Vulkan (T400), Probestadt-Wald mit Kit-Bäumen: Sommer (Laub gedämpftes Grün, passt zum Waldboden), Herbst (orange), Winter (Kiefern grün, Laubbäume kahl mit Ästen), jeweils neben unseren Bäumen. Vorschau `docs/modelle/natur_kit_baeume.png` neu. | 28.10.2026 |
 
-### Kartenwerkstatt: Ebenen, Vorschaubilder, Dom (PR #NR)
+### Kartenwerkstatt: Ebenen, Vorschaubilder, Dom (PR #228)
 
 | Thema | Entscheidung | Datum |
 |---|---|---|
