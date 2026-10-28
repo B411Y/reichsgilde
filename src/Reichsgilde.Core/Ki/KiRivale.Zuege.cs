@@ -7,9 +7,9 @@ namespace Reichsgilde.Core.Ki;
 ///   Gierig / Großzügig      Zins der Geldleihe ±, Geschenke an den Rat ×0,7 / ×1,3, Großzügig holt Barden
 ///   Fleißig / Träge          stellt schneller / seltener auf ein besseres Produkt um (Schalter „ueben“ ungenutzt)
 ///   Fromm / Zynisch          Ablass mit halbem / doppeltem Polster, Fromm tritt nie zum Stadtglauben über
-///   Mutig / Feige            Eskorte nach Raubfurcht ×0,75 / ×1,5; Feige: Amortisation 1 Jahr kürzer
-///   Ehrlich / Verschlagen    ein bezahltes Gaunerstück weniger / mehr im Jahr
-///   Geduldig / Jähzornig     ein Verlustjahr mehr vor dem Verkauf, Klage erst ab mehr / schon ab weniger Beweiskraft
+///   Mutig / Feige            Eskorte nach Raubfurcht ×0,85 / ×1,5; Feige: Amortisation 1 Jahr kürzer
+///   Ehrlich / Verschlagen    ein bezahltes Gaunerstück weniger (nie unter eins, keine Richter bestechen) / mehr im Jahr
+///   Geduldig / Jähzornig     Produktwechsel ×1,3 / ×0,7, Klage erst ab mehr / schon ab weniger Beweiskraft
 ///   Gesellig / Scheu         Geschenke ×1,2 / ×0,8, Barde immer / nie
 ///   Bescheiden / Hochmütig   keine Wohnhaus-Einrichtung / Brautschau nach Stand
 /// </summary>

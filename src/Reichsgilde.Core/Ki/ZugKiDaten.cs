@@ -34,10 +34,10 @@ public sealed class ZugKiDaten
     /// <summary>Faktor auf die Furcht vor Raub – mehr oder weniger Eskorte (Feige 1,5, Mutig 0,75).</summary>
     public double Vorsicht { get; init; } = 1;
 
-    /// <summary>Faktor auf die Schwelle, ab der die Werkstatt ein anderes Produkt nimmt (Geduldig 1,5, Jähzornig 0,7).</summary>
+    /// <summary>Faktor auf die Schwelle, ab der die Werkstatt ein anderes Produkt nimmt (z. B. Geduldig 1,3, Jähzornig 0,7).</summary>
     public double Wechselschwelle { get; init; } = 1;
 
-    /// <summary>Verlustjahre mehr, bevor ein Betrieb verkauft wird (Geduldig +1).</summary>
+    /// <summary>Verlustjahre mehr, bevor ein Betrieb verkauft wird (derzeit bei keinem Zug gesetzt).</summary>
     public int Verlustjahre { get; init; }
 
     /// <summary>+1: übt Talente, sobald die Aktionspunkte reichen (Fleißig); −1: übt nie (Träge).</summary>
