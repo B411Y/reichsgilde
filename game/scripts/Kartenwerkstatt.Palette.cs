@@ -382,9 +382,13 @@ public partial class Kartenwerkstatt
         Kopf("Natur");
         Eintrag("pinsel", "Pinsel", "Mit gedrückter Maus malen – beim Loslassen wachsen dort Pflanzen (Radius, Dichte und Arten rechts)", Werkstattwerkzeug.Pinsel, "pinsel");
         Eintrag("radierer", "Radierer", "Mit gedrückter Maus über einzelne Pflanzen fahren – beim Loslassen sind sie weg", Werkstattwerkzeug.Radierer, "radierer");
-        foreach (var b in _entwurf.Katalog.Bausteine.Where(b => b.Art == Bausteinart.Natur))
+        foreach (var b in _entwurf.Katalog.Bausteine.Where(b => b.Art == Bausteinart.Natur && b.Modell?.StartsWith("props/") != true))
             Eintrag(b.Kennung, ArtName(b), $"{b.Kennung} · {b.Varianten} Variante(n) · Modell {b.Modell} – Klick setzt eine Pflanze, Q/E dreht",
                 Werkstattwerkzeug.Pflanze, "pflanze", baustein: b.Kennung);
+        Kopf("Requisiten (Asset-Kits)");
+        foreach (var b in _entwurf.Katalog.Bausteine.Where(b => b.Art == Bausteinart.Natur && b.Modell?.StartsWith("props/") == true))
+            Eintrag(b.Kennung, ArtName(b), $"{b.Kennung} · {b.Varianten} Variante(n) · Modell {b.Modell} – Klick stellt es auf, Q/E dreht, Maßstab rechts",
+                Werkstattwerkzeug.Pflanze, "gebaeude", baustein: b.Kennung);
 
         // Gebäude
         Gruppe("gebaeude");

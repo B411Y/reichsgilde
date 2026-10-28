@@ -689,7 +689,9 @@ public partial class HafenAnzeige : PanelContainer
         var gitter = new GridContainer { Columns = 4 };
         gitter.AddThemeConstantOverride("h_separation", 14);
         _staedteSeite.AddChild(gitter);
-        foreach (var kopf in new[] { "Ware", "dort", "daheim", "Druck" }) Hauptmenue.Text(gitter, kopf, 12, Grau);
+        var kopfTipps = new[] { "Ware, die gehandelt wird.", kauft ? "Preis, zu dem die ferne Stadt die Ware ankauft." : "Preis, zu dem die ferne Stadt die Ware verkauft.", "Preis auf eurem Markt daheim, zum Vergleich.", "" };
+        var kopfNr = 0;
+        foreach (var kopf in new[] { "Ware", "dort", "daheim", "Druck" }) Hauptmenue.Text(gitter, kopf, 12, Grau).TooltipText = kopfTipps[kopfNr++];
         foreach (var ware in waren.OrderBy(x => x, StringComparer.Ordinal))
         {
             var zeile = new HBoxContainer();
@@ -699,12 +701,23 @@ public partial class HafenAnzeige : PanelContainer
             bild.SizeFlagsVertical = SizeFlags.ShrinkCenter;
             zeile.AddChild(bild);
             Hauptmenue.Text(zeile, ware, 12).CustomMinimumSize = new Vector2(150, 0);
+            WarenIcons_Tipp(zeile, ware, stadt, kauft);
             var dort = Hauptmenue.Text(gitter, "", 12);
             var daheim = Hauptmenue.Text(gitter, "", 12);
             var druck = Hauptmenue.Text(gitter, "", 12);
             druck.TooltipText = "Zuletzt gehandelte Stück, die der Markt dort noch nicht verdaut hat – sie drücken den Preis; er erholt sich Stunde um Stunde.";
             druck.MouseFilter = MouseFilterEnum.Stop;
             _preise.Add((stadt, ware, kauft, dort, daheim, druck));
+        }
+    }
+
+    /// <summary>Ware in der Städtetabelle: Tooltip, was die Stadt damit tut.</summary>
+    private static void WarenIcons_Tipp(Control zeile, string ware, FerneStadt stadt, bool kauft)
+    {
+        foreach (var kind in zeile.GetChildren().OfType<Control>())
+        {
+            kind.TooltipText = $"{ware}: {stadt.Name} {(kauft ? "kauft" : "verkauft")} sie. Rechts stehen der Preis dort, der Preis daheim und der Druck auf dem Markt dort.";
+            if (kind.MouseFilter == MouseFilterEnum.Ignore) kind.MouseFilter = MouseFilterEnum.Pass;
         }
     }
 

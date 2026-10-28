@@ -226,6 +226,39 @@ public static class Kalkulation
         return plan;
     }
 
+    /// <summary>
+    /// Arbeitsminuten eines Gesellen, die der Betrieb in einer Spielminute schafft – wie die Simulation sie rechnet: Tempo und Laune der
+    /// Arbeiter (wer nach einem Unfall fehlt, zählt nicht) × Handwerkskunst des Oberhaupts × Völkerbonus × (1 − Krankenstand im Pestjahr).
+    /// </summary>
+    public static double Leistung(Stadtwirtschaft w, Betrieb b) =>
+        b.LeistungProMinute * w.Familien.LeistungsFaktor(b.Konto) * w.VolksFaktor(b.Konto, b.Artdaten.Beruf) * (1 - w.Gesundheit.Krankenstand);
+
+    /// <summary>
+    /// Gewinn je Stück dieser Ware in diesem Betrieb (Tooltips): Erlös am Markt (mit Verhandlungsgeschick) − Umsatzsteuer des Hauses
+    /// − Zutaten zum Marktpreis − Lohnanteil − Unterhaltsanteil. Lohn (wie ihn die Jahresabrechnung zahlt, <see cref="Betrieb.LohnJeArbeiter"/>)
+    /// und Unterhalt (mit dem Wächter) werden nach der Herstellzeit verteilt: Jahreskosten ÷ (Leistung × Arbeitsminuten) × Minuten je Stück.
+    /// Ohne Personal rechnet sie mit einem Gesellen. Umland: Förderzeit statt Herstellzeit, keine Zutaten.
+    /// </summary>
+    public static Stueckrechnung GewinnJeStueck(Stadtwirtschaft w, Betrieb b, string ware)
+    {
+        var daten = w.Daten.Waren[ware];
+        var preis = w.Markt[ware].Preis * w.Familien.VerkaufsFaktor(b.Konto);
+        var steuer = preis * w.SteuersatzMarkt(b.Konto);
+        var zutaten = daten.Zutaten.Sum(z => w.Markt[z.Key].Preis * z.Value);
+        var minuten = b.IstWerkstatt ? b.MinutenJeStueck(ware) : daten.Zeit;
+        var leistung = Leistung(w, b);
+        var lohn = b.Lohnkosten;
+        if (leistung <= 0 && w.Daten.Arbeitskraefte.TryGetValue("Geselle", out var geselle))
+        {
+            // Ohne Personal: was ein Geselle kostete und schaffte
+            leistung = geselle.TempoAm(b.Ort) * w.Familien.LeistungsFaktor(b.Konto) * w.VolksFaktor(b.Konto, b.Artdaten.Beruf) * (1 - w.Gesundheit.Krankenstand);
+            lohn = b.LohnJeArbeiter("Geselle");
+        }
+        var unterhalt = b.Artdaten.Fixkosten + (b.Waechter && w.Daten.Gauner is { } g ? g.WaechterKosten : 0);
+        var jeMinute = leistung > 0 ? 1 / (leistung * b.Arbeitsminuten) : 0; // Anteil an den Jahreskosten je Arbeitsminute eines Gesellen
+        return new Stueckrechnung(preis, steuer, zutaten, lohn * jeMinute * minuten, unterhalt * jeMinute * minuten, minuten);
+    }
+
     /// <summary>Was eine volle Ladung dieses Karrens ungefähr wert ist (mit den Waren, die der Betrieb verkauft).</summary>
     public static double Ladungswert(Stadtwirtschaft w, Karren karren)
     {
@@ -234,6 +267,19 @@ public static class Kalkulation
             : betrieb.IstWerkstatt ? Werkstattmix(betrieb, ware => w.Markt[ware].Preis) : Gemischt(betrieb, ware => w.Markt[ware].Preis);
         return karren.Daten.Gesamtkapazitaet * preis;
     }
+}
+
+/// <summary>Gewinn je Stück einer Ware in einem Betrieb (<see cref="Kalkulation.GewinnJeStueck"/>), alles in Gulden je Stück.</summary>
+/// <param name="Preis">Erlös am Markt zum jetzigen Preis, mit dem Verhandlungsgeschick des Oberhaupts.</param>
+/// <param name="Steuer">Umsatzsteuer des Hauses auf den Erlös.</param>
+/// <param name="Zutaten">Zutaten zum Marktpreis.</param>
+/// <param name="Lohn">Anteil der Löhne an der Herstellzeit.</param>
+/// <param name="Unterhalt">Anteil von Unterhalt bzw. Pacht (und Wächter) an der Herstellzeit.</param>
+/// <param name="Minuten">Arbeitsminuten eines Gesellen je Stück (mit der Einrichtung).</param>
+public sealed record Stueckrechnung(double Preis, double Steuer, double Zutaten, double Lohn, double Unterhalt, double Minuten)
+{
+    /// <summary>Was ein Stück nach Steuer, Zutaten, Lohn und Unterhalt bringt.</summary>
+    public double Gewinn => Preis - Steuer - Zutaten - Lohn - Unterhalt;
 }
 
 /// <summary>

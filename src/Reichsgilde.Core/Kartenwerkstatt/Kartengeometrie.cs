@@ -23,7 +23,8 @@ public static class Kartengeometrie
         return new Kartenort(lx * Math.Cos(t) + lz * Math.Sin(t), -lx * Math.Sin(t) + lz * Math.Cos(t));
     }
 
-    /// <summary>Kürzester Abstand von Punkt p zur Strecke a–b.</summary>
+    /// <summary>Kürzester Abstand von Punkt p zur Strecke a–b (gleich voll optimiert: die Kapazitätsprüfung ruft sie hunderttausendfach auf).</summary>
+    [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
     public static double AbstandStrecke(Kartenort p, Kartenort a, Kartenort b)
     {
         var (dx, dz) = (b.X - a.X, b.Z - a.Z);

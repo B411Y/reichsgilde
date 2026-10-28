@@ -29,6 +29,12 @@ public partial class Stadtansicht
     /// <summary>Die MultiMeshes der Arten mit kahler Fassung: das Netz im Sommer und das im Winter (<see cref="JahreszeitSetzen"/> tauscht).</summary>
     private readonly List<(MultiMesh Vielfach, Mesh Sommer, Mesh Winter)> _naturWinter = new();
 
+    /// <summary>Baukästen mit Bäumen (Halbierung der Natur-Dichte, kahle Winterfassung „<Name>_Winter“): die eigenen und die aus dem Kit (Asset-Kits).</summary>
+    internal static bool IstBaumDatei(string datei) => datei is "natur/natur_baeume" or "natur/natur_kit_baeume";
+
+    /// <summary>Baukästen mit Bodenpflanzen: werfen keinen Schatten.</summary>
+    internal static bool IstBodenDatei(string datei) => datei is "natur/natur_boden" or "natur/natur_kit_boden";
+
     private Mesh? NaturNetz(string datei, string knoten, bool pflicht = true)
     {
         if (_naturNetze.TryGetValue((datei, knoten), out var netz)) return netz;
@@ -70,7 +76,7 @@ public partial class Stadtansicht
             var vielfach = new MultiMesh { TransformFormat = MultiMesh.TransformFormatEnum.Transform3D, Mesh = netz, InstanceCount = lagen.Count };
             for (var i = 0; i < lagen.Count; i++) vielfach.SetInstanceTransform(i, lagen[i]);
             // Bäume und Büsche haben eine kahle Fassung „<Name>_Winter“ (Tanne, Ginster und Wacholder nicht): im Winter tauscht JahreszeitSetzen das Netz
-            if ((datei is "natur/natur_baeume" or "natur/natur_buesche") && NaturNetz(datei, knoten + "_Winter", pflicht: false) is { } winter)
+            if ((IstBaumDatei(datei) || datei is "natur/natur_buesche") && NaturNetz(datei, knoten + "_Winter", pflicht: false) is { } winter)
             {
                 _naturWinter.Add((vielfach, netz, winter));
                 if (_jahreszeit == Jahreszeit.Winter) vielfach.Mesh = winter;
@@ -79,7 +85,7 @@ public partial class Stadtansicht
             {
                 Name = knoten,
                 Multimesh = vielfach,
-                CastShadow = datei == "natur/natur_boden" ? GeometryInstance3D.ShadowCastingSetting.Off : GeometryInstance3D.ShadowCastingSetting.On,
+                CastShadow = IstBodenDatei(datei) ? GeometryInstance3D.ShadowCastingSetting.Off : GeometryInstance3D.ShadowCastingSetting.On,
             };
             natur.AddChild(teil);
             NaturDetailMelden(teil, datei); // Natur-Dichte und Sichtweite der Feinheiten (Stadtansicht.Grafik.cs)

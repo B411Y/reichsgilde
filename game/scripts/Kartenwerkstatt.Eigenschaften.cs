@@ -421,6 +421,8 @@ public partial class Kartenwerkstatt
     {
         ("natur/natur_baeume", "Bäume"), ("natur/natur_buesche", "Büsche"), ("natur/natur_boden", "Boden"),
         ("natur/natur_steine", "Steine"), ("natur/natur_holz", "Holz"),
+        ("natur/natur_kit_baeume", "Bäume (Kit)"), ("natur/natur_kit_boden", "Boden (Kit)"), ("natur/natur_kit_steine", "Steine (Kit)"),
+        ("props/props_gegenstaende", "Gegenstände"), ("props/props_dorf", "Zierteile"),
     };
 
     private void PinselTafel()

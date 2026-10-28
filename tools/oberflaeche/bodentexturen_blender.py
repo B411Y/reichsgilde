@@ -1119,15 +1119,15 @@ def lehm(rng):
     ton = je_zelle(nummer, 98, 676)
     farbe = mische(srgb("#a07a50"), srgb("#b48c62"), 0.2 * glatt(0.4, 0.8, welle) + 0.4 * ton * rissig)
     farbe = mische(farbe, srgb("#8a6440"), 0.25 * getreten)
-    feucht = glatt(0.5, 0.8, fbm(103, [0.5, 0.2]))                     # große weiche Flecken, dunkler und feuchter
-    farbe = mische(farbe, srgb("#7a5838"), 0.3 * feucht)
+    feucht = glatt(0.5, 0.8, fbm(103, [0.5, 0.2]))                     # nur leichte, weiche Fleckigkeit (PR #218: keine dunklen Pfützen eingebacken)
+    farbe = mische(farbe, srgb("#8a6644"), 0.12 * feucht)
     farbe = mische(farbe, srgb("#4a3420"), 0.85 * tief)
     farbe = mische(farbe, srgb("#c4a07a"), 0.3 * rand)
     bleich = glatt(0.82, 0.95, fbm(104, [0.2, 0.06]))                  # einzelne hellere, ausgeblichene Stellen
     farbe = mische(farbe, srgb("#d8c09a"), 0.5 * bleich * (1 - tief))
     farbe *= (0.9 + 0.2 * korn)[..., None]
     bunt = rauschen(0.003, 102)
-    farbe = mische(farbe, srgb("#6a5440"), 0.4 * (bunt > 0.72))
+    farbe = mische(farbe, srgb("#7a6048"), 0.2 * (bunt > 0.72))
     farbe = mische(farbe, srgb("#d0b08a"), 0.3 * (bunt < 0.22))
     bodennetz(h, farbe, 0.9 - 0.22 * getreten)
     teile = Teile()

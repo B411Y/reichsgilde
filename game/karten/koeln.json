@@ -16,7 +16,7 @@
   {"kennung": "Severin", "katalog": "kirche", "name": "St. Severin", "punkt": [-2, 96], "drehung": 270},
   {"kennung": "Aposteln", "katalog": "kirche", "name": "St. Aposteln", "punkt": [-72, -34], "drehung": 180},
   {"kennung": "Kunibert", "katalog": "kirche", "name": "St. Kunibert", "punkt": [14, -128], "drehung": 0},
-  {"kennung": "Dom", "katalog": "dom", "name": "Dom", "punkt": [6, -112], "drehung": 270},
+  {"kennung": "Dom", "katalog": "koelner_dom", "name": "Dom", "punkt": [6, -112], "drehung": 270},
   {"kennung": "Rheinhafen", "katalog": "hafenplatz", "name": "Rheinhafen", "punkt": [51, -60], "drehung": 270},
   {"kennung": "Rheinkran", "katalog": "hafenkran", "name": "Rheinkran", "punkt": [54, -78], "drehung": 270},
   {"kennung": "Zollstelle", "katalog": "zollstelle", "name": "Zollstelle", "punkt": [54, -92], "drehung": 270},
@@ -405,7 +405,7 @@
    ]
   },
   {"kennung": "M14", "art": "mauerring", "flaeche": [[18, 124], [22, 124], [22, 126], [34, 126], [34, 134], [18, 134]]},
-  {"kennung": "M15", "art": "mauerring", "flaeche": [[24, -124], [34, -124], [34, -106], [24, -106]]},
+  {"kennung": "M15", "art": "mauerring", "flaeche": [[24, -124], [34, -124], [34, -106], [26, -106], [26, -122], [24, -122]]},
   {
    "kennung": "M16",
    "art": "mauerring",

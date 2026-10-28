@@ -33,9 +33,25 @@ public partial class Fensterrahmen : Node
     private bool _bewegt, _zieht, _wiederherstellen = true;
     private Vector2 _ziel, _griff;
     private int _zuletzt;
+    private Func<Vector2, Vector2, Vector2>? _platz;
 
     /// <summary>Bleibt offen, wenn eine andere Tafel „alles andere schließt“.</summary>
     public bool Festgehalten { get; private set; }
+
+    /// <summary>false: Die Lage wird weder aus der Datei geholt noch beim Ziehen gemerkt (die Auswahl, die an der Maus erscheint).</summary>
+    public bool LageMerken { get; set; } = true;
+
+    /// <summary>
+    /// Legt fest, wo das Fenster steht, bis der Spieler es zieht: <paramref name="platz"/> bekommt Größe der Tafel und sichtbaren Bereich und liefert die linke obere Ecke
+    /// (jedes Bild neu, die Größe ändert sich ja). Ziehen beendet das; null löscht die Vorgabe.
+    /// </summary>
+    public void PlatzSetzen(Func<Vector2, Vector2, Vector2>? platz)
+    {
+        _platz = platz;
+        if (platz is null) return;
+        _bewegt = true;
+        _wiederherstellen = false;
+    }
 
     /// <summary>Zählt bei Esc mit (false für die Auswahl, die im Ablauf von Esc ihren festen Platz hat).</summary>
     public bool FuerEsc { get; set; } = true;
@@ -239,6 +255,7 @@ public partial class Fensterrahmen : Node
         var rechts = _leiste is null ? 0 : _leiste.Size.X + 12;
         if (imFenster.Y > Griffhoehe || imFenster.X > _tafel.Size.X - rechts) return;
         _zieht = true;
+        _platz = null;
         _griff = _tafel.GetViewport().GetMousePosition() - _tafel.GlobalPosition;
         _ziel = _tafel.GlobalPosition;
     }
@@ -263,7 +280,7 @@ public partial class Fensterrahmen : Node
         if (_wiederherstellen)
         {
             _wiederherstellen = false;
-            if (Fenster.FensterLage(_schluessel) is { } lage)
+            if (LageMerken && Fenster.FensterLage(_schluessel) is { } lage)
             {
                 _bewegt = true;
                 _ziel = lage;
@@ -280,8 +297,13 @@ public partial class Fensterrahmen : Node
             {
                 _zieht = false;
                 _ziel = Klemmen(_ziel, sichtbar);
-                Fenster.FensterLageSetzen(_schluessel, _ziel);
+                if (LageMerken) Fenster.FensterLageSetzen(_schluessel, _ziel);
             }
+        }
+        if (_platz is not null && !_zieht)
+        {
+            _ziel = _platz(_tafel.Size, sichtbar);
+            _bewegt = true;
         }
         if (_bewegt)
         {

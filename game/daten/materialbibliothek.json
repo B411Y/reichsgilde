@@ -87,6 +87,8 @@
     "Segeltuch": "tuch",
     "Sack": "tuch",
     "Wolle": "tuch",
-    "Schnittstein": "quader"
+    "Schnittstein": "quader",
+    "Elbenstein": "quader",
+    "Elbendach": "kupfer"
   }
 }

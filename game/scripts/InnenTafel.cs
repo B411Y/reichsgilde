@@ -149,6 +149,51 @@ public abstract class InnenTafel
         return label;
     }
 
+    /// <summary>Hängt einen Tooltip an ein Steuerelement; Beschriftungen und Bilder fangen sonst keine Maus und zeigten nie einen (PR Interface-Feinschliff).</summary>
+    protected static T Tipp<T>(T steuer, string text) where T : Control
+    {
+        steuer.TooltipText = text;
+        if (steuer.MouseFilter == Control.MouseFilterEnum.Ignore) steuer.MouseFilter = Control.MouseFilterEnum.Pass;
+        return steuer;
+    }
+
+    /// <summary>Gibt allen Zellen eines Rasters ab dem Kind <paramref name="ab"/> denselben Tooltip (eine Zeile der Liste); Knöpfe mit eigenem Hinweis behalten ihn.</summary>
+    protected static void ZeileTipp(Container raster, int ab, string text)
+    {
+        for (var i = ab; i < raster.GetChildCount(); i++)
+            if (raster.GetChild(i) is Control c && (c is not Button || c.TooltipText == "")) Tipp(c, text);
+    }
+
+    /// <summary>Tooltip einer Ware im Betrieb: Marktpreis, Lager, Zeit, Zutaten samt Kosten und Rohertrag je Stück (nur, was die Abfragen hergeben).</summary>
+    protected static string WarenTipp(Stadtwirtschaft w, Betrieb b, string ware)
+    {
+        var waehrung = w.Daten.Allgemein.Waehrung;
+        var zeilen = new List<string> { ware };
+        double? preis = w.Daten.Waren.ContainsKey(ware) ? w.Markt[ware].Preis : null;
+        if (preis is { } p) zeilen.Add($"Preis am Markt: {Zahlenformat.Kommazahl(p)} {waehrung}");
+        zeilen.Add($"Im Lager: {b.ImLager(ware)} von {b.LagerKapazitaetJeWare}" + (b.HaeltZurueck(ware) ? " (zurückgehalten)" : ""));
+        if (b.Artdaten.Produkte.Contains(ware))
+            zeilen.Add($"Zeit je Stück: {Zahlenformat.Kommazahl(b.MinutenJeStueck(ware))} Min.");
+        if (w.Daten.Waren.TryGetValue(ware, out var daten) && daten.Zutaten.Count > 0)
+        {
+            zeilen.Add("Zutaten je Stück: " + string.Join(", ", daten.Zutaten.Select(z => $"{z.Value} {z.Key}")));
+            var kosten = daten.Zutaten.Sum(z => w.Markt[z.Key].Preis * z.Value);
+            zeilen.Add($"Zutaten kosten am Markt {Zahlenformat.Kommazahl(kosten)} {waehrung}");
+            if (preis is { } pr && !b.Artdaten.Produkte.Contains(ware)) zeilen.Add($"Ertrag je Stück (Preis minus Zutaten): {Zahlenformat.Kommazahl(pr - kosten)} {waehrung}");
+        }
+        if (b.Artdaten.Produkte.Contains(ware) && b.IstWerkstatt)
+        {
+            var r = Kalkulation.GewinnJeStueck(w, b, ware);
+            string G(double x) => Zahlenformat.Kommazahl(x);
+            zeilen.Add($"Gewinn je Stück: {G(r.Gewinn)} {waehrung}");
+            zeilen.Add($"  Preis {G(r.Preis)} − Steuer {G(r.Steuer)}");
+            zeilen.Add($"  − Zutaten {G(r.Zutaten)} − Lohn {G(r.Lohn)}");
+            zeilen.Add($"  − Unterhalt {G(r.Unterhalt)}");
+            if (b.Belegt == 0) zeilen.Add("  (ohne Personal: gerechnet mit einem Gesellen)");
+        }
+        return string.Join("\n", zeilen);
+    }
+
     protected static Button Knopf(Container eltern, string text, Action aktion, string? verboten = null, int groesse = 13)
     {
         var knopf = new Button { Text = text, FocusMode = Control.FocusModeEnum.None, Disabled = verboten is not null, TooltipText = verboten ?? "" };

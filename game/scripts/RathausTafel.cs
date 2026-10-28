@@ -144,8 +144,8 @@ public partial class RathausTafel : VBoxContainer
     {
         var kasse = w.Kasse;
         var waehrung = w.Daten.Allgemein.Waehrung;
-        Text(seite, $"Stand: {Zahlenformat.Ganz(kasse.Stand)} {waehrung}", 18, kasse.Stand < 0 ? Rot : Gold);
-        Text(seite, $"Umsatzsteuer: {kasse.SteuersatzProzent} % auf alle Verkäufe", 14);
+        Text(seite, $"Stand: {Zahlenformat.Ganz(kasse.Stand)} {waehrung}", 18, kasse.Stand < 0 ? Rot : Gold).TooltipText = "Die Stadtkasse: Einnahmen minus Ausgaben. Ist sie im Minus, kann die Stadt keine Vorhaben bezahlen.";
+        Text(seite, $"Umsatzsteuer: {kasse.SteuersatzProzent} % auf alle Verkäufe", 14).TooltipText = "Den Satz bestimmt der Rat auf Antrag. Er trifft alle Häuser gleich und füllt die Stadtkasse.";
         var verboten = kasse.HaushaltVerboten(_spieler!);
         var raster = new GridContainer { Columns = 3 };
         raster.AddThemeConstantOverride("h_separation", 14);
@@ -153,9 +153,11 @@ public partial class RathausTafel : VBoxContainer
         seite.AddChild(raster);
         void Zeile(string name, string jetzt, string vorher, int groesse = 13, Color? farbe = null)
         {
-            Hauptmenue.Text(raster, name, groesse, farbe);
-            Hauptmenue.Text(raster, jetzt, groesse, farbe).HorizontalAlignment = HorizontalAlignment.Right;
-            Hauptmenue.Text(raster, vorher, groesse, farbe).HorizontalAlignment = HorizontalAlignment.Right;
+            var a1 = Hauptmenue.Text(raster, name, groesse, farbe);
+            var a2 = Hauptmenue.Text(raster, jetzt, groesse, farbe);
+            var a3 = Hauptmenue.Text(raster, vorher, groesse, farbe);
+            a2.HorizontalAlignment = a3.HorizontalAlignment = HorizontalAlignment.Right;
+            a1.TooltipText = a2.TooltipText = a3.TooltipText = $"{name}: dieses Jahr bisher {jetzt}, im Vorjahr {vorher}.";
         }
         string Betrag(double? x) => x is { } b ? Zahlenformat.Ganz(b) : "–";
         var dj = kasse.DiesesJahr;

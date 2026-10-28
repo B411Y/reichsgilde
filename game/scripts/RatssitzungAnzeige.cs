@@ -104,6 +104,7 @@ public partial class RatssitzungAnzeige : Control
         spalte.AddThemeConstantOverride("separation", 6);
 
         _kopf = Hauptmenue.Text(spalte, "", 13, Grau);
+        _kopf.TooltipText = "Die Ratssitzung am Jahresende: Der Rat entscheidet über Anträge und Wahlen, die Mehrheit zählt, der Bürgermeister gibt bei Gleichstand den Ausschlag.";
         var reihe = new HBoxContainer();
         reihe.AddThemeConstantOverride("separation", 24);
         spalte.AddChild(reihe);
@@ -116,26 +117,32 @@ public partial class RatssitzungAnzeige : Control
         _redner.Visible = false;
         rednerSpalte.AddChild(_redner);
         _rednerName = Hauptmenue.Text(rednerSpalte, "", 12, Grau, zentriert: true, umbruchBreite: PortraetAnzeige.Mittel);
+        _rednerName.TooltipText = "Wer gerade spricht: ein Ratsherr oder der Vertreter eines Hauses.";
 
         // Links: Punkt, Rede, Ergebnis und die eigene Stimme
         var links = new VBoxContainer { CustomMinimumSize = new Vector2(400, 0) };
         links.AddThemeConstantOverride("separation", 6);
         reihe.AddChild(links);
         _titel = Hauptmenue.Text(links, "", 21, Gold, umbruchBreite: 400);
+        _titel.TooltipText = "Der Punkt der Tagesordnung, über den gerade verhandelt wird.";
         _text = Hauptmenue.Text(links, "", 15, null, umbruchBreite: 400);
         _rede = Hauptmenue.Text(links, "", 14, new Color(0.9f, 0.86f, 0.76f), umbruchBreite: 400);
-        _aktuell = Hauptmenue.Text(links, "", 14, null, umbruchBreite: 400); // die Stimme, die gerade fällt, mit ganzer Begründung
+        _rede.TooltipText = "Die Rede für den Antrag oder dagegen; sie zeigt, wie der Redner abwägt.";
+        _aktuell = Hauptmenue.Text(links, "", 14, null, umbruchBreite: 400);
+        _aktuell.TooltipText = "Die Stimme, die gerade fällt, mit ihrer Begründung."; // die Stimme, die gerade fällt, mit ganzer Begründung
         // Die eigene Stimme: eine Zeile mit Frage und Knöpfen (die Tafel soll den Ratstisch nicht verdecken)
         _wahl = new HFlowContainer { Visible = false, CustomMinimumSize = new Vector2(400, 0) };
         _wahl.AddThemeConstantOverride("h_separation", 6);
         _wahl.AddThemeConstantOverride("v_separation", 4);
         links.AddChild(_wahl);
         _wahlFrage = Hauptmenue.Text(_wahl, "", 15, Gold);
+        _wahlFrage.TooltipText = "Eure Stimme: Ja, Nein oder Enthaltung. Eine Enthaltung zählt nicht.";
         _wahlFrage.SizeFlagsVertical = SizeFlags.ShrinkCenter;
         _wahlKnoepfe = new HBoxContainer();
         _wahlKnoepfe.AddThemeConstantOverride("separation", 6);
         _wahl.AddChild(_wahlKnoepfe);
         _ergebnis = Hauptmenue.Text(links, "", 16, null, umbruchBreite: 400);
+        _ergebnis.TooltipText = "Das Ergebnis der Abstimmung: Ja gegen Nein; bei Gleichstand entscheidet der Bürgermeister.";
         _hinweis = Hauptmenue.Text(links, "", 12, Grau, umbruchBreite: 400);
 
         // Rechts: die Stimmen der Sitze
@@ -370,8 +377,12 @@ public partial class RatssitzungAnzeige : Control
         foreach (var stimme in _punkt!.Stimmen)
         {
             var eigen = stimme.Haus is not null && stimme.Haus == _spieler;
-            Hauptmenue.Text(_stimmen, $"{stimme.Sitz.Name}: {stimme.Name}", 13, eigen ? Gold : null).CustomMinimumSize = new Vector2(190, 0);
-            Hauptmenue.Text(_stimmen, "…", 13, Grau).CustomMinimumSize = new Vector2(80, 0);
+            var sitzLabel = Hauptmenue.Text(_stimmen, $"{stimme.Sitz.Name}: {stimme.Name}", 13, eigen ? Gold : null);
+            sitzLabel.CustomMinimumSize = new Vector2(190, 0);
+            sitzLabel.TooltipText = $"{stimme.Sitz.Name}: {stimme.Name}" + (eigen ? " – euer Haus." : ".");
+            var ja = Hauptmenue.Text(_stimmen, "…", 13, Grau);
+            ja.CustomMinimumSize = new Vector2(80, 0);
+            ja.TooltipText = "Die Stimme, sobald sie gefallen ist.";
             var grund = Hauptmenue.Text(_stimmen, "", 12, Grau);
             grund.CustomMinimumSize = new Vector2(140, 0);
             grund.ClipText = true;

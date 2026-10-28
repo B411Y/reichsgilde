@@ -242,7 +242,7 @@ public sealed partial class Koeln : Stadtskript
         Haus("kirche", "St. Severin", -2, 96, 270, "Severin");
         Haus("kirche", "St. Aposteln", -72, -34, 180, "Aposteln");
         Haus("kirche", "St. Kunibert", 14, -128, 0, "Kunibert");
-        Haus("dom", "Dom", 6, -112, 270, "Dom");
+        Haus("koelner_dom", "Dom", 6, -112, 270, "Dom");
 
         // Rheinufer: Hafen, Kran und Zollstelle mit dem Rücken zum Wasser, das Stapelhaus am Ufer
         Haus("hafenplatz", "Rheinhafen", 51, -60, 270, "Rheinhafen");

@@ -173,8 +173,10 @@ public partial class JahresberichtAnzeige : PanelContainer
         _inhalt.AddChild(new HSeparator());
         Text("Rangliste der Häuser", 16);
         var rang = Raster(4);
+        var rangTipps = new[] { "Platz nach Reinvermögen; ausgeschiedene Häuser stehen ohne Rang.", "Das Haus mit seinem Wappen.", "Stand in der Stadt, vom Gemeinen bis zum Patrizier.", "Reinvermögen: Bargeld, Lager, Gebäude und Karren minus Schulden." };
+        var rangNr = 0;
         foreach (var kopf in new[] { "Rang", "Haus", "Stand", "Vermögen" })
-            Label(rang, kopf, 13, Grau);
+            Label(rang, kopf, 13, Grau).TooltipText = rangTipps[rangNr++];
         var platz = 1;
         foreach (var konto in w.Rangliste)
         {
@@ -203,11 +205,27 @@ public partial class JahresberichtAnzeige : PanelContainer
 
     private static void Zeile(GridContainer raster, string posten, string betrag, Color? farbe = null, int groesse = 15)
     {
-        Label(raster, posten, groesse, farbe);
+        var tipp = PostenTipp(posten);
+        var links = Label(raster, posten, groesse, farbe);
         var rechts = Label(raster, betrag, groesse, farbe);
+        if (tipp != "") links.TooltipText = rechts.TooltipText = tipp;
         rechts.HorizontalAlignment = HorizontalAlignment.Right;
         rechts.SizeFlagsHorizontal = SizeFlags.ExpandFill;
     }
+
+    /// <summary>Erklärung eines Postens der Jahresrechnung (Tooltip).</summary>
+    private static string PostenTipp(string posten) => posten switch
+    {
+        "Umsatz" => "Alles, was eure Betriebe im Jahr am Markt und von Kunden eingenommen haben.",
+        "− Zutaten" => "Was die Werkstätten an Rohstoffen und Vorprodukten verbraucht haben (Einkauf oder eigene Erzeugung zum Marktpreis).",
+        "− Löhne" => "Lohn der Arbeitskräfte nach Lohnstufe; wird am Jahresende abgerechnet.",
+        "− Unterhalt und Pacht" => "Festkosten der Gebäude und Pacht für gepachtete Betriebe.",
+        "− Steuern" => "Abgaben an die Stadt nach dem Steuersatz des Rats.",
+        "− Eskorten" => "Geleit der Wache für die Karren im Umland.",
+        "− Schäden" => "Verluste durch Brand, Einbruch, Unfälle oder Überfälle.",
+        "= Gewinn" => "Umsatz minus alle Kosten dieses Jahres. Anschaffungen, Gebühren und Geschenke stehen darunter und sind hier nicht abgezogen.",
+        _ => "",
+    };
 
     private void Text(string text, int groesse, Color? farbe = null, bool zentriert = false)
     {
@@ -221,6 +239,7 @@ public partial class JahresberichtAnzeige : PanelContainer
         var label = new Label { Text = text };
         label.AddThemeFontSizeOverride("font_size", groesse);
         if (farbe is { } f) label.AddThemeColorOverride("font_color", f);
+        label.MouseFilter = MouseFilterEnum.Pass; // für Tooltips
         eltern.AddChild(label);
         return label;
     }

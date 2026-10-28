@@ -139,25 +139,16 @@ public partial class PortraetAnzeige : Control
     }
 
     /// <summary>
-    /// Ein Ratsherr der Stadt. Ratsherren sind keine Personen der Familienbücher und haben noch kein eigenes Aussehen in den Daten:
-    /// Gesicht, Haar und Augen werden fest aus dem Namen und dem Volk abgeleitet, das Geschlecht aus dem Vornamen (a, e, „ind“ am Ende = Frau).
-    /// Sie tragen vornehme Kleidung vor dem Teppich der Patrizier.
+    /// Ein Ratsherr der Stadt: Geschlecht und Aussehen kommen aus den Daten des Kerns (<c>Ratsherr.Geschlecht</c>, <c>Ratsherr.Aussehen</c>), die
+    /// Altersstufe leitet die Oberfläche fest aus dem Namen ab. Sie tragen vornehme Kleidung vor dem Teppich der Patrizier.
     /// </summary>
     public void ZeigenRatsherr(Ratsherr r)
     {
-        var name = r.Name;
         var h = 17;
-        foreach (var c in name) h = unchecked(h * 31 + c); // string.GetHashCode wechselt von Start zu Start
+        foreach (var c in r.Name) h = unchecked(h * 31 + c); // string.GetHashCode wechselt von Start zu Start
         h &= int.MaxValue;
-        var volk = r.Daten.Volk;
-        var haare = Aussehenspalette.Haarfarben(volk);
-        var augen = Aussehenspalette.Augenfarben(volk);
-        var vorname = name.Split(' ')[0];
-        var frau = vorname.EndsWith('a') || vorname.EndsWith('e') || vorname.EndsWith("ind");
         var alter = (h / 7) % 3 == 0 ? Altersstufe.Alt : Altersstufe.Mittel;
-        Zeigen(volk, frau ? Geschlecht.Frau : Geschlecht.Mann,
-            new Aussehen(h % Aussehenspalette.Gesichter, haare[(h / 5) % haare.Count], augen[(h / 11) % augen.Count]),
-            alter, Kleidung.Vornehm, Standgruppe.Patrizier);
+        Zeigen(r.Daten.Volk, r.Geschlecht, r.Aussehen, alter, Kleidung.Vornehm, Standgruppe.Patrizier);
     }
 
     private (Volk, Geschlecht, Aussehen, Altersstufe, Kleidung, Standgruppe)? _zuletzt;

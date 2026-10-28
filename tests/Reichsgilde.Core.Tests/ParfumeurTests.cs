@@ -182,6 +182,8 @@ static class ParfumeurTests
             w.KiAnmelden(ki, Partieaufbau.ProfilFuer(KiCharakter.Wagemutig));
             var (_, reich, f) = Haus(sim, "Haus Gold", geld: 80_000);
             w.KiAnmelden(reich, KiProfil.Standard with { Reserve = 78_000 }); // kauft keine Werkstatt – sonst lohnte eine Bande mehr als das Gift
+            // Mit vier Versuchen je Nacht lohnt sonst ein Einbruch ins Fachwerkhaus (0,8 Erfolge zu 300 gegen 200 Kosten, PR #219)
+            Pruefe.Wahr(w.Ausfuehren(reich, new HauswaechterSetzen(true)).Erfolg, "Hauswächter");
             for (var i = 0; i < 12 * 60 - Spielzeit.TagesbeginnMinute; i++) sim.Tick(); // über die Politikstunde
             Pruefe.Gleich(1, w.Duft.AnschlaegeDiesesJahr(ki), string.Join(" | ", w.Rivalen.Single(r => r.Konto == ki).Entscheidungen));
             Pruefe.Gleich(reich, w.Duft.Auftraege.Single().Ziel);

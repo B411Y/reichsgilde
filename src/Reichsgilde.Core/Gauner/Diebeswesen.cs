@@ -315,9 +315,16 @@ public sealed class Diebeswesen
         return beute;
     }
 
-    /// <summary>Was ein eigener Einbruch im Mittel bringt: (Warenwert + Geld aus der Kasse eines Geldleihers) × Chance (Ware am Markt verkauft, nicht beim Hehler).</summary>
-    public double ErwarteterEinbruch(Betrieb b, Konto dieb) =>
-        (MoeglicheBeute(b, dieb).Sum(x => x.Wert) + (_w.Bank.IstAktiv ? _w.Bank.Kassenbeute(b) : 0)) * Einbruchchance(b, dieb);
+    /// <summary>
+    /// Was ein eigener Einbruch in einer Nacht im Mittel bringt: über alle Versuche (je Erfolg Warenwert der übrigen Ware + Geld aus der
+    /// Kasse eines Geldleihers; Ware am Markt verkauft, nicht beim Hehler).
+    /// </summary>
+    public double ErwarteterEinbruch(Betrieb b, Konto dieb)
+    {
+        var u = _w.Gauner;
+        var waren = u.Warenfolge(b, EinbruchStueck(dieb), u.VersucheJeNacht);
+        return u.ErwartetJeNacht(Einbruchchance(b, dieb), k => waren[k - 1] + (_w.Bank.IstAktiv ? _w.Bank.Kassenbeute(b, k) : 0));
+    }
 
     /// <summary>Der Betrieb, in dem ein Feuer das Opfer am meisten kostet.</summary>
     public Betrieb? Brandziel(Konto opfer) => _w.Betriebe.Where(b => b.Konto == opfer)

@@ -202,6 +202,7 @@ public partial class VerkaufAnzeige : PanelContainer
         var links = Hauptmenue.Text(raster, text, groesse, Hell);
         links.SizeFlagsHorizontal = SizeFlags.ExpandFill;
         var rechts = Hauptmenue.Text(raster, betrag, groesse, farbe ?? Hell);
+        links.TooltipText = rechts.TooltipText = $"{text}: {betrag}. Der Erlös geht ins Bargeld, der Betrieb samt Lager, Karren und Personal wechselt den Besitzer.";
         rechts.HorizontalAlignment = HorizontalAlignment.Right;
     }
 }

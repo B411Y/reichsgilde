@@ -182,6 +182,8 @@ public partial class BetriebsUebersicht : VBoxContainer
         var zustand = (warnung ? "⚠ " : "✔ ") + lang;
         if (_zustand.Text != zustand) _zustand.Text = zustand;
         _zustand.AddThemeColorOverride("font_color", warnung ? Rot : Gruen);
+        _zustand.MouseFilter = MouseFilterEnum.Pass;
+        _zustand.TooltipText = warnung ? "Der Betrieb steht oder stockt. „Beheben“ öffnet die Tafel, an der sich das ändern lässt." : "Der Betrieb läuft.";
         _behebenTafel = tafel;
         var beheben = warnung && (innen ? tafel is not null : true);
         if (_beheben.Visible != beheben) _beheben.Visible = beheben;
@@ -218,6 +220,7 @@ public partial class BetriebsUebersicht : VBoxContainer
         };
         var angaben = string.Join("\n", zeilen);
         if (_angaben.Text != angaben) _angaben.Text = angaben;
+        _angaben.MouseFilter = MouseFilterEnum.Pass;
         _angaben.TooltipText = "Löhne und Unterhalt werden erst am Jahresende abgerechnet – bis dahin sieht der Gewinn besser aus, als er wird.";
         _angaben.MouseFilter = MouseFilterEnum.Stop;
 
