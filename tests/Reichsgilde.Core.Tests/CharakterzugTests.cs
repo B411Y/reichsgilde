@@ -138,8 +138,9 @@ static class CharakterzugTests
             var o = f.Oberhaupt;
             var buch = w.Familien;
             o.ZuegeLeeren();
-            o.ZugHinzufuegen(buch.Zug("Gierig")!);   // Verhandeln +1
-            o.ZugHinzufuegen(buch.Zug("Jaehzornig")!); // Kampf +½, Verhandeln −½, Rhetorik −½
+            o.ZugHinzufuegen(buch.Zug("Gierig")!);     // Verhandeln +½, Rhetorik −½
+            o.ZugHinzufuegen(buch.Zug("Hochmuetig")!); // Verhandeln +½, Handwerk −½
+            o.ZugHinzufuegen(buch.Zug("Jaehzornig")!); // Kampf +½, Verhandeln −½
             o.TalentSetzen(Talent.Verhandeln, 2);
             o.TalentSetzen(Talent.Rhetorik, 0);
             o.TalentSetzen(Talent.Kampf, 5.75);
@@ -150,12 +151,13 @@ static class CharakterzugTests
             Pruefe.Gleich(0.0, o.Talent(Talent.Rhetorik)); // nicht unter 0
             Pruefe.Gleich(6.0, o.Talent(Talent.Kampf));    // nicht über 6
             Pruefe.Ungefaehr(1 + 2.5 * buch.TalentDaten.Wirkung.Verhandeln, buch.VerkaufsFaktor(k), 1e-12); // die Wirkung im Spiel
+            Pruefe.Gleich(-0.5, o.Zugwirkung(Talent.Handwerk));
             Pruefe.Wahr(w.Gesundheit.Erkranken(k, o, "Husten"), "krank"); // Rhetorik −1
             o.TalentSetzen(Talent.Rhetorik, 3);
             Pruefe.Gleich(1.5, o.Talent(Talent.Rhetorik));
             Pruefe.Gleich(2.0, o.TalentOhneZuege(Talent.Rhetorik));
             Pruefe.Wahr(o.Zuege.Select(z => z.Wirkungstext).All(t => t.Contains("Als KI-Haus:")), "Wirkungstext nennt das KI-Verhalten");
-            Pruefe.Gleich("Verhandeln +1. Haushalt −10 %. als Ratsherr: Geschenke wirken +30 %. Als KI-Haus: verleiht Geld zu Wucherzinsen und spart an Geschenken für den Rat.",
+            Pruefe.Gleich("Verhandeln +½, Rhetorik −½. Haushalt −10 %. als Ratsherr: Geschenke wirken +30 %. Als KI-Haus: verleiht Geld zu Wucherzinsen und spart an Geschenken für den Rat.",
                 buch.Zug("Gierig")!.Wirkungstext);
 
             var ohne = NeueSimulation(1400, OhneZuege.Value).Wirtschaft!;
@@ -164,7 +166,7 @@ static class CharakterzugTests
             Pruefe.Wahr(TalentTexte.Alle.All(t => f2.Oberhaupt.Talent(t) == f2.Oberhaupt.Anlage(t)), "ohne Züge: Talent = Anlage");
         }),
 
-        ("Charakterzüge: Haushalt nach Zügen (Bescheiden 85 %, Hochmütig 120 %); Kränklich erkrankt doppelt so oft", () =>
+        ("Charakterzüge: Haushalt nach Zügen (Bescheiden 90 %, Hochmütig 110 %); Kränklich erkrankt doppelt so oft", () =>
         {
             var w = NeueSimulation().Wirtschaft!;
             var (_, f) = Haus(w, "Haus Probe");
@@ -173,10 +175,10 @@ static class CharakterzugTests
             o.ZuegeLeeren();
             var grund = buch.Haushaltskosten(f);
             o.ZugHinzufuegen(buch.Zug("Bescheiden")!);
-            Pruefe.Ungefaehr(grund * 0.85, buch.Haushaltskosten(f), 1e-9);
+            Pruefe.Ungefaehr(grund * 0.9, buch.Haushaltskosten(f), 1e-9);
             o.ZuegeLeeren();
             o.ZugHinzufuegen(buch.Zug("Hochmuetig")!);
-            Pruefe.Ungefaehr(grund * 1.2, buch.Haushaltskosten(f), 1e-9);
+            Pruefe.Ungefaehr(grund * 1.1, buch.Haushaltskosten(f), 1e-9);
             o.ZugHinzufuegen(buch.Zug("Kraenklich")!);
             Pruefe.Ungefaehr(2, buch.KrankheitFaktor(o), 1e-12);
         }),

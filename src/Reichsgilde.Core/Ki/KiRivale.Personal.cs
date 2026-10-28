@@ -66,7 +66,6 @@ public sealed partial class KiRivale
     {
         if (EinrichtungHoechstensJahre is not { } grenze || _w.Wohnen.Daten is not { } d || InNot || (Spart && Profil.Gaunerei <= 0)) return;
         if (Neigung.Prunk < 0) return; // Bescheiden: kein Silbergeschirr
-        if (Neigung.Prunk > 0) grenze += 1; // Hochmütig: darf ein Jahr länger brauchen
         var reserve = _w.Daten.Ki!.Einrichtung!.ReserveFaktor * Profil.Reserve;
         var bestes = d.Einrichtung
             .Where(e => e.Vorhanden is null && _w.Wohnen.EinrichtungVerboten(Konto, e.Kennung) is null && Konto.Vermoegen - e.Preis >= reserve)

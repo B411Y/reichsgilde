@@ -375,7 +375,7 @@ public sealed partial class Stadtwirtschaft
     public int ApKosten(Konto konto, Befehl befehl)
     {
         if (befehl is TalentTrainieren t && Daten.Aktionspunkte is { } d && Familien.Von(konto) is { } f)
-            return Familien.TrainingVerboten(konto, t.Talent) is null ? d.TrainingKostenFuer(f.Oberhaupt.Talent(t.Talent)) : 0; // abgelehnt wird es ohnehin – mit dem richtigen Grund
+            return Familien.TrainingVerboten(konto, t.Talent) is null ? d.TrainingKostenFuer(f.Oberhaupt.TalentOhneZuege(t.Talent)) : 0; // abgelehnt wird es ohnehin – mit dem richtigen Grund
         if (befehl is MeisterpruefungAblegen m)
             return HatAktionspunkte && MeisterpruefungVerboten(konto, m.Beruf) is null ? NaechstePruefung(konto, m.Beruf)!.Ap : 0;
         if (Befugnisse.OhneAktionspunkte(konto, befehl)) return 0; // Kämmerer: Steuersatz; Bürgermeister: ein Antrag im Jahr
