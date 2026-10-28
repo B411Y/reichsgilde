@@ -18,7 +18,7 @@ static func anbringen(kopf: HgKopf, ordner: String, farbe: Color, variante := ""
 		return knoten
 	var sk := kopf.skelett
 	# Haarfarbe aus der HG-Frisur (Mittel der deckenden Pixel der Haarkarten-Textur), sonst die übergebene
-	var aus_karten := _kartenfarbe(kopf)
+	var aus_karten := Color(0, 0, 0, 0) if _schalter("--tfx-ohne-farbe") else _kartenfarbe(kopf)
 	if aus_karten.a > 0.0:
 		farbe = aus_karten
 	_karten_ausblenden(kopf)
@@ -62,7 +62,8 @@ static func anbringen(kopf: HgKopf, ordner: String, farbe: Color, variante := ""
 		m.set_shader_parameter("root_shadow", 0.35)
 		m.set_shader_parameter("color_variation", 0.55)
 		haar.set("material", m)
-		haar.set("collision_meshes", [kol])  # die Erweiterung erwartet die Knoten selbst, keine Pfade
+		if not _schalter("--tfx-ohne-kollider"):
+			haar.set("collision_meshes", [kol])  # die Erweiterung erwartet die Knoten selbst, keine Pfade
 		if teil == "frisur":
 			# Formbindung: die gestylte Ruheform soll halten (global_range 1 = ganze Strähne an die Ruheform gebunden)
 			haar.set("num_follow_hairs", 4 if sparsam else 1)
@@ -85,19 +86,45 @@ static func anbringen(kopf: HgKopf, ordner: String, farbe: Color, variante := ""
 			haar.set("gravity", 0.0)
 			haar.set("damping", 0.4)
 			haar.set("collision_skip_root_vertices", 3)
+		var folge := _zahl("--tfx-folge=", -1)
+		if folge >= 0:
+			haar.set("num_follow_hairs", folge)
+		if _schalter("--tfx-ohne-bart") and teil == "bart":
+			haar.visible = false
 		if HgFenster.sparsam:
 			# viele kleine Fenster: weniger Strähnen zeichnen (Detailstufe ab kurzer Entfernung)
 			haar.set("lod_enabled", true)
 			haar.set("lod_start_distance", 0.3)
 			haar.set("lod_end_distance", 1.2)
 			haar.set("lod_percent", 0.35)
-		if ruhe or teil == "bart":
-			# keine Simulation, Ruheform (Bart ist kurz und starr; viele kleine Fenster sparen so die ganze Simulation)
-			haar.set("simulation_distance", 0.05)
+		# Ohne Simulation zeichnet das Addon die Strähnen gar nicht (ihre Lagen entstehen erst in der Simulation).
+		# „Ruhe“ heißt daher: kurz simulieren, bis die Strähnen liegen, dann einfrieren (Lage bleibt stehen).
+		if ruhe or (teil == "bart" and _schalter("--tfx-bart-ruhe")):
+			_spaeter_einfrieren(haar, 0.6)
 		knoten.append(haar)
 	kopf.tressfx_aktiv = true
 	kopf.set_meta("tressfx", knoten)
 	return knoten
+
+# Startoptionen zum Eingrenzen der Kosten (Messung): --tfx-ohne-kollider, --tfx-ohne-farbe, --tfx-folge=<n>,
+# --tfx-ohne-bart, --tfx-bart-ruhe
+static func _schalter(name: String) -> bool:
+	return OS.get_cmdline_user_args().has(name)
+
+static func _zahl(praefix: String, standard: int) -> int:
+	for a in OS.get_cmdline_user_args():
+		if a.begins_with(praefix):
+			return int(a.substr(praefix.length()))
+	return standard
+
+static func _spaeter_einfrieren(haar: Node3D, sekunden: float) -> void:
+	var t := haar.get_tree().create_timer(sekunden) if haar.is_inside_tree() else null
+	if t == null:
+		haar.ready.connect(func(): _spaeter_einfrieren(haar, sekunden), CONNECT_ONE_SHOT)
+		return
+	t.timeout.connect(func():
+		if is_instance_valid(haar):
+			haar.set("simulation_distance", 0.05))
 
 # Volumen-Regler (0..1): Folgehaare weiter streuen und an den Spitzen auffächern
 static func setze_volumen(kopf: HgKopf, wert: float) -> void:

@@ -222,7 +222,7 @@ func _mess(dt: float) -> void:
 	if _t > 9.0:
 		print("MESS ", anzahl, " Köpfe: ", snappedf(_bilder_n / (_t - 3.0), 0.1), " Bilder/s")
 		if _stats and _stats.has_method("get"):
-			print("TRESSFX ", _stats.get("text"))
+			print("TRESSFX ", String(_stats.get("text")).replace("\n", " | "))
 		if bilder != "":
 			await _foto("mess_%d" % anzahl)
 		get_tree().quit()
