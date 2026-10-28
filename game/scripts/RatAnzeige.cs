@@ -8,7 +8,7 @@ using Reichsgilde.Core.Wirtschaft;
 namespace Reichsgilde;
 
 /// <summary>
-/// Die Ratskammer: alle Ämter mit Inhabern, Haltung zum Statut und eurer Gunst bei jedem Ratsherrn –
+/// Die Ratskammer: alle Ämter mit Inhabern, Haltung zum Statut und ihrer Meinung über euch bei jedem Ratsherrn –
 /// dazu Bewerbung, Geschenke und Anträge zum Statut, jeweils mit einer Prognose nach heutigem Stand.
 /// Wer im Rat sitzt, legt hier auch seine Stimme bei den Wahlen und den Anträgen vorab fest (bis zur Sitzung am Jahresende änderbar).
 /// Mit Stadtkasse (PR #200) dazu die Tagesordnung und die Anträge zu Steuer, Bau und Fest (RatAnzeige.Antraege.cs).
@@ -107,7 +107,7 @@ public partial class RatAnzeige : PanelContainer
         var geschenk = new Zahlfeld { MinValue = 10, MaxValue = 5000, Step = 10, Value = _geschenkBetrag, Suffix = waehrung, CustomMinimumSize = new Vector2(150, 0) };
         geschenkZeile.AddChild(geschenk);
         // Wie viel Gunst ein Geschenk bringt, hängt von den Charakterzügen des Ratsherrn ab (Rat.GunstJeGulden) – die Zahl steht am Knopf.
-        string Hinweis() => $"   (Gunst je nach Ratsherr, verblasst um {Zahlenformat.Ganz(rat.Daten.Gunst.VerfallJeJahr * 100)} % im Jahr)";
+        string Hinweis() => $"   (Meinung je nach Ratsherr, verblasst um {Zahlenformat.Ganz(rat.Daten.Gunst.VerfallJeJahr * 100)} % im Jahr)";
         var hinweis = Hauptmenue.Text(geschenkZeile, Hinweis(), 12, Grau);
         var gunstVorschau = new List<Action>();
         geschenk.ValueChanged += wert => { _geschenkBetrag = wert; hinweis.Text = Hinweis(); foreach (var a in gunstVorschau) a(); };
@@ -116,9 +116,9 @@ public partial class RatAnzeige : PanelContainer
         raster.AddThemeConstantOverride("h_separation", 14);
         raster.AddThemeConstantOverride("v_separation", 4);
         _inhalt.AddChild(raster);
-        var kopfTipps = new[] { "", "Rang des Amtes: höhere Ämter entscheiden mehr.", "Das Amt mit seinem Einkommen im Jahr.", "Wer das Amt innehat: ein Haus (Wappen) oder ein Ratsherr.", "Wofür ein Ratsherr eintritt; danach stimmt er bei Anträgen.", "Wie gewogen euch der Ratsherr ist. Geschenke erhöhen die Gunst, sie zählt bei Wahlen und Anträgen.", "" };
+        var kopfTipps = new[] { "", "Rang des Amtes: höhere Ämter entscheiden mehr.", "Das Amt mit seinem Einkommen im Jahr.", "Wer das Amt innehat: ein Haus (Wappen) oder ein Ratsherr.", "Wofür ein Ratsherr eintritt; danach stimmt er bei Anträgen.", "Was der Ratsherr von euch hält (−100 … +100): Charakterzüge, Volk, Glaube, Stand, Geschenke und mehr. Zählt bei Wahlen und Anträgen. Ein Klick auf sein Porträt zeigt alle Gründe und die Aktivitäten.", "" };
         var kopfNr = 0;
-        foreach (var kopf in new[] { "", "Stufe", "Amt", "Inhaber", "Haltung", "Eure Gunst", "" })
+        foreach (var kopf in new[] { "", "Stufe", "Amt", "Inhaber", "Haltung", "Meinung", "" })
             Hauptmenue.Text(raster, kopf, 12, Grau).TooltipText = kopfTipps[kopfNr++];
         foreach (var amt in rat.Aemter)
         {
@@ -141,13 +141,14 @@ public partial class RatAnzeige : PanelContainer
             if (amt.Ratsherr is { } ratsherr)
             {
                 Hauptmenue.Text(raster, $"{ratsherr.Haltung.Kuerzel()} – {ratsherr.Haltung.Name()}", 13).TooltipText = $"{ratsherr.Name} stimmt nach der Haltung {ratsherr.Haltung.Name()}.";
-                Hauptmenue.Text(raster, Zahlenformat.Ganz(rat.Gunst(ratsherr, _spieler)), 14).TooltipText = $"Eure Gunst bei {ratsherr.Name}: {Zahlenformat.Ganz(rat.Gunst(ratsherr, _spieler))}.";
+                var meinung = rat.Meinung(ratsherr, _spieler);
+                Hauptmenue.Text(raster, Zahlenformat.MitVorzeichen(meinung), 14, MeinungsHilfe.Farbe(meinung)).TooltipText = MeinungsHilfe.Tipp(w, ratsherr, _spieler);
                 var knoepfe = new HBoxContainer();
                 knoepfe.AddThemeConstantOverride("separation", 4);
                 raster.AddChild(knoepfe);
                 var knopf = new Button { Text = "Beschenken", FocusMode = FocusModeEnum.None };
                 knopf.Pressed += () => Befehlen(new Schenken(ratsherr.Name, _geschenkBetrag));
-                void Vorschau() { if (!knopf.Disabled) knopf.TooltipText = $"+{Zahlenformat.Ganz(_geschenkBetrag * rat.GunstJeGulden(ratsherr))} Gunst bei {ratsherr.Name}"; } // nach dem AP-Hinweis nicht überschreiben
+                void Vorschau() { if (!knopf.Disabled) knopf.TooltipText = $"{Zahlenformat.MitVorzeichen(_geschenkBetrag * rat.GunstJeGulden(ratsherr, _spieler))} Meinung bei {ratsherr.Name} (weitere Geschenke in diesem Jahr wirken weniger)"; } // nach dem AP-Hinweis nicht überschreiben
                 Vorschau();
                 gunstVorschau.Add(Vorschau);
                 UiHilfe.ApKosten(knopf, w, _spieler, new Schenken("", 0));
@@ -160,7 +161,7 @@ public partial class RatAnzeige : PanelContainer
                     var grund = duft.MoschusRatsherrVerboten(_spieler, ratsherr.Name);
                     moschus.Disabled = grund is not null;
                     moschus.TooltipText = grund ?? $"{duft.Daten.Moschus.Ware} schenken ({(preis > 0 ? $"{Zahlenformat.Ganz(preis)} {waehrung} am Markt" : "aus dem Lager")}): " +
-                                                   $"+{Zahlenformat.Ganz(duft.Daten.Moschus.Gunst)} Gunst – ein Duft ist keine Bestechung. Einmal im Jahr je Ratsherr.";
+                                                   $"+{Zahlenformat.Ganz(duft.Daten.Moschus.Gunst)} Meinung – ein Duft ist keine Bestechung. Einmal im Jahr je Ratsherr.";
                     moschus.Pressed += () => Befehlen(new MoschusRatsherr(ratsherr.Name));
                     UiHilfe.ApKosten(moschus, w, _spieler, new MoschusRatsherr(""));
                     knoepfe.AddChild(moschus);
@@ -244,7 +245,7 @@ public partial class RatAnzeige : PanelContainer
             UiHilfe.ApKosten(stellen, w, _spieler, new StatutBeantragen(default));
             zeile.AddChild(stellen);
         }
-        Hauptmenue.Text(_inhalt, "Ratsherren stimmen ihrer Haltung zu – einem Nachbarstatut nur, wenn eure Gunst bei ihnen " +
+        Hauptmenue.Text(_inhalt, "Ratsherren stimmen ihrer Haltung zu – einem Nachbarstatut nur, wenn ihre Meinung über euch " +
                                  $"mindestens {Zahlenformat.Ganz(rat.Daten.Gunst.SchwelleNachbarstatut)} beträgt.", 12, Grau, umbruchBreite: 670);
 
         if (w.Wegebau.IstAktiv)
@@ -326,7 +327,7 @@ public partial class RatAnzeige : PanelContainer
         }
         var d = gw.Daten.Stadtglaube;
         Hauptmenue.Text(_inhalt, "Ratsherren stimmen für ihren eigenen Glauben; für Glaubensfreiheit, wenn ein fremder gilt (sonst ab " +
-                                 $"{Zahlenformat.Ganz(d.SchwelleFrei)} Gunst); für einen fremden Glauben erst ab {Zahlenformat.Ganz(d.SchwelleFremd)} Gunst. " +
+                                 $"{Zahlenformat.Ganz(d.SchwelleFrei)} Meinung); für einen fremden Glauben erst ab {Zahlenformat.Ganz(d.SchwelleFremd)} Meinung. " +
                                  "Gilt ein Stadtglaube, ist jede Messe und Bekehrungspredigt anderen Glaubens Ketzerei.", 12, Grau, umbruchBreite: 670);
     }
 

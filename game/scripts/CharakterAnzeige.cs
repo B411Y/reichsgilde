@@ -52,9 +52,11 @@ public partial class CharakterAnzeige : PanelContainer
         Hide();
     }
 
-    public void Verbinden(Simulation simulation)
+    public void Verbinden(Simulation simulation, Konto spieler)
     {
         _simulation = simulation;
+        _spieler = spieler;
+        _aktivMit = null;
         _verlauf.Clear();
     }
 
@@ -67,7 +69,7 @@ public partial class CharakterAnzeige : PanelContainer
     private void Zeigen(object ziel)
     {
         if (_simulation?.Wirtschaft is null) return;
-        if (_verlauf.Count == 0 || !_verlauf[^1].Equals(ziel)) _verlauf.Add(ziel);
+        if (_verlauf.Count == 0 || !_verlauf[^1].Equals(ziel)) { _verlauf.Add(ziel); _aktivMit = null; _meldung = ""; }
         if (_verlauf.Count > 30) _verlauf.RemoveAt(0);
         Aufbauen();
         Show();
@@ -78,17 +80,26 @@ public partial class CharakterAnzeige : PanelContainer
     {
         if (_simulation?.Wirtschaft is not { } w || _verlauf.Count == 0) return;
         UiHilfe.KinderEntfernen(_inhalt);
-        switch (_verlauf[^1])
-        {
-            case Person p: PersonBauen(w, p); break;
-            case Ratsherr r: RatsherrBauen(w, r); break;
-        }
+        if (_aktivMit is not null && !(_verlauf[^1] is ICharakter aktuell && aktuell.Kennung == _aktivMit.Kennung)) _aktivMit = null;
+        if (_aktivMit is not null) AktivitaetenBauen(w, _aktivMit);
+        else
+            switch (_verlauf[^1])
+            {
+                case Person p: PersonBauen(w, p); break;
+                case Ratsherr r: RatsherrBauen(w, r); break;
+            }
         var knoepfe = new HBoxContainer { Alignment = BoxContainer.AlignmentMode.Center };
         knoepfe.AddThemeConstantOverride("separation", 12);
         _inhalt.AddChild(knoepfe);
-        if (_verlauf.Count > 1)
-            Hauptmenue.Knopf(knoepfe, "‹ Zurück", () => { _verlauf.RemoveAt(_verlauf.Count - 1); Aufbauen(); });
-        Hauptmenue.Knopf(knoepfe, "Schließen", () => { _verlauf.Clear(); Hide(); });
+        if (_aktivMit is not null)
+            Hauptmenue.Knopf(knoepfe, "‹ Zurück", () => { _aktivMit = null; Aufbauen(); });
+        else
+        {
+            if (_verlauf[^1] is ICharakter ziel) AktivitaetenKnopf(knoepfe, w, ziel);
+            if (_verlauf.Count > 1)
+                Hauptmenue.Knopf(knoepfe, "‹ Zurück", () => { _verlauf.RemoveAt(_verlauf.Count - 1); Aufbauen(); });
+        }
+        Hauptmenue.Knopf(knoepfe, "Schließen", () => { _verlauf.Clear(); _aktivMit = null; Hide(); });
     }
 
     // ── Person ──────────────────────────────────────────────────────────────
@@ -121,7 +132,7 @@ public partial class CharakterAnzeige : PanelContainer
             Hauptmenue.Text(daten, $"Amt: {amt.Name}", 14, Grau);
         if (w.Glaube.IstAktiv) Hauptmenue.Text(daten, $"Glaube: {p.Glaube.Name()}", 14, Grau);
         if (p.Krankheit is { } k) Hauptmenue.Text(daten, $"Krank: {k.Name}", 14, Rot);
-        // Platz für die Meinung zu Euch (Charaktersystem Teil 2): hier eine Zeile „Meinung zu Euch“ mit den Gründen
+        MeinungBauen(daten, w, p);
 
         daten.AddChild(new Control { CustomMinimumSize = new Vector2(0, 6) });
         Hauptmenue.Text(daten, "Talente", 17, Gold);
@@ -201,6 +212,7 @@ public partial class CharakterAnzeige : PanelContainer
         var amt = w.Rat.Aemter.FirstOrDefault(a => a.Ratsherr == r);
         Hauptmenue.Text(daten, amt is null ? "Ratsherr der Stadt" : $"Amt: {amt.Name}", 15);
         if (w.Glaube.IstAktiv) Hauptmenue.Text(daten, $"Glaube: {w.Glaube.GlaubeVon(r).Name()}", 14, Grau);
+        MeinungBauen(daten, w, r);
         if (w.Familien.HatZuege)
         {
             var faktor = r.Bestechlichkeit;
