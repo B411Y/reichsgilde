@@ -253,19 +253,26 @@ public partial class CharakterAnzeige : PanelContainer
         return tipp + "\nMehr zu [[charakterzuege|Charakterzügen]].";
     }
 
-    /// <summary>Ein rundes Medaillon: gemaltes Bild mit Metallrahmen nach Art (Persönlichkeit Bronze, angeboren Silber, erworben Eisen); ohne Bild ein gezeichneter Ring mit dem Anfangsbuchstaben.</summary>
+    /// <summary>
+    /// Ein rundes Medaillon: das gemalte Bild mit geschmiedetem Metallring nach Art des Zugs (Persönlichkeit Kupfer, angeboren Gold,
+    /// erworben Eisen; Hammerschlag, Kerben je Zug an anderer Stelle – schon im Bild). Fehlt das Bild, zeichnet das Fenster einen
+    /// schlichten, abgeschrägten Ring in derselben Farbe mit dem Anfangsbuchstaben.
+    /// </summary>
     private sealed partial class ZugIcon : Control
     {
         private const int Seite = 64;
+        private const float Ring = 4f;
+        private const int Stuecke = 72;
         private static readonly Dictionary<string, Texture2D?> Bilder = new();
+        private static readonly Vector2 Licht = new Vector2(-1, -1).Normalized();
         private readonly Charakterzug _zug;
         private readonly Texture2D? _bild;
 
         public static Color Rahmen(Zugart art) => art switch
         {
-            Zugart.Persoenlichkeit => new Color("b87333"),
-            Zugart.Angeboren => new Color("c7ccd6"),
-            _ => new Color("6b7078"),
+            Zugart.Persoenlichkeit => new Color("a0583a"),
+            Zugart.Angeboren => new Color("e3b33c"),
+            _ => new Color("6e7378"),
         };
 
         public ZugIcon(Charakterzug zug, string tipp)
@@ -284,20 +291,33 @@ public partial class CharakterAnzeige : PanelContainer
 
         public override void _Draw()
         {
-            // Die Bilder bringen ihren Rahmen schon mit
+            // Die Bilder bringen ihren geschmiedeten Ring schon mit
             if (_bild is not null)
             {
                 DrawTextureRect(_bild, new Rect2(0, 0, Seite, Seite), false);
                 return;
             }
             var mitte = new Vector2(Seite, Seite) / 2;
-            var farbe = Rahmen(_zug.Art);
-            DrawCircle(mitte, Seite / 2f - 1, new Color(0.16f, 0.14f, 0.12f));
+            var aussen = Seite / 2f;
+            DrawCircle(mitte, aussen - Ring / 2, new Color(0.16f, 0.14f, 0.12f));
             var font = ThemeDB.FallbackFont;
             var buchstabe = _zug.Name.Length > 0 ? _zug.Name[..1].ToUpperInvariant() : "?";
             var groesse = font.GetStringSize(buchstabe, HorizontalAlignment.Left, -1, 24);
             DrawString(font, new Vector2(mitte.X - groesse.X / 2, mitte.Y + 8), buchstabe, HorizontalAlignment.Left, -1, 24, new Color(0.92f, 0.88f, 0.80f));
-            DrawArc(mitte, Seite / 2f - 2, 0, Mathf.Tau, 48, farbe, 3.5f, true);
+            // Ring in Stücken (Warcraft-3-Abschrägung): je nach Richtung zum Licht heller oder dunkler
+            var farbe = Rahmen(_zug.Art);
+            for (var i = 0; i < Stuecke; i++)
+            {
+                var von = Mathf.Tau * i / Stuecke;
+                var bis = Mathf.Tau * (i + 1) / Stuecke + 0.01f;
+                var richtung = Vector2.FromAngle((von + bis) / 2);
+                var hell = richtung.Dot(Licht);
+                var c = hell > 0 ? farbe.Lerp(Colors.White, 0.5f * hell) : farbe.Lerp(Colors.Black, -0.45f * hell);
+                DrawArc(mitte, aussen - Ring / 2, von, bis, 4, c, Ring, true);
+            }
+            // feine dunkle Kanten außen und innen
+            DrawArc(mitte, aussen - 0.5f, 0, Mathf.Tau, Stuecke, new Color(0, 0, 0, 0.75f), 1f, true);
+            DrawArc(mitte, aussen - Ring - 0.5f, 0, Mathf.Tau, Stuecke, new Color(0, 0, 0, 0.6f), 1f, true);
         }
     }
 
