@@ -13,7 +13,7 @@ An diesen Zielen werden alle Zahlen gemessen. Ändert sich eine Zahl, muss das Z
 
 | # | Ziel | Entwurf 1 erfüllt? | Stand nach Balancing 1 (PR #177) |
 |---|---|---|---|
-| Z1 | Eine Gießerei mit 2 Gesellen ist bei ausgeglichenem Markt profitabel, mit etwa **1.300–1.700** Gulden pro Jahr (angehoben am 22.10.2026, PR #177, Entscheidung des Nutzers – vorher 600–900; passt zu Z2) | ✔ 627 (1 Rivale) bis 878 (kein Rivale), damals Ziel 600–900 | ✔ 1.317 (1 Rivale) bis 1.551 (kein Rivale) |
+| Z1 | **Erstes Jahr** (neu gefasst am 28.10.2026, PR #224, Entscheidung des Nutzers: das Ziel fürs erste Jahr senken statt mehr Startgeld): Eine Gießerei mit den **2 Lehrlingen** des Starts ist bei ausgeglichenem Markt profitabel, mit etwa **900–1.300** Gulden pro Jahr. Mit 2 Gesellen (nach etwa 3 Jahren) wie bisher etwa **1.300–1.700** (angehoben am 22.10.2026, PR #177 – vorher 600–900; passt zu Z2) | ✔ 627 (1 Rivale) bis 878 (kein Rivale), damals Ziel 600–900 | ✔ 1.317 (1 Rivale) bis 1.551 (kein Rivale); PR #224: 2 Lehrlinge 1.094 (kein Rivale) |
 | Z2 | Den Titel **Bürger** (10.000 Gulden Vermögen) erreicht man mit einem einzigen Betrieb nach **8–12 Jahren** (bei 15 Min./Jahr also 2–3 Stunden Spielzeit). Wer expandiert, schafft es schneller. | ✔ 10 Jahre | ✔ Schmied Ø 8,2 Jahre mit Einrichtungskauf, Greybox 80 von 120 Partien im Ziel, die übrigen schneller (Messung 2 ohne Einrichtung: 9,8; Messung 1: 18,2) |
 | Z3 | Konkurrenz ist spürbar: Mehr Anbieter drücken den Preis allmählich, ohne dass er sofort einbricht. Bei Überangebot lohnt es sich, auf ein anderes Produkt auszuweichen. | ✔ Silberring 878 → 627 → 437 → 163 bei 0/30/60/120 Konkurrenzstück | ✔ Preisformel unverändert; zwei Gießereien je 1.317 statt 1.551 allein |
 | Z4 | Ein einzelner Spieler kann den Markt allein nicht beherrschen, weil die Stadt viele andere Anbieter hat | ✔ eine Werkstatt deckt ca. 20 % der Nachfrage | ✔ unverändert (bei vier Häusern Einwohnerfaktor 1) |
@@ -2053,3 +2053,64 @@ Statisch (Startpreise) liegt der Dieb jetzt in Stufe 1 im Band, in Stufe 2 und 3
 | Greybox, jetzt | 213.700 | 203.317 | 215.450 | 11/20 ab 15,0 | 707 | 3.082 | 13.347 |
 
 Kein KI-Haus geht bankrott. Am Ende sind ohne Karte 57 Freiherren und 3 Reichsgrafen, in der Greybox 56 Reichsgrafen.
+
+## Personal und Talentbaum (PR #224)
+
+**Was sich geändert hat** (Umsetzung in `docs/bereiche/kern.md` und `docs/bereiche/spiel-ki.md`, „Personal und Talentbaum (PR #224)“; **Datenversion 59**):
+1. **Nur Anfänger einstellbar, die Partie beginnt mit Anfängern** (Lehrling 120 / Tempo 0,67, Knecht 80 / 0,67, Taschendieb und Rekrut 120 / 0,67). Befördert wird mit Erfahrung (24 Stunden ≈ 3 Jahre als Lehrling, 84 ≈ weitere 5 als Geselle) und Brief (150 bzw. 400 Gulden); Vorarbeiter 300 mit einer Eigenschaft aus drei. Die KI befördert, sobald sich der Brief in höchstens 6 Jahren bezahlt macht – in der Werkstatt gleich nach drei Jahren.
+2. **Einrichtung ab Stufe 3** (Werkstatt-Stück je Beruf 1.500, Ladentheke 1.000, Lehrlingsstube 600) und **Einrichtung des Wohnhauses**.
+3. **Z1 neu gefasst** (Entscheidung des Nutzers: das Ziel fürs erste Jahr senken statt mehr Startgeld): Gießerei mit den 2 Lehrlingen des Starts **900–1.300** Gulden im Jahr, gemessen **1.094** (allein, Silberring, Test „Z1 (PR #224)“; 1 Lehrling 543, 2 Gesellen weiter 1.551). Das Startgeld bleibt.
+4. **Dieb, Wache und Geldleiher nachgezogen**: Ohne Ware haben sie keine Stufe-3-Stücke und kaum Eigenschaften mit Gulden-Wirkung; Taschendiebe werden dazu oft gefasst und durch neue Taschendiebe ersetzt. Im ersten Lauf (Werte wie Messung 7) fielen sie auf Dieb −40,8 %, Geldleiher −23,1 %, Gardist −15,0 % (Schmied +17,6 %, Steinmetz +15,9 %). Neu: **Taschendiebe 1,015 → 1,16** Gulden je Minute, **Sold 0,84 → 0,875**, **Wechselgebühr 0,78 % → 0,9 %** des Marktumsatzes. Probeläufe Teil 1 (20 Jahre, 30 Startwerte): Dieb 1,17 → −10,0 % (Bürger 7,8), 1,15 → −17,8 % (8,5), 1,16 → −10,9 % (8,0) – die Beute wirkt stark und streut; gewählt 1,16.
+
+Gemessen auf main `eb1cbdf` + Branch `097f164`, Datenversion 59:
+- `messen bericht 20 30`: 1.320 Partien in 20,0 Minuten → `docs/messungen/balancing-2026-10-28-personal.json`
+- `messen 30 20` und `messen 30 20 greybox` (nach den Werten aus Punkt 4)
+
+### Gegen die Ziele
+
+| | Messung 7 | PR #224 |
+|---|---|---|
+| Z1: Gießerei im ersten Jahr (allein) | 1.551 mit 2 Gesellen | **1.094** mit 2 Lehrlingen (Ziel 900–1.300) |
+| Berufe im Band ±15 % (simuliert, ein Betrieb, 20 Jahre) | 9/10 (−20,5 … +12,6 %) | **10/10** (−12,6 … +12,3 %) |
+| Mittel des Zuwachses | 29.354 | 29.819 |
+| Schmied bis Bürger (Greybox, im Ziel von 120) | Ø 8,6 (104) | Ø 10,0 (116) |
+| Wirt bis Bürger (im Ziel von 30) | Ø 10,2 | Ø 12,1 (14) |
+| Dieb bis Bürger (im Ziel von 30) | Ø 8,6 (16) | Ø 8,0 (14) |
+| 8 gegen 3 Häuser (Vermögen je KI-Haus) | – | −14 % (Ziel höchstens −15 %) |
+| KI ÷ gleiche Strategie (Median); „Schwer“ | 1,17; 1,44 | 1,08; 1,73 |
+| Kredite der KI / Karren verkauft (in Not / ohne Fahrt) | 0 / 13 / 1 | 0 / 7 / 0 |
+
+Der Start ist deutlich schwächer: Nach 5 Jahren hat der Schmied mit einem Betrieb 4.990 statt 6.833 Gulden Reinvermögen, nach 10 Jahren 10.384 statt 13.812. Nach 20 Jahren liegen die Handwerke wieder gleichauf oder darüber (Schmied 37.054 gegen 37.066, Gewinn im Jahr 20 5.379 statt 3.727): Der Vorarbeiter und die Stücke der Stufe 3 bringen spät mehr. Der Weg zum Bürger dauert damit 1–2 Jahre länger, alle Berufe bleiben im Ziel 8–12 Jahre; nur der Wirt liegt mit Ø 12,1 am Rand (vorher 10,2).
+
+### Berufe (simuliert, ein Betrieb, Greybox, 20 Jahre, 30 Startwerte)
+
+| Beruf | Vermögen 20 J. | gegen Mittel | Messung 7 | Bürger Ø |
+|---|---|---|---|---|
+| Schmied | 33.496 | +12,3 % | +12,6 % | 10,0 |
+| Tischler | 32.125 | +7,7 % | +1,4 % | 10,3 |
+| Steinmetz | 32.555 | +9,2 % | +10,3 % | 11,4 |
+| Alchimist | 28.891 | −3,1 % | +5,6 % | 10,7 |
+| Wirt | 30.889 | +3,6 % | +1,0 % | 12,1 |
+| Prediger | 29.888 | +0,2 % | +5,1 % | 9,4 |
+| Dieb | 26.564 | −10,9 % | −12,2 % | 8,0 |
+| Parfumeur | 31.357 | +5,2 % | −1,0 % | 10,0 |
+| Geldleiher | 26.350 | −11,6 % | −20,5 % | 8,4 |
+| Gardist | 26.076 | −12,6 % | −2,4 % | 9,7 |
+| Dieb wagemutig (nicht im Mittel) | 21.348 | −28,4 % | −33,8 % | 10,3 |
+
+Statisch (Startpreise, Gesellen) liegt der Dieb durch die höhere Beute bei +27 / +39 / +39 % (Stufe 1 / 2 / 3), der Gardist bei −23 / −24 / −19 %, der Wirt ab Stufe 2 bei −22 / −28 %. Die statische Rechnung kennt den Start mit Anfängern, Fang und Gericht nicht.
+
+**Völker** (Zuwachs gegen Menschen; Messung 7 in Klammern): Schmied Zwerg +19,8 % (+9,7), Elb −5,0 % (+4,9), Halbling −21,0 % (−20,8); Parfumeur Zwerg −15,5 % (−6,8), Elb +4,8 % (+20,0), Halbling −3,2 % (−7,4).
+
+**Einrichtung der Stufe 3** (statisch, Startpreise, alle Plätze mit Gesellen bzw. Anfängern): Werkstatt-Stücke 1,0–1,4 Jahre bis bezahlt (bei voller Arbeit an den zwei Waren der Stufe 3), Lehrlingsstube 0,8–1,6 Jahre (nur solange Anfänger da sind), **Ladentheke 5,0–6,8 Jahre** – länger als die 4 Jahre, ab denen die KI kauft; sie kauft sie deshalb nie (Offen-Punkt in `kern.md`). In `messen 30 20 greybox` kaufen die KI-Häuser je Partie und Haus Ø 10,7 Stücke, darunter Lehrlingsstube 74×, Werkstatt-Stücke 87× (Drechselbank 20, Steinsäge 22, Wasserhammer 13, Gewölbekeller 11, Enfleurage-Kammer 10, Athanor 1) in 20 Partien.
+
+**`messen 30 20` und `messen 30 20 greybox`** (30 Jahre, 20 Startwerte, Spieler passiv):
+
+| | Eisenbart | Eichwald | Kieselbach | Bürgermeister | Gaunerstücke der KI | Raub beim Spieler | Stadtkasse Jahr 30 |
+|---|---|---|---|---|---|---|---|
+| ohne Karte, Messung 7 | 171.737 | 135.897 | 168.888 | 15/20 ab 15,8 | 688 | 2.736 | 6.219 |
+| ohne Karte, jetzt | 182.095 | 149.623 | 170.898 | 17/20 ab 18,9 | 673 | 2.888 | 4.201 |
+| Greybox, Messung 7 | 213.700 | 203.317 | 215.450 | 11/20 ab 15,0 | 707 | 3.082 | 13.347 |
+| Greybox, jetzt | 214.299 | 194.875 | 224.173 | 11/20 ab 17,9 | 618 | 2.885 | 11.820 |
+
+Kein KI-Haus geht bankrott. Am Ende sind ohne Karte 41 Freiherren und 19 Reichsgrafen (vorher 57 und 3), in der Greybox 2 Freiherren und 58 Reichsgrafen.

@@ -333,6 +333,22 @@ static partial class Balancingbericht
                     mehr = raub * (1 - wi.EinbruchFaktor);
                     rechnung = $"gemessener Raub je Betrieb und Jahr ({Zahl(raub, "0.0")} Gulden) × (1 − Einbruchfaktor)";
                 }
+                else if (wi.LadenAnteil * wi.LadenAufschlag > 0 || wi.PreisFaktor > 1)
+                {
+                    // Ladentheke (PR #224): mehr Erlös der Jahresmenge der besten Ware
+                    var aufschlag = wi.PreisFaktor * (1 + wi.LadenAnteil * wi.LadenAufschlag) - 1;
+                    mehr = d.Plaetze * minuten * waren.Max(x => w.Markt[x].Preis * (1 - w.Umsatzsteuer) / daten.Waren[x].Zeit / ohne.ZeitFaktor(x)) * aufschlag;
+                    rechnung = "Plätze × Arbeitsminuten × Erlös je Minute (beste Ware, nach Steuer) × Aufschlag (Anteil × Aufschlag des Ladens), Startpreise, Gesellen";
+                }
+                else if (wi.ErfahrungFaktor > 1 && daten.Laufbahn(art) is { } laufbahn)
+                {
+                    // Lehrlingsstube (PR #224): alle Plätze mit Anfängern – jeder wird um (1 − 1 ÷ Faktor) seiner Lehrzeit früher Geselle
+                    var anfaenger = laufbahn.Stufen[0];
+                    var geselle = laufbahn.Stufen[1];
+                    var tempo = daten.Arbeitskraefte[geselle].TempoAm(d.Ort) - daten.Arbeitskraefte[anfaenger].TempoAm(d.Ort);
+                    mehr = d.Plaetze * Math.Max(0, tempo * minuten * Wert(ohne) - daten.Lohn(geselle, art) + daten.Lohn(anfaenger, art)) * (1 - 1 / wi.ErfahrungFaktor);
+                    rechnung = "Plätze × (Ertrag eines Gesellen − Ertrag eines Anfängers) × (1 − 1 ÷ Erfahrungsfaktor), solange Anfänger da sind";
+                }
                 else
                     rechnung = Wirkungstext(wi);
                 statisch.Add(new JsonObject
