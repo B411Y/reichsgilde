@@ -516,10 +516,20 @@ public partial class Kartenwerkstatt
         fenster.AddChild(modell);
         var masse = ModellMasse(modell);
         var mitte = masse.GetCenter();
-        var kamera = new Camera3D { Projection = Camera3D.ProjectionType.Orthogonal, Size = Mathf.Max(masse.Size.Length() * 0.62f, 0.4f), Near = 0.1f, Far = 600f };
+        var kamera = new Camera3D { Projection = Camera3D.ProjectionType.Orthogonal, Size = 1f, Near = 0.1f, Far = 600f };
         fenster.AddChild(kamera);
         kamera.Position = mitte + new Vector3(0.55f, 0.6f, 1f).Normalized() * 150f;
         kamera.LookAt(mitte, Vector3.Up);
+        // an die eigene Größe anpassen: die Hüllbox in die Bildebene der Kamera projizieren, mittig, etwa 80 % des Bildes füllen
+        var zurueck = kamera.GlobalTransform.AffineInverse();
+        var (min, max) = (new Vector2(float.MaxValue, float.MaxValue), new Vector2(float.MinValue, float.MinValue));
+        for (var i = 0; i < 8; i++)
+        {
+            var p = zurueck * (masse.Position + new Vector3((i & 1) * masse.Size.X, (i >> 1 & 1) * masse.Size.Y, (i >> 2 & 1) * masse.Size.Z));
+            (min, max) = (new Vector2(Mathf.Min(min.X, p.X), Mathf.Min(min.Y, p.Y)), new Vector2(Mathf.Max(max.X, p.X), Mathf.Max(max.Y, p.Y)));
+        }
+        kamera.Size = Mathf.Max(Mathf.Max(max.X - min.X, max.Y - min.Y) / 0.8f, 0.05f);
+        kamera.Position += kamera.GlobalTransform.Basis * new Vector3((min.X + max.X) / 2, (min.Y + max.Y) / 2, 0);
         return fenster;
     }
 
