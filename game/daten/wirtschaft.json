@@ -1205,7 +1205,7 @@
         { "kennung": "Eisentuer", "name": "Eisentür", "preis": 150, "spalte": "Schutz & Personal", "abStufe": 1, "wirkung": { "einbruchFaktor": 0.5 } },
         { "kennung": "Schuerzen", "name": "Lederschürzen", "preis": 80, "spalte": "Schutz & Personal", "abStufe": 1, "wirkung": { "unfallFaktor": 0.5 } },
         { "kennung": "Schleifstein", "name": "Tretrad-Schleifstein", "preis": 1500, "spalte": "Werkstatt", "abStufe": 3, "voraussetzung": "Werkzeug2", "wirkung": { "zeitFaktor": 0.85, "waren": ["Goldkette", "Prunkschwert"] } },
-        { "kennung": "Ladentheke", "name": "Ladentheke", "preis": 1000, "spalte": "Lager & Handel", "abStufe": 3, "voraussetzung": "Regale", "wirkung": { "ladenAnteil": 0.25, "ladenAufschlag": 0.05 } },
+        { "kennung": "Ladentheke", "name": "Ladentheke", "preis": 800, "spalte": "Lager & Handel", "abStufe": 3, "voraussetzung": "Regale", "wirkung": { "ladenAnteil": 0.25, "ladenAufschlag": 0.05 } },
         { "kennung": "Lehrlingsstube", "name": "Lehrlingsstube", "preis": 600, "spalte": "Schutz & Personal", "abStufe": 3, "wirkung": { "erfahrungFaktor": 1.5 } }
       ],
       "Tischler": [
@@ -1217,7 +1217,7 @@
         { "kennung": "Eisentuer", "name": "Eisentür", "preis": 150, "spalte": "Schutz & Personal", "abStufe": 1, "wirkung": { "einbruchFaktor": 0.5 } },
         { "kennung": "Schuerzen", "name": "Lederschürzen", "preis": 80, "spalte": "Schutz & Personal", "abStufe": 1, "wirkung": { "unfallFaktor": 0.5 } },
         { "kennung": "Drechselbank", "name": "Drechselbank", "preis": 1500, "spalte": "Werkstatt", "abStufe": 3, "voraussetzung": "Werkzeug2", "wirkung": { "zeitFaktor": 0.85, "waren": ["Schrank", "Prunktruhe"] } },
-        { "kennung": "Ladentheke", "name": "Ladentheke", "preis": 1000, "spalte": "Lager & Handel", "abStufe": 3, "voraussetzung": "Regale", "wirkung": { "ladenAnteil": 0.25, "ladenAufschlag": 0.05 } },
+        { "kennung": "Ladentheke", "name": "Ladentheke", "preis": 800, "spalte": "Lager & Handel", "abStufe": 3, "voraussetzung": "Regale", "wirkung": { "ladenAnteil": 0.25, "ladenAufschlag": 0.05 } },
         { "kennung": "Lehrlingsstube", "name": "Lehrlingsstube", "preis": 600, "spalte": "Schutz & Personal", "abStufe": 3, "wirkung": { "erfahrungFaktor": 1.5 } }
       ],
       "Steinmetz": [
@@ -1229,7 +1229,7 @@
         { "kennung": "Eisentuer", "name": "Eisentür", "preis": 150, "spalte": "Schutz & Personal", "abStufe": 1, "wirkung": { "einbruchFaktor": 0.5 } },
         { "kennung": "Schuerzen", "name": "Lederschürzen", "preis": 80, "spalte": "Schutz & Personal", "abStufe": 1, "wirkung": { "unfallFaktor": 0.5 } },
         { "kennung": "Steinsaege", "name": "Steinsäge", "preis": 1500, "spalte": "Werkstatt", "abStufe": 3, "voraussetzung": "Werkzeug2", "wirkung": { "zeitFaktor": 0.85, "waren": ["Steinfigur", "Grabmal"] } },
-        { "kennung": "Ladentheke", "name": "Ladentheke", "preis": 1000, "spalte": "Lager & Handel", "abStufe": 3, "voraussetzung": "Regale", "wirkung": { "ladenAnteil": 0.25, "ladenAufschlag": 0.05 } },
+        { "kennung": "Ladentheke", "name": "Ladentheke", "preis": 800, "spalte": "Lager & Handel", "abStufe": 3, "voraussetzung": "Regale", "wirkung": { "ladenAnteil": 0.25, "ladenAufschlag": 0.05 } },
         { "kennung": "Lehrlingsstube", "name": "Lehrlingsstube", "preis": 600, "spalte": "Schutz & Personal", "abStufe": 3, "wirkung": { "erfahrungFaktor": 1.5 } }
       ],
       "Alchimist": [
@@ -1241,7 +1241,7 @@
         { "kennung": "Eisentuer", "name": "Eisentür", "preis": 150, "spalte": "Schutz & Personal", "abStufe": 1, "wirkung": { "einbruchFaktor": 0.5 } },
         { "kennung": "Handschuhe", "name": "Lederhandschuhe", "preis": 80, "spalte": "Schutz & Personal", "abStufe": 1, "wirkung": { "unfallFaktor": 0.5 } },
         { "kennung": "Athanor", "name": "Athanor", "preis": 1500, "spalte": "Werkstatt", "abStufe": 3, "voraussetzung": "Werkzeug2", "wirkung": { "zeitFaktor": 0.85, "waren": ["Theriak", "Zinnober"] } },
-        { "kennung": "Ladentheke", "name": "Ladentheke", "preis": 1000, "spalte": "Lager & Handel", "abStufe": 3, "voraussetzung": "Regale", "wirkung": { "ladenAnteil": 0.25, "ladenAufschlag": 0.05 } },
+        { "kennung": "Ladentheke", "name": "Ladentheke", "preis": 800, "spalte": "Lager & Handel", "abStufe": 3, "voraussetzung": "Regale", "wirkung": { "ladenAnteil": 0.25, "ladenAufschlag": 0.05 } },
         { "kennung": "Lehrlingsstube", "name": "Lehrlingsstube", "preis": 600, "spalte": "Schutz & Personal", "abStufe": 3, "wirkung": { "erfahrungFaktor": 1.5 } }
       ],
       "Parfumeur": [
@@ -1253,7 +1253,7 @@
         { "kennung": "Eisentuer", "name": "Eisentür", "preis": 150, "spalte": "Schutz & Personal", "abStufe": 1, "wirkung": { "einbruchFaktor": 0.5 } },
         { "kennung": "Handschuhe", "name": "Lederhandschuhe", "preis": 80, "spalte": "Schutz & Personal", "abStufe": 1, "wirkung": { "unfallFaktor": 0.5 } },
         { "kennung": "Enfleurage", "name": "Enfleurage-Kammer", "preis": 1500, "spalte": "Werkstatt", "abStufe": 3, "voraussetzung": "Werkzeug2", "wirkung": { "zeitFaktor": 0.85, "waren": ["Heiligenduft", "Schattendolch"] } },
-        { "kennung": "Ladentheke", "name": "Ladentheke", "preis": 1000, "spalte": "Lager & Handel", "abStufe": 3, "voraussetzung": "Regale", "wirkung": { "ladenAnteil": 0.25, "ladenAufschlag": 0.05 } },
+        { "kennung": "Ladentheke", "name": "Ladentheke", "preis": 800, "spalte": "Lager & Handel", "abStufe": 3, "voraussetzung": "Regale", "wirkung": { "ladenAnteil": 0.25, "ladenAufschlag": 0.05 } },
         { "kennung": "Lehrlingsstube", "name": "Lehrlingsstube", "preis": 600, "spalte": "Schutz & Personal", "abStufe": 3, "wirkung": { "erfahrungFaktor": 1.5 } }
       ],
       "Wirt": [
@@ -1265,7 +1265,7 @@
         { "kennung": "Eisentuer", "name": "Eisentür", "preis": 150, "spalte": "Schutz & Personal", "abStufe": 1, "wirkung": { "einbruchFaktor": 0.5 } },
         { "kennung": "Handschuhe", "name": "Lederhandschuhe", "preis": 80, "spalte": "Schutz & Personal", "abStufe": 1, "wirkung": { "unfallFaktor": 0.5 } },
         { "kennung": "Gewoelbekeller", "name": "Gewölbekeller", "preis": 1500, "spalte": "Werkstatt", "abStufe": 3, "voraussetzung": "Werkzeug2", "wirkung": { "zeitFaktor": 0.85, "waren": ["Festbier", "Schädelbrand"] } },
-        { "kennung": "Ladentheke", "name": "Ladentheke", "preis": 1000, "spalte": "Lager & Handel", "abStufe": 3, "voraussetzung": "Regale", "wirkung": { "ladenAnteil": 0.25, "ladenAufschlag": 0.05 } },
+        { "kennung": "Ladentheke", "name": "Ladentheke", "preis": 800, "spalte": "Lager & Handel", "abStufe": 3, "voraussetzung": "Regale", "wirkung": { "ladenAnteil": 0.25, "ladenAufschlag": 0.05 } },
         { "kennung": "Lehrlingsstube", "name": "Lehrlingsstube", "preis": 600, "spalte": "Schutz & Personal", "abStufe": 3, "wirkung": { "erfahrungFaktor": 1.5 } }
       ],
       "Prediger": [
@@ -1277,7 +1277,7 @@
         { "kennung": "Eisentuer", "name": "Eisentür", "preis": 150, "spalte": "Schutz & Personal", "abStufe": 1, "wirkung": { "einbruchFaktor": 0.5 } },
         { "kennung": "Handschuhe", "name": "Lederhandschuhe", "preis": 80, "spalte": "Schutz & Personal", "abStufe": 1, "wirkung": { "unfallFaktor": 0.5 } },
         { "kennung": "Skriptorium", "name": "Skriptorium", "preis": 1500, "spalte": "Werkstatt", "abStufe": 3, "voraussetzung": "Werkzeug2", "wirkung": { "zeitFaktor": 0.85, "waren": ["Stundenbuch", "Reliquiar"] } },
-        { "kennung": "Ladentheke", "name": "Ladentheke", "preis": 1000, "spalte": "Lager & Handel", "abStufe": 3, "voraussetzung": "Regale", "wirkung": { "ladenAnteil": 0.25, "ladenAufschlag": 0.05 } },
+        { "kennung": "Ladentheke", "name": "Ladentheke", "preis": 800, "spalte": "Lager & Handel", "abStufe": 3, "voraussetzung": "Regale", "wirkung": { "ladenAnteil": 0.25, "ladenAufschlag": 0.05 } },
         { "kennung": "Lehrlingsstube", "name": "Lehrlingsstube", "preis": 600, "spalte": "Schutz & Personal", "abStufe": 3, "wirkung": { "erfahrungFaktor": 1.5 } }
       ],
       "Dieb": [

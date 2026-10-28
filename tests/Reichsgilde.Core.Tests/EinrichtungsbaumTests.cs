@@ -29,7 +29,7 @@ static class EinrichtungsbaumTests
 
     public static IEnumerable<(string, Action)> Alle() => new (string, Action)[]
     {
-        ("Einrichtung Stufe 3: Daten – je Beruf ein Werkstatt-Stück (−15 % für die Waren der Stufe 3, 1.500), Ladentheke (1.000), Lehrlingsstube (600); jedes Stück hat eine Spalte", () =>
+        ("Einrichtung Stufe 3: Daten – je Beruf ein Werkstatt-Stück (−15 % für die Waren der Stufe 3, 1.500), Ladentheke (800), Lehrlingsstube (600); jedes Stück hat eine Spalte", () =>
         {
             var d = Daten.Value.Werkstatt!;
             Pruefe.Gleich("Werkstatt|Lager & Handel|Schutz & Personal", string.Join("|", d.Spalten));
@@ -53,7 +53,7 @@ static class EinrichtungsbaumTests
                 var drei = arten.Single(a => a.Beruf == beruf && a.Stufe == 3 && a.IstWerkstatt);
                 var zwei = arten.Single(a => a.Beruf == beruf && a.Stufe == 2 && a.IstWerkstatt);
                 Pruefe.Gleich(waren, string.Join(" ", drei.Produkte.Except(zwei.Produkte)), beruf);
-                Pruefe.Gleich(1000.0, d.Stueck(beruf, "Ladentheke")!.Preis);
+                Pruefe.Gleich(800.0, d.Stueck(beruf, "Ladentheke")!.Preis);
                 Pruefe.Gleich("Regale", d.Stueck(beruf, "Ladentheke")!.Voraussetzung);
             }
             foreach (var (beruf, liste) in d.Einrichtung)
