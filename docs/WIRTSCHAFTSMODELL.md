@@ -2117,34 +2117,41 @@ Kein KI-Haus geht bankrott. Am Ende sind ohne Karte 41 Freiherren und 19 Reichsg
 
 ## Charakterzüge (PR #227)
 
-**Was sich geändert hat** (Umsetzung in `docs/bereiche/kern.md` und `docs/bereiche/spiel-ki.md`, „Charakterzüge (PR #227)“; **Datenversion 60**): Jede Person der Häuser und jeder Ratsherr hat Charakterzüge (Abschnitt `charakterzuege`). Sie ändern Talente um höchstens ±1 Stern je Zug, Haushalt und Krankheit einzelner Personen, die Bestechlichkeit der Ratsherren und das Handeln der KI-Häuser (Zins, Geschenke, Gaunerstücke, Klage, Ablass, Eskorte, Amortisation, Produktwechsel, Verlustjahre, Barde, Wohnhaus-Einrichtung). Kein bestehender Wert ist geändert. Im Mittel bringen die Züge eines neuen Oberhaupts +0,1 bis +0,25 Sterne je Talent (Mensch: Verhandeln +0,13, Handwerk +0,10, Nacht +0,23, Kampf +0,15, Rhetorik +0,09; Zwerg wegen Fleißig/Gierig etwas mehr).
+**Was sich geändert hat** (Umsetzung in `docs/bereiche/kern.md` und `docs/bereiche/spiel-ki.md`, „Charakterzüge (PR #227)“; **Datenversion 60**): Jede Person der Häuser und jeder Ratsherr hat Charakterzüge (Abschnitt `charakterzuege`). Sie ändern Talente (höchstens ±1 Stern, bei Persönlichkeitszügen Verhandeln und Handwerk höchstens ±½), Haushalt und Krankheit einzelner Personen, die Bestechlichkeit der Ratsherren und das Handeln der KI-Häuser. **Kein Grundwert eines Berufs ist geändert.** Charakterzüge gibt es erst in neuen Partien.
 
-Gemessen auf main `60771c4` + Branch `6dbc47e`, Datenversion 60, gegen main `60771c4` ohne Züge (Datenversion 59), beide `messen bericht 20 20` (880 Partien, je 20–22 Minuten) → `docs/messungen/balancing-2026-10-28-charakterzuege.json`. Ein erster Lauf mit „Fleißig übt, sobald die Punkte reichen / Träge übt nie“ zeigte dasselbe Bild (Schmied +20 %, Parfumeur +17 %, Geldleiher −19 % gegen das Mittel); seitdem stellen Fleißig und Träge nur schneller bzw. langsamer um.
+**Nachsteuern** (Vorgabe „Wirtschaft im gemessenen Band“; Messungen auf main `60771c4` mit 20 und `018f0c1` mit 30 Startwerten):
+1. **Talente:** Ein Stern Verhandeln oder Handwerk mehr macht den Schmied nach 20 Jahren um ein Drittel reicher (Startwert 404: Gierig und Fleißig → 79.000 statt ≈ 36.000), Geldleiher, Gardist und Prediger merken davon fast nichts. Weil der Messspieler je Startwert in allen Berufen dieselben Züge hat, verschob schon eine zufällig günstige Auswahl die Handwerke (20 Startwerte: Verhandeln im Mittel +0,35 Sterne). Darum Verhandeln und Handwerk bei Persönlichkeitszügen ±½, und jedes Paar hebt sich in jedem Talent genau auf.
+2. **Gaunerei:** Ehrlich ließ das ausgewogene KI-Haus ganz ohne Gaunerstücke, das zusätzliche Stück des Verschlagenen kam selten zustande – Diebstahl der KI 0,85 → 0,66 je Jahr, die Handwerke (ihre Ware wird gestohlen) wurden reicher als die übrigen Berufe. Jetzt senkt Ehrlich nie unter eins und besticht stattdessen keine Richter.
+3. **Karren in Not** (3 → 12 in 880 Partien, 7 → 12 in 1.320): Betroffen waren fast nur Häuser mit mutigem (weniger Eskorte und ein Jahr längere Amortisation), hochmütigem (Brautschau nach Stand, längere Frist für Wohnhaus-Einrichtung) und geduldigem Oberhaupt (ein Verlustjahr mehr). Gestrichen: Mutig längere Amortisation, Geduldig Verlustjahr, Hochmütig Einrichtungsfrist; Mutig spart weniger an der Eskorte (× 0,85), Hochmütig wertet den Stand der Braut mit +25 % statt +50 % je Stufe.
+4. **Krankheit und Haushalt** symmetrisch: Kränklich × 1,5 / Stark × 0,6 (vorher 2 / 0,75 – der Alchimist verkaufte mehr Kräuterschnaps), Bescheiden 0,9 / Hochmütig 1,1.
+5. Fleißig übt nicht mehr sofort und Träge nicht nie – beide ändern nur den Produktwechsel.
+
+Gemessen auf main `018f0c1` + Branch (Commit in der JSON-Datei), Datenversion 60, gegen main `018f0c1` ohne Züge, beide `messen bericht 20 30` (1.320 Partien, je 20–40 Minuten) → `docs/messungen/balancing-2026-10-28-charakterzuege.json` und `docs/messungen/balancing-2026-10-28-ohne-zuege.json`.
 
 | | main ohne Züge | mit Zügen |
 |---|---|---|
-| Berufe im Band ±15 % (simuliert, ein Betrieb, 20 Jahre) | 9/10 (Dieb −16 %) | 8/10 (Schmied +21 %, Geldleiher −17 %) |
-| Mittel des Zuwachses | 29.419 | 30.810 (+4,7 %) |
-| Bürger mit einem Betrieb (Ø Jahre, Spanne der Berufe) | 8,3 … 12,8 | 8,2 … 12,1 |
-| Spieler mit einem Betrieb, Greybox / Probestadt | 36.436 / 38.544 | 41.188 / 46.910 |
-| KI ÷ gleiche Strategie (Median); „Schwer“ | 1,12; 1,64 | 0,96; 1,49 |
-| 8 gegen 3 Häuser (Vermögen je KI-Haus) | −13 % | −10 % |
-| Gaunerei der KI: Diebstahl / Einbruch je Jahr | 0,83 / 0,62 | 0,69 / 0,53 |
-| Karren in Not verkauft (880 Partien) | 3 | 12 |
+| Berufe im Band ±15 % (simuliert, ein Betrieb, 20 Jahre) | 10/10 (Schmied +12 %, Gardist −13 %) | 7/10 (Schmied +18 %, Tischler +15 %, Gardist −18 %) |
+| Mittel des Zuwachses | 29.819 | 30.278 (+1,5 %) |
+| Bürger mit einem Betrieb (Ø Jahre, Spanne der Berufe) | 8,0 … 12,1 | 8,3 … 11,7 |
+| Spieler mit einem Betrieb, Greybox / Probestadt | 37.496 / 38.324 | 39.845 / 41.618 |
+| KI ÷ gleiche Strategie (Median); „Schwer“ | 1,08; 1,73 | 1,04; 1,68 |
+| 8 gegen 3 Häuser (Vermögen je KI-Haus) | −14 % | −10 % |
+| Gaunerei der KI: Diebstahl / Einbruch je Jahr | 0,85 / 0,60 | 0,80 / 0,68 |
+| Karren in Not verkauft | 7 | 7 |
 
-Reinvermögen nach 20 Jahren je Beruf (ein Betrieb, Greybox, Mensch; Fehler des Mittels mit Zügen ≈ 800–2.300):
+Reinvermögen nach 20 Jahren je Beruf (ein Betrieb, Greybox, Mensch, 30 Startwerte; Fehler des Mittels ≈ 800–1.900):
 
 | Beruf | ohne Züge | mit Zügen |
 |---|---|---|
-| Schmied | 36.436 | 41.188 (+13 %) |
-| Tischler | 34.845 | 38.830 (+11 %) |
-| Steinmetz | 35.005 | 35.967 (+3 %) |
-| Alchimist | 34.976 | 31.973 (−9 %) |
-| Wirt | 34.857 | 35.404 (+2 %) |
-| Prediger | 33.364 | 32.578 (−2 %) |
-| Dieb | 28.853 | 33.759 (+17 %) |
-| Parfumeur | 35.758 | 37.518 (+5 %) |
-| Geldleiher | 30.591 | 29.572 (−3 %) |
-| Gardist | 29.501 | 31.313 (+6 %) |
+| Schmied | 37.496 | 39.845 (+6 %) |
+| Tischler | 36.125 | 38.897 (+8 %) |
+| Steinmetz | 36.555 | 35.139 (−4 %) |
+| Alchimist | 32.891 | 35.836 (+9 %) |
+| Wirt | 34.889 | 34.766 (0 %) |
+| Prediger | 33.888 | 32.522 (−4 %) |
+| Dieb | 30.564 | 30.464 (0 %) |
+| Parfumeur | 35.357 | 35.731 (+1 %) |
+| Geldleiher | 30.350 | 30.802 (+1 %) |
+| Gardist | 30.076 | 28.777 (−4 %) |
 
-**Befund:** Die Wirtschaft bleibt nahe am Band; die Züge machen jede Partie zufälliger (Streuung der Berufe teils größer), und mit 20 Startwerten liegen Schmied und Geldleiher knapp außerhalb. Der Dieb gewinnt am meisten (Nacht im Mittel +0,23, Verschlagen +1 Stern). Die KI-Häuser verlieren gegen den Bezugsspieler etwas an Vorsprung (Mutig und Geduldig behalten Verlustbetriebe länger, öfter Karren in Not; Ehrlich lässt das Hinterzimmer aus). Ob nachgesteuert wird (z. B. Nacht-Plus von Feige streichen, 30 Startwerte messen), entscheidet der Nutzer.
+**Befund:** Jeder Beruf liegt nach 20 Jahren innerhalb von −4 … +9 % seines Werts ohne Züge, im Mittel +1,5 %; die Not der KI ist wieder wie ohne Züge. Das Band „±15 % gegen das Mittel“ reißen Schmied, Tischler und Gardist um 0–3 Prozentpunkte – sie lagen schon ohne Züge am Rand (+12 %, +9 %, −13 %), und die Züge machen jede Partie zufälliger: Zwei Läufe mit fast gleichen Werten gaben Schmied −6 % und +6 % gegen main (der vorletzte Lauf: nur Dieb −16 % außerhalb). Das liegt im Fehler der Messung (≈ 5 % je Beruf). Weiter drücken ließe es sich nur mit kleineren Talentwirkungen als „±1 Stern“ (Entscheidung des Nutzers).
