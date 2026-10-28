@@ -253,10 +253,10 @@ public partial class CharakterAnzeige : PanelContainer
         return tipp + "\nMehr zu [[charakterzuege|Charakterzügen]].";
     }
 
-    /// <summary>Ein rundes Medaillon: Rahmen nach Art (Persönlichkeit Bronze, angeboren Silber, erworben Eisen); ohne Bild der Anfangsbuchstabe.</summary>
+    /// <summary>Ein rundes Medaillon: gemaltes Bild mit Metallrahmen nach Art (Persönlichkeit Bronze, angeboren Silber, erworben Eisen); ohne Bild ein gezeichneter Ring mit dem Anfangsbuchstaben.</summary>
     private sealed partial class ZugIcon : Control
     {
-        private const int Seite = 48;
+        private const int Seite = 64;
         private static readonly Dictionary<string, Texture2D?> Bilder = new();
         private readonly Charakterzug _zug;
         private readonly Texture2D? _bild;
@@ -284,17 +284,19 @@ public partial class CharakterAnzeige : PanelContainer
 
         public override void _Draw()
         {
+            // Die Bilder bringen ihren Rahmen schon mit
+            if (_bild is not null)
+            {
+                DrawTextureRect(_bild, new Rect2(0, 0, Seite, Seite), false);
+                return;
+            }
             var mitte = new Vector2(Seite, Seite) / 2;
             var farbe = Rahmen(_zug.Art);
             DrawCircle(mitte, Seite / 2f - 1, new Color(0.16f, 0.14f, 0.12f));
-            if (_bild is not null) DrawTextureRect(_bild, new Rect2(3, 3, Seite - 6, Seite - 6), false);
-            else
-            {
-                var font = ThemeDB.FallbackFont;
-                var buchstabe = _zug.Name.Length > 0 ? _zug.Name[..1].ToUpperInvariant() : "?";
-                var groesse = font.GetStringSize(buchstabe, HorizontalAlignment.Left, -1, 24);
-                DrawString(font, new Vector2(mitte.X - groesse.X / 2, mitte.Y + 8), buchstabe, HorizontalAlignment.Left, -1, 24, new Color(0.92f, 0.88f, 0.80f));
-            }
+            var font = ThemeDB.FallbackFont;
+            var buchstabe = _zug.Name.Length > 0 ? _zug.Name[..1].ToUpperInvariant() : "?";
+            var groesse = font.GetStringSize(buchstabe, HorizontalAlignment.Left, -1, 24);
+            DrawString(font, new Vector2(mitte.X - groesse.X / 2, mitte.Y + 8), buchstabe, HorizontalAlignment.Left, -1, 24, new Color(0.92f, 0.88f, 0.80f));
             DrawArc(mitte, Seite / 2f - 2, 0, Mathf.Tau, 48, farbe, 3.5f, true);
         }
     }
