@@ -488,10 +488,11 @@ def rinde_schlank(o, ziel, mindest=0.45):
     return o
 
 
-def laub_schlank(o, ziel, saat, dunkel=0.5, streuung=0.14, farbton=0.05):
+def laub_schlank(o, ziel, saat, dunkel=0.4, hell=0.8, streuung=0.14, farbton=0.05, tint=(1.0, 1.0, 1.0)):
     """Blattkarten und Nadelbüschel ausdünnen, ohne das Netz zu verformen: von innen nach außen fallen einzelne Stücke weg
     (die Silhouette bleibt), die übrigen werden um ihre Mitte größer. Dazu Eckenfarben: Mitte und Unterseite dunkler (AO),
-    je Stück leicht andere Helligkeit und ein Hauch Farbton (das Spiel multipliziert sie mit der Jahreszeitenfarbe)."""
+    je Stück leicht andere Helligkeit und ein Hauch Farbton (das Spiel multipliziert sie mit der Jahreszeitenfarbe). `hell` dunkelt
+    insgesamt ab: Die Kit-Blätter wirkten neben dem feuchten Waldboden und unseren Bäumen zu hell."""
     import bmesh
     import random
     zufall = random.Random(saat)
@@ -531,8 +532,8 @@ def laub_schlank(o, ziel, saat, dunkel=0.5, streuung=0.14, farbton=0.05):
                 if v.index not in vorher:
                     vorher[v.index] = m + (p - m) * gross
                 t = max(0.0, min(1.0, 0.6 * (1 - tiefe(p)) + 0.4 * ((p.z - lo.z) / max(1e-3, hi.z - lo.z))))
-                w = (dunkel + (1.0 - dunkel) * t ** 0.8) * j
-                l[ebene] = (w * (1 + farbton * h), w, w * (1 - farbton * h), 1.0)
+                w = (dunkel + (1.0 - dunkel) * t ** 0.8) * j * hell
+                l[ebene] = (w * (1 + farbton * h) * tint[0], w * tint[1], w * (1 - farbton * h) * tint[2], 1.0)
     bm.verts.ensure_lookup_table()
     for i, p in vorher.items():
         bm.verts[i].co = p
@@ -542,22 +543,28 @@ def laub_schlank(o, ziel, saat, dunkel=0.5, streuung=0.14, farbton=0.05):
     return o
 
 
-def baum_mittel(o, name, rinde, laub, saat=1, **farbe):
-    """Der Kit-Baum `o` mit etwa `rinde` + `laub` Dreiecken (Rinde und Laub getrennt behandelt)."""
-    import bmesh
+def baum_mittel(o, name, rinde, laub, saat=1, rinde_winter=None, **farbe):
+    """Der Kit-Baum `o` mit etwa `rinde` + `laub` Dreiecken (Rinde und Laub getrennt behandelt). Mit `rinde_winter` kommt
+    zusätzlich die kahle Fassung „<name>_Winter“ aus der Rinde mit mehr Zweigen (ohne Laub sieht man sie): (Baum, Winter)."""
     alpha = {m.name for m in o.data.materials if m and _nachbessern.get(m.name, {}).get("alphaMode")}
     rest = {m.name for m in o.data.materials if m and m.name not in alpha}
     teile_ = []
     if alpha:
         a = teil_nach_stoff(o, alpha)
         teile_.append(laub_schlank(a, laub, saat, **farbe))
-    b = teil_nach_stoff(o, rest)
-    rinde_schlank(b, rinde)
-    weiss = b.data.color_attributes.new("Col", "FLOAT_COLOR", "CORNER")
-    weiss.data.foreach_set("color", [1.0] * (4 * len(weiss.data)))
+    winter = None
+    if rinde_winter:
+        winter = rinde_schlank(teil_nach_stoff(o, rest), rinde_winter)
+        winter.name = winter.data.name = name + "_Winter"
+    b = rinde_schlank(teil_nach_stoff(o, rest), rinde)
+    for x in (b, winter):
+        if x is not None:
+            weiss = x.data.color_attributes.new("Col", "FLOAT_COLOR", "CORNER")
+            weiss.data.foreach_set("color", [1.0] * (4 * len(weiss.data)))
     teile_.append(b)
     bpy.data.objects.remove(o)
-    return verbinden(teile_, name)
+    baum = verbinden(teile_, name)
+    return baum if rinde_winter is None else (baum, winter)
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -599,10 +606,11 @@ def natur_steine():
     return o
 
 
-# Dreiecksziele je Baum (Rinde, Laub bzw. Nadeln): Mittelweg zwischen dem vollen Kit-Baum (1.600 bis 6.600) und unseren Bäumen (37 bis 217)
-KIEFERN = (("Pine_5", 7.5, 200, 760), ("Pine_2", 8.0, 300, 600), ("Pine_4", 10.5, 320, 760), ("Pine_1", 7.5, 300, 600), ("Pine_3", 7.5, 300, 440))
-TOTBAEUME = (("DeadTree_1", 7.0, 1500), ("DeadTree_2", 8.0, 1500), ("DeadTree_3", 9.0, 1500))
-LAUBBAEUME = (("CommonTree_5", 8.0, 450, 520), ("CommonTree_3", 9.5, 450, 560), ("CommonTree_2", 8.5, 500, 540))
+# Dreiecksziele je Baum (Rinde, Laub bzw. Nadeln, kahle Fassung): Mittelweg zwischen dem vollen Kit-Baum (1.600 bis 6.600) und unseren Bäumen (37 bis 217)
+KIEFERN = (("Pine_5", 7.5, 150, 700), ("Pine_2", 8.0, 220, 560), ("Pine_4", 10.5, 240, 700), ("Pine_1", 7.5, 220, 560), ("Pine_3", 7.5, 220, 420))
+TOTBAEUME = (("DeadTree_1", 7.0, 1000), ("DeadTree_2", 8.0, 1000), ("DeadTree_3", 9.0, 1000))
+LAUBBAEUME = (("CommonTree_5", 8.0, 260, 380), ("CommonTree_3", 9.5, 260, 400), ("CommonTree_2", 8.5, 280, 380))
+WINTER_RINDE = 520            # die kahlen Fassungen brauchen mehr Äste: im Winter sieht man sie allein
 
 
 def natur_baeume():
@@ -610,17 +618,17 @@ def natur_baeume():
     o = []
     for i, (s, h, rinde, nadeln) in enumerate(KIEFERN):
         b = laden("natur", s, f"Kiefer{i + 1}", hoehe=h)
-        o.append(baum_mittel(b, b.name, rinde, nadeln, saat=10 + i))
+        o.append(baum_mittel(b, b.name, rinde, nadeln, saat=10 + i, hell=0.66, tint=(0.92, 1.0, 0.96)))
     for i, (s, h, rinde) in enumerate(TOTBAEUME):
         b = laden("natur", s, f"Totbaum{i + 1}", hoehe=h)
         o.append(baum_mittel(b, b.name, rinde, 0, saat=20 + i))
-    laub = []
+    laub, winter = [], []
     for i, (s, h, rinde, blaetter) in enumerate(LAUBBAEUME):
         b = laden("natur", s, f"Laubbaum{i + 1}", hoehe=h)
-        laub.append(baum_mittel(b, b.name, rinde, blaetter, saat=30 + i))
-    o.extend(laub)
-    for b in laub:
-        o.append(winterfassung(b, b.name + "_Winter"))
+        baum, kahl = baum_mittel(b, b.name, rinde, blaetter, saat=30 + i, rinde_winter=WINTER_RINDE, hell=0.7, tint=(0.88, 1.0, 0.93))
+        laub.append(baum)
+        winter.append(kahl)
+    o.extend(laub + winter)
     sauber(o)
     return o
 
