@@ -9,7 +9,7 @@ namespace Reichsgilde.Core.Ki;
 ///   Fromm / Zynisch          Ablass mit halbem / doppeltem Polster, Fromm tritt nie zum Stadtglauben über
 ///   Mutig / Feige            Eskorte nach Raubfurcht ×0,85 / ×1,5; Feige: Amortisation 1 Jahr kürzer
 ///   Ehrlich / Verschlagen    ein bezahltes Gaunerstück weniger (nie unter eins, keine Richter bestechen) / mehr im Jahr
-///   Geduldig / Jähzornig     Produktwechsel ×1,3 / ×0,7, Klage erst ab mehr / schon ab weniger Beweiskraft
+///   Geduldig / Jähzornig     Produktwechsel ×1,3 / ×0,7, Klage erst mit einem Beweis mehr / schon mit einem weniger
 ///   Gesellig / Scheu         Geschenke ×1,2 / ×0,8, Barde immer / nie
 ///   Bescheiden / Hochmütig   keine Wohnhaus-Einrichtung / Brautschau nach Stand
 /// </summary>
@@ -26,13 +26,18 @@ public sealed partial class KiRivale
     /// <summary>So viele Jahre darf ein Kauf, Ausbau oder Brief zum Bezahlen brauchen (Profil ± Mutig/Feige, mindestens 1).</summary>
     private double Amortisationsjahre => Math.Max(1, Profil.MaxAmortisationJahre + Neigung.Amortisation);
 
-    /// <summary>Ab dieser Beweiskraft klagt die KI an – nie unter der Schwelle für einen Schuldspruch.</summary>
-    private double Klageschwelle
+    /// <summary>
+    /// Ab dieser Beweiskraft klagt die KI an: so viele Beweise, wie ein sicherer Schuldspruch braucht (auch gegen bestochene Richter),
+    /// dazu die Beweise mehr oder weniger aus den Zügen (Geduldig +1, Jähzornig −1) – nie weniger, als ein Schuldspruch überhaupt braucht.
+    /// </summary>
+    internal double Klageschwelle
     {
         get
         {
             var d = _w.Justiz.Daten;
-            return Math.Max(d.SchuldSchwelle, d.SichereBeweiskraft * Neigung.Klage);
+            var sicher = (int)Math.Ceiling(d.SichereBeweiskraft / d.BeweiskraftJeBeweis - 1e-9);
+            var mindestens = (int)Math.Ceiling(d.SchuldSchwelle / d.BeweiskraftJeBeweis - 1e-9);
+            return Math.Max(mindestens, sicher + Neigung.KlageBeweise) * d.BeweiskraftJeBeweis;
         }
     }
 }

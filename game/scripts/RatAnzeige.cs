@@ -106,9 +106,11 @@ public partial class RatAnzeige : PanelContainer
         Hauptmenue.Text(geschenkZeile, "Geschenk je Klick:", 14);
         var geschenk = new Zahlfeld { MinValue = 10, MaxValue = 5000, Step = 10, Value = _geschenkBetrag, Suffix = waehrung, CustomMinimumSize = new Vector2(150, 0) };
         geschenkZeile.AddChild(geschenk);
-        string Hinweis() => $"   (+{Zahlenformat.Ganz(_geschenkBetrag * rat.Daten.Gunst.JeGulden)} Gunst, verblasst um {Zahlenformat.Ganz(rat.Daten.Gunst.VerfallJeJahr * 100)} % im Jahr)";
+        // Wie viel Gunst ein Geschenk bringt, hängt von den Charakterzügen des Ratsherrn ab (Rat.GunstJeGulden) – die Zahl steht am Knopf.
+        string Hinweis() => $"   (Gunst je nach Ratsherr, verblasst um {Zahlenformat.Ganz(rat.Daten.Gunst.VerfallJeJahr * 100)} % im Jahr)";
         var hinweis = Hauptmenue.Text(geschenkZeile, Hinweis(), 12, Grau);
-        geschenk.ValueChanged += wert => { _geschenkBetrag = wert; hinweis.Text = Hinweis(); };
+        var gunstVorschau = new List<Action>();
+        geschenk.ValueChanged += wert => { _geschenkBetrag = wert; hinweis.Text = Hinweis(); foreach (var a in gunstVorschau) a(); };
 
         var raster = new GridContainer { Columns = 7 };
         raster.AddThemeConstantOverride("h_separation", 14);
@@ -145,6 +147,9 @@ public partial class RatAnzeige : PanelContainer
                 raster.AddChild(knoepfe);
                 var knopf = new Button { Text = "Beschenken", FocusMode = FocusModeEnum.None };
                 knopf.Pressed += () => Befehlen(new Schenken(ratsherr.Name, _geschenkBetrag));
+                void Vorschau() { if (!knopf.Disabled) knopf.TooltipText = $"+{Zahlenformat.Ganz(_geschenkBetrag * rat.GunstJeGulden(ratsherr))} Gunst bei {ratsherr.Name}"; } // nach dem AP-Hinweis nicht überschreiben
+                Vorschau();
+                gunstVorschau.Add(Vorschau);
                 UiHilfe.ApKosten(knopf, w, _spieler, new Schenken("", 0));
                 knoepfe.AddChild(knopf);
                 if (w.Duft.IstAktiv)

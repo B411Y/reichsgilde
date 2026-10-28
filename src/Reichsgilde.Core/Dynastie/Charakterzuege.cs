@@ -115,29 +115,24 @@ public sealed class CharakterzuegeDaten
 
     public bool IstAktiv => Zuege.Count > 0;
 
-    private (List<Charakterzug> Alle, Dictionary<string, Charakterzug> NachKennung)? _katalog;
-    private readonly object _sperre = new();
+    /// <summary>Liste und Nachschlagetabelle zusammen in einem Objekt – so sieht ein anderer Faden immer beide oder keins.</summary>
+    private sealed class Zugliste(List<Charakterzug> alle)
+    {
+        public readonly List<Charakterzug> Alle = alle;
+        public readonly Dictionary<string, Charakterzug> NachKennung = alle.ToDictionary(z => z.Kennung, StringComparer.Ordinal);
+    }
 
     /// <summary>
-    /// Einmal gebaut, dann geteilt: Dieselben Daten nutzen mehrere Partien, die Messung sogar gleichzeitig –
-    /// darum hinter einer Sperre, damit jeder Zug genau ein Objekt bleibt.
+    /// Einmal gebaut, dann geteilt: Dieselben Daten nutzen mehrere Partien, die Messung sogar gleichzeitig.
+    /// <see cref="Lazy{T}"/> baut die Liste genau einmal (threadsicher), damit jeder Zug genau ein Objekt bleibt.
     /// </summary>
-    private (List<Charakterzug> Alle, Dictionary<string, Charakterzug> NachKennung) Katalog
-    {
-        get
-        {
-            if (_katalog is { } k) return k;
-            lock (_sperre)
-            {
-                if (_katalog is null)
-                {
-                    var alle = Zuege.Select(x => new Charakterzug(x.Key, x.Value)).OrderBy(z => z.Art).ToList();
-                    _katalog = (alle, alle.ToDictionary(z => z.Kennung, StringComparer.Ordinal));
-                }
-                return _katalog.Value;
-            }
-        }
-    }
+    private readonly Lazy<Zugliste> _katalog;
+
+    public CharakterzuegeDaten() =>
+        _katalog = new Lazy<Zugliste>(() => new Zugliste(Zuege.Select(x => new Charakterzug(x.Key, x.Value)).OrderBy(z => z.Art).ToList()),
+            LazyThreadSafetyMode.ExecutionAndPublication);
+
+    private Zugliste Katalog => _katalog.Value;
 
     /// <summary>Alle Züge, nach Art und dann in der Reihenfolge der Daten.</summary>
     public IReadOnlyList<Charakterzug> Alle => Katalog.Alle;

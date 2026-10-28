@@ -1232,8 +1232,10 @@ public sealed partial class KiRivale
             if (_w.Gauner.IstAktiv && _w.Gauner.ForderungAn(gegner, Konto) is not null) continue; // erst die Antwort auf den Brief abwarten
             if (gericht.Beweiskraft(Konto, gegner) < Klageschwelle - 1e-9
                 || Konto.Vermoegen - d.Gerichtsgebuehr - d.Entschaedigung < Profil.Reserve) continue;
+            var sicher = gericht.Beweiskraft(Konto, gegner) >= d.SichereBeweiskraft - 1e-9; // ein jähzorniges Haus klagt schon früher
             Befehlen(new Anklagen(gegner.Inhaber),
-                $"klagt {gegner.Inhaber} wegen Bestechung an ({gericht.Beweise(Konto, gegner).Count()} Beweise – genug für einen sicheren Schuldspruch).");
+                $"klagt {gegner.Inhaber} wegen Bestechung an ({gericht.Beweise(Konto, gegner).Count()} Beweise – " +
+                (sicher ? "genug für einen sicheren Schuldspruch)." : "genug für eine Anklage, bestochene Richter könnten freisprechen)."));
         }
 
         if (_spitzelDiesesJahr.Count > 0 || _spitzelVorjahr.Count > 0) return; // höchstens jedes zweite Jahr einer
@@ -1358,13 +1360,15 @@ public sealed partial class KiRivale
     /// Bezahlte Gaunerstücke im Jahr (Banden aus dem Hinterzimmer): nach Charakter; spart die Wagemutige auf den Stand,
     /// nur halb so viele (aufgerundet). Die eigenen Diebe kosten nichts – für sie gilt das volle Budget.
     /// </summary>
-    private int Gaunerbudget
+    internal int Gaunerbudget
     {
         get
         {
+            // Wer seinem Charakter nach keine Gaunerstücke nutzt (vorsichtig), heuert auch mit verschlagenem Oberhaupt keine an.
+            if (Profil.Gaunerei <= 0) return 0;
             var grund = Spart && Profil.Gaunerei >= 2 ? (Profil.Gaunerei + 1) / 2 : Profil.Gaunerei;
             // Verschlagen +1; Ehrlich −1, aber nicht unter eins: Wer seinem Charakter nach Gaunerstücke anheuert, tut es weiter selten.
-            return Neigung.Gaunerstuecke >= 0 ? grund + Neigung.Gaunerstuecke : Math.Max(Math.Min(grund, 1), grund + Neigung.Gaunerstuecke);
+            return Neigung.Gaunerstuecke >= 0 ? grund + Neigung.Gaunerstuecke : Math.Max(1, grund + Neigung.Gaunerstuecke);
         }
     }
 
@@ -1377,7 +1381,7 @@ public sealed partial class KiRivale
         var unterwelt = _w.Gauner;
         if (!unterwelt.IstAktiv) return;
         var g = unterwelt.Daten;
-        if (Gaunerbudget <= 0 || _gaunereienImJahr >= Gaunerbudget) return;
+        if (Profil.Gaunerei <= 0 || Gaunerbudget <= 0 || _gaunereienImJahr >= Gaunerbudget) return;
         if (Bestechungsrisiko > 1 && Profil.Gaunerei < 2) return;
         var rangliste = _w.Rangliste.Where(k => k.IstAktiv).ToList();
         var eigenerRang = rangliste.IndexOf(Konto);

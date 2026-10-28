@@ -514,8 +514,18 @@ public sealed class Wirtschaftsdaten
         Charakterzuege?.Pruefen(f, Dynastie.Talente.Ausbildungen.Keys,
             (Gesundheit?.Krankheiten.Keys ?? Enumerable.Empty<string>()).Append(Reichsgilde.Core.Gesundheit.Erkrankung.PestName).ToList());
         foreach (var r in Politik.Ratsherren)
-            foreach (var k in r.Zuege ?? new())
+        {
+            if (r.Zuege is not { } fest) continue;
+            foreach (var k in fest)
                 if (Charakterzuege?.Zug(k) is null) f.Add($"Ratsherr {r.Name}: Charakterzug „{k}“ gibt es nicht.");
+            foreach (var k in fest.GroupBy(k => k).Where(g => g.Count() > 1))
+                f.Add($"Ratsherr {r.Name}: Charakterzug „{k.Key}“ steht doppelt da.");
+            var zuege = fest.Select(k => Charakterzuege?.Zug(k)).OfType<Reichsgilde.Core.Dynastie.Charakterzug>().Distinct().ToList();
+            foreach (var z in zuege.Where(z => z.Gegenteil is { } g && zuege.Any(x => x.Kennung == g) && string.CompareOrdinal(z.Kennung, g) < 0))
+                f.Add($"Ratsherr {r.Name}: „{z.Kennung}“ und „{z.Gegenteil}“ schließen sich aus.");
+            if (Charakterzuege is { } cz && zuege.Count(z => z.Art == Reichsgilde.Core.Dynastie.Zugart.Persoenlichkeit) > cz.JePerson)
+                f.Add($"Ratsherr {r.Name}: höchstens {cz.JePerson} Persönlichkeitszüge.");
+        }
         Justiz?.Pruefen(f);
         Gauner?.Pruefen(f);
         return f;

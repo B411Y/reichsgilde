@@ -332,6 +332,120 @@ static class CharakterzugTests
             Pruefe.Ungefaehr(0.14, Zins("Fleissig"), 1e-9);
         }),
 
+        ("Charakterzüge: KI – Gaunerbudget: Verschlagen +1, Ehrlich −1 aber nie unter eins; ein vorsichtiges Haus heuert auch verschlagen keine Bande an", () =>
+        {
+            int Budget(int gaunerei, params string[] zuege)
+            {
+                var w = NeueSimulation().Wirtschaft!;
+                var k = w.KontoEroeffnen("Haus Gauner", startvermoegen: 1_000); // weit unter dem Standziel – sonst spart die Wagemutige
+                var o = w.Familien.Gruenden(k, Volk.Mensch, Geschlecht.Mann).Oberhaupt;
+                o.ZuegeLeeren();
+                foreach (var z in zuege) o.ZugHinzufuegen(w.Familien.Zug(z)!);
+                return w.KiAnmelden(k, KiProfil.Standard with { Gaunerei = gaunerei }).Gaunerbudget;
+            }
+            Pruefe.Gleich(0, Budget(0));
+            Pruefe.Gleich(0, Budget(0, "Verschlagen"));
+            Pruefe.Gleich(1, Budget(1));
+            Pruefe.Gleich(2, Budget(1, "Verschlagen"));
+            Pruefe.Gleich(1, Budget(1, "Ehrlich"));
+            Pruefe.Gleich(2, Budget(2));
+            Pruefe.Gleich(1, Budget(2, "Ehrlich"));
+            Pruefe.Gleich(3, Budget(2, "Verschlagen"));
+        }),
+
+        ("Charakterzüge: KI – Klage ab den Beweisen für einen sicheren Schuldspruch; Geduldig einen mehr, Jähzornig einen weniger (nie unter der Schuldschwelle)", () =>
+        {
+            double Schwelle(params string[] zuege)
+            {
+                var w = NeueSimulation().Wirtschaft!;
+                var (k, f) = Haus(w, "Haus Klage");
+                f.Oberhaupt.ZuegeLeeren();
+                foreach (var z in zuege) f.Oberhaupt.ZugHinzufuegen(w.Familien.Zug(z)!);
+                return w.KiAnmelden(k).Klageschwelle;
+            }
+            var d = Daten.Value.Justiz!;
+            var je = d.BeweiskraftJeBeweis;
+            var sicher = Math.Ceiling(d.SichereBeweiskraft / je) * je; // 3 Beweise
+            Pruefe.Gleich(sicher, Schwelle());
+            Pruefe.Gleich(sicher + je, Schwelle("Geduldig"));
+            Pruefe.Gleich(sicher - je, Schwelle("Jaehzornig"));
+            Pruefe.Wahr(Schwelle("Jaehzornig") >= d.SchuldSchwelle, "nie unter der Schuldschwelle");
+            var mitMehr = Wirtschaftsdaten.AusJson(Json.Value.Replace("\"klageBeweise\": -1", "\"klageBeweise\": -3"));
+            var w2 = NeueSimulation(1400, mitMehr).Wirtschaft!;
+            var (k2, f2) = Haus(w2, "Haus Zorn");
+            f2.Oberhaupt.ZuegeLeeren();
+            f2.Oberhaupt.ZugHinzufuegen(w2.Familien.Zug("Jaehzornig")!);
+            Pruefe.Gleich(Math.Ceiling(d.SchuldSchwelle / je) * je, w2.KiAnmelden(k2).Klageschwelle);
+        }),
+
+        ("Charakterzüge: KI – ein ehrliches Haus beschenkt vor dem Gerichtstag keine Richter", () =>
+        {
+            var daten = Wirtschaftsdaten.AusJson(Datenpfad.OhneAktionspunkte(Json.Value.Replace("\"spitzelChance\": 0.5", "\"spitzelChance\": 1.0")));
+            foreach (var ehrlich in new[] { false, true })
+            {
+                var sim = NeueSimulation(1400, daten);
+                var w = sim.Wirtschaft!;
+                var klaeger = w.KontoEroeffnen("Familie Klage", startvermoegen: 50_000);
+                var ki = w.KontoEroeffnen("Haus Angeklagt", startvermoegen: 15_000);
+                var o = w.Familien.Gruenden(ki, Volk.Mensch, Geschlecht.Mann).Oberhaupt;
+                o.ZuegeLeeren();
+                o.ZugHinzufuegen(w.Familien.Zug(ehrlich ? "Ehrlich" : "Fleissig")!);
+                var nachruecker = w.Rat.Ratsherren.Where(r => w.Rat.Aemter.All(a => a.Ratsherr != r)).ToList();
+                for (var i = 0; i < 2; i++) Pruefe.Wahr(w.Ausfuehren(ki, new Schenken(nachruecker[i % nachruecker.Count].Name, 400)).Erfolg, "Geschenk");
+                Pruefe.Wahr(w.Ausfuehren(klaeger, new SpitzelAnsetzen(ki.Inhaber)).Erfolg, "Spitzel");
+                JahrBeenden(sim);
+                Pruefe.Wahr(w.Ausfuehren(klaeger, new Anklagen(ki.Inhaber)).Erfolg, "Anklage");
+                var v = w.Justiz.VerfahrenGegen(klaeger, ki)!;
+                Pruefe.Wahr(Reichsgilde.Core.Justiz.Stadtgericht.IstSchuldig(w.Justiz.Prognose(v)), "Ausgangslage: Schuldspruch droht");
+                var vorher = ki.Laufend.Geschenke;
+                w.KiAnmelden(ki);
+                while (sim.Zeit.MinuteImTag < 8 * 60) sim.Tick(); // die KI überlegt einmal am Tag
+                Pruefe.Gleich(!ehrlich, ki.Laufend.Geschenke > vorher, ehrlich ? "ehrlich: keine Geschenke" : "ohne Ehrlich: Richter beschenkt");
+            }
+        }),
+
+        ("Charakterzüge: KI – stirbt das Oberhaupt, handelt das Haus nach den Zügen des Erben", () =>
+        {
+            var w = NeueSimulation().Wirtschaft!;
+            var buch = w.Familien;
+            var (k, f) = Haus(w, "Haus Erbe");
+            f.Oberhaupt.ZuegeLeeren();
+            f.Oberhaupt.ZugHinzufuegen(buch.Zug("Gierig")!);
+            var erbe = buch.KindAufnehmen(k, 30, Geschlecht.Mann);
+            erbe.ZuegeLeeren();
+            erbe.ZugHinzufuegen(buch.Zug("Grosszuegig")!);
+            var ki = w.KiAnmelden(k);
+            Pruefe.Ungefaehr(0.04, ki.Neigung.Zins, 1e-12);
+            buch.AnKrankheitSterben(f.Oberhaupt, "an der Pest");
+            Pruefe.Gleich(erbe, f.Oberhaupt);
+            Pruefe.Ungefaehr(-0.03, ki.Neigung.Zins, 1e-12);
+            Pruefe.Ungefaehr(1.3, ki.Neigung.Geschenke, 1e-12);
+        }),
+
+        ("Charakterzüge: Ein Spielstand mit unbekannter Zug-Kennung lädt – der Zug fällt weg, die übrigen bleiben", () =>
+        {
+            var (sim, spieler) = Partieaufbau.Erstellen(Partieeinstellungen.Standard with { Siegbedingung = Siegbedingung.Endlos, Zufallsstartwert = 13 },
+                Daten.Value, new NeuePartie());
+            var o = sim.Wirtschaft!.Familien.Von(spieler)!.Oberhaupt;
+            var vorher = o.Zuege.Select(z => z.Kennung).ToList();
+            var knoten = JsonNode.Parse(Speicherung.Speichern(sim, spieler))!;
+            var person = knoten["Wirtschaft"]!["Familien"]!["Personen"]!.AsArray().First(p => (int)p!["Nummer"]! == o.Nummer)!;
+            person["Zuege"]!.AsArray().Add("Bucklig");
+            var (geladen, geladenerSpieler) = Speicherung.Laden(knoten.ToJsonString());
+            var neu = geladen.Wirtschaft!.Familien.Von(geladenerSpieler!)!.Oberhaupt;
+            Pruefe.Gleich(string.Join(",", vorher), string.Join(",", neu.Zuege.Select(z => z.Kennung)));
+        }),
+
+        ("Charakterzüge: feste Züge eines Ratsherrn werden geprüft – keine Gegensätze, nichts doppelt, höchstens drei Persönlichkeitszüge", () =>
+        {
+            var name = Daten.Value.Politik.Ratsherren[0].Name;
+            Wirtschaftsdaten Mit(string zuege) => Wirtschaftsdaten.AusJson(Json.Value.Replace($"\"name\": \"{name}\",", $"\"name\": \"{name}\", \"zuege\": [{zuege}],"));
+            Pruefe.WirftMitMeldung(() => Mit("\"Gierig\", \"Grosszuegig\""), "schließen sich aus");
+            Pruefe.WirftMitMeldung(() => Mit("\"Gierig\", \"Gierig\""), "doppelt");
+            Pruefe.WirftMitMeldung(() => Mit("\"Gierig\", \"Fromm\", \"Mutig\", \"Scheu\""), "höchstens 3 Persönlichkeitszüge");
+            Pruefe.Gleich(4, NeueSimulation(1, Mit("\"Gierig\", \"Fromm\", \"Mutig\", \"Klug\"")).Wirtschaft!.Rat.RatsherrNamens(name)!.Zuege.Count);
+        }),
+
         ("Charakterzüge: Speichern und Laden behält alle Züge und den Würfel der erworbenen", () =>
         {
             var (sim, spieler) = Partieaufbau.Erstellen(Partieeinstellungen.Standard with { Siegbedingung = Siegbedingung.Endlos, Zufallsstartwert = 11 },
