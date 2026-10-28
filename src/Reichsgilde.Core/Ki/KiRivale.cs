@@ -55,9 +55,10 @@ public sealed record KiProfil(
 ///                       • Eskorte je Karren nach erwartetem Verlust wählen
 ///                       • in der Not (gemahnt, Geld reicht nicht): einen Karren verkaufen, aber nie den letzten eines Betriebs
 ///   einmal am Tag       • Politik im Rat, Brautschau, Gericht (Spitzel, Anklage, Verteidigung)
+///                       • befördern, wenn sich der Brief bezahlt macht; Eigenschaft des Vorarbeiters nach Gewinn (KiRivale.Personal.cs)
 ///                       • zur eigenen Baustunde: Bauplatz für ein neues Wohnhaus oder eine neue Werkstatt suchen
 ///   zum Jahresende      • Karren kaufen, wenn ein Betrieb zu oft stillstand; einen verkaufen, der das ganze Jahr nicht fuhr
-///                       • Einrichtung kaufen, die sich schnell bezahlt macht (je Betrieb höchstens ein Stück)
+///                       • Einrichtung kaufen, die sich schnell bezahlt macht (je Betrieb höchstens ein Stück; dazu eins fürs Wohnhaus)
 ///                       • Verlustjahre der Betriebe zählen (verkauft wird in den Stunden danach)
 ///
 /// Jede Entscheidung wird als Meldung ausgegeben, damit der Spieler sie nachvollziehen kann.
@@ -171,6 +172,7 @@ public sealed partial class KiRivale
                 Kirchenpolitik(); // Ablass ist Verteidigung
                 Wachdienst();     // Razzien der eigenen Wache
                 Meisterpruefung();
+                Befoerdern(); // Gesellen- und Vorarbeiterbriefe (PR #224, KiRivale.Personal.cs)
                 if (Profil.Gaunerei >= 2)
                 {
                     Diebeszuege(); // die eigenen Leute zuerst – sie kosten kein Geld
@@ -221,6 +223,7 @@ public sealed partial class KiRivale
             KarrenNachkaufen(betrieb);
         }
         EinrichtungKaufen();
+        WohnhausEinrichtungKaufen(); // PR #224, KiRivale.Personal.cs
         WegAusbauen();
         SchiffKaufen();
     }
