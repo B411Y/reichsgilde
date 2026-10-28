@@ -38,6 +38,7 @@ Startoptionen (nach `--`):
 - `--gericht=1`
 - `--hinterzimmer=1`
 - `--markt=1`
+- `--kischmied=aus|wenige|alle` (Passanten mit dem KI-Schmied aus TRELLIS: `aus` nur die Figuren aus Blender, `wenige` (Standard) jeder zweite Knecht und Tagelöhner, `alle` jeder Mann (Mensch, nicht gebeugt, ohne Last); für Vergleiche mit `--blick=0,0,25 --messung=12`. In der Schmiede (`--innen=1`) tragen die Arbeiter ihn immer)
 - `--karren=<Typen>` (der eigenen Werkstatt Karren dazukaufen, z. B. `Ochsenkarren,Kriegskarren`, mit `--vermoegen=5000`; die beiden kosten zusammen 1.300)
 - `--umland=1` (den günstigsten freien Umlandbetrieb erwerben – wenn nötig erst zum Bürger aufsteigen –, ihm einen Ochsenkarren dazukaufen und seine Kurzübersicht mit „…“ zeigen: Karren mit Eskorte, Nachtfahrt und „Verkaufen“; mit `--vermoegen=30000`)
 - `--schiff=<Anzahl>` (am ersten Hafen so viele Flussschiffe kaufen, mit `--vermoegen=10000`; Karte mit Hafen, z. B. `--karte=probestadt` oder `greybox`)
@@ -139,6 +140,8 @@ Mauern, Tore und Start (Mauern und Tore vor den Wegen, der Start danach):
 - `--werkstatt-start=<befehl>|<befehl>…` mit `haus[:Name]`, `wohnhaus:<Haus>:<Kennung>`, `betrieb:<Haus>:<Platz>:<Betriebsart>[:<Ware>]`, `farbe:<Haus>:#rrggbb`, `spieler:<Platz>[:<Beruf>]`, `spielerwohnhaus:<Kennung>`, `spielerfarbe:#rrggbb`, `entfernen:<Haus>` (Häuser ab 1)
 - `--werkstatt-tafel=start|karte` (Reiter „Start“ bzw. „Karte“)
 - `--werkstatt-gruppe=<auswaehlen|gelaende|boden|wasser|wege|flaechen|gebaeude|mauer|start|pruefen>` (die Palette dieser Gruppe der Leiste links aufklappen) mit `--werkstatt-haus=<n>` (Haus aufklappen)
+- `--werkstatt-ebenen=<ebene>,…|alle` (Ebenen der Kartenwerkstatt ausblenden: `bauzonen`, `natur`, `requisiten`, `linien`, `beschriftungen`) und `--werkstatt-ebenenliste=1` (die Liste „Ebenen“ aufklappen)
+- `--katalogbilder=1|<kennung>,…` (Vorschaubilder des Katalogs nach `game/assets/oberflaeche/katalog/` rendern und beenden, mit `--kartenwerkstatt=probestadt`; Skript `tools/katalogbilder/katalogbilder.sh`)
 - `--werkstatt-kamerastart=1` (den Blick nach `--blick` und `--drehung` als Kamera-Start übernehmen)
 - `--werkstatt-ausprobieren=<Beruf>` (zuletzt: gleich die Probepartie starten; im Spiel Esc → „Zurück zur Kartenwerkstatt“)
 

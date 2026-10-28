@@ -991,13 +991,15 @@ public partial class Stadtansicht
             // Der Anker blickt mit −Z auf sein Werkstück, die Figur mit +Z: um 180° gedreht einsetzen.
             var halter = new Node3D { Rotation = new Vector3(0, Mathf.Pi, 0) };
             platz.Anker.AddChild(halter);
-            if (FigurEinsetzen(halter, ArbeiterAussehen(zeile), zeile.Nummer) is not { } figur)
+            // Schmiede: der KI-Schmied statt des Menschen aus Blender (Stadtansicht.KiFiguren.cs)
+            if (FigurEinsetzen(halter, ArbeiterAussehen(zeile) with { KiSchmied = a.Stil == Werkstil.Giesserei && zeile.Arbeitskraft != "Ork" }, zeile.Nummer) is not { } figur)
             {
                 halter.QueueFree();
                 continue;
             }
             // Wer sitzt (Feinarbeit), hat die Hüfte auf Sitzhöhe des Menschen: kleine Völker sitzen höher, Orks tiefer (wie die Sitzenden im Dom).
-            if (platz.Bewegung is "Feinarbeit" or "Schreiben") halter.Position = new Vector3(0, SitzKniehoehe - figur.Kniehoehe, 0);
+            if (figur.Ki && platz.Bewegung == "Haemmern") halter.Position = new Vector3(0, 0, -KiAmbossAbstand); // näher an den Amboss: der Hammer reicht nur so weit wie der Arm
+                        if (platz.Bewegung is "Feinarbeit" or "Schreiben") halter.Position = new Vector3(0, SitzKniehoehe - figur.Kniehoehe, 0);
             var koerper = new StaticBody3D();
             koerper.SetMeta("innen", "arbeiter:" + zeile.Nummer);
             var form = new CollisionShape3D { Shape = new CapsuleShape3D { Radius = 0.38f, Height = 1.75f }, Position = new Vector3(0, 0.88f, 0) };

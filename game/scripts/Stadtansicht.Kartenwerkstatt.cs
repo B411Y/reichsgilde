@@ -342,6 +342,7 @@ public partial class Stadtansicht
         if (_wsNetzNeu) NetzBauen();
         if (_wsFehlerNeu) FehlerZeigen();
         if (_wsGriffeNeu) GriffeBauen();
+        WerkstattEbenenAnwenden(); // Ebenen ein- und ausgeblendet (Stadtansicht.Kartenwerkstatt.Ebenen.cs)
     }
 
     /// <summary>Das Rechteck, in dem ein Teil die Natur verdrängt (mit Rand; bei einer Mauer die ganze Stadt darin); null für Pflanzen und leere Teile.</summary>
@@ -449,6 +450,9 @@ public partial class Stadtansicht
             if (name is "Stufe2" or "Stufe3" or "Variante2" or "Variante3" or "Geruest" or "Leerstand" or "Wappen" or "Fahne") teil.Visible = false;
             else if (b.Art == Bausteinart.Umlandstelle && b.Knoten is { } knoten && teil.GetParent() == wurzel) teil.Visible = name == knoten;
         }
+        // Pflanzen und Requisiten teilen sich eine Datei (props_gegenstaende, natur_baeume): nur die erste Variante des Knotens zeigen
+        if (b.Art == Bausteinart.Natur && b.Knoten is { } natur && wurzel.FindChild(natur + "1", false, false) is not null)
+            foreach (var kind in wurzel.GetChildren().OfType<Node3D>()) kind.Visible = kind.Name == natur + "1";
         return wurzel;
     }
 

@@ -46,11 +46,17 @@ public partial class Stadtansicht
         /// <summary>Langsame Schleife (Stehen, Sitzen, Hüten: drei bis vier Sekunden, kaum Ausschlag) – sie braucht nicht jedes Bild eine neue Pose.</summary>
         public bool Langsam { get; set; }
         public bool Hervorgehoben { get; set; }
+        /// <summary>KI-Schmied aus TRELLIS (Stadtansicht.KiFiguren.cs): ein Netz mit eigener Textur, Clips nach Namen in der Bibliothek statt der zehn Schleifen.</summary>
+        public bool Ki { get; init; }
+        /// <summary>Welche Animation des KI-Schmieds gerade läuft (mehrere Bewegungen teilen sich einen Clip, etwa Gehen und Eilen).</summary>
+        public string KiKlip { get; set; } = "";
+        /// <summary>Zeit in der Animation, ab der die Schleife läuft (die Figuren aus Blender: <see cref="SchleifenAnfang"/>).</summary>
+        public double Anfang { get; set; } = SchleifenAnfang;
     }
 
     /// <summary>Wie eine Figur aussieht: Volk, Geschlecht, Farben und Tracht.</summary>
     private sealed record FigurAussehen(Volk Volk, bool Frau, Color Gewand, Color Beinkleid, Color Haut, Color Haar, Color Kopffarbe,
-        Kopfbedeckung Kopf = Kopfbedeckung.Keine, Last Last = Last.Keine, bool Schuerze = false);
+        Kopfbedeckung Kopf = Kopfbedeckung.Keine, Last Last = Last.Keine, bool Schuerze = false, bool KiSchmied = false);
 
     /// <summary>Datei, Hüft- und Kniehöhe (Meter) und Größe je Volk – Hüfte und Knie wie in <c>tools/modelle/figuren.py</c>.
     /// Orks und Oger haben noch kein eigenes Modell: vorerst ein größerer Mensch.</summary>
@@ -104,6 +110,7 @@ public partial class Stadtansicht
     /// </summary>
     private Figur? FigurEinsetzen(Node3D eltern, FigurAussehen aussehen, int nummer)
     {
+        if (aussehen.KiSchmied && KiSchmiedEinsetzen(eltern, nummer) is { } kiFigur) return kiFigur;
         var (datei, huefte, knie, groesse) = FigurMasse(aussehen.Volk);
         if (Modell(datei) is not { } szene) return null;
         var modell = szene.Instantiate<Node3D>();
@@ -166,6 +173,7 @@ public partial class Stadtansicht
     private static void BewegungSetzen(Figur f, string bewegung, float takt = 1, string[]? werkzeug = null)
     {
         f.Takt = takt;
+        if (f.Ki) { KiBewegungSetzen(f, bewegung, takt); return; }
         if (f.Bewegung == bewegung) return;
         f.Bewegung = bewegung;
         f.Spieler.Play(bewegung);
@@ -182,8 +190,9 @@ public partial class Stadtansicht
     /// <summary>Zählt die Phase um <paramref name="sekunden"/> (echte Zeit, mal Abspieltempo) weiter und setzt die Pose.</summary>
     private static void FigurBewegen(Figur f, double sekunden)
     {
+        if (f.Ki && f.Takt == 0 && !f.Neu) return; // stehende KI-Figur: die Pose ist schon gesetzt
         f.Phase = (f.Phase + sekunden * f.Takt) % f.Dauer;
-        f.Spieler.Seek(SchleifenAnfang + f.Phase, true);
+        f.Spieler.Seek(f.Anfang + f.Phase, true);
         f.Neu = false;
     }
 
@@ -262,7 +271,11 @@ public partial class Stadtansicht
             AlbedoColor = new Color(1f, 0.85f, 0.45f, 0.35f),
         };
         foreach (var teil in f.Teile)
-            if (IsInstanceValid(teil)) teil.MaterialOverlay = an ? _hervorhebung : null;
+        {
+            if (!IsInstanceValid(teil)) continue;
+            if (f.Ki) teil.MaterialOverride = an ? KiHervorhebung(teil) : null; // die Überlagerung ließ das PBR-Material durchscheinen (Stadtansicht.KiFiguren.cs)
+            else teil.MaterialOverlay = an ? _hervorhebung : null;
+        }
     }
 
     // ═════════════════════════════════════════════════════════════════════════

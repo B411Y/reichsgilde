@@ -1058,7 +1058,7 @@ public partial class Stadtansicht : Node3D
         {
             if (!label.HasMeta("kennung")) continue;
             var kennung = label.GetMeta("kennung").AsString();
-            var sichtbar = _innen is null && (alle || kennung == _unterDerMaus || kennung == Auswahl);
+            var sichtbar = _innen is null && _wsEbenen[Werkstattebene.Beschriftungen] && (alle || kennung == _unterDerMaus || kennung == Auswahl);
             if (label.Visible != sichtbar) label.Visible = sichtbar;
         }
     }
