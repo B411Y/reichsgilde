@@ -22,8 +22,12 @@ static func anbringen(kopf: HgKopf, ordner: String, farbe: Color, variante := ""
 	if aus_karten.a > 0.0:
 		farbe = aus_karten
 	_karten_ausblenden(kopf)
-	var kol := _kopf_kollider(kopf)
-	knoten.append(kol)
+	# Kollider nur im großen Porträt mit Simulation: eingefrorenes Haar und kleine Fenster brauchen keinen
+	# (das Abstandsfeld je Kopf war in der Messung der größte Brocken)
+	var mit_kollider := not ruhe and not HgFenster.sparsam and not _schalter("--tfx-ohne-kollider")
+	var kol: Node3D = _kopf_kollider(kopf) if mit_kollider else null
+	if kol:
+		knoten.append(kol)
 	var endung := "" if variante == "" else "_" + variante
 	var sparsam := variante == "sparsam"
 	for teil in ["frisur", "bart"]:
@@ -62,7 +66,7 @@ static func anbringen(kopf: HgKopf, ordner: String, farbe: Color, variante := ""
 		m.set_shader_parameter("root_shadow", 0.35)
 		m.set_shader_parameter("color_variation", 0.55)
 		haar.set("material", m)
-		if not _schalter("--tfx-ohne-kollider"):
+		if kol:
 			haar.set("collision_meshes", [kol])  # die Erweiterung erwartet die Knoten selbst, keine Pfade
 		if teil == "frisur":
 			# Formbindung: die gestylte Ruheform soll halten (global_range 1 = ganze Strähne an die Ruheform gebunden)
