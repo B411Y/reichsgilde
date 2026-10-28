@@ -1230,7 +1230,7 @@ public sealed partial class KiRivale
         {
             if (gericht.VerfahrenGegen(Konto, gegner) is not null) continue;
             if (_w.Gauner.IstAktiv && _w.Gauner.ForderungAn(gegner, Konto) is not null) continue; // erst die Antwort auf den Brief abwarten
-            if (gericht.Beweiskraft(Konto, gegner) < Klageschwelle - 1e-9
+            if (gericht.Beweiskraft(Konto, gegner) < KlageschwelleGegen(gegner) - 1e-9 // verhasst früher, verschont später (PR #231)
                 || Konto.Vermoegen - d.Gerichtsgebuehr - d.Entschaedigung < Profil.Reserve) continue;
             var sicher = gericht.Beweiskraft(Konto, gegner) >= d.SichereBeweiskraft - 1e-9; // ein jähzorniges Haus klagt schon früher
             Befehlen(new Anklagen(gegner.Inhaber),
@@ -1241,11 +1241,12 @@ public sealed partial class KiRivale
         if (_spitzelDiesesJahr.Count > 0 || _spitzelVorjahr.Count > 0) return; // höchstens jedes zweite Jahr einer
         var rangliste = _w.Rangliste.ToList();
         var eigenerRang = rangliste.IndexOf(Konto);
-        var ziel = rangliste.FirstOrDefault(k => k != Konto && k.IstAktiv && k.Stand >= 1 && !gericht.HatSpitzel(Konto, k)
-                                                  && (rangliste.IndexOf(k) < eigenerRang || HatGeschadet(k)));
+        var ziel = rangliste.FirstOrDefault(k => k != Konto && k.IstAktiv && k.Stand >= 1 && !gericht.HatSpitzel(Konto, k) && !Verschont(k)
+                                                  && (rangliste.IndexOf(k) < eigenerRang || HatGeschadet(k) || Verhasst(k)));
         if (ziel is not null && Konto.Vermoegen - d.SpitzelKosten >= Profil.Reserve
             && Befehlen(new SpitzelAnsetzen(ziel.Inhaber), $"setzt einen Spitzel auf {ziel.Inhaber} an ({Zahlenformat.Ganz(d.SpitzelKosten)} {_w.Daten.Allgemein.Waehrung})" +
-                                                              (HatGeschadet(ziel) ? $" – {ziel.Inhaber} hat dem Haus geschadet." : $" – {ziel.Inhaber} liegt vorn.")))
+                                                              (HatGeschadet(ziel) ? $" – {ziel.Inhaber} hat dem Haus geschadet."
+                                                               : rangliste.IndexOf(ziel) < eigenerRang ? $" – {ziel.Inhaber} liegt vorn." : $" – das Haus kann {ziel.Inhaber} nicht leiden.")))
             _spitzelDiesesJahr.Add(ziel.Inhaber);
     }
 
@@ -1270,10 +1271,8 @@ public sealed partial class KiRivale
                 var differenz = _w.Rat.Meinung(r, v.Anklaeger) - _w.Rat.Meinung(r, Konto);
                 var plaedoyer = _w.Familien.Plaedoyer(v.Anklaeger, Konto);
                 var fehlt = differenz - (ziel - plaedoyer) / d.GunstFaktor;           // so viel Meinung muss die KI gewinnen
-                var jeGulden = _w.Rat.GunstJeGulden(r, Konto); // Charakterzüge des Richters (PR #227), weitere Geschenke im Jahr wirken weniger
-                var gulden = Math.Ceiling(fehlt / jeGulden / 10) * 10;
-                if (gulden > 0 && _w.Rat.Gunst(r, Konto) + gulden * jeGulden <= g.Hoechstwert)
-                    kosten.Add((r, gulden));
+                if (fehlt > 0 && _w.Rat.Gunst(r, Konto) + fehlt <= g.Hoechstwert)
+                    kosten.Add((r, fehlt));
             }
         var freisprechen = stimmen.Count(s => !s.Schuldig);
         // Ein Freispruch erspart die Buße (auf die schon bekannten Taten) und das Amt.
@@ -1385,9 +1384,10 @@ public sealed partial class KiRivale
         if (Bestechungsrisiko > 1 && Profil.Gaunerei < 2) return;
         var rangliste = _w.Rangliste.Where(k => k.IstAktiv).ToList();
         var eigenerRang = rangliste.IndexOf(Konto);
-        var ziele = rangliste.Where(k => k != Konto && (Profil.Gaunerei >= 2 || rangliste.IndexOf(k) < eigenerRang)).ToList();
+        // Meinungen (PR #231): Wen das Oberhaupt mag, den verschont es; wen es nicht leiden kann, den trifft es zuerst – auch wenn er hinten liegt.
+        var ziele = rangliste.Where(k => k != Konto && !Verschont(k) && (Profil.Gaunerei >= 2 || rangliste.IndexOf(k) < eigenerRang || Verhasst(k))).ToList();
         if (ziele.Count == 0) return;
-        var ziel = ziele[0];
+        var ziel = ziele.Where(Verhasst).OrderBy(MeinungUeber).ThenBy(k => k.Inhaber, StringComparer.Ordinal).FirstOrDefault() ?? ziele[0];
 
         if (Profil.Gaunerei >= 2 && Erpressen(ziel)) return;
 
@@ -1480,12 +1480,12 @@ public sealed partial class KiRivale
         var diebe = _w.Diebe;
         if (!diebe.IstAktiv || diebe.Versteck(Konto) is not { } versteck) return;
         var waehrung = _w.Daten.Allgemein.Waehrung;
-        var rangliste = _w.Rangliste.Where(k => k != Konto && k.IstAktiv).ToList();
+        var rangliste = _w.Rangliste.Where(k => k != Konto && k.IstAktiv && !Verschont(k)).ToList(); // wen das Oberhaupt mag, den verschont es (PR #231)
         bool BudgetFrei() => _gaunereienImJahr < Profil.Gaunerei; // Einbruch, Schutzgeld und Entführung zählen wie Gaunerstücke (die eigenen Leute kosten nichts – kein Sparen)
 
         if (BudgetFrei() && diebe.Verboten(Konto, Diebesstueck.Einbruch) is null)
         {
-            var ziel = _w.Betriebe.Where(b => b.Konto != Konto && b.Konto.IstAktiv)
+            var ziel = _w.Betriebe.Where(b => b.Konto != Konto && b.Konto.IstAktiv && !Verschont(b.Konto))
                 .Select(b => (Betrieb: b, Wert: diebe.ErwarteterEinbruch(b, Konto)))
                 .Where(x => x.Wert > 150)
                 .OrderByDescending(x => x.Wert).ThenBy(x => x.Betrieb.Name, StringComparer.Ordinal).FirstOrDefault();
@@ -1590,11 +1590,14 @@ public sealed partial class KiRivale
         return auswahl.OrderBy(Gefahr).ThenBy(k => k?.Inhaber ?? "", StringComparer.Ordinal).First();
     }
 
-    /// <summary>Wie gefährlich ein Kandidat für dieses Haus wäre: Ratsherr 0, ein Haus nach seinem Reinvermögen, ein Feind am meisten.</summary>
+    /// <summary>
+    /// Wie gefährlich ein Kandidat für dieses Haus wäre: Ratsherr 0, ein Haus nach seinem Reinvermögen, ein Feind am meisten.
+    /// Die Meinung des Oberhaupts färbt den Blick (PR #231): Reinvermögen × (1 − Meinung × <c>kiGefahrJePunkt</c>), mindestens ein Zehntel.
+    /// </summary>
     private double Gefahr(Konto? kandidat) =>
         kandidat is null ? double.MinValue
         : HatGeschadet(kandidat) ? double.MaxValue
-        : kandidat.Reinvermoegen;
+        : kandidat.Reinvermoegen * (_w.Meinungen.Daten is { } d ? Math.Max(0.1, 1 - MeinungUeber(kandidat) * d.Wirkung.KiGefahrJePunkt) : 1);
 
     /// <summary>Das reichste andere Haus, das noch im Spiel ist.</summary>
     private Konto? FuehrendesHaus => _w.Konten.Where(k => k != Konto && k.IstAktiv)
@@ -1627,8 +1630,8 @@ public sealed partial class KiRivale
             // Bewerben lohnt nur, wenn die Aktionspunkte auch für die Geschenke reichen, die die Mehrheit bringen –
             // sonst spart die KI lieber (der Vorrat wächst bis zur Obergrenze).
             var bewerbung = new AmtBewerben(ziel.Name);
-            var geschenke = WahlPlan(ziel)?.Count ?? 0;
-            if (Konto.Aktionspunkte.Reicht(_w.ApKosten(bewerbung) + geschenke * _w.ApKosten(new Schenken("", 0))))
+            var werbung = WahlPlan(ziel)?.Sum(x => x.Ap) ?? 0;
+            if (Konto.Aktionspunkte.Reicht(_w.ApKosten(bewerbung) + werbung))
                 Befehlen(bewerbung, $"bewirbt sich um das Amt {ziel.Name} ({Zahlenformat.Ganz(ziel.Daten.Einkommen)} Gulden im Jahr" +
                     (AmtsWert(ziel) > ziel.Daten.Einkommen + 0.5 ? $", die Befugnis ist ihr etwa {Zahlenformat.Ganz(AmtsWert(ziel) - ziel.Daten.Einkommen)} wert" : "") + ").");
         }
@@ -1696,11 +1699,11 @@ public sealed partial class KiRivale
             Schenkplan(w.Kosten, w.Noetig, $"für die Wahl zum {amt.Name}", AmtsWert(amt) * NutzenJahre);
     }
 
-    /// <summary>Die Geschenke, mit denen die KI die Wahl gewänne – null, wenn das nicht geht oder sich nicht lohnt.</summary>
-    private List<(Ratsherr Ratsherr, double Gulden)>? WahlPlan(Amt amt) =>
+    /// <summary>Aktivitäten und Geschenke, mit denen die KI die Wahl gewänne – null, wenn das nicht geht oder sich nicht lohnt.</summary>
+    private List<Werbung>? WahlPlan(Amt amt) =>
         WahlKosten(amt) is { } w ? Schenkplanen(w.Kosten, w.Noetig, "", AmtsWert(amt) * NutzenJahre, melden: false) : null;
 
-    private (List<(Ratsherr Ratsherr, double Gulden)> Kosten, int Noetig)? WahlKosten(Amt amt)
+    private (List<(Ratsherr Ratsherr, double Fehlt)> Kosten, int Noetig)? WahlKosten(Amt amt)
     {
         var rat = _w.Rat;
         var g = rat.Daten.Gunst;
@@ -1708,7 +1711,7 @@ public sealed partial class KiRivale
         var waehler = rat.Waehler(amt).Where(w => w.Konto != Konto && !mitbewerber.Contains(w.Konto!)).ToList();
         if (waehler.Count == 0 || g.JeGulden <= 0) return null;
 
-        var kosten = new List<(Ratsherr Ratsherr, double Gulden)>();
+        var kosten = new List<(Ratsherr Ratsherr, double Fehlt)>();
         var sicher = 0;
         foreach (var sitz in waehler)
         {
@@ -1717,7 +1720,7 @@ public sealed partial class KiRivale
                                   mitbewerber.Select(m => rat.Punkte(r, amt, m)).DefaultIfEmpty(0).Max());
             var fehlt = gegner + 1 - rat.Punkte(r, amt, Konto);
             if (fehlt <= 0) sicher++;
-            else kosten.Add((r, Math.Ceiling(fehlt / rat.GunstJeGulden(r, Konto) / 10) * 10));
+            else kosten.Add((r, fehlt));
         }
         return (kosten, waehler.Count / 2 + 1 - sicher);
     }
@@ -1731,7 +1734,7 @@ public sealed partial class KiRivale
         var ja = besetzt.Count(a => a.Konto == Konto || a.Ratsherr is { } r && rat.StimmtZu(r, statut, Konto));
         var kosten = besetzt
             .Where(a => a.Ratsherr is { } r && !rat.StimmtZu(r, statut, Konto) && Math.Abs((int)statut - (int)r.Haltung) == 1)
-            .Select(a => (a.Ratsherr!, Math.Ceiling((g.SchwelleNachbarstatut - rat.Meinung(a.Ratsherr!, Konto)) / rat.GunstJeGulden(a.Ratsherr!, Konto) / 10) * 10))
+            .Select(a => (a.Ratsherr!, g.SchwelleNachbarstatut - rat.Meinung(a.Ratsherr!, Konto)))
             .ToList();
         Schenkplan(kosten, besetzt.Count / 2 + 1 - ja, $"für das Statut {statut.Kuerzel()}",
             (ErwartungUnter(statut) - ErwartungUnter(_w.Statut)) * NutzenJahre);
@@ -1755,33 +1758,39 @@ public sealed partial class KiRivale
         }
     }
 
-    private void Schenkplan(List<(Ratsherr Ratsherr, double Gulden)> kosten, int noetig, string zweck, double nutzen)
+    private void Schenkplan(List<(Ratsherr Ratsherr, double Fehlt)> kosten, int noetig, string zweck, double nutzen)
     {
         if (Schenkplanen(kosten, noetig, zweck, nutzen, melden: true) is not { Count: > 0 } plan) return;
         // Halbe Bestechung ist rausgeworfenes Geld – reichen die Aktionspunkte nicht für alle Geschenke, gar keine.
-        var ap = plan.Count * _w.ApKosten(new Schenken("", 0));
+        var ap = plan.Sum(w => w.Ap);
         if (!Konto.Aktionspunkte.Reicht(ap))
         {
             Entscheiden($"spart Aktionspunkte: Geschenke {zweck} bräuchten {ap} AP, es sind nur {Konto.Aktionspunkte.Vorrat}.");
             return;
         }
-        foreach (var (ratsherr, gulden) in plan)
-            Befehlen(new Schenken(ratsherr.Name, gulden),
-                $"beschenkt {ratsherr.Name} mit {Zahlenformat.Ganz(gulden)} Gulden {zweck}.");
+        foreach (var werbung in plan)
+            Werben(werbung, zweck);
     }
 
-    /// <summary>Die billigsten Geschenke für eine Mehrheit – leer, wenn keine nötig sind; null, wenn es nicht geht oder sich nicht lohnt.</summary>
-    private List<(Ratsherr Ratsherr, double Gulden)>? Schenkplanen(List<(Ratsherr Ratsherr, double Gulden)> kosten, int noetig, string zweck,
+    /// <summary>
+    /// Die billigsten Werbungen für eine Mehrheit (mit Aktivitäten, PR #231; reichen die AP dafür nicht, nur Geschenke wie früher) –
+    /// leer, wenn keine nötig sind; null, wenn es nicht geht oder sich nicht lohnt.
+    /// </summary>
+    private List<Werbung>? Schenkplanen(List<(Ratsherr Ratsherr, double Fehlt)> kosten, int noetig, string zweck,
         double nutzen, bool melden)
     {
         if (noetig <= 0) return new();
         if (kosten.Count < noetig) return null;
-        var plan = kosten.OrderBy(k => k.Gulden).ThenBy(k => k.Ratsherr.Name, StringComparer.Ordinal).Take(noetig).ToList();
+        List<Werbung> Auswahl(bool mitAktivitaeten) => Werbungen(kosten, mitAktivitaeten)
+            .OrderBy(k => k.Gulden).ThenBy(k => k.Ratsherr.Name, StringComparer.Ordinal).Take(noetig).ToList();
+        var plan = Auswahl(_w.Meinungen.IstAktiv);
+        if (_w.Meinungen.IstAktiv && !Konto.Aktionspunkte.Reicht(plan.Sum(w => w.Ap)))
+            plan = Auswahl(false);
         var summe = plan.Sum(p => p.Gulden);
         if (summe > Politikbudget) return null;
         // Ohne Spitzel im Nacken zählt nur das Budget – untere Ämter sind Sprossen auf der Leiter, nicht nur Einkommen.
-        // Unter Beobachtung wägt die KI ab: Kosten samt erwarteter Buße gegen den Nutzen einiger Jahre.
-        if (Bestechungsrisiko > 1 && summe * Bestechungsrisiko > nutzen)
+        // Unter Beobachtung wägt die KI ab: Kosten samt erwarteter Buße (nur auf Geschenke – Aktivitäten sind keine Bestechung) gegen den Nutzen einiger Jahre.
+        if (Bestechungsrisiko > 1 && summe + plan.Sum(p => p.Geschenk) * (Bestechungsrisiko - 1) > nutzen)
         {
             if (melden)
                 Entscheiden($"verzichtet auf Geschenke {zweck} – unter den Augen der Spitzel zu riskant " +
