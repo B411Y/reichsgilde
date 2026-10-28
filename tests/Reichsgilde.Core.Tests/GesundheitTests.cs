@@ -158,7 +158,7 @@ static class GesundheitTests
                     var (k, _) = Haus(w);
                     for (var i = 0; i < 4; i++) Haus(w, $"Haus {i}");
                     var g = w.BetriebEroeffnen("Gießerei Fuchs", Betriebsart.Giesserei, k);
-                    w.Ausfuehren(k, new PersonalSetzen(g.Name, "Geselle", 2));
+                    w.Einstellen(g, "Geselle", 2);
                     w.Gesundheit.NaechstePest = pest ? 1401 : 0;
                     JahrBeenden(sim); // 1400 → 1401: Die Pest bricht aus
                     Pruefe.Gleich(pest, w.Gesundheit.IstPestjahr);

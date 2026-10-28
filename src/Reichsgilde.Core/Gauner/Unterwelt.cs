@@ -252,7 +252,8 @@ public sealed class Unterwelt
     {
         var wh = Daten.Wohnhaus ?? throw new InvalidOperationException("Es gibt keine Gaunerstücke gegen Wohnhäuser.");
         var grund = art == Gaunerstueck.Brandstiftung ? wh.Brand.Chance : wh.Einbruch.Chance;
-        var schutz = ziel.Hauswaechter ? Daten.WaechterSchutz : 1;
+        var schutz = (ziel.Hauswaechter ? Daten.WaechterSchutz : 1)
+                     * (art == Gaunerstueck.Brandstiftung ? _w.Wohnen.BrandFaktor(ziel) : _w.Wohnen.EinbruchFaktor(ziel)); // Riegel, Hund (PR #224)
         var nacht = auftraggeber is null ? 0 : _w.Familien.NachtBonus(auftraggeber);
         return Math.Min(0.95, grund * schutz + nacht) * _w.Wache.Patrouillefaktor(null);
     }

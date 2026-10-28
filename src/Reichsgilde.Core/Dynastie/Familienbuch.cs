@@ -303,7 +303,8 @@ public sealed class Familienbuch
     /// <summary>Gulden für einen Punkt Zuneigung, wenn dieses Haus wirbt (das Volk des Oberhaupts wirbt verschieden gut).</summary>
     public double GuldenJeZuneigung(Konto konto) =>
         Von(konto) is { } f
-            ? 1 / (_d.ZuneigungJeGulden * _d.Volk(f.Oberhaupt.Volk).Werbefaktor * (1 + Talent(konto, Dynastie.Talent.Rhetorik) * W.RhetorikWerben))
+            ? 1 / (_d.ZuneigungJeGulden * _d.Volk(f.Oberhaupt.Volk).Werbefaktor * (1 + Talent(konto, Dynastie.Talent.Rhetorik) * W.RhetorikWerben)
+                   * _w.Wohnen.WerbeFaktor(konto)) // Stube im Wohnhaus (PR #224)
             : 1 / _d.ZuneigungJeGulden;
 
     /// <summary>Darf dieses Haus um den Kandidaten werben? (null = ja, sonst der Grund)</summary>
@@ -566,7 +567,7 @@ public sealed class Familienbuch
     {
         foreach (var konto in _w.Konten.Where(k => k.IstAktiv))
             if (Von(konto) is { } f)
-                konto.Familienkosten(Haushaltskosten(f) + Ausbildungskosten(f));
+                konto.Familienkosten(Haushaltskosten(f) * _w.Wohnen.HaushaltFaktor(konto) + Ausbildungskosten(f)); // Vorratskammer (PR #224)
     }
 
     /// <summary>Was die laufenden Ausbildungen dieses Jahr kosten (nur Kinder im Ausbildungsalter).</summary>
@@ -583,7 +584,7 @@ public sealed class Familienbuch
             if (!_d.Talente.Ausbildungen.TryGetValue(p.Ausbildung!, out var a)) { p.Ausbildung = null; continue; }
             if (IstInAusbildungsalter(p))
             {
-                var faktor = Ausbildungsfaktor(p.Volk);
+                var faktor = Ausbildungsfaktor(p.Volk) * _w.Wohnen.AusbildungFaktor(f.Konto); // Bibliothek im Wohnhaus (PR #224)
                 foreach (var (t, zuwachs) in a.Talente)
                     p.TalentSetzen(t, Math.Min(_d.Talente.Hoechstwert, p.Anlage(t) + zuwachs * faktor));
             }

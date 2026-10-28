@@ -320,7 +320,7 @@ public partial class Stadtansicht
         var volk = arbeitskraft == "Ork" ? Volk.Ork : Volk.Mensch;
         if (hauptmann)
             return new FigurAussehen(volk, false, new Color(0.46f, 0.07f, 0.09f), Beinkleidfarben[1], HautVon(volk), GrauesHaar, Schwarz, Kopfbedeckung.Barett);
-        var rock = arbeitskraft == "Lehrling" ? new Color(0.62f, 0.34f, 0.30f) : Stadtrot.Lerp(new Color(0.55f, 0.10f, 0.10f), (Streuung(nummer, 7) % 5) / 8f);
+        var rock = IstAnfaenger(arbeitskraft) ? new Color(0.62f, 0.34f, 0.30f) : Stadtrot.Lerp(new Color(0.55f, 0.10f, 0.10f), (Streuung(nummer, 7) % 5) / 8f);
         var haare = Haarfarben(volk);
         var frau = volk == Volk.Mensch && Streuung(nummer, 53) % 6 == 0;
         var kopf = Streuung(nummer, 29) % 4 == 0 ? Kopfbedeckung.Barett : Kopfbedeckung.Keine;

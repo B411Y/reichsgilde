@@ -37,6 +37,12 @@ public sealed class WerkstattDaten
     /// <summary>Kaufbare Einrichtung je Beruf (Name aus „berufe"). Fehlt ein Beruf, gibt es für ihn keine.</summary>
     public Dictionary<string, List<EinrichtungDaten>> Einrichtung { get; init; } = new();
 
+    /// <summary>
+    /// Die Spalten des Talentbaums der Einrichtung (PR #224), z. B. Werkstatt, Lager &amp; Handel, Schutz &amp; Personal; die Reihen sind die
+    /// Gebäudestufen. Jedes Stück nennt seine Spalte (<see cref="EinrichtungDaten.Spalte"/>). Leer: ohne Baum (ältere Daten).
+    /// </summary>
+    public List<string> Spalten { get; init; } = new();
+
     public LohnstufeDaten Stufe(Lohnstufe stufe) => Lohnstufen.GetValueOrDefault(stufe) ?? LohnstufeDaten.Neutral;
 
     /// <summary>Die Einrichtung, die eine Werkstatt dieses Berufs kaufen kann (leer, wenn es keine gibt).</summary>
@@ -86,19 +92,9 @@ public sealed class WerkstattDaten
                 if (e.AbStufe is < 1 or > 3) f.Add($"{wo}.abStufe muss zwischen 1 und 3 liegen.");
                 if (e.Voraussetzung is { } v && liste.All(x => x.Kennung != v)) f.Add($"{wo}.voraussetzung: „{v}“ gibt es beim {beruf} nicht.");
                 if (e.Voraussetzung == e.Kennung) f.Add($"{wo}: Ein Stück kann nicht sich selbst voraussetzen.");
-                var w = e.Wirkung;
-                if (w.ZeitFaktor is <= 0 or > 1) f.Add($"{wo}.wirkung.zeitFaktor muss größer 0 und höchstens 1 sein.");
-                if (w.LagerPlus < 0) f.Add($"{wo}.wirkung.lagerPlus darf nicht negativ sein.");
-                foreach (var (name, faktor) in new[] { ("unfallFaktor", w.UnfallFaktor), ("brandFaktor", w.BrandFaktor), ("einbruchFaktor", w.EinbruchFaktor),
-                             ("einbruchBonus", w.EinbruchBonus), ("fangFaktor", w.FangFaktor), ("spurenFaktor", w.SpurenFaktor),
-                             ("razziaBonus", w.RazziaBonus), ("geleitFaktor", w.GeleitFaktor), ("lohnFaktor", w.LohnFaktor),
-                             ("ausfallFaktor", w.AusfallFaktor) })
-                    if (faktor is < 0 or > 1) f.Add($"{wo}.wirkung.{name} muss zwischen 0 und 1 liegen.");
-                foreach (var (name, faktor) in new[] { ("streifenFaktor", w.StreifenFaktor), ("rahmenFaktor", w.RahmenFaktor), ("wechselFaktor", w.WechselFaktor),
-                             ("kreditFaktor", w.KreditFaktor) })
-                    if (faktor is < 1 or > 2) f.Add($"{wo}.wirkung.{name} muss zwischen 1 und 2 liegen.");
-                foreach (var ware in w.Waren.Where(x => !waren.ContainsKey(x)))
-                    f.Add($"{wo}.wirkung.waren: Die Ware „{ware}“ gibt es nicht.");
+                if (Spalten.Count > 0 && e.Spalte is { } sp && !Spalten.Contains(sp))
+                    f.Add($"{wo}.spalte: „{sp}“ steht nicht unter werkstatt.spalten ({string.Join(", ", Spalten)}).");
+                e.Wirkung.Pruefen(f, $"{wo}.wirkung", waren);
             }
         }
     }
@@ -177,6 +173,15 @@ public sealed class EinrichtungDaten
 
     /// <summary>Kennung eines Stücks, das schon da sein muss (null = keine Voraussetzung).</summary>
     public string? Voraussetzung { get; init; }
+
+    /// <summary>Spalte im Talentbaum (eine der <see cref="WerkstattDaten.Spalten"/> bzw. <see cref="Wohnen.WohnenDaten.Spalten"/>); die Reihe ist <see cref="AbStufe"/>.</summary>
+    public string? Spalte { get; init; }
+
+    /// <summary>
+    /// Nur im Wohnhaus: ein Stück, das kein Kauf ist, sondern eine vorhandene Sache des Spiels – „Hausapotheke“ (immer da, Kräuterschnaps
+    /// kaufen) oder „Hauswaechter“ (Befehl <see cref="HauswaechterSetzen"/>, Lohn im Jahr). null: ein gewöhnliches Stück zum Kaufen.
+    /// </summary>
+    public string? Vorhanden { get; init; }
 
     public EinrichtungWirkung Wirkung { get; init; } = new();
 }
@@ -259,7 +264,74 @@ public sealed class EinrichtungWirkung
     /// </summary>
     public double KreditFaktor { get; init; } = 1;
 
+    /// <summary>Faktor auf den Erlös der Waren dieses Betriebs am Markt (1,1 = 10 % mehr; Vorarbeiter „Guter Ruf“). Geprüft zwischen 1 und 2.</summary>
+    public double PreisFaktor { get; init; } = 1;
+
+    /// <summary>
+    /// Ladentheke: Dieser Anteil der Ware geht im Laden an Kunden, mit <see cref="LadenAufschlag"/> auf den Preis (0,25 und 0,05: ein Viertel
+    /// der Ware 5 % teurer). Gerechnet wird beim Verkauf im Mittel: Erlös × (1 + Anteil × Aufschlag).
+    /// </summary>
+    public double LadenAnteil { get; init; }
+    public double LadenAufschlag { get; init; }
+
+    /// <summary>Faktor auf die Zutaten je Stück (0,9 = 10 % weniger; was übrig bleibt, sammelt sich, bis ein ganzes Stück gespart ist).</summary>
+    public double RohstoffFaktor { get; init; } = 1;
+
+    /// <summary>So viele Punkte mehr (oder weniger) zieht die Laune aller im Betrieb (nur Werkstätten mit Ware).</summary>
+    public double Laune { get; init; }
+
+    /// <summary>Faktor auf die Erfahrung der Anfänger (erste Stufe) im Betrieb (1,5 = 50 % mehr). Mehrere werden multipliziert. Geprüft zwischen 1 und 5.</summary>
+    public double ErfahrungFaktor { get; init; } = 1;
+
+    /// <summary>Faktor auf die Leistung aller im Betrieb (Antreiber 1,1). Geprüft zwischen 1 und 2.</summary>
+    public double TempoFaktor { get; init; } = 1;
+
+    /// <summary>So viele Minuten länger wird im Betrieb gearbeitet (Frühaufsteher 60) – ohne mehr Lohn; nur Betriebe mit Ware, höchstens bis zum Tagesende.</summary>
+    public int ArbeitsminutenPlus { get; init; }
+
+    /// <summary>Faktor auf das Risiko von Ausbruch und Aufstand der Unfreien (Aufseher 0,5).</summary>
+    public double RisikoFaktor { get; init; } = 1;
+
+    /// <summary>Wohnhaus: Faktor auf Haushalt und Unterhalt der Familie (Vorratskammer 0,8).</summary>
+    public double HaushaltFaktor { get; init; } = 1;
+
+    /// <summary>Wohnhaus: Faktor auf die Chance der Familie zu erkranken (Küche 0,75).</summary>
+    public double KrankheitFaktor { get; init; } = 1;
+
+    /// <summary>Wohnhaus: so viel mehr Ansehen im Rat (Wappen 2). Geprüft zwischen 0 und 20.</summary>
+    public double AnsehenPlus { get; init; }
+
+    /// <summary>Wohnhaus: Faktor auf die Zuneigung je Gulden beim Werben (Stube 1,25). Geprüft zwischen 1 und 3.</summary>
+    public double WerbeFaktor { get; init; } = 1;
+
+    /// <summary>Wohnhaus: Faktor auf die Talente, die Kinder in der Ausbildung lernen (Bibliothek 1,25). Geprüft zwischen 1 und 3.</summary>
+    public double AusbildungFaktor { get; init; } = 1;
+
     public bool GiltFuer(string ware) => Waren.Count == 0 || Waren.Contains(ware);
+
+    /// <summary>Prüft die Werte (Fehler mit dem Ort <paramref name="wo"/>, z. B. „werkstatt.einrichtung.Schmied.Werkzeug1.wirkung“).</summary>
+    internal void Pruefen(List<string> f, string wo, IReadOnlyDictionary<string, WareDaten> waren)
+    {
+        if (ZeitFaktor is <= 0 or > 1) f.Add($"{wo}.zeitFaktor muss größer 0 und höchstens 1 sein.");
+        if (LagerPlus < 0) f.Add($"{wo}.lagerPlus darf nicht negativ sein.");
+        foreach (var (name, faktor) in new[] { ("unfallFaktor", UnfallFaktor), ("brandFaktor", BrandFaktor), ("einbruchFaktor", EinbruchFaktor),
+                     ("einbruchBonus", EinbruchBonus), ("fangFaktor", FangFaktor), ("spurenFaktor", SpurenFaktor),
+                     ("razziaBonus", RazziaBonus), ("geleitFaktor", GeleitFaktor), ("lohnFaktor", LohnFaktor),
+                     ("ausfallFaktor", AusfallFaktor), ("ladenAnteil", LadenAnteil), ("ladenAufschlag", LadenAufschlag),
+                     ("rohstoffFaktor", RohstoffFaktor), ("risikoFaktor", RisikoFaktor), ("haushaltFaktor", HaushaltFaktor),
+                     ("krankheitFaktor", KrankheitFaktor) })
+            if (faktor is < 0 or > 1) f.Add($"{wo}.{name} muss zwischen 0 und 1 liegen.");
+        foreach (var (name, faktor) in new[] { ("streifenFaktor", StreifenFaktor), ("rahmenFaktor", RahmenFaktor), ("wechselFaktor", WechselFaktor),
+                     ("kreditFaktor", KreditFaktor), ("preisFaktor", PreisFaktor), ("tempoFaktor", TempoFaktor) })
+            if (faktor is < 1 or > 2) f.Add($"{wo}.{name} muss zwischen 1 und 2 liegen.");
+        foreach (var (name, faktor, bis) in new[] { ("erfahrungFaktor", ErfahrungFaktor, 5.0), ("werbeFaktor", WerbeFaktor, 3.0), ("ausbildungFaktor", AusbildungFaktor, 3.0) })
+            if (faktor < 1 || faktor > bis) f.Add($"{wo}.{name} muss zwischen 1 und {Zahlenformat.Ganz(bis)} liegen.");
+        if (Math.Abs(Laune) > 50) f.Add($"{wo}.laune liegt zwischen −50 und 50.");
+        if (ArbeitsminutenPlus is < 0 or > 180) f.Add($"{wo}.arbeitsminutenPlus muss zwischen 0 und 180 liegen.");
+        if (AnsehenPlus is < 0 or > 20) f.Add($"{wo}.ansehenPlus muss zwischen 0 und 20 liegen.");
+        foreach (var ware in Waren.Where(x => !waren.ContainsKey(x)))
+            f.Add($"{wo}.waren: Die Ware „{ware}“ gibt es nicht.");
+    }
 
     /// <summary>Die Wirkung in einem Satz für die Oberfläche.</summary>
     public string Text()
@@ -282,6 +354,22 @@ public sealed class EinrichtungWirkung
         if (WechselFaktor > 1) teile.Add($"Wechselgebühren {Zahlenformat.Ganz((WechselFaktor - 1) * 100)} % höher");
         if (KreditFaktor > 1) teile.Add($"Kredite an Häuser bis {Zahlenformat.Ganz((KreditFaktor - 1) * 100)} % höher");
         if (AusfallFaktor < 1) teile.Add($"Verlust bei Ausfall eines Kunden {Zahlenformat.Ganz((1 - AusfallFaktor) * 100)} % kleiner");
+        if (PreisFaktor > 1) teile.Add($"{Zahlenformat.Ganz((PreisFaktor - 1) * 100)} % mehr Erlös am Markt");
+        if (LadenAnteil > 0 && LadenAufschlag > 0)
+            teile.Add($"{Zahlenformat.Ganz(LadenAufschlag * 100)} % mehr Erlös für bis zu {Zahlenformat.Ganz(LadenAnteil * 100)} % der Ware (Verkauf im Laden)");
+        if (RohstoffFaktor < 1) teile.Add($"{Zahlenformat.Ganz((1 - RohstoffFaktor) * 100)} % weniger Zutaten");
+        if (TempoFaktor > 1) teile.Add($"alle arbeiten {Zahlenformat.Ganz((TempoFaktor - 1) * 100)} % schneller");
+        if (Laune > 0) teile.Add($"Laune +{Zahlenformat.Ganz(Laune)}");
+        if (Laune < 0) teile.Add($"Laune −{Zahlenformat.Ganz(-Laune)}");
+        if (ErfahrungFaktor > 1)
+            teile.Add(ErfahrungFaktor == 2 ? "Anfänger sammeln doppelte Erfahrung" : $"Anfänger sammeln {Zahlenformat.Ganz((ErfahrungFaktor - 1) * 100)} % mehr Erfahrung");
+        if (ArbeitsminutenPlus > 0) teile.Add($"{Zahlenformat.Kommazahl(ArbeitsminutenPlus / 60.0)} Std. länger Arbeit ohne mehr Lohn");
+        if (RisikoFaktor < 1) teile.Add($"Ausbrüche und Aufstände der Unfreien {Zahlenformat.Ganz((1 - RisikoFaktor) * 100)} % seltener");
+        if (HaushaltFaktor < 1) teile.Add($"Haushalt und Unterhalt der Familie {Zahlenformat.Ganz((1 - HaushaltFaktor) * 100)} % billiger");
+        if (KrankheitFaktor < 1) teile.Add($"die Familie erkrankt {Zahlenformat.Ganz((1 - KrankheitFaktor) * 100)} % seltener");
+        if (AnsehenPlus > 0) teile.Add($"Ansehen +{Zahlenformat.Ganz(AnsehenPlus)}");
+        if (WerbeFaktor > 1) teile.Add($"Werben bringt {Zahlenformat.Ganz((WerbeFaktor - 1) * 100)} % mehr Zuneigung");
+        if (AusbildungFaktor > 1) teile.Add($"Kinder lernen in der Ausbildung {Zahlenformat.Ganz((AusbildungFaktor - 1) * 100)} % mehr");
         return teile.Count == 0 ? "keine Wirkung" : string.Join(", ", teile);
     }
 }

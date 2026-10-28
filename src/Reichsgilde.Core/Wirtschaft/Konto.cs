@@ -149,6 +149,13 @@ public sealed class Konto
     /// <summary>Bewacht ein Hauswächter das Wohnhaus (halbiert Einbruch und Brand, mehr Zeugen)?</summary>
     public bool Hauswaechter { get; internal set; }
 
+    private readonly SortedSet<string> _wohnhausEinrichtung = new(StringComparer.Ordinal);
+
+    /// <summary>Gekaufte Einrichtung des Wohnhauses (Kennungen aus „wohnen.einrichtung“, PR #224). Sie gehört dem Haushalt und zieht beim Umzug mit.</summary>
+    public IReadOnlyCollection<string> WohnhausEinrichtung => _wohnhausEinrichtung;
+
+    internal void WohnhausEinrichtungHinzufuegen(string kennung) => _wohnhausEinrichtung.Add(kennung);
+
     /// <summary>Wohin Steuern und Abgaben fließen (gesetzt von der Stadtwirtschaft; null: nirgendwohin, z. B. in Tests ohne Stadt).</summary>
     internal Action<Politik.Kassenposten, double>? Stadtkasse { get; set; }
 
@@ -207,6 +214,7 @@ public sealed class Konto
         Inhaber = Inhaber, Wappen = Wappen, Vermoegen = Vermoegen, Forderungen = Forderungen, Schulden = Schulden, Stand = Stand, Schuldenjahre = Schuldenjahre, IstBankrott = IstBankrott, IstErloschen = IstErloschen,
         Aktionspunkte = Aktionspunkte.Vorrat,
         WohnhausStufe = WohnhausStufe, WohnhausFertigAb = WohnhausFertigAb, WohnhausInstandBis = WohnhausInstandBis, Hauswaechter = Hauswaechter,
+        WohnhausEinrichtung = _wohnhausEinrichtung.Count > 0 ? _wohnhausEinrichtung.ToList() : null,
         Berufe = _berufe.ToList(),
         Meistergrade = _grade.ToDictionary(x => x.Key, x => x.Value),
         Erfahrung = _erfahrung.ToDictionary(x => x.Key, x => x.Value),
@@ -227,6 +235,7 @@ public sealed class Konto
         konto.WohnhausFertigAb = s.WohnhausFertigAb;
         konto.WohnhausInstandBis = s.WohnhausInstandBis;
         konto.Hauswaechter = s.Hauswaechter;
+        foreach (var kennung in s.WohnhausEinrichtung ?? new List<string>()) konto._wohnhausEinrichtung.Add(kennung);
         foreach (var beruf in s.Berufe ?? new List<string>())
             konto.BerufLernen(beruf);
         foreach (var (beruf, grad) in s.Meistergrade ?? new Dictionary<string, int>())

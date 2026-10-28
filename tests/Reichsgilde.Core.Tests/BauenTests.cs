@@ -272,7 +272,7 @@ static class BauenTests
             Pruefe.Gleich(betrieb, erworben);
             Pruefe.Gleich(g, fertig);
             Pruefe.Gleich(Bauzustand.Werkstatt, g.Zustand);
-            Pruefe.Wahr(w.Ausfuehren(k, new PersonalSetzen(betrieb.Name, "Geselle", 2)).Erfolg, "Personal einstellen");
+            Pruefe.Wahr(w.Ausfuehren(k, new PersonalSetzen(betrieb.Name, "Lehrling", 2)).Erfolg, "Personal einstellen");
         }),
 
         ("Bauen: Werkstatt – Voraussetzungen wie beim Kauf (Stand, Handwerk, Kaufpreis und ein Jahr Unterhalt), nur Stufe 1 in der Stadt", () =>
@@ -496,7 +496,7 @@ static class BauenTests
 
         ("Bauen: Daten werden geprüft – je Wohnhausstufe ein Eintrag, Maße auf dem Raster, Lagen nicht leer, nurNeubau nur ab dem Bürgerhaus", () =>
         {
-            Pruefe.Gleich(58, Daten.Value.Version);
+            Pruefe.Gleich(59, Daten.Value.Version);
             Pruefe.Gleich(5, Daten.Value.Bauen!.Wohnhaus.Count);
             Pruefe.Gleich((16.0, 14.0), (Daten.Value.Bauen.Werkstatt.Breite, Daten.Value.Bauen.Werkstatt.Tiefe));
             Pruefe.Gleich("False False False True True", string.Join(" ", Daten.Value.Bauen.Wohnhaus.Select(m => m.NurNeubau))); // Stadtpalais, Stadthof

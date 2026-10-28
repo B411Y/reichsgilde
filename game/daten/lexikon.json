@@ -261,7 +261,7 @@
   "kennung": "personal",
   "titel": "Personal",
   "gruppe": "Wirtschaft",
-  "text": "Die Arbeitskräfte eines Betriebs: Lehrling ({wert:lohn_lehrling} {wert:waehrung} im Jahr), Geselle ({wert:lohn_geselle}), Bergmann ({wert:lohn_bergmann}) und je nach [[statut]] Ork ({wert:lohn_ork}) und Leibeigener ({wert:lohn_leibeigener}). Sie unterscheiden sich in Tempo, Unfall- und Aufstandsrisiko. Das [[statut]] bestimmt, wer wo arbeiten darf. In Wirtshäusern wird länger gearbeitet, mit entsprechend mehr Lohn."
+  "text": "Die Arbeitskräfte eines Betriebs: in der Werkstatt Lehrling ({wert:lohn_lehrling} {wert:waehrung} im Jahr), Geselle ({wert:lohn_geselle}) und Vorarbeiter ({wert:lohn_vorarbeiter}), im Umland Knecht ({wert:lohn_knecht}), Altknecht ({wert:lohn_altknecht}) und Großknecht ({wert:lohn_grossknecht}); eingestellt werden nur Anfänger, befördert wird mit Erfahrung und Brief. Dazu je nach [[statut]] Ork ({wert:lohn_ork}) und Leibeigener ({wert:lohn_leibeigener}). Sie unterscheiden sich in Tempo, Unfall- und Aufstandsrisiko. Das [[statut]] bestimmt, wer wo arbeiten darf. In Wirtshäusern wird länger gearbeitet, mit entsprechend mehr Lohn."
  },
  {
   "kennung": "statut",

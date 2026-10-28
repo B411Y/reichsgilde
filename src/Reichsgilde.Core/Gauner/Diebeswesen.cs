@@ -362,7 +362,7 @@ public sealed class Diebeswesen
     /// </summary>
     public Arbeiter? Meisterdieb(Betrieb b) =>
         IstDiebesbetrieb(b) && b.Stufe >= 3 && b.Belegt >= 2
-            ? b.Arbeiter.Where(a => a.Arbeitskraft != "Lehrling").OrderBy(a => a.EingestelltUm).ThenBy(a => a.Nummer).FirstOrDefault()
+            ? b.Arbeiter.Where(a => !_w.Personal.IstAnfaenger(a)).OrderBy(a => a.EingestelltUm).ThenBy(a => a.Nummer).FirstOrDefault()
             : null;
 
     /// <summary>Sitzt der Meisterdieb gerade in der Gildenhalle (8–22 Uhr, wenn er nicht selbst mit einem Auftrag unterwegs ist)?</summary>
@@ -397,7 +397,7 @@ public sealed class Diebeswesen
         if (uhr >= Spielzeit.TagesbeginnMinute + Unterwelt.Nachtstunde && _heuteNachtJahr == _w.Uhr.Jahr
             && _heuteNacht.TryGetValue(b.Name, out var auftraege))
         {
-            var reihe = uebrige.OrderBy(a => a.Arbeitskraft == "Lehrling" ? 1 : 0).ThenBy(a => a.Nummer).ToList();
+            var reihe = uebrige.OrderBy(a => _w.Personal.IstAnfaenger(a) ? 1 : 0).ThenBy(a => a.Nummer).ToList();
             if (meister is not null) reihe.Add(meister);
             for (var i = 0; i < Math.Min(auftraege.Count, reihe.Count); i++) unterwegs[reihe[i]] = auftraege[i];
         }
@@ -460,8 +460,8 @@ public sealed class Diebeswesen
             if (_zufall.NextDouble() >= fang) continue;
 
             // Einer wird erwischt: Er kommt in den Turm – und ein Bürger, der ihn erkannt hat, erzählt einem Haus, wem er dient.
-            var kraft = b.Belegung.ContainsKey("Lehrling") ? "Lehrling"
-                : b.Belegung.OrderByDescending(x => x.Value).ThenBy(x => x.Key, StringComparer.Ordinal).First().Key;
+            var kraft = b.Arbeiter.Where(_w.Personal.IstAnfaenger).Select(a => a.Arbeitskraft).FirstOrDefault() // ein Anfänger zuerst
+                        ?? b.Belegung.OrderByDescending(x => x.Value).ThenBy(x => x.Key, StringComparer.Ordinal).First().Key;
             b.Einstellen(kraft, b.Belegung[kraft] - 1, _w.Statut);
             _diesesJahr[k] = DiesesJahr(k) with { Faenge = DiesesJahr(k).Faenge + 1 };
             // Gibt es eine Wache, hat sie ihn gefasst (Kopfgeld) – sonst erkennt ihn ein Bürger und erzählt es einem Haus.

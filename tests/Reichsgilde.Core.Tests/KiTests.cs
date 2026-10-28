@@ -87,7 +87,7 @@ static class KiTests
             w.StatutAendern(Fronstatut.FreieStadt); // Orks dürfen nicht mehr ins Umland
             Pruefe.Gleich(0, mine.Belegt);
             Ticken(sim, 61); // Minute 0–59, dann die volle Stunde selbst
-            Pruefe.Gleich(3, mine.Belegung.GetValueOrDefault("Bergmann"));
+            Pruefe.Gleich(3, mine.Belegung.GetValueOrDefault("Knecht")); // eingestellt werden nur Anfänger (PR #224)
         }),
 
         ("KI wählt die Arbeitskraft mit dem höchsten Jahresertrag (Mine unter Statut B: Ork)", () =>
@@ -97,7 +97,7 @@ static class KiTests
             var mine = w.BetriebEroeffnen("M", Betriebsart.Mine, konto);
             var ki = w.KiAnmelden(konto);
             Pruefe.Gleich(3, mine.Belegung.GetValueOrDefault("Ork"));
-            Pruefe.Wahr(ki.Jahresertrag(mine, "Ork") > ki.Jahresertrag(mine, "Bergmann"), "Ork sollte mehr einbringen");
+            Pruefe.Wahr(ki.Jahresertrag(mine, "Ork") > ki.Jahresertrag(mine, "Altknecht"), "Ork sollte mehr einbringen");
         }),
 
         ("KI stellt nicht mehr ein, als ihre Kasse über die Reserve hinaus trägt", () =>
@@ -105,8 +105,8 @@ static class KiTests
             var w = NeueSimulation().Wirtschaft!;
             var konto = w.KontoEroeffnen("Rivale");
             var g = w.BetriebEroeffnen("G", Betriebsart.Giesserei, konto);
-            // Reserve so hoch, dass nach Abzug der halben Reserve nur noch ein Gesellenlohn (220) übrig ist.
-            w.KiAnmelden(konto, KiProfil.Standard with { Reserve = 2 * (konto.Vermoegen - 300) });
+            // Reserve so hoch, dass nach Abzug der halben Reserve nur noch ein Lehrlingslohn (120) übrig ist – eingestellt werden nur Anfänger (PR #224).
+            w.KiAnmelden(konto, KiProfil.Standard with { Reserve = 2 * (konto.Vermoegen - 150) });
             Pruefe.Gleich(1, g.Belegt);
         }),
 

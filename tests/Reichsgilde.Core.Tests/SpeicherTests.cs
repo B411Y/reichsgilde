@@ -107,7 +107,7 @@ static class SpeicherTests
             var (sim, _) = Partieaufbau.Erstellen(Partieeinstellungen.Standard with { StartStatut = Fronstatut.FreieStadt, Schwierigkeit = Schwierigkeit.Schwer },
                 Daten.Value, new NeuePartie());
             var grube = sim.Wirtschaft!.Betriebe.Single(b => b.Name == "Grube Eisenbart");
-            Pruefe.Gleich(3, grube.Belegung.GetValueOrDefault("Bergmann"));
+            Pruefe.Gleich(3, grube.Belegung.GetValueOrDefault("Knecht")); // Anfänger im Umland (PR #224)
         }),
 
         ("Partieaufbau: eigener Familienname und Startvermögen, Rivalenname ist vergeben", () =>

@@ -84,12 +84,12 @@ static class DiebEinrichtungTests
         ("Dieb-Einrichtung: Daten – sieben Stücke mit den Kennungen des Raummodells, Preise wie bei den Werkstätten, Datenversion 52", () =>
         {
             var d = Daten.Value.Werkstatt!;
-            Pruefe.Gleich(58, Daten.Value.Version);
+            Pruefe.Gleich(59, Daten.Value.Version);
             var dieb = d.EinrichtungFuer("Dieb");
-            Pruefe.Gleich("Werkzeug1 Werkzeug2 Verkleidung Regale Loeschfass Eisentuer Handschuhe", string.Join(" ", dieb.Select(e => e.Kennung)));
+            Pruefe.Gleich("Werkzeug1 Werkzeug2 Verkleidung Regale Loeschfass Eisentuer Handschuhe", string.Join(" ", dieb.Take(7).Select(e => e.Kennung))); // dazu ab PR #224 die Lehrlingsstube
             Pruefe.Gleich("Dietriche, Meisterdietriche, Verkleidungstruhe, Hehlerkammer, Löschfass, Eisentür, Lederhandschuhe",
-                string.Join(", ", dieb.Select(e => e.Name)));
-            Pruefe.Gleich("300 800 350 200 100 150 80", string.Join(" ", dieb.Select(e => e.Preis))); // Eisentür 150 seit PR #177
+                string.Join(", ", dieb.Take(7).Select(e => e.Name)));
+            Pruefe.Gleich("300 800 350 200 100 150 80", string.Join(" ", dieb.Take(7).Select(e => e.Preis))); // Eisentür 150 seit PR #177
             Pruefe.Gleich("Werkzeug1", d.Stueck("Dieb", "Werkzeug2")!.Voraussetzung);
             Pruefe.Gleich(2, d.Stueck("Dieb", "Werkzeug2")!.AbStufe);
             Pruefe.Ungefaehr(0.1, d.Stueck("Dieb", "Werkzeug1")!.Wirkung.EinbruchBonus, 1e-12);
@@ -125,7 +125,7 @@ static class DiebEinrichtungTests
             var (w, k, b) = Dieb(sim, vermoegen: 5_000);
             Pruefe.Wahr(w.Werkstaetten.KannEinrichtung(b), "Schmugglerloch");
             var liste = w.Werkstaetten.Einrichtungsliste(b);
-            Pruefe.Wahr(liste.Count == 7 && liste.All(e => !e.Gekauft), "sieben Stücke, keins gekauft");
+            Pruefe.Wahr(liste.Count == 8 && liste.All(e => !e.Gekauft), "sieben Stücke und die Lehrlingsstube (PR #224), keins gekauft");
             Ok(w, k, new EinrichtungKaufen(b.Name, "Werkzeug1"));
             Pruefe.Ungefaehr(4_700, k.Vermoegen, 1e-9);
             Pruefe.Ungefaehr(300, k.Laufend.Investitionen, 1e-9);

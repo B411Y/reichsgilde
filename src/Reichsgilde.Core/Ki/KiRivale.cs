@@ -55,9 +55,10 @@ public sealed record KiProfil(
 ///                       • Eskorte je Karren nach erwartetem Verlust wählen
 ///                       • in der Not (gemahnt, Geld reicht nicht): einen Karren verkaufen, aber nie den letzten eines Betriebs
 ///   einmal am Tag       • Politik im Rat, Brautschau, Gericht (Spitzel, Anklage, Verteidigung)
+///                       • befördern, wenn sich der Brief bezahlt macht; Eigenschaft des Vorarbeiters nach Gewinn (KiRivale.Personal.cs)
 ///                       • zur eigenen Baustunde: Bauplatz für ein neues Wohnhaus oder eine neue Werkstatt suchen
 ///   zum Jahresende      • Karren kaufen, wenn ein Betrieb zu oft stillstand; einen verkaufen, der das ganze Jahr nicht fuhr
-///                       • Einrichtung kaufen, die sich schnell bezahlt macht (je Betrieb höchstens ein Stück)
+///                       • Einrichtung kaufen, die sich schnell bezahlt macht (je Betrieb höchstens ein Stück; dazu eins fürs Wohnhaus)
 ///                       • Verlustjahre der Betriebe zählen (verkauft wird in den Stunden danach)
 ///
 /// Jede Entscheidung wird als Meldung ausgegeben, damit der Spieler sie nachvollziehen kann.
@@ -171,6 +172,7 @@ public sealed partial class KiRivale
                 Kirchenpolitik(); // Ablass ist Verteidigung
                 Wachdienst();     // Razzien der eigenen Wache
                 Meisterpruefung();
+                Befoerdern(); // Gesellen- und Vorarbeiterbriefe (PR #224, KiRivale.Personal.cs)
                 if (Profil.Gaunerei >= 2)
                 {
                     Diebeszuege(); // die eigenen Leute zuerst – sie kosten kein Geld
@@ -221,6 +223,7 @@ public sealed partial class KiRivale
             KarrenNachkaufen(betrieb);
         }
         EinrichtungKaufen();
+        WohnhausEinrichtungKaufen(); // PR #224, KiRivale.Personal.cs
         WegAusbauen();
         SchiffKaufen();
     }
@@ -316,8 +319,9 @@ public sealed partial class KiRivale
         var frei = betrieb.Plaetze - betrieb.Belegt;
         if (frei <= 0) return;
 
+        // Mit „personal“ (PR #224) nur, wen der Betrieb einstellen darf: Anfänger seiner Laufbahn, Unfreie und Orks nach Statut.
         var beste = _w.Daten.Arbeitskraefte.Keys
-            .Where(k => _w.Daten.Arbeitskraefte[k].IstErlaubt(_w.Statut, betrieb.Ort))
+            .Where(k => _w.Daten.Arbeitskraefte[k].IstErlaubt(_w.Statut, betrieb.Ort) && _w.Personal.EinstellenVerboten(betrieb, k) is null)
             .Select(k => (Kraft: k, Ertrag: Jahresertrag(betrieb, k)))
             .Where(x => x.Ertrag > 0)
             .OrderByDescending(x => x.Ertrag)
@@ -1818,7 +1822,8 @@ public sealed partial class KiRivale
     private double HoechsterLohn(Betriebsart art)
     {
         var ort = _w.Daten.Art(art).Ort;
-        return _w.Daten.Arbeitskraefte.Values.Where(k => k.IstErlaubt(_w.Statut, ort)).Select(k => k.Kosten).DefaultIfEmpty(0).Max() * _w.Daten.Schichtfaktor(art);
+        return _w.Daten.Arbeitskraefte.Where(k => k.Value.IstErlaubt(_w.Statut, ort) && _w.Daten.KraftPasst(art, k.Key))
+            .Select(k => k.Value.Kosten).DefaultIfEmpty(0).Max() * _w.Daten.Schichtfaktor(art);
     }
 
     private void KarrenNachkaufen(Betrieb betrieb)

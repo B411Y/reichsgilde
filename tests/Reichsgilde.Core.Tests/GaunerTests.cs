@@ -152,7 +152,7 @@ static class GaunerTests
             var a = Haus(w, "Familie Räuber");
             var z = Haus(w, "Familie Grube");
             var mine = w.BetriebEroeffnen("Grube Opfer", Betriebsart.Mine, z);
-            w.Einstellen(mine, "Bergmann", 3);
+            w.Einstellen(mine, "Altknecht", 3);
             w.Ausfuehren(mine.Konto, new EskorteWaehlen(mine.Name, 0, "Keine"));
             Pruefe.Wahr(w.Ausfuehren(a, new Beauftragen(z.Inhaber, Gaunerstueck.Ueberfall)).Erfolg, "Auftrag");
             BisZurNacht(sim);
@@ -239,7 +239,7 @@ static class GaunerTests
             var z = Haus(w, "Familie Grube");
             var eigene = w.BetriebEroeffnen("Gießerei Räuber", Betriebsart.Giesserei, raeuber);
             var mine = w.BetriebEroeffnen("Grube Opfer", Betriebsart.Mine, z);
-            w.Einstellen(mine, "Bergmann", 3);
+            w.Einstellen(mine, "Altknecht", 3);
             w.Ausfuehren(z, new EskorteWaehlen(mine.Name, 0, "Keine"));
             for (var i = 0; i < 2; i++) w.Ausfuehren(raeuber, new Schenken(w.Rat.Ratsherren[i].Name, 100));
             w.Ausfuehren(raeuber, new Beauftragen(z.Inhaber, Gaunerstueck.Ueberfall));
@@ -254,7 +254,7 @@ static class GaunerTests
             Pruefe.Wahr(w.Justiz.ImKerker(raeuber), "Kerker");
             var e = w.Ausfuehren(raeuber, new Schenken(w.Rat.Ratsherren[0].Name, 100));
             Pruefe.Wahr(!e.Erfolg && e.Meldung.Contains("Kerker"), e.Meldung);
-            Pruefe.Wahr(w.Ausfuehren(raeuber, new PersonalSetzen(eigene.Name, "Geselle", 1)).Erfolg, "Betriebsbefehle laufen weiter");
+            Pruefe.Wahr(w.Ausfuehren(raeuber, new PersonalSetzen(eigene.Name, "Lehrling", 1)).Erfolg, "Betriebsbefehle laufen weiter");
             JahrBeenden(sim);
             Pruefe.Wahr(!w.Justiz.ImKerker(raeuber), "Nach einem Jahr wieder frei");
         }),

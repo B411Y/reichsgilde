@@ -247,6 +247,22 @@ public sealed class Wirtschaftsdaten
     /// </summary>
     public WerkstattDaten? Werkstatt { get; init; }
 
+    /// <summary>
+    /// Personal wie in Gilde 1 (ab Datenversion 59, PR #224): Laufbahnen mit drei Stufen, nur Anfänger einstellbar, Beförderung von Hand,
+    /// Vorarbeiter mit Eigenschaft. Fehlt der Abschnitt, gilt die alte Beförderung aus „werkstatt“.
+    /// </summary>
+    public PersonalDaten? Personal { get; init; }
+
+    /// <summary>Die Laufbahn der Leute in einer Betriebsart (null ohne Abschnitt „personal“).</summary>
+    public LaufbahnDaten? Laufbahn(Betriebsart art) => Personal?.LaufbahnFuer(Art(art).Beruf, Art(art).Ort);
+
+    /// <summary>
+    /// Passt diese Arbeitskraft zu dieser Betriebsart? Ohne „personal“ immer; sonst, wenn sie in der Laufbahn der Art steht oder in keiner
+    /// (Unfreie, Orks). Ein Knecht passt nicht in eine Gießerei, ein Taschendieb nicht in ein Wachhaus. Ob das Statut sie erlaubt, prüft das nicht.
+    /// </summary>
+    public bool KraftPasst(Betriebsart art, string arbeitskraft) =>
+        Personal is not { } p || p.StufeVon(arbeitskraft) == 0 || Laufbahn(art)?.Stufen.Contains(arbeitskraft) == true;
+
     /// <summary>Meisterprüfungen und Gebäudestufen (ab Datenversion 13). Fehlt der Abschnitt, bleibt jedes Haus auf Grad 1.</summary>
     public MeistergradDaten? Meistergrade { get; init; }
 
@@ -456,12 +472,13 @@ public sealed class Wirtschaftsdaten
         Logistik.Pruefen(f);
         Handel?.Pruefen(f);
         Schiffshandel?.Pruefen(f, Waren, Logistik.Eskorten);
-        Wohnen?.Pruefen(f, Staende.Count);
+        Wohnen?.Pruefen(f, Staende.Count, Waren);
         Bauen?.Pruefen(f, Wohnen);
         Wegebau?.Pruefen(f);
         Verkauf.Pruefen(f);
         Stadt?.Pruefen(f);
         Werkstatt?.Pruefen(f, Berufe, Waren, Arbeitskraefte);
+        Personal?.Pruefen(f, Arbeitskraefte, Berufe, Waren);
 
         if (Staende.Count == 0) f.Add("Es sind keine Stände definiert.");
         for (var i = 0; i < Staende.Count; i++)

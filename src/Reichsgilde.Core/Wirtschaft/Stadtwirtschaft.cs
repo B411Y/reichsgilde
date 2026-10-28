@@ -134,6 +134,9 @@ public sealed partial class Stadtwirtschaft
     /// <summary>Werkstatt wie in Gilde 1: Arbeiter mit eigener Ware, Lohnstufen, Prämie, Laune, Unfälle, Beförderung und Einrichtung.</summary>
     public Werkstattwesen Werkstaetten { get; }
 
+    /// <summary>Personal wie in Gilde 1 (PR #224): Laufbahnen, Beförderung, Vorarbeiter mit Eigenschaft, Name und Aussehen der Arbeiter.</summary>
+    public Personalwesen Personal { get; }
+
     /// <summary>Messe und Kollekte, Ablass, Beichte, Lehr- und Hetzschriften.</summary>
     public Kirche.Kirchenwesen Kirchenwesen { get; }
 
@@ -320,6 +323,7 @@ public sealed partial class Stadtwirtschaft
         Gesundheit = new Gesundheitswesen(this, daten.Gesundheit, zufallsstartwert);
         Gastwirtschaft = new Gastwirtschaft(this, daten.Gastwirtschaft);
         Werkstaetten = new Werkstattwesen(this, daten.Werkstatt, zufallsstartwert);
+        Personal = new Personalwesen(this, daten.Personal);
         Kirchenwesen = new Kirche.Kirchenwesen(this, daten.Kirche, zufallsstartwert);
         Einwohnerschaft = new Buerger.Einwohnerschaft(this, daten.Buerger, zufallsstartwert);
     }
@@ -445,7 +449,8 @@ public sealed partial class Stadtwirtschaft
         // Befehle nennen Betriebe beim Namen – deshalb muss er eindeutig sein.
         if (_betriebe.Any(b => b.Name == name))
             throw new ArgumentException($"Einen Betrieb „{name}“ gibt es schon.", nameof(name));
-        var betrieb = new Betrieb(name, art, konto, Daten, ganzjaehrig: Uhr.MinuteImTag == 0, jetzt: () => Uhr.VergangeneMinuten); // zum Jahresbeginn: ganzes Jahr
+        var betrieb = new Betrieb(name, art, konto, Daten, ganzjaehrig: Uhr.MinuteImTag == 0, jetzt: () => Uhr.VergangeneMinuten, // zum Jahresbeginn: ganzes Jahr
+            steckbrief: Personal.Steckbrief);
         _betriebe.Add(betrieb);
         konto.BerufLernen(betrieb.Artdaten.Beruf); // wer einen Betrieb führt, beherrscht sein Handwerk
 
@@ -716,6 +721,8 @@ public sealed partial class Stadtwirtschaft
             return Wohnen.Ausbauen(absender, Uhr);
         if (befehl is HauswaechterSetzen hauswaechter)
             return Wohnen.HauswaechterSetzen(absender, hauswaechter.Angestellt);
+        if (befehl is WohnhausEinrichtungKaufen wohnEinrichtung)
+            return Wohnen.EinrichtungKaufen(absender, wohnEinrichtung.Kennung);
         if (befehl is LiegenschaftErwerben liegenschaft)
             return LiegenschaftErwerbenAusfuehren(absender, liegenschaft.Name);
         if (befehl is BauBefehl bau)
@@ -897,7 +904,8 @@ public sealed partial class Stadtwirtschaft
                 ArbeiterZuteilen z => Werkstaetten.Zuteilen(betrieb, z),
                 ArbeiterEinstellen e => Werkstaetten.Einstellen(betrieb, e),
                 ArbeiterEntlassen e => Werkstattwesen.Entlassen(betrieb, e),
-                ArbeiterBefoerdern f => Werkstaetten.Befoerdern(betrieb, f),
+                ArbeiterBefoerdern f => Personal.Befoerdern(betrieb, f),
+                EigenschaftWaehlen e => Personal.EigenschaftWaehlen(betrieb, e),
                 LohnstufeSetzen l => Werkstaetten.LohnstufeSetzen(betrieb, l),
                 PraemieZahlen p => Werkstaetten.PraemieZahlen(betrieb, p),
                 EinrichtungKaufen e => Werkstaetten.EinrichtungKaufen(betrieb, e),
@@ -1026,6 +1034,8 @@ public sealed partial class Stadtwirtschaft
     private Befehlsergebnis PersonalAusfuehren(Betrieb betrieb, PersonalSetzen befehl)
     {
         var vorher = betrieb.Belegung.GetValueOrDefault(befehl.Arbeitskraft);
+        if (befehl.Anzahl > vorher && Personal.EinstellenVerboten(betrieb, befehl.Arbeitskraft) is { } nurAnfaenger)
+            return Befehlsergebnis.Abgelehnt(nurAnfaenger); // entlassen geht immer
         betrieb.Einstellen(befehl.Arbeitskraft, befehl.Anzahl, Statut); // prüft Statut, Plätze und Namen
         var diff = befehl.Anzahl - vorher;
         return Befehlsergebnis.Ok(diff switch
@@ -1171,7 +1181,7 @@ public sealed partial class Stadtwirtschaft
         Wohnen.HauswerteNachDemLaden(_konten);
         foreach (var bs in s.Betriebe)
         {
-            var betrieb = new Betrieb(bs.Name, bs.Art, _konten[bs.Konto], Daten, jetzt: () => Uhr.VergangeneMinuten);
+            var betrieb = new Betrieb(bs.Name, bs.Art, _konten[bs.Konto], Daten, jetzt: () => Uhr.VergangeneMinuten, steckbrief: Personal.Steckbrief);
             betrieb.Wiederherstellen(bs);
             _betriebe.Add(betrieb);
         }

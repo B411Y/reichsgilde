@@ -45,6 +45,9 @@ public partial class BetriebsUebersicht : VBoxContainer
     /// <summary>Handel am Markt (aus dem Bedienfeld eines Betriebs ohne Innenansicht).</summary>
     public event Action<Betrieb>? HandelGewuenscht;
 
+    /// <summary>Der Spieler möchte den Talentbaum der Einrichtung dieses Betriebs sehen (PR #224).</summary>
+    public event Action<Betrieb>? EinrichtungGewuenscht;
+
     /// <summary>Verkaufen bzw. Pacht kündigen – öffnet die Rückfrage.</summary>
     public event Action<Betrieb>? VerkaufGewuenscht;
 
@@ -91,6 +94,9 @@ public partial class BetriebsUebersicht : VBoxContainer
                                TooltipText = "Drinnen: Produktion, Personal, Lager, Karren und Einrichtung (auch Doppelklick aufs Haus)" };
         _hinein.Pressed += () => { if (_betrieb is not null) HineinGewuenscht?.Invoke(_betrieb, null); };
         knoepfe.AddChild(_hinein);
+        var einrichten = new Button { Text = "Einrichtung", FocusMode = FocusModeEnum.None, TooltipText = "Der Talentbaum der Einrichtung: Werkzeug, Lager, Schutz und Personal kaufen" };
+        einrichten.Pressed += () => { if (_betrieb is not null) EinrichtungGewuenscht?.Invoke(_betrieb); };
+        knoepfe.AddChild(einrichten);
         _mehrKnopf = new Button { Text = "…", ToggleMode = true, FocusMode = FocusModeEnum.None, CustomMinimumSize = new Vector2(44, 0),
                                   TooltipText = "Mehr: Ausbau, Verkaufen bzw. Pacht kündigen" };
         _mehrKnopf.Toggled += an => _verwaltung.Visible = an && _betrieb is not null;

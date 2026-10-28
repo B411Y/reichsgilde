@@ -11,14 +11,17 @@ namespace Reichsgilde;
 /// </summary>
 public sealed class PersonalAnzeige : InnenTafel
 {
-    public PersonalAnzeige() : base(860) { }
+    public PersonalAnzeige() : base(900) { }
 
     protected override string Stand(Stadtwirtschaft w, Betrieb b)
     {
         var s = w.Werkstaetten;
-        return $"{b.Belegt}/{b.Plaetze}|{b.Lohnstufe}|{s.PraemieVerboten(b)}|{string.Join(",", Auswahl())}|" + string.Join(";",
-            s.Arbeiterliste(b).Select(z => $"{z.Nummer}:{z.Arbeitskraft}:{z.Ware}:{(int)z.Laune}:{(int)(z.Dienstjahre * 10)}:{z.FaelltAusBis}:{z.BefoerderungVerboten}:{s.PraemieVerboten(b, z.Nummer)}"));
+        return $"{b.Belegt}/{b.Plaetze}|{b.Lohnstufe}|{s.PraemieVerboten(b)}|{w.Personal.EinstellenVerboten(b, w.Personal.Anfaenger(b) ?? "")}|{string.Join(",", Auswahl())}|" + string.Join(";",
+            s.Arbeiterliste(b).Select(z => $"{z.Nummer}:{z.Name}:{z.Arbeitskraft}:{z.Ware}:{(int)z.Laune}:{(int)(z.Dienstjahre * 10)}:{(int)(z.Erfahrung * 20)}:{z.FaelltAusBis}:{z.BefoerderungVerboten}:{z.Eigenschaft?.Kennung}:{z.EigenschaftWahl?.Count}:{(int)z.Lohn}:{s.PraemieVerboten(b, z.Nummer)}"));
     }
+
+    /// <summary>Ältere Stufen mit eigener Schriftfarbe: Anfänger grau, Mittelstufe hell, Vorarbeiter golden.</summary>
+    private static Color StufenFarbe(int stufe) => stufe >= 3 ? Gold : stufe == 2 ? Hell : Grau;
 
     protected override void Aufbauen(Stadtwirtschaft w, Betrieb b)
     {
@@ -28,46 +31,87 @@ public sealed class PersonalAnzeige : InnenTafel
         var gewaehlt = Auswahl();
         Kopf("Personalbuch", b, $"{b.Belegt} von {b.Plaetze} Plätzen · Lohnkosten {Zahlenformat.Ganz(b.Lohnkosten)} {waehrung} im Jahr · Lohn {b.Lohnstufe.Name()}");
 
-        if (b.Arbeiter.Count == 0) Text(Inhalt, "In der Werkstatt arbeitet niemand. Stellt unten jemanden ein.", 14, Grau);
-        else
+        var liste = s.Arbeiterliste(b);
+        if (liste.Count == 0) Text(Inhalt, "In der Werkstatt arbeitet niemand. Stellt unten jemanden ein.", 14, Grau);
+        foreach (var z in liste)
         {
-            var raster = Raster(9);
-            var kopfTipps = new[] { "Art der Arbeitskraft und ihre Nummer im Raum.", "Ware, an der er arbeitet; „(Betrieb)“ heißt: die Hauptware.", "Laune von 0 bis 100: Unter 35 arbeitet er langsamer und kündigt irgendwann. Lohn und Prämie heben sie.", "Arbeitstempo im Vergleich zum Grundtempo.", "Dienstjahre im Betrieb; Gesellen können nach einiger Zeit befördert werden.", "Fehlt er krank oder verletzt, steht hier, wie lange noch.", "", "", "" };
-            var kopfNr = 0;
-            foreach (var kopf in new[] { "Arbeiter", "Arbeitet an", "Laune", "Tempo", "Dienst", "Zustand", "", "", "" })
-                { var k = Zelle(raster, kopf, 12, Grau); if (kopfTipps[kopfNr] != "") Tipp(k, kopfTipps[kopfNr]); kopfNr++; }
-            foreach (var z in s.Arbeiterliste(b))
-            {
-                var gewaehlteZeile = gewaehlt.Contains(z.Nummer);
-                var ab = raster.GetChildCount();
-                Zelle(raster, (gewaehlteZeile ? "» " : "") + $"{z.Arbeitskraft} Nr. {z.Nummer}", 14, gewaehlteZeile ? Gold : Hell, 130);
-                Zelle(raster, z.Ware + (z.Zugeteilt ? "" : " (Betrieb)"), 13, z.Zugeteilt ? Hell : Grau, 130);
-                Zelle(raster, Zahlenformat.Ganz(z.Laune), 14, z.Laune < 35 ? Rot : z.Laune > 65 ? Gruen : Hell, 40, rechts: true);
-                Zelle(raster, $"{Zahlenformat.Ganz(z.TempoFaktor * 100)} %", 14, Hell, 54, rechts: true);
-                Zelle(raster, $"{Zahlenformat.Kommazahl(z.Dienstjahre)} J.", 13, Grau, 56, rechts: true);
-                Zelle(raster, z.FaelltAusBis is { } bis
-                    ? $"fehlt noch {Zahlenformat.Kommazahl((bis - jetzt) / (double)Reichsgilde.Core.Zeit.Spielzeit.MinutenProTag)} Tage" : "da", 13,
-                    z.FaelltAusBis is null ? Grau : Rot, 120);
-                Knopf(raster, $"Prämie {Zahlenformat.Ganz(s.PraemieKosten(b, z.Nummer))}", () => Befehlen(new PraemieZahlen(b.Name, z.Nummer)),
-                    s.PraemieVerboten(b, z.Nummer));
-                Knopf(raster, "Befördern", () => Befehlen(new ArbeiterBefoerdern(b.Name, z.Nummer)), z.BefoerderungVerboten);
-                Knopf(raster, "Entlassen", () => Befehlen(new ArbeiterEntlassen(b.Name, z.Nummer)));
-                ZeileTipp(raster, ab, $"{z.Arbeitskraft} Nr. {z.Nummer}\nArbeitet an: {z.Ware}{(z.Zugeteilt ? "" : " (Hauptware des Betriebs)")}\nLaune {Zahlenformat.Ganz(z.Laune)} · Tempo {Zahlenformat.Ganz(z.TempoFaktor * 100)} % · Dienst {Zahlenformat.Kommazahl(z.Dienstjahre)} Jahre\nGrundlohn {Zahlenformat.Ganz(w.Daten.Lohn(z.Arbeitskraft, b.Art))} {waehrung} (Lohnstufe {b.Lohnstufe.Name()})\nLohn im Jahr: {Zahlenformat.Ganz(b.LohnJeArbeiter(z.Arbeitskraft))} {waehrung} (mit Schicht, Lohnstufe und Einrichtung)");
-            }
-            // Gründe für gesperrte Beförderungen stehen auch hier – ein Hinweis am Knopf allein sieht man leicht nicht
-            foreach (var grund in s.Arbeiterliste(b).Where(z => z.Arbeitskraft == s.Daten?.Befoerderung.Von && z.BefoerderungVerboten is not null)
-                         .Select(z => $"Nr. {z.Nummer}: {z.BefoerderungVerboten}").Distinct())
-                Text(Inhalt, grund, 12, Grau, 820);
-        }
+            var gewaehlteZeile = gewaehlt.Contains(z.Nummer);
+            var karte = new HBoxContainer();
+            karte.AddThemeConstantOverride("separation", 12);
+            Inhalt.AddChild(karte);
 
-        Inhalt.AddChild(new HSeparator());
+            var bild = PortraetAnzeige.Neu(72, lebendig: false);
+            karte.AddChild(bild);
+            bild.Zeigen(z.Volk, z.Geschlecht, z.Aussehen, Reichsgilde.Core.Dynastie.Aussehenspalette.AltersstufeAus(z.Menschenjahre),
+                Reichsgilde.Core.Dynastie.Kleidung.Schlicht, Reichsgilde.Core.Dynastie.Standgruppe.Gemeiner);
+
+            var mitte = new VBoxContainer { CustomMinimumSize = new Vector2(430, 0) };
+            mitte.AddThemeConstantOverride("separation", 2);
+            karte.AddChild(mitte);
+            var name = z.Name == "" ? $"{z.Arbeitskraft} Nr. {z.Nummer}" : z.Name;
+            var kopf = Reihe(mitte);
+            Text(kopf, (gewaehlteZeile ? "» " : "") + name, 16, gewaehlteZeile ? Gold : Hell);
+            Text(kopf, $"{z.Arbeitskraft} · Nr. {z.Nummer}", 13, StufenFarbe(z.Stufe));
+            Text(mitte, $"{z.Volk.Einzahl()} · {Zahlenformat.Ganz(z.Menschenjahre)} Jahre · arbeitet an: {z.Ware}{(z.Zugeteilt ? "" : " (Betrieb)")}", 12, Grau);
+
+            // Erfahrung bis zur nächsten Stufe
+            if (z.ErfahrungNaechste is { } ziel && z.NaechsteStufe is { } naechste)
+            {
+                var erf = Reihe(mitte);
+                Balken(erf, Math.Clamp(z.Erfahrung / Math.Max(ziel, 0.01), 0, 1), 170, Gruen);
+                var rest = z.JahreBisNaechste is { } j ? (j <= 0 ? "genug für die Beförderung" : $"noch etwa {Zahlenformat.Kommazahl(j)} Jahre") : "sammelt hier keine Erfahrung";
+                Text(erf, $"Erfahrung {Zahlenformat.Ganz(z.Erfahrung)} von {Zahlenformat.Ganz(ziel)} Arbeitsstunden bis {naechste} · {rest}", 12, Grau);
+            }
+            else Text(mitte, "Höchste Stufe erreicht.", 12, Grau);
+
+            if (z.Eigenschaft is { } e) Tipp(Text(mitte, $"{e.Name} ({e.Gruppe}): {e.Wirkung}", 12, Gold, 430), $"{e.Name}\n{e.Gruppe}\n{e.Wirkung}");
+            var zustand = z.FaelltAusBis is { } bis
+                ? $"fehlt noch {Zahlenformat.Kommazahl((bis - jetzt) / (double)Reichsgilde.Core.Zeit.Spielzeit.MinutenProTag)} Tage" : "da";
+            Text(mitte, $"Laune {Zahlenformat.Ganz(z.Laune)} · Tempo {Zahlenformat.Ganz(z.TempoFaktor * 100)} % · Dienst {Zahlenformat.Kommazahl(z.Dienstjahre)} J. · {zustand}", 12,
+                z.FaelltAusBis is not null || z.Laune < 35 ? Rot : Grau);
+
+            var rechts = new VBoxContainer();
+            rechts.AddThemeConstantOverride("separation", 4);
+            karte.AddChild(rechts);
+            Text(rechts, $"Lohn {Zahlenformat.Ganz(z.Lohn)} {waehrung}/Jahr", 13, Hell);
+            var befoerdern = z.NaechsteStufe is { } n ? $"Befördern → {n}" : "Befördern";
+            var knopfTipp = z.BefoerderungVerboten
+                ?? (z.BriefKosten is { } kosten ? $"Beförderung auf {z.NaechsteStufe}: der Brief kostet {Zahlenformat.Ganz(kosten)} {waehrung}." : null);
+            var bk = Knopf(rechts, befoerdern, () => Befehlen(new ArbeiterBefoerdern(b.Name, z.Nummer)), z.BefoerderungVerboten);
+            if (z.BefoerderungVerboten is null && knopfTipp is not null) Tipp(bk, knopfTipp);
+            Knopf(rechts, $"Prämie {Zahlenformat.Ganz(s.PraemieKosten(b, z.Nummer))}", () => Befehlen(new PraemieZahlen(b.Name, z.Nummer)), s.PraemieVerboten(b, z.Nummer));
+            Knopf(rechts, "Entlassen", () => Befehlen(new ArbeiterEntlassen(b.Name, z.Nummer)));
+
+            Tipp(mitte, $"{name}\n{z.Arbeitskraft} Nr. {z.Nummer} · {z.Volk.Einzahl()}\nGrundlohn {Zahlenformat.Ganz(w.Daten.Lohn(z.Arbeitskraft, b.Art))} {waehrung} (Lohnstufe {b.Lohnstufe.Name()})\nLohn im Jahr: {Zahlenformat.Ganz(z.Lohn)} {waehrung} (mit Schicht, Lohnstufe und Einrichtung)");
+
+            // Beförderung zum Vorarbeiter: eine Eigenschaft aus drei Karten wählen
+            if (z.EigenschaftWahl is { Count: > 0 } wahl && z.Eigenschaft is null)
+            {
+                Text(Inhalt, $"{name} ist Vorarbeiter. Wählt seine Eigenschaft – sie gilt für immer:", 14, Gold);
+                var karten = Reihe(Inhalt);
+                foreach (var ek in wahl)
+                {
+                    var kk = new VBoxContainer { CustomMinimumSize = new Vector2(250, 0) };
+                    kk.AddThemeConstantOverride("separation", 3);
+                    karten.AddChild(kk);
+                    var verboten = w.Personal.EigenschaftWaehlenVerboten(b, z.Nummer, ek.Kennung);
+                    var wk = Knopf(kk, $"{ek.Name} ({ek.Gruppe})", () => Befehlen(new EigenschaftWaehlen(b.Name, z.Nummer, ek.Kennung)), verboten, 14);
+                    Tipp(wk, verboten ?? $"{ek.Name}: {ek.Wirkung}");
+                    Text(kk, ek.Wirkung, 12, Hell, 250);
+                }
+            }
+            Inhalt.AddChild(new HSeparator());
+        }
         Text(Inhalt, "Einstellen", 16, Gold);
         var einstellen = Reihe(Inhalt);
-        var voll = b.Belegt >= b.Plaetze;
-        foreach (var (kraft, daten) in w.Daten.Arbeitskraefte.Where(k => k.Value.IstErlaubt(w.Statut, b.Ort)))
-            Knopf(einstellen, $"{kraft} einstellen · Lohn {Zahlenformat.Ganz(w.Daten.Lohn(kraft, b.Art))}", () => Befehlen(new ArbeiterEinstellen(b.Name, kraft)),
-                voll ? $"Alle {b.Plaetze} Plätze sind besetzt." : null);
-        if (voll) Text(Inhalt, $"Alle {b.Plaetze} Plätze sind besetzt – ein Ausbau der Werkstatt schafft mehr.", 12, Grau);
+        var anfaenger = w.Personal.Anfaenger(b);
+        if (anfaenger is null) Text(Inhalt, "Hier gibt es kein Personal zum Einstellen.", 12, Grau);
+        else
+        {
+            Knopf(einstellen, $"{anfaenger} einstellen · Lohn {Zahlenformat.Ganz(w.Daten.Lohn(anfaenger, b.Art))}", () => Befehlen(new ArbeiterEinstellen(b.Name, anfaenger)),
+                w.Personal.EinstellenVerboten(b, anfaenger));
+            Text(einstellen, "Man stellt nur Anfänger ein; alle anderen steigen durch Erfahrung und Beförderung auf.", 12, Grau, 500);
+        }
 
         Inhalt.AddChild(new HSeparator());
         Text(Inhalt, "Lohn und Prämie", 16, Gold);

@@ -37,7 +37,7 @@ static class SteinmetzTests
             var w = sim.Wirtschaft!;
             var k = w.KontoEroeffnen("Familie Fuchs", startvermoegen: 20_000);
             var bruch = w.BetriebEroeffnen("Steinbruch Fuchs", Betriebsart.Steinbruch, k, startkarren: "");
-            w.Einstellen(bruch, "Bergmann", 3);
+            w.Einstellen(bruch, "Altknecht", 3);
             Pruefe.Wahr(w.Ausfuehren(k, new FoerderungAufteilen(bruch.Name, 0.5)).Erfolg, "aufteilen");
             var m = w.BetriebEroeffnen("Maurerei Fuchs", Betriebsart.Maurerei, k, startkarren: "");
             Pruefe.Gleich("Grabstein", m.Produkt);
