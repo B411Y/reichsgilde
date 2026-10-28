@@ -447,7 +447,7 @@ Entscheidungen des Nutzers: `docs/bereiche/oberflaeche.md`, „Sichtbare Ratssit
 | Sabotage einmal je Nacht (Umsetzung) | Ein Hinterzimmer-Auftrag „Sabotage“ endet nach dem ersten Erfolg der Nacht (`Unterwelt.Nacht`), wie der Brand am Wohnhaus nur einmal wirkt; `ErwarteterSchaden` = Chance auf mindestens einen Erfolg × Schaden. Ohne diese Regel legten vier Erfolge eine Werkstatt zwei Arbeitsjahre still, und mit der richtigen Erwartung der KI (spiel-ki.md) stiegen die Sabotagen im Probelauf von 30 auf 235. Entscheidung des Nutzers (27.10.2026). | 27.10.2026 |
 | Dieb (Umsetzung) | `dieb.taschendiebstahl.beuteJeMinute` 1,08 → 1,015: Dieb mit einem Betrieb Bürger nach Ø 8,6 Jahren (16/30 im Ziel, 11 vor Jahr 8), Zuwachs −12,2 % gegen das Mittel, die anderen Berufe Wert für Wert gleich. Probeläufe und Messung 7 in `WIRTSCHAFTSMODELL.md`. | 27.10.2026 |
 
-### Personal und Talentbaum (PR #NR)
+### Personal und Talentbaum (PR #224)
 
 | Thema | Entscheidung | Datum |
 |---|---|---|
