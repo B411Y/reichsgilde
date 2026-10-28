@@ -60,7 +60,7 @@ public sealed class PersonalAnzeige : InnenTafel
                 var erf = Reihe(mitte);
                 Balken(erf, Math.Clamp(z.Erfahrung / Math.Max(ziel, 0.01), 0, 1), 170, Gruen);
                 var rest = z.JahreBisNaechste is { } j ? (j <= 0 ? "genug für die Beförderung" : $"noch {Zahlenformat.Kommazahl(j)} Jahre") : "sammelt hier keine Erfahrung";
-                Text(erf, $"Erfahrung {Zahlenformat.Kommazahl(z.Erfahrung)} von {Zahlenformat.Kommazahl(ziel)} zum {naechste} · {rest}", 12, Grau);
+                Text(erf, $"Erfahrung {Zahlenformat.Ganz(z.Erfahrung)} von {Zahlenformat.Ganz(ziel)} Std. zum {naechste} · {rest}", 12, Grau);
             }
             else Text(mitte, "Höchste Stufe erreicht.", 12, Grau);
 
@@ -74,7 +74,7 @@ public sealed class PersonalAnzeige : InnenTafel
             rechts.AddThemeConstantOverride("separation", 4);
             karte.AddChild(rechts);
             Text(rechts, $"Lohn {Zahlenformat.Ganz(z.Lohn)} {waehrung}/Jahr", 13, Hell);
-            var befoerdern = z.NaechsteStufe is { } n ? $"Zum {n} befördern" : "Befördern";
+            var befoerdern = z.NaechsteStufe is { } n ? $"Befördern → {n}" : "Befördern";
             var knopfTipp = z.BefoerderungVerboten
                 ?? (z.BriefKosten is { } kosten ? $"Beförderung zum {z.NaechsteStufe}: der Brief kostet {Zahlenformat.Ganz(kosten)} {waehrung}." : null);
             var bk = Knopf(rechts, befoerdern, () => Befehlen(new ArbeiterBefoerdern(b.Name, z.Nummer)), z.BefoerderungVerboten);
@@ -103,7 +103,7 @@ public sealed class PersonalAnzeige : InnenTafel
             Inhalt.AddChild(new HSeparator());
         }
         // Gründe für gesperrte Beförderungen stehen auch hier – ein Hinweis am Knopf allein sieht man leicht nicht
-        foreach (var grund in liste.Where(z => z.BefoerderungVerboten is not null).Select(z => $"{(z.Name == "" ? "Nr. " + z.Nummer : z.Name)}: {z.BefoerderungVerboten}").Distinct())
+        foreach (var grund in liste.Where(z => z.BefoerderungVerboten is not null).Select(z => z.BefoerderungVerboten!).Distinct())
             Text(Inhalt, grund, 12, Grau, 820);
 
         Text(Inhalt, "Einstellen", 16, Gold);

@@ -23,7 +23,7 @@ public static partial class TalentbaumAnsicht
     private static readonly Color Hell = new(0.92f, 0.88f, 0.80f);
 
     private const int Knopf = 64;
-    private const int StueckBreite = 92;
+    private const int StueckBreite = 96;
 
     /// <summary>Waren-Icons als Platzhalter, bis es eigene Einrichtungs-Icons gibt (Kennung → Datei ohne Endung in assets/oberflaeche/icons).</summary>
     private static readonly Dictionary<string, string> Ersatz = new()
@@ -58,30 +58,26 @@ public static partial class TalentbaumAnsicht
             name.VerticalAlignment = VerticalAlignment.Center;
             foreach (var spalte in baum.Spalten)
             {
-                var zelle = new PanelContainer { SizeFlagsHorizontal = Control.SizeFlags.ExpandFill, CustomMinimumSize = new Vector2(StueckBreite, Knopf + 44) };
-                zelle.AddThemeStyleboxOverride("panel", new StyleBoxFlat
-                {
-                    BgColor = frei ? new Color(0.17f, 0.15f, 0.12f) : new Color(0.10f, 0.10f, 0.10f),
-                    BorderColor = new Color(0.35f, 0.30f, 0.22f, frei ? 0.7f : 0.3f), BorderWidthBottom = 1, BorderWidthLeft = 1, BorderWidthRight = 1, BorderWidthTop = 1,
-                    CornerRadiusBottomLeft = 4, CornerRadiusBottomRight = 4, CornerRadiusTopLeft = 4, CornerRadiusTopRight = 4,
-                    ContentMarginBottom = 4, ContentMarginTop = 4, ContentMarginLeft = 4, ContentMarginRight = 4,
-                });
+                var zelle = new MarginContainer { SizeFlagsHorizontal = Control.SizeFlags.ExpandFill, CustomMinimumSize = new Vector2(StueckBreite, Knopf + 44) };
+                foreach (var seite in new[] { "left", "right", "top", "bottom" }) zelle.AddThemeConstantOverride($"margin_{seite}", 4);
+                var grund = frei ? new Color(0.17f, 0.15f, 0.12f) : new Color(0.10f, 0.10f, 0.10f);
+                feld.Zelle(zelle, grund, new Color(0.35f, 0.30f, 0.22f, frei ? 0.7f : 0.3f));
                 raster.AddChild(zelle);
                 var inhalt = new HBoxContainer { Alignment = BoxContainer.AlignmentMode.Center };
                 inhalt.AddThemeConstantOverride("separation", 6);
                 zelle.AddChild(inhalt);
                 foreach (var stueck in baum.Stuecke.Where(s => s.Spalte == spalte && s.Reihe == reihe))
-                    feld.Merken(stueck.Kennung, Stueck(inhalt, baum, stueck, waehrung, klick), stueck.Voraussetzung,
+                    feld.Merken(stueck.Kennung, Stueck(inhalt, baum, stueck, waehrung, klick, grund), stueck.Voraussetzung,
                         baum.Stuecke.FirstOrDefault(x => x.Kennung == stueck.Voraussetzung)?.Zustand == Baumzustand.Gekauft);
             }
         }
         return feld;
     }
 
-    private static Button Stueck(Container eltern, Einrichtungsbaum baum, BaumStueck s, string waehrung, Action<BaumStueck> klick)
+    private static Button Stueck(Container eltern, Einrichtungsbaum baum, BaumStueck s, string waehrung, Action<BaumStueck> klick, Color grund)
     {
         var spalte = new VBoxContainer { CustomMinimumSize = new Vector2(StueckBreite - 8, 0) };
-        spalte.AddThemeConstantOverride("separation", 2);
+        spalte.AddThemeConstantOverride("separation", 0);
         eltern.AddChild(spalte);
         var farbe = s.Zustand switch
         {
@@ -120,12 +116,15 @@ public static partial class TalentbaumAnsicht
         knopf.Pressed += () => { if (s.Zustand != Baumzustand.Gekauft) klick(s); };
         spalte.AddChild(knopf);
 
-        var name = Hauptmenue.Text(spalte, s.Name, 11, gesperrt ? Grau : Hell, zentriert: true, umbruchBreite: StueckBreite - 8);
+        var name = Hauptmenue.Text(spalte, s.Name, 10, gesperrt ? Grau : Hell, zentriert: true, umbruchBreite: StueckBreite - 8);
+        // Hintergrund wie die Zelle: die Linien laufen dahinter und tauchen nur zwischen den Reihen auf
+        name.AddThemeStyleboxOverride("normal", new StyleBoxFlat { BgColor = grund });
         name.TooltipText = knopf.TooltipText;
         name.MouseFilter = Control.MouseFilterEnum.Pass;
         var preis = s.Zustand == Baumzustand.Gekauft ? "gekauft"
             : s.Jaehrlich ? $"{Zahlenformat.Ganz(s.Preis)} im Jahr" : Zahlenformat.Ganz(s.Preis) + " " + waehrung;
-        Hauptmenue.Text(spalte, preis, 11, s.Zustand switch { Baumzustand.Gekauft => Gruen, Baumzustand.Kaufbar => Gold, Baumzustand.NichtJetzt => Rot, _ => Grau }, zentriert: true);
+        var preisZeile = Hauptmenue.Text(spalte, preis, 11, s.Zustand switch { Baumzustand.Gekauft => Gruen, Baumzustand.Kaufbar => Gold, Baumzustand.NichtJetzt => Rot, _ => Grau }, zentriert: true);
+        preisZeile.AddThemeStyleboxOverride("normal", new StyleBoxFlat { BgColor = grund });
         return knopf;
     }
 
@@ -149,20 +148,16 @@ public static partial class TalentbaumAnsicht
         return string.Join("\n", zeilen);
     }
 
-    /// <summary>Hält den Baum und zeichnet die Linien von den Voraussetzungen zu den Stücken (in einer Schicht über den Zellen).</summary>
+    /// <summary>Hält den Baum, zeichnet die Zellen und die Linien von den Voraussetzungen zu den Stücken – beides hinter den Knöpfen und Beschriftungen.</summary>
     private sealed partial class Linienfeld : Container
     {
         private readonly Dictionary<string, Control> _knoepfe = new();
         private readonly List<(string Von, string Nach, bool Erfuellt)> _linien = new();
-        private readonly Control _ueber = new() { MouseFilter = MouseFilterEnum.Ignore };
+        private readonly List<(Control Zelle, Color Grund, Color Rand)> _zellen = new();
 
-        public Linienfeld()
-        {
-            MouseFilter = MouseFilterEnum.Ignore;
-            _ueber.Draw += Zeichnen;
-        }
+        public Linienfeld() { MouseFilter = MouseFilterEnum.Ignore; }
 
-        public override void _Ready() => AddChild(_ueber);
+        public void Zelle(Control zelle, Color grund, Color rand) => _zellen.Add((zelle, grund, rand));
 
         public void Merken(string kennung, Control knopf, string? voraussetzung, bool erfuellt)
         {
@@ -178,10 +173,16 @@ public static partial class TalentbaumAnsicht
             foreach (var kind in GetChildren()) if (kind is Control c) FitChildInRect(c, new Rect2(Vector2.Zero, Size));
         }
 
-        public override void _Process(double delta) => _ueber.QueueRedraw();
+        public override void _Process(double delta) => QueueRedraw();
 
-        private void Zeichnen()
+        public override void _Draw()
         {
+            foreach (var (zelle, grund, rand) in _zellen)
+            {
+                var r = new Rect2(zelle.GlobalPosition - GlobalPosition, zelle.Size);
+                DrawRect(r, grund);
+                DrawRect(r, rand, false, 1);
+            }
             foreach (var (von, nach, erfuellt) in _linien)
             {
                 if (!_knoepfe.TryGetValue(von, out var a) || !_knoepfe.TryGetValue(nach, out var b)) continue;
@@ -189,7 +190,7 @@ public static partial class TalentbaumAnsicht
                 var ende = b.GlobalPosition - GlobalPosition + new Vector2(b.Size.X / 2, 0);
                 var mitte = (anfang.Y + ende.Y) / 2;
                 // Knick in halber Höhe, damit die Linie auch zwischen verschiedenen Spalten sauber läuft
-                _ueber.DrawPolyline(new[] { anfang, new Vector2(anfang.X, mitte), new Vector2(ende.X, mitte), ende }, erfuellt ? Gold : new Color(0.5f, 0.5f, 0.5f), 2, true);
+                DrawPolyline(new[] { anfang, new Vector2(anfang.X, mitte), new Vector2(ende.X, mitte), ende }, erfuellt ? Gold : new Color(0.5f, 0.5f, 0.5f), 2, true);
             }
         }
     }
