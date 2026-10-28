@@ -285,3 +285,10 @@ So wird eingetragen (damit sich die Chats nie an derselben Stelle treffen):
 | Hinweis Personalbuch | Schon erledigt mit dem Umbau der Betriebsleiste: `BetriebsUebersicht.Zustand` nennt für Umlandbetriebe „stellt unter „…“ Arbeitskräfte ein“. Kein weiterer Text mit „Personalbuch“ gilt für Umland. | 27.10.2026 |
 | Tooltips Lohn und Gewinn | Der Waren-Tooltip (`InnenTafel.WarenTipp`, Produktions- und Lagertafel) nennt für selbst hergestellte Waren einer Werkstatt „Gewinn je Stück“ aus `Kalkulation.GewinnJeStueck` mit Aufschlüsselung Preis − Steuer − Zutaten − Lohn − Unterhalt (ohne Personal mit einem Gesellen gerechnet, steht dabei); die Zeile „Ertrag (Preis minus Zutaten)“ bleibt nur für Waren, die der Betrieb nicht herstellt. Der Arbeiter-Tooltip im Personalbuch nennt den Lohn im Jahr (`Betrieb.LohnJeArbeiter`). Klicktest Gießerei (Bilder `klein-spiel/k4`, `k6`). | 27.10.2026 |
 | Ratsherren-Porträts | `PortraetAnzeige.ZeigenRatsherr` nimmt Geschlecht und Aussehen aus `Ratsherr.Geschlecht` und `Ratsherr.Aussehen` (Daten, Datenversion 58); nur die Altersstufe leitet die Oberfläche weiter aus dem Namen ab. Die Aufschlüsselung des Gewinns im Waren-Tooltip steht in drei Zeilen. | 27.10.2026 |
+
+### Talentbaum der Einrichtung (PR #NR)
+
+| Thema | Entscheidung | Datum |
+|---|---|---|
+| Aufbau | Einrichtung von Betrieben und Wohnhaus als Talentbaum (Vorbild WoW, nur Mechanik): 3 Spalten (Betrieb: Werkstatt / Lager & Handel / Schutz & Personal; Wohnhaus: Haushalt / Ansehen / Schutz) × 3 Reihen = Gebäudestufen; gesperrte Reihen grau, Linien zeigen Voraussetzungen; Icons im Holzschnitt-Stil der Waren-Knöpfe, Rahmen nach Zustand (gekauft, kaufbar, gesperrt); Tooltip mit Wirkung, Preis, Voraussetzung, Amortisation (festheftbar, Lexikon-Verweise). Öffnet über „Einrichtung“ außen und innen. Bezahlt mit Gulden. Entscheidung des Nutzers. | 28.10.2026 |
+| Personal | Personalbuch zeigt Stufe, Erfahrung bis zur nächsten Stufe, Lohn, Porträt und Namen; Knopf „Befördern“ (mit Brief-Kosten), beim Vorarbeiter Wahl aus drei Eigenschaften als Karten. Entscheidung des Nutzers. | 28.10.2026 |
