@@ -535,9 +535,9 @@
     },
     "Giftdolch": {
       "typ": "Fertigprodukt",
-      "grundpreis": 153,
-      "zeit": 50,
-      "zutaten": { "Eisen": 1, "Politur": 1 },
+      "grundpreis": 305,
+      "zeit": 60,
+      "zutaten": { "Dolch": 1, "Politur": 1 },
       "nachfrage": 150,
       "npcAnteil": 0.7
     },

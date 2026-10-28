@@ -748,7 +748,7 @@ static class WerkstattTests
             Pruefe.Ungefaehr(350, k.Laufend.Investitionen, 1e-9);
             foreach (var (ware, zeit) in new[] { ("Moschusduft", 70.0), ("Fechterduft", 60.0), ("Heiligenduft", 100.0) })
                 Pruefe.Ungefaehr(zeit * 0.9, s.MinutenJeStueck(ware), 1e-9);
-            foreach (var (ware, zeit) in new[] { ("Politur", 30.0), ("Blume der Zwietracht", 50.0), ("Giftdolch", 50.0), ("Schattendolch", 100.0) })
+            foreach (var (ware, zeit) in new[] { ("Politur", 30.0), ("Blume der Zwietracht", 50.0), ("Giftdolch", 60.0), ("Schattendolch", 100.0) })
                 Pruefe.Ungefaehr(zeit, s.MinutenJeStueck(ware), 1e-9); // abgefüllt wird nur, was in den Flakon kommt
             Ok(w, k, new EinrichtungKaufen(s.Name, "Werkzeug1"));
             Pruefe.Ungefaehr(70 * 0.81, s.MinutenJeStueck("Moschusduft"), 1e-9);
@@ -815,7 +815,7 @@ static class WerkstattTests
             Abgelehnt(w, k, new EinrichtungKaufen(s.Name, "Werkzeug2"), "Erst braucht es: Gutes Werkzeug");
             Ok(w, k, new EinrichtungKaufen(s.Name, "Werkzeug1"));
             Ok(w, k, new EinrichtungKaufen(s.Name, "Werkzeug2"));
-            Pruefe.Ungefaehr(50 * 0.81, s.MinutenJeStueck("Giftdolch"), 1e-9);
+            Pruefe.Ungefaehr(60 * 0.81, s.MinutenJeStueck("Giftdolch"), 1e-9);
             Pruefe.Ungefaehr(70 * 0.729, s.MinutenJeStueck("Moschusduft"), 1e-9);
             Pruefe.Ungefaehr(60 * 0.729, s.MinutenJeStueck("Fechterduft"), 1e-9);
             s.Ausbauen(Betriebsart.Parfumerie, 0);
