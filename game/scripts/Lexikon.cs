@@ -293,10 +293,10 @@ public static class Lexikon
             w[$"karren_preis_{schluessel}"] = (d, _) => Ganz(d.Logistik.Karren[name].Preis);
             w[$"karren_last_{schluessel}"] = (d, _) => d.Logistik.Karren[name].Gesamtkapazitaet.ToString();
         }
-        foreach (var kraft in new[] { "Lehrling", "Geselle", "Bergmann", "Ork", "Leibeigener" })
+        foreach (var kraft in new[] { "Lehrling", "Geselle", "Vorarbeiter", "Knecht", "Altknecht", "Großknecht", "Ork", "Leibeigener" })
         {
             var name = kraft;
-            w[$"lohn_{kraft.ToLowerInvariant()}"] = (d, _) => Ganz(d.Arbeitskraefte[name].Kosten);
+            w[$"lohn_{kraft.ToLowerInvariant().Replace("ß", "ss")}"] = (d, _) => Ganz(d.Arbeitskraefte[name].Kosten);
         }
         for (var i = 1; i <= 5; i++) // Wohnhausstufen 1 (Fachwerkhaus) bis 5 (Stadthof)
         {

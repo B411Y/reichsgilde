@@ -116,7 +116,6 @@ public static class Partieaufbau
         var spieler = w.KontoEroeffnen(name, startvermoegen: neu.Startvermoegen);
         spieler.Wappen = wappen;
         var werkstatt = w.BetriebEroeffnen(start.Spieler.WerkstattFuer(neu.Beruf).NameFuer(daten.Art(startArt).Name), startArt, spieler);
-        w.Einstellen(werkstatt, "Geselle", 2);
 
         // Orks nur, wenn das Startstatut sie im Umland erlaubt (Statut B oder C) – sonst Bergleute (bzw. die Kraft des Umlandbetriebs).
         var orks = daten.Arbeitskraefte.TryGetValue("Ork", out var ork) && ork.IstErlaubt(w.Statut, Arbeitsort.Umland);
@@ -135,6 +134,9 @@ public static class Partieaufbau
         if (haeuser.Count > 0) KontoVon(haeuser[0]);
         if (w.Familien.IstAktiv)
             w.Familien.Gruenden(spieler, neu.Volk, neu.Geschlecht, neu.Vorname, glaube: neu.Glaube, aussehen: neu.Aussehen);
+        // Erst nach der Familie, damit die Arbeiter das Volk des Hauses kennen (Einstellen würfelt nicht mit dem Zufall der Partie).
+        // Mit „personal“ (PR #224) beginnt jedes Haus mit zwei Anfängern (Lehrlingen), sonst mit zwei Gesellen wie früher.
+        w.Einstellen(werkstatt, w.Personal.AnfaengerFuer(startArt, "Geselle"), 2);
         foreach (var h in haeuser)
             HausAufstellen(w, daten, karte, h, KontoVon(h), orks ? "Ork" : null, neu.Rivale, einstellungen.Schwierigkeit);
         w.EinwohnerZaehlen(); // die Nachfrage der Stadt nach ihren Häusern – schon vor der ersten Minute
@@ -145,7 +147,7 @@ public static class Partieaufbau
 
     /// <summary>
     /// Ein KI-Haus mit seinen Startbetrieben, ab jetzt von der KI geführt. Der Name eines Betriebs steht am Platz der Karte, ohne Karte im Ersatz.
-    /// <see cref="Schwierigkeit.Normal"/>: nur die erste Werkstatt in der Stadt („Gießerei Eisenbart“ mit zwei Gesellen) – wie der Spieler;
+    /// <see cref="Schwierigkeit.Normal"/>: nur die erste Werkstatt in der Stadt („Gießerei Eisenbart“ mit zwei Anfängern) – wie der Spieler;
     /// die übrigen Startbetriebe stehen frei zur Pacht bzw. zum Kauf (<see cref="Stadtwirtschaft.StartbetriebFreigeben"/>).
     /// <see cref="Schwierigkeit.Schwer"/>: alle Startbetriebe, dazu „Grube Eisenbart“ mit drei Umlandkräften.
     /// </summary>
@@ -168,9 +170,9 @@ public static class Partieaufbau
             var betrieb = w.BetriebEroeffnen(name, b.Art, konto);
             if (b.Produkt is { } produkt) betrieb.Produkt = produkt;
             if (art.InDerStadt)
-                w.Einstellen(betrieb, "Geselle", 2);
+                w.Einstellen(betrieb, w.Personal.AnfaengerFuer(b.Art, "Geselle"), 2);
             else
-                w.Einstellen(betrieb, umlandKraft ?? "Bergmann", 3);
+                w.Einstellen(betrieb, umlandKraft ?? w.Personal.AnfaengerFuer(b.Art, "Altknecht"), 3);
         }
         w.KiAnmelden(konto, ProfilFuer(charakter));
     }

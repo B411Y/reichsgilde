@@ -91,7 +91,7 @@ static class BalancingberichtNeuTests
             // (220 − 50 − 6 % × 600) ÷ (1 − 0,85) = 893,3 Gulden Wertschöpfung je Kopf und Jahr
             Pruefe.Ungefaehr(893.333, Balancingbericht.KostenGleichstand(daten), 0.01);
             // Z6 neu: Kosten je Arbeit im Umland – Bergmann 150, Ork (110 + 4 % × 800) ÷ 1,25 = 113,6, Leibeigener (50 + 6 % × 600) ÷ 0,85 = 101,2
-            Pruefe.Ungefaehr(150, Balancingbericht.UmlandKostenJeArbeit(daten, "Bergmann"), 1e-9);
+            Pruefe.Ungefaehr(150, Balancingbericht.UmlandKostenJeArbeit(daten, "Altknecht"), 1e-9);
             Pruefe.Ungefaehr(113.6, Balancingbericht.UmlandKostenJeArbeit(daten, "Ork"), 1e-9);
             Pruefe.Ungefaehr(86 / 0.85, Balancingbericht.UmlandKostenJeArbeit(daten, "Leibeigener"), 1e-9);
         }),

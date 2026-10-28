@@ -47,13 +47,14 @@ static class BefehlTests
         ("Befehl: Personal einstellen und entlassen – mit Statut und Platzzahl", () =>
         {
             var (w, s, g, m) = Aufbau(Fronstatut.FreieStadt);
-            Erfolg(w.Ausfuehren(s, new PersonalSetzen("Gießerei", "Geselle", 2)));
+            Abgelehnt(w.Ausfuehren(s, new PersonalSetzen("Gießerei", "Geselle", 2)), "nur Lehrlinge"); // Gesellen durch Beförderung (PR #224)
+            Erfolg(w.Ausfuehren(s, new PersonalSetzen("Gießerei", "Lehrling", 2)));
             Pruefe.Gleich(2, g.Belegt);
-            Abgelehnt(w.Ausfuehren(s, new PersonalSetzen("Gießerei", "Lehrling", 1)), "nur 2 Arbeitsplätze");
+            Abgelehnt(w.Ausfuehren(s, new PersonalSetzen("Gießerei", "Lehrling", 3)), "nur 2 Arbeitsplätze");
             Abgelehnt(w.Ausfuehren(s, new PersonalSetzen("Grube", "Ork", 1)), "darf unter dem Statut");
-            var ergebnis = w.Ausfuehren(s, new PersonalSetzen("Gießerei", "Geselle", 1));
+            var ergebnis = w.Ausfuehren(s, new PersonalSetzen("Gießerei", "Lehrling", 1));
             Erfolg(ergebnis);
-            Pruefe.Wahr(ergebnis.Meldung.Contains("1× Geselle entlassen"), ergebnis.Meldung);
+            Pruefe.Wahr(ergebnis.Meldung.Contains("1× Lehrling entlassen"), ergebnis.Meldung);
             Pruefe.Gleich(0, m.Belegt);
         }),
 

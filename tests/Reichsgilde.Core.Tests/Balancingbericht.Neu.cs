@@ -195,7 +195,7 @@ static partial class Balancingbericht
         // (Umland). Gemessen: Kosten je Arbeit = (Lohn + Risiko × Schaden) ÷ Tempo im Umland, je erlaubter Kraft.
         var umland = new JsonObject(daten.Arbeitskraefte.Where(x => x.Value.IstErlaubt(Fronstatut.Leibeigenschaft, Arbeitsort.Umland))
             .Select(x => new KeyValuePair<string, JsonNode?>(x.Key, R(UmlandKostenJeArbeit(daten, x.Key), 1))));
-        var bergmann = UmlandKostenJeArbeit(daten, "Bergmann");
+        var bergmann = UmlandKostenJeArbeit(daten, "Altknecht");
         var leibeigener = UmlandKostenJeArbeit(daten, "Leibeigener");
         var ork = UmlandKostenJeArbeit(daten, "Ork");
         befunde.Add($"Z6 neu (Umland, Lohnkosten je Arbeit = Lohn und Risiko ÷ Tempo): Leibeigener {Text(leibeigener)} statt Bergmann {Text(bergmann)} " +

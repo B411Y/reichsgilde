@@ -89,12 +89,12 @@ static class GeldleiherEinrichtungTests
         ("Geldleiher-Einrichtung: Daten – sieben Stücke mit den Kennungen des Raummodells, Preise wie bei den Werkstätten, Datenversion 52", () =>
         {
             var d = Daten.Value.Werkstatt!;
-            Pruefe.Gleich(58, Daten.Value.Version);
+            Pruefe.Gleich(59, Daten.Value.Version);
             var bank = d.EinrichtungFuer("Geldleiher");
-            Pruefe.Gleich("Werkzeug1 Werkzeug2 Goldwaage Pfandkammer Kassenschrank Loeschfass Eisentuer", string.Join(" ", bank.Select(e => e.Kennung)));
-            Pruefe.Gleich("Rechenbretter, Hauptbücher, Goldwaage, Pfandkammer, Kassenschrank, Löschfass, Eisentür", string.Join(", ", bank.Select(e => e.Name)));
-            Pruefe.Gleich("300 350 350 150 200 100 150", string.Join(" ", bank.Select(e => e.Preis))); // PR #177: Hauptbücher 350, Pfandkammer 150, Eisentür 150
-            Pruefe.Gleich("1 2 1 1 1 1 1", string.Join(" ", bank.Select(e => e.AbStufe)));
+            Pruefe.Gleich("Werkzeug1 Werkzeug2 Goldwaage Pfandkammer Kassenschrank Loeschfass Eisentuer", string.Join(" ", bank.Take(7).Select(e => e.Kennung))); // dazu ab PR #224 die Lehrlingsstube
+            Pruefe.Gleich("Rechenbretter, Hauptbücher, Goldwaage, Pfandkammer, Kassenschrank, Löschfass, Eisentür", string.Join(", ", bank.Take(7).Select(e => e.Name)));
+            Pruefe.Gleich("300 350 350 150 200 100 150", string.Join(" ", bank.Take(7).Select(e => e.Preis))); // PR #177: Hauptbücher 350, Pfandkammer 150, Eisentür 150
+            Pruefe.Gleich("1 2 1 1 1 1 1", string.Join(" ", bank.Take(7).Select(e => e.AbStufe)));
             Pruefe.Gleich("Werkzeug1", d.Stueck("Geldleiher", "Werkzeug2")!.Voraussetzung);
             Pruefe.Ungefaehr(1.1, d.Stueck("Geldleiher", "Werkzeug1")!.Wirkung.RahmenFaktor, 1e-12);
             Pruefe.Ungefaehr(1.1, d.Stueck("Geldleiher", "Werkzeug2")!.Wirkung.RahmenFaktor, 1e-12);
@@ -138,7 +138,7 @@ static class GeldleiherEinrichtungTests
             foreach (var art in new[] { Betriebsart.Wechselstube, Betriebsart.Geldleihe, Betriebsart.Bankhaus })
                 Pruefe.Wahr(w.Werkstaetten.KannEinrichtung(w.BetriebEroeffnen($"Probe {art}", art, k, startkarren: "")), $"{art} hat Einrichtung");
             var liste = w.Werkstaetten.Einrichtungsliste(b);
-            Pruefe.Wahr(liste.Count == 7 && liste.All(e => !e.Gekauft), "sieben Stücke, keins gekauft");
+            Pruefe.Wahr(liste.Count == 8 && liste.All(e => !e.Gekauft), "sieben Stücke und die Lehrlingsstube (PR #224), keins gekauft");
             Abgelehnt(w, k, new EinrichtungKaufen(b.Name, "Werkzeug2"), "erst ab Stufe 2");
             Ok(w, k, new EinrichtungKaufen(b.Name, "Werkzeug1"));
             Pruefe.Ungefaehr(4_700, k.Vermoegen, 1e-9);

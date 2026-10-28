@@ -143,8 +143,22 @@ public sealed record ArbeiterEinstellen(string Betrieb, string Arbeitskraft, str
 /// <summary>Genau diesen Arbeiter entlassen.</summary>
 public sealed record ArbeiterEntlassen(string Betrieb, int Arbeiter) : BetriebsBefehl(Betrieb);
 
-/// <summary>Lehrling zum Gesellen befördern (nach der Dienstzeit aus den Daten) – ab dann gilt der Gesellenlohn. Vorab: <see cref="Werkstattwesen.BefoerdernVerboten"/>.</summary>
+/// <summary>
+/// Einen Arbeiter eine Stufe höher befördern: Lehrling → Geselle → Vorarbeiter (Umland Knecht → Altknecht → Großknecht, Diebe Taschendieb →
+/// Dieb → Meisterdieb, Wache Rekrut → Gefreiter → Feldwebel) – mit genug Erfahrung, gegen den Brief (Gulden) und Aktionspunkte; ab dann gilt
+/// der neue Lohn. Zum Vorarbeiter höchstens einer je Betrieb; danach stehen drei Eigenschaften zur Wahl (<see cref="EigenschaftWaehlen"/>).
+/// Vorab: <see cref="Personalwesen.BefoerdernVerboten"/>. Ohne Abschnitt „personal“ die alte Beförderung nach Dienstzeit.
+/// </summary>
 public sealed record ArbeiterBefoerdern(string Betrieb, int Arbeiter) : BetriebsBefehl(Betrieb);
+
+/// <summary>
+/// Der frisch beförderte Vorarbeiter bekommt eine der drei gezogenen Eigenschaften (Kennung aus <see cref="Wirtschaft.Arbeiter.EigenschaftWahl"/>).
+/// Einmalig, ohne Kosten; die Eigenschaft gehört der Person. Vorab: <see cref="Personalwesen.EigenschaftWaehlenVerboten"/>.
+/// </summary>
+public sealed record EigenschaftWaehlen(string Betrieb, int Arbeiter, string Eigenschaft) : BetriebsBefehl(Betrieb);
+
+/// <summary>Ein Stück Einrichtung fürs eigene Wohnhaus kaufen (Kennung aus „wohnen.einrichtung“, PR #224). Vorab: <see cref="Wohnen.Wohnungswesen.EinrichtungVerboten"/>.</summary>
+public sealed record WohnhausEinrichtungKaufen(string Kennung) : Befehl;
 
 /// <summary>Wie gut die Werkstatt zahlt: Faktor auf den Lohn, Ziel für die Laune.</summary>
 public sealed record LohnstufeSetzen(string Betrieb, Lohnstufe Stufe) : BetriebsBefehl(Betrieb);

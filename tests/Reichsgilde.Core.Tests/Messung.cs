@@ -358,7 +358,7 @@ static class Messung
             daten, new NeuePartie(Startvermoegen: 20_000));
         var w = sim.Wirtschaft!;
         foreach (var b in w.Betriebe.Where(b => b.Konto == spieler))
-            w.Ausfuehren(spieler, new PersonalSetzen(b.Name, b.IstWerkstatt ? "Geselle" : "Bergmann", b.Plaetze));
+            w.Ausfuehren(spieler, new PersonalSetzen(b.Name, w.Personal.Anfaenger(b) ?? (b.IstWerkstatt ? "Geselle" : "Altknecht"), b.Plaetze));
         var p3 = w.Daten.Meistergrade!.PruefungFuer(3)!.Erfahrung;
         while (spieler.Erfahrung("Schmied") < p3 || sim.Zeit.Jahr - Spielzeit.StartJahr < mindestJahre) { var j = sim.Zeit.Jahr; while (sim.Zeit.Jahr == j) sim.Tick(); }
         File.WriteAllText(datei, Speicherung.Speichern(sim, spieler));

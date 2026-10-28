@@ -51,9 +51,9 @@ static class VoelkerboniTests
         ("Leistung: Eine Zwergengrube fördert 5 % mehr als eine Menschengrube, eine Halblingsgrube 5 % weniger – Erfahrung im selben Maß", () =>
         {
             var sim = NeueSimulation();
-            var (zwerg, _) = Haus(sim, "Zwerg", Volk.Zwerg, Betriebsart.Mine, "Bergmann", 3);
-            var (mensch, _) = Haus(sim, "Mensch", Volk.Mensch, Betriebsart.Mine, "Bergmann", 3);
-            var (halbling, _) = Haus(sim, "Halbling", Volk.Halbling, Betriebsart.Mine, "Bergmann", 3);
+            var (zwerg, _) = Haus(sim, "Zwerg", Volk.Zwerg, Betriebsart.Mine, "Altknecht", 3);
+            var (mensch, _) = Haus(sim, "Mensch", Volk.Mensch, Betriebsart.Mine, "Altknecht", 3);
+            var (halbling, _) = Haus(sim, "Halbling", Volk.Halbling, Betriebsart.Mine, "Altknecht", 3);
             var w = sim.Wirtschaft!;
             Pruefe.Ungefaehr(1.05, w.VolksFaktor(zwerg, "Schmied"), 1e-12);
             Pruefe.Ungefaehr(0.95, w.VolksFaktor(halbling, "Schmied"), 1e-12);

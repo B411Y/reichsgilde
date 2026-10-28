@@ -66,7 +66,7 @@ static class SchiffshandelTests
         ("Daten: Datenversion 58, ein Flussschiff, zwei ferne Städte (flussauf und flussab); Fehler fallen auf", () =>
         {
             var d = Daten.Value.Schiffshandel!;
-            Pruefe.Gleich(58, Daten.Value.Version);
+            Pruefe.Gleich(59, Daten.Value.Version);
             Pruefe.Gleich(1, d.Schiffe.Count);
             Pruefe.Gleich("flussauf, flussab", string.Join(", ", d.Staedte.Select(s => s.Richtung)));
             Pruefe.Gleich(120, d.Schiffe["Flussschiff"].Gesamtkapazitaet);

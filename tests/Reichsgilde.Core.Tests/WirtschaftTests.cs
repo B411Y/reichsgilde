@@ -100,7 +100,7 @@ static class WirtschaftTests
         {
             var d = Daten.Value;
             Pruefe.Gleich(63, d.Waren.Count); // 9 Schmied, 8 Tischler, 9 Steinmetz, 9 Alchimist (mit Kräuterschnaps), 9 Wirt, 9 Prediger, 9 Parfumeur, Gold (nur Handel)
-            Pruefe.Gleich(5, d.Arbeitskraefte.Count);
+            Pruefe.Gleich(14, d.Arbeitskraefte.Count); // ab PR #224 drei Stufen je Laufbahn (Werkstatt, Umland, Diebe, Wache), dazu Ork und Leibeigener
             Pruefe.Gleich(115.0, d.Waren["Silberring"].Grundpreis); // 90 × 1,28 seit PR #177
             Pruefe.Gleich(42.0, d.ZutatenZumGrundpreis("Silberring"));
             Pruefe.Gleich(true, d.Arbeitskraefte["Ork"].IstErlaubt(Fronstatut.Bestienfron, Arbeitsort.Umland));
@@ -241,7 +241,7 @@ static class WirtschaftTests
             var sim = NeueSimulation(Fronstatut.FreieStadt);
             var w = sim.Wirtschaft!;
             var konto = w.KontoEroeffnen("Spieler");
-            w.Einstellen(w.BetriebEroeffnen("Mine", Betriebsart.Mine, konto), "Bergmann", 3);
+            w.Einstellen(w.BetriebEroeffnen("Mine", Betriebsart.Mine, konto), "Altknecht", 3);
             Pruefe.Ungefaehr(947, MittlererGewinn(sim, konto).Gewinn, 0.05);
         }),
 
@@ -283,7 +283,7 @@ static class WirtschaftTests
             w.Meldung += meldungen.Add;
             var mine = w.BetriebEroeffnen("Mine", Betriebsart.Mine, w.KontoEroeffnen("Spieler"));
             w.Einstellen(mine, "Ork", 2);
-            w.Einstellen(mine, "Bergmann", 1);
+            w.Einstellen(mine, "Altknecht", 1);
             w.StatutAendern(Fronstatut.FreieStadt);
             Pruefe.Gleich(1, mine.Belegt);
             Pruefe.Gleich(true, meldungen.Any(m => m.Contains("2× Ork")), string.Join(" | ", meldungen));

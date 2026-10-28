@@ -163,6 +163,7 @@ public sealed class Stadtrat
                - _w.Bank.AnsehenAbzug(konto)            // ein Wucherkredit läuft
                + _w.Duft.AnsehenBonus(konto)            // Heiligenduft in der Kirche gestiftet
                + _w.Wohnen.AnsehenBonus(konto)          // ein stattliches Wohnhaus
+               + _w.Wohnen.EinrichtungAnsehen(konto)    // Wappen über der Tür (PR #224)
                + _w.Wegebau.AnsehenBonus(konto)         // ein Weg auf Antrag gepflastert
                + _w.Ratsantraege.AnsehenBonus(konto)    // ein Fest oder Bauvorhaben auf Antrag
                - _w.Glaube.AnsehenAbzug(konto);         // gerade erst die Konfession gewechselt

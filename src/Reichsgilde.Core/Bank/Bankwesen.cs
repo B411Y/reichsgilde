@@ -746,7 +746,7 @@ public sealed class Bankwesen
         var kunden = KundenJetzt(b);
         var gruppen = new[] { Kundenart.Vornehm, Kundenart.Kaufmann, Kundenart.Buerger }.Where(a => kunden.Any(k => k.Art == a)).ToList();
         var bediener = new Dictionary<Arbeiter, Kundenart>();
-        var reihe = b.Arbeiter.OrderBy(a => a.Arbeitskraft == "Lehrling" ? 1 : 0).ThenBy(a => a.Nummer).ToList();
+        var reihe = b.Arbeiter.OrderBy(a => _w.Personal.IstAnfaenger(a) ? 1 : 0).ThenBy(a => a.Nummer).ToList();
         for (var i = 0; i < Math.Min(gruppen.Count, reihe.Count); i++) bediener[reihe[i]] = gruppen[i];
 
         var reihum = b.Stufe >= 2 ? MitHauptbuch : OhneHauptbuch;

@@ -40,7 +40,7 @@ static class TischlerTests
             var w = sim.Wirtschaft!;
             var k = w.KontoEroeffnen("Familie Fuchs", startvermoegen: 20_000);
             var h = w.BetriebEroeffnen("Holzschlag Fuchs", Betriebsart.Holzfaellerei, k, startkarren: "");
-            w.Einstellen(h, "Bergmann", 3);
+            w.Einstellen(h, "Altknecht", 3);
             Pruefe.Wahr(!w.Ausfuehren(k, new FoerderungAufteilen(h.Name, 0.5)).Erfolg, "Aufteilen bei einem Rohstoff");
             var t = w.BetriebEroeffnen("Tischlerei Fuchs", Betriebsart.Tischlerei, k);
             Pruefe.Gleich("Schemel", t.Produkt);

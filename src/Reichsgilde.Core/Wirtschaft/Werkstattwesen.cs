@@ -11,14 +11,56 @@ namespace Reichsgilde.Core.Wirtschaft;
 /// <param name="FaelltAusBis">Nach einem Unfall: fehlt bis zu dieser Spielminute (null = er ist da).</param>
 /// <param name="Dienstjahre">Wie lange er schon hier arbeitet, in Spieljahren.</param>
 /// <param name="BefoerderungVerboten">Warum er (noch) nicht befördert werden kann – null: Er kann.</param>
+/// <param name="Name">Vor- und Familienname (PR #224; leer in Städten ohne Namen).</param>
+/// <param name="Aussehen">Fürs Porträt, mit <paramref name="Volk"/>, <paramref name="Geschlecht"/> und <paramref name="Menschenjahre"/> (Altersstufe).</param>
+/// <param name="Stufe">1–3 in seiner Laufbahn (0: ohne Stufen – Unfreie, Orks, oder ohne Abschnitt „personal“).</param>
+/// <param name="Erfahrung">Gesammelte Erfahrungsstunden.</param>
+/// <param name="ErfahrungNaechste">So viele braucht er für die nächste Stufe (null: keine nächste).</param>
+/// <param name="JahreBisNaechste">So viele Spieljahre noch bei der jetzigen Arbeit (0: schon genug; null: keine nächste oder er sammelt keine).</param>
+/// <param name="Lohn">Lohn im Jahr bei der jetzigen Lohnstufe.</param>
+/// <param name="NaechsteStufe">Wozu er befördert würde (z. B. „Geselle“; null: höher geht es nicht).</param>
+/// <param name="BriefKosten">Was der Brief zur nächsten Stufe kostet (null: keine nächste).</param>
+/// <param name="Eigenschaft">Als Vorarbeiter: seine Eigenschaft (null: keine).</param>
+/// <param name="EigenschaftWahl">Nach der Beförderung zum Vorarbeiter: die drei zur Wahl (Befehl <see cref="EigenschaftWaehlen"/>; null: nichts zu wählen).</param>
 public sealed record ArbeiterZeile(
     int Nummer, string Arbeitskraft, string Ware, bool Zugeteilt, double Laune, double TempoFaktor,
-    long? FaelltAusBis, double Dienstjahre, string? BefoerderungVerboten);
+    long? FaelltAusBis, double Dienstjahre, string? BefoerderungVerboten,
+    string Name = "", Volk Volk = Volk.Mensch, Dynastie.Geschlecht Geschlecht = Dynastie.Geschlecht.Mann, Dynastie.Aussehen Aussehen = default,
+    double Menschenjahre = 0, int Stufe = 0, double Erfahrung = 0, double? ErfahrungNaechste = null, double? JahreBisNaechste = null,
+    double Lohn = 0, string? NaechsteStufe = null, double? BriefKosten = null, EigenschaftZeile? Eigenschaft = null,
+    IReadOnlyList<EigenschaftZeile>? EigenschaftWahl = null);
 
 /// <summary>Ein Stück Einrichtung, wie es die Oberfläche zeigt (gekauft oder zu kaufen).</summary>
 /// <param name="Verboten">Warum man es gerade nicht kaufen kann (null: Es geht – oder es ist schon gekauft).</param>
 public sealed record EinrichtungZeile(
     string Kennung, string Name, double Preis, int AbStufe, string? Voraussetzung, string Wirkung, bool Gekauft, string? Verboten);
+
+/// <summary>Zustand eines Stücks im Talentbaum der Einrichtung (für den Rahmen).</summary>
+public enum Baumzustand
+{
+    /// <summary>Gekauft (bzw. im Wohnhaus vorhanden).</summary>
+    Gekauft,
+    /// <summary>Jetzt zu kaufen.</summary>
+    Kaufbar,
+    /// <summary>Die Stufe und die Voraussetzung reichen, aber gerade nicht: zu wenig Gulden, Umbau.</summary>
+    NichtJetzt,
+    /// <summary>Gesperrt: Die Gebäudestufe ist zu niedrig oder die Voraussetzung fehlt.</summary>
+    Gesperrt,
+}
+
+/// <summary>Ein Stück im Talentbaum (PR #224) – Spalte, Reihe (= Gebäudestufe), Zustand, Voraussetzung (Linie) und Amortisation.</summary>
+/// <param name="Voraussetzung">Kennung des Stücks, das vorher da sein muss (null: keine).</param>
+/// <param name="Verboten">Warum man es gerade nicht kaufen kann (null: Es geht oder es ist gekauft).</param>
+/// <param name="MehrgewinnJeJahr">Was es zu heutigen Preisen im Jahr mehr bringt (0: ohne Gulden-Wirkung oder gekauft).</param>
+/// <param name="Amortisationsjahre">Preis ÷ Mehrgewinn (null: ohne Mehrgewinn).</param>
+/// <param name="Jaehrlich">Der Preis ist ein Lohn im Jahr (Hauswächter), kein Kauf.</param>
+/// <param name="Vorhanden">Im Wohnhaus: „Hausapotheke“ oder „Hauswaechter“ – eine Sache des Spiels mit eigenem Befehl (null: ein Stück zum Kaufen).</param>
+public sealed record BaumStueck(string Kennung, string Name, string Spalte, int Reihe, double Preis, string? Voraussetzung, string Wirkung,
+    Baumzustand Zustand, string? Verboten, double MehrgewinnJeJahr, double? Amortisationsjahre, bool Jaehrlich = false, string? Vorhanden = null);
+
+/// <summary>Der Talentbaum der Einrichtung eines Betriebs oder des Wohnhauses: Spalten × Reihen (Gebäudestufen) und die Stücke darin.</summary>
+/// <param name="Stufe">Die Stufe des Gebäudes jetzt (Reihen darüber sind gesperrt).</param>
+public sealed record Einrichtungsbaum(IReadOnlyList<string> Spalten, int Reihen, int Stufe, IReadOnlyList<BaumStueck> Stuecke);
 
 /// <summary>Eine Ware in Arbeit: wie viele daran arbeiten, wie weit das angefangene Stück ist.</summary>
 /// <param name="Fortschritt">Anteil am angefangenen Stück (0 bis 1).</param>
@@ -96,7 +138,7 @@ public sealed class Werkstattwesen
     public double LauneZiel(Betrieb b, Arbeiter a)
     {
         if (Daten is not { } d || !b.HatWerkstattregeln) return 50;
-        var ziel = d.Laune.Neutral + d.Stufe(b.Lohnstufe).Laune;
+        var ziel = d.Laune.Neutral + d.Stufe(b.Lohnstufe).Laune + b.LauneBonus; // Vorarbeiter: Gutes Gemüt, Antreiber
         if (a.PraemieBis is { } p && p > Jetzt) ziel += d.Praemie.Laune;
         if (b.UnfallLauneBis is { } u && u > Jetzt) ziel += d.Unfall.Laune;
         return Math.Clamp(ziel, 0, 100);
@@ -118,11 +160,22 @@ public sealed class Werkstattwesen
 
     // ── Abfragen für die Oberfläche ─────────────────────────────────────────
 
-    /// <summary>Die Arbeiter des Betriebs mit Ware, Laune, Tempo, Ausfall und ob man sie befördern kann.</summary>
-    public IReadOnlyList<ArbeiterZeile> Arbeiterliste(Betrieb b) => b.Arbeiter
-        .Select(a => new ArbeiterZeile(a.Nummer, a.Arbeitskraft, b.WareVon(a), a.Ware is not null, a.Laune, b.TempoFaktor(a),
-            a.FaelltAus(Jetzt) ? a.AusfallBis : null, (Jetzt - a.EingestelltUm) / (double)Spielzeit.MinutenProTag, BefoerdernVerboten(b, a.Nummer)))
-        .ToList();
+    /// <summary>
+    /// Die Arbeiter des Betriebs mit Ware, Laune, Tempo, Ausfall und ob man sie befördern kann – seit PR #224 mit Name, Porträt, Stufe,
+    /// Erfahrung bis zur nächsten Stufe, Lohn, Briefkosten und Eigenschaft (<see cref="Personalwesen"/>).
+    /// </summary>
+    public IReadOnlyList<ArbeiterZeile> Arbeiterliste(Betrieb b)
+    {
+        var p = _w.Personal;
+        return b.Arbeiter
+            .Select(a => new ArbeiterZeile(a.Nummer, a.Arbeitskraft, b.WareVon(a), a.Ware is not null, a.Laune, b.TempoFaktor(a),
+                a.FaelltAus(Jetzt) ? a.AusfallBis : null, (Jetzt - a.EingestelltUm) / (double)Spielzeit.MinutenProTag, p.BefoerdernVerboten(b, a.Nummer),
+                a.Name, a.Volk, a.Geschlecht, a.Aussehen, a.Menschenjahre(Jetzt), p.Stufe(a.Arbeitskraft), a.Erfahrung,
+                p.ErfahrungFuerNaechste(b, a), p.JahreBisNaechste(b, a), b.LohnJeArbeiter(a.Arbeitskraft), p.NaechsteStufe(b, a), p.BriefKosten(b, a),
+                a.Eigenschaft is { } k ? p.Eigenschaft(b, k) : null,
+                a.EigenschaftWahl?.Select(k => p.Eigenschaft(b, k)).OfType<EigenschaftZeile>().ToList()))
+            .ToList();
+    }
 
     /// <summary>Die Waren in Arbeit mit Arbeitern, Fortschritt des angefangenen Stücks und ob sie gerade stillstehen.</summary>
     public IReadOnlyList<WareInArbeit> WarenInArbeit(Betrieb b)
@@ -164,6 +217,27 @@ public sealed class Werkstattwesen
             .ToList();
     }
 
+    /// <summary>
+    /// Der Talentbaum der Einrichtung dieses Betriebs (PR #224): Spalten aus <see cref="WerkstattDaten.Spalten"/>, drei Reihen (Gebäudestufen),
+    /// jedes Stück mit Zustand, Voraussetzung, Mehrgewinn und Amortisation. Leer, wenn der Betrieb keine Einrichtung haben kann.
+    /// </summary>
+    public Einrichtungsbaum Baum(Betrieb b)
+    {
+        if (Daten is not { } d || !KannEinrichtung(b)) return new Einrichtungsbaum(Array.Empty<string>(), 3, b.Stufe, Array.Empty<BaumStueck>());
+        var stuecke = d.EinrichtungFuer(b.Artdaten.Beruf);
+        var spalten = d.Spalten.Count > 0 ? d.Spalten : stuecke.Select(e => e.Spalte ?? "").Distinct().ToList();
+        return new Einrichtungsbaum(spalten, 3, b.Stufe, stuecke.Select(e =>
+        {
+            var gekauft = b.HatEinrichtung(e.Kennung);
+            var verboten = gekauft ? null : EinrichtungVerboten(b, e.Kennung);
+            var gesperrt = b.Stufe < e.AbStufe || (e.Voraussetzung is { } v && !b.HatEinrichtung(v));
+            var mehr = ErwarteterMehrgewinnJeJahr(b, e.Kennung);
+            return new BaumStueck(e.Kennung, e.Name, e.Spalte ?? spalten.FirstOrDefault() ?? "", e.AbStufe, e.Preis, e.Voraussetzung, e.Wirkung.Text(),
+                gekauft ? Baumzustand.Gekauft : verboten is null ? Baumzustand.Kaufbar : gesperrt ? Baumzustand.Gesperrt : Baumzustand.NichtJetzt,
+                verboten, mehr, mehr > 0 ? e.Preis / mehr : null);
+        }).ToList());
+    }
+
     /// <summary>Lohnfaktor und Laune-Ziel einer Lohnstufe (für die Auswahl in der Oberfläche).</summary>
     public LohnstufeDaten Lohnstufe(Lohnstufe stufe) => Daten?.Stufe(stufe) ?? LohnstufeDaten.Neutral;
 
@@ -181,8 +255,10 @@ public sealed class Werkstattwesen
         return null;
     }
 
+    /// <summary>Die alte Beförderung (ohne Abschnitt „personal“) – mit „personal“ gilt <see cref="Personalwesen.BefoerdernVerboten"/>.</summary>
     public string? BefoerdernVerboten(Betrieb b, int nummer)
     {
+        if (_w.Personal.IstAktiv) return _w.Personal.BefoerdernVerboten(b, nummer);
         if (Daten is not { } d) return "In dieser Stadt wird nicht befördert.";
         if (b.ArbeiterNr(nummer) is not { } a) return $"In {b.Name} gibt es keinen Arbeiter Nr. {nummer}.";
         var bf = d.Befoerderung;
@@ -246,8 +322,9 @@ public sealed class Werkstattwesen
     {
         if (befehl.Ware is not null && (!b.IstWerkstatt || !b.Artdaten.Produkte.Contains(befehl.Ware)))
             return Befehlsergebnis.Abgelehnt($"{befehl.Ware} kann eine {b.Artdaten.Name} nicht herstellen.");
+        if (_w.Personal.EinstellenVerboten(b, befehl.Arbeitskraft) is { } nurAnfaenger) return Befehlsergebnis.Abgelehnt(nurAnfaenger);
         var a = b.EinenEinstellen(befehl.Arbeitskraft, befehl.Ware, _w.Statut); // prüft Statut, Plätze und Namen
-        return Befehlsergebnis.Ok($"{b.Name}: {a.Arbeitskraft} Nr. {a.Nummer} eingestellt" + (b.IstWerkstatt ? $", er arbeitet an {b.WareVon(a)}." : "."));
+        return Befehlsergebnis.Ok($"{b.Name}: {Personalwesen.Wer(a)} eingestellt" + (b.IstWerkstatt ? $", arbeitet an {b.WareVon(a)}." : "."));
     }
 
     internal static Befehlsergebnis Entlassen(Betrieb b, ArbeiterEntlassen befehl)
@@ -259,6 +336,7 @@ public sealed class Werkstattwesen
 
     internal Befehlsergebnis Befoerdern(Betrieb b, ArbeiterBefoerdern befehl)
     {
+        if (_w.Personal.IstAktiv) return _w.Personal.Befoerdern(b, befehl);
         if (BefoerdernVerboten(b, befehl.Arbeiter) is { } grund) return Befehlsergebnis.Abgelehnt(grund);
         var a = b.ArbeiterNr(befehl.Arbeiter)!;
         var zu = Daten!.Befoerderung.Zu;
@@ -328,10 +406,42 @@ public sealed class Werkstattwesen
     public double ErwarteterMehrgewinnJeJahr(Betrieb b, string kennung)
     {
         if (Daten is not { } d || !KannEinrichtung(b) || b.HatEinrichtung(kennung) || d.Stueck(b.Artdaten.Beruf, kennung) is not { } e) return 0;
-        var wi = e.Wirkung;
+        return MehrgewinnDurch(b, e.Wirkung);
+    }
+
+    /// <summary>
+    /// Was diese Wirkung (ein Stück Einrichtung oder die Eigenschaft eines Vorarbeiters) dem Betrieb im Jahr mehr einbrächte – Rechnung wie
+    /// bei <see cref="ErwarteterMehrgewinnJeJahr"/>, dazu (PR #224): mehr Erlös (Preis, Ladentheke) = Erlös der Jahresmenge × Aufschlag;
+    /// weniger Zutaten = Zutaten der Jahresmenge zum Marktpreis × (1 − Faktor); schneller (Antreiber, Laune, Förderzeit im Umland) und länger
+    /// (Frühaufsteher) = Wert der Arbeit × Anteil; mehr Erfahrung der Anfänger = je Anfänger (Ertrag der nächsten Stufe − Ertrag jetzt)
+    /// × (1 − 1 ÷ Faktor), solange es Anfänger gibt; seltener Ausbrüche der Unfreien = Risiko × Schaden × (1 − Faktor).
+    /// </summary>
+    public double MehrgewinnDurch(Betrieb b, EinrichtungWirkung wi)
+    {
         var mehr = 0.0;
         if (b.IstWerkstatt && wi.ZeitFaktor < 1)
             mehr += Arbeitswert(b, ware => wi.GiltFuer(ware) ? 1 / wi.ZeitFaktor - 1 : 0);
+        if (!b.IstWerkstatt && !b.OhneProduktion && wi.ZeitFaktor < 1)
+            mehr += Umlandwert(b) * (1 / wi.ZeitFaktor - 1);
+        var aufschlag = wi.PreisFaktor * (1 + wi.LadenAnteil * wi.LadenAufschlag) - 1;
+        if (aufschlag > 0 && !b.OhneProduktion)
+            mehr += Erloeswert(b) * aufschlag;
+        if (wi.RohstoffFaktor < 1 && b.IstWerkstatt)
+            mehr += Jahresmengen(b).Sum(x => x.Menge * _w.Daten.Waren[x.Ware].Zutaten.Sum(z => _w.Markt[z.Key].Preis * z.Value)) * (1 - wi.RohstoffFaktor);
+        var schneller = wi.TempoFaktor - 1 + (b.HatWerkstattregeln ? LauneTempo(b, wi.Laune) : 0);
+        if (Math.Abs(schneller) > 1e-9)
+            mehr += Gesamtwert(b) * schneller;
+        if (wi.ArbeitsminutenPlus > 0 && !b.OhneProduktion)
+        {
+            var plus = Math.Min(wi.ArbeitsminutenPlus, Spielzeit.TagesendeMinute - Stadtwirtschaft.Arbeitsbeginn - b.Arbeitsminuten);
+            if (plus > 0) mehr += Gesamtwert(b) * plus / b.Arbeitsminuten;
+        }
+        if (wi.ErfahrungFaktor > 1 && _w.Personal.IstAktiv)
+            foreach (var a in b.Arbeiter.Where(_w.Personal.IstAnfaenger))
+                if (_w.Personal.NaechsteStufe(b, a) is { } zu)
+                    mehr += Math.Max(0, Kalkulation.Jahresertrag(_w, b, zu) - Kalkulation.Jahresertrag(_w, b, a.Arbeitskraft)) * (1 - 1 / wi.ErfahrungFaktor);
+        if (wi.RisikoFaktor < 1)
+            mehr += b.Belegung.Sum(x => x.Value * _w.Daten.Arbeitskraefte[x.Key].Risiko * _w.Daten.Arbeitskraefte[x.Key].Schaden) * (1 - wi.RisikoFaktor);
         if (wi.LohnFaktor < 1)
             mehr += b.Lohnkosten * (1 - wi.LohnFaktor);
         if (wi.UnfallFaktor < 1 && b.IstWerkstatt)
@@ -348,6 +458,50 @@ public sealed class Werkstattwesen
         return Math.Max(0, mehr);
     }
 
+    /// <summary>Wie viel schneller die Leute bei so viel mehr Laune arbeiten (Anteil; linear wie <see cref="Betrieb.TempoFaktor"/>, um neutral).</summary>
+    private double LauneTempo(Betrieb b, double laune)
+    {
+        if (laune == 0 || Daten is not { } d) return 0;
+        var l = d.Laune;
+        return l.TempoBis * laune / (laune > 0 ? 100 - l.Neutral : l.Neutral);
+    }
+
+    /// <summary>Wert der Arbeit eines Jahres: Werkstatt <see cref="Arbeitswert"/>, Umland die Förderung, sonst Leistung × Arbeitsminuten × Wert je Minute.</summary>
+    private double Gesamtwert(Betrieb b) =>
+        b.IstWerkstatt ? Arbeitswert(b, _ => 1)
+        : b.OhneProduktion ? b.Arbeiter.Sum(a => _w.Daten.Arbeitskraefte[a.Arbeitskraft].TempoAm(b.Ort)) * _w.VolksFaktor(b.Konto, b.Artdaten.Beruf)
+                             * b.Arbeitsminuten * Kalkulation.WertJeArbeitsminute(_w, b) * b.TempoBonus
+        : Umlandwert(b);
+
+    /// <summary>Wert der Förderung eines Jahres im Umland: Leistung × Arbeitsminuten × Wert je Minute (mit der Förderzeit von jetzt).</summary>
+    private double Umlandwert(Betrieb b) =>
+        b.Arbeiter.Sum(a => _w.Daten.Arbeitskraefte[a.Arbeitskraft].TempoAm(b.Ort)) * _w.VolksFaktor(b.Konto, b.Artdaten.Beruf) * b.TempoBonus
+        * b.Arbeitsminuten * Kalkulation.WertJeArbeitsminute(_w, b) / (b.Rohstoffe.Count > 0 ? b.ZeitFaktor(b.Rohstoffe[0]) : 1);
+
+    /// <summary>Stück je Jahr und Ware in dieser Werkstatt (Umland: je Rohstoff) bei der Belegung von jetzt.</summary>
+    private IEnumerable<(string Ware, double Menge)> Jahresmengen(Betrieb b)
+    {
+        var volk = _w.VolksFaktor(b.Konto, b.Artdaten.Beruf) * b.TempoBonus * b.Arbeitsminuten;
+        if (b.IstWerkstatt)
+            return b.Arbeiter.GroupBy(b.WareVon, StringComparer.Ordinal)
+                .Select(g => (g.Key, g.Sum(a => _w.Daten.Arbeitskraefte[a.Arbeitskraft].TempoAm(b.Ort)) * volk / b.MinutenJeStueck(g.Key)));
+        var leistung = b.Arbeiter.Sum(a => _w.Daten.Arbeitskraefte[a.Arbeitskraft].TempoAm(b.Ort)) * volk;
+        return b.Rohstoffe.Count switch
+        {
+            0 => Enumerable.Empty<(string, double)>(),
+            1 => new[] { (b.Rohstoffe[0], leistung / (_w.Daten.Waren[b.Rohstoffe[0]].Zeit * b.ZeitFaktor(b.Rohstoffe[0]))) },
+            _ => new[]
+            {
+                (b.Rohstoffe[0], leistung * (1 - b.Silberanteil) / (_w.Daten.Waren[b.Rohstoffe[0]].Zeit * b.ZeitFaktor(b.Rohstoffe[0]))),
+                (b.Rohstoffe[1], leistung * b.Silberanteil / (_w.Daten.Waren[b.Rohstoffe[1]].Zeit * b.ZeitFaktor(b.Rohstoffe[1]))),
+            },
+        };
+    }
+
+    /// <summary>Erlös der Jahresmenge am Markt nach Steuer, mit dem Preisfaktor von jetzt.</summary>
+    private double Erloeswert(Betrieb b) =>
+        Jahresmengen(b).Sum(x => x.Menge * _w.Markt[x.Ware].Preis) * (1 - _w.SteuersatzMarkt(b.Konto)) * b.PreisFaktor * _w.Familien.VerkaufsFaktor(b.Konto);
+
     /// <summary>Nach wie vielen Jahren sich das Stück bezahlt macht: Preis ÷ <see cref="ErwarteterMehrgewinnJeJahr"/> – null ohne Mehrgewinn.</summary>
     public double? Amortisationsjahre(Betrieb b, string kennung) =>
         Daten?.Stueck(b.Artdaten.Beruf, kennung) is { } e && ErwarteterMehrgewinnJeJahr(b, kennung) is var mehr and > 0 ? e.Preis / mehr : null;
@@ -362,7 +516,7 @@ public sealed class Werkstattwesen
         return b.Arbeiter.Sum(a =>
         {
             var ware = b.WareVon(a);
-            return _w.Daten.Arbeitskraefte[a.Arbeitskraft].TempoAm(b.Ort) * volk * b.Arbeitsminuten
+            return _w.Daten.Arbeitskraefte[a.Arbeitskraft].TempoAm(b.Ort) * volk * b.Arbeitsminuten * b.TempoBonus
                    * Kalkulation.GewinnJeArbeitsminute(_w, ware) / b.ZeitFaktor(ware) * gewicht(ware);
         });
     }

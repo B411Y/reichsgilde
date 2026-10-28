@@ -316,8 +316,9 @@ public sealed partial class KiRivale
         var frei = betrieb.Plaetze - betrieb.Belegt;
         if (frei <= 0) return;
 
+        // Mit „personal“ (PR #224) nur, wen der Betrieb einstellen darf: Anfänger seiner Laufbahn, Unfreie und Orks nach Statut.
         var beste = _w.Daten.Arbeitskraefte.Keys
-            .Where(k => _w.Daten.Arbeitskraefte[k].IstErlaubt(_w.Statut, betrieb.Ort))
+            .Where(k => _w.Daten.Arbeitskraefte[k].IstErlaubt(_w.Statut, betrieb.Ort) && _w.Personal.EinstellenVerboten(betrieb, k) is null)
             .Select(k => (Kraft: k, Ertrag: Jahresertrag(betrieb, k)))
             .Where(x => x.Ertrag > 0)
             .OrderByDescending(x => x.Ertrag)
@@ -1818,7 +1819,8 @@ public sealed partial class KiRivale
     private double HoechsterLohn(Betriebsart art)
     {
         var ort = _w.Daten.Art(art).Ort;
-        return _w.Daten.Arbeitskraefte.Values.Where(k => k.IstErlaubt(_w.Statut, ort)).Select(k => k.Kosten).DefaultIfEmpty(0).Max() * _w.Daten.Schichtfaktor(art);
+        return _w.Daten.Arbeitskraefte.Where(k => k.Value.IstErlaubt(_w.Statut, ort) && _w.Daten.KraftPasst(art, k.Key))
+            .Select(k => k.Value.Kosten).DefaultIfEmpty(0).Max() * _w.Daten.Schichtfaktor(art);
     }
 
     private void KarrenNachkaufen(Betrieb betrieb)

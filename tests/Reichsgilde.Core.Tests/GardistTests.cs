@@ -88,7 +88,7 @@ static class GardistTests
             Pruefe.Ungefaehr(1, w.Wache.Landstrassenfaktor, 1e-12);
             var k = w.KontoEroeffnen("Familie Wacker", startvermoegen: 10_000);
             var turm = w.BetriebEroeffnen("Wachturm Wacker", Betriebsart.Wachturm, k);
-            w.Einstellen(turm, "Bergmann", 3);
+            w.Einstellen(turm, "Altknecht", 3);
             Pruefe.Ungefaehr(0.7, w.Wache.Landstrassenfaktor, 1e-12);
             Pruefe.Wahr(Kalkulation.ErwarteterJahresgewinn(w, Betriebsart.Wachturm) > 0, "Wachturm rechnet sich");
         }),
