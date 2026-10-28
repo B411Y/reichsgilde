@@ -389,7 +389,7 @@ Fahrplan (vom Nutzer am 21.10.2026 bestätigt, je Schritt ein PR; Stand wird hie
 | Dombauhütte | Köln hat nur einen Steinmetz-Betrieb („Maurerei Lyskirchen“, Haus Lyskirchen, Halbling, an der Severinstraße bei (−23 \| 90), also rund 200 m vom Dom). Er liegt nicht am Dom und gehört einem Halbling: **nicht umbenannt**, offen (siehe Offen). | 27.10.2026 |
 | Kapazitätsrechnung schneller | Der Leistungstest (unter 150 ms) scheiterte auf der Linux-CI mit 164 ms (lokal ~75 ms). `Kapazitaetspruefung` rechnet jetzt mit Arrays statt Wörterbüchern, die Bauzonen zeilenweise (Schnittpunkte je Rasterzeile statt aller Ecken je Feld), den nächsten Weg blockweise (4 × 4 Felder, Fächer zu 8 m ringweise mit oberer Grenze, Strecken nach Mindestabstand sortiert, Abbruch sobald keine nähere mehr kommen kann), die Reihenfolge der Felder mit einem eigenen stabilen Sortieren und die heißen Schleifen gleich voll optimiert (`AggressiveOptimization`, sonst blieben sie in den 12 Aufrufen des Tests auf der langsamen ersten Stufe des JIT). Ergebnis Feld für Feld gleich (alle vier Karten, neuer Test mit Prüfsumme der Plätze); Köln im Test 16–26 ms (Median ~17 ms), die Grenze bleibt. | 27.10.2026 |
 
-### Requisiten in der Kartenwerkstatt (PR #NR)
+### Requisiten in der Kartenwerkstatt (PR #220)
 
 | Thema | Entscheidung | Datum |
 |---|---|---|

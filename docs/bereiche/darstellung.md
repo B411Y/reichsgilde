@@ -1245,7 +1245,7 @@ Entscheidungen zur Sitzung: `docs/bereiche/oberflaeche.md`, „Sichtbare Ratssit
 | Umsetzung Nässe | `wetter_rinnsale` in `wetter.gdshaderinc`, aus `wetter_flaeche` (Material-Bibliothek, alle Modelle): Gefällerichtung aus der glatten Weltnormalen, quer dazu Streifen aus Rauschen, die herabwandern (Normale, Rauheit, dunkler, etwas Himmelsschimmer); globales `wetter_rinn` (Niedrig 0, Mittel 60 %, Hoch voll; bei Regen stark, danach mit der Nässe langsam aus). Tropfen an Traufen: `Stadtansicht.Traufen.cs` findet je Netz die tiefsten waagerechten Kanten der schrägen Dachdreiecke, ein `GpuParticles3D` mit Emissionspunkten (höchstens 192 Stellen nahe dem Blickpunkt, nur unter Zoom 55, ab Mittel). | 27.10.2026 |
 | Umsetzung Pflaster | Nur Bodenqualität Hoch (`--pflasterrelief=0` schaltet es für den Start aus): Parallax-Okklusion für die Pflasterschicht in `eben()` (10 Stufen, Tiefe 9 cm, blendet in der Ferne aus), Fugen dunkler nach Höhe, am Straßenrand ein Absatz von 14 cm als verschobene Straßenmaske (Oberseite wandert zur Kamera, abgewandte Seite dunkel). Kosten etwa 1,5 ms GPU. Schatten der Fackeln im Pflaster gibt es nicht (die echten Lichter werfen keine Schatten); die Normalenabbildung zeigt die Steine im Fackellicht. | 27.10.2026 |
 
-### Asset-Kits: Natur, Props und Dorf-Zierteile (PR #NR)
+### Asset-Kits: Natur, Props und Dorf-Zierteile (PR #220)
 
 | Thema | Entscheidung | Datum |
 |---|---|---|
