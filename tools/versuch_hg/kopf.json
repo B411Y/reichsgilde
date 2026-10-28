@@ -42,8 +42,8 @@
     "augen": 1024
   },
   "dezimieren": {
-    "augen": 0.35,
-    "zaehne": 0.3
+    "augen": 0.3,
+    "zaehne": 0.12
   },
   "ausschnitt_neigung": 0.4,
   "haarfarbe": {
@@ -52,5 +52,11 @@
   },
   "ansatz_staerke": 0.5,
   "haut_rauheit_min": 0.0,
-  "koerper_dezimieren": 0.5
+  "koerper_dezimieren": 0.5,
+  "haut_varianten": {
+    "mittel": "textures/male/Default 8K/Male 08.png",
+    "dunkel": "textures/male/Default 8K/Male 10.png"
+  },
+  "wimpern_anteil": 0.6,
+  "kittel_dezimieren": 0.2
 }

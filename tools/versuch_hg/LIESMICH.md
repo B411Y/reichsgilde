@@ -32,3 +32,15 @@ weicher Saum als zweiter Durchgang, dunkler Ansatz über UV2.x), `augen.gdshader
 `hg_fenster.gd` (Porträtfenster mit eigenem SubViewport), `haar.gdshader` (Haarkarten), `hg_schau.tscn` (Vorführung).
 Köpfe mit eigenen Formwerten: `--kopf=res://versuch/hg/koepfe/frau.glb@elb:1;alter:0.5;haut:elb`
 (Modi `nah`, `film`, `tafel`, `reihe`, `regler`, `mess`).
+
+## Stand Runde 3 (Aufrufe)
+
+```bash
+kopf.sh arbeit/mann_a.blend arbeit/mann/mann.glb voll '{"koerper_dezimieren":0.33,"kittel_dezimieren":0.3,"dezimieren":{"augen":0.25,"zaehne":0.07}}'
+kopf.sh arbeit/frau_a.blend arbeit/frau/frau.glb voll '{"koerper_dezimieren":0.45,"kittel_dezimieren":0.3,"regler_dazu":{"alter":"livekeys/special/age/aged_female.npz"},"haut_varianten":{"mittel":"textures/female/Default 8K/Female 06.png","dunkel":"textures/female/Default 8K/Female 10.png"}}'
+koepfe_kopieren.sh mann frau      # GLB + Hautvarianten nach game/versuch/hg/koepfe/
+eevee_form.py                     # schnelle Blender-Ansicht einer Form (z. B. Elbenohr) ohne Godot
+```
+
+TressFX (zurückgestellt, Addon braucht glibc 2.43): `hg_tfx.py` wandelt HG-Partikelhaar in `.tfx`/`.tfxbone`,
+`game/versuch/hg/hg_tressfx.gd` hängt die Strähnen an (`--tressfx=<ordner>`); Addon und Strähnen nur lokal.

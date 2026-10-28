@@ -201,6 +201,9 @@ for n_ in ("ear_height", "ear_width", "ear_turn", "ear_antihelix_shape", "ear_lo
     flat = np.zeros(N * 3); flat[d_["indices"]] = d_["relative_coordinates"]
     ohr_hg |= np.abs(flat.reshape(N, 3)).max(1) > 2e-4
 ohr_mitte = [grund_w[ohr_hg & (np.sign(grund_w[:, 0]) == s_)].mean(0) for s_ in (1, -1)]
+d_ = np.load(os.path.expanduser("~/werkzeuge/humgen/inhalt/livekeys/face_proportions/ears/ear_turn.npz"))
+flat = np.zeros(N * 3); flat[d_["indices"]] = d_["relative_coordinates"]
+ohr_dreh = np.linalg.norm(flat.reshape(N, 3), axis=1)
 # Ohr in TRELLIS: Haut im Umkreis der HG-Ohren, seitlich außerhalb des Schädels
 ohr_t = np.zeros(tn, bool)
 for m_ in ohr_mitte:
@@ -298,33 +301,31 @@ for name, wert in P.get("livekeys", {"cheek_zygomatic_bone": 1.6, "eye_tilt": -1
     d_ = np.load(pfad); flat = np.zeros(N * 3); flat[d_["indices"]] = d_["relative_coordinates"]
     delta_w += (flat.reshape(N, 3) @ mw[:3, :3].T) * wert
 
-# Elbenohr: obere Ohrhälfte entlang der Spitzenrichtung strecken und zur Spitze hin verjüngen
+# Elbenohr (dritte Fassung, nach den 2D-Elbenporträts und der TRELLIS-Elbin): die ganze Ohrmuschel wird von unten
+# nach oben zunehmend gestreckt, schmaler und vom Kopf weg nach außen-hinten gekippt. Das Ohrläppchen und der Ansatz
+# am Schädel bleiben menschlich, Helix und Anthelix laufen als natürlicher Knorpelrand in die Spitze.
 for s_, m_ in zip((1, -1), ohr_mitte):
     oh = np.nonzero(ohr_hg & (np.sign(grund_w[:, 0]) == s_))[0]
-    kand = haut_t & (np.linalg.norm(tw - m_, axis=1) < 0.08) & (np.abs(tw[:, 0]) > np.abs(m_[0]) - 0.005) & (tw[:, 2] > m_[2])
-    if kand.any():
-        spitze_t = tw[kand][np.argmax(tw[kand][:, 2])]
-        u = (spitze_t - m_) / np.linalg.norm(spitze_t - m_)
-    else:
-        u = np.array([0, 0.35, 1.0])
-    # nach oben, hinten und deutlich nach außen (sonst wandert die Spitze am Schädel entlang in den Kopf)
-    u = u * 0.25 + np.array([s_ * 0.55, 0.45, 0.75]) / np.linalg.norm([0.55, 0.45, 0.75]) * 0.75
-    u /= np.linalg.norm(u)
+    oben = np.array([0.0, P.get("ohr_nach_hinten", 0.3), 1.0]); oben /= np.linalg.norm(oben)
+    aussen = np.array([float(s_), 0.0, 0.0])
+    vorn = np.cross(oben, aussen); vorn /= np.linalg.norm(vorn)
     rel = grund_w[oh] - m_
-    h = rel @ u
-    H = h.max()
-    # nur die frei stehende Ohrmuschel bewegen, nicht den Ansatz am Schädel
-    ax = np.abs(grund_w[oh, 0])
-    frei_ohr = np.clip((ax - ax.min() - P.get("ohr_ansatz", 0.008)) / 0.008, 0, 1)
-    t = np.clip(h / H, 0, 1) * frei_ohr
-    quer = rel - np.outer(h, u)
-    d_ohr = np.outer(P.get("ohr_laenge", 0.04) * t ** 2.2, u)
-    d_ohr -= quer * (P.get("ohr_verjuengen", 0.55) * t ** 1.6)[:, None]
-    d_ohr += np.outer(t ** 2, [s_ * P.get("ohr_abstehen", 0.006), 0, 0])
-    delta_w[oh] = delta_w[oh] * 0.3 + d_ohr      # etwas TRELLIS-Ohrform, vor allem die Parameterform
-    log("Elbenohr", s_, "Richtung", np.round(u, 2).tolist(), "Ohrpunkte", len(oh), "Ohr min/max", np.round(grund_w[oh].min(0), 3).tolist(), np.round(grund_w[oh].max(0), 3).tolist(),
-        "Mitte", np.round(m_, 3).tolist(), "bewegt>5mm", int((np.linalg.norm(d_ohr, axis=1) > 0.005).sum()),
-        "deren Lage", np.round(grund_w[oh][np.linalg.norm(d_ohr, axis=1) > 0.005].mean(0), 3).tolist() if (np.linalg.norm(d_ohr, axis=1) > 0.005).any() else None)
+    hh = rel @ oben; ww = rel @ vorn; oo = rel @ aussen
+    H = hh.max()
+    t = np.clip(hh / H, 0, 1)
+    t = t * t * (3 - 2 * t)
+    # frei stehende Ohrmuschel: dort bewegt der HG-Regler „ear_turn“ (Ohr abstehen lassen) am meisten, am Ansatz nichts
+    frei_ohr = np.clip(ohr_dreh[oh] / (P.get("ohr_frei_anteil", 0.35) * ohr_dreh[oh].max()), 0, 1)
+    neu_h = hh * (1 + P.get("ohr_strecken", 1.6) * t)
+    neu_w = ww * (1 - P.get("ohr_verjuengen", 0.55) * t)
+    phi = np.radians(P.get("ohr_kippen", 44.0)) * t
+    oben_n = np.outer(np.cos(phi), oben) + np.outer(np.sin(phi), aussen)
+    aussen_n = -np.outer(np.sin(phi), oben) + np.outer(np.cos(phi), aussen)
+    neu_p = m_ + oben_n * neu_h[:, None] + np.outer(neu_w, vorn) + aussen_n * oo[:, None]
+    d_ohr = (neu_p - grund_w[oh]) * frei_ohr[:, None]
+    delta_w[oh] = d_ohr + delta_w[oh] * (1 - frei_ohr[:, None])
+    log("Elbenohr", s_, "Ohrpunkte", len(oh), "frei", int((frei_ohr > 0.5).sum()), "Spitze hoch mm",
+        round(float((neu_p[:, 2].max() - grund_w[oh, 2].max()) * 1000), 1))
 
 for _ in range(6):
     glatt = 0.5 * delta_w + 0.5 * nachbar_mittel(delta_w)

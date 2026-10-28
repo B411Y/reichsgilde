@@ -2,7 +2,7 @@
   "vorlage": "models/female/Caucasian/Johanna.json",
   "alter": 30,
   "frisur": "hair/head/female/Long/Bun.json",
-  "haarkarten": "high",
+  "haarkarten": "medium",
   "haarfarbe": {
     "regular_hair": {
       "lightness": 0.15,

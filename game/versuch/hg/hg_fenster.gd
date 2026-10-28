@@ -83,8 +83,12 @@ func _welt_bauen() -> void:
 	key.directional_shadow_max_distance = 2.0
 	ansicht.add_child(key)
 	key.look_at_from_position(Vector3(-1.8, 2.8, 1.5), Vector3(0, 1.6, 0))
+	# Fülllicht nur im großen Porträt (jedes Richtungslicht kostet in Haut- und Haar-Shader eine ganze Lichtrechnung)
+	if sparsam:
+		env.ambient_light_energy = 0.6
 	var fuell := DirectionalLight3D.new()
-	fuell.light_color = Color(0.82, 0.86, 1.0)
+	fuell.visible = not sparsam
+	fuell.light_color = Color(0.92, 0.92, 0.95)
 	fuell.light_energy = 0.35
 	ansicht.add_child(fuell)
 	fuell.look_at_from_position(Vector3(2.0, 1.5, 1.6), Vector3(0, 1.6, 0))

@@ -3,7 +3,7 @@
   "alter": 38,
   "frisur": "hair/head/male/Long/Medium Side Part.json",
   "bart": "hair/face_hair/Beard/Full_Beard_1.json",
-  "haarkarten": "high",
+  "haarkarten": "medium",
   "haarfarbe": {
     "regular_hair": {
       "lightness": 0.12,
@@ -43,5 +43,6 @@
     0.89,
     0.86,
     1.0
-  ]
+  ],
+  "bart_karten": "low"
 }

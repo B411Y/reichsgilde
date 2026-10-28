@@ -6,7 +6,7 @@ render_mode cull_disabled, blend_mix, depth_draw_never;
 
 void fragment() {
 	vec4 f = texture(farbe, UV);
-	if (f.a >= 0.5 || f.a < 0.02) {
+	if (f.a >= 0.5 || f.a < 0.05) {
 		discard;
 	}
 	ALBEDO = haar_farbe(f, UV2.x);
@@ -14,5 +14,5 @@ void fragment() {
 	ROUGHNESS = 0.6;
 	SPECULAR = 0.0;
 	BACKLIGHT = vec3(0.22, 0.15, 0.1);
-	ALPHA = f.a * 1.6;
+	ALPHA = f.a * 1.6 * kanten_blende(VERTEX, VIEW);
 }

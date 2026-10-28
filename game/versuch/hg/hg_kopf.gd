@@ -27,6 +27,8 @@ var _ausdruck := {}               # z. B. Lächeln, unabhängig vom Mund
 var _ruhe := {}                   # Ruhelage der Knochen (Rotation)
 var _knochen := {}
 var _haut_mat: ShaderMaterial
+var _haut_bild_standard: Texture2D
+var tressfx_aktiv := false       # Bart als TressFX-Strähnen am Kieferknochen: Kiefer dreht mit jawOpen
 var _haar_mats: Array[ShaderMaterial] = []
 
 # Viseme: Mischung aus Gesichtsformen (Werte 0..1)
@@ -82,9 +84,11 @@ func _materialien() -> void:
 			print("ROT ", n, " ", mat.albedo_color)
 			mat.cull_mode = BaseMaterial3D.CULL_DISABLED
 		elif (n.begins_with("Haar") and OS.get_cmdline_user_args().has("--ohne-haar")) or (n == "Zaehne" and OS.get_cmdline_user_args().has("--ohne-zaehne")) or (n == "Hornhaut" and OS.get_cmdline_user_args().has("--ohne-hornhaut")):
-			var weg := StandardMaterial3D.new()
-			weg.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
-			weg.albedo_color = Color(0, 0, 0, 0)
+			# Fläche wirklich weglassen (zum Messen): alle Ecken vor die Kamera-Clip-Ebene schieben
+			var weg := ShaderMaterial.new()
+			var sh := Shader.new()
+			sh.code = "shader_type spatial;\nrender_mode unshaded, cull_disabled;\nvoid vertex() { POSITION = vec4(2.0, 2.0, 2.0, 1.0); }\n"
+			weg.shader = sh
 			netz.set_surface_override_material(i, weg)
 			continue
 		elif n.begins_with("Haar"):
@@ -109,6 +113,7 @@ func _materialien() -> void:
 			hm.set_shader_parameter("normalen", mat.normal_texture)
 			hm.set_shader_parameter("rauheit", mat.roughness_texture)
 			_haut_mat = hm
+			_haut_bild_standard = mat.albedo_texture
 			netz.set_surface_override_material(i, hm)
 			continue
 		elif n == "Hornhaut":
@@ -128,8 +133,8 @@ func _materialien() -> void:
 # Hauttypen je Volk (nur Material; die Grundtextur kommt aus HG). Werte: Shader-Parameter von haut.gdshader.
 const HAUTTYPEN := {
 	"mensch_hell": {},
-	"mensch_mittel": {"toenung": Color(0.86, 0.74, 0.62), "saettigung": 1.05},
-	"mensch_dunkel": {"toenung": Color(0.44, 0.34, 0.28), "saettigung": 0.85, "glanz": 0.34, "streu_farbe": Color(0.6, 0.3, 0.2)},
+	"mensch_mittel": {"textur": "mittel", "saettigung": 0.9},
+	"mensch_dunkel": {"textur": "dunkel", "saettigung": 0.82, "glanz": 0.22, "rauh_versatz": 0.16, "streu_farbe": Color(0.55, 0.32, 0.24)},
 	"elb": {"toenung": Color(1.04, 1.0, 0.98), "saettigung": 0.82, "poren": 0.55, "rauh_versatz": 0.0, "glanz": 0.36, "streu": 0.6},
 	"zwerg": {"toenung": Color(0.95, 0.8, 0.68), "saettigung": 1.12, "gegerbt": 0.8, "poren": 1.4, "glanz": 0.26},
 	"ork": {"toenung": Color(0.62, 0.72, 0.5), "saettigung": 0.6, "gegerbt": 0.5, "poren": 1.3, "streu_farbe": Color(0.5, 0.55, 0.25)},
@@ -142,7 +147,18 @@ func setze_hauttyp(typ: String) -> void:
 	var werte: Dictionary = HAUTTYPEN[typ]
 	for k in ["toenung", "saettigung", "helligkeit", "poren", "rauh_versatz", "glanz", "streu", "streu_farbe", "gegerbt"]:
 		_haut_mat.set_shader_parameter(k, _haut_standard(k))
+	# Eigenes HG-Hautbild (gleiche UV, aus hg_kopf.py „haut_varianten“): <kopf>_haut_<variante>.jpg neben dem GLB
+	var bild := _haut_bild_standard
+	if werte.has("textur"):
+		var pfad := quelle.get_base_dir().path_join("%s_haut_%s.jpg" % [quelle.get_file().get_basename(), werte["textur"]])
+		if ResourceLoader.exists(pfad):
+			bild = load(pfad)
+		else:
+			push_warning("Hautbild fehlt: " + pfad)
+	_haut_mat.set_shader_parameter("farbe", bild)
 	for k in werte:
+		if k == "textur":
+			continue
 		var v = werte[k]
 		if v is Color:
 			v = Vector3(v.r, v.g, v.b)
@@ -249,6 +265,8 @@ func _process(dt: float) -> void:
 		if _formen.has(k):
 			netz.set_blend_shape_value(_formen[k], a)
 	_blick_und_haltung(dt)
+	if tressfx_aktiv:
+		_drehe("jaw", Vector3(deg_to_rad(_ist.get("jawOpen", 0.0) * 16.0), 0, 0))
 
 func _blick_und_haltung(dt: float) -> void:
 	if animiert and blick_wechsel:

@@ -48,3 +48,7 @@ game/versuch/hg/**/*.png
 game/versuch/hg/**/*.jpg
 game/versuch/hg/**/*.import
 game/versuch/hg/koepfe/
+
+# TressFX-Test (Versuch HG-Köpfe): Addon mit Binärdateien und erzeugte Strähnen nur lokal
+game/addons/tressfx/
+game/versuch/hg/tfx/

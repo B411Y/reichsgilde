@@ -19,7 +19,17 @@ void vertex() {
 
 vec3 haar_farbe(vec4 f, float wurzel) {
 	float ansatz = mix(ansatz_dunkel, 1.0, smoothstep(0.0, 0.5, wurzel));
-	return f.rgb * toenung * ansatz;
+	// HG-Atlas hat in dunklen Strähnen einen kühlen Stich (wirkt im Schatten bläulich): Farbton warm ziehen
+	float l = dot(f.rgb, vec3(0.299, 0.587, 0.114));
+	vec3 c = mix(f.rgb, l * vec3(1.22, 0.95, 0.76), 0.6);
+	return c * toenung * ansatz;
+}
+
+// Karten, die man fast von der Kante sieht, wirken als flache Flächen: dort ausblenden.
+// Flächennormale aus den Bildschirm-Ableitungen der Lage (die Modellnormale zeigt absichtlich vom Kopf weg).
+float kanten_blende(vec3 vertex, vec3 view) {
+	vec3 fn = normalize(cross(dFdx(vertex), dFdy(vertex)));
+	return smoothstep(0.03, 0.15, abs(dot(fn, view)));
 }
 
 float kk(vec3 t, vec3 n, vec3 h, float versatz, float e) {

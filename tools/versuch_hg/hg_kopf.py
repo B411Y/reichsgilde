@@ -197,9 +197,94 @@ for o in list(haare):
     kappen.append(kp)
 log("Kappen auf die Haut", [k.name for k in kappen], "Haare", [h.name for h in haare])
 
+# Wimpern ausdünnen (HG legt 768 Karten an; im Porträt reicht gut die Hälfte)
+for o in haare:
+    if "Eyelashes" in o.name and einst.get("wimpern_anteil", 1.0) < 1.0:
+        bm_ = bmesh.new(); bm_.from_mesh(o.data)
+        inseln, gesehen = [], set()
+        for f_ in bm_.faces:
+            if f_ in gesehen:
+                continue
+            stapel, insel = [f_], []
+            while stapel:
+                x = stapel.pop()
+                if x in gesehen:
+                    continue
+                gesehen.add(x); insel.append(x)
+                for e in x.edges:
+                    stapel.extend(g for g in e.link_faces if g not in gesehen)
+            inseln.append(insel)
+        schritt = 1.0 / max(1e-3, 1.0 - einst["wimpern_anteil"])
+        weg = [f_ for k_, insel in enumerate(inseln) if (k_ % round(schritt)) == 0 for f_ in insel]
+        bmesh.ops.delete(bm_, geom=weg, context="FACES")
+        bm_.to_mesh(o.data); bm_.free()
+        log("Wimpern ausgedünnt", len(inseln), "Karten,", len(weg), "Flächen weg")
+
+# Ohrpunkte (für das Ausdünnen des Haars an Elbenohren): alles, was die HG-Ohrregler bewegen
+ohr_pkt = np.zeros(N, bool)
+for n_ in ("ear_height", "ear_width", "ear_turn"):
+    d_ = np.load(os.path.join(INHALT, f"livekeys/face_proportions/ears/{n_}.npz"))
+    flat = np.zeros(N * 3); flat[d_["indices"]] = d_["relative_coordinates"]
+    ohr_pkt |= np.abs(flat.reshape(N, 3)).max(1) > 2e-4
+
+
+def haar_an_ohren_ausduennen(obj, dist, form="elb", abstand=0.014):
+    """In der Form „elb“ Haarkarten, die das Elbenohr durchstechen würde, auf ihre Wurzel zusammenziehen."""
+    if form not in deltas or not obj.data.shape_keys or form not in obj.data.shape_keys.key_blocks:
+        return
+    n = len(obj.data.vertices)
+    base = np.empty(n * 3); obj.data.vertices.foreach_get("co", base); base = base.reshape(n, 3)
+    k = obj.data.shape_keys.key_blocks[form]
+    c = np.empty(n * 3); k.data.foreach_get("co", c); c = c.reshape(n, 3)
+    M = np.array(obj.matrix_world)
+    welt = (np.c_[c, np.ones(n)] @ M.T)[:, :3]
+    ohr_w = ((rest + deltas[form]) @ np.array(mw)[:3, :3].T + np.array(mw)[:3, 3])[ohr_pkt]
+    # nur der Teil des Ohrs, der sich in der Form bewegt (das Elbenohr selbst)
+    ohr_w = ohr_w[np.linalg.norm(deltas[form][ohr_pkt], axis=1) > 0.004]
+    if len(ohr_w) == 0:
+        return
+    from mathutils.kdtree import KDTree as _KD
+    kd_ = _KD(len(ohr_w))
+    for j, p_ in enumerate(ohr_w):
+        kd_.insert(Vector(p_), j)
+    kd_.balance()
+    nah = np.array([kd_.find(Vector(p_))[2] < abstand for p_ in welt])
+    if not nah.any():
+        return
+    # Karten = zusammenhängende Teile; eine berührte Karte fällt ganz auf ihren hautnächsten Punkt zusammen
+    bm_ = bmesh.new(); bm_.from_mesh(obj.data); bm_.verts.ensure_lookup_table()
+    teil = -np.ones(n, int); t_ = 0
+    for v in bm_.verts:
+        if teil[v.index] >= 0:
+            continue
+        stapel = [v]
+        while stapel:
+            x = stapel.pop()
+            if teil[x.index] >= 0:
+                continue
+            teil[x.index] = t_
+            stapel.extend(e.other_vert(x) for e in x.link_edges if teil[e.other_vert(x).index] < 0)
+        t_ += 1
+    bm_.free()
+    karten = t_
+    # Karten, die das Elbenohr berührt, hinter das Ohr streichen (wie hinters Ohr geklemmtes Haar):
+    # ganze Karte nach hinten, je weiter vom Ansatz desto mehr; Wurzel bleibt, damit keine kahle Stelle entsteht
+    weg = np.unique(teil[nah])
+    inv3 = np.linalg.inv(M[:3, :3])
+    for t_ in weg:
+        ids = np.nonzero(teil == t_)[0]
+        f_ = np.clip(dist[ids] / 0.02, 0, 1)[:, None]
+        schub = np.array([0.0, einst.get("ohr_haar_nach_hinten", 0.028), -0.004])   # Blender: +y = hinten
+        c[ids] += f_ * (schub @ inv3.T)
+    k.data.foreach_set("co", c.reshape(-1))
+    log("Elbenohr: Haarkarten hinters Ohr gestrichen", obj.name, len(weg), "von", karten)
+
+
 for o in haare:
     i, w, d = binden(o)
     formen_uebertragen(o, i, w, d)
+    if "Eyelashes" not in o.name:
+        haar_an_ohren_ausduennen(o, d)
     # Zweite UV „Wurzel“: Abstand zur Haut (0 = Haaransatz, 1 = ab 3 cm) für den dunkleren Ansatz im Spiel-Material
     o["wurzel"] = np.clip(d / einst.get("wurzel_laenge", 0.03), 0, 1).tolist()
     log("gebunden", o.name, len(o.data.vertices), "Abstand max", round(float(d.max()), 3))
@@ -309,6 +394,11 @@ bm.to_mesh(huelle.data); bm.free()
 huelle.data.materials.clear(); huelle.data.materials.append(mat_k)
 for l in huelle.data.uv_layers[0].data:
     l.uv = (l.uv[0] + 2.0, l.uv[1])
+# Kittel ist fast eben: eigenständig grob vereinfachen (hat noch keine Formen, kein Saum zur Haut)
+if einst.get("kittel_dezimieren", 1.0) < 1.0:
+    m_ = huelle.modifiers.new("dez", "DECIMATE"); m_.ratio = einst["kittel_dezimieren"]
+    with ctx.temp_override(object=huelle, active_object=huelle):
+        bpy.ops.object.modifier_apply(modifier=m_.name)
 bm = bmesh.new(); bm.from_mesh(body.data)
 unter = [v for v in bm.verts if (v.co - ebene_p).dot(ebene_n) < -0.012]
 bmesh.ops.delete(bm, geom=unter, context="VERTS")
@@ -340,6 +430,13 @@ for n_ in ("ear_height", "ear_width", "ear_turn", "ear_antihelix_shape"):
     for v in body.data.vertices:
         if kd_o.find(v.co)[2] < 1e-5:
             ohr_schutz[v.index] = True
+# Kittel ist schon für sich vereinfacht: nicht noch einmal
+if "kittel" in body.data.attributes:
+    kf_ = np.empty(len(body.data.polygons), np.int64); body.data.attributes["kittel"].data.foreach_get("value", kf_)
+    for p_, k_ in zip(body.data.polygons, kf_):
+        if k_:
+            for vi_ in p_.vertices:
+                ohr_schutz[vi_] = True
 grp = body.vertex_groups.new(name="Sparen")
 for v in body.data.vertices:
     d = (v.co - gesicht_m).length
@@ -594,6 +691,17 @@ def kappen_einmischen(px):
     return px.reshape(-1)
 
 h_far = backen(body, haut_mats, "Base Color", r_haut, "haut_farbe", nach=kappen_einmischen)
+# Hautvarianten (anderes HG-Hautbild auf dieselbe UV, z. B. mittel/dunkel): nur die Farbe, als eigene Bilder neben dem GLB
+farb_knoten = next((n for n in body.data.materials[0].node_tree.nodes
+                    if n.bl_idname == "ShaderNodeTexImage" and n.name == "Color" and n.image), None)
+for var_name, var_pfad in einst.get("haut_varianten", {}).items():
+    if farb_knoten is None:
+        log("kein Hautbild-Knoten für Varianten"); break
+    alt_bild = farb_knoten.image
+    farb_knoten.image = bpy.data.images.load(os.path.join(INHALT, var_pfad), check_existing=True)
+    backen(body, haut_mats, "Base Color", r_haut, "haut_farbe_" + var_name, nach=kappen_einmischen)
+    farb_knoten.image = alt_bild
+    log("Hautvariante", var_name, var_pfad)
 # HG-Haut ist für Cycles abgestimmt; in Godot wirkt sie sonst ölig -> Rauheit anheben
 rmin = einst.get("haut_rauheit_min", 0.42)
 h_rau = backen(body, haut_mats, "Roughness", r_haut // 2, "haut_rauheit", nach=lambda px: rmin + (1 - rmin) * px)

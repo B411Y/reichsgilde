@@ -16,7 +16,7 @@ void fragment() {
 	ROUGHNESS = 0.6;
 	SPECULAR = 0.0;
 	BACKLIGHT = vec3(0.22, 0.15, 0.1);
-	ALPHA = f.a;
+	ALPHA = f.a * kanten_blende(VERTEX, VIEW);
 	ALPHA_SCISSOR_THRESHOLD = 0.5;
 	ALPHA_ANTIALIASING_EDGE = 0.3;
 	ALPHA_TEXTURE_COORDINATE = UV * vec2(textureSize(farbe, 0));

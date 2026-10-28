@@ -18,6 +18,9 @@ var _fenster: Array[HgFenster] = []
 var _schritt := 0
 var _warte := 0.0
 var _bilder_n := 0
+var _stats: Control
+var tressfx := ""          # --tressfx=res://versuch/hg/tfx : Frisur und Bart als TressFX-Strähnen
+var tfx_einzeln := false   # --tfx-einzeln: nur Köpfe mit @tfx:1 bekommen TressFX (Vergleichstafel)
 
 func _ready() -> void:
 	seed(7)
@@ -26,6 +29,8 @@ func _ready() -> void:
 		elif a.begins_with("--kopf="): koepfe = a.substr(7).split(",")
 		elif a.begins_with("--modus="): modus = a.substr(8)
 		elif a.begins_with("--anzahl="): anzahl = int(a.substr(9))
+		elif a.begins_with("--tressfx="): tressfx = a.substr(10)
+		elif a == "--tfx-einzeln": tfx_einzeln = true
 		elif a.begins_with("--fest="):
 			for p in a.substr(7).split(","):
 				var kv := p.split(":")
@@ -71,6 +76,20 @@ func _ready() -> void:
 	for f in _fenster:
 		for k in feste:
 			f.kopf.setze_fest(k, feste[k])
+		# TressFX: alle Fenster (--tressfx=<ordner>) oder nur die mit „@tfx:1“ im Kopfpfad;
+		# Strähnen je Kopf in <ordner>/<glb-name>/ (frisur.tfx, bart.tfx)
+		if tressfx != "" and (not tfx_einzeln or f.get_meta("tfx", false)):
+			f.ansicht.use_taa = true
+			var kname := f.kopf.quelle.get_file().get_basename()
+			HgTressFX.anbringen(f.kopf, tressfx.path_join(kname), Color(0.11, 0.07, 0.045))
+	if tressfx != "" and modus == "mess":
+		var cl := CanvasLayer.new()
+		add_child(cl)
+		if ClassDB.class_exists("TressFXStats"):
+			var st: Control = ClassDB.instantiate("TressFXStats")
+			st.position = Vector2(1200, 10)
+			cl.add_child(st)
+			_stats = st
 	if modus == "regler":
 		_regler_bauen()
 	if modus in ["nah", "tafel", "reihe"]:
@@ -90,6 +109,8 @@ func _neu(pfad: String, gr: Vector2i, pos: Vector2) -> HgFenster:
 			var kv := p.split(":")
 			if kv[0] == "haut":
 				f.kopf.setze_hauttyp(kv[1])
+			elif kv[0] == "tfx":
+				f.set_meta("tfx", kv[1] == "1")
 			else:
 				f.kopf.setze_fest(kv[0], float(kv[1]))
 	return f
@@ -193,6 +214,8 @@ func _mess(dt: float) -> void:
 	_bilder_n += 1
 	if _t > 9.0:
 		print("MESS ", anzahl, " Köpfe: ", snappedf(_bilder_n / (_t - 3.0), 0.1), " Bilder/s")
+		if _stats and _stats.has_method("get"):
+			print("TRESSFX ", _stats.get("text"))
 		if bilder != "":
 			await _foto("mess_%d" % anzahl)
 		get_tree().quit()
