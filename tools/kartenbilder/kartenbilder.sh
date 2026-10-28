@@ -5,7 +5,8 @@
 #   tools/kartenbilder/kartenbilder.sh probestadt koeln   nur diese (nach einer Änderung der Karte nachrendern)
 # Jede Karte startet als Partie mit --kartenbild=<ziel>: Kamera auf die ganze Karte, ohne Oberfläche, Mittag im Sommer bei klarem Wetter;
 # nach 6 s speichert das Spiel das Bild und beendet sich. Braucht Godot 4.7.2 mono und ein Fenster: unter Linux ohne Bildschirm Xvfb
-# (Ordner ~/werkzeuge/xvfb wie in CLAUDE.md). Mit Grafikkarte (Vulkan) bessere Kanten: TREIBER=vulkan. Danach einmal importieren
+# (Ordner ~/werkzeuge/xvfb wie in CLAUDE.md). Gerendert wird mit Vulkan (Forward+ wie das Spiel; opengl3 zeigt Häuser ohne Texturen):
+# TREIBER=nvidia (Standard, Grafikkarte über ~/werkzeuge/vulkan/nvidia_icd.json), TREIBER=vulkan (Software, lvp.json), TREIBER=opengl3 nur Notbehelf. Danach einmal importieren
 # (--headless --import --path game) und die Bilder ansehen. Selbst gebaute Karten der Kartenwerkstatt bekommen keine Vorschau (Platzhalter).
 set -e
 WURZEL=$(cd "$(dirname "$0")/../.." && pwd)
@@ -23,8 +24,11 @@ if [ -z "$DISPLAY" ] && [ -d "$X" ]; then
   sleep 2
   export DISPLAY=$D
 fi
+TREIBER=${TREIBER:-nvidia}
+if [ "$TREIBER" = nvidia ]; then export VK_ICD_FILENAMES=$HOME/werkzeuge/vulkan/nvidia_icd.json; unset __GLX_VENDOR_LIBRARY_NAME; TREIBER=vulkan; fi
+if [ "$TREIBER" = vulkan ] && [ -z "$VK_ICD_FILENAMES" ]; then export VK_ICD_FILENAMES=$HOME/werkzeuge/vulkan/lvp.json; export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$HOME/werkzeuge/vulkan/root/usr/lib/x86_64-linux-gnu; fi
 mkdir -p "$WURZEL/game/assets/oberflaeche/karten"
 for K in $KARTEN; do
-  "$GODOT" --rendering-driver "${TREIBER:-opengl3}" --path "$WURZEL/game" --resolution 1600x900 -- \
+  "$GODOT" --rendering-driver "$TREIBER" --path "$WURZEL/game" --resolution 1600x900 -- \
     --karte=$K --startstunde=12 --jahreszeit=sommer --wetter=klar --kartenbild="$WURZEL/game/assets/oberflaeche/karten/$K.png" | grep -i "kartenbild"
 done

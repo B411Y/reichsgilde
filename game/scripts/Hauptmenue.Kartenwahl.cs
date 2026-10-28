@@ -49,8 +49,11 @@ public partial class Hauptmenue
             Text = "Entwickler-Optionen", ButtonPressed = Entwickler.Aktiv, FocusMode = Control.FocusModeEnum.None,
             TooltipText = "Für die Arbeit am Spiel: zeigt in der Kartenwahl auch Test- und Messkarten (später weitere Hilfen).",
         };
-        _entwicklerHaken.AddThemeFontSizeOverride("font_size", 12);
-        _entwicklerHaken.AddThemeColorOverride("font_color", new Color(0.6f, 0.6f, 0.6f));
+        _entwicklerHaken.AddThemeFontSizeOverride("font_size", 14);
+        // unauffällig, aber lesbar: 60 % Deckkraft, beim Darüberfahren voll
+        _entwicklerHaken.Modulate = new Color(1, 1, 1, 0.6f);
+        _entwicklerHaken.MouseEntered += () => _entwicklerHaken.Modulate = Colors.White;
+        _entwicklerHaken.MouseExited += () => _entwicklerHaken.Modulate = new Color(1, 1, 1, 0.6f);
         _entwicklerHaken.Toggled += Entwickler.Setzen;
         _entwicklerHaken.SizeFlagsHorizontal = Control.SizeFlags.ShrinkEnd;
         _entwicklerHaken.SizeFlagsVertical = Control.SizeFlags.ShrinkEnd;
