@@ -923,6 +923,13 @@ for o in haare:
     o.parent = rig
     am = o.modifiers.new("Armature", "ARMATURE"); am.object = rig
 
+# Unterkiefer-Zähne: die Kieferbewegung steckt schon in ihren Formen (Schritt 2) -> am Kopfknochen wiegen,
+# damit das Spiel den Kieferknochen für Bart-Strähnen drehen kann, ohne die Zähne doppelt zu bewegen
+if "jaw" in zl.vertex_groups:
+    gj = zl.vertex_groups["jaw"]; gh = zl.vertex_groups.get("head") or zl.vertex_groups.new(name="head")
+    alle = list(range(len(zl.data.vertices)))
+    gh.add(alle, 1.0, "REPLACE"); zl.vertex_groups.remove(gj)
+
 # Knochen: nur was das Brustbild braucht
 behalten = set(einst.get("knochen", ["spine", "spine.001", "spine.002", "spine.003", "neck", "head", "jaw",
                                         "eyeball.L", "eyeball.R", "shoulder.L", "shoulder.R",

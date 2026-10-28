@@ -20,7 +20,8 @@ var _warte := 0.0
 var _bilder_n := 0
 var _stats: Control
 var tressfx := ""          # --tressfx=res://versuch/hg/tfx : Frisur und Bart als TressFX-Strähnen
-var tfx_einzeln := false   # --tfx-einzeln: nur Köpfe mit @tfx:1 bekommen TressFX (Vergleichstafel)
+var tfx_einzeln := false   # --tfx-einzeln: nur Köpfe mit @tfx:… bekommen TressFX (Vergleichstafel)
+var tfx_variante := "voll" # --tfx-variante=voll|sparsam|ruhe
 
 func _ready() -> void:
 	seed(7)
@@ -31,6 +32,7 @@ func _ready() -> void:
 		elif a.begins_with("--anzahl="): anzahl = int(a.substr(9))
 		elif a.begins_with("--tressfx="): tressfx = a.substr(10)
 		elif a == "--tfx-einzeln": tfx_einzeln = true
+		elif a.begins_with("--tfx-variante="): tfx_variante = a.substr(15)
 		elif a.begins_with("--fest="):
 			for p in a.substr(7).split(","):
 				var kv := p.split(":")
@@ -78,10 +80,15 @@ func _ready() -> void:
 			f.kopf.setze_fest(k, feste[k])
 		# TressFX: alle Fenster (--tressfx=<ordner>) oder nur die mit „@tfx:1“ im Kopfpfad;
 		# Strähnen je Kopf in <ordner>/<glb-name>/ (frisur.tfx, bart.tfx)
-		if tressfx != "" and (not tfx_einzeln or f.get_meta("tfx", false)):
+		# Variante je Kopf: @tfx:voll | @tfx:sparsam | @tfx:ruhe (sparsam, ohne Simulation); sonst --tfx-variante
+		var tv: String = f.get_meta("tfx", "")
+		if tressfx != "" and (not tfx_einzeln or tv != ""):
+			if tv == "":
+				tv = tfx_variante
 			f.ansicht.use_taa = true
 			var kname := f.kopf.quelle.get_file().get_basename()
-			HgTressFX.anbringen(f.kopf, tressfx.path_join(kname), Color(0.11, 0.07, 0.045))
+			HgTressFX.anbringen(f.kopf, tressfx.path_join(kname), Color(0.11, 0.07, 0.045),
+				"" if tv == "voll" else "sparsam", tv == "ruhe")
 	if tressfx != "" and modus == "mess":
 		var cl := CanvasLayer.new()
 		add_child(cl)
@@ -110,7 +117,7 @@ func _neu(pfad: String, gr: Vector2i, pos: Vector2) -> HgFenster:
 			if kv[0] == "haut":
 				f.kopf.setze_hauttyp(kv[1])
 			elif kv[0] == "tfx":
-				f.set_meta("tfx", kv[1] == "1")
+				f.set_meta("tfx", "voll" if kv[1] == "1" else kv[1])
 			else:
 				f.kopf.setze_fest(kv[0], float(kv[1]))
 	return f
@@ -241,6 +248,13 @@ func _regler_bauen() -> void:
 		var s := HSlider.new(); s.min_value = -1.0; s.max_value = 1.0; s.step = 0.01; s.custom_minimum_size.x = 260
 		s.value = feste.get(n, 0.0)
 		s.value_changed.connect(func(v): k.setze_fest(n, v))
+		zeile.add_child(l); zeile.add_child(s)
+		box.add_child(zeile)
+	if k.has_meta("tressfx"):
+		var zeile := HBoxContainer.new()
+		var l := Label.new(); l.text = "TressFX Volumen"; l.custom_minimum_size.x = 180
+		var s := HSlider.new(); s.min_value = 0.0; s.max_value = 1.0; s.step = 0.01; s.value = 0.3; s.custom_minimum_size.x = 260
+		s.value_changed.connect(func(v): HgTressFX.setze_volumen(k, v))
 		zeile.add_child(l); zeile.add_child(s)
 		box.add_child(zeile)
 	var knopf := Button.new(); knopf.text = "Sprechen"

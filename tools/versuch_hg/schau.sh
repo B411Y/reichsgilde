@@ -2,6 +2,18 @@
 # HG-Testszene unter eigenem Xvfb (:95) mit Vulkan auf der NVIDIA T400 starten.
 # Aufruf: schau.sh <bildordner> <Auflösung 1280x720> [Godot-Nutzerargumente...]; GODOT_EXTRA z. B. "--write-movie x.avi --fixed-fps 30"
 B=$1; RES=${2:-1280x720}; shift 2
+# Argumente „godot:<opt>“ gehen an Godot (z. B. godot:--disable-vsync), „zeit:<s>“ setzt die Zeitgrenze,
+# „anzeige:<:n>“ die Xvfb-Anzeige – so braucht der Aufruf keine Umgebungsvariablen
+GX="$GODOT_EXTRA"; REST=()
+for a in "$@"; do
+  case "$a" in
+    godot:*) GX="$GX ${a#godot:}" ;;
+    zeit:*) ZEIT=${a#zeit:} ;;
+    anzeige:*) ANZEIGE=${a#anzeige:} ;;
+    *) REST+=("$a") ;;
+  esac
+done
+set -- "${REST[@]}"
 P=$(cd "$(dirname "$0")/../../game" && pwd)
 X=~/werkzeuge/xvfb
 G=~/werkzeuge/godot/Godot_v4.7.2-stable_mono_linux_x86_64/Godot_v4.7.2-stable_mono_linux.x86_64
@@ -14,5 +26,5 @@ D=${ANZEIGE:-:93}
 $X/Xvfb-gepatcht $D -screen 0 ${RES}x24 -xkbdir $X/root/usr/share/X11/xkb -nolisten tcp +extension GLX > "$B/xvfb.log" 2>&1 &
 XPID=$!
 sleep 2
-DISPLAY=$D timeout ${ZEIT:-300} $G --rendering-driver vulkan --path "$P" --resolution $RES res://versuch/hg/hg_schau.tscn $GODOT_EXTRA -- --bilder="$B" "$@" > "$B/godot.log" 2>&1
+DISPLAY=$D timeout ${ZEIT:-300} $G --rendering-driver vulkan --path "$P" --resolution $RES res://versuch/hg/hg_schau.tscn $GX -- --bilder="$B" "$@" > "$B/godot.log" 2>&1
 kill $XPID

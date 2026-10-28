@@ -32,7 +32,8 @@ be = body.evaluated_get(dg)
 me = be.to_mesh()
 me.calc_loop_triangles()
 mw = be.matrix_world
-bvh = BVHTree.FromPolygons([mw @ v.co for v in me.vertices], [t.vertices[:] for t in me.loop_triangles])
+haut_pkt = np.array([mw @ v.co for v in me.vertices])
+bvh = BVHTree.FromPolygons([Vector(p) for p in haut_pkt], [t.vertices[:] for t in me.loop_triangles])
 be.to_mesh_clear()
 mund_z = (rig.matrix_world @ rig.data.bones["jaw"].tail_local).z if "jaw" in rig.data.bones else None
 
@@ -101,7 +102,47 @@ def schreibe_tfxbone(pfad, knochen_je_straehne):
                 f.write(struct.pack("<If", idx[k], 1.0 if j == 0 else 0.0))
 
 
-def teil_exportieren(name, hair, punkte, kinder, knochen_fn):
+kopf_mitte = np.array(rig.matrix_world @ (rig.data.bones["head"].head_local + Vector((0, 0.0, 0.09))))
+
+
+def volumen_geben(st, cm):
+    """Haar etwas vom Kopf abheben: jeder Punkt wandert vom Kopfmittelpunkt weg, an der Wurzel 0, zur Spitze voll.
+    Gibt der Frisur Fülle, statt dass sie wie nass am Schädel klebt."""
+    if cm <= 0:
+        return st
+    bogen = np.concatenate([np.zeros((len(st), 1)), np.cumsum(np.linalg.norm(np.diff(st, axis=1), axis=2), axis=1)], axis=1)
+    t = bogen / np.maximum(bogen[:, -1:], 1e-6)
+    richt = st - kopf_mitte
+    richt /= np.maximum(np.linalg.norm(richt, axis=2, keepdims=True), 1e-6)
+    return st + richt * (cm / 100.0) * np.sqrt(t)[:, :, None]
+
+
+def ansatz_ausduennen(st, knochen, cm):
+    """Weicher Haaransatz an Stirn und Schläfen: Strähnen, deren Wurzel nahe an kahler Stirnhaut sitzt, zufällig
+    weglassen (an der Kante bleibt ~15 %, nach cm Zentimetern alle) – statt einer harten Haarlinie."""
+    from mathutils.kdtree import KDTree
+    wurzeln = st[:, 0]
+    kd = KDTree(len(wurzeln))
+    for i, p in enumerate(wurzeln):
+        kd.insert(Vector(p), i)
+    kd.balance()
+    auge_z = (rig.matrix_world @ rig.data.bones["eyeball.L"].head_local).z
+    vorn = (haut_pkt[:, 2] > auge_z + 0.01) & (haut_pkt[:, 1] < kopf_mitte[1] + 0.02)   # Stirn und Schläfen (HG: vorn = -y)
+    kahl = [p for p in haut_pkt[vorn] if kd.find(Vector(p))[2] > 0.006]
+    if not kahl:
+        return st, knochen
+    kk = KDTree(len(kahl))
+    for i, p in enumerate(kahl):
+        kk.insert(Vector(p), i)
+    kk.balance()
+    d = np.array([kk.find(Vector(p))[2] for p in wurzeln])
+    t = np.clip(d / (cm / 100.0), 0, 1)
+    behalten = np.random.default_rng(11).random(len(st)) < (0.15 + 0.85 * t * t * (3 - 2 * t))
+    log("Haaransatz weich:", int((~behalten).sum()), "Strähnen am Rand weggelassen")
+    return st[behalten], [k for k, b in zip(knochen, behalten) if b]
+
+
+def teil_exportieren(name, hair, punkte, kinder, knochen_fn, anteil=1.0, volumen=0.0, endung=""):
     mods = list(hair.modifiers)
     if not mods:
         log(name, "kein Partikelhaar"); return
@@ -134,14 +175,27 @@ def teil_exportieren(name, hair, punkte, kinder, knochen_fn):
     if not straehnen:
         log(name, "keine Strähnen"); return
     st = np.array(straehnen)
-    schreibe_tfx(os.path.join(ziel, name + ".tfx"), st)
-    schreibe_tfxbone(os.path.join(ziel, name + ".tfxbone"), knochen)
+    if anteil < 1.0:
+        # Leitsträhnen gleichmäßig ausdünnen (Zufall mit festem Startwert); die Lücken füllen in Godot Folgehaare
+        wahl = np.sort(np.random.default_rng(7).choice(len(st), int(len(st) * anteil), replace=False))
+        st = st[wahl]; knochen = [knochen[i] for i in wahl]
+    if name == "frisur" and P.get("ansatz_weich", 2.0) > 0:
+        st, knochen = ansatz_ausduennen(st, knochen, P.get("ansatz_weich", 2.0))
+    st = volumen_geben(st, volumen)
+    schreibe_tfx(os.path.join(ziel, name + endung + ".tfx"), st)
+    schreibe_tfxbone(os.path.join(ziel, name + endung + ".tfxbone"), knochen)
     laenge = np.linalg.norm(np.diff(st, axis=1), axis=2).sum(1)
-    log(name, "Strähnen", len(st), "Punkte je Strähne", punkte, "Länge cm Mittel", round(float(laenge.mean() * 100), 1),
+    log(name + endung, "Strähnen", len(st), "Volumen cm", volumen, "Punkte je Strähne", punkte, "Länge cm Mittel", round(float(laenge.mean() * 100), 1),
         "Knochen", {k: knochen.count(k) for k in set(knochen)})
 
 
-teil_exportieren("frisur", h.hair.regular_hair, P.get("punkte_frisur", 16), P.get("kinder_frisur", 100), lambda r: "head")
-if h.gender == "male":
-    teil_exportieren("bart", h.hair.face_hair, P.get("punkte_bart", 8), P.get("kinder_bart", 100),
-                     lambda r: "jaw" if mund_z is not None and r[2] < mund_z - 0.012 else "head")
+# Varianten: voll (alle Leitsträhnen) und sparsam (Anteil Leitsträhnen, weniger Punkte; Folgehaare in Godot)
+# Bart: deutlich weniger Strähnen als HG-Kindhaare (sonst ein dunkler Block), Simulation in Godot ohnehin aus
+for endung, v in P.get("varianten", {"": {"anteil": 1.0, "pf": 16, "pb": 8, "ab": 0.35},
+                                     "_sparsam": {"anteil": 0.15, "pf": 8, "pb": 4, "ab": 0.25}}).items():
+    teil_exportieren("frisur", h.hair.regular_hair, v["pf"], P.get("kinder_frisur", 100), lambda r: "head",
+                     v["anteil"], P.get("volumen_frisur", 0.8), endung)
+    if h.gender == "male":
+        teil_exportieren("bart", h.hair.face_hair, v["pb"], P.get("kinder_bart", 20),
+                         lambda r: "jaw" if mund_z is not None and r[2] < mund_z - 0.012 else "head",
+                         v["ab"], P.get("volumen_bart", 0.1), endung)
