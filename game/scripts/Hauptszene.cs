@@ -444,6 +444,7 @@ public partial class Hauptszene : Node
         if (optionen.GetValueOrDefault("messe") == "1") _stadt.MesseVorgeben(); // Kirchenfenster wie zur Messe, nur Darstellung (Stadtansicht.Modelle.cs)
         if (optionen.TryGetValue("ui", out var ui) && ui == "0")
             GetNode<CanvasLayer>("Oberflaeche").Visible = false; // freie Sicht auf die Stadt für Bildschirmfotos
+        if (optionen.TryGetValue("kartenbild", out var kartenbild)) KartenbildAufnehmen(kartenbild);
         if (optionen.TryGetValue("verwalten", out var verwalten) && verwalten is "1" or "mehr" && _eigeneGiesserei is not null)
         {
             BetriebAuswaehlen(_eigeneGiesserei, hinfahren: false);
@@ -1659,5 +1660,27 @@ public partial class Hauptszene : Node
             zeilen.Add($"{k.Name} ({k.Eskorte} Eskorte): {k.ZustandText(_simulation.Zeit)}{(ladung == "" ? "" : $" · {ladung}")}");
         }
         return string.Join("\n", zeilen);
+    }
+
+    /// <summary>
+    /// <c>--kartenbild=&lt;ziel.png&gt;</c>: stellt die Kamera auf die ganze Karte (Mitte des Spielfelds, Zoom = Tiefe des Spielfelds), blendet die Oberfläche
+    /// aus, speichert nach 6 s ein Bild (480 × 270) als Vorschau für die Kartenwahl und beendet das Spiel. Gemacht für
+    /// <c>tools/kartenbilder/kartenbilder.sh</c>; braucht ein Fenster (Xvfb).
+    /// </summary>
+    private void KartenbildAufnehmen(string ziel)
+    {
+        GetNode<CanvasLayer>("Oberflaeche").Visible = false;
+        if (Stadtkarten.Startkarte?.Kartengrenzen is { } grenzen)
+            _stadt.KameraSetzen((float)grenzen.Mitte.X, (float)grenzen.Mitte.Z, (float)grenzen.Tiefe * 1.1f);
+        var uhr = new Godot.Timer { WaitTime = 6, OneShot = true, Autostart = true };
+        uhr.Timeout += () =>
+        {
+            var bild = GetViewport().GetTexture().GetImage();
+            bild.Resize(480, 270, Image.Interpolation.Lanczos);
+            var fehler = bild.SavePng(ziel);
+            GD.Print(fehler == Error.Ok ? $"Kartenbild geschrieben: {ziel}" : $"Kartenbild {ziel}: {fehler}");
+            GetTree().Quit();
+        };
+        AddChild(uhr);
     }
 }
