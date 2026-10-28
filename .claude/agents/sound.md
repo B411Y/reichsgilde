@@ -14,7 +14,7 @@ Dateien: `game/assets/audio/**`, Audio-Busse, eigene Klang-Skripte `game/scripts
 
 ## Arbeitsweise (gilt für jedes schreibende Mitglied)
 
-- Lies zuerst `CLAUDE.md` vollständig, dann deine Bereichsdatei `docs/bereiche/<bereich>.md` und die Abschnitte der Doku, die deine Aufgabe betreffen. Die Regeln der CLAUDE.md gelten für dich wie für einen eigenen Chat.
+- Lies zuerst `CLAUDE.md` vollständig, dann deine Bereichsdatei `docs/bereiche/<bereich>.md` (Offen, Entscheidungen) und die Abschnitte der Doku und des Archivs `docs/ENTSCHEIDUNGEN.md`, die deine Aufgabe betreffen. Die Regeln der CLAUDE.md gelten für dich.
 - Arbeite im Worktree und auf dem Branch `phaseN/thema-<name>`, die der Teamleiter im Auftrag nennt. Pushe nur diesen Branch. Öffne **keine eigenen PRs**, mergst nicht nach `main` und nicht in andere Branches.
 - Dateien außerhalb deines Bereichs nur klein und begründet ändern und im Abschlussbericht nennen.
 - Tests müssen grün bleiben (`dotnet run -c Release --project tests/Reichsgilde.Core.Tests`); nie einen Test abschalten.
