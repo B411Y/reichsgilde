@@ -998,7 +998,8 @@ public partial class Stadtansicht
                 continue;
             }
             // Wer sitzt (Feinarbeit), hat die Hüfte auf Sitzhöhe des Menschen: kleine Völker sitzen höher, Orks tiefer (wie die Sitzenden im Dom).
-            if (platz.Bewegung is "Feinarbeit" or "Schreiben") halter.Position = new Vector3(0, SitzKniehoehe - figur.Kniehoehe, 0);
+            if (figur.Ki && platz.Bewegung == "Haemmern") halter.Position = new Vector3(0, 0, -KiAmbossAbstand); // näher an den Amboss: der Hammer reicht nur so weit wie der Arm
+                        if (platz.Bewegung is "Feinarbeit" or "Schreiben") halter.Position = new Vector3(0, SitzKniehoehe - figur.Kniehoehe, 0);
             var koerper = new StaticBody3D();
             koerper.SetMeta("innen", "arbeiter:" + zeile.Nummer);
             var form = new CollisionShape3D { Shape = new CapsuleShape3D { Radius = 0.38f, Height = 1.75f }, Position = new Vector3(0, 0.88f, 0) };
