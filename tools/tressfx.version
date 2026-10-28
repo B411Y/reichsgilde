@@ -1,0 +1,9 @@
+# TressFX-Release, das der Export holt. Neue Version: Tag und Summen aus SHA256SUMS.txt des Releases eintragen.
+TAG=tressfx-a5cc2b1
+f76d4f4df749a60e3e8a5327f91b87df056cf35702164e07383e1e2a33c8a4b1  libtressfx.linux.template_debug.x86_64.so
+1f81e1733cfeed2b83400817a117a1069cf066e0c13c9d7cf0c6e5ff5e301aa8  libtressfx.linux.template_release.x86_64.so
+555bdcfa1638d26422a676410349fd21796c93fcab392b8939c4099c19b2422a  libtressfx.windows.template_debug.x86_64.dll
+3a1868df4eb75548a88f8d8e29744f6e457c3e88908239b9ee01a49e861ad36f  libtressfx.windows.template_release.x86_64.dll
+09fe92cc51337e0bad9c8b188f8ba6c5831bf7706e1cd127399eb9d354c8ac82  tressfx-addon.zip
+7a4f14d8a90c0e29351f148d9e97eb34dedc959c406a18761fa832eebb305ceb  LICENSE-TressFX-Godot.txt
+26a5b210d90760156ce886267ce9df235787dcc6cebfd7ecd95ef5b6fdcc95bf  LICENSE-godot-cpp.txt
