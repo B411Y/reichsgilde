@@ -100,18 +100,25 @@ public partial class Stadtansicht
     private const float KiAmbossAbstand = 0.25f;
     private const double KiHaemmerDauer = 1.1;
     private const int KiSchulter = 26, KiHandwurzel = 28, KiRueckenUnten = 2, KiRueckenOben = 3;
-    /// <summary>Länge des Hammers von der Faust bis zur Mitte des Kopfes (Meter).</summary>
-    private const float KiHammerLaenge = 0.33f;
+    // Die Hand (Knochen 28, Handwurzel) im eigenen Raum: +Y zu den Fingern, −Z zur Handfläche, +X zum kleinen Finger. Die Faust sitzt bei (0 | 0,075 | −0,02) Einheiten;
+    // der Hammer liegt quer in ihr, der Kopf auf der Daumenseite (−X) und etwas zu den Fingern hin.
+    private static readonly Vector3 KiFaust = new(0f, 0.075f, -0.02f);
+    private static readonly Vector3 KiStielInHand = new Vector3(-0.94f, 0.34f, 0f).Normalized();
+    private static readonly Vector3 KiFlaecheInHand = new(0f, 0f, -1f);
 
-    /// <summary>Schlüsselbilder eines Schlags: Zeit (s), Hand (Meter), Richtung des Hammers, Beuge des Oberkörpers (Grad). Der Amboss liegt 0,43 m vor und 0,86 m über den Füßen.</summary>
-    private static readonly (double Zeit, Vector3 Hand, Vector3 Hammer, float Beuge)[] KiHaemmerBilder =
+    /// <summary>
+    /// Schlüsselbilder eines Schlags: Zeit (s), Faust (Meter), Neigung des Stiels (Grad über der Waagerechten, vorwärts gedacht), Beuge des Oberkörpers (Grad).
+    /// Der Stiel zeigt von der Hand weg nach vorn, die Schlagfläche des Kopfes senkrecht dazu: beim Schlag (−20°) nach unten, beim Ausholen (+80°) nach vorn.
+    /// Der Amboss liegt 0,43 m vor und 0,86 m über den Füßen; die Schlagfläche liegt 0,085 m neben der Kopfmitte.
+    /// </summary>
+    private static readonly (double Zeit, Vector3 Hand, float Neigung, float Beuge)[] KiHaemmerBilder =
     {
-        (0.00, new Vector3(-0.21f, 1.28f, 0.30f), new Vector3(0, 0.75f, 0.65f), 0f),   // Hammer vor der Schulter
-        (0.22, new Vector3(-0.20f, 1.38f, 0.22f), new Vector3(0, 0.90f, 0.40f), -2f),  // ausholen
-        (0.40, new Vector3(-0.06f, 1.05f, 0.15f), new Vector3(0, -0.55f, 0.83f), 10f), // Schlag: der Kopf trifft (−0,06 | 0,87 | 0,43)
-        (0.47, new Vector3(-0.07f, 1.10f, 0.16f), new Vector3(0, -0.30f, 0.95f), 9f),  // Nachfedern
-        (0.75, new Vector3(-0.15f, 1.21f, 0.25f), new Vector3(0, 0.40f, 0.90f), 4f),
-        (1.10, new Vector3(-0.21f, 1.28f, 0.30f), new Vector3(0, 0.75f, 0.65f), 0f),
+        (0.00, new Vector3(-0.21f, 1.28f, 0.30f), 70f, 0f),   // Hammer vor der Schulter
+        (0.22, new Vector3(-0.20f, 1.38f, 0.22f), 80f, -2f),  // ausholen
+        (0.40, new Vector3(-0.05f, 1.04f, 0.18f), -20f, 10f), // Schlag: die Fläche trifft (−0,05 | 0,86 | 0,43)
+        (0.47, new Vector3(-0.07f, 1.10f, 0.16f), -5f, 9f),   // Nachfedern
+        (0.75, new Vector3(-0.15f, 1.21f, 0.25f), 40f, 4f),
+        (1.10, new Vector3(-0.21f, 1.28f, 0.30f), 70f, 0f),
     };
 
     private static Vector3 KiModellRaum(Vector3 meter) => new(meter.X / KiSchmiedGroesse, meter.Y / KiSchmiedGroesse - KiSchmiedFusshoehe, meter.Z / KiSchmiedGroesse);
@@ -157,7 +164,7 @@ public partial class Stadtansicht
         var schulter = sk.GetBoneGlobalPose(KiSchulter).Origin;
         var l1 = (sk.GetBoneGlobalPose(KiSchulter + 1).Origin - schulter).Length();
         var l2 = (sk.GetBoneGlobalPose(KiHandwurzel).Origin - sk.GetBoneGlobalPose(KiSchulter + 1).Origin).Length();
-        foreach (var (zeit, hand, hammer, beuge) in KiHaemmerBilder)
+        foreach (var (zeit, hand, neigung, beuge) in KiHaemmerBilder)
         {
             foreach (var (b, q) in basis) sk.SetBonePoseRotation(b, q);
             // Oberkörper beugt nach vorn (Drehung um die X-Achse des Modells, je zur Hälfte in zwei Rückenknochen)
@@ -169,7 +176,13 @@ public partial class Stadtansicht
             }
             // Zwei-Knochen-IK: Ellbogen nach unten und außen
             schulter = sk.GetBoneGlobalPose(KiSchulter).Origin;
-            var ziel = KiModellRaum(hand);
+            // Hand zuerst: Stiel zeigt von der Faust nach vorn (Neigung), die Schlagfläche senkrecht dazu; daraus die Lage der Handwurzel
+            var w = Mathf.DegToRad(neigung);
+            var stiel = new Vector3(0, Mathf.Sin(w), Mathf.Cos(w));
+            var flaeche = new Vector3(0, -Mathf.Cos(w), Mathf.Sin(w));
+            var inHand = new Basis(KiStielInHand, KiFlaecheInHand, KiStielInHand.Cross(KiFlaecheInHand));
+            var handBasis = new Basis(stiel, flaeche, stiel.Cross(flaeche)) * inHand.Inverse();
+            var ziel = KiModellRaum(hand) - handBasis * KiFaust;
             var weg = ziel - schulter;
             var d = Mathf.Min(weg.Length(), l1 + l2 - 0.002f);
             var richtung = weg.Normalized();
@@ -182,7 +195,8 @@ public partial class Stadtansicht
             KiAusrichten(sk, KiSchulter, ellbogenJetzt - schulter, ellbogen - schulter);
             ellbogenJetzt = sk.GetBoneGlobalPose(KiSchulter + 1).Origin;
             KiAusrichten(sk, KiSchulter + 1, sk.GetBoneGlobalPose(KiHandwurzel).Origin - ellbogenJetzt, schulter + richtung * d - ellbogenJetzt);
-            KiAusrichten(sk, KiHandwurzel, sk.GetBoneGlobalPose(KiHandwurzel).Basis.Y, hammer);
+            var handEltern = sk.GetBoneGlobalPose(sk.GetBoneParent(KiHandwurzel)).Basis.Orthonormalized();
+            sk.SetBonePoseRotation(KiHandwurzel, (handEltern.Inverse() * handBasis).GetRotationQuaternion());
             foreach (var (b, spur) in spuren) neu.TrackInsertKey(spur, zeit, sk.GetBonePoseRotation(b));
         }
         return neu;
@@ -201,11 +215,11 @@ public partial class Stadtansicht
         var anker = new BoneAttachment3D { BoneName = $"bone_{KiHandwurzel}" };
         skelett.AddChild(anker);
         _kiHammerStoff ??= new StandardMaterial3D { VertexColorUseAsAlbedo = true, Roughness = 0.7f };
-        // Das Netz ist in Metern, das Modell in Einheiten zu 1,78 m; der Kopf sitzt im Netz am unteren Ende (y 0,46), der Griff am oberen (y 0,80):
-        // um 180° gedreht zeigt der Kopf von der Hand weg, in die Richtung des Unterarms (die Hand wird zum Hammer hin ausgerichtet).
-        var lage = new Basis(Vector3.Right, Mathf.Pi).Scaled(Vector3.One / KiSchmiedGroesse);
+        // Das Netz ist in Metern, das Modell in Einheiten zu 1,78 m. Im Netz läuft der Stiel entlang Y (der Kopf am unteren Ende, y 0,46; der Griff am oberen, y 0,80),
+        // die Fläche des Kopfes liegt entlang Z. Abbildung in den Handraum: Kopf-Richtung (−Y) → Stiel in der Hand, Z → Fläche, X ergänzt.
+        var lage = new Basis(-(KiStielInHand.Cross(KiFlaecheInHand)), -KiStielInHand, KiFlaecheInHand).Scaled(Vector3.One / KiSchmiedGroesse);
         var hammer = new MeshInstance3D { Mesh = netz, MaterialOverride = _kiHammerStoff, Visible = false, Name = "Hammer" };
-        hammer.Transform = new Transform3D(lage, -(lage * new Vector3(-0.21f, 0.80f, 0.015f)));
+        hammer.Transform = new Transform3D(lage, KiFaust - lage * new Vector3(-0.21f, 0.80f, 0.015f));
         anker.AddChild(hammer);
         figur.Werkzeuge["Hammer"] = hammer;
     }
@@ -297,17 +311,15 @@ public partial class Stadtansicht
     private static readonly Dictionary<Mesh, Material> _kiHervorhebung = new();
 
     /// <summary>
-    /// Das Material des KI-Schmieds mit warmem Eigenleuchten (Hervorheben, Auswahl): ein Abbild des Materials aus der Datei, einmal je Netz.
-    /// Die helle Schicht der Blender-Figuren (<c>MaterialOverlay</c>) macht das PBR-Material durchscheinend gelb.
+    /// Das Material des KI-Schmieds, aufgehellt und erwärmt (Hervorheben, Auswahl): ein Abbild des Materials aus der Datei, einmal je Netz, Alpha bleibt 1.
+    /// Die helle Schicht der Blender-Figuren (<c>MaterialOverlay</c>) macht das PBR-Material durchscheinend gelb, auch Eigenleuchten wäscht die dunklen Teile aus.
     /// </summary>
     private static Material? KiHervorhebung(MeshInstance3D teil)
     {
         if (teil.Mesh is not { } netz || netz.SurfaceGetMaterial(0) is not StandardMaterial3D grund) return null;
         if (_kiHervorhebung.TryGetValue(netz, out var vorhanden)) return vorhanden;
         var hell = (StandardMaterial3D)grund.Duplicate();
-        hell.EmissionEnabled = true;
-        hell.Emission = new Color(1f, 0.85f, 0.45f);
-        hell.EmissionEnergyMultiplier = 0.12f;
+        hell.AlbedoColor = new Color(1.7f, 1.5f, 1.1f); // heller und wärmer, nicht durchscheinend: Leuchten oder eine Schicht ließen die dunklen Teile verwaschen wirken
         return _kiHervorhebung[netz] = hell;
     }
 }
