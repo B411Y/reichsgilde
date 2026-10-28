@@ -40,8 +40,8 @@ from bausteine import Matrix, Vector  # noqa: E402
 NAME = "koelner_dom"
 FLAECHE = (14.0, 34.0)
 
-# Farben nur dieses Modells: heller Elbenstein, grünliches Glas, kupfergrünes Dach des Chors
-bs.FARBEN.update({"Elbenstein": (0.78, 0.80, 0.80), "Elbenglas": (0.10, 0.25, 0.21), "Elbendach": (0.42, 0.58, 0.52)})
+# Farben nur dieses Modells: der eine Dom-Stein (Drachenfels-Trachyt, warmes Hellgrau; Stoffname „Elbenstein“ für alle Steinteile), grünliches Glas, kupfergrünes Dach des Chors
+bs.FARBEN.update({"Elbenstein": (0.76, 0.72, 0.65), "Elbenglas": (0.10, 0.25, 0.21), "Elbendach": (0.42, 0.58, 0.52)})
 bs.RAUHEIT.update({"Elbenglas": 0.2})
 bs.BIBLIOTHEK_JE_FLAECHE = True              # Material-Bibliothek je Fläche (Material „Farben“)
 
@@ -88,6 +88,9 @@ def gruppe(name, kinder):
 def bauen():
     bs.neue_szene()
     st = bs.Stoffe()
+    # Ein einheitlicher Quaderstein für den ganzen Bau (Entscheidung des Nutzers, 28.10.2026): Die Bauphase zeigen Form, Kran und Gerüst
+    for alt in ("Haustein", "Bruchstein", "Bruchstein dunkel"):
+        st[alt] = st["Elbenstein"]
     chor, west = bs.Netz("Chor"), bs.Netz("Wand_hinten")
     chor_bauen(chor, st)
     westwand_bauen(west, st)
@@ -100,6 +103,10 @@ def bauen():
     haus, rad = bs.Netz("Kranhaus"), bs.Netz("Tretrad", alle=True)
     kran_bauen(haus, rad, st)
     o = {n.name: n.objekt() for n in (chor, west, wand_l, wand_r, wand_v, notdach, portal, nord, sued, haus, rad)}
+    # Das Spiel dreht den Knoten „Tretrad“ um seinen Ursprung: Der gehört in die Radachse (sonst kreisen die Räder um den ganzen Dom)
+    achse = Vector((KRAN.x, KRAN.y, H_SUED + 0.15 + 1.55 + 1.3))
+    o["Tretrad"].data.transform(Matrix.Translation(-achse))
+    o["Tretrad"].location = achse
     # Gruppen für die Innenansicht: „Dach“ (Chor und Notdach) und „Turm“ (Türme, Notportal, Kran) werden beim Hineinsehen ausgeblendet,
     # dazu die Wände zur Kamera (Wand_vorne = Westwand des Langhauses, Wand_hinten = Bretterwand des Chors)
     dach = gruppe("Dach", [o["Chor"], o["Notdach"]])
