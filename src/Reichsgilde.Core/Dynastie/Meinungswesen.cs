@@ -125,14 +125,7 @@ public sealed partial class Meinungswesen
     {
         if (kennung.StartsWith("R:", StringComparison.Ordinal)) return _w.Rat.RatsherrNamens(kennung[2..]);
         if (kennung.Length < 2 || kennung[0] != 'P' || !int.TryParse(kennung.AsSpan(1), out var nummer)) return null;
-        return PersonNummer(nummer);
-    }
-
-    private Person? PersonNummer(int nummer)
-    {
-        foreach (var konto in _w.Konten)
-            if (_w.Familien.Von(konto)?.MitgliederListe.FirstOrDefault(p => p.Nummer == nummer) is { } p) return p;
-        return _w.Familien.KandidatNummer(nummer)?.Person;
+        return _w.Familien.PersonNummer(nummer);
     }
 
     /// <summary>Wer im Spielstand und in den Taten für ein Haus steht: sein Oberhaupt – ohne Familie das Haus selbst.</summary>

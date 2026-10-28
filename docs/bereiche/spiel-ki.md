@@ -151,6 +151,15 @@ So wird eingetragen (damit sich die Chats nie an derselben Stelle treffen):
 | Messung | `messen bericht 20 30` auf main `b59a372` + `d5985f5` gegen main ohne Züge: KI ÷ gleiche Strategie (Median) 1,08 → 1,01, „Schwer“ 1,73 → 1,79; Diebstahl der KI 0,85 → 0,80 je Jahr, Einbruch 0,60 → 0,69; Karren in Not 7 → 7 (1.320 Partien; vor dem Nachsteuern 12). Die Not trafen vor allem Häuser mit mutigem (weniger Eskorte, längere Amortisation), hochmütigem (teure Brautschau) und geduldigem Oberhaupt (Verlustbetriebe länger). Einzelheiten in WIRTSCHAFTSMODELL, „Charakterzüge (PR #227)“. | 28.10.2026 |
 | Richter | Die KI rechnet Geschenke mit der Bestechlichkeit des Ratsherrn (`Stadtrat.GunstJeGulden`) – Wahl, Statut, Gericht. | 28.10.2026 |
 
+### KI nach Meinungen (PR #231)
+
+| Thema | Entscheidung | Datum |
+|---|---|---|
+| Rat: Aktivitäten vor Geschenken | Für jeden Ratsherrn, dessen Stimme fehlt (Wahl, eigener Statut-Antrag, Richter vor dem Gerichtstag), plant die KI zuerst eine Aktivität: eine, die ihr Oberhaupt selbst mag (Gesellig zecht, Fromm geht zur Messe, Klug spielt Brettspiel, Mutig jagt, Hochmütig lädt zum Gastmahl), sonst die mit der besten erwarteten Wirkung beim Ratsherrn – nie eine, die ihr Oberhaupt nicht mag, nie mit erwartetem Verlust, nur mit voller Reserve danach. Den Rest schließt ein Geschenk, nach der wirklichen Wirkung gerechnet (nie mehr als ein Geschenk allein gekostet hätte). Reichen die Aktionspunkte für Aktivitäten und Geschenke nicht, plant sie wie früher nur mit Geschenken („halbe Bestechung“ bleibt verboten). Das Bestechungsrisiko zählt nur auf die Geschenke (`KiRivale.Meinungen.cs`). | 28.10.2026 |
+| Häuser untereinander | Meinung des eigenen Oberhaupts über das andere (`MeinungUeber`): ab +25 (`meinungen.wirkung.kiVerschontAb`) verschont – keine Gaunerstücke, keine eigenen Diebe, kein Spitzel, Klage erst mit einem Beweis mehr; bis −25 (`kiVerhasstAb`) verhasst – erstes Ziel der Gaunerstücke (der Verhassteste zuerst, auch wenn er hinten liegt), Spitzel auch auf ein Haus hinter ihr, Klage schon mit einem Beweis weniger (nie unter der Schuldschwelle). Bei Wahlen: Gefahr = Reinvermögen × (1 − Meinung × 1 %), mindestens ein Zehntel – ein geliebtes Haus wirkt weniger gefährlich. | 28.10.2026 |
+| Woher die Meinung kommt | Feste Gründe (Züge, Volk, Glaube, Stand) und Taten: Klage −15, ertappter Diebstahl/Sabotage/Überfall −20, Stimme im Rat ±5, Fest +5. Ein Haus, das die KI bestiehlt und dabei erkannt wird, macht sie sich so zum Feind – vorher galt nur „hat geschadet“ (Beweise). | 28.10.2026 |
+| Brautschau | Die KI rechnet mit `GuldenJeZuneigung(konto, kandidat)` – ein Kandidat, der ihr Oberhaupt mag, ist billiger. | 28.10.2026 |
+
 ## Messungen
 
 Neue Messungen der Spiel-KI stehen hier (mit main-Commit), nicht mehr in `docs/WIRTSCHAFTSMODELL.md`. Ältere: dort bis §42 (Taschendiebe, PR #69).

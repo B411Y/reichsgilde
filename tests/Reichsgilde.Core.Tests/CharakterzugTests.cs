@@ -157,7 +157,7 @@ static class CharakterzugTests
             Pruefe.Gleich(1.5, o.Talent(Talent.Rhetorik));
             Pruefe.Gleich(2.0, o.TalentOhneZuege(Talent.Rhetorik));
             Pruefe.Wahr(o.Zuege.Select(z => z.Wirkungstext).All(t => t.Contains("Als KI-Haus:")), "Wirkungstext nennt das KI-Verhalten");
-            Pruefe.Gleich("Verhandeln +½, Rhetorik −½. Haushalt −10 %. als Ratsherr: Geschenke wirken +30 %. Als KI-Haus: verleiht Geld zu Wucherzinsen und spart an Geschenken für den Rat.",
+            Pruefe.Gleich("Verhandeln +½, Rhetorik −½. Haushalt −10 %. Geschenke an ihn wirken +30 %. Als KI-Haus: verleiht Geld zu Wucherzinsen und spart an Geschenken für den Rat.",
                 buch.Zug("Gierig")!.Wirkungstext);
 
             var ohne = NeueSimulation(1400, OhneZuege.Value).Wirtschaft!;
