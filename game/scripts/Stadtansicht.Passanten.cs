@@ -682,10 +682,13 @@ public partial class Stadtansicht
         _passantenEbene!.AddChild(knoten);
         var tracht = TrachtVon(e);
         var alt = _simulation is { } sim && e.Alter(sim.Zeit.Jahr) >= GebeugtAb;
+        var gebeugt = tracht.Gebeugt || alt;
+        var ki = KiSchmiedFuer(e, tracht, gebeugt);
+        if (ki) _kiPassanten.Add(e.Nummer);
         return new Passant
         {
-            Knoten = knoten, Figur = FigurEinsetzen(knoten, AussehenVon(e, tracht), e.Nummer),
-            Gebeugt = tracht.Gebeugt || alt, Traegt = tracht.Last is Last.Kiepe or Last.Buendel,
+            Knoten = knoten, Figur = FigurEinsetzen(knoten, AussehenVon(e, tracht) with { KiSchmied = ki }, e.Nummer),
+            Gebeugt = gebeugt, Traegt = tracht.Last is Last.Kiepe or Last.Buendel,
             Versatz = ((e.Nummer * 37 % 9) - 4) * 0.22f, Gehtempo = Gehtempo(e),
         };
     }
