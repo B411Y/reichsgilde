@@ -6,6 +6,9 @@
 #  Bibliothek auf den meisten Linux-Rechnern der Spieler läuft; dazu Windows x86_64.
 #  Ergebnis: Artefakt "tressfx-bau" mit den Bibliotheken, SHA256SUMS und glibc-Bericht.
 #  Die Binärdateien kommen NICHT ins Repository. Doku: docs/ARCHITEKTUR.md (Fremd-Erweiterungen).
+#  Ablage: Bei "Run workflow" und bei Push auf main entsteht ein GitHub-Release "tressfx-<Kurzcommit der
+#  Quelle>" mit Bibliotheken, Addon-Dateien (zip), Lizenzen und Prüfsummen. Der Export holt es mit
+#  tools/tressfx_holen.sh (Version und Prüfsummen in tools/tressfx.version).
 #  Starten: Actions → "TressFX bauen" → "Run workflow" (oder bei Änderung dieser Datei).
 # ─────────────────────────────────────────────────────────────────────────────
 name: TressFX bauen
@@ -194,3 +197,49 @@ jobs:
         with:
           name: tressfx-bau
           path: tressfx-bau/
+
+  # Release nur bei von Hand gestartetem Lauf oder Push auf main, nie bei PRs.
+  release:
+    name: Release ablegen
+    needs: paket
+    if: github.event_name == 'workflow_dispatch' || github.ref == 'refs/heads/main'
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          repository: ${{ env.TRESSFX_REPO }}
+          ref: ${{ env.TRESSFX_REF }}
+          path: quelle
+
+      - uses: actions/download-artifact@v4
+        with:
+          name: tressfx-bau
+          path: release
+
+      # Addon-Dateien aus DERSELBEN Quelle wie die Bibliothek (die Shader müssen zur Bibliothek
+      # passen; die 0.3.0-Shader des Store-Zips tun es nicht). Ohne demo/ und bin/.
+      - name: Addon-Dateien packen
+        run: |
+          cd quelle
+          zip -r -q ../release/tressfx-addon.zip addons/tressfx -x 'addons/tressfx/demo/*' -x 'addons/tressfx/bin/*'
+          unzip -l ../release/tressfx-addon.zip
+          cd ../release
+          sha256sum tressfx-addon.zip >> SHA256SUMS.txt
+          ls -l; cat SHA256SUMS.txt
+
+      - name: Release anlegen oder aktualisieren
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          kurz="${TRESSFX_REF:0:7}"
+          tag="tressfx-$kurz"
+          dateien=(release/*.so release/*.dll release/tressfx-addon.zip release/SHA256SUMS.txt release/LICENSE-*.txt release/glibc-linux.txt)
+          notes="TressFX (GDExtension, MIT) aus $TRESSFX_REPO @ $TRESSFX_REF, godot-cpp @ $GODOT_CPP_REF. Gebaut von .github/workflows/tressfx.yml. Holen und prüfen: tools/tressfx_holen.sh"
+          if gh release view "$tag" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
+            gh release upload "$tag" "${dateien[@]}" --clobber --repo "$GITHUB_REPOSITORY"
+          else
+            gh release create "$tag" "${dateien[@]}" --repo "$GITHUB_REPOSITORY" --target "$GITHUB_SHA" \
+              --title "TressFX $kurz" --notes "$notes"
+          fi
