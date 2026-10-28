@@ -55,20 +55,15 @@ float schnee_decke(vec2 wp, float oben) {
 	return smoothstep(0.0, 0.35, d) * smoothstep(0.6, 0.85, oben);
 }
 
-// Pfützen (0–1): erst ab halber Nässe, dann in den Mulden (Rauschen und tiefe Stellen der Textur, tiefe 0–1), mit mehr Nässe größer
-float pfuetze(vec2 wp, float tiefe) {
-	if (wetter_naesse < 0.35) return 0.0;
-	float m = w_rausch(wp * 0.21 + 3.0) * 0.7 + w_rausch(wp * 0.9 + 1.7) * 0.3 + tiefe * 0.25;
+// Pfützen: erst ab halber Nässe, dann in den Mulden (Rauschen und tiefe Stellen der Textur, tiefe 0–1), mit mehr Nässe größer. Gibt zurück:
+// x = Wasser (0–1, weicher, vom Rauschen gefranster Rand), y = Feuchte (0–1, ein breiter Verlauf „trocken → feucht → nass“ um die Pfütze, rund einen
+// Meter). Im Pflaster (stadt) zählt die Tiefe der Textur mehr: Am Rand der Pfütze steht das Wasser zuerst in den Fugen, erst weiter innen auch auf den Steinen.
+vec2 pfuetze(vec2 wp, float tiefe, float stadt) {
+	if (wetter_naesse < 0.35) return vec2(0.0);
+	float m = w_rausch(wp * 0.21 + 3.0) * 0.7 + w_rausch(wp * 0.9 + 1.7) * 0.3 + tiefe * (0.25 + 0.2 * stadt);
+	m += (w_rausch(wp * 3.1 + 8.0) - 0.5) * 0.09 + (w_rausch(wp * 11.0 + 2.0) - 0.5) * 0.03;   // gefranster Rand statt glatter Kontur
 	float schwelle = 1.12 - 0.36 * smoothstep(0.35, 1.0, wetter_naesse);
-	return smoothstep(schwelle, schwelle + 0.04, m);
-}
-
-// Der nasse Rand um eine Pfütze (0–1): feuchte, dunklere Erde, die etwas weiter reicht als das Wasser selbst
-float pfuetze_rand(vec2 wp, float tiefe) {
-	if (wetter_naesse < 0.35) return 0.0;
-	float m = w_rausch(wp * 0.21 + 3.0) * 0.7 + w_rausch(wp * 0.9 + 1.7) * 0.3 + tiefe * 0.25;
-	float schwelle = 1.12 - 0.36 * smoothstep(0.35, 1.0, wetter_naesse);
-	return smoothstep(schwelle - 0.07, schwelle, m);
+	return vec2(smoothstep(schwelle, schwelle + 0.07, m), smoothstep(schwelle - 0.3, schwelle, m));
 }
 
 // Ringe der Regentropfen in einer Pfütze: Neigung der Wasserfläche (x, z) – zwei Gitter zu 0,7 m, je Zelle ein Tropfen mit eigenem Takt
@@ -102,15 +97,15 @@ void wetter_boden(inout vec3 bf, inout float rau, inout vec3 nw, inout vec3 leuc
 		// Wege und Gassen bleiben dauerhaft etwas dunkler (Matsch, Abdrücke), unabhängig vom Licht
 		bf *= 1.0 - 0.12 * wetter_naesse * max(aufweg, stadt * 0.6);
 		float flaeche = (0.3 + 0.7 * max(aufweg, stadt * 0.3)) * smoothstep(0.9, 0.97, n.y);
-		float p = pfuetze(wp, tiefe) * flaeche;
-		// nasser Rand: dunkler, glänzend, noch kein Wasser
-		float rand = pfuetze_rand(wp, tiefe) * flaeche * (1.0 - p);
-		bf *= 1.0 - 0.42 * rand;
-		rau = mix(rau, min(rau, 0.22), rand * 0.8);
+		vec2 pf = pfuetze(wp, tiefe, stadt) * flaeche;
+		float p = pf.x;
+		// Feuchte um die Pfütze: nur leicht dunkler und glänzender, im breiten weichen Verlauf (keine Randlinie)
+		float feucht = pf.y * (1.0 - p);
+		bf *= 1.0 - 0.2 * feucht;
+		rau = mix(rau, min(rau, 0.3), feucht * 0.55);
 		if (p > 0.0) {
-			// Wasserfarbe: nasses Lehmbraun, dunkler als der Boden, mit leichter Spiegelung des Himmels – bleibt aus jeder Richtung ein Wasserfleck
-			vec3 braun = vec3(dot(bf, vec3(0.3, 0.55, 0.15))) * vec3(1.35, 0.95, 0.6);
-			bf = mix(bf, braun * 0.8 + wetter_himmel * 0.1, p);
+			// Wasserfarbe: die Farbe des Untergrunds scheint durch, etwas dunkler, mit leichter Spiegelung des Himmels
+			bf = mix(bf, bf * 0.78 + wetter_himmel * 0.07, p);
 			rau = mix(rau, 0.04, p);
 			// Himmelsschein: leicht; Tropfenringe als Hell-dunkel-Zeichnung
 			vec3 schein = wetter_himmel * 0.08;

@@ -11,7 +11,7 @@ Herkunft und Lizenz stehen in game/assets/modelle/props/HERKUNFT.md und game/ass
 
 Was das Skript tut (statt Handarbeit):
   * Teile laden, mehrteilige zu einem Netz verbinden, auf unser Maß bringen (Meter, Fuß im Nullpunkt, Vorderseite +Z),
-  * zu große Netze vereinfachen (Dreiecksziel je Teil), Bäume mit Laub und Rinde getrennt,
+  * zu große Netze vereinfachen (Dreiecksziel je Teil; Bäume nie: Collapse zerreißt Blattkarten und dünne Äste),
   * Texturen auf eine sinnvolle Größe verkleinern (WebP) und die Materialien neu aufbauen: Farbe, Normale, Rauheit/Metall,
   * Laub und Gras mit unseren Jahreszeitenfarben koppeln: Die Blattkarte wird zu einer grauen Maske mit Alpha, die Farbe
     kommt aus „Laub“, „Laub hell“ oder „Laub dunkel“ (das Spiel färbt diese Namen je Jahreszeit um),
@@ -458,12 +458,12 @@ def natur_baeume():
     bs.neue_szene()
     o = []
     for i, s in enumerate(("Pine_5", "Pine_2", "Pine_4", "Pine_1", "Pine_3")):
-        o.append(laden("natur", s, f"Kiefer{i + 1}", hoehe=(7.5, 8.0, 10.5, 7.5, 7.5)[i], ziel_laub=450, ziel_rest=150))
+        o.append(laden("natur", s, f"Kiefer{i + 1}", hoehe=(7.5, 8.0, 10.5, 7.5, 7.5)[i]))
     for i, s in enumerate(("DeadTree_1", "DeadTree_2", "DeadTree_3")):
-        o.append(laden("natur", s, f"Totbaum{i + 1}", hoehe=(7.0, 8.0, 9.0)[i], ziel=900))
+        o.append(laden("natur", s, f"Totbaum{i + 1}", hoehe=(7.0, 8.0, 9.0)[i]))
     laub = []
     for i, s in enumerate(("CommonTree_5", "CommonTree_3", "CommonTree_2")):
-        b = laden("natur", s, f"Laubbaum{i + 1}", hoehe=(8.0, 9.5, 8.5)[i], ziel_laub=700, ziel_rest=700)
+        b = laden("natur", s, f"Laubbaum{i + 1}", hoehe=(8.0, 9.5, 8.5)[i])
         laub.append(b)
     o.extend(laub)
     for b in laub:
