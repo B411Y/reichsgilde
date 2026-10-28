@@ -213,6 +213,17 @@ static class WirtschaftTests
             Pruefe.Ungefaehr(1551, MittlererGewinn(sim, konto).Gewinn, 0.05);
         }),
 
+        // Personal wie in Gilde 1 (PR #224): Die Partie beginnt mit zwei Lehrlingen – das ist das neue Z1 (Entscheidung des Nutzers vom
+        // 28.10.2026: das Ziel fürs erste Jahr senken statt mehr Startgeld).
+        ("Z1 (PR #224): Gießerei allein, 2 Lehrlinge wie zum Partiestart, Silberring: Gewinn ≈ 1.094 Gulden/Jahr (Ziel 900–1.300)", () =>
+        {
+            var sim = NeueSimulation();
+            var w = sim.Wirtschaft!;
+            var konto = w.KontoEroeffnen("Spieler");
+            w.Einstellen(w.BetriebEroeffnen("Gießerei", Betriebsart.Giesserei, konto), "Lehrling", 2);
+            Pruefe.Ungefaehr(1094, MittlererGewinn(sim, konto).Gewinn, 0.05);
+        }),
+
         ("Gießerei, 1 Lehrling, Silberring: Gewinn ≈ 543 Gulden/Jahr", () =>
         {
             var sim = NeueSimulation();
