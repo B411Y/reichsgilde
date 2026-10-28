@@ -2158,3 +2158,35 @@ Reinvermögen nach 20 Jahren je Beruf (ein Betrieb, Greybox, Mensch, 30 Startwer
 | Gardist | 30.076 (−12,6 %) | 29.359 (−16,3 %) |
 
 **Befund:** Jeder Beruf liegt nach 20 Jahren innerhalb von −4 … +13 % seines Werts ohne Züge, im Mittel +1,5 %; die Not der KI ist wie ohne Züge. Das Band „±15 % gegen das Mittel“ reißen Schmied, Dieb und Gardist um 0,8–1,6 Prozentpunkte – Schmied und Gardist lagen schon ohne Züge am Rand, und die Züge machen jede Partie zufälliger: Läufe mit fast gleichen Werten gaben Schmied −6 % und +6 % gegen main, außerhalb lagen je nach Lauf andere Berufe (Dieb; Schmied, Tischler, Gardist). Das liegt im Fehler der Messung (≈ 5 % je Beruf). Weiter drücken ließe es sich nur mit kleineren Talentwirkungen als „±1 Stern“ (Entscheidung des Nutzers). Der Alchimist liegt in allen Läufen höher (+9 … +14 % gegen main) – vermutlich, weil Kränklich und Trinker mehr Kräuterschnaps verkaufen; offen.
+
+## Dolch statt Rapier (PR #232)
+
+Gemessen auf main `c43f5ae` + diesem PR (Commit `1502ff2`), `messen bericht 20 30` (1.320 Partien, keine mit Fehler), JSON in `docs/messungen/balancing-2026-10-29-dolch.json`; Vergleich mit `balancing-2026-10-28-charakterzuege.json` (main `391874f` hat denselben Kern wie dort gemessen). Datenversion noch 60.
+
+**Regeln (Entscheidungen des Nutzers und des Teamleiters):**
+
+| Ware | Zutaten | Zeit | Grundpreis | Gewinn je Minute zu Startpreisen |
+|---|---|---|---|---|
+| Dolch (vorher Rapier, Schmied) | 1 Eisen + 1 Beschlag | 60 | 141 | 1,50 (unverändert) |
+| Giftdolch (Parfumeur), vorher | 1 Eisen + 1 Politur | 50 | 153 | 1,88 |
+| Giftdolch, neu | **1 Dolch + 1 Politur** | **60** | **305** | 1,85 |
+| Blume der Zwietracht (zum Vergleich) | 2 Lavendel + 1 Jasmin | 50 | 124 | 1,87 |
+
+- **Rechnung:** Zu Startpreisen kosten Dolch und Politur 168,5 + 66,9 = 235,4 Gulden. Bei 60 Minuten und 1,85 Gulden je Minute braucht der Giftdolch 235,4 + 111 = 346 Gulden nach Steuer, also 364,5 am Markt = 305 × 1,195 (Startfaktor der Fertigwaren). Mit 60 statt 50 Minuten macht die Siederei weniger Stück im Jahr, und der Giftdolch drückt seinen eigenen Preis weniger. Bei 50 Minuten wäre es ein Grundpreis von 289.
+- **Siederei beginnt mit der Blume der Zwietracht** (vorher Giftdolch): Ein Lager voller Dolche (≈ 170 Gulden je Stück) lockt die Diebe der KI-Häuser. Mit dem Giftdolch als Startware gingen 4 von 30 Parfumeuren bis Jahr 5 bankrott (Startwert 202: fünf Einbrüche in zwei Nächten, 42 Dolche ≈ 8.800 Gulden). Die KI stellt später um, sobald der Giftdolch mehr bringt.
+- Karren kaufen weiter zum Marktpreis, ohne das Angebot zu senken: Dolche fehlen der Siederei nie, und der Schmied merkt den Einkauf nicht.
+
+**Ergebnis** (Reinvermögen des Spielers mit einem Betrieb, Ø von 30 Startwerten, ± Fehler des Mittels):
+
+| | vorher | Giftdolch als Startware | neu (Blume als Startware) |
+|---|---|---|---|
+| Parfumeur, Jahr 5 | 5.840 ± 162 | 2.840 ± 615 | 4.013 ± 413 |
+| Parfumeur, Jahr 10 | 10.884 (+2,5 %) | 9.024 (−24 %) | 10.405 (−5,1 %) |
+| Parfumeur, Jahr 20 | 36.045 (+5,8 %) | 33.243 (−2,4 %) | 32.224 ± 1.831 (−6,5 %) |
+| Parfumeur, bankrott bis Jahr 20 | 0/30 | 4/30 | 1/30 |
+| Parfumeur, Bürger im Ziel 8–12 Jahre | 30/30 (Ø 9,4) | 24/30 (Ø 9,8) | 27/30 (Ø 9,9) |
+| Schmied, Jahr 20 | 39.061 ± 2.297 (+15,8 %) | 40.275 (+21,0 %) | 40.525 ± 2.071 (+21,0 %) |
+
+- **Befund:** Der Parfumeur bleibt im Band (−6,5 % nach 20 Jahren), liegt aber in den ersten Jahren unter dem alten Stand: Wer auf den Giftdolch umstellt, verliert manchmal sein Lager an Diebe. Der Schmied ändert sich nur im Rauschen (Unterschied 1.464, Fehler beider Mittel zusammen ≈ 3.100); seine +21 % (vorher +15,8 %) kommen nicht vom Dolch, der Name ändert nur die Reihenfolge einiger sortierter Listen. Statisch liegt der Parfumeur in Stufe 1 weiter bei +16 % – das macht die Blume der Zwietracht, nicht der Giftdolch.
+- Völker, Parfumeur: −5 … +12 % gegen Menschen (vorher −19 … +13 %); Schmied −13 … +4 % (vorher −14 … +11 %). KI-Stärke unverändert (KI ÷ Bezug Median 1,03, vorher 1,01).
+- **Alte Spielstände** laufen mit ihren mitgespeicherten Daten weiter: Die Ware heißt dort Dolch, der Giftdolch bleibt aus Eisen (`Speichern/Warenumbenennung.cs`).
