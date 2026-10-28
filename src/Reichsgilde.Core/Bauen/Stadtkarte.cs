@@ -475,6 +475,14 @@ public sealed class Stadtkarte
     public string Kennung { get; init; } = "";
     public string Stadt { get; init; } = "";
 
+    /// <summary>Erscheint die Karte in der Kartenwahl des Hauptmenüs? (Feld <c>spielbar</c>; ohne Angabe nicht – dann nur im Entwickler-Modus.)</summary>
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingDefault)]
+    public bool Spielbar { get; init; }
+
+    /// <summary>Ein, zwei Sätze für die Kachel der Kartenwahl (Feld <c>beschreibung</c>); fehlt er, nennt die Kartenwahl nur die Kennzahlen.</summary>
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public string? Beschreibung { get; init; }
+
     /// <summary>Rastergröße der Bauzonen in Metern (2).</summary>
     public double Raster { get; init; } = 2;
 

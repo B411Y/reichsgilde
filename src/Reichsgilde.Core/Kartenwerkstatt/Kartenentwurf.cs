@@ -282,7 +282,7 @@ public sealed partial class Kartenentwurf
     /// </summary>
     private EntwurfKopf KopfAus(Stadtkarte teile)
     {
-        var kopf = new EntwurfKopf { Kamera = teile.Kamera, Vorlage = _daten["kamera"]?.DeepClone() as JsonObject };
+        var kopf = new EntwurfKopf { Spielbar = teile.Spielbar, Kamera = teile.Kamera, Vorlage = _daten["kamera"]?.DeepClone() as JsonObject };
         if (teile.Rand is { } r && r > 0) (kopf.Randbreite, kopf.RandInDatei) = (r, true);
         if (teile.Mitte is { Length: 2 } m) (kopf.Mitte, kopf.MitteInDatei) = (new Kartenort(m[0], m[1]), true);
         if (teile.Groesse is { Length: 2 } g)
@@ -471,7 +471,7 @@ public sealed partial class Kartenentwurf
     /// </summary>
     private static readonly string[] Reihenfolge =
     {
-        "format", "kennung", "stadt", "vorlage", "einheit", "achsen", "raster", "groesse", "mitte", "rand", "gebaeude", "mauern", "wege", "bauzonen", "natur",
+        "format", "kennung", "stadt", "vorlage", "beschreibung", "spielbar", "einheit", "achsen", "raster", "groesse", "mitte", "rand", "gebaeude", "mauern", "wege", "bauzonen", "natur",
         "wasser", "gelaende", "haefen", "uebergaenge", "start", "kamera", "vorkommen", "fiktion", "probeplan", "hoehen", "boden",
     };
 
@@ -483,7 +483,7 @@ public sealed partial class Kartenentwurf
     private static JsonObject MitAbschnitten(JsonObject daten)
     {
         var liste = daten.Select(e => (e.Key, Wert: e.Value?.DeepClone())).ToList();
-        foreach (var fehlt in new[] { "groesse", "mitte", "rand", "mauern", "wege", "bauzonen", "natur", "wasser", "uebergaenge", "start", "kamera", "hoehen", "boden" }
+        foreach (var fehlt in new[] { "spielbar", "groesse", "mitte", "rand", "mauern", "wege", "bauzonen", "natur", "wasser", "uebergaenge", "start", "kamera", "hoehen", "boden" }
                      .Where(k => !daten.ContainsKey(k)))
         {
             var davor = Reihenfolge.TakeWhile(k => k != fehlt).ToHashSet();
@@ -558,6 +558,9 @@ public sealed partial class Kartenentwurf
                     aus[k] = natur;
                     continue;
                 // Kopf: nur, was in der Datei stand oder gesetzt wurde (eine abgeleitete Größe bleibt ungeschrieben, die Datei unverändert)
+                case "spielbar":
+                    if (_kopf.Spielbar) aus[k] = true; // „false“ steht nie in der Datei: ohne Angabe ist eine Karte nicht spielbar
+                    continue;
                 case "groesse":
                     if (_kopf.GroesseInDatei) aus[k] = new JsonArray(JsonValue.Create(_kopf.Breite), JsonValue.Create(_kopf.Tiefe));
                     continue;
@@ -588,7 +591,7 @@ public sealed partial class Kartenentwurf
     /// <summary>Abschnitte, die das Werkzeug weglässt, wenn sie leer sind.</summary>
     private static readonly HashSet<string> Freiwillig = new()
     {
-        "wasser", "gelaende", "haefen", "uebergaenge", "start", "kamera", "vorkommen", "fiktion", "probeplan",
+        "wasser", "gelaende", "haefen", "uebergaenge", "start", "kamera", "vorkommen", "fiktion", "probeplan", "beschreibung",
     };
 
     /// <summary>
@@ -804,6 +807,9 @@ public sealed partial class Kartenentwurf
 
     /// <summary>Wonach die Karte entstanden ist (Feld <c>vorlage</c>, z. B. „das spätmittelalterliche Köln am linken Rheinufer“).</summary>
     public void VorlageSetzen(string text) => FeldSetzen("vorlage", text);
+
+    /// <summary>Der kurze Text für die Kachel der Kartenwahl (Feld <c>beschreibung</c>); leer entfernt ihn.</summary>
+    public void BeschreibungSetzen(string text) => FeldSetzen("beschreibung", string.IsNullOrWhiteSpace(text) ? null : text);
 
     /// <summary>Hängt eine Abweichung von der Vorlage an (Feld <c>fiktion</c>).</summary>
     public void FiktionHinzufuegen(string text)

@@ -535,6 +535,9 @@ public sealed class EntwurfKopf : EntwurfTeil
     /// <summary>Steht die Größe in der Datei? (Ohne Angabe ist sie aus dem Inhalt abgeleitet und wird erst geschrieben, wenn sie gesetzt wird.)</summary>
     public bool GroesseInDatei { get; internal set; }
 
+    /// <summary>Erscheint die Karte in der Kartenwahl des Hauptmenüs (Feld <c>spielbar</c>)?</summary>
+    public bool Spielbar { get; internal set; }
+
     internal bool MitteInDatei { get; set; }
     internal bool RandInDatei { get; set; }
 
@@ -544,18 +547,18 @@ public sealed class EntwurfKopf : EntwurfTeil
     internal override EntwurfTeil KopieTeil() => new EntwurfKopf
     {
         Breite = Breite, Tiefe = Tiefe, Mitte = Mitte, Randbreite = Randbreite, Kamera = Kamera, GroesseInDatei = GroesseInDatei,
-        MitteInDatei = MitteInDatei, RandInDatei = RandInDatei, Vorlage = Vorlage,
+        MitteInDatei = MitteInDatei, RandInDatei = RandInDatei, Vorlage = Vorlage, Spielbar = Spielbar,
     };
 
     internal override void UebernimmTeil(EntwurfTeil werte)
     {
         var o = (EntwurfKopf)werte;
-        (Breite, Tiefe, Mitte, Randbreite, Kamera, Vorlage) = (o.Breite, o.Tiefe, o.Mitte, o.Randbreite, o.Kamera, o.Vorlage);
+        (Breite, Tiefe, Mitte, Randbreite, Kamera, Vorlage, Spielbar) = (o.Breite, o.Tiefe, o.Mitte, o.Randbreite, o.Kamera, o.Vorlage, o.Spielbar);
         (GroesseInDatei, MitteInDatei, RandInDatei) = (o.GroesseInDatei, o.MitteInDatei, o.RandInDatei);
     }
 
     internal override bool GleicheWerte(EntwurfTeil anderer) => anderer is EntwurfKopf o && Breite == o.Breite && Tiefe == o.Tiefe
-        && Mitte == o.Mitte && Randbreite == o.Randbreite && GroesseInDatei == o.GroesseInDatei && MitteInDatei == o.MitteInDatei
+        && Mitte == o.Mitte && Randbreite == o.Randbreite && Spielbar == o.Spielbar && GroesseInDatei == o.GroesseInDatei && MitteInDatei == o.MitteInDatei
         && RandInDatei == o.RandInDatei && GleicheKamera(Kamera, o.Kamera);
 
     private static bool GleicheKamera(Kartenkamera? a, Kartenkamera? b) => a is null || b is null
