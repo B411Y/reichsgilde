@@ -80,7 +80,8 @@ func _welt_bauen() -> void:
 	var key := DirectionalLight3D.new()
 	key.light_color = Color(1.0, 0.92, 0.82)
 	key.light_energy = 2.4
-	key.shadow_enabled = not OS.get_cmdline_user_args().has("--ohne-schatten")
+	# kleine Fenster ohne Schatten: jede Schattenkarte kostet in jedem Unterfenster einen eigenen Durchgang
+	key.shadow_enabled = not sparsam and not OS.get_cmdline_user_args().has("--ohne-schatten")
 	key.shadow_blur = 1.5
 	key.shadow_normal_bias = 1.2
 	key.directional_shadow_mode = DirectionalLight3D.SHADOW_ORTHOGONAL

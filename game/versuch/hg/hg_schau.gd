@@ -21,6 +21,7 @@ var _bilder_n := 0
 var _stats: Control
 var tressfx := ""          # --tressfx=res://versuch/hg/tfx : Frisur und Bart als TressFX-Strähnen
 var tfx_einzeln := false   # --tfx-einzeln: nur Köpfe mit @tfx:… bekommen TressFX (Vergleichstafel)
+var messzeit := 6.0         # --messzeit=<s>: Dauer der Messung (nach 3 s Anlauf)
 var tfx_variante := "voll" # --tfx-variante=voll|sparsam|ruhe
 
 func _ready() -> void:
@@ -33,6 +34,7 @@ func _ready() -> void:
 		elif a.begins_with("--tressfx="): tressfx = a.substr(10)
 		elif a == "--tfx-einzeln": tfx_einzeln = true
 		elif a.begins_with("--tfx-variante="): tfx_variante = a.substr(15)
+		elif a.begins_with("--messzeit="): messzeit = float(a.substr(11))
 		elif a.begins_with("--fest="):
 			for p in a.substr(7).split(","):
 				var kv := p.split(":")
@@ -85,7 +87,11 @@ func _ready() -> void:
 		if tressfx != "" and (not tfx_einzeln or tv != ""):
 			if tv == "":
 				tv = tfx_variante
-			f.ansicht.use_taa = not OS.get_cmdline_user_args().has("--tfx-ohne-taa")
+			# Standard (Messung tfx6): großes Porträt TAA statt MSAA (dünne Strähnen flimmern sonst),
+			# kleine Fenster weder TAA noch Schatten (8× Schattenkarte war der größte Brocken)
+			f.ansicht.use_taa = not HgFenster.sparsam and not OS.get_cmdline_user_args().has("--tfx-ohne-taa")
+			if f.ansicht.use_taa and not Array(OS.get_cmdline_user_args()).any(func(a): return String(a).begins_with("--msaa=")):
+				f.ansicht.msaa_3d = Viewport.MSAA_DISABLED
 			var kname := f.kopf.quelle.get_file().get_basename()
 			HgTressFX.anbringen(f.kopf, tressfx.path_join(kname), Color(0.11, 0.07, 0.045),
 				"" if tv == "voll" else "sparsam", tv == "ruhe")
