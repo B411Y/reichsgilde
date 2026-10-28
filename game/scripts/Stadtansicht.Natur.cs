@@ -29,7 +29,7 @@ public partial class Stadtansicht
     /// <summary>Die MultiMeshes der Arten mit kahler Fassung: das Netz im Sommer und das im Winter (<see cref="JahreszeitSetzen"/> tauscht).</summary>
     private readonly List<(MultiMesh Vielfach, Mesh Sommer, Mesh Winter)> _naturWinter = new();
 
-    /// <summary>Baukästen mit Bäumen (Halbierung der Natur-Dichte, kahle Winterfassung „<Name>_Winter“): die eigenen und die aus dem Kit (Asset-Kits, PR #220).</summary>
+    /// <summary>Baukästen mit Bäumen (Halbierung der Natur-Dichte, kahle Winterfassung „<Name>_Winter“): die eigenen und die aus dem Kit (Asset-Kits).</summary>
     internal static bool IstBaumDatei(string datei) => datei is "natur/natur_baeume" or "natur/natur_kit_baeume";
 
     /// <summary>Baukästen mit Bodenpflanzen: werfen keinen Schatten.</summary>

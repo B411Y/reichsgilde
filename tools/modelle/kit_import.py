@@ -463,7 +463,7 @@ def natur_baeume():
         o.append(laden("natur", s, f"Totbaum{i + 1}", hoehe=(7.0, 8.0, 9.0)[i], ziel=900))
     laub = []
     for i, s in enumerate(("CommonTree_5", "CommonTree_3", "CommonTree_2")):
-        b = laden("natur", s, f"Laubbaum{i + 1}", hoehe=(8.0, 9.5, 8.5)[i], ziel_laub=700, ziel_rest=250)
+        b = laden("natur", s, f"Laubbaum{i + 1}", hoehe=(8.0, 9.5, 8.5)[i], ziel_laub=700, ziel_rest=700)
         laub.append(b)
     o.extend(laub)
     for b in laub:

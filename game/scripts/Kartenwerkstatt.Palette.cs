@@ -388,7 +388,7 @@ public partial class Kartenwerkstatt
         Kopf("Requisiten (Asset-Kits)");
         foreach (var b in _entwurf.Katalog.Bausteine.Where(b => b.Art == Bausteinart.Natur && b.Modell?.StartsWith("props/") == true))
             Eintrag(b.Kennung, ArtName(b), $"{b.Kennung} · {b.Varianten} Variante(n) · Modell {b.Modell} – Klick stellt es auf, Q/E dreht, Maßstab rechts",
-                Werkstattwerkzeug.Pflanze, "pflanze", baustein: b.Kennung);
+                Werkstattwerkzeug.Pflanze, "gebaeude", baustein: b.Kennung);
 
         // Gebäude
         Gruppe("gebaeude");
