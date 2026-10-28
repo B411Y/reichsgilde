@@ -170,4 +170,21 @@ public partial class Stadtansicht
         f.Neu = true;
         f.Langsam = kiTakt == 0 || bewegung is "Stehen" or "Sitzen" or "Beten" or "Knien";
     }
+
+    private static readonly Dictionary<Mesh, Material> _kiHervorhebung = new();
+
+    /// <summary>
+    /// Das Material des KI-Schmieds mit warmem Eigenleuchten (Hervorheben, Auswahl): ein Abbild des Materials aus der Datei, einmal je Netz.
+    /// Die helle Schicht der Blender-Figuren (<c>MaterialOverlay</c>) macht das PBR-Material durchscheinend gelb.
+    /// </summary>
+    private static Material? KiHervorhebung(MeshInstance3D teil)
+    {
+        if (teil.Mesh is not { } netz || netz.SurfaceGetMaterial(0) is not StandardMaterial3D grund) return null;
+        if (_kiHervorhebung.TryGetValue(netz, out var vorhanden)) return vorhanden;
+        var hell = (StandardMaterial3D)grund.Duplicate();
+        hell.EmissionEnabled = true;
+        hell.Emission = new Color(1f, 0.85f, 0.45f);
+        hell.EmissionEnergyMultiplier = 0.12f;
+        return _kiHervorhebung[netz] = hell;
+    }
 }

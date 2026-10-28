@@ -271,7 +271,11 @@ public partial class Stadtansicht
             AlbedoColor = new Color(1f, 0.85f, 0.45f, 0.35f),
         };
         foreach (var teil in f.Teile)
-            if (IsInstanceValid(teil)) teil.MaterialOverlay = an ? _hervorhebung : null;
+        {
+            if (!IsInstanceValid(teil)) continue;
+            if (f.Ki) teil.MaterialOverride = an ? KiHervorhebung(teil) : null; // die Überlagerung ließ das PBR-Material durchscheinen (Stadtansicht.KiFiguren.cs)
+            else teil.MaterialOverlay = an ? _hervorhebung : null;
+        }
     }
 
     // ═════════════════════════════════════════════════════════════════════════
