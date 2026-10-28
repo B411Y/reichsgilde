@@ -63,6 +63,9 @@ public sealed partial class Stadtwirtschaft
     /// <summary>Familien der Häuser und die Heiratskandidaten der Stadt.</summary>
     public Familienbuch Familien { get; }
 
+    /// <summary>Was die wichtigen Personen voneinander halten, und die Aktivitäten (Charaktersystem Teil 2, PR #231).</summary>
+    public Meinungswesen Meinungen { get; }
+
     /// <summary>Das Stadtgericht: Spuren, Spitzel, Beweise und Anklagen.</summary>
     public Stadtgericht Justiz { get; }
 
@@ -309,6 +312,7 @@ public sealed partial class Stadtwirtschaft
         Ratsantraege = new Politik.Ratsantraege(this, daten.Politik);
         Befugnisse = new Politik.Amtsbefugnisse(this, daten.Politik.Befugnisse);
         Familien = new Familienbuch(this, daten.Dynastie, zufallsstartwert);
+        Meinungen = new Meinungswesen(this, daten.Meinungen, zufallsstartwert);
         Justiz = new Stadtgericht(this, daten.Justiz, zufallsstartwert);
         Gauner = new Unterwelt(this, daten.Gauner, zufallsstartwert);
         Diebe = new Diebeswesen(this, daten.Dieb, zufallsstartwert);
@@ -366,7 +370,8 @@ public sealed partial class Stadtwirtschaft
     public int AktionspunkteJeRunde { get; set; } = 4;
 
     /// <summary>Was ein Befehl an Aktionspunkten kostet (0 = frei) – ohne Ansehen des Hauses.</summary>
-    public int ApKosten(Befehl befehl) => Daten.Aktionspunkte?.KostenFuer(befehl) ?? 0;
+    public int ApKosten(Befehl befehl) =>
+        Daten.Aktionspunkte is null ? 0 : befehl is Aktivitaet a ? Meinungen.ApKosten(a.Art) : Daten.Aktionspunkte.KostenFuer(befehl);
 
     /// <summary>
     /// Was ein Befehl dieses Haus kostet. Fast immer wie <see cref="ApKosten(Befehl)"/>; nur das Üben hängt
@@ -612,6 +617,7 @@ public sealed partial class Stadtwirtschaft
     internal void JahresabrechnungAbschliessen(int neuesJahr)
     {
         Kasse.JahrAbschliessen(neuesJahr); // nach der Sitzung: Bau und Fest stehen noch im alten Jahr
+        Meinungen.Jahresende(); // nach der Sitzung (wie früher die Gunst): Streit im Haus, die Gründe aus Taten verblassen
         Gauner.Jahresende();
         Diebe.Jahresende(); // unbeantwortete Forderungen: Feuer oder die Geisel wird verkauft
         Wache.Jahresende();
@@ -877,6 +883,8 @@ public sealed partial class Stadtwirtschaft
             return Gesundheit.SchnapsKaufen(absender, kauf.Stueck);
         if (befehl is SchnapsGeben gabe)
             return Gesundheit.SchnapsGeben(absender, gabe.Person);
+        if (befehl is Aktivitaet aktivitaet)
+            return Meinungen.Ausfuehren(absender, aktivitaet.Art, aktivitaet.Mit, aktivitaet.Betrag);
         if (befehl is Werben or Heiraten or ErbenBestimmen && Familien.Von(absender) is null)
             return Befehlsergebnis.Abgelehnt($"{absender.Inhaber} hat keine Familie.");
         if (befehl is Werben werben)
@@ -1158,6 +1166,7 @@ public sealed partial class Stadtwirtschaft
         Stadtkasse = Kasse.Sichern(),
         Ratsantraege = Kasse.IstAktiv ? Ratsantraege.Sichern(k => _konten.IndexOf(k)) : null,
         Befugnisse = Kasse.IstAktiv ? Befugnisse.Sichern(k => _konten.IndexOf(k)) : null,
+        Meinungen = Meinungen.Sichern(k => _konten.IndexOf(k)),
     };
 
     /// <summary>
@@ -1221,6 +1230,7 @@ public sealed partial class Stadtwirtschaft
             Duft.Wiederherstellen(parfumStand, _konten);
         if (s.Glaube is { } glaubeStand && Glaube.IstAktiv)
             Glaube.Wiederherstellen(glaubeStand, _konten);
+        Meinungen.Wiederherstellen(s.Meinungen, s.Rat?.Gunst, _konten); // nach Rat und Familien: alte Gunst → Grund „Geschenke“
         if (s.Einwohner is { } einwohnerStand && Einwohnerschaft.IstAktiv)
             Einwohnerschaft.Wiederherstellen(einwohnerStand);
         Werkstaetten.Wiederherstellen(s.WerkstattWuerfe);

@@ -491,7 +491,7 @@ public sealed class Wegebau
     /// <paramref name="verkehr"/>: <see cref="MittlererVerkehr"/> des Abschnitts.
     /// </summary>
     internal bool? StimmeVonSitz(Amt sitz, Konto antragsteller, int weg, double von, double bis, double verkehr) =>
-        sitz.Ratsherr is { } r ? _w.Rat.Gunst(r, antragsteller) >= Daten!.Rat.AntragGunst || verkehr >= Daten.Rat.AntragVerkehr
+        sitz.Ratsherr is { } r ? _w.Rat.Meinung(r, antragsteller) >= Daten!.Rat.AntragGunst || verkehr >= Daten.Rat.AntragVerkehr
         : sitz.Konto == antragsteller ? true
         : _w.Rivalen.FirstOrDefault(k => k.Konto == sitz.Konto) is { } ki ? ki.StimmtFuerWegantrag(weg, von, bis)
         : Antrag == (antragsteller, weg, von, bis) ? StimmeVon(sitz.Konto!) // die Stimme aus der Sitzung gilt nur dem vorliegenden Antrag

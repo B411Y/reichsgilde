@@ -163,6 +163,9 @@ public sealed class Wirtschaftsdaten
     /// <summary>Charakterzüge der Personen und Ratsherren (ab Datenversion 60, PR #227). Fehlt der Abschnitt, hat niemand Züge.</summary>
     public Dynastie.CharakterzuegeDaten? Charakterzuege { get; init; }
 
+    /// <summary>Meinungen und Aktivitäten (ab Datenversion 61, PR #231). Fehlt der Abschnitt, gibt es nur die frühere Gunst der Ratsherren.</summary>
+    public Dynastie.MeinungDaten? Meinungen { get; init; }
+
     /// <summary>Das Stadtgericht (ab Datenversion 7). Fehlt der Abschnitt, gibt es kein Gericht.</summary>
     public Justiz.JustizDaten? Justiz { get; init; }
 
@@ -526,6 +529,8 @@ public sealed class Wirtschaftsdaten
             if (Charakterzuege is { } cz && zuege.Count(z => z.Art == Reichsgilde.Core.Dynastie.Zugart.Persoenlichkeit) > cz.JePerson)
                 f.Add($"Ratsherr {r.Name}: höchstens {cz.JePerson} Persönlichkeitszüge.");
         }
+        Meinungen?.Pruefen(f, StandStufe, Charakterzuege?.Zuege.Keys ?? (ICollection<string>)Array.Empty<string>(),
+            Gesundheit?.Krankheiten.Keys ?? (ICollection<string>)Array.Empty<string>());
         Justiz?.Pruefen(f);
         Gauner?.Pruefen(f);
         return f;

@@ -1042,7 +1042,7 @@ public sealed partial class KiRivale
     {
         var buch = _w.Familien;
         var fehlt = Math.Max(0, buch.Heiratsschwelle(k) - buch.Bereitschaft(Konto, k));
-        return buch.Hochzeitskosten(k) + fehlt * buch.GuldenJeZuneigung(Konto);
+        return buch.Hochzeitskosten(k) + fehlt * buch.GuldenJeZuneigung(Konto, k);
     }
 
     /// <summary>
@@ -1075,7 +1075,7 @@ public sealed partial class KiRivale
         var wirkung = Math.Min(fehlt, buch.ZuneigungRest(Konto, k));
         if (fehlt > 0 && wirkung > 0.001)
         {
-            var gulden = Math.Ceiling(wirkung * buch.GuldenJeZuneigung(Konto) / 10) * 10;
+            var gulden = Math.Ceiling(wirkung * buch.GuldenJeZuneigung(Konto, k) / 10) * 10;
             if (Konto.Vermoegen - gulden - hochzeit < Profil.Reserve) return;
             Befehlen(new Werben(p.Nummer, gulden),
                 $"wirbt um {p.Name} ({p.Volk.Einzahl()}, {p.Alter(buch.Jahr)} Jahre) mit Geschenken für {Zahlenformat.Ganz(gulden)} {_w.Daten.Allgemein.Waehrung}.");
@@ -1266,11 +1266,11 @@ public sealed partial class KiRivale
             foreach (var s in stimmen.Where(s => s.Schuldig && s.Richter.Ratsherr is not null))
             {
                 var r = s.Richter.Ratsherr!;
-                // Gunstwirkung = Faktor × Gunstdifferenz + Plädoyer (Rhetorik), gedeckelt
-                var differenz = _w.Rat.Gunst(r, v.Anklaeger) - _w.Rat.Gunst(r, Konto);
+                // Gunstwirkung = Faktor × Meinungsdifferenz + Plädoyer (Rhetorik), gedeckelt
+                var differenz = _w.Rat.Meinung(r, v.Anklaeger) - _w.Rat.Meinung(r, Konto);
                 var plaedoyer = _w.Familien.Plaedoyer(v.Anklaeger, Konto);
-                var fehlt = differenz - (ziel - plaedoyer) / d.GunstFaktor;           // so viel Gunst muss die KI gewinnen
-                var jeGulden = _w.Rat.GunstJeGulden(r); // Charakterzüge des Richters (PR #227)
+                var fehlt = differenz - (ziel - plaedoyer) / d.GunstFaktor;           // so viel Meinung muss die KI gewinnen
+                var jeGulden = _w.Rat.GunstJeGulden(r, Konto); // Charakterzüge des Richters (PR #227), weitere Geschenke im Jahr wirken weniger
                 var gulden = Math.Ceiling(fehlt / jeGulden / 10) * 10;
                 if (gulden > 0 && _w.Rat.Gunst(r, Konto) + gulden * jeGulden <= g.Hoechstwert)
                     kosten.Add((r, gulden));
@@ -1717,7 +1717,7 @@ public sealed partial class KiRivale
                                   mitbewerber.Select(m => rat.Punkte(r, amt, m)).DefaultIfEmpty(0).Max());
             var fehlt = gegner + 1 - rat.Punkte(r, amt, Konto);
             if (fehlt <= 0) sicher++;
-            else kosten.Add((r, Math.Ceiling(fehlt / rat.GunstJeGulden(r) / 10) * 10));
+            else kosten.Add((r, Math.Ceiling(fehlt / rat.GunstJeGulden(r, Konto) / 10) * 10));
         }
         return (kosten, waehler.Count / 2 + 1 - sicher);
     }
@@ -1731,7 +1731,7 @@ public sealed partial class KiRivale
         var ja = besetzt.Count(a => a.Konto == Konto || a.Ratsherr is { } r && rat.StimmtZu(r, statut, Konto));
         var kosten = besetzt
             .Where(a => a.Ratsherr is { } r && !rat.StimmtZu(r, statut, Konto) && Math.Abs((int)statut - (int)r.Haltung) == 1)
-            .Select(a => (a.Ratsherr!, Math.Ceiling((g.SchwelleNachbarstatut - rat.Gunst(a.Ratsherr!, Konto)) / rat.GunstJeGulden(a.Ratsherr!) / 10) * 10))
+            .Select(a => (a.Ratsherr!, Math.Ceiling((g.SchwelleNachbarstatut - rat.Meinung(a.Ratsherr!, Konto)) / rat.GunstJeGulden(a.Ratsherr!, Konto) / 10) * 10))
             .ToList();
         Schenkplan(kosten, besetzt.Count / 2 + 1 - ja, $"für das Statut {statut.Kuerzel()}",
             (ErwartungUnter(statut) - ErwartungUnter(_w.Statut)) * NutzenJahre);

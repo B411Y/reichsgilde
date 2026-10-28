@@ -123,6 +123,9 @@ public sealed record WirtschaftStand
 
     /// <summary>Befugnisse der Ämter: freier Antrag, Streife, Strafmaß (null: ohne Kasse oder alter Spielstand).</summary>
     public BefugnisseStand? Befugnisse { get; init; }
+
+    /// <summary>Gründe der Meinungen aus Taten (PR #231). Null: alter Spielstand – die Gunst der Ratsherren (<see cref="RatStand.Gunst"/>) wird zum Grund „Geschenke“.</summary>
+    public MeinungenStand? Meinungen { get; init; }
 }
 
 /// <summary>Die Stadtkasse (siehe <see cref="Reichsgilde.Core.Politik.Stadtkasse"/>).</summary>
@@ -698,11 +701,45 @@ public sealed record SitzStand
     public int? Konto { get; init; }
 }
 
+/// <summary>Die Gunst eines Ratsherrn bei einem Haus – nur noch in alten Spielständen (seit PR #231 ein Grund der Meinung).</summary>
 public sealed record GunstStand
 {
     public string Ratsherr { get; init; } = "";
     public int Konto { get; init; }
     public double Wert { get; init; }
+}
+
+/// <summary>Die Meinungen (PR #231): nur die verblassenden Gründe aus Taten – die festen werden beim Laden neu berechnet.</summary>
+public sealed record MeinungenStand
+{
+    public List<MeinungsgrundStand> Gruende { get; init; } = new();
+
+    /// <summary>Aktivitäten dieses Jahres (je Art und Paar einmal; Geschenke mit Anzahl).</summary>
+    public List<MeinungJahrStand> DiesesJahr { get; init; } = new();
+
+    /// <summary>Kontonummer (als Text) → Streit im Haus kostet Ansehen bis zu diesem Jahr.</summary>
+    public Dictionary<string, int> StreitBis { get; init; } = new();
+
+    /// <summary>Würfe des eigenen Zufallsgenerators (Gefahr der Aktivitäten, Streit).</summary>
+    public long Wuerfe { get; init; }
+}
+
+/// <summary>Ein Grund aus einer Tat: <see cref="Von"/> denkt über <see cref="Ueber"/> (Kennungen „P12“, „R:Name“, „K:Haus“).</summary>
+public sealed record MeinungsgrundStand
+{
+    public string Von { get; init; } = "";
+    public string Ueber { get; init; } = "";
+    public string Art { get; init; } = "";
+    public string Text { get; init; } = "";
+    public double Wert { get; init; }
+}
+
+public sealed record MeinungJahrStand
+{
+    public string Art { get; init; } = "";
+    public string Von { get; init; } = "";
+    public string Ueber { get; init; } = "";
+    public int Anzahl { get; init; }
 }
 
 public sealed record KontoStand
