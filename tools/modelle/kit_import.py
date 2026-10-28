@@ -416,6 +416,158 @@ def melden(name, objekte):
 
 
 # ─────────────────────────────────────────────────────────────────────────────
+#  Mittelweg für Bäume: weniger Dreiecke ohne Collapse über das ganze Netz
+# ─────────────────────────────────────────────────────────────────────────────
+
+def _lage(v):
+    """Schlüssel für die Lage einer Ecke (der glTF-Import trennt Ecken an UV-Nähten, die Lage bleibt gleich)."""
+    return (round(v.co.x * 2000), round(v.co.y * 2000), round(v.co.z * 2000))
+
+
+def teile(bm):
+    """Teilt die Flächen in zusammenhängende Stücke (über gleiche Kanten nach Lage): Äste, Nadelbüschel, Blattkarten.
+    Gibt Listen von Flächen zurück, die größten zuerst."""
+    eltern = {f.index: f.index for f in bm.faces}
+
+    def wurzel(i):
+        while eltern[i] != i:
+            eltern[i] = eltern[eltern[i]]
+            i = eltern[i]
+        return i
+
+    kanten = {}
+    for f in bm.faces:
+        ls = [_lage(v) for v in f.verts]
+        for a, b in zip(ls, ls[1:] + ls[:1]):
+            e = (min(a, b), max(a, b))
+            if e in kanten:
+                eltern[wurzel(f.index)] = wurzel(kanten[e])
+            else:
+                kanten[e] = f.index
+    gruppen = {}
+    for f in bm.faces:
+        gruppen.setdefault(wurzel(f.index), []).append(f)
+    return sorted(gruppen.values(), key=len, reverse=True)
+
+
+def _masse(flaechen):
+    """Mittelpunkt und größte Ausdehnung eines Stücks."""
+    pts = [v.co for f in flaechen for v in f.verts]
+    lo = Vector((min(p.x for p in pts), min(p.y for p in pts), min(p.z for p in pts)))
+    hi = Vector((max(p.x for p in pts), max(p.y for p in pts), max(p.z for p in pts)))
+    return (lo + hi) / 2, (hi - lo).length
+
+
+def rinde_schlank(o, ziel, mindest=0.45):
+    """Äste und Stamm mit weniger Dreiecken: erst fallen die kleinsten Zweige weg (sie verschwinden im Laub), dann werden die
+    übrigen Röhren verschweißt und vorsichtig zusammengefaltet. Die Ecken sind danach verbunden, darum reißt nichts auf."""
+    import bmesh
+    n = dreiecke(o)
+    if n <= ziel:
+        return o
+    bm = bmesh.new()
+    bm.from_mesh(o.data)
+    bm.faces.ensure_lookup_table()
+    stuecke = teile(bm)
+    nach_laenge = sorted(stuecke, key=lambda g: _masse(g)[1], reverse=True)
+    behalten, summe = [], 0
+    for g in nach_laenge:                              # lange Äste zuerst, bis das Dreiecksbudget für `mindest` reicht
+        if summe >= ziel / mindest and behalten:
+            break
+        behalten.append(g)
+        summe += sum(len(f.verts) - 2 for f in g)
+    gut = {f.index for g in behalten for f in g}
+    bmesh.ops.delete(bm, geom=[f for f in bm.faces if f.index not in gut], context="FACES")
+    bmesh.ops.remove_doubles(bm, verts=bm.verts, dist=0.0005)
+    bm.to_mesh(o.data)
+    bm.free()
+    if o.data.has_custom_normals:
+        objekt_aktiv(o)
+        bpy.ops.mesh.customdata_custom_splitnormals_clear()
+    vereinfachen(o, ziel)
+    return o
+
+
+def laub_schlank(o, ziel, saat, dunkel=0.4, hell=0.8, streuung=0.14, farbton=0.05, tint=(1.0, 1.0, 1.0)):
+    """Blattkarten und Nadelbüschel ausdünnen, ohne das Netz zu verformen: von innen nach außen fallen einzelne Stücke weg
+    (die Silhouette bleibt), die übrigen werden um ihre Mitte größer. Dazu Eckenfarben: Mitte und Unterseite dunkler (AO),
+    je Stück leicht andere Helligkeit und ein Hauch Farbton (das Spiel multipliziert sie mit der Jahreszeitenfarbe). `hell` dunkelt
+    insgesamt ab: Die Kit-Blätter wirkten neben dem feuchten Waldboden und unseren Bäumen zu hell."""
+    import bmesh
+    import random
+    zufall = random.Random(saat)
+    n = dreiecke(o)
+    bm = bmesh.new()
+    bm.from_mesh(o.data)
+    bm.faces.ensure_lookup_table()
+    stuecke = teile(bm)
+    pts = [v.co for v in bm.verts]
+    lo = Vector((min(p.x for p in pts), min(p.y for p in pts), min(p.z for p in pts)))
+    hi = Vector((max(p.x for p in pts), max(p.y for p in pts), max(p.z for p in pts)))
+    mitte, halb = (lo + hi) / 2, (hi - lo) / 2
+    halb = Vector((max(halb.x, 1e-3), max(halb.y, 1e-3), max(halb.z, 1e-3)))
+
+    def tiefe(p):
+        """0 an der Oberfläche der Krone, 1 in der Mitte."""
+        d = Vector(((p.x - mitte.x) / halb.x, (p.y - mitte.y) / halb.y, (p.z - mitte.z) / halb.z))
+        return max(0.0, 1.0 - min(1.0, d.length))
+
+    anteil = min(1.0, ziel / max(1, n))
+    # Rangfolge: außen zuerst, mit Zufall gemischt, damit innen nicht alles fehlt
+    rang = sorted(stuecke, key=lambda g: tiefe(_masse(g)[0]) + zufall.random() * 0.55)
+    k = max(1, round(len(stuecke) * anteil))
+    bleiben = rang[:k]
+    gut = {f.index for g in bleiben for f in g}
+    gross = (1.0 / anteil) ** 0.5 * 0.92 if anteil < 1.0 else 1.0          # Fläche bleibt etwa gleich, etwas weniger gegen Überdeckung
+    ebene = bm.loops.layers.float_color.new("Col")
+    vorher = {}
+    for g in bleiben:
+        m, _ = _masse(g)
+        j = 1.0 - streuung + 2 * streuung * zufall.random()
+        h = zufall.uniform(-1, 1)
+        for f in g:
+            for l in f.loops:
+                v = l.vert
+                p = v.co.copy()
+                if v.index not in vorher:
+                    vorher[v.index] = m + (p - m) * gross
+                t = max(0.0, min(1.0, 0.6 * (1 - tiefe(p)) + 0.4 * ((p.z - lo.z) / max(1e-3, hi.z - lo.z))))
+                w = (dunkel + (1.0 - dunkel) * t ** 0.8) * j * hell
+                l[ebene] = (w * (1 + farbton * h) * tint[0], w * tint[1], w * (1 - farbton * h) * tint[2], 1.0)
+    bm.verts.ensure_lookup_table()
+    for i, p in vorher.items():
+        bm.verts[i].co = p
+    bmesh.ops.delete(bm, geom=[f for f in bm.faces if f.index not in gut], context="FACES")
+    bm.to_mesh(o.data)
+    bm.free()
+    return o
+
+
+def baum_mittel(o, name, rinde, laub, saat=1, rinde_winter=None, **farbe):
+    """Der Kit-Baum `o` mit etwa `rinde` + `laub` Dreiecken (Rinde und Laub getrennt behandelt). Mit `rinde_winter` kommt
+    zusätzlich die kahle Fassung „<name>_Winter“ aus der Rinde mit mehr Zweigen (ohne Laub sieht man sie): (Baum, Winter)."""
+    alpha = {m.name for m in o.data.materials if m and _nachbessern.get(m.name, {}).get("alphaMode")}
+    rest = {m.name for m in o.data.materials if m and m.name not in alpha}
+    teile_ = []
+    if alpha:
+        a = teil_nach_stoff(o, alpha)
+        teile_.append(laub_schlank(a, laub, saat, **farbe))
+    winter = None
+    if rinde_winter:
+        winter = rinde_schlank(teil_nach_stoff(o, rest), rinde_winter)
+        winter.name = winter.data.name = name + "_Winter"
+    b = rinde_schlank(teil_nach_stoff(o, rest), rinde)
+    for x in (b, winter):
+        if x is not None:
+            weiss = x.data.color_attributes.new("Col", "FLOAT_COLOR", "CORNER")
+            weiss.data.foreach_set("color", [1.0] * (4 * len(weiss.data)))
+    teile_.append(b)
+    bpy.data.objects.remove(o)
+    baum = verbinden(teile_, name)
+    return baum if rinde_winter is None else (baum, winter)
+
+
+# ─────────────────────────────────────────────────────────────────────────────
 #  Die Baukästen
 # ─────────────────────────────────────────────────────────────────────────────
 
@@ -454,20 +606,29 @@ def natur_steine():
     return o
 
 
+# Dreiecksziele je Baum (Rinde, Laub bzw. Nadeln, kahle Fassung): Mittelweg zwischen dem vollen Kit-Baum (1.600 bis 6.600) und unseren Bäumen (37 bis 217)
+KIEFERN = (("Pine_5", 7.5, 150, 700), ("Pine_2", 8.0, 220, 560), ("Pine_4", 10.5, 240, 700), ("Pine_1", 7.5, 220, 560), ("Pine_3", 7.5, 220, 420))
+TOTBAEUME = (("DeadTree_1", 7.0, 1000), ("DeadTree_2", 8.0, 1000), ("DeadTree_3", 9.0, 1000))
+LAUBBAEUME = (("CommonTree_5", 8.0, 260, 380), ("CommonTree_3", 9.5, 260, 400), ("CommonTree_2", 8.5, 280, 380))
+WINTER_RINDE = 520            # die kahlen Fassungen brauchen mehr Äste: im Winter sieht man sie allein
+
+
 def natur_baeume():
     bs.neue_szene()
     o = []
-    for i, s in enumerate(("Pine_5", "Pine_2", "Pine_4", "Pine_1", "Pine_3")):
-        o.append(laden("natur", s, f"Kiefer{i + 1}", hoehe=(7.5, 8.0, 10.5, 7.5, 7.5)[i]))
-    for i, s in enumerate(("DeadTree_1", "DeadTree_2", "DeadTree_3")):
-        o.append(laden("natur", s, f"Totbaum{i + 1}", hoehe=(7.0, 8.0, 9.0)[i]))
-    laub = []
-    for i, s in enumerate(("CommonTree_5", "CommonTree_3", "CommonTree_2")):
-        b = laden("natur", s, f"Laubbaum{i + 1}", hoehe=(8.0, 9.5, 8.5)[i])
-        laub.append(b)
-    o.extend(laub)
-    for b in laub:
-        o.append(winterfassung(b, b.name + "_Winter"))
+    for i, (s, h, rinde, nadeln) in enumerate(KIEFERN):
+        b = laden("natur", s, f"Kiefer{i + 1}", hoehe=h)
+        o.append(baum_mittel(b, b.name, rinde, nadeln, saat=10 + i, hell=0.66, tint=(0.92, 1.0, 0.96)))
+    for i, (s, h, rinde) in enumerate(TOTBAEUME):
+        b = laden("natur", s, f"Totbaum{i + 1}", hoehe=h)
+        o.append(baum_mittel(b, b.name, rinde, 0, saat=20 + i))
+    laub, winter = [], []
+    for i, (s, h, rinde, blaetter) in enumerate(LAUBBAEUME):
+        b = laden("natur", s, f"Laubbaum{i + 1}", hoehe=h)
+        baum, kahl = baum_mittel(b, b.name, rinde, blaetter, saat=30 + i, rinde_winter=WINTER_RINDE, hell=0.7, tint=(0.88, 1.0, 0.93))
+        laub.append(baum)
+        winter.append(kahl)
+    o.extend(laub + winter)
     sauber(o)
     return o
 
