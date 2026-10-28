@@ -12,3 +12,5 @@
 Bearbeitung im Projekt: Die beiden großen Texturen (Albedo, Normalen) sind von 2048 auf 1024 Pixel verkleinert (Bildvergleich im Spiel: kein sichtbarer Unterschied, 12,6 MB statt 5,2 MB im Grafikspeicher); Mesh, Skelett und Animation sind unverändert. Das Modell steht wie die übrigen Inhalte unter CC BY 4.0 (`LICENSE-INHALTE.md`).
 
 Weitere Bewegungen (Stehen, Hämmern …) kommen als `schmied_ki_<bewegung>.glb` mit demselben Skelett in diesen Ordner; das Spiel nimmt sie beim Start automatisch auf (`Stadtansicht.KiFiguren.cs`).
+
+`schmied_ki_stehen.glb` ist der Kimodo-Clip „idle“ für dasselbe Skelett; die Datei enthält nur Skelett und Animation (Netz, Material und Texturen entfernt).
