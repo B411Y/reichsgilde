@@ -488,8 +488,8 @@ public partial class Stadtansicht
             if (neu)
             {
                 _ringStoff.EmissionBoxExtents = new Vector3(_kamera.Size * seiten * 0.55f, 0.01f, tiefe * 0.8f);
-                _ringStoff.ScaleMin = 0.55f * Mathf.Pow(k, 0.8f);
-                _ringStoff.ScaleMax = 1.2f * Mathf.Pow(k, 0.8f);
+                _ringStoff.ScaleMin = 0.65f * Mathf.Pow(k, 0.8f);
+                _ringStoff.ScaleMax = 1.3f * Mathf.Pow(k, 0.8f);
                 _regenRinge.VisibilityAabb = new Aabb(new Vector3(-breite, -2, -tiefe), new Vector3(2 * breite, 4, 2 * tiefe));
             }
         }

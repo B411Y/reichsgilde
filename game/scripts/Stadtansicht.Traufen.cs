@@ -9,6 +9,7 @@ namespace Reichsgilde;
 /// <list type="bullet">
 /// <item><b>Traufkante finden</b>: Aus dem Netz eines Dachs (Materialien <see cref="Dachstoffe"/>) kommen die waagerechten Kanten der schrägen Dreiecke, die am
 /// niedrigsten liegen – das ist die Traufe. Je Netz einmal gerechnet und gemerkt (Modelle teilen ihre Netze), Punkte alle ~1,2 m.</item>
+/// <item><b>Giebelkante</b>: Dazu ein paar Tropfstellen an den Randkanten der Dachflächen, die nicht waagerecht laufen (höchstens 8 je Netz, alle ~4 m – deutlich weniger als an der Traufe).</item>
 /// <item><b>Jedes Modell</b> meldet sich beim Einsetzen (<see cref="TraufenMelden"/>); gezeigt werden die Punkte der Modelle in der Nähe des Blickpunkts.</item>
 /// </list>
 /// </summary>
@@ -48,6 +49,7 @@ public partial class Stadtansicht
     private static Vector3[] TraufPunkte(Mesh netz)
     {
         var kanten = new List<(Vector3 A, Vector3 B)>();
+        var schraegKanten = new Dictionary<((int, int, int), (int, int, int)), (Vector3 A, Vector3 B, int Zahl)>(); // alle Kanten der schrägen Dreiecke, Zahl = wie oft sie vorkommen
         var tiefstes = float.MaxValue;
         for (var f = 0; f < netz.GetSurfaceCount(); f++)
         {
@@ -67,6 +69,10 @@ public partial class Stadtansicht
                 {
                     var a = v[k];
                     var b = v[(k + 1) % 3];
+                    var ka = Raster(a);
+                    var kb = Raster(b);
+                    var schluessel = ka.CompareTo(kb) <= 0 ? (ka, kb) : (kb, ka);
+                    schraegKanten[schluessel] = schraegKanten.TryGetValue(schluessel, out var alt) ? (alt.A, alt.B, alt.Zahl + 1) : (a, b, 1);
                     if (Mathf.Abs(a.Y - b.Y) > 0.06f || (a - b).Length() < 0.4f) continue; // waagerechte, nicht winzige Kante
                     kanten.Add((a, b));
                     tiefstes = Mathf.Min(tiefstes, Mathf.Min(a.Y, b.Y));
@@ -85,8 +91,21 @@ public partial class Stadtansicht
                 if (gesehen.Add((Mathf.RoundToInt(p.X * 3), Mathf.RoundToInt(p.Y * 3), Mathf.RoundToInt(p.Z * 3)))) punkte.Add(p);
             }
         }
-        return punkte.Count > 48 ? punkte.Where((_, i) => i % ((punkte.Count + 47) / 48) == 0).ToArray() : punkte.ToArray();
+        var traufe = punkte.Count > 40 ? punkte.Where((_, i) => i % ((punkte.Count + 39) / 40) == 0).ToList() : punkte;
+        // Giebelkante: Randkanten der Dachflächen (nur ein Dreieck), die nicht waagerecht laufen – deutlich weniger Tropfstellen als an der Traufe (alle ~4 m)
+        var giebel = new List<Vector3>();
+        foreach (var (a, b, zahl) in schraegKanten.Values)
+        {
+            if (zahl != 1 || Mathf.Abs(a.Y - b.Y) < 0.4f || (a - b).Length() < 1.5f) continue;
+            var schritte = Mathf.Max(2, Mathf.RoundToInt((a - b).Length() / 4f)); // mindestens die Mitte
+            for (var s = 1; s < schritte; s++) giebel.Add(a.Lerp(b, s / (float)schritte));
+        }
+        if (giebel.Count > 8) giebel = giebel.Where((_, i) => i % ((giebel.Count + 7) / 8) == 0).ToList();
+        traufe.AddRange(giebel);
+        return traufe.ToArray();
     }
+
+    private static (int, int, int) Raster(Vector3 p) => (Mathf.RoundToInt(p.X * 50), Mathf.RoundToInt(p.Y * 50), Mathf.RoundToInt(p.Z * 50));
 
     private void TraufenEinrichten()
     {

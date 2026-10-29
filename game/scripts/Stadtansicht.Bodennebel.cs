@@ -140,8 +140,20 @@ public partial class Stadtansicht
             if (ufer < 20) neigung = Mathf.Max(neigung, 1f - ufer / 20f * 0.6f);
         }
         var p = new Vector2(x, z);
+        // In der Stadt nur ein Viertel – aber als weicher Übergang: an der Mauer liegt der Nebel noch fast voll, 30 m hinter ihr ist es das Viertel. Ein Sprung
+        // an der Mauer zeigte sich als harte Nebelkante (Bildschirmfoto 04:08 Uhr): Die Mauer verdeckt, was hinter ihr liegt, man sah nur das abrupte Ende der Schwade.
+        var abstand = float.MaxValue;
+        var innen = false;
         foreach (var m in mauern)
-            if (Geometry2D.IsPointInPolygon(p, m)) { neigung *= 0.25f; break; }
+        {
+            for (var i = 0; i < m.Length; i++) abstand = Mathf.Min(abstand, AbstandZurStrecke(p, m[i], m[(i + 1) % m.Length]));
+            innen |= Geometry2D.IsPointInPolygon(p, m);
+        }
+        if (abstand < float.MaxValue)
+        {
+            var d = innen ? -abstand : abstand; // vor der Mauer positiv, in der Stadt negativ
+            neigung *= 1f - 0.75f * (1f - Mathf.SmoothStep(-30f, 6f, d));
+        }
         return neigung;
     }
 }
