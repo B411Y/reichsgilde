@@ -248,6 +248,7 @@ public partial class Hauptszene : Node
         Tooltips.VerweiseErgaenzen = (text, eigene) => Lexikon.VerweiseEinsetzen(text, eigene); // auch normale Tooltips verlinken Lexikon-Begriffe
         LeerstandKnoepfeBauen();
 
+        Ladezeit.Marke("Oberfläche: Tafeln bauen");
         RatssitzungBauen(); // die Tafel der sichtbaren Ratssitzung (Hauptszene.Ratssitzung.cs) – vor der Partie, die sich mit ihr verbindet
         var optionen = Startoptionen();
         if (optionen.GetValueOrDefault("lexikon-pruefen") == "1")
@@ -580,6 +581,7 @@ public partial class Hauptszene : Node
         if (_simulation.Zeit.VergangeneMinuten == 0) // nur bei einer neuen Partie, nicht nach dem Laden
             Protokollieren($"Die Zunftglocke läutet. {_simulation.Zeit.DatumText} beginnt.");
         Anzeigen();
+        Ladezeit.BilderMessen(GetTree(), "Partie"); // --ladezeit=1: Rest von _Ready, dann die ersten Bilder (Ladezeit.cs)
     }
 
     /// <summary>Es ist immer nur eine Tafel in der Bildmitte offen.</summary>
@@ -832,6 +834,7 @@ public partial class Hauptszene : Node
             try
             {
                 var (geladen, spielerKonto) = Spielstaende.Laden(ladePfad);
+                Ladezeit.Marke("Kern: Spielstand lesen");
                 if (spielerKonto is not null && geladen.Wirtschaft is not null)
                 {
                     SimulationVerbinden(geladen, spielerKonto);
@@ -849,6 +852,7 @@ public partial class Hauptszene : Node
 
         // 2. Neue Partie – mit den Einstellungen aus dem Menü oder (Startoptionen/Test) den Standardwerten.
         var daten = WirtschaftsdatenLaden();
+        Ladezeit.Marke("Kern: wirtschaft.json lesen");
         if (daten is null)
             return new Simulation(); // ohne Daten läuft nur die Uhr
 
@@ -1026,6 +1030,7 @@ public partial class Hauptszene : Node
         _bauFrage.Verbinden(simulation, spieler);
         _bau.Verbinden(simulation, spieler, _stadt);
         _wegTafel.Verbinden(simulation, spieler, _stadt);
+        Ladezeit.Marke("Kern: Partie aufstellen, Oberfläche verbinden");
         // Die Stadtansicht zeichnet die Karte der Partie, stellt jeden Betrieb an seinen Platz und zeigt die freien Plätze.
         _stadt.Verbinden(simulation, spieler);
         w.BetriebErworben += betrieb =>
@@ -1090,7 +1095,9 @@ public partial class Hauptszene : Node
         _hafenTafel.Aktualisieren(delta);
         _stadt.Auswahl = _auswahl.Visible || _wohnhaus.Visible ? _auswahlKennung // Name des ausgewählten Gebäudes bleibt sichtbar
             : _hafenTafel.Visible ? (_hafenTafel.GewaehltesSchiff is { } schiff ? "schiff:" + schiff : Stadtansicht.HafenKennung(_hafenTafel.Hafen)) : null;
+        var uhr = Ladezeit.Uhr();
         _stadt.Aktualisieren(delta);
+        Ladezeit.Dazu("im Bild: Stadtansicht.Aktualisieren gesamt", uhr);
         foreach (var tafel in _innenTafeln) tafel.Aktualisieren(delta);
         _wohnhausBaum.Aktualisieren(delta);
         var innenTafelOffen = _innenTafeln.Any(t => t.Visible) || _wohnhausBaum.Visible || _sitzungsTafel.Laeuft; // die Meldungen schienen sonst durch die große Tafel

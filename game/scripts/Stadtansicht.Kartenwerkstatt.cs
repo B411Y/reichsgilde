@@ -168,6 +168,7 @@ public partial class Stadtansicht
         if (_karteGebaut) return;
         _karteGebaut = true;
         _entwurf = entwurf;
+        Ladezeit.Marke("vor dem Kartenaufbau");
         _gelaende = entwurf.Gelaendeform; // folgt jeder Änderung des Entwurfs von selbst
         _karte = HintergrundVon(entwurf);
         if (_karte is { } karte)
@@ -182,17 +183,25 @@ public partial class Stadtansicht
             KameraAusKarte(karte);
         }
         else BodenBauen(entwurf.Kartengrenzen); // Boden, Dunst und Kartenrand (Stadtansicht.Rand.cs)
+        Ladezeit.Marke("Werkstatt-Szene: Boden und Gelände");
 
         entwurf.Fangpunkte = Halteplaetze; // Karrenplätze und Gatter aus den Modellen (Stadtansicht.Kartenwerkstatt.Wege.cs)
         _stueckeKnoten = new Node3D { Name = "Stuecke" };
         AddChild(_stueckeKnoten);
         foreach (var g in entwurf.Gebaeude) StueckBauen(g);
+        Ladezeit.Marke("Werkstatt-Szene: Stücke (Gebäude)");
         WegeAufbauen();      // Stadtansicht.Kartenwerkstatt.Wege.cs
+        Ladezeit.Marke("Werkstatt-Szene: Wege");
         FlaechenAufbauen();  // Stadtansicht.Kartenwerkstatt.Flaechen.cs
+        Ladezeit.Marke("Werkstatt-Szene: Flächen");
         PflanzenAufbauen();  // Stadtansicht.Kartenwerkstatt.Natur.cs
+        Ladezeit.Marke("Werkstatt-Szene: Natur");
         BodendekoAufbauen(); // Stadtansicht.Kartenwerkstatt.Boden.cs
+        Ladezeit.Marke("Werkstatt-Szene: Bodendeko");
         MauernAufbauen();    // Stadtansicht.Kartenwerkstatt.Mauern.cs
+        Ladezeit.Marke("Werkstatt-Szene: Mauern");
         WasserAufbauen();    // Stadtansicht.Kartenwerkstatt.Wasser.cs
+        Ladezeit.Marke("Werkstatt-Szene: Wasser");
         _wsFehlerNeu = true;
         entwurf.Geaendert += EntwurfGeaendert;
         LichtNachUhrzeit(12 * 60, 100); // heller Mittag, sofort ohne Überblenden

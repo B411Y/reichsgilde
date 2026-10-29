@@ -71,6 +71,7 @@ public partial class Hauptmenue : Node
 
     public override void _Ready()
     {
+        Ladezeit.Marke("Programmstart bis Hauptmenü");
         var portraetOption = OS.GetCmdlineUserArgs().FirstOrDefault(a => a.StartsWith("--portraets="));
         var stadtwahl = OS.GetCmdlineUserArgs().Any(a => a == "--stadtwahl=1");
         if (OS.GetCmdlineUserArgs().Length > 0 && !_startoptionenGenutzt && portraetOption is null && !stadtwahl)
@@ -78,7 +79,7 @@ public partial class Hauptmenue : Node
             // Startoptionen → Test- oder Prüflauf: Menü überspringen (nur beim ersten Mal – „Zurück zum Hauptmenü“ zeigt dann das Menü).
             _startoptionenGenutzt = true;
             if (OS.GetCmdlineUserArgs().Any(a => a.StartsWith("--kartenwerkstatt")))
-                Callable.From(() => GetTree().ChangeSceneToFile(Kartenwerkstatt.Szene)).CallDeferred();
+                Callable.From(() => { Ladezeit.Marke("Hauptmenü bis Kartenwerkstatt"); GetTree().ChangeSceneToFile(Kartenwerkstatt.Szene); }).CallDeferred();
             else
                 CallDeferred(MethodName.SpielStarten);
             return;
@@ -119,7 +120,11 @@ public partial class Hauptmenue : Node
         }
     }
 
-    private void SpielStarten() => GetTree().ChangeSceneToFile(Spielszene);
+    private void SpielStarten()
+    {
+        Ladezeit.Marke("Hauptmenü bis Spielstart");
+        GetTree().ChangeSceneToFile(Spielszene);
+    }
 
     /// <summary>Die Startoptionen haben das Menü schon einmal übersprungen.</summary>
     private static bool _startoptionenGenutzt;
@@ -145,7 +150,7 @@ public partial class Hauptmenue : Node
         Knopf(spalte, "Neue Partie", KartenwahlZeigen);
         Knopf(spalte, "Partie laden", () => { _liste.Auffrischen(); _ladeFehler.Text = ""; Zeigen(_laden); });
         Knopf(spalte, "Einstellungen", () => { _einstellungen.Auffrischen(); Zeigen(_einstellungen.Tafel); });
-        Knopf(spalte, "Kartenwerkstatt", () => GetTree().ChangeSceneToFile(Kartenwerkstatt.Szene)).TooltipText =
+        Knopf(spalte, "Kartenwerkstatt", () => { Ladezeit.Marke("Hauptmenü bis Kartenwerkstatt"); GetTree().ChangeSceneToFile(Kartenwerkstatt.Szene); }).TooltipText =
             "Karten bauen und prüfen: Gebäude setzen, verschieben, drehen – Greybox und Köln öffnen (nur lesen), eigene Karten speichern";
         Knopf(spalte, "Beenden", () => GetTree().Quit());
 

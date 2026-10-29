@@ -57,6 +57,7 @@ Startoptionen (nach `--`):
 - `--stadtwahl=1` (Hauptmenü öffnet gleich die Seite „Stadt wählen“, für Bildschirmfotos)
 - `--entwickler=1|0` (Entwickler-Modus für diesen Start an oder aus, ohne die gemerkte Einstellung zu ändern; die Kartenwahl zeigt dann auch Test- und Messkarten)
 - `--kartenbild=<ziel.png>` (Karte als Vorschau für die Kartenwahl aufnehmen, 480 × 270, und beenden; mit `--karte=<kennung>`, gemacht für `tools/kartenbilder/kartenbilder.sh`)
+- `--ladezeit=1|ende` (Messausgabe der Ladezeit: Zeilen „Ladezeit: …“ mit den Millisekunden je Abschnitt – Kern, Gelände, Häuser, Wege, Wasser, Natur, Modelle laden –, danach die Dauer der ersten Bilder samt übersetzten Pipelines und der Arbeit in ihnen; `ende` beendet das Spiel, sobald die Bilder ruhig sind. Dazu `--ladezeitbilder=<ordner>`: Fotos beim ersten Bild, nach 1 s, nach 3 s und am Ende; `game/scripts/Ladezeit.cs`)
 - `--schwierigkeit=<Normal|Schwer>` (Schwierigkeit der neuen Partie, nur für diesen Start; Normal = KI-Häuser starten wie der Spieler, Schwer = mit Umlandbetrieb)
 
 ## Grafik (nur für diesen Start)

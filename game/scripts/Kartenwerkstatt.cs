@@ -110,9 +110,11 @@ public partial class Kartenwerkstatt : Node
         (_entwurf, _pfad, _nurLesen) = auftrag;
         (_daten, var datenFehler) = DatenLaden();
         _entwurf.Daten ??= _daten; // Betriebsarten je Platz und die Prüfung der Startbelegung
+        Ladezeit.Marke("Kern: Entwurf und wirtschaft.json lesen");
 
         _stadt.EntwurfZeigen(_entwurf);
         OberflaecheBauen(); // Kartenwerkstatt.Tafeln.cs
+        Ladezeit.Marke("Werkstatt: Tafeln bauen");
         _entwurf.Geaendert += EntwurfGeaendert;
         _stadt.WerkstattAuswahlGeaendert += AuswahlGeaendert;
         _stadt.WerkstattWerkzeugBeendet += KatalogWahlAufheben;
@@ -143,6 +145,7 @@ public partial class Kartenwerkstatt : Node
         if (meldung is not null) Melden(meldung);
         else if (datenFehler is not null) Melden(datenFehler, fehler: true);
         StartoptionenAusfuehren(optionen);
+        Ladezeit.BilderMessen(GetTree(), "Kartenwerkstatt"); // --ladezeit=1: Rest von _Ready, dann die ersten Bilder (Ladezeit.cs)
     }
 
     /// <summary>Die Zeile in der Leiste unten: Höhe und Gefälle des Bodens unter der Maus.</summary>
@@ -150,7 +153,9 @@ public partial class Kartenwerkstatt : Node
 
     public override void _Process(double delta)
     {
+        var uhr = Ladezeit.Uhr();
         _stadt.WerkstattAktualisieren();
+        Ladezeit.Dazu("im Bild: WerkstattAktualisieren", uhr);
         var boden = _stadt.WerkstattBodenInfo();
         var info = $"Werkzeug: {_werkzeugName}" + (boden is null ? "" : " · " + boden); // Höhe, Gefälle und Boden unter der Maus
         if (_bodenInfo.Text != info) _bodenInfo.Text = info;
