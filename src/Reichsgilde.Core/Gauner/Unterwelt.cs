@@ -701,7 +701,11 @@ public sealed class Unterwelt
     internal UnterweltStand Sichern(Func<Konto, int> nr) => new()
     {
         ZufallWuerfe = _zufall.Wuerfe,
-        Auftraege = _auftraege.Select(a => new AuftragStand { Auftraggeber = nr(a.Auftraggeber), Ziel = nr(a.Ziel), Art = a.Art, Betrieb = a.Betrieb }).ToList(),
+        Auftraege = _auftraege.Select((a, i) => new AuftragStand
+        {
+            Auftraggeber = nr(a.Auftraggeber), Ziel = nr(a.Ziel), Art = a.Art, Betrieb = a.Betrieb,
+            Erfolgreich = i < _erfolgreich.Count && _erfolgreich[i],
+        }).ToList(),
         Hinterhalte = _hinterhalte.Select(h => new HinterhaltStand { Auftraggeber = nr(h.Auftraggeber), Ziel = nr(h.Ziel), BisMinute = h.BisMinute }).ToList(),
         Forderungen = _forderungen.Select(f => new ForderungStand { Erpresser = nr(f.Erpresser), Opfer = nr(f.Opfer), Betrag = f.Betrag, Jahr = f.Jahr }).ToList(),
         DiesesJahr = _diesesJahr.Select(e => new NachtereignisStand { Fuer = e.Fuer is null ? null : nr(e.Fuer), Text = e.Text }).ToList(),
@@ -714,6 +718,8 @@ public sealed class Unterwelt
         _zufall = new Zufallsquelle(_zufall.Startwert, s.ZufallWuerfe);
         _auftraege.Clear();
         _auftraege.AddRange(s.Auftraege.Select(a => new Gaunerauftrag(k[a.Auftraggeber], k[a.Ziel], a.Art, a.Betrieb)));
+        _erfolgreich.Clear();
+        _erfolgreich.AddRange(s.Auftraege.Select(a => a.Erfolgreich));
         _hinterhalte.Clear();
         _hinterhalte.AddRange(s.Hinterhalte.Select(h => new Hinterhalt(k[h.Auftraggeber], k[h.Ziel], h.BisMinute)));
         _forderungen.Clear();

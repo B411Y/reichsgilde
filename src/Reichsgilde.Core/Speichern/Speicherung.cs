@@ -22,11 +22,12 @@ public sealed class SpielstandFehler : Exception
 /// </summary>
 public static class Speicherung
 {
-    private static readonly JsonSerializerOptions Optionen = new()
+    /// <summary>Die Einstellungen des Spielstands – auch für das Befehlsprotokoll.</summary>
+    internal static readonly JsonSerializerOptions Optionen = new()
     {
         WriteIndented = true,
         Encoder = System.Text.Encodings.Web.JavaScriptEncoder.UnsafeRelaxedJsonEscaping, // Umlaute lesbar statt \u00FC
-        Converters = { new JsonStringEnumConverter() },
+        Converters = { new JsonStringEnumConverter(), new BefehlKonverter() }, // Befehle als Art + Werte (Warteschlange, Protokoll)
         // Kommazahlen exakt speichern – sonst liefe die geladene Partie minimal anders weiter.
         NumberHandling = JsonNumberHandling.AllowNamedFloatingPointLiterals,
     };
@@ -58,12 +59,13 @@ public static class Speicherung
             Daten = w?.Daten,
             Karte = w?.Karte,
             Wirtschaft = w?.Sichern(),
+            Warteschlange = simulation.Bote.Warteschlange.Count > 0 ? simulation.Bote.Warteschlange.ToList() : null,
         };
         return JsonSerializer.Serialize(stand, Optionen);
     }
 
     /// <summary>Liest nur die Kopfdaten (Titel, Zeitpunkt) – für die Liste im Ladedialog.</summary>
-    public static Speicherstand Kopf(string json) => Lesen(json) with { Wirtschaft = null, Daten = null, Karte = null };
+    public static Speicherstand Kopf(string json) => Lesen(json) with { Wirtschaft = null, Daten = null, Karte = null, Warteschlange = null };
 
     /// <summary>Stellt eine Partie aus einem Spielstand wieder her.</summary>
     /// <param name="karte">Die Karte der Stadt für Spielstände, die noch keine mitgespeichert haben oder eine in Format 1 (dann muss die
@@ -100,9 +102,12 @@ public static class Speicherung
                 if ((gespeichert ?? karte) is { } k) w.KarteSetzen(k);
                 w.Wiederherstellen(ws);
                 w.PlaetzeNachDemLaden();
+                simulation.Bote.Wiederherstellen(stand.Warteschlange); // noch nicht ausgeführte Befehle (Mehrspieler M2)
                 if (stand.Spielerkonto is int nummer && nummer >= 0 && nummer < w.Konten.Count)
                     spieler = w.Konten[nummer];
             }
+            if (simulation.Wirtschaft is null && stand.Warteschlange is { Count: > 0 })
+                throw new InvalidDataException("Der Spielstand hat eingereihte Befehle, aber keine Wirtschaft.");
             return (simulation, spieler);
         }
         catch (Exception ex) when (ex is ArgumentException or InvalidOperationException or InvalidDataException or KeyNotFoundException)

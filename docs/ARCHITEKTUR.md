@@ -47,6 +47,7 @@ Godot: _Process(delta)
   └─▶ Simulation.Aktualisieren(delta)
         └─▶ Taktgeber: „delta Sekunden = n Ticks“
               └─▶ n × Simulation.Tick()
+                    ├─ fällige Befehle aus der Warteschlange (Befehlsbote)
                     ├─ Zeit eine Minute weiter
                     ├─ (später: Produktion, Bürger-KI, Markt ...)
                     └─ Ereignisse: PhaseBegonnen, JahrBeendet
@@ -294,6 +295,12 @@ Oberfläche / KI ──Befehl──▶ Ausfuehren ──prüft──▶ Betrieb 
 - **Eine Stelle prüft alles:** Gehört der Betrieb dem Absender? Reicht das Geld? Erlaubt das Statut die Arbeitskraft? Ist ein Platz frei?
 - **Befehle tragen nur Namen und Zahlen** (z. B. `PersonalSetzen("Gießerei am Weinmarkt", "Geselle", 2)`), keine Objekte. Im Multiplayer schickt der Client genau diese Datensätze an den Server.
 - **Die KI benutzt denselben Weg.** Damit ist „die KI schummelt nicht“ technisch gesichert.
+- **Befehlsbote (Mehrspieler M2):** Spieler-Befehle laufen über `Simulation.Bote` (`src/Reichsgilde.Core/Mehrspieler/`). `Einreihen(konto, befehl, rueckruf)` gibt dem Befehl einen **Ziel-Tick** (`FruehesterTick` + `Verzoegerung`); `Simulation.Tick` führt am Anfang jedes Ticks, vor der Wirtschaft, alle fälligen Befehle aus – in fester Reihenfolge Ziel-Tick → sofort ausgeführte vor wartenden → Haus → laufende Nummer, damit im Gleichschritt jeder Rechner dasselbe rechnet. Das Ergebnis kommt danach als Rückruf und als Ereignis `Ausgefuehrt`; eine Ausnahme in einem Rückruf hält die anderen Befehle nicht auf. Im Einzelspiel ist die Verzögerung 0: Der Befehl wirkt sofort beim Einreihen, also wie früher; ebenso, solange die Zeit steht (Pause, angehaltene Ratssitzung, Partie vorbei) – dann nur der neue Befehl, wartende bleiben bei ihrem Tick. Während eines Ticks (auch in `Meldung`, `JahrBeendet`, `PhaseBegonnen`) wirkt nichts sofort: Der Befehl wartet auf den nächsten Tick. Beim Spielende verfallen wartende Befehle (Rückruf mit Ablehnung). `SofortAusfuehren` liefert das Ergebnis direkt, wo es gleich gebraucht wird. KI-Häuser rufen weiter `Ausfuehren` direkt auf (jeder Rechner rechnet sie selbst). Befehle sind reine Daten; `Speichern/BefehlKonverter.cs` schreibt sie als `{"Befehl": "<Art>", "Werte": {…}}`. Ein **Befehlsprotokoll** (Anfangszustand + alle Befehle mit Ziel-Tick, `Bote.AufzeichnungBeginnen` / `AufzeichnungBeenden`, `Befehlsprotokoll.Abspielen`) rechnet eine Partie Zeichen für Zeichen nach – die spätere Wiederholung bei Desyncs. Die Oberfläche ruft heute noch an den meisten Stellen `Ausfuehren` direkt auf; der Umbau folgt.
+
+```
+Oberfläche ──Einreihen(Befehl, Rückruf)──▶ Befehlsbote ──Ziel-Tick──▶ Simulation.Tick: fällige Befehle ──▶ Ausfuehren
+           ◀────────────Rückruf / Ereignis Ausgefuehrt (Befehlsergebnis)──────────────────────────────┘
+```
 - **Gemeinsame Rechnungen:** `Kalkulation` liefert Gewinn je Arbeitsminute, Jahresertrag je Arbeitskraft und erwartete Fahrtkosten. Die KI entscheidet danach, und das Bedienfeld zeigt dieselben Zahlen an. Für die Tooltips (PR #219) kommen dazu `Kalkulation.GewinnJeStueck` (`Stueckrechnung`: Preis, Steuer, Zutaten, Lohn- und Unterhaltsanteil nach Herstellzeit) und `Betrieb.LohnJeArbeiter` (Lohn im Jahr mit Schicht, Lohnstufe und Einrichtung).
 
 ## Stände und Bankrott
@@ -709,6 +716,8 @@ Ein Spielstand ist eine lesbare JSON-Datei (`src/Reichsgilde.Core/Speichern/`).
 - **Prüfung:** Der Gleichlauf-Test speichert eine Partie nach 3½ Jahren, lädt sie und lässt Original und Kopie 5 Jahre weiterlaufen. Beide müssen danach Zeichen für Zeichen denselben Spielstand ergeben. Vergisst das Speichern ein Feld, schlägt der Test fehl (gegengeprüft).
 - **Verkaufte Betriebe:** `WirtschaftStand.Abgegeben` (Name, Art, Kaufpreis, Mindeststand; fehlt in alten Spielständen), `Bebaut` und `MindestGrad` werden beim Laden neu gesetzt. Der Bilanzposten `Verkaeufe` fehlt in alten Spielständen und ist dann 0.
 - **Karte und Grundstücke:** `Speicherstand.Karte` (die Karte der Partie, seit PR #179 mit ihrem Höhenraster `Hoehen` in derselben gepackten Form wie in der Kartendatei – `HoehenrasterJson`; flach fällt es weg; seit PR #183 ebenso das Bodenraster `Boden` – `BodenrasterJson`) und `WirtschaftStand.Bauen` (Grundstücke); fehlen sie, gilt die an `Laden` übergebene Karte mit den Startplätzen.
+- **Gaunerei in der Nacht:** Ob ein Auftrag der Unterwelt oder der Diebe in dieser Nacht schon Erfolg hatte, steht als `Erfolgreich` am Auftrag (seit M2; sonst lief eine zwischen 20 und 23 Uhr geladene Partie anders weiter).
+- **Warteschlange der Befehle:** `Speicherstand.Warteschlange` (Ziel-Tick, Konto als Nummer, laufende Nummer, Befehl als Art + Werte) steht nur im Spielstand, wenn noch Befehle warten; fehlt sie (alte Spielstände), ist die Schlange leer. Rückrufe der Oberfläche werden nicht gespeichert.
 - **Formatversion:** Die Datei trägt ein Format. Eine neuere Datei lehnt eine ältere Programmversion mit verständlicher Meldung ab.
 - **Umbenannte Waren** (`Speichern/Warenumbenennung.cs`, PR #232): Seit das Rapier „Dolch“ heißt, schreibt `Speicherung.Lesen` (nach der `Uhrumstellung`) einen Spielstand mit „Rapier“ am JSON-Text um – Schlüssel, die genau so heißen (Lager, Markt, Ladung, Waren der Daten), und das ganze Wort in Werten und Texten (Produkt, Zutat, Chronik; Rapiere → Dolche). Die mitgespeicherten Daten behalten ihre Werte, auch das alte Rezept des Giftdolchs. Auch eine eigene Karte mit `"produkt": "Rapier"` lädt: `Startbetrieb.Produkt` nimmt beim Lesen den neuen Namen (`Warenumbenennung.NeuerName`) – für Partie, `Stadtkarte.Pruefen`, Kartenprüfung und Kartenwerkstatt. Weitere Umbenennungen kommen in `Warenumbenennung.Namen` und die Wortregel dazu.
 
