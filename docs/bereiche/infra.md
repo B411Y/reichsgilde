@@ -29,7 +29,7 @@ Werkzeuge, Abläufe, Lizenz und Asset-Protokoll. Neue Einträge unten anhängen,
 | Nachziehen | Nach jedem Merge bringt der Teamleiter den nächsten PR auf den neuen `main`-Stand (Konflikte, CI grün) und gibt ihn erst dann frei; Grund: fünf offene PRs erzeugten am 29.10. nach jedem Merge neue Konflikte | 29.10.2026 |
 | Protokoll | `docs/assets/protokoll.csv` steht nach `pfad_muster` sortiert, neue Zeilen an der passenden Stelle; das Prüfskript meldet Verstöße und nennt den Platz (Zuordnung „letzte Zeile gewinnt“ blieb beim Sortieren unverändert) | 29.10.2026 |
 
-### Gemini entfernt, Prüfungen mit Bot-Token (PR #…)
+### Gemini entfernt, Prüfungen mit Bot-Token (PR #249)
 
 | Thema | Entscheidung | Datum |
 |---|---|---|
