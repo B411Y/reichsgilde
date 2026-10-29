@@ -256,6 +256,7 @@ public partial class Hauptszene : Node
             return;
         }
         _simulation = SimulationAufbauen(optionen);
+        EntwicklerSperreSetzen(); // Hauptszene.Entwickler.cs
         SpielmenueBauen();
         _ratKnopf.Pressed += RatOeffnen;
         _ratskammer.Gemeldet += Protokollieren;
@@ -551,6 +552,7 @@ public partial class Hauptszene : Node
             _lexikon.Oeffnen(lexikonWahl == "1" || lexikonWahl.StartsWith("suche:") ? "" : lexikonWahl);
             if (lexikonWahl.StartsWith("suche:")) _lexikon.Suchen(lexikonWahl[6..].Replace('_', ' '));
         }
+        EntwicklerBauen(optionen); // Fenster nur mit dem Haken „Entwickler-Optionen“ (Hauptszene.Entwickler.cs)
         if (optionen.TryGetValue("meldung", out var testMeldung)) Protokollieren(testMeldung.Replace('_', ' '));
         // Die Hilfe: auf Wunsch (--hilfe=1) und beim allerersten Spiel einmal von selbst – nicht bei Startoptionen (Klicktests sollen gleiche Bilder liefern).
         if (optionen.GetValueOrDefault("hilfe") == "1" || (!Fenster.HilfeGesehen && OS.GetCmdlineUserArgs().Length == 0))
@@ -1179,6 +1181,9 @@ public partial class Hauptszene : Node
             case Key.L when ohneZusatz && imSpiel:
                 if (_lexikon.Offen) _lexikon.Schliessen();
                 else _lexikon.Oeffnen();
+                break;
+            case Key.F12 when imSpiel && _entwickler is not null: // Entwicklerfenster, nur mit dem Haken „Entwickler-Optionen“
+                _entwickler.Umschalten();
                 break;
             case Key.B when ohneZusatz && imSpiel:
                 if (_bau.Aktiv) _bau.Schliessen();
