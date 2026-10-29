@@ -605,6 +605,15 @@ public sealed record FamilienbuchStand
 
     /// <summary>Würfe für erworbene Charakterzüge (0 in Spielständen von vor den Charakterzügen, PR #227).</summary>
     public long ZugWuerfe { get; init; }
+
+    /// <summary>Version der Gen-Vorlage (<c>erbgut.json</c>) beim Speichern – null in Spielständen von vor dem Erbgut.</summary>
+    public int? ErbgutVersion { get; init; }
+
+    /// <summary>
+    /// Die Kennungen der Gene in der Reihenfolge, in der <see cref="PersonStand.Erbgut"/> sie schreibt (null vor dem Erbgut). Beim Laden
+    /// fallen Gene weg, die die Vorlage nicht mehr kennt; fehlende entstehen aus dem Startwert der Person.
+    /// </summary>
+    public List<string>? ErbgutGene { get; init; }
     public List<PersonStand> Personen { get; init; } = new();
     public List<FamilieStand> Familien { get; init; } = new();
     public List<KandidatStand> Kandidaten { get; init; } = new();
@@ -645,6 +654,12 @@ public sealed record PersonStand
     public int? Gesicht { get; init; }
     public Dynastie.Haarfarbe? Haar { get; init; }
     public Dynastie.Augenfarbe? Augen { get; init; }
+
+    /// <summary>
+    /// Erbgut für den 3D-Kopf: je Gen aus <see cref="FamilienbuchStand.ErbgutGene"/> vier Hexadezimalziffern, erst das sichtbare, dann das
+    /// verdeckte Allel („8A7F…“). null in Spielständen von vor dem Erbgut – dann beim Laden vererbt oder gewürfelt, fest aus dem Startwert.
+    /// </summary>
+    public string? Erbgut { get; init; }
 
     /// <summary>
     /// Kennungen der Charakterzüge (PR #227). null in Spielständen von vor den Charakterzügen – dann werden sie beim Laden

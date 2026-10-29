@@ -15,4 +15,11 @@
     <!-- Die Tests dürfen auch interne Teile prüfen (z. B. Markt.NeueStunde). -->
     <InternalsVisibleTo Include="Reichsgilde.Core.Tests" />
   </ItemGroup>
+  <ItemGroup>
+    <!--
+      Die Gen-Vorlage des Erbguts steckt im Kern selbst (Erbgutvorlage.Standard). Die Datei liegt bei den anderen Spieldaten
+      in game/daten/, wird aber beim Bauen eingebettet: So braucht weder das Spiel noch ein Test einen Pfad dorthin.
+    -->
+    <EmbeddedResource Include="..\..\game\daten\erbgut.json" LogicalName="Reichsgilde.Core.erbgut.json" Link="Daten\erbgut.json" />
+  </ItemGroup>
 </Project>
