@@ -335,26 +335,55 @@ public sealed class Karren
     /// <summary>
     /// Füllt jede Ladefläche mit der Zutat, die (einschließlich bereits geladener Menge)
     /// gerade am knappsten ist – gemessen daran, für wie viele Stück sie reicht.
+    /// Wie ein vorsichtiger Kaufmann (PR #232): jede Zutat nur bis zum Bedarf weniger Arbeitsstunden (<see cref="Vorratsziel"/>),
+    /// und auf der ganzen Fahrt höchstens einen Anteil des Geldes, das nach den Kosten des Jahresabschlusses frei bleibt.
+    /// Sonst legte sich ein Parfumeur mit dem Giftdolch 40 Dolche (≈ 7.000 Gulden) ins Lager und konnte die Löhne nicht mehr zahlen.
     /// </summary>
     private void ZutatenEinkaufen(Stadtwirtschaft w)
     {
         if (Heimat.Zutaten.Count == 0) return;
 
+        var l = w.Daten.Logistik;
+        var ziel = Vorratsziel(w);
+        var budget = Math.Max(0, (Heimat.Konto.Vermoegen - Ruecklage(w)) * l.ZutatenAnteilKasse);
         for (var flaeche = 0; flaeche < Daten.Sorten; flaeche++)
         {
             var knappste = Heimat.Zutaten
                 .Select(z => (Zutat: z.Key, Menge: z.Value, Bestand: Heimat.ImLager(z.Key) + _ladung.GetValueOrDefault(z.Key)))
-                .Where(z => z.Bestand < Heimat.LagerKapazitaetJeWare)
+                .Where(z => z.Bestand < ziel[z.Zutat])
                 .OrderBy(z => z.Bestand / z.Menge)
                 .ThenBy(z => z.Zutat, StringComparer.Ordinal)
                 .FirstOrDefault();
             if (knappste.Zutat is null) break;
 
-            var menge = Math.Min(Daten.KapazitaetJeSorte, Heimat.LagerKapazitaetJeWare - knappste.Bestand);
-            Heimat.ZutatenBuchen(w.Markt[knappste.Zutat].Kaufen(menge));
+            var preis = w.Markt[knappste.Zutat].Preis;
+            var menge = (int)Math.Min(Math.Min(Daten.KapazitaetJeSorte, ziel[knappste.Zutat] - knappste.Bestand), Math.Floor(budget / preis));
+            if (menge <= 0) break;
+            var kosten = w.Markt[knappste.Zutat].Kaufen(menge);
+            budget -= kosten;
+            Heimat.ZutatenBuchen(kosten);
             _ladung[knappste.Zutat] = _ladung.GetValueOrDefault(knappste.Zutat) + menge;
         }
     }
+
+    /// <summary>
+    /// Bis zu welchem Bestand der Verwalter jede Zutat auffüllt: den Bedarf von <see cref="LogistikDaten.ZutatenVorratStunden"/> Arbeitsstunden
+    /// bei der jetzigen Leistung (eine Runde = von jeder Ware in Arbeit ein Stück), mindestens für 2 × <see cref="LogistikDaten.NachkaufUnterStueck"/>
+    /// Stück (damit er nicht gleich wieder losfährt), höchstens bis zur Lagergrenze.
+    /// </summary>
+    private Dictionary<string, int> Vorratsziel(Stadtwirtschaft w)
+    {
+        var l = w.Daten.Logistik;
+        var minutenJeRunde = Heimat.WarenInArbeit.Sum(Heimat.MinutenJeStueck);
+        var rundenJeStunde = minutenJeRunde > 0 ? Kalkulation.Leistung(w, Heimat) * 60 / minutenJeRunde : 0;
+        var runden = Math.Max(2.0 * l.NachkaufUnterStueck, rundenJeStunde * l.ZutatenVorratStunden);
+        return Heimat.Zutaten.ToDictionary(z => z.Key, z => (int)Math.Min(Heimat.LagerKapazitaetJeWare, Math.Ceiling(runden * z.Value)));
+    }
+
+    /// <summary>Was das Haus erst zum Jahresabschluss zahlt: Löhne, Wächter und Unterhalt bzw. Pacht aller seiner Betriebe für das ganze Jahr.</summary>
+    private double Ruecklage(Stadtwirtschaft w) =>
+        w.Betriebe.Where(b => b.Konto == Heimat.Konto)
+            .Sum(b => b.Lohnkosten + b.Artdaten.Fixkosten + (b.Waechter ? w.Daten.Gauner?.WaechterKosten ?? 0 : 0));
 
     /// <summary>Jahresabschluss des Betriebs: Die Fahrten dieses Jahres werden zu denen des Vorjahrs.</summary>
     internal void JahrAbschliessen()

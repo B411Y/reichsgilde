@@ -1,5 +1,6 @@
 using System.Text.Json.Serialization;
 using Reichsgilde.Core.Dynastie;
+using Reichsgilde.Core.Speichern;
 using Reichsgilde.Core.Wirtschaft;
 
 namespace Reichsgilde.Core.Partie;
@@ -21,8 +22,12 @@ public sealed class Startbetrieb
     /// <summary>Betriebsart (Stufe 1 bzw. Umland), z. B. „Giesserei“ oder „Mine“.</summary>
     public Betriebsart Art { get; init; }
 
-    /// <summary>Was die Werkstatt zuerst herstellt (fehlt: die Voreinstellung des Betriebs).</summary>
-    public string? Produkt { get; init; }
+    /// <summary>
+    /// Was die Werkstatt zuerst herstellt (fehlt: die Voreinstellung des Betriebs). Ein alter Warenname aus einer eigenen Karte
+    /// („Rapier“) wird beim Lesen zum heutigen (<see cref="Warenumbenennung"/>, PR #232) – für Partie, Kartenprüfung und Kartenwerkstatt.
+    /// </summary>
+    public string? Produkt { get => _produkt; init => _produkt = value is null ? null : Warenumbenennung.NeuerName(value); }
+    private readonly string? _produkt;
 
     /// <summary>Ohne Karte: der Name des Betriebs, „{art}“ = Name der Betriebsart (mit Karte steht der Name am Platz).</summary>
     [JsonIgnore]

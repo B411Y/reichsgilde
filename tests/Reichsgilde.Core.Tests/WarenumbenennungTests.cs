@@ -1,6 +1,9 @@
 using System.IO.Compression;
 using System.Text.RegularExpressions;
 using Reichsgilde.Core;
+using Reichsgilde.Core.Bauen;
+using Reichsgilde.Core.Kartenwerkstatt;
+using Reichsgilde.Core.Partie;
 using Reichsgilde.Core.Speichern;
 using Reichsgilde.Core.Wirtschaft;
 
@@ -75,6 +78,28 @@ static class WarenumbenennungTests
             Ticken(sim, 600);
             Ticken(kopie, 600);
             Pruefe.Gleich(Speicherung.Speichern(sim, spieler, DateTime.UnixEpoch), Speicherung.Speichern(kopie, kopieSpieler, DateTime.UnixEpoch));
+        }),
+
+        ("Dolch statt Rapier: Eine eigene Karte mit „produkt“: „Rapier“ lädt – in der Partie, in der Kartenprüfung und in der Kartenwerkstatt heißt die Ware Dolch", () =>
+        {
+            var pfad = Datenpfad.Karte("greybox");
+            var json = File.ReadAllText(pfad);
+            var alt = json.Replace("\"produkt\": \"Dolch\"", "\"produkt\": \"Rapier\"");
+            Pruefe.Wahr(alt != json, "die Greybox hat einen Startbetrieb mit Dolch");
+            var katalog = Gebaeudekatalog.AusDatei(Stadtkarte.KatalogZu(pfad));
+            var daten = Wirtschaftsdaten.AusJson(File.ReadAllText(Datenpfad.Wirtschaft()));
+
+            var karte = Stadtkarte.AusJson(alt, katalog); // würfe bei einem Fehler der Prüfung
+            var start = karte.Startbelegung.Haeuser.SelectMany(h => h.Betriebe).Where(b => b.Produkt is not null).ToList();
+            Pruefe.Wahr(start.Count > 0 && start.All(b => b.Produkt == "Dolch"), "Startbelegung der Karte");
+            var (sim, _) = Partieaufbau.Erstellen(Partieeinstellungen.Standard, daten, new NeuePartie(), karte: karte);
+            Pruefe.Wahr(sim.Wirtschaft!.Betriebe.Any(b => b.Art == Betriebsart.Giesserei && b.Produkt == "Dolch"), "Gießerei des KI-Hauses stellt Dolche her");
+
+            var entwurf = Kartenentwurf.AusJson(alt, katalog);
+            entwurf.Daten = daten;
+            Pruefe.Wahr(entwurf.Start.Haeuser.SelectMany(h => h.Betriebe).Any(b => b.Produkt == "Dolch"), "Kartenwerkstatt");
+            Pruefe.Wahr(entwurf.Start.Haeuser.SelectMany(h => h.Betriebe).All(b => b.Produkt != "Rapier"), "kein Rapier in der Kartenwerkstatt");
+            Pruefe.Wahr(entwurf.Befunde.All(b => !b.Text.Contains("stellt")), "Kartenprüfung: " + string.Join(" | ", entwurf.Befunde.Select(b => b.Text)));
         }),
 
         ("Dolch statt Rapier: Ein Spielstand ohne Rapier bleibt zeichengleich (auch das Feld „Dolch“ eines Giftanschlags)", () =>

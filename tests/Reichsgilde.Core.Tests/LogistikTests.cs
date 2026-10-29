@@ -84,16 +84,60 @@ static class LogistikTests
             Pruefe.Gleich(KarrenZustand.ZumMarkt, mine.Karren[0].Zustand);
         }),
 
-        ("Verwalter: kauft knappe Zutaten nach und bringt sie ins Lager", () =>
+        // Seit PR #232 nur bis zum Vorrat weniger Arbeitsstunden, mindestens für 2 × 5 Stück (vorher: eine volle Ladefläche à 15, bis zur Lagergrenze).
+        ("Verwalter: kauft knappe Zutaten nach und bringt sie ins Lager – ohne Personal den Vorrat für 10 Stück", () =>
         {
             var sim = NeueSimulation();
             var w = sim.Wirtschaft!;
             var g = w.BetriebEroeffnen("G", Betriebsart.Giesserei, w.KontoEroeffnen("Spieler"));
             var karren = g.Karren[0];
             TickenBis(sim, () => karren.Zustand == KarrenZustand.ZumBetrieb);
-            Pruefe.Gleich(15, karren.Ladung.Values.Sum()); // Handkarren: 1 Ladefläche à 15
+            Pruefe.Gleich(10, karren.Ladung.Values.Sum()); // Handkarren: 1 Ladefläche à 15, gekauft wird aber nur bis zum Vorrat
             TickenBis(sim, () => karren.Zustand == KarrenZustand.AmBetrieb);
-            Pruefe.Gleich(15, g.ImLager("Eisen") + g.ImLager("Silber"));
+            Pruefe.Gleich(10, g.ImLager("Eisen") + g.ImLager("Silber"));
+        }),
+
+        ("Verwalter: Vorrat nach Bedarf – mit mehr Leistung mehr Zutaten, höchstens bis zur Lagergrenze", () =>
+        {
+            var sim = NeueSimulation();
+            var w = sim.Wirtschaft!;
+            var g = w.BetriebEroeffnen("G", Betriebsart.Giesserei, w.KontoEroeffnen("Spieler", startvermoegen: 50_000));
+            w.Einstellen(g, "Geselle", 2);
+            g.Produkt = "Beschlag"; // 2 Eisen je Stück, 35 Minuten: 2 Gesellen schaffen ≈ 3,4 Stück je Stunde → 4 Stunden ≈ 14 Stück = 28 Eisen
+            var karren = g.Karren[0];
+            var bisher = 0;
+            for (var fahrt = 0; fahrt < 6; fahrt++)
+            {
+                TickenBis(sim, () => karren.Zustand == KarrenZustand.ZumBetrieb);
+                TickenBis(sim, () => karren.Zustand == KarrenZustand.AmBetrieb);
+                bisher = Math.Max(bisher, g.ImLager("Eisen"));
+            }
+            var stunden = w.Daten.Logistik.ZutatenVorratStunden;
+            var ziel = (int)Math.Ceiling(Kalkulation.Leistung(w, g) * 60 / g.MinutenJeStueck("Beschlag") * stunden * 2);
+            Pruefe.Wahr(ziel > 20 && ziel < 40, $"Vorrat {ziel} Eisen");
+            Pruefe.Wahr(bisher > 10 && bisher <= ziel, $"höchstens {bisher} Eisen im Lager (Ziel {ziel})");
+        }),
+
+        ("Verwalter: kauft nur von freiem Geld – Löhne und Unterhalt des Jahres bleiben in der Kasse, ausgegeben wird höchstens die Hälfte des Rests", () =>
+        {
+            var sim = NeueSimulation();
+            var w = sim.Wirtschaft!;
+            var k = w.KontoEroeffnen("Spieler");
+            var g = w.BetriebEroeffnen("G", Betriebsart.Giesserei, k);
+            w.Einstellen(g, "Geselle", 2);
+            var ruecklage = g.Lohnkosten + g.Artdaten.Fixkosten;
+            k.Zutaten(k.Vermoegen - ruecklage - 10); // nur 10 Gulden frei: davon die Hälfte – kein Stück Silber (≈ 30), kein Eisen (≈ 12,6)
+            var karren = g.Karren[0];
+            TickenBis(sim, () => karren.Zustand == KarrenZustand.ZumBetrieb);
+            Pruefe.Gleich(0, karren.Ladung.Values.Sum(), "nichts gekauft");
+            Pruefe.Ungefaehr(ruecklage + 10, k.Vermoegen, 1e-9);
+
+            TickenBis(sim, () => karren.Zustand == KarrenZustand.AmBetrieb);
+            k.Umsatz(200); // 210 frei → 105 für Zutaten
+            TickenBis(sim, () => karren.Zustand == KarrenZustand.ZumBetrieb);
+            var gekauft = karren.Ladung.Sum(x => x.Value * w.Markt[x.Key].Preis);
+            Pruefe.Wahr(karren.Ladung.Values.Sum() > 0 && gekauft <= 105, $"für {gekauft:F0} Gulden gekauft");
+            Pruefe.Wahr(k.Vermoegen >= ruecklage + 105, "Rücklage und die Hälfte des Freien bleiben");
         }),
 
         ("Eskorte kostet nur bei beladener Fahrt", () =>

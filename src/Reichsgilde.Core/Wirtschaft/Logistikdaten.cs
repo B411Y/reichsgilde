@@ -187,6 +187,18 @@ public sealed class LogistikDaten
     /// <summary>Unter wie vielen herstellbaren Stück der Verwalter Zutaten nachkauft.</summary>
     public int NachkaufUnterStueck { get; init; } = 5;
 
+    /// <summary>
+    /// Für wie viele Arbeitsstunden der Verwalter Zutaten vorrätig hält (PR #232): Er kauft jede Zutat nur bis zum Bedarf dieser Stunden
+    /// bei der jetzigen Belegschaft auf – mindestens für doppelt so viele Stück, wie <see cref="NachkaufUnterStueck"/> sagt, höchstens bis zur Lagergrenze.
+    /// </summary>
+    public double ZutatenVorratStunden { get; init; } = 4;
+
+    /// <summary>
+    /// Welchen Anteil seines freien Geldes der Verwalter auf einer Fahrt höchstens für Zutaten ausgibt (PR #232). Frei ist, was über
+    /// die Löhne, Wächter und den Unterhalt aller Betriebe des Hauses für das ganze Jahr hinausgeht; die zahlt erst der Jahresabschluss.
+    /// </summary>
+    public double ZutatenAnteilKasse { get; init; } = 0.5;
+
     /// <summary>Spätestens nach so vielen Spielminuten fährt der Verwalter mit der Ware los, die da ist.</summary>
     public int MaxWartezeitMinuten { get; init; } = 240;
 

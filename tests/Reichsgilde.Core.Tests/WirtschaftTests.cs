@@ -224,13 +224,16 @@ static class WirtschaftTests
             Pruefe.Ungefaehr(1094, MittlererGewinn(sim, konto).Gewinn, 0.05);
         }),
 
-        ("Gießerei, 1 Lehrling, Silberring: Gewinn ≈ 543 Gulden/Jahr", () =>
+        // Seit PR #232 kauft der Karren Zutaten nur für wenige Arbeitsstunden (vorher bis zur Lagergrenze von 40). Der Gewinn zählt Zutaten
+        // beim Kauf: Ein Lehrling braucht nur ≈ 10 Stück Eisen und Silber im Jahr, bisher füllte er in den ersten Jahren 40 + 40 auf Vorrat
+        // (≈ 1.450 Gulden, die im Lager lagen) – 543 → 584. Mit zwei Gesellen bleibt es bei ≈ 1.551 (Vorrat verbraucht sich schnell).
+        ("Gießerei, 1 Lehrling, Silberring: Gewinn ≈ 584 Gulden/Jahr", () =>
         {
             var sim = NeueSimulation();
             var w = sim.Wirtschaft!;
             var konto = w.KontoEroeffnen("Spieler");
             w.Einstellen(w.BetriebEroeffnen("Gießerei", Betriebsart.Giesserei, konto), "Lehrling", 1);
-            Pruefe.Ungefaehr(543, MittlererGewinn(sim, konto).Gewinn, 0.05);
+            Pruefe.Ungefaehr(584, MittlererGewinn(sim, konto).Gewinn, 0.05);
         }),
 
         // Seit dem Warenkorb der Einwohner (PR #91) fragen sie günstige Schmiedewaren wie den Silberring rund 7 % mehr nach: 611 → 649.
