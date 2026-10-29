@@ -145,26 +145,32 @@ void wetter_boden(inout vec3 bf, inout float rau, inout vec3 nw, inout vec3 leuc
 // c = Farbe, rau = Rauheit, nw = Normale in der Welt (wird mitgeändert), wn = die glatte Normale der Fläche (ohne Unebenheit der Textur: sonst
 // flimmert die Richtung), wp = Ort in der Welt.
 void wetter_rinnsale(inout vec3 c, inout float rau, inout vec3 nw, vec3 wn, vec3 wp, float zeit) {
-	vec3 fall = vec3(0.0, -1.0, 0.0) - wn * (-wn.y);        // Schwerkraft in der Ebene der Fläche
+	// Das Gefälle aus der Fläche selbst (Ableitungen des Ortes), nicht aus der Vertexnormalen: Dächer sind oft weich geschattet, dann zeigt die
+	// Vertexnormale nur ungefähr und das Wasser liefe schief. Das Vorzeichen der Flächennormale ist egal (n·n.y ist in beiden Fällen gleich).
+	vec3 fn = cross(dFdx(wp), dFdy(wp));
+	fn = length(fn) > 1e-9 ? normalize(fn) : wn;
+	vec3 fall = vec3(0.0, -1.0, 0.0) + fn * fn.y;            // Schwerkraft in der Ebene der Fläche (bergab)
 	float neig = length(fall);                               // = Sinus des Neigungswinkels: 0 flach, 1 senkrecht
 	float stark = smoothstep(0.18, 0.5, neig) * wetter_rinn * (1.0 - 0.45 * smoothstep(0.85, 1.0, neig));
 	if (stark < 0.01) return;
 	fall /= max(neig, 0.0001);
-	vec3 quer = cross(wn, fall);
+	vec3 quer = normalize(cross(fn, fall));
 	float a = dot(wp, fall), q = dot(wp, quer);
-	// zwei Lagen Bahnen (schmal und breit), jede läuft mit eigener Geschwindigkeit herab; w_rausch ist 0–1
+	// zwei Lagen Bahnen (schmal und breit), jede läuft mit eigener Geschwindigkeit bergab; w_rausch ist 0–1. Die Bahnen sind nur etwa
+	// viermal so lang wie breit (nicht fadenartig gezogen) und reißen auf, indem eine zweite, langsamere Lage sie unterbricht
 	float t1 = zeit * 0.9, t2 = zeit * 0.5;
-	float n1 = w_rausch(vec2(q * 9.0, a * 0.45 - t1 * 1.2)), n1b = w_rausch(vec2(q * 9.0 + 0.35, a * 0.45 - t1 * 1.2));
-	float n2 = w_rausch(vec2(q * 4.0 + 17.0, a * 0.22 - t2 * 0.8)), n2b = w_rausch(vec2(q * 4.0 + 17.35, a * 0.22 - t2 * 0.8));
-	float b1 = smoothstep(0.5, 0.7, n1), b1b = smoothstep(0.5, 0.7, n1b);
+	float n1 = w_rausch(vec2(q * 7.0, a * 1.4 - t1 * 1.6)), n1b = w_rausch(vec2(q * 7.0 + 0.35, a * 1.4 - t1 * 1.6));
+	float n2 = w_rausch(vec2(q * 3.5 + 17.0, a * 0.8 - t2 * 1.0)), n2b = w_rausch(vec2(q * 3.5 + 17.35, a * 0.8 - t2 * 1.0));
+	float riss = smoothstep(0.35, 0.6, w_rausch(vec2(q * 2.0 + 5.0, a * 0.9 - t2 * 0.9)));
+	float b1 = smoothstep(0.5, 0.7, n1) * riss, b1b = smoothstep(0.5, 0.7, n1b) * riss;
 	float b2 = smoothstep(0.52, 0.72, n2), b2b = smoothstep(0.52, 0.72, n2b);
 	float bahn = max(b1, b2 * 0.8);
-	// Wölbung quer zur Bahn (Unterschied der Höhe auf kleinem Abstand) kippt die Normale zur Seite
+	// Wölbung quer zur Bahn (Unterschied der Höhe auf kleinem Abstand) kippt die Normale zur Seite – sanft, sonst blitzen weiße Fäden auf
 	float quergefaelle = (b1b - b1) * 0.8 + (b2b - b2) * 0.5;
-	nw = normalize(nw + quer * quergefaelle * stark * 0.9);
-	c *= 1.0 - 0.24 * bahn * stark;
-	c += wetter_himmel * 0.05 * bahn * stark;          // nasser Schimmer: die Bahn spiegelt etwas Himmel
-	rau = mix(rau, 0.05, bahn * stark);
+	nw = normalize(nw + quer * quergefaelle * stark * 0.35);
+	c *= 1.0 - 0.22 * bahn * stark;
+	c += wetter_himmel * 0.04 * bahn * stark;          // nasser Schimmer: die Bahn spiegelt etwas Himmel
+	rau = mix(rau, 0.12, bahn * stark);
 }
 
 // Wetter auf den Modellen (oberflaeche.gdshader): Schnee auf allem, was nach oben zeigt (Dächer, Mauerkronen, Brunnen …), Nässe dunkler und

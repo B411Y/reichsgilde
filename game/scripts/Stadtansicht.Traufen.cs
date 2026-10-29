@@ -23,6 +23,7 @@ public partial class Stadtansicht
     private readonly Dictionary<Mesh, Vector3[]> _traufPunkte = new();
     private GpuParticles3D? _traufTropfen;
     private ParticleProcessMaterial? _traufStoff;
+    private ShaderMaterial? _traufFarbe; // traufe.gdshader: einzelne dicke Tropfen, immer senkrecht
     private double _traufUhr;
     private Vector3 _traufFokus = new(1e9f, 0, 1e9f);
 
@@ -93,18 +94,19 @@ public partial class Stadtansicht
         {
             EmissionShape = ParticleProcessMaterial.EmissionShapeEnum.Points,
             Direction = Vector3.Down,
-            Spread = 4,
-            InitialVelocityMin = 0.3f,
-            InitialVelocityMax = 0.8f,
+            Spread = 0, // senkrecht, auch bei Wind
+            InitialVelocityMin = 0.1f,
+            InitialVelocityMax = 0.4f,
             Gravity = new Vector3(0, -9.8f, 0),
             ScaleMin = 0.5f,
             ScaleMax = 0.9f,
         };
+        _traufFarbe = new ShaderMaterial { Shader = GD.Load<Shader>("res://assets/shader/traufe.gdshader") };
         _traufTropfen = new GpuParticles3D
         {
             Name = "Traufentropfen", Amount = 400, Lifetime = 0.8, LocalCoords = false, Emitting = false, Visible = false,
             CastShadow = GeometryInstance3D.ShadowCastingSetting.Off, ProcessMaterial = _traufStoff,
-            DrawPass1 = new QuadMesh { Size = Vector2.One, Material = _regenFarbe },
+            DrawPass1 = new QuadMesh { Size = Vector2.One, Material = _traufFarbe },
             VisibilityAabb = new Aabb(new Vector3(-200, -20, -200), new Vector3(400, 40, 400)),
         };
         AddChild(_traufTropfen);
@@ -156,6 +158,8 @@ public partial class Stadtansicht
             tropfen.Visible = true;
             tropfen.Emitting = true;
         }
+        var hell = PartikelHelligkeit(); // unbeleuchtet: nachts dunkel
+        _traufFarbe!.SetShaderParameter("farbe", new Color(0.82f * hell, 0.88f * hell, 0.96f * hell, 1f));
         var k = Mathf.Max(0.3f, _kamera.Size / BezugsZoom);
         _traufStoff!.ScaleMin = 0.5f * k;
         _traufStoff.ScaleMax = 0.9f * k;
