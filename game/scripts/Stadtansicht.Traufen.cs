@@ -25,6 +25,9 @@ public partial class Stadtansicht
     private GpuParticles3D? _traufTropfen;
     private ParticleProcessMaterial? _traufStoff;
     private ShaderMaterial? _traufFarbe; // traufe.gdshader: einzelne dicke Tropfen, immer senkrecht
+    private GpuParticles3D? _traufRinge, _traufNass; // Einschläge und nasse Tropfkante am Boden unter den Traufen
+    private ParticleProcessMaterial? _traufRingStoff, _traufNassStoff;
+    private ShaderMaterial? _traufRingFarbe;
     private double _traufUhr;
     private Vector3 _traufFokus = new(1e9f, 0, 1e9f);
 
@@ -129,6 +132,34 @@ public partial class Stadtansicht
             VisibilityAabb = new Aabb(new Vector3(-200, -20, -200), new Vector3(400, 40, 400)),
         };
         AddChild(_traufTropfen);
+
+        // Am Boden unter der Traufe: Ringe und Spritzer (regenring.gdshader) dort, wo die Tropfen landen, dazu ein weicher dunkler Fleck (traufnass.gdshader),
+        // der dicht an dicht die nasse Tropfkante entlang der Hauswand ergibt. Kurzlebige Partikel auf den Emissionspunkten, am Boden statt am Dach.
+        _traufRingStoff = new ParticleProcessMaterial
+        {
+            EmissionShape = ParticleProcessMaterial.EmissionShapeEnum.Points, Gravity = Vector3.Zero, ScaleMin = 0.45f, ScaleMax = 0.8f,
+        };
+        _traufRingFarbe = new ShaderMaterial { Shader = GD.Load<Shader>("res://assets/shader/regenring.gdshader") };
+        _traufRinge = new GpuParticles3D
+        {
+            Name = "Traufeinschlaege", Amount = 200, Lifetime = 0.5, LocalCoords = false, Emitting = false, Visible = false,
+            CastShadow = GeometryInstance3D.ShadowCastingSetting.Off, ProcessMaterial = _traufRingStoff,
+            DrawPass1 = new QuadMesh { Size = Vector2.One, Orientation = PlaneMesh.OrientationEnum.Y, Material = _traufRingFarbe },
+            VisibilityAabb = new Aabb(new Vector3(-200, -20, -200), new Vector3(400, 40, 400)),
+        };
+        AddChild(_traufRinge);
+        _traufNassStoff = new ParticleProcessMaterial
+        {
+            EmissionShape = ParticleProcessMaterial.EmissionShapeEnum.Points, Gravity = Vector3.Zero, ScaleMin = 0.5f, ScaleMax = 0.9f,
+        };
+        _traufNass = new GpuParticles3D
+        {
+            Name = "Traufnaesse", Amount = 200, Lifetime = 3.0, Preprocess = 3.0, LocalCoords = false, Emitting = false, Visible = false,
+            CastShadow = GeometryInstance3D.ShadowCastingSetting.Off, ProcessMaterial = _traufNassStoff,
+            DrawPass1 = new QuadMesh { Size = Vector2.One, Orientation = PlaneMesh.OrientationEnum.Y, Material = new ShaderMaterial { Shader = GD.Load<Shader>("res://assets/shader/traufnass.gdshader") } },
+            VisibilityAabb = new Aabb(new Vector3(-200, -20, -200), new Vector3(400, 40, 400)),
+        };
+        AddChild(_traufNass);
     }
 
     /// <summary>Jedes Bild: Tropfstellen der Dächer nahe dem Blickpunkt setzen (neu gesammelt, wenn der Blick wandert oder alle 0,5 s), Menge nach Nässe und Regen.</summary>
@@ -141,6 +172,7 @@ public partial class Stadtansicht
         if (staerke < 0.03f)
         {
             if (_traufTropfen is { Visible: true }) { _traufTropfen.Visible = false; _traufTropfen.Emitting = false; }
+            foreach (var g in new[] { _traufRinge, _traufNass }) if (g is { Visible: true }) { g.Visible = false; g.Emitting = false; }
             return;
         }
         if (_traufTropfen is null) TraufenEinrichten();
@@ -168,6 +200,7 @@ public partial class Stadtansicht
             if (welt.Count == 0)
             {
                 tropfen.Visible = tropfen.Emitting = false;
+                foreach (var g in new[] { _traufRinge, _traufNass }) if (g is not null) g.Visible = g.Emitting = false;
                 return;
             }
             var bild = Image.CreateEmpty(welt.Count, 1, false, Image.Format.Rgbf);
@@ -176,6 +209,17 @@ public partial class Stadtansicht
             _traufStoff.EmissionPointCount = welt.Count;
             tropfen.Visible = true;
             tropfen.Emitting = true;
+            // dieselben Stellen am Boden (Höhe des Geländes + 6 cm)
+            var boden = Image.CreateEmpty(welt.Count, 1, false, Image.Format.Rgbf);
+            for (var i = 0; i < welt.Count; i++) boden.SetPixel(i, 0, new Color(welt[i].X, BodenHoehe(welt[i].X, welt[i].Z) + 0.06f, welt[i].Z));
+            var bodenTextur = ImageTexture.CreateFromImage(boden);
+            foreach (var (g, m) in new[] { (_traufRinge!, _traufRingStoff!), (_traufNass!, _traufNassStoff!) })
+            {
+                m.EmissionPointTexture = bodenTextur;
+                m.EmissionPointCount = welt.Count;
+                g.Visible = true;
+                g.Emitting = true;
+            }
         }
         var hell = PartikelHelligkeit(); // unbeleuchtet: nachts dunkel
         _traufFarbe!.SetShaderParameter("farbe", new Color(0.82f * hell, 0.88f * hell, 0.96f * hell, 1f));
@@ -183,5 +227,12 @@ public partial class Stadtansicht
         _traufStoff!.ScaleMin = 0.5f * k;
         _traufStoff.ScaleMax = 0.9f * k;
         tropfen.AmountRatio = Mathf.Snapped(Mathf.Clamp(staerke, 0.1f, 1f), 0.05f);
+        _traufRingFarbe!.SetShaderParameter("farbe", new Color(0.8f * hell, 0.85f * hell, 0.95f * hell, 1f));
+        _traufRinge!.AmountRatio = _traufNass!.AmountRatio = tropfen.AmountRatio;
+        var weit = Mathf.Max(1f, k * 1.5f); // Einschläge wachsen erst beim Herauszoomen mit (sonst Bildpunkte)
+        _traufRingStoff!.ScaleMin = 0.8f * weit;
+        _traufRingStoff.ScaleMax = 1.3f * weit;
+        _traufNassStoff!.ScaleMin = 1.0f * weit;
+        _traufNassStoff.ScaleMax = 1.7f * weit;
     }
 }
