@@ -20,6 +20,7 @@ So wird eingetragen (damit sich die Chats nie an derselben Stelle treffen):
 - Stadtkasse (PR #200): Strafmaß des Stadtrichters und „Freilassen“ des Gefängniswärters sind im Klicktest nur ohne Verfahren bzw. Gefangenen geprüft (der Text „Zurzeit …“); für einen vollen Klicktest fehlt eine Startoption, die ein Verfahren zwischen zwei KI-Häusern bzw. einen Gefangenen anlegt (bräuchte eine Testhilfe im Kern).
 - Lexikon (PR #214): Die Texte sind eine Erstfüllung aus dem Spielbuch und gehören einmal vom Nutzer gelesen; Zahlen, die nicht in `wirtschaft.json` stehen (Arbeitszeit 8–20 Uhr, Messe um 10 Uhr, Strafmaße der Kirche und des Gerichts), stehen noch fest im Text. Weitere Platzhalter brauchen öffentliche Abfragen des Kerns (Arbeitszeit, Messezeit, Ablass, Wucherschwelle, Pfändung).
 - Porträts (PR #211): Nachlieferung vom Grafik-PC – Orks und Oger (bis dahin Schatten mit Fragezeichen), Halblinge hf4 (alter weißer Saum) und hf5, neue Haarmasken für Elben, Halblinge und Zwerginnen (die erste Fassung malte bartlosen Figuren einen Bart an; bis dahin keine Haar-Umfärbung bei ihnen). Skript `haar_neu.sh` im Notizordner des Teamleiters.
+- (von kern) Erbgut (Charakter-Editor, Phase 1): Knopf „Erbgut neu würfeln“ im Entwicklerfenster bei der Person (wie „Geben“/„Entfernen“ beim Zug) – der Befehl `EntwicklerErbgut(Person)` steht im Kern bereit.
 
 ## Entscheidungen
 
