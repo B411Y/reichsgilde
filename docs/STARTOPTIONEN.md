@@ -162,7 +162,7 @@ Nach dem Speichern und dem Umriss:
 
 Zum Bauen und Leerstand:
 
-- `--bauen=1` (Baumodus mit Bautafel; `--bauen=wohnhaus:<Stufe 0–4>` oder `--bauen=werkstatt:<Betriebsart>` wählt gleich das Gebäude)
+- `--bauen=1` (Baumodus mit Bautafel; `--bauen=wohnhaus:<Stufe 0–4>` oder `--bauen=werkstatt:<Betriebsart>` wählt gleich das Gebäude; `--bauen=wege` öffnet das Baumenü im Wege-Modus: Wege leuchten, Klick auf einen Weg öffnet die Wegtafel)
 - `--bauort=<x>,<z>,<Drehung 0–3>` (der Umriss sitzt an dieser Stelle der Stadt in Metern, bis die Maus bewegt wird; Probestellen stehen unter `probeplan` in `greybox.json`)
 - `--bauklick=1` (dort die Rückfrage öffnen; `=2` gleich bauen)
 - `--aufsteigen=1` (Wohnhaus zum Bürgerhaus ausbauen und zum Bürger aufsteigen, damit Werkstätten erlaubt sind; mit `--vermoegen=30000`)
