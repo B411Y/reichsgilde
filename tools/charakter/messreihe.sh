@@ -22,7 +22,7 @@ laeufe=(
   "n100_unkomprimiert|--kopf=n100.glb --unkomprimiert"
   "ict_n0|--kopf=ict_n0.glb"
   "ict_n100|--kopf=ict_n100.glb"
-  "a2_x8|--kopf=mann35_a2.glb --anzahl=8"
+  "a2_x8|--kopf=mann35_a2.glb --anzahl=8 --unkomprimiert"
   "b_x8|--kopf=ict.glb --anzahl=8"
 )
 for l in "${laeufe[@]}"; do
