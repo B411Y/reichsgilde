@@ -1553,9 +1553,9 @@ Gemessen auf main `9022b49` + Commit `9f65f38`, `messen bericht 20 30` (1.320 Pa
 - Außerhalb ±15 % noch Dieb (−18,7 %) und Gardist (−18,0 %); der Geldleiher ist wieder darin. Bankrott unverändert (ein Wirt, sonst keiner).
 - KI-Stärke: KI ÷ Bezug Median 1,10 (vorher 1,17), Bezug 72.502 (vorher 73.004), KI-Häuser 83.800 (vorher 84.533); unter „Schwer“ 1,64 (vorher 1,75). Messstadt mit 8 Häusern 71.376 je Haus (vorher 71.131).
 
-## Balancing 3 (PR folgt)
+## Balancing 3 (PR #244)
 
-Auftrag des Nutzers (29.10.2026): prüfen, wie fair das Spiel gegen die anderen Häuser ist – Chancengleichheit der Berufe, Völker, Startplätze und KI-Häuser – und ausgleichen. **Nur Zahlenwerte geändert, keine Regel**; Regelvorschläge stehen in `docs/bereiche/kern.md` unter „Offen“, die Werte unter „Balancing 3 (PR folgt)“. **Datenversion 63** (main hat seit #231/#232 die 62; die Messung lief mit denselben Werten unter der Nummer 61 – die Nummer wirkt nicht auf die Simulation).
+Auftrag des Nutzers (29.10.2026): prüfen, wie fair das Spiel gegen die anderen Häuser ist – Chancengleichheit der Berufe, Völker, Startplätze und KI-Häuser – und ausgleichen. **Nur Zahlenwerte geändert, keine Regel**; Regelvorschläge stehen in `docs/bereiche/kern.md` unter „Offen“, die Werte unter „Balancing 3 (PR #244)“. **Datenversion 63** (main hat seit #231/#232 die 62; die Messung lief mit denselben Werten unter der Nummer 61 – die Nummer wirkt nicht auf die Simulation).
 
 **Gemessener Stand:** main `9022b49` + #231 (`phase5/meinungen-kern` `b757446`) + #232 (`phase5/dolch-kern` `4c55d7d`, mit dem Zutateneinkauf nach Kasse) = „vorher“; dazu die Werte dieses Branches (`3ff0d04`) = „nachher“. Beide `messen bericht 20 30` (je 1.320 Partien, keine mit Fehler) → `docs/messungen/balancing-2026-10-29-balancing3-vorher.json` und `…-balancing3.json`. Die erste Analyse lief noch auf main `cc72d5c` + `e672515` + `2e8949d` (vor dem Zutateneinkauf); ihre Befunde zu Völkern und Gaunerei gelten weiter, die Berufe haben sich durch den Zutateneinkauf verschoben (Schmied +16 → +22 %, Gardist −13 → −21 %).
 
@@ -1653,3 +1653,42 @@ Paare, die in beiden Läufen mehr als 12 % vom Menschen abweichen (vorher → na
 **Greybox über 30 Jahre** (`messen 30 20 greybox`, Spieler passiv): Vermögen der KI-Häuser Eisenbart (Zwerg, Schmied) 224.429 → 215.331, Eichwald (Elb, Tischler) 204.350 → 190.747, Kieselbach (Halbling, Steinmetz) 230.616 → 208.569; Spanne um ihr Mittel −6 … +6 % → −6 … +5 %. Stand am Ende Reichsgraf 57 → 55 von 60, kein Haus bankrott, Bürger des Spielers weiter ab Jahr 7,5. Auf lange Sicht bleibt die KI unter sich ausgeglichen; die Wirtschaft ist etwa 7 % kleiner (Vorarbeiter).
 
 **Befund nachher:** Alle zehn Berufe liegen im Band, die Spanne ist von 43 auf 17 Punkte geschrumpft, alle erreichen den Bürger im Mittel nach 8,2–11,6 Jahren (Z2). Die Vorarbeiter-Wahl ist keine Pflichtwahl mehr: Ware gewinnt noch in 57 % der Ziehungen, weil Ordnungsliebend und Wachsam keinen Gulden-Wert vor dem ersten Diebstahl haben; die besten drei liegen meist nahe beieinander (Schmied Stufe 2: Guter Ruf 476, Frühaufsteher 458, Antreiber 403). Der Preis dafür: Die gewählte Eigenschaft bringt einer Werkstatt etwa ein Drittel weniger, das Mittel aller Berufe sinkt um 5,6 %; der Gardist und der Geldleiher, deren beste Eigenschaft der Antreiber ist, gewinnen. Der Bezugsspieler (Mensch-Schmied) verliert mit dem Schmied mehr als die KI-Häuser (KI ÷ Bezug 1,05 → 1,10); der Abstand liegt im Fehler (± 0,05). Die Stadtkasse hat etwas weniger Steuer (Mittel −400 bzw. −700, etwa ein bis zwei Fehler) – sie lag schon vorher unter dem Ziel „0 bis leicht im Plus“ aus Balancing 2 (offen in kern.md).
+
+## Gauner-Regeln (PR folgt)
+
+Zwei Regeln aus Balancing 3, entschieden vom Nutzer am 29.10.2026 (Umsetzung in `docs/bereiche/kern.md`, „Gauner-Regeln“; **Datenversion 64**):
+
+1. **Die Streife fasst Taschendiebe:** Fangchance je Diebesstunde × (1 + `wache.patrouille.taschendiebFang` × Schutz der Streife), `taschendiebFang` = 5. Der Schutz ist derselbe wie nachts (`schutzJeWachmann` 0,025 je Wachmann, Wachhunde und Streifengänger, Deckel 0,4): ein Wachhaus mit vier Gesellen 0,1 → × 1,5, zwei → × 2, höchstens × 3. Es zählt die Streife der ganzen Stadt, auch die Wache des Hauses, dem die Diebe dienen; Beweis und Kopfgeld bekommt sie für die eigenen Leute nicht. Keine neuen Würfe.
+2. **Völkerboni** bei Dieb, Gardist und Geldleiher ±2 % statt ±5 % (Halbling-Dieb +2, Zwerg-Dieb −2; Zwerg-Geldleiher +2; Mensch-Gardist +2, Elb und Halbling −2). Die übrigen Boni bleiben.
+
+Die Buße bleibt 3× des Schadens (`justiz.busseFaktor`): Der Vorschlag 2× ist verworfen, weil die Stadtkasse schon unter dem Ziel liegt.
+
+**Gemessener Stand:** main `3a65946` = „vorher“, dazu dieser Branch `07d2b55` = „nachher“. `messen bericht 20 30` (je 1.320 Partien, keine mit Fehler) → `docs/messungen/balancing-2026-10-29-gauner-vorher.json` und `…-gauner.json`; Völker `messen bericht 20 30 --teile=2 --voelkerberufe=alle` (je 1.200 Partien) → `…-gauner-voelker-vorher.json` und `…-gauner-voelker.json`. Der Vorher-Lauf gibt Wert für Wert dasselbe wie der Lauf von Balancing 3 mit `3ff0d04`.
+
+| | vorher | nachher |
+|---|---|---|
+| Fänge je Jahr, Dieb (ausgewogen) ohne / mit Wachhaus | 0,48 / 0,49 | 0,59 / 0,79 |
+| Gewinn je Jahr, Dieb ohne / mit Wachhaus | 2.556 / 2.859 (+12 %) | 2.552 / 2.760 (+8 %) |
+| Reinvermögen nach 20 Jahren, Dieb ohne / mit Wachhaus | 30.675 / 41.690 | 30.128 / 35.930 |
+| Dieb wagemutig ohne / mit Wachhaus, Gewinn je Jahr | 3.023 / 2.971 | 2.991 / 2.966 |
+| Berufe im Band ±15 % (ein Betrieb, Mensch) | 10/10 (−9,9 … +7,3 %) | **10/10 (−10,6 … +7,2 %)** |
+| Dieb / Gardist / Geldleiher (Mensch), Reinvermögen nach 20 Jahren | 30.675 / 35.787 / 33.723 | 30.128 / 33.094 / 33.746 |
+| Abstand zum Mittel | −9,9 / +7,3 / +0,4 % | −10,6 / −0,5 / +1,7 % |
+| Gardist bis Bürger | 8,9 (30/30) | 9,3 (28/30) |
+| Kopfgeld des Gardisten je Jahr | 52 | 47 |
+| Dieb wagemutig geführt (nicht im Mittel) | 28.783 (−16,3 %) | 26.977 (−21,4 %) |
+| Stadtkasse, Mittel aller Jahre (Greybox / Probestadt) | −830 / −3.501 | −833 / −3.473 |
+
+Der Gardist (Mensch) verliert 7,5 % durch seinen kleineren Bonus (+5 → +2 %), nicht durch die Regel; er bleibt im Band. Beute und Sold sind deshalb nicht geändert.
+
+**Wirkung der Streife:** Mit Wachhaus fängt die Wache 60 % mehr Taschendiebe, der Dieb verliert dadurch etwa 100 Gulden im Jahr und 14 % seines Vermögens nach 20 Jahren gegenüber vorher. Ein Fang kostet wenig (einen Anfänger und eine Spur), darum verdient der Dieb mit Wachhaus in der Stadt weiter etwas mehr als ohne. Das liegt nicht am Schutz der Streife für sein eigenes Haus: Proben mit `--teile=7`, in denen die Streife die Diebesbetriebe (Probe A) bzw. dazu das Wohnhaus eines Diebshauses (Probe B) nicht schützt, ändern nichts (A, Wert für Wert gleich – die KI greift Schmugglerlöcher praktisch nie an) bzw. wenig (B: Gewinn mit Wachhaus 2.679, Vermögen 34.872). Der Rest kommt aus dem Messaufbau (das erste KI-Haus bekommt ein Wachhaus; die Beute des Diebs ist dort sogar höher, 3.836 gegen 3.734).
+
+**Völker** (Abstand des Zuwachses zum Menschen desselben Berufs, 30 Startwerte; der Mensch ist bei Dieb und Geldleiher ohne Bonus, beim Gardisten jetzt +2 statt +5 %):
+
+| Beruf | Zwerg | Elb | Halbling |
+|---|---|---|---|
+| Dieb, vorher → nachher | −11,5 → −0,9 % | +2,7 → +1,8 % | +41,6 → +35,5 % |
+| Gardist | −9,8 → −1,7 % | −28,0 → −16,3 % | −23,2 → −11,5 % |
+| Geldleiher | +27,6 → +21,1 % | −2,2 → −2,0 % | +18,6 → +17,5 % |
+
+Mittel über alle zehn Berufe gegen Menschen: Zwerg +7,8 → +9,1 %, Elb −3,3 → −1,6 %, Halbling +0,6 → +1,1 %. Halbling-Dieb und die Halbling- und Zwerg-Geldleiher bleiben vorn; beim Halbling-Geldleiher (ohne Bonus) und dem größten Teil des Halbling-Diebs wirkt etwas anderes als der Bonus (Familie, Talente, Meinungen; offen in kern.md).
