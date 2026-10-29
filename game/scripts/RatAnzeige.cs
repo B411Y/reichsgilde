@@ -77,13 +77,14 @@ public partial class RatAnzeige : PanelContainer
 
     private void Befehlen(Befehl befehl)
     {
-        if (_simulation?.Wirtschaft is not { } w || _spieler is null) return;
-        var ergebnis = w.Ausfuehren(_spieler, befehl);
-        _meldung.Text = ergebnis.Erfolg ? ergebnis.Meldung : "✗ " + ergebnis.Meldung;
-        _meldung.AddThemeColorOverride("font_color", ergebnis.Erfolg ? Gruen : Rot);
-        if (ergebnis.Erfolg) KlangOberflaeche.Spielen(KlangOberflaeche.Ereignis.Siegel); // Antrag oder Stimme ist besiegelt
-        Gemeldet?.Invoke(_meldung.Text);
-        Aufbauen(); // Gunst, Prognosen und Knöpfe haben sich geändert
+        UiHilfe.Befehlen(_simulation, _spieler, befehl, this, ergebnis =>
+        {
+            _meldung.Text = UiHilfe.MeldungText(ergebnis);
+            _meldung.AddThemeColorOverride("font_color", ergebnis.Erfolg ? Gruen : Rot);
+            if (ergebnis.Erfolg) KlangOberflaeche.Spielen(KlangOberflaeche.Ereignis.Siegel); // Antrag oder Stimme ist besiegelt
+            Gemeldet?.Invoke(_meldung.Text);
+            Aufbauen(); // Gunst, Prognosen und Knöpfe haben sich geändert
+        });
     }
 
     /// <summary>Baut den Inhalt neu auf – beim Öffnen und nach jedem Befehl.</summary>

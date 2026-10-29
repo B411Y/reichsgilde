@@ -3,7 +3,8 @@
 #
 #  Läuft bei jedem Pull Request und jeder Änderung auf "main":
 #    1. Bauen + Tests auf Windows UND Linux
-#    2. Das Spiel für Windows und Linux exportieren und kurz starten
+#    2. Gleichheit: Beide Systeme müssen im Gleichheitstest dieselben Prüfsummen ergeben (Mehrspieler)
+#    3. Das Spiel für Windows und Linux exportieren und kurz starten
 #
 #  Ergebnis: grüner Haken = alles in Ordnung, rotes Kreuz = etwas ist kaputt.
 #  Die fertigen Spiel-Builds liegen danach unter "Actions" → Lauf → "Artifacts".
@@ -56,6 +57,44 @@ jobs:
 
       - name: Tests ausführen
         run: dotnet run --project tests/Reichsgilde.Core.Tests --no-build
+        env:
+          # Der Gleichheitstest (Mehrspieler M1, GleichheitTests.cs) schreibt seine Prüfsummen hierher.
+          GLEICHHEIT_PRUEFSUMME_DATEI: ${{ runner.temp }}/gleichheit-pruefsumme.txt
+
+      # Für den Job „Gleichheit Linux/Windows“: Er vergleicht die Prüfsummen beider Systeme.
+      - name: Prüfsummen des Gleichheitstests bereitstellen
+        uses: actions/upload-artifact@v4
+        with:
+          name: gleichheit-${{ matrix.os }}
+          path: ${{ runner.temp }}/gleichheit-pruefsumme.txt
+          if-no-files-found: error
+          overwrite: true   # ein einzeln neu gestarteter Testjob ersetzt seine alte Datei, statt am Namen zu scheitern
+          retention-days: 14
+
+  # Mehrspieler (Lockstep): Jeder Rechner rechnet die Partie selbst, nur die Befehle gehen übers Netz. Das geht nur, wenn Windows und
+  # Linux bitgenau dasselbe rechnen. Der Gleichheitstest spielt feste Partien mit festen Befehlen; hier müssen seine Prüfsummen
+  # (je Jahr, am Ende, über die Befehle) auf beiden Systemen Zeichen für Zeichen gleich sein.
+  gleichheit:
+    name: Gleichheit Linux/Windows
+    needs: tests
+    runs-on: ubuntu-24.04   # fest, siehe oben bei den Tests
+    steps:
+      - name: Prüfsummen holen
+        uses: actions/download-artifact@v4
+        with:
+          pattern: gleichheit-*
+          path: pruefsummen
+
+      - name: Prüfsummen vergleichen
+        run: |
+          linux=pruefsummen/gleichheit-ubuntu-latest/gleichheit-pruefsumme.txt
+          windows=pruefsummen/gleichheit-windows-latest/gleichheit-pruefsumme.txt
+          cat "$linux"
+          if ! diff -u "$linux" "$windows"; then
+            echo "::error::Linux und Windows rechnen verschieden (Diff oben: erste abweichende Zeile = erstes Jahr, in dem die Partien auseinanderlaufen). Meist steckt ein Math.Pow/Exp/Sin … statt DetMathe dahinter, eine Zahl als Text ohne Zahlenformat oder eine Reihenfolge aus Dictionary/HashSet."
+            exit 1
+          fi
+          echo "Linux und Windows ergeben dieselben Prüfsummen."
 
   export:
     name: Spiel exportieren (Windows + Linux)

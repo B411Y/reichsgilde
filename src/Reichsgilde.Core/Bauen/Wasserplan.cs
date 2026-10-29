@@ -435,7 +435,7 @@ public sealed class Wasserplan
     /// <summary>Grad wie <c>Rotation.Y</c> (lokal +z zeigt von a nach b), 0 bis unter 360.</summary>
     internal static double Richtung(Kartenort a, Kartenort b)
     {
-        var grad = Math.Atan2(b.X - a.X, b.Z - a.Z) * 180 / Math.PI;
+        var grad = DetMathe.Atan2(b.X - a.X, b.Z - a.Z) * 180 / Math.PI;
         return Math.Round(grad < 0 ? grad + 360 : grad, 3);
     }
 
