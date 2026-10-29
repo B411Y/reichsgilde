@@ -192,7 +192,7 @@ So wird eingetragen (damit sich die Chats nie an derselben Stelle treffen):
 | Klicktest | Vulkan (T400): Fenster mit jedem Reiter, Gulden geben (Kopfzeile 4.557 → 5.874 im Lauf, die Meldung im Fenster), Regen und Winter mit Wegenetz und Bauzonen, Bis Ratssitzung (Jahresbericht mit dem Satz zur Entwicklerhilfe, Spielstand mit dem Kennzeichen), Laden und F12 danach (Sperre offen, Gulden geben geht), 64×, Ladeliste mit „[Entwicklerhilfe]“. Kein SCRIPT ERROR. Nach dem Zusammenführen mit M1 und M2 (Integration, PR #254) noch einmal: Reiter 1, Gulden geben (+1.000), Wetter Regen, Messwerte mit Prüfsumme (b83e4195), Speichern und Ladeliste mit „[Entwicklerhilfe]“; ohne `--entwickler=1` kein Knopf und keine Reaktion auf F12. | 29.10.2026 |
 
 
-### Einstellungen-Umbau (Branch phase5/einstellungen-umbau)
+### Einstellungen-Umbau (PR #262)
 
 | Thema | Entscheidung | Datum |
 |---|---|---|
