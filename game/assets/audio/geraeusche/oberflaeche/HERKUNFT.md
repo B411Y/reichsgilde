@@ -10,7 +10,7 @@
 | Impact Sounds | 1.0 vom 19.12.2019 | https://kenney.nl/assets/impact-sounds | kenney_impact-sounds.zip, 029D734AF1582474EDF3A694D1B0CEBC97C1C152F2F39FA34D4C2BAFC5DE77F8, 800850 Bytes | `impact_bell_heavy_002..004`, `impact_plank_medium_000..002`, `impact_wood_medium_000..002` |
 
 **Bezugsquelle:** Original-Downloads von kenney.nl, geladen am 29.10.2026 über den Download-Knopf der Seiten. Alle 29 Dateien wurden per SHA-256 mit
-dem Inhalt der ZIP-Dateien verglichen: byte-gleich, nur umbenannt. Die `License.txt` beider Pakete liegt unverändert daneben
+dem Inhalt der ZIP-Dateien verglichen: byte-gleich, nur umbenannt. Die `License.txt` beider Pakete liegt unverändert (bis auf Zeilenenden, Git speichert LF) daneben
 (`LICENSE-kenney-rpg-audio.txt`, `LICENSE-kenney-impact-sounds.txt`).
 
 ## Zuordnung Datei zu Originalname
