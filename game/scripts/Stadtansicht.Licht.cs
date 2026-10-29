@@ -64,6 +64,7 @@ public partial class Stadtansicht
     private Lichtstimmung _ueberblendenVon;
     private float _ueberblendung = 1f;
     private float _letzteLichtUhrzeit = -1f;
+    private Jahreszeit? _letzteLichtJahreszeit;
 
     /// <summary>
     /// Sonne bei Tag, Mond bei Nacht – beide werfen Schatten.
@@ -78,12 +79,15 @@ public partial class Stadtansicht
     private void LichtNachUhrzeit(float uhrzeitInMinuten, double echtzeit, Jahreszeit jahreszeit = Jahreszeit.Fruehling)
     {
         var ziel = StimmungUm(uhrzeitInMinuten / 60f, jahreszeit);
-        if (_letzteLichtUhrzeit >= 0 && Mathf.Abs(uhrzeitInMinuten - _letzteLichtUhrzeit) > SprungMinuten && _gezeigteStimmung is { } alt)
+        // Springt die Uhr oder wechselt die Jahreszeit mitten am Tag (Entwicklerfenster, --jahreszeit): von der gezeigten Stimmung überblenden
+        var jahreszeitGewechselt = _letzteLichtJahreszeit is { } vorher && vorher != jahreszeit;
+        if (_letzteLichtUhrzeit >= 0 && (Mathf.Abs(uhrzeitInMinuten - _letzteLichtUhrzeit) > SprungMinuten || jahreszeitGewechselt) && _gezeigteStimmung is { } alt)
         {
             _ueberblendenVon = alt;
             _ueberblendung = 0;
         }
         _letzteLichtUhrzeit = uhrzeitInMinuten;
+        _letzteLichtJahreszeit = jahreszeit;
         _bezugStunde = BezugsStunde(uhrzeitInMinuten / 60f, jahreszeit);
         if (_ueberblendung < 1)
         {
@@ -205,8 +209,9 @@ public partial class Stadtansicht
     {
         var lauf = Reichsgilde.Core.Zeit.Sonnenzeiten.Fuer(jahreszeit);
         float daemmerung = lauf.Daemmerung / 60f, aufgang = lauf.Aufgang / 60f, untergang = lauf.Untergang / 60f, dunkel = lauf.Dunkel / 60f;
-        var vollerTag = aufgang + 1.5f;
-        var abendrot = untergang - 1.5f;
+        // Der Tag zwischen Aufgang und Untergang muss länger als 3 Stunden sein (Test SonnenzeitenTests); sonst rücken voller Tag und Abendrot in die Mitte zusammen
+        var vollerTag = Mathf.Min(aufgang + 1.5f, (aufgang + untergang) / 2);
+        var abendrot = Mathf.Max(untergang - 1.5f, (aufgang + untergang) / 2);
         if (stunde <= daemmerung) return 5f;
         if (stunde < aufgang) return Mathf.Lerp(5f, 6f, (stunde - daemmerung) / (aufgang - daemmerung));
         if (stunde < vollerTag) return Mathf.Lerp(6f, 7.5f, (stunde - aufgang) / (vollerTag - aufgang));

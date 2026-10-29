@@ -44,6 +44,7 @@ static class SonnenzeitenTests
             foreach (var jz in Enum.GetValues<Jahreszeit>())
             {
                 var l = Sonnenzeiten.Fuer(jz);
+                Wahr(l.Untergang - l.Aufgang > 3 * 60, $"{jz}: Tag nicht länger als 3 Stunden (die Darstellung rechnet damit, Stadtansicht.Licht.cs BezugsStunde)");
                 Wahr(l.Daemmerung < l.Aufgang && l.Aufgang < l.Untergang && l.Untergang < l.Dunkel, $"{jz}: Zeiten nicht aufsteigend");
             }
             int Tag(Jahreszeit jz) { var l = Sonnenzeiten.Fuer(jz); return l.Untergang - l.Aufgang; }

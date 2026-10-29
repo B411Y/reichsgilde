@@ -29,7 +29,8 @@ public sealed partial class Zeitstrahl : Control
         (Ab(20), new Color(0.18f, 0.20f, 0.32f), "Nacht"),
     };
 
-    private int _minute = -1;
+    private const int OhneMinute = int.MinValue;
+    private int _minute = OhneMinute;
     private Jahreszeit _jahreszeit = Jahreszeit.Fruehling;
 
     /// <summary>Die Jahreszeit, deren Sonnenzeiten das Band zeigt.</summary>
@@ -55,7 +56,7 @@ public sealed partial class Zeitstrahl : Control
 
     private static readonly Color NachtFarbe = new(0.18f, 0.20f, 0.32f);
 
-    /// <summary>Minuten seit Tagesbeginn (0 = 04:00, 1140 = 23:00).</summary>
+    /// <summary>Minuten seit Tagesbeginn (0 = 04:00, 1140 = 23:00; negativ vor 4 Uhr nur für Bildschirmfotos).</summary>
     public int Minute
     {
         get => _minute;
@@ -116,7 +117,7 @@ public sealed partial class Zeitstrahl : Control
         DrawLine(new Vector2(X(Ab(8)), oben + Bandhoehe + 1), new Vector2(X(Ab(20)), oben + Bandhoehe + 1), new Color(0.95f, 0.82f, 0.45f, 0.7f), 2);
         DrawRect(new Rect2(0, oben, Size.X, Bandhoehe), new Color(0.05f, 0.04f, 0.03f), false, 1);
 
-        if (_minute < 0) return;
+        if (_minute == OhneMinute) return; // noch keine Zeit gesetzt (vor 4 Uhr, per --lichtuhr, sitzt der Zeiger am linken Rand)
         // Der Zeiger: eine Sonne mit Strahlen über dem Band, in der Nacht ein Mond
         // Die Marke sitzt ganz über dem Band (F7: Sie verdeckte sonst den Namen des Abschnitts); nur eine kurze Spitze zeigt auf die Minute.
         var mitte = new Vector2(Mathf.Clamp(X(_minute), 7, Size.X - 7), oben - 8);
