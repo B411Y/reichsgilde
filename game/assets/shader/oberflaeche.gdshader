@@ -221,7 +221,10 @@ void fragment() {
 		vec3 wnorm = mat3(INV_VIEW_MATRIX) * NORMAL;
 		vec3 wnorm_neu = wnorm;
 		vec3 gl = vec3(0.0);
-		wetter_flaeche(grund, rau, wnorm_neu, gl, wnorm, normalize(mat3(MODEL_MATRIX) * ort_n), welt, vec2(dot(ort, su), dot(ort, sv)) * smass, sreihe, TIME);
+		// Dachdeckung (Projektion „reihen“: Ziegel, Schiefer, Schindeln) = 1, „dach“ (Stroh, Kupfer) = 0,5, sonst 0: Der Wetter-Shader zählt eine Deckung auch am
+		// steilen Turmhelm als Dach (nach der Neigung allein wäre sie eine Wand)
+		float dachstoff = (sb >= 0 && sb < BIB_MAX) ? (bib_projektion[sb] == 2 ? 1.0 : (bib_projektion[sb] == 1 ? 0.5 : 0.0)) : 0.0;
+		wetter_flaeche(grund, rau, wnorm_neu, gl, wnorm, normalize(mat3(MODEL_MATRIX) * ort_n), welt, vec2(dot(ort, su), dot(ort, sv)) * smass, sreihe, dachstoff, TIME);
 		EMISSION += gl;
 	}
 	ALBEDO = grund;
