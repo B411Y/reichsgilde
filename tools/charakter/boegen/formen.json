@@ -1,0 +1,93 @@
+{
+ "name": "formen",
+ "titel": "Test 3 – folgen Augen und Zähne den Formreglern? (¾ von vorn, Kopf)",
+ "zelle": [
+  330,
+  330
+ ],
+ "spalten": [
+  {
+   "titel": "neutral",
+   "formen": {}
+  },
+  {
+   "titel": "kopf_breit 1",
+   "formen": {
+    "form_kopf_breit": 1
+   }
+  },
+  {
+   "titel": "augen_weit 1",
+   "formen": {
+    "form_augen_weit": 1
+   }
+  },
+  {
+   "titel": "kiefer 1",
+   "formen": {
+    "form_kiefer": 1
+   }
+  },
+  {
+   "titel": "kiefer 1 + jawOpen 0,5",
+   "formen": {
+    "form_kiefer": 1,
+    "jawOpen": 0.5
+   }
+  }
+ ],
+ "zeilen": [
+  {
+   "titel": "MPFB fest eingebacken (Teile neu angepasst)",
+   "kopf": "mann35_a2.glb",
+   "stoff": "haut",
+   "ansicht": "kopf",
+   "winkel": 30,
+   "zellen": [
+    {
+     "kopf": "mann35_a2.glb",
+     "formen": {}
+    },
+    {
+     "kopf": "fest_kopf_breit.glb",
+     "formen": {}
+    },
+    {
+     "kopf": "fest_augen_weit.glb",
+     "formen": {}
+    },
+    {
+     "kopf": "fest_kiefer.glb",
+     "formen": {}
+    },
+    {
+     "kopf": "fest_kiefer.glb",
+     "formen": {
+      "jawOpen": 0.5
+     }
+    }
+   ]
+  },
+  {
+   "titel": "Laufzeit-Blendshape, auf Teile übertragen",
+   "kopf": "formen_mit.glb",
+   "stoff": "haut",
+   "ansicht": "kopf",
+   "winkel": 30
+  },
+  {
+   "titel": "Laufzeit-Blendshape nur am Körper",
+   "kopf": "formen_ohne.glb",
+   "stoff": "haut",
+   "ansicht": "kopf",
+   "winkel": 30
+  },
+  {
+   "titel": "nur Körper, Mund nah",
+   "kopf": "formen_ohne.glb",
+   "stoff": "haut",
+   "ansicht": "mund",
+   "winkel": 25
+  }
+ ]
+}

@@ -1,0 +1,25 @@
+{
+ "_zweck": "A2: wie A1, dazu eigener 2K-Kopfausschnitt (eigene UV), Hautmasken (Rötung, Glanz, Vertiefung) für den Hautshader",
+ "makros": {
+  "gender": 1.0,
+  "age_jahre": 35,
+  "muscle": 0.55,
+  "weight": 0.5,
+  "proportions": 0.6,
+  "height": 0.5,
+  "race": {
+   "caucasian": 1.0,
+   "african": 0.0,
+   "asian": 0.0
+  }
+ },
+ "haut": "middleage_caucasian_male",
+ "augen": "high-poly",
+ "zubehoer": [
+  "eyebrow001",
+  "eyelashes01"
+ ],
+ "mimik": "arkit",
+ "masken": true,
+ "kopf_uv": 2048
+}

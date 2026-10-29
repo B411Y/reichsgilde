@@ -1,0 +1,92 @@
+{
+ "name": "mimik_nah",
+ "titel": "Test 2 – Mund und Lider nah (Mund: ¾ von unten rechts; Lider: vorn)",
+ "zelle": [
+  330,
+  260
+ ],
+ "spalten": [
+  {
+   "titel": "neutral",
+   "formen": {}
+  },
+  {
+   "titel": "jawOpen 1",
+   "formen": {
+    "jawOpen": 1
+   }
+  },
+  {
+   "titel": "Smile L+R 1",
+   "formen": {
+    "mouthSmileLeft": 1,
+    "mouthSmileRight": 1
+   }
+  },
+  {
+   "titel": "mouthFunnel 1",
+   "formen": {
+    "mouthFunnel": 1
+   }
+  },
+  {
+   "titel": "jawOpen 0,6 + Smile 0,6",
+   "formen": {
+    "jawOpen": 0.6,
+    "mouthSmileLeft": 0.6,
+    "mouthSmileRight": 0.6
+   }
+  },
+  {
+   "titel": "Blinzeln L+R 1",
+   "formen": {
+    "eyeBlinkLeft": 1,
+    "eyeBlinkRight": 1
+   },
+   "ansicht": "augen",
+   "winkel": 0
+  }
+ ],
+ "zeilen": [
+  {
+   "titel": "Kind 5 J. (MPFB)",
+   "kopf": "kind5.glb",
+   "stoff": "haut",
+   "ansicht": "mund",
+   "winkel": 25
+  },
+  {
+   "titel": "Mann 35 J. (MPFB)",
+   "kopf": "mann35_a2.glb",
+   "stoff": "haut",
+   "ansicht": "mund",
+   "winkel": 25
+  },
+  {
+   "titel": "Greis 70 J. (MPFB)",
+   "kopf": "greis70.glb",
+   "stoff": "haut",
+   "ansicht": "mund",
+   "winkel": 25
+  },
+  {
+   "titel": "Ork (MPFB übertrieben, Hauer)",
+   "kopf": "ork.glb",
+   "stoff": "haut",
+   "ansicht": "mund",
+   "winkel": 25,
+   "toenung": [
+    0.72,
+    0.86,
+    0.6
+   ]
+  },
+  {
+   "titel": "B: ICT 35 J.",
+   "kopf": "ict.glb",
+   "stoff": "haut",
+   "ansicht": "mund",
+   "winkel": 25
+  }
+ ]
+}

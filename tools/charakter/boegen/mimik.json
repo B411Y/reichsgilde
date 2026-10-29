@@ -1,0 +1,98 @@
+{
+ "name": "mimik",
+ "titel": "Test 2 – sechs ARKit-Formen (Gewicht 1) über Alter und Volk, Kopf leicht schräg",
+ "zelle": [
+  290,
+  310
+ ],
+ "spalten": [
+  {
+   "titel": "neutral",
+   "formen": {}
+  },
+  {
+   "titel": "jawOpen",
+   "formen": {
+    "jawOpen": 1
+   }
+  },
+  {
+   "titel": "mouthSmileLeft",
+   "formen": {
+    "mouthSmileLeft": 1
+   }
+  },
+  {
+   "titel": "mouthSmileRight",
+   "formen": {
+    "mouthSmileRight": 1
+   }
+  },
+  {
+   "titel": "eyeBlinkLeft",
+   "formen": {
+    "eyeBlinkLeft": 1
+   }
+  },
+  {
+   "titel": "eyeBlinkRight",
+   "formen": {
+    "eyeBlinkRight": 1
+   }
+  },
+  {
+   "titel": "browInnerUp",
+   "formen": {
+    "browInnerUp": 1
+   }
+  },
+  {
+   "titel": "mouthFunnel",
+   "formen": {
+    "mouthFunnel": 1
+   }
+  }
+ ],
+ "zeilen": [
+  {
+   "titel": "Kind 5 J. (MPFB)",
+   "kopf": "kind5.glb",
+   "stoff": "haut",
+   "ansicht": "kopf",
+   "winkel": 20
+  },
+  {
+   "titel": "Mann 35 J. (MPFB)",
+   "kopf": "mann35_a2.glb",
+   "stoff": "haut",
+   "ansicht": "kopf",
+   "winkel": 20
+  },
+  {
+   "titel": "Greis 70 J. (MPFB)",
+   "kopf": "greis70.glb",
+   "stoff": "haut",
+   "ansicht": "kopf",
+   "winkel": 20
+  },
+  {
+   "titel": "Ork (MPFB übertrieben, Hauer)",
+   "kopf": "ork.glb",
+   "stoff": "haut",
+   "ansicht": "kopf",
+   "winkel": 20,
+   "toenung": [
+    0.72,
+    0.86,
+    0.6
+   ]
+  },
+  {
+   "titel": "B: ICT 35 J.",
+   "kopf": "ict.glb",
+   "stoff": "haut",
+   "ansicht": "kopf",
+   "winkel": 20
+  }
+ ]
+}

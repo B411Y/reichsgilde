@@ -1,0 +1,54 @@
+{
+ "_zweck": "Mimiktest: grober Ork – MPFB-Makros und Formziele übertrieben, einfache Hauer an den unteren Eckzähnen",
+ "makros": {
+  "gender": 1.0,
+  "age_jahre": 30,
+  "muscle": 1.0,
+  "weight": 0.8,
+  "proportions": 0.0,
+  "height": 1.0,
+  "race": {
+   "caucasian": 0.4,
+   "african": 0.6,
+   "asian": 0.0
+  }
+ },
+ "haut": "middleage_african_male",
+ "augen": "high-poly",
+ "zubehoer": [
+  "eyebrow001",
+  "eyelashes01"
+ ],
+ "mimik": "arkit",
+ "masken": true,
+ "kopf_uv": 2048,
+ "ziele": {
+  "head/head-scale-horiz-incr": 0.8,
+  "head/head-fat-incr": 0.6,
+  "head/head-square": 1.0,
+  "chin/chin-width-incr": 1.0,
+  "chin/chin-prognathism-incr": 1.2,
+  "chin/chin-bones-incr": 1.0,
+  "nose/nose-scale-horiz-incr": 1.0,
+  "nose/nose-flaring-incr": 1.2,
+  "nose/nose-volume-incr": 0.8,
+  "nose/nose-point-up": 1.0,
+  "nose/nose-scale-vert-decr": 0.6,
+  "eyebrows/eyebrows-trans-forward": 1.2,
+  "eyebrows/eyebrows-trans-down": 0.6,
+  "forehead/forehead-trans-backward": 0.7,
+  "ears/l-ear-shape-pointed": 1.0,
+  "ears/r-ear-shape-pointed": 1.0,
+  "ears/l-ear-scale-incr": 0.6,
+  "ears/r-ear-scale-incr": 0.6,
+  "neck/neck-scale-horiz-incr": 1.0,
+  "mouth/mouth-scale-horiz-incr": 0.8,
+  "mouth/mouth-lowerlip-volume-incr": 0.7,
+  "eyes/l-eye-scale-decr": 0.6,
+  "eyes/r-eye-scale-decr": 0.6
+ },
+ "hauer": {
+  "laenge": 0.042,
+  "dicke": 0.008
+ }
+}

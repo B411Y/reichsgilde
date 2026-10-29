@@ -1,0 +1,41 @@
+{
+ "name": "vergleich",
+ "titel": "Test 1 – Büste: A1 | A2 | B, gleiches Licht (Schlüssel-, Füll-, Gegenlicht, AgX), gleiche Kamera, Bildhöhe 0,46 m",
+ "zelle": [
+  560,
+  620
+ ],
+ "spalten": [
+  {
+   "titel": "A1  MPFB, Skin wie geliefert",
+   "kopf": "mann35_a1.glb",
+   "stoff": "roh"
+  },
+  {
+   "titel": "A2  MPFB, 2K-Kopf + Hautshader",
+   "kopf": "mann35_a2.glb",
+   "stoff": "haut"
+  },
+  {
+   "titel": "B  ICT-FaceKit + Hautshader (einfarbig)",
+   "kopf": "ict.glb",
+   "stoff": "haut"
+  }
+ ],
+ "zeilen": [
+  {
+   "titel": "vorn",
+   "ansicht": "buste",
+   "winkel": 0,
+   "spanne_m": 0.46,
+   "ziel_m": -0.1
+  },
+  {
+   "titel": "¾",
+   "ansicht": "buste",
+   "winkel": 35,
+   "spanne_m": 0.46,
+   "ziel_m": -0.1
+  }
+ ]
+}

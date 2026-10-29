@@ -1,0 +1,62 @@
+{
+ "name": "vergleich_nah",
+ "titel": "Test 1 – Augen und Mund nah: A1 | A2 | B",
+ "zelle": [
+  560,
+  330
+ ],
+ "spalten": [
+  {
+   "titel": "A1  MPFB, Skin wie geliefert",
+   "kopf": "mann35_a1.glb",
+   "stoff": "roh"
+  },
+  {
+   "titel": "A2  MPFB, 2K-Kopf + Hautshader",
+   "kopf": "mann35_a2.glb",
+   "stoff": "haut"
+  },
+  {
+   "titel": "B  ICT-FaceKit + Hautshader (einfarbig)",
+   "kopf": "ict.glb",
+   "stoff": "haut"
+  }
+ ],
+ "zeilen": [
+  {
+   "titel": "Augen vorn",
+   "ansicht": "augen",
+   "winkel": 0
+  },
+  {
+   "titel": "Augen ¾",
+   "ansicht": "augen",
+   "winkel": 35
+  },
+  {
+   "titel": "Mund halb offen (jawOpen 0,35)",
+   "ansicht": "mund",
+   "formen": {
+    "jawOpen": 0.35
+   }
+  },
+  {
+   "titel": "Lächeln (Smile L+R 0,7, jawOpen 0,1) ¾",
+   "ansicht": "mund",
+   "winkel": 30,
+   "formen": {
+    "mouthSmileLeft": 0.7,
+    "mouthSmileRight": 0.7,
+    "jawOpen": 0.1
+   }
+  },
+  {
+   "titel": "„O“ (mouthFunnel 0,7, jawOpen 0,2)",
+   "ansicht": "mund",
+   "formen": {
+    "mouthFunnel": 0.7,
+    "jawOpen": 0.2
+   }
+  }
+ ]
+}

@@ -1,0 +1,101 @@
+{
+ "name": "formen_nah",
+ "titel": "Test 3 – Augen und Zähne bei Formreglern, nah (−1 = Regler in Gegenrichtung)",
+ "zelle": [
+  320,
+  300
+ ],
+ "spalten": [
+  {
+   "titel": "augen_weit +1, Augen vorn",
+   "formen": {
+    "form_augen_weit": 1
+   },
+   "ansicht": "augen",
+   "winkel": 0
+  },
+  {
+   "titel": "augen_weit −1, Augen vorn",
+   "formen": {
+    "form_augen_weit": -1
+   },
+   "ansicht": "augen",
+   "winkel": 0
+  },
+  {
+   "titel": "kopf_breit +1, Augen ¾",
+   "formen": {
+    "form_kopf_breit": 1
+   },
+   "ansicht": "augen",
+   "winkel": 35
+  },
+  {
+   "titel": "kiefer +1, Mund seitlich",
+   "formen": {
+    "form_kiefer": 1
+   },
+   "ansicht": "mund",
+   "winkel": 75
+  },
+  {
+   "titel": "kiefer −1, Mund seitlich",
+   "formen": {
+    "form_kiefer": -1
+   },
+   "ansicht": "mund",
+   "winkel": 75
+  },
+  {
+   "titel": "kiefer −1 + jawOpen 0,4",
+   "formen": {
+    "form_kiefer": -1,
+    "jawOpen": 0.4
+   },
+   "ansicht": "mund",
+   "winkel": 15
+  }
+ ],
+ "zeilen": [
+  {
+   "titel": "MPFB fest eingebacken",
+   "stoff": "haut",
+   "zellen": [
+    {
+     "kopf": "fest_augen_weit.glb",
+     "formen": {}
+    },
+    {
+     "kopf": null,
+     "titel": "(nur +1 gebaut)"
+    },
+    {
+     "kopf": "fest_kopf_breit.glb",
+     "formen": {}
+    },
+    {
+     "kopf": "fest_kiefer.glb",
+     "formen": {}
+    },
+    {
+     "kopf": null,
+     "titel": "(nur +1 gebaut)"
+    },
+    {
+     "kopf": null,
+     "titel": "(nur +1 gebaut)"
+    }
+   ]
+  },
+  {
+   "titel": "Laufzeit-Blendshape, auf Teile übertragen",
+   "kopf": "formen_mit.glb",
+   "stoff": "haut"
+  },
+  {
+   "titel": "Laufzeit-Blendshape nur am Körper",
+   "kopf": "formen_ohne.glb",
+   "stoff": "haut"
+  }
+ ]
+}
