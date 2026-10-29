@@ -49,6 +49,14 @@ public sealed record Speicherstand
     public Bauen.Stadtkarte? Karte { get; init; }
 
     public WirtschaftStand? Wirtschaft { get; init; }
+
+    /// <summary>
+    /// Befehle, die eingereiht, aber noch nicht ausgeführt sind (Mehrspieler M2, <see cref="Mehrspieler.Befehlsbote"/>) – mit Ziel-Tick, Haus und
+    /// laufender Nummer. Fehlt das Feld (alte Spielstände, leere Schlange), ist die Schlange leer. Rechnet eine spätere Umstellung die Uhr um
+    /// (wie <see cref="Uhrumstellung"/>), gehört der Ziel-Tick dazu.
+    /// </summary>
+    [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+    public List<Mehrspieler.EingereihterBefehl>? Warteschlange { get; init; }
 }
 
 public sealed record WirtschaftStand

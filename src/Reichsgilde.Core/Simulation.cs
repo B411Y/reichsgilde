@@ -25,6 +25,12 @@ public sealed class Simulation
     public Spielzeit Zeit { get; }
     public Taktgeber Takt { get; } = new();
 
+    /// <summary>
+    /// Der Weg der Befehle von Spielern (Mehrspieler M2): Warteschlange mit Ziel-Tick, Ergebnis als Rückruf, Aufzeichnung als Protokoll.
+    /// Im Einzelspiel wirkt ein Befehl sofort (Verzögerung 0) – wie <see cref="Stadtwirtschaft.Ausfuehren"/>.
+    /// </summary>
+    public Mehrspieler.Befehlsbote Bote { get; }
+
     /// <summary>Markt, Betriebe und Konten. Null, wenn die Simulation ohne Wirtschaftsdaten läuft.</summary>
     public Stadtwirtschaft? Wirtschaft { get; }
 
@@ -95,6 +101,7 @@ public sealed class Simulation
             throw new ArgumentException("Ungültige Partie-Einstellungen: " + string.Join(" ", fehler), nameof(einstellungen));
 
         Zeit = zeit ?? new Spielzeit();
+        Bote = new Mehrspieler.Befehlsbote(this);
         Takt.RundenDauerSekunden = Einstellungen.RundenDauerMinuten * 60;
 
         if (wirtschaftsdaten is not null)
@@ -127,7 +134,8 @@ public sealed class Simulation
         var altesJahr = Zeit.Jahr;
         var altePhase = Zeit.Tagesphase;
 
-        // Erst wird in der laufenden Minute gearbeitet, dann rückt die Uhr weiter.
+        // Zuerst wirken die Befehle für diese Minute (in fester Reihenfolge), dann wird gearbeitet, dann rückt die Uhr weiter.
+        Bote.FaelligeAusfuehren(Zeit.VergangeneMinuten);
         Wirtschaft?.Tick(Zeit);
         // Später hier: Bürger-KI, Karren, Ereignisse ...
 
@@ -136,6 +144,7 @@ public sealed class Simulation
         if (Zeit.Jahr != altesJahr && !Jahresabrechnung(altesJahr))
         {
             _nachDerSitzung = (altesJahr, altePhase); // die Partie hält vor der Ratssitzung an
+            Bote.LueckeMelden($"Ratssitzung {altesJahr} angehalten – ihre Schritte sind noch keine Befehle.");
             return;
         }
 
