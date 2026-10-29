@@ -79,7 +79,7 @@ public partial class Stadtansicht
                 if (punkte.Count >= 2)
                 {
                     var farbe = WegeFarbe(stuecke[i].Stufe, stuecke[i].Baustelle);
-                    var band = DurchsichtigesNetz(BandDreiecke(punkte, (float)weg.BreiteWirksam / 2 + 0.3f, 0.2f), farbe, 0.55f);
+                    var band = DurchsichtigesNetz(BandDreiecke(punkte, (float)weg.BreiteWirksam / 2, 0.2f), farbe, 0.5f);
                     ImmerSichtbar((StandardMaterial3D)band.MaterialOverride);
                     _wegeLeuchten.AddChild(band);
                     stoffe.Add(((StandardMaterial3D)band.MaterialOverride, farbe));
@@ -97,7 +97,7 @@ public partial class Stadtansicht
         {
             var hell = _wegeHover?.Weg == nummer;
             foreach (var (stoff, farbe) in stoffe)
-                stoff.AlbedoColor = hell ? new Color(farbe.Lightened(0.45f), 0.92f) : new Color(farbe, 0.55f);
+                stoff.AlbedoColor = hell ? new Color(farbe.Lightened(0.45f), 0.85f) : new Color(farbe, 0.5f);
         }
     }
 
