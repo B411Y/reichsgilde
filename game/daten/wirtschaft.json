@@ -1,5 +1,5 @@
 {
-  "version": 60,
+  "version": 61,
   "gesundheit": {
     "medicusKosten": 120,
     "medicusKostenPest": 300,
@@ -1884,7 +1884,7 @@
       "Bescheiden":  { "name": "Bescheiden", "art": "Persoenlichkeit", "gegenteil": "Hochmuetig", "beschreibung": "Braucht kein Silbergeschirr, um satt zu werden.",
                        "verhalten": "kauft keine Einrichtung fürs Wohnhaus.",
                        "talente": { "Handwerk": 0.5, "Verhandeln": -0.5 }, "erziehung": { "Zunftlehre": 1, "Klosterschule": 1 },
-                       "haushalt": 0.9, "ki": { "prunk": -1 }, "meinung": { "gleich": 10, "gegenteil": -10 } },
+                       "haushalt": 0.9, "bestechlich": 0.8, "ki": { "prunk": -1 }, "meinung": { "gleich": 10, "gegenteil": -10 } },
       "Hochmuetig":  { "name": "Hochmütig", "art": "Persoenlichkeit", "gegenteil": "Bescheiden", "beschreibung": "Blickt auf jeden herab, der unter seinem Stand ist.",
                        "verhalten": "wirbt lieber um eine Braut von höherem Stand.",
                        "talente": { "Verhandeln": 0.5, "Handwerk": -0.5 }, "erziehung": { "Universität": 1, "Fechtmeister": 1 }, "voelker": { "Elb": 1 },
@@ -1913,6 +1913,40 @@
                        "anlaesse": { "jahr": 0.004, "trauer": 0.03 }, "zugFaktor": { "Fromm": 4, "Zynisch": 0 }, "meinung": { "allgemein": 5 } },
       "Gelehrt":     { "name": "Gelehrt", "art": "Erworben", "beschreibung": "Hat an der Universität Rechte und Artes gehört.",
                        "talente": { "Verhandeln": 0.5, "Rhetorik": 0.5 }, "anlaesse": { "abschluss:Universität": 1 }, "meinung": { "allgemein": 5 } }
+    }
+  },
+  "meinungen": {
+    "hoechstwert": 100,
+    "verfallJeJahr": 0.3,
+    "verwandtschaft": { "ehe": 20, "elternKind": 20, "geschwister": 10, "weitere": 5 },
+    "stand": { "jeStufe": 3, "hoechstens": 9 },
+    "erbe": { "ungeduldAb": 30, "jeJahr": -3, "hoechstens": -30 },
+    "taten": { "fest": 5, "stimmeFuer": 5, "stimmeGegen": -5, "klage": -15, "ertappt": { "Diebstahl": -20, "Sabotage": -20, "Raub": -20 } },
+    "wirkung": {
+      "haushaltJePunkt": 0.002, "haushaltHoechstens": 0.1,
+      "streit": { "ab": -50, "chance": 0.25, "ansehen": 5 },
+      "heiratBereitschaftJePunkt": 0.5, "heiratKostenJePunkt": 0.005,
+      "kiVerschontAb": 25, "kiVerhasstAb": -25, "kiGefahrJePunkt": 0.01
+    },
+    "zugwirkung": { "mag": 1.5, "magNicht": 0.5, "gefahr": 2 },
+    "aktivitaeten": {
+      "Geschenk":   { "name": "Geschenk", "beschreibung": "Gulden nach Wahl – immer willkommen, doch jedes weitere im selben Jahr wirkt weniger.",
+                      "ap": 1, "geschenk": true, "abnahme": 0.7, "hoechstens": 15 },
+      "Gastmahl":   { "name": "Gastmahl im Wohnhaus", "beschreibung": "Eine lange Tafel, Braten und Wein – und Zeit für ein gutes Wort.",
+                      "ap": 1, "gulden": 60, "wirkung": 8, "mag": [ "Gesellig", "Hochmuetig" ], "magNicht": [ "Scheu", "Bescheiden" ],
+                      "gefahr": 0.1, "unglueck": "Streit bei Tisch", "unglueckWirkung": -5, "talent": "Rhetorik" },
+      "Zechen":     { "name": "Im Wirtshaus zechen", "beschreibung": "Ein Krug nach dem anderen, bis die Wirtin die Lichter löscht.",
+                      "ap": 1, "gulden": 20, "wirkung": 6, "mag": [ "Gesellig", "Trinker" ], "magNicht": [ "Fromm", "Scheu" ],
+                      "gefahr": 0.15, "unglueck": "Rausch und Rauferei", "unglueckWirkung": -8, "talent": "Rhetorik" },
+      "Messe":      { "name": "Gemeinsam zur Messe", "beschreibung": "Seite an Seite in der Kirchenbank, dazu eine Gabe in den Klingelbeutel.",
+                      "ap": 1, "gulden": 10, "wirkung": 6, "mag": [ "Fromm", "Pilger" ], "magNicht": [ "Zynisch" ], "gleicherGlaube": true,
+                      "gefahr": 0.05, "unglueck": "Während der Predigt eingeschlafen", "unglueckWirkung": -4 },
+      "Brettspiel": { "name": "Brettspiel", "beschreibung": "Mühle oder Schach am Kaminfeuer – ein Spiel, das Geduld verlangt.",
+                      "ap": 1, "gulden": 0, "wirkung": 6, "mag": [ "Klug", "Gelehrt", "Geduldig" ], "magNicht": [ "Jaehzornig" ],
+                      "gefahr": 0.2, "unglueck": "Streit ums Spiel", "unglueckWirkung": -6, "talent": "Verhandeln" },
+      "Jagd":       { "name": "Jagd im Umland", "beschreibung": "Pferde, Hunde und Treiber – ein Vergnügen für hohe Herren.",
+                      "ap": 2, "gulden": 80, "wirkung": 10, "mindestStand": "Patrizier", "mag": [ "Mutig", "Stark" ], "magNicht": [ "Feige", "Kraenklich" ],
+                      "gefahr": 0.15, "unglueck": "Jagdunfall", "unglueckWirkung": -5, "talent": "Kampf", "verletzung": "Knochenbruch", "verletzungChance": 0.3 }
     }
   },
   "justiz": {

@@ -259,6 +259,7 @@ public partial class Hauptszene : Node
         SpielmenueBauen();
         _ratKnopf.Pressed += RatOeffnen;
         _ratskammer.Gemeldet += Protokollieren;
+        _charakter.Gemeldet += Protokollieren;
         _rathausTafel.Gemeldet += Protokollieren;
         _rathausTafel.RatGewuenscht += RatOeffnen;
         _rathausTafel.GerichtGewuenscht += () => { TafelnSchliessen(); _gerichtssaal.Oeffnen(); };
@@ -1000,7 +1001,7 @@ public partial class Hauptszene : Node
         _rathausTafel.Verbinden(simulation, spieler);
         RatssitzungVerbinden(simulation, w, spieler);
         _familientafel.Verbinden(simulation, spieler);
-        _charakter.Verbinden(simulation);
+        _charakter.Verbinden(simulation, spieler);
         _gerichtssaal.Verbinden(simulation, spieler);
         _hinterzimmer.Verbinden(simulation, spieler);
         _markt.Verbinden(simulation, spieler);

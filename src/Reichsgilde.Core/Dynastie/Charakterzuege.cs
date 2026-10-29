@@ -14,8 +14,7 @@ public enum Zugart
 }
 
 /// <summary>
-/// Platz für die Meinungen (Charaktersystem Teil 2, PR folgt): Wie dieser Zug die Meinung anderer Personen färbt.
-/// In Teil 1 wirken die Werte noch nicht – sie stehen nur schon in den Daten.
+/// Wie dieser Zug die Meinung anderer Personen färbt (Charaktersystem Teil 2, PR #231, <see cref="Meinungswesen"/>).
 /// </summary>
 public sealed class ZugMeinungDaten
 {
@@ -80,13 +79,13 @@ public sealed class CharakterzugDaten
     /// <summary>Faktor auf die Chance zu erkranken (Kränklich 2).</summary>
     public double Krankheit { get; init; } = 1;
 
-    /// <summary>Nur Ratsherren: Faktor auf die Gunst je geschenktem Gulden (Gierig 1,3, Ehrlich 0,7).</summary>
+    /// <summary>Faktor auf die Meinung je geschenktem Gulden – für Ratsherren und seit PR #231 für alle Personen (Gierig 1,3, Ehrlich 0,7, Bescheiden 0,8).</summary>
     public double Bestechlich { get; init; } = 1;
 
     /// <summary>Wie ein KI-Haus mit diesem Oberhaupt handelt.</summary>
     public ZugKiDaten Ki { get; init; } = new();
 
-    /// <summary>Platz für Teil 2 (Meinungen) – wirkt noch nicht.</summary>
+    /// <summary>Gründe der Meinung aus diesem Zug (PR #231).</summary>
     public ZugMeinungDaten Meinung { get; init; } = new();
 }
 
@@ -231,7 +230,7 @@ public sealed class Charakterzug
         string Prozent(double faktor) => $"{(faktor > 1 ? "+" : "−")}{Zahlenformat.Ganz(Math.Abs(faktor - 1) * 100)} %";
         if (Math.Abs(d.Haushalt - 1) > 1e-9) teile.Add($"Haushalt {Prozent(d.Haushalt)}");
         if (Math.Abs(d.Krankheit - 1) > 1e-9) teile.Add($"Krankheiten {Prozent(d.Krankheit)}");
-        if (Math.Abs(d.Bestechlich - 1) > 1e-9) teile.Add($"als Ratsherr: Geschenke wirken {Prozent(d.Bestechlich)}");
+        if (Math.Abs(d.Bestechlich - 1) > 1e-9) teile.Add($"Geschenke an ihn wirken {Prozent(d.Bestechlich)}");
         if (!string.IsNullOrWhiteSpace(d.Verhalten)) teile.Add($"Als KI-Haus: {d.Verhalten}");
         return teile.Count == 0 ? "" : string.Join(". ", teile) + (teile[^1].EndsWith('.') ? "" : ".");
     }

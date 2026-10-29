@@ -77,7 +77,7 @@ static class GlaubeTests
             Pruefe.WirftMitMeldung(() => Partieaufbau.Erstellen(Partieeinstellungen.Standard, Daten.Value, new NeuePartie(Glaube: Konfession.Naturglaube)), "Orks und Ogern");
         }),
 
-        ("Rat: Glaubensbruder +5, andere Konfession −3, Heide −8 – zusätzlich zur Volksnähe in den Wahlpunkten", () =>
+        ("Rat: Glaubensbruder +5, andere Konfession −3, Heide −8 – als Grund der Meinung in den Wahlpunkten (PR #231)", () =>
         {
             var sim = NeueSimulation();
             var (w, k, f) = Haus(sim, "Haus Kreuz", Konfession.Katholisch);
@@ -86,11 +86,14 @@ static class GlaubeTests
             Pruefe.Gleich(5.0, w.Glaube.Naehe(kath, k));
             Pruefe.Gleich(-3.0, w.Glaube.Naehe(ev, k));
             var amt = w.Rat.Aemter.First(a => a.Stufe == 1);
-            Pruefe.Ungefaehr(w.Rat.Ansehen(k) + w.Familien.Volksnaehe(Volk.Mensch, k) + w.Familien.RhetorikPunkte(k) + 5,
+            Pruefe.Ungefaehr(5, w.Meinungen.Gruende(kath, f.Oberhaupt).Single(g => g.Text.StartsWith("Gleicher Glaube")).Wert, 1e-9);
+            Pruefe.Ungefaehr(-3, w.Meinungen.Gruende(ev, f.Oberhaupt).Single(g => g.Text.StartsWith("Anderer Glaube")).Wert, 1e-9);
+            Pruefe.Ungefaehr(w.Rat.Ansehen(k) + w.Rat.Meinung(kath, k) + w.Familien.RhetorikPunkte(k),
                 w.Rat.Punkte(kath, amt, k), 1e-9);
             f.Oberhaupt.Glaube = Konfession.Naturglaube;
             Pruefe.Gleich(-8.0, w.Glaube.Naehe(kath, k));
             Pruefe.Gleich(-8.0, w.Glaube.Naehe(ev, k));
+            Pruefe.Ungefaehr(-8, w.Meinungen.Gruende(kath, f.Oberhaupt).Single(g => g.Text == "Ein Heide").Wert, 1e-9);
         }),
 
         ("Mischehe: Der Partner tritt zum Glauben des Hauses über – bei den Ratsherren seines alten Glaubens −2; Kinder im Glauben des Hauses", () =>
