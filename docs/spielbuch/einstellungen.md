@@ -2,7 +2,7 @@
 
 *Voreinstellungen, Leistung, Bild, Stimmung, Barrierefreiheit, Spiel*
 
-Die Tafel **Einstellungen** (Hauptmenü und Spielmenü) hat sechs Reiter; der sechste, **Spiel**, legt fest, wann die Ratssitzung im Ratssaal gezeigt wird (siehe „Stand, Rat und Glaube“). Jede Änderung wirkt sofort und wird gespeichert.
+Die Tafel **Einstellungen** (Hauptmenü und Spielmenü) hat sieben Reiter; der sechste, **Spiel**, legt fest, wann die Ratssitzung im Ratssaal gezeigt wird (siehe „Stand, Rat und Glaube“), der siebte, **Ton**, die Lautstärke. Jede Änderung wirkt sofort und wird gespeichert.
 
 **Voreinstellung.** Niedrig, Mittel, Hoch und Ultra stellen alle Regler für Leistung und Bild auf einmal ein, dazu die teuren Stimmungen (Miniatur-Unschärfe, Wolkenschatten, Morgendunst). Ändert man danach einen Regler, steht dort „Eigene“. Beim **ersten Start** misst das Spiel im Hintergrund des Hauptmenüs ein paar Sekunden lang, wie schnell der Rechner die Stadt zeichnet, und wählt die höchste Stufe, die flüssig bleibt (60 Bilder je Sekunde mit Reserve); ein Hinweis oben nennt die Wahl. Der Knopf **Automatisch wählen** misst später noch einmal. Hier steht auch der Schalter **Vollbild** (F11).
 
@@ -27,6 +27,8 @@ Die Tafel **Einstellungen** (Hauptmenü und Spielmenü) hat sechs Reiter; der se
 - **Fahnen bewegen** an/aus: Aus hängen alle Fahnen still.
 
 **Barrierefreiheit.** **Tooltips festheften** (Zeit bis zum Festkleben 0,5–5 s oder nur mit Taste). **Größe der Oberfläche** (75–200 %): alle Tafeln, Schriften und Knöpfe größer oder kleiner, die Stadt bleibt scharf. **Farbfilter** für Farbsehschwäche (Protanopie, Deuteranopie, Tritanopie): Farben, die sich für das betroffene Auge kaum unterscheiden, werden in Helligkeit und andere Farbtöne verschoben – im ganzen Bild mit Tafeln, Wappen und Warenzeichen.
+
+**Ton.** Sechs Regler von 0 bis 100 %, je mit einem Schalter **Stumm**: **Gesamt** (wirkt auf alles), **Musik**, **Umgebung** (Wind, Vögel, Menge, Regen), **Effekte** (Geräusche aus der Welt), **Oberfläche** (Klicks und Papier der Tafeln) und **Stimmen**. Jeder Regler zeigt eine kurze Erklärung; 100 % ist die volle Lautstärke des Tons, das Spiel verstärkt nie darüber. **Ton im Hintergrund stumm** (Standard an) schaltet alles stumm, solange ein anderes Fenster vorn ist. Noch sind keine Töne eingebaut; die Regler sind bereit für sie.
 
 Zum Ausprobieren (gilt nur für diesen Start): `--voreinstellung=Ultra`, `--tiltshift=Stark`, `--startstunde=6 --dunst=Hoch`, `--tonemapping=Agx`, `--uigroesse=150`, `--farbfilter=Deuteranopie`, `--dynamisch=60`, `--einstellungen=1 --reiter=Stimmung`. `--messung=30` misst 30 Sekunden lang Bilder je Sekunde und schreibt sie ins Protokoll.
 
