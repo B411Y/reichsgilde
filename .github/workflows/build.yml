@@ -40,6 +40,12 @@ jobs:
       - name: Code holen
         uses: actions/checkout@v4
 
+      # Kein Asset ohne Protokolleintrag (docs/assets/README.md). Nur unter Linux: Das Ergebnis hängt nicht vom System ab,
+      # und die Pflichtprüfung „Build & Tests (ubuntu-latest)“ setzt die Regel durch.
+      - name: Asset-Protokoll prüfen
+        if: matrix.os == 'ubuntu-latest'
+        run: python3 tools/assets/protokoll_pruefen.py
+
       - name: .NET installieren
         uses: actions/setup-dotnet@v4
         with:
