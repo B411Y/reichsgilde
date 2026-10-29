@@ -11,14 +11,12 @@ namespace Reichsgilde.Core.Mehrspieler;
 /// Aufgezeichnet wird mit <see cref="Befehlsbote.AufzeichnungBeginnen"/> und <see cref="Befehlsbote.AufzeichnungBeenden"/>.
 /// </summary>
 /// <param name="Anfangszustand">Der Spielstand beim Beginn der Aufzeichnung (JSON aus <see cref="Speicherung.Speichern"/>).</param>
-/// <param name="Befehle">Alle eingereihten oder empfangenen Befehle in der Reihenfolge, in der sie dazukamen.</param>
+/// <param name="Befehle">Alle eingereihten oder empfangenen Befehle in der Reihenfolge, in der sie dazukamen – auch die sofort ausgeführten
+/// (<see cref="EingereihterBefehl.Sofort"/>), die beim Abspielen in ihrem Tick vor den wartenden kommen.</param>
 /// <param name="Endtick">Bis zu diesem Tick (<see cref="Zeit.Spielzeit.VergangeneMinuten"/>) lief die Partie.</param>
-/// <param name="EndtickAusgefuehrt">Wurden die Befehle des Endticks schon ausgeführt (ein Befehl wirkte nach dem letzten Tick sofort, z. B. in
-/// der Pause)? Sonst warten sie noch auf den Anfang dieses Ticks.</param>
 /// <param name="Luecke">null, wenn das Protokoll vollständig ist – sonst, was außer Befehlen den Zustand geändert hat (z. B. eine angehaltene
 /// Ratssitzung). Ein unvollständiges Protokoll lässt sich nicht abspielen.</param>
-public sealed record Befehlsprotokoll(string Anfangszustand, IReadOnlyList<EingereihterBefehl> Befehle, long Endtick,
-    bool EndtickAusgefuehrt = false, string? Luecke = null)
+public sealed record Befehlsprotokoll(string Anfangszustand, IReadOnlyList<EingereihterBefehl> Befehle, long Endtick, string? Luecke = null)
 {
     public bool IstVollstaendig => Luecke is null;
 
@@ -36,8 +34,9 @@ public sealed record Befehlsprotokoll(string Anfangszustand, IReadOnlyList<Einge
             simulation.Bote.Empfangen(eintrag);
         while (simulation.Zeit.VergangeneMinuten < Endtick && !simulation.IstBeendet)
             simulation.Tick();
-        // Was nach dem letzten Tick sofort wirkte (z. B. in der Pause), steht mit dem Ziel-Tick Endtick in der Schlange
-        if (EndtickAusgefuehrt) simulation.Bote.FaelligeAusfuehren(simulation.Zeit.VergangeneMinuten);
+        // Was nach dem letzten Tick sofort wirkte (z. B. in der Pause oder nach dem Spielende), steht noch mit seinem Ziel-Tick in der Schlange;
+        // wartende Befehle dieses Ticks warten auch hier weiter
+        simulation.Bote.FaelligeAusfuehren(simulation.Zeit.VergangeneMinuten, nurSofortige: true);
         return simulation;
     }
 

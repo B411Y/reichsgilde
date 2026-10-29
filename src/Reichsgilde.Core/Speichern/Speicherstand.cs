@@ -433,6 +433,13 @@ public sealed record DiebesauftragStand
     public string? Betrieb { get; init; }
     public int? Person { get; init; }
     public double Betrag { get; init; }
+
+    /// <summary>
+    /// Hatte der Auftrag in dieser Nacht schon Erfolg (Gaunerei je Nachtstunde)? Sonst fiele ein misslungener späterer Versuch nach dem Laden
+    /// anders auf als ohne Speichern. Fehlt in alten Spielständen (false – wie dort beim Laden).
+    /// </summary>
+    [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingDefault)]
+    public bool Erfolgreich { get; init; }
 }
 
 public sealed record DiebesbriefStand
@@ -489,6 +496,13 @@ public sealed record AuftragStand
     public int Ziel { get; init; }
     public Gauner.Gaunerstueck Art { get; init; }
     public string? Betrieb { get; init; }
+
+    /// <summary>
+    /// Hatte der Auftrag in dieser Nacht schon Erfolg (Gaunerei je Nachtstunde)? Sonst fiele ein misslungener späterer Versuch nach dem Laden
+    /// anders auf als ohne Speichern. Fehlt in alten Spielständen (false – wie dort beim Laden).
+    /// </summary>
+    [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingDefault)]
+    public bool Erfolgreich { get; init; }
 }
 
 public sealed record HinterhaltStand

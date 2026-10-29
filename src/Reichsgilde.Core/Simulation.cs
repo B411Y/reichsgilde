@@ -135,21 +135,29 @@ public sealed class Simulation
         var altePhase = Zeit.Tagesphase;
 
         // Zuerst wirken die Befehle für diese Minute (in fester Reihenfolge), dann wird gearbeitet, dann rückt die Uhr weiter.
-        Bote.FaelligeAusfuehren(Zeit.VergangeneMinuten);
-        Wirtschaft?.Tick(Zeit);
-        // Später hier: Bürger-KI, Karren, Ereignisse ...
-
-        Zeit.Weiter();
-
-        if (Zeit.Jahr != altesJahr && !Jahresabrechnung(altesJahr))
+        // Bis zum Ende des Ticks (samt seinen Ereignissen) wirkt kein neuer Befehl sofort – er wartet auf den nächsten Tick.
+        try
         {
-            _nachDerSitzung = (altesJahr, altePhase); // die Partie hält vor der Ratssitzung an
-            Bote.LueckeMelden($"Ratssitzung {altesJahr} angehalten – ihre Schritte sind noch keine Befehle.");
-            return;
-        }
+            Bote.TickBeginnt(Zeit.VergangeneMinuten);
+            Wirtschaft?.Tick(Zeit);
+            // Später hier: Bürger-KI, Karren, Ereignisse ...
 
-        if (!IstBeendet && Zeit.Tagesphase != altePhase)
-            PhaseBegonnen?.Invoke(Zeit.Tagesphase);
+            Zeit.Weiter();
+
+            if (Zeit.Jahr != altesJahr && !Jahresabrechnung(altesJahr))
+            {
+                _nachDerSitzung = (altesJahr, altePhase); // die Partie hält vor der Ratssitzung an
+                Bote.LueckeMelden($"Ratssitzung {altesJahr} angehalten – ihre Schritte sind noch keine Befehle.");
+                return;
+            }
+
+            if (!IstBeendet && Zeit.Tagesphase != altePhase)
+                PhaseBegonnen?.Invoke(Zeit.Tagesphase);
+        }
+        finally
+        {
+            Bote.TickEndet();
+        }
     }
 
     /// <returns>false, wenn die Partie vor der Ratssitzung anhält – den Rest erledigt <see cref="RatssitzungWeiter"/>.</returns>
@@ -168,7 +176,7 @@ public sealed class Simulation
         var vermoegen = (long)Math.Floor(Wirtschaft?.HoechstesVermoegen ?? 0);
         var stand = new Spielstand(Zeit.Jahr, LebendeDynastien, vermoegen);
         if (!IstBeendet && Spielende.IstErreicht(Einstellungen, stand))
-            Beenden(Einstellungen.SiegbedingungText);
+            Abschliessen(Einstellungen.SiegbedingungText); // die Siegbedingung: das rechnet jede Partie selbst nach, keine Lücke im Protokoll
     }
 
     /// <summary>
@@ -253,12 +261,24 @@ public sealed class Simulation
         Endgrund = endgrund;
     }
 
-    /// <summary>Beendet die Partie sofort, z. B. wenn der Spieler bankrott ist. Löst <see cref="PartieBeendet"/> einmal aus.</summary>
+    /// <summary>
+    /// Beendet die Partie sofort, z. B. wenn der Spieler bankrott ist. Löst <see cref="PartieBeendet"/> einmal aus. Wartende Befehle wirken
+    /// nicht mehr (ihre Rückrufe bekommen eine Ablehnung). Weil das von außen kommt und kein Befehl ist, gilt ein laufendes Befehlsprotokoll
+    /// danach als unvollständig.
+    /// </summary>
     public void Beenden(string grund)
+    {
+        if (IstBeendet) return;
+        Bote.LueckeMelden($"Partie von außen beendet: {grund}");
+        Abschliessen(grund);
+    }
+
+    private void Abschliessen(string grund)
     {
         if (IstBeendet) return;
         IstBeendet = true;
         Endgrund = grund;
-        PartieBeendet?.Invoke();
+        try { PartieBeendet?.Invoke(); }
+        finally { Bote.Verwerfen("Die Partie ist vorbei – der Befehl wirkte nicht mehr."); }
     }
 }
