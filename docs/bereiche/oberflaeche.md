@@ -145,3 +145,14 @@ So wird eingetragen (damit sich die Chats nie an derselben Stelle treffen):
 | Taste | **G** (W ist die Kamera): öffnet das Baumenü im Wege-Modus bzw. schaltet zwischen Gebäude und Wege um. Teamentscheidung, weil W belegt ist. | 29.10.2026 |
 | Tooltip | Am Zeiger: Wegname, Belag (mit „wird gebaut“), nächste Stufe (Kies, dann Pflaster) mit Länge, Kosten und Bauzeit des 50-m-Abschnitts um die Maus (`Wegebau.Vorschau`, derselbe Abschnitt, den die Wegtafel vorwählt, `WegAnzeige.Vorwahl`), Sperrgrund, „Klick: Wegtafel“. Kein Kern-Eingriff nötig. Eigenes kleines Feld statt des Tooltip-Systems (das hängt an Steuerelementen, hier ist es die 3D-Welt). | 29.10.2026 |
 | Wegtafel | Öffnet bei Klick links neben der Bautafel (`WegAnzeige.Oeffnen(…, versatz)`), Ausbau, Kosten und Bauzeit wie bisher. Esc schließt zuerst die Wegtafel, dann das Baumenü. | 29.10.2026 |
+
+### Handbuch-Stil Steuerung (PR #245)
+
+| Thema | Entscheidung | Datum |
+|---|---|---|
+| Pilot | Nur das Kapitel „Steuerung“ im Spielbuch wird zum Handbuch-Kapitel (Entscheidung des Nutzers); gefällt der Stil, folgen die anderen zwölf Kapitel. | 29.10.2026 |
+| Stil | Kurze Abschnitte wie in Handbüchern klassischer Aufbauspiele (Erste Schritte, Bildschirm, Kamera, Gebäude, Bauen mit Wege-Modus, Fenster und Tooltips, Tastenübersicht, Einstellungen), Du-Form, Hinweisblöcke `> [!TIP]` und `> [!NOTE]`. PR-Nummern und Entwicklerhinweise stehen nicht im Spielerteil; der Godot-Editor-Hinweis und das Testtempo (16×/32×) stehen in `docs/ENTWICKLUNG.md`, das Testtempo außerdem als kleine Fußnote im Kapitel. | 29.10.2026 |
+| Bilder | Echte Bildschirmfotos aus dem Spiel (Vulkan, Tag, klares Wetter, Miniatur-Unschärfe aus) mit nummerierten Markierungen (Gold auf Dunkelbraun, Schrift des Spiels) und einer Legende als Tabelle darunter; `.webp`, 1280 px breit, unter `docs/bilder/handbuch/`. Vier Bilder: Bildschirm, Bauen, Wege-Modus, Tooltip (Ausschnitt). | 29.10.2026 |
+| Werkzeug | `tools/handbuch/`: `aufnehmen.sh` (Rohbilder mit dem Klicktest), `beschriften.sh` mit `beschriften.gd` (Godot unter Xvfb setzt Rahmen und Nummern nach `bilder.json`, schreibt `.webp`). Die Bilder lassen sich nach einer Änderung der Oberfläche neu erzeugen. | 29.10.2026 |
+| Protokoll | Bilder unter `docs/` sind nicht protokollpflichtig (Prüfskript prüft nur `game/assets/` und die KI-Quellen unter `tools/`). Es sind Bildschirmfotos des Spiels, nicht KI-erzeugt. | 29.10.2026 |
+| Berichtigungen | Gegen den Code geprüft: Die Einstellungen haben **sechs** Reiter (nicht fünf: dazu „Spiel“); ein Klick auf das Porträt in der Kopfzeile öffnet das Wohnhaus, nicht das Charakterfenster; neu aufgenommen: Wege-Modus (G), X (alle Fenster zu), Rechtsklick im Gebäude, Rahmenwahl und Randschwenken drinnen, Rechtsziehen im Baumodus, Charakterfenster und Aktivitäten, Esc-Reihenfolge. | 29.10.2026 |
