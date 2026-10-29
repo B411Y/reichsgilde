@@ -933,6 +933,7 @@ public partial class Stadtansicht : Node3D
         DunstFarbeNachfuehren(); // der Dunst am Kartenrand in der Farbe des Himmels (Stadtansicht.Rand.cs)
         WasserBild(delta);       // Himmelsfarbe im Wasser, Fähren, Tretrad der Häfen (Stadtansicht.Wasser.Uebergaenge.cs)
         BelagBild();             // geänderte Wege neu zeichnen (Stadtansicht.Wegbelag.cs)
+        WegeModusBild();         // Wege-Modus: Leuchten nachziehen, Weg unter der Maus (Stadtansicht.Wegemodus.cs)
         WegeschichtBild();       // geänderte Kacheln der Wegeschicht neu rechnen (Stadtansicht.Wegeschicht.cs)
         BueschelBild();          // Grasbüschel an den Grenzen der Wiese nachziehen (Stadtansicht.Bueschel.cs)
         GrasBild();              // Grasteppich: geänderte Kacheln, Felder im Bild (Stadtansicht.Gras.cs)
@@ -1077,14 +1078,15 @@ public partial class Stadtansicht : Node3D
 
     private void Auswaehlen(Vector2 mausposition, bool doppelklick)
     {
-        if (VogelAufscheuchen(mausposition)) return; // Klick auf einen Vogel (Stadtansicht.Voegel.cs)
-        if (KennungBei(mausposition) is not { } kennung)
+        if (_wegeModus)
         {
-            // freier Boden: vielleicht ein Weg (Stadtansicht.Wegbelag.cs)
-            if (_innen is null && GetViewport().GuiGetHoveredControl() is null && BodenPunktBei(mausposition) is { } boden && WegBeiPunkt(boden) is var (weg, stelle))
-                WegAngeklickt?.Invoke(weg, stelle);
+            // Wege-Modus des Baumenüs: nur Wege sind anklickbar, Gebäude und Boden nicht (Stadtansicht.Wegemodus.cs)
+            if (_innen is null && GetViewport().GuiGetHoveredControl() is null && BodenPunktBei(mausposition) is { } wegBoden && WegBeiPunkt(wegBoden) is var (wegNr, wegStelle))
+                WegAngeklickt?.Invoke(wegNr, wegStelle);
             return;
         }
+        if (VogelAufscheuchen(mausposition)) return; // Klick auf einen Vogel (Stadtansicht.Voegel.cs)
+        if (KennungBei(mausposition) is not { } kennung) return;
         GebaeudeAngeklickt?.Invoke(kennung);
         if (doppelklick && AnsichtZu(kennung) is { } ansicht)
             Betreten(ansicht);
