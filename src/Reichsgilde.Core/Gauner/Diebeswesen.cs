@@ -179,7 +179,7 @@ public sealed record Diebesstand(Arbeiter Arbeiter, Diebesort Ort, Diebestaetigk
 /// <summary>
 /// Die Diebe der Stadt – ein Beruf ohne Ware:
 ///   • Tagsüber (Arbeitszeit) ziehen die Leute im Schmugglerloch als Taschendiebe über den Markt. Jede volle Stunde
-///     bringen sie Gulden (steuerfrei); mit etwas Pech wird einer erwischt: Er landet im Turm (der Platz wird frei),
+///     bringen sie Gulden (steuerfrei); mit etwas Pech (öfter, wenn die Streife der Wache unterwegs ist) wird einer erwischt: Er landet im Turm (der Platz wird frei),
 ///     und ein zufälliges anderes Haus erfährt, wem er diente (Spur mit einem Beweis für dieses Haus).
 ///   • Nachts (20 Uhr, nach den Banden aus dem Hinterzimmer) führen sie eigene Aufträge aus – je Stufe mehr:
 ///     Einbruch (besser als eine Bande, Beute ins eigene Lager), Auskundschaften (Beweise), ab Stufe 3 Entführung.
@@ -235,9 +235,12 @@ public sealed class Diebeswesen
 
     private static double Faktor(List<double> jeStufe, int stufe) => jeStufe.Count == 0 ? 1 : jeStufe[Math.Clamp(stufe - 1, 0, jeStufe.Count - 1)];
 
-    /// <summary>Chance je Diebesstunde, erwischt zu werden – „Bei Nacht und Nebel" des Oberhaupts hilft.</summary>
+    /// <summary>
+    /// Chance je Diebesstunde, erwischt zu werden – „Bei Nacht und Nebel" des Oberhaupts hilft, die Streife der Wache am Markt
+    /// macht sie größer (<see cref="Ordnung.Wachwesen.Taschendiebfaktor"/>).
+    /// </summary>
     public double Fangchance(Konto k, int stufe) =>
-        Daten.Taschendiebstahl.FangJeStunde * Faktor(Daten.Taschendiebstahl.FangJeStufe, stufe) * _w.Familien.ZeugenFaktor(k);
+        Daten.Taschendiebstahl.FangJeStunde * Faktor(Daten.Taschendiebstahl.FangJeStufe, stufe) * _w.Familien.ZeugenFaktor(k) * _w.Wache.Taschendiebfaktor;
 
     /// <summary>Fangchance je Diebesstunde in diesem Betrieb – mit der Verkleidungstruhe (Einrichtung) seltener.</summary>
     public double Fangchance(Betrieb b) => Fangchance(b.Konto, b.Stufe) * b.FangFaktor;
