@@ -98,6 +98,8 @@ Die Dateien unter `game/` liegen nach Art getrennt (PR #164), wie in Spielen üb
 | `assets/audio/` | `musik/`, `geraeusche/` (noch leer) |
 | `scenes/`, `scripts/` | Szenen und C#-Skripte |
 
+**Herkunft der Assets:** Für jede Datei unter `assets/` steht in `docs/assets/protokoll.csv`, wie sie entstand (eigenes Skript, Fremdpaket, KI mit Werkzeug, Modell und Prompt) und unter welcher Lizenz sie steht – eine Zeile je Dateigruppe mit Glob-Muster. `tools/assets/protokoll_pruefen.py` prüft in der CI (Job „Build & Tests (ubuntu-latest)“), dass jede Datei erfasst ist und die Anzahlen stimmen, und erzeugt daraus `docs/assets/steam-ki-inhalte.md`. Warum: Lizenzfragen und die KI-Angabe bei Steam brauchen belegte Herkunft, nicht Erinnerung (Entscheidung des Nutzers, 29.10.2026; Aufbau in `docs/assets/README.md`).
+
 **Modelle mit Unterordner:** Der Gebäudekatalog und der Code nennen ein Modell mit seinem Unterordner, ohne Endung (`"modell": "gebaeude/schmied"`, `Modell("tiere/vogel_taube")`); `Stadtansicht.Modell` lädt `res://assets/modelle/<datei>.glb`, gesucht wird nicht. Die Blender-Skripte legen jede Datei über `bausteine.modellpfad(name)` in ihren Unterordner (`unterordner`: nach Namen – `…_innen`, `natur_…`, `figur_…`, `karren_…`, `vogel_…` – und der Liste `UMLAND_MODELLE`, sonst `gebaeude/`); ein neues Umlandmodell gehört in diese Liste. Der Kern bekommt nur Texte, nie Pfade; die Tests finden die Dateien über `Datenpfad.Wirtschaft()` und `Datenpfad.Karte(kennung)`, `Stadtkarte.AusDatei(pfad)` den Katalog unter `daten/` neben `karten/`.
 
 ## Fremd-Erweiterungen (GDExtension) selbst bauen
