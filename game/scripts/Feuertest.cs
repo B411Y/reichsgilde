@@ -39,6 +39,11 @@ public partial class Feuertest : Node
     private int _paar = 1;
     private bool _tag, _licht = true, _beschriftung = true;
     private int _fackeln, _fackelLichter = int.MaxValue;
+    private sealed record Zustand(string Name, Zeigen Zeigen, int Lichter);
+    private readonly List<Zustand> _zyklus = new();
+    private int _zyklusNr;
+    private double _zyklusSekunden, _zyklusZeit;
+    private string _zustand = "-";
     private float _gierung, _neigung = 10f, _nahFaktor = 1f, _zoomFaktor = 1f;
 
     private readonly List<Feuer> _feuer = new();
@@ -52,7 +57,7 @@ public partial class Feuertest : Node
     private Node3D _kameraDrehung = null!, _kameraNeigung = null!;
     private Label _anzeige = null!, _hilfe = null!;
 
-    private double _messZeit;
+    private double _messZeit, _messCpu, _messGpu;
     private int _messBilder;
 
     // Gemeinsame Stoffe
@@ -71,6 +76,8 @@ public partial class Feuertest : Node
         if (int.TryParse(Option("feuerlichter", ""), out var m)) _fackelLichter = Math.Max(0, m);
         _zeigen = Option("feuerart", "beide").ToUpperInvariant() switch { "A" => Zeigen.NurA, "B" => Zeigen.NurB, "KEINS" => Zeigen.Keins, _ => Zeigen.Beide };
         _sicht = Option("feuersicht", _fackeln > 0 ? "stadt" : "nah").ToLowerInvariant() switch { "stadt" => Sicht.Stadt, "fern" => Sicht.Fern, _ => Sicht.Nah };
+        double.TryParse(Option("feuerzyklus", "0"), System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out _zyklusSekunden);
+        if (_fackeln > 0 && _zyklusSekunden <= 0 && _zeigen == Zeigen.Beide) _zeigen = Zeigen.NurA;   // ohne Zyklus gibt es im Raster nur eine Technik
         if (int.TryParse(Option("feuerpaar", "2"), out var p)) _paar = Math.Clamp(p, 1, Paare.Length);
         else _paar = 2;
         _paar--;
@@ -83,9 +90,45 @@ public partial class Feuertest : Node
         OberflaecheBauen();
         TagNachtSetzen();
         SichtSetzen();
+        if (_zyklusSekunden > 0) ZyklusBauen();
         ZeigenSetzen();
         GD.Print($"[feuer] start sicht={_sicht} art={_zeigen} tag={_tag} licht={_licht} paar={Paare[_paar].Name} fackeln={_fackeln} lichter={(_fackelLichter == int.MaxValue ? "alle" : _fackelLichter)} " +
                  $"renderer={RenderingServer.GetCurrentRenderingMethod()} fenster={GetViewport().GetVisibleRect().Size}");
+    }
+
+    /// <summary>
+    /// Messzyklus (<c>--feuerzyklus=&lt;Sekunden&gt;</c>): Die Szene wechselt von selbst durch die Zustände (ohne Feuer, A, B, im Raster auch mit 0, 12 und
+    /// allen Lichtern) und schreibt den Namen des Zustands in jede Protokollzeile. Weil alle Zustände im selben Lauf folgen, trifft die Last des Rechners
+    /// sie nahezu gleich; getrennte Läufe schwanken auf einem geteilten Rechner stärker als der Unterschied selbst.
+    /// </summary>
+    private void ZyklusBauen()
+    {
+        _zyklus.Add(new Zustand("ohne_Feuer", Zeigen.Keins, 0));
+        if (_fackeln > 0)
+        {
+            foreach (var (technik, zeigen) in new[] { ("A", Zeigen.NurA), ("B", Zeigen.NurB) })
+                foreach (var lichter in new[] { 0, 12, _fackeln })
+                    _zyklus.Add(new Zustand($"{technik}_{lichter}_Lichter", zeigen, lichter));
+        }
+        else
+        {
+            _zyklus.Add(new Zustand("A", Zeigen.NurA, int.MaxValue));
+            _zyklus.Add(new Zustand("B", Zeigen.NurB, int.MaxValue));
+            _zyklus.Add(new Zustand("A_und_B", Zeigen.Beide, int.MaxValue));
+        }
+        ZyklusSchritt(0);
+    }
+
+    private void ZyklusSchritt(int nr)
+    {
+        _zyklusNr = nr % _zyklus.Count;
+        var z = _zyklus[_zyklusNr];
+        _zustand = z.Name;
+        _zeigen = z.Zeigen;
+        foreach (var f in _feuer)
+            f.LichtSetzen(_licht && (!f.HasMeta("fackel") || (int)f.GetMeta("fackel") < z.Lichter));
+        ZeigenSetzen();
+        _zyklusZeit = 0;
     }
 
     private string Option(string name, string vorgabe) => _optionen.TryGetValue(name, out var w) ? w : vorgabe;
@@ -328,8 +371,9 @@ public partial class Feuertest : Node
 
     private void FackelRasterBauen()
     {
-        // Messung: n Fackeln im Raster (10 je Reihe, 3,5 m Abstand), mit Pfahl und Schale
-        var technik = _zeigen == Zeigen.NurB ? FeuerTechnik.Partikel : FeuerTechnik.Shader;
+        // Messung: n Fackeln im Raster (10 je Reihe, 3,5 m Abstand), mit Pfahl und Schale; im Zyklus stehen A und B übereinander, je eine zu sehen
+        var techniken = _zyklusSekunden > 0 ? new[] { FeuerTechnik.Shader, FeuerTechnik.Partikel }
+            : new[] { _zeigen == Zeigen.NurB ? FeuerTechnik.Partikel : FeuerTechnik.Shader };
         var spalten = 10;
         var reihen = (_fackeln + spalten - 1) / spalten;
         var wurzel = new Node3D { Name = "Fackeln" };
@@ -343,7 +387,9 @@ public partial class Feuertest : Node
             wurzel.AddChild(stelle);
             Zylinder(stelle, 0.03f, 0.035f, 1.55f, Vector3.Zero, _holz);
             Zylinder(stelle, 0.085f, 0.04f, 0.17f, new Vector3(0, 1.55f, 0), _eisen);
-            if (_zeigen != Zeigen.Keins) FeuerSetzen(stelle, FeuerVorgabe.Fackel, technik, new Vector3(0, 1.72f, 0), i < _fackelLichter);
+            if (_zeigen == Zeigen.Keins && _zyklusSekunden <= 0) continue;
+            foreach (var technik in techniken)
+                FeuerSetzen(stelle, FeuerVorgabe.Fackel, technik, new Vector3(0, 1.72f, 0), i < _fackelLichter).SetMeta("fackel", i);
         }
     }
 
@@ -405,7 +451,7 @@ public partial class Feuertest : Node
         foreach (var f in _feuer)
         {
             var istA = f.Technik == FeuerTechnik.Shader;
-            f.Visible = _fackeln > 0 ? _zeigen != Zeigen.Keins : (istA ? a : b);
+            f.Visible = istA ? a : b;
             f.ProcessMode = f.Visible ? ProcessModeEnum.Inherit : ProcessModeEnum.Disabled;
         }
         BeschriftungSetzen();
@@ -508,18 +554,31 @@ public partial class Feuertest : Node
 
     public override void _Process(double delta)
     {
+        if (_zyklus.Count > 0)
+        {
+            _zyklusZeit += delta;
+            if (_zyklusZeit >= _zyklusSekunden) ZyklusSchritt(_zyklusNr + 1);
+        }
         // Messung: jede Sekunde die mittlere Bildrate und Bildzeit ins Protokoll
+        // Die Zeit, die der Zeichner für das Bild braucht (Hauptprozessor und Grafikkarte), unabhängig vom Anzeigen im Fenster: Unter Xvfb ist das Anzeigen
+        // bei viel Last der Engpass und verfälscht die Bildrate. Die Messung läuft ab dem zweiten Bild (ViewportSetMeasureRenderTime).
+        var kasten = GetViewport().GetViewportRid();
+        if (_messBilder == 0 && _messZeit == 0) RenderingServer.ViewportSetMeasureRenderTime(kasten, true);
+        _messCpu += RenderingServer.ViewportGetMeasuredRenderTimeCpu(kasten);
+        _messGpu += RenderingServer.ViewportGetMeasuredRenderTimeGpu(kasten);
         _messZeit += delta;
         _messBilder++;
         if (_messZeit < 1.0) return;
         var fps = _messBilder / _messZeit;
         var ms = _messZeit / _messBilder * 1000.0;
         var r = RenderingServer.GetRenderingInfo;
-        GD.Print($"[feuer] fps={fps:F1} ms={ms:F2} sicht={_sicht} art={_zeigen} tag={_tag} licht={_licht} paar={(_fackeln > 0 ? "-" : Paare[_paar].Name)} " +
+        var cpu = _messCpu / _messBilder;
+        var gpu = _messGpu / _messBilder;
+        GD.Print($"[feuer] fps={fps:F1} ms={ms:F2} gpu={gpu:F2} cpu={cpu:F2} zustand={_zustand} sicht={_sicht} art={_zeigen} tag={_tag} licht={_licht} paar={(_fackeln > 0 ? "-" : Paare[_paar].Name)} " +
                  $"feuer={_feuer.Count(f => f.Visible)} aufrufe={r(RenderingServer.RenderingInfo.TotalDrawCallsInFrame)} objekte={r(RenderingServer.RenderingInfo.TotalObjectsInFrame)} " +
                  $"dreiecke={r(RenderingServer.RenderingInfo.TotalPrimitivesInFrame)}");
         AnzeigeAktualisieren(fps);
-        _messZeit = 0;
+        _messZeit = _messCpu = _messGpu = 0;
         _messBilder = 0;
     }
 }

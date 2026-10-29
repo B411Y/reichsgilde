@@ -493,11 +493,11 @@ public partial class Feuer : Node3D
             var steigen = 0.9f;
             var leben = Mathf.Clamp(art.RauchHoehe / steigen, 2.2f, 14f);
             var fuss = art.Form switch { FeuerForm.Flamme => art.Hoehe * 0.6f, FeuerForm.Glut => 0.2f, _ => 0f };
-            var breit = art.RauchBreite * 1.4f + 2f * wind.Length() * leben * 0.35f;
+            var breit = art.RauchBreite * 1.4f + wind.Length() * leben * leben * 0.18f;
             var rauch = new GpuParticles3D
             {
                 Name = "Rauch",
-                Amount = Math.Max(5, Mathf.RoundToInt(art.RauchHoehe * 2.6f * art.RauchMenge)),
+                Amount = Math.Clamp(Mathf.RoundToInt(art.RauchHoehe * 4.5f * art.RauchMenge), 5, 60),
                 Lifetime = leben,
                 Preprocess = leben,
                 Randomness = 1f,
@@ -515,20 +515,18 @@ public partial class Feuer : Node3D
                     Spread = 12f,
                     InitialVelocityMin = steigen * 0.75f,
                     InitialVelocityMax = steigen * 1.25f,
-                    Gravity = wind * 0.35f,
-                    DampingMin = 0.08f,
-                    DampingMax = 0.18f,
-                    ScaleMin = art.RauchBreite * 0.22f,
-                    ScaleMax = art.RauchBreite * 0.34f,
-                    ScaleCurve = Kurve(4f, (0f, 0.35f), (0.35f, 1.6f), (1f, 3.0f)),
+                    Gravity = wind * 0.18f,
+                    ScaleMin = art.RauchBreite * 0.34f,
+                    ScaleMax = art.RauchBreite * 0.5f,
+                    ScaleCurve = Kurve(4f, (0f, 0.45f), (0.35f, 1.1f), (1f, 2.2f)),
                     AngleMin = -180f,
                     AngleMax = 180f,
                     AngularVelocityMin = -12f,
                     AngularVelocityMax = 12f,
                     ColorRamp = Verlauf(
                         (0f, new Color(0.8f, 0.8f, 0.8f, 0f)),
-                        (0.10f, RauchFarbe(art, 0.62f)),
-                        (0.7f, RauchFarbe(art, 0.62f * 0.55f)),
+                        (0.10f, RauchFarbe(art, 0.85f)),
+                        (0.7f, RauchFarbe(art, 0.5f)),
                         (1f, RauchFarbe(art, 0f))),
                     AnimSpeedMin = 0.6f,
                     AnimSpeedMax = 1f,

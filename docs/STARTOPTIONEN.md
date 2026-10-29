@@ -105,6 +105,7 @@ Die Testszene `scenes/Feuertest.tscn` (`Feuertest.cs`) zeigt sieben Feuerarten l
 - `--feuerart=A|B|keins|beide` (welche Technik zu sehen ist; `keins` zeigt nur die Aufbauten ohne Feuer, für den Vergleich der Bildrate)
 - `--feuerlicht=0|1` (die Lichter der Feuer aus oder an)
 - `--feuerfackeln=<n>` (Messung: statt der Paare `n` Fackeln im Raster, 10 je Reihe, mit Technik A, mit `--feuerart=B` mit Technik B; Standardsicht `stadt`) und `--feuerlichter=<m>` (nur die ersten `m` Fackeln leuchten mit einem echten Licht)
+- `--feuerzyklus=<Sekunden>` (Messzyklus: die Szene wechselt von selbst durch die Zustände ohne Feuer, A, B und A+B, im Fackelraster durch ohne Feuer und A und B je mit 0, 12 und allen Lichtern, jeden Zustand so viele Sekunden lang; der Zustand steht in jeder Protokollzeile `[feuer] … zustand=…`; `tools/feuer/messen.sh` fasst ihn zusammen)
 - Tasten in der Testszene: `1`–`7` oder Pfeile links/rechts (Paar), `V` (Sicht), `N` (Nacht/Tag), `T` (A, B, beide, keins), `L` (Lichter), `H` (Beschriftung), rechte Maustaste ziehen (drehen), Mausrad (nähern), `Esc` (Ende)
 
 ## Kartenwerkstatt

@@ -6,8 +6,11 @@
 #          tools/feuer/messen.sh <name> <ausgabeordner> -- <godot-optionen>
 # Beispiel: DISPLAY_NR=77 tools/feuer/messen.sh stadt-A /tmp/m -- --feuertest=1 --feuersicht=stadt --feuerart=A --bildrate=0 --vsync=Aus
 #
-# Die Ausgabe ist eine Zeile: Name, mittlere Bildrate, kleinste, größte, mittlere Bildzeit (ms), Zeichenaufrufe, Last (uptime, 1 Minute) vor
-# und nach der Messung. Die Rechnerlast beeinflusst die Zahlen stark: Vergleiche nur Läufe, die kurz nacheinander und bei ähnlicher Last liefen.
+# Die Ausgabe: eine Kopfzeile (Name und Last, loadavg 1 Minute, vor und nach der Messung), dann je Zustand eine Zeile: mittlere Bildrate (kleinste,
+# größte), die Zeit des Zeichners auf der Grafikkarte (ms je Bild ohne das Anzeigen im Fenster: Mittel, Median und unteres Zehntel – andere Prozesse
+# auf derselben Grafikkarte machen die Zeit nur länger, das untere Zehntel kommt der ungestörten Zeit am nächsten), im Hauptprozessor und die
+# Zeichenaufrufe. Ohne --feuerzyklus gibt es einen Zustand „-“. Mit --feuerzyklus=<s> wechselt die Szene selbst durch ohne Feuer, A, B (im Fackelraster
+# mit 0, 12 und allen Lichtern): SEKUNDEN = Zahl der Zustände · s · Durchläufe. Die Rechnerlast beeinflusst die Zahlen stark; im Zyklus treffen sie alle Zustände gleich.
 # Die ersten VORLAUF Sekunden der Szene zählen nicht (Shader und Partikel wärmen sich auf).
 NAME=$1; OUT=$2; shift 3
 X=~/werkzeuge/xvfb
@@ -44,10 +47,22 @@ LAST_NACH=$(cut -d' ' -f1 /proc/loadavg)
 kill $GPID 2>/dev/null; sleep 1; kill $XPID 2>/dev/null
 grep "feuer\] fps=" "$LOG" | tail -n +$(( ${VORLAUF:-4} + 1 )) | head -n ${SEKUNDEN:-20} | python3 -c "
 import sys, re
-f, m, a = [], [], []
+# Zeilen nach Zustand (--feuerzyklus) zusammenfassen; die ersten ${UEBERSPRINGEN:-2} Zeilen nach jedem Wechsel zählen nicht
+zustaende = {}; reihenfolge = []; vorher = None; nr = 0
 for z in sys.stdin:
-    g = re.search(r'fps=([0-9.]+) ms=([0-9.]+).*aufrufe=([0-9]+)', z)
-    if g: f.append(float(g.group(1))); m.append(float(g.group(2))); a.append(int(g.group(3)))
-if f: print('$NAME  fps %.1f (min %.1f, max %.1f)  ms %.1f  aufrufe %d  last %s -> %s  (%d Messwerte)' % (sum(f)/len(f), min(f), max(f), sum(m)/len(m), sum(a)/len(a), '$LAST_VOR', '$LAST_NACH', len(f)))
-else: print('$NAME  keine Messwerte')
+    g = re.search(r'fps=([0-9.]+) ms=([0-9.]+) gpu=([0-9.]+) cpu=([0-9.]+) zustand=(\S+).*aufrufe=([0-9]+)', z)
+    if not g: continue
+    name = g.group(5)
+    nr = nr + 1 if name == vorher else 0
+    vorher = name
+    if nr < ${UEBERSPRINGEN:-2} and name != '-': continue
+    if name not in zustaende: zustaende[name] = []; reihenfolge.append(name)
+    zustaende[name].append((float(g.group(1)), float(g.group(2)), float(g.group(3)), float(g.group(4)), int(g.group(6))))
+print('## $NAME   Last $LAST_VOR -> $LAST_NACH')
+if not zustaende: print('keine Messwerte')
+for name in reihenfolge:
+    w = zustaende[name]; n = len(w)
+    mittel = lambda i: sum(x[i] for x in w) / n
+    gpu = sorted(x[2] for x in w)
+    print('%-22s fps %5.1f (min %5.1f, max %5.1f)  gpu: Mittel %6.2f, Median %6.2f, unteres Zehntel %6.2f ms  cpu %5.2f ms  aufrufe %4d  (%d Messwerte)' % (name, mittel(0), min(x[0] for x in w), max(x[0] for x in w), mittel(2), gpu[n // 2], gpu[n // 10], mittel(3), mittel(4), n))
 "
