@@ -130,12 +130,13 @@ public partial class WegAnzeige : PanelContainer
 
     private void Befehlen(Befehl befehl)
     {
-        if (_simulation?.Wirtschaft is not { } w || _spieler is null) return;
-        var ergebnis = w.Ausfuehren(_spieler, befehl);
-        _meldung = ergebnis.Erfolg ? ergebnis.Meldung : "✗ " + ergebnis.Meldung;
-        _meldungErfolg = ergebnis.Erfolg;
-        Gemeldet?.Invoke(_meldung);
-        Aufbauen();
+        UiHilfe.Befehlen(_simulation, _spieler, befehl, this, ergebnis =>
+        {
+            _meldung = UiHilfe.MeldungText(ergebnis);
+            _meldungErfolg = ergebnis.Erfolg;
+            Gemeldet?.Invoke(_meldung);
+            Aufbauen();
+        });
     }
 
     // ═════════════════════════════════════════════════════════════════════════

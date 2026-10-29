@@ -366,10 +366,12 @@ public partial class Hauptszene : Node
         };
         _aktionKnopf.Pressed += () =>
         {
-            if (_simulation.Wirtschaft is not { } wirtschaft || _spieler is null || _aktion is null) return;
-            var ergebnis = wirtschaft.Ausfuehren(_spieler, _aktion());
-            if (!ergebnis.Erfolg) Protokollieren("✗ " + ergebnis.Meldung); // Erfolge meldet die Stadt selbst
-            AuswahlAnzeigen();
+            if (_spieler is null || _aktion is null) return;
+            UiHilfe.Befehlen(_simulation, _spieler, _aktion(), this, ergebnis =>
+            {
+                if (!ergebnis.Erfolg) Protokollieren("✗ " + ergebnis.Meldung); // Erfolge meldet die Stadt selbst
+                AuswahlAnzeigen();
+            });
         };
 
         _stadt.GebaeudeAngeklickt += kennung =>
@@ -469,8 +471,10 @@ public partial class Hauptszene : Node
         if (optionen.TryGetValue("karren", out var karrenTypen) && _eigeneGiesserei is { } kaeufer && _simulation.Wirtschaft is { } wKarren && _spieler is not null)
             foreach (var typ in karrenTypen.Split(',', StringSplitOptions.RemoveEmptyEntries))
             {
-                var ergebnis = wKarren.Ausfuehren(_spieler, new KarrenKaufen(kaeufer.Name, typ));
-                if (!ergebnis.Erfolg) Protokollieren("--karren=" + typ + ": " + ergebnis.Meldung);
+                _simulation.Bote.Einreihen(_spieler, new KarrenKaufen(kaeufer.Name, typ), ergebnis =>
+                {
+                    if (!ergebnis.Erfolg) Protokollieren("--karren=" + typ + ": " + ergebnis.Meldung);
+                });
             }
         if (optionen.GetValueOrDefault("umland") == "1") UmlandVorbereiten();
         RatStartoptionen(optionen); // --amt, --kasse, --antrag, --rathaus (Hauptszene.Rat.cs); vor den Tafeln, die ein Amt zeigen
@@ -499,14 +503,18 @@ public partial class Hauptszene : Node
         if (optionen.TryGetValue("einstellen", out var einstellen) && _eigeneGiesserei is { } einsteller && _simulation.Wirtschaft is { } wEin && _spieler is not null)
             foreach (var kraft in einstellen.Split(',', StringSplitOptions.RemoveEmptyEntries))
             {
-                var ergebnis = wEin.Ausfuehren(_spieler, new ArbeiterEinstellen(einsteller.Name, kraft));
-                if (!ergebnis.Erfolg) Protokollieren("--einstellen=" + kraft + ": " + ergebnis.Meldung);
+                _simulation.Bote.Einreihen(_spieler, new ArbeiterEinstellen(einsteller.Name, kraft), ergebnis =>
+                {
+                    if (!ergebnis.Erfolg) Protokollieren("--einstellen=" + kraft + ": " + ergebnis.Meldung);
+                });
             }
         if (optionen.TryGetValue("einrichtung", out var einrichtung) && _eigeneGiesserei is { } kaeufer2 && _simulation.Wirtschaft is { } wEinr && _spieler is not null)
             foreach (var kennung in einrichtung.Split(',', StringSplitOptions.RemoveEmptyEntries))
             {
-                var ergebnis = wEinr.Ausfuehren(_spieler, new EinrichtungKaufen(kaeufer2.Name, kennung));
-                if (!ergebnis.Erfolg) Protokollieren("--einrichtung=" + kennung + ": " + ergebnis.Meldung);
+                _simulation.Bote.Einreihen(_spieler, new EinrichtungKaufen(kaeufer2.Name, kennung), ergebnis =>
+                {
+                    if (!ergebnis.Erfolg) Protokollieren("--einrichtung=" + kennung + ": " + ergebnis.Meldung);
+                });
             }
         if (optionen.TryGetValue("bauen", out var bauen) && bauen != "0" && _spieler is not null)
             BauenStarten(bauen, optionen);
@@ -517,7 +525,7 @@ public partial class Hauptszene : Node
             if (optionen.GetValueOrDefault("bauklick") == "2") // gleich kaufen bzw. abreißen lassen, ohne Rückfrage
             {
                 Befehl befehl = leerstand == "abreissen" ? new LeerstandAbreissen(leerKonto.Inhaber) : new LeerstandKaufen(leerKonto.Inhaber);
-                var ergebnis = wLeer.Ausfuehren(_spieler, befehl);
+                var ergebnis = _simulation.Bote.SofortAusfuehren(_spieler, befehl);
                 Protokollieren(ergebnis.Erfolg ? ergebnis.Meldung : "✗ " + ergebnis.Meldung);
                 if (ergebnis.Erfolg && _leerstandZiel is not null) _auswahlKennung = Stadtansicht.BaustellenKennung(_leerstandZiel);
             }
@@ -712,7 +720,7 @@ public partial class Hauptszene : Node
         if (_simulation.Wirtschaft is not { } w || _spieler is null || _eigeneGiesserei is not { } betrieb) return;
         for (var i = 0; i < stufen; i++)
         {
-            var ergebnis = w.Ausfuehren(_spieler, new BetriebAusbauen(betrieb.Name));
+            var ergebnis = _simulation.Bote.SofortAusfuehren(_spieler, new BetriebAusbauen(betrieb.Name));
             if (!ergebnis.Erfolg) { Protokollieren("--ausbauen: " + ergebnis.Meldung); GD.Print("--ausbauen: " + ergebnis.Meldung); return; }
             for (var t = 0; t < 2000 && betrieb.UmbauMinuten > 0 && !_simulation.IstBeendet; t++) _simulation.Tick();
         }
@@ -736,7 +744,7 @@ public partial class Hauptszene : Node
             var frei = w.FreieLiegenschaften
                 .Where(l => w.Daten.Art(l.Art).Ort == Arbeitsort.Umland && w.LiegenschaftErwerbVerboten(_spieler, l.Name) is null)
                 .OrderBy(l => l.Kaufpreis).FirstOrDefault();
-            return frei is not null && w.Ausfuehren(_spieler, new LiegenschaftErwerben(frei.Name)).Erfolg
+            return frei is not null && _simulation.Bote.SofortAusfuehren(_spieler, new LiegenschaftErwerben(frei.Name)).Erfolg
                 ? w.Betriebe.FirstOrDefault(b => b.Konto == _spieler && b.Name == frei.Name) : null;
         }
         var umland = Erwerben();
@@ -750,7 +758,7 @@ public partial class Hauptszene : Node
             Protokollieren("--umland=1: Kein freier Umlandbetrieb zu haben (mehr Vermögen mit --vermoegen=30000).");
             return;
         }
-        w.Ausfuehren(_spieler, new KarrenKaufen(umland.Name, "Ochsenkarren"));
+        _simulation.Bote.SofortAusfuehren(_spieler, new KarrenKaufen(umland.Name, "Ochsenkarren"));
         BetriebAuswaehlen(umland, hinfahren: true);
         _uebersicht.MehrOffen = true;
     }
@@ -762,14 +770,14 @@ public partial class Hauptszene : Node
         {
             var frei = w.FreieLiegenschaften.Where(l => w.LiegenschaftErwerbVerboten(_spieler, l.Name) is null)
                 .OrderBy(l => l.Kaufpreis).FirstOrDefault();
-            return frei is not null && w.Ausfuehren(_spieler, new LiegenschaftErwerben(frei.Name)).Erfolg;
+            return frei is not null && _simulation.Bote.SofortAusfuehren(_spieler, new LiegenschaftErwerben(frei.Name)).Erfolg;
         }
         var gekauft = Kaufen();
-        if (!gekauft) w.Ausfuehren(_spieler, new WohnhausAusbauen()); // der Umbau dauert – aufsteigen erst danach
+        if (!gekauft) _simulation.Bote.SofortAusfuehren(_spieler, new WohnhausAusbauen()); // der Umbau dauert – aufsteigen erst danach
         while (_simulation.Zeit.MinuteImTag < 12 * 60 - Spielzeit.TagesbeginnMinute && !_simulation.IstBeendet)
             _simulation.Tick();
         if (gekauft) return;
-        w.Ausfuehren(_spieler, new StandErwerben());
+        _simulation.Bote.SofortAusfuehren(_spieler, new StandErwerben());
         if (!Kaufen()) Protokollieren("--verkaufen=2: Keine freie Liegenschaft zu haben – mehr Vermögen mit --vermoegen=20000.");
     }
 
@@ -780,9 +788,9 @@ public partial class Hauptszene : Node
     private void AufsteigenVorbereiten()
     {
         if (_simulation.Wirtschaft is not { } w || _spieler is null) return;
-        w.Ausfuehren(_spieler, new WohnhausAusbauen());
+        _simulation.Bote.SofortAusfuehren(_spieler, new WohnhausAusbauen());
         for (var i = 0; i < 245 && !_simulation.IstBeendet; i++) _simulation.Tick(); // der Umbau dauert 4 Stunden
-        var ergebnis = w.Ausfuehren(_spieler, new StandErwerben());
+        var ergebnis = _simulation.Bote.SofortAusfuehren(_spieler, new StandErwerben());
         if (!ergebnis.Erfolg) Protokollieren("--aufsteigen=1: " + ergebnis.Meldung + " (mehr Vermögen mit --vermoegen=30000)");
     }
 
@@ -1462,8 +1470,8 @@ public partial class Hauptszene : Node
                 var teile = ausbau.Split(',');
                 if (teile.Length == 4 && Zahlen(string.Join(',', teile.Take(3)), 3) is { } z && Enum.TryParse<Belagstufe>(teile[3], true, out var stufe))
                 {
-                    var ergebnis = w.Ausfuehren(_spieler, new WegAusbauen((int)z[0], z[1], z[2], stufe));
-                    Protokollieren(ergebnis.Erfolg ? ergebnis.Meldung : "✗ " + ergebnis.Meldung);
+                    _simulation.Bote.Einreihen(_spieler, new WegAusbauen((int)z[0], z[1], z[2], stufe), ergebnis =>
+                        Protokollieren(UiHilfe.MeldungText(ergebnis)));
                 }
                 else Protokollieren("--wegausbau=" + ausbau + ": gemeint ist <Weg>,<von>,<bis>,<Kies|Pflaster>.");
             }
@@ -1471,8 +1479,8 @@ public partial class Hauptszene : Node
         {
             if (Zahlen(antrag, 3) is { } z)
             {
-                var ergebnis = w.Ausfuehren(_spieler, new WegPflasterBeantragen((int)z[0], z[1], z[2]));
-                Protokollieren(ergebnis.Erfolg ? ergebnis.Meldung : "✗ " + ergebnis.Meldung);
+                _simulation.Bote.Einreihen(_spieler, new WegPflasterBeantragen((int)z[0], z[1], z[2]), ergebnis =>
+                    Protokollieren(UiHilfe.MeldungText(ergebnis)));
             }
             else Protokollieren("--wegantrag=" + antrag + ": gemeint ist <Weg>,<von>,<bis>.");
         }
@@ -1491,7 +1499,7 @@ public partial class Hauptszene : Node
             _bauFrage.OeffnenNeubau(befehl);
             return;
         }
-        var ergebnis = w.Ausfuehren(_spieler, befehl);
+        var ergebnis = _simulation.Bote.SofortAusfuehren(_spieler, befehl);
         Protokollieren(ergebnis.Erfolg ? ergebnis.Meldung : "✗ " + ergebnis.Meldung);
         if (!ergebnis.Erfolg) return;
         _bau.Schliessen();

@@ -47,8 +47,8 @@ public partial class Hauptszene
                 .ThenBy(x => x.Person.Nummer).FirstOrDefault() is not { } k) return;
         for (var i = 0; i < 12; i++)
         {
-            var werbung = w.Ausfuehren(_spieler, new Core.Wirtschaft.Werben(k.Person.Nummer, 2000));
-            var heirat = w.Ausfuehren(_spieler, new Core.Wirtschaft.Heiraten(k.Person.Nummer));
+            var werbung = _simulation.Bote.SofortAusfuehren(_spieler, new Core.Wirtschaft.Werben(k.Person.Nummer, 2000));
+            var heirat = _simulation.Bote.SofortAusfuehren(_spieler, new Core.Wirtschaft.Heiraten(k.Person.Nummer));
             if (heirat.Erfolg) return;
             if (i == 0) Protokollieren($"Werben: {werbung.Meldung} Heiraten: {heirat.Meldung}");
         }

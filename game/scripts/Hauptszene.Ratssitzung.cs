@@ -169,7 +169,7 @@ public partial class Hauptszene
         if (w.Rat.AmtVon(_spieler) is null && w.Rat.Aemter.Where(a => a.Stufe == 1).OrderBy(a => a.Name).FirstOrDefault() is { } unten)
             AmtFuerKlicktest(w, unten);
         if (w.Rat.AmtVon(_spieler) is { } amt && w.Rat.Aemter.Where(a => a.Stufe == amt.Stufe + 1).OrderBy(a => a.Name).FirstOrDefault() is { } hoeher)
-            Melden("Bewerbung um " + hoeher.Name, w.Ausfuehren(_spieler, new AmtBewerben(hoeher.Name)));
+            _simulation.Bote.Einreihen(_spieler, new AmtBewerben(hoeher.Name), e => Melden("Bewerbung um " + hoeher.Name, e));
         // Ein Rivale wird Kämmerer und beantragt ein Fest: Darüber stimmt der Spieler live ab
         if (!optionen.ContainsKey("antrag") && w.Ratsantraege.IstAktiv && w.Konten.Where(k => k != _spieler && k.IstAktiv).OrderByDescending(k => k.Aktionspunkte.Vorrat).FirstOrDefault() is { } rivale
             && w.Rat.AmtNamens("Kämmerer") is { } kaemmerer && kaemmerer.Konto is null)
@@ -177,7 +177,7 @@ public partial class Hauptszene
             AmtFuerKlicktest(w, kaemmerer, rivale);
             // nur zum Testen: Die KI hat ihre Aktionspunkte zu Jahresbeginn meist schon verbraucht, der Kern hat dafür keinen Befehl
             typeof(Reichsgilde.Core.Partie.Aktionspunkte).GetProperty(nameof(Reichsgilde.Core.Partie.Aktionspunkte.Vorrat))!.SetValue(rivale.Aktionspunkte, 6);
-            Melden("Fest beantragen (" + rivale.Inhaber + ")", w.Ausfuehren(rivale, new FestBeantragen()));
+            _simulation.Bote.Einreihen(rivale, new FestBeantragen(), e => Melden("Fest beantragen (" + rivale.Inhaber + ")", e));
         }
         if (sitzung == "letzte")
         {
