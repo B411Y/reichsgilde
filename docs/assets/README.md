@@ -26,7 +26,7 @@ UTF-8, Komma als Trenner, erste Zeile ist der Kopf. Enthält ein Feld ein Komma,
 | `commit_pr` | Commits und PR-Nummern, z. B. `c16f5c20 (#211)` |
 | `nachbearbeitung` | `nein`, `ja: <Umfang>` oder `unbekannt`. Gemeint ist jede Änderung nach der Erzeugung, durch ein Skript oder durch einen Menschen; bei „ja“ steht dabei, wer es war (Skriptpfad bzw. „Nutzer: …“) |
 | `bedingungen_werkzeug` | Link zu den Nutzungsbedingungen bzw. der Lizenz des Werkzeugs; ohne fremdes Werkzeug „entfällt“ |
-| `lizenz_ergebnis` | Lizenz der Datei, z. B. CC BY 4.0, CC0 1.0, OFL 1.1 |
+| `lizenz_ergebnis` | Lizenz der Datei, z. B. CC BY 4.0, CC0 1.0, OFL 1.1, MIT (Shader). **Neue Zeilen ab dem Stichtag** (Merge von PR #240, siehe `LICENSE-INHALTE.md`): „Alle Rechte vorbehalten“; Fremdmaterial behält seine Lizenz. Mit „CC BY“ darf eine Zeile mit `datum` nach dem Stichtag nicht mehr stehen |
 | `spieler_sieht` | ja oder nein |
 | `bemerkung` | frei (einziges Feld, das leer bleiben darf) |
 
@@ -40,6 +40,7 @@ UTF-8, Komma als Trenner, erste Zeile ist der Kopf. Enthält ein Feld ein Komma,
 - Jedes Muster trifft mindestens eine Datei, `anzahl` stimmt.
 - Pflichtfelder sind gefüllt und haben gültige Werte; Verweise auf `docs/assets/prompts/…` zeigen auf vorhandene Dateien.
 - `steam-ki-inhalte.md` passt zum Protokoll.
+- Zeilen mit `datum` nach dem Stichtag (Konstante `STICHTAG` im Skript; `None` = Prüfung aus) tragen kein „CC BY“ in `lizenz_ergebnis`.
 
 Fehler meldet es deutsch mit Zeilennummer und endet mit Rückgabewert 1; dann scheitert in der CI die Pflichtprüfung „Build & Tests (ubuntu-latest)“.
 
@@ -50,4 +51,4 @@ Je Gruppe eine Datei in `prompts/`: Werkzeug, Vorlage, Ablauf und die Prompt-Tex
 ## Verhältnis zu anderen Dateien
 
 - `HERKUNFT.md` neben Fremdpaketen und dem KI-Schmied (`game/assets/modelle/natur/`, `props/`, `figuren/ki/`) behalten die Lizenztexte und Einzelheiten der Werkzeuge; in Ordnern mit KI-Bildern verweist eine kurze `HERKUNFT.md` hierher.
-- `LICENSE-INHALTE.md` sagt, unter welcher Lizenz die Inhalte stehen; das Protokoll sagt, woher jede Datei kommt.
+- `LICENSE-INHALTE.md` sagt, unter welcher Lizenz Code und Inhalte stehen (bis zum Stichtag CC BY 4.0, danach „Alle Rechte vorbehalten“); das Protokoll sagt, woher jede Datei kommt.

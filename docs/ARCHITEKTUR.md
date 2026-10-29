@@ -1,6 +1,6 @@
 # Architektur – wie Reichsgilde aufgebaut ist
 
-Dieses Dokument erklärt die Grundidee hinter dem Code. Es wächst mit dem Projekt.
+Dieses Dokument erklärt die Grundidee hinter dem Code. Es wächst mit dem Projekt. Was das Spiel kann, steht im [Spielbuch](spielbuch/README.md); Projektstruktur, Tests und Export in [ENTWICKLUNG.md](ENTWICKLUNG.md).
 
 ## Die wichtigste Regel: Simulation und Darstellung sind getrennt
 
