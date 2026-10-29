@@ -154,7 +154,7 @@ static class WerkstattTests
         ("Werkstatt: Daten – Abschnitt „werkstatt“ mit drei Lohnstufen und genau den sieben Stücken des Schmieds (Kennungen wie im Raummodell)", () =>
         {
             var d = Daten.Value.Werkstatt!;
-            Pruefe.Gleich(61, Daten.Value.Version);
+            Pruefe.Gleich(62, Daten.Value.Version);
             Pruefe.Ungefaehr(1, d.Stufe(Lohnstufe.Ueblich).LohnFaktor, 1e-12);
             Pruefe.Gleich(0.0, d.Stufe(Lohnstufe.Ueblich).Laune);
             Pruefe.Wahr(d.Stufe(Lohnstufe.Knapp).LohnFaktor < 1 && d.Stufe(Lohnstufe.Gut).LohnFaktor > 1, "Lohnfaktoren");
@@ -229,15 +229,15 @@ static class WerkstattTests
             BisUhrzeit(sim, 9);
             var beschlag = g.FortschrittVon("Beschlag");
             Pruefe.Wahr(beschlag > 0, "Fortschritt am Beschlag");
-            Ok(w, k, new ProduktWaehlen(g.Name, "Rapier"));
-            Pruefe.Wahr(g.Arbeiter.All(a => a.Ware is null && g.WareVon(a) == "Rapier"), "alle am Rapier");
-            Pruefe.Gleich("Rapier", string.Join(" ", g.WarenInArbeit));
+            Ok(w, k, new ProduktWaehlen(g.Name, "Dolch"));
+            Pruefe.Wahr(g.Arbeiter.All(a => a.Ware is null && g.WareVon(a) == "Dolch"), "alle am Dolch");
+            Pruefe.Gleich("Dolch", string.Join(" ", g.WarenInArbeit));
             Pruefe.Gleich("Beschlag:1 Eisen:1", string.Join(" ", g.Zutaten.OrderBy(z => z.Key, StringComparer.Ordinal).Select(z => $"{z.Key}:{z.Value}")));
             Pruefe.Ungefaehr(beschlag, g.FortschrittVon("Beschlag"), 1e-12);
             Abgelehnt(w, k, new ArbeiterZuteilen(g.Name, 1, "Goldkette"), "nicht herstellen");
             Abgelehnt(w, k, new ArbeiterZuteilen(g.Name, 7, "Beschlag"), "keinen Arbeiter Nr. 7");
             Ok(w, k, new ArbeiterZuteilen(g.Name, 1, null));
-            Pruefe.Gleich("Rapier", g.WareVon(g.ArbeiterNr(1)!));
+            Pruefe.Gleich("Dolch", g.WareVon(g.ArbeiterNr(1)!));
         }),
 
         ("Werkstatt: ohne Abschnitt „personal“ (alte Spielstände) wird ein Lehrling nach zwei Jahren Dienst Geselle – vorher mit Grund abgelehnt, danach Gesellenlohn", () =>
@@ -748,7 +748,7 @@ static class WerkstattTests
             Pruefe.Ungefaehr(350, k.Laufend.Investitionen, 1e-9);
             foreach (var (ware, zeit) in new[] { ("Moschusduft", 70.0), ("Fechterduft", 60.0), ("Heiligenduft", 100.0) })
                 Pruefe.Ungefaehr(zeit * 0.9, s.MinutenJeStueck(ware), 1e-9);
-            foreach (var (ware, zeit) in new[] { ("Politur", 30.0), ("Blume der Zwietracht", 50.0), ("Giftdolch", 50.0), ("Schattendolch", 100.0) })
+            foreach (var (ware, zeit) in new[] { ("Politur", 30.0), ("Blume der Zwietracht", 50.0), ("Giftdolch", 60.0), ("Schattendolch", 100.0) })
                 Pruefe.Ungefaehr(zeit, s.MinutenJeStueck(ware), 1e-9); // abgefüllt wird nur, was in den Flakon kommt
             Ok(w, k, new EinrichtungKaufen(s.Name, "Werkzeug1"));
             Pruefe.Ungefaehr(70 * 0.81, s.MinutenJeStueck("Moschusduft"), 1e-9);
@@ -815,7 +815,7 @@ static class WerkstattTests
             Abgelehnt(w, k, new EinrichtungKaufen(s.Name, "Werkzeug2"), "Erst braucht es: Gutes Werkzeug");
             Ok(w, k, new EinrichtungKaufen(s.Name, "Werkzeug1"));
             Ok(w, k, new EinrichtungKaufen(s.Name, "Werkzeug2"));
-            Pruefe.Ungefaehr(50 * 0.81, s.MinutenJeStueck("Giftdolch"), 1e-9);
+            Pruefe.Ungefaehr(60 * 0.81, s.MinutenJeStueck("Giftdolch"), 1e-9);
             Pruefe.Ungefaehr(70 * 0.729, s.MinutenJeStueck("Moschusduft"), 1e-9);
             Pruefe.Ungefaehr(60 * 0.729, s.MinutenJeStueck("Fechterduft"), 1e-9);
             s.Ausbauen(Betriebsart.Parfumerie, 0);
@@ -1068,7 +1068,7 @@ static class WerkstattTests
             var sim = NeueSimulation();
             var (w, k, g) = Giesserei(sim);
             w.Einstellen(g, "Geselle", 2); // Gesellen gibt es nur durch Beförderung (PR #224) – hier gleich eingestellt
-            Ok(w, k, new ProduktWaehlen(g.Name, "Rapier"));
+            Ok(w, k, new ProduktWaehlen(g.Name, "Dolch"));
             var knoten = JsonNode.Parse(Speicherung.Speichern(sim, k))!;
             knoten["Daten"]!.AsObject().Remove("Werkstatt");
             knoten["Wirtschaft"]!.AsObject().Remove("WerkstattWuerfe");
@@ -1081,8 +1081,8 @@ static class WerkstattTests
             var (alt, altSpieler) = Speicherung.Laden(knoten.ToJsonString());
             var aw = alt.Wirtschaft!;
             var ag = aw.Betriebe.Single(b => b.Name == g.Name);
-            Pruefe.Gleich("1:Rapier:50 2:Rapier:50", string.Join(" ", ag.Arbeiter.Select(a => $"{a.Nummer}:{ag.WareVon(a)}:{a.Laune}")));
-            Pruefe.Ungefaehr(20, ag.FortschrittVon("Rapier"), 1e-12);
+            Pruefe.Gleich("1:Dolch:50 2:Dolch:50", string.Join(" ", ag.Arbeiter.Select(a => $"{a.Nummer}:{ag.WareVon(a)}:{a.Laune}")));
+            Pruefe.Ungefaehr(20, ag.FortschrittVon("Dolch"), 1e-12);
             Pruefe.Gleich(0.0, ag.Fortschritt);
             Pruefe.Gleich(0, ag.Einrichtung.Count);
             Pruefe.Gleich(Lohnstufe.Ueblich, ag.Lohnstufe);

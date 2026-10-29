@@ -41,7 +41,7 @@ static class AktionspunkteTests
             var w = NeueSimulation().Wirtschaft!;
             var (k, _) = Haus(w);
             var g = w.BetriebEroeffnen("Gießerei Fuchs", Betriebsart.Giesserei, k);
-            Pruefe.Wahr(w.Ausfuehren(k, new ProduktWaehlen(g.Name, "Rapier")).Erfolg, "Produkt");
+            Pruefe.Wahr(w.Ausfuehren(k, new ProduktWaehlen(g.Name, "Dolch")).Erfolg, "Produkt");
             Pruefe.Wahr(w.Ausfuehren(k, new PersonalSetzen(g.Name, "Lehrling", 2)).Erfolg, "Personal");
             Pruefe.Gleich(4, k.Aktionspunkte.Vorrat);
 

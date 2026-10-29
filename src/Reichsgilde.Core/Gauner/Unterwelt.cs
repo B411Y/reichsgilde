@@ -216,7 +216,7 @@ public sealed class Unterwelt
                - Daten.Diebstahl.Kosten;
     }
 
-    /// <summary>„3 Rapier und 2 Silberring (Wert 412)“, „120 Gulden aus der Kasse“ oder beides – für die öffentliche Meldung.</summary>
+    /// <summary>„3 Dolch und 2 Silberring (Wert 412)“, „120 Gulden aus der Kasse“ oder beides – für die öffentliche Meldung.</summary>
     internal string Diebesgut(IReadOnlyCollection<(string Ware, int Stueck, double Wert)> beute, double kasse)
     {
         var teile = new List<string>();

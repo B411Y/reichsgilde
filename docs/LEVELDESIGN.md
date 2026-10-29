@@ -336,7 +336,7 @@ Ein Strich ist ein Schritt mit Rückgängig; der Schritt merkt sich nur die Kach
   "haeuser": [
     { "name": "Haus Eisenbart", "volk": "Zwerg", "geschlecht": "Mann",
       "wappen": { "teilung": "Ohne", "farbe1": "Schwarz", "farbe2": "Gold", "figur": "Amboss" }, "farbe": "#b33329", "wohnhaus": "Wohnhaus2",
-      "betriebe": [ { "platz": "Giesserei_Eisenbart", "art": "Giesserei", "produkt": "Rapier" }, { "platz": "Grube_Eisenbart", "art": "Mine" } ] }
+      "betriebe": [ { "platz": "Giesserei_Eisenbart", "art": "Giesserei", "produkt": "Dolch" }, { "platz": "Grube_Eisenbart", "art": "Mine" } ] }
   ]
 }
 ```

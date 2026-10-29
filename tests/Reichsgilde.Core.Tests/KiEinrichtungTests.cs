@@ -25,7 +25,7 @@ static class KiEinrichtungTests
         return Wirtschaftsdaten.AusJson(Json.Value.Replace(KiZeile, neu));
     }
 
-    /// <summary>Ein KI-Haus mit einer Gießerei, zwei Gesellen an Rapieren, ohne Karren.</summary>
+    /// <summary>Ein KI-Haus mit einer Gießerei, zwei Gesellen an Dolchen, ohne Karren.</summary>
     static (Simulation Sim, Stadtwirtschaft W, Konto K, Betrieb B, KiRivale Ki) Giesserei(
         double vermoegen = 10_000, Wirtschaftsdaten? daten = null, KiProfil? profil = null)
     {
@@ -33,7 +33,7 @@ static class KiEinrichtungTests
         var w = sim.Wirtschaft!;
         var k = w.KontoEroeffnen("Haus Probe", startvermoegen: vermoegen);
         var b = w.BetriebEroeffnen("Gießerei Probe", Betriebsart.Giesserei, k, startkarren: "");
-        b.Produkt = "Rapier";
+        b.Produkt = "Dolch";
         w.Einstellen(b, "Geselle", 2);
         return (sim, w, k, b, w.KiAnmelden(k, profil));
     }
@@ -107,7 +107,7 @@ static class KiEinrichtungTests
         {
             var (_, w, k, b, ki) = Giesserei();
             var zweite = w.BetriebEroeffnen("Gießerei Zwei", Betriebsart.Giesserei, k, startkarren: "");
-            zweite.Produkt = "Rapier";
+            zweite.Produkt = "Dolch";
             w.Einstellen(zweite, "Geselle", 2);
             ki.Jahresende();
             Pruefe.Gleich(1, Gekauft(b));

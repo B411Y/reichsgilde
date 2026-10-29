@@ -11,14 +11,14 @@ static class KiPersonalTests
 {
     static readonly Lazy<Wirtschaftsdaten> Daten = new(() => Wirtschaftsdaten.AusDatei(Datenpfad.Wirtschaft()));
 
-    /// <summary>Ein KI-Haus mit einer Gießerei an Rapieren, Lager voll Zutaten, ohne Karren.</summary>
+    /// <summary>Ein KI-Haus mit einer Gießerei an Dolchen, Lager voll Zutaten, ohne Karren.</summary>
     static (Simulation Sim, Stadtwirtschaft W, Konto K, Betrieb B, KiRivale Ki) Giesserei(string kraft, double vermoegen = 10_000)
     {
         var sim = new Simulation(Partieeinstellungen.Standard with { Siegbedingung = Siegbedingung.Endlos }, wirtschaftsdaten: Daten.Value);
         var w = sim.Wirtschaft!;
         var k = w.KontoEroeffnen("Haus Probe", startvermoegen: vermoegen);
         var b = w.BetriebEroeffnen("Gießerei Probe", Betriebsart.Giesserei, k, startkarren: "");
-        b.Produkt = "Rapier";
+        b.Produkt = "Dolch";
         b.Einlagern("Eisen", 40);
         b.Einlagern("Silber", 40);
         w.Einstellen(b, kraft, 2);

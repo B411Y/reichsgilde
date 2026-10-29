@@ -335,7 +335,7 @@ static class KartenwerkstattStartTests
             Pruefe.Gleich("Wohnhaus1", s.SpielerWohnhaus);
             Pruefe.Gleich(new EntwurfStartplatz("Weinmarkt", "{art} am Weinmarkt"), s.SpielerWerkstatt);
             Pruefe.Gleich(Wappen.Eichwald, s.Haeuser[1].Wappen);
-            Pruefe.Gleich("Rapier", s.Haeuser[0].Betriebe[0].Produkt);
+            Pruefe.Gleich("Dolch", s.Haeuser[0].Betriebe[0].Produkt);
             var bel = e.BelegungVon("Giesserei_Eisenbart");
             Pruefe.Wahr(bel is [{ Haus: 0, Art: Belegungsart.Betrieb, Betrieb: 0 }], "Gießerei Eisenbart gehört Haus Eisenbart");
             Pruefe.Wahr(e.BelegungVon("Wohnhaus1") is [{ IstSpieler: true, Art: Belegungsart.Wohnhaus }], "Wohnhaus1 ist das des Spielers");

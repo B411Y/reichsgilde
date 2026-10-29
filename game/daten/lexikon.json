@@ -351,7 +351,7 @@
   "kennung": "schmied",
   "titel": "Schmied",
   "gruppe": "Berufe",
-  "text": "Der Schmied fördert in der [[grube]] [[eisen|Eisen]] und [[silber|Silber]] und macht in der Gießerei Beschläge, Rapiere und Silberringe. Höhere Stufen: Schmiede (Werkzeug, [[silber|Silberkette]]) und Goldschmiede (Goldkette, Prunkschwert). Die Truhe des [[tischler|Tischlers]] braucht einen Beschlag von ihm."
+  "text": "Der Schmied fördert in der [[grube]] [[eisen|Eisen]] und [[silber|Silber]] und macht in der Gießerei Beschläge, Dolche und Silberringe. Höhere Stufen: Schmiede (Werkzeug, [[silber|Silberkette]]) und Goldschmiede (Goldkette, Prunkschwert). Die Truhe des [[tischler|Tischlers]] braucht einen Beschlag von ihm."
  },
  {
   "kennung": "tischler",
@@ -423,7 +423,7 @@
   "kennung": "parfumeur",
   "titel": "Parfumeur",
   "gruppe": "Berufe",
-  "text": "Der Duftgarten liefert Lavendel und Jasmin, die Siederei (→ Duftwerkstatt → Parfumerie) macht Politur, die Blume der Zwietracht und Giftdolche, später Moschusduft, Fechterduft, Heiligenduft und Schattendolch. Vier Waren wirken für jedes Haus: Moschusduft (Brautschau und Rat), Blume der Zwietracht (ein Ratsherr verliert Gunst), Heiligenduft und Giftdolch. Politur brauchen auch Goldkette ([[schmied]]) und Prunktruhe ([[tischler]])."
+  "text": "Der Duftgarten liefert Lavendel und Jasmin, die Siederei (→ Duftwerkstatt → Parfumerie) macht Politur, die Blume der Zwietracht und Giftdolche (aus einem Dolch des [[schmied|Schmieds]] und Politur), später Moschusduft, Fechterduft, Heiligenduft und Schattendolch (wieder aus einem Dolch, dazu Eisen, Beschlag und Politur). Vier Waren wirken für jedes Haus: Moschusduft (Brautschau und Rat), Blume der Zwietracht (ein Ratsherr verliert Gunst), Heiligenduft und Giftdolch. Politur brauchen auch Goldkette ([[schmied]]) und Prunktruhe ([[tischler]])."
  },
  {
   "kennung": "lehrgeld",
@@ -453,13 +453,13 @@
   "kennung": "fertigware",
   "titel": "Fertigware",
   "gruppe": "Waren",
-  "text": "Eine Ware, die am Markt gute Preise erzielt: Rapier, Prunkschwert, Prunktruhe, Taufbecken, Reliquiar, Giftdolch und viele mehr. Fertigwaren brauchen meist Zutaten verschiedener [[beruf|Berufe]] – ein Grund, mit anderen Häusern zu handeln."
+  "text": "Eine Ware, die am Markt gute Preise erzielt: Dolch, Prunkschwert, Prunktruhe, Taufbecken, Reliquiar, Giftdolch und viele mehr. Fertigwaren brauchen meist Zutaten verschiedener [[beruf|Berufe]] – ein Grund, mit anderen Häusern zu handeln."
  },
  {
   "kennung": "eisen",
   "titel": "Eisen",
   "gruppe": "Waren",
-  "text": "Rohstoff des [[schmied|Schmieds]]. Aus Eisen werden Beschläge, Rapiere und Werkzeug. Er wird in der [[grube]] gefördert, zusammen mit Silber."
+  "text": "Rohstoff des [[schmied|Schmieds]]. Aus Eisen werden Beschläge, Dolche und Werkzeug. Er wird in der [[grube]] gefördert, zusammen mit Silber."
  },
  {
   "kennung": "silber",
