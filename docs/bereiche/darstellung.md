@@ -150,6 +150,9 @@ So wird eingetragen (damit sich die Chats nie an derselben Stelle treffen):
 - (von Kern) Personal und Talentbaum (PR #224): Neue Arbeitskräfte Vorarbeiter, Knecht/Altknecht/Großknecht (Altknecht ist der frühere Bergmann), Taschendieb/Dieb/Meisterdieb, Rekrut/Gefreiter/Feldwebel – die Figuren in `Stadtansicht.Innen*.cs` färben noch nach „Lehrling“/„Geselle“; besser nach `Personalwesen.Stufe(kraft)` (1 = Anfänger) und mit `Arbeiter.Volk`/`Aussehen`. Neue Einrichtung ohne Knoten `Einrichtung_<Kennung>` im Raummodell: Schleifstein, Drechselbank, Steinsaege, Athanor, Enfleurage, Gewoelbekeller, Skriptorium, Ladentheke, Lehrlingsstube (Wohnhaus: Vorratskammer, Kueche, Hauswappen, Stube, Bibliothek, Riegel, Hund).
 - (von kern) Erbgut und 2D-Porträt: Haar- und Augenfarbe stehen doppelt (`Person.Aussehen` und die Farb-Gene im `Person.Erbgut`) und können sich widersprechen. Empfehlung: im PR, der den 3D-Kopf zeigt, Haar und Augen des Porträts aus den Farb-Genen ableiten (je Volk ein Punkt pro Palettenfarbe in `erbgut.json`, die nächste gewinnt; die Wahl auf der Startseite setzt dann die Farb-Gene; der Kern streicht dafür die Farben in `Aussehenspalette.Vererben`). Das Gesicht 0–4 bleibt Bildnummer.
 - (von kern) Erbgut für Arbeiter und Ratsherren: Sie sind keine Personen und haben keins. Empfehlung: `Erbgut.Wuerfeln(Erbgutvorlage.Standard, startwert, volk)` mit einem festen Startwert aus Betrieb und Nummer bzw. dem Namen des Ratsherrn – nichts im Spielstand. Werte immer mit `SichtbarerWert(gen, geschlecht)` lesen (Bart der Frauen).
+- Wasser (Phase 3): Die Furt ist im Spiel Teil des Bach- bzw. Flussbandes (im Winter offen); die eigenen Werte der Art Furt (klarer, schwächere Lichtnetze) sind dort nicht eingebaut. Dafür bräuchte das Band einen weiteren Eckenwert oder ein eigenes Stück je Furt
+- Wasser (Phase 3): Schmale Bäche (unter dem 2-m-Raster) liegen als Band knapp über dem gezeichneten Boden, ohne sichtbares Bett und ohne Böschung – im Sommer ein durchsichtig blauer Streifen auf der Wiese. Besser wäre ein eingeschnittenes Bett im Boden (Gelände, Kern) oder eine Uferkante als Modell
+- Wasser (Phase 3): Randeis ist in keiner Karte zu sehen (kein See über 2.000 m²), nur in der Kartenwerkstatt und der Testszene
 
 ## Entscheidungen
 
@@ -280,7 +283,7 @@ So wird eingetragen (damit sich die Chats nie an derselben Stelle treffen):
 | Messung | Mit Last auf der T400 schwanken Einzelläufe um das Doppelte; gemessen wird reihum in einem Prozess und das beste Ergebnis genannt. Die Brechung ist mit rund 1,8 von 4,3 ms der größte Posten | 29.10.2026 |
 | Meer, Wellenvielfalt (Nachtrag) | Fünf Wellenzüge mit eigener Länge, Richtung und eigenem Tempo; ihre Stärke schwankt als langsam wanderndes Rauschen mit festem Hash (Gruppen großer Wellen, ruhige Stellen). Meer voll, See 0,6, Hafenbecken 0,3; Teich, Bach, Fluss und Furt unverändert. Wellen klingen am Rand des Testfeldes ab; Kaustik der Furt von 1,0 auf 0,35, des Bachs auf 0,8 gesenkt | 29.10.2026 |
 
-Offen (Phase 3, Einbau): Netze müssen den Uferabstand in `COLOR.r` (m / 32) liefern; Laufrichtung je Material oder als Eckenwert; Kaisaum als eigener Streifen; Himmelsspiegelung braucht eine Himmelsquelle; Messung je Art in ruhiger Stunde; Shader beim Laden vorwärmen; Kaustik in der Furt dämpfen.
+Offen nach Phase 3: Messung je Art in ruhiger Stunde.
 ### Hausfahne und Ebenen-Klicks (PR #257)
 
 | Thema | Entscheidung | Datum |
@@ -333,3 +336,18 @@ Messwerte (T400, Vulkan, 1600 × 900, Köln, `--blick=0,0,<Zoom> --messung=30 --
 | Hoch, 25, Nacht mit Regen | 30,2, 30,2 | 19,1 |
 
 Belastbar sind nur die Läufe mit zwei fast gleichen Werten (z. B. Hoch, Niedrig Zoom 25); die Köln-Startstadt ist fast leer (etwa 270 Zeichenaufrufe) und CPU-gebunden, die Messung sagt über eine volle Stadt wenig.
+
+### Realistisches Wasser, Phase 3: Einbau und Grafikstufen (PR #…)
+
+| Thema | Entscheidung | Datum |
+|---|---|---|
+| Einbau | Alle Gewässer des Spiels (Köln, Probestadt, Greybox, Kartenwerkstatt) zeichnet das realistische Wasser; `wasser.gdshader` ist entfernt. Je Gewässer ein Material mit seiner Art; Netze aus den Kartendaten, Flussband quer und längs alle 2 m (Ultra 1 m), in Stücken zu 64 m | 29.10.2026 |
+| Art aus der Karte | Die Größe entscheidet, nicht der Name: Lauf bis 5 m = Bach, sonst Fluss (größte Breite des Laufs); Fläche bis 2.000 m² = Teich, sonst See. Kartenformat unverändert | 29.10.2026 |
+| Uferschaum | Nur Flüsse ab 30 m (je Ecke nach der Breite, Übergang ab 26 m) und Meer; vor einem Hafenbecken (2–8 m) nur ein Drittel (Kaisaum, 0,3 m), im Becken keiner (Nutzer) | 29.10.2026 |
+| Eis | Bach ≤ 5 m und Teich ≤ 2.000 m² ganz, See nur Rand 3–6 m, Fluss nie (Nutzer). Offen bleiben Furten (halbe Wegbreite + 3 m, Übergang bis 6 m), Fährlinien, Hafenbecken und Mündungen in ein anderes Gewässer – so verstanden wir „bewegtes Wasser“. Winter: wächst über drei Fünftel des Jahres (erst schnell, dann langsamer), Frühling: taut im ersten Drittel. Kern unverändert (`Spielzeit.Jahreszeit`, `MinuteImTag`) | 29.10.2026 |
+| Strömung je Ort | Flüsse tragen Laufachsen im Netz (`UV` quer/Stelle, `UV2` Strömung): Die Normalkarten folgen den Kurven, ohne sich mit der Zeit zu verzerren; ein Material je Fluss | 29.10.2026 |
+| Grundspiegelung | Die Stadt hat keinen Himmel zum Spiegeln: `himmel_grund` 0,2 (Anteil der Himmelsfarbe, schwankt mit den Kräuseln); Normalkarten im Spiel alle 6,7 m (`sampler_scale` 0,15), Testszene unverändert | 29.10.2026 |
+| Grafikstufen | Kein eigener Regler, die Stufe folgt der Voreinstellung („Eigene“: die ähnlichste). Niedrig ohne Brechung, Tiefentextur, Kaustik, Ringe, mit nur einer Normalkarte (Farbe aus dem Uferabstand); Mittel ohne Brechung und Ringe (Flaches durchsichtig); Hoch alles; Ultra wie Hoch mit 1-m-Netz. Drei Shader, die nur `MIT_…` setzen und `wasser_realistisch.gdshaderinc` einbinden | 29.10.2026 |
+| Vorwärmen | `Wasserarten.Vorwaermen(eltern, alleStufen, fertig)`: eigener kleiner SubViewport, vier Bilder, dann `fertig` – für den Ladebildschirm, im Spiel selbst nicht aufgerufen | 29.10.2026 |
+| Messung | `--wasservergleich=1`: im selben Prozess reihum ohne Wasser und in den vier Stufen (Median der GPU-Zeit je Zustand, drei Runden) – Einzelläufe schwanken auf der geteilten T400 um das Doppelte | 29.10.2026 |
+| Kosten | Köln, Hafen, T400, GPU-Zeit des Wassers alt → neu je Voreinstellung: Niedrig 1,8 → 2,6 ms, Mittel 2,7 → 5,0, Hoch 3,5 → 6,5, Ultra 4,2 → 8,7 ms. Brechung rund 0,8 ms, Tiefe mit Kaustik und zweiter Normalkarte 1,1 ms, 1-m-Netz 1 ms; der Rest ist die durchsichtige, beleuchtete Fläche selbst. Schaum wird nur nahe am Hindernis gerechnet, Niedrig nimmt nur eine Normalkarte. Tabelle: `docs/wasser/phase3.md` | 29.10.2026 |

@@ -5,7 +5,7 @@ Startoptionen (nach `--`):
 ## Spiel und Tafeln
 
 - `--beruf=<Beruf>`
-- `--wassertest=1` (Testszene des realistischen Wassers statt des Spiels, `docs/wasser/phase2.md`; nur mit Vulkan sinnvoll; das Hauptmenü wird übersprungen). Dazu: `--wasserart=<alle|fluss|bach|teich|see|meer|hafen|furt|keins>` (Vorgabe `alle`, die sieben Arten nebeneinander), `--wassersicht=<uebersicht|schraeg|nah|fern|oben|flach|ufer>`, `--wetter=<klar|wolkig|regen|sturm|gewitter|schnee|nebel>`, `--jahreszeit=<fruehling|sommer|herbst|winter>`, `--winter=<0..1>` (Eisfortschritt; sonst im Winter 1, sonst 0), `--wasserteile=<-brechung,-tiefe,-kaustik,-schaum,-eis,-wind,-ringe>` (Shaderteile abschalten, zum Messen), `--wasserende=<Sekunden>` (danach Mittel der Bildrate ins Log und beenden); im Log steht jede Sekunde die Bildrate
+- `--wassertest=1` (Testszene des realistischen Wassers statt des Spiels, `docs/wasser/phase2.md`; nur mit Vulkan sinnvoll; das Hauptmenü wird übersprungen). Dazu: `--wasserart=<alle|fluss|bach|teich|see|meer|hafen|furt|keins>` (Vorgabe `alle`, die sieben Arten nebeneinander), `--wassersicht=<uebersicht|schraeg|nah|fern|oben|flach|ufer>`, `--wetter=<klar|wolkig|regen|sturm|gewitter|schnee|nebel>`, `--jahreszeit=<fruehling|sommer|herbst|winter>`, `--winter=<0..1>` (Eisfortschritt; sonst im Winter 1, sonst 0), `--wasserteile=<-brechung,-tiefe,-kaustik,-schaum,-eis,-wind,-ringe>` (Shaderteile abschalten, zum Messen), `--wasserstufe=<niedrig|mittel|hoch|ultra>` (Shader dieser Grafikstufe statt des vollen), `--wassermessung=<stufen|teile1|teile2|teile3|arten|winter|regen|sturm>` (reihum messen, Ergebnis `[messung]` im Log, `docs/wasser/phase2.md`), `--wasservorwaermen=1` (`Wasserarten.Vorwaermen` für alle Stufen aufrufen, Zeit `[wasser] vorgewärmt …` im Log), `--wasserende=<Sekunden>` (danach Mittel der Bildrate ins Log und beenden); im Log steht jede Sekunde die Bildrate
 - `--tiptest=1` (ein Knopf „Tooltip-Test“ in der Bildmitte mit einem Tooltip voller Verweise und vier Testbegriffen, falls das Lexikon keine liefert); `--verweistest=1` (schreibt Beispielsätze mit automatischen Lexikon-Verweisen ins Log); `--tooltipfest=<Sekunden|taste>` (Zeit bis zum Festkleben bzw. nur mit Taste, gilt nur für diesen Start)
 - `--startstunde=<Stunde>` (4–22; ohne Angabe beginnt die Partie um 4 Uhr zur Zunftglocke)
 - `--glaube=<Katholisch|Evangelisch|Naturglaube>` (Konfession des eigenen Hauses bei einer neuen Partie)
@@ -83,8 +83,10 @@ Startoptionen (nach `--`):
 - `--wolken=<An|Aus>`
 - `--dunst=<Aus|Niedrig|Hoch>`
 - `--wettereffekte=<Niedrig|Mittel|Hoch>` (wie viel Regen, Schnee, Nässe und Blitz zu sehen ist)
+- `--wasserstufe=<niedrig|mittel|hoch|ultra>` (Grafikstufe des Wassers statt der aus der Voreinstellung, nur für diesen Start; `docs/wasser/phase3.md`)
 - `--wetter=<klar|wolkig|regen|sturm|gewitter|schnee|nebel>` (Wetterlage fest vorgeben, nur Darstellung; ohne Aussicht in der Wetterzeile)
-- `--jahreszeit=<fruehling|sommer|herbst|winter>` (Jahreszeit der Darstellung: Wiese, Laub, Äcker, Schnee; der Kalender bleibt)
+- `--jahreszeit=<fruehling|sommer|herbst|winter>` (Jahreszeit der Darstellung: Wiese, Laub, Äcker, Schnee, Eis; der Kalender bleibt; weicht sie von der Uhr ab, steht das Eis im Winter voll)
+- `--winter=<0..1>` (Eis auf Bächen, Teichen und am Rand der Seen so weit gewachsen, unabhängig von der Uhr; 1 = tiefster Winter; nur Darstellung, z. B. `--jahreszeit=winter --winter=0.4`)
 - `--blitz=1` (mit `--wetter=gewitter`: ein Blitz bleibt auf voller Helligkeit stehen, für Bildschirmfotos)
 - `--wetterspaeter=<lage>@<Sekunden>` (das Wetter schlägt nach so vielen Sekunden plötzlich um, z. B. `regen@14`; für Messungen des ersten Regens: ohne `--wetter` ändert es sich erst dann, sonst gilt `--wetter` bis dahin)
 - `--pflasterrelief=0` (Pflaster ohne Tiefe: schaltet die Parallax im Pflaster für diesen Start aus, nur in der Bodenqualität Hoch wirksam; für Vergleiche und Messungen)
@@ -99,6 +101,7 @@ Startoptionen (nach `--`):
 - `--reiter=<Voreinstellung|Leistung|Bild|Stimmung|Barrierefreiheit|Spiel|Ton>` (mit `--einstellungen=1`)
 - `--automatisch=1` (Voreinstellung messen und wählen wie beim ersten Start; ohne Startoptionen und ohne `einstellungen.cfg` geschieht das im Hauptmenü von selbst)
 - `--messung=<Sekunden>` (nach 8 s Vorlauf Bilder/s, 1-%-Tief, Bild- und GPU-Zeit ins Protokoll, dazu Ruckler (Bilder über dem Dreifachen der mittleren Bildzeit) mit Zeitpunkt und die neuen Pipelines im Messfenster, dann beenden; für Vergleiche mit `--blick`, `--startstunde` und `--vsync=Aus`)
+- `--wasservergleich=1` (Kosten des Wassers: nach 10 s reihum ohne Wasser und in den vier Wasserstufen, je 4 s, drei Runden im selben Prozess; Median der GPU- und Bildzeit je Zustand als `[wassermessung] …` ins Protokoll, dann beenden; mit `--karte`, `--blick`, `--voreinstellung`, `--vsync=Aus`; `docs/wasser/phase3.md`)
 
 ## Kartenwerkstatt
 
