@@ -14,6 +14,7 @@ namespace Reichsgilde.Core.Speichern;
 ///     Rapiers → Dolchs.
 /// Ein Spielstand ohne „Rapier“ bleibt, wie er ist. Die Werte der Ware (und das alte Rezept des Giftdolchs aus Eisen) kommen aus den
 /// mitgespeicherten Daten – eine alte Partie läuft mit ihren Zahlen weiter, nur unter dem neuen Namen.
+/// Eigene Karten nennen eine Ware nur als erstes Produkt eines Startbetriebs; das benennt <see cref="Partie.Startbetrieb.Produkt"/> beim Lesen um.
 /// </summary>
 public static class Warenumbenennung
 {
