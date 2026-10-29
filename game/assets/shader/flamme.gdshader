@@ -8,6 +8,11 @@
 //
 // Die Fläche ist größer als die Flamme („rahmen“ in Flammenbreiten und -höhen), damit oben Platz für die Funken bleibt; Feuer.cs skaliert sie
 // auf (Breite · rahmen.x, Höhe · rahmen.y), der Ursprung der Fläche ist der Fuß der Flamme.
+//
+// Große Feuer (Phase 1b, Gebäudebrand auf Niedrig): „bewegung“ teilt die Flamme oben in mehrere Zungen, die einzeln lecken, und lässt sie stärker
+// pumpen; „stichflammen“ schickt ab und zu einen kurzen, hohen Ausbruch nach oben (die Flamme schießt hoch, wird oben schmal und heller und
+// fällt in einer halben Sekunde zurück). Beides rechnet nur aus Zeit und Startwert (stich_wert, in Feuer.cs als Stichwert nachgebaut, damit das
+// Licht mit aufflackert) und kostet zwei Texturzugriffe mehr.
 shader_type spatial;
 render_mode unshaded, blend_add, depth_draw_never, cull_disabled, fog_disabled;
 
@@ -41,6 +46,9 @@ uniform float funken_hoehe = 2.5;
 uniform float funken_groesse = 0.012;
 // Wie stark der Wind die Flamme neigt (0 = gar nicht)
 uniform float wind_neigung = 0.4;
+// Große Feuer: mehr Bewegung (0–1) und Stichflammen (0 = keine … 1 = häufig, etwa jede zweite bis vierte Sekunde je Zunge)
+uniform float bewegung = 0.0;
+uniform float stichflammen = 0.0;
 instance uniform float phase = 0.0;
 
 varying flat uint saat;
@@ -70,39 +78,65 @@ float flacker_wert(float t, uint s) {
 	return 0.55 * f_rausch(t * 1.7, s) + 0.3 * f_rausch(t * 4.3, s ^ 0x5bd1e995u) + 0.15 * f_rausch(t * 11.0, s ^ 0x27d4eb2du);
 }
 
+// Stichflamme (0 = keine … 1 = auf der Spitze): Die Zeit ist in Abschnitte von 1,6 bis 3,2 s geteilt; in jedem kommt mit der Wahrscheinlichkeit
+// stichflammen · 0,75 ein Stoß zu einer zufälligen Stelle, der in 0,12 s ansteigt und danach abklingt (Feuer.cs: Stichwert, gleiche Rechnung)
+float stich_wert(float t, uint s) {
+	if (stichflammen <= 0.0) return 0.0;
+	float dauer = 1.6 + 1.6 * f_hash(uvec4(s, 41u, 0u, 0u));
+	float lauf = t / dauer + f_hash(uvec4(s, 43u, 0u, 0u));
+	uint abschnitt = uint(int(floor(lauf)) & 0xFFFFFF);
+	float im_abschnitt = fract(lauf) * dauer;
+	float start = f_hash(uvec4(s, abschnitt, 47u, 0u)) * max(dauer - 0.9, 0.1);
+	if (f_hash(uvec4(s, abschnitt, 53u, 0u)) >= stichflammen * 0.75) return 0.0;
+	float x = im_abschnitt - start;
+	if (x < 0.0) return 0.0;
+	return smoothstep(0.0, 0.12, x) * exp(-max(x - 0.12, 0.0) * 4.0);
+}
+
 void fragment() {
 	float ph = f_hash(uvec4(saat, 5u, 0u, 0u));
 	float t = zeit * tempo * (0.85 + 0.3 * f_hash(uvec4(saat, 3u, 0u, 0u)));
 	float f = flacker_wert(zeit * tempo, saat);   // derselbe Wert wie beim Licht (ohne den kleinen Tempo-Unterschied der Rauschmuster)
+	float stich = stich_wert(zeit * tempo, saat);
 
 	float fx = (UV.x - 0.5) * 2.0 * rahmen.x;     // Flammenbreite: die Zunge ist etwa −0,95 … 0,95 breit
 	float fh = (1.0 - UV.y) * rahmen.y;           // Flammenhöhe: 0 … 1 ist die Flamme
 
-	// Die Flamme wird mit dem Flackern höher und niedriger
-	float u = fh / (1.0 + (f - 0.5) * 0.55 * flackern);
+	// Die Flamme wird mit dem Flackern höher und niedriger; große Feuer pumpen stärker (eigenes, langsameres Rauschen), eine Stichflamme schießt hoch
+	float pumpen = bewegung * 0.45 * (f_rausch(zeit * tempo * 2.3, saat ^ 0x68e31da4u) - 0.5);
+	float u = fh / (1.0 + (f - 0.5) * 0.55 * flackern + pumpen + 0.85 * stich);
 	float u1 = clamp(u, 0.0, 1.0);
+	// Während des Stoßes strömt das Rauschen schneller nach oben
+	t += stich * 0.35;
 
 	float grob = texture(rausch, vec2(fx * 0.12 + ph, u1 * 0.30 - t * 0.35)).r;
 	float fein = texture(rausch, vec2(fx * 0.60 + ph * 1.7, u1 * 0.80 - t * 0.90)).g;
 	float zack = texture(rausch, vec2(fx * 1.10 + ph * 2.3, u1 * 1.40 - t * 1.70)).b;
 
-	float wieg = (grob - 0.5) * 0.9 * wiegen * pow(u1, 1.4)
+	float wieg = (grob - 0.5) * 0.9 * wiegen * (1.0 + 0.8 * bewegung) * pow(u1, 1.4)
 		+ 0.10 * wiegen * pow(u1, 1.6) * sin(6.2832 * (t * 0.7 + ph))
 		+ neigung * pow(u1, 1.5);
 	float xc = fx - wieg;
 
-	// Umriss: eine Tropfenform, unten gerundet, nach oben spitz
-	float breite = 0.95 * pow(1.0 - u1, 0.85) * (1.0 - exp(-u1 * 12.0)) + 0.004;
+	// Umriss: eine Tropfenform, unten gerundet, nach oben spitz; beim Stoß oben schmaler
+	float breite = 0.95 * pow(1.0 - u1, 0.85 + 0.5 * stich) * (1.0 - exp(-u1 * 12.0)) + 0.004;
+	// Große Feuer: oben teilen sich mehrere Zungen, die einzeln lecken (ein breites, schnell steigendes Rauschen schneidet Kerben in den Umriss)
+	if (bewegung > 0.0) {
+		float zunge = texture(rausch, vec2(fx * 0.42 + ph * 3.1, u1 * 0.45 - t * 0.75)).r;
+		float kerbe = texture(rausch, vec2(fx * 0.9 + ph * 1.3 + 0.5, u1 * 0.7 - t * 1.2)).g;
+		breite *= 1.0 + bewegung * 0.5 * u1 * (zunge - 0.5) * 2.0;
+		breite *= 1.0 - bewegung * 0.55 * smoothstep(0.25, 0.9, u1) * smoothstep(0.45, 0.75, kerbe) * (1.0 - stich);
+	}
 	float innen = clamp(1.0 - pow(abs(xc) / breite, 2.0), 0.0, 1.0);
 	// Ausfransen: je weiter oben, desto stärker frisst das Rauschen den Rand an
-	float frass = (0.10 + 0.95 * u1) * (1.0 - (0.6 * fein + 0.4 * zack)) * 1.25 * ausfransen;
+	float frass = (0.10 + 0.95 * u1) * (1.0 - (0.6 * fein + 0.4 * zack)) * 1.25 * ausfransen * (1.0 + 0.3 * bewegung);
 	float d = clamp(innen * (1.25 + 0.35 * u1) - frass, 0.0, 1.0);
 
-	// Heiß ist es unten und in der Mitte
-	float temp = clamp(pow(d, 1.7) * (1.25 - 0.75 * u1), 0.0, 1.0);
+	// Heiß ist es unten und in der Mitte (beim Stoß auch weiter oben)
+	float temp = clamp(pow(d, 1.7) * (1.25 - 0.75 * u1 + 0.35 * stich), 0.0, 1.0);
 	vec3 farbe = temp < 0.5 ? mix(farbe_rand, farbe_mitte, temp * 2.0) : mix(farbe_mitte, farbe_kern, (temp - 0.5) * 2.0);
 	float deckung = smoothstep(0.02, 0.35, d) * (0.92 - 0.12 * u1) * smoothstep(0.0, 0.07, u) * (1.0 - smoothstep(0.8, 1.05, u));
-	float hell = helligkeit * (1.0 + (f - 0.5) * 0.7 * flackern);
+	float hell = helligkeit * (1.0 + (f - 0.5) * 0.7 * flackern) * (1.0 + 0.45 * stich);
 	vec3 aus = farbe * deckung * hell;
 
 	// Funken: je Funke eine Lebensdauer; bei jedem Neustart andere Startstelle und Abdrift (Zufall aus der Nummer des Umlaufs)

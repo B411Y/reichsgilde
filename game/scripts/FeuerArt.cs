@@ -12,6 +12,19 @@ public enum FeuerForm { Flamme, Glut, NurRauch }
 public enum FeuerVorgabe { Kerze, Fackel, Laterne, Feuerkorb, Esse, Kamin, Gebaeudebrand, Fensterbrand }
 
 /// <summary>
+/// Grafikstufe der Feuer (Phase 1b, Nutzer 29.10.2026): Auf Niedrig zeichnet jedes Feuer Flamme und Rauch in Technik A, ab Mittel gilt die
+/// Zuordnung je Feuerart (<see cref="FeuerArt.TechnikAbMittel"/>) und der Rauch ist immer Technik B. Mittel und Hoch unterscheiden sich bei den
+/// Flammen nicht; im Spiel wird es dort nur mehr echte Lichter geben (Pool wie bei den Nachtlichtern).
+/// </summary>
+public enum Feuerqualitaet { Niedrig, Mittel, Hoch }
+
+/// <summary>Welche Fassung der Technik A: die gerechnete Rauschen-Flamme (Phase 1, <c>flamme.gdshader</c>) oder das Flipbook aus der Blender-Simulation (Phase 1b, <c>flamme_sim.gdshader</c>); beide eine Fläche je Zunge.</summary>
+public enum ShaderFassung { Rauschen, Simulation }
+
+/// <summary>Welches Flipbook der Blender-Simulation (<c>tools/feuer/flammen_sim.py</c>): ruhig (Fackel, Feuerkorb) oder wild mit Stichflammen (Brand). Keins: Kerze, Laterne und Esse bleiben in Technik A bei der Rauschen-Flamme (kleine, niedrige Flammen; das Flipbook wird dort nur ein heller Fleck im Bloom).</summary>
+public enum FeuerFlipbook { Keins, Ruhig, Wild }
+
+/// <summary>
 /// Alle Maße und Werte eines Feuers (Phase 1 „Feuer und Flammen“): Größe der Flamme, Farben, Flackern, Funken, Rauch und das Licht. Beide Techniken
 /// (<see cref="FeuerTechnik"/>) lesen dieselbe Ressource, so sieht ein Feuer in A und B gleich groß und gleich hell aus. Die fertigen Größen stehen
 /// in <see cref="Neu"/> (je Vorgabe eine geteilte Ressource, damit sich alle Fackeln ein Material teilen); im Godot-Editor lässt sich eine Art auch
@@ -77,6 +90,20 @@ public partial class FeuerArt : Resource
     [Export] public float LichtAusblendenAb { get; set; } = 45f;
     [Export] public float LichtAusblendenLaenge { get; set; } = 20f;
 
+    /// <summary>Technik der Flamme ab Mittel (Nutzer 29.10.2026): A für Kerze, Laterne und Esse, B für Fackel, Feuerkorb, Kamin und Gebäudebrand. Auf Niedrig immer A.</summary>
+    [ExportGroup("Zuordnung")]
+    [Export] public FeuerTechnik TechnikAbMittel { get; set; } = FeuerTechnik.Partikel;
+    /// <summary>Welches Flipbook der Simulation die Flamme zeigt (Technik B und Technik A in der Fassung „Simulation“).</summary>
+    [Export] public FeuerFlipbook Flipbook { get; set; } = FeuerFlipbook.Ruhig;
+    /// <summary>Technik A, Fassung „Rauschen“: 0 = ruhig … 1 = viel Bewegung und häufige Stichflammen (kurze, hohe Ausbrüche) für große Feuer.</summary>
+    [Export(PropertyHint.Range, "0,1")] public float Stichflammen { get; set; }
+
+    /// <summary>Die Technik der Flamme auf einer Grafikstufe: Niedrig immer A, sonst <see cref="TechnikAbMittel"/>.</summary>
+    public FeuerTechnik FlammeFuer(Feuerqualitaet stufe) => stufe == Feuerqualitaet.Niedrig ? FeuerTechnik.Shader : TechnikAbMittel;
+
+    /// <summary>Die Technik des Rauchs auf einer Grafikstufe: Niedrig A, sonst immer B (Nutzer 29.10.2026: der Rauch von B gefällt überall besser).</summary>
+    public static FeuerTechnik RauchFuer(Feuerqualitaet stufe) => stufe == Feuerqualitaet.Niedrig ? FeuerTechnik.Shader : FeuerTechnik.Partikel;
+
     /// <summary>Flammenteilchen je Zunge.</summary>
     [ExportGroup("Partikel (Technik B)")]
     [Export] public int PartikelProZunge { get; set; } = 6;
@@ -97,7 +124,7 @@ public partial class FeuerArt : Resource
         // Kerze: klein, ruhig, ein sanftes Licht
         FeuerVorgabe.Kerze => new FeuerArt
         {
-            Bezeichnung = "Kerze", Hoehe = 0.05f, Breite = 0.022f, Flackern = 0.16f, Tempo = 0.8f, Helligkeit = 1.9f,
+            Bezeichnung = "Kerze", TechnikAbMittel = FeuerTechnik.Shader, Flipbook = FeuerFlipbook.Keins, Hoehe = 0.05f, Breite = 0.022f, Flackern = 0.16f, Tempo = 0.8f, Helligkeit = 1.9f,
             PartikelProZunge = 2, PartikelLebensdauer = 0.6f,
             LichtEnergie = 0.55f, LichtReichweite = 3.2f, LichtFlackern = 0.14f, LichtFarbeKalt = new Color(1.0f, 0.55f, 0.22f), LichtFarbeHeiss = new Color(1.0f, 0.72f, 0.38f),
             LichtAusblendenAb = 12f, LichtAusblendenLaenge = 6f,
@@ -105,7 +132,7 @@ public partial class FeuerArt : Resource
         // Fackel: eine Hand voll Flammen, ein paar Funken, ein Faden dunkler Rauch
         FeuerVorgabe.Fackel => new FeuerArt
         {
-            Bezeichnung = "Fackel", Hoehe = 0.42f, Breite = 0.2f, Zungen = 2, Radius = 0.025f, Flackern = 0.4f, Tempo = 1f,
+            Bezeichnung = "Fackel", TechnikAbMittel = FeuerTechnik.Partikel, Flipbook = FeuerFlipbook.Ruhig, Hoehe = 0.42f, Breite = 0.2f, Zungen = 2, Radius = 0.025f, Flackern = 0.4f, Tempo = 1f,
             Funken = 3, PartikelFunken = 8, FunkenHoehe = 3.2f, FunkenGroesse = 0.011f,
             RauchMenge = 0.4f, RauchHoehe = 1.9f, RauchBreite = 0.55f, RauchRuss = 0.6f, RauchGlut = 0.6f,
             LichtEnergie = 2.4f, LichtReichweite = 9f, LichtFlackern = 0.32f,
@@ -113,7 +140,7 @@ public partial class FeuerArt : Resource
         // Laterne: ein kleines, ruhiges Flämmchen hinter Glas, kein Rauch
         FeuerVorgabe.Laterne => new FeuerArt
         {
-            Bezeichnung = "Laterne", Hoehe = 0.11f, Breite = 0.055f, Flackern = 0.12f, Tempo = 0.7f, Helligkeit = 1.8f,
+            Bezeichnung = "Laterne", TechnikAbMittel = FeuerTechnik.Shader, Flipbook = FeuerFlipbook.Keins, Hoehe = 0.11f, Breite = 0.055f, Flackern = 0.12f, Tempo = 0.7f, Helligkeit = 1.8f,
             PartikelProZunge = 3, PartikelLebensdauer = 0.6f,
             LichtEnergie = 1.1f, LichtReichweite = 5.5f, LichtFlackern = 0.12f, LichtFarbeKalt = new Color(1.0f, 0.55f, 0.2f), LichtFarbeHeiss = new Color(1.0f, 0.7f, 0.35f),
             LichtAusblendenAb = 35f, LichtAusblendenLaenge = 15f,
@@ -121,7 +148,7 @@ public partial class FeuerArt : Resource
         // Feuerkorb: breit, mehrere Zungen, viele Funken, Rauch
         FeuerVorgabe.Feuerkorb => new FeuerArt
         {
-            Bezeichnung = "Feuerkorb", Hoehe = 0.72f, Breite = 0.46f, Zungen = 4, Radius = 0.17f, Flackern = 0.45f, Tempo = 1f, Helligkeit = 1.8f,
+            Bezeichnung = "Feuerkorb", TechnikAbMittel = FeuerTechnik.Partikel, Flipbook = FeuerFlipbook.Ruhig, Stichflammen = 0.15f, Hoehe = 0.72f, Breite = 0.46f, Zungen = 4, Radius = 0.17f, Flackern = 0.45f, Tempo = 1f, Helligkeit = 1.8f,
             Funken = 5, PartikelFunken = 14, FunkenHoehe = 3.4f, FunkenGroesse = 0.013f,
             RauchMenge = 0.5f, RauchHoehe = 3.2f, RauchBreite = 1.0f, RauchRuss = 0.5f, RauchGlut = 0.6f, RauchSchichten = 2,
             LichtEnergie = 4.5f, LichtReichweite = 12f, LichtFlackern = 0.3f, LichtAusblendenAb = 60f,
@@ -129,7 +156,7 @@ public partial class FeuerArt : Resource
         // Esse: flaches Glutbett mit niedrigen Flammen und aufstiebenden Glutstückchen
         FeuerVorgabe.Esse => new FeuerArt
         {
-            Bezeichnung = "Esse", Form = FeuerForm.Glut, Hoehe = 0.2f, Breite = 0.3f, Zungen = 3, Radius = 0.2f, Flackern = 0.25f, Tempo = 0.9f, Helligkeit = 1.8f,
+            Bezeichnung = "Esse", TechnikAbMittel = FeuerTechnik.Shader, Flipbook = FeuerFlipbook.Keins, Form = FeuerForm.Glut, Hoehe = 0.2f, Breite = 0.3f, Zungen = 3, Radius = 0.2f, Flackern = 0.25f, Tempo = 0.9f, Helligkeit = 1.8f,
             FarbeMitte = new Color(1.0f, 0.42f, 0.06f),
             Funken = 5, PartikelFunken = 14, FunkenHoehe = 6f, FunkenGroesse = 0.010f,
             RauchMenge = 0.3f, RauchHoehe = 2.6f, RauchBreite = 0.6f, RauchRuss = 0.4f, RauchGlut = 0.5f,
@@ -139,14 +166,14 @@ public partial class FeuerArt : Resource
         // Kamin: nur Rauch (das Feuer brennt im Haus), kein Licht
         FeuerVorgabe.Kamin => new FeuerArt
         {
-            Bezeichnung = "Kamin", Form = FeuerForm.NurRauch, Zungen = 0,
+            Bezeichnung = "Kamin", TechnikAbMittel = FeuerTechnik.Partikel, Flipbook = FeuerFlipbook.Keins, Form = FeuerForm.NurRauch, Zungen = 0,
             RauchMenge = 0.6f, RauchHoehe = 7f, RauchBreite = 1.8f, RauchRuss = 0.25f, RauchGlut = 0f, RauchSchichten = 2,
             LichtEnergie = 0f,
         },
         // Gebäudebrand: Flammen aus dem Dach, viele Funken, dicker schwarzer Rauch, großes Licht
         FeuerVorgabe.Gebaeudebrand => new FeuerArt
         {
-            Bezeichnung = "Gebäudebrand", Hoehe = 2.8f, Breite = 1.6f, Zungen = 10, Radius = 2.3f, Flackern = 0.5f, Tempo = 1.1f, Helligkeit = 1.9f,
+            Bezeichnung = "Gebäudebrand", TechnikAbMittel = FeuerTechnik.Partikel, Flipbook = FeuerFlipbook.Wild, Stichflammen = 1f, Hoehe = 2.8f, Breite = 1.6f, Zungen = 10, Radius = 2.3f, Flackern = 0.5f, Tempo = 1.1f, Helligkeit = 1.9f,
             Funken = 8, PartikelFunken = 50, FunkenHoehe = 2.6f, FunkenGroesse = 0.05f, PartikelProZunge = 5, PartikelLebensdauer = 0.95f,
             RauchMenge = 1f, RauchHoehe = 16f, RauchBreite = 6f, RauchRuss = 0.85f, RauchGlut = 0.7f, RauchSchichten = 3,
             LichtEnergie = 16f, LichtReichweite = 30f, LichtFlackern = 0.35f, LichtAusblendenAb = 140f, LichtAusblendenLaenge = 50f,
@@ -154,7 +181,7 @@ public partial class FeuerArt : Resource
         // Fensterbrand: Flammen schlagen aus einem Fenster (gehört zum Gebäudebrand, ohne eigenes Licht)
         FeuerVorgabe.Fensterbrand => new FeuerArt
         {
-            Bezeichnung = "Fensterbrand", Hoehe = 1.1f, Breite = 0.85f, Zungen = 3, Radius = 0.3f, Flackern = 0.5f, Tempo = 1.15f,
+            Bezeichnung = "Fensterbrand", TechnikAbMittel = FeuerTechnik.Partikel, Flipbook = FeuerFlipbook.Wild, Stichflammen = 0.6f, Hoehe = 1.1f, Breite = 0.85f, Zungen = 3, Radius = 0.3f, Flackern = 0.5f, Tempo = 1.15f,
             Funken = 3, PartikelFunken = 10, FunkenHoehe = 2.2f, FunkenGroesse = 0.03f, PartikelProZunge = 5,
             RauchMenge = 0.6f, RauchHoehe = 4.5f, RauchBreite = 1.8f, RauchRuss = 0.8f, RauchGlut = 0.7f,
             LichtEnergie = 0f,

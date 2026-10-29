@@ -3,15 +3,15 @@
     python tools/feuer/texturen.py        (braucht nur numpy; z. B. mit dem Python von Blender)
 
 Schreibt nach game/assets/texturen/feuer/:
-    flamme_flipbook.png   8 × 4 Bilder zu je 128 × 128 Pixeln (1024 × 512): eine Flammenzunge, die flackert und nach oben ausfranst.
-                          Zeile für Zeile von links oben; das letzte Bild geht nahtlos ins erste über (Schleife). Farbe von
-                          weißgelb (heiß, unten Mitte) über Orange bis dunkelrot (Rand), Alpha = Dichte. Für die Partikel-Flamme (B).
     rauch_flipbook.png    4 × 4 Bilder zu je 128 × 128 Pixeln (512 × 512): eine weiche, wirbelnde Rauchwolke (grau, Alpha = Dichte). Für B.
     funke.png             32 × 32: ein glühender Punkt (Funke, Glutstück). Für B.
     rauschen.png          128 × 128, kachelbar: R, G, B drei verschiedene Rauschmuster, A = 255. Für die Shader-Flamme (A) und den Rauch.
 
-Die Bilder der Flamme laufen im Takt: Das Rauschen steigt von Bild zu Bild um ganze Gitterperioden nach oben, darum schließt sich
+Die Bilder des Rauchs laufen im Takt: Das Rauschen steigt von Bild zu Bild um ganze Gitterperioden nach oben, darum schließt sich
 die Schleife ohne Sprung. Die Farbe wird als „gerade“ Farbe mit Alpha abgelegt (nicht vormultipliziert), auch am Rand.
+
+Die Flammen-Flipbooks (flamme_ruhig.png, flamme_wild.png) kommen seit Phase 1b aus einer Blender-Feuersimulation: tools/feuer/flammen_sim.py.
+Das frühere gerechnete Flammen-Flipbook (flamme_flipbook.png) ist entfallen (Nutzer 29.10.2026: wirkte nicht echt).
 """
 import os
 import struct
@@ -64,71 +64,6 @@ def fbm(X, Y, zx, zy, oktaven, saat, ring_x=True):
 
 def stufe(a, b, x):
     return glatt(np.clip((x - a) / (b - a), 0, 1))
-
-
-# ═════════════════════════════════════════════════════════════════════════════
-#  Flamme
-# ═════════════════════════════════════════════════════════════════════════════
-
-# Farbverlauf nach „Temperatur“ T (0 kalt/Rand … 1 heiß/Kern): Stützstellen und Farben (linear 0..1)
-T_STELLEN = [0.00, 0.12, 0.30, 0.50, 0.72, 0.90, 1.00]
-T_FARBEN = np.array([
-    [0.30, 0.02, 0.00],   # dunkelrot am äußersten Rand
-    [0.70, 0.07, 0.01],   # rot
-    [0.98, 0.28, 0.03],   # rotorange
-    [1.00, 0.55, 0.08],   # orange
-    [1.00, 0.80, 0.22],   # gelb
-    [1.00, 0.95, 0.60],   # hellgelb
-    [1.00, 1.00, 0.88],   # weißgelb im Kern
-])
-
-
-def farbverlauf(T):
-    return np.dstack([np.interp(T, T_STELLEN, T_FARBEN[:, k]) for k in range(3)])
-
-
-def flammenbild(t, g=128, saat=SAAT):
-    """Ein Bild der Flamme zur Zeit t (0..1, Schleife). Rückgabe g × g × 4 (RGBA, 0..1). Unten ist der Fuß, oben die Spitze."""
-    v, u = np.mgrid[0:g, 0:g]
-    x = (u + 0.5) / g * 2 - 1                  # −1 … 1
-    h = 1 - (v + 0.5) / g                      # 0 unten … 1 oben (die Zunge füllt die Höhe nicht ganz)
-    h = np.clip((h - 0.04) / 0.90, -0.2, 1.3)  # etwas Rand unten und oben
-    X = (x + 1) / 2
-    hh = np.clip(h, 0, 1)
-
-    # Große, langsame Bewegung (die ganze Zunge wiegt sich) und feines, schnelles Lecken (die Spitzen): in X fein, in Y gestreckt,
-    # damit die Ränder senkrechte Zungen bilden und keine waagerechten Streifen
-    grob = fbm(X, hh * 0.5 - t * 1.0, 2, 4, 3, saat + 1)
-    fein = fbm(X, hh * 1.0 - t * 2.0, 8, 5, 3, saat + 2)
-    zack = fbm(X, hh * 1.5 - t * 3.0, 14, 8, 2, saat + 3)
-
-    wiegen = (grob - 0.5) * 0.9 * hh ** 1.4 + 0.10 * hh ** 1.6 * np.sin(2 * np.pi * (t + 0.15))
-    xc = x - wiegen
-
-    # Umriss: eine Tropfenform, unten gerundet, nach oben spitz
-    breite = 0.66 * (1 - hh) ** 0.85 * (1 - np.exp(-hh * 12.0)) + 0.004
-    innen = np.clip(1 - (np.abs(xc) / breite) ** 2, 0, 1)
-
-    # Ausfransen: je weiter oben, desto stärker frisst das Rauschen den Rand an; oben lösen sich einzelne Zungen
-    frass = (0.10 + 0.95 * hh ** 1.0) * (1.0 - (0.6 * fein + 0.4 * zack)) * 1.25
-    d = np.clip(innen * (1.25 + 0.35 * hh) - frass, 0, 1)
-
-    # Heiß ist es unten und in der Mitte: nur der dichte Kern ist weißgelb, die Ränder sind orange bis rot
-    T = np.clip(d ** 1.7 * (1.25 - 0.75 * hh), 0, 1)
-    rgb = farbverlauf(T)
-    alpha = stufe(0.02, 0.35, d) * (0.92 - 0.12 * hh)
-    # unten sanft einblenden (kein harter Rand auf dem Boden), ganz oben auslaufen
-    alpha *= stufe(0.0, 0.07, h) * (1 - stufe(0.80, 1.05, h))
-    return np.dstack([rgb, alpha])
-
-
-def flammen_blatt(spalten=8, zeilen=4, g=128, saat=SAAT):
-    n = spalten * zeilen
-    blatt = np.zeros((zeilen * g, spalten * g, 4))
-    for k in range(n):
-        z, s = divmod(k, spalten)
-        blatt[z * g:(z + 1) * g, s * g:(s + 1) * g] = flammenbild(k / n, g, saat)
-    return blatt
 
 
 # ═════════════════════════════════════════════════════════════════════════════
@@ -209,7 +144,7 @@ def png(pfad, bild):
 
 def main():
     os.makedirs(ZIEL, exist_ok=True)
-    for name, bild in (("flamme_flipbook.png", flammen_blatt()), ("rauch_flipbook.png", rauch_blatt()),
+    for name, bild in (("rauch_flipbook.png", rauch_blatt()),
                        ("funke.png", funke()), ("rauschen.png", rauschen())):
         pfad = os.path.join(ZIEL, name)
         png(pfad, bild)

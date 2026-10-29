@@ -3,13 +3,16 @@ using Godot;
 namespace Reichsgilde;
 
 /// <summary>
-/// Testszene „Feuer und Flammen“, Phase 1 (<c>--feuertest=1</c>): ein Steinboden mit sieben Feuerarten, links jede in Technik A (Shader-Flamme),
-/// rechts jede in Technik B (Partikel-Flamme), Seite an Seite, damit man beide vergleichen kann. Die Paare stehen hintereinander (Kerze,
-/// Fackel, Laterne, Feuerkorb, Esse, Kamin, Gebäudebrand), die Blickrichtung geht nach Norden.
+/// Testszene „Feuer und Flammen“, Phase 1 und 1b (<c>--feuertest=1</c>): ein Steinboden mit sieben Feuerarten. In der Ansicht „Vergleich“ steht
+/// links jede in Technik A (Shader-Flamme, Fassung „Simulation“ oder „Rauschen“), rechts in Technik B (Partikel-Flamme), Seite an Seite; der Rauch
+/// ist auf beiden Seiten B (Nutzer 29.10.2026). In den Ansichten „Niedrig“, „Mittel“ und „Hoch“ steht jede Feuerart einmal in der Mitte, so wie
+/// die Grafikstufe sie zeichnet (Zuordnung in <see cref="FeuerArt"/>). Die Paare stehen hintereinander (Kerze, Fackel, Laterne, Feuerkorb, Esse,
+/// Kamin, Gebäudebrand), die Blickrichtung geht nach Norden.
 ///
 /// Startoptionen (siehe <c>docs/STARTOPTIONEN.md</c>): <c>--feuersicht=nah|stadt|fern</c>, <c>--feuerpaar=1–7</c>, <c>--feuertag=1</c>,
-/// <c>--feuerart=A|B|keins|beide</c>, <c>--feuerlicht=0|1</c>, <c>--feuerfackeln=&lt;n&gt;</c> (Messung: n Fackeln im Raster, mit
-/// <c>--feuerlichter=&lt;m&gt;</c> echten Lichtern). Tasten: 1–7 oder Pfeile = Paar, V = Sicht, N = Tag/Nacht, T = A/B/beide/keins,
+/// <c>--feuerart=A|B|keins|beide</c>, <c>--feuerstufe=vergleich|niedrig|mittel|hoch</c>, <c>--feuerfassung=sim|rauschen</c>,
+/// <c>--feuerlicht=0|1</c>, <c>--feuerfackeln=&lt;n&gt;</c> (Messung: n Fackeln im Raster, mit <c>--feuerlichter=&lt;m&gt;</c> echten Lichtern).
+/// Tasten: 1–7 oder Pfeile = Paar, V = Sicht, N = Tag/Nacht, G = Ansicht (Vergleich, Niedrig, Mittel, Hoch), F = Fassung von A, T = A/B/beide/keins,
 /// L = Lichter, H = Beschriftung, rechte Maustaste ziehen = drehen, Rad = nähern, Esc = Ende. Im Protokoll steht jede Sekunde die Bildrate.
 /// </summary>
 public partial class Feuertest : Node
@@ -18,6 +21,13 @@ public partial class Feuertest : Node
 
     private enum Sicht { Nah, Stadt, Fern }
     private enum Zeigen { Beide, NurA, NurB, Keins }
+    /// <summary>Vergleich: A links, B rechts; sonst jede Feuerart einmal, wie die Grafikstufe sie zeichnet.</summary>
+    private enum Ansicht { Vergleich, Niedrig, Mittel, Hoch }
+    /// <summary>Im Fackelraster: welcher Satz Fackeln zu sehen ist (−1 = keiner).</summary>
+    private const int SatzARauschen = 0, SatzASim = 1, SatzB = 2;
+
+    /// <summary>Eine Stelle, an der ein Feuer brennt (der Aufbau bleibt, das Feuer wird beim Wechsel der Ansicht neu gebaut).</summary>
+    private sealed record Stelle(int Paar, bool Links, Node3D Wurzel, FeuerVorgabe Vorgabe, Vector3 Lage, bool MitLicht);
 
     /// <summary>Ein Paar: dieselbe Feuerart links in A und rechts in B. Maße in Metern.</summary>
     private sealed record Paar(string Name, FeuerVorgabe Vorgabe, float Halb, float Abstand, float NahHoehe, float NahAbstand, float Vorne);
@@ -36,10 +46,14 @@ public partial class Feuertest : Node
     private readonly Dictionary<string, string> _optionen = new();
     private Sicht _sicht = Sicht.Nah;
     private Zeigen _zeigen = Zeigen.Beide;
+    private Ansicht _ansicht = Ansicht.Vergleich;
+    private ShaderFassung _fassung = ShaderFassung.Simulation;
+    private int _rasterSatz = SatzARauschen;
+    private readonly List<Stelle> _stellen = new();
     private int _paar = 1;
     private bool _tag, _licht = true, _beschriftung = true;
     private int _fackeln, _fackelLichter = int.MaxValue;
-    private sealed record Zustand(string Name, Zeigen Zeigen, int Lichter);
+    private sealed record Zustand(string Name, Zeigen Zeigen, int Lichter, int Satz = -1);
     private readonly List<Zustand> _zyklus = new();
     private int _zyklusNr;
     private double _zyklusSekunden, _zyklusZeit;
@@ -75,6 +89,8 @@ public partial class Feuertest : Node
         _fackeln = int.TryParse(Option("feuerfackeln", "0"), out var n) ? Math.Max(0, n) : 0;
         if (int.TryParse(Option("feuerlichter", ""), out var m)) _fackelLichter = Math.Max(0, m);
         _zeigen = Option("feuerart", "beide").ToUpperInvariant() switch { "A" => Zeigen.NurA, "B" => Zeigen.NurB, "KEINS" => Zeigen.Keins, _ => Zeigen.Beide };
+        _ansicht = Option("feuerstufe", "vergleich").ToLowerInvariant() switch { "niedrig" => Ansicht.Niedrig, "mittel" => Ansicht.Mittel, "hoch" => Ansicht.Hoch, _ => Ansicht.Vergleich };
+        _fassung = Option("feuerfassung", "sim").ToLowerInvariant() is "rauschen" or "alt" ? ShaderFassung.Rauschen : ShaderFassung.Simulation;
         _sicht = Option("feuersicht", _fackeln > 0 ? "stadt" : "nah").ToLowerInvariant() switch { "stadt" => Sicht.Stadt, "fern" => Sicht.Fern, _ => Sicht.Nah };
         double.TryParse(Option("feuerzyklus", "0"), System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out _zyklusSekunden);
         if (_fackeln > 0 && _zyklusSekunden <= 0 && _zeigen == Zeigen.Beide) _zeigen = Zeigen.NurA;   // ohne Zyklus gibt es im Raster nur eine Technik
@@ -85,14 +101,14 @@ public partial class Feuertest : Node
         StoffeBauen();
         UmgebungBauen();
         BodenBauen();
-        if (_fackeln > 0) FackelRasterBauen(); else PaareBauen();
+        if (_fackeln > 0) FackelRasterBauen(); else { PaareBauen(); FeuerNeuBauen(); }
         KameraBauen();
         OberflaecheBauen();
         TagNachtSetzen();
         SichtSetzen();
         if (_zyklusSekunden > 0) ZyklusBauen();
         ZeigenSetzen();
-        GD.Print($"[feuer] start sicht={_sicht} art={_zeigen} tag={_tag} licht={_licht} paar={Paare[_paar].Name} fackeln={_fackeln} lichter={(_fackelLichter == int.MaxValue ? "alle" : _fackelLichter)} " +
+        GD.Print($"[feuer] start sicht={_sicht} art={_zeigen} ansicht={_ansicht} fassung={_fassung} tag={_tag} licht={_licht} paar={Paare[_paar].Name} fackeln={_fackeln} lichter={(_fackelLichter == int.MaxValue ? "alle" : _fackelLichter)} " +
                  $"renderer={RenderingServer.GetCurrentRenderingMethod()} fenster={GetViewport().GetVisibleRect().Size}");
     }
 
@@ -106,9 +122,9 @@ public partial class Feuertest : Node
         _zyklus.Add(new Zustand("ohne_Feuer", Zeigen.Keins, 0));
         if (_fackeln > 0)
         {
-            foreach (var (technik, zeigen) in new[] { ("A", Zeigen.NurA), ("B", Zeigen.NurB) })
+            foreach (var (name, satz) in new[] { ("A_Rauschen", SatzARauschen), ("A_Simulation", SatzASim), ("B", SatzB) })
                 foreach (var lichter in new[] { 0, 12, _fackeln })
-                    _zyklus.Add(new Zustand($"{technik}_{lichter}_Lichter", zeigen, lichter));
+                    _zyklus.Add(new Zustand($"{name}_{lichter}_Lichter", satz == SatzB ? Zeigen.NurB : Zeigen.NurA, lichter, satz));
         }
         else
         {
@@ -125,6 +141,7 @@ public partial class Feuertest : Node
         var z = _zyklus[_zyklusNr];
         _zustand = z.Name;
         _zeigen = z.Zeigen;
+        if (_fackeln > 0) _rasterSatz = z.Satz;
         foreach (var f in _feuer)
             f.LichtSetzen(_licht && (!f.HasMeta("fackel") || (int)f.GetMeta("fackel") < z.Lichter));
         ZeigenSetzen();
@@ -233,13 +250,67 @@ public partial class Feuertest : Node
         return m;
     }
 
-    private Feuer FeuerSetzen(Node3D eltern, FeuerVorgabe vorgabe, FeuerTechnik technik, Vector3 lage, bool mitLicht = true)
+    private Feuer FeuerSetzen(Node3D eltern, FeuerVorgabe vorgabe, FeuerTechnik technik, Vector3 lage, bool mitLicht = true, ShaderFassung fassung = ShaderFassung.Rauschen)
     {
-        var f = Feuer.Neu(vorgabe, technik, mitLicht && _licht);
+        var f = Feuer.Neu(vorgabe, technik, mitLicht && _licht, fassung: fassung);
         f.Position = lage;
         eltern.AddChild(f);
         _feuer.Add(f);
         return f;
+    }
+
+    /// <summary>Merkt eine Stelle für ein Feuer; <see cref="FeuerNeuBauen"/> setzt dort das Feuer der gewählten Ansicht.</summary>
+    private void StelleMerken(Node3D wurzel, FeuerVorgabe vorgabe, Vector3 lage, bool mitLicht = true) =>
+        _stellen.Add(new Stelle((int)wurzel.GetMeta("paar"), (bool)wurzel.GetMeta("links"), wurzel, vorgabe, lage, mitLicht));
+
+    private static Feuerqualitaet Stufe(Ansicht a) => a switch { Ansicht.Niedrig => Feuerqualitaet.Niedrig, Ansicht.Mittel => Feuerqualitaet.Mittel, _ => Feuerqualitaet.Hoch };
+
+    /// <summary>
+    /// Baut alle Feuer der Paare neu (nach einem Wechsel der Ansicht oder der Fassung von A). Vergleich: links A in der gewählten Fassung, rechts B,
+    /// der Rauch beidseits B. Grafikstufe: nur die linke Seite, in die Mitte gerückt, Flamme und Rauch nach <see cref="Feuer.NachStufe"/>.
+    /// </summary>
+    private void FeuerNeuBauen()
+    {
+        foreach (var f in _feuer)
+        {
+            f.GetParent()?.RemoveChild(f);
+            f.QueueFree();
+        }
+        _feuer.Clear();
+        for (var i = 0; i < _wurzelA.Count; i++)
+            _wurzelA[i].Position = new Vector3(_ansicht == Ansicht.Vergleich ? -Paare[i].Halb : 0f, 0, _zPaar[i]);
+        foreach (var st in _stellen)
+        {
+            if (_ansicht != Ansicht.Vergleich && !st.Links) continue;
+            var f = _ansicht == Ansicht.Vergleich
+                ? Feuer.Neu(st.Vorgabe, st.Links ? FeuerTechnik.Shader : FeuerTechnik.Partikel, st.MitLicht, rauch: FeuerTechnik.Partikel, fassung: _fassung)
+                : Feuer.NachStufe(st.Vorgabe, Stufe(_ansicht), st.MitLicht, fassung: _fassung);
+            f.Position = st.Lage;
+            f.SetMeta("links", st.Links);
+            st.Wurzel.AddChild(f);
+            f.LichtSetzen(_licht);
+            _feuer.Add(f);
+        }
+        foreach (var l in _beschriftungen) l.Text = BeschriftungText((int)l.GetMeta("paar"), (bool)l.GetMeta("links"));
+        PaareSichtbar();
+        ZeigenSetzen();
+    }
+
+    private string FassungName(FeuerVorgabe v) =>
+        FeuerArt.Neu(v).Flipbook == FeuerFlipbook.Keins || _fassung == ShaderFassung.Rauschen ? "Rauschen" : "Simulation";
+
+    private string BeschriftungText(int paar, bool links)
+    {
+        var p = Paare[paar];
+        if (_ansicht == Ansicht.Vergleich)
+        {
+            if (FeuerArt.Neu(p.Vorgabe).Form == FeuerForm.NurRauch) return $"{(links ? "A" : "B")}  {p.Name} (nur Rauch, beidseits B)";
+            return links ? $"A ({FassungName(p.Vorgabe)})  {p.Name}" : $"B  {p.Name}";
+        }
+        var art = FeuerArt.Neu(p.Vorgabe);
+        var stufe = Stufe(_ansicht);
+        var flamme = art.Form == FeuerForm.NurRauch ? "keine Flamme" : art.FlammeFuer(stufe) == FeuerTechnik.Shader ? $"Flamme A ({FassungName(p.Vorgabe)})" : "Flamme B";
+        return $"{_ansicht}: {p.Name} – {flamme}, Rauch {(FeuerArt.RauchFuer(stufe) == FeuerTechnik.Shader ? "A" : "B")}";
     }
 
     private void Wand(Node3D eltern, float breite, float hoehe, float z)
@@ -260,13 +331,16 @@ public partial class Feuertest : Node
             foreach (var technik in new[] { FeuerTechnik.Shader, FeuerTechnik.Partikel })
             {
                 var seite = technik == FeuerTechnik.Shader ? -1f : 1f;
-                var wurzel = new Node3D { Name = $"{paar.Name}_{(technik == FeuerTechnik.Shader ? "A" : "B")}", Position = new Vector3(seite * paar.Halb, 0, z) };
+                var links = technik == FeuerTechnik.Shader;
+                var wurzel = new Node3D { Name = $"{paar.Name}_{(links ? "A" : "B")}", Position = new Vector3(seite * paar.Halb, 0, z) };
+                wurzel.SetMeta("paar", i);
+                wurzel.SetMeta("links", links);
                 AddChild(wurzel);
-                (technik == FeuerTechnik.Shader ? _wurzelA : _wurzelB).Add(wurzel);
-                PropBauen(wurzel, paar, technik);
+                (links ? _wurzelA : _wurzelB).Add(wurzel);
+                PropBauen(wurzel, paar);
                 var text = new Label3D
                 {
-                    Text = $"{(technik == FeuerTechnik.Shader ? "A" : "B")}  {paar.Name}",
+                    Text = $"{(links ? "A" : "B")}  {paar.Name}",
                     Billboard = BaseMaterial3D.BillboardModeEnum.Enabled,
                     FixedSize = true,
                     NoDepthTest = true,
@@ -279,13 +353,14 @@ public partial class Feuertest : Node
                     RenderPriority = 10,
                 };
                 text.SetMeta("paar", i);
+                text.SetMeta("links", links);
                 wurzel.AddChild(text);
                 _beschriftungen.Add(text);
             }
         }
     }
 
-    private void PropBauen(Node3D w, Paar paar, FeuerTechnik technik)
+    private void PropBauen(Node3D w, Paar paar)
     {
         switch (paar.Vorgabe)
         {
@@ -294,14 +369,14 @@ public partial class Feuertest : Node
                 Zylinder(w, 0.03f, 0.04f, 0.03f, new Vector3(0, 0.74f, 0), _eisen);
                 Zylinder(w, 0.011f, 0.012f, 0.11f, new Vector3(0, 0.77f, 0), _wachs);
                 Wand(w, 3f, 2.4f, -0.55f);
-                FeuerSetzen(w, FeuerVorgabe.Kerze, technik, new Vector3(0, 0.88f, 0));
+                StelleMerken(w, FeuerVorgabe.Kerze, new Vector3(0, 0.88f, 0));
                 break;
             case FeuerVorgabe.Fackel:
                 Zylinder(w, 0.03f, 0.035f, 1.55f, Vector3.Zero, _holz);
                 Zylinder(w, 0.085f, 0.04f, 0.17f, new Vector3(0, 1.55f, 0), _eisen);
                 Zylinder(w, 0.07f, 0.07f, 0.04f, new Vector3(0, 1.7f, 0), _kohle);
                 Wand(w, 4f, 2.6f, -0.85f);
-                FeuerSetzen(w, FeuerVorgabe.Fackel, technik, new Vector3(0, 1.72f, 0));
+                StelleMerken(w, FeuerVorgabe.Fackel, new Vector3(0, 1.72f, 0));
                 break;
             case FeuerVorgabe.Laterne:
                 Zylinder(w, 0.025f, 0.03f, 1.48f, Vector3.Zero, _eisen);
@@ -310,7 +385,7 @@ public partial class Feuertest : Node
                 Kasten(w, new Vector3(0.22f, 0.04f, 0.22f), new Vector3(0, 1.73f, 0), _eisen);
                 Zylinder(w, 0.003f, 0.012f, 0.05f, new Vector3(0, 1.51f, 0), _wachs);
                 Wand(w, 4f, 2.6f, -0.85f);
-                FeuerSetzen(w, FeuerVorgabe.Laterne, technik, new Vector3(0, 1.545f, 0));
+                StelleMerken(w, FeuerVorgabe.Laterne, new Vector3(0, 1.545f, 0));
                 break;
             case FeuerVorgabe.Feuerkorb:
                 for (var k = 0; k < 3; k++)
@@ -325,26 +400,26 @@ public partial class Feuertest : Node
                 for (var k = 0; k < 3; k++)
                     Zylinder(w, 0.045f, 0.045f, 0.5f, new Vector3(0, 0.92f + k * 0.03f, 0), _kohle, new Vector3(90f, k * 60f, 0));
                 Wand(w, 4.5f, 2.6f, -1.1f);
-                FeuerSetzen(w, FeuerVorgabe.Feuerkorb, technik, new Vector3(0, 1.17f, 0));
+                StelleMerken(w, FeuerVorgabe.Feuerkorb, new Vector3(0, 1.17f, 0));
                 break;
             case FeuerVorgabe.Esse:
                 Kasten(w, new Vector3(1.3f, 0.85f, 1.0f), Vector3.Zero, _stein);
                 Zylinder(w, 0.42f, 0.42f, 0.02f, new Vector3(0, 0.85f, 0), _dunkel);
                 Kasten(w, new Vector3(1.3f, 1.7f, 0.3f), new Vector3(0, 0.85f, -0.48f), _stein);
                 Kasten(w, new Vector3(0.5f, 0.12f, 0.25f), new Vector3(0.9f, 0.85f, 0.1f), _eisen);   // Amboss-Block daneben
-                FeuerSetzen(w, FeuerVorgabe.Esse, technik, new Vector3(0, 0.88f, 0));
+                StelleMerken(w, FeuerVorgabe.Esse, new Vector3(0, 0.88f, 0));
                 break;
             case FeuerVorgabe.Kamin:
                 HausBauen(w, 2.4f, 1.6f, 2.4f, false);
                 Kasten(w, new Vector3(0.45f, 1.3f, 0.45f), new Vector3(0.7f, 1.6f, -0.3f), _stein);
-                FeuerSetzen(w, FeuerVorgabe.Kamin, technik, new Vector3(0.7f, 3.0f, -0.3f), false);
+                StelleMerken(w, FeuerVorgabe.Kamin, new Vector3(0.7f, 3.0f, -0.3f), false);
                 break;
             case FeuerVorgabe.Gebaeudebrand:
                 HausBauen(w, 6.5f, 3.6f, 5.5f, true);
                 Kasten(w, new Vector3(0.6f, 1.6f, 0.6f), new Vector3(2.0f, 3.6f, -1.2f), _stein);
-                FeuerSetzen(w, FeuerVorgabe.Gebaeudebrand, technik, new Vector3(0, 4.6f, 0));
-                FeuerSetzen(w, FeuerVorgabe.Fensterbrand, technik, new Vector3(-1.8f, 1.3f, 2.85f), false);
-                FeuerSetzen(w, FeuerVorgabe.Fensterbrand, technik, new Vector3(1.8f, 1.3f, 2.85f), false);
+                StelleMerken(w, FeuerVorgabe.Gebaeudebrand, new Vector3(0, 4.6f, 0));
+                StelleMerken(w, FeuerVorgabe.Fensterbrand, new Vector3(-1.8f, 1.3f, 2.85f), false);
+                StelleMerken(w, FeuerVorgabe.Fensterbrand, new Vector3(1.8f, 1.3f, 2.85f), false);
                 break;
         }
     }
@@ -371,9 +446,10 @@ public partial class Feuertest : Node
 
     private void FackelRasterBauen()
     {
-        // Messung: n Fackeln im Raster (10 je Reihe, 3,5 m Abstand), mit Pfahl und Schale; im Zyklus stehen A und B übereinander, je eine zu sehen
-        var techniken = _zyklusSekunden > 0 ? new[] { FeuerTechnik.Shader, FeuerTechnik.Partikel }
-            : new[] { _zeigen == Zeigen.NurB ? FeuerTechnik.Partikel : FeuerTechnik.Shader };
+        // Messung: n Fackeln im Raster (10 je Reihe, 3,5 m Abstand), mit Pfahl und Schale; im Zyklus stehen A (Rauschen), A (Simulation) und B
+        // übereinander, je ein Satz zu sehen. Flamme und Rauch in derselben Technik (wie Niedrig bei A, wie Hoch bei B).
+        _rasterSatz = _zeigen == Zeigen.Keins ? -1 : _zeigen == Zeigen.NurB ? SatzB : _fassung == ShaderFassung.Simulation ? SatzASim : SatzARauschen;
+        var saetze = _zyklusSekunden > 0 ? new[] { SatzARauschen, SatzASim, SatzB } : new[] { _rasterSatz };
         var spalten = 10;
         var reihen = (_fackeln + spalten - 1) / spalten;
         var wurzel = new Node3D { Name = "Fackeln" };
@@ -388,8 +464,13 @@ public partial class Feuertest : Node
             Zylinder(stelle, 0.03f, 0.035f, 1.55f, Vector3.Zero, _holz);
             Zylinder(stelle, 0.085f, 0.04f, 0.17f, new Vector3(0, 1.55f, 0), _eisen);
             if (_zeigen == Zeigen.Keins && _zyklusSekunden <= 0) continue;
-            foreach (var technik in techniken)
-                FeuerSetzen(stelle, FeuerVorgabe.Fackel, technik, new Vector3(0, 1.72f, 0), i < _fackelLichter).SetMeta("fackel", i);
+            foreach (var satz in saetze)
+            {
+                var f = FeuerSetzen(stelle, FeuerVorgabe.Fackel, satz == SatzB ? FeuerTechnik.Partikel : FeuerTechnik.Shader, new Vector3(0, 1.72f, 0), i < _fackelLichter,
+                    satz == SatzASim ? ShaderFassung.Simulation : ShaderFassung.Rauschen);
+                f.SetMeta("fackel", i);
+                f.SetMeta("satz", satz);
+            }
         }
     }
 
@@ -450,8 +531,9 @@ public partial class Feuertest : Node
         var b = _zeigen is Zeigen.Beide or Zeigen.NurB;
         foreach (var f in _feuer)
         {
-            var istA = f.Technik == FeuerTechnik.Shader;
-            f.Visible = istA ? a : b;
+            if (f.HasMeta("satz")) f.Visible = (int)f.GetMeta("satz") == _rasterSatz;          // Fackelraster: ein Satz
+            else if (_ansicht == Ansicht.Vergleich) f.Visible = (bool)f.GetMeta("links") ? a : b;  // links A, rechts B
+            else f.Visible = _zeigen != Zeigen.Keins;                                             // Grafikstufe: alle (außer „keins“)
             f.ProcessMode = f.Visible ? ProcessModeEnum.Inherit : ProcessModeEnum.Disabled;
         }
         BeschriftungSetzen();
@@ -460,13 +542,20 @@ public partial class Feuertest : Node
     /// <summary>In der Nähe nur das gewählte Paar (die übrigen stehen hinter der Mauer, sind aber sonst zu sehen und kosten Zeit).</summary>
     private void PaareSichtbar()
     {
-        for (var i = 0; i < _wurzelA.Count; i++) _wurzelA[i].Visible = _wurzelB[i].Visible = _sicht != Sicht.Nah || i == _paar;
+        for (var i = 0; i < _wurzelA.Count; i++)
+        {
+            _wurzelA[i].Visible = _sicht != Sicht.Nah || i == _paar;
+            // In den Ansichten der Grafikstufe steht jede Feuerart nur einmal (die linke Seite, in die Mitte gerückt)
+            _wurzelB[i].Visible = _wurzelA[i].Visible && _ansicht == Ansicht.Vergleich;
+        }
     }
 
     /// <summary>Nah und Stadt: nur die Namen des gewählten Paars (sonst scheinen die der anderen durch die Mauern); fern nur die der großen Paare (Kamin, Gebäudebrand), die kleinen liegen zu dicht.</summary>
     private void BeschriftungSetzen()
     {
-        foreach (var l in _beschriftungen) l.Visible = _beschriftung && (_sicht == Sicht.Fern ? (int)l.GetMeta("paar") >= 5 : (int)l.GetMeta("paar") == _paar);
+        foreach (var l in _beschriftungen)
+            l.Visible = _beschriftung && (_ansicht == Ansicht.Vergleich || (bool)l.GetMeta("links"))
+                        && (_sicht == Sicht.Fern ? (int)l.GetMeta("paar") >= 5 : (int)l.GetMeta("paar") == _paar);
     }
 
     // ═════════════════════════════════════════════════════════════════════════
@@ -487,16 +576,18 @@ public partial class Feuertest : Node
             l.AddThemeFontSizeOverride("font_size", 16);
             ebene.AddChild(l);
         }
-        _hilfe.Text = "1–7 / Pfeile: Paar   V: Sicht (nah, Stadt, fern)   N: Nacht/Tag   T: A / B / beide / keins   L: Lichter   H: Beschriftung\n" +
-                      "Rechte Maustaste ziehen: drehen   Mausrad: nähern   Esc: Ende";
+        _hilfe.Text = "1–7 / Pfeile: Paar   V: Sicht (nah, Stadt, fern)   N: Nacht/Tag   G: Ansicht (Vergleich, Niedrig, Mittel, Hoch)   F: Fassung von A (Simulation/Rauschen)\n" +
+                      "T: A / B / beide / keins   L: Lichter   H: Beschriftung   Rechte Maustaste ziehen: drehen   Mausrad: nähern   Esc: Ende";
         AnzeigeAktualisieren(0);
     }
 
     private void AnzeigeAktualisieren(double fps)
     {
         var kopf = _fackeln > 0
-            ? $"Feuertest – Messung: {_fackeln} Fackeln, Technik {(_zeigen == Zeigen.NurB ? "B (Partikel)" : _zeigen == Zeigen.Keins ? "keine (nur Pfähle)" : "A (Shader)")}"
-            : "Feuertest – links A: Shader-Flamme   rechts B: Partikel-Flamme";
+            ? $"Feuertest – Messung: {_fackeln} Fackeln, Technik {_rasterSatz switch { SatzB => "B (Partikel)", SatzASim => "A (Simulation)", SatzARauschen => "A (Rauschen)", _ => "keine (nur Pfähle)" }}"
+            : _ansicht == Ansicht.Vergleich
+                ? $"Feuertest – Vergleich: links A (Shader-Flamme, Fassung {(_fassung == ShaderFassung.Simulation ? "Simulation" : "Rauschen")})   rechts B (Partikel-Flamme)   Rauch beidseits B"
+                : $"Feuertest – Grafikstufe {_ansicht}: so zeichnet das Spiel die Feuer (Fassung von A: {(_fassung == ShaderFassung.Simulation ? "Simulation" : "Rauschen")})";
         var paar = _fackeln > 0 ? "" : $"   Paar {_paar + 1}: {Paare[_paar].Name}";
         _anzeige.Text = $"{kopf}\nSicht: {_sicht}{paar}   {(_tag ? "Tag" : "Nacht")}   Lichter: {(_licht ? "an" : "aus")}   Zeigen: {_zeigen}   Bilder/s: {fps:F0}";
     }
@@ -514,6 +605,17 @@ public partial class Feuertest : Node
                     case Key.V: _sicht = (Sicht)(((int)_sicht + 1) % 3); _zoomFaktor = 1f; SichtSetzen(); break;
                     case Key.N: _tag = !_tag; TagNachtSetzen(); break;
                     case Key.T: _zeigen = (Zeigen)(((int)_zeigen + 1) % 4); ZeigenSetzen(); break;
+                    case Key.G when _fackeln == 0:
+                        _ansicht = (Ansicht)(((int)_ansicht + 1) % 4);
+                        FeuerNeuBauen();
+                        SichtSetzen();
+                        AnzeigeAktualisieren(0);
+                        break;
+                    case Key.F when _fackeln == 0:
+                        _fassung = _fassung == ShaderFassung.Simulation ? ShaderFassung.Rauschen : ShaderFassung.Simulation;
+                        FeuerNeuBauen();
+                        AnzeigeAktualisieren(0);
+                        break;
                     case Key.L:
                         _licht = !_licht;
                         foreach (var f in _feuer) f.LichtSetzen(_licht);
@@ -574,7 +676,7 @@ public partial class Feuertest : Node
         var r = RenderingServer.GetRenderingInfo;
         var cpu = _messCpu / _messBilder;
         var gpu = _messGpu / _messBilder;
-        GD.Print($"[feuer] fps={fps:F1} ms={ms:F2} gpu={gpu:F2} cpu={cpu:F2} zustand={_zustand} sicht={_sicht} art={_zeigen} tag={_tag} licht={_licht} paar={(_fackeln > 0 ? "-" : Paare[_paar].Name)} " +
+        GD.Print($"[feuer] fps={fps:F1} ms={ms:F2} gpu={gpu:F2} cpu={cpu:F2} zustand={_zustand} sicht={_sicht} art={_zeigen} ansicht={_ansicht} fassung={_fassung} tag={_tag} licht={_licht} paar={(_fackeln > 0 ? "-" : Paare[_paar].Name)} " +
                  $"feuer={_feuer.Count(f => f.Visible)} aufrufe={r(RenderingServer.RenderingInfo.TotalDrawCallsInFrame)} objekte={r(RenderingServer.RenderingInfo.TotalObjectsInFrame)} " +
                  $"dreiecke={r(RenderingServer.RenderingInfo.TotalPrimitivesInFrame)}");
         AnzeigeAktualisieren(fps);
