@@ -79,6 +79,8 @@ public partial class Hauptmenue : Node
             _startoptionenGenutzt = true;
             if (OS.GetCmdlineUserArgs().Any(a => a.StartsWith("--kartenwerkstatt")))
                 Callable.From(() => GetTree().ChangeSceneToFile(Kartenwerkstatt.Szene)).CallDeferred();
+            else if (OS.GetCmdlineUserArgs().Any(a => a.StartsWith("--feuertest")))
+                Callable.From(() => GetTree().ChangeSceneToFile(Feuertest.Szene)).CallDeferred();   // Testszene „Feuer und Flammen“ (Phase 1)
             else
                 CallDeferred(MethodName.SpielStarten);
             return;
