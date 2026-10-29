@@ -131,12 +131,12 @@ public abstract class InnenTafel
         Inhalt.AddChild(new HSeparator());
     }
 
-    /// <summary>Ein Raster mit Spalten, in dem Zeilen als Folge von Steuerelementen stehen.</summary>
-    protected GridContainer Raster(int spalten, int abstandX = 14)
+    /// <summary>Ein Raster mit Spalten, in dem Zeilen als Folge von Steuerelementen stehen; jede zweite Zeile ist hinterlegt (<paramref name="streifen"/>: sonst ab drei Spalten – zwei Spalten sind meist ein Formular).</summary>
+    protected GridContainer Raster(int spalten, int abstandX = 14, bool? streifen = null)
     {
-        var raster = new GridContainer { Columns = spalten };
+        var raster = streifen ?? spalten > 2 ? new Streifenraster { Columns = spalten } : new GridContainer { Columns = spalten };
         raster.AddThemeConstantOverride("h_separation", abstandX);
-        raster.AddThemeConstantOverride("v_separation", 6);
+        raster.AddThemeConstantOverride("v_separation", 10);
         Inhalt.AddChild(raster);
         return raster;
     }
