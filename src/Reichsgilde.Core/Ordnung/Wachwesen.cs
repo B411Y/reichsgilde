@@ -28,6 +28,12 @@ public sealed class PatrouilleDaten
 
     /// <summary>Anteil des Schutzes, um den die Zeugenchance steigt (die Streife sieht mehr).</summary>
     public double ZeugenAnteil { get; init; } = 0.5;
+
+    /// <summary>
+    /// Am Markt fasst die Streife auch Taschendiebe: Fangchance × (1 + dieser Wert × Schutz der Streife). Mit 5 bringt ein
+    /// Wachhaus mit vier Gesellen (Schutz 0,1) × 1,5. Ab Datenversion 64; ohne Angabe 0 (die Streife fängt keine Taschendiebe).
+    /// </summary>
+    public double TaschendiebFang { get; init; }
 }
 
 public sealed class WachturmDaten
@@ -88,6 +94,7 @@ public sealed class WacheDaten
         if (Sold.JeStufe.Count < 3 || Razzia.JeStufe.Count < 3) f.Add("wache: sold.jeStufe und razzia.jeStufe brauchen je einen Wert für Stufe 1, 2 und 3.");
         if (Sold.JeMinute < 0 || Ansehen < 0 || Kopfgeld.Taschendieb < 0 || Sold.JeStufe.Any(x => x < 0) || Razzia.JeStufe.Any(x => x < 0))
             f.Add("wache: Sold, Ansehen, Kopfgeld und Razzien dürfen nicht negativ sein.");
+        if (Patrouille.TaschendiebFang < 0) f.Add("wache.patrouille.taschendiebFang darf nicht negativ sein.");
         foreach (var (name, wert) in new[] { ("patrouille.schutzJeWachmann", Patrouille.SchutzJeWachmann), ("patrouille.hoechstens", Patrouille.Hoechstens),
                      ("patrouille.zeugenAnteil", Patrouille.ZeugenAnteil), ("wachturm.schutz", Wachturm.Schutz), ("wachturm.hoechstens", Wachturm.Hoechstens),
                      ("razzia.chance", Razzia.Chance), ("razzia.chanceJeStufe", Razzia.ChanceJeStufe), ("kopfgeld.anteilBusse", Kopfgeld.AnteilBusse) })
@@ -155,6 +162,7 @@ public sealed record Gefangener(Konto Herkunft, Vergehen Vergehen, string Betrof
 ///   • Sold: Jede volle Stunde zahlt die Stadt für die Arbeitszeit der Wachleute (versteuert, wie ein Umsatz).
 ///   • Patrouille (passiv): Wachleute in der Stadt senken nachts die Erfolgschance von Diebstahl, Sabotage,
 ///     Einbruch, Brandstiftung und Entführung in der Stadt und machen Zeugen häufiger – zum Schutz aller.
+///     Tagsüber fasst die Streife am Markt öfter Taschendiebe (<see cref="Taschendiebfaktor"/>).
 ///   • Wachturm (Umland): senkt die Überfallchance der gewöhnlichen Banden auf allen Umlandwegen.
 ///   • Razzia (Befehl): sofort – Beweise für Taten des Hauses, Diebesgut wird beschlagnahmt.
 ///   • Kopfgeld: Gewinnt ein Haus der Wache eine Anklage, zahlt die Stadt einen Anteil der Buße; gefasste Taschendiebe bringen Kopfgeld.
@@ -219,6 +227,13 @@ public sealed class Wachwesen
     /// </summary>
     public double Patrouillefaktor(Betrieb? b) =>
         b is null || b.InDerStadt ? (1 - _w.Befugnisse.StreifeSchutz(b, Patrouilleschutz)) * _w.Ratsantraege.Nachtschutzfaktor : 1;
+
+    /// <summary>
+    /// Faktor auf die Fangchance der Taschendiebe am Markt: 1 + <c>wache.patrouille.taschendiebFang</c> × <see cref="Patrouilleschutz"/>
+    /// (1 ohne Wache). Es zählt die Streife der ganzen Stadt wie beim Schutz – auch die Wache des Hauses, dem die Diebe dienen:
+    /// Sie schützt ihre eigenen Taschendiebe nicht. Das Kopfgeld bekommt sie für die eigenen Leute nicht (<see cref="TaschendiebGefasst"/>).
+    /// </summary>
+    public double Taschendiebfaktor => IstAktiv ? 1 + Daten.Patrouille.TaschendiebFang * Patrouilleschutz : 1;
 
     /// <summary>So viel wahrscheinlicher ist ein Zeuge in der Stadt.</summary>
     public double ZeugenBonus(Betrieb? b) => b is not null && b.InDerStadt ? ZeugenBonusInDerStadt : 0;

@@ -80,7 +80,7 @@ static class MeinungTests
         ("Meinungen: Daten – Datenversion 61, sechs Aktivitäten (eine davon das Geschenk), Fehler fallen auf", () =>
         {
             var d = Daten.Value.Meinungen!;
-            Pruefe.Gleich(63, Daten.Value.Version);
+            Pruefe.Gleich(64, Daten.Value.Version);
             Pruefe.Gleich("Geschenk,Gastmahl,Zechen,Messe,Brettspiel,Jagd", string.Join(",", d.Aktivitaeten.Keys));
             Pruefe.Wahr(d.Aktivitaeten["Geschenk"].Geschenk, "Geschenk");
             Pruefe.Gleich(2, d.Aktivitaeten["Jagd"].Ap);

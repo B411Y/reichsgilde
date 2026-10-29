@@ -139,38 +139,73 @@ void wetter_boden(inout vec3 bf, inout float rau, inout vec3 nw, inout vec3 leuc
 	}
 }
 
-// Rinnsale (oberflaeche.gdshader): Auf schrägen Flächen und Wänden läuft das Wasser in Gefällerichtung ab. Die Richtung ist die Schwerkraft in der
-// Ebene der Fläche (aus der Weltnormalen wn); quer dazu liegen Streifen, in denen es herabrinnt – bewegte, leicht gewölbte Wasserbahnen (Normale und
-// Rauheit), dunkler und glänzend. Waagerechte Flächen haben kein Gefälle und damit keine Rinnsale; Wände weniger (dort tropft es nur).
-// c = Farbe, rau = Rauheit, nw = Normale in der Welt (wird mitgeändert), wn = die glatte Normale der Fläche (ohne Unebenheit der Textur: sonst
-// flimmert die Richtung), wp = Ort in der Welt.
-void wetter_rinnsale(inout vec3 c, inout float rau, inout vec3 nw, vec3 wn, vec3 wp, float zeit) {
-	// Das Gefälle aus der Fläche selbst (Ableitungen des Ortes), nicht aus der Vertexnormalen: Dächer sind oft weich geschattet, dann zeigt die
-	// Vertexnormale nur ungefähr und das Wasser liefe schief. Das Vorzeichen der Flächennormale ist egal (n·n.y ist in beiden Fällen gleich).
-	vec3 fn = cross(dFdx(wp), dFdy(wp));
-	fn = length(fn) > 1e-9 ? normalize(fn) : wn;
-	vec3 fall = vec3(0.0, -1.0, 0.0) + fn * fn.y;            // Schwerkraft in der Ebene der Fläche (bergab)
-	float neig = length(fall);                               // = Sinus des Neigungswinkels: 0 flach, 1 senkrecht
-	float stark = smoothstep(0.18, 0.5, neig) * wetter_rinn * (1.0 - 0.45 * smoothstep(0.85, 1.0, neig));
-	if (stark < 0.01) return;
-	fall /= max(neig, 0.0001);
-	vec3 quer = normalize(cross(fn, fall));
-	float a = dot(wp, fall), q = dot(wp, quer);
-	// zwei Lagen Bahnen (schmal und breit), jede läuft mit eigener Geschwindigkeit bergab; w_rausch ist 0–1. Die Bahnen sind nur etwa
-	// viermal so lang wie breit (nicht fadenartig gezogen) und reißen auf, indem eine zweite, langsamere Lage sie unterbricht
-	float t1 = zeit * 0.9, t2 = zeit * 0.5;
-	float n1 = w_rausch(vec2(q * 7.0, a * 1.4 - t1 * 1.6)), n1b = w_rausch(vec2(q * 7.0 + 0.35, a * 1.4 - t1 * 1.6));
-	float n2 = w_rausch(vec2(q * 3.5 + 17.0, a * 0.8 - t2 * 1.0)), n2b = w_rausch(vec2(q * 3.5 + 17.35, a * 0.8 - t2 * 1.0));
-	float riss = smoothstep(0.35, 0.6, w_rausch(vec2(q * 2.0 + 5.0, a * 0.9 - t2 * 0.9)));
-	float b1 = smoothstep(0.5, 0.7, n1) * riss, b1b = smoothstep(0.5, 0.7, n1b) * riss;
-	float b2 = smoothstep(0.52, 0.72, n2), b2b = smoothstep(0.52, 0.72, n2b);
-	float bahn = max(b1, b2 * 0.8);
-	// Wölbung quer zur Bahn (Unterschied der Höhe auf kleinem Abstand) kippt die Normale zur Seite – sanft, sonst blitzen weiße Fäden auf
-	float quergefaelle = (b1b - b1) * 0.8 + (b2b - b2) * 0.5;
-	nw = normalize(nw + quer * quergefaelle * stark * 0.35);
-	c *= 1.0 - 0.22 * bahn * stark;
-	c += wetter_himmel * 0.04 * bahn * stark;          // nasser Schimmer: die Bahn spiegelt etwas Himmel
-	rau = mix(rau, 0.12, bahn * stark);
+// Rinnsale (oberflaeche.gdshader, PR „Regen 2“): Auf Dächern laufen kurze, unterbrochene Rinnsale in den Fugen der Deckung bergab – je Spalte
+// (rund 34 cm, wie ein Ziegel breit) Stücke von einem Viertel bis einer Reihe Länge, mit dickerem Kopf, die mit der Zeit herabwandern und in Reihen
+// der Deckung (reihe) gezählt werden, nicht in Metern: So folgen sie den Ziegel- und Schieferreihen. Sie machen die Fläche dunkler, geben ihr einen
+// leichten Glanz und einen Schimmer von Himmel, der unabhängig vom Blickwinkel ist: gl ist Leuchten (EMISSION), nicht Spiegelung – ein Spiegelstreifen
+// zeigt sich nur im Spiegelwinkel, und je nach Kameradrehung (Q/E) sah man das Wasser auf manchen Dächern und auf anderen nicht.
+// An Wänden: lange, schmale, dunkle Laufspuren, die unter Simsen und Fenstern (alle ~2,2 m, rund einen Meter über dem Geschoss) beginnen.
+// c = Farbe, rau = Rauheit, nw wird nicht mehr verändert (Unebenheit im Licht flimmert), wn = die glatte Normale der Fläche, wp = Ort in der Welt,
+// dach = Ort in der Ebene der Fläche (Meter, wie bei wetter_flaeche), reihe = Höhe einer Reihe (Meter), gl = Leuchten (wird erhöht).
+void wetter_rinnsale(inout vec3 c, inout float rau, inout vec3 gl, vec3 wn, vec3 wp, vec2 dach, float reihe, float zeit) {
+	// Gefälle und Querrichtung aus der Weltnormalen der Fläche, nicht aus Ableitungen oder den Dachkoordinaten der Reihen: Die Reihen der Dächer
+	// sind leicht gekippte Sägezähne, und was aus Normale oder Ableitungen jeder Reihe käme, zerfiele in Dreiecke an den Reihenkanten.
+	// So wird nur y (bergab: sinkend, durch den Sinus der Neigung zur Strecke an der Schräge gedehnt) und die waagerechte Querachse gebraucht.
+	float neig = sqrt(max(1.0 - wn.y * wn.y, 0.0));          // Sinus des Neigungswinkels: 0 flach, 1 senkrecht
+	float dachst = smoothstep(0.18, 0.45, neig) * (1.0 - smoothstep(0.86, 0.97, neig));
+	float wandst = smoothstep(0.86, 0.97, neig);
+	if (dachst * wetter_rinn < 0.01 && wandst * wetter_rinn < 0.01) return;
+	vec3 quer = normalize(vec3(-wn.z, 0.0, wn.x) + vec3(0.0001, 0.0, 0.0));
+	float bahn = 0.0, spurwand = 0.0;
+	if (dachst > 0.01) {
+		float strecke = -wp.y / clamp(neig, 0.3, 1.0);        // Meter bergab entlang der Fläche
+		float spalte = dot(wp, quer) / 0.34;
+		float ci = floor(spalte);
+		float cf = fract(spalte) - 0.5;
+		float hs = w_hash(vec2(ci, 3.7));
+		float zell = max(reihe, 0.18) * 4.0;                  // vier Reihen je Zelle
+		float pos = strecke / zell - zeit * (0.12 + 0.22 * hs);
+		float zi = floor(pos);
+		float f = fract(pos);
+		float h1 = w_hash(vec2(ci + 11.0, zi)), h2 = w_hash(vec2(ci + 23.0, zi + 5.0)), h3 = w_hash(vec2(ci + 41.0, zi + 9.0));
+		float aktiv = step(h1, 0.25 + 0.4 * wetter_rinn);
+		float start = h2 * 0.3;
+		float laenge = 0.3 + 0.4 * h3;
+		float seg = smoothstep(start, start + 0.05, f) * (1.0 - smoothstep(start + laenge - 0.06, start + laenge, f)) * aktiv;
+		// Kopf: unten am Stück dicker, wie ein Tropfen; die Spur schlängelt leicht
+		float kopf = smoothstep(start + laenge - 0.2, start + laenge - 0.04, f);
+		float breite = mix(0.18, 0.34, kopf);
+		float wackel = 0.1 * sin(pos * 9.0 + hs * 40.0);
+		// aus der Ferne (Spalte schmaler als ein Bildpunkt) ausblenden: sonst flimmern die Spuren zu Körnung
+		float weit = 1.0 - smoothstep(0.35, 0.9, fwidth(spalte));
+		bahn = seg * (1.0 - smoothstep(breite * 0.4, breite, abs(cf + wackel))) * dachst * weit;
+	}
+	if (wandst > 0.01) {
+		// senkrechte Laufspuren: Spalten ~0,7 m, jede beginnt unter einem Sims (alle 2,2 m, 1 m über dem Geschossboden) und läuft 0,5–1,6 m
+		float spalte = dot(wp, quer) / 0.7;
+		float ci = floor(spalte);
+		float cf = fract(spalte) - 0.5;
+		float hh = wp.y;
+		float geschoss = floor(hh / 2.2);
+		float t = hh - geschoss * 2.2;                      // Meter über dem Geschossboden, 0–2,2
+		float h1 = w_hash(vec2(ci, geschoss + 3.0)), h2 = w_hash(vec2(ci + 7.0, geschoss));
+		float vorhanden = step(h1, 0.3 + 0.35 * wetter_rinn);
+		float oben = 1.0 + 0.3 * h2;                         // Beginn unter dem Sims
+		float lauf = 0.8 + 1.2 * h2;
+		float seg = smoothstep(oben - lauf, oben - lauf + 0.35, t) * (1.0 - smoothstep(oben - 0.08, oben, t));
+		float spur = 1.0 - smoothstep(0.12, 0.32, abs(cf + 0.12 * sin(hh * 4.0 + ci)));
+		spurwand = seg * spur * vorhanden * wandst * (1.0 - smoothstep(0.35, 0.9, fwidth(spalte)));
+	}
+	float st = bahn * wetter_rinn;
+	// Laufspuren an Wänden: Mauer und Fachwerk werden dort dunkler (Wasser auf Stein ist dunkel), mit kaum Glanz – anders als auf Dächern
+	float sw = spurwand * wetter_rinn;
+	c *= 1.0 - 0.35 * sw;
+	gl += max(wetter_himmel, vec3(0.025, 0.03, 0.04)) * 0.1 * sw;
+	rau = mix(rau, max(rau * 0.7, 0.45), sw);
+	c *= 1.0 - 0.4 * st;
+	// nasser Schimmer, unabhängig vom Blickwinkel: ein Teil Himmelslicht, dazu etwas von der Eigenfarbe (dunkles Holz leuchtet nicht grau)
+	gl += max(wetter_himmel, vec3(0.025, 0.03, 0.04)) * 0.3 * st;
+	rau = mix(rau, max(rau * 0.6, 0.4), st);   // nur leicht glänzender: kein Spiegelstreifen
 }
 
 // Wetter auf den Modellen (oberflaeche.gdshader): Schnee auf allem, was nach oben zeigt (Dächer, Mauerkronen, Brunnen …), Nässe dunkler und
@@ -179,14 +214,21 @@ void wetter_rinnsale(inout vec3 c, inout float rau, inout vec3 nw, vec3 wn, vec3
 // Schnee liegt in der Dachebene und nicht in der Welt-x/z-Ebene (dort würde er an Schrägen gestreckt): Aus der Nähe in Reihen gegliedert – die
 // Flecken laufen mit den Reihen, in jeder Reihenkante liegt er dichter –, mit wachsendem Abstand (fwidth der Reihen) wird das Muster weich zu einer
 // ruhigen Decke gemittelt. Auf flachen Flächen (Mauerkronen) gibt es keine Reihen, dort gilt dasselbe Fleckenmuster ohne Kanten.
-void wetter_flaeche(inout vec3 c, inout float rau, inout vec3 nw, vec3 wn, vec3 wg, vec3 wp, vec2 dach, float reihe, float zeit) {
+void wetter_flaeche(inout vec3 c, inout float rau, inout vec3 nw, inout vec3 gl, vec3 wn, vec3 wg, vec3 wp, vec2 dach, float reihe, float zeit) {
 	if (wetter_flaechen < 0.5) return;
 	if (wetter_naesse > 0.001) {
+		// Nässe: Dächer und Wände dunkler und glänzender (Wände fast so stark wie Dächer: Mauern und Fachwerk werden bei Regen sichtbar nass),
+		// dazu ein leichter, vom Blickwinkel unabhängiger Schimmer (gl); die Reihen der Deckung halten das Wasser unten in jeder Reihe
 		float oben = clamp(wn.y, 0.0, 1.0);
-		c *= 1.0 - 0.3 * wetter_naesse * (0.4 + 0.6 * oben);
-		rau = mix(rau, rau * 0.45, wetter_naesse * (0.4 + 0.6 * oben));
+		float stark = 0.75 + 0.25 * oben;
+		float pv = dach.y / max(reihe, 0.05);
+		float fein = 1.0 - smoothstep(0.05, 0.28, fwidth(pv));
+		float film = (1.0 - smoothstep(0.0, 0.5, fract(pv))) * fein * smoothstep(0.1, 0.8, oben) * (1.0 - smoothstep(0.9, 0.98, oben));
+		c *= 1.0 - (0.36 * stark + 0.2 * film) * wetter_naesse;
+		rau = mix(rau, rau * 0.5, wetter_naesse * stark);
+		gl += wetter_himmel * 0.02 * wetter_naesse * stark;
 	}
-	if (wetter_rinn > 0.01) wetter_rinnsale(c, rau, nw, wg, wp, zeit);
+	if (wetter_rinn > 0.01) wetter_rinnsale(c, rau, gl, wg, wp, dach, reihe, zeit);
 	if (wetter_dach > 0.001) {
 		float pv = dach.y / reihe;
 		float fein = 1.0 - smoothstep(0.05, 0.28, fwidth(pv));   // 1 nah genug für Reihen, 0 zu weit

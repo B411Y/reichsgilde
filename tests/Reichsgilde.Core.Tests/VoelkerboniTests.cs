@@ -32,18 +32,22 @@ static class VoelkerboniTests
 
     public static IEnumerable<(string, Action)> Alle() => new (string, Action)[]
     {
-        ("Daten: Zwerge Schmied/Steinmetz/Geldleiher +5 %, Dieb/Parfumeur −5 %; Elben Gelehrte +, Grobarbeit −; Halblinge Wirt/Dieb +, Gardist/Schmied −; Menschen ohne Mali", () =>
+        ("Daten: Zwerge Schmied/Steinmetz +5 %, Parfumeur −5 %; Elben Gelehrte +, Grobarbeit −; Halblinge Wirt +, Schmied −; Menschen ohne Mali; Dieb, Gardist und Geldleiher nur ±2 % (Gauner-Regeln)", () =>
         {
             var b = Daten.Value.Berufe;
             Pruefe.Gleich(0.05, b["Schmied"].Voelker[Volk.Zwerg]);
             Pruefe.Gleich(-0.05, b["Schmied"].Voelker[Volk.Halbling]);
-            Pruefe.Gleich(0.05, b["Geldleiher"].Voelker[Volk.Zwerg]);
-            Pruefe.Gleich(-0.05, b["Dieb"].Voelker[Volk.Zwerg]);
             Pruefe.Gleich(0.05, b["Prediger"].Voelker[Volk.Elb]);
             Pruefe.Gleich(-0.05, b["Steinmetz"].Voelker[Volk.Elb]);
             Pruefe.Gleich(0.05, b["Wirt"].Voelker[Volk.Halbling]);
-            Pruefe.Gleich(-0.05, b["Gardist"].Voelker[Volk.Halbling]);
             Pruefe.Gleich(0.05, b["Tischler"].Voelker[Volk.Mensch]);
+            // Entscheidung des Nutzers (29.10.2026): Bei den Berufen ohne Ware wirkt der Bonus drei- bis zehnfach aufs Vermögen.
+            Pruefe.Gleich(0.02, b["Dieb"].Voelker[Volk.Halbling]);
+            Pruefe.Gleich(-0.02, b["Dieb"].Voelker[Volk.Zwerg]);
+            Pruefe.Gleich(0.02, b["Geldleiher"].Voelker[Volk.Zwerg]);
+            Pruefe.Gleich(0.02, b["Gardist"].Voelker[Volk.Mensch]);
+            Pruefe.Gleich(-0.02, b["Gardist"].Voelker[Volk.Elb]);
+            Pruefe.Gleich(-0.02, b["Gardist"].Voelker[Volk.Halbling]);
             Pruefe.Wahr(b.Values.All(x => x.Voelker.GetValueOrDefault(Volk.Mensch) >= 0), "Menschen haben keine Mali");
             Pruefe.WirftMitMeldung(() => Wirtschaftsdaten.AusJson(Json.Replace("\"voelker\": { \"Mensch\": 0.05 }", "\"voelker\": { \"Mensch\": 0.6 }")), "Völkerbonus");
         }),
@@ -64,16 +68,16 @@ static class VoelkerboniTests
             Pruefe.Ungefaehr(1.05, zwerg.Erfahrung("Schmied") / mensch.Erfahrung("Schmied"), 0.03);
         }),
 
-        ("Ohne Ware: Halblingsdiebe arbeiten 5 % mehr Diebesminuten als Menschen, Zwergendiebe 5 % weniger (auch Erfahrung)", () =>
+        ("Ohne Ware: Halblingsdiebe arbeiten 2 % mehr Diebesminuten als Menschen, Zwergendiebe 2 % weniger (auch Erfahrung)", () =>
         {
             var sim = NeueSimulation(Unerwischt.Value);
             var (halbling, _) = Haus(sim, "Halbling", Volk.Halbling, Betriebsart.Schmugglerloch, "Geselle", 4);
             var (mensch, _) = Haus(sim, "Mensch", Volk.Mensch, Betriebsart.Schmugglerloch, "Geselle", 4);
             var (zwerg, _) = Haus(sim, "Zwerg", Volk.Zwerg, Betriebsart.Schmugglerloch, "Geselle", 4);
             for (var i = 0; i < 11 * 60 - Spielzeit.TagesbeginnMinute; i++) sim.Tick(); // bis 11 Uhr: drei Arbeitsstunden
-            Pruefe.Ungefaehr(1.05, halbling.Erfahrung("Dieb") / mensch.Erfahrung("Dieb"), 1e-9);
-            Pruefe.Ungefaehr(0.95, zwerg.Erfahrung("Dieb") / mensch.Erfahrung("Dieb"), 1e-9);
-            Pruefe.Ungefaehr(1.05, halbling.Laufend.Umsatz / mensch.Laufend.Umsatz, 1e-9);
+            Pruefe.Ungefaehr(1.02, halbling.Erfahrung("Dieb") / mensch.Erfahrung("Dieb"), 1e-9);
+            Pruefe.Ungefaehr(0.98, zwerg.Erfahrung("Dieb") / mensch.Erfahrung("Dieb"), 1e-9);
+            Pruefe.Ungefaehr(1.02, halbling.Laufend.Umsatz / mensch.Laufend.Umsatz, 1e-9);
         }),
 
         ("KI und Kalkulation: Der erwartete Gewinn rechnet den Völkerbonus mit; ohne Familie kein Bonus", () =>
