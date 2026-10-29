@@ -118,9 +118,9 @@ static class StadtkasseTests
             var vorjahr = w.Kasse.Vorjahr!;
             Pruefe.Gleich(Spielzeit.StartJahr, vorjahr.Jahr);
             // 800 + 2 × 500 + 2 × 300 + 2 × 150 – auch für die Ratsherren; eine kleine Stadt zahlt weniger (Datenversion 57: hier ohne
-            // arbeitendes Haus 100 ÷ 310 Einwohner, seit Balancing 3 mit 35 Einwohnern je Haus; vorher 100 ÷ 250 = 0,4)
+            // arbeitendes Haus 100 ÷ 250 Einwohner = 0,4)
             var f = w.Kasse.Gehaltsfaktor;
-            Pruefe.Ungefaehr(100.0 / 310, f, 1e-12);
+            Pruefe.Ungefaehr(0.4, f, 1e-12);
             Pruefe.Ungefaehr(2700.0 * f, vorjahr[Kassenposten.Amtsgehaelter], 1e-9);
             Pruefe.Ungefaehr(150.0 * f, k.Vorjahr!.Amtseinkommen, 1e-9);
             Pruefe.Gleich(150.0, vorjahr.Einnahmen);
@@ -129,9 +129,7 @@ static class StadtkasseTests
             Pruefe.Gleich(0.0, w.Kasse.DiesesJahr.Einnahmen);
             Pruefe.Gleich("Umsatzsteuer|Glaubenszins|Amtsgehaelter", string.Join("|", vorjahr.Posten.Select(p => p.Posten)));
             Pruefe.Ungefaehr(150.0 - 100 * 0.2 - 2700 * f, w.Kasse.HaushaltMit(4)!.Value, 1e-9); // Haushalt des Vorjahres mit 4 % statt 5 %
-            // Die leere Kasse hat keine Folgen: Die Gehälter werden weiter gezahlt, die Kasse geht ins Minus (seit Balancing 3 mit
-            // kleineren Gehältern erst im vierten Jahr: 3.150 − 4 × 2.700 × 100 ÷ 310 < 0).
-            JahrBeenden(sim);
+            // Die leere Kasse hat keine Folgen: Die Gehälter werden weiter gezahlt, die Kasse geht ins Minus.
             JahrBeenden(sim);
             JahrBeenden(sim);
             Pruefe.Wahr(w.Kasse.Stand < 0, $"Kasse {w.Kasse.Stand}");

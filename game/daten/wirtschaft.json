@@ -1461,7 +1461,7 @@
       "antragGunst": 10, "antragVerkehr": 30, "antragAnsehen": 5, "ansehenJahre": 5
     }
   },
-  "stadt": { "einwohnerGrund": 100, "einwohnerJeHaus": 35, "bezugHaeuser": 4 },
+  "stadt": { "einwohnerGrund": 100, "einwohnerJeHaus": 25, "bezugHaeuser": 4 },
   "liegenschaften": [
     {
       "name": "Grube am Silberberg",
