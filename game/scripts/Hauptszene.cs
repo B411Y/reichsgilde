@@ -237,7 +237,7 @@ public partial class Hauptszene : Node
         Rollbereich.Einhuellen(_auswahl);
         Rollbereich.RechtsAnheften(_auswahl);
         _auswahlRahmen = Fensterrahmen.Anmelden(_auswahl, "Auswahl", AuswahlSchliessen);
-        _auswahlRahmen.LageMerken = false; // sie erscheint an der Maus, nicht an einer gemerkten Stelle
+        _auswahlRahmen.Mittig = false; // Ausnahme: Sie erscheint an der Maus (oder rechts im Raum), nicht in der Mitte
         _auswahlRahmen.FuerEsc = false; // Esc schließt sie erst nach der Innenansicht (siehe _UnhandledInput)
         RaumleisteBauen();
         HilfeBauen();
