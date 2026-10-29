@@ -256,7 +256,7 @@ So wird eingetragen (damit sich die Chats nie an derselben Stelle treffen):
 | Leistung | Alles nur bei Nässe: `wetter_rinn` und `wetter_naesse` sind in Niedrig 0, die Zweige im Shader werden dann übersprungen; Giebelpunkte laufen mit den Traufen (nicht in Niedrig). Keine Änderung an `Stadtansicht.Grafik.cs` oder `Licht.cs`. | 29.10.2026 |
 | Sturm nass | `Wetterwerte.Von(Sturm)`: Regen 0,75 statt 0,3 (wie Regen), damit Nässe, Rinnsale und Tropfkanten bei Sturm mindestens so stark sind wie bei Regen; die Nässe und die Regenstärke der Darstellung folgen aus demselben Wert. Wunsch des Nutzers. | 29.10.2026 |
 
-### Hausfahne und Ebenen-Klicks (PR #…)
+### Hausfahne und Ebenen-Klicks (PR #257)
 
 | Thema | Entscheidung | Datum |
 |---|---|---|
