@@ -1,13 +1,19 @@
+using System.Text;
 using Godot;
 
 namespace Reichsgilde;
 
 /// <summary>
-/// Fenster „Einstellungen“ mit sieben Reitern: <b>Voreinstellung</b> (Niedrig bis Ultra, automatische Wahl, Vollbild), <b>Leistung</b>
-/// (Bildrate, VSync, dynamische Auflösung, FSR 2.2, Detailstufe), <b>Bild</b> (Boden, Gras, Kantenglättung, Nachschärfen,
-/// Schatten, Umgebungsverdeckung, indirektes Licht), <b>Stimmung</b> (Bloom, Miniatur-Unschärfe, Wolkenschatten, Morgendunst,
-/// Wettereffekte, Farbstimmung, Fahnen), <b>Barrierefreiheit</b> (Größe der Oberfläche, Farbfilter, Tooltips festheften) <b>Spiel</b> (Ratssitzung zeigen) und <b>Ton</b> (Lautstärke je Bus, Stumm, Ton im Hintergrund stumm; siehe <see cref="KlangDienst"/>). Erreichbar aus dem Hauptmenü und aus dem
-/// Spielmenü (Esc). Jede Änderung wirkt sofort und wird gespeichert (siehe <see cref="Fenster"/>).
+/// Fenster „Einstellungen“ mit vier Reitern (Umbau 29.10.2026, vorher sieben):
+/// <b>Grafik</b> – oben die Voreinstellung (Niedrig bis Ultra, automatische Wahl, Vollbild), darunter in den Gruppen <i>Leistung</i> (Bildrate, VSync, FSR 2.2),
+/// <i>Bild</i> (Kantenglättung, Schatten) und <i>Stimmung</i> (Bloom) die sechs Hauptregler; der Knopf <i>Erweitert</i> klappt den Rest auf (Dynamische Auflösung,
+/// Detailstufe, Boden, Gras, Umgebungsverdeckung, indirektes Licht, Unschärfe, Wolken, Dunst, Wetter, Farbstimmung und unter Windows die Grafikschnittstelle,
+/// siehe <see cref="Grafikschnittstelle"/>); der Zustand wird in <c>user://einstellungen.cfg</c> (Abschnitt „oberflaeche“) gemerkt.
+/// <b>Ton</b> (Lautstärke je Bus, Stumm, Ansagen, Ton im Hintergrund stumm; siehe <see cref="KlangDienst"/>), <b>Spiel</b> (Ratssitzung zeigen) und
+/// <b>Barrierefreiheit</b> (Größe der Oberfläche, Farbfilter, Fahnen bewegen, Tooltips festheften).
+/// Erklärtexte stehen nicht im Fenster, sondern in den Tooltips der Zeilen (sie nennen bei Auswahllisten alle Stufen und heben die gewählte hervor);
+/// ein Dropdown-Eintrag oder Schalter, der viel Grafikleistung kostet, trägt das Flammenzeichen (<see cref="Oberflaechenstil.LeistungsSymbol"/>).
+/// Erreichbar aus dem Hauptmenü und aus dem Spielmenü (Esc). Jede Änderung wirkt sofort und wird gespeichert (siehe <see cref="Fenster"/>).
 /// </summary>
 public sealed class EinstellungenAnzeige
 {
@@ -61,8 +67,8 @@ public sealed class EinstellungenAnzeige
     private static readonly (RatssitzungZeigen Wert, string Name, string Erklaerung)[] Sitzungswahl =
     {
         (RatssitzungZeigen.Immer, "Immer", "Jede Ratssitzung mit Anträgen oder Wahlen wird im Ratssaal gezeigt."),
-        (RatssitzungZeigen.Betroffen, "Wenn ich im Rat sitze oder betroffen bin (empfohlen)",
-            "Nur, wenn ihr mitstimmt, selbst etwas beantragt habt oder euch um ein Amt bewerbt. Sonst steht das Ergebnis im Protokoll."),
+        (RatssitzungZeigen.Betroffen, "Wenn betroffen (empfohlen)",
+            "Nur, wenn ihr im Rat sitzt und mitstimmt, selbst etwas beantragt habt oder euch um ein Amt bewerbt. Sonst steht das Ergebnis im Protokoll."),
         (RatssitzungZeigen.Nie, "Nie", "Die Sitzung läuft ohne Halt im Hintergrund; das Ergebnis steht im Protokoll und in den Meldungen."),
     };
 
@@ -122,9 +128,12 @@ public sealed class EinstellungenAnzeige
     };
 
     /// <summary>Die Reiter in ihrer Reihenfolge (Name auch für die Startoption <c>--reiter</c>).</summary>
-    private static readonly string[] Reiternamen = { "Voreinstellung", "Leistung", "Bild", "Stimmung", "Barrierefreiheit", "Spiel", "Ton" };
+    private static readonly string[] Reiternamen = { "Grafik", "Ton", "Spiel", "Barrierefreiheit" };
 
-    /// <summary>Kurze Erklärung je Regler im Reiter „Ton“ – in der Reihenfolge von <see cref="KlangDienst.Regelbusse"/>.</summary>
+    /// <summary>Namen der früheren Reiter, die <c>--reiter</c> weiter versteht: alle öffnen „Grafik“, die drei letzten dazu „Erweitert“.</summary>
+    private static readonly string[] FrueherGrafik = { "Voreinstellung", "Leistung", "Bild", "Stimmung" };
+
+    /// <summary>Kurze Erklärung je Regler im Reiter „Ton“ (Tooltip) – in der Reihenfolge von <see cref="KlangDienst.Regelbusse"/>.</summary>
     private static readonly string[] TonErklaerungen =
     {
         "Die Gesamtlautstärke; sie wirkt auf alles andere.",
@@ -135,32 +144,35 @@ public sealed class EinstellungenAnzeige
         "Sprache und Rufe der Menschen.",
     };
 
+    private const string Datei = "user://einstellungen.cfg";
+    private const string KostetViel = "Kostet viel Grafikleistung. Auf einem schwächeren Rechner zuerst hier sparen.";
+    private const string ErklaerungKantenFsr = "FSR 2.2 glättet selbst. Diese Wahl gilt wieder, wenn FSR aus ist.";
+    private static readonly Color Grau = new(0.75f, 0.75f, 0.75f);
+    private static readonly Color Gold = new(0.95f, 0.82f, 0.45f);
+    private const int Umbruch = 520;
+    private const int Breite = 620;
+
     private readonly List<(HSlider Regler, Label Wert, CheckButton Stumm)> _tonRegler = new();
     private readonly CheckButton _tonHintergrund;
     private readonly CheckButton _tonAnsagen;
 
-    private const string ErklaerungKantenFsr = "FSR 2.2 glättet selbst. Diese Wahl gilt wieder, wenn FSR aus ist.";
-    private static readonly Color Grau = new(0.75f, 0.75f, 0.75f);
-    private static readonly Color Gold = new(0.95f, 0.82f, 0.45f);
-    private const int Umbruch = 500;
-
     public PanelContainer Tafel { get; }
     private readonly List<Button> _reiter = new();
     private readonly List<VBoxContainer> _seiten = new();
+    /// <summary>Alle Zeilen mit Tooltip: Der Text wird bei jedem <see cref="Auffrischen"/> neu geholt (bei Listen hebt er die gewählte Stufe hervor).</summary>
+    private readonly List<(Container Zeile, Func<string> Text)> _tipps = new();
 
-    // Voreinstellung
+    // Grafik: Voreinstellung
     private readonly OptionButton _voreinstellung;
-    private readonly Label _voreinstellungErklaerung;
     private readonly Button _automatisch;
     private readonly Label _automatischErgebnis;
     private readonly CheckButton _vollbild;
-    // Leistung
+    // Grafik: Leistung
     private readonly OptionButton _bildrate;
     private readonly OptionButton _vsync;
-    private readonly Label _vsyncErklaerung;
+    private readonly CheckButton _fsr;
     private readonly OptionButton _dynamisch;
     private readonly Label _dynamischStand;
-    private readonly CheckButton _fsr;
     private readonly HBoxContainer _fsrZeile;
     private readonly HSlider _fsrRegler;
     private readonly Label _fsrWert;
@@ -169,68 +181,65 @@ public sealed class EinstellungenAnzeige
     private readonly HSlider _passanten;
     private readonly Label _passantenWert;
     private readonly OptionButton _feinheiten;
-    // Bild
+    // Grafik: Bild
     private readonly OptionButton _boden;
-    private readonly Label _bodenErklaerung;
     private readonly OptionButton _gras;
-    private readonly Label _grasErklaerung;
     private readonly OptionButton _kanten;
-    private readonly Label _erklaerung;
+    private readonly Label _kantenHinweis;
     private readonly HSlider _schaerfe;
     private readonly Label _schaerfeWert;
     private readonly OptionButton _schatten;
-    private readonly Label _schattenErklaerung;
     private readonly OptionButton _verdeckung;
-    private readonly Label _verdeckungErklaerung;
     private readonly CheckButton _indirekt;
-    // Stimmung
+    // Grafik: Stimmung
     private readonly CheckButton _bloom;
     private readonly HSlider _bloomRegler;
     private readonly Label _bloomWert;
     private readonly OptionButton _unschaerfe;
     private readonly CheckButton _wolken;
     private readonly OptionButton _dunst;
-    private readonly Label _dunstErklaerung;
     private readonly OptionButton _wetter;
-    private readonly Label _wetterErklaerung;
     private readonly OptionButton _tonemapping;
-    private readonly Label _tonemappingErklaerung;
     private readonly HSlider _helligkeit;
     private readonly Label _helligkeitWert;
     private readonly HSlider _kontrast;
     private readonly Label _kontrastWert;
     private readonly HSlider _saettigung;
     private readonly Label _saettigungWert;
-    private readonly CheckButton _fahnen;
+    // Grafik: Erweitert
+    private readonly VBoxContainer _erweitert;
+    private readonly Button _erweitertKnopf;
+    private bool _erweitertAn;
+    private readonly OptionButton? _schnittstelle;
+    private readonly Label? _schnittstelleStand;
     // Barrierefreiheit
+    private readonly CheckButton _fahnen;
     private readonly HSlider _groesse;
     private readonly Label _groesseWert;
     private bool _groesseZiehen;
     private readonly OptionButton _farbfilter;
-    private readonly Label _farbfilterErklaerung;
     private readonly HSlider _tooltipZeit;
     private readonly Label _tooltipZeitWert;
     private readonly CheckButton _tooltipTaste;
     // Spiel
     private readonly OptionButton _sitzung;
-    private readonly Label _sitzungErklaerung;
 
     public EinstellungenAnzeige(Action zurueck)
     {
-        var (tafel, spalte) = Hauptmenue.Tafel(560);
+        var (tafel, spalte) = Hauptmenue.Tafel(Breite);
         Tafel = tafel;
         Hauptmenue.Text(spalte, "Einstellungen", 26, Gold, zentriert: true);
 
-        // Reiterleiste: sieben Knöpfe, der gewählte in Gold
+        // Reiterleiste: vier Knöpfe, der gewählte in Gold
         var leiste = new HBoxContainer { Alignment = BoxContainer.AlignmentMode.Center };
-        leiste.AddThemeConstantOverride("separation", 4);
+        leiste.AddThemeConstantOverride("separation", 6);
         spalte.AddChild(leiste);
         var gruppe = new ButtonGroup();
         for (var i = 0; i < Reiternamen.Length; i++)
         {
             var nummer = i;
             var knopf = new Button { Text = Reiternamen[i], ToggleMode = true, ButtonGroup = gruppe, FocusMode = Control.FocusModeEnum.None };
-            knopf.AddThemeFontSizeOverride("font_size", 15);
+            knopf.AddThemeFontSizeOverride("font_size", 17);
             knopf.AddThemeColorOverride("font_pressed_color", Gold);
             knopf.AddThemeColorOverride("font_hover_pressed_color", Gold);
             knopf.Pressed += () => ReiterZeigen(nummer);
@@ -241,237 +250,292 @@ public sealed class EinstellungenAnzeige
         foreach (var _ in Reiternamen)
         {
             var seite = new VBoxContainer();
-            seite.AddThemeConstantOverride("separation", 10);
+            seite.AddThemeConstantOverride("separation", 8);
             spalte.AddChild(seite);
             _seiten.Add(seite);
         }
 
-        // ── Voreinstellung ───────────────────────────────────────────────────
+        // ── Grafik ───────────────────────────────────────────────────────────
         var s = _seiten[0];
         Abschnitt(s, "Voreinstellung");
-        _voreinstellung = Auswahl(s, Voreinstellungen.Select(v => Fenster.Name(v.Stufe)), nummer =>
+        var zeile = Zeile(s, "Voreinstellung", () =>
+            Liste("Eine Stufe stellt alle Regler für Leistung, Bild und die teuren Stimmungen (Unschärfe, Wolken, Dunst) ein. " +
+                  "Farbstimmung, Bildrate, VSync, Fahnen und Barrierefreiheit bleiben, wie sie sind.",
+                  Voreinstellungen.Select(v => (Fenster.Name(v.Stufe), v.Erklaerung)), IndexVon(Voreinstellungen, v => v.Stufe == Fenster.AktuelleVoreinstellung)));
+        _voreinstellung = Auswahl(zeile, Voreinstellungen.Select(v => Fenster.Name(v.Stufe)), nummer =>
         {
             Fenster.VoreinstellungSetzen(Voreinstellungen[nummer].Stufe);
             Auffrischen();
         });
         _voreinstellung.SetItemDisabled(Voreinstellungen.Length - 1, true); // „Eigene“ ergibt sich, wählen lässt es sich nicht
-        _voreinstellungErklaerung = Hinweis(s, "");
-        Hinweis(s, "Eine Stufe stellt alle Regler für Leistung, Bild und die teuren Stimmungen (Unschärfe, Wolken, Dunst) ein. " +
-                   "Farbstimmung, Bildrate, VSync, Fahnen und Barrierefreiheit bleiben, wie sie sind.");
         _automatisch = Hauptmenue.Knopf(s, "Automatisch wählen", () =>
         {
             Fenster.AutomatischWaehlen();
             Auffrischen();
         });
         _automatisch.SizeFlagsHorizontal = Control.SizeFlags.ShrinkBegin;
+        _automatisch.TooltipText = "Misst ein paar Sekunden lang, wie schnell dieser Rechner die Stadt zeichnet, und wählt die höchste Stufe, die " +
+                                   "flüssig bleibt (60 Bilder je Sekunde mit Reserve). Beim ersten Start geschieht das von selbst.";
         _automatischErgebnis = Hinweis(s, "");
-        Hinweis(s, "Misst ein paar Sekunden lang, wie schnell dieser Rechner die Stadt zeichnet, und wählt die höchste Stufe, die " +
-                   "flüssig bleibt (60 Bilder je Sekunde mit Reserve). Beim ersten Start geschieht das von selbst.");
-        Abschnitt(s, "Anzeige");
-        _vollbild = Schalter(s, "Vollbild (F11)", an => { if (an != Fenster.IstVollbild) Fenster.VollbildSetzen(an); });
+        _vollbild = Schalter(s, "Vollbild (F11)", () => "Das Spiel füllt den ganzen Bildschirm. Die Taste F11 wechselt jederzeit zwischen Vollbild und Fenster.",
+                             an => { if (an != Fenster.IstVollbild) Fenster.VollbildSetzen(an); });
 
-        // ── Leistung ─────────────────────────────────────────────────────────
-        s = _seiten[1];
-        Abschnitt(s, "Bildrate begrenzen");
-        _bildrate = Auswahl(s, Bildraten.Select(b => b == 0 ? "Unbegrenzt" : $"{b} Bilder je Sekunde"), nummer =>
+        Abschnitt(s, "Leistung");
+        zeile = Zeile(s, "Bildrate begrenzen", () => "Höchstens so viele Bilder je Sekunde: spart Strom, hält Lüfter und Grafikkarte kühler.");
+        _bildrate = Auswahl(zeile, Bildraten.Select(b => b == 0 ? "Unbegrenzt" : $"{b} Bilder je Sekunde"), nummer =>
         {
             Fenster.BildrateSetzen(Bildraten[nummer]);
             Auffrischen();
         });
-        Hinweis(s, "Höchstens so viele Bilder je Sekunde: spart Strom, hält Lüfter und Grafikkarte kühler.");
-        Abschnitt(s, "VSync");
-        _vsync = Auswahl(s, VsyncArten.Select(v => v.Name), nummer =>
+        zeile = Zeile(s, "VSync", () => Liste("Gleicht die Bilder mit dem Bildschirm ab.", VsyncArten.Select(v => (v.Name, v.Erklaerung)),
+                                              IndexVon(VsyncArten, v => v.Art == Fenster.AktuellesVsync)));
+        _vsync = Auswahl(zeile, VsyncArten.Select(v => v.Name), nummer =>
         {
             Fenster.VsyncSetzen(VsyncArten[nummer].Art);
             Auffrischen();
         });
-        _vsyncErklaerung = Hinweis(s, "");
-        Abschnitt(s, "Dynamische Auflösung");
-        _dynamisch = Auswahl(s, Zielraten.Select(z => z == 0 ? "Aus" : $"Ziel {z} Bilder je Sekunde"), nummer =>
-        {
-            Fenster.DynamischeAufloesungSetzen(Zielraten[nummer]);
-            Auffrischen();
-        });
-        _dynamischStand = Hinweis(s, "");
-        Hinweis(s, "Wird es eng, rechnet das Spiel das 3D-Bild kleiner (bis 50 %) und holt es auf volle Größe – mit FSR 2.2, wenn es an ist, " +
-                   "sonst einfach vergrößert (weicher). Geregelt wird ruhig, in kleinen Schritten alle paar Sekunden. Tafeln und Schrift bleiben scharf.");
-        Abschnitt(s, "Hochskalierung");
-        _fsr = Schalter(s, "FSR 2.2 (Hochskalierung)", an =>
-        {
-            Fenster.FsrSetzen(an, Fenster.Renderaufloesung);
-            Auffrischen();
-        });
-        (_fsrRegler, _fsrWert, _fsrZeile) = Regler(s, "Renderauflösung", 25, 100, 1, " %", wert =>
-        {
-            Fenster.FsrSetzen(Fenster.FsrAn, wert);
-            Auffrischen();
-        });
-        Hinweis(s, "Rechnet das Bild kleiner und holt es aus den letzten Bildern auf volle Größe: spart Grafikleistung, glättet selbst. 67 % = AMD-Stufe „Qualität“. Bewegtes kann leicht schlieren.");
-        Abschnitt(s, "Detailstufe");
-        (_natur, _naturWert, _) = Regler(s, "Natur-Dichte", 25, 100, 5, " %", wert =>
-        {
-            Fenster.NaturDichteSetzen(wert);
-            Auffrischen();
-        });
-        Hinweis(s, "Anteil von Gras, Kräutern, Büschen, Steinen und Holz vor der Stadt; Bäume dünnen nur halb so stark aus.");
-        (_passanten, _passantenWert, _) = Regler(s, "Passanten", 25, 100, 5, " %", wert =>
-        {
-            Fenster.PassantenMengeSetzen(wert);
-            Auffrischen();
-        });
-        Hinweis(s, "Wie viele Einwohner als Figur auf Gassen und Markt zu sehen sind. Die Stadt rechnet weiter mit allen – nur weniger Figuren werden gezeichnet.");
-        var feinZeile = Zeile(s, "Sichtweite der Feinheiten");
-        _feinheiten = Auswahl(feinZeile, Sichtweiten.Select(f => f.Name), nummer =>
-        {
-            Fenster.FeinheitenSetzen(Sichtweiten[nummer].Stufe);
-            Auffrischen();
-        });
-        Hinweis(s, "Bis zu welchem Zoom Bodenpflanzen, Kiesel und Holz gezeichnet werden. Nah: nur von nahem, und weit Entferntes wird vereinfacht " +
-                   "(dann werfen Spitzdächer und Zinnen keine feinen Schatten mehr).");
+        _fsr = Schalter(s, "FSR 2.2 (Hochskalierung)", () => "Rechnet das Bild kleiner und holt es aus den letzten Bildern auf volle Größe: spart Grafikleistung, glättet selbst. " +
+                                                              "67 % Renderauflösung = AMD-Stufe „Qualität“. Bewegtes kann leicht schlieren. Die Renderauflösung stellt ihr unter Erweitert ein.",
+                        an =>
+                        {
+                            Fenster.FsrSetzen(an, Fenster.Renderaufloesung);
+                            Auffrischen();
+                        });
 
-        // ── Bild ─────────────────────────────────────────────────────────────
-        s = _seiten[2];
-        Abschnitt(s, "Oberflächen");
-        var bodenZeile = Zeile(s, "Boden");
-        _boden = Auswahl(bodenZeile, Bodenstufen.Select(b => b.Name), nummer =>
-        {
-            Fenster.BodenqualitaetSetzen(Bodenstufen[nummer].Stufe);
-            Auffrischen();
-        });
-        _bodenErklaerung = Hinweis(s, "");
-        var grasZeile = Zeile(s, "Gras");
-        _gras = Auswahl(grasZeile, Grasstufen.Select(g => g.Name), nummer =>
-        {
-            Fenster.GrasteppichSetzen(Grasstufen[nummer].Stufe);
-            Auffrischen();
-        });
-        _grasErklaerung = Hinweis(s, "");
-        Abschnitt(s, "Kantenglättung");
-        _kanten = Auswahl(s, Verfahren.Select(v => v.Name), nummer =>
+        Abschnitt(s, "Bild");
+        zeile = Zeile(s, "Kantenglättung", () => (Fenster.FsrAn ? ErklaerungKantenFsr + "\n\n" : "") +
+                                                 Liste("Macht gezackte Kanten glatt.", Verfahren.Select(v => (v.Name, v.Erklaerung)),
+                                                       IndexVon(Verfahren, v => v.Art == Fenster.AktuelleKantenglaettung)));
+        _kanten = Auswahl(zeile, Verfahren.Select(v => v.Name), nummer =>
         {
             Fenster.KantenglaettungSetzen(Verfahren[nummer].Art);
             Auffrischen();
-        });
-        _erklaerung = Hinweis(s, "");
-        (_schaerfe, _schaerfeWert, _) = Regler(s, "Nachschärfen", 0, 100, 5, "", wert =>
-        {
-            Fenster.SchaerfeSetzen(wert);
-            Auffrischen();
-        });
-        Hinweis(s, "Holt feine Kanten zurück, die Glättung oder Hochskalierung weich gemacht haben. Mit FSR 2.2 ist es dessen eigene Schärfe. 0 = aus.");
-        Abschnitt(s, "Schattenqualität");
-        _schatten = Auswahl(s, Schattenstufen.Select(v => v.Name), nummer =>
+        }, nummer => Verfahren[nummer].Art is Kantenglaettung.Msaa2 or Kantenglaettung.Msaa4 or Kantenglaettung.Msaa8);
+        _kantenHinweis = Hinweis(s, "");
+        zeile = Zeile(s, "Schattenqualität", () => Liste("Wie fein die Schatten der Häuser und Figuren sind.", Schattenstufen.Select(v => (v.Name, v.Erklaerung)),
+                                                         IndexVon(Schattenstufen, x => x.Stufe == Fenster.AktuelleSchattenqualitaet)));
+        _schatten = Auswahl(zeile, Schattenstufen.Select(v => v.Name), nummer =>
         {
             Fenster.SchattenqualitaetSetzen(Schattenstufen[nummer].Stufe);
             Auffrischen();
         });
-        _schattenErklaerung = Hinweis(s, "");
-        Abschnitt(s, "Umgebungsverdeckung");
-        _verdeckung = Auswahl(s, Verdeckungsstufen.Select(v => v.Name), nummer =>
+
+        Abschnitt(s, "Stimmung");
+        _bloom = Schalter(s, "Lichtschein (Bloom)", () => "Heller Schein um Fensterlicht, Glut und Domfenster. Sonnenbeschienene Flächen bleiben klar. " +
+                                                          "50 % Stärke ist das empfohlene Bild; kostet etwas Grafikleistung. Die Stärke stellt ihr unter Erweitert ein.",
+                          an =>
+                          {
+                              Fenster.BloomSetzen(an, Fenster.BloomStaerke);
+                              Auffrischen();
+                          });
+
+        // ── Grafik: Erweitert ────────────────────────────────────────────────
+        _erweitertKnopf = Hauptmenue.Knopf(s, "Erweitert aufklappen", () => ErweitertSetzen(!_erweitertAn, merken: true));
+        _erweitertKnopf.SizeFlagsHorizontal = Control.SizeFlags.ShrinkBegin;
+        _erweitertKnopf.TooltipText = "Zeigt alle übrigen Grafikregler. Das Fenster merkt sich, ob sie offen oder zu sind.";
+        _erweitert = new VBoxContainer();
+        _erweitert.AddThemeConstantOverride("separation", 8);
+        s.AddChild(_erweitert);
+        var e = _erweitert;
+
+        Abschnitt(e, "Leistung (erweitert)");
+        zeile = Zeile(e, "Dynamische Auflösung", () => "Wird es eng, rechnet das Spiel das 3D-Bild kleiner (bis 50 %) und holt es auf volle Größe – mit FSR 2.2, wenn es an ist, " +
+                                                      "sonst einfach vergrößert (weicher). Geregelt wird ruhig, in kleinen Schritten alle paar Sekunden. Tafeln und Schrift bleiben scharf.");
+        _dynamisch = Auswahl(zeile, Zielraten.Select(z => z == 0 ? "Aus" : $"Ziel {z} Bilder je Sekunde"), nummer =>
+        {
+            Fenster.DynamischeAufloesungSetzen(Zielraten[nummer]);
+            Auffrischen();
+        });
+        _dynamischStand = Hinweis(e, "");
+        (_fsrRegler, _fsrWert, _fsrZeile) = Regler(e, "Renderauflösung (FSR)", 25, 100, 1, " %", wert =>
+        {
+            Fenster.FsrSetzen(Fenster.FsrAn, wert);
+            Auffrischen();
+        }, () => "In welcher Größe das 3D-Bild gerechnet wird, bevor FSR 2.2 es auf volle Größe holt. 67 % = AMD-Stufe „Qualität“. Nur sichtbar, wenn FSR an ist " +
+                 "und die dynamische Auflösung aus.");
+        (_natur, _naturWert, _) = Regler(e, "Natur-Dichte", 25, 100, 5, " %", wert =>
+        {
+            Fenster.NaturDichteSetzen(wert);
+            Auffrischen();
+        }, () => "Anteil von Gras, Kräutern, Büschen, Steinen und Holz vor der Stadt; Bäume dünnen nur halb so stark aus.");
+        (_passanten, _passantenWert, _) = Regler(e, "Passanten", 25, 100, 5, " %", wert =>
+        {
+            Fenster.PassantenMengeSetzen(wert);
+            Auffrischen();
+        }, () => "Wie viele Einwohner als Figur auf Gassen und Markt zu sehen sind. Die Stadt rechnet weiter mit allen – nur weniger Figuren werden gezeichnet.");
+        zeile = Zeile(e, "Sichtweite der Feinheiten", () => "Bis zu welchem Zoom Bodenpflanzen, Kiesel und Holz gezeichnet werden. Nah: nur von nahem, und weit Entferntes wird vereinfacht " +
+                                                           "(dann werfen Spitzdächer und Zinnen keine feinen Schatten mehr).");
+        _feinheiten = Auswahl(zeile, Sichtweiten.Select(f => f.Name), nummer =>
+        {
+            Fenster.FeinheitenSetzen(Sichtweiten[nummer].Stufe);
+            Auffrischen();
+        });
+
+        Abschnitt(e, "Bild (erweitert)");
+        zeile = Zeile(e, "Boden", () => Liste("Wie die Bodentexturen gezeichnet werden.", Bodenstufen.Select(b => (b.Name, b.Erklaerung)),
+                                              IndexVon(Bodenstufen, b => b.Stufe == Fenster.AktuelleBodenqualitaet)));
+        _boden = Auswahl(zeile, Bodenstufen.Select(b => b.Name), nummer =>
+        {
+            Fenster.BodenqualitaetSetzen(Bodenstufen[nummer].Stufe);
+            Auffrischen();
+        });
+        zeile = Zeile(e, "Gras", () => Liste("Ein Teppich kleiner Halme auf den Wiesen.", Grasstufen.Select(g => (g.Name, g.Erklaerung)),
+                                             IndexVon(Grasstufen, g => g.Stufe == Fenster.AktuellerGrasteppich)));
+        _gras = Auswahl(zeile, Grasstufen.Select(g => g.Name), nummer =>
+        {
+            Fenster.GrasteppichSetzen(Grasstufen[nummer].Stufe);
+            Auffrischen();
+        }, nummer => Grasstufen[nummer].Stufe == Grasteppich.SehrDicht);
+        (_schaerfe, _schaerfeWert, _) = Regler(e, "Nachschärfen", 0, 100, 5, "", wert =>
+        {
+            Fenster.SchaerfeSetzen(wert);
+            Auffrischen();
+        }, () => "Holt feine Kanten zurück, die Glättung oder Hochskalierung weich gemacht haben. Mit FSR 2.2 ist es dessen eigene Schärfe. 0 = aus.");
+        zeile = Zeile(e, "Umgebungsverdeckung", () => Liste("Verdunkelt Ecken, Fugen und Fußpunkte, damit die Häuser fest stehen.", Verdeckungsstufen.Select(v => (v.Name, v.Erklaerung)),
+                                                            IndexVon(Verdeckungsstufen, v => v.Stufe == Fenster.AktuelleUmgebungsverdeckung)));
+        _verdeckung = Auswahl(zeile, Verdeckungsstufen.Select(v => v.Name), nummer =>
         {
             Fenster.UmgebungsverdeckungSetzen(Verdeckungsstufen[nummer].Stufe);
             Auffrischen();
-        });
-        _verdeckungErklaerung = Hinweis(s, "");
-        _indirekt = Schalter(s, "Indirektes Licht (SSIL)", an =>
-        {
-            Fenster.IndirektesLichtSetzen(an);
-            Auffrischen();
-        });
-        Hinweis(s, "Flächen strahlen etwas Farbe auf ihre Nachbarn zurück. Zurückhaltend; kostet Grafikleistung.");
+        }, nummer => Verdeckungsstufen[nummer].Stufe == Umgebungsverdeckung.Hoch);
+        _indirekt = Schalter(e, "Indirektes Licht (SSIL)", () => "Flächen strahlen etwas Farbe auf ihre Nachbarn zurück. Zurückhaltend; kostet Grafikleistung.",
+                             an =>
+                             {
+                                 Fenster.IndirektesLichtSetzen(an);
+                                 Auffrischen();
+                             }, teuer: true);
 
-        // ── Stimmung ─────────────────────────────────────────────────────────
-        s = _seiten[3];
-        Abschnitt(s, "Bloom");
-        _bloom = Schalter(s, "Lichtschein (Bloom)", an =>
-        {
-            Fenster.BloomSetzen(an, Fenster.BloomStaerke);
-            Auffrischen();
-        });
-        (_bloomRegler, _bloomWert, _) = Regler(s, "Stärke", 0, 100, 5, " %", wert => Fenster.BloomSetzen(Fenster.BloomAn, wert));
-        Hinweis(s, "Heller Schein um Fensterlicht, Glut und Domfenster. Sonnenbeschienene Flächen bleiben klar. 50 % ist das empfohlene Bild; kostet etwas Grafikleistung.");
-        Abschnitt(s, "Miniatur-Unschärfe");
-        _unschaerfe = Auswahl(s, Unschaerfen.Select(u => u.Name), nummer =>
+        Abschnitt(e, "Stimmung (erweitert)");
+        (_bloomRegler, _bloomWert, _) = Regler(e, "Bloom: Stärke", 0, 100, 5, " %", wert => Fenster.BloomSetzen(Fenster.BloomAn, wert),
+                                               () => "Wie stark der Lichtschein ist. 50 % ist das empfohlene Bild; kostet etwas Grafikleistung.");
+        zeile = Zeile(e, "Miniatur-Unschärfe", () => "Oben und unten im Bild wird die Stadt weich, die Mitte bleibt scharf – wie ein Foto eines Modells (Tilt-Shift). Nah stärker als weit. " +
+                                                     "Tafeln und Räume bleiben scharf. Kostet etwas Grafikleistung.");
+        _unschaerfe = Auswahl(zeile, Unschaerfen.Select(u => u.Name), nummer =>
         {
             Fenster.UnschaerfeSetzen(Unschaerfen[nummer].Stufe);
             Auffrischen();
         });
-        Hinweis(s, "Oben und unten im Bild wird die Stadt weich, die Mitte bleibt scharf – wie ein Foto eines Modells (Tilt-Shift). Nah stärker als weit. " +
-                   "Tafeln und Räume bleiben scharf. Kostet etwas Grafikleistung.");
-        Abschnitt(s, "Wolkenschatten");
-        _wolken = Schalter(s, "Wolkenschatten", an =>
-        {
-            Fenster.WolkenschattenSetzen(an);
-            Auffrischen();
-        });
-        Hinweis(s, "Schatten einzelner Wolken ziehen langsam mit dem Wind über Felder, Gassen und Dächer – nur bei Sonne.");
-        Abschnitt(s, "Morgendunst und Lichtstrahlen");
-        _dunst = Auswahl(s, Dunststufen.Select(d => d.Name), nummer =>
+        _wolken = Schalter(e, "Wolkenschatten", () => "Schatten einzelner Wolken ziehen langsam mit dem Wind über Felder, Gassen und Dächer – nur bei Sonne.",
+                           an =>
+                           {
+                               Fenster.WolkenschattenSetzen(an);
+                               Auffrischen();
+                           });
+        zeile = Zeile(e, "Morgendunst, Lichtstrahlen", () => Liste("Dunst am Morgen und Lichtbahnen der tiefen Sonne.", Dunststufen.Select(d => (d.Name, d.Erklaerung)),
+                                                                   IndexVon(Dunststufen, d => d.Stufe == Fenster.AktuellerDunst)));
+        _dunst = Auswahl(zeile, Dunststufen.Select(d => d.Name), nummer =>
         {
             Fenster.DunstSetzen(Dunststufen[nummer].Stufe);
             Auffrischen();
-        });
-        _dunstErklaerung = Hinweis(s, "");
-        Abschnitt(s, "Wettereffekte");
-        _wetter = Auswahl(s, Wetterstufen.Select(w => w.Name), nummer =>
+        }, nummer => Dunststufen[nummer].Stufe == Morgendunst.Hoch);
+        zeile = Zeile(e, "Wettereffekte", () => Liste("Regen, Schnee, Nebel und Blitze.", Wetterstufen.Select(w => (w.Name, w.Erklaerung)),
+                                                      IndexVon(Wetterstufen, w => w.Stufe == Fenster.AktuelleWettereffekte)));
+        _wetter = Auswahl(zeile, Wetterstufen.Select(w => w.Name), nummer =>
         {
             Fenster.WettereffekteSetzen(Wetterstufen[nummer].Stufe);
             Auffrischen();
         });
-        _wetterErklaerung = Hinweis(s, "");
-        Abschnitt(s, "Farbstimmung");
-        _tonemapping = Auswahl(s, Tonemappings.Select(t => t.Name), nummer =>
+        zeile = Zeile(e, "Farbstimmung", () => Liste("Wie helle Stellen und Farben ins Bild kommen. Wirkt auf Stadt und Räume, nicht auf die Tafeln.", Tonemappings.Select(t => (t.Name, t.Erklaerung)),
+                                                     IndexVon(Tonemappings, t => t.Art == Fenster.AktuellesTonemapping)));
+        _tonemapping = Auswahl(zeile, Tonemappings.Select(t => t.Name), nummer =>
         {
             Fenster.FarbstimmungSetzen(Tonemappings[nummer].Art, Fenster.Helligkeit, Fenster.Kontrast, Fenster.Saettigung);
             Auffrischen();
         });
-        _tonemappingErklaerung = Hinweis(s, "");
-        (_helligkeit, _helligkeitWert, _) = Regler(s, "Helligkeit", 50, 150, 5, " %", wert =>
-            Fenster.FarbstimmungSetzen(Fenster.AktuellesTonemapping, wert, Fenster.Kontrast, Fenster.Saettigung));
-        (_kontrast, _kontrastWert, _) = Regler(s, "Kontrast", 50, 150, 5, " %", wert =>
-            Fenster.FarbstimmungSetzen(Fenster.AktuellesTonemapping, Fenster.Helligkeit, wert, Fenster.Saettigung));
-        (_saettigung, _saettigungWert, _) = Regler(s, "Sättigung", 0, 150, 5, " %", wert =>
-            Fenster.FarbstimmungSetzen(Fenster.AktuellesTonemapping, Fenster.Helligkeit, Fenster.Kontrast, wert));
-        var zuruecksetzen = Hauptmenue.Knopf(s, "Farbstimmung zurücksetzen", () =>
+        (_helligkeit, _helligkeitWert, _) = Regler(e, "Helligkeit", 50, 150, 5, " %", wert =>
+            Fenster.FarbstimmungSetzen(Fenster.AktuellesTonemapping, wert, Fenster.Kontrast, Fenster.Saettigung),
+            () => "Wirkt auf Stadt und Räume, nicht auf die Tafeln. 100 % lässt das Bild, wie es ist.");
+        (_kontrast, _kontrastWert, _) = Regler(e, "Kontrast", 50, 150, 5, " %", wert =>
+            Fenster.FarbstimmungSetzen(Fenster.AktuellesTonemapping, Fenster.Helligkeit, wert, Fenster.Saettigung),
+            () => "Wirkt auf Stadt und Räume, nicht auf die Tafeln. 100 % lässt das Bild, wie es ist.");
+        (_saettigung, _saettigungWert, _) = Regler(e, "Sättigung", 0, 150, 5, " %", wert =>
+            Fenster.FarbstimmungSetzen(Fenster.AktuellesTonemapping, Fenster.Helligkeit, Fenster.Kontrast, wert),
+            () => "Wirkt auf Stadt und Räume, nicht auf die Tafeln. 100 % lässt das Bild, wie es ist; 0 % macht es schwarzweiß.");
+        var zuruecksetzen = Hauptmenue.Knopf(e, "Farbstimmung zurücksetzen", () =>
         {
             Fenster.FarbstimmungSetzen(Tonemapping.Bisher, 100, 100, 100);
             Auffrischen();
         });
         zuruecksetzen.SizeFlagsHorizontal = Control.SizeFlags.ShrinkBegin;
-        Hinweis(s, "Wirkt auf Stadt und Räume, nicht auf die Tafeln. 100 % lässt das Bild, wie es ist.");
-        Abschnitt(s, "Fahnen");
-        _fahnen = Schalter(s, "Fahnen bewegen", an =>
+        zuruecksetzen.TooltipText = "Linear, Helligkeit, Kontrast und Sättigung zurück auf 100 %.";
+
+        if (Grafikschnittstelle.Sichtbar)
         {
-            Fenster.FahnenSetzen(an);
+            Abschnitt(e, "Grafikschnittstelle");
+            zeile = Zeile(e, "Grafikschnittstelle", () =>
+                "Über welche Schnittstelle das Spiel die Grafikkarte anspricht. Vulkan ist der Standard und am besten getestet. DirectX 12 ist neu und kann auf einem " +
+                "Windows-Rechner anders laufen (besser oder schlechter). Die Wahl gilt erst nach einem Neustart des Spiels. Startet DirectX 12 nicht oder stürzt das Spiel damit ab, " +
+                "nimmt es beim nächsten Start selbst wieder Vulkan.");
+            _schnittstelle = Auswahl(zeile, Grafikschnittstelle.Arten.Select(a => a.Name), nummer =>
+            {
+                Grafikschnittstelle.Setzen(Grafikschnittstelle.Arten[nummer].Kennung);
+                Auffrischen();
+            });
+            _schnittstelleStand = Hinweis(e, "");
+        }
+
+        // ── Spiel ────────────────────────────────────────────────────────────
+        s = _seiten[2];
+        Abschnitt(s, "Ratssitzung");
+        zeile = Zeile(s, "Ratssitzung zeigen", () => Liste("Am Jahresende hält die Partie an, und ihr seht die Sitzung im Ratssaal: Antrag, Begründung, die Stimmen der Ratsherren und das Ergebnis. " +
+                                                           "Sitzt ihr im Rat, stimmt ihr an eurer Stelle selbst ab.", Sitzungswahl.Select(w => (w.Name, w.Erklaerung)),
+                                                           IndexVon(Sitzungswahl, w => w.Wert == Fenster.Ratssitzung)));
+        _sitzung = Auswahl(zeile, Sitzungswahl.Select(w => w.Name), nummer =>
+        {
+            Fenster.RatssitzungSetzen(Sitzungswahl[nummer].Wert);
             Auffrischen();
         });
-        Hinweis(s, "Aus: Alle Fahnen hängen still – für alle, denen die Bewegung im Bild unangenehm ist.");
+
+        // ── Ton ──────────────────────────────────────────────────────────────
+        s = _seiten[1];
+        Abschnitt(s, "Lautstärke");
+        for (var i = 0; i < KlangDienst.Regelbusse.Length; i++)
+        {
+            var bus = i;
+            var (_, name, _) = KlangDienst.Regelbusse[i];
+            var (regler, wert, reglerZeile) = Regler(s, name, 0, 100, 5, " %", prozent => KlangDienst.ProzentSetzen(bus, prozent), () => TonErklaerungen[bus], breite: 120);
+            var stumm = new CheckButton { Text = "Stumm", FocusMode = Control.FocusModeEnum.None, CustomMinimumSize = new Vector2(130, 0), TooltipText = "Schaltet nur diesen Bus stumm: " + TonErklaerungen[bus] };
+            stumm.AddThemeFontSizeOverride("font_size", 15);
+            stumm.Toggled += an => KlangDienst.StummSetzen(bus, an);
+            reglerZeile.AddChild(stumm);
+            _tonRegler.Add((regler, wert, stumm));
+        }
+        Abschnitt(s, "Ansagen und Hintergrund");
+        _tonAnsagen = Schalter(s, "Ansagen des Haushofmeisters", () => "Bei wichtigen Ereignissen (Tod, Krankheit, Geburt, leeres Lager …) spricht der Haushofmeister einen kurzen Satz; die Meldung steht auch als Text da. " +
+                                                                       "Immer nur eine Ansage zur Zeit, bei dichter Folge entfallen manche.", an => KlangDienst.AnsagenSetzen(an));
+        _tonHintergrund = Schalter(s, "Ton im Hintergrund stumm", () => "Verliert das Spiel den Fokus (ein anderes Fenster ist vorn), wird alles stumm; beim Zurückkehren ist der Ton wieder da.",
+                                   an => KlangDienst.HintergrundStummSetzen(an));
 
         // ── Barrierefreiheit ─────────────────────────────────────────────────
-        s = _seiten[4];
-        Abschnitt(s, "Größe der Oberfläche");
-        (_groesse, _groesseWert, _) = Regler(s, "Größe", 75, 200, 5, " %", wert =>
+        s = _seiten[3];
+        Abschnitt(s, "Darstellung");
+        (_groesse, _groesseWert, _) = Regler(s, "Größe der Oberfläche", 75, 200, 5, " %", wert =>
         {
             // Erst beim Loslassen anwenden: Sonst wächst die Tafel unter der Maus, während man zieht
             if (!_groesseZiehen) OberflaecheAnwenden(wert);
-        });
+        }, () => "Alle Tafeln, Schriften und Knöpfe größer oder kleiner; die Stadt bleibt scharf. Passt eine Tafel nicht mehr ins Fenster, lässt sie sich rollen.");
         _groesse.DragStarted += () => _groesseZiehen = true;
         _groesse.DragEnded += _ =>
         {
             _groesseZiehen = false;
             OberflaecheAnwenden((int)_groesse.Value);
         };
-        Hinweis(s, "Alle Tafeln, Schriften und Knöpfe größer oder kleiner; die Stadt bleibt scharf. Passt eine Tafel nicht mehr ins Fenster, lässt sie sich rollen.");
-        Abschnitt(s, "Farbfilter");
-        _farbfilter = Auswahl(s, Farbfilterarten.Select(f => f.Name), nummer =>
+        zeile = Zeile(s, "Farbfilter", () => Liste("Gilt für das ganze Bild mit Tafeln, Wappen und Warenzeichen: Farben, die sich für das Auge kaum unterscheiden, werden in Helligkeit und andere Farbtöne verschoben.",
+                                                   Farbfilterarten.Select(f => (f.Name, f.Erklaerung)), IndexVon(Farbfilterarten, f => f.Art == Fenster.AktuellerFarbfilter)));
+        _farbfilter = Auswahl(zeile, Farbfilterarten.Select(f => f.Name), nummer =>
         {
             Fenster.FarbfilterSetzen(Farbfilterarten[nummer].Art);
             Auffrischen();
         });
-        _farbfilterErklaerung = Hinweis(s, "");
-        Hinweis(s, "Gilt für das ganze Bild mit Tafeln, Wappen und Warenzeichen: Farben, die sich für das Auge kaum unterscheiden, werden in Helligkeit und andere Farbtöne verschoben.");
+        _fahnen = Schalter(s, "Fahnen bewegen", () => "Aus: Alle Fahnen hängen still – für alle, denen die Bewegung im Bild unangenehm ist.", an =>
+        {
+            Fenster.FahnenSetzen(an);
+            Auffrischen();
+        });
         Abschnitt(s, "Tooltips festheften");
-        var tooltipZeile = Zeile(s, "Verweilen");
+        var tooltipText = () => "Ein Tooltip zeigt oben rechts einen Kreis, der sich füllt, solange die Maus auf ihm oder seiner Stelle ruht. Ist er voll, bleibt der Tooltip als kleines Fenster stehen " +
+                                "(das Kreuz oben rechts schließt es, Esc das oberste). T oder die mittlere Maustaste heftet sofort fest. Verweise im Text (unterstrichen) öffnen weitere Tooltips.";
+        var tooltipZeile = Zeile(s, "Verweilen", tooltipText);
         _tooltipZeit = new HSlider
         {
             MinValue = (int)(Fenster.TooltipFestMin * 2), MaxValue = (int)(Fenster.TooltipFestMax * 2), Step = 1, FocusMode = Control.FocusModeEnum.None,
@@ -485,47 +549,11 @@ public sealed class EinstellungenAnzeige
             Fenster.TooltipFestSetzen(halbe / 2, _tooltipTaste!.ButtonPressed);
             Auffrischen();
         };
-        _tooltipTaste = Schalter(s, "Nur mit Taste (T oder mittlere Maustaste)", an =>
+        _tooltipTaste = Schalter(s, "Nur mit Taste (T oder mittlere Maustaste)", tooltipText, an =>
         {
             Fenster.TooltipFestSetzen(Fenster.TooltipFestZeit, an);
             Auffrischen();
         });
-        Hinweis(s, "Ein Tooltip zeigt oben rechts einen Kreis, der sich füllt, solange die Maus auf ihm oder seiner Stelle ruht. Ist er voll, bleibt der Tooltip als kleines Fenster stehen " +
-                   "(das Kreuz oben rechts schließt es, Esc das oberste). T oder die mittlere Maustaste heftet sofort fest. Verweise im Text (unterstrichen) öffnen weitere Tooltips.");
-
-        // ── Spiel ────────────────────────────────────────────────────────────
-        s = _seiten[5];
-        Abschnitt(s, "Ratssitzung zeigen");
-        _sitzung = Auswahl(s, Sitzungswahl.Select(w => w.Name), nummer =>
-        {
-            Fenster.RatssitzungSetzen(Sitzungswahl[nummer].Wert);
-            Auffrischen();
-        });
-        _sitzungErklaerung = Hinweis(s, "");
-        Hinweis(s, "Am Jahresende hält die Partie an, und ihr seht die Sitzung im Ratssaal: Antrag, Begründung, die Stimmen der Ratsherren und das Ergebnis. " +
-                   "Sitzt ihr im Rat, stimmt ihr an eurer Stelle selbst ab.");
-
-        // ── Ton ──────────────────────────────────────────────────────────────
-        s = _seiten[6];
-        for (var i = 0; i < KlangDienst.Regelbusse.Length; i++)
-        {
-            var bus = i;
-            var (_, name, _) = KlangDienst.Regelbusse[i];
-            Abschnitt(s, name);
-            var (regler, wert, zeile) = Regler(s, "Lautstärke", 0, 100, 5, " %", prozent => KlangDienst.ProzentSetzen(bus, prozent));
-            var stumm = new CheckButton { Text = "Stumm", FocusMode = Control.FocusModeEnum.None, CustomMinimumSize = new Vector2(130, 0) };
-            stumm.AddThemeFontSizeOverride("font_size", 15);
-            stumm.Toggled += an => KlangDienst.StummSetzen(bus, an);
-            zeile.AddChild(stumm);
-            _tonRegler.Add((regler, wert, stumm));
-            Hinweis(s, TonErklaerungen[i]);
-        }
-        Abschnitt(s, "Ansagen");
-        _tonAnsagen = Schalter(s, "Ansagen des Haushofmeisters", an => KlangDienst.AnsagenSetzen(an));
-        Hinweis(s, "Bei wichtigen Ereignissen (Tod, Krankheit, Geburt, leeres Lager …) spricht der Haushofmeister einen kurzen Satz; die Meldung steht auch als Text da. Immer nur eine Ansage zur Zeit, bei dichter Folge entfallen manche.");
-        Abschnitt(s, "Hintergrund");
-        _tonHintergrund = Schalter(s, "Ton im Hintergrund stumm", an => KlangDienst.HintergrundStummSetzen(an));
-        Hinweis(s, "Verliert das Spiel den Fokus (ein anderes Fenster ist vorn), wird alles stumm; beim Zurückkehren ist der Ton wieder da.");
 
         spalte.AddChild(new HSeparator());
         Hauptmenue.Knopf(spalte, "Zurück", zurueck);
@@ -535,10 +563,11 @@ public sealed class EinstellungenAnzeige
         uhr.Timeout += () => { if (Tafel.IsVisibleInTree()) StandAuffrischen(); };
         Tafel.AddChild(uhr);
         ReiterZeigen(0);
+        ErweitertSetzen(ErweitertGemerkt(), merken: false);
         Auffrischen();
     }
 
-    /// <summary>Zeigt den Reiter mit dieser Nummer (0 = Voreinstellung).</summary>
+    /// <summary>Zeigt den Reiter mit dieser Nummer (0 = Grafik).</summary>
     public void ReiterZeigen(int nummer)
     {
         for (var i = 0; i < _seiten.Count; i++)
@@ -548,11 +577,44 @@ public sealed class EinstellungenAnzeige
         }
     }
 
-    /// <summary>Zeigt den Reiter mit diesem Namen (Startoption <c>--reiter</c>); unbekannte Namen lassen den Reiter, wie er ist.</summary>
+    /// <summary>
+    /// Zeigt den Reiter mit diesem Namen (Startoption <c>--reiter</c>); unbekannte Namen lassen den Reiter, wie er ist. Die Namen der früheren Reiter gehen weiter:
+    /// „Voreinstellung“ öffnet Grafik, „Leistung“, „Bild“ und „Stimmung“ öffnen Grafik mit aufgeklapptem „Erweitert“ (nur für diesen Start). Neu: „GrafikErweitert“.
+    /// </summary>
     public void ReiterZeigen(string name)
     {
+        if (name.Equals("GrafikErweitert", StringComparison.OrdinalIgnoreCase) || Array.FindIndex(FrueherGrafik, r => r.Equals(name, StringComparison.OrdinalIgnoreCase)) > 0)
+        {
+            ReiterZeigen(0);
+            ErweitertSetzen(true, merken: false);
+            return;
+        }
+        if (name.Equals("Voreinstellung", StringComparison.OrdinalIgnoreCase))
+        {
+            ReiterZeigen(0);
+            return;
+        }
         var nummer = Array.FindIndex(Reiternamen, r => r.Equals(name, StringComparison.OrdinalIgnoreCase));
         if (nummer >= 0) ReiterZeigen(nummer);
+    }
+
+    /// <summary>Klappt den Teil „Erweitert“ der Grafik auf oder zu; <paramref name="merken"/> schreibt den Zustand nach <c>user://einstellungen.cfg</c>.</summary>
+    private void ErweitertSetzen(bool an, bool merken)
+    {
+        _erweitertAn = an;
+        _erweitert.Visible = an;
+        _erweitertKnopf.Text = an ? "Erweitert zuklappen" : "Erweitert aufklappen"; // Pfeilzeichen (▸ ▾) fehlen der Knopfschrift
+        if (!merken) return;
+        var datei = new ConfigFile();
+        datei.Load(Datei); // andere Einstellungen behalten (fehlt die Datei, bleibt sie leer)
+        datei.SetValue("oberflaeche", "grafik_erweitert", an);
+        datei.Save(Datei);
+    }
+
+    private static bool ErweitertGemerkt()
+    {
+        var datei = new ConfigFile();
+        return datei.Load(Datei) == Error.Ok && datei.GetValue("oberflaeche", "grafik_erweitert", false).AsBool();
     }
 
     private void OberflaecheAnwenden(int prozent)
@@ -564,15 +626,11 @@ public sealed class EinstellungenAnzeige
     /// <summary>Zeigt die aktuellen Werte – Vollbild kann sich inzwischen per F11 geändert haben, die automatische Wahl im Hintergrund laufen.</summary>
     public void Auffrischen()
     {
-        var voreinstellung = Array.FindIndex(Voreinstellungen, v => v.Stufe == Fenster.AktuelleVoreinstellung);
-        _voreinstellung.Select(voreinstellung);
-        _voreinstellungErklaerung.Text = Voreinstellungen[voreinstellung].Erklaerung;
+        _voreinstellung.Select(Array.FindIndex(Voreinstellungen, v => v.Stufe == Fenster.AktuelleVoreinstellung));
         _vollbild.SetPressedNoSignal(Fenster.IstVollbild);
 
         _bildrate.Select(Math.Max(0, Array.IndexOf(Bildraten, Fenster.Bildrate)));
-        var vsync = Array.FindIndex(VsyncArten, v => v.Art == Fenster.AktuellesVsync);
-        _vsync.Select(vsync);
-        _vsyncErklaerung.Text = VsyncArten[vsync].Erklaerung;
+        _vsync.Select(Array.FindIndex(VsyncArten, v => v.Art == Fenster.AktuellesVsync));
         _dynamisch.Select(Math.Max(0, Array.IndexOf(Zielraten, Fenster.DynamischeAufloesung)));
         _fsr.SetPressedNoSignal(Fenster.FsrAn);
         _fsrZeile.Visible = Fenster.FsrAn && Fenster.DynamischeAufloesung == 0; // die dynamische Auflösung wählt selbst
@@ -581,54 +639,47 @@ public sealed class EinstellungenAnzeige
         WertSetzen(_passanten, _passantenWert, Fenster.PassantenMenge, " %");
         _feinheiten.Select(Array.FindIndex(Sichtweiten, f => f.Stufe == Fenster.AktuelleFeinheiten));
 
-        var boden = Array.FindIndex(Bodenstufen, b => b.Stufe == Fenster.AktuelleBodenqualitaet);
-        _boden.Select(boden);
-        _bodenErklaerung.Text = Bodenstufen[boden].Erklaerung;
-        var gras = Array.FindIndex(Grasstufen, g => g.Stufe == Fenster.AktuellerGrasteppich);
-        _gras.Select(gras);
-        _grasErklaerung.Text = Grasstufen[gras].Erklaerung;
-        var nummer = Array.FindIndex(Verfahren, v => v.Art == Fenster.AktuelleKantenglaettung);
-        _kanten.Select(nummer);
+        _boden.Select(Array.FindIndex(Bodenstufen, b => b.Stufe == Fenster.AktuelleBodenqualitaet));
+        _gras.Select(Array.FindIndex(Grasstufen, g => g.Stufe == Fenster.AktuellerGrasteppich));
+        _kanten.Select(Array.FindIndex(Verfahren, v => v.Art == Fenster.AktuelleKantenglaettung));
         _kanten.Disabled = Fenster.FsrAn; // FSR 2.2 glättet selbst; die Wahl bleibt gespeichert
-        _erklaerung.Text = Fenster.FsrAn ? ErklaerungKantenFsr : Verfahren[nummer].Erklaerung;
+        _kantenHinweis.Text = Fenster.FsrAn ? "FSR 2.2 glättet selbst; die Wahl gilt wieder, wenn FSR aus ist." : "";
+        _kantenHinweis.Visible = _kantenHinweis.Text != "";
         WertSetzen(_schaerfe, _schaerfeWert, Fenster.Schaerfe, "");
-        var stufe = Array.FindIndex(Schattenstufen, x => x.Stufe == Fenster.AktuelleSchattenqualitaet);
-        _schatten.Select(stufe);
-        _schattenErklaerung.Text = Schattenstufen[stufe].Erklaerung;
-        var verdeckung = Array.FindIndex(Verdeckungsstufen, v => v.Stufe == Fenster.AktuelleUmgebungsverdeckung);
-        _verdeckung.Select(verdeckung);
-        _verdeckungErklaerung.Text = Verdeckungsstufen[verdeckung].Erklaerung;
+        _schatten.Select(Array.FindIndex(Schattenstufen, x => x.Stufe == Fenster.AktuelleSchattenqualitaet));
+        _verdeckung.Select(Array.FindIndex(Verdeckungsstufen, v => v.Stufe == Fenster.AktuelleUmgebungsverdeckung));
         _indirekt.SetPressedNoSignal(Fenster.IndirektesLichtAn);
 
         _bloom.SetPressedNoSignal(Fenster.BloomAn);
         WertSetzen(_bloomRegler, _bloomWert, Fenster.BloomStaerke, " %");
         _unschaerfe.Select(Array.FindIndex(Unschaerfen, u => u.Stufe == Fenster.AktuelleUnschaerfe));
         _wolken.SetPressedNoSignal(Fenster.WolkenschattenAn);
-        var dunst = Array.FindIndex(Dunststufen, d => d.Stufe == Fenster.AktuellerDunst);
-        _dunst.Select(dunst);
-        _dunstErklaerung.Text = Dunststufen[dunst].Erklaerung;
-        var wetter = Array.FindIndex(Wetterstufen, w => w.Stufe == Fenster.AktuelleWettereffekte);
-        _wetter.Select(wetter);
-        _wetterErklaerung.Text = Wetterstufen[wetter].Erklaerung;
-        var tonemapping = Array.FindIndex(Tonemappings, t => t.Art == Fenster.AktuellesTonemapping);
-        _tonemapping.Select(tonemapping);
-        _tonemappingErklaerung.Text = Tonemappings[tonemapping].Erklaerung;
+        _dunst.Select(Array.FindIndex(Dunststufen, d => d.Stufe == Fenster.AktuellerDunst));
+        _wetter.Select(Array.FindIndex(Wetterstufen, w => w.Stufe == Fenster.AktuelleWettereffekte));
+        _tonemapping.Select(Array.FindIndex(Tonemappings, t => t.Art == Fenster.AktuellesTonemapping));
         WertSetzen(_helligkeit, _helligkeitWert, Fenster.Helligkeit, " %");
         WertSetzen(_kontrast, _kontrastWert, Fenster.Kontrast, " %");
         WertSetzen(_saettigung, _saettigungWert, Fenster.Saettigung, " %");
-        _fahnen.SetPressedNoSignal(Fenster.FahnenBewegen);
+        if (_schnittstelle is not null)
+        {
+            var gewaehlt = Grafikschnittstelle.Gewaehlt;
+            _schnittstelle.Select(Math.Max(0, Array.FindIndex(Grafikschnittstelle.Arten, a => a.Kennung == gewaehlt)));
+            var zeilen = new List<string>();
+            if (Grafikschnittstelle.Hinweis != "") zeilen.Add(Grafikschnittstelle.Hinweis);
+            zeilen.Add(gewaehlt == Grafikschnittstelle.Aktiv
+                ? $"Läuft mit {Grafikschnittstelle.Name(Grafikschnittstelle.Aktiv)}."
+                : $"Gilt erst nach einem Neustart des Spiels. Jetzt läuft {Grafikschnittstelle.Name(Grafikschnittstelle.Aktiv)}, danach {Grafikschnittstelle.Name(gewaehlt)}.");
+            _schnittstelleStand!.Text = string.Join("\n", zeilen);
+        }
 
+        _fahnen.SetPressedNoSignal(Fenster.FahnenBewegen);
         if (!_groesseZiehen) WertSetzen(_groesse, _groesseWert, Fenster.Oberflaechengroesse, " %");
-        var filter = Array.FindIndex(Farbfilterarten, f => f.Art == Fenster.AktuellerFarbfilter);
-        _farbfilter.Select(filter);
-        _farbfilterErklaerung.Text = Farbfilterarten[filter].Erklaerung;
+        _farbfilter.Select(Array.FindIndex(Farbfilterarten, f => f.Art == Fenster.AktuellerFarbfilter));
         _tooltipZeit.SetValueNoSignal(Fenster.TooltipFestZeit * 2);
         _tooltipZeitWert.Text = Fenster.TooltipFestZeit.ToString("0.0", System.Globalization.CultureInfo.GetCultureInfo("de-DE")) + " s";
         _tooltipTaste.SetPressedNoSignal(Fenster.TooltipNurMitTaste);
         _tooltipZeit.Editable = !Fenster.TooltipNurMitTaste;
-        var sitzung = Array.FindIndex(Sitzungswahl, w => w.Wert == Fenster.Ratssitzung);
-        _sitzung.Select(sitzung);
-        _sitzungErklaerung.Text = Sitzungswahl[sitzung].Erklaerung;
+        _sitzung.Select(Array.FindIndex(Sitzungswahl, w => w.Wert == Fenster.Ratssitzung));
         for (var i = 0; i < _tonRegler.Count; i++)
         {
             WertSetzen(_tonRegler[i].Regler, _tonRegler[i].Wert, KlangDienst.Prozent(i), " %");
@@ -637,6 +688,7 @@ public sealed class EinstellungenAnzeige
         _tonAnsagen.SetPressedNoSignal(KlangDienst.AnsagenAn);
         _tonHintergrund.SetPressedNoSignal(KlangDienst.HintergrundStumm);
         StandAuffrischen();
+        TippsSetzen();
     }
 
     /// <summary>Was sich ohne Zutun ändert: die gewählte Renderauflösung der dynamischen Auflösung und die automatische Wahl.</summary>
@@ -654,51 +706,103 @@ public sealed class EinstellungenAnzeige
             Auffrischen();
     }
 
+    /// <summary>Setzt den Tooltip jeder Zeile neu (Beschriftung, Feld und Wert); das Flammenzeichen behält seinen eigenen Text.</summary>
+    private void TippsSetzen()
+    {
+        foreach (var (zeile, text) in _tipps)
+        {
+            var t = text();
+            foreach (var kind in zeile.GetChildren())
+                if (kind is Control c && !c.HasMeta("symbol")) c.TooltipText = t;
+        }
+    }
+
     // ── Bausteine der Tafel ─────────────────────────────────────────────────
 
-    private static void Abschnitt(Container eltern, string titel) => Hauptmenue.Text(eltern, titel, 18);
+    /// <summary>Überschrift einer Gruppe, darunter eine feine Linie.</summary>
+    private static void Abschnitt(Container eltern, string titel)
+    {
+        if (eltern.GetChildCount() > 0) eltern.AddChild(new Control { CustomMinimumSize = new Vector2(0, 8) }); // Luft über jeder Gruppe außer der ersten
+        var kopf = Hauptmenue.Text(eltern, titel, 19, Gold);
+        kopf.AddThemeConstantOverride("line_spacing", 0);
+        eltern.AddChild(new HSeparator());
+    }
 
+    /// <summary>Ein Hinweis unter einer Zeile, der sich mit dem Stand ändert (zum Beispiel „Misst gerade …“); Erklärungen gehören in Tooltips.</summary>
     private static Label Hinweis(Container eltern, string text) => Hauptmenue.Text(eltern, text, 13, Grau, umbruchBreite: Umbruch);
 
-    private static CheckButton Schalter(Container eltern, string text, Action<bool> geaendert)
+    /// <summary>
+    /// Ein Schalter mit Beschriftung links; ein Klick auf die Beschriftung schaltet auch. <paramref name="teuer"/> hängt das Flammenzeichen an.
+    /// </summary>
+    private CheckButton Schalter(Container eltern, string beschriftung, Func<string> tipp, Action<bool> geaendert, bool teuer = false)
     {
-        var schalter = new CheckButton { Text = text, FocusMode = Control.FocusModeEnum.None };
-        schalter.AddThemeFontSizeOverride("font_size", 15);
+        var zeile = Zeile(eltern, beschriftung, tipp);
+        var schalter = new CheckButton { FocusMode = Control.FocusModeEnum.None, SizeFlagsHorizontal = Control.SizeFlags.ShrinkBegin };
         schalter.Toggled += an => geaendert(an);
-        eltern.AddChild(schalter);
+        zeile.AddChild(schalter);
+        if (zeile.GetChild(0) is Label name)
+            name.GuiInput += ereignis =>
+            {
+                if (ereignis is InputEventMouseButton { Pressed: true, ButtonIndex: MouseButton.Left }) schalter.ButtonPressed = !schalter.ButtonPressed;
+            };
+        if (teuer) zeile.AddChild(Symbol());
         return schalter;
     }
 
-    private static OptionButton Auswahl(Container eltern, IEnumerable<string> namen, Action<int> gewaehlt)
+    /// <summary>Das Flammenzeichen „kostet viel Leistung“ mit eigenem Tooltip.</summary>
+    private static TextureRect Symbol()
     {
-        var auswahl = new OptionButton { FocusMode = Control.FocusModeEnum.None, SizeFlagsHorizontal = Control.SizeFlags.ExpandFill };
-        foreach (var name in namen) auswahl.AddItem(name);
-        auswahl.ItemSelected += nummer => gewaehlt((int)nummer);
-        eltern.AddChild(auswahl);
+        var symbol = new TextureRect
+        {
+            Texture = Oberflaechenstil.LeistungsSymbol(), StretchMode = TextureRect.StretchModeEnum.KeepCentered, CustomMinimumSize = new Vector2(22, 22),
+            SizeFlagsVertical = Control.SizeFlags.ShrinkCenter, MouseFilter = Control.MouseFilterEnum.Stop, TooltipText = KostetViel,
+        };
+        symbol.SetMeta("symbol", true);
+        return symbol;
+    }
+
+    /// <summary>
+    /// Eine Auswahlliste im Feld der Zeile. Wer <paramref name="teuer"/> kennt, bekommt bei den Einträgen, die viel Leistung kosten, das Flammenzeichen
+    /// (in der Liste und im geschlossenen Feld).
+    /// </summary>
+    private static OptionButton Auswahl(Container zeile, IEnumerable<string> namen, Action<int> gewaehlt, Func<int, bool>? teuer = null)
+    {
+        var auswahl = new OptionButton { FocusMode = Control.FocusModeEnum.None, SizeFlagsHorizontal = Control.SizeFlags.ExpandFill, ClipText = true };
+        auswahl.AddThemeConstantOverride("icon_max_width", 20);
+        var nummer = 0;
+        foreach (var name in namen)
+        {
+            if (teuer is not null && teuer(nummer)) auswahl.AddIconItem(Oberflaechenstil.LeistungsSymbol(), name);
+            else auswahl.AddItem(name);
+            nummer++;
+        }
+        auswahl.ItemSelected += n => gewaehlt((int)n);
+        zeile.AddChild(auswahl);
         return auswahl;
     }
 
-    /// <summary>Eine Zeile mit Beschriftung links; das Feld kommt danach dazu.</summary>
-    private static HBoxContainer Zeile(Container eltern, string beschriftung)
+    /// <summary>Eine Zeile mit Beschriftung links; das Feld kommt danach dazu. Der Tooltip hängt an allen Teilen der Zeile.</summary>
+    private HBoxContainer Zeile(Container eltern, string beschriftung, Func<string> tipp, int breite = 200)
     {
         var zeile = new HBoxContainer();
         zeile.AddThemeConstantOverride("separation", 10);
         eltern.AddChild(zeile);
         var name = Hauptmenue.Text(zeile, beschriftung, 15);
-        name.CustomMinimumSize = new Vector2(150, 0);
+        name.CustomMinimumSize = new Vector2(breite, 0);
+        _tipps.Add((zeile, tipp));
         return zeile;
     }
 
     /// <summary>Ein Regler mit Beschriftung und Wert in einer Zeile.</summary>
-    private static (HSlider Regler, Label Wert, HBoxContainer Zeile) Regler(Container eltern, string beschriftung, int min, int max, int schritt,
-                                                                          string einheit, Action<int> geaendert)
+    private (HSlider Regler, Label Wert, HBoxContainer Zeile) Regler(Container eltern, string beschriftung, int min, int max, int schritt,
+                                                                     string einheit, Action<int> geaendert, Func<string> tipp, int breite = 200)
     {
-        var zeile = Zeile(eltern, beschriftung);
+        var zeile = Zeile(eltern, beschriftung, tipp, breite);
         var regler = new HSlider
         {
             MinValue = min, MaxValue = max, Step = schritt, FocusMode = Control.FocusModeEnum.None,
             SizeFlagsHorizontal = Control.SizeFlags.ExpandFill, SizeFlagsVertical = Control.SizeFlags.ShrinkCenter,
-            CustomMinimumSize = new Vector2(180, 0),
+            CustomMinimumSize = new Vector2(160, 0),
         };
         zeile.AddChild(regler);
         var wert = Hauptmenue.Text(zeile, "", 15);
@@ -715,5 +819,24 @@ public sealed class EinstellungenAnzeige
     {
         regler.SetValueNoSignal(zahl);
         wert.Text = $"{zahl}{einheit}";
+    }
+
+    private static int IndexVon<T>(T[] liste, Func<T, bool> passt) => Math.Max(0, Array.FindIndex(liste, e => passt(e)));
+
+    /// <summary>
+    /// Der Text eines Tooltips mit Auswahlliste: ein Vorwort, dann jede Stufe mit ihrer Erklärung; vor der gewählten steht „»“ und hinter ihrem Namen „(gewählt)“.
+    /// Reiner Text: Der Tooltip zeigt Klammern wie [b] nicht als Formatierung, sondern wörtlich.
+    /// </summary>
+    private static string Liste(string vorwort, IEnumerable<(string Name, string Text)> stufen, int aktuell)
+    {
+        var text = new StringBuilder(vorwort);
+        var nummer = 0;
+        foreach (var (name, erklaerung) in stufen)
+        {
+            text.Append("\n\n");
+            text.Append(nummer == aktuell ? $"» {name} (gewählt): {erklaerung}" : $"{name}: {erklaerung}");
+            nummer++;
+        }
+        return text.ToString();
     }
 }
