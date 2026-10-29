@@ -220,7 +220,7 @@ public partial class CharakterAnzeige : PanelContainer
                 : $"Bestechlichkeit: Geschenke wirken {(faktor > 1 ? "+" : "−")}{Zahlenformat.Ganz(Math.Abs(faktor - 1) * 100)} %";
             var zeile = Hauptmenue.Text(daten, text, 14, faktor > 1.01 ? Rot : faktor < 0.99 ? Gruen : Grau, umbruchBreite: Breite - PortraetAnzeige.Gross - 70);
             zeile.MouseFilter = MouseFilterEnum.Stop;
-            zeile.TooltipText = "Je geschenktem Gulden gewinnt Ihr bei diesem Ratsherrn mehr oder weniger Gunst, je nach seinen [[charakterzuege|Charakterzügen]].";
+            zeile.TooltipText = "Je geschenktem Gulden gewinnt Ihr bei diesem Ratsherrn mehr oder weniger Meinung über Euer Haus, je nach seinen [[charakterzuege|Charakterzügen]].";
         }
         _inhalt.AddChild(new HSeparator());
         ZuegeBauen(w, r.Zuege, true, false);

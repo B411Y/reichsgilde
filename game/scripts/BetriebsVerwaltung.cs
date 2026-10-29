@@ -486,7 +486,7 @@ public partial class BetriebsVerwaltung : VBoxContainer
         zeilen.Add($"Ausschank (je {d.Vorrat} bleiben für die Gäste im Lager): {string.Join(" · ", ausschank)}");
         zeilen.Add($"Erwartet ≈ {Zahlenformat.Ganz(g.ErwarteteGaeste(b))} Gäste im Jahr bei der heutigen Konkurrenz.");
         zeilen.Add(g.HatStammtisch(b)
-            ? $"Stammtisch: Am Jahresende +{Zahlenformat.Ganz(d.Stammtisch.Gunst)} Gunst bei jedem Ratsherrn (mit Barde ×{Zahlenformat.Ganz(d.Barde.Stammtisch)}) – ohne Bestechung."
+            ? $"Stammtisch: Am Jahresende +{Zahlenformat.Ganz(d.Stammtisch.Gunst)} Meinung bei jedem Ratsherrn (mit Barde ×{Zahlenformat.Ganz(d.Barde.Stammtisch)}) – ohne Bestechung."
             : $"Stammtisch ab Stufe {d.Stammtisch.AbStufe} (Gasthaus).");
         zeilen.Add($"Dunkle Ecke: Am Gerichtstag hört ihr Gerüchte über andere Häuser ({Zahlenformat.Ganz(d.DunkleEcke.Chance * 100)} % je Tat).");
         var text = string.Join("\n", zeilen);
@@ -498,7 +498,7 @@ public partial class BetriebsVerwaltung : VBoxContainer
         if (_bardeKnopf.Text != knopf) _bardeKnopf.Text = knopf;
         _bardeKnopf.Disabled = gebucht || b.Konto.Vermoegen < d.Barde.Kosten;
         var tipp = $"Ab {d.AbendAb} Uhr {Zahlenformat.Ganz(d.Barde.Gaeste * 100)} % mehr Gäste, jeder zahlt {Zahlenformat.Ganz(d.Barde.Zeche * 100)} % mehr; " +
-                   $"der Stammtisch bringt ×{Zahlenformat.Ganz(d.Barde.Stammtisch)} Gunst. Einmal je Jahr.\n" +
+                   $"der Stammtisch bringt ×{Zahlenformat.Ganz(d.Barde.Stammtisch)} Meinung. Einmal je Jahr.\n" +
                    $"Erwarteter Mehrerlös ≈ {Zahlenformat.Ganz(g.BardeNutzen(b))} {waehrung} (wenn genug im Lager ist).";
         if (_bardeKnopf.TooltipText != tipp) _bardeKnopf.TooltipText = tipp;
 
@@ -664,7 +664,7 @@ public partial class BetriebsVerwaltung : VBoxContainer
             _bekehrenKnopf.Text = "Bekehrungspredigt";
             _bekehrenKnopf.Disabled = grund is not null;
             _bekehrenKnopf.TooltipText = grund ?? $"+{Zahlenformat.Kommazahl(gw.Bekehrungskraft(_spieler!) * 100)} Prozentpunkte für eure Gemeinde (Rhetorik hilft), " +
-                                                  $"+{Zahlenformat.Ganz(gw.Daten.Bekehrung.Gunst)} Gunst bei jedem Ratsherrn eures Glaubens. Einmal im Jahr." +
+                                                  $"+{Zahlenformat.Ganz(gw.Daten.Bekehrung.Gunst)} Meinung bei jedem Ratsherrn eures Glaubens. Einmal im Jahr." +
                                                   (gw.Stadtglaube is { } sg && sg != gw.GlaubeVon(_spieler!) ? " Gegen den Stadtglauben ist das Ketzerei!" : "");
             UiHilfe.ApKosten(_bekehrenKnopf, w, _spieler!, new Bekehrungspredigt());
         }

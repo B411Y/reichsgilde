@@ -133,7 +133,7 @@ public partial class GerichtAnzeige : PanelContainer
         var richter = w.Rat.AmtNamens("Stadtrichter");
         Hauptmenue.Text(_inhalt, $"Stadtrichter: {richter?.Inhaber ?? "—"} · Gerichtstag am Jahresende, vor der Ratssitzung", 14, Grau, zentriert: true);
         Text(_inhalt, $"Jeder Beweis wiegt {Zahlenformat.Ganz(d.BeweiskraftJeBeweis)}, ein Richter spricht ab {Zahlenformat.Ganz(d.SchuldSchwelle)} schuldig. " +
-                      $"Gunst (aus Geschenken) verschiebt sein Urteil um höchstens ±{Zahlenformat.Ganz(d.GunstHoechstwirkung)}. " +
+                      $"Seine Meinung über Kläger und Beklagten (Geschenke, Züge, Volk, Glaube …) verschiebt sein Urteil um höchstens ±{Zahlenformat.Ganz(d.GunstHoechstwirkung)}. " +
                       $"Ab einer Beweiskraft von {Zahlenformat.Ganz(d.SichereBeweiskraft)} hilft dem Beklagten keine Bestechung mehr. " +
                       "Achtung: Jedes Geschenk an einen Ratsherrn ist Bestechung und hinterlässt eine Spur.", 12, Grau, umbrechen: true);
 
