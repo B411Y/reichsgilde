@@ -10,7 +10,10 @@ namespace Reichsgilde;
 /// </summary>
 public sealed partial class Zeitstrahl : Control
 {
-    private const float Bandhoehe = 16, Zeigerplatz = 12;
+    private const float Bandhoehe = 20, Zeigerplatz = 16;
+
+    /// <summary>Schriftgrad der Namen im Band (nicht unter <see cref="Schriften.MindestGroesse"/>).</summary>
+    private const int Schriftgrad = Schriften.MindestGroesse;
 
     /// <summary>Minuten seit Tagesbeginn zu einer Uhrzeit (volle Stunde).</summary>
     private static int Ab(int stunde) => stunde * 60 - Spielzeit.TagesbeginnMinute;
@@ -59,10 +62,10 @@ public sealed partial class Zeitstrahl : Control
             var feld = new Rect2(X(ab), oben, X(bis) - X(ab), Bandhoehe);
             DrawRect(feld, farbe);
             // Der Name klein ins Feld, wenn er hineinpasst
-            var breite = schrift.GetStringSize(name, HorizontalAlignment.Left, -1, 11).X;
+            var breite = schrift.GetStringSize(name, HorizontalAlignment.Left, -1, Schriftgrad).X;
             if (breite + 4 < feld.Size.X)
-                DrawString(schrift, new Vector2(feld.Position.X + (feld.Size.X - breite) / 2, oben + Bandhoehe - 4), name, HorizontalAlignment.Left, -1, 11,
-                           i == Phasen.Length - 1 ? new Color(0.85f, 0.85f, 0.9f) : new Color(0.12f, 0.1f, 0.08f));
+                DrawString(schrift, new Vector2(feld.Position.X + (feld.Size.X - breite) / 2, oben + Bandhoehe - 5), name, HorizontalAlignment.Left, -1, Schriftgrad,
+                           i == Phasen.Length - 1 ? new Color(0.92f, 0.92f, 0.96f) : new Color(0.08f, 0.06f, 0.04f));
         }
         // Volle Stunden als kurze Striche am unteren Rand, die Arbeitszeit (8–20 Uhr) als dünne Linie darunter
         for (var stunde = Spielzeit.TagesbeginnMinute / 60 + 1; stunde < Spielzeit.TagesendeMinute / 60; stunde++)
@@ -75,17 +78,18 @@ public sealed partial class Zeitstrahl : Control
 
         if (_minute < 0) return;
         // Der Zeiger: eine Sonne mit Strahlen über dem Band, in der Nacht ein Mond
-        var mitte = new Vector2(Mathf.Clamp(X(_minute), 7, Size.X - 7), oben - 1);
-        DrawLine(new Vector2(mitte.X, oben), new Vector2(mitte.X, oben + Bandhoehe), new Color(0.1f, 0.08f, 0.06f), 2);
+        // Die Marke sitzt ganz über dem Band (F7: Sie verdeckte sonst den Namen des Abschnitts); nur eine kurze Spitze zeigt auf die Minute.
+        var mitte = new Vector2(Mathf.Clamp(X(_minute), 7, Size.X - 7), oben - 8);
+        DrawLine(new Vector2(mitte.X, oben - 1), new Vector2(mitte.X, oben + 3), new Color(0.1f, 0.08f, 0.06f), 2);
         if (_minute < Ab(20))
         {
             for (var i = 0; i < 8; i++)
             {
                 var richtung = Vector2.Right.Rotated(Mathf.Tau * i / 8);
-                DrawLine(mitte + richtung * 6, mitte + richtung * 9, new Color(0.98f, 0.8f, 0.25f), 1.5f);
+                DrawLine(mitte + richtung * 5.5f, mitte + richtung * 7.5f, new Color(0.98f, 0.8f, 0.25f), 1.5f);
             }
-            DrawCircle(mitte, 5, new Color(0.98f, 0.82f, 0.3f));
-            DrawArc(mitte, 5, 0, Mathf.Tau, 16, new Color(0.35f, 0.22f, 0.08f), 1);
+            DrawCircle(mitte, 4, new Color(0.98f, 0.82f, 0.3f));
+            DrawArc(mitte, 4, 0, Mathf.Tau, 16, new Color(0.35f, 0.22f, 0.08f), 1);
         }
         else
         {

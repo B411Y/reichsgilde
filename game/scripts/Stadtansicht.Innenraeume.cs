@@ -211,7 +211,7 @@ public partial class Stadtansicht
         a.Feuer.Add(new Feuerstelle(licht, glut, lichtAn, lichtAus, glutAn, glutAus, an));
     }
 
-    private void Infotafel(InnenAnsicht a, Vector3 ort) => a.Infotafel = Beschriftung("", a.Mitte + ort, 30, a.Innen);
+    private void Infotafel(InnenAnsicht a, Vector3 ort) => a.Infotafel = Beschriftung("", a.Mitte + ort, 38, a.Innen);
 
     private void Plaetze(BetriebsAnsicht a, params Arbeitsplatz[] plaetze) => a.Plaetze.AddRange(plaetze);
 

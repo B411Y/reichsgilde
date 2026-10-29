@@ -149,7 +149,7 @@ public partial class Stadtansicht
         RaumAnlegen(a, new Raum(RaumAmt, "Amtsstube", new Vector3(amt, 0, 0), new Vector3(7, 4.5f, tiefe)), Putz, Dielen);
         RaumAnlegen(a, new Raum(RaumKerker, "Kerker", new Vector3(kerker, 0, 0), new Vector3(6.5f, 4, 7)), Mauerstein,
             new Color(0.26f, 0.24f, 0.22f), fenster: false, licht: 0.35f);
-        var schildRat = Beschriftung("", a.Mitte + new Vector3(rat, 4.8f, -1.5f), 30, innen);
+        var schildRat = Beschriftung("", a.Mitte + new Vector3(rat, 3.9f, -1.5f), 30, innen); // tiefer als 4,8: sonst liegt der Text unter dem Zeitstrahl (F5)
         var schildGericht = Beschriftung("", a.Mitte + new Vector3(gericht, 4.8f, -1.5f), 30, innen);
         var schildAmt = Beschriftung("", a.Mitte + new Vector3(amt, 3.7f, -1.5f), 30, innen);
         var schildKerker = Beschriftung("", a.Mitte + new Vector3(kerker, 3.3f, -1.0f), 30, innen);
