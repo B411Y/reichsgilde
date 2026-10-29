@@ -2,16 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://cc56fxkff60pb"
-path="res://.godot/imported/Water_N_A.png-7e1821c0ce06a1e748882c217e926a48.ctex"
+uid="uid://qvfr4yukrvcc"
+path="res://.godot/imported/wasser_schaum.png-c2067cc6e1e96d8e1cc2cfd53d6833b1.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://assets/texturen/realistisches_wasser/Water_N_A.png"
-dest_files=["res://.godot/imported/Water_N_A.png-7e1821c0ce06a1e748882c217e926a48.ctex"]
+source_file="res://assets/texturen/realistisches_wasser/wasser_schaum.png"
+dest_files=["res://.godot/imported/wasser_schaum.png-c2067cc6e1e96d8e1cc2cfd53d6833b1.ctex"]
 
 [params]
 
@@ -23,7 +23,7 @@ compress/rdo_quality_loss=0.0
 compress/hdr_compression=1
 compress/normal_map=0
 compress/channel_pack=0
-mipmaps/generate=false
+mipmaps/generate=true
 mipmaps/limit=-1
 roughness/mode=0
 roughness/src_normal=""

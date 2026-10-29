@@ -2,16 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://cnf8hpvja4mhl"
-path="res://.godot/imported/Water_N_B.png-438190e6e011fc302cb7fb9b93517e17.ctex"
+uid="uid://dtqwju6sr216j"
+path="res://.godot/imported/wasser_stroemung.png-5171c454259e48fafa3dd6c7909c1952.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://assets/texturen/realistisches_wasser/Water_N_B.png"
-dest_files=["res://.godot/imported/Water_N_B.png-438190e6e011fc302cb7fb9b93517e17.ctex"]
+source_file="res://assets/texturen/realistisches_wasser/wasser_stroemung.png"
+dest_files=["res://.godot/imported/wasser_stroemung.png-5171c454259e48fafa3dd6c7909c1952.ctex"]
 
 [params]
 
@@ -23,7 +23,7 @@ compress/rdo_quality_loss=0.0
 compress/hdr_compression=1
 compress/normal_map=0
 compress/channel_pack=0
-mipmaps/generate=false
+mipmaps/generate=true
 mipmaps/limit=-1
 roughness/mode=0
 roughness/src_normal=""

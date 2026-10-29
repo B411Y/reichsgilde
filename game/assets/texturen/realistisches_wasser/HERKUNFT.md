@@ -1,10 +1,10 @@
-# Herkunft: Texturen des Realistic Water Shader
+# Herkunft: Texturen des Wassers
 
-Normalkarten, Strömungskarte, Schaum und Kaustik-Atlas des **Realistic Water Shader** von **UnionBytes / Achim Menzel (AiYori)**
-(https://github.com/godot-extended-libraries/godot-realistic-water, Ordner `realistic_water_shader/art/water/`, Commit `fa0fc478`, geholt am 29.10.2026).
+Die fünf Bilder sind **eigen** (30.10.2026 ersetzen sie die Bilder des Original-Pakets, die keine belegte Einzelquelle hatten):
+`wasser_normal_a.png`, `wasser_normal_b.png` (Normalkarten), `wasser_stroemung.png` (Verzerrung), `wasser_schaum.png`, `wasser_kaustik.png` (4×4-Atlas, 16 Bilder zu 256 Pixeln).
 
-- Lizenz: **MIT**. Lizenztext und Autorenliste liegen unverändert beim Shader: `game/assets/shader/realistisches_wasser/LICENSE.md` und `AUTHORS.md`.
-- Die Dateien sind unverändert (Bytegleich mit denen im Port für Godot 4.0 von Hayden Connor). `Caustic.png` ist ein 4×4-Atlas aus 16 Bildern zu je 256 Pixeln; die Testszene (`game/scripts/Wassertest.cs`) schneidet sie zu einem Textur-Feld.
-- Eine eigene Quellenangabe je Bild gibt es im Projekt nicht; das Protokoll vermerkt das.
+- Erzeugt von `tools/wasser/wasser_texturen.py` (Python mit numpy, ausgeführt in Blender 5.2; fester Startwert, daher jederzeit neu erzeugbar). Kein KI-Bild, keine fremde Vorlage.
+- Lizenz: Alle Rechte vorbehalten (neue Inhalte, siehe `LICENSE-INHALTE.md`).
+- **Nur der Shader** (`game/assets/shader/realistisches_wasser/Water_Original.gdshader`) stammt aus dem Realistic Water Shader von UnionBytes / Achim Menzel (AiYori), MIT; Lizenztext und Autorenliste liegen dort bei `LICENSE.md` und `AUTHORS.md`.
 
-Herkunft je Datei: `docs/assets/protokoll.csv`; Einzelheiten und Fehlerprotokoll: `docs/wasser/phase1.md`.
+Herkunft je Datei: `docs/assets/protokoll.csv`; Einzelheiten zur Übernahme: `docs/wasser/phase1.md`.

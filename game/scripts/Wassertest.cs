@@ -114,10 +114,10 @@ public partial class Wassertest : Node3D
     {
         var shader = GD.Load<Shader>(ShaderOrdner + "Water_Original.gdshader");
         var m = new ShaderMaterial { Shader = shader };
-        m.SetShaderParameter("normalmap_a_sampler", GD.Load<Texture2D>(Ordner + "Water_N_A.png"));
-        m.SetShaderParameter("normalmap_b_sampler", GD.Load<Texture2D>(Ordner + "Water_N_B.png"));
-        m.SetShaderParameter("uv_sampler", GD.Load<Texture2D>(Ordner + "Water_UV.png"));
-        m.SetShaderParameter("foam_sampler", GD.Load<Texture2D>(Ordner + "Foam.png"));
+        m.SetShaderParameter("normalmap_a_sampler", GD.Load<Texture2D>(Ordner + "wasser_normal_a.png"));
+        m.SetShaderParameter("normalmap_b_sampler", GD.Load<Texture2D>(Ordner + "wasser_normal_b.png"));
+        m.SetShaderParameter("uv_sampler", GD.Load<Texture2D>(Ordner + "wasser_stroemung.png"));
+        m.SetShaderParameter("foam_sampler", GD.Load<Texture2D>(Ordner + "wasser_schaum.png"));
         m.SetShaderParameter("caustic_sampler", Kaustik());
         var ebene = new PlaneMesh { Size = new Vector2(80, 80), SubdivideWidth = 200, SubdivideDepth = 200 };
         AddChild(new MeshInstance3D { Mesh = ebene, MaterialOverride = m, CastShadow = GeometryInstance3D.ShadowCastingSetting.Off });
@@ -126,7 +126,7 @@ public partial class Wassertest : Node3D
     /// <summary>Die Kaustik-Datei ist ein 4×4-Atlas aus 256-Pixel-Bildern; der Shader will sie als Textur-Feld mit 16 Lagen.</summary>
     private static Texture2DArray Kaustik()
     {
-        var atlas = GD.Load<Texture2D>(Ordner + "Caustic.png").GetImage();
+        var atlas = GD.Load<Texture2D>(Ordner + "wasser_kaustik.png").GetImage();
         atlas.Decompress();
         var lagen = new Godot.Collections.Array<Image>();
         for (var i = 0; i < 16; i++)

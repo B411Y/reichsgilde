@@ -2,16 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://55a7o0747w6x"
-path="res://.godot/imported/Foam.png-3d40abb0eaeb23ac4bb141b723caf1c0.ctex"
+uid="uid://bs7ik8ig7bptj"
+path="res://.godot/imported/wasser_kaustik.png-ad9a08755d0e8346fbaa98c05c22ed8f.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://assets/texturen/realistisches_wasser/Foam.png"
-dest_files=["res://.godot/imported/Foam.png-3d40abb0eaeb23ac4bb141b723caf1c0.ctex"]
+source_file="res://assets/texturen/realistisches_wasser/wasser_kaustik.png"
+dest_files=["res://.godot/imported/wasser_kaustik.png-ad9a08755d0e8346fbaa98c05c22ed8f.ctex"]
 
 [params]
 
