@@ -109,25 +109,36 @@ public partial class Stadtansicht
             Flaeche(Vector3.Zero, new Vector2(520, 480), Wiese, -0.05f); // ohne Karte nur die Wiese (der Fehler ist schon gemeldet)
             return;
         }
+        Ladezeit.Marke("vor dem Kartenaufbau");
         _gelaende = karte.Gelaendeform; // der Boden: vor allem, was darauf steht (Stadtansicht.Gelaende.cs)
         LagenLesen(karte);
         BodenLegen(karte);
+        Ladezeit.Marke("Szene: Boden und Gelände");
         foreach (var g in karte.Gebaeude.Where(g => g.Art is not (Bausteinart.Wohnhausplatz or Bausteinart.Einwohnerplatz))) GebaeudeSockel(g); // Häuser bekommen ihren Sockel selbst
         foreach (var mauer in karte.Mauern) MauerAusKarte(mauer);
+        Ladezeit.Marke("Szene: Sockel und Mauern");
         if (karte.GebaeudeDerArt(Bausteinart.Sonderbau).FirstOrDefault(g => g.Katalog == "markt") is { } markt) Marktstaende(markt); // Stadtansicht.Markt.cs
         SonderbautenBauen(karte); // Rathaus, Dom und Bauten ohne eigene Ansicht
+        Ladezeit.Marke("Szene: Markt und Sonderbauten");
         Kulissenhaeuser(karte);
+        Ladezeit.Marke("Szene: Kulissenhäuser");
         foreach (var berg in karte.GebaeudeDerArt(Bausteinart.Berg)) BergBauen(berg);
         WegeAnlegen(karte);
+        Ladezeit.Marke("Szene: Berge und Wege");
         GewaesserBauen();    // Wasser, Brücken, Furten, Fähren (Stadtansicht.Wasser.cs)
         FaehrenAnsNetz();    // Karren setzen mit Fähren über (Stadtansicht.Wasser.Uebergaenge.cs)
+        Ladezeit.Marke("Szene: Wasser");
         UmlandstellenBauen(karte); // Stadtansicht.Umland.cs
         Anschliessen(karte);
+        Ladezeit.Marke("Szene: Umland und Anschlüsse");
         NaturAusKarte(karte); // Stadtansicht.Natur.cs
+        Ladezeit.Marke("Szene: Natur");
         FelderAusKarte(karte); // Stadtansicht.Rand.cs
+        Ladezeit.Marke("Szene: Felder");
         KameraAusKarte(karte);
         _schichtAlles = true;
         WegeschichtBild(); // Wege, Anschlüsse und Pflaster in den Boden (Stadtansicht.Wegeschicht.cs)
+        Ladezeit.Marke("Szene: Wegeschicht");
         if (_netz.Teile() != 1)
             GD.PushWarning($"Gassennetz der Karte „{karte.Kennung}“: {_netz.Teile()} getrennte Teile – nicht jedes Ziel ist erreichbar.");
     }
