@@ -118,26 +118,87 @@ static class LogistikTests
             Pruefe.Wahr(bisher > 10 && bisher <= ziel, $"höchstens {bisher} Eisen im Lager (Ziel {ziel})");
         }),
 
-        ("Verwalter: kauft nur von freiem Geld – Löhne und Unterhalt des Jahres bleiben in der Kasse, ausgegeben wird höchstens die Hälfte des Rests", () =>
+        ("Verwalter: kauft nur von freiem Geld – die Kosten des Jahresabschlusses bleiben in der Kasse, ausgegeben wird höchstens die Hälfte des Rests", () =>
         {
-            var sim = NeueSimulation();
+            var sim = NeueSimulation(); // 04:00 Uhr: Bis 8 Uhr wird nichts verarbeitet
             var w = sim.Wirtschaft!;
             var k = w.KontoEroeffnen("Spieler");
             var g = w.BetriebEroeffnen("G", Betriebsart.Giesserei, k);
             w.Einstellen(g, "Geselle", 2);
-            var ruecklage = g.Lohnkosten + g.Artdaten.Fixkosten;
-            k.Zutaten(k.Vermoegen - ruecklage - 10); // nur 10 Gulden frei: davon die Hälfte – kein Stück Silber (≈ 30), kein Eisen (≈ 12,6)
+            g.Produkt = "Beschlag"; // 2 Eisen je Stück
+            var ruecklage = w.OffeneJahreskosten(k);
+            Pruefe.Ungefaehr(g.Lohnkosten + g.Artdaten.Fixkosten, ruecklage, 1e-9); // kein Wohnhaus, keine Familie, kein Schiff
+            g.Einlagern("Eisen", 10);     // reicht für 5 Stück: die Werkstatt stockt nicht
+            g.Einlagern("Beschlag", 15);  // volle Ladefläche: Der Karren fährt zum Verkauf
+            k.Zutaten(k.Vermoegen - ruecklage + 500); // 500 Gulden fehlen bis zur Rücklage – der Verkauf bringt etwas mehr
+            var karren = g.Karren[0];
+            var zutatenVorher = g.Laufend.Zutaten;
+            TickenBis(sim, () => karren.Zustand == KarrenZustand.ZumBetrieb);
+            var ausgegeben = g.Laufend.Zutaten - zutatenVorher;
+            var vorDemKauf = k.Vermoegen + ausgegeben;
+            Pruefe.Wahr(vorDemKauf > ruecklage, $"nach dem Verkauf {vorDemKauf:F0} Gulden, Rücklage {ruecklage:F0}");
+            Pruefe.Wahr(ausgegeben > 0 && ausgegeben <= (vorDemKauf - ruecklage) * 0.5 + 1e-9,
+                $"für {ausgegeben:F0} Gulden gekauft, frei waren {vorDemKauf - ruecklage:F0}");
+            // Platz wäre für 15 Eisen (eine Ladefläche; Vorrat für 4 Stunden ≈ 28 Eisen, 10 liegen schon da) – das Geld begrenzt.
+            Pruefe.Wahr(karren.Ladung.GetValueOrDefault("Eisen") is > 0 and < 15, $"{karren.Ladung.GetValueOrDefault("Eisen")} Eisen – das Geld begrenzt, nicht der Platz");
+        }),
+
+        // Nachbesserung #232: Vorher kaufte der Karren bei knapper Kasse gar nichts – die Werkstatt stand still bis zum Bankrott.
+        ("Verwalter: stockt die Werkstatt, kauft er wenigstens das Nötigste (Zutaten für 5 Stück), auch über das freie Geld hinaus – und meldet es einmal", () =>
+        {
+            var sim = NeueSimulation();
+            var w = sim.Wirtschaft!;
+            var meldungen = new List<string>();
+            w.Meldung += meldungen.Add;
+            var k = w.KontoEroeffnen("Spieler");
+            var g = w.BetriebEroeffnen("G", Betriebsart.Giesserei, k);
+            w.Einstellen(g, "Geselle", 2);
+            var ruecklage = w.OffeneJahreskosten(k);
+            k.Zutaten(k.Vermoegen - ruecklage - 10); // nur 10 Gulden frei: nach der alten Regel kein Stück Eisen (≈ 12,6), kein Silber (≈ 30)
             var karren = g.Karren[0];
             TickenBis(sim, () => karren.Zustand == KarrenZustand.ZumBetrieb);
-            Pruefe.Gleich(0, karren.Ladung.Values.Sum(), "nichts gekauft");
-            Pruefe.Ungefaehr(ruecklage + 10, k.Vermoegen, 1e-9);
-
+            Pruefe.Gleich(5, karren.Ladung.GetValueOrDefault("Eisen"), "Silberring: 1 Eisen + 1 Silber je Stück, die eine Ladefläche nimmt Eisen für 5 Stück");
+            Pruefe.Gleich(1, karren.Ladung.Count);
+            Pruefe.Wahr(k.Vermoegen > 0 && k.Vermoegen < ruecklage, $"Vermögen {k.Vermoegen:F0}");
             TickenBis(sim, () => karren.Zustand == KarrenZustand.AmBetrieb);
-            k.Umsatz(200); // 210 frei → 105 für Zutaten
             TickenBis(sim, () => karren.Zustand == KarrenZustand.ZumBetrieb);
-            var gekauft = karren.Ladung.Sum(x => x.Value * w.Markt[x.Key].Preis);
-            Pruefe.Wahr(karren.Ladung.Values.Sum() > 0 && gekauft <= 105, $"für {gekauft:F0} Gulden gekauft");
-            Pruefe.Wahr(k.Vermoegen >= ruecklage + 105, "Rücklage und die Hälfte des Freien bleiben");
+            Pruefe.Gleich(5, karren.Ladung.GetValueOrDefault("Silber"), "zweite Fahrt: Silber für 5 Stück");
+            Pruefe.Gleich(1, meldungen.Count(m => m.Contains("nur das Nötigste")), string.Join(" | ", meldungen.Where(m => m.Contains("Nötigste"))));
+        }),
+
+        ("Verwalter: Werkstatt mit knapper Kasse arbeitet sich heraus – Kasse knapp unter oder über der Rücklage, kein Bankrott in 4 Jahren", () =>
+        {
+            foreach (var abstand in new[] { -50.0, 40.0 })
+            {
+                var sim = NeueSimulation();
+                var w = sim.Wirtschaft!;
+                var k = w.KontoEroeffnen("Spieler");
+                var g = w.BetriebEroeffnen("G", Betriebsart.Giesserei, k);
+                w.Einstellen(g, "Geselle", 2);
+                g.Produkt = "Silberring";
+                k.Zutaten(k.Vermoegen - w.OffeneJahreskosten(k) - abstand);
+                for (var jahr = 1; jahr <= 4; jahr++)
+                {
+                    JahreSimulieren(sim, 1);
+                    Pruefe.Wahr(!k.IstBankrott, $"Abstand {abstand}: bankrott im {jahr}. Jahr");
+                    Pruefe.Wahr(g.Vorjahr?.Umsatz > 0, $"Abstand {abstand}: kein Umsatz im {jahr}. Jahr");
+                }
+            }
+        }),
+
+        ("Verwalter: zutatenVorratStunden muss größer als 0 sein, zutatenAnteilKasse größer als 0 und höchstens 1 – sonst fällt es beim Laden auf", () =>
+        {
+            var json = File.ReadAllText(Datenpfad.Wirtschaft());
+            Pruefe.Wahr(json.Contains("\"zutatenVorratStunden\": 4,") && json.Contains("\"zutatenAnteilKasse\": 0.5,"), "Werte in wirtschaft.json");
+            foreach (var (alt, neu, feld) in new[]
+            {
+                ("\"zutatenVorratStunden\": 4,", "\"zutatenVorratStunden\": 0,", "zutatenVorratStunden"),
+                ("\"zutatenVorratStunden\": 4,", "\"zutatenVorratStunden\": -2,", "zutatenVorratStunden"),
+                ("\"zutatenAnteilKasse\": 0.5,", "\"zutatenAnteilKasse\": 0,", "zutatenAnteilKasse"),
+                ("\"zutatenAnteilKasse\": 0.5,", "\"zutatenAnteilKasse\": 1.5,", "zutatenAnteilKasse"),
+            })
+                Pruefe.WirftMitMeldung(() => Wirtschaftsdaten.AusJson(json.Replace(alt, neu)), feld);
+            Pruefe.Ungefaehr(1.0, Wirtschaftsdaten.AusJson(json.Replace("\"zutatenAnteilKasse\": 0.5,", "\"zutatenAnteilKasse\": 1,")).Logistik.ZutatenAnteilKasse, 1e-12);
         }),
 
         ("Eskorte kostet nur bei beladener Fahrt", () =>

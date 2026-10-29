@@ -195,7 +195,9 @@ public sealed class LogistikDaten
 
     /// <summary>
     /// Welchen Anteil seines freien Geldes der Verwalter auf einer Fahrt höchstens für Zutaten ausgibt (PR #232). Frei ist, was über
-    /// die Löhne, Wächter und den Unterhalt aller Betriebe des Hauses für das ganze Jahr hinausgeht; die zahlt erst der Jahresabschluss.
+    /// die Kosten des Jahresabschlusses hinausgeht (<see cref="Stadtwirtschaft.OffeneJahreskosten"/>: Löhne, Wächter und Unterhalt der Betriebe,
+    /// Schiffe, Wohnhaus, Haushalt, Ausbildung). Jede Fahrt nimmt so nur einen Teil des Rests; mehrere Fahrten verbrauchen ihn nach und nach.
+    /// Stockt die Werkstatt, kauft er trotzdem die Zutaten für <see cref="NachkaufUnterStueck"/> Stück, solange Geld da ist.
     /// </summary>
     public double ZutatenAnteilKasse { get; init; } = 0.5;
 
@@ -232,6 +234,8 @@ public sealed class LogistikDaten
         Wasser?.Pruefen(f);
         if (AbfahrtAbFuellgrad is <= 0 or > 1) f.Add("logistik.abfahrtAbFuellgrad muss zwischen 0 und 1 liegen.");
         if (MaxWartezeitMinuten <= 0) f.Add("logistik.maxWartezeitMinuten muss größer als 0 sein.");
+        if (ZutatenVorratStunden <= 0) f.Add("logistik.zutatenVorratStunden muss größer als 0 sein.");
+        if (ZutatenAnteilKasse is <= 0 or > 1) f.Add("logistik.zutatenAnteilKasse muss größer als 0 und höchstens 1 sein.");
         if (KarrenVerkaufAnteil is < 0 or > 1) f.Add("logistik.karrenVerkaufAnteil muss zwischen 0 und 1 liegen.");
         if (Karren.Count == 0) f.Add("logistik.karren: Es ist kein Karrentyp definiert.");
         foreach (var (name, k) in Karren)

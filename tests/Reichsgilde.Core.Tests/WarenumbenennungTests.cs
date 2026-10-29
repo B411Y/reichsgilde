@@ -102,6 +102,17 @@ static class WarenumbenennungTests
             Pruefe.Wahr(entwurf.Befunde.All(b => !b.Text.Contains("stellt")), "Kartenprüfung: " + string.Join(" | ", entwurf.Befunde.Select(b => b.Text)));
         }),
 
+        ("Dolch statt Rapier: Die Kartenwerkstatt speichert eine Karte mit „Rapier“ wieder mit „Dolch“", () =>
+        {
+            var pfad = Datenpfad.Karte("greybox");
+            var alt = File.ReadAllText(pfad).Replace("\"produkt\": \"Dolch\"", "\"produkt\": \"Rapier\"");
+            Pruefe.Wahr(alt.Contains("Rapier"), "die Greybox hat einen Startbetrieb mit Dolch");
+            var entwurf = Kartenentwurf.AusJson(alt, Gebaeudekatalog.AusDatei(Stadtkarte.KatalogZu(pfad)));
+            var gespeichert = entwurf.ZuJson();
+            Pruefe.Wahr(gespeichert.Contains("\"Dolch\""), "Dolch in der gespeicherten Karte");
+            Pruefe.Wahr(!gespeichert.Contains("Rapier"), "kein Rapier in der gespeicherten Karte");
+        }),
+
         ("Dolch statt Rapier: Ein Spielstand ohne Rapier bleibt zeichengleich (auch das Feld „Dolch“ eines Giftanschlags)", () =>
         {
             var knoten = System.Text.Json.Nodes.JsonNode.Parse("""{"Auftraege": [{"Dolch": "Giftdolch"}], "Lager": {"Dolch": 3}, "Text": "Ein Dolch hat ihn gestreift"}""");

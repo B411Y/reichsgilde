@@ -938,23 +938,11 @@ public sealed partial class KiRivale
         _stundenOhnePersonal.Clear();
     }
 
-    /// <summary>Was erst zum Jahresabschluss fällig wird: Löhne, Wächter und Unterhalt bzw. Pacht der Betriebe, Unterhalt des Wohnhauses, Haushalt und Ausbildung.</summary>
-    private double OffeneJahreskosten
-    {
-        get
-        {
-            var waechter = _w.Daten.Gauner?.WaechterKosten ?? 0;
-            var betriebe = Betriebe.Sum(OffeneKosten);
-            var haus = _w.Wohnen.Unterhalt(Konto) + (Konto.Hauswaechter ? waechter : 0);
-            var familie = _w.Familien.Von(Konto) is { } f ? _w.Familien.Haushaltskosten(f) + _w.Familien.Ausbildungskosten(f) : 0;
-            return betriebe + haus + familie;
-        }
-    }
+    /// <summary>Was erst zum Jahresabschluss fällig wird (dieselbe Rechnung wie die Rücklage des Verwalters, <see cref="Stadtwirtschaft.OffeneJahreskosten"/>).</summary>
+    private double OffeneJahreskosten => _w.OffeneJahreskosten(Konto);
 
     /// <summary>Was dieser Betrieb erst zum Jahresabschluss zahlt: Löhne, Wächter und Unterhalt bzw. Pacht für das ganze Jahr.</summary>
-    private double OffeneKosten(Betrieb b) =>
-        b.Lohnkosten + b.Artdaten.Fixkosten
-        + (b.Waechter ? _w.Daten.Gauner?.WaechterKosten ?? 0 : 0);
+    private double OffeneKosten(Betrieb b) => _w.OffeneKosten(b);
 
     /// <summary>Was der Betrieb im Rest des Jahres noch einbringt: sein bisheriger Ertrag (Umsatz minus Zutaten, Steuer, Transport und Schaden) hochgerechnet.</summary>
     private double RestErtrag(Betrieb b)

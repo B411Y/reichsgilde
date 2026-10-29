@@ -275,6 +275,9 @@ public sealed class Betrieb
     /// <summary>Warum die Produktion gerade stillsteht (null = sie läuft).</summary>
     public string? Stillstand { get; private set; }
 
+    /// <summary>An welchem Spieltag der Verwalter zuletzt gemeldet hat, dass er wegen knapper Kasse nur das Nötigste kauft (nicht im Spielstand: nach dem Laden höchstens eine Meldung mehr).</summary>
+    internal long KasseKnappGemeldetAm { get; set; } = -1;
+
     /// <summary>Arbeitsminuten mit Stillstand im laufenden Jahr (fehlende Zutat, volles Lager) – Umbau und Reparatur nach einem Anschlag zählen nicht.</summary>
     public int StillstandMinuten { get; private set; }
 
