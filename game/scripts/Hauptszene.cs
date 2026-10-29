@@ -20,6 +20,7 @@ namespace Reichsgilde;
 ///
 /// Startoptionen zum Testen (nach "--" an Godot anhängen):
 ///   --startstunde=11   Partie beginnt um 11 Uhr statt um 04 Uhr (Zunftglocke)
+///   --lichtuhr=3.5     Licht, Himmel und Fenster zeigen 3:30 Uhr (feste Uhrzeit, auch vor 4 Uhr; nur Darstellung)
 ///   --tempo=8          Anfangstempo
 ///   --auswahl=Dom      Gebäude vorauswählen (Kennung wie beim Anklicken)
 ///   --drehung=1        Kamera um 1–3 Vierteldrehungen gedreht starten (0 = Blick nach Nordosten)
@@ -456,6 +457,8 @@ public partial class Hauptszene : Node
             _stadt.WetterVorgeben(optionen.TryGetValue("wetter", out var wetterName) && Enum.TryParse<Wetterlage>(wetterName, true, out var lage) ? lage : null,
                                   optionen.TryGetValue("jahreszeit", out var jahreszeitName) && Enum.TryParse<Jahreszeit>(jahreszeitName, true, out var jz) ? jz : null,
                                   optionen.GetValueOrDefault("blitz") == "1");
+        if (optionen.TryGetValue("lichtuhr", out var lichtUhr) && float.TryParse(lichtUhr, System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out var lichtStunde))
+            _stadt.LichtUhrVorgeben(lichtStunde); // --lichtuhr=3.5: Licht und Himmel zeigen 3:30 Uhr (Stadtansicht.Licht.cs)
         if (optionen.TryGetValue("wetterspaeter", out var spaeter) && spaeter.Split('@') is [var spaeterLage, var spaeterSekunden]
             && Enum.TryParse<Wetterlage>(spaeterLage, true, out var spaeterWetter) && double.TryParse(spaeterSekunden, System.Globalization.CultureInfo.InvariantCulture, out var sek))
             _stadt.WetterVorgebenNach(spaeterWetter, sek); // --wetterspaeter=regen@20: Wetter schlägt nach 20 s um (Stadtansicht.Wetter.cs)
