@@ -14,3 +14,5 @@ Bearbeitung im Projekt: Die beiden großen Texturen (Albedo, Normalen) sind von 
 Weitere Bewegungen (Stehen, Hämmern …) kommen als `schmied_ki_<bewegung>.glb` mit demselben Skelett in diesen Ordner; das Spiel nimmt sie beim Start automatisch auf (`Stadtansicht.KiFiguren.cs`).
 
 `schmied_ki_stehen.glb` ist der Kimodo-Clip „idle“ für dasselbe Skelett; die Datei enthält nur Skelett und Animation (Netz, Material und Texturen entfernt).
+
+Herkunft je Datei aller Assets (auch dieser): `docs/assets/protokoll.csv`.

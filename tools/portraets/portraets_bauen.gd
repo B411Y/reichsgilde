@@ -1,4 +1,6 @@
 # Bereitet die Porträts (Rohbilder der Bild-KI) für das Spiel auf und setzt Vorschauen zusammen.
+# Die ausgelieferten Personen und Masken stammen von der lokalen Bild-KI (ComfyUI mit Qwen-Image); Gemini lieferte nur die
+# erste, ersetzte Fassung. Herkunft je Datei: docs/assets/protokoll.csv.
 #
 # Aufruf (aus dem Repository-Ordner, ohne Fenster):
 #   godot --headless --path game --script ../tools/portraets/portraets_bauen.gd -- quellen <Rohbild-Ordner> [dateiname ...]
@@ -222,7 +224,7 @@ func _umfaerben(person: Image, maske: Image, kanal: int, ziel: Color) -> void:
 			person.set_pixel(x, y, p.lerp(neu, clampf(w, 0.0, 1.0)))
 
 
-## Manchmal malt Gemini trotz Auftrag einen Papierrahmen mit Pergamentrand um das Bild (m5_*). Ist der Rand
+## Manchmal malt die Bild-KI trotz Auftrag einen Papierrahmen mit Pergamentrand um das Bild (so bei m5_* in der ersten Fassung mit Gemini). Ist der Rand
 ## erkennbar nicht weiß, wird er samt Rahmenlinie abgeschnitten und das Bild wieder auf Ausgangsgröße gezogen.
 func _hat_papierrand(bild: Image) -> bool:
 	var b := bild.get_width()
