@@ -207,7 +207,7 @@ public sealed class Betrieb
 
     /// <summary>
     /// Arbeitsminuten je Spieljahr (Tag) in diesem Betrieb: 720 = 8–20 Uhr, im Wirtshaus 840 = 8–22 Uhr – mit einem Vorarbeiter
-    /// „Frühaufsteher“ eine Stunde mehr (nur Betriebe mit Ware, höchstens bis zum Tagesende). Der Lohn richtet sich nach der Art.
+    /// „Frühaufsteher“ 90 Minuten mehr (nur Betriebe mit Ware, höchstens bis zum Tagesende). Der Lohn richtet sich nach der Art.
     /// </summary>
     public int Arbeitsminuten => _daten.Arbeitsminuten(Art) + ArbeitsminutenPlus;
 

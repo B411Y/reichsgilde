@@ -2,7 +2,7 @@
   "bericht": "Balancing 3",
   "datum": "2026-10-29",
   "mainCommit": "9022b49",
-  "commit": "vor Balancing 3",
+  "commit": "9022b49 + #231 b757446 + #232 4c55d7d",
   "datenversion": 61,
   "aufruf": "messen bericht 20 15 --teile=2 --voelkerberufe=alle --parallel=4",
   "parameter": {
