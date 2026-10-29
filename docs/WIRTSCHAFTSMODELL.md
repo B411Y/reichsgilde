@@ -2217,3 +2217,23 @@ Gemessen auf main `b9825f3` + Commit `c54c661` (main `cc72d5c` hat denselben Ker
 - **Befund:** Am meisten gewinnen Parfumeur (+270 Gulden Gewinn im Jahr) und Prediger (+244) – vermutlich, weil kein toter Vorrat mehr gekauft wird (der Gewinn zählt Zutaten beim Kauf, das Reinvermögen das Lager nicht) und weniger im Lager liegt, das Diebe holen können (für den Parfumeur in den Einzelpartien gesehen, für den Prediger nicht geprüft). Parfumeur nach 5 Jahren 5.326 statt 4.013, bankrott 0 statt 1 von 30. Schmied, Alchimist, Dieb, Geldleiher und Gardist ändern ihren Gewinn kaum (±60); ihr Reinvermögen schwankt über Gericht, Schiffe und Familie (Schmied: Gericht −314 statt −201 im Jahr). Weil das Mittel steigt, liegen Dieb (−17 %), Geldleiher (−15,2 %) und Gardist (−19,2 %) jetzt außerhalb ±15 %, der Schmied (+7,8 %) wieder darin. Ein Wirt ging bankrott (vorher keiner), der Wirt im Mittel aber besser (21 statt 15 von 30 im Ziel).
 - Völker streuen weiter stärker als ihr Bonus: Schmied −11 … +22 % gegen Menschen (Zwerg 41.296, vorher −13 … +4 %), Parfumeur −25 … 0 % (Zwerg 25.735, vorher −5 … +12 %) – der Mensch-Schmied fiel, der Mensch-Parfumeur stieg.
 - KI-Stärke: KI ÷ Bezug Median 1,17 (vorher 1,03); der Bezugsspieler ist ein Schmied (73.004 statt 76.634), die KI-Häuser 84.533 statt 79.139. Unter „Schwer“ 1,75 (vorher 1,78). Messstadt mit 8 Häusern 71.131 je Haus (vorher 64.797).
+
+**Nachbesserung des Zutateneinkaufs** (Befund der zweiten Prüfung, Entscheidungen des Teamleiters): Lag das Vermögen unter Rücklage + 2 × Preis der knappsten Zutat, kaufte der Karren gar nichts mehr – keine Produktion, Bankrott im 3./4. Jahr (nachgestellt: Gießerei, 2 Gesellen, Silberring, Kasse 50 unter bzw. 40 über der Rücklage). Jetzt: **Stockt die Werkstatt** (Zutaten für weniger als `nachkaufUnterStueck` = 5 Stück), kauft der Verwalter wenigstens die Zutaten für 5 Stück, solange die Kasse reicht, und meldet „Verwalter kauft nur das Nötigste“ (höchstens einmal je Spieltag und Betrieb). Die **Rücklage** zählt jetzt wie die KI alles, was erst der Jahresabschluss zahlt: Löhne, Wächter und Unterhalt der Betriebe, Schiffe, Wohnhaus, Hauswächter, Haushalt und Ausbildung (`Stadtwirtschaft.OffeneJahreskosten`, dieselbe Abfrage für Verwalter und KI; die KI zählt damit auch den Schiffsunterhalt). Tests in `LogistikTests`: Kasse 50 unter und 40 über der Rücklage – 4 Jahre Umsatz, kein Bankrott (ohne Mindestkauf schon im 1. Jahr kein Umsatz).
+
+Gemessen auf main `9022b49` + Commit `9f65f38`, `messen bericht 20 30` (1.320 Partien, keine mit Fehler), JSON in `docs/messungen/balancing-2026-10-29-zutateneinkauf-nachbesserung.json`; Vergleich mit `balancing-2026-10-29-zutateneinkauf.json` (Stand `403991d`). Bis Jahr 5 sind alle Berufe auf den Gulden gleich (die neue Regel greift in der Messung erst später, über die größere Rücklage und die KI mit Schiffen). Nach 20 Jahren, alles im Rauschen (Unterschiede unter dem Fehler beider Mittel zusammen):
+
+| Beruf | vorher | neu (± Fehler) | Abstand zum Mittel vorher → neu |
+|---|---|---|---|
+| Schmied | 37.867 | 37.408 ± 1.813 | +7,8 → +6,5 % |
+| Tischler | 39.460 | 38.467 ± 1.972 | +12,9 → +9,9 % |
+| Steinmetz | 38.517 | 38.599 ± 1.348 | +9,9 → +10,3 % |
+| Alchimist | 34.534 | 36.241 ± 1.712 | −2,8 → +2,8 % |
+| Wirt | 36.761 | 36.870 ± 2.032 | +4,3 → +4,8 % |
+| Prediger | 38.450 | 38.591 ± 1.455 | +9,7 → +10,2 % |
+| Dieb | 30.072 | 29.498 ± 1.233 | −17,0 → −18,7 % |
+| Parfumeur | 38.370 | 37.008 ± 1.427 | +9,4 → +5,2 % |
+| Geldleiher | 30.638 | 31.354 ± 931 | −15,2 → −12,8 % |
+| Gardist | 29.375 | 29.719 ± 786 | −19,2 → −18,0 % |
+
+- Außerhalb ±15 % noch Dieb (−18,7 %) und Gardist (−18,0 %); der Geldleiher ist wieder darin. Bankrott unverändert (ein Wirt, sonst keiner).
+- KI-Stärke: KI ÷ Bezug Median 1,10 (vorher 1,17), Bezug 72.502 (vorher 73.004), KI-Häuser 83.800 (vorher 84.533); unter „Schwer“ 1,64 (vorher 1,75). Messstadt mit 8 Häusern 71.376 je Haus (vorher 71.131).
