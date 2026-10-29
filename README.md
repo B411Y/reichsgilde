@@ -201,7 +201,7 @@ Die Reichsstadt ist als begehbare Schrägansicht zu sehen: Mauer (100 × 100 m) 
 
 **Leerstand.** Das Wohnhaus eines bankrotten oder erloschenen Hauses bleibt vernagelt stehen. Ein Klick darauf zeigt zwei Knöpfe: **Kaufen und sanieren** (50 % des Hauswerts plus 20 % Sanierung, abzüglich eures alten Hauses; 4 Stunden, dann zieht ihr ein; nur, wenn das Haus größer ist als eures) und **Abreißen lassen** (50 % plus Abrisskosten; danach ein Bauplatz für jeden). Beide fragen vorher mit der ganzen Rechnung nach; geht etwas nicht, ist der Knopf gesperrt und der Grund steht in der Tafel.
 
-**Zum Ausprobieren** (Startoptionen nach `--`, siehe `CLAUDE.md`): `--bauen=1` öffnet den Baumodus, `--bauen=wohnhaus:1 --bauort=-96,-3,0 --bauklick=1` setzt den Umriss auf eine Probestelle und öffnet die Rückfrage, `--bauklick=2 --spulen=1100` baut gleich und lässt die Bauzeit ablaufen.
+**Zum Ausprobieren** (Startoptionen nach `--`, siehe `docs/STARTOPTIONEN.md`): `--bauen=1` öffnet den Baumodus, `--bauen=wohnhaus:1 --bauort=-96,-3,0 --bauklick=1` setzt den Umriss auf eine Probestelle und öffnet die Rückfrage, `--bauklick=2 --spulen=1100` baut gleich und lässt die Bauzeit ablaufen.
 
 </details>
 
@@ -285,7 +285,7 @@ Zum Ausprobieren (gilt nur für diesen Start): `--voreinstellung=Ultra`, `--tilt
 
 **Wege und Belag.** Jeder Weg der Karte hat einen Belag, Stück für Stück (5 m): **Trampelpfad** (schmaler, ausgetretener Streifen im Gras), **Fahrweg** (festgefahrene Erde mit zwei Spurrillen), **Kies** und **Pflaster**. Karren fahren darauf mit etwa 70, 85, 95 und 100 % Tempo – und die Fahrzeit der Karren richtet sich danach. Viel Verkehr tritt einen Trampelpfad mit der Zeit zum Fahrweg aus, ohne Verkehr wächst er wieder zu; Kies und Pflaster halten, verfallen aber langsam (Lücken, Gras in den Fugen), bis jemand sie ausbessert. Ein **Klick auf einen Weg** öffnet die Wegtafel: Belag, Zustand, Verkehr und Karrentempo je Abschnitt, laufende Baustellen, dazu zwei Regler für den Abschnitt (in 5-m-Stücken, höchstens 300 m). **Kies bauen lassen** und **Pflaster bauen lassen** kosten Geld nach Länge (Preis und Bauzeit stehen am Knopf; ist es nicht möglich, steht der Grund darunter); während des Baus liegt dort eine Baustelle mit Absperrung und Haufen aus Kies und Stein, nach der Bauzeit ist der Abschnitt fertig. Wer im Stadtrat sitzt, kann stattdessen **Pflaster beim Rat beantragen** (2 Aktionspunkte): Die Stadt zahlt aus der **Wegekasse**, die Wegtafel und die Ratstafel („Wegbau der Stadt“) zeigen die Abstimmung nach heutigem Stand, und ein angenommener Antrag bringt Ansehen. Die Stadt pflastert außerdem selbst, wo am meisten gefahren wird, und die KI-Häuser bauen aus, wenn sich die schnellere Fahrt rechnet. **Gegenverkehr:** Karren fahren rechts, Fußgänger gehen am rechten Rand und weichen einem nahenden Karren noch ein Stück aus – nur zur Ansicht, die Zeiten kommen aus dem Kern. Die Wege sind in den Boden eingearbeitet (wie in einem Karteneditor): Kreuzungen gehen ohne Kanten ineinander über, die Ränder sehen je nach Belag anders aus – Pfade und Fahrwege laufen weich ins getretene Gras aus, Kies streut ein paar Steinchen, Pflaster hat eine Reihe Randsteine; Spurrillen folgen dem Weg und fangen das Licht; an Kreuzungen biegen sie in weichen Bögen von einem Weg in den anderen, die Innenecken sind ausgefahren. Wo ein Erdweg auf Pflaster trifft, ist Erde unregelmäßig über die Kante getragen. In der Stadt ist der Grund festgetretener Lehm mit Kies und Pfützen, die Gassen sind Kopfsteinpflaster mit Randsteinen. Vor der Mauer tragen auch freie Grundstücke – Bauzonen, Werkstatt- und Wohnhausplätze ohne Haus – Gras; steht dort ein Gebäude oder eine Baustelle, weicht es.
 
-**Zum Ausprobieren:** `--auswahl=weg:3` öffnet die Wegtafel eines Weges (Nummer in der Karte, die Kamera fährt hin), `--wegausbau=3,0,30,Kies|3,30,60,Pflaster --vermoegen=50000 --spulen=200` lässt zwei Abschnitte ausbauen und fertig werden (`--karte=probestadt`), `--wegantrag=3,0,60` stellt den Ratsantrag (siehe `CLAUDE.md`).
+**Zum Ausprobieren:** `--auswahl=weg:3` öffnet die Wegtafel eines Weges (Nummer in der Karte, die Kamera fährt hin), `--wegausbau=3,0,30,Kies|3,30,60,Pflaster --vermoegen=50000 --spulen=200` lässt zwei Abschnitte ausbauen und fertig werden (`--karte=probestadt`), `--wegantrag=3,0,60` stellt den Ratsantrag (siehe `docs/STARTOPTIONEN.md`).
 
 **Meistergrade und Gebäudestufen.** Jedes Stück, das die Betriebe eines Hauses herstellen oder fördern, bringt Erfahrung im Beruf. Reicht sie, legt man im Wohnhaus (Reiter „Handwerk“) die Meisterprüfung ab (Gebühr und 2–4 AP) – bis zum 6. Grad. Ab dem 3. Grad lässt sich die Werkstatt am Platz zur Stufe 2 ausbauen (Schmiede bzw. Drechslerei, 3 Plätze), ab dem 5. Grad zur Stufe 3 (Goldschmiede bzw. Sägewerk, 4 Plätze); der Umbau kostet Gulden und einen halben Arbeitstag. Höhere Stufen stellen wertvollere Waren her: Werkzeug, Silberkette, Goldkette, Prunkschwert; Gehstock, Armbrust, Schrank, Prunktruhe; Säule, Taufbecken, Steinfigur, Grabmal; Rosenwasser, Gegengift, Theriak, Zinnober (Gold gibt es nur auf dem Markt). Der Steinmetz baut zur Steinschneiderei und Steinmetzhütte aus. Der 6. Grad bringt einen Aktionspunkt mehr je Jahr. Grad und Erfahrung gehören dem Haus und gehen beim Erbfall nicht verloren.
 
@@ -438,7 +438,7 @@ Hast du mindestens 3 Beweise, kannst du **Schweigegeld erpressen**. Der Brief se
 
 **Kamera.** Mausrad zoomt, rechte Maustaste oder WASD verschieben, **Strg+Q/E** oder **Bild auf/ab** drehen (Q/E allein drehen hier das Gebäude oder die Pflanze). **Alt** zeigt alle Namen.
 
-**Belag.** Ein gewählter Weg hat in der Tafel rechts den Block **Belag**: die Abschnitte als Liste (zum Beispiel „0–55 m: Fahrweg, 55–80 m: Kies“), darunter die Stufe (Trampelpfad, Fahrweg, Kies, Pflaster), zwei Regler **von** und **bis** (in Metern entlang des Weges; ein goldenes Band zeigt den Abschnitt im Bild) und drei Knöpfe: **Abschnitt setzen**, **Ganzer Weg** und **Vorgabe** (alle Abschnitte entfernen, der Belag richtet sich wieder nach der Art: Karrenstraßen sind Fahrwege, Gassen und Fußwege Trampelpfade). Jede Änderung ist ein Schritt der Geschichte (Strg+Z). Das ist der Belag, mit dem das Spiel beginnt; was daraus wird, steht unter „Wirtschaft und Handel“. Zum Ausprobieren: `--werkstatt-belag=<weg>,<stufe>[,<von>,<bis>]` (siehe `CLAUDE.md`).
+**Belag.** Ein gewählter Weg hat in der Tafel rechts den Block **Belag**: die Abschnitte als Liste (zum Beispiel „0–55 m: Fahrweg, 55–80 m: Kies“), darunter die Stufe (Trampelpfad, Fahrweg, Kies, Pflaster), zwei Regler **von** und **bis** (in Metern entlang des Weges; ein goldenes Band zeigt den Abschnitt im Bild) und drei Knöpfe: **Abschnitt setzen**, **Ganzer Weg** und **Vorgabe** (alle Abschnitte entfernen, der Belag richtet sich wieder nach der Art: Karrenstraßen sind Fahrwege, Gassen und Fußwege Trampelpfade). Jede Änderung ist ein Schritt der Geschichte (Strg+Z). Das ist der Belag, mit dem das Spiel beginnt; was daraus wird, steht unter „Wirtschaft und Handel“. Zum Ausprobieren: `--werkstatt-belag=<weg>,<stufe>[,<von>,<bis>]` (siehe `docs/STARTOPTIONEN.md`).
 
 Als Nächstes folgt der Schritt 6 – Fahrplan in `docs/bereiche/leveldesign.md`.
 
@@ -504,7 +504,7 @@ reichsgilde/
 │   ├── WELT.md                     Die Welt der Reichsgilde: Weltgeschichte, Völker, Glaube, Städte (Köln)
 │   ├── messungen/                  Balancing-Berichte als JSON (messen bericht, siehe WIRTSCHAFTSMODELL.md)
 │   └── WIRTSCHAFTSMODELL.md        Zahlen und Messungen je Beruf und Balance-Änderung
-├── CLAUDE.md                       Arbeitsregeln für die Claude-Chats, die am Projekt arbeiten
+├── CLAUDE.md                       Arbeitsregeln für die Claude-Agenten (Teamleiter und Mitglieder)
 └── .github/                        Automatische Prüfung auf Windows und Linux, Vorlage für PR-Texte
 ```
 
@@ -524,11 +524,11 @@ Reichsgilde läuft auf **Windows und Linux**. Bei jedem Pull Request prüft GitH
 Die fertigen Builds kann man unter **Actions → jeweiliger Lauf → Artifacts** herunterladen. Linux läuft dabei fest auf Ubuntu 24.04, damit ein neues Ubuntu bei GitHub die Prüfung nicht unbemerkt ändert.
 Die Konfiguration steht in [`.github/workflows/build.yml`](.github/workflows/build.yml).
 
-Nach jedem Merge auf `main` hält die Action **„PRs aktuell halten“** ([`.github/workflows/prs-aktuell.yml`](.github/workflows/prs-aktuell.yml)) alle fertigen Pull Requests auf dem neuen Stand: Sie mergt `main` hinein und startet die Prüfung neu. Lässt sich das nicht automatisch lösen, bekommt der PR das Label **„Konflikt mit main“**. Damit das selten passiert, schreibt jeder Chat seine Entscheidungen und offenen Punkte in eine eigene Datei unter `docs/bereiche/`.
+Nach jedem Merge auf `main` hält die Action **„PRs aktuell halten“** ([`.github/workflows/prs-aktuell.yml`](.github/workflows/prs-aktuell.yml)) alle fertigen Pull Requests auf dem neuen Stand: Sie mergt `main` hinein und startet die Prüfung neu. Lässt sich das nicht automatisch lösen, bekommt der PR das Label **„Konflikt mit main“**. Damit das selten passiert, schreibt jeder Bereich seine Entscheidungen und offenen Punkte in eine eigene Datei unter `docs/bereiche/`.
 
 </details>
 
-**Mitarbeit mehrerer Claude-Chats:** Jeder Chat arbeitet auf einem eigenen Branch, öffnet nach dem ersten Commit einen Entwurfs-PR (Aufgabe, Bereich, angefasste Dateien) und pflegt die Protokolle in `docs/` im selben PR. Die Regeln stehen in [CLAUDE.md](CLAUDE.md).
+**Mitarbeit der Claude-Agenten:** Ein Teamleiter teilt jede Funktion in Aufträge an Mitglieder mit festem Bereich; alle Teile kommen in einem Funktions-Branch und einem PR zusammen, die Protokolle in `docs/` im selben PR. Die Regeln stehen in [CLAUDE.md](CLAUDE.md), die Rollen unter `.claude/agents/`, die Abläufe des Teamleiters in [.claude/teamleiter.md](.claude/teamleiter.md).
 
 ## Lizenz
 
