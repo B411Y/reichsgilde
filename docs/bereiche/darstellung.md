@@ -278,3 +278,33 @@ So wird eingetragen (damit sich die Chats nie an derselben Stelle treffen):
 | Ringe auf dem Wasser | Die Ringe in Pfützen (`regenringe`, Gitter 0,7 m) haben feste Größe in der Welt; weit herausgezoomt wurden sie zu flimmerndem Rauschen (Wellenlänge 0,12 m, kleiner als ein Bildpunkt). Neu: `px` (Meter je Bildpunkt aus `fwidth` des Ortes, vor dem Zweig der Pfütze berechnet, weil Ableitungen in ungleich laufendem Code nicht verlässlich sind) blendet sie von ~0,05 bis 0,11 m je Bildpunkt aus (Zoom ~45 bis 100). Auf Flüssen und Bächen schlagen die Regenringe als Partikel am Ufer wie am Boden; am Fluss geprüft: bei Zoom 30 kleine Ringe, bei Zoom 100 keine. | 29.10.2026 |
 | Klicktest | Vulkan (T400, Probestadt, 1600 × 900): Kirche nah (Zoom 25), Rathausturm nass und trocken, Eckturm aus vier Blickwinkeln (Q/E) bei Regen und trocken um 12, 19 und 22 Uhr, Stadt mittel, Nacht weit (Zoom 70, 140), Fluss (Zoom 30, 100), Köln (Dom, Mitte) bei Regen. Vorher/nachher im Notizordner des Mitglieds (`scratchpad/r3`: `vorher*`, `n*`, `w*`, `x*`, `y*`, `z*`, `q*`). | 29.10.2026 |
 | Quellen | **Gelesen:** Sébastien Lagarde, „Observe Rainy world“ (seblagarde.wordpress.com, 10.12.2012); fxguide, „Game environments – Part C: making wet environments“ (Lagarde, www.fxguide.com/?p=43362); 80.lv, „How Splash Damage built efficient material systems for Gears Tactics“ (Nässe: Albedo dunkler, Porosität aus der Rauheit, kein Rauheits-Faktor). **Nur aus der Suchzusammenfassung (nicht ganz gelesen):** Nguyenova, „Rendering Wet Roads in Driving Simulations“ (cescg.org, Dunkelwerden durch Totalreflexion am Wasserfilm, stärker bei dunkler Albedo); Unity Shader Graph „Production Ready Detail“ (Nässe-Decal: dunkler und glatter, einfache Mathematik); Alan Wake 2, Nässe-System (doosead.artstation.com: Wirkung je Nässegrad und Porosität). Nicht gefunden: Beiträge von Naughty Dog oder Ubisoft zu nassen Dächern (nur Uncharted-Flut und „Water Technology“ in der GDC Vault, nicht frei lesbar). | 29.10.2026 |
+### Grafik-Leistung (PR #258)
+
+| Thema | Entscheidung | Datum |
+|---|---|---|
+| Schatten nach Voreinstellung | Schon erledigt, kein Code nötig: Karte 2048 / 4096 / 8192 und Filter je Stufe (`SchattenStufeFuer`), nur `project.godot` steht auf 8192 als Startwert. Kaskaden und „Max Distance“ gibt es nicht: `ShadowMode.Orthogonal` = eine Karte, Near und Far folgen dem Zoom. Probe: Max Distance 0, 100 und 400 gibt bei Zoom 95 (Far etwa 216 m) dasselbe Bild – Godot ignoriert sie bei orthografischer Kamera. | 29.10.2026 |
+| Nachtlichter | Keine Fernausblendung nötig: höchstens 12 echte Punktlichter (`LichterMaximal`, Pool), dazu 1 Decal (Wolken) – weit unter „Max Clustered Elements“ 512. Messung in Köln nachts bei Zoom 25, 60, 140: 0 Punktlichter, 0 Spotlichter, 1 Decal (die Startstadt hat noch keine Laternen im Bild). Fenster, Lichtflecken und Flammen sind MultiMeshes, keine Lichter. `--messung` nennt die Zahl jetzt am Ende. | 29.10.2026 |
+| Mesh-LOD | Versuch mit 4 Pixel (Niedrig) und 2 Pixel (Mittel) gegen die bisherigen 1 / 0, wechselnd gemessen (je 2 Paare, T400, Köln): Niedrig Zoom 95 etwa 21–25 → 33–38 Bilder/s, aber Zoom 25 schlechter (GPU 6 → 8–12 ms), Mittel uneinheitlich. Rechnerlast lag bei 2–26, der Unterschied ist nicht belegt; Bilder zeigten keinen sichtbaren Unterschied bei Häusern und Schatten. **Nicht übernommen**, Werte bleiben 1 (Nah) und 0. Figuren mit Skinning waren nicht prüfbar (in der Köln-Startstadt keine Figuren im Bild). | 29.10.2026 |
+| Ruckler beim ersten Regen | Messbar: Hoch (Dunst „Niedrig“), `--wetterspaeter=regen@14`: ein Bild von 125–147 ms und eine neue Oberflächen-Pipeline beim ersten Regen. Auch bei Schnee, nicht bei Wolken; nicht in Niedrig, nicht bei `--dunst=Aus` oder `--dunst=Hoch`. Erfolglose Versuche (alles zurückgenommen): Partikel in einem Nebenfenster vorzeichnen, Traufentropfen beim Aufbau anlegen, Partikel im Hauptfenster einige Bilder lang einschalten, Nebel-Dichte und `FogEnabled` vorab setzen, Preprocess 0. Die Ursache liegt im Zusammenspiel Höhennebel (Dunst Niedrig) und Wetterpartikel, ein Vorwärmen reichte nicht. | 29.10.2026 |
+| Werkzeuge | `--messung` meldet Ruckler (Bild über dem Dreifachen der gleitenden Bildzeit), neue Pipelines je Art und Cluster-Elemente; Pipelines gesamt je Sekunde. `--wetterspaeter=<lage>@<s>` für den ersten Regen. | 29.10.2026 |
+| Grafiktreiber Windows | `rendering_device/driver.windows="vulkan"` in `project.godot` (Abschnitt `[rendering]`; Projekteinstellung `rendering/rendering_device/driver.windows`). `fallback_to_d3d12` steht auf dem Grundwert `true`: Vulkan bleibt erste Wahl, DirectX 12 nur, wenn Vulkan fehlt. Seit Godot 4.6 ist D3D12 der Standard neuer Projekte. | 29.10.2026 |
+| Shader-Baker (Export) | Nicht aktiviert (`export_presets.cfg` gehört den Code-Besitzern). Nötig: im Exportvorgabe-Dialog „Shader Baker > Enabled“, in der Datei `shader_baker/enabled=true` je Vorgabe; wirkt nur für den Treiber aus `rendering/rendering_device/driver` der Zielplattform (Vulkan). Verkürzt den ersten Start, ersetzt kein Vorwärmen. | 29.10.2026 |
+
+Messwerte (T400, Vulkan, 1600 × 900, Köln, `--blick=0,0,<Zoom> --messung=30 --vsync=Aus`, Grundstand vor dem Versuch; Rechnerlast 5–25 auf 8 Kernen, nur grobe Richtwerte, Schwankung zwischen zwei Läufen bis 2×):
+
+| Voreinstellung, Zoom, Zeit | Bilder/s (Lauf 1, Lauf 2) | GPU-Zeit ms |
+|---|---|---|
+| Niedrig, 95, Tag | –, 35,4 | 8,3 |
+| Niedrig, 95, Nacht mit Regen | 40,6, 47,0 | 6,8 |
+| Niedrig, 25, Tag | 48,2, 48,4 | 6,0 |
+| Niedrig, 25, Nacht mit Regen | 54,7, 54,1 | 5,2 |
+| Mittel, 95, Tag | 31,7, 27,2 | 15,3 |
+| Mittel, 95, Nacht mit Regen | 18,4, 28,8 | 14,7–34,2 |
+| Mittel, 25, Tag | 16,2, 34,1 | 13,0–32,5 |
+| Mittel, 25, Nacht mit Regen | 37,8, 37,4 | 12,5 |
+| Hoch, 95, Tag | 26,2, 26,1 | 20,9 |
+| Hoch, 95, Nacht mit Regen | 27,2, 29,1 | 21,7 |
+| Hoch, 25, Tag | 27,8, 28,8 | 18,1 |
+| Hoch, 25, Nacht mit Regen | 30,2, 30,2 | 19,1 |
+
+Belastbar sind nur die Läufe mit zwei fast gleichen Werten (z. B. Hoch, Niedrig Zoom 25); die Köln-Startstadt ist fast leer (etwa 270 Zeichenaufrufe) und CPU-gebunden, die Messung sagt über eine volle Stadt wenig.

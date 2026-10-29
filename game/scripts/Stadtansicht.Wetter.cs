@@ -93,6 +93,10 @@ public partial class Stadtansicht
         _wetterSofort = true;
     }
 
+    /// <summary>Startoption <c>--wetterspaeter=regen@20</c>: nach so vielen Sekunden schlägt das Wetter plötzlich um (für Messungen des ersten Regens).</summary>
+    public void WetterVorgebenNach(Wetterlage lage, double sekunden) =>
+        GetTree().CreateTimer(sekunden).Timeout += () => WetterVorgeben(lage, _jahreszeitVorgabe, _blitzHalten);
+
     private bool _wetterSofort;
 
     private Wetterablauf? WetterablaufDerPartie()
