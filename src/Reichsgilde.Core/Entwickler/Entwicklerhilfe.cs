@@ -20,8 +20,11 @@ public sealed class Entwicklerhilfe
 
     internal Entwicklerhilfe(Stadtwirtschaft w) => _w = w;
 
-    /// <summary>Dürfen Entwicklerbefehle wirken? (Standard: nein – dann lehnt der Kern sie ab.)</summary>
-    public bool Erlaubt { get; set; }
+    /// <summary>Dürfen Entwicklerbefehle wirken? (Standard: nein – dann lehnt der Kern sie ab.) Gesetzt über <see cref="Simulation.EntwicklerErlaubt"/>.</summary>
+    public bool Erlaubt { get; internal set; }
+
+    /// <summary>So viele Stück einer Ware darf <see cref="EntwicklerWare"/> höchstens ins Lager legen (über die Lagergrenze hinaus, aber ohne Überlauf).</summary>
+    public const int WareHoechstens = 10_000;
 
     /// <summary>Hat in dieser Partie je ein Entwicklerbefehl gewirkt? Lässt sich nicht zurücknehmen.</summary>
     public bool Benutzt { get; internal set; }
@@ -146,11 +149,17 @@ public sealed class Entwicklerhilfe
         return Befehlsergebnis.Ok($"{f.Oberhaupt.Vorname} und {kandidat.Person.Vorname} sind verheiratet.");
     }
 
-    /// <summary>Eine lebende Person eines Hauses (nicht der Brautschau) und ihr Haus.</summary>
-    private (Person? Person, Familie? Familie, Befehlsergebnis? Fehler) Angehoeriger(int nummer)
+    /// <summary>
+    /// Eine lebende Person – mit <paramref name="brautschau"/> auch aus der Brautschau (dann ohne Haus). Gehört sie zu einem Haus, muss es noch
+    /// im Spiel sein: Familienbefehle für bankrotte und erloschene Häuser werden abgelehnt, bevor sich etwas ändert.
+    /// </summary>
+    private (Person? Person, Familie? Familie, Befehlsergebnis? Fehler) Angehoeriger(int nummer, bool brautschau = false)
     {
         if (_w.Familien.PersonNummer(nummer) is not { Lebt: true } p) return (null, null, Befehlsergebnis.Abgelehnt($"Eine lebende Person Nr. {nummer} gibt es nicht."));
-        if (_w.Familien.FamilieVon(p) is not { } f) return (null, null, Befehlsergebnis.Abgelehnt($"{p.Name} gehört zu keinem Haus."));
+        if (_w.Familien.FamilieVon(p) is not { } f)
+            return brautschau && _w.Familien.Kandidaten.Any(k => k.Person == p) ? (p, null, null)
+                : (null, null, Befehlsergebnis.Abgelehnt($"{p.Name} gehört zu keinem Haus."));
+        if (!f.Konto.IstAktiv) return (null, null, Befehlsergebnis.Abgelehnt($"{f.Konto.Inhaber} ist nicht mehr im Spiel."));
         return (p, f, null);
     }
 
@@ -174,18 +183,19 @@ public sealed class Entwicklerhilfe
 
     private Befehlsergebnis Tod(int nummer)
     {
-        if (_w.Familien.PersonNummer(nummer) is not { Lebt: true } p) return Befehlsergebnis.Abgelehnt($"Eine lebende Person Nr. {nummer} gibt es nicht.");
-        var name = p.Name;
-        _w.Familien.AnKrankheitSterben(p, "plötzlich");
-        return p.Lebt ? Befehlsergebnis.Abgelehnt($"{name} kann so nicht sterben (das Haus ist nicht mehr im Spiel).")
-            : Befehlsergebnis.Ok($"{name} ist gestorben.");
+        var (p, _, fehler) = Angehoeriger(nummer, brautschau: true);
+        if (fehler is not null) return fehler;
+        _w.Familien.AnKrankheitSterben(p!, "plötzlich");
+        return Befehlsergebnis.Ok($"{p!.Name} ist gestorben.");
     }
 
     private Befehlsergebnis Zug(int nummer, string kennung, bool hinzufuegen)
     {
         if (!_w.Familien.HatZuege) return Befehlsergebnis.Abgelehnt("In dieser Stadt gibt es keine Charakterzüge.");
         if (_w.Familien.Zug(kennung) is not { } zug) return Befehlsergebnis.Abgelehnt($"Einen Charakterzug „{kennung}“ gibt es nicht.");
-        if (_w.Familien.PersonNummer(nummer) is not { Lebt: true } p) return Befehlsergebnis.Abgelehnt($"Eine lebende Person Nr. {nummer} gibt es nicht.");
+        var (gefunden, _, fehler) = Angehoeriger(nummer, brautschau: true);
+        if (fehler is not null) return fehler;
+        var p = gefunden!;
         if (hinzufuegen == p.HatZug(kennung))
             return Befehlsergebnis.Abgelehnt($"{p.Vorname} hat den Zug {zug.Name} {(hinzufuegen ? "schon" : "nicht")}.");
         if (hinzufuegen) _w.Familien.EntwicklerZugGeben(p, zug);
@@ -242,8 +252,10 @@ public sealed class Entwicklerhilfe
     {
         if (!_w.Daten.Waren.ContainsKey(ware)) return Befehlsergebnis.Abgelehnt($"Eine Ware „{ware}“ gibt es nicht.");
         if (menge == 0) return Befehlsergebnis.Abgelehnt("Die Menge muss ungleich 0 sein.");
+        if ((long)b.ImLager(ware) + menge > WareHoechstens)
+            return Befehlsergebnis.Abgelehnt($"Höchstens {Zahlenformat.Ganz(WareHoechstens)} {ware} im Lager (jetzt {b.ImLager(ware)}).");
         if (menge > 0) b.Einlagern(ware, menge);
-        else b.Auslagern(ware, -menge);
+        else b.Auslagern(ware, (int)Math.Min(int.MaxValue, -(long)menge));
         return Befehlsergebnis.Ok($"Im Lager von {b.Name} liegen jetzt {b.ImLager(ware)} {ware}.");
     }
 

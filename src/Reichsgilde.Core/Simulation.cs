@@ -192,12 +192,17 @@ public sealed class Simulation
     /// <summary>
     /// Dürfen Entwicklerbefehle wirken und darf vorgespult werden? Standard: nein. Im Einzelspiel setzt die Oberfläche es nach dem Haken
     /// „Entwickler-Optionen“, im Mehrspieler bleibt es aus. Steht im Spielstand (<see cref="Entwickler.Entwicklerhilfe.Erlaubt"/>);
-    /// ohne Wirtschaft immer aus.
+    /// ohne Wirtschaft immer aus. Umschalten ist kein Befehl: Während einer Aufzeichnung macht es das Befehlsprotokoll unvollständig.
     /// </summary>
     public bool EntwicklerErlaubt
     {
         get => Wirtschaft?.Entwicklerhilfe.Erlaubt ?? false;
-        set { if (Wirtschaft is { } w) w.Entwicklerhilfe.Erlaubt = value; }
+        set
+        {
+            if (Wirtschaft is not { } w || w.Entwicklerhilfe.Erlaubt == value) return;
+            w.Entwicklerhilfe.Erlaubt = value;
+            Bote.LueckeMelden($"Entwicklerbefehle {(value ? "erlaubt" : "gesperrt")} – das Umschalten ist kein Befehl.");
+        }
     }
 
     /// <summary>Hat in dieser Partie je ein Entwicklerbefehl gewirkt? Für Laden-Liste und Jahresbericht; bleibt für immer.</summary>
@@ -226,9 +231,9 @@ public sealed class Simulation
             gerechnet++;
         }
         var wo = $"jetzt {Zeit.DatumText}, {Zeit.UhrzeitText}";
-        return Befehlsergebnis.Ok(gerechnet < minuten
-            ? $"{gerechnet} von {minuten} Minuten vorgespult – {(IstBeendet ? "die Partie ist vorbei" : "die Ratssitzung beginnt")}, {wo}."
-            : $"{gerechnet} Minuten vorgespult, {wo}.");
+        var gespult = gerechnet < minuten ? $"{gerechnet} von {minuten} Minuten vorgespult" : $"{gerechnet} Minuten vorgespult";
+        var halt = IstBeendet ? " – die Partie ist vorbei" : Ratssitzung is not null ? " – die Ratssitzung beginnt" : "";
+        return Befehlsergebnis.Ok($"{gespult}{halt}, {wo}.");
     }
 
     /// <summary>Bis zu dieser Uhrzeit vorspulen (04:00 bis 22:59); ist sie heute vorbei, bis zu ihr im nächsten Jahr.</summary>

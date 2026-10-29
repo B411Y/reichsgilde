@@ -257,6 +257,12 @@ static class EntwicklerTests
             Pruefe.Gleich(vorher + 4, b.ImLager(ware));
             Abgelehnt(sim, spieler, new EntwicklerWare(b.Name, "Einhornhorn", 1), "gibt es nicht");
             Abgelehnt(sim, spieler, new EntwicklerWare("Werkstatt Nirgendwo", ware, 1), "gibt es nicht");
+            Abgelehnt(sim, spieler, new EntwicklerWare(b.Name, ware, int.MaxValue), "Höchstens"); // kein Überlauf
+            Ok(sim, spieler, new EntwicklerWare(b.Name, ware, Entwicklerhilfe.WareHoechstens - b.ImLager(ware)));
+            Pruefe.Gleich(Entwicklerhilfe.WareHoechstens, b.ImLager(ware));
+            Abgelehnt(sim, spieler, new EntwicklerWare(b.Name, ware, 1), "Höchstens");
+            Ok(sim, spieler, new EntwicklerWare(b.Name, ware, int.MinValue)); // herausnehmen: höchstens, was da ist
+            Pruefe.Gleich(0, b.ImLager(ware));
             Ok(sim, spieler, new EntwicklerZutaten(b.Name));
             foreach (var z in b.Zutaten.Keys)
                 Pruefe.Wahr(b.ImLager(z) >= b.LagerKapazitaetJeWare, $"{z} nicht aufgefüllt: {b.ImLager(z)}.");
@@ -302,18 +308,71 @@ static class EntwicklerTests
             Pruefe.Gleich(false, Speicherung.Kopf(AlterStand.Value).MitEntwicklerhilfe);
         }),
 
-        ("Entwickler: Kein Entwicklerbefehl während der Ratssitzung", () =>
+        ("Entwickler: Kein Entwicklerbefehl und kein Vorspulen während der Ratssitzung – danach wieder", () =>
         {
-            var (sim, spieler) = NeuePartie();
-            sim.Wirtschaft!.RatssitzungAnhalten = _ => true;
+            // Eine Sitzung erzwingen: Ein Ratsmitglied beantragt ein Statut, die Partie hält vor der Sitzung an (wie mit Oberfläche).
+            var sim = StadtkasseTests.NeueSimulation();
+            var w = sim.Wirtschaft!;
+            var reformer = StadtkasseTests.Haus(w, "Reformer", 50_000);
+            StadtkasseTests.Sitz(w, "Gefängniswärter", reformer);
+            var spieler = StadtkasseTests.Haus(w, "Spieler", 50_000);
+            StadtkasseTests.Sitz(w, "Marktmeister", spieler); // Aufbau wie im Test des Befehlsboten
+            sim.EntwicklerErlaubt = true;
+            var antrag = sim.Bote.SofortAusfuehren(reformer, new StatutBeantragen(Fronstatut.FreieStadt));
+            Pruefe.Wahr(antrag.Erfolg, antrag.Meldung);
+            w.RatssitzungAnhalten = _ => true;
             Ok(sim, spieler, new EntwicklerGulden(1)); // vor der Sitzung geht es
             var e = sim.VorspulenBisRatssitzung();
-            Pruefe.Wahr(e.Erfolg, e.Meldung);
-            if (sim.Ratssitzung is null) return; // ohne Tagesordnung hält keine Sitzung an
+            Pruefe.Wahr(e.Erfolg && e.Meldung.Contains("Ratssitzung beginnt", StringComparison.Ordinal), e.Meldung);
+            Pruefe.Wahr(sim.Ratssitzung is not null, "Die Sitzung sollte anhalten.");
+            var vermoegen = spieler.Vermoegen;
             Abgelehnt(sim, spieler, new EntwicklerGulden(1), "Ratssitzung");
-            Pruefe.Wahr(!sim.Vorspulen(5).Erfolg, "Vorspulen in der Sitzung hätte abgelehnt werden sollen.");
+            Pruefe.Ungefaehr(vermoegen, spieler.Vermoegen, 0);
+            var minute = sim.Zeit.VergangeneMinuten;
+            var spulen = sim.Vorspulen(5);
+            Pruefe.Wahr(!spulen.Erfolg && spulen.Meldung.Contains("Ratssitzung", StringComparison.Ordinal), spulen.Meldung);
+            Pruefe.Gleich(minute, sim.Zeit.VergangeneMinuten);
             sim.RatssitzungAbschliessen();
             Ok(sim, spieler, new EntwicklerGulden(1));
+            Pruefe.Wahr(sim.Vorspulen(5).Erfolg, "Nach der Sitzung sollte Vorspulen gehen.");
+        }),
+
+        ("Entwickler: Familienbefehle für ein bankrottes Haus werden abgelehnt und ändern nichts", () =>
+        {
+            var (sim, spieler) = NeuePartie();
+            var w = sim.Wirtschaft!;
+            var rivale = w.Konten.First(k => k != spieler && w.Familien.Von(k) is not null);
+            rivale.IstBankrott = true;
+            var o = Familie(sim, rivale).Oberhaupt;
+            var vorher = Stand(sim);
+            Abgelehnt(sim, spieler, new EntwicklerTod(o.Nummer), "nicht mehr im Spiel");
+            Abgelehnt(sim, spieler, new EntwicklerKrankheit(o.Nummer, "Pest"), "nicht mehr im Spiel");
+            Abgelehnt(sim, spieler, new EntwicklerZug(o.Nummer, "Gierig", !o.HatZug("Gierig")), "nicht mehr im Spiel");
+            Abgelehnt(sim, spieler, new EntwicklerGeburt(Geschlecht.Frau, rivale.Inhaber), "nicht mehr im Spiel");
+            Abgelehnt(sim, spieler, new EntwicklerHeirat(null, rivale.Inhaber), "nicht mehr im Spiel");
+            Pruefe.Wahr(o.Lebt && o.Todesursache is null, "Die Ablehnung hat die Person verändert.");
+            GleicherStand(vorher, Stand(sim));
+            Pruefe.Gleich(false, sim.MitEntwicklerhilfe);
+            // Gulden gehen auch an ein bankrottes Haus
+            Ok(sim, spieler, new EntwicklerGulden(100, rivale.Inhaber));
+            // Wer in der Brautschau steht, kann sterben
+            var kandidat = w.Familien.Kandidaten[0].Person;
+            Ok(sim, spieler, new EntwicklerTod(kandidat.Nummer));
+            Pruefe.Wahr(!kandidat.Lebt && w.Familien.Kandidaten.All(k => k.Person != kandidat), "Der Kandidat lebt noch.");
+        }),
+
+        ("Entwickler: Umschalten der Sperre während einer Aufzeichnung macht das Protokoll unvollständig", () =>
+        {
+            var (sim, spieler) = NeuePartie();
+            sim.Bote.AufzeichnungBeginnen();
+            sim.EntwicklerErlaubt = true; // keine Änderung: keine Lücke
+            Ok(sim, spieler, new EntwicklerGulden(5));
+            Pruefe.Wahr(sim.Bote.AufzeichnungBeenden().IstVollstaendig, "Ohne Umschalten sollte das Protokoll vollständig sein.");
+            sim.Bote.AufzeichnungBeginnen();
+            sim.EntwicklerErlaubt = false;
+            var protokoll = sim.Bote.AufzeichnungBeenden();
+            Pruefe.Wahr(!protokoll.IstVollstaendig && protokoll.Luecke!.Contains("gesperrt", StringComparison.Ordinal), "Lücke fehlt: " + protokoll.Luecke);
+            Pruefe.WirftMitMeldung(() => protokoll.Abspielen(), "unvollständig");
         }),
 
         ("Entwickler: Vorspulen – Minuten, bis zu einer Uhrzeit, bis zum Jahresende und über den Jahreswechsel; kein Kennzeichen", () =>
