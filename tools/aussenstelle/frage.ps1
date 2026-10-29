@@ -52,6 +52,45 @@ public static class LeerlaufHelfer {
 '@
 }
 
+# Hebt eine 16-Bit-PCM-WAV-Datei auf etwa 90 % Vollaussteuerung an (wie ein Lautstärkeregler in der Datei).
+if (-not ('KlangHelfer' -as [type])) {
+    Add-Type -TypeDefinition @'
+using System;
+using System.IO;
+public static class KlangHelfer {
+    public static void Normalisieren(string quelle, string ziel) {
+        byte[] b = File.ReadAllBytes(quelle);
+        if (BitConverter.ToInt16(b, 20) != 1 || BitConverter.ToInt16(b, 34) != 16) {
+            throw new InvalidDataException("Kein 16-Bit-PCM");
+        }
+        int i = 12;
+        while (i + 8 <= b.Length) {
+            string id = System.Text.Encoding.ASCII.GetString(b, i, 4);
+            int laenge = BitConverter.ToInt32(b, i + 4);
+            if (id == "data") {
+                int ende = Math.Min(b.Length, i + 8 + laenge);
+                int spitze = 1;
+                for (int j = i + 8; j + 1 < ende; j += 2) {
+                    spitze = Math.Max(spitze, Math.Abs((int)BitConverter.ToInt16(b, j)));
+                }
+                double faktor = Math.Max(1.0, 0.9 * 32767 / spitze);
+                for (int j = i + 8; j + 1 < ende; j += 2) {
+                    int wert = (int)Math.Round(BitConverter.ToInt16(b, j) * faktor);
+                    short s = (short)Math.Max(-32768, Math.Min(32767, wert));
+                    b[j] = (byte)(s & 0xFF);
+                    b[j + 1] = (byte)((s >> 8) & 0xFF);
+                }
+                File.WriteAllBytes(ziel, b);
+                return;
+            }
+            i += 8 + laenge + (laenge % 2);
+        }
+        throw new InvalidDataException("Kein data-Block");
+    }
+}
+'@
+}
+
 $leerlauf = -1
 try { $leerlauf = [LeerlaufHelfer]::Sekunden() } catch { $leerlauf = -1 }
 if ($leerlauf -ge $leerlaufGrenzeSekunden) {
@@ -112,9 +151,25 @@ try {
     $script:Rest = $wartezeitSekunden
     $zaehler.Text = "Ohne Antwort wird abgelehnt in: {0}:{1:00}" -f [int][math]::Floor($script:Rest / 60), ($script:Rest % 60)
 
+    # Deutlicher, aber ruhiger Windows-Benachrichtigungsklang (vom Nutzer ausgesucht).
+    # Die Windows-Datei ist leise aufgenommen; einmalig wird eine lautere Kopie angelegt.
+    # Klappt das nicht, bleibt der leisere Systemton.
+    $klangDatei = Join-Path $env:SystemRoot 'Media\Windows Notify System Generic.wav'
+    $klangLaut = Join-Path $script:Ordner 'anfrage-klang.wav'
+    $klang = $null
+    try {
+        if (-not (Test-Path -LiteralPath $klangLaut) -and (Test-Path -LiteralPath $klangDatei)) {
+            Stelle-OrdnerSicher
+            [KlangHelfer]::Normalisieren($klangDatei, $klangLaut)
+        }
+        if (Test-Path -LiteralPath $klangLaut) { $klang = New-Object System.Media.SoundPlayer $klangLaut }
+    } catch {
+        Schreibe-Log "Klang nicht vorbereitet: $($_.Exception.Message)"
+    }
     $klingeln = {
-        try { [System.Media.SystemSounds]::Exclamation.Play() } catch { }
-        try { [Console]::Beep(880, 250) } catch { }
+        try {
+            if ($klang) { $klang.Play() } else { [System.Media.SystemSounds]::Exclamation.Play() }
+        } catch { }
     }
 
     $uhr = New-Object System.Windows.Forms.Timer
