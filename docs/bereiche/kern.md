@@ -36,7 +36,7 @@ So wird eingetragen (damit sich die Chats nie an derselben Stelle treffen):
 - (Balancing) Der Wirt kommt mit einem Betrieb seit PR #224 erst nach Ø 12,1 Jahren zum Bürger (14 von 30 im Ziel 8–12, vorher 10,2); der Dieb statisch (Startpreise, Gesellen) +27 / +39 / +39 % nach der höheren Beute – simuliert im Band (−10,9 %).
 - Der Start mit Anfängern drückt die ersten Jahre: Schmied mit einem Betrieb nach 5 Jahren 4.990 statt 6.833 Gulden, nach 10 Jahren 10.384 statt 13.812; nach 20 Jahren gleichauf (PR #224). Ob das so gewollt ist, zeigt der Klicktest.
 - Charakterzüge (PR #227): Der Alchimist ist mit Zügen in allen Läufen 9–14 % reicher als ohne (vermutlich mehr Kräuterschnaps durch Kränklich und Trinker); Schmied, Dieb und Gardist liegen knapp außerhalb ±15 % – entscheidet der Nutzer (WIRTSCHAFTSMODELL, „Charakterzüge (PR #227)“).
-- (Nutzer, Balancing) Meinungen (PR #231): Der Parfumeur liegt mit Meinungen bei +15,7 % gegen das Mittel (+10,7 % gegen main), knapp außerhalb ±15 %; der Dieb rückt von −16,6 auf −7,5 %. Nachsteuern oder so lassen (WIRTSCHAFTSMODELL, „Meinungen und Aktivitäten (PR #231)“).
+- (Nutzer, Balancing) Meinungen (PR #231): Der Parfumeur liegt mit Meinungen bei +15,7 % gegen das Mittel (+10,7 % gegen main), knapp außerhalb ±15 %; der Dieb rückt von −16,6 auf −7,5 %. In der ersten Messung (vor der höheren Familien-Meinung) +16,4 %. Nachsteuern oder so lassen – Nutzerentscheidung; parallel ändert PR #232 den Giftdolch des Parfumeurs, danach neu messen (WIRTSCHAFTSMODELL, „Meinungen und Aktivitäten (PR #231)“).
 
 ## Entscheidungen
 
