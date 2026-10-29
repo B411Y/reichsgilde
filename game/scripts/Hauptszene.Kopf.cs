@@ -134,7 +134,8 @@ public partial class Hauptszene
         var takt = _simulation.Takt;
         Setzen(_zeitText, $"{KalenderTexte.Name(zeit.Jahreszeit)} · {zeit.Jahr} · {zeit.UhrzeitText} · {KalenderTexte.Name(zeit.Tagesphase)}");
         _wetter.Zeigen(_stadt.WetterJetzt, _stadt.WetterAussicht(3));
-        _zeitstrahl.Minute = zeit.MinuteImTag;
+        _zeitstrahl.Jahreszeit = _stadt.JahreszeitErzwungen ?? zeit.Jahreszeit; // Nacht und Mond nach den Sonnenzeiten der Jahreszeit, wie das Licht der Stadt
+        _zeitstrahl.Minute = _stadt.LichtUhrErzwungen is { } lichtUhr ? Math.Max(0, (int)(lichtUhr * 60) - Spielzeit.TagesbeginnMinute) : zeit.MinuteImTag;
         var pause = _simulation.IstBeendet ? "Partie beendet" : takt.IstPausiert ? "▶ Weiter" : "❚❚ Pause";
         if (_pauseKnopf.Text != pause) _pauseKnopf.Text = pause;
         _pauseKnopf.Disabled = _simulation.IstBeendet;

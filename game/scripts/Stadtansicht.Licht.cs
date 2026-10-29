@@ -57,6 +57,9 @@ public partial class Stadtansicht
     /// <summary>Hält die Lichtuhr auf einer Uhrzeit (<c>--lichtuhr=3.5</c> = 3:30 Uhr); <c>null</c> gibt sie wieder frei.</summary>
     public void LichtUhrVorgeben(float? stunde) => _lichtUhrVorgabe = stunde;
 
+    /// <summary>Die festgehaltene Lichtuhr (Stunde mit Bruchteil) oder <c>null</c>; der Zeitstrahl zeigt dann dieselbe Uhrzeit (nur für Bildschirmfotos).</summary>
+    public float? LichtUhrErzwungen => _lichtUhrVorgabe;
+
     private Lichtstimmung? _gezeigteStimmung;
     private Lichtstimmung _ueberblendenVon;
     private float _ueberblendung = 1f;
