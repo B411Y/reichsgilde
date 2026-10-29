@@ -27,7 +27,7 @@ Plan (Schritte in dieser Reihenfolge):
 | Ansagen | `AnsageSpielen`: eine Ansage zur Zeit, höchstens 2 wartend (die älteste verfällt), 8 s Abstand, Schalter „Ansagen“ (Standard an, Schlüssel `ansagen`) | 29.10.2026 |
 | Reiter | „Ton“ als siebter Reiter der Einstellungen (kleine Änderung an `EinstellungenAnzeige.cs`, Bereich Oberfläche) | 29.10.2026 |
 
-### Oberflächenklänge (PR #PRNR)
+### Oberflächenklänge (PR #252)
 
 | Thema | Entscheidung | Datum |
 |---|---|---|
