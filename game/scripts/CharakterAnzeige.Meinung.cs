@@ -115,12 +115,13 @@ public partial class CharakterAnzeige
                 };
             knopf.Pressed += () =>
             {
-                if (_simulation?.Wirtschaft is not { } wirtschaft || _spieler is null) return;
-                var ergebnis = wirtschaft.Ausfuehren(_spieler, new Aktivitaet(art, c.Kennung, betrag is null ? 0 : _geschenk));
-                _meldung = ergebnis.Erfolg ? ergebnis.Meldung : "✗ " + ergebnis.Meldung;
-                _meldungGut = ergebnis.Erfolg;
-                Gemeldet?.Invoke(_meldung);
-                Aufbauen();
+                UiHilfe.Befehlen(_simulation, _spieler, new Aktivitaet(art, c.Kennung, betrag is null ? 0 : _geschenk), this, ergebnis =>
+                {
+                    _meldung = UiHilfe.MeldungText(ergebnis);
+                    _meldungGut = ergebnis.Erfolg;
+                    Gemeldet?.Invoke(_meldung);
+                    Aufbauen();
+                });
             };
             _inhalt.AddChild(new HSeparator());
         }

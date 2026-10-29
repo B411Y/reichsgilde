@@ -117,11 +117,12 @@ public partial class RathausTafel : VBoxContainer
 
     private void Befehlen(Befehl befehl)
     {
-        if (_simulation?.Wirtschaft is not { } w || _spieler is null) return;
-        var ergebnis = w.Ausfuehren(_spieler, befehl);
-        Gemeldet?.Invoke(ergebnis.Erfolg ? ergebnis.Meldung : "✗ " + ergebnis.Meldung);
-        _kennzeichen.Clear();
-        _seitPruefung = 1;
+        UiHilfe.Befehlen(_simulation, _spieler, befehl, this, ergebnis =>
+        {
+            Gemeldet?.Invoke(UiHilfe.MeldungText(ergebnis));
+            _kennzeichen.Clear();
+            _seitPruefung = 1;
+        });
     }
 
     private static Label Text(Container eltern, string text, int groesse = 13, Color? farbe = null) =>

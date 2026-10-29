@@ -6,6 +6,25 @@ namespace Reichsgilde;
 public static class UiHilfe
 {
     /// <summary>
+    /// Regel „Befehle nur über den Boten“: Jede Tafel schickt ihre Befehle so an den Kern – nie mit <c>Stadtwirtschaft.Ausfuehren</c>. Im Einzelspiel
+    /// wirkt der Befehl sofort und der Rückruf läuft vor der Rückkehr; im Mehrspieler erst im Ziel-Tick, und die Tafel kann bis dahin geschlossen
+    /// oder ersetzt sein. Darum läuft der Rückruf nur, wenn <paramref name="besitzer"/> (die Tafel) noch gültig ist. Was vom Ergebnis abhängt
+    /// (Meldung, Neuaufbau, Schließen), gehört in den Rückruf, nicht dahinter.
+    /// </summary>
+    public static void Befehlen(Core.Simulation? simulation, Core.Wirtschaft.Konto? absender, Core.Wirtschaft.Befehl befehl, GodotObject besitzer,
+        Action<Core.Wirtschaft.Befehlsergebnis> rueckruf)
+    {
+        if (simulation is null || absender is null) return;
+        simulation.Bote.Einreihen(absender, befehl, e =>
+        {
+            if (GodotObject.IsInstanceValid(besitzer)) rueckruf(e);
+        });
+    }
+
+    /// <summary>Die übliche Meldung zu einem Ergebnis: Text bei Erfolg, sonst mit „✗“ davor.</summary>
+    public static string MeldungText(Core.Wirtschaft.Befehlsergebnis e) => e.Erfolg ? e.Meldung : "✗ " + e.Meldung;
+
+    /// <summary>
     /// Entfernt alle Kinder eines Knotens – SOFORT aus dem Baum, gelöscht wird am Ende des Bildes.
     ///
     /// Warum nicht nur QueueFree()? QueueFree löscht erst am Ende des Bildes. Bis dahin zählen die alten
