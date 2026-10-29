@@ -13,9 +13,12 @@ public enum Geschlecht
 /// Ein Mensch, Zwerg, Elb oder Halbling der Stadt – Familienmitglied oder Heiratskandidat.
 /// Jede Person hat eine eindeutige Nummer. Befehle und Spielstände verweisen über diese Nummer auf sie.
 /// </summary>
-public sealed class Person
+public sealed class Person : ICharakter
 {
     public int Nummer { get; }
+
+    /// <summary>„P12“ – für Befehle und Meinungen (<see cref="ICharakter"/>).</summary>
+    public string Kennung => $"P{Nummer}";
     public string Vorname { get; }
 
     /// <summary>Der Name des Hauses, zu dem die Person gehört (ändert sich bei der Heirat).</summary>

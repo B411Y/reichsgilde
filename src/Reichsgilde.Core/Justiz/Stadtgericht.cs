@@ -229,13 +229,13 @@ public sealed class Stadtgericht
     }
 
     /// <summary>
-    /// Wie stark Gunst (Geschenke) und Plädoyer (Rhetorik) das Urteil eines Ratsherrn verschieben –
+    /// Wie stark seine Meinung über die beiden Oberhäupter (PR #231: Geschenke, Züge, Volk, Glaube …) und das Plädoyer (Rhetorik) das Urteil eines Ratsherrn verschieben –
     /// zusammen gedeckelt auf ± GunstHoechstwirkung. So bleiben 3 Beweise ein sicherer Schuldspruch.
     /// </summary>
     public double Gunstwirkung(Ratsherr r, Konto anklaeger, Konto beklagter)
     {
         var d = Daten;
-        var einfluss = d.GunstFaktor * (_w.Rat.Gunst(r, anklaeger) - _w.Rat.Gunst(r, beklagter)) + _w.Familien.Plaedoyer(anklaeger, beklagter);
+        var einfluss = d.GunstFaktor * (_w.Rat.Meinung(r, anklaeger) - _w.Rat.Meinung(r, beklagter)) + _w.Familien.Plaedoyer(anklaeger, beklagter);
         return Math.Clamp(einfluss, -d.GunstHoechstwirkung, d.GunstHoechstwirkung);
     }
 
@@ -318,7 +318,9 @@ public sealed class Stadtgericht
     /// <summary>Ein Zeuge (oder ein Erpresserbrief): <paramref name="inhaber"/> hat sofort einen Beweis für diese Spur.</summary>
     internal void BeweisGeben(Konto inhaber, Spur spur)
     {
-        if (inhaber != spur.Taeter) _beweise.Add((inhaber, spur.Nummer));
+        if (inhaber == spur.Taeter) return;
+        _beweise.Add((inhaber, spur.Nummer));
+        _w.Meinungen.Ertappt(inhaber, spur); // das Opfer weiß nun, wer es war (Meinung, PR #231)
     }
 
     /// <summary>Ein Erpresser hält Wort: Seine Beweise gegen das Opfer verbrennen.</summary>
@@ -358,6 +360,7 @@ public sealed class Stadtgericht
         richter.AddRange(SchoeffenAuslosen(vorsitz).Select(r => new Richter("Schöffe", r, null)));
         var v = new Verfahren(anklaeger, beklagter, _w.Jahr, richter);
         _verfahren.Add(v);
+        _w.Meinungen.Verklagt(anklaeger, beklagter);
         _w.Melden($"{anklaeger.Inhaber} klagt {beklagter.Inhaber} wegen {VergehenTexte.Aufzaehlung(Beweise(anklaeger, beklagter).Select(b => b.Art))} an " +
                   $"({beweise} {(beweise == 1 ? "Beweis" : "Beweise")}). " +
                   $"Es richten {string.Join(", ", richter.Select(r => r.Name))}. Gerichtstag ist am Jahresende.");

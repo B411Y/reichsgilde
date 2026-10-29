@@ -190,6 +190,10 @@ public sealed class Ratssitzung
         {
             var ausgang = rat.Waehlen(schritt.Amt!, _zufall!, Jahr);
             punkt = MitWahlergebnis(vorher, ausgang, Neu(zeilen));
+            // Die Bewerber merken sich, wer für sie stimmte und wer für einen anderen (Meinung, PR #231).
+            foreach (var bewerber in vorher.Kandidaten.Select(k => k.Haus).OfType<Konto>())
+                foreach (var (waehler, wahl, _) in ausgang?.Stimmen ?? Array.Empty<(Amt, Konto?, bool)>())
+                    _w.Meinungen.StimmeGemerkt(waehler, bewerber, wahl == bewerber);
         }
         else
         {
@@ -204,6 +208,10 @@ public sealed class Ratssitzung
             {
                 Ergebnis = new Sitzungsergebnis(ja, nein, enthaltung, bm, ja == nein, angenommen, null, Array.Empty<Wahlzaehlung>(), Neu(zeilen)),
             };
+            // Der Antragsteller merkt sich, wer dafür und wer dagegen stimmte (Enthaltung zählt nicht).
+            if (vorher.Antragsteller is { } antragsteller)
+                foreach (var st in vorher.Stimmen.Where(st => st.Ja is not null))
+                    _w.Meinungen.StimmeGemerkt(st.Sitz, antragsteller, st.Ja == true);
         }
         _abgehalten.Add(punkt);
         _naechster++;
@@ -416,29 +424,29 @@ public sealed class Ratssitzung
     private string GrundStatut(Ratsherr r, Fronstatut statut, Konto antragsteller, bool? ja)
     {
         var abstand = Math.Abs((int)statut - (int)r.Haltung);
-        var gunst = _w.Rat.Gunst(r, antragsteller);
+        var gunst = _w.Rat.Meinung(r, antragsteller);
         var schwelle = _w.Rat.Daten.Gunst.SchwelleNachbarstatut;
         if (abstand == 0) return $"Das ist seine Haltung ({r.Haltung.Name()}).";
         if (abstand > 1) return $"Zu weit von seiner Haltung ({r.Haltung.Name()}).";
         return ja == true
-            ? $"Nah an seiner Haltung ({r.Haltung.Name()}), und {antragsteller.Inhaber} hat seine Gunst ({Zahlenformat.Ganz(gunst)})."
-            : $"Er hält es mit {r.Haltung.Name()} – die Gunst ist zu niedrig ({Zahlenformat.Ganz(gunst)} von {Zahlenformat.Ganz(schwelle)}).";
+            ? $"Nah an seiner Haltung ({r.Haltung.Name()}), und er hält viel von {antragsteller.Inhaber} (Meinung {Zahlenformat.Ganz(gunst)})."
+            : $"Er hält es mit {r.Haltung.Name()} – seine Meinung über {antragsteller.Inhaber} ist zu schlecht ({Zahlenformat.Ganz(gunst)} von {Zahlenformat.Ganz(schwelle)}).";
     }
 
     private string GrundGlaube(Ratsherr r, Konfession? glaube, Konto antragsteller, bool? ja)
     {
         var gl = _w.Glaube;
         var eigener = gl.GlaubeVon(r);
-        var gunst = _w.Rat.Gunst(r, antragsteller);
+        var gunst = _w.Rat.Meinung(r, antragsteller);
         var d = gl.Daten.Stadtglaube;
         if (glaube == eigener) return $"Sein eigener Glaube ({eigener.Name()}).";
         if (glaube is null)
             return gl.Stadtglaube != eigener ? $"Der Stadtglaube ist nicht seiner ({eigener.Name()}) – lieber Freiheit."
-                : ja == true ? $"Er will den Stadtglauben behalten, aber {antragsteller.Inhaber} hat seine Gunst ({Zahlenformat.Ganz(gunst)})."
-                : $"Er will den Stadtglauben behalten – die Gunst ist zu niedrig ({Zahlenformat.Ganz(gunst)} von {Zahlenformat.Ganz(d.SchwelleFrei)}).";
+                : ja == true ? $"Er will den Stadtglauben behalten, aber er hält viel von {antragsteller.Inhaber} (Meinung {Zahlenformat.Ganz(gunst)})."
+                : $"Er will den Stadtglauben behalten – seine Meinung ist zu schlecht ({Zahlenformat.Ganz(gunst)} von {Zahlenformat.Ganz(d.SchwelleFrei)}).";
         return ja == true
-            ? $"Nicht sein Glaube, aber {antragsteller.Inhaber} hat seine Gunst ({Zahlenformat.Ganz(gunst)})."
-            : $"Nicht sein Glaube ({eigener.Name()}) – die Gunst ist zu niedrig ({Zahlenformat.Ganz(gunst)} von {Zahlenformat.Ganz(d.SchwelleFremd)}).";
+            ? $"Nicht sein Glaube, aber er hält viel von {antragsteller.Inhaber} (Meinung {Zahlenformat.Ganz(gunst)})."
+            : $"Nicht sein Glaube ({eigener.Name()}) – seine Meinung ist zu schlecht ({Zahlenformat.Ganz(gunst)} von {Zahlenformat.Ganz(d.SchwelleFremd)}).";
     }
 
     private string GrundGlaubeKi(Konto ki, Konfession? glaube, bool? ja)
@@ -453,18 +461,18 @@ public sealed class Ratssitzung
     private string GrundPflaster(Ratsherr r, Konto antragsteller, double verkehr, bool? ja)
     {
         var d = _w.Wegebau.Daten!.Rat;
-        var gunst = _w.Rat.Gunst(r, antragsteller);
-        if (gunst >= d.AntragGunst) return $"{antragsteller.Inhaber} hat seine Gunst ({Zahlenformat.Ganz(gunst)}).";
+        var gunst = _w.Rat.Meinung(r, antragsteller);
+        if (gunst >= d.AntragGunst) return $"Er hält viel von {antragsteller.Inhaber} (Meinung {Zahlenformat.Ganz(gunst)}).";
         if (ja == true) return $"Viel Verkehr ({Zahlenformat.Ganz(verkehr)} Fahrten im Jahr).";
-        return $"Zu wenig Verkehr ({Zahlenformat.Ganz(verkehr)} von {Zahlenformat.Ganz(d.AntragVerkehr)} Fahrten) und zu wenig Gunst ({Zahlenformat.Ganz(gunst)}).";
+        return $"Zu wenig Verkehr ({Zahlenformat.Ganz(verkehr)} von {Zahlenformat.Ganz(d.AntragVerkehr)} Fahrten) und seine Meinung zu schlecht ({Zahlenformat.Ganz(gunst)}).";
     }
 
     private string GrundRatsantrag(Ratsherr r, Ratsantrag a, bool? ja, string waehrung)
     {
         var kasse = _w.Kasse;
         var k = kasse.Daten;
-        var gunst = _w.Rat.Gunst(r, a.Antragsteller);
-        if (gunst >= k.AntragGunst) return $"{a.Antragsteller.Inhaber} hat seine Gunst ({Zahlenformat.Ganz(gunst)}).";
+        var gunst = _w.Rat.Meinung(r, a.Antragsteller);
+        if (gunst >= k.AntragGunst) return $"Er hält viel von {a.Antragsteller.Inhaber} (Meinung {Zahlenformat.Ganz(gunst)}).";
         var reserve = k.ReserveVon(r.Daten.Volk);
         var stand = Zahlenformat.Ganz(kasse.Stand);
         var res = Zahlenformat.Ganz(reserve);
@@ -494,9 +502,9 @@ public sealed class Ratssitzung
         var abstand = kandidaten.Count > 1 ? $" gegen {Zahlenformat.Ganz(zweiter.P)} für {name(zweiter.K)}" : "";
         if (wahl is null) return $"Hält zum Ratsherrn im Amt ({Zahlenformat.Ganz(punkte)} Punkte{abstand}).";
         var ansehen = rat.Ansehen(wahl);
-        var gunst = rat.Gunst(r, wahl);
-        var rest = punkte - ansehen - gunst;
-        return $"{name(wahl)}: {Zahlenformat.Ganz(punkte)} Punkte{abstand} – Ansehen {Zahlenformat.Ganz(ansehen)}, Gunst {Zahlenformat.Ganz(gunst)}" +
-               (Math.Abs(rest) >= 0.5 ? $", Volk, Glaube, Rede{(amt.Konto == wahl ? " und Amt" : "")} {Zahlenformat.Ganz(rest)}." : ".");
+        var meinung = rat.Meinung(r, wahl);
+        var rest = punkte - ansehen - meinung;
+        return $"{name(wahl)}: {Zahlenformat.Ganz(punkte)} Punkte{abstand} – Ansehen {Zahlenformat.Ganz(ansehen)}, Meinung {Zahlenformat.Ganz(meinung)}" +
+               (Math.Abs(rest) >= 0.5 ? $", Rede{(amt.Konto == wahl ? " und Amt" : "")} {Zahlenformat.Ganz(rest)}." : ".");
     }
 }
