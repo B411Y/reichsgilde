@@ -21,7 +21,7 @@ Werkzeuge, Abläufe, Lizenz und Asset-Protokoll. Neue Einträge unten anhängen,
 | GitHub | Öffentliches Repository: zusätzlich GitHub-Nutzungsbedingungen, Abschnitt D.5 (Ansehen, Forken innerhalb von GitHub) | 29.10.2026 |
 | Protokoll | Neue Zeilen ab Stichtag: `lizenz_ergebnis` = „Alle Rechte vorbehalten“; das Prüfskript prüft das (`STICHTAG` = 2026-10-29, Tag des Merges von PR #240) | 29.10.2026 |
 
-### Merge-Warteschlange (PR #…)
+### Merge-Warteschlange (PR #243)
 
 | Thema | Entscheidung | Datum |
 |---|---|---|
