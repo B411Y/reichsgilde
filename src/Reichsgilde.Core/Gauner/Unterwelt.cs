@@ -155,7 +155,7 @@ public sealed class Unterwelt
         for (var j = 0; j <= n; j++)
         {
             if (j > 0) binom = binom * (n - j + 1) / j;
-            if (j >= k) summe += binom * Math.Pow(p, j) * Math.Pow(1 - p, n - j);
+            if (j >= k) summe += binom * DetMathe.Pow(p, j) * DetMathe.Pow(1 - p, n - j);
         }
         return summe;
     }

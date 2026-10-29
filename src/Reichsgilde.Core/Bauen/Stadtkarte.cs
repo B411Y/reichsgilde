@@ -147,7 +147,9 @@ public sealed class Kartenweg
         var best = double.MaxValue;
         for (var i = 0; i + 1 < linie.Count; i++)
             best = Math.Min(best, Geometrie.AbstandZurStrecke(x, z, linie[i][0], linie[i][1], linie[i + 1][0], linie[i + 1][1]));
-        return linie.Count == 1 ? Math.Sqrt(Math.Pow(x - linie[0][0], 2) + Math.Pow(z - linie[0][1], 2)) : best;
+        if (linie.Count != 1) return best;
+        var (ex, ez) = (x - linie[0][0], z - linie[0][1]);
+        return Math.Sqrt(ex * ex + ez * ez);
     }
 }
 
@@ -236,7 +238,7 @@ public sealed class Kartengebaeude
             if (IstRechtwinklig)
                 return new Grundriss(Punkt[0], Punkt[1], b, t, (int)(((Math.Round(Drehung / 90) % 4) + 4) % 4));
             var w = Drehung * Math.PI / 180;
-            var (c, s) = (Math.Abs(Math.Cos(w)), Math.Abs(Math.Sin(w)));
+            var (c, s) = (Math.Abs(DetMathe.Cos(w)), Math.Abs(DetMathe.Sin(w)));
             return new Grundriss(Punkt[0], Punkt[1], b * c + t * s, b * s + t * c, 0);
         }
     }

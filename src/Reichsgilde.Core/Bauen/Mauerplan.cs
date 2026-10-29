@@ -25,7 +25,7 @@ public readonly record struct Mauerlage(double X, double Z, double EntlangX, dou
     public double FeldZ => EntlangX;
 
     /// <summary>Die Drehung um die Hochachse in Grad wie Godot <c>Rotation.Y</c> (lokal X des Baukastens zeigt entlang der Mauer).</summary>
-    public double Drehung => Math.Atan2(-EntlangZ, EntlangX) * 180 / Math.PI;
+    public double Drehung => DetMathe.Atan2(-EntlangZ, EntlangX) * 180 / Math.PI;
 }
 
 /// <summary>Eine Torburg: das Tor der Karte, seine Lage auf der Mauer (Ort = auf die Strecke gelegt) und die Nummer der Strecke.</summary>
@@ -78,7 +78,8 @@ public sealed class Mauerplan
         for (var i = 0; i < strecken; i++)
         {
             var (von, bis) = (linie[i], linie[(i + 1) % linie.Count]);
-            var laenge = Math.Sqrt(Math.Pow(bis[0] - von[0], 2) + Math.Pow(bis[1] - von[1], 2));
+            var (strX, strZ) = (bis[0] - von[0], bis[1] - von[1]);
+            var laenge = Math.Sqrt(strX * strX + strZ * strZ);
             if (laenge <= 0) continue;
             var (ex, ez) = ((bis[0] - von[0]) / laenge, (bis[1] - von[1]) / laenge);
             var (lx, lz) = Ausrichtung(ex, ez, (von[0] + bis[0]) / 2 - mx, (von[1] + bis[1]) / 2 - mz);
@@ -143,7 +144,7 @@ public sealed class Mauerplan
     private static double Knick(double[] a, double[] b, double[] c)
     {
         var (ux, uz, vx, vz) = (b[0] - a[0], b[1] - a[1], c[0] - b[0], c[1] - b[1]);
-        return Math.Atan2(Math.Abs(ux * vz - uz * vx), ux * vx + uz * vz) * 180 / Math.PI;
+        return DetMathe.Atan2(Math.Abs(ux * vz - uz * vx), ux * vx + uz * vz) * 180 / Math.PI;
     }
 
     /// <summary>Die Strecke der Linie, der der Punkt am nächsten liegt (bei Gleichstand die erste).</summary>

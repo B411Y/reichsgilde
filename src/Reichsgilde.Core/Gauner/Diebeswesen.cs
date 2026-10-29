@@ -459,7 +459,7 @@ public sealed class Diebeswesen
             var buch = DiesesJahr(k);
             _diesesJahr[k] = buch with { Beute = buch.Beute + beute };
 
-            var fang = 1 - Math.Pow(1 - Math.Min(1, Fangchance(b)), minuten / 60);
+            var fang = 1 - DetMathe.Pow(1 - Math.Min(1, Fangchance(b)), minuten / 60);
             if (_zufall.NextDouble() >= fang) continue;
 
             // Einer wird erwischt: Er kommt in den Turm – und ein Bürger, der ihn erkannt hat, erzählt einem Haus, wem er dient.

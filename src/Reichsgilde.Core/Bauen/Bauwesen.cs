@@ -38,7 +38,7 @@ public sealed record Betriebsplatz(string Betrieb, Kartengebaeude? Gebaeude, Gru
 public readonly record struct Hausflaeche(double X, double Z, double Breite, double Tiefe, double DrehungGrad)
 {
     /// <summary>Richtung zur Gasse (Einheitsvektor).</summary>
-    public (double X, double Z) Vorne => (Math.Sin(DrehungGrad * Math.PI / 180), Math.Cos(DrehungGrad * Math.PI / 180));
+    public (double X, double Z) Vorne => (DetMathe.Sin(DrehungGrad * Math.PI / 180), DetMathe.Cos(DrehungGrad * Math.PI / 180));
 
     /// <summary>Mitte der Vorderkante – dort ist der Eingang.</summary>
     public (double X, double Z) Eingang => (X + Vorne.X * Tiefe / 2, Z + Vorne.Z * Tiefe / 2);
