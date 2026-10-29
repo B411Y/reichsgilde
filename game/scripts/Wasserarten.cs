@@ -116,12 +116,12 @@ public static class Wasserarten
 
     // ── Bilder des Wassers: an einer Stelle, damit andere Texturen (Blender) ohne Eingriff am Shader eingesetzt werden können ──
     private const string BilderOrdner = "res://assets/texturen/realistisches_wasser/";
-    public const string NormalA = BilderOrdner + "Water_N_A.png";
-    public const string NormalB = BilderOrdner + "Water_N_B.png";
-    public const string Stroemungskarte = BilderOrdner + "Water_UV.png";
-    public const string Schaumbild = BilderOrdner + "Foam.png";
+    public const string NormalA = BilderOrdner + "wasser_normal_a.png";
+    public const string NormalB = BilderOrdner + "wasser_normal_b.png";
+    public const string Stroemungskarte = BilderOrdner + "wasser_stroemung.png";
+    public const string Schaumbild = BilderOrdner + "wasser_schaum.png";
     /// <summary>Kaustik als Atlas (4 × 4 Bilder); ein fertiges <see cref="Texture2DArray"/> kann stattdessen mit <see cref="KaustikFeld"/> belegt werden.</summary>
-    public const string KaustikAtlas = BilderOrdner + "Caustic.png";
+    public const string KaustikAtlas = BilderOrdner + "wasser_kaustik.png";
     /// <summary>Optional: eigenes Textur-Feld (16 Lagen) statt des Atlas.</summary>
     public static Texture2DArray? KaustikFeld;
 

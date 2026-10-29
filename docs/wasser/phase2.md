@@ -10,7 +10,7 @@ Stand 29.10.2026, Branch `phase5/wasser-darstellung`. **Nur Testszene** (`--wass
 | Arten | `game/scripts/Wasserarten.cs` | Alle Gewässerarten als Parametersätze an einer Stelle, Zuordnung Kartenwasser → Art, Winterfortschritt, Bilder und `Anwenden` auf ein Material |
 | Testszene | `game/scripts/Wassertest.cs`, `game/scenes/Wassertest.tscn` | Je Art ein Feld (60 × 60 m) mit Ufer und Hindernissen; Wetter, Jahreszeit, Eisfortschritt, Teile abschaltbar |
 
-**Bilder austauschbar:** Normalkarten, Strömungskarte, Schaumbild und Kaustik sind Sampler-Uniforms (`normalmap_a_sampler`, `normalmap_b_sampler`, `uv_sampler`, `foam_sampler`, `caustic_sampler`). Die Pfade stehen an einer Stelle in `Wasserarten.cs` (`NormalA`, … `KaustikAtlas`); ein fertiges Textur-Feld mit 16 Lagen lässt sich mit `Wasserarten.KaustikFeld` einsetzen. Am Shader ändert sich dabei nichts. Bis die neuen Bilder aus Blender da sind, gelten die fünf übernommenen.
+**Bilder austauschbar:** Normalkarten, Strömungskarte, Schaumbild und Kaustik sind Sampler-Uniforms (`normalmap_a_sampler`, `normalmap_b_sampler`, `uv_sampler`, `foam_sampler`, `caustic_sampler`). Die Pfade stehen an einer Stelle in `Wasserarten.cs` (`NormalA`, … `KaustikAtlas`); ein fertiges Textur-Feld mit 16 Lagen lässt sich mit `Wasserarten.KaustikFeld` einsetzen. Am Shader ändert sich dabei nichts. Die fünf Bilder sind jetzt die eigenen aus Blender (`tools/wasser/wasser_texturen.py`, Branch wasser-tex); der Wechsel brauchte nur die Pfade in `Wasserarten.cs`.
 
 ## Parameter je Gewässerart
 
