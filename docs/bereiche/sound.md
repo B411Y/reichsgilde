@@ -17,7 +17,7 @@ Plan (Schritte in dieser Reihenfolge):
 
 ## Entscheidungen
 
-### Ton-Grundgerüst (PR #…)
+### Ton-Grundgerüst (PR #246)
 
 | Thema | Entscheidung | Datum |
 |---|---|---|
