@@ -145,7 +145,7 @@ Messungen des Kerns stehen in `docs/WIRTSCHAFTSMODELL.md` (nur der Kern schreibt
 | Tests | Feste Werte nachgezogen (Silberring 112, Dünnbier 94, Sold 0,9, Eigenschaften, Gießerei 1.455 / 1.029 / 553, Konkurrenz 1.207). Der Test „KI übt, wenn sonst AP verfielen“ zählt die Übung jetzt an der Meldung (die Talentsumme sank trotz Übung durch Krankheit). | 29.10.2026 |
 | Messung | `messen bericht 20 30` auf main `9022b49` + #231 `b757446` + #232 `4c55d7d`, vorher und mit `3ff0d04` (WIRTSCHAFTSMODELL „Balancing 3 (PR #244)“): Berufe 8/10 → 10/10 im Band (−21,3 … +21,7 % → −9,9 … +7,3 %), Bürger Ø 8,2–11,6 Jahre, Mittel des Zuwachses −5,6 %, KI ÷ Bezug 1,05 → 1,10, 8 gegen 3 Häuser −10 → −11 %. | 29.10.2026 |
 
-### Gauner-Regeln (PR #…)
+### Gauner-Regeln (PR #247)
 
 | Thema | Entscheidung | Datum |
 |---|---|---|

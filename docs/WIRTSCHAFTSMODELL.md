@@ -1654,7 +1654,7 @@ Paare, die in beiden Läufen mehr als 12 % vom Menschen abweichen (vorher → na
 
 **Befund nachher:** Alle zehn Berufe liegen im Band, die Spanne ist von 43 auf 17 Punkte geschrumpft, alle erreichen den Bürger im Mittel nach 8,2–11,6 Jahren (Z2). Die Vorarbeiter-Wahl ist keine Pflichtwahl mehr: Ware gewinnt noch in 57 % der Ziehungen, weil Ordnungsliebend und Wachsam keinen Gulden-Wert vor dem ersten Diebstahl haben; die besten drei liegen meist nahe beieinander (Schmied Stufe 2: Guter Ruf 476, Frühaufsteher 458, Antreiber 403). Der Preis dafür: Die gewählte Eigenschaft bringt einer Werkstatt etwa ein Drittel weniger, das Mittel aller Berufe sinkt um 5,6 %; der Gardist und der Geldleiher, deren beste Eigenschaft der Antreiber ist, gewinnen. Der Bezugsspieler (Mensch-Schmied) verliert mit dem Schmied mehr als die KI-Häuser (KI ÷ Bezug 1,05 → 1,10); der Abstand liegt im Fehler (± 0,05). Die Stadtkasse hat etwas weniger Steuer (Mittel −400 bzw. −700, etwa ein bis zwei Fehler) – sie lag schon vorher unter dem Ziel „0 bis leicht im Plus“ aus Balancing 2 (offen in kern.md).
 
-## Gauner-Regeln (PR folgt)
+## Gauner-Regeln (PR #247)
 
 Zwei Regeln aus Balancing 3, entschieden vom Nutzer am 29.10.2026 (Umsetzung in `docs/bereiche/kern.md`, „Gauner-Regeln“; **Datenversion 64**):
 
