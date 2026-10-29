@@ -100,16 +100,18 @@ Startoptionen (nach `--`):
 
 ## Feuer und Flammen (Testszene, Phase 1)
 
-Die Testszene `scenes/Feuertest.tscn` (`Feuertest.cs`) zeigt sieben Feuerarten links in Technik A (Shader-Flamme) und rechts in Technik B (Partikel-Flamme), Paar für Paar hintereinander (1 Kerze, 2 Fackel, 3 Laterne, 4 Feuerkorb, 5 Esse, 6 Kamin, 7 Gebäudebrand). Das Hauptmenü startet sie von selbst, sobald `--feuertest` angegeben ist; die Anleitung für den Editor steht in `docs/feuer/phase1.md`. Alle Optionen gelten nur für diesen Start. Für Messungen `--bildrate=0 --vsync=Aus` dazugeben (Bildrate und Bildzeit stehen jede Sekunde im Protokoll, Zeilen mit `[feuer]`).
+Die Testszene `scenes/Feuertest.tscn` (`Feuertest.cs`) zeigt sieben Feuerarten links in Technik A (Shader-Flamme) und rechts in Technik B (Partikel-Flamme), in den Ansichten der Grafikstufe jede einmal so, wie das Spiel sie zeichnen wird, Paar für Paar hintereinander (1 Kerze, 2 Fackel, 3 Laterne, 4 Feuerkorb, 5 Esse, 6 Kamin, 7 Gebäudebrand). Das Hauptmenü startet sie von selbst, sobald `--feuertest` angegeben ist; die Anleitung für den Editor steht in `docs/feuer/phase1.md`. Alle Optionen gelten nur für diesen Start. Für Messungen `--bildrate=0 --vsync=Aus` dazugeben (Bildrate und Bildzeit stehen jede Sekunde im Protokoll, Zeilen mit `[feuer]`).
 
 - `--feuertest=1` (die Testszene statt des Spiels starten)
 - `--feuersicht=nah|stadt|fern` (`nah` = Perspektive wie die Raumansicht, ganz nah am Paar; `stadt` = Orthokamera wie der nächste Zoom der Stadt, Größe 25; `fern` = Orthokamera wie der weiteste Zoom, Größe 95, alle Paare; Standard `nah`)
 - `--feuerpaar=<1–7>` (welches Paar `nah` und `stadt` zeigen, Standard 2 = Fackel)
 - `--feuertag=1` (Tageslicht; ohne die Option ist es Nacht)
 - `--feuerart=A|B|keins|beide` (welche Technik zu sehen ist; `keins` zeigt nur die Aufbauten ohne Feuer, für den Vergleich der Bildrate)
+- `--feuerstufe=vergleich|niedrig|mittel|hoch` (Ansicht: `vergleich` = links A, rechts B, Rauch beidseits B; `niedrig`, `mittel`, `hoch` = jede Feuerart einmal in der Mitte, Flamme und Rauch nach der Zuordnung in `FeuerArt`; Standard `vergleich`, im Spiel Taste `G`)
+- `--feuerfassung=sim|rauschen` (Fassung der Technik A: `sim` = Flipbook der Blender-Simulation, `rauschen` = die gerechnete Flamme aus Phase 1, bei großen Feuern mit Stichflammen; Standard `sim`, Taste `F`; im Fackelraster mit `--feuerart=A` wählt sie die gemessene Fassung)
 - `--feuerlicht=0|1` (die Lichter der Feuer aus oder an)
 - `--feuerfackeln=<n>` (Messung: statt der Paare `n` Fackeln im Raster, 10 je Reihe, mit Technik A, mit `--feuerart=B` mit Technik B; Standardsicht `stadt`) und `--feuerlichter=<m>` (nur die ersten `m` Fackeln leuchten mit einem echten Licht)
-- `--feuerzyklus=<Sekunden>` (Messzyklus: die Szene wechselt von selbst durch die Zustände ohne Feuer, A, B und A+B, im Fackelraster durch ohne Feuer und A und B je mit 0, 12 und allen Lichtern, jeden Zustand so viele Sekunden lang; der Zustand steht in jeder Protokollzeile `[feuer] … zustand=…`; `tools/feuer/messen.sh` fasst ihn zusammen)
+- `--feuerzyklus=<Sekunden>` (Messzyklus: die Szene wechselt von selbst durch die Zustände ohne Feuer, A, B und A+B, im Fackelraster durch ohne Feuer, A (Rauschen), A (Simulation) und B je mit 0, 12 und allen Lichtern, jeden Zustand so viele Sekunden lang; der Zustand steht in jeder Protokollzeile `[feuer] … zustand=…`; `tools/feuer/messen.sh` fasst ihn zusammen)
 - Tasten in der Testszene: `1`–`7` oder Pfeile links/rechts (Paar), `V` (Sicht), `N` (Nacht/Tag), `T` (A, B, beide, keins), `L` (Lichter), `H` (Beschriftung), rechte Maustaste ziehen (drehen), Mausrad (nähern), `Esc` (Ende)
 
 ## Kartenwerkstatt
