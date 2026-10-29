@@ -1,6 +1,6 @@
 # Herkunft: Texturen des Wassers
 
-Die fünf Bilder sind **eigen** (30.10.2026 ersetzen sie die Bilder des Original-Pakets, die keine belegte Einzelquelle hatten):
+Die fünf Bilder sind **eigen** (29.10.2026 ersetzen sie die Bilder des Original-Pakets, die keine belegte Einzelquelle hatten):
 `wasser_normal_a.png`, `wasser_normal_b.png` (Normalkarten), `wasser_stroemung.png` (Verzerrung), `wasser_schaum.png`, `wasser_kaustik.png` (4×4-Atlas, 16 Bilder zu 256 Pixeln).
 
 - Erzeugt von `tools/wasser/wasser_texturen.py` (Python mit numpy, ausgeführt in Blender 5.2; fester Startwert, daher jederzeit neu erzeugbar). Kein KI-Bild, keine fremde Vorlage.
