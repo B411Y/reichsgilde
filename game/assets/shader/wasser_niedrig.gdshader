@@ -1,4 +1,4 @@
-// Realistisches Wasser, Grafikstufe Niedrig: ohne Brechung, ohne Tiefentextur, ohne Kaustik und Regenringe. Farbe, Durchsicht und Uferschaum
+// Realistisches Wasser, Grafikstufe Niedrig: ohne Brechung, ohne Tiefentextur, ohne Kaustik und Regenringe, nur eine Normalkarte. Farbe, Durchsicht und Uferschaum
 // kommen aus dem Uferabstand im Netz (COLOR.r); Eis und Wind wie in Hoch. Code: wasser_realistisch.gdshaderinc.
 shader_type spatial;
 

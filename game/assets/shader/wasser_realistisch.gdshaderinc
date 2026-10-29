@@ -1,6 +1,7 @@
 // Realistisches Wasser (docs/wasser/phase2.md, phase3.md): der gemeinsame Code aller Grafikstufen. Die Stufen sind eigene Shader, die nur
 // MIT_…-Schalter setzen und diese Datei einbinden: wasser_realistisch.gdshader (Hoch und Ultra, alles), wasser_mittel.gdshader (ohne
-// Brechung und Regenringe), wasser_niedrig.gdshader (ohne Brechung, Tiefentextur, Kaustik und Regenringe). Wasserarten.cs wählt den Shader.
+// Brechung und Regenringe), wasser_niedrig.gdshader (ohne Brechung, Tiefentextur, Kaustik, Regenringe und mit nur einer Normalkarte).
+// Wasserarten.cs wählt den Shader.
 //
 // Abgeleitet vom „Realistic Water Shader“ von UnionBytes / Achim Menzel (AiYori), Godot-4-Fassung realistisches_wasser/Water_Original.gdshader
 // (MIT, Lizenz dort in LICENSE.md):
@@ -246,11 +247,16 @@ void fragment() {
 	// ── Oberfläche: zwei Normalkarten, die mit der Strömung wandern (und gegeneinander kräuseln) ──
 	vec2 drift = ruhe_drift * TIME;
 	vec2 fluss = stroemung * sampler_scale * TIME;
+#ifdef MIT_FEINKARTEN
 	vec2 uv_sampler_uv = UV * uv_sampler_scale + drift - fluss * 0.5;
 	vec2 uv_versatz = uv_sampler_strength * texture(uv_sampler, uv_sampler_uv).rg * 2.0 - 1.0;
 	vec2 uv = UV + uv_versatz;
 	vec3 normalmap = texture(normalmap_a_sampler, uv - drift * 2.0 - fluss).rgb * 0.75;
 	normalmap += texture(normalmap_b_sampler, uv + drift - fluss * 1.35).rgb * 0.25;
+#else
+	// Stufe Niedrig: nur eine Normalkarte, ohne Verwirbelung durch die Strömungskarte (zwei Bildzugriffe weniger), etwas flacher gewichtet
+	vec3 normalmap = mix(vec3(0.5, 0.5, 1.0), texture(normalmap_a_sampler, UV - drift * 2.0 - fluss).rgb, 0.8);
+#endif
 	if (lauf_netz > 0.5) {
 		// Die Karten liegen in Laufachsen (quer, längs): ihre Neigung zurück in die Weltachsen drehen
 		vec2 n = normalmap.xy * 2.0 - 1.0;
@@ -291,7 +297,8 @@ void fragment() {
 	vec3 screen_color = textureLod(SCREEN_TEXTURE, ref_uv, depth_blend_pow * 2.5).rgb;
 	vec3 color = mix(screen_color * dye_color, dye_color * 0.25, depth_blend_pow * 0.5);
 #else
-	vec3 color = mix(dye_color, dye_color * 0.25, depth_blend_pow * 0.5);
+	// Ohne Bildschirmtextur steht statt des Grundes ein mittleres Grau dahinter (so hell wie der Grund unter Wasser in Hoch); das Flache wird durchsichtig (ALPHA)
+	vec3 color = mix(dye_color * 0.45, dye_color * 0.25, depth_blend_pow * 0.5);
 #endif
 
 #if defined(MIT_KAUSTIK) && defined(MIT_TIEFE)
@@ -309,8 +316,9 @@ void fragment() {
 	float schaum = 0.0;
 #ifdef MIT_SCHAUM
 	float s_staerke = schaum_staerke * schaum_anteil;
-	if (s_staerke > 0.001 || schaum_kamm > 0.001) {
-		float s_breite = max(schaum_breite * schaum_anteil, 0.02);
+	float s_breite = max(schaum_breite * schaum_anteil, 0.02);
+	// Rauschen nur dort rechnen, wo Schaum sein kann (Saum nahe am Hindernis, Kämme): spart im offenen Wasser fast alles
+	if ((s_staerke > 0.001 && dist < s_breite * 2.2) || schaum_kamm > 0.001) {
 		vec2 sp = lauf_uv * 0.9 - stroemung * TIME * 0.9;
 		float reisser = w_fbm(sp) * 0.65 + (1.0 - textureLod(foam_sampler, sp * 0.5 + 0.3, 1.5).r) * 0.35;
 		if (s_staerke > 0.001) {
@@ -335,7 +343,9 @@ void fragment() {
 			abstand = dist * 2.0; // ohne Uferwerte grob aus der Tiefe geschätzt
 		}
 		float rand_n = w_fbm(welt_xz * 0.8);
-		eismaske = clamp((eis_hier * eis_reichweite - abstand) / 0.8 + (rand_n - 0.5) * 1.2, 0.0, 1.0);
+		// Großflächig unregelmäßiger Rand (bis ±¼ der Reichweite, höchstens ±3 m): sonst folgte die offene Stelle eines Teiches genau dem Umriss
+		float rand_gross = (w_fbm(welt_xz * 0.09 + 5.0) - 0.5) * min(eis_reichweite, 12.0) * 0.5 * smoothstep(0.0, 0.3, eis_hier);
+		eismaske = clamp((eis_hier * eis_reichweite - abstand + rand_gross) / 0.8 + (rand_n - 0.5) * 1.2, 0.0, 1.0);
 		if (eismaske > 0.001) {
 			// Risse: Abstand zur zweitnächsten minus zur nächsten Zellmitte (Voronoi)
 			vec2 q = welt_xz * 0.45 + (vec2(w_rausch(welt_xz * 0.6), w_rausch(welt_xz * 0.6 + 9.0)) - 0.5) * 1.4; // verzogen: Risse laufen krumm

@@ -10,4 +10,5 @@ shader_type spatial;
 #define MIT_EIS
 #define MIT_WIND
 #define MIT_RINGE
+#define MIT_FEINKARTEN
 #include "res://assets/shader/wasser_realistisch.gdshaderinc"
