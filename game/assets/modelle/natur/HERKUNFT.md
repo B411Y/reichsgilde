@@ -9,3 +9,5 @@
 - Die Pakete selbst liegen nicht im Repository.
 
 Die übrigen Dateien in diesem Ordner entstehen aus eigenen Skripten (CC BY 4.0, siehe `LICENSE-INHALTE.md`).
+
+Herkunft je Datei aller Assets (auch dieser): `docs/assets/protokoll.csv`.

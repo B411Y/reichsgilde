@@ -45,6 +45,7 @@ reichsgilde/
 │   ├── Wohnen/                     Wohnhaus: Stufen, Ausbau, Unterhalt, Ansehen
 │   └── Zeit/                       Spielzeit, Taktgeber, Kalender
 ├── tests/Reichsgilde.Core.Tests/   Automatische Tests für den Simulationskern
+├── tools/assets/protokoll_pruefen.py   Prüft das Asset-Protokoll und schreibt die Steam-Liste der KI-Inhalte
 ├── tools/icons/knoepfe_bauen.gd    Setzt die Waren-Knöpfe aus Rahmen, Hintergrund und Motiv zusammen (Godot-Skript, Quellen in quellen/)
 ├── tools/Kartenbau/                Kartenskript (C#): Städte per Skript anlegen, prüfen, Vorschaubilder zeichnen
 ├── tools/modelle/                  Blender-Skripte, eines je Modell (schreiben nach game/assets/modelle/<unterordner>/)
@@ -52,6 +53,7 @@ reichsgilde/
 ├── tools/oberflaeche/materialien_blender.py   Material-Bibliothek der Modelle (Blender, Cycles)
 ├── docs/
 │   ├── ARCHITEKTUR.md              Wie der Code aufgebaut ist und warum
+│   ├── assets/                     Asset-Protokoll (Herkunft jeder Grafik, jedes Modells …), Prompts der Bild-KIs, Steam-Liste der KI-Inhalte
 │   ├── ENTWICKLUNG.md              Projektstruktur, Tests, Export, automatische Prüfung (diese Datei)
 │   ├── bereiche/                   Offene Punkte und aktuelle Entscheidungen je Bereich (Kern, Spiel-KI, Darstellung …);
 │   │   └── archiv/                 ältere Entscheidungen je Bereich
@@ -88,7 +90,7 @@ Am Ende muss stehen: `Alle … Tests bestanden.`
 
 Reichsgilde läuft auf **Windows und Linux**. Bei jedem Pull Request prüft GitHub automatisch:
 
-1. Bauen und Tests – auf Windows **und** Linux
+1. Bauen und Tests – auf Windows **und** Linux; unter Linux dazu das **Asset-Protokoll**: Jede Datei unter `game/assets/` muss in `docs/assets/protokoll.csv` stehen (Werkzeug, KI-Modell, Prompt, Lizenz), sonst scheitert die Prüfung (`python3 tools/assets/protokoll_pruefen.py`, Einzelheiten in `docs/assets/README.md`)
 2. Export für beide Systeme und ein kurzer Startversuch des Linux-Builds (Rauchtest). Meldet das Spiel dabei einen Fehler oder ein Speicherleck, wird der Start einmal wiederholt – erst ein zweiter Fund lässt die Prüfung scheitern. Die Fundstellen stehen als Anmerkung oben in der Zusammenfassung des Laufs. Stürzt das Spiel ab oder hängt es (Grenze: 3 Minuten je Start), zeigt eine Rückverfolgung mit gdb, welcher Faden wo stand – als Anmerkung und im Artefakt **„Rauchtest-Protokoll“**.
 
 Die fertigen Builds kann man unter **Actions → jeweiliger Lauf → Artifacts** herunterladen. Linux läuft dabei fest auf Ubuntu 24.04, damit ein neues Ubuntu bei GitHub die Prüfung nicht unbemerkt ändert.
