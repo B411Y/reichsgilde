@@ -25,7 +25,7 @@ public readonly record struct Wetterwerte(float Wolken, float Regen, float Schne
     {
         Wetterlage.Wolkig => new(0.6f, 0, 0, 0.4f, 0, 0),
         Wetterlage.Regen => new(0.85f, 0.75f, 0, 0.5f, 0.15f, 0),
-        Wetterlage.Sturm => new(0.8f, 0.3f, 0, 1f, 0, 0),
+        Wetterlage.Sturm => new(0.8f, 0.75f, 0, 1f, 0, 0),
         Wetterlage.Gewitter => new(0.95f, 1f, 0, 0.75f, 0.05f, 1f),
         Wetterlage.Schnee => new(0.8f, 0, 0.8f, 0.3f, 0.2f, 0),
         Wetterlage.Nebel => new(0.5f, 0, 0, 0.05f, 1f, 0),

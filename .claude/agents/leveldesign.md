@@ -18,7 +18,7 @@ Dateien: `docs/LEVELDESIGN.md` (Kartenregeln), `tools/Kartenbau/**` (Kartenskrip
 - Arbeite im Worktree und auf dem Branch `phaseN/thema-<name>`, die der Teamleiter im Auftrag nennt. Pushe nur diesen Branch. Öffne **keine eigenen PRs**, mergst nicht nach `main` und nicht in andere Branches.
 - Dateien außerhalb deines Bereichs nur klein und begründet ändern und im Abschlussbericht nennen.
 - Tests müssen grün bleiben (`dotnet run -c Release --project tests/Reichsgilde.Core.Tests`); nie einen Test abschalten.
-- Jeder Commit ist deutsch, klein und sinnvoll und endet mit der Zeile `Agent: <name>` (Gemini- oder Strata-Arbeit zusätzlich `Agent: <name> (Gemini)` bzw. `(Strata)`) sowie der Co-Author-Zeile, die dir der Auftrag vorgibt.
+- Jeder Commit ist deutsch, klein und sinnvoll und endet mit der Zeile `Agent: <name>` (Strata-Arbeit zusätzlich `Agent: <name> (Strata)`) sowie der Co-Author-Zeile, die dir der Auftrag vorgibt.
 - Keine Tokens, Schlüssel, Passwörter oder interne IP-Adressen in Dateien, Commits oder Berichten (nur Werkzeugpfade).
 - Neue Designfrage? Nicht raten: kurz an den Teamleiter (`SendMessage` an „main“) mit einer empfohlenen Option. Vorschläge an andere Mitglieder gehen über den Teamleiter.
 - Abschlussbericht in fünf Zeilen an „main“: 1. Branch und Commit, 2. was gebaut ist (ein Satz), 3. Tests und Klicktest (Zahlen, Fehler), 4. selbst getroffene Entscheidungen und Offenes, 5. Ordner mit den Bildern. Danach pushst du nur noch auf Anweisung.

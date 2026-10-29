@@ -17,7 +17,7 @@ Der Funktions-Branch `phaseN/thema` und sein PR, so wie der Auftrag sie nennt. D
 0. **Funktions-Branch und PR anlegen**, wenn der Auftrag es sagt: Branch `phaseN/thema` von `origin/main`, nach dem ersten Commit (z. B. dem eingemergten Kern) den Entwurfs-PR nach `.github/pull_request_template.md` öffnen – den einzigen PR der Funktion; im Text Aufgabe, Bereiche und angefasste Dateien nennen und aktuell halten, wenn Dateien dazukommen. Arbeitest du auf einem Branch mit PR weiter: erst `git pull` (die Action „PRs aktuell halten“ mergt nach jedem Merge auf `main` den neuen Stand in alle fertigen PRs). Hat der PR das Label „Konflikt mit main“: `origin/main` von Hand einmergen (nicht rebasen), in `docs/bereiche/*.md` beide Einträge behalten.
 1. **Mitglieder-Branches einmergen** (mergen, nicht rebasen): Vor dem Einmergen und vor dem Löschen eines Mitglieder-Branches `git merge-base --is-ancestor origin/<mitglieder-branch> <funktions-branch>` prüfen; fehlt der Commit, erst einmergen.
 2. **`origin/main` einmergen** (`git fetch origin`, dann mergen). Konflikte in `docs/bereiche/*.md`: beide Einträge behalten. Danach die Tabellen in `docs/bereiche/*.md` auf doppelte Zeilen und Leerzeilen mitten in der Tabelle prüfen.
-3. **Gemini- und Strata-Ergebnisse einbinden** (siehe unten): Ergebnis selbst bauen und testen, dann committen mit `Agent: integration (Gemini)` bzw. `(Strata)`; im PR-Text nennen, was von ihnen stammt.
+3. **Strata-Ergebnisse einbinden** (siehe unten): Ergebnis selbst bauen und testen, dann committen mit `Agent: integration (Strata)`; im PR-Text nennen, was von Strata stammt.
 4. **Bauen und testen:** `dotnet build Reichsgilde.sln`, `dotnet run -c Release --project tests/Reichsgilde.Core.Tests` (alle Tests grün; nie einen Test abschalten). **Asset-Protokoll:** `python3 tools/assets/protokoll_pruefen.py` muss grün sein – kein Asset ohne Protokolleintrag im selben PR (`docs/assets/README.md`); fehlt eine Zeile, geht der Befund an den Teamleiter bzw. das Mitglied, das das Asset gebracht hat. Neue Assets tragen „Alle Rechte vorbehalten“ als Lizenz (außer Fremdmaterial). Vor „bereit“ (Schritt 8) noch einmal laufen lassen.
 5. **Projekt importieren:** `~/werkzeuge/godot/Godot_v4.7.2-stable_mono_linux_x86_64/Godot_v4.7.2-stable_mono_linux.x86_64 --headless --import --path game` (vor dem Klicktest, nach jedem Einmergen).
 6. **Klicktest** (siehe unten) mit Bildschirmfotos, die du **selbst ansiehst** (Read-Werkzeug), und einer ehrlichen Beschreibung: was zu sehen ist, was fehlt oder falsch aussieht.
@@ -46,9 +46,6 @@ WORKTREE=<worktree> DISPLAY_NR=<nummer> [TREIBER=nvidia] tools/klicktest/lauf.sh
 
 ## Hilfsagenten
 
-- **Gemini** nur für mittelgroße, klar abgegrenzte Arbeit (Oberfläche nach Muster, Doku-Abgleiche, Kartenskripte, kleine Darstellungsfehler), in einem eigenen Worktree:
-  `cd <worktree> && agy -p "<Auftrag>" --print-timeout 600s --model gemini-3.8-flash-high --mode accept-edits --sandbox < /dev/null`
-  Er bearbeitet nur Dateien (keine Befehle, kein push). Ungeeignet für Codesuche in großen Dateien. Das Ergebnis immer selbst bauen und testen.
 - **Strata** (lokales Modell) nur für Hilfsarbeiten: Texte, Namen, Zusammenfassungen. Aufruf: `~/werkzeuge/strata/frag.sh`. Bei Ausfall weglassen.
 - Kern, Spiel-KI, Spielstand, schwierige Grafik und alle Entscheidungen bleiben bei Claude-Mitgliedern.
 
