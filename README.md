@@ -10,7 +10,7 @@
 ![Godot 4.7](https://img.shields.io/badge/Godot-4.7-478cbf)
 ![C# .NET 8](https://img.shields.io/badge/C%23-.NET%208-512bd4)
 ![Windows & Linux](https://img.shields.io/badge/Windows%20%26%20Linux-spielbar-2e7d32)
-[![Lizenz: MIT](https://img.shields.io/badge/Lizenz-MIT-yellow)](LICENSE) [![Inhalte: CC BY 4.0](https://img.shields.io/badge/Inhalte-CC%20BY%204.0-lightgrey)](LICENSE-INHALTE.md)
+[![Lizenz: MIT](https://img.shields.io/badge/Lizenz-MIT-yellow)](LICENSE) [![Inhalte: CC BY 4.0 bis Stichtag](https://img.shields.io/badge/Inhalte-CC%20BY%204.0%20bis%20Stichtag-lightgrey)](LICENSE-INHALTE.md)
 
 ![Die Reichsstadt mit Markt, Dom, Rathaus und Stadtmauer](docs/bilder/stadt.jpg)
 
@@ -530,4 +530,4 @@ Nach jedem Merge auf `main` hält die Action **„PRs aktuell halten“** ([`.gi
 
 ## Lizenz
 
-Code: [MIT](LICENSE), auch die Skripte, die Icons und Modelle zeichnen. Grafiken, 3D-Modelle, Icons, Bilder und Texte: [CC BY 4.0](LICENSE-INHALTE.md) – frei nutzbar, auch kommerziell, mit Namensnennung. Schriften: **Alegreya** (The Alegreya Project Authors) und **Germania One** (John Vargas Beltrán), beide unter der [SIL Open Font License 1.1](game/assets/oberflaeche/schriften/) – die Lizenztexte liegen neben den Schriftdateien. Ausgewählte Modelle der Ordner `natur/` und `props/` (Asset-Kits) stammen von **Quaternius** und stehen unter **CC0 1.0** ([Herkunft](game/assets/modelle/props/HERKUNFT.md)). Dieses Projekt verwendet **keine** Grafiken, Sounds, Texte oder sonstigen Inhalte aus „Die Gilde“ – das Original dient nur als Vorbild für Spielmechaniken.
+Code: [MIT](LICENSE), auch die Skripte, die Icons und Modelle zeichnen, und die Shader. Inhalte (Grafiken, 3D-Modelle, Icons, Bilder, Sounds und die Texte, die Spieler lesen): was bis zum Merge von PR #PRNUMMER veröffentlicht ist, steht unter [CC BY 4.0](LICENSE-INHALTE.md) (frei nutzbar, auch kommerziell, mit Namensnennung, nicht widerrufbar); was danach neu entsteht, steht unter „Alle Rechte vorbehalten“ (© B411Y). Einzelheiten und die GitHub-Nutzungsbedingungen in [LICENSE-INHALTE.md](LICENSE-INHALTE.md). Schriften: **Alegreya** (The Alegreya Project Authors) und **Germania One** (John Vargas Beltrán), beide unter der [SIL Open Font License 1.1](game/assets/oberflaeche/schriften/) – die Lizenztexte liegen neben den Schriftdateien. Ausgewählte Modelle der Ordner `natur/` und `props/` (Asset-Kits) stammen von **Quaternius** und stehen unter **CC0 1.0** ([Herkunft](game/assets/modelle/props/HERKUNFT.md)). Dieses Projekt verwendet **keine** Grafiken, Sounds, Texte oder sonstigen Inhalte aus „Die Gilde“ – das Original dient nur als Vorbild für Spielmechaniken.
