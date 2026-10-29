@@ -35,7 +35,7 @@ Nur **kern** ändert `wirtschaft.json`, `Stadtwirtschaft.cs` und `Speicherstand.
 - **Datenversion** (`"version"` in `wirtschaft.json`) erhöht nur kern.
 - **Messungen** (`messen`) nur kern und spiel-ki, jede nennt den `main`-Commit (Einzelheiten in ihren Agentendateien).
 - Was sich nicht zurücknehmen lässt: erst fragen. Neue Designfrage: nicht raten, an den Teamleiter, mit einer empfohlenen Option.
-- Commits deutsch, klein, mit der Zeile **`Agent: <name>`** (Arbeit von Gemini oder Strata: `Agent: <name> (Gemini)` bzw. `(Strata)`).
+- Commits deutsch, klein, mit der Zeile **`Agent: <name>`** (Arbeit von Strata: `Agent: <name> (Strata)`).
 
 ## Doku im selben PR
 
