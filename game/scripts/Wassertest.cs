@@ -13,7 +13,8 @@ namespace Reichsgilde;
 /// <c>--wasserart=alle|fluss|bach|teich|see|meer|hafen|furt|keins</c>, <c>--wassersicht=schraeg|nah|fern|oben|flach|ufer|uebersicht</c>,
 /// <c>--wetter=klar|wolkig|regen|sturm|gewitter|schnee|nebel</c>, <c>--jahreszeit=fruehling|sommer|herbst|winter</c>, <c>--winter=0..1</c>
 /// (Eisfortschritt; sonst im Winter 1, sonst 0), <c>--wasserteile=-brechung,-tiefe,-kaustik,-schaum,-eis,-wind,-ringe</c> (Teile abschalten, zur
-/// Messung) und <c>--wasserende=&lt;Sekunden&gt;</c> (nach der Zeit Mittelwert ins Log und beenden). Im Log steht jede Sekunde die Bildrate.
+/// Messung), <c>--wasserstufe=niedrig|mittel|hoch|ultra</c> (Shader der Grafikstufe), <c>--wasservorwaermen=1</c> (<see cref="Wasserarten.Vorwaermen"/>
+/// prüfen, Zeit im Log) und <c>--wasserende=&lt;Sekunden&gt;</c> (nach der Zeit Mittelwert ins Log und beenden). Im Log steht jede Sekunde die Bildrate.
 /// </summary>
 public partial class Wassertest : Node3D
 {
@@ -55,6 +56,7 @@ public partial class Wassertest : Node3D
         Wetter(lage, schneeDecke);
         Umgebung(lage);
 
+        if (_optionen.GetValueOrDefault("wasservorwaermen") == "1") Wasserarten.Vorwaermen(this, alleStufen: true); // Zeit steht im Log
         _shader = ShaderLaden();
         var arten = artName == "alle" ? Wasserarten.Alle.ToList()
             : artName == "keins" ? new List<Wasserart>()
@@ -75,10 +77,13 @@ public partial class Wassertest : Node3D
         "Bach" => 0.3f, "Furt" => 0.6f, "Teich" => 0.8f, "Hafenbecken" => 0.9f, "Fluss" => 1.1f, "See" => 1.5f, "Meer" => 1.3f, _ => 1f,
     };
 
-    /// <summary>Lädt den Shader; <c>--wasserteile=-kaustik,…</c> schaltet dessen #define-Zeilen ab (nur zum Messen).</summary>
+    /// <summary>
+    /// Lädt den Shader (mit <c>--wasserstufe=niedrig|mittel|hoch|ultra</c> den der Stufe, sonst den vollen); <c>--wasserteile=-kaustik,…</c> schaltet
+    /// dessen #define-Zeilen ab (nur zum Messen).
+    /// </summary>
     private Shader ShaderLaden()
     {
-        var shader = GD.Load<Shader>(ShaderPfad);
+        var shader = Wasserarten.StufeVorgabe is { } stufe ? Wasserarten.ShaderFuer(stufe) : GD.Load<Shader>(ShaderPfad);
         var teile = _optionen.GetValueOrDefault("wasserteile", "").Split(',', StringSplitOptions.RemoveEmptyEntries);
         if (teile.Length == 0) return shader;
         var code = shader.Code;
@@ -239,7 +244,7 @@ public partial class Wassertest : Node3D
                 float px = x * 0.5f - 30f, pz = z * 0.5f - 30f;
                 var i = z * (n + 1) + x;
                 ecken[i] = new Vector3(px, 0, pz);
-                farben[i] = new Color(Mathf.Clamp(Gelaende(art, px, pz).Ufer / 32f, 0f, 1f), 0, 0, 1);
+                farben[i] = new Color(Mathf.Clamp(Gelaende(art, px, pz).Ufer / 32f, 0f, 1f), 0, 1, 1); // Uferabstand, offen, Schaumanteil, Deckkraft
             }
         var idx = new List<int>(n * n * 6);
         for (var z = 0; z < n; z++)
@@ -330,7 +335,7 @@ public partial class Wassertest : Node3D
         var folge = new List<(string, Action)>();
         void Alle(string name, Shader shader) => folge.Add((name, () => { foreach (var w in _wasser) { w.Netz.Visible = true; w.Stoff.Shader = shader; } }));
         folge.Add(("ohne Wasser", () => { foreach (var w in _wasser) w.Netz.Visible = false; }));
-        Alle("alle Arten, volle Stufe", voll);
+        Alle(art == "stufen" ? "Stufe Hoch" : "alle Arten, volle Stufe", voll);
         switch (art)
         {
             case "winter": Alle("ohne Eis", Variante("eis")); break;
@@ -338,6 +343,10 @@ public partial class Wassertest : Node3D
             case "sturm": Alle("ohne Wind", Variante("wind")); break;
             case "teile1": foreach (var teil in new[] { "brechung", "tiefe" }) Alle("ohne " + teil, Variante(teil)); break;
             case "teile2": foreach (var teil in new[] { "kaustik", "schaum" }) Alle("ohne " + teil, Variante(teil)); break;
+            case "stufen": // die Shader der Grafikstufen (Ultra ist der Shader von Hoch mit feinerem Netz; die Testfelder sind schon fein)
+                Alle("Stufe Niedrig", Wasserarten.ShaderFuer(Wasserstufe.Niedrig));
+                Alle("Stufe Mittel", Wasserarten.ShaderFuer(Wasserstufe.Mittel));
+                break;
             case "teile3":
                 foreach (var teil in new[] { "wind", "ringe" }) Alle("ohne " + teil, Variante(teil));
                 Alle("billig (ohne Brechung, Tiefe, Kaustik, Schaum, Eis, Wind, Ringe)", Variante("brechung", "tiefe", "kaustik", "schaum", "eis", "wind", "ringe"));

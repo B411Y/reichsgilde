@@ -611,10 +611,11 @@ public partial class Stadtansicht
         return form.Becken.FirstOrDefault(b => b.Enthaelt(p))?.Spiegel;
     }
 
-    /// <summary>Alles Bewegte am Wasser, jedes Bild (aus <c>_Process</c>).</summary>
+    /// <summary>Alles Bewegte am Wasser, jedes Bild (aus <c>_Process</c>): Eis nach dem Winterfortschritt (Stadtansicht.Wasser.cs), Fähren, Häfen.</summary>
     private void WasserBild(double delta)
     {
-        WasserFarbeNachfuehren();
+        WasserWinterNachfuehren();
+        WassermessungSchritt(delta); // nur mit --wasservergleich=1 (Stadtansicht.Wassermessung.cs)
         FaehrenBewegen(delta);
         HaefenBewegen(delta);
     }

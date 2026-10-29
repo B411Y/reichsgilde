@@ -48,6 +48,7 @@ public partial class Stadtansicht
         NaturDetailAnwenden();
         BodenqualitaetNachfuehren(); // Shader des Bodens und Grasbüschel (Stadtansicht.Boden.cs)
         OberflaecheStufeNachfuehren(); // Material-Bibliothek der Modelle (Stadtansicht.Oberflaechendetails.cs)
+        WasserStufeNachfuehren(); // Stufe des Wassers aus der Voreinstellung (Stadtansicht.Wasser.cs)
         // Mesh-LOD: Godot darf Modelle vereinfachen, die im Bild klein sind. Nur in der Stufe „Nah“ – auch die Schatten nehmen dann
         // die vereinfachten Modelle, und Spitzdächer, Zinnen und Balken werfen keinen Schatten mehr (siehe SchattenEinrichten).
         GetViewport().MeshLodThreshold = Fenster.AktuelleFeinheiten == Feinheiten.Nah ? 1f : 0f;

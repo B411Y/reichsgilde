@@ -931,7 +931,7 @@ public partial class Stadtansicht : Node3D
         OberflaecheBild();     // umgefärbte Materialien der Oberflächendetails nachziehen (Stadtansicht.Oberflaechendetails.cs)
         GrafikBild(delta);     // Unschärfe nach Zoom, Wolken, Dunst nach Uhrzeit (Stadtansicht.Grafik.cs)
         DunstFarbeNachfuehren(); // der Dunst am Kartenrand in der Farbe des Himmels (Stadtansicht.Rand.cs)
-        WasserBild(delta);       // Himmelsfarbe im Wasser, Fähren, Tretrad der Häfen (Stadtansicht.Wasser.Uebergaenge.cs)
+        WasserBild(delta);       // Eis auf dem Wasser, Fähren, Tretrad der Häfen (Stadtansicht.Wasser.Uebergaenge.cs)
         BelagBild();             // geänderte Wege neu zeichnen (Stadtansicht.Wegbelag.cs)
         WegeModusBild();         // Wege-Modus: Leuchten nachziehen, Weg unter der Maus (Stadtansicht.Wegemodus.cs)
         WegeschichtBild();       // geänderte Kacheln der Wegeschicht neu rechnen (Stadtansicht.Wegeschicht.cs)

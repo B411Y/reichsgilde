@@ -1,4 +1,5 @@
 using System;
+using System.Linq;
 using Godot;
 using Reichsgilde.Core.Zeit;
 
@@ -65,23 +66,18 @@ public static class Wasserarten
 
     /// <summary>
     /// Kartenwasser → Art. <paramref name="kartenart"/> ist das Feld <c>art</c> der Karte: <c>fluss</c>/<c>bach</c> sind Linien mit <paramref name="breite"/>
-    /// (Meter), <c>see</c>/<c>teich</c> sind Flächen mit <paramref name="flaeche"/> (m²). Ein Fluss bis 5 m ist ein Bach; ein See bis 2.000 m² ein Teich.
-    /// Schaum haben nur Flüsse ab 30 m Breite und das Meer. Hafenbecken (vor der Kaimauer eines Hafens, <c>BeckenNetz</c>) und Furt (Übergang)
-    /// ergeben sich nicht aus der Kartenart, sondern aus dem Ort; das Meer kennt die Karte noch nicht (<see cref="Meer"/> für spätere Küsten).
+    /// (Meter, beim Einbau die größte Breite des Laufs), <c>see</c>/<c>teich</c> sind Flächen mit <paramref name="flaeche"/> (m²). Es entscheidet die Größe,
+    /// nicht der Name (Nutzer 29.10.2026): Ein Lauf bis 5 m ist ein Bach und friert ganz zu, ein breiterer ein Fluss und friert nie; eine Fläche bis
+    /// 2.000 m² ist ein Teich (friert ganz zu), eine größere ein See (nur Randeis). Schaum haben nur Flüsse ab 30 m Breite und das Meer.
+    /// Hafenbecken (vor der Kaimauer eines Hafens) und Furt (Übergang) ergeben sich nicht aus der Kartenart, sondern aus dem Ort; das Meer kennt
+    /// die Karte noch nicht (<see cref="Meer"/> für spätere Küsten).
     /// </summary>
     public static Wasserart AusKarte(string kartenart, double breite, double flaeche = 0)
     {
-        var art = kartenart.ToLowerInvariant();
-        if (art is "fluss" or "bach")
-        {
-            if (art == "bach" || breite <= BachBisBreite)
-                return Fuer(Bach, (float)breite, 0);
-            return Fuer(Fluss, (float)breite, 0);
-        }
+        if (kartenart.ToLowerInvariant() is "fluss" or "bach")
+            return breite <= BachBisBreite ? Fuer(Bach, (float)breite, 0) : Fuer(Fluss, (float)breite, 0);
         // see / teich (und alles Unbekannte mit Fläche)
-        if (art == "teich" || flaeche <= TeichBisFlaeche)
-            return Fuer(Teich, 0, (float)flaeche);
-        return Fuer(See, 0, (float)flaeche);
+        return flaeche <= TeichBisFlaeche ? Fuer(Teich, 0, (float)flaeche) : Fuer(See, 0, (float)flaeche);
     }
 
     /// <summary>
@@ -102,19 +98,28 @@ public static class Wasserarten
     }
 
     /// <summary>
-    /// Winterfortschritt 0–1 aus Jahreszeit und Fortschritt im Spieljahr (0–1; ein Spieljahr ist eine Jahreszeit, 1140 Ticks): Im Winter wächst das Eis
-    /// im ersten Drittel (bis 0,35) von 0 auf 1 und hält bis zum Jahresende; im Frühling taut es im ersten Drittel (bis 0,3) von 1 auf 0.
+    /// Winterfortschritt 0–1 aus Jahreszeit und Fortschritt im Spieljahr (0–1; ein Spieljahr ist eine Jahreszeit, 1140 Ticks, im Kern
+    /// <c>Spielzeit.TagesFortschritt</c>): Im <b>Winter</b> wächst das Eis über die ersten drei Fünftel des Jahres von 0 auf 1, erst schnell, dann
+    /// langsamer (wie Eis dicker wird), und hält bis zum Jahresende; im <b>Frühling</b> taut es im ersten Drittel (bis 0,3) von 1 auf 0. Sommer
+    /// und Herbst 0. An den Jahreswechseln springt nichts (Herbstende 0 = Winterbeginn 0, Winterende 1 = Frühlingsbeginn 1).
     /// </summary>
     public static float Winterfortschritt(Jahreszeit jahreszeit, double jahresanteil)
     {
         var f = (float)Math.Clamp(jahresanteil, 0, 1);
-        return jahreszeit switch
+        switch (jahreszeit)
         {
-            Jahreszeit.Winter => Mathf.SmoothStep(0f, 0.35f, f),
-            Jahreszeit.Fruehling => 1f - Mathf.SmoothStep(0f, 0.3f, f),
-            _ => 0f,
-        };
+            case Jahreszeit.Winter:
+                var t = Mathf.Clamp(f / WinterWachsen, 0f, 1f);
+                return 1f - (1f - t) * (1f - t);
+            case Jahreszeit.Fruehling:
+                return 1f - Mathf.SmoothStep(0f, FruehlingTauen, f);
+            default:
+                return 0f;
+        }
     }
+
+    /// <summary>Bis zu diesem Anteil des Winters wächst das Eis; bis zu diesem Anteil des Frühlings taut es.</summary>
+    public const float WinterWachsen = 0.6f, FruehlingTauen = 0.3f;
 
     // ── Bilder des Wassers: an einer Stelle, damit andere Texturen (Blender) ohne Eingriff am Shader eingesetzt werden können ──
     private const string BilderOrdner = "res://assets/texturen/realistisches_wasser/";
@@ -154,11 +159,15 @@ public static class Wasserarten
     /// <summary>
     /// Setzt die Werte einer Art auf ein Wassermaterial. <paramref name="richtung"/> ist die Laufrichtung (x, z) für Strömung und Wellen;
     /// <paramref name="winter"/> der Winterfortschritt (<see cref="Winterfortschritt"/>); <paramref name="uferImNetz"/>: das Netz liefert in
-    /// <c>COLOR.r</c> den Abstand zum Ufer in Metern (sonst schätzt der Shader das Eis aus der Tiefe).
+    /// <c>COLOR</c> Uferabstand, offen, Schaumanteil und Deckkraft (sonst schätzt der Shader das Eis aus der Tiefe). <paramref name="lauf"/>: Netz
+    /// eines Flusses mit Laufachsen in <c>UV</c> und Strömung je Ecke in <c>UV2</c> (Stadtansicht.Wasser.cs); <paramref name="tempo"/> ersetzt dann
+    /// das Tempo der Art (aus der Karte). <paramref name="netzAbstand"/>: Abstand der Netzecken in m (0 = fein genug für alle Wellen).
     /// </summary>
-    public static void Anwenden(ShaderMaterial m, Wasserart art, Vector2 richtung, float winter, bool uferImNetz)
+    public static void Anwenden(ShaderMaterial m, Wasserart art, Vector2 richtung, float winter, bool uferImNetz, bool lauf = false, float? tempo = null,
+        float netzAbstand = 0f)
     {
         var r = richtung.LengthSquared() > 0.0001f ? richtung.Normalized() : new Vector2(1, 0.4f).Normalized();
+        var fliesst = (tempo ?? art.Stroemung) > 0;
         m.SetShaderParameter("wellen_staerke", art.WellenStaerke);
         m.SetShaderParameter("wellen_laenge", art.WellenLaenge);
         m.SetShaderParameter("wind_anteil", art.WindAnteil);
@@ -168,15 +177,18 @@ public static class Wasserarten
         var e = r.Rotated(2.0f);
         m.SetShaderParameter("wave_d", new Vector4(d.X, d.Y, 0.22f, 6.3f));
         m.SetShaderParameter("wave_e", new Vector4(e.X, e.Y, 0.16f, 2.3f));
-        m.SetShaderParameter("stroemung", r * art.Stroemung);
+        // Ein Fluss rechnet die Strömung in seinen Laufachsen (quer, längs): (0, Tempo); sonst in Weltachsen
+        m.SetShaderParameter("lauf_netz", lauf ? 1f : 0f);
+        m.SetShaderParameter("stroemung", lauf ? new Vector2(0, tempo ?? art.Stroemung) : r * (tempo ?? art.Stroemung));
+        m.SetShaderParameter("netz_abstand", netzAbstand);
         // Drei Wellen aus leicht verschiedenen Richtungen (im Fluss enger um die Laufrichtung, sonst weiter), damit kein Waschbrett entsteht
-        var faecher = art.Stroemung > 0 ? 0.5f : 0.9f;
+        var faecher = fliesst ? 0.5f : 0.9f;
         var b = r.Rotated(faecher);
         var c = r.Rotated(-faecher * 0.7f);
         m.SetShaderParameter("wave_a", new Vector4(r.X, r.Y, 0.35f, 3f));
         m.SetShaderParameter("wave_b", new Vector4(b.X, b.Y, 0.30f, 1.55f));
         m.SetShaderParameter("wave_c", new Vector4(c.X, c.Y, 0.25f, 0.9f));
-        m.SetShaderParameter("ruhe_drift", art.Stroemung > 0 ? new Vector2(0.01f, 0.01f) : new Vector2(0.05f, 0.04f));
+        m.SetShaderParameter("ruhe_drift", fliesst ? new Vector2(0.01f, 0.01f) : new Vector2(0.05f, 0.04f));
         m.SetShaderParameter("color_shallow", art.Flach);
         m.SetShaderParameter("color_deep", art.Tief);
         m.SetShaderParameter("beers_law", art.Klarheit);
@@ -190,4 +202,122 @@ public static class Wasserarten
         m.SetShaderParameter("eis", art.Eis == Eisregel.Nie ? 0f : winter);
         m.SetShaderParameter("ufer_im_netz", uferImNetz ? 1f : 0f);
     }
+
+    // ═════════════════════════════════════════════════════════════════════════
+    //  Grafikstufen
+    // ═════════════════════════════════════════════════════════════════════════
+
+    /// <summary>Kaimauer: Anteil des Flussschaums (Stärke und Breite), der dort bleibt, wo der offene Fluss am Hafen vorbeiströmt.</summary>
+    public static float KaiSchaumAnteil => KaiSaum.SchaumStaerke / Fluss.SchaumStaerke;
+
+    private static readonly string[] ShaderDateien =
+    {
+        "res://assets/shader/wasser_niedrig.gdshader",     // Niedrig
+        "res://assets/shader/wasser_mittel.gdshader",      // Mittel
+        "res://assets/shader/wasser_realistisch.gdshader", // Hoch
+        "res://assets/shader/wasser_realistisch.gdshader", // Ultra (feineres Netz)
+    };
+
+    /// <summary>Der Shader der Stufe (Niedrig: ohne Brechung, Tiefentextur, Kaustik und Regenringe; Mittel: ohne Brechung und Regenringe; Hoch und Ultra: alles).</summary>
+    public static Shader ShaderFuer(Wasserstufe stufe) => GD.Load<Shader>(ShaderDateien[(int)stufe]);
+
+    /// <summary>
+    /// Abstand der Netzecken im Spiel (m): 2 m in Niedrig bis Hoch (der Abstand des Höhenrasters), 1 m in Ultra – dort zeigen sich auch die
+    /// kürzeren Wellen als Bewegung der Fläche, sonst nur in den Normalkarten.
+    /// </summary>
+    public static float NetzAbstand(Wasserstufe stufe) => stufe == Wasserstufe.Ultra ? 1f : 2f;
+
+    /// <summary>Startoption <c>--wasserstufe=niedrig|mittel|hoch|ultra</c>: diese Stufe statt der aus der Grafik-Voreinstellung (nur für diesen Start).</summary>
+    public static Wasserstufe? StufeVorgabe =>
+        Startoption("wasserstufe") is { } s && Enum.TryParse<Wasserstufe>(s, true, out var stufe) ? stufe : null;
+
+    /// <summary>
+    /// Die Stufe des Wassers aus der Grafik-Voreinstellung (kein eigener Regler): Niedrig, Mittel, Hoch, Ultra wie die Voreinstellung. Steht sie
+    /// auf „Eigene“, gilt die Voreinstellung, mit der die meisten Regler übereinstimmen (bei Gleichstand die niedrigere).
+    /// </summary>
+    public static Wasserstufe StufeAusGrafik()
+    {
+        if (StufeVorgabe is { } vorgabe) return vorgabe;
+        var v = Fenster.AktuelleVoreinstellung;
+        if (v != Voreinstellung.Eigene) return (Wasserstufe)(int)v;
+        var jetzt = Fenster.AktuelleStufe;
+        var beste = Wasserstufe.Hoch;
+        var besteZahl = -1;
+        foreach (var stufe in new[] { Voreinstellung.Niedrig, Voreinstellung.Mittel, Voreinstellung.Hoch, Voreinstellung.Ultra })
+        {
+            var s = Fenster.StufeVon(stufe);
+            var gleich = new[]
+            {
+                s.Kanten == jetzt.Kanten, s.Schatten == jetzt.Schatten, s.Verdeckung == jetzt.Verdeckung, s.Indirekt == jetzt.Indirekt,
+                s.Bloom == jetzt.Bloom, s.Natur == jetzt.Natur, s.Passanten == jetzt.Passanten, s.Feinheiten == jetzt.Feinheiten,
+                s.Unschaerfe == jetzt.Unschaerfe, s.Wolken == jetzt.Wolken, s.Dunst == jetzt.Dunst, s.Boden == jetzt.Boden, s.Gras == jetzt.Gras,
+                s.Wetter == jetzt.Wetter,
+            }.Count(x => x);
+            if (gleich > besteZahl) (beste, besteZahl) = ((Wasserstufe)(int)stufe, gleich);
+        }
+        return beste;
+    }
+
+    /// <summary>Eine Startoption <c>--name=wert</c> (null, wenn sie fehlt).</summary>
+    public static string? Startoption(string name)
+    {
+        foreach (var arg in OS.GetCmdlineUserArgs())
+            if (arg.StartsWith("--" + name + "=", StringComparison.Ordinal)) return arg[(name.Length + 3)..];
+        return null;
+    }
+
+    // ═════════════════════════════════════════════════════════════════════════
+    //  Vorwärmen (für den Ladebildschirm)
+    // ═════════════════════════════════════════════════════════════════════════
+
+    /// <summary>
+    /// Übersetzt den Wasser-Shader im Voraus, damit das erste Bild mit Wasser nicht stockt (beim allerersten Start ohne Shader-Zwischenspeicher
+    /// 20–30 s). Für den Ladebildschirm: aufrufen, solange er steht, und auf <paramref name="fertig"/> warten (oder nicht – dann wird eben dort
+    /// übersetzt, wo das Wasser zuerst zu sehen ist). Baut unter <paramref name="eltern"/> ein kleines unsichtbares Bild (eigener
+    /// <see cref="SubViewport"/> mit eigener Welt, 64 × 64) mit je einem Stück Wasser der Stufe (bzw. aller Stufen), lässt es einige Bilder lang
+    /// zeichnen, entfernt es wieder und meldet die Zeit im Log. Schaden kann es nicht: Ist das Wasser schon übersetzt, kostet es nur diese Bilder.
+    /// </summary>
+    /// <param name="eltern">Ein Knoten im Baum (z. B. der Ladebildschirm selbst).</param>
+    /// <param name="alleStufen">true: alle drei Shader (Niedrig, Mittel, Hoch/Ultra), etwa wenn der Spieler die Stufe gleich wechseln könnte.</param>
+    /// <param name="fertig">Wird gerufen, wenn das Vorwärmen fertig ist.</param>
+    public static void Vorwaermen(Node eltern, bool alleStufen = false, Action? fertig = null)
+    {
+        var start = Time.GetTicksMsec();
+        var stufen = alleStufen ? new[] { Wasserstufe.Niedrig, Wasserstufe.Mittel, Wasserstufe.Hoch } : new[] { StufeAusGrafik() };
+        var bild = new SubViewport
+        {
+            Name = "WasserVorwaermen", Size = new Vector2I(64, 64), OwnWorld3D = true, TransparentBg = true,
+            RenderTargetUpdateMode = SubViewport.UpdateMode.Always,
+        };
+        var kamera = new Camera3D { Current = true };
+        bild.AddChild(kamera);
+        kamera.LookAtFromPosition(new Vector3(0, 4, 4), Vector3.Zero);
+        bild.AddChild(new DirectionalLight3D { ShadowEnabled = true, RotationDegrees = new Vector3(-50, 30, 0) }); // wie im Spiel: Sonne mit Schatten
+        for (var i = 0; i < stufen.Length; i++)
+        {
+            var stoff = new ShaderMaterial { Shader = ShaderFuer(stufen[i]) };
+            BilderSetzen(stoff);
+            Anwenden(stoff, Fluss, Vector2.Up, 0f, uferImNetz: true, lauf: true, tempo: 1f, netzAbstand: NetzAbstand(stufen[i]));
+            bild.AddChild(new MeshInstance3D
+            {
+                Mesh = new PlaneMesh { Size = new Vector2(1, 1) }, MaterialOverride = stoff, Position = new Vector3(i * 0.3f - 0.3f, 0, 0),
+                CastShadow = GeometryInstance3D.ShadowCastingSetting.Off,
+            });
+        }
+        eltern.AddChild(bild);
+        var baum = eltern.GetTree();
+        var bilder = 0;
+        void Schritt()
+        {
+            if (++bilder < 4) return; // einige Bilder: Shader und Pipelines sind dann übersetzt
+            baum.ProcessFrame -= Schritt;
+            if (GodotObject.IsInstanceValid(bild)) bild.QueueFree();
+            GD.Print($"[wasser] vorgewärmt ({string.Join(", ", stufen)}) in {Time.GetTicksMsec() - start} ms");
+            fertig?.Invoke();
+        }
+        baum.ProcessFrame += Schritt;
+    }
 }
+
+/// <summary>Die Grafikstufe des Wassers, aus der Grafik-Voreinstellung (<see cref="Wasserarten.StufeAusGrafik"/>).</summary>
+public enum Wasserstufe { Niedrig, Mittel, Hoch, Ultra }
