@@ -14,3 +14,7 @@ Bearbeitung im Projekt: Die beiden großen Texturen (Albedo, Normalen) sind von 
 Weitere Bewegungen (Stehen, Hämmern …) kommen als `schmied_ki_<bewegung>.glb` mit demselben Skelett in diesen Ordner; das Spiel nimmt sie beim Start automatisch auf (`Stadtansicht.KiFiguren.cs`).
 
 `schmied_ki_stehen.glb` ist der Kimodo-Clip „idle“ für dasselbe Skelett; die Datei enthält nur Skelett und Animation (Netz, Material und Texturen entfernt).
+
+Versionen (Stand 29.10.2026): ComfyUI 3D v0.43.0 mit TRELLIS.2-Knoten, AssetFurnace v0.5.3, SkinTokens 273b691d, Animationen aus Kimodo-SOMA-RP-v1.1 (kommerziell nutzbar; nicht die Forschungsvariante SMPLX-RP). Einzelheiten: `docs/assets/prompts/ki_schmied.md`.
+
+Herkunft je Datei aller Assets (auch dieser): `docs/assets/protokoll.csv`.

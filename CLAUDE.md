@@ -41,6 +41,7 @@ Nur **kern** ändert `wirtschaft.json`, `Stadtwirtschaft.cs` und `Speicherstand.
 
 - README und `docs/ARCHITEKTUR.md` ergänzen; in der README ins passende aufklappbare Kapitel des **Spielbuchs** (Leerzeile nach `</summary>` und vor `</details>`), ein großes Thema zusätzlich als Zeile in „Was das Spiel schon kann“. Gemeinsame Dateien nur an der passenden Stelle ändern, nicht ans Ende hängen.
 - Entscheidungen und offene Punkte **nur in die eigene Bereichsdatei** `docs/bereiche/<bereich>.md`: Entscheidung als `### Thema (PR #…)` mit Tabelle unten unter „Entscheidungen“, Erledigtes aus „Offen“ löschen, Neues unten anhängen. **Keine Nummern**, keine Liste „Erledigt“. Braucht ein anderer Bereich etwas: „(von <Bereich>) …“ unter „Offen“ in dessen Datei. `docs/ENTSCHEIDUNGEN.md` ist Archiv.
+- **Kein Asset ohne Protokolleintrag im selben PR:** Jede neue, geänderte oder gelöschte Datei unter `game/assets/` bekommt ihre Zeile in `docs/assets/protokoll.csv` (Werkzeug, Modell, Prompt nach `docs/assets/prompts/`, Unbelegtes „unbekannt“); `python3 tools/assets/protokoll_pruefen.py` muss grün sein (Einzelheiten `docs/assets/README.md`).
 
 ## Bauen, testen, ausprobieren
 

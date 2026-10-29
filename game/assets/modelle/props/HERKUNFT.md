@@ -10,3 +10,5 @@ wörtlich in der `License_Standard.txt` des jeweiligen Pakets: „Models by @Qua
 
 Bearbeitung durch `tools/modelle/kit_import.py`: Auswahl, Vereinfachung großer Netze, Texturen verkleinert (WebP), Materialien neu aufgebaut.
 Die Pakete selbst liegen nicht im Repository.
+
+Herkunft je Datei aller Assets (auch dieser): `docs/assets/protokoll.csv`.

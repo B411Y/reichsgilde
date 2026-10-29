@@ -21,6 +21,9 @@
 # Herkunfts- und Lizenznachweise fremder Assets
 **/HERKUNFT.md @B411Y
 
+# Asset-Protokoll (Herkunft jeder Datei, Grundlage der Steam-Angabe)
+/docs/assets/protokoll.csv @B411Y
+
 # Prüfsummen des heruntergeladenen TressFX-Pakets (Lieferkette)
 /tools/tressfx.version @B411Y
 
