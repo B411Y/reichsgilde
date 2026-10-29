@@ -55,6 +55,7 @@ public partial class Hauptszene
         // Ein Befehl meldet sein Ergebnis, die Stadt dieselbe Nachricht für alle – nur einmal zeigen.
         if (_jahresProtokoll.Count > 0 && _jahresProtokoll[0].Text == meldung) return;
         var warnung = IstWarnung(meldung);
+        if (_simulation?.Wirtschaft is { } wi) KlangOberflaeche.Meldung(meldung, wi.Daten.Allgemein.Waehrung); // Holzklopfer, Glocke oder Münzen
         var zeit = _simulation?.Zeit.UhrzeitText ?? "";
         _jahresProtokoll.Insert(0, (zeit, meldung, warnung));
         if (_jahresProtokoll.Count > ProtokollHoechstens) _jahresProtokoll.RemoveAt(_jahresProtokoll.Count - 1);

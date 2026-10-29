@@ -44,6 +44,7 @@ public partial class Fenster : Node
         _instanz = this;
         Schriften.Einrichten(GetTree());
         Oberflaechenstil.Einrichten();
+        KlangOberflaeche.Einrichten(GetTree());
         var einstellungen = new ConfigFile();
         var geladen = einstellungen.Load(Datei) == Error.Ok;
         if (geladen && einstellungen.GetValue("anzeige", "vollbild", false).AsBool())
