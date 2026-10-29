@@ -39,7 +39,7 @@ Werkzeuge, Abläufe, Lizenz und Asset-Protokoll. Neue Einträge unten anhängen,
 | Rückfall | Ohne `BOT_TOKEN`: `GITHUB_TOKEN` und selbst gestarteter `build.yml`-Lauf wie bisher | 29.10.2026 |
 | Schutzregel | Der Push geht nur auf PR-Branches, nie auf `main`; die Schutzregel ändert sich nicht | 29.10.2026 |
 
-### Außenstelle auf dem Grafik-PC (PR #…)
+### Außenstelle auf dem Grafik-PC (PR #255)
 
 | Thema | Entscheidung | Datum |
 |---|---|---|
@@ -48,8 +48,9 @@ Werkzeuge, Abläufe, Lizenz und Asset-Protokoll. Neue Einträge unten anhängen,
 | Regel 2 | Ist der Nutzer am PC (Eingabe in den letzten 10 Minuten), fragt ein Fenster mit Ton und 3 Minuten Frist; Ablehnen oder Zeitablauf = Code 1; ab 10 Minuten Leerlauf ohne Frage erlaubt | 29.10.2026 |
 | Regel 3 | Notschalter `reichsgilde-stopp` (auch als Desktop-Verknüpfung): Sperrdatei `%LOCALAPPDATA%\Reichsgilde\STOPP`, beendet Godot- und dotnet-Prozesse aus dem Außenstellen-Ordner; `reichsgilde-frei` hebt auf; lange Aufgaben prüfen zwischendurch mit `pruefen.ps1` (Code 3 = abbrechen) | 29.10.2026 |
 | Technik | `tools/aussenstelle/`: nur Benutzer-PATH, keine Administratorrechte, `.cmd` ruft PowerShell mit `-ExecutionPolicy Bypass` auf, UTF-8 mit BOM, Log in `%LOCALAPPDATA%\Reichsgilde\aussenstelle.log`; keine Schlüssel, Netzwerk nur lokale Ports | 29.10.2026 |
-| Ungetestet | Auf Linux nur geschrieben (kein `pwsh`); Fenster, Ton, Leerlaufzeit, Prozess-Beenden, Verknüpfung und PATH muss der Nutzer bzw. die Außenstelle auf dem PC prüfen | 29.10.2026 |
-### Klicktest unter Windows (PR #…)
+| Test | Auf Linux nur geschrieben (kein `pwsh`), auf dem PC von der Außenstelle getestet (29.10.); Fenster, Ton, Leerlaufzeit, Prozess-Beenden, Verknüpfung und PATH muss der Nutzer bzw. die Außenstelle auf dem PC prüfen | 29.10.2026 |
+
+### Klicktest unter Windows (PR #255)
 
 | Thema | Entscheidung | Datum |
 |---|---|---|
