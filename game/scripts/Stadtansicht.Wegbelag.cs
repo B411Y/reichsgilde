@@ -11,7 +11,7 @@ namespace Reichsgilde;
 /// (<c>BelagGeaendert</c>), werden nur die Kacheln der Wege neu gerechnet, deren Stücke sich geändert haben. In der Kartenwerkstatt rechnet jeder Weg
 /// seine Abschnitte (<c>EntwurfWeg.BelagAbschnitte</c>).</item>
 /// <item><b>Baustellen:</b> Der Boden ist aufgewühlt (Stufe 4 der Schicht), dazu Absperrung an beiden Enden und Haufen von Kies und Steinen.</item>
-/// <item><b>Anklicken</b> (<see cref="WegAngeklickt"/>): Ein Klick auf freien Boden neben keinem Gebäude fragt <c>Wegebau.WegstelleBei</c>; die Tafel
+/// <item><b>Anklicken</b> (<see cref="WegAngeklickt"/>, nur im Wege-Modus des Baumenüs, Stadtansicht.Wegemodus.cs): Ein Klick fragt <c>Wegebau.WegstelleBei</c>; die Tafel
 /// markiert den gewählten Abschnitt (<see cref="WegAuswahlMarkieren"/>).</item>
 /// </list>
 /// </summary>
@@ -73,6 +73,7 @@ public partial class Stadtansicht
     private void BelagVeraltetMelden()
     {
         _belagVeraltet = true;
+        _wegeVeraltet = true; // das Leuchten des Wege-Modus zieht nach (Stadtansicht.Wegemodus.cs)
     }
 
     /// <summary>Jedes Bild (aus <see cref="_Process"/>): ist der Belag veraltet, werden die Wege mit geänderten Stücken neu gezeichnet.</summary>
