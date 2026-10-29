@@ -228,10 +228,10 @@ public sealed class Duftwesen
         if (MoschusRatsherrVerboten(konto, ratsherr) is { } grund) return Befehlsergebnis.Abgelehnt(grund);
         var r = _w.Rat.RatsherrNamens(ratsherr)!;
         var preis = Beschaffen(konto, Daten.Moschus.Ware, konto.Geschenk);
-        _w.Rat.GunstHinzufuegen(r, konto, Daten.Moschus.Gunst);
+        _w.Rat.GunstAendern(r, konto, "moschus", "Moschusduft geschenkt", Daten.Moschus.Gunst);
         _geschenkt.Add((Nr(konto), $"R:{ratsherr}"));
         return Befehlsergebnis.Ok($"{ratsherr} nimmt den Moschusduft gern ({Herkunft(preis)}) – ein Duft ist kein Bestechungsgeld. " +
-                                  $"Gunst für {konto.Inhaber}: {Zahlenformat.Ganz(_w.Rat.Gunst(r, konto))}.");
+                                  $"Meinung über {konto.Inhaber}: {Zahlenformat.Ganz(_w.Rat.Meinung(r, konto))}.");
     }
 
     internal Befehlsergebnis ZwietrachtSaeen(Konto konto, string ratsherr, Konto ziel)
@@ -240,7 +240,7 @@ public sealed class Duftwesen
         var r = _w.Rat.RatsherrNamens(ratsherr)!;
         var ware = Daten.Zwietracht.Ware;
         var preis = Beschaffen(konto, ware, konto.Gaunerkosten);
-        _w.Rat.GunstMindern(r, ziel, Daten.Zwietracht.Gunst);
+        _w.Rat.GunstAendern(r, ziel, "zwietracht", "Blume der Zwietracht", -Daten.Zwietracht.Gunst);
         _w.Justiz.TatMelden(konto, Vergehen.Intrige, $"{ratsherr} gegen {ziel.Inhaber}", preis > 0 ? preis : _w.Markt[ware].Preis);
         _w.Melden($"{ratsherr} ist neuerdings schlecht auf {ziel.Inhaber} zu sprechen.");
         return Befehlsergebnis.Ok($"Die {ware} wirkt ({Herkunft(preis)}): {ratsherr} verliert {Zahlenformat.Ganz(Daten.Zwietracht.Gunst)} Gunst für {ziel.Inhaber}. " +

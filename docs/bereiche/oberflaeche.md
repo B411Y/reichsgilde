@@ -325,3 +325,11 @@ So wird eingetragen (damit sich die Chats nie an derselben Stelle treffen):
 | Welche Karten | Karten mit Kennzeichen `spielbar` in der Kartendatei (heute Probestadt; Köln, wenn fertig) und selbst gebaute aus `user://karten/`, soweit der Haken „In der Kartenwahl anbieten“ (Reiter „Karte“ der Werkstatt) gesetzt ist – eine neue Werkstattkarte hat ihn von Anfang an. Greybox, Köln und Messstadt nur im Entwickler-Modus („Testkarte“). | 28.10.2026 |
 | Entwickler-Option | Haken „Entwickler-Optionen“ unten rechts im Hauptmenü (`Entwickler.Aktiv`, gemerkt), zentrale Stelle für spätere Entwickler-Einstellungen (Debugging …); heute nur die Kartenliste. | 28.10.2026 |
 | Vorschaubilder | Einmal aus dem Spiel mit Vulkan gerendert (`tools/kartenbilder/kartenbilder.sh`, ganze Karte, Mittag, Sommer) nach `assets/oberflaeche/karten/`. Selbst gebaute Karten zeigen einen Platzhalter mit dem Namen (einfachste saubere Lösung). | 28.10.2026 |
+
+### Meinungen und Aktivitäten (PR #231)
+
+| Thema | Entscheidung | Datum |
+|---|---|---|
+| Meinung im Charakterfenster | Bei jeder wichtigen Person außer dem eigenen Oberhaupt eine Zeile „Meinung über Euch“: Balken (−100 rot, 0 Mitte, +100 grün), Zahl in Farbe (grün ab +5, rot ab −5, sonst grau), Tooltip mit allen Gründen, feste zuerst, die aus Taten unter „verblassen jedes Jahr“. Heiratskandidaten und das eigene Oberhaupt zeigen nichts. | 28.10.2026 |
+| Aktivitäten | Knopf „Aktivitäten“ (nur bei wichtigen Personen und `Meinungswesen.IstAktiv`) schaltet das Fenster auf die Liste um: Name, AP und Gulden, Gefahr mit Unglück, Wirkung und Mittel, Hinweis zu Zügen, Sperrgrund rot und ausgegraut. Geschenk mit wählbarem Betrag. Ergebnis als Meldung oben in der Liste und im Protokoll; Fenster baut sich neu auf. | 28.10.2026 |
+| Rats-Tafel | Spalte „Eure Gunst“ heißt „Meinung“ (Zahl, Farbe, Gründe-Tooltip aus `MeinungsHilfe`); Tooltip am Knopf „Beschenken“ nennt `GunstJeGulden(r, konto)`; Texte mit „Gunst“ sprechen jetzt von Meinung. Lexikon: neue Einträge „Meinung“ und „Aktivitäten“, „Gunst“ verweist darauf. | 28.10.2026 |

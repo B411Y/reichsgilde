@@ -333,7 +333,7 @@ public sealed class Glaubenswesen
         Verschieben(g, Bekehrungskraft(konto));
         _bekehrtIm[konto] = Jahr;
         var ratsherren = _w.Rat.Ratsherren.Where(r => GlaubeVon(r) == g).ToList();
-        foreach (var r in ratsherren) _w.Rat.GunstHinzufuegen(r, konto, Daten.Bekehrung.Gunst);
+        foreach (var r in ratsherren) _w.Rat.GunstAendern(r, konto, "bekehrung", "Bekehrungspredigt", Daten.Bekehrung.Gunst);
         var ketzer = Stadtglaube is { } s && s != g;
         if (ketzer)
             _w.Justiz.TatMelden(konto, Vergehen.Ketzerei, "die Stadt", Daten.Stadtglaube.Ketzerpredigt);
@@ -364,7 +364,7 @@ public sealed class Glaubenswesen
     public bool StimmtZu(Ratsherr r, Konfession? glaube, Konto antragsteller)
     {
         var eigener = GlaubeVon(r);
-        var gunst = _w.Rat.Gunst(r, antragsteller);
+        var gunst = _w.Rat.Meinung(r, antragsteller); // Meinung über das Oberhaupt (PR #231, früher Gunst)
         if (glaube == eigener) return true;
         if (glaube is null) return Stadtglaube != eigener || gunst >= Daten.Stadtglaube.SchwelleFrei;
         return gunst >= Daten.Stadtglaube.SchwelleFremd;

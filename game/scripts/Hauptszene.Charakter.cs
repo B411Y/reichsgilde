@@ -33,11 +33,18 @@ public partial class Hauptszene
         else _charakter.Oeffnen(person);
     }
 
-    /// <summary><c>--charakter-ehe=1</c>: das ledige Oberhaupt wirbt um den ersten Kandidaten (mit viel Geld, <c>--vermoegen=</c>) und heiratet – für Bildschirmfotos mit Familie.</summary>
+    /// <summary>
+    /// <c>--charakter-ehe=1</c>: das ledige Oberhaupt wirbt um den Kandidaten, der am ehesten einwilligt (mit viel Geld, <c>--vermoegen=</c>),
+    /// und heiratet – für Bildschirmfotos mit Familie. Seit PR #231 zählt die Meinung des Kandidaten mit; darum nicht mehr einfach der erste.
+    /// </summary>
     private void CharakterVerheiraten()
     {
         if (_simulation.Wirtschaft is not { } w) return;
-        if (_spieler is null || w.Familien.Von(_spieler)?.Ehepartner is not null || w.Familien.Kandidaten.FirstOrDefault(x => x.Stand <= _spieler.Stand && x.Person.Geschlecht != w.Familien.Von(_spieler)!.Oberhaupt.Geschlecht) is not { } k) return;
+        var buch = w.Familien;
+        if (_spieler is null || buch.Von(_spieler)?.Ehepartner is not null
+            || buch.Kandidaten.Where(x => buch.WerbenVerboten(_spieler, x) is null)
+                .OrderByDescending(x => buch.Bereitschaft(_spieler, x) + buch.ZuneigungRest(_spieler, x) - buch.Heiratsschwelle(x))
+                .ThenBy(x => x.Person.Nummer).FirstOrDefault() is not { } k) return;
         for (var i = 0; i < 12; i++)
         {
             var werbung = w.Ausfuehren(_spieler, new Core.Wirtschaft.Werben(k.Person.Nummer, 2000));
