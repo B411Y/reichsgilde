@@ -110,8 +110,8 @@ static class RatTests
             MehrheitKaufen(w, k, "Zöllner");
             JahrBeenden(sim); // gewählt
             JahrBeenden(sim); // ein Jahr im Amt
-            // Eine kleine Stadt zahlt kleinere Gehälter (Datenversion 57): ohne arbeitende Häuser 100 ÷ 250 Einwohner
-            Pruefe.Ungefaehr(0.4, w.Kasse.Gehaltsfaktor, 1e-9);
+            // Eine kleine Stadt zahlt kleinere Gehälter (Datenversion 57): ohne arbeitende Häuser 100 ÷ 310 Einwohner (Balancing 3: 35 je Haus)
+            Pruefe.Ungefaehr(100.0 / 310, w.Kasse.Gehaltsfaktor, 1e-9);
             Pruefe.Ungefaehr(150 * w.Kasse.Gehaltsfaktor, k.Vorjahr!.Amtseinkommen, 1e-9);
             Pruefe.Ungefaehr(0, k.Vorjahr.Gewinn, 1e-9);
         }),

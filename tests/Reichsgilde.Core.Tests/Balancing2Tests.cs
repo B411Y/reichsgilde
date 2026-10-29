@@ -131,7 +131,7 @@ static class Balancing2Tests
                 return k;
             }
             var reich = Haus("Haus Reich", 90_000, stand: 2);
-            var ki = Haus("Haus Spitzel", 31_000);
+            var ki = Haus("Haus Spitzel", 31_500); // Balancing 3: 31.500 statt 31.000 – mit kleineren Amtsgehältern kleiner Städte lag die KI sonst im dritten Jahr unter der Reserve
             var arm = Haus("Haus Arm", 20_000);
             // Hohe Reserve: Die KI investiert nicht und bleibt hinter Haus Reich – nur der Spitzel (300) passt noch.
             var rivale = w.KiAnmelden(ki, KiProfil.Standard with { Reserve = 30_000 });
@@ -179,8 +179,9 @@ static class Balancing2Tests
             var daten = Wirtschaftsdaten.AusJson(Json.Value);
             Pruefe.Gleich(6, daten.Politik!.Kasse!.GehaltVolleHaeuser);
             var s = daten.Stadt!;
-            Pruefe.Ungefaehr(0.7, s.Einwohner(3) / s.Einwohner(6), 1e-12);
-            Pruefe.Ungefaehr(0.8, s.Einwohner(4) / s.Einwohner(6), 1e-12);
+            // Balancing 3: 35 Einwohner je Haus statt 25 – 3 Häuser 205 ÷ 310, 4 Häuser 240 ÷ 310 (vorher 0,7 und 0,8)
+            Pruefe.Ungefaehr(205.0 / 310, s.Einwohner(3) / s.Einwohner(6), 1e-12);
+            Pruefe.Ungefaehr(240.0 / 310, s.Einwohner(4) / s.Einwohner(6), 1e-12);
             var sim = NeueSimulation(daten);
             var w = sim.Wirtschaft!;
             for (var i = 0; i < 7; i++)

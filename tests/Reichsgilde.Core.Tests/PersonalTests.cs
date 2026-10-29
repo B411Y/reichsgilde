@@ -86,14 +86,14 @@ static class PersonalTests
             Pruefe.Gleich(3, p.StufeVon("Feldwebel"));
             Pruefe.Gleich(0, p.StufeVon("Ork"));
             Pruefe.Wahr(!d.Arbeitskraefte.ContainsKey("Bergmann"), "Bergmann heißt jetzt Altknecht");
-            // Je Laufbahn drei Gruppen, die Werkstatt mit den Vorschlägen des Nutzers.
+            // Je Laufbahn drei Gruppen, die Werkstatt mit den Vorschlägen des Nutzers – Werte seit Balancing 3 so, dass keine Gruppe immer gewinnt.
             var werkstatt = d.Laufbahn(Betriebsart.Giesserei)!;
             Pruefe.Gleich("Ware Führung Betrieb", string.Join(" ", werkstatt.Eigenschaften.Select(g => g.Gruppe)));
-            Pruefe.Ungefaehr(0.85, werkstatt.Eigenschaft("Flink")!.Wirkung.ZeitFaktor, 1e-12);
-            Pruefe.Ungefaehr(1.1, werkstatt.Eigenschaft("GuterRuf")!.Wirkung.PreisFaktor, 1e-12);
-            Pruefe.Ungefaehr(0.9, werkstatt.Eigenschaft("Sparsam")!.Wirkung.RohstoffFaktor, 1e-12);
-            Pruefe.Gleich(60, werkstatt.Eigenschaft("Fruehaufsteher")!.Wirkung.ArbeitsminutenPlus);
-            Pruefe.Ungefaehr(0.95, werkstatt.Eigenschaft("Genuegsam")!.Wirkung.LohnFaktor, 1e-12);
+            Pruefe.Ungefaehr(0.9, werkstatt.Eigenschaft("Flink")!.Wirkung.ZeitFaktor, 1e-12);
+            Pruefe.Ungefaehr(1.06, werkstatt.Eigenschaft("GuterRuf")!.Wirkung.PreisFaktor, 1e-12);
+            Pruefe.Ungefaehr(0.92, werkstatt.Eigenschaft("Sparsam")!.Wirkung.RohstoffFaktor, 1e-12);
+            Pruefe.Gleich(90, werkstatt.Eigenschaft("Fruehaufsteher")!.Wirkung.ArbeitsminutenPlus);
+            Pruefe.Ungefaehr(0.85, werkstatt.Eigenschaft("Genuegsam")!.Wirkung.LohnFaktor, 1e-12);
             foreach (var l in p.Laufbahnen) Pruefe.Gleich(3, l.Eigenschaften.Count, l.Name);
         }),
 
@@ -237,7 +237,7 @@ static class PersonalTests
             Pruefe.Wahr(verschieden > 3, $"nur {verschieden} verschiedene Ziehungen");
         }),
 
-        ("Personal: Die Eigenschaft wirkt auf den ganzen Betrieb, solange ihr Vorarbeiter da ist – Flinke Hand −15 % Zeit, Guter Ruf +10 % Erlös, Genügsam −5 % Lohn, Frühaufsteher +1 Std.", () =>
+        ("Personal: Die Eigenschaft wirkt auf den ganzen Betrieb, solange ihr Vorarbeiter da ist – Flinke Hand −10 % Zeit, Guter Ruf +6 % Erlös, Genügsam −15 % Lohn, Frühaufsteher +1½ Std.", () =>
         {
             var sim = NeueSimulation();
             var (w, k, g) = Giesserei(sim);
@@ -245,21 +245,21 @@ static class PersonalTests
             var v = g.ArbeiterNr(1)!;
             void Mit(string eigenschaft) => g.EigenschaftSetzen(v, eigenschaft);
             Mit("Flink");
-            Pruefe.Ungefaehr(0.85, g.ZeitFaktor("Silberring"), 1e-12);
-            Pruefe.Ungefaehr(w.Daten.Waren["Silberring"].Zeit * 0.85, g.MinutenJeStueck("Silberring"), 1e-9);
+            Pruefe.Ungefaehr(0.9, g.ZeitFaktor("Silberring"), 1e-12);
+            Pruefe.Ungefaehr(w.Daten.Waren["Silberring"].Zeit * 0.9, g.MinutenJeStueck("Silberring"), 1e-9);
             Mit("GuterRuf");
             Pruefe.Ungefaehr(1, g.ZeitFaktor("Silberring"), 1e-12);
-            Pruefe.Ungefaehr(1.1, g.PreisFaktor, 1e-12);
+            Pruefe.Ungefaehr(1.06, g.PreisFaktor, 1e-12);
             Mit("Genuegsam");
-            Pruefe.Ungefaehr(0.95, g.LohnFaktor, 1e-12);
+            Pruefe.Ungefaehr(0.85, g.LohnFaktor, 1e-12);
             Mit("Fruehaufsteher");
-            Pruefe.Gleich(780, g.Arbeitsminuten);
+            Pruefe.Gleich(810, g.Arbeitsminuten);
             Pruefe.Ungefaehr(440, g.Lohnkosten, 1e-9); // Lohn nach der Art: keine Stunde mehr bezahlt
-            Pruefe.Wahr(g.IstArbeitszeit(20 * 60 + 30), "bis 21 Uhr");
+            Pruefe.Wahr(g.IstArbeitszeit(21 * 60 + 15), "bis 21:30 Uhr");
             Mit("Ordnungsliebend");
             Pruefe.Gleich(w.Daten.Logistik.LagerJeWare + 20, g.LagerKapazitaetJeWare);
             Mit("Antreiber");
-            Pruefe.Ungefaehr(1.1, g.TempoBonus, 1e-12);
+            Pruefe.Ungefaehr(1.15, g.TempoBonus, 1e-12);
             Pruefe.Ungefaehr(-10, g.LauneBonus, 1e-12);
             Pruefe.Ungefaehr(40, w.Werkstaetten.LauneZiel(g, v), 1e-9);
             // Geht er, geht die Eigenschaft mit.
@@ -268,7 +268,7 @@ static class PersonalTests
             Pruefe.Gleich(null, g.Vorarbeiter);
         }),
 
-        ("Personal: Sparsam – 10 % weniger Zutaten; was je Stück übrig bleibt, sammelt sich zu ganzen Stücken", () =>
+        ("Personal: Sparsam – 8 % weniger Zutaten; was je Stück übrig bleibt, sammelt sich zu ganzen Stücken", () =>
         {
             var sim = NeueSimulation();
             var (w, k, g) = Giesserei(sim);
@@ -282,7 +282,7 @@ static class PersonalTests
             var jeStueck = w.Daten.Waren["Silberring"].Zutaten["Silber"];
             var verbraucht = silberVorher - g.ImLager("Silber");
             Pruefe.Wahr(stueck > 5, $"{stueck} Silberringe");
-            Pruefe.Wahr(Math.Abs(verbraucht - stueck * jeStueck * 0.9) <= jeStueck, $"{verbraucht} Silber für {stueck} Ringe zu je {jeStueck}");
+            Pruefe.Wahr(Math.Abs(verbraucht - stueck * jeStueck * 0.92) <= jeStueck, $"{verbraucht} Silber für {stueck} Ringe zu je {jeStueck}");
         }),
 
         ("Personal: Lehrlingsstube (Stufe 3) – Anfänger sammeln 50 % mehr Erfahrung, mit dem Lehrmeister dreimal so viel; die KI rechnet sie nach dem schnelleren Gesellen", () =>
@@ -350,7 +350,7 @@ static class PersonalTests
             string Bild(Betrieb b) => string.Join(" | ", b.Arbeiter.Select(a =>
                 $"{a.Nummer} {a.Name} {a.Volk} {a.Geschlecht} {a.Aussehen} {a.AlterBeimEinstellen} {a.Erfahrung} {a.Eigenschaft} {string.Join(",", a.EigenschaftWahl ?? Array.Empty<string>())}"));
             Pruefe.Gleich(Bild(g), Bild(g2));
-            Pruefe.Ungefaehr(0.9, g2.RohstoffFaktor, 1e-12);
+            Pruefe.Ungefaehr(0.92, g2.RohstoffFaktor, 1e-12);
 
             // Ein Spielstand von vor PR #224: ohne Name und Erfahrung.
             var knoten = JsonNode.Parse(json)!;

@@ -410,7 +410,8 @@ static class SchiffshandelTests
             Pruefe.Ungefaehr(k.Vermoegen, k2!.Vermoegen, 1e-12);
             foreach (var stadt in w.Schiffahrt.Staedte)
                 Pruefe.Ungefaehr(stadt.Druck("Gold") + 1, w2.Schiffahrt.Stadt(stadt.Name)!.Druck("Gold") + 1, 1e-12);
-            Pruefe.Wahr(s.Fahrten >= 5, $"Fahrten: {s.Fahrten}");
+            // Seit Balancing 3 (35 statt 25 Einwohner je Haus) hat eine Stadt ohne arbeitendes Haus weniger Händlerware: 4 statt 5 Fahrten.
+            Pruefe.Wahr(s.Fahrten >= 4, $"Fahrten: {s.Fahrten}");
         }),
 
         ("Alte Spielstände ohne Schiffshandel laden weiter: keine Schiffe, ferne Märkte ausgeglichen", () =>

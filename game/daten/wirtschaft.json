@@ -1263,7 +1263,7 @@
         { "kennung": "Regale", "name": "Fassregale", "preis": 200, "spalte": "Lager & Handel", "abStufe": 1, "wirkung": { "lagerPlus": 20 } },
         { "kennung": "Loeschfass", "name": "Löschfass", "preis": 100, "spalte": "Schutz & Personal", "abStufe": 1, "wirkung": { "brandFaktor": 0.5 } },
         { "kennung": "Eisentuer", "name": "Eisentür", "preis": 150, "spalte": "Schutz & Personal", "abStufe": 1, "wirkung": { "einbruchFaktor": 0.5 } },
-        { "kennung": "Handschuhe", "name": "Lederhandschuhe", "preis": 40, "spalte": "Schutz & Personal", "abStufe": 1, "wirkung": { "unfallFaktor": 0.5 } },
+        { "kennung": "Handschuhe", "name": "Lederhandschuhe", "preis": 80, "spalte": "Schutz & Personal", "abStufe": 1, "wirkung": { "unfallFaktor": 0.5 } },
         { "kennung": "Gewoelbekeller", "name": "Gewölbekeller", "preis": 1500, "spalte": "Werkstatt", "abStufe": 3, "voraussetzung": "Werkzeug2", "wirkung": { "zeitFaktor": 0.85, "waren": ["Festbier", "Schädelbrand"] } },
         { "kennung": "Ladentheke", "name": "Ladentheke", "preis": 800, "spalte": "Lager & Handel", "abStufe": 3, "voraussetzung": "Regale", "wirkung": { "ladenAnteil": 0.25, "ladenAufschlag": 0.05 } },
         { "kennung": "Lehrlingsstube", "name": "Lehrlingsstube", "preis": 600, "spalte": "Schutz & Personal", "abStufe": 3, "wirkung": { "erfahrungFaktor": 1.5 } }
@@ -1275,7 +1275,7 @@
         { "kennung": "Regale", "name": "Bücherregale", "preis": 200, "spalte": "Lager & Handel", "abStufe": 1, "wirkung": { "lagerPlus": 20 } },
         { "kennung": "Loeschfass", "name": "Löschfass", "preis": 100, "spalte": "Schutz & Personal", "abStufe": 1, "wirkung": { "brandFaktor": 0.5 } },
         { "kennung": "Eisentuer", "name": "Eisentür", "preis": 150, "spalte": "Schutz & Personal", "abStufe": 1, "wirkung": { "einbruchFaktor": 0.5 } },
-        { "kennung": "Handschuhe", "name": "Lederhandschuhe", "preis": 40, "spalte": "Schutz & Personal", "abStufe": 1, "wirkung": { "unfallFaktor": 0.5 } },
+        { "kennung": "Handschuhe", "name": "Lederhandschuhe", "preis": 80, "spalte": "Schutz & Personal", "abStufe": 1, "wirkung": { "unfallFaktor": 0.5 } },
         { "kennung": "Skriptorium", "name": "Skriptorium", "preis": 1500, "spalte": "Werkstatt", "abStufe": 3, "voraussetzung": "Werkzeug2", "wirkung": { "zeitFaktor": 0.85, "waren": ["Stundenbuch", "Reliquiar"] } },
         { "kennung": "Ladentheke", "name": "Ladentheke", "preis": 800, "spalte": "Lager & Handel", "abStufe": 3, "voraussetzung": "Regale", "wirkung": { "ladenAnteil": 0.25, "ladenAufschlag": 0.05 } },
         { "kennung": "Lehrlingsstube", "name": "Lehrlingsstube", "preis": 600, "spalte": "Schutz & Personal", "abStufe": 3, "wirkung": { "erfahrungFaktor": 1.5 } }
@@ -1301,7 +1301,7 @@
         { "kennung": "Lehrlingsstube", "name": "Lehrlingsstube", "preis": 600, "spalte": "Schutz & Personal", "abStufe": 3, "wirkung": { "erfahrungFaktor": 1.5 } }
       ],
       "Geldleiher": [
-        { "kennung": "Werkzeug1", "name": "Rechenbretter", "preis": 150, "spalte": "Werkstatt", "abStufe": 1, "wirkung": { "rahmenFaktor": 1.1 } },
+        { "kennung": "Werkzeug1", "name": "Rechenbretter", "preis": 300, "spalte": "Werkstatt", "abStufe": 1, "wirkung": { "rahmenFaktor": 1.1 } },
         { "kennung": "Werkzeug2", "name": "Hauptbücher", "preis": 350, "spalte": "Werkstatt", "abStufe": 2, "voraussetzung": "Werkzeug1", "wirkung": { "rahmenFaktor": 1.1 } },
         { "kennung": "Goldwaage", "name": "Goldwaage", "preis": 350, "spalte": "Lager & Handel", "abStufe": 1, "wirkung": { "wechselFaktor": 1.1 } },
         { "kennung": "Pfandkammer", "name": "Pfandkammer", "preis": 150, "spalte": "Lager & Handel", "abStufe": 1, "wirkung": { "ausfallFaktor": 0.5 } },
