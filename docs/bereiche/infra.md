@@ -38,3 +38,13 @@ Werkzeuge, Abläufe, Lizenz und Asset-Protokoll. Neue Einträge unten anhängen,
 | Bot-Token | `prs-aktuell.yml` pusht mit dem Repository-Geheimnis `BOT_TOKEN` (klassisches Token des Bot-Kontos, `repo` + `workflow`); dann starten die PR-Prüfungen von selbst und der eigene `build.yml`-Lauf entfällt | 29.10.2026 |
 | Rückfall | Ohne `BOT_TOKEN`: `GITHUB_TOKEN` und selbst gestarteter `build.yml`-Lauf wie bisher | 29.10.2026 |
 | Schutzregel | Der Push geht nur auf PR-Branches, nie auf `main`; die Schutzregel ändert sich nicht | 29.10.2026 |
+
+### Klicktest unter Windows (PR #…)
+
+| Thema | Entscheidung | Datum |
+|---|---|---|
+| Aufbau | Das Spiel führt die Aktionen selbst aus (Autoload `KlicktestTreiber`, `--klickskript`/`--klickausgabe`/`--klickwarten`) statt echter Maus- und Tastenbefehle; `tools/klicktest/lauf.ps1` mit demselben Aufbau wie `lauf.sh` | 29.10.2026 |
+| Treiber | `-Treiber vulkan` (Standard) oder `d3d12`; beide liefen am 29.10. auf der RTX 4080 mit gleichem Bild (erster D3D12-Test) | 29.10.2026 |
+| Absicherung | Vor dem Start `reichsgilde-frage`, im Lauf alle 10 s `reichsgilde-pruefen` (Code 3 beendet Godot), Abbruch nach Wartezeit + Aktionen + 120 s; `user://` umgelenkt nach `%LOCALAPPDATA%\Reichsgilde\klicktest-daten` | 29.10.2026 |
+| Grenze | `Viewport.GetMousePosition` liest die echte Maus: Hover, Tooltips und die Lage der Auswahltafel folgen ihr; Klicks und Tasten wirken über das Ereignis | 29.10.2026 |
+| Argumente | `lauf.ps1` hat keinen `param`-Block, weil Windows PowerShell 5.1 bei `-File` ein `--` und `--karte=…` sonst als Parameter abweist | 29.10.2026 |
