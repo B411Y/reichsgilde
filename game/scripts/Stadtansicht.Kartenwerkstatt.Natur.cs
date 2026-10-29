@@ -149,6 +149,7 @@ public partial class Stadtansicht
         var abstand = Mathf.Max(1.5f, toleranz);
         foreach (var pflanze in _entwurf!.Pflanzen)
         {
+            if (!WerkstattTeilSichtbar(pflanze)) continue; // Ebene „Baum- und Naturzonen“ aus
             var d = p.DistanceTo(V2(pflanze.Punkt));
             if (d <= abstand) (beste, abstand) = (pflanze, d);
         }

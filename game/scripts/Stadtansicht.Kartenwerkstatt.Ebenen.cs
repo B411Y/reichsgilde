@@ -31,6 +31,20 @@ public partial class Stadtansicht
 
     public void WerkstattEbeneSetzen(Werkstattebene ebene, bool sichtbar) => _wsEbenen[ebene] = sichtbar;
 
+    /// <summary>
+    /// Ist dieser Teil des Entwurfs gerade zu sehen? Regel: Was nicht sichtbar ist, lässt sich nicht anklicken, nicht wählen und nicht ziehen.
+    /// Bauzonen: Ebene „Bauzonen“; Streuflächen: „Requisiten-Zonen“; Wald-, Feld- und Seeflächen und einzeln gesetzte Pflanzen: „Baum- und Naturzonen“;
+    /// Wege, Mauern (mit Toren), Flüsse und Fährstellen als Bearbeitungslinien: „Wege und Grenzen“. Gebäude gehören zu keiner Ebene, sie sind immer zu sehen.
+    /// </summary>
+    public bool WerkstattTeilSichtbar(EntwurfTeil teil) => teil switch
+    {
+        EntwurfBauzone => _wsEbenen[Werkstattebene.Bauzonen],
+        EntwurfNaturflaeche { Art: "streu" } => _wsEbenen[Werkstattebene.Requisiten],
+        EntwurfFlaeche or EntwurfPflanze => _wsEbenen[Werkstattebene.Natur],
+        EntwurfWeg or EntwurfMauer or EntwurfFluss or EntwurfFaehre => _wsEbenen[Werkstattebene.Linien],
+        _ => true,
+    };
+
     /// <summary>Setzt die Sichtbarkeit aller Knoten nach den Ebenen (nur wo sie sich ändert).</summary>
     private void WerkstattEbenenAnwenden()
     {
@@ -57,6 +71,9 @@ public partial class Stadtansicht
         foreach (var knoten in _wsMauern.Values) Setzen(knoten.GetNodeOrNull<Node3D>("Markierung"), linien);
         Setzen(_wsGewaesserMarken, linien);
         Setzen(GetNodeOrNull<Node3D>("Kartenrand"), linien);
+
+        // Was ausgeblendet wird, ist nicht mehr gewählt (sonst blieben seine Griffe zum Ziehen stehen)
+        if (WerkstattGewaehlt is { } gewaehlt && !WerkstattTeilSichtbar(gewaehlt)) WerkstattWaehlen((EntwurfTeil?)null);
 
         // Namen ohne Kennung (an gewählten Flächen, Wegen, Mauern) sind sonst immer sichtbar; die mit Kennung steuert BeschriftungenZeigen
         var namen = An(Werkstattebene.Beschriftungen);
