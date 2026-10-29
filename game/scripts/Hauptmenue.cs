@@ -358,7 +358,7 @@ public partial class Hauptmenue : Node
         Zeile(raster, "Glaube", _glaube);
 
         _beruf = new OptionButton { FocusMode = Control.FocusModeEnum.None };
-        _beruf.AddItem("Schmied (Gießerei: Beschlag, Rapier, Silberring)");
+        _beruf.AddItem("Schmied (Gießerei: Beschlag, Dolch, Silberring)");
         _beruf.AddItem("Tischler (Tischlerei: Holzzapfen, Schemel, Truhe)");
         _beruf.AddItem("Steinmetz (Maurerei: Schleifziegel, Grabstein, Mühlstein)");
         _beruf.AddItem("Alchimist (Tinkturei: Farbe, Kräuterschnaps, Heilsalbe)");

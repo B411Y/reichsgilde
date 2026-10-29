@@ -119,6 +119,8 @@ public static class Speicherung
             // Format 2 (Spieltag 05–22 Uhr): erst die Uhr und alle Zeitpunkte auf den Spieltag 04–23 Uhr umrechnen
             var knoten = System.Text.Json.Nodes.JsonNode.Parse(json);
             if (knoten is System.Text.Json.Nodes.JsonObject o) Uhrumstellung.Umrechnen(o);
+            // Umbenannte Waren (Rapier → Dolch, PR #232): überall im Spielstand, auch in den mitgespeicherten Daten
+            if (json.Contains("Rapier", StringComparison.Ordinal)) Warenumbenennung.Umbenennen(knoten);
             stand = knoten.Deserialize<Speicherstand>(Optionen);
         }
         catch (JsonException ex)

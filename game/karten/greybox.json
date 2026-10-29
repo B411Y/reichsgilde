@@ -508,7 +508,7 @@
     "wappen": {"teilung": "Ohne", "farbe1": "Schwarz", "farbe2": "Gold", "figur": "Amboss"},
     "farbe": "#b33329",
     "wohnhaus": "Wohnhaus2",
-    "betriebe": [{"platz": "Giesserei_Eisenbart", "art": "Giesserei", "produkt": "Rapier"}, {"platz": "Grube_Eisenbart", "art": "Mine"}]
+    "betriebe": [{"platz": "Giesserei_Eisenbart", "art": "Giesserei", "produkt": "Dolch"}, {"platz": "Grube_Eisenbart", "art": "Mine"}]
    },
    {
     "name": "Haus Eichwald",
