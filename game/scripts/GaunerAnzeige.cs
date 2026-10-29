@@ -440,11 +440,11 @@ public partial class GaunerAnzeige : PanelContainer
                 var preis = duft.Preis(_spieler, ware);
                 Text(zeile, $"{ware} ({(preis > 0 ? Zahlenformat.Ganz(preis) : "aus dem Lager")}) bei", 14);
                 var wahl = new OptionButton { FocusMode = FocusModeEnum.None };
-                foreach (var r in w.Rat.Ratsherren) wahl.AddItem($"{r.Name} (Gunst {Zahlenformat.Ganz(w.Rat.Gunst(r, haus))})");
+                foreach (var r in w.Rat.Ratsherren) wahl.AddItem($"{r.Name} (Meinung {Zahlenformat.Ganz(w.Rat.Meinung(r, haus))})");
                 zeile.AddChild(wahl);
                 Knopf(zeile, "säen", () => Befehlen(new ZwietrachtSaeen(w.Rat.Ratsherren[Math.Max(0, wahl.Selected)].Name, haus.Inhaber)),
                     gesperrt: imKerker || duft.ZwietrachtVerboten(_spieler, w.Rat.Ratsherren[0].Name, haus) is not null,
-                    hinweis: $"Der Ratsherr verliert {Zahlenformat.Ganz(duft.Daten.Zwietracht.Gunst)} Gunst für {haus.Inhaber} (Wahl, Anträge, Gericht). Vergehen: Intrige.",
+                    hinweis: $"Der Ratsherr verliert {Zahlenformat.Ganz(duft.Daten.Zwietracht.Gunst)} Meinung über {haus.Inhaber} (Wahl, Anträge, Gericht). Vergehen: Intrige.",
                     ap: new ZwietrachtSaeen("", ""));
             }
 
