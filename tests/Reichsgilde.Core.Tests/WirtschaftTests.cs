@@ -101,7 +101,7 @@ static class WirtschaftTests
             var d = Daten.Value;
             Pruefe.Gleich(63, d.Waren.Count); // 9 Schmied, 8 Tischler, 9 Steinmetz, 9 Alchimist (mit Kräuterschnaps), 9 Wirt, 9 Prediger, 9 Parfumeur, Gold (nur Handel)
             Pruefe.Gleich(14, d.Arbeitskraefte.Count); // ab PR #224 drei Stufen je Laufbahn (Werkstatt, Umland, Diebe, Wache), dazu Ork und Leibeigener
-            Pruefe.Gleich(115.0, d.Waren["Silberring"].Grundpreis); // 90 × 1,28 seit PR #177
+            Pruefe.Gleich(112.0, d.Waren["Silberring"].Grundpreis); // 90 × 1,28 seit PR #177, −2,5 % seit Balancing 3
             Pruefe.Gleich(42.0, d.ZutatenZumGrundpreis("Silberring"));
             Pruefe.Gleich(true, d.Arbeitskraefte["Ork"].IstErlaubt(Fronstatut.Bestienfron, Arbeitsort.Umland));
             Pruefe.Gleich(false, d.Arbeitskraefte["Ork"].IstErlaubt(Fronstatut.Bestienfron, Arbeitsort.Werkstatt));
@@ -203,42 +203,45 @@ static class WirtschaftTests
         //   • Balancing 1 (PR #177): Fertigwaren des Schmieds × 1,28 (Silberring 90 → 115), damit ein Betrieb in etwa
         //     10 Jahren Bürger wird (Z2) – Gießerei 848 → 1.551, Lehrling 289 → 543, Konkurrenz 649 → 1.317; Z1 ist dafür
         //     auf 1.300–1.700 angehoben (Entscheidung des Nutzers vom 22.10.2026). Die Grube bleibt bei 947 / 1.365.
-        ("Gießerei allein, 2 Gesellen, Silberring: Gewinn ≈ 1.551 Gulden/Jahr", () =>
+        //   • Balancing 3: Schmied-Waren −2,5 % (Silberring 115 → 112), der Schmied lag 16 % über dem Mittel – Gießerei 1.551 → 1.455,
+        //     mit zwei Lehrlingen 1.094 → 1.029, Konkurrenz 1.317 → 1.207 (alle Ziele Z1 weiter erfüllt).
+        ("Gießerei allein, 2 Gesellen, Silberring: Gewinn ≈ 1.455 Gulden/Jahr", () =>
         {
             var sim = NeueSimulation();
             var w = sim.Wirtschaft!;
             var konto = w.KontoEroeffnen("Spieler");
             var g = w.BetriebEroeffnen("Gießerei", Betriebsart.Giesserei, konto);
             w.Einstellen(g, "Geselle", 2);
-            Pruefe.Ungefaehr(1551, MittlererGewinn(sim, konto).Gewinn, 0.05);
+            Pruefe.Ungefaehr(1455, MittlererGewinn(sim, konto).Gewinn, 0.05);
         }),
 
         // Personal wie in Gilde 1 (PR #224): Die Partie beginnt mit zwei Lehrlingen – das ist das neue Z1 (Entscheidung des Nutzers vom
         // 28.10.2026: das Ziel fürs erste Jahr senken statt mehr Startgeld).
-        ("Z1 (PR #224): Gießerei allein, 2 Lehrlinge wie zum Partiestart, Silberring: Gewinn ≈ 1.094 Gulden/Jahr (Ziel 900–1.300)", () =>
+        ("Z1 (PR #224): Gießerei allein, 2 Lehrlinge wie zum Partiestart, Silberring: Gewinn ≈ 1.029 Gulden/Jahr (Ziel 900–1.300)", () =>
         {
             var sim = NeueSimulation();
             var w = sim.Wirtschaft!;
             var konto = w.KontoEroeffnen("Spieler");
             w.Einstellen(w.BetriebEroeffnen("Gießerei", Betriebsart.Giesserei, konto), "Lehrling", 2);
-            Pruefe.Ungefaehr(1094, MittlererGewinn(sim, konto).Gewinn, 0.05);
+            Pruefe.Ungefaehr(1029, MittlererGewinn(sim, konto).Gewinn, 0.05);
         }),
 
         // Seit PR #232 kauft der Karren Zutaten nur für wenige Arbeitsstunden (vorher bis zur Lagergrenze von 40). Der Gewinn zählt Zutaten
         // beim Kauf: Ein Lehrling braucht nur ≈ 10 Stück Eisen und Silber im Jahr, bisher füllte er in den ersten Jahren 40 + 40 auf Vorrat
         // (≈ 1.450 Gulden, die im Lager lagen) – 543 → 584. Mit zwei Gesellen bleibt es bei ≈ 1.551 (Vorrat verbraucht sich schnell).
-        ("Gießerei, 1 Lehrling, Silberring: Gewinn ≈ 584 Gulden/Jahr", () =>
+        // Balancing 3 (Silberring 112): 584 → 553.
+        ("Gießerei, 1 Lehrling, Silberring: Gewinn ≈ 553 Gulden/Jahr", () =>
         {
             var sim = NeueSimulation();
             var w = sim.Wirtschaft!;
             var konto = w.KontoEroeffnen("Spieler");
             w.Einstellen(w.BetriebEroeffnen("Gießerei", Betriebsart.Giesserei, konto), "Lehrling", 1);
-            Pruefe.Ungefaehr(584, MittlererGewinn(sim, konto).Gewinn, 0.05);
+            Pruefe.Ungefaehr(553, MittlererGewinn(sim, konto).Gewinn, 0.05);
         }),
 
         // Seit dem Warenkorb der Einwohner (PR #91) fragen sie günstige Schmiedewaren wie den Silberring rund 7 % mehr nach: 611 → 649.
-        // Seit Balancing 1 (PR #177, Silberring 90 → 115): 649 → 1.317.
-        ("Konkurrenz: Zwei Gießereien teilen sich den Silberring-Markt, je ≈ 1.317 Gulden", () =>
+        // Seit Balancing 1 (PR #177, Silberring 90 → 115): 649 → 1.317; seit Balancing 3 (Silberring 112): 1.207.
+        ("Konkurrenz: Zwei Gießereien teilen sich den Silberring-Markt, je ≈ 1.207 Gulden", () =>
         {
             var sim = NeueSimulation();
             var w = sim.Wirtschaft!;
@@ -246,7 +249,7 @@ static class WirtschaftTests
             var rivale = w.KontoEroeffnen("Rivale");
             w.Einstellen(w.BetriebEroeffnen("Gießerei Spieler", Betriebsart.Giesserei, spieler), "Geselle", 2);
             w.Einstellen(w.BetriebEroeffnen("Gießerei Rivale", Betriebsart.Giesserei, rivale), "Geselle", 2);
-            Pruefe.Ungefaehr(1317, MittlererGewinn(sim, spieler).Gewinn, 0.05);
+            Pruefe.Ungefaehr(1207, MittlererGewinn(sim, spieler).Gewinn, 0.05);
             Pruefe.Ungefaehr(spieler.Vermoegen, rivale.Vermoegen, 0.08); // ±8 %: Seit PR #152 trifft ein Unfall die beiden zufällig verschieden oft
         }),
 

@@ -75,7 +75,7 @@ static class WirtTests
             TagVorbei(sim); // bis 23 Uhr – die Gäste der Stunde bis 22 Uhr zählen noch zum Jahr
             var buch = g.Vorjahr(s)!;
             Pruefe.Wahr(buch.Bewirtet is >= 119 and <= 120, $"bewirtet {buch.Bewirtet}");
-            Pruefe.Ungefaehr(buch.Bewirtet * 91 * 1.2, buch.Einnahmen, 1e-9); // Dünnbier 91 (Datenversion 57), Aufschlag 1,2 seit PR #177
+            Pruefe.Ungefaehr(buch.Bewirtet * 94 * 1.2, buch.Einnahmen, 1e-9); // Dünnbier 91 (Datenversion 57), 94 seit Balancing 3, Aufschlag 1,2 seit PR #177
             Pruefe.Wahr(k.Vorjahr!.Umsatz > vorher, "kein Umsatz");
             Pruefe.Gleich(0, buch.Abgewiesen);
         }),

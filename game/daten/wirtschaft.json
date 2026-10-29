@@ -1,5 +1,5 @@
 {
-  "version": 62,
+  "version": 63,
   "gesundheit": {
     "medicusKosten": 120,
     "medicusKostenPest": 300,
@@ -100,7 +100,7 @@
     },
     "Silberring": {
       "typ": "Fertigprodukt",
-      "grundpreis": 115,
+      "grundpreis": 112,
       "zeit": 50,
       "zutaten": {
         "Eisen": 1,
@@ -151,7 +151,7 @@
     },
     "Werkzeug": {
       "typ": "Fertigprodukt",
-      "grundpreis": 140,
+      "grundpreis": 137,
       "zeit": 50,
       "zutaten": { "Eisen": 2, "Holzzapfen": 1 },
       "nachfrage": 100,
@@ -159,7 +159,7 @@
     },
     "Silberkette": {
       "typ": "Fertigprodukt",
-      "grundpreis": 218,
+      "grundpreis": 213,
       "zeit": 60,
       "zutaten": { "Silber": 2, "Eisen": 1, "Beschlag": 1 },
       "nachfrage": 100,
@@ -167,7 +167,7 @@
     },
     "Goldkette": {
       "typ": "Fertigprodukt",
-      "grundpreis": 360,
+      "grundpreis": 351,
       "zeit": 80,
       "zutaten": { "Gold": 2, "Silber": 1, "Politur": 1 },
       "nachfrage": 60,
@@ -175,7 +175,7 @@
     },
     "Prunkschwert": {
       "typ": "Fertigprodukt",
-      "grundpreis": 381,
+      "grundpreis": 372,
       "zeit": 100,
       "zutaten": { "Eisen": 2, "Gold": 1, "Beschlag": 1, "Schleifziegel": 1 },
       "nachfrage": 50,
@@ -375,7 +375,7 @@
     },
     "Körnermahlzeit": {
       "typ": "Fertigprodukt",
-      "grundpreis": 54,
+      "grundpreis": 56,
       "zeit": 30,
       "zutaten": { "Gerste": 1, "Roggen": 1 },
       "nachfrage": 150,
@@ -383,7 +383,7 @@
     },
     "Dünnbier": {
       "typ": "Fertigprodukt",
-      "grundpreis": 91,
+      "grundpreis": 94,
       "zeit": 35,
       "zutaten": { "Gerste": 1, "Weingeist": 1 },
       "nachfrage": 150,
@@ -1128,7 +1128,7 @@
   "wache": {
     "beruf": "Gardist",
     "ansehen": 3,
-    "sold": { "jeMinute": 0.875, "jeStufe": [ 1, 1.1, 1.3 ] },
+    "sold": { "jeMinute": 0.9, "jeStufe": [ 1, 1.1, 1.3 ] },
     "patrouille": { "schutzJeWachmann": 0.025, "hoechstens": 0.4, "zeugenAnteil": 0.5 },
     "wachturm": { "schutz": 0.3, "hoechstens": 0.6 },
     "razzia": { "jeStufe": [ 1, 2, 3 ], "chance": 0.5, "chanceJeStufe": 0.1 },
@@ -1140,7 +1140,7 @@
     "stadtzins": 0.12,
     "rahmen": { "jeSchreiber": 2000, "jeStufe": [ 1, 1.25, 1.5 ] },
     "ausfall": { "chance": 0.2, "anteil": 0.1 },
-    "wechsel": { "gebuehr": 0.009, "bedarfSchreiber": 6, "jeStufe": [ 1, 1.2, 1.4 ] },
+    "wechsel": { "gebuehr": 0.0095, "bedarfSchreiber": 6, "jeStufe": [ 1, 1.2, 1.4 ] },
     "kredit": { "zinsStandard": 0.12, "zinsMindestens": 0.04, "zinsHoechstens": 0.5, "hoechstJeStufe": [ 3000, 6000, 12000 ], "kreditwuerdigAnteil": 0.5, "laufzeitHoechstens": 5, "pfandAnteil": 0.75 },
     "wucher": { "ab": 0.2, "ansehen": 5 },
     "einbruch": { "anteil": 0.05, "hoechstens": 500 },
@@ -1336,7 +1336,7 @@
       { "name": "Diebe", "berufe": ["Dieb"], "stufen": ["Taschendieb", "Dieb", "Meisterdieb"],
         "eigenschaften": [
           { "gruppe": "Ware", "stuecke": [
-            { "kennung": "Langfinger", "name": "Langfinger", "wirkung": { "tempoFaktor": 1.15 } },
+            { "kennung": "Langfinger", "name": "Langfinger", "wirkung": { "tempoFaktor": 1.1 } },
             { "kennung": "Hehlerfreund", "name": "Hehlerfreund", "wirkung": { "preisFaktor": 1.1 } },
             { "kennung": "Einbrecher", "name": "Einbrecher", "wirkung": { "einbruchBonus": 0.1 } }
           ] },
@@ -1347,7 +1347,7 @@
           ] },
           { "gruppe": "Betrieb", "stuecke": [
             { "kennung": "Wachsam", "name": "Wachsam", "wirkung": { "einbruchFaktor": 0.5 } },
-            { "kennung": "Genuegsam", "name": "Genügsam", "wirkung": { "lohnFaktor": 0.95 } },
+            { "kennung": "Genuegsam", "name": "Genügsam", "wirkung": { "lohnFaktor": 0.85 } },
             { "kennung": "Versteckkundig", "name": "Versteckkundig", "wirkung": { "lagerPlus": 20 } }
           ] }
         ] },
@@ -1360,11 +1360,11 @@
           ] },
           { "gruppe": "Führung", "stuecke": [
             { "kennung": "Lehrmeister", "name": "Lehrmeister", "wirkung": { "erfahrungFaktor": 2 } },
-            { "kennung": "Antreiber", "name": "Antreiber", "wirkung": { "tempoFaktor": 1.1, "laune": -10} }
+            { "kennung": "Antreiber", "name": "Antreiber", "wirkung": { "tempoFaktor": 1.15, "laune": -10} }
           ] },
           { "gruppe": "Betrieb", "stuecke": [
             { "kennung": "Wachsam", "name": "Wachsam", "wirkung": { "einbruchFaktor": 0.5 } },
-            { "kennung": "Genuegsam", "name": "Genügsam", "wirkung": { "lohnFaktor": 0.95 } }
+            { "kennung": "Genuegsam", "name": "Genügsam", "wirkung": { "lohnFaktor": 0.85 } }
           ] }
         ] },
       { "name": "Schreibstube", "berufe": ["Geldleiher"], "stufen": ["Lehrling", "Geselle", "Vorarbeiter"],
@@ -1376,50 +1376,50 @@
           ] },
           { "gruppe": "Führung", "stuecke": [
             { "kennung": "Lehrmeister", "name": "Lehrmeister", "wirkung": { "erfahrungFaktor": 2 } },
-            { "kennung": "Antreiber", "name": "Antreiber", "wirkung": { "tempoFaktor": 1.1, "laune": -10} },
+            { "kennung": "Antreiber", "name": "Antreiber", "wirkung": { "tempoFaktor": 1.15, "laune": -10} },
             { "kennung": "Kassenwart", "name": "Kassenwart", "wirkung": { "kreditFaktor": 1.15 } }
           ] },
           { "gruppe": "Betrieb", "stuecke": [
             { "kennung": "Wachsam", "name": "Wachsam", "wirkung": { "einbruchFaktor": 0.5 } },
-            { "kennung": "Genuegsam", "name": "Genügsam", "wirkung": { "lohnFaktor": 0.95 } }
+            { "kennung": "Genuegsam", "name": "Genügsam", "wirkung": { "lohnFaktor": 0.85 } }
           ] }
         ] },
       { "name": "Umland", "ort": "Umland", "stufen": ["Knecht", "Altknecht", "Großknecht"],
         "eigenschaften": [
           { "gruppe": "Ware", "stuecke": [
-            { "kennung": "Kraeftig", "name": "Kräftig", "wirkung": { "zeitFaktor": 0.85 } },
-            { "kennung": "GutesAuge", "name": "Gutes Auge", "wirkung": { "preisFaktor": 1.1 } },
+            { "kennung": "Kraeftig", "name": "Kräftig", "wirkung": { "zeitFaktor": 0.9 } },
+            { "kennung": "GutesAuge", "name": "Gutes Auge", "wirkung": { "preisFaktor": 1.06 } },
             { "kennung": "Ordnungsliebend", "name": "Ordnungsliebend", "wirkung": { "lagerPlus": 20 } }
           ] },
           { "gruppe": "Führung", "stuecke": [
             { "kennung": "Lehrmeister", "name": "Lehrmeister", "wirkung": { "erfahrungFaktor": 2 } },
-            { "kennung": "Antreiber", "name": "Antreiber", "wirkung": { "tempoFaktor": 1.1, "laune": -10} },
+            { "kennung": "Antreiber", "name": "Antreiber", "wirkung": { "tempoFaktor": 1.15, "laune": -10} },
             { "kennung": "Aufseher", "name": "Aufseher", "wirkung": { "risikoFaktor": 0.5 } }
           ] },
           { "gruppe": "Betrieb", "stuecke": [
             { "kennung": "Wachsam", "name": "Wachsam", "wirkung": { "einbruchFaktor": 0.5 } },
-            { "kennung": "Fruehaufsteher", "name": "Frühaufsteher", "wirkung": { "arbeitsminutenPlus": 60 } },
-            { "kennung": "Genuegsam", "name": "Genügsam", "wirkung": { "lohnFaktor": 0.95 } }
+            { "kennung": "Fruehaufsteher", "name": "Frühaufsteher", "wirkung": { "arbeitsminutenPlus": 90 } },
+            { "kennung": "Genuegsam", "name": "Genügsam", "wirkung": { "lohnFaktor": 0.85 } }
           ] }
         ] },
       { "name": "Werkstatt", "stufen": ["Lehrling", "Geselle", "Vorarbeiter"],
         "eigenschaften": [
           { "gruppe": "Ware", "stuecke": [
-            { "kennung": "Flink", "name": "Flinke Hand", "wirkung": { "zeitFaktor": 0.85 } },
-            { "kennung": "GuterRuf", "name": "Guter Ruf", "wirkung": { "preisFaktor": 1.1 } },
-            { "kennung": "Sparsam", "name": "Sparsam", "wirkung": { "rohstoffFaktor": 0.9 } }
+            { "kennung": "Flink", "name": "Flinke Hand", "wirkung": { "zeitFaktor": 0.9 } },
+            { "kennung": "GuterRuf", "name": "Guter Ruf", "wirkung": { "preisFaktor": 1.06 } },
+            { "kennung": "Sparsam", "name": "Sparsam", "wirkung": { "rohstoffFaktor": 0.92 } }
           ] },
           { "gruppe": "Führung", "stuecke": [
-            { "kennung": "Gemuet", "name": "Gutes Gemüt", "wirkung": { "laune": 5 } },
+            { "kennung": "Gemuet", "name": "Gutes Gemüt", "wirkung": { "laune": 15 } },
             { "kennung": "Lehrmeister", "name": "Lehrmeister", "wirkung": { "erfahrungFaktor": 2 } },
-            { "kennung": "Umsichtig", "name": "Umsichtig", "wirkung": { "unfallFaktor": 0.5 } },
-            { "kennung": "Antreiber", "name": "Antreiber", "wirkung": { "tempoFaktor": 1.1, "laune": -10} }
+            { "kennung": "Umsichtig", "name": "Umsichtig", "wirkung": { "unfallFaktor": 0.25 } },
+            { "kennung": "Antreiber", "name": "Antreiber", "wirkung": { "tempoFaktor": 1.15, "laune": -10} }
           ] },
           { "gruppe": "Betrieb", "stuecke": [
             { "kennung": "Ordnungsliebend", "name": "Ordnungsliebend", "wirkung": { "lagerPlus": 20 } },
             { "kennung": "Wachsam", "name": "Wachsam", "wirkung": { "einbruchFaktor": 0.5 } },
-            { "kennung": "Fruehaufsteher", "name": "Frühaufsteher", "wirkung": { "arbeitsminutenPlus": 60 } },
-            { "kennung": "Genuegsam", "name": "Genügsam", "wirkung": { "lohnFaktor": 0.95 } }
+            { "kennung": "Fruehaufsteher", "name": "Frühaufsteher", "wirkung": { "arbeitsminutenPlus": 90 } },
+            { "kennung": "Genuegsam", "name": "Genügsam", "wirkung": { "lohnFaktor": 0.85 } }
           ] }
         ] }
     ]

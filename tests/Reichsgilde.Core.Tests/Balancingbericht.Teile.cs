@@ -39,6 +39,7 @@ static partial class Balancingbericht
                 ["n"] = g.Count(),
                 ["jahre"] = JeJahr(e.Stich, j => Kennzahl(g.Select(h => h.Im(j).Rein))),
                 ["standAmEnde"] = Staende(g, daten), ["bankrott"] = g.Count(h => h.BankrottJahr is not null), ["erloschen"] = g.Count(h => h.ErloschenJahr is not null),
+                ["jeJahrImMittel"] = Zerlegung(g),
             }).ToArray());
             var jePlatz = new JsonArray(alle.Where(h => h.Wohnhausplatz is not null).GroupBy(h => h.Wohnhausplatz!).OrderBy(g => g.Key, StringComparer.Ordinal)
                 .Select(g => (JsonNode)new JsonObject
@@ -71,7 +72,7 @@ static partial class Balancingbericht
         }
         return new JsonObject
         {
-            ["erklaerung"] = "Greybox und Probestadt mit allen KI-Häusern der Karte. Der Spieler (Schmied, Mensch) wird von der KI mit genau einem Betrieb geführt. " +
+            ["erklaerung"] = "Greybox und Probestadt (mit --fairness=… auch Köln) mit allen KI-Häusern der Karte. Der Spieler (Schmied, Mensch) wird von der KI mit genau einem Betrieb geführt. " +
                              "Startfairness: Die Wohnhausplätze von Spieler und KI-Häusern rotieren (Rotation r: der i-te wohnt, wo vorher der (i + r)-te wohnte), " +
                              "jede Rotation mit allen Startwerten – so steht jedes Haus gleich oft auf jedem Platz. Die Werkstattplätze bleiben: Ihre Lage wirkt im " +
                              "Kern nicht (Fahrzeit nach Stadt/Umland, nicht nach Weglänge; Bürger kaufen am Markt). „gegenHausmittelProzent“: Vermögen auf diesem Platz " +
@@ -247,6 +248,7 @@ static partial class Balancingbericht
                 ["haus"] = g.Key, ["volk"] = g.First().Volk.ToString(), ["beruf"] = g.First().Startberuf,
                 ["jahre"] = JeJahr(e.Stich, j => Kennzahl(g.Select(h => h.Im(j).Rein))),
                 ["standAmEnde"] = Staende(g, daten), ["bankrott"] = g.Count(h => h.BankrottJahr is not null), ["erloschen"] = g.Count(h => h.ErloschenJahr is not null),
+                ["jeJahrImMittel"] = Zerlegung(g),
             }).ToArray()),
             ["verhaeltnisKiZuBezug"] = JeJahr(e.Stich, j => Kennzahl(laeufe.SelectMany(r => r.Ki.Select(h => Verhaeltnis(r, h, j))), 2)),
             ["davongezogen"] = new JsonObject { ["schwelle"] = 2, ["anzahl"] = davon, ["von"] = verhaeltnisse.Count },
@@ -360,6 +362,34 @@ static partial class Balancingbericht
             }
         }
 
+        // Eigenschaften der Vorarbeiter (PR #224): Mehrgewinn je Eigenschaft in einem neuen Betrieb jeder Stufe, voll mit Gesellen, ein Platz mit
+        // einem Lehrling (für den Lehrmeister), zu Startpreisen – wie die KI wählt (Personalwesen.MehrgewinnJeJahr). Je Gruppe die beste.
+        var eigenschaften = new JsonArray();
+        var gruppenSieg = new Dictionary<string, int>();
+        foreach (var beruf in daten.Berufe.Keys)
+            foreach (var (art, stufe) in Stufen(daten, beruf).Select((a, i) => (a, i + 1)))
+            {
+                var d = daten.Art(art);
+                if (daten.Laufbahn(art) is not { } laufbahn) continue;
+                var b = w.BetriebEroeffnen($"Probe {++probe}", art, mess);
+                w.Einstellen(b, laufbahn.Stufen[1], Math.Max(1, d.Plaetze - 1));
+                if (d.Plaetze > 1) w.Einstellen(b, laufbahn.Stufen[0], 1);
+                var zeilen = w.Personal.Eigenschaften(b).Select(x => (x.Gruppe, x.Name, Wert: w.Personal.MehrgewinnJeJahr(b, x.Kennung))).ToList();
+                if (zeilen.Count == 0) continue;
+                var besteJeGruppe = zeilen.GroupBy(x => x.Gruppe).Select(g => g.OrderByDescending(x => x.Wert).First()).ToList();
+                var sieger = besteJeGruppe.OrderByDescending(x => x.Wert).First();
+                if (sieger.Wert > 0) gruppenSieg[sieger.Gruppe] = gruppenSieg.GetValueOrDefault(sieger.Gruppe) + 1;
+                eigenschaften.Add(new JsonObject
+                {
+                    ["beruf"] = beruf, ["stufe"] = stufe, ["betrieb"] = d.Name,
+                    ["mehrgewinnJeJahr"] = new JsonObject(zeilen.Select(x => new KeyValuePair<string, JsonNode?>($"{x.Gruppe}: {x.Name}", R(x.Wert)))),
+                    ["besteJeGruppe"] = new JsonObject(besteJeGruppe.Select(x => new KeyValuePair<string, JsonNode?>(x.Gruppe, $"{x.Name} {Text(x.Wert)}"))),
+                });
+                Console.WriteLine($"6 Eigenschaften {beruf,-10} Stufe {stufe}: {string.Join(" | ", besteJeGruppe.Select(x => $"{x.Gruppe} {x.Name} {Text(x.Wert)}"))}");
+            }
+        befunde.Add($"Eigenschaften der Vorarbeiter (statisch, Startpreise): die beste Gruppe je Betrieb – {string.Join(", ", gruppenSieg.OrderByDescending(x => x.Value).Select(x => $"{x.Key} {x.Value}×"))} " +
+                    $"(von {eigenschaften.Count} Betrieben).");
+
         // Simuliert: alle Ertragsstücke der Stufe 1 am Start gekauft, gegen dieselbe Partie ohne Einrichtung (gleicher Startwert)
         var simuliert = new JsonArray();
         var y = e.Einrichtungsjahre;
@@ -401,6 +431,7 @@ static partial class Balancingbericht
             ["gemessenSabotagenJeBetriebUndJahr"] = R(sabotagen, 4),
             ["gemessenRaubJeBetriebUndJahr"] = R(raub, 1),
             ["statisch"] = statisch,
+            ["eigenschaftenStatisch"] = eigenschaften,
             ["simuliert"] = simuliert,
         };
     }

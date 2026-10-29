@@ -286,7 +286,7 @@ public sealed class EinrichtungWirkung
     /// <summary>Faktor auf die Leistung aller im Betrieb (Antreiber 1,1). Geprüft zwischen 1 und 2.</summary>
     public double TempoFaktor { get; init; } = 1;
 
-    /// <summary>So viele Minuten länger wird im Betrieb gearbeitet (Frühaufsteher 60) – ohne mehr Lohn; nur Betriebe mit Ware, höchstens bis zum Tagesende.</summary>
+    /// <summary>So viele Minuten länger wird im Betrieb gearbeitet (Frühaufsteher 90) – ohne mehr Lohn; nur Betriebe mit Ware, höchstens bis zum Tagesende.</summary>
     public int ArbeitsminutenPlus { get; init; }
 
     /// <summary>Faktor auf das Risiko von Ausbruch und Aufstand der Unfreien (Aufseher 0,5).</summary>

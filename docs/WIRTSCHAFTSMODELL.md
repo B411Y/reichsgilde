@@ -1552,3 +1552,104 @@ Gemessen auf main `9022b49` + Commit `9f65f38`, `messen bericht 20 30` (1.320 Pa
 
 - Außerhalb ±15 % noch Dieb (−18,7 %) und Gardist (−18,0 %); der Geldleiher ist wieder darin. Bankrott unverändert (ein Wirt, sonst keiner).
 - KI-Stärke: KI ÷ Bezug Median 1,10 (vorher 1,17), Bezug 72.502 (vorher 73.004), KI-Häuser 83.800 (vorher 84.533); unter „Schwer“ 1,64 (vorher 1,75). Messstadt mit 8 Häusern 71.376 je Haus (vorher 71.131).
+
+## Balancing 3 (PR folgt)
+
+Auftrag des Nutzers (29.10.2026): prüfen, wie fair das Spiel gegen die anderen Häuser ist – Chancengleichheit der Berufe, Völker, Startplätze und KI-Häuser – und ausgleichen. **Nur Zahlenwerte geändert, keine Regel**; Regelvorschläge stehen in `docs/bereiche/kern.md` unter „Offen“, die Werte unter „Balancing 3 (PR folgt)“. **Datenversion 63** (main hat seit #231/#232 die 62; die Messung lief mit denselben Werten unter der Nummer 61 – die Nummer wirkt nicht auf die Simulation).
+
+**Gemessener Stand:** main `9022b49` + #231 (`phase5/meinungen-kern` `b757446`) + #232 (`phase5/dolch-kern` `4c55d7d`, mit dem Zutateneinkauf nach Kasse) = „vorher“; dazu die Werte dieses Branches (`3ff0d04`) = „nachher“. Beide `messen bericht 20 30` (je 1.320 Partien, keine mit Fehler) → `docs/messungen/balancing-2026-10-29-balancing3-vorher.json` und `…-balancing3.json`. Die erste Analyse lief noch auf main `cc72d5c` + `e672515` + `2e8949d` (vor dem Zutateneinkauf); ihre Befunde zu Völkern und Gaunerei gelten weiter, die Berufe haben sich durch den Zutateneinkauf verschoben (Schmied +16 → +22 %, Gardist −13 → −21 %).
+
+**Neu im Messbericht** (Testcode, kein Wert): `--fairness=greybox,probestadt,koeln` wählt die Karten der Startfairness (Köln mit 8 Häusern; eine Partie dort braucht etwa zehnmal so lange wie in der Greybox), `--voelkerberufe=alle` misst jeden Beruf mit jedem Volk (mit Mittel je Volk über alle Berufe), Abschnitt Einrichtung zeigt den Mehrgewinn jeder Vorarbeiter-Eigenschaft je Betrieb und Stufe (`eigenschaftenStatisch`), dazu Zerlegung je Jahr für jedes Haus und Volk, Stufe und Personal (Köpfe, Leistung je Minute) je Jahr.
+
+**Messfehler:** Zwei Läufe mit fast gleichen Werten unterscheiden sich je Beruf um ±5 Punkte (eine Wertänderung irgendwo verschiebt die Würfe aller Häuser). Unterschiede unter etwa zwei Fehlern des Mittels (≈ ±1.300 … ±2.400 Gulden je Beruf, 4–7 %) sind Rauschen; nachgesteuert wurde nur, was in mehreren Läufen gleich lag.
+
+### Befunde vorher
+
+- **Berufe** (ein Betrieb, 20 Jahre): 8/10 im Band, Schmied +21,7 %, Gardist −21,3 %; am Rand Parfumeur +13,9 %, Dieb −13,8 %, Geldleiher −10,8 %.
+- **Vorarbeiter-Eigenschaften sind eine Pflichtwahl:** Von drei gezogenen Eigenschaften (je eine aus Ware, Führung, Betrieb) bringt die aus der Gruppe Ware in 74 % aller Ziehungen am meisten, oft das Zwei- bis Dreifache (Schmied Stufe 2: Guter Ruf 793, Flinke Hand 646 Gulden im Jahr gegen Antreiber 220 und Frühaufsteher 305). In 24 von 30 Betrieben gewinnt immer die Ware.
+- **Völker:** Im Mittel über alle zehn Berufe fair (15 Startwerte je Beruf und Volk, 600 Partien): Zwerg −0,9 %, Elb −4,6 %, Halbling −4,1 % gegen Menschen. Einzelne Paare weit draußen (40 Startwerte): **Dieb Halbling +58,7 %** (der beste Weg im ganzen Spiel), Gardist Elb −29,7 % und Halbling −28,1 %, Geldleiher Zwerg +27,7 %, Schmied Zwerg +18 … +24 %. Gegenproben ohne Völkerbonus bzw. zusätzlich ohne Talentunterschiede: Der Bonus von ±5 % wirkt bei Handwerken etwa ±10–15 % aufs Vermögen, bei den Betrieben ohne Ware (Dieb, Gardist, Geldleiher, schmale Marge) drei- bis zehnfach. Gegenproben mit „Nacht und Nebel“ der Halblinge 2 statt 3 bzw. halber Wirkung auf Zeugen (0,04 statt 0,08 je Stern) ändern den Halbling-Dieb kaum (+54 / +53 %). Die Elben verlieren rund 8 % durch Familie und Volk, die Talente geben ihnen etwa 4 % zurück.
+- **Startplätze:** Der Wohnhausplatz wirkt im Kern nicht (alle Rotationen 0,0 %, Greybox, Probestadt und Köln). Zwischen den KI-Häusern entscheidet Beruf und Volk: Greybox Zwerg-Schmied 98.662, Halbling-Steinmetz 87.731, Elb-Tischler 67.159.
+- **KI gegen Spieler:** KI ÷ Bezugsspieler (Median) 1,05, „Schwer“ 1,65 – fair.
+- **1/3/5/8 Häuser:** 8 gegen 3 Häuser −10 % (Ziel höchstens −15 %). Auf dem Stand vor dem Zutateneinkauf waren es −16 %; mit 35 statt 25 Einwohnern je Haus −12 %. Nach dem Zutateneinkauf brachte die Erhöhung nichts mehr (−10 %) und senkte nur die Amtsgehälter kleiner Städte – darum zurückgenommen.
+- **Gauner und Wache:** Ein Wachhaus in der Stadt senkt Raub und Schaden der KI-Häuser um 9 %, bremst aber den Dieb nicht (Gewinn mit Wachhaus +6 %). Die aktive Gaunerei lohnt nicht: Der wagemutig geführte Dieb (Einbruch, Schutzgeld) hat 23 % weniger als der Mittelwert, sein Gericht kostet 1.149 Gulden im Jahr (ausgewogen 431). Gegenprobe mit Buße 2× statt 3× des Schadens: wagemutig +14 %, ausgewogen +2 %.
+- **Einrichtung:** Kein Stück ist eine Pflichtwahl gegen ein anderes (es gibt keine ausschließende Wahl), die Ertragsstücke der Werkstätten machen sich in 1–3 Jahren bezahlt. Über 5 Jahre: Löschfass (die KI gibt fast keine Sabotage in Auftrag, 0,06 im Jahr), Eisentür 5–6 Jahre, Lederhandschuhe von Wirt und Prediger 8–10 Jahre, Rechenbretter 8 Jahre.
+- **Meinungen und Aktivitäten:** Die KI nutzt dieselben Aktivitäten (Bezugsspieler und KI gleich), Geschenke an Nicht-Ratsherren sind gedeckelt (+15). Eine Ausnutzung zeigt sich in den Zahlen nicht: Geschenke 12–62 Gulden im Jahr je Haus, Gericht und Spitzel wie vor #231.
+
+### Änderungen
+
+| Was | vorher | nachher | Grund |
+|---|---|---|---|
+| Vorarbeiter Werkstatt: Flinke Hand, Guter Ruf, Sparsam | Zeit ×0,85, Erlös ×1,1, Zutaten ×0,9 | ×0,9, ×1,06, ×0,92 | Ware nicht mehr zwei- bis dreimal so gut wie die anderen Gruppen |
+| Gutes Gemüt, Umsichtig, Antreiber (alle Laufbahnen) | Laune +5, Unfälle ×0,5, Tempo ×1,1 | +15, ×0,25, ×1,15 | Führung als echte Wahl |
+| Frühaufsteher (Werkstatt, Umland), Genügsam (alle) | +60 Minuten, Lohn ×0,95 | +90, ×0,85 | Betrieb als echte Wahl |
+| Umland: Kräftig, Gutes Auge; Diebe: Langfinger | ×0,85, ×1,1; ×1,15 | ×0,9, ×1,06; ×1,1 | wie die Werkstatt |
+| Schmied-Waren | Silberring 115, Werkzeug 140, Silberkette 218, Goldkette 360, Prunkschwert 381 | 112, 137, 213, 351, 372 (−2,5 %) | Schmied +21,7 % |
+| Wirt Stufe 1 | Körnermahlzeit 54, Dünnbier 91 | 56, 94 | Wirt Bürger Ø 11,2 Jahre (19/30 im Ziel) |
+| Wechselgebühr | 0,9 % | 0,95 % | Geldleiher −10,8 % |
+| Sold | 0,875 je Minute | 0,9 | Gardist −21,3 % |
+
+Ausprobiert und verworfen: 35 Einwohner je Haus (siehe oben); Lederhandschuhe 40 und Rechenbretter 150 (alle Berufe zahlen für dasselbe Stück dasselbe – so festgelegt, die Datentests prüfen es). Die Völkerboni bleiben (Entscheidung des Nutzers zu PR #177), der Vorschlag steht in kern.md.
+
+### Ergebnis
+
+Reinvermögen nach 20 Jahren (ein Betrieb, Greybox, Mensch, 30 Startwerte), in Klammern der Abstand zum Mittel der zehn Berufe; Jahre bis Bürger (Reinvermögen 10.000) und im Ziel 8–12:
+
+| Beruf | vorher | nachher | Bürger vorher | Bürger nachher |
+|---|---|---|---|---|
+| Schmied | 42.182 (+21,7 %) | 35.564 ± 1.264 (+6,6 %) | 9,2 (30/30) | 9,9 (29/30) |
+| Tischler | 36.915 (+4,9 %) | 33.850 ± 1.292 (+0,8 %) | 9,7 (29/30) | 9,8 (29/30) |
+| Steinmetz | 36.120 (+2,4 %) | 32.788 ± 1.362 (−2,8 %) | 10,6 (27/30) | 11,6 (23/30) |
+| Alchimist | 36.007 (+2,0 %) | 33.824 ± 1.274 (+0,7 %) | 10,2 (23/30) | 10,4 (24/30) |
+| Wirt | 36.972 (+5,1 %) | 34.812 ± 2.383 (+4,0 %) | 11,2 (19/30) | 9,9 (27/30) |
+| Prediger | 34.043 (−4,2 %) | 30.680 ± 1.628 (−9,9 %) | 9,2 (27/30) | 9,7 (26/30) |
+| Dieb | 31.035 (−13,8 %) | 30.675 ± 1.485 (−9,9 %) | 8,1 (13/30) | 8,2 (13/30) |
+| Parfumeur | 39.730 (+13,9 %) | 34.466 ± 1.797 (+2,9 %) | 9,7 (25/30) | 9,3 (25/30) |
+| Geldleiher | 31.971 (−10,8 %) | 33.723 ± 884 (+0,4 %) | 8,2 (22/30) | 8,2 (22/30) |
+| Gardist | 28.680 (−21,3 %) | 35.787 ± 1.158 (+7,3 %) | 9,6 (27/30) | 8,9 (30/30) |
+| Dieb (wagemutig geführt, nicht im Mittel) | 28.132 (−23,1 %) | 28.783 ± 2.160 (−16,3 %) | 9,6 (13/30) | 11,2 (12/30) |
+
+| | vorher | nachher |
+|---|---|---|
+| Berufe im Band ±15 % | 8/10 (−21,3 … +21,7 %) | **10/10 (−9,9 … +7,3 %)** |
+| Mittel des Zuwachses, Gewinn im Jahr 20 | 31.365, 5.272 | 29.617 (−5,6 %), 4.633 – die Vorarbeiter bringen im Mittel weniger (siehe unten) |
+| Vorarbeiter: beste Gruppe in allen Ziehungen (Ware / Führung / Betrieb) | 74 / 19 / 7 % | **57 / 24 / 19 %** |
+| Erwarteter Mehrgewinn der gewählten Eigenschaft, Stufe 2 (Schmied; Gardist) | 622; 216 | 412; 349 |
+| KI ÷ Bezugsspieler (Median); „Schwer“ | 1,05; 1,65 | 1,10; 1,82 |
+| davongezogen (> 2×) / abgeschlagen (< ½) | 3 / 0 von 90 | 9 / 2 von 90 |
+| 8 gegen 3 Häuser (Vermögen je KI-Haus) | −10 % | −11 % |
+| Völker, Schmied / Parfumeur (gegen Menschen) | −16 … +8 % / −20 … +1 % | −13 … +22 % / −9 … +13 % |
+| KI-Häuser Greybox: Zwerg-Schmied / Elb-Tischler / Halbling-Steinmetz | 98.662 / 67.159 / 87.731 | 90.193 / 69.702 / 85.127 |
+| Stadtkasse, Mittel aller Jahre (Greybox / Probestadt) | −413 / −2.806 | −830 / −3.501 |
+| Karren in Not verkauft | 5 | 5 |
+
+**Köln** (`--teile=3 --fairness=koeln`, 10 Startwerte, je 80 Partien → `…-balancing3-koeln-vorher.json`, `…-balancing3-koeln.json`). Die acht Rotationen der Wohnhausplätze geben Wurf für Wurf dasselbe (der Platz wirkt im Kern nicht, jeder Platz 0,0 %) – unabhängig sind nur die 10 Startwerte, die Fehler in der Tabelle sind darum etwa √8-mal zu klein angegeben.
+
+| Haus | Volk, Beruf | vorher | nachher |
+|---|---|---|---|
+| Spieler (ein Betrieb) | Mensch, Schmied | 36.358 | 32.290 |
+| Overstolz | Zwerg, Schmied | 91.959 | 89.487 |
+| Gryn | Mensch, Alchimist | 84.975 | 83.585 |
+| Lyskirchen | Halbling, Steinmetz | 86.582 | 80.412 |
+| Mommersloch | Halbling, Wirt | 77.726 | 80.754 |
+| Scherfgin | Mensch, Schmied | 72.215 | 62.848 |
+| Kleingedank | Mensch, Tischler | 60.348 | 62.485 |
+| Hardevust | Elb, Tischler | 70.086 | 56.899 |
+| Spanne der KI-Häuser um ihr Mittel | | −22 … +18 % (Mittel 77.699) | −23 … +21 % (Mittel 73.781) |
+| Spieler: Bürger Ø Jahr (im Ziel 8–12 von 10 Startwerten) | | 9,8 (10/10) | 10,0 (7/10) |
+
+In Köln gibt es drei Schmiede (Spieler, Overstolz, Scherfgin): Die billigeren Schmiedewaren treffen den Spieler dort stärker (−11 %) als in der Greybox. Zwischen den KI-Häusern entscheiden Volk und Beruf der Startbelegung – Zwerg-Schmied vorn, Tischler hinten (Elb-Tischler −23 %); mit den Völkerboni bleibt das so (Vorschlag in kern.md), die Belegung selbst ist Sache des Leveldesigns.
+
+**Völker, alle Berufe** (`--teile=2 --voelkerberufe=alle`, 15 Startwerte, je 600 Partien → `…-balancing3-voelker-vorher.json`, `…-balancing3-voelker.json`; Fehler je Paar etwa ±5–8 %, ein Paar weicht erst ab etwa ±15 % sicher ab):
+
+| Volk | Mittel über die zehn Berufe gegen Menschen, vorher | nachher | bester Beruf nachher |
+|---|---|---|---|
+| Zwerg | +3,3 % | +6,6 % | 42.016 |
+| Elb | −1,6 % | −5,3 % | 38.531 |
+| Halbling | +3,2 % | −0,1 % | 44.544 (Dieb) |
+| Mensch | 0 | 0 | 36.809 |
+
+Paare, die in beiden Läufen mehr als 12 % vom Menschen abweichen (vorher → nachher): Dieb Halbling +68 → +57 %, Steinmetz Zwerg +36 → +47 %, Geldleiher Zwerg +34 → +25 %, Prediger Zwerg (ohne Bonus) +30 → +24 %, Gardist Elb −29 → −28 %, Gardist Halbling −16 → −21 %, Gardist Zwerg −13 → −16 %, Tischler Elb −18 → −26 %, Tischler Halbling −21 → −14 %, Dieb Zwerg −18 → −15 %. Die Werte dieses Branches ändern daran nichts Wesentliches: Im Mittel sind die Völker fair, einzelne Paare nicht – das hängt an den Völkerboni und der Handwerkskunst der Zwerge (3 Sterne = +9 % Leistung in jedem Handwerk). Vorschlag in kern.md: Probe mit ±2 % statt ±5 % für Dieb, Gardist und Geldleiher (30 Startwerte, nicht übernommen, `…-balancing3-voelker-vorschlag.json` gegen `…-voelker-dgg.json`) – Dieb Zwerg −11,5 → +0,2 %, Halbling +41,6 → +32,8 %; Gardist Elb −28,0 → −16,3 %, Halbling −23,2 → −11,5 %; Geldleiher Zwerg +27,6 → +21,1 %, Halbling (ohne Bonus) +18,6 → +17,5 %.
+
+**Greybox über 30 Jahre** (`messen 30 20 greybox`, Spieler passiv): Vermögen der KI-Häuser Eisenbart (Zwerg, Schmied) 224.429 → 215.331, Eichwald (Elb, Tischler) 204.350 → 190.747, Kieselbach (Halbling, Steinmetz) 230.616 → 208.569; Spanne um ihr Mittel −6 … +6 % → −6 … +5 %. Stand am Ende Reichsgraf 57 → 55 von 60, kein Haus bankrott, Bürger des Spielers weiter ab Jahr 7,5. Auf lange Sicht bleibt die KI unter sich ausgeglichen; die Wirtschaft ist etwa 7 % kleiner (Vorarbeiter).
+
+**Befund nachher:** Alle zehn Berufe liegen im Band, die Spanne ist von 43 auf 17 Punkte geschrumpft, alle erreichen den Bürger im Mittel nach 8,2–11,6 Jahren (Z2). Die Vorarbeiter-Wahl ist keine Pflichtwahl mehr: Ware gewinnt noch in 57 % der Ziehungen, weil Ordnungsliebend und Wachsam keinen Gulden-Wert vor dem ersten Diebstahl haben; die besten drei liegen meist nahe beieinander (Schmied Stufe 2: Guter Ruf 476, Frühaufsteher 458, Antreiber 403). Der Preis dafür: Die gewählte Eigenschaft bringt einer Werkstatt etwa ein Drittel weniger, das Mittel aller Berufe sinkt um 5,6 %; der Gardist und der Geldleiher, deren beste Eigenschaft der Antreiber ist, gewinnen. Der Bezugsspieler (Mensch-Schmied) verliert mit dem Schmied mehr als die KI-Häuser (KI ÷ Bezug 1,05 → 1,10); der Abstand liegt im Fehler (± 0,05). Die Stadtkasse hat etwas weniger Steuer (Mittel −400 bzw. −700, etwa ein bis zwei Fehler) – sie lag schon vorher unter dem Ziel „0 bis leicht im Plus“ aus Balancing 2 (offen in kern.md).

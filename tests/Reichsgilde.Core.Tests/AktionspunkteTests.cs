@@ -131,15 +131,16 @@ static class AktionspunkteTests
             var w = sim.Wirtschaft!;
             var rivale = w.Konten.First(k => k != spieler);
             rivale.Aktionspunkte.Setzen(12);
-            var f = w.Familien.Von(rivale)!;
-            var vorher = f.Oberhaupt.TalentSumme;
+            // Gezählt wird die Übung selbst: Die Talentsumme kann trotz Übung sinken (Krankheit, Alter), und die Liste der Entscheidungen
+            // behält nur die letzten 20 (Balancing 3: mit anderen Preisen übt die KI im ersten Jahr und verliert später einen halben Stern).
+            var geuebt = 0;
+            w.Meldung += m => { if (m.StartsWith(rivale.Inhaber + ": übt ")) geuebt++; };
             for (var jahr = 0; jahr < 15; jahr++)
             {
                 JahrBeenden(sim);
                 Pruefe.Wahr(rivale.Aktionspunkte.Vorrat is >= 0 and <= 12, $"Vorrat {rivale.Aktionspunkte.Vorrat}");
             }
-            Pruefe.Wahr(w.Familien.Von(rivale)!.Oberhaupt.TalentSumme > vorher || w.Familien.Von(rivale)!.Oberhaupt != f.Oberhaupt,
-                "die KI hat nie geübt");
+            Pruefe.Wahr(geuebt > 0, "die KI hat nie geübt");
         }),
 
         ("Speichern: AP-Vorrat und Übungsjahre überstehen Speichern und Laden", () =>

@@ -13,6 +13,7 @@ using Reichsgilde.Core.Wirtschaft;
 //
 //  Aufruf:  dotnet run -c Release --project tests/Reichsgilde.Core.Tests -- messen bericht [Jahre] [Startwerte] [--karte=greybox]
 //                                                                          [--teile=1,2,…] [--parallel=n] [--datei=pfad.json]
+//                                                                          [--fairness=greybox,probestadt,koeln] [--voelkerberufe=alle|Schmied,…]
 //  Schreibt docs/messungen/balancing-<datum>.json und eine kurze Übersicht auf die Konsole. Ändert keinen Wert.
 //
 //  Abschnitte: 1 Berufe, 2 Völker, 3 Startfairness, 4 Häuser (1/3/5/8, Messstadt), 5 KI-Stärke, 6 Einrichtung, 7 Gauner/Wache/Bank,
@@ -103,7 +104,7 @@ static partial class Balancingbericht
     // ═════════════════════════════════════════════════════════════════════════
 
     /// <summary>Was ein Aufruf misst (aus den Argumenten nach „messen bericht“).</summary>
-    sealed record Einstellung(int Jahre, int Startwerte, string Karte, HashSet<int> Teile, int Parallel, string? Datei)
+    sealed record Einstellung(int Jahre, int Startwerte, string Karte, HashSet<int> Teile, int Parallel, string? Datei, string[] Fairness, string[] VoelkerBerufe)
     {
         public IEnumerable<int> Werte => Enumerable.Range(1, Startwerte).Select(s => s * 101);
         public IReadOnlyList<int> Stich => Stichjahre(Jahre);
@@ -114,13 +115,16 @@ static partial class Balancingbericht
     {
         var worte = args.Where(a => !a.StartsWith("--")).ToList();
         string? Schalter(string name) => args.FirstOrDefault(a => a.StartsWith($"--{name}="))?.Split('=', 2)[1];
+        var daten0 = Wirtschaftsdaten.AusJson(File.ReadAllText(Datenpfad.Wirtschaft()));
         var e = new Einstellung(
             worte.Count > 0 ? int.Parse(worte[0]) : 20,
             worte.Count > 1 ? int.Parse(worte[1]) : 20,
             Schalter("karte") ?? "greybox",
             (Schalter("teile") ?? "1,2,3,4,5,6,7,8,9").Split(',').Select(int.Parse).ToHashSet(),
             int.Parse(Schalter("parallel") ?? Environment.ProcessorCount.ToString()),
-            Schalter("datei"));
+            Schalter("datei"),
+            (Schalter("fairness") ?? "greybox,probestadt").Split(','),
+            Schalter("voelkerberufe") is { } vb ? (vb == "alle" ? daten0.Berufe.Keys.ToArray() : vb.Split(',')) : Voelkerberufe);
         var uhr = Stopwatch.StartNew();
         var q = new Messquellen(Schalter("ohne")); // --ohne=schiffshandel: alle Partien ohne diesen Abschnitt (Diagnose)
         var daten = Wirtschaftsdaten.AusJson(q.Wirtschaft);
@@ -158,6 +162,7 @@ static partial class Balancingbericht
             {
                 ["jahre"] = e.Jahre, ["startwerte"] = e.Startwerte, ["zufallsstartwerte"] = $"101, 202 … {e.Startwerte * 101} (s × 101)",
                 ["stichjahre"] = new JsonArray(e.Stich.Select(x => (JsonNode)x).ToArray()), ["karte"] = e.Karte,
+                ["fairnesskarten"] = new JsonArray(e.Fairness.Select(x => (JsonNode)x).ToArray()),
                 ["teile"] = new JsonArray(e.Teile.OrderBy(x => x).Select(x => (JsonNode)x).ToArray()),
                 ["band"] = $"±{Band} % um das Mittel", ["startvermoegen"] = daten.Allgemein.Startvermoegen,
                 ["ohneAbschnitt"] = Schalter("ohne"),
@@ -203,7 +208,7 @@ static partial class Balancingbericht
                     yield return Beruf(e, s, "Dieb") with { BezugCharakter = KiCharakter.Wagemutig };
                     break;
                 case 2:
-                    foreach (var b in Voelkerberufe)
+                    foreach (var b in e.VoelkerBerufe)
                         foreach (var v in SpielbareVoelker) yield return Beruf(e, s, b) with { Volk = v };
                     break;
                 case 3:
@@ -248,7 +253,7 @@ static partial class Balancingbericht
 
     /// <summary>Die Karten der Startfairness mit der Zahl ihrer KI-Häuser (Rotation 0 … Häuser).</summary>
     private static IEnumerable<(string Karte, int Haeuser)> Fairnesskarten(Einstellung e) =>
-        new[] { "greybox", "probestadt" }.Select(k => (k, JsonNode.Parse(File.ReadAllText(Datenpfad.Karte(k)))!["start"]!["haeuser"]!.AsArray().Count));
+        e.Fairness.Select(k => (k, JsonNode.Parse(File.ReadAllText(Datenpfad.Karte(k)))!["start"]!["haeuser"]!.AsArray().Count));
 
     /// <summary>
     /// Die Einrichtung, die gleich mehr einbringt (Werkstatt: kürzere Zeit; Wache: Lohn; Geldleiher: Rahmen, Wechsel, Ausfall) und ab Stufe 1
@@ -505,7 +510,7 @@ static partial class Balancingbericht
         var letztes = e.Stich[^1];
         var startgeld = daten.Allgemein.Startvermoegen;
         Console.WriteLine($"2 Völker – Vermögenszuwachs nach {letztes} Jahren (ein Betrieb):");
-        foreach (var beruf in Voelkerberufe)
+        foreach (var beruf in e.VoelkerBerufe)
         {
             var mensch = e.Werte.Select(s => p(Beruf(e, s, beruf))).Where(r => r.Fehler is null).ToList();
             var bezug = mensch.Average(r => r.Spieler.Im(letztes).Rein - startgeld);
@@ -522,9 +527,15 @@ static partial class Balancingbericht
                     {
                         ["reinvermoegen"] = Kennzahl(laeufe.Select(r => r.Spieler.Im(j).Rein)),
                         ["gewinn"] = Kennzahl(laeufe.Select(r => r.Spieler.Im(j).Gewinn)),
+                        ["stufe"] = Kennzahl(laeufe.Select(r => (double)r.Spieler.Im(j).Stufe), 2),
+                        ["sonder"] = new JsonObject(laeufe.SelectMany(r => r.Spieler.Im(j).Sonder.Keys).Distinct().OrderBy(x => x, StringComparer.Ordinal).Select(k =>
+                            new KeyValuePair<string, JsonNode?>(k, R(laeufe.Average(r => r.Spieler.Im(j).Sonder.GetValueOrDefault(k)), 2)))),
                     }),
                     ["jahreBisBuerger"] = Kennzahl(laeufe.Where(r => r.Spieler.BuergerReinJahr is not null).Select(r => (double)r.Spieler.BuergerReinJahr!.Value), 1),
+                    ["jahrStufe2"] = Kennzahl(laeufe.Where(r => r.Spieler.Stufe2Jahr is not null).Select(r => (double)r.Spieler.Stufe2Jahr!.Value), 1),
+                    ["jahrStufe3"] = Kennzahl(laeufe.Where(r => r.Spieler.Stufe3Jahr is not null).Select(r => (double)r.Spieler.Stufe3Jahr!.Value), 1),
                     ["abstandZuwachsZuMenschProzent"] = R(Abstand(zuwachs, bezug), 1),
+                    ["jeJahrImMittel"] = Zerlegung(laeufe.Select(r => r.Spieler)),
                     ["gewinnAbstandZuMenschProzent"] = R(Abstand(laeufe.Average(r => r.Spieler.Im(letztes).Gewinn), mensch.Average(r => r.Spieler.Im(letztes).Gewinn)), 1),
                 });
                 Console.WriteLine($"  {beruf,-10} {volk,-9} Bonus {Vz(bonus),3} %  {Text(zuwachs),10}  {Vz(Abstand(zuwachs, bezug), 1),7} % gegen Mensch");
@@ -533,8 +544,19 @@ static partial class Balancingbericht
             befunde.Add($"Völker, {beruf}: Vermögenszuwachs nach {letztes} Jahren je Volk {Vz(spanne.Min())} … {Vz(spanne.Max())} % gegen Menschen " +
                         $"(Bonus {string.Join(", ", SpielbareVoelker.Select(v => $"{v} {Vz(daten.Berufe[beruf].Voelker.GetValueOrDefault(v) * 100)}"))}).");
         }
+        var jeVolk = new JsonObject();
+        if (e.VoelkerBerufe.Length > 2)
+            foreach (var volk in SpielbareVoelker)
+            {
+                var abst = zeilen.Select(z => z!.AsObject()).Where(z => (string)z["volk"]! == volk.ToString()).Select(z => (double)z["abstandZuwachsZuMenschProzent"]!).ToList();
+                var bestes = zeilen.Select(z => z!.AsObject()).Where(z => (string)z["volk"]! == volk.ToString())
+                    .Max(z => (double)z["jahre"]![letztes.ToString()]!["reinvermoegen"]!["mittel"]!);
+                jeVolk[volk.ToString()] = new JsonObject { ["mittelAbstandZuMenschProzent"] = R(abst.Average(), 1), ["besterBerufReinvermoegen"] = R(bestes) };
+                Console.WriteLine($"  Volk {volk,-9} Mittel über {abst.Count} Berufe {Vz(abst.Average(), 1),7} % gegen Mensch, bester Beruf {Text(bestes)}");
+            }
         return new JsonObject
         {
+            ["jeVolkUeberBerufe"] = jeVolk.Count > 0 ? jeVolk : null,
             ["erklaerung"] = "Wie Berufe (simuliert), derselbe Beruf mit jedem spielbaren Volk. Der Völkerbonus wirkt auf die Leistung (±5 %); das Volk " +
                              "ändert auch Familie (Kinderzahl, Lebenserwartung) und Talente – die Messung zeigt die Summe. Abstand zum Menschen derselben Startwerte.",
             ["zeilen"] = zeilen,

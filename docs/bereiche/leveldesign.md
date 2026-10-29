@@ -32,6 +32,7 @@ So wird eingetragen (damit sich die Chats nie an derselben Stelle treffen):
 - Köln (PR #213): Leistung auf der T400 (Hoch, Startblick) 13,7 Bilder/s, GPU 36,8 ms, 3.900 Zeichenaufrufe gegen 17,1 Bilder/s der Greybox – bei Bedarf Wasser und Natur im Rand messen
 - Kartenwerkstatt: Gebäude lassen sich dort nicht umkennzeichnen; `Kartenentwurf.KennungSetzen` (Kern, PR #213) bräuchte dafür ein Feld in den Eigenschaften (Vorsicht: Startbelegung und Spielstände verweisen auf Kennungen)
 - Köln (Wahrzeichen, PR #215): Zwergen-Dombauhütte fehlt: Der einzige Steinmetz-Betrieb („Maurerei Lyskirchen“, Halbling) liegt 200 m vom Dom. Vorschlag: ein Werkstattplatz am Dom wird Dombauhütte mit zwergischem Meister (Volk, Name, Wappen im Startblock des Stadtskripts) – ändert die Startbelegung, daher Entscheidung des Nutzers
+- (von Kern) Startbelegung Köln (Balancing 3): Zwischen den KI-Häusern entscheiden Volk und Beruf – Zwerg-Schmied Overstolz +21 %, Elb-Tischler Hardevust −23 % gegen das Mittel der KI-Häuser nach 20 Jahren; drei Schmiede (mit dem Spieler) teilen sich den Markt. Ob die Belegung gemischt werden soll (z. B. kein Tischler-Paar, Zwerg nicht als Schmied), entscheidet das Leveldesign mit dem Nutzer (WIRTSCHAFTSMODELL „Balancing 3 (PR folgt)“).
 
 ## Entscheidungen
 
