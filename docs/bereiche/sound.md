@@ -27,11 +27,11 @@ Plan (Schritte in dieser Reihenfolge):
 | Ansagen | `AnsageSpielen`: eine Ansage zur Zeit, höchstens 2 wartend (die älteste verfällt), 8 s Abstand, Schalter „Ansagen“ (Standard an, Schlüssel `ansagen`) | 29.10.2026 |
 | Reiter | „Ton“ als siebter Reiter der Einstellungen (kleine Änderung an `EinstellungenAnzeige.cs`, Bereich Oberfläche) | 29.10.2026 |
 
-### Oberflächenklänge (PR #…)
+### Oberflächenklänge (PR #PRNR)
 
 | Thema | Entscheidung | Datum |
 |---|---|---|
-| Quelle | Kenney „RPG Audio“ und „Impact Sounds“ (CC0), 29 Dateien unverändert als OGG; kenney.nl sperrt automatische Abrufe, bezogen über GitHub-Spiegel (Commits in `HERKUNFT.md`); freesound.org nicht genutzt (Original nur mit Anmeldung). „Interface Sounds“ und „UI Audio“ klingen elektronisch und blieben draußen | 29.10.2026 |
+| Quelle | Kenney „RPG Audio“ und „Impact Sounds“ (CC0), 29 Dateien unverändert als OGG; Original-Downloads von kenney.nl mit SHA-256-Vergleich aller Dateien (`HERKUNFT.md`), `License.txt` daneben; freesound.org nicht genutzt (Original nur mit Anmeldung). „Interface Sounds“ und „UI Audio“ klingen elektronisch und blieben draußen | 29.10.2026 |
 | Bearbeitung | keine: kein Tonwerkzeug im Container (kein ffmpeg/sox, Python-Pakete durften nicht nachgeladen werden); Lautstärke und Tonhöhe je Ereignis in der Tabelle von `KlangOberflaeche.cs`. Offen: Lautheit nach Gehör angleichen (Schritt 7) | 29.10.2026 |
 | Ereignisse | Klick, Reiter, FensterAuf, FensterZu, Muenzen, Fehler, Meldung, Siegel, Bauen, Tempo; Hover stumm | 29.10.2026 |
 | Einbau | zentral: `NodeAdded` für jeden Knopf, `Fensterrahmen`, `Hauptszene.Protokollieren` (✗, ⚠, Zahlungssätze); Siegel in `RatAnzeige`, Bauen bei `Beauftragt`, Tempo in `PauseUmschalten`/`TempoSetzen`. Münzen erkennt die Meldung am Betrag in der Währung plus Kaufwort (kein Kernereignis vorhanden) | 29.10.2026 |
