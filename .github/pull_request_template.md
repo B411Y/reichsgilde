@@ -16,4 +16,4 @@
 - [ ] Tests grün (`dotnet run -c Release --project tests/Reichsgilde.Core.Tests`)
 - [ ] Klicktest im Spiel
 - [ ] `origin/main` eingemergt
-- [ ] README / ARCHITEKTUR ergänzt, Bereichsdatei `docs/bereiche/<bereich>.md` (Offen, Entscheidungen), Messung (Kern: WIRTSCHAFTSMODELL, Spiel-KI: spiel-ki.md)
+- [ ] Spielbuch (`docs/spielbuch/<thema>.md`) / ARCHITEKTUR ergänzt (README nur bei großem neuen Thema), Bereichsdatei `docs/bereiche/<bereich>.md` (Offen, Entscheidungen), Messung (Kern: WIRTSCHAFTSMODELL, Spiel-KI: spiel-ki.md)
