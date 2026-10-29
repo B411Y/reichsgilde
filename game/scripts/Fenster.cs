@@ -33,6 +33,7 @@ public partial class Fenster : Node
     /// </summary>
     public override void _ExitTree()
     {
+        Oberflaechenstil.Freigeben();
         Schriften.Freigeben();
         GC.Collect();
         GC.WaitForPendingFinalizers();
@@ -42,6 +43,7 @@ public partial class Fenster : Node
     {
         _instanz = this;
         Schriften.Einrichten(GetTree());
+        Oberflaechenstil.Einrichten();
         var einstellungen = new ConfigFile();
         var geladen = einstellungen.Load(Datei) == Error.Ok;
         if (geladen && einstellungen.GetValue("anzeige", "vollbild", false).AsBool())

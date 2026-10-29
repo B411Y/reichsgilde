@@ -112,9 +112,9 @@ public partial class RatAnzeige : PanelContainer
         var gunstVorschau = new List<Action>();
         geschenk.ValueChanged += wert => { _geschenkBetrag = wert; hinweis.Text = Hinweis(); foreach (var a in gunstVorschau) a(); };
 
-        var raster = new GridContainer { Columns = 7 };
+        var raster = new Streifenraster { Columns = 7 };
         raster.AddThemeConstantOverride("h_separation", 14);
-        raster.AddThemeConstantOverride("v_separation", 4);
+        raster.AddThemeConstantOverride("v_separation", 6);
         _inhalt.AddChild(raster);
         var kopfTipps = new[] { "", "Rang des Amtes: höhere Ämter entscheiden mehr.", "Das Amt mit seinem Einkommen im Jahr.", "Wer das Amt innehat: ein Haus (Wappen) oder ein Ratsherr.", "Wofür ein Ratsherr eintritt; danach stimmt er bei Anträgen.", "Was der Ratsherr von euch hält (−100 … +100): Charakterzüge, Volk, Glaube, Stand, Geschenke und mehr. Zählt bei Wahlen und Anträgen. Ein Klick auf sein Porträt zeigt alle Gründe und die Aktivitäten.", "" };
         var kopfNr = 0;

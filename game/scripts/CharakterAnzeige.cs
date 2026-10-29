@@ -48,7 +48,6 @@ public partial class CharakterAnzeige : PanelContainer
         rand.AddChild(_inhalt);
         Rollbereich.Einhuellen(this);
         _rahmen = Fensterrahmen.Anmelden(this, "Charakter", festhaltbar: true);
-        _rahmen.PlatzSetzen((groesse, sichtbar) => new Vector2(sichtbar.X - groesse.X - 16, Rollbereich.KopfHoehe));
         Hide();
     }
 

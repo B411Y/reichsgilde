@@ -26,7 +26,7 @@ public partial class Rollbereich : ScrollContainer
     public float UntenFrei { get; set; }
 
     /// <summary>Höhe, die oben für Kopfzeile und Zeitstrahl frei bleibt, und unten für die Betriebsleiste (Einheiten der Oberfläche).</summary>
-    public const float KopfHoehe = 132, LeistenHoehe = 84;
+    public const float KopfHoehe = 140, LeistenHoehe = 84;
 
     /// <summary>
     /// Heftet eine Tafel rechts an den Rand, unter Kopfzeile und Zeitstrahl und über der Betriebsleiste (PR #197): Dort stehen die Tafeln, die
