@@ -39,6 +39,7 @@ static partial class Balancingbericht
                 ["n"] = g.Count(),
                 ["jahre"] = JeJahr(e.Stich, j => Kennzahl(g.Select(h => h.Im(j).Rein))),
                 ["standAmEnde"] = Staende(g, daten), ["bankrott"] = g.Count(h => h.BankrottJahr is not null), ["erloschen"] = g.Count(h => h.ErloschenJahr is not null),
+                ["jeJahrImMittel"] = Zerlegung(g),
             }).ToArray());
             var jePlatz = new JsonArray(alle.Where(h => h.Wohnhausplatz is not null).GroupBy(h => h.Wohnhausplatz!).OrderBy(g => g.Key, StringComparer.Ordinal)
                 .Select(g => (JsonNode)new JsonObject
@@ -247,6 +248,7 @@ static partial class Balancingbericht
                 ["haus"] = g.Key, ["volk"] = g.First().Volk.ToString(), ["beruf"] = g.First().Startberuf,
                 ["jahre"] = JeJahr(e.Stich, j => Kennzahl(g.Select(h => h.Im(j).Rein))),
                 ["standAmEnde"] = Staende(g, daten), ["bankrott"] = g.Count(h => h.BankrottJahr is not null), ["erloschen"] = g.Count(h => h.ErloschenJahr is not null),
+                ["jeJahrImMittel"] = Zerlegung(g),
             }).ToArray()),
             ["verhaeltnisKiZuBezug"] = JeJahr(e.Stich, j => Kennzahl(laeufe.SelectMany(r => r.Ki.Select(h => Verhaeltnis(r, h, j))), 2)),
             ["davongezogen"] = new JsonObject { ["schwelle"] = 2, ["anzahl"] = davon, ["von"] = verhaeltnisse.Count },

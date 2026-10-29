@@ -527,8 +527,13 @@ static partial class Balancingbericht
                     {
                         ["reinvermoegen"] = Kennzahl(laeufe.Select(r => r.Spieler.Im(j).Rein)),
                         ["gewinn"] = Kennzahl(laeufe.Select(r => r.Spieler.Im(j).Gewinn)),
+                        ["stufe"] = Kennzahl(laeufe.Select(r => (double)r.Spieler.Im(j).Stufe), 2),
+                        ["sonder"] = new JsonObject(laeufe.SelectMany(r => r.Spieler.Im(j).Sonder.Keys).Distinct().OrderBy(x => x, StringComparer.Ordinal).Select(k =>
+                            new KeyValuePair<string, JsonNode?>(k, R(laeufe.Average(r => r.Spieler.Im(j).Sonder.GetValueOrDefault(k)), 2)))),
                     }),
                     ["jahreBisBuerger"] = Kennzahl(laeufe.Where(r => r.Spieler.BuergerReinJahr is not null).Select(r => (double)r.Spieler.BuergerReinJahr!.Value), 1),
+                    ["jahrStufe2"] = Kennzahl(laeufe.Where(r => r.Spieler.Stufe2Jahr is not null).Select(r => (double)r.Spieler.Stufe2Jahr!.Value), 1),
+                    ["jahrStufe3"] = Kennzahl(laeufe.Where(r => r.Spieler.Stufe3Jahr is not null).Select(r => (double)r.Spieler.Stufe3Jahr!.Value), 1),
                     ["abstandZuwachsZuMenschProzent"] = R(Abstand(zuwachs, bezug), 1),
                     ["jeJahrImMittel"] = Zerlegung(laeufe.Select(r => r.Spieler)),
                     ["gewinnAbstandZuMenschProzent"] = R(Abstand(laeufe.Average(r => r.Spieler.Im(letztes).Gewinn), mensch.Average(r => r.Spieler.Im(letztes).Gewinn)), 1),

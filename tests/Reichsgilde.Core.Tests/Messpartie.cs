@@ -353,6 +353,9 @@ static class Messpartie
     /// <summary>Was der Beruf ohne Ware dem Spieler im Vorjahr brachte – aus den Büchern von Diebe, Wache, Bank, Kirche und Schänke.</summary>
     private static void Sonderwerte(Stadtwirtschaft w, Konto k, List<Betrieb> eigene, Dictionary<string, double> s)
     {
+        // Personal am Jahresende: Köpfe und Leistung je Minute (Tempo der Arbeiter) aller eigenen Betriebe
+        s["Arbeiter"] = eigene.Sum(b => b.Arbeiter.Count);
+        s["Leistung"] = eigene.Sum(b => b.LeistungProMinute);
         if (w.Diebe.IstAktiv && w.Diebe.Vorjahr(k) is { } dieb) { s["Beute"] = dieb.Beute; s["Faenge"] = dieb.Faenge; }
         if (w.Wache.IstAktiv && w.Wache.Vorjahr(k) is { } wache)
         {
