@@ -7,7 +7,7 @@ Dieses Dokument hält fest, was unter welcher Lizenz steht. Es ist **keine Recht
 | Was | Lizenz |
 |---|---|
 | Code und Skripte, Shader, Zahlenwerte und Struktur der Spieldaten | MIT ([LICENSE](LICENSE)) |
-| Inhalte, veröffentlicht **bis zum Stichtag** (Merge von PR #PRNUMMER) | CC BY 4.0, nicht widerrufbar |
+| Inhalte, veröffentlicht **bis zum Stichtag** (Merge von PR #240) | CC BY 4.0, nicht widerrufbar |
 | Inhalte, die **ab dem Stichtag** neu ins Repository kommen oder neu erstellt werden | Alle Rechte vorbehalten, © B411Y |
 | Fremdmaterial (Quaternius, Schriften, TressFX …) | die Lizenz des Urhebers, unverändert |
 
@@ -30,12 +30,12 @@ Die Texte und Bilder unter `docs/` und die Bilder, die die README einbindet, ble
 
 ### Bis zum Stichtag veröffentlicht: CC BY 4.0
 
-Alle Inhalte, die bis zum Merge von PR #PRNUMMER im Repository veröffentlicht sind, stehen unter der **Creative Commons Namensnennung 4.0 International (CC BY 4.0)**:
+Alle Inhalte, die bis zum Merge von PR #240 im Repository veröffentlicht sind, stehen unter der **Creative Commons Namensnennung 4.0 International (CC BY 4.0)**:
 https://creativecommons.org/licenses/by/4.0/deed.de (Vertragstext: https://creativecommons.org/licenses/by/4.0/legalcode.de)
 
 Diese Lizenz ist nicht widerrufbar (nach den Hinweisen von Creative Commons lässt sich eine CC-Lizenz nicht zurückziehen, solange der Lizenznehmer die Bedingungen einhält). Wer diese Fassungen früher übernommen hat, darf sie weiter unter CC BY 4.0 nutzen. Die Lizenzänderung gilt nur für das, was danach neu entsteht.
 
-Dazu gehören im Einzelnen (Stand: Merge von PR #PRNUMMER):
+Dazu gehören im Einzelnen (Stand: Merge von PR #240):
 
 - alles unter `game/assets/` – außer den Shadern (MIT, siehe oben) und den Schriften in `game/assets/oberflaeche/schriften/` (SIL Open Font License 1.1, Lizenztexte dort)
 - die Texte und Bilder unter `docs/` und die Bilder, die die README einbindet
@@ -61,7 +61,7 @@ Werkzeug, Modell, Prompt und Nachbearbeitung je Datei stehen im Asset-Protokoll 
 
 ### Ab dem Stichtag: Alle Rechte vorbehalten
 
-Inhalte, die **nach dem Merge von PR #PRNUMMER** neu ins Repository kommen oder neu erstellt werden (neue Dateien, neue Texte, auch neue Fassungen bestehender Dateien), stehen unter **„Alle Rechte vorbehalten“**: © 2026 B411Y. Ohne ausdrückliche Erlaubnis darf sie niemand über das hinaus nutzen, was das Gesetz oder die GitHub-Nutzungsbedingungen (siehe unten) erlauben.
+Inhalte, die **nach dem Merge von PR #240** neu ins Repository kommen oder neu erstellt werden (neue Dateien, neue Texte, auch neue Fassungen bestehender Dateien), stehen unter **„Alle Rechte vorbehalten“**: © 2026 B411Y. Ohne ausdrückliche Erlaubnis darf sie niemand über das hinaus nutzen, was das Gesetz oder die GitHub-Nutzungsbedingungen (siehe unten) erlauben.
 
 Jede neue Zeile im Asset-Protokoll trägt ab dann in `lizenz_ergebnis` den Wert „Alle Rechte vorbehalten“; `tools/assets/protokoll_pruefen.py` prüft das, sobald der Stichtag dort eingetragen ist.
 
