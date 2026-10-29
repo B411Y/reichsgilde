@@ -54,13 +54,31 @@ void vertex() {
 	// Der Wind drückt das Tuch zusätzlich auf die Seite, von der er kommt weg (Windrichtung gegen die Tuchnormale in der Welt)
 	vec3 normale_welt = normalize((MODEL_MATRIX * vec4(0.0, 0.0, 1.0, 0.0)).xyz);
 	float drueck = dot(normalize(wind_richtung + vec2(0.0001)), normale_welt.xz) * wind_staerke * pow(u, 1.35) * laenge * 0.06;
-	VERTEX.z += aus + drueck;
+	if (wandbehang) VERTEX.z += aus + drueck;
+	else VERTEX.z += aus;
 
 	// Steigung der Welle entlang u (Länge) und v (Höhe) ergibt die geneigte Normale
 	float e = 0.01;
 	float du = (verbiegung(min(u + e, 1.0), v, phase, t, laenge) - verbiegung(max(u - e, 0.0), v, phase, t, laenge)) / (2.0 * e * laenge);
 	float dv = (verbiegung(u, min(v + e, 1.0), phase, t, laenge) - verbiegung(u, max(v - e, 0.0), phase, t, laenge)) / (2.0 * e * hoehe);
 	NORMAL = normalize(vec3(-du, -dv, 1.0));
+
+	if (!wandbehang) {
+		// Alle Fahnen wehen in dieselbe Weltrichtung (die Windrichtung, der auch der Regen folgt), egal wie das Gebäude gedreht ist:
+		// Das Tuch wird um seinen Mast (Ursprung) so gedreht, dass seine Längsachse in Windrichtung zeigt; die Höhe bleibt.
+		mat4 modell = MODEL_MATRIX;
+		float mass = length(modell[0].xyz);
+		vec3 hoch = modell[1].xyz;
+		vec3 hoch_n = normalize(hoch);
+		vec2 w = normalize(wind_richtung + vec2(0.0001));
+		vec3 laengs = normalize(vec3(w.x, 0.0, w.y) - hoch_n * dot(vec3(w.x, 0.0, w.y), hoch_n) + vec3(0.0001, 0.0, 0.0));
+		vec3 quer = cross(laengs, hoch_n);
+		vec3 welt = modell[3].xyz + laengs * VERTEX.x * mass + hoch * VERTEX.y + quer * VERTEX.z * mass;
+		vec3 n_welt = laengs * NORMAL.x + hoch_n * NORMAL.y + quer * NORMAL.z;
+		mat4 zurueck = inverse(modell);
+		VERTEX = (zurueck * vec4(welt, 1.0)).xyz;
+		NORMAL = normalize((zurueck * vec4(n_welt, 0.0)).xyz);
+	}
 }
 
 void fragment() {
