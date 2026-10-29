@@ -28,3 +28,13 @@ Werkzeuge, Abläufe, Lizenz und Asset-Protokoll. Neue Einträge unten anhängen,
 | Freigabe | Dem Nutzer liegt immer nur ein PR zur Freigabe oder zum Merge vor; fertige PRs warten in der Warteschlange des Teamleiters (`.claude/teamleiter.md`) | 29.10.2026 |
 | Nachziehen | Nach jedem Merge bringt der Teamleiter den nächsten PR auf den neuen `main`-Stand (Konflikte, CI grün) und gibt ihn erst dann frei; Grund: fünf offene PRs erzeugten am 29.10. nach jedem Merge neue Konflikte | 29.10.2026 |
 | Protokoll | `docs/assets/protokoll.csv` steht nach `pfad_muster` sortiert, neue Zeilen an der passenden Stelle; das Prüfskript meldet Verstöße und nennt den Platz (Zuordnung „letzte Zeile gewinnt“ blieb beim Sortieren unverändert) | 29.10.2026 |
+
+### Gemini entfernt, Prüfungen mit Bot-Token (PR #249)
+
+| Thema | Entscheidung | Datum |
+|---|---|---|
+| Gemini | Gemini (API und Antigravity-CLI `agy`) wird nicht mehr genutzt und steht nicht mehr in den Regeln (`CLAUDE.md`, `.claude/`); Commit-Zusatz nur noch `(Strata)`. Bild-KI nur lokal (ComfyUI, Qwen-Image), daneben Strata | 29.10.2026 |
+| Historie | Protokoll, Prompts, Herkunftsdateien und alte Bereichseinträge nennen Gemini weiter als Herkunft bestehender Assets | 29.10.2026 |
+| Bot-Token | `prs-aktuell.yml` pusht mit dem Repository-Geheimnis `BOT_TOKEN` (klassisches Token des Bot-Kontos, `repo` + `workflow`); dann starten die PR-Prüfungen von selbst und der eigene `build.yml`-Lauf entfällt | 29.10.2026 |
+| Rückfall | Ohne `BOT_TOKEN`: `GITHUB_TOKEN` und selbst gestarteter `build.yml`-Lauf wie bisher | 29.10.2026 |
+| Schutzregel | Der Push geht nur auf PR-Branches, nie auf `main`; die Schutzregel ändert sich nicht | 29.10.2026 |
