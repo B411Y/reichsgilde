@@ -256,14 +256,17 @@ public partial class Stadtansicht
 
     /// <summary>
     /// Wie dicht der Dunst um diese Uhrzeit ist (1 = voller Morgendunst): von 5 bis 6:20 Uhr am dichtesten, gegen 8 Uhr fast
-    /// aufgelöst; am Tag ein Hauch (damit die Sonne Lichtbahnen hat), ab 18 Uhr wieder leicht. Der Spieltag beginnt um 4 Uhr mitten im dichten Dunst
+    /// aufgelöst; am Tag ein Hauch (damit die Sonne Lichtbahnen hat), ab 18 Uhr wieder leicht, nach 21 Uhr keiner. Der Spieltag beginnt um 4 Uhr mitten im dichten Dunst
     /// (das Jahr springt von 23 auf 4 Uhr).
     /// </summary>
     private static float DunstUm(float stunde)
     {
         var morgen = 1 - Mathf.SmoothStep(6.3f, 8.3f, stunde);
         var abend = 0.3f * Mathf.SmoothStep(18f, 20.5f, stunde);
-        return Mathf.Max(Mathf.Max(morgen, abend), 0.05f);
+        // Nachts klare Luft (PR #237): Der Dunst leuchtet in Umgebungslicht-Farbe und ist heller als dunkle Wände und Boden – ein heller Saum am Fuß
+        // von Häusern und Mauern. Ab etwa 21 Uhr klingt er auf null aus; die Dämmerung kommt mit dem Spieltagsbeginn um 4 Uhr wieder.
+        var nacht = 1 - Mathf.SmoothStep(20.8f, 21.6f, stunde);
+        return Mathf.Max(Mathf.Max(morgen, abend), 0.05f) * nacht;
     }
 
     private void DunstAnwenden()
