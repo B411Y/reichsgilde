@@ -240,3 +240,34 @@ So wird eingetragen (damit sich die Chats nie an derselben Stelle treffen):
 | Nachtschimmer (Entscheidung) | Nachts klare Luft: `DunstUm` klingt ab 20:48 bis 21:36 Uhr auf 0 aus (Faktor `nacht`); der Bodennebel (`NebelUm`) endete schon um 21:12 Uhr. Dunst kommt mit dem Spieltagsbeginn um 4 Uhr wieder, Morgen- und Abenddämmerung bleiben unverändert. Nachts leuchten nur Fenster, Laternen und Feuer. Entscheidung des Nutzers (Lösung A). | 29.10.2026 |
 | NaN-Schutz Schnee und Ringe | Dieselbe Absicherung wie im Regen: `schnee.gdshader` (`atan(0, 0)` in der Flockenmitte war undefiniert, Alpha begrenzt, ungültige Bildpunkte verworfen), `regenring.gdshader` (`smoothstep` mit vertauschten Rändern, die in GLSL nicht definiert sind, jetzt als `1 - smoothstep`; Alpha begrenzt, Verwerfen). Aussehen unverändert. | 29.10.2026 |
 | Fahnen nach Weltwind | Alle Flaggen wehen in dieselbe Weltrichtung, die Windrichtung (`wind_richtung`), der auch der Regen folgt. Ursache: Das Tuch lag im Objektraum der Fahne (Längsachse = Ausrichtung des Gebäudes) und wurde nur senkrecht dazu ausgeschlagen, so wehte jede Fahne anders. `fahne.gdshader`: der Vertex-Shader dreht das Tuch um den Mast (Höhenachse bleibt) so, dass seine Längsachse in Windrichtung zeigt, und rechnet Lage und Normale über die Inverse der Modellmatrix zurück; die Wellen schlagen senkrecht zur neuen Tuchfläche. Wandbehänge bleiben an der Wand. Kein Skript je Bild, keine neue Shader-Datei. Geprüft mit acht um 45° gedrehten Fahnen (vorher acht Richtungen, nachher alle gleich) und im Spiel mit Sturm und Regen. Entscheidung des Teamleiters. | 29.10.2026 |
+
+### Grafik-Leistung (PR #…)
+
+| Thema | Entscheidung | Datum |
+|---|---|---|
+| Schatten nach Voreinstellung | Schon erledigt, kein Code nötig: Karte 2048 / 4096 / 8192 und Filter je Stufe (`SchattenStufeFuer`), nur `project.godot` steht auf 8192 als Startwert. Kaskaden und „Max Distance“ gibt es nicht: `ShadowMode.Orthogonal` = eine Karte, Near und Far folgen dem Zoom. Probe: Max Distance 0, 100 und 400 gibt bei Zoom 95 (Far etwa 216 m) dasselbe Bild – Godot ignoriert sie bei orthografischer Kamera. | 29.10.2026 |
+| Nachtlichter | Keine Fernausblendung nötig: höchstens 12 echte Punktlichter (`LichterMaximal`, Pool), dazu 1 Decal (Wolken) – weit unter „Max Clustered Elements“ 512. Messung in Köln nachts bei Zoom 25, 60, 140: 0 Punktlichter, 0 Spotlichter, 1 Decal (die Startstadt hat noch keine Laternen im Bild). Fenster, Lichtflecken und Flammen sind MultiMeshes, keine Lichter. `--messung` nennt die Zahl jetzt am Ende. | 29.10.2026 |
+| Mesh-LOD | Versuch mit 4 Pixel (Niedrig) und 2 Pixel (Mittel) gegen die bisherigen 1 / 0, wechselnd gemessen (je 2 Paare, T400, Köln): Niedrig Zoom 95 etwa 21–25 → 33–38 Bilder/s, aber Zoom 25 schlechter (GPU 6 → 8–12 ms), Mittel uneinheitlich. Rechnerlast lag bei 2–26, der Unterschied ist nicht belegt; Bilder zeigten keinen sichtbaren Unterschied bei Häusern und Schatten. **Nicht übernommen**, Werte bleiben 1 (Nah) und 0. Figuren mit Skinning waren nicht prüfbar (in der Köln-Startstadt keine Figuren im Bild). | 29.10.2026 |
+| Ruckler beim ersten Regen | Messbar: Hoch (Dunst „Niedrig“), `--wetterspaeter=regen@14`: ein Bild von 125–147 ms und eine neue Oberflächen-Pipeline beim ersten Regen. Auch bei Schnee, nicht bei Wolken; nicht in Niedrig, nicht bei `--dunst=Aus` oder `--dunst=Hoch`. Erfolglose Versuche (alles zurückgenommen): Partikel in einem Nebenfenster vorzeichnen, Traufentropfen beim Aufbau anlegen, Partikel im Hauptfenster einige Bilder lang einschalten, Nebel-Dichte und `FogEnabled` vorab setzen, Preprocess 0. Die Ursache liegt im Zusammenspiel Höhennebel (Dunst Niedrig) und Wetterpartikel, ein Vorwärmen reichte nicht. | 29.10.2026 |
+| Werkzeuge | `--messung` meldet Ruckler (Bild über dem Dreifachen der gleitenden Bildzeit), neue Pipelines je Art und Cluster-Elemente; Pipelines gesamt je Sekunde. `--wetterspaeter=<lage>@<s>` für den ersten Regen. | 29.10.2026 |
+| Grafiktreiber Windows | `rendering_device/driver.windows="vulkan"` in `project.godot` (Abschnitt `[rendering]`; Projekteinstellung `rendering/rendering_device/driver.windows`). `fallback_to_d3d12` steht auf dem Grundwert `true`: Vulkan bleibt erste Wahl, DirectX 12 nur, wenn Vulkan fehlt. Seit Godot 4.6 ist D3D12 der Standard neuer Projekte. | 29.10.2026 |
+| Shader-Baker (Export) | Nicht aktiviert (`export_presets.cfg` gehört den Code-Besitzern). Nötig: im Exportvorgabe-Dialog „Shader Baker > Enabled“, in der Datei `shader_baker/enabled=true` je Vorgabe; wirkt nur für den Treiber aus `rendering/rendering_device/driver` der Zielplattform (Vulkan). Verkürzt den ersten Start, ersetzt kein Vorwärmen. | 29.10.2026 |
+
+Messwerte (T400, Vulkan, 1600 × 900, Köln, `--blick=0,0,<Zoom> --messung=30 --vsync=Aus`, Grundstand vor dem Versuch; Rechnerlast 5–25 auf 8 Kernen, nur grobe Richtwerte, Schwankung zwischen zwei Läufen bis 2×):
+
+| Voreinstellung, Zoom, Zeit | Bilder/s (Lauf 1, Lauf 2) | GPU-Zeit ms |
+|---|---|---|
+| Niedrig, 95, Tag | –, 35,4 | 8,3 |
+| Niedrig, 95, Nacht mit Regen | 40,6, 47,0 | 6,8 |
+| Niedrig, 25, Tag | 48,2, 48,4 | 6,0 |
+| Niedrig, 25, Nacht mit Regen | 54,7, 54,1 | 5,2 |
+| Mittel, 95, Tag | 31,7, 27,2 | 15,3 |
+| Mittel, 95, Nacht mit Regen | 18,4, 28,8 | 14,7–34,2 |
+| Mittel, 25, Tag | 16,2, 34,1 | 13,0–32,5 |
+| Mittel, 25, Nacht mit Regen | 37,8, 37,4 | 12,5 |
+| Hoch, 95, Tag | 26,2, 26,1 | 20,9 |
+| Hoch, 95, Nacht mit Regen | 27,2, 29,1 | 21,7 |
+| Hoch, 25, Tag | 27,8, 28,8 | 18,1 |
+| Hoch, 25, Nacht mit Regen | 30,2, 30,2 | 19,1 |
+
+Belastbar sind nur die Läufe mit zwei fast gleichen Werten (z. B. Hoch, Niedrig Zoom 25); die Köln-Startstadt ist fast leer (etwa 270 Zeichenaufrufe) und CPU-gebunden, die Messung sagt über eine volle Stadt wenig.

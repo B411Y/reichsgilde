@@ -82,6 +82,7 @@ Startoptionen (nach `--`):
 - `--wetter=<klar|wolkig|regen|sturm|gewitter|schnee|nebel>` (Wetterlage fest vorgeben, nur Darstellung; ohne Aussicht in der Wetterzeile)
 - `--jahreszeit=<fruehling|sommer|herbst|winter>` (Jahreszeit der Darstellung: Wiese, Laub, Äcker, Schnee; der Kalender bleibt)
 - `--blitz=1` (mit `--wetter=gewitter`: ein Blitz bleibt auf voller Helligkeit stehen, für Bildschirmfotos)
+- `--wetterspaeter=<lage>@<Sekunden>` (das Wetter schlägt nach so vielen Sekunden plötzlich um, z. B. `regen@14`; für Messungen des ersten Regens: ohne `--wetter` ändert es sich erst dann, sonst gilt `--wetter` bis dahin)
 - `--pflasterrelief=0` (Pflaster ohne Tiefe: schaltet die Parallax im Pflaster für diesen Start aus, nur in der Bodenqualität Hoch wirksam; für Vergleiche und Messungen)
 - `--messe=1` (Kirchen und Dom leuchten, als liefe gerade die Messe; nur Darstellung, für Bildschirmfotos bei Nacht)
 - `--tonemapping=<Bisher|Agx>`
@@ -92,7 +93,7 @@ Startoptionen (nach `--`):
 - `--farbfilter=<Aus|Protanopie|Deuteranopie|Tritanopie>`
 - `--reiter=<Voreinstellung|Leistung|Bild|Stimmung|Barrierefreiheit|Spiel>` (mit `--einstellungen=1`)
 - `--automatisch=1` (Voreinstellung messen und wählen wie beim ersten Start; ohne Startoptionen und ohne `einstellungen.cfg` geschieht das im Hauptmenü von selbst)
-- `--messung=<Sekunden>` (nach 8 s Vorlauf Bilder/s, 1-%-Tief, Bild- und GPU-Zeit ins Protokoll, dann beenden; für Vergleiche mit `--blick`, `--startstunde` und `--vsync=Aus`)
+- `--messung=<Sekunden>` (nach 8 s Vorlauf Bilder/s, 1-%-Tief, Bild- und GPU-Zeit ins Protokoll, dazu Ruckler (Bilder über dem Dreifachen der mittleren Bildzeit) mit Zeitpunkt und die neuen Pipelines im Messfenster, dann beenden; für Vergleiche mit `--blick`, `--startstunde` und `--vsync=Aus`)
 
 ## Kartenwerkstatt
 

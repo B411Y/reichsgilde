@@ -560,6 +560,26 @@ public partial class Fenster
     private readonly List<float> _messGpu = new();
     private int _messBilderSekunde;
     private double _messGpuSekunde;
+    private int _messRuckler;
+    private double _messLaengstes;
+    private long[]? _messPipelinesStart;
+
+    private double _messMittel;
+
+    /// <summary>Ein Bild zählt in der Messung als Ruckler, wenn es mehr als dreimal so lange dauert wie das gleitende Mittel der Bildzeiten (und über 40 ms).</summary>
+    private const double RucklerFaktor = 3, RucklerMindestens = 40;
+
+    /// <summary>
+    /// Wie oft Godot bisher Pipelines gebaut hat: Mesh, Oberfläche, Zeichnung (beim Zeichnen, also ein Ruckler) und Spezialisierung (im
+    /// Hintergrund). Einzelheiten: Godot-Doku „Reducing stutter from shader (pipeline) compilations“.
+    /// </summary>
+    private static long[] PipelineZaehler() => new[]
+    {
+        (long)Performance.GetMonitor(Performance.Monitor.PipelineCompilationsMesh),
+        (long)Performance.GetMonitor(Performance.Monitor.PipelineCompilationsSurface),
+        (long)Performance.GetMonitor(Performance.Monitor.PipelineCompilationsDraw),
+        (long)Performance.GetMonitor(Performance.Monitor.PipelineCompilationsSpecialization),
+    };
 
     /// <summary>Nach dem Laden so lange warten (Sekunden), bevor gemessen wird: Stadt, Figuren und Shader sind dann fertig.</summary>
     private const double MessVorlauf = 8;
@@ -583,7 +603,16 @@ public partial class Fenster
         if (!_messungLaeuft) return;
         _messungZeit += delta;
         if (_messungZeit < 0) return;
+        _messPipelinesStart ??= PipelineZaehler();
         _messBildzeiten.Add(delta * 1000);
+        var ruckler = _messMittel > 0 && delta * 1000 >= Math.Max(RucklerMindestens, RucklerFaktor * _messMittel);
+        _messMittel = _messMittel == 0 ? delta * 1000 : _messMittel * 0.95 + delta * 1000 * 0.05;
+        if (ruckler)
+        {
+            _messRuckler++;
+            _messLaengstes = Math.Max(_messLaengstes, delta * 1000);
+            GD.Print($"Messung Ruckler bei {_messungZeit:0.0} s: {delta * 1000:0} ms");
+        }
         var gpu = GpuZeit();
         _messGpu.Add(gpu);
         _messBilderSekunde++;
@@ -592,7 +621,8 @@ public partial class Fenster
         if (_messungSekunde >= 1)
         {
             GD.Print($"Messung {(int)_messungZeit,3} s: {_messBilderSekunde / _messungSekunde:0.0} Bilder/s, Bildzeit {_messungSekunde * 1000 / _messBilderSekunde:0.0} ms, " +
-                     $"GPU {_messGpuSekunde / _messBilderSekunde:0.0} ms, {RenderingServer.GetRenderingInfo(RenderingServer.RenderingInfo.TotalDrawCallsInFrame)} Zeichenaufrufe");
+                     $"GPU {_messGpuSekunde / _messBilderSekunde:0.0} ms, {RenderingServer.GetRenderingInfo(RenderingServer.RenderingInfo.TotalDrawCallsInFrame)} Zeichenaufrufe, " +
+                     $"Pipelines gesamt (Mesh/Oberfläche/Zeichnung/Spezialisierung) {string.Join("/", PipelineZaehler())}");
             _messungSekunde = 0;
             _messBilderSekunde = 0;
             _messGpuSekunde = 0;
@@ -605,6 +635,12 @@ public partial class Fenster
         GD.Print($"Messung Ergebnis: {zeiten.Count / zeiten.Sum() * 1000:0.0} Bilder/s im Mittel, 1-%-Tief {1000 / schlimmste:0.0} Bilder/s, " +
                  $"Bildzeit {mittel:0.00} ms, GPU {_messGpu.Average():0.00} ms, Voreinstellung {Name(AktuelleVoreinstellung)}, " +
                  $"Renderauflösung {GetTree().Root.Scaling3DScale * 100:0} %, {RenderingServer.GetVideoAdapterName()}");
+        var pipelines = PipelineZaehler().Zip(_messPipelinesStart!, (jetzt, start) => jetzt - start).ToArray();
+        GD.Print($"Messung Ruckler: {_messRuckler} Bilder über dem {RucklerFaktor:0}fachen der mittleren Bildzeit, längstes {_messLaengstes:0} ms; neue Pipelines im Messfenster: " +
+                 $"Mesh {pipelines[0]}, Oberfläche {pipelines[1]}, Zeichnung {pipelines[2]}, Spezialisierung {pipelines[3]}");
+        // Godot schafft je Bild höchstens „Max Clustered Elements“ (Grundwert 512) Lichter, Decals und Spiegelungssonden zusammen
+        int Sichtbare<T>() where T : Node3D => GetTree().Root.FindChildren("*", typeof(T).Name, true, false).Count(k => ((Node3D)k).IsVisibleInTree());
+        GD.Print($"Messung Cluster-Elemente (sichtbar): Punktlichter {Sichtbare<OmniLight3D>()}, Spotlichter {Sichtbare<SpotLight3D>()}, Decals {Sichtbare<Decal>()}");
         _messungLaeuft = false;
         GetTree().Quit();
     }
