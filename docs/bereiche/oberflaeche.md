@@ -326,7 +326,7 @@ So wird eingetragen (damit sich die Chats nie an derselben Stelle treffen):
 | Entwickler-Option | Haken „Entwickler-Optionen“ unten rechts im Hauptmenü (`Entwickler.Aktiv`, gemerkt), zentrale Stelle für spätere Entwickler-Einstellungen (Debugging …); heute nur die Kartenliste. | 28.10.2026 |
 | Vorschaubilder | Einmal aus dem Spiel mit Vulkan gerendert (`tools/kartenbilder/kartenbilder.sh`, ganze Karte, Mittag, Sommer) nach `assets/oberflaeche/karten/`. Selbst gebaute Karten zeigen einen Platzhalter mit dem Namen (einfachste saubere Lösung). | 28.10.2026 |
 
-### Wege-Modus im Baumenü (PR folgt)
+### Wege-Modus im Baumenü (PR #242)
 
 | Thema | Entscheidung | Datum |
 |---|---|---|
