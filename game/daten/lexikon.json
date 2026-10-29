@@ -423,7 +423,7 @@
   "kennung": "parfumeur",
   "titel": "Parfumeur",
   "gruppe": "Berufe",
-  "text": "Der Duftgarten liefert Lavendel und Jasmin, die Siederei (→ Duftwerkstatt → Parfumerie) macht Politur, die Blume der Zwietracht und Giftdolche (aus einem Dolch des [[schmied|Schmieds]] und Politur), später Moschusduft, Fechterduft, Heiligenduft und Schattendolch. Vier Waren wirken für jedes Haus: Moschusduft (Brautschau und Rat), Blume der Zwietracht (ein Ratsherr verliert Gunst), Heiligenduft und Giftdolch. Politur brauchen auch Goldkette ([[schmied]]) und Prunktruhe ([[tischler]])."
+  "text": "Der Duftgarten liefert Lavendel und Jasmin, die Siederei (→ Duftwerkstatt → Parfumerie) macht Politur, die Blume der Zwietracht und Giftdolche (aus einem Dolch des [[schmied|Schmieds]] und Politur), später Moschusduft, Fechterduft, Heiligenduft und Schattendolch (wieder aus einem Dolch, dazu Eisen, Beschlag und Politur). Vier Waren wirken für jedes Haus: Moschusduft (Brautschau und Rat), Blume der Zwietracht (ein Ratsherr verliert Gunst), Heiligenduft und Giftdolch. Politur brauchen auch Goldkette ([[schmied]]) und Prunktruhe ([[tischler]])."
  },
  {
   "kennung": "lehrgeld",

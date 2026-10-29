@@ -567,9 +567,9 @@
     },
     "Schattendolch": {
       "typ": "Fertigprodukt",
-      "grundpreis": 390,
+      "grundpreis": 477,
       "zeit": 100,
-      "zutaten": { "Eisen": 2, "Beschlag": 2, "Politur": 1 },
+      "zutaten": { "Dolch": 1, "Eisen": 1, "Beschlag": 1, "Politur": 1 },
       "nachfrage": 50,
       "npcAnteil": 0.7
     }
@@ -1049,7 +1049,7 @@
     "Wirt": { "werkstatt": "Schaenke", "umland": "Bauernhof", "voelker": { "Halbling": 0.05 }, "lehrgeld": 500, "beschreibung": "Gerste und Roggen vom Bauernhof, in der Schänke zu Weingeist, Körnermahlzeit und Dünnbier – ausgeschenkt an Gäste im Haus, der Rest geht zum Markt. Die dunkle Ecke hört Gerüchte, das Wirtshaus hat einen Würfeltisch, das Gasthaus einen Stammtisch der Ratsherren." },
     "Prediger": { "werkstatt": "Kirche", "umland": "Klosterhof", "voelker": { "Elb": 0.05 }, "lehrgeld": 500, "beschreibung": "Lumpen und Bienenwachs vom Klosterhof, in der Kirche zu Papier, Kerzen und Lehrschriften. Jeden Tag kommen Gläubige zur Messe und spenden; andere Häuser kaufen Ablass für ihre Taten, und was in der Beichte gesagt wird, weiß der Prediger. Als Meister in Dom und Kathedrale auch Hetzschriften, Psalter, Stundenbücher und Reliquiare." },
     "Dieb": { "werkstatt": "Schmugglerloch", "voelker": { "Halbling": 0.05, "Zwerg": -0.05 }, "lehrgeld": 500, "beschreibung": "Kein Handwerk, keine Ware: Die Diebe im Schmugglerloch ziehen tagsüber als Taschendiebe über den Markt – wer erwischt wird, verrät sein Haus. Nachts brechen sie in fremde Lager ein und spähen andere Häuser aus; im Unterschlupf erpressen sie Schutzgeld, in der Diebesgilde entführen sie sogar Angehörige. Ehrbare Bürger meiden ein Haus von Dieben." },
-    "Parfumeur": { "werkstatt": "Siederei", "umland": "Duftgarten", "voelker": { "Elb": 0.05, "Zwerg": -0.05 }, "lehrgeld": 500, "beschreibung": "Lavendel und Jasmin aus dem Duftgarten, in der Siederei zu Politur (für Goldketten und Prunktruhen), der Blume der Zwietracht und Giftdolchen (aus Dolchen des Schmieds); als Meister in Duftwerkstatt und Parfumerie auch Moschusduft, Fechterduft, Heiligenduft und Schattendolch. Moschus macht Bräute und Ratsherren gewogen, die Blume säht Zwietracht im Rat, Heiligenduft hebt das Ansehen – und ein Giftdolch vergiftet das Oberhaupt eines anderen Hauses." },
+    "Parfumeur": { "werkstatt": "Siederei", "umland": "Duftgarten", "voelker": { "Elb": 0.05, "Zwerg": -0.05 }, "lehrgeld": 500, "beschreibung": "Lavendel und Jasmin aus dem Duftgarten, in der Siederei zu Politur (für Goldketten und Prunktruhen), der Blume der Zwietracht und Giftdolchen (aus Dolchen des Schmieds); als Meister in Duftwerkstatt und Parfumerie auch Moschusduft, Fechterduft, Heiligenduft und Schattendolch (aus Dolch, Eisen, Beschlag und Politur). Moschus macht Bräute und Ratsherren gewogen, die Blume säht Zwietracht im Rat, Heiligenduft hebt das Ansehen – und ein Giftdolch vergiftet das Oberhaupt eines anderen Hauses." },
     "Geldleiher": { "werkstatt": "Wechselstube", "voelker": { "Zwerg": 0.05 }, "lehrgeld": 500, "beschreibung": "Kein Handwerk, keine Ware: Die Schreiber verleihen das Geld in der Kasse an Bürger der Stadt und wechseln die Münzen auswärtiger Kaufleute. Andere Häuser leihen beim Geldleiher – zu seinem Zins; wer nicht zahlt, dem pfändet der Büttel die Ware. Ein Zins über einem Fünftel ist Wucher. Geldleihe und Bankhaus verschaffen mehr Zeit für Persönliches (Aktionspunkte)." },
     "Gardist": { "werkstatt": "Wachhaus", "umland": "Wachturm", "voelker": { "Mensch": 0.05, "Elb": -0.05, "Halbling": -0.05 }, "lehrgeld": 500, "beschreibung": "Kein Handwerk, keine Ware: Die Stadt zahlt den Wachleuten Sold. Nachts gehen sie Streife – Einbrüche und Brandanschläge misslingen öfter, Zeugen sehen mehr. Razzien bringen Beweise und Diebesgut, verurteilte Täter Kopfgeld; gegen Lohn begleitet die Stadtwache Karren ins Umland, und ein Wachturm hält die Landstraße sicherer. Ein Haus der Wache ist überall gern gesehen." }
   },

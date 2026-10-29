@@ -53,6 +53,8 @@ static class ParfumeurTests
             Pruefe.Gleich(1, d.Waren["Goldkette"].Zutaten["Politur"]);
             Pruefe.Gleich(1, d.Waren["Prunktruhe"].Zutaten["Politur"]);
             Pruefe.Wahr(d.Art(Betriebsart.Parfumerie).Produkte.Contains("Schattendolch"), "Schattendolch in der Parfumerie");
+            // Schattendolch: 1 Dolch + 1 Eisen + 1 Beschlag + 1 Politur (Entscheidung des Nutzers, 29.10.2026; vorher 2 Eisen + 2 Beschlag + 1 Politur)
+            Pruefe.Gleich("Beschlag:1 Dolch:1 Eisen:1 Politur:1", string.Join(" ", d.Waren["Schattendolch"].Zutaten.OrderBy(z => z.Key, StringComparer.Ordinal).Select(z => $"{z.Key}:{z.Value}")));
             var falsch = Json.Replace("\"krankheit\": \"Vergiftung\"", "\"krankheit\": \"Husten\"");
             Pruefe.WirftMitMeldung(() => Wirtschaftsdaten.AusJson(falsch), "gegengift");
         }),

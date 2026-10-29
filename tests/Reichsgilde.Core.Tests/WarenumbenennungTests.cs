@@ -47,9 +47,11 @@ static class WarenumbenennungTests
             Pruefe.Wahr(w.Markt.Staende.Any(m => m.Ware == "Dolch") && w.Markt.Staende.All(m => m.Ware != "Rapier"), "Marktstand");
             Pruefe.Wahr(w.Daten.Art(Betriebsart.Giesserei).Produkte.Contains("Dolch"), "Produkt der Gießerei");
             Pruefe.Wahr(w.Betriebe.Any(b => b.ImLager("Dolch") > 0), "Dolche im Lager");
-            // Die alte Partie läuft mit ihren Zahlen weiter: Werte des Rapiers, Giftdolch noch aus Eisen.
+            // Die alte Partie läuft mit ihren Zahlen weiter: Werte des Rapiers, Giftdolch noch aus Eisen, Schattendolch noch ohne Dolch.
             Pruefe.Gleich((141.0, 60.0), (w.Daten.Waren["Dolch"].Grundpreis, w.Daten.Waren["Dolch"].Zeit));
             Pruefe.Gleich(1, w.Daten.Waren["Giftdolch"].Zutaten["Eisen"]);
+            Pruefe.Gleich((2, 2), (w.Daten.Waren["Schattendolch"].Zutaten["Eisen"], w.Daten.Waren["Schattendolch"].Zutaten["Beschlag"]));
+            Pruefe.Gleich(390.0, w.Daten.Waren["Schattendolch"].Grundpreis);
 
             var neu = Speicherung.Speichern(sim, spieler, DateTime.UnixEpoch);
             Pruefe.Gleich(0, Anzahl(neu, "Rapier|Rapiere|Rapieren|Rapiers"), "kein Rapier mehr im neuen Spielstand");
