@@ -2277,7 +2277,7 @@ Gemessen auf main `9022b49` + Commit `9f65f38`, `messen bericht 20 30` (1.320 Pa
 
 ## Balancing 3 (PR folgt)
 
-Auftrag des Nutzers (29.10.2026): prüfen, wie fair das Spiel gegen die anderen Häuser ist – Chancengleichheit der Berufe, Völker, Startplätze und KI-Häuser – und ausgleichen. **Nur Zahlenwerte geändert, keine Regel**; Regelvorschläge stehen in `docs/bereiche/kern.md` unter „Offen“, die Werte unter „Balancing 3 (PR folgt)“. Datenversion bleibt 61.
+Auftrag des Nutzers (29.10.2026): prüfen, wie fair das Spiel gegen die anderen Häuser ist – Chancengleichheit der Berufe, Völker, Startplätze und KI-Häuser – und ausgleichen. **Nur Zahlenwerte geändert, keine Regel**; Regelvorschläge stehen in `docs/bereiche/kern.md` unter „Offen“, die Werte unter „Balancing 3 (PR folgt)“. **Datenversion 63** (main hat seit #231/#232 die 62; die Messung lief mit denselben Werten unter der Nummer 61 – die Nummer wirkt nicht auf die Simulation).
 
 **Gemessener Stand:** main `9022b49` + #231 (`phase5/meinungen-kern` `b757446`) + #232 (`phase5/dolch-kern` `4c55d7d`, mit dem Zutateneinkauf nach Kasse) = „vorher“; dazu die Werte dieses Branches (`3ff0d04`) = „nachher“. Beide `messen bericht 20 30` (je 1.320 Partien, keine mit Fehler) → `docs/messungen/balancing-2026-10-29-balancing3-vorher.json` und `…-balancing3.json`. Die erste Analyse lief noch auf main `cc72d5c` + `e672515` + `2e8949d` (vor dem Zutateneinkauf); ihre Befunde zu Völkern und Gaunerei gelten weiter, die Berufe haben sich durch den Zutateneinkauf verschoben (Schmied +16 → +22 %, Gardist −13 → −21 %).
 
