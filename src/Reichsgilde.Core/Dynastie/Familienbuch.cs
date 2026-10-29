@@ -387,6 +387,7 @@ public sealed partial class Familienbuch
         // Immer würfeln, auch wenn der Spieler wählt – so sehen die KI-Familien danach gleich aus.
         oberhaupt.Aussehen = Aussehenspalette.Wuerfeln(_aussehenZufall, volk);
         if (aussehen is { } gewaehlt) oberhaupt.Aussehen = gewaehlt;
+        ErbgutWuerfeln(oberhaupt); // eigener Würfel je Person – ändert keinen anderen Wurf
         oberhaupt.GlaubeSetzen(glaube ?? _w.Glaube.Startglaube(volk));
         ZuegeFuerErwachsenen(oberhaupt); // eigener Würfel je Person – ändert keinen anderen Wurf
         var familie = new Familie(konto, volk, nachname, oberhaupt);
@@ -437,6 +438,7 @@ public sealed partial class Familienbuch
         var person = new Person(_naechsteNummer++, vorname, name, volk, geschlecht, Jahr - alter);
         TalenteWuerfeln(person);
         person.Aussehen = Aussehenspalette.Wuerfeln(_aussehenZufall, volk); // Ehepartner von außen: gewürfelt
+        ErbgutWuerfeln(person);
         person.GlaubeSetzen(_w.Glaube.Wuerfeln(volk)); // eigener Würfel – Namen und Talente bleiben wie ohne Glauben
         ZuegeFuerErwachsenen(person);
         return new Kandidat(person, stand);
@@ -797,6 +799,7 @@ public sealed partial class Familienbuch
             o.Geschlecht == Geschlecht.Mann ? o.Nummer : null, o.Geschlecht == Geschlecht.Frau ? o.Nummer : null);
         kind.Aussehen = Aussehenspalette.Vererben(_aussehenZufall, kind.Volk, geschlecht,
             o.Geschlecht == Geschlecht.Mann ? o : null, o.Geschlecht == Geschlecht.Frau ? o : null);
+        ErbgutVererben(kind, o.Geschlecht == Geschlecht.Mann ? o : null, o.Geschlecht == Geschlecht.Frau ? o : null);
         kind.GlaubeSetzen(o.Glaube);
         ZuegeBeiGeburt(kind);
         if (IstVolljaehrig(kind)) ZuegeAlsErwachsener(kind);
@@ -818,6 +821,7 @@ public sealed partial class Familienbuch
         var kind = new Person(_naechsteNummer++, Vorname(v, geschlecht), f.Nachname, f.Volk, geschlecht, geburtsjahr, vater.Nummer, mutter.Nummer);
         TalenteVererben(kind, mutter, vater);
         kind.Aussehen = Aussehenspalette.Vererben(_aussehenZufall, kind.Volk, geschlecht, vater, mutter);
+        ErbgutVererben(kind, vater, mutter);
         kind.GlaubeSetzen(f.Oberhaupt.Glaube); // getauft im Glauben des Hauses
         ZuegeBeiGeburt(kind, vater, mutter);
         f.MitgliederListe.Add(kind);
@@ -844,6 +848,7 @@ public sealed partial class Familienbuch
                 Ausbildung = p.Ausbildung, Abschluss = p.Abschluss,
                 Geuebt = TalentTexte.Alle.Any(t => p.GeuebtIm(t) != 0) ? TalentTexte.Alle.Select(p.GeuebtIm).ToList() : null,
                 Gesicht = p.Aussehen.Gesicht, Haar = p.Aussehen.Haar, Augen = p.Aussehen.Augen,
+                Erbgut = ErbgutText(p),
                 Zuege = HatZuege ? p.Zuege.Select(z => z.Kennung).ToList() : null,
             }).ToList();
         return new FamilienbuchStand
@@ -854,6 +859,8 @@ public sealed partial class Familienbuch
             AussehenWuerfe = _aussehenZufall.Wuerfe,
             ZugWuerfe = _zugZufall.Wuerfe,
             NaechsteNummer = _naechsteNummer,
+            ErbgutVersion = Erbgutvorlage.Version,
+            ErbgutGene = ErbgutGene(),
             Personen = personen,
             Familien = _w.Konten.Where(_familien.ContainsKey).Select(k => _familien[k]).Select(f => new FamilieStand
             {
@@ -901,6 +908,7 @@ public sealed partial class Familienbuch
                     person.GeuebtSetzen(t, geuebt[(int)t]);
             return person;
         });
+        ErbgutWiederherstellen(s, personen); // alte Spielstände ohne Erbgut: aus dem Startwert jeder Person
 
         _familien.Clear();
         foreach (var fs in s.Familien)

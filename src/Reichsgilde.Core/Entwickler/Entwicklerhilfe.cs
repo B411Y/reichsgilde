@@ -59,6 +59,7 @@ public sealed class Entwicklerhilfe
             case EntwicklerKrankheit kr: return Krankheit(kr.Person, kr.Krankheit);
             case EntwicklerTod t: return Tod(t.Person);
             case EntwicklerZug z: return Zug(z.Person, z.Zug, z.Hinzufuegen);
+            case EntwicklerErbgut e: return Erbgut(e.Person);
             case EntwicklerDiebstahl d: return MitBetrieb(d.Betrieb, Diebstahl);
             case EntwicklerFeuer f: return MitBetrieb(f.Betrieb, Feuer);
             case EntwicklerHausbrand hb: return MitHaus(absender, hb.Haus, Hausbrand);
@@ -201,6 +202,14 @@ public sealed class Entwicklerhilfe
         if (hinzufuegen) _w.Familien.EntwicklerZugGeben(p, zug);
         else p.ZugEntfernen(zug);
         return Befehlsergebnis.Ok($"{p.Vorname} {p.Familienname} {(hinzufuegen ? "hat jetzt" : "verliert")} den Zug {zug.Name}.");
+    }
+
+    private Befehlsergebnis Erbgut(int nummer)
+    {
+        var (p, _, fehler) = Angehoeriger(nummer, brautschau: true);
+        if (fehler is not null) return fehler;
+        _w.Familien.EntwicklerErbgutWuerfeln(p!);
+        return Befehlsergebnis.Ok($"{p!.Vorname} {p.Familienname} hat ein neues Erbgut.");
     }
 
     // ── Ereignisse ──────────────────────────────────────────────────────────
