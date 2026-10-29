@@ -1931,7 +1931,7 @@
     "zugwirkung": { "mag": 1.5, "magNicht": 0.5, "gefahr": 2 },
     "aktivitaeten": {
       "Geschenk":   { "name": "Geschenk", "beschreibung": "Gulden nach Wahl – immer willkommen, doch jedes weitere im selben Jahr wirkt weniger.",
-                      "ap": 1, "geschenk": true, "abnahme": 0.7 },
+                      "ap": 1, "geschenk": true, "abnahme": 0.7, "hoechstens": 15 },
       "Gastmahl":   { "name": "Gastmahl im Wohnhaus", "beschreibung": "Eine lange Tafel, Braten und Wein – und Zeit für ein gutes Wort.",
                       "ap": 1, "gulden": 60, "wirkung": 8, "mag": [ "Gesellig", "Hochmuetig" ], "magNicht": [ "Scheu", "Bescheiden" ],
                       "gefahr": 0.1, "unglueck": "Streit bei Tisch", "unglueckWirkung": -5, "talent": "Rhetorik" },

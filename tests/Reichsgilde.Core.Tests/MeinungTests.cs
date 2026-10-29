@@ -183,6 +183,16 @@ static class MeinungTests
             Pruefe.Wahr(e.Erfolg, e.Meldung);
             Pruefe.Ungefaehr(100 * 0.05 * 1.3, Grund(w, g.Oberhaupt, f.Oberhaupt, "Geschenke"), 1e-9);
             Pruefe.Gleich(2, w.Justiz.SpurenVon(konto).Count(s => s.Art == Vergehen.Bestechung));
+            // Wer kein Ratsherr ist, lässt sich mit Geschenken insgesamt nur bis +15 gewinnen (Entscheidung des Teamleiters).
+            Pruefe.Wahr(w.Ausfuehren(konto, new Aktivitaet("Geschenk", g.Oberhaupt.Kennung, 1000)).Erfolg, "großes Geschenk");
+            Pruefe.Ungefaehr(15, Grund(w, g.Oberhaupt, f.Oberhaupt, "Geschenke"), 1e-9);
+            var angebot = w.Meinungen.Aktivitaet(konto, g.Oberhaupt, "Geschenk", 500)!;
+            Pruefe.Ungefaehr(0, angebot.Wirkung, 1e-9);
+            Pruefe.Wahr(angebot.Hinweis.Contains("höchstens bis +15"), angebot.Hinweis);
+            var gunstVorher = w.Rat.Gunst(r, konto);
+            Pruefe.Wahr(w.Ausfuehren(konto, new Schenken(r.Name, 200)).Erfolg, "Ratsherr ohne Deckel");
+            Pruefe.Ungefaehr(gunstVorher + 200 * w.Rat.GunstJeGulden(r), w.Rat.Gunst(r, konto), 1e-9); // erstes Geschenk im neuen Jahr
+            Pruefe.Wahr(w.Rat.Gunst(r, konto) > 15, "über 15");
         }),
 
         ("Meinungen: Aktivität – Kosten, Wirkung +8 (Gesellig ×1,5, Scheu ×0,5 und doppelte Gefahr), Talent senkt die Gefahr, einmal im Jahr je Person", () =>
@@ -288,9 +298,16 @@ static class MeinungTests
             JahrBeenden(sim);
             Pruefe.Wahr(w.Familien.LetztesJahr.Concat(w.Familien.DiesesJahr).Any(e => e.Text.StartsWith("Streit im Haus")), "Streit gemeldet");
             Pruefe.Gleich(5.0, w.Meinungen.AnsehenAbzug(konto));
+            // Der Abzug wirkt noch in der Ratssitzung am Ende des folgenden Jahres (Wahlpunkte).
+            konto.Stand = w.Daten.StandStufe("Bürger");
+            var amt = w.Rat.Aemter.First(a => a.Stufe == 1);
+            Pruefe.Wahr(w.Ausfuehren(konto, new AmtBewerben(amt.Name)).Erfolg, "Bewerbung");
+            double? inDerSitzung = null;
+            w.RatssitzungAnhalten = _ => { inDerSitzung = w.Meinungen.AnsehenAbzug(konto); return false; };
             w.Meinungen.TatEintragen(erbe.Kennung, f.Oberhaupt.Kennung, "test", "Test", 200); // versöhnt
             JahrBeenden(sim);
-            Pruefe.Gleich(0.0, w.Meinungen.AnsehenAbzug(konto));
+            Pruefe.Gleich(5.0, inDerSitzung);
+            Pruefe.Gleich(0.0, w.Meinungen.AnsehenAbzug(konto)); // danach ist er vorbei
         }),
 
         ("Meinungen: Taten – Fest +5 für alle wichtigen Personen, Klage −15, ertappter Diebstahl −20 (nur beim Opfer), Stimme im Rat ±5", () =>
@@ -311,6 +328,9 @@ static class MeinungTests
             var (c, fc) = Haus(w, "Haus Wache");
             w.Justiz.BeweisGeben(c, spur); // kein Opfer – nur ein Zeuge
             Pruefe.Gleich(0.0, Grund(w, fc.Oberhaupt, fa.Oberhaupt, "Ertappt: Diebstahl"));
+            var (namensvetter, fn) = Haus(w, "Opfer"); // „Opfer“ steckt in „Gießerei Opfer“ – zählt nicht
+            w.Justiz.BeweisGeben(namensvetter, spur);
+            Pruefe.Gleich(0.0, Grund(w, fn.Oberhaupt, fa.Oberhaupt, "Ertappt: Diebstahl"));
             var sitz = w.Rat.Aemter.First(x => x.Ratsherr is not null);
             w.Meinungen.StimmeGemerkt(sitz, a, true);
             Pruefe.Gleich(5.0, Grund(w, fa.Oberhaupt, sitz.Ratsherr!, "Stimmte im Rat für ihn"));

@@ -41,6 +41,14 @@ static class KiMeinungTests
             w.Meinungen.TatEintragen(ich.Kennung, w.Meinungen.Oberhaupt(gross)!.Kennung, "test", "Test", 70);
             Pruefe.Wahr(ki.MeinungUeber(gross) >= 70, $"Meinung {ki.MeinungUeber(gross)}");
             Pruefe.Gleich("Haus Gross", ki.Wahlstimme(amt, new Konto?[] { klein, gross })?.Inhaber);
+
+            // Verschuldete Häuser: Die Meinung färbt nichts – sonst würde ein geliebtes Haus mit Schulden „gefährlicher“.
+            var tief = Haus("Haus Tief", -5_000);
+            var flach = Haus("Haus Flach", -1_000);
+            foreach (var k in new[] { tief, flach }) w.Meinungen.Oberhaupt(k)!.ZuegeLeeren();
+            Pruefe.Wahr(tief.Reinvermoegen < flach.Reinvermoegen && flach.Reinvermoegen < 0, $"{tief.Reinvermoegen} / {flach.Reinvermoegen}");
+            w.Meinungen.TatEintragen(ich.Kennung, w.Meinungen.Oberhaupt(tief)!.Kennung, "test", "Test", 80);
+            Pruefe.Gleich("Haus Tief", ki.Wahlstimme(amt, new Konto?[] { tief, flach })?.Inhaber);
         }),
 
         ("KI-Meinung: KI-Häuser unternehmen Aktivitäten mit den Ratsherren (vor Wahlen und Anträgen) – nicht nur Geschenke", () =>

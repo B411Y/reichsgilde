@@ -161,6 +161,9 @@ public sealed class AktivitaetDaten
     /// </summary>
     public bool Geschenk { get; init; }
     public double Abnahme { get; init; } = 0.7;
+
+    /// <summary>Geschenk: So viel Meinung bringen alle Geschenke zusammen höchstens bei jemandem, der kein Ratsherr ist (null = ohne Deckel).</summary>
+    public double? Hoechstens { get; init; }
 }
 
 /// <summary>
@@ -203,6 +206,7 @@ public sealed class MeinungDaten
             if (a.UnglueckWirkung > 0) f.Add($"{q}.unglueckWirkung ist negativ (oder 0).");
             if (a.Gefahr > 0 && string.IsNullOrWhiteSpace(a.Unglueck)) f.Add($"{q}: Mit Gefahr braucht es den Text „unglueck“.");
             if (a.Geschenk && (a.Abnahme is <= 0 or > 1)) f.Add($"{q}.abnahme muss größer als 0 und höchstens 1 sein.");
+            if (a.Hoechstens < 0) f.Add($"{q}.hoechstens darf nicht negativ sein.");
             if (a.MindestStand is { } st && standStufe(st) < 0) f.Add($"{q}.mindestStand „{st}“ gibt es nicht.");
             if (a.Verletzung is { } v && !krankheiten.Contains(v)) f.Add($"{q}.verletzung: Krankheit „{v}“ gibt es nicht.");
             foreach (var z in a.Mag.Concat(a.MagNicht).Where(z => zuege.Count > 0 && !zuege.Contains(z))) // ohne Abschnitt "charakterzuege" wirken sie nur nicht

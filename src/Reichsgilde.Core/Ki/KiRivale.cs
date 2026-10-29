@@ -1592,12 +1592,14 @@ public sealed partial class KiRivale
 
     /// <summary>
     /// Wie gefährlich ein Kandidat für dieses Haus wäre: Ratsherr 0, ein Haus nach seinem Reinvermögen, ein Feind am meisten.
-    /// Die Meinung des Oberhaupts färbt den Blick (PR #231): Reinvermögen × (1 − Meinung × <c>kiGefahrJePunkt</c>), mindestens ein Zehntel.
+    /// Die Meinung des Oberhaupts färbt den Blick (PR #231): Reinvermögen × (1 − Meinung × <c>kiGefahrJePunkt</c>), mindestens ein Zehntel –
+    /// nur bei positivem Reinvermögen; ein verschuldetes Haus bleibt nach seinen Schulden geordnet.
     /// </summary>
     private double Gefahr(Konto? kandidat) =>
         kandidat is null ? double.MinValue
         : HatGeschadet(kandidat) ? double.MaxValue
-        : kandidat.Reinvermoegen * (_w.Meinungen.Daten is { } d ? Math.Max(0.1, 1 - MeinungUeber(kandidat) * d.Wirkung.KiGefahrJePunkt) : 1);
+        : kandidat.Reinvermoegen <= 0 || _w.Meinungen.Daten is not { } d ? kandidat.Reinvermoegen // Schulden: die Meinung färbt nichts (sonst kehrte sich die Rechnung um)
+        : kandidat.Reinvermoegen * Math.Max(0.1, 1 - MeinungUeber(kandidat) * d.Wirkung.KiGefahrJePunkt);
 
     /// <summary>Das reichste andere Haus, das noch im Spiel ist.</summary>
     private Konto? FuehrendesHaus => _w.Konten.Where(k => k != Konto && k.IstAktiv)

@@ -58,11 +58,14 @@ public sealed partial class Meinungswesen
             sperre = $"Das kostet {a.Ap} AP – {konto.Inhaber} hat noch {konto.Aktionspunkte.Vorrat}.";
         if (a.Geschenk)
         {
-            var wirkung = ich is null ? 0 : gulden * GeschenkJeGulden(mit, konto);
+            var wirkung = ich is null ? 0 : GeschenkWirkung(mit, konto, gulden);
             var zuege = mit.Zuege.Where(z => Math.Abs(z.Daten.Bestechlich - 1) > 1e-9)
                 .Select(z => $"{z.Name}: nimmt {(z.Daten.Bestechlich > 1 ? "gern" : "ungern")}.");
             var schon = ich is null ? 0 : _diesesJahr.GetValueOrDefault((art, mit.Kennung, ich.Kennung));
-            var hinweis = string.Join(" ", zuege.Concat(schon > 0 ? new[] { $"Schon {schon}× beschenkt in diesem Jahr – jedes weitere wirkt weniger." } : Array.Empty<string>()));
+            var voll = mit is not Ratsherr && ich is not null && gulden > 0 && wirkung < gulden * GeschenkJeGulden(mit, konto) - 1e-9;
+            var hinweis = string.Join(" ", zuege
+                .Concat(schon > 0 ? new[] { $"Schon {schon}× beschenkt in diesem Jahr – jedes weitere wirkt weniger." } : Array.Empty<string>())
+                .Concat(voll ? new[] { $"Mit Geschenken gewinnt man {mit.Name} höchstens bis +{Zahlenformat.Ganz(a.Hoechstens ?? 0)}." } : Array.Empty<string>()));
             return new Aktivitaetsangebot(art, a.Name, a.Beschreibung, a.Ap, gulden, 0, wirkung, 0, "", wirkung, hinweis, sperre);
         }
         var (gefahr, wirkung2) = ich is null ? (a.Gefahr, a.Wirkung) : Bewerten(a, ich, mit);
@@ -96,6 +99,18 @@ public sealed partial class Meinungswesen
         if (GeschenkArt is not { } art) return grund;
         var schon = _diesesJahr.GetValueOrDefault((art, mit.Kennung, HausKennung(von)));
         return grund * Math.Pow(_d!.Aktivitaeten[art].Abnahme, schon);
+    }
+
+    /// <summary>
+    /// Was ein Geschenk an Meinung bringt: Betrag × <see cref="GeschenkJeGulden"/>. Wer kein Ratsherr ist, lässt sich mit Geschenken
+    /// insgesamt nur bis <c>hoechstens</c> gewinnen (Grund „Geschenke“, Entscheidung des Teamleiters) – sonst kaufte man ohne Spur Verschonung.
+    /// </summary>
+    public double GeschenkWirkung(ICharakter mit, Konto von, double betrag)
+    {
+        var wert = betrag * GeschenkJeGulden(mit, von);
+        if (mit is Ratsherr || GeschenkArt is not { } art || _d!.Aktivitaeten[art].Hoechstens is not { } deckel) return wert;
+        var schon = _taten.TryGetValue((mit.Kennung, HausKennung(von)), out var t) && t.TryGetValue("geschenk", out var g) ? g.Wert : 0;
+        return Math.Clamp(deckel - schon, 0, wert);
     }
 
     /// <summary>Warum diese Aktivität nicht geht (null = sie geht). Aktionspunkte prüft <see cref="Stadtwirtschaft.Ausfuehren"/>.</summary>
@@ -156,7 +171,7 @@ public sealed partial class Meinungswesen
     /// <summary>Ein Geschenk (auch an Ratsherren, vom Stadtrat aufgerufen): bezahlen, Meinung eintragen, mitzählen. Gibt die Wirkung zurück.</summary>
     internal double Schenken(Konto konto, ICharakter person, double betrag)
     {
-        var wert = betrag * GeschenkJeGulden(person, konto);
+        var wert = GeschenkWirkung(person, konto, betrag);
         konto.Geschenk(betrag);
         TatEintragen(person.Kennung, HausKennung(konto), "geschenk", "Geschenke", wert);
         if (GeschenkArt is { } art)

@@ -316,8 +316,9 @@ public sealed partial class Meinungswesen
     internal void Ertappt(Konto opfer, Spur spur)
     {
         if (_d is null || opfer == spur.Taeter || !_d.Taten.Ertappt.TryGetValue(spur.Art, out var wert)) return;
-        var eigenes = _w.Betriebe.Where(b => b.Konto == opfer).Select(b => b.Name).Append(opfer.Inhaber);
-        if (!eigenes.Any(n => spur.Betroffener.Contains(n, StringComparison.Ordinal))) return;
+        // Betroffen ist genau ein Betrieb des Opfers, sein Wohnhaus oder das Haus selbst – ganze Namen, keine Teilwörter.
+        var eigenes = _w.Betriebe.Where(b => b.Konto == opfer).Select(b => b.Name).Append(Gauner.Unterwelt.WohnhausVon(opfer)).Append(opfer.Inhaber);
+        if (!eigenes.Contains(spur.Betroffener, StringComparer.Ordinal)) return;
         TatEintragen(HausKennung(opfer), HausKennung(spur.Taeter), "ertappt:" + spur.Art, $"Ertappt: {spur.Art.Name()}", wert);
     }
 
@@ -333,7 +334,7 @@ public sealed partial class Meinungswesen
         return 1 - Math.Clamp(Meinung(e, f.Oberhaupt) * w.HaushaltJePunkt, -w.HaushaltHoechstens, w.HaushaltHoechstens);
     }
 
-    /// <summary>Ansehen, das ein Streit im Haus kostet (bis zum Ende des Jahres danach).</summary>
+    /// <summary>Ansehen, das ein Streit im Haus kostet – das ganze folgende Jahr bis einschließlich seiner Ratssitzung.</summary>
     public double AnsehenAbzug(Konto konto) =>
         _d is not null && _streitBis.TryGetValue(konto, out var bis) && bis >= _w.Familien.Jahr ? _d.Wirkung.Streit.Ansehen : 0;
 
@@ -355,6 +356,9 @@ public sealed partial class Meinungswesen
     /// </summary>
     internal void Jahresende()
     {
+        // Ein Streit vom letzten Jahresende hat nun eine Ratssitzung lang gewirkt.
+        foreach (var k in _streitBis.Where(x => x.Value <= _w.Familien.Jahr).Select(x => x.Key).ToList())
+            _streitBis.Remove(k);
         if (_d is not null && _w.Familien.IstAktiv)
         {
             var s = _d.Wirkung.Streit;
@@ -363,9 +367,10 @@ public sealed partial class Meinungswesen
                 if (_w.Familien.Von(konto) is not { } f || _w.Familien.Erbe(f) is not { } erbe || erbe == f.Ehepartner) continue;
                 var meinung = Meinung(erbe, f.Oberhaupt);
                 if (meinung > s.Ab || _zufall.NextDouble() >= s.Chance) continue;
-                _streitBis[konto] = _w.Familien.Jahr;
+                // Familien.Jahr zählt schon das neue Jahr; in der Ratssitzung an seinem Ende steht es eins weiter – bis dahin wirkt der Abzug.
+                _streitBis[konto] = _w.Familien.Jahr + 1;
                 _w.Familien.Ereignis(konto, $"Streit im Haus {f.Nachname}: {erbe.Vorname} überwirft sich mit {f.Oberhaupt.Vorname} (Meinung {Zahlenformat.Ganz(meinung)}). " +
-                                            $"Die Stadt redet darüber – {Zahlenformat.Ganz(s.Ansehen)} Ansehen weniger bis Ende {_w.Familien.Jahr}.");
+                                            $"Die Stadt redet darüber – {Zahlenformat.Ganz(s.Ansehen)} Ansehen weniger bis zur Ratssitzung Ende {_w.Familien.Jahr}.");
             }
         }
 
@@ -381,8 +386,6 @@ public sealed partial class Meinungswesen
             if (taten.Count == 0) _taten.Remove(schluessel);
         }
         _diesesJahr.Clear();
-        foreach (var k in _streitBis.Where(x => x.Value < _w.Familien.Jahr).Select(x => x.Key).ToList())
-            _streitBis.Remove(k);
     }
 
     // ═════════════════════════════════════════════════════════════════════════
