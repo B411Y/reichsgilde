@@ -248,6 +248,7 @@ public partial class Hauptszene : Node
         Tooltips.VerweiseErgaenzen = (text, eigene) => Lexikon.VerweiseEinsetzen(text, eigene); // auch normale Tooltips verlinken Lexikon-Begriffe
         LeerstandKnoepfeBauen();
 
+        Ladezeit.Marke("Oberfläche: Tafeln bauen");
         RatssitzungBauen(); // die Tafel der sichtbaren Ratssitzung (Hauptszene.Ratssitzung.cs) – vor der Partie, die sich mit ihr verbindet
         var optionen = Startoptionen();
         if (optionen.GetValueOrDefault("lexikon-pruefen") == "1")
@@ -255,7 +256,68 @@ public partial class Hauptszene : Node
             GetTree().Quit(Lexikon.PruefenUndMelden() ? 0 : 1); // nur die Datei prüfen (Test), kein Spiel
             return;
         }
+        PartieAufbauen(optionen);
+    }
+
+    /// <summary>
+    /// Baut die Partie hinter dem Ladebildschirm auf, ein Abschnitt je Bild: Kern (Daten, Karte, Partie), die Stadt (<see cref="Stadtansicht.Aufbauen"/>),
+    /// die Startoptionen (<see cref="PartieStarten"/>) und die ersten Bilder (<see cref="ErsteBilderAbwarten"/>). Bis der Ladebildschirm geht,
+    /// laufen weder Zeit noch Eingabe. Die Anteile des Balkens folgen der Messung mit <c>--ladezeit=1</c> (Köln, 29.10.2026).
+    /// </summary>
+    private async void PartieAufbauen(Dictionary<string, string> optionen)
+    {
+        _stadt.OhneHintergrund = true;
+        SetProcess(false);
+        SetProcessUnhandledInput(false);
+        var lade = Ladebildschirm.Zeigen(GetTree(), Stadtkarten.StartKennung); // vom Hauptmenü schon offen; sonst (Startoptionen, Test) hier
+        lade.Fortschritt(0.07f, "Die Chronik wird aufgeschlagen …");
+        GetViewport().Disable3D = true; // die halbe Stadt zu zeichnen kostete je Abschnitt Zeit, zu sehen ist sie ohnehin nicht (ErsteBilderAbwarten)
+        await Ladebildschirm.Bild(GetTree());
         _simulation = SimulationAufbauen(optionen);
+        await lade.Durchlaufen(_stadt.Aufbauen(), 0.16f, 0.71f);
+        lade.Fortschritt(0.71f, "Die Zunftglocke wird geläutet …");
+        await Ladebildschirm.Bild(GetTree());
+        PartieStarten(optionen);
+        await ErsteBilderAbwarten(lade, 0.75f);
+        SetProcess(true);
+        SetProcessUnhandledInput(true);
+        _stadt.Ruhen(false);
+        Ladezeit.Marke("Ladebild weg");
+        lade.Schliessen();
+        Ladezeit.BilderMessen(GetTree(), "Partie"); // --ladezeit=1: die ersten sichtbaren Bilder (Ladezeit.cs)
+    }
+
+    /// <summary>
+    /// Die ersten Bilder noch hinter dem Ladebildschirm: Die Stadt rechnet Gras, Büschel und Wegeschicht und stellt das Licht der Stunde ein,
+    /// der Grafiktreiber übersetzt die Shader, und Regen und Schnee werden je ein paar Bilder lang gezeigt (Shader vorwärmen,
+    /// <see cref="Stadtansicht.WetterProbe"/>). Die Zeit der Partie steht dabei. Fertig, wenn drei Bilder in Folge kurz sind (höchstens 5 s).
+    /// </summary>
+    private async Task ErsteBilderAbwarten(Ladebildschirm lade, float von)
+    {
+        GetViewport().Disable3D = false;
+        _stadt.SetProcess(true); // rechnen ja, Eingabe erst ohne Ladebildschirm
+        var anfang = Time.GetTicksMsec();
+        var vorher = anfang;
+        var ruhig = 0;
+        Wetterlage?[] proben = Fenster.AktuelleWettereffekte == Wettereffekte.Niedrig || OS.GetCmdlineUserArgs().Contains("--vorwaermen=0")
+            ? Array.Empty<Wetterlage?>() : new Wetterlage?[] { null, Wetterlage.Regen, Wetterlage.Regen, Wetterlage.Schnee, Wetterlage.Schnee, null };
+        for (var bild = 0; bild < 300; bild++)
+        {
+            lade.Fortschritt(von + (1 - von) * Math.Min(1f, bild / 8f), bild < 2 ? "Gras wächst …" : "Letzte Handgriffe …");
+            if (bild >= 1 && bild - 1 < proben.Length) _stadt.WetterProbe(proben[bild - 1]);
+            _stadt.Aktualisieren(GetProcessDeltaTime());
+            await Ladebildschirm.Bild(GetTree());
+            var jetzt = Time.GetTicksMsec();
+            ruhig = bild > proben.Length && jetzt - vorher < 50 ? ruhig + 1 : 0;
+            vorher = jetzt;
+            if (ruhig >= 3 || jetzt - anfang > 5000) break;
+        }
+        _stadt.WetterProbe(null);
+    }
+
+    /// <summary>Was nach dem Aufbau der Stadt kommt: Spielmenü, Ereignisse der Partie, Tempo und die Startoptionen, die eine fertige Stadt brauchen.</summary>
+    private void PartieStarten(Dictionary<string, string> optionen)
+    {
         EntwicklerSperreSetzen(); // Hauptszene.Entwickler.cs
         SpielmenueBauen();
         _ratKnopf.Pressed += RatOeffnen;
@@ -837,6 +899,7 @@ public partial class Hauptszene : Node
             try
             {
                 var (geladen, spielerKonto) = Spielstaende.Laden(ladePfad);
+                Ladezeit.Marke("Kern: Spielstand lesen");
                 if (spielerKonto is not null && geladen.Wirtschaft is not null)
                 {
                     SimulationVerbinden(geladen, spielerKonto);
@@ -854,6 +917,7 @@ public partial class Hauptszene : Node
 
         // 2. Neue Partie – mit den Einstellungen aus dem Menü oder (Startoptionen/Test) den Standardwerten.
         var daten = WirtschaftsdatenLaden();
+        Ladezeit.Marke("Kern: wirtschaft.json lesen");
         if (daten is null)
             return new Simulation(); // ohne Daten läuft nur die Uhr
 
@@ -966,15 +1030,11 @@ public partial class Hauptszene : Node
     /// <summary>Liest game/daten/wirtschaft.json. Bei Fehlern: Meldung ins Protokoll und null.</summary>
     private Wirtschaftsdaten? WirtschaftsdatenLaden()
     {
-        try
-        {
-            // Godot.FileAccess liest auch aus dem exportierten Spiel (res:// = Projektordner).
-            var json = Godot.FileAccess.GetFileAsString(WirtschaftsdatenPfad);
-            if (!string.IsNullOrEmpty(json))
-                return Wirtschaftsdaten.AusJson(json);
-            Protokollieren($"Fehler: {WirtschaftsdatenPfad} wurde nicht gefunden.");
-        }
-        catch (WirtschaftsdatenFehler fehler)
+        // Godot.FileAccess liest auch aus dem exportierten Spiel (res:// = Projektordner); meist schon im Hintergrund gelesen (Datenvorrat.cs).
+        var (daten, fehler, leer) = Datenvorrat.Holen();
+        if (daten is not null) return daten;
+        if (leer) Protokollieren($"Fehler: {WirtschaftsdatenPfad} wurde nicht gefunden.");
+        else if (fehler is not null)
         {
             Protokollieren(fehler.Message);
             GD.PushError(fehler.Message);
@@ -1031,6 +1091,7 @@ public partial class Hauptszene : Node
         _bauFrage.Verbinden(simulation, spieler);
         _bau.Verbinden(simulation, spieler, _stadt);
         _wegTafel.Verbinden(simulation, spieler, _stadt);
+        Ladezeit.Marke("Kern: Partie aufstellen, Oberfläche verbinden");
         // Die Stadtansicht zeichnet die Karte der Partie, stellt jeden Betrieb an seinen Platz und zeigt die freien Plätze.
         _stadt.Verbinden(simulation, spieler);
         w.BetriebErworben += betrieb =>
@@ -1095,7 +1156,9 @@ public partial class Hauptszene : Node
         _hafenTafel.Aktualisieren(delta);
         _stadt.Auswahl = _auswahl.Visible || _wohnhaus.Visible ? _auswahlKennung // Name des ausgewählten Gebäudes bleibt sichtbar
             : _hafenTafel.Visible ? (_hafenTafel.GewaehltesSchiff is { } schiff ? "schiff:" + schiff : Stadtansicht.HafenKennung(_hafenTafel.Hafen)) : null;
+        var uhr = Ladezeit.Uhr();
         _stadt.Aktualisieren(delta);
+        Ladezeit.Dazu("im Bild: Stadtansicht.Aktualisieren gesamt", uhr);
         foreach (var tafel in _innenTafeln) tafel.Aktualisieren(delta);
         _wohnhausBaum.Aktualisieren(delta);
         var innenTafelOffen = _innenTafeln.Any(t => t.Visible) || _wohnhausBaum.Visible || _sitzungsTafel.Laeuft; // die Meldungen schienen sonst durch die große Tafel
