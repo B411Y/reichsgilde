@@ -11,6 +11,7 @@ Geprüft wird:
     Ausgenommen: .import, .uid, .gitkeep, HERKUNFT.md.
   - Jedes Muster trifft mindestens eine Datei, und „anzahl“ stimmt mit den Treffern überein.
   - Pflichtfelder sind nicht leer („unbekannt“ ist erlaubt), Art, Herkunft, Datum und „spieler_sieht“ haben gültige Werte.
+  - Die Zeilen stehen nach Muster (erste Spalte) sortiert; neue Zeilen an die alphabetisch passende Stelle, nicht ans Ende.
   - Verweise auf Prompt-Dateien (docs/assets/prompts/…) zeigen auf vorhandene Dateien.
   - Zeilen mit „datum“ nach dem Stichtag (Konstante STICHTAG, None = aus) tragen kein „CC BY“ als Lizenz.
   - Die Steam-Liste entspricht dem Protokoll (sonst mit --steam-liste neu schreiben).
@@ -43,9 +44,9 @@ KI_HERKUENFTE = {"KI", "gemischt"}
 # auch wenn das Spiel sie nicht ausliefert.
 PRUEFORDNER = ("game/assets/", "tools/icons/quellen/", "tools/portraets/quellen/")
 # Stichtag der Lizenzänderung (Entscheidung 29.10.2026, LICENSE-INHALTE.md): Inhalte mit späterem Datum stehen unter
-# „Alle Rechte vorbehalten“, nicht unter CC BY. Der Teamleiter trägt nach dem Merge das Merge-Datum "JJJJ-MM-TT" ein;
-# bis dahin None = Prüfung aus.
-STICHTAG = None
+# „Alle Rechte vorbehalten“, nicht unter CC BY. Merge von PR #240 am 29.10.2026 (Format "JJJJ-MM-TT", None = Prüfung aus).
+# Das Datum selbst gilt noch als vor dem Stichtag; geprüft werden Zeilen ab dem 30.10.2026.
+STICHTAG = "2026-10-29"
 
 AUSGENOMMEN_ENDUNG = (".import", ".uid")
 AUSGENOMMEN_NAME = {".gitkeep", "HERKUNFT.md"}
@@ -136,6 +137,17 @@ def protokoll_lesen(fehler):
             zeile["_nummer"] = nummer
             zeilen.append(zeile)
         return zeilen
+
+
+def sortierung_pruefen(zeilen, fehler):
+    """Die Zeilen stehen nach Muster sortiert (einfacher Zeichenvergleich). Meldet jede Zeile, die zu früh steht."""
+    for i in range(1, len(zeilen)):
+        if zeilen[i]["pfad_muster"] < zeilen[i - 1]["pfad_muster"]:
+            muster = zeilen[i]["pfad_muster"]
+            davor = next((z for z in reversed(zeilen[:i]) if z["pfad_muster"] <= muster), None)
+            ort = (f"nach Zeile {davor['_nummer']} ({davor['pfad_muster']})" if davor else "ganz an den Anfang (unter die Kopfzeile)")
+            fehler.append(f"Zeile {zeilen[i]['_nummer']} ({muster}) steht nicht in der Reihenfolge nach Pfad; "
+                          f"sie gehört {ort}")
 
 
 def felder_pruefen(zeile, fehler):
@@ -301,6 +313,12 @@ def selbsttest():
             if ist != soll:
                 ok = False
                 print(f"Selbsttest FEHLER: Stichtag {stichtag}, Datum {datum}, Lizenz {lizenz}: erwartet {soll}, war {ist}")
+        for muster, erwartet in ((["a", "b", "b", "c"], 0), (["a", "c", "b"], 1), (["b", "a", "c", "a"], 2)):
+            fehler = []
+            sortierung_pruefen([{"_nummer": n + 2, "pfad_muster": m} for n, m in enumerate(muster)], fehler)
+            if len(fehler) != erwartet:
+                ok = False
+                print(f"Selbsttest FEHLER: Sortierung {muster}: erwartet {erwartet} Fehler, war {len(fehler)}")
         print("Selbsttest in Ordnung." if ok else "Selbsttest fehlgeschlagen.")
         return 0 if ok else 1
     finally:
@@ -318,6 +336,7 @@ def main():
 
     fehler = []
     zeilen = protokoll_lesen(fehler)
+    sortierung_pruefen(zeilen, fehler)
     for zeile in zeilen:
         felder_pruefen(zeile, fehler)
     dateien = dateien_im_repository()
