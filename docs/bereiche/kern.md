@@ -193,7 +193,7 @@ Messungen des Kerns stehen in `docs/WIRTSCHAFTSMODELL.md` (nur der Kern schreibt
 | Taktgeber | Nicht geändert (für die Schlange nicht nötig). **Vorschlag für M3, Zugtakt:** Nur der Gastgeber hat einen Taktgeber; aus seiner Echtzeit macht er Züge („Zug n: bis Tick T_n, mit diesen Befehlen“), etwa alle 100 ms. Die anderen Rechner rechnen nie über das letzte bestätigte T_n hinaus (`Simulation.BisTick(T_n)` statt `Aktualisieren(delta)`), ein Befehl bekommt als Ziel-Tick mindestens T_n + Verzögerung. Verworfen wird nichts mehr: Hängt ein Rechner, holt er je Bild höchstens `MaxTicksProAufruf` nach und behält den Rest; hängt der Gastgeber, kündigt er weniger Ticks an – nur dort darf Zeit wegfallen, bevor sie im Zug steht. Pause und Tempo werden Befehle an den Gastgeber. | 29.10.2026 |
 | Tests | `BefehlsboteTests` (19): Einzelspiel wie `Ausfuehren`, Ziel-Tick in der Zukunft (gleich wie „Ticks, dann Befehl“), Reihenfolge im selben Tick, Pause und Spielende, falscher Absender, Speichern und Laden mit voller Schlange (beide laufen 1.200 Ticks gleich weiter), alte und kaputte Spielstände, jede Befehlsart, Aufzeichnen und Abspielen, wartende Befehle am Endtick, Lücke durch die Ratssitzung; nach der Prüfung: Befehle aus Ereignissen im Tick, Ratssitzung mit wartendem Befehl, Spielende (Verwerfen, Siegbedingung, `Beenden`), Ausnahmen in Rückruf und Empfänger, Wiedereintritt, Reihenfolge sofort/wartend/Haus/Nummer, `Empfangen` zu spät und `NaechsteNummer` nach dem Laden. | 29.10.2026 |
 
-### Entwicklerfenster, Kern (PR #…)
+### Entwicklerfenster, Kern (PR #254)
 
 | Thema | Entscheidung | Datum |
 |---|---|---|

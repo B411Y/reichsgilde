@@ -175,7 +175,7 @@ So wird eingetragen (damit sich die Chats nie an derselben Stelle treffen):
 | Tabellen | `Streifenraster`: jede zweite Zeile hinterlegt, Zeilenabstand 10 px (Produktion, Lager, Rat; Markt und Personal sind Kacheln bzw. Karten ohne Tabelle). | 29.10.2026 |
 | Kleine Fehler | F4 Rat: Der Rollbereich lässt Zeitstrahl und Betriebsleiste frei. F7: Marke über dem Band. F5 und F8: Beschriftungen im Raum (siehe Bericht). | 29.10.2026 |
 
-### Entwicklerfenster (PR #…)
+### Entwicklerfenster (PR #254)
 
 | Thema | Entscheidung | Datum |
 |---|---|---|
@@ -187,5 +187,5 @@ So wird eingetragen (damit sich die Chats nie an derselben Stelle treffen):
 | Wetter und Darstellung | Reine Darstellung, nichts wird gespeichert: Wetter und Jahreszeit der Ansicht (auch „Automatisch“) und ein Blitz über `Stadtansicht.Entwickler.cs` – derselbe Weg wie `--wetter` und `--jahreszeit` (`_wetterVorgabe`), die Werte stehen sofort; Dunst und Unschärfe über `Fenster.DunstSetzen` und `UnschaerfeSetzen` mit `speichern: false` (die Einstellungen der Datei bleiben unberührt); Hilfsanzeigen Wegenetz (jetzt auch schaltbar, `--wegenetz=1` nutzt denselben Weg) und Bauzonen (`BauzonenHilfe`, neben dem Baumodus). Die Schalter gleichen sich zweimal je Sekunde mit dem Ist-Stand ab. Ohne Weg und darum weggelassen: ein eigener Nachtdunst (es gibt nur den Morgendunst mit Bodennebel). | 29.10.2026 |
 | Messwerte | Aktualisieren sich zweimal je Sekunde: Bildrate, Bildzeit, Zeichenaufrufe, Objekte, Dreiecke (`RenderingServer.GetRenderingInfo`), Lichter im Bild (`Stadtansicht.LichterImBild` zählt alle sichtbaren `Light3D` im Baum, nur alle zwei Sekunden), Knoten, Speicher (Godot, .NET, Grafik, Texturen), Spielzeit und Tempo. Die Prüfsumme (`Zustandspruefsumme.Kurz`) rechnet nur auf Knopfdruck; der KI-Einblick (`KiEinblick.Alle`, Zeilen als Text) beim Öffnen des Reiters und auf Knopfdruck. | 29.10.2026 |
 | Startoption | `--entwicklerfenster=1` (mit `--entwickler=1` oder dem Haken) öffnet das Fenster gleich, `=2` bis `=5` auf dem Reiter 2 bis 5. | 29.10.2026 |
-| Klicktest | Vulkan (T400): Fenster mit jedem Reiter, Gulden geben (Kopfzeile 4.557 → 5.874 im Lauf, die Meldung im Fenster), Regen und Winter mit Wegenetz und Bauzonen, Bis Ratssitzung (Jahresbericht mit dem Satz zur Entwicklerhilfe, Spielstand mit dem Kennzeichen), Laden und F12 danach (Sperre offen, Gulden geben geht), 64×, Ladeliste mit „[Entwicklerhilfe]“. Kein SCRIPT ERROR. | 29.10.2026 |
+| Klicktest | Vulkan (T400): Fenster mit jedem Reiter, Gulden geben (Kopfzeile 4.557 → 5.874 im Lauf, die Meldung im Fenster), Regen und Winter mit Wegenetz und Bauzonen, Bis Ratssitzung (Jahresbericht mit dem Satz zur Entwicklerhilfe, Spielstand mit dem Kennzeichen), Laden und F12 danach (Sperre offen, Gulden geben geht), 64×, Ladeliste mit „[Entwicklerhilfe]“. Kein SCRIPT ERROR. Nach dem Zusammenführen mit M1 und M2 (Integration, PR #254) noch einmal: Reiter 1, Gulden geben (+1.000), Wetter Regen, Messwerte mit Prüfsumme (b83e4195), Speichern und Ladeliste mit „[Entwicklerhilfe]“; ohne `--entwickler=1` kein Knopf und keine Reaktion auf F12. | 29.10.2026 |
 
