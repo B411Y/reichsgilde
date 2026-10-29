@@ -5,6 +5,9 @@
 #  offenen, fertigen PR (nicht in Entwürfe – an denen arbeitet ein Chat gerade).
 #
 #    • Klappt das, wird der Branch gepusht und die Prüfung (build.yml) neu gestartet.
+#      Mit dem Repository-Geheimnis BOT_TOKEN (Token des Bot-Kontos) startet der Push die
+#      normalen PR-Prüfungen von selbst; Pushes mit dem GITHUB_TOKEN tun das aus
+#      Sicherheitsgründen nicht. Ohne das Geheimnis startet der Ablauf build.yml selbst.
 #      Konflikte in docs/bereiche/*.md löst Git selbst: beide Einträge bleiben stehen
 #      (Regel „union“ in .gitattributes).
 #    • Gibt es einen echten Konflikt (z. B. im Code), bekommt der PR das Label
@@ -39,12 +42,16 @@ jobs:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
+          # checkout legt das Token für spätere git-Befehle (push) ab; GitHub maskiert es im Log.
+          token: ${{ secrets.BOT_TOKEN || github.token }}
 
       - name: main in die offenen PRs mergen
         env:
           GH_TOKEN: ${{ github.token }}
           LABEL: "Konflikt mit main"
           REPO: ${{ github.repository }}
+          # "true", wenn BOT_TOKEN gesetzt ist (nur die Angabe, nie der Wert).
+          MIT_BOT_TOKEN: ${{ secrets.BOT_TOKEN != '' }}
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
@@ -62,8 +69,12 @@ jobs:
               echo "#$nummer ($zweig): schon aktuell"
             elif git merge --no-edit -m "main eingemergt (automatisch)" origin/main; then
               git push -q origin "$zweig"
-              gh workflow run build.yml --ref "$zweig" < /dev/null
-              echo "#$nummer ($zweig): main eingemergt, Prüfung gestartet"
+              if [ "$MIT_BOT_TOKEN" = "true" ]; then
+                echo "#$nummer ($zweig): main eingemergt, Prüfung startet durch den Push"
+              else
+                gh workflow run build.yml --ref "$zweig" < /dev/null
+                echo "#$nummer ($zweig): main eingemergt, Prüfung gestartet"
+              fi
             else
               dateien=$(git diff --name-only --diff-filter=U | sed 's/^/`/; s/$/`/' | paste -sd, -)
               git merge --abort
