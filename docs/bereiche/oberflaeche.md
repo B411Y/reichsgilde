@@ -156,3 +156,14 @@ So wird eingetragen (damit sich die Chats nie an derselben Stelle treffen):
 | Werkzeug | `tools/handbuch/`: `aufnehmen.sh` (Rohbilder mit dem Klicktest), `beschriften.sh` mit `beschriften.gd` (Godot unter Xvfb setzt Rahmen und Nummern nach `bilder.json`, schreibt `.webp`). Die Bilder lassen sich nach einer Änderung der Oberfläche neu erzeugen. | 29.10.2026 |
 | Protokoll | Bilder unter `docs/` sind nicht protokollpflichtig (Prüfskript prüft nur `game/assets/` und die KI-Quellen unter `tools/`). Es sind Bildschirmfotos des Spiels, nicht KI-erzeugt. | 29.10.2026 |
 | Berichtigungen | Gegen den Code geprüft: Die Einstellungen haben **sechs** Reiter (nicht fünf: dazu „Spiel“); ein Klick auf das Porträt in der Kopfzeile öffnet das Wohnhaus, nicht das Charakterfenster; neu aufgenommen: Wege-Modus (G), X (alle Fenster zu), Rechtsklick im Gebäude, Rahmenwahl und Randschwenken drinnen, Rechtsziehen im Baumodus, Charakterfenster und Aktivitäten, Esc-Reihenfolge. | 29.10.2026 |
+
+### Lesbarkeit und mittige Fenster (PR #…)
+
+| Thema | Entscheidung | Datum |
+|---|---|---|
+| Fenster mittig | Jedes Fenster öffnet immer in der Bildschirmmitte (senkrecht zwischen Zeitstrahl und Betriebsleiste), auch nach dem Verschieben; Verschieben bei offenem Fenster bleibt möglich. **„Fensterlage merken“ (PR #214) entfällt** (Entscheidung des Nutzers); festgehaltene Fenster, die zugleich offen sind, sind um 28 px je Fenster versetzt. Ausnahmen (`Mittig = false`): Auswahl (am Mauszeiger, im Raum rechts), Charakterfenster (rechts unter dem Zeitstrahl), Bau- und Wegtafel (rechts, die Karte bleibt frei). | 29.10.2026 |
+| Schrift | Mindestgröße 14 px zentral in `Schriften` (Labels erhalten dazu weiter den Zuschlag von 1); Zeitstrahl-Namen 14 px (Band 20 px, `KopfHoehe` 140). Gleich breite Ziffern waren schon an (`tnum`). | 29.10.2026 |
+| Kontrast | Gemessen: die Grautöne (0,60–0,75) erreichen auf dem Tafelgrund 5,9–9,2 : 1; das blasse Aussehen kam von der Größe. `Schriften.LesbareFarbe` sichert 4,5 : 1 für Label-Farben ab. Gesperrte Knöpfe: Schrift 0,62/0,58/0,52. | 29.10.2026 |
+| Knöpfe und Schalter | `Oberflaechenstil` im Standard-Thema: Fläche, Rand, Hover, gedrückt und gesperrt; Schalter und Häkchen als gezeichnete Bilder. Die Holzbalken, Bücher und Schriftrollen (spätere Schritte) lösen es ab. | 29.10.2026 |
+| Tabellen | `Streifenraster`: jede zweite Zeile hinterlegt, Zeilenabstand 10 px (Produktion, Lager, Rat; Markt und Personal sind Kacheln bzw. Karten ohne Tabelle). | 29.10.2026 |
+| Kleine Fehler | F4 Rat: Der Rollbereich lässt Zeitstrahl und Betriebsleiste frei. F7: Marke über dem Band. F5 und F8: Beschriftungen im Raum (siehe Bericht). | 29.10.2026 |
