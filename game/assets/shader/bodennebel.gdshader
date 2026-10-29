@@ -24,7 +24,7 @@ void fragment() {
 	vec2 drift = normalize(wind_richtung + vec2(0.0001)) * TIME * (0.25 + 0.5 * wetter_wind);
 	vec2 p = v_welt.xz + drift + vec2(versatz * 37.0, versatz * 11.0);
 	float n = w_rausch(p * 0.021) * 0.55 + w_rausch(p * 0.06 + 3.7) * 0.3 + w_rausch(p * 0.17 + 9.1) * 0.15;
-	float dichte = smoothstep(0.38, 0.78, n + (v_senke - 0.4) * 0.7) * v_senke;
+	float dichte = smoothstep(0.3, 0.9, n + (v_senke - 0.4) * 0.7) * v_senke;   // breitere Schwellen als früher: auch wo die Neigung steil wechselt, bleibt der Rand weich
 	// Tiefe der Szene hinter dem Netz: wo Wand oder Boden nahe liegen, weich ausblenden
 	float tief = texture(tiefe, SCREEN_UV).x;
 	vec4 sicht = INV_PROJECTION_MATRIX * vec4(SCREEN_UV * 2.0 - 1.0, tief, 1.0);
