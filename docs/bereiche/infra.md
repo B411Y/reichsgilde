@@ -4,7 +4,7 @@ Werkzeuge, Abläufe, Lizenz und Asset-Protokoll. Neue Einträge unten anhängen,
 
 ## Offen
 
-- Lizenz der Inhalte (PR #240): Nach dem Merge trägt der Teamleiter das Merge-Datum als `STICHTAG` in `tools/assets/protokoll_pruefen.py` ein. Die Entscheidung sollte von einer Anwältin oder einem Anwalt geprüft werden; offen ist dabei u. a., ob Texte in Code-Zeichenketten (`game/scripts/`) als Inhalte oder als Code gelten.
+- Lizenz der Inhalte (PR #240): Die Entscheidung sollte von einer Anwältin oder einem Anwalt geprüft werden; offen ist dabei u. a., ob Texte in Code-Zeichenketten (`game/scripts/`) als Inhalte oder als Code gelten.
 - (Lizenz) Der Nutzer kann später entscheiden, ob Überarbeitungen vorhandener Dateien ebenfalls unter die neue Lizenz fallen. Bis dahin prüft das Skript nur Zeilen mit `datum` nach dem Stichtag; eine Überarbeitung, die eine bestehende Zeile ändert, behält deren Datum und CC BY.
 
 ## Entscheidungen
@@ -19,4 +19,12 @@ Werkzeuge, Abläufe, Lizenz und Asset-Protokoll. Neue Einträge unten anhängen,
 | Überarbeitungen | Überarbeitete oder ersetzte Fassungen bereits vorhandener Dateien bleiben unter CC BY 4.0 (Wahl des Nutzers: „Ab Merge des Lizenz-PRs“, nicht „auch neue Fassungen“) | 29.10.2026 |
 | Fremdmaterial | Behält seine Lizenz (Quaternius CC0, Schriften OFL, TressFX MIT …) | 29.10.2026 |
 | GitHub | Öffentliches Repository: zusätzlich GitHub-Nutzungsbedingungen, Abschnitt D.5 (Ansehen, Forken innerhalb von GitHub) | 29.10.2026 |
-| Protokoll | Neue Zeilen ab Stichtag: `lizenz_ergebnis` = „Alle Rechte vorbehalten“; das Prüfskript prüft das (`STICHTAG`) | 29.10.2026 |
+| Protokoll | Neue Zeilen ab Stichtag: `lizenz_ergebnis` = „Alle Rechte vorbehalten“; das Prüfskript prüft das (`STICHTAG` = 2026-10-29, Tag des Merges von PR #240) | 29.10.2026 |
+
+### Merge-Warteschlange (PR #243)
+
+| Thema | Entscheidung | Datum |
+|---|---|---|
+| Freigabe | Dem Nutzer liegt immer nur ein PR zur Freigabe oder zum Merge vor; fertige PRs warten in der Warteschlange des Teamleiters (`.claude/teamleiter.md`) | 29.10.2026 |
+| Nachziehen | Nach jedem Merge bringt der Teamleiter den nächsten PR auf den neuen `main`-Stand (Konflikte, CI grün) und gibt ihn erst dann frei; Grund: fünf offene PRs erzeugten am 29.10. nach jedem Merge neue Konflikte | 29.10.2026 |
+| Protokoll | `docs/assets/protokoll.csv` steht nach `pfad_muster` sortiert, neue Zeilen an der passenden Stelle; das Prüfskript meldet Verstöße und nennt den Platz (Zuordnung „letzte Zeile gewinnt“ blieb beim Sortieren unverändert) | 29.10.2026 |

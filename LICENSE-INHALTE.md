@@ -63,7 +63,7 @@ Werkzeug, Modell, Prompt und Nachbearbeitung je Datei stehen im Asset-Protokoll 
 
 Inhalte, die **nach dem Merge von PR #240** neu ins Repository kommen oder neu erstellt werden (neue Dateien, neue Texte), stehen unter **„Alle Rechte vorbehalten“**: © 2026 B411Y. Ohne ausdrückliche Erlaubnis darf sie niemand über das hinaus nutzen, was das Gesetz oder die GitHub-Nutzungsbedingungen (siehe unten) erlauben.
 
-Jede neue Zeile im Asset-Protokoll trägt ab dann in `lizenz_ergebnis` den Wert „Alle Rechte vorbehalten“; `tools/assets/protokoll_pruefen.py` prüft das, sobald der Stichtag dort eingetragen ist.
+Jede neue Zeile im Asset-Protokoll trägt ab dann in `lizenz_ergebnis` den Wert „Alle Rechte vorbehalten“; `tools/assets/protokoll_pruefen.py` prüft das für Zeilen mit Datum nach dem Stichtag 29.10.2026 (Tag des Merges von PR #240, 07:45 Uhr).
 
 Überarbeitete oder ersetzte Fassungen bereits vorhandener Dateien bleiben unter CC BY 4.0.
 
