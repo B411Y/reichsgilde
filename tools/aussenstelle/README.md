@@ -6,13 +6,20 @@ Werkzeuge für die Claude-Code-Sitzung „Aussenstelle“ auf dem Windows-PC (Go
 
 1. Eingabeaufforderung oder PowerShell im Ordner `tools\aussenstelle` des Außenstellen-Klons öffnen (z. B. `C:\Reichsgilde_Aussenstelle\reichsgilde`).
 2. `powershell -NoProfile -ExecutionPolicy Bypass -File einrichten.ps1`
-3. Das Skript nimmt den Ordner in deinen **Benutzer-PATH** auf und legt auf dem Desktop die Verknüpfung **„Reichsgilde – PC zurückholen“** an. Offene Fenster einmal neu öffnen. Mehrfaches Ausführen ändert nichts doppelt.
+3. Das Skript nimmt den Ordner in deinen **Benutzer-PATH** auf, legt auf dem Desktop die Verknüpfung **„Reichsgilde – PC zurückholen“** an und schreibt die **Wurzel** des Notschalters nach `%LOCALAPPDATA%\Reichsgilde\wurzel.txt`. Offene Fenster einmal neu öffnen. Mehrfaches Ausführen ändert nichts doppelt.
+4. Die Wurzel ist der Elternordner des Repos, also `C:\Reichsgilde_Aussenstelle` mit allen Klonen und Worktrees darunter, egal aus welchem Klon du einrichtest. Eine andere Wurzel: `einrichten.ps1 -Wurzel D:\Anderer_Ordner`. Fehlt `wurzel.txt`, gilt ebenfalls der Elternordner des Repos.
 
 ## Notschalter
 
 - Doppelklick auf die Desktop-Verknüpfung, oder in einem Fenster `reichsgilde-stopp`.
-- Das legt die Sperrdatei `%LOCALAPPDATA%\Reichsgilde\STOPP` an und beendet sofort alle Godot- und dotnet-Prozesse (samt Helfern), die aus dem Ordner der Außenstelle gestartet wurden. Dein Godot-Editor in einem anderen Ordner bleibt unberührt.
+- Das legt die Sperrdatei `%LOCALAPPDATA%\Reichsgilde\STOPP` an und beendet sofort die Prozesse der Außenstelle (siehe unten).
 - Meldung: „Reichsgilde-Außenstelle gestoppt. Neue Aufträge sind gesperrt, bis du ‚reichsgilde-frei‘ eingibst.“
+
+### Was der Notschalter beendet
+
+- Prozesse, deren Name mit `godot` oder `dotnet` beginnt **und** deren Befehlszeile oder Programmpfad in der Wurzel liegt (`C:\Reichsgilde_Aussenstelle\…`).
+- Dazu deren Kindprozesse namens `godot*`, `dotnet*`, `msbuild*`, `vbcscompiler*` oder `testhost*` (Build- und Testhelfer).
+- Nicht beendet werden andere Programme, auch nicht in der Wurzel (z. B. PowerShell, Git, Claude Code selbst), und Godot außerhalb der Wurzel (dein Editor in einem anderen Ordner bleibt unberührt). Die Sperrdatei hält die Außenstelle trotzdem an: Sie fragt nicht mehr und bricht lange Aufgaben beim nächsten `pruefen` ab.
 
 ## Wieder freigeben
 

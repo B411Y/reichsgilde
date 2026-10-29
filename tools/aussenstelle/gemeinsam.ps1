@@ -4,6 +4,25 @@
 $script:Ordner = Join-Path $env:LOCALAPPDATA 'Reichsgilde'
 $script:Sperrdatei = Join-Path $script:Ordner 'STOPP'
 $script:Logdatei = Join-Path $script:Ordner 'aussenstelle.log'
+$script:Wurzeldatei = Join-Path $script:Ordner 'wurzel.txt'
+
+# Elternordner des Repos, in dem dieses Skript liegt (tools\aussenstelle liegt zwei Ebenen unter dem Repo),
+# z. B. C:\Reichsgilde_Aussenstelle mit allen Klonen und Worktrees darunter.
+function Hole-StandardWurzel {
+    return (Resolve-Path -LiteralPath (Join-Path $PSScriptRoot '..\..\..')).Path.TrimEnd('\', '/')
+}
+
+# Wurzel der Außenstelle: aus wurzel.txt (setzt einrichten.ps1), sonst der Standard.
+function Hole-Wurzel {
+    if (Test-Path -LiteralPath $script:Wurzeldatei) {
+        $text = (Get-Content -LiteralPath $script:Wurzeldatei -Raw -Encoding UTF8)
+        if ($text) {
+            $text = $text.Trim().TrimEnd('\', '/')
+            if ($text -ne '') { return $text }
+        }
+    }
+    return (Hole-StandardWurzel)
+}
 
 # Lokale Ports der KI-Dienste: ComfyUI, ComfyUI-3D, TTS, AssetFurnace.
 $script:KiPorts = @(

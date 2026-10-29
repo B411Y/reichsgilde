@@ -1,12 +1,25 @@
 ﻿<#
 Richtet die Außenstelle ein (ohne Administratorrechte, nur für den aktuellen Benutzer):
 - nimmt diesen Ordner in den Benutzer-PATH auf,
-- legt auf dem Desktop die Verknüpfung „Reichsgilde – PC zurückholen“ an.
+- legt auf dem Desktop die Verknüpfung „Reichsgilde – PC zurückholen“ an,
+- schreibt die Wurzel für den Notschalter nach %LOCALAPPDATA%\Reichsgilde\wurzel.txt
+  (Standard: Elternordner des Repos, z. B. C:\Reichsgilde_Aussenstelle; mit -Wurzel überschreibbar).
 Mehrfaches Aufrufen ändert nichts doppelt. Rückgängig: entfernen.ps1
 #>
+param(
+    [string]$Wurzel = ''
+)
+
 . (Join-Path $PSScriptRoot 'gemeinsam.ps1')
 
 $ordner = (Resolve-Path -LiteralPath $PSScriptRoot).Path.TrimEnd('\')
+
+# 0. Wurzel des Notschalters.
+if ($Wurzel -eq '') { $Wurzel = Hole-StandardWurzel }
+$Wurzel = (Resolve-Path -LiteralPath $Wurzel).Path.TrimEnd('\', '/')
+Stelle-OrdnerSicher
+Set-Content -LiteralPath $script:Wurzeldatei -Value $Wurzel -Encoding UTF8
+Write-Output "Wurzel: $Wurzel (in $script:Wurzeldatei)."
 
 # 1. Benutzer-PATH (nicht der System-PATH).
 $pfad = [Environment]::GetEnvironmentVariable('Path', 'User')

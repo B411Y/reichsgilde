@@ -1,15 +1,16 @@
 ﻿<#
 Notschalter: sperrt neue Aufträge der Außenstelle und beendet ihre Godot- und dotnet-Prozesse.
-Betroffen sind nur Prozesse, die aus dem Ordner dieser Außenstelle gestartet wurden
+Betroffen sind nur Prozesse, die aus der Wurzel der Außenstelle gestartet wurden
 (Pfad in der Befehlszeile oder im Programmpfad); ein Godot-Editor in einem anderen Ordner bleibt.
+Wurzel: wurzel.txt (setzt einrichten.ps1), sonst der Elternordner des Repos, z. B. C:\Reichsgilde_Aussenstelle.
 #>
 . (Join-Path $PSScriptRoot 'gemeinsam.ps1')
 
 Stelle-OrdnerSicher
 Set-Content -LiteralPath $script:Sperrdatei -Value ('Gesperrt am ' + (Get-Date -Format 'yyyy-MM-dd HH:mm:ss')) -Encoding UTF8
 
-# Wurzel des Klons: tools\aussenstelle liegt zwei Ebenen darunter.
-$wurzel = (Resolve-Path -LiteralPath (Join-Path $PSScriptRoot '..\..')).Path.TrimEnd('\', '/')
+# Mit Trennzeichen am Ende, damit C:\Reichsgilde_Aussenstelle2 nicht mitzählt.
+$wurzel = (Hole-Wurzel) + '\'
 $wurzelSchraeg = $wurzel.Replace('\', '/')
 
 function Gehoert-Zur-Aussenstelle($prozess) {
