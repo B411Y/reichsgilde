@@ -191,6 +191,7 @@ public partial class Wassertest : Node3D
             _ => art,
         };
         Wasserarten.Anwenden(m, gewaesser, richtung, winter, uferImNetz: true);
+        m.SetShaderParameter("netz_halb", new Vector2(30f, 30f)); // Wellen klingen zum Rand des Testfeldes ab
         var netz = new MeshInstance3D { Mesh = WasserNetz(art), MaterialOverride = m, CastShadow = GeometryInstance3D.ShadowCastingSetting.Off };
         knoten.AddChild(netz);
         _wasser.Add((art, netz, m));

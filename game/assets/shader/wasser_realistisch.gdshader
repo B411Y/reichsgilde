@@ -44,6 +44,13 @@ uniform float wave_speed = 0.5;
 uniform vec4 wave_a = vec4(1.0, 0.4, 0.35, 3.0);     // xy = Richtung, z = Steilheit, w = Länge
 uniform vec4 wave_b = vec4(-0.1, 0.6, 0.30, 1.55);
 uniform vec4 wave_c = vec4(-1.0, -0.8, 0.25, 0.9);
+// Zwei weitere, längere und kürzere Wellenzüge (Meer, See, Hafen): xy = Richtung, z = Steilheit, w = Länge; wirken nur mit extra_wellen > 0
+uniform vec4 wave_d = vec4(0.5, -1.0, 0.22, 6.3);
+uniform vec4 wave_e = vec4(-0.7, 0.3, 0.16, 2.3);
+uniform float extra_wellen = 0.0;      // Stärke der zwei zusätzlichen Wellenzüge (0 = aus)
+uniform float wellen_vielfalt = 0.0;   // 0 = überall gleiche Wellen; 1 = Gruppen großer Wellen und ruhige Stellen (Stärke je Wellenzug wandert als Rauschen)
+uniform vec2 netz_halb = vec2(0.0);    // halbe Netzgröße in m (Testfeld): Wellen klingen zum Rand hin ab; (0, 0) = aus
+uniform float rand_breite = 6.0;       // Breite des Abklingens am Netzrand in m
 uniform float wind_anteil = 0.5;       // wie stark der Weltwind Wellen, Richtung und Kräuselung beeinflusst (0 = gar nicht)
 
 // ── Oberfläche und Strömung ──
@@ -114,6 +121,12 @@ float w_fbm(vec2 p) {
 	return w_rausch(p) * 0.55 + w_rausch(p * 2.13 + 7.1) * 0.3 + w_rausch(p * 4.7 + 3.3) * 0.15;
 }
 
+// Stärke eines Wellenzuges an diesem Ort: großflächiges, langsam wanderndes Rauschen mit festem Startwert (kein Uhrzeit-Zufall), je Zug anders
+float zug_staerke(vec2 position, float saat, float skala) {
+	float n = w_rausch(position * skala + vec2(saat * 17.3, saat * 5.1) + vec2(TIME * 0.02 * (0.6 + saat * 0.3), TIME * 0.013));
+	return clamp(1.0 + wellen_vielfalt * (n - 0.5) * 3.2, 0.12, 1.0 + wellen_vielfalt * 0.5);
+}
+
 vec4 wave(vec4 parameter, vec2 position, float time, float staerke, float laenge, vec2 wind, inout vec3 tangent, inout vec3 binormal) {
 	float wave_steepness = parameter.z * staerke;
 	float wave_length = parameter.w * laenge;
@@ -146,11 +159,21 @@ void vertex() {
 	staerke *= 1.0 - clamp((eis * eis_reichweite - ufer) / 0.8, 0.0, 1.0);
 #endif
 
+	if (netz_halb.x > 0.0) { // am Rand des Testfeldes abklingen
+		vec2 innen = netz_halb - abs(VERTEX.xz);
+		staerke *= smoothstep(0.0, rand_breite, min(innen.x, innen.y));
+	}
+
+	// Jeder Zug hat eigene Länge, Richtung, eigenes Tempo (über die Länge) und eine eigene, wandernde Stärke
 	vec3 tang = vec3(0.0);
 	vec3 bin = vec3(0.0);
-	vec4 versatz = wave(wave_a, wp.xz, time, staerke, wellen_laenge, wind, tang, bin);
-	versatz += wave(wave_b, wp.xz, time, staerke, wellen_laenge, wind, tang, bin);
-	versatz += wave(wave_c, wp.xz, time, staerke, wellen_laenge, wind, tang, bin);
+	vec4 versatz = wave(wave_a, wp.xz, time * 1.0, staerke * zug_staerke(wp.xz, 0.0, 0.031), wellen_laenge, wind, tang, bin);
+	versatz += wave(wave_b, wp.xz, time * 1.15, staerke * zug_staerke(wp.xz, 1.0, 0.043), wellen_laenge, wind, tang, bin);
+	versatz += wave(wave_c, wp.xz, time * 0.85, staerke * zug_staerke(wp.xz, 2.0, 0.057), wellen_laenge, wind, tang, bin);
+	if (extra_wellen > 0.0) {
+		versatz += wave(wave_d, wp.xz, time * 0.9, staerke * extra_wellen * zug_staerke(wp.xz, 3.0, 0.023), wellen_laenge, wind, tang, bin);
+		versatz += wave(wave_e, wp.xz, time * 1.25, staerke * extra_wellen * zug_staerke(wp.xz, 4.0, 0.067), wellen_laenge, wind, tang, bin);
+	}
 	vertex += versatz;
 	wellen_y = versatz.y;
 
@@ -254,7 +277,7 @@ void fragment() {
 			schaum = saum * mix(0.3, 1.0, flocken) * schaum_staerke;
 		}
 		if (schaum_kamm > 0.001) {
-			schaum += smoothstep(0.55, 0.9, wellen_y * 4.0 + reisser * 0.4) * smoothstep(0.1, 0.5, wetter_wind) * schaum_kamm * reisser;
+			schaum += smoothstep(0.75, 1.0, wellen_y * 4.0 + reisser * 0.4) * smoothstep(0.1, 0.5, wetter_wind) * schaum_kamm * reisser;
 		}
 		schaum = clamp(schaum, 0.0, 1.0);
 	}

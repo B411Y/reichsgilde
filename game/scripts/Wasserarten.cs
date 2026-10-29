@@ -19,13 +19,15 @@ public enum Eisregel { Nie, Voll, Rand }
 /// <param name="SchaumStaerke">0 = kein Schaum.</param>
 /// <param name="SchaumBreite">Breite des Saums in Metern.</param>
 /// <param name="SchaumKamm">Schaumkronen auf den Wellen bei Wind (Meer).</param>
+/// <param name="Vielfalt">0–1: wie stark die Stärke der Wellenzüge ortsabhängig schwankt (Gruppen großer Wellen, ruhige Stellen); 0 = überall gleich.</param>
+/// <param name="ExtraWellen">0–1: Stärke der zwei zusätzlichen Wellenzüge (länger und kürzer als die drei Grundwellen).</param>
 /// <param name="Kaustik">Stärke der hellen Lichtmuster auf dem Grund.</param>
 /// <param name="EisReichweite">Meter vom Ufer, die das Eis im tiefsten Winter erreicht; 0 = friert nie. Bei <see cref="Eisregel.Voll"/> und
 /// <see cref="Eisregel.Rand"/> setzt <see cref="Wasserarten.Fuer"/> sie aus der Größe des Gewässers.</param>
 public sealed record Wasserart(
     string Name, float WellenStaerke, float WellenLaenge, float WindAnteil, float Stroemung,
     Color Flach, Color Tief, float Klarheit, float Brechung, float Rauheit,
-    float SchaumStaerke, float SchaumBreite, float SchaumKamm, float Kaustik, Eisregel Eis, float EisReichweite = 0f);
+    float SchaumStaerke, float SchaumBreite, float SchaumKamm, float Kaustik, Eisregel Eis, float EisReichweite = 0f, float Vielfalt = 0f, float ExtraWellen = 0f);
 
 /// <summary>Die Gewässerarten, ihre Zuordnung zum Kartenwasser und der Winterfortschritt des Eises (alles nur Darstellung).</summary>
 public static class Wasserarten
@@ -41,17 +43,17 @@ public static class Wasserarten
     public static readonly Wasserart Fluss = new("Fluss", 0.25f, 1.6f, 0.4f, 1.2f, new(0.40f, 0.45f, 0.32f), new(0.10f, 0.19f, 0.21f), 1.3f, 0.06f, 0.22f,
         SchaumStaerke: 0.9f, SchaumBreite: 0.9f, SchaumKamm: 0f, Kaustik: 0.3f, Eisregel.Nie);
     public static readonly Wasserart Bach = new("Bach", 0.14f, 0.5f, 0.1f, 0.8f, new(0.55f, 0.62f, 0.52f), new(0.22f, 0.36f, 0.36f), 0.9f, 0.05f, 0.18f,
-        SchaumStaerke: 0f, SchaumBreite: 0f, SchaumKamm: 0f, Kaustik: 1.2f, Eisregel.Voll);
+        SchaumStaerke: 0f, SchaumBreite: 0f, SchaumKamm: 0f, Kaustik: 0.8f, Eisregel.Voll);
     public static readonly Wasserart Teich = new("Teich", 0.12f, 0.5f, 0.3f, 0f, new(0.35f, 0.42f, 0.30f), new(0.12f, 0.22f, 0.20f), 1.6f, 0.05f, 0.18f,
         SchaumStaerke: 0f, SchaumBreite: 0f, SchaumKamm: 0f, Kaustik: 0.6f, Eisregel.Voll);
     public static readonly Wasserart See = new("See", 0.38f, 1.3f, 0.7f, 0f, new(0.48f, 0.60f, 0.58f), new(0.12f, 0.27f, 0.37f), 1.4f, 0.07f, 0.2f,
-        SchaumStaerke: 0f, SchaumBreite: 0f, SchaumKamm: 0f, Kaustik: 0.6f, Eisregel.Rand);
-    public static readonly Wasserart Meer = new("Meer", 0.8f, 3.5f, 1.0f, 0f, new(0.44f, 0.60f, 0.60f), new(0.05f, 0.17f, 0.29f), 0.8f, 0.08f, 0.2f,
-        SchaumStaerke: 0.8f, SchaumBreite: 1.2f, SchaumKamm: 0.6f, Kaustik: 0.5f, Eisregel.Nie);
+        SchaumStaerke: 0f, SchaumBreite: 0f, SchaumKamm: 0f, Kaustik: 0.6f, Eisregel.Rand, Vielfalt: 0.6f, ExtraWellen: 0.5f);
+    public static readonly Wasserart Meer = new("Meer", 1.0f, 3.5f, 1.0f, 0f, new(0.44f, 0.60f, 0.60f), new(0.05f, 0.17f, 0.29f), 0.8f, 0.08f, 0.2f,
+        SchaumStaerke: 0.8f, SchaumBreite: 1.2f, SchaumKamm: 0.35f, Kaustik: 0.5f, Eisregel.Nie, Vielfalt: 1f, ExtraWellen: 1f);
     public static readonly Wasserart Hafenbecken = new("Hafenbecken", 0.12f, 0.6f, 0.2f, 0f, new(0.40f, 0.45f, 0.38f), new(0.10f, 0.17f, 0.20f), 1.8f, 0.05f, 0.2f,
-        SchaumStaerke: 0f, SchaumBreite: 0f, SchaumKamm: 0f, Kaustik: 0.2f, Eisregel.Nie);
+        SchaumStaerke: 0f, SchaumBreite: 0f, SchaumKamm: 0f, Kaustik: 0.2f, Eisregel.Nie, Vielfalt: 0.3f, ExtraWellen: 0.25f);
     public static readonly Wasserart Furt = new("Furt", 0.10f, 0.4f, 0.1f, 1.0f, new(0.58f, 0.60f, 0.50f), new(0.30f, 0.40f, 0.36f), 0.6f, 0.04f, 0.18f,
-        SchaumStaerke: 0f, SchaumBreite: 0f, SchaumKamm: 0f, Kaustik: 1.0f, Eisregel.Nie);
+        SchaumStaerke: 0f, SchaumBreite: 0f, SchaumKamm: 0f, Kaustik: 0.35f, Eisregel.Nie);
     /// <summary>Schmaler, schwacher Strömungssaum, nur dort, wo der offene Fluss an eine Kaimauer strömt (eigener Streifen, Phase 3); im ruhigen Hafenbecken nie.</summary>
     public static readonly Wasserart KaiSaum = Fluss with { Name = "Kaisaum", SchaumStaerke = 0.3f, SchaumBreite = 0.35f, Eis = Eisregel.Nie, EisReichweite = 0f };
 
@@ -160,6 +162,12 @@ public static class Wasserarten
         m.SetShaderParameter("wellen_staerke", art.WellenStaerke);
         m.SetShaderParameter("wellen_laenge", art.WellenLaenge);
         m.SetShaderParameter("wind_anteil", art.WindAnteil);
+        m.SetShaderParameter("wellen_vielfalt", art.Vielfalt);
+        m.SetShaderParameter("extra_wellen", art.ExtraWellen);
+        var d = r.Rotated(-1.1f);
+        var e = r.Rotated(2.0f);
+        m.SetShaderParameter("wave_d", new Vector4(d.X, d.Y, 0.22f, 6.3f));
+        m.SetShaderParameter("wave_e", new Vector4(e.X, e.Y, 0.16f, 2.3f));
         m.SetShaderParameter("stroemung", r * art.Stroemung);
         // Drei Wellen aus leicht verschiedenen Richtungen (im Fluss enger um die Laufrichtung, sonst weiter), damit kein Waschbrett entsteht
         var faecher = art.Stroemung > 0 ? 0.5f : 0.9f;
