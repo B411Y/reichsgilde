@@ -91,6 +91,10 @@ Die Tempostufen 16× und 32× (Tasten 5 und 6) sind Testtempo für die Entwicklu
 
 Die beschrifteten Bilder im Spielbuch (`docs/bilder/handbuch/`) entstehen aus echten Bildschirmfotos: `tools/handbuch/aufnehmen.sh` nimmt die Rohbilder mit dem Klicktest auf, `tools/handbuch/beschriften.sh` setzt die Nummern (Datei `tools/handbuch/bilder.json`: Bild, Stelle der Nummer, Rahmen, Ausschnitt) und schreibt `.webp`. Ändert sich die Oberfläche, Rohbilder neu aufnehmen und die Stellen in `bilder.json` prüfen.
 
+## Außenstelle auf dem Grafik-PC
+
+Eine eigene Claude-Code-Sitzung auf dem Windows-PC führt Klicktests und Messungen aus, aber nur, wenn keine KI (Ports 8188, 8189, 8190, 8777) läuft und der Nutzer es erlaubt. Vor jedem schweren Auftrag ruft sie `tools/aussenstelle/frage.ps1` auf, bei langen Aufgaben zwischendurch `pruefen.ps1`; der Nutzer holt den PC mit `reichsgilde-stopp` zurück. Einzelheiten und Einrichtung: `tools/aussenstelle/README.md`.
+
 ## Spiel exportieren (Windows / Linux)
 
 1. Einmalig in Godot: **Editor → Exportvorlagen verwalten → Herunterladen und installieren**

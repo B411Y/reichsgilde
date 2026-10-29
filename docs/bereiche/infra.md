@@ -38,3 +38,14 @@ Werkzeuge, Abläufe, Lizenz und Asset-Protokoll. Neue Einträge unten anhängen,
 | Bot-Token | `prs-aktuell.yml` pusht mit dem Repository-Geheimnis `BOT_TOKEN` (klassisches Token des Bot-Kontos, `repo` + `workflow`); dann starten die PR-Prüfungen von selbst und der eigene `build.yml`-Lauf entfällt | 29.10.2026 |
 | Rückfall | Ohne `BOT_TOKEN`: `GITHUB_TOKEN` und selbst gestarteter `build.yml`-Lauf wie bisher | 29.10.2026 |
 | Schutzregel | Der Push geht nur auf PR-Branches, nie auf `main`; die Schutzregel ändert sich nicht | 29.10.2026 |
+
+### Außenstelle auf dem Grafik-PC (PR #…)
+
+| Thema | Entscheidung | Datum |
+|---|---|---|
+| Zweck | Eine eigene Claude-Code-Sitzung „Aussenstelle“ auf dem Windows-PC des Nutzers (RTX 4080) führt Godot-Klicktests und Messungen aus, aber nur, wenn die NAS voll ausgelastet ist; sie arbeitet in einem eigenen Klon (z. B. `C:\Reichsgilde_Aussenstelle\reichsgilde`) | 29.10.2026 |
+| Regel 1 | Läuft ComfyUI, ComfyUI-3D, TTS oder AssetFurnace (lokale Ports 8188, 8189, 8190, 8777), startet die Außenstelle nichts (`frage.ps1`, Code 2) | 29.10.2026 |
+| Regel 2 | Ist der Nutzer am PC (Eingabe in den letzten 10 Minuten), fragt ein Fenster mit Ton und 3 Minuten Frist; Ablehnen oder Zeitablauf = Code 1; ab 10 Minuten Leerlauf ohne Frage erlaubt | 29.10.2026 |
+| Regel 3 | Notschalter `reichsgilde-stopp` (auch als Desktop-Verknüpfung): Sperrdatei `%LOCALAPPDATA%\Reichsgilde\STOPP`, beendet Godot- und dotnet-Prozesse aus dem Außenstellen-Ordner; `reichsgilde-frei` hebt auf; lange Aufgaben prüfen zwischendurch mit `pruefen.ps1` (Code 3 = abbrechen) | 29.10.2026 |
+| Technik | `tools/aussenstelle/`: nur Benutzer-PATH, keine Administratorrechte, `.cmd` ruft PowerShell mit `-ExecutionPolicy Bypass` auf, UTF-8 mit BOM, Log in `%LOCALAPPDATA%\Reichsgilde\aussenstelle.log`; keine Schlüssel, Netzwerk nur lokale Ports | 29.10.2026 |
+| Ungetestet | Auf Linux nur geschrieben (kein `pwsh`); Fenster, Ton, Leerlaufzeit, Prozess-Beenden, Verknüpfung und PATH muss der Nutzer bzw. die Außenstelle auf dem PC prüfen | 29.10.2026 |
