@@ -131,6 +131,9 @@ public sealed partial class Stadtwirtschaft
     /// <summary>Krankheiten, Pest, Medicus und Hausapotheke.</summary>
     public Gesundheitswesen Gesundheit { get; }
 
+    /// <summary>Das Entwicklerfenster: Sperre, Kennzeichen „mit Entwicklerhilfe“ und die <see cref="Entwickler.EntwicklerBefehl"/>e.</summary>
+    public Entwickler.Entwicklerhilfe Entwicklerhilfe { get; }
+
     /// <summary>Gäste und Ausschank der Wirtshäuser, Barde, Würfeltisch, Stammtisch.</summary>
     public Gastwirtschaft Gastwirtschaft { get; }
 
@@ -312,6 +315,7 @@ public sealed partial class Stadtwirtschaft
         Ratsantraege = new Politik.Ratsantraege(this, daten.Politik);
         Befugnisse = new Politik.Amtsbefugnisse(this, daten.Politik.Befugnisse);
         Familien = new Familienbuch(this, daten.Dynastie, zufallsstartwert);
+        Entwicklerhilfe = new Entwickler.Entwicklerhilfe(this);
         Meinungen = new Meinungswesen(this, daten.Meinungen, zufallsstartwert);
         Justiz = new Stadtgericht(this, daten.Justiz, zufallsstartwert);
         Gauner = new Unterwelt(this, daten.Gauner, zufallsstartwert);
@@ -694,6 +698,9 @@ public sealed partial class Stadtwirtschaft
     /// <param name="absender">Wessen Befehl ist es? Nur eigene Betriebe dürfen verändert werden.</param>
     public Befehlsergebnis Ausfuehren(Konto absender, Befehl befehl)
     {
+        // Entwicklerbefehle gehen an den Regeln vorbei: eigene Sperre, keine Aktionspunkte, auch für bankrotte Häuser.
+        if (befehl is Entwickler.EntwicklerBefehl entwickler)
+            return Entwicklerhilfe.Ausfuehren(absender, entwickler);
         // Aktionspunkte: erst prüfen, nur bei Erfolg abbuchen – ein abgelehnter Befehl kostet nichts.
         var kosten = ApKosten(absender, befehl);
         if (kosten > 0 && absender.IstAktiv && !absender.Aktionspunkte.Reicht(kosten)

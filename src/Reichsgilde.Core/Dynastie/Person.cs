@@ -96,6 +96,10 @@ public sealed class Person : ICharakter
         var stelle = _zuege.FindLastIndex(z => z.Art <= zug.Art) + 1;
         _zuege.Insert(stelle, zug);
     }
+
+    /// <summary>Nimmt einen Zug wieder weg (Entwicklerfenster).</summary>
+    internal void ZugEntfernen(Charakterzug zug) => _zuege.Remove(zug);
+
     internal void TalentSetzen(Talent t, double wert) => _talente[(int)t] = wert;
 
     /// <summary>Die Krankheit, an der die Person gerade leidet (oder null).</summary>
