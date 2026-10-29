@@ -8,9 +8,9 @@ namespace Reichsgilde.Core;
 /// (Lockstep) rechnet aber jeder Rechner die Simulation selbst, nur die Befehle gehen übers Netz – und schon ein anderes Bit in einem Preis
 /// kann eine Entscheidung kippen. Dann laufen die Partien auseinander.
 ///
-/// Der Trick: Diese Klasse rechnet alles selbst, nur mit + − × ÷ und <c>Math.Sqrt</c>. Diese Rechenarten schreibt die Norm IEEE 754 exakt
-/// vor (korrekt gerundet), deshalb ergeben sie auf jedem x64-Rechner dasselbe Bit. Dazu kommen Ganzzahl- und Bitoperationen (Exponent einer
-/// Kommazahl auslesen und setzen), die ohnehin exakt sind. Die Formeln (Bereich verkleinern, dann ein Polynom) stammen aus fdlibm, der freien
+/// Der Trick: Diese Klasse rechnet alles selbst, nur mit + − × ÷. Diese Rechenarten schreibt die Norm IEEE 754 exakt vor (korrekt gerundet),
+/// deshalb ergeben sie auf jedem x64-Rechner dasselbe Bit. Dazu kommen <c>Math.Floor</c> und <c>Math.Abs</c> (ebenfalls exakt) sowie Ganzzahl-
+/// und Bitoperationen (Exponent einer Kommazahl auslesen und setzen); eine Wurzel braucht keine der Formeln. Die Formeln (Bereich verkleinern, dann ein Polynom) stammen aus fdlibm, der freien
 /// Mathebibliothek von Sun, die auch Java als <c>StrictMath</c> nutzt. Genauigkeit: Exp, Log, Sin, Cos und Atan2 etwa 1 Einheit der letzten
 /// Stelle (rund 1e-16 relativ); Pow rechnet über Exp(y·Log x) und verliert dabei etwas, in den genutzten Bereichen bleibt es unter 1e-14.
 ///
@@ -19,9 +19,14 @@ namespace Reichsgilde.Core;
 /// Ein Test (DetMatheTests) sucht verbotene Aufrufe im Quelltext des Kerns.
 /// </summary>
 /// <remarks>
-/// Die Konstanten und Polynome folgen fdlibm 5.3 (e_exp.c, e_log.c, k_sin.c, k_cos.c, e_rem_pio2.c, s_atan.c, e_atan2.c):
-/// Copyright (C) 1993 by Sun Microsystems, Inc. All rights reserved. Developed at SunPro, a Sun Microsystems, Inc. business.
+/// Die Konstanten und Polynome folgen fdlibm 5.3 (netlib.org/fdlibm). Die Hinweise der Vorlagen, wie sie dort stehen:
+///
+/// e_exp.c (1.6 04/04/22): Copyright (C) 2004 by Sun Microsystems, Inc. All rights reserved.
 /// Permission to use, copy, modify, and distribute this software is freely granted, provided that this notice is preserved.
+///
+/// e_log.c, k_sin.c, k_cos.c, e_rem_pio2.c, s_atan.c, e_atan2.c (1.3 bzw. 1.4 95/01/18): Copyright (C) 1993 by Sun Microsystems, Inc.
+/// All rights reserved. Developed at SunSoft, a Sun Microsystems, Inc. business. Permission to use, copy, modify, and distribute this
+/// software is freely granted, provided that this notice is preserved.
 /// </remarks>
 public static class DetMathe
 {
